@@ -67,6 +67,9 @@ type family ToLayout a
 type instance ToLayout (Layout__ m) = Layout__ m
 
 type family Merge a b
+type family MergeList lst where
+    MergeList '[a]      = a
+    MergeList (a ': as) = Merge a (MergeList as)
 
 
 -- === Validation === --

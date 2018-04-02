@@ -9,7 +9,7 @@ import qualified Foreign.Storable1.Ptr       as Ptr1
 import qualified OCI.IR.Layer.Internal       as Layer
 
 import Control.Monad.Exception     (Throws, throw)
-import Control.Monad.State.Layered (MonadState, StateT)
+import Control.Monad.State.Layered (StateT)
 import Data.Map.Strict             (Map)
 import Foreign.Ptr.Utils           (SomePtr)
 
@@ -64,7 +64,7 @@ instance Exception Error
 -- === Definition === --
 
 type Monad m = MonadRegistry m
-type MonadRegistry m = (MonadState State m, Throws Error m, MonadIO m)
+type MonadRegistry m = (State.Monad State m, Throws Error m, MonadIO m)
 
 newtype RegistryT m a = RegistryT (StateT State m a)
     deriving ( Applicative, Alternative, Functor, P.Monad, MonadFail, MonadFix
@@ -123,8 +123,8 @@ registerPrimLayer = do
 
 -- === Instances === --
 
-instance P.Monad m => State.MonadGetter State (RegistryT m) where
+instance P.Monad m => State.Getter State (RegistryT m) where
     get = wrap State.get' ; {-# INLINE get #-}
 
-instance P.Monad m => State.MonadSetter State (RegistryT m) where
+instance P.Monad m => State.Setter State (RegistryT m) where
     put = wrap . State.put' ; {-# INLINE put #-}

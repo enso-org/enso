@@ -4,38 +4,85 @@ module Luna.IR.Component.Term.Definition where
 
 import Prologue
 
-import qualified Control.Lens.TH                  as Lens
-import qualified Data.Tag                         as Tag
-import qualified Foreign.Storable.Deriving        as Storable
-import qualified Foreign.Storable1.Deriving       as Storable1
-import qualified Language.Haskell.TH              as TH
-import qualified Language.Haskell.TH.Syntax       as TH
-import qualified Luna.IR.Component.Link.TH        as Link
-import qualified Luna.IR.Component.Term.Class     as Term
-import qualified Luna.IR.Component.Term.Discovery as Discovery
-import qualified Luna.IR.Term.Format              as Format
+import qualified Control.Lens.TH                     as Lens
+import qualified Control.Monad.State.Layered         as State
+import qualified Data.Char                           as Char
+import qualified Data.Map.Strict                     as Map
+import qualified Data.Tag                            as Tag
+import qualified Foreign.Storable.Deriving           as Storable
+import qualified Foreign.Storable1.Deriving          as Storable1
+import qualified Language.Haskell.TH                 as TH
+import qualified Language.Haskell.TH.Builder         as State
+import qualified Language.Haskell.TH.Syntax          as TH
+import qualified Luna.IR.Component.Link              as Link
+import qualified Luna.IR.Component.Link.TH           as Link
+import qualified Luna.IR.Component.Term.Class        as Term
+import qualified Luna.IR.Component.Term.Construction as Term
+import qualified Luna.IR.Component.Term.Discovery    as Discovery
+import qualified Luna.IR.Term.Format                 as Format
+import qualified OCI.IR.Layout                       as Layout
+import qualified Type.Data.Map                       as TypeMap
 
-import Data.List.Split             (splitOn)
+import Data.Map.Strict              (Map)
+import Luna.IR.Component.Link       (type (*-*), Link)
+import Luna.IR.Component.Term.Layer (Model)
+
+import Control.Monad.State.Layered  (StateT)
+import Language.Haskell.TH          (Type (AppT, ConT))
 import Language.Haskell.TH.Builder
+import Luna.IR.Component.Term.Class (Term)
+import OCI.IR.Layout                (Layout)
 
 
--- | The 'Self' data is used to discover term self reference declaration.
-data Self
+
+---------------------
+-- === Helpers === --
+---------------------
+
+-- === Definition === --
+
+-- | 'LinkTo' is a phantom helper type. It gets resolved to 'LinkTo__' during
+--   code generation. It is used both as a short form for its expansion
+--   (note that expansion refers to `self` which gets replaced by current term
+--   type) as well as for smart constructor type inference.
+data LinkTo   t a
+type LinkTo__ t self a = Link (Layout.Get t a *-* Layout.Set Model self a)
+
+-- | 'FieldCons' is a typeclass which unifies how fields of smart cons get
+--   constructed. It's created only to make the generated code shorter and
+--   more maintainable.
+class Monad m => FieldCons t a m b where
+    fieldCons :: Term t -> a -> m b
 
 
--- TODO: convert single constructor data to newtype by default
+-- === Instances === --
+
+instance Monad m => FieldCons t a m a where
+    fieldCons _ = pure ; {-# INLINE fieldCons #-}
+
+instance Link.Creator m => FieldCons t (Term a) m (Link b) where
+    fieldCons self t = Layout.unsafeRelayout <$> Link.new t self ; {-# INLINE fieldCons #-}
+
+
+
+---------------------------
+-- === Term creation === --
+---------------------------
 
 -- | Term definition boilerplate
 --
+--   @
 --       Term.define ''Format.Thunk [d|
 --           data Unify a = Unify
---               { left  :: LinkTo Terms Self a
---               , right :: LinkTo Terms Self a
+--               { left  :: LinkTo Terms a
+--               , right :: LinkTo Terms a
 --               }
 --        |]
+--   @
 --
 --   Generates:
 --
+--   @
 --       Tag.familyInstance "TermCons" "Unify"
 --       data ConsUnify a = Unify
 --           { __left  :: {-# UNPACK #-} !(LinkTo Terms Unify a)
@@ -51,96 +98,187 @@ data Self
 --       Link.discover    ''ConsUnify
 --       type instance Format.Of Unify = Format.Thunk
 --
+--       unify :: forall m t2 t1. Creator Unify m
+--             => Term t1 -> Term t2
+--             -> m (Term (Layout.Layout
+--                      '[ Model := (Layout.MergeList '[Unify])
+--                       , Terms := (Layout.MergeList '[t1, t2])]))
+--       unify t1 t2 = Term.newM $ \self -> pure Unify <*> fieldCons self t1
+--                                                     <*> fieldCons self t2
+--       {-# INLINE unify #-}
+--   @
+--
+--   Moreover:
+--   1. Every single constructor data type is converted to newtype by default.
+
 define :: Name -> Q [Dec] -> Q [Dec]
-define format declsQ = do
+define = defineChoice True
+
+defineNoSmartCons :: Name -> Q [Dec] -> Q [Dec]
+defineNoSmartCons = defineChoice False
+
+defineChoice :: Bool -> Name -> Q [Dec] -> Q [Dec]
+defineChoice needsSmartCons format declsQ = do
     decls <- declsQ
-    concat <$> mapM (defineSingle format) decls
+    concat <$> mapM (defineSingle needsSmartCons format) decls
 
-mkConsName :: (IsString a, Semigroup a) => a -> a
-mkConsName = ("Cons" <>)
-
-defineSingle :: Name -> Dec -> Q [Dec]
-defineSingle format termDecl = do
-    con  <- case termDecl ^. consList of
-        [c] -> return c
-        _   -> fail "Term constructor should be a single constructor data type."
-    nameStr <- case (maybeNameStr termDecl, maybeNameStr con) of
-        (Just n, Just n') -> if n == n'
-            then return n
-            else fail "Term type should have the same name as its constructor."
-        _ -> fail "Term definition should have a named constructor."
-    let typeNameStr     = mkConsName nameStr
-        name            = convert nameStr
+defineSingle :: Bool -> Name -> Dec -> Q [Dec]
+defineSingle needsSmartCons format termDecl = do
+    (conName, param, con) <- case termDecl of
+        TH.DataD _ conName [TH.PlainTV param] _ [con] _
+          -> pure (conName, param, con)
+        _ -> fail . unlines
+           $ [ "Term constructor should be a data type parametrized with"
+             , "a single type variable and a single constructor definition."
+             ]
+    let conNameStr      = convertTo @String conName
+    case maybeNameStr con of
+        (Just n) -> when_ (n /= conNameStr)
+            $ fail "Term type should have the same name as its constructor."
+    let typeNameStr     = mkTypeName conNameStr
+        tagName         = convert conNameStr
         typeName        = convert typeNameStr
-        unpackStrict    = TH.Bang TH.SourceUnpack TH.SourceStrict
-        mangleFields    = namedFields %~ fmap (_1 %~ mangleFieldName nameStr)
-        bangFields      = namedFields %~ fmap (_2 .~ unpackStrict)
-        rebindFields    = namedFields %~ fmap (_3 %~ rebindSelf)
-        derivs          = cons' <$> [''Show, ''Eq]
-        setTypeName     = maybeName    .~ Just typeName
-        setDerivClauses = derivClauses .~ [TH.DerivClause Nothing derivs]
-        tagDecls        = Tag.familyInstance' "TermCons" nameStr
+
+        mangleFields    = namedFields %~ fmap (_1 %~ mangleFieldName conNameStr)
+        bangFields      = namedFields %~ fmap (_2 .~ unpackStrictAnn)
+        rebindFields    = namedFields %~ fmap (_3 %~ expandField tagName)
         con'            = mangleFields
                         . bangFields
                         . rebindFields
                         $ con
+
+        setTypeName     = maybeName    .~ Just typeName
+        setDerivClauses = derivClauses .~ [TH.DerivClause Nothing derivs]
+        derivs          = cons' <$> [''Show, ''Eq]
         termDecl'       = (consList .~ [con'])
                         . setTypeName
                         . setDerivClauses
                         $ termDecl
 
+        tagDecls        = Tag.familyInstance' "TermCons" conNameStr
         isTermTagInst   = TH.InstanceD Nothing []
-                          (TH.AppT (cons' ''Discovery.IsTermTag) (cons' name))
+                          (TH.AppT (cons' ''Discovery.IsTermTag) (cons' tagName))
                           []
-        rebindSelf      = runIdentity . rebindSelfM
-        rebindSelfM     = traverseType $ \case
-                              TH.ConT n -> pure $ if n == ''Self
-                                  then TH.ConT name
-                                  else TH.ConT n
-                              a -> rebindSelfM a
-
-        tagToConsInst   = typeInstance ''Term.TagToCons [cons' name]
+        tagToConsInst   = typeInstance ''Term.TagToCons [cons' tagName]
                           (cons' typeName)
         consToTagInst   = typeInstance ''Term.ConsToTag [cons' typeName]
-                          (cons' name)
-        formatInst      = typeInstance ''Format.Of [cons' name] (cons' format)
+                          (cons' tagName)
+        formatInst      = typeInstance ''Format.Of [cons' tagName] (cons' format)
+
+        fieldTypes      = fmap (view _3) . view namedFields $ con
 
     lensInst      <- Lens.declareLenses (pure [termDecl'])
     storableInst  <- Storable.derive'   termDecl'
     storable1Inst <- Storable1.derive'  termDecl'
+    smartCons     <- makeSmartCons tagName fieldTypes
 
-    let decls = tagDecls
-             <> lensInst
-             <> [ isTermTagInst
-                , tagToConsInst
-                , consToTagInst
-                , formatInst
-                ]
-             <> storableInst
-             <> storable1Inst
-    return decls
+    pure $ tagDecls
+        <> lensInst
+        <> [ isTermTagInst
+           , tagToConsInst
+           , consToTagInst
+           , formatInst
+           ]
+        <> storableInst
+        <> storable1Inst
+        <> if needsSmartCons then smartCons else []
+
     where maybeNameStr :: MayHaveName a => a -> (Maybe String)
           maybeNameStr = fmap TH.nameBase . view maybeName
 
+expandField :: Name -> TH.Type -> TH.Type
+expandField self field = case field of
+    AppT (AppT (ConT n) t) a -> if n == ''LinkTo
+        then apps (cons' ''LinkTo__) [t, cons' self, a]
+        else field
+    _ -> field
+
+
+-- === Helpers === --
+
+unpackStrictAnn :: TH.Bang
+unpackStrictAnn = TH.Bang TH.SourceUnpack TH.SourceStrict
+
+mkTypeName :: (IsString a, Semigroup a) => a -> a
+mkTypeName = ("Cons" <>)
+
 mangleFieldName :: String -> Name -> Name
-mangleFieldName sfx n = convert $ fixNameStr (convert n) <> "_" <> sfx
+mangleFieldName sfx n = convert $ fixDuplicateRecordNamesGHCBug (convert n)
+                               <> "_" <> sfx
 
-mangleField :: String -> TH.VarBangType -> TH.VarBangType
-mangleField sfx = _1 %~ mangleFieldName sfx
-
--- GHC BUG: https://ghc.haskell.org/trac/ghc/ticket/14848
-fixNameStr :: String -> String
-fixNameStr s = case splitOn ":" s of
-    []  -> error "impossible"
-    [a] -> a
-    as  -> unsafeLast $ unsafeInit as
-
-
-----------
+makeSmartCons :: Name -> [TH.Type] -> Q [TH.Dec]
+makeSmartCons tName fieldTypes = do
+    smartConsSigType <- inferSmartConsSigType tName fieldTypes
+    let smartConsName = lowerCase tName
+        smartConsSig  = TH.SigD smartConsName smartConsSigType
+    smartConsDef <- makeSmartConsBody tName smartConsName (length fieldTypes)
+    pure $ smartConsSig : smartConsDef
 
 
-mkUniTermName :: (IsString a, Semigroup a) => a -> a
-mkUniTermName = ("UniTerm" <>)
+
+--------------------------------
+-- === Smart constructors === --
+--------------------------------
+
+type InputMap a = Map Name [a]
+
+inferSmartConsSigType :: Name -> [TH.Type] -> Q (TH.Type)
+inferSmartConsSigType name ts = do
+    m            <- TH.newName "m"
+    (ins, inMap) <- inferSmartConsTypeInputs ts
+    let inMap'    = Map.insert ''Model [cons' name] (fmap var <$> inMap)
+    let out       = app (var m) $ inferSmartConsTypeOutput inMap'
+        arrow a b = AppT (AppT TH.ArrowT a) b
+        (a:as)    = reverse $ ins <> [out]
+        sig       = foldl (flip arrow) a as
+        ctx       = [app2 (cons' ''Term.Creator) (cons' name) (var m)]
+        tvs       = TH.PlainTV <$> (m : concat (Map.elems inMap))
+    pure $ TH.ForallT tvs ctx sig
+
+inferSmartConsTypeInputs :: [TH.Type] -> Q ([TH.Type], InputMap Name)
+inferSmartConsTypeInputs ts = State.runT (mapM inferSmartConsTypeInput ts)
+                              mempty
+
+inferSmartConsTypeInput :: TH.Type -> StateT (InputMap Name) Q TH.Type
+inferSmartConsTypeInput field = case field of
+    AppT (AppT (ConT n) (ConT t)) a -> if n /= ''LinkTo
+        then pure field
+        else do
+            tvName <- lift $ TH.newName "t"
+            State.modify_ @(InputMap Name) $ Map.insertWith (<>) t [var tvName]
+            pure $ app (cons' ''Term) (var tvName)
+    t -> pure t
+
+inferSmartConsTypeOutput :: InputMap TH.Type -> TH.Type
+inferSmartConsTypeOutput map = app (cons' ''Term) layout where
+    assocs = uncurry inferSmartConsTypeOutputField <$> Map.assocs map
+    layout = app (cons' ''Layout) $ fromList assocs
+
+inferSmartConsTypeOutputField :: Name -> [TH.Type] -> TH.Type
+inferSmartConsTypeOutputField k vs = field where
+    tp    = app  (cons' ''Layout.MergeList) $ fromList vs
+    field = app2 (cons' ''TypeMap.AssocP) (cons' k) tp
+
+makeSmartConsBody :: Name -> Name -> Int -> Q [TH.Dec]
+makeSmartConsBody tname fname varNum = do
+    ins  <- newNames varNum
+    self <- newName "self"
+    let body      = app (var 'Term.newM) lam
+        seg t a = app2 (var '(<*>)) t
+                        (app2 (var 'fieldCons) (var self) a)
+        lam       = TH.LamE [var self]
+                  $ foldl seg (app (var 'pure) (cons' tname)) (var <$> ins)
+        fn        = TH.FunD fname
+                  $ [TH.Clause (TH.VarP <$> ins) (TH.NormalB body) []]
+        inline    = TH.PragmaD (TH.InlineP fname TH.Inline TH.FunLike TH.AllPhases)
+
+    pure [fn,inline]
+
+
+
+--------------------------------
+-- === UniTerm generation === --
+--------------------------------
 
 -- | IMPORTANT: Use 'makeUniTerm' in a place in code where all possible
 --              terms are already declared.
@@ -171,15 +309,14 @@ makeUniTerm = do
             _ -> error "impossible"
     termNames <- unpackInst <<$>> TH.reifyInstances ''Discovery.IsTermTag ["x"]
     let dataName     = "UniTerm"
-        unpackStrict = TH.Bang TH.SourceUnpack TH.SourceStrict
-        mkCons n     = TH.NormalC consName [(unpackStrict, TH.AppT (TH.ConT childName) "a")] where
+        mkCons n     = TH.NormalC consName [(unpackStrictAnn, TH.AppT (TH.ConT childName) "a")] where
             consName  = dataName <> n
-            childName = mkConsName n
+            childName = mkTypeName n
         derivs       = [TH.DerivClause Nothing $ cons' <$> [''Show, ''Eq]]
         dataDecl     = TH.DataD [] dataName ["a"] Nothing (mkCons <$> termNames)
                        derivs
         isUniInst n  = TH.InstanceD Nothing []
-                       (TH.AppT (cons' ''Term.IsUni) (cons' $ mkConsName n))
+                       (TH.AppT (cons' ''Term.IsUni) (cons' $ mkTypeName n))
                        [TH.ValD "toUni" (TH.NormalB . cons' $ mkUniTermName n) []]
         isUniInsts   = isUniInst <$> termNames
     storableInst  <- Storable.derive'   dataDecl
@@ -189,3 +326,7 @@ makeUniTerm = do
         <> storableInst
         <> storable1Inst
         <> isUniInsts
+
+mkUniTermName :: (IsString a, Semigroup a) => a -> a
+mkUniTermName = ("UniTerm" <>)
+

@@ -207,12 +207,12 @@ repOf _ = rep @pass ; {-# INLINE repOf #-}
 -------------------------
 -- === Definition === --
 
-type MonadState m = State.MonadState (DiscoverState m) m
+type MonadState m = State.Monad (DiscoverState m) m
 
-instance State.MonadGetter (State pass) (Pass pass) where
+instance State.Getter (State pass) (Pass pass) where
     get = wrap State.get' ; {-# INLINE get #-}
 
-instance State.MonadSetter (State pass) (Pass pass) where
+instance State.Setter (State pass) (Pass pass) where
     put = wrap . State.put' ; {-# INLINE put #-}
 
 

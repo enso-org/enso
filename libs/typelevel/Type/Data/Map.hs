@@ -26,6 +26,7 @@ type family FromMap m where FromMap ('Map m) = m
 
 data Assoc a b = Assoc a b
 type (:=) = 'Assoc
+type AssocP = 'Assoc
 
 
 ----------------------

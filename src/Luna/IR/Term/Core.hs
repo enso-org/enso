@@ -1,9 +1,7 @@
--- {-# LANGUAGE NoDuplicateRecordFields #-}
 {-# LANGUAGE TypeInType           #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Luna.IR.Term.Core (module Luna.IR.Term.Core, module X) where
-import Luna.IR.Component.Term.Construction as X (ConsTop (Top), Top, top)
+module Luna.IR.Term.Core where
 
 import Prologue
 
@@ -25,68 +23,63 @@ import qualified OCI.IR.Layout                       as Layout
 import Luna.IR.Component.Link              (type (*-*), Link)
 import Luna.IR.Component.Term.Class        (Term, TermCons, Terms)
 import Luna.IR.Component.Term.Construction (Creator)
+import Luna.IR.Component.Term.Definition   (FieldCons, LinkTo, fieldCons)
 import Luna.IR.Component.Term.Layer        (Model)
 import Luna.IR.Component.Term.Layout
 import Type.Data.Ord                       (Cmp)
 
-
-import Luna.IR.Component.Term.Definition (Self)
-
-type LinkTo t self a = Link (Layout.Get t a *-* Layout.Set Model self a)
 
 
 ----------------
 -- === IR === --
 ----------------
 
+-- | Core IR terms definition. For more information on what the actual data
+--   is created please refer to the documentation of the TH functions.
+
 -- === IR Atoms === ---
 
-Term.define ''Format.Thunk [d|
-    data Acc     a = Acc     { base  :: LinkTo Terms Self a
-                             , name  :: LinkTo Names Self a }
-    data Unify   a = Unify   { left  :: LinkTo Terms Self a
-                             , right :: LinkTo Terms Self a }
+Term.defineNoSmartCons ''Format.Value [d|
+    data Top a = Top
     |]
 
-Term.define ''Format.Draft [d|
-    data Var     a = Var     { name  :: Name.Ref }
+Term.define ''Format.Thunk [d|
+    data Acc   a = Acc   { base :: LinkTo Terms a, name  :: LinkTo Names a }
+    data Unify a = Unify { left :: LinkTo Terms a, right :: LinkTo Terms a }
     |]
 
 Term.define ''Format.Phrase [d|
     data Missing a = Missing
     |]
 
-
-
+Term.define ''Format.Draft [d|
+    data Var a = Var { name :: Name.Ref }
+    |]
 
 
 -- === Smart constructors === --
 
-var :: Creator Var m => Name.Ref -> m (Term Var)
-var = Term.uncheckedNew . Var ; {-# INLINE var #-}
+-- | The smart constructor of 'Top' is special one, because its type link loops
+--   to itself. All other smart constructors use 'top' as their initial type
+--   representation.
+top :: Creator Top m => m (Term Top)
+top = Term.uncheckedUntypedNewM $ \self -> do
+    typeLink <- Link.new self self
+    Layer.write @Layer.Type self (Layout.relayout typeLink)
+    pure Top
+{-# INLINE top #-}
 
-missing :: Creator Missing m => m (Term Missing)
-missing = Term.uncheckedNew Missing ; {-# INLINE missing #-}
-
-acc :: Creator Acc m => Term base -> Term name -> m (Term (Acc -* base -# name))
-acc base name = Term.newM $ \self -> Acc <$> Link.new base self
-                                         <*> Link.new name self
-{-# INLINE acc #-}
-
-unify :: Creator Unify m => Term left -> Term right
-                         -> m (Term (Unify -* (Layout.Merge left right)))
-unify left right = Term.newM
-    $ \self -> Unify <$> fmap Layout.unsafeRelayout (Link.new left  self)
-                     <*> fmap Layout.unsafeRelayout (Link.new right self)
-{-# INLINE unify #-}
+instance Creator Top m => Term.DefaultType m where
+    defaultType = coerce <$> top ; {-# INLINE defaultType #-}
 
 
 
-
+-------------------------
+-- === TO AUTOMATE === --
+-------------------------
 
 type instance Cmp Model Terms = 'LT
 type instance Cmp Terms Model = 'GT
-
 
 type instance Cmp Model Names = 'LT
 type instance Cmp Names Model = 'GT

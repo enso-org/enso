@@ -15,7 +15,7 @@ import qualified OCI.Pass.Registry           as Registry
 
 import Control.Concurrent.Async    (Async, async)
 import Control.Monad.Exception     (Throws, throw)
-import Control.Monad.State.Layered (MonadState, StateT)
+import Control.Monad.State.Layered (StateT)
 import Data.Map.Strict             (Map)
 import GHC.Exts                    (Any)
 import OCI.Pass.Definition         (Pass)
@@ -74,7 +74,7 @@ buildState = State mempty mempty mempty ; {-# INLINE buildState #-}
 -- === Definition === --
 
 type Monad m = MonadScheduler m
-type MonadScheduler m = (MonadState State m, MonadIO m, Throws Error m)
+type MonadScheduler m = (State.Monad State m, MonadIO m, Throws Error m)
 
 newtype SchedulerT m a = SchedulerT (StateT State m a)
     deriving ( Applicative, Alternative, Functor, M, MonadFail, MonadFix
@@ -152,10 +152,10 @@ lookupAttr = fmap unsafeCoerce . Map.lookup (Attr.rep @attr) . view attrs
 
 -- === Instances === --
 
-instance P.Monad m => State.MonadGetter State (SchedulerT m) where
+instance P.Monad m => State.Getter State (SchedulerT m) where
     get = wrap State.get' ; {-# INLINE get #-}
 
-instance P.Monad m => State.MonadSetter State (SchedulerT m) where
+instance P.Monad m => State.Setter State (SchedulerT m) where
     put = wrap . State.put' ; {-# INLINE put #-}
 
 

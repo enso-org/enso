@@ -9,6 +9,7 @@ import Prologue hiding (Cons, Data, Type, cons, inline)
 import           Control.Lens (makePrisms, _3)
 import qualified Data.Char    as Char
 
+import           Data.List.Split            (splitOn)
 import           Language.Haskell.TH        as X (Dec, Name, Q, newName, reify,
                                                   runIO)
 import qualified Language.Haskell.TH        as TH
@@ -103,6 +104,16 @@ instance HasDerivClauses TH.Dec where
             a                                -> a
 
 
+
+-------------------
+-- === Lists === --
+-------------------
+
+type instance Item TH.Type = TH.Type
+instance Convertible [TH.Type] TH.Type where
+    convert = foldl' (flip $ TH.AppT . TH.AppT TH.PromotedConsT) TH.PromotedNilT
+
+
 -------------------
 -- === Names === --
 -------------------
@@ -131,6 +142,14 @@ mapName f n = TH.mkName $ (fromMaybe "" $ TH.nameModule n) <> (f $ TH.nameBase n
 
 toUpper :: Name -> Name
 toUpper = mapName (map Char.toUpper)
+
+
+-- === Utils === --
+
+lowerCase :: BiConvertible' String s => s -> s
+lowerCase s = convert' $ case convertTo' @String s of
+    []     -> []
+    (a:as) -> Char.toLower a : as
 
 
 -- === TH Conversions === --
@@ -270,7 +289,7 @@ app4 a t1 t2 t3 t4    = apps a [t1, t2, t3, t4]
 app5 a t1 t2 t3 t4 t5 = apps a [t1, t2, t3, t4, t5]
 
 apps :: Convertible (App a) a => a -> [a] -> a
-apps = foldl app
+apps = foldl' app
 
 appQ :: Convertible (App a) a => Q a -> Q a -> Q a
 appQ base arg = app <$> base <*> arg
@@ -365,10 +384,10 @@ instance a ~ TH.Pat => Convertible (Cons a) TH.Pat where
         conP      = TH.ConP n $ view expr <$> fs
 
 instance a ~ TH.Type => Convertible (Cons a) TH.Type where
-    convert (Cons n fs) = foldl TH.AppT (TH.ConT n) (view expr <$> fs)
+    convert (Cons n fs) = foldl' TH.AppT (TH.ConT n) (view expr <$> fs)
 
 instance a ~ TH.Exp => Convertible (Cons a) TH.Exp where
-    convert (Cons n fs) = foldl TH.AppE (TH.ConE n) (view expr <$> fs)
+    convert (Cons n fs) = foldl' TH.AppE (TH.ConE n) (view expr <$> fs)
 
 
 
@@ -583,7 +602,7 @@ classInstance n tn ts decs = convert $ ClassInstance Nothing mempty n tn ts decs
 instance Convertible ClassInstance TH.Dec where
     convert (ClassInstance olap cxt n tn ts decs) =
         TH.InstanceD olap cxt instanceT decs
-            where instanceT = TH.AppT (TH.ConT n) (foldl apply (TH.ConT tn) ts)
+            where instanceT = TH.AppT (TH.ConT n) (foldl' apply (TH.ConT tn) ts)
                   apply t (TH.PlainTV name)    = TH.AppT t (TH.VarT name)
                   apply t (TH.KindedTV name _) = TH.AppT t (TH.VarT name)
     {-# INLINE convert #-}
@@ -635,6 +654,13 @@ traverseType f = \case
     TH.UInfixT t n t2    -> TH.UInfixT <$> f t <*> pure n <*> f t2
     TH.ParensT t         -> TH.ParensT <$> f t
     a                    -> pure a
+
+-- GHC BUG: https://ghc.haskell.org/trac/ghc/ticket/14848
+fixDuplicateRecordNamesGHCBug :: String -> String
+fixDuplicateRecordNamesGHCBug s = case splitOn ":" s of
+    []  -> error "impossible"
+    [a] -> a
+    as  -> unsafeLast $ unsafeInit as
 
 
 --------------------------------------------------------------------------------
