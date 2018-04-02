@@ -72,6 +72,7 @@ default-extensions:
     - NoImplicitPrelude
     - NumDecimals
     - OverloadedLabels
+    - OverloadedStrings
     - PackageImports
     - QuasiQuotes
     - RankNTypes
