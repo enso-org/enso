@@ -71,7 +71,9 @@ type instance Inputs  Event ProjectCompilation = '[]
 type instance Outputs Event ProjectCompilation = '[New // AnyExpr]
 type instance Preserves     ProjectCompilation = '[]
 
-data ModuleCompilationError = ModuleSourcesNotFound QualName
+type ModuleRequestStack = [QualName]
+
+data ModuleCompilationError = ModuleSourcesNotFound ModuleRequestStack QualName
                             | ImportsCycleError [QualName]
                             deriving (Show)
 
@@ -110,52 +112,83 @@ prepareStdlib srcs = mdo
     Right (_, res@(CompiledModules modules _)) <- requestModules srcs stdlibImports initial
     return (cln, res)
 
-requestModules :: Map Name FilePath -> [QualName] -> CompiledModules -> IO (Either ModuleCompilationError (Map QualName Imports, CompiledModules))
+requestModules :: Map Name FilePath
+               -> [QualName]
+               -> CompiledModules
+               -> IO (Either
+                      ModuleCompilationError
+                      (Map QualName Imports, CompiledModules)
+                     )
 requestModules libs modules cached = do
     res <- runEitherT $ flip runStateT cached $ requestModules' libs modules
     case res of
         Left err -> liftIO (print err >> IO.hFlush IO.stdout) >> return res
         _        -> return res
 
-requestModules' :: (MonadState CompiledModules m, MonadError ModuleCompilationError m, MonadIO m) => Map Name FilePath -> [QualName] -> m (Map QualName Imports)
+requestModules' :: (MonadState CompiledModules m
+                  , MonadError ModuleCompilationError m
+                  , MonadIO m)
+                => Map Name FilePath
+                -> [QualName]
+                -> m (Map QualName Imports)
 requestModules' libs modules = do
-    sources <- liftIO $ mapM (Project.findProjectSources <=< Path.parseAbsDir) libs
-    let mkSourcesMap libName sources = foldl (\m (p, n) -> Map.insert (fromList . (libName :) . toList $ n) (UL.Source (Path.toFilePath p) def) m) def (Bimap.toList sources)
-        sourcesMgr = UL.fsSourceManager $ Map.unions $ uncurry mkSourcesMap <$> Map.toList sources
+    sources <- liftIO $
+        mapM (Project.findProjectSources <=< Path.parseAbsDir) libs
+    let f m (p, n) = Map.insert n (UL.Source (Path.toFilePath p) def) m
+        mkSourcesMap _libName sources = foldl' f def (Bimap.toList sources)
+        sourcesMap = Map.unions $ uncurry mkSourcesMap <$> Map.toList sources
+        sourcesMgr = UL.fsSourceManager sourcesMap
     res <- mapM (getOrCompileModule sourcesMgr []) modules
     return $ Map.fromList $ zip modules res
 
-getOrCompileModule :: (MonadState CompiledModules m, MonadError ModuleCompilationError m, MonadIO m) => UL.SourcesManager -> [QualName] -> QualName -> m Imports
+getOrCompileModule :: (MonadState CompiledModules m
+                     , MonadError ModuleCompilationError m
+                     , MonadIO m)
+                   => UL.SourcesManager
+                   -> [QualName]
+                   -> QualName
+                   -> m Imports
 getOrCompileModule srcs stack current = do
     scope <- use modules
     case scope ^? ix current of
         Just i -> return i
         _      -> requestModule srcs stack current
 
-requestModule :: (MonadState CompiledModules m, MonadError ModuleCompilationError m, MonadIO m) => UL.SourcesManager -> [QualName] -> QualName -> m Imports
+requestModule :: (MonadState CompiledModules m
+                , MonadError ModuleCompilationError m
+                , MonadIO m)
+              => UL.SourcesManager
+              -> [QualName]
+              -> QualName
+              -> m Imports
 requestModule srcs stack current = do
     putStrLn $ "Requested module: " <> convert current
+    liftIO $ IO.hFlush IO.stdout
     case dropWhile (/= current) stack of
         [] -> return ()
-        _  -> throwError $ ImportsCycleError (current : takeWhile (/= current) stack)
+        _  -> throwError $
+            ImportsCycleError (current : takeWhile (/= current) stack)
 
     codeE <- dropLogs $ srcs ^. UL.readCode $ current
     code  <- case codeE of
-        Left  _ -> throwError $ ModuleSourcesNotFound current
+        Left  _ -> throwError $ ModuleSourcesNotFound stack current
         Right c -> return c
     Right dependencies <- liftIO $ runPM False $ do
         initPM
         Pass.eval' @UL.UnitLoader $ do
             u      <- UL.parseUnit code
             imphub <- u @^. Term.imports
-            imps   <- readWrappedSources (unsafeGeneralize imphub :: UL.UnresolvedImportHubType)
+            imps   <- readWrappedSources
+                (unsafeGeneralize imphub :: UL.UnresolvedImportHubType)
             forM imps $ \imp -> do
                 src <- imp @^. Term.termUnresolvedImport_source
                 Term.Absolute path <- src @. wrapped
                 return path
     let baseIncludedDeps = if "Std.Base" == current
                            then dependencies
-                           else Set.toList $ Set.insert "Std.Base" $ Set.fromList dependencies
+                           else Set.toList
+                              $ Set.insert "Std.Base"
+                              $ Set.fromList dependencies
 
     deps <- fmap Map.fromList $ forM baseIncludedDeps $ \dep -> do
         scope <- use modules
@@ -164,6 +197,7 @@ requestModule srcs stack current = do
             Nothing -> (dep,) <$> requestModule srcs (current : stack) dep
     std <- use prims
     putStrLn $ "Compiling module: " <> convert current
+    liftIO $ IO.hFlush IO.stdout
     Right mod <- liftIO $ runPM False $ do
         initPM
         u <- Pass.eval' @UL.UnitLoader $ do
@@ -171,6 +205,7 @@ requestModule srcs stack current = do
             cls <- u @^. Unit.cls
             UL.partitionASGCls (unsafeGeneralize cls :: Expr ClsASG)
             return u
-        ModuleProcessing.processModule (unionsImports $ std : Map.elems deps) (convert current) u
+        ModuleProcessing.processModule (unionsImports $ std : Map.elems deps)
+            (convert current) u
     modules . at current .= Just mod
     return mod
