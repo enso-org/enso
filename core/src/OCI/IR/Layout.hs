@@ -78,6 +78,15 @@ type AssertEQ key layout val = Get key layout ~ val
 
 
 
+-- === Instances === --
+
+type instance Merge (Layout__ l) (Layout__ l') = Layout (Merge__ l l')
+type family Merge__ l l' where
+    Merge__ '[] '[] = '[]
+    Merge__ ((k := v) ': s) ((k := v') ': s') = (k := (Merge v v'))
+                                             ': Merge__ s s'
+
+
 ----------------------
 -- === Relayout === --
 ----------------------

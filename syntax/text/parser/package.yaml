@@ -19,9 +19,10 @@ tests:
             - directory
             - filepath
             - hspec
-            - hspec-megaparsec
-            - hspec-jenkins
+            - hspec-megaparsec == 0.3.1
+            - hspec-expectations-lifted
             - open-browser
+            - container
 
 
 dependencies:
@@ -89,3 +90,4 @@ default-extensions:
 
     - LiberalTypeSynonyms
     - RelaxedPolyRec
+    - UnicodeSyntax

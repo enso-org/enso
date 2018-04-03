@@ -10,4 +10,4 @@ packages:
     - placeholders-0.1
     - either-5
     - megaparsec-5.3.1
-    
+    - hspec-megaparsec-0.3.1
