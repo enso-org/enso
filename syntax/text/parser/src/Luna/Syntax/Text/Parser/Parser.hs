@@ -27,10 +27,14 @@ import Text.Parser.Backend.Megaparsec ()
 
 -- import Luna.Syntax.Text.Scope (Scope)
 -- import Luna.Syntax.Text.Source
+import qualified Luna.IR                             as IR
+import qualified Luna.IR.Component.Term.Construction as Term
+import qualified Luna.Pass                           as Pass
 
 -- import qualified Luna.Syntax.Text.Lexer           as Lexer
 import Control.Monad.State.Layered      (StatesT)
 import Control.Monad.State.Layered      (StateT)
+import Luna.Pass                        (Pass)
 import Luna.Syntax.Text.Parser.Class    as X (Error)
 import Luna.Syntax.Text.Parser.Class    (Stream)
 import Luna.Syntax.Text.Parser.Reserved (Reservation)
@@ -50,11 +54,55 @@ type ParserBase2 = ParsecT Error Stream IO
 type SymParser = StatesT '[Reservation] ParserBase2
 
 
--- -------------------------
--- -- === IRParserRaw === --
--- -------------------------
+
+data Parser
+type instance Pass.Spec Parser t = TestPassSpec t
+type family   TestPassSpec  t where
+    TestPassSpec (Pass.In  Pass.Attrs) = '[]
+    TestPassSpec (Pass.Out Pass.Attrs) = '[]
+    TestPassSpec t                     = Pass.BasicPassSpec t
+
+Pass.cache_phase1 ''Parser
+Pass.cache_phase2 ''Parser
+
+
+
+
+-----------------
+-- === IRB === --
+-----------------
 
 -- -- === Definition === --
+
+type IRB = Pass Parser
+-- newtype IRB a = IRB { fromIRB :: Pass Parser a } deriving (Functor, Applicative, Monad)
+-- makeLenses ''IRB
+
+
+---------------------
+-- === AsgBldr === --
+---------------------
+
+-- === Definition === --
+
+newtype AsgBldr a = AsgBldr { fromAsgBldr :: IRB a } deriving (Functor, Applicative, Monad)
+makeLenses ''AsgBldr
+
+
+
+
+
+-- === Instances === --
+
+-- instance Applicative IRB where
+--     pure a = IRB $ pure a           ; {-# INLINE pure #-}
+--     IRB f <*> IRB a = IRB $ f <*> a ; {-# INLINE (<*>) #-}
+
+--     instance Monad IRB where
+--         IRB ma >>= f = IRB $ ma >>= fromIRB . f ; {-# INLINE (>>=) #-}
+
+
+-- newtype IRB a = IRB { fromIRB :: ∀ m. IRBuilding m => m a } deriving (Functor)
 
 -- type IRBuilding m = ( MonadRef m, MonadState MarkedExprMap m, MonadState UnmarkedExprs m
 --                      , Req m '[ Emitter // New   // '[AnyExpr, AnyExprLink]
@@ -74,16 +122,8 @@ type SymParser = StatesT '[Reservation] ParserBase2
 
 
 
-
--- newtype IRB a = IRB { fromIRB :: forall m. IRBuilding m => m a } deriving (Functor)
 -- instance Show (IRB a) where show _ = "IRB" -- FIXME: remove?
 
--- instance Applicative IRB where
---     pure a                      = IRB $ pure a
---     IRB f <*> IRB a = IRB $ f <*> a
-
--- instance Monad IRB where
---     IRB ma >>= f = IRB $ ma >>= fromIRB . f
 
 -- instance MonadFix IRB where
 --     mfix f = IRB $ mdo
@@ -108,18 +148,25 @@ type SymParser = StatesT '[Reservation] ParserBase2
 -- runIRBx (IRB f) = f
 
 
+-- ---------------------
+-- -- === AsgBldr === --
+-- ---------------------
 
--- newtype AsgBldr a = AsgBldr (IRB a) deriving (Functor, Show)
+-- -- === Definition === --
+
+-- newtype AsgBldr a = AsgBldr { fromAsgBldr :: IRB a } deriving (Functor)
 -- makeLenses ''AsgBldr
 
 
--- instance Applicative AsgBldr where
---     pure = AsgBldr . pure
---     AsgBldr f <*> AsgBldr a = AsgBldr $ f <*> a
+-- -- === Instances === --
 
+-- instance Applicative AsgBldr where
+--     pure = AsgBldr . pure                       ; {-# INLINE pure #-}
+--     AsgBldr f <*> AsgBldr a = AsgBldr $ f <*> a ; {-# INLINE (<*>) #-}
 
 -- instance Monad AsgBldr where
---     AsgBldr ma >>= f = AsgBldr $ ma >>= unwrap . f
+--     AsgBldr ma >>= f = AsgBldr $ ma >>= unwrap . f ; {-# INLINE (>>=) #-}
+
 
 -- instance MonadFix AsgBldr where
 --     mfix f = AsgBldr $ mfix (unwrap . f)

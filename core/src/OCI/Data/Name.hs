@@ -30,44 +30,44 @@ instance Convertible FastString String     where convert = FastString.unpackFS ;
 
 
 ------------------
--- === Name === --
+-- === Value === --
 ------------------
 
 -- === Definition === --
 
-newtype Name = Name FastString
+newtype Value = Value FastString
     deriving (Binary, Data, Eq, Prelude.Monoid, Ord, Outputable, Uniquable)
-makeLenses ''Name
+makeLenses ''Value
 
 
 -- === Instances === --
 
-instance Show Name where
+instance Show Value where
     show = show . unwrap ; {-# INLINE show #-}
 
 
 
------------------
--- === Ref === --
------------------
+------------------
+-- === Name === --
+------------------
 
--- | The 'Ref' is a reference to name. You can use it to query the Name State
+-- | The 'Name' is a reference to name. You can use it to query the Value State
 --   for name representation and you can serialize it in binary formats with
 --   ease. Currently, it's implemented simply as newtype over 'Int', however
 --   do not rely on ninternal representtion.
 
 -- === Definition === ---
 
-newtype Ref = Ref Int deriving (Eq, Num, Storable)
-makeLenses ''Ref
+newtype Name = Name Int deriving (Eq, Num, Storable)
+makeLenses ''Name
 
 
 -- === Instances === --
 
-instance Convertible Name   Ref where convert = wrap . FastString.uniq . unwrap ; {-# INLINE convert    #-}
-instance Convertible String Ref where convert = convertVia @Name                ; {-# INLINE convert    #-}
-instance IsString           Ref where fromString = convert                      ; {-# INLINE fromString #-}
-instance Show               Ref where show       = show . convertTo @String     ; {-# INLINE show       #-}
+instance Convertible Value  Name where convert = wrap . FastString.uniq . unwrap ; {-# INLINE convert    #-}
+instance Convertible String Name where convert = convertVia @Value               ; {-# INLINE convert    #-}
+instance IsString           Name where fromString = convert                      ; {-# INLINE fromString #-}
+instance Show               Name where show       = show . convertTo @String     ; {-# INLINE show       #-}
 
 
 
@@ -77,7 +77,7 @@ instance Show               Ref where show       = show . convertTo @String     
 
 -- === Definition === --
 
-newtype RefMap = RefMap (IntMap Name)
+newtype RefMap = RefMap (IntMap Value)
     deriving (Semigroup, Mempty, Show)
 makeLenses ''RefMap
 
@@ -92,10 +92,10 @@ getRefMap :: MonadIO m => m RefMap
 getRefMap = liftIO $! readIORef refMap
 {-# NOINLINE getRefMap #-}
 
-registerName :: Name -> Name
+registerName :: Value -> Value
 registerName !name = out where
     !out = unsafePerformIO $ do
-        let nameRef = convertTo @Ref name
+        let nameRef = convertTo @Name name
         atomicModifyIORef' refMap
             $ (,()) . (wrapped %~ IntMap.insert (coerce nameRef) name)
         return name
@@ -105,17 +105,17 @@ registerName !name = out where
 
 -- === Instances === --
 
-instance Convertible Name       FastString where convert = unwrap ; {-# INLINE convert #-}
-instance Convertible FastString Name       where
+instance Convertible Value       FastString where convert = unwrap ; {-# INLINE convert #-}
+instance Convertible FastString Value       where
     convert !s = out where
         !out = registerName $! wrap s
     {-# INLINE convert #-}
 
-instance IsString           Name   where fromString = convert                ; {-# INLINE fromString #-}
-instance Convertible String Name   where convert    = convertVia @FastString ; {-# INLINE convert #-}
-instance Convertible Name   String where convert    = convertVia @FastString ; {-# INLINE convert #-}
-instance Convertible Ref    String where convert    = convertVia @Name       ; {-# INLINE convert #-}
-instance Convertible Ref    Name   where
+instance IsString           Value  where fromString = convert                ; {-# INLINE fromString #-}
+instance Convertible String Value  where convert    = convertVia @FastString ; {-# INLINE convert #-}
+instance Convertible Value  String where convert    = convertVia @FastString ; {-# INLINE convert #-}
+instance Convertible Name   String where convert    = convertVia @Value      ; {-# INLINE convert #-}
+instance Convertible Name   Value  where
     convert !ref = unsafeDupablePerformIO $ do
         map <- getRefMap
         case IntMap.lookup (unwrap ref) (unwrap map) of

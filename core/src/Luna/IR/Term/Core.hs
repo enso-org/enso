@@ -10,7 +10,6 @@ import qualified Luna.IR.Component.Term.Construction as Term
 import qualified Luna.IR.Component.Term.Definition   as Term
 import qualified Luna.IR.Component.Term.Layer        as Layer
 import qualified Luna.IR.Term.Format                 as Format
-import qualified OCI.Data.Name                       as Name
 import qualified OCI.IR.Layer.Internal               as Layer
 import qualified OCI.IR.Layout                       as Layout
 
@@ -18,6 +17,7 @@ import Luna.IR.Component.Term.Class      (Term, Terms)
 import Luna.IR.Component.Term.Definition (LinkTo)
 import Luna.IR.Component.Term.Layer      (Model)
 import Luna.IR.Component.Term.Layout     (Names)
+import OCI.Data.Name                     (Name)
 import Type.Data.Ord                     (Cmp)
 
 
@@ -45,7 +45,7 @@ Term.define ''Format.Phrase [d|
     |]
 
 Term.define ''Format.Draft [d|
-    data Var a = Var { name :: Name.Ref }
+    data Var a = Var { name :: Name }
     |]
 
 
