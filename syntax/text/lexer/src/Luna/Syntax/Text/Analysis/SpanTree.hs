@@ -201,21 +201,25 @@ instance Semigroup (Spantree a) where a <> b = wrap $ unwrap a <> unwrap b ; {-#
 
 -- === Spantree construction === --
 
-buildSpanTree :: Text32 -> [Lexer.Token Lexer.Symbol] -> Spantree Text32
-buildSpanTree src = \case
-    []     -> empty
-    (t:ts) -> tailTree & case t ^. Lexer.symbol of
-        Lexer.Marker _ -> preprendSpan span $ flip markerSpanned txtSrc
-        _              -> preprendSpan span $ flip textSpanned   txtSrc
-        where span             = t ^. Lexer.span
-              off              = t ^. Lexer.offset
-              tailTree         = addOffSpan $ buildSpanTree src'' ts
-              addOffSpan       = preprendSpan off $ flip offSpanned offSrc
-              (txtSrc, src')   = Text32.splitAt (convert span) src
-              (offSrc, src'')  = Text32.splitAt (convert off)  src'
-              preprendSpan :: Delta -> (Delta -> Spanned a) -> (Spantree a -> Spantree a)
-              preprendSpan d f = if d > 0 then (f d <|) else id
-{-# NOINLINE buildSpanTree #-}
+-- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+-- !!! FIXME[WD]: GHC PANIC HERE !!!
+-- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+-- buildSpanTree :: Text32 -> [Lexer.Token Lexer.Symbol] -> Spantree Text32
+-- buildSpanTree src = \case
+--     []     -> empty
+--     (t:ts) -> tailTree & case t ^. Lexer.symbol of
+--         Lexer.Marker _ -> preprendSpan span $ flip markerSpanned txtSrc
+--         _              -> preprendSpan span $ flip textSpanned   txtSrc
+--         where span             = t ^. Lexer.span
+--               off              = t ^. Lexer.offset
+--               tailTree         = addOffSpan $ buildSpanTree src'' ts
+--               addOffSpan       = preprendSpan off $ flip offSpanned offSrc
+--               (txtSrc, src')   = Text32.splitAt (convert span) src
+--               (offSrc, src'')  = Text32.splitAt (convert off)  src'
+--               preprendSpan :: Delta -> (Delta -> Spanned a) -> (Spantree a -> Spantree a)
+--               preprendSpan d f = if d > 0 then (f d <|) else id
+-- {-# NOINLINE buildSpanTree #-}
 
 
 -- === View / Real position management === --

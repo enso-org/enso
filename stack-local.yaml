@@ -17,6 +17,7 @@ local-bin-path: dist/bin/public/luna
 packages:
     - core
     - syntax/text/lexer
+    - syntax/text/parser
     - ../container
     - ../convert
     - ../lens-utils
@@ -24,6 +25,8 @@ packages:
     - ../functor-utils
     - ../prologue
     - ../impossible
+    - ../layouting
+    - ../terminal-text
     - ../typelevel
     - ../data-construction
     - ../data-repr

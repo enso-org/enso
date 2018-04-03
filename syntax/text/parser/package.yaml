@@ -29,9 +29,10 @@ dependencies:
     - luna-core
     - luna-lexer
     - prologue
-    - dependent-state
+    - layered-state
     - lens
-    - megaparsec
+    - lens-utils
+    - megaparsec == 5.3.1
     - containers
     - mtl
     - text

@@ -1,7 +1,7 @@
 module Text.Parser.Indent.Class where
 
-import Prologue_old
 import Data.Text.Position
+import Prologue
 
 
 
@@ -22,8 +22,8 @@ push d i = i & stack %~ (i ^. level :)
              & level .~ d
 
 pop :: Indent -> (Delta, Indent)
-pop i = (i ^. level,) $ i & level .~ head (i ^. stack)
-                          & stack %~ tail
+pop i = (i ^. level,) $ i & level .~ unsafeHead (i ^. stack)
+                          & stack %~ unsafeTail
 
 
 -- === Instances === --

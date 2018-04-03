@@ -4,23 +4,25 @@
 
 module Luna.Syntax.Text.Parser.CodeSpan where
 
-import Prologue_old hiding (String, Type, Span, span, length)
+import Prologue hiding (Span, String, Type, length, span)
 
-import Text.Megaparsec.Prim (MonadParsec)
-import           Data.Text.Span       (LeftSpacedSpan, offset, length)
-import qualified Data.Text.Span       as Span
-import Type.Any (AnyType)
+import qualified Control.Monad.State.Layered as State
+import qualified Data.Text.Span              as Span
 
-import OCI.IR hiding (IRBuilder, get)
-import Luna.Syntax.Text.Layer.Loc
-import OCI.Pass hiding (get, inputs)
-import OCI.Pass.Definition
-import Luna.IR
 import Data.Text.Position (Delta)
-import Control.Monad.State.Dependent
-import Luna.IR.ToRefactor2 (Listener, listener, tpElemPass, addElemEventListener, readSource, readTarget, readInputSources)
-import Luna.IR.Layer.Succs (Succs)
+import Data.Text.Span     (LeftSpacedSpan, length, offset)
+-- import Luna.IR
+-- import Luna.IR.Layer.Succs         (Succs)
+-- import Luna.IR.ToRefactor2         (Listener, addElemEventListener, listener,
+--                                     readInputSources, readSource, readTarget,
+--                                     tpElemPass)
+import Luna.Syntax.Text.Layer.Loc
 import Luna.Syntax.Text.Parser.AST
+-- import OCI.IR                      hiding (IRBuilder, get)
+-- import OCI.Pass                    hiding (get, inputs)
+-- import OCI.Pass.Definition
+import Text.Megaparsec.Prim (MonadParsec)
+import Type.Any             (AnyType)
 
 
 ------------------------
@@ -91,102 +93,102 @@ instance Semigroup CodeSpan where CodeSpan r v <> CodeSpan r' v' = CodeSpan (r <
 
 
 
-----------------------------
--- === CodeSpan layer === --
-----------------------------
+-- ----------------------------
+-- -- === CodeSpan layer === --
+-- ----------------------------
 
-type instance LayerData CodeSpan t = CodeSpan
+-- type instance LayerData CodeSpan t = CodeSpan
 
-initCodeSpan :: Req m '[Writer // Layer // Abstract (Elem t) // CodeSpan] => Listener (New // Elem t) m
-initCodeSpan = listener $ \(a,_) -> putLayer @CodeSpan a mempty
-makePass 'initCodeSpan
+-- initCodeSpan :: Req m '[Writer // Layer // Abstract (Elem t) // CodeSpan] => Listener (New // Elem t) m
+-- initCodeSpan = listener $ \(a,_) -> putLayer @CodeSpan a mempty
+-- makePass 'initCodeSpan
 
-init :: MonadPassManager m => m ()
-init = addElemEventListener @CodeSpan initCodeSpanPass
-
-
--- === Utils === --
-
-type AbsSpanReq m = Req m '[ Reader // Layer // AnyExpr     // '[Model, Succs, CodeSpan]
-                           , Reader // Layer // AnyExprLink // Model
-                           ]
-
-absSpan :: forall m. AbsSpanReq m => SomeExpr -> m CodeSpan
-absSpan a = (<>) <$> getParentSpan a <*> getLayer @CodeSpan a where
-
-    spanUntil :: SomeExpr -> SomeExpr -> m CodeSpan
-    spanUntil el current = do
-        els <- readInputSources current
-        let preds = takeWhile (/= el) els
-        predsSpans <- getLayer @CodeSpan <$>= preds
-        parentSpan <- getParentSpan current
-        return $ parentSpan <> mconcat (asOffsetSpan <$> predsSpans)
-
-    getParentSpan :: SomeExpr -> m CodeSpan
-    getParentSpan a = getParent a >>= \case
-        Nothing -> return mempty
-        Just p  -> (<>) <$> (dropLength <$> getLayer @CodeSpan p) <*> spanUntil a p
+-- init :: MonadPassManager m => m ()
+-- init = addElemEventListener @CodeSpan initCodeSpanPass
 
 
-type FirstMatchReq m = (Req m '[ Reader // Layer // AnyExpr     // '[Model, CodeSpan]
-                              , Reader // Layer // AnyExprLink // Model
-                              ], MonadIO m)
+-- -- === Utils === --
 
-findAstBySpan :: FirstMatchReq m => (CodeOffset -> Bool) -> (CodeOffset -> Bool) -> SomeExpr -> m (Maybe (CodeOffset, SomeExpr))
-findAstBySpan leftCheck rightCheck expr = go mempty [expr] where
-    go s []     = return Nothing
-    go s (t:ts) = do
-        tcs <- getLayer @CodeSpan t
-        let tcsLen   = asCodeOffset tcs
-            tcsOff   = s <> extractCodeOffset (dropLength tcs)
-            totalLen = s <> tcsLen
-            current  = return $ Just (s,t)
-        if | leftCheck  tcsOff   -> current
-           | rightCheck totalLen -> do
-               ins <- readInputSources t
-               if null ins then current else go tcsOff ins
-           | otherwise -> go totalLen ts
+-- type AbsSpanReq m = Req m '[ Reader // Layer // AnyExpr     // '[Model, Succs, CodeSpan]
+--                            , Reader // Layer // AnyExprLink // Model
+--                            ]
 
-findAstByViewSpan, findAstByRealSpan :: FirstMatchReq m => (Delta -> Bool) -> (Delta -> Bool) -> SomeExpr -> m (Maybe (CodeOffset, SomeExpr))
-findAstByViewSpan leftCheck rightCheck = findAstBySpan (leftCheck . view viewOffset) (rightCheck . view viewOffset)
-findAstByRealSpan leftCheck rightCheck = findAstBySpan (leftCheck . view realOffset) (rightCheck . view realOffset)
+-- absSpan :: forall m. AbsSpanReq m => SomeExpr -> m CodeSpan
+-- absSpan a = (<>) <$> getParentSpan a <*> getLayer @CodeSpan a where
 
-splitAtView, splitAtReal :: FirstMatchReq m => Delta -> SomeExpr -> m (Maybe (CodeOffset, SomeExpr))
-splitAtView d = findAstByViewSpan (>= d) (> d)
-splitAtReal d = findAstByRealSpan (>= d) (> d)
+--     spanUntil :: SomeExpr -> SomeExpr -> m CodeSpan
+--     spanUntil el current = do
+--         els <- readInputSources current
+--         let preds = takeWhile (/= el) els
+--         predsSpans <- getLayer @CodeSpan <$>= preds
+--         parentSpan <- getParentSpan current
+--         return $ parentSpan <> mconcat (asOffsetSpan <$> predsSpans)
 
-viewToRealOffset_ :: FirstMatchReq m => Delta -> SomeExpr -> m  Delta
-viewToRealOffset  :: FirstMatchReq m => Delta -> SomeExpr -> m (Maybe SomeExpr, Delta)
-viewToRealOffset' :: FirstMatchReq m => Delta -> SomeExpr -> m (Maybe (CodeOffset, SomeExpr), Delta)
-viewToRealOffset_ d a = snd <$> viewToRealOffset d a
-viewToRealOffset  d a = (_1 %~ fmap snd) <$> viewToRealOffset' d a
-viewToRealOffset' d a = splitAtView d a >>= \case
-    Nothing -> (Nothing,) . Span.measure . view realSpan <$> getLayer @CodeSpan a
-    t@(Just (leftSpan, _)) -> return (t, realOff) where
-        leftViewOff = leftSpan ^. viewOffset
-        offDiff     = d - leftViewOff
-        realOff     = leftSpan ^. realOffset + offDiff
+--     getParentSpan :: SomeExpr -> m CodeSpan
+--     getParentSpan a = getParent a >>= \case
+--         Nothing -> return mempty
+--         Just p  -> (<>) <$> (dropLength <$> getLayer @CodeSpan p) <*> spanUntil a p
 
-viewToRealOffsetWithMarkers_ :: FirstMatchReq m => Delta -> SomeExpr -> m Delta
-viewToRealOffsetWithMarkers  :: FirstMatchReq m => Delta -> SomeExpr -> m (Maybe SomeExpr, Delta)
-viewToRealOffsetWithMarkers_ = fmap3 snd viewToRealOffsetWithMarkers
-viewToRealOffsetWithMarkers d a = do
-    (es, realOff) <- viewToRealOffset' d a
-    case es of
-        Nothing -> return (Nothing, realOff)
-        Just (leftSpan, expr) -> do
-            (expr', diff) <- matchExpr expr $ \case
-                Marked lm la -> do
-                    exprSpan <- getLayer @CodeSpan expr
-                    let justBeforeMarker = d == (leftSpan ^. viewOffset) + exprSpan ^. (viewSpan . Span.offset)
-                    if justBeforeMarker then do
-                        a     <- readSource la
-                        m     <- readSource lm
-                        mSpan <- getLayer @CodeSpan m
-                        return (a, Span.measure $ mSpan ^. realSpan)
-                    else return (expr, mempty)
-                _ -> return (expr, mempty)
-            return (Just expr', realOff + diff)
+
+-- type FirstMatchReq m = (Req m '[ Reader // Layer // AnyExpr     // '[Model, CodeSpan]
+--                               , Reader // Layer // AnyExprLink // Model
+--                               ], MonadIO m)
+
+-- findAstBySpan :: FirstMatchReq m => (CodeOffset -> Bool) -> (CodeOffset -> Bool) -> SomeExpr -> m (Maybe (CodeOffset, SomeExpr))
+-- findAstBySpan leftCheck rightCheck expr = go mempty [expr] where
+--     go s []     = return Nothing
+--     go s (t:ts) = do
+--         tcs <- getLayer @CodeSpan t
+--         let tcsLen   = asCodeOffset tcs
+--             tcsOff   = s <> extractCodeOffset (dropLength tcs)
+--             totalLen = s <> tcsLen
+--             current  = return $ Just (s,t)
+--         if | leftCheck  tcsOff   -> current
+--            | rightCheck totalLen -> do
+--                ins <- readInputSources t
+--                if null ins then current else go tcsOff ins
+--            | otherwise -> go totalLen ts
+
+-- findAstByViewSpan, findAstByRealSpan :: FirstMatchReq m => (Delta -> Bool) -> (Delta -> Bool) -> SomeExpr -> m (Maybe (CodeOffset, SomeExpr))
+-- findAstByViewSpan leftCheck rightCheck = findAstBySpan (leftCheck . view viewOffset) (rightCheck . view viewOffset)
+-- findAstByRealSpan leftCheck rightCheck = findAstBySpan (leftCheck . view realOffset) (rightCheck . view realOffset)
+
+-- splitAtView, splitAtReal :: FirstMatchReq m => Delta -> SomeExpr -> m (Maybe (CodeOffset, SomeExpr))
+-- splitAtView d = findAstByViewSpan (>= d) (> d)
+-- splitAtReal d = findAstByRealSpan (>= d) (> d)
+
+-- viewToRealOffset_ :: FirstMatchReq m => Delta -> SomeExpr -> m  Delta
+-- viewToRealOffset  :: FirstMatchReq m => Delta -> SomeExpr -> m (Maybe SomeExpr, Delta)
+-- viewToRealOffset' :: FirstMatchReq m => Delta -> SomeExpr -> m (Maybe (CodeOffset, SomeExpr), Delta)
+-- viewToRealOffset_ d a = snd <$> viewToRealOffset d a
+-- viewToRealOffset  d a = (_1 %~ fmap snd) <$> viewToRealOffset' d a
+-- viewToRealOffset' d a = splitAtView d a >>= \case
+--     Nothing -> (Nothing,) . Span.measure . view realSpan <$> getLayer @CodeSpan a
+--     t@(Just (leftSpan, _)) -> return (t, realOff) where
+--         leftViewOff = leftSpan ^. viewOffset
+--         offDiff     = d - leftViewOff
+--         realOff     = leftSpan ^. realOffset + offDiff
+
+-- viewToRealOffsetWithMarkers_ :: FirstMatchReq m => Delta -> SomeExpr -> m Delta
+-- viewToRealOffsetWithMarkers  :: FirstMatchReq m => Delta -> SomeExpr -> m (Maybe SomeExpr, Delta)
+-- viewToRealOffsetWithMarkers_ = fmap3 snd viewToRealOffsetWithMarkers
+-- viewToRealOffsetWithMarkers d a = do
+--     (es, realOff) <- viewToRealOffset' d a
+--     case es of
+--         Nothing -> return (Nothing, realOff)
+--         Just (leftSpan, expr) -> do
+--             (expr', diff) <- matchExpr expr $ \case
+--                 Marked lm la -> do
+--                     exprSpan <- getLayer @CodeSpan expr
+--                     let justBeforeMarker = d == (leftSpan ^. viewOffset) + exprSpan ^. (viewSpan . Span.offset)
+--                     if justBeforeMarker then do
+--                         a     <- readSource la
+--                         m     <- readSource lm
+--                         mSpan <- getLayer @CodeSpan m
+--                         return (a, Span.measure $ mSpan ^. realSpan)
+--                     else return (expr, mempty)
+--                 _ -> return (expr, mempty)
+--             return (Just expr', realOff + diff)
 
 
 

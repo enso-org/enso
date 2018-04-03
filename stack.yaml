@@ -17,4 +17,5 @@ local-bin-path: dist/bin/public/luna
 packages:
     - core
     - syntax/text/lexer
+    - syntax/text/parser
 resolver: ./build/snapshot.yaml

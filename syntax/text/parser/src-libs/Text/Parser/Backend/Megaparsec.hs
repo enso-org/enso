@@ -2,17 +2,21 @@
 
 module Text.Parser.Backend.Megaparsec where
 
-import Prologue_old
+import Prologue
 
-import Text.Megaparsec.Prim (getPosition)
-import Text.Megaparsec.Prim as MP
-import Text.Megaparsec.Pos  (SourcePos, sourceLine, sourceColumn, Pos, unPos, unsafePos)
-import Text.Megaparsec (ParsecT, ErrorComponent)
-
-import Control.Monad.State.Dependent
+import Control.Lens.Utils.Wrapped  (unwrap', wrap')
+import Control.Monad.State.Layered (StateT)
 import Data.Text.Position
+import Text.Megaparsec             (ErrorComponent, ParsecT)
+import Text.Megaparsec.Pos         (Pos, SourcePos, sourceColumn, sourceLine,
+                                    unPos, unsafePos)
+import Text.Megaparsec.Prim        (getPosition)
+import Text.Megaparsec.Prim        as MP
+
+import qualified Control.Monad.State.Layered    as State
 import qualified Language.Symbol.Operator.Assoc as Assoc
 import qualified Language.Symbol.Operator.Prec  as Prec
+
 
 
 -- === Instances === --
@@ -27,18 +31,18 @@ instance HasPosition SourcePos where
                     (\sp p -> sp {sourceLine = convert $ p ^. line, sourceColumn = convert $ p ^. column})
 
 -- Position getter
-instance (ErrorComponent e, Stream s) => MonadGetter Position (ParsecT e s m) where
-    get'   = view position <$> getPosition
+instance (ErrorComponent e, Stream s) => State.Getter Position (ParsecT e s m) where
+    get   = view position <$> getPosition
 
-instance (ErrorComponent e, Stream s) => MonadSetter Position (ParsecT e s m) where
-    put' p = do
+instance (ErrorComponent e, Stream s) => State.Setter Position (ParsecT e s m) where
+    put p = do
         pp <- getPosition
         setPosition $ pp & position .~ p
 
 -- Other States
 
-instance {-# OVERLAPPABLE #-} (MonadGetter s m, ErrorComponent e, Stream t) => MonadGetter s (ParsecT e t m)
-instance {-# OVERLAPPABLE #-} (MonadSetter s m, ErrorComponent e, Stream t) => MonadSetter s (ParsecT e t m)
+instance {-# OVERLAPPABLE #-} (State.Getter s m, ErrorComponent e, Stream t) => State.Getter s (ParsecT e t m)
+instance {-# OVERLAPPABLE #-} (State.Setter s m, ErrorComponent e, Stream t) => State.Setter s (ParsecT e t m)
 
 
 -- StateT

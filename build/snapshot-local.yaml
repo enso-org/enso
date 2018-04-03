@@ -9,4 +9,5 @@ packages:
     - hspec-discover-2.5.0
     - placeholders-0.1
     - either-5
+    - megaparsec-5.3.1
     

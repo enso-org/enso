@@ -1,30 +1,31 @@
 module Luna.Syntax.Text.Parser.Class where
 
-import           Luna.Prelude hiding (Symbol, String, Type, Tok)
-import qualified Luna.Prelude as P
+import           Prologue hiding (String, Symbol, Tok, Type)
+import qualified Prologue as P
 
 import Luna.IR
 import Luna.Syntax.Text.Layer.Loc
-import OCI.Pass.Class
-import OCI.Pass.Definition
+-- import OCI.Pass.Class
+-- import OCI.Pass.Definition
 
+import Luna.Syntax.Text.Parser.CodeSpan
+-- import Luna.Syntax.Text.Parser.Marker   (MarkedExprMap)
+import Luna.Syntax.Text.Source (Source)
+-- import qualified OCI.IR                           as IR
+import           Text.Megaparsec       hiding (Pos, Stream, parse, uncons,
+                                        (<?>))
 import qualified Text.Megaparsec       as Parser
-import           Text.Megaparsec       hiding (Stream, Pos, parse, (<?>), uncons)
+import qualified Text.Megaparsec.Error as Error
 import qualified Text.Megaparsec.Error as Error
 import           Text.Megaparsec.Prim  (MonadParsec)
-import qualified Text.Megaparsec.Error as Error
-import           Luna.Syntax.Text.Parser.CodeSpan
-import           Luna.Syntax.Text.Source          (Source)
-import           Luna.Syntax.Text.Parser.Marker   (MarkedExprMap)
-import qualified OCI.IR as IR
 
-import qualified Luna.Syntax.Text.Lexer       as Lexer
-
-import           Data.Set (Set)
-import qualified Data.Set as Set
 import qualified Luna.Syntax.Text.Lexer as Lexer
-import Data.Text.Position (Delta)
-import qualified Data.List as List
+
+import qualified Data.List              as List
+import           Data.Set               (Set)
+import qualified Data.Set               as Set
+import           Data.Text.Position     (Delta)
+import qualified Luna.Syntax.Text.Lexer as Lexer
 
 
 infix 1 <?>

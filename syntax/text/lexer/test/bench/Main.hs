@@ -2,17 +2,17 @@
 
 module Main where
 
-import Prologue as P hiding (Symbol)
 import Criterion.Main
 import Luna.Syntax.Text.Lexer
-import System.IO (hSetBuffering, stdout, BufferMode(NoBuffering))
+import Prologue               as P hiding (Symbol)
+import System.IO              (BufferMode (NoBuffering), hSetBuffering, stdout)
 
-import System.Random
-import Data.Attoparsec.Text as Parser
-import Luna.Syntax.Text.Analysis.Disabled
-import qualified Data.Char              as Char
-import qualified Data.Attoparsec.Text32 as T32
-import           Data.Text32 (Text32)
+import           Data.Attoparsec.Text               as Parser
+import qualified Data.Attoparsec.Text32             as T32
+import qualified Data.Char                          as Char
+import           Data.Text32                        (Text32)
+import           Luna.Syntax.Text.Analysis.Disabled
+import           System.Random
 
 
 eval :: NFData a => a -> IO a
@@ -53,14 +53,14 @@ main :: IO ()
 main = do
     hSetBuffering stdout NoBuffering
 
-    let code = mkRandomCode 300
+    -- let code = mkRandomCode 300
     -- putStrLn $ "'" <> convert code <> "'"
     -- pprint $ evalDefLexer $ code
-    pprint $ evalDefLexer $ "a = 'foo'"
+    -- pprint $ evalDefLexer $ "a = 'foo'"
     -- pprint $ evalDefLexer $ "a = a.x += 5"
 
-    pprint $ tagColumn mempty $ evalDefLexer " ff #def foo:\n      bar\n    def baz: pass"
-    pprint $ tagDisabled' [0] $ evalDefLexer " ff #def foo:\n      bar\n    def baz: pass"
+    -- pprint $ tagColumn mempty $ evalDefLexer " ff #def foo:\n      bar\n    def baz: pass"
+    -- pprint $ tagDisabled' [0] $ evalDefLexer " ff #def foo:\n      bar\n    def baz: pass"
     defaultMain
         [ bgroup "big variable"                $ expCodeGenBenchs evalDefLexer           mkBigVariable
         , bgroup "random code"                 $ expCodeGenBenchs evalDefLexer           mkRandomCode
