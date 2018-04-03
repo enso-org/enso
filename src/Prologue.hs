@@ -128,11 +128,11 @@ import Type.Applicative                 as X (type (<$>), type (<*>))
 import Unsafe.Coerce                    as X (unsafeCoerce)
 
 -- === Lenses === --
-import Control.Lens                     as X (Lens, Lens', Iso, Iso', iso, at, from, lens, _1, _2, _3, _4, _5, _6, _7, _8, _9)
+import Control.Lens                     as X (Lens, Lens', Iso, Iso', ix, iso, at, from, lens, over, both, _1, _2, _3, _4, _5, _6, _7, _8, _9)
 import Control.Lens                     as X (view, set)
-import Control.Lens                     as X ((^.), (.~), (%~))
+import Control.Lens                     as X ((^.), (.~), (%~), (^?))
 import Control.Lens.Utils.Wrapped       as X (wrap, unwrap, wrapped)
-import Control.Lens.Utils.TH            as X (makeLenses)
+import Control.Lens.Utils.TH            as X (makeLenses, makeClassy)
 
 import Control.Lens.At                  as X ()
 import Control.Lens.Cons                as X ()
