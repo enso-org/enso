@@ -2,9 +2,9 @@
 {-# LANGUAGE UndecidableInstances      #-}
 {-# EXT      InlineAll                 #-}
 
-module Luna.Syntax.Text.Parser.Parser (module Luna.Syntax.Text.Parser.Parser) where
+module Luna.Syntax.Text.Parser.Parser (module Luna.Syntax.Text.Parser.Parser, module X) where
 
--- import Luna.Prelude
+import Prologue
 
 -- import qualified OCI.IR as IR
 -- import OCI.IR hiding (IRBuilder, snapshot)
@@ -15,33 +15,39 @@ module Luna.Syntax.Text.Parser.Parser (module Luna.Syntax.Text.Parser.Parser) wh
 -- import Luna.Syntax.Text.Parser.CodeSpan
 -- import Text.Parser.Indent (Indent)
 -- import Control.Monad.State.Dependent
--- import Text.Parser.Backend.Megaparsec ()
+import Text.Parser.Backend.Megaparsec ()
 -- import Data.Text.Position
 -- import Luna.IR.ToRefactor2 (Listener, listener, tpElemPass, addElemEventListener)
 
--- import           Text.Megaparsec       (ParsecT)
 
+-- import Luna.Syntax.Text.Parser.Marker (MarkedExprMap, MarkerState,
+--                                        UnmarkedExprs)
 -- import Type.Any (AnyType)
--- import Luna.Syntax.Text.Parser.Marker (MarkerState, MarkedExprMap, UnmarkedExprs)
 
 
 -- import Luna.Syntax.Text.Scope (Scope)
 -- import Luna.Syntax.Text.Source
 
--- import qualified Luna.Syntax.Text.Lexer       as Lexer
--- import Luna.Syntax.Text.Parser.Class as X
--- import Luna.Syntax.Text.Parser.Class (Stream, Symbol)
--- import Luna.Syntax.Text.Parser.Errors (Invalids)
--- import Luna.Syntax.Text.Parser.Loc (LeftSpanner)
--- import           Luna.Syntax.Text.Parser.Reserved (Reservation)
+-- import qualified Luna.Syntax.Text.Lexer           as Lexer
+import Control.Monad.State.Layered      (StatesT)
+import Control.Monad.State.Layered      (StateT)
+import Luna.Syntax.Text.Parser.Class    as X (Error)
+import Luna.Syntax.Text.Parser.Class    (Stream)
+import Luna.Syntax.Text.Parser.Reserved (Reservation)
+import Text.Megaparsec                  (ParsecT)
+
+-- import           Luna.Syntax.Text.Parser.Errors   (Invalids)
+-- import           Luna.Syntax.Text.Parser.Loc      (LeftSpanner)
+
 -- import qualified Luna.Syntax.Text.Parser.Reserved as Reserved
 
 
 
 -- type ParserBase = ParsecT Error Text (StateT Scope IO)
--- type ParserBase2 = ParsecT Error Stream IO
+type ParserBase2 = ParsecT Error Stream IO
 
 -- type SymParser = StatesT '[Indent, FileOffset, Position, MarkerState, LeftSpanner, Scope, Reservation, CodeSpanRange] ParserBase2
+type SymParser = StatesT '[Reservation] ParserBase2
 
 
 -- -------------------------

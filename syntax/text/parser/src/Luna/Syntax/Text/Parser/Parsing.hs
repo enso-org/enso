@@ -4,11 +4,16 @@
 
 module Luna.Syntax.Text.Parser.Parsing where
 
+import Prologue
+
 -- import Prologue_old hiding (Cons, String, Type, Symbol, UniSymbol, (|>), (<|), cons, seq, span, op)
 -- import qualified Prologue_old as P
 
 -- import qualified Text.Megaparsec as Parser
--- import           Text.Megaparsec (notFollowedBy, ErrorItem (Tokens), withRecovery, char, manyTill, anyChar, ParseError, try, hidden, spaceChar, skipMany, digitChar, letterChar, unexpected, between, lowerChar, upperChar, choice, string, lookAhead)
+import Text.Megaparsec (ErrorItem (Tokens), ParseError, anyChar, between, char,
+                        choice, digitChar, hidden, letterChar, lookAhead,
+                        lowerChar, manyTill, notFollowedBy, skipMany, spaceChar,
+                        string, try, unexpected, upperChar, withRecovery)
 -- import           Text.Megaparsec.Error (parseErrorPretty, parseErrorTextPretty)
 -- import           Text.Megaparsec.Prim (MonadParsec)
 -- import           Text.Megaparsec.String hiding (Parser)
@@ -38,7 +43,6 @@ module Luna.Syntax.Text.Parser.Parsing where
 -- import Data.List.NonEmpty (NonEmpty((:|)))
 -- import Text.Megaparsec.Ext
 
--- import qualified Data.Set as Set
 -- import           Data.Set (Set)
 -- import qualified Data.Map as Map
 -- import           Data.Map (Map)
@@ -81,16 +85,13 @@ module Luna.Syntax.Text.Parser.Parsing where
 
 
 -- import qualified Control.Monad as Monad
--- import qualified Luna.Syntax.Text.Lexer as Lexer
 
--- import Luna.Syntax.Text.Parser.Loc (withRecovery2, token', getNextToken, previewNextSymbol, uncheckedPreviewNextToken, uncheckedGetNextSymbol, checkNextOffset, getNextOffset, previewSymbols)
 -- import qualified Luna.Syntax.Text.Parser.Loc as Loc
 -- import           Luna.Syntax.Text.Parser.Loc (LeftSpanner, MonadLoc)
 
 
 -- import Luna.Syntax.Text.Parser.Errors (Invalids, registerInvalid)
 -- import qualified Data.List as List
--- import qualified Luna.Syntax.Text.Parser.Reserved as Reserved
 -- import           Luna.Syntax.Text.Parser.Reserved (Reservation, withReservedSymbols, withLocalReservedSymbol, withLocalUnreservedSymbol, withNewLocal, checkForSymbolReservation)
 -- import qualified Data.TreeSet as TreeSet
 -- import           Data.TreeSet (SparseTreeSet)
@@ -100,6 +101,13 @@ module Luna.Syntax.Text.Parser.Parsing where
 -- import qualified Data.Text32 as Text32
 -- import qualified Data.Text as Text
 
+import qualified Data.Set                         as Set
+import qualified Luna.Syntax.Text.Lexer           as Lexer
+import qualified Luna.Syntax.Text.Lexer.Symbol    as Lexer
+import qualified Luna.Syntax.Text.Parser.Reserved as Reserved
+
+import Luna.Syntax.Text.Parser.Loc    (token')
+import Luna.Syntax.Text.Parser.Parser (SymParser)
 
 -- some' :: (Applicative m, Alternative m) => m a -> m (NonEmpty a)
 -- some' p = (:|) <$> p <*> many p
@@ -109,17 +117,17 @@ module Luna.Syntax.Text.Parser.Parsing where
 -- -- === Primitives === --
 -- ------------------------
 
--- satisfy' :: (Symbol -> Bool)    -> SymParser Symbol
--- satisfy_ :: (Symbol -> Bool)    -> SymParser ()
--- satisfy  :: (Symbol -> Maybe a) -> SymParser a
--- satisfy_ f = void $ satisfy' f
--- satisfy' f = satisfy $ \s -> justIf (f s) s
--- satisfy  f = token' testSymbol Nothing where
---     testSymbol r t = case Reserved.lookupSymbolReservation r (t ^. Lexer.element) of
---         True  -> Left (Set.singleton (Tokens (t:|[])), Set.empty, Set.empty)
---         False -> case f (t ^. Lexer.element) of
---             Just a  -> Right a
---             Nothing -> Left (Set.singleton (Tokens (t:|[])), Set.empty, Set.empty)
+satisfy' :: (Lexer.Symbol -> Bool)    -> SymParser Lexer.Symbol
+satisfy_ :: (Lexer.Symbol -> Bool)    -> SymParser ()
+satisfy  :: (Lexer.Symbol -> Maybe a) -> SymParser a
+satisfy_ f = void $ satisfy' f
+satisfy' f = satisfy $ \s -> justIf (f s) s
+satisfy  f = token' testSymbol Nothing where
+    testSymbol r t = case Reserved.lookupSymbolReservation r (t ^. Lexer.element) of
+        True  -> Left (Set.singleton (Tokens (t:|[])), Set.empty, Set.empty)
+        False -> case f (t ^. Lexer.element) of
+            Just a  -> Right a
+            Nothing -> Left (Set.singleton (Tokens (t:|[])), Set.empty, Set.empty)
 
 -- satisfyReserved' :: (Symbol -> Bool)    -> SymParser Symbol
 -- satisfyReserved_ :: (Symbol -> Bool)    -> SymParser ()
@@ -131,8 +139,8 @@ module Luna.Syntax.Text.Parser.Parsing where
 --         Just a  -> Right a
 --         Nothing -> Left (Set.singleton (Tokens (t:|[])), Set.empty, Set.empty)
 
--- symbol :: Symbol -> SymParser ()
--- symbol = satisfy_ . (==)
+symbol :: Lexer.Symbol -> SymParser ()
+symbol = satisfy_ . (==)
 
 -- anySymbol :: SymParser Symbol
 -- anySymbol = satisfyReserved' $ const True
@@ -342,22 +350,22 @@ module Luna.Syntax.Text.Parser.Parsing where
 
 
 
--- ---------------------
--- -- === Symbols === --
--- ---------------------
+---------------------
+-- === Symbols === --
+---------------------
 
--- stx, etx, eol :: SymParser ()
--- stx = symbol Lexer.STX
--- etx = symbol Lexer.ETX
--- eol = symbol Lexer.EOL
+stx, etx, eol :: SymParser ()
+stx = symbol Lexer.STX
+etx = symbol Lexer.ETX
+eol = symbol Lexer.EOL
 
--- braceBegin, braceEnd :: SymParser ()
--- braceBegin = symbol $ Lexer.List Lexer.Begin
--- braceEnd   = symbol $ Lexer.List Lexer.End
+braceBegin, braceEnd :: SymParser ()
+braceBegin = symbol $ Lexer.List Lexer.Begin
+braceEnd   = symbol $ Lexer.List Lexer.End
 
--- groupBegin, groupEnd :: SymParser ()
--- groupBegin = symbol $ Lexer.Group Lexer.Begin
--- groupEnd   = symbol $ Lexer.Group Lexer.End
+groupBegin, groupEnd :: SymParser ()
+groupBegin = symbol $ Lexer.Group Lexer.Begin
+groupEnd   = symbol $ Lexer.Group Lexer.End
 
 
 -- -- === Instances === --

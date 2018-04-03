@@ -1,10 +1,10 @@
-{-# LANGUAGE Strict            #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE Strict            #-}
 
 module Luna.Syntax.Text.Lexer.Symbol where
 
-import Prologue hiding (Symbol, List, element)
 import Luna.Syntax.Text.Lexer.Token
+import Prologue                     hiding (List, Symbol, element)
 
 import Data.Text32 (Text32)
 
@@ -48,63 +48,65 @@ data Tagged a = Tagged Tags a deriving (Show, Functor, Foldable, Traversable)
 
 -- === Definitions === --
 
-data Symbol -- Layout
-            = STX
-            | ETX
-            | EOL
-            | Terminator
-            | BlockStart
-            | Block       !Bound
-            | Group       !Bound
-            | Marker      !Word64
+data Symbol
+    -- Layout
+    = STX
+    | ETX
+    | EOL
+    | Terminator
+    | BlockStart
+    | Block       !Bound
+    | Group       !Bound
+    | Marker      !Word64
 
-            -- Ident
-            | Var         !Text32
-            | Cons        !Text32
-            | Wildcard
+    -- Ident
+    | Var         !Text32
+    | Cons        !Text32
+    | Wildcard
 
-            -- Keyword
-            | KwAll
-            | KwCase
-            | KwClass
-            | KwDef
-            | KwForeign
-            | KwImport
-            | KwNative
-            | KwOf
+    -- Keyword
+    | KwAll
+    | KwCase
+    | KwClass
+    | KwDef
+    | KwForeign
+    | KwImport
+    | KwNative
+    | KwOf
 
-            -- Operator
-            | Operator    !Text32
-            | Modifier    !Text32
-            | Accessor
-            -- | Arrow
-            | Assignment
-            | Typed
-            | TypeApp
-            | Merge
-            | Range
-            | Anything
+    -- Operator
+    | Operator    !Text32
+    | Modifier    !Text32
+    | Accessor
 
-            -- Literal
-            | Number      !Number
-            | Quote       !StrType  !Bound
-            | Str         !Text32
-            | StrEsc      !StrEscType
-            | List        !Bound
-            | StrWrongEsc !Int
+    -- | Arrow
+    | Assignment
+    | Typed
+    | TypeApp
+    | Merge
+    | Range
+    | Anything
 
-            -- Comment
-            | Disable
-            | Doc         !Text32
+    -- Literal
+    | Number      !Number
+    | Quote       !StrType  !Bound
+    | Str         !Text32
+    | StrEsc      !StrEscType
+    | List        !Bound
+    | StrWrongEsc !Int
 
-            -- Config
-            | Metadata    !Text32
-            -- | Pragma ...
+    -- Comment
+    | Disable
+    | Doc         !Text32
 
-            -- Other
-            | Unknown     !Text32
-            | Incorrect   !Text32
-            deriving (Generic, Show, Eq, Ord)
+    -- Config
+    | Metadata    !Text32
+    -- | Pragma ...
+
+    -- Other
+    | Unknown     !Text32
+    | Incorrect   !Text32
+    deriving (Generic, Show, Eq, Ord)
 
 data StrEscType = CharStrEsc  !Int
                 | NumStrEsc   !Int

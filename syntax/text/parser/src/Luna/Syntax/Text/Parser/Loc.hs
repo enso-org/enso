@@ -12,20 +12,20 @@ import qualified Luna.Syntax.Text.Parser.Reserved as Reserved
 import qualified Text.Megaparsec.Pos              as Parser
 import qualified Text.Megaparsec.Prim             as Parser
 
--- import Data.Set                         (Set)
+import Data.Set (Set)
 -- import Data.Text.Position
 -- import Data.Text.Span                   (RightSpacedSpan,
 --                                          SpacedSpan (SpacedSpan),
 --                                          rightSpacedSpan)
--- import Luna.Syntax.Text.Parser.Class    (MonadParser, Tok)
+import Luna.Syntax.Text.Parser.Class (MonadParser, Tok)
 -- import Luna.Syntax.Text.Parser.Marker   (MarkerState, cleanLastTokenMarker,
 --                                          newLastTokenMarker)
--- import Luna.Syntax.Text.Parser.Reserved (Reservation)
--- import Text.Megaparsec.Error            (ErrorItem, ParseError)
--- import Text.Megaparsec.Prim             hiding (Stream, uncons)
+import Luna.Syntax.Text.Parser.Reserved (Reservation)
+import Text.Megaparsec.Error            (ErrorItem, ParseError)
+import Text.Megaparsec.Prim             (MonadParsec, token)
 -- -- import           OCI.IR                           (Name)
 
--- import Luna.Syntax.Text.Parser.Class (Stream, Symbol)
+import Luna.Syntax.Text.Parser.Class (Stream, Symbol)
 
 -- newtype LeftSpanner = LeftSpanner Delta deriving (Show)
 -- makeLenses ''LeftSpanner
@@ -38,21 +38,22 @@ import qualified Text.Megaparsec.Prim             as Parser
 -- -----------------
 
 -- type MonadLoc m = (MonadStates '[FileOffset, Position, LeftSpanner, MarkerState] m, MonadIO m) -- FIXME[WD]: remove IO
+type MonadLoc m = (MonadIO m)
 
 -- -- === Utils === --
 
--- -- | Token overrides Megaparsec's one, with special position handling. We cannot do it another way around
--- --   because Megaparsec's `token` signature prevents any monadic action while consuming tokens.
--- token' :: (MonadParsec e Stream m, MonadLoc m, MonadGetter Reservation m)
---        => (Reservation -> Tok -> Either (Set (ErrorItem Tok), Set (ErrorItem Tok), Set e) a) -> Maybe Tok -> m a
--- token' f mt = do
---     s <- get @Reservation
---     let f' t = (t,) <$> f s t
---     (tok, a) <- token f' mt
---     updatePositions tok
---     cleanLastTokenMarker
---     dropMarkers
---     return a
+-- | Token overrides Megaparsec's one, with special position handling. We cannot do it another way around
+--   because Megaparsec's `token` signature prevents any monadic action while consuming tokens.
+token' :: (MonadParsec e Stream m, MonadLoc m, State.Getter Reservation m)
+       => (Reservation -> Tok -> Either (Set (ErrorItem Tok), Set (ErrorItem Tok), Set e) a) -> Maybe Tok -> m a
+token' f mt = do
+    s <- State.get @Reservation
+    let f' t = (t,) <$> f s t
+    (tok, a) <- token f' mt
+    -- updatePositions tok
+    -- cleanLastTokenMarker
+    -- dropMarkers
+    return a
 
 -- dropMarkers :: (MonadParsec e Stream m, MonadLoc m) => m ()
 -- dropMarkers = withJustM previewNextToken $ \t -> case t ^. Lexer.element of
