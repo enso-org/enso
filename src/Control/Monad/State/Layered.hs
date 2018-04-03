@@ -12,14 +12,14 @@
 
 module Control.Monad.State.Layered where
 
-import Prelude -- hiding ((.)) -- https://ghc.haskell.org/trac/ghc/ticket/14001
+import Prelude hiding (Monad) -- hiding ((.)) -- https://ghc.haskell.org/trac/ghc/ticket/14001
 
 import Control.Applicative
-import Control.Lens.Utils
+import Control.Lens.Utils hiding (Getter, Setter, Setter')
 import Control.Monad.Branch
 import Control.Monad.Catch
 import Control.Monad.Fail
-import Control.Monad.Identity
+import Control.Monad.Identity hiding (Monad)
 import Control.Monad.IO.Class
 import Control.Monad.Primitive
 import Control.Monad.Trans
@@ -27,9 +27,12 @@ import Control.Monad.Trans.Maybe
 import Data.Constraint
 import Data.Default
 import Data.Kind (Type)
-import Control.Lens
 import Type.Bool
+
+import qualified Prelude as P
 import qualified Control.Monad.State.Strict as S
+
+type M = P.Monad
 
 
 -------------------
@@ -40,7 +43,7 @@ import qualified Control.Monad.State.Strict as S
 
 type    State  s     = StateT s Identity
 newtype StateT s m a = StateT (S.StateT s m a)
-    deriving ( Applicative, Alternative, Functor, Monad, MonadFail, MonadFix
+    deriving ( Applicative, Alternative, Functor, M, MonadFail, MonadFix
              , MonadIO, MonadPlus, MonadTrans, MonadThrow, MonadBranch )
 makeWrapped ''StateT
 
@@ -69,40 +72,40 @@ type family MatchedBases (a :: ka) (b :: kb) :: Bool where
     MatchedBases (a :: k) (b   :: l) = 'False
 
 
--- === MonadState === --
+-- === Monad === --
 
 -- Definitions
 
-type             MonadState  l m = (MonadGetter l m, MonadSetter l m)
-class Monad m => MonadGetter l m where get :: m (InferStateData l m)
-class Monad m => MonadSetter l m where put :: InferStateData l m -> m ()
+type         Monad  l m = (Getter l m, Setter l m)
+class M m => Getter l m where get :: m (InferStateData l m)
+class M m => Setter l m where put :: InferStateData l m -> m ()
 
 -- Instancess
 
-instance                       Monad m                                                           => MonadGetter (l :: Type) (StateT l m) where get   = wrap   S.get    ; {-# INLINE get #-}
-instance                       Monad m                                                           => MonadSetter (l :: Type) (StateT l m) where put a = wrap $ S.put a  ; {-# INLINE put #-}
-instance {-# OVERLAPPABLE #-}  MonadGetter l m                                                   => MonadGetter (l :: Type) (StateT s m) where get   = lift $ get @l   ; {-# INLINE get #-}
-instance {-# OVERLAPPABLE #-}  MonadSetter l m                                                   => MonadSetter (l :: Type) (StateT s m) where put a = lift $ put @l a ; {-# INLINE put #-}
-instance {-# OVERLAPPABLE #-} (Monad m, MonadGetter__ ok l (StateT s m), ok ~ MatchedBases l s)  => MonadGetter (l :: k)    (StateT s m) where get   = get__  @ok @l   ; {-# INLINE get #-}
-instance {-# OVERLAPPABLE #-} (Monad m, MonadSetter__ ok l (StateT s m), ok ~ MatchedBases l s)  => MonadSetter (l :: k)    (StateT s m) where put a = put__  @ok @l a ; {-# INLINE put #-}
-instance {-# OVERLAPPABLE #-} (Monad (t m), MonadTrans t, MonadGetter l m, TransStateData l t m) => MonadGetter (l :: k)    (t m)        where get   = lift $ get @l   ; {-# INLINE get #-}
-instance {-# OVERLAPPABLE #-} (Monad (t m), MonadTrans t, MonadSetter l m, TransStateData l t m) => MonadSetter (l :: k)    (t m)        where put a = lift $ put @l a ; {-# INLINE put #-}
+instance                       M m                                                           => Getter (l :: Type) (StateT l m) where get   = wrap   S.get    ; {-# INLINE get #-}
+instance                       M m                                                           => Setter (l :: Type) (StateT l m) where put a = wrap $ S.put a  ; {-# INLINE put #-}
+instance {-# OVERLAPPABLE #-}  Getter l m                                                   => Getter (l :: Type) (StateT s m) where get   = lift $ get @l   ; {-# INLINE get #-}
+instance {-# OVERLAPPABLE #-}  Setter l m                                                   => Setter (l :: Type) (StateT s m) where put a = lift $ put @l a ; {-# INLINE put #-}
+instance {-# OVERLAPPABLE #-} (M m, MonadGetter__ ok l (StateT s m), ok ~ MatchedBases l s)  => Getter (l :: k)    (StateT s m) where get   = get__  @ok @l   ; {-# INLINE get #-}
+instance {-# OVERLAPPABLE #-} (M m, MonadSetter__ ok l (StateT s m), ok ~ MatchedBases l s)  => Setter (l :: k)    (StateT s m) where put a = put__  @ok @l a ; {-# INLINE put #-}
+instance {-# OVERLAPPABLE #-} (M (t m), MonadTrans t, Getter l m, TransStateData l t m) => Getter (l :: k)    (t m)        where get   = lift $ get @l   ; {-# INLINE get #-}
+instance {-# OVERLAPPABLE #-} (M (t m), MonadTrans t, Setter l m, TransStateData l t m) => Setter (l :: k)    (t m)        where put a = lift $ put @l a ; {-# INLINE put #-}
 
 -- Helpers
 
-class Monad m => MonadGetter__ (ok :: Bool) l m where get__ :: m (InferStateData l m)
-class Monad m => MonadSetter__ (ok :: Bool) l m where put__ :: InferStateData l m -> m ()
+class M m => MonadGetter__ (ok :: Bool) l m where get__ :: m (InferStateData l m)
+class M m => MonadSetter__ (ok :: Bool) l m where put__ :: InferStateData l m -> m ()
 
-instance (Monad m, InferStateData l (StateT s m) ~ s)     => MonadGetter__ 'True  l (StateT s m) where get__   = get @s          ; {-# INLINE get__ #-}
-instance (Monad m, InferStateData l (StateT s m) ~ s)     => MonadSetter__ 'True  l (StateT s m) where put__ a = put @s a        ; {-# INLINE put__ #-}
-instance (MonadGetter l m, TransStateData l (StateT s) m) => MonadGetter__ 'False l (StateT s m) where get__   = lift $ get @l   ; {-# INLINE get__ #-}
-instance (MonadSetter l m, TransStateData l (StateT s) m) => MonadSetter__ 'False l (StateT s m) where put__ a = lift $ put @l a ; {-# INLINE put__ #-}
+instance (M m, InferStateData l (StateT s m) ~ s)     => MonadGetter__ 'True  l (StateT s m) where get__   = get @s          ; {-# INLINE get__ #-}
+instance (M m, InferStateData l (StateT s m) ~ s)     => MonadSetter__ 'True  l (StateT s m) where put__ a = put @s a        ; {-# INLINE put__ #-}
+instance (Getter l m, TransStateData l (StateT s) m) => MonadGetter__ 'False l (StateT s m) where get__   = lift $ get @l   ; {-# INLINE get__ #-}
+instance (Setter l m, TransStateData l (StateT s) m) => MonadSetter__ 'False l (StateT s m) where put__ a = lift $ put @l a ; {-# INLINE put__ #-}
 
 -- Replicators
 
 type MonadStates  ss m = (MonadGetters ss m, MonadSetters ss m)
-type MonadGetters ss m = Monads__ MonadGetter ss m
-type MonadSetters ss m = Monads__ MonadSetter ss m
+type MonadGetters ss m = Monads__ Getter ss m
+type MonadSetters ss m = Monads__ Setter ss m
 type family Monads__ p ss m :: Constraint where
     Monads__ p (s ': ss) m = (p s m, Monads__ p ss m)
     Monads__ p '[]       m = ()
@@ -110,7 +113,7 @@ type family Monads__ p ss m :: Constraint where
 
 -- === Accessing === --
 
-gets :: ∀ l m s a. (MonadGetter l m, s ~ InferStateData l m)
+gets :: ∀ l m s a. (Getter l m, s ~ InferStateData l m)
      => Lens' s a -> m a
 gets l = view l <$> get @l ; {-# INLINE gets #-}
 
@@ -122,16 +125,16 @@ type family TopStateData m where
     TopStateData (StateT s m) = s
     TopStateData (t m)        = TopStateData m
 
-type MonadState'  m = (MonadGetter' m, MonadSetter' m)
-type MonadGetter' m = MonadGetter (TopStateData m) m
-type MonadSetter' m = MonadSetter (TopStateData m) m
+type Monad'  m = (Getter' m, Setter' m)
+type Getter' m = Getter (TopStateData m) m
+type Setter' m = Setter (TopStateData m) m
 
-get' :: ∀ m. MonadGetter' m => m (TopStateData m)
-put' :: ∀ m. MonadSetter' m => TopStateData m -> m ()
+get' :: ∀ m. Getter' m => m (TopStateData m)
+put' :: ∀ m. Setter' m => TopStateData m -> m ()
 get' = get @(TopStateData m) ; {-# INLINE get' #-}
 put' = put @(TopStateData m) ; {-# INLINE put' #-}
 
-gets' :: ∀ m s a. (MonadGetter' m, s ~ TopStateData m) => Lens' s a -> m a
+gets' :: ∀ m s a. (Getter' m, s ~ TopStateData m) => Lens' s a -> m a
 gets' l = view l <$> get' ; {-# INLINE gets' #-}
 
 
@@ -171,7 +174,7 @@ execDef = flip exec def ; {-# INLINE execDef #-}
 
 -- === Generic state modification === --
 
-type InferMonadState s l m = (MonadState l m, s ~ InferStateData l m)
+type InferMonadState s l m = (Monad l m, s ~ InferStateData l m)
 modifyM  :: ∀ l s m a. InferMonadState s l m => (s -> m (a, s)) -> m a
 modifyM_ :: ∀ l s m a. InferMonadState s l m => (s -> m     s)  -> m ()
 modify   :: ∀ l s m a. InferMonadState s l m => (s ->   (a, s)) -> m a
@@ -197,7 +200,7 @@ sub             m = do s <- get @l
 
 -- === Top level state modification === --
 
-type TopMonadState s m = (MonadState' m, s ~ TopStateData m)
+type TopMonadState s m = (Monad' m, s ~ TopStateData m)
 modifyM'  :: ∀ s m a. TopMonadState s m => (s -> m (a, s)) -> m a
 modifyM'_ :: ∀ s m a. TopMonadState s m => (s -> m     s)  -> m ()
 modify'   :: ∀ s m a. TopMonadState s m => (s ->   (a, s)) -> m a
