@@ -106,10 +106,17 @@ instance Link.Creator m => FieldCons t (Term a) m (Link b) where
 --       unify t1 t2 = Term.newM $ \self -> pure Unify <*> fieldCons self t1
 --                                                     <*> fieldCons self t2
 --       {-# INLINE unify #-}
+--
+--       unify' :: forall m t2 t1 out.
+--                 ( Creator Unify m
+--                 , Layout.Relayout <unify output type> out
+--                 ) -> Term t1 -> Term t2 -> m (Term out)
+--       unify' t1 t2 = Layout.relayout <$> unify t1 t2
+--       {-# INLINE unify' #-}
 --   @
 --
 --   Moreover:
---   1. Every single constructor data type is converted to newtype by default.
+--   1. TODO: Every single field data type is converted to newtype by default.
 
 define :: Name -> Q [Dec] -> Q [Dec]
 define = defineChoice True
@@ -206,34 +213,55 @@ mangleFieldName :: String -> Name -> Name
 mangleFieldName sfx n = convert $ fixDuplicateRecordNamesGHCBug (convert n)
                                <> "_" <> sfx
 
-makeSmartCons :: Name -> [TH.Type] -> Q [TH.Dec]
-makeSmartCons tName fieldTypes = do
-    smartConsSigType <- inferSmartConsSigType tName fieldTypes
-    let smartConsName = lowerCase tName
-        smartConsSig  = TH.SigD smartConsName smartConsSigType
-    smartConsDef <- makeSmartConsBody tName smartConsName (length fieldTypes)
-    pure $ smartConsSig : smartConsDef
-
 
 
 --------------------------------
 -- === Smart constructors === --
 --------------------------------
 
+makeSmartCons :: Name -> [TH.Type] -> Q [TH.Dec]
+makeSmartCons tName fieldTypes = do
+    sigTypes <- inferSmartConsSigType tName fieldTypes
+    let sigType         = fst sigTypes
+        genSigType      = snd sigTypes
+        smartConsName   = lowerCase tName
+        smartConsName'  = smartConsName <> "'"
+        smartConsSig    = TH.SigD smartConsName  sigType
+        smartConsGenSig = TH.SigD smartConsName' genSigType
+        fieldNum        = length fieldTypes
+    smartConsDef    <- makeSmartConsBody tName smartConsName fieldNum
+    smartConsGenDef <- makeSmartConsGenBody smartConsName fieldNum
+    pure $ smartConsSig : smartConsGenSig : (smartConsDef <> smartConsGenDef)
+
 type InputMap a = Map Name [a]
 
-inferSmartConsSigType :: Name -> [TH.Type] -> Q (TH.Type)
+inferSmartConsSigType :: Name -> [TH.Type] -> Q (TH.Type, TH.Type)
 inferSmartConsSigType name ts = do
     m            <- TH.newName "m"
     (ins, inMap) <- inferSmartConsTypeInputs ts
     let inMap'    = Map.insert ''Model [cons' name] (fmap var <$> inMap)
-    let out       = app (var m) $ inferSmartConsTypeOutput inMap'
-        arrow a b = AppT (AppT TH.ArrowT a) b
-        (a:as)    = reverse $ ins <> [out]
-        sig       = foldl (flip arrow) a as
+    let outTp     = inferSmartConsTypeOutput inMap'
+        out       = app (var m) outTp
+        sig       = arrows $ ins <> [out]
         ctx       = [app2 (cons' ''Term.Creator) (cons' name) (var m)]
         tvs       = TH.PlainTV <$> (m : concat (Map.elems inMap))
-    pure $ TH.ForallT tvs ctx sig
+
+    genOutName <- newName "out"
+    let genOut = app (var m) (var genOutName)
+        genSig = arrows $ ins <> [genOut]
+        genCtx = app2 (cons' ''Layout.Relayout) outTp (var genOutName) : ctx
+        genTvs = TH.PlainTV genOutName : tvs
+
+    let sigType    = TH.ForallT tvs ctx sig
+        genSigType = TH.ForallT genTvs genCtx genSig
+
+    pure (sigType, genSigType)
+
+arrows :: [TH.Type] -> TH.Type
+arrows ts = foldl (flip arrow) a as where
+    arrow a b = AppT (AppT TH.ArrowT a) b
+    (a:as)    = reverse ts
+
 
 inferSmartConsTypeInputs :: [TH.Type] -> Q ([TH.Type], InputMap Name)
 inferSmartConsTypeInputs ts = State.runT (mapM inferSmartConsTypeInput ts)
@@ -273,6 +301,17 @@ makeSmartConsBody tname fname varNum = do
         inline    = TH.PragmaD (TH.InlineP fname TH.Inline TH.FunLike TH.AllPhases)
 
     pure [fn,inline]
+
+makeSmartConsGenBody :: Name -> Int -> Q [TH.Dec]
+makeSmartConsGenBody fname varNum = do
+    ins <- newNames varNum
+    let fname' = fname <> "'"
+        body   = app2 (var 'fmap) (var 'Layout.relayout)
+               $ apps (var fname) (var <$> ins)
+        fn     = TH.FunD fname'
+               $ [TH.Clause (TH.VarP <$> ins) (TH.NormalB body) []]
+        inline = TH.PragmaD (TH.InlineP fname' TH.Inline TH.FunLike TH.AllPhases)
+    pure [fn, inline]
 
 
 

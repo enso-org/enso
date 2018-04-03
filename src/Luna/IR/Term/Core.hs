@@ -1,5 +1,6 @@
-{-# LANGUAGE TypeInType           #-}
-{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE NoMonomorphismRestriction #-}
+{-# LANGUAGE TypeInType                #-}
+{-# LANGUAGE UndecidableInstances      #-}
 
 module Luna.IR.Term.Core where
 
