@@ -9,7 +9,7 @@ default-extensions: [AllowAmbiguousTypes, ApplicativeDo, Arrows, BangPatterns, B
   RecursiveDo, ScopedTypeVariables, StandaloneDeriving, TemplateHaskell, TupleSections,
   TypeApplications, TypeFamilies, TypeFamilyDependencies, TypeOperators, ViewPatterns,
   LiberalTypeSynonyms, RelaxedPolyRec]
-dependencies: [base, prologue, dependent-state, text, ansi-terminal, container]
+dependencies: [base, prologue, layered-state, text, ansi-terminal, container]
 github: https://github.com/luna/terminal-text
 library: {ghc-options: -Wall -O2, source-dirs: src}
 license: Apache-2.0
@@ -19,4 +19,4 @@ stability: experimental
 synopsis: Text data type for styled terminal output, including all standard ANSI effects
   (bold, italic, blinking) and ANSI / 256 / truecolor colors support for Unix and
   Windows (whenever possible).
-version: 1.0.5
+version: '1.1'

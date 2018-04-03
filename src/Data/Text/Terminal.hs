@@ -1,10 +1,10 @@
 module Data.Text.Terminal where
 
 
-import qualified Prologue_old as P
-import Prologue_old hiding ((:>), Empty, Bounded, div, simple, concat, putStr, swapped, length, putStrLn, take, drop)
+import qualified Prologue as P
+import Prologue hiding ((:>), Empty, Bounded, div, simple, concat, putStr, swapped, length, putStrLn, take, drop)
 
-import           Control.Monad.State.Layered
+import qualified Control.Monad.State.Layered as State 
 import qualified Data.Text                 as Text
 import qualified Data.Text.IO              as Text
 import qualified Data.Text.Lazy            as LazyText
@@ -14,8 +14,8 @@ import qualified System.Console.ANSI.Types as ANSI
 import qualified System.IO                 as System
 import           System.IO                 (Handle, stdout)
 
-import Data.Container.Class hiding (intercalate)
-import Data.Container.Sequence
+-- import Data.Container.Class hiding (intercalate)
+-- import Data.Container.Sequence
 
 
 -------------------
@@ -86,15 +86,15 @@ makeLenses ''Style
 resetSGR :: MonadIO m => Handle -> m ()
 resetSGR h = liftIO $ ANSI.hSetSGR h [ANSI.Reset]
 
-getStyleAsChanges :: MonadGetter Style m => m [StyleChange]
-getStyleAsChanges = styleToChanges <$> get @Style
+getStyleAsChanges :: State.Getter Style m => m [StyleChange]
+getStyleAsChanges = styleToChanges <$> State.get @Style
 
 styleToChanges :: Style -> [StyleChange]
 styleToChanges = diffStyles def
 
-getReversedStyleChange :: MonadGetter Style m => StyleChange -> m StyleChange
+getReversedStyleChange :: State.Getter Style m => StyleChange -> m StyleChange
 getReversedStyleChange change = do
-    s <- get @Style
+    s <- State.get @Style
     return $ case change of
         WeightChange    _ -> WeightChange    $ s ^. weightStyle
         ItalicChange    _ -> ItalicChange    $ s ^. italicStyle
@@ -105,8 +105,8 @@ getReversedStyleChange change = do
         BgColorChange   _ -> BgColorChange   $ s ^. bgColorStyle
 
 
-putStyleChange :: MonadState Style m => StyleChange -> m ()
-putStyleChange ch = modify_ @Style $ case ch of
+putStyleChange :: State.Monad Style m => StyleChange -> m ()
+putStyleChange ch = State.modify_ @Style $ case ch of
     WeightChange    a -> weightStyle    .~ a
     ItalicChange    a -> italicStyle    .~ a
     UnderlineChange a -> underlineStyle .~ a
@@ -115,7 +115,7 @@ putStyleChange ch = modify_ @Style $ case ch of
     FgColorChange   a -> fgColorStyle   .~ a
     BgColorChange   a -> bgColorStyle   .~ a
 
-withStyleChanges :: (MonadState Style m, MonadIO m) => Handle -> [StyleChange] -> m a -> m a
+withStyleChanges :: (State.Monad Style m, MonadIO m) => Handle -> [StyleChange] -> m a -> m a
 withStyleChanges h changes m = do
     reverseChanges <- mapM getReversedStyleChange changes
     hSetStyleChanges h changes
@@ -135,11 +135,11 @@ diffStyles s s' = weightDiff . italicDiff . underlineDiff . blinkingDiff . swapp
     bgColorDiff   = if s ^. bgColorStyle   == s' ^. bgColorStyle   then id else (BgColorChange   (s' ^. bgColorStyle)   :)
 
 
-hSetStyleChanges :: (MonadState Style m, MonadIO m) => Handle -> [StyleChange] -> m ()
+hSetStyleChanges :: (State.Monad Style m, MonadIO m) => Handle -> [StyleChange] -> m ()
 hSetStyleChanges h changes = do
     let colorReser = (FgColorChange Nothing `elem` changes) || (BgColorChange Nothing `elem` changes)
     mapM putStyleChange changes
-    newStyle <- get @Style
+    newStyle <- State.get @Style
     changes' <- if colorReser then resetSGR h >> getStyleAsChanges
                               else return changes
     liftIO $ mapM_ apply changes'
@@ -232,14 +232,14 @@ take _ = id
 -- === Outputting === --
 
 hPutStr, hPutStrLn :: MonadIO m => Handle -> TermText -> m ()
-hPutStr   h t = liftIO $ evalDefStateT @Style $ hRenderStr h t
+hPutStr   h t = liftIO $ State.evalDefT @Style $ hRenderStr h t
 hPutStrLn h t = liftIO $ hPutStr h t >> System.hPutChar h '\n'
 
 putStr, putStrLn :: MonadIO m => TermText -> m ()
 putStr   = hPutStr   stdout
 putStrLn = hPutStrLn stdout
 
-hRenderStr :: (MonadIO m, MonadState Style m) => Handle -> TermText -> m ()
+hRenderStr :: (MonadIO m, State.Monad Style m) => Handle -> TermText -> m ()
 hRenderStr h txt = case txt ^. rootSegment of
     NullSegment       -> return ()
     PlainSegment  t   -> liftIO $ Text.hPutStr h t
