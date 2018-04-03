@@ -7,7 +7,7 @@ module Data.Container.Vector (module Data.Container.Vector, module X) where
 
 import qualified Prelude as P
 import qualified Data.Text as UTF16
-import           Prologue_old hiding (Text, length, splitHead, concat, take, drop, index)
+import           Prologue hiding (Text, length, splitHead, concat, take, drop, index)
 
 import           Control.Monad.ST            (runST)
 import           Data.Binary                 (Binary)
@@ -79,12 +79,12 @@ splitLast t = justIf (length t > 0) $ unsafeSplitLast t ; {-# INLINE splitLast #
 
 -- | O(1)
 unsafeSplitHead, unsafeSplitLast :: Vector v a => v a -> (a, v a)
-unsafeSplitHead t = (unsafeHead t, unsafeTail t) ; {-# INLINE unsafeSplitHead #-}
-unsafeSplitLast t = (unsafeLast t, unsafeInit t) ; {-# INLINE unsafeSplitLast #-}
+unsafeSplitHead t = (V.unsafeHead t, V.unsafeTail t) ; {-# INLINE unsafeSplitHead #-}
+unsafeSplitLast t = (V.unsafeLast t, V.unsafeInit t) ; {-# INLINE unsafeSplitLast #-}
 
 -- | O(s)
 takeTill :: Vector v a => (a -> Bool) -> v a -> v a
-takeTill f = \v -> maybe v (flip unsafeTake v) $ findIndex f v ; {-# INLINE takeTill #-}
+takeTill f = \v -> maybe v (flip V.unsafeTake v) $ findIndex f v ; {-# INLINE takeTill #-}
 
 -- | O(s)
 takeWhile :: Vector v a => (a -> Bool) -> v a -> v a
