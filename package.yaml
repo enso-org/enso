@@ -9,7 +9,7 @@ default-extensions: [AllowAmbiguousTypes, ApplicativeDo, Arrows, BangPatterns, B
   RecursiveDo, ScopedTypeVariables, StandaloneDeriving, TemplateHaskell, TupleSections,
   TypeApplications, TypeFamilies, TypeFamilyDependencies, TypeOperators, ViewPatterns,
   LiberalTypeSynonyms, RelaxedPolyRec]
-dependencies: [base, prologue, text, terminal-text, dependent-state, container]
+dependencies: [base, prologue, text, terminal-text, layered-state, container]
 github: https://github.com/luna/layouting
 library: {ghc-options: -Wall -O2, source-dirs: src}
 license: Apache-2.0
@@ -18,4 +18,4 @@ name: layouting
 stability: experimental
 synopsis: General layouting library. Currently supports layouting 2D areas and can
   be used as a backend for text pretty printing or automatic windows layouting managers.
-version: 1.0.7
+version: '1.1'
