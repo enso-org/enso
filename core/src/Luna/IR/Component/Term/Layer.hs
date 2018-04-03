@@ -37,12 +37,11 @@ instance IsPtr (Link l)
 -- === Definition === --
 
 data Model
-type instance Layer.Cons     Terms Model        = Term.Uni
-type instance Layer.Layout   Terms Model layout = layout
-type instance Layer.ViewCons Terms Model layout
-            = Term.TagToCons (Layout.Get Model layout)
-instance Term.IsUni t => Layer.IsCons1 Terms Model t where
-    cons1 = Term.toUni ; {-# INLINE cons1 #-}
+type instance Layer.Data Terms Model layout = Term.Uni layout
+type instance Layer.View Terms Model layout
+   = Term.TagToCons (Layout.Get Model layout) layout
+instance Layer.Initializer Terms Model
+
 
 -- === Utils === --
 
@@ -51,15 +50,23 @@ match :: Layer.ViewReader Terms Model layout m
 match = Layer.readView @Model ; {-# INLINE match #-}
 
 
+-- === Instances === --
+
+instance Term.IsUni t => Layer.IsCons1 Terms Model t where
+    cons1 = Term.toUni ; {-# INLINE cons1 #-}
+
+
 
 ------------------
 -- === Type === --
 ------------------
 
 data Type
-type instance Layer.Cons   Terms Type        = Link
-type instance Layer.Layout Terms Type layout = Layout.Get Type layout *-* layout
 type instance Layout.Default Type = ()
+type instance Layer.Data Terms Type layout
+   = Link (Layout.Get Type layout *-* layout)
+
+instance Layer.Initializer Terms Type
 
 
 
@@ -67,33 +74,9 @@ type instance Layout.Default Type = ()
 -- === Users === --
 -------------------
 
--- === Definition === --
-
 data Users
-type    UsersSetData layout = UnmanagedPtrSet (Link layout)
-newtype UsersSet     layout = UsersSet (UsersSetData layout)
-    deriving (Show, Storable)
-makeLenses       ''UsersSet
-Storable1.derive ''UsersSet
+type instance Layer.Data Terms Users layout
+   = UnmanagedPtrSet (Link (layout *-* Layout.Set Model () layout))
 
--- FIXME: change () to Top ?
-type instance Layer.Cons   Terms Users = UsersSet
-type instance Layer.Layout Terms Users layout
-   = layout *-* Layout.Set Model () layout
-
-
--- === Instances === --
-
-type instance Set.Item (UsersSet layout) = Set.Item (UsersSetData layout)
-instance MonadIO m => Set m (UsersSet l) where
-    new    = wrap <$> Set.new    ; {-# INLINE new    #-}
-    insert = Set.insert . unwrap ; {-# INLINE insert #-}
-    delete = Set.delete . unwrap ; {-# INLINE delete #-}
-    member = Set.member . unwrap ; {-# INLINE member #-}
-    size   = Set.size   . unwrap ; {-# INLINE size   #-}
-    null   = Set.null   . unwrap ; {-# INLINE null   #-}
-    toList = Set.toList . unwrap ; {-# INLINE toList #-}
-
-instance Layer.DataInitializer UsersSet where
-    initStaticData  = Just $ coerce Ptr.nullPtr ; {-# INLINE initStaticData #-}
-    initDynamicData = Just Set.new ; {-# INLINE initDynamicData #-}
+instance Layer.Initializer Terms Users where
+    initDynamic = Just Set.new ; {-# INLINE initDynamic #-}

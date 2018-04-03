@@ -31,10 +31,11 @@ type src *-* tgt = Layout '[Source := src, Target := tgt]
 data Source
 data Target
 
-type instance Layer.Layout Links Source layout = Layout.Get Source layout
-type instance Layer.Layout Links Target layout = Layout.Get Target layout
-type instance Layer.Cons   Links Source        = Term
-type instance Layer.Cons   Links Target        = Term
+type instance Layer.Data Links Source layout = Term (Layout.Get Source layout)
+type instance Layer.Data Links Target layout = Term (Layout.Get Target layout)
+
+instance Layer.Initializer Links Source
+instance Layer.Initializer Links Target
 
 type instance Cmp Source Target = 'LT
 type instance Cmp Target Source = 'GT

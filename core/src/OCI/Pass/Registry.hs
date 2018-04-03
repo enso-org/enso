@@ -4,6 +4,8 @@ import Prologue as P
 
 import qualified Control.Monad.State.Layered as State
 import qualified Data.Map.Strict             as Map
+import qualified Foreign.Marshal.Utils       as Ptr
+import qualified Foreign.Storable            as Storable
 import qualified Foreign.Storable1           as Storable1
 import qualified Foreign.Storable1.Ptr       as Ptr1
 import qualified OCI.IR.Layer.Internal       as Layer
@@ -12,6 +14,7 @@ import Control.Monad.Exception     (Throws, throw)
 import Control.Monad.State.Layered (StateT)
 import Data.Map.Strict             (Map)
 import Foreign.Ptr.Utils           (SomePtr)
+import Foreign.Storable            (Storable)
 
 
 -------------------
@@ -105,18 +108,18 @@ registerPrimLayerRep s staticInit dynamicInit comp layer =
 {-# INLINE registerPrimLayerRep #-}
 
 registerComponent :: ∀ comp m.       (MonadRegistry m, Typeable comp) => m ()
-registerPrimLayer :: ∀ comp layer m. (MonadRegistry m, Typeable comp, Typeable layer, Layer.StorableCons comp layer, Layer.Initializer comp layer) => m ()
+registerPrimLayer :: ∀ comp layer m. (MonadRegistry m, Typeable comp, Typeable layer, Layer.StorableData comp layer, Layer.Initializer comp layer) => m ()
 registerComponent = registerComponentRep (someTypeRep @comp) ; {-# INLINE registerComponent #-}
 registerPrimLayer = do
-    initStatic     <- fmap coerce . mapM Ptr1.new
+    initStatic     <- liftIO $ fmap coerce . mapM Ptr.new
                     $ Layer.initStatic @comp @layer
     let initDynamic = applyDyn <$> Layer.initDynamic @comp @layer
         byteSize    = Layer.byteSize @comp @layer
         comp        = someTypeRep @comp
         layer       = someTypeRep @layer
     registerPrimLayerRep byteSize initStatic initDynamic comp layer
-    where applyDyn :: Storable1.Storable1 t => IO (t a) -> (SomePtr -> IO ())
-          applyDyn t ptr = Storable1.poke (coerce ptr) =<< t ; {-# INLINE applyDyn #-}
+    where applyDyn :: Storable t => IO t -> (SomePtr -> IO ())
+          applyDyn t ptr = Storable.poke (coerce ptr) =<< t ; {-# INLINE applyDyn #-}
 {-# INLINE registerPrimLayer #-}
 
 

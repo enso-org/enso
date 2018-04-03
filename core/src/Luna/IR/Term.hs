@@ -26,5 +26,5 @@ type instance Term.Uni = UniTerm
 
 -- === Instances === --
 
-instance Layer.DataInitializer UniTerm where
-    initStaticData = Just $ UniTermMissing Missing ; {-# INLINE initStaticData #-}
+-- instance Layer.DataInitializer UniTerm where
+--     initStaticData = Just $ UniTermMissing Missing ; {-# INLINE initStaticData #-}

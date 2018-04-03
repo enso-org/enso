@@ -6,16 +6,18 @@ module OCI.IR.Layer.Internal where
 
 import Prologue hiding (Data)
 
-import qualified Foreign.Storable1   as Storable1
-import qualified OCI.IR.Component    as Component
-import qualified OCI.Pass.Definition as Pass
+import qualified Foreign.Storable       as Storable
+import qualified Foreign.Storable.Utils as Storable
+import qualified OCI.IR.Component       as Component
+import qualified OCI.Pass.Definition    as Pass
 
-import Foreign.Ptr            (plusPtr)
+import Foreign.Ptr            (Ptr, plusPtr)
 import Foreign.Ptr.Utils      (SomePtr)
+import Foreign.Storable       (Storable)
 import Foreign.Storable.Utils (sizeOf')
-import Foreign.Storable1      (Storable1)
 import OCI.IR.Component       (Component (Component))
 import OCI.Pass.Definition    (Pass)
+
 
 
 -----------------------
@@ -33,46 +35,31 @@ consByteSize = sizeOf' @Int ; {-# INLINE consByteSize #-}
 
 -- === Definition === --
 
-type family Cons   comp layer        :: Type -> Type
-type family Layout comp layer layout :: Type
-type        Data   comp layer layout
-          = Cons   comp layer (Layout comp layer layout)
-
-type StorableCons comp layer = Storable1       (Cons comp layer)
-type Initializer  comp layer = DataInitializer (Cons comp layer)
+type family Data  comp layer layout :: Type
+type SomeData     comp layer = Data comp layer ()
+type StorableData comp layer = Storable (SomeData comp layer)
 
 
 -- === Construction === --
 
 class IsCons1 comp layer t where
-    cons1 :: ∀ a. t a -> Cons comp layer a
+    cons1 :: ∀ a. t a -> Data comp layer a
 
 
 -- === Initialization === --
 
-class DataInitializer t where
-    initStaticData  :: ∀ layout. Maybe     (t layout)
-    initDynamicData :: ∀ layout. Maybe (IO (t layout))
-    initStaticData  = Nothing ; {-# INLINE initStaticData  #-}
-    initDynamicData = Nothing ; {-# INLINE initDynamicData #-}
-    {-# MINIMAL initStaticData | initDynamicData #-}
-
-instance DataInitializer (Component comp) where
-    initStaticData = Just Component.unsafeNull ; {-# INLINE initStaticData #-}
-
-initStatic :: forall comp layer layout. Initializer comp layer
-           => Maybe (Cons comp layer layout)
-initStatic = initStaticData @(Cons comp layer) ; {-# INLINE initStatic #-}
-
-initDynamic :: forall comp layer layout. Initializer comp layer
-           => Maybe (IO (Cons comp layer layout))
-initDynamic = initDynamicData @(Cons comp layer) ; {-# INLINE initDynamic #-}
+class Initializer comp layer where
+    initStatic  :: Maybe     (SomeData comp layer)
+    initDynamic :: Maybe (IO (SomeData comp layer))
+    initStatic  = Nothing ; {-# INLINE initStatic  #-}
+    initDynamic = Nothing ; {-# INLINE initDynamic #-}
+    {-# MINIMAL initStatic | initDynamic #-}
 
 
 -- === General Information === --
 
-byteSize :: ∀ comp layer. StorableCons comp layer => Int
-byteSize = Storable1.sizeOf' @(Cons comp layer) ; {-# INLINE byteSize #-}
+byteSize :: ∀ comp layer. StorableData comp layer => Int
+byteSize = Storable.sizeOf' @(SomeData comp layer) ; {-# INLINE byteSize #-}
 
 
 
@@ -96,17 +83,22 @@ class Writer comp layer m where
 
 -- === API === --
 
-#define CTX ∀ layer comp layout m. (StorableCons comp layer, MonadIO m)
+#define CTX ∀ layer comp layout m. (StorableData comp layer, MonadIO m)
 
-unsafePeek :: CTX => SomePtr -> m (Data comp layer layout)
-unsafePoke :: CTX => SomePtr ->   (Data comp layer layout) -> m ()
-unsafePeek !ptr = liftIO $ Storable1.peek (coerce ptr) ; {-# INLINE unsafePeek #-}
-unsafePoke !ptr = liftIO . Storable1.poke (coerce ptr) ; {-# INLINE unsafePoke #-}
+unsafePeek :: CTX => SomePtr -> m (SomeData comp layer)
+unsafePoke :: CTX => SomePtr ->   (SomeData comp layer) -> m ()
+unsafePeek !ptr = liftIO $ Storable.peek (coerce ptr) ; {-# INLINE unsafePeek #-}
+unsafePoke !ptr = liftIO . Storable.poke (coerce ptr) ; {-# INLINE unsafePoke #-}
+
+unsafePeekGen :: CTX => SomePtr -> m (Data comp layer layout)
+unsafePokeGen :: CTX => SomePtr ->   (Data comp layer layout) -> m ()
+unsafePeekGen = unsafeCoerce $ unsafePeek @layer @comp @layout @m ; {-# INLINE unsafePeekGen #-}
+unsafePokeGen = unsafeCoerce $ unsafePoke @layer @comp @layout @m ; {-# INLINE unsafePokeGen #-}
 
 unsafePeekByteOff :: CTX => Int -> SomePtr -> m (Data comp layer layout)
 unsafePokeByteOff :: CTX => Int -> SomePtr ->   (Data comp layer layout) -> m ()
-unsafePeekByteOff !d !ptr = unsafePeek @layer @comp @layout (ptr `plusPtr` d) ; {-# INLINE unsafePeekByteOff #-}
-unsafePokeByteOff !d !ptr = unsafePoke @layer @comp @layout (ptr `plusPtr` d) ; {-# INLINE unsafePokeByteOff #-}
+unsafePeekByteOff !d !ptr = unsafePeekGen @layer @comp @layout (ptr `plusPtr` d) ; {-# INLINE unsafePeekByteOff #-}
+unsafePokeByteOff !d !ptr = unsafePokeGen @layer @comp @layout (ptr `plusPtr` d) ; {-# INLINE unsafePokeByteOff #-}
 
 unsafeReadByteOff :: CTX => Int -> Component comp layout
                          -> m (Data comp layer layout)
@@ -130,7 +122,7 @@ write = write__ @comp @layer @m ; {-# INLINE write #-}
 -- === Instances === --
 
 instance {-# OVERLAPPABLE #-}
-    ( StorableCons comp layer
+    ( StorableData comp layer
     , Pass.LayerByteOffsetGetter comp layer (Pass pass)
     ) => Reader comp layer (Pass pass) where
     read__ !comp = do
@@ -139,7 +131,7 @@ instance {-# OVERLAPPABLE #-}
     {-# INLINE read__ #-}
 
 instance {-# OVERLAPPABLE #-}
-    ( StorableCons comp layer
+    ( StorableData comp layer
     , Pass.LayerByteOffsetGetter comp layer (Pass pass)
     ) => Writer comp layer (Pass pass) where
     write__ !comp !d = do
@@ -165,11 +157,8 @@ instance Writer comp layer ImpM1 where write__ _ _ = impossible
 -- === Layer View === --
 ------------------------
 
-type family ViewCons comp layer layout :: Type -> Type
-type        View     comp layer layout
-          = ViewCons comp layer layout (Layout comp layer layout)
-
-type StorableViewCons comp layer layout = Storable1 (ViewCons comp layer layout)
+type family View  comp layer layout :: Type
+type StorableView comp layer layout = Storable (View comp layer layout)
 
 
 
@@ -193,15 +182,15 @@ class ViewWriter comp layer layout m where
 
 -- === API === --
 
-#define CTX ∀ layer comp layout m.           \
-        ( StorableViewCons comp layer layout \
-        , MonadIO m                          \
+#define CTX ∀ layer comp layout m.       \
+        ( StorableView comp layer layout \
+        , MonadIO m                      \
         )
 
 unsafePeekView :: CTX => SomePtr -> m (View comp layer layout)
 unsafePokeView :: CTX => SomePtr ->   (View comp layer layout) -> m ()
-unsafePeekView !ptr = liftIO $ Storable1.peekByteOff (coerce ptr) consByteSize; {-# INLINE unsafePeekView #-}
-unsafePokeView !ptr = liftIO . Storable1.pokeByteOff (coerce ptr) consByteSize; {-# INLINE unsafePokeView #-}
+unsafePeekView !ptr = liftIO $ Storable.peekByteOff (coerce ptr) consByteSize; {-# INLINE unsafePeekView #-}
+unsafePokeView !ptr = liftIO . Storable.pokeByteOff (coerce ptr) consByteSize; {-# INLINE unsafePokeView #-}
 
 unsafePeekViewByteOff :: CTX => Int -> SomePtr -> m (View comp layer layout)
 unsafePokeViewByteOff :: CTX => Int -> SomePtr -> View comp layer layout -> m ()
@@ -237,7 +226,7 @@ writeView = writeView__ @comp @layer @layout @m ; {-# INLINE writeView #-}
 -- === Instances === --
 
 instance {-# OVERLAPPABLE #-}
-    ( StorableViewCons comp layer layout
+    ( StorableView comp layer layout
     , Pass.LayerByteOffsetGetter comp layer (Pass pass)
     ) => ViewReader comp layer layout (Pass pass) where
     readView__ !comp = do
@@ -246,7 +235,7 @@ instance {-# OVERLAPPABLE #-}
     {-# INLINE readView__ #-}
 
 instance {-# OVERLAPPABLE #-}
-    ( StorableViewCons comp layer layout
+    ( StorableView comp layer layout
     , Pass.LayerByteOffsetGetter comp layer (Pass pass)
     ) => ViewWriter comp layer layout (Pass pass) where
     writeView__ !comp !d = do
