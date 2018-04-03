@@ -1,0 +1,103 @@
+name:       luna-lexer
+version:    "0.2"
+author:     Luna Team <contact@luna-lang.org>
+maintainer: Luna Team <contact@luna-lang.org>
+
+library:
+    source-dirs:
+        - src
+        - src-libs/attoparsec-text32
+        - src-libs/parsing
+        - src-libs/conduit-utils
+    other-modules: Paths_luna_lexer
+
+benchmarks:
+    lexer-benchmark:
+        main:        Main.hs
+        source-dirs: test/bench
+        dependencies:
+            - criterion
+            - luna-lexer
+            - random
+            - timeit
+            - conduit
+            - conduit-combinators
+            - conduit-extra
+            - attoparsec
+
+
+dependencies:
+    - base
+    - prologue
+    - layered-state
+    - lens
+    - containers
+    - mtl
+    - vector
+    - text-processing
+    - vector-text
+    - fingertree
+    - attoparsec
+    - text
+    - conduit
+    - conduit-combinators
+    - bytestring
+    - resourcet
+    - convert
+    - functor-utils
+
+    # remove:
+    - lens-utils
+    - exceptions
+    - primitive
+    - data-default
+    - typelevel
+    - transformers
+    - constraints
+
+default-extensions:
+    - AllowAmbiguousTypes
+    - ApplicativeDo
+    - Arrows
+    - BangPatterns
+    - BinaryLiterals
+    - ConstraintKinds
+    - DataKinds
+    - DefaultSignatures
+    - DeriveDataTypeable
+    - DeriveFoldable
+    - DeriveFunctor
+    - DeriveGeneric
+    - DeriveTraversable
+    - DoAndIfThenElse
+    - DuplicateRecordFields
+    - EmptyDataDecls
+    - FlexibleContexts
+    - FlexibleInstances
+    - FunctionalDependencies
+    - GeneralizedNewtypeDeriving
+    - InstanceSigs
+    - LambdaCase
+    - MonadComprehensions
+    - MultiWayIf
+    - NamedWildCards
+    - NegativeLiterals
+    - NoImplicitPrelude
+    - NumDecimals
+    - OverloadedLabels
+    - PackageImports
+    - QuasiQuotes
+    - RankNTypes
+    - RecursiveDo
+    - ScopedTypeVariables
+    - StandaloneDeriving
+    - TemplateHaskell
+    - TupleSections
+    - TypeApplications
+    - TypeFamilies
+    - TypeFamilyDependencies
+    - TypeOperators
+    - ViewPatterns
+
+    - LiberalTypeSynonyms
+    - RelaxedPolyRec

@@ -15,5 +15,6 @@ ghc-options:
         -fconstraint-solver-iterations=100
 local-bin-path: dist/bin/public/luna
 packages:
-    - location: core
+    - core
+    - syntax/text/lexer
 resolver: ./build/snapshot.yaml

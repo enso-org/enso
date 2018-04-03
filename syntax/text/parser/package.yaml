@@ -1,0 +1,90 @@
+name:       luna-parser
+version:    "0.2"
+author:     Luna Team <contact@luna-lang.org>
+maintainer: Luna Team <contact@luna-lang.org>
+
+library:
+    source-dirs:
+        - src
+        - src-libs
+
+tests:
+    spec:
+        main: Main.hs
+        source-dirs: test/spec
+        dependencies:
+            - luna-core
+            - luna-parser
+            - luna-lexer
+            - directory
+            - filepath
+            - hspec
+            - hspec-megaparsec
+            - hspec-jenkins
+            - open-browser
+
+
+dependencies:
+    - base
+    - luna-core
+    - luna-lexer
+    - prologue
+    - dependent-state
+    - lens
+    - megaparsec
+    - containers
+    - mtl
+    - text
+    - typelevel
+    - vector
+    - text-processing
+    - vector-text
+    - layouting
+
+default-extensions:
+    - AllowAmbiguousTypes
+    - ApplicativeDo
+    - Arrows
+    - BangPatterns
+    - BinaryLiterals
+    - ConstraintKinds
+    - DataKinds
+    - DefaultSignatures
+    - DeriveDataTypeable
+    - DeriveFoldable
+    - DeriveFunctor
+    - DeriveGeneric
+    - DeriveTraversable
+    - DoAndIfThenElse
+    - DuplicateRecordFields
+    - EmptyDataDecls
+    - FlexibleContexts
+    - FlexibleInstances
+    - FunctionalDependencies
+    - GeneralizedNewtypeDeriving
+    - InstanceSigs
+    - LambdaCase
+    - MonadComprehensions
+#    - MonadFailDesugaring
+    - MultiWayIf
+    - NamedWildCards
+    - NegativeLiterals
+    - NoImplicitPrelude
+    - NumDecimals
+    - OverloadedLabels
+    - PackageImports
+    - QuasiQuotes
+    - RankNTypes
+    - RecursiveDo
+    - ScopedTypeVariables
+    - StandaloneDeriving
+    - TemplateHaskell
+    - TupleSections
+    - TypeApplications
+    - TypeFamilies
+    - TypeFamilyDependencies
+    - TypeOperators
+    - ViewPatterns
+
+    - LiberalTypeSynonyms
+    - RelaxedPolyRec
