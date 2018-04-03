@@ -19,21 +19,48 @@ import           Data.Maybe        (isJust)
 import           OCI.Pass        (Pass, SubPass, Inputs, Outputs, Preserves, Events)
 import qualified OCI.Pass        as Pass
 import           Luna.Pass.Resolution.Data.UnresolvedConses
-import           Luna.Pass.Resolution.Data.ImportError      (ImportError (..), consImportErrorDoc)
+import           Luna.Pass.Resolution.Data.ImportError ( ImportError (..)
+                                                       , consImportErrorDoc)
 import           Luna.Pass.Inference.Data.Unifications
 
 data DeconstructorResolution
 type instance Abstract  DeconstructorResolution = DeconstructorResolution
 
 type instance Inputs     Net   DeconstructorResolution = '[AnyExpr, AnyExprLink]
-type instance Inputs     Layer DeconstructorResolution = '[AnyExpr // Model, AnyExpr // Type, AnyExpr // Succs, AnyExpr // UID, AnyExpr // Requester, AnyExpr // Errors, AnyExprLink // Model, AnyExprLink // UID]
-type instance Inputs     Attr  DeconstructorResolution = '[NegativeConses, Imports, Unifications]
+type instance Inputs     Layer DeconstructorResolution = '[ AnyExpr // Model
+                                                          , AnyExpr // Type
+                                                          , AnyExpr // Succs
+                                                          , AnyExpr // UID
+                                                          , AnyExpr // Requester
+                                                          , AnyExpr // Errors
+                                                          , AnyExprLink // Model
+                                                          , AnyExprLink // UID
+                                                          ]
+type instance Inputs     Attr  DeconstructorResolution = '[ NegativeConses
+                                                          , Imports
+                                                          , Unifications]
 type instance Inputs     Event DeconstructorResolution = '[]
 
 type instance Outputs    Net   DeconstructorResolution = '[AnyExpr, AnyExprLink]
-type instance Outputs    Layer DeconstructorResolution = '[AnyExpr // Model, AnyExpr // Type, AnyExpr // Succs, AnyExpr // UID, AnyExpr // Requester, AnyExpr // Errors, AnyExprLink // Model, AnyExprLink // UID]
-type instance Outputs    Attr  DeconstructorResolution = '[NegativeConses, Unifications]
-type instance Outputs    Event DeconstructorResolution = '[New // AnyExpr, New // AnyExprLink, Event.Import // AnyExpr, Event.Import // AnyExprLink, Delete // AnyExpr, Delete // AnyExprLink, OnDeepDelete // AnyExpr]
+type instance Outputs    Layer DeconstructorResolution = '[ AnyExpr // Model
+                                                          , AnyExpr // Type
+                                                          , AnyExpr // Succs
+                                                          , AnyExpr // UID
+                                                          , AnyExpr // Requester
+                                                          , AnyExpr // Errors
+                                                          , AnyExprLink // Model
+                                                          , AnyExprLink // UID
+                                                          ]
+type instance Outputs    Attr  DeconstructorResolution = '[ NegativeConses
+                                                          , Unifications
+                                                          ]
+type instance Outputs    Event DeconstructorResolution = '[ New // AnyExpr
+                                                          , New // AnyExprLink
+                                                          , Event.Import // AnyExpr
+                                                          , Event.Import // AnyExprLink
+                                                          , Delete // AnyExpr
+                                                          , Delete // AnyExprLink
+                                                          , OnDeepDelete // AnyExpr]
 
 type instance Preserves        DeconstructorResolution = '[]
 
@@ -44,20 +71,21 @@ runDeconstructorResolution :: (MonadRef m, MonadPassManager m) => Pass Deconstru
 runDeconstructorResolution = do
     conses <- unwrap <$> getAttr @NegativeConses
     forM_ conses $ \cons -> do
-        res <- resolveDecons cons
+        res <- resolveDeconstructor cons
         case res of
             Left err -> modifyLayer_ @Errors cons (CompileError err [] [] :)
             _        -> return ()
     putAttr @NegativeConses $ NegativeConses []
 
 wrongArgumentsCountError :: Int -> Int -> Name -> Text
-wrongArgumentsCountError expected given cons =  "Wrong number of arguments for constructor "
-                                             <> fromString (show cons)
-                                             <> ". Expected "
-                                             <> convert (show expected)
-                                             <> " but got "
-                                             <> convert (show given)
-                                             <> "."
+wrongArgumentsCountError expected given cons
+    =  "Wrong number of arguments for constructor "
+    <> fromString (show cons)
+    <> ". Expected "
+    <> convert (show expected)
+    <> " but got "
+    <> convert (show given)
+    <> "."
 
 lookupDestr :: Name -> Imports -> Either ImportError Destructor
 lookupDestr n imps = case itoListOf (importedClasses .> itraversed <. Function.documentedItem . Class.constructors . ix n) imps of
@@ -65,9 +93,9 @@ lookupDestr n imps = case itoListOf (importedClasses .> itraversed <. Function.d
     [(_, d)] -> Right $ snd d
     matches  -> Left . SymbolAmbiguous $ fst <$> matches
 
-resolveDecons :: (MonadRef m, MonadPassManager m) => Expr Cons
-              -> SubPass DeconstructorResolution m (Either Text ())
-resolveDecons c = do
+resolveDeconstructor :: (MonadRef m, MonadPassManager m) => Expr Cons
+                     -> SubPass DeconstructorResolution m (Either Text ())
+resolveDeconstructor c = do
     Named.Term (Named.Cons n fields) <- readTerm c
     res <- lookupDestr n <$> getAttr @Imports
     case res of
@@ -77,7 +105,9 @@ resolveDecons c = do
             let expectedArgsCount = length argTypes
                 givenArgsCount    = length fields
             when (expectedArgsCount /= givenArgsCount) $
-                throwError (wrongArgumentsCountError expectedArgsCount givenArgsCount n)
+                throwError $ wrongArgumentsCountError expectedArgsCount
+                                                      givenArgsCount
+                                                      n
             rootTp           <- getLayer @Type c >>= source
             rootUni          <- unify rootTp root
             argTps           <- mapM (source >=> getLayer @Type >=> source) fields

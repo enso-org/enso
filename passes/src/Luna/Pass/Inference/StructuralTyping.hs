@@ -123,7 +123,8 @@ attachStructuralType knownMonad expr = do
                 reconnectLayer' @Requester (Just expr) (fst aT)
                 return aT
             typeUnis <- mapM (unify newtp . snd) apps
-            forM_ typeUnis $ \uni -> reconnectLayer' @Requester (Just expr) (generalize uni :: Expr Draft)
+            forM_ typeUnis $ \(generalize -> uni :: Expr Draft) ->
+                reconnectLayer' @Requester (Just expr) uni
             modifyAttr_ @Unifications $ wrap . (fmap generalize typeUnis ++) . unwrap
             monUni   <- mergeMany =<< mapM (source <=< fmap (view $ wrapped . termMonadic_monad) . readTerm . fst) apps
             return newtp `inMonadM` return monUni
