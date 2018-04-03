@@ -17,10 +17,8 @@ import           Data.Maybe        (isJust)
 import           OCI.Pass        (Pass, SubPass, Inputs, Outputs, Preserves, Events)
 import qualified OCI.Pass        as Pass
 import           Luna.Pass.Resolution.Data.UnresolvedConses
+import           Luna.Pass.Resolution.Data.ImportError      (ImportError (..), consImportErrorDoc)
 import           Luna.Pass.Data.ExprMapping
-
-data ImportError = SymbolNotFound
-                 | SymbolAmbiguous [Name]
 
 data ConstructorResolution
 type instance Abstract  ConstructorResolution = ConstructorResolution
@@ -49,16 +47,14 @@ lookupCons n imps = case itoListOf (importedClasses .> itraversed <. documentedI
     [(_, c)] -> Right c
     matches  -> Left . SymbolAmbiguous $ fst <$> matches
 
-importErrorDoc :: Name -> ImportError -> Text
-importErrorDoc n SymbolNotFound         = "Can't find constructor: " <> " " <> fromString (show n)
-importErrorDoc n (SymbolAmbiguous mods) = "Constructor" <> " " <> fromString (show n) <> " " <> "is ambiguous." <> "\n" <> "It's exported by the following modules: " <> "\n" <> (foldl (\l r -> l <> "\n" <> r) "" $ fromString . show <$> mods)
-
 resolveCons :: (MonadRef m, MonadPassManager m) => Expr Cons -> SubPass ConstructorResolution m ()
 resolveCons c = do
     Named.Term (Named.Cons n fields) <- readTerm c
     res <- lookupCons n <$> getAttr @Imports
     case res of
-        Left err   -> modifyLayer_ @Errors c (CompileError (importErrorDoc n err) [] [] :)
+        Left err   -> do
+            let error = CompileError (consImportErrorDoc n err) [] []
+            modifyLayer_ @Errors c (error :)
         Right cons -> do
             imported <- importConstructor $ cons ^. constructor
             args     <- mapM source fields

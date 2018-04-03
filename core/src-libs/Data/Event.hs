@@ -13,7 +13,7 @@ import           Data.Path     as X
 -- WIP:
 import           OCI.IR.Layout.Class (Abstract)
 import           Control.Monad.State.Dependent (StateT)
-
+import           Control.Monad.Except          (ExceptT)
 
 
 data Event
@@ -87,6 +87,7 @@ type family Emitters as m :: Constraint where
     Emitters (a ': as) m = (Emitter a m, Emitters as m)
 
 instance Emitter e m => Emitter e (StateT s m)
+instance Emitter e m => Emitter e (ExceptT s m)
 
 -----------------------
 -- === Listeners === --

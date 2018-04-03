@@ -100,7 +100,7 @@ attachStructuralType knownMonad expr = do
                     lam a restM `inMonadM` cons_ @Draft "Pure"
             res@(resM, _) <- lamsInPure asM (oM, oT)
             uni <- unify nM resM
-            reconnectLayer' @Requester (Just expr) (unsafeGeneralize uni :: Expr Draft)
+            reconnectLayer' @Requester (Just expr) (generalize uni :: Expr Draft)
             modifyAttr_ @Unifications $ wrap . (generalize uni :) . unwrap
             return res
         Grouped a  -> getStructuralType knownMonad =<< source a
@@ -120,8 +120,11 @@ attachStructuralType knownMonad expr = do
             apps     <- forM clauses $ \(cM, cT) -> do
                 aT <- app cM iM `inMonadM` var =<< genName
                 modifyAttr_ @SimplifierQueue $ wrap . (fst aT :) . unwrap
+                reconnectLayer' @Requester (Just expr) (fst aT)
                 return aT
             typeUnis <- mapM (unify newtp . snd) apps
+            forM_ typeUnis $ \(generalize -> uni :: Expr Draft) ->
+                reconnectLayer' @Requester (Just expr) uni
             modifyAttr_ @Unifications $ wrap . (fmap generalize typeUnis ++) . unwrap
             monUni   <- mergeMany =<< mapM (source <=< fmap (view $ wrapped . termMonadic_monad) . readTerm . fst) apps
             return newtp `inMonadM` return monUni
