@@ -142,37 +142,37 @@ defineSingle needsSmartCons format termDecl = do
     case maybeNameStr con of
         (Just n) -> when_ (n /= conNameStr)
             $ fail "Term type should have the same name as its constructor."
-    let typeNameStr     = mkTypeName conNameStr
-        tagName         = convert conNameStr
-        typeName        = convert typeNameStr
+    let typeNameStr   = mkTypeName conNameStr
+        tagName       = convert conNameStr
+        typeName      = convert typeNameStr
 
-        mangleFields    = namedFields %~ fmap (_1 %~ mangleFieldName conNameStr)
-        bangFields      = namedFields %~ fmap (_2 .~ unpackStrictAnn)
-        rebindFields    = namedFields %~ fmap (_3 %~ expandField tagName)
-        con'            = mangleFields
-                        . bangFields
-                        . rebindFields
-                        $ con
+        mangleFields  = namedFields %~ fmap (_1 %~ mangleFieldName conNameStr)
+        bangFields    = namedFields %~ fmap (_2 .~ unpackStrictAnn)
+        rebindFields  = namedFields %~ fmap (_3 %~ expandField tagName)
+        con'          = mangleFields
+                      . bangFields
+                      . rebindFields
+                      $ con
 
-        setTypeName     = maybeName    .~ Just typeName
-        setDerivClauses = derivClauses .~ [TH.DerivClause Nothing derivs]
-        derivs          = cons' <$> [''Show, ''Eq]
-        termDecl'       = (consList .~ [con'])
-                        . setTypeName
-                        . setDerivClauses
-                        $ termDecl
+        setTypeName   = maybeName    .~ Just typeName
+        setDerivs     = derivClauses .~ [TH.DerivClause Nothing derivs]
+        derivs        = cons' <$> [''Show, ''Eq]
+        termDecl'     = (consList .~ [con'])
+                      . setTypeName
+                      . setDerivs
+                      $ termDecl
 
-        tagDecls        = Tag.familyInstance' "TermCons" conNameStr
-        isTermTagInst   = TH.InstanceD Nothing []
-                          (TH.AppT (cons' ''Discovery.IsTermTag) (cons' tagName))
-                          []
-        tagToConsInst   = typeInstance ''Term.TagToCons [cons' tagName]
-                          (cons' typeName)
-        consToTagInst   = typeInstance ''Term.ConsToTag [cons' typeName]
-                          (cons' tagName)
-        formatInst      = typeInstance ''Format.Of [cons' tagName] (cons' format)
+        tagDecls      = Tag.familyInstance' ''Term.TermCons conNameStr
+        isTermTagInst = TH.InstanceD Nothing []
+                        (TH.AppT (cons' ''Discovery.IsTermTag) (cons' tagName))
+                        []
+        tagToConsInst = typeInstance ''Term.TagToCons [cons' tagName]
+                        (cons' typeName)
+        consToTagInst = typeInstance ''Term.ConsToTag [cons' typeName]
+                        (cons' tagName)
+        formatInst    = typeInstance ''Format.Of [cons' tagName] (cons' format)
 
-        fieldTypes      = fmap (view _3) . view namedFields $ con
+        fieldTypes    = fmap (view _3) . view namedFields $ con
 
     lensInst      <- Lens.declareLenses (pure [termDecl'])
     storableInst  <- Storable.derive'   termDecl'

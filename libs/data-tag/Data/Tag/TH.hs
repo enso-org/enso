@@ -18,17 +18,20 @@ dataWithAlias dataName aliasName aliasCons = [dataDecl, aliasDecl]
 -- | Define a tag family instance.
 --   `Tag.familyInstance "Fam" "Foo"` will generate:
 --   > data FOO; type Foo = Fam FOO
-familyInstance  :: String -> String -> Q [TH.Dec]
-familyInstance' :: String -> String ->   [TH.Dec]
+familyInstance  :: Name -> String -> Q [TH.Dec]
+familyInstance' :: Name -> String ->   [TH.Dec]
 familyInstance = return .: familyInstance'
 familyInstance' fam el = nonStandardFamilyInstance' fam el (Char.toUpper <$> el)
 
 -- | Define a custom-named tag family instance.
 --   `Tag.nonStandardFamilyInstance "Fam" "Foo" "AnyFoo"` will generate:
 --   > data AnyFoo; type Foo = Fam AnyFoo
-nonStandardFamilyInstance  :: (Convertible' fam Name, Convertible' el Name) => fam -> el -> String -> Q [TH.Dec]
-nonStandardFamilyInstance' :: (Convertible' fam Name, Convertible' el Name) => fam -> el -> String ->   [TH.Dec]
+nonStandardFamilyInstance  :: (Convertible' fam Name, Convertible' el Name)
+                           => fam -> el -> String -> Q [TH.Dec]
 nonStandardFamilyInstance = return .:. nonStandardFamilyInstance'
+
+nonStandardFamilyInstance' :: (Convertible' fam Name, Convertible' el Name)
+                           => fam -> el -> String ->   [TH.Dec]
 nonStandardFamilyInstance' fam el inst = dataWithAlias instName elName famName
     where elName   = convert' el
           famName  = convert' fam
@@ -55,7 +58,7 @@ familyHeader famNameStr = dataWithAlias upperFamName prefixedFamName ''Tag
 familyWithInstances :: String -> [String] -> [TH.Dec]
 familyWithInstances famNameStr subTypeNamesStr = mainDecls <> subDecls
     where mainDecls = familyHeader famNameStr
-          subDecls  = concat $ familyInstance' famNameStr <$> subTypeNamesStr
+          subDecls  = concat $ familyInstance' (convert famNameStr) <$> subTypeNamesStr
 
 
 -- | Create tag family with optional provided instances.
