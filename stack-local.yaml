@@ -15,5 +15,19 @@ ghc-options:
         -fconstraint-solver-iterations=100
 local-bin-path: dist/bin/public/luna
 packages:
-    - location: core
-resolver: ./build/snapshot.yaml
+    - core
+    - ../container
+    - ../convert
+    - ../lens-utils
+    - ../monoid
+    - ../functor-utils
+    - ../prologue
+    - ../impossible
+    - ../typelevel
+    - ../data-construction
+    - ../data-repr
+    - ../data-rtuple
+    - ../data-prop
+    - ../layered-state
+    - ../monad-branch
+resolver: ./build/snapshot-local.yaml

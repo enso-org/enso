@@ -1,5 +1,8 @@
+#############
+## Haskell ##
+#############
+
 dist
-dist-*
 cabal-dev
 *.o
 *.hi
@@ -15,16 +18,26 @@ cabal.sandbox.config
 *.prof
 *.aux
 *.hp
-*.eventlog
+*.DS_Store
 .stack-work/
-cabal.project.local
-.HTF/
+
+# hlint
+report.html
+
+
+
+############
+## System ##
+############
 
 # OSX
 .DS_Store
 
+
+
+#############
+## Editors ##
+#############
+
 # Vim
 *.swp
-
-# hlint
-report.html
