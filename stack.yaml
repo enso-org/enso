@@ -17,4 +17,5 @@ packages:
     - location: project
     - location: syntax/text/parser
     - location: syntax/text/lexer
+    - location: lib/ci
 resolver: ./build_config/luna-snapshot.yaml
