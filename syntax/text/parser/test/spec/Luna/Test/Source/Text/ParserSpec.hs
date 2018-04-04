@@ -18,36 +18,22 @@ import qualified Luna.Pass                           as Pass
 import qualified Luna.Pass.Attr                      as Attr
 import qualified Luna.Pass.Scheduler                 as Scheduler
 import qualified Luna.Runner                         as Runner
+import qualified Luna.Syntax.Text.Parser.Parsing     as Parsing
 import qualified OCI.Data.Name                       as Name
 import qualified OCI.IR.Component                    as Component
 import qualified OCI.IR.Layout                       as Layout
+import qualified OCI.Pass.Registry                   as Registry
 
-import Luna.IR.Component.Link (type (*-*), Link)
-import Luna.Pass              (Pass)
-import Test.Hspec             (Expectation, Spec, describe, it)
+import Luna.IR.Component.Link           (type (*-*), Link)
+import Luna.Pass                        (Pass)
+import Luna.Syntax.Text.Parser.CodeSpan (CodeSpan)
+import Luna.Syntax.Text.Parser.Parser   (Parser)
+import Test.Hspec                       (Expectation, Spec, describe, it)
 
 
 -----------------------
 -- === Test pass === --
 -----------------------
-
--- === Definition === --
-
-newtype IntAttr = IntAttr Int deriving (Show, Eq, Num)
-type instance Attr.Type IntAttr = Attr.Atomic
-instance Default IntAttr where
-    def = IntAttr 0
-
-data TestPass
-type instance Pass.Spec TestPass t = TestPassSpec t
-type family   TestPassSpec  t where
-    TestPassSpec (Pass.In  Pass.Attrs) = '[IntAttr]
-    TestPassSpec (Pass.Out Pass.Attrs) = '[IntAttr]
-    TestPassSpec t                     = Pass.BasicPassSpec t
-
-Pass.cache_phase1 ''TestPass
-Pass.cache_phase2 ''TestPass
-
 
 -- === API === --
 
@@ -57,21 +43,19 @@ runPass :: ∀ pass. OnDemandPass pass => Pass pass () -> IO ()
 runPass = runPasses . pure
 
 runPasses :: ∀ pass. OnDemandPass pass => [Pass pass ()] -> IO ()
-runPasses passes = Runner.runManual $ do
-    Scheduler.registerAttr     @IntAttr
-    Scheduler.enableAttrByType @IntAttr
+runPasses passes = Scheduler.runManual reg $ do
     for_ passes $ \pass -> do
         Scheduler.registerPassFromFunction__ pass
         Scheduler.runPassByType @pass
+    where reg = do
+              Runner.registerAll
+              Registry.registerPrimLayer @IR.Terms @CodeSpan
 
-run2Passes :: ∀ pass. OnDemandPass pass => Pass pass () -> Pass pass () -> IO ()
-run2Passes p1 p2 = runPasses [p1,p2]
+-- run2Passes :: ∀ pass. OnDemandPass pass => Pass pass () -> Pass pass () -> IO ()
+-- run2Passes p1 p2 = runPasses [p1,p2]
 
-runPass' :: Pass TestPass () -> IO ()
+runPass' :: Pass Parser () -> IO ()
 runPass' = runPass
-
-run2Passes' :: Pass TestPass () -> Pass TestPass () -> IO ()
-run2Passes' p1 p2 = runPasses [p1,p2]
 
 
 
@@ -80,55 +64,14 @@ run2Passes' p1 p2 = runPasses [p1,p2]
 -------------------
 
 nameSpec :: Spec
-nameSpec = describe "names" $ do
-    it "encoding" $ runPass' $ do
-        v        <- IR.var "a"
-        IR.Var n <- IR.match v
-        n `shouldBe`    "a"
-        n `shouldNotBe` "b"
-
-irCreationSpec :: Spec
-irCreationSpec = describe "ir creation" $ do
-    it "single term" $ runPass' $ do
-        v <- IR.var "a"
-        m <- Layer.read @IR.Model v
-        m `shouldBe` IR.UniTermVar (IR.Var "a")
-
-    it "complex term" $ runPass' $ do
-        v1           <- IR.var "a"
-        v2           <- IR.var "b"
-        u1           <- IR.unify v1 v2
-        IR.Unify l r <- IR.match u1
-        lsrc         <- Layer.read @IR.Source l
-        rsrc         <- Layer.read @IR.Source r
-        ltgt         <- Layer.read @IR.Target l
-        rtgt         <- Layer.read @IR.Target r
-        lsrc `shouldBe` v1
-        ltgt `shouldBe` u1
-        rsrc `shouldBe` v2
-        rtgt `shouldBe` u1
-
-    it "users layer" $ runPass' $ do
-        v1           <- IR.var "a"
-        v2           <- IR.var "b"
-        u1           <- IR.unify v1 v2
-        IR.Unify l r <- IR.match u1
-        v1_users     <- Set.toList =<< Layer.read @IR.Users v1
-        v2_users     <- Set.toList =<< Layer.read @IR.Users v2
-        v1_users `shouldBe` [Layout.relayout l]
-        v2_users `shouldBe` [Layout.relayout r]
-
-attribsSpec :: Spec
-attribsSpec = describe "attributes" $ do
-    it "passing between passes" $ run2Passes'
-        (Attr.put $ IntAttr 9)
-        (Attr.get >>= (`shouldBe` (IntAttr 9)))
+nameSpec = describe "test" $ do
+    it "test" $ runPass' $ do
+        x <- Parsing.parsingBase Parsing.var "foo"
+        True `shouldBe` False
 
 spec :: Spec
 spec = do
     nameSpec
-    irCreationSpec
-    attribsSpec
 
 
 
