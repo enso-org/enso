@@ -2,10 +2,10 @@ module Main where
 
 import Prelude
 
-import Luna.CI
+import qualified Luna.CI as CI
 
 import qualified Spec
 
 main :: IO ()
-main = ciMain Spec.spec
+main = CI.main Spec.spec
 

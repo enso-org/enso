@@ -11,8 +11,8 @@ import Test.Hspec
 import Test.Hspec.Runner
 import Test.Hspec.Formatters.Jenkins
 
-ciMain :: Spec -> IO ()
-ciMain spec = do
+main :: Spec -> IO ()
+main spec = do
     buildInCI <- isJust <$> lookupEnv "CIRCLECI"
 
     config <-
