@@ -1,0 +1,9 @@
+FROM quadric/luna:base_0.0.1 
+
+RUN mkdir -p /src/test-app
+
+COPY . /src/test-app
+
+WORKDIR /src/test-app
+
+CMD luna
