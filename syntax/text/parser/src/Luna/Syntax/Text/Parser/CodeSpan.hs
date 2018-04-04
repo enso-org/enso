@@ -32,9 +32,10 @@ import Type.Any             (AnyType)
 
 -- === Definition === --
 
-data CodeOffset = CodeOffset { _realOffset :: Delta
-                             , _viewOffset :: Delta
-                             } deriving (Show)
+data CodeOffset = CodeOffset
+    { _realOffset :: Delta
+    , _viewOffset :: Delta
+    } deriving (Show)
 makeLenses ''CodeOffset
 
 
@@ -51,18 +52,19 @@ instance Semigroup CodeOffset where CodeOffset r v <> CodeOffset r' v' = CodeOff
 
 -- === Definition === --
 
-data CodeSpan = CodeSpan { _realSpan :: LeftSpacedSpan Delta
-                         , _viewSpan :: LeftSpacedSpan Delta
-                         } deriving (Show)
+data CodeSpan = CodeSpan
+    { _realSpan :: !LeftSpacedSpan
+    , _viewSpan :: !LeftSpacedSpan
+    } deriving (Show)
 makeLenses ''CodeSpan
 
 
 -- === Utils === --
 
-mkRealSpan :: LeftSpacedSpan Delta -> CodeSpan
+mkRealSpan :: LeftSpacedSpan -> CodeSpan
 mkRealSpan s = CodeSpan s s
 
-mkPhantomSpan :: LeftSpacedSpan Delta -> CodeSpan
+mkPhantomSpan :: LeftSpacedSpan -> CodeSpan
 mkPhantomSpan s = CodeSpan s (s & Span.length .~ mempty)
 
 dropOffset :: CodeSpan -> CodeSpan
