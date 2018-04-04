@@ -16,13 +16,13 @@ tests:
             - luna-core
             - luna-parser
             - luna-lexer
+            - luna-ci
             - directory
             - filepath
             - hspec
             - hspec-megaparsec
             - hspec-jenkins
             - open-browser
-
 
 dependencies:
     - base

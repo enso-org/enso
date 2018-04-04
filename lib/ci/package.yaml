@@ -1,4 +1,4 @@
-name:       luna-passes
+name:       luna-ci
 version:    "0.1"
 author:     Luna Team <contact@luna-lang.org>
 maintainer: Luna Team <contact@luna-lang.org>
@@ -6,50 +6,13 @@ maintainer: Luna Team <contact@luna-lang.org>
 library:
     source-dirs:
         - src
-    other-modules: Paths_luna_passes
-
-tests:
-    bench:
-        main: Main.hs
-        source-dirs: test/bench
-        dependencies:
-            - luna-core
-            - luna-passes
-            - luna-stdlib
-            - criterion
-    spec:
-        main: Main.hs
-        source-dirs: test/spec
-        dependencies:
-            - luna-core
-            - luna-passes
-            - luna-parser
-            - luna-lexer
-            - luna-stdlib
-            - luna-ci
-            - directory
-            - filepath
-            - hspec
-            - hspec-jenkins
-            - open-browser
 
 dependencies:
     - base
-    - containers
-    - dependent-state
-    - luna-core
-    - mtl
-    - transformers
-    - typelevel
-    - text
-    - bytestring
-    - cryptonite
-    - functor-utils
-    - luna-parser
-    - luna-lexer
-    - binary
-    - utf8-string
-    - vector-text
+    - hspec
+    - hspec-jenkins
+    - directory
+    - filepath
 
 default-extensions:
     - AllowAmbiguousTypes
@@ -75,7 +38,6 @@ default-extensions:
     - InstanceSigs
     - LambdaCase
     - MonadComprehensions
-#    - MonadFailDesugaring
     - MultiWayIf
     - NamedWildCards
     - NegativeLiterals

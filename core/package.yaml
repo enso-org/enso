@@ -32,6 +32,7 @@ tests:
         source-dirs: test/spec
         dependencies:
             - luna-core
+            - luna-ci
             - directory
             - filepath
             - hspec
