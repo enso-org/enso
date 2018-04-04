@@ -25,4 +25,4 @@ name: layered-state
 stability: experimental
 synopsis: Control structure similar to Control.Monad.State, allowing multiple nested
   states, distinguishable by provided phantom types.
-version: '1.1'
+version: 1.1.1

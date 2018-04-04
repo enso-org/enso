@@ -82,30 +82,30 @@ class M m => Setter l m where put :: InferStateData l m -> m ()
 
 -- Instancess
 
-instance                       M m                                                           => Getter (l :: Type) (StateT l m) where get   = wrap   S.get    ; {-# INLINE get #-}
-instance                       M m                                                           => Setter (l :: Type) (StateT l m) where put a = wrap $ S.put a  ; {-# INLINE put #-}
-instance {-# OVERLAPPABLE #-}  Getter l m                                                   => Getter (l :: Type) (StateT s m) where get   = lift $ get @l   ; {-# INLINE get #-}
-instance {-# OVERLAPPABLE #-}  Setter l m                                                   => Setter (l :: Type) (StateT s m) where put a = lift $ put @l a ; {-# INLINE put #-}
-instance {-# OVERLAPPABLE #-} (M m, MonadGetter__ ok l (StateT s m), ok ~ MatchedBases l s)  => Getter (l :: k)    (StateT s m) where get   = get__  @ok @l   ; {-# INLINE get #-}
-instance {-# OVERLAPPABLE #-} (M m, MonadSetter__ ok l (StateT s m), ok ~ MatchedBases l s)  => Setter (l :: k)    (StateT s m) where put a = put__  @ok @l a ; {-# INLINE put #-}
+instance                       M m                                                      => Getter (l :: Type) (StateT l m) where get   = wrap   S.get    ; {-# INLINE get #-}
+instance                       M m                                                      => Setter (l :: Type) (StateT l m) where put a = wrap $ S.put a  ; {-# INLINE put #-}
+instance {-# OVERLAPPABLE #-}  Getter l m                                               => Getter (l :: Type) (StateT s m) where get   = lift $ get @l   ; {-# INLINE get #-}
+instance {-# OVERLAPPABLE #-}  Setter l m                                               => Setter (l :: Type) (StateT s m) where put a = lift $ put @l a ; {-# INLINE put #-}
+instance {-# OVERLAPPABLE #-} (M m, Getter__ ok l (StateT s m), ok ~ MatchedBases l s)  => Getter (l :: k)    (StateT s m) where get   = get__  @ok @l   ; {-# INLINE get #-}
+instance {-# OVERLAPPABLE #-} (M m, Setter__ ok l (StateT s m), ok ~ MatchedBases l s)  => Setter (l :: k)    (StateT s m) where put a = put__  @ok @l a ; {-# INLINE put #-}
 instance {-# OVERLAPPABLE #-} (M (t m), MonadTrans t, Getter l m, TransStateData l t m) => Getter (l :: k)    (t m)        where get   = lift $ get @l   ; {-# INLINE get #-}
 instance {-# OVERLAPPABLE #-} (M (t m), MonadTrans t, Setter l m, TransStateData l t m) => Setter (l :: k)    (t m)        where put a = lift $ put @l a ; {-# INLINE put #-}
 
 -- Helpers
 
-class M m => MonadGetter__ (ok :: Bool) l m where get__ :: m (InferStateData l m)
-class M m => MonadSetter__ (ok :: Bool) l m where put__ :: InferStateData l m -> m ()
+class M m => Getter__ (ok :: Bool) l m where get__ :: m (InferStateData l m)
+class M m => Setter__ (ok :: Bool) l m where put__ :: InferStateData l m -> m ()
 
-instance (M m, InferStateData l (StateT s m) ~ s)     => MonadGetter__ 'True  l (StateT s m) where get__   = get @s          ; {-# INLINE get__ #-}
-instance (M m, InferStateData l (StateT s m) ~ s)     => MonadSetter__ 'True  l (StateT s m) where put__ a = put @s a        ; {-# INLINE put__ #-}
-instance (Getter l m, TransStateData l (StateT s) m) => MonadGetter__ 'False l (StateT s m) where get__   = lift $ get @l   ; {-# INLINE get__ #-}
-instance (Setter l m, TransStateData l (StateT s) m) => MonadSetter__ 'False l (StateT s m) where put__ a = lift $ put @l a ; {-# INLINE put__ #-}
+instance (M m, InferStateData l (StateT s m) ~ s)    => Getter__ 'True  l (StateT s m) where get__   = get @s          ; {-# INLINE get__ #-}
+instance (M m, InferStateData l (StateT s m) ~ s)    => Setter__ 'True  l (StateT s m) where put__ a = put @s a        ; {-# INLINE put__ #-}
+instance (Getter l m, TransStateData l (StateT s) m) => Getter__ 'False l (StateT s m) where get__   = lift $ get @l   ; {-# INLINE get__ #-}
+instance (Setter l m, TransStateData l (StateT s) m) => Setter__ 'False l (StateT s m) where put__ a = lift $ put @l a ; {-# INLINE put__ #-}
 
 -- Replicators
 
-type MonadStates  ss m = (MonadGetters ss m, MonadSetters ss m)
-type MonadGetters ss m = Monads__ Getter ss m
-type MonadSetters ss m = Monads__ Setter ss m
+type MonadStates  ss m = (Getters ss m, Setters ss m)
+type Getters ss m = Monads__ Getter ss m
+type Setters ss m = Monads__ Setter ss m
 type family Monads__ p ss m :: Constraint where
     Monads__ p (s ': ss) m = (p s m, Monads__ p ss m)
     Monads__ p '[]       m = ()
