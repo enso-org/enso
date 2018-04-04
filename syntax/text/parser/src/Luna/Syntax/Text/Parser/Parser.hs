@@ -12,7 +12,6 @@ import Prologue
 -- import Luna.IR (UID, Succs)
 -- import OCI.Pass
 -- import OCI.Pass.Definition
--- import Luna.Syntax.Text.Parser.CodeSpan
 -- import Text.Parser.Indent (Indent)
 -- import Control.Monad.State.Dependent
 import Text.Parser.Backend.Megaparsec ()
@@ -37,6 +36,7 @@ import Control.Monad.State.Layered      (StateT)
 import Luna.Pass                        (Pass)
 import Luna.Syntax.Text.Parser.Class    as X (Error)
 import Luna.Syntax.Text.Parser.Class    (Stream)
+import Luna.Syntax.Text.Parser.CodeSpan (CodeSpan)
 import Luna.Syntax.Text.Parser.Reserved (Reservation)
 import Text.Megaparsec                  (ParsecT)
 
@@ -59,7 +59,9 @@ data Parser
 type instance Pass.Spec Parser t = TestPassSpec t
 type family   TestPassSpec  t where
     TestPassSpec (Pass.In  Pass.Attrs) = '[]
-    TestPassSpec (Pass.Out Pass.Attrs) = '[]
+    TestPassSpec (Pass.In  Pass.Attrs) = '[]
+    TestPassSpec (Pass.In  IR.Terms)   = CodeSpan ': Pass.BasicPassSpec (Pass.In IR.Terms)
+    TestPassSpec (Pass.Out t)          = TestPassSpec (Pass.In t)
     TestPassSpec t                     = Pass.BasicPassSpec t
 
 Pass.cache_phase1 ''Parser

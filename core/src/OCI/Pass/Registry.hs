@@ -8,7 +8,7 @@ import qualified Foreign.Marshal.Utils       as Ptr
 import qualified Foreign.Storable            as Storable
 import qualified Foreign.Storable1           as Storable1
 import qualified Foreign.Storable1.Ptr       as Ptr1
-import qualified OCI.IR.Layer.Internal       as Layer
+import qualified OCI.IR.Layer                as Layer
 
 import Control.Monad.Exception     (Throws, throw)
 import Control.Monad.State.Layered (StateT)

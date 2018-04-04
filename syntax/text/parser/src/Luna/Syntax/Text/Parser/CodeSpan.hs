@@ -94,11 +94,15 @@ instance Semigroup CodeSpan where CodeSpan r v <> CodeSpan r' v' = CodeSpan (r <
 
 
 
--- ----------------------------
--- -- === CodeSpan layer === --
--- ----------------------------
+----------------------------
+-- === CodeSpan layer === --
+----------------------------
 
--- type instance LayerData CodeSpan t = CodeSpan
+type instance Layer.Data CodeSpan _ = CodeSpan
+instance Layer.Initializer CodeSpan where
+    initStatic = Just mempty
+
+
 
 -- initCodeSpan :: Req m '[Writer // Layer // Abstract (Elem t) // CodeSpan] => Listener (New // Elem t) m
 -- initCodeSpan = listener $ \(a,_) -> putLayer @CodeSpan a mempty

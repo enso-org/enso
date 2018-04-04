@@ -15,7 +15,7 @@ import qualified Foreign.Storable1.Deriving   as Storable1
 import qualified Luna.IR.Component.Term.Class as Term
 import qualified Luna.IR.Term.Format          as Format
 import qualified OCI.IR.Component             as Component
-import qualified OCI.IR.Layer.Internal        as Layer
+import qualified OCI.IR.Layer                 as Layer
 import qualified OCI.IR.Layout                as Layout
 
 import Data.PtrSet.Cpp2             (IsPtr, UnmanagedPtrSet)

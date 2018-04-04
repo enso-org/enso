@@ -7,7 +7,7 @@ import Luna.IR.Term.Format as X (Ast, Draft, Literal, Phrase, Thunk, Value)
 
 import qualified Luna.IR.Component.Term.Class      as Term
 import qualified Luna.IR.Component.Term.Definition as Term
-import qualified OCI.IR.Layer.Internal             as Layer
+import qualified OCI.IR.Layer                      as Layer
 
 
 ----------------------

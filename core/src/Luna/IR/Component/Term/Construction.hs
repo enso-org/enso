@@ -14,7 +14,7 @@ import qualified Luna.IR.Component.Term.Discovery as Discovery
 import qualified Luna.IR.Component.Term.Layer     as Layer
 import qualified Luna.IR.Term.Format              as Format
 import qualified OCI.IR.Component                 as Component
-import qualified OCI.IR.Layer.Internal            as Layer
+import qualified OCI.IR.Layer                     as Layer
 import qualified OCI.IR.Layout                    as Layout
 
 import Luna.IR.Component.Term.Class

@@ -104,10 +104,12 @@ import Luna.Syntax.Text.Parser.CodeSpan (CodeSpan, CodeSpanRange)
 import qualified Data.Set                         as Set
 import qualified Data.Text32                      as Text32
 import qualified Luna.IR                          as IR
+import qualified Luna.IR.Layer                    as Layer
 import qualified Luna.Syntax.Text.Lexer           as Lexer
 import qualified Luna.Syntax.Text.Lexer.Symbol    as Lexer
 import qualified Luna.Syntax.Text.Parser.Reserved as Reserved
 
+import Luna.IR                        (Term)
 import Luna.Pass                      (Pass)
 import Luna.Syntax.Text.Parser.Loc    (token')
 import Luna.Syntax.Text.Parser.Parser (AsgBldr (fromAsgBldr), IRB, Parser,
@@ -228,8 +230,8 @@ liftIRBApp5 f mt1 mt2 mt3 mt4 mt5 = do { t1 <- mt1; t2 <- mt2; t3 <- mt3; t4 <- 
 
 -- -- === CodeSpan === --
 
--- attachCodeSpanLayer :: CodeSpan -> IRB (Expr l) -> IRB (Expr l)
--- attachCodeSpanLayer s = withIRx (>>~ flip (putLayer @CodeSpan) s)
+-- attachCodeSpanLayer :: CodeSpan -> IRB (Term l) -> IRB (Term l)
+-- attachCodeSpanLayer s = (>>~ flip (Layer.write @CodeSpan) s)
 
 -- spanned :: SymParser a -> SymParser (CodeSpan, a)
 -- spanned p = phantomSpan p' where

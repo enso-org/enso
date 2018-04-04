@@ -6,7 +6,7 @@ import Type.Data.Ord
 import qualified Data.PtrSet.Cpp        as PtrSet
 import qualified Data.Set.Mutable.Class as Set
 import qualified OCI.IR.Component       as Component
-import qualified OCI.IR.Layer.Internal  as Layer
+import qualified OCI.IR.Layer           as Layer
 import qualified OCI.IR.Layout          as Layout
 
 import Luna.IR.Component.Link.Class
