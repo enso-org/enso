@@ -22,25 +22,29 @@ import Text.Parser.Backend.Megaparsec ()
 -- import Type.Any (AnyType)
 
 
--- import Luna.Syntax.Text.Scope (Scope)
 -- import Luna.Syntax.Text.Source
+import qualified Control.Monad.State.Layered         as State
 import qualified Luna.IR                             as IR
 import qualified Luna.IR.Component.Term.Construction as Term
 import qualified Luna.Pass                           as Pass
+import qualified Luna.Syntax.Text.Lexer              as Lexer
+import qualified Luna.Syntax.Text.Parser.Class       as Parser
+import qualified Text.Megaparsec                     as Parser
 
--- import qualified Luna.Syntax.Text.Lexer           as Lexer
-import Control.Monad.State.Layered      (StatesT)
-import Control.Monad.State.Layered      (StateT)
-import Data.Text.Position               (FileOffset)
-import Luna.Pass                        (Pass)
-import Luna.Syntax.Text.Parser.Class    as X (Error)
-import Luna.Syntax.Text.Parser.Class    (Stream)
-import Luna.Syntax.Text.Parser.CodeSpan (CodeSpan, CodeSpanRange)
-import Luna.Syntax.Text.Parser.Loc      (LeftSpanner)
-import Luna.Syntax.Text.Parser.Marker   (MarkedExprMap, MarkerState,
-                                         UnmarkedExprs)
-import Luna.Syntax.Text.Parser.Reserved (Reservation)
-import Text.Megaparsec                  (ParsecT)
+import Control.Monad.State.Layered       (StatesT)
+import Control.Monad.State.Layered       (StateT)
+import Data.Text.Position                (FileOffset)
+import Luna.Pass                         (Pass)
+import Luna.Syntax.Text.Parser.Class     as X (Error)
+import Luna.Syntax.Text.Parser.Class     (Stream)
+import Luna.Syntax.Text.Parser.CodeSpan  (CodeSpan, CodeSpanRange)
+import Luna.Syntax.Text.Parser.Hardcoded (hardcode)
+import Luna.Syntax.Text.Parser.Loc       (LeftSpanner)
+import Luna.Syntax.Text.Parser.Marker    (MarkedExprMap, MarkerState,
+                                          UnmarkedExprs)
+import Luna.Syntax.Text.Parser.Reserved  (Reservation)
+import Luna.Syntax.Text.Scope            (Scope)
+import Text.Megaparsec                   (ParseError, ParsecT)
 
 -- import           Luna.Syntax.Text.Parser.Errors   (Invalids)
 
@@ -58,10 +62,28 @@ type ParserStates
     = '[ FileOffset
        , MarkerState
        , LeftSpanner
+       , Scope
        , Reservation
        , CodeSpanRange
        ]
 
+
+runParserInternal :: MonadIO m => ParserBase2 a -> Stream
+                  -> m (Either (ParseError Parser.Tok Error) a)
+runParserInternal p s = liftIO $ Parser.runParserT p "" s
+
+runParserT :: MonadIO m => SymParser a -> Stream
+           -> m (Either (ParseError Parser.Tok Error) a)
+runParserT p s = flip runParserInternal s
+               $ State.evalDefT @CodeSpanRange
+               $ State.evalDefT @Reservation
+               $ State.evalDefT @Scope
+               $ State.evalDefT @LeftSpanner
+               $ State.evalDefT @MarkerState
+            --    $ State.evalDefT @Position
+               $ State.evalDefT @FileOffset
+            --    $ State.evalDefT @Indent
+               $ hardcode >> p
 
 data Parser
 type instance Pass.Spec Parser t = TestPassSpec t
@@ -85,7 +107,7 @@ Pass.cache_phase2 ''Parser
 
 -- -- === Definition === --
 
-type IRB = StatesT '[MarkedExprMap, UnmarkedExprs] (Pass Parser)
+type IRB = StatesT '[UnmarkedExprs, MarkedExprMap] (Pass Parser)
 -- newtype IRB a = IRB { fromIRB :: Pass Parser a } deriving (Functor, Applicative, Monad)
 -- makeLenses ''IRB
 
@@ -128,7 +150,7 @@ makeLenses ''AsgBldr
 
 
 -- type IRParser a = SymParser (IRB a)
--- type AsgParser a = SymParser (AsgBldr a)
+type AsgParser a = SymParser (AsgBldr a)
 
 
 

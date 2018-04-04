@@ -10,11 +10,12 @@ import Prologue
 -- import qualified Prologue_old as P
 
 -- import qualified Text.Megaparsec as Parser
-import Text.Megaparsec (ErrorItem (Tokens), ParseError, anyChar, between, char,
-                        choice, digitChar, hidden, letterChar, lookAhead,
-                        lowerChar, manyTill, notFollowedBy, skipMany, spaceChar,
-                        string, try, unexpected, upperChar, withRecovery)
--- import           Text.Megaparsec.Error (parseErrorPretty, parseErrorTextPretty)
+import Text.Megaparsec       (ErrorItem (Tokens), ParseError, anyChar, between,
+                              char, choice, digitChar, hidden, letterChar,
+                              lookAhead, lowerChar, manyTill, notFollowedBy,
+                              skipMany, spaceChar, string, try, unexpected,
+                              upperChar, withRecovery)
+import Text.Megaparsec.Error (parseErrorPretty, parseErrorTextPretty)
 -- import           Text.Megaparsec.Prim (MonadParsec)
 -- import           Text.Megaparsec.String hiding (Parser)
 -- import qualified Text.Megaparsec.String as M
@@ -108,6 +109,7 @@ import qualified Luna.IR                          as IR
 import qualified Luna.IR.Layer                    as Layer
 import qualified Luna.Syntax.Text.Lexer           as Lexer
 import qualified Luna.Syntax.Text.Lexer.Symbol    as Lexer
+import qualified Luna.Syntax.Text.Parser.CodeSpan as CodeSpan
 import qualified Luna.Syntax.Text.Parser.Marker   as Marker
 import qualified Luna.Syntax.Text.Parser.Reserved as Reserved
 
@@ -118,10 +120,11 @@ import Luna.Pass                        (Pass)
 import Luna.Syntax.Text.Parser.CodeSpan (CodeSpan (CodeSpan),
                                          CodeSpanRange (..))
 import Luna.Syntax.Text.Parser.Loc      (LeftSpanner (LeftSpanner), token')
-import Luna.Syntax.Text.Parser.Parser   (AsgBldr (fromAsgBldr), IRB, Parser,
-                                         SymParser)
+import Luna.Syntax.Text.Parser.Marker   (MarkedExprMap, UnmarkedExprs)
+import Luna.Syntax.Text.Parser.Parser   (AsgBldr (AsgBldr, fromAsgBldr),
+                                         AsgParser, IRB, Parser, SymParser,
+                                         runParserT)
 import OCI.Data.Name                    (Name)
-
 
 
 -- TODO: Can we do better?
@@ -274,50 +277,51 @@ phantomSpan p = do
 spanOf :: SymParser a -> SymParser a
 spanOf = fmap snd . spanned
 
--- inheritCodeSpan1 :: (SomeTerm -> IRB SomeTerm) -> AsgBldr SomeTerm -> AsgBldr SomeTerm
--- inheritCodeSpan1 = inheritCodeSpan1With id
+inheritCodeSpan1 :: (SomeTerm -> IRB SomeTerm) -> AsgBldr SomeTerm -> AsgBldr SomeTerm
+inheritCodeSpan1 = inheritCodeSpan1With id
 
--- inheritCodeSpan2 :: (SomeTerm -> SomeTerm -> IRB SomeTerm) -> AsgBldr SomeTerm -> AsgBldr SomeTerm -> AsgBldr SomeTerm
--- inheritCodeSpan2 = inheritCodeSpan2With CodeSpan.concat
+inheritCodeSpan2 :: (SomeTerm -> SomeTerm -> IRB SomeTerm) -> AsgBldr SomeTerm -> AsgBldr SomeTerm -> AsgBldr SomeTerm
+inheritCodeSpan2 = inheritCodeSpan2With (<>) -- IT WAS HERE: CodeSpan.concat
 
--- inheritCodeSpan1With :: (CodeSpan -> CodeSpan) -> (SomeTerm -> IRB SomeTerm) -> AsgBldr SomeTerm -> AsgBldr SomeTerm
--- inheritCodeSpan1With sf f (AsgBldr (IRB irb1)) = wrap $ IRB $ do
---     t1 <- irb1
---     s1 <- getLayer @CodeSpan t1
---     putLayer @CodeSpan t1 (CodeSpan.dropOffset s1) -- the newly constructed IR is the new parent, so it handles the left offset
---     fromIRB . unwrap . buildAsgFromSpan (sf s1) $ f t1
+inheritCodeSpan1With :: (CodeSpan -> CodeSpan) -> (SomeTerm -> IRB SomeTerm) -> AsgBldr SomeTerm -> AsgBldr SomeTerm
+inheritCodeSpan1With sf f (AsgBldr irb1) = wrap $ do
+    t1 <- irb1
+    s1 <- Layer.read @CodeSpan t1
+    Layer.write @CodeSpan t1 (CodeSpan.dropOffset s1) -- the newly constructed IR is the new parent, so it handles the left offset
+    unwrap . buildAsgFromSpan (sf s1) $ f t1
 
--- inheritCodeSpan2With :: (CodeSpan -> CodeSpan -> CodeSpan)
---                      -> (SomeTerm -> SomeTerm -> IRB SomeTerm)
---                      -> AsgBldr SomeTerm -> AsgBldr SomeTerm -> AsgBldr SomeTerm
--- inheritCodeSpan2With sf f (AsgBldr (IRB irb1)) (AsgBldr (IRB irb2)) = wrap $ IRB $ do
---     t1 <- irb1
---     s1 <- getLayer @CodeSpan t1
---     putLayer @CodeSpan t1 (CodeSpan.dropOffset s1) -- the newly constructed IR is the new parent, so it handles the left offset
---     t2 <- irb2
---     s2 <- getLayer @CodeSpan t2
---     fromIRB . unwrap . buildAsgFromSpan (sf s1 s2) $ f t1 t2
+inheritCodeSpan2With :: (CodeSpan -> CodeSpan -> CodeSpan)
+                     -> (SomeTerm -> SomeTerm -> IRB SomeTerm)
+                     -> AsgBldr SomeTerm -> AsgBldr SomeTerm -> AsgBldr SomeTerm
+inheritCodeSpan2With sf f (AsgBldr irb1) (AsgBldr irb2) = wrap $ do
+    t1 <- irb1
+    s1 <- Layer.read @CodeSpan t1
+    -- | the new IR is the new parent, so it handles the left offset
+    Layer.write @CodeSpan t1 (CodeSpan.dropOffset s1)
+    t2 <- irb2
+    s2 <- Layer.read @CodeSpan t2
+    unwrap . buildAsgFromSpan (sf s1 s2) $ f t1 t2
 
--- -- | Magic helper. Use with care only if you really know what you do.
--- modifyCodeSpan :: (CodeSpan -> CodeSpan) -> AsgBldr SomeTerm -> AsgBldr SomeTerm
--- modifyCodeSpan f (AsgBldr (IRB irb1)) = wrap $ IRB $ do
---     t1 <- irb1
---     s1 <- getLayer @CodeSpan t1
---     putLayer @CodeSpan t1 (f s1)
---     return t1
+-- | Magic helper. Use with care only if you really know what you do.
+modifyCodeSpan :: (CodeSpan -> CodeSpan) -> AsgBldr SomeTerm -> AsgBldr SomeTerm
+modifyCodeSpan f (AsgBldr irb1) = wrap $ do
+    t1 <- irb1
+    s1 <- Layer.read @CodeSpan t1
+    Layer.write @CodeSpan t1 (f s1)
+    return t1
 
 
--- -- === ASG preparation === --
+-- === ASG preparation === --
 
--- buildAsgFromSpan :: CodeSpan -> IRB (Expr a) -> AsgBldr (Expr a)
--- buildAsgFromSpan = AsgBldr .: attachCodeSpanLayer
+buildAsgFromSpan :: CodeSpan -> IRB (Term a) -> AsgBldr (Term a)
+buildAsgFromSpan = AsgBldr .: attachCodeSpanLayer
 
--- buildAsg   ::                    SymParser       (IRB (Expr a))   -> SymParser       (AsgBldr (Expr a))
--- buildAsgF  :: Functor f       => SymParser (f    (IRB (Expr a)))  -> SymParser (f    (AsgBldr (Expr a)))
--- buildAsgF2 :: Functors '[f,g] => SymParser (f (g (IRB (Expr a)))) -> SymParser (f (g (AsgBldr (Expr a))))
--- buildAsg   p = uncurry          buildAsgFromSpan  <$> spanned p
--- buildAsgF  p = uncurry (fmap  . buildAsgFromSpan) <$> spanned p
--- buildAsgF2 p = uncurry (fmap2 . buildAsgFromSpan) <$> spanned p
+buildAsg   ::                    SymParser       (IRB (Term a))   -> SymParser       (AsgBldr (Term a))
+buildAsgF  :: Functor f       => SymParser (f    (IRB (Term a)))  -> SymParser (f    (AsgBldr (Term a)))
+buildAsgF2 :: Functors '[f,g] => SymParser (f (g (IRB (Term a)))) -> SymParser (f (g (AsgBldr (Term a))))
+buildAsg   p = uncurry          buildAsgFromSpan  <$> spanned p
+buildAsgF  p = uncurry (fmap  . buildAsgFromSpan) <$> spanned p
+buildAsgF2 p = uncurry (fmap2 . buildAsgFromSpan) <$> spanned p
 
 
 
@@ -426,20 +430,22 @@ groupEnd   = symbol $ Lexer.Group Lexer.End
 -- === Identifiers === --
 -------------------------
 
+var :: AsgParser SomeTerm
 -- cons, var, op, wildcard :: AsgParser SomeTerm
 -- cons     = snd <$> namedCons
--- var      = snd <$> namedVar
+var      = snd <$> namedVar
 -- op       = snd <$> namedOp
 -- wildcard = buildAsg $ liftIRBApp0 IR.blank' <$ symbol Lexer.Wildcard
 
 -- namedCons, namedVar, namedOp, namedIdent :: SymParser (Name, AsgBldr SomeTerm)
+namedVar :: SymParser (Name, AsgBldr SomeTerm)
 -- namedCons  = mkNamedAsg IR.cons'_ consName
--- namedVar   = mkNamedAsg IR.var'   varName
+namedVar   = mkNamedAsg IR.var'   varName
 -- namedOp    = mkNamedAsg IR.var'   opName
 -- namedIdent = namedVar <|> namedCons <|> namedOp
 
-consName, varName, opName, identName, modifierName, foreignLangName
-    :: SymParser Name
+consName, varName, opName, identName, modifierName :: SymParser Name
+foreignLangName                                    :: SymParser Name
 consName        = convert <$> satisfy Lexer.matchCons
 varName         = convert <$> satisfy Lexer.matchVar
 opName          = convert <$> satisfy Lexer.matchOperator
@@ -460,8 +466,8 @@ foreignLangName = consName
 
 -- -- Helpers
 
--- mkNamedAsg :: (forall m. IRBuilding m => Name -> m (Expr a)) -> SymParser Name -> SymParser (Name, AsgBldr (Expr a))
--- mkNamedAsg ir p = buildAsgF $ (\name -> (name, liftIRBApp0 $ ir name)) <$> p
+mkNamedAsg :: (Name -> IRB (Term a)) -> SymParser Name -> SymParser (Name, AsgBldr (Term a))
+mkNamedAsg ir = buildAsgF . fmap (\name -> (name, liftIRBApp0 $ ir name))
 
 
 -- -- Qualified names
@@ -1117,20 +1123,18 @@ foreignLangName = consName
 --     putAttr @MarkedExprMap $ gidMap
 
 
--- parsingBase :: ( MonadPassManager m, ParsingPassReq_2 m
---                , UnsafeGeneralizable a (Expr Draft), UnsafeGeneralizable a SomeTerm -- FIXME[WD]: Constraint for testing only
---                ) => AsgParser a -> Text32 -> m (a, MarkedExprMap)
--- parsingBase p src = do
---     let stream = Lexer.evalDefLexer src
---     result <- runParserT (stx *> p <* etx) stream
---     case result of
---         Left e -> error ("Parser error: " <> parseErrorPretty e) -- FIXME[WD]: handle it the proper way
---         Right (AsgBldr (IRB irb)) -> do
---             ((ref, unmarked), gidMap) <- runDefStateT @MarkedExprMap $ runDefStateT @UnmarkedExprs irb
---             return (ref, gidMap)
+parsingBase :: AsgParser a -> Text32.Text32 -> Pass Parser (a, MarkedExprMap)
+parsingBase p src = do
+    let stream = Lexer.evalDefLexer src
+    result <- runParserT (stx *> p <* etx) stream
+    case result of
+        Left e -> error ("Parser error: " <> parseErrorPretty e) -- FIXME[WD]: handle it the proper way
+        Right (AsgBldr irb) -> do
+            ((ref, unmarked), gidMap) <- State.runDefT @MarkedExprMap $ State.runDefT @UnmarkedExprs irb
+            return (ref, gidMap)
 
 -- parsingBase_ :: ( MonadPassManager m, ParsingPassReq_2 m
---                 , UnsafeGeneralizable a (Expr Draft), UnsafeGeneralizable a SomeTerm -- FIXME[WD]: Constraint for testing only
+--                 , UnsafeGeneralizable a SomeTerm, UnsafeGeneralizable a SomeTerm -- FIXME[WD]: Constraint for testing only
 --                 ) => AsgParser a -> Text32 -> m a
 -- parsingBase_ = view _1 .:. parsingBase
 
@@ -1153,20 +1157,6 @@ foreignLangName = consName
 --     rs        <- cmpMarkedExprMaps gidMapOld gidMap
 --     putAttr @ReparsingStatus (wrap rs)
 
--- runParserT :: MonadIO m => SymParser a -> Stream -> m (Either (ParseError Tok Error) a)
--- runParserT p s = flip runParserInternal s
---                $ evalDefStateT @CodeSpanRange
---                $ evalDefStateT @Reservation
---                $ evalDefStateT @Scope
---                $ evalDefStateT @LeftSpanner
---                $ evalDefStateT @MarkerState
---                $ evalDefStateT @Position
---                $ evalDefStateT @FileOffset
---                $ evalDefStateT @Indent
---                $ hardcode >> p
-
--- runParserInternal :: MonadIO m => ParserBase2 a -> Stream -> m (Either (ParseError Tok Error) a)
--- runParserInternal p s = liftIO $ Parser.runParserT p "" s
 
 
 -- cmpMarkedExprMaps :: IsomorphicCheckCtx m => MarkedExprMap -> MarkedExprMap -> m [ReparsingChange]
@@ -1178,6 +1168,6 @@ foreignLangName = consName
 -- cmpMarkedExpr :: IsomorphicCheckCtx m => MarkedExprMap -> MarkerId -> SomeTerm -> m ReparsingChange
 -- cmpMarkedExpr (_unwrap -> map) mid newExpr = case map ^. at mid of
 --     Nothing      -> return $ AddedExpr newExpr
---     Just oldExpr -> checkIsoExpr (unsafeGeneralize oldExpr) (unsafeGeneralize newExpr) <&> \case -- FIXME [WD]: remove unsafeGeneralize, we should use Expr Draft / SomeTerm everywhere
+--     Just oldExpr -> checkIsoExpr (unsafeGeneralize oldExpr) (unsafeGeneralize newExpr) <&> \case -- FIXME [WD]: remove unsafeGeneralize, we should use SomeTerm / SomeTerm everywhere
 --         False -> ChangedExpr   oldExpr newExpr
 --         True  -> UnchangedExpr oldExpr newExpr

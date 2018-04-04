@@ -1,8 +1,9 @@
 module Language.Symbol.Operator.Prec where
 
-import Control.Monad.State.Layered (StateT)
-import Language.Symbol.Label
 import Prologue
+
+import Control.Monad.State.Layered (StateT)
+import Language.Symbol.Label       (HasLabel, LabelOf, label)
 
 
 
@@ -49,10 +50,11 @@ class Monad m => MinPrecWriter label m where
     writeMin = lift . writeMin
 
 
-data Bound a = Max
-                | Min
-                | Normal a
-                deriving (Show, Eq)
+data Bound a
+    = Max
+    | Min
+    | Normal a
+    deriving (Show, Eq)
 
 
 -- === Instances === --

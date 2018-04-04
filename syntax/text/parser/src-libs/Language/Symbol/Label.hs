@@ -1,5 +1,6 @@
 module Language.Symbol.Label where
 
+import OCI.Data.Name as Name
 import Prologue
 
 
@@ -45,3 +46,10 @@ instance HasLabel (Labeled l a) where
 
 instance Copointed (Labeled l) where
     copoint = view labeledContent
+
+
+
+
+-- TOREFACTOR?
+
+instance HasLabel Name.Name
