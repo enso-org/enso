@@ -16,6 +16,7 @@ ghc-options:
 local-bin-path: dist/bin/public/luna
 packages:
     - core
+    - lib
     - syntax/text/lexer
     - syntax/text/parser
     - ../container

@@ -1,6 +1,6 @@
-name:        luna-core
-version:     0.0.2
-synopsis:    Luna Core
+name:        luna-local-libs
+version:     1.0.0
+synopsis:    Luna Local Libraries
 category:    Data
 license:     Apache-2.0
 stability:   experimental
@@ -8,17 +8,38 @@ homepage:    https://github.com/luna/luna-core
 bug-reports: https://github.com/luna/luna-core/issues
 author:      Luna Team
 copyright:   Copyright (C) 2018 Luna Team
-maintainer:
-    - Wojciech Danilo <wojciech.danilo@luna-lang.org>
-    - Piotr Moczurad  <piotr.moczurad@luna-lang.org>
+maintainer:  Luna Team
 
 ghc-options:
     - -Wall
     - -O2
+extra-source-files: 
+    - cpp-containers/cbits/*
+    - memory-manager/cbits/*
 
 library:
     source-dirs:
-        - src
+        - autovector
+        - cpp-containers
+        - data-tag
+        - data-typemap
+        - exception
+        - foreign-utils
+        - memory-manager
+        - memory-pool
+        - text-processing
+        - th-builder
+        - tuple-utils
+        - type-cache
+        - typelevel
+    c-sources:
+        - cpp-containers/cbits/*.cpp
+        - memory-manager/cbits/*.cpp
+    include-dirs:
+        - cpp-containers/cbits
+        - memory-manager/cbits
+    extra-libraries: stdc++
+    cc-options:      -std=c++17 -O3
     dependencies:
         - async
         - base
@@ -32,7 +53,6 @@ library:
         - layered-state
         - lens
         - lens-utils
-        - luna-local-libs
         - monad-branch
         - monoid
         - mtl
@@ -43,57 +63,6 @@ library:
         - template-haskell
         - transformers
         - vector
-
-benchmarks:
-    array-benchmark:
-        main: Main.hs
-        source-dirs: 
-            - test/bench
-            - test/common
-        c-sources:
-            - test/bench/cbits/*.cpp
-        include-dirs:
-            - test/bench/cbits
-        extra-libraries: stdc++
-        cc-options:      -std=c++17 -O3
-        ghc-options:
-            - -threaded
-            - -rtsopts
-            - -with-rtsopts=-N
-            - -with-rtsopts=-T
-        dependencies:
-            - ansi-terminal
-            - base
-            - convert
-            - criterion >= 1.3.0.0
-            - deepseq
-            - ghc
-            - layered-state
-            - luna-core
-            - luna-local-libs
-            - prologue
-            - unboxed-ref >= 0.4.0.0
-            - vector 
-
-tests:
-    spec:
-        main: Main.hs
-        source-dirs:
-            - test/spec
-            - test/common
-        ghc-options:
-            - -threaded
-            - -rtsopts
-            - -with-rtsopts=-N
-            - -with-rtsopts=-T
-        dependencies:
-            - base
-            - container
-            - hspec
-            - hspec-expectations-lifted
-            - luna-core
-            - luna-local-libs            
-            - prologue
             
 default-extensions:
     - AllowAmbiguousTypes
