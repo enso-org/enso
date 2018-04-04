@@ -6,7 +6,7 @@ default-extensions: [ScopedTypeVariables, ConstraintKinds, DataKinds, DefaultSig
   InstanceSigs, LambdaCase, MultiParamTypeClasses, OverloadedStrings, PackageImports,
   StandaloneDeriving, TemplateHaskell, TupleSections, TypeOperators, ViewPatterns,
   TypeFamilies, TypeApplications]
-dependencies: [base, convert, containers, lens]
+dependencies: [base, convert, containers, lens, text]
 github: https://github.com/wdanilo/container
 library: {ghc-options: -Wall -O2, source-dirs: src}
 license: Apache-2.0
@@ -14,4 +14,4 @@ maintainer: Wojciech Danilo <wojciech.danilo@gmail.com>
 name: container
 stability: experimental
 synopsis: Containers abstraction and utilities.
-version: 0.3.1
+version: 0.3.2
