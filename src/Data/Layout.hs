@@ -15,7 +15,7 @@ import qualified Data.Text.IO              as Text
 import qualified Data.Text.Lazy            as LazyText
 import qualified Data.Text.Lazy.Builder    as Text
 import           Data.Text.Terminal        hiding (plain) -- FIXME[WD]: TerminalText instances might not suit this module well
--- import Data.Container.Sequence
+import Data.Sequence.Class
 
 
 
@@ -55,7 +55,7 @@ backticked = between' "`"
 enumerateWith :: (Monoid a, Foldable f) => a -> a -> f a -> a
 enumerateWith sep lastSep els = case Foldable.toList els of
     [] -> mempty
-    ss -> intercalate sep (init ss) <> lastSep <> last ss
+    ss -> intercalate sep (unsafeInit ss) <> lastSep <> unsafeLast ss
 
 enumerateAlt, enumerateSeq :: (Monoid a, IsString a, Foldable f) => f a -> a
 enumerateAlt = enumerateWith ", " " or "
