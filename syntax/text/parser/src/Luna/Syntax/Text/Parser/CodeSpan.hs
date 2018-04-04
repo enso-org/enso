@@ -8,6 +8,7 @@ import Prologue hiding (Span, String, Type, length, span)
 
 import qualified Control.Monad.State.Layered as State
 import qualified Data.Text.Span              as Span
+import qualified Luna.IR.Layer               as Layer
 
 import Data.Text.Position (Delta)
 import Data.Text.Span     (LeftSpacedSpan, length, offset)

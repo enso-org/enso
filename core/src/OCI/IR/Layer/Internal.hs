@@ -35,22 +35,22 @@ consByteSize = sizeOf' @Int ; {-# INLINE consByteSize #-}
 
 -- === Definition === --
 
-type family Data  comp layer layout :: Type
-type SomeData     comp layer = Data comp layer ()
-type StorableData comp layer = Storable (SomeData comp layer)
+type family Data  layer layout :: Type
+type SomeData     layer = Data layer ()
+type StorableData layer = Storable (SomeData layer)
 
 
 -- === Construction === --
 
-class IsCons1 comp layer t where
-    cons1 :: ∀ a. t a -> Data comp layer a
+class IsCons1 layer t where
+    cons1 :: ∀ a. t a -> Data layer a
 
 
 -- === Initialization === --
 
-class Initializer comp layer where
-    initStatic  :: Maybe     (SomeData comp layer)
-    initDynamic :: Maybe (IO (SomeData comp layer))
+class Initializer layer where
+    initStatic  :: Maybe     (SomeData layer)
+    initDynamic :: Maybe (IO (SomeData layer))
     initStatic  = Nothing ; {-# INLINE initStatic  #-}
     initDynamic = Nothing ; {-# INLINE initDynamic #-}
     {-# MINIMAL initStatic | initDynamic #-}
@@ -58,8 +58,8 @@ class Initializer comp layer where
 
 -- === General Information === --
 
-byteSize :: ∀ comp layer. StorableData comp layer => Int
-byteSize = Storable.sizeOf' @(SomeData comp layer) ; {-# INLINE byteSize #-}
+byteSize :: ∀ layer. StorableData layer => Int
+byteSize = Storable.sizeOf' @(SomeData layer) ; {-# INLINE byteSize #-}
 
 
 
@@ -75,45 +75,45 @@ type Editor comp layer m =
    )
 
 class Reader comp layer m where
-    read__  :: ∀ layout. Component comp layout -> m (Data comp layer layout)
+    read__  :: ∀ layout. Component comp layout -> m (Data layer layout)
 
 class Writer comp layer m where
-    write__ :: ∀ layout. Component comp layout -> Data comp layer layout -> m ()
+    write__ :: ∀ layout. Component comp layout -> Data layer layout -> m ()
 
 
 -- === API === --
 
-#define CTX ∀ layer comp layout m. (StorableData comp layer, MonadIO m)
+#define CTX ∀ layer comp layout m. (StorableData layer, MonadIO m)
 
-unsafePeek :: CTX => SomePtr -> m (SomeData comp layer)
-unsafePoke :: CTX => SomePtr ->   (SomeData comp layer) -> m ()
+unsafePeek :: CTX => SomePtr -> m (SomeData layer)
+unsafePoke :: CTX => SomePtr ->   (SomeData layer) -> m ()
 unsafePeek !ptr = liftIO $ Storable.peek (coerce ptr) ; {-# INLINE unsafePeek #-}
 unsafePoke !ptr = liftIO . Storable.poke (coerce ptr) ; {-# INLINE unsafePoke #-}
 
-unsafePeekGen :: CTX => SomePtr -> m (Data comp layer layout)
-unsafePokeGen :: CTX => SomePtr ->   (Data comp layer layout) -> m ()
+unsafePeekGen :: CTX => SomePtr -> m (Data layer layout)
+unsafePokeGen :: CTX => SomePtr ->   (Data layer layout) -> m ()
 unsafePeekGen = unsafeCoerce $ unsafePeek @layer @comp @layout @m ; {-# INLINE unsafePeekGen #-}
 unsafePokeGen = unsafeCoerce $ unsafePoke @layer @comp @layout @m ; {-# INLINE unsafePokeGen #-}
 
-unsafePeekByteOff :: CTX => Int -> SomePtr -> m (Data comp layer layout)
-unsafePokeByteOff :: CTX => Int -> SomePtr ->   (Data comp layer layout) -> m ()
+unsafePeekByteOff :: CTX => Int -> SomePtr -> m (Data layer layout)
+unsafePokeByteOff :: CTX => Int -> SomePtr ->   (Data layer layout) -> m ()
 unsafePeekByteOff !d !ptr = unsafePeekGen @layer @comp @layout (ptr `plusPtr` d) ; {-# INLINE unsafePeekByteOff #-}
 unsafePokeByteOff !d !ptr = unsafePokeGen @layer @comp @layout (ptr `plusPtr` d) ; {-# INLINE unsafePokeByteOff #-}
 
 unsafeReadByteOff :: CTX => Int -> Component comp layout
-                         -> m (Data comp layer layout)
+                         -> m (Data layer layout)
 unsafeReadByteOff  !d = unsafePeekByteOff @layer @comp @layout d . coerce ; {-# INLINE unsafeReadByteOff  #-}
 
 unsafeWriteByteOff :: CTX => Int -> Component comp layout
-                          -> (Data comp layer layout) -> m ()
+                          -> (Data layer layout) -> m ()
 unsafeWriteByteOff !d = unsafePokeByteOff @layer @comp @layout d . coerce ; {-# INLINE unsafeWriteByteOff #-}
 
 read :: ∀ layer comp layout m. Reader comp layer m
-     => Component comp layout -> m (Data comp layer layout)
+     => Component comp layout -> m (Data layer layout)
 read = read__ @comp @layer @m ; {-# INLINE read #-}
 
 write :: ∀ layer comp layout m. Writer comp layer m
-      => Component comp layout -> Data comp layer layout -> m ()
+      => Component comp layout -> Data layer layout -> m ()
 write = write__ @comp @layer @m ; {-# INLINE write #-}
 
 #undef CTX
@@ -122,7 +122,7 @@ write = write__ @comp @layer @m ; {-# INLINE write #-}
 -- === Instances === --
 
 instance {-# OVERLAPPABLE #-}
-    ( StorableData comp layer
+    ( StorableData layer
     , Pass.LayerByteOffsetGetter comp layer (Pass pass)
     ) => Reader comp layer (Pass pass) where
     read__ !comp = do
@@ -131,7 +131,7 @@ instance {-# OVERLAPPABLE #-}
     {-# INLINE read__ #-}
 
 instance {-# OVERLAPPABLE #-}
-    ( StorableData comp layer
+    ( StorableData layer
     , Pass.LayerByteOffsetGetter comp layer (Pass pass)
     ) => Writer comp layer (Pass pass) where
     write__ !comp !d = do
@@ -157,8 +157,8 @@ instance Writer comp layer ImpM1 where write__ _ _ = impossible
 -- === Layer View === --
 ------------------------
 
-type family View  comp layer layout :: Type
-type StorableView comp layer layout = Storable (View comp layer layout)
+type family View  layer layout :: Type
+type StorableView layer layout = Storable (View layer layout)
 
 
 
@@ -174,26 +174,26 @@ type ViewEditor comp layer layout m =
    )
 
 class ViewReader comp layer layout m where
-    readView__ :: Component comp layout -> m (View comp layer layout)
+    readView__ :: Component comp layout -> m (View layer layout)
 
 class ViewWriter comp layer layout m where
-    writeView__ :: Component comp layout -> View comp layer layout -> m ()
+    writeView__ :: Component comp layout -> View layer layout -> m ()
 
 
 -- === API === --
 
-#define CTX ∀ layer comp layout m.       \
-        ( StorableView comp layer layout \
-        , MonadIO m                      \
+#define CTX ∀ layer comp layout m.  \
+        ( StorableView layer layout \
+        , MonadIO m                 \
         )
 
-unsafePeekView :: CTX => SomePtr -> m (View comp layer layout)
-unsafePokeView :: CTX => SomePtr ->   (View comp layer layout) -> m ()
+unsafePeekView :: CTX => SomePtr -> m (View layer layout)
+unsafePokeView :: CTX => SomePtr ->   (View layer layout) -> m ()
 unsafePeekView !ptr = liftIO $ Storable.peekByteOff (coerce ptr) consByteSize; {-# INLINE unsafePeekView #-}
 unsafePokeView !ptr = liftIO . Storable.pokeByteOff (coerce ptr) consByteSize; {-# INLINE unsafePokeView #-}
 
-unsafePeekViewByteOff :: CTX => Int -> SomePtr -> m (View comp layer layout)
-unsafePokeViewByteOff :: CTX => Int -> SomePtr -> View comp layer layout -> m ()
+unsafePeekViewByteOff :: CTX => Int -> SomePtr -> m (View layer layout)
+unsafePokeViewByteOff :: CTX => Int -> SomePtr -> View layer layout -> m ()
 unsafePeekViewByteOff !d !ptr = unsafePeekView @layer @comp @layout
                               $ ptr `plusPtr` d
 unsafePokeViewByteOff !d !ptr = unsafePokeView @layer @comp @layout
@@ -202,22 +202,22 @@ unsafePokeViewByteOff !d !ptr = unsafePokeView @layer @comp @layout
 {-# INLINE unsafePokeViewByteOff #-}
 
 unsafeReadViewByteOff :: CTX => Int -> Component comp layout
-                      -> m (View comp layer layout)
+                      -> m (View layer layout)
 unsafeReadViewByteOff !d = unsafePeekViewByteOff @layer @comp @layout d
                          . coerce
 unsafeWriteViewByteOff :: CTX => Int -> Component comp layout
-                       -> (View comp layer layout) -> m ()
+                       -> (View layer layout) -> m ()
 unsafeWriteViewByteOff !d = unsafePokeViewByteOff @layer @comp @layout d
                           . coerce
 {-# INLINE unsafeReadViewByteOff  #-}
 {-# INLINE unsafeWriteViewByteOff #-}
 
 readView :: ∀ layer comp layout m. ViewReader comp layer layout m
-         => Component comp layout -> m (View comp layer layout)
+         => Component comp layout -> m (View layer layout)
 readView = readView__ @comp @layer @layout @m ; {-# INLINE readView #-}
 
 writeView :: ∀ layer comp layout m. ViewWriter comp layer layout m
-          => Component comp layout -> View comp layer layout -> m ()
+          => Component comp layout -> View layer layout -> m ()
 writeView = writeView__ @comp @layer @layout @m ; {-# INLINE writeView #-}
 
 #undef CTX
@@ -226,7 +226,7 @@ writeView = writeView__ @comp @layer @layout @m ; {-# INLINE writeView #-}
 -- === Instances === --
 
 instance {-# OVERLAPPABLE #-}
-    ( StorableView comp layer layout
+    ( StorableView layer layout
     , Pass.LayerByteOffsetGetter comp layer (Pass pass)
     ) => ViewReader comp layer layout (Pass pass) where
     readView__ !comp = do
@@ -235,7 +235,7 @@ instance {-# OVERLAPPABLE #-}
     {-# INLINE readView__ #-}
 
 instance {-# OVERLAPPABLE #-}
-    ( StorableView comp layer layout
+    ( StorableView layer layout
     , Pass.LayerByteOffsetGetter comp layer (Pass pass)
     ) => ViewWriter comp layer layout (Pass pass) where
     writeView__ !comp !d = do

@@ -37,22 +37,22 @@ instance IsPtr (Link l)
 -- === Definition === --
 
 data Model
-type instance Layer.Data Terms Model layout = Term.Uni layout
-type instance Layer.View Terms Model layout
+type instance Layer.Data Model layout = Term.Uni layout
+type instance Layer.View Model layout
    = Term.TagToCons (Layout.Get Model layout) layout
-instance Layer.Initializer Terms Model
+instance Layer.Initializer Model
 
 
 -- === Utils === --
 
 match :: Layer.ViewReader Terms Model layout m
-      => Term layout -> m (Layer.View Terms Model layout)
+      => Term layout -> m (Layer.View Model layout)
 match = Layer.readView @Model ; {-# INLINE match #-}
 
 
 -- === Instances === --
 
-instance Term.IsUni t => Layer.IsCons1 Terms Model t where
+instance Term.IsUni t => Layer.IsCons1 Model t where
     cons1 = Term.toUni ; {-# INLINE cons1 #-}
 
 
@@ -63,10 +63,8 @@ instance Term.IsUni t => Layer.IsCons1 Terms Model t where
 
 data Type
 type instance Layout.Default Type = ()
-type instance Layer.Data Terms Type layout
-   = Link (Layout.Get Type layout *-* layout)
-
-instance Layer.Initializer Terms Type
+type instance Layer.Data Type layout = Link (Layout.Get Type layout *-* layout)
+instance Layer.Initializer Type
 
 
 
@@ -75,8 +73,8 @@ instance Layer.Initializer Terms Type
 -------------------
 
 data Users
-type instance Layer.Data Terms Users layout
+type instance Layer.Data Users layout
    = UnmanagedPtrSet (Link (layout *-* Layout.Set Model () layout))
 
-instance Layer.Initializer Terms Users where
+instance Layer.Initializer Users where
     initDynamic = Just Set.new ; {-# INLINE initDynamic #-}

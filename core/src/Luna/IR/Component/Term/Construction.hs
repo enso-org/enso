@@ -37,7 +37,7 @@ class DefaultType m where
 type UntypedCreator t m =
     ( Component.Creator Terms   m
     , Layer.Writer  Terms Model m
-    , Layer.IsCons1 Terms Model (TagToCons t)
+    , Layer.IsCons1 Model (TagToCons t)
     )
 
 type Creator tag m =
@@ -65,10 +65,10 @@ type LayoutModelCheck tag layout = Layout.Get Model layout ~ tag
 uncheckedUntypedNewM :: UntypedCreator tag m
     => (Term any -> m (TagToCons tag layout)) -> m (Term any)
 uncheckedUntypedNewM !cons = do
-    ir <- Component.new
+    ir <- Component.new @Terms
     let !ir' = Layout.unsafeRelayout ir
     !term <- cons ir'
-    Layer.write @Model ir $! Layer.cons1 @Terms @Model term
+    Layer.write @Model ir $! Layer.cons1 @Model term
     pure ir'
 {-# INLINE uncheckedUntypedNewM #-}
 

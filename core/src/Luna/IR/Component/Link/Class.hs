@@ -1,3 +1,5 @@
+{-# LANGUAGE UndecidableInstances #-}
+
 module Luna.IR.Component.Link.Class where
 
 import Prologue
@@ -31,11 +33,11 @@ type src *-* tgt = Layout '[Source := src, Target := tgt]
 data Source
 data Target
 
-type instance Layer.Data Links Source layout = Term (Layout.Get Source layout)
-type instance Layer.Data Links Target layout = Term (Layout.Get Target layout)
+type instance Layer.Data Source layout = Term (Layout.Get Source layout)
+type instance Layer.Data Target layout = Term (Layout.Get Target layout)
 
-instance Layer.Initializer Links Source
-instance Layer.Initializer Links Target
+instance Layer.Initializer Source
+instance Layer.Initializer Target
 
 type instance Cmp Source Target = 'LT
 type instance Cmp Target Source = 'GT
