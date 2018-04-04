@@ -39,9 +39,10 @@ dependencies:
     - text
     - typelevel
     - vector
-    - text-processing
     - vector-text
     - layouting
+    - luna-local-libs
+    
 
 default-extensions:
     - AllowAmbiguousTypes

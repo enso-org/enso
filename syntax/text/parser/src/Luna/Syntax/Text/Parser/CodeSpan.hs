@@ -8,6 +8,7 @@ import Prologue hiding (Span, String, Type, length, span)
 
 import qualified Control.Monad.State.Layered as State
 import qualified Data.Text.Span              as Span
+import qualified Foreign.Storable.Deriving   as Storable
 import qualified Luna.IR.Layer               as Layer
 
 import Data.Text.Position (Delta)
@@ -56,43 +57,53 @@ data CodeSpan = CodeSpan
     { _realSpan :: !LeftSpacedSpan
     , _viewSpan :: !LeftSpacedSpan
     } deriving (Show)
-makeLenses ''CodeSpan
+makeLenses      ''CodeSpan
+Storable.derive ''CodeSpan
 
 
 -- === Utils === --
 
 mkRealSpan :: LeftSpacedSpan -> CodeSpan
-mkRealSpan s = CodeSpan s s
+mkRealSpan s = CodeSpan s s ; {-# INLINE mkRealSpan #-}
 
 mkPhantomSpan :: LeftSpacedSpan -> CodeSpan
-mkPhantomSpan s = CodeSpan s (s & Span.length .~ mempty)
+mkPhantomSpan s = CodeSpan s (s & Span.length .~ mempty) ; {-# INLINE mkPhantomSpan #-}
 
 dropOffset :: CodeSpan -> CodeSpan
 dropOffset cs = cs & realSpan . offset .~ mempty
                    & viewSpan . offset .~ mempty
+{-# INLINE dropOffset #-}
 
 dropLength :: CodeSpan -> CodeSpan
 dropLength cs = cs & realSpan . length .~ mempty
                    & viewSpan . length .~ mempty
+{-# INLINE dropLength #-}
 
 asOffsetSpan :: CodeSpan -> CodeSpan
 asOffsetSpan cs = cs & realSpan %~ Span.asOffsetSpan
                      & viewSpan %~ Span.asOffsetSpan
+{-# INLINE asOffsetSpan #-}
 
 asCodeOffset :: CodeSpan -> CodeOffset
 asCodeOffset = extractCodeOffset . asOffsetSpan
+{-# INLINE asCodeOffset #-}
 
 extractCodeOffset :: CodeSpan -> CodeOffset
 extractCodeOffset cs = CodeOffset (cs ^. realSpan . Span.offset) (cs ^. viewSpan . Span.offset)
+{-# INLINE extractCodeOffset #-}
 
-concat :: CodeSpan -> CodeSpan -> CodeSpan
-concat (CodeSpan r v) (CodeSpan r' v') = CodeSpan (Span.concat r r') (Span.concat v v')
+-- concat :: CodeSpan -> CodeSpan -> CodeSpan
+-- concat (CodeSpan r v) (CodeSpan r' v') = CodeSpan (Span.concat r r') (Span.concat v v')
+-- {-# INLINE concat #-}
 
 
 -- === Instances === --
 
-instance Mempty    CodeSpan where mempty = CodeSpan mempty mempty
-instance Semigroup CodeSpan where CodeSpan r v <> CodeSpan r' v' = CodeSpan (r <> r') (v <> v')
+instance Mempty CodeSpan where
+    mempty = CodeSpan mempty mempty
+
+instance Semigroup CodeSpan where
+    CodeSpan r v <> CodeSpan r' v' = CodeSpan (r <> r') (v <> v')
 
 
 
@@ -204,6 +215,8 @@ instance Layer.Initializer CodeSpan where
 -- === CodeSpanRange === --
 ---------------------------
 
--- | Parser state layer used to keep the current source range covered by code spans.
+-- | Parser state used to keep the current source range covered by code spans.
 newtype CodeSpanRange = CodeSpanRange Delta deriving (Show, Default, Mempty)
 makeLenses ''CodeSpanRange
+
+instance Convertible Delta CodeSpanRange where convert = wrap ; {-# INLINE convert #-}

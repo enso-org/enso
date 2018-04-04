@@ -25,12 +25,13 @@ import Text.Megaparsec.Error            (ErrorItem, ParseError)
 import Text.Megaparsec.Prim             (MonadParsec, token)
 -- -- import           OCI.IR                           (Name)
 
+import Data.Text.Position            (Delta)
 import Luna.Syntax.Text.Parser.Class (Stream, Symbol)
 
--- newtype LeftSpanner = LeftSpanner Delta deriving (Show)
--- makeLenses ''LeftSpanner
+newtype LeftSpanner = LeftSpanner Delta deriving (Show)
+makeLenses ''LeftSpanner
 
--- instance Default LeftSpanner where def = LeftSpanner mempty
+instance Default LeftSpanner where def = LeftSpanner mempty
 
 
 -- -----------------

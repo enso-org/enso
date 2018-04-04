@@ -35,6 +35,5 @@ packages:
     - ../data-prop
     - ../layered-state
     - ../monad-branch
-    - ../text-processing
     - ../vector-text
 resolver: ./build/snapshot-local.yaml

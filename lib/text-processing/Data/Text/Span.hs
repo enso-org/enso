@@ -1,30 +1,36 @@
- {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE UndecidableInstances #-}
  {-# EXT      InlineAll            #-}
 
 module Data.Text.Span where
 
 import qualified Control.Monad.State.Layered as State
--- import qualified Foreign.Storable.Deriving   as Storable
+import qualified Foreign.Storable.Deriving   as Storable
 
-import Prologue            hiding (length)
-import Data.Maybe          (isJust)
+import Data.Maybe         (isJust)
 import Data.Text.Position (Delta)
+import Foreign.Storable   (Storable)
+import Prologue           hiding (length)
 
-----------------------------
--- === LeftSpacedSpan === --
-----------------------------
+
+------------------------
+-- === SpacedSpan === --
+------------------------
 
 -- === Definition === --
 
-data SpacedSpan = SpacedSpan 
+data SpacedSpan = SpacedSpan
     { __offset :: !Delta
-    , __length :: !Delta 
+    , __length :: !Delta
     } deriving (Eq, Ord, Show)
--- Storable.derive ''SpacedSpan
+Storable.derive ''SpacedSpan
+makeLenses      ''SpacedSpan
 
-newtype LeftSpacedSpan  = LeftSpacedSpan  SpacedSpan deriving (Eq, Ord, Show)
-newtype RightSpacedSpan = RightSpacedSpan SpacedSpan deriving (Eq, Ord, Show)
-makeLenses ''SpacedSpan
+newtype LeftSpacedSpan = LeftSpacedSpan SpacedSpan
+    deriving (Eq, Ord, Show, Storable)
+
+newtype RightSpacedSpan = RightSpacedSpan SpacedSpan
+    deriving (Eq, Ord, Show, Storable)
+
 makeLenses ''LeftSpacedSpan
 makeLenses ''RightSpacedSpan
 
@@ -55,9 +61,9 @@ asOffsetSpan s = s & offset %~ (+ s ^. length)
 measure :: IsSpacedSpan t => t -> Delta
 measure t = t ^. offset + t ^. length ; {-# INLINE measure #-}
 
-concat :: Num s => LeftSpacedSpan -> LeftSpacedSpan -> LeftSpacedSpan
-concat (unwrap -> SpacedSpan off s) (unwrap -> SpacedSpan off' s') 
-    = wrap $ SpacedSpan off (s + off' + s')
+-- concat :: Num s => LeftSpacedSpan -> LeftSpacedSpan -> LeftSpacedSpan
+-- concat (unwrap -> SpacedSpan off s) (unwrap -> SpacedSpan off' s')
+--     = wrap $ SpacedSpan off (s + off' + s')
 
 
 -- === Instances === --
@@ -71,7 +77,7 @@ deriving instance Num s => Mempty  LeftSpacedSpan
 deriving instance Num s => Mempty  RightSpacedSpan
 
 instance (Num s, Ord s) => Semigroup LeftSpacedSpan where
-    (unwrap -> SpacedSpan off s) <> (unwrap -> SpacedSpan off' s') 
+    (unwrap -> SpacedSpan off s) <> (unwrap -> SpacedSpan off' s')
         = if s > 0 then leftSpacedSpan off (s + off' + s')
                    else leftSpacedSpan (off + off') s'
 

@@ -34,7 +34,6 @@ dependencies:
     - containers
     - mtl
     - vector
-    - text-processing
     - vector-text
     - fingertree
     - attoparsec
@@ -45,6 +44,7 @@ dependencies:
     - resourcet
     - convert
     - functor-utils
+    - luna-local-libs
 
     # remove:
     - lens-utils

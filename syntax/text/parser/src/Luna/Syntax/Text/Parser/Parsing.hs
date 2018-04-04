@@ -31,7 +31,6 @@ import Text.Megaparsec (ErrorItem (Tokens), ParseError, anyChar, between, char,
 
 -- import Luna.Syntax.Text.Parser.Class
 -- import Luna.Syntax.Text.Parser.Parser
-import Luna.Syntax.Text.Parser.CodeSpan (CodeSpan, CodeSpanRange)
 -- import qualified Luna.Syntax.Text.Parser.CodeSpan as CodeSpan
 
 -- import qualified Luna.IR.Term.Function as Function
@@ -101,20 +100,27 @@ import Luna.Syntax.Text.Parser.CodeSpan (CodeSpan, CodeSpanRange)
 -- import qualified Data.Text32 as Text32
 -- import qualified Data.Text as Text
 
+import qualified Control.Monad.State.Layered      as State
 import qualified Data.Set                         as Set
+import qualified Data.Text.Span                   as Span
 import qualified Data.Text32                      as Text32
 import qualified Luna.IR                          as IR
 import qualified Luna.IR.Layer                    as Layer
 import qualified Luna.Syntax.Text.Lexer           as Lexer
 import qualified Luna.Syntax.Text.Lexer.Symbol    as Lexer
+import qualified Luna.Syntax.Text.Parser.Marker   as Marker
 import qualified Luna.Syntax.Text.Parser.Reserved as Reserved
 
-import Luna.IR                        (Term)
-import Luna.Pass                      (Pass)
-import Luna.Syntax.Text.Parser.Loc    (token')
-import Luna.Syntax.Text.Parser.Parser (AsgBldr (fromAsgBldr), IRB, Parser,
-                                       SymParser)
-import OCI.Data.Name                  (Name)
+import Data.Text.Position               (FileOffset (..))
+import Data.Text.Position               (Delta)
+import Luna.IR                          (Term)
+import Luna.Pass                        (Pass)
+import Luna.Syntax.Text.Parser.CodeSpan (CodeSpan (CodeSpan),
+                                         CodeSpanRange (..))
+import Luna.Syntax.Text.Parser.Loc      (LeftSpanner (LeftSpanner), token')
+import Luna.Syntax.Text.Parser.Parser   (AsgBldr (fromAsgBldr), IRB, Parser,
+                                         SymParser)
+import OCI.Data.Name                    (Name)
 
 
 
@@ -163,12 +169,12 @@ symbol = satisfy_ . (==)
 -- dropNextToken :: SymParser ()
 -- dropNextToken = satisfyReserved_ $ const True
 
--- getLastOffset   :: MonadGetter LeftSpanner m => m Delta
--- checkLastOffset :: MonadGetter LeftSpanner m => m Bool
--- getLastOffset   = unwrap <$> get @LeftSpanner
--- checkLastOffset = (>0)   <$> getLastOffset
+getLastOffset   :: State.Getter LeftSpanner m => m Delta
+checkLastOffset :: State.Getter LeftSpanner m => m Bool
+getLastOffset   = unwrap <$> State.get @LeftSpanner
+checkLastOffset = (>0)   <$> getLastOffset
 
--- checkOffsets :: (MonadParsec e Stream m, MonadGetter LeftSpanner m) => m (Bool, Bool)
+-- checkOffsets :: (MonadParsec e Stream m, State.Getter LeftSpanner m) => m (Bool, Bool)
 -- checkOffsets = (,) <$> checkLastOffset <*> checkNextOffset
 
 
@@ -192,12 +198,12 @@ symbol = satisfy_ . (==)
 -- liftIRB4 f t1 t2 t3 t4    = wrap $ f t1 t2 t3 t4    ; {-# INLINE liftIRB4 #-}
 -- liftIRB5 f t1 t2 t3 t4 t5 = wrap $ f t1 t2 t3 t4 t5 ; {-# INLINE liftIRB5 #-}
 
-liftIRBApp0 :: (                              Pass Parser out) -> IRB out
-liftIRBApp1 :: (t1                         -> Pass Parser out) -> IRB t1 -> IRB out
-liftIRBApp2 :: (t1 -> t2                   -> Pass Parser out) -> IRB t1 -> IRB t2 -> IRB out
-liftIRBApp3 :: (t1 -> t2 -> t3             -> Pass Parser out) -> IRB t1 -> IRB t2 -> IRB t3 -> IRB out
-liftIRBApp4 :: (t1 -> t2 -> t3 -> t4       -> Pass Parser out) -> IRB t1 -> IRB t2 -> IRB t3 -> IRB t4 -> IRB out
-liftIRBApp5 :: (t1 -> t2 -> t3 -> t4 -> t5 -> Pass Parser out) -> IRB t1 -> IRB t2 -> IRB t3 -> IRB t4 -> IRB t5 -> IRB out
+liftIRBApp0 :: (                              IRB out) -> IRB out
+liftIRBApp1 :: (t1                         -> IRB out) -> IRB t1 -> IRB out
+liftIRBApp2 :: (t1 -> t2                   -> IRB out) -> IRB t1 -> IRB t2 -> IRB out
+liftIRBApp3 :: (t1 -> t2 -> t3             -> IRB out) -> IRB t1 -> IRB t2 -> IRB t3 -> IRB out
+liftIRBApp4 :: (t1 -> t2 -> t3 -> t4       -> IRB out) -> IRB t1 -> IRB t2 -> IRB t3 -> IRB t4 -> IRB out
+liftIRBApp5 :: (t1 -> t2 -> t3 -> t4 -> t5 -> IRB out) -> IRB t1 -> IRB t2 -> IRB t3 -> IRB t4 -> IRB t5 -> IRB out
 liftIRBApp0 f                     = do { f                                                                       } ; {-# INLINE liftIRBApp0 #-}
 liftIRBApp1 f mt1                 = do { t1 <- mt1; f t1                                                         } ; {-# INLINE liftIRBApp1 #-}
 liftIRBApp2 f mt1 mt2             = do { t1 <- mt1; t2 <- mt2; f t1 t2                                           } ; {-# INLINE liftIRBApp2 #-}
@@ -230,42 +236,43 @@ liftIRBApp5 f mt1 mt2 mt3 mt4 mt5 = do { t1 <- mt1; t2 <- mt2; t3 <- mt3; t4 <- 
 
 -- -- === CodeSpan === --
 
--- attachCodeSpanLayer :: CodeSpan -> IRB (Term l) -> IRB (Term l)
--- attachCodeSpanLayer s = (>>~ flip (Layer.write @CodeSpan) s)
+attachCodeSpanLayer :: CodeSpan -> IRB (Term a) -> IRB (Term a)
+attachCodeSpanLayer s = (>>~ flip (Layer.write @CodeSpan) s)
 
--- spanned :: SymParser a -> SymParser (CodeSpan, a)
--- spanned p = phantomSpan p' where
---     p' = do foStart <- unwrap <$> get @FileOffset
---             put @CodeSpanRange $ wrap foStart
---             p
+spanned :: SymParser a -> SymParser (CodeSpan, a)
+spanned p = phantomSpan p' where
+    p' = do foStart <- unwrap <$> State.get @FileOffset
+            State.put @CodeSpanRange $ wrap foStart
+            p
 
 -- -- | Function `phantomSpan` do not register it's beginning as new element start.
--- --   It is a very rarely needed functionality, use with care.
--- phantomSpan :: SymParser a -> SymParser (CodeSpan, a)
--- phantomSpan p = do
---     range   <- unwrap <$> get @CodeSpanRange
---     foStart <- unwrap <$> get @FileOffset
---     marker  <- getLastTokenMarker
---     out     <- p
---     foEnd   <- unwrap <$> get @FileOffset
---     sfxOff  <- getLastOffset
---     let end       = foEnd   - sfxOff
---         off       = foStart - range
---         emptySpan = leftSpacedSpan mempty mempty
---         (rs,vs)   = (realSpan, viewSpan)
---         -- FIXME[WD]: The `foo` and `bar` helpers are here just to make it work with empty spans in list sections / empty module headers.
---         --            We should think how to refactor them and describe better where they originate from.
---         foo       = max 0 (end - foStart)
---         bar       = max end foStart
---         realSpan  = leftSpacedSpan off foo
---         viewSpan  = case marker of
---             Nothing -> realSpan
---             Just m  -> leftSpacedSpan (off - m ^. Lexer.span - m ^. Lexer.offset) foo
---     put @CodeSpanRange $ wrap bar
---     return (CodeSpan.CodeSpan rs vs, out)
+--   It is a very rarely needed functionality, use with care.
+phantomSpan :: SymParser a -> SymParser (CodeSpan, a)
+phantomSpan p = do
+    range   <- unwrap <$> State.get @CodeSpanRange
+    foStart <- unwrap <$> State.get @FileOffset
+    marker  <- Marker.getLastTokenMarker
+    out     <- p
+    foEnd   <- unwrap <$> State.get @FileOffset
+    sfxOff  <- getLastOffset
+    let end       = foEnd   - sfxOff
+        off       = foStart - range
+        emptySpan = Span.leftSpacedSpan mempty mempty
+        (rs,vs)   = (realSpan, viewSpan)
+        -- FIXME[WD]: The `foo` and `bar` helpers are here just to make it work with empty spans in list sections / empty module headers.
+        --            We should think how to refactor them and describe better where they originate from.
+        foo       = max 0 (end - foStart)
+        bar       = max end foStart
+        realSpan  = Span.leftSpacedSpan off foo
+        viewSpan  = case marker of
+            Nothing -> realSpan
+            Just m  -> Span.leftSpacedSpan
+                       (off - m ^. Lexer.span - m ^. Lexer.offset) foo
+    State.put @CodeSpanRange $ convert bar
+    pure (CodeSpan rs vs, out)
 
--- spanOf :: SymParser a -> SymParser a
--- spanOf = fmap snd . spanned
+spanOf :: SymParser a -> SymParser a
+spanOf = fmap snd . spanned
 
 -- inheritCodeSpan1 :: (SomeTerm -> IRB SomeTerm) -> AsgBldr SomeTerm -> AsgBldr SomeTerm
 -- inheritCodeSpan1 = inheritCodeSpan1With id

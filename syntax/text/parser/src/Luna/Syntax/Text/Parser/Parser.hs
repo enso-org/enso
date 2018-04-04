@@ -19,8 +19,6 @@ import Text.Parser.Backend.Megaparsec ()
 -- import Luna.IR.ToRefactor2 (Listener, listener, tpElemPass, addElemEventListener)
 
 
--- import Luna.Syntax.Text.Parser.Marker (MarkedExprMap, MarkerState,
---                                        UnmarkedExprs)
 -- import Type.Any (AnyType)
 
 
@@ -33,15 +31,18 @@ import qualified Luna.Pass                           as Pass
 -- import qualified Luna.Syntax.Text.Lexer           as Lexer
 import Control.Monad.State.Layered      (StatesT)
 import Control.Monad.State.Layered      (StateT)
+import Data.Text.Position               (FileOffset)
 import Luna.Pass                        (Pass)
 import Luna.Syntax.Text.Parser.Class    as X (Error)
 import Luna.Syntax.Text.Parser.Class    (Stream)
-import Luna.Syntax.Text.Parser.CodeSpan (CodeSpan)
+import Luna.Syntax.Text.Parser.CodeSpan (CodeSpan, CodeSpanRange)
+import Luna.Syntax.Text.Parser.Loc      (LeftSpanner)
+import Luna.Syntax.Text.Parser.Marker   (MarkedExprMap, MarkerState,
+                                         UnmarkedExprs)
 import Luna.Syntax.Text.Parser.Reserved (Reservation)
 import Text.Megaparsec                  (ParsecT)
 
 -- import           Luna.Syntax.Text.Parser.Errors   (Invalids)
--- import           Luna.Syntax.Text.Parser.Loc      (LeftSpanner)
 
 -- import qualified Luna.Syntax.Text.Parser.Reserved as Reserved
 
@@ -50,9 +51,16 @@ import Text.Megaparsec                  (ParsecT)
 -- type ParserBase = ParsecT Error Text (StateT Scope IO)
 type ParserBase2 = ParsecT Error Stream IO
 
--- type SymParser = StatesT '[Indent, FileOffset, Position, MarkerState, LeftSpanner, Scope, Reservation, CodeSpanRange] ParserBase2
-type SymParser = StatesT '[Reservation] ParserBase2
-
+-- type SymParser = StatesT '[Indent, FileOffset, Position, MarkerState
+--     , LeftSpanner, Scope, Reservation, CodeSpanRange] ParserBase2
+type SymParser = StatesT ParserStates ParserBase2
+type ParserStates
+    = '[ FileOffset
+       , MarkerState
+       , LeftSpanner
+       , Reservation
+       , CodeSpanRange
+       ]
 
 
 data Parser
@@ -60,7 +68,8 @@ type instance Pass.Spec Parser t = TestPassSpec t
 type family   TestPassSpec  t where
     TestPassSpec (Pass.In  Pass.Attrs) = '[]
     TestPassSpec (Pass.In  Pass.Attrs) = '[]
-    TestPassSpec (Pass.In  IR.Terms)   = CodeSpan ': Pass.BasicPassSpec (Pass.In IR.Terms)
+    TestPassSpec (Pass.In  IR.Terms)   = CodeSpan
+                                      ': Pass.BasicPassSpec (Pass.In IR.Terms)
     TestPassSpec (Pass.Out t)          = TestPassSpec (Pass.In t)
     TestPassSpec t                     = Pass.BasicPassSpec t
 
@@ -76,7 +85,7 @@ Pass.cache_phase2 ''Parser
 
 -- -- === Definition === --
 
-type IRB = Pass Parser
+type IRB = StatesT '[MarkedExprMap, UnmarkedExprs] (Pass Parser)
 -- newtype IRB a = IRB { fromIRB :: Pass Parser a } deriving (Functor, Applicative, Monad)
 -- makeLenses ''IRB
 
