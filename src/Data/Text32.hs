@@ -5,3 +5,4 @@ import           Data.Container.Vector as X
 import qualified Data.Vector.Unboxed   as Unboxed
 
 type Text32 = Unboxed.Vector Char
+
