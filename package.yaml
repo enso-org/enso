@@ -8,7 +8,7 @@ default-extensions: [ScopedTypeVariables, TypeApplications, ConstraintKinds, Dat
   GeneralizedNewtypeDeriving, InstanceSigs, LambdaCase, MultiParamTypeClasses, NoImplicitPrelude,
   OverloadedStrings, StandaloneDeriving, TemplateHaskell, TupleSections, TypeFamilies,
   TypeOperators, ViewPatterns, MultiWayIf, UnicodeSyntax]
-dependencies: [base, bifunctors, binary, cond, container, convert, data-default, deepseq,
+dependencies: [base >= 4.11 && < 4.12, bifunctors, binary, cond, container, convert, data-default, deepseq,
   errors, exceptions, functor-utils, ghc-prim, impossible, lens, lens-utils, mtl,
   placeholders, pretty-show, primitive, string-qq, raw-strings-qq, template-haskell,
   text, transformers, transformers-base, typelevel, vector, comonad, either, monoid,
