@@ -25,7 +25,6 @@ packages:
     - ../lens-utils
     - ../monoid
     - ../functor-utils
-    - ../prologue
     - ../impossible
     - ../layouting
     - ../terminal-text
@@ -37,4 +36,11 @@ packages:
     - ../layered-state
     - ../monad-branch
     - ../vector-text
+    - ../prologue
 resolver: ./build/snapshot-local.yaml
+
+
+package-indices:
+    - name:            standard-hackage
+      download-prefix: https://hackage.haskell.org/packages/
+      http:            https://hackage.haskell.org/01-index.tar.gz
