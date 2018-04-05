@@ -20,19 +20,19 @@ packages:
     - syntax/text/lexer
     - syntax/text/parser
     - syntax/text/prettyprint
-    - ../container
-    - ../convert
-    - ../lens-utils
-    - ../monoid
-    - ../functor-utils
-    - ../impossible
-    - ../layouting
-    - ../terminal-text
-    - ../typelevel
-    - ../layered-state
-    - ../monad-branch
-    - ../vector-text
-    - ../prologue
+    - ../lib/container
+    - ../lib/convert
+    - ../lib/lens-utils
+    - ../lib/monoid
+    - ../lib/functor-utils
+    - ../lib/impossible
+    - ../lib/layouting
+    - ../lib/terminal-text
+    - ../lib/typelevel
+    - ../lib/layered-state
+    - ../lib/monad-branch
+    - ../lib/vector-text
+    - ../lib/prologue
 resolver: ./build/snapshot-local.yaml
 
 package-indices:
