@@ -1,7 +1,7 @@
 author: Wojciech Danilo
 bug-reports: https://github.com/wdanilo/prologue/issues
 category: control
-copyright: Copyright (C) 2014 Wojciech Danilo
+copyright: Copyright (C) 2016-2018 Wojciech Danilo
 default-extensions: [ScopedTypeVariables, TypeApplications, ConstraintKinds, DataKinds,
   DefaultSignatures, DeriveDataTypeable, DeriveFoldable, DeriveFunctor, DeriveGeneric,
   DeriveTraversable, DoAndIfThenElse, EmptyDataDecls, FlexibleContexts, FlexibleInstances,
