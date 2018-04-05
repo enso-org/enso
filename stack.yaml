@@ -21,3 +21,8 @@ packages:
     - syntax/text/parser
     - syntax/text/prettyprint
 resolver: ./build/snapshot.yaml
+
+package-indices:
+    - name:            standard-hackage
+      download-prefix: https://hackage.haskell.org/packages/
+      http:            https://hackage.haskell.org/01-index.tar.gz

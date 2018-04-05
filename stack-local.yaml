@@ -29,18 +29,13 @@ packages:
     - ../layouting
     - ../terminal-text
     - ../typelevel
-    - ../data-construction
-    - ../data-repr
-    - ../data-rtuple
-    - ../data-prop
     - ../layered-state
     - ../monad-branch
     - ../vector-text
     - ../prologue
 resolver: ./build/snapshot-local.yaml
 
-
 package-indices:
     - name:            standard-hackage
-      download-prefix: https://hackage.haskell.org/packages/
+      download-prefix: https://hackage.haskell.org/package/
       http:            https://hackage.haskell.org/01-index.tar.gz
