@@ -14,7 +14,7 @@ packages:
     - HUnit-1.3.1.2
     - containers-0.5.8.2
     - ansi-terminal-0.6.3.1
-    - optparse-applicative-0.14.0.0
+    - optparse-applicative-0.14.0.0 #test
     - path-0.6.1
     - prologue-0.0.0
 
