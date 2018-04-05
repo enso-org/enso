@@ -8,14 +8,10 @@ import Prologue
 -- import qualified Prelude as P
 -- import Luna.Prelude hiding (List, Symbol, UniSymbol, ChainedPrettyPrinter, (<+>))
 -- import Data.Layout hiding (spaced, ChainedPrettyPrinter, Doc)
-import qualified Data.Layout as Layout
-import qualified Data.Layout as Doc
 -- import Control.Monad.State.Dependent
 -- import qualified OCI.IR as IR
 -- import Luna.IR hiding (modify_, line, Definition, Atom)
 -- import OCI.Pass hiding (modify_)
-import qualified Language.Symbol.Operator.Assoc as Assoc
-import qualified Language.Symbol.Operator.Prec  as Prec
 -- import qualified Luna.Syntax.Text.Scope as Scope
 -- import Luna.Syntax.Text.Parser.Hardcoded (hardcode)
 -- import Luna.Syntax.Text.Lexer.Grammar  (isOperator, markerBeginChar, markerEndChar, metadataHeader)
@@ -25,7 +21,6 @@ import qualified Language.Symbol.Operator.Prec  as Prec
 -- import           OCI.IR.Name.Multipart (MultipartName)
 -- import OCI.IR.Name.Qualified
 -- import qualified Luna.IR.Term.Literal as Literal
--- import Language.Symbol hiding (Expr)
 -- import Luna.Syntax.Text.Parser.Hardcoded
 -- import qualified Luna.IR.Term.Unit as Import
 -- import qualified Data.Text as Text
@@ -36,14 +31,29 @@ import qualified Language.Symbol.Operator.Prec  as Prec
 -- type instance GetRefHandler (StateT Scope m) = GetRefHandler m
 -- instance Prec.RelReader label m => Prec.RelReader label (SubPass p m)
 
-import qualified Luna.IR as IR
+import qualified Data.Layout                    as Layout
+import qualified Data.Layout                    as Doc
+import qualified Language.Symbol                as Symbol
+import qualified Language.Symbol.Operator.Assoc as Assoc
+import qualified Language.Symbol.Operator.Prec  as Prec
+import qualified Luna.IR                        as IR
+import qualified Luna.IR.Layer                  as Layer
+import qualified Luna.Pass                      as Pass
 
 import Control.Monad.State.Layered (StateT)
 import Language.Symbol             (UniSymbol)
-import Language.Symbol.Label       (Labeled)
+import Language.Symbol.Label       (Labeled, labeled, unlabel)
 import Luna.IR                     (Name)
+import Luna.Pass                   (Pass)
 import Luna.Syntax.Text.Scope      (Scope)
 
+
+
+
+data Prettyprint
+type instance Pass.Spec Prettyprint t = Pass.BasicPassSpec t
+Pass.cache_phase1 ''Prettyprint
+Pass.cache_phase2 ''Prettyprint
 
 
 ---------------------------------
@@ -97,32 +107,32 @@ instance Monad m => Assoc.Reader (Maybe SpacedName) (StateT Scope m) where
 type PrettySymbol a = Labeled (Maybe SpacedName) (UniSymbol Pretty a)
 type Doc = Layout.Doc Text
 
--- type instance Definition Pretty Atom   a = a
--- type instance Definition Pretty Prefix a = a
--- type instance Definition Pretty Suffix a = a
--- type instance Definition Pretty Infix  a = a
--- type instance Definition Pretty Mixfix a = (a, [Name])
+type instance Symbol.Definition Pretty Symbol.Atom   a = a
+type instance Symbol.Definition Pretty Symbol.Prefix a = a
+type instance Symbol.Definition Pretty Symbol.Suffix a = a
+type instance Symbol.Definition Pretty Symbol.Infix  a = a
+type instance Symbol.Definition Pretty Symbol.Mixfix a = (a, [Name])
 
 
--- -- === Utils === --
+-- === Utils === --
 
--- unnamed ::               a -> Labeled (Maybe SpacedName) a
--- named   :: SpacedName -> a -> Labeled (Maybe SpacedName) a
--- unnamed = labeled Nothing
--- named   = labeled . Just
+unnamed ::               a -> Labeled (Maybe SpacedName) a
+named   :: SpacedName -> a -> Labeled (Maybe SpacedName) a
+unnamed = labeled Nothing
+named   = labeled . Just
 
--- getBody :: PrettySymbol a -> a
--- getBody (unlabel -> s) = case s of
---     Atom   t -> t ^. body
---     Prefix t -> t ^. body
---     Infix  t -> t ^. body
---     Suffix t -> t ^. body
---     Mixfix _ -> error "Impossible conversion"
+getBody :: PrettySymbol a -> a
+getBody (unlabel -> s) = case s of
+    Symbol.Atom   t -> t ^. Symbol.body
+    Symbol.Prefix t -> t ^. Symbol.body
+    Symbol.Infix  t -> t ^. Symbol.body
+    Symbol.Suffix t -> t ^. Symbol.body
+    Symbol.Mixfix _ -> error "Impossible conversion"
 
 
 -- -- === Instances === --
 
--- instance Convertible Name Doc           where convert = convertVia @Text
+instance Convertible Name Doc           where convert = convertVia @String
 -- instance Convertible (PrettySymbol a) a where convert = getBody
 
 
@@ -131,12 +141,12 @@ type Doc = Layout.Doc Text
 -- -- === PrettyPrinter === --
 -- ---------------------------
 
--- type  PrettyPrinter style m = ChainedPrettyPrinter style style m
+type  PrettyPrinter style m = ChainedPrettyPrinter style style m
 class ChainedPrettyPrinter style subStyle m where
     chainedPrettyShow :: style -> subStyle -> IR.SomeTerm -> m (PrettySymbol Doc)
 
--- prettyShow :: PrettyPrinter style m => style -> IR.SomeTerm -> m (PrettySymbol Doc)
--- prettyShow s = chainedPrettyShow s s
+prettyShow :: PrettyPrinter style m => style -> IR.SomeTerm -> m (PrettySymbol Doc)
+prettyShow s = chainedPrettyShow s s
 
 
 
@@ -201,7 +211,7 @@ class ChainedPrettyPrinter style subStyle m where
 
 -- -- === Definition === --
 
--- data SimpleStyle  = SimpleStyle  deriving (Show)
+data SimpleStyle  = SimpleStyle  deriving (Show)
 
 -- instance ( MonadIO m -- DEBUG ONLY
 --          , ChainedPrettyPrinter t t m
@@ -210,6 +220,9 @@ class ChainedPrettyPrinter style subStyle m where
 --                   , Reader // Layer // AnyExprLink // Model
 --                   ]
 --          ) => ChainedPrettyPrinter SimpleStyle t m where
+instance ChainedPrettyPrinter SimpleStyle t (Pass Prettyprint) where
+    chainedPrettyShow style subStyle root = Layer.read @IR.Model root >>= \case
+        IR.UniTermVar (IR.Var name) -> pure . unnamed $ Symbol.atom   (convert name)
 --     chainedPrettyShow style subStyle root = matchExpr root $ \case
 --         Blank                       -> return . unnamed $ atom wildcardName
 --         Missing                     -> return . unnamed $ atom mempty
