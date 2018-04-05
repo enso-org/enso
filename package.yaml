@@ -1,22 +1,75 @@
-author: Wojciech Danilo
-category: Data, Text
-default-extensions: [AllowAmbiguousTypes, ApplicativeDo, Arrows, BangPatterns, BinaryLiterals,
-  ConstraintKinds, DataKinds, DefaultSignatures, DeriveDataTypeable, DeriveFoldable,
-  DeriveFunctor, DeriveGeneric, DeriveTraversable, DoAndIfThenElse, DuplicateRecordFields,
-  EmptyDataDecls, FlexibleContexts, FlexibleInstances, FunctionalDependencies, GeneralizedNewtypeDeriving,
-  InstanceSigs, LambdaCase, MonadComprehensions, MultiWayIf, NamedWildCards, NegativeLiterals,
-  NoImplicitPrelude, NumDecimals, OverloadedLabels, PackageImports, QuasiQuotes, RankNTypes,
-  RecursiveDo, ScopedTypeVariables, StandaloneDeriving, TemplateHaskell, TupleSections,
-  TypeApplications, TypeFamilies, TypeFamilyDependencies, TypeOperators, ViewPatterns,
-  LiberalTypeSynonyms, RelaxedPolyRec]
-dependencies: [base, prologue, layered-state, text, ansi-terminal, container]
-github: https://github.com/luna/terminal-text
-library: {ghc-options: -Wall -O2, source-dirs: src}
-license: Apache-2.0
-maintainer: Wojciech Danilo <wojciech.danilo@gmail.com>
 name: terminal-text
-stability: experimental
+version: 1.1.1
 synopsis: Text data type for styled terminal output, including all standard ANSI effects
   (bold, italic, blinking) and ANSI / 256 / truecolor colors support for Unix and
   Windows (whenever possible).
-version: '1.1'
+category: Data
+license: Apache-2.0
+stability: experimental
+homepage: https://github.com/luna/terminal-text
+bug-reports: https://github.com/luna/terminal-text/issues
+author: Luna Team
+copyright: Copyright (C) 2018 Luna Team
+maintainer: Wojciech Danilo <wojciech.danilo@luna-lang.org>
+
+ghc-options:
+- -Wall
+- -O2
+
+library:
+  source-dirs:
+  - src
+  dependencies:
+  - base >= 4.10 && < 4.12
+  - prologue
+  - layered-state
+  - text
+  - ansi-terminal
+  - container
+
+default-extensions:
+- AllowAmbiguousTypes
+- ApplicativeDo
+- BangPatterns
+- BinaryLiterals
+- ConstraintKinds
+- DataKinds
+- DefaultSignatures
+- DeriveDataTypeable
+- DeriveFoldable
+- DeriveFunctor
+- DeriveGeneric
+- DeriveTraversable
+- DoAndIfThenElse
+- DuplicateRecordFields
+- EmptyDataDecls
+- FlexibleContexts
+- FlexibleInstances
+- FunctionalDependencies
+- GeneralizedNewtypeDeriving
+- InstanceSigs
+- LambdaCase
+- MonadComprehensions
+- MultiWayIf
+- NamedWildCards
+- NegativeLiterals
+- NoImplicitPrelude
+- NumDecimals
+- OverloadedLabels
+- PackageImports
+- QuasiQuotes
+- PatternSynonyms
+- RankNTypes
+- RecursiveDo
+- ScopedTypeVariables
+- StandaloneDeriving
+- TemplateHaskell
+- TupleSections
+- TypeApplications
+- TypeFamilies
+- TypeFamilyDependencies
+- TypeOperators
+- UnicodeSyntax
+- ViewPatterns
+- LiberalTypeSynonyms
+- RelaxedPolyRec
