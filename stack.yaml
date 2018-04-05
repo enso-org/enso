@@ -1,5 +1,4 @@
-resolver: lts-8.23
+resolver: lts-11.3
+
 packages:
 - .
-extra-deps:
-- data-construction-1.0
