@@ -1,50 +1,21 @@
-name:       luna-parser
-version:    "0.2"
+name:       luna-prettyprint
+version:    "0.1"
 author:     Luna Team <contact@luna-lang.org>
 maintainer: Luna Team <contact@luna-lang.org>
 
 library:
     source-dirs:
         - src
-        - src-libs
-
-tests:
-    spec:
-        main: Main.hs
-        source-dirs: test/spec
-        dependencies:
-            - luna-core
-            - luna-parser
-            - luna-prettyprint
-            - luna-lexer
-            - directory
-            - filepath
-            - hspec
-            - hspec-megaparsec == 0.3.1
-            - hspec-expectations-lifted
-            - open-browser
-            - container
-
 
 dependencies:
     - base
-    - luna-core
-    - luna-lexer
-    - prologue
     - layered-state
-    - lens
-    - lens-utils
-    - megaparsec == 5.3.1
-    - containers
-    - mtl
-    - text
-    - typelevel
-    - vector
-    - vector-text
     - layouting
+    - luna-core
     - luna-local-libs
+    - luna-parser
+    - prologue
     
-
 default-extensions:
     - AllowAmbiguousTypes
     - ApplicativeDo

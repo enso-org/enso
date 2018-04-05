@@ -2,20 +2,20 @@
 {-# LANGUAGE OverloadedStrings         #-}
 {-# LANGUAGE UndecidableInstances      #-}
 
-module Luna.Syntax.Text.Pretty.Pretty where
+module Luna.Syntax.Prettyprint where
 
+import Prologue
 -- import qualified Prelude as P
 -- import Luna.Prelude hiding (List, Symbol, UniSymbol, ChainedPrettyPrinter, (<+>))
 -- import Data.Layout hiding (spaced, ChainedPrettyPrinter, Doc)
--- import qualified Data.Layout as Layout
--- import qualified Data.Layout as Doc
+import qualified Data.Layout as Layout
+import qualified Data.Layout as Doc
 -- import Control.Monad.State.Dependent
 -- import qualified OCI.IR as IR
 -- import Luna.IR hiding (modify_, line, Definition, Atom)
 -- import OCI.Pass hiding (modify_)
--- import qualified Language.Symbol.Operator.Prec  as Prec
--- import qualified Language.Symbol.Operator.Assoc as Assoc
--- import Luna.Syntax.Text.Scope (Scope, lookupMultipartName)
+import qualified Language.Symbol.Operator.Assoc as Assoc
+import qualified Language.Symbol.Operator.Prec  as Prec
 -- import qualified Luna.Syntax.Text.Scope as Scope
 -- import Luna.Syntax.Text.Parser.Hardcoded (hardcode)
 -- import Luna.Syntax.Text.Lexer.Grammar  (isOperator, markerBeginChar, markerEndChar, metadataHeader)
@@ -36,46 +36,55 @@ module Luna.Syntax.Text.Pretty.Pretty where
 -- type instance GetRefHandler (StateT Scope m) = GetRefHandler m
 -- instance Prec.RelReader label m => Prec.RelReader label (SubPass p m)
 
+import qualified Luna.IR as IR
+
+import Control.Monad.State.Layered (StateT)
+import Language.Symbol             (UniSymbol)
+import Language.Symbol.Label       (Labeled)
+import Luna.IR                     (Name)
+import Luna.Syntax.Text.Scope      (Scope)
 
 
--- ---------------------------------
--- -- === Pretty phantom type === --
--- ---------------------------------
 
--- data Pretty = Pretty deriving (Show, Eq)
+---------------------------------
+-- === Pretty phantom type === --
+---------------------------------
 
-
-
--- ------------------------
--- -- === SpacedName === --
--- ------------------------
-
--- -- === Definition === --
-
--- data SpacedName = SpacedName { _spaced  :: !Bool
---                              , _rawName :: !Name
---                              } deriving (Show, Eq)
+data Pretty = Pretty deriving (Show, Eq)
 
 
--- -- === Utils === --
 
--- spaced, notSpaced :: Name -> SpacedName
--- spaced    = SpacedName True
--- notSpaced = SpacedName False
+------------------------
+-- === SpacedName === --
+------------------------
+
+-- === Definition === --
+
+data SpacedName = SpacedName
+    { _spaced  :: !Bool
+    , _rawName :: !Name
+    } deriving (Show, Eq)
 
 
--- -- === Instances === --
+-- === Utils === --
 
--- instance Monad m => Prec.RelReader SpacedName (StateT Scope m) where
---     readRelLabel (SpacedName sa a) (SpacedName sb b) = if
---         | a == "."     -> return GT
---         | sa && not sb -> return LT
---         | sb && not sa -> return GT
---         | otherwise    -> Prec.readRel a b
+spaced, notSpaced :: Name -> SpacedName
+spaced    = SpacedName True
+notSpaced = SpacedName False
 
--- instance Monad m => Assoc.Reader (Maybe SpacedName) (StateT Scope m) where
---     readLabel = \case Just n -> Assoc.readLabel (_rawName n)
---                       _      -> return Assoc.Left
+
+-- === Instances === --
+
+instance Monad m => Prec.RelReader SpacedName (StateT Scope m) where
+    readRelLabel (SpacedName sa a) (SpacedName sb b) = if
+        | a == "."     -> return GT
+        | sa && not sb -> return LT
+        | sb && not sa -> return GT
+        | otherwise    -> Prec.readRel a b
+
+instance Monad m => Assoc.Reader (Maybe SpacedName) (StateT Scope m) where
+    readLabel = \case Just n -> Assoc.readLabel (_rawName n)
+                      _      -> return Assoc.Left
 
 
 
@@ -85,8 +94,8 @@ module Luna.Syntax.Text.Pretty.Pretty where
 
 -- -- === Definition === --
 
--- type PrettySymbol a = Labeled (Maybe SpacedName) (UniSymbol Pretty a)
--- type Doc = Layout.Doc Text
+type PrettySymbol a = Labeled (Maybe SpacedName) (UniSymbol Pretty a)
+type Doc = Layout.Doc Text
 
 -- type instance Definition Pretty Atom   a = a
 -- type instance Definition Pretty Prefix a = a
@@ -123,10 +132,10 @@ module Luna.Syntax.Text.Pretty.Pretty where
 -- ---------------------------
 
 -- type  PrettyPrinter style m = ChainedPrettyPrinter style style m
--- class ChainedPrettyPrinter style subStyle m where
---     chainedPrettyShow :: style -> subStyle -> SomeExpr -> m (PrettySymbol Doc)
+class ChainedPrettyPrinter style subStyle m where
+    chainedPrettyShow :: style -> subStyle -> IR.SomeTerm -> m (PrettySymbol Doc)
 
--- prettyShow :: PrettyPrinter style m => style -> SomeExpr -> m (PrettySymbol Doc)
+-- prettyShow :: PrettyPrinter style m => style -> IR.SomeTerm -> m (PrettySymbol Doc)
 -- prettyShow s = chainedPrettyShow s s
 
 
@@ -306,7 +315,7 @@ module Luna.Syntax.Text.Pretty.Pretty where
 -- isMultilineBlock :: Req m '[ Reader // Layer // AnyExpr     // Model
 --                            , Reader // Layer // AnyExprLink // Model
 --                            ]
---                  => Link' SomeExpr -> m Bool
+--                  => Link' IR.SomeTerm -> m Bool
 -- isMultilineBlock lnk = do
 --     expr <- source lnk
 --     matchExpr expr $ return . \case
@@ -330,7 +339,7 @@ module Luna.Syntax.Text.Pretty.Pretty where
 -- -- === Compactible === --
 
 -- class Monad m => Compactible t style m where
---     shouldBeCompact :: style -> SomeExpr -> m Bool
+--     shouldBeCompact :: style -> IR.SomeTerm -> m Bool
 
 -- instance {-# OVERLAPPABLE #-} Monad m => Compactible t style m where
 --     shouldBeCompact _ _ = return False
@@ -379,7 +388,7 @@ module Luna.Syntax.Text.Pretty.Pretty where
 -- type instance Preserves     Pretty = '[]
 
 
--- simplePass, compactPass :: MonadPassManager m => SomeExpr -> Pass Pretty m
+-- simplePass, compactPass :: MonadPassManager m => IR.SomeTerm -> Pass Pretty m
 -- simplePass  = void . subpass SimpleStyle
 -- compactPass = void . subpass CompactStyle
 
@@ -387,7 +396,7 @@ module Luna.Syntax.Text.Pretty.Pretty where
 --                     , Reader // Layer // AnyExprLink // Model
 --                     ]
 --            , PrettyPrinter style (StateT Scope m)
---            ) => style -> SomeExpr -> m Text
+--            ) => style -> IR.SomeTerm -> m Text
 -- subpass style expr = evalDefStateT @Scope $ do
 --     hardcode
 --     sym <- prettyShow style expr

@@ -61,6 +61,7 @@ library:
         - random
         - split
         - template-haskell
+        - text
         - transformers
         - vector
             

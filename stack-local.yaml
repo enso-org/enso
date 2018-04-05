@@ -19,6 +19,7 @@ packages:
     - lib
     - syntax/text/lexer
     - syntax/text/parser
+    - syntax/text/prettyprint
     - ../container
     - ../convert
     - ../lens-utils
