@@ -13,7 +13,6 @@ import qualified Language.Symbol.Operator.Assoc       as Assoc
 import qualified Language.Symbol.Operator.Prec        as Prec
 import qualified Language.Symbol.Operator.Prec.RelMap as Prec
 import qualified OCI.Data.Name                        as Name
-import qualified Text.Parser.Expr                     as Expr
 
 -- import Data.Container.Map
 -- -- import Data.Container.Map.IntMap      (IntMap)

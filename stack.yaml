@@ -18,6 +18,7 @@ packages:
     - core
     - lib
     - syntax/text/lexer
+    - syntax/text/model
     - syntax/text/parser
     - syntax/text/prettyprint
 resolver: ./build/snapshot.yaml

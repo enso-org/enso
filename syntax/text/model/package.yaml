@@ -1,50 +1,20 @@
-name:       luna-syntax-text-parser
-version:    "0.2"
+name:       luna-syntax-text-model
+version:    "0.1"
 author:     Luna Team <contact@luna-lang.org>
 maintainer: Luna Team <contact@luna-lang.org>
 
 library:
     source-dirs:
         - src
-        - src-libs
-
-tests:
-    spec:
-        main: Main.hs
-        source-dirs: test/spec
-        dependencies:
-            - luna-core
-            - luna-syntax-text-parser
-            - luna-syntax-text-prettyprint
-            - luna-syntax-text-lexer
-            - directory
-            - filepath
-            - hspec
-            - hspec-megaparsec == 0.3.1
-            - hspec-expectations-lifted
-            - open-browser
-            - container
-
 
 dependencies:
     - base
-    - luna-core
-    - luna-syntax-text-lexer
-    - luna-syntax-text-model
-    - prologue
-    - layered-state
-    - lens
-    - lens-utils
-    - megaparsec == 5.3.1
     - containers
-    - mtl
-    - text
-    - typelevel
-    - vector
-    - vector-text
-    - layouting
+    - layered-state
+    - lens-utils
+    - luna-core
     - luna-local-libs
-    
+    - prologue
 
 default-extensions:
     - AllowAmbiguousTypes
@@ -70,7 +40,6 @@ default-extensions:
     - InstanceSigs
     - LambdaCase
     - MonadComprehensions
-#    - MonadFailDesugaring
     - MultiWayIf
     - NamedWildCards
     - NegativeLiterals
@@ -90,7 +59,6 @@ default-extensions:
     - TypeFamilyDependencies
     - TypeOperators
     - ViewPatterns
-
     - LiberalTypeSynonyms
     - RelaxedPolyRec
     - UnicodeSyntax

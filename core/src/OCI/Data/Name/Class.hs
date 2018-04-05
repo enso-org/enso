@@ -2,9 +2,10 @@ module OCI.Data.Name.Class where
 
 import Prologue
 
-import qualified Data.IntMap.Strict as IntMap
-import qualified FastString         as FastString
-import qualified Prelude            as Prelude
+import qualified Data.IntMap.Strict    as IntMap
+import qualified FastString            as FastString
+import qualified Language.Symbol.Label as Label
+import qualified Prelude               as Prelude
 
 import Binary           (Binary)
 import Data.IntMap      (IntMap)
@@ -135,3 +136,9 @@ instance Convertible Name   Value  where
             Nothing -> error "Internal error"
             Just n  -> pure n
     {-# NOINLINE convert #-}
+
+
+-- TODO !!!!!!
+-- Remove?
+
+instance Label.HasLabel Name

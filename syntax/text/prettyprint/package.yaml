@@ -1,4 +1,4 @@
-name:       luna-prettyprint
+name:       luna-syntax-text-prettyprint
 version:    "0.1"
 author:     Luna Team <contact@luna-lang.org>
 maintainer: Luna Team <contact@luna-lang.org>
@@ -13,7 +13,7 @@ dependencies:
     - layouting
     - luna-core
     - luna-local-libs
-    - luna-parser
+    - luna-syntax-text-model
     - prologue
     
 default-extensions:

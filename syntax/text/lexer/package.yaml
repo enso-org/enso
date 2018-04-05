@@ -1,4 +1,4 @@
-name:       luna-lexer
+name:       luna-syntax-text-lexer
 version:    "0.2"
 author:     Luna Team <contact@luna-lang.org>
 maintainer: Luna Team <contact@luna-lang.org>
@@ -17,7 +17,7 @@ benchmarks:
         source-dirs: test/bench
         dependencies:
             - criterion
-            - luna-lexer
+            - luna-syntax-text-lexer
             - random
             - timeit
             - conduit
@@ -30,6 +30,7 @@ dependencies:
     - base
     - prologue
     - layered-state
+    - luna-syntax-text-model
     - lens
     - containers
     - mtl

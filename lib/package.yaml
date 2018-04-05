@@ -20,6 +20,7 @@ extra-source-files:
 library:
     source-dirs:
         - autovector
+        - code-builder
         - cpp-containers
         - data-tag
         - data-typemap
@@ -27,6 +28,8 @@ library:
         - foreign-utils
         - memory-manager
         - memory-pool
+        - nested-containers
+        - syntax-definition
         - text-processing
         - th-builder
         - tuple-utils

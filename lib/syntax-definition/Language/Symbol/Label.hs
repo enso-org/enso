@@ -1,6 +1,6 @@
 module Language.Symbol.Label where
 
-import OCI.Data.Name as Name
+-- import OCI.Data.Name as Name
 import Prologue
 
 
@@ -52,4 +52,4 @@ instance Copointed (Labeled l) where
 
 -- TOREFACTOR?
 
-instance HasLabel Name.Name
+-- instance HasLabel Name.Nam`e

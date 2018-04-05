@@ -6,8 +6,8 @@ module Luna.Syntax.Prettyprint where
 
 import Prologue
 -- import qualified Prelude as P
--- import Luna.Prelude hiding (List, Symbol, UniSymbol, ChainedPrettyPrinter, (<+>))
--- import Data.Layout hiding (spaced, ChainedPrettyPrinter, Doc)
+-- import Luna.Prelude hiding (List, Symbol, UniSymbol, Prettyprinter, (<+>))
+-- import Data.Layout hiding (spaced, Prettyprinter, Doc)
 -- import Control.Monad.State.Dependent
 -- import qualified OCI.IR as IR
 -- import Luna.IR hiding (modify_, line, Definition, Atom)
@@ -31,6 +31,7 @@ import Prologue
 -- type instance GetRefHandler (StateT Scope m) = GetRefHandler m
 -- instance Prec.RelReader label m => Prec.RelReader label (SubPass p m)
 
+import qualified Control.Monad.State.Layered    as State
 import qualified Data.Layout                    as Layout
 import qualified Data.Layout                    as Doc
 import qualified Language.Symbol                as Symbol
@@ -39,6 +40,7 @@ import qualified Language.Symbol.Operator.Prec  as Prec
 import qualified Luna.IR                        as IR
 import qualified Luna.IR.Layer                  as Layer
 import qualified Luna.Pass                      as Pass
+import qualified OCI.IR.Layout                  as Layout
 
 import Control.Monad.State.Layered (StateT)
 import Language.Symbol             (UniSymbol)
@@ -138,15 +140,33 @@ instance Convertible Name Doc           where convert = convertVia @String
 
 
 -- ---------------------------
--- -- === PrettyPrinter === --
+-- -- === Prettyprinter === --
 -- ---------------------------
 
-type  PrettyPrinter style m = ChainedPrettyPrinter style style m
-class ChainedPrettyPrinter style subStyle m where
-    chainedPrettyShow :: style -> subStyle -> IR.SomeTerm -> m (PrettySymbol Doc)
+-- type  Prettyprinter style m = Prettyprinter style style m
+class Monad m => Prettyprinter style m where
+    prettyprint :: IR.SomeTerm -> m (PrettySymbol Doc)
 
-prettyShow :: PrettyPrinter style m => style -> IR.SomeTerm -> m (PrettySymbol Doc)
-prettyShow s = chainedPrettyShow s s
+instance {-# OVERLAPPABLE #-} (Monad (t m), MonadTrans t, Prettyprinter style m)
+    => Prettyprinter style (t m) where
+    prettyprint = lift . prettyprint @style ; {-# INLINE prettyprint #-}
+
+
+showSymbol :: PrettySymbol Doc -> Text
+showSymbol (unlabel -> sym) = Doc.renderLineBlock $ Doc.render source where
+    source = case sym of
+        Symbol.Atom   s -> s ^. Symbol.body
+        Symbol.Prefix s -> s ^. Symbol.body
+        Symbol.Infix  s -> s ^. Symbol.body
+        Symbol.Suffix s -> s ^. Symbol.body
+        Symbol.Mixfix _ -> "mixfix"
+
+prettyshow :: ∀ style m a. Prettyprinter style m => Scope -> IR.Term a -> m Text
+prettyshow scope ir = flip State.evalT scope
+                    $ fmap showSymbol . prettyprint @style $ Layout.relayout ir
+
+-- renderSimple :: Prettyprinter Simple m => IT.Term a -> m Text
+-- renderSimple = prettyshow Simple
 
 
 
@@ -211,19 +231,19 @@ prettyShow s = chainedPrettyShow s s
 
 -- -- === Definition === --
 
-data SimpleStyle  = SimpleStyle  deriving (Show)
+data Simple = Simple deriving (Show)
 
 -- instance ( MonadIO m -- DEBUG ONLY
---          , ChainedPrettyPrinter t t m
+--          , Prettyprinter t t m
 --          , Prec.RelReader SpacedName m, Assoc.Reader (Maybe SpacedName) m, MonadState Scope m
 --          , Req m '[ Reader // Layer // AnyExpr     // Model
 --                   , Reader // Layer // AnyExprLink // Model
 --                   ]
---          ) => ChainedPrettyPrinter SimpleStyle t m where
-instance ChainedPrettyPrinter SimpleStyle t (Pass Prettyprint) where
-    chainedPrettyShow style subStyle root = Layer.read @IR.Model root >>= \case
-        IR.UniTermVar (IR.Var name) -> pure . unnamed $ Symbol.atom   (convert name)
---     chainedPrettyShow style subStyle root = matchExpr root $ \case
+--          ) => Prettyprinter Simple t m where
+instance Prettyprinter Simple (Pass Prettyprint) where
+    prettyprint ir = Layer.read @IR.Model ir >>= \case
+        IR.UniTermVar (IR.Var name) -> pure . unnamed $ Symbol.atom (convert name)
+--     prettyprint style subStyle root = matchExpr root $ \case
 --         Blank                       -> return . unnamed $ atom wildcardName
 --         Missing                     -> return . unnamed $ atom mempty
 --         String    str               -> return . unnamed $ atom (convert $ quoted str) -- FIXME [WD]: add proper multi-line strings indentation
@@ -314,7 +334,7 @@ instance ChainedPrettyPrinter SimpleStyle t (Pass Prettyprint) where
 --         x -> error $ msg <> " " <> show x <> " (" <> show root <> ")" where
 --             msg = "Pretty printer: unexpected"
 
---         where subgen     = chainedPrettyShow subStyle subStyle <=< source
+--         where subgen     = prettyprint subStyle subStyle <=< source
 --               subgenBody = fmap getBody . subgen
 --               arglist as = if_ (not $ null as) $ space <> intercalate space as
 --               smartBlock body = do
@@ -361,26 +381,26 @@ instance ChainedPrettyPrinter SimpleStyle t (Pass Prettyprint) where
 -- -- === Definition === --
 
 -- instance ( MonadIO m -- DEBUG ONLY
---          , ChainedPrettyPrinter t t m
+--          , Prettyprinter t t m
 --          , Compactible Var CompactStyle m
 --          , Prec.RelReader SpacedName m, Assoc.Reader (Maybe SpacedName) m, MonadState Scope m
 --          , Req m '[ Reader // Layer // AnyExpr     // Model
 --                   , Reader // Layer // AnyExprLink // Model
 --                   ]
---          ) => ChainedPrettyPrinter CompactStyle t m where
---     chainedPrettyShow style subStyle root = matchExpr root $ \case
+--          ) => Prettyprinter CompactStyle t m where
+--     prettyprint style subStyle root = matchExpr root $ \case
 --         String str    -> return . unnamed . atom . convert . quoted $ if length str > succ maxLen then take maxLen str <> "…" else str where maxLen = 3
 --         Var    name   -> shouldBeCompact @Var style root >>= switch (return . unnamed $ atom "•") defGen
 --         Lam{}         -> return . unnamed $ atom "Ⓕ"
 --         ASGFunction{} -> return . unnamed $ atom "Ⓕ"
---         Marked m b    -> chainedPrettyShow style subStyle =<< source b
+--         Marked m b    -> prettyprint style subStyle =<< source b
 --         Grouped g     -> do
---             body <- chainedPrettyShow style subStyle =<< source g
+--             body <- prettyprint style subStyle =<< source g
 --             return $ case unlabel body of
 --                 Atom{} -> body
 --                 _      -> unnamed . atom . parensed . getBody $ body
 --         _             -> defGen
---         where simpleGen = chainedPrettyShow SimpleStyle subStyle
+--         where simpleGen = prettyprint Simple subStyle
 --               defGen    = simpleGen root
 
 
@@ -402,24 +422,16 @@ instance ChainedPrettyPrinter SimpleStyle t (Pass Prettyprint) where
 
 
 -- simplePass, compactPass :: MonadPassManager m => IR.SomeTerm -> Pass Pretty m
--- simplePass  = void . subpass SimpleStyle
+-- simplePass  = void . subpass Simple
 -- compactPass = void . subpass CompactStyle
 
 -- subpass :: ( Req m '[ Reader // Layer // AnyExpr     // Model
 --                     , Reader // Layer // AnyExprLink // Model
 --                     ]
---            , PrettyPrinter style (StateT Scope m)
+--            , Prettyprinter style (StateT Scope m)
 --            ) => style -> IR.SomeTerm -> m Text
 -- subpass style expr = evalDefStateT @Scope $ do
 --     hardcode
 --     sym <- prettyShow style expr
---     return $ renderSymbol sym
+--     return $ showSymbol sym
 
--- renderSymbol :: PrettySymbol Doc -> Text
--- renderSymbol (unlabel -> sym) = renderLineBlock $ render source where
---     source = case sym of
---         Atom   s -> s ^. body
---         Prefix s -> s ^. body
---         Infix  s -> s ^. body
---         Suffix s -> s ^. body
---         Mixfix _ -> "mixfix"

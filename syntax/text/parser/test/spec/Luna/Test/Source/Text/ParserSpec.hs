@@ -18,6 +18,7 @@ import qualified Luna.Pass                           as Pass
 import qualified Luna.Pass.Attr                      as Attr
 import qualified Luna.Pass.Scheduler                 as Scheduler
 import qualified Luna.Runner                         as Runner
+import qualified Luna.Syntax.Prettyprint             as Prettyprint
 import qualified Luna.Syntax.Text.Parser.Parsing     as Parsing
 import qualified OCI.Data.Name                       as Name
 import qualified OCI.IR.Component                    as Component
