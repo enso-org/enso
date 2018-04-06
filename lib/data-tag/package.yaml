@@ -1,6 +1,5 @@
-name:        luna-local-libs
+name:        luna-data-tag
 version:     1.0.0
-synopsis:    Luna Local Libraries
 category:    Data
 license:     Apache-2.0
 stability:   experimental
@@ -13,37 +12,12 @@ maintainer:  Luna Team
 ghc-options:
     - -Wall
     - -O2
-extra-source-files: 
-    - cpp-containers/cbits/*
-    - memory-manager/cbits/*
 
 library:
     source-dirs:
-        - autovector
-        - code-builder
-        - cpp-containers
-        - data-tag
-        - data-typemap
-        - exception
-        - foreign-utils
-        - memory-manager
-        - memory-pool
-        - nested-containers
-        - syntax-definition
-        - text-processing
-        - th-builder
-        - tuple-utils
-        - type-cache
-        - typelevel
-    c-sources:
-        - cpp-containers/cbits/*.cpp
-        - memory-manager/cbits/*.cpp
-    include-dirs:
-        - cpp-containers/cbits
-        - memory-manager/cbits
-    extra-libraries: stdc++
-    cc-options:      -std=c++17 -O3
+        - src
     dependencies:
+        - luna-th-builder
         - async
         - base
         - convert
@@ -67,7 +41,7 @@ library:
         - text
         - transformers
         - vector
-            
+
 default-extensions:
     - AllowAmbiguousTypes
     - ApplicativeDo

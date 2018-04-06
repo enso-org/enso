@@ -20,6 +20,22 @@ library:
   source-dirs:
   - src
   dependencies:
+  - luna-autovector
+  - luna-foreign-utils
+  - luna-code-builder
+  - luna-cpp-containers
+  - luna-data-tag
+  - luna-data-typemap
+  - luna-exception
+  - luna-memory-manager
+  - luna-memory-pool
+  - luna-nested-containers
+  - luna-syntax-definition
+  - luna-text-processing
+  - luna-th-builder
+  - luna-tuple-utils
+  - luna-type-cache
+  - luna-typelevel
   - async
   - base
   - convert
@@ -32,7 +48,6 @@ library:
   - layered-state
   - lens
   - lens-utils
-  - luna-local-libs
   - monad-branch
   - monoid
   - mtl

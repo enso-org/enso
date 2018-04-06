@@ -16,7 +16,22 @@ ghc-options:
 local-bin-path: dist/bin/public/luna
 packages:
     - core
-    - lib/luna-core-libs
+    - lib/autovector
+    - lib/foreign-utils
+    - lib/code-builder
+    - lib/cpp-containers
+    - lib/data-tag
+    - lib/data-typemap
+    - lib/exception
+    - lib/memory-manager
+    - lib/memory-pool
+    - lib/nested-containers
+    - lib/syntax-definition
+    - lib/text-processing
+    - lib/th-builder
+    - lib/tuple-utils
+    - lib/type-cache
+    - lib/typelevel
     - syntax/text/lexer
     - syntax/text/model
     - syntax/text/parser

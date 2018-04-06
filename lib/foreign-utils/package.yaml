@@ -1,0 +1,90 @@
+name:        luna-foreign-utils
+version:     1.0.0
+category:    Data
+license:     Apache-2.0
+stability:   experimental
+homepage:    https://github.com/luna/luna-core
+bug-reports: https://github.com/luna/luna-core/issues
+author:      Luna Team
+copyright:   Copyright (C) 2018 Luna Team
+maintainer:  Luna Team
+
+ghc-options:
+    - -Wall
+    - -O2
+
+library:
+    source-dirs:
+        - src
+    dependencies:
+        - luna-th-builder
+        - async
+        - base
+        - convert
+        - container
+        - containers
+        - data-default
+        - deepseq
+        - functor-utils
+        - ghc
+        - layered-state
+        - lens
+        - lens-utils
+        - monad-branch
+        - monoid
+        - mtl
+        - primitive
+        - prologue >= 3.0.0
+        - random
+        - split
+        - template-haskell
+        - text
+        - transformers
+        - vector
+
+default-extensions:
+    - AllowAmbiguousTypes
+    - ApplicativeDo
+    - BangPatterns
+    - BinaryLiterals
+    - ConstraintKinds
+    - DataKinds
+    - DefaultSignatures
+    - DeriveDataTypeable
+    - DeriveFoldable
+    - DeriveFunctor
+    - DeriveGeneric
+    - DeriveTraversable
+    - DoAndIfThenElse
+    - DuplicateRecordFields
+    - EmptyDataDecls
+    - FlexibleContexts
+    - FlexibleInstances
+    - FunctionalDependencies
+    - GeneralizedNewtypeDeriving
+    - InstanceSigs
+    - LambdaCase
+    - MonadComprehensions
+    - MultiWayIf
+    - NamedWildCards
+    - NegativeLiterals
+    - NoImplicitPrelude
+    - NumDecimals
+    - OverloadedLabels
+    - PackageImports
+    - QuasiQuotes
+    - PatternSynonyms
+    - RankNTypes
+    - RecursiveDo
+    - ScopedTypeVariables
+    - StandaloneDeriving
+    - TemplateHaskell
+    - TupleSections
+    - TypeApplications
+    - TypeFamilies
+    - TypeFamilyDependencies
+    - TypeOperators
+    - UnicodeSyntax
+    - ViewPatterns
+    - LiberalTypeSynonyms
+    - RelaxedPolyRec
