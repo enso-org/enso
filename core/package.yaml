@@ -49,7 +49,6 @@ benchmarks:
     main: Main.hs
     source-dirs:
     - test/bench
-    - test/common
     c-sources:
     - test/bench/cbits/*.cpp
     include-dirs:
@@ -80,7 +79,6 @@ tests:
     main: Main.hs
     source-dirs:
     - test/spec
-    - test/common
     ghc-options:
     - -threaded
     - -rtsopts

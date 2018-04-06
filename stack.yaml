@@ -16,7 +16,7 @@ ghc-options:
 local-bin-path: dist/bin/public/luna
 packages:
     - core
-    - lib
+    - lib/luna-core-libs
     - syntax/text/lexer
     - syntax/text/model
     - syntax/text/parser
@@ -27,3 +27,4 @@ package-indices:
     - name:            standard-hackage
       download-prefix: https://hackage.haskell.org/package/
       http:            https://hackage.haskell.org/01-index.tar.gz
+
