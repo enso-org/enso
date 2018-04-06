@@ -1,7 +1,7 @@
-name:       luna-syntax-text-prettyprint
-version:    "0.1"
-author:     Luna Team <contact@luna-lang.org>
-maintainer: Luna Team <contact@luna-lang.org>
+name       : luna-syntax-text-prettyprint
+version    : "0.1"
+author     : Luna Team <contact@luna-lang.org>
+maintainer : Luna Team <contact@luna-lang.org>
 
 library:
     source-dirs:
@@ -12,10 +12,10 @@ dependencies:
     - layered-state
     - layouting
     - luna-core
-    - luna-local-libs
+    - luna-syntax-definition
     - luna-syntax-text-model
     - prologue
-    
+
 default-extensions:
     - AllowAmbiguousTypes
     - ApplicativeDo
@@ -39,8 +39,8 @@ default-extensions:
     - GeneralizedNewtypeDeriving
     - InstanceSigs
     - LambdaCase
+    - LiberalTypeSynonyms
     - MonadComprehensions
-#    - MonadFailDesugaring
     - MultiWayIf
     - NamedWildCards
     - NegativeLiterals
@@ -51,6 +51,7 @@ default-extensions:
     - QuasiQuotes
     - RankNTypes
     - RecursiveDo
+    - RelaxedPolyRec
     - ScopedTypeVariables
     - StandaloneDeriving
     - TemplateHaskell
@@ -59,8 +60,7 @@ default-extensions:
     - TypeFamilies
     - TypeFamilyDependencies
     - TypeOperators
-    - ViewPatterns
-
-    - LiberalTypeSynonyms
-    - RelaxedPolyRec
     - UnicodeSyntax
+    - ViewPatterns
+#    - MonadFailDesugaring
+

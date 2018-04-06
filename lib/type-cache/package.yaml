@@ -1,55 +1,30 @@
-name       : luna-syntax-text-parser
-version    : "0.2"
-author     : Luna Team <contact@luna-lang.org>
-maintainer : Luna Team <contact@luna-lang.org>
+name        : luna-type-cache
+version     : 1.0.0
+category    : Data
+license     : Apache-2.0
+stability   : experimental
+homepage    : https://github.com/luna/luna
+bug-reports : https://github.com/luna/luna/issues
+author      : Luna Team
+copyright   : Copyright (C) 2018 Luna Team
+maintainer  : Luna Team
+
+ghc-options:
+    - -O2
+    - -Wall
 
 library:
     source-dirs:
         - src
-        - src-libs
-
-tests:
-    spec:
-        main: Main.hs
-        source-dirs: test/spec
-        dependencies:
-            - container
-            - directory
-            - filepath
-            - hspec
-            - hspec-expectations-lifted
-            - hspec-megaparsec == 0.3.1
-            - luna-core
-            - luna-syntax-text-lexer
-            - luna-syntax-text-parser
-            - luna-syntax-text-prettyprint
-            - open-browser
-
-dependencies:
-    - base
-    - containers
-    - layered-state
-    - layouting
-    - lens
-    - lens-utils
-    - luna-core
-    - luna-foreign-utils
-    - luna-syntax-definition
-    - luna-syntax-text-lexer
-    - luna-syntax-text-model
-    - luna-text-processing
-    - megaparsec == 5.3.1
-    - mtl
-    - prologue
-    - text
-    - typelevel
-    - vector
-    - vector-text
+    dependencies:
+        - base
+        - luna-th-builder
+        - prologue >= 3.0.0
+        - template-haskell
 
 default-extensions:
     - AllowAmbiguousTypes
     - ApplicativeDo
-    - Arrows
     - BangPatterns
     - BinaryLiterals
     - ConstraintKinds
@@ -78,6 +53,7 @@ default-extensions:
     - NumDecimals
     - OverloadedLabels
     - PackageImports
+    - PatternSynonyms
     - QuasiQuotes
     - RankNTypes
     - RecursiveDo
@@ -92,5 +68,4 @@ default-extensions:
     - TypeOperators
     - UnicodeSyntax
     - ViewPatterns
-#    - MonadFailDesugaring
 
