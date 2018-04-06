@@ -6,6 +6,7 @@ import Prologue hiding (Symbol)
 
 import qualified Control.Monad.State.Layered      as State
 import qualified Data.Set                         as Set
+import qualified Data.Text.Position               as Pos
 import qualified Data.Text.Span                   as Span
 import qualified Luna.Syntax.Text.Lexer           as Lexer
 import qualified Luna.Syntax.Text.Parser.Reserved as Reserved
@@ -26,6 +27,7 @@ import Text.Megaparsec.Prim             (MonadParsec, token)
 -- -- import           OCI.IR                           (Name)
 
 import Data.Text.Position            (Delta)
+import Data.Text.Position            (FileOffset)
 import Luna.Syntax.Text.Parser.Class (Stream, Symbol)
 
 newtype LeftSpanner = LeftSpanner Delta deriving (Show)
@@ -39,7 +41,7 @@ instance Default LeftSpanner where def = LeftSpanner mempty
 -- -----------------
 
 -- type MonadLoc m = (MonadStates '[FileOffset, Position, LeftSpanner, MarkerState] m, MonadIO m) -- FIXME[WD]: remove IO
-type MonadLoc m = (MonadIO m)
+type MonadLoc m = (State.MonadStates '[Pos.Position, LeftSpanner, FileOffset] m, MonadIO m)
 
 -- -- === Utils === --
 
@@ -51,7 +53,7 @@ token' f mt = do
     s <- State.get @Reservation
     let f' t = (t,) <$> f s t
     (tok, a) <- token f' mt
-    -- updatePositions tok
+    updatePositions tok
     -- cleanLastTokenMarker
     -- dropMarkers
     return a
@@ -140,20 +142,20 @@ token' f mt = do
 -- unregisteredDropSymbolsUntil' :: (MonadParsec e Stream m, MonadLoc m) => (Symbol -> Bool) -> m ()
 -- unregisteredDropSymbolsUntil' f = unregisteredDropSymbolsUntil f >> unregisteredDropNextToken
 
--- updatePositions :: (MonadParsec e Stream m, MonadLoc m) => Lexer.Token Lexer.Symbol -> m ()
--- updatePositions t = do
---     let len = t ^. Lexer.span
---         off = t ^. Lexer.offset
+updatePositions :: (MonadParsec e Stream m, MonadLoc m) => Lexer.Token Lexer.Symbol -> m ()
+updatePositions t = do
+    let len = t ^. Lexer.span
+        off = t ^. Lexer.offset
 
---     modify_ @FileOffset (+ (convert $ len + off))
---     p <- Parser.getPosition
---     Parser.setPosition $ p { Parser.sourceColumn = Parser.unsafePos $ Parser.unPos (Parser.sourceColumn p) + (convert $ unwrap $ len + off)
---                            , Parser.sourceLine   = Parser.unsafePos $ convert $ unwrap (off + 1)
---                            }
---     case t ^. Lexer.element of
---         -- Lexer.Marker m -> withJust m newLastTokenMarker -- FIXME[WD]: should we handle the wrong markers?
---         Lexer.EOL      -> modify_ @LeftSpanner (wrapped %~ (+ (len + off))) >> succLine >> incColumn off
---         _              -> put @LeftSpanner (wrap off) >> incColumn (len + off)
+    State.modify_ @FileOffset (+ (convert $ len + off))
+    p <- Parser.getPosition
+    Parser.setPosition $ p { Parser.sourceColumn = Parser.unsafePos $ Parser.unPos (Parser.sourceColumn p) + (convert $ unwrap $ len + off)
+                           , Parser.sourceLine   = Parser.unsafePos $ convert $ unwrap (off + 1)
+                           }
+    case t ^. Lexer.element of
+        -- Lexer.Marker m -> withJust m newLastTokenMarker -- FIXME[WD]: should we handle the wrong markers?
+        Lexer.EOL      -> State.modify_ @LeftSpanner (wrapped %~ (+ (len + off))) >> Pos.succLine >> Pos.incColumn off
+        _              -> State.put @LeftSpanner (wrap off) >> Pos.incColumn (len + off)
 
 
 -- -- FIXME[WD]: This is just a hack. We store file offset and last spacing in Megaparsec's file position datatype,

@@ -244,8 +244,8 @@ attachCodeSpanLayer s = (>>~ flip (Layer.write @CodeSpan) s)
 
 spanned :: SymParser a -> SymParser (CodeSpan, a)
 spanned p = phantomSpan p' where
-    p' = do foStart <- unwrap <$> State.get @FileOffset
-            State.put @CodeSpanRange $ wrap foStart
+    p' = do fileOffStart <- unwrap <$> State.get @FileOffset
+            State.put @CodeSpanRange $ wrap fileOffStart
             p
 
 -- -- | Function `phantomSpan` do not register it's beginning as new element start.
@@ -253,19 +253,19 @@ spanned p = phantomSpan p' where
 phantomSpan :: SymParser a -> SymParser (CodeSpan, a)
 phantomSpan p = do
     range   <- unwrap <$> State.get @CodeSpanRange
-    foStart <- unwrap <$> State.get @FileOffset
+    fileOffStart <- unwrap <$> State.get @FileOffset
     marker  <- Marker.getLastTokenMarker
     out     <- p
     foEnd   <- unwrap <$> State.get @FileOffset
     sfxOff  <- getLastOffset
     let end       = foEnd   - sfxOff
-        off       = foStart - range
+        off       = fileOffStart - range
         emptySpan = Span.leftSpacedSpan mempty mempty
         (rs,vs)   = (realSpan, viewSpan)
         -- FIXME[WD]: The `foo` and `bar` helpers are here just to make it work with empty spans in list sections / empty module headers.
         --            We should think how to refactor them and describe better where they originate from.
-        foo       = max 0 (end - foStart)
-        bar       = max end foStart
+        foo       = max 0 (end - fileOffStart)
+        bar       = max end fileOffStart
         realSpan  = Span.leftSpacedSpan off foo
         viewSpan  = case marker of
             Nothing -> realSpan
