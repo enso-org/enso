@@ -65,9 +65,9 @@ runPass' = runPass
 
 
 
-shouldParseItself :: Text -> IO ()
-shouldParseItself s = runPass' $ do
-    (((ir,cs),scope), _) <- flip Parsing.parsingBase (convert s) $ do
+shouldParseItself :: Text -> (Delta, Delta) -> IO ()
+shouldParseItself code desiredSpan = runPass' $ do
+    (((ir,cs),scope), _) <- flip Parsing.parsingBase (convert code) $ do
         irb   <- Parsing.var
         scope <- State.get @Scope
         let Parser.AsgBldr irx = irb
@@ -78,8 +78,9 @@ shouldParseItself s = runPass' $ do
         pure $ (,scope) <$> irb'
     code <- Prettyprint.run @Prettyprint.Simple scope ir
 
-    print $ (convert $ view CodeSpan.realSpan cs :: (Delta, Delta))
-    code `shouldBe` s
+    let span = convert $ view CodeSpan.realSpan cs
+    code `shouldBe` code
+    span `shouldBe` desiredSpan
 
 
 -------------------
@@ -88,7 +89,7 @@ shouldParseItself s = runPass' $ do
 
 nameSpec :: Spec
 nameSpec = describe "test" $ do
-    it "test" $ shouldParseItself "foo"
+    it "var name" $ shouldParseItself "foo" (0,3)
 
 spec :: Spec
 spec = do
