@@ -1,5 +1,7 @@
 ghc-options:
     $locals:
+        -O2
+        -Wall
         -fexcess-precision
         -fexpose-all-unfoldings
         -flate-dmd-anal
@@ -8,22 +10,39 @@ ghc-options:
         -fspecialise-aggressively
         -fstatic-argument-transformation
         -funbox-strict-fields
-        -O2
         -threaded
-        -Wall
     $everything:
         -fconstraint-solver-iterations=100
+
 local-bin-path: dist/bin/public/luna
+
 packages:
     - core
-    - lib
+    - lib/autovector
+    - lib/code-builder
+    - lib/cpp-containers
+    - lib/data-tag
+    - lib/data-typemap
+    - lib/exception
+    - lib/foreign-utils
+    - lib/memory-manager
+    - lib/memory-pool
+    - lib/nested-containers
+    - lib/syntax-definition
+    - lib/text-processing
+    - lib/th-builder
+    - lib/tuple-utils
+    - lib/type-cache
+    - lib/typelevel
     - syntax/text/lexer
     - syntax/text/model
     - syntax/text/parser
     - syntax/text/prettyprint
+
 resolver: ./build/snapshot.yaml
 
 package-indices:
-    - name:            standard-hackage
-      download-prefix: https://hackage.haskell.org/package/
-      http:            https://hackage.haskell.org/01-index.tar.gz
+    - name            : standard-hackage
+      download-prefix : https://hackage.haskell.org/package/
+      http            : https://hackage.haskell.org/01-index.tar.gz
+

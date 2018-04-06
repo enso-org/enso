@@ -1,60 +1,60 @@
-name:       luna-syntax-text-lexer
-version:    "0.2"
-author:     Luna Team <contact@luna-lang.org>
-maintainer: Luna Team <contact@luna-lang.org>
+name       : luna-syntax-text-lexer
+version    : "0.2"
+author     : Luna Team <contact@luna-lang.org>
+maintainer : Luna Team <contact@luna-lang.org>
 
 library:
     source-dirs:
         - src
         - src-libs/attoparsec-text32
-        - src-libs/parsing
         - src-libs/conduit-utils
+        - src-libs/parsing
     other-modules: Paths_luna_syntax_text_lexer
 
 benchmarks:
     lexer-benchmark:
-        main:        Main.hs
+        main: Main.hs
         source-dirs: test/bench
         dependencies:
+            - attoparsec
+            - conduit
+            - conduit-combinators
+            - conduit-extra
             - criterion
             - luna-syntax-text-lexer
             - random
             - timeit
-            - conduit
-            - conduit-combinators
-            - conduit-extra
-            - attoparsec
 
 
 dependencies:
-    - base
-    - prologue
-    - layered-state
-    - luna-syntax-text-model
-    - lens
-    - containers
-    - mtl
-    - vector
-    - vector-text
-    - fingertree
     - attoparsec
-    - text
+    - base
+    - bytestring
     - conduit
     - conduit-combinators
-    - bytestring
-    - resourcet
+    - containers
     - convert
+    - fingertree
     - functor-utils
-    - luna-local-libs
+    - layered-state
+    - lens
+    - luna-syntax-text-model
+    - luna-text-processing
+    - mtl
+    - prologue
+    - resourcet
+    - text
+    - vector
+    - vector-text
 
     # remove:
-    - lens-utils
-    - exceptions
-    - primitive
-    - data-default
-    - typelevel
-    - transformers
     - constraints
+    - data-default
+    - exceptions
+    - lens-utils
+    - primitive
+    - transformers
+    - typelevel
 
 default-extensions:
     - AllowAmbiguousTypes
@@ -79,6 +79,7 @@ default-extensions:
     - GeneralizedNewtypeDeriving
     - InstanceSigs
     - LambdaCase
+    - LiberalTypeSynonyms
     - MonadComprehensions
     - MultiWayIf
     - NamedWildCards
@@ -90,6 +91,7 @@ default-extensions:
     - QuasiQuotes
     - RankNTypes
     - RecursiveDo
+    - RelaxedPolyRec
     - ScopedTypeVariables
     - StandaloneDeriving
     - TemplateHaskell
@@ -100,5 +102,3 @@ default-extensions:
     - TypeOperators
     - ViewPatterns
 
-    - LiberalTypeSynonyms
-    - RelaxedPolyRec
