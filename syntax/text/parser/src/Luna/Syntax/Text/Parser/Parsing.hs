@@ -281,7 +281,7 @@ inheritCodeSpan1 :: (SomeTerm -> IRB SomeTerm) -> AsgBldr SomeTerm -> AsgBldr So
 inheritCodeSpan1 = inheritCodeSpan1With id
 
 inheritCodeSpan2 :: (SomeTerm -> SomeTerm -> IRB SomeTerm) -> AsgBldr SomeTerm -> AsgBldr SomeTerm -> AsgBldr SomeTerm
-inheritCodeSpan2 = inheritCodeSpan2With (<>) -- IT WAS HERE: CodeSpan.concat
+inheritCodeSpan2 = inheritCodeSpan2With (CodeSpan.concat) -- IT WAS HERE: CodeSpan.concat
 
 inheritCodeSpan1With :: (CodeSpan -> CodeSpan) -> (SomeTerm -> IRB SomeTerm) -> AsgBldr SomeTerm -> AsgBldr SomeTerm
 inheritCodeSpan1With sf f (AsgBldr irb1) = wrap $ do

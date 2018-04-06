@@ -147,9 +147,9 @@ instance Convertible Name Doc           where convert = convertVia @String
 class Monad m => Prettyprinter style m where
     prettyprint :: IR.SomeTerm -> m (PrettySymbol Doc)
 
-instance {-# OVERLAPPABLE #-} (Monad (t m), MonadTrans t, Prettyprinter style m)
-    => Prettyprinter style (t m) where
-    prettyprint = lift . prettyprint @style ; {-# INLINE prettyprint #-}
+-- instance {-# OVERLAPPABLE #-} (Monad (t m), MonadTrans t, Prettyprinter style m)
+--     => Prettyprinter style (t m) where
+--     prettyprint = lift . prettyprint @style ; {-# INLINE prettyprint #-}
 
 
 showSymbol :: PrettySymbol Doc -> Text
@@ -161,9 +161,10 @@ showSymbol (unlabel -> sym) = Doc.renderLineBlock $ Doc.render source where
         Symbol.Suffix s -> s ^. Symbol.body
         Symbol.Mixfix _ -> "mixfix"
 
-prettyshow :: ∀ style m a. Prettyprinter style m => Scope -> IR.Term a -> m Text
-prettyshow scope ir = flip State.evalT scope
-                    $ fmap showSymbol . prettyprint @style $ Layout.relayout ir
+type Prettyshow style m = (Prettyprinter style (StateT Scope m), Monad m)
+run :: ∀ style m a. Prettyshow style m => Scope -> IR.Term a -> m Text
+run scope ir = flip State.evalT scope
+             $ fmap showSymbol . prettyprint @style $ Layout.relayout ir
 
 -- renderSimple :: Prettyprinter Simple m => IT.Term a -> m Text
 -- renderSimple = prettyshow Simple
@@ -240,7 +241,7 @@ data Simple = Simple deriving (Show)
 --                   , Reader // Layer // AnyExprLink // Model
 --                   ]
 --          ) => Prettyprinter Simple t m where
-instance Prettyprinter Simple (Pass Prettyprint) where
+instance (Monad m, Layer.Reader IR.Terms IR.Model m) => Prettyprinter Simple m where
     prettyprint ir = Layer.read @IR.Model ir >>= \case
         IR.UniTermVar (IR.Var name) -> pure . unnamed $ Symbol.atom (convert name)
 --     prettyprint style subStyle root = matchExpr root $ \case

@@ -61,9 +61,10 @@ asOffsetSpan s = s & offset %~ (+ s ^. length)
 measure :: IsSpacedSpan t => t -> Delta
 measure t = t ^. offset + t ^. length ; {-# INLINE measure #-}
 
--- concat :: Num s => LeftSpacedSpan -> LeftSpacedSpan -> LeftSpacedSpan
--- concat (unwrap -> SpacedSpan off s) (unwrap -> SpacedSpan off' s')
---     = wrap $ SpacedSpan off (s + off' + s')
+-- remove? use <> instead?
+concat :: Num s => LeftSpacedSpan -> LeftSpacedSpan -> LeftSpacedSpan
+concat (unwrap -> SpacedSpan off s) (unwrap -> SpacedSpan off' s')
+    = wrap $ SpacedSpan off (s + off' + s')
 
 
 -- === Instances === --

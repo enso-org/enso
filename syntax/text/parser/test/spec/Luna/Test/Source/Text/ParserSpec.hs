@@ -7,6 +7,7 @@ module Luna.Test.Source.Text.ParserSpec where
 import Prologue
 import Test.Hspec.Expectations.Lifted
 
+import qualified Control.Monad.State.Layered         as State
 import qualified Data.Set.Mutable.Class              as Set
 import qualified Foreign.Marshal.Alloc               as Mem
 import qualified Foreign.Storable                    as Storable
@@ -19,16 +20,20 @@ import qualified Luna.Pass.Attr                      as Attr
 import qualified Luna.Pass.Scheduler                 as Scheduler
 import qualified Luna.Runner                         as Runner
 import qualified Luna.Syntax.Prettyprint             as Prettyprint
+import qualified Luna.Syntax.Text.Parser.CodeSpan    as CodeSpan
+import qualified Luna.Syntax.Text.Parser.Parser      as Parser
 import qualified Luna.Syntax.Text.Parser.Parsing     as Parsing
 import qualified OCI.Data.Name                       as Name
 import qualified OCI.IR.Component                    as Component
 import qualified OCI.IR.Layout                       as Layout
 import qualified OCI.Pass.Registry                   as Registry
 
+import Data.Text.Position               (Delta)
 import Luna.IR.Component.Link           (type (*-*), Link)
 import Luna.Pass                        (Pass)
 import Luna.Syntax.Text.Parser.CodeSpan (CodeSpan)
 import Luna.Syntax.Text.Parser.Parser   (Parser)
+import Luna.Syntax.Text.Scope           (Scope)
 import Test.Hspec                       (Expectation, Spec, describe, it)
 
 
@@ -60,15 +65,30 @@ runPass' = runPass
 
 
 
+shouldParseItself :: Text -> IO ()
+shouldParseItself s = runPass' $ do
+    (((ir,cs),scope), _) <- flip Parsing.parsingBase (convert s) $ do
+        irb   <- Parsing.var
+        scope <- State.get @Scope
+        let Parser.AsgBldr irx = irb
+            irb' = Parser.AsgBldr $ do
+                ir <- irx
+                cs <- Layer.read @CodeSpan ir
+                pure (ir,cs)
+        pure $ (,scope) <$> irb'
+    code <- Prettyprint.run @Prettyprint.Simple scope ir
+
+    print $ (convert $ view CodeSpan.realSpan cs :: (Delta, Delta))
+    code `shouldBe` s
+
+
 -------------------
 -- === Tests === --
 -------------------
 
 nameSpec :: Spec
 nameSpec = describe "test" $ do
-    it "test" $ runPass' $ do
-        x <- Parsing.parsingBase Parsing.var "foo"
-        True `shouldBe` False
+    it "test" $ shouldParseItself "foo"
 
 spec :: Spec
 spec = do

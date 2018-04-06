@@ -92,8 +92,9 @@ extractCodeOffset :: CodeSpan -> CodeOffset
 extractCodeOffset cs = CodeOffset (cs ^. realSpan . Span.offset) (cs ^. viewSpan . Span.offset)
 {-# INLINE extractCodeOffset #-}
 
--- concat :: CodeSpan -> CodeSpan -> CodeSpan
--- concat (CodeSpan r v) (CodeSpan r' v') = CodeSpan (Span.concat r r') (Span.concat v v')
+-- TODO: remove ? use <> instead?
+concat :: CodeSpan -> CodeSpan -> CodeSpan
+concat (CodeSpan r v) (CodeSpan r' v') = CodeSpan (Span.concat r r') (Span.concat v v')
 -- {-# INLINE concat #-}
 
 
