@@ -1,3 +1,10 @@
+resolver: ./build/snapshot-local.yaml
+
+package-indices:
+    - name:            standard-hackage
+      download-prefix: https://hackage.haskell.org/package/
+      http:            https://hackage.haskell.org/01-index.tar.gz
+
 ghc-options:
     $locals:
         -fexcess-precision
@@ -13,14 +20,33 @@ ghc-options:
         -Wall
     $everything:
         -fconstraint-solver-iterations=100
+
 local-bin-path: dist/bin/public/luna
+
 packages:
     - core
-    - lib
     - syntax/text/lexer
     - syntax/text/model
     - syntax/text/parser
     - syntax/text/prettyprint
+
+    - lib/autovector
+    - lib/code-builder
+    - lib/cpp-containers
+    - lib/data-tag
+    - lib/data-typemap
+    - lib/exception
+    - lib/foreign-utils
+    - lib/memory-manager
+    - lib/memory-pool
+    - lib/nested-containers
+    - lib/syntax-definition
+    - lib/text-processing
+    - lib/th-builder
+    - lib/tuple-utils
+    - lib/type-cache
+    - lib/typelevel
+
     - ../lib/container
     - ../lib/convert
     - ../lib/lens-utils
@@ -34,9 +60,4 @@ packages:
     - ../lib/monad-branch
     - ../lib/vector-text
     - ../lib/prologue
-resolver: ./build/snapshot-local.yaml
 
-package-indices:
-    - name:            standard-hackage
-      download-prefix: https://hackage.haskell.org/package/
-      http:            https://hackage.haskell.org/01-index.tar.gz
