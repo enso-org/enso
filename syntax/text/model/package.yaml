@@ -1,7 +1,7 @@
-name:       luna-syntax-text-model
-version:    "0.1"
-author:     Luna Team <contact@luna-lang.org>
-maintainer: Luna Team <contact@luna-lang.org>
+name       : luna-syntax-text-model
+version    : "0.1"
+author     : Luna Team <contact@luna-lang.org>
+maintainer : Luna Team <contact@luna-lang.org>
 
 library:
     source-dirs:
@@ -13,9 +13,9 @@ dependencies:
     - layered-state
     - lens-utils
     - luna-core
-    - prologue
     - luna-nested-containers
     - luna-syntax-definition
+    - prologue
 
 default-extensions:
     - AllowAmbiguousTypes
@@ -40,6 +40,7 @@ default-extensions:
     - GeneralizedNewtypeDeriving
     - InstanceSigs
     - LambdaCase
+    - LiberalTypeSynonyms
     - MonadComprehensions
     - MultiWayIf
     - NamedWildCards
@@ -51,6 +52,7 @@ default-extensions:
     - QuasiQuotes
     - RankNTypes
     - RecursiveDo
+    - RelaxedPolyRec
     - ScopedTypeVariables
     - StandaloneDeriving
     - TemplateHaskell
@@ -59,7 +61,6 @@ default-extensions:
     - TypeFamilies
     - TypeFamilyDependencies
     - TypeOperators
-    - ViewPatterns
-    - LiberalTypeSynonyms
-    - RelaxedPolyRec
     - UnicodeSyntax
+    - ViewPatterns
+

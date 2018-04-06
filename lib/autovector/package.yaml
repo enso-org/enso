@@ -1,13 +1,13 @@
-name:        luna-autovector
-version:     1.0.0
-category:    Data
-license:     Apache-2.0
-stability:   experimental
-homepage:    https://github.com/luna/luna-core
-bug-reports: https://github.com/luna/luna-core/issues
-author:      Luna Team
-copyright:   Copyright (C) 2018 Luna Team
-maintainer:  Luna Team
+name        : luna-autovector
+version     : 1.0.0
+category    : Data
+license     : Apache-2.0
+stability   : experimental
+homepage    : https://github.com/luna/luna
+bug-reports : https://github.com/luna/luna/issues
+author      : Luna Team
+copyright   : Copyright (C) 2018 Luna Team
+maintainer  : Luna Team
 
 ghc-options:
     - -Wall
@@ -17,29 +17,9 @@ library:
     source-dirs:
         - src
     dependencies:
-        - luna-foreign-utils
-        - async
         - base
-        - convert
-        - container
-        - containers
-        - data-default
-        - deepseq
-        - functor-utils
-        - ghc
-        - layered-state
-        - lens
-        - lens-utils
-        - monad-branch
-        - monoid
-        - mtl
-        - primitive
+        - luna-foreign-utils
         - prologue >= 3.0.0
-        - random
-        - split
-        - template-haskell
-        - text
-        - transformers
         - vector
 
 default-extensions:
@@ -64,6 +44,7 @@ default-extensions:
     - GeneralizedNewtypeDeriving
     - InstanceSigs
     - LambdaCase
+    - LiberalTypeSynonyms
     - MonadComprehensions
     - MultiWayIf
     - NamedWildCards
@@ -72,10 +53,11 @@ default-extensions:
     - NumDecimals
     - OverloadedLabels
     - PackageImports
-    - QuasiQuotes
     - PatternSynonyms
+    - QuasiQuotes
     - RankNTypes
     - RecursiveDo
+    - RelaxedPolyRec
     - ScopedTypeVariables
     - StandaloneDeriving
     - TemplateHaskell
@@ -86,5 +68,4 @@ default-extensions:
     - TypeOperators
     - UnicodeSyntax
     - ViewPatterns
-    - LiberalTypeSynonyms
-    - RelaxedPolyRec
+
