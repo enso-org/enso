@@ -139,7 +139,11 @@ class Writer comp layer m where
 
 -- === API === --
 
-#define CTX ∀ layer comp layout m. (StorableData layer, MonadIO m, Wrapped (Cons layer))
+#define CTX ∀ layer comp layout m.  \
+        ( StorableData layer        \
+        , Wrapped (Cons layer)      \
+        , MonadIO m                 \
+        )
 
 unsafePeekWrapped :: CTX => SomePtr -> m (WrappedData layer layout)
 unsafePokeWrapped :: CTX => SomePtr ->   (WrappedData layer layout) -> m ()
@@ -150,11 +154,6 @@ unsafePeek :: CTX => SomePtr -> m (Data layer layout)
 unsafePeek !ptr = view (from shape) <$> unsafePeekWrapped @layer @comp @layout ptr ; {-# INLINE unsafePeek #-}
 unsafePoke :: CTX => SomePtr -> (Data layer layout) -> m ()
 unsafePoke !ptr d = unsafePokeWrapped @layer @comp @layout ptr $ view shape d ; {-# INLINE unsafePoke #-}
-
--- unsafePeekGen :: CTX => SomePtr -> m (Data layer layout)
--- unsafePokeGen :: CTX => SomePtr ->   (Data layer layout) -> m ()
--- unsafePeekGen = unsafeCoerce $ unsafePeek @layer @comp @layout @m ; {-# INLINE unsafePeekGen #-}
--- unsafePokeGen = unsafeCoerce $ unsafePoke @layer @comp @layout @m ; {-# INLINE unsafePokeGen #-}
 
 unsafePeekByteOff :: CTX => Int -> SomePtr -> m (Data layer layout)
 unsafePokeByteOff :: CTX => Int -> SomePtr ->   (Data layer layout) -> m ()
