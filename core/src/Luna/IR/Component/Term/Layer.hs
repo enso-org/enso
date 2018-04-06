@@ -5,7 +5,7 @@ module Luna.IR.Component.Term.Layer where
 
 import Prologue hiding (Type)
 
-import qualified Data.PtrSet.Cpp2             as PtrSet
+import qualified Data.PtrSet.Mutable          as PtrSet
 import qualified Data.Set.Mutable.Class       as Set
 import qualified Foreign.Ptr                  as Ptr
 import qualified Foreign.Storable             as Storable
@@ -18,7 +18,7 @@ import qualified OCI.IR.Component             as Component
 import qualified OCI.IR.Layer                 as Layer
 import qualified OCI.IR.Layout                as Layout
 
-import Data.PtrSet.Cpp2             (IsPtr, UnmanagedPtrSet)
+import Data.PtrSet.Mutable          (IsPtr, UnmanagedPtrSet)
 import Data.Set.Mutable.Class       (Set)
 import Foreign.Storable             (Storable)
 import Foreign.Storable1            (Storable1)

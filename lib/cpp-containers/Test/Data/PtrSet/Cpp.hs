@@ -1,42 +1,42 @@
 {-# LANGUAGE BangPatterns #-}
 module Test.Data.PtrSet.Cpp where
 
-import Prologue
+-- import Prologue
 
-import qualified Data.IntSet     as IntSet
-import qualified Data.PtrSet.Cpp as PtrSet
+-- import qualified Data.IntSet     as IntSet
+-- import qualified Data.PtrSet.Cpp as PtrSet
 
-import Data.List             (unfoldr)
-import Data.PtrSet.Cpp       (UnmanagedPtrSet)
-import Foreign.ForeignPtr
-import Foreign.Marshal.Alloc
-import Foreign.Marshal.Array
-import Foreign.Ptr
-import Foreign.Ptr.Utils
-import System.Random
-
-
----------------------------
--- === Foreign calls === --
----------------------------
-
-foreign import ccall unsafe "c_set_test_insert_and_lookup"
-    c_set_testInsertAndLookup :: Ptr SomePtr -> Int -> Ptr SomePtr -> Int
-                              -> UnmanagedPtrSet -> IO Int
-
-foreign import ccall unsafe "c_set_test_insert_lookup_ordered"
-    c_set_testInsertLookupOrdered :: Int -> IO Int
-
-foreign import ccall unsafe "c_set_identity"
-    c_set_identity :: Ptr SomePtr -> Int -> IO Int
+-- import Data.List             (unfoldr)
+-- import Data.PtrSet.Cpp       (UnmanagedPtrSet)
+-- import Foreign.ForeignPtr
+-- import Foreign.Marshal.Alloc
+-- import Foreign.Marshal.Array
+-- import Foreign.Ptr
+-- import Foreign.Ptr.Utils
+-- import System.Random
 
 
--------------------
--- === Utils === --
--------------------
+-- ---------------------------
+-- -- === Foreign calls === --
+-- ---------------------------
 
-randomList :: Int -> [Int]
-randomList n = take n . unfoldr (Just . random) $ mkStdGen 123456
+-- foreign import ccall unsafe "c_set_test_insert_and_lookup"
+--     c_set_testInsertAndLookup :: Ptr SomePtr -> Int -> Ptr SomePtr -> Int
+--                               -> UnmanagedPtrSet -> IO Int
+
+-- foreign import ccall unsafe "c_set_test_insert_lookup_ordered"
+--     c_set_testInsertLookupOrdered :: Int -> IO Int
+
+-- foreign import ccall unsafe "c_set_identity"
+--     c_set_identity :: Ptr SomePtr -> Int -> IO Int
+
+
+-- -------------------
+-- -- === Utils === --
+-- -------------------
+
+-- randomList :: Int -> [Int]
+-- randomList n = take n . unfoldr (Just . random) $ mkStdGen 123456
 
 
 

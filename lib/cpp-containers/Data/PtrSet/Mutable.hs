@@ -1,4 +1,4 @@
-module Data.PtrSet.Cpp2 where
+module Data.PtrSet.Mutable where
 
 import Prologue hiding (null, toList)
 
@@ -17,7 +17,7 @@ import qualified Data.Set.Mutable.Class as Set
 class IsPtr a where
     asSomePtr :: Iso' a SomePtr
     default asSomePtr :: Coercible a SomePtr => Iso' a SomePtr
-    asSomePtr = iso unsafeCoerce unsafeCoerce ; {-# INLINE asSomePtr #-}
+    asSomePtr = iso coerce coerce ; {-# INLINE asSomePtr #-}
 
 instance IsPtr (Ptr a)
 

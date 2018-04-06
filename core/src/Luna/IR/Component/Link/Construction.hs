@@ -3,7 +3,6 @@ module Luna.IR.Component.Link.Construction where
 import Prologue
 import Type.Data.Ord
 
-import qualified Data.PtrSet.Cpp        as PtrSet
 import qualified Data.Set.Mutable.Class as Set
 import qualified OCI.IR.Component       as Component
 import qualified OCI.IR.Layer           as Layer

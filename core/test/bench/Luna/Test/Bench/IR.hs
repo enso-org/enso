@@ -28,7 +28,7 @@ import qualified OCI.Pass.Encoder            as Encoder
 import qualified OCI.Pass.Registry           as Registry
 import qualified System.Console.ANSI         as ANSI
 
-import qualified Data.PtrSet.Cpp2 as PtrSet
+import qualified Data.PtrSet.Mutable as PtrSet
 
 import Control.DeepSeq   (force)
 import Control.Exception (evaluate)

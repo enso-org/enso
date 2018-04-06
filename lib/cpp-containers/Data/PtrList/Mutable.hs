@@ -9,7 +9,7 @@
 -----------------------------------------------------------------------------
 
 {-# LANGUAGE TupleSections #-}
-module Data.IntList.Cpp where
+module Data.PtrList.Mutable where
 
 import Prelude hiding (head, init, length, null, tail)
 
