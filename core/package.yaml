@@ -84,10 +84,17 @@ benchmarks:
     - ghc
     - layered-state
     - luna-core
-    - luna-local-libs
     - prologue
     - unboxed-ref >= 0.4.0.0
     - vector
+    - luna-exception
+    - luna-tuple-utils
+    - luna-data-typemap
+    - luna-memory-pool
+    - luna-cpp-containers
+    - luna-memory-manager
+    - luna-foreign-utils
+    - luna-autovector
 
 tests:
   spec:
@@ -105,7 +112,6 @@ tests:
     - hspec
     - hspec-expectations-lifted
     - luna-core
-    - luna-local-libs
     - prologue
 
 default-extensions:

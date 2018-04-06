@@ -43,8 +43,9 @@ dependencies:
     - vector
     - vector-text
     - layouting
-    - luna-local-libs
-    
+    - luna-text-processing
+    - luna-foreign-utils
+    - luna-syntax-definition
 
 default-extensions:
     - AllowAmbiguousTypes

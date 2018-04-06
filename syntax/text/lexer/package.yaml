@@ -31,6 +31,7 @@ dependencies:
     - prologue
     - layered-state
     - luna-syntax-text-model
+    - luna-text-processing
     - lens
     - containers
     - mtl
@@ -45,7 +46,6 @@ dependencies:
     - resourcet
     - convert
     - functor-utils
-    - luna-local-libs
 
     # remove:
     - lens-utils

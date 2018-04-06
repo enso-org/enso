@@ -13,8 +13,9 @@ dependencies:
     - layered-state
     - lens-utils
     - luna-core
-    - luna-local-libs
     - prologue
+    - luna-nested-containers
+    - luna-syntax-definition
 
 default-extensions:
     - AllowAmbiguousTypes

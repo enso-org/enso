@@ -12,10 +12,10 @@ dependencies:
     - layered-state
     - layouting
     - luna-core
-    - luna-local-libs
     - luna-syntax-text-model
+    - luna-syntax-definition
     - prologue
-    
+
 default-extensions:
     - AllowAmbiguousTypes
     - ApplicativeDo
