@@ -38,7 +38,7 @@ type UntypedCreator t m =
     ( Component.Creator Terms   m
     , Layer.Writer  Terms Model m
     , Layer.IsCons1 Model (TagToCons t)
-    , Layer.IsComplex Term.Uni
+    , Layer.IsUnwrapped Term.Uni
     )
 
 type Creator tag m =

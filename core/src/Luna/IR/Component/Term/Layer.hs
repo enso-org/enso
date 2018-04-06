@@ -53,7 +53,8 @@ match = Layer.readView @Model ; {-# INLINE match #-}
 
 -- === Instances === --
 
-instance (Term.IsUni t, Layer.IsComplex Term.Uni) => Layer.IsCons1 Model t where
+instance (Term.IsUni t, Layer.IsUnwrapped Term.Uni)
+      => Layer.IsCons1 Model t where
     cons1 = Term.toUni ; {-# INLINE cons1 #-}
 
 

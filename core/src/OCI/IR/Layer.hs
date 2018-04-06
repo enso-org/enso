@@ -44,8 +44,8 @@ makeLenses ''Simple
 
 -- === API === --
 
-type IsSimple  t = (CheckSimple t ~ 'True)
-type IsComplex t = (CheckSimple t ~ 'False)
+type IsWrapped   t = (CheckSimple t ~ 'True)
+type IsUnwrapped t = (CheckSimple t ~ 'False)
 type family CheckSimple t where
     CheckSimple (Simple _) = 'True
     CheckSimple _          = 'False
@@ -58,7 +58,7 @@ type family Unwrap__ isSimple t where
     Unwrap__ 'False t           = t
 
 class Wrapped t where shape :: ∀ a. Iso' (Unwrap (t a)) (t a)
-instance {-# OVERLAPPABLE #-} IsComplex t
+instance {-# OVERLAPPABLE #-} IsUnwrapped t
       => Wrapped t          where shape = id      ; {-# INLINE shape #-}
 instance Wrapped (Simple t) where shape = coerced ; {-# INLINE shape #-}
 
