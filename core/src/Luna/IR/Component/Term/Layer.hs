@@ -37,9 +37,10 @@ instance IsPtr (Link l)
 -- === Definition === --
 
 data Model
-type instance Layer.Data Model layout = Term.Uni layout
-type instance Layer.View Model layout
-   = Term.TagToCons (Layout.Get Model layout) layout
+type instance Layer.Cons     Model        = Term.Uni
+type instance Layer.Layout   Model layout = layout
+type instance Layer.ViewCons Model layout
+   = Term.TagToCons (Layout.Get Model layout)
 instance Layer.Initializer Model
 
 
@@ -52,7 +53,7 @@ match = Layer.readView @Model ; {-# INLINE match #-}
 
 -- === Instances === --
 
-instance Term.IsUni t => Layer.IsCons1 Model t where
+instance (Term.IsUni t, Layer.IsComplex Term.Uni) => Layer.IsCons1 Model t where
     cons1 = Term.toUni ; {-# INLINE cons1 #-}
 
 
@@ -63,8 +64,9 @@ instance Term.IsUni t => Layer.IsCons1 Model t where
 
 data Type
 type instance Layout.Default Type = ()
-type instance Layer.Data Type layout = Link (Layout.Get Type layout *-* layout)
-instance Layer.Initializer Type
+type instance Layer.Cons     Type = Link
+type instance Layer.Layout   Type layout = Layout.Get Type layout *-* layout
+instance Layer.Initializer   Type
 
 
 
@@ -73,8 +75,9 @@ instance Layer.Initializer Type
 -------------------
 
 data Users
-type instance Layer.Data Users layout
-   = UnmanagedPtrSet (Link (layout *-* Layout.Set Model () layout))
+type instance Layer.Cons   Users = UnmanagedPtrSet
+type instance Layer.Layout Users layout
+   = Link (layout *-* Layout.Set Model () layout)
 
 instance Layer.Initializer Users where
-    initDynamic = Just Set.new ; {-# INLINE initDynamic #-}
+    initDynamic = Just PtrSet.new ; {-# INLINE initDynamic #-}

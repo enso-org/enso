@@ -9,7 +9,7 @@ library:
         - src-libs/attoparsec-text32
         - src-libs/parsing
         - src-libs/conduit-utils
-    other-modules: Paths_luna_lexer
+    other-modules: Paths_luna_syntax_text_lexer
 
 benchmarks:
     lexer-benchmark:

@@ -112,9 +112,9 @@ instance Semigroup CodeSpan where
 -- === CodeSpan layer === --
 ----------------------------
 
-type instance Layer.Data CodeSpan _ = CodeSpan
+type instance Layer.Cons CodeSpan = Layer.Simple CodeSpan
 instance Layer.Initializer CodeSpan where
-    initStatic = Just mempty
+    initStatic = Just (Layer.Simple mempty)
 
 
 

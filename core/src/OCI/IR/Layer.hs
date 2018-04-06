@@ -4,17 +4,20 @@
 
 module OCI.IR.Layer where
 
-import Prologue hiding (Data)
+import Prologue hiding (Data, Wrapped)
 
-import qualified Foreign.Storable       as Storable
-import qualified Foreign.Storable.Utils as Storable
-import qualified OCI.IR.Component       as Component
-import qualified OCI.Pass.Definition    as Pass
+import qualified Foreign.Storable           as Storable
+import qualified Foreign.Storable.Utils     as Storable
+import qualified Foreign.Storable1          as Storable1
+import qualified Foreign.Storable1          as Storable1
+import qualified Foreign.Storable1.Deriving as Storable1
+import qualified OCI.IR.Component           as Component
+import qualified OCI.Pass.Definition        as Pass
 
 import Foreign.Ptr            (Ptr, plusPtr)
 import Foreign.Ptr.Utils      (SomePtr)
-import Foreign.Storable       (Storable)
 import Foreign.Storable.Utils (sizeOf')
+import Foreign.Storable1      (Storable1)
 import OCI.IR.Component       (Component (Component))
 import OCI.Pass.Definition    (Pass)
 
@@ -29,15 +32,68 @@ consByteSize = sizeOf' @Int ; {-# INLINE consByteSize #-}
 
 
 
+-------------------------
+-- === Layer Shape === --
+-------------------------
+
+-- === Definition === --
+
+newtype Simple t layout = Simple t
+makeLenses ''Simple
+
+
+-- === API === --
+
+type IsSimple  t = (CheckSimple t ~ 'True)
+type IsComplex t = (CheckSimple t ~ 'False)
+type family CheckSimple t where
+    CheckSimple (Simple _) = 'True
+    CheckSimple _          = 'False
+
+type family Unwrap t where
+    Unwrap (t a) = Unwrap__ (CheckSimple t) (t a)
+
+type family Unwrap__ isSimple t where
+    Unwrap__ 'True (Simple t _) = t
+    Unwrap__ 'False t           = t
+
+class Wrapped t where shape :: ∀ a. Iso' (Unwrap (t a)) (t a)
+instance {-# OVERLAPPABLE #-} IsComplex t
+      => Wrapped t          where shape = id      ; {-# INLINE shape #-}
+instance Wrapped (Simple t) where shape = coerced ; {-# INLINE shape #-}
+
+
+-- === Intances === --
+
+instance Show t => Show (Simple t layout) where
+    show = show . unwrap ; {-# INLINE show #-}
+
+instance Default   t => Default   (Simple t layout) where def    = wrap def    ; {-# INLINE def #-}
+instance Mempty    t => Mempty    (Simple t layout) where mempty = wrap mempty ; {-# INLINE mempty #-}
+instance Semigroup t => Semigroup (Simple t layout) where
+    a <> b = wrap (unwrap a <> unwrap b) ; {-# INLINE (<>) #-}
+
+-- TODO[PM]: Storable1.derive ''Simple
+instance Storable.Storable t => Storable1.Storable1 (Simple t) where
+    sizeOf    _ = Storable.sizeOf   (undefined :: t)  ; {-# INLINE sizeOf    #-}
+    alignment _ = Storable.alignment (undefined :: t) ; {-# INLINE alignment #-}
+    peek      p = wrap <$> Storable.peek (coerce p)   ; {-# INLINE peek      #-}
+    poke      p = Storable.poke (coerce p) . unwrap   ; {-# INLINE poke      #-}
+
+
+
 -------------------
 -- === Layer === --
 -------------------
 
 -- === Definition === --
 
-type family Data  layer layout :: Type
-type SomeData     layer = Data layer ()
-type StorableData layer = Storable (SomeData layer)
+type family Cons   layer        :: Type -> Type
+type family Layout layer layout :: Type
+type WrappedData   layer layout = Cons layer (Layout layer layout)
+type Data          layer layout = Unwrap (Cons layer (Layout layer layout))
+
+type StorableData layer = Storable1 (Cons layer)
 
 
 -- === Construction === --
@@ -49,8 +105,8 @@ class IsCons1 layer t where
 -- === Initialization === --
 
 class Initializer layer where
-    initStatic  :: Maybe     (SomeData layer)
-    initDynamic :: Maybe (IO (SomeData layer))
+    initStatic  :: ∀ layout. Maybe     (Cons layer layout)
+    initDynamic :: ∀ layout. Maybe (IO (Cons layer layout))
     initStatic  = Nothing ; {-# INLINE initStatic  #-}
     initDynamic = Nothing ; {-# INLINE initDynamic #-}
     {-# MINIMAL initStatic | initDynamic #-}
@@ -59,7 +115,7 @@ class Initializer layer where
 -- === General Information === --
 
 byteSize :: ∀ layer. StorableData layer => Int
-byteSize = Storable.sizeOf' @(SomeData layer) ; {-# INLINE byteSize #-}
+byteSize = Storable1.sizeOf' @(Cons layer) ; {-# INLINE byteSize #-}
 
 
 
@@ -83,22 +139,27 @@ class Writer comp layer m where
 
 -- === API === --
 
-#define CTX ∀ layer comp layout m. (StorableData layer, MonadIO m)
+#define CTX ∀ layer comp layout m. (StorableData layer, MonadIO m, Wrapped (Cons layer))
 
-unsafePeek :: CTX => SomePtr -> m (SomeData layer)
-unsafePoke :: CTX => SomePtr ->   (SomeData layer) -> m ()
-unsafePeek !ptr = liftIO $ Storable.peek (coerce ptr) ; {-# INLINE unsafePeek #-}
-unsafePoke !ptr = liftIO . Storable.poke (coerce ptr) ; {-# INLINE unsafePoke #-}
+unsafePeekWrapped :: CTX => SomePtr -> m (WrappedData layer layout)
+unsafePokeWrapped :: CTX => SomePtr ->   (WrappedData layer layout) -> m ()
+unsafePeekWrapped !ptr = liftIO $ Storable1.peek (coerce ptr) ; {-# INLINE unsafePeekWrapped #-}
+unsafePokeWrapped !ptr = liftIO . Storable1.poke (coerce ptr) ; {-# INLINE unsafePokeWrapped #-}
 
-unsafePeekGen :: CTX => SomePtr -> m (Data layer layout)
-unsafePokeGen :: CTX => SomePtr ->   (Data layer layout) -> m ()
-unsafePeekGen = unsafeCoerce $ unsafePeek @layer @comp @layout @m ; {-# INLINE unsafePeekGen #-}
-unsafePokeGen = unsafeCoerce $ unsafePoke @layer @comp @layout @m ; {-# INLINE unsafePokeGen #-}
+unsafePeek :: CTX => SomePtr -> m (Data layer layout)
+unsafePeek !ptr = view (from shape) <$> unsafePeekWrapped @layer @comp @layout ptr ; {-# INLINE unsafePeek #-}
+unsafePoke :: CTX => SomePtr -> (Data layer layout) -> m ()
+unsafePoke !ptr d = unsafePokeWrapped @layer @comp @layout ptr $ view shape d ; {-# INLINE unsafePoke #-}
+
+-- unsafePeekGen :: CTX => SomePtr -> m (Data layer layout)
+-- unsafePokeGen :: CTX => SomePtr ->   (Data layer layout) -> m ()
+-- unsafePeekGen = unsafeCoerce $ unsafePeek @layer @comp @layout @m ; {-# INLINE unsafePeekGen #-}
+-- unsafePokeGen = unsafeCoerce $ unsafePoke @layer @comp @layout @m ; {-# INLINE unsafePokeGen #-}
 
 unsafePeekByteOff :: CTX => Int -> SomePtr -> m (Data layer layout)
 unsafePokeByteOff :: CTX => Int -> SomePtr ->   (Data layer layout) -> m ()
-unsafePeekByteOff !d !ptr = unsafePeekGen @layer @comp @layout (ptr `plusPtr` d) ; {-# INLINE unsafePeekByteOff #-}
-unsafePokeByteOff !d !ptr = unsafePokeGen @layer @comp @layout (ptr `plusPtr` d) ; {-# INLINE unsafePokeByteOff #-}
+unsafePeekByteOff !d !ptr = unsafePeek @layer @comp @layout (ptr `plusPtr` d) ; {-# INLINE unsafePeekByteOff #-}
+unsafePokeByteOff !d !ptr = unsafePoke @layer @comp @layout (ptr `plusPtr` d) ; {-# INLINE unsafePokeByteOff #-}
 
 unsafeReadByteOff :: CTX => Int -> Component comp layout
                          -> m (Data layer layout)
@@ -122,7 +183,7 @@ write = write__ @comp @layer @m ; {-# INLINE write #-}
 -- === Instances === --
 
 instance {-# OVERLAPPABLE #-}
-         (StorableData layer, Pass.LayerByteOffsetGetter comp layer (Pass pass))
+         (StorableData layer, Pass.LayerByteOffsetGetter comp layer (Pass pass), Wrapped (Cons layer))
     => Reader comp layer (Pass pass) where
     read__ !comp = do
         !off <- Pass.getLayerByteOffset @comp @layer
@@ -130,7 +191,7 @@ instance {-# OVERLAPPABLE #-}
     {-# INLINE read__ #-}
 
 instance {-# OVERLAPPABLE #-}
-         (StorableData layer, Pass.LayerByteOffsetGetter comp layer (Pass pass))
+         (StorableData layer, Pass.LayerByteOffsetGetter comp layer (Pass pass), Wrapped (Cons layer))
     => Writer comp layer (Pass pass) where
     write__ !comp !d = do
         !off <- Pass.getLayerByteOffset @comp @layer
@@ -163,8 +224,9 @@ instance Writer comp layer ImpM1 where write__ _ _ = impossible
 -- === Layer View === --
 ------------------------
 
-type family View  layer layout :: Type
-type StorableView layer layout = Storable (View layer layout)
+type family ViewCons layer layout :: Type -> Type
+type View         layer layout = ViewCons layer layout (Layout layer layout)
+type StorableView layer layout = Storable1 (ViewCons layer layout)
 
 
 
@@ -195,8 +257,8 @@ class ViewWriter comp layer layout m where
 
 unsafePeekView :: CTX => SomePtr -> m (View layer layout)
 unsafePokeView :: CTX => SomePtr ->   (View layer layout) -> m ()
-unsafePeekView !ptr = liftIO $ Storable.peekByteOff (coerce ptr) consByteSize; {-# INLINE unsafePeekView #-}
-unsafePokeView !ptr = liftIO . Storable.pokeByteOff (coerce ptr) consByteSize; {-# INLINE unsafePokeView #-}
+unsafePeekView !ptr = liftIO $ Storable1.peekByteOff (coerce ptr) consByteSize; {-# INLINE unsafePeekView #-}
+unsafePokeView !ptr = liftIO . Storable1.pokeByteOff (coerce ptr) consByteSize; {-# INLINE unsafePokeView #-}
 
 unsafePeekViewByteOff :: CTX => Int -> SomePtr -> m (View layer layout)
 unsafePokeViewByteOff :: CTX => Int -> SomePtr -> View layer layout -> m ()

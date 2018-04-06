@@ -17,7 +17,7 @@ import qualified OCI.IR.Component                 as Component
 import qualified OCI.IR.Layer                     as Layer
 import qualified OCI.IR.Layout                    as Layout
 
-import Luna.IR.Component.Term.Class
+import Luna.IR.Component.Term.Class  as Term
 import Luna.IR.Component.Term.Layer
 import Luna.IR.Component.Term.Layout ()
 
@@ -38,6 +38,7 @@ type UntypedCreator t m =
     ( Component.Creator Terms   m
     , Layer.Writer  Terms Model m
     , Layer.IsCons1 Model (TagToCons t)
+    , Layer.IsComplex Term.Uni
     )
 
 type Creator tag m =

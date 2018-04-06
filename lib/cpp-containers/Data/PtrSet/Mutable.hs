@@ -11,7 +11,8 @@ import Foreign.Ptr.Utils      (SomePtr, fromCBool)
 import Foreign.Storable       (Storable)
 import System.IO.Unsafe       (unsafePerformIO)
 
-import qualified Data.Set.Mutable.Class as Set
+import qualified Data.Set.Mutable.Class     as Set
+import qualified Foreign.Storable1.Deriving as Storable1
 
 
 class IsPtr a where
@@ -29,11 +30,12 @@ instance IsPtr (Ptr a)
 -- === Definition === --
 
 newtype UnmanagedPtrSet a = UnmanagedPtrSet SomePtr deriving (Storable)
-makeLenses ''UnmanagedPtrSet
+makeLenses       ''UnmanagedPtrSet
+Storable1.derive ''UnmanagedPtrSet
 
-class IsPtrSet s where
-    newIO  :: forall a. IO (s a)
-    withIO :: forall a b. s a -> (UnmanagedPtrSet a -> IO b) -> IO b
+class IsPtrSet t where
+    newIO  :: ∀ a. IO (t a)
+    withIO :: ∀ a b. t a -> (UnmanagedPtrSet a -> IO b) -> IO b
 
 
 -- === Foreign calls === --
