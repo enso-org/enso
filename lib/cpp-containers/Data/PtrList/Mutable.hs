@@ -11,7 +11,7 @@
 {-# LANGUAGE TupleSections #-}
 module Data.PtrList.Mutable where
 
-import Prologue hiding (null, unsafeHead, unsafeLast)
+import Prologue hiding (length, null, unsafeHead, unsafeLast)
 
 import Control.Monad          ((<=<))
 import Control.Monad.IO.Class
@@ -81,7 +81,7 @@ foreign import ccall unsafe "c_list_delete_list"
     c_deleteList :: UnmanagedPtrList a -> IO ()
 
 foreign import ccall unsafe "c_list_to_list"
-    c_toList :: Ptr Int -> UnmanagedPtrList a -> IO ()
+    c_toList :: Ptr SomePtr -> UnmanagedPtrList a -> IO ()
 
 foreign import ccall unsafe "c_list_size"
     c_size :: UnmanagedPtrList a -> IO Int
@@ -96,14 +96,14 @@ foreign import ccall unsafe "c_list_null"
 with :: (IsPtrList t, MonadIO m) => t a -> (UnmanagedPtrList a -> IO b) -> m b
 with s f = liftIO $ withIO s f ; {-# INLINE with #-}
 
--- -- | A utility function to perform a foreign C call on the list and return the resulting list.
+-- -- | A utility function to perform a foreign C call on the list and pure the resulting list.
 -- map :: (IsPtrList t, MonadIO m) => UnmanagedPtrList x -> (UnmanagedPtrList -> IO a) -> m UnmanagedPtrList x
--- map s f = with s f >> return s ; {-# INLINE map #-}
+-- map s f = with s f >> pure s ; {-# INLINE map #-}
 
 -- | A utility for wrapping unsafe indexing calls
 whenNonEmpty :: (IsPtrList t, MonadIO m) => (t a -> m b) -> t a -> m (Maybe b)
 whenNonEmpty indexer t = null t >>= \case
-    True  -> return Nothing
+    True  -> pure Nothing
     False -> Just <$> indexer t
 {-# INLINE whenNonEmpty #-}
 
@@ -151,62 +151,59 @@ last = whenNonEmpty unsafeLast ; {-# INLINE last #-}
 unsafeLast :: (IsPtrList t, MonadIO m, IsPtr a) => t a -> m a
 unsafeLast t = convert' <$> with t c_back ; {-# INLINE unsafeLast #-}
 
+-- | Bulk-insert a list of elements into the list. (O(n))
+insertMany :: (IsPtrList t, MonadIO m, IsPtr a) => t a -> [a] -> m ()
+insertMany t = mapM_ (pushBack t) ; {-# INLINE insertMany #-}
 
--- -- | Bulk-insert a list of elements into the list. (O(n))
--- insertMany :: (IsPtrList t, MonadIO m) => UnmanagedPtrList x -> [Int] -> m ()
--- insertMany l = mapM_ (pushBack l)
--- {-# INLINE insertMany #-}
+-- | Get an element under a given index.
+--   Returns `Just v` if the value exists, `Nothing` otherwise.
+index :: (IsPtrList t, MonadIO m, IsPtr a) => t a -> Int -> m (Maybe a)
+index t idx = do
+    n <- length t
+    if idx >= n
+        then pure Nothing
+        else Just . convert' <$> with t (c_at idx)
+{-# INLINE index #-}
 
--- -- | Get an element under a given index.
--- --   Returns `Just v` if the value exists, `Nothing` otherwise.
--- index :: (IsPtrList t, MonadIO m) => UnmanagedPtrList x -> Int -> m (Maybe Int)
--- index l idx = do
---     n <- length l
---     if idx >= n
---         then return Nothing
---         else Just <$> with l (c_at idx)
--- {-# INLINE index #-}
-
--- -- | Return the number of elements in the list.
--- length :: (IsPtrList t, MonadIO m) => UnmanagedPtrList x -> m Int
--- length l = with l c_size
--- {-# INLINE length #-}
+-- | Return the number of elements in the list.
+length :: (IsPtrList t, MonadIO m) => t a -> m Int
+length t = with t c_size ; {-# INLINE length #-}
 
 null :: (IsPtrList t, MonadIO m) => t a -> m Bool
 null t = fromCBool =<< with t c_null ; {-# INLINE null #-}
 
--- -- | Get all of the elements from the list as a pure haskell list.
--- --   Note: do not overuse this function, as it will not perform very well.
--- toList :: (IsPtrList t, MonadIO m) => UnmanagedPtrList x -> m [Int]
--- toList l = do
---     n <- length l
---     with l (\ptr ->
---         allocaArray @Int n (\arr -> do
---             c_toList arr ptr
---             peekArray n arr))
--- {-# INLINE toList #-}
+-- | Get all of the elements from the list as a pure haskell list.
+--   Note: do not overuse this function, as it will not perform very well.
+toList :: (IsPtrList t, MonadIO m, IsPtr a) => t a -> m [a]
+toList t = do
+    n <- length t
+    with t (\ptr ->
+        allocaArray @SomePtr n (\arr -> do
+            c_toList arr ptr
+            convert' <<$>> peekArray n arr))
+{-# INLINE toList #-}
 
--- -- | Convert a pure haskell list to the c++'s std::list.
--- fromList :: (IsPtrList t, MonadIO m) => [Int] -> m UnmanagedPtrList x
--- fromList es = do
---     l <- empty
---     insertMany l es
---     return l
--- {-# INLINE fromList #-}
+-- | Convert a pure haskell list to the c++'s std::list.
+fromList :: (IsPtrList t, MonadIO m, IsPtr a) => [a] -> m (t a)
+fromList es = do
+    t <- new
+    insertMany t es
+    pure t
+{-# INLINE fromList #-}
 
 -- -- | Deconstruct the list into the first element and the rest.
--- --   Safe call: will return Maybe.
+-- --   Safe call: will pure Maybe.
 -- uncons :: (IsPtrList t, MonadIO m) => UnmanagedPtrList x -> m (Maybe (Int, [Int]))
 -- uncons l = do
 --     -- TODO[piotrMocz]: it's not necessary to compute `tl` if hd is `Nothing`.
 --     hd <- popFront l
 --     tl <- Just <$> toList l
---     return $ (,) <$> hd <*> tl
+--     pure $ (,) <$> hd <*> tl
 -- {-# INLINE uncons #-}
 
 -- init, tail :: (IsPtrList t, MonadIO m) => UnmanagedPtrList x -> m UnmanagedPtrList x
--- init l = popBack l >> return l   ; {-# INLINE init #-}
--- tail l = popFront l >> return l  ; {-# INLINE tail #-}
+-- init l = popBack l >> pure l   ; {-# INLINE init #-}
+-- tail l = popFront l >> pure l  ; {-# INLINE tail #-}
 
 -- initSafe, tailSafe :: (IsPtrList t, MonadIO m) => UnmanagedPtrList x -> m (Maybe UnmanagedPtrList x)
 -- initSafe = whenNonEmpty init        ; {-# INLINE initSafe #-}
@@ -217,7 +214,7 @@ null t = fromCBool =<< with t c_null ; {-# INLINE null #-}
 -- ---------------------
 
 -- cons :: (IsPtrList t, MonadIO m) => Int -> UnmanagedPtrList x -> m UnmanagedPtrList x
--- cons el l = pushFront l el >> return l
+-- cons el l = pushFront l el >> pure l
 -- {-# INLINE cons #-}
 
 -- head, last :: (IsPtrList t, MonadIO m) => UnmanagedPtrList x -> m Int
