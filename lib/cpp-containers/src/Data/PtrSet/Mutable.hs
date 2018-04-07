@@ -26,7 +26,7 @@ type IsPtr a = BiConvertible' SomePtr a
 
 -- === Definition === --
 
-newtype UnmanagedPtrSet a = UnmanagedPtrSet SomePtr deriving (Storable)
+newtype UnmanagedPtrSet a = UnmanagedPtrSet SomePtr deriving (Storable, Eq)
 makeLenses       ''UnmanagedPtrSet
 Storable1.derive ''UnmanagedPtrSet
 

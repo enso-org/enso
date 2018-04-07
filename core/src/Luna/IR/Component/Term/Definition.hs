@@ -175,7 +175,7 @@ defineSingle needsSmartCons format termDecl = do
 
         setTypeName   = maybeName    .~ Just typeName
         setDerivs     = derivClauses .~ [TH.DerivClause Nothing derivs]
-        derivs        = cons' <$> [''Show]
+        derivs        = cons' <$> [''Show, ''Eq]
         termDecl'     = (consList .~ [con'])
                       . setTypeName
                       . setDerivs
@@ -349,7 +349,7 @@ makeUniTerm = do
         mkCons n     = TH.NormalC consName [(unpackStrictAnn, TH.AppT (TH.ConT childName) "a")] where
             consName  = dataName <> n
             childName = mkTypeName n
-        derivs       = [TH.DerivClause Nothing $ cons' <$> [''Show]]
+        derivs       = [TH.DerivClause Nothing $ cons' <$> [''Show, ''Eq]]
         dataDecl     = TH.DataD [] dataName ["a"] Nothing (mkCons <$> termNames)
                        derivs
         isUniInst n  = TH.InstanceD Nothing []

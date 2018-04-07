@@ -36,7 +36,7 @@ type IsPtr a = BiConvertible' SomePtr a
 
 -- === Definition === --
 
-newtype UnmanagedPtrList a = UnmanagedPtrList SomePtr deriving (Storable)
+newtype UnmanagedPtrList a = UnmanagedPtrList SomePtr deriving (Storable, Eq)
 makeLenses ''UnmanagedPtrList
 
 class IsPtrList t where
