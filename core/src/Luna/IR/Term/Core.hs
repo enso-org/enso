@@ -36,9 +36,13 @@ type List = UnmanagedPtrList
 
 -- === IR Atoms === ---
 
+
 Term.defineNoSmartCons ''Format.Value [d|
     data Top  a = Top
-    -- data Cons a = Cons { name :: Name, args :: List (LinkTo Terms a)}
+    |]
+
+Term.define ''Format.Value [d|
+    data Cons a = Cons { name :: Name, args :: List (LinkTo Terms a)}
     |]
 
 Term.define ''Format.Thunk [d|
