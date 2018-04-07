@@ -1,3 +1,5 @@
+{-# LANGUAGE UndecidableInstances #-}
+
 module Data.PtrSet.Mutable where
 
 import Prologue hiding (null, toList)
@@ -15,12 +17,7 @@ import qualified Data.Set.Mutable.Class     as Set
 import qualified Foreign.Storable1.Deriving as Storable1
 
 
-class IsPtr a where
-    asSomePtr :: Iso' a SomePtr
-    default asSomePtr :: Coercible a SomePtr => Iso' a SomePtr
-    asSomePtr = iso coerce coerce ; {-# INLINE asSomePtr #-}
-
-instance IsPtr (Ptr a)
+type IsPtr a = BiConvertible' SomePtr a
 
 
 --------------------
@@ -100,7 +97,7 @@ singleton e = do
 
 -- | Insert a single element into the set.
 insert :: (IsPtr a, IsPtrSet s, MonadIO m) => s a -> a -> m ()
-insert s e = with s $ c_insert (e ^. asSomePtr) ; {-# INLINE insert #-}
+insert s e = with s $ c_insert (convert' e) ; {-# INLINE insert #-}
 
 -- | Bulk-insert a list of elements into the set.
 insertMany :: (IsPtr a, IsPtrSet s, MonadIO m) => s a -> [a] -> m ()
@@ -110,11 +107,11 @@ insertMany s es = mapM_ (insert s) es ; {-# INLINE insertMany #-}
 --   Since the set can only contain 'Int' values,
 --   This is also equivalent to the `find` function.
 member :: (IsPtr a, IsPtrSet s, MonadIO m) => s a -> a -> m Bool
-member s e = fromCBool =<< with s (c_member $ e ^. asSomePtr) ; {-# INLINE member #-}
+member s e = fromCBool =<< with s (c_member $ convert' e) ; {-# INLINE member #-}
 
 -- | Remove an element from the set, using `std::set::erase`.
 delete :: (IsPtr a, IsPtrSet s, MonadIO m) => s a -> a -> m ()
-delete s e = with s $ c_delete $ e ^. asSomePtr ; {-# INLINE delete #-}
+delete s e = with s $ c_delete $ convert' e ; {-# INLINE delete #-}
 
 -- | Return the number of elements in the set.
 size :: (IsPtrSet s, MonadIO m) => s a -> m Int
@@ -131,7 +128,7 @@ toList s = do
     with s $ \ptr ->
         allocaArray @SomePtr n $ \arr -> do
             c_toList arr ptr
-            view (from asSomePtr) <<$>> peekArray n arr
+            convert' <<$>> peekArray n arr
 {-# INLINE toList #-}
 
 -- | Convert a list to the set.

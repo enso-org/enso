@@ -71,6 +71,16 @@ type family MergeList lst where
     MergeList '[a]      = a
     MergeList (a ': as) = Merge a (MergeList as)
 
+type Singleton k v = Layout__ '[k := v]
+
+type family SetMerge key val layout where
+    SetMerge k v (Layout__ m) = Layout__ (SetMerge__ (Map.LookupRaw k m) k v m)
+    SetMerge k v a            = SetMerge k v (ToLayout a)
+
+type family SetMerge__ oldVal key val map where
+    SetMerge__ 'Nothing  key val map = Map.InsertRaw key val map
+    SetMerge__ ('Just v) key val map = Map.InsertRaw key (Merge v val) map
+
 
 -- === Validation === --
 

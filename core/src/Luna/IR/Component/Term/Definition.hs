@@ -1,4 +1,5 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings    #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Luna.IR.Component.Term.Definition where
 
@@ -20,6 +21,7 @@ import qualified Luna.IR.Component.Term.Class        as Term
 import qualified Luna.IR.Component.Term.Construction as Term
 import qualified Luna.IR.Component.Term.Discovery    as Discovery
 import qualified Luna.IR.Term.Format                 as Format
+import qualified OCI.Data.Name                       as IR
 import qualified OCI.IR.Layout                       as Layout
 import qualified Type.Data.Map                       as TypeMap
 
@@ -65,6 +67,22 @@ instance Link.Creator m => FieldCons t (Term a) m (Link b) where
 
 
 
+type family   ExpandField self a
+type instance ExpandField self IR.Name = IR.Name
+type instance ExpandField self (LinkTo t a)
+   = Link (Layout.Get t a *-* Layout.Set Model self a)
+
+
+type family   FieldArg var field
+type instance FieldArg var IR.Name      = IR.Name
+type instance FieldArg var (LinkTo t a) = Term var
+
+type family   AddToOutput var field        layout
+type instance AddToOutput var IR.Name      layout = layout
+type instance AddToOutput var (LinkTo t a) layout = Layout.SetMerge t var layout
+
+
+
 ---------------------------
 -- === Term creation === --
 ---------------------------
@@ -85,8 +103,8 @@ instance Link.Creator m => FieldCons t (Term a) m (Link b) where
 --   @
 --       Tag.familyInstance "TermCons" "Unify"
 --       data ConsUnify a = Unify
---           { __left  :: {-# UNPACK #-} !(LinkTo Terms Unify a)
---           , __right :: {-# UNPACK #-} !(LinkTo Terms Unify a)
+--           { __left  :: {-# UNPACK #-} !(ExpandField (LinkTo Terms Unify a))
+--           , __right :: {-# UNPACK #-} !(ExpandField (LinkTo Terms Unify a))
 --           } deriving (Show, Eq)
 --       instance Discovery.IsTermTag Unify
 --       type instance Format.Of      Unify     = Format.Phrase
@@ -177,7 +195,7 @@ defineSingle needsSmartCons format termDecl = do
     lensInst      <- Lens.declareLenses (pure [termDecl'])
     storableInst  <- Storable.derive'   termDecl'
     storable1Inst <- Storable1.derive'  termDecl'
-    smartCons     <- makeSmartCons tagName fieldTypes
+    smartCons     <- makeSmartCons tagName param fieldTypes
 
     pure $ tagDecls
         <> lensInst
@@ -194,11 +212,12 @@ defineSingle needsSmartCons format termDecl = do
           maybeNameStr = fmap TH.nameBase . view maybeName
 
 expandField :: Name -> TH.Type -> TH.Type
-expandField self field = case field of
-    AppT (AppT (ConT n) t) a -> if n == ''LinkTo
-        then apps (cons' ''LinkTo__) [t, cons' self, a]
-        else field
-    _ -> field
+expandField self field = app2 (cons' ''ExpandField) (cons' self) field
+-- expandField self field = case field of
+--     AppT (AppT (ConT n) t) a -> if n == ''LinkTo
+--         then apps (cons' ''LinkTo__) [t, cons' self, a]
+--         else field
+--     _ -> field
 
 
 -- === Helpers === --
@@ -219,9 +238,9 @@ mangleFieldName sfx n = convert $ fixDuplicateRecordNamesGHCBug (convert n)
 -- === Smart constructors === --
 --------------------------------
 
-makeSmartCons :: Name -> [TH.Type] -> Q [TH.Dec]
-makeSmartCons tName fieldTypes = do
-    sigTypes <- inferSmartConsSigType tName fieldTypes
+makeSmartCons :: Name -> Name -> [TH.Type] -> Q [TH.Dec]
+makeSmartCons tName param fieldTypes = do
+    sigTypes <- inferSmartConsSigType tName param fieldTypes
     let sigType         = fst sigTypes
         genSigType      = snd sigTypes
         smartConsName   = lowerCase tName
@@ -231,56 +250,62 @@ makeSmartCons tName fieldTypes = do
         fieldNum        = length fieldTypes
     smartConsDef    <- makeSmartConsBody tName smartConsName fieldNum
     smartConsGenDef <- makeSmartConsGenBody smartConsName fieldNum
-    pure $ smartConsSig : smartConsGenSig : (smartConsDef <> smartConsGenDef)
+    -- pure $ smartConsSig : smartConsGenSig : (smartConsDef <> smartConsGenDef)
+    pure $ smartConsSig : (smartConsDef)
 
 type InputMap a = Map Name [a]
 
-inferSmartConsSigType :: Name -> [TH.Type] -> Q (TH.Type, TH.Type)
-inferSmartConsSigType name ts = do
-    m            <- TH.newName "m"
-    (ins, inMap) <- inferSmartConsTypeInputs ts
-    let inMap'    = Map.insert ''Model [cons' name] (fmap var <$> inMap)
-    let outTp     = inferSmartConsTypeOutput inMap'
-        out       = app (var m) outTp
-        sig       = arrows $ ins <> [out]
-        ctx       = [app2 (cons' ''Term.Creator) (cons' name) (var m)]
-        tvs       = TH.PlainTV <$> (m : concat (Map.elems inMap))
+inferSmartConsSigType :: Name -> Name -> [TH.Type] -> Q (TH.Type, TH.Type)
+inferSmartConsSigType name param fields = do
+    tvs <- mapM (const $ TH.newName "t") fields
+    mtv <- TH.newName "m"
+    let ins   = zipWith (app2 (cons' ''FieldArg) . var :: Name -> TH.Type -> TH.Type) tvs fields
+        outTp = inferSmartConsTypeOutput name $ zip tvs fields
+        out   = app (var mtv) outTp
+        inSig = arrows $ ins <> [out]
+        ctx   = [app2 (cons' ''Term.Creator) (cons' name) (var mtv)]
+        ptvs  = TH.PlainTV <$> (param : tvs <> [mtv])
+        sig   = TH.ForallT ptvs ctx inSig
 
-    genOutName <- newName "out"
-    let genOut = app (var m) (var genOutName)
-        genSig = arrows $ ins <> [genOut]
-        genCtx = app2 (cons' ''Layout.Relayout) outTp (var genOutName) : ctx
-        genTvs = TH.PlainTV genOutName : tvs
+    -- genOutName <- newName "out"
+    -- let genOut = app (var m) (var genOutName)
+    --     genSig = arrows $ ins <> [genOut]
+    --     genCtx = app2 (cons' ''Layout.Relayout) outTp (var genOutName) : ctx
+    --     genTvs = TH.PlainTV genOutName : tvs
 
-    let sigType    = TH.ForallT tvs ctx sig
-        genSigType = TH.ForallT genTvs genCtx genSig
+    --     genSigType = TH.ForallT genTvs genCtx genSig
 
-    pure (sigType, genSigType)
+    pure (sig, undefined)
 
 arrows :: [TH.Type] -> TH.Type
 arrows ts = foldl (flip arrow) a as where
     arrow a b = AppT (AppT TH.ArrowT a) b
     (a:as)    = reverse ts
 
+-- inferSmartConsTypeInputs :: [TH.Type] -> Q ([TH.Type], InputMap Name)
+-- inferSmartConsTypeInputs fields = State.runT (mapM inferSmartConsTypeInput fields)
+--                               mempty
 
-inferSmartConsTypeInputs :: [TH.Type] -> Q ([TH.Type], InputMap Name)
-inferSmartConsTypeInputs ts = State.runT (mapM inferSmartConsTypeInput ts)
-                              mempty
+-- inferSmartConsTypeInput :: Name -> TH.Type -> TH.Type
+-- inferSmartConsTypeInput name field = app2 (cons' ''FieldArg) (var name) field
 
-inferSmartConsTypeInput :: TH.Type -> StateT (InputMap Name) Q TH.Type
-inferSmartConsTypeInput field = case field of
-    AppT (AppT (ConT n) (ConT t)) a -> if n /= ''LinkTo
-        then pure field
-        else do
-            tvName <- lift $ TH.newName "t"
-            State.modify_ @(InputMap Name) $ Map.insertWith (<>) t [var tvName]
-            pure $ app (cons' ''Term) (var tvName)
-    t -> pure t
+    -- case field of
+    -- AppT (AppT (ConT n) (ConT t)) a -> if n /= ''LinkTo
+    --     then pure field
+    --     else do
+    --         State.modify_ @(InputMap Name) $ Map.insertWith (<>) t [var tvName]
+    --         pure $ app (cons' ''Term) (var tvName)
+    -- t -> pure t
 
-inferSmartConsTypeOutput :: InputMap TH.Type -> TH.Type
-inferSmartConsTypeOutput map = app (cons' ''Term) layout where
-    assocs = uncurry inferSmartConsTypeOutputField <$> Map.assocs map
-    layout = app (cons' ''Layout) $ fromList assocs
+inferSmartConsTypeOutput :: Name -> [(Name,TH.Type)] -> TH.Type
+inferSmartConsTypeOutput tag ins = app (cons' ''Term) layout where
+    layout = foldr ($) base (uncurry apply <$> ins)
+    apply  = app3 (cons' ''AddToOutput) . var
+    base   = app2 (cons' ''Layout.Singleton) (cons' ''Model) (cons' tag)
+    -- empty  = app  (cons' ''Layout) $ fromList []
+
+    -- type family AddToOutput tvar field layout
+
 
 inferSmartConsTypeOutputField :: Name -> [TH.Type] -> TH.Type
 inferSmartConsTypeOutputField k vs = field where

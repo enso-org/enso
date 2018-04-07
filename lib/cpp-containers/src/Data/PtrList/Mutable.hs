@@ -8,10 +8,12 @@
 --
 -----------------------------------------------------------------------------
 
-{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE TupleSections        #-}
+{-# LANGUAGE UndecidableInstances #-}
+
 module Data.PtrList.Mutable where
 
-import Prologue hiding (length, null, unsafeHead, unsafeLast)
+import Prologue hiding (length, null, toList, unsafeHead, unsafeLast)
 
 import Control.Monad          ((<=<))
 import Control.Monad.IO.Class
@@ -22,20 +24,11 @@ import Foreign.Marshal.Array
 import Foreign.Ptr
 import Foreign.Ptr.Utils
 import Foreign.Storable       (Storable)
-
-
-
--- class IsPtr a where
---     asSomePtr :: Iso' a SomePtr
---     default asSomePtr :: Coercible a SomePtr => Iso' a SomePtr
---     asSomePtr = iso coerce coerce ; {-# INLINE asSomePtr #-}
-
--- instance IsPtr (Ptr a)
+import System.IO.Unsafe       (unsafePerformIO)
 
 
 type IsPtr a = BiConvertible' SomePtr a
 
--- instance Convertible
 
 ---------------------------------------------------
 -- === Newtype wrappers for the list pointers === --
@@ -95,10 +88,6 @@ foreign import ccall unsafe "c_list_null"
 -- | A utility function for easily using the C calls that use `Ptr ()` with the UnmanagedPtrList x.
 with :: (IsPtrList t, MonadIO m) => t a -> (UnmanagedPtrList a -> IO b) -> m b
 with s f = liftIO $ withIO s f ; {-# INLINE with #-}
-
--- -- | A utility function to perform a foreign C call on the list and pure the resulting list.
--- map :: (IsPtrList t, MonadIO m) => UnmanagedPtrList x -> (UnmanagedPtrList -> IO a) -> m UnmanagedPtrList x
--- map s f = with s f >> pure s ; {-# INLINE map #-}
 
 -- | A utility for wrapping unsafe indexing calls
 whenNonEmpty :: (IsPtrList t, MonadIO m) => (t a -> m b) -> t a -> m (Maybe b)
@@ -191,42 +180,11 @@ fromList es = do
     pure t
 {-# INLINE fromList #-}
 
--- -- | Deconstruct the list into the first element and the rest.
--- --   Safe call: will pure Maybe.
--- uncons :: (IsPtrList t, MonadIO m) => UnmanagedPtrList x -> m (Maybe (Int, [Int]))
--- uncons l = do
---     -- TODO[piotrMocz]: it's not necessary to compute `tl` if hd is `Nothing`.
---     hd <- popFront l
---     tl <- Just <$> toList l
---     pure $ (,) <$> hd <*> tl
--- {-# INLINE uncons #-}
-
--- init, tail :: (IsPtrList t, MonadIO m) => UnmanagedPtrList x -> m UnmanagedPtrList x
--- init l = popBack l >> pure l   ; {-# INLINE init #-}
--- tail l = popFront l >> pure l  ; {-# INLINE tail #-}
-
--- initSafe, tailSafe :: (IsPtrList t, MonadIO m) => UnmanagedPtrList x -> m (Maybe UnmanagedPtrList x)
--- initSafe = whenNonEmpty init        ; {-# INLINE initSafe #-}
--- tailSafe = whenNonEmpty tail        ; {-# INLINE tailSafe #-}
-
--- ---------------------
--- -- === Aliases === --
--- ---------------------
-
--- cons :: (IsPtrList t, MonadIO m) => Int -> UnmanagedPtrList x -> m UnmanagedPtrList x
--- cons el l = pushFront l el >> pure l
--- {-# INLINE cons #-}
-
--- head, last :: (IsPtrList t, MonadIO m) => UnmanagedPtrList x -> m Int
--- head = unsafeHead ;  {-# INLINE head #-}
--- last = backUnsafe  ;  {-# INLINE last #-}
-
--- headSafe, lastSafe :: (IsPtrList t, MonadIO m) => UnmanagedPtrList x -> m (Maybe Int)
--- headSafe = front   ;  {-# INLINE headSafe #-}
--- lastSafe = back    ;  {-# INLINE lastSafe #-}
-
 
 -- === Instances ===  --
+
+instance (IsPtr a, Show a) => Show (UnmanagedPtrList a) where
+    show = show . unsafePerformIO . toList
 
 instance IsPtrList UnmanagedPtrList where
     newIO        = c_new ; {-# INLINE newIO  #-}

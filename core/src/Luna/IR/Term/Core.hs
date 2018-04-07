@@ -21,6 +21,11 @@ import OCI.Data.Name                     (Name)
 import Type.Data.Ord                     (Cmp)
 
 
+import Data.PtrList.Mutable (UnmanagedPtrList)
+
+type List = UnmanagedPtrList
+
+
 
 ----------------
 -- === IR === --
@@ -32,7 +37,8 @@ import Type.Data.Ord                     (Cmp)
 -- === IR Atoms === ---
 
 Term.defineNoSmartCons ''Format.Value [d|
-    data Top a = Top
+    data Top  a = Top
+    -- data Cons a = Cons { name :: Name, args :: List (LinkTo Terms a)}
     |]
 
 Term.define ''Format.Thunk [d|

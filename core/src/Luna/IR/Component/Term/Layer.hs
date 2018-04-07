@@ -12,22 +12,20 @@ import qualified Foreign.Storable             as Storable
 import qualified Foreign.Storable.Utils       as Storable
 import qualified Foreign.Storable1            as Storable1
 import qualified Foreign.Storable1.Deriving   as Storable1
+import qualified Luna.IR.Component.Link.Class as Link
 import qualified Luna.IR.Component.Term.Class as Term
 import qualified Luna.IR.Term.Format          as Format
 import qualified OCI.IR.Component             as Component
 import qualified OCI.IR.Layer                 as Layer
 import qualified OCI.IR.Layout                as Layout
 
-import Data.PtrSet.Mutable          (IsPtr, UnmanagedPtrSet)
+import Data.PtrSet.Mutable          (UnmanagedPtrSet)
 import Data.Set.Mutable.Class       (Set)
 import Foreign.Storable             (Storable)
 import Foreign.Storable1            (Storable1)
-import Luna.IR.Component.Link.Class (type (*-*), Link)
+import Luna.IR.Component.Link.Class (type (*-*), Link, Links)
 import Luna.IR.Component.Term.Class (Term, Terms)
 
-
--- TODO: refactor
-instance IsPtr (Link l)
 
 
 -------------------
@@ -76,9 +74,8 @@ instance Layer.Initializer   Type
 -------------------
 
 data Users
-type instance Layer.Cons   Users = UnmanagedPtrSet
-type instance Layer.Layout Users layout
-   = Link (layout *-* Layout.Set Model () layout)
-
+type instance Layer.Cons   Users = Link.Set
+type instance Layer.Layout Users layout = layout *-* Layout.Set Model () layout
 instance Layer.Initializer Users where
-    initDynamic = Just PtrSet.new ; {-# INLINE initDynamic #-}
+    initDynamic = Just (wrap <$> PtrSet.new) ; {-# INLINE initDynamic #-}
+

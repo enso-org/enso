@@ -49,7 +49,6 @@ type instance Cmp Target Source = 'GT
 -- === HasLinks === --
 ----------------------
 
-
 class HasLinks a where
     readLinksIO :: a -> IO [SomeLink]
 
@@ -61,3 +60,11 @@ instance HasLinks (Link a) where
 
 instance HasLinks Int where
     readLinksIO _ = pure mempty ; {-# INLINE readLinksIO #-}
+
+
+
+------------------------
+-- === Components === --
+------------------------
+
+type Set = Component.Set Links
