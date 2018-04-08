@@ -38,6 +38,7 @@ import Luna.Pass                         (Pass)
 import Luna.Syntax.Text.Parser.Class     as X (Error)
 import Luna.Syntax.Text.Parser.Class     (Stream)
 import Luna.Syntax.Text.Parser.CodeSpan  (CodeSpan, CodeSpanRange)
+import Luna.Syntax.Text.Parser.Errors    (Invalids)
 import Luna.Syntax.Text.Parser.Hardcoded (hardcode)
 import Luna.Syntax.Text.Parser.Loc       (LeftSpanner)
 import Luna.Syntax.Text.Parser.Marker    (MarkedExprMap, MarkerState,
@@ -46,7 +47,6 @@ import Luna.Syntax.Text.Parser.Reserved  (Reservation)
 import Luna.Syntax.Text.Scope            (Scope)
 import Text.Megaparsec                   (ParseError, ParsecT)
 
--- import           Luna.Syntax.Text.Parser.Errors   (Invalids)
 
 -- import qualified Luna.Syntax.Text.Parser.Reserved as Reserved
 
@@ -88,8 +88,7 @@ runParserT p s = flip runParserInternal s
 data Parser
 type instance Pass.Spec Parser t = TestPassSpec t
 type family   TestPassSpec  t where
-    TestPassSpec (Pass.In  Pass.Attrs) = '[]
-    TestPassSpec (Pass.In  Pass.Attrs) = '[]
+    TestPassSpec (Pass.In  Pass.Attrs) = '[Invalids]
     TestPassSpec (Pass.In  IR.Terms)   = CodeSpan
                                       ': Pass.BasicPassSpec (Pass.In IR.Terms)
     TestPassSpec (Pass.Out t)          = TestPassSpec (Pass.In t)
@@ -174,8 +173,8 @@ type AsgParser a = SymParser (AsgBldr a)
 -- withIRx2 :: (forall m. IRBuilding m => m SomeExpr -> m SomeExpr) -> IRB SomeExpr -> IRB SomeExpr
 -- withIRx2 f (IRB a) = IRB $ f a
 
--- withAsgBldr :: (forall m. IRBuilding m => m a -> m b) -> AsgBldr a -> AsgBldr b
--- withAsgBldr f (AsgBldr ir) = AsgBldr $ withIRx f ir
+withAsgBldr :: (IRB a -> IRB b) -> AsgBldr a -> AsgBldr b
+withAsgBldr f (AsgBldr ir) = AsgBldr $ f ir
 
 -- runIRBx :: IRB a -> (forall m. IRBuilding m => m a)
 -- runIRBx (IRB f) = f

@@ -25,6 +25,7 @@ import Luna.Syntax.Text.Parser.Reserved (Reservation)
 import Text.Megaparsec.Error            (ErrorItem, ParseError)
 import Text.Megaparsec.Prim             (MonadParsec, token)
 -- -- import           OCI.IR                           (Name)
+import Text.Megaparsec (withRecovery)
 
 import Data.Text.Position            (Delta)
 import Data.Text.Position            (FileOffset)
@@ -158,20 +159,20 @@ updatePositions t = do
         _              -> State.put @LeftSpanner (wrap off) >> Pos.incColumn (len + off)
 
 
--- -- FIXME[WD]: This is just a hack. We store file offset and last spacing in Megaparsec's file position datatype,
--- --            because we cannot implement recovery other way around now. After running with recovery function, our custom position
--- --            is defaulted to the one before error happened, which is incorrect.
--- withRecovery2 :: (MonadParsec e Stream m, MonadLoc m) => (ParseError Tok e -> m a) -> m a -> m a
--- withRecovery2 f ma = do
---     pos  <- Parser.getPosition
---     out  <- withRecovery f ma
---     pos' <- Parser.getPosition
---     modify_ @FileOffset (+ convert (unsafeConvertTo @Int $ Parser.unPos (Parser.sourceColumn pos') - Parser.unPos (Parser.sourceColumn pos)))
---     put @LeftSpanner $ wrap (convert $ unsafeConvertTo @Int $ Parser.unPos (Parser.sourceLine pos') - 1)
---     return out
+-- FIXME[WD]: This is just a hack. We store file offset and last spacing in Megaparsec's file position datatype,
+--            because we cannot implement recovery other way around now. After running with recovery function, our custom position
+--            is defaulted to the one before error happened, which is incorrect.
+withRecovery2 :: (MonadParsec e Stream m, MonadLoc m) => (ParseError Tok e -> m a) -> m a -> m a
+withRecovery2 f ma = do
+    pos  <- Parser.getPosition
+    out  <- withRecovery f ma
+    pos' <- Parser.getPosition
+    State.modify_ @FileOffset (+ convert (unsafeConvertTo @Int $ Parser.unPos (Parser.sourceColumn pos') - Parser.unPos (Parser.sourceColumn pos)))
+    State.put @LeftSpanner $ wrap (convert $ unsafeConvertTo @Int $ Parser.unPos (Parser.sourceLine pos') - 1)
+    return out
 
--- updateLineAndCol :: (MonadParsec e Stream m, MonadLoc m) => Lexer.Token Lexer.Symbol -> m ()
--- updateLineAndCol t = do
---     incColumn (t ^. Lexer.span)
---     when ((t ^. Lexer.element) == Lexer.EOL) $ succLine
---     incColumn (t ^. Lexer.offset)
+updateLineAndCol :: (MonadParsec e Stream m, MonadLoc m) => Lexer.Token Lexer.Symbol -> m ()
+updateLineAndCol t = do
+    Pos.incColumn (t ^. Lexer.span)
+    when ((t ^. Lexer.element) == Lexer.EOL) $ Pos.succLine
+    Pos.incColumn (t ^. Lexer.offset)

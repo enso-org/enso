@@ -20,26 +20,23 @@ import Luna.Syntax.Text.Layer.Loc
 -- import OCI.Pass.Definition
 
 -- import Data.Container.Mono
+import qualified Luna.IR        as IR
+import qualified Luna.Pass.Attr as Attr
 
 
--- ---------------------------
--- -- === Invalids attr === --
--- ---------------------------
+---------------------------
+-- === Invalids attr === --
+---------------------------
 
--- -- === Definition === --
+-- === Definition === --
 
--- newtype Invalids = Invalids [Expr Invalid] deriving (Show, Default, Mempty, Semigroup)
--- makeLenses ''Invalids
+newtype Invalids = Invalids [IR.SomeTerm]
+    deriving (Show, Default, Mempty, Semigroup)
+type instance Attr.Type Invalids = Attr.Atomic
+makeLenses ''Invalids
 
 
 -- -- === Utils === --
 
--- registerInvalid :: Editor Attr Invalids m => Expr Invalid -> m ()
--- registerInvalid = modifyAttr_ @Invalids . (<|)
-
-
--- -- === Instances === --
-
--- type instance Item Invalids = Expr Invalid
--- instance Prependable Invalids where
---     prepend t = wrapped %~ (t:)
+register :: Attr.Editor Invalids m => IR.SomeTerm -> m ()
+register t = Attr.modify_ @Invalids $ wrapped %~ (t:) ; {-# INLINE register #-}

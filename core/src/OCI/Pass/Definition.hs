@@ -257,9 +257,9 @@ putAttrValue        = putData @(AttrValue a) . wrap              ; {-# INLINE pu
 -- === Instances === --
 
 instance AttrValueGetter attr (Pass pass)
-      => Attr.Reader attr (Pass pass) where
-    read = unsafeCoerce <$> getAttrValue @attr ; {-# INLINE read #-}
+      => Attr.RawGetter attr (Pass pass) where
+    getRaw = unsafeCoerce <$> getAttrValue @attr ; {-# INLINE getRaw #-}
 
 instance AttrValueSetter attr (Pass pass)
-      => Attr.Writer attr (Pass pass) where
-    write = putAttrValue @attr . unsafeCoerce ; {-# INLINE write #-}
+      => Attr.RawSetter attr (Pass pass) where
+    putRaw = putAttrValue @attr . unsafeCoerce ; {-# INLINE putRaw #-}

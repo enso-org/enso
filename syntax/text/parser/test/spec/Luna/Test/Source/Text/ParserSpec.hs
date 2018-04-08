@@ -32,6 +32,7 @@ import Data.Text.Position               (Delta)
 import Luna.IR.Component.Link           (type (*-*), Link)
 import Luna.Pass                        (Pass)
 import Luna.Syntax.Text.Parser.CodeSpan (CodeSpan)
+import Luna.Syntax.Text.Parser.Errors   (Invalids)
 import Luna.Syntax.Text.Parser.Parser   (Parser)
 import Luna.Syntax.Text.Scope           (Scope)
 import Test.Hspec                       (Expectation, Spec, describe, it)
@@ -51,6 +52,8 @@ runPass = runPasses . pure
 runPasses :: ∀ pass. OnDemandPass pass => [Pass pass ()] -> IO ()
 runPasses passes = Scheduler.runManual reg $ do
     for_ passes $ \pass -> do
+        Scheduler.registerAttr     @Invalids
+        Scheduler.enableAttrByType @Invalids
         Scheduler.registerPassFromFunction__ pass
         Scheduler.runPassByType @pass
     where reg = do

@@ -18,9 +18,9 @@ import Data.Vector.Storable.Foreign (Vector)
 
 Term.define ''Format.Value [d|
     data Number a = Number
-        { _base     :: Word8
-        , _intPart  :: Vector Word8
-        , _fracPart :: Vector Word8
+        { base     :: Word8
+        , intPart  :: Vector Word8
+        , fracPart :: Vector Word8
         }
     |]
 

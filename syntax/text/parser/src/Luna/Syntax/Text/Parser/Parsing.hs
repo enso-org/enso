@@ -67,7 +67,6 @@ import Text.Megaparsec.Error (parseErrorPretty, parseErrorTextPretty)
 -- import qualified Luna.IR.Term.Literal  as Literal
 -- import qualified Luna.IR.Term.Literal  as Num
 -- import           Text.Parser.Indent (Indent, indentation)
--- import Luna.Syntax.Text.Parser.Marker (MarkerState, MarkerId, MarkedExprMap, UnmarkedExprs, addMarkedExpr, addUnmarkedExpr, getLastTokenMarker, useLastTokenMarker)
 -- import qualified Text.Parser.Indent as Indent
 -- import Control.Monad.State.Dependent
 -- import Text.Parser.Combinators
@@ -100,6 +99,7 @@ import Text.Megaparsec.Error (parseErrorPretty, parseErrorTextPretty)
 -- import           Data.Text32 (Text32)
 -- import qualified Data.Text32 as Text32
 -- import qualified Data.Text as Text
+import Text.Parser.Combinators
 
 import qualified Control.Monad.State.Layered      as State
 import qualified Data.Char                        as Char
@@ -111,21 +111,30 @@ import qualified Luna.IR.Layer                    as Layer
 import qualified Luna.Syntax.Text.Lexer           as Lexer
 import qualified Luna.Syntax.Text.Lexer.Symbol    as Lexer
 import qualified Luna.Syntax.Text.Parser.CodeSpan as CodeSpan
+import qualified Luna.Syntax.Text.Parser.Errors   as Invalid
 import qualified Luna.Syntax.Text.Parser.Marker   as Marker
 import qualified Luna.Syntax.Text.Parser.Reserved as Reserved
+import qualified OCI.IR.Layout                    as Layout
 
 import Data.Text.Position               (FileOffset (..))
 import Data.Text.Position               (Delta)
+import Data.Text32                      (Text32)
 import Luna.IR                          (Term)
 import Luna.Pass                        (Pass)
 import Luna.Syntax.Text.Parser.CodeSpan (CodeSpan (CodeSpan),
                                          CodeSpanRange (..))
-import Luna.Syntax.Text.Parser.Loc      (LeftSpanner (LeftSpanner), token')
+import Luna.Syntax.Text.Parser.Loc      (LeftSpanner (LeftSpanner), token',
+                                         withRecovery2)
+import Luna.Syntax.Text.Parser.Marker   (MarkedExprMap, MarkerId, MarkerState,
+                                         UnmarkedExprs, addMarkedExpr,
+                                         addUnmarkedExpr, getLastTokenMarker,
+                                         useLastTokenMarker)
 import Luna.Syntax.Text.Parser.Marker   (MarkedExprMap, UnmarkedExprs)
 import Luna.Syntax.Text.Parser.Parser   (AsgBldr (AsgBldr, fromAsgBldr),
                                          AsgParser, IRB, Parser, SymParser,
-                                         runParserT)
+                                         runParserT, withAsgBldr)
 import OCI.Data.Name                    (Name)
+import Text.Megaparsec.Ext              (expected)
 
 
 -- TODO: Can we do better?
@@ -154,21 +163,21 @@ satisfy  f = token' testSymbol Nothing where
             Just a  -> Right a
             Nothing -> Left (Set.singleton (Tokens (t:|[])), Set.empty, Set.empty)
 
--- satisfyReserved' :: (Symbol -> Bool)    -> SymParser Symbol
--- satisfyReserved_ :: (Symbol -> Bool)    -> SymParser ()
--- satisfyReserved  :: (Symbol -> Maybe a) -> SymParser a
--- satisfyReserved_ f = void $ satisfyReserved' f
--- satisfyReserved' f = satisfyReserved $ \s -> justIf (f s) s
--- satisfyReserved  f = token' testSymbol Nothing where
---     testSymbol r t = case f (t ^. Lexer.element) of
---         Just a  -> Right a
---         Nothing -> Left (Set.singleton (Tokens (t:|[])), Set.empty, Set.empty)
+satisfyReserved' :: (Lexer.Symbol -> Bool)    -> SymParser Lexer.Symbol
+satisfyReserved_ :: (Lexer.Symbol -> Bool)    -> SymParser ()
+satisfyReserved  :: (Lexer.Symbol -> Maybe a) -> SymParser a
+satisfyReserved_ f = void $ satisfyReserved' f
+satisfyReserved' f = satisfyReserved $ \s -> justIf (f s) s
+satisfyReserved  f = token' testSymbol Nothing where
+    testSymbol r t = case f (t ^. Lexer.element) of
+        Just a  -> Right a
+        Nothing -> Left (Set.singleton (Tokens (t:|[])), Set.empty, Set.empty)
 
 symbol :: Lexer.Symbol -> SymParser ()
 symbol = satisfy_ . (==)
 
--- anySymbol :: SymParser Symbol
--- anySymbol = satisfyReserved' $ const True
+anySymbol :: SymParser Lexer.Symbol
+anySymbol = satisfyReserved' $ const True
 
 -- dropNextToken :: SymParser ()
 -- dropNextToken = satisfyReserved_ $ const True
@@ -328,22 +337,23 @@ buildAsgF2 p = uncurry (fmap2 . buildAsgFromSpan) <$> spanned p
 -- -- === Errors === --
 -- --------------------
 
--- invalid :: Text32 -> IRB SomeTerm
--- invalid txt = id $ do
---     inv <- IR.invalid txt
---     registerInvalid inv
---     pure $ generalize inv
+invalid :: Text32 -> IRB SomeTerm
+invalid txt = id $ do
+    inv <- IR.invalid' $ convertVia @String txt -- FIXME: performance
+    Invalid.register inv
+    pure $ Layout.relayout inv
 
--- invalidSymbol :: (Symbol -> Text32) -> AsgParser SomeTerm
--- invalidSymbol f = buildAsg $ invalid . f <$> anySymbol
+invalidSymbol :: (Lexer.Symbol -> Text32) -> AsgParser SomeTerm
+invalidSymbol f = buildAsg $ invalid . f <$> anySymbol
 
--- catchParseErrors :: SymParser a -> SymParser (Either P.String a)
--- catchParseErrors p = withRecovery2 (pure . Left . parseErrorTextPretty) (Right <$> p)
+catchParseErrors :: SymParser a -> SymParser (Either String a)
+catchParseErrors p = withRecovery2 (pure . Left . parseErrorTextPretty) (Right <$> p)
 
--- catchInvalidWith :: HasCallStack => (LeftSpacedSpan Delta -> LeftSpacedSpan Delta) -> (AsgBldr SomeTerm -> a) -> SymParser a -> SymParser a
--- catchInvalidWith spanf f p = undefined -- do
---     -- (span, result) <- spanned $ catchParseErrors p
---     -- pure $ flip fromRight result $ f . buildAsgFromSpan (spanf span) . invalid . convert
+catchInvalidWith :: HasCallStack => (Span.LeftSpacedSpan -> Span.LeftSpacedSpan)
+                 -> (AsgBldr SomeTerm -> a) -> SymParser a -> SymParser a
+catchInvalidWith spanf f p = undefined -- do
+    -- (span, result) <- spanned $ catchParseErrors p
+    -- pure $ flip fromRight result $ f . buildAsgFromSpan (spanf span) . invalid . convert
 
 
 
@@ -351,27 +361,30 @@ buildAsgF2 p = uncurry (fmap2 . buildAsgFromSpan) <$> spanned p
 -- -- === Markers === --
 -- ---------------------
 
--- markerIRB :: SymParser (MarkerId, AsgBldr SomeTerm)
--- markerIRB = useLastTokenMarker >>= \case
---     Nothing -> expected "marker"
---     Just t  -> do
---         crange <- unwrap <$> get @CodeSpanRange
---         foEnd  <- unwrap <$> get @FileOffset
---         let markerLen  = t ^. Lexer.span
---             markerOffR = t ^. Lexer.offset
---             markerOffL = foEnd - crange - markerLen - markerOffR
---             markerSpan = leftSpacedSpan markerOffL markerLen
---         modify_ @CodeSpanRange $ wrapped .~ foEnd
---         pure $ (t ^. Lexer.element, buildAsgFromSpan (CodeSpan.mkPhantomSpan markerSpan) (id $ IR.marker' $ t ^. Lexer.element))
+markerIRB :: SymParser (MarkerId, AsgBldr SomeTerm)
+markerIRB = useLastTokenMarker >>= \case
+    Nothing -> expected "marker"
+    Just t  -> do
+        crange <- unwrap <$> State.get @CodeSpanRange
+        foEnd  <- unwrap <$> State.get @FileOffset
+        let markerLen  = t ^. Lexer.span
+            markerOffR = t ^. Lexer.offset
+            markerOffL = foEnd - crange - markerLen - markerOffR
+            markerSpan = Span.leftSpacedSpan markerOffL markerLen
+        State.modify_ @CodeSpanRange $ wrapped .~ foEnd
+        pure $ ( t ^. Lexer.element
+               , buildAsgFromSpan (CodeSpan.mkPhantomSpan markerSpan)
+                                  (id $ IR.marker' $ t ^. Lexer.element)
+               )
 
--- marked :: SymParser (AsgBldr SomeTerm -> AsgBldr SomeTerm)
--- marked = option registerUnmarkedExpr $ uncurry markedExpr <$> markerIRB where
---     markedExpr mid expr = registerMarkedExpr mid . inheritCodeSpan2 (liftIRB2 IR.marked') expr
+marked :: SymParser (AsgBldr SomeTerm -> AsgBldr SomeTerm)
+marked = option registerUnmarkedExpr $ uncurry markedExpr <$> markerIRB where
+    markedExpr mid expr = registerMarkedExpr mid . inheritCodeSpan2 (IR.marked') expr
 
--- registerUnmarkedExpr ::             AsgBldr SomeTerm -> AsgBldr SomeTerm
--- registerMarkedExpr   :: MarkerId -> AsgBldr SomeTerm -> AsgBldr SomeTerm
--- registerUnmarkedExpr = withAsgBldr (>>~ addUnmarkedExpr)
--- registerMarkedExpr m = withAsgBldr (>>~ addMarkedExpr m)
+registerUnmarkedExpr ::             AsgBldr SomeTerm -> AsgBldr SomeTerm
+registerMarkedExpr   :: MarkerId -> AsgBldr SomeTerm -> AsgBldr SomeTerm
+registerUnmarkedExpr = withAsgBldr (>>~ addUnmarkedExpr)
+registerMarkedExpr m = withAsgBldr (>>~ addMarkedExpr m)
 
 
 
@@ -392,17 +405,6 @@ groupBegin, groupEnd :: SymParser ()
 groupBegin = symbol $ Lexer.Group Lexer.Begin
 groupEnd   = symbol $ Lexer.Group Lexer.End
 
-
--- -- === Instances === --
-
--- instance Convertible Lexer.Number Literal.Number where
---     convert (Lexer.NumRep base i f e) = Literal.Number (convert base) (convert i) (convert f) (convert e)
-
--- instance Convertible Lexer.Numbase Num.Base where
---     convert = \case Lexer.Dec -> Num.Dec
---                     Lexer.Bin -> Num.Bin
---                     Lexer.Oct -> Num.Oct
---                     Lexer.Hex -> Num.Hex
 
 
 ----------------------------
