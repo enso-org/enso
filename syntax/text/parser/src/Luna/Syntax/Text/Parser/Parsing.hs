@@ -4,7 +4,7 @@
 
 module Luna.Syntax.Text.Parser.Parsing where
 
-import Prologue
+import Prologue hiding (seq)
 
 -- import Prologue_old hiding (Cons, String, Type, Symbol, UniSymbol, (|>), (<|), cons, seq, span, op)
 -- import qualified Prologue_old as P
@@ -23,7 +23,7 @@ import Text.Megaparsec.Prim  (MonadParsec)
 -- import qualified Text.Megaparsec.Char  as Charhiding (eol)
 
 -- import qualified Luna.IR as IR
--- import           Luna.IR hiding (typed, unify, accSection, leftSection, rightSection, unit', match, list, tuple, clause, Atom, State, IRB, number, string, var, expr, app, acc, grouped, blank, get, put, modify_, cons, lam, seq, function, withIR, fieldLens, clsASG, unit, imp, impSrc, impHub, invalid, marker, marked, metadata, disabled, documented)
+-- import           Luna.IR hiding (typed, unify, accSection, sectionLeft, sectionRight, unit', match, list, tuple, clause, Atom, State, IRB, number, string, var, expr, app, acc, grouped, blank, get, put, modify_, cons, lam, seq, function, withIR, fieldLens, clsASG, unit, imp, impSrc, impHub, invalid, marker, marked, metadata, disabled, documented)
 -- import Luna.IR.ToRefactor
 -- import OCI.Pass.Class hiding (get, put, modify_)
 -- import OCI.Pass.Definition
@@ -101,24 +101,29 @@ import Luna.Syntax.Text.Parser.Class (Stream)
 -- import qualified Data.Text as Text
 import Text.Parser.Combinators
 
-import qualified Control.Monad.State.Layered      as State
-import qualified Data.Char                        as Char
-import qualified Data.Set                         as Set
-import qualified Data.Text.Span                   as Span
-import qualified Data.Text32                      as Text32
-import qualified Luna.IR                          as IR
-import qualified Luna.IR.Layer                    as Layer
-import qualified Luna.Syntax.Text.Lexer           as Lexer
-import qualified Luna.Syntax.Text.Lexer.Symbol    as Lexer
-import qualified Luna.Syntax.Text.Parser.CodeSpan as CodeSpan
-import qualified Luna.Syntax.Text.Parser.Errors   as Invalid
-import qualified Luna.Syntax.Text.Parser.Marker   as Marker
-import qualified Luna.Syntax.Text.Parser.Reserved as Reserved
-import qualified OCI.IR.Layout                    as Layout
+import qualified Control.Monad.State.Layered       as State
+import qualified Data.Char                         as Char
+import qualified Data.Set                          as Set
+import qualified Data.Text.Span                    as Span
+import qualified Data.Text32                       as Text32
+import qualified Language.Symbol                   as Symbol
+import qualified Luna.IR                           as IR
+import qualified Luna.IR.Layer                     as Layer
+import qualified Luna.Syntax.Text.Lexer            as Lexer
+import qualified Luna.Syntax.Text.Lexer.Symbol     as Lexer
+import qualified Luna.Syntax.Text.Parser.CodeSpan  as CodeSpan
+import qualified Luna.Syntax.Text.Parser.Errors    as Invalid
+import qualified Luna.Syntax.Text.Parser.Hardcoded as Builtin
+import qualified Luna.Syntax.Text.Parser.Marker    as Marker
+import qualified Luna.Syntax.Text.Parser.Name      as Name
+import qualified Luna.Syntax.Text.Parser.Reserved  as Reserved
+import qualified OCI.IR.Layout                     as Layout
+import qualified Text.Parser.Expr                  as Expr
 
 import Data.Text.Position               (FileOffset (..))
 import Data.Text.Position               (Delta)
 import Data.Text32                      (Text32)
+import Language.Symbol                  (Labeled (Labeled), UniSymbol)
 import Luna.IR                          (Term)
 import Luna.Pass                        (Pass)
 import Luna.Syntax.Text.Parser.CodeSpan (CodeSpan (CodeSpan),
@@ -131,12 +136,12 @@ import Luna.Syntax.Text.Parser.Marker   (MarkedExprMap, MarkerId, MarkerState,
                                          addUnmarkedExpr, getLastTokenMarker,
                                          useLastTokenMarker)
 import Luna.Syntax.Text.Parser.Marker   (MarkedExprMap, UnmarkedExprs)
+import Luna.Syntax.Text.Parser.Name     (SpacedName)
 import Luna.Syntax.Text.Parser.Parser   (AsgBldr (AsgBldr, fromAsgBldr),
                                          AsgParser, IRB, Parser, SymParser,
                                          runParserT, withAsgBldr)
 import OCI.Data.Name                    (Name)
 import Text.Megaparsec.Ext              (expected)
-
 
 -- TODO: Can we do better?
 instance Convertible Text32.Text32 Name where
@@ -223,18 +228,18 @@ liftIRBApp3 f mt1 mt2 mt3         = do { t1 <- mt1; t2 <- mt2; t3 <- mt3; f t1 t
 liftIRBApp4 f mt1 mt2 mt3 mt4     = do { t1 <- mt1; t2 <- mt2; t3 <- mt3; t4 <- mt4; f t1 t2 t3 t4               } ; {-# INLINE liftIRBApp4 #-}
 liftIRBApp5 f mt1 mt2 mt3 mt4 mt5 = do { t1 <- mt1; t2 <- mt2; t3 <- mt3; t4 <- mt4; t5 <- mt5; f t1 t2 t3 t4 t5 } ; {-# INLINE liftIRBApp5 #-}
 
--- liftAstApp0 :: (                              Pass Parser out) -> IRB out
--- liftAstApp1 :: (t1                         -> Pass Parser out) -> AsgBldr t1 -> IRB out
--- liftAstApp2 :: (t1 -> t2                   -> Pass Parser out) -> AsgBldr t1 -> AsgBldr t2 -> IRB out
--- liftAstApp3 :: (t1 -> t2 -> t3             -> Pass Parser out) -> AsgBldr t1 -> AsgBldr t2 -> AsgBldr t3 -> IRB out
--- liftAstApp4 :: (t1 -> t2 -> t3 -> t4       -> Pass Parser out) -> AsgBldr t1 -> AsgBldr t2 -> AsgBldr t3 -> AsgBldr t4 -> IRB out
--- liftAstApp5 :: (t1 -> t2 -> t3 -> t4 -> t5 -> Pass Parser out) -> AsgBldr t1 -> AsgBldr t2 -> AsgBldr t3 -> AsgBldr t4 -> AsgBldr t5 -> IRB out
+-- liftAstApp0 :: (                              IRB out) -> IRB out
+liftAstApp1 :: (t1                         -> IRB out) -> AsgBldr t1 -> IRB out
+liftAstApp2 :: (t1 -> t2                   -> IRB out) -> AsgBldr t1 -> AsgBldr t2 -> IRB out
+liftAstApp3 :: (t1 -> t2 -> t3             -> IRB out) -> AsgBldr t1 -> AsgBldr t2 -> AsgBldr t3 -> IRB out
+liftAstApp4 :: (t1 -> t2 -> t3 -> t4       -> IRB out) -> AsgBldr t1 -> AsgBldr t2 -> AsgBldr t3 -> AsgBldr t4 -> IRB out
+liftAstApp5 :: (t1 -> t2 -> t3 -> t4 -> t5 -> IRB out) -> AsgBldr t1 -> AsgBldr t2 -> AsgBldr t3 -> AsgBldr t4 -> AsgBldr t5 -> IRB out
 -- liftAstApp0 f                = id f                                                                                      ; {-# INLINE liftAstApp0 #-}
--- liftAstApp1 f t1             = liftIRBApp1 f (fromAsgBldr t1)                                                                     ; {-# INLINE liftAstApp1 #-}
--- liftAstApp2 f t1 t2          = liftIRBApp2 f (fromAsgBldr t1) (fromAsgBldr t2)                                                    ; {-# INLINE liftAstApp2 #-}
--- liftAstApp3 f t1 t2 t3       = liftIRBApp3 f (fromAsgBldr t1) (fromAsgBldr t2) (fromAsgBldr t3)                                   ; {-# INLINE liftAstApp3 #-}
--- liftAstApp4 f t1 t2 t3 t4    = liftIRBApp4 f (fromAsgBldr t1) (fromAsgBldr t2) (fromAsgBldr t3) (fromAsgBldr t4)                  ; {-# INLINE liftAstApp4 #-}
--- liftAstApp5 f t1 t2 t3 t4 t5 = liftIRBApp5 f (fromAsgBldr t1) (fromAsgBldr t2) (fromAsgBldr t3) (fromAsgBldr t4) (fromAsgBldr t5) ; {-# INLINE liftAstApp5 #-}
+liftAstApp1 f t1             = liftIRBApp1 f (fromAsgBldr t1)                                                                     ; {-# INLINE liftAstApp1 #-}
+liftAstApp2 f t1 t2          = liftIRBApp2 f (fromAsgBldr t1) (fromAsgBldr t2)                                                    ; {-# INLINE liftAstApp2 #-}
+liftAstApp3 f t1 t2 t3       = liftIRBApp3 f (fromAsgBldr t1) (fromAsgBldr t2) (fromAsgBldr t3)                                   ; {-# INLINE liftAstApp3 #-}
+liftAstApp4 f t1 t2 t3 t4    = liftIRBApp4 f (fromAsgBldr t1) (fromAsgBldr t2) (fromAsgBldr t3) (fromAsgBldr t4)                  ; {-# INLINE liftAstApp4 #-}
+liftAstApp5 f t1 t2 t3 t4 t5 = liftIRBApp5 f (fromAsgBldr t1) (fromAsgBldr t2) (fromAsgBldr t3) (fromAsgBldr t4) (fromAsgBldr t5) ; {-# INLINE liftAstApp5 #-}
 
 -- -- FIXME[WD]: remove
 -- xliftAstApp2 :: (forall m. IRBuilding m => t1 -> t2                   -> m SomeTerm) -> AsgBldr t1 -> AsgBldr t2 -> IRB SomeTerm
@@ -568,35 +573,36 @@ number = buildAsg $ do
 --     Lexer.QuoteEscape Lexer.FmtStr -> "'"
 
 
--- -------------------------
--- -- === Expressions === --
--- -------------------------
+-------------------------
+-- === Expressions === --
+-------------------------
 
--- -- === Utils === --
+-- === Utils === --
 
--- app, seq, unify, appFlipped, leftSection, rightSection :: AsgBldr SomeTerm -> AsgBldr SomeTerm -> AsgBldr SomeTerm
--- app          = inheritCodeSpan2 $ liftIRB2 IR.app'
--- seq          = inheritCodeSpan2 $ liftIRB2 IR.seq'
--- unify        = inheritCodeSpan2 $ liftIRB2 IR.unify'
--- leftSection  = inheritCodeSpan2 $ liftIRB2 IR.leftSection'
--- appFlipped   = flip . inheritCodeSpan2 $ liftIRB2 (flip IR.app')
--- rightSection = flip . inheritCodeSpan2 $ flip (liftIRB2 IR.rightSection')
+app, seq, unify, appFlipped, sectionLeft, sectionRight
+    :: AsgBldr SomeTerm -> AsgBldr SomeTerm -> AsgBldr SomeTerm
+app          = inheritCodeSpan2 IR.app'
+seq          = inheritCodeSpan2 IR.seq'
+unify        = inheritCodeSpan2 IR.unify'
+sectionLeft  = inheritCodeSpan2 IR.sectionLeft'
+appFlipped   = flip . inheritCodeSpan2 $ flip IR.app'
+sectionRight = flip . inheritCodeSpan2 $ flip IR.sectionRight'
 
--- appSides :: AsgBldr SomeTerm -> AsgBldr SomeTerm -> AsgBldr SomeTerm -> AsgBldr SomeTerm
--- appSides = app .: appFlipped
+appSides :: AsgBldr SomeTerm -> AsgBldr SomeTerm -> AsgBldr SomeTerm -> AsgBldr SomeTerm
+appSides = app .: appFlipped
 
--- apps, seqs :: AsgBldr SomeTerm -> [AsgBldr SomeTerm] -> AsgBldr SomeTerm
--- apps = foldl app
--- seqs = foldl seq
+apps, seqs :: AsgBldr SomeTerm -> [AsgBldr SomeTerm] -> AsgBldr SomeTerm
+apps = foldl app
+seqs = foldl seq
 
--- nestedLam :: [AsgBldr SomeTerm] -> AsgBldr SomeTerm -> AsgBldr SomeTerm
--- nestedLam args body = foldr lam' body args where
---     lam' :: AsgBldr SomeTerm -> AsgBldr SomeTerm -> AsgBldr SomeTerm
---     lam' = inheritCodeSpan2 $ liftIRB2 IR.lam'
+nestedLam :: [AsgBldr SomeTerm] -> AsgBldr SomeTerm -> AsgBldr SomeTerm
+nestedLam args body = foldr lam' body args where
+    lam' :: AsgBldr SomeTerm -> AsgBldr SomeTerm -> AsgBldr SomeTerm
+    lam' = inheritCodeSpan2 $ IR.lam'
 
--- grouped :: AsgParser SomeTerm -> AsgParser SomeTerm
--- grouped p = buildAsg $ parensed $ (\g -> liftAstApp1 IR.grouped' g) <$> p where
---     parensed p = groupBegin *> p <* groupEnd
+grouped :: AsgParser SomeTerm -> AsgParser SomeTerm
+grouped p = buildAsg $ parensed $ (\g -> liftAstApp1 IR.grouped' g) <$> p where
+    parensed p = groupBegin *> p <* groupEnd
 
 
 -- -- === Metadata === --
@@ -608,26 +614,26 @@ number = buildAsg $ do
 -- metaContent = satisfy Lexer.matchMetadata
 
 
--- -- === Disabled === --
+-- === Disabled === --
 
--- possiblyDisabled :: AsgParser SomeTerm -> AsgParser SomeTerm
--- possiblyDisabled p = disabled p <|> p
+possiblyDisabled :: AsgParser SomeTerm -> AsgParser SomeTerm
+possiblyDisabled p = disabled p <|> p
 
--- disabled :: AsgParser SomeTerm -> AsgParser SomeTerm
--- disabled p = buildAsg $ (\t -> liftAstApp1 IR.disabled' t) <$ symbol Lexer.Disable <*> p
+disabled :: AsgParser SomeTerm -> AsgParser SomeTerm
+disabled p = buildAsg $ liftAstApp1 IR.disabled' <$ symbol Lexer.Disable <*> p
 
 
--- -- === Segments === --
+-- === Segments === --
 
--- type ExprSegment         = ExprToken (AsgBldr SomeTerm)
--- type ExprSegments        = NonEmpty ExprSegment
--- type ExprSegmentBuilder  = SegmentBuilder ExprSegment
--- newtype SegmentBuilder a = SegmentBuilder { runSegmentBuilder :: (Bool, Bool) -> NonEmpty a } deriving (Functor)
+type ExprSegment         = ExprToken (AsgBldr SomeTerm)
+type ExprSegments        = NonEmpty ExprSegment
+type ExprSegmentBuilder  = SegmentBuilder ExprSegment
+newtype SegmentBuilder a = SegmentBuilder { runSegmentBuilder :: (Bool, Bool) -> NonEmpty a } deriving (Functor)
 
--- type ExprToken       a = Token (ExprSymbol      a)
--- type ExprTokenProto  a = Token (ExprSymbolProto a)
--- type ExprSymbol      a = Labeled SpacedName (UniSymbol Symbol.Expr    a)
--- type ExprSymbolProto a = Labeled SpacedName (UniSymbol Symbol.Phantom a)
+type ExprToken       a = Expr.Token (ExprSymbol      a)
+type ExprTokenProto  a = Expr.Token (ExprSymbolProto a)
+type ExprSymbol      a = Labeled SpacedName (UniSymbol Symbol.Expr    a)
+type ExprSymbolProto a = Labeled SpacedName (UniSymbol Symbol.Phantom a)
 
 -- instance Semigroup ExprSegmentBuilder where
 --     a <> b = SegmentBuilder $ \(l,r) -> runSegmentBuilder a (l,False) <> runSegmentBuilder b (False,r)
@@ -734,11 +740,11 @@ number = buildAsg $ do
 --     let segment (isFirst, isLast) = pure . tokenx $ operator & if
 --             | isSingle    -> labeled (unspaced            name) . atom
 --             | isUMinus    -> labeled (unspaced      uminusName) . prefix . app
---             | isFirst     -> labeled (spacedNameIf after  name) . prefix . leftSection
---             | isLast      -> labeled (spacedNameIf before name) . suffix . rightSection
+--             | isFirst     -> labeled (spacedNameIf after  name) . prefix . sectionLeft
+--             | isLast      -> labeled (spacedNameIf before name) . suffix . sectionRight
 --             | symmetrical -> labeled (spacedNameIf after  name) . infixx . appSides
---             | before      -> labeled (lspaced             name) . prefix . leftSection
---             | otherwise   -> labeled (rspaced             name) . suffix . rightSection
+--             | before      -> labeled (lspaced             name) . prefix . sectionLeft
+--             | otherwise   -> labeled (rspaced             name) . suffix . sectionRight
 --             where isMinus     = name == minusName
 --                   isSingle    = isFirst && isLast
 --                   isUMinus    = isMinus && not after && (isFirst || before) && not isLast
@@ -851,24 +857,25 @@ number = buildAsg $ do
 --             let restMod = if total then option mempty else (<|> unexpected (fromString $ "Unexpected end of mixfix expression, expecting one of " <> show possiblePaths))
 --             ((name,segment):) <$> restMod (parseMixfixSegments nameSet')
 
--- buildTokenExpr (s:|ss) = buildTokenExpr' (s:ss)
+buildTokenExpr (s:|ss) = buildTokenExpr' (s:ss)
 
--- buildTokenExpr' :: Tokens (Labeled SpacedName (UniSymbol Symbol.Expr (AsgBldr SomeTerm))) -> SymParser (AsgBldr SomeTerm)
--- buildTokenExpr' = buildExpr_termApp . Labeled (spaced appName) $ Tok.Symbol app
+buildTokenExpr' :: Expr.Tokens (Labeled SpacedName (UniSymbol Symbol.Expr (AsgBldr SomeTerm))) -> SymParser (AsgBldr SomeTerm)
+buildTokenExpr' = Expr.buildExpr_termApp . Labeled (Name.spaced Builtin.appName) $ Symbol.Symbol app
 
 
--- ---------------------------
--- -- === Documentation === --
--- ---------------------------
+---------------------------
+-- === Documentation === --
+---------------------------
 
--- possiblyDocumented :: AsgParser SomeTerm -> AsgParser SomeTerm
--- possiblyDocumented p = documented p <|> p
+possiblyDocumented :: AsgParser SomeTerm -> AsgParser SomeTerm
+possiblyDocumented p = documented p <|> p
 
--- documented :: AsgParser SomeTerm -> AsgParser SomeTerm
--- documented p = buildAsg $ (\d t -> liftAstApp1 (IR.documented' d) t) <$> doc <*> p
+-- FIXME: performance
+documented :: AsgParser SomeTerm -> AsgParser SomeTerm
+documented p = buildAsg $ (\d t -> liftAstApp1 (IR.documented' $ convertVia @String d) t) <$> doc <*> p
 
--- doc :: SymParser Text32
--- doc = intercalate "\n" <$> some (satisfy Lexer.matchDocComment <* eol)
+doc :: SymParser Text32
+doc = intercalate "\n" <$> some (satisfy Lexer.matchDocComment <* eol)
 
 
 -- --------------------------

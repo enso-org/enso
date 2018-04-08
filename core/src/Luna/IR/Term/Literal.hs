@@ -16,13 +16,13 @@ import Data.Vector.Storable.Foreign (Vector)
 
 -- === Definition === --
 
-Term.define ''Format.Value [d|
-    data Number = Number
-        { base     :: Word8
-        , intPart  :: Vector Word8
-        , fracPart :: Vector Word8
-        }
-    |]
+Term.define [d|
+ data Value
+    = Number { base     :: Word8
+             , intPart  :: Vector Word8
+             , fracPart :: Vector Word8
+             }
+ |]
 
 
 

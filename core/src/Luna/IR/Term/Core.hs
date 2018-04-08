@@ -14,7 +14,7 @@ import qualified OCI.IR.Layer                        as Layer
 import qualified OCI.IR.Layout                       as Layout
 
 import Luna.IR.Component.Term.Class      (Term, Terms)
-import Luna.IR.Component.Term.Definition (Ln)
+import Luna.IR.Component.Term.Definition (LinkTo)
 import Luna.IR.Component.Term.Layer      (Model)
 import Luna.IR.Component.Term.Layout     (Names)
 import OCI.Data.Name                     (Name)
@@ -36,28 +36,31 @@ type List = UnmanagedPtrList
 
 -- === IR Atoms === ---
 
-Term.defineNoSmartCons ''Format.Value [d|
-    data Top = Top
-    |]
+Term.defineNoSmartCons [d|
+ data Value = Top
+ |]
 
-Term.define ''Format.Value [d|
-    data Cons = Cons { name :: Name, args :: List (Ln Terms) }
-    data App  = App  { base :: Ln Terms, arg :: Ln Terms } -- FIXME: flip args
-    |]
+Term.define [d|
 
-Term.define ''Format.Thunk [d|
-    data Acc = Acc { base :: Ln Terms, name :: Ln Names }
-    |]
+ data Value
+    = Cons      { name :: Name        , args  :: List (LinkTo Terms) }
+    | App       { base :: LinkTo Terms, arg   :: LinkTo Terms        } -- FIXME: flip args
 
-Term.define ''Format.Phrase [d|
-    data Blank   = Blank
-    data Missing = Missing
-    data Unify   = Unify   { left :: Ln Terms, right :: Ln Terms }
-    |]
+ data Thunk
+    = Acc       { base :: LinkTo Terms, name  :: LinkTo Names }
+    | Lam       { arg  :: LinkTo Terms, body  :: LinkTo Terms }
 
-Term.define ''Format.Draft [d|
-    data Var = Var { name :: Name }
-    |]
+ data Phrase
+    = Blank
+    | Missing
+    | Unify     { left :: LinkTo Terms, right :: LinkTo Terms }
+
+ data Draft
+    = Var { name :: Name }
+
+ |]
+
+
 
 
 -- === Smart constructors === --

@@ -40,6 +40,7 @@ import qualified Data.PtrList.Mutable as PtrList
 
 type List = UnmanagedPtrList
 
+
 ---------------------
 -- === Helpers === --
 ---------------------
@@ -138,36 +139,34 @@ type family AddToOutput var field layout where
 --   Moreover:
 --   1. Every single field data type is converted to newtype by default.
 
-define :: Name -> Q [Dec] -> Q [Dec]
+define :: Q [Dec] -> Q [Dec]
 define = defineChoice True
 
-defineNoSmartCons :: Name -> Q [Dec] -> Q [Dec]
+defineNoSmartCons :: Q [Dec] -> Q [Dec]
 defineNoSmartCons = defineChoice False
 
-defineChoice :: Bool -> Name -> Q [Dec] -> Q [Dec]
-defineChoice needsSmartCons format declsQ = do
+defineChoice :: Bool -> Q [Dec] -> Q [Dec]
+defineChoice needsSmartCons declsQ = do
     decls <- declsQ
-    concat <$> mapM (defineSingle needsSmartCons format) decls
+    concat <$> mapM (defineSingle needsSmartCons) decls
 
-defineSingle :: Bool -> Name -> Dec -> Q [Dec]
-defineSingle needsSmartCons format termDecl = do
-    (conName, param, con, termDecl', isNewtype) <- case termDecl of
-        TH.DataD ctx conName [] kind [con] derivs
-          -> do
-             param <- newName "a"
-             let (isNewtype, decl) = if length (getBangTypes con) == 1
-                     then (True,  TH.NewtypeD ctx conName [TH.PlainTV param] kind  con  derivs)
-                     else (False, TH.DataD    ctx conName [TH.PlainTV param] kind [con] derivs)
-             pure (conName, param, con, decl, isNewtype)
-        _ -> fail . unlines
-           $ [ "Term constructor should be a non-parametrized data type"
-             , "with a single constructor definition."
-             ]
-    let conNameStr = convertTo @String conName
-    case maybeNameStr con of
-        (Just n) -> when_ (n /= conNameStr)
-            $ fail "Term type should have the same name as its constructor."
-    let typeNameStr   = mkTypeName conNameStr
+defineSingle :: Bool -> Dec -> Q [Dec]
+defineSingle needsSmartCons termDecl = case termDecl of
+    TH.DataD ctx dataName [] kind cons derivs
+      -> concat <$> mapM (defineSingleCons needsSmartCons dataName) cons
+    _ -> fail "Term constructor should be a non-parametrized data type"
+
+defineSingleCons :: Bool -> Name -> TH.Con -> Q [Dec]
+defineSingleCons needsSmartCons dataName con = do
+    conName  <- maybe (fail "All constructors have to be named") pure
+              $ con ^. maybeName
+    param    <- newName "a"
+    let isNewtype     = length (getBangTypes con) == 1
+        termDecl      = if isNewtype
+            then TH.NewtypeD [] conName [TH.PlainTV param] Nothing  con  []
+            else TH.DataD    [] conName [TH.PlainTV param] Nothing [con] []
+        conNameStr    = convertTo @String conName
+        typeNameStr   = mkTypeName conNameStr
         tagName       = convert conNameStr
         typeName      = convert typeNameStr
 
@@ -183,10 +182,10 @@ defineSingle needsSmartCons format termDecl = do
         setTypeName   = maybeName    .~ Just typeName
         setDerivs     = derivClauses .~ [TH.DerivClause Nothing derivs]
         derivs        = cons' <$> [''Show, ''Eq]
-        termDecl''    = (consList .~ [con'])
+        termDecl'     = (consList .~ [con'])
                       . setTypeName
                       . setDerivs
-                      $ termDecl'
+                      $ termDecl
 
         tagDecls      = Tag.familyInstance' ''Term.TermCons conNameStr
         isTermTagInst = TH.InstanceD Nothing []
@@ -196,13 +195,15 @@ defineSingle needsSmartCons format termDecl = do
                         (cons' typeName)
         consToTagInst = typeInstance ''Term.ConsToTag [cons' typeName]
                         (cons' tagName)
+        format        = TH.mkName
+                      $ "Format" <> "." <> convert dataName
         formatInst    = typeInstance ''Format.Of [cons' tagName] (cons' format)
 
         fieldTypes    = fmap (view _3) . view namedFields $ con
 
-    lensInst      <- Lens.declareLenses (pure [termDecl''])
-    storableInst  <- Storable.derive'   termDecl''
-    storable1Inst <- Storable1.derive'  termDecl''
+    lensInst      <- Lens.declareLenses (pure [termDecl'])
+    storableInst  <- Storable.derive'   termDecl'
+    storable1Inst <- Storable1.derive'  termDecl'
     smartCons     <- makeSmartCons tagName param fieldTypes
 
     pure $ tagDecls

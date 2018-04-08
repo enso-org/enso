@@ -1,3 +1,5 @@
+{-# LANGUAGE CPP #-}
+
 module Luna.IR.Term.Ast where
 
 import Prologue hiding (seq)
@@ -7,7 +9,7 @@ import qualified Luna.IR.Term.Format               as Format
 
 import Data.Vector.Storable.Foreign      (Vector)
 import Luna.IR.Component.Term.Class      (Terms)
-import Luna.IR.Component.Term.Definition (Ln)
+import Luna.IR.Component.Term.Definition (LinkTo, Ln)
 import OCI.Data.Name                     (Name)
 
 -- FIXME: remove when refactoring Cmp instances
@@ -20,12 +22,16 @@ import Luna.IR.Term.Core ()
 
 -- === Definition === --
 
-Term.define ''Format.Ast [d|
-    data Invalid      = Invalid      { desc :: Name }
-    data Marked       = Marked       { marker :: Ln Terms, body :: Ln Terms }
-    data Marker       = Marker       { id :: Word64 }
-    data SectionLeft  = SectionLeft  { operator :: Ln Terms, body :: Ln Terms }
-    data SectionRight = SectionRight { operator :: Ln Terms, body :: Ln Terms }
-    data Seq          = Seq          { former :: Ln Terms, later :: Ln Terms }
-    |]
+Term.define [d|
+ data Ast
+    = Disabled     { body     :: LinkTo Terms                         }
+    | Documented   { doc      :: Vector Char  , base  :: LinkTo Terms }
+    | Grouped      { body     :: LinkTo Terms                         }
+    | Invalid      { desc     :: Name                                 }
+    | Marked       { marker   :: LinkTo Terms , body  :: LinkTo Terms }
+    | Marker       { id       :: Word64                               }
+    | SectionLeft  { operator :: LinkTo Terms , body  :: LinkTo Terms }
+    | SectionRight { operator :: LinkTo Terms , body  :: LinkTo Terms }
+    | Seq          { former   :: LinkTo Terms , later :: LinkTo Terms }
+ |]
 
