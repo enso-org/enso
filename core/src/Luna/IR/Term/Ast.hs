@@ -21,28 +21,11 @@ import Luna.IR.Term.Core ()
 -- === Definition === --
 
 Term.define ''Format.Ast [d|
-
-    data Invalid a = Invalid
-        { desc :: Name }
-
-    data Marked a = Marked
-        { marker :: LinkTo Terms a
-        , body   :: LinkTo Terms a }
-
-    data Marker  a = Marker
-        { id :: Word64 }
-
-    data SectionLeft a = SectionLeft
-        { operator :: LinkTo Terms a
-        , body     :: LinkTo Terms a }
-
-    data SectionRight a = SectionRight
-        { operator :: LinkTo Terms a
-        , body     :: LinkTo Terms a }
-
-    data Seq a = Seq
-        { former :: LinkTo Terms a
-        , later  :: LinkTo Terms a }
-
+    data Invalid      = Invalid      { desc :: Name }
+    data Marked       = Marked       { marker :: LinkTo Terms, body :: LinkTo Terms }
+    data Marker       = Marker       { id :: Word64 }
+    data SectionLeft  = SectionLeft  { operator :: LinkTo Terms, body :: LinkTo Terms }
+    data SectionRight = SectionRight { operator :: LinkTo Terms, body :: LinkTo Terms }
+    data Seq          = Seq          { former :: LinkTo Terms, later :: LinkTo Terms }
     |]
 

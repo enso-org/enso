@@ -48,7 +48,7 @@ type List = UnmanagedPtrList
 
 -- | 'LinkTo' is a phantom helper type for link definition. It gets resolved to
 --   much more complex form during 'ExpandField' resolution.
-data LinkTo   t a
+data LinkTo t
 
 -- | 'Field' is a typeclass which unifies how fields of smart cons get
 --   constructed. It's created only to make the generated code shorter and
@@ -65,20 +65,20 @@ instance Link.Creator m => Field t (Term a) m (Link b) where
 instance Link.Creator m => Field t [Term a] m (List (Link b)) where
     consField self = PtrList.fromList <=< mapM (consField self) ; {-# INLINE consField #-}
 
-type family ExpandField self a where
-    ExpandField self (LinkTo t a) = Link (Layout.Get t a *-* Layout.Set Model self a)
-    ExpandField self (t a)        = t (ExpandField self a)
-    ExpandField self a            = a
+type family ExpandField self layout a where
+    ExpandField self layout (LinkTo t) = Link (Layout.Get t layout *-* Layout.Set Model self layout)
+    ExpandField self layout (t a)        = t (ExpandField self layout a)
+    ExpandField self layout a            = a
 
 type family FieldCons var field where
-    FieldCons var (LinkTo t a) = Term var
-    FieldCons var (List a)     = [FieldCons var a]
-    FieldCons var a            = a
+    FieldCons var (LinkTo t) = Term var
+    FieldCons var (List a)   = [FieldCons var a]
+    FieldCons var a          = a
 
 type family AddToOutput var field layout where
-    AddToOutput var (LinkTo t a) layout = Layout.SetMerge t var layout
-    AddToOutput var (t a)        layout = AddToOutput var a layout
-    AddToOutput var a            layout = layout
+    AddToOutput var (LinkTo t) layout = Layout.SetMerge t var layout
+    AddToOutput var (t a)      layout = AddToOutput var a layout
+    AddToOutput var a          layout = layout
 
 
 
@@ -150,12 +150,14 @@ defineChoice needsSmartCons format declsQ = do
 
 defineSingle :: Bool -> Name -> Dec -> Q [Dec]
 defineSingle needsSmartCons format termDecl = do
-    (conName, param, con) <- case termDecl of
-        TH.DataD _ conName [TH.PlainTV param] _ [con] _
-          -> pure (conName, param, con)
+    (conName, param, con, termDeclx) <- case termDecl of
+        TH.DataD ctx conName [] kind [con] derivs
+          -> do
+             param <- newName "a"
+             pure (conName, param, con, TH.DataD ctx conName [TH.PlainTV param] kind [con] derivs)
         _ -> fail . unlines
-           $ [ "Term constructor should be a data type parametrized with"
-             , "a single type variable and a single constructor definition."
+           $ [ "Term constructor should be a non-parametrized data type"
+             , "with a single constructor definition."
              ]
     let conNameStr = convertTo @String conName
     case maybeNameStr con of
@@ -167,7 +169,7 @@ defineSingle needsSmartCons format termDecl = do
 
         mangleFields  = namedFields %~ fmap (_1 %~ mangleFieldName conNameStr)
         bangFields    = namedFields %~ fmap (_2 .~ unpackStrictAnn)
-        rebindFields  = namedFields %~ fmap (_3 %~ expandField tagName)
+        rebindFields  = namedFields %~ fmap (_3 %~ expandField tagName param)
         con'          = mangleFields
                       . bangFields
                       . rebindFields
@@ -179,7 +181,7 @@ defineSingle needsSmartCons format termDecl = do
         termDecl'     = (consList .~ [con'])
                       . setTypeName
                       . setDerivs
-                      $ termDecl
+                      $ termDeclx
 
         tagDecls      = Tag.familyInstance' ''Term.TermCons conNameStr
         isTermTagInst = TH.InstanceD Nothing []
@@ -212,8 +214,8 @@ defineSingle needsSmartCons format termDecl = do
     where maybeNameStr :: MayHaveName a => a -> (Maybe String)
           maybeNameStr = fmap TH.nameBase . view maybeName
 
-expandField :: Name -> TH.Type -> TH.Type
-expandField self field = app2 (cons' ''ExpandField) (cons' self) field
+expandField :: Name -> Name -> TH.Type -> TH.Type
+expandField self param field = app3 (cons' ''ExpandField) (cons' self) (var param) field
 
 
 -- === Helpers === --

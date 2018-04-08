@@ -17,7 +17,7 @@ import Data.Vector.Storable.Foreign (Vector)
 -- === Definition === --
 
 Term.define ''Format.Value [d|
-    data Number a = Number
+    data Number = Number
         { base     :: Word8
         , intPart  :: Vector Word8
         , fracPart :: Vector Word8
