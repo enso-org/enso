@@ -18,9 +18,9 @@ import Data.Set (Set)
 -- import Data.Text.Span                   (RightSpacedSpan,
 --                                          SpacedSpan (SpacedSpan),
 --                                          rightSpacedSpan)
-import Luna.Syntax.Text.Parser.Class (MonadParser, Tok)
--- import Luna.Syntax.Text.Parser.Marker   (MarkerState, cleanLastTokenMarker,
---                                          newLastTokenMarker)
+import Luna.Syntax.Text.Parser.Class    (MonadParser, Tok)
+import Luna.Syntax.Text.Parser.Marker   (MarkerState, cleanLastTokenMarker,
+                                         newLastTokenMarker)
 import Luna.Syntax.Text.Parser.Reserved (Reservation)
 import Text.Megaparsec.Error            (ErrorItem, ParseError)
 import Text.Megaparsec.Prim             (MonadParsec, token)
@@ -41,8 +41,7 @@ instance Default LeftSpanner where def = LeftSpanner mempty
 -- -- === Loc === --
 -- -----------------
 
--- type MonadLoc m = (MonadStates '[FileOffset, Position, LeftSpanner, MarkerState] m, MonadIO m) -- FIXME[WD]: remove IO
-type MonadLoc m = (State.MonadStates '[Pos.Position, LeftSpanner, FileOffset] m, MonadIO m)
+type MonadLoc m = (State.MonadStates '[FileOffset, Pos.Position, LeftSpanner, MarkerState] m, MonadIO m) -- FIXME[WD]: remove IO
 
 -- -- === Utils === --
 
@@ -55,93 +54,93 @@ token' f mt = do
     let f' t = (t,) <$> f s t
     (tok, a) <- token f' mt
     updatePositions tok
-    -- cleanLastTokenMarker
-    -- dropMarkers
+    cleanLastTokenMarker
+    dropMarkers
     return a
 
--- dropMarkers :: (MonadParsec e Stream m, MonadLoc m) => m ()
--- dropMarkers = withJustM previewNextToken $ \t -> case t ^. Lexer.element of
---     Lexer.Marker m -> newLastTokenMarker (t & Lexer.element .~ m) >> dropNextTokenAsMarker >> dropMarkers -- FIXME[WD]: should we handle the wrong markers?
---     _              -> return ()
+dropMarkers :: (MonadParsec e Stream m, MonadLoc m) => m ()
+dropMarkers = withJustM previewNextToken $ \t -> case t ^. Lexer.element of
+    Lexer.Marker m -> newLastTokenMarker (t & Lexer.element .~ m) >> dropNextTokenAsMarker >> dropMarkers -- FIXME[WD]: should we handle the wrong markers?
+    _              -> return ()
 
--- getStream :: MonadParsec e Stream m => m Stream
--- getStream = Parser.getInput
+getStream :: MonadParsec e Stream m => m Stream
+getStream = Parser.getInput
 
--- putStream :: MonadParsec e Stream m => Stream -> m ()
--- putStream = Parser.setInput
+putStream :: MonadParsec e Stream m => Stream -> m ()
+putStream = Parser.setInput
 
--- previewNextToken :: MonadParsec e Stream m => m (Maybe Tok)
--- previewNextToken = maybeHead <$> previewTokens
+previewNextToken :: MonadParsec e Stream m => m (Maybe Tok)
+previewNextToken = head <$> previewTokens
 
--- previewTokens :: MonadParsec e Stream m => m [Tok]
--- previewTokens = getStream
+previewTokens :: MonadParsec e Stream m => m [Tok]
+previewTokens = getStream
 
--- previewSymbols :: MonadParsec e Stream m => m [Symbol]
--- previewSymbols = view Lexer.element <<$>> previewTokens
+previewSymbols :: MonadParsec e Stream m => m [Symbol]
+previewSymbols = view Lexer.element <<$>> previewTokens
 
--- previewNextSymbol :: MonadParsec e Stream m => m (Maybe Symbol)
--- previewNextSymbol = view Lexer.element <<$>> previewNextToken
+previewNextSymbol :: MonadParsec e Stream m => m (Maybe Symbol)
+previewNextSymbol = view Lexer.element <<$>> previewNextToken
 
--- getNextOffset :: MonadParsec e Stream m => m Delta
--- getNextOffset = maybe 0 (view $ Lexer.offset) <$> previewNextToken
+getNextOffset :: MonadParsec e Stream m => m Delta
+getNextOffset = maybe 0 (view $ Lexer.offset) <$> previewNextToken
 
--- checkNextOffset :: MonadParsec e Stream m => m Bool
--- checkNextOffset = (>0) <$> getNextOffset
+checkNextOffset :: MonadParsec e Stream m => m Bool
+checkNextOffset = (>0) <$> getNextOffset
 
--- getNextToken :: (MonadParsec e Stream m, MonadLoc m) => m (Maybe Tok)
--- getNextToken = do
---     tok <- getNextToken'
---     cleanLastTokenMarker
---     dropMarkers
---     return tok
+getNextToken :: (MonadParsec e Stream m, MonadLoc m) => m (Maybe Tok)
+getNextToken = do
+    tok <- getNextToken'
+    cleanLastTokenMarker
+    dropMarkers
+    return tok
 
--- getNextToken' :: (MonadParsec e Stream m, MonadLoc m) => m (Maybe Tok)
--- getNextToken' = mapM handle . uncons =<< getStream where
---     handle (t,s) = do
---         putStream s
---         updatePositions t
---         return t
+getNextToken' :: (MonadParsec e Stream m, MonadLoc m) => m (Maybe Tok)
+getNextToken' = mapM handle . Parser.uncons =<< getStream where
+    handle (t,s) = do
+        putStream s
+        updatePositions t
+        return t
 
--- getNextToken'' :: (MonadParsec e Stream m, MonadLoc m) => m (Maybe Tok)
--- getNextToken'' = mapM handle . uncons =<< getStream where
---     handle (t,s) = do
---         putStream s
---         return t
+getNextToken'' :: (MonadParsec e Stream m, MonadLoc m) => m (Maybe Tok)
+getNextToken'' = mapM handle . Parser.uncons =<< getStream where
+    handle (t,s) = do
+        putStream s
+        return t
 
--- getTokens :: (MonadParsec e Stream m, MonadLoc m) => Int -> m [Tok]
--- getTokens i = catMaybes <$> sequence (replicate i getNextToken)
+getTokens :: (MonadParsec e Stream m, MonadLoc m) => Int -> m [Tok]
+getTokens i = catMaybes <$> sequence (replicate i getNextToken)
 
--- uncheckedGetNextToken :: (MonadParsec e Stream m, MonadLoc m) => m Tok
--- uncheckedGetNextToken = maybe (error "Impossible happened: token stream end") id <$> getNextToken
+uncheckedGetNextToken :: (MonadParsec e Stream m, MonadLoc m) => m Tok
+uncheckedGetNextToken = maybe (error "Impossible happened: token stream end") id <$> getNextToken
 
--- uncheckedGetNextSymbol :: (MonadParsec e Stream m, MonadLoc m) => m Symbol
--- uncheckedGetNextSymbol = view Lexer.element <$> uncheckedGetNextToken
+uncheckedGetNextSymbol :: (MonadParsec e Stream m, MonadLoc m) => m Symbol
+uncheckedGetNextSymbol = view Lexer.element <$> uncheckedGetNextToken
 
--- uncheckedPreviewNextToken :: (MonadParsec e Stream m, MonadLoc m) => m Tok
--- uncheckedPreviewNextToken = maybe (error "Impossible happened: token stream end") id <$> previewNextToken
+uncheckedPreviewNextToken :: (MonadParsec e Stream m, MonadLoc m) => m Tok
+uncheckedPreviewNextToken = maybe (error "Impossible happened: token stream end") id <$> previewNextToken
 
--- uncheckedPreviewNextSymbol :: (MonadParsec e Stream m, MonadLoc m) => m Symbol
--- uncheckedPreviewNextSymbol = view Lexer.element <$> uncheckedPreviewNextToken
+uncheckedPreviewNextSymbol :: (MonadParsec e Stream m, MonadLoc m) => m Symbol
+uncheckedPreviewNextSymbol = view Lexer.element <$> uncheckedPreviewNextToken
 
--- getNextSymbol :: (MonadParsec e Stream m, MonadLoc m) => m (Maybe Symbol)
--- getNextSymbol = view Lexer.element <<$>> getNextToken
+getNextSymbol :: (MonadParsec e Stream m, MonadLoc m) => m (Maybe Symbol)
+getNextSymbol = view Lexer.element <<$>> getNextToken
 
--- unregisteredDropNextToken :: (MonadParsec e Stream m, MonadLoc m) => m ()
--- unregisteredDropNextToken = void getNextToken
+unregisteredDropNextToken :: (MonadParsec e Stream m, MonadLoc m) => m ()
+unregisteredDropNextToken = void getNextToken
 
--- dropNextTokenAsMarker :: (MonadParsec e Stream m, MonadLoc m) => m ()
--- dropNextTokenAsMarker = withJustM getNextToken'' go where
---     go t = modify_ @FileOffset (+ (convert delta)) >> modify_ @LeftSpanner (wrapped %~ (+delta)) where
---         delta = (t ^. Lexer.span) + (t ^. Lexer.offset)
+dropNextTokenAsMarker :: (MonadParsec e Stream m, MonadLoc m) => m ()
+dropNextTokenAsMarker = withJustM getNextToken'' go where
+    go t = State.modify_ @FileOffset (+ (convert delta)) >> State.modify_ @LeftSpanner (wrapped %~ (+delta)) where
+        delta = (t ^. Lexer.span) + (t ^. Lexer.offset)
 
--- unregisteredDropTokensUntil :: (MonadParsec e Stream m, MonadLoc m) => (Tok -> Bool) -> m ()
--- unregisteredDropTokensUntil f = withJustM previewNextToken $ \t -> if f t then return () else unregisteredDropNextToken >> unregisteredDropTokensUntil f
+unregisteredDropTokensUntil :: (MonadParsec e Stream m, MonadLoc m) => (Tok -> Bool) -> m ()
+unregisteredDropTokensUntil f = withJustM previewNextToken $ \t -> if f t then return () else unregisteredDropNextToken >> unregisteredDropTokensUntil f
 
--- unregisteredDropSymbolsUntil :: (MonadParsec e Stream m, MonadLoc m) => (Symbol -> Bool) -> m ()
--- unregisteredDropSymbolsUntil f = unregisteredDropTokensUntil $ f . view Lexer.element
+unregisteredDropSymbolsUntil :: (MonadParsec e Stream m, MonadLoc m) => (Symbol -> Bool) -> m ()
+unregisteredDropSymbolsUntil f = unregisteredDropTokensUntil $ f . view Lexer.element
 
--- unregisteredDropSymbolsUntil' :: (MonadParsec e Stream m, MonadLoc m) => (Symbol -> Bool) -> m ()
--- unregisteredDropSymbolsUntil' f = unregisteredDropSymbolsUntil f >> unregisteredDropNextToken
+unregisteredDropSymbolsUntil' :: (MonadParsec e Stream m, MonadLoc m) => (Symbol -> Bool) -> m ()
+unregisteredDropSymbolsUntil' f = unregisteredDropSymbolsUntil f >> unregisteredDropNextToken
 
 updatePositions :: (MonadParsec e Stream m, MonadLoc m) => Lexer.Token Lexer.Symbol -> m ()
 updatePositions t = do

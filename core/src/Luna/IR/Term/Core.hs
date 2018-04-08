@@ -36,27 +36,50 @@ type List = UnmanagedPtrList
 
 -- === IR Atoms === ---
 
-
 Term.defineNoSmartCons ''Format.Value [d|
-    data Top  a = Top
+
+    data Top a = Top
+
     |]
 
 Term.define ''Format.Value [d|
-    data Cons a = Cons { name :: Name, args :: List (LinkTo Terms a)}
+
+    data Cons a = Cons
+        { name :: Name
+        , args :: List (LinkTo Terms a) }
+
+    data App a = App
+        { base :: LinkTo Terms a
+        , arg  :: LinkTo Terms a } -- FIXME: flip args
+
     |]
 
 Term.define ''Format.Thunk [d|
-    data Acc   a = Acc   { base :: LinkTo Terms a, name  :: LinkTo Names a }
-    data Unify a = Unify { left :: LinkTo Terms a, right :: LinkTo Terms a }
+
+    data Acc a = Acc
+        { base :: LinkTo Terms a
+        , name :: LinkTo Names a
+        }
+
     |]
 
 Term.define ''Format.Phrase [d|
+
     data Blank   a = Blank
+
     data Missing a = Missing
+
+    data Unify   a = Unify
+        { left  :: LinkTo Terms a
+        , right :: LinkTo Terms a }
+
     |]
 
 Term.define ''Format.Draft [d|
-    data Var a = Var { name :: Name }
+
+    data Var a = Var
+        { name :: Name }
+
     |]
 
 

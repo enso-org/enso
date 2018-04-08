@@ -16,7 +16,7 @@ import Text.Megaparsec       (ErrorItem (Tokens), ParseError, anyChar, between,
                               skipMany, spaceChar, string, try, unexpected,
                               upperChar, withRecovery)
 import Text.Megaparsec.Error (parseErrorPretty, parseErrorTextPretty)
--- import           Text.Megaparsec.Prim (MonadParsec)
+import Text.Megaparsec.Prim  (MonadParsec)
 -- import           Text.Megaparsec.String hiding (Parser)
 -- import qualified Text.Megaparsec.String as M
 -- import qualified Text.Megaparsec.Lexer as Lex
@@ -94,7 +94,7 @@ import Text.Megaparsec.Error (parseErrorPretty, parseErrorTextPretty)
 -- import           Luna.Syntax.Text.Parser.Reserved (Reservation, withReservedSymbols, withLocalReservedSymbol, withLocalUnreservedSymbol, withNewLocal, checkForSymbolReservation)
 -- import qualified Data.TreeSet as TreeSet
 -- import           Data.TreeSet (SparseTreeSet)
--- import Luna.Syntax.Text.Parser.Class (Stream, Symbol)
+import Luna.Syntax.Text.Parser.Class (Stream)
 
 -- import           Data.Text32 (Text32)
 -- import qualified Data.Text32 as Text32
@@ -123,8 +123,9 @@ import Luna.IR                          (Term)
 import Luna.Pass                        (Pass)
 import Luna.Syntax.Text.Parser.CodeSpan (CodeSpan (CodeSpan),
                                          CodeSpanRange (..))
-import Luna.Syntax.Text.Parser.Loc      (LeftSpanner (LeftSpanner), token',
-                                         withRecovery2)
+import Luna.Syntax.Text.Parser.Loc      (LeftSpanner (LeftSpanner),
+                                         checkNextOffset, previewNextSymbol,
+                                         token', withRecovery2)
 import Luna.Syntax.Text.Parser.Marker   (MarkedExprMap, MarkerId, MarkerState,
                                          UnmarkedExprs, addMarkedExpr,
                                          addUnmarkedExpr, getLastTokenMarker,
@@ -179,16 +180,16 @@ symbol = satisfy_ . (==)
 anySymbol :: SymParser Lexer.Symbol
 anySymbol = satisfyReserved' $ const True
 
--- dropNextToken :: SymParser ()
--- dropNextToken = satisfyReserved_ $ const True
+dropNextToken :: SymParser ()
+dropNextToken = satisfyReserved_ $ const True
 
 getLastOffset   :: State.Getter LeftSpanner m => m Delta
 checkLastOffset :: State.Getter LeftSpanner m => m Bool
 getLastOffset   = unwrap <$> State.get @LeftSpanner
 checkLastOffset = (>0)   <$> getLastOffset
 
--- checkOffsets :: (MonadParsec e Stream m, State.Getter LeftSpanner m) => m (Bool, Bool)
--- checkOffsets = (,) <$> checkLastOffset <*> checkNextOffset
+checkOffsets :: (MonadParsec e Stream m, State.Getter LeftSpanner m) => m (Bool, Bool)
+checkOffsets = (,) <$> checkLastOffset <*> checkNextOffset
 
 
 
@@ -453,15 +454,15 @@ funcName        = varName <|> opName                      ; {-# INLINE funcName 
 modifierName    = convert <$> satisfy Lexer.matchModifier ; {-# INLINE modifierName    #-}
 foreignLangName = consName                                ; {-# INLINE foreignLangName #-}
 
--- previewVarName :: SymParser Name
--- previewVarName = do
---     s <- previewNextSymbol
---     maybe (unexpected . fromString $ "Expecting variable, got: " <> show s) (pure . convert) $ Lexer.matchVar =<< s
+previewVarName :: SymParser Name
+previewVarName = do
+    s <- previewNextSymbol
+    maybe (unexpected . fromString $ "Expecting variable, got: " <> show s) (pure . convert) $ Lexer.matchVar =<< s
 
--- specificVar, specificCons, specificOp :: Text32 -> SymParser ()
--- specificVar  = symbol . Lexer.Var
--- specificCons = symbol . Lexer.Cons
--- specificOp   = symbol . Lexer.Operator
+specificVar, specificCons, specificOp :: Text32 -> SymParser ()
+specificVar  = symbol . Lexer.Var
+specificCons = symbol . Lexer.Cons
+specificOp   = symbol . Lexer.Operator
 
 -- -- Helpers
 
@@ -484,12 +485,12 @@ mkNamedAsg cons = buildAsgF . fmap (\name -> (name, cons name))
 -- -- === Literals === --
 -- ----------------------
 
--- rawQuoteBegin, rawQuoteEnd :: SymParser ()
--- fmtQuoteBegin, fmtQuoteEnd :: SymParser ()
--- rawQuoteBegin = symbol $ Lexer.Quote Lexer.RawStr Lexer.Begin
--- rawQuoteEnd   = symbol $ Lexer.Quote Lexer.RawStr Lexer.End
--- fmtQuoteBegin = symbol $ Lexer.Quote Lexer.FmtStr Lexer.Begin
--- fmtQuoteEnd   = symbol $ Lexer.Quote Lexer.FmtStr Lexer.End
+rawQuoteBegin, rawQuoteEnd :: SymParser ()
+fmtQuoteBegin, fmtQuoteEnd :: SymParser ()
+rawQuoteBegin = symbol $ Lexer.Quote Lexer.RawStr Lexer.Begin
+rawQuoteEnd   = symbol $ Lexer.Quote Lexer.RawStr Lexer.End
+fmtQuoteBegin = symbol $ Lexer.Quote Lexer.FmtStr Lexer.Begin
+fmtQuoteEnd   = symbol $ Lexer.Quote Lexer.FmtStr Lexer.End
 
 -- FIXME[WD]: move the Char -> Number conversion logic to lexer
 number :: AsgParser SomeTerm
