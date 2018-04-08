@@ -66,19 +66,19 @@ instance Link.Creator m => Field t [Term a] m (List (Link b)) where
     consField self = PtrList.fromList <=< mapM (consField self) ; {-# INLINE consField #-}
 
 type family ExpandField self a where
-    ExpandField self IR.Name      = IR.Name
     ExpandField self (LinkTo t a) = Link (Layout.Get t a *-* Layout.Set Model self a)
-    ExpandField self (List a)     = List (ExpandField self a)
+    ExpandField self (t a)        = t (ExpandField self a)
+    ExpandField self a            = a
 
 type family FieldCons var field where
-    FieldCons var IR.Name      = IR.Name
     FieldCons var (LinkTo t a) = Term var
     FieldCons var (List a)     = [FieldCons var a]
+    FieldCons var a            = a
 
 type family AddToOutput var field layout where
-    AddToOutput var IR.Name      layout = layout
     AddToOutput var (LinkTo t a) layout = Layout.SetMerge t var layout
-    AddToOutput var (List a)     layout = AddToOutput var a layout
+    AddToOutput var (t a)        layout = AddToOutput var a layout
+    AddToOutput var a            layout = layout
 
 
 

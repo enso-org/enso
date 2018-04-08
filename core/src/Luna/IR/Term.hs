@@ -2,8 +2,9 @@ module Luna.IR.Term (module Luna.IR.Term, module X) where
 
 import Prologue
 
-import Luna.IR.Term.Core   as X
-import Luna.IR.Term.Format as X (Ast, Draft, Literal, Phrase, Thunk, Value)
+import Luna.IR.Term.Core    as X
+import Luna.IR.Term.Format  as X (Ast, Draft, Literal, Phrase, Thunk, Value)
+import Luna.IR.Term.Literal as X
 
 import qualified Luna.IR.Component.Term.Class      as Term
 import qualified Luna.IR.Component.Term.Definition as Term

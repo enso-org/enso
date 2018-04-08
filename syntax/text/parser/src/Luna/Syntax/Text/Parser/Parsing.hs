@@ -102,6 +102,7 @@ import Text.Megaparsec.Error (parseErrorPretty, parseErrorTextPretty)
 -- import qualified Data.Text as Text
 
 import qualified Control.Monad.State.Layered      as State
+import qualified Data.Char                        as Char
 import qualified Data.Set                         as Set
 import qualified Data.Text.Span                   as Span
 import qualified Data.Text32                      as Text32
@@ -201,13 +202,11 @@ checkLastOffset = (>0)   <$> getLastOffset
 -- liftIRB4 f t1 t2 t3 t4    = wrap $ f t1 t2 t3 t4    ; {-# INLINE liftIRB4 #-}
 -- liftIRB5 f t1 t2 t3 t4 t5 = wrap $ f t1 t2 t3 t4 t5 ; {-# INLINE liftIRB5 #-}
 
-liftIRBApp0 :: (                              IRB out) -> IRB out
 liftIRBApp1 :: (t1                         -> IRB out) -> IRB t1 -> IRB out
 liftIRBApp2 :: (t1 -> t2                   -> IRB out) -> IRB t1 -> IRB t2 -> IRB out
 liftIRBApp3 :: (t1 -> t2 -> t3             -> IRB out) -> IRB t1 -> IRB t2 -> IRB t3 -> IRB out
 liftIRBApp4 :: (t1 -> t2 -> t3 -> t4       -> IRB out) -> IRB t1 -> IRB t2 -> IRB t3 -> IRB t4 -> IRB out
 liftIRBApp5 :: (t1 -> t2 -> t3 -> t4 -> t5 -> IRB out) -> IRB t1 -> IRB t2 -> IRB t3 -> IRB t4 -> IRB t5 -> IRB out
-liftIRBApp0 f                     = do { f                                                                       } ; {-# INLINE liftIRBApp0 #-}
 liftIRBApp1 f mt1                 = do { t1 <- mt1; f t1                                                         } ; {-# INLINE liftIRBApp1 #-}
 liftIRBApp2 f mt1 mt2             = do { t1 <- mt1; t2 <- mt2; f t1 t2                                           } ; {-# INLINE liftIRBApp2 #-}
 liftIRBApp3 f mt1 mt2 mt3         = do { t1 <- mt1; t2 <- mt2; t3 <- mt3; f t1 t2 t3                             } ; {-# INLINE liftIRBApp3 #-}
@@ -220,7 +219,7 @@ liftIRBApp5 f mt1 mt2 mt3 mt4 mt5 = do { t1 <- mt1; t2 <- mt2; t3 <- mt3; t4 <- 
 -- liftAstApp3 :: (t1 -> t2 -> t3             -> Pass Parser out) -> AsgBldr t1 -> AsgBldr t2 -> AsgBldr t3 -> IRB out
 -- liftAstApp4 :: (t1 -> t2 -> t3 -> t4       -> Pass Parser out) -> AsgBldr t1 -> AsgBldr t2 -> AsgBldr t3 -> AsgBldr t4 -> IRB out
 -- liftAstApp5 :: (t1 -> t2 -> t3 -> t4 -> t5 -> Pass Parser out) -> AsgBldr t1 -> AsgBldr t2 -> AsgBldr t3 -> AsgBldr t4 -> AsgBldr t5 -> IRB out
--- liftAstApp0 f                = liftIRBApp0 f                                                                                      ; {-# INLINE liftAstApp0 #-}
+-- liftAstApp0 f                = id f                                                                                      ; {-# INLINE liftAstApp0 #-}
 -- liftAstApp1 f t1             = liftIRBApp1 f (fromAsgBldr t1)                                                                     ; {-# INLINE liftAstApp1 #-}
 -- liftAstApp2 f t1 t2          = liftIRBApp2 f (fromAsgBldr t1) (fromAsgBldr t2)                                                    ; {-# INLINE liftAstApp2 #-}
 -- liftAstApp3 f t1 t2 t3       = liftIRBApp3 f (fromAsgBldr t1) (fromAsgBldr t2) (fromAsgBldr t3)                                   ; {-# INLINE liftAstApp3 #-}
@@ -308,7 +307,7 @@ modifyCodeSpan f (AsgBldr irb1) = wrap $ do
     t1 <- irb1
     s1 <- Layer.read @CodeSpan t1
     Layer.write @CodeSpan t1 (f s1)
-    return t1
+    pure t1
 
 
 -- === ASG preparation === --
@@ -330,10 +329,10 @@ buildAsgF2 p = uncurry (fmap2 . buildAsgFromSpan) <$> spanned p
 -- --------------------
 
 -- invalid :: Text32 -> IRB SomeTerm
--- invalid txt = liftIRBApp0 $ do
+-- invalid txt = id $ do
 --     inv <- IR.invalid txt
 --     registerInvalid inv
---     return $ generalize inv
+--     pure $ generalize inv
 
 -- invalidSymbol :: (Symbol -> Text32) -> AsgParser SomeTerm
 -- invalidSymbol f = buildAsg $ invalid . f <$> anySymbol
@@ -344,7 +343,7 @@ buildAsgF2 p = uncurry (fmap2 . buildAsgFromSpan) <$> spanned p
 -- catchInvalidWith :: HasCallStack => (LeftSpacedSpan Delta -> LeftSpacedSpan Delta) -> (AsgBldr SomeTerm -> a) -> SymParser a -> SymParser a
 -- catchInvalidWith spanf f p = undefined -- do
 --     -- (span, result) <- spanned $ catchParseErrors p
---     -- return $ flip fromRight result $ f . buildAsgFromSpan (spanf span) . invalid . convert
+--     -- pure $ flip fromRight result $ f . buildAsgFromSpan (spanf span) . invalid . convert
 
 
 
@@ -363,7 +362,7 @@ buildAsgF2 p = uncurry (fmap2 . buildAsgFromSpan) <$> spanned p
 --             markerOffL = foEnd - crange - markerLen - markerOffR
 --             markerSpan = leftSpacedSpan markerOffL markerLen
 --         modify_ @CodeSpanRange $ wrapped .~ foEnd
---         return $ (t ^. Lexer.element, buildAsgFromSpan (CodeSpan.mkPhantomSpan markerSpan) (liftIRBApp0 $ IR.marker' $ t ^. Lexer.element))
+--         pure $ (t ^. Lexer.element, buildAsgFromSpan (CodeSpan.mkPhantomSpan markerSpan) (id $ IR.marker' $ t ^. Lexer.element))
 
 -- marked :: SymParser (AsgBldr SomeTerm -> AsgBldr SomeTerm)
 -- marked = option registerUnmarkedExpr $ uncurry markedExpr <$> markerIRB where
@@ -430,34 +429,32 @@ groupEnd   = symbol $ Lexer.Group Lexer.End
 -- === Identifiers === --
 -------------------------
 
-var :: AsgParser SomeTerm
--- cons, var, op, wildcard :: AsgParser SomeTerm
--- cons     = snd <$> namedCons
-var      = snd <$> namedVar
--- op       = snd <$> namedOp
--- wildcard = buildAsg $ liftIRBApp0 IR.blank' <$ symbol Lexer.Wildcard
+cons, var, op, wildcard :: AsgParser SomeTerm
+cons     = snd <$> namedCons                             ; {-# INLINE cons     #-}
+var      = snd <$> namedVar                              ; {-# INLINE var      #-}
+op       = snd <$> namedOp                               ; {-# INLINE op       #-}
+wildcard = buildAsg $ IR.blank' <$ symbol Lexer.Wildcard ; {-# INLINE wildcard #-}
 
--- namedCons, namedVar, namedOp, namedIdent :: SymParser (Name, AsgBldr SomeTerm)
-namedVar :: SymParser (Name, AsgBldr SomeTerm)
--- namedCons  = mkNamedAsg IR.cons'_ consName
-namedVar   = mkNamedAsg IR.var'   varName
--- namedOp    = mkNamedAsg IR.var'   opName
--- namedIdent = namedVar <|> namedCons <|> namedOp
+namedCons, namedVar, namedOp, namedIdent :: SymParser (Name, AsgBldr SomeTerm)
+namedCons  = mkNamedAsg (flip IR.cons' []) consName ; {-# INLINE namedCons  #-}
+namedVar   = mkNamedAsg IR.var'            varName  ; {-# INLINE namedVar   #-}
+namedOp    = mkNamedAsg IR.var'            opName   ; {-# INLINE namedOp    #-}
+namedIdent = namedVar <|> namedCons <|> namedOp     ; {-# INLINE namedIdent #-}
 
 consName, varName, opName, identName, modifierName :: SymParser Name
 foreignLangName                                    :: SymParser Name
-consName        = convert <$> satisfy Lexer.matchCons
-varName         = convert <$> satisfy Lexer.matchVar
-opName          = convert <$> satisfy Lexer.matchOperator
-identName       = varName <|> consName <|> opName
-funcName        = varName <|> opName
-modifierName    = convert <$> satisfy Lexer.matchModifier
-foreignLangName = consName
+consName        = convert <$> satisfy Lexer.matchCons     ; {-# INLINE consName        #-}
+varName         = convert <$> satisfy Lexer.matchVar      ; {-# INLINE varName         #-}
+opName          = convert <$> satisfy Lexer.matchOperator ; {-# INLINE opName          #-}
+identName       = varName <|> consName <|> opName         ; {-# INLINE identName       #-}
+funcName        = varName <|> opName                      ; {-# INLINE funcName        #-}
+modifierName    = convert <$> satisfy Lexer.matchModifier ; {-# INLINE modifierName    #-}
+foreignLangName = consName                                ; {-# INLINE foreignLangName #-}
 
 -- previewVarName :: SymParser Name
 -- previewVarName = do
 --     s <- previewNextSymbol
---     maybe (unexpected . fromString $ "Expecting variable, got: " <> show s) (return . convert) $ Lexer.matchVar =<< s
+--     maybe (unexpected . fromString $ "Expecting variable, got: " <> show s) (pure . convert) $ Lexer.matchVar =<< s
 
 -- specificVar, specificCons, specificOp :: Text32 -> SymParser ()
 -- specificVar  = symbol . Lexer.Var
@@ -467,7 +464,7 @@ foreignLangName = consName
 -- -- Helpers
 
 mkNamedAsg :: (Name -> IRB (Term a)) -> SymParser Name -> SymParser (Name, AsgBldr (Term a))
-mkNamedAsg ir = buildAsgF . fmap (\name -> (name, liftIRBApp0 $ ir name))
+mkNamedAsg cons = buildAsgF . fmap (\name -> (name, cons name))
 
 
 -- -- Qualified names
@@ -492,8 +489,18 @@ mkNamedAsg ir = buildAsgF . fmap (\name -> (name, liftIRBApp0 $ ir name))
 -- fmtQuoteBegin = symbol $ Lexer.Quote Lexer.FmtStr Lexer.Begin
 -- fmtQuoteEnd   = symbol $ Lexer.Quote Lexer.FmtStr Lexer.End
 
--- num :: AsgParser SomeTerm
--- num = buildAsg $ (\n -> liftIRBApp0 $ IR.number' (convert n)) <$> satisfy Lexer.matchNumber
+-- FIXME[WD]: move the Char -> Number conversion logic to lexer
+number :: AsgParser SomeTerm
+number = buildAsg $ do
+    Lexer.NumRep base i f _ <- satisfy Lexer.matchNumber
+    pure $ IR.number' (convert base)
+                      (convert $ convertChar <$> convertTo @String i)
+                      (convert $ convertChar <$> convertTo @String f)
+    where convertChar c = let ord = Char.ord c in
+              if | ord >= 48 && ord <= 57  -> (fromIntegral $ ord - 48      :: Word8)
+                 | ord >= 97 && ord <= 122 -> (fromIntegral $ ord - 97 + 10 :: Word8)
+                 | otherwise               -> error "wrong char"
+
 
 -- list :: AsgParser SomeTerm -> AsgParser SomeTerm
 -- list p = buildAsg $ withLocalUnreservedSymbol sep $ braced $ (\g -> liftAstApp1 IR.list' $ sequence g) <$> elems where
@@ -529,13 +536,13 @@ mkNamedAsg ir = buildAsgF . fmap (\name -> (name, liftIRBApp0 $ ir name))
 -- rawStr = buildAsg $ do
 --     rawQuoteBegin
 --     withRecovery (\e -> invalid "Invalid string literal" <$ Loc.unregisteredDropSymbolsUntil' (== (Lexer.Quote Lexer.RawStr Lexer.End)))
---                  $ (\s -> liftIRBApp0 $ IR.string' $ convert s) <$> Indent.withCurrent (strBody rawQuoteEnd) -- FIXME[WD]: We're converting Text -> String here.
+--                  $ (\s -> id $ IR.string' $ convert s) <$> Indent.withCurrent (strBody rawQuoteEnd) -- FIXME[WD]: We're converting Text -> String here.
 
 -- fmtStr :: AsgParser SomeTerm
 -- fmtStr = buildAsg $ do
 --     fmtQuoteBegin
 --     withRecovery (\e -> invalid "Invalid string literal" <$ Loc.unregisteredDropSymbolsUntil' (== (Lexer.Quote Lexer.FmtStr Lexer.End)))
---                  $ (\s -> liftIRBApp0 $ IR.string' $ convert s) <$> Indent.withCurrent (strBody fmtQuoteEnd) -- FIXME[WD]: We're converting Text -> String here.
+--                  $ (\s -> id $ IR.string' $ convert s) <$> Indent.withCurrent (strBody fmtQuoteEnd) -- FIXME[WD]: We're converting Text -> String here.
 
 
 -- strBody :: SymParser () -> SymParser Text32
@@ -550,7 +557,7 @@ mkNamedAsg ir = buildAsgF . fmap (\name -> (name, liftIRBApp0 $ ir name))
 -- strContent = satisfy Lexer.matchStr <|> strEsc
 
 -- strEsc :: SymParser Text32
--- strEsc = satisfy Lexer.matchStrEsc >>= return . \case
+-- strEsc = satisfy Lexer.matchStrEsc >>= pure . \case
 --     Lexer.CharStrEsc i             -> convert $ Char.chr i
 --     Lexer.NumStrEsc i              -> convert $ Char.chr i
 --     Lexer.SlashEsc                 -> "\\"
@@ -592,7 +599,7 @@ mkNamedAsg ir = buildAsgF . fmap (\name -> (name, liftIRBApp0 $ ir name))
 -- -- === Metadata === --
 
 -- metadata :: AsgParser SomeTerm
--- metadata = buildAsg $ (\t -> liftIRBApp0 $ IR.metadata' t) <$> metaContent
+-- metadata = buildAsg $ (\t -> id $ IR.metadata' t) <$> metaContent
 
 -- metaContent :: SymParser Text32
 -- metaContent = satisfy Lexer.matchMetadata
@@ -704,18 +711,18 @@ mkNamedAsg ir = buildAsgF . fmap (\name -> (name, liftIRBApp0 $ ir name))
 --     nameSet      <- lookupMultipartNames name
 --     let cvar = posIndependent $ unlabeledAtom $ buildAsgFromSpan span (varIRB name)
 --     if TreeSet.null nameSet
---         then return cvar
+--         then pure cvar
 --         else -- catchInvalidWith (span <>) (pure . posIndependent . unlabeledAtom)
 --            {-$-} withReservedSymbols (Lexer.Var . convert <$> TreeSet.keys nameSet) -- FIXME: conversion Name -> Text
 --            $ do segmentToks <- exprFreeSegmentsLocal
 --                 namedSegs   <- option mempty (parseMixfixSegments nameSet)
---                 if null namedSegs then return (cvar <> segmentToks) else do
+--                 if null namedSegs then pure (cvar <> segmentToks) else do
 --                     segment <- buildTokenExpr (buildExprTok segmentToks)
 --                     let segments  = snd <$> namedSegs
 --                         nameParts = fst <$> namedSegs
 --                         mfixVar   = buildAsgFromSpan span (varIRB . convert $ mkMultipartName name nameParts)
 --                         mfixExpr  = apps (app mfixVar segment) segments
---                     return . posIndependent . unlabeledAtom $ mfixExpr
+--                     pure . posIndependent . unlabeledAtom $ mfixExpr
 
 -- opSeg :: SymParser ExprSegmentBuilder
 -- opSeg   = do
@@ -734,7 +741,7 @@ mkNamedAsg ir = buildAsgF . fmap (\name -> (name, liftIRBApp0 $ ir name))
 --                   isUMinus    = isMinus && not after && (isFirst || before) && not isLast
 --                   operator    = buildAsgFromSpan span . varIRB $ if isUMinus then uminusName else name
 --                   symmetrical = before == after
---     return $ SegmentBuilder segment
+--     pure $ SegmentBuilder segment
 
 -- typedSeg :: SymParser ExprSegmentBuilder
 -- typedSeg   = do
@@ -744,7 +751,7 @@ mkNamedAsg ir = buildAsgF . fmap (\name -> (name, liftIRBApp0 $ ir name))
 --     when (off /= off') $ error "TODO: before and after offsets have to match"
 --     let seg :: AsgBldr SomeTerm -> AsgBldr SomeTerm
 --         seg = flip (inheritCodeSpan2 $ liftIRB2 IR.typed') tp
---     return . posIndependent . labeled (spacedNameIf off typedName) $ suffix seg
+--     pure . posIndependent . labeled (spacedNameIf off typedName) $ suffix seg
 
 -- accSectNames :: SymParser (NonEmpty (CodeSpan, Name))
 -- accSectNames = do
@@ -805,7 +812,7 @@ mkNamedAsg ir = buildAsgF . fmap (\name -> (name, liftIRBApp0 $ ir name))
 --                 | otherwise    -> accConss
 --             | beforeDot   -> pure accSect
 --             | otherwise   -> error "unsupported" -- FIXME[WD]: make nice error here
---     return $ SegmentBuilder segment
+--     pure $ SegmentBuilder segment
 
 -- match :: AsgParser SomeTerm
 -- match = buildAsg $ (\n (p,ps) -> liftAstApp2 IR.match' n (sequence $ p:ps))
@@ -820,7 +827,7 @@ mkNamedAsg ir = buildAsgF . fmap (\name -> (name, liftIRBApp0 $ ir name))
 -- lamBldr :: SymParser (AsgBldr SomeTerm -> AsgBldr SomeTerm)
 -- lamBldr = do
 --     body <- symbol Lexer.BlockStart *> discover (nonEmptyBlock lineExpr)
---     return $ flip (inheritCodeSpan2 $ liftIRB2 IR.lam') (uncurry seqs body)
+--     pure $ flip (inheritCodeSpan2 $ liftIRB2 IR.lam') (uncurry seqs body)
 
 
 -- -- === Utils === --
@@ -905,8 +912,8 @@ mkNamedAsg ir = buildAsgF . fmap (\name -> (name, liftIRBApp0 $ ir name))
 
 -- rootedRawFunc :: AsgParser SomeTerm
 -- rootedRawFunc = buildAsg $ funcBase >>= \case
---     (n,(0,bldr))         -> return $ liftAstApp2 IR.asgRootedFunction' n (snapshotRooted bldr)
---     (_,(1,AsgBldr bldr)) -> return bldr
+--     (n,(0,bldr))         -> pure $ liftAstApp2 IR.asgRootedFunction' n (snapshotRooted bldr)
+--     (_,(1,AsgBldr bldr)) -> pure bldr
 
 -- -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -952,7 +959,7 @@ mkNamedAsg ir = buildAsgF . fmap (\name -> (name, liftIRBApp0 $ ir name))
 --     listTgt = Import.Listed <$> many (varName <|> consName)
 
 -- impSrc :: AsgParser SomeTerm
--- impSrc = buildAsg $ (\s -> liftIRBApp0 $ IR.unresolvedImpSrc' s) <$> (wrd <|> rel <|> abs) where
+-- impSrc = buildAsg $ (\s -> id $ IR.unresolvedImpSrc' s) <$> (wrd <|> rel <|> abs) where
 --     wrd = Import.World    <$  specificCons "World"
 --     rel = Import.Relative <$  symbol Lexer.Accessor <*> qualConsName
 --     abs = Import.Absolute <$> qualConsName
@@ -995,29 +1002,29 @@ mkNamedAsg ir = buildAsgF . fmap (\name -> (name, liftIRBApp0 $ ir name))
 
 -- defaultFISafety :: AsgParser SomeTerm
 -- defaultFISafety = buildAsg $
---     (\safety -> liftIRBApp0 (IR.foreignImpSafety' safety))
---     <$> ((return Import.Default) :: SymParser ForeignImportType)
+--     (\safety -> id (IR.foreignImpSafety' safety))
+--     <$> ((pure Import.Default) :: SymParser ForeignImportType)
 
 -- -- TODO [Ara, WD] Need to have the lexer deal with these as contextual keywords
 -- -- using a positive lookahead in the _Lexer_.
 -- specifiedFISafety :: AsgParser SomeTerm
 -- specifiedFISafety = buildAsg $
 --     (\(importSafety :: ForeignImportType) ->
---         liftIRBApp0 (IR.foreignImpSafety' importSafety))
+--         id (IR.foreignImpSafety' importSafety))
 --     <$> getImpSafety (optionMaybe varName)
 --     where getImpSafety :: SymParser (Maybe Name) -> SymParser ForeignImportType
 --           getImpSafety p = p >>= \case
---               Nothing               -> return Import.Default
+--               Nothing               -> pure Import.Default
 --               Just (Name.Name text) -> case text of
---                   "safe"   -> return Import.Safe
---                   "unsafe" -> return Import.Unsafe
+--                   "safe"   -> pure Import.Safe
+--                   "unsafe" -> pure Import.Unsafe
 --                   _        -> fail "Invalid safety specification."
 
 -- stringOrVarName :: AsgParser SomeTerm
 -- stringOrVarName = str <|> (asgNameParser varName)
 
 -- asgNameParser :: SymParser Name -> AsgParser SomeTerm
--- asgNameParser nameParser = buildAsg $ (\varN -> liftIRBApp0 (IR.var' varN))
+-- asgNameParser nameParser = buildAsg $ (\varN -> id (IR.var' varN))
 --      <$> nameParser
 
 -- -- === Unit body === --
@@ -1131,7 +1138,7 @@ parsingBase p src = do
         Left e -> error ("Parser error: " <> parseErrorPretty e) -- FIXME[WD]: handle it the proper way
         Right (AsgBldr irb) -> do
             ((ref, unmarked), gidMap) <- State.runDefT @MarkedExprMap $ State.runDefT @UnmarkedExprs irb
-            return (ref, gidMap)
+            pure (ref, gidMap)
 
 -- parsingBase_ :: ( MonadPassManager m, ParsingPassReq_2 m
 --                 , UnsafeGeneralizable a SomeTerm, UnsafeGeneralizable a SomeTerm -- FIXME[WD]: Constraint for testing only
@@ -1167,7 +1174,7 @@ parsingBase p src = do
 
 -- cmpMarkedExpr :: IsomorphicCheckCtx m => MarkedExprMap -> MarkerId -> SomeTerm -> m ReparsingChange
 -- cmpMarkedExpr (_unwrap -> map) mid newExpr = case map ^. at mid of
---     Nothing      -> return $ AddedExpr newExpr
+--     Nothing      -> pure $ AddedExpr newExpr
 --     Just oldExpr -> checkIsoExpr (unsafeGeneralize oldExpr) (unsafeGeneralize newExpr) <&> \case -- FIXME [WD]: remove unsafeGeneralize, we should use SomeTerm / SomeTerm everywhere
 --         False -> ChangedExpr   oldExpr newExpr
 --         True  -> UnchangedExpr oldExpr newExpr

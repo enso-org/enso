@@ -1,6 +1,6 @@
 module Foreign.Storable.Utils (module Foreign.Storable.Utils, module X) where
 
-import qualified Foreign.Storable as X
+import Foreign.Storable as X
 
 import Foreign.Ptr      (Ptr, castPtr)
 import Foreign.Storable (Storable, alignment, peek, peekByteOff, poke,

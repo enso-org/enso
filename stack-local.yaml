@@ -18,6 +18,7 @@ ghc-options:
         -O2
         -threaded
         -Wall
+        -Wno-name-shadowing
     $everything:
         -fconstraint-solver-iterations=100
 

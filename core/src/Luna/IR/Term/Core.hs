@@ -51,6 +51,7 @@ Term.define ''Format.Thunk [d|
     |]
 
 Term.define ''Format.Phrase [d|
+    data Blank   a = Blank
     data Missing a = Missing
     |]
 

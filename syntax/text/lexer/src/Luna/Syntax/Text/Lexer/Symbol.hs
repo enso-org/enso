@@ -132,6 +132,14 @@ instance NFData Number
 makeClassy ''Symbol
 makeLenses ''Number
 
+instance Convertible Numbase Word8 where
+    convert = \case
+        Bin -> 2
+        Oct -> 8
+        Dec -> 10
+        Hex -> 16
+
+
 
 -- === Utils === --
 
