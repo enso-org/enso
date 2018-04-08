@@ -14,7 +14,7 @@ import qualified OCI.IR.Layer                        as Layer
 import qualified OCI.IR.Layout                       as Layout
 
 import Luna.IR.Component.Term.Class      (Term, Terms)
-import Luna.IR.Component.Term.Definition (LinkTo)
+import Luna.IR.Component.Term.Definition (Ln)
 import Luna.IR.Component.Term.Layer      (Model)
 import Luna.IR.Component.Term.Layout     (Names)
 import OCI.Data.Name                     (Name)
@@ -41,18 +41,18 @@ Term.defineNoSmartCons ''Format.Value [d|
     |]
 
 Term.define ''Format.Value [d|
-    data Cons = Cons { name :: Name, args :: List (LinkTo Terms) }
-    data App  = App  { base :: LinkTo Terms, arg  :: LinkTo Terms } -- FIXME: flip args
+    data Cons = Cons { name :: Name, args :: List (Ln Terms) }
+    data App  = App  { base :: Ln Terms, arg :: Ln Terms } -- FIXME: flip args
     |]
 
 Term.define ''Format.Thunk [d|
-    data Acc = Acc { base :: LinkTo Terms, name :: LinkTo Names }
+    data Acc = Acc { base :: Ln Terms, name :: Ln Names }
     |]
 
 Term.define ''Format.Phrase [d|
     data Blank   = Blank
     data Missing = Missing
-    data Unify   = Unify   { left  :: LinkTo Terms, right :: LinkTo Terms }
+    data Unify   = Unify   { left :: Ln Terms, right :: Ln Terms }
     |]
 
 Term.define ''Format.Draft [d|

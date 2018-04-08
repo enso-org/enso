@@ -48,6 +48,7 @@ type List = UnmanagedPtrList
 
 -- | 'LinkTo' is a phantom helper type for link definition. It gets resolved to
 --   much more complex form during 'ExpandField' resolution.
+type Ln = LinkTo
 data LinkTo t
 
 -- | 'Field' is a typeclass which unifies how fields of smart cons get

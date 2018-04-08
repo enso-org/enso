@@ -7,7 +7,7 @@ import qualified Luna.IR.Term.Format               as Format
 
 import Data.Vector.Storable.Foreign      (Vector)
 import Luna.IR.Component.Term.Class      (Terms)
-import Luna.IR.Component.Term.Definition (LinkTo)
+import Luna.IR.Component.Term.Definition (Ln)
 import OCI.Data.Name                     (Name)
 
 -- FIXME: remove when refactoring Cmp instances
@@ -22,10 +22,10 @@ import Luna.IR.Term.Core ()
 
 Term.define ''Format.Ast [d|
     data Invalid      = Invalid      { desc :: Name }
-    data Marked       = Marked       { marker :: LinkTo Terms, body :: LinkTo Terms }
+    data Marked       = Marked       { marker :: Ln Terms, body :: Ln Terms }
     data Marker       = Marker       { id :: Word64 }
-    data SectionLeft  = SectionLeft  { operator :: LinkTo Terms, body :: LinkTo Terms }
-    data SectionRight = SectionRight { operator :: LinkTo Terms, body :: LinkTo Terms }
-    data Seq          = Seq          { former :: LinkTo Terms, later :: LinkTo Terms }
+    data SectionLeft  = SectionLeft  { operator :: Ln Terms, body :: Ln Terms }
+    data SectionRight = SectionRight { operator :: Ln Terms, body :: Ln Terms }
+    data Seq          = Seq          { former :: Ln Terms, later :: Ln Terms }
     |]
 
