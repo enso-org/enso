@@ -123,7 +123,7 @@ import qualified Text.Parser.Expr                  as Expr
 import Data.Text.Position               (FileOffset (..))
 import Data.Text.Position               (Delta)
 import Data.Text32                      (Text32)
-import Language.Symbol                  (Labeled (Labeled), UniSymbol)
+import Language.Symbol                  (Labeled (Labeled), UniSymbol, labeled)
 import Luna.IR                          (Term)
 import Luna.Pass                        (Pass)
 import Luna.Syntax.Text.Parser.CodeSpan (CodeSpan (CodeSpan),
@@ -149,8 +149,8 @@ instance Convertible Text32.Text32 Name where
 
 type SomeTerm = IR.Term ()
 
--- some' :: (Applicative m, Alternative m) => m a -> m (NonEmpty a)
--- some' p = (:|) <$> p <*> many p
+some' :: (Applicative m, Alternative m) => m a -> m (NonEmpty a)
+some' p = (:|) <$> p <*> many p
 
 
 -- ------------------------
@@ -635,76 +635,82 @@ type ExprTokenProto  a = Expr.Token (ExprSymbolProto a)
 type ExprSymbol      a = Labeled SpacedName (UniSymbol Symbol.Expr    a)
 type ExprSymbolProto a = Labeled SpacedName (UniSymbol Symbol.Phantom a)
 
--- instance Semigroup ExprSegmentBuilder where
---     a <> b = SegmentBuilder $ \(l,r) -> runSegmentBuilder a (l,False) <> runSegmentBuilder b (False,r)
+instance Semigroup ExprSegmentBuilder where
+    a <> b = SegmentBuilder $ \(l,r) -> runSegmentBuilder a (l,False) <> runSegmentBuilder b (False,r)
 
--- expr :: AsgParser SomeTerm
--- expr = possiblyDocumented $ func <|> lineExpr
+expr :: AsgParser SomeTerm
+expr = possiblyDocumented $ lineExpr -- WAS: func <|> lineExpr
 
--- lineExpr :: AsgParser SomeTerm
--- lineExpr = marked <*> (possiblyDisabled (valExpr <**> option id assignment)) where
---     assignment = flip unify <$ symbol Lexer.Assignment <*> valExpr
+lineExpr :: AsgParser SomeTerm
+lineExpr = marked <*> (possiblyDisabled (valExpr <**> option id assignment)) where
+    assignment = flip unify <$ symbol Lexer.Assignment <*> valExpr
 
--- valExpr :: AsgParser SomeTerm
--- valExpr =  buildTokenExpr =<< exprSegments
+valExpr :: AsgParser SomeTerm
+valExpr =  buildTokenExpr =<< exprSegments
 
--- nonemptyValExpr :: AsgParser SomeTerm
--- nonemptyValExpr = do
---     es <- exprSegments
---     -- when (null es) $ unexpected "Empty expression" -- FIXME[WD]
---     buildTokenExpr es
+nonemptyValExpr :: AsgParser SomeTerm
+nonemptyValExpr = do
+    es <- exprSegments
+    -- when (null es) $ unexpected "Empty expression" -- FIXME[WD]
+    buildTokenExpr es
 
--- nonemptyValExprLocal :: AsgParser SomeTerm
--- nonemptyValExprLocal = do
---     es <- exprSegmentsLocal
---     -- when (null es) $ unexpected "Empty expression" -- FIXME[WD]
---     buildTokenExpr es
+nonemptyValExprLocal :: AsgParser SomeTerm
+nonemptyValExprLocal = do
+    es <- exprSegmentsLocal
+    -- when (null es) $ unexpected "Empty expression" -- FIXME[WD]
+    buildTokenExpr es
 
--- nonSpacedValExpr :: AsgParser SomeTerm
--- nonSpacedValExpr = do
---     es <- exprSegmentsNonSpaced
---     -- when (null es) $ unexpected "Empty expression" -- FIXME[WD]
---     buildTokenExpr es
+nonSpacedValExpr :: AsgParser SomeTerm
+nonSpacedValExpr = do
+    es <- exprSegmentsNonSpaced
+    -- when (null es) $ unexpected "Empty expression" -- FIXME[WD]
+    buildTokenExpr es
 
--- nonSpacedPattern :: AsgParser SomeTerm
--- nonSpacedPattern = nonSpacedValExpr
+nonSpacedPattern :: AsgParser SomeTerm
+nonSpacedPattern = nonSpacedValExpr
 
--- concatExprSegmentBuilders :: NonEmpty ExprSegmentBuilder -> ExprSegmentBuilder
--- concatExprSegmentBuilders bldrs = SegmentBuilder $ \(l,r) -> case bldrs of
---     (s:|[])     -> runSegmentBuilder s (l,r)
---     (s:|(t:ts)) -> runSegmentBuilder s (l,False) <> runSegmentBuilder (concatExprSegmentBuilders $ t:|ts) (False,r)
+concatExprSegmentBuilders :: NonEmpty ExprSegmentBuilder -> ExprSegmentBuilder
+concatExprSegmentBuilders bldrs = SegmentBuilder $ \(l,r) -> case bldrs of
+    (s:|[])     -> runSegmentBuilder s (l,r)
+    (s:|(t:ts)) -> runSegmentBuilder s (l,False) <> runSegmentBuilder (concatExprSegmentBuilders $ t:|ts) (False,r)
 
--- exprSegments    , exprSegmentsLocal     :: SymParser ExprSegments
--- exprFreeSegments, exprFreeSegmentsLocal :: SymParser ExprSegmentBuilder
--- exprSegments          = buildExprTok <$> exprFreeSegments
--- exprSegmentsLocal     = buildExprTok <$> exprFreeSegmentsLocal
--- exprFreeSegments      = withNewLocal exprFreeSegmentsLocal
--- exprFreeSegmentsLocal = fmap concatExprSegmentBuilders . some' $ choice [mfixVarSeg, consSeg, wildSeg, numSeg, strSeg, opSeg, accSeg, tupleSeg, grpSeg, listSeg, lamSeg, matchseg, typedSeg, funcSeg]
+exprSegments    , exprSegmentsLocal     :: SymParser ExprSegments
+exprFreeSegments, exprFreeSegmentsLocal :: SymParser ExprSegmentBuilder
+exprSegments          = buildExprTok <$> exprFreeSegments
+exprSegmentsLocal     = buildExprTok <$> exprFreeSegmentsLocal
+exprFreeSegments      = Reserved.withNewLocal exprFreeSegmentsLocal
+exprFreeSegmentsLocal = fmap concatExprSegmentBuilders . some'
+                      $ choice [ consSeg, wildSeg, numSeg]
+                    --   $ choice [ mfixVarSeg, consSeg, wildSeg, numSeg, strSeg
+                    --            , opSeg, accSeg, tupleSeg, grpSeg, listSeg
+                    --            , lamSeg, matchseg, typedSeg, funcSeg]
 
--- exprSegmentsNonSpaced    , exprSegmentsNonSpacedLocal     :: SymParser ExprSegments
--- exprFreeSegmentsNonSpaced, exprFreeSegmentsNonSpacedLocal :: SymParser ExprSegmentBuilder
--- exprSegmentsNonSpaced          = buildExprTok <$> exprFreeSegmentsNonSpaced
--- exprSegmentsNonSpacedLocal     = buildExprTok <$> exprFreeSegmentsNonSpacedLocal
--- exprFreeSegmentsNonSpaced      = withNewLocal exprFreeSegmentsNonSpacedLocal
--- exprFreeSegmentsNonSpacedLocal = choice [varSeg, consSeg, wildSeg, numSeg, strSeg, tupleSeg, grpSeg, listSeg]
+exprSegmentsNonSpaced    , exprSegmentsNonSpacedLocal     :: SymParser ExprSegments
+exprFreeSegmentsNonSpaced, exprFreeSegmentsNonSpacedLocal :: SymParser ExprSegmentBuilder
+exprSegmentsNonSpaced          = buildExprTok <$> exprFreeSegmentsNonSpaced
+exprSegmentsNonSpacedLocal     = buildExprTok <$> exprFreeSegmentsNonSpacedLocal
+exprFreeSegmentsNonSpaced      = Reserved.withNewLocal exprFreeSegmentsNonSpacedLocal
+exprFreeSegmentsNonSpacedLocal = choice [varSeg, consSeg, wildSeg, numSeg]
+                                      -- strSeg, tupleSeg, grpSeg, listSeg]
 
 
--- -- === Components === --
+-- === Components === --
 
--- -- Utils
--- posIndependent = SegmentBuilder . const . pure . tokenx
+-- Utils
+posIndependent = SegmentBuilder . const . pure . Expr.tokenx
 
--- -- FIXME[WD]: change the API to monadic one, so we can register symbols and mixfix monads could gather needed info (like var names)
--- --            without the need to keep the label in the term
--- unlabeledAtom :: a -> Labeled SpacedName (UniSymbol Symbol.Expr a)
--- unlabeledAtom = labeled (spaced "#unnamed#") . atom
+-- FIXME[WD]: change the API to monadic one, so we can register symbols and mixfix monads could gather needed info (like var names)
+--            without the need to keep the label in the term
+unlabeledAtom :: a -> Labeled SpacedName (UniSymbol Symbol.Expr a)
+unlabeledAtom = labeled (Name.spaced "#unnamed#") . Symbol.atom
 
 -- -- Possible tokens
 -- varSeg, consSeg, wildSeg, numSeg, strSeg, grpSeg, listSeg, tupleSeg, matchseg, lamSeg, funcSeg :: SymParser ExprSegmentBuilder
--- varSeg   = posIndependent . unlabeledAtom <$> var
--- consSeg  = posIndependent . unlabeledAtom <$> cons
--- wildSeg  = posIndependent . unlabeledAtom <$> wildcard
--- numSeg   = posIndependent . unlabeledAtom <$> num
+varSeg, consSeg, wildSeg, numSeg:: SymParser ExprSegmentBuilder
+varSeg   = posIndependent . unlabeledAtom <$> var
+consSeg  = posIndependent . unlabeledAtom <$> cons
+wildSeg  = posIndependent . unlabeledAtom <$> wildcard
+numSeg   = posIndependent . unlabeledAtom <$> number
 -- strSeg   = posIndependent . unlabeledAtom <$> str
 -- grpSeg   = posIndependent . unlabeledAtom <$> grouped nonemptyValExpr
 -- listSeg  = posIndependent . unlabeledAtom <$> list  nonemptyValExprLocal
@@ -839,10 +845,10 @@ type ExprSymbolProto a = Labeled SpacedName (UniSymbol Symbol.Phantom a)
 --     pure $ flip (inheritCodeSpan2 $ liftIRB2 IR.lam') (uncurry seqs body)
 
 
--- -- === Utils === --
+-- === Utils === --
 
--- buildExprTok :: ExprSegmentBuilder -> ExprSegments
--- buildExprTok bldr = runSegmentBuilder bldr (True, True)
+buildExprTok :: ExprSegmentBuilder -> ExprSegments
+buildExprTok bldr = runSegmentBuilder bldr (True, True)
 
 -- parseMixfixSegments :: SparseTreeSet Name -> SymParser [(Name, AsgBldr SomeTerm)]
 -- parseMixfixSegments nameSet = do

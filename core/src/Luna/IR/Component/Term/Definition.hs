@@ -91,10 +91,10 @@ type family AddToOutput var field layout where
 -- | Term definition boilerplate
 --
 --   @
---       Term.define ''Format.Thunk [d|
---           data Test a = Test
---               { foo :: Foo a
---               , bar :: Bar a
+--       Term.define [d|
+--           data Thunk = Test
+--               { foo :: Foo
+--               , bar :: Bar
 --               }
 --        |]
 --   @
@@ -104,8 +104,8 @@ type family AddToOutput var field layout where
 --   @
 --       Tag.familyInstance "TermCons" "Test"
 --       data ConsTest a = Test
---           { __left  :: {-# UNPACK #-} !(ExpandField (Foo a))
---           , __right :: {-# UNPACK #-} !(ExpandField (Bar a))
+--           { __left  :: {-# UNPACK #-} !(ExpandField Test a Foo)
+--           , __right :: {-# UNPACK #-} !(ExpandField Test a Bar)
 --           } deriving (Show, Eq)
 --       instance Discovery.IsTermTag Test
 --       type instance Format.Of      Test     = Format.Phrase
@@ -118,10 +118,10 @@ type family AddToOutput var field layout where
 --       type instance Format.Of Test = Format.Thunk
 --
 --       test :: forall a t1 t2 m. Creator Test m
---             => FieldCons t1 (Foo a)
---             -> FieldCons t2 (Bar a)
---             -> m (Term (AddToOutput t1 (Foo a)
---                        (AddToOutput t2 (Foo a)
+--             => FieldCons t1 Foo
+--             -> FieldCons t2 Bar
+--             -> m (Term (AddToOutput t1 Foo
+--                        (AddToOutput t2 Bar
 --                        (Layout.Singleton Model Test)))
 --                  )
 --       test t1 t2 = Term.newM $ \self
@@ -158,25 +158,29 @@ defineSingle needsSmartCons termDecl = case termDecl of
 
 defineSingleCons :: Bool -> Name -> TH.Con -> Q [Dec]
 defineSingleCons needsSmartCons dataName con = do
-    conName  <- maybe (fail "All constructors have to be named") pure
-              $ con ^. maybeName
+    conName1 <- maybe (fail "All constructors have to be named") pure
+              $ convert $ con ^. maybeName
     param    <- newName "a"
-    let isNewtype     = length (getBangTypes con) == 1
+    let (needSmartCons, conNameStr) = case last conName1 of
+            Just '_' -> (False, unsafeInit conName1)
+            _        -> (True,  conName1)
+        isNewtype     = length (getBangTypes con) == 1
         termDecl      = if isNewtype
             then TH.NewtypeD [] conName [TH.PlainTV param] Nothing  con  []
             else TH.DataD    [] conName [TH.PlainTV param] Nothing [con] []
-        conNameStr    = convertTo @String conName
+        conName       = TH.mkName conNameStr
         typeNameStr   = mkTypeName conNameStr
         tagName       = convert conNameStr
         typeName      = convert typeNameStr
 
+        bangFields    = if isNewtype then id else
+                        namedFields %~ fmap (_2 .~ unpackStrictAnn)
         mangleFields  = namedFields %~ fmap (_1 %~ mangleFieldName conNameStr)
-        bangFields    = if isNewtype then id
-                        else namedFields %~ fmap (_2 .~ unpackStrictAnn)
         rebindFields  = namedFields %~ fmap (_3 %~ expandField tagName param)
         con'          = mangleFields
                       . bangFields
                       . rebindFields
+                      . (maybeName .~ Just conName)
                       $ con
 
         setTypeName   = maybeName    .~ Just typeName
@@ -201,6 +205,9 @@ defineSingleCons needsSmartCons dataName con = do
 
         fieldTypes    = fmap (view _3) . view namedFields $ con
 
+    runIO $ print ">>>>"
+    runIO $ print conNameStr
+
     lensInst      <- Lens.declareLenses (pure [termDecl'])
     storableInst  <- Storable.derive'   termDecl'
     storable1Inst <- Storable1.derive'  termDecl'
@@ -215,7 +222,7 @@ defineSingleCons needsSmartCons dataName con = do
            ]
         <> storableInst
         <> storable1Inst
-        <> if needsSmartCons then smartCons else []
+        <> if needSmartCons then smartCons else []
 
     where maybeNameStr :: MayHaveName a => a -> (Maybe String)
           maybeNameStr = fmap TH.nameBase . view maybeName

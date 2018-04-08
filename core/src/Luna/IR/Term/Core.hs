@@ -32,35 +32,23 @@ type List = UnmanagedPtrList
 ----------------
 
 -- | Core IR terms definition. For more information on what the actual data
---   is created please refer to the documentation of the TH functions.
+--   is created please refer to the documentation of the 'Term.define' function.
 
 -- === IR Atoms === ---
 
-Term.defineNoSmartCons [d|
- data Value = Top
- |]
-
 Term.define [d|
 
- data Value
-    = Cons      { name :: Name        , args  :: List (LinkTo Terms) }
-    | App       { base :: LinkTo Terms, arg   :: LinkTo Terms        } -- FIXME: flip args
-
- data Thunk
-    = Acc       { base :: LinkTo Terms, name  :: LinkTo Names }
-    | Lam       { arg  :: LinkTo Terms, body  :: LinkTo Terms }
-
- data Phrase
-    = Blank
-    | Missing
-    | Unify     { left :: LinkTo Terms, right :: LinkTo Terms }
-
- data Draft
-    = Var { name :: Name }
+ data Value  = App     { base :: LinkTo Terms, arg   :: LinkTo Terms           } -- FIXME: flip args
+             | Cons    { name :: Name        , args  :: List (LinkTo Terms)    }
+             | Top_
+ data Thunk  = Acc     { base :: LinkTo Terms, name  :: LinkTo Names           }
+             | Lam     { arg  :: LinkTo Terms, body  :: LinkTo Terms           }
+ data Phrase = Blank
+             | Missing
+             | Unify   { left :: LinkTo Terms, right :: LinkTo Terms           }
+ data Draft  = Var     { name :: Name                                          }
 
  |]
-
-
 
 
 -- === Smart constructors === --

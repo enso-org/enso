@@ -4,7 +4,8 @@
 
 module Luna.Syntax.Prettyprint where
 
-import Prologue
+import qualified Prelude  as P
+import           Prologue
 -- import qualified Prelude as P
 -- import Luna.Prelude hiding (List, Symbol, UniSymbol, Prettyprinter, (<+>))
 -- import Data.Layout hiding (spaced, Prettyprinter, Doc)
@@ -21,7 +22,6 @@ import Prologue
 -- import           OCI.IR.Name.Multipart (MultipartName)
 -- import OCI.IR.Name.Qualified
 -- import qualified Luna.IR.Term.Literal as Literal
--- import Luna.Syntax.Text.Parser.Hardcoded
 -- import qualified Luna.IR.Term.Unit as Import
 -- import qualified Data.Text as Text
 
@@ -31,6 +31,7 @@ import Prologue
 -- type instance GetRefHandler (StateT Scope m) = GetRefHandler m
 -- instance Prec.RelReader label m => Prec.RelReader label (SubPass p m)
 
+-- import qualified Luna.Syntax.Text.Parser.Hardcoded as Builtin
 import qualified Control.Monad.State.Layered    as State
 import qualified Data.Layout                    as Layout
 import qualified Data.Layout                    as Doc
@@ -44,11 +45,16 @@ import qualified OCI.IR.Layout                  as Layout
 
 import Control.Monad.State.Layered (StateT)
 import Language.Symbol             (UniSymbol)
-import Language.Symbol.Label       (Labeled, labeled, unlabel)
+import Language.Symbol.Label       (Labeled (Labeled), label, labeled, unlabel)
 import Luna.IR                     (Name)
 import Luna.Pass                   (Pass)
 import Luna.Syntax.Text.Scope      (Scope)
 
+import Data.Layout     (parensed, (<+>))
+import Language.Symbol (body)
+
+appName = "#app#" -- FIXME -> take it from Builtin
+uminusName = "#uminus#" -- FIXME -> take it from Builtin
 
 
 
@@ -135,7 +141,7 @@ getBody (unlabel -> s) = case s of
 -- -- === Instances === --
 
 instance Convertible Name Doc           where convert = convertVia @String
--- instance Convertible (PrettySymbol a) a where convert = getBody
+instance Convertible (PrettySymbol a) a where convert = getBody
 
 
 
@@ -171,58 +177,58 @@ run scope ir = flip State.evalT scope
 
 
 
--- --------------------------------
--- -- === Symbol Application === --
--- --------------------------------
+--------------------------------
+-- === Symbol Application === --
+--------------------------------
 
--- newtype ParensedBool = ParensedBool Bool deriving (Show)
--- makeLenses ''ParensedBool
+newtype ParensedBool = ParensedBool Bool deriving (Show)
+makeLenses ''ParensedBool
 
--- instance Convertible Bool ParensedBool where convert = wrap
--- instance Convertible ParensedBool Bool where convert = unwrap
--- instance Mempty      ParensedBool      where mempty  = wrap False
--- instance Semigroup   ParensedBool      where (<>)    = wrap .: (||) `on` unwrap
--- instance P.Monoid    ParensedBool      where mempty  = mempty
---                                              mappend = (<>)
+instance Convertible Bool ParensedBool where convert = wrap
+instance Convertible ParensedBool Bool where convert = unwrap
+instance Mempty      ParensedBool      where mempty  = wrap False
+instance Semigroup   ParensedBool      where (<>)    = wrap .: (||) `on` unwrap
+instance P.Monoid    ParensedBool      where mempty  = mempty
+                                             mappend = (<>)
 
--- type MonadSymApp m = (Assoc.Reader (Maybe SpacedName) m, Prec.RelReader SpacedName m)
--- checkAppParens :: MonadSymApp m => PrettySymbol Doc -> PrettySymbol Doc -> m (Bool, Bool)
--- appSymbols     :: MonadSymApp m => PrettySymbol Doc -> PrettySymbol Doc -> m (PrettySymbol Doc)
--- appSymbols'    :: MonadSymApp m => PrettySymbol Doc -> PrettySymbol Doc -> m ((ParensedBool, ParensedBool), PrettySymbol Doc)
--- checkAppParens = fmap (over both convert . fst) .: appSymbols'
--- appSymbols     = fmap snd .: appSymbols'
--- appSymbols' sf@(Labeled flab fsym) sa = do
---     ascf     <- Assoc.read sf
---     asca     <- Assoc.read sa
---     argParen <- case (sf^.label, sa^.label) of
---         (Just flab, Just alab) -> do
---             prec <- case fsym of
---                 Infix _ -> compare EQ <$> Prec.readRelLabel alab flab
---                 _       -> Prec.readRelLabel flab alab
---             return $ \asc -> case prec of
---                 LT -> False
---                 GT -> True
---                 EQ -> (asca /= ascf) || (asca /= asc)
---         _ -> return $ const False
+type MonadSymApp m = (Assoc.Reader (Maybe SpacedName) m, Prec.RelReader SpacedName m)
+checkAppParens :: MonadSymApp m => PrettySymbol Doc -> PrettySymbol Doc -> m (Bool, Bool)
+appSymbols     :: MonadSymApp m => PrettySymbol Doc -> PrettySymbol Doc -> m (PrettySymbol Doc)
+appSymbols'    :: MonadSymApp m => PrettySymbol Doc -> PrettySymbol Doc -> m ((ParensedBool, ParensedBool), PrettySymbol Doc)
+checkAppParens = fmap (over both convert . fst) .: appSymbols'
+appSymbols     = fmap snd .: appSymbols'
+appSymbols' sf@(Labeled flab fsym) sa = do
+    ascf     <- Assoc.read sf
+    asca     <- Assoc.read sa
+    argParen <- case (sf^.label, sa^.label) of
+        (Just flab, Just alab) -> do
+            prec <- case fsym of
+                Symbol.Infix _ -> compare EQ <$> Prec.readRelLabel alab flab
+                _              -> Prec.readRelLabel flab alab
+            return $ \asc -> case prec of
+                LT -> False
+                GT -> True
+                EQ -> (asca /= ascf) || (asca /= asc)
+        _ -> return $ const False
 
---     let argHandle a asc  = ((mempty, convert $ argParen asc), if argParen asc then parensed a else a)
---         arg              = argHandle sa'
---         sa'              = convert sa
---         argAppAtom       = named (spaced appName) $ infixx mempty
---         sconcatIf        = switch (<>) (<+>)
---         sconcatIfLab l n = sconcatIf $ (_rawName <$> l) == Just n
+    let argHandle a asc  = ((mempty, convert $ argParen asc), if argParen asc then parensed a else a)
+        arg              = argHandle sa'
+        sa'              = convert sa
+        argAppAtom       = named (spaced appName) $ Symbol.infixx mempty
+        sconcatIf        = switch (<>) (<+>)
+        sconcatIfLab l n = sconcatIf $ (_rawName <$> l) == Just n
 
---     out <- case fsym of
---         Atom {}   -> do
---             (ps , sym ) <- appSymbols' argAppAtom sf
---             (ps', sym') <- appSymbols' sym sa
---             return ((fst ps', snd ps), sym')
---         Infix  s -> return $ (labeled flab . prefix) .: sconcatIfLab flab appName    <$> arg Assoc.Left <*> pure (s^.body)
---         Prefix s -> return $ (labeled flab . atom)   .: sconcatIfLab flab uminusName <$> pure (s^.body) <*> arg Assoc.Right
---         Mixfix s -> return . (mempty,) $ case s^.body of
---             (b, [])       -> labeled flab $ atom   (b <+> sa')
---             (b, (n : ns)) -> labeled flab $ mixfix (b <+> sa' <+> convert n, ns)
---     return out
+    out <- case fsym of
+        Symbol.Atom {}   -> do
+            (ps , sym ) <- appSymbols' argAppAtom sf
+            (ps', sym') <- appSymbols' sym sa
+            return ((fst ps', snd ps), sym')
+        Symbol.Infix  s -> return $ (labeled flab . Symbol.prefix) .: sconcatIfLab flab appName    <$> arg Assoc.Left <*> pure (s^.body)
+        Symbol.Prefix s -> return $ (labeled flab . Symbol.atom)   .: sconcatIfLab flab uminusName <$> pure (s^.body) <*> arg Assoc.Right
+        Symbol.Mixfix s -> return . (mempty,) $ case s^.body of
+            (b, [])       -> labeled flab $ Symbol.atom   (b <+> sa')
+            (b, (n : ns)) -> labeled flab $ Symbol.mixfix (b <+> sa' <+> convert n, ns)
+    return out
 
 
 
@@ -234,16 +240,23 @@ run scope ir = flip State.evalT scope
 
 data Simple = Simple deriving (Show)
 
--- instance ( MonadIO m -- DEBUG ONLY
 --          , Prettyprinter t t m
---          , Prec.RelReader SpacedName m, Assoc.Reader (Maybe SpacedName) m, MonadState Scope m
 --          , Req m '[ Reader // Layer // AnyExpr     // Model
 --                   , Reader // Layer // AnyExprLink // Model
 --                   ]
 --          ) => Prettyprinter Simple t m where
-instance (Monad m, Layer.Reader IR.Terms IR.Model m) => Prettyprinter Simple m where
+instance ( MonadIO m -- DEBUG ONLY
+         , Prec.RelReader SpacedName m
+         , Assoc.Reader (Maybe SpacedName) m
+         , State.Monad Scope m
+         , Layer.Reader IR.Terms IR.Model m
+         ) => Prettyprinter Simple m where
     prettyprint ir = Layer.read @IR.Model ir >>= \case
-        IR.UniTermVar (IR.Var name) -> pure . unnamed $ Symbol.atom (convert name)
+        IR.UniTermVar (IR.Var name) ->
+            pure . unnamed $ Symbol.atom (convert name)
+        IR.UniTermCons (IR.Cons name args) ->
+            foldM appSymbols (unnamed . Symbol.atom $ convert name) [] -- =<< mapM subgen args
+        t -> error $ "NO PRETTY PRINT FOR: " <> show t
 --     prettyprint style subStyle root = matchExpr root $ \case
 --         Blank                       -> return . unnamed $ atom wildcardName
 --         Missing                     -> return . unnamed $ atom mempty

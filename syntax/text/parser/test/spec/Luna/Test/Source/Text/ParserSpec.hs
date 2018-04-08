@@ -33,7 +33,7 @@ import Luna.IR.Component.Link           (type (*-*), Link)
 import Luna.Pass                        (Pass)
 import Luna.Syntax.Text.Parser.CodeSpan (CodeSpan)
 import Luna.Syntax.Text.Parser.Errors   (Invalids)
-import Luna.Syntax.Text.Parser.Parser   (Parser)
+import Luna.Syntax.Text.Parser.Parser   (AsgParser, Parser)
 import Luna.Syntax.Text.Scope           (Scope)
 import Test.Hspec                       (Expectation, Spec, describe, it)
 
@@ -68,10 +68,10 @@ runPass' = runPass
 
 
 
-shouldParseItself :: Text -> (Delta, Delta) -> IO ()
-shouldParseItself code desiredSpan = runPass' $ do
+shouldParseItself :: AsgParser IR.SomeTerm -> Text -> (Delta, Delta) -> IO ()
+shouldParseItself parser code desiredSpan = runPass' $ do
     (((ir,cs),scope), _) <- flip Parsing.parsingBase (convert code) $ do
-        irb   <- Parsing.var
+        irb   <- parser
         scope <- State.get @Scope
         let Parser.AsgBldr irx = irb
             irb' = Parser.AsgBldr $ do
@@ -92,7 +92,7 @@ shouldParseItself code desiredSpan = runPass' $ do
 
 nameSpec :: Spec
 nameSpec = describe "test" $ do
-    it "var name" $ shouldParseItself "foo" (0,3)
+    it "var name" $ shouldParseItself Parsing.expr "Cons" (0,4)
 
 spec :: Spec
 spec = do

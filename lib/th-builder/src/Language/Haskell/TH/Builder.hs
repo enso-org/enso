@@ -206,14 +206,20 @@ instance MayHaveName TH.Dec where
             a                                 -> a
 
 instance MayHaveName TH.Con where
-    maybeName = lens getter setter where
+    maybeName = lens getter (flip setter) where
         getter = \case
             TH.NormalC n _   -> Just n
             TH.RecC    n _   -> Just n
             TH.InfixC  _ n _ -> Just n
             TH.ForallC _ _ a -> a ^. maybeName
             _                -> Nothing
-        setter = error "TODO"
+        setter Nothing = id
+        setter (Just n) = \case
+            TH.NormalC _ t1    -> TH.NormalC n t1
+            TH.RecC    _ t1    -> TH.RecC    n t1
+            TH.InfixC  t1 _ t2 -> TH.InfixC  t1 n t2
+            TH.ForallC t1 t2 a -> TH.ForallC t1 t2 $ setter (Just n) a
+            t                  -> t
 
 
 ----------------------
