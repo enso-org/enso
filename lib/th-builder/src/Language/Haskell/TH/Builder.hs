@@ -614,10 +614,19 @@ instance Convertible ClassInstance TH.Dec where
 conNameTypes :: TH.Con -> (Name, [TH.Type])
 conNameTypes = \case
     TH.NormalC n fs  -> (n, snd <$> fs)
-    TH.RecC    n fs  -> (n, (view _3) <$> fs)
+    TH.RecC    n fs  -> (n, view _3 <$> fs)
     TH.InfixC a n b  -> (n, snd <$> [a, b])
     TH.ForallC _ _ c -> conNameTypes c
     _ -> error "***error*** deriveStorable: GADT constructors not supported"
+
+getBangTypes :: TH.Con -> [TH.BangType]
+getBangTypes = \case
+    TH.NormalC  _ bt      -> bt
+    TH.RecC     _ vbt     -> vbt2bt <$> vbt
+    TH.InfixC   bt1 _ bt2 -> [bt1, bt2]
+    TH.ForallC  _ _ c     -> getBangTypes c
+    TH.RecGadtC _ vbt _   -> vbt2bt <$> vbt
+    where vbt2bt (_,b,t) = (b,t)
 
 -- | Extract the name and number of params from the consturctor
 conNameArity :: TH.Con -> (Name, Int)

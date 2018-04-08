@@ -135,7 +135,7 @@ type family AddToOutput var field layout where
 --   @
 --
 --   Moreover:
---   1. TODO: Every single field data type is converted to newtype by default.
+--   1. Every single field data type is converted to newtype by default.
 
 define :: Name -> Q [Dec] -> Q [Dec]
 define = defineChoice True
@@ -150,11 +150,14 @@ defineChoice needsSmartCons format declsQ = do
 
 defineSingle :: Bool -> Name -> Dec -> Q [Dec]
 defineSingle needsSmartCons format termDecl = do
-    (conName, param, con, termDeclx) <- case termDecl of
+    (conName, param, con, termDecl', isNewtype) <- case termDecl of
         TH.DataD ctx conName [] kind [con] derivs
           -> do
              param <- newName "a"
-             pure (conName, param, con, TH.DataD ctx conName [TH.PlainTV param] kind [con] derivs)
+             let (isNewtype, decl) = if length (getBangTypes con) == 1
+                     then (True,  TH.NewtypeD ctx conName [TH.PlainTV param] kind  con  derivs)
+                     else (False, TH.DataD    ctx conName [TH.PlainTV param] kind [con] derivs)
+             pure (conName, param, con, decl, isNewtype)
         _ -> fail . unlines
            $ [ "Term constructor should be a non-parametrized data type"
              , "with a single constructor definition."
@@ -168,7 +171,8 @@ defineSingle needsSmartCons format termDecl = do
         typeName      = convert typeNameStr
 
         mangleFields  = namedFields %~ fmap (_1 %~ mangleFieldName conNameStr)
-        bangFields    = namedFields %~ fmap (_2 .~ unpackStrictAnn)
+        bangFields    = if isNewtype then id
+                        else namedFields %~ fmap (_2 .~ unpackStrictAnn)
         rebindFields  = namedFields %~ fmap (_3 %~ expandField tagName param)
         con'          = mangleFields
                       . bangFields
@@ -178,10 +182,10 @@ defineSingle needsSmartCons format termDecl = do
         setTypeName   = maybeName    .~ Just typeName
         setDerivs     = derivClauses .~ [TH.DerivClause Nothing derivs]
         derivs        = cons' <$> [''Show, ''Eq]
-        termDecl'     = (consList .~ [con'])
+        termDecl''    = (consList .~ [con'])
                       . setTypeName
                       . setDerivs
-                      $ termDeclx
+                      $ termDecl'
 
         tagDecls      = Tag.familyInstance' ''Term.TermCons conNameStr
         isTermTagInst = TH.InstanceD Nothing []
@@ -195,9 +199,9 @@ defineSingle needsSmartCons format termDecl = do
 
         fieldTypes    = fmap (view _3) . view namedFields $ con
 
-    lensInst      <- Lens.declareLenses (pure [termDecl'])
-    storableInst  <- Storable.derive'   termDecl'
-    storable1Inst <- Storable1.derive'  termDecl'
+    lensInst      <- Lens.declareLenses (pure [termDecl''])
+    storableInst  <- Storable.derive'   termDecl''
+    storable1Inst <- Storable1.derive'  termDecl''
     smartCons     <- makeSmartCons tagName param fieldTypes
 
     pure $ tagDecls
