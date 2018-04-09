@@ -4,7 +4,6 @@ module Luna.Std.Builder where
 
 import           Luna.Prelude                                 hiding (cons)
 import           Luna.IR
-import           Control.Monad.Trans.State                    (evalStateT)
 import           Data.Set                                     (Set)
 import qualified Data.Set                                     as Set
 import           Data.Map                                     (Map)
@@ -25,7 +24,7 @@ import qualified OCI.Pass                                     as Pass
 import           OCI.IR.Combinators                           (reconnectLayer', replace)
 import           Luna.Builtin.Data.LunaValue                  (LunaValue)
 import           Luna.Pass.Typechecking.Typecheck             (typecheck)
-import           Luna.Pass.Evaluation.Interpreter             (interpret)
+import           Luna.Pass.Evaluation.Interpreter             (interpret, evalScopeT)
 
 data LTp = LVar Name | LCons Name [LTp]
 
@@ -116,7 +115,7 @@ compileFunction imps pass = do
             let whiteList = Set.unions [Set.singleton (generalize tp), Set.fromList (generalize <$> unwrap unifies), Set.fromList (generalize <$> unwrap merges), Set.fromList (generalize <$> unwrap apps), Set.fromList (generalize <$> getAccs accs)]
             deepDeleteWithWhitelist root whiteList
             compile tp
-        return $ Function rooted (evalStateT val def) (Assumptions (unwrap unifies) (unwrap merges) (unwrap apps) (getAccs accs))
+        return $ Function rooted (evalScopeT val def) (Assumptions (unwrap unifies) (unwrap merges) (unwrap apps) (getAccs accs))
     return res
 
 preludeUnaryOp :: Name -> IO Function

@@ -39,6 +39,9 @@ instance Monad LunaEff where
             LunaPure    r -> return r
             LunaMonadic r -> r
 
+instance MonadIO LunaEff where
+    liftIO = LunaMonadic . liftIO
+
 {-newtype LunaEffCont a = LunaEffCont { runLunaEff :: forall w. (a -> PE w) -> PE w }-}
 
 {-instance Functor LunaEffCont where-}

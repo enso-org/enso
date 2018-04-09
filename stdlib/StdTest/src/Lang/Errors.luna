@@ -1,0 +1,25 @@
+import Std.Base
+import Std.Test
+
+class ErrorsTest:
+    def testThrowThrows:
+        def test:
+            foo = throw "foo"
+            None
+        TestSubject test . should throwError
+
+    def testThrowBreaksExecution:
+        t = newMVar
+        t.put 0
+        def prepare:
+            foo = throw "foo"
+            t.take
+            t.put 1
+        runError prepare
+        r = t.take
+        TestSubject r . should (be 0)
+
+    def run:
+        Test.specify "`throw` throws an exception"                 self.testThrowThrows
+        Test.specify "`throw` breaks execution of next IO actions" self.testThrowBreaksExecution
+
