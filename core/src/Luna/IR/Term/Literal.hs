@@ -1,6 +1,7 @@
 module Luna.IR.Term.Literal where
 
-import Prologue
+import           Prologue hiding (String)
+import qualified Prologue as P
 
 import qualified Data.Vector.Storable.Foreign      as Vector
 import qualified Luna.IR.Component.Term.Definition as Term
@@ -21,8 +22,8 @@ Term.define [d|
  data Value
     = Number { base     :: Word8
              , intPart  :: Vector Word8
-             , fracPart :: Vector Word8
-             }
+             , fracPart :: Vector Word8 }
+    | String { val      :: Vector Char  }
  |]
 
 
@@ -30,13 +31,13 @@ Term.define [d|
 
 -- === API === --
 
-prettyshow :: MonadIO m => ConsNumber a -> m String
+prettyshow :: MonadIO m => ConsNumber a -> m P.String
 prettyshow (Number base intPart fracPart) = do
     intPartS  <- showVec intPart
     fracPartS <- showVec fracPart
     let frac = if fracPartS /= "" then "." <> fracPartS else mempty
     pure . pfx $ intPartS <> frac
-    where showVec :: MonadIO m => Vector Word8 -> m String
+    where showVec :: MonadIO m => Vector Word8 -> m P.String
           showVec = fmap (concat . fmap show) . Vector.toList
           pfx  = (<>) $ case base of
               2  -> "0b"

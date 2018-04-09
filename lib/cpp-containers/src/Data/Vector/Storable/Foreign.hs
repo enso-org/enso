@@ -1,13 +1,13 @@
 module Data.Vector.Storable.Foreign where
 
-import Prologue hiding (fromList, toList, unsafeRead)
+import Prologue hiding (empty, fromList, toList, unsafeRead)
 
 import qualified Data.List                 as List
 import qualified Foreign.Marshal.Alloc     as Mem
 import qualified Foreign.Storable.Deriving as Storable
 import qualified Foreign.Storable.Utils    as Storable
 
-import Foreign.Ptr      (Ptr)
+import Foreign.Ptr      (Ptr, nullPtr)
 import Foreign.Storable (Storable)
 import System.IO.Unsafe (unsafeDupablePerformIO, unsafePerformIO)
 
@@ -32,6 +32,9 @@ new :: ∀ a m. (MonadIO m, Storable a) => Int -> m (Vector a)
 new elNum = fmap (Vector elNum) . liftIO . Mem.mallocBytes
           $ elNum * Storable.sizeOf' @a
 {-# INLINE new #-}
+
+empty :: ∀ a. Vector a
+empty = Vector 0 nullPtr ; {-# INLINE empty #-}
 
 
 -- === Lookup === --
@@ -67,3 +70,5 @@ instance (Convertible' a b, Storable b) => Convertible [a] (Vector b) where
 
 instance (Show a, Storable a) => Show (Vector a) where
     show = show . unsafePerformIO . toList ; {-# NOINLINE show #-}
+
+instance Mempty (Vector a) where mempty = empty ; {-# INLINE mempty #-}

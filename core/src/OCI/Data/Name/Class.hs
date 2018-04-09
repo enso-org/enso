@@ -1,5 +1,3 @@
-{-# OPTIONS_GHC -Wno-warn-orphan-instances #-}
-
 module OCI.Data.Name.Class where
 
 import Prologue

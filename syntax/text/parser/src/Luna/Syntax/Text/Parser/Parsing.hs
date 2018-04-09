@@ -13,8 +13,8 @@ import Prologue hiding (seq)
 import Text.Megaparsec       (ErrorItem (Tokens), ParseError, anyChar, between,
                               char, choice, digitChar, hidden, letterChar,
                               lookAhead, lowerChar, manyTill, notFollowedBy,
-                              skipMany, spaceChar, string, try, unexpected,
-                              upperChar, withRecovery)
+                              skipMany, spaceChar, try, unexpected, upperChar,
+                              withRecovery)
 import Text.Megaparsec.Error (parseErrorPretty, parseErrorTextPretty)
 import Text.Megaparsec.Prim  (MonadParsec)
 -- import           Text.Megaparsec.String hiding (Parser)
@@ -83,7 +83,6 @@ import Text.Megaparsec.Prim  (MonadParsec)
 
 -- import qualified Control.Monad as Monad
 
--- import qualified Luna.Syntax.Text.Parser.Loc as Loc
 -- import           Luna.Syntax.Text.Parser.Loc (LeftSpanner, MonadLoc)
 
 
@@ -112,6 +111,7 @@ import qualified Luna.Syntax.Text.Lexer.Symbol     as Lexer
 import qualified Luna.Syntax.Text.Parser.CodeSpan  as CodeSpan
 import qualified Luna.Syntax.Text.Parser.Errors    as Invalid
 import qualified Luna.Syntax.Text.Parser.Hardcoded as Builtin
+import qualified Luna.Syntax.Text.Parser.Loc       as Loc
 import qualified Luna.Syntax.Text.Parser.Marker    as Marker
 import qualified Luna.Syntax.Text.Parser.Name      as Name
 import qualified Luna.Syntax.Text.Parser.Reserved  as Reserved
@@ -540,40 +540,42 @@ tuple p = try $ buildAsg $ Reserved.withLocalUnreservedSymbol sep $ parensed
     parensed p = groupBegin *> p <* groupEnd
     separator  = symbol sep
 
--- str :: AsgParser SomeTerm
--- str = rawStr <|> fmtStr
+string :: AsgParser SomeTerm
+string = rawStr <|> fmtStr
 
--- rawStr :: AsgParser SomeTerm
--- rawStr = buildAsg $ do
---     rawQuoteBegin
---     withRecovery (\e -> invalid "Invalid string literal" <$ Loc.unregisteredDropSymbolsUntil' (== (Lexer.Quote Lexer.RawStr Lexer.End)))
---                  $ (\s -> id $ IR.string' $ convert s) <$> Indent.withCurrent (strBody rawQuoteEnd) -- FIXME[WD]: We're converting Text -> String here.
+rawStr :: AsgParser SomeTerm
+rawStr = buildAsg $ do
+    rawQuoteBegin
+    withRecovery (\e -> invalid "Invalid string literal" <$ Loc.unregisteredDropSymbolsUntil' (== (Lexer.Quote Lexer.RawStr Lexer.End)))
+                 $ (IR.string' . convertVia @String)
+               <$> Indent.withCurrent (strBody rawQuoteEnd) -- FIXME[WD]: We're converting Text -> String here.
 
--- fmtStr :: AsgParser SomeTerm
--- fmtStr = buildAsg $ do
---     fmtQuoteBegin
---     withRecovery (\e -> invalid "Invalid string literal" <$ Loc.unregisteredDropSymbolsUntil' (== (Lexer.Quote Lexer.FmtStr Lexer.End)))
---                  $ (\s -> id $ IR.string' $ convert s) <$> Indent.withCurrent (strBody fmtQuoteEnd) -- FIXME[WD]: We're converting Text -> String here.
+fmtStr :: AsgParser SomeTerm
+fmtStr = buildAsg $ do
+    fmtQuoteBegin
+    withRecovery (\e -> invalid "Invalid string literal" <$ Loc.unregisteredDropSymbolsUntil' (== (Lexer.Quote Lexer.FmtStr Lexer.End)))
+                 $ (IR.string' . convertVia @String)
+               <$> Indent.withCurrent (strBody fmtQuoteEnd) -- FIXME[WD]: We're converting Text -> String here.
 
 
--- strBody :: SymParser () -> SymParser Text32
--- strBody ending = segStr <|> end <|> nl where
---     segStr = (<>) <$> strContent <*> strBody ending
---     end    = mempty <$ ending
---     nl     = Text32.cons '\n' <$ eol <*> (line <|> nl)
---     line   = do Indent.indentedOrEq
---                 (<>) . convert . flip replicate ' ' <$> indentation <*> strBody ending
+strBody :: SymParser () -> SymParser Text32
+strBody ending = segStr <|> end <|> nl where
+    segStr = (<>) <$> strContent <*> strBody ending
+    end    = mempty <$ ending
+    nl     = Text32.cons '\n' <$ eol <*> (line <|> nl)
+    line   = do Indent.indentedOrEq
+                (<>) . convert . flip replicate ' ' <$> Indent.indentation <*> strBody ending
 
--- strContent :: SymParser Text32
--- strContent = satisfy Lexer.matchStr <|> strEsc
+strContent :: SymParser Text32
+strContent = satisfy Lexer.matchStr <|> strEsc
 
--- strEsc :: SymParser Text32
--- strEsc = satisfy Lexer.matchStrEsc >>= pure . \case
---     Lexer.CharStrEsc i             -> convert $ Char.chr i
---     Lexer.NumStrEsc i              -> convert $ Char.chr i
---     Lexer.SlashEsc                 -> "\\"
---     Lexer.QuoteEscape Lexer.RawStr -> "\""
---     Lexer.QuoteEscape Lexer.FmtStr -> "'"
+strEsc :: SymParser Text32
+strEsc = satisfy Lexer.matchStrEsc >>= pure . \case
+    Lexer.CharStrEsc i             -> convert $ Char.chr i
+    Lexer.NumStrEsc i              -> convert $ Char.chr i
+    Lexer.SlashEsc                 -> "\\"
+    Lexer.QuoteEscape Lexer.RawStr -> "\""
+    Lexer.QuoteEscape Lexer.FmtStr -> "'"
 
 
 -------------------------
@@ -610,11 +612,12 @@ grouped p = buildAsg $ parensed $ (\g -> liftAstApp1 IR.grouped' g) <$> p where
 
 -- -- === Metadata === --
 
--- metadata :: AsgParser SomeTerm
--- metadata = buildAsg $ (\t -> id $ IR.metadata' t) <$> metaContent
+-- FIXME: performance
+metadata :: AsgParser SomeTerm
+metadata = buildAsg $ IR.metadata' . convertVia @String <$> metaContent
 
--- metaContent :: SymParser Text32
--- metaContent = satisfy Lexer.matchMetadata
+metaContent :: SymParser Text32
+metaContent = satisfy Lexer.matchMetadata
 
 
 -- === Disabled === --
@@ -683,8 +686,8 @@ exprSegments          = buildExprTok <$> exprFreeSegments
 exprSegmentsLocal     = buildExprTok <$> exprFreeSegmentsLocal
 exprFreeSegments      = Reserved.withNewLocal exprFreeSegmentsLocal
 exprFreeSegmentsLocal = fmap concatExprSegmentBuilders . some'
-                      $ choice [ mfixVarSeg, consSeg, wildSeg, numSeg{-, strSeg
-                               -}, opSeg, accSeg, tupleSeg, grpSeg, listSeg
+                      $ choice [ mfixVarSeg, consSeg, wildSeg, numSeg, strSeg
+                               , opSeg, accSeg, tupleSeg, grpSeg, listSeg
                                , lamSeg, matchseg, typedSeg{-, funcSeg-}
                                ]
 
@@ -694,7 +697,7 @@ exprSegmentsNonSpaced          = buildExprTok <$> exprFreeSegmentsNonSpaced
 exprSegmentsNonSpacedLocal     = buildExprTok <$> exprFreeSegmentsNonSpacedLocal
 exprFreeSegmentsNonSpaced      = Reserved.withNewLocal exprFreeSegmentsNonSpacedLocal
 exprFreeSegmentsNonSpacedLocal = choice [ varSeg, consSeg, wildSeg, numSeg
-                                        {-, strSeg-}, tupleSeg, grpSeg, listSeg
+                                        , strSeg, tupleSeg, grpSeg, listSeg
                                         ]
 
 
@@ -715,13 +718,13 @@ varSeg   = posIndependent . unlabeledAtom <$> var
 consSeg  = posIndependent . unlabeledAtom <$> cons
 wildSeg  = posIndependent . unlabeledAtom <$> wildcard
 numSeg   = posIndependent . unlabeledAtom <$> number
-strSeg   = undefined -- posIndependent . unlabeledAtom <$> str
+strSeg   = posIndependent . unlabeledAtom <$> string
 grpSeg   = posIndependent . unlabeledAtom <$> grouped nonemptyValExpr
 listSeg  = posIndependent . unlabeledAtom <$> list  nonemptyValExprLocal
 tupleSeg = posIndependent . unlabeledAtom <$> tuple nonemptyValExprLocal
 matchseg = posIndependent . unlabeledAtom <$> match
 lamSeg   = posIndependent . labeled (Name.unspaced Builtin.lamName) . Symbol.suffix <$> lamBldr
-funcSeg  = undefined -- posIndependent . unlabeledAtom <$> func
+funcSeg  = posIndependent . unlabeledAtom <$> func
 
 
 mfixVarSeg :: SymParser ExprSegmentBuilder
@@ -894,76 +897,49 @@ doc :: SymParser Text32
 doc = intercalate "\n" <$> some (satisfy Lexer.matchDocComment <* eol)
 
 
--- --------------------------
--- -- === Declarations === --
--- --------------------------
+--------------------------
+-- === Declarations === --
+--------------------------
 
--- topLvlDecl :: AsgParser SomeTerm
--- topLvlDecl = possiblyDocumented $ rootedFunc <|> cls <|> metadata
+topLvlDecl :: AsgParser SomeTerm
+topLvlDecl = possiblyDocumented $ func <|> record <|> metadata
 
 
--- -- === Functions === --
+-- === Functions === --
 
--- func :: AsgParser SomeTerm
--- func = buildAsg $ funcHdr <**> (funcDef <|> funcSig) where
---     funcDef, funcSig :: SymParser (AsgBldr SomeTerm -> IRB SomeTerm)
---     funcHdr = symbol Lexer.KwDef *> (var <|> op)
---     funcSig = (\tp name -> liftAstApp2 IR.functionSig' name tp) <$ symbol Lexer.Typed <*> valExpr
---     funcDef = (\args body name -> liftAstApp3 IR.asgFunction' name (sequence args) (uncurry seqs body))
---         <$> many nonSpacedPattern
---         <*  symbol Lexer.BlockStart
---         <*> discover (nonEmptyBlock lineExpr)
-
--- rootedFunc :: AsgParser SomeTerm
--- rootedFunc = marked <*> rootedRawFunc
-
--- -- ======================================================
--- -- !!! Very hacky implementation of rooted function, which duplicates its name inside rooted IR's function definition
--- --     Moreover, function signature is not in rooted IR.
--- --     To be removed as soon as possible
--- -- vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-
--- funcBase :: SymParser (AsgBldr SomeTerm, (Int, AsgBldr SomeTerm))
--- funcBase = buildAsgF2 $ do
---     hdr <- funcHdr
---     (\f -> (hdr, f hdr)) <$> (fmap2 (0,) funcDef <|> fmap2 (1,) funcSig)
---     where
---     funcDef, funcSig :: SymParser (AsgBldr SomeTerm -> IRB SomeTerm)
---     funcHdr = symbol Lexer.KwDef *> (var <|> op)
---     funcSig = (\tp name -> liftAstApp2 IR.functionSig' name tp) <$ symbol Lexer.Typed <*> valExpr
---     funcDef = (\args body name -> liftAstApp3 IR.asgFunction' name (sequence args) (uncurry seqs body))
---         <$> many nonSpacedPattern
---         <*  symbol Lexer.BlockStart
---         <*> discover (nonEmptyBlock lineExpr)
-
--- rootedRawFunc :: AsgParser SomeTerm
--- rootedRawFunc = buildAsg $ funcBase >>= \case
---     (n,(0,bldr))         -> pure $ liftAstApp2 IR.asgRootedFunction' n (snapshotRooted bldr)
---     (_,(1,AsgBldr bldr)) -> pure bldr
-
--- -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+func :: AsgParser SomeTerm
+func = buildAsg $ funcHdr <**> (funcDef <|> funcSig) where
+    funcDef, funcSig :: SymParser (AsgBldr SomeTerm -> IRB SomeTerm)
+    funcHdr = symbol Lexer.KwDef *> (var <|> op)
+    funcSig = (\tp name -> liftAstApp2 IR.functionSig' name tp) <$ symbol Lexer.Typed <*> valExpr
+    funcDef = (\args body name -> liftAstApp3 IR.function' name (sequence args) (uncurry seqs body))
+        <$> many nonSpacedPattern
+        <*  symbol Lexer.BlockStart
+        <*> discover (nonEmptyBlock lineExpr)
 
 
 -- -- === Classes == --
 
--- cls :: AsgParser SomeTerm
--- cls = buildAsg $ (\nat n args (cs,ds) -> liftAstApp3 (IR.clsASG' nat n) (sequence args) (sequence cs) (sequence ds))
---    <$> try (option False (True <$ symbol Lexer.KwNative) <* symbol Lexer.KwClass) <*> consName <*> many var <*> body
---     where body      = option mempty $ symbol Lexer.BlockStart *> bodyBlock
---           funcBlock = optionalBlockBody (possiblyDocumented rootedFunc)
---           consBlock = breakableNonEmptyBlockBody' clsRec <|> breakableOptionalBlockBody recNamedFieldLine
---           bodyBlock = discoverIndent ((,) <$> consBlock <*> funcBlock)
+record :: AsgParser SomeTerm
+record = buildAsg $ (\nat n args (cs,ds) -> liftAstApp3 (IR.record' nat n) (sequence args) (sequence cs) (sequence ds))
+   <$> try (option False (True <$ symbol Lexer.KwNative) <* symbol Lexer.KwClass) <*> consName <*> many var <*> body
+    where body      = option mempty $ symbol Lexer.BlockStart *> bodyBlock
+          funcBlock = optionalBlockBody (possiblyDocumented func)
+          consBlock = breakableNonEmptyBlockBody' recordCons <|> breakableOptionalBlockBody recordNamedFields
+          bodyBlock = discoverIndent ((,) <$> consBlock <*> funcBlock)
 
--- clsRec :: AsgParser SomeTerm
--- clsRec = buildAsg $ (\n fields -> liftAstApp1 (IR.recASG' n) (sequence fields)) <$> consName <*> (blockDecl <|> inlineDecl) where
---     blockDecl  = symbol Lexer.BlockStart *> discover (nonEmptyBlock' recNamedFieldLine)
---     inlineDecl = many unnamedField
+recordCons :: AsgParser SomeTerm
+recordCons = buildAsg $ (\n fields -> liftAstApp1 (IR.recordCons' n) (sequence fields)) <$> consName <*> (blockDecl <|> inlineDecl) where
+    blockDecl  = symbol Lexer.BlockStart *> discover (nonEmptyBlock' recordNamedFields)
+    inlineDecl = many unnamedField
 
--- recNamedFieldLine :: AsgParser SomeTerm
--- recNamedFieldLine = buildAsg $ (\names tp -> liftAstApp1 (IR.fieldASG' names) tp) <$> many varName <* symbol Lexer.Typed <*> valExpr
+recordNamedFields :: AsgParser SomeTerm
+recordNamedFields = buildAsg $ liftAstApp1 . IR.recordFields' . convert
+                <$> many varName <* symbol Lexer.Typed <*> valExpr
 
--- unnamedField :: AsgParser SomeTerm
--- unnamedField = buildAsg $ (\a -> liftAstApp1 (IR.fieldASG' mempty) a) <$> nonSpacedValExpr
+unnamedField :: AsgParser SomeTerm
+unnamedField = buildAsg $ liftAstApp1 (IR.recordFields' mempty)
+                      <$> nonSpacedValExpr
 
 
 
