@@ -2,6 +2,7 @@ module Luna.IR.Term.Literal where
 
 import Prologue
 
+import qualified Data.Vector.Storable.Foreign      as Vector
 import qualified Luna.IR.Component.Term.Definition as Term
 import qualified Luna.IR.Term.Format               as Format
 
@@ -27,8 +28,22 @@ Term.define [d|
 
 
 
+-- === API === --
 
-
+prettyshow :: MonadIO m => ConsNumber a -> m String
+prettyshow (Number base intPart fracPart) = do
+    intPartS  <- showVec intPart
+    fracPartS <- showVec fracPart
+    let frac = if fracPartS /= "" then "." <> fracPartS else mempty
+    pure . pfx $ intPartS <> frac
+    where showVec :: MonadIO m => Vector Word8 -> m String
+          showVec = fmap (concat . fmap show) . Vector.toList
+          pfx  = (<>) $ case base of
+              2  -> "0b"
+              8  -> "0o"
+              10 -> ""
+              16 -> "0x"
+              _  -> error "unsupported base"
 
 
 

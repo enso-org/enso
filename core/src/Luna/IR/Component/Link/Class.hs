@@ -30,6 +30,8 @@ type src *-* tgt = Layout '[Source := src, Target := tgt]
 -- === Layers === --
 --------------------
 
+-- === Definition === --
+
 data Source
 type instance Layer.Cons   Source        = Term
 type instance Layer.Layout Source layout = Layout.Get Source layout
@@ -42,6 +44,14 @@ instance Layer.Initializer Target
 
 type instance Cmp Source Target = 'LT
 type instance Cmp Target Source = 'GT
+
+
+-- === Helpers === --
+
+source :: Layer.Reader Links Source m => Link layout -> m (Term (Layout.Get Source layout))
+target :: Layer.Reader Links Target m => Link layout -> m (Term (Layout.Get Target layout))
+source = Layer.read @Source ; {-# INLINE source #-}
+target = Layer.read @Target ; {-# INLINE target #-}
 
 
 

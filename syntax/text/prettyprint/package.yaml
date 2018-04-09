@@ -12,6 +12,7 @@ dependencies:
     - layered-state
     - layouting
     - luna-core
+    - luna-cpp-containers
     - luna-syntax-definition
     - luna-syntax-text-model
     - prologue

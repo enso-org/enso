@@ -92,8 +92,7 @@ import Text.Megaparsec.Prim  (MonadParsec)
 -- import Luna.Syntax.Text.Parser.Errors (Invalids, registerInvalid)
 -- import qualified Data.List as List
 -- import           Luna.Syntax.Text.Parser.Reserved (Reservation, withReservedSymbols, withLocalReservedSymbol, withLocalUnreservedSymbol, withNewLocal, checkForSymbolReservation)
--- import qualified Data.TreeSet as TreeSet
--- import           Data.TreeSet (SparseTreeSet)
+import Data.TreeSet                  (SparseTreeSet)
 import Luna.Syntax.Text.Parser.Class (Stream)
 
 -- import           Data.Text32 (Text32)
@@ -106,6 +105,7 @@ import qualified Data.Char                         as Char
 import qualified Data.Set                          as Set
 import qualified Data.Text.Span                    as Span
 import qualified Data.Text32                       as Text32
+import qualified Data.TreeSet                      as TreeSet
 import qualified Language.Symbol                   as Symbol
 import qualified Luna.IR                           as IR
 import qualified Luna.IR.Layer                     as Layer
@@ -117,6 +117,8 @@ import qualified Luna.Syntax.Text.Parser.Hardcoded as Builtin
 import qualified Luna.Syntax.Text.Parser.Marker    as Marker
 import qualified Luna.Syntax.Text.Parser.Name      as Name
 import qualified Luna.Syntax.Text.Parser.Reserved  as Reserved
+import qualified Luna.Syntax.Text.Scope            as Scope
+import qualified OCI.Data.Name.Multipart           as Name.Multipart
 import qualified OCI.IR.Layout                     as Layout
 import qualified Text.Parser.Expr                  as Expr
 
@@ -680,7 +682,7 @@ exprSegments          = buildExprTok <$> exprFreeSegments
 exprSegmentsLocal     = buildExprTok <$> exprFreeSegmentsLocal
 exprFreeSegments      = Reserved.withNewLocal exprFreeSegmentsLocal
 exprFreeSegmentsLocal = fmap concatExprSegmentBuilders . some'
-                      $ choice [ consSeg, wildSeg, numSeg]
+                      $ choice [ mfixVarSeg, consSeg, wildSeg, numSeg]
                     --   $ choice [ mfixVarSeg, consSeg, wildSeg, numSeg, strSeg
                     --            , opSeg, accSeg, tupleSeg, grpSeg, listSeg
                     --            , lamSeg, matchseg, typedSeg, funcSeg]
@@ -720,24 +722,25 @@ numSeg   = posIndependent . unlabeledAtom <$> number
 -- funcSeg  = posIndependent . unlabeledAtom <$> func
 
 
--- mfixVarSeg :: SymParser ExprSegmentBuilder
--- mfixVarSeg  = do
---     (span, name) <- spanned varName
---     nameSet      <- lookupMultipartNames name
---     let cvar = posIndependent $ unlabeledAtom $ buildAsgFromSpan span (varIRB name)
---     if TreeSet.null nameSet
---         then pure cvar
---         else -- catchInvalidWith (span <>) (pure . posIndependent . unlabeledAtom)
---            {-$-} withReservedSymbols (Lexer.Var . convert <$> TreeSet.keys nameSet) -- FIXME: conversion Name -> Text
---            $ do segmentToks <- exprFreeSegmentsLocal
---                 namedSegs   <- option mempty (parseMixfixSegments nameSet)
---                 if null namedSegs then pure (cvar <> segmentToks) else do
---                     segment <- buildTokenExpr (buildExprTok segmentToks)
---                     let segments  = snd <$> namedSegs
---                         nameParts = fst <$> namedSegs
---                         mfixVar   = buildAsgFromSpan span (varIRB . convert $ mkMultipartName name nameParts)
---                         mfixExpr  = apps (app mfixVar segment) segments
---                     pure . posIndependent . unlabeledAtom $ mfixExpr
+mfixVarSeg :: SymParser ExprSegmentBuilder
+mfixVarSeg  = do
+    (span, name) <- spanned varName
+    nameSet      <- Scope.lookupMultipartNames name
+    let cvar = posIndependent $ unlabeledAtom $ buildAsgFromSpan span (IR.var' name)
+    if TreeSet.null nameSet
+        then pure cvar
+        else -- catchInvalidWith (span <>) (pure . posIndependent . unlabeledAtom)
+           {-$-} Reserved.withReservedSymbols (Lexer.Var . convertVia @String <$> TreeSet.keys nameSet) -- FIXME: conversion Name -> Text
+           $ do segmentToks <- exprFreeSegmentsLocal
+                namedSegs   <- option mempty (parseMixfixSegments nameSet)
+                if null namedSegs then pure (cvar <> segmentToks) else do
+                    segment <- buildTokenExpr (buildExprTok segmentToks)
+                    let segments  = snd <$> namedSegs
+                        nameParts = fst <$> namedSegs
+                        mfixVar   = buildAsgFromSpan span (IR.var' . convert
+                                  $ Name.Multipart.make name nameParts)
+                        mfixExpr  = apps (app mfixVar segment) segments
+                    pure . posIndependent . unlabeledAtom $ mfixExpr
 
 -- opSeg :: SymParser ExprSegmentBuilder
 -- opSeg   = do
@@ -850,18 +853,18 @@ numSeg   = posIndependent . unlabeledAtom <$> number
 buildExprTok :: ExprSegmentBuilder -> ExprSegments
 buildExprTok bldr = runSegmentBuilder bldr (True, True)
 
--- parseMixfixSegments :: SparseTreeSet Name -> SymParser [(Name, AsgBldr SomeTerm)]
--- parseMixfixSegments nameSet = do
---     name <- previewVarName
---     let total = TreeSet.check' name nameSet
---     case nameSet ^? ix name of
---         Nothing       -> unexpected . fromString $ "Identifier `" <> convert name <> "` is not part of a mutli-name expression"
---         Just nameSet' -> do
---             let possiblePaths = TreeSet.keys nameSet'
---             dropNextToken
---             segment <- withReservedSymbols (Lexer.Var . convert <$> possiblePaths) nonemptyValExpr -- FIXME: conversion Name -> Text
---             let restMod = if total then option mempty else (<|> unexpected (fromString $ "Unexpected end of mixfix expression, expecting one of " <> show possiblePaths))
---             ((name,segment):) <$> restMod (parseMixfixSegments nameSet')
+parseMixfixSegments :: SparseTreeSet Name -> SymParser [(Name, AsgBldr SomeTerm)]
+parseMixfixSegments nameSet = do
+    name <- previewVarName
+    let total = TreeSet.check' name nameSet
+    case nameSet ^? ix name of
+        Nothing       -> unexpected . fromString $ "Identifier `" <> convert name <> "` is not part of a mutli-name expression"
+        Just nameSet' -> do
+            let possiblePaths = TreeSet.keys nameSet'
+            dropNextToken
+            segment <- Reserved.withReservedSymbols (Lexer.Var . convertVia @String <$> possiblePaths) nonemptyValExpr -- FIXME: conversion Name -> Text
+            let restMod = if total then option mempty else (<|> unexpected (fromString $ "Unexpected end of mixfix expression, expecting one of " <> show possiblePaths))
+            ((name,segment):) <$> restMod (parseMixfixSegments nameSet')
 
 buildTokenExpr (s:|ss) = buildTokenExpr' (s:ss)
 

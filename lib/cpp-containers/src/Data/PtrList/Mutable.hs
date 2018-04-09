@@ -13,7 +13,9 @@
 
 module Data.PtrList.Mutable where
 
-import Prologue hiding (length, null, toList, unsafeHead, unsafeLast)
+import           Prologue hiding (fromList, length, mapM, null, toList,
+                           unsafeHead, unsafeLast)
+import qualified Prologue as P
 
 import Control.Monad          ((<=<))
 import Control.Monad.IO.Class
@@ -181,6 +183,12 @@ fromList es = do
 {-# INLINE fromList #-}
 
 
+mapM :: (IsPtrList t, MonadIO m, IsPtr a, IsPtr b)
+     => (a -> m b) -> t a -> m (t b)
+mapM f t = fromList =<< P.mapM f =<< toList t ; {-# INLINE mapM #-}
+
+
+
 -- === Instances ===  --
 
 instance (IsPtr a, Show a) => Show (UnmanagedPtrList a) where
@@ -189,3 +197,4 @@ instance (IsPtr a, Show a) => Show (UnmanagedPtrList a) where
 instance IsPtrList UnmanagedPtrList where
     newIO        = c_new ; {-# INLINE newIO  #-}
     withIO !s !f = f s             ; {-# INLINE withIO #-}
+

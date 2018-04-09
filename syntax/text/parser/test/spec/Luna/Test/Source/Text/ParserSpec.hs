@@ -68,8 +68,8 @@ runPass' = runPass
 
 
 
-shouldParseItself :: AsgParser IR.SomeTerm -> Text -> (Delta, Delta) -> IO ()
-shouldParseItself parser code desiredSpan = runPass' $ do
+shouldParseItself :: AsgParser IR.SomeTerm -> Text {- -> (Delta, Delta)-} -> IO ()
+shouldParseItself parser code {-desiredSpan-} = runPass' $ do
     (((ir,cs),scope), _) <- flip Parsing.parsingBase (convert code) $ do
         irb   <- parser
         scope <- State.get @Scope
@@ -81,22 +81,45 @@ shouldParseItself parser code desiredSpan = runPass' $ do
         pure $ (,scope) <$> irb'
     code <- Prettyprint.run @Prettyprint.Simple scope ir
 
-    let span = convert $ view CodeSpan.realSpan cs
+    let span = convert $ view CodeSpan.realSpan cs :: (Delta,Delta)
     code `shouldBe` code
-    span `shouldBe` desiredSpan
+    -- span `shouldBe` desiredSpan
 
+expr = shouldParseItself Parsing.expr
 
 -------------------
 -- === Tests === --
 -------------------
 
-nameSpec :: Spec
-nameSpec = describe "test" $ do
-    it "var name" $ shouldParseItself Parsing.expr "Cons" (0,4)
+identSpec :: Spec
+identSpec = describe "identifiers" $ do
+    it "one letter variable"      $ expr "a"
+    it "variable + apostrophe"    $ expr "foo'"
+    it "variable + 2 apostrophes" $ expr "foo''"
+    it "unicode variable name"    $ expr "фываΧξωβ김동욱"
+    it "wildcard"                 $ expr "_"
+    it "simple constructors"      $ expr "Vector"
+    it "constructors + arguments" $ expr "Vector x 1 z"
+    it "unicode constructor name" $ expr "Κοηστρυκτορ"
+
+numberSpec :: Spec
+numberSpec = describe "literals" $ do
+    let biggerThanInt64   = convert (show (maxBound :: Int64)) <> "0"
+        biggerThanInt64f  = biggerThanInt64  <> "." <> biggerThanInt64
+    it "int positive"      $ expr "7"
+    it "zero prefixed int" $ expr "007"
+    it "frac positive"     $ expr "7.11"
+    it "base 2  int (b)"   $ expr "0b101010101"
+    it "base 8  int (o)"   $ expr "0o01234567"
+    -- it "base 16 int (x)"   $ expr "0x0123456789abcdefABCDEF"
+    -- it "base 11 int"       $ expr "11x0123456789aA"
+    it "int > 64b"         $ expr biggerThanInt64
+    it "frac > 64b"        $ expr biggerThanInt64f
 
 spec :: Spec
 spec = do
-    nameSpec
+    identSpec
+    numberSpec
 
 
 
@@ -214,20 +237,7 @@ spec = do
 -- spec :: Spec
 -- spec = do
 --     describe "literals" $ do
---         describe "numbers" $ do
---                 let biggerThanInt64   = show (maxBound :: Int64) <> "0"
---                     biggerThanInt64f  = biggerThanInt64  <> "." <> biggerThanInt64
---                 it "zero"                                       $ shouldParseItself' expr "0"                        [(0,1)]
---                 it "zero-prefixed ints"                         $ shouldParseItself' expr "007"                      [(0,3)]
---                 it "unsigned exp notation"                      $ shouldParseItself' expr "187.19e17"                [(0,9)]
---                 it "positive exp notation"                      $ shouldParseItself' expr "187.19e+17"               [(0,10)]
---                 it "negative exp notation"                      $ shouldParseItself' expr "187.19e-17"               [(0,10)]
---                 it "big decimals"                               $ shouldParseItself' expr biggerThanInt64            [(0,20)]
---                 it "reals"                                      $ shouldParseItself' expr biggerThanInt64f           [(0,41)]
---                 it "binary"                                     $ shouldParseItself' expr "0b010010100"              [(0,11)]
---                 it "octal"                                      $ shouldParseItself' expr "0o01234567"               [(0,10)]
---                 it "hex"                                        $ shouldParseItself' expr "0x0123456789abcdefABCDEF" [(0,24)]
---         describe "text" $ do
+--        describe "text" $ do
 --             describe "raw" $ do
 --                 it "oneliner"                                   $ do shouldParseItself' expr "\"The quick brown fox jumps over the lazy dog\"" [(0,45)]
 --                 it "tripple double-quoted oneliner"             $ do shouldParseAs'     expr [s|"""The quick brown fox jumps over the lazy dog"""|] [s|"The quick brown fox jumps over the lazy dog"|] [(0,49)]
