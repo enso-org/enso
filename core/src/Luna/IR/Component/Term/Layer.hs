@@ -44,9 +44,9 @@ instance Layer.Initializer Model
 
 -- === Utils === --
 
-match :: Layer.ViewReader Terms Model layout m
+model :: Layer.ViewReader Terms Model layout m
       => Term layout -> m (Layer.View Model layout)
-match = Layer.readView @Model ; {-# INLINE match #-}
+model = Layer.readView @Model ; {-# INLINE model #-}
 
 
 -- === Instances === --

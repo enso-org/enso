@@ -79,10 +79,10 @@ shouldParseItself parser code {-desiredSpan-} = runPass' $ do
                 cs <- Layer.read @CodeSpan ir
                 pure (ir,cs)
         pure $ (,scope) <$> irb'
-    code <- Prettyprint.run @Prettyprint.Simple scope ir
+    genCode <- Prettyprint.run @Prettyprint.Simple scope ir
 
     let span = convert $ view CodeSpan.realSpan cs :: (Delta,Delta)
-    code `shouldBe` code
+    genCode `shouldBe` code
     -- span `shouldBe` desiredSpan
 
 expr = shouldParseItself Parsing.expr
@@ -92,7 +92,7 @@ expr = shouldParseItself Parsing.expr
 -------------------
 
 identSpec :: Spec
-identSpec = describe "identifiers" $ do
+identSpec = describe "identifier" $ do
     it "one letter variable"      $ expr "a"
     it "variable + apostrophe"    $ expr "foo'"
     it "variable + 2 apostrophes" $ expr "foo''"
@@ -103,7 +103,7 @@ identSpec = describe "identifiers" $ do
     it "unicode constructor name" $ expr "Κοηστρυκτορ"
 
 numberSpec :: Spec
-numberSpec = describe "literals" $ do
+numberSpec = describe "number" $ do
     let biggerThanInt64   = convert (show (maxBound :: Int64)) <> "0"
         biggerThanInt64f  = biggerThanInt64  <> "." <> biggerThanInt64
     it "int positive"      $ expr "7"
@@ -116,10 +116,26 @@ numberSpec = describe "literals" $ do
     it "int > 64b"         $ expr biggerThanInt64
     it "frac > 64b"        $ expr biggerThanInt64f
 
+listSpec :: Spec
+listSpec = describe "list" $ do
+    it "empty list"              $ expr "[]"           -- shouldParseItself_raw'                             [(0,2)]
+    it "singleton list"          $ expr "[a]"          -- shouldParseItself_raw'                             [(1,1),(0,3)]
+    it "few elems list"          $ expr "[a, b, c]"    -- shouldParseItself_raw'                             [(1,1),(2,1),(2,1),(0,9)]
+    it "list section"            $ expr "[, ]" -- "[, ]"   -- shouldParseAs_raw'                                 [(1,0),(1,0),(0,3)]
+    -- it "list with tuple section" $ expr "[(, )]"       -- shouldParseItself_raw'                             [(1,4),(0,6)]
+    it "nested lists"            $ expr "[a, [b, c]]"  -- shouldParseItself_raw'                             [(1,1),(1,1),(2,1),(2,6),(0,11)]
+    it "list sections"           $ expr "[, a, , b, ]" -- shouldParseItself_raw'                             [(1,0),(2,1),(2,0),(2,1),(2,0),(0,12)]
+    it "nested section list"     $ expr "[[, ]]"       -- shouldParseItself_raw'                             [(1,4),(0,6)]
+
+literalSpec :: Spec
+literalSpec = describe "literal" $ do
+    numberSpec
+    listSpec
+
 spec :: Spec
 spec = do
     identSpec
-    numberSpec
+    literalSpec
 
 
 
@@ -251,15 +267,7 @@ spec = do
 --             --     it "multiline string with space-only line"      $ do shouldParseAs expr     "'The quick \n  \n brown fox jumps over the lazy dog'" "'The quick \n \nbrown fox jumps over the lazy dog'"
 --             --     it "multiline string with newline start"        $ do shouldParseAs expr     "'\nThe quick\nbrown fox jumps over the lazy dog\n'"   "'The quick\nbrown fox jumps over the lazy dog'"
 --             --     it "simple interpolated strings"                $ do shouldParseItself expr "'The quick brown fox jumps over {2 + 2} lazy dogs'"
---         describe "lists" $ do
---             it "empty list"                                 $ shouldParseItself_raw' expr "[]"                                       [(0,2)]
---             it "singleton list"                             $ shouldParseItself_raw' expr "[a]"                                      [(1,1),(0,3)]
---             it "few elems list"                             $ shouldParseItself_raw' expr "[a, b, c]"                                [(1,1),(2,1),(2,1),(0,9)]
---             it "list section"                               $ shouldParseAs_raw'     expr "[,]" "[, ]"                               [(1,0),(1,0),(0,3)]
---             -- it "list with tuple section"                    $ shouldParseItself_raw' expr "[(, )]"                                   [(1,4),(0,6)]
---             it "nested lists"                               $ shouldParseItself_raw' expr "[a, [b, c]]"                              [(1,1),(1,1),(2,1),(2,6),(0,11)]
---             it "list sections"                              $ shouldParseItself_raw' expr "[, a, , b, ]"                             [(1,0),(2,1),(2,0),(2,1),(2,0),(0,12)]
---             -- it "nested section list"                        $ shouldParseItself_raw' expr "[[, ]]"                                   [(1,4),(0,6)]
+
 --         describe "tuples" $ do
 --             it "3-tuple"         $ shouldParseItself' expr "(a, 30, \"ala\")" [(1,1),(2,2),(2,5),(0,14)]
 --             it "2-tuple section" $ shouldParseItself' expr "(, 30)"           [(1,0),(2,2),(0,6)]

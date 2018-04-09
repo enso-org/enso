@@ -15,6 +15,8 @@ import OCI.Data.Name                     (Name)
 -- FIXME: remove when refactoring Cmp instances
 import Luna.IR.Term.Core ()
 
+import Data.PtrList.Mutable (UnmanagedPtrList)
+type LinkListTox a = UnmanagedPtrList (LinkTo a)
 
 --------------------
 -- === Number === --
@@ -24,14 +26,20 @@ import Luna.IR.Term.Core ()
 
 Term.define [d|
  data Ast
-    = Disabled     { body     :: LinkTo Terms                         }
-    | Documented   { doc      :: Vector Char  , base  :: LinkTo Terms }
-    | Grouped      { body     :: LinkTo Terms                         }
-    | Invalid      { desc     :: Name                                 }
-    | Marked       { marker   :: LinkTo Terms , body  :: LinkTo Terms }
-    | Marker       { id       :: Word64                               }
-    | SectionLeft  { operator :: LinkTo Terms , body  :: LinkTo Terms }
-    | SectionRight { operator :: LinkTo Terms , body  :: LinkTo Terms }
-    | Seq          { former   :: LinkTo Terms , later :: LinkTo Terms }
+    = AccSection   { path     :: Vector Name                                   }
+    | Disabled     { body     :: LinkTo Terms                                  }
+    | Documented   { doc      :: Vector Char  , base  :: LinkTo Terms          }
+    | Grouped      { body     :: LinkTo Terms                                  }
+    | Invalid      { desc     :: Name                                          }
+    | List         { items    :: LinkListTox Terms                             }
+    | Marked       { marker   :: LinkTo Terms , body  :: LinkTo Terms          }
+    | Marker       { id       :: Word64                                        }
+    | SectionLeft  { operator :: LinkTo Terms , body  :: LinkTo Terms          }
+    | SectionRight { operator :: LinkTo Terms , body  :: LinkTo Terms          }
+    | Modify       { base     :: LinkTo Terms , path  :: Vector Name
+                   , operator :: Name         , value :: LinkTo Terms          }
+    | Seq          { former   :: LinkTo Terms , later :: LinkTo Terms          }
+    | Tuple        { items    :: LinkListTox Terms                             }
+    | Typed        { base     :: LinkTo Terms , tp    :: LinkTo Terms          }
  |]
 

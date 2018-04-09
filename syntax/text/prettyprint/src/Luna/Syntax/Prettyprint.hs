@@ -240,6 +240,8 @@ appSymbols' sf@(Labeled flab fsym) sa = do
 -- -- === Simple pretty printer === --
 -- -----------------------------------
 
+simple = unnamed . Symbol.atom
+
 -- -- === Definition === --
 
 data Simple = Simple deriving (Show)
@@ -259,20 +261,24 @@ instance ( MonadIO m -- DEBUG ONLY
     prettyprint = prettyprintSimple
 
 prettyprintSimple ir = Layer.read @IR.Model ir >>= \case
-    IR.UniTermApp (IR.App f a) ->
-        join $ appSymbols <$> subgen f <*> subgen a
-    IR.UniTermBlank IR.Blank -> pure . unnamed $ Symbol.atom wildcardName
+    IR.UniTermApp  (IR.App f a)        -> join $ appSymbols <$> subgen f <*> subgen a
+    IR.UniTermBlank IR.Blank           -> pure $ simple wildcardName
     IR.UniTermCons (IR.Cons name args) -> do
         args' <- mapM subgen =<< List.toList args
-        foldM appSymbols (unnamed . Symbol.atom $ convert name) args'
-    IR.UniTermNumber num ->
-        unnamed . Symbol.atom . convert <$> Literal.prettyshow num
+        foldM appSymbols (simple $ convert name) args'
+    IR.UniTermNumber num               -> simple . convert <$> Literal.prettyshow num
+    IR.UniTermList (IR.List elems)
+        -> simple . Doc.bracked . intercalate ", "
+       <$> (mapM subgenBody =<< List.toList elems)
+
+    IR.UniTermMissing IR.Missing -> pure $ simple mempty
+
 
     IR.UniTermVar (IR.Var name) ->
-        pure . unnamed $ Symbol.atom (convert name)
+        pure $ simple (convert name)
+
     t -> error $ "NO PRETTY PRINT FOR: " <> show t
 --     prettyprint style subStyle root = matchExpr root $ \case
---         Missing                     -> pure . unnamed $ atom mempty
 --         String    str               -> pure . unnamed $ atom (convert $ quoted str) -- FIXME [WD]: add proper multi-line strings indentation
 --         Acc       a name            -> named (spaced accName)   . atom . (\an -> convert an <+> accName <+> convert name) <$> subgen a -- FIXME[WD]: check if left arg need to be parensed
 --         Unify     l r               -> named (spaced unifyName) . atom .: mappendWith (Doc.spaced unifyName) <$> subgenBody l <*> subgenBody r
@@ -285,7 +291,6 @@ prettyprintSimple ir = Layer.read @IR.Model ir >>= \case
 --                                                          | otherwise          -> unnamed                $ atom   (convert name)
 --         Grouped   expr              -> unnamed . atom . parensed <$> subgenBody expr
 --         Typed     expr tp           -> named (spaced typedName) . atom .: mappendWith (Doc.spaced typedName) <$> subgenBody expr <*> subgenBody tp
---         List      elems             -> unnamed . atom . bracked  . (intercalate ", ") <$> mapM subgenBody elems
 --         Tuple      elems            -> unnamed . atom . parensed . (intercalate ", ") <$> mapM subgenBody elems
 --         Seq       a b               -> unnamed . atom .: (</>) <$> subgenBody a <*> subgenBody b
 --         Lam       arg body          -> named (notSpaced lamName) . atom .: (<>) <$> subgenBody arg <*> smartBlock body
@@ -366,7 +371,8 @@ prettyprintSimple ir = Layer.read @IR.Model ir >>= \case
 --                   body'     <- subgenBody body
 --                   pure $ if multiline then lamName </> indented (block body')
 --                                         else lamName <> space <> body'
-    where subgen = prettyprint @Simple . Layout.relayout <=< Link.source
+    where subgen     = prettyprint @Simple . Layout.relayout <=< Link.source
+          subgenBody = fmap getBody . subgen
 
 -- -- === Utils === --
 

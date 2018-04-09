@@ -66,8 +66,6 @@ import Text.Megaparsec.Prim  (MonadParsec)
 -- import           OCI.IR.Name.Multipart (mkMultipartName)
 -- import qualified Luna.IR.Term.Literal  as Literal
 -- import qualified Luna.IR.Term.Literal  as Num
--- import           Text.Parser.Indent (Indent, indentation)
--- import qualified Text.Parser.Indent as Indent
 -- import Control.Monad.State.Dependent
 -- import Text.Parser.Combinators
 -- import Data.Text.Position
@@ -121,8 +119,10 @@ import qualified Luna.Syntax.Text.Scope            as Scope
 import qualified OCI.Data.Name.Multipart           as Name.Multipart
 import qualified OCI.IR.Layout                     as Layout
 import qualified Text.Parser.Expr                  as Expr
+import qualified Text.Parser.Indent                as Indent
 
-import Data.Text.Position               (FileOffset (..))
+import Data.Text.Position (FileOffset (..))
+-- import           Text.Parser.Indent (Indent, indentation)
 import Data.Text.Position               (Delta)
 import Data.Text32                      (Text32)
 import Language.Symbol                  (Labeled (Labeled), UniSymbol, labeled)
@@ -422,17 +422,17 @@ groupEnd   = symbol $ Lexer.Group Lexer.End
 -- varIRB :: Name -> IRB SomeTerm
 -- varIRB = IR.var' ; {-# INLINE varIRB #-}
 
--- accIRB :: Name -> SomeTerm -> IRB SomeTerm
--- accIRB name a = liftIRB1 (flip IR.acc' name) a
+accIRB :: Name -> SomeTerm -> IRB SomeTerm
+accIRB name a = (flip IR.acc' name) a
 
--- accSectionIRB :: [Name] -> IRB SomeTerm
--- accSectionIRB name = liftIRB0 $ IR.accSection name
+accSectionIRB :: [Name] -> IRB SomeTerm
+accSectionIRB path = IR.accSection' $ convert path
 
--- updateIRB :: [Name] -> SomeTerm -> SomeTerm -> IRB SomeTerm
--- updateIRB name = liftIRB2 $ flip IR.update' name
+updateIRB :: [Name] -> SomeTerm -> SomeTerm -> IRB SomeTerm
+updateIRB path = flip IR.update' (convert path)
 
--- modifyIRB :: [Name] -> Name -> SomeTerm -> SomeTerm -> IRB SomeTerm
--- modifyIRB ns n = liftIRB2 $ flip (flip IR.modify' ns) n
+modifyIRB :: [Name] -> Name -> SomeTerm -> SomeTerm -> IRB SomeTerm
+modifyIRB path op base value = IR.modify' base (convert path) op value
 
 
 -------------------------
@@ -512,32 +512,33 @@ number = buildAsg $ do
                  | otherwise               -> error "wrong char"
 
 
--- list :: AsgParser SomeTerm -> AsgParser SomeTerm
--- list p = buildAsg $ withLocalUnreservedSymbol sep $ braced $ (\g -> liftAstApp1 IR.list' $ sequence g) <$> elems where
---     missing :: AsgParser SomeTerm
---     missing   = buildAsg . pure $ liftIRB0 IR.missing'
---     sep       = Lexer.Operator ","
---     elem      = withLocalReservedSymbol sep p
---     optElem   = elem <|> missing
---     bodyH     = (:) <$> elem    <*> many (separator *> optElem)
---     bodyT     = (:) <$> missing <*> some (separator *> optElem)
---     elems     = option mempty $ bodyH <|> bodyT
---     braced p  = braceBegin *> p <* braceEnd
---     separator = symbol sep
+list :: AsgParser SomeTerm -> AsgParser SomeTerm
+list p = buildAsg $ Reserved.withLocalUnreservedSymbol sep $ braced $ (\g -> liftAstApp1 IR.list' $ sequence g) <$> elems where
+    missing :: AsgParser SomeTerm
+    missing   = buildAsg . pure $ IR.missing'
+    sep       = Lexer.Operator ","
+    elem      = Reserved.withLocalReservedSymbol sep p
+    optElem   = elem <|> missing
+    bodyH     = (:) <$> elem    <*> many (separator *> optElem)
+    bodyT     = (:) <$> missing <*> some (separator *> optElem)
+    elems     = option mempty $ bodyH <|> bodyT
+    braced p  = braceBegin *> p <* braceEnd
+    separator = symbol sep
 
--- -- FIXME[WD]: This `try` should be refactored out
--- -- FIXME[WD]: Tuple and List parsers are too similar no to be refactored to common part. However tuples will disappear soon.
--- tuple :: AsgParser SomeTerm -> AsgParser SomeTerm
--- tuple p = try $ buildAsg $ withLocalUnreservedSymbol sep $ parensed $ (\g -> liftAstApp1 IR.tuple' $ sequence g) <$> elems where
---     missing :: AsgParser SomeTerm
---     missing    = buildAsg . pure $ liftIRB0 IR.missing'
---     sep        = Lexer.Operator ","
---     elem       = withLocalReservedSymbol sep p
---     optElem    = elem <|> missing
---     body       = (:) <$> optElem <*> some (separator *> optElem)
---     elems      = option mempty $ body
---     parensed p = groupBegin *> p <* groupEnd
---     separator  = symbol sep
+-- FIXME[WD]: This `try` should be refactored out
+-- FIXME[WD]: Tuple and List parsers are too similar no to be refactored to common part. However tuples will disappear soon.
+tuple :: AsgParser SomeTerm -> AsgParser SomeTerm
+tuple p = try $ buildAsg $ Reserved.withLocalUnreservedSymbol sep $ parensed
+        $ (liftAstApp1 IR.tuple' . sequence) <$> elems where
+    missing :: AsgParser SomeTerm
+    missing    = buildAsg $ pure IR.missing'
+    sep        = Lexer.Operator ","
+    elem       = Reserved.withLocalReservedSymbol sep p
+    optElem    = elem <|> missing
+    body       = (:) <$> optElem <*> some (separator *> optElem)
+    elems      = option mempty $ body
+    parensed p = groupBegin *> p <* groupEnd
+    separator  = symbol sep
 
 -- str :: AsgParser SomeTerm
 -- str = rawStr <|> fmtStr
@@ -682,18 +683,19 @@ exprSegments          = buildExprTok <$> exprFreeSegments
 exprSegmentsLocal     = buildExprTok <$> exprFreeSegmentsLocal
 exprFreeSegments      = Reserved.withNewLocal exprFreeSegmentsLocal
 exprFreeSegmentsLocal = fmap concatExprSegmentBuilders . some'
-                      $ choice [ mfixVarSeg, consSeg, wildSeg, numSeg]
-                    --   $ choice [ mfixVarSeg, consSeg, wildSeg, numSeg, strSeg
-                    --            , opSeg, accSeg, tupleSeg, grpSeg, listSeg
-                    --            , lamSeg, matchseg, typedSeg, funcSeg]
+                      $ choice [ mfixVarSeg, consSeg, wildSeg, numSeg{-, strSeg
+                               -}, opSeg, accSeg, tupleSeg, grpSeg, listSeg
+                               , lamSeg, matchseg, typedSeg{-, funcSeg-}
+                               ]
 
 exprSegmentsNonSpaced    , exprSegmentsNonSpacedLocal     :: SymParser ExprSegments
 exprFreeSegmentsNonSpaced, exprFreeSegmentsNonSpacedLocal :: SymParser ExprSegmentBuilder
 exprSegmentsNonSpaced          = buildExprTok <$> exprFreeSegmentsNonSpaced
 exprSegmentsNonSpacedLocal     = buildExprTok <$> exprFreeSegmentsNonSpacedLocal
 exprFreeSegmentsNonSpaced      = Reserved.withNewLocal exprFreeSegmentsNonSpacedLocal
-exprFreeSegmentsNonSpacedLocal = choice [varSeg, consSeg, wildSeg, numSeg]
-                                      -- strSeg, tupleSeg, grpSeg, listSeg]
+exprFreeSegmentsNonSpacedLocal = choice [ varSeg, consSeg, wildSeg, numSeg
+                                        {-, strSeg-}, tupleSeg, grpSeg, listSeg
+                                        ]
 
 
 -- === Components === --
@@ -707,19 +709,19 @@ unlabeledAtom :: a -> Labeled SpacedName (UniSymbol Symbol.Expr a)
 unlabeledAtom = labeled (Name.spaced "#unnamed#") . Symbol.atom
 
 -- -- Possible tokens
--- varSeg, consSeg, wildSeg, numSeg, strSeg, grpSeg, listSeg, tupleSeg, matchseg, lamSeg, funcSeg :: SymParser ExprSegmentBuilder
-varSeg, consSeg, wildSeg, numSeg:: SymParser ExprSegmentBuilder
+varSeg, consSeg, wildSeg, numSeg, strSeg, listSeg, grpSeg, tupleSeg, matchseg
+      , lamSeg , funcSeg :: SymParser ExprSegmentBuilder
 varSeg   = posIndependent . unlabeledAtom <$> var
 consSeg  = posIndependent . unlabeledAtom <$> cons
 wildSeg  = posIndependent . unlabeledAtom <$> wildcard
 numSeg   = posIndependent . unlabeledAtom <$> number
--- strSeg   = posIndependent . unlabeledAtom <$> str
--- grpSeg   = posIndependent . unlabeledAtom <$> grouped nonemptyValExpr
--- listSeg  = posIndependent . unlabeledAtom <$> list  nonemptyValExprLocal
--- tupleSeg = posIndependent . unlabeledAtom <$> tuple nonemptyValExprLocal
--- matchseg = posIndependent . unlabeledAtom <$> match
--- lamSeg   = posIndependent . labeled (unspaced lamName) . suffix <$> lamBldr
--- funcSeg  = posIndependent . unlabeledAtom <$> func
+strSeg   = undefined -- posIndependent . unlabeledAtom <$> str
+grpSeg   = posIndependent . unlabeledAtom <$> grouped nonemptyValExpr
+listSeg  = posIndependent . unlabeledAtom <$> list  nonemptyValExprLocal
+tupleSeg = posIndependent . unlabeledAtom <$> tuple nonemptyValExprLocal
+matchseg = posIndependent . unlabeledAtom <$> match
+lamSeg   = posIndependent . labeled (Name.unspaced Builtin.lamName) . Symbol.suffix <$> lamBldr
+funcSeg  = undefined -- posIndependent . unlabeledAtom <$> func
 
 
 mfixVarSeg :: SymParser ExprSegmentBuilder
@@ -742,110 +744,115 @@ mfixVarSeg  = do
                         mfixExpr  = apps (app mfixVar segment) segments
                     pure . posIndependent . unlabeledAtom $ mfixExpr
 
--- opSeg :: SymParser ExprSegmentBuilder
--- opSeg   = do
---     (before, after) <- checkOffsets
---     (span, name)    <- spanned opName
---     let segment (isFirst, isLast) = pure . tokenx $ operator & if
---             | isSingle    -> labeled (unspaced            name) . atom
---             | isUMinus    -> labeled (unspaced      uminusName) . prefix . app
---             | isFirst     -> labeled (spacedNameIf after  name) . prefix . sectionLeft
---             | isLast      -> labeled (spacedNameIf before name) . suffix . sectionRight
---             | symmetrical -> labeled (spacedNameIf after  name) . infixx . appSides
---             | before      -> labeled (lspaced             name) . prefix . sectionLeft
---             | otherwise   -> labeled (rspaced             name) . suffix . sectionRight
---             where isMinus     = name == minusName
---                   isSingle    = isFirst && isLast
---                   isUMinus    = isMinus && not after && (isFirst || before) && not isLast
---                   operator    = buildAsgFromSpan span . varIRB $ if isUMinus then uminusName else name
---                   symmetrical = before == after
---     pure $ SegmentBuilder segment
+opSeg :: SymParser ExprSegmentBuilder
+opSeg   = do
+    (before, after) <- checkOffsets
+    (span, name)    <- spanned opName
+    let segment (isFirst, isLast) = pure . Expr.tokenx $ operator & if
+            | isSingle    -> labeled (Name.unspaced            name) . Symbol.atom
+            | isUMinus    -> labeled (Name.unspaced Builtin.uminusName) . Symbol.prefix . app
+            | isFirst     -> labeled (Name.spacedNameIf after  name) . Symbol.prefix . sectionLeft
+            | isLast      -> labeled (Name.spacedNameIf before name) . Symbol.suffix . sectionRight
+            | symmetrical -> labeled (Name.spacedNameIf after  name) . Symbol.infixx . appSides
+            | before      -> labeled (Name.lspaced             name) . Symbol.prefix . sectionLeft
+            | otherwise   -> labeled (Name.rspaced             name) . Symbol.suffix . sectionRight
+            where isMinus     = name == Builtin.minusName
+                  isSingle    = isFirst && isLast
+                  isUMinus    = isMinus && not after && (isFirst || before) && not isLast
+                  operator    = buildAsgFromSpan span . IR.var' $ if isUMinus then Builtin.uminusName else name
+                  symmetrical = before == after
+    pure $ SegmentBuilder segment
 
--- typedSeg :: SymParser ExprSegmentBuilder
--- typedSeg   = do
---     (off, off') <- checkOffsets
---     let typedExpr = if off then valExpr else nonSpacedValExpr
---     tp <- symbol Lexer.Typed *> typedExpr
---     when (off /= off') $ error "TODO: before and after offsets have to match"
---     let seg :: AsgBldr SomeTerm -> AsgBldr SomeTerm
---         seg = flip (inheritCodeSpan2 $ liftIRB2 IR.typed') tp
---     pure . posIndependent . labeled (spacedNameIf off typedName) $ suffix seg
+typedSeg :: SymParser ExprSegmentBuilder
+typedSeg   = do
+    (off, off') <- checkOffsets
+    let typedExpr = if off then valExpr else nonSpacedValExpr
+    tp <- symbol Lexer.Typed *> typedExpr
+    when_ (off /= off') $ error "TODO: before and after offsets have to match"
+    let seg :: AsgBldr SomeTerm -> AsgBldr SomeTerm
+        seg = flip (inheritCodeSpan2 IR.typed') tp
+    pure . posIndependent . labeled (Name.spacedNameIf off Builtin.typedName) $ Symbol.suffix seg
 
--- accSectNames :: SymParser (NonEmpty (CodeSpan, Name))
--- accSectNames = do
---     sname <- spanned $ symbol Lexer.Accessor *> identName
---     (beforeDot, afterDot) <- checkOffsets
---     (sname :|) <$> if beforeDot || afterDot then pure   mempty
---                                             else option mempty (convert <$> accSectNames)
-
-
-
--- accSeg :: SymParser ExprSegmentBuilder
--- accSeg = fmap2 tokenx $ do
---     (beforeDot, afterDot) <- checkOffsets
---     snames@(n :| ns) <- accSectNames
---     mupdt <- option Nothing (Just <$ symbol Lexer.Assignment <*> nonemptyValExpr)
---     mmod  <- option Nothing (Just .: (,) <$> modifierName <*> nonemptyValExpr)
---     let (spans, names) = unzip $ convert snames
---         symmetrical    = beforeDot == afterDot
---         accCons s n    = inheritCodeSpan1With (<> s) (accIRB n)
---         accSect        = labeled uname . atom $ buildAsgFromSpan (mconcat spans) (accSectionIRB names)
---         uname          = unspaced accName
---         sname          = spacedNameIf beforeDot accName
---         accConss       =  labeled sname ( suffix $ uncurry accCons n )
---                       :| (labeled uname . suffix . uncurry accCons <$> ns)
---         Just fupdt           = mupdt -- FIXME[WD]: make it nicer
---         Just (modName, fmod) = mmod  -- FIXME[WD]: make it nicer
-
---         -- FIXME[WD]: make it nicer vvv
---         updateAtom = labeled sname . suffix
---                    $ flip (inheritCodeSpan2With (<>) (updateIRB names))
---                           (modifyCodeSpan (CodeSpan.asOffsetSpan (mconcat spans) <>) fupdt)
---         modifyAtom = labeled sname . suffix
---                    $ flip (inheritCodeSpan2With (<>) (modifyIRB names modName))
---                           (modifyCodeSpan (CodeSpan.asOffsetSpan (mconcat spans) <>) fmod)
+accSectNames :: SymParser (NonEmpty (CodeSpan, Name))
+accSectNames = do
+    sname <- spanned $ symbol Lexer.Accessor *> identName
+    (beforeDot, afterDot) <- checkOffsets
+    (sname :|) <$> if beforeDot || afterDot then pure   mempty
+                                            else option mempty (convert <$> accSectNames)
 
 
---     -- INFO: The following code contains hack allowing for fields updates and modifications that are not nested
---     --       e.g. `a' = a.x = 5`, but does not support `a' = a.foo.x = 5`. If we use the above definition instead
---     --       all nested use cases will be supported in parser, but need to be supported in backend too.
---     --       Using this hack, the above definition is translated in parser to `a' = a.x= 5`, where `x=` is method name!
---     -- vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 
---     let (nameSpan, name) = n
---         updateAtomHack   = pure $ labeled sname ( suffix $ \x -> app (accCons nameSpan (name <> "=") x) fupdt )
---         modifyAtomHack   = pure $ labeled sname ( suffix $ \x -> app (accCons nameSpan (name <> modName <> "=") x) fmod )
+accSeg :: SymParser ExprSegmentBuilder
+accSeg = fmap2 Expr.tokenx $ do
+    (beforeDot, afterDot) <- checkOffsets
+    snames@(n :| ns) <- accSectNames
+    mupdt <- option Nothing (Just <$ symbol Lexer.Assignment <*> nonemptyValExpr)
+    mmod  <- option Nothing (Just .: (,) <$> modifierName <*> nonemptyValExpr)
+    let (spans, names) = unzip $ convert snames
+        symmetrical    = beforeDot == afterDot
+        accCons s n    = inheritCodeSpan1With (<> s) (accIRB n)
+        accSect        = labeled uname . Symbol.atom
+                       $ buildAsgFromSpan (mconcat spans)
+                       $ accSectionIRB names
+        uname          = Name.unspaced Builtin.accName
+        sname          = Name.spacedNameIf beforeDot Builtin.accName
+        accConss       =  labeled sname ( Symbol.suffix $ uncurry accCons n )
+                      :| (labeled uname . Symbol.suffix . uncurry accCons <$> ns)
+        Just fupdt           = mupdt -- FIXME[WD]: make it nicer
+        Just (modName, fmod) = mmod  -- FIXME[WD]: make it nicer
 
---     when (isJust mupdt && not (null ns)) $ fail "Updating nested fields is not supported yet."
---     when (isJust mmod  && not (null ns)) $ fail "Modification of nested fields is not supported yet."
-
---     -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
---     let segment (isFirst, isLast) = if
---             | isFirst     -> pure accSect
---              -- FIXME[WD]: make it nicer vvv
---             | symmetrical -> if
---                 | isJust mupdt -> if True == True then updateAtomHack else pure updateAtom -- hack for typechecker (see the above description)
---                 | isJust mmod  -> if True == True then modifyAtomHack else pure modifyAtom -- hack for typechecker (see the above description)
---                 | otherwise    -> accConss
---             | beforeDot   -> pure accSect
---             | otherwise   -> error "unsupported" -- FIXME[WD]: make nice error here
---     pure $ SegmentBuilder segment
-
--- match :: AsgParser SomeTerm
--- match = buildAsg $ (\n (p,ps) -> liftAstApp2 IR.match' n (sequence $ p:ps))
---       <$ symbol Lexer.KwCase <*> nonemptyValExprLocal
---       <* symbol Lexer.KwOf   <*> discover (nonEmptyBlock clause)
---       where clause = pattern <**> lamBldr
-
--- pattern :: AsgParser SomeTerm
--- pattern = withLocalReservedSymbol Lexer.BlockStart nonemptyValExprLocal
+        -- FIXME[WD]: make it nicer vvv
+        updateAtom = labeled sname . Symbol.suffix
+                   $ flip (inheritCodeSpan2With (<>) (updateIRB names))
+                          (modifyCodeSpan (CodeSpan.asOffsetSpan (mconcat spans) <>) fupdt)
+        modifyAtom = labeled sname . Symbol.suffix
+                   $ flip (inheritCodeSpan2With (<>) (modifyIRB names modName))
+                          (modifyCodeSpan (CodeSpan.asOffsetSpan (mconcat spans) <>) fmod)
 
 
--- lamBldr :: SymParser (AsgBldr SomeTerm -> AsgBldr SomeTerm)
--- lamBldr = do
---     body <- symbol Lexer.BlockStart *> discover (nonEmptyBlock lineExpr)
---     pure $ flip (inheritCodeSpan2 $ liftIRB2 IR.lam') (uncurry seqs body)
+    -- INFO: The following code contains hack allowing for fields updates
+    --       and modifications that are not nested e.g. `a' = a.x = 5`, but
+    --       does not support `a' = a.foo.x = 5`. If we use the above definition
+    --       instead all nested use cases will be supported in parser, but
+    --       need to be supported in backend too. Using this hack, the above
+    --       definition is translated in parser to `a' = a.x= 5`,
+    --       where `x=` is method name!
+    -- vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+
+    let (nameSpan, name) = n
+        updateAtomHack   = pure $ labeled sname ( Symbol.suffix $ \x -> app (accCons nameSpan (name <> "=") x) fupdt )
+        modifyAtomHack   = pure $ labeled sname ( Symbol.suffix $ \x -> app (accCons nameSpan (name <> modName <> "=") x) fmod )
+
+    when_ (isJust mupdt && not (null ns)) $ fail "Updating nested fields is not supported yet."
+    when_ (isJust mmod  && not (null ns)) $ fail "Modification of nested fields is not supported yet."
+
+    -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+    let segment (isFirst, isLast) = if
+            | isFirst     -> pure accSect
+             -- FIXME[WD]: make it nicer vvv
+            | symmetrical -> if
+                | isJust mupdt -> if True == True then updateAtomHack else pure updateAtom -- hack for typechecker (see the above description)
+                | isJust mmod  -> if True == True then modifyAtomHack else pure modifyAtom -- hack for typechecker (see the above description)
+                | otherwise    -> accConss
+            | beforeDot   -> pure accSect
+            | otherwise   -> error "unsupported" -- FIXME[WD]: make nice error here
+    pure $ SegmentBuilder segment
+
+match :: AsgParser SomeTerm
+match = buildAsg $ (\n (p,ps) -> liftAstApp2 IR.match' n (sequence $ p:ps))
+      <$ symbol Lexer.KwCase <*> nonemptyValExprLocal
+      <* symbol Lexer.KwOf   <*> discover (nonEmptyBlock clause)
+      where clause = pat <**> lamBldr
+
+pat :: AsgParser SomeTerm
+pat = Reserved.withLocalReservedSymbol Lexer.BlockStart nonemptyValExprLocal
+
+
+lamBldr :: SymParser (AsgBldr SomeTerm -> AsgBldr SomeTerm)
+lamBldr = do
+    body <- symbol Lexer.BlockStart *> discover (nonEmptyBlock lineExpr)
+    pure $ flip (inheritCodeSpan2 IR.lam') (uncurry seqs body)
 
 
 -- === Utils === --
@@ -1060,49 +1067,49 @@ doc = intercalate "\n" <$> some (satisfy Lexer.matchDocComment <* eol)
 -- unitCls :: AsgParser SomeTerm
 -- unitCls = buildAsg $ (\ds -> liftAstApp1 (IR.clsASG' False "" [] []) (sequence ds)) <$> optionalBlockTop topLvlDecl
 
--- ----------------------------
--- -- === Layout parsing === --
--- ----------------------------
+----------------------------
+-- === Layout parsing === --
+----------------------------
 
--- discover :: SymParser a -> SymParser a
--- discover p = many eol >> p
+discover :: SymParser a -> SymParser a
+discover p = many eol >> p
 
--- discoverIndent :: SymParser a -> SymParser a
--- discoverIndent = discover . Indent.withCurrent
+discoverIndent :: SymParser a -> SymParser a
+discoverIndent = discover . Indent.withCurrent
 
--- nonEmptyBlock', nonEmptyBlockBody' :: SymParser a -> SymParser [a]
--- nonEmptyBlock'     = uncurry (:) <<$>> nonEmptyBlock
--- nonEmptyBlockBody' = uncurry (:) <<$>> nonEmptyBlockBody
+nonEmptyBlock', nonEmptyBlockBody' :: SymParser a -> SymParser [a]
+nonEmptyBlock'     = uncurry (:) <<$>> nonEmptyBlock
+nonEmptyBlockBody' = uncurry (:) <<$>> nonEmptyBlockBody
 
--- nonEmptyBlock , nonEmptyBlockBody  :: SymParser a -> SymParser (a, [a])
--- nonEmptyBlock       = Indent.withCurrent . nonEmptyBlockBody
--- nonEmptyBlockTop    = Indent.withRoot    . nonEmptyBlockBody
--- nonEmptyBlockBody p = (,) <$> p <*> lines where
---     spacing = many eol
---     indent  = spacing <* Indent.indentedEq <* notFollowedBy etx
---     lines   = many $ try indent *> p
+nonEmptyBlock , nonEmptyBlockBody  :: SymParser a -> SymParser (a, [a])
+nonEmptyBlock       = Indent.withCurrent . nonEmptyBlockBody
+nonEmptyBlockTop    = Indent.withRoot    . nonEmptyBlockBody
+nonEmptyBlockBody p = (,) <$> p <*> lines where
+    spacing = many eol
+    indent  = spacing <* Indent.indentedEq <* notFollowedBy etx
+    lines   = many $ try indent *> p
 
--- optionalBlock, optionalBlockTop, optionalBlockBody :: SymParser a -> SymParser [a]
--- optionalBlock     p = option mempty $ uncurry (:) <$> nonEmptyBlock     p
--- optionalBlockTop  p = option mempty $ uncurry (:) <$> nonEmptyBlockTop  p
--- optionalBlockBody p = option mempty $ uncurry (:) <$> nonEmptyBlockBody p
+optionalBlock, optionalBlockTop, optionalBlockBody :: SymParser a -> SymParser [a]
+optionalBlock     p = option mempty $ uncurry (:) <$> nonEmptyBlock     p
+optionalBlockTop  p = option mempty $ uncurry (:) <$> nonEmptyBlockTop  p
+optionalBlockBody p = option mempty $ uncurry (:) <$> nonEmptyBlockBody p
 
--- breakableNonEmptyBlock', breakableNonEmptyBlockTop', breakableNonEmptyBlockBody' :: SymParser a -> SymParser     [a]
--- breakableNonEmptyBlock , breakableNonEmptyBlockTop , breakableNonEmptyBlockBody  :: SymParser a -> SymParser (a, [a])
--- breakableNonEmptyBlock'      = uncurry (:) <<$>> breakableNonEmptyBlock
--- breakableNonEmptyBlockTop'   = uncurry (:) <<$>> breakableNonEmptyBlockTop
--- breakableNonEmptyBlockBody'  = uncurry (:) <<$>> breakableNonEmptyBlockBody
--- breakableNonEmptyBlock       = Indent.withCurrent . breakableNonEmptyBlockBody
--- breakableNonEmptyBlockTop    = Indent.withRoot    . breakableNonEmptyBlockBody
--- breakableNonEmptyBlockBody p = (,) <$> lexedp <*> lines where
---     spacing = many eol
---     lines   = many $ Indent.indentedEq *> lexedp
---     lexedp  = p <* spacing
+breakableNonEmptyBlock', breakableNonEmptyBlockTop', breakableNonEmptyBlockBody' :: SymParser a -> SymParser     [a]
+breakableNonEmptyBlock , breakableNonEmptyBlockTop , breakableNonEmptyBlockBody  :: SymParser a -> SymParser (a, [a])
+breakableNonEmptyBlock'      = uncurry (:) <<$>> breakableNonEmptyBlock
+breakableNonEmptyBlockTop'   = uncurry (:) <<$>> breakableNonEmptyBlockTop
+breakableNonEmptyBlockBody'  = uncurry (:) <<$>> breakableNonEmptyBlockBody
+breakableNonEmptyBlock       = Indent.withCurrent . breakableNonEmptyBlockBody
+breakableNonEmptyBlockTop    = Indent.withRoot    . breakableNonEmptyBlockBody
+breakableNonEmptyBlockBody p = (,) <$> lexedp <*> lines where
+    spacing = many eol
+    lines   = many $ Indent.indentedEq *> lexedp
+    lexedp  = p <* spacing
 
--- breakableOptionalBlock, breakableOptionalBlockTop, breakableOptionalBlockBody :: SymParser a -> SymParser [a]
--- breakableOptionalBlock     p = option mempty $ uncurry (:) <$> breakableNonEmptyBlock     p
--- breakableOptionalBlockTop  p = option mempty $ uncurry (:) <$> breakableNonEmptyBlockTop  p
--- breakableOptionalBlockBody p = option mempty $ uncurry (:) <$> breakableNonEmptyBlockBody p
+breakableOptionalBlock, breakableOptionalBlockTop, breakableOptionalBlockBody :: SymParser a -> SymParser [a]
+breakableOptionalBlock     p = option mempty $ uncurry (:) <$> breakableNonEmptyBlock     p
+breakableOptionalBlockTop  p = option mempty $ uncurry (:) <$> breakableNonEmptyBlockTop  p
+breakableOptionalBlockBody p = option mempty $ uncurry (:) <$> breakableNonEmptyBlockBody p
 
 
 

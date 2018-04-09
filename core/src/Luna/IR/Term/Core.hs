@@ -13,6 +13,7 @@ import qualified Luna.IR.Term.Format                 as Format
 import qualified OCI.IR.Layer                        as Layer
 import qualified OCI.IR.Layout                       as Layout
 
+import Data.Vector.Storable.Foreign      (Vector)
 import Luna.IR.Component.Term.Class      (Term, Terms)
 import Luna.IR.Component.Term.Definition (LinkTo)
 import Luna.IR.Component.Term.Layer      (Model)
@@ -23,8 +24,7 @@ import Type.Data.Ord                     (Cmp)
 
 import Data.PtrList.Mutable (UnmanagedPtrList)
 
-type List = UnmanagedPtrList
-
+type LinkListTo a = UnmanagedPtrList (LinkTo a)
 
 
 ----------------
@@ -38,15 +38,24 @@ type List = UnmanagedPtrList
 
 Term.define [d|
 
- data Value  = App     { base :: LinkTo Terms, arg   :: LinkTo Terms           } -- FIXME: flip args
-             | Cons    { name :: Name        , args  :: List (LinkTo Terms)    }
-             | Top_
- data Thunk  = Acc     { base :: LinkTo Terms, name  :: LinkTo Names           }
-             | Lam     { arg  :: LinkTo Terms, body  :: LinkTo Terms           }
- data Phrase = Blank
-             | Missing
-             | Unify   { left :: LinkTo Terms, right :: LinkTo Terms           }
- data Draft  = Var     { name :: Name                                          }
+ data Value
+    = App     { base :: LinkTo Terms, arg   :: LinkTo Terms                    } -- FIXME: flip args
+    | Cons    { name :: Name        , args  :: LinkListTo Terms                }
+    | Top_
+
+ data Thunk
+    = Acc     { base :: LinkTo Terms, name  :: Name                            }
+    | Lam     { arg  :: LinkTo Terms, body  :: LinkTo Terms                    }
+    | Match   { arg  :: LinkTo Terms, ways  :: LinkListTo Terms                }
+    | Update  { base :: LinkTo Terms, path  :: Vector Name, val :: LinkTo Terms}
+
+ data Phrase
+    = Blank
+    | Missing
+    | Unify   { left :: LinkTo Terms, right :: LinkTo Terms                    }
+
+ data Draft
+    = Var     { name :: Name                                                   }
 
  |]
 

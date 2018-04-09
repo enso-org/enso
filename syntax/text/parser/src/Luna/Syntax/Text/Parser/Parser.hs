@@ -46,6 +46,7 @@ import Luna.Syntax.Text.Parser.Marker    (MarkedExprMap, MarkerState,
 import Luna.Syntax.Text.Parser.Reserved  (Reservation)
 import Luna.Syntax.Text.Scope            (Scope)
 import Text.Megaparsec                   (ParseError, ParsecT)
+import Text.Parser.Indent                (Indent)
 
 
 -- import qualified Luna.Syntax.Text.Parser.Reserved as Reserved
@@ -59,7 +60,8 @@ type ParserBase2 = ParsecT Error Stream IO
 --     , LeftSpanner, Scope, Reservation, CodeSpanRange] ParserBase2
 type SymParser = StatesT ParserStates ParserBase2
 type ParserStates
-    = '[ FileOffset
+    = '[ Indent
+       , FileOffset
        , MarkerState
        , LeftSpanner
        , Scope
@@ -82,7 +84,7 @@ runParserT p s = flip runParserInternal s
                $ State.evalDefT @MarkerState
             --    $ State.evalDefT @Position
                $ State.evalDefT @FileOffset
-            --    $ State.evalDefT @Indent
+               $ State.evalDefT @Indent
                $ hardcode >> p
 
 data Parser

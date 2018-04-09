@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-warn-orphan-instances #-}
+
 module OCI.Data.Name.Class where
 
 import Prologue
@@ -27,6 +29,7 @@ import Unique           (Uniquable)
 
 instance Convertible String     FastString where convert = fromString          ; {-# INLINE convert #-}
 instance Convertible FastString String     where convert = FastString.unpackFS ; {-# INLINE convert #-}
+instance Semigroup   FastString            where (<>)    = FastString.appendFS ; {-# INLINE (<>)    #-}
 
 
 
@@ -37,7 +40,8 @@ instance Convertible FastString String     where convert = FastString.unpackFS ;
 -- === Definition === --
 
 newtype Value = Value FastString
-    deriving (Binary, Data, Eq, Prelude.Monoid, Ord, Outputable, Uniquable)
+    deriving ( Binary, Data, Eq, Prelude.Monoid, Ord, Outputable, Semigroup
+             , Uniquable )
 makeLenses ''Value
 
 
@@ -74,14 +78,17 @@ makeLenses ''Name
 concat :: [Name] -> Name
 concat = convert . concatValues . fmap convert ; {-# INLINE concat #-}
 
+value :: Name -> Value
+value = convert ; {-# INLINE value #-}
 
 
 -- === Instances === --
 
 instance Convertible Value  Name where convert = wrap . FastString.uniq . unwrap ; {-# INLINE convert    #-}
 instance Convertible String Name where convert = convertVia @Value               ; {-# INLINE convert    #-}
+instance Show               Name where show    = show . convertTo @String        ; {-# INLINE show       #-}
+instance Semigroup          Name where n <> n' = convert $ value n <> value n'   ; {-# INLINE (<>)       #-}
 instance IsString           Name where fromString = convert                      ; {-# INLINE fromString #-}
-instance Show               Name where show       = show . convertTo @String     ; {-# INLINE show       #-}
 
 
 
