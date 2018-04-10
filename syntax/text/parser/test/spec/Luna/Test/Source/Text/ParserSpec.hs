@@ -132,11 +132,12 @@ literalSpec = describe "literal" $ do
     numberSpec
     listSpec
 
+
 spec :: Spec
 spec = do
     identSpec
     literalSpec
-
+    pure ()
 
 
 -- module Luna.Test.Source.Text.ParserSpec where

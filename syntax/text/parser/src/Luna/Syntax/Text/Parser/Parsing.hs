@@ -118,6 +118,7 @@ import qualified Luna.Syntax.Text.Parser.Name      as Name
 import qualified Luna.Syntax.Text.Parser.Reserved  as Reserved
 import qualified Luna.Syntax.Text.Scope            as Scope
 import qualified OCI.Data.Name.Multipart           as Name.Multipart
+import qualified OCI.Data.Name.Multipart           as Name (Multipart)
 import qualified OCI.IR.Layout                     as Layout
 import qualified Text.Parser.Expr                  as Expr
 import qualified Text.Parser.Indent                as Indent
@@ -478,14 +479,15 @@ mkNamedAsg :: (Name -> IRB (Term a)) -> SymParser Name -> SymParser (Name, AsgBl
 mkNamedAsg cons = buildAsgF . fmap (\name -> (name, cons name))
 
 
--- -- Qualified names
+-- Qualified names
 
--- qualVarName, qualConsName :: SymParser QualName
--- qualConsName = qualNameBase consName
--- qualVarName  = qualNameBase varName
+qualVarName, qualConsName :: SymParser Name.Multipart
+qualConsName = qualNameBase consName
+qualVarName  = qualNameBase varName
 
--- qualNameBase :: SymParser Name -> SymParser QualName
--- qualNameBase p = mkQualName . convert <$> many (try $ consName <* symbol Lexer.Accessor) <*> p
+qualNameBase :: SymParser Name -> SymParser Name.Multipart
+qualNameBase p = (Name.Multipart.make . unsafeConvert) .: (\a b -> a <> [b])
+             <$> many (try $ consName <* symbol Lexer.Accessor) <*> p
 
 
 
@@ -744,7 +746,7 @@ mfixVarSeg  = do
                     let segments  = snd <$> namedSegs
                         nameParts = fst <$> namedSegs
                         mfixVar   = buildAsgFromSpan span (IR.var' . convert
-                                  $ Name.Multipart.make name nameParts)
+                                  $ Name.Multipart.make $ name :| nameParts)
                         mfixExpr  = apps (app mfixVar segment) segments
                     pure . posIndependent . unlabeledAtom $ mfixExpr
 
@@ -961,12 +963,13 @@ unnamedField = buildAsg $ liftAstApp1 (IR.recordFields' mempty)
 --     impTgt  = option Import.Everything $ symbol Lexer.BlockStart *> listTgt
 --     listTgt = Import.Listed <$> many (varName <|> consName)
 
--- impSrc :: AsgParser SomeTerm
--- impSrc = buildAsg $ (\s -> id $ IR.imp' s) <$> (wrd <|> rel <|> abs) where
---     wrd = Import.World    <$  specificCons "World"
---     rel = Import.Relative <$  symbol Lexer.Accessor <*> qualConsName
---     abs = Import.Absolute <$> qualConsName
-
+impSrc :: AsgParser SomeTerm
+impSrc = buildAsg $ (\s -> id $ IR.imp' s) <$> tgt where
+    tgt = choice
+        [ Import.World    <$  specificCons "World"
+        , Import.Relative <$  symbol Lexer.Accessor <*> qualConsName
+        , Import.Absolute <$> qualConsName
+        ]
 -- ------------------------------------
 -- -- === Foreign Import Parsing === --+
 -- ------------------------------------

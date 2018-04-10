@@ -7,6 +7,7 @@ import Prologue hiding (Imp, seq)
 import qualified Foreign.Storable.Deriving         as Storable
 import qualified Luna.IR.Component.Term.Definition as Term
 import qualified Luna.IR.Term.Format               as Format
+import qualified OCI.Data.Name                     as Name
 
 import Data.Vector.Storable.Foreign      (Vector)
 import Luna.IR.Component.Term.Class      (Terms)
@@ -28,8 +29,8 @@ type LinksTo a = UnmanagedPtrList (LinkTo a)
 -- === Import helpers === --
 
 data ImportSource
-    = Relative Name
-    | Absolute Name
+    = Relative Name.Multipart
+    | Absolute Name.Multipart
     | World
     deriving (Eq, Generic, Show)
 Storable.derive ''ImportSource

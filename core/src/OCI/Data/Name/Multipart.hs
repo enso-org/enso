@@ -4,10 +4,13 @@ module OCI.Data.Name.Multipart where
 
 import Prologue hiding (toList)
 
-import qualified OCI.Data.Name.Class as Name
+import qualified Data.List.Utils        as List
+import qualified Foreign.Storable.Utils as Storable
+import qualified OCI.Data.Name.Class    as Name
 
-import Data.Foldable       (toList)
-import OCI.Data.Name.Class (Name)
+import Data.Foldable          (toList)
+import Foreign.Storable.Utils (Storable)
+import OCI.Data.Name.Class    (Name)
 
 
 ---------------------------
@@ -17,8 +20,7 @@ import OCI.Data.Name.Class (Name)
 -- === Definition === --
 
 data Multipart = Multipart
-    { _base     :: !Name
-    , _segments :: ![Name]
+    { _segments :: !(NonEmpty Name)
     , _hash     :: !Name
     }
 makeLenses ''Multipart
@@ -26,11 +28,20 @@ makeLenses ''Multipart
 
 -- === Construction === --
 
-make :: Name -> [Name] -> Multipart
-make n segs = Multipart n segs . Name.concat $ intersperse "_" (n:segs) ; {-# INLINE make #-}
+separator :: Char
+separator = '\RS' ; {-# INLINE separator #-}
+
+make :: NonEmpty Name -> Multipart
+make segs = Multipart segs . Name.concat $ intersperse (convert separator) segs ; {-# INLINE make #-}
 
 singleton :: Name -> Multipart
-singleton n = Multipart n mempty n ; {-# INLINE singleton #-}
+singleton n = Multipart (pure n) n ; {-# INLINE singleton #-}
+
+fromHash :: Name -> Maybe Multipart
+fromHash n = case convert <$> List.splitOn separator (convertTo @String n) of
+    []     -> Nothing
+    (a:as) -> Just . make $ a :| as
+
 
 
 -- === Instances === --
@@ -50,13 +61,21 @@ instance Convertible Multipart String    where convert = convertVia @Name ; {-# 
 instance Convertible Name      Multipart where convert = singleton        ; {-# INLINE convert #-}
 -- instance Convertible Text      Multipart where convert = convertVia @Name ; {-# INLINE convert #-}
 instance Convertible String    Multipart where convert = convertVia @Name ; {-# INLINE convert #-}
-instance Convertible (NonEmpty Name) Multipart where
-    convert (n:|ns) = make n ns ; {-# INLINE convert #-}
-instance Convertible Multipart (NonEmpty Name) where
-    convert n = n ^. base :| n ^. segments ; {-# INLINE convert #-}
+instance Convertible (NonEmpty Name) Multipart where convert   = make ; {-# INLINE convert #-}
+instance Convertible Multipart (NonEmpty Name) where convert n = n ^. segments ; {-# INLINE convert #-}
 
 instance IsString Multipart where fromString = convert ; {-# INLINE fromString #-}
 
+
+-- | Warning! The Storable Name.Multipart instance is not efficient.
+--   The `peek` function reads the Name ID (Int) from memory, lookups its real
+--   FastString representation, converts it to string, divides it on special
+--   chars and for each chunk lookups it back in the name map.
+--   Use with care, only in non-performance related code.
+instance Storable Multipart where
+    sizeOf _ = Storable.sizeOf' @Name                                   ; {-# INLINE sizeOf #-}
+    peek ptr = unsafeFromJust . fromHash <$> Storable.peek (coerce ptr) ; {-# INLINE peek   #-}
+    poke ptr = Storable.poke (coerce ptr) . view hash                   ; {-# INLINE poke   #-}
 -- -- Appendable
 -- type instance Item Multipart = Name
 -- instance Appendable Multipart where

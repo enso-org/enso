@@ -83,6 +83,7 @@ value = convert ; {-# INLINE value #-}
 -- === Instances === --
 
 instance Convertible Value  Name where convert = wrap . FastString.uniq . unwrap ; {-# INLINE convert    #-}
+instance Convertible Char   Name where convert = convertVia @String              ; {-# INLINE convert    #-}
 instance Convertible String Name where convert = convertVia @Value               ; {-# INLINE convert    #-}
 instance Show               Name where show    = show . convertTo @String        ; {-# INLINE show       #-}
 instance Semigroup          Name where n <> n' = convert $ value n <> value n'   ; {-# INLINE (<>)       #-}
@@ -131,6 +132,7 @@ instance Convertible FastString Value       where
     {-# INLINE convert #-}
 
 instance IsString           Value  where fromString = convert                ; {-# INLINE fromString #-}
+instance Convertible Char   Value  where convert    = convertVia @String     ; {-# INLINE convert #-}
 instance Convertible String Value  where convert    = convertVia @FastString ; {-# INLINE convert #-}
 instance Convertible Value  String where convert    = convertVia @FastString ; {-# INLINE convert #-}
 instance Convertible Name   String where convert    = convertVia @Value      ; {-# INLINE convert #-}

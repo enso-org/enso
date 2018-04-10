@@ -40,8 +40,8 @@ hardcodePrecRelMap = do
 
 hardcodeMultiNames :: State.Monad Scope m => m ()
 hardcodeMultiNames = do
-    Scope.addMultipartName $ Name.Multipart.make "if"  ["then", "else"]
-    Scope.addMultipartName $ Name.Multipart.make "if"  ["then"]
+    Scope.addMultipartName $ Name.Multipart.make $ "if"  :| ["then", "else"]
+    Scope.addMultipartName $ Name.Multipart.make $ "if"  :| ["then"]
     -- addNameDesc (NameDesc False "if"  ["then"])
 
 
