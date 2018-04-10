@@ -6,6 +6,7 @@ import Prelude as P (read)
 import Luna.Prelude   as P hiding (seq, force, Constructor, Text)
 import GHC.Exts (Any)
 import Unsafe.Coerce (unsafeCoerce)
+import Data.IORef    (IORef, newIORef, readIORef, writeIORef)
 
 import Data.Text.Lazy (Text)
 import Data.Map (Map)
@@ -18,7 +19,7 @@ import qualified Luna.IR.Layer.Errors as Errors
 import           Luna.IR   hiding (get, put, modify)
 import           OCI.Pass (SubPass, Inputs, Outputs, Preserves, Events)
 import qualified OCI.Pass        as Pass
-import           Control.Monad.Trans.State.Lazy (StateT, runStateT, evalStateT, get, gets, put, modify)
+import qualified Control.Monad.Trans.State.Strict as State
 
 import Luna.Builtin.Data.LunaValue
 import Luna.Builtin.Prim
@@ -37,6 +38,10 @@ type instance Outputs Attr  Interpreter = '[]
 type instance Inputs  Event Interpreter = '[]
 type instance Outputs Event Interpreter = '[]
 type instance Preserves     Interpreter = '[]
+
+------------------------
+-- === LocalScope === --
+------------------------
 
 data LocalScope  = LocalScope { _localVars   :: Map (Expr Draft) LunaData
                               , _localDefs   :: Map Name LunaValue
@@ -61,6 +66,43 @@ mergeScopes m = localVars %~ Map.union m
 globalLookup :: Name -> Imports -> Maybe LunaValue
 globalLookup n imps = imps ^? importedFunctions . ix n . documentedItem . _Right . value
 
+------------------------
+-- === MonadScope === --
+------------------------
+
+newtype ScopeT m a = ScopeT
+        { unScopeT :: State.StateT (IORef LocalScope) m a
+        } deriving (Functor, Applicative, Monad, MonadIO, MonadTrans)
+
+
+class Monad m => MonadScope m where
+    get :: m LocalScope
+    put :: LocalScope -> m ()
+
+instance MonadIO m => MonadScope (ScopeT m) where
+    get   = ScopeT $ State.get >>= liftIO . readIORef
+    put s = ScopeT $ State.get >>= liftIO . flip writeIORef s
+
+modify :: MonadScope m => (LocalScope -> LocalScope) -> m ()
+modify f = fmap f get >>= put
+
+gets :: MonadScope m => (LocalScope -> a) -> m a
+gets f = f <$> get
+
+runScopeT :: MonadIO m => ScopeT m a -> LocalScope -> m (a, LocalScope)
+runScopeT m scope = do
+    ref      <- liftIO $ newIORef scope
+    result   <- State.evalStateT (unScopeT m) ref
+    newState <- liftIO $ readIORef ref
+    return (result, newState)
+
+evalScopeT :: MonadIO m => ScopeT m a -> LocalScope -> m a
+evalScopeT m scope = fst <$> runScopeT m scope
+
+------------------------------------
+-- === Constants construction === --
+------------------------------------
+
 mkInt :: Imports -> Integer -> LunaData
 mkInt = toLunaData
 
@@ -73,15 +115,27 @@ mkString = toLunaData
 mkNothing :: Imports -> LunaData
 mkNothing imps = toLunaData imps ()
 
-interpret :: MonadRef m => Imports -> Expr Draft -> SubPass Interpreter m (StateT LocalScope LunaEff LunaData)
+----------------------------
+-- === Interpretation === --
+----------------------------
+
+interpret :: MonadRef m => Imports -> Expr Draft
+          -> SubPass Interpreter m (ScopeT LunaEff LunaData)
 interpret = interpret'
 
-interpret' :: (MonadRef m, Readers Layer '[AnyExpr // Model, AnyExpr // Type, AnyExprLink // Model, AnyExpr // Errors] m, Editors Net '[AnyExpr, AnyExprLink] m)
-           => Imports -> Expr Draft -> m (StateT LocalScope LunaEff LunaData)
+interpret' :: ( MonadRef m
+              , Readers Layer '[ AnyExpr // Model
+                               , AnyExpr // Type
+                               , AnyExprLink // Model
+                               , AnyExpr // Errors
+                               ] m
+              , Editors Net '[AnyExpr, AnyExprLink] m)
+           => Imports -> Expr Draft -> m (ScopeT LunaEff LunaData)
 interpret' glob expr = do
-    errors <- getLayer @Errors expr
+    errors    <- getLayer @Errors expr
     hasErrors <- not . null <$> getLayer @Errors expr
-    if hasErrors then return $ return $ LunaError (head errors ^. Errors.description . to convert) else matchExpr expr $ \case
+    let errorValue = return $ LunaError (head errors ^. Errors.description . to convert)
+    if hasErrors then return errorValue else matchExpr expr $ \case
         String s  -> let res = mkString glob (convert s) in return $ return res
         Number a  -> let res = if isInteger a then mkInt glob $ toInt a else mkDouble glob $ toDouble a in return $ return res
         Var name  -> do
@@ -101,7 +155,7 @@ interpret' glob expr = do
                 env <- get
                 return $ LunaFunction $ \d -> do
                     newBinds <- inpMatcher $ LunaThunk d
-                    evalStateT bodyVal $ mergeScopes newBinds env
+                    evalScopeT bodyVal $ mergeScopes newBinds env
         App f' a' -> do
             f   <- source f'
             a   <- source a'
@@ -109,8 +163,8 @@ interpret' glob expr = do
             arg <- interpret' glob a
             return $ do
                 env  <- get
-                let fun' = evalStateT fun env
-                    arg' = evalStateT arg env
+                let fun' = evalScopeT fun env
+                    arg' = evalScopeT arg env
                 lift $ force $ applyFun fun' arg'
 
         Acc a' name -> do
@@ -125,17 +179,19 @@ interpret' glob expr = do
             lpat <- irrefutableMatcher l
             return $ do
                 env  <- get
-                let rhs' = evalStateT rhs (localInsert l (LunaThunk rhs') env)
+                let rhs' = evalScopeT rhs (localInsert l (LunaThunk rhs') env)
                 rhsV <- lift $ runError $ force rhs'
                 case rhsV of
-                    Left e  -> modify $ localInsert l $ LunaError e
+                    Left e -> do
+                        modify $ localInsert l $ LunaError e
+                        lift $ throw e
                     Right v -> lift (lpat v) >>= modify . mergeScopes
                 return $ mkNothing glob
         ASGFunction n' as' b' -> do
             n   <- source n'
             as  <- mapM (irrefutableMatcher <=< source) as'
             rhs <- interpret' glob =<< source b'
-            let makeFuns []       e = evalStateT rhs e
+            let makeFuns []       e = evalScopeT rhs e
                 makeFuns (m : ms) e = return $ LunaFunction $ \d -> do
                     newBinds <- m $ LunaThunk d
                     makeFuns ms (mergeScopes newBinds e)
@@ -164,13 +220,14 @@ interpret' glob expr = do
             cls     <- mapM source cls'
             target  <- interpret' glob t
             clauses <- forM cls $ \clause -> matchExpr clause $ \case
-                Lam pat res -> (,) <$> (matcher =<< source pat) <*> (interpret' glob =<< source res)
+                Lam pat res -> (,) <$> (matcher =<< source pat)
+                                   <*> (interpret' glob =<< source res)
             return $ do
                 env <- get
-                let tgt' = evalStateT target env
+                let tgt' = evalScopeT target env
                 tgt <- lift $ force tgt'
                 (scope, cl) <- lift $ runMatch clauses tgt
-                lift $ evalStateT cl (mergeScopes scope env)
+                lift $ evalScopeT cl (mergeScopes scope env)
         Marked _ b -> interpret' glob =<< source b
         s -> error $ "unexpected " ++ show s
 

@@ -84,6 +84,9 @@ mkDef modName imports currentTarget defRoot = mdo
             let localDef = case currentTarget of
                   TgtDef _ n -> Map.singleton n val
                   _          -> def
-                val = evalStateT value $ LocalScope def localDef
+                val = evalScopeT value $ LocalScope def localDef
 
-            return $ Right $ Function rooted val (Assumptions (unwrap unifies) (unwrap merges) (unwrap apps) (getAccs accs))
+            return $ Right $ Function rooted val (Assumptions (unwrap unifies)
+                                                              (unwrap merges)
+                                                              (unwrap apps)
+                                                              (getAccs accs))
