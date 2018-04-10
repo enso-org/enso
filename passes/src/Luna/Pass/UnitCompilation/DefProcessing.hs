@@ -86,4 +86,7 @@ mkDef modName imports currentTarget defRoot = mdo
                   _          -> def
                 val = evalScopeT value $ LocalScope def localDef
 
-            return $ Right $ Function rooted val (Assumptions (unwrap unifies) (unwrap merges) (unwrap apps) (getAccs accs))
+            return $ Right $ Function rooted val (Assumptions (unwrap unifies)
+                                                              (unwrap merges)
+                                                              (unwrap apps)
+                                                              (getAccs accs))

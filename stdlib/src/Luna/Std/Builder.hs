@@ -112,10 +112,20 @@ compileFunction imps pass = do
         Just (accs    :: UnresolvedAccs)  <- unsafeCoerce <$> unsafeGetAttr (getTypeDesc @UnresolvedAccs)
         rooted <- Pass.eval' @TestPass $ do
             tp <- getLayer @Type root >>= readSource
-            let whiteList = Set.unions [Set.singleton (generalize tp), Set.fromList (generalize <$> unwrap unifies), Set.fromList (generalize <$> unwrap merges), Set.fromList (generalize <$> unwrap apps), Set.fromList (generalize <$> getAccs accs)]
+            let whiteList = Set.unions [ Set.singleton (generalize tp)
+                                       , Set.fromList (generalize <$> unwrap unifies)
+                                       , Set.fromList (generalize <$> unwrap merges)
+                                       , Set.fromList (generalize <$> unwrap apps)
+                                       , Set.fromList (generalize <$> getAccs accs)
+                                       ]
             deepDeleteWithWhitelist root whiteList
             compile tp
-        return $ Function rooted (evalScopeT val def) (Assumptions (unwrap unifies) (unwrap merges) (unwrap apps) (getAccs accs))
+        let value       = evalScopeT val def
+            assumptions = Assumptions (unwrap unifies)
+                                      (unwrap merges)
+                                      (unwrap apps)
+                                      (getAccs accs)
+        return $ Function rooted value assumptions
     return res
 
 preludeUnaryOp :: Name -> IO Function

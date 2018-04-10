@@ -39,6 +39,10 @@ type instance Inputs  Event Interpreter = '[]
 type instance Outputs Event Interpreter = '[]
 type instance Preserves     Interpreter = '[]
 
+------------------------
+-- === LocalScope === --
+------------------------
+
 data LocalScope  = LocalScope { _localVars   :: Map (Expr Draft) LunaData
                               , _localDefs   :: Map Name LunaValue
                               }
@@ -62,9 +66,14 @@ mergeScopes m = localVars %~ Map.union m
 globalLookup :: Name -> Imports -> Maybe LunaValue
 globalLookup n imps = imps ^? importedFunctions . ix n . documentedItem . _Right . value
 
+------------------------
+-- === MonadScope === --
+------------------------
 
+newtype ScopeT m a = ScopeT
+        { unScopeT :: State.StateT (IORef LocalScope) m a
+        } deriving (Functor, Applicative, Monad, MonadIO, MonadTrans)
 
-newtype ScopeT m a = ScopeT { unScopeT :: State.StateT (IORef LocalScope) m a } deriving (Functor, Applicative, Monad, MonadIO, MonadTrans)
 
 class Monad m => MonadScope m where
     get :: m LocalScope
@@ -80,7 +89,6 @@ modify f = fmap f get >>= put
 gets :: MonadScope m => (LocalScope -> a) -> m a
 gets f = f <$> get
 
-
 runScopeT :: MonadIO m => ScopeT m a -> LocalScope -> m (a, LocalScope)
 runScopeT m scope = do
     ref      <- liftIO $ newIORef scope
@@ -91,7 +99,9 @@ runScopeT m scope = do
 evalScopeT :: MonadIO m => ScopeT m a -> LocalScope -> m a
 evalScopeT m scope = fst <$> runScopeT m scope
 
-
+------------------------------------
+-- === Constants construction === --
+------------------------------------
 
 mkInt :: Imports -> Integer -> LunaData
 mkInt = toLunaData
@@ -105,16 +115,27 @@ mkString = toLunaData
 mkNothing :: Imports -> LunaData
 mkNothing imps = toLunaData imps ()
 
+----------------------------
+-- === Interpretation === --
+----------------------------
 
-interpret :: MonadRef m => Imports -> Expr Draft -> SubPass Interpreter m (ScopeT LunaEff LunaData)
+interpret :: MonadRef m => Imports -> Expr Draft
+          -> SubPass Interpreter m (ScopeT LunaEff LunaData)
 interpret = interpret'
 
-interpret' :: (MonadRef m, Readers Layer '[AnyExpr // Model, AnyExpr // Type, AnyExprLink // Model, AnyExpr // Errors] m, Editors Net '[AnyExpr, AnyExprLink] m)
+interpret' :: ( MonadRef m
+              , Readers Layer '[ AnyExpr // Model
+                               , AnyExpr // Type
+                               , AnyExprLink // Model
+                               , AnyExpr // Errors
+                               ] m
+              , Editors Net '[AnyExpr, AnyExprLink] m)
            => Imports -> Expr Draft -> m (ScopeT LunaEff LunaData)
 interpret' glob expr = do
-    errors <- getLayer @Errors expr
+    errors    <- getLayer @Errors expr
     hasErrors <- not . null <$> getLayer @Errors expr
-    if hasErrors then return $ return $ LunaError (head errors ^. Errors.description . to convert) else matchExpr expr $ \case
+    let errorValue = return $ LunaError (head errors ^. Errors.description . to convert)
+    if hasErrors then return errorValue else matchExpr expr $ \case
         String s  -> let res = mkString glob (convert s) in return $ return res
         Number a  -> let res = if isInteger a then mkInt glob $ toInt a else mkDouble glob $ toDouble a in return $ return res
         Var name  -> do
@@ -199,7 +220,8 @@ interpret' glob expr = do
             cls     <- mapM source cls'
             target  <- interpret' glob t
             clauses <- forM cls $ \clause -> matchExpr clause $ \case
-                Lam pat res -> (,) <$> (matcher =<< source pat) <*> (interpret' glob =<< source res)
+                Lam pat res -> (,) <$> (matcher =<< source pat)
+                                   <*> (interpret' glob =<< source res)
             return $ do
                 env <- get
                 let tgt' = evalScopeT target env

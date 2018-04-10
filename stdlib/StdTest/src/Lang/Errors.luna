@@ -1,13 +1,19 @@
 import Std.Base
 import Std.Test
 
+# Test class for specification of different types of Luna errors.
 class ErrorsTest:
+
+    # `throw` is supposed to throw a catchable exception.
     def testThrowThrows:
         def test:
             foo = throw "foo"
             None
         TestSubject test . should throwError
 
+    # `throw` is supposed to prevent evaluation of any expressions
+    # coming after it. This is checked by performing IO actions
+    # and making sure they weren't evaluated.
     def testThrowBreaksExecution:
         t = newMVar
         t.put 0
