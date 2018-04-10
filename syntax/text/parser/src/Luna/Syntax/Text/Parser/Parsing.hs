@@ -106,6 +106,7 @@ import qualified Data.TreeSet                      as TreeSet
 import qualified Language.Symbol                   as Symbol
 import qualified Luna.IR                           as IR
 import qualified Luna.IR.Layer                     as Layer
+import qualified Luna.IR.Term.Ast                  as Import
 import qualified Luna.Syntax.Text.Lexer            as Lexer
 import qualified Luna.Syntax.Text.Lexer.Symbol     as Lexer
 import qualified Luna.Syntax.Text.Parser.CodeSpan  as CodeSpan
@@ -943,11 +944,11 @@ unnamedField = buildAsg $ liftAstApp1 (IR.recordFields' mempty)
 
 
 
--- --------------------
--- -- === Units === --
--- --------------------
+--------------------
+-- === Units === --
+--------------------
 
--- -- === Imports === --
+-- === Imports === --
 
 -- impHub :: AsgParser SomeTerm
 -- impHub = buildAsg $ (\(imps :: [AsgBldr SomeTerm]) -> liftAstApp1 unresolvedImpHub' (sequence imps :: AsgBldr [SomeTerm])) <$> impHeader
@@ -961,13 +962,13 @@ unnamedField = buildAsg $ liftAstApp1 (IR.recordFields' mempty)
 --     listTgt = Import.Listed <$> many (varName <|> consName)
 
 -- impSrc :: AsgParser SomeTerm
--- impSrc = buildAsg $ (\s -> id $ IR.unresolvedImpSrc' s) <$> (wrd <|> rel <|> abs) where
+-- impSrc = buildAsg $ (\s -> id $ IR.imp' s) <$> (wrd <|> rel <|> abs) where
 --     wrd = Import.World    <$  specificCons "World"
 --     rel = Import.Relative <$  symbol Lexer.Accessor <*> qualConsName
 --     abs = Import.Absolute <$> qualConsName
 
 -- ------------------------------------
--- -- === Foreign Import Parsing === --
+-- -- === Foreign Import Parsing === --+
 -- ------------------------------------
 
 -- foreignImportList :: AsgParser SomeTerm
