@@ -8,7 +8,8 @@ import           Luna.Prelude        hiding (String, seq, cons, Constructor)
 import qualified Luna.Prelude        as P
 import           Control.Concurrent  (threadDelay)
 import           Control.Concurrent.Async (race_)
-import           Control.Concurrent.STM
+import           Control.Concurrent.STM (atomically, check, newTVarIO, readTVar,
+                                         writeTVar)
 import qualified Control.Exception.Safe as Exc
 import qualified Data.Map            as Map
 import           Data.Map            (Map)
@@ -174,10 +175,11 @@ instance Exception CompilationError where
     displayException (CompilationError errors) =
         convert $ Layout.concatLineBlock $ Layout.render $ formatErrors errors
 
-data Options = Options { _projectDirectory      :: Maybe FilePath
-                       , _exhaustiveCompilation :: Bool
-                       , _fileWatch             :: Bool
-                       }
+data Options = Options
+    { _projectDirectory      :: Maybe FilePath
+    , _exhaustiveCompilation :: Bool
+    , _fileWatch             :: Bool
+    }
 
 makeLenses ''Options
 
@@ -221,19 +223,19 @@ evaluateMain mainFun = case mainFun of
 
 shell :: Options -> IO ()
 shell opts = do
-    mainPath' <- maybe getCurrentDirectory return $ opts ^. projectDirectory
-    mainPath  <- Path.parseAbsDir mainPath'
+    mainPathStr  <- maybe getCurrentDirectory return $ opts ^. projectDirectory
+    mainPath     <- Path.parseAbsDir mainPathStr
     let mainName = Project.getProjectName mainPath
-    stdPath   <- stdlibPath
-    stdPath'  <- Path.parseAbsDir stdPath
-    (fin, std) <- Project.prepareStdlib  (Map.fromList [("Std", stdPath)])
+    stdPathStr   <- stdlibPath
+    stdPath      <- Path.parseAbsDir stdPathStr
+    (fin, std)   <- Project.prepareStdlib (Map.fromList [("Std", stdPathStr)])
     dependencies <- Project.listDependencies mainPath
     libs         <- Map.fromList <$> Project.projectImportPaths mainPath
     let loop = do
             let mainModule = [mainName, "Main"]
             modsToCompile <- (mainModule :) <$>
                 if (opts ^. exhaustiveCompilation) then do
-                    allStd <- Project.findProjectSources stdPath'
+                    allStd <- Project.findProjectSources stdPath
                     allProj <- Project.findProjectSources mainPath
                     return (Bimap.elems allStd <> Bimap.elems allProj)
                 else
@@ -259,8 +261,8 @@ shell opts = do
         FSNotify.withManager $ \mgr -> do
             let predicate ev =
                     FilePath.takeExtension (FSNotify.eventPath ev) == ".luna" 
-            FSNotify.watchTree mgr mainPath' predicate
-                (\_ -> atomically $ writeTVar dirtyVar True)
+            FSNotify.watchTree mgr mainPathStr predicate
+                (const $ atomically $ writeTVar dirtyVar True)
             race_ watchInput $ forever $ do
                 atomically $ do
                     dirty <- readTVar dirtyVar
