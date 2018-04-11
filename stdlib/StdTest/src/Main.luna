@@ -1,6 +1,8 @@
 import Std.Base
 import Std.Test
 import StdTest.Lang.PatternMatch
+import StdTest.Lang.Errors
 
 def main:
     PatternMatchTest.run
+    ErrorsTest.run
