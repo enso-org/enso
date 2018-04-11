@@ -26,6 +26,9 @@ native class Int:
     # Display an integer as text.
     def toText: primIntToText self
 
+    # Integer absolute value.
+    def abs: if self < 0 then self.negate else self
+
     # Alias for `toText`, for the purpose of pretty printing the number.
     def shortRep: self.toText
     # JSON representation of an integer.
@@ -53,6 +56,43 @@ native class Int:
     def upto i:
         ss = self.succ
         if self <= i then Prepend self (ss . upto i) else []
+
+    # Greatest common divisor.
+    def gcd bb:
+        a = self.abs
+        b = bb.abs
+        if a < b then b.gcd a else if b == 0 then a else b.gcd (a % b)
+
+    # Lowest common multiple.
+    def lcm bb:
+        a = self.abs
+        b = bb.abs
+        k = a.gcd b
+        if k <= 1 then a * b else (a/k).lcm (b/k)
+
+    # Returns `True` when number is prime and `False` otherwise.
+    def isPrime:
+        maxD = self.abs.toReal.sqrt.floor
+        def recIsPrime d:
+            if d > maxD then True else if self % d == 0 then False else recIsPrime d.succ
+        if self.abs < 2 then False else recIsPrime 2
+
+    # Returns factorial of number.
+    def factorial:
+        def recFactorial k:
+            if k <= 1 then k else k * (recFactorial k.pred)
+        res = if self == 0 then 1 else recFactorial self.abs
+        if (self > 0) . or (self%2 == 0) then res else res.negate
+
+    # Returns `k`-th power of number.
+    def power k:
+        case k of:
+            0: 1
+            _:
+                half = self.power k/2
+                rest = if k%2 == 1 then self else 1
+                half * half * rest
+
 
 # Class representing floating point numbers.
 native class Real:
@@ -85,6 +125,9 @@ native class Real:
     def floor: primRealFloor self
     # Round a number up to the closest `Int`
     def ceiling: primRealCeiling self
+
+    # Floating point absolute value.
+    def abs: if self < 0 then self.negate else self
 
     # Sine function.
     def sin: primRealSin self
