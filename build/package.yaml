@@ -33,7 +33,6 @@ dependencies:
     - sbv
     - text
     - typelevel
-    - z3
 
 default-extensions:
     - AllowAmbiguousTypes

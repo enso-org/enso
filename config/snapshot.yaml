@@ -25,5 +25,4 @@ packages:
 - megaparsec-5.3.1
 - monad-st-0.2.4.1
 - placeholders-0.1
-- z3-4.2.0
 
