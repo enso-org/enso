@@ -1,10 +1,10 @@
-resolver: ./build/snapshot.yaml
+resolver: ./config/snapshot.yaml
 
 package-indices:
     - name:            standard-hackage
       download-prefix: https://hackage.haskell.org/package/
       http:            https://hackage.haskell.org/01-index.tar.gz
-      
+
 ghc-options:
     $locals:
         -fexcess-precision
@@ -18,7 +18,7 @@ ghc-options:
         -O2
         -threaded
         -Wall
-        -Wno-name-shadowing        
+        -Wno-name-shadowing
     $everything:
         -fconstraint-solver-iterations=100
 
@@ -30,14 +30,16 @@ packages:
     - syntax/text/model
     - syntax/text/parser
     - syntax/text/prettyprint
-    
+
     - lib/autovector
+    - lib/ci
     - lib/code-builder
     - lib/cpp-containers
     - lib/data-tag
     - lib/data-typemap
     - lib/exception
     - lib/foreign-utils
+    - lib/hspec-jenkins
     - lib/memory-manager
     - lib/memory-pool
     - lib/nested-containers
@@ -47,5 +49,4 @@ packages:
     - lib/tuple-utils
     - lib/type-cache
     - lib/typelevel
-
 

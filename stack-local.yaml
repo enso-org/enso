@@ -1,4 +1,4 @@
-resolver: ./build/snapshot-local.yaml
+resolver: ./config/snapshot-local.yaml
 
 package-indices:
     - name:            standard-hackage
@@ -32,12 +32,14 @@ packages:
     - syntax/text/prettyprint
 
     - lib/autovector
+    - lib/ci
     - lib/code-builder
     - lib/cpp-containers
     - lib/data-tag
     - lib/data-typemap
     - lib/exception
     - lib/foreign-utils
+    - lib/hspec-jenkins
     - lib/memory-manager
     - lib/memory-pool
     - lib/nested-containers
