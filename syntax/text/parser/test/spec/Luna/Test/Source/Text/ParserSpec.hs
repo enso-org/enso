@@ -87,8 +87,12 @@ shouldParseAs parser input output {-desiredSpan-} = runPass' $ do
 shouldParseItself :: AsgParser IR.SomeTerm -> Text {- -> (Delta, Delta)-} -> IO ()
 shouldParseItself parser input = shouldParseAs parser input input
 
+unitAs = shouldParseAs     Parsing.unit'
+unit   = shouldParseItself Parsing.unit'
 exprAs = shouldParseAs     Parsing.expr
 expr   = shouldParseItself Parsing.expr
+
+
 
 -------------------
 -- === Tests === --
@@ -303,40 +307,45 @@ termSpec = describe "term" $ do
     termLambdaSpec
 
 
-
 definitionFunctionSpec :: Spec
 definitionFunctionSpec = describe "function" $ do
     it "no argument function definition" $ expr "def foo: bar"       -- [(4,3),(2,3),(0,12)]
     it "simple function definition"      $ expr "def foo a b: a + b" -- [(4,3),(1,1),(1,1),(0,1),(1,1),(0,3),(1,1),(2,5),(0,18)]
 
---         describe "top level definitions" $ do
---             it "value definition"                           $ shouldParseAs''     unit' "def pi: 3.14"       "<function 'pi'>"       [(4,2),(0,12),(0,12),(0,12)]
---             it "expression definition"                      $ shouldParseAs''     unit' "def foo: a + b"     "<function 'foo'>"      [(4,3),(0,14),(0,14),(0,14)]
---             it "function definition"                        $ shouldParseAs''     unit' "def foo a b: a + b" "<function 'foo'>"      [(4,3),(0,18),(0,18),(0,18)]
---             it "operator definition"                        $ shouldParseAs''     unit' "def + a b: a.+ b"   "<function '+'>"        [(4,1),(0,16),(0,16),(0,16)]
---             it "function signature definition"              $ shouldParseItself'' unit' "def foo :: a -> Vector a"                   [(4,3),(0,1),(1,2),(0,4),(0,6),(1,1),(1,8),(4,13),(0,24),(0,24),(0,24)]
+unitSpec :: Spec
+unitSpec = describe "unit definitions" $ do
+    it "value definition"               $ unitAs "def pi: 3.14"       "<function 'pi'>"  -- [(4,2),(0,12),(0,12),(0,12)]
+    it "expression definition"          $ unitAs "def foo: a + b"     "<function 'foo'>" -- [(4,3),(0,14),(0,14),(0,14)]
+    it "function definition"            $ unitAs "def foo a b: a + b" "<function 'foo'>" -- [(4,3),(0,18),(0,18),(0,18)]
+    it "operator definition"            $ unitAs "def + a b: a.+ b"   "<function '+'>"   -- [(4,1),(0,16),(0,16),(0,16)]
+    it "function signature definition"  $ unit   "def foo :: a -> Vector a"              -- [(4,3),(0,1),(1,2),(0,4),(0,6),(1,1),(1,8),(4,13),(0,24),(0,24),(0,24)]
 
---         describe "case expression" $ do
---             it "simple case expression"                     $ shouldParseItself' expr "case v of\n    A a: b" [(5,1),(0,1),(1,1),(0,3),(2,1),(8,6),(0,20)]
---             it "multiline case expression"                  $ shouldParseItself' expr ("case v of"
---                                                                                     </> "    A: a"
---                                                                                     </> "    B: b"
---
+caseSpec :: Spec
+caseSpec = describe "case expression" $ do
+    it "simple case expression"    $ expr "case v of\n    A a: b" -- [(5,1),(0,1),(1,1),(0,3),(2,1),(8,6),(0,20)]
+    it "multiline case expression" $ expr ("case v of"
+                                       </> "    A: a"
+                                       </> "    B: b"
+                                          ) -- [(5,1),(0,1),(2,1),(8,4),(0,1),(2,1),(5,4),(0,27)]
 
 definitionSpec :: Spec
 definitionSpec = do
     definitionFunctionSpec
+    unitSpec
+    caseSpec
 
-
-
+fixSpec :: Spec
+fixSpec = do
+    it "error" $ expr "foo bar :: x"
 
 spec :: Spec
 spec = do
-    identSpec
-    literalSpec
-    termSpec
-    definitionSpec
-    pure ()
+    -- identSpec
+    -- literalSpec
+    -- termSpec
+    -- definitionSpec
+    fixSpec
+    -- pure (s)
 
 
 -- module Luna.Test.Source.Text.ParserSpec where
@@ -448,7 +457,7 @@ spec = do
 -- shouldParseAs''     p s s' = shouldParseAs' p s ('\n':s')
 -- shouldParse          p s = shouldParseAsx p s
 
--- l </> r = l <> "\n" <> r
+l </> r = l <> "\n" <> r
 
 -- spec :: Spec
 -- spec = do

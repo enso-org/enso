@@ -46,10 +46,12 @@ import qualified Luna.IR.Layer                  as Layer
 import qualified Luna.IR.Link                   as Link
 import qualified Luna.IR.Term.Literal           as Literal
 import qualified Luna.Pass                      as Pass
+import qualified Luna.Syntax.Text.Lexer.Grammar as Grammar
+import qualified Luna.Syntax.Text.Scope         as Scope
 import qualified OCI.IR.Layout                  as Layout
 
 import Control.Monad.State.Layered  (StateT)
-import Data.Layout                  (quoted, (</>))
+import Data.Layout                  (quoted, space, (</>))
 import Data.Vector.Storable.Foreign (Vector)
 import Language.Symbol              (UniSymbol, atom)
 import Language.Symbol.Label        (Labeled (Labeled), label, labeled, unlabel)
@@ -288,13 +290,19 @@ prettyprintSimple ir = Layer.read @IR.Model ir >>= \case
     IR.UniTermCons (IR.Cons name args)  -> do
         args' <- mapM subgen =<< List.toList args
         foldM appSymbols (simple $ convert name) args'
-    -- IR.UniTermFunction (IR.Function n as body)
-    --     -> unnamed . atom
-    --    .:. (\n' as' body' -> "def" <+> n' <> arglist as' <> body')
-    --    <$> subgenBody n <*> (mapM subgenBody =<< List.toList as) <*> smartBlock body
-
+    IR.UniTermFunction (IR.Function n as body)
+        -> unnamed . atom
+       .:. (\n' as' body' -> "def" <+> n' <> arglist as' <> body')
+       <$> subgenBody n <*> (mapM subgenBody =<< List.toList as) <*> smartBlock body
+    IR.UniTermFunctionSig (IR.FunctionSig n tp)
+        -> simple .: (\n' tp' -> "def" <+> n' <+> typedName <+> tp')
+       <$> subgenBody n
+       <*> subgenBody tp
     IR.UniTermGrouped (IR.Grouped expr) -> simple . parensed <$> subgenBody expr
     IR.UniTermNumber num                -> simple . convert <$> Literal.prettyshow num
+    IR.UniTermImportHub (IR.ImportHub is)
+        -> simple . foldl (</>) mempty <$> (mapM subgenBody =<< List.toList is)
+
     IR.UniTermLam (IR.Lam arg body)
         -> named (notSpaced lamName) . atom
         .: (<>) <$> subgenBody arg <*> smartBlock body
@@ -321,9 +329,22 @@ prettyprintSimple ir = Layer.read @IR.Model ir >>= \case
         .: mappendWith (Doc.spaced unifyName)
        <$> subgenBody l
        <*> subgenBody r
+    IR.UniTermUnit (IR.Unit im _ b) -> do
+        cls <- Link.source b
+        Layer.read @IR.Model cls >>= \case
+            IR.UniTermRecord (IR.Record _ _ _ _ ds)
+                -> unnamed . atom .: go <$> subgenBody im
+                                        <*> (mapM subgenBody =<< List.toList ds)
+                where go imps defs = let glue = ""
+                        in  imps <> glue <> foldl (</>) mempty defs
 
-    IR.UniTermVar (IR.Var name) ->
-        pure $ simple (convert name)
+    IR.UniTermVar (IR.Var name) -> Scope.lookupMultipartName name <&> \case
+        Just (n:|ns) -> labeled Nothing $ Symbol.mixfix (convert n, ns)
+        Nothing -> if | Grammar.isOperator name -> named (spaced    name) $ Symbol.infixx (convert name)
+                      | name == appName    -> named (notSpaced name) $ Symbol.infixx (convert name)
+                      | name == uminusName -> named (notSpaced name) $ Symbol.prefix minusName
+                      | otherwise          -> unnamed                $ atom   (convert name)
+
 
     t -> error $ "NO PRETTY PRINT FOR: " <> show t
 --     prettyprint style subStyle root = matchExpr root $ \case
@@ -340,7 +361,6 @@ prettyprintSimple ir = Layer.read @IR.Model ir >>= \case
 --         Marked       m a            -> unnamed . atom .: (<>) <$> subgenBody m   <*> subgenBody a
 --         Marker         a            -> pure . unnamed . atom $ convert markerBeginChar <> convert (show a) <> convert markerEndChar
 --         ASGRootedFunction  n _      -> unnamed . atom . (\n' -> "<function '" <> n' <> "'>") <$> subgenBody n
---         FunctionSig  n tp           -> unnamed . atom .: (\n' tp' -> "def" <+> n' <+> typedName <+> tp') <$> subgenBody n <*> subgenBody tp
 --         Match        a cs           -> unnamed . atom .: (\expr body -> "case" <+> expr <+> "of" </> indented (block $ foldl (</>) mempty body)) <$> subgenBody a <*> mapM subgenBody cs
 --         ClsASG _ n as cs ds         -> unnamed . atom .:. go <$> mapM subgenBody as <*> mapM subgenBody cs <*> mapM subgenBody ds where
 --                                            go args conss decls = "class" <+> convert n <> arglist args <> body where
@@ -349,7 +369,6 @@ prettyprintSimple ir = Layer.read @IR.Model ir >>= \case
 
 --         FieldASG mn a               -> unnamed . atom . (\tp -> if null mn then tp else intercalate space (convert <$> mn) <> Doc.spaced typedName <> tp) <$> subgenBody a
 --         Invalid t                   -> pure . named (spaced appName) . atom $ "Invalid" <+> convert (show t)
---         UnresolvedImportHub is      -> unnamed . atom . foldl (</>) mempty <$> mapM subgenBody is
 --         UnresolvedImport i t        -> unnamed . atom . (\src -> "import " <> src <> tgts) <$> subgenBody i where
 --                                        tgts = case t of Import.Everything -> ""
 --                                                         Import.Listed ns  -> ": " <> intercalate " " (convert <$> ns)
@@ -375,12 +394,6 @@ prettyprintSimple ir = Layer.read @IR.Model ir >>= \case
 --             Import.Unsafe  -> "unsafe "
 --             Import.Default -> ""
 
---         Unit      im _ b            -> do
---                                        cls <- source b
---                                        matchExpr cls $ \case
---                                            ClsASG _ _ _ _ ds -> unnamed . atom .: go <$> subgenBody im <*> mapM subgenBody ds
---                                                where go imps defs = let glue = ""
---                                                                     in  imps <> glue <> foldl (</>) mempty defs
 
 --         Metadata t -> pure . unnamed . atom
 --             $ "###" <+> metadataHeader <+> convertVia @Text t
@@ -414,9 +427,9 @@ prettyprintSimple ir = Layer.read @IR.Model ir >>= \case
             multiline <- isMultilineBlock body
             body'     <- subgenBody body
             pure $ if multiline then lamName </> Doc.indented (Doc.block body')
-                                else lamName <> Doc.space <> body'
-        --   arglist as = if not $ null as then space <> intercalate space as
-        --                                 else mempty
+                                else lamName <> space <> body'
+          arglist as = if not $ null as then space <> intercalate space as
+                                        else mempty
 
 -- === Utils === --
 

@@ -104,6 +104,7 @@ import qualified Data.Text.Span                    as Span
 import qualified Data.Text32                       as Text32
 import qualified Data.TreeSet                      as TreeSet
 import qualified Language.Symbol                   as Symbol
+import qualified Luna.Data.Name                    as Name
 import qualified Luna.IR                           as IR
 import qualified Luna.IR.Layer                     as Layer
 import qualified Luna.IR.Term.Ast                  as Import
@@ -118,7 +119,6 @@ import qualified Luna.Syntax.Text.Parser.Name      as Name
 import qualified Luna.Syntax.Text.Parser.Reserved  as Reserved
 import qualified Luna.Syntax.Text.Scope            as Scope
 import qualified OCI.Data.Name.Multipart           as Name.Multipart
-import qualified OCI.Data.Name.Multipart           as Name (Multipart)
 import qualified OCI.IR.Layout                     as Layout
 import qualified Text.Parser.Expr                  as Expr
 import qualified Text.Parser.Indent                as Indent
@@ -745,8 +745,8 @@ mfixVarSeg  = do
                     segment <- buildTokenExpr (buildExprTok segmentToks)
                     let segments  = snd <$> namedSegs
                         nameParts = fst <$> namedSegs
-                        mfixVar   = buildAsgFromSpan span (IR.var' . convert
-                                  $ Name.Multipart.make $ name :| nameParts)
+                        mfixVar   = buildAsgFromSpan span
+                                  . IR.var' . Name.mixfix $ name :| nameParts
                         mfixExpr  = apps (app mfixVar segment) segments
                     pure . posIndependent . unlabeledAtom $ mfixExpr
 

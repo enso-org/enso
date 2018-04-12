@@ -14,6 +14,7 @@ dependencies:
     - luna-core
     - luna-cpp-containers
     - luna-syntax-definition
+    - luna-syntax-text-lexer
     - luna-syntax-text-model
     - prologue
 
