@@ -1,5 +1,7 @@
 module Luna.Build.Dependency.Resolver ( solveConstraints ) where
 
+import Data.Generics hiding (Generic)
+
 import Prologue hiding ((.>))
 
 import qualified Prelude as P
@@ -30,8 +32,16 @@ data RVersion = RVersion
     , __patch             :: SInteger
     , __prerelease        :: SInteger
     , __prereleaseVersion :: SInteger
-    } deriving (Generic, Show, Typeable)
+    } deriving (Eq, Generic, Show, Typeable)
 makeLenses ''RVersion
+
+instance Mergeable RVersion
+instance HasKind RVersion
+instance Data RVersion
+instance Ord RVersion
+instance Read RVersion
+instance SymWord RVersion
+instance SatModel RVersion
 
 instance EqSymbolic RVersion where
     (RVersion majorL minorL patchL prereleaseL prereleaseVersionL) .==
@@ -55,14 +65,6 @@ instance OrdSymbolic RVersion where
         ite (prereleaseL        .> prereleaseR) false $
         ite (prereleaseVersionL .< prereleaseVersionR) true false
 
-instance Mergeable RVersion
-instance HasKind RVersion
-instance Eq RVersion
-instance Data RVersion
-instance Ord RVersion
-instance Read RVersion
-instance SymWord RVersion
-
 type SRVersion = SBV RVersion
 
 mkSRVersion :: SInteger -> SInteger -> SInteger -> SInteger -> SInteger
@@ -78,6 +80,12 @@ symbolicRVersion name = do
     preV <- symbolic $ name <> "_preVersion"
     pure $ mkSRVersion maj min pat pre preV
 
+data B = B Integer Integer deriving (Eq, Ord, Show, Read, Data)
+
+instance SymWord B
+instance HasKind B
+instance SatModel B
+
 constraintPredicate :: ConstraintMap -> Predicate
 constraintPredicate constraints = do
     let keys = M.keys constraints
@@ -89,13 +97,14 @@ constraintPredicate constraints = do
     {- foo <- symbolic "foo" -}
     {- bar <- symbolic "bar" -}
 
-    let ver1 = RVersion 0 0 1 3 0
-        ver2 = RVersion 1 1 2 3 0
+    let ver1 = mkSRVersion 0 0 1 3 0
+        ver2 = mkSRVersion 1 1 2 3 0
 
     {- traceShowM $ isSymbolic ver1 -}
 
-    pure $ ver1 .> ver2
+    pure $ true --ver1 .< ver2
 
+-- TODO [Ara] Needs to take list of available versions. (foo == a ||| b ||| c)
 -- TODO [Ara] Turn result into resolved deps
 solveConstraints :: (MonadIO m) => ConstraintMap -> m (Maybe Int)
 solveConstraints constraints = do
