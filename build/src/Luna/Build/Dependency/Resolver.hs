@@ -1,6 +1,6 @@
 module Luna.Build.Dependency.Resolver ( solveConstraints ) where
 
-import Prologue hiding ((.>), Constraint, Constraints)
+import Prologue hiding ( (.>), Constraint, Constraints )
 
 import qualified Prelude as P
 
@@ -9,6 +9,7 @@ import qualified Data.Text as Text
 import qualified Control.Monad.Trans as C
 import qualified Data.Map.Strict     as M
 import qualified Data.Traversable    as T
+import qualified Data.List           as L
 
 import Control.Applicative
 import Control.Monad ( join )
@@ -84,18 +85,17 @@ versionToSVersion (Version a b c pre) =
           numOf RC    = 2
 
 -- TODO [Ara] function to detect prereleases not able to be chosen.
+-- Can this be done faster than n^2?
 
 constraintPredicate :: Constraints -> Versions -> Predicate
 constraintPredicate constraints versions = do
-    let constraintKeys = M.keys constraints
-        constraintVals = M.elems constraints
-        verKeys = M.keys versions
-        verVals = M.elems versions
+    let packageNames = M.keys constraints
+        unpackedConstraints = unpack constraints
+        unpackedVersions = unpack versions
 
-    traceShowM constraintKeys
-    traceShowM constraintVals
-    traceShowM verKeys
-    traceShowM verVals
+    traceShowM packageNames
+    traceShowM unpackedConstraints
+    traceShowM unpackedVersions
 
     freeV1 <- sVersion "foo"
     minPossibleVersion <- literalSVersion 0 0 1 0 0
@@ -107,24 +107,27 @@ constraintPredicate constraints versions = do
 
 -- TODO [Ara] Should not select prereleases unless there is an EQ constraint
 -- TODO [Ara] Can we construct a metric function from the result to maximise?
--- TODO [Ara] Turn result into resolved deps
--- TODO [Ara] Use everything before the last - as the package name.
+-- TODO [Ara] Use everything before the last : as the package name.
 -- TODO [Ara] Want to provide the maximal package version in the bounds.
+-- TODO [Ara] Return Either err res so as to be able to provide some diganostics
+-- TODO [Ara] Refactor to use fixed-length words.
 solveConstraints :: (MonadIO m) => Constraints -> Versions -> m (Maybe Int)
 solveConstraints constraints versions = do
-    if (sort $ M.keys constraints) /= (sort $ M.keys versions) then do
+    if (L.sort $ M.keys constraints) /= (L.sort $ M.keys versions) then do
         pure Nothing
     else do
         r@(SatResult modelResult) <- liftIO $ runSolver constraints versions
         traceShowM r
         case modelResult of
             Unsatisfiable _ -> pure $ Just 0
-            Satisfiable _ model -> do
-                traceShowM model
-                pure $ Just 1
+            Satisfiable _ model -> pure $ Just 1
             SatExtField _ model -> pure $ Just 1
             Unknown _ reason -> traceShowM reason >> pure $ Just 0
             ProofError _ xs -> traceShowM xs >> pure $ Just 0
+
+-- needs `getModelValue`
+extractPackageSet :: (Modelable a) => [Text] -> a -> PackageSet
+extractPackageSet packages model = undefined
 
 runSolver :: Constraints -> Versions -> IO SatResult
 runSolver constraints versions = sat $ constraintPredicate constraints versions

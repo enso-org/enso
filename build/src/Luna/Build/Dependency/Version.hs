@@ -2,6 +2,7 @@ module Luna.Build.Dependency.Version
     ( PrereleaseType(..)
     , Prerelease(..)
     , Version(..)
+    , isPrerelease
     , version
     , prerelease
     , prereleaseType
@@ -76,6 +77,10 @@ instance Show Version where
               showPre = \case
                   Nothing -> ""
                   Just pre -> "-" <> show pre
+
+isPrerelease :: Version -> Bool
+isPrerelease (Version _ _ _ (Just _)) = True
+isPrerelease _                        = False
 
 -----------------------
 -- Parsing Functions --

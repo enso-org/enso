@@ -4,6 +4,7 @@ module Luna.Build.Dependency.Constraint
     , PackageSet(..)
     , ConstraintType(..)
     , Constraint(..)
+    , unpack
     , operator
     , constraint
     , constraints
@@ -48,6 +49,11 @@ makeLenses ''Constraint
 
 instance Show Constraint where
     show (Constraint ty ver) = show ty <> " " <> show ver
+
+unpack :: (Eq a, Ord a) => M.Map a [b] -> [(a, b)]
+unpack map = concat $ M.elems $ M.mapWithKey convert map
+    where
+        convert key list = (\x -> (key, x)) <$> list
 
 -----------------------
 -- Parsing Functions --
