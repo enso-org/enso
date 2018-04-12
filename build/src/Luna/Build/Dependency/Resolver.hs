@@ -14,7 +14,7 @@ import Control.Applicative
 import Control.Monad ( join )
 import Data.Maybe
 
-import Data.SBV as V
+import Data.SBV
 
 import Luna.Build.Dependency.Constraint
 
@@ -30,7 +30,7 @@ data SVersion = SVersion
     , __patch             :: SInteger
     , __prerelease        :: SInteger
     , __prereleaseVersion :: SInteger
-    } deriving (Generic, Show)
+    } deriving (Generic, Show, Typeable)
 makeLenses ''SVersion
 
 instance EqSymbolic SVersion where
@@ -57,11 +57,30 @@ instance OrdSymbolic SVersion where
 
 instance Mergeable SVersion
 
+constraintPredicate :: ConstraintMap -> Predicate
+constraintPredicate constraints = do
+    let keys = M.keys constraints
+        elems = M.elems constraints
+
+    traceShowM keys
+    traceShowM elems
+
+    {- foo <- symbolic "foo" -}
+    {- bar <- symbolic "bar" -}
+
+    let ver1 = SVersion 0 0 1 3 0
+        ver2 = SVersion 1 1 2 3 0
+
+    {- traceShowM $ isSymbolic ver1 -}
+
+    pure $ ver1 .< ver2
+
+-- TODO [Ara] Make this actually do something with the result
 solveConstraints :: (MonadIO m) => ConstraintMap -> m (Maybe Int)
 solveConstraints constraints = do
     liftIO $ runSolver constraints
     pure $ Just 1
 
 runSolver :: ConstraintMap -> IO SatResult
-runSolver constraints = undefined
+runSolver constraints = sat $ constraintPredicate constraints
 

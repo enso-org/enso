@@ -28,13 +28,23 @@ data ConstraintType
     | ConstraintLT
     | ConstraintLE
     | ConstraintGE
-    deriving (Eq, Generic, Ord, Show)
+    deriving (Eq, Generic, Ord)
+
+instance Show ConstraintType where
+    show ConstraintEQ = "=="
+    show ConstraintGT = ">"
+    show ConstraintLT = ">"
+    show ConstraintLE = "<="
+    show ConstraintGE = ">="
 
 data Constraint = Constraint
     { __conType :: !ConstraintType
     , __version :: !V.Version
-    } deriving (Eq, Generic, Ord, Show)
+    } deriving (Eq, Generic, Ord)
 makeLenses ''Constraint
+
+instance Show Constraint where
+    show (Constraint ty ver) = show ty <> " " <> show ver
 
 -----------------------
 -- Parsing Functions --
