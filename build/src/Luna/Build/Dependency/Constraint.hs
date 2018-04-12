@@ -5,9 +5,6 @@ module Luna.Build.Dependency.Constraint
     , operator
     , constraint
     , constraints
-    , V.versionToSolverVersion
-    , V.solverVersionToVersion
-    , V.solverVersionAsList
     ) where
 
 import Prologue hiding (Constraint, and)
@@ -21,6 +18,8 @@ import qualified Text.Megaparsec.Text as P
 import Luna.Build.Dependency.ParserUtils
 
 type ConstraintMap = M.Map Text [Constraint]
+
+type AvailableVersions = M.Map Text [V.Version]
 
 data ConstraintType
     = ConstraintEQ

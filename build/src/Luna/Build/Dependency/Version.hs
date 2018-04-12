@@ -2,11 +2,6 @@ module Luna.Build.Dependency.Version
     ( PrereleaseType(..)
     , Prerelease(..)
     , Version(..)
-    , SolverVersion(..)
-    , parseVersion
-    , versionToSolverVersion
-    , solverVersionToVersion
-    , solverVersionAsList
     , version
     , prerelease
     , prereleaseType
@@ -55,7 +50,25 @@ data Version = Version
 makeLenses ''Version
 
 instance Ord Version where
-    v1 <= v2 = (versionToSolverVersion v1) <= (versionToSolverVersion v2)
+    (Version maj1 min1 pat1 pre1) < (Version maj2 min2 pat2 pre2) =
+        if maj1 < maj2 then True
+        else if maj1 > maj2 then False
+        else if min1 < min2 then True
+        else if min1 > min2 then False
+        else if pat1 < pat2 then True
+        else if pat1 > pat2 then False else pre1 `preLT` pre2
+        where preLT :: Maybe Prerelease -> Maybe Prerelease -> Bool
+              preLT l r = case l of
+                Just (Prerelease ty1 ver1) ->
+                    case r of
+                        Just (Prerelease ty2 ver2) ->
+                            if ty1 < ty2 then True
+                            else if ty1 > ty2 then False
+                            else if ver1 < ver2 then True else False
+                        Nothing -> True
+                Nothing -> False
+
+    v1 <= v2 = (v1 < v2) || (v1 == v2)
 
 instance Show Version where
     show (Version maj min patch pr) = nums <> (showPre pr)
@@ -63,45 +76,6 @@ instance Show Version where
               showPre = \case
                   Nothing -> ""
                   Just pre -> "-" <> show pre
-
-versionToSolverVersion :: Version -> SolverVersion
-versionToSolverVersion (Version maj min pat pre) = case pre of
-    Nothing -> SolverVersion maj min pat 3 0 -- 3 indicates no prerelease
-    Just (Prerelease ty ver) -> SolverVersion maj min pat (toNum ty) ver
-    where toNum Alpha = 0
-          toNum Beta  = 1
-          toNum RC    = 2
-
--- TODO [Ara] Remove this.
-data SolverVersion = SolverVersion
-    { __major      :: !Int
-    , __minor      :: !Int
-    , __patch      :: !Int
-    , __prerelease :: !Int
-    , __preVersion :: !Int
-    } deriving (Eq, Generic, Ord)
-makeLenses ''SolverVersion
-
-instance Show SolverVersion where
-    show sv = show $ solverVersionToVersion sv
-
-solverVersionToVersion :: SolverVersion -> Version
-solverVersionToVersion (SolverVersion maj min pat pre preVer) =
-    (Version maj min pat preResult)
-    where preResult = case pre of
-            0 -> Just (Prerelease Alpha preVer)
-            1 -> Just (Prerelease Beta preVer)
-            2 -> Just (Prerelease RC preVer)
-            _ -> Nothing
-
-solverVersionAsList :: SolverVersion -> [Int]
-solverVersionAsList (SolverVersion maj min pat pre preV) =
-    [maj, min, pat, pre, preV]
-
-parseVersion :: Text -> Maybe Version
-parseVersion tx = case P.runParser version "" tx of
-                      Left err -> Nothing
-                      Right res -> Just res
 
 -----------------------
 -- Parsing Functions --
