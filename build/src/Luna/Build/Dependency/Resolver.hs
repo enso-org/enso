@@ -93,12 +93,12 @@ constraintPredicate constraints = do
     foo <- symbolicRVersion "foo"
     {- bar <- symbolic "bar" -}
 
-    let ver1 = RVersion 0 0 1 3 0
-        ver2 = RVersion 1 1 2 3 0
+    let ver1 = mkSRVersion 0 0 1 3 0
+        ver2 = mkSRVersion 1 1 2 3 0
 
     {- traceShowM $ isSymbolic ver1 -}
 
-    pure $ ver1 .< foo
+    pure $ ver1 .< ver2
 
 -- TODO [Ara] Needs to take list of available versions. (foo == a ||| b ||| c)
 -- TODO [Ara] Turn result into resolved deps
