@@ -16,6 +16,7 @@ import qualified Text.Megaparsec      as P
 import qualified Text.Megaparsec.Text as P
 
 import qualified Data.Char as C
+import Data.Word (Word64)
 
 -- Versioning in Luna follows the following convention:
 --      major.minor.patch-prerelease.version
@@ -35,7 +36,7 @@ instance Show PrereleaseType where
 
 data Prerelease = Prerelease
     { __prType  :: !PrereleaseType
-    , __version :: !Int
+    , __version :: !Word64
     } deriving (Eq, Generic, Ord)
 makeLenses ''Prerelease
 
@@ -43,9 +44,9 @@ instance Show Prerelease where
     show (Prerelease ty ver) = (show ty) <> "." <> (show ver)
 
 data Version = Version
-    { __major      :: !Int
-    , __minor      :: !Int
-    , __patch      :: !Int
+    { __major      :: !Word64
+    , __minor      :: !Word64
+    , __patch      :: !Word64
     , __prerelease :: !(Maybe Prerelease)
     } deriving (Eq, Generic)
 makeLenses ''Version
@@ -110,6 +111,6 @@ prereleaseType = fromString <$> p
 dot :: P.Parser Char
 dot = P.char '.'
 
-natural :: P.Parser Int
+natural :: P.Parser Word64
 natural = R.read <$> some P.digitChar
 

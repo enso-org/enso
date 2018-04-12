@@ -27,11 +27,11 @@ solverConfig :: SMTConfig
 solverConfig = defaultSMTCfg -- current default is Z3, so leave it as is
 
 data SVersion = SVersion
-    { __major             :: SInteger
-    , __minor             :: SInteger
-    , __patch             :: SInteger
-    , __prerelease        :: SInteger
-    , __prereleaseVersion :: SInteger
+    { __major             :: SWord64
+    , __minor             :: SWord64
+    , __patch             :: SWord64
+    , __prerelease        :: SWord64
+    , __prereleaseVersion :: SWord64
     } deriving (Eq, Generic, Show)
 makeLenses ''SVersion
 
@@ -69,17 +69,16 @@ sVersion name = do
     e <- free $ name <> ":prereleaseVersion"
     pure $ SVersion a b c d e
 
-literalSVersion :: Integer -> Integer -> Integer -> Integer -> Integer
+literalSVersion :: Word64 -> Word64 -> Word64 -> Word64 -> Word64
                 -> Symbolic SVersion
 literalSVersion a b c d e =
     pure $ SVersion (literal a) (literal b) (literal c) (literal d) (literal e)
 
 versionToSVersion :: Version -> Symbolic SVersion
-versionToSVersion (Version a b c pre) =
-    literalSVersion (toInteger a) (toInteger b) (toInteger c) d e
-    where (d, e) :: (Integer, Integer) = case pre of
+versionToSVersion (Version a b c pre) = literalSVersion a b c d e
+    where (d, e) = case pre of
             Nothing -> (3, 0)
-            Just (Prerelease ty ver) -> (numOf ty, toInteger ver)
+            Just (Prerelease ty ver) -> (numOf ty, ver)
           numOf Alpha = 0
           numOf Beta  = 1
           numOf RC    = 2
@@ -110,7 +109,6 @@ constraintPredicate constraints versions = do
 -- TODO [Ara] Use everything before the last : as the package name.
 -- TODO [Ara] Want to provide the maximal package version in the bounds.
 -- TODO [Ara] Return Either err res so as to be able to provide some diganostics
--- TODO [Ara] Refactor to use fixed-length words.
 solveConstraints :: (MonadIO m) => Constraints -> Versions -> m (Maybe Int)
 solveConstraints constraints versions = do
     if (L.sort $ M.keys constraints) /= (L.sort $ M.keys versions) then do
