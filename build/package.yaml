@@ -31,7 +31,6 @@ dependencies:
     - mtl
     - prologue
     - sbv
-    - syb
     - text
     - typelevel
 
