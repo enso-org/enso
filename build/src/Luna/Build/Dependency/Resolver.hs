@@ -40,8 +40,17 @@ instance EqSymbolic SVersion where
         (a1, b1, c1, d1, e1) .== (a2, b2, c2, d2, e2)
 
 instance OrdSymbolic SVersion where
-    SVersion a1 b1 c1 d1 e1 .< SVersion a2 b2 c2 d2 e2 =
-        (a1, b1, c1, d1, e1) .< (a2, b2, c2, d2, e2)
+    (SVersion majorL minorL patchL prereleaseL prereleaseVersionL) .<
+        (SVersion majorR minorR patchR prereleaseR prereleaseVersionR) =
+        ite (majorL             .< majorR) true       $
+        ite (majorL             .> majorR) false      $
+        ite (minorL             .< minorR) true       $
+        ite (minorL             .> minorR) false      $
+        ite (patchL             .< patchR) true       $
+        ite (patchL             .> patchR) false      $
+        ite (prereleaseL        .< prereleaseR) true  $
+        ite (prereleaseL        .> prereleaseR) false $
+        ite (prereleaseVersionL .< prereleaseVersionR) true false
 
 instance (Provable p) => Provable (SVersion -> p) where
     forAll_ f    = forAll_ (\(a,b,c,d,e)    -> f (SVersion a b c d e))
@@ -66,10 +75,12 @@ literalSVersion a b c d e =
 constraintPredicate :: ConstraintMap -> Predicate
 constraintPredicate constraints = do
     freeV1 <- sVersion "foo"
-    literalV1 <- literalSVersion 0 0 1 3 0
-    fooMin <- literalSVersion 0 0 1 3 0
+    minPossibleVersion <- literalSVersion 0 0 1 0 0
 
-    pure $ freeV1 .< literalV1 &&& freeV1 .>= fooMin
+    literalV1 <- literalSVersion 44 31 36 3 0
+    literalV2 <- literalSVersion 71 46 3 2 7
+
+    pure $ literalV1 .< literalV2
 
 -- TODO [Ara] Can we construct a metric function from the result to maximise?
 -- TODO [Ara] Needs to take list of available versions. (foo == a ||| b ||| c)

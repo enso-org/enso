@@ -72,6 +72,7 @@ versionToSolverVersion (Version maj min pat pre) = case pre of
           toNum Beta  = 1
           toNum RC    = 2
 
+-- TODO [Ara] Remove this.
 data SolverVersion = SolverVersion
     { __major      :: !Int
     , __minor      :: !Int
