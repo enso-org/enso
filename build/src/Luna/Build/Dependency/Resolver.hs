@@ -24,61 +24,54 @@ import Debug.Trace
 solverConfig :: SMTConfig
 solverConfig = defaultSMTCfg -- current default is Z3, so leave it as is
 
-data RVersion = RVersion
-    { __major :: Integer
-    , __minor :: Integer
-    , __patch :: Integer
-    , __prerelease :: Integer
-    , __prereleaseVersion :: Integer
-    } deriving (Eq, Ord, Show, Read, Data)
+data SVersion = SVersion
+    { __major             :: SInteger
+    , __minor             :: SInteger
+    , __patch             :: SInteger
+    , __prerelease        :: SInteger
+    , __prereleaseVersion :: SInteger
+    } deriving (Eq, Generic, Show)
+makeLenses ''SVersion
 
-instance SymWord RVersion
-instance HasKind RVersion
-instance SatModel RVersion
+instance Mergeable SVersion
 
-type SVersion = SBV RVersion
+instance EqSymbolic SVersion where
+    SVersion a1 b1 c1 d1 e1 .== SVersion a2 b2 c2 d2 e2 =
+        (a1, b1, c1, d1, e1) .== (a2, b2, c2, d2, e2)
 
-mkSVersion :: Integer -> Integer -> Integer -> Integer -> Integer -> SVersion
-mkSVersion a b c d e = literal $ RVersion a b c d e
+instance OrdSymbolic SVersion where
+    SVersion a1 b1 c1 d1 e1 .< SVersion a2 b2 c2 d2 e2 =
+        (a1, b1, c1, d1, e1) .< (a2, b2, c2, d2, e2)
+
+instance (Provable p) => Provable (SVersion -> p) where
+    forAll_ f    = forAll_ (\(a,b,c,d,e)    -> f (SVersion a b c d e))
+    forAll ns f  = forAll ns (\(a,b,c,d,e)  -> f (SVersion a b c d e))
+    forSome_ f   = forSome_ (\(a,b,c,d,e)   -> f (SVersion a b c d e))
+    forSome ns f = forSome ns (\(a,b,c,d,e) -> f (SVersion a b c d e))
 
 sVersion :: String -> Symbolic SVersion
-sVersion = free
+sVersion name = do
+    a <- free $ name <> "-major"
+    b <- free $ name <> "-minor"
+    c <- free $ name <> "-patch"
+    d <- free $ name <> "-prerelease"
+    e <- free $ name <> "-prereleaseVersion"
+    pure $ SVersion a b c d e
 
-sVersion_ :: Symbolic SVersion
-sVersion_ = free_
-
-data Foo = Foo SInt8 SInt8 deriving Generic
-
-instance EqSymbolic Foo where
-  Foo x1 y1 .== Foo x2 y2 = (x1, y1) .== (x2, y2)
-
-instance Mergeable Foo
-
-instance OrdSymbolic Foo where
-  Foo x1 y1 .< Foo x2 y2 = (x1, y1) .< (x2, y2)
-
-instance Provable p => Provable (Foo -> p) where
-  forAll_ f = forAll_ (\(x,y) -> f (Foo x y))
-  forAll ns f = forAll ns (\(x,y) -> f (Foo x y))
-  forSome_ f = forSome_ (\(x,y) -> f (Foo x y))
-  forSome ns f = forSome ns (\(x,y) -> f (Foo x y))
-
-mkSFoo :: Int8 -> Int8 -> Symbolic Foo
-mkSFoo i j = do
-  i' <- pure (literal i)
-  j' <- pure (literal j)
-  pure $ Foo i' j'
+literalSVersion :: Integer -> Integer -> Integer -> Integer -> Integer
+                -> Symbolic SVersion
+literalSVersion a b c d e =
+    pure $ SVersion (literal a) (literal b) (literal c) (literal d) (literal e)
 
 constraintPredicate :: ConstraintMap -> Predicate
 constraintPredicate constraints = do
-    let keys = M.keys constraints
-        elems = M.elems constraints
+    freeV1 <- sVersion "foo"
+    literalV1 <- literalSVersion 0 0 1 3 0
+    fooMin <- literalSVersion 0 0 1 3 0
 
-    staticV1 <- mkSFoo 1 2
-    varV1 <- Foo <$> sInt8 "i1" <*> sInt8 "i2"
+    pure $ freeV1 .< literalV1 &&& freeV1 .>= fooMin
 
-    pure $ varV1 .< staticV1
-
+-- TODO [Ara] Can we construct a metric function from the result to maximise?
 -- TODO [Ara] Needs to take list of available versions. (foo == a ||| b ||| c)
 -- TODO [Ara] Turn result into resolved deps
 solveConstraints :: (MonadIO m) => ConstraintMap -> m (Maybe Int)
