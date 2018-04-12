@@ -1,3 +1,5 @@
+{-# LANGUAGE DeriveAnyClass #-}
+
 module Luna.Build.Dependency.Resolver ( solveConstraints ) where
 
 import Data.Generics hiding (Generic)
@@ -71,20 +73,14 @@ mkSRVersion :: SInteger -> SInteger -> SInteger -> SInteger -> SInteger
             -> SRVersion
 mkSRVersion a b c d e = literal $ RVersion a b c d e
 
-symbolicRVersion :: String -> Symbolic SRVersion
+symbolicRVersion :: String -> Symbolic RVersion
 symbolicRVersion name = do
     maj  <- symbolic $ name <> "_major"
     min  <- symbolic $ name <> "_minor"
     pat  <- symbolic $ name <> "_patch"
     pre  <- symbolic $ name <> "_prerelease"
     preV <- symbolic $ name <> "_preVersion"
-    pure $ mkSRVersion maj min pat pre preV
-
-data B = B Integer Integer deriving (Eq, Ord, Show, Read, Data)
-
-instance SymWord B
-instance HasKind B
-instance SatModel B
+    pure $ RVersion maj min pat pre preV
 
 constraintPredicate :: ConstraintMap -> Predicate
 constraintPredicate constraints = do
@@ -94,15 +90,15 @@ constraintPredicate constraints = do
     {- traceShowM keys -}
     {- traceShowM elems -}
 
-    {- foo <- symbolic "foo" -}
+    foo <- symbolicRVersion "foo"
     {- bar <- symbolic "bar" -}
 
-    let ver1 = mkSRVersion 0 0 1 3 0
-        ver2 = mkSRVersion 1 1 2 3 0
+    let ver1 = RVersion 0 0 1 3 0
+        ver2 = RVersion 1 1 2 3 0
 
     {- traceShowM $ isSymbolic ver1 -}
 
-    pure $ true --ver1 .< ver2
+    pure $ ver1 .< foo
 
 -- TODO [Ara] Needs to take list of available versions. (foo == a ||| b ||| c)
 -- TODO [Ara] Turn result into resolved deps
