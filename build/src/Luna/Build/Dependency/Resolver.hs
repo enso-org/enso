@@ -109,19 +109,19 @@ constraintPredicate constraints versions = do
 -- TODO [Ara] Use everything before the last : as the package name.
 -- TODO [Ara] Want to provide the maximal package version in the bounds.
 -- TODO [Ara] Return Either err res so as to be able to provide some diganostics
-solveConstraints :: (MonadIO m) => Constraints -> Versions -> m (Maybe Int)
+solveConstraints :: (MonadIO m) => Constraints -> Versions -> m (Either Int Int)
 solveConstraints constraints versions = do
     if (L.sort $ M.keys constraints) /= (L.sort $ M.keys versions) then do
-        pure Nothing
+        pure $ Left 0
     else do
         r@(SatResult modelResult) <- liftIO $ runSolver constraints versions
         traceShowM r
         case modelResult of
-            Unsatisfiable _ -> pure $ Just 0
-            Satisfiable _ model -> pure $ Just 1
-            SatExtField _ model -> pure $ Just 1
-            Unknown _ reason -> traceShowM reason >> pure $ Just 0
-            ProofError _ xs -> traceShowM xs >> pure $ Just 0
+            Unsatisfiable _ -> pure $ Left 0
+            Satisfiable _ model -> pure $ Right 1
+            SatExtField _ model -> pure $ Right 1
+            Unknown _ reason -> traceShowM reason >> pure $ Left 0
+            ProofError _ xs -> traceShowM xs >> pure $ Left 0
 
 -- needs `getModelValue`
 extractPackageSet :: (Modelable a) => [Text] -> a -> PackageSet

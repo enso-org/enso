@@ -57,5 +57,5 @@ spec = do
     describe "testing" $ do
         it "test" $ do
             result <- solveConstraints testConstraints testVersions
-            result `shouldBe` (Just 1)
+            result `shouldBe` (Right 1)
 
