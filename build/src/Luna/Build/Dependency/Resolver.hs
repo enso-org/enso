@@ -1,6 +1,6 @@
 module Luna.Build.Dependency.Resolver ( solveConstraints ) where
 
-import Prologue hiding ((.>))
+import Prologue hiding ((.>), Constraint, Constraints)
 
 import qualified Prelude as P
 
@@ -17,6 +17,7 @@ import Data.Maybe
 import Data.SBV
 
 import Luna.Build.Dependency.Constraint
+import Luna.Build.Dependency.Version
 
 import Debug.Trace
 
@@ -60,11 +61,11 @@ instance (Provable p) => Provable (SVersion -> p) where
 
 sVersion :: String -> Symbolic SVersion
 sVersion name = do
-    a <- free $ name <> "-major"
-    b <- free $ name <> "-minor"
-    c <- free $ name <> "-patch"
-    d <- free $ name <> "-prerelease"
-    e <- free $ name <> "-prereleaseVersion"
+    a <- free $ name <> ":major"
+    b <- free $ name <> ":minor"
+    c <- free $ name <> ":patch"
+    d <- free $ name <> ":prerelease"
+    e <- free $ name <> ":prereleaseVersion"
     pure $ SVersion a b c d e
 
 literalSVersion :: Integer -> Integer -> Integer -> Integer -> Integer
@@ -72,8 +73,30 @@ literalSVersion :: Integer -> Integer -> Integer -> Integer -> Integer
 literalSVersion a b c d e =
     pure $ SVersion (literal a) (literal b) (literal c) (literal d) (literal e)
 
-constraintPredicate :: ConstraintMap -> Predicate
-constraintPredicate constraints = do
+versionToSVersion :: Version -> Symbolic SVersion
+versionToSVersion (Version a b c pre) =
+    literalSVersion (toInteger a) (toInteger b) (toInteger c) d e
+    where (d, e) :: (Integer, Integer) = case pre of
+            Nothing -> (3, 0)
+            Just (Prerelease ty ver) -> (numOf ty, toInteger ver)
+          numOf Alpha = 0
+          numOf Beta  = 1
+          numOf RC    = 2
+
+-- TODO [Ara] function to detect prereleases not able to be chosen.
+
+constraintPredicate :: Constraints -> Versions -> Predicate
+constraintPredicate constraints versions = do
+    let constraintKeys = M.keys constraints
+        constraintVals = M.elems constraints
+        verKeys = M.keys versions
+        verVals = M.elems versions
+
+    traceShowM constraintKeys
+    traceShowM constraintVals
+    traceShowM verKeys
+    traceShowM verVals
+
     freeV1 <- sVersion "foo"
     minPossibleVersion <- literalSVersion 0 0 1 0 0
 
@@ -82,22 +105,27 @@ constraintPredicate constraints = do
 
     pure $ literalV1 .< literalV2
 
+-- TODO [Ara] Should not select prereleases unless there is an EQ constraint
 -- TODO [Ara] Can we construct a metric function from the result to maximise?
--- TODO [Ara] Needs to take list of available versions. (foo == a ||| b ||| c)
 -- TODO [Ara] Turn result into resolved deps
-solveConstraints :: (MonadIO m) => ConstraintMap -> m (Maybe Int)
-solveConstraints constraints = do
-    r@(SatResult modelResult) <- liftIO $ runSolver constraints
-    traceShowM r
-    case modelResult of
-        Unsatisfiable _ -> pure $ Just 0
-        Satisfiable _ model -> do
-            traceShowM model
-            pure $ Just 1
-        SatExtField _ model -> pure $ Just 1
-        Unknown _ reason -> traceShowM reason >> pure $ Just 0
-        ProofError _ xs -> traceShowM xs >> pure $ Just 0
+-- TODO [Ara] Use everything before the last - as the package name.
+-- TODO [Ara] Want to provide the maximal package version in the bounds.
+solveConstraints :: (MonadIO m) => Constraints -> Versions -> m (Maybe Int)
+solveConstraints constraints versions = do
+    if (sort $ M.keys constraints) /= (sort $ M.keys versions) then do
+        pure Nothing
+    else do
+        r@(SatResult modelResult) <- liftIO $ runSolver constraints versions
+        traceShowM r
+        case modelResult of
+            Unsatisfiable _ -> pure $ Just 0
+            Satisfiable _ model -> do
+                traceShowM model
+                pure $ Just 1
+            SatExtField _ model -> pure $ Just 1
+            Unknown _ reason -> traceShowM reason >> pure $ Just 0
+            ProofError _ xs -> traceShowM xs >> pure $ Just 0
 
-runSolver :: ConstraintMap -> IO SatResult
-runSolver constraints = sat $ constraintPredicate constraints
+runSolver :: Constraints -> Versions -> IO SatResult
+runSolver constraints versions = sat $ constraintPredicate constraints versions
 

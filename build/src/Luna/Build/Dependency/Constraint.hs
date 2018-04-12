@@ -1,5 +1,7 @@
 module Luna.Build.Dependency.Constraint
-    ( ConstraintMap(..)
+    ( Constraints(..)
+    , Versions(..)
+    , PackageSet(..)
     , ConstraintType(..)
     , Constraint(..)
     , operator
@@ -7,7 +9,7 @@ module Luna.Build.Dependency.Constraint
     , constraints
     ) where
 
-import Prologue hiding (Constraint, and)
+import Prologue hiding (Constraint, Constraints, and)
 
 import qualified Luna.Build.Dependency.Version as V
 
@@ -17,9 +19,11 @@ import qualified Text.Megaparsec      as P
 import qualified Text.Megaparsec.Text as P
 import Luna.Build.Dependency.ParserUtils
 
-type ConstraintMap = M.Map Text [Constraint]
+type Constraints = M.Map Text [Constraint]
 
-type AvailableVersions = M.Map Text [V.Version]
+type Versions = M.Map Text [V.Version]
+
+type PackageSet = M.Map Text V.Version
 
 data ConstraintType
     = ConstraintEQ
