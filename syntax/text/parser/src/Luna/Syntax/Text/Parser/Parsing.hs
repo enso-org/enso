@@ -481,12 +481,12 @@ mkNamedAsg cons = buildAsgF . fmap (\name -> (name, cons name))
 
 -- Qualified names
 
-qualVarName, qualConsName :: SymParser Name.Multipart
+qualVarName, qualConsName :: SymParser [Name]
 qualConsName = qualNameBase consName
 qualVarName  = qualNameBase varName
 
-qualNameBase :: SymParser Name -> SymParser Name.Multipart
-qualNameBase p = (Name.Multipart.make . unsafeConvert) .: (\a b -> a <> [b])
+qualNameBase :: SymParser Name -> SymParser [Name]
+qualNameBase p = (\a b -> a <> [b])
              <$> many (try $ consName <* symbol Lexer.Accessor) <*> p
 
 
@@ -691,7 +691,7 @@ exprFreeSegments      = Reserved.withNewLocal exprFreeSegmentsLocal
 exprFreeSegmentsLocal = fmap concatExprSegmentBuilders . some'
                       $ choice [ mfixVarSeg, consSeg, wildSeg, numSeg, strSeg
                                , opSeg, accSeg, tupleSeg, grpSeg, listSeg
-                               , lamSeg, matchseg, typedSeg{-, funcSeg-}
+                               , lamSeg, matchseg, typedSeg, funcSeg
                                ]
 
 exprSegmentsNonSpaced    , exprSegmentsNonSpacedLocal     :: SymParser ExprSegments
@@ -952,100 +952,109 @@ unnamedField = buildAsg $ liftAstApp1 (IR.recordFields' mempty)
 
 -- === Imports === --
 
--- impHub :: AsgParser SomeTerm
--- impHub = buildAsg $ (\(imps :: [AsgBldr SomeTerm]) -> liftAstApp1 unresolvedImpHub' (sequence imps :: AsgBldr [SomeTerm])) <$> impHeader
+impHub :: AsgParser SomeTerm
+impHub = buildAsg $ (\(imps :: [AsgBldr SomeTerm])
+                 -> liftAstApp1 IR.importHub'
+                    (sequence imps :: AsgBldr [SomeTerm])) <$> impHeader
 
--- impHeader :: SymParser [AsgBldr SomeTerm]
--- impHeader = option mempty $ breakableOptionalBlockTop imp -- <* skipEmptyLines
+impHeader :: SymParser [AsgBldr SomeTerm]
+impHeader = option mempty $ breakableOptionalBlockTop imp -- <* skipEmptyLines
 
--- imp :: AsgParser SomeTerm
--- imp = buildAsg $ (\a tgts -> liftAstApp1 (flip IR.unresolvedImp' tgts) a) <$ symbol Lexer.KwImport <*> impSrc <*> impTgt where
---     impTgt  = option Import.Everything $ symbol Lexer.BlockStart *> listTgt
---     listTgt = Import.Listed <$> many (varName <|> consName)
+imp :: AsgParser SomeTerm
+imp = buildAsg $ (\a tgts -> liftAstApp1 (flip IR.imp' tgts) a)
+   <$ symbol Lexer.KwImport <*> importSource <*> impTgt where
+    impTgt  = option Import.Everything $ symbol Lexer.BlockStart *> listTgt
+    listTgt = Import.Listed . convert <$> many (varName <|> consName)
 
-impSrc :: AsgParser SomeTerm
-impSrc = buildAsg $ (\s -> id $ IR.imp' s) <$> tgt where
-    tgt = choice
-        [ Import.World    <$  specificCons "World"
-        , Import.Relative <$  symbol Lexer.Accessor <*> qualConsName
-        , Import.Absolute <$> qualConsName
-        ]
+importSource :: AsgParser SomeTerm
+importSource = buildAsg . fmap IR.importSource' $ choice
+    [ Import.World              <$  specificCons "World"
+    , Import.Relative . convert <$  symbol Lexer.Accessor <*> qualConsName
+    , Import.Absolute . convert <$> qualConsName
+    ]
+
+
 -- ------------------------------------
 -- -- === Foreign Import Parsing === --+
 -- ------------------------------------
 
--- foreignImportList :: AsgParser SomeTerm
--- foreignImportList = buildAsg $
---     (\lang imports ->
---         liftAstApp1 (IR.foreignImpList' lang) (sequence imports))
---     <$  (symbol Lexer.KwForeign *> symbol Lexer.KwImport)
---     <*> foreignLangName
---     <*  symbol Lexer.BlockStart
---     <*> discover (nonEmptyBlock' foreignLocationImportList)
+foreignImportList :: AsgParser SomeTerm
+foreignImportList = buildAsg $
+    (\lang imports ->
+        liftAstApp1 (IR.foreignImport' lang) (sequence imports))
+    <$  (symbol Lexer.KwForeign *> symbol Lexer.KwImport)
+    <*> foreignLangName
+    <*  symbol Lexer.BlockStart
+    <*> discover (nonEmptyBlock' foreignLocationImportList)
 
--- foreignLocationImportList :: AsgParser SomeTerm
--- foreignLocationImportList = buildAsg $
---     (\loc imports ->
---         liftAstApp2 IR.foreignLocationImpList' loc (sequence imports))
---     <$> stringOrVarName
---     <*  symbol Lexer.BlockStart
---     <*> discover (nonEmptyBlock' foreignSymbolImport)
+foreignLocationImportList :: AsgParser SomeTerm
+foreignLocationImportList = buildAsg $
+    (\loc imports ->
+        liftAstApp2 IR.foreignImportList' loc (sequence imports))
+    <$> stringOrVarName
+    <*  symbol Lexer.BlockStart
+    <*> discover (nonEmptyBlock' foreignSymbolImport)
 
--- foreignSymbolImport :: AsgParser SomeTerm
--- foreignSymbolImport = buildAsg $ withRecovery recover
---     $   try (foreignSymbolImportWithSafety defaultFISafety)
---     <|> foreignSymbolImportWithSafety specifiedFISafety
---     where recover e = invalid "Invalid safety specification."
---                       <$ Loc.unregisteredDropSymbolsUntil
---                       (`elem` [Lexer.ETX, Lexer.EOL])
+foreignSymbolImport :: AsgParser SomeTerm
+foreignSymbolImport = buildAsg $ withRecovery recover
+    $   try (foreignSymbolImportWithSafety defaultFISafety)
+    <|> foreignSymbolImportWithSafety specifiedFISafety
+    where recover e = invalid "Invalid safety specification."
+                      <$ Loc.unregisteredDropSymbolsUntil
+                      (`elem` [Lexer.ETX, Lexer.EOL])
 
--- foreignSymbolImportWithSafety :: AsgParser SomeTerm -> IRParser SomeTerm
--- foreignSymbolImportWithSafety safe =
---     (\safety forName localName importType ->
---         liftAstApp3 (foreignSymbolProxy localName) safety forName importType)
---     <$> safe <*> stringOrVarName <*> funcName <*  symbol Lexer.Typed <*> valExpr
---     where foreignSymbolProxy a b c d = IR.foreignSymbolImp' b c a d
+foreignSymbolImportWithSafety :: AsgParser SomeTerm -> SymParser (IRB SomeTerm)
+foreignSymbolImportWithSafety safe =
+    (\safety forName localName importType ->
+        liftAstApp3 (foreignSymbolProxy localName) safety forName importType)
+    <$> safe <*> stringOrVarName <*> funcName <*  symbol Lexer.Typed <*> valExpr
+    where foreignSymbolProxy a b c d = IR.foreignImportSymbol' b c a d
 
--- defaultFISafety :: AsgParser SomeTerm
--- defaultFISafety = buildAsg $
---     (\safety -> id (IR.foreignImpSafety' safety))
---     <$> ((pure Import.Default) :: SymParser ForeignImportType)
+defaultFISafety :: AsgParser SomeTerm
+defaultFISafety = buildAsg $
+    (\safety -> id (IR.foreignImportSafety' safety))
+    <$> ((pure Import.Default) :: SymParser IR.ForeignImportType)
 
--- -- TODO [Ara, WD] Need to have the lexer deal with these as contextual keywords
--- -- using a positive lookahead in the _Lexer_.
--- specifiedFISafety :: AsgParser SomeTerm
--- specifiedFISafety = buildAsg $
---     (\(importSafety :: ForeignImportType) ->
---         id (IR.foreignImpSafety' importSafety))
---     <$> getImpSafety (optionMaybe varName)
---     where getImpSafety :: SymParser (Maybe Name) -> SymParser ForeignImportType
---           getImpSafety p = p >>= \case
---               Nothing               -> pure Import.Default
---               Just (Name.Name text) -> case text of
---                   "safe"   -> pure Import.Safe
---                   "unsafe" -> pure Import.Unsafe
---                   _        -> fail "Invalid safety specification."
+-- TODO [Ara, WD] Need to have the lexer deal with these as contextual keywords
+-- using a positive lookahead in the _Lexer_.
+specifiedFISafety :: AsgParser SomeTerm
+specifiedFISafety = buildAsg $
+    (\(importSafety :: IR.ForeignImportType) ->
+        id (IR.foreignImportSafety' importSafety))
+    <$> getImpSafety (optionMaybe varName)
+    where getImpSafety :: SymParser (Maybe Name) -> SymParser IR.ForeignImportType
+          getImpSafety p = p >>= \case
+              Nothing -> pure Import.Default
+              Just n  -> case n of
+                  "safe"   -> pure Import.Safe
+                  "unsafe" -> pure Import.Unsafe
+                  _        -> fail "Invalid safety specification."
 
--- stringOrVarName :: AsgParser SomeTerm
--- stringOrVarName = str <|> (asgNameParser varName)
+stringOrVarName :: AsgParser SomeTerm
+stringOrVarName = string <|> (asgNameParser varName)
 
--- asgNameParser :: SymParser Name -> AsgParser SomeTerm
--- asgNameParser nameParser = buildAsg $ (\varN -> id (IR.var' varN))
---      <$> nameParser
+asgNameParser :: SymParser Name -> AsgParser SomeTerm
+asgNameParser nameParser = buildAsg $ (\varN -> id (IR.var' varN))
+     <$> nameParser
+
+
 
 -- -- === Unit body === --
 
--- unit' :: AsgParser SomeTerm
--- unit  :: AsgParser (Expr Unit)
--- unit' = generalize <<$>> unit
--- unit  = buildAsg $
---     (\imps cls
---         -> unsafeGeneralize <$> xliftAstApp2 (flip IR.unit' []) imps cls)
---         <$ spacing <*> (foreignImportList <|> impHub) <*> unitCls <* spacing
---     where spacing = many eol
+unit' :: AsgParser SomeTerm
+unit  :: AsgParser (IR.Term IR.Unit)
+unit' = Layout.relayout <<$>> unit
+unit  = buildAsg $
+    (\imps cls
+        -> Layout.unsafeRelayout <$> liftAstApp2 (flip IR.unit []) imps cls)
+        <$ spacing <*> (foreignImportList <|> impHub) <*> unitCls <* spacing
+    where spacing = many eol
 
--- unitCls :: AsgParser SomeTerm
--- unitCls = buildAsg $ (\ds -> liftAstApp1 (IR.clsASG' False "" [] []) (sequence ds)) <$> optionalBlockTop topLvlDecl
+unitCls :: AsgParser SomeTerm
+unitCls = buildAsg $ (\ds -> liftAstApp1 (IR.record' False "" [] [])
+                     (sequence ds)) <$> optionalBlockTop topLvlDecl
+
+
 
 ----------------------------
 -- === Layout parsing === --

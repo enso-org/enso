@@ -31,9 +31,9 @@ instance Semigroup   FastString            where (<>)    = FastString.appendFS ;
 
 
 
-------------------
+-------------------
 -- === Value === --
-------------------
+-------------------
 
 -- === Definition === --
 
@@ -125,8 +125,8 @@ registerName !name = out where
 
 -- === Instances === --
 
-instance Convertible Value       FastString where convert = unwrap ; {-# INLINE convert #-}
-instance Convertible FastString Value       where
+instance Convertible Value      FastString where convert = unwrap ; {-# INLINE convert #-}
+instance Convertible FastString Value      where
     convert !s = out where
         !out = registerName $! wrap s
     {-# INLINE convert #-}
@@ -140,7 +140,8 @@ instance Convertible Name   Value  where
     convert !ref = unsafeDupablePerformIO $ do
         map <- getNameMap
         case IntMap.lookup (unwrap ref) (unwrap map) of
-            Nothing -> error "Internal error"
+            Nothing -> error $ "Panic. Name lookup error for name id"
+                    <> show (unwrap ref)
             Just n  -> pure n
     {-# NOINLINE convert #-}
 

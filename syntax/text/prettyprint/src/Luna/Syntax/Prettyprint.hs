@@ -36,30 +36,43 @@ import qualified Control.Monad.State.Layered    as State
 import qualified Data.Layout                    as Layout
 import qualified Data.Layout                    as Doc
 import qualified Data.PtrList.Mutable           as List
+import qualified Data.Vector.Storable.Foreign   as Vector
 import qualified Language.Symbol                as Symbol
 import qualified Language.Symbol.Operator.Assoc as Assoc
 import qualified Language.Symbol.Operator.Prec  as Prec
 import qualified Luna.IR                        as IR
+import qualified Luna.IR.Component.Link.Class   as Link
 import qualified Luna.IR.Layer                  as Layer
 import qualified Luna.IR.Link                   as Link
 import qualified Luna.IR.Term.Literal           as Literal
 import qualified Luna.Pass                      as Pass
 import qualified OCI.IR.Layout                  as Layout
 
-import Control.Monad.State.Layered (StateT)
-import Language.Symbol             (UniSymbol)
-import Language.Symbol.Label       (Labeled (Labeled), label, labeled, unlabel)
-import Luna.IR                     (Name)
-import Luna.Pass                   (Pass)
-import Luna.Syntax.Text.Scope      (Scope)
+import Control.Monad.State.Layered  (StateT)
+import Data.Layout                  (quoted, (</>))
+import Data.Vector.Storable.Foreign (Vector)
+import Language.Symbol              (UniSymbol, atom)
+import Language.Symbol.Label        (Labeled (Labeled), label, labeled, unlabel)
+import Luna.IR                      (Name)
+import Luna.Pass                    (Pass)
+import Luna.Syntax.Text.Scope       (Scope)
 
 import Data.Layout     (parensed, (<+>))
 import Language.Symbol (body)
 
-appName = "#app#" -- FIXME -> take it from Builtin
-uminusName = "#uminus#" -- FIXME -> take it from Builtin
-wildcardName = "_" -- FIXME -> take it from Builtin
-
+-- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+-- FIXME -> take it from Builtin
+-- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+minusName    = "-"
+uminusName   = "#uminus#"
+appName      = "#app#"
+accName      = "."
+lamName      = ":"
+typedName    = "::"
+wildcardName = "_"
+unifyName    = "="
+updateName   = "=" -- #update# ?
+arrowName    = "->"
 
 
 data Prettyprint
@@ -146,7 +159,7 @@ getBody (unlabel -> s) = case s of
 
 instance Convertible Name Doc           where convert = convertVia @String
 instance Convertible (PrettySymbol a) a where convert = getBody
-
+-- instance Convertible (Vector Char) Doc  where convert = convertVia @String
 
 
 -- ---------------------------
@@ -228,9 +241,9 @@ appSymbols' sf@(Labeled flab fsym) sa = do
             (ps', sym') <- appSymbols' sym sa
             pure ((fst ps', snd ps), sym')
         Symbol.Infix  s -> pure $ (labeled flab . Symbol.prefix) .: sconcatIfLab flab appName    <$> arg Assoc.Left <*> pure (s^.body)
-        Symbol.Prefix s -> pure $ (labeled flab . Symbol.atom)   .: sconcatIfLab flab uminusName <$> pure (s^.body) <*> arg Assoc.Right
+        Symbol.Prefix s -> pure $ (labeled flab . atom)   .: sconcatIfLab flab uminusName <$> pure (s^.body) <*> arg Assoc.Right
         Symbol.Mixfix s -> pure . (mempty,) $ case s^.body of
-            (b, [])       -> labeled flab $ Symbol.atom   (b <+> sa')
+            (b, [])       -> labeled flab $ atom   (b <+> sa')
             (b, (n : ns)) -> labeled flab $ Symbol.mixfix (b <+> sa' <+> convert n, ns)
     pure out
 
@@ -240,7 +253,7 @@ appSymbols' sf@(Labeled flab fsym) sa = do
 -- -- === Simple pretty printer === --
 -- -----------------------------------
 
-simple = unnamed . Symbol.atom
+simple = unnamed . atom
 
 -- -- === Definition === --
 
@@ -261,18 +274,53 @@ instance ( MonadIO m -- DEBUG ONLY
     prettyprint = prettyprintSimple
 
 prettyprintSimple ir = Layer.read @IR.Model ir >>= \case
-    IR.UniTermApp  (IR.App f a)        -> join $ appSymbols <$> subgen f <*> subgen a
-    IR.UniTermBlank IR.Blank           -> pure $ simple wildcardName
-    IR.UniTermCons (IR.Cons name args) -> do
+    IR.UniTermAcc  (IR.Acc a name)
+        -> named (spaced accName) . atom
+         . (\an -> convert an <+> accName <+> convert name)
+       <$> subgen a -- FIXME[WD]: check if left arg need to be parensed
+
+    IR.UniTermAccSection (IR.AccSection path)
+        -> named (notSpaced accName) . atom
+         . ("." <>) . intercalate "." . fmap convert
+       <$> Vector.toList path
+    IR.UniTermApp  (IR.App f a)         -> join $ appSymbols <$> subgen f <*> subgen a
+    IR.UniTermBlank IR.Blank            -> pure $ simple wildcardName
+    IR.UniTermCons (IR.Cons name args)  -> do
         args' <- mapM subgen =<< List.toList args
         foldM appSymbols (simple $ convert name) args'
-    IR.UniTermNumber num               -> simple . convert <$> Literal.prettyshow num
+    -- IR.UniTermFunction (IR.Function n as body)
+    --     -> unnamed . atom
+    --    .:. (\n' as' body' -> "def" <+> n' <> arglist as' <> body')
+    --    <$> subgenBody n <*> (mapM subgenBody =<< List.toList as) <*> smartBlock body
+
+    IR.UniTermGrouped (IR.Grouped expr) -> simple . parensed <$> subgenBody expr
+    IR.UniTermNumber num                -> simple . convert <$> Literal.prettyshow num
+    IR.UniTermLam (IR.Lam arg body)
+        -> named (notSpaced lamName) . atom
+        .: (<>) <$> subgenBody arg <*> smartBlock body
     IR.UniTermList (IR.List elems)
         -> simple . Doc.bracked . intercalate ", "
        <$> (mapM subgenBody =<< List.toList elems)
-
     IR.UniTermMissing IR.Missing -> pure $ simple mempty
-
+    IR.UniTermSectionLeft  (IR.SectionLeft  op a)
+        -> simple . parensed .: (<+>) <$> subgenBody op <*> subgenBody a
+    IR.UniTermSectionRight (IR.SectionRight op a)
+        -> simple . parensed .: flip (<+>) <$> subgenBody op <*> subgenBody a
+    IR.UniTermString (IR.String s)
+        -> simple . quoted . convert <$> Vector.toList s -- FIXME [WD]: add proper multi-line strings indentation
+    IR.UniTermTuple (IR.Tuple elems)
+        -> simple . parensed . (intercalate ", ")
+       <$> (mapM subgenBody =<< List.toList elems)
+    IR.UniTermTyped (IR.Typed expr tp)
+        -> named (spaced typedName) . atom
+        .: mappendWith (Doc.spaced typedName)
+       <$> subgenBody expr
+       <*> subgenBody tp
+    IR.UniTermUnify (IR.Unify l r)
+        -> named (spaced unifyName) . atom
+        .: mappendWith (Doc.spaced unifyName)
+       <$> subgenBody l
+       <*> subgenBody r
 
     IR.UniTermVar (IR.Var name) ->
         pure $ simple (convert name)
@@ -280,8 +328,6 @@ prettyprintSimple ir = Layer.read @IR.Model ir >>= \case
     t -> error $ "NO PRETTY PRINT FOR: " <> show t
 --     prettyprint style subStyle root = matchExpr root $ \case
 --         String    str               -> pure . unnamed $ atom (convert $ quoted str) -- FIXME [WD]: add proper multi-line strings indentation
---         Acc       a name            -> named (spaced accName)   . atom . (\an -> convert an <+> accName <+> convert name) <$> subgen a -- FIXME[WD]: check if left arg need to be parensed
---         Unify     l r               -> named (spaced unifyName) . atom .: mappendWith (Doc.spaced unifyName) <$> subgenBody l <*> subgenBody r
 --         RecASG    name args         -> unnamed . atom . (convert name <>) . (\x -> if null x then mempty else space <> intercalate space x) <$> mapM subgenBody args
 --         Var       name              -> lookupMultipartName name <&> \case
 --                                            Just n -> labeled Nothing $ mixfix (convert $ n ^. Name.base, n ^. Name.segments)
@@ -289,17 +335,11 @@ prettyprintSimple ir = Layer.read @IR.Model ir >>= \case
 --                                                          | name == appName    -> named (notSpaced name) $ infixx (convert name)
 --                                                          | name == uminusName -> named (notSpaced name) $ prefix minusName
 --                                                          | otherwise          -> unnamed                $ atom   (convert name)
---         Grouped   expr              -> unnamed . atom . parensed <$> subgenBody expr
---         Typed     expr tp           -> named (spaced typedName) . atom .: mappendWith (Doc.spaced typedName) <$> subgenBody expr <*> subgenBody tp
 --         Tuple      elems            -> unnamed . atom . parensed . (intercalate ", ") <$> mapM subgenBody elems
 --         Seq       a b               -> unnamed . atom .: (</>) <$> subgenBody a <*> subgenBody b
---         Lam       arg body          -> named (notSpaced lamName) . atom .: (<>) <$> subgenBody arg <*> smartBlock body
---         LeftSection  op a           -> unnamed . atom . parensed .:      (<+>) <$> subgenBody op  <*> subgenBody a
---         RightSection op a           -> unnamed . atom . parensed .: flip (<+>) <$> subgenBody op  <*> subgenBody a
 --         Marked       m a            -> unnamed . atom .: (<>) <$> subgenBody m   <*> subgenBody a
 --         Marker         a            -> pure . unnamed . atom $ convert markerBeginChar <> convert (show a) <> convert markerEndChar
 --         ASGRootedFunction  n _      -> unnamed . atom . (\n' -> "<function '" <> n' <> "'>") <$> subgenBody n
---         ASGFunction  n as body      -> unnamed . atom .:. (\n' as' body' -> "def" <+> n' <> arglist as' <> body') <$> subgenBody n <*> mapM subgenBody as <*> smartBlock body
 --         FunctionSig  n tp           -> unnamed . atom .: (\n' tp' -> "def" <+> n' <+> typedName <+> tp') <$> subgenBody n <*> subgenBody tp
 --         Match        a cs           -> unnamed . atom .: (\expr body -> "case" <+> expr <+> "of" </> indented (block $ foldl (</>) mempty body)) <$> subgenBody a <*> mapM subgenBody cs
 --         ClsASG _ n as cs ds         -> unnamed . atom .:. go <$> mapM subgenBody as <*> mapM subgenBody cs <*> mapM subgenBody ds where
@@ -342,8 +382,6 @@ prettyprintSimple ir = Layer.read @IR.Model ir >>= \case
 --                                                where go imps defs = let glue = ""
 --                                                                     in  imps <> glue <> foldl (</>) mempty defs
 
---         AccSection n -> pure . named (notSpaced accName) . atom
---             $ "." <> intercalate "." (convert <$> n)
 --         Metadata t -> pure . unnamed . atom
 --             $ "###" <+> metadataHeader <+> convertVia @Text t
 --         -- FIXME [Ara, WD] Conversion via Text is not efficient
@@ -365,7 +403,6 @@ prettyprintSimple ir = Layer.read @IR.Model ir >>= \case
 
 --         where subgen     = prettyprint subStyle subStyle <=< source
 --               subgenBody = fmap getBody . subgen
---               arglist as = if_ (not $ null as) $ space <> intercalate space as
 --               smartBlock body = do
 --                   multiline <- isMultilineBlock body
 --                   body'     <- subgenBody body
@@ -373,18 +410,28 @@ prettyprintSimple ir = Layer.read @IR.Model ir >>= \case
 --                                         else lamName <> space <> body'
     where subgen     = prettyprint @Simple . Layout.relayout <=< Link.source
           subgenBody = fmap getBody . subgen
+          smartBlock body = do
+            multiline <- isMultilineBlock body
+            body'     <- subgenBody body
+            pure $ if multiline then lamName </> Doc.indented (Doc.block body')
+                                else lamName <> Doc.space <> body'
+        --   arglist as = if not $ null as then space <> intercalate space as
+        --                                 else mempty
 
--- -- === Utils === --
+-- === Utils === --
 
 -- isMultilineBlock :: Req m '[ Reader // Layer // AnyExpr     // Model
 --                            , Reader // Layer // AnyExprLink // Model
 --                            ]
---                  => Link' IR.SomeTerm -> m Bool
--- isMultilineBlock lnk = do
---     expr <- source lnk
---     matchExpr expr $ pure . \case
---         Seq {} -> True
---         _      -> False
+isMultilineBlock ::
+     ( Layer.Reader IR.Terms IR.Model m
+     , Layer.Reader Link.Links Link.Source m
+     ) => (IR.Link a) -> m Bool
+isMultilineBlock lnk = do
+    ir <- Link.source (Layout.relayout lnk :: IR.SomeLink)
+    Layer.read @IR.Model ir >>= pure . \case
+        IR.UniTermSeq {} -> True
+        _                -> False
 
 
 
