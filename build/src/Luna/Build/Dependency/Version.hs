@@ -39,13 +39,13 @@ instance Show PrereleaseType where
 prereleaseTyToNum :: PrereleaseType -> Word64
 prereleaseTyToNum Alpha = 0
 prereleaseTyToNum Beta  = 1
-prereleaseTyToNum RC    = 3
+prereleaseTyToNum RC    = 2
 
 numToPrereleaseTy :: Word64 -> PrereleaseType
 numToPrereleaseTy 0 = Alpha
 numToPrereleaseTy 1 = Beta
 numToPrereleaseTy 2 = RC
-numToPrereleaseTy _ = RC -- technically impossible, but don't want partial fns
+numToPrereleaseTy _ = RC
 
 data Prerelease = Prerelease
     { __prType  :: !PrereleaseType

@@ -5,6 +5,7 @@ module Luna.Build.Dependency.Constraint
     , ConstraintType(..)
     , Constraint(..)
     , unpack
+    , isEQPrereleaseConstraint
     , operator
     , constraint
     , constraints
@@ -54,6 +55,10 @@ unpack :: (Eq a, Ord a) => M.Map a [b] -> [(a, b)]
 unpack map = concat $ M.elems $ M.mapWithKey convert map
     where
         convert key list = (\x -> (key, x)) <$> list
+
+isEQPrereleaseConstraint :: Constraint -> Bool
+isEQPrereleaseConstraint (Constraint ConstraintEQ ver) = V.isPrerelease ver
+isEQPrereleaseConstraint _                             = False
 
 -----------------------
 -- Parsing Functions --

@@ -32,7 +32,8 @@ testConstraints = M.fromList
 testVersions :: Versions
 testVersions = M.fromList
     [ ("foo",
-        [ Version 1 0 0 Nothing
+        [ Version 1 0 0 (Just (Prerelease Beta 3))
+        , Version 1 0 0 Nothing
         , Version 1 0 1 Nothing
         , Version 1 1 0 (Just (Prerelease Alpha 1))
         , Version 1 1 0 Nothing
@@ -43,7 +44,9 @@ testVersions = M.fromList
         [ Version 1 1 0 Nothing
         , Version 1 2 0 Nothing
         , Version 1 3 0 Nothing
-        , Version 1 4 0 Nothing ])
+        , Version 1 4 0 Nothing
+        , Version 1 5 0 Nothing
+        , Version 1 6 0 Nothing ])
     , ("baz",
         [ Version 1 3 0 Nothing
         , Version 1 4 0 Nothing

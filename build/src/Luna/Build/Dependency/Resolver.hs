@@ -33,8 +33,11 @@ data SVersion = SVersion
     , __patch             :: SWord64
     , __prerelease        :: SWord64
     , __prereleaseVersion :: SWord64
-    } deriving (Eq, Generic, Show)
+    } deriving (Eq, Generic)
 makeLenses ''SVersion
+
+instance Show SVersion where
+    show _ = "<symbolic> :: SVersion"
 
 instance Mergeable SVersion
 
@@ -70,12 +73,15 @@ sVersion name = do
     e <- free $ name <> ":prereleaseVersion"
     pure $ SVersion a b c d e
 
-literalSVersion :: Word64 -> Word64 -> Word64 -> Word64 -> Word64
-                -> Symbolic SVersion
+literalSVersion :: Word64 -> Word64 -> Word64 -> Word64 -> Word64 -> SVersion
 literalSVersion a b c d e =
-    pure $ SVersion (literal a) (literal b) (literal c) (literal d) (literal e)
+    SVersion (literal a) (literal b) (literal c) (literal d) (literal e)
 
-versionToSVersion :: V.Version -> Symbolic SVersion
+symLiteralSVersion :: Word64 -> Word64 -> Word64 -> Word64 -> Word64
+                   -> Symbolic SVersion
+symLiteralSVersion a b c d e = pure $ literalSVersion a b c d e
+
+versionToSVersion :: V.Version -> SVersion
 versionToSVersion (V.Version a b c pre) = literalSVersion a b c d e
     where (d, e) = case pre of
             Nothing -> (3, 0)
@@ -89,60 +95,69 @@ extractSVersion name = V.Version <$> getValue (__major name)
     where mkPrerelease = do
             pre <- getValue (__prerelease name)
             preV <- getValue (__prereleaseVersion name)
-            if pre >= 3 then
-                pure $ Nothing
-            else
-                pure $ Just (V.Prerelease (V.numToPrereleaseTy pre) preV)
+            if pre >= 3 then pure $ Nothing
+            else pure $ Just (V.Prerelease (V.numToPrereleaseTy pre) preV)
 
--- TODO [Ara] Change results to Either.
-constraintQuery :: Constraints -> Versions -> Symbolic (Maybe V.Version)
+makeRestriction :: (SVersion, Constraint) -> SBool
+makeRestriction (pkg, Constraint ty ver) = pkg `op` versionToSVersion ver
+    where op = case ty of
+                    ConstraintEQ -> (.==)
+                    ConstraintGT -> (.>)
+                    ConstraintLT -> (.<)
+                    ConstraintLE -> (.<=)
+                    ConstraintGE -> (.>=)
+
+constraintQuery :: Constraints -> Versions -> Symbolic (Either Text PackageSet)
 constraintQuery constraints versions = do
-    let packageNames = M.keys constraints
-        unpackedConstraints = unpack constraints
-        unpackedVersions = unpack versions
+    let packageNames        = M.keys constraints
+        constraintLists     = M.elems constraints
+        availableVersions   = M.elems versions
+        requiredPrereleases = fmap (fmap (\(Constraint _ ver) -> ver))
+                            $ (filter isEQPrereleaseConstraint)
+                           <$> constraintLists
+        filteredVersions    = zip requiredPrereleases availableVersions
 
-    -- Create a symbol for each name
-    -- Constrain each name by the constraints
+    traceShowM requiredPrereleases
+
+    packageSyms <- sequence $ sVersion . Text.unpack <$> packageNames
+
+    -- Restrict symbols by version bounds
+    let symConstraintPairs = flatten $ zip packageSyms constraintLists
+        flatten a = concat $ convert <$> a
+        convert (a, b) = (\x -> (a, x)) <$> b
+
+    constrain $ bAnd $ makeRestriction <$> symConstraintPairs
+
+    -- Restrict symbols by available versions
+    let packageEqualities = makeEqualities <$> zip packageSyms filteredVersions
+        makeEqualities (pkg, version) = (\x -> pkg .== versionToSVersion x)
+                                     <$> version
+        packageDisjunction = bOr <$> packageEqualities
+
+    constrain $ bAnd packageDisjunction
+
     -- Extract the results after running if sat
-
-    traceShowM packageNames
-
-    freeV1 <- sVersion "foo"
-    freeV2 <- sVersion "bar"
-    minPossibleVersion <- literalSVersion 0 0 1 0 0
-
-    literalV1 <- literalSVersion 44 31 36 3 0
-    literalV2 <- literalSVersion 71 46 3 2 7
-
-    constrain $ literalV1 .< literalV2
-
-    -- Query a -> Symbolic a
     query $ do
         satResult <- checkSat
         case satResult of
-            Unsat -> pure $ Nothing
-            Unk -> pure $ Nothing
-            Sat -> Just <$> extractSVersion freeV1
+            Unsat -> pure $ Left "Unsat"
+            Unk -> pure $ Left "Unknown solution."
+            Sat -> do
+                concreteVersions <- sequence $ extractSVersion <$> packageSyms
+                pure $ Right $ M.fromList $ zip packageNames concreteVersions
 
 -- TODO [Ara] function to detect prereleases not able to be chosen.
--- Can this be done faster than n^2?
 -- TODO [Ara] Should not select prereleases unless there is an EQ constraint
--- TODO [Ara] Can we construct a metric function from the result to maximise?
--- TODO [Ara] Use everything before the last : as the package name.
 -- TODO [Ara] Want to provide the maximal package version in the bounds.
--- TODO [Ara] Return Either err res so as to be able to provide some diganostics
 solveConstraints :: (MonadIO m) => Constraints -> Versions -> m (Either Int Int)
 solveConstraints constraints versions = do
     if (L.sort $ M.keys constraints) /= (L.sort $ M.keys versions) then do
         pure $ Left 0
     else do
-        result <- liftIO $ runSolver constraints versions
+        result <- liftIO $ runSMT $ constraintQuery constraints versions
         case result of
-            Nothing -> pure $ Left 0
-            (Just foo) -> do
+            Left _ -> pure $ Left 0
+            Right foo -> do
                 traceShowM foo
                 pure $ Right 1
-
-runSolver :: Constraints -> Versions -> IO (Maybe V.Version)
-runSolver constraints versions = runSMT $ constraintQuery constraints versions
 

@@ -74,15 +74,3 @@ spec = do
             (Version 44 31 36 Nothing) `shouldSatisfy`
             (< (Version 71 46 3 (Just (Prerelease Beta 7))))
 
-    {- describe "Conversion between Version tyoes" $ do -}
-        {- it "version with no prerelease" $ versionToSolverVersion -}
-            {- (Version 1 1 2 Nothing) `shouldBe` (SolverVersion 1 1 2 3 0) -}
-        {- it "version with prerelease" $ versionToSolverVersion -}
-            {- (Version 11 31 2 (Just (Prerelease Beta 5))) `shouldBe` -}
-            {- (SolverVersion 11 31 2 1 5) -}
-        {- it "solverVersion with no prerelease" $ solverVersionToVersion -}
-            {- (SolverVersion 1 42 5 3 5) `shouldBe` (Version 1 42 5 Nothing) -}
-        {- it "solverVersion with prerelease" $ solverVersionToVersion -}
-            {- (SolverVersion 32 1 0 0 2) `shouldBe` -}
-            {- (Version 32 1 0 (Just (Prerelease Alpha 2))) -}
-
