@@ -7,7 +7,6 @@ import Prologue
 import qualified Control.Monad.State.Layered   as State
 import qualified Language.Symbol.Operator.Prec as Prec
 import qualified Luna.Syntax.Text.Scope        as Scope
-import qualified OCI.Data.Name.Multipart       as Name.Multipart
 
 import Luna.IR                (Name)
 import Luna.Syntax.Text.Scope (Scope)
@@ -40,8 +39,8 @@ hardcodePrecRelMap = do
 
 hardcodeMultiNames :: State.Monad Scope m => m ()
 hardcodeMultiNames = do
-    Scope.addMultipartName $ Name.Multipart.make $ "if"  :| ["then", "else"]
-    Scope.addMultipartName $ Name.Multipart.make $ "if"  :| ["then"]
+    Scope.addMultipartName $ "if" :| ["then", "else"]
+    Scope.addMultipartName $ "if" :| ["then"]
     -- addNameDesc (NameDesc False "if"  ["then"])
 
 

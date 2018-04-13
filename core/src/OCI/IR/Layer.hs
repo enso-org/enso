@@ -130,10 +130,10 @@ type Editor comp layer m =
    , Writer comp layer m
    )
 
-class Reader comp layer m where
+class Monad m => Reader comp layer m where
     read__  :: ∀ layout. Component comp layout -> m (Data layer layout)
 
-class Writer comp layer m where
+class Monad m => Writer comp layer m where
     write__ :: ∀ layout. Component comp layout -> Data layer layout -> m ()
 
 
@@ -197,11 +197,11 @@ instance {-# OVERLAPPABLE #-}
         unsafeWriteByteOff @layer off comp d
     {-# INLINE write__ #-}
 
-instance {-# OVERLAPPABLE #-} (Monad m, MonadTrans t, Writer comp layer m)
+instance {-# OVERLAPPABLE #-} (Monad (t m), MonadTrans t, Writer comp layer m)
     => Writer comp layer (t m) where
         write__ = lift .: write__ @comp @layer ; {-# INLINE write__ #-}
 
-instance {-# OVERLAPPABLE #-} (Monad m, MonadTrans t, Reader comp layer m)
+instance {-# OVERLAPPABLE #-} (Monad (t m), MonadTrans t, Reader comp layer m)
     => Reader comp layer (t m) where
         read__ = lift . read__ @comp @layer ; {-# INLINE read__ #-}
 
@@ -209,13 +209,13 @@ instance {-# OVERLAPPABLE #-} (Monad m, MonadTrans t, Reader comp layer m)
 
 -- === Early resolution block === --
 
-instance Reader Imp  layer m     where read__ _ = impossible
-instance Reader comp Imp   m     where read__ _ = impossible
-instance Reader comp layer ImpM1 where read__ _ = impossible
+instance Monad m => Reader Imp  layer m     where read__ _ = impossible
+instance Monad m => Reader comp Imp   m     where read__ _ = impossible
+instance            Reader comp layer ImpM1 where read__ _ = impossible
 
-instance Writer Imp  layer m     where write__ _ _ = impossible
-instance Writer comp Imp   m     where write__ _ _ = impossible
-instance Writer comp layer ImpM1 where write__ _ _ = impossible
+instance Monad m => Writer Imp  layer m     where write__ _ _ = impossible
+instance Monad m => Writer comp Imp   m     where write__ _ _ = impossible
+instance            Writer comp layer ImpM1 where write__ _ _ = impossible
 
 
 

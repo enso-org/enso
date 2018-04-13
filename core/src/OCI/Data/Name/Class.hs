@@ -31,15 +31,14 @@ instance Semigroup   FastString            where (<>)    = FastString.appendFS ;
 
 
 
-------------------
+-------------------
 -- === Value === --
-------------------
+-------------------
 
 -- === Definition === --
 
 newtype Value = Value FastString
-    deriving ( Binary, Data, Eq, Prelude.Monoid, Ord, Outputable, Semigroup
-             , Uniquable )
+    deriving ( Binary, Data, Eq, Prelude.Monoid, Ord, Outputable, Uniquable )
 makeLenses ''Value
 
 
@@ -125,8 +124,8 @@ registerName !name = out where
 
 -- === Instances === --
 
-instance Convertible Value       FastString where convert = unwrap ; {-# INLINE convert #-}
-instance Convertible FastString Value       where
+instance Convertible Value      FastString where convert = unwrap ; {-# INLINE convert #-}
+instance Convertible FastString Value      where
     convert !s = out where
         !out = registerName $! wrap s
     {-# INLINE convert #-}
@@ -140,10 +139,15 @@ instance Convertible Name   Value  where
     convert !ref = unsafeDupablePerformIO $ do
         map <- getNameMap
         case IntMap.lookup (unwrap ref) (unwrap map) of
-            Nothing -> error "Internal error"
+            Nothing -> error $ "Panic. Name lookup error for name id"
+                    <> show (unwrap ref)
             Just n  -> pure n
     {-# NOINLINE convert #-}
 
+instance Semigroup Value where
+    Value v <> Value v' = out where
+        !out = convert $ v <> v'
+    {-# INLINE (<>) #-}
 
 -- TODO !!!!!!
 -- Remove?

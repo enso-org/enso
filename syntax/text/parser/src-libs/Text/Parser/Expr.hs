@@ -27,10 +27,12 @@ type Term s l a = Labeled l (ExprSymbol s a)
 
 -- === Definitions === --
 
-data ExprTree n a = InfixNode  (Term Infix  n a) (ExprTree n a) (ExprTree n a)
-                  | PrefixNode (Term Prefix n a) (ExprTree n a)
-                  | SuffixNode (Term Suffix n a) (ExprTree n a)
-                  | AtomNode   a
+data ExprTree n a
+    = InfixNode  (Term Infix  n a) (ExprTree n a) (ExprTree n a)
+    | PrefixNode (Term Prefix n a) (ExprTree n a)
+    | SuffixNode (Term Suffix n a) (ExprTree n a)
+    | AtomNode   a
+    deriving (Show)
 
 data Expregment n a = InfixSegment   (Term Infix  n a) (ExprTree n a)
                     | SuffixSegment (Term Suffix n a)
@@ -276,5 +278,14 @@ buildExprTreeBody_termApp app tree = tryNextSym tree $ \(Labeled l s) -> case s 
 
 
 -- FIXME[WD]: Remove MonadFail dep
-buildExpr_termApp :: (MonadFail m, Prec.RelReader n m, Assoc.Reader n m, MonadParsec e s m) => Labeled n (ExprSymbol Infix a) -> Tokens (Labeled n (UniSymbol Expr a)) -> m a
-buildExpr_termApp app = assembleExpr .: evalTokenStreamT (buildExprTree_termApp app)
+buildExpr_termApp ::
+    ( MonadFail m
+    , Prec.RelReader n m
+    , Assoc.Reader n m
+    , MonadParsec e s m
+    , Show a, Show n, MonadIO m -- DEBUG
+    ) => Labeled n (ExprSymbol Infix a)
+      -> Tokens (Labeled n (UniSymbol Expr a))
+      -> m a
+buildExpr_termApp app = fmap assembleExpr
+                      . evalTokenStreamT (buildExprTree_termApp app)

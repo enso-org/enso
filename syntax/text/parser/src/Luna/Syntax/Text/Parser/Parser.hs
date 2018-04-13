@@ -119,9 +119,12 @@ type IRB = StatesT '[UnmarkedExprs, MarkedExprMap] (Pass Parser)
 
 -- === Definition === --
 
-newtype AsgBldr a = AsgBldr { fromAsgBldr :: IRB a } deriving (Functor, Applicative, Monad)
+newtype AsgBldr a = AsgBldr { fromAsgBldr :: IRB a }
+    deriving (Functor, Applicative, Monad)
 makeLenses ''AsgBldr
 
+instance Show (AsgBldr a) where
+    show _ = "AsgBldr"
 
 
 

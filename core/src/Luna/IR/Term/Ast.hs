@@ -28,12 +28,18 @@ type LinksTo a = UnmanagedPtrList (LinkTo a)
 
 -- === Import helpers === --
 
-data ImportSource
-    = Relative Name.Multipart
-    | Absolute Name.Multipart
+data ImportSourceData
+    = Relative (Vector Name)
+    | Absolute (Vector Name)
     | World
     deriving (Eq, Generic, Show)
-Storable.derive ''ImportSource
+Storable.derive ''ImportSourceData
+
+data ImportTargetData
+    = Everything
+    | Listed (Vector Name)
+    deriving (Eq, Generic, Show)
+Storable.derive ''ImportTargetData
 
 
 -- === Definition === --
@@ -46,7 +52,9 @@ Term.define [d|
     | Function     { name     :: LinkTo Terms , args   :: LinksTo Terms
                    , body     :: LinkTo Terms                                  }
     | Grouped      { body     :: LinkTo Terms                                  }
-    | Imp          { source   :: ImportSource                                  }
+    | Imp          { source   :: LinkTo Terms , target :: ImportTargetData     }
+    | ImportHub    { imps     :: LinksTo Terms                                 }
+    | ImportSource { body     :: ImportSourceData                              }
     | Invalid      { desc     :: Name                                          }
     | List         { items    :: LinksTo Terms                                 }
     | Marked       { marker   :: LinkTo Terms , body   :: LinkTo Terms         }
@@ -64,7 +72,8 @@ Term.define [d|
     | Seq          { former   :: LinkTo Terms , later  :: LinkTo Terms         }
     | Tuple        { items    :: LinksTo Terms                                 }
     | Typed        { base     :: LinkTo Terms , tp     :: LinkTo Terms         }
-
+    | Unit         { imps     :: LinkTo Terms , units  :: LinksTo Terms
+                   , cls      :: LinkTo Terms                                  }
     -- DEPRECATED:
     | FunctionSig  { name     :: LinkTo Terms , sig    :: LinkTo Terms         }
  |]
@@ -74,20 +83,20 @@ Term.define [d|
 
 -- FIXME: May be able to become a `Maybe` pending discussion in the
 -- following issue: https://github.com/luna/luna/issues/179
-data ForeignImpType
+data ForeignImportType
     = Default
     | Safe
     | Unsafe
     deriving (Eq, Generic, Show)
-Storable.derive ''ForeignImpType
+Storable.derive ''ForeignImportType
 
 Term.define [d|
  data Ast
-    = ForeignImp    { lang    :: Name         , lst  :: LinksTo Terms }
-    | ForeignImpLst { loc     :: LinkTo Terms , imps :: LinksTo Terms }
-    | ForeignImpSym { safety  :: LinkTo Terms , name :: LinkTo  Terms
-                    , locName :: Name         , tp   :: LinkTo  Terms }
-    | ForeignImpSaf { safety  :: ForeignImpType                       }
+    = ForeignImport       { lang    :: Name         , lst  :: LinksTo Terms }
+    | ForeignImportList   { loc     :: LinkTo Terms , imps :: LinksTo Terms }
+    | ForeignImportSymbol { safety  :: LinkTo Terms , name :: LinkTo  Terms
+                          , locName :: Name         , tp   :: LinkTo  Terms }
+    | ForeignImportSafety { safety  :: ForeignImportType                    }
  |]
 
 -- data TermForeignImportList a = ForeignImportList

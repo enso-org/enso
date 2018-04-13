@@ -12,7 +12,7 @@ import qualified Data.TreeSet                         as TreeSet
 import qualified Language.Symbol.Operator.Assoc       as Assoc
 import qualified Language.Symbol.Operator.Prec        as Prec
 import qualified Language.Symbol.Operator.Prec.RelMap as Prec
-import qualified OCI.Data.Name                        as Name
+import qualified Luna.Data.Name                       as Name
 
 -- import Data.Container.Map
 -- -- import Data.Container.Map.IntMap      (IntMap)
@@ -38,7 +38,7 @@ data Scope = Scope
     { _precRelMap :: PrecRelMap
     , _assocMap   :: Map Name Assoc
     , _nameTree   :: SparseTreeSet Name
-    , _multiNames :: Map Name Name.Multipart
+    , _multiNames :: Map Name (NonEmpty Name)
     }
 makeLenses ''Scope
 
@@ -54,15 +54,15 @@ putPrecRelMap p = State.modify_ @Scope $ precRelMap .~ p
 
 -- === Name.Multipart management === --
 
-addMultipartName :: State.Monad Scope m => Name.Multipart -> m ()
+addMultipartName :: State.Monad Scope m => NonEmpty Name -> m ()
 addMultipartName n = State.modify_ @Scope
-                 $ \s -> s & nameTree %~ TreeSet.insert (convert n)
-                           & multiNames . at (convert n) .~ Just n
+                 $ \s -> s & nameTree %~ TreeSet.insert n
+                           & multiNames . at (Name.mixfix n) .~ Just n
 
 lookupMultipartNames :: State.Monad Scope m => Name -> m (SparseTreeSet Name)
 lookupMultipartNames n = (^. nameTree . ix n) <$> State.get @Scope
 
-lookupMultipartName :: State.Monad Scope m => Name -> m (Maybe Name.Multipart)
+lookupMultipartName :: State.Monad Scope m => Name -> m (Maybe (NonEmpty Name))
 lookupMultipartName n = view (multiNames . at n) <$> State.get @Scope
 
 
