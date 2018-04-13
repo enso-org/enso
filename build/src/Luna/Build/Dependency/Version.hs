@@ -2,6 +2,8 @@ module Luna.Build.Dependency.Version
     ( PrereleaseType(..)
     , Prerelease(..)
     , Version(..)
+    , prereleaseTyToNum
+    , numToPrereleaseTy
     , isPrerelease
     , version
     , prerelease
@@ -33,6 +35,17 @@ instance Show PrereleaseType where
     show Alpha = "alpha"
     show Beta  = "beta"
     show RC    = "rc"
+
+prereleaseTyToNum :: PrereleaseType -> Word64
+prereleaseTyToNum Alpha = 0
+prereleaseTyToNum Beta  = 1
+prereleaseTyToNum RC    = 3
+
+numToPrereleaseTy :: Word64 -> PrereleaseType
+numToPrereleaseTy 0 = Alpha
+numToPrereleaseTy 1 = Beta
+numToPrereleaseTy 2 = RC
+numToPrereleaseTy _ = RC -- technically impossible, but don't want partial fns
 
 data Prerelease = Prerelease
     { __prType  :: !PrereleaseType
