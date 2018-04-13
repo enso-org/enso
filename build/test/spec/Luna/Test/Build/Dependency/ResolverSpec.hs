@@ -77,6 +77,9 @@ spec = do
 
     describe "Satisfiable package sets" $ do
         it "Basic package set" $ shouldSolveAs basicConstraints basicVersions
+            {- $ M.fromList [ ("Bar", Version 1 6 0 Nothing) -}
+                         {- , ("Baz", Version 2 0 0 (Just (Prerelease RC 1))) -}
+                         {- , ("Foo", Version 1 0 0 (Just (Prerelease Beta 3))) ] -}
             $ M.fromList [ ("Bar", Version 1 5 0 Nothing)
                          , ("Baz", Version 2 0 0 (Just (Prerelease RC 1)))
                          , ("Foo", Version 1 0 0 (Just (Prerelease Beta 3))) ]

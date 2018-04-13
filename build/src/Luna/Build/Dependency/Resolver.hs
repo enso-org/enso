@@ -24,6 +24,7 @@ solverConfig = defaultSMTCfg
 data SolverFailure
     = UnavailablePackages [Text]
     | UnsatisfiableConstraints
+    | UnknownSolution Text
     deriving (Eq, Generic, Ord, Show)
 
 data SVersion = SVersion
@@ -134,12 +135,17 @@ constraintQuery constraints versions = do
 
     constrain $ bAnd packageDisjunction
 
-    -- Extract the results after running if sat
+    -- Ensure the solver gets the maximum of each Package version
+    {- sequence $ maximize "" <$> packageSyms -}
+
+    -- Extract the results
     query $ do
         satResult <- checkSat
         case satResult of
             Unsat -> pure $ Left UnsatisfiableConstraints
-            Unk   -> pure $ Left UnsatisfiableConstraints
+            Unk   -> do
+                reason <- getUnknownReason
+                pure $ Left $ UnknownSolution $ Text.pack reason
             Sat   -> do
                 concreteVersions <- sequence $ extractSVersion <$> packageSyms
                 pure $ Right $ M.fromList $ zip packageNames concreteVersions
@@ -153,7 +159,5 @@ solveConstraints constraints versions = do
                             $ M.keys constraints
         pure $ Left $ UnavailablePackages missingPackages
     else do
-        result <- liftIO $ runSMTWith solverConfig
-                $ constraintQuery constraints versions
-        pure result
+        liftIO $ runSMTWith solverConfig $ constraintQuery constraints versions
 
