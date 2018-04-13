@@ -143,7 +143,7 @@ constraintQuery constraints versions = do
 
     _ <- sequence $ genNamedConstraint <$> namedDisjunctions
 
-    -- Ensure the solver gets the maximum of each Package version
+    -- TODO [Ara] Ensure the solver gets the maximum of each Package version
 
     -- Set solver options prior to calling `checkSat`
     setOption $ ProduceUnsatCores True
@@ -162,7 +162,6 @@ constraintQuery constraints versions = do
                 concreteVersions <- sequence $ extractSVersion <$> packageSyms
                 pure $ Right $ M.fromList $ zip packageNames concreteVersions
 
--- TODO [Ara] Want to provide the maximal package version in the bounds.
 solveConstraints :: (MonadIO m) => Constraints -> Versions
                  -> m (Either SolverFailure PackageSet)
 solveConstraints constraints versions = do
