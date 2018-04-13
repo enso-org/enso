@@ -26,7 +26,7 @@ shouldNotSolveAs constraints versions failure = do
 basicConstraints :: Constraints
 basicConstraints = M.fromList
     [ ("Foo",
-        [ Constraint ConstraintEQ (Version 1 3 1 Nothing) -- TODO Change me back to ConstraintLT
+        [ Constraint ConstraintLT (Version 1 3 1 Nothing) -- TODO Change me back to ConstraintLT
         , Constraint ConstraintEQ (Version 1 0 0 (Just (Prerelease Beta 3))) ])
     , ("Bar", [ Constraint ConstraintGT (Version 1 3 0 Nothing) ])
     , ("Baz",
@@ -68,6 +68,8 @@ missingPackages = M.fromList
         [ Version 1 3 0 Nothing
         , Version 2 0 0 (Just (Prerelease RC 1)) ]) ]
 
+-- FIXME [Ara] These tests are VERY brittle while the optimisation goal is not
+-- in place.
 spec :: Spec
 spec = do
     describe "Unavailable packages" $ do

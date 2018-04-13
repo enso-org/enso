@@ -16,8 +16,6 @@ import Data.SBV.Control hiding (Version)
 import Luna.Build.Dependency.Constraint
 import qualified Luna.Build.Dependency.Version as V
 
-import Debug.Trace
-
 solverConfig :: SMTConfig
 solverConfig = defaultSMTCfg
 
@@ -103,6 +101,9 @@ makeRestriction (pkg, Constraint ty ver) = pkg `op` versionToSVersion ver
                     ConstraintLE -> (.<=)
                     ConstraintGE -> (.>=)
 
+genNamedConstraint :: (String, SBool) -> Symbolic ()
+genNamedConstraint (name, con) = namedConstraint name con >> pure ()
+
 constraintQuery :: Constraints -> Versions
                 -> Symbolic (Either SolverFailure PackageSet)
 constraintQuery constraints versions = do
@@ -117,26 +118,32 @@ constraintQuery constraints versions = do
                                 a)
                            <$> zip requiredPrereleases (M.elems versions)
 
+    -- Make a symbol for each package name
     packageSyms <- sequence $ sVersion . Text.unpack <$> packageNames
 
     -- Restrict symbols by version bounds
-    let symConstraintPairs = flatten $ zip packageSyms constraintLists
-        flatten a          = concat $ convert <$> a
-        convert (a, b)     = (\x -> (a, x)) <$> b
+    let nameSymConstraints       = zip3 packageNames packageSyms constraintLists
+        triple (name, sym, vers) = (\x -> (name, sym, x)) <$> vers
+        triples                  = concat $ triple <$> nameSymConstraints
+        nameConstraintPairs      = (\(name, sym, ver) ->
+                                    ( (Text.unpack name) <> " " <> show ver
+                                    , makeRestriction (sym, ver) ))
+                                <$> triples
 
-    namedConstraint "User" $ bAnd $ makeRestriction <$> symConstraintPairs
+    _ <- sequence $ genNamedConstraint <$> nameConstraintPairs
 
     -- Restrict symbols by available versions
-    let makeEqualities (pkg, version) = (\x -> pkg .== versionToSVersion x)
-                                     <$> version
-        packageEqualities             = makeEqualities
-                                     <$> zip packageSyms filteredVersions
-        packageDisjunction            = bOr <$> packageEqualities
+    let mkEqs (pkg, ver)   = (\x -> pkg .== versionToSVersion x) <$> ver
+        packageEqualities  = mkEqs <$> zip packageSyms filteredVersions
+        packageDisjunction = bOr <$> packageEqualities
+        namedDisjunctions  = zip ((\nm ->
+                                    "Available " <> Text.unpack nm)
+                                    <$> packageNames)
+                                 packageDisjunction
 
-    namedConstraint "Available Versions" $ bAnd packageDisjunction
+    _ <- sequence $ genNamedConstraint <$> namedDisjunctions
 
     -- Ensure the solver gets the maximum of each Package version
-    {- sequence $ maximize "" <$> packageSyms -}
 
     -- Set solver options prior to calling `checkSat`
     setOption $ ProduceUnsatCores True
