@@ -23,7 +23,7 @@ solverConfig = defaultSMTCfg
 
 data SolverFailure
     = UnavailablePackages [Text]
-    | UnsatisfiableConstraints
+    | UnsatisfiableConstraints [Text]
     | UnknownSolution Text
     deriving (Eq, Generic, Ord, Show)
 
@@ -124,7 +124,7 @@ constraintQuery constraints versions = do
         flatten a          = concat $ convert <$> a
         convert (a, b)     = (\x -> (a, x)) <$> b
 
-    constrain $ bAnd $ makeRestriction <$> symConstraintPairs
+    namedConstraint "User" $ bAnd $ makeRestriction <$> symConstraintPairs
 
     -- Restrict symbols by available versions
     let makeEqualities (pkg, version) = (\x -> pkg .== versionToSVersion x)
@@ -133,16 +133,21 @@ constraintQuery constraints versions = do
                                      <$> zip packageSyms filteredVersions
         packageDisjunction            = bOr <$> packageEqualities
 
-    constrain $ bAnd packageDisjunction
+    namedConstraint "Available Versions" $ bAnd packageDisjunction
 
     -- Ensure the solver gets the maximum of each Package version
     {- sequence $ maximize "" <$> packageSyms -}
+
+    -- Set solver options prior to calling `checkSat`
+    setOption $ ProduceUnsatCores True
 
     -- Extract the results
     query $ do
         satResult <- checkSat
         case satResult of
-            Unsat -> pure $ Left UnsatisfiableConstraints
+            Unsat -> do
+                core <- getUnsatCore
+                pure $ Left $ UnsatisfiableConstraints $ Text.pack <$> core
             Unk   -> do
                 reason <- getUnknownReason
                 pure $ Left $ UnknownSolution $ Text.pack reason
@@ -150,6 +155,7 @@ constraintQuery constraints versions = do
                 concreteVersions <- sequence $ extractSVersion <$> packageSyms
                 pure $ Right $ M.fromList $ zip packageNames concreteVersions
 
+-- TODO [Ara] Is it possible to generate these as individual named constraints?
 -- TODO [Ara] Want to provide the maximal package version in the bounds.
 solveConstraints :: (MonadIO m) => Constraints -> Versions
                  -> m (Either SolverFailure PackageSet)
