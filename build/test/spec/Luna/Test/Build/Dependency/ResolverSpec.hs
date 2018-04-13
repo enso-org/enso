@@ -18,19 +18,26 @@ shouldSolveAs constraints versions set = do
 shouldNotSolveAs :: Constraints -> Versions -> SolverFailure -> Expectation
 shouldNotSolveAs constraints versions failure = do
     solverResult <- solveConstraints constraints versions
-    let solved = case solverResult of
-            Left returnedFailure -> failure /= returnedFailure
-            Right _  -> True
-    solved `shouldBe` False
+    solverResult `shouldBe` (Left failure)
 
 basicConstraints :: Constraints
 basicConstraints = M.fromList
     [ ("Foo",
-        [ Constraint ConstraintLT (Version 1 3 1 Nothing) -- TODO Change me back to ConstraintLT
+        [ Constraint ConstraintLT (Version 1 3 1 Nothing)
         , Constraint ConstraintEQ (Version 1 0 0 (Just (Prerelease Beta 3))) ])
     , ("Bar", [ Constraint ConstraintGT (Version 1 3 0 Nothing) ])
     , ("Baz",
         [ Constraint ConstraintEQ (Version 2 0 0 (Just (Prerelease RC 1)))
+        , Constraint ConstraintGT (Version 1 3 2 Nothing) ]) ]
+
+unsatConstraints :: Constraints
+unsatConstraints = M.fromList
+    [ ("Foo",
+        [ Constraint ConstraintEQ (Version 1 3 1 Nothing)
+        , Constraint ConstraintEQ (Version 1 0 0 (Just (Prerelease Beta 3))) ])
+    , ("Bar", [ Constraint ConstraintGT (Version 1 3 0 Nothing) ])
+    , ("Baz",
+        [ Constraint ConstraintLT (Version 2 0 0 Nothing)
         , Constraint ConstraintGT (Version 1 3 2 Nothing) ]) ]
 
 basicVersions :: Versions
@@ -68,6 +75,8 @@ missingPackages = M.fromList
         [ Version 1 3 0 Nothing
         , Version 2 0 0 (Just (Prerelease RC 1)) ]) ]
 
+-- TODO [Ara] These tests will be significantly fleshed out once I implement the
+-- optimisation goal.
 -- FIXME [Ara] These tests are VERY brittle while the optimisation goal is not
 -- in place.
 spec :: Spec
@@ -84,5 +93,7 @@ spec = do
                          , ("Foo", Version 1 0 0 (Just (Prerelease Beta 3))) ]
 
     describe "Unsatisfiable package sets" $ do
-        it "temp" $ True
+        it "Basic unsatisfiable set"
+            $ shouldNotSolveAs unsatConstraints basicVersions
+            $ UnsatisfiableConstraints ["Foo == 1.0.0-beta.3", "Foo == 1.3.1"]
 
