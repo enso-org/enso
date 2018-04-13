@@ -46,7 +46,7 @@ unspaced :: Name -> SpacedName
 unspaced = SpacedName Unspaced
 
 spacingBool :: Bool -> Spacing
-spacingBool b = if b then Unspaced else Spaced
+spacingBool b = if b then Spaced else Unspaced
 
 spacedNameIf :: Bool -> Name -> SpacedName
 spacedNameIf = SpacedName . spacingBool

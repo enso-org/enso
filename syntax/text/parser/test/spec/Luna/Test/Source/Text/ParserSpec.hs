@@ -87,11 +87,11 @@ shouldParseAs parser input output {-desiredSpan-} = runPass' $ do
 shouldParseItself :: AsgParser IR.SomeTerm -> Text {- -> (Delta, Delta)-} -> IO ()
 shouldParseItself parser input = shouldParseAs parser input input
 
-unitAs = shouldParseAs     Parsing.unit'
-unit   = shouldParseItself Parsing.unit'
-exprAs = shouldParseAs     Parsing.expr
-expr   = shouldParseItself Parsing.expr
-
+unitAs   = shouldParseAs     Parsing.unit'
+unit     = shouldParseItself Parsing.unit'
+unit_n s = unitAs s $ "\n" <> s
+exprAs   = shouldParseAs     Parsing.expr
+expr     = shouldParseItself Parsing.expr
 
 
 -------------------
@@ -314,11 +314,11 @@ definitionFunctionSpec = describe "function" $ do
 
 unitSpec :: Spec
 unitSpec = describe "unit definitions" $ do
-    it "value definition"               $ unitAs "def pi: 3.14"       "<function 'pi'>"  -- [(4,2),(0,12),(0,12),(0,12)]
-    it "expression definition"          $ unitAs "def foo: a + b"     "<function 'foo'>" -- [(4,3),(0,14),(0,14),(0,14)]
-    it "function definition"            $ unitAs "def foo a b: a + b" "<function 'foo'>" -- [(4,3),(0,18),(0,18),(0,18)]
-    it "operator definition"            $ unitAs "def + a b: a.+ b"   "<function '+'>"   -- [(4,1),(0,16),(0,16),(0,16)]
-    it "function signature definition"  $ unit   "def foo :: a -> Vector a"              -- [(4,3),(0,1),(1,2),(0,4),(0,6),(1,1),(1,8),(4,13),(0,24),(0,24),(0,24)]
+    it "value definition"               $ unit_n "def pi: 3.14"       -- [(4,2),(0,12),(0,12),(0,12)]
+    it "expression definition"          $ unit_n "def foo: a + b"     -- [(4,3),(0,14),(0,14),(0,14)]
+    it "function definition"            $ unit_n "def foo a b: a + b" -- [(4,3),(0,18),(0,18),(0,18)]
+    it "operator definition"            $ unit_n "def + a b: a . + b" -- [(4,1),(0,16),(0,16),(0,16)]
+    it "function signature definition"  $ unit_n "def foo :: a -> Vector a"              -- [(4,3),(0,1),(1,2),(0,4),(0,6),(1,1),(1,8),(4,13),(0,24),(0,24),(0,24)]
 
 caseSpec :: Spec
 caseSpec = describe "case expression" $ do
@@ -336,15 +336,15 @@ definitionSpec = do
 
 fixSpec :: Spec
 fixSpec = do
-    it "error" $ expr "foo bar :: x"
+    it "error" $ expr "2 2 :: x"
 
 spec :: Spec
 spec = do
-    -- identSpec
-    -- literalSpec
-    -- termSpec
-    -- definitionSpec
-    fixSpec
+    identSpec
+    literalSpec
+    termSpec
+    definitionSpec
+    -- fixSpec
     -- pure (s)
 
 
