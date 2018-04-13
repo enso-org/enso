@@ -10,37 +10,18 @@ import qualified Data.Map.Strict as M (fromList)
 
 import Test.Hspec
 
-shouldSolve :: Constraints -> Versions -> Expectation
-shouldSolve constraints versions = do
-    solverResult <- solveConstraints constraints versions
-    let solved = case solverResult of
-            Left _  -> False
-            Right model -> traceShow model True
-    solved `shouldBe` True
-
-shouldNotSolve :: Constraints -> Versions -> Expectation
-shouldNotSolve constraints versions = do
-    solverResult <- solveConstraints constraints versions
-    let solved = case solverResult of
-            Left _  -> False
-            Right _ -> True
-    solved `shouldBe` False
-
-shouldNotSolveAs :: Constraints -> Versions -> Text -> Expectation
-shouldNotSolveAs constraints versions message = do
-    solverResult <- solveConstraints constraints versions
-    let solved = case solverResult of
-            Left msg -> message /= msg
-            Right _  -> True
-    solved `shouldBe` False
-
 shouldSolveAs :: Constraints -> Versions -> PackageSet -> Expectation
 shouldSolveAs constraints versions set = do
     solverResult <- solveConstraints constraints versions
+    solverResult `shouldBe` (Right set)
+
+shouldNotSolveAs :: Constraints -> Versions -> SolverFailure -> Expectation
+shouldNotSolveAs constraints versions failure = do
+    solverResult <- solveConstraints constraints versions
     let solved = case solverResult of
-            Left _ -> False
-            Right pkgs -> set == pkgs
-    solved `shouldBe` True
+            Left returnedFailure -> failure /= returnedFailure
+            Right _  -> True
+    solved `shouldBe` False
 
 basicConstraints :: Constraints
 basicConstraints = M.fromList
@@ -92,18 +73,14 @@ spec = do
     describe "Unavailable packages" $ do
         it "No available releases for `Bar`"
             $ shouldNotSolveAs basicConstraints missingPackages
-            "Cannot Resolve Dependencies: Missing packages for Bar."
+            $ UnavailablePackages ["Bar"]
 
-    {- describe "Satisfiable package sets" $ do -}
-        {- it "test1" $ True -}
-        {- it "Unconstrained Package" $ True -- what happens when a package name is given without any constraints -}
-{-  -}
-    {- describe "Unsatisfiable package sets" $ do -}
-        {- it "test2" $ True -}
-{-  -}
-    {- describe "Exact solver output" $ do -}
-        {- it "test3" $ True -}
+    describe "Satisfiable package sets" $ do
+        it "Basic package set" $ shouldSolveAs basicConstraints basicVersions
+            $ M.fromList [ ("Bar", Version 1 5 0 Nothing)
+                         , ("Baz", Version 2 0 0 (Just (Prerelease RC 1)))
+                         , ("Foo", Version 1 0 0 (Just (Prerelease Beta 3))) ]
 
-    describe "testing" $ do
-        it "test" $ shouldSolve basicConstraints basicVersions
+    describe "Unsatisfiable package sets" $ do
+        it "temp" $ True
 

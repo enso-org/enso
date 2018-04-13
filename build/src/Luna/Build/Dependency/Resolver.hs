@@ -1,4 +1,7 @@
-module Luna.Build.Dependency.Resolver ( solveConstraints ) where
+module Luna.Build.Dependency.Resolver
+    ( SolverFailure(..)
+    , solveConstraints
+    ) where
 
 import Prologue hiding ( Constraint, Constraints )
 
@@ -16,7 +19,12 @@ import qualified Luna.Build.Dependency.Version as V
 import Debug.Trace
 
 solverConfig :: SMTConfig
-solverConfig = defaultSMTCfg -- current default is Z3, so leave it as is
+solverConfig = defaultSMTCfg
+
+data SolverFailure
+    = UnavailablePackages [Text]
+    | UnsatisfiableConstraints
+    deriving (Eq, Generic, Ord, Show)
 
 data SVersion = SVersion
     { __major             :: SWord64
@@ -94,7 +102,8 @@ makeRestriction (pkg, Constraint ty ver) = pkg `op` versionToSVersion ver
                     ConstraintLE -> (.<=)
                     ConstraintGE -> (.>=)
 
-constraintQuery :: Constraints -> Versions -> Symbolic (Either Text PackageSet)
+constraintQuery :: Constraints -> Versions
+                -> Symbolic (Either SolverFailure PackageSet)
 constraintQuery constraints versions = do
     let packageNames        = M.keys constraints
         constraintLists     = M.elems constraints
@@ -129,24 +138,20 @@ constraintQuery constraints versions = do
     query $ do
         satResult <- checkSat
         case satResult of
-            Unsat -> pure $ Left "Unsat"
-            Unk -> pure $ Left "Unknown solution."
-            Sat -> do
+            Unsat -> pure $ Left UnsatisfiableConstraints
+            Unk   -> pure $ Left UnsatisfiableConstraints
+            Sat   -> do
                 concreteVersions <- sequence $ extractSVersion <$> packageSyms
                 pure $ Right $ M.fromList $ zip packageNames concreteVersions
 
 -- TODO [Ara] Want to provide the maximal package version in the bounds.
 solveConstraints :: (MonadIO m) => Constraints -> Versions
-                 -> m (Either Text PackageSet)
+                 -> m (Either SolverFailure PackageSet)
 solveConstraints constraints versions = do
     if (L.sort $ M.keys constraints) /= (L.sort $ M.keys versions) then do
         let missingPackages = filter (\x -> x `notElem` M.keys versions)
                             $ M.keys constraints
-            errMsg          = "Cannot Resolve Dependencies: "
-                            <> "Missing packages for "
-                            <> intercalate ", " missingPackages <> "."
-        traceShowM missingPackages
-        pure $ Left errMsg
+        pure $ Left $ UnavailablePackages missingPackages
     else do
         result <- liftIO $ runSMTWith solverConfig
                 $ constraintQuery constraints versions
