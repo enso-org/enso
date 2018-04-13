@@ -1,19 +1,11 @@
 module Luna.Build.Dependency.Resolver ( solveConstraints ) where
 
-import Prologue hiding ( (.>), Constraint, Constraints )
-
-import qualified Prelude as P
+import Prologue hiding ( Constraint, Constraints )
 
 import qualified Data.Text as Text
 
-import qualified Control.Monad.Trans as C
 import qualified Data.Map.Strict     as M
-import qualified Data.Traversable    as T
 import qualified Data.List           as L
-
-import Control.Applicative
-import Control.Monad ( join )
-import Data.Maybe
 
 import Data.SBV
 import Data.SBV.Control hiding (Version)
@@ -23,7 +15,6 @@ import qualified Luna.Build.Dependency.Version as V
 
 import Debug.Trace
 
--- TODO [Ara] define this ourselves
 solverConfig :: SMTConfig
 solverConfig = defaultSMTCfg -- current default is Z3, so leave it as is
 
@@ -77,10 +68,6 @@ literalSVersion :: Word64 -> Word64 -> Word64 -> Word64 -> Word64 -> SVersion
 literalSVersion a b c d e =
     SVersion (literal a) (literal b) (literal c) (literal d) (literal e)
 
-symLiteralSVersion :: Word64 -> Word64 -> Word64 -> Word64 -> Word64
-                   -> Symbolic SVersion
-symLiteralSVersion a b c d e = pure $ literalSVersion a b c d e
-
 versionToSVersion :: V.Version -> SVersion
 versionToSVersion (V.Version a b c pre) = literalSVersion a b c d e
     where (d, e) = case pre of
@@ -111,28 +98,30 @@ constraintQuery :: Constraints -> Versions -> Symbolic (Either Text PackageSet)
 constraintQuery constraints versions = do
     let packageNames        = M.keys constraints
         constraintLists     = M.elems constraints
-        availableVersions   = M.elems versions
         requiredPrereleases = fmap (fmap (\(Constraint _ ver) -> ver))
                             $ (filter isEQPrereleaseConstraint)
                            <$> constraintLists
-        filteredVersions    = zip requiredPrereleases availableVersions
-
-    traceShowM requiredPrereleases
+        filteredVersions    = (\(r, a) ->
+                                filter (\x ->
+                                    (not $ V.isPrerelease x) || x `elem` r)
+                                a)
+                           <$> zip requiredPrereleases (M.elems versions)
 
     packageSyms <- sequence $ sVersion . Text.unpack <$> packageNames
 
     -- Restrict symbols by version bounds
     let symConstraintPairs = flatten $ zip packageSyms constraintLists
-        flatten a = concat $ convert <$> a
-        convert (a, b) = (\x -> (a, x)) <$> b
+        flatten a          = concat $ convert <$> a
+        convert (a, b)     = (\x -> (a, x)) <$> b
 
     constrain $ bAnd $ makeRestriction <$> symConstraintPairs
 
     -- Restrict symbols by available versions
-    let packageEqualities = makeEqualities <$> zip packageSyms filteredVersions
-        makeEqualities (pkg, version) = (\x -> pkg .== versionToSVersion x)
+    let makeEqualities (pkg, version) = (\x -> pkg .== versionToSVersion x)
                                      <$> version
-        packageDisjunction = bOr <$> packageEqualities
+        packageEqualities             = makeEqualities
+                                     <$> zip packageSyms filteredVersions
+        packageDisjunction            = bOr <$> packageEqualities
 
     constrain $ bAnd packageDisjunction
 
@@ -146,18 +135,20 @@ constraintQuery constraints versions = do
                 concreteVersions <- sequence $ extractSVersion <$> packageSyms
                 pure $ Right $ M.fromList $ zip packageNames concreteVersions
 
--- TODO [Ara] function to detect prereleases not able to be chosen.
--- TODO [Ara] Should not select prereleases unless there is an EQ constraint
 -- TODO [Ara] Want to provide the maximal package version in the bounds.
-solveConstraints :: (MonadIO m) => Constraints -> Versions -> m (Either Int Int)
+solveConstraints :: (MonadIO m) => Constraints -> Versions
+                 -> m (Either Text PackageSet)
 solveConstraints constraints versions = do
     if (L.sort $ M.keys constraints) /= (L.sort $ M.keys versions) then do
-        pure $ Left 0
+        let missingPackages = filter (\x -> x `notElem` M.keys versions)
+                            $ M.keys constraints
+            errMsg          = "Cannot Resolve Dependencies: "
+                            <> "Missing packages for "
+                            <> intercalate ", " missingPackages <> "."
+        traceShowM missingPackages
+        pure $ Left errMsg
     else do
-        result <- liftIO $ runSMT $ constraintQuery constraints versions
-        case result of
-            Left _ -> pure $ Left 0
-            Right foo -> do
-                traceShowM foo
-                pure $ Right 1
+        result <- liftIO $ runSMTWith solverConfig
+                $ constraintQuery constraints versions
+        pure result
 
