@@ -38,8 +38,7 @@ instance Semigroup   FastString            where (<>)    = FastString.appendFS ;
 -- === Definition === --
 
 newtype Value = Value FastString
-    deriving ( Binary, Data, Eq, Prelude.Monoid, Ord, Outputable, Semigroup
-             , Uniquable )
+    deriving ( Binary, Data, Eq, Prelude.Monoid, Ord, Outputable, Uniquable )
 makeLenses ''Value
 
 
@@ -145,6 +144,10 @@ instance Convertible Name   Value  where
             Just n  -> pure n
     {-# NOINLINE convert #-}
 
+instance Semigroup Value where
+    Value v <> Value v' = out where
+        !out = convert $ v <> v'
+    {-# INLINE (<>) #-}
 
 -- TODO !!!!!!
 -- Remove?

@@ -336,7 +336,7 @@ definitionSpec = do
 
 fixSpec :: Spec
 fixSpec = do
-    it "error" $ expr "2 2 :: x"
+    it "error" $ expr "a.x = v"
 
 spec :: Spec
 spec = do
