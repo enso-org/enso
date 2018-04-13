@@ -9,17 +9,18 @@ import qualified Control.Monad                  as M
 import qualified Control.Monad.State            as S
 import qualified Control.Monad.State.Layered    as State
 import           Data.Text.Position
-import           Language.Symbol
+import qualified Language.Symbol                as Symbol
 import qualified Language.Symbol.Operator.Assoc as Assoc
 import qualified Language.Symbol.Operator.Prec  as Prec
-import           Text.Megaparsec                (SourcePos, getPosition,
-                                                 setPosition, unexpected)
-import           Text.Megaparsec.Ext
-import           Text.Megaparsec.Prim           (MonadParsec)
-import           Text.Parser.Combinators
+
+import Language.Symbol         (Labeled (Labeled), Symbol (Symbol))
+import Text.Megaparsec         (SourcePos, getPosition, setPosition, unexpected)
+import Text.Megaparsec.Ext
+import Text.Megaparsec.Prim    (MonadParsec)
+import Text.Parser.Combinators
 
 
-type Term s l a = Labeled l (ExprSymbol s a)
+type Term s l a = Labeled l (Symbol.ExprSymbol s a)
 
 ------------------------------
 -- === Expression trees === --
@@ -28,14 +29,14 @@ type Term s l a = Labeled l (ExprSymbol s a)
 -- === Definitions === --
 
 data ExprTree n a
-    = InfixNode  (Term Infix  n a) (ExprTree n a) (ExprTree n a)
-    | PrefixNode (Term Prefix n a) (ExprTree n a)
-    | SuffixNode (Term Suffix n a) (ExprTree n a)
+    = InfixNode  (Term Symbol.Infix  n a) (ExprTree n a) (ExprTree n a)
+    | PrefixNode (Term Symbol.Prefix n a) (ExprTree n a)
+    | SuffixNode (Term Symbol.Suffix n a) (ExprTree n a)
     | AtomNode   a
     deriving (Show)
 
-data Expregment n a = InfixSegment   (Term Infix  n a) (ExprTree n a)
-                    | SuffixSegment (Term Suffix n a)
+data Expregment n a = InfixSegment  (Term Symbol.Infix  n a) (ExprTree n a)
+                    | SuffixSegment (Term Symbol.Suffix n a)
 
 
 -- === Modification === --
@@ -82,9 +83,9 @@ insertSegment seg tree = case seg of
 assembleExpr :: ExprTree n a -> a
 assembleExpr = \case
     AtomNode   t      -> t
-    InfixNode  op l r -> (op ^. body) (assembleExpr l) (assembleExpr r)
-    PrefixNode op   r -> (op ^. body) (assembleExpr r)
-    SuffixNode op   l -> (op ^. body) (assembleExpr l)
+    InfixNode  op l r -> (op ^. Symbol.body) (assembleExpr l) (assembleExpr r)
+    PrefixNode op   r -> (op ^. Symbol.body) (assembleExpr r)
+    SuffixNode op   l -> (op ^. Symbol.body) (assembleExpr l)
 
 
 
@@ -94,19 +95,19 @@ assembleExpr = \case
 
 -- === Parser matches === --
 
-matchPrefixM :: MonadParsec e s m => (Term Prefix n a -> m out) -> Labeled n (UniSymbol Expr a) -> m out
-matchSuffixM :: MonadParsec e s m => (Term Suffix n a -> m out) -> Labeled n (UniSymbol Expr a) -> m out
-matchInfixM  :: MonadParsec e s m => (Term Infix  n a -> m out) -> Labeled n (UniSymbol Expr a) -> m out
-matchAtomM   :: MonadParsec e s m => (Term Atom   n a -> m out) -> Labeled n (UniSymbol Expr a) -> m out
-matchPrefixM f (Labeled l s) = case s of Prefix a -> f (Labeled l a) ; _ -> expected "prefix operator"
-matchSuffixM f (Labeled l s) = case s of Suffix a -> f (Labeled l a) ; _ -> expected "suffix operator"
-matchInfixM  f (Labeled l s) = case s of Infix  a -> f (Labeled l a) ; _ -> expected "infix operator"
-matchAtomM   f (Labeled l s) = case s of Atom   a -> f (Labeled l a) ; _ -> expected "term"
+matchPrefixM :: MonadParsec e s m => (Term Symbol.Prefix n a -> m out) -> Labeled n (Symbol.UniSymbol Symbol.Expr a) -> m out
+matchSuffixM :: MonadParsec e s m => (Term Symbol.Suffix n a -> m out) -> Labeled n (Symbol.UniSymbol Symbol.Expr a) -> m out
+matchInfixM  :: MonadParsec e s m => (Term Symbol.Infix  n a -> m out) -> Labeled n (Symbol.UniSymbol Symbol.Expr a) -> m out
+matchAtomM   :: MonadParsec e s m => (Term Symbol.Atom   n a -> m out) -> Labeled n (Symbol.UniSymbol Symbol.Expr a) -> m out
+matchPrefixM f (Labeled l s) = case s of Symbol.Prefix a -> f (Labeled l a) ; _ -> expected "prefix operator"
+matchSuffixM f (Labeled l s) = case s of Symbol.Suffix a -> f (Labeled l a) ; _ -> expected "suffix operator"
+matchInfixM  f (Labeled l s) = case s of Symbol.Infix  a -> f (Labeled l a) ; _ -> expected "infix operator"
+matchAtomM   f (Labeled l s) = case s of Symbol.Atom   a -> f (Labeled l a) ; _ -> expected "term"
 
-matchPrefix :: MonadParsec e s m => (Term Prefix n a -> out) -> Labeled n (UniSymbol Expr a) -> m out
-matchSuffix :: MonadParsec e s m => (Term Suffix n a -> out) -> Labeled n (UniSymbol Expr a) -> m out
-matchInfix  :: MonadParsec e s m => (Term Infix  n a -> out) -> Labeled n (UniSymbol Expr a) -> m out
-matchAtom   :: MonadParsec e s m => (Term Atom   n a -> out) -> Labeled n (UniSymbol Expr a) -> m out
+matchPrefix :: MonadParsec e s m => (Term Symbol.Prefix n a -> out) -> Labeled n (Symbol.UniSymbol Symbol.Expr a) -> m out
+matchSuffix :: MonadParsec e s m => (Term Symbol.Suffix n a -> out) -> Labeled n (Symbol.UniSymbol Symbol.Expr a) -> m out
+matchInfix  :: MonadParsec e s m => (Term Symbol.Infix  n a -> out) -> Labeled n (Symbol.UniSymbol Symbol.Expr a) -> m out
+matchAtom   :: MonadParsec e s m => (Term Symbol.Atom   n a -> out) -> Labeled n (Symbol.UniSymbol Symbol.Expr a) -> m out
 matchPrefix = matchPrefixM . fmap return
 matchSuffix = matchSuffixM . fmap return
 matchInfix  = matchInfixM  . fmap return
@@ -214,19 +215,19 @@ instance Assoc.Reader   name m => Assoc.Reader   name (TokenStream t m)
 
 -- === Definition === --
 
-type MonadSymStream n a = MonadTokenStream (Labeled n (UniSymbol Expr a))
+type MonadSymStream n a = MonadTokenStream (Labeled n (Symbol.UniSymbol Symbol.Expr a))
 
 
 -- === Syment accessing === --
 
-popSym :: (MonadSymStream n a m) => m (Labeled n (UniSymbol Expr a))
+popSym :: (MonadSymStream n a m) => m (Labeled n (Symbol.UniSymbol Symbol.Expr a))
 popSym = untoken <$> popToken
 
-nextSym :: (MonadSymStream n a m) => m (Labeled n (UniSymbol Expr a))
+nextSym :: (MonadSymStream n a m) => m (Labeled n (Symbol.UniSymbol Symbol.Expr a))
 nextSym = popSym
 -- nextSym = handleAffix =<< popSym
 
-tryNextSym :: (MonadSymStream n a m) => r -> (Labeled n (UniSymbol Expr a) -> m r) -> m r
+tryNextSym :: (MonadSymStream n a m) => r -> (Labeled n (Symbol.UniSymbol Symbol.Expr a) -> m r) -> m r
 tryNextSym a f = tryBind a nextSym f
 
 maybeToken :: (MonadTokenStream t m) => a -> (Token t -> m a) -> m a
@@ -234,7 +235,7 @@ maybeToken def f = (<|> pure def) $ do
     t <- popToken
     f t <|> (def <$ pushToken t)
 
-maybeSym :: (MonadSymStream n a m) => r -> (Labeled n (UniSymbol Expr a) -> m r) -> m r
+maybeSym :: (MonadSymStream n a m) => r -> (Labeled n (Symbol.UniSymbol Symbol.Expr a) -> m r) -> m r
 maybeSym def f = maybeToken def (f . untoken)
 
 
@@ -242,37 +243,37 @@ maybeSym def f = maybeToken def (f . untoken)
 
 
 -- FIXME[WD]: Remove MonadFail dep
-buildExpr :: (MonadFail m, Prec.RelReader n m, Assoc.Reader n m, MonadParsec e s m) => Tokens (Labeled n (UniSymbol Expr a)) -> m a
+buildExpr :: (MonadFail m, Prec.RelReader n m, Assoc.Reader n m, MonadParsec e s m) => Tokens (Labeled n (Symbol.UniSymbol Symbol.Expr a)) -> m a
 buildExpr = assembleExpr .: evalTokenStreamT buildExprTree
 
 -- FIXME[WD]: Remove MonadFail dep
 buildExprTree :: (MonadFail m, MonadSymStream n a m, Prec.RelReader n m, Assoc.Reader n m, MonadParsec e s m) => m (ExprTree n a)
 buildExprTree = nextSym >>= \case
-    Labeled _ (Atom (Symbol t)) -> buildExprTreeBody $ AtomNode t
+    Labeled _ (Symbol.Atom (Symbol t)) -> buildExprTreeBody $ AtomNode t
     _                           -> error "TODO1"
 
 -- FIXME[WD]: Remove MonadFail dep
 buildExprTreeBody :: (MonadFail m, MonadSymStream n a m, Prec.RelReader n m, Assoc.Reader n m, MonadParsec e s m) => ExprTree n a -> m (ExprTree n a)
 buildExprTreeBody tree = tryNextSym tree . matchInfixM $ \op ->
                          (nextSym >>=)   . matchAtomM  $ \t  ->
-                         buildExprTreeBody =<< insertSegment (InfixSegment op $ AtomNode $ t ^. body) tree
+                         buildExprTreeBody =<< insertSegment (InfixSegment op $ AtomNode $ t ^. Symbol.body) tree
 
 
 
 -- FIXME[WD]: Remove MonadFail dep
-buildExprTree_termApp :: (MonadFail m, MonadSymStream n a m, Prec.RelReader n m, Assoc.Reader n m, MonadParsec e s m) => Labeled n (ExprSymbol Infix a) -> m (ExprTree n a)
+buildExprTree_termApp :: (MonadFail m, MonadSymStream n a m, Prec.RelReader n m, Assoc.Reader n m, MonadParsec e s m) => Labeled n (Symbol.ExprSymbol Symbol.Infix a) -> m (ExprTree n a)
 buildExprTree_termApp app = nextSym >>= \case
-    Labeled _ (Atom (Symbol t)) -> buildExprTreeBody_termApp app $ AtomNode t
-    Labeled l (Prefix op)       -> (nextSym >>=) . matchAtomM $ \t -> buildExprTreeBody_termApp app $ PrefixNode (Labeled l op) (AtomNode . unwrap $ unlabel t)
+    Labeled _ (Symbol.Atom (Symbol t)) -> buildExprTreeBody_termApp app $ AtomNode t
+    Labeled l (Symbol.Prefix op)       -> (nextSym >>=) . matchAtomM $ \t -> buildExprTreeBody_termApp app $ PrefixNode (Labeled l op) (AtomNode . unwrap $ Symbol.unlabel t)
     _                           -> error "TODO2"
 
 -- FIXME[WD]: Remove MonadFail dep
-buildExprTreeBody_termApp :: (MonadFail m, MonadSymStream n a m, Prec.RelReader n m, Assoc.Reader n m, MonadParsec e s m) => Labeled n (ExprSymbol Infix a) -> ExprTree n a -> m (ExprTree n a)
+buildExprTreeBody_termApp :: (MonadFail m, MonadSymStream n a m, Prec.RelReader n m, Assoc.Reader n m, MonadParsec e s m) => Labeled n (Symbol.ExprSymbol Symbol.Infix a) -> ExprTree n a -> m (ExprTree n a)
 buildExprTreeBody_termApp app tree = tryNextSym tree $ \(Labeled l s) -> case s of
-    Atom   t  -> insertSegment (InfixSegment app . AtomNode $ t ^. body) tree >>= buildExprTreeBody_termApp app
-    Infix  op -> (nextSym >>=) . matchAtomM $ \t -> go $ insertSegment (InfixSegment (Labeled l op) . AtomNode $ t ^. body)
-    Prefix op -> (nextSym >>=) . matchAtomM $ \t -> go $ insertSegment (InfixSegment app . PrefixNode (Labeled l op) . AtomNode $ t ^. body)
-    Suffix op -> go $ insertSegment (SuffixSegment $ Labeled l op)
+    Symbol.Atom   t  -> insertSegment (InfixSegment app . AtomNode $ t ^. Symbol.body) tree >>= buildExprTreeBody_termApp app
+    Symbol.Infix  op -> (nextSym >>=) . matchAtomM $ \t -> go $ insertSegment (InfixSegment (Labeled l op) . AtomNode $ t ^. Symbol.body)
+    Symbol.Prefix op -> (nextSym >>=) . matchAtomM $ \t -> go $ insertSegment (InfixSegment app . PrefixNode (Labeled l op) . AtomNode $ t ^. Symbol.body)
+    Symbol.Suffix op -> go $ insertSegment (SuffixSegment $ Labeled l op)
     el        -> unexpected "TODO3"
     where go f = f tree >>= buildExprTreeBody_termApp app
 
@@ -284,8 +285,8 @@ buildExpr_termApp ::
     , Assoc.Reader n m
     , MonadParsec e s m
     , Show a, Show n, MonadIO m -- DEBUG
-    ) => Labeled n (ExprSymbol Infix a)
-      -> Tokens (Labeled n (UniSymbol Expr a))
+    ) => Labeled n (Symbol.ExprSymbol Symbol.Infix a)
+      -> Tokens (Labeled n (Symbol.UniSymbol Symbol.Expr a))
       -> m a
 buildExpr_termApp app = fmap assembleExpr
                       . evalTokenStreamT (buildExprTree_termApp app)
