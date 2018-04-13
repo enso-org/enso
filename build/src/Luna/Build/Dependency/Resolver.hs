@@ -162,7 +162,6 @@ constraintQuery constraints versions = do
                 concreteVersions <- sequence $ extractSVersion <$> packageSyms
                 pure $ Right $ M.fromList $ zip packageNames concreteVersions
 
--- TODO [Ara] Is it possible to generate these as individual named constraints?
 -- TODO [Ara] Want to provide the maximal package version in the bounds.
 solveConstraints :: (MonadIO m) => Constraints -> Versions
                  -> m (Either SolverFailure PackageSet)
