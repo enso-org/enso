@@ -94,15 +94,18 @@ extractSVersion name = V.Version <$> getValue (__major name)
             else
                 pure $ Just (V.Prerelease (V.numToPrereleaseTy pre) preV)
 
-constraintQuery :: Constraints -> Versions -> Symbolic (Maybe Int)
+-- TODO [Ara] Change results to Either.
+constraintQuery :: Constraints -> Versions -> Symbolic (Maybe V.Version)
 constraintQuery constraints versions = do
     let packageNames = M.keys constraints
         unpackedConstraints = unpack constraints
         unpackedVersions = unpack versions
 
+    -- Create a symbol for each name
+    -- Constrain each name by the constraints
+    -- Extract the results after running if sat
+
     traceShowM packageNames
-    {- traceShowM unpackedConstraints -}
-    {- traceShowM unpackedVersions -}
 
     freeV1 <- sVersion "foo"
     freeV2 <- sVersion "bar"
@@ -113,12 +116,13 @@ constraintQuery constraints versions = do
 
     constrain $ literalV1 .< literalV2
 
+    -- Query a -> Symbolic a
     query $ do
         satResult <- checkSat
         case satResult of
             Unsat -> pure $ Nothing
             Unk -> pure $ Nothing
-            Sat -> pure $ Just 1
+            Sat -> Just <$> extractSVersion freeV1
 
 -- TODO [Ara] function to detect prereleases not able to be chosen.
 -- Can this be done faster than n^2?
@@ -133,10 +137,12 @@ solveConstraints constraints versions = do
         pure $ Left 0
     else do
         result <- liftIO $ runSolver constraints versions
-        pure $ case result of
-            Nothing -> Left 0
-            (Just _) -> Right 1
+        case result of
+            Nothing -> pure $ Left 0
+            (Just foo) -> do
+                traceShowM foo
+                pure $ Right 1
 
-runSolver :: Constraints -> Versions -> IO (Maybe Int)
+runSolver :: Constraints -> Versions -> IO (Maybe V.Version)
 runSolver constraints versions = runSMT $ constraintQuery constraints versions
 
