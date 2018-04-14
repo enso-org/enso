@@ -1,6 +1,7 @@
-module Prologue.Text.Pretty where
+module Prologue.Text.Show.Pretty where
 
 import Data.Text (Text)
+
 
 -------------------
 -- === Class === --
