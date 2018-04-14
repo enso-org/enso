@@ -1,84 +1,78 @@
-module Luna.Build.Dependency.Constraint
-    ( Constraints(..)
-    , Versions(..)
-    , PackageSet(..)
-    , ConstraintType(..)
-    , Constraint(..)
-    , unpack
-    , isEQPrereleaseConstraint
-    , operator
-    , constraint
-    , constraints
-    ) where
+module Luna.Build.Dependency.Constraint where
 
-import Prologue hiding (Constraint, Constraints, and)
+import Prologue hiding (Constraint, Constraints, and, EQ, GT, LT)
 
-import qualified Luna.Build.Dependency.Version as V
+import qualified Data.Map.Strict               as Map
+import qualified Luna.Build.Dependency.Version as Version
 
-import qualified Data.Map.Strict as M
+import Data.Map.Strict                   (Map)
+import Luna.Build.Dependency.ParserUtils (spaces, and)
+import Luna.Build.Dependency.Version     (Version)
+import Text.Megaparsec                   (string, sepBy, choice)
+import Text.Megaparsec.Text              (Parser)
 
-import qualified Text.Megaparsec      as P
-import qualified Text.Megaparsec.Text as P
-import Luna.Build.Dependency.ParserUtils
+------------------------
+-- === Constraint === --
+------------------------
 
-type Constraints = M.Map Text [Constraint]
+-- === Definition === --
 
-type Versions = M.Map Text [V.Version]
-
-type PackageSet = M.Map Text V.Version
+type Constraints = Map Text [Constraint]
+type Versions    = Map Text [Version]
+type PackageSet  = Map Text Version
 
 data ConstraintType
-    = ConstraintEQ
-    | ConstraintGT
-    | ConstraintLT
-    | ConstraintLE
-    | ConstraintGE
+    = EQ
+    | GT
+    | LT
+    | LE
+    | GE
     deriving (Eq, Generic, Ord)
-
-instance Show ConstraintType where
-    show ConstraintEQ = "=="
-    show ConstraintGT = ">"
-    show ConstraintLT = ">"
-    show ConstraintLE = "<="
-    show ConstraintGE = ">="
 
 data Constraint = Constraint
     { __conType :: !ConstraintType
-    , __version :: !V.Version
+    , __version :: !Version
     } deriving (Eq, Generic, Ord)
 makeLenses ''Constraint
+
+-- === API === --
+
+unpack :: (Eq a, Ord a) => Map a [b] -> [(a, b)]
+unpack map = concat $ Map.elems $ Map.mapWithKey convert map
+    where convert key list = (key, ) <$> list
+
+isEQPrerelease :: Constraint -> Bool
+isEQPrerelease = \case (Constraint EQ ver) -> Version.isPrerelease ver
+                       _                             -> False
+
+-- === Instances === --
+
+instance Show ConstraintType where
+    show EQ = "=="
+    show GT = ">"
+    show LT = ">"
+    show LE = "<="
+    show GE = ">="
 
 instance Show Constraint where
     show (Constraint ty ver) = show ty <> " " <> show ver
 
-unpack :: (Eq a, Ord a) => M.Map a [b] -> [(a, b)]
-unpack map = concat $ M.elems $ M.mapWithKey convert map
-    where
-        convert key list = (\x -> (key, x)) <$> list
+-------------------------------
+-- === Parsing Functions === --
+-------------------------------
 
-isEQPrereleaseConstraint :: Constraint -> Bool
-isEQPrereleaseConstraint (Constraint ConstraintEQ ver) = V.isPrerelease ver
-isEQPrereleaseConstraint _                             = False
+-- === API === --
 
------------------------
--- Parsing Functions --
------------------------
+constraints :: Parser [Constraint]
+constraints = constraint `sepBy` and
 
-constraints :: P.Parser [Constraint]
-constraints = constraint `P.sepBy` and
+constraint :: Parser Constraint
+constraint = Constraint <$> operator <* spaces <*> Version.version <* spaces
 
-constraint :: P.Parser Constraint
-constraint = Constraint <$> operator <* spaces
-          <*> V.version <* spaces
-
-operator :: P.Parser ConstraintType
-operator = P.choice
-    [ ConstraintEQ <$ P.string "=="
-    , ConstraintLE <$ P.string "<="
-    , ConstraintGE <$ P.string ">="
-    , ConstraintGT <$ P.string ">"
-    , ConstraintLT <$ P.string "<" ]
-
-and :: P.Parser ()
-and = spaces *> P.string "&&" *> spaces
+operator :: Parser ConstraintType
+operator = choice [ EQ <$ string "=="
+                  , LE <$ string "<="
+                  , GE <$ string ">="
+                  , GT <$ string ">"
+                  , LT <$ string "<" ]
 

@@ -2,13 +2,12 @@ module Luna.Test.Build.Dependency.ParserTestUtils where
 
 import Prologue
 
-import Text.Megaparsec      as P
-import Text.Megaparsec.Text as P
+import Test.Hspec            (Expectation, shouldBe)
+import Test.Hspec.Megaparsec (shouldFailOn)
+import Text.Megaparsec       (runParser, parse)
+import Text.Megaparsec.Text  (Parser)
 
-import Test.Hspec
-import Test.Hspec.Megaparsec
-
-shouldParseTo :: (Eq a, Show a) => Text -> P.Parser a -> a -> Expectation
+shouldParseTo :: (Eq a, Show a) => Text -> Parser a -> a -> Expectation
 shouldParseTo input parser result = do
     r <- mapLeft displayException <$> pure (runParser parser "" input)
     r `shouldBe` (Right result)

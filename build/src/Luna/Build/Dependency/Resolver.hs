@@ -1,23 +1,23 @@
-module Luna.Build.Dependency.Resolver
-    ( SolverFailure(..)
-    , solveConstraints
-    ) where
+module Luna.Build.Dependency.Resolver where
 
-import Prologue hiding ( Constraint, Constraints )
+import Prologue hiding (Constraint, Constraints)
 
-import qualified Data.Text as Text
+import qualified Data.List                        as List
+import qualified Data.Map.Strict                  as Map
+import qualified Data.SBV                         as SBV
+import qualified Data.SBV.Control                 as SBV hiding (Version)
+import qualified Data.Text                        as Text
+import qualified Luna.Build.Dependency.Constraint as Constraint
+import qualified Luna.Build.Dependency.Version    as Version
 
-import qualified Data.Map.Strict     as M
-import qualified Data.List           as L
+import Data.SBV ((.==), (.>), (.<), (.<=), (.>=))
+import Luna.Build.Dependency.Constraint (Constraint(Constraint))
+import Luna.Build.Dependency.Version (Version(Version))
 
-import Data.SBV
-import Data.SBV.Control hiding (Version)
+-- TODO [Ara] Move most of this into internal.
 
-import Luna.Build.Dependency.Constraint
-import qualified Luna.Build.Dependency.Version as V
-
-solverConfig :: SMTConfig
-solverConfig = defaultSMTCfg
+solverConfig :: SBV.SMTConfig
+solverConfig = SBV.defaultSMTCfg
 
 data SolverFailure
     = UnavailablePackages [Text]
@@ -26,97 +26,98 @@ data SolverFailure
     deriving (Eq, Generic, Ord, Show)
 
 data SVersion = SVersion
-    { __major             :: SWord64
-    , __minor             :: SWord64
-    , __patch             :: SWord64
-    , __prerelease        :: SWord64
-    , __prereleaseVersion :: SWord64
+    { __major             :: SBV.SWord64
+    , __minor             :: SBV.SWord64
+    , __patch             :: SBV.SWord64
+    , __prerelease        :: SBV.SWord64
+    , __prereleaseVersion :: SBV.SWord64
     } deriving (Eq, Generic)
 makeLenses ''SVersion
 
 instance Show SVersion where
     show _ = "<symbolic> :: SVersion"
 
-instance Mergeable SVersion
+instance SBV.Mergeable SVersion
 
-instance EqSymbolic SVersion where
+instance SBV.EqSymbolic SVersion where
     SVersion a1 b1 c1 d1 e1 .== SVersion a2 b2 c2 d2 e2 =
         (a1, b1, c1, d1, e1) .== (a2, b2, c2, d2, e2)
 
-instance OrdSymbolic SVersion where
+instance SBV.OrdSymbolic SVersion where
     (SVersion majorL minorL patchL prereleaseL prereleaseVersionL) .<
         (SVersion majorR minorR patchR prereleaseR prereleaseVersionR) =
-        ite (majorL             .< majorR) true       $
-        ite (majorL             .> majorR) false      $
-        ite (minorL             .< minorR) true       $
-        ite (minorL             .> minorR) false      $
-        ite (patchL             .< patchR) true       $
-        ite (patchL             .> patchR) false      $
-        ite (prereleaseL        .< prereleaseR) true  $
-        ite (prereleaseL        .> prereleaseR) false $
-        ite (prereleaseVersionL .< prereleaseVersionR) true false
+        SBV.ite (majorL             .< majorR)             SBV.true  $
+        SBV.ite (majorL             .> majorR)             SBV.false $
+        SBV.ite (minorL             .< minorR)             SBV.true  $
+        SBV.ite (minorL             .> minorR)             SBV.false $
+        SBV.ite (patchL             .< patchR)             SBV.true  $
+        SBV.ite (patchL             .> patchR)             SBV.false $
+        SBV.ite (prereleaseL        .< prereleaseR)        SBV.true  $
+        SBV.ite (prereleaseL        .> prereleaseR)        SBV.false $
+        SBV.ite (prereleaseVersionL .< prereleaseVersionR) SBV.true SBV.false
 
-instance (Provable p) => Provable (SVersion -> p) where
-    forAll_ f    = forAll_ (\(a,b,c,d,e)    -> f (SVersion a b c d e))
-    forAll ns f  = forAll ns (\(a,b,c,d,e)  -> f (SVersion a b c d e))
-    forSome_ f   = forSome_ (\(a,b,c,d,e)   -> f (SVersion a b c d e))
-    forSome ns f = forSome ns (\(a,b,c,d,e) -> f (SVersion a b c d e))
+instance (SBV.Provable p) => SBV.Provable (SVersion -> p) where
+    forAll_ f    = SBV.forAll_ (\(a,b,c,d,e)    -> f (SVersion a b c d e))
+    forAll ns f  = SBV.forAll ns (\(a,b,c,d,e)  -> f (SVersion a b c d e))
+    forSome_ f   = SBV.forSome_ (\(a,b,c,d,e)   -> f (SVersion a b c d e))
+    forSome ns f = SBV.forSome ns (\(a,b,c,d,e) -> f (SVersion a b c d e))
 
-sVersion :: String -> Symbolic SVersion
+sVersion :: String -> SBV.Symbolic SVersion
 sVersion name = do
-    a <- free $ name <> ":major"
-    b <- free $ name <> ":minor"
-    c <- free $ name <> ":patch"
-    d <- free $ name <> ":prerelease"
-    e <- free $ name <> ":prereleaseVersion"
+    a <- SBV.free $ name <> ":major"
+    b <- SBV.free $ name <> ":minor"
+    c <- SBV.free $ name <> ":patch"
+    d <- SBV.free $ name <> ":prerelease"
+    e <- SBV.free $ name <> ":prereleaseVersion"
     pure $ SVersion a b c d e
 
 literalSVersion :: Word64 -> Word64 -> Word64 -> Word64 -> Word64 -> SVersion
-literalSVersion a b c d e =
-    SVersion (literal a) (literal b) (literal c) (literal d) (literal e)
+literalSVersion a b c d e = SVersion
+    (SBV.literal a) (SBV.literal b) (SBV.literal c) (SBV.literal d)
+    (SBV.literal e)
 
-versionToSVersion :: V.Version -> SVersion
-versionToSVersion (V.Version a b c pre) = literalSVersion a b c d e
+versionToSVersion :: Version.Version -> SVersion
+versionToSVersion (Version a b c pre) = literalSVersion a b c d e
     where (d, e) = case pre of
             Nothing -> (3, 0)
-            Just (V.Prerelease ty ver) -> (V.prereleaseTyToNum ty, ver)
+            Just (Version.Prerelease ty ver) -> (Version.prereleaseTyToNum ty, ver)
 
-extractSVersion :: SVersion -> Query V.Version
-extractSVersion name = V.Version <$> getValue (__major name)
-                                 <*> getValue (__minor name)
-                                 <*> getValue (__patch name)
-                                 <*> mkPrerelease
+extractSVersion :: SVersion -> SBV.Query Version
+extractSVersion name = Version <$> SBV.getValue (__major name)
+                               <*> SBV.getValue (__minor name)
+                               <*> SBV.getValue (__patch name)
+                               <*> mkPrerelease
     where mkPrerelease = do
-            pre <- getValue (__prerelease name)
-            preV <- getValue (__prereleaseVersion name)
+            pre  <- SBV.getValue (__prerelease name)
+            preV <- SBV.getValue (__prereleaseVersion name)
             if pre >= 3 then pure $ Nothing
-            else pure $ Just (V.Prerelease (V.numToPrereleaseTy pre) preV)
+            else pure $ Just (Version.Prerelease (Version.numToPrereleaseTy pre) preV)
 
-makeRestriction :: (SVersion, Constraint) -> SBool
+makeRestriction :: (SVersion, Constraint) -> SBV.SBool
 makeRestriction (pkg, Constraint ty ver) = pkg `op` versionToSVersion ver
     where op = case ty of
-                    ConstraintEQ -> (.==)
-                    ConstraintGT -> (.>)
-                    ConstraintLT -> (.<)
-                    ConstraintLE -> (.<=)
-                    ConstraintGE -> (.>=)
+                    Constraint.EQ -> (.==)
+                    Constraint.GT -> (.>)
+                    Constraint.LT -> (.<)
+                    Constraint.LE -> (.<=)
+                    Constraint.GE -> (.>=)
 
-genNamedConstraint :: (String, SBool) -> Symbolic ()
-genNamedConstraint (name, con) = namedConstraint name con >> pure ()
+genNamedConstraint :: String -> SBV.SBool -> SBV.Symbolic ()
+genNamedConstraint name con = void $ SBV.namedConstraint name con
 
-constraintQuery :: Constraints -> Versions
-                -> Symbolic (Either SolverFailure PackageSet)
+constraintQuery :: Constraint.Constraints -> Constraint.Versions
+                -> SBV.Symbolic (Either SolverFailure Constraint.PackageSet)
 constraintQuery constraints versions = do
-    let packageNames        = M.keys constraints
-        constraintLists     = M.elems constraints
+    let packageNames        = Map.keys constraints
+        constraintLists     = Map.elems constraints
         requiredPrereleases = fmap (fmap (\(Constraint _ ver) -> ver))
-                            $ (filter isEQPrereleaseConstraint)
+                            $ (filter Constraint.isEQPrerelease)
                            <$> constraintLists
         filteredVersions    = (\(r, a) ->
                                 filter (\x ->
-                                    (not $ V.isPrerelease x) || x `elem` r)
+                                    (not $ Version.isPrerelease x) || x `elem` r)
                                 a)
-                           <$> zip requiredPrereleases (M.elems versions)
+                           <$> zip requiredPrereleases (Map.elems versions)
 
     -- Make a symbol for each package name
     packageSyms <- sequence $ sVersion . Text.unpack <$> packageNames
@@ -130,45 +131,46 @@ constraintQuery constraints versions = do
                                     , makeRestriction (sym, ver) ))
                                 <$> triples
 
-    _ <- sequence $ genNamedConstraint <$> nameConstraintPairs
+    sequence_ $ uncurry genNamedConstraint <$> nameConstraintPairs
 
     -- Restrict symbols by available versions
     let mkEqs (pkg, ver)   = (\x -> pkg .== versionToSVersion x) <$> ver
         packageEqualities  = mkEqs <$> zip packageSyms filteredVersions
-        packageDisjunction = bOr <$> packageEqualities
+        packageDisjunction = SBV.bOr <$> packageEqualities
         namedDisjunctions  = zip ((\nm ->
                                     "Available " <> Text.unpack nm)
                                     <$> packageNames)
                                  packageDisjunction
 
-    _ <- sequence $ genNamedConstraint <$> namedDisjunctions
+    sequence_ $ uncurry genNamedConstraint <$> namedDisjunctions
 
     -- TODO [Ara] Ensure the solver gets the maximum of each Package version
 
     -- Set solver options prior to calling `checkSat`
-    setOption $ ProduceUnsatCores True
+    SBV.setOption $ SBV.ProduceUnsatCores True
 
     -- Extract the results
-    query $ do
-        satResult <- checkSat
+    SBV.query $ do
+        satResult <- SBV.checkSat
         case satResult of
-            Unsat -> do
-                core <- getUnsatCore
+            SBV.Unsat -> do
+                core <- SBV.getUnsatCore
                 pure $ Left $ UnsatisfiableConstraints $ Text.pack <$> core
-            Unk   -> do
-                reason <- getUnknownReason
+            SBV.Unk   -> do
+                reason <- SBV.getUnknownReason
                 pure $ Left $ UnknownSolution $ Text.pack reason
-            Sat   -> do
+            SBV.Sat   -> do
                 concreteVersions <- sequence $ extractSVersion <$> packageSyms
-                pure $ Right $ M.fromList $ zip packageNames concreteVersions
+                pure $ Right $ Map.fromList $ zip packageNames concreteVersions
 
-solveConstraints :: (MonadIO m) => Constraints -> Versions
-                 -> m (Either SolverFailure PackageSet)
+solveConstraints :: (MonadIO m) => Constraint.Constraints -> Constraint.Versions
+                 -> m (Either SolverFailure Constraint.PackageSet)
 solveConstraints constraints versions = do
-    if (L.sort $ M.keys constraints) /= (L.sort $ M.keys versions) then do
-        let missingPackages = filter (\x -> x `notElem` M.keys versions)
-                            $ M.keys constraints
+    if (List.sort $ Map.keys constraints) /= (List.sort $ Map.keys versions) then do
+        let missingPackages = filter (\x -> x `notElem` Map.keys versions)
+                            $ Map.keys constraints
         pure $ Left $ UnavailablePackages missingPackages
     else do
-        liftIO $ runSMTWith solverConfig $ constraintQuery constraints versions
+        liftIO $ SBV.runSMTWith solverConfig
+               $ constraintQuery constraints versions
 

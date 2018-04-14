@@ -1,12 +1,12 @@
 module Luna.Test.Build.Dependency.ResolverSpec where
 
-import Luna.Build.Dependency.Resolver
-import Luna.Build.Dependency.Version
-import Luna.Build.Dependency.Constraint
-
 import Prologue hiding (Constraint, Constraints)
 
-import qualified Data.Map.Strict as M (fromList)
+import qualified Data.Map.Strict as Map
+
+import Luna.Build.Dependency.Resolver
+import Luna.Build.Dependency.Version
+import Luna.Build.Dependency.Constraint as Constraint
 
 import Test.Hspec
 
@@ -21,27 +21,27 @@ shouldNotSolveAs constraints versions failure = do
     solverResult `shouldBe` (Left failure)
 
 basicConstraints :: Constraints
-basicConstraints = M.fromList
+basicConstraints = Map.fromList
     [ ("Foo",
-        [ Constraint ConstraintLT (Version 1 3 1 Nothing)
-        , Constraint ConstraintEQ (Version 1 0 0 (Just (Prerelease Beta 3))) ])
-    , ("Bar", [ Constraint ConstraintGT (Version 1 3 0 Nothing) ])
+        [ Constraint Constraint.LT (Version 1 3 1 Nothing)
+        , Constraint Constraint.EQ (Version 1 0 0 (Just (Prerelease Beta 3))) ])
+    , ("Bar", [ Constraint Constraint.GT (Version 1 3 0 Nothing) ])
     , ("Baz",
-        [ Constraint ConstraintEQ (Version 2 0 0 (Just (Prerelease RC 1)))
-        , Constraint ConstraintGT (Version 1 3 2 Nothing) ]) ]
+        [ Constraint Constraint.EQ (Version 2 0 0 (Just (Prerelease RC 1)))
+        , Constraint Constraint.GT (Version 1 3 2 Nothing) ]) ]
 
 unsatConstraints :: Constraints
-unsatConstraints = M.fromList
+unsatConstraints = Map.fromList
     [ ("Foo",
-        [ Constraint ConstraintEQ (Version 1 3 1 Nothing)
-        , Constraint ConstraintEQ (Version 1 0 0 (Just (Prerelease Beta 3))) ])
-    , ("Bar", [ Constraint ConstraintGT (Version 1 3 0 Nothing) ])
+        [ Constraint Constraint.EQ (Version 1 3 1 Nothing)
+        , Constraint Constraint.EQ (Version 1 0 0 (Just (Prerelease Beta 3))) ])
+    , ("Bar", [ Constraint Constraint.GT (Version 1 3 0 Nothing) ])
     , ("Baz",
-        [ Constraint ConstraintLT (Version 2 0 0 Nothing)
-        , Constraint ConstraintGT (Version 1 3 2 Nothing) ]) ]
+        [ Constraint Constraint.LT (Version 2 0 0 Nothing)
+        , Constraint Constraint.GT (Version 1 3 2 Nothing) ]) ]
 
 basicVersions :: Versions
-basicVersions = M.fromList
+basicVersions = Map.fromList
     [ ("Foo",
         [ Version 1 0 0 (Just (Prerelease Beta 3))
         , Version 1 0 0 Nothing
@@ -67,7 +67,7 @@ basicVersions = M.fromList
         , Version 2 0 0 (Just (Prerelease RC 1)) ]) ]
 
 missingPackages :: Versions
-missingPackages = M.fromList
+missingPackages = Map.fromList
     [ ("Foo",
         [ Version 1 0 0 (Just (Prerelease Beta 3))
         , Version 1 3 2 Nothing ])
@@ -88,7 +88,7 @@ spec = do
 
     describe "Satisfiable package sets" $ do
         it "Basic package set" $ shouldSolveAs basicConstraints basicVersions
-            $ M.fromList [ ("Bar", Version 1 6 0 Nothing)
+            $ Map.fromList [ ("Bar", Version 1 6 0 Nothing)
                          , ("Baz", Version 2 0 0 (Just (Prerelease RC 1)))
                          , ("Foo", Version 1 0 0 (Just (Prerelease Beta 3))) ]
 

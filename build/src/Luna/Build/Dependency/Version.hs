@@ -1,24 +1,11 @@
-module Luna.Build.Dependency.Version
-    ( PrereleaseType(..)
-    , Prerelease(..)
-    , Version(..)
-    , prereleaseTyToNum
-    , numToPrereleaseTy
-    , isPrerelease
-    , version
-    , prerelease
-    , prereleaseType
-    ) where
+module Luna.Build.Dependency.Version where
 
 import Prologue
 
-import qualified Text.Read as R
-
-import qualified Text.Megaparsec      as P
-import qualified Text.Megaparsec.Text as P
-
-import qualified Data.Char as C
+import Text.Megaparsec (option, optional, string, char)
+import Text.Megaparsec.Text (Parser)
 import Data.Word (Word64)
+import Luna.Build.Dependency.ParserUtils (dot, natural)
 
 -- Versioning in Luna follows the following convention:
 --      major.minor.patch-prerelease.version
@@ -96,34 +83,30 @@ isPrerelease :: Version -> Bool
 isPrerelease (Version _ _ _ (Just _)) = True
 isPrerelease _                        = False
 
------------------------
--- Parsing Functions --
------------------------
+-------------------------------
+-- === Parsing Functions === --
+-------------------------------
 
-version :: P.Parser Version
+-- === API === --
+
+version :: Parser Version
 version = do
     major <- natural
-    minor <- P.option 0 (dot *> natural)
-    patch <- P.option 0 (dot *> natural)
-    prerelease <- P.optional (P.char '-' *> prerelease)
+    minor <- option 0 (dot *> natural)
+    patch <- option 0 (dot *> natural)
+    prerelease <- optional (char '-' *> prerelease)
     if major + minor + patch == 0 then fail msg else
         pure $ Version major minor patch prerelease
     where msg = "Not all components of the version can be zero."
 
-prerelease :: P.Parser Prerelease
+prerelease :: Parser Prerelease
 prerelease = Prerelease <$> prereleaseType <* dot <*> natural
 
-prereleaseType :: P.Parser PrereleaseType
+prereleaseType :: Parser PrereleaseType
 prereleaseType = fromString <$> p
     where fromString "alpha" = Alpha
           fromString "beta"  = Beta
           fromString "rc"    = RC
-          -- `_` case not needed as it is only applied on a successful parse
-          p = P.string "alpha" <|> P.string "beta" <|> P.string "rc"
-
-dot :: P.Parser Char
-dot = P.char '.'
-
-natural :: P.Parser Word64
-natural = R.read <$> some P.digitChar
+          fromString _       = Alpha -- impossible, but stops warning
+          p = string "alpha" <|> string "beta" <|> string "rc"
 
