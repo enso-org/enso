@@ -38,7 +38,7 @@ makeLenses ''Constraint
 -- === API === --
 
 unpack :: (Eq a, Ord a) => Map a [b] -> [(a, b)]
-unpack map = concat $ Map.elems $ Map.mapWithKey convert map
+unpack inputMap = concat . Map.elems $ Map.mapWithKey convert inputMap
     where convert key list = (key, ) <$> list
 
 isEQPrerelease :: Constraint -> Bool

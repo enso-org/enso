@@ -71,7 +71,7 @@ extractSVersion name = Version <$> SBV.getValue (__major name)
     where mkPrerelease = do
             pre  <- SBV.getValue (__prerelease name)
             preV <- SBV.getValue (__prereleaseVersion name)
-            if pre >= Version.noPrereleaseNum then pure $ Nothing
+            if pre >= Version.noPrereleaseNum then pure Nothing
             else pure
                 $ Just (Version.Prerelease (Version.numToPrereleaseTy pre) preV)
 
@@ -135,11 +135,11 @@ constraintQuery constraints versions = do
     let packageNames        = Map.keys constraints
         constraintLists     = Map.elems constraints
         requiredPrereleases = fmap (fmap (\(Constraint _ ver) -> ver))
-                            $ (filter Constraint.isEQPrerelease)
+                            $ filter Constraint.isEQPrerelease
                            <$> constraintLists
         filteredVersions    = (\(requiredReleases, availableReleases) -> filter
                                 (\x ->
-                                    (not $ Version.isPrerelease x)
+                                    not (Version.isPrerelease x)
                                     || x `elem` requiredReleases)
                                 availableReleases)
                            <$> zip requiredPrereleases (Map.elems versions)
@@ -177,11 +177,11 @@ constraintQuery constraints versions = do
     SBV.query $ SBV.checkSat >>= \case
         SBV.Unsat -> do
             core <- SBV.getUnsatCore
-            pure $ Left $ UnsatisfiableConstraints $ convert <$> core
+            pure . (Left . UnsatisfiableConstraints) $ convert <$> core
         SBV.Unk   -> do
             reason <- SBV.getUnknownReason
-            pure $ Left $ UnknownSolution $ convert reason
+            pure . (Left . UnknownSolution) $ convert reason
         SBV.Sat   -> do
             concreteVersions <- sequence $ extractSVersion <$> packageSyms
-            pure $ Right $ Map.fromList $ zip packageNames concreteVersions
+            pure . (Right . Map.fromList) $ zip packageNames concreteVersions
 

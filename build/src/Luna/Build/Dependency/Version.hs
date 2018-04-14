@@ -90,9 +90,9 @@ instance Ord Version where
     v1 <= v2 = (v1 < v2) || (v1 == v2)
 
 instance PrettyShow Version where
-    prettyShow (Version maj min patch pr) = nums <> (showPre pr)
-        where nums    = (cShow maj) <> "." <> (cShow min) <> "."
-                      <> (cShow patch)
+    prettyShow (Version maj min patch pr) = nums <> showPre pr
+        where nums    = cShow maj <> "." <> cShow min <> "."
+                      <> cShow patch
               showPre = \case
                   Nothing -> ""
                   Just pre -> "-" <> prettyShow pre
