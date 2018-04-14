@@ -89,25 +89,25 @@ assembleExpr = \case
 
 
 
------------------------
--- === UniSymbol === --
------------------------
+------------------------
+-- === SomeSymbol === --
+------------------------
 
 -- === Parser matches === --
 
-matchPrefixM :: MonadParsec e s m => (Term Symbol.Prefix n a -> m out) -> Labeled n (Symbol.UniSymbol Symbol.Expr a) -> m out
-matchSuffixM :: MonadParsec e s m => (Term Symbol.Suffix n a -> m out) -> Labeled n (Symbol.UniSymbol Symbol.Expr a) -> m out
-matchInfixM  :: MonadParsec e s m => (Term Symbol.Infix  n a -> m out) -> Labeled n (Symbol.UniSymbol Symbol.Expr a) -> m out
-matchAtomM   :: MonadParsec e s m => (Term Symbol.Atom   n a -> m out) -> Labeled n (Symbol.UniSymbol Symbol.Expr a) -> m out
+matchPrefixM :: MonadParsec e s m => (Term Symbol.Prefix n a -> m out) -> Labeled n (Symbol.SomeSymbol Symbol.Expr a) -> m out
+matchSuffixM :: MonadParsec e s m => (Term Symbol.Suffix n a -> m out) -> Labeled n (Symbol.SomeSymbol Symbol.Expr a) -> m out
+matchInfixM  :: MonadParsec e s m => (Term Symbol.Infix  n a -> m out) -> Labeled n (Symbol.SomeSymbol Symbol.Expr a) -> m out
+matchAtomM   :: MonadParsec e s m => (Term Symbol.Atom   n a -> m out) -> Labeled n (Symbol.SomeSymbol Symbol.Expr a) -> m out
 matchPrefixM f (Labeled l s) = case s of Symbol.Prefix a -> f (Labeled l a) ; _ -> expected "prefix operator"
 matchSuffixM f (Labeled l s) = case s of Symbol.Suffix a -> f (Labeled l a) ; _ -> expected "suffix operator"
 matchInfixM  f (Labeled l s) = case s of Symbol.Infix  a -> f (Labeled l a) ; _ -> expected "infix operator"
 matchAtomM   f (Labeled l s) = case s of Symbol.Atom   a -> f (Labeled l a) ; _ -> expected "term"
 
-matchPrefix :: MonadParsec e s m => (Term Symbol.Prefix n a -> out) -> Labeled n (Symbol.UniSymbol Symbol.Expr a) -> m out
-matchSuffix :: MonadParsec e s m => (Term Symbol.Suffix n a -> out) -> Labeled n (Symbol.UniSymbol Symbol.Expr a) -> m out
-matchInfix  :: MonadParsec e s m => (Term Symbol.Infix  n a -> out) -> Labeled n (Symbol.UniSymbol Symbol.Expr a) -> m out
-matchAtom   :: MonadParsec e s m => (Term Symbol.Atom   n a -> out) -> Labeled n (Symbol.UniSymbol Symbol.Expr a) -> m out
+matchPrefix :: MonadParsec e s m => (Term Symbol.Prefix n a -> out) -> Labeled n (Symbol.SomeSymbol Symbol.Expr a) -> m out
+matchSuffix :: MonadParsec e s m => (Term Symbol.Suffix n a -> out) -> Labeled n (Symbol.SomeSymbol Symbol.Expr a) -> m out
+matchInfix  :: MonadParsec e s m => (Term Symbol.Infix  n a -> out) -> Labeled n (Symbol.SomeSymbol Symbol.Expr a) -> m out
+matchAtom   :: MonadParsec e s m => (Term Symbol.Atom   n a -> out) -> Labeled n (Symbol.SomeSymbol Symbol.Expr a) -> m out
 matchPrefix = matchPrefixM . fmap return
 matchSuffix = matchSuffixM . fmap return
 matchInfix  = matchInfixM  . fmap return
@@ -215,19 +215,19 @@ instance Assoc.Reader   name m => Assoc.Reader   name (TokenStream t m)
 
 -- === Definition === --
 
-type MonadSymStream n a = MonadTokenStream (Labeled n (Symbol.UniSymbol Symbol.Expr a))
+type MonadSymStream n a = MonadTokenStream (Labeled n (Symbol.SomeSymbol Symbol.Expr a))
 
 
 -- === Syment accessing === --
 
-popSym :: (MonadSymStream n a m) => m (Labeled n (Symbol.UniSymbol Symbol.Expr a))
+popSym :: (MonadSymStream n a m) => m (Labeled n (Symbol.SomeSymbol Symbol.Expr a))
 popSym = untoken <$> popToken
 
-nextSym :: (MonadSymStream n a m) => m (Labeled n (Symbol.UniSymbol Symbol.Expr a))
+nextSym :: (MonadSymStream n a m) => m (Labeled n (Symbol.SomeSymbol Symbol.Expr a))
 nextSym = popSym
 -- nextSym = handleAffix =<< popSym
 
-tryNextSym :: (MonadSymStream n a m) => r -> (Labeled n (Symbol.UniSymbol Symbol.Expr a) -> m r) -> m r
+tryNextSym :: (MonadSymStream n a m) => r -> (Labeled n (Symbol.SomeSymbol Symbol.Expr a) -> m r) -> m r
 tryNextSym a f = tryBind a nextSym f
 
 maybeToken :: (MonadTokenStream t m) => a -> (Token t -> m a) -> m a
@@ -235,7 +235,7 @@ maybeToken def f = (<|> pure def) $ do
     t <- popToken
     f t <|> (def <$ pushToken t)
 
-maybeSym :: (MonadSymStream n a m) => r -> (Labeled n (Symbol.UniSymbol Symbol.Expr a) -> m r) -> m r
+maybeSym :: (MonadSymStream n a m) => r -> (Labeled n (Symbol.SomeSymbol Symbol.Expr a) -> m r) -> m r
 maybeSym def f = maybeToken def (f . untoken)
 
 
@@ -243,7 +243,7 @@ maybeSym def f = maybeToken def (f . untoken)
 
 
 -- FIXME[WD]: Remove MonadFail dep
-buildExpr :: (MonadFail m, Prec.RelReader n m, Assoc.Reader n m, MonadParsec e s m) => Tokens (Labeled n (Symbol.UniSymbol Symbol.Expr a)) -> m a
+buildExpr :: (MonadFail m, Prec.RelReader n m, Assoc.Reader n m, MonadParsec e s m) => Tokens (Labeled n (Symbol.SomeSymbol Symbol.Expr a)) -> m a
 buildExpr = assembleExpr .: evalTokenStreamT buildExprTree
 
 -- FIXME[WD]: Remove MonadFail dep
@@ -286,7 +286,7 @@ buildExpr_termApp ::
     , MonadParsec e s m
     , Show a, Show n, MonadIO m -- DEBUG
     ) => Labeled n (Symbol.ExprSymbol Symbol.Infix a)
-      -> Tokens (Labeled n (Symbol.UniSymbol Symbol.Expr a))
+      -> Tokens (Labeled n (Symbol.SomeSymbol Symbol.Expr a))
       -> m a
 buildExpr_termApp app = fmap assembleExpr
                       . evalTokenStreamT (buildExprTree_termApp app)

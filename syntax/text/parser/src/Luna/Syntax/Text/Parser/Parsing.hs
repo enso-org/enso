@@ -6,7 +6,7 @@ module Luna.Syntax.Text.Parser.Parsing where
 
 import Prologue hiding (seq)
 
--- import Prologue_old hiding (Cons, String, Type, Symbol, UniSymbol, (|>), (<|), cons, seq, span, op)
+-- import Prologue_old hiding (Cons, String, Type, Symbol, SomeSymbol, (|>), (<|), cons, seq, span, op)
 -- import qualified Prologue_old as P
 
 -- import qualified Text.Megaparsec as Parser
@@ -127,7 +127,7 @@ import Data.Text.Position (FileOffset (..))
 -- import           Text.Parser.Indent (Indent, indentation)
 import Data.Text.Position               (Delta)
 import Data.Text32                      (Text32)
-import Language.Symbol                  (Labeled (Labeled), UniSymbol, labeled)
+import Language.Symbol                  (Labeled (Labeled), SomeSymbol, labeled)
 import Luna.IR                          (Term)
 import Luna.Pass                        (Pass)
 import Luna.Syntax.Text.Parser.CodeSpan (CodeSpan (CodeSpan),
@@ -641,8 +641,8 @@ newtype SegmentBuilder a = SegmentBuilder { runSegmentBuilder :: (Bool, Bool) ->
 
 type ExprToken       a = Expr.Token (ExprSymbol      a)
 type ExprTokenProto  a = Expr.Token (ExprSymbolProto a)
-type ExprSymbol      a = Labeled SpacedName (UniSymbol Symbol.Expr    a)
-type ExprSymbolProto a = Labeled SpacedName (UniSymbol Symbol.Phantom a)
+type ExprSymbol      a = Labeled SpacedName (SomeSymbol Symbol.Expr    a)
+type ExprSymbolProto a = Labeled SpacedName (SomeSymbol Symbol.Phantom a)
 
 instance Semigroup ExprSegmentBuilder where
     a <> b = SegmentBuilder $ \(l,r) -> runSegmentBuilder a (l,False) <> runSegmentBuilder b (False,r)
@@ -711,7 +711,7 @@ posIndependent = SegmentBuilder . const . pure . Expr.tokenx
 
 -- FIXME[WD]: change the API to monadic one, so we can register symbols and mixfix monads could gather needed info (like var names)
 --            without the need to keep the label in the term
-unlabeledAtom :: a -> Labeled SpacedName (UniSymbol Symbol.Expr a)
+unlabeledAtom :: a -> Labeled SpacedName (SomeSymbol Symbol.Expr a)
 unlabeledAtom = labeled (Name.spaced "#unnamed#") . Symbol.atom
 
 -- -- Possible tokens
@@ -881,7 +881,7 @@ parseMixfixSegments nameSet = do
 
 buildTokenExpr (s:|ss) = buildTokenExpr' (s:ss)
 
-buildTokenExpr' :: Expr.Tokens (Labeled SpacedName (UniSymbol Symbol.Expr (AsgBldr SomeTerm))) -> SymParser (AsgBldr SomeTerm)
+buildTokenExpr' :: Expr.Tokens (Labeled SpacedName (SomeSymbol Symbol.Expr (AsgBldr SomeTerm))) -> SymParser (AsgBldr SomeTerm)
 buildTokenExpr' = Expr.buildExpr_termApp . Labeled (Name.spaced Builtin.appName) $ Symbol.Symbol app
 
 
