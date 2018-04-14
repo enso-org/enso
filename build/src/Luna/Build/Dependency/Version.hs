@@ -2,9 +2,9 @@ module Luna.Build.Dependency.Version where
 
 import Prologue
 
-import Text.Megaparsec (option, optional, string, char)
-import Text.Megaparsec.Text (Parser)
-import Data.Word (Word64)
+import Text.Megaparsec                   (option, optional, string, char)
+import Text.Megaparsec.Text              (Parser)
+import Data.Word                         (Word64)
 import Luna.Build.Dependency.ParserUtils (dot, natural)
 
 -- Versioning in Luna follows the following convention:
@@ -12,16 +12,40 @@ import Luna.Build.Dependency.ParserUtils (dot, natural)
 --
 -- The prerelease is optional.
 
+---------------------
+-- === Version === --
+---------------------
+
+-- === Definition === --
+
+noPrereleaseNum :: Word64
+noPrereleaseNum = 3
+
 data PrereleaseType
     = Alpha
     | Beta
     | RC
     deriving (Eq, Generic, Ord, Show)
 
-instance PrettyShow PrereleaseType where
-    prettyShow Alpha = "alpha"
-    prettyShow Beta  = "beta"
-    prettyShow RC    = "rc"
+data Prerelease = Prerelease
+    { __prType  :: !PrereleaseType
+    , __version :: !Word64
+    } deriving (Eq, Generic, Ord, Show)
+makeLenses ''Prerelease
+
+data Version = Version
+    { __major      :: !Word64
+    , __minor      :: !Word64
+    , __patch      :: !Word64
+    , __prerelease :: !(Maybe Prerelease)
+    } deriving (Eq, Generic, Show)
+makeLenses ''Version
+
+-- === API === --
+
+isPrerelease :: Version -> Bool
+isPrerelease = \case (Version _ _ _ (Just _)) -> True
+                     _                        -> False
 
 prereleaseTyToNum :: PrereleaseType -> Word64
 prereleaseTyToNum Alpha = 0
@@ -34,22 +58,15 @@ numToPrereleaseTy 1 = Beta
 numToPrereleaseTy 2 = RC
 numToPrereleaseTy _ = RC
 
-data Prerelease = Prerelease
-    { __prType  :: !PrereleaseType
-    , __version :: !Word64
-    } deriving (Eq, Generic, Ord, Show)
-makeLenses ''Prerelease
+-- === Instances === --
+
+instance PrettyShow PrereleaseType where
+    prettyShow Alpha = "alpha"
+    prettyShow Beta  = "beta"
+    prettyShow RC    = "rc"
 
 instance PrettyShow Prerelease where
     prettyShow (Prerelease ty ver) = prettyShow ty <> "." <> convert (show ver)
-
-data Version = Version
-    { __major      :: !Word64
-    , __minor      :: !Word64
-    , __patch      :: !Word64
-    , __prerelease :: !(Maybe Prerelease)
-    } deriving (Eq, Generic, Show)
-makeLenses ''Version
 
 instance Ord Version where
     (Version maj1 min1 pat1 pre1) < (Version maj2 min2 pat2 pre2) =
@@ -80,10 +97,6 @@ instance PrettyShow Version where
                   Nothing -> ""
                   Just pre -> "-" <> prettyShow pre
               cShow = convert . show
-
-isPrerelease :: Version -> Bool
-isPrerelease (Version _ _ _ (Just _)) = True
-isPrerelease _                        = False
 
 -------------------------------
 -- === Parsing Functions === --
