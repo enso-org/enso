@@ -2,11 +2,17 @@ module Luna.Test.Build.Dependency.ResolverSpec where
 
 import Prologue hiding (Constraint, Constraints)
 
-import qualified Data.Map.Strict as Map
+import qualified Data.Map.Strict                  as Map
+import qualified Luna.Build.Dependency.Constraint as Constraint
 
-import Luna.Build.Dependency.Resolver
-import Luna.Build.Dependency.Version
-import Luna.Build.Dependency.Constraint as Constraint
+import Luna.Build.Dependency.Constraint ( Constraint(Constraint)
+                                        , Constraints
+                                        , Versions
+                                        , PackageSet )
+import Luna.Build.Dependency.Resolver   ( solveConstraints, SolverError(..))
+import Luna.Build.Dependency.Version    ( Version(Version)
+                                        , Prerelease(Prerelease)
+                                        , PrereleaseType(Alpha, Beta, RC) )
 
 import Test.Hspec (Spec, Expectation, it, describe, shouldBe)
 

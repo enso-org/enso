@@ -20,6 +20,10 @@ import Luna.Build.Dependency.Resolver.Internal ( constraintQuery
                                                    , UnknownSolution )
                                                , solverConfig )
 
+------------------------
+-- === Solver API === --
+------------------------
+
 solveConstraints :: MonadIO m => Constraint.Constraints -> Constraint.Versions
                  -> m (Either SolverError Constraint.PackageSet)
 solveConstraints constraints versions = do
