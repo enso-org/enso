@@ -8,14 +8,14 @@ import Luna.Build.Dependency.Resolver
 import Luna.Build.Dependency.Version
 import Luna.Build.Dependency.Constraint as Constraint
 
-import Test.Hspec
+import Test.Hspec (Spec, Expectation, it, describe, shouldBe)
 
 shouldSolveAs :: Constraints -> Versions -> PackageSet -> Expectation
 shouldSolveAs constraints versions set = do
     solverResult <- solveConstraints constraints versions
     solverResult `shouldBe` (Right set)
 
-shouldNotSolveAs :: Constraints -> Versions -> SolverFailure -> Expectation
+shouldNotSolveAs :: Constraints -> Versions -> SolverError -> Expectation
 shouldNotSolveAs constraints versions failure = do
     solverResult <- solveConstraints constraints versions
     solverResult `shouldBe` (Left failure)

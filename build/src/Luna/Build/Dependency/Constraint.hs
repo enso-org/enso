@@ -27,12 +27,12 @@ data ConstraintType
     | LT
     | LE
     | GE
-    deriving (Eq, Generic, Ord)
+    deriving (Eq, Generic, Ord, Show)
 
 data Constraint = Constraint
     { __conType :: !ConstraintType
     , __version :: !Version
-    } deriving (Eq, Generic, Ord)
+    } deriving (Eq, Generic, Ord, Show)
 makeLenses ''Constraint
 
 -- === API === --
@@ -47,15 +47,15 @@ isEQPrerelease = \case (Constraint EQ ver) -> Version.isPrerelease ver
 
 -- === Instances === --
 
-instance Show ConstraintType where
-    show EQ = "=="
-    show GT = ">"
-    show LT = ">"
-    show LE = "<="
-    show GE = ">="
+instance PrettyShow ConstraintType where
+    prettyShow EQ = "=="
+    prettyShow GT = ">"
+    prettyShow LT = ">"
+    prettyShow LE = "<="
+    prettyShow GE = ">="
 
-instance Show Constraint where
-    show (Constraint ty ver) = show ty <> " " <> show ver
+instance PrettyShow Constraint where
+    prettyShow (Constraint ty ver) = prettyShow ty <> " " <> prettyShow ver
 
 -------------------------------
 -- === Parsing Functions === --

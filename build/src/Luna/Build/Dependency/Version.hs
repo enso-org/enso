@@ -16,12 +16,12 @@ data PrereleaseType
     = Alpha
     | Beta
     | RC
-    deriving (Eq, Generic, Ord)
+    deriving (Eq, Generic, Ord, Show)
 
-instance Show PrereleaseType where
-    show Alpha = "alpha"
-    show Beta  = "beta"
-    show RC    = "rc"
+instance PrettyShow PrereleaseType where
+    prettyShow Alpha = "alpha"
+    prettyShow Beta  = "beta"
+    prettyShow RC    = "rc"
 
 prereleaseTyToNum :: PrereleaseType -> Word64
 prereleaseTyToNum Alpha = 0
@@ -37,18 +37,18 @@ numToPrereleaseTy _ = RC
 data Prerelease = Prerelease
     { __prType  :: !PrereleaseType
     , __version :: !Word64
-    } deriving (Eq, Generic, Ord)
+    } deriving (Eq, Generic, Ord, Show)
 makeLenses ''Prerelease
 
-instance Show Prerelease where
-    show (Prerelease ty ver) = (show ty) <> "." <> (show ver)
+instance PrettyShow Prerelease where
+    prettyShow (Prerelease ty ver) = prettyShow ty <> "." <> convert (show ver)
 
 data Version = Version
     { __major      :: !Word64
     , __minor      :: !Word64
     , __patch      :: !Word64
     , __prerelease :: !(Maybe Prerelease)
-    } deriving (Eq, Generic)
+    } deriving (Eq, Generic, Show)
 makeLenses ''Version
 
 instance Ord Version where
@@ -72,12 +72,14 @@ instance Ord Version where
 
     v1 <= v2 = (v1 < v2) || (v1 == v2)
 
-instance Show Version where
-    show (Version maj min patch pr) = nums <> (showPre pr)
-        where nums    = (show maj) <> "." <> (show min) <> "." <> (show patch)
+instance PrettyShow Version where
+    prettyShow (Version maj min patch pr) = nums <> (showPre pr)
+        where nums    = (cShow maj) <> "." <> (cShow min) <> "."
+                      <> (cShow patch)
               showPre = \case
                   Nothing -> ""
-                  Just pre -> "-" <> show pre
+                  Just pre -> "-" <> prettyShow pre
+              cShow = convert . show
 
 isPrerelease :: Version -> Bool
 isPrerelease (Version _ _ _ (Just _)) = True

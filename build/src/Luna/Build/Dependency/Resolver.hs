@@ -19,7 +19,7 @@ import Luna.Build.Dependency.Version (Version(Version))
 solverConfig :: SBV.SMTConfig
 solverConfig = SBV.defaultSMTCfg
 
-data SolverFailure
+data SolverError
     = UnavailablePackages [Text]
     | UnsatisfiableConstraints [Text]
     | UnknownSolution Text
@@ -57,18 +57,19 @@ instance SBV.OrdSymbolic SVersion where
         SBV.ite (prereleaseVersionL .< prereleaseVersionR) SBV.true SBV.false
 
 instance (SBV.Provable p) => SBV.Provable (SVersion -> p) where
-    forAll_ f    = SBV.forAll_ (\(a,b,c,d,e)    -> f (SVersion a b c d e))
-    forAll ns f  = SBV.forAll ns (\(a,b,c,d,e)  -> f (SVersion a b c d e))
-    forSome_ f   = SBV.forSome_ (\(a,b,c,d,e)   -> f (SVersion a b c d e))
+    forAll_ f    = SBV.forAll_    (\(a,b,c,d,e) -> f (SVersion a b c d e))
+    forAll ns f  = SBV.forAll ns  (\(a,b,c,d,e) -> f (SVersion a b c d e))
+    forSome_ f   = SBV.forSome_   (\(a,b,c,d,e) -> f (SVersion a b c d e))
     forSome ns f = SBV.forSome ns (\(a,b,c,d,e) -> f (SVersion a b c d e))
 
-sVersion :: String -> SBV.Symbolic SVersion
-sVersion name = do
-    a <- SBV.free $ name <> ":major"
-    b <- SBV.free $ name <> ":minor"
-    c <- SBV.free $ name <> ":patch"
-    d <- SBV.free $ name <> ":prerelease"
-    e <- SBV.free $ name <> ":prereleaseVersion"
+mkSymbolicSVersion :: String -> SBV.Symbolic SVersion
+mkSymbolicSVersion name = do
+    let nameConnector = ":"
+    a <- SBV.free $ name <> nameConnector <> "major"
+    b <- SBV.free $ name <> nameConnector <> "minor"
+    c <- SBV.free $ name <> nameConnector <> "patch"
+    d <- SBV.free $ name <> nameConnector <> "prerelease"
+    e <- SBV.free $ name <> nameConnector <> "prereleaseVersion"
     pure $ SVersion a b c d e
 
 literalSVersion :: Word64 -> Word64 -> Word64 -> Word64 -> Word64 -> SVersion
@@ -77,10 +78,10 @@ literalSVersion a b c d e = SVersion
     (SBV.literal e)
 
 versionToSVersion :: Version.Version -> SVersion
-versionToSVersion (Version a b c pre) = literalSVersion a b c d e
-    where (d, e) = case pre of
-            Nothing -> (3, 0)
-            Just (Version.Prerelease ty ver) -> (Version.prereleaseTyToNum ty, ver)
+versionToSVersion (Version a b c pre) = literalSVersion a b c d e where
+    (d, e) = case pre of
+        Nothing -> (3, 0)
+        Just (Version.Prerelease ty ver) -> (Version.prereleaseTyToNum ty, ver)
 
 extractSVersion :: SVersion -> SBV.Query Version
 extractSVersion name = Version <$> SBV.getValue (__major name)
@@ -106,7 +107,7 @@ genNamedConstraint :: String -> SBV.SBool -> SBV.Symbolic ()
 genNamedConstraint name con = void $ SBV.namedConstraint name con
 
 constraintQuery :: Constraint.Constraints -> Constraint.Versions
-                -> SBV.Symbolic (Either SolverFailure Constraint.PackageSet)
+                -> SBV.Symbolic (Either SolverError Constraint.PackageSet)
 constraintQuery constraints versions = do
     let packageNames        = Map.keys constraints
         constraintLists     = Map.elems constraints
@@ -120,14 +121,14 @@ constraintQuery constraints versions = do
                            <$> zip requiredPrereleases (Map.elems versions)
 
     -- Make a symbol for each package name
-    packageSyms <- sequence $ sVersion . Text.unpack <$> packageNames
+    packageSyms <- sequence $ mkSymbolicSVersion . Text.unpack <$> packageNames
 
     -- Restrict symbols by version bounds
     let nameSymConstraints       = zip3 packageNames packageSyms constraintLists
         triple (name, sym, vers) = (\x -> (name, sym, x)) <$> vers
         triples                  = concat $ triple <$> nameSymConstraints
         nameConstraintPairs      = (\(name, sym, ver) ->
-                                    ( (Text.unpack name) <> " " <> show ver
+                                    ( convert $ name <> " " <> prettyShow ver
                                     , makeRestriction (sym, ver) ))
                                 <$> triples
 
@@ -164,7 +165,7 @@ constraintQuery constraints versions = do
                 pure $ Right $ Map.fromList $ zip packageNames concreteVersions
 
 solveConstraints :: (MonadIO m) => Constraint.Constraints -> Constraint.Versions
-                 -> m (Either SolverFailure Constraint.PackageSet)
+                 -> m (Either SolverError Constraint.PackageSet)
 solveConstraints constraints versions = do
     if (List.sort $ Map.keys constraints) /= (List.sort $ Map.keys versions) then do
         let missingPackages = filter (\x -> x `notElem` Map.keys versions)
