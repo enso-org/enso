@@ -5,39 +5,13 @@
 module Luna.Syntax.Prettyprint where
 
 import qualified Prelude  as P
-import           Prologue
--- import qualified Prelude as P
--- import Luna.Prelude hiding (List, Symbol, SomeSymbol, Prettyprinter, (<+>))
--- import Data.Layout hiding (spaced, Prettyprinter, Doc)
--- import Control.Monad.State.Dependent
--- import qualified OCI.IR as IR
--- import Luna.IR hiding (modify_, line, Definition, Atom)
--- import OCI.Pass hiding (modify_)
--- import qualified Luna.Syntax.Text.Scope as Scope
--- import Luna.Syntax.Text.Parser.Hardcoded (hardcode)
--- import Luna.Syntax.Text.Lexer.Grammar  (isOperator, markerBeginChar, markerEndChar, metadataHeader)
--- import Language.Symbol (HasLabel, LabelOf, label)
--- import System.Log
--- import qualified OCI.IR.Name.Multipart as Name
--- import           OCI.IR.Name.Multipart (MultipartName)
--- import OCI.IR.Name.Qualified
--- import qualified Luna.IR.Term.Literal as Literal
--- import qualified Luna.IR.Term.Unit as Import
--- import qualified Data.Text as Text
+import           Prologue hiding (Symbol)
 
--- import Debug.Trace
-
--- -- TODO: Refactor:
--- type instance GetRefHandler (StateT Scope m) = GetRefHandler m
--- instance Prec.RelReader label m => Prec.RelReader label (SubPass p m)
-
--- import qualified Luna.Syntax.Text.Parser.Hardcoded as Builtin
 import qualified Control.Monad.State.Layered    as State
 import qualified Data.Layout                    as Layout
 import qualified Data.Layout                    as Doc
 import qualified Data.PtrList.Mutable           as List
 import qualified Data.Vector.Storable.Foreign   as Vector
-import qualified Language.Symbol                as Symbol
 import qualified Language.Symbol.Operator.Assoc as Assoc
 import qualified Language.Symbol.Operator.Prec  as Prec
 import qualified Luna.IR                        as IR
@@ -52,15 +26,14 @@ import qualified OCI.IR.Layout                  as Layout
 
 import Control.Monad.State.Layered  (StateT)
 import Data.Layout                  (quoted, space, (</>))
+import Data.Layout                  (parensed, (<+>))
 import Data.Vector.Storable.Foreign (Vector)
-import Language.Symbol              (SomeSymbol, atom)
 import Language.Symbol.Label        (Labeled (Labeled), label, labeled, unlabel)
 import Luna.IR                      (Name)
 import Luna.Pass                    (Pass)
 import Luna.Syntax.Text.Scope       (Scope)
 
-import Data.Layout     (parensed, (<+>))
-import Language.Symbol (body)
+
 
 -- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 -- FIXME -> take it from Builtin
@@ -98,9 +71,10 @@ data Pretty = Pretty deriving (Show, Eq)
 -- === Definition === --
 
 data SpacedName = SpacedName
-    { _spaced  :: !Bool
-    , _rawName :: !Name
+    { _isSpaced :: !Bool
+    , _rawName  :: !Name
     } deriving (Show, Eq)
+makeLenses ''SpacedName
 
 
 -- === Utils === --
@@ -120,8 +94,7 @@ instance Monad m => Prec.RelReader SpacedName (StateT Scope m) where
         | otherwise    -> Prec.readRel a b
 
 instance Monad m => Assoc.Reader (Maybe SpacedName) (StateT Scope m) where
-    readLabel = \case Just n -> Assoc.readLabel (_rawName n)
-                      _      -> pure Assoc.Left
+    readLabel = maybe (pure Assoc.Left) $ Assoc.readLabel . view rawName
 
 
 
@@ -131,14 +104,25 @@ instance Monad m => Assoc.Reader (Maybe SpacedName) (StateT Scope m) where
 
 -- -- === Definition === --
 
-type PrettySymbol a = Labeled (Maybe SpacedName) (SomeSymbol Pretty a)
+type PrettySymbol a = Labeled (Maybe SpacedName) (Symbol a)
 type Doc = Layout.Doc Text
 
-type instance Symbol.Data Pretty Symbol.Atom   a = a
-type instance Symbol.Data Pretty Symbol.Prefix a = a
-type instance Symbol.Data Pretty Symbol.Suffix a = a
-type instance Symbol.Data Pretty Symbol.Infix  a = a
-type instance Symbol.Data Pretty Symbol.Mixfix a = (a, [Name])
+data Symbol a
+    = Atom   a
+    | Prefix a
+    | Suffix a
+    | Infix  a
+    | Mixfix a [Name]
+    deriving (Show)
+
+body :: Symbol a -> a
+body = \case
+    Atom   a -> a
+    Prefix a -> a
+    Suffix a -> a
+    Infix  a -> a
+    Mixfix a _ -> a
+{-# INLINE body #-}
 
 
 -- === Utils === --
@@ -149,50 +133,31 @@ unnamed = labeled Nothing
 named   = labeled . Just
 
 getBody :: PrettySymbol a -> a
-getBody (unlabel -> s) = case s of
-    Symbol.Atom   t -> t ^. Symbol.body
-    Symbol.Prefix t -> t ^. Symbol.body
-    Symbol.Infix  t -> t ^. Symbol.body
-    Symbol.Suffix t -> t ^. Symbol.body
-    Symbol.Mixfix _ -> error "Impossible conversion"
+getBody = body . unlabel
 
 
 -- -- === Instances === --
 
 instance Convertible Name Doc           where convert = convertVia @String
 instance Convertible (PrettySymbol a) a where convert = getBody
--- instance Convertible (Vector Char) Doc  where convert = convertVia @String
+
 
 
 -- ---------------------------
 -- -- === Prettyprinter === --
 -- ---------------------------
 
--- type  Prettyprinter style m = Prettyprinter style style m
 class Monad m => Prettyprinter style m where
     prettyprint :: IR.SomeTerm -> m (PrettySymbol Doc)
 
--- instance {-# OVERLAPPABLE #-} (Monad (t m), MonadTrans t, Prettyprinter style m)
---     => Prettyprinter style (t m) where
---     prettyprint = lift . prettyprint @style ; {-# INLINE prettyprint #-}
-
 
 showSymbol :: PrettySymbol Doc -> Text
-showSymbol (unlabel -> sym) = Doc.renderLineBlock $ Doc.render source where
-    source = case sym of
-        Symbol.Atom   s -> s ^. Symbol.body
-        Symbol.Prefix s -> s ^. Symbol.body
-        Symbol.Infix  s -> s ^. Symbol.body
-        Symbol.Suffix s -> s ^. Symbol.body
-        Symbol.Mixfix _ -> "mixfix"
+showSymbol = Doc.renderLineBlock . Doc.render . body . unlabel
 
 type Prettyshow style m = (Prettyprinter style (StateT Scope m), Monad m)
 run :: ∀ style m a. Prettyshow style m => Scope -> IR.Term a -> m Text
 run scope ir = flip State.evalT scope
              $ fmap showSymbol . prettyprint @style $ Layout.relayout ir
-
--- renderSimple :: Prettyprinter Simple m => IT.Term a -> m Text
--- renderSimple = prettyshow Simple
 
 
 
@@ -222,8 +187,8 @@ appSymbols' sf@(Labeled flab fsym) sa = do
     argParen <- case (sf^.label, sa^.label) of
         (Just flab, Just alab) -> do
             prec <- case fsym of
-                Symbol.Infix _ -> compare EQ <$> Prec.readRelLabel alab flab
-                _              -> Prec.readRelLabel flab alab
+                Infix _ -> compare EQ <$> Prec.readRelLabel alab flab
+                _       -> Prec.readRelLabel flab alab
             pure $ \asc -> case prec of
                 LT -> False
                 GT -> True
@@ -233,20 +198,20 @@ appSymbols' sf@(Labeled flab fsym) sa = do
     let argHandle a asc  = ((mempty, convert $ argParen asc), if argParen asc then parensed a else a)
         arg              = argHandle sa'
         sa'              = convert sa
-        argAppAtom       = named (spaced appName) $ Symbol.infixx mempty
+        argAppAtom       = named (spaced appName) $ Infix mempty
         sconcatIf        = switch (<>) (<+>)
         sconcatIfLab l n = sconcatIf $ (_rawName <$> l) == Just n
 
     out <- case fsym of
-        Symbol.Atom {}   -> do
+        Atom {}   -> do
             (ps , sym ) <- appSymbols' argAppAtom sf
             (ps', sym') <- appSymbols' sym sa
             pure ((fst ps', snd ps), sym')
-        Symbol.Infix  s -> pure $ (labeled flab . Symbol.prefix) .: sconcatIfLab flab appName    <$> arg Assoc.Left <*> pure (s^.body)
-        Symbol.Prefix s -> pure $ (labeled flab . atom)   .: sconcatIfLab flab uminusName <$> pure (s^.body) <*> arg Assoc.Right
-        Symbol.Mixfix s -> pure . (mempty,) $ case s^.body of
-            (b, [])       -> labeled flab $ atom   (b <+> sa')
-            (b, (n : ns)) -> labeled flab $ Symbol.mixfix (b <+> sa' <+> convert n, ns)
+        Infix  s -> pure $ (labeled flab . Prefix) .: sconcatIfLab flab appName    <$> arg Assoc.Left <*> pure s
+        Prefix s -> pure $ (labeled flab . Atom)   .: sconcatIfLab flab uminusName <$> pure s <*> arg Assoc.Right
+        Mixfix b s -> pure . (mempty,) $ case s of
+            []       -> labeled flab $ Atom   (b <+> sa')
+            (n : ns) -> labeled flab $ Mixfix (b <+> sa' <+> convert n) ns
     pure out
 
 
@@ -255,17 +220,12 @@ appSymbols' sf@(Labeled flab fsym) sa = do
 -- -- === Simple pretty printer === --
 -- -----------------------------------
 
-simple = unnamed . atom
+simple = unnamed . Atom
 
 -- -- === Definition === --
 
 data Simple = Simple deriving (Show)
 
---          , Prettyprinter t t m
---          , Req m '[ Reader // Layer // AnyExpr     // Model
---                   , Reader // Layer // AnyExprLink // Model
---                   ]
---          ) => Prettyprinter Simple t m where
 instance ( MonadIO m -- DEBUG ONLY
          , Prec.RelReader SpacedName m
          , Assoc.Reader (Maybe SpacedName) m
@@ -277,12 +237,12 @@ instance ( MonadIO m -- DEBUG ONLY
 
 prettyprintSimple ir = Layer.read @IR.Model ir >>= \case
     IR.UniTermAcc  (IR.Acc a name)
-        -> named (spaced accName) . atom
+        -> named (spaced accName) . Atom
          . (\an -> convert an <+> accName <+> convert name)
        <$> subgen a -- FIXME[WD]: check if left arg need to be parensed
 
     IR.UniTermAccSection (IR.AccSection path)
-        -> named (notSpaced accName) . atom
+        -> named (notSpaced accName) . Atom
          . ("." <>) . intercalate "." . fmap convert
        <$> Vector.toList path
     IR.UniTermApp  (IR.App f a)         -> join $ appSymbols <$> subgen f <*> subgen a
@@ -291,7 +251,7 @@ prettyprintSimple ir = Layer.read @IR.Model ir >>= \case
         args' <- mapM subgen =<< List.toList args
         foldM appSymbols (simple $ convert name) args'
     IR.UniTermFunction (IR.Function n as body)
-        -> unnamed . atom
+        -> unnamed . Atom
        .:. (\n' as' body' -> "def" <+> n' <> arglist as' <> body')
        <$> subgenBody n <*> (mapM subgenBody =<< List.toList as) <*> smartBlock body
     IR.UniTermFunctionSig (IR.FunctionSig n tp)
@@ -304,7 +264,7 @@ prettyprintSimple ir = Layer.read @IR.Model ir >>= \case
         -> simple . foldl (</>) mempty <$> (mapM subgenBody =<< List.toList is)
 
     IR.UniTermLam (IR.Lam arg body)
-        -> named (notSpaced lamName) . atom
+        -> named (notSpaced lamName) . Atom
         .: (<>) <$> subgenBody arg <*> smartBlock body
     IR.UniTermList (IR.List elems)
         -> simple . Doc.bracked . intercalate ", "
@@ -320,12 +280,12 @@ prettyprintSimple ir = Layer.read @IR.Model ir >>= \case
         -> simple . parensed . (intercalate ", ")
        <$> (mapM subgenBody =<< List.toList elems)
     IR.UniTermTyped (IR.Typed expr tp)
-        -> named (spaced typedName) . atom
+        -> named (spaced typedName) . Atom
         .: mappendWith (Doc.spaced typedName)
        <$> subgenBody expr
        <*> subgenBody tp
     IR.UniTermUnify (IR.Unify l r)
-        -> named (spaced unifyName) . atom
+        -> named (spaced unifyName) . Atom
         .: mappendWith (Doc.spaced unifyName)
        <$> subgenBody l
        <*> subgenBody r
@@ -333,81 +293,81 @@ prettyprintSimple ir = Layer.read @IR.Model ir >>= \case
         cls <- Link.source b
         Layer.read @IR.Model cls >>= \case
             IR.UniTermRecord (IR.Record _ _ _ _ ds)
-                -> unnamed . atom .: go <$> subgenBody im
+                -> unnamed . Atom .: go <$> subgenBody im
                                         <*> (mapM subgenBody =<< List.toList ds)
                 where go imps defs = let glue = ""
                         in  imps <> glue <> foldl (</>) mempty defs
 
     IR.UniTermVar (IR.Var name) -> Scope.lookupMultipartName name <&> \case
-        Just (n:|ns) -> labeled Nothing $ Symbol.mixfix (convert n, ns)
-        Nothing -> if | Grammar.isOperator name -> named (spaced    name) $ Symbol.infixx (convert name)
-                      | name == appName    -> named (notSpaced name) $ Symbol.infixx (convert name)
-                      | name == uminusName -> named (notSpaced name) $ Symbol.prefix minusName
-                      | otherwise          -> unnamed                $ atom   (convert name)
+        Just (n:|ns) -> labeled Nothing $ Mixfix (convert n) ns
+        Nothing -> if | Grammar.isOperator name -> named (spaced    name) $ Infix (convert name)
+                      | name == appName    -> named (notSpaced name) $ Infix (convert name)
+                      | name == uminusName -> named (notSpaced name) $ Prefix minusName
+                      | otherwise          -> unnamed                $ Atom   (convert name)
 
 
-    t -> error $ "NO PRETTY PRINT FOR: " <> show t
+    t -> error $ "NO PRETTYPRINT FOR: " <> show t
 --     prettyprint style subStyle root = matchExpr root $ \case
---         String    str               -> pure . unnamed $ atom (convert $ quoted str) -- FIXME [WD]: add proper multi-line strings indentation
---         RecASG    name args         -> unnamed . atom . (convert name <>) . (\x -> if null x then mempty else space <> intercalate space x) <$> mapM subgenBody args
+--         String    str               -> pure . unnamed $ Atom (convert $ quoted str) -- FIXME [WD]: add proper multi-line strings indentation
+--         RecASG    name args         -> unnamed . Atom . (convert name <>) . (\x -> if null x then mempty else space <> intercalate space x) <$> mapM subgenBody args
 --         Var       name              -> lookupMultipartName name <&> \case
 --                                            Just n -> labeled Nothing $ mixfix (convert $ n ^. Name.base, n ^. Name.segments)
---                                            Nothing -> if | isOperator name    -> named (spaced    name) $ infixx (convert name)
---                                                          | name == appName    -> named (notSpaced name) $ infixx (convert name)
---                                                          | name == uminusName -> named (notSpaced name) $ prefix minusName
---                                                          | otherwise          -> unnamed                $ atom   (convert name)
---         Tuple      elems            -> unnamed . atom . parensed . (intercalate ", ") <$> mapM subgenBody elems
---         Seq       a b               -> unnamed . atom .: (</>) <$> subgenBody a <*> subgenBody b
---         Marked       m a            -> unnamed . atom .: (<>) <$> subgenBody m   <*> subgenBody a
---         Marker         a            -> pure . unnamed . atom $ convert markerBeginChar <> convert (show a) <> convert markerEndChar
---         ASGRootedFunction  n _      -> unnamed . atom . (\n' -> "<function '" <> n' <> "'>") <$> subgenBody n
---         Match        a cs           -> unnamed . atom .: (\expr body -> "case" <+> expr <+> "of" </> indented (block $ foldl (</>) mempty body)) <$> subgenBody a <*> mapM subgenBody cs
---         ClsASG _ n as cs ds         -> unnamed . atom .:. go <$> mapM subgenBody as <*> mapM subgenBody cs <*> mapM subgenBody ds where
+--                                            Nothing -> if | isOperator name    -> named (spaced    name) $ Infix (convert name)
+--                                                          | name == appName    -> named (notSpaced name) $ Infix (convert name)
+--                                                          | name == uminusName -> named (notSpaced name) $ Prefix minusName
+--                                                          | otherwise          -> unnamed                $ Atom   (convert name)
+--         Tuple      elems            -> unnamed . Atom . parensed . (intercalate ", ") <$> mapM subgenBody elems
+--         Seq       a b               -> unnamed . Atom .: (</>) <$> subgenBody a <*> subgenBody b
+--         Marked       m a            -> unnamed . Atom .: (<>) <$> subgenBody m   <*> subgenBody a
+--         Marker         a            -> pure . unnamed . Atom $ convert markerBeginChar <> convert (show a) <> convert markerEndChar
+--         ASGRootedFunction  n _      -> unnamed . Atom . (\n' -> "<function '" <> n' <> "'>") <$> subgenBody n
+--         Match        a cs           -> unnamed . Atom .: (\expr body -> "case" <+> expr <+> "of" </> indented (block $ foldl (</>) mempty body)) <$> subgenBody a <*> mapM subgenBody cs
+--         ClsASG _ n as cs ds         -> unnamed . Atom .:. go <$> mapM subgenBody as <*> mapM subgenBody cs <*> mapM subgenBody ds where
 --                                            go args conss decls = "class" <+> convert n <> arglist args <> body where
 --                                                body      = if_ (not . null $ cs <> ds) $ ":" </> bodyBlock
 --                                                bodyBlock = indented (block $ foldl (</>) mempty $ conss <> decls)
 
---         FieldASG mn a               -> unnamed . atom . (\tp -> if null mn then tp else intercalate space (convert <$> mn) <> Doc.spaced typedName <> tp) <$> subgenBody a
---         Invalid t                   -> pure . named (spaced appName) . atom $ "Invalid" <+> convert (show t)
---         UnresolvedImport i t        -> unnamed . atom . (\src -> "import " <> src <> tgts) <$> subgenBody i where
+--         FieldASG mn a               -> unnamed . Atom . (\tp -> if null mn then tp else intercalate space (convert <$> mn) <> Doc.spaced typedName <> tp) <$> subgenBody a
+--         Invalid t                   -> pure . named (spaced appName) . Atom $ "Invalid" <+> convert (show t)
+--         UnresolvedImport i t        -> unnamed . Atom . (\src -> "import " <> src <> tgts) <$> subgenBody i where
 --                                        tgts = case t of Import.Everything -> ""
 --                                                         Import.Listed ns  -> ": " <> intercalate " " (convert <$> ns)
---         UnresolvedImportSrc i       -> pure . unnamed . atom $ case i of
+--         UnresolvedImportSrc i       -> pure . unnamed . Atom $ case i of
 --             Import.World            -> "#World#"
 --             Import.Absolute ss      -> convertVia @P.String ss
 --             Import.Relative ss      -> "." <> convertVia @P.String ss
 
---         ForeignImportList language imports -> unnamed . atom .
+--         ForeignImportList language imports -> unnamed . Atom .
 --             (\imps -> "foreign import" <+> convert language <>  lamName
 --                 </> indented (block $ foldl (</>) mempty imps))
 --             <$> mapM subgenBody imports
---         ForeignLocationImportList location imports -> unnamed . atom .:
+--         ForeignLocationImportList location imports -> unnamed . Atom .:
 --             (\loc imps -> loc <>  lamName
 --                 </> indented (block $ foldl (</>) mempty imps))
 --             <$> subgenBody location <*> mapM subgenBody imports
 --         ForeignSymbolImport safety foreignName localName sig ->
---             unnamed . atom .:. (\safetyAn forName tSig -> safetyAn
+--             unnamed . Atom .:. (\safetyAn forName tSig -> safetyAn
 --                 <>  forName <+> convert localName <+> typedName <+> tSig)
 --             <$> subgenBody safety <*> subgenBody foreignName <*> subgenBody sig
---         ForeignImportSafety safety -> pure . unnamed. atom $ case safety of
+--         ForeignImportSafety safety -> pure . unnamed. Atom $ case safety of
 --             Import.Safe    -> "safe " -- Space is required.
 --             Import.Unsafe  -> "unsafe "
 --             Import.Default -> ""
 
 
---         Metadata t -> pure . unnamed . atom
+--         Metadata t -> pure . unnamed . Atom
 --             $ "###" <+> metadataHeader <+> convertVia @Text t
 --         -- FIXME [Ara, WD] Conversion via Text is not efficient
---         Documented d a -> unnamed . atom .
+--         Documented d a -> unnamed . Atom .
 --             (\a' -> convertVia @P.String docJoined </> a') <$> subgenBody a
 --             where docLines    = Text.split (== '\n') $ convertVia @P.String d
 --                   docComments = map ("#" <>) docLines
 --                   docJoined   = Text.intercalate "\n" docComments
---         Disabled a -> unnamed . atom . ("##" <>) <$> subgenBody a
---         Update a ns v -> named (spaced updateName) . atom .:
+--         Disabled a -> unnamed . Atom . ("##" <>) <$> subgenBody a
+--         Update a ns v -> named (spaced updateName) . Atom .:
 --             (\a' v' -> convert a' <> "." <> intercalate "." (convert <$> ns)
 --             <+> "=" <+> convert v') <$> subgen a <*> subgen v
---         Modify a ns n v -> named (spaced updateName) . atom .:
+--         Modify a ns n v -> named (spaced updateName) . Atom .:
 --             (\a' v' -> convert a' <> "." <> intercalate "." (convert <$> ns)
 --                 <+> convert n <> "=" <+> convert v')
 --             <$> subgen a <*> subgen v
@@ -433,9 +393,6 @@ prettyprintSimple ir = Layer.read @IR.Model ir >>= \case
 
 -- === Utils === --
 
--- isMultilineBlock :: Req m '[ Reader // Layer // AnyExpr     // Model
---                            , Reader // Layer // AnyExprLink // Model
---                            ]
 isMultilineBlock ::
      ( Layer.Reader IR.Terms IR.Model m
      , Layer.Reader Link.Links Link.Source m
@@ -480,16 +437,16 @@ isMultilineBlock lnk = do
 --                   ]
 --          ) => Prettyprinter CompactStyle t m where
 --     prettyprint style subStyle root = matchExpr root $ \case
---         String str    -> pure . unnamed . atom . convert . quoted $ if length str > succ maxLen then take maxLen str <> "…" else str where maxLen = 3
---         Var    name   -> shouldBeCompact @Var style root >>= switch (pure . unnamed $ atom "•") defGen
---         Lam{}         -> pure . unnamed $ atom "Ⓕ"
---         ASGFunction{} -> pure . unnamed $ atom "Ⓕ"
+--         String str    -> pure . unnamed . Atom . convert . quoted $ if length str > succ maxLen then take maxLen str <> "…" else str where maxLen = 3
+--         Var    name   -> shouldBeCompact @Var style root >>= switch (pure . unnamed $ Atom "•") defGen
+--         Lam{}         -> pure . unnamed $ Atom "Ⓕ"
+--         ASGFunction{} -> pure . unnamed $ Atom "Ⓕ"
 --         Marked m b    -> prettyprint style subStyle =<< source b
 --         Grouped g     -> do
 --             body <- prettyprint style subStyle =<< source g
 --             pure $ case unlabel body of
 --                 Atom{} -> body
---                 _      -> unnamed . atom . parensed . getBody $ body
+--                 _      -> unnamed . Atom . parensed . getBody $ body
 --         _             -> defGen
 --         where simpleGen = prettyprint Simple subStyle
 --               defGen    = simpleGen root
@@ -525,4 +482,16 @@ isMultilineBlock lnk = do
 --     hardcode
 --     sym <- prettyShow style expr
 --     pure $ showSymbol sym
+
+
+
+
+
+
+-- renderSimple :: Prettyprinter Simple m => IT.Term a -> m Text
+-- renderSimple = prettyshow Simple
+
+-- instance {-# OVERLAPPABLE #-} (Monad (t m), MonadTrans t, Prettyprinter style m)
+--     => Prettyprinter style (t m) where
+--     prettyprint = lift . prettyprint @style ; {-# INLINE prettyprint #-}
 
