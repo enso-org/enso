@@ -208,46 +208,12 @@ checkOffsets = (,) <$> checkLastOffset <*> checkNextOffset
 
 -- === Lifting === --
 
--- liftIRB0 :: (                              Pass Parser out) -> (                              IRB out)
--- liftIRB1 :: (t1                         -> Pass Parser out) -> (t1                         -> IRB out)
--- liftIRB2 :: (t1 -> t2                   -> Pass Parser out) -> (t1 -> t2                   -> IRB out)
--- liftIRB3 :: (t1 -> t2 -> t3             -> Pass Parser out) -> (t1 -> t2 -> t3             -> IRB out)
--- liftIRB4 :: (t1 -> t2 -> t3 -> t4       -> Pass Parser out) -> (t1 -> t2 -> t3 -> t4       -> IRB out)
--- liftIRB5 :: (t1 -> t2 -> t3 -> t4 -> t5 -> Pass Parser out) -> (t1 -> t2 -> t3 -> t4 -> t5 -> IRB out)
--- liftIRB0 f                = wrap $ f                ; {-# INLINE liftIRB0 #-}
--- liftIRB1 f t1             = wrap $ f t1             ; {-# INLINE liftIRB1 #-}
--- liftIRB2 f t1 t2          = wrap $ f t1 t2          ; {-# INLINE liftIRB2 #-}
--- liftIRB3 f t1 t2 t3       = wrap $ f t1 t2 t3       ; {-# INLINE liftIRB3 #-}
--- liftIRB4 f t1 t2 t3 t4    = wrap $ f t1 t2 t3 t4    ; {-# INLINE liftIRB4 #-}
--- liftIRB5 f t1 t2 t3 t4 t5 = wrap $ f t1 t2 t3 t4 t5 ; {-# INLINE liftIRB5 #-}
-
-liftIRBApp1 :: (t1                         -> IRB out) -> IRB t1 -> IRB out
-liftIRBApp2 :: (t1 -> t2                   -> IRB out) -> IRB t1 -> IRB t2 -> IRB out
-liftIRBApp3 :: (t1 -> t2 -> t3             -> IRB out) -> IRB t1 -> IRB t2 -> IRB t3 -> IRB out
-liftIRBApp4 :: (t1 -> t2 -> t3 -> t4       -> IRB out) -> IRB t1 -> IRB t2 -> IRB t3 -> IRB t4 -> IRB out
-liftIRBApp5 :: (t1 -> t2 -> t3 -> t4 -> t5 -> IRB out) -> IRB t1 -> IRB t2 -> IRB t3 -> IRB t4 -> IRB t5 -> IRB out
-liftIRBApp1 f mt1                 = do { t1 <- mt1; f t1                                                         } ; {-# INLINE liftIRBApp1 #-}
-liftIRBApp2 f mt1 mt2             = do { t1 <- mt1; t2 <- mt2; f t1 t2                                           } ; {-# INLINE liftIRBApp2 #-}
-liftIRBApp3 f mt1 mt2 mt3         = do { t1 <- mt1; t2 <- mt2; t3 <- mt3; f t1 t2 t3                             } ; {-# INLINE liftIRBApp3 #-}
-liftIRBApp4 f mt1 mt2 mt3 mt4     = do { t1 <- mt1; t2 <- mt2; t3 <- mt3; t4 <- mt4; f t1 t2 t3 t4               } ; {-# INLINE liftIRBApp4 #-}
-liftIRBApp5 f mt1 mt2 mt3 mt4 mt5 = do { t1 <- mt1; t2 <- mt2; t3 <- mt3; t4 <- mt4; t5 <- mt5; f t1 t2 t3 t4 t5 } ; {-# INLINE liftIRBApp5 #-}
-
--- liftAstApp0 :: (                              IRB out) -> IRB out
-liftAstApp1 :: (t1                         -> IRB out) -> AsgBldr t1 -> IRB out
-liftAstApp2 :: (t1 -> t2                   -> IRB out) -> AsgBldr t1 -> AsgBldr t2 -> IRB out
-liftAstApp3 :: (t1 -> t2 -> t3             -> IRB out) -> AsgBldr t1 -> AsgBldr t2 -> AsgBldr t3 -> IRB out
-liftAstApp4 :: (t1 -> t2 -> t3 -> t4       -> IRB out) -> AsgBldr t1 -> AsgBldr t2 -> AsgBldr t3 -> AsgBldr t4 -> IRB out
-liftAstApp5 :: (t1 -> t2 -> t3 -> t4 -> t5 -> IRB out) -> AsgBldr t1 -> AsgBldr t2 -> AsgBldr t3 -> AsgBldr t4 -> AsgBldr t5 -> IRB out
--- liftAstApp0 f                = id f                                                                                      ; {-# INLINE liftAstApp0 #-}
-liftAstApp1 f t1             = liftIRBApp1 f (fromAsgBldr t1)                                                                     ; {-# INLINE liftAstApp1 #-}
-liftAstApp2 f t1 t2          = liftIRBApp2 f (fromAsgBldr t1) (fromAsgBldr t2)                                                    ; {-# INLINE liftAstApp2 #-}
-liftAstApp3 f t1 t2 t3       = liftIRBApp3 f (fromAsgBldr t1) (fromAsgBldr t2) (fromAsgBldr t3)                                   ; {-# INLINE liftAstApp3 #-}
-liftAstApp4 f t1 t2 t3 t4    = liftIRBApp4 f (fromAsgBldr t1) (fromAsgBldr t2) (fromAsgBldr t3) (fromAsgBldr t4)                  ; {-# INLINE liftAstApp4 #-}
-liftAstApp5 f t1 t2 t3 t4 t5 = liftIRBApp5 f (fromAsgBldr t1) (fromAsgBldr t2) (fromAsgBldr t3) (fromAsgBldr t4) (fromAsgBldr t5) ; {-# INLINE liftAstApp5 #-}
-
--- -- FIXME[WD]: remove
--- xliftAstApp2 :: (forall m. IRBuilding m => t1 -> t2                   -> m SomeTerm) -> AsgBldr t1 -> AsgBldr t2 -> IRB SomeTerm
--- xliftAstApp2 = liftAstApp2
+liftAstApp1 :: (t1             -> IRB out) -> AsgBldr t1 -> IRB out
+liftAstApp2 :: (t1 -> t2       -> IRB out) -> AsgBldr t1 -> AsgBldr t2 -> IRB out
+liftAstApp3 :: (t1 -> t2 -> t3 -> IRB out) -> AsgBldr t1 -> AsgBldr t2 -> AsgBldr t3 -> IRB out
+liftAstApp1 f t1       = bind  f (fromAsgBldr t1)                                                                     ; {-# INLINE liftAstApp1 #-}
+liftAstApp2 f t1 t2    = bind2 f (fromAsgBldr t1) (fromAsgBldr t2)                                                    ; {-# INLINE liftAstApp2 #-}
+liftAstApp3 f t1 t2 t3 = bind3 f (fromAsgBldr t1) (fromAsgBldr t2) (fromAsgBldr t3)                                   ; {-# INLINE liftAstApp3 #-}
 
 
 
