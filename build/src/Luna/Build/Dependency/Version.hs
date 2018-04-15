@@ -83,7 +83,9 @@ instance Ord Version where
                 Just (Prerelease ty1 ver1) ->
                     case r of
                         Just (Prerelease ty2 ver2) ->
-                            ty1 < ty2 || (ty1 > ty2 && ver1 < ver2)
+                            if ty1 < ty2 then True
+                            else if ty1 > ty2 then False
+                            else ver1 < ver2
                         Nothing -> True
                 Nothing -> False
 
