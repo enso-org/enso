@@ -12,11 +12,10 @@ packages:
 - criterion-1.3.0.0
 - terminal-text-1.1.1
 - placeholders-0.1
+- megaparsec-6.5.0
 - monad-st-0.2.4.1
 - c-storable-deriving-0.1.3
 - lens-utils-1.4.2
-- hspec-megaparsec-0.3.1
-- megaparsec-5.3.1
 - convert-1.4.2
 - hspec-2.5.0
 - vector-text-1.1.1

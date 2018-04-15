@@ -10,13 +10,13 @@ import Prologue hiding (seq)
 -- import qualified Prologue_old as P
 
 -- import qualified Text.Megaparsec as Parser
-import Text.Megaparsec       (ErrorItem (Tokens), ParseError, anyChar, between,
-                              char, choice, digitChar, hidden, letterChar,
-                              lookAhead, lowerChar, manyTill, notFollowedBy,
-                              skipMany, spaceChar, try, unexpected, upperChar,
+import Text.Megaparsec       (ErrorItem (Tokens), MonadParsec, ParseError,
+                              between, choice, hidden, lookAhead, manyTill,
+                              notFollowedBy, skipMany, try, unexpected,
                               withRecovery)
+import Text.Megaparsec.Char  (anyChar, char, digitChar, letterChar, lowerChar,
+                              spaceChar, upperChar)
 import Text.Megaparsec.Error (parseErrorPretty, parseErrorTextPretty)
-import Text.Megaparsec.Prim  (MonadParsec)
 -- import           Text.Megaparsec.String hiding (Parser)
 -- import qualified Text.Megaparsec.String as M
 -- import qualified Text.Megaparsec.Lexer as Lex
@@ -168,10 +168,10 @@ satisfy_ f = void $ satisfy' f
 satisfy' f = satisfy $ \s -> justIf (f s) s
 satisfy  f = token' testSymbol Nothing where
     testSymbol r t = case Reserved.lookupSymbolReservation r (t ^. Lexer.element) of
-        True  -> Left (Set.singleton (Tokens (t:|[])), Set.empty, Set.empty)
+        True  -> Left (Just $ Tokens (t:|[]), Set.empty)
         False -> case f (t ^. Lexer.element) of
             Just a  -> Right a
-            Nothing -> Left (Set.singleton (Tokens (t:|[])), Set.empty, Set.empty)
+            Nothing -> Left (Just $ Tokens (t:|[]), Set.empty)
 
 satisfyReserved' :: (Lexer.Symbol -> Bool)    -> SymParser Lexer.Symbol
 satisfyReserved_ :: (Lexer.Symbol -> Bool)    -> SymParser ()
@@ -181,7 +181,7 @@ satisfyReserved' f = satisfyReserved $ \s -> justIf (f s) s
 satisfyReserved  f = token' testSymbol Nothing where
     testSymbol r t = case f (t ^. Lexer.element) of
         Just a  -> Right a
-        Nothing -> Left (Set.singleton (Tokens (t:|[])), Set.empty, Set.empty)
+        Nothing -> Left (Just $ Tokens (t:|[]), Set.empty)
 
 symbol :: Lexer.Symbol -> SymParser ()
 symbol = satisfy_ . (==)

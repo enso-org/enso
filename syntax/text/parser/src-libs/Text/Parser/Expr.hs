@@ -14,9 +14,9 @@ import qualified Language.Symbol.Operator.Assoc as Assoc
 import qualified Language.Symbol.Operator.Prec  as Prec
 
 import Language.Symbol         (Labeled (Labeled), Symbol (Symbol))
-import Text.Megaparsec         (SourcePos, getPosition, setPosition, unexpected)
+import Text.Megaparsec         (MonadParsec, SourcePos, getPosition,
+                                setPosition, unexpected)
 import Text.Megaparsec.Ext
-import Text.Megaparsec.Prim    (MonadParsec)
 import Text.Parser.Combinators
 
 
