@@ -132,12 +132,12 @@ type IRBSParser a = SymParser (IRBS a)
 
 -- === Utils === --
 
-bindIRBS1 :: (t1             -> IRB out) -> IRBS t1 -> IRB out
-bindIRBS2 :: (t1 -> t2       -> IRB out) -> IRBS t1 -> IRBS t2 -> IRB out
-bindIRBS3 :: (t1 -> t2 -> t3 -> IRB out) -> IRBS t1 -> IRBS t2 -> IRBS t3 -> IRB out
-bindIRBS1 f t1       = bind  f (fromIRBS t1)                             ; {-# INLINE bindIRBS1 #-}
-bindIRBS2 f t1 t2    = bind2 f (fromIRBS t1) (fromIRBS t2)               ; {-# INLINE bindIRBS2 #-}
-bindIRBS3 f t1 t2 t3 = bind3 f (fromIRBS t1) (fromIRBS t2) (fromIRBS t3) ; {-# INLINE bindIRBS3 #-}
+liftIRBS1 :: (t1             -> IRB out) -> IRBS t1                       -> IRB out
+liftIRBS2 :: (t1 -> t2       -> IRB out) -> IRBS t1 -> IRBS t2            -> IRB out
+liftIRBS3 :: (t1 -> t2 -> t3 -> IRB out) -> IRBS t1 -> IRBS t2 -> IRBS t3 -> IRB out
+liftIRBS1 f t1       = bind  f (fromIRBS t1)                             ; {-# INLINE liftIRBS1 #-}
+liftIRBS2 f t1 t2    = bind2 f (fromIRBS t1) (fromIRBS t2)               ; {-# INLINE liftIRBS2 #-}
+liftIRBS3 f t1 t2 t3 = bind3 f (fromIRBS t1) (fromIRBS t2) (fromIRBS t3) ; {-# INLINE liftIRBS3 #-}
 
 
 -- === Instances === --
