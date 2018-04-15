@@ -88,10 +88,10 @@ missingPackages = Map.fromList
 -- TODO [Ara] Test where a package has no constraints.
 spec :: Spec
 spec = do
-    {- describe "Unavailable packages" $ do -}
-        {- it "No available releases for `Bar`" -}
-            {- . shouldNotSolveAs basicConstraints missingPackages -}
-            {- $ UnavailablePackages ["Bar"] -}
+    describe "Unavailable packages" $ do
+        it "No available releases for `Bar`"
+            . shouldNotSolveAs basicConstraints missingPackages
+            $ UnavailablePackages ["Bar"]
 
     describe "Satisfiable package sets" $ do
         it "Basic package set" . shouldSolveAs basicConstraints basicVersions
@@ -99,8 +99,8 @@ spec = do
                          , ("Baz", Version 2 0 0 (Just (Prerelease RC 1)))
                          , ("Foo", Version 1 0 0 (Just (Prerelease Beta 3))) ]
 
-    {- describe "Unsatisfiable package sets" $ do -}
-        {- it "Basic unsatisfiable set" -}
-            {- . shouldNotSolveAs unsatConstraints basicVersions -}
-            {- $ UnsatisfiableConstraints ["Foo == 1.0.0-beta.3", "Foo == 1.3.1"] -}
+    describe "Unsatisfiable package sets" $ do
+        it "Basic unsatisfiable set"
+            . shouldNotSolveAs unsatConstraints basicVersions
+            $ UnsatisfiableConstraints ["Foo == 1.0.0-beta.3", "Foo == 1.3.1"]
 
