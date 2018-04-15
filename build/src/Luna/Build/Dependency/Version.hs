@@ -1,6 +1,6 @@
 module Luna.Build.Dependency.Version where
 
-import Prologue
+import Prologue hiding (min, fromString)
 
 import Data.Word                         (Word64)
 import Luna.Build.Dependency.ParserUtils (Parser, dot, natural)
@@ -41,6 +41,7 @@ data Version = Version
     } deriving (Eq, Generic, Show)
 makeLenses ''Version
 
+
 -- === API === --
 
 isPrerelease :: Version -> Bool
@@ -57,6 +58,7 @@ numToPrereleaseTy 0 = Alpha
 numToPrereleaseTy 1 = Beta
 numToPrereleaseTy 2 = RC
 numToPrereleaseTy _ = RC
+
 
 -- === Instances === --
 
@@ -81,9 +83,7 @@ instance Ord Version where
                 Just (Prerelease ty1 ver1) ->
                     case r of
                         Just (Prerelease ty2 ver2) ->
-                            if ty1 < ty2 then True
-                            else if ty1 > ty2 then False
-                            else if ver1 < ver2 then True else False
+                            ty1 < ty2 || (ty1 > ty2 && ver1 < ver2)
                         Nothing -> True
                 Nothing -> False
 
@@ -109,9 +109,9 @@ version = do
     major <- natural
     minor <- option 0 (dot *> natural)
     patch <- option 0 (dot *> natural)
-    prerelease <- optional (char '-' *> prerelease)
+    prerel <- optional (char '-' *> prerelease)
     if major + minor + patch == 0 then fail msg else
-        pure $ Version major minor patch prerelease
+        pure $ Version major minor patch prerel
     where msg = "Not all components of the version can be zero."
 
 prerelease :: Parser Prerelease

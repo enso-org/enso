@@ -1,6 +1,6 @@
 module Luna.Test.Build.Dependency.ResolverSpec where
 
-import Prologue hiding (Constraint, Constraints)
+import Prologue hiding (Constraint, Constraints, set)
 
 import qualified Data.Map.Strict                  as Map
 import qualified Luna.Build.Dependency.Constraint as Constraint
@@ -19,12 +19,12 @@ import Test.Hspec (Spec, Expectation, it, describe, shouldBe)
 shouldSolveAs :: Constraints -> Versions -> PackageSet -> Expectation
 shouldSolveAs constraints versions set = do
     solverResult <- solveConstraints constraints versions
-    solverResult `shouldBe` (Right set)
+    solverResult `shouldBe` Right set
 
 shouldNotSolveAs :: Constraints -> Versions -> SolverError -> Expectation
 shouldNotSolveAs constraints versions failure = do
     solverResult <- solveConstraints constraints versions
-    solverResult `shouldBe` (Left failure)
+    solverResult `shouldBe` Left failure
 
 basicConstraints :: Constraints
 basicConstraints = Map.fromList
@@ -45,6 +45,29 @@ unsatConstraints = Map.fromList
     , ("Baz",
         [ Constraint Constraint.LT (Version 2 0 0 Nothing)
         , Constraint Constraint.GT (Version 1 3 2 Nothing) ]) ]
+
+packageWithNoConstraints :: Constraints
+packageWithNoConstraints = Map.fromList
+    [ ("Foo", [])
+    , ("Bar", [Constraint Constraint.GT (Version 1 1 0 Nothing)])
+    , ("Baz", [Constraint Constraint.EQ (Version 1 3 0 Nothing)]) ]
+
+noExplicitPrereleases :: Constraints
+noExplicitPrereleases = Map.fromList
+    [ ("Foo", [Constraint Constraint.LT (Version 1 1 0 Nothing)])
+    , ("Bar", [Constraint Constraint.LE (Version 1 5 0 Nothing)])
+    , ("Baz", [Constraint Constraint.GE (Version 1 3 0 Nothing)]) ]
+
+hardEQConstraints :: Constraints
+hardEQConstraints = Map.fromList
+    [ ("Foo", [Constraint Constraint.EQ (Version 1 2 5 Nothing)])
+    , ("Bar", [Constraint Constraint.EQ (Version 1 0 0 Nothing)])
+    , ("Baz", [Constraint Constraint.EQ (Version 1 4 0 Nothing)]) ]
+
+lessConstraintsThanVersions :: Constraints
+lessConstraintsThanVersions = Map.fromList
+    [ ("Foo", [Constraint Constraint.GT (Version 1 0 0 Nothing)])
+    , ("Bar", [Constraint Constraint.GT (Version 1 1 0 Nothing)]) ]
 
 basicVersions :: Versions
 basicVersions = Map.fromList
@@ -73,34 +96,50 @@ basicVersions = Map.fromList
         , Version 2 0 0 (Just (Prerelease RC 1)) ]) ]
 
 missingPackages :: Versions
-missingPackages = Map.fromList
-    [ ("Foo",
+missingPackages = Map.fromList [ ("Foo",
         [ Version 1 0 0 (Just (Prerelease Beta 3))
         , Version 1 3 2 Nothing ])
     , ("Baz",
         [ Version 1 3 0 Nothing
         , Version 2 0 0 (Just (Prerelease RC 1)) ]) ]
 
--- TODO [Ara] These tests will be significantly fleshed out once I implement the
--- optimisation goal.
--- FIXME [Ara] These tests are VERY brittle while the optimisation goal is not
--- in place.
--- TODO [Ara] Test where a package has no constraints.
+missingAllPackages :: Versions
+missingAllPackages = Map.fromList []
+
 spec :: Spec
 spec = do
     describe "Unavailable packages" $ do
         it "No available releases for `Bar`"
             . shouldNotSolveAs basicConstraints missingPackages
             $ UnavailablePackages ["Bar"]
+        it "No available releases at all"
+            . shouldNotSolveAs basicConstraints missingAllPackages
+            $ UnavailablePackages ["Bar", "Baz", "Foo"]
+        it "Less constraints than versions"
+            . shouldNotSolveAs lessConstraintsThanVersions basicVersions
+            $ PackagesNotProvided ["Baz"]
 
     describe "Satisfiable package sets" $ do
         it "Basic package set" . shouldSolveAs basicConstraints basicVersions
             $ Map.fromList [ ("Bar", Version 1 6 0 Nothing)
-                         , ("Baz", Version 2 0 0 (Just (Prerelease RC 1)))
-                         , ("Foo", Version 1 0 0 (Just (Prerelease Beta 3))) ]
+                           , ("Baz", Version 2 0 0 (Just (Prerelease RC 1)))
+                           , ("Foo", Version 1 0 0 (Just (Prerelease Beta 3))) ]
+        it "Set without constraints for a package"
+            . shouldSolveAs packageWithNoConstraints basicVersions
+            $ Map.fromList [ ("Bar", Version 1 6 0 Nothing)
+                           , ("Baz", Version 1 3 0 Nothing)
+                           , ("Foo", Version 1 3 2 Nothing) ]
+        it "Should not select prereleases by default"
+            . shouldSolveAs noExplicitPrereleases basicVersions
+            $ Map.fromList [ ("Bar", Version 1 5 0 Nothing)
+                           , ("Baz", Version 1 7 0 Nothing)
+                           , ("Foo", Version 1 0 1 Nothing) ]
 
     describe "Unsatisfiable package sets" $ do
         it "Basic unsatisfiable set"
             . shouldNotSolveAs unsatConstraints basicVersions
             $ UnsatisfiableConstraints ["Foo == 1.0.0-beta.3", "Foo == 1.3.1"]
+        it "EQ constraint on unavailable version"
+            . shouldNotSolveAs hardEQConstraints basicVersions
+            $ UnsatisfiableConstraints ["Available:Bar", "Bar == 1.0.0"]
 

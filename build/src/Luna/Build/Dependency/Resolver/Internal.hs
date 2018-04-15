@@ -19,11 +19,12 @@ import Luna.Build.Dependency.Version    (Version(Version))
 
 data SolverError
     = UnavailablePackages [Text]
+    | PackagesNotProvided [Text]
     | UnsatisfiableConstraints [Text]
     | UnknownSolution Text
     | BadOptimisation Text
     | ExtensionField
-    | SolverError [Text]
+    | InternalError [Text]
     | MissingVariables [Text]
     deriving (Eq, Generic, Ord, Show)
 
@@ -221,14 +222,14 @@ extractVersions constraints versions solverResult = case solverResult of
                     pairs          = zip packageNames solvedVersions
 
                 pure . Right $ Map.fromList pairs
-            else pure . Left . SolverError
+            else pure . Left . InternalError
                       $ ["Critical error when extracting variables."]
 
         SBV.SatExtField _ _     -> pure . Left $ ExtensionField
         SBV.Unsatisfiable _     -> runNonOptQuery constraints versions
         SBV.Unknown _ reasonStr -> pure . Left . UnknownSolution
                                         $ convert reasonStr
-        SBV.ProofError _ errors -> pure . Left . SolverError
+        SBV.ProofError _ errors -> pure . Left . InternalError
                                         $ convert <$> errors
 
 constraintScript :: Constraint.Constraints -> Constraint.Versions -> OptTag
@@ -267,7 +268,7 @@ constraintScript constraints versions tag = do
     let mkEqs (pkg, ver)   = (\x -> pkg .== versionToSVersion x) <$> ver
         packageEqualities  = mkEqs <$> zip packageSyms filteredVersions
         packageDisjunction = SBV.bOr <$> packageEqualities
-        genPackageName nm  = "Available" <> convert nm
+        genPackageName nm  = "Available" <> nameConnector <> convert nm
         namedDisjunctions  = zip (genPackageName <$> packageNames)
                                  packageDisjunction
 
@@ -292,8 +293,8 @@ nonOptQuery constraints versions = do
         SBV.Unsat -> do
             core <- SBV.getUnsatCore
             pure . (Left . UnsatisfiableConstraints) $ convert <$> core
-        SBV.Unk   -> pure . Left $ SolverError ["Could not solve constraints."]
-        SBV.Sat   -> pure . Left $ SolverError ["Inconsistent solver results."]
+        SBV.Unk   -> pure . Left $ InternalError ["Could not solve constraints."]
+        SBV.Sat   -> pure . Left $ InternalError ["Inconsistent solver results."]
 
 runNonOptQuery :: Constraint.Constraints -> Constraint.Versions
                -> IO (Either SolverError Constraint.PackageSet)

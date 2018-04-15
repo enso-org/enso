@@ -46,7 +46,7 @@ isEQPrerelease = \case (Constraint EQ ver) -> Version.isPrerelease ver
 instance PrettyShow ConstraintType where
     prettyShow = \case EQ -> "=="
                        GT -> ">"
-                       LT -> ">"
+                       LT -> "<"
                        LE -> "<="
                        GE -> ">="
 
