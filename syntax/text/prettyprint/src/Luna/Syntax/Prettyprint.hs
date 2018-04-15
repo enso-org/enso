@@ -26,7 +26,7 @@ import qualified OCI.IR.Layout                  as Layout
 
 import Control.Monad.State.Layered  (StateT)
 import Data.Layout                  (quoted, space, (</>))
-import Data.Layout                  (parensed, (<+>))
+import Data.Layout                  (block, indented, parensed, (<+>))
 import Data.Vector.Storable.Foreign (Vector)
 import Language.Symbol.Label        (Labeled (Labeled), label, labeled, unlabel)
 import Luna.IR                      (Name)
@@ -251,8 +251,7 @@ prettyprintSimple ir = Layer.read @IR.Model ir >>= \case
         args' <- mapM subgen =<< List.toList args
         foldM appSymbols (simple $ convert name) args'
     IR.UniTermFunction (IR.Function n as body)
-        -> unnamed . Atom
-       .:. (\n' as' body' -> "def" <+> n' <> arglist as' <> body')
+        -> simple .:. (\n' as' body' -> "def" <+> n' <> arglist as' <> body')
        <$> subgenBody n <*> (mapM subgenBody =<< List.toList as) <*> smartBlock body
     IR.UniTermFunctionSig (IR.FunctionSig n tp)
         -> simple .: (\n' tp' -> "def" <+> n' <+> typedName <+> tp')
@@ -269,11 +268,16 @@ prettyprintSimple ir = Layer.read @IR.Model ir >>= \case
     IR.UniTermList (IR.List elems)
         -> simple . Doc.bracked . intercalate ", "
        <$> (mapM subgenBody =<< List.toList elems)
+    IR.UniTermMatch (IR.Match a cs) -> simple
+        .: (\expr body -> "case" <+> expr <+> "of" </> indented (block $ foldl (</>) mempty body))
+        <$> subgenBody a <*> (mapM subgenBody =<< List.toList cs)
+
     IR.UniTermMissing IR.Missing -> pure $ simple mempty
     IR.UniTermSectionLeft  (IR.SectionLeft  op a)
         -> simple . parensed .: (<+>) <$> subgenBody op <*> subgenBody a
     IR.UniTermSectionRight (IR.SectionRight op a)
         -> simple . parensed .: flip (<+>) <$> subgenBody op <*> subgenBody a
+    IR.UniTermSeq (IR.Seq a b) -> simple .: (</>) <$> subgenBody a <*> subgenBody b
     IR.UniTermString (IR.String s)
         -> simple . quoted . convert <$> Vector.toList s -- FIXME [WD]: add proper multi-line strings indentation
     IR.UniTermTuple (IR.Tuple elems)
@@ -317,11 +321,9 @@ prettyprintSimple ir = Layer.read @IR.Model ir >>= \case
 --                                                          | name == uminusName -> named (notSpaced name) $ Prefix minusName
 --                                                          | otherwise          -> unnamed                $ Atom   (convert name)
 --         Tuple      elems            -> unnamed . Atom . parensed . (intercalate ", ") <$> mapM subgenBody elems
---         Seq       a b               -> unnamed . Atom .: (</>) <$> subgenBody a <*> subgenBody b
 --         Marked       m a            -> unnamed . Atom .: (<>) <$> subgenBody m   <*> subgenBody a
 --         Marker         a            -> pure . unnamed . Atom $ convert markerBeginChar <> convert (show a) <> convert markerEndChar
 --         ASGRootedFunction  n _      -> unnamed . Atom . (\n' -> "<function '" <> n' <> "'>") <$> subgenBody n
---         Match        a cs           -> unnamed . Atom .: (\expr body -> "case" <+> expr <+> "of" </> indented (block $ foldl (</>) mempty body)) <$> subgenBody a <*> mapM subgenBody cs
 --         ClsASG _ n as cs ds         -> unnamed . Atom .:. go <$> mapM subgenBody as <*> mapM subgenBody cs <*> mapM subgenBody ds where
 --                                            go args conss decls = "class" <+> convert n <> arglist args <> body where
 --                                                body      = if_ (not . null $ cs <> ds) $ ":" </> bodyBlock

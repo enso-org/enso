@@ -336,7 +336,7 @@ definitionSpec = do
 
 fixSpec :: Spec
 fixSpec = do
-    it "error" $ expr "a.x = v"
+    it "error" $ expr "def foo:\n x = 1\n y = 2"
 
 spec :: Spec
 spec = do
@@ -344,7 +344,7 @@ spec = do
     literalSpec
     termSpec
     definitionSpec
-    -- fixSpec
+    fixSpec
     -- pure (s)
 
 

@@ -412,16 +412,18 @@ string = rawStr <|> fmtStr
 rawStr :: IRBSParser SomeTerm
 rawStr = irbs $ do
     rawQuoteBegin
-    withRecovery (\e -> invalid "Invalid string literal" <$ Loc.unregisteredDropSymbolsUntil' (== (Lexer.Quote Lexer.RawStr Lexer.End)))
-                 $ (IR.string' . convertVia @String)
-               <$> Indent.withCurrent (strBody rawQuoteEnd) -- FIXME[WD]: We're converting Text -> String here.
+    (IR.string' . convertVia @String) <$> Indent.withCurrent (strBody rawQuoteEnd) -- FIXME[WD]: We're converting Text -> String here.
+    -- withRecovery (\e -> invalid "Invalid string literal" <$ Loc.unregisteredDropSymbolsUntil' (== (Lexer.Quote Lexer.RawStr Lexer.End)))
+    --              $ (IR.string' . convertVia @String)
+    --            <$> Indent.withCurrent (strBody rawQuoteEnd) -- FIXME[WD]: We're converting Text -> String here.
 
 fmtStr :: IRBSParser SomeTerm
 fmtStr = irbs $ do
     fmtQuoteBegin
-    withRecovery (\e -> invalid "Invalid string literal" <$ Loc.unregisteredDropSymbolsUntil' (== (Lexer.Quote Lexer.FmtStr Lexer.End)))
-                 $ (IR.string' . convertVia @String)
-               <$> Indent.withCurrent (strBody fmtQuoteEnd) -- FIXME[WD]: We're converting Text -> String here.
+    (IR.string' . convertVia @String) <$> Indent.withCurrent (strBody fmtQuoteEnd) -- FIXME[WD]: We're converting Text -> String here.
+    -- withRecovery (\e -> invalid "Invalid string literal" <$ Loc.unregisteredDropSymbolsUntil' (== (Lexer.Quote Lexer.FmtStr Lexer.End)))
+    --              $ (IR.string' . convertVia @String)
+    --            <$> Indent.withCurrent (strBody fmtQuoteEnd) -- FIXME[WD]: We're converting Text -> String here.
 
 strBody :: SymParser () -> SymParser Text32
 strBody ending = segStr <|> end <|> nl where
