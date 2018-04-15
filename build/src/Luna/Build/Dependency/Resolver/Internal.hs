@@ -8,6 +8,7 @@ import qualified Data.SBV.Control                 as SBV hiding (Version)
 import qualified Luna.Build.Dependency.Constraint as Constraint
 import qualified Luna.Build.Dependency.Version    as Version
 
+import Data.Either                      (lefts, rights)
 import Data.SBV                         ((.==), (.>), (.<), (.<=), (.>=))
 import Luna.Build.Dependency.Constraint (Constraint(Constraint))
 import Luna.Build.Dependency.Version    (Version(Version))
@@ -72,6 +73,7 @@ makeLenses ''SVersion
 
 -- === API === ---
 
+-- TODO [Ara] Have this take a parameter dictating whether or not it maximizes
 mkSymbolicSVersion :: String -> SBV.Symbolic SVersion
 mkSymbolicSVersion name = do
     let genOptName component = optTag <> nameConnector <> name <> nameConnector
@@ -115,6 +117,13 @@ extractSVersion name = Version <$> SBV.getValue (__major name)
             else pure
                 $ Just (Version.Prerelease (Version.numToPrereleaseTy pre) preV)
 
+-- TODO [Ara] Convert to lambdacase
+extractOptSVersion :: [Word64] -> Version
+extractOptSVersion [a, b, c, d, e] = Version a b c prerelease where
+    prerelease = case d of
+        3 -> Nothing
+        _ -> Just (Version.Prerelease (Version.numToPrereleaseTy d) e)
+extractOptSVersion _ = Version 0 0 0 Nothing
 
 -- === Instances === --
 
@@ -192,8 +201,9 @@ extractVersions constraints solverResult = case solverResult of
     SBV.LexicographicResult smtResult -> case smtResult of
         SBV.Satisfiable _ _     -> do
             let modelObjectives = SBV.getModelObjectives smtResult
-                packageNames    = convert . Map.keys constraints
-                optNames        = genOptNames <$> packageNames
+                packageNames    = Map.keys constraints
+                packageStrs     = convert <$> packageNames
+                optNames        = genOptNames <$> packageStrs
 
                 getValue :: String -> Either SolverError Word64
                 getValue tag = case tag `Map.lookup` modelObjectives of
@@ -204,23 +214,24 @@ extractVersions constraints solverResult = case solverResult of
                         _            -> Left . MissingVariables $ convert tag
 
                 valueTuples = (\xs -> getValue <$> xs) <$> optNames
+                pkgValues = rights <$> valueTuples
+                errorValues = lefts <$> valueTuples
 
-            traceShowM valueTuples
-            pure . Right $ Map.empty
+            -- TODO [Ara] Clean up the error handling here.
+
+            if null $ concat errorValues then do
+                let versions = extractOptSVersion <$> pkgValues
+                    pairs = zip packageNames versions
+
+                pure . Right $ Map.fromList pairs
+            else pure . Left . SolverError $ ["Critical error when extracting variables."]
+
         SBV.SatExtField _ _     -> pure . Left $ ExtensionField
         SBV.Unsatisfiable _     -> pure . Left $ UnsatisfiableConstraints []
         SBV.Unknown _ reasonStr -> pure . Left . UnknownSolution
                                         $ convert reasonStr
         SBV.ProofError _ errors -> pure . Left . SolverError
                                         $ convert <$> errors
-
--- TODO move pure out
-
-{- grab name objectiveResults = case name `Map.lookup` objectiveResults of -}
-    {- Nothing             -> error $ "Cannot find " <> name <> " in the optimal model!" -}
-    {- Just (SBV.RegularCW  w) -> case SBV.parseCWs [w] of -}
-                                 {- Just (i, []) -> pure i -}
-                                 {- _            -> error $ "Couldn't extract optimal value for field " <> name (SBV.ExtendedCW v) -> error $ "Optimal value is in an extension field for " <> name <> ": " <> show v -}
 
 constraintQuery :: Constraint.Constraints -> Constraint.Versions
                 -> IO (Either SolverError Constraint.PackageSet)
