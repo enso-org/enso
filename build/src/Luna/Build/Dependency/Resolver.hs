@@ -1,9 +1,6 @@
 module Luna.Build.Dependency.Resolver
     ( module Luna.Build.Dependency.Resolver
-    , SolverError
-        ( UnavailablePackages
-        , UnsatisfiableConstraints
-        , UnknownSolution )
+    , module X
     ) where
 
 import Prologue hiding (Constraint, Constraints)
@@ -13,12 +10,12 @@ import qualified Data.Map.Strict                  as Map
 import qualified Data.SBV                         as SBV
 import qualified Luna.Build.Dependency.Constraint as Constraint
 
-import Luna.Build.Dependency.Resolver.Internal ( constraintQuery
-                                               , SolverError
-                                                   ( UnavailablePackages
-                                                   , UnsatisfiableConstraints
-                                                   , UnknownSolution )
-                                               , solverConfig )
+import Luna.Build.Dependency.Resolver.Internal as X ( constraintQuery
+                                                    , SolverError
+                                                      ( UnavailablePackages
+                                                      , UnsatisfiableConstraints
+                                                      , UnknownSolution )
+                                                    , solverConfig )
 
 
 

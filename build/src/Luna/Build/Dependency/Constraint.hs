@@ -6,10 +6,10 @@ import qualified Data.Map.Strict               as Map
 import qualified Luna.Build.Dependency.Version as Version
 
 import Data.Map.Strict                   (Map)
-import Luna.Build.Dependency.ParserUtils (and, spaces)
+import Luna.Build.Dependency.ParserUtils (Parser, and, spaces)
 import Luna.Build.Dependency.Version     (Version)
-import Text.Megaparsec                   (choice, sepBy, string)
-import Text.Megaparsec.Text              (Parser)
+import Text.Megaparsec                   (choice, sepBy)
+import Text.Megaparsec.Char              (string)
 
 ------------------------
 -- === Constraint === --

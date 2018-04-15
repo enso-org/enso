@@ -2,10 +2,10 @@ module Luna.Build.Dependency.Version where
 
 import Prologue
 
-import Text.Megaparsec                   (option, optional, string, char)
-import Text.Megaparsec.Text              (Parser)
 import Data.Word                         (Word64)
-import Luna.Build.Dependency.ParserUtils (dot, natural)
+import Luna.Build.Dependency.ParserUtils (Parser, dot, natural)
+import Text.Megaparsec                   (option, optional)
+import Text.Megaparsec.Char              (string, char)
 
 -- Versioning in Luna follows the following convention:
 --      major.minor.patch-prerelease.version

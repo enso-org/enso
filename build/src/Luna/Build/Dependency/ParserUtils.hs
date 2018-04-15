@@ -4,12 +4,20 @@ import Prologue
 
 import qualified Text.Read as Read
 
-import Text.Megaparsec.Text (Parser)
-import Text.Megaparsec      (space, string, char, digitChar)
+import Text.Megaparsec      (Parsec, ParseError)
+import Text.Megaparsec.Char (space, string, char, digitChar)
 
 ------------------------------
 -- === Parser Utilities === --
 ------------------------------
+
+-- === Definition === --
+
+type Parser = Parsec () Text
+type Error  = ParseError Char ()
+
+
+-- === API === ---
 
 spaces :: Parser ()
 spaces = void space
