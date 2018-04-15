@@ -23,14 +23,20 @@ import Luna.Build.Dependency.Resolver.Internal as X ( constraintQuery
 -- === Solver API === --
 ------------------------
 
+{- solveConstraints :: MonadIO m => Constraint.Constraints -> Constraint.Versions -}
+                 {- -> m (Either SolverError Constraint.PackageSet) -}
+{- solveConstraints constraints versions = -}
+    {- if List.sort (Map.keys constraints) /= List.sort (Map.keys versions) -}
+    {- then do -}
+        {- let missingPackages = filter (\x -> x `notElem` Map.keys versions) -}
+                            {- $ Map.keys constraints -}
+        {- pure . Left $ UnavailablePackages missingPackages -}
+    {- else liftIO . SBV.runSMTWith solverConfig -}
+                {- $ constraintQuery constraints versions -}
+
 solveConstraints :: MonadIO m => Constraint.Constraints -> Constraint.Versions
                  -> m (Either SolverError Constraint.PackageSet)
-solveConstraints constraints versions =
-    if List.sort (Map.keys constraints) /= List.sort (Map.keys versions)
-    then do
-        let missingPackages = filter (\x -> x `notElem` Map.keys versions)
-                            $ Map.keys constraints
-        pure . Left $ UnavailablePackages missingPackages
-    else liftIO . SBV.runSMTWith solverConfig
-                $ constraintQuery constraints versions
-
+solveConstraints constraints versions = do
+    res <- liftIO (constraintQuery constraints versions)
+    print res
+    pure . Left $ UnsatisfiableConstraints []

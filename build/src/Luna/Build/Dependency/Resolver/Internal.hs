@@ -12,6 +12,8 @@ import Data.SBV                         ((.==), (.>), (.<), (.<=), (.>=))
 import Luna.Build.Dependency.Constraint (Constraint(Constraint))
 import Luna.Build.Dependency.Version    (Version(Version))
 
+import Debug.Trace
+
 -----------------------
 -- === Utilities === --
 -----------------------
@@ -131,65 +133,127 @@ genNamedConstraint name con = void $ SBV.namedConstraint name con
 
 
 
+-- TODO [Ara] Want to maximize ALL the major versions first, and then so on
+
 ---------------------------
 -- === Solver Script === --
 ---------------------------
+data FooGen a = Foo { v1 :: a
+                    , v2 :: a
+                    , v3 :: a
+                    , v4 :: a
+                    , v5 :: a
+                    }
+                    deriving Show
 
+type SFoo = FooGen SBV.SWord64
+type Foo  = FooGen Word64
+
+sFoo :: String -> SBV.Symbolic SFoo
+sFoo nm = Foo <$> SBV.free_
+              <*> SBV.free_
+              <*> SBV.free_
+              <*> SBV.free_
+              <*> SBV.free_
 -- === API === --
 
+extractVersions :: SBV.OptimizeResult -> IO Foo
+extractVersions r = do
+    let m = case r of
+                SBV.LexicographicResult lr -> SBV.getModelObjectives lr
+                _                      -> error "Non-lexicographic optimization, need more code here!"
+        grab s = case s `Map.lookup` m of
+                     Nothing             -> error $ "Cannot find " <> s <> " in the optimal model!"
+                     Just (SBV.RegularCW  w) -> case SBV.parseCWs [w] of
+                                              Just (i, []) -> pure i
+                                              _            -> error $ "Couldn't extract optimal value for field " <> s
+                     Just (SBV.ExtendedCW v) -> error $ "Optimal value is in an extension field for " <> s <> ": " <> show v
+
+    Foo <$> grab "min-v1"
+        <*> grab "min-v2"
+        <*> grab "min-v3"
+        <*> grab "min-v4"
+        <*> grab "min-v5"
+
 constraintQuery :: Constraint.Constraints -> Constraint.Versions
-                -> SBV.Symbolic (Either SolverError Constraint.PackageSet)
-constraintQuery constraints versions = do
-    let packageNames        = Map.keys constraints
-        constraintLists     = Map.elems constraints
-        requiredPrereleases = fmap (fmap (\(Constraint _ ver) -> ver))
-                            $ filter Constraint.isEQPrerelease
-                           <$> constraintLists
-        filteredVersions    = (\(requiredReleases, availableReleases) -> filter
-                                (\x ->
-                                    not (Version.isPrerelease x)
-                                    || x `elem` requiredReleases)
-                                availableReleases)
-                           <$> zip requiredPrereleases (Map.elems versions)
+                -> IO Foo
+constraintQuery constraints versions
+    = extractVersions =<< SBV.optimize SBV.Lexicographic constraintScript where
+    constraintScript = do
+        Foo{v1, v2, v3, v4, v5} <- sFoo "myVersion"
 
-    -- Make a symbol for each package name
-    packageSyms <- sequence $ mkSymbolicSVersion . convert <$> packageNames
+        -- some arbitrary constraints:
+        SBV.constrain $ v1 .> 5
+        SBV.constrain $ v2 .> 10
+        SBV.constrain $ v3 .== v4 + v5
+        SBV.constrain $ v3 .> 15
+        SBV.constrain $ v1 .>= 0 SBV.&&& v1 .< 20
+        SBV.constrain $ v2 .>= 0 SBV.&&& v2 .< 30
+        SBV.constrain $ v3 .>= 4
+        SBV.constrain $ v4 .>= 12
+        SBV.constrain $ v5 .>= 0
+        SBV.constrain $ v3 .<= 40
 
-    -- Restrict symbols by version bounds
-    let nameSymConstraints       = zip3 packageNames packageSyms constraintLists
-        triple (name, sym, vers) = (\x -> (name, sym, x)) <$> vers
-        triples                  = concat $ triple <$> nameSymConstraints
-        nameConstraintPairs      = (\(name, sym, ver) ->
-                                    ( convert $ name <> " " <> prettyShow ver
-                                    , makeRestriction (sym, ver) ))
-                                <$> triples
+        -- Minimize each component:
+        SBV.minimize "min-v1" v1
+        SBV.minimize "min-v2" v2
+        SBV.minimize "min-v3" v3
+        SBV.minimize "min-v4" v4
+        SBV.minimize "min-v5" v5
 
-    sequence_ $ uncurry genNamedConstraint <$> nameConstraintPairs
-
-    -- Restrict symbols by available versions
-    let mkEqs (pkg, ver)   = (\x -> pkg .== versionToSVersion x) <$> ver
-        packageEqualities  = mkEqs <$> zip packageSyms filteredVersions
-        packageDisjunction = SBV.bOr <$> packageEqualities
-        genPackageName nm  = "Available" <> convert nm
-        namedDisjunctions  = zip (genPackageName <$> packageNames)
-                                 packageDisjunction
-
-    sequence_ $ uncurry genNamedConstraint <$> namedDisjunctions
-
-    -- TODO [Ara] Ensure the solver gets the maximum of each Package version
-
-    -- Set solver options prior to calling `checkSat`
-    SBV.setOption $ SBV.ProduceUnsatCores True
-
-    -- Extract the results
-    SBV.query $ SBV.checkSat >>= \case
-        SBV.Unsat -> do
-            core <- SBV.getUnsatCore
-            pure . (Left . UnsatisfiableConstraints) $ convert <$> core
-        SBV.Unk   -> do
-            reason <- SBV.getUnknownReason
-            pure . (Left . UnknownSolution) $ convert reason
-        SBV.Sat   -> do
-            concreteVersions <- sequence $ extractSVersion <$> packageSyms
-            pure . (Right . Map.fromList) $ zip packageNames concreteVersions
+{- constraintQuery :: Constraint.Constraints -> Constraint.Versions -}
+                {- -> SBV.Symbolic (Either SolverError Constraint.PackageSet) -}
+{- constraintQuery constraints versions = do -}
+    {- let packageNames        = Map.keys constraints -}
+        {- constraintLists     = Map.elems constraints -}
+        {- requiredPrereleases = fmap (fmap (\(Constraint _ ver) -> ver)) -}
+                            {- $ filter Constraint.isEQPrerelease -}
+                           {- <$> constraintLists -}
+        {- filteredVersions    = (\(requiredReleases, availableReleases) -> filter -}
+                                {- (\x -> -}
+                                    {- not (Version.isPrerelease x) -}
+                                    {- || x `elem` requiredReleases) -}
+                                {- availableReleases) -}
+                           {- <$> zip requiredPrereleases (Map.elems versions) -}
+{-  -}
+    {- -- Make a symbol for each package name -}
+    {- packageSyms <- sequence $ mkSymbolicSVersion . convert <$> packageNames -}
+{-  -}
+    {- -- Restrict symbols by version bounds -}
+    {- let nameSymConstraints       = zip3 packageNames packageSyms constraintLists -}
+        {- triple (name, sym, vers) = (\x -> (name, sym, x)) <$> vers -}
+        {- triples                  = concat $ triple <$> nameSymConstraints -}
+        {- nameConstraintPairs      = (\(name, sym, ver) -> -}
+                                    {- ( convert $ name <> " " <> prettyShow ver -}
+                                    {- , makeRestriction (sym, ver) )) -}
+                                {- <$> triples -}
+{-  -}
+    {- sequence_ $ uncurry genNamedConstraint <$> nameConstraintPairs -}
+{-  -}
+    {- -- Restrict symbols by available versions -}
+    {- let mkEqs (pkg, ver)   = (\x -> pkg .== versionToSVersion x) <$> ver -}
+        {- packageEqualities  = mkEqs <$> zip packageSyms filteredVersions -}
+        {- packageDisjunction = SBV.bOr <$> packageEqualities -}
+        {- genPackageName nm  = "Available" <> convert nm -}
+        {- namedDisjunctions  = zip (genPackageName <$> packageNames) -}
+                                 {- packageDisjunction -}
+{-  -}
+    {- sequence_ $ uncurry genNamedConstraint <$> namedDisjunctions -}
+{-  -}
+    {- -- TODO [Ara] Ensure the solver gets the maximum of each Package version -}
+{-  -}
+    {- -- Set solver options prior to calling `checkSat` -}
+    {- SBV.setOption $ SBV.ProduceUnsatCores True -}
+{-  -}
+    {- -- Extract the results -}
+    {- SBV.query $ SBV.checkSat >>= \case -}
+        {- SBV.Unsat -> do -}
+            {- core <- SBV.getUnsatCore -}
+            {- pure . (Left . UnsatisfiableConstraints) $ convert <$> core -}
+        {- SBV.Unk   -> do -}
+            {- reason <- SBV.getUnknownReason -}
+            {- pure . (Left . UnknownSolution) $ convert reason -}
+        {- SBV.Sat   -> do -}
+            {- concreteVersions <- sequence $ extractSVersion <$> packageSyms -}
+            {- pure . (Right . Map.fromList) $ zip packageNames concreteVersions -}
 
