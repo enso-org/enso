@@ -109,27 +109,43 @@ Pass.cache_phase2 ''Parser
 -- -- === Definition === --
 
 type IRB = StatesT '[UnmarkedExprs, MarkedExprMap] (Pass Parser)
--- newtype IRB a = IRB { fromIRB :: Pass Parser a } deriving (Functor, Applicative, Monad)
--- makeLenses ''IRB
+
+type IRBParser  a = SymParser (IRB  a)
 
 
----------------------
--- === AsgBldr === --
----------------------
+------------------
+-- === IRBS === --
+------------------
+
+-- | IRBS is abbreviation to 'IR Builder Spanned', which is IRB with
+--   code span information attached.
+
 
 -- === Definition === --
 
-newtype AsgBldr a = AsgBldr { fromAsgBldr :: IRB a }
+newtype IRBS a = IRBS { fromIRBS :: IRB a }
     deriving (Functor, Applicative, Monad)
-makeLenses ''AsgBldr
+makeLenses ''IRBS
 
-instance Show (AsgBldr a) where
-    show _ = "AsgBldr"
+type IRBSParser a = SymParser (IRBS a)
 
 
+-- === Utils === --
+
+bindIRBS1 :: (t1             -> IRB out) -> IRBS t1 -> IRB out
+bindIRBS2 :: (t1 -> t2       -> IRB out) -> IRBS t1 -> IRBS t2 -> IRB out
+bindIRBS3 :: (t1 -> t2 -> t3 -> IRB out) -> IRBS t1 -> IRBS t2 -> IRBS t3 -> IRB out
+bindIRBS1 f t1       = bind  f (fromIRBS t1)                             ; {-# INLINE bindIRBS1 #-}
+bindIRBS2 f t1 t2    = bind2 f (fromIRBS t1) (fromIRBS t2)               ; {-# INLINE bindIRBS2 #-}
+bindIRBS3 f t1 t2 t3 = bind3 f (fromIRBS t1) (fromIRBS t2) (fromIRBS t3) ; {-# INLINE bindIRBS3 #-}
 
 
 -- === Instances === --
+
+instance Show (IRBS a) where
+    show _ = "IRBS"
+
+
 
 -- instance Applicative IRB where
 --     pure a = IRB $ pure a           ; {-# INLINE pure #-}
@@ -153,8 +169,9 @@ instance Show (AsgBldr a) where
 
 
 
--- type IRParser a = SymParser (IRB a)
-type AsgParser a = SymParser (AsgBldr a)
+
+
+
 
 
 
@@ -178,35 +195,35 @@ type AsgParser a = SymParser (AsgBldr a)
 -- withIRx2 :: (forall m. IRBuilding m => m SomeExpr -> m SomeExpr) -> IRB SomeExpr -> IRB SomeExpr
 -- withIRx2 f (IRB a) = IRB $ f a
 
-withAsgBldr :: (IRB a -> IRB b) -> AsgBldr a -> AsgBldr b
-withAsgBldr f (AsgBldr ir) = AsgBldr $ f ir
+withAsgBldr :: (IRB a -> IRB b) -> IRBS a -> IRBS b
+withAsgBldr f (IRBS ir) = IRBS $ f ir
 
 -- runIRBx :: IRB a -> (forall m. IRBuilding m => m a)
 -- runIRBx (IRB f) = f
 
 
 -- ---------------------
--- -- === AsgBldr === --
+-- -- === IRBS === --
 -- ---------------------
 
 -- -- === Definition === --
 
--- newtype AsgBldr a = AsgBldr { fromAsgBldr :: IRB a } deriving (Functor)
--- makeLenses ''AsgBldr
+-- newtype IRBS a = IRBS { fromAsgBldr :: IRB a } deriving (Functor)
+-- makeLenses ''IRBS
 
 
 -- -- === Instances === --
 
--- instance Applicative AsgBldr where
---     pure = AsgBldr . pure                       ; {-# INLINE pure #-}
---     AsgBldr f <*> AsgBldr a = AsgBldr $ f <*> a ; {-# INLINE (<*>) #-}
+-- instance Applicative IRBS where
+--     pure = IRBS . pure                       ; {-# INLINE pure #-}
+--     IRBS f <*> IRBS a = IRBS $ f <*> a ; {-# INLINE (<*>) #-}
 
--- instance Monad AsgBldr where
---     AsgBldr ma >>= f = AsgBldr $ ma >>= unwrap . f ; {-# INLINE (>>=) #-}
+-- instance Monad IRBS where
+--     IRBS ma >>= f = IRBS $ ma >>= unwrap . f ; {-# INLINE (>>=) #-}
 
 
--- instance MonadFix AsgBldr where
---     mfix f = AsgBldr $ mfix (unwrap . f)
+-- instance MonadFix IRBS where
+--     mfix f = IRBS $ mfix (unwrap . f)
 
 
 
@@ -271,5 +288,5 @@ withAsgBldr f (AsgBldr ir) = AsgBldr $ f ir
 -- snapshotRooted2 :: IRB a -> IRB (Rooted a)
 -- snapshotRooted2 = fmap (uncurry Rooted) . snapshot2
 
--- snapshotRooted :: AsgBldr a -> AsgBldr (Rooted a)
--- snapshotRooted (AsgBldr a) = AsgBldr $ snapshotRooted2 a
+-- snapshotRooted :: IRBS a -> IRBS (Rooted a)
+-- snapshotRooted (IRBS a) = IRBS $ snapshotRooted2 a

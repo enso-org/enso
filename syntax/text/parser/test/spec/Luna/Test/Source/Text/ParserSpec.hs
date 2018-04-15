@@ -33,7 +33,7 @@ import Luna.IR.Component.Link           (type (*-*), Link)
 import Luna.Pass                        (Pass)
 import Luna.Syntax.Text.Parser.CodeSpan (CodeSpan)
 import Luna.Syntax.Text.Parser.Errors   (Invalids)
-import Luna.Syntax.Text.Parser.Parser   (AsgParser, Parser)
+import Luna.Syntax.Text.Parser.Parser   (IRBSParser, Parser)
 import Luna.Syntax.Text.Scope           (Scope)
 import Test.Hspec                       (Expectation, Spec, describe, it)
 
@@ -66,14 +66,14 @@ runPasses passes = Scheduler.runManual reg $ do
 runPass' :: Pass Parser () -> IO ()
 runPass' = runPass
 
-shouldParseAs :: AsgParser IR.SomeTerm -> Text -> Text
+shouldParseAs :: IRBSParser IR.SomeTerm -> Text -> Text
               {- -> (Delta, Delta)-} -> IO ()
 shouldParseAs parser input output {-desiredSpan-} = runPass' $ do
     (((ir,cs),scope), _) <- flip Parsing.parsingBase (convert input) $ do
         irb   <- parser
         scope <- State.get @Scope
-        let Parser.AsgBldr irx = irb
-            irb' = Parser.AsgBldr $ do
+        let Parser.IRBS irx = irb
+            irb' = Parser.IRBS $ do
                 ir <- irx
                 cs <- Layer.read @CodeSpan ir
                 pure (ir,cs)
@@ -84,7 +84,7 @@ shouldParseAs parser input output {-desiredSpan-} = runPass' $ do
     genCode `shouldBe` output
     -- span `shouldBe` desiredSpan
 
-shouldParseItself :: AsgParser IR.SomeTerm -> Text {- -> (Delta, Delta)-} -> IO ()
+shouldParseItself :: IRBSParser IR.SomeTerm -> Text {- -> (Delta, Delta)-} -> IO ()
 shouldParseItself parser input = shouldParseAs parser input input
 
 unitAs   = shouldParseAs     Parsing.unit'
@@ -375,7 +375,7 @@ spec = do
 -- import qualified Luna.Syntax.Text.Layer.Loc as Loc
 -- import qualified Luna.Syntax.Text.Parser.Parser   as Parser
 -- import qualified Luna.Syntax.Text.Parser.Parsing  as Parsing
--- import           Luna.Syntax.Text.Parser.Parser   (IRParser, ParsedExpr, AsgParser)
+-- import           Luna.Syntax.Text.Parser.Parser   (IRParser, ParsedExpr, IRBSParser)
 -- import qualified Luna.Syntax.Text.Parser.CodeSpan as CodeSpan
 -- import           Luna.Syntax.Text.Parser.CodeSpan (CodeSpan)
 -- import           Luna.Syntax.Text.Parser.Errors   (Invalids)
@@ -403,7 +403,7 @@ spec = do
 -- type instance Outputs Event ParsingTest = '[New // AnyExpr, New // AnyExprLink]
 -- type instance Preserves     ParsingTest = '[]
 
--- testParsing_raw :: (MonadIO m, MonadFix m, PrimMonad m) => AsgParser SomeExpr -> P.String -> m (Either SomeException (P.String, [(Int, Int)]))
+-- testParsing_raw :: (MonadIO m, MonadFix m, PrimMonad m) => IRBSParser SomeExpr -> P.String -> m (Either SomeException (P.String, [(Int, Int)]))
 -- testParsing_raw p str = tryAll $ dropLogs $ evalDefStateT @Cache $ evalIRBuilder' $ evalPassManager' $ do
 --     runRegs' False
 
@@ -426,7 +426,7 @@ spec = do
 --     code <- Pass.eval' @ParsingTest $ CodeGen.subpass CodeGen.SimpleStyle . unsafeGeneralize . unwrap =<< getAttr @ParsedExpr
 --     return (convert code, convert (spans :: [(Delta, Delta)]))
 
--- testParsing :: (MonadIO m, MonadFix m, PrimMonad m) => AsgParser SomeExpr -> P.String -> m (Either SomeException (P.String, [(Int, Int)]))
+-- testParsing :: (MonadIO m, MonadFix m, PrimMonad m) => IRBSParser SomeExpr -> P.String -> m (Either SomeException (P.String, [(Int, Int)]))
 -- testParsing = fmap3 dropNulls .: testParsing_raw
 
 -- dropNulls :: [(Int,Int)] -> [(Int,Int)]

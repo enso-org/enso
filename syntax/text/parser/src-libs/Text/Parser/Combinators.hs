@@ -1,9 +1,10 @@
 module Text.Parser.Combinators where
 
-import Prelude
-import Control.Applicative
+import Control.Applicative as Applicative
 import Control.Lens
 import Control.Monad
+import Data.List.NonEmpty
+import Prelude
 
 
 a <**?> f = a <**> option id f
@@ -32,3 +33,10 @@ boolOption p = option False (True <$ p)
 --   However if `p` succeeded and `f` failed, the whole computation fails as well.
 tryBind :: (Monad m, Alternative m) => b -> m a -> (a -> m b) -> m b
 tryBind def p f = join $ ($ f) <$> option (const $ pure def) ((&) <$> p)
+
+
+some :: (Applicative m, Alternative m) => m a -> m (NonEmpty a)
+some p = (:|) <$> p <*> many p ; {-# INLINE some #-}
+
+someAsList :: (Applicative m, Alternative m) => m a -> m [a]
+someAsList = Applicative.some ; {-# INLINE someAsList #-}
