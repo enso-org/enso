@@ -1,14 +1,14 @@
 module Luna.Build.Dependency.Constraint where
 
-import Prologue hiding (Constraint, Constraints, and, EQ, GT, LT)
+import Prologue hiding (Constraint, Constraints, EQ, GT, LT, and)
 
 import qualified Data.Map.Strict               as Map
 import qualified Luna.Build.Dependency.Version as Version
 
 import Data.Map.Strict                   (Map)
-import Luna.Build.Dependency.ParserUtils (spaces, and)
+import Luna.Build.Dependency.ParserUtils (and, spaces)
 import Luna.Build.Dependency.Version     (Version)
-import Text.Megaparsec                   (string, sepBy, choice)
+import Text.Megaparsec                   (choice, sepBy, string)
 import Text.Megaparsec.Text              (Parser)
 
 ------------------------
@@ -21,13 +21,7 @@ type Constraints = Map Text [Constraint]
 type Versions    = Map Text [Version]
 type PackageSet  = Map Text Version
 
-data ConstraintType
-    = EQ
-    | GT
-    | LT
-    | LE
-    | GE
-    deriving (Eq, Generic, Ord, Show)
+data ConstraintType = EQ | GT | LT | LE | GE deriving (Eq, Generic, Ord, Show)
 
 data Constraint = Constraint
     { __conType :: !ConstraintType
@@ -35,27 +29,31 @@ data Constraint = Constraint
     } deriving (Eq, Generic, Ord, Show)
 makeLenses ''Constraint
 
+
 -- === API === --
 
 unpack :: (Eq a, Ord a) => Map a [b] -> [(a, b)]
-unpack inputMap = concat . Map.elems $ Map.mapWithKey convert inputMap
-    where convert key list = (key, ) <$> list
+unpack inputMap = concat . Map.elems $ Map.mapWithKey flatten inputMap
+    where flatten key list = (key, ) <$> list
 
 isEQPrerelease :: Constraint -> Bool
 isEQPrerelease = \case (Constraint EQ ver) -> Version.isPrerelease ver
-                       _                             -> False
+                       _                   -> False
+
 
 -- === Instances === --
 
 instance PrettyShow ConstraintType where
-    prettyShow EQ = "=="
-    prettyShow GT = ">"
-    prettyShow LT = ">"
-    prettyShow LE = "<="
-    prettyShow GE = ">="
+    prettyShow = \case EQ -> "=="
+                       GT -> ">"
+                       LT -> ">"
+                       LE -> "<="
+                       GE -> ">="
 
 instance PrettyShow Constraint where
     prettyShow (Constraint ty ver) = prettyShow ty <> " " <> prettyShow ver
+
+
 
 -------------------------------
 -- === Parsing Functions === --

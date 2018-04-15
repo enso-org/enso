@@ -18,7 +18,7 @@ tests:
             - filepath
             - hspec
             - hspec-expectations-lifted
-            - hspec-megaparsec == 0.3.1
+            - hspec-megaparsec
             - luna-core
             - luna-syntax-text-lexer
             - luna-syntax-text-parser
@@ -39,7 +39,7 @@ dependencies:
     - luna-syntax-text-lexer
     - luna-syntax-text-model
     - luna-text-processing
-    - megaparsec == 5.3.1
+    - megaparsec == 6.5.0
     - mtl
     - prologue
     - text

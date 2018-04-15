@@ -10,8 +10,8 @@ import qualified Data.Text.Position               as Pos
 import qualified Data.Text.Span                   as Span
 import qualified Luna.Syntax.Text.Lexer           as Lexer
 import qualified Luna.Syntax.Text.Parser.Reserved as Reserved
+import qualified Text.Megaparsec                  as Parser
 import qualified Text.Megaparsec.Pos              as Parser
-import qualified Text.Megaparsec.Prim             as Parser
 
 import Data.Set (Set)
 -- import Data.Text.Position
@@ -23,9 +23,8 @@ import Luna.Syntax.Text.Parser.Marker   (MarkerState, cleanLastTokenMarker,
                                          newLastTokenMarker)
 import Luna.Syntax.Text.Parser.Reserved (Reservation)
 import Text.Megaparsec.Error            (ErrorItem, ParseError)
-import Text.Megaparsec.Prim             (MonadParsec, token)
 -- -- import           OCI.IR                           (Name)
-import Text.Megaparsec (withRecovery)
+import Text.Megaparsec (MonadParsec, token, withRecovery)
 
 import Data.Text.Position            (Delta)
 import Data.Text.Position            (FileOffset)
@@ -45,10 +44,13 @@ type MonadLoc m = (State.MonadStates '[FileOffset, Pos.Position, LeftSpanner, Ma
 
 -- -- === Utils === --
 
+
+-- token :: (Token s -> Either (Set   (ErrorItem (Token s)), Set (ErrorItem (Token s)), Set e) a) -> Maybe (Token s) -> m a
+-- token :: (Token s -> Either (Maybe (ErrorItem (Token s)), Set (ErrorItem (Token s)))        a) -> Maybe (Token s) -> m a
 -- | Token overrides Megaparsec's one, with special position handling. We cannot do it another way around
 --   because Megaparsec's `token` signature prevents any monadic action while consuming tokens.
 token' :: (MonadParsec e Stream m, MonadLoc m, State.Getter Reservation m)
-       => (Reservation -> Tok -> Either (Set (ErrorItem Tok), Set (ErrorItem Tok), Set e) a) -> Maybe Tok -> m a
+       => (Reservation -> Tok -> Either (Maybe (ErrorItem Tok), Set (ErrorItem Tok)) a) -> Maybe Tok -> m a
 token' f mt = do
     s <- State.get @Reservation
     let f' t = (t,) <$> f s t
@@ -95,14 +97,14 @@ getNextToken = do
     return tok
 
 getNextToken' :: (MonadParsec e Stream m, MonadLoc m) => m (Maybe Tok)
-getNextToken' = mapM handle . Parser.uncons =<< getStream where
+getNextToken' = mapM handle . Parser.take1_ =<< getStream where
     handle (t,s) = do
         putStream s
         updatePositions t
         return t
 
 getNextToken'' :: (MonadParsec e Stream m, MonadLoc m) => m (Maybe Tok)
-getNextToken'' = mapM handle . Parser.uncons =<< getStream where
+getNextToken'' = mapM handle . Parser.take1_ =<< getStream where
     handle (t,s) = do
         putStream s
         return t
@@ -149,8 +151,8 @@ updatePositions t = do
 
     State.modify_ @FileOffset (+ (convert $ len + off))
     p <- Parser.getPosition
-    Parser.setPosition $ p { Parser.sourceColumn = Parser.unsafePos $ Parser.unPos (Parser.sourceColumn p) + (convert $ unwrap $ len + off)
-                           , Parser.sourceLine   = Parser.unsafePos $ convert $ unwrap (off + 1)
+    Parser.setPosition $ p { Parser.sourceColumn = Parser.mkPos $ Parser.unPos (Parser.sourceColumn p) + (unwrap $ len + off)
+                           , Parser.sourceLine   = Parser.mkPos $ unwrap (off + 1)
                            }
     case t ^. Lexer.element of
         -- Lexer.Marker m -> withJust m newLastTokenMarker -- FIXME[WD]: should we handle the wrong markers?
@@ -166,8 +168,8 @@ withRecovery2 f ma = do
     pos  <- Parser.getPosition
     out  <- withRecovery f ma
     pos' <- Parser.getPosition
-    State.modify_ @FileOffset (+ convert (unsafeConvertTo @Int $ Parser.unPos (Parser.sourceColumn pos') - Parser.unPos (Parser.sourceColumn pos)))
-    State.put @LeftSpanner $ wrap (convert $ unsafeConvertTo @Int $ Parser.unPos (Parser.sourceLine pos') - 1)
+    State.modify_ @FileOffset (+ convert (Parser.unPos (Parser.sourceColumn pos') - Parser.unPos (Parser.sourceColumn pos)))
+    State.put @LeftSpanner $ wrap (convert $ Parser.unPos (Parser.sourceLine pos') - 1)
     return out
 
 updateLineAndCol :: (MonadParsec e Stream m, MonadLoc m) => Lexer.Token Lexer.Symbol -> m ()

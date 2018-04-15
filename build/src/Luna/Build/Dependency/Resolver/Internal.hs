@@ -25,6 +25,8 @@ data SolverError
 solverConfig :: SBV.SMTConfig
 solverConfig = SBV.defaultSMTCfg
 
+
+
 ----------------------------
 -- === Solver Version === --
 ----------------------------
@@ -39,6 +41,7 @@ data SVersion = SVersion
     , __prereleaseVersion :: SBV.SWord64
     } deriving (Eq, Generic)
 makeLenses ''SVersion
+
 
 -- === API === ---
 
@@ -75,10 +78,11 @@ extractSVersion name = Version <$> SBV.getValue (__major name)
             else pure
                 $ Just (Version.Prerelease (Version.numToPrereleaseTy pre) preV)
 
+
 -- === Instances === --
 
 instance Show SVersion where
-    show _ = "<symbolic> :: SVersion"
+    show _ = "SVersion"
 
 instance SBV.Mergeable SVersion
 
@@ -88,22 +92,24 @@ instance SBV.EqSymbolic SVersion where
 
 instance SBV.OrdSymbolic SVersion where
     (SVersion majorL minorL patchL prereleaseL prereleaseVersionL) .<
-        (SVersion majorR minorR patchR prereleaseR prereleaseVersionR) =
-        SBV.ite (majorL             .< majorR)             SBV.true  $
-        SBV.ite (majorL             .> majorR)             SBV.false $
-        SBV.ite (minorL             .< minorR)             SBV.true  $
-        SBV.ite (minorL             .> minorR)             SBV.false $
-        SBV.ite (patchL             .< patchR)             SBV.true  $
-        SBV.ite (patchL             .> patchR)             SBV.false $
-        SBV.ite (prereleaseL        .< prereleaseR)        SBV.true  $
-        SBV.ite (prereleaseL        .> prereleaseR)        SBV.false $
-        SBV.ite (prereleaseVersionL .< prereleaseVersionR) SBV.true SBV.false
+        (SVersion majorR minorR patchR prereleaseR prereleaseVersionR)
+        = SBV.ite (majorL             .< majorR)             SBV.true
+        . SBV.ite (majorL             .> majorR)             SBV.false
+        . SBV.ite (minorL             .< minorR)             SBV.true
+        . SBV.ite (minorL             .> minorR)             SBV.false
+        . SBV.ite (patchL             .< patchR)             SBV.true
+        . SBV.ite (patchL             .> patchR)             SBV.false
+        . SBV.ite (prereleaseL        .< prereleaseR)        SBV.true
+        . SBV.ite (prereleaseL        .> prereleaseR)        SBV.false
+        $ SBV.ite (prereleaseVersionL .< prereleaseVersionR) SBV.true SBV.false
 
 instance (SBV.Provable p) => SBV.Provable (SVersion -> p) where
     forAll_ f    = SBV.forAll_    (\(a,b,c,d,e) -> f (SVersion a b c d e))
     forAll ns f  = SBV.forAll ns  (\(a,b,c,d,e) -> f (SVersion a b c d e))
     forSome_ f   = SBV.forSome_   (\(a,b,c,d,e) -> f (SVersion a b c d e))
     forSome ns f = SBV.forSome ns (\(a,b,c,d,e) -> f (SVersion a b c d e))
+
+
 
 ------------------------------
 -- === Solver Utilities === --
@@ -122,6 +128,8 @@ makeRestriction (pkg, Constraint ty ver) = pkg `op` versionToSVersion ver
 
 genNamedConstraint :: String -> SBV.SBool -> SBV.Symbolic ()
 genNamedConstraint name con = void $ SBV.namedConstraint name con
+
+
 
 ---------------------------
 -- === Solver Script === --

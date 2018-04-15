@@ -6,8 +6,8 @@ module Luna.Syntax.Text.Parser.Errors where
 
 import Prologue hiding (Span, String, Type, span, (<|))
 
-import Text.Megaparsec.Prim (MonadParsec)
-import Type.Any             (AnyType)
+-- import Text.Megaparsec.Prim (MonadParsec)
+import Type.Any (AnyType)
 
 -- import Control.Monad.State.Dependent
 import Data.Text.Position

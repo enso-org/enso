@@ -13,9 +13,8 @@ import qualified Luna.IR                     as IR
 import           Luna.Syntax.Text.Layer.Loc
 import qualified Luna.Syntax.Text.Lexer      as Lexer
 
-import Data.Map.Strict      (Map)
-import Text.Megaparsec.Prim (MonadParsec)
-import Type.Any             (AnyType)
+import Data.Map.Strict (Map)
+import Type.Any        (AnyType)
 
 
 
