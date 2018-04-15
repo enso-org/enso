@@ -25,6 +25,7 @@ data SolverError
     | BadOptimisation Text
     | ExtensionField
     | SolverError [Text]
+    | MissingVariables [Text]
     deriving (Eq, Generic, Ord, Show)
 
 solverConfig :: SBV.SMTConfig
@@ -32,6 +33,25 @@ solverConfig = SBV.defaultSMTCfg
 
 nameConnector :: String
 nameConnector = ":"
+
+optTag :: String
+optTag = "max"
+
+majorTag :: String
+majorTag = "major"
+
+minorTag :: String
+minorTag = "minor"
+
+patchTag :: String
+patchTag = "patch"
+
+preTag :: String
+preTag = "prerelease"
+
+preVTag :: String
+preVTag = "prereleaseVersion"
+
 
 
 ----------------------------
@@ -54,21 +74,21 @@ makeLenses ''SVersion
 
 mkSymbolicSVersion :: String -> SBV.Symbolic SVersion
 mkSymbolicSVersion name = do
-    let genOptName component = "max" <> nameConnector <> name <> nameConnector
+    let genOptName component = optTag <> nameConnector <> name <> nameConnector
                              <> component
 
-    a <- SBV.free $ name <> nameConnector <> "major"
-    b <- SBV.free $ name <> nameConnector <> "minor"
-    c <- SBV.free $ name <> nameConnector <> "patch"
-    d <- SBV.free $ name <> nameConnector <> "prerelease"
-    e <- SBV.free $ name <> nameConnector <> "prereleaseVersion"
+    a <- SBV.free $ name <> nameConnector <> majorTag
+    b <- SBV.free $ name <> nameConnector <> minorTag
+    c <- SBV.free $ name <> nameConnector <> patchTag
+    d <- SBV.free $ name <> nameConnector <> preTag
+    e <- SBV.free $ name <> nameConnector <> preVTag
 
     -- Add optimisation constraints for the names
-    SBV.maximize (genOptName "major") a
-    SBV.maximize (genOptName "minor") b
-    SBV.maximize (genOptName "patch") c
-    SBV.maximize (genOptName "prerelease") d
-    SBV.maximize (genOptName "prereleaseVersion") e
+    SBV.maximize (genOptName majorTag) a
+    SBV.maximize (genOptName minorTag) b
+    SBV.maximize (genOptName patchTag) c
+    SBV.maximize (genOptName preTag) d
+    SBV.maximize (genOptName preVTag) e
 
     pure $ SVersion a b c d e
 
@@ -148,13 +168,19 @@ genNamedConstraint name con = void $ SBV.namedConstraint name con
 
 
 
--- TODO [Ara] Want to maximize ALL the major versions first, and then so on
-
 ---------------------------
 -- === Solver Script === --
 ---------------------------
 
 -- === API === --
+
+genOptNames :: String -> [String]
+genOptNames name =
+    [ optTag <> nameConnector <> name <> nameConnector <> majorTag
+    , optTag <> nameConnector <> name <> nameConnector <> minorTag
+    , optTag <> nameConnector <> name <> nameConnector <> patchTag
+    , optTag <> nameConnector <> name <> nameConnector <> preTag
+    , optTag <> nameConnector <> name <> nameConnector <> preVTag ]
 
 extractVersions :: Constraint.Constraints -> SBV.OptimizeResult
                 -> IO (Either SolverError Constraint.PackageSet)
@@ -164,9 +190,22 @@ extractVersions constraints solverResult = case solverResult of
     SBV.IndependentResult _           -> pure . Left
         $ BadOptimisation "Independent model found."
     SBV.LexicographicResult smtResult -> case smtResult of
-        SBV.Satisfiable _ model -> do
+        SBV.Satisfiable _ _     -> do
             let modelObjectives = SBV.getModelObjectives smtResult
-            traceShowM modelObjectives
+                packageNames    = convert . Map.keys constraints
+                optNames        = genOptNames <$> packageNames
+
+                getValue :: String -> Either SolverError Word64
+                getValue tag = case tag `Map.lookup` modelObjectives of
+                    Nothing -> Left . MissingVariables $ convert tag
+                    Just (SBV.ExtendedCW _) -> Left ExtensionField
+                    Just (SBV.RegularCW  w) -> case SBV.parseCWs [w] of
+                        Just (i, []) -> Right i
+                        _            -> Left . MissingVariables $ convert tag
+
+                valueTuples = (\xs -> getValue <$> xs) <$> optNames
+
+            traceShowM valueTuples
             pure . Right $ Map.empty
         SBV.SatExtField _ _     -> pure . Left $ ExtensionField
         SBV.Unsatisfiable _     -> pure . Left $ UnsatisfiableConstraints []
@@ -174,8 +213,6 @@ extractVersions constraints solverResult = case solverResult of
                                         $ convert reasonStr
         SBV.ProofError _ errors -> pure . Left . SolverError
                                         $ convert <$> errors
-    where
-        packageNames = Map.keys constraints
 
 -- TODO move pure out
 
@@ -202,7 +239,7 @@ constraintQuery constraints versions = extractVersions constraints
                                     availableReleases)
                                <$> zip requiredPrereleases (Map.elems versions)
 
-        -- Make a symbol for each package name and state opt goals
+        -- Make a symbol for each package name and initialise opt goals
         packageSyms <- sequence $ mkSymbolicSVersion . convert <$> packageNames
 
         -- Restrict symbols by version bounds
