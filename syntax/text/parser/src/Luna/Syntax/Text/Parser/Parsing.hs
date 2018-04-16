@@ -217,9 +217,9 @@ irbsF2 p = uncurry (fmap2 . irbsFromSpan) <$> spanned p ; {-# INLINE irbsF2 #-}
 
 
 
--- --------------------
--- -- === Errors === --
--- --------------------
+--------------------
+-- === Errors === --
+--------------------
 
 invalid :: Invalid.Description -> IRB SomeTerm
 invalid t = do
@@ -227,6 +227,9 @@ invalid t = do
     Invalid.register inv
     pure $ Layout.relayout inv
 {-# INLINE invalid #-}
+
+invalidToken :: SymParser (IRBS SomeTerm)
+invalidToken = irbs $ invalid . convert <$> satisfTest Lexer.matchInvalid ; {-# INLINE invalidToken #-}
 
 -- invalidSymbol :: (Lexer.Symbol -> Text32) -> IRBSParser SomeTerm
 -- invalidSymbol f = irbs $ invalid . f <$> anySymbol
@@ -561,7 +564,7 @@ exprFreeSegments      = Reserved.withNewLocal exprFreeSegmentsLocal
 exprFreeSegmentsLocal = fmap concatExprSegmentBuilders . some
                       $ choice [ mfixVarSeg, consSeg, wildSeg, numSeg, strSeg
                                , opSeg, accSeg, tupleSeg, grpSeg, listSeg
-                               , lamSeg, matchseg, typedSeg, funcSeg
+                               , lamSeg, matchseg, typedSeg, funcSeg, invalidSeg
                                ]
 
 exprSegmentsNonSpaced    , exprSegmentsNonSpacedLocal     :: SymParser ExprSegments
@@ -571,6 +574,7 @@ exprSegmentsNonSpacedLocal     = buildExprTok <$> exprFreeSegmentsNonSpacedLocal
 exprFreeSegmentsNonSpaced      = Reserved.withNewLocal exprFreeSegmentsNonSpacedLocal
 exprFreeSegmentsNonSpacedLocal = choice [ varSeg, consSeg, wildSeg, numSeg
                                         , strSeg, tupleSeg, grpSeg, listSeg
+                                        , invalidSeg
                                         ]
 
 
@@ -586,19 +590,20 @@ unlabeledAtom :: a -> Labeled SpacedName (SomeSymbol Symbol.Expr a)
 unlabeledAtom = labeled (Name.spaced "#unnamed#") . Symbol.atom
 
 -- -- Possible tokens
-varSeg, consSeg, wildSeg, numSeg, strSeg, listSeg, grpSeg, tupleSeg, matchseg
-      , lamSeg , funcSeg :: SymParser ExprSegmentBuilder
-varSeg   = posIndependent . unlabeledAtom <$> var
-consSeg  = posIndependent . unlabeledAtom <$> cons
-wildSeg  = posIndependent . unlabeledAtom <$> wildcard
-numSeg   = posIndependent . unlabeledAtom <$> number
-strSeg   = posIndependent . unlabeledAtom <$> string
-grpSeg   = posIndependent . unlabeledAtom <$> grouped nonemptyValExpr
-listSeg  = posIndependent . unlabeledAtom <$> list  nonemptyValExprLocal
-tupleSeg = posIndependent . unlabeledAtom <$> tuple nonemptyValExprLocal
-matchseg = posIndependent . unlabeledAtom <$> match
-lamSeg   = posIndependent . labeled (Name.unspaced Builtin.lamName) . Symbol.suffix <$> lamBldr
-funcSeg  = posIndependent . unlabeledAtom <$> func
+consSeg, funcSeg, grpSeg, invalidSeg, lamSeg, matchseg, numSeg, strSeg,
+    tupleSeg, varSeg, wildSeg :: SymParser ExprSegmentBuilder
+consSeg    = posIndependent . unlabeledAtom <$> cons
+funcSeg    = posIndependent . unlabeledAtom <$> func
+grpSeg     = posIndependent . unlabeledAtom <$> grouped nonemptyValExpr
+invalidSeg = posIndependent . unlabeledAtom <$> invalidToken
+lamSeg     = posIndependent . labeled (Name.unspaced Builtin.lamName) . Symbol.suffix <$> lamBldr
+listSeg    = posIndependent . unlabeledAtom <$> list  nonemptyValExprLocal
+matchseg   = posIndependent . unlabeledAtom <$> match
+numSeg     = posIndependent . unlabeledAtom <$> number
+strSeg     = posIndependent . unlabeledAtom <$> string
+tupleSeg   = posIndependent . unlabeledAtom <$> tuple nonemptyValExprLocal
+varSeg     = posIndependent . unlabeledAtom <$> var
+wildSeg    = posIndependent . unlabeledAtom <$> wildcard
 
 
 mfixVarSeg :: SymParser ExprSegmentBuilder

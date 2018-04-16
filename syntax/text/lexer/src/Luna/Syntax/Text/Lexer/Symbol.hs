@@ -6,6 +6,9 @@ module Luna.Syntax.Text.Lexer.Symbol where
 import Luna.Syntax.Text.Lexer.Token
 import Prologue                     hiding (List, Symbol, element)
 
+import qualified Data.Text32              as Text32
+import qualified Luna.IR.Term.Ast.Invalid as Ast.Invalid
+
 import Data.Text32 (Text32)
 
 -- FIXME[WD]: TO REFACTOR
@@ -104,26 +107,35 @@ data Symbol
     -- | Pragma ...
 
     -- Other
-    | Unknown     !Text32
-    | Incorrect   !Text32
+    | Unknown     !Text32 -- DEPRECATED
+    | Incorrect   !Text32 -- DEPRECATED
+    | Invalid     !Invalid
     deriving (Generic, Show, Eq, Ord)
 
-data StrEscType = CharStrEsc  !Int
-                | NumStrEsc   !Int
-                | QuoteEscape !StrType
-                | SlashEsc
-                deriving (Generic, Show, Eq, Ord)
+data Invalid
+    = InvalidVar              !Text32
+    | InvalidCaselessVariable !Text32
+    deriving (Generic, Show, Eq, Ord)
+
+data StrEscType
+    = CharStrEsc  !Int
+    | NumStrEsc   !Int
+    | QuoteEscape !StrType
+    | SlashEsc
+    deriving (Generic, Show, Eq, Ord)
 
 data Bound   = Begin | End              deriving (Generic, Show, Eq, Ord)
 data StrType = RawStr | FmtStr | NatStr deriving (Generic, Show, Eq, Ord)
 data Numbase = Dec | Bin | Oct | Hex    deriving (Generic, Show, Eq, Ord)
-data Number  = NumRep { _base     :: Numbase
-                      , _intPart  :: Text32
-                      , _fracPart :: Text32
-                      , _expPart  :: Text32
-                      } deriving (Generic, Show, Eq, Ord)
+data Number  = NumRep
+    { _base     :: Numbase
+    , _intPart  :: Text32
+    , _fracPart :: Text32
+    , _expPart  :: Text32
+    } deriving (Generic, Show, Eq, Ord)
 
 instance NFData Symbol
+instance NFData Invalid
 instance NFData StrEscType
 instance NFData Bound
 instance NFData StrType
@@ -139,22 +151,28 @@ instance Convertible Numbase Word8 where
         Dec -> 10
         Hex -> 16
 
+instance Convertible Invalid Ast.Invalid.Description where
+    convert = \case
+        InvalidVar              _ -> Ast.Invalid.VariableName
+        InvalidCaselessVariable _ -> Ast.Invalid.VariableNameCaseless
+
 
 
 -- === Utils === --
 
 checkSpecialVar :: Text32 -> Symbol
-checkSpecialVar = \case
-    "all"     -> KwAll
-    "case"    -> KwCase
-    "class"   -> KwClass
-    "def"     -> KwDef
-    "foreign" -> KwForeign
-    "import"  -> KwImport
-    "native"  -> KwNative
-    "of"      -> KwOf
-    "_"       -> Wildcard
-    name      -> Var name
+checkSpecialVar s = if
+    | s == "all"            -> KwAll
+    | s == "case"           -> KwCase
+    | s == "class"          -> KwClass
+    | s == "def"            -> KwDef
+    | s == "foreign"        -> KwForeign
+    | s == "import"         -> KwImport
+    | s == "native"         -> KwNative
+    | s == "of"             -> KwOf
+    | s == "_"              -> Wildcard
+    | Text32.all (== '_') s -> Invalid $ InvalidVar s
+    | otherwise             -> Var s
 {-# INLINE checkSpecialVar #-}
 
 matchVar, matchCons, matchOperator, matchModifier, matchStr, matchDocComment,
@@ -172,7 +190,7 @@ matchNumber     = \case { Number     a -> Just a ; _ -> Nothing } ; {-# INLINE m
 matchMarker     = \case { Marker     a -> Just a ; _ -> Nothing } ; {-# INLINE matchMarker     #-}
 matchDocComment = \case { Doc        a -> Just a ; _ -> Nothing } ; {-# INLINE matchDocComment #-}
 matchMetadata   = \case { Metadata   a -> Just a ; _ -> Nothing } ; {-# INLINE matchMetadata   #-}
-
+matchInvalid    = \case { Invalid    a -> Just a ; _ -> Nothing } ; {-# INLINE matchInvalid    #-}
 
 intNum :: Text32 -> Number
 intNum  i = NumRep Dec i mempty mempty ; {-# INLINE intNum #-}
@@ -218,6 +236,7 @@ pretty = \case
     Metadata    {} -> "Metadata"
     Unknown     s  -> "Unknown symbol " <> s
     Incorrect   s  -> "Incorrect " <> s
+    Invalid     s  -> "Invalid " <> convert (show s)
 {-# INLINE pretty #-}
 
 
@@ -265,6 +284,7 @@ instance ShowCons Symbol where
         Metadata    {} -> "Metadata"
         Unknown     {} -> "Unknown"
         Incorrect   {} -> "Incorrect"
+        Invalid     {} -> "Invalid"
     {-# INLINE showCons #-}
 
 instance IsTagged Symbol where
@@ -308,6 +328,7 @@ instance IsTagged Symbol where
         Metadata    {} -> "Config"
         Unknown     {} -> "Error"
         Incorrect   {} -> "Error"
+        Invalid     {} -> "Error"
     {-# INLINE getTags #-}
 
 

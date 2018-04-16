@@ -38,6 +38,7 @@ dependencies:
     - functor-utils
     - layered-state
     - lens
+    - luna-core
     - luna-syntax-text-model
     - luna-text-processing
     - mtl

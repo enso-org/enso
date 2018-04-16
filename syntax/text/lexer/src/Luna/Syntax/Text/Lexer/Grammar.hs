@@ -94,6 +94,13 @@ isHexDigitChar  c = isDecDigitChar c
                  || (c >= 'A' && c <= 'F')
 {-# INLINE isHexDigitChar   #-}
 
+-- | WARNING!
+--   We assume that we have already checked for valid headers before
+--   using this check!.
+isInvalidVarHead :: Char -> Bool
+isInvalidVarHead = Char.isAlpha ; {-# INLINE isInvalidVarHead #-}
+
+
 opChars :: [Char]
 opChars = "!$%&*+-/<>?^~\\" ; {-# INLINE opChars #-}
 
@@ -110,6 +117,14 @@ lexVariable = Symbol.checkSpecialVar <$> lexName where
 lexConstructor :: Lexer
 lexConstructor = Symbol.Cons <$> takeWhile isIdentBodyChar
 {-# INLINE lexConstructor #-}
+
+-- | WARNING!
+--   We assume that we have already checked for valid headers before
+--   using this check!.
+lexInvalidVariable :: Lexer
+lexInvalidVariable = Symbol.Invalid . Symbol.InvalidCaselessVariable
+                 <$> takeWhile isIdentBodyChar
+{-# INLINE lexInvalidVariable #-}
 
 
 -- === Numbers === --
@@ -440,8 +455,9 @@ topEntryPoint = peekToken >>= lexSymChar ; {-# INLINE topEntryPoint #-}
 lexSymChar :: Char -> Lexer
 lexSymChar c
   | chord < symmapSize = Vector.unsafeIndex symmap chord -- (1)
-  | isVarHead  c       = lexVariable                     -- (2)
-  | isConsHead c       = lexConstructor
+  | isVarHead        c = lexVariable                     -- (2)
+  | isConsHead       c = lexConstructor
+  | isInvalidVarHead c = lexInvalidVariable
   | otherwise          = unknownCharSym c
   where chord = Char.ord c
 {-# INLINE lexSymChar #-}

@@ -9,5 +9,7 @@ data Description
     = ForeignImportSafety
     | FunctionHeader
     | FunctionBlock
+    | VariableName
+    | VariableNameCaseless
     deriving (Eq, Show)
 Storable.derive ''Description

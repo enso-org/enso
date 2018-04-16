@@ -109,7 +109,8 @@ identSpec = describe "identifier" $ do
     it "simple constructors"      $ expr "Vector"
     it "constructors + arguments" $ expr "Vector x 1 z"
     it "unicode constructor name" $ expr "Κοηστρυκτορ"
-    it "test" $ expr "__"
+    it "double underscore"        $ exprAs "__" "Invalid VariableName"
+    it "caseless name"            $ exprAs "מfoo" "Invalid VariableNameCaseless"
 
 literalNumberSpec :: Spec
 literalNumberSpec = describe "number" $ do
@@ -356,7 +357,7 @@ definitionSpec = do
 
 fixSpec :: Spec
 fixSpec = do
-    it "error" $ unit "def"
+    it "error" $ expr "_"
     -- it "error" $ expr "def foo:\n x = 1\n def"
 
 spec :: Spec
