@@ -7,10 +7,10 @@ import Luna.Build.Dependency.ParserUtils (Parser, dot, natural)
 import Text.Megaparsec                   (option, optional)
 import Text.Megaparsec.Char              (string, char)
 
--- Versioning in Luna follows the following convention:
---      major.minor.patch-prerelease.version
---
--- The prerelease is optional.
+-- | Versioning in Luna follows the following convention:
+-- |      major.minor.patch-prerelease.version
+-- |
+-- | The prerelease is optional.
 
 ---------------------
 -- === Version === --
@@ -71,21 +71,22 @@ instance PrettyShow Prerelease where
     prettyShow (Prerelease ty ver) = prettyShow ty <> "." <> convert (show ver)
 
 instance Ord Version where
-    (Version maj1 min1 pat1 pre1) < (Version maj2 min2 pat2 pre2) =
-        if maj1 < maj2 then True
-        else if maj1 > maj2 then False
-        else if min1 < min2 then True
-        else if min1 > min2 then False
-        else if pat1 < pat2 then True
-        else if pat1 > pat2 then False else pre1 `preLT` pre2
+    (Version maj1 min1 pat1 pre1) < (Version maj2 min2 pat2 pre2) = if
+        | maj1 < maj2 -> True
+        | maj1 > maj2 -> False
+        | min1 < min2 -> True
+        | min1 > min2 -> False
+        | pat1 < pat2 -> True
+        | pat1 > pat2 -> False
+        | otherwise   -> pre1 `preLT` pre2
         where preLT :: Maybe Prerelease -> Maybe Prerelease -> Bool
               preLT l r = case l of
                 Just (Prerelease ty1 ver1) ->
                     case r of
-                        Just (Prerelease ty2 ver2) ->
-                            if ty1 < ty2 then True
-                            else if ty1 > ty2 then False
-                            else ver1 < ver2
+                        Just (Prerelease ty2 ver2) -> if
+                            | ty1 < ty2 -> True
+                            | ty1 > ty2 -> False
+                            | otherwise -> ver1 < ver2
                         Nothing -> True
                 Nothing -> False
 
@@ -124,6 +125,6 @@ prereleaseType = fromString <$> p
     where fromString "alpha" = Alpha
           fromString "beta"  = Beta
           fromString "rc"    = RC
-          fromString _       = Alpha -- impossible, but stops warning
+          fromString _       = impossible
           p = string "alpha" <|> string "beta" <|> string "rc"
 

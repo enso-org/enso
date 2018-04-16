@@ -36,13 +36,13 @@ solveConstraints constraints versions = do
                              List.length versionPackages
 
     case relSize of
-        EQ -> liftIO (constraintQuery constraints versions)
+        EQ -> constraintQuery constraints versions
         GT -> do
-            let missingPackages =
-                    filter (`notElem` versionPackages) constraintPackages
+            let missingPackages = filter (`notElem` versionPackages)
+                                  constraintPackages
             pure . Left $ UnavailablePackages missingPackages
         LT -> do
-            let missingPackages =
-                    filter (`notElem` constraintPackages) versionPackages
+            let missingPackages = filter (`notElem` constraintPackages)
+                                  versionPackages
             pure . Left $ PackagesNotProvided missingPackages
 

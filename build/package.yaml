@@ -25,6 +25,7 @@ tests:
 dependencies:
     - base
     - containers
+    - impossible
     - lens
     - luna-core
     - megaparsec

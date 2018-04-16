@@ -9,6 +9,7 @@ import qualified Luna.Build.Dependency.Constraint as Constraint
 import qualified Luna.Build.Dependency.Version    as Version
 
 import Data.Either                      (lefts, rights)
+import Data.Map.Strict                  (Map)
 import Data.SBV                         ((.==), (.>), (.<), (.<=), (.>=))
 import Luna.Build.Dependency.Constraint (Constraint(Constraint))
 import Luna.Build.Dependency.Version    (Version(Version))
@@ -183,6 +184,14 @@ genOptNames name =
     , optTag <> nameConnector <> name <> nameConnector <> preTag
     , optTag <> nameConnector <> name <> nameConnector <> preVTag ]
 
+getValue :: Map String SBV.GeneralizedCW -> String -> Either SolverError Word64
+getValue objectives tag = case tag `Map.lookup` objectives of
+    Nothing -> Left . MissingVariables $ convert tag
+    Just (SBV.ExtendedCW _) -> Left ExtensionField
+    Just (SBV.RegularCW  w) -> case SBV.parseCWs [w] of
+        Just (i, []) -> Right i
+        _            -> Left . MissingVariables $ convert tag
+
 
 
 ---------------------------
@@ -205,17 +214,9 @@ extractVersions constraints versions solverResult = case solverResult of
                 packageNames    = Map.keys constraints
                 packageStrs     = convert <$> packageNames
                 optNames        = genOptNames <$> packageStrs
-
-                getValue :: String -> Either SolverError Word64
-                getValue tag = case tag `Map.lookup` modelObjectives of
-                    Nothing -> Left . MissingVariables $ convert tag
-                    Just (SBV.ExtendedCW _) -> Left ExtensionField
-                    Just (SBV.RegularCW  w) -> case SBV.parseCWs [w] of
-                        Just (i, []) -> Right i
-                        _            -> Left . MissingVariables $ convert tag
-
-                valueTuples = (\xs -> getValue <$> xs) <$> optNames
-                pkgValues = rights <$> valueTuples
+                valueTuples     = (\xs -> getValue modelObjectives <$> xs)
+                               <$> optNames
+                pkgValues       = rights <$> valueTuples
 
             if null . concat $ lefts <$> valueTuples then do
                 let solvedVersions = extractOptSVersion <$> pkgValues
@@ -274,9 +275,10 @@ constraintScript constraints versions tag = do
 
     sequence_ $ uncurry genNamedConstraint <$> namedDisjunctions
 
-constraintQuery :: Constraint.Constraints -> Constraint.Versions
-                -> IO (Either SolverError Constraint.PackageSet)
-constraintQuery constraints versions = extractVersions constraints versions
+constraintQuery :: MonadIO m => Constraint.Constraints -> Constraint.Versions
+                -> m (Either SolverError Constraint.PackageSet)
+constraintQuery constraints versions = liftIO
+    $   extractVersions constraints versions
     =<< SBV.optimizeWith solverConfig SBV.Lexicographic
         (constraintScript constraints versions Optimize)
 
@@ -293,11 +295,13 @@ nonOptQuery constraints versions = do
         SBV.Unsat -> do
             core <- SBV.getUnsatCore
             pure . (Left . UnsatisfiableConstraints) $ convert <$> core
-        SBV.Unk   -> pure . Left $ InternalError ["Could not solve constraints."]
-        SBV.Sat   -> pure . Left $ InternalError ["Inconsistent solver results."]
+        SBV.Unk   -> pure . Left $ InternalError
+                     ["Could not solve constraints."]
+        SBV.Sat   -> pure . Left $ InternalError
+                     ["Inconsistent solver results."]
 
-runNonOptQuery :: Constraint.Constraints -> Constraint.Versions
-               -> IO (Either SolverError Constraint.PackageSet)
-runNonOptQuery constraints versions = SBV.runSMTWith solverConfig
+runNonOptQuery :: MonadIO m => Constraint.Constraints -> Constraint.Versions
+               -> m (Either SolverError Constraint.PackageSet)
+runNonOptQuery constraints versions = liftIO . SBV.runSMTWith solverConfig
     $ nonOptQuery constraints versions
 
