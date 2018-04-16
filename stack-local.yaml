@@ -25,8 +25,8 @@ ghc-options:
 local-bin-path: dist/bin/public/luna
 
 packages:
-    - build
     - core
+    - package/resolver    
     - syntax/text/lexer
     - syntax/text/model
     - syntax/text/parser
