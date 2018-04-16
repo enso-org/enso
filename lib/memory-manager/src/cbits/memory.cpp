@@ -1,6 +1,9 @@
 #define _SILENCE_CXX17_OLD_ALLOCATOR_MEMBERS_DEPRECATION_WARNING
 
+#include "memory.h"
+
 #include <atomic>
+#include <cassert>
 #include <chrono>
 #include <cstdlib>
 #include <cstring>
@@ -15,18 +18,19 @@
 //#include <string_view>
 #include <utility>
 #include <vector>
+#include <unordered_set>
 
 #ifdef _MSC_VER
 #include <wrl/wrappers/corewrappers.h>
 #endif
 
-// Define when using C++ benchmark - so root API calls don't get inlined
+// Define when using C++ benchmark - so root API calls don't get inlined 
 // (similarly like Haskell FFI prevents inlining)
 #ifdef PREVENT_INLINE
 #ifdef _MSC_VER
 #define NOINLINE  __declspec(noinline)
 #else
-#define NOINLINE  __attribute__ ((noinline))
+#define NOINLINE  __attribute__ ((noinline)) 
 #endif
 #else
 #define NOINLINE
@@ -82,7 +86,7 @@ namespace locking_policy
 			{
 				rhs.s = nullptr;
 			}
-			~Guardian()
+			~Guardian() 
 			{
 				if(s)
 					s->state.store(Unlocked, std::memory_order_release);
@@ -125,6 +129,11 @@ class MemoryManager
 
 		Block& operator=(const Block &) = delete;
 
+		void *itemAtIndex(size_t itemSize, size_t index) const
+		{
+			return static_cast<char*>(memory) + index * itemSize;
+		}
+
 		~Block()
 		{
 			std::free(memory);
@@ -150,7 +159,7 @@ class MemoryManager
 		return blocks.back();
 	}
 
-	void *&storedPtr(void *item)
+	void *&storedPtr(void *item) const
 	{
 		return *static_cast<void**>(item);
 	}
@@ -168,11 +177,17 @@ class MemoryManager
 	{
 		return block.memory <= item && static_cast<char*>(block.memory) + blockSize > item;
 	}
-
+	
 	void *obtainUnitializedItem(Block &block)
 	{
-		const auto ret = static_cast<char*>(block.memory) + (itemsPerBlock - block.unitializedItems) * itemSize;
-		--block.unitializedItems;
+		return obtainUnitializedItems(block, 1);
+	}
+
+	void *obtainUnitializedItems(Block &block, size_t count)
+	{
+		assert(block.unitializedItems >= count);
+		const auto ret = block.itemAtIndex(itemSize, itemsPerBlock - block.unitializedItems);
+		block.unitializedItems -= count;
 		return ret;
 	}
 
@@ -187,7 +202,7 @@ public:
 		addBlock();
 	}
 
-	void *newItem()
+	void *newItem() 
 	{
 		const auto lockGuard = mx.lock();
 		if(head != nullptr)
@@ -206,12 +221,51 @@ public:
 		}
 	}
 
+	void *newItems(size_t count)
+	{
+		const auto lockGuard = mx.lock();
+		assert(count <= itemsPerBlock);
+		for(auto &block : blocks)
+			if(block.unitializedItems >= count)
+				return obtainUnitializedItems(block, count);
+
+		return obtainUnitializedItems(addBlock(), count);
+	}
+
 	void deleteItem(void *item)
 	{
 		const auto lockGuard = mx.lock();
  		storedPtr(item) = head;
  		head = item;
 	}
+
+	// auto allocatedItems() const
+	// {
+	// 	const auto lockGuard = mx.lock();
+	// 	const auto addItemsFromBlock = [this] (auto &out, const Block &block) -> void
+	// 	{
+	// 		const auto perhapsUsedInBlock = itemsPerBlock - block.unitializedItems;
+	// 		for(auto i = 0u; i < perhapsUsedInBlock; ++i)
+	// 			out.insert(out.end(), block.itemAtIndex(itemSize, i));
+	// 	};
+
+	// 	std::unordered_set<void*> ret;
+		
+	// 	// add all allocated
+	// 	for(const Block &block : blocks)
+	// 		addItemsFromBlock(ret, block);
+
+	// 	// remove allocated and then freed: 
+	// 	// iterate over the free pointers list
+	// 	auto itr = this->head;
+	// 	while(itr != nullptr)
+	// 	{
+	// 		ret.erase(itr);
+	// 		itr = storedPtr(itr);
+	// 	}
+
+	// 	return ret;
+	// }
 };
 
 template<typename F, typename ...Args>
@@ -388,11 +442,11 @@ public:
 // Linux GCC     | 12 ms      | 220 ms
 //---------------+------------+-----------
 // Therefore, Windows uses spinlock, non-Windows uses std::mutex
-// #ifdef _WIN32
+#ifdef _WIN32
 using LockingPolicyToUse = locking_policy::Spinlock;
-// #else
-// using LockingPolicyToUse = locking_policy::StdMutex;
-// #endif
+#else
+using LockingPolicyToUse = locking_policy::StdMutex;
+#endif
 
 using MemoryManagerToUse = MemoryManager<LockingPolicyToUse>;
 
@@ -411,10 +465,36 @@ extern "C"
 	{
 		return static_cast<MemoryManagerToUse*>(manager)->newItem();
 	}
+	void *newItems(void *manager, size_t count)
+	{
+		return static_cast<MemoryManagerToUse*>(manager)->newItems(count);
+	}
 	void deleteItem(void *manager, void *item)
 	{
 		static_cast<MemoryManagerToUse*>(manager)->deleteItem(item);
 	}
+
+	// void** acquireItemList(void *manager, size_t *outCount)
+	// {
+	// 	const auto items = static_cast<MemoryManagerToUse*>(manager)->allocatedItems();
+	// 	const auto count = items.size();
+
+	// 	void** ret = static_cast<void**>(std::malloc(sizeof(void*) * count));
+	// 	if(!ret)
+	// 		return nullptr;
+		
+	// 	*outCount = count;
+	// 	void **itr = ret;
+	// 	for(auto item : items)
+	// 		*itr++ = item;
+
+	// 	return ret;
+	// }
+
+	// void releaseItemList(void **items)
+	// {
+	// 	std::free(items);
+	// }
 
 	// BELOW APIs are for tests / benchmarks only //////////////////
 	void benchmark(size_t N, size_t itemSize, size_t itemsPerBlock)

@@ -6,7 +6,7 @@
 
 module Foreign.Memory.Manager where
 
-import Prelude
+import Prologue hiding (Item)
 
 import Control.DeepSeq        (NFData)
 import Control.Monad.IO.Class (MonadIO, liftIO)
@@ -32,9 +32,11 @@ type Item = Ptr ()
 foreign import ccall unsafe "newManager"    c_newManager    :: CSize -> CSize -> IO MemoryManager
 foreign import ccall unsafe "deleteManager" c_deleteManager :: MemoryManager -> IO ()
 foreign import ccall unsafe "newItem"       c_newItem       :: MemoryManager -> IO Item
+foreign import ccall unsafe "newItems"      c_newItems      :: MemoryManager -> CSize -> IO Item
 foreign import ccall unsafe "deleteItem"    c_deleteItem    :: MemoryManager -> Item -> IO ()
 
-
+-- foreign import ccall unsafe "acquireItemList" c_acquireItemList :: MemoryManager -> Ptr CSize -> IO (Ptr Item)
+-- foreign import ccall unsafe "releaseItemList" c_releaseItemList :: Ptr Item -> IO ()
 
 ----------------------------------------
 -- === Wrappers for foreign calls === --
@@ -52,9 +54,24 @@ newItem :: MonadIO m => MemoryManager -> m (Ptr a)
 newItem mm = liftIO $ castPtr <$> c_newItem mm
 {-# INLINE newItem #-}
 
+newItemN :: MonadIO m => MemoryManager -> Int -> m (Ptr a)
+newItemN mm n = liftIO $ do
+    when_ (n < 1) $ fail "[MemoryManager.newItemN] Insufficient number of elements."
+    castPtr <$> c_newItems mm (fromIntegral n)
+{-# INLINE newItemN #-}
+
 deleteItem :: MonadIO m => MemoryManager -> Ptr a -> m ()
 deleteItem mm = liftIO . c_deleteItem mm . castPtr
 {-# INLINE deleteItem #-}
 
 unsafeNull :: MemoryManager
 unsafeNull = MemoryManager nullPtr
+
+-- allocatedItems :: MemoryManager -> IO [Item]
+-- allocatedItems mgr = alloca $ \outListSize ->
+--     bracket (acquireItemList mgr outListSize) releaseItemList $
+--         \listPtr ->
+--             if listPtr /= nullPtr then do
+--                 obtainedSize <- peek outListSize
+--                 peekArray (fromInteger $ toInteger obtainedSize) listPtr
+--              else return []
