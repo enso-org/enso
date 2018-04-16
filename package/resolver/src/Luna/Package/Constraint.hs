@@ -1,15 +1,15 @@
-module Luna.Build.Dependency.Constraint where
+module Luna.Package.Constraint where
 
 import Prologue hiding (Constraint, Constraints, EQ, GT, LT, and)
 
-import qualified Data.Map.Strict               as Map
-import qualified Luna.Build.Dependency.Version as Version
+import qualified Data.Map.Strict      as Map
+import qualified Luna.Package.Version as Version
 
-import Data.Map.Strict                   (Map)
-import Luna.Build.Dependency.ParserUtils (Parser, and, spaces)
-import Luna.Build.Dependency.Version     (Version)
-import Text.Megaparsec                   (choice, sepBy)
-import Text.Megaparsec.Char              (string)
+import Data.Map.Strict          (Map)
+import Luna.Package.ParserUtils (Parser, and, spaces)
+import Luna.Package.Version     (Version)
+import Text.Megaparsec          (choice, sepBy)
+import Text.Megaparsec.Char     (string)
 
 ------------------------
 -- === Constraint === --

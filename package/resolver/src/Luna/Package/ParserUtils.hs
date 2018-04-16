@@ -1,4 +1,4 @@
-module Luna.Build.Dependency.ParserUtils where
+module Luna.Package.ParserUtils where
 
 import Prologue
 

@@ -1,4 +1,4 @@
-name:       luna-build
+name:       luna-resolver
 version:    "0.1"
 author:     Luna Team <contact@luna-lang.org>
 maintainer: Luna Team <contact@luna-lang.org>
@@ -17,7 +17,7 @@ tests:
             - hspec
             - hspec-jenkins
             - hspec-megaparsec
-            - luna-build
+            - luna-resolver
             - luna-ci
             - luna-core
             - open-browser

@@ -1,18 +1,18 @@
-module Luna.Build.Dependency.Resolver.Internal where
+module Luna.Package.Resolver.Internal where
 
 import Prologue hiding (Constraint, Constraints)
 
-import qualified Data.Map.Strict                  as Map
-import qualified Data.SBV                         as SBV
-import qualified Data.SBV.Control                 as SBV hiding (Version)
-import qualified Luna.Build.Dependency.Constraint as Constraint
-import qualified Luna.Build.Dependency.Version    as Version
+import qualified Data.Map.Strict         as Map
+import qualified Data.SBV                as SBV
+import qualified Data.SBV.Control        as SBV hiding (Version)
+import qualified Luna.Package.Constraint as Constraint
+import qualified Luna.Package.Version    as Version
 
-import Data.Either                      (lefts, rights)
-import Data.Map.Strict                  (Map)
-import Data.SBV                         ((.==), (.>), (.<), (.<=), (.>=))
-import Luna.Build.Dependency.Constraint (Constraint(Constraint))
-import Luna.Build.Dependency.Version    (Version(Version))
+import Data.Either             (lefts, rights)
+import Data.Map.Strict         (Map)
+import Data.SBV                ((.==), (.>), (.<), (.<=), (.>=))
+import Luna.Package.Constraint (Constraint(Constraint))
+import Luna.Package.Version    (Version(Version))
 
 -----------------------
 -- === Utilities === --

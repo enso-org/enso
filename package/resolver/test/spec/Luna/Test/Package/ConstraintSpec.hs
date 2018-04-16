@@ -1,14 +1,14 @@
-module Luna.Test.Build.Dependency.ConstraintSpec where
+module Luna.Test.Package.ConstraintSpec where
 
 import Prologue
 
-import qualified Luna.Build.Dependency.Constraint as Constraint
+import qualified Luna.Package.Constraint as Constraint
 
-import Luna.Build.Dependency.Constraint           (Constraint(Constraint))
-import Luna.Build.Dependency.Version              (Version(Version))
-import Luna.Test.Build.Dependency.ParserTestUtils ( shouldParseTo
-                                                  , shouldFailToParse)
-import Test.Hspec                                 (Spec, describe, it)
+import Luna.Package.Constraint           (Constraint(Constraint))
+import Luna.Package.Version              (Version(Version))
+import Luna.Test.Package.ParserTestUtils ( shouldParseTo
+                                         , shouldFailToParse )
+import Test.Hspec                        (Spec, describe, it)
 
 spec :: Spec
 spec = do
@@ -39,11 +39,11 @@ spec = do
     describe "Parsing conjunctions of constraints" $ do
         it "no constraint" $ shouldParseTo "" Constraint.constraints []
         it "conjunction" $ shouldParseTo ">= 1 && < 2.0" Constraint.constraints
-            [ (Constraint Constraint.GE (Version 1 0 0 Nothing))
-            , (Constraint Constraint.LT (Version 2 0 0 Nothing)) ]
+            [ Constraint Constraint.GE (Version 1 0 0 Nothing)
+            , Constraint Constraint.LT (Version 2 0 0 Nothing) ]
         it "multiple conjunction" $ shouldParseTo "> 1.3 && < 3.0 && == 2.3"
             Constraint.constraints
-            [ (Constraint Constraint.GT (Version 1 3 0 Nothing))
-            , (Constraint Constraint.LT (Version 3 0 0 Nothing))
-            , (Constraint Constraint.EQ (Version 2 3 0 Nothing)) ]
+            [ Constraint Constraint.GT (Version 1 3 0 Nothing)
+            , Constraint Constraint.LT (Version 3 0 0 Nothing)
+            , Constraint Constraint.EQ (Version 2 3 0 Nothing) ]
 
