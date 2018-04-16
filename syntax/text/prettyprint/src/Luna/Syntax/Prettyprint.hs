@@ -261,7 +261,8 @@ prettyprintSimple ir = Layer.read @IR.Model ir >>= \case
     IR.UniTermNumber num                -> simple . convert <$> Literal.prettyshow num
     IR.UniTermImportHub (IR.ImportHub is)
         -> simple . foldl (</>) mempty <$> (mapM subgenBody =<< List.toList is)
-
+    IR.UniTermInvalid (IR.Invalid t)
+        -> pure . named (spaced appName) . Atom $ "Invalid" <+> convert (show t)
     IR.UniTermLam (IR.Lam arg body)
         -> named (notSpaced lamName) . Atom
         .: (<>) <$> subgenBody arg <*> smartBlock body
@@ -330,7 +331,6 @@ prettyprintSimple ir = Layer.read @IR.Model ir >>= \case
 --                                                bodyBlock = indented (block $ foldl (</>) mempty $ conss <> decls)
 
 --         FieldASG mn a               -> unnamed . Atom . (\tp -> if null mn then tp else intercalate space (convert <$> mn) <> Doc.spaced typedName <> tp) <$> subgenBody a
---         Invalid t                   -> pure . named (spaced appName) . Atom $ "Invalid" <+> convert (show t)
 --         UnresolvedImport i t        -> unnamed . Atom . (\src -> "import " <> src <> tgts) <$> subgenBody i where
 --                                        tgts = case t of Import.Everything -> ""
 --                                                         Import.Listed ns  -> ": " <> intercalate " " (convert <$> ns)

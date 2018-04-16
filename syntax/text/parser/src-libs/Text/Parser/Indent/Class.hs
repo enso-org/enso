@@ -29,4 +29,4 @@ pop i = (i ^. level,) $ i & level .~ unsafeHead (i ^. stack)
 -- === Instances === --
 
 instance Default Indent where
-    def = Indent def def
+    def = Indent 1 mempty

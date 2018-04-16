@@ -43,12 +43,12 @@ import Data.TreeSet                     (SparseTreeSet)
 import Language.Symbol                  (Labeled (Labeled), SomeSymbol, labeled)
 import Luna.IR                          (SomeTerm, Term)
 import Luna.Pass                        (Pass)
-import Luna.Syntax.Text.Parser.Class    (Stream)
+import Luna.Syntax.Text.Parser.Class    (Stream, Tok)
 import Luna.Syntax.Text.Parser.CodeSpan (CodeSpan (CodeSpan),
                                          CodeSpanRange (..))
 import Luna.Syntax.Text.Parser.Loc      (LeftSpanner (LeftSpanner),
                                          checkNextOffset, previewNextSymbol,
-                                         token', withRecovery2)
+                                         token')
 import Luna.Syntax.Text.Parser.Marker   (MarkedExprMap, MarkerId, MarkerState,
                                          UnmarkedExprs, addMarkedExpr,
                                          addUnmarkedExpr, getLastTokenMarker,
@@ -229,15 +229,15 @@ invalid txt = id $ do
 invalidSymbol :: (Lexer.Symbol -> Text32) -> IRBSParser SomeTerm
 invalidSymbol f = irbs $ invalid . f <$> anySymbol
 
-catchParseErrors :: SymParser a -> SymParser (Either String a)
-catchParseErrors p = withRecovery2 (pure . Left . parseErrorTextPretty)
-                                   (Right <$> p)
+-- catchParseErrors :: SymParser a -> SymParser (Either String a)
+-- catchParseErrors p = withRecovery2 (pure . Left . parseErrorTextPretty)
+--                                    (Right <$> p)
 
-catchInvalidWith :: HasCallStack => (Span.LeftSpacedSpan -> Span.LeftSpacedSpan)
-                 -> (IRBS SomeTerm -> a) -> SymParser a -> SymParser a
-catchInvalidWith spanf f p = undefined -- do
-    -- (span, result) <- spanned $ catchParseErrors p
-    -- pure $ flip fromRight result $ f . irbsFromSpan (spanf span) . invalid . convert
+-- catchInvalidWith :: HasCallStack => (Span.LeftSpacedSpan -> Span.LeftSpacedSpan)
+--                  -> (IRBS SomeTerm -> a) -> SymParser a -> SymParser a
+-- catchInvalidWith spanf f p = undefined -- do
+--     -- (span, result) <- spanned $ catchParseErrors p
+--     -- pure $ flip fromRight result $ f . irbsFromSpan (spanf span) . invalid . convert
 
 
 
@@ -776,18 +776,29 @@ doc = intercalate "\n" <$> some (satisfTest Lexer.matchDocComment <* eol)
 topLvlDecl :: IRBSParser SomeTerm
 topLvlDecl = possiblyDocumented $ func <|> record <|> metadata
 
-
 -- === Functions === --
 
 func :: IRBSParser SomeTerm
-func = irbs $ funcHdr <**> (funcDef <|> funcSig) where
+func = irbs $ funcHdr <**> (funcSig <|> funcDef) where
     funcDef, funcSig :: SymParser (IRBS SomeTerm -> IRB SomeTerm)
-    funcHdr = symbol Lexer.KwDef *> (var <|> op)
-    funcSig = (\tp name -> liftIRBS2 IR.functionSig' name tp) <$ symbol Lexer.Typed <*> valExpr
-    funcDef = (\args body name -> liftIRBS3 IR.function' name (sequence args) (uncurry seqs body))
-        <$> many nonSpacedPattern
-        <*  symbol Lexer.BlockStart
-        <*> discover (nonEmptyBlock lineExpr)
+    funcHdr     = symbol Lexer.KwDef *> withRecovery headerRec (var <|> op)
+    headerRec e = irbs $ invalid "Invalid function header"
+               <$ Loc.unregisteredDropSymbolsUntil
+                  (`elem` [Lexer.BlockStart, Lexer.EOL, Lexer.ETX])
+    funcSig     = (\tp name -> liftIRBS2 IR.functionSig' name tp)
+               <$ symbol Lexer.Typed <*> valExpr
+    funcDef     = (\args body name -> liftIRBS3 IR.function' name (sequence args) (uncurry seqs body))
+              <$> many nonSpacedPattern
+              <*> withRecovery blockRec block
+    block       = symbol Lexer.BlockStart
+               *> discover (nonEmptyBlock lineExpr)
+    -- blockRec :: Int -> SymParser ((IRBS SomeTerm),[IRBS SomeTerm])
+    blockRec e  = (,[]) <$> (irbs $ invalid "Invalid function block"
+               <$ optionalBlockAny)
+
+            -- withRecovery (\e -> invalid "Invalid string literal" <$ Loc.unregisteredDropSymbolsUntil' (== (Lexer.Quote Lexer.RawStr Lexer.End)))
+    --              $ (IR.string' . convertVia @String)
+    --            <$> Indent.withCurrent (strBody rawQuoteEnd) -- FIXME[WD]: We're converting Text -> String here.
 
 
 -- -- === Classes == --
@@ -929,8 +940,11 @@ unitCls = irbs $ (\ds -> liftIRBS1 (IR.record' False "" [] [])
 -- === Layout parsing === --
 ----------------------------
 
+skipEOLs :: SymParser ()
+skipEOLs = void $ many eol
+
 discover :: SymParser a -> SymParser a
-discover p = many eol >> p
+discover p = skipEOLs >> p
 
 discoverIndent :: SymParser a -> SymParser a
 discoverIndent = discover . Indent.withCurrent
@@ -940,7 +954,7 @@ nonEmptyBlock'     = uncurry (:) <<$>> nonEmptyBlock
 nonEmptyBlockBody' = uncurry (:) <<$>> nonEmptyBlockBody
 
 nonEmptyBlock , nonEmptyBlockBody  :: SymParser a -> SymParser (a, [a])
-nonEmptyBlock       = Indent.withCurrent . nonEmptyBlockBody
+nonEmptyBlock     p = Indent.indented >> Indent.withCurrent (nonEmptyBlockBody p)
 nonEmptyBlockTop    = Indent.withRoot    . nonEmptyBlockBody
 nonEmptyBlockBody p = (,) <$> p <*> lines where
     spacing = many eol
@@ -969,6 +983,14 @@ breakableOptionalBlock     p = option mempty $ uncurry (:) <$> breakableNonEmpty
 breakableOptionalBlockTop  p = option mempty $ uncurry (:) <$> breakableNonEmptyBlockTop  p
 breakableOptionalBlockBody p = option mempty $ uncurry (:) <$> breakableNonEmptyBlockBody p
 
+
+nonEmptyBlockAny :: SymParser [Tok]
+nonEmptyBlockAny = concat . convertTo @[[Tok]] <$> some line where
+    line = Indent.indented >> (body <* eol)
+    body = Loc.getTokensUntil (\t -> (t == Lexer.EOL) || (t == Lexer.ETX))
+
+optionalBlockAny :: SymParser [Tok]
+optionalBlockAny = option mempty nonEmptyBlockAny
 
 
 -- --------------------
