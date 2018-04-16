@@ -87,16 +87,17 @@ shouldParseAs parser input output {-desiredSpan-} = runPass' $ do
 shouldParseItself :: IRBSParser IR.SomeTerm -> Text {- -> (Delta, Delta)-} -> IO ()
 shouldParseItself parser input = shouldParseAs parser input input
 
-unitAs   = shouldParseAs     Parsing.unit'
-unit     = shouldParseItself Parsing.unit'
-unit_n s = unitAs s $ "\n" <> s
-exprAs   = shouldParseAs     Parsing.expr
-expr     = shouldParseItself Parsing.expr
+unitAs     = shouldParseAs     Parsing.unit'
+unit       = shouldParseItself Parsing.unit'
+unit_n   s = unitAs_n s s
+unitAs_n s = unitAs s . ("\n" <>)
+exprAs     = shouldParseAs     Parsing.expr
+expr       = shouldParseItself Parsing.expr
 
 
--------------------
--- === Tests === --
--------------------
+----------------------
+-- === Literals === --
+----------------------
 
 identSpec :: Spec
 identSpec = describe "identifier" $ do
@@ -108,6 +109,7 @@ identSpec = describe "identifier" $ do
     it "simple constructors"      $ expr "Vector"
     it "constructors + arguments" $ expr "Vector x 1 z"
     it "unicode constructor name" $ expr "Κοηστρυκτορ"
+    it "test" $ expr "__"
 
 literalNumberSpec :: Spec
 literalNumberSpec = describe "number" $ do
@@ -163,7 +165,10 @@ literalSpec = describe "literal" $ do
     literalListSpec
     literalTupleSpec
 
----
+
+-------------------
+-- === Terms === --
+-------------------
 
 termApplicationSpec :: Spec
 termApplicationSpec = describe "applications" $ do
@@ -307,6 +312,10 @@ termSpec = describe "term" $ do
     termLambdaSpec
 
 
+------------------
+-- === Unit === --
+------------------
+
 definitionFunctionSpec :: Spec
 definitionFunctionSpec = describe "function" $ do
     it "no argument function definition" $ expr "def foo: bar"       -- [(4,3),(2,3),(0,12)]
@@ -320,6 +329,16 @@ unitSpec = describe "unit definitions" $ do
     it "operator definition"            $ unit_n "def + a b: a . + b" -- [(4,1),(0,16),(0,16),(0,16)]
     it "function signature definition"  $ unit_n "def foo :: a -> Vector a"              -- [(4,3),(0,1),(1,2),(0,4),(0,6),(1,1),(1,8),(4,13),(0,24),(0,24),(0,24)]
 
+invalidUnitSpec :: Spec
+invalidUnitSpec = describe "invalid unit definitions" $ do
+    it "orphan def"
+        $ unitAs_n "def" "def Invalid FunctionHeader: Invalid FunctionBlock"
+    it "def without body 1"
+        $ unitAs_n "def foo" "def foo: Invalid FunctionBlock"
+    it "def without body 2"
+        $ unitAs_n "def foo:" "def foo: Invalid FunctionBlock"
+
+
 caseSpec :: Spec
 caseSpec = describe "case expression" $ do
     it "simple case expression"    $ expr "case v of\n    A a: b" -- [(5,1),(0,1),(1,1),(0,3),(2,1),(8,6),(0,20)]
@@ -332,11 +351,12 @@ definitionSpec :: Spec
 definitionSpec = do
     definitionFunctionSpec
     unitSpec
+    invalidUnitSpec
     caseSpec
 
 fixSpec :: Spec
 fixSpec = do
-    it "error" $ unit "def\ndef bar: 7"
+    it "error" $ unit "def"
     -- it "error" $ expr "def foo:\n x = 1\n def"
 
 spec :: Spec

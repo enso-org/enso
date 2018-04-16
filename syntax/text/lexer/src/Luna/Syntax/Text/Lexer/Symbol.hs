@@ -157,7 +157,8 @@ checkSpecialVar = \case
     name      -> Var name
 {-# INLINE checkSpecialVar #-}
 
-matchVar, matchCons, matchOperator, matchModifier, matchStr, matchDocComment, matchMetadata :: Symbol -> Maybe Text32
+matchVar, matchCons, matchOperator, matchModifier, matchStr, matchDocComment,
+    matchMetadata :: Symbol -> Maybe Text32
 matchNumber   :: Symbol -> Maybe Number
 matchMarker   :: Symbol -> Maybe Word64
 matchStrEsc   :: Symbol -> Maybe StrEscType
@@ -222,7 +223,7 @@ pretty = \case
 
 -- === Instances === --
 
--- FIXME[WD]: Templatehaskellize vvv
+-- TODO: Generate with TH
 instance ShowCons Symbol where
     showCons = \case
         STX         {} -> "STX"
@@ -266,7 +267,6 @@ instance ShowCons Symbol where
         Incorrect   {} -> "Incorrect"
     {-# INLINE showCons #-}
 
--- Tags
 instance IsTagged Symbol where
     getTags a = (: [showCons a]) $ case a of
         STX         {} -> "Layout"
