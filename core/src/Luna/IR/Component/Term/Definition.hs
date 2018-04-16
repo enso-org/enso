@@ -205,9 +205,6 @@ defineSingleCons needsSmartCons dataName con = do
 
         fieldTypes    = fmap (view _3) . view namedFields $ con
 
-    runIO $ print ">>>>"
-    runIO $ print conNameStr
-
     lensInst      <- Lens.declareLenses (pure [termDecl'])
     storableInst  <- Storable.derive'   termDecl'
     storable1Inst <- Storable1.derive'  termDecl'

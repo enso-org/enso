@@ -19,6 +19,7 @@ import qualified Luna.Data.Name                    as Name
 import qualified Luna.IR                           as IR
 import qualified Luna.IR.Layer                     as Layer
 import qualified Luna.IR.Term.Ast                  as Import
+import qualified Luna.IR.Term.Ast.Invalid          as Invalid
 import qualified Luna.Syntax.Text.Lexer            as Lexer
 import qualified Luna.Syntax.Text.Lexer.Symbol     as Lexer
 import qualified Luna.Syntax.Text.Parser.CodeSpan  as CodeSpan
@@ -220,14 +221,15 @@ irbsF2 p = uncurry (fmap2 . irbsFromSpan) <$> spanned p ; {-# INLINE irbsF2 #-}
 -- -- === Errors === --
 -- --------------------
 
-invalid :: Text32 -> IRB SomeTerm
-invalid txt = id $ do
-    inv <- IR.invalid' $ convertVia @String txt -- FIXME: performance
+invalid :: Invalid.Description -> IRB SomeTerm
+invalid t = do
+    inv <- IR.invalid' t
     Invalid.register inv
     pure $ Layout.relayout inv
+{-# INLINE invalid #-}
 
-invalidSymbol :: (Lexer.Symbol -> Text32) -> IRBSParser SomeTerm
-invalidSymbol f = irbs $ invalid . f <$> anySymbol
+-- invalidSymbol :: (Lexer.Symbol -> Text32) -> IRBSParser SomeTerm
+-- invalidSymbol f = irbs $ invalid . f <$> anySymbol
 
 -- catchParseErrors :: SymParser a -> SymParser (Either String a)
 -- catchParseErrors p = withRecovery2 (pure . Left . parseErrorTextPretty)
@@ -782,7 +784,7 @@ func :: IRBSParser SomeTerm
 func = irbs $ funcHdr <**> (funcSig <|> funcDef) where
     funcDef, funcSig :: SymParser (IRBS SomeTerm -> IRB SomeTerm)
     funcHdr     = symbol Lexer.KwDef *> withRecovery headerRec (var <|> op)
-    headerRec e = irbs $ invalid "Invalid function header"
+    headerRec e = irbs $ invalid Invalid.FunctionHeader
                <$ Loc.unregisteredDropSymbolsUntil
                   (`elem` [Lexer.BlockStart, Lexer.EOL, Lexer.ETX])
     funcSig     = (\tp name -> liftIRBS2 IR.functionSig' name tp)
@@ -793,7 +795,7 @@ func = irbs $ funcHdr <**> (funcSig <|> funcDef) where
     block       = symbol Lexer.BlockStart
                *> discover (nonEmptyBlock lineExpr)
     -- blockRec :: Int -> SymParser ((IRBS SomeTerm),[IRBS SomeTerm])
-    blockRec e  = (,[]) <$> (irbs $ invalid "Invalid function block"
+    blockRec e  = (,[]) <$> (irbs $ invalid Invalid.FunctionBlock
                <$ optionalBlockAny)
 
             -- withRecovery (\e -> invalid "Invalid string literal" <$ Loc.unregisteredDropSymbolsUntil' (== (Lexer.Quote Lexer.RawStr Lexer.End)))
@@ -879,7 +881,7 @@ foreignSymbolImport :: IRBSParser SomeTerm
 foreignSymbolImport = irbs $ withRecovery recover
     $   try (foreignSymbolImportWithSafety defaultFISafety)
     <|> foreignSymbolImportWithSafety specifiedFISafety
-    where recover e = invalid "Invalid safety specification."
+    where recover e = invalid Invalid.ForeignImportSafety
                       <$ Loc.unregisteredDropSymbolsUntil
                       (`elem` [Lexer.ETX, Lexer.EOL])
 
