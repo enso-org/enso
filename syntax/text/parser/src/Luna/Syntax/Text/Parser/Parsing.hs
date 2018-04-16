@@ -4,98 +4,9 @@
 
 module Luna.Syntax.Text.Parser.Parsing where
 
-import Prologue hiding (seq)
-
--- import Prologue_old hiding (Cons, String, Type, Symbol, SomeSymbol, (|>), (<|), cons, seq, span, op)
--- import qualified Prologue_old as P
-
--- import qualified Text.Megaparsec as Parser
-import Text.Megaparsec       (ErrorItem (Tokens), MonadParsec, ParseError,
-                              between, choice, hidden, lookAhead, manyTill,
-                              notFollowedBy, skipMany, try, unexpected,
-                              withRecovery)
-import Text.Megaparsec.Char  (anyChar, char, digitChar, letterChar, lowerChar,
-                              spaceChar, upperChar)
-import Text.Megaparsec.Error (parseErrorPretty, parseErrorTextPretty)
--- import           Text.Megaparsec.String hiding (Parser)
--- import qualified Text.Megaparsec.String as M
--- import qualified Text.Megaparsec.Lexer as Lex
--- import qualified Text.Megaparsec.Char  as Charhiding (eol)
-
--- import qualified Luna.IR as IR
--- import           Luna.IR hiding (typed, unify, accSection, sectionLeft, sectionRight, unit', match, list, tuple, clause, Atom, State, IRB, number, string, var, expr, app, acc, grouped, blank, get, put, modify_, cons, lam, seq, function, withIR, fieldLens, clsASG, unit, imp, impSrc, impHub, invalid, marker, marked, metadata, disabled, documented)
--- import Luna.IR.ToRefactor
--- import OCI.Pass.Class hiding (get, put, modify_)
--- import OCI.Pass.Definition
-
--- import Luna.Syntax.Text.Layer.Loc
-
--- import Luna.Syntax.Text.Parser.Class
--- import Luna.Syntax.Text.Parser.Parser
--- import qualified Luna.Syntax.Text.Parser.CodeSpan as CodeSpan
-
--- import qualified Luna.IR.Term.Function as Function
-
--- import qualified Data.Text.Span as Span
--- import           Data.Text.Span (LeftSpacedSpan, leftSpacedSpan)
--- import System.Log (MonadLogging)
--- import qualified Data.Char as Char
--- import Data.List.NonEmpty (NonEmpty((:|)))
--- import Text.Megaparsec.Ext
-
--- import           Data.Set (Set)
--- import qualified Data.Map as Map
--- import           Data.Map (Map)
--- import qualified Control.Monad.State as S
--- import           Text.Parser.Expr hiding (PrecRelMap)
--- import Luna.Syntax.Text.Scope
-
--- import System.IO.Unsafe (unsafePerformIO)
--- import qualified Luna.Syntax.Text.Pretty.Pretty as CodeGen
--- import qualified Language.Symbol.Operator.Assoc as Assoc
--- import qualified Language.Symbol.Operator.Prec  as Prec
--- import           Language.Symbol hiding (Expr, symbol, Symbol, ExprSymbol)
--- import qualified Language.Symbol as Symbol
--- import qualified Language.Symbol as Tok
--- import           Luna.Syntax.Text.Parser.Hardcoded
--- import qualified OCI.Pass        as Pass
--- import Data.Container.Mono hiding (empty)
--- import           OCI.IR.Name.Qualified (QualName, mkQualName)
--- import qualified OCI.IR.Name.Path      as Name
--- import qualified OCI.IR.Name.Multipart as MName
--- import           OCI.IR.Name.Multipart (mkMultipartName)
--- import qualified Luna.IR.Term.Literal  as Literal
--- import qualified Luna.IR.Term.Literal  as Num
--- import Control.Monad.State.Dependent
--- import Text.Parser.Combinators
--- import Data.Text.Position
--- import Text.Parser.Char hiding (eol)
--- import qualified Text.Parser.Char as Char
--- import Luna.Syntax.Text.Parser.Name
-
--- import qualified System.Environment as Env
--- import Luna.Syntax.Text.Source
--- import Luna.IR.Analysis (IsomorphicCheckCtx, checkIsoExpr)
--- import qualified Luna.IR.Term.Unit as Import
--- import OCI.IR.Layout.Typed (type (>>))
--- import qualified Control.Monad as M
-
-
--- import qualified Control.Monad as Monad
-
--- import           Luna.Syntax.Text.Parser.Loc (LeftSpanner, MonadLoc)
-
-
--- import Luna.Syntax.Text.Parser.Errors (Invalids, registerInvalid)
--- import qualified Data.List as List
--- import           Luna.Syntax.Text.Parser.Reserved (Reservation, withReservedSymbols, withLocalReservedSymbol, withLocalUnreservedSymbol, withNewLocal, checkForSymbolReservation)
-import Data.TreeSet                  (SparseTreeSet)
-import Luna.Syntax.Text.Parser.Class (Stream)
-
--- import           Data.Text32 (Text32)
--- import qualified Data.Text32 as Text32
--- import qualified Data.Text as Text
-import Text.Parser.Combinators
+import qualified Prelude  as P
+import           Prologue hiding (seq, some)
+import qualified Prologue
 
 import qualified Control.Monad.State.Layered       as State
 import qualified Data.Char                         as Char
@@ -123,13 +34,16 @@ import qualified OCI.IR.Layout                     as Layout
 import qualified Text.Parser.Expr                  as Expr
 import qualified Text.Parser.Indent                as Indent
 
-import Data.Text.Position (FileOffset (..))
--- import           Text.Parser.Indent (Indent, indentation)
+import Data.List.NonEmpty               ((<|))
+import Data.Set                         (Set)
+import Data.Text.Position               (FileOffset (..))
 import Data.Text.Position               (Delta)
 import Data.Text32                      (Text32)
+import Data.TreeSet                     (SparseTreeSet)
 import Language.Symbol                  (Labeled (Labeled), SomeSymbol, labeled)
-import Luna.IR                          (Term)
+import Luna.IR                          (SomeTerm, Term)
 import Luna.Pass                        (Pass)
+import Luna.Syntax.Text.Parser.Class    (Stream)
 import Luna.Syntax.Text.Parser.CodeSpan (CodeSpan (CodeSpan),
                                          CodeSpanRange (..))
 import Luna.Syntax.Text.Parser.Loc      (LeftSpanner (LeftSpanner),
@@ -141,171 +55,164 @@ import Luna.Syntax.Text.Parser.Marker   (MarkedExprMap, MarkerId, MarkerState,
                                          useLastTokenMarker)
 import Luna.Syntax.Text.Parser.Marker   (MarkedExprMap, UnmarkedExprs)
 import Luna.Syntax.Text.Parser.Name     (SpacedName)
-import Luna.Syntax.Text.Parser.Parser   (AsgBldr (AsgBldr, fromAsgBldr),
-                                         AsgParser, IRB, Parser, SymParser,
-                                         runParserT, withAsgBldr)
+import Luna.Syntax.Text.Parser.Parser   (IRB, IRBS (IRBS, fromIRBS), IRBSParser,
+                                         Parser, SymParser, liftIRBS1,
+                                         liftIRBS2, liftIRBS3, runParserT,
+                                         withAsgBldr)
 import OCI.Data.Name                    (Name)
+import Text.Megaparsec                  (ErrorItem (Tokens), MonadParsec,
+                                         ParseError, between, choice, hidden,
+                                         lookAhead, manyTill, notFollowedBy,
+                                         skipMany, try, unexpected,
+                                         withRecovery)
+import Text.Megaparsec.Char             (anyChar, char, digitChar, letterChar,
+                                         lowerChar, spaceChar, upperChar)
+import Text.Megaparsec.Error            (parseErrorPretty, parseErrorTextPretty)
 import Text.Megaparsec.Ext              (expected)
+import Text.Parser.Combinators
+
 
 -- TODO: Can we do better?
 instance Convertible Text32.Text32 Name where
     convert = convertVia @String ; {-# INLINE convert #-}
 
-type SomeTerm = IR.Term ()
-
-some' :: (Applicative m, Alternative m) => m a -> m (NonEmpty a)
-some' p = (:|) <$> p <*> many p
 
 
--- ------------------------
--- -- === Primitives === --
--- ------------------------
+---------------------
+-- === Satisfy === --
+---------------------
 
-satisfy' :: (Lexer.Symbol -> Bool)    -> SymParser Lexer.Symbol
-satisfy_ :: (Lexer.Symbol -> Bool)    -> SymParser ()
-satisfy  :: (Lexer.Symbol -> Maybe a) -> SymParser a
-satisfy_ f = void $ satisfy' f
-satisfy' f = satisfy $ \s -> justIf (f s) s
-satisfy  f = token' testSymbol Nothing where
-    testSymbol r t = case Reserved.lookupSymbolReservation r (t ^. Lexer.element) of
-        True  -> Left (Just $ Tokens (t:|[]), Set.empty)
-        False -> case f (t ^. Lexer.element) of
-            Just a  -> Right a
-            Nothing -> Left (Just $ Tokens (t:|[]), Set.empty)
+satisfy    :: (Lexer.Symbol -> Bool)    -> SymParser Lexer.Symbol
+satisfy_   :: (Lexer.Symbol -> Bool)    -> SymParser ()
+satisfTest :: (Lexer.Symbol -> Maybe a) -> SymParser a
+satisfy_   f = void $ satisfy f                  ; {-# INLINE satisfy_ #-}
+satisfy    f = satisfTest $ \s -> justIf (f s) s ; {-# INLINE satisfy  #-}
+satisfTest f = token' test Nothing where
+    test r t = case Reserved.lookupSymbolReservation r (t ^. Lexer.element) of
+        True  -> Left (Just $ Tokens (pure t), Set.empty)
+        False -> satisfyTestSymbol f t
+{-# INLINE satisfTest #-}
 
-satisfyReserved' :: (Lexer.Symbol -> Bool)    -> SymParser Lexer.Symbol
-satisfyReserved_ :: (Lexer.Symbol -> Bool)    -> SymParser ()
-satisfyReserved  :: (Lexer.Symbol -> Maybe a) -> SymParser a
-satisfyReserved_ f = void $ satisfyReserved' f
-satisfyReserved' f = satisfyReserved $ \s -> justIf (f s) s
-satisfyReserved  f = token' testSymbol Nothing where
-    testSymbol r t = case f (t ^. Lexer.element) of
-        Just a  -> Right a
-        Nothing -> Left (Just $ Tokens (t:|[]), Set.empty)
+satisfyUnchecked     :: (Lexer.Symbol -> Bool)    -> SymParser Lexer.Symbol
+satisfyUnchecked_    :: (Lexer.Symbol -> Bool)    -> SymParser ()
+satisfyUncheckedTest :: (Lexer.Symbol -> Maybe a) -> SymParser a
+satisfyUnchecked_    f = void $ satisfyUnchecked f                    ; {-# INLINE satisfyUnchecked_    #-}
+satisfyUnchecked     f = satisfyUncheckedTest $ \s -> justIf (f s) s  ; {-# INLINE satisfyUnchecked     #-}
+satisfyUncheckedTest f = token' (const $ satisfyTestSymbol f) Nothing ; {-# INLINE satisfyUncheckedTest #-}
+
+satisfyTestSymbol :: (t -> Maybe b) -> Lexer.Token t
+                  -> Either (Maybe (ErrorItem (Lexer.Token t)), Set a) b
+satisfyTestSymbol f t = note (Just $ Tokens (pure t), Set.empty)
+                      $ f (t ^. Lexer.element)
+{-# INLINE satisfyTestSymbol #-}
 
 symbol :: Lexer.Symbol -> SymParser ()
-symbol = satisfy_ . (==)
+symbol = satisfy_ . (==) ; {-# INLINE symbol #-}
 
-anySymbol :: SymParser Lexer.Symbol
-anySymbol = satisfyReserved' $ const True
-
-dropNextToken :: SymParser ()
-dropNextToken = satisfyReserved_ $ const True
+anySymbol  :: SymParser Lexer.Symbol
+anySymbol_ :: SymParser ()
+anySymbol  = satisfyUnchecked $ const True ; {-# INLINE anySymbol #-}
+anySymbol_ = void anySymbol                ; {-# INLINE anySymbol_ #-}
 
 getLastOffset   :: State.Getter LeftSpanner m => m Delta
 checkLastOffset :: State.Getter LeftSpanner m => m Bool
-getLastOffset   = unwrap <$> State.get @LeftSpanner
-checkLastOffset = (>0)   <$> getLastOffset
+getLastOffset   = unwrap <$> State.get @LeftSpanner ; {-# INLINE getLastOffset   #-}
+checkLastOffset = (>0)   <$> getLastOffset          ; {-# INLINE checkLastOffset #-}
 
-checkOffsets :: (MonadParsec e Stream m, State.Getter LeftSpanner m) => m (Bool, Bool)
-checkOffsets = (,) <$> checkLastOffset <*> checkNextOffset
+checkOffsets :: (MonadParsec e Stream m, State.Getter LeftSpanner m)
+             => m (Bool, Bool)
+checkOffsets = (,) <$> checkLastOffset <*> checkNextOffset ; {-# INLINE checkOffsets #-}
 
 
 
 ----------------------------------
--- === AST function lifting === --
+-- === Code span management === --
 ----------------------------------
-
--- === Lifting === --
-
-liftAstApp1 :: (t1             -> IRB out) -> AsgBldr t1 -> IRB out
-liftAstApp2 :: (t1 -> t2       -> IRB out) -> AsgBldr t1 -> AsgBldr t2 -> IRB out
-liftAstApp3 :: (t1 -> t2 -> t3 -> IRB out) -> AsgBldr t1 -> AsgBldr t2 -> AsgBldr t3 -> IRB out
-liftAstApp1 f t1       = bind  f (fromAsgBldr t1)                                                                     ; {-# INLINE liftAstApp1 #-}
-liftAstApp2 f t1 t2    = bind2 f (fromAsgBldr t1) (fromAsgBldr t2)                                                    ; {-# INLINE liftAstApp2 #-}
-liftAstApp3 f t1 t2 t3 = bind3 f (fromAsgBldr t1) (fromAsgBldr t2) (fromAsgBldr t3)                                   ; {-# INLINE liftAstApp3 #-}
-
-
-
--- -----------------------------
--- -- === AST Combinators === --
--- -----------------------------
-
--- -- === CodeSpan === --
 
 attachCodeSpanLayer :: CodeSpan -> IRB (Term a) -> IRB (Term a)
-attachCodeSpanLayer s = (>>~ flip (Layer.write @CodeSpan) s)
+attachCodeSpanLayer s = (>>~ flip (Layer.write @CodeSpan) s) ; {-# INLINE attachCodeSpanLayer #-}
 
 spanned :: SymParser a -> SymParser (CodeSpan, a)
-spanned p = phantomSpan p' where
-    p' = do fileOffStart <- unwrap <$> State.get @FileOffset
-            State.put @CodeSpanRange $ wrap fileOffStart
-            p
-
--- -- | Function `phantomSpan` do not register it's beginning as new element start.
---   It is a very rarely needed functionality, use with care.
-phantomSpan :: SymParser a -> SymParser (CodeSpan, a)
-phantomSpan p = do
-    range   <- unwrap <$> State.get @CodeSpanRange
+spanned p = do
+    lastCodeSpan <- unwrap <$> State.get @CodeSpanRange
     fileOffStart <- unwrap <$> State.get @FileOffset
-    marker  <- Marker.getLastTokenMarker
-    out     <- p
-    foEnd   <- unwrap <$> State.get @FileOffset
-    sfxOff  <- getLastOffset
-    let end       = foEnd   - sfxOff
-        off       = fileOffStart - range
+    marker       <- Marker.getLastTokenMarker
+    State.put @CodeSpanRange $ wrap fileOffStart
+    out          <- p
+    fileOffEnd   <- unwrap <$> State.get @FileOffset
+    lastOffset   <- getLastOffset
+    let end       = fileOffEnd   - lastOffset
+        off       = fileOffStart - lastCodeSpan
         emptySpan = Span.leftSpacedSpan mempty mempty
-        (rs,vs)   = (realSpan, viewSpan)
-        -- FIXME[WD]: The `foo` and `bar` helpers are here just to make it work with empty spans in list sections / empty module headers.
-        --            We should think how to refactor them and describe better where they originate from.
-        foo       = max 0 (end - fileOffStart)
-        bar       = max end fileOffStart
-        realSpan  = Span.leftSpacedSpan off foo
+        realLen   = max 0 (end - fileOffStart)
+        newRange  = max end fileOffStart
+        realSpan  = Span.leftSpacedSpan off realLen
         viewSpan  = case marker of
             Nothing -> realSpan
             Just m  -> Span.leftSpacedSpan
-                       (off - m ^. Lexer.span - m ^. Lexer.offset) foo
-    State.put @CodeSpanRange $ convert bar
-    pure (CodeSpan rs vs, out)
+                       (off - m ^. Lexer.span - m ^. Lexer.offset) realLen
+    State.put @CodeSpanRange $ convert newRange
+    pure (CodeSpan realSpan viewSpan, out)
+{-# INLINE spanned #-}
 
 spanOf :: SymParser a -> SymParser a
-spanOf = fmap snd . spanned
+spanOf = fmap snd . spanned ; {-# INLINE spanOf #-}
 
-inheritCodeSpan1 :: (SomeTerm -> IRB SomeTerm) -> AsgBldr SomeTerm -> AsgBldr SomeTerm
-inheritCodeSpan1 = inheritCodeSpan1With id
+inheritCodeSpan1 :: (     SomeTerm -> IRB  SomeTerm)
+                 -> (IRBS SomeTerm -> IRBS SomeTerm)
+inheritCodeSpan1 = inheritCodeSpan1With id ; {-# INLINE inheritCodeSpan1 #-}
 
-inheritCodeSpan2 :: (SomeTerm -> SomeTerm -> IRB SomeTerm) -> AsgBldr SomeTerm -> AsgBldr SomeTerm -> AsgBldr SomeTerm
-inheritCodeSpan2 = inheritCodeSpan2With (CodeSpan.concat) -- IT WAS HERE: CodeSpan.concat
+inheritCodeSpan2 :: (     SomeTerm ->      SomeTerm -> IRB  SomeTerm)
+                 -> (IRBS SomeTerm -> IRBS SomeTerm -> IRBS SomeTerm)
+inheritCodeSpan2 = inheritCodeSpan2With (CodeSpan.concat) ; {-# INLINE inheritCodeSpan2 #-} -- FIXME Is CodeSpan.concat deprecated?
 
-inheritCodeSpan1With :: (CodeSpan -> CodeSpan) -> (SomeTerm -> IRB SomeTerm) -> AsgBldr SomeTerm -> AsgBldr SomeTerm
-inheritCodeSpan1With sf f (AsgBldr irb1) = wrap $ do
+inheritCodeSpan1With :: (CodeSpan -> CodeSpan)
+                     -> (     SomeTerm -> IRB  SomeTerm)
+                     -> (IRBS SomeTerm -> IRBS SomeTerm)
+inheritCodeSpan1With sf f (IRBS irb1) = wrap $ do
     t1 <- irb1
     s1 <- Layer.read @CodeSpan t1
-    Layer.write @CodeSpan t1 (CodeSpan.dropOffset s1) -- the newly constructed IR is the new parent, so it handles the left offset
-    unwrap . buildAsgFromSpan (sf s1) $ f t1
+    let s1' = CodeSpan.dropOffset s1
+    -- The new IR becomes a new parent, so it handles the left offset.
+    Layer.write @CodeSpan t1 s1'
+    unwrap . irbsFromSpan (sf s1) $ f t1
+{-# INLINE inheritCodeSpan1With #-}
 
 inheritCodeSpan2With :: (CodeSpan -> CodeSpan -> CodeSpan)
-                     -> (SomeTerm -> SomeTerm -> IRB SomeTerm)
-                     -> AsgBldr SomeTerm -> AsgBldr SomeTerm -> AsgBldr SomeTerm
-inheritCodeSpan2With sf f (AsgBldr irb1) (AsgBldr irb2) = wrap $ do
+                     -> (     SomeTerm ->      SomeTerm -> IRB  SomeTerm)
+                     -> (IRBS SomeTerm -> IRBS SomeTerm -> IRBS SomeTerm)
+inheritCodeSpan2With sf f (IRBS irb1) (IRBS irb2) = wrap $ do
     t1 <- irb1
     s1 <- Layer.read @CodeSpan t1
-    -- | the new IR is the new parent, so it handles the left offset
-    Layer.write @CodeSpan t1 (CodeSpan.dropOffset s1)
+    -- The new IR becomes a new parent, so it handles the left offset.
+    let s1' = CodeSpan.dropOffset s1
+    Layer.write @CodeSpan t1 s1'
     t2 <- irb2
     s2 <- Layer.read @CodeSpan t2
-    unwrap . buildAsgFromSpan (sf s1 s2) $ f t1 t2
+    unwrap . irbsFromSpan (sf s1 s2) $ f t1 t2
+{-# INLINE inheritCodeSpan2With #-}
 
 -- | Magic helper. Use with care only if you really know what you do.
-modifyCodeSpan :: (CodeSpan -> CodeSpan) -> AsgBldr SomeTerm -> AsgBldr SomeTerm
-modifyCodeSpan f (AsgBldr irb1) = wrap $ do
+unsafeModifyCodeSpan :: (CodeSpan -> CodeSpan) -> IRBS SomeTerm -> IRBS SomeTerm
+unsafeModifyCodeSpan f (IRBS irb1) = wrap $ do
     t1 <- irb1
     s1 <- Layer.read @CodeSpan t1
     Layer.write @CodeSpan t1 (f s1)
     pure t1
+{-# INLINE unsafeModifyCodeSpan #-}
 
 
--- === ASG preparation === --
+-- === IRBS construction === --
 
-buildAsgFromSpan :: CodeSpan -> IRB (Term a) -> AsgBldr (Term a)
-buildAsgFromSpan = AsgBldr .: attachCodeSpanLayer
+irbsFromSpan :: CodeSpan -> IRB (Term a) -> IRBS (Term a)
+irbsFromSpan = IRBS .: attachCodeSpanLayer ; {-# INLINE irbsFromSpan #-}
 
-buildAsg   ::                    SymParser       (IRB (Term a))   -> SymParser       (AsgBldr (Term a))
-buildAsgF  :: Functor f       => SymParser (f    (IRB (Term a)))  -> SymParser (f    (AsgBldr (Term a)))
-buildAsgF2 :: Functors '[f,g] => SymParser (f (g (IRB (Term a)))) -> SymParser (f (g (AsgBldr (Term a))))
-buildAsg   p = uncurry          buildAsgFromSpan  <$> spanned p
-buildAsgF  p = uncurry (fmap  . buildAsgFromSpan) <$> spanned p
-buildAsgF2 p = uncurry (fmap2 . buildAsgFromSpan) <$> spanned p
+irbs   ::                    SymParser       (IRB (Term a))   -> SymParser       (IRBS (Term a))
+irbsF  :: Functor f       => SymParser (f    (IRB (Term a)))  -> SymParser (f    (IRBS (Term a)))
+irbsF2 :: Functors '[f,g] => SymParser (f (g (IRB (Term a)))) -> SymParser (f (g (IRBS (Term a))))
+irbs   p = uncurry          irbsFromSpan  <$> spanned p ; {-# INLINE irbs   #-}
+irbsF  p = uncurry (fmap  . irbsFromSpan) <$> spanned p ; {-# INLINE irbsF  #-}
+irbsF2 p = uncurry (fmap2 . irbsFromSpan) <$> spanned p ; {-# INLINE irbsF2 #-}
 
 
 
@@ -319,25 +226,26 @@ invalid txt = id $ do
     Invalid.register inv
     pure $ Layout.relayout inv
 
-invalidSymbol :: (Lexer.Symbol -> Text32) -> AsgParser SomeTerm
-invalidSymbol f = buildAsg $ invalid . f <$> anySymbol
+invalidSymbol :: (Lexer.Symbol -> Text32) -> IRBSParser SomeTerm
+invalidSymbol f = irbs $ invalid . f <$> anySymbol
 
 catchParseErrors :: SymParser a -> SymParser (Either String a)
-catchParseErrors p = withRecovery2 (pure . Left . parseErrorTextPretty) (Right <$> p)
+catchParseErrors p = withRecovery2 (pure . Left . parseErrorTextPretty)
+                                   (Right <$> p)
 
 catchInvalidWith :: HasCallStack => (Span.LeftSpacedSpan -> Span.LeftSpacedSpan)
-                 -> (AsgBldr SomeTerm -> a) -> SymParser a -> SymParser a
+                 -> (IRBS SomeTerm -> a) -> SymParser a -> SymParser a
 catchInvalidWith spanf f p = undefined -- do
     -- (span, result) <- spanned $ catchParseErrors p
-    -- pure $ flip fromRight result $ f . buildAsgFromSpan (spanf span) . invalid . convert
+    -- pure $ flip fromRight result $ f . irbsFromSpan (spanf span) . invalid . convert
 
 
 
--- ---------------------
--- -- === Markers === --
--- ---------------------
+---------------------
+-- === Markers === --
+---------------------
 
-markerIRB :: SymParser (MarkerId, AsgBldr SomeTerm)
+markerIRB :: SymParser (MarkerId, IRBS SomeTerm)
 markerIRB = useLastTokenMarker >>= \case
     Nothing -> expected "marker"
     Just t  -> do
@@ -349,16 +257,17 @@ markerIRB = useLastTokenMarker >>= \case
             markerSpan = Span.leftSpacedSpan markerOffL markerLen
         State.modify_ @CodeSpanRange $ wrapped .~ foEnd
         pure $ ( t ^. Lexer.element
-               , buildAsgFromSpan (CodeSpan.mkPhantomSpan markerSpan)
+               , irbsFromSpan (CodeSpan.mkPhantomSpan markerSpan)
                                   (id $ IR.marker' $ t ^. Lexer.element)
                )
 
-marked :: SymParser (AsgBldr SomeTerm -> AsgBldr SomeTerm)
+marked :: SymParser (IRBS SomeTerm -> IRBS SomeTerm)
 marked = option registerUnmarkedExpr $ uncurry markedExpr <$> markerIRB where
-    markedExpr mid expr = registerMarkedExpr mid . inheritCodeSpan2 (IR.marked') expr
+    markedExpr mid expr = registerMarkedExpr mid . inheritCodeSpan2 (IR.marked')
+                          expr
 
-registerUnmarkedExpr ::             AsgBldr SomeTerm -> AsgBldr SomeTerm
-registerMarkedExpr   :: MarkerId -> AsgBldr SomeTerm -> AsgBldr SomeTerm
+registerUnmarkedExpr ::             IRBS SomeTerm -> IRBS SomeTerm
+registerMarkedExpr   :: MarkerId -> IRBS SomeTerm -> IRBS SomeTerm
 registerUnmarkedExpr = withAsgBldr (>>~ addUnmarkedExpr)
 registerMarkedExpr m = withAsgBldr (>>~ addMarkedExpr m)
 
@@ -369,109 +278,97 @@ registerMarkedExpr m = withAsgBldr (>>~ addMarkedExpr m)
 ---------------------
 
 stx, etx, eol :: SymParser ()
-stx = symbol Lexer.STX
-etx = symbol Lexer.ETX
-eol = symbol Lexer.EOL
+stx = symbol Lexer.STX ; {-# INLINE stx #-}
+etx = symbol Lexer.ETX ; {-# INLINE etx #-}
+eol = symbol Lexer.EOL ; {-# INLINE eol #-}
 
 braceBegin, braceEnd :: SymParser ()
-braceBegin = symbol $ Lexer.List Lexer.Begin
-braceEnd   = symbol $ Lexer.List Lexer.End
+braceBegin = symbol $ Lexer.List Lexer.Begin ; {-# INLINE braceBegin #-}
+braceEnd   = symbol $ Lexer.List Lexer.End   ; {-# INLINE braceEnd   #-}
 
 groupBegin, groupEnd :: SymParser ()
-groupBegin = symbol $ Lexer.Group Lexer.Begin
-groupEnd   = symbol $ Lexer.Group Lexer.End
+groupBegin = symbol $ Lexer.Group Lexer.Begin ; {-# INLINE groupBegin #-}
+groupEnd   = symbol $ Lexer.Group Lexer.End   ; {-# INLINE groupEnd   #-}
 
+parensed :: SymParser a -> SymParser a
+parensed p = groupBegin *> p <* groupEnd ; {-# INLINE parensed #-}
 
-
-----------------------------
--- === IRB Primitives === --
-----------------------------
-
--- varIRB :: Name -> IRB SomeTerm
--- varIRB = IR.var' ; {-# INLINE varIRB #-}
-
-accIRB :: Name -> SomeTerm -> IRB SomeTerm
-accIRB name a = (flip IR.acc' name) a
-
-accSectionIRB :: [Name] -> IRB SomeTerm
-accSectionIRB path = IR.accSection' $ convert path
-
-updateIRB :: [Name] -> SomeTerm -> SomeTerm -> IRB SomeTerm
-updateIRB path = flip IR.update' (convert path)
-
-modifyIRB :: [Name] -> Name -> SomeTerm -> SomeTerm -> IRB SomeTerm
-modifyIRB path op base value = IR.modify' base (convert path) op value
 
 
 -------------------------
 -- === Identifiers === --
 -------------------------
 
-cons, var, op, wildcard :: AsgParser SomeTerm
+cons, var, op, wildcard :: IRBSParser SomeTerm
 cons     = snd <$> namedCons                             ; {-# INLINE cons     #-}
 var      = snd <$> namedVar                              ; {-# INLINE var      #-}
 op       = snd <$> namedOp                               ; {-# INLINE op       #-}
-wildcard = buildAsg $ IR.blank' <$ symbol Lexer.Wildcard ; {-# INLINE wildcard #-}
+wildcard = irbs $ IR.blank' <$ symbol Lexer.Wildcard ; {-# INLINE wildcard #-}
 
-namedCons, namedVar, namedOp, namedIdent :: SymParser (Name, AsgBldr SomeTerm)
-namedCons  = mkNamedAsg (flip IR.cons' []) consName ; {-# INLINE namedCons  #-}
-namedVar   = mkNamedAsg IR.var'            varName  ; {-# INLINE namedVar   #-}
-namedOp    = mkNamedAsg IR.var'            opName   ; {-# INLINE namedOp    #-}
-namedIdent = namedVar <|> namedCons <|> namedOp     ; {-# INLINE namedIdent #-}
+namedCons, namedVar, namedOp, namedIdent :: SymParser (Name, IRBS SomeTerm)
+namedCons  = irbsNamed (flip IR.cons' []) consName ; {-# INLINE namedCons  #-}
+namedVar   = irbsNamed IR.var'            varName  ; {-# INLINE namedVar   #-}
+namedOp    = irbsNamed IR.var'            opName   ; {-# INLINE namedOp    #-}
+namedIdent = namedVar <|> namedCons <|> namedOp    ; {-# INLINE namedIdent #-}
 
 consName, varName, opName, identName, modifierName :: SymParser Name
 foreignLangName                                    :: SymParser Name
-consName        = convert <$> satisfy Lexer.matchCons     ; {-# INLINE consName        #-}
-varName         = convert <$> satisfy Lexer.matchVar      ; {-# INLINE varName         #-}
-opName          = convert <$> satisfy Lexer.matchOperator ; {-# INLINE opName          #-}
-identName       = varName <|> consName <|> opName         ; {-# INLINE identName       #-}
-funcName        = varName <|> opName                      ; {-# INLINE funcName        #-}
-modifierName    = convert <$> satisfy Lexer.matchModifier ; {-# INLINE modifierName    #-}
-foreignLangName = consName                                ; {-# INLINE foreignLangName #-}
+consName        = convert <$> satisfTest Lexer.matchCons     ; {-# INLINE consName        #-}
+varName         = convert <$> satisfTest Lexer.matchVar      ; {-# INLINE varName         #-}
+opName          = convert <$> satisfTest Lexer.matchOperator ; {-# INLINE opName          #-}
+identName       = varName <|> consName <|> opName            ; {-# INLINE identName       #-}
+funcName        = varName <|> opName                         ; {-# INLINE funcName        #-}
+modifierName    = convert <$> satisfTest Lexer.matchModifier ; {-# INLINE modifierName    #-}
+foreignLangName = consName                                   ; {-# INLINE foreignLangName #-}
 
 previewVarName :: SymParser Name
 previewVarName = do
     s <- previewNextSymbol
-    maybe (unexpected . fromString $ "Expecting variable, got: " <> show s) (pure . convert) $ Lexer.matchVar =<< s
+    maybe (unexpected . fromString $ "Expecting variable, got: " <> show s)
+          (pure . convert) $ Lexer.matchVar =<< s
+{-# INLINE previewVarName #-}
 
-specificVar, specificCons, specificOp :: Text32 -> SymParser ()
-specificVar  = symbol . Lexer.Var
-specificCons = symbol . Lexer.Cons
-specificOp   = symbol . Lexer.Operator
+matchVar, matchCons, matchOp :: Text32 -> SymParser ()
+matchVar  = symbol . Lexer.Var      ; {-# INLINE matchVar  #-}
+matchCons = symbol . Lexer.Cons     ; {-# INLINE matchCons #-}
+matchOp   = symbol . Lexer.Operator ; {-# INLINE matchOp   #-}
 
--- -- Helpers
 
-mkNamedAsg :: (Name -> IRB (Term a)) -> SymParser Name -> SymParser (Name, AsgBldr (Term a))
-mkNamedAsg cons = buildAsgF . fmap (\name -> (name, cons name))
+-- === Helpers === --
+
+irbsNamed :: (Name -> IRB (Term a)) -> SymParser Name -> SymParser (Name, IRBS (Term a))
+irbsNamed cons = irbsF . fmap (\name -> (name, cons name)) ; {-# INLINE irbsNamed #-}
 
 
 -- Qualified names
 
 qualVarName, qualConsName :: SymParser [Name]
-qualConsName = qualNameBase consName
-qualVarName  = qualNameBase varName
+qualConsName = qualNameBase consName ; {-# INLINE qualConsName #-}
+qualVarName  = qualNameBase varName  ; {-# INLINE qualVarName  #-}
 
 qualNameBase :: SymParser Name -> SymParser [Name]
 qualNameBase p = (\a b -> a <> [b])
              <$> many (try $ consName <* symbol Lexer.Accessor) <*> p
+{-# INLINE qualNameBase #-}
 
 
 
--- ----------------------
--- -- === Literals === --
--- ----------------------
+-- TODO: Review Literals
+----------------------
+-- === Literals === --
+----------------------
 
 rawQuoteBegin, rawQuoteEnd :: SymParser ()
 fmtQuoteBegin, fmtQuoteEnd :: SymParser ()
-rawQuoteBegin = symbol $ Lexer.Quote Lexer.RawStr Lexer.Begin
-rawQuoteEnd   = symbol $ Lexer.Quote Lexer.RawStr Lexer.End
-fmtQuoteBegin = symbol $ Lexer.Quote Lexer.FmtStr Lexer.Begin
-fmtQuoteEnd   = symbol $ Lexer.Quote Lexer.FmtStr Lexer.End
+rawQuoteBegin = symbol $ Lexer.Quote Lexer.RawStr Lexer.Begin ; {-# INLINE rawQuoteBegin #-}
+rawQuoteEnd   = symbol $ Lexer.Quote Lexer.RawStr Lexer.End   ; {-# INLINE rawQuoteEnd   #-}
+fmtQuoteBegin = symbol $ Lexer.Quote Lexer.FmtStr Lexer.Begin ; {-# INLINE fmtQuoteBegin #-}
+fmtQuoteEnd   = symbol $ Lexer.Quote Lexer.FmtStr Lexer.End   ; {-# INLINE fmtQuoteEnd   #-}
 
 -- FIXME[WD]: move the Char -> Number conversion logic to lexer
-number :: AsgParser SomeTerm
-number = buildAsg $ do
-    Lexer.NumRep base i f _ <- satisfy Lexer.matchNumber
+number :: IRBSParser SomeTerm
+number = irbs $ do
+    Lexer.NumRep base i f _ <- satisfTest Lexer.matchNumber
     pure $ IR.number' (convert base)
                       (convert $ convertChar <$> convertTo @String i)
                       (convert $ convertChar <$> convertTo @String f)
@@ -481,51 +378,52 @@ number = buildAsg $ do
                  | otherwise               -> error "wrong char"
 
 
-list :: AsgParser SomeTerm -> AsgParser SomeTerm
-list p = buildAsg $ Reserved.withLocalUnreservedSymbol sep $ braced $ (\g -> liftAstApp1 IR.list' $ sequence g) <$> elems where
-    missing :: AsgParser SomeTerm
-    missing   = buildAsg . pure $ IR.missing'
+list :: IRBSParser SomeTerm -> IRBSParser SomeTerm
+list p = irbs $ Reserved.withLocalUnreservedSymbol sep $ braced $ (\g -> liftIRBS1 IR.list' $ sequence g) <$> elems where
+    missing :: IRBSParser SomeTerm
+    missing   = irbs . pure $ IR.missing'
     sep       = Lexer.Operator ","
     elem      = Reserved.withLocalReservedSymbol sep p
     optElem   = elem <|> missing
-    bodyH     = (:) <$> elem    <*> many (separator *> optElem)
-    bodyT     = (:) <$> missing <*> some (separator *> optElem)
+    bodyH     = (:) <$> elem    <*> many       (separator *> optElem)
+    bodyT     = (:) <$> missing <*> someAsList (separator *> optElem)
     elems     = option mempty $ bodyH <|> bodyT
     braced p  = braceBegin *> p <* braceEnd
     separator = symbol sep
 
 -- FIXME[WD]: This `try` should be refactored out
 -- FIXME[WD]: Tuple and List parsers are too similar no to be refactored to common part. However tuples will disappear soon.
-tuple :: AsgParser SomeTerm -> AsgParser SomeTerm
-tuple p = try $ buildAsg $ Reserved.withLocalUnreservedSymbol sep $ parensed
-        $ (liftAstApp1 IR.tuple' . sequence) <$> elems where
-    missing :: AsgParser SomeTerm
-    missing    = buildAsg $ pure IR.missing'
+tuple :: IRBSParser SomeTerm -> IRBSParser SomeTerm
+tuple p = try $ irbs $ Reserved.withLocalUnreservedSymbol sep $ parensed
+        $ (liftIRBS1 IR.tuple' . sequence) <$> elems where
+    missing :: IRBSParser SomeTerm
+    missing    = irbs $ pure IR.missing'
     sep        = Lexer.Operator ","
     elem       = Reserved.withLocalReservedSymbol sep p
     optElem    = elem <|> missing
-    body       = (:) <$> optElem <*> some (separator *> optElem)
-    elems      = option mempty $ body
+    body       = (:) <$> optElem <*> someAsList (separator *> optElem)
+    elems      = option mempty body
     parensed p = groupBegin *> p <* groupEnd
     separator  = symbol sep
 
-string :: AsgParser SomeTerm
+string :: IRBSParser SomeTerm
 string = rawStr <|> fmtStr
 
-rawStr :: AsgParser SomeTerm
-rawStr = buildAsg $ do
+rawStr :: IRBSParser SomeTerm
+rawStr = irbs $ do
     rawQuoteBegin
-    withRecovery (\e -> invalid "Invalid string literal" <$ Loc.unregisteredDropSymbolsUntil' (== (Lexer.Quote Lexer.RawStr Lexer.End)))
-                 $ (IR.string' . convertVia @String)
-               <$> Indent.withCurrent (strBody rawQuoteEnd) -- FIXME[WD]: We're converting Text -> String here.
+    (IR.string' . convertVia @String) <$> Indent.withCurrent (strBody rawQuoteEnd) -- FIXME[WD]: We're converting Text -> String here.
+    -- withRecovery (\e -> invalid "Invalid string literal" <$ Loc.unregisteredDropSymbolsUntil' (== (Lexer.Quote Lexer.RawStr Lexer.End)))
+    --              $ (IR.string' . convertVia @String)
+    --            <$> Indent.withCurrent (strBody rawQuoteEnd) -- FIXME[WD]: We're converting Text -> String here.
 
-fmtStr :: AsgParser SomeTerm
-fmtStr = buildAsg $ do
+fmtStr :: IRBSParser SomeTerm
+fmtStr = irbs $ do
     fmtQuoteBegin
-    withRecovery (\e -> invalid "Invalid string literal" <$ Loc.unregisteredDropSymbolsUntil' (== (Lexer.Quote Lexer.FmtStr Lexer.End)))
-                 $ (IR.string' . convertVia @String)
-               <$> Indent.withCurrent (strBody fmtQuoteEnd) -- FIXME[WD]: We're converting Text -> String here.
-
+    (IR.string' . convertVia @String) <$> Indent.withCurrent (strBody fmtQuoteEnd) -- FIXME[WD]: We're converting Text -> String here.
+    -- withRecovery (\e -> invalid "Invalid string literal" <$ Loc.unregisteredDropSymbolsUntil' (== (Lexer.Quote Lexer.FmtStr Lexer.End)))
+    --              $ (IR.string' . convertVia @String)
+    --            <$> Indent.withCurrent (strBody fmtQuoteEnd) -- FIXME[WD]: We're converting Text -> String here.
 
 strBody :: SymParser () -> SymParser Text32
 strBody ending = segStr <|> end <|> nl where
@@ -536,15 +434,16 @@ strBody ending = segStr <|> end <|> nl where
                 (<>) . convert . flip replicate ' ' <$> Indent.indentation <*> strBody ending
 
 strContent :: SymParser Text32
-strContent = satisfy Lexer.matchStr <|> strEsc
+strContent = satisfTest Lexer.matchStr <|> strEsc
 
 strEsc :: SymParser Text32
-strEsc = satisfy Lexer.matchStrEsc >>= pure . \case
+strEsc = satisfTest Lexer.matchStrEsc >>= pure . \case
     Lexer.CharStrEsc i             -> convert $ Char.chr i
     Lexer.NumStrEsc i              -> convert $ Char.chr i
     Lexer.SlashEsc                 -> "\\"
     Lexer.QuoteEscape Lexer.RawStr -> "\""
     Lexer.QuoteEscape Lexer.FmtStr -> "'"
+
 
 
 -------------------------
@@ -554,56 +453,55 @@ strEsc = satisfy Lexer.matchStrEsc >>= pure . \case
 -- === Utils === --
 
 app, seq, unify, appFlipped, sectionLeft, sectionRight
-    :: AsgBldr SomeTerm -> AsgBldr SomeTerm -> AsgBldr SomeTerm
-app          = inheritCodeSpan2 IR.app'
-seq          = inheritCodeSpan2 IR.seq'
-unify        = inheritCodeSpan2 IR.unify'
-sectionLeft  = inheritCodeSpan2 IR.sectionLeft'
-appFlipped   = flip . inheritCodeSpan2 $ flip IR.app'
-sectionRight = flip . inheritCodeSpan2 $ flip IR.sectionRight'
+    :: IRBS SomeTerm -> IRBS SomeTerm -> IRBS SomeTerm
+app          = inheritCodeSpan2 IR.app'                        ; {-# INLINE app          #-}
+seq          = inheritCodeSpan2 IR.seq'                        ; {-# INLINE seq          #-}
+unify        = inheritCodeSpan2 IR.unify'                      ; {-# INLINE unify        #-}
+sectionLeft  = inheritCodeSpan2 IR.sectionLeft'                ; {-# INLINE sectionLeft  #-}
+appFlipped   = flip . inheritCodeSpan2 $ flip IR.app'          ; {-# INLINE appFlipped   #-}
+sectionRight = flip . inheritCodeSpan2 $ flip IR.sectionRight' ; {-# INLINE sectionRight #-}
 
-appSides :: AsgBldr SomeTerm -> AsgBldr SomeTerm -> AsgBldr SomeTerm -> AsgBldr SomeTerm
-appSides = app .: appFlipped
+appSides :: IRBS SomeTerm -> IRBS SomeTerm -> IRBS SomeTerm -> IRBS SomeTerm
+appSides = app .: appFlipped ; {-# INLINE appSides #-}
 
-apps, seqs :: AsgBldr SomeTerm -> [AsgBldr SomeTerm] -> AsgBldr SomeTerm
-apps = foldl app
-seqs = foldl seq
+apps, seqs :: IRBS SomeTerm -> [IRBS SomeTerm] -> IRBS SomeTerm
+apps = foldl' app ; {-# INLINE apps #-}
+seqs = foldl' seq ; {-# INLINE seqs #-}
 
-nestedLam :: [AsgBldr SomeTerm] -> AsgBldr SomeTerm -> AsgBldr SomeTerm
-nestedLam args body = foldr lam' body args where
-    lam' :: AsgBldr SomeTerm -> AsgBldr SomeTerm -> AsgBldr SomeTerm
-    lam' = inheritCodeSpan2 $ IR.lam'
-
-grouped :: AsgParser SomeTerm -> AsgParser SomeTerm
-grouped p = buildAsg $ parensed $ (\g -> liftAstApp1 IR.grouped' g) <$> p where
-    parensed p = groupBegin *> p <* groupEnd
+grouped :: IRBSParser SomeTerm -> IRBSParser SomeTerm
+grouped = irbs . parensed . fmap (liftIRBS1 IR.grouped') ; {-# INLINE grouped #-}
 
 
--- -- === Metadata === --
+-- === Metadata === --
 
 -- FIXME: performance
-metadata :: AsgParser SomeTerm
-metadata = buildAsg $ IR.metadata' . convertVia @String <$> metaContent
+metadata :: IRBSParser SomeTerm
+metadata = irbs $ IR.metadata' . convertVia @String <$> metaContent ; {-# INLINE metadata #-}
 
 metaContent :: SymParser Text32
-metaContent = satisfy Lexer.matchMetadata
+metaContent = satisfTest Lexer.matchMetadata ; {-# INLINE metaContent #-}
 
 
 -- === Disabled === --
 
-possiblyDisabled :: AsgParser SomeTerm -> AsgParser SomeTerm
-possiblyDisabled p = disabled p <|> p
+possiblyDisabled :: IRBSParser SomeTerm -> IRBSParser SomeTerm
+possiblyDisabled p = disabled p <|> p ; {-# INLINE possiblyDisabled #-}
 
-disabled :: AsgParser SomeTerm -> AsgParser SomeTerm
-disabled p = buildAsg $ liftAstApp1 IR.disabled' <$ symbol Lexer.Disable <*> p
+disabled :: IRBSParser SomeTerm -> IRBSParser SomeTerm
+disabled p = irbs $ liftIRBS1 IR.disabled' <$ symbol Lexer.Disable <*> p ; {-# INLINE disabled #-}
 
 
 -- === Segments === --
 
-type ExprSegment         = ExprToken (AsgBldr SomeTerm)
-type ExprSegments        = NonEmpty ExprSegment
-type ExprSegmentBuilder  = SegmentBuilder ExprSegment
-newtype SegmentBuilder a = SegmentBuilder { runSegmentBuilder :: (Bool, Bool) -> NonEmpty a } deriving (Functor)
+type IsFirst = Bool
+type IsLast  = Bool
+
+type    ExprSegment        = ExprToken (IRBS SomeTerm)
+type    ExprSegments       = NonEmpty ExprSegment
+type    ExprSegmentBuilder = SegmentBuilder ExprSegment
+newtype SegmentBuilder a   = SegmentBuilder
+    { runSegmentBuilder :: IsFirst -> IsLast -> NonEmpty a
+    } deriving (Functor)
 
 type ExprToken       a = Expr.Token (ExprSymbol      a)
 type ExprTokenProto  a = Expr.Token (ExprSymbolProto a)
@@ -611,50 +509,54 @@ type ExprSymbol      a = Labeled SpacedName (SomeSymbol Symbol.Expr    a)
 type ExprSymbolProto a = Labeled SpacedName (SomeSymbol Symbol.Phantom a)
 
 instance Semigroup ExprSegmentBuilder where
-    a <> b = SegmentBuilder $ \(l,r) -> runSegmentBuilder a (l,False) <> runSegmentBuilder b (False,r)
+    a <> b = SegmentBuilder $ \l r -> runSegmentBuilder a l False
+                                   <> runSegmentBuilder b False r
+    {-# INLINE (<>) #-}
 
-expr :: AsgParser SomeTerm
-expr = possiblyDocumented $ lineExpr -- WAS: func <|> lineExpr
+expr :: IRBSParser SomeTerm
+expr = possiblyDocumented $ func <|> lineExpr ; {-# INLINE expr #-}
 
-lineExpr :: AsgParser SomeTerm
-lineExpr = marked <*> (possiblyDisabled (valExpr <**> option id assignment)) where
+lineExpr :: IRBSParser SomeTerm
+lineExpr = marked <*> possiblyDisabled (valExpr <**> option id assignment) where
     assignment = flip unify <$ symbol Lexer.Assignment <*> valExpr
+{-# INLINE lineExpr #-}
 
-valExpr :: AsgParser SomeTerm
-valExpr =  buildTokenExpr =<< exprSegments
+valExpr :: IRBSParser SomeTerm
+valExpr = buildTokenExpr =<< exprSegments ; {-# INLINE valExpr #-}
 
-nonemptyValExpr :: AsgParser SomeTerm
+nonemptyValExpr :: IRBSParser SomeTerm
 nonemptyValExpr = do
     es <- exprSegments
     -- when (null es) $ unexpected "Empty expression" -- FIXME[WD]
     buildTokenExpr es
 
-nonemptyValExprLocal :: AsgParser SomeTerm
+nonemptyValExprLocal :: IRBSParser SomeTerm
 nonemptyValExprLocal = do
     es <- exprSegmentsLocal
     -- when (null es) $ unexpected "Empty expression" -- FIXME[WD]
     buildTokenExpr es
 
-nonSpacedValExpr :: AsgParser SomeTerm
+nonSpacedValExpr :: IRBSParser SomeTerm
 nonSpacedValExpr = do
     es <- exprSegmentsNonSpaced
     -- when (null es) $ unexpected "Empty expression" -- FIXME[WD]
     buildTokenExpr es
 
-nonSpacedPattern :: AsgParser SomeTerm
+nonSpacedPattern :: IRBSParser SomeTerm
 nonSpacedPattern = nonSpacedValExpr
 
 concatExprSegmentBuilders :: NonEmpty ExprSegmentBuilder -> ExprSegmentBuilder
-concatExprSegmentBuilders bldrs = SegmentBuilder $ \(l,r) -> case bldrs of
-    (s:|[])     -> runSegmentBuilder s (l,r)
-    (s:|(t:ts)) -> runSegmentBuilder s (l,False) <> runSegmentBuilder (concatExprSegmentBuilders $ t:|ts) (False,r)
+concatExprSegmentBuilders bldrs = SegmentBuilder $ \l r -> case bldrs of
+    (s:|[])     -> runSegmentBuilder s l r
+    (s:|(t:ts)) -> runSegmentBuilder s l False
+                <> runSegmentBuilder (concatExprSegmentBuilders $ t:|ts) False r
 
 exprSegments    , exprSegmentsLocal     :: SymParser ExprSegments
 exprFreeSegments, exprFreeSegmentsLocal :: SymParser ExprSegmentBuilder
 exprSegments          = buildExprTok <$> exprFreeSegments
 exprSegmentsLocal     = buildExprTok <$> exprFreeSegmentsLocal
 exprFreeSegments      = Reserved.withNewLocal exprFreeSegmentsLocal
-exprFreeSegmentsLocal = fmap concatExprSegmentBuilders . some'
+exprFreeSegmentsLocal = fmap concatExprSegmentBuilders . some
                       $ choice [ mfixVarSeg, consSeg, wildSeg, numSeg, strSeg
                                , opSeg, accSeg, tupleSeg, grpSeg, listSeg
                                , lamSeg, matchseg, typedSeg, funcSeg
@@ -673,7 +575,8 @@ exprFreeSegmentsNonSpacedLocal = choice [ varSeg, consSeg, wildSeg, numSeg
 -- === Components === --
 
 -- Utils
-posIndependent = SegmentBuilder . const . pure . Expr.tokenx
+posIndependent :: a -> SegmentBuilder (Expr.Token a)
+posIndependent = SegmentBuilder . P.curry . const . pure . Expr.tokenx ; {-# INLINE posIndependent #-}
 
 -- FIXME[WD]: change the API to monadic one, so we can register symbols and mixfix monads could gather needed info (like var names)
 --            without the need to keep the label in the term
@@ -700,7 +603,7 @@ mfixVarSeg :: SymParser ExprSegmentBuilder
 mfixVarSeg  = do
     (span, name) <- spanned varName
     nameSet      <- Scope.lookupMultipartNames name
-    let cvar = posIndependent $ unlabeledAtom $ buildAsgFromSpan span (IR.var' name)
+    let cvar = posIndependent $ unlabeledAtom $ irbsFromSpan span (IR.var' name)
     if TreeSet.null nameSet
         then pure cvar
         else -- catchInvalidWith (span <>) (pure . posIndependent . unlabeledAtom)
@@ -711,7 +614,7 @@ mfixVarSeg  = do
                     segment <- buildTokenExpr (buildExprTok segmentToks)
                     let segments  = snd <$> namedSegs
                         nameParts = fst <$> namedSegs
-                        mfixVar   = buildAsgFromSpan span
+                        mfixVar   = irbsFromSpan span
                                   . IR.var' . Name.mixfix $ name :| nameParts
                         mfixExpr  = apps (app mfixVar segment) segments
                     pure . posIndependent . unlabeledAtom $ mfixExpr
@@ -720,7 +623,7 @@ opSeg :: SymParser ExprSegmentBuilder
 opSeg   = do
     (before, after) <- checkOffsets
     (span, name)    <- spanned opName
-    let segment (isFirst, isLast) = pure . Expr.tokenx $ operator & if
+    let segment isFirst isLast = pure . Expr.tokenx $ operator & if
             | isSingle    -> labeled (Name.unspaced            name) . Symbol.atom
             | isUMinus    -> labeled (Name.unspaced Builtin.uminusName) . Symbol.prefix . app
             | isFirst     -> labeled (Name.spacedNameIf after  name) . Symbol.prefix . sectionLeft
@@ -731,7 +634,7 @@ opSeg   = do
             where isMinus     = name == Builtin.minusName
                   isSingle    = isFirst && isLast
                   isUMinus    = isMinus && not after && (isFirst || before) && not isLast
-                  operator    = buildAsgFromSpan span . IR.var' $ if isUMinus then Builtin.uminusName else name
+                  operator    = irbsFromSpan span . IR.var' $ if isUMinus then Builtin.uminusName else name
                   symmetrical = before == after
     pure $ SegmentBuilder segment
 
@@ -741,7 +644,7 @@ typedSeg   = do
     let typedExpr = if off then valExpr else nonSpacedValExpr
     tp <- symbol Lexer.Typed *> typedExpr
     when_ (off /= off') $ error "TODO: before and after offsets have to match"
-    let seg :: AsgBldr SomeTerm -> AsgBldr SomeTerm
+    let seg :: IRBS SomeTerm -> IRBS SomeTerm
         seg = flip (inheritCodeSpan2 IR.typed') tp
     pure . posIndependent . labeled (Name.spacedNameIf off Builtin.typedName) $ Symbol.suffix seg
 
@@ -753,33 +656,33 @@ accSectNames = do
                                             else option mempty (convert <$> accSectNames)
 
 
-
 accSeg :: SymParser ExprSegmentBuilder
 accSeg = fmap2 Expr.tokenx $ do
     (beforeDot, afterDot) <- checkOffsets
     snames@(n :| ns) <- accSectNames
     mupdt <- option Nothing (Just <$ symbol Lexer.Assignment <*> nonemptyValExpr)
     mmod  <- option Nothing (Just .: (,) <$> modifierName <*> nonemptyValExpr)
-    let (spans, names) = unzip $ convert snames
+    let (spans, (names :: [Name])) = unzip $ convert snames
         symmetrical    = beforeDot == afterDot
-        accCons s n    = inheritCodeSpan1With (<> s) (accIRB n)
+        accCons s n    = inheritCodeSpan1With (<> s) (flip IR.acc' n)
         accSect        = labeled uname . Symbol.atom
-                       $ buildAsgFromSpan (mconcat spans)
-                       $ accSectionIRB names
+                       $ irbsFromSpan (mconcat spans)
+                       $ IR.accSection' (convert names)
         uname          = Name.unspaced Builtin.accName
         sname          = Name.spacedNameIf beforeDot Builtin.accName
         accConss       =  labeled sname ( Symbol.suffix $ uncurry accCons n )
                       :| (labeled uname . Symbol.suffix . uncurry accCons <$> ns)
         Just fupdt           = mupdt -- FIXME[WD]: make it nicer
         Just (modName, fmod) = mmod  -- FIXME[WD]: make it nicer
+        path = convert names
 
         -- FIXME[WD]: make it nicer vvv
         updateAtom = labeled sname . Symbol.suffix
-                   $ flip (inheritCodeSpan2With (<>) (updateIRB names))
-                          (modifyCodeSpan (CodeSpan.asOffsetSpan (mconcat spans) <>) fupdt)
+                   $ flip (inheritCodeSpan2With (<>) (flip IR.update' path))
+                          (unsafeModifyCodeSpan (CodeSpan.asOffsetSpan (mconcat spans) <>) fupdt)
         modifyAtom = labeled sname . Symbol.suffix
-                   $ flip (inheritCodeSpan2With (<>) (modifyIRB names modName))
-                          (modifyCodeSpan (CodeSpan.asOffsetSpan (mconcat spans) <>) fmod)
+                   $ flip (inheritCodeSpan2With (<>) (flip (flip IR.modify' path) modName))
+                          (unsafeModifyCodeSpan (CodeSpan.asOffsetSpan (mconcat spans) <>) fmod)
 
 
     -- INFO: The following code contains hack allowing for fields updates
@@ -800,7 +703,7 @@ accSeg = fmap2 Expr.tokenx $ do
 
     -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-    let segment (isFirst, isLast) = if
+    let segment isFirst isLast = if
             | isFirst     -> pure accSect
              -- FIXME[WD]: make it nicer vvv
             | symmetrical -> if
@@ -811,17 +714,17 @@ accSeg = fmap2 Expr.tokenx $ do
             | otherwise   -> error "unsupported" -- FIXME[WD]: make nice error here
     pure $ SegmentBuilder segment
 
-match :: AsgParser SomeTerm
-match = buildAsg $ (\n (p,ps) -> liftAstApp2 IR.match' n (sequence $ p:ps))
+match :: IRBSParser SomeTerm
+match = irbs $ (\n (p,ps) -> liftIRBS2 IR.match' n (sequence $ p:ps))
       <$ symbol Lexer.KwCase <*> nonemptyValExprLocal
       <* symbol Lexer.KwOf   <*> discover (nonEmptyBlock clause)
       where clause = pat <**> lamBldr
 
-pat :: AsgParser SomeTerm
+pat :: IRBSParser SomeTerm
 pat = Reserved.withLocalReservedSymbol Lexer.BlockStart nonemptyValExprLocal
 
 
-lamBldr :: SymParser (AsgBldr SomeTerm -> AsgBldr SomeTerm)
+lamBldr :: SymParser (IRBS SomeTerm -> IRBS SomeTerm)
 lamBldr = do
     body <- symbol Lexer.BlockStart *> discover (nonEmptyBlock lineExpr)
     pure $ flip (inheritCodeSpan2 IR.lam') (uncurry seqs body)
@@ -830,9 +733,9 @@ lamBldr = do
 -- === Utils === --
 
 buildExprTok :: ExprSegmentBuilder -> ExprSegments
-buildExprTok bldr = runSegmentBuilder bldr (True, True)
+buildExprTok bldr = runSegmentBuilder bldr True True
 
-parseMixfixSegments :: SparseTreeSet Name -> SymParser [(Name, AsgBldr SomeTerm)]
+parseMixfixSegments :: SparseTreeSet Name -> SymParser [(Name, IRBS SomeTerm)]
 parseMixfixSegments nameSet = do
     name <- previewVarName
     let total = TreeSet.check' name nameSet
@@ -840,14 +743,14 @@ parseMixfixSegments nameSet = do
         Nothing       -> unexpected . fromString $ "Identifier `" <> convert name <> "` is not part of a mutli-name expression"
         Just nameSet' -> do
             let possiblePaths = TreeSet.keys nameSet'
-            dropNextToken
+            anySymbol_
             segment <- Reserved.withReservedSymbols (Lexer.Var . convertVia @String <$> possiblePaths) nonemptyValExpr -- FIXME: conversion Name -> Text
             let restMod = if total then option mempty else (<|> unexpected (fromString $ "Unexpected end of mixfix expression, expecting one of " <> show possiblePaths))
             ((name,segment):) <$> restMod (parseMixfixSegments nameSet')
 
 buildTokenExpr (s:|ss) = buildTokenExpr' (s:ss)
 
-buildTokenExpr' :: Expr.Tokens (Labeled SpacedName (SomeSymbol Symbol.Expr (AsgBldr SomeTerm))) -> SymParser (AsgBldr SomeTerm)
+buildTokenExpr' :: Expr.Tokens (Labeled SpacedName (SomeSymbol Symbol.Expr (IRBS SomeTerm))) -> SymParser (IRBS SomeTerm)
 buildTokenExpr' = Expr.buildExpr_termApp . Labeled (Name.spaced Builtin.appName) $ Symbol.Symbol app
 
 
@@ -855,33 +758,33 @@ buildTokenExpr' = Expr.buildExpr_termApp . Labeled (Name.spaced Builtin.appName)
 -- === Documentation === --
 ---------------------------
 
-possiblyDocumented :: AsgParser SomeTerm -> AsgParser SomeTerm
+possiblyDocumented :: IRBSParser SomeTerm -> IRBSParser SomeTerm
 possiblyDocumented p = documented p <|> p
 
 -- FIXME: performance
-documented :: AsgParser SomeTerm -> AsgParser SomeTerm
-documented p = buildAsg $ (\d t -> liftAstApp1 (IR.documented' $ convertVia @String d) t) <$> doc <*> p
+documented :: IRBSParser SomeTerm -> IRBSParser SomeTerm
+documented p = irbs $ (\d t -> liftIRBS1 (IR.documented' $ convertVia @String d) t) <$> doc <*> p
 
 doc :: SymParser Text32
-doc = intercalate "\n" <$> some (satisfy Lexer.matchDocComment <* eol)
+doc = intercalate "\n" <$> some (satisfTest Lexer.matchDocComment <* eol)
 
 
 --------------------------
 -- === Declarations === --
 --------------------------
 
-topLvlDecl :: AsgParser SomeTerm
+topLvlDecl :: IRBSParser SomeTerm
 topLvlDecl = possiblyDocumented $ func <|> record <|> metadata
 
 
 -- === Functions === --
 
-func :: AsgParser SomeTerm
-func = buildAsg $ funcHdr <**> (funcDef <|> funcSig) where
-    funcDef, funcSig :: SymParser (AsgBldr SomeTerm -> IRB SomeTerm)
+func :: IRBSParser SomeTerm
+func = irbs $ funcHdr <**> (funcDef <|> funcSig) where
+    funcDef, funcSig :: SymParser (IRBS SomeTerm -> IRB SomeTerm)
     funcHdr = symbol Lexer.KwDef *> (var <|> op)
-    funcSig = (\tp name -> liftAstApp2 IR.functionSig' name tp) <$ symbol Lexer.Typed <*> valExpr
-    funcDef = (\args body name -> liftAstApp3 IR.function' name (sequence args) (uncurry seqs body))
+    funcSig = (\tp name -> liftIRBS2 IR.functionSig' name tp) <$ symbol Lexer.Typed <*> valExpr
+    funcDef = (\args body name -> liftIRBS3 IR.function' name (sequence args) (uncurry seqs body))
         <$> many nonSpacedPattern
         <*  symbol Lexer.BlockStart
         <*> discover (nonEmptyBlock lineExpr)
@@ -889,25 +792,25 @@ func = buildAsg $ funcHdr <**> (funcDef <|> funcSig) where
 
 -- -- === Classes == --
 
-record :: AsgParser SomeTerm
-record = buildAsg $ (\nat n args (cs,ds) -> liftAstApp3 (IR.record' nat n) (sequence args) (sequence cs) (sequence ds))
+record :: IRBSParser SomeTerm
+record = irbs $ (\nat n args (cs,ds) -> liftIRBS3 (IR.record' nat n) (sequence args) (sequence cs) (sequence ds))
    <$> try (option False (True <$ symbol Lexer.KwNative) <* symbol Lexer.KwClass) <*> consName <*> many var <*> body
     where body      = option mempty $ symbol Lexer.BlockStart *> bodyBlock
           funcBlock = optionalBlockBody (possiblyDocumented func)
           consBlock = breakableNonEmptyBlockBody' recordCons <|> breakableOptionalBlockBody recordNamedFields
           bodyBlock = discoverIndent ((,) <$> consBlock <*> funcBlock)
 
-recordCons :: AsgParser SomeTerm
-recordCons = buildAsg $ (\n fields -> liftAstApp1 (IR.recordCons' n) (sequence fields)) <$> consName <*> (blockDecl <|> inlineDecl) where
+recordCons :: IRBSParser SomeTerm
+recordCons = irbs $ (\n fields -> liftIRBS1 (IR.recordCons' n) (sequence fields)) <$> consName <*> (blockDecl <|> inlineDecl) where
     blockDecl  = symbol Lexer.BlockStart *> discover (nonEmptyBlock' recordNamedFields)
     inlineDecl = many unnamedField
 
-recordNamedFields :: AsgParser SomeTerm
-recordNamedFields = buildAsg $ liftAstApp1 . IR.recordFields' . convert
+recordNamedFields :: IRBSParser SomeTerm
+recordNamedFields = irbs $ liftIRBS1 . IR.recordFields' . convert
                 <$> many varName <* symbol Lexer.Typed <*> valExpr
 
-unnamedField :: AsgParser SomeTerm
-unnamedField = buildAsg $ liftAstApp1 (IR.recordFields' mempty)
+unnamedField :: IRBSParser SomeTerm
+unnamedField = irbs $ liftIRBS1 (IR.recordFields' mempty)
                       <$> nonSpacedValExpr
 
 
@@ -918,23 +821,23 @@ unnamedField = buildAsg $ liftAstApp1 (IR.recordFields' mempty)
 
 -- === Imports === --
 
-impHub :: AsgParser SomeTerm
-impHub = buildAsg $ (\(imps :: [AsgBldr SomeTerm])
-                 -> liftAstApp1 IR.importHub'
-                    (sequence imps :: AsgBldr [SomeTerm])) <$> impHeader
+impHub :: IRBSParser SomeTerm
+impHub = irbs $ (\(imps :: [IRBS SomeTerm])
+                 -> liftIRBS1 IR.importHub'
+                    (sequence imps :: IRBS [SomeTerm])) <$> impHeader
 
-impHeader :: SymParser [AsgBldr SomeTerm]
+impHeader :: SymParser [IRBS SomeTerm]
 impHeader = option mempty $ breakableOptionalBlockTop imp -- <* skipEmptyLines
 
-imp :: AsgParser SomeTerm
-imp = buildAsg $ (\a tgts -> liftAstApp1 (flip IR.imp' tgts) a)
+imp :: IRBSParser SomeTerm
+imp = irbs $ (\a tgts -> liftIRBS1 (flip IR.imp' tgts) a)
    <$ symbol Lexer.KwImport <*> importSource <*> impTgt where
     impTgt  = option Import.Everything $ symbol Lexer.BlockStart *> listTgt
     listTgt = Import.Listed . convert <$> many (varName <|> consName)
 
-importSource :: AsgParser SomeTerm
-importSource = buildAsg . fmap IR.importSource' $ choice
-    [ Import.World              <$  specificCons "World"
+importSource :: IRBSParser SomeTerm
+importSource = irbs . fmap IR.importSource' $ choice
+    [ Import.World              <$  matchCons "World"
     , Import.Relative . convert <$  symbol Lexer.Accessor <*> qualConsName
     , Import.Absolute . convert <$> qualConsName
     ]
@@ -944,47 +847,47 @@ importSource = buildAsg . fmap IR.importSource' $ choice
 -- -- === Foreign Import Parsing === --+
 -- ------------------------------------
 
-foreignImportList :: AsgParser SomeTerm
-foreignImportList = buildAsg $
+foreignImportList :: IRBSParser SomeTerm
+foreignImportList = irbs $
     (\lang imports ->
-        liftAstApp1 (IR.foreignImport' lang) (sequence imports))
+        liftIRBS1 (IR.foreignImport' lang) (sequence imports))
     <$  (symbol Lexer.KwForeign *> symbol Lexer.KwImport)
     <*> foreignLangName
     <*  symbol Lexer.BlockStart
     <*> discover (nonEmptyBlock' foreignLocationImportList)
 
-foreignLocationImportList :: AsgParser SomeTerm
-foreignLocationImportList = buildAsg $
+foreignLocationImportList :: IRBSParser SomeTerm
+foreignLocationImportList = irbs $
     (\loc imports ->
-        liftAstApp2 IR.foreignImportList' loc (sequence imports))
+        liftIRBS2 IR.foreignImportList' loc (sequence imports))
     <$> stringOrVarName
     <*  symbol Lexer.BlockStart
     <*> discover (nonEmptyBlock' foreignSymbolImport)
 
-foreignSymbolImport :: AsgParser SomeTerm
-foreignSymbolImport = buildAsg $ withRecovery recover
+foreignSymbolImport :: IRBSParser SomeTerm
+foreignSymbolImport = irbs $ withRecovery recover
     $   try (foreignSymbolImportWithSafety defaultFISafety)
     <|> foreignSymbolImportWithSafety specifiedFISafety
     where recover e = invalid "Invalid safety specification."
                       <$ Loc.unregisteredDropSymbolsUntil
                       (`elem` [Lexer.ETX, Lexer.EOL])
 
-foreignSymbolImportWithSafety :: AsgParser SomeTerm -> SymParser (IRB SomeTerm)
+foreignSymbolImportWithSafety :: IRBSParser SomeTerm -> SymParser (IRB SomeTerm)
 foreignSymbolImportWithSafety safe =
     (\safety forName localName importType ->
-        liftAstApp3 (foreignSymbolProxy localName) safety forName importType)
+        liftIRBS3 (foreignSymbolProxy localName) safety forName importType)
     <$> safe <*> stringOrVarName <*> funcName <*  symbol Lexer.Typed <*> valExpr
     where foreignSymbolProxy a b c d = IR.foreignImportSymbol' b c a d
 
-defaultFISafety :: AsgParser SomeTerm
-defaultFISafety = buildAsg $
+defaultFISafety :: IRBSParser SomeTerm
+defaultFISafety = irbs $
     (\safety -> id (IR.foreignImportSafety' safety))
     <$> ((pure Import.Default) :: SymParser IR.ForeignImportType)
 
 -- TODO [Ara, WD] Need to have the lexer deal with these as contextual keywords
 -- using a positive lookahead in the _Lexer_.
-specifiedFISafety :: AsgParser SomeTerm
-specifiedFISafety = buildAsg $
+specifiedFISafety :: IRBSParser SomeTerm
+specifiedFISafety = irbs $
     (\(importSafety :: IR.ForeignImportType) ->
         id (IR.foreignImportSafety' importSafety))
     <$> getImpSafety (optionMaybe varName)
@@ -996,28 +899,28 @@ specifiedFISafety = buildAsg $
                   "unsafe" -> pure Import.Unsafe
                   _        -> fail "Invalid safety specification."
 
-stringOrVarName :: AsgParser SomeTerm
+stringOrVarName :: IRBSParser SomeTerm
 stringOrVarName = string <|> (asgNameParser varName)
 
-asgNameParser :: SymParser Name -> AsgParser SomeTerm
-asgNameParser nameParser = buildAsg $ (\varN -> id (IR.var' varN))
+asgNameParser :: SymParser Name -> IRBSParser SomeTerm
+asgNameParser nameParser = irbs $ (\varN -> id (IR.var' varN))
      <$> nameParser
 
 
 
 -- -- === Unit body === --
 
-unit' :: AsgParser SomeTerm
-unit  :: AsgParser (IR.Term IR.Unit)
+unit' :: IRBSParser SomeTerm
+unit  :: IRBSParser (IR.Term IR.Unit)
 unit' = Layout.relayout <<$>> unit
-unit  = buildAsg $
+unit  = irbs $
     (\imps cls
-        -> Layout.unsafeRelayout <$> liftAstApp2 (flip IR.unit []) imps cls)
+        -> Layout.unsafeRelayout <$> liftIRBS2 (flip IR.unit []) imps cls)
         <$ spacing <*> (foreignImportList <|> impHub) <*> unitCls <* spacing
     where spacing = many eol
 
-unitCls :: AsgParser SomeTerm
-unitCls = buildAsg $ (\ds -> liftAstApp1 (IR.record' False "" [] [])
+unitCls :: IRBSParser SomeTerm
+unitCls = irbs $ (\ds -> liftIRBS1 (IR.record' False "" [] [])
                      (sequence ds)) <$> optionalBlockTop topLvlDecl
 
 
@@ -1103,7 +1006,7 @@ breakableOptionalBlockBody p = option mempty $ uncurry (:) <$> breakableNonEmpty
 
 
 
--- parsingPassM :: (MonadPassManager m, ParsingPassReq2 m) => AsgParser SomeTerm -> m ()
+-- parsingPassM :: (MonadPassManager m, ParsingPassReq2 m) => IRBSParser SomeTerm -> m ()
 -- parsingPassM p = do
 --     src <- getAttr @Source
 --     (ref, gidMap) <- parsingBase p (convert src)
@@ -1111,25 +1014,25 @@ breakableOptionalBlockBody p = option mempty $ uncurry (:) <$> breakableNonEmpty
 --     putAttr @MarkedExprMap $ gidMap
 
 
-parsingBase :: AsgParser a -> Text32.Text32 -> Pass Parser (a, MarkedExprMap)
+parsingBase :: IRBSParser a -> Text32.Text32 -> Pass Parser (a, MarkedExprMap)
 parsingBase p src = do
     let stream = Lexer.evalDefLexer src
     result <- runParserT (stx *> p <* etx) stream
     case result of
         Left e -> error ("Parser error: " <> parseErrorPretty e) -- FIXME[WD]: handle it the proper way
-        Right (AsgBldr irb) -> do
+        Right (IRBS irb) -> do
             ((ref, unmarked), gidMap) <- State.runDefT @MarkedExprMap $ State.runDefT @UnmarkedExprs irb
             pure (ref, gidMap)
 
 -- parsingBase_ :: ( MonadPassManager m, ParsingPassReq_2 m
 --                 , UnsafeGeneralizable a SomeTerm, UnsafeGeneralizable a SomeTerm -- FIXME[WD]: Constraint for testing only
---                 ) => AsgParser a -> Text32 -> m a
+--                 ) => IRBSParser a -> Text32 -> m a
 -- parsingBase_ = view _1 .:. parsingBase
 
--- parserPassX  :: MonadPassManager m => AsgParser SomeTerm -> Pass Parsing   m
+-- parserPassX  :: MonadPassManager m => IRBSParser SomeTerm -> Pass Parsing   m
 -- parserPassX  = parsingPassM
 
--- reparserPass :: MonadPassManager m => AsgParser SomeTerm -> Pass Reparsing m
+-- reparserPass :: MonadPassManager m => IRBSParser SomeTerm -> Pass Reparsing m
 -- reparserPass p = do
 --     -- Reading previous analysis
 --     gidMapOld <- getAttr @MarkedExprMap

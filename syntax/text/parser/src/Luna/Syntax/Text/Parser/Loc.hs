@@ -151,6 +151,9 @@ updatePositions t = do
 
     State.modify_ @FileOffset (+ (convert $ len + off))
     p <- Parser.getPosition
+    -- print ">>>"
+    -- print $ Parser.unPos (Parser.sourceColumn p) + (unwrap $ len + off)
+    -- print $ (off + 1)
     Parser.setPosition $ p { Parser.sourceColumn = Parser.mkPos $ Parser.unPos (Parser.sourceColumn p) + (unwrap $ len + off)
                            , Parser.sourceLine   = Parser.mkPos $ unwrap (off + 1)
                            }

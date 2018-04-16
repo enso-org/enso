@@ -5,8 +5,8 @@ import Prologue hiding (range)
 import qualified Control.Monad.State.Layered as State
 
 import Data.Bits
-import Text.Printf
 import Foreign.Storable
+import Text.Printf
 
 
 -- FIXME[WD]: We should remove Delta and rename Offset -> Offset Linear or something like that
@@ -109,7 +109,7 @@ succColumn :: State.Monad Position m => m ()
 succColumn = modColumn succ
 
 succLine :: State.Monad Position m => m ()
-succLine = State.modify_ @Position $ (column .~ 0) . (line %~ succ)
+succLine = State.modify_ @Position $ (column .~ 1) . (line %~ succ)
 
 
 -- === Instances === --
