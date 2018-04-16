@@ -26,6 +26,7 @@ local-bin-path: dist/bin/public/luna
 
 packages:
     - core
+    - package/resolver
     - syntax/text/lexer
     - syntax/text/model
     - syntax/text/parser
