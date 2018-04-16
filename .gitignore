@@ -41,3 +41,5 @@ report.html
 
 # Vim
 *.swp
+*.projections.json
+
