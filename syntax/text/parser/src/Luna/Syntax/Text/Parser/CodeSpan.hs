@@ -23,8 +23,8 @@ import Luna.Syntax.Text.Parser.AST
 -- import OCI.IR                      hiding (IRBuilder, get)
 -- import OCI.Pass                    hiding (get, inputs)
 -- import OCI.Pass.Definition
-import Text.Megaparsec.Prim (MonadParsec)
-import Type.Any             (AnyType)
+-- import Text.Megaparsec.Prim (MonadParsec)
+import Type.Any (AnyType)
 
 
 ------------------------

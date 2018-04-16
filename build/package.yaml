@@ -1,51 +1,39 @@
-name       : luna-syntax-text-parser
-version    : "0.2"
-author     : Luna Team <contact@luna-lang.org>
-maintainer : Luna Team <contact@luna-lang.org>
+name:       luna-build
+version:    "0.1"
+author:     Luna Team <contact@luna-lang.org>
+maintainer: Luna Team <contact@luna-lang.org>
 
 library:
     source-dirs:
         - src
-        - src-libs
 
 tests:
     spec:
         main: Main.hs
         source-dirs: test/spec
         dependencies:
-            - container
             - directory
             - filepath
             - hspec
-            - hspec-expectations-lifted
+            - hspec-jenkins
             - hspec-megaparsec
+            - luna-build
+            - luna-ci
             - luna-core
-            - luna-syntax-text-lexer
-            - luna-syntax-text-parser
-            - luna-syntax-text-prettyprint
             - open-browser
 
 dependencies:
     - base
     - containers
-    - layered-state
-    - layouting
+    - impossible
     - lens
-    - lens-utils
     - luna-core
-    - luna-foreign-utils
-    - luna-nested-containers
-    - luna-syntax-definition
-    - luna-syntax-text-lexer
-    - luna-syntax-text-model
-    - luna-text-processing
-    - megaparsec == 6.5.0
+    - megaparsec
     - mtl
     - prologue
+    - sbv
     - text
     - typelevel
-    - vector
-    - vector-text
 
 default-extensions:
     - AllowAmbiguousTypes
@@ -74,10 +62,12 @@ default-extensions:
     - MonadComprehensions
     - MultiWayIf
     - NamedWildCards
+    - NamedFieldPuns
     - NegativeLiterals
     - NoImplicitPrelude
     - NumDecimals
     - OverloadedLabels
+    - OverloadedStrings
     - PackageImports
     - QuasiQuotes
     - RankNTypes
@@ -91,7 +81,6 @@ default-extensions:
     - TypeFamilies
     - TypeFamilyDependencies
     - TypeOperators
-    - UnicodeSyntax
     - ViewPatterns
 #    - MonadFailDesugaring
 

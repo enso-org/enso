@@ -6,17 +6,17 @@ module Luna.Syntax.Text.Parser.Parsing where
 
 import Prologue hiding (seq)
 
--- import Prologue_old hiding (Cons, String, Type, Symbol, UniSymbol, (|>), (<|), cons, seq, span, op)
+-- import Prologue_old hiding (Cons, String, Type, Symbol, SomeSymbol, (|>), (<|), cons, seq, span, op)
 -- import qualified Prologue_old as P
 
 -- import qualified Text.Megaparsec as Parser
-import Text.Megaparsec       (ErrorItem (Tokens), ParseError, anyChar, between,
-                              char, choice, digitChar, hidden, letterChar,
-                              lookAhead, lowerChar, manyTill, notFollowedBy,
-                              skipMany, spaceChar, try, unexpected, upperChar,
+import Text.Megaparsec       (ErrorItem (Tokens), MonadParsec, ParseError,
+                              between, choice, hidden, lookAhead, manyTill,
+                              notFollowedBy, skipMany, try, unexpected,
                               withRecovery)
+import Text.Megaparsec.Char  (anyChar, char, digitChar, letterChar, lowerChar,
+                              spaceChar, upperChar)
 import Text.Megaparsec.Error (parseErrorPretty, parseErrorTextPretty)
-import Text.Megaparsec.Prim  (MonadParsec)
 -- import           Text.Megaparsec.String hiding (Parser)
 -- import qualified Text.Megaparsec.String as M
 -- import qualified Text.Megaparsec.Lexer as Lex
@@ -127,7 +127,7 @@ import Data.Text.Position (FileOffset (..))
 -- import           Text.Parser.Indent (Indent, indentation)
 import Data.Text.Position               (Delta)
 import Data.Text32                      (Text32)
-import Language.Symbol                  (Labeled (Labeled), UniSymbol, labeled)
+import Language.Symbol                  (Labeled (Labeled), SomeSymbol, labeled)
 import Luna.IR                          (Term)
 import Luna.Pass                        (Pass)
 import Luna.Syntax.Text.Parser.CodeSpan (CodeSpan (CodeSpan),
@@ -168,10 +168,10 @@ satisfy_ f = void $ satisfy' f
 satisfy' f = satisfy $ \s -> justIf (f s) s
 satisfy  f = token' testSymbol Nothing where
     testSymbol r t = case Reserved.lookupSymbolReservation r (t ^. Lexer.element) of
-        True  -> Left (Set.singleton (Tokens (t:|[])), Set.empty, Set.empty)
+        True  -> Left (Just $ Tokens (t:|[]), Set.empty)
         False -> case f (t ^. Lexer.element) of
             Just a  -> Right a
-            Nothing -> Left (Set.singleton (Tokens (t:|[])), Set.empty, Set.empty)
+            Nothing -> Left (Just $ Tokens (t:|[]), Set.empty)
 
 satisfyReserved' :: (Lexer.Symbol -> Bool)    -> SymParser Lexer.Symbol
 satisfyReserved_ :: (Lexer.Symbol -> Bool)    -> SymParser ()
@@ -181,7 +181,7 @@ satisfyReserved' f = satisfyReserved $ \s -> justIf (f s) s
 satisfyReserved  f = token' testSymbol Nothing where
     testSymbol r t = case f (t ^. Lexer.element) of
         Just a  -> Right a
-        Nothing -> Left (Set.singleton (Tokens (t:|[])), Set.empty, Set.empty)
+        Nothing -> Left (Just $ Tokens (t:|[]), Set.empty)
 
 symbol :: Lexer.Symbol -> SymParser ()
 symbol = satisfy_ . (==)
@@ -208,46 +208,12 @@ checkOffsets = (,) <$> checkLastOffset <*> checkNextOffset
 
 -- === Lifting === --
 
--- liftIRB0 :: (                              Pass Parser out) -> (                              IRB out)
--- liftIRB1 :: (t1                         -> Pass Parser out) -> (t1                         -> IRB out)
--- liftIRB2 :: (t1 -> t2                   -> Pass Parser out) -> (t1 -> t2                   -> IRB out)
--- liftIRB3 :: (t1 -> t2 -> t3             -> Pass Parser out) -> (t1 -> t2 -> t3             -> IRB out)
--- liftIRB4 :: (t1 -> t2 -> t3 -> t4       -> Pass Parser out) -> (t1 -> t2 -> t3 -> t4       -> IRB out)
--- liftIRB5 :: (t1 -> t2 -> t3 -> t4 -> t5 -> Pass Parser out) -> (t1 -> t2 -> t3 -> t4 -> t5 -> IRB out)
--- liftIRB0 f                = wrap $ f                ; {-# INLINE liftIRB0 #-}
--- liftIRB1 f t1             = wrap $ f t1             ; {-# INLINE liftIRB1 #-}
--- liftIRB2 f t1 t2          = wrap $ f t1 t2          ; {-# INLINE liftIRB2 #-}
--- liftIRB3 f t1 t2 t3       = wrap $ f t1 t2 t3       ; {-# INLINE liftIRB3 #-}
--- liftIRB4 f t1 t2 t3 t4    = wrap $ f t1 t2 t3 t4    ; {-# INLINE liftIRB4 #-}
--- liftIRB5 f t1 t2 t3 t4 t5 = wrap $ f t1 t2 t3 t4 t5 ; {-# INLINE liftIRB5 #-}
-
-liftIRBApp1 :: (t1                         -> IRB out) -> IRB t1 -> IRB out
-liftIRBApp2 :: (t1 -> t2                   -> IRB out) -> IRB t1 -> IRB t2 -> IRB out
-liftIRBApp3 :: (t1 -> t2 -> t3             -> IRB out) -> IRB t1 -> IRB t2 -> IRB t3 -> IRB out
-liftIRBApp4 :: (t1 -> t2 -> t3 -> t4       -> IRB out) -> IRB t1 -> IRB t2 -> IRB t3 -> IRB t4 -> IRB out
-liftIRBApp5 :: (t1 -> t2 -> t3 -> t4 -> t5 -> IRB out) -> IRB t1 -> IRB t2 -> IRB t3 -> IRB t4 -> IRB t5 -> IRB out
-liftIRBApp1 f mt1                 = do { t1 <- mt1; f t1                                                         } ; {-# INLINE liftIRBApp1 #-}
-liftIRBApp2 f mt1 mt2             = do { t1 <- mt1; t2 <- mt2; f t1 t2                                           } ; {-# INLINE liftIRBApp2 #-}
-liftIRBApp3 f mt1 mt2 mt3         = do { t1 <- mt1; t2 <- mt2; t3 <- mt3; f t1 t2 t3                             } ; {-# INLINE liftIRBApp3 #-}
-liftIRBApp4 f mt1 mt2 mt3 mt4     = do { t1 <- mt1; t2 <- mt2; t3 <- mt3; t4 <- mt4; f t1 t2 t3 t4               } ; {-# INLINE liftIRBApp4 #-}
-liftIRBApp5 f mt1 mt2 mt3 mt4 mt5 = do { t1 <- mt1; t2 <- mt2; t3 <- mt3; t4 <- mt4; t5 <- mt5; f t1 t2 t3 t4 t5 } ; {-# INLINE liftIRBApp5 #-}
-
--- liftAstApp0 :: (                              IRB out) -> IRB out
-liftAstApp1 :: (t1                         -> IRB out) -> AsgBldr t1 -> IRB out
-liftAstApp2 :: (t1 -> t2                   -> IRB out) -> AsgBldr t1 -> AsgBldr t2 -> IRB out
-liftAstApp3 :: (t1 -> t2 -> t3             -> IRB out) -> AsgBldr t1 -> AsgBldr t2 -> AsgBldr t3 -> IRB out
-liftAstApp4 :: (t1 -> t2 -> t3 -> t4       -> IRB out) -> AsgBldr t1 -> AsgBldr t2 -> AsgBldr t3 -> AsgBldr t4 -> IRB out
-liftAstApp5 :: (t1 -> t2 -> t3 -> t4 -> t5 -> IRB out) -> AsgBldr t1 -> AsgBldr t2 -> AsgBldr t3 -> AsgBldr t4 -> AsgBldr t5 -> IRB out
--- liftAstApp0 f                = id f                                                                                      ; {-# INLINE liftAstApp0 #-}
-liftAstApp1 f t1             = liftIRBApp1 f (fromAsgBldr t1)                                                                     ; {-# INLINE liftAstApp1 #-}
-liftAstApp2 f t1 t2          = liftIRBApp2 f (fromAsgBldr t1) (fromAsgBldr t2)                                                    ; {-# INLINE liftAstApp2 #-}
-liftAstApp3 f t1 t2 t3       = liftIRBApp3 f (fromAsgBldr t1) (fromAsgBldr t2) (fromAsgBldr t3)                                   ; {-# INLINE liftAstApp3 #-}
-liftAstApp4 f t1 t2 t3 t4    = liftIRBApp4 f (fromAsgBldr t1) (fromAsgBldr t2) (fromAsgBldr t3) (fromAsgBldr t4)                  ; {-# INLINE liftAstApp4 #-}
-liftAstApp5 f t1 t2 t3 t4 t5 = liftIRBApp5 f (fromAsgBldr t1) (fromAsgBldr t2) (fromAsgBldr t3) (fromAsgBldr t4) (fromAsgBldr t5) ; {-# INLINE liftAstApp5 #-}
-
--- -- FIXME[WD]: remove
--- xliftAstApp2 :: (forall m. IRBuilding m => t1 -> t2                   -> m SomeTerm) -> AsgBldr t1 -> AsgBldr t2 -> IRB SomeTerm
--- xliftAstApp2 = liftAstApp2
+liftAstApp1 :: (t1             -> IRB out) -> AsgBldr t1 -> IRB out
+liftAstApp2 :: (t1 -> t2       -> IRB out) -> AsgBldr t1 -> AsgBldr t2 -> IRB out
+liftAstApp3 :: (t1 -> t2 -> t3 -> IRB out) -> AsgBldr t1 -> AsgBldr t2 -> AsgBldr t3 -> IRB out
+liftAstApp1 f t1       = bind  f (fromAsgBldr t1)                                                                     ; {-# INLINE liftAstApp1 #-}
+liftAstApp2 f t1 t2    = bind2 f (fromAsgBldr t1) (fromAsgBldr t2)                                                    ; {-# INLINE liftAstApp2 #-}
+liftAstApp3 f t1 t2 t3 = bind3 f (fromAsgBldr t1) (fromAsgBldr t2) (fromAsgBldr t3)                                   ; {-# INLINE liftAstApp3 #-}
 
 
 
@@ -641,8 +607,8 @@ newtype SegmentBuilder a = SegmentBuilder { runSegmentBuilder :: (Bool, Bool) ->
 
 type ExprToken       a = Expr.Token (ExprSymbol      a)
 type ExprTokenProto  a = Expr.Token (ExprSymbolProto a)
-type ExprSymbol      a = Labeled SpacedName (UniSymbol Symbol.Expr    a)
-type ExprSymbolProto a = Labeled SpacedName (UniSymbol Symbol.Phantom a)
+type ExprSymbol      a = Labeled SpacedName (SomeSymbol Symbol.Expr    a)
+type ExprSymbolProto a = Labeled SpacedName (SomeSymbol Symbol.Phantom a)
 
 instance Semigroup ExprSegmentBuilder where
     a <> b = SegmentBuilder $ \(l,r) -> runSegmentBuilder a (l,False) <> runSegmentBuilder b (False,r)
@@ -711,7 +677,7 @@ posIndependent = SegmentBuilder . const . pure . Expr.tokenx
 
 -- FIXME[WD]: change the API to monadic one, so we can register symbols and mixfix monads could gather needed info (like var names)
 --            without the need to keep the label in the term
-unlabeledAtom :: a -> Labeled SpacedName (UniSymbol Symbol.Expr a)
+unlabeledAtom :: a -> Labeled SpacedName (SomeSymbol Symbol.Expr a)
 unlabeledAtom = labeled (Name.spaced "#unnamed#") . Symbol.atom
 
 -- -- Possible tokens
@@ -881,7 +847,7 @@ parseMixfixSegments nameSet = do
 
 buildTokenExpr (s:|ss) = buildTokenExpr' (s:ss)
 
-buildTokenExpr' :: Expr.Tokens (Labeled SpacedName (UniSymbol Symbol.Expr (AsgBldr SomeTerm))) -> SymParser (AsgBldr SomeTerm)
+buildTokenExpr' :: Expr.Tokens (Labeled SpacedName (SomeSymbol Symbol.Expr (AsgBldr SomeTerm))) -> SymParser (AsgBldr SomeTerm)
 buildTokenExpr' = Expr.buildExpr_termApp . Labeled (Name.spaced Builtin.appName) $ Symbol.Symbol app
 
 

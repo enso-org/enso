@@ -1,11 +1,12 @@
 module Text.Parser.Char where
 
-import Prelude
 import Control.Applicative
-import Text.Megaparsec (satisfy)
-import Text.Megaparsec.Prim
-import Text.Parser.Combinators
 import Data.Word
+import Prelude
+import Text.Megaparsec         (MonadParsec, Token, (<?>))
+import Text.Megaparsec.Char    (satisfy)
+import Text.Parser.Combinators
+
 import qualified Data.Char as Char
 
 
