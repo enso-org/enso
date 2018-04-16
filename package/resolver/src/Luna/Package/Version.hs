@@ -1,11 +1,11 @@
-module Luna.Build.Dependency.Version where
+module Luna.Package.Version where
 
 import Prologue hiding (min, fromString)
 
-import Data.Word                         (Word64)
-import Luna.Build.Dependency.ParserUtils (Parser, dot, natural)
-import Text.Megaparsec                   (option, optional)
-import Text.Megaparsec.Char              (string, char)
+import Data.Word                (Word64)
+import Luna.Package.ParserUtils (Parser, dot, natural)
+import Text.Megaparsec          (option, optional)
+import Text.Megaparsec.Char     (string, char)
 
 -- | Versioning in Luna follows the following convention:
 -- |      major.minor.patch-prerelease.version

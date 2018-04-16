@@ -1,16 +1,16 @@
-module Luna.Test.Build.Dependency.VersionSpec where
+module Luna.Test.Package.VersionSpec where
 
 import Prologue
 
-import qualified Luna.Build.Dependency.Version as Version
+import qualified Luna.Package.Version as Version
 
-import Luna.Build.Dependency.Version              ( Version(Version)
-                                                  , Prerelease(Prerelease))
-import Luna.Test.Build.Dependency.ParserTestUtils ( shouldParseTo
-                                                  , shouldFailToParse )
-import Test.Hspec                                 ( Spec, describe, it
-                                                  , shouldSatisfy
-                                                  , shouldNotSatisfy)
+import Luna.Package.Version              ( Version(Version)
+                                         , Prerelease(Prerelease) )
+import Luna.Test.Package.ParserTestUtils ( shouldParseTo
+                                         , shouldFailToParse )
+import Test.Hspec                        ( Spec, describe, it
+                                         , shouldSatisfy
+                                         , shouldNotSatisfy )
 
 spec :: Spec
 spec = do
