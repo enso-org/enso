@@ -38,6 +38,7 @@ import Text.Read                        as X (readPrec) -- new style Read class 
 import Prologue.Text.Show               as X
 import Prologue.Text.Show.Pretty        as X
 import Text.Show.Functions              as X ()
+import Data.Void                        as X (Void, absurd)
 
 
 -- === Monads === --

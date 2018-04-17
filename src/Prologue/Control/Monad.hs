@@ -81,3 +81,17 @@ guard cond = case toBool' cond of
     True  -> return ()
     False -> mzero
 {-# INLINE guard #-}
+
+
+-- === Binds === --
+
+bind  :: Monad m => (t1                         -> m a) -> m t1                                 -> m a
+bind2 :: Monad m => (t1 -> t2                   -> m a) -> m t1 -> m t2                         -> m a
+bind3 :: Monad m => (t1 -> t2 -> t3             -> m a) -> m t1 -> m t2 -> m t3                 -> m a
+bind4 :: Monad m => (t1 -> t2 -> t3 -> t4       -> m a) -> m t1 -> m t2 -> m t3 -> m t4         -> m a
+bind5 :: Monad m => (t1 -> t2 -> t3 -> t4 -> t5 -> m a) -> m t1 -> m t2 -> m t3 -> m t4 -> m t5 -> m a
+bind = (=<<) ; {-# INLINE bind #-}
+bind2 f mt1 mt2 = do { t1 <- mt1; t2 <- mt2; f t1 t2} ; {-# INLINE bind2 #-}
+bind3 f mt1 mt2 mt3 = do { t1 <- mt1; t2 <- mt2; t3 <- mt3; f t1 t2 t3} ; {-# INLINE bind3 #-}
+bind4 f mt1 mt2 mt3 mt4 = do { t1 <- mt1; t2 <- mt2; t3 <- mt3; t4 <- mt4; f t1 t2 t3 t4} ; {-# INLINE bind4 #-}
+bind5 f mt1 mt2 mt3 mt4 mt5 = do { t1 <- mt1; t2 <- mt2; t3 <- mt3; t4 <- mt4; t5 <- mt5; f t1 t2 t3 t4 t5} ; {-# INLINE bind5 #-}
