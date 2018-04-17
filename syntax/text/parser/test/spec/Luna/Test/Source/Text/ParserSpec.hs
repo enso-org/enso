@@ -111,7 +111,8 @@ identSpec = describe "identifier" $ do
     it "unicode name"           $ expr "Κοηστρυκτορ"
     it "double underscore"      $ exprAs "__" "Invalid VarName UnderscoresOnly"
     it "caseless header"        $ exprAs "מfoo" "Invalid VarName CaselessHeader"
-    it "apostrophe inside name" $ exprAs "fo'o" "foo"
+    it "apostrophe inside name" $ exprAs "fo'o"
+                                         "Invalid VarName (UnexpectedSuffix 3)"
 
 literalNumberSpec :: Spec
 literalNumberSpec = describe "number" $ do
