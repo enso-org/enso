@@ -25,7 +25,7 @@ unsafeLast    :: [a] -> a
 unsafeFoldr1  :: (a -> a -> a) -> [a] -> a
 unsafeFoldl1  :: (a -> a -> a) -> [a] -> a
 unsafeFoldl1' :: (a -> a -> a) -> [a] -> a
-unsafeRead    :: Read a => String -> a
+unsafeRead    :: forall a. Read a => String -> a
 unsafeTail    = P.tail    ; {-# INLINE unsafeTail    #-}
 unsafeInit    = P.init    ; {-# INLINE unsafeInit    #-}
 unsafeHead    = P.head    ; {-# INLINE unsafeHead    #-}
