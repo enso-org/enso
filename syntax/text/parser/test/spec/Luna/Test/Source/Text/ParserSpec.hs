@@ -21,8 +21,8 @@ import qualified Luna.Pass.Scheduler                 as Scheduler
 import qualified Luna.Runner                         as Runner
 import qualified Luna.Syntax.Prettyprint             as Prettyprint
 import qualified Luna.Syntax.Text.Parser.CodeSpan    as CodeSpan
-import qualified Luna.Syntax.Text.Parser.Parser      as Parser
 import qualified Luna.Syntax.Text.Parser.Parsing     as Parsing
+import qualified Luna.Syntax.Text.Parser.Pass        as Parser
 import qualified OCI.Data.Name                       as Name
 import qualified OCI.IR.Component                    as Component
 import qualified OCI.IR.Layout                       as Layout
@@ -33,7 +33,7 @@ import Luna.IR.Component.Link           (type (*-*), Link)
 import Luna.Pass                        (Pass)
 import Luna.Syntax.Text.Parser.CodeSpan (CodeSpan)
 import Luna.Syntax.Text.Parser.Errors   (Invalids)
-import Luna.Syntax.Text.Parser.Parser   (IRBSParser, Parser)
+import Luna.Syntax.Text.Parser.Pass     (IRBSParser, Parser)
 import Luna.Syntax.Text.Scope           (Scope)
 import Test.Hspec                       (Expectation, Spec, describe, it)
 

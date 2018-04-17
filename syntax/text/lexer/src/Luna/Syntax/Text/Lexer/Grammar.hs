@@ -75,6 +75,7 @@ notNewlineStart :: Char -> Bool
 notNewlineStart c = c /= '\n' && c /= '\r' ; {-# INLINE notNewlineStart #-}
 
 
+
 -------------------------
 -- === Identifiers === --
 -------------------------
@@ -168,6 +169,7 @@ lexNumber = checkInvalidSuffix number where
           <$> takeWhile1 (isDigitCharAtBase n)
     frac  n = option mempty $ token '.' *> body n
 {-# INLINE lexNumber #-}
+
 
 
 -----------------------------
@@ -401,7 +403,7 @@ symmap = Vector.generate symmapSize $ \i -> let c = Char.chr i in if
     | c == '|'          -> Symbol.Merge   <$ dropToken
     | c == '.'          -> handleDots =<< takeMany '.'
     | c == '='          -> handleEqs  =<< takeMany '='
-    | c `elem` operatorChars  -> handleOp <$> takeWhile1 isOperatorChar
+    | isOperatorChar c  -> handleOp <$> takeWhile1 isOperatorChar
                                     <*> takeMany '='
 
     -- Literals

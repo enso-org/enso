@@ -28,6 +28,7 @@ import qualified Luna.Syntax.Text.Parser.Hardcoded as Builtin
 import qualified Luna.Syntax.Text.Parser.Loc       as Loc
 import qualified Luna.Syntax.Text.Parser.Marker    as Marker
 import qualified Luna.Syntax.Text.Parser.Name      as Name
+import qualified Luna.Syntax.Text.Parser.Pass      as Pass
 import qualified Luna.Syntax.Text.Parser.Reserved  as Reserved
 import qualified Luna.Syntax.Text.Scope            as Scope
 import qualified OCI.Data.Name.Multipart           as Name.Multipart
@@ -56,10 +57,10 @@ import Luna.Syntax.Text.Parser.Marker   (MarkedExprMap, MarkerId, MarkerState,
                                          useLastTokenMarker)
 import Luna.Syntax.Text.Parser.Marker   (MarkedExprMap, UnmarkedExprs)
 import Luna.Syntax.Text.Parser.Name     (SpacedName)
-import Luna.Syntax.Text.Parser.Parser   (IRB, IRBS (IRBS, fromIRBS), IRBSParser,
-                                         Parser, SymParser, liftIRBS1,
-                                         liftIRBS2, liftIRBS3, runParserT,
-                                         withAsgBldr)
+import Luna.Syntax.Text.Parser.Parser   (Parser)
+import Luna.Syntax.Text.Parser.Pass     (IRB, IRBS (IRBS, fromIRBS), IRBSParser,
+                                         liftIRBS1, liftIRBS2, liftIRBS3,
+                                         runParserT, withAsgBldr)
 import OCI.Data.Name                    (Name)
 import Text.Megaparsec                  (ErrorItem (Tokens), MonadParsec,
                                          ParseError, between, choice, hidden,
@@ -83,9 +84,9 @@ instance Convertible Text32.Text32 Name where
 -- === Satisfy === --
 ---------------------
 
-satisfy    :: (Lexer.Symbol -> Bool)    -> SymParser Lexer.Symbol
-satisfy_   :: (Lexer.Symbol -> Bool)    -> SymParser ()
-satisfTest :: (Lexer.Symbol -> Maybe a) -> SymParser a
+satisfy    :: (Lexer.Symbol -> Bool)    -> Parser Lexer.Symbol
+satisfy_   :: (Lexer.Symbol -> Bool)    -> Parser ()
+satisfTest :: (Lexer.Symbol -> Maybe a) -> Parser a
 satisfy_   f = void $ satisfy f                  ; {-# INLINE satisfy_ #-}
 satisfy    f = satisfTest $ \s -> justIf (f s) s ; {-# INLINE satisfy  #-}
 satisfTest f = token' test Nothing where
@@ -94,9 +95,9 @@ satisfTest f = token' test Nothing where
         False -> satisfyTestSymbol f t
 {-# INLINE satisfTest #-}
 
-satisfyUnchecked     :: (Lexer.Symbol -> Bool)    -> SymParser Lexer.Symbol
-satisfyUnchecked_    :: (Lexer.Symbol -> Bool)    -> SymParser ()
-satisfyUncheckedTest :: (Lexer.Symbol -> Maybe a) -> SymParser a
+satisfyUnchecked     :: (Lexer.Symbol -> Bool)    -> Parser Lexer.Symbol
+satisfyUnchecked_    :: (Lexer.Symbol -> Bool)    -> Parser ()
+satisfyUncheckedTest :: (Lexer.Symbol -> Maybe a) -> Parser a
 satisfyUnchecked_    f = void $ satisfyUnchecked f                    ; {-# INLINE satisfyUnchecked_    #-}
 satisfyUnchecked     f = satisfyUncheckedTest $ \s -> justIf (f s) s  ; {-# INLINE satisfyUnchecked     #-}
 satisfyUncheckedTest f = token' (const $ satisfyTestSymbol f) Nothing ; {-# INLINE satisfyUncheckedTest #-}
@@ -107,11 +108,11 @@ satisfyTestSymbol f t = note (Just $ Tokens (pure t), Set.empty)
                       $ f (t ^. Lexer.element)
 {-# INLINE satisfyTestSymbol #-}
 
-symbol :: Lexer.Symbol -> SymParser ()
+symbol :: Lexer.Symbol -> Parser ()
 symbol = satisfy_ . (==) ; {-# INLINE symbol #-}
 
-anySymbol  :: SymParser Lexer.Symbol
-anySymbol_ :: SymParser ()
+anySymbol  :: Parser Lexer.Symbol
+anySymbol_ :: Parser ()
 anySymbol  = satisfyUnchecked $ const True ; {-# INLINE anySymbol #-}
 anySymbol_ = void anySymbol                ; {-# INLINE anySymbol_ #-}
 
@@ -133,7 +134,7 @@ checkOffsets = (,) <$> checkLastOffset <*> checkNextOffset ; {-# INLINE checkOff
 attachCodeSpanLayer :: CodeSpan -> IRB (Term a) -> IRB (Term a)
 attachCodeSpanLayer s = (>>~ flip (Layer.write @CodeSpan) s) ; {-# INLINE attachCodeSpanLayer #-}
 
-spanned :: SymParser a -> SymParser (CodeSpan, a)
+spanned :: Parser a -> Parser (CodeSpan, a)
 spanned p = do
     lastCodeSpan <- unwrap <$> State.get @CodeSpanRange
     fileOffStart <- unwrap <$> State.get @FileOffset
@@ -156,7 +157,7 @@ spanned p = do
     pure (CodeSpan realSpan viewSpan, out)
 {-# INLINE spanned #-}
 
-spanOf :: SymParser a -> SymParser a
+spanOf :: Parser a -> Parser a
 spanOf = fmap snd . spanned ; {-# INLINE spanOf #-}
 
 inheritCodeSpan1 :: (     SomeTerm -> IRB  SomeTerm)
@@ -208,9 +209,9 @@ unsafeModifyCodeSpan f (IRBS irb1) = wrap $ do
 irbsFromSpan :: CodeSpan -> IRB (Term a) -> IRBS (Term a)
 irbsFromSpan = IRBS .: attachCodeSpanLayer ; {-# INLINE irbsFromSpan #-}
 
-irbs   ::                    SymParser       (IRB (Term a))   -> SymParser       (IRBS (Term a))
-irbsF  :: Functor f       => SymParser (f    (IRB (Term a)))  -> SymParser (f    (IRBS (Term a)))
-irbsF2 :: Functors '[f,g] => SymParser (f (g (IRB (Term a)))) -> SymParser (f (g (IRBS (Term a))))
+irbs   ::                    Parser       (IRB (Term a))   -> Parser       (IRBS (Term a))
+irbsF  :: Functor f       => Parser (f    (IRB (Term a)))  -> Parser (f    (IRBS (Term a)))
+irbsF2 :: Functors '[f,g] => Parser (f (g (IRB (Term a)))) -> Parser (f (g (IRBS (Term a))))
 irbs   p = uncurry          irbsFromSpan  <$> spanned p ; {-# INLINE irbs   #-}
 irbsF  p = uncurry (fmap  . irbsFromSpan) <$> spanned p ; {-# INLINE irbsF  #-}
 irbsF2 p = uncurry (fmap2 . irbsFromSpan) <$> spanned p ; {-# INLINE irbsF2 #-}
@@ -228,18 +229,18 @@ invalid t = do
     pure $ Layout.relayout inv
 {-# INLINE invalid #-}
 
-invalidToken :: SymParser (IRBS SomeTerm)
+invalidToken :: Parser (IRBS SomeTerm)
 invalidToken = irbs $ invalid <$> satisfTest Lexer.matchInvalid ; {-# INLINE invalidToken #-}
 
 -- invalidSymbol :: (Lexer.Symbol -> Text32) -> IRBSParser SomeTerm
 -- invalidSymbol f = irbs $ invalid . f <$> anySymbol
 
--- catchParseErrors :: SymParser a -> SymParser (Either String a)
+-- catchParseErrors :: Parser a -> Parser (Either String a)
 -- catchParseErrors p = withRecovery2 (pure . Left . parseErrorTextPretty)
 --                                    (Right <$> p)
 
 -- catchInvalidWith :: HasCallStack => (Span.LeftSpacedSpan -> Span.LeftSpacedSpan)
---                  -> (IRBS SomeTerm -> a) -> SymParser a -> SymParser a
+--                  -> (IRBS SomeTerm -> a) -> Parser a -> Parser a
 -- catchInvalidWith spanf f p = undefined -- do
 --     -- (span, result) <- spanned $ catchParseErrors p
 --     -- pure $ flip fromRight result $ f . irbsFromSpan (spanf span) . invalid . convert
@@ -250,7 +251,7 @@ invalidToken = irbs $ invalid <$> satisfTest Lexer.matchInvalid ; {-# INLINE inv
 -- === Markers === --
 ---------------------
 
-markerIRB :: SymParser (MarkerId, IRBS SomeTerm)
+markerIRB :: Parser (MarkerId, IRBS SomeTerm)
 markerIRB = useLastTokenMarker >>= \case
     Nothing -> expected "marker"
     Just t  -> do
@@ -266,7 +267,7 @@ markerIRB = useLastTokenMarker >>= \case
                                   (id $ IR.marker' $ t ^. Lexer.element)
                )
 
-marked :: SymParser (IRBS SomeTerm -> IRBS SomeTerm)
+marked :: Parser (IRBS SomeTerm -> IRBS SomeTerm)
 marked = option registerUnmarkedExpr $ uncurry markedExpr <$> markerIRB where
     markedExpr mid expr = registerMarkedExpr mid . inheritCodeSpan2 (IR.marked')
                           expr
@@ -282,20 +283,20 @@ registerMarkedExpr m = withAsgBldr (>>~ addMarkedExpr m)
 -- === Symbols === --
 ---------------------
 
-stx, etx, eol :: SymParser ()
+stx, etx, eol :: Parser ()
 stx = symbol Lexer.STX ; {-# INLINE stx #-}
 etx = symbol Lexer.ETX ; {-# INLINE etx #-}
 eol = symbol Lexer.EOL ; {-# INLINE eol #-}
 
-braceBegin, braceEnd :: SymParser ()
+braceBegin, braceEnd :: Parser ()
 braceBegin = symbol $ Lexer.List Lexer.Begin ; {-# INLINE braceBegin #-}
 braceEnd   = symbol $ Lexer.List Lexer.End   ; {-# INLINE braceEnd   #-}
 
-groupBegin, groupEnd :: SymParser ()
+groupBegin, groupEnd :: Parser ()
 groupBegin = symbol $ Lexer.Group Lexer.Begin ; {-# INLINE groupBegin #-}
 groupEnd   = symbol $ Lexer.Group Lexer.End   ; {-# INLINE groupEnd   #-}
 
-parensed :: SymParser a -> SymParser a
+parensed :: Parser a -> Parser a
 parensed p = groupBegin *> p <* groupEnd ; {-# INLINE parensed #-}
 
 
@@ -310,14 +311,14 @@ var      = snd <$> namedVar                              ; {-# INLINE var      #
 op       = snd <$> namedOp                               ; {-# INLINE op       #-}
 wildcard = irbs $ IR.blank' <$ symbol Lexer.Wildcard ; {-# INLINE wildcard #-}
 
-namedCons, namedVar, namedOp, namedIdent :: SymParser (Name, IRBS SomeTerm)
+namedCons, namedVar, namedOp, namedIdent :: Parser (Name, IRBS SomeTerm)
 namedCons  = irbsNamed (flip IR.cons' []) consName ; {-# INLINE namedCons  #-}
 namedVar   = irbsNamed IR.var'            varName  ; {-# INLINE namedVar   #-}
 namedOp    = irbsNamed IR.var'            opName   ; {-# INLINE namedOp    #-}
 namedIdent = namedVar <|> namedCons <|> namedOp    ; {-# INLINE namedIdent #-}
 
-consName, varName, opName, identName, modifierName :: SymParser Name
-foreignLangName                                    :: SymParser Name
+consName, varName, opName, identName, modifierName :: Parser Name
+foreignLangName                                    :: Parser Name
 consName        = convert <$> satisfTest Lexer.matchCons     ; {-# INLINE consName        #-}
 varName         = convert <$> satisfTest Lexer.matchVar      ; {-# INLINE varName         #-}
 opName          = convert <$> satisfTest Lexer.matchOperator ; {-# INLINE opName          #-}
@@ -326,14 +327,14 @@ funcName        = varName <|> opName                         ; {-# INLINE funcNa
 modifierName    = convert <$> satisfTest Lexer.matchModifier ; {-# INLINE modifierName    #-}
 foreignLangName = consName                                   ; {-# INLINE foreignLangName #-}
 
-previewVarName :: SymParser Name
+previewVarName :: Parser Name
 previewVarName = do
     s <- previewNextSymbol
     maybe (unexpected . fromString $ "Expecting variable, got: " <> show s)
           (pure . convert) $ Lexer.matchVar =<< s
 {-# INLINE previewVarName #-}
 
-matchVar, matchCons, matchOp :: Text32 -> SymParser ()
+matchVar, matchCons, matchOp :: Text32 -> Parser ()
 matchVar  = symbol . Lexer.Var      ; {-# INLINE matchVar  #-}
 matchCons = symbol . Lexer.Cons     ; {-# INLINE matchCons #-}
 matchOp   = symbol . Lexer.Operator ; {-# INLINE matchOp   #-}
@@ -341,17 +342,17 @@ matchOp   = symbol . Lexer.Operator ; {-# INLINE matchOp   #-}
 
 -- === Helpers === --
 
-irbsNamed :: (Name -> IRB (Term a)) -> SymParser Name -> SymParser (Name, IRBS (Term a))
+irbsNamed :: (Name -> IRB (Term a)) -> Parser Name -> Parser (Name, IRBS (Term a))
 irbsNamed cons = irbsF . fmap (\name -> (name, cons name)) ; {-# INLINE irbsNamed #-}
 
 
 -- Qualified names
 
-qualVarName, qualConsName :: SymParser [Name]
+qualVarName, qualConsName :: Parser [Name]
 qualConsName = qualNameBase consName ; {-# INLINE qualConsName #-}
 qualVarName  = qualNameBase varName  ; {-# INLINE qualVarName  #-}
 
-qualNameBase :: SymParser Name -> SymParser [Name]
+qualNameBase :: Parser Name -> Parser [Name]
 qualNameBase p = (\a b -> a <> [b])
              <$> many (try $ consName <* symbol Lexer.Accessor) <*> p
 {-# INLINE qualNameBase #-}
@@ -363,8 +364,8 @@ qualNameBase p = (\a b -> a <> [b])
 -- === Literals === --
 ----------------------
 
-rawQuoteBegin, rawQuoteEnd :: SymParser ()
-fmtQuoteBegin, fmtQuoteEnd :: SymParser ()
+rawQuoteBegin, rawQuoteEnd :: Parser ()
+fmtQuoteBegin, fmtQuoteEnd :: Parser ()
 rawQuoteBegin = symbol $ Lexer.Quote Lexer.RawStr Lexer.Begin ; {-# INLINE rawQuoteBegin #-}
 rawQuoteEnd   = symbol $ Lexer.Quote Lexer.RawStr Lexer.End   ; {-# INLINE rawQuoteEnd   #-}
 fmtQuoteBegin = symbol $ Lexer.Quote Lexer.FmtStr Lexer.Begin ; {-# INLINE fmtQuoteBegin #-}
@@ -423,7 +424,7 @@ fmtStr = irbs $ do
     --              $ (IR.string' . convertVia @String)
     --            <$> Indent.withCurrent (strBody fmtQuoteEnd) -- FIXME[WD]: We're converting Text -> String here.
 
-strBody :: SymParser () -> SymParser Text32
+strBody :: Parser () -> Parser Text32
 strBody ending = segStr <|> end <|> nl where
     segStr = (<>) <$> strContent <*> strBody ending
     end    = mempty <$ ending
@@ -431,10 +432,10 @@ strBody ending = segStr <|> end <|> nl where
     line   = do Indent.indentedOrEq
                 (<>) . convert . flip replicate ' ' <$> Indent.indentation <*> strBody ending
 
-strContent :: SymParser Text32
+strContent :: Parser Text32
 strContent = satisfTest Lexer.matchStr <|> strEsc
 
-strEsc :: SymParser Text32
+strEsc :: Parser Text32
 strEsc = satisfTest Lexer.matchStrEsc >>= pure . \case
     Lexer.CharStrEsc i             -> convert $ Char.chr i
     Lexer.NumStrEsc i              -> convert $ Char.chr i
@@ -476,7 +477,7 @@ grouped = irbs . parensed . fmap (liftIRBS1 IR.grouped') ; {-# INLINE grouped #-
 metadata :: IRBSParser SomeTerm
 metadata = irbs $ IR.metadata' . convertVia @String <$> metaContent ; {-# INLINE metadata #-}
 
-metaContent :: SymParser Text32
+metaContent :: Parser Text32
 metaContent = satisfTest Lexer.matchMetadata ; {-# INLINE metaContent #-}
 
 
@@ -549,8 +550,8 @@ concatExprSegmentBuilders bldrs = SegmentBuilder $ \l r -> case bldrs of
     (s:|(t:ts)) -> runSegmentBuilder s l False
                 <> runSegmentBuilder (concatExprSegmentBuilders $ t:|ts) False r
 
-exprSegments    , exprSegmentsLocal     :: SymParser ExprSegments
-exprFreeSegments, exprFreeSegmentsLocal :: SymParser ExprSegmentBuilder
+exprSegments    , exprSegmentsLocal     :: Parser ExprSegments
+exprFreeSegments, exprFreeSegmentsLocal :: Parser ExprSegmentBuilder
 exprSegments          = buildExprTok <$> exprFreeSegments
 exprSegmentsLocal     = buildExprTok <$> exprFreeSegmentsLocal
 exprFreeSegments      = Reserved.withNewLocal exprFreeSegmentsLocal
@@ -560,8 +561,8 @@ exprFreeSegmentsLocal = fmap concatExprSegmentBuilders . some
                                , lamSeg, matchseg, typedSeg, funcSeg, invalidSeg
                                ]
 
-exprSegmentsNonSpaced    , exprSegmentsNonSpacedLocal     :: SymParser ExprSegments
-exprFreeSegmentsNonSpaced, exprFreeSegmentsNonSpacedLocal :: SymParser ExprSegmentBuilder
+exprSegmentsNonSpaced    , exprSegmentsNonSpacedLocal     :: Parser ExprSegments
+exprFreeSegmentsNonSpaced, exprFreeSegmentsNonSpacedLocal :: Parser ExprSegmentBuilder
 exprSegmentsNonSpaced          = buildExprTok <$> exprFreeSegmentsNonSpaced
 exprSegmentsNonSpacedLocal     = buildExprTok <$> exprFreeSegmentsNonSpacedLocal
 exprFreeSegmentsNonSpaced      = Reserved.withNewLocal exprFreeSegmentsNonSpacedLocal
@@ -584,7 +585,7 @@ unlabeledAtom = labeled (Name.spaced "#unnamed#") . Symbol.atom
 
 -- -- Possible tokens
 consSeg, funcSeg, grpSeg, invalidSeg, lamSeg, matchseg, numSeg, strSeg,
-    tupleSeg, varSeg, wildSeg :: SymParser ExprSegmentBuilder
+    tupleSeg, varSeg, wildSeg :: Parser ExprSegmentBuilder
 consSeg    = posIndependent . unlabeledAtom <$> cons
 funcSeg    = posIndependent . unlabeledAtom <$> func
 grpSeg     = posIndependent . unlabeledAtom <$> grouped nonemptyValExpr
@@ -599,7 +600,7 @@ varSeg     = posIndependent . unlabeledAtom <$> var
 wildSeg    = posIndependent . unlabeledAtom <$> wildcard
 
 
-mfixVarSeg :: SymParser ExprSegmentBuilder
+mfixVarSeg :: Parser ExprSegmentBuilder
 mfixVarSeg  = do
     (span, name) <- spanned varName
     nameSet      <- Scope.lookupMultipartNames name
@@ -619,7 +620,7 @@ mfixVarSeg  = do
                         mfixExpr  = apps (app mfixVar segment) segments
                     pure . posIndependent . unlabeledAtom $ mfixExpr
 
-opSeg :: SymParser ExprSegmentBuilder
+opSeg :: Parser ExprSegmentBuilder
 opSeg   = do
     (before, after) <- checkOffsets
     (span, name)    <- spanned opName
@@ -638,7 +639,7 @@ opSeg   = do
                   symmetrical = before == after
     pure $ SegmentBuilder segment
 
-typedSeg :: SymParser ExprSegmentBuilder
+typedSeg :: Parser ExprSegmentBuilder
 typedSeg   = do
     (off, off') <- checkOffsets
     let typedExpr = if off then valExpr else nonSpacedValExpr
@@ -648,7 +649,7 @@ typedSeg   = do
         seg = flip (inheritCodeSpan2 IR.typed') tp
     pure . posIndependent . labeled (Name.spacedNameIf off Builtin.typedName) $ Symbol.suffix seg
 
-accSectNames :: SymParser (NonEmpty (CodeSpan, Name))
+accSectNames :: Parser (NonEmpty (CodeSpan, Name))
 accSectNames = do
     sname <- spanned $ symbol Lexer.Accessor *> identName
     (beforeDot, afterDot) <- checkOffsets
@@ -656,7 +657,7 @@ accSectNames = do
                                             else option mempty (convert <$> accSectNames)
 
 
-accSeg :: SymParser ExprSegmentBuilder
+accSeg :: Parser ExprSegmentBuilder
 accSeg = fmap2 Expr.tokenx $ do
     (beforeDot, afterDot) <- checkOffsets
     snames@(n :| ns) <- accSectNames
@@ -724,7 +725,7 @@ pat :: IRBSParser SomeTerm
 pat = Reserved.withLocalReservedSymbol Lexer.BlockStart nonemptyValExprLocal
 
 
-lamBldr :: SymParser (IRBS SomeTerm -> IRBS SomeTerm)
+lamBldr :: Parser (IRBS SomeTerm -> IRBS SomeTerm)
 lamBldr = do
     body <- symbol Lexer.BlockStart *> discover (nonEmptyBlock lineExpr)
     pure $ flip (inheritCodeSpan2 IR.lam') (uncurry seqs body)
@@ -735,7 +736,7 @@ lamBldr = do
 buildExprTok :: ExprSegmentBuilder -> ExprSegments
 buildExprTok bldr = runSegmentBuilder bldr True True
 
-parseMixfixSegments :: SparseTreeSet Name -> SymParser [(Name, IRBS SomeTerm)]
+parseMixfixSegments :: SparseTreeSet Name -> Parser [(Name, IRBS SomeTerm)]
 parseMixfixSegments nameSet = do
     name <- previewVarName
     let total = TreeSet.check' name nameSet
@@ -750,7 +751,7 @@ parseMixfixSegments nameSet = do
 
 buildTokenExpr (s:|ss) = buildTokenExpr' (s:ss)
 
-buildTokenExpr' :: Expr.Tokens (Labeled SpacedName (SomeSymbol Symbol.Expr (IRBS SomeTerm))) -> SymParser (IRBS SomeTerm)
+buildTokenExpr' :: Expr.Tokens (Labeled SpacedName (SomeSymbol Symbol.Expr (IRBS SomeTerm))) -> Parser (IRBS SomeTerm)
 buildTokenExpr' = Expr.buildExpr_termApp . Labeled (Name.spaced Builtin.appName) $ Symbol.Symbol app
 
 
@@ -765,7 +766,7 @@ possiblyDocumented p = documented p <|> p
 documented :: IRBSParser SomeTerm -> IRBSParser SomeTerm
 documented p = irbs $ (\d t -> liftIRBS1 (IR.documented' $ convertVia @String d) t) <$> doc <*> p
 
-doc :: SymParser Text32
+doc :: Parser Text32
 doc = intercalate "\n" <$> some (satisfTest Lexer.matchDocComment <* eol)
 
 
@@ -780,7 +781,7 @@ topLvlDecl = possiblyDocumented $ func <|> record <|> metadata
 
 func :: IRBSParser SomeTerm
 func = irbs $ funcHdr <**> (funcSig <|> funcDef) where
-    funcDef, funcSig :: SymParser (IRBS SomeTerm -> IRB SomeTerm)
+    funcDef, funcSig :: Parser (IRBS SomeTerm -> IRB SomeTerm)
     funcHdr     = symbol Lexer.KwDef *> withRecovery headerRec (var <|> op)
     headerRec e = irbs $ invalid Invalid.FunctionHeader
                <$ Loc.unregisteredDropSymbolsUntil
@@ -792,7 +793,7 @@ func = irbs $ funcHdr <**> (funcSig <|> funcDef) where
               <*> withRecovery blockRec block
     block       = symbol Lexer.BlockStart
                *> discover (nonEmptyBlock lineExpr)
-    -- blockRec :: Int -> SymParser ((IRBS SomeTerm),[IRBS SomeTerm])
+    -- blockRec :: Int -> Parser ((IRBS SomeTerm),[IRBS SomeTerm])
     blockRec e  = (,[]) <$> (irbs $ invalid Invalid.FunctionBlock
                <$ optionalBlockAny)
 
@@ -837,7 +838,7 @@ impHub = irbs $ (\(imps :: [IRBS SomeTerm])
                  -> liftIRBS1 IR.importHub'
                     (sequence imps :: IRBS [SomeTerm])) <$> impHeader
 
-impHeader :: SymParser [IRBS SomeTerm]
+impHeader :: Parser [IRBS SomeTerm]
 impHeader = option mempty $ breakableOptionalBlockTop imp -- <* skipEmptyLines
 
 imp :: IRBSParser SomeTerm
@@ -883,7 +884,7 @@ foreignSymbolImport = irbs $ withRecovery recover
                       <$ Loc.unregisteredDropSymbolsUntil
                       (`elem` [Lexer.ETX, Lexer.EOL])
 
-foreignSymbolImportWithSafety :: IRBSParser SomeTerm -> SymParser (IRB SomeTerm)
+foreignSymbolImportWithSafety :: IRBSParser SomeTerm -> Parser (IRB SomeTerm)
 foreignSymbolImportWithSafety safe =
     (\safety forName localName importType ->
         liftIRBS3 (foreignSymbolProxy localName) safety forName importType)
@@ -893,7 +894,7 @@ foreignSymbolImportWithSafety safe =
 defaultFISafety :: IRBSParser SomeTerm
 defaultFISafety = irbs $
     (\safety -> id (IR.foreignImportSafety' safety))
-    <$> ((pure Import.Default) :: SymParser IR.ForeignImportType)
+    <$> ((pure Import.Default) :: Parser IR.ForeignImportType)
 
 -- TODO [Ara, WD] Need to have the lexer deal with these as contextual keywords
 -- using a positive lookahead in the _Lexer_.
@@ -902,7 +903,7 @@ specifiedFISafety = irbs $
     (\(importSafety :: IR.ForeignImportType) ->
         id (IR.foreignImportSafety' importSafety))
     <$> getImpSafety (optionMaybe varName)
-    where getImpSafety :: SymParser (Maybe Name) -> SymParser IR.ForeignImportType
+    where getImpSafety :: Parser (Maybe Name) -> Parser IR.ForeignImportType
           getImpSafety p = p >>= \case
               Nothing -> pure Import.Default
               Just n  -> case n of
@@ -913,7 +914,7 @@ specifiedFISafety = irbs $
 stringOrVarName :: IRBSParser SomeTerm
 stringOrVarName = string <|> (asgNameParser varName)
 
-asgNameParser :: SymParser Name -> IRBSParser SomeTerm
+asgNameParser :: Parser Name -> IRBSParser SomeTerm
 asgNameParser nameParser = irbs $ (\varN -> id (IR.var' varN))
      <$> nameParser
 
@@ -940,20 +941,20 @@ unitCls = irbs $ (\ds -> liftIRBS1 (IR.record' False "" [] [])
 -- === Layout parsing === --
 ----------------------------
 
-skipEOLs :: SymParser ()
+skipEOLs :: Parser ()
 skipEOLs = void $ many eol
 
-discover :: SymParser a -> SymParser a
+discover :: Parser a -> Parser a
 discover p = skipEOLs >> p
 
-discoverIndent :: SymParser a -> SymParser a
+discoverIndent :: Parser a -> Parser a
 discoverIndent = discover . Indent.withCurrent
 
-nonEmptyBlock', nonEmptyBlockBody' :: SymParser a -> SymParser [a]
+nonEmptyBlock', nonEmptyBlockBody' :: Parser a -> Parser [a]
 nonEmptyBlock'     = uncurry (:) <<$>> nonEmptyBlock
 nonEmptyBlockBody' = uncurry (:) <<$>> nonEmptyBlockBody
 
-nonEmptyBlock , nonEmptyBlockBody  :: SymParser a -> SymParser (a, [a])
+nonEmptyBlock , nonEmptyBlockBody  :: Parser a -> Parser (a, [a])
 nonEmptyBlock     p = Indent.indented >> Indent.withCurrent (nonEmptyBlockBody p)
 nonEmptyBlockTop    = Indent.withRoot    . nonEmptyBlockBody
 nonEmptyBlockBody p = (,) <$> p <*> lines where
@@ -961,13 +962,13 @@ nonEmptyBlockBody p = (,) <$> p <*> lines where
     indent  = spacing <* Indent.indentedEq <* notFollowedBy etx
     lines   = many $ try indent *> p
 
-optionalBlock, optionalBlockTop, optionalBlockBody :: SymParser a -> SymParser [a]
+optionalBlock, optionalBlockTop, optionalBlockBody :: Parser a -> Parser [a]
 optionalBlock     p = option mempty $ uncurry (:) <$> nonEmptyBlock     p
 optionalBlockTop  p = option mempty $ uncurry (:) <$> nonEmptyBlockTop  p
 optionalBlockBody p = option mempty $ uncurry (:) <$> nonEmptyBlockBody p
 
-breakableNonEmptyBlock', breakableNonEmptyBlockTop', breakableNonEmptyBlockBody' :: SymParser a -> SymParser     [a]
-breakableNonEmptyBlock , breakableNonEmptyBlockTop , breakableNonEmptyBlockBody  :: SymParser a -> SymParser (a, [a])
+breakableNonEmptyBlock', breakableNonEmptyBlockTop', breakableNonEmptyBlockBody' :: Parser a -> Parser     [a]
+breakableNonEmptyBlock , breakableNonEmptyBlockTop , breakableNonEmptyBlockBody  :: Parser a -> Parser (a, [a])
 breakableNonEmptyBlock'      = uncurry (:) <<$>> breakableNonEmptyBlock
 breakableNonEmptyBlockTop'   = uncurry (:) <<$>> breakableNonEmptyBlockTop
 breakableNonEmptyBlockBody'  = uncurry (:) <<$>> breakableNonEmptyBlockBody
@@ -978,18 +979,18 @@ breakableNonEmptyBlockBody p = (,) <$> lexedp <*> lines where
     lines   = many $ Indent.indentedEq *> lexedp
     lexedp  = p <* spacing
 
-breakableOptionalBlock, breakableOptionalBlockTop, breakableOptionalBlockBody :: SymParser a -> SymParser [a]
+breakableOptionalBlock, breakableOptionalBlockTop, breakableOptionalBlockBody :: Parser a -> Parser [a]
 breakableOptionalBlock     p = option mempty $ uncurry (:) <$> breakableNonEmptyBlock     p
 breakableOptionalBlockTop  p = option mempty $ uncurry (:) <$> breakableNonEmptyBlockTop  p
 breakableOptionalBlockBody p = option mempty $ uncurry (:) <$> breakableNonEmptyBlockBody p
 
 
-nonEmptyBlockAny :: SymParser [Tok]
+nonEmptyBlockAny :: Parser [Tok]
 nonEmptyBlockAny = concat . convertTo @[[Tok]] <$> some line where
     line = Indent.indented >> (body <* eol)
     body = Loc.getTokensUntil (\t -> (t == Lexer.EOL) || (t == Lexer.ETX))
 
-optionalBlockAny :: SymParser [Tok]
+optionalBlockAny :: Parser [Tok]
 optionalBlockAny = option mempty nonEmptyBlockAny
 
 
@@ -1036,7 +1037,7 @@ optionalBlockAny = option mempty nonEmptyBlockAny
 --     putAttr @MarkedExprMap $ gidMap
 
 
-parsingBase :: IRBSParser a -> Text32.Text32 -> Pass Parser (a, MarkedExprMap)
+parsingBase :: IRBSParser a -> Text32.Text32 -> Pass Pass.Parser (a, MarkedExprMap)
 parsingBase p src = do
     let stream = Lexer.evalDefLexer src
     result <- runParserT (stx *> p <* etx) stream
