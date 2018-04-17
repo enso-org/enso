@@ -7,6 +7,9 @@ package-indices:
 
 ghc-options:
     $locals:
+        -O2
+        -Wall
+        -Wno-name-shadowing
         -fexcess-precision
         -fexpose-all-unfoldings
         -flate-dmd-anal
@@ -16,10 +19,7 @@ ghc-options:
         -fspecialise-aggressively
         -fstatic-argument-transformation
         -funbox-strict-fields
-        -O2
         -threaded
-        -Wall
-        -Wno-name-shadowing
     $everything:
         -fconstraint-solver-iterations=100
 

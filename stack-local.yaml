@@ -7,18 +7,19 @@ package-indices:
 
 ghc-options:
     $locals:
+        -O2
+        -Wall
+        -Wno-name-shadowing
         -fexcess-precision
         -fexpose-all-unfoldings
         -flate-dmd-anal
         -fmax-worker-args=200
+        -fsimpl-tick-factor=200
         -fspec-constr-keen
         -fspecialise-aggressively
         -fstatic-argument-transformation
         -funbox-strict-fields
-        -O2
         -threaded
-        -Wall
-        -Wno-name-shadowing
     $everything:
         -fconstraint-solver-iterations=100
 
@@ -26,7 +27,7 @@ local-bin-path: dist/bin/public/luna
 
 packages:
     - core
-    - package/resolver    
+    - package/resolver
     - syntax/text/lexer
     - syntax/text/model
     - syntax/text/parser
