@@ -11,6 +11,7 @@ ghc-options:
         -fexpose-all-unfoldings
         -flate-dmd-anal
         -fmax-worker-args=200
+        -fsimpl-tick-factor=200
         -fspec-constr-keen
         -fspecialise-aggressively
         -fstatic-argument-transformation

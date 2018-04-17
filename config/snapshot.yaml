@@ -21,8 +21,8 @@ packages:
     - monad-st-0.2.4.1
     - monoid-0.1.8
     - placeholders-0.1
-    - prologue-3.1.5
+    - prologue-3.1.6
     - terminal-text-1.1.1
     - typelevel-1.2.2
-    - vector-text-1.1.1
+    - vector-text-1.1.2
 
