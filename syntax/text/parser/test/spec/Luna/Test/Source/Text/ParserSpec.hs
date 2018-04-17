@@ -95,24 +95,30 @@ exprAs     = shouldParseAs     Parsing.expr
 expr       = shouldParseItself Parsing.expr
 
 
+
 ----------------------
 -- === Literals === --
 ----------------------
 
 identSpec :: Spec
 identSpec = describe "identifier" $ do
-    it "one letter variable"    $ expr "a"
-    it "name + apostrophe"      $ expr "foo'"
-    it "name + 2 apostrophes"   $ expr "foo''"
-    it "unicode variable name"  $ expr "фываΧξωβ김동욱"
-    it "wildcard"               $ expr "_"
-    it "simple constructors"    $ expr "Vector"
-    it "constructors"           $ expr "Vector x 1 z"
-    it "unicode name"           $ expr "Κοηστρυκτορ"
-    it "double underscore"      $ exprAs "__" "Invalid VarName UnderscoresOnly"
-    it "caseless header"        $ exprAs "מfoo" "Invalid VarName CaselessHeader"
-    it "apostrophe inside name" $ exprAs "fo'o"
-                                         "Invalid VarName (UnexpectedSuffix 3)"
+    it "variable 1"        $ expr "a"
+    it "name'"             $ expr "foo'"
+    it "name''"            $ expr "foo''"
+    it "name?"             $ expr "foo?"
+    it "name?'"            $ expr "foo?'"
+    it "name?''"           $ expr "foo?''"
+    it "unicode name"      $ expr "фываΧξωβ김동욱"
+    it "constructor 1"     $ expr "Vector"
+    it "constructor 2"     $ expr "Vector x 1 z"
+    it "unicode name"      $ expr "Κοηστρυκτορ"
+    it "wildcard"          $ expr "_"
+    it "caseless header"   $ exprAs "מfoo" "Invalid CaselessNameHead"
+    it "double underscore" $ exprAs "__"   "Invalid UnexpectedSuffix 1"
+    it "invalid name 1"    $ exprAs "f'o"  "Invalid UnexpectedSuffix 1"
+    it "invalid name 2"    $ exprAs "f?o"  "Invalid UnexpectedSuffix 1"
+    it "invalid name 3"    $ exprAs "f'?"  "Invalid UnexpectedSuffix 1"
+    it "invalid name 4"    $ exprAs "f_a"  "Invalid UnexpectedSuffix 2"
 
 literalNumberSpec :: Spec
 literalNumberSpec = describe "number" $ do
@@ -123,10 +129,11 @@ literalNumberSpec = describe "number" $ do
     it "frac positive"     $ expr "7.11"
     it "base 2  int (b)"   $ expr "0b101010101"
     it "base 8  int (o)"   $ expr "0o01234567"
-    -- it "base 16 int (x)"   $ expr "0x0123456789abcdefABCDEF"
-    -- it "base 11 int"       $ expr "11x0123456789aA"
+    it "base 16 int (x)"   $ exprAs "0x0123456789abcdefABCDEF"
+                                    "0x0123456789abcdefabcdef"
     it "int > 64b"         $ expr biggerThanInt64
     it "frac > 64b"        $ expr biggerThanInt64f
+    it "invalid number 1"  $ exprAs "117a" "Invalid UnexpectedSuffix 1"
 
 literalStringSpec :: Spec
 literalStringSpec = describe "string" $ do

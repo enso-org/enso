@@ -370,17 +370,10 @@ rawQuoteEnd   = symbol $ Lexer.Quote Lexer.RawStr Lexer.End   ; {-# INLINE rawQu
 fmtQuoteBegin = symbol $ Lexer.Quote Lexer.FmtStr Lexer.Begin ; {-# INLINE fmtQuoteBegin #-}
 fmtQuoteEnd   = symbol $ Lexer.Quote Lexer.FmtStr Lexer.End   ; {-# INLINE fmtQuoteEnd   #-}
 
--- FIXME[WD]: move the Char -> Number conversion logic to lexer
 number :: IRBSParser SomeTerm
 number = irbs $ do
-    Lexer.NumRep base i f _ <- satisfTest Lexer.matchNumber
-    pure $ IR.number' (convert base)
-                      (convert $ convertChar <$> convertTo @String i)
-                      (convert $ convertChar <$> convertTo @String f)
-    where convertChar c = let ord = Char.ord c in
-              if | ord >= 48 && ord <= 57  -> (fromIntegral $ ord - 48      :: Word8)
-                 | ord >= 97 && ord <= 122 -> (fromIntegral $ ord - 97 + 10 :: Word8)
-                 | otherwise               -> error "wrong char"
+    Lexer.NumRep base i f <- satisfTest Lexer.matchNumber
+    pure $ IR.number' base (convert i) (convert f)
 
 
 list :: IRBSParser SomeTerm -> IRBSParser SomeTerm

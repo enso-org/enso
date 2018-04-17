@@ -3,6 +3,7 @@ module Luna.IR.Term.Literal where
 import           Prologue hiding (String)
 import qualified Prologue as P
 
+import qualified Data.Char                         as Char
 import qualified Data.Vector.Storable.Foreign      as Vector
 import qualified Luna.IR.Component.Term.Definition as Term
 import qualified Luna.IR.Term.Format               as Format
@@ -38,7 +39,10 @@ prettyshow (Number base intPart fracPart) = do
     let frac = if fracPartS /= "" then "." <> fracPartS else mempty
     pure . pfx $ intPartS <> frac
     where showVec :: MonadIO m => Vector Word8 -> m P.String
-          showVec = fmap (concat . fmap show) . Vector.toList
+          showVec     = fmap (concat . fmap showDigit) . Vector.toList
+          showDigit d = if d < 10
+              then show d
+              else [Char.chr $ Char.ord 'a' + convert d - 10]
           pfx  = (<>) $ case base of
               2  -> "0b"
               8  -> "0o"

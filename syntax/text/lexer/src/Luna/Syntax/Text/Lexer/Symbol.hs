@@ -63,8 +63,9 @@ data Symbol
     | Marker      !Word64
 
     -- Ident
-    | Var         !Text32
-    | Cons        !Text32
+    | Var          !Text32
+    | VarMultiName !(Maybe Text32) ![Text32]
+    | Cons         !Text32
     | Wildcard
 
     -- Keyword
@@ -121,46 +122,43 @@ data StrEscType
 
 data Bound   = Begin | End              deriving (Eq, Generic, Ord, Show)
 data StrType = RawStr | FmtStr | NatStr deriving (Eq, Generic, Ord, Show)
-data Numbase = Dec | Bin | Oct | Hex    deriving (Eq, Generic, Ord, Show)
+-- data Numbase = Dec | Bin | Oct | Hex    deriving (Eq, Generic, Ord, Show)
 data Number  = NumRep
-    { _base     :: Numbase
-    , _intPart  :: Text32
-    , _fracPart :: Text32
-    , _expPart  :: Text32
+    { _base     :: Word8
+    , _intPart  :: [Word8]
+    , _fracPart :: [Word8]
     } deriving (Eq, Generic, Ord, Show)
 
 instance NFData Symbol
 instance NFData StrEscType
 instance NFData Bound
 instance NFData StrType
-instance NFData Numbase
+-- instance NFData Numbase
 instance NFData Number
 makeClassy ''Symbol
 makeLenses ''Number
 
-instance Convertible Numbase Word8 where
-    convert = \case
-        Bin -> 2
-        Oct -> 8
-        Dec -> 10
-        Hex -> 16
+-- instance Convertible Numbase Word8 where
+--     convert = \case
+--         Bin -> 2
+--         Oct -> 8
+--         Dec -> 10
+--         Hex -> 16
 
 
 -- === Utils === --
 
 checkSpecialVar :: Text32 -> Symbol
-checkSpecialVar s = if
-    | s == "all"            -> KwAll
-    | s == "case"           -> KwCase
-    | s == "class"          -> KwClass
-    | s == "def"            -> KwDef
-    | s == "foreign"        -> KwForeign
-    | s == "import"         -> KwImport
-    | s == "native"         -> KwNative
-    | s == "of"             -> KwOf
-    | s == "_"              -> Wildcard
-    | Text32.all (== '_') s -> Invalid Invalid.underscoresOnly
-    | otherwise             -> Var s
+checkSpecialVar = \case
+    "all"     -> KwAll
+    "case"    -> KwCase
+    "class"   -> KwClass
+    "def"     -> KwDef
+    "foreign" -> KwForeign
+    "import"  -> KwImport
+    "native"  -> KwNative
+    "of"      -> KwOf
+    s         -> Var s
 {-# INLINE checkSpecialVar #-}
 
 matchVar, matchCons, matchOperator, matchModifier, matchStr, matchDocComment,
@@ -180,51 +178,52 @@ matchDocComment = \case { Doc        a -> Just a ; _ -> Nothing } ; {-# INLINE m
 matchMetadata   = \case { Metadata   a -> Just a ; _ -> Nothing } ; {-# INLINE matchMetadata   #-}
 matchInvalid    = \case { Invalid    a -> Just a ; _ -> Nothing } ; {-# INLINE matchInvalid    #-}
 
-intNum :: Text32 -> Number
-intNum  i = NumRep Dec i mempty mempty ; {-# INLINE intNum #-}
+-- intNum :: Text32 -> Number
+-- intNum  i = NumRep Dec i mempty mempty ; {-# INLINE intNum #-}
 
 pretty :: Symbol -> Text32
 pretty = \case
-    STX         {} -> "Start of text"
-    ETX         {} -> "End of text"
-    EOL         {} -> "End of line"
-    Terminator  {} -> "Expression terminator"
-    BlockStart  {} -> "Expression block start"
-    Block       {} -> "Block"
-    Group       {} -> "Expression Group"
-    Marker      {} -> "Internal position marker"
-    Var         {} -> "Variable"
-    Cons        {} -> "Constructor"
-    Wildcard    {} -> "Wildcard"
-    KwAll       {} -> "Keyword `All`"
-    KwCase      {} -> "Keyword `Case`"
-    KwClass     {} -> "Keyword `Class`"
-    KwDef       {} -> "Keyword `Def`"
-    KwForeign   {} -> "Keyword `Foreign`"
-    KwImport    {} -> "Keyword `Import`"
-    KwNative    {} -> "Keyword `Native`"
-    KwOf        {} -> "Keyword `Of`"
-    Operator    {} -> "Operator"
-    Modifier    {} -> "Modifier"
-    Accessor    {} -> "Accessor"
-    Assignment  {} -> "Assignment"
-    Typed       {} -> "Typed"
-    TypeApp     {} -> "Type application"
-    Merge       {} -> "Merge operator"
-    Range       {} -> "Range operator"
-    Anything    {} -> "Anything operator"
-    Number      {} -> "Number"
-    Quote       {} -> "Quote"
-    Str         {} -> "String literal"
-    StrEsc      {} -> "String escape sequence"
-    List        {} -> "List"
-    StrWrongEsc {} -> "Wrong string escape sequence"
-    Disable     {} -> "Disable block"
-    Doc         {} -> "Documentation"
-    Metadata    {} -> "Metadata"
-    Unknown     s  -> "Unknown symbol " <> s
-    Incorrect   s  -> "Incorrect " <> s
-    Invalid     s  -> "Invalid " <> convert (show s)
+    STX          {} -> "start of text"
+    ETX          {} -> "end of text"
+    EOL          {} -> "end of line"
+    Terminator   {} -> "expression terminator"
+    BlockStart   {} -> "expression block start"
+    Block        {} -> "block"
+    Group        {} -> "expression group"
+    Marker       {} -> "metadata (position marker)"
+    Var          {} -> "variable name"
+    VarMultiName {} -> "multipart variable name"
+    Cons         {} -> "Constructor"
+    Wildcard     {} -> "wildcard"
+    KwAll        {} -> "keyword `All`"
+    KwCase       {} -> "keyword `Case`"
+    KwClass      {} -> "keyword `Class`"
+    KwDef        {} -> "keyword `Def`"
+    KwForeign    {} -> "keyword `Foreign`"
+    KwImport     {} -> "keyword `Import`"
+    KwNative     {} -> "keyword `Native`"
+    KwOf         {} -> "keyword `Of`"
+    Operator     {} -> "operator"
+    Modifier     {} -> "modifier"
+    Accessor     {} -> "accessor"
+    Assignment   {} -> "assignment"
+    Typed        {} -> "typed"
+    TypeApp      {} -> "type application"
+    Merge        {} -> "merge operator"
+    Range        {} -> "range operator"
+    Anything     {} -> "anything operator"
+    Number       {} -> "number"
+    Quote        {} -> "quote"
+    Str          {} -> "string literal"
+    StrEsc       {} -> "string escape sequence"
+    List         {} -> "list"
+    StrWrongEsc  {} -> "wrong string escape sequence"
+    Disable      {} -> "disable block"
+    Doc          {} -> "documentation"
+    Metadata     {} -> "metadata"
+    Unknown      s  -> "unknown symbol " <> s
+    Incorrect    s  -> "incorrect " <> s
+    Invalid      s  -> "invalid " <> convert (show s)
 {-# INLINE pretty #-}
 
 
@@ -233,90 +232,92 @@ pretty = \case
 -- TODO: Generate with TH
 instance ShowCons Symbol where
     showCons = \case
-        STX         {} -> "STX"
-        ETX         {} -> "ETX"
-        EOL         {} -> "EOL"
-        Terminator  {} -> "Terminator"
-        BlockStart  {} -> "BlockStart"
-        Block       {} -> "Block"
-        Group       {} -> "Group"
-        Marker      {} -> "Marker"
-        Var         {} -> "Var"
-        Cons        {} -> "Cons"
-        Wildcard    {} -> "Wildcard"
-        KwAll       {} -> "KwAll"
-        KwCase      {} -> "KwCase"
-        KwClass     {} -> "KwClass"
-        KwDef       {} -> "KwDef"
-        KwForeign   {} -> "KwForeign"
-        KwImport    {} -> "KwImport"
-        KwNative    {} -> "KwNative"
-        KwOf        {} -> "KwOf"
-        Operator    {} -> "Operator"
-        Modifier    {} -> "Modifier"
-        Accessor    {} -> "Accessor"
-        Assignment  {} -> "Assignment"
-        Typed       {} -> "Typed"
-        TypeApp     {} -> "TypeApp"
-        Merge       {} -> "Merge"
-        Range       {} -> "Range"
-        Anything    {} -> "Anything"
-        Number      {} -> "Number"
-        Quote       {} -> "Quote"
-        Str         {} -> "Str"
-        StrEsc      {} -> "StrEsc"
-        List        {} -> "List"
-        StrWrongEsc {} -> "StrWrongEsc"
-        Disable     {} -> "Disable"
-        Doc         {} -> "Doc"
-        Metadata    {} -> "Metadata"
-        Unknown     {} -> "Unknown"
-        Incorrect   {} -> "Incorrect"
-        Invalid     {} -> "Invalid"
+        STX          {} -> "STX"
+        ETX          {} -> "ETX"
+        EOL          {} -> "EOL"
+        Terminator   {} -> "Terminator"
+        BlockStart   {} -> "BlockStart"
+        Block        {} -> "Block"
+        Group        {} -> "Group"
+        Marker       {} -> "Marker"
+        Var          {} -> "Var"
+        VarMultiName {} -> "VarMultiName"
+        Cons         {} -> "Cons"
+        Wildcard     {} -> "Wildcard"
+        KwAll        {} -> "KwAll"
+        KwCase       {} -> "KwCase"
+        KwClass      {} -> "KwClass"
+        KwDef        {} -> "KwDef"
+        KwForeign    {} -> "KwForeign"
+        KwImport     {} -> "KwImport"
+        KwNative     {} -> "KwNative"
+        KwOf         {} -> "KwOf"
+        Operator     {} -> "Operator"
+        Modifier     {} -> "Modifier"
+        Accessor     {} -> "Accessor"
+        Assignment   {} -> "Assignment"
+        Typed        {} -> "Typed"
+        TypeApp      {} -> "TypeApp"
+        Merge        {} -> "Merge"
+        Range        {} -> "Range"
+        Anything     {} -> "Anything"
+        Number       {} -> "Number"
+        Quote        {} -> "Quote"
+        Str          {} -> "Str"
+        StrEsc       {} -> "StrEsc"
+        List         {} -> "List"
+        StrWrongEsc  {} -> "StrWrongEsc"
+        Disable      {} -> "Disable"
+        Doc          {} -> "Doc"
+        Metadata     {} -> "Metadata"
+        Unknown      {} -> "Unknown"
+        Incorrect    {} -> "Incorrect"
+        Invalid      {} -> "Invalid"
     {-# INLINE showCons #-}
 
 instance IsTagged Symbol where
     getTags a = (: [showCons a]) $ case a of
-        STX         {} -> "Layout"
-        ETX         {} -> "Layout"
-        EOL         {} -> "Layout"
-        Terminator  {} -> "Layout"
-        BlockStart  {} -> "Layout"
-        Block       {} -> "Layout"
-        Group       {} -> "Layout"
-        Marker      {} -> "Layout"
-        Var         {} -> "Ident"
-        Cons        {} -> "Ident"
-        Wildcard    {} -> "Ident"
-        KwAll       {} -> "Keyword"
-        KwCase      {} -> "Keyword"
-        KwClass     {} -> "Keyword"
-        KwDef       {} -> "Keyword"
-        KwForeign   {} -> "Keyword"
-        KwImport    {} -> "Keyword"
-        KwNative    {} -> "Keyword"
-        KwOf        {} -> "Keyword"
-        Operator    {} -> "Operator"
-        Modifier    {} -> "Operator"
-        Accessor    {} -> "Operator"
-        Assignment  {} -> "Operator"
-        Typed       {} -> "Operator"
-        TypeApp     {} -> "Operator"
-        Merge       {} -> "Operator"
-        Range       {} -> "Operator"
-        Anything    {} -> "Operator"
-        Number      {} -> "Literal"
-        Quote       {} -> "Literal"
-        Str         {} -> "Literal"
-        StrEsc      {} -> "Literal"
-        List        {} -> "Literal"
-        StrWrongEsc {} -> "Literal"
-        Disable     {} -> "Control"
-        Doc         {} -> "Comment"
-        Metadata    {} -> "Config"
-        Unknown     {} -> "Error"
-        Incorrect   {} -> "Error"
-        Invalid     {} -> "Error"
+        STX          {} -> "Layout"
+        ETX          {} -> "Layout"
+        EOL          {} -> "Layout"
+        Terminator   {} -> "Layout"
+        BlockStart   {} -> "Layout"
+        Block        {} -> "Layout"
+        Group        {} -> "Layout"
+        Marker       {} -> "Layout"
+        Var          {} -> "Ident"
+        VarMultiName {} -> "Ident"
+        Cons         {} -> "Ident"
+        Wildcard     {} -> "Ident"
+        KwAll        {} -> "Keyword"
+        KwCase       {} -> "Keyword"
+        KwClass      {} -> "Keyword"
+        KwDef        {} -> "Keyword"
+        KwForeign    {} -> "Keyword"
+        KwImport     {} -> "Keyword"
+        KwNative     {} -> "Keyword"
+        KwOf         {} -> "Keyword"
+        Operator     {} -> "Operator"
+        Modifier     {} -> "Operator"
+        Accessor     {} -> "Operator"
+        Assignment   {} -> "Operator"
+        Typed        {} -> "Operator"
+        TypeApp      {} -> "Operator"
+        Merge        {} -> "Operator"
+        Range        {} -> "Operator"
+        Anything     {} -> "Operator"
+        Number       {} -> "Literal"
+        Quote        {} -> "Literal"
+        Str          {} -> "Literal"
+        StrEsc       {} -> "Literal"
+        List         {} -> "Literal"
+        StrWrongEsc  {} -> "Literal"
+        Disable      {} -> "Control"
+        Doc          {} -> "Comment"
+        Metadata     {} -> "Config"
+        Unknown      {} -> "Error"
+        Incorrect    {} -> "Error"
+        Invalid      {} -> "Error"
     {-# INLINE getTags #-}
 
 

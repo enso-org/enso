@@ -1,8 +1,5 @@
-{-# LANGUAGE NoMonomorphismRestriction #-}
-{-# LANGUAGE OverloadedStrings         #-}
-{-# LANGUAGE PartialTypeSignatures     #-}
-{-# LANGUAGE UndecidableInstances      #-}
--- {-# LANGUAGE Strict                    #-}
+{-# LANGUAGE OverloadedStrings    #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Luna.Syntax.Text.Lexer.Grammar where
 
@@ -12,7 +9,7 @@ import qualified Control.Monad.State.Layered   as State
 import qualified Data.Attoparsec.Text32        as Parsec
 import qualified Data.Char                     as Char
 import qualified Data.Map.Strict               as Map
-import qualified Data.Text32                   as Text32
+import qualified Data.Text32                   as Txt
 import qualified Data.Vector                   as Vector
 import qualified Luna.IR.Term.Ast.Invalid      as Invalid
 import qualified Luna.Syntax.Text.Lexer.Symbol as Symbol
@@ -23,6 +20,8 @@ import Data.Parser                      hiding (Token)
 import Data.Parser.Instances.Attoparsec ()
 import Data.Vector                      (Vector)
 import Luna.Syntax.Text.Lexer.Symbol    (Symbol)
+
+type Txt = Txt.Text32
 
 
 -------------------------
@@ -76,24 +75,16 @@ notNewlineStart :: Char -> Bool
 notNewlineStart c = c /= '\n' && c /= '\r' ; {-# INLINE notNewlineStart #-}
 
 
-----------------------
--- === Literals === --
-----------------------
+-------------------------
+-- === Identifiers === --
+-------------------------
 
 -- === Char by char checking === --
 
-isDecDigitChar, isOctDigitChar, isBinDigitChar, isHexDigitChar, isIdentBodyChar,
-    isVarHead, isConsHead :: Char -> Bool
-isIdentBodyChar c = Char.isAlphaNum c || c == '_' ; {-# INLINE isIdentBodyChar  #-}
-isVarHead       c = Char.isLower    c || c == '_' ; {-# INLINE isVarHead        #-}
-isConsHead      c = Char.isUpper    c             ; {-# INLINE isConsHead       #-}
-isDecDigitChar  c = (c >= '0' && c <= '9')        ; {-# INLINE isDecDigitChar   #-}
-isOctDigitChar  c = (c >= '0' && c <= '7')        ; {-# INLINE isOctDigitChar   #-}
-isBinDigitChar  c = (c == '0' || c == '1')        ; {-# INLINE isBinDigitChar   #-}
-isHexDigitChar  c = isDecDigitChar c
-                 || (c >= 'a' && c <= 'f')
-                 || (c >= 'A' && c <= 'F')
-{-# INLINE isHexDigitChar   #-}
+isIdentBodyChar, isVarHead, isConsHead :: Char -> Bool
+isIdentBodyChar c = Char.isAlphaNum c ; {-# INLINE isIdentBodyChar  #-}
+isVarHead       c = Char.isLower    c ; {-# INLINE isVarHead        #-}
+isConsHead      c = Char.isUpper    c ; {-# INLINE isConsHead       #-}
 
 -- | WARNING!
 --   We assume that we have already checked for valid headers before
@@ -101,22 +92,29 @@ isHexDigitChar  c = isDecDigitChar c
 isInvalidVarHead :: Char -> Bool
 isInvalidVarHead = Char.isAlpha ; {-# INLINE isInvalidVarHead #-}
 
-
-opChars :: [Char]
-opChars = "!$%&*+-/<>?^~\\" ; {-# INLINE opChars #-}
+varBreakChars :: [Char]
+varBreakChars = "!@#$%^&*()-=+[]{}\\|;:<>,./ \t\n" ; {-# INLINE varBreakChars #-}
 
 
 -- === Names === --
 
+invalidSuffix :: Lexer
+invalidSuffix = Symbol.Invalid . Invalid.UnexpectedSuffix . Txt.length
+            <$> takeWhile1 (`notElem` varBreakChars)
+{-# INLINE invalidSuffix #-}
+
+checkInvalidSuffix :: Lexer -> Lexer
+checkInvalidSuffix = (<**> option id (const <$> invalidSuffix)) ; {-# INLINE checkInvalidSuffix #-}
+
+lexWildcard :: Lexer
+lexWildcard = checkInvalidSuffix $ Symbol.Wildcard <$ token '_' ; {-# INLINE lexWildcard #-}
+
 lexVariable :: Lexer
-lexVariable = parser where
-    parser     = validName <**> option Symbol.checkSpecialVar
-                 (Symbol.Invalid . Invalid.unexpectedSuffix . Text32.length <$ invalidSfx)
+lexVariable = checkInvalidSuffix validVar where
     validVar   = Symbol.checkSpecialVar <$> validName
-    invalidSfx = takeWhile1 $ \c -> isIdentBodyChar c || c == '?' || c == '!' || c == '\''
     validName  = takeWhile isIdentBodyChar
-          <**> option id (flip Text32.snoc <$> (token '?' <|> token '!'))
-          <**> option id (flip (<>)        <$> takeMany1 '\'')
+          <**> option id (flip Txt.snoc <$> token '?')
+          <**> option id (flip (<>)     <$> takeMany1 '\'')
 {-# INLINE lexVariable #-}
 
 lexConstructor :: Lexer
@@ -127,38 +125,54 @@ lexConstructor = Symbol.Cons <$> takeWhile isIdentBodyChar
 --   We assume that we have already checked for valid headers before
 --   using this check!.
 lexInvalidVariable :: Lexer
-lexInvalidVariable = Symbol.Invalid Invalid.caselessHeader
+lexInvalidVariable = Symbol.Invalid Invalid.CaselessNameHead
                   <$ takeWhile isIdentBodyChar
 {-# INLINE lexInvalidVariable #-}
 
 
+
+---------------------
 -- === Numbers === --
+---------------------
+
+isDigitCharAtBase :: Word8 -> Char -> Bool
+isDigitCharAtBase base char = case charToDigit char of
+    Just n  -> n < base
+    Nothing -> False
+{-# INLINE isDigitCharAtBase #-}
+
+isDecDigitChar :: Char -> Bool
+isDecDigitChar = isDigitCharAtBase 10 ; {-# INLINE isDecDigitChar #-}
+
+charToDigit :: Char -> Maybe Word8
+charToDigit char = unsafeConvert <$> if
+    | n >= 48 && n <= 57  -> Just $ n - 48      -- 0 to 9
+    | n >= 65 && n <= 90  -> Just $ n - 65 + 10 -- A to Z
+    | n >= 97 && n <= 122 -> Just $ n - 97 + 10 -- a to z
+    | otherwise           -> Nothing
+    where n = Char.ord char
+{-# INLINE charToDigit #-}
+
+unsafeCharToDigit :: Char -> Word8
+unsafeCharToDigit c = fromJust err $ charToDigit c where
+    err = error $ "Cannot convert char " <> [c] <> " to digit."
+{-# INLINE unsafeCharToDigit #-}
 
 lexNumber :: Lexer
-lexNumber = check =<< number where
-    number  = (token '0' *> choice [hex, oct, bin]) <|> dec
-    n       = Symbol.NumRep
-    dec     = n Symbol.Dec           <$> decBody <*> fracSfx     <*> expSfx
-    hex     = n Symbol.Hex <$ hexPfx <*> hexBody <*> pure mempty <*> pure mempty
-    oct     = n Symbol.Oct <$ octPfx <*> octBody <*> pure mempty <*> pure mempty
-    bin     = n Symbol.Bin <$ binPfx <*> binBody <*> pure mempty <*> pure mempty
-    hexPfx  = satisfy (\s -> s == 'x' || s == 'X')
-    octPfx  = satisfy (\s -> s == 'o' || s == 'O')
-    binPfx  = satisfy (\s -> s == 'b' || s == 'B')
-    decBody = takeWhile1 isDecDigitChar
-    hexBody = takeWhile1 isHexDigitChar
-    octBody = takeWhile1 isOctDigitChar
-    binBody = takeWhile1 isBinDigitChar
-    expBody = maybe id Text32.cons <$> optional sign <*> decBody
-    fracSfx = option mempty $ token '.' *> decBody
-    expSfx  = option mempty $ (token 'e' <|> token 'E') *> expBody
-    sign    = satisfy (\s -> s == '-' || s == '+')
-    check n = option (Symbol.Number n)
-            $ (\s -> Symbol.Incorrect $ "Unexpected characters '" <> s
-                                     <> "' found on the end of number literal"
-              ) <$> takeWhile1 Char.isAlphaNum
+lexNumber = checkInvalidSuffix number where
+    number  = Symbol.Number <$> (special <|> dec)
+    special = token '0' *> choice [p0 'x' 16, p0 'o' 8, p0 'b' 2]
+    dec     = Symbol.NumRep 10            <$> body 10 <*> frac 10
+    p0 s n  = Symbol.NumRep n  <$ token s <*> body n  <*> frac n
+    body n  = Txt.toList . Txt.map unsafeCharToDigit
+          <$> takeWhile1 (isDigitCharAtBase n)
+    frac  n = option mempty $ token '.' *> body n
 {-# INLINE lexNumber #-}
 
+
+-----------------------------
+-- === String literals === --
+-----------------------------
 
 -- === String parsing utils === --
 
@@ -171,7 +185,7 @@ beginQuotes !c = beginMultiQuotes c <|> (1 <$ token c) ; {-# INLINE beginQuotes 
 
 beginMultiQuotes :: Char -> Parser Int
 beginMultiQuotes !c = do
-    !len <- Text32.length <$> takeMany1 c
+    !len <- Txt.length <$> takeMany1 c
     when_ (len == 2) $ fail "Empty string"
     pure len
 {-# INLINE beginMultiQuotes #-}
@@ -198,7 +212,7 @@ natStrBody hlen = code <|> quotes where
     code   = Symbol.Str <$> takeWhile1 (/= natStrQuote)
     quotes = do
         qs <- takeMany1 natStrQuote
-        if Text32.length qs == hlen
+        if Txt.length qs == hlen
             then Symbol.Quote Symbol.NatStr Symbol.End <$ unliftEntry
             else pure $ Symbol.Str qs
 {-# INLINE natStrBody #-}
@@ -217,7 +231,7 @@ rawStrBody hlen = choice [body, escape, quotes, linebr] where
               <|> (Symbol.QuoteEscape Symbol.RawStr <$ token rawStrQuote)
     quotes      = do
         qs <- takeMany1 rawStrQuote
-        if Text32.length qs == hlen
+        if Txt.length qs == hlen
             then Symbol.Quote Symbol.RawStr Symbol.End <$ unliftEntry
             else pure $ Symbol.Str qs
 {-# INLINE rawStrBody #-}
@@ -242,7 +256,7 @@ fmtStrBody hlen = choice [body, escape, quotes, linebr, code] where
               <|> lexEscSeq
     quotes      = do
         qs <- takeMany1 fmtStrQuote
-        if Text32.length qs == hlen
+        if Txt.length qs == hlen
             then Symbol.Quote Symbol.FmtStr Symbol.End <$ unliftEntry
             else pure $ Symbol.Str qs
     code        = Symbol.Block Symbol.Begin
@@ -253,7 +267,7 @@ fmtStrCode :: Int -> Lexer
 fmtStrCode hlen = ending <|> topEntryPoint where
     ending = do
         qs <- takeMany1 natStrQuote
-        when_ (Text32.length qs /= hlen) $ fail "Not an ending"
+        when_ (Txt.length qs /= hlen) $ fail "Not an ending"
         Symbol.Block Symbol.End <$ unliftEntry
 {-# INLINE fmtStrCode #-}
 
@@ -338,15 +352,15 @@ lexMarker = token markerBegin *> (correct <|> incorrect) <* token markerEnd
 -- === Operators === --
 -----------------------
 
-regularOperatorChars :: [Char]
-regularOperatorChars = "!$%&*+-/<>?^~\\" ; {-# INLINE regularOperatorChars #-}
+operatorChars :: [Char]
+operatorChars = "!$%&*+-/<>?^~\\" ; {-# INLINE operatorChars #-}
 
-isRegularOperatorChar :: Char -> Bool
-isRegularOperatorChar = (`elem` regularOperatorChars) ; {-# INLINE isRegularOperatorChar #-}
+isOperatorChar :: Char -> Bool
+isOperatorChar = (`elem` operatorChars) ; {-# INLINE isOperatorChar #-}
 
 isOperator :: Convertible' s String => s -> Bool
 isOperator = test . convertTo' @String where
-    test s = all isRegularOperatorChar s
+    test s = all isOperatorChar s
           || s `elem` [",", "..", "...", "=="]
           || (last s == Just '=') && isOperator (unsafeInit s)
 {-# INLINE isOperator #-}
@@ -378,6 +392,7 @@ symmap = Vector.generate symmapSize $ \i -> let c = Char.chr i in if
     | c == markerBegin  -> lexMarker
 
     -- Identifiers & Keywords
+    | c == '_'          -> lexWildcard
     | isVarHead  c      -> lexVariable
     | isConsHead c      -> lexConstructor
 
@@ -386,7 +401,7 @@ symmap = Vector.generate symmapSize $ \i -> let c = Char.chr i in if
     | c == '|'          -> Symbol.Merge   <$ dropToken
     | c == '.'          -> handleDots =<< takeMany '.'
     | c == '='          -> handleEqs  =<< takeMany '='
-    | c `elem` opChars  -> handleOp <$> takeWhile1 isRegularOperatorChar
+    | c `elem` operatorChars  -> handleOp <$> takeWhile1 isOperatorChar
                                     <*> takeMany '='
 
     -- Literals
@@ -411,7 +426,7 @@ symmap = Vector.generate symmapSize $ \i -> let c = Char.chr i in if
     handleHash   = handleRepsM [ lexComment, pure Symbol.Disable, lexConfig]
     handleReps   = handleRepsM . fmap pure
     handleRepsM  = \ts s -> fromJust (pure $ Symbol.Unknown s)
-                 $ ts ^? ix (Text32.length s - 1)
+                 $ ts ^? ix (Txt.length s - 1)
     handleOp p s = if (p == "<" || p == ">") && s == "="
                        then Symbol.Operator (p <> s)
                        else case s of
@@ -477,4 +492,4 @@ lexeme s = case s of
 {-# INLINE lexeme #-}
 
 spacing :: Parser Int
-spacing = Text32.length <$> takeMany ' ' ; {-# INLINE spacing #-}
+spacing = Txt.length <$> takeMany ' ' ; {-# INLINE spacing #-}
