@@ -99,13 +99,13 @@ varBreakChars = "!@#$%^&*()-=+[]{}\\|;:<>,./ \t\n" ; {-# INLINE varBreakChars #-
 
 -- === Names === --
 
-invalidSuffix :: Lexer
+invalidSuffix :: Parser (Symbol -> Symbol)
 invalidSuffix = Symbol.Invalid . Invalid.UnexpectedSuffix . Txt.length
             <$> takeWhile1 (`notElem` varBreakChars)
 {-# INLINE invalidSuffix #-}
 
 checkInvalidSuffix :: Lexer -> Lexer
-checkInvalidSuffix = (<**> option id (const <$> invalidSuffix)) ; {-# INLINE checkInvalidSuffix #-}
+checkInvalidSuffix = (<**> option id invalidSuffix) ; {-# INLINE checkInvalidSuffix #-}
 
 lexWildcard :: Lexer
 lexWildcard = checkInvalidSuffix $ Symbol.Wildcard <$ token '_' ; {-# INLINE lexWildcard #-}
@@ -126,8 +126,8 @@ lexConstructor = Symbol.Cons <$> takeWhile isIdentBodyChar
 --   We assume that we have already checked for valid headers before
 --   using this check!.
 lexInvalidVariable :: Lexer
-lexInvalidVariable = Symbol.Invalid Invalid.CaselessNameHead
-                  <$ takeWhile isIdentBodyChar
+lexInvalidVariable = Symbol.Invalid Invalid.CaselessNameHead . Symbol.Var
+                 <$> takeWhile isIdentBodyChar
 {-# INLINE lexInvalidVariable #-}
 
 

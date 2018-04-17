@@ -64,7 +64,6 @@ data Symbol
 
     -- Ident
     | Var          !Text32
-    | VarMultiName !(Maybe Text32) ![Text32]
     | Cons         !Text32
     | Wildcard
 
@@ -110,7 +109,7 @@ data Symbol
     -- Other
     | Unknown     !Text32 -- DEPRECATED
     | Incorrect   !Text32 -- DEPRECATED
-    | Invalid     !Invalid.Symbol
+    | Invalid     !Invalid.Symbol !Symbol
     deriving (Eq, Generic, Ord, Show)
 
 data StrEscType
@@ -122,7 +121,6 @@ data StrEscType
 
 data Bound   = Begin | End              deriving (Eq, Generic, Ord, Show)
 data StrType = RawStr | FmtStr | NatStr deriving (Eq, Generic, Ord, Show)
--- data Numbase = Dec | Bin | Oct | Hex    deriving (Eq, Generic, Ord, Show)
 data Number  = NumRep
     { _base     :: Word8
     , _intPart  :: [Word8]
@@ -133,17 +131,10 @@ instance NFData Symbol
 instance NFData StrEscType
 instance NFData Bound
 instance NFData StrType
--- instance NFData Numbase
 instance NFData Number
 makeClassy ''Symbol
 makeLenses ''Number
 
--- instance Convertible Numbase Word8 where
---     convert = \case
---         Bin -> 2
---         Oct -> 8
---         Dec -> 10
---         Hex -> 16
 
 
 -- === Utils === --
@@ -166,6 +157,7 @@ matchVar, matchCons, matchOperator, matchModifier, matchStr, matchDocComment,
 matchNumber   :: Symbol -> Maybe Number
 matchMarker   :: Symbol -> Maybe Word64
 matchStrEsc   :: Symbol -> Maybe StrEscType
+matchInvalid  :: Symbol -> Maybe Invalid.Symbol
 matchVar        = \case { Var        a -> Just a ; _ -> Nothing } ; {-# INLINE matchVar        #-}
 matchCons       = \case { Cons       a -> Just a ; _ -> Nothing } ; {-# INLINE matchCons       #-}
 matchOperator   = \case { Operator   a -> Just a ; _ -> Nothing } ; {-# INLINE matchOperator   #-}
@@ -176,10 +168,8 @@ matchNumber     = \case { Number     a -> Just a ; _ -> Nothing } ; {-# INLINE m
 matchMarker     = \case { Marker     a -> Just a ; _ -> Nothing } ; {-# INLINE matchMarker     #-}
 matchDocComment = \case { Doc        a -> Just a ; _ -> Nothing } ; {-# INLINE matchDocComment #-}
 matchMetadata   = \case { Metadata   a -> Just a ; _ -> Nothing } ; {-# INLINE matchMetadata   #-}
-matchInvalid    = \case { Invalid    a -> Just a ; _ -> Nothing } ; {-# INLINE matchInvalid    #-}
+matchInvalid    = \case { Invalid  a _ -> Just a ; _ -> Nothing } ; {-# INLINE matchInvalid    #-}
 
--- intNum :: Text32 -> Number
--- intNum  i = NumRep Dec i mempty mempty ; {-# INLINE intNum #-}
 
 pretty :: Symbol -> Text32
 pretty = \case
@@ -192,7 +182,6 @@ pretty = \case
     Group        {} -> "expression group"
     Marker       {} -> "metadata (position marker)"
     Var          {} -> "variable name"
-    VarMultiName {} -> "multipart variable name"
     Cons         {} -> "Constructor"
     Wildcard     {} -> "wildcard"
     KwAll        {} -> "keyword `All`"
@@ -221,9 +210,9 @@ pretty = \case
     Disable      {} -> "disable block"
     Doc          {} -> "documentation"
     Metadata     {} -> "metadata"
-    Unknown      s  -> "unknown symbol " <> s
-    Incorrect    s  -> "incorrect " <> s
-    Invalid      s  -> "invalid " <> convert (show s)
+    Unknown     s   -> "unknown symbol " <> s
+    Incorrect   s   -> "incorrect " <> s
+    Invalid     s _ -> "invalid " <> convert (show s)
 {-# INLINE pretty #-}
 
 
@@ -241,7 +230,6 @@ instance ShowCons Symbol where
         Group        {} -> "Group"
         Marker       {} -> "Marker"
         Var          {} -> "Var"
-        VarMultiName {} -> "VarMultiName"
         Cons         {} -> "Cons"
         Wildcard     {} -> "Wildcard"
         KwAll        {} -> "KwAll"
@@ -286,7 +274,6 @@ instance IsTagged Symbol where
         Group        {} -> "Layout"
         Marker       {} -> "Layout"
         Var          {} -> "Ident"
-        VarMultiName {} -> "Ident"
         Cons         {} -> "Ident"
         Wildcard     {} -> "Ident"
         KwAll        {} -> "Keyword"

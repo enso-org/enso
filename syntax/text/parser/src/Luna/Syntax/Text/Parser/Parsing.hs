@@ -273,8 +273,8 @@ marked = option registerUnmarkedExpr $ uncurry markedExpr <$> markerIRB where
 
 registerUnmarkedExpr ::             IRBS SomeTerm -> IRBS SomeTerm
 registerMarkedExpr   :: MarkerId -> IRBS SomeTerm -> IRBS SomeTerm
-registerUnmarkedExpr = wrapped %~ (>>~ addUnmarkedExpr)
-registerMarkedExpr m = wrapped %~ (>>~ addMarkedExpr m)
+registerUnmarkedExpr = wrapped %~ (>>~ addUnmarkedExpr) ; {-# INLINE registerUnmarkedExpr #-}
+registerMarkedExpr m = wrapped %~ (>>~ addMarkedExpr m) ; {-# INLINE registerMarkedExpr   #-}
 
 
 
