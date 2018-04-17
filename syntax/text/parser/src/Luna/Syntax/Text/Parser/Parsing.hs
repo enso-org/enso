@@ -58,9 +58,8 @@ import Luna.Syntax.Text.Parser.Marker   (MarkedExprMap, MarkerId, MarkerState,
 import Luna.Syntax.Text.Parser.Marker   (MarkedExprMap, UnmarkedExprs)
 import Luna.Syntax.Text.Parser.Name     (SpacedName)
 import Luna.Syntax.Text.Parser.Parser   (Parser)
-import Luna.Syntax.Text.Parser.Pass     (IRB, IRBS (IRBS, fromIRBS), IRBSParser,
-                                         liftIRBS1, liftIRBS2, liftIRBS3,
-                                         runParserT, withAsgBldr)
+import Luna.Syntax.Text.Parser.Pass     (IRB, IRBS (IRBS, fromIRBS), liftIRBS1,
+                                         liftIRBS2, liftIRBS3, runParserT)
 import OCI.Data.Name                    (Name)
 import Text.Megaparsec                  (ErrorItem (Tokens), MonadParsec,
                                          ParseError, between, choice, hidden,
@@ -232,7 +231,7 @@ invalid t = do
 invalidToken :: Parser (IRBS SomeTerm)
 invalidToken = irbs $ invalid <$> satisfTest Lexer.matchInvalid ; {-# INLINE invalidToken #-}
 
--- invalidSymbol :: (Lexer.Symbol -> Text32) -> IRBSParser SomeTerm
+-- invalidSymbol :: (Lexer.Symbol -> Text32) -> Parser (IRBS SomeTerm)
 -- invalidSymbol f = irbs $ invalid . f <$> anySymbol
 
 -- catchParseErrors :: Parser a -> Parser (Either String a)
@@ -274,8 +273,8 @@ marked = option registerUnmarkedExpr $ uncurry markedExpr <$> markerIRB where
 
 registerUnmarkedExpr ::             IRBS SomeTerm -> IRBS SomeTerm
 registerMarkedExpr   :: MarkerId -> IRBS SomeTerm -> IRBS SomeTerm
-registerUnmarkedExpr = withAsgBldr (>>~ addUnmarkedExpr)
-registerMarkedExpr m = withAsgBldr (>>~ addMarkedExpr m)
+registerUnmarkedExpr = wrapped %~ (>>~ addUnmarkedExpr)
+registerMarkedExpr m = wrapped %~ (>>~ addMarkedExpr m)
 
 
 
@@ -305,7 +304,7 @@ parensed p = groupBegin *> p <* groupEnd ; {-# INLINE parensed #-}
 -- === Identifiers === --
 -------------------------
 
-cons, var, op, wildcard :: IRBSParser SomeTerm
+cons, var, op, wildcard :: Parser (IRBS SomeTerm)
 cons     = snd <$> namedCons                             ; {-# INLINE cons     #-}
 var      = snd <$> namedVar                              ; {-# INLINE var      #-}
 op       = snd <$> namedOp                               ; {-# INLINE op       #-}
@@ -371,15 +370,15 @@ rawQuoteEnd   = symbol $ Lexer.Quote Lexer.RawStr Lexer.End   ; {-# INLINE rawQu
 fmtQuoteBegin = symbol $ Lexer.Quote Lexer.FmtStr Lexer.Begin ; {-# INLINE fmtQuoteBegin #-}
 fmtQuoteEnd   = symbol $ Lexer.Quote Lexer.FmtStr Lexer.End   ; {-# INLINE fmtQuoteEnd   #-}
 
-number :: IRBSParser SomeTerm
+number :: Parser (IRBS SomeTerm)
 number = irbs $ do
     Lexer.NumRep base i f <- satisfTest Lexer.matchNumber
     pure $ IR.number' base (convert i) (convert f)
 
 
-list :: IRBSParser SomeTerm -> IRBSParser SomeTerm
+list :: Parser (IRBS SomeTerm) -> Parser (IRBS SomeTerm)
 list p = irbs $ Reserved.withLocalUnreservedSymbol sep $ braced $ (\g -> liftIRBS1 IR.list' $ sequence g) <$> elems where
-    missing :: IRBSParser SomeTerm
+    missing :: Parser (IRBS SomeTerm)
     missing   = irbs . pure $ IR.missing'
     sep       = Lexer.Operator ","
     elem      = Reserved.withLocalReservedSymbol sep p
@@ -392,10 +391,10 @@ list p = irbs $ Reserved.withLocalUnreservedSymbol sep $ braced $ (\g -> liftIRB
 
 -- FIXME[WD]: This `try` should be refactored out
 -- FIXME[WD]: Tuple and List parsers are too similar no to be refactored to common part. However tuples will disappear soon.
-tuple :: IRBSParser SomeTerm -> IRBSParser SomeTerm
+tuple :: Parser (IRBS SomeTerm) -> Parser (IRBS SomeTerm)
 tuple p = try $ irbs $ Reserved.withLocalUnreservedSymbol sep $ parensed
         $ (liftIRBS1 IR.tuple' . sequence) <$> elems where
-    missing :: IRBSParser SomeTerm
+    missing :: Parser (IRBS SomeTerm)
     missing    = irbs $ pure IR.missing'
     sep        = Lexer.Operator ","
     elem       = Reserved.withLocalReservedSymbol sep p
@@ -405,10 +404,10 @@ tuple p = try $ irbs $ Reserved.withLocalUnreservedSymbol sep $ parensed
     parensed p = groupBegin *> p <* groupEnd
     separator  = symbol sep
 
-string :: IRBSParser SomeTerm
+string :: Parser (IRBS SomeTerm)
 string = rawStr <|> fmtStr
 
-rawStr :: IRBSParser SomeTerm
+rawStr :: Parser (IRBS SomeTerm)
 rawStr = irbs $ do
     rawQuoteBegin
     (IR.string' . convertVia @String) <$> Indent.withCurrent (strBody rawQuoteEnd) -- FIXME[WD]: We're converting Text -> String here.
@@ -416,7 +415,7 @@ rawStr = irbs $ do
     --              $ (IR.string' . convertVia @String)
     --            <$> Indent.withCurrent (strBody rawQuoteEnd) -- FIXME[WD]: We're converting Text -> String here.
 
-fmtStr :: IRBSParser SomeTerm
+fmtStr :: Parser (IRBS SomeTerm)
 fmtStr = irbs $ do
     fmtQuoteBegin
     (IR.string' . convertVia @String) <$> Indent.withCurrent (strBody fmtQuoteEnd) -- FIXME[WD]: We're converting Text -> String here.
@@ -467,14 +466,14 @@ apps, seqs :: IRBS SomeTerm -> [IRBS SomeTerm] -> IRBS SomeTerm
 apps = foldl' app ; {-# INLINE apps #-}
 seqs = foldl' seq ; {-# INLINE seqs #-}
 
-grouped :: IRBSParser SomeTerm -> IRBSParser SomeTerm
+grouped :: Parser (IRBS SomeTerm) -> Parser (IRBS SomeTerm)
 grouped = irbs . parensed . fmap (liftIRBS1 IR.grouped') ; {-# INLINE grouped #-}
 
 
 -- === Metadata === --
 
 -- FIXME: performance
-metadata :: IRBSParser SomeTerm
+metadata :: Parser (IRBS SomeTerm)
 metadata = irbs $ IR.metadata' . convertVia @String <$> metaContent ; {-# INLINE metadata #-}
 
 metaContent :: Parser Text32
@@ -483,10 +482,10 @@ metaContent = satisfTest Lexer.matchMetadata ; {-# INLINE metaContent #-}
 
 -- === Disabled === --
 
-possiblyDisabled :: IRBSParser SomeTerm -> IRBSParser SomeTerm
+possiblyDisabled :: Parser (IRBS SomeTerm) -> Parser (IRBS SomeTerm)
 possiblyDisabled p = disabled p <|> p ; {-# INLINE possiblyDisabled #-}
 
-disabled :: IRBSParser SomeTerm -> IRBSParser SomeTerm
+disabled :: Parser (IRBS SomeTerm) -> Parser (IRBS SomeTerm)
 disabled p = irbs $ liftIRBS1 IR.disabled' <$ symbol Lexer.Disable <*> p ; {-# INLINE disabled #-}
 
 
@@ -512,36 +511,36 @@ instance Semigroup ExprSegmentBuilder where
                                    <> runSegmentBuilder b False r
     {-# INLINE (<>) #-}
 
-expr :: IRBSParser SomeTerm
+expr :: Parser (IRBS SomeTerm)
 expr = possiblyDocumented $ func <|> lineExpr ; {-# INLINE expr #-}
 
-lineExpr :: IRBSParser SomeTerm
+lineExpr :: Parser (IRBS SomeTerm)
 lineExpr = marked <*> possiblyDisabled (valExpr <**> option id assignment) where
     assignment = flip unify <$ symbol Lexer.Assignment <*> valExpr
 {-# INLINE lineExpr #-}
 
-valExpr :: IRBSParser SomeTerm
+valExpr :: Parser (IRBS SomeTerm)
 valExpr = buildTokenExpr =<< exprSegments ; {-# INLINE valExpr #-}
 
-nonemptyValExpr :: IRBSParser SomeTerm
+nonemptyValExpr :: Parser (IRBS SomeTerm)
 nonemptyValExpr = do
     es <- exprSegments
     -- when (null es) $ unexpected "Empty expression" -- FIXME[WD]
     buildTokenExpr es
 
-nonemptyValExprLocal :: IRBSParser SomeTerm
+nonemptyValExprLocal :: Parser (IRBS SomeTerm)
 nonemptyValExprLocal = do
     es <- exprSegmentsLocal
     -- when (null es) $ unexpected "Empty expression" -- FIXME[WD]
     buildTokenExpr es
 
-nonSpacedValExpr :: IRBSParser SomeTerm
+nonSpacedValExpr :: Parser (IRBS SomeTerm)
 nonSpacedValExpr = do
     es <- exprSegmentsNonSpaced
     -- when (null es) $ unexpected "Empty expression" -- FIXME[WD]
     buildTokenExpr es
 
-nonSpacedPattern :: IRBSParser SomeTerm
+nonSpacedPattern :: Parser (IRBS SomeTerm)
 nonSpacedPattern = nonSpacedValExpr
 
 concatExprSegmentBuilders :: NonEmpty ExprSegmentBuilder -> ExprSegmentBuilder
@@ -715,13 +714,13 @@ accSeg = fmap2 Expr.tokenx $ do
             | otherwise   -> error "unsupported" -- FIXME[WD]: make nice error here
     pure $ SegmentBuilder segment
 
-match :: IRBSParser SomeTerm
+match :: Parser (IRBS SomeTerm)
 match = irbs $ (\n (p,ps) -> liftIRBS2 IR.match' n (sequence $ p:ps))
       <$ symbol Lexer.KwCase <*> nonemptyValExprLocal
       <* symbol Lexer.KwOf   <*> discover (nonEmptyBlock clause)
       where clause = pat <**> lamBldr
 
-pat :: IRBSParser SomeTerm
+pat :: Parser (IRBS SomeTerm)
 pat = Reserved.withLocalReservedSymbol Lexer.BlockStart nonemptyValExprLocal
 
 
@@ -759,11 +758,11 @@ buildTokenExpr' = Expr.buildExpr_termApp . Labeled (Name.spaced Builtin.appName)
 -- === Documentation === --
 ---------------------------
 
-possiblyDocumented :: IRBSParser SomeTerm -> IRBSParser SomeTerm
+possiblyDocumented :: Parser (IRBS SomeTerm) -> Parser (IRBS SomeTerm)
 possiblyDocumented p = documented p <|> p
 
 -- FIXME: performance
-documented :: IRBSParser SomeTerm -> IRBSParser SomeTerm
+documented :: Parser (IRBS SomeTerm) -> Parser (IRBS SomeTerm)
 documented p = irbs $ (\d t -> liftIRBS1 (IR.documented' $ convertVia @String d) t) <$> doc <*> p
 
 doc :: Parser Text32
@@ -774,12 +773,12 @@ doc = intercalate "\n" <$> some (satisfTest Lexer.matchDocComment <* eol)
 -- === Declarations === --
 --------------------------
 
-topLvlDecl :: IRBSParser SomeTerm
+topLvlDecl :: Parser (IRBS SomeTerm)
 topLvlDecl = possiblyDocumented $ func <|> record <|> metadata
 
 -- === Functions === --
 
-func :: IRBSParser SomeTerm
+func :: Parser (IRBS SomeTerm)
 func = irbs $ funcHdr <**> (funcSig <|> funcDef) where
     funcDef, funcSig :: Parser (IRBS SomeTerm -> IRB SomeTerm)
     funcHdr     = symbol Lexer.KwDef *> withRecovery headerRec (var <|> op)
@@ -804,7 +803,7 @@ func = irbs $ funcHdr <**> (funcSig <|> funcDef) where
 
 -- -- === Classes == --
 
-record :: IRBSParser SomeTerm
+record :: Parser (IRBS SomeTerm)
 record = irbs $ (\nat n args (cs,ds) -> liftIRBS3 (IR.record' nat n) (sequence args) (sequence cs) (sequence ds))
    <$> try (option False (True <$ symbol Lexer.KwNative) <* symbol Lexer.KwClass) <*> consName <*> many var <*> body
     where body      = option mempty $ symbol Lexer.BlockStart *> bodyBlock
@@ -812,16 +811,16 @@ record = irbs $ (\nat n args (cs,ds) -> liftIRBS3 (IR.record' nat n) (sequence a
           consBlock = breakableNonEmptyBlockBody' recordCons <|> breakableOptionalBlockBody recordNamedFields
           bodyBlock = discoverIndent ((,) <$> consBlock <*> funcBlock)
 
-recordCons :: IRBSParser SomeTerm
+recordCons :: Parser (IRBS SomeTerm)
 recordCons = irbs $ (\n fields -> liftIRBS1 (IR.recordCons' n) (sequence fields)) <$> consName <*> (blockDecl <|> inlineDecl) where
     blockDecl  = symbol Lexer.BlockStart *> discover (nonEmptyBlock' recordNamedFields)
     inlineDecl = many unnamedField
 
-recordNamedFields :: IRBSParser SomeTerm
+recordNamedFields :: Parser (IRBS SomeTerm)
 recordNamedFields = irbs $ liftIRBS1 . IR.recordFields' . convert
                 <$> many varName <* symbol Lexer.Typed <*> valExpr
 
-unnamedField :: IRBSParser SomeTerm
+unnamedField :: Parser (IRBS SomeTerm)
 unnamedField = irbs $ liftIRBS1 (IR.recordFields' mempty)
                       <$> nonSpacedValExpr
 
@@ -833,7 +832,7 @@ unnamedField = irbs $ liftIRBS1 (IR.recordFields' mempty)
 
 -- === Imports === --
 
-impHub :: IRBSParser SomeTerm
+impHub :: Parser (IRBS SomeTerm)
 impHub = irbs $ (\(imps :: [IRBS SomeTerm])
                  -> liftIRBS1 IR.importHub'
                     (sequence imps :: IRBS [SomeTerm])) <$> impHeader
@@ -841,13 +840,13 @@ impHub = irbs $ (\(imps :: [IRBS SomeTerm])
 impHeader :: Parser [IRBS SomeTerm]
 impHeader = option mempty $ breakableOptionalBlockTop imp -- <* skipEmptyLines
 
-imp :: IRBSParser SomeTerm
+imp :: Parser (IRBS SomeTerm)
 imp = irbs $ (\a tgts -> liftIRBS1 (flip IR.imp' tgts) a)
    <$ symbol Lexer.KwImport <*> importSource <*> impTgt where
     impTgt  = option Import.Everything $ symbol Lexer.BlockStart *> listTgt
     listTgt = Import.Listed . convert <$> many (varName <|> consName)
 
-importSource :: IRBSParser SomeTerm
+importSource :: Parser (IRBS SomeTerm)
 importSource = irbs . fmap IR.importSource' $ choice
     [ Import.World              <$  matchCons "World"
     , Import.Relative . convert <$  symbol Lexer.Accessor <*> qualConsName
@@ -859,7 +858,7 @@ importSource = irbs . fmap IR.importSource' $ choice
 -- -- === Foreign Import Parsing === --+
 -- ------------------------------------
 
-foreignImportList :: IRBSParser SomeTerm
+foreignImportList :: Parser (IRBS SomeTerm)
 foreignImportList = irbs $
     (\lang imports ->
         liftIRBS1 (IR.foreignImport' lang) (sequence imports))
@@ -868,7 +867,7 @@ foreignImportList = irbs $
     <*  symbol Lexer.BlockStart
     <*> discover (nonEmptyBlock' foreignLocationImportList)
 
-foreignLocationImportList :: IRBSParser SomeTerm
+foreignLocationImportList :: Parser (IRBS SomeTerm)
 foreignLocationImportList = irbs $
     (\loc imports ->
         liftIRBS2 IR.foreignImportList' loc (sequence imports))
@@ -876,7 +875,7 @@ foreignLocationImportList = irbs $
     <*  symbol Lexer.BlockStart
     <*> discover (nonEmptyBlock' foreignSymbolImport)
 
-foreignSymbolImport :: IRBSParser SomeTerm
+foreignSymbolImport :: Parser (IRBS SomeTerm)
 foreignSymbolImport = irbs $ withRecovery recover
     $   try (foreignSymbolImportWithSafety defaultFISafety)
     <|> foreignSymbolImportWithSafety specifiedFISafety
@@ -884,21 +883,21 @@ foreignSymbolImport = irbs $ withRecovery recover
                       <$ Loc.unregisteredDropSymbolsUntil
                       (`elem` [Lexer.ETX, Lexer.EOL])
 
-foreignSymbolImportWithSafety :: IRBSParser SomeTerm -> Parser (IRB SomeTerm)
+foreignSymbolImportWithSafety :: Parser (IRBS SomeTerm) -> Parser (IRB SomeTerm)
 foreignSymbolImportWithSafety safe =
     (\safety forName localName importType ->
         liftIRBS3 (foreignSymbolProxy localName) safety forName importType)
     <$> safe <*> stringOrVarName <*> funcName <*  symbol Lexer.Typed <*> valExpr
     where foreignSymbolProxy a b c d = IR.foreignImportSymbol' b c a d
 
-defaultFISafety :: IRBSParser SomeTerm
+defaultFISafety :: Parser (IRBS SomeTerm)
 defaultFISafety = irbs $
     (\safety -> id (IR.foreignImportSafety' safety))
     <$> ((pure Import.Default) :: Parser IR.ForeignImportType)
 
 -- TODO [Ara, WD] Need to have the lexer deal with these as contextual keywords
 -- using a positive lookahead in the _Lexer_.
-specifiedFISafety :: IRBSParser SomeTerm
+specifiedFISafety :: Parser (IRBS SomeTerm)
 specifiedFISafety = irbs $
     (\(importSafety :: IR.ForeignImportType) ->
         id (IR.foreignImportSafety' importSafety))
@@ -911,10 +910,10 @@ specifiedFISafety = irbs $
                   "unsafe" -> pure Import.Unsafe
                   _        -> fail "Invalid safety specification."
 
-stringOrVarName :: IRBSParser SomeTerm
+stringOrVarName :: Parser (IRBS SomeTerm)
 stringOrVarName = string <|> (asgNameParser varName)
 
-asgNameParser :: Parser Name -> IRBSParser SomeTerm
+asgNameParser :: Parser Name -> Parser (IRBS SomeTerm)
 asgNameParser nameParser = irbs $ (\varN -> id (IR.var' varN))
      <$> nameParser
 
@@ -922,8 +921,8 @@ asgNameParser nameParser = irbs $ (\varN -> id (IR.var' varN))
 
 -- -- === Unit body === --
 
-unit' :: IRBSParser SomeTerm
-unit  :: IRBSParser (IR.Term IR.Unit)
+unit' :: Parser (IRBS SomeTerm)
+unit  :: Parser (IRBS (IR.Term IR.Unit))
 unit' = Layout.relayout <<$>> unit
 unit  = irbs $
     (\imps cls
@@ -931,7 +930,7 @@ unit  = irbs $
         <$ spacing <*> (foreignImportList <|> impHub) <*> unitCls <* spacing
     where spacing = many eol
 
-unitCls :: IRBSParser SomeTerm
+unitCls :: Parser (IRBS SomeTerm)
 unitCls = irbs $ (\ds -> liftIRBS1 (IR.record' False "" [] [])
                      (sequence ds)) <$> optionalBlockTop topLvlDecl
 
@@ -1029,7 +1028,7 @@ optionalBlockAny = option mempty nonEmptyBlockAny
 
 
 
--- parsingPassM :: (MonadPassManager m, ParsingPassReq2 m) => IRBSParser SomeTerm -> m ()
+-- parsingPassM :: (MonadPassManager m, ParsingPassReq2 m) => Parser (IRBS SomeTerm) -> m ()
 -- parsingPassM p = do
 --     src <- getAttr @Source
 --     (ref, gidMap) <- parsingBase p (convert src)
@@ -1037,7 +1036,7 @@ optionalBlockAny = option mempty nonEmptyBlockAny
 --     putAttr @MarkedExprMap $ gidMap
 
 
-parsingBase :: IRBSParser a -> Text32.Text32 -> Pass Pass.Parser (a, MarkedExprMap)
+parsingBase :: Parser (IRBS a) -> Text32.Text32 -> Pass Pass.Parser (a, MarkedExprMap)
 parsingBase p src = do
     let stream = Lexer.evalDefLexer src
     result <- runParserT (stx *> p <* etx) stream
@@ -1052,10 +1051,10 @@ parsingBase p src = do
 --                 ) => IRBSParser a -> Text32 -> m a
 -- parsingBase_ = view _1 .:. parsingBase
 
--- parserPassX  :: MonadPassManager m => IRBSParser SomeTerm -> Pass Parsing   m
+-- parserPassX  :: MonadPassManager m => Parser (IRBS SomeTerm) -> Pass Parsing   m
 -- parserPassX  = parsingPassM
 
--- reparserPass :: MonadPassManager m => IRBSParser SomeTerm -> Pass Reparsing m
+-- reparserPass :: MonadPassManager m => Parser (IRBS SomeTerm) -> Pass Reparsing m
 -- reparserPass p = do
 --     -- Reading previous analysis
 --     gidMapOld <- getAttr @MarkedExprMap

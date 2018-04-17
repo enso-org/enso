@@ -21,6 +21,7 @@ import qualified Luna.Pass.Scheduler                 as Scheduler
 import qualified Luna.Runner                         as Runner
 import qualified Luna.Syntax.Prettyprint             as Prettyprint
 import qualified Luna.Syntax.Text.Parser.CodeSpan    as CodeSpan
+import qualified Luna.Syntax.Text.Parser.Parser      as Token
 import qualified Luna.Syntax.Text.Parser.Parsing     as Parsing
 import qualified Luna.Syntax.Text.Parser.Pass        as Parser
 import qualified OCI.Data.Name                       as Name
@@ -33,7 +34,7 @@ import Luna.IR.Component.Link           (type (*-*), Link)
 import Luna.Pass                        (Pass)
 import Luna.Syntax.Text.Parser.CodeSpan (CodeSpan)
 import Luna.Syntax.Text.Parser.Errors   (Invalids)
-import Luna.Syntax.Text.Parser.Pass     (IRBSParser, Parser)
+import Luna.Syntax.Text.Parser.Pass     (IRBS, Parser)
 import Luna.Syntax.Text.Scope           (Scope)
 import Test.Hspec                       (Expectation, Spec, describe, it)
 
@@ -66,7 +67,7 @@ runPasses passes = Scheduler.runManual reg $ do
 runPass' :: Pass Parser () -> IO ()
 runPass' = runPass
 
-shouldParseAs :: IRBSParser IR.SomeTerm -> Text -> Text
+shouldParseAs :: Token.Parser (IRBS IR.SomeTerm) -> Text -> Text
               {- -> (Delta, Delta)-} -> IO ()
 shouldParseAs parser input output {-desiredSpan-} = runPass' $ do
     (((ir,cs),scope), _) <- flip Parsing.parsingBase (convert input) $ do
@@ -84,7 +85,7 @@ shouldParseAs parser input output {-desiredSpan-} = runPass' $ do
     genCode `shouldBe` output
     -- span `shouldBe` desiredSpan
 
-shouldParseItself :: IRBSParser IR.SomeTerm -> Text {- -> (Delta, Delta)-} -> IO ()
+shouldParseItself :: Token.Parser (IRBS IR.SomeTerm) -> Text {- -> (Delta, Delta)-} -> IO ()
 shouldParseItself parser input = shouldParseAs parser input input
 
 unitAs     = shouldParseAs     Parsing.unit'

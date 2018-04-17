@@ -20,7 +20,7 @@ import Control.Monad.State.Layered       (StatesT)
 import Control.Monad.State.Layered       (StateT)
 import Data.Text.Position                (FileOffset)
 import Luna.Pass                         (Pass)
-import Luna.Syntax.Text.Parser.Class     as X (Error)
+import Luna.Syntax.Text.Parser.Class     (Error)
 import Luna.Syntax.Text.Parser.Class     (Stream)
 import Luna.Syntax.Text.Parser.CodeSpan  (CodeSpan, CodeSpanRange)
 import Luna.Syntax.Text.Parser.Errors    (Invalids)
@@ -36,22 +36,12 @@ import Text.Parser.Backend.Megaparsec    ()
 import Text.Parser.Indent                (Indent)
 
 
-runParserInternal :: MonadIO m => ParserBase a -> Stream
-                  -> m (Either (ParseError Parser.Tok Error) a)
-runParserInternal p s = liftIO $ Parser.runParserT p "" s
 
-runParserT :: MonadIO m => Class.Parser a -> Stream
-           -> m (Either (ParseError Parser.Tok Error) a)
-runParserT p s = flip runParserInternal s
-               $ State.evalDefT @CodeSpanRange
-               $ State.evalDefT @Reservation
-               $ State.evalDefT @Scope
-               $ State.evalDefT @LeftSpanner
-               $ State.evalDefT @MarkerState
-            --    $ State.evalDefT @Position
-               $ State.evalDefT @FileOffset
-               $ State.evalDefT @Indent
-               $ hardcode >> p
+-------------------------
+-- === Parser pass === --
+-------------------------
+
+-- === Definition === --
 
 data Parser
 type instance Pass.Spec Parser t = TestPassSpec t
@@ -66,7 +56,25 @@ Pass.cache_phase1 ''Parser
 Pass.cache_phase2 ''Parser
 
 
+-- === API === --
 
+runParserInternal :: MonadIO m => ParserBase a -> Stream
+                  -> m (Either (ParseError Parser.Tok Error) a)
+runParserInternal p s = liftIO $ Parser.runParserT p "" s
+
+runParserT :: MonadIO m => Class.Parser a -> Stream
+           -> m (Either (ParseError Parser.Tok Error) a)
+runParserT p s
+    = flip runParserInternal s
+    $ State.evalDefT @CodeSpanRange
+    $ State.evalDefT @Reservation
+    $ State.evalDefT @Scope
+    $ State.evalDefT @LeftSpanner
+    $ State.evalDefT @MarkerState
+    -- $ State.evalDefT @Position
+    $ State.evalDefT @FileOffset
+    $ State.evalDefT @Indent
+    $ hardcode >> p
 
 
 
@@ -74,28 +82,18 @@ Pass.cache_phase2 ''Parser
 -- === IRB === --
 -----------------
 
--- -- === Definition === --
-
-type IRB = StatesT '[UnmarkedExprs, MarkedExprMap] (Pass Parser)
-
-type IRBParser  a = Class.Parser (IRB  a)
-
-
-------------------
--- === IRBS === --
-------------------
-
--- | IRBS is abbreviation to 'IR Builder Spanned', which is IRB with
---   code span information attached.
-
-
 -- === Definition === --
 
+-- | IRB:  IR Builder
+--   IRBS: IR Builder Spanned
+--   Both IRB and IRBS are Luna IR building monads, however the construction
+--   of IRBS is handled by functions which guarantee that IRB has all code
+--   spanning information encoded
+
+type    IRB    = StatesT '[UnmarkedExprs, MarkedExprMap] (Pass Parser)
 newtype IRBS a = IRBS { fromIRBS :: IRB a }
     deriving (Functor, Applicative, Monad)
 makeLenses ''IRBS
-
-type IRBSParser a = Class.Parser (IRBS a)
 
 
 -- === Utils === --
@@ -113,6 +111,3 @@ liftIRBS3 f t1 t2 t3 = bind3 f (fromIRBS t1) (fromIRBS t2) (fromIRBS t3) ; {-# I
 instance Show (IRBS a) where
     show _ = "IRBS"
 
-
-withAsgBldr :: (IRB a -> IRB b) -> IRBS a -> IRBS b
-withAsgBldr f (IRBS ir) = IRBS $ f ir
