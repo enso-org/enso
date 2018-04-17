@@ -14,6 +14,7 @@ import qualified Data.Char                     as Char
 import qualified Data.Map.Strict               as Map
 import qualified Data.Text32                   as Text32
 import qualified Data.Vector                   as Vector
+import qualified Luna.IR.Term.Ast.Invalid      as Invalid
 import qualified Luna.Syntax.Text.Lexer.Symbol as Symbol
 
 import Control.Monad.State.Layered      (StateT)
@@ -84,8 +85,8 @@ notNewlineStart c = c /= '\n' && c /= '\r' ; {-# INLINE notNewlineStart #-}
 isDecDigitChar, isOctDigitChar, isBinDigitChar, isHexDigitChar, isIdentBodyChar,
     isVarHead, isConsHead :: Char -> Bool
 isIdentBodyChar c = Char.isAlphaNum c || c == '_' ; {-# INLINE isIdentBodyChar  #-}
-isVarHead       c = Char.isLower c || c == '_'    ; {-# INLINE isVarHead        #-}
-isConsHead      c = Char.isUpper c                ; {-# INLINE isConsHead       #-}
+isVarHead       c = Char.isLower    c || c == '_' ; {-# INLINE isVarHead        #-}
+isConsHead      c = Char.isUpper    c             ; {-# INLINE isConsHead       #-}
 isDecDigitChar  c = (c >= '0' && c <= '9')        ; {-# INLINE isDecDigitChar   #-}
 isOctDigitChar  c = (c >= '0' && c <= '7')        ; {-# INLINE isOctDigitChar   #-}
 isBinDigitChar  c = (c == '0' || c == '1')        ; {-# INLINE isBinDigitChar   #-}
@@ -108,10 +109,14 @@ opChars = "!$%&*+-/<>?^~\\" ; {-# INLINE opChars #-}
 -- === Names === --
 
 lexVariable :: Lexer
-lexVariable = Symbol.checkSpecialVar <$> lexName where
-    lexName = takeWhile isIdentBodyChar
-         <**> option id (flip Text32.snoc <$> (token '?' <|> token '!'))
-         <**> option id (flip (<>)        <$> takeMany1 '\'')
+lexVariable = parser where
+    parser     = validName <**> option Symbol.checkSpecialVar
+                 (Symbol.Invalid . Invalid.unexpectedSuffix . Text32.length <$ invalidSfx)
+    validVar   = Symbol.checkSpecialVar <$> validName
+    invalidSfx = takeWhile1 $ \c -> isIdentBodyChar c || c == '?' || c == '!' || c == '\''
+    validName  = takeWhile isIdentBodyChar
+          <**> option id (flip Text32.snoc <$> (token '?' <|> token '!'))
+          <**> option id (flip (<>)        <$> takeMany1 '\'')
 {-# INLINE lexVariable #-}
 
 lexConstructor :: Lexer
@@ -122,8 +127,8 @@ lexConstructor = Symbol.Cons <$> takeWhile isIdentBodyChar
 --   We assume that we have already checked for valid headers before
 --   using this check!.
 lexInvalidVariable :: Lexer
-lexInvalidVariable = Symbol.Invalid . Symbol.InvalidCaselessVariable
-                 <$> takeWhile isIdentBodyChar
+lexInvalidVariable = Symbol.Invalid Invalid.caselessHeader
+                  <$ takeWhile isIdentBodyChar
 {-# INLINE lexInvalidVariable #-}
 
 

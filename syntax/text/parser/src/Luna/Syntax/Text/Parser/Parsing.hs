@@ -221,7 +221,7 @@ irbsF2 p = uncurry (fmap2 . irbsFromSpan) <$> spanned p ; {-# INLINE irbsF2 #-}
 -- === Errors === --
 --------------------
 
-invalid :: Invalid.Description -> IRB SomeTerm
+invalid :: Invalid.Symbol -> IRB SomeTerm
 invalid t = do
     inv <- IR.invalid' t
     Invalid.register inv
@@ -229,7 +229,7 @@ invalid t = do
 {-# INLINE invalid #-}
 
 invalidToken :: SymParser (IRBS SomeTerm)
-invalidToken = irbs $ invalid . convert <$> satisfTest Lexer.matchInvalid ; {-# INLINE invalidToken #-}
+invalidToken = irbs $ invalid <$> satisfTest Lexer.matchInvalid ; {-# INLINE invalidToken #-}
 
 -- invalidSymbol :: (Lexer.Symbol -> Text32) -> IRBSParser SomeTerm
 -- invalidSymbol f = irbs $ invalid . f <$> anySymbol

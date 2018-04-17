@@ -1,15 +1,42 @@
 module Luna.IR.Term.Ast.Invalid where
 
-import Prologue
+import Prologue hiding (Symbol)
 
 import qualified Foreign.Storable.Deriving as Storable
 
 
-data Description
+-----------------------------
+-- === Invalid Symbols === --
+-----------------------------
+
+-- === Definition === --
+
+data Symbol
     = ForeignImportSafety
     | FunctionHeader
     | FunctionBlock
-    | VariableName
-    | VariableNameCaseless
-    deriving (Eq, Show)
-Storable.derive ''Description
+    | VarName VarName
+    deriving (Eq, Ord, Generic, Show)
+
+data VarName
+    = CaselessHeader
+    | UnderscoresOnly
+    | UnexpectedSuffix {- off -} !Int
+    deriving (Eq, Ord, Generic, Show)
+
+Storable.derive ''Symbol
+Storable.derive ''VarName
+instance NFData Symbol
+instance NFData VarName
+
+
+-- === Smart constructors === --
+
+caselessHeader :: Symbol
+caselessHeader = VarName CaselessHeader ; {-# INLINE caselessHeader #-}
+
+underscoresOnly :: Symbol
+underscoresOnly = VarName UnderscoresOnly ; {-# INLINE underscoresOnly #-}
+
+unexpectedSuffix :: Int -> Symbol
+unexpectedSuffix = VarName . UnexpectedSuffix ; {-# INLINE unexpectedSuffix #-}

@@ -7,7 +7,7 @@ import Luna.Syntax.Text.Lexer.Token
 import Prologue                     hiding (List, Symbol, element)
 
 import qualified Data.Text32              as Text32
-import qualified Luna.IR.Term.Ast.Invalid as Ast.Invalid
+import qualified Luna.IR.Term.Ast.Invalid as Invalid
 
 import Data.Text32 (Text32)
 
@@ -109,33 +109,27 @@ data Symbol
     -- Other
     | Unknown     !Text32 -- DEPRECATED
     | Incorrect   !Text32 -- DEPRECATED
-    | Invalid     !Invalid
-    deriving (Generic, Show, Eq, Ord)
-
-data Invalid
-    = InvalidVar              !Text32
-    | InvalidCaselessVariable !Text32
-    deriving (Generic, Show, Eq, Ord)
+    | Invalid     !Invalid.Symbol
+    deriving (Eq, Generic, Ord, Show)
 
 data StrEscType
     = CharStrEsc  !Int
     | NumStrEsc   !Int
     | QuoteEscape !StrType
     | SlashEsc
-    deriving (Generic, Show, Eq, Ord)
+    deriving (Eq, Generic, Ord, Show)
 
-data Bound   = Begin | End              deriving (Generic, Show, Eq, Ord)
-data StrType = RawStr | FmtStr | NatStr deriving (Generic, Show, Eq, Ord)
-data Numbase = Dec | Bin | Oct | Hex    deriving (Generic, Show, Eq, Ord)
+data Bound   = Begin | End              deriving (Eq, Generic, Ord, Show)
+data StrType = RawStr | FmtStr | NatStr deriving (Eq, Generic, Ord, Show)
+data Numbase = Dec | Bin | Oct | Hex    deriving (Eq, Generic, Ord, Show)
 data Number  = NumRep
     { _base     :: Numbase
     , _intPart  :: Text32
     , _fracPart :: Text32
     , _expPart  :: Text32
-    } deriving (Generic, Show, Eq, Ord)
+    } deriving (Eq, Generic, Ord, Show)
 
 instance NFData Symbol
-instance NFData Invalid
 instance NFData StrEscType
 instance NFData Bound
 instance NFData StrType
@@ -151,12 +145,6 @@ instance Convertible Numbase Word8 where
         Dec -> 10
         Hex -> 16
 
-instance Convertible Invalid Ast.Invalid.Description where
-    convert = \case
-        InvalidVar              _ -> Ast.Invalid.VariableName
-        InvalidCaselessVariable _ -> Ast.Invalid.VariableNameCaseless
-
-
 
 -- === Utils === --
 
@@ -171,7 +159,7 @@ checkSpecialVar s = if
     | s == "native"         -> KwNative
     | s == "of"             -> KwOf
     | s == "_"              -> Wildcard
-    | Text32.all (== '_') s -> Invalid $ InvalidVar s
+    | Text32.all (== '_') s -> Invalid Invalid.underscoresOnly
     | otherwise             -> Var s
 {-# INLINE checkSpecialVar #-}
 

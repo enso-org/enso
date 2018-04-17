@@ -101,16 +101,17 @@ expr       = shouldParseItself Parsing.expr
 
 identSpec :: Spec
 identSpec = describe "identifier" $ do
-    it "one letter variable"      $ expr "a"
-    it "variable + apostrophe"    $ expr "foo'"
-    it "variable + 2 apostrophes" $ expr "foo''"
-    it "unicode variable name"    $ expr "фываΧξωβ김동욱"
-    it "wildcard"                 $ expr "_"
-    it "simple constructors"      $ expr "Vector"
-    it "constructors + arguments" $ expr "Vector x 1 z"
-    it "unicode constructor name" $ expr "Κοηστρυκτορ"
-    it "double underscore"        $ exprAs "__" "Invalid VariableName"
-    it "caseless name"            $ exprAs "מfoo" "Invalid VariableNameCaseless"
+    it "one letter variable"    $ expr "a"
+    it "name + apostrophe"      $ expr "foo'"
+    it "name + 2 apostrophes"   $ expr "foo''"
+    it "unicode variable name"  $ expr "фываΧξωβ김동욱"
+    it "wildcard"               $ expr "_"
+    it "simple constructors"    $ expr "Vector"
+    it "constructors"           $ expr "Vector x 1 z"
+    it "unicode name"           $ expr "Κοηστρυκτορ"
+    it "double underscore"      $ exprAs "__" "Invalid VarName UnderscoresOnly"
+    it "caseless header"        $ exprAs "מfoo" "Invalid VarName CaselessHeader"
+    it "apostrophe inside name" $ exprAs "fo'o" "foo"
 
 literalNumberSpec :: Spec
 literalNumberSpec = describe "number" $ do

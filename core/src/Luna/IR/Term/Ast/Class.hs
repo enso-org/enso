@@ -56,7 +56,7 @@ Term.define [d|
     | Imp          { source   :: LinkTo Terms , target :: ImportTargetData     }
     | ImportHub    { imps     :: LinksTo Terms                                 }
     | ImportSource { body     :: ImportSourceData                              }
-    | Invalid      { desc     :: Invalid.Description                           }
+    | Invalid      { desc     :: Invalid.Symbol                                }
     | List         { items    :: LinksTo Terms                                 }
     | Marked       { marker   :: LinkTo Terms , body   :: LinkTo Terms         }
     | Marker       { id       :: Word64                                        }
