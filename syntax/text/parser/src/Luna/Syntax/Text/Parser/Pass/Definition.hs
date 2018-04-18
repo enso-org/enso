@@ -13,9 +13,7 @@ import qualified Luna.Pass                           as Pass
 import qualified Luna.Pass.Attr                      as Attr
 import qualified Luna.Pass.Scheduler                 as Scheduler
 import qualified Luna.Syntax.Text.Lexer              as Lexer
-import qualified Luna.Syntax.Text.Parser.Class       as Class
 import qualified Luna.Syntax.Text.Parser.Class       as Token
-import qualified Luna.Syntax.Text.Parser.Class       as Parser
 import qualified Luna.Syntax.Text.Parser.Parsing     as Parsing
 import qualified OCI.Pass.Registry                   as Registry
 import qualified Text.Megaparsec                     as Parser
@@ -24,19 +22,20 @@ import Data.Text.Position                       (FileOffset)
 import Data.Text32                              (Text32)
 import Luna.Pass                                (Pass)
 import Luna.Syntax.Text.Parser.Attributes       (Invalids, Result (Result))
-import Luna.Syntax.Text.Parser.Class            (Error, ParserBase, Stream)
+import Luna.Syntax.Text.Parser.Class            (Error, ParserBase, Stream,
+                                                 Token)
 import Luna.Syntax.Text.Parser.CodeSpan         (CodeSpan, CodeSpanRange)
 import Luna.Syntax.Text.Parser.Hardcoded        (hardcode)
 import Luna.Syntax.Text.Parser.Marker           (MarkedExprMap, MarkerState,
                                                  UnmarkedExprs)
 import Luna.Syntax.Text.Parser.Pass.Class       (IRBS, Parser, fromIRBS)
+import Luna.Syntax.Text.Parser.State.Indent     (Indent)
 import Luna.Syntax.Text.Parser.State.LastOffset (LastOffset)
 import Luna.Syntax.Text.Parser.State.Reserved   (Reserved)
 import Luna.Syntax.Text.Scope                   (Scope)
 import Luna.Syntax.Text.Source                  (Source)
 import Text.Megaparsec                          (ParseError, ParsecT)
 import Text.Megaparsec.Error                    (parseErrorPretty)
-import Luna.Syntax.Text.Parser.State.Indent                       (Indent)
 
 
 
@@ -73,11 +72,11 @@ registerDynamic = do
 -- === Internal === --
 
 runParsec__ :: MonadIO m =>
-    ParserBase a -> Stream -> m (Either (ParseError Parser.Tok Error) a)
+    ParserBase a -> Stream -> m (Either (ParseError Token Error) a)
 runParsec__ p s = liftIO $ Parser.runParserT p "" s ; {-# INLINE runParsec__ #-}
 
 runParserContext__ :: MonadIO m =>
-    Class.Parser a -> Stream -> m (Either (ParseError Parser.Tok Error) a)
+    Token.Parser a -> Stream -> m (Either (ParseError Token Error) a)
 runParserContext__ p s
     = flip runParsec__ s
     $ State.evalDefT @CodeSpanRange

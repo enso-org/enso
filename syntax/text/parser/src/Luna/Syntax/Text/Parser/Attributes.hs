@@ -1,16 +1,13 @@
-{-# LANGUAGE NoMonomorphismRestriction #-}
-{-# LANGUAGE UndecidableInstances      #-}
-{-# EXT      InlineAll                 #-}
+{-# EXT InlineAll #-}
 
 module Luna.Syntax.Text.Parser.Attributes where
 
-import Prologue hiding (Span, String, Type, span, (<|))
-
-import Type.Any (AnyType)
+import Prologue
 
 import qualified Luna.IR                as IR
 import qualified Luna.Pass.Attr         as Attr
 import qualified OCI.IR.Component.Class as Component
+
 
 
 ----------------------
@@ -37,9 +34,8 @@ registerInvalid t = Attr.modify_ @Invalids $ wrapped %~ (t:) ; {-# INLINE regist
 --------------------
 
 newtype Result = Result (IR.Term IR.Unit) deriving (Show, Eq)
-makeLenses ''Result
-
 type instance Attr.Type Result = Attr.Atomic
+makeLenses ''Result
 
 instance Default Result where
     def = Result Component.unsafeNull ; {-# INLINE def #-}

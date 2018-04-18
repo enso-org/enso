@@ -16,7 +16,7 @@ import qualified Text.Megaparsec.Pos                    as Parser
 import Data.Set                                 (Set)
 import Data.Text.Position                       (Delta)
 import Data.Text.Position                       (FileOffset)
-import Luna.Syntax.Text.Parser.Class            (MonadParser, Stream, Tok)
+import Luna.Syntax.Text.Parser.Class            (MonadParser, Stream, Token)
 import Luna.Syntax.Text.Parser.Marker           (MarkerState,
                                                  cleanLastTokenMarker,
                                                  newLastTokenMarker)
@@ -42,7 +42,7 @@ type MonadLoc m = (State.MonadStates '[FileOffset, Pos.Position, LastOffset, Mar
 -- | Token overrides Megaparsec's one, with special position handling. We cannot do it another way around
 --   because Megaparsec's `token` signature prevents any monadic action while consuming tokens.
 token' :: (MonadParsec e Stream m, MonadLoc m, State.Getter Reserved m)
-       => (Reserved -> Tok -> Either (Maybe (ErrorItem Tok), Set (ErrorItem Tok)) a) -> Maybe Tok -> m a
+       => (Reserved -> Token -> Either (Maybe (ErrorItem Token), Set (ErrorItem Token)) a) -> Maybe Token -> m a
 token' f mt = do
     s <- State.get @Reserved
     let f' t = (t,) <$> f s t
@@ -63,10 +63,10 @@ getStream = Parser.getInput
 putStream :: MonadParsec e Stream m => Stream -> m ()
 putStream = Parser.setInput
 
-previewNextToken :: MonadParsec e Stream m => m (Maybe Tok)
+previewNextToken :: MonadParsec e Stream m => m (Maybe Token)
 previewNextToken = head <$> previewTokens
 
-previewTokens :: MonadParsec e Stream m => m [Tok]
+previewTokens :: MonadParsec e Stream m => m [Token]
 previewTokens = getStream
 
 previewSymbols :: MonadParsec e Stream m => m [Lexer.Symbol]
@@ -81,36 +81,36 @@ getNextOffset = maybe 0 (view $ Lexer.offset) <$> previewNextToken
 checkNextOffset :: MonadParsec e Stream m => m Bool
 checkNextOffset = (>0) <$> getNextOffset
 
-getNextToken :: (MonadParsec e Stream m, MonadLoc m) => m (Maybe Tok)
+getNextToken :: (MonadParsec e Stream m, MonadLoc m) => m (Maybe Token)
 getNextToken = do
     tok <- getNextToken'
     cleanLastTokenMarker
     dropMarkers
     return tok
 
-getNextToken' :: (MonadParsec e Stream m, MonadLoc m) => m (Maybe Tok)
+getNextToken' :: (MonadParsec e Stream m, MonadLoc m) => m (Maybe Token)
 getNextToken' = mapM handle . Parser.take1_ =<< getStream where
     handle (t,s) = do
         putStream s
         updatePositions t
         return t
 
-getNextToken'' :: (MonadParsec e Stream m, MonadLoc m) => m (Maybe Tok)
+getNextToken'' :: (MonadParsec e Stream m, MonadLoc m) => m (Maybe Token)
 getNextToken'' = mapM handle . Parser.take1_ =<< getStream where
     handle (t,s) = do
         putStream s
         return t
 
-getTokens :: (MonadParsec e Stream m, MonadLoc m) => Int -> m [Tok]
+getTokens :: (MonadParsec e Stream m, MonadLoc m) => Int -> m [Token]
 getTokens i = catMaybes <$> sequence (replicate i getNextToken)
 
-uncheckedGetNextToken :: (MonadParsec e Stream m, MonadLoc m) => m Tok
+uncheckedGetNextToken :: (MonadParsec e Stream m, MonadLoc m) => m Token
 uncheckedGetNextToken = maybe (error "Impossible happened: token stream end") id <$> getNextToken
 
 uncheckedGetNextSymbol :: (MonadParsec e Stream m, MonadLoc m) => m Lexer.Symbol
 uncheckedGetNextSymbol = view Lexer.element <$> uncheckedGetNextToken
 
-uncheckedPreviewNextToken :: (MonadParsec e Stream m, MonadLoc m) => m Tok
+uncheckedPreviewNextToken :: (MonadParsec e Stream m, MonadLoc m) => m Token
 uncheckedPreviewNextToken = maybe (error "Impossible happened: token stream end") id <$> previewNextToken
 
 uncheckedPreviewNextSymbol :: (MonadParsec e Stream m, MonadLoc m) => m Lexer.Symbol
@@ -127,7 +127,7 @@ dropNextTokenAsMarker = withJustM getNextToken'' go where
     go t = State.modify_ @FileOffset (+ (convert delta)) >> State.modify_ @LastOffset (wrapped %~ (+delta)) where
         delta = (t ^. Lexer.span) + (t ^. Lexer.offset)
 
-unregisteredDropTokensUntil :: (MonadParsec e Stream m, MonadLoc m) => (Tok -> Bool) -> m ()
+unregisteredDropTokensUntil :: (MonadParsec e Stream m, MonadLoc m) => (Token -> Bool) -> m ()
 unregisteredDropTokensUntil f = withJustM previewNextToken $ \t -> if f t then return () else unregisteredDropNextToken >> unregisteredDropTokensUntil f
 
 unregisteredDropSymbolsUntil :: (MonadParsec e Stream m, MonadLoc m) => (Lexer.Symbol -> Bool) -> m ()
@@ -136,7 +136,7 @@ unregisteredDropSymbolsUntil f = unregisteredDropTokensUntil $ f . view Lexer.el
 unregisteredDropSymbolsUntil' :: (MonadParsec e Stream m, MonadLoc m) => (Lexer.Symbol -> Bool) -> m ()
 unregisteredDropSymbolsUntil' f = unregisteredDropSymbolsUntil f >> unregisteredDropNextToken
 
-getTokensUntil :: (MonadParsec e Stream m, MonadLoc m) => (Lexer.Symbol -> Bool) -> m [Tok]
+getTokensUntil :: (MonadParsec e Stream m, MonadLoc m) => (Lexer.Symbol -> Bool) -> m [Token]
 getTokensUntil f = withJustM previewNextToken
                $ \t -> if f (t ^. Lexer.element)
                            then return mempty
@@ -167,7 +167,7 @@ updatePositions t = do
 -- -- FIXME[WD]: This is just a hack. We store file offset and last spacing in Megaparsec's file position datatype,
 -- --            because we cannot implement recovery other way around now. After running with recovery function, our custom position
 -- --            is defaulted to the one before error happened, which is incorrect.
--- withRecovery2 :: (MonadParsec e Stream m, MonadLoc m) => (ParseError Tok e -> m a) -> m a -> m a
+-- withRecovery2 :: (MonadParsec e Stream m, MonadLoc m) => (ParseError Token e -> m a) -> m a -> m a
 -- withRecovery2 f ma = do
 --     pos  <- Parser.getPosition
 --     out  <- withRecovery f ma

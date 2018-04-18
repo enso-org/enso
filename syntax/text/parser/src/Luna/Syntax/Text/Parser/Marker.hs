@@ -1,6 +1,5 @@
-{-# LANGUAGE NoMonomorphismRestriction #-}
-{-# LANGUAGE UndecidableInstances      #-}
-{-# EXT      InlineAll                 #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# EXT      InlineAll            #-}
 
 module Luna.Syntax.Text.Parser.Marker where
 
@@ -8,12 +7,10 @@ import Prologue hiding (Span, String, Type, span)
 
 import qualified Control.Monad.State.Layered as State
 import qualified Data.Map.Strict             as Map
-import           Data.Text.Position
 import qualified Luna.IR                     as IR
 import qualified Luna.Syntax.Text.Lexer      as Lexer
 
 import Data.Map.Strict (Map)
-import Type.Any        (AnyType)
 
 
 

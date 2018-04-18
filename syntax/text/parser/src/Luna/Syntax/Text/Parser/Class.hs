@@ -6,35 +6,35 @@ module Luna.Syntax.Text.Parser.Class where
 
 import Prologue
 
-import qualified Control.Monad.State.Layered         as State
-import qualified Luna.IR                             as IR
-import qualified Luna.IR.Component.Term.Construction as Term
-import qualified Luna.Pass                           as Pass
-import qualified Luna.Syntax.Text.Lexer              as Lexer
-import qualified Luna.Syntax.Text.Parser.Pass.Class  as Parser
-import qualified Text.Megaparsec                     as Parsec
+import qualified Luna.Syntax.Text.Lexer as Lexer
+import qualified Text.Megaparsec        as Parsec
 
 import Control.Monad.State.Layered              (StatesT)
-import Control.Monad.State.Layered              (StateT)
 import Data.Text.Position                       (FileOffset)
-import Luna.Pass                                (Pass)
-import Luna.Syntax.Text.Parser.CodeSpan         (CodeSpan, CodeSpanRange)
-import Luna.Syntax.Text.Parser.Hardcoded        (hardcode)
-import Luna.Syntax.Text.Parser.Marker           (MarkedExprMap, MarkerState,
-                                                 UnmarkedExprs)
+import Luna.Syntax.Text.Parser.CodeSpan         (CodeSpanRange)
+import Luna.Syntax.Text.Parser.Marker           (MarkerState)
+import Luna.Syntax.Text.Parser.State.Indent     (Indent)
 import Luna.Syntax.Text.Parser.State.LastOffset (LastOffset)
 import Luna.Syntax.Text.Parser.State.Reserved   (Reserved)
 import Luna.Syntax.Text.Scope                   (Scope)
-import Text.Megaparsec                          (ParseError, ParsecT)
+import Text.Megaparsec                          (ParsecT)
 import Text.Megaparsec                          (MonadParsec)
 import Text.Parser.Backend.Megaparsec           ()
-import Luna.Syntax.Text.Parser.State.Indent                       (Indent)
 
 
 
+-------------------------
+-- === TokenParser === --
+-------------------------
 
-type ParserBase = ParsecT Error Stream IO
-type Parser     = StatesT ParserStates ParserBase
+-- === Definition === --
+
+type Token       = Lexer.Token Lexer.Symbol
+type Stream      = [Token]
+type Error       = Void
+type MonadParser = MonadParsec Error Stream
+type ParserBase  = ParsecT Error Stream IO
+type Parser      = StatesT ParserStates ParserBase
 type ParserStates
     = '[ Indent
        , FileOffset
@@ -46,20 +46,14 @@ type ParserStates
        ]
 
 
-
-
-
-type Stream      = [Tok]
-type Error       = Void
-type Tok         = Lexer.Token Lexer.Symbol
-type MonadParser = MonadParsec Error Stream
+-- === Instances === --
 
 app_tmp a (x,y) = (a:x, y)
 
 -- FIXME[WD]: Describe the hacks
 instance Parsec.Stream Stream where
-    type Token  Stream = Tok
-    type Tokens Stream = [Tok]
+    type Token  Stream = Token
+    type Tokens Stream = [Token]
 
     tokenToChunk  _ = pure   ; {-# INLINE tokenToChunk  #-}
     tokensToChunk _ = id     ; {-# INLINE tokensToChunk #-}
@@ -86,7 +80,7 @@ instance Parsec.Stream Stream where
     -- updatePos _ _ (cpos@(Parser.SourcePos n l c)) (Lexer.Token (Lexer.Span w o) _) = (cpos, Parser.SourcePos n (Parser.unsafePos . unsafeConvert $ unwrap o + 1)
     --                                                                                                            (Parser.unsafePos $ Parser.unPos c + (unsafeConvert $ unwrap $ w + o)))
 
-instance Parsec.ShowToken Tok where
+instance Parsec.ShowToken Token where
     showTokens = show
 
 

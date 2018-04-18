@@ -25,6 +25,7 @@ import qualified Luna.Syntax.Text.Lexer                 as Lexer
 import qualified Luna.Syntax.Text.Lexer.Symbol          as Lexer
 import qualified Luna.Syntax.Text.Parser.Attributes     as Attr
 import qualified Luna.Syntax.Text.Parser.CodeSpan       as CodeSpan
+import qualified Luna.Syntax.Text.Parser.Expr           as Expr
 import qualified Luna.Syntax.Text.Parser.Hardcoded      as Builtin
 import qualified Luna.Syntax.Text.Parser.Loc            as Loc
 import qualified Luna.Syntax.Text.Parser.Marker         as Marker
@@ -34,7 +35,6 @@ import qualified Luna.Syntax.Text.Parser.State.Reserved as Reserved
 import qualified Luna.Syntax.Text.Scope                 as Scope
 import qualified OCI.Data.Name.Multipart                as Name.Multipart
 import qualified OCI.IR.Layout                          as Layout
-import qualified Luna.Syntax.Text.Parser.Expr                       as Expr
 
 
 import Data.List.NonEmpty                       ((<|))
@@ -47,7 +47,7 @@ import Language.Symbol                          (Labeled (Labeled), SomeSymbol,
                                                  labeled)
 import Luna.IR                                  (SomeTerm, Term)
 import Luna.Pass                                (Pass)
-import Luna.Syntax.Text.Parser.Class            (Parser, Stream, Tok)
+import Luna.Syntax.Text.Parser.Class            (Parser, Stream, Token)
 import Luna.Syntax.Text.Parser.CodeSpan         (CodeSpan (CodeSpan),
                                                  CodeSpanRange (..))
 import Luna.Syntax.Text.Parser.Loc              (checkNextOffset,
@@ -989,12 +989,12 @@ breakableOptionalBlockTop  p = option mempty $ uncurry (:) <$> breakableNonEmpty
 breakableOptionalBlockBody p = option mempty $ uncurry (:) <$> breakableNonEmptyBlockBody p
 
 
-nonEmptyBlockAny :: Parser [Tok]
-nonEmptyBlockAny = concat . convertTo @[[Tok]] <$> some line where
+nonEmptyBlockAny :: Parser [Token]
+nonEmptyBlockAny = concat . convertTo @[[Token]] <$> some line where
     line = Indent.indented >> (body <* eol)
     body = Loc.getTokensUntil (\t -> (t == Lexer.EOL) || (t == Lexer.ETX))
 
-optionalBlockAny :: Parser [Tok]
+optionalBlockAny :: Parser [Token]
 optionalBlockAny = option mempty nonEmptyBlockAny
 
 
