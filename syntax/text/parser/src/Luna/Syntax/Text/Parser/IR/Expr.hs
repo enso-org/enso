@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Luna.Syntax.Text.Parser.Expr where
+module Luna.Syntax.Text.Parser.IR.Expr where
 
 
 import Prologue

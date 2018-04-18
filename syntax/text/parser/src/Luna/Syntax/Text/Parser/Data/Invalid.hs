@@ -1,12 +1,11 @@
 {-# EXT InlineAll #-}
 
-module Luna.Syntax.Text.Parser.Attributes where
+module Luna.Syntax.Text.Parser.Data.Invalid where
 
 import Prologue
 
-import qualified Luna.IR                as IR
-import qualified Luna.Pass.Attr         as Attr
-import qualified OCI.IR.Component.Class as Component
+import qualified Luna.IR        as IR
+import qualified Luna.Pass.Attr as Attr
 
 
 
@@ -28,14 +27,3 @@ registerInvalid :: Attr.Editor Invalids m => IR.SomeTerm -> m ()
 registerInvalid t = Attr.modify_ @Invalids $ wrapped %~ (t:) ; {-# INLINE registerInvalid #-}
 
 
-
---------------------
--- === Result === --
---------------------
-
-newtype Result = Result (IR.Term IR.Unit) deriving (Show, Eq)
-type instance Attr.Type Result = Attr.Atomic
-makeLenses ''Result
-
-instance Default Result where
-    def = Result Component.unsafeNull ; {-# INLINE def #-}

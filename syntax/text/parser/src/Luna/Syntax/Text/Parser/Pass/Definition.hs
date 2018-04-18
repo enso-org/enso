@@ -13,8 +13,8 @@ import qualified Luna.Pass                            as Pass
 import qualified Luna.Pass.Attr                       as Attr
 import qualified Luna.Pass.Scheduler                  as Scheduler
 import qualified Luna.Syntax.Text.Lexer               as Lexer
-import qualified Luna.Syntax.Text.Parser.Class        as Token
-import qualified Luna.Syntax.Text.Parser.Parsing      as Parsing
+import qualified Luna.Syntax.Text.Parser.IR.Class        as Token
+import qualified Luna.Syntax.Text.Parser.IR.Term      as Parsing
 import qualified Luna.Syntax.Text.Parser.State.Marker as Marker
 import qualified OCI.Pass.Registry                    as Registry
 import qualified Text.Megaparsec                      as Parser
@@ -22,11 +22,12 @@ import qualified Text.Megaparsec                      as Parser
 import Data.Text.Position                       (FileOffset)
 import Data.Text32                              (Text32)
 import Luna.Pass                                (Pass)
-import Luna.Syntax.Text.Parser.Attributes       (Invalids, Result (Result))
-import Luna.Syntax.Text.Parser.Class            (Error, ParserBase, Stream,
+import Luna.Syntax.Text.Parser.IR.Class            (Error, ParserBase, Stream,
                                                  Token)
-import Luna.Syntax.Text.Parser.CodeSpan         (CodeSpan, CodeSpanRange)
-import Luna.Syntax.Text.Parser.Hardcoded        (hardcode)
+import Luna.Syntax.Text.Parser.Data.CodeSpan    (CodeSpan, CodeSpanRange)
+import Luna.Syntax.Text.Parser.Data.Invalid     (Invalids)
+import Luna.Syntax.Text.Parser.Data.Result      (Result (Result))
+import Luna.Syntax.Text.Parser.Data.Name.Hardcoded   (hardcode)
 import Luna.Syntax.Text.Parser.Pass.Class       (IRBS, Parser, fromIRBS)
 import Luna.Syntax.Text.Parser.State.Indent     (Indent)
 import Luna.Syntax.Text.Parser.State.LastOffset (LastOffset)

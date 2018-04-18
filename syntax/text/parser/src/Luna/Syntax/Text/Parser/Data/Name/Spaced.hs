@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Luna.Syntax.Text.Parser.Name where
+module Luna.Syntax.Text.Parser.Data.Name.Spaced where
 
 import Prologue
 

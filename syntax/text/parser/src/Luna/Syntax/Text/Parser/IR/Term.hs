@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedStrings         #-}
 {-# LANGUAGE UndecidableInstances      #-}
 
-module Luna.Syntax.Text.Parser.Parsing where
+module Luna.Syntax.Text.Parser.IR.Term where
 
 import qualified Prelude                 as P
 import           Prologue                hiding (seq, some)
@@ -23,12 +23,12 @@ import qualified Luna.IR.Term.Ast                       as Import
 import qualified Luna.IR.Term.Ast.Invalid               as Invalid
 import qualified Luna.Syntax.Text.Lexer                 as Lexer
 import qualified Luna.Syntax.Text.Lexer.Symbol          as Lexer
-import qualified Luna.Syntax.Text.Parser.Attributes     as Attr
-import qualified Luna.Syntax.Text.Parser.CodeSpan       as CodeSpan
-import qualified Luna.Syntax.Text.Parser.Expr           as Expr
-import qualified Luna.Syntax.Text.Parser.Hardcoded      as Builtin
+import qualified Luna.Syntax.Text.Parser.Data.CodeSpan  as CodeSpan
+import qualified Luna.Syntax.Text.Parser.Data.Invalid   as Attr
+import qualified Luna.Syntax.Text.Parser.IR.Expr           as Expr
 import qualified Luna.Syntax.Text.Parser.Loc            as Loc
-import qualified Luna.Syntax.Text.Parser.Name           as Name
+import qualified Luna.Syntax.Text.Parser.Data.Name.Spaced    as Name
+import qualified Luna.Syntax.Text.Parser.Data.Name.Special   as SpecialName
 import qualified Luna.Syntax.Text.Parser.State.Indent   as Indent
 import qualified Luna.Syntax.Text.Parser.State.Marker   as Marker
 import qualified Luna.Syntax.Text.Parser.State.Reserved as Reserved
@@ -47,12 +47,12 @@ import Language.Symbol                          (Labeled (Labeled), SomeSymbol,
                                                  labeled)
 import Luna.IR                                  (SomeTerm, Term)
 import Luna.Pass                                (Pass)
-import Luna.Syntax.Text.Parser.Class            (Parser, Stream, Token)
-import Luna.Syntax.Text.Parser.CodeSpan         (CodeSpan (CodeSpan),
+import Luna.Syntax.Text.Parser.IR.Class            (Parser, Stream, Token)
+import Luna.Syntax.Text.Parser.Data.CodeSpan    (CodeSpan (CodeSpan),
                                                  CodeSpanRange (..))
 import Luna.Syntax.Text.Parser.Loc              (checkNextOffset,
                                                  previewNextSymbol, token')
-import Luna.Syntax.Text.Parser.Name             (SpacedName)
+import Luna.Syntax.Text.Parser.Data.Name.Spaced      (SpacedName)
 import Luna.Syntax.Text.Parser.Pass.Class       (IRB, IRBS (IRBS), fromIRBS,
                                                  liftIRBS1, liftIRBS2,
                                                  liftIRBS3)
@@ -588,7 +588,7 @@ consSeg    = posIndependent . unlabeledAtom <$> cons
 funcSeg    = posIndependent . unlabeledAtom <$> func
 grpSeg     = posIndependent . unlabeledAtom <$> grouped nonemptyValExpr
 invalidSeg = posIndependent . unlabeledAtom <$> invalidToken
-lamSeg     = posIndependent . labeled (Name.unspaced Builtin.lamName) . Symbol.suffix <$> lamBldr
+lamSeg     = posIndependent . labeled (Name.unspaced SpecialName.lam) . Symbol.suffix <$> lamBldr
 listSeg    = posIndependent . unlabeledAtom <$> list  nonemptyValExprLocal
 matchseg   = posIndependent . unlabeledAtom <$> match
 numSeg     = posIndependent . unlabeledAtom <$> number
@@ -624,16 +624,16 @@ opSeg   = do
     (span, name)    <- spanned opName
     let segment isFirst isLast = pure . Expr.tokenx $ operator & if
             | isSingle    -> labeled (Name.unspaced            name) . Symbol.atom
-            | isUMinus    -> labeled (Name.unspaced Builtin.uminusName) . Symbol.prefix . app
+            | isUMinus    -> labeled (Name.unspaced SpecialName.uminus) . Symbol.prefix . app
             | isFirst     -> labeled (Name.spacedIf after  name) . Symbol.prefix . sectionLeft
             | isLast      -> labeled (Name.spacedIf before name) . Symbol.suffix . sectionRight
             | symmetrical -> labeled (Name.spacedIf after  name) . Symbol.infixx . appSides
             | before      -> labeled (Name.lspaced         name) . Symbol.prefix . sectionLeft
             | otherwise   -> labeled (Name.rspaced         name) . Symbol.suffix . sectionRight
-            where isMinus     = name == Builtin.minusName
+            where isMinus     = name == SpecialName.minus
                   isSingle    = isFirst && isLast
                   isUMinus    = isMinus && not after && (isFirst || before) && not isLast
-                  operator    = irbsFromSpan span . IR.var' $ if isUMinus then Builtin.uminusName else name
+                  operator    = irbsFromSpan span . IR.var' $ if isUMinus then SpecialName.uminus else name
                   symmetrical = before == after
     pure $ SegmentBuilder segment
 
@@ -645,7 +645,7 @@ typedSeg   = do
     when_ (off /= off') $ error "TODO: before and after offsets have to match"
     let seg :: IRBS SomeTerm -> IRBS SomeTerm
         seg = flip (inheritCodeSpan2 IR.typed') tp
-    pure . posIndependent . labeled (Name.spacedIf off Builtin.typedName) $ Symbol.suffix seg
+    pure . posIndependent . labeled (Name.spacedIf off SpecialName.typed) $ Symbol.suffix seg
 
 accSectNames :: Parser (NonEmpty (CodeSpan, Name))
 accSectNames = do
@@ -667,8 +667,8 @@ accSeg = fmap2 Expr.tokenx $ do
         accSect        = labeled uname . Symbol.atom
                        $ irbsFromSpan (mconcat spans)
                        $ IR.accSection' (convert names)
-        uname          = Name.unspaced Builtin.accName
-        sname          = Name.spacedIf beforeDot Builtin.accName
+        uname          = Name.unspaced SpecialName.acc
+        sname          = Name.spacedIf beforeDot SpecialName.acc
         accConss       =  labeled sname ( Symbol.suffix $ uncurry accCons n )
                       :| (labeled uname . Symbol.suffix . uncurry accCons <$> ns)
         Just fupdt           = mupdt -- FIXME[WD]: make it nicer
@@ -750,7 +750,7 @@ parseMixfixSegments nameSet = do
 buildTokenExpr (s:|ss) = buildTokenExpr' (s:ss)
 
 buildTokenExpr' :: Expr.Tokens (Labeled SpacedName (SomeSymbol Symbol.Expr (IRBS SomeTerm))) -> Parser (IRBS SomeTerm)
-buildTokenExpr' = Expr.buildExpr_termApp . Labeled (Name.spaced Builtin.appName) $ Symbol.Symbol app
+buildTokenExpr' = Expr.buildExpr_termApp . Labeled (Name.spaced SpecialName.app) $ Symbol.Symbol app
 
 
 ---------------------------

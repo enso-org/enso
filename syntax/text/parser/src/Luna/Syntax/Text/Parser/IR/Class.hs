@@ -2,7 +2,7 @@
 {-# LANGUAGE UndecidableInstances      #-}
 {-# EXT      InlineAll                 #-}
 
-module Luna.Syntax.Text.Parser.Class where
+module Luna.Syntax.Text.Parser.IR.Class where
 
 import Prologue
 
@@ -12,7 +12,7 @@ import qualified Text.Megaparsec                      as Parsec
 
 import Control.Monad.State.Layered              (StatesT)
 import Data.Text.Position                       (FileOffset)
-import Luna.Syntax.Text.Parser.CodeSpan         (CodeSpanRange)
+import Luna.Syntax.Text.Parser.Data.CodeSpan         (CodeSpanRange)
 import Luna.Syntax.Text.Parser.State.Indent     (Indent)
 import Luna.Syntax.Text.Parser.State.LastOffset (LastOffset)
 import Luna.Syntax.Text.Parser.State.Reserved   (Reserved)

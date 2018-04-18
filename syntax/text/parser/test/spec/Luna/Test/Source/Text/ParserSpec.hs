@@ -20,9 +20,9 @@ import qualified Luna.Pass.Attr                      as Attr
 import qualified Luna.Pass.Scheduler                 as Scheduler
 import qualified Luna.Runner                         as Runner
 import qualified Luna.Syntax.Prettyprint             as Prettyprint
-import qualified Luna.Syntax.Text.Parser.CodeSpan    as CodeSpan
-import qualified Luna.Syntax.Text.Parser.Class      as Token
-import qualified Luna.Syntax.Text.Parser.Parsing     as Parsing
+import qualified Luna.Syntax.Text.Parser.Data.CodeSpan    as CodeSpan
+import qualified Luna.Syntax.Text.Parser.IR.Class      as Token
+import qualified Luna.Syntax.Text.Parser.IR.Term     as Parsing
 import qualified Luna.Syntax.Text.Parser.Pass        as Parser
 import qualified Luna.Syntax.Text.Parser.Pass.Class  as Parser
 import qualified OCI.Data.Name                       as Name
@@ -33,8 +33,8 @@ import qualified OCI.Pass.Registry                   as Registry
 import Data.Text.Position                 (Delta)
 import Luna.IR.Component.Link             (type (*-*), Link)
 import Luna.Pass                          (Pass)
-import Luna.Syntax.Text.Parser.Attributes (Invalids)
-import Luna.Syntax.Text.Parser.CodeSpan   (CodeSpan)
+import Luna.Syntax.Text.Parser.Data.Invalid (Invalids)
+import Luna.Syntax.Text.Parser.Data.CodeSpan   (CodeSpan)
 import Luna.Syntax.Text.Parser.Pass.Class (IRBS, Parser)
 import Luna.Syntax.Text.Scope             (Scope)
 import Luna.Syntax.Text.Source            (Source)
@@ -403,18 +403,18 @@ spec = do
 -- import Test.Hspec.Megaparsec hiding (shouldParse)
 -- import Test.Hspec
 
--- import Luna.Syntax.Text.Parser.Parsing
+-- import Luna.Syntax.Text.Parser.IR.Term
 -- import Text.Megaparsec (eof, ParseError)
 -- import qualified Luna.Syntax.Text.Pretty.Pretty as CodeGen
--- import Luna.Syntax.Text.Parser.Class (Error, IRB(IRB), Parsing)
+-- import Luna.Syntax.Text.Parser.IR.Class (Error, IRB(IRB), Parsing)
 
 -- import System.Log (Logging, dropLogs)
 -- import qualified Luna.Syntax.Text.Layer.Loc as Loc
--- import qualified Luna.Syntax.Text.Parser.Class   as Parser
--- import qualified Luna.Syntax.Text.Parser.Parsing  as Parsing
--- import           Luna.Syntax.Text.Parser.Class   (IRParser, ParsedExpr, IRBSParser)
--- import qualified Luna.Syntax.Text.Parser.CodeSpan as CodeSpan
--- import           Luna.Syntax.Text.Parser.CodeSpan (CodeSpan)
+-- import qualified Luna.Syntax.Text.Parser.IR.Class   as Parser
+-- import qualified Luna.Syntax.Text.Parser.IR.Term  as Parsing
+-- import           Luna.Syntax.Text.Parser.IR.Class   (IRParser, ParsedExpr, IRBSParser)
+-- import qualified Luna.Syntax.Text.Parser.Data.CodeSpan as CodeSpan
+-- import           Luna.Syntax.Text.Parser.Data.CodeSpan (CodeSpan)
 -- import           Luna.Syntax.Text.Parser.Errors   (Invalids)
 -- import           Control.Monad.Raise (Throws, tryAll)
 -- import           Data.TypeDesc (getTypeDesc)

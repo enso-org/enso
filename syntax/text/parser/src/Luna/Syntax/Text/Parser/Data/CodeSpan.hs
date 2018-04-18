@@ -2,7 +2,7 @@
 {-# LANGUAGE UndecidableInstances      #-}
 {-# EXT      InlineAll                 #-}
 
-module Luna.Syntax.Text.Parser.CodeSpan where
+module Luna.Syntax.Text.Parser.Data.CodeSpan where
 
 import Prologue hiding (Span, String, Type, length, span)
 

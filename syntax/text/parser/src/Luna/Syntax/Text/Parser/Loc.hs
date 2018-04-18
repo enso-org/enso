@@ -17,7 +17,7 @@ import qualified Text.Megaparsec.Pos                    as Parser
 import Data.Set                                 (Set)
 import Data.Text.Position                       (Delta)
 import Data.Text.Position                       (FileOffset)
-import Luna.Syntax.Text.Parser.Class            (MonadParser, Stream, Token)
+import Luna.Syntax.Text.Parser.IR.Class         (MonadParser, Stream, Token)
 import Luna.Syntax.Text.Parser.State.LastOffset (LastOffset (LastOffset))
 import Luna.Syntax.Text.Parser.State.Reserved   (Reserved)
 import Text.Megaparsec                          (MonadParsec, token,
@@ -25,8 +25,9 @@ import Text.Megaparsec                          (MonadParsec, token,
 import Text.Megaparsec.Error                    (ErrorItem, ParseError)
 
 
-
-
+-- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+-- !!! TODO: Clean and refactor this file
+-- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 -- -----------------
 -- -- === Loc === --

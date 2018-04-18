@@ -18,14 +18,15 @@ import qualified Text.Megaparsec.Error                as Error
 import qualified Text.Megaparsec.Error                as Error
 
 
-import Control.Monad.State.Layered        (StatesT)
-import Data.Set                           (Set)
-import Data.Text.Position                 (Delta)
-import Luna.Pass                          (Pass)
-import Luna.Syntax.Text.Parser.Attributes (Invalids, Result)
-import Luna.Syntax.Text.Parser.CodeSpan   (CodeSpan)
-import Luna.Syntax.Text.Source            (Source)
-import Text.Megaparsec                    ()
+import Control.Monad.State.Layered           (StatesT)
+import Data.Set                              (Set)
+import Data.Text.Position                    (Delta)
+import Luna.Pass                             (Pass)
+import Luna.Syntax.Text.Parser.Data.CodeSpan (CodeSpan)
+import Luna.Syntax.Text.Parser.Data.Invalid  (Invalids)
+import Luna.Syntax.Text.Parser.Data.Result   (Result)
+import Luna.Syntax.Text.Source               (Source)
+
 
 
 -------------------------
