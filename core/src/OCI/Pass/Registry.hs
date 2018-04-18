@@ -14,6 +14,7 @@ import Control.Monad.State.Layered (StateT)
 import Data.Map.Strict             (Map)
 import Foreign.Ptr.Utils           (SomePtr)
 import Foreign.Storable1           (Storable1)
+import OCI.IR.Layer                (Layer)
 
 
 -------------------
@@ -107,16 +108,16 @@ registerPrimLayerRep s staticInit dynamicInit comp layer =
 {-# INLINE registerPrimLayerRep #-}
 
 registerComponent :: ∀ comp m.       (MonadRegistry m, Typeable comp) => m ()
-registerPrimLayer :: ∀ comp layer m. (MonadRegistry m, Typeable comp, Typeable layer, Layer.StorableData layer, Layer.Initializer layer) => m ()
+registerPrimLayer :: ∀ comp layer m. (MonadRegistry m, Typeable comp, Typeable layer, Layer.StorableData layer, Layer layer) => m ()
 registerComponent = registerComponentRep (someTypeRep @comp) ; {-# INLINE registerComponent #-}
 registerPrimLayer = do
-    initStatic     <- liftIO $ fmap coerce . mapM Ptr1.new
-                    $ Layer.initStatic @layer
-    let initDynamic = applyDyn <$> Layer.initDynamic @layer
+    initializer    <- liftIO $ fmap coerce . mapM Ptr1.new
+                    $ Layer.initialize @layer
+    let constructor = applyDyn <$> Layer.construct @layer
         byteSize    = Layer.byteSize @layer
         comp        = someTypeRep @comp
         layer       = someTypeRep @layer
-    registerPrimLayerRep byteSize initStatic initDynamic comp layer
+    registerPrimLayerRep byteSize initializer constructor comp layer
     where applyDyn :: Storable1 t => IO (t a) -> (SomePtr -> IO ())
           applyDyn t ptr = Storable1.poke (coerce ptr) =<< t ; {-# INLINE applyDyn #-}
 {-# INLINE registerPrimLayer #-}

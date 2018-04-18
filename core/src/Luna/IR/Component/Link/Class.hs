@@ -10,6 +10,7 @@ import qualified OCI.IR.Layer     as Layer
 import qualified OCI.IR.Layout    as Layout
 
 import Luna.IR.Component.Term.Class (Term)
+import OCI.IR.Layer                 (Layer)
 import OCI.IR.Layout                ((:=), Layout)
 
 
@@ -35,12 +36,12 @@ type src *-* tgt = Layout '[Source := src, Target := tgt]
 data Source
 type instance Layer.Cons   Source        = Term
 type instance Layer.Layout Source layout = Layout.Get Source layout
-instance Layer.Initializer Source
+instance      Layer        Source
 
 data Target
 type instance Layer.Cons   Target        = Term
 type instance Layer.Layout Target layout = Layout.Get Target layout
-instance Layer.Initializer Target
+instance      Layer        Target
 
 type instance Cmp Source Target = 'LT
 type instance Cmp Target Source = 'GT

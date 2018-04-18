@@ -25,6 +25,7 @@ import Foreign.Storable             (Storable)
 import Foreign.Storable1            (Storable1)
 import Luna.IR.Component.Link.Class (type (*-*), Link, Links)
 import Luna.IR.Component.Term.Class (Term, Terms)
+import OCI.IR.Layer                 (Layer)
 
 
 
@@ -39,7 +40,7 @@ type instance Layer.Cons     Model        = Term.Uni
 type instance Layer.Layout   Model layout = layout
 type instance Layer.ViewCons Model layout
    = Term.TagToCons (Layout.Get Model layout)
-instance Layer.Initializer Model
+instance Layer Model
 
 
 -- === Utils === --
@@ -65,7 +66,7 @@ data Type
 type instance Layout.Default Type = ()
 type instance Layer.Cons     Type = Link
 type instance Layer.Layout   Type layout = Layout.Get Type layout *-* layout
-instance Layer.Initializer   Type
+instance      Layer          Type
 
 
 
@@ -76,6 +77,6 @@ instance Layer.Initializer   Type
 data Users
 type instance Layer.Cons   Users = Link.Set
 type instance Layer.Layout Users layout = layout *-* Layout.Set Model () layout
-instance Layer.Initializer Users where
-    initDynamic = Just (wrap <$> PtrSet.new) ; {-# INLINE initDynamic #-}
+instance      Layer        Users where
+    construct = Just (wrap <$> PtrSet.new) ; {-# INLINE construct #-}
 

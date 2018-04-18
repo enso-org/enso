@@ -104,12 +104,20 @@ class IsCons1 layer t where
 
 -- === Initialization === --
 
-class Initializer layer where
-    initStatic  :: ∀ layout. Maybe     (Cons layer layout)
-    initDynamic :: ∀ layout. Maybe (IO (Cons layer layout))
-    initStatic  = Nothing ; {-# INLINE initStatic  #-}
-    initDynamic = Nothing ; {-# INLINE initDynamic #-}
-    {-# MINIMAL initStatic | initDynamic #-}
+class Layer layer where
+    initialize :: ∀ layout. Maybe     (Cons layer layout)
+    construct  :: ∀ layout. Maybe (IO (Cons layer layout))
+    destruct   :: ∀ layout. Maybe (Cons layer layout -> IO ())
+    initialize = Nothing ; {-# INLINE initialize #-}
+    construct  = Nothing ; {-# INLINE construct  #-}
+    destruct   = Nothing ; {-# INLINE destruct   #-}
+
+-- class Initializer layer where
+--     initStatic  :: ∀ layout. Maybe     (Cons layer layout)
+--     initDynamic :: ∀ layout. Maybe (IO (Cons layer layout))
+--     initStatic  = Nothing ; {-# INLINE initStatic  #-}
+--     initDynamic = Nothing ; {-# INLINE initDynamic #-}
+--     {-# MINIMAL initStatic | initDynamic #-}
 
 
 -- === General Information === --
