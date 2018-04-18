@@ -20,11 +20,11 @@ import qualified Luna.Pass.Attr                      as Attr
 import qualified Luna.Pass.Scheduler                 as Scheduler
 import qualified Luna.Runner                         as Runner
 import qualified Luna.Syntax.Prettyprint             as Prettyprint
-import qualified Luna.Syntax.Text.Parser.Class       as Parser
 import qualified Luna.Syntax.Text.Parser.CodeSpan    as CodeSpan
 import qualified Luna.Syntax.Text.Parser.Parser      as Token
 import qualified Luna.Syntax.Text.Parser.Parsing     as Parsing
 import qualified Luna.Syntax.Text.Parser.Pass        as Parser
+import qualified Luna.Syntax.Text.Parser.Pass.Class  as Parser
 import qualified OCI.Data.Name                       as Name
 import qualified OCI.IR.Component                    as Component
 import qualified OCI.IR.Layout                       as Layout
@@ -34,8 +34,8 @@ import Data.Text.Position                 (Delta)
 import Luna.IR.Component.Link             (type (*-*), Link)
 import Luna.Pass                          (Pass)
 import Luna.Syntax.Text.Parser.Attributes (Invalids)
-import Luna.Syntax.Text.Parser.Class      (IRBS, Parser)
 import Luna.Syntax.Text.Parser.CodeSpan   (CodeSpan)
+import Luna.Syntax.Text.Parser.Pass.Class (IRBS, Parser)
 import Luna.Syntax.Text.Scope             (Scope)
 import Luna.Syntax.Text.Source            (Source)
 import Luna.Test.Source.Text.Utils        (s)

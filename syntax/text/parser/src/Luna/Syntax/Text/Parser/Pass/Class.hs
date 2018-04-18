@@ -1,6 +1,6 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Luna.Syntax.Text.Parser.Class where
+module Luna.Syntax.Text.Parser.Pass.Class where
 
 import           Prologue hiding (String, Symbol, Tok, Type)
 import qualified Prologue as P

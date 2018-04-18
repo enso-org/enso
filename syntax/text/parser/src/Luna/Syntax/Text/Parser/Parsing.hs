@@ -35,40 +35,42 @@ import qualified OCI.IR.Layout                      as Layout
 import qualified Text.Parser.Expr                   as Expr
 import qualified Text.Parser.Indent                 as Indent
 
-import Data.List.NonEmpty               ((<|))
-import Data.Set                         (Set)
-import Data.Text.Position               (FileOffset (..))
-import Data.Text.Position               (Delta)
-import Data.Text32                      (Text32)
-import Data.TreeSet                     (SparseTreeSet)
-import Language.Symbol                  (Labeled (Labeled), SomeSymbol, labeled)
-import Luna.IR                          (SomeTerm, Term)
-import Luna.Pass                        (Pass)
-import Luna.Syntax.Text.Parser.Class    (Stream, Tok)
-import Luna.Syntax.Text.Parser.Class    (IRB, IRBS (IRBS), fromIRBS, liftIRBS1,
-                                         liftIRBS2, liftIRBS3)
-import Luna.Syntax.Text.Parser.CodeSpan (CodeSpan (CodeSpan),
-                                         CodeSpanRange (..))
-import Luna.Syntax.Text.Parser.Loc      (LeftSpanner (LeftSpanner),
-                                         checkNextOffset, previewNextSymbol,
-                                         token')
-import Luna.Syntax.Text.Parser.Marker   (MarkedExprMap, MarkerId, MarkerState,
-                                         UnmarkedExprs, addMarkedExpr,
-                                         addUnmarkedExpr, getLastTokenMarker,
-                                         useLastTokenMarker)
-import Luna.Syntax.Text.Parser.Marker   (MarkedExprMap, UnmarkedExprs)
-import Luna.Syntax.Text.Parser.Name     (SpacedName)
-import Luna.Syntax.Text.Parser.Parser   (Parser)
-import OCI.Data.Name                    (Name)
-import Text.Megaparsec                  (ErrorItem (Tokens), MonadParsec,
-                                         ParseError, between, choice, hidden,
-                                         lookAhead, manyTill, notFollowedBy,
-                                         skipMany, try, unexpected,
-                                         withRecovery)
-import Text.Megaparsec.Char             (anyChar, char, digitChar, letterChar,
-                                         lowerChar, spaceChar, upperChar)
-import Text.Megaparsec.Error            (parseErrorPretty, parseErrorTextPretty)
-import Text.Megaparsec.Ext              (expected)
+import Data.List.NonEmpty                 ((<|))
+import Data.Set                           (Set)
+import Data.Text.Position                 (FileOffset (..))
+import Data.Text.Position                 (Delta)
+import Data.Text32                        (Text32)
+import Data.TreeSet                       (SparseTreeSet)
+import Language.Symbol                    (Labeled (Labeled), SomeSymbol,
+                                           labeled)
+import Luna.IR                            (SomeTerm, Term)
+import Luna.Pass                          (Pass)
+import Luna.Syntax.Text.Parser.CodeSpan   (CodeSpan (CodeSpan),
+                                           CodeSpanRange (..))
+import Luna.Syntax.Text.Parser.Loc        (LeftSpanner (LeftSpanner),
+                                           checkNextOffset, previewNextSymbol,
+                                           token')
+import Luna.Syntax.Text.Parser.Marker     (MarkedExprMap, MarkerId, MarkerState,
+                                           UnmarkedExprs, addMarkedExpr,
+                                           addUnmarkedExpr, getLastTokenMarker,
+                                           useLastTokenMarker)
+import Luna.Syntax.Text.Parser.Marker     (MarkedExprMap, UnmarkedExprs)
+import Luna.Syntax.Text.Parser.Name       (SpacedName)
+import Luna.Syntax.Text.Parser.Parser     (Parser)
+import Luna.Syntax.Text.Parser.Pass.Class (IRB, IRBS (IRBS), Stream, Tok,
+                                           fromIRBS, liftIRBS1, liftIRBS2,
+                                           liftIRBS3)
+import OCI.Data.Name                      (Name)
+import Text.Megaparsec                    (ErrorItem (Tokens), MonadParsec,
+                                           ParseError, between, choice, hidden,
+                                           lookAhead, manyTill, notFollowedBy,
+                                           skipMany, try, unexpected,
+                                           withRecovery)
+import Text.Megaparsec.Char               (anyChar, char, digitChar, letterChar,
+                                           lowerChar, spaceChar, upperChar)
+import Text.Megaparsec.Error              (parseErrorPretty,
+                                           parseErrorTextPretty)
+import Text.Megaparsec.Ext                (expected)
 import Text.Parser.Combinators
 
 

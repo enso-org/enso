@@ -5,8 +5,8 @@ import Prologue hiding (SomeSymbol, Symbol, lookup)
 import qualified Control.Monad.State.Layered as State
 import qualified Data.Set                    as Set
 
-import Data.Set                      (Set)
-import Luna.Syntax.Text.Parser.Class (Symbol)
+import Data.Set                           (Set)
+import Luna.Syntax.Text.Parser.Pass.Class (Symbol)
 
 
 

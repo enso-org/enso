@@ -13,22 +13,17 @@ import qualified Luna.Syntax.Text.Parser.Reserved as Reserved
 import qualified Text.Megaparsec                  as Parser
 import qualified Text.Megaparsec.Pos              as Parser
 
-import Data.Set (Set)
--- import Data.Text.Position
--- import Data.Text.Span                   (RightSpacedSpan,
---                                          SpacedSpan (SpacedSpan),
---                                          rightSpacedSpan)
-import Luna.Syntax.Text.Parser.Class    (MonadParser, Tok)
-import Luna.Syntax.Text.Parser.Marker   (MarkerState, cleanLastTokenMarker,
-                                         newLastTokenMarker)
-import Luna.Syntax.Text.Parser.Reserved (Reserved)
-import Text.Megaparsec.Error            (ErrorItem, ParseError)
--- -- import           OCI.IR                           (Name)
-import Text.Megaparsec (MonadParsec, token, withRecovery)
+import Data.Set                           (Set)
+import Data.Text.Position                 (Delta)
+import Data.Text.Position                 (FileOffset)
+import Luna.Syntax.Text.Parser.Marker     (MarkerState, cleanLastTokenMarker,
+                                           newLastTokenMarker)
+import Luna.Syntax.Text.Parser.Pass.Class (MonadParser, Stream, Symbol, Tok)
+import Luna.Syntax.Text.Parser.Reserved   (Reserved)
+import Text.Megaparsec                    (MonadParsec, token, withRecovery)
+import Text.Megaparsec.Error              (ErrorItem, ParseError)
 
-import Data.Text.Position            (Delta)
-import Data.Text.Position            (FileOffset)
-import Luna.Syntax.Text.Parser.Class (Stream, Symbol)
+
 
 newtype LeftSpanner = LeftSpanner Delta deriving (Show)
 makeLenses ''LeftSpanner
