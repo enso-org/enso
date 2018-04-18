@@ -36,6 +36,7 @@ import Luna.Syntax.Text.Parser.CodeSpan (CodeSpan)
 import Luna.Syntax.Text.Parser.Errors   (Invalids)
 import Luna.Syntax.Text.Parser.Pass     (IRBS, Parser)
 import Luna.Syntax.Text.Scope           (Scope)
+import Luna.Test.Source.Text.Utils      (s)
 import Test.Hspec                       (Expectation, Spec, describe, it)
 
 
@@ -139,12 +140,15 @@ literalNumberSpec = describe "number" $ do
 literalStringSpec :: Spec
 literalStringSpec = describe "string" $ do
     describe "raw" $ do
-        it "oneliner"          $ do expr "\"The quick brown fox jumps over the lazy dog\""      -- [(0,45)]
-        it "tripple d-quoted"  $ do exprAs [qqStr|"""Test"""|] [qqStr|"Test"|] -- [s|"The quick brown fox jumps over the lazy dog"|] [(0,49)]
-        it "escaping qote"     $ do exprAs [qqStr|"foo\""|] [qqStr|"foo""|]    -- [(0,7)] -- " -- FIXME: Fix escaping in pretty printer
-        it "escaping newline"  $ do exprAs [qqStr|'\n'|] "\"\n\""              -- [(0,4)]
+        it "empty"             $ expr   [s|""|]
+        it "simple"            $ expr   [s|"test sentence"|]
+        it "tripple d-quoted"  $ exprAs [s|"""Test"""|] [s|"Test"|]
+        it "escape quote"      $ expr   [s|"foo\""|]
+        it "escape escape"     $ expr   [s|"foo\\"|]
+        it "implicite escape"  $ exprAs [s|"foo\bar"|] [s|"foo\\bar"|]
     describe "interpolated" $ do
-        it "oneliner"         $ do exprAs "'Test'" "\"Test\""
+        it "simple"         $ exprAs [s|'Test'|] [s|"Test"|]
+        -- it "escaping newline"  $ exprAs [s|'\n'|] "\"\n\""              -- [(0,4)]
         --     it "tripple single-quoted oneliner"             $ do shouldParseAs expr     "'''The quick brown fox jumps over the lazy dog'''"    "'The quick brown fox jumps over the lazy dog'"
         --     it "multiline string with inline start"         $ do shouldParseAs expr     "'The quick \n brown fox jumps over the lazy dog'"     "'The quick \nbrown fox jumps over the lazy dog'"
         --     it "multiline string with non-indented newline" $ do shouldParseAs expr     "'The quick \n\n brown fox jumps over the lazy dog'"   "'The quick \n\nbrown fox jumps over the lazy dog'"
