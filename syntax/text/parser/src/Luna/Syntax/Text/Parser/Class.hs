@@ -88,6 +88,16 @@ instance Show (IRBS a) where
 
 
 
+-- --------------------
+-- -- === Result === --
+-- --------------------
+
+-- newtype Result = Result (IR.Term IR.Unit) deriving (Show, Eq, Mempty)
+-- type instance Attr.Type Result = Attr.Atomic
+
+
+
+
 
 
 

@@ -43,21 +43,6 @@ import Test.Hspec                       (Expectation, Spec, describe, it)
 
 
 
-
--- runParser :: Text32 -> IO ()
--- runParser src = Scheduler.runManual reg sched where
---     reg = do
---         Runner.registerAll
---         Registry.registerPrimLayer @IR.Terms @CodeSpan
---     sched = do
---         Scheduler.registerAttr     @Invalids
---         Scheduler.enableAttrByType @Invalids
---         Scheduler.registerAttr     @Source
---         Scheduler.enableAttrByType @Source
---         Scheduler.registerPassFromFunction__ pass
---         Scheduler.runPassByType @pass
-
-
 -----------------------
 -- === Test pass === --
 -----------------------
@@ -70,24 +55,19 @@ runPass :: ∀ pass. OnDemandPass pass => Pass pass () -> IO ()
 runPass = runPasses . pure
 
 runPasses :: ∀ pass. OnDemandPass pass => [Pass pass ()] -> IO ()
-runPasses passes = Scheduler.runManual reg $ do
-    Parser.registerDynamic
-    for_ passes $ \pass -> do
-        Scheduler.registerPassFromFunction__ pass
-        Scheduler.runPassByType @pass
-    where reg = do
-              Runner.registerAll
-              Parser.registerStatic
-
--- run2Passes :: ∀ pass. OnDemandPass pass => Pass pass () -> Pass pass () -> IO ()
--- run2Passes p1 p2 = runPasses [p1,p2]
-
-runPass' :: Pass Parser () -> IO ()
-runPass' = runPass
+runPasses passes = Scheduler.runManual reg sched where
+    reg = do
+        Runner.registerAll
+        Parser.registerStatic
+    sched = do
+        Parser.registerDynamic
+        for_ passes $ \pass -> do
+            Scheduler.registerPassFromFunction__ pass -- ONLY FOR TEST SPEC
+            Scheduler.runPassByType @pass
 
 shouldParseAs :: Token.Parser (IRBS IR.SomeTerm) -> Text -> Text
               {- -> (Delta, Delta)-} -> IO ()
-shouldParseAs parser input output {-desiredSpan-} = runPass' $ do
+shouldParseAs parser input output {-desiredSpan-} = runPass $ do
     (((ir,cs),scope), _) <- flip Parser.runParser__ (convert input) $ do
         irb   <- parser
         scope <- State.get @Scope
