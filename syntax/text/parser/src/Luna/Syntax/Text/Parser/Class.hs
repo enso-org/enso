@@ -1,19 +1,23 @@
+{-# LANGUAGE UndecidableInstances #-}
+
 module Luna.Syntax.Text.Parser.Class where
 
 import           Prologue hiding (String, Symbol, Tok, Type)
 import qualified Prologue as P
 
-import Luna.IR
-import Luna.Syntax.Text.Layer.Loc
+import qualified Luna.IR as IR
+-- import           Luna.Syntax.Text.Layer.Loc
 -- import OCI.Pass.Class
 -- import OCI.Pass.Definition
 
 import Luna.Syntax.Text.Parser.CodeSpan
 -- import Luna.Syntax.Text.Parser.Marker   (MarkedExprMap)
-import Luna.Syntax.Text.Source (Source)
+-- -- import Luna.Syntax.Text.Source (Source)
 -- import qualified OCI.IR                           as IR
 import qualified Data.List              as List
 import qualified Data.Set               as Set
+import qualified Luna.IR                as IR
+import qualified Luna.Pass              as Pass
 import qualified Luna.Syntax.Text.Lexer as Lexer
 import qualified Luna.Syntax.Text.Lexer as Lexer
 import qualified Text.Megaparsec        as Parser
@@ -21,9 +25,70 @@ import qualified Text.Megaparsec.Error  as Error
 import qualified Text.Megaparsec.Error  as Error
 
 
-import Data.Set           (Set)
-import Data.Text.Position (Delta)
-import Text.Megaparsec    hiding (Pos, Stream, parse, uncons, (<?>))
+import Control.Monad.State.Layered    (StatesT)
+import Data.Set                       (Set)
+import Data.Text.Position             (Delta)
+import Luna.Pass                      (Pass)
+import Luna.Syntax.Text.Parser.Errors (Invalids)
+import Luna.Syntax.Text.Parser.Marker (MarkedExprMap, MarkerState,
+                                       UnmarkedExprs)
+import Luna.Syntax.Text.Source        (Source)
+import Text.Megaparsec                hiding (Pos, Stream, parse, uncons, (<?>))
+
+
+data Parser
+
+type instance Pass.Spec Parser t = ParserSpec t
+type family   ParserSpec  t where
+    ParserSpec (Pass.In  Pass.Attrs) = '[Source, Invalids]
+    ParserSpec (Pass.In  IR.Terms)   = CodeSpan
+                                    ': Pass.BasicPassSpec (Pass.In IR.Terms)
+    ParserSpec (Pass.Out t)          = ParserSpec (Pass.In t)
+    ParserSpec t                     = Pass.BasicPassSpec t
+
+Pass.cache_phase1 ''Parser
+Pass.cache_phase2 ''Parser
+
+
+-----------------
+-- === IRB === --
+-----------------
+
+-- === Definition === --
+
+-- | IRB:  IR Builder
+--   IRBS: IR Builder Spanned
+--   Both IRB and IRBS are Luna IR building monads, however the construction
+--   of IRBS is handled by functions which guarantee that IRB has all code
+--   spanning information encoded
+
+type    IRB    = StatesT '[UnmarkedExprs, MarkedExprMap] (Pass Parser)
+newtype IRBS a = IRBS (IRB a)
+    deriving (Functor, Applicative, Monad)
+makeLenses ''IRBS
+
+
+-- === Utils === --
+
+fromIRBS :: IRBS a -> IRB a
+fromIRBS (IRBS a) = a ; {-# INLINE fromIRBS #-}
+
+liftIRBS1 :: (t1             -> IRB out) -> IRBS t1                       -> IRB out
+liftIRBS2 :: (t1 -> t2       -> IRB out) -> IRBS t1 -> IRBS t2            -> IRB out
+liftIRBS3 :: (t1 -> t2 -> t3 -> IRB out) -> IRBS t1 -> IRBS t2 -> IRBS t3 -> IRB out
+liftIRBS1 f t1       = bind  f (fromIRBS t1)                             ; {-# INLINE liftIRBS1 #-}
+liftIRBS2 f t1 t2    = bind2 f (fromIRBS t1) (fromIRBS t2)               ; {-# INLINE liftIRBS2 #-}
+liftIRBS3 f t1 t2 t3 = bind3 f (fromIRBS t1) (fromIRBS t2) (fromIRBS t3) ; {-# INLINE liftIRBS3 #-}
+
+
+-- === Instances === --
+
+instance Show (IRBS a) where
+    show _ = "IRBS"
+
+
+
+
 
 
 infix 1 <?>
@@ -60,12 +125,12 @@ instance Parser.Stream Stream where
 
     takeWhile_    f     = \case []     -> ([], [])
                                 (a:as) -> if f a then app_tmp a (takeWhile_ f as)
-                                                 else ([], (a:as)) where
+                                                 else ([], (a:as))
 
     -- takeWhile_ :: (Token s -> Bool) -> s -> (Tokens s, s)
     -- uncons = List.uncons
     -- updatePos _ _ cpos _ = (cpos, cpos)
-    -- -- updatePos _ _ (cpos@(Parser.SourcePos n l c)) (Lexer.Token (Lexer.Span w o) _) = (cpos, Parser.SourcePos n (Parser.unsafePos . unsafeConvert $ unwrap o + 1)
+    -- updatePos _ _ (cpos@(Parser.SourcePos n l c)) (Lexer.Token (Lexer.Span w o) _) = (cpos, Parser.SourcePos n (Parser.unsafePos . unsafeConvert $ unwrap o + 1)
     --                                                                                                            (Parser.unsafePos $ Parser.unPos c + (unsafeConvert $ unwrap $ w + o)))
 
 instance Parser.ShowToken Tok where
@@ -74,4 +139,4 @@ instance Parser.ShowToken Tok where
 
 
 
-    
+

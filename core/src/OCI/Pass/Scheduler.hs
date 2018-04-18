@@ -74,7 +74,12 @@ buildState = State mempty mempty mempty ; {-# INLINE buildState #-}
 -- === Definition === --
 
 type Monad m = MonadScheduler m
-type MonadScheduler m = (State.Monad State m, MonadIO m, Throws Error m)
+type MonadScheduler m =
+    ( State.Monad State m
+    , MonadIO m
+    , Throws Error m
+    , Throws Encoder.Error m
+    )
 
 newtype SchedulerT m a = SchedulerT (StateT State m a)
     deriving ( Applicative, Alternative, Functor, M, MonadFail, MonadFix

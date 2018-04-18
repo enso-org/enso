@@ -28,7 +28,6 @@ import qualified Luna.Syntax.Text.Parser.Hardcoded as Builtin
 import qualified Luna.Syntax.Text.Parser.Loc       as Loc
 import qualified Luna.Syntax.Text.Parser.Marker    as Marker
 import qualified Luna.Syntax.Text.Parser.Name      as Name
-import qualified Luna.Syntax.Text.Parser.Pass      as Pass
 import qualified Luna.Syntax.Text.Parser.Reserved  as Reserved
 import qualified Luna.Syntax.Text.Scope            as Scope
 import qualified OCI.Data.Name.Multipart           as Name.Multipart
@@ -46,6 +45,8 @@ import Language.Symbol                  (Labeled (Labeled), SomeSymbol, labeled)
 import Luna.IR                          (SomeTerm, Term)
 import Luna.Pass                        (Pass)
 import Luna.Syntax.Text.Parser.Class    (Stream, Tok)
+import Luna.Syntax.Text.Parser.Class    (IRB, IRBS (IRBS), fromIRBS, liftIRBS1,
+                                         liftIRBS2, liftIRBS3)
 import Luna.Syntax.Text.Parser.CodeSpan (CodeSpan (CodeSpan),
                                          CodeSpanRange (..))
 import Luna.Syntax.Text.Parser.Loc      (LeftSpanner (LeftSpanner),
@@ -58,8 +59,6 @@ import Luna.Syntax.Text.Parser.Marker   (MarkedExprMap, MarkerId, MarkerState,
 import Luna.Syntax.Text.Parser.Marker   (MarkedExprMap, UnmarkedExprs)
 import Luna.Syntax.Text.Parser.Name     (SpacedName)
 import Luna.Syntax.Text.Parser.Parser   (Parser)
-import Luna.Syntax.Text.Parser.Pass     (IRB, IRBS (IRBS, fromIRBS), liftIRBS1,
-                                         liftIRBS2, liftIRBS3, runParserT)
 import OCI.Data.Name                    (Name)
 import Text.Megaparsec                  (ErrorItem (Tokens), MonadParsec,
                                          ParseError, between, choice, hidden,
@@ -1036,15 +1035,9 @@ optionalBlockAny = option mempty nonEmptyBlockAny
 --     putAttr @MarkedExprMap $ gidMap
 
 
-parsingBase :: Parser (IRBS a) -> Text32.Text32 -> Pass Pass.Parser (a, MarkedExprMap)
-parsingBase p src = do
-    let stream = Lexer.evalDefLexer src
-    result <- runParserT (stx *> p <* etx) stream
-    case result of
-        Left e -> error ("Parser error: " <> parseErrorPretty e) -- FIXME[WD]: handle it the proper way
-        Right (IRBS irb) -> do
-            ((ref, unmarked), gidMap) <- State.runDefT @MarkedExprMap $ State.runDefT @UnmarkedExprs irb
-            pure (ref, gidMap)
+
+
+
 
 -- parsingBase_ :: ( MonadPassManager m, ParsingPassReq_2 m
 --                 , UnsafeGeneralizable a SomeTerm, UnsafeGeneralizable a SomeTerm -- FIXME[WD]: Constraint for testing only

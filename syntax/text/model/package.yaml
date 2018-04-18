@@ -15,7 +15,9 @@ dependencies:
     - luna-core
     - luna-nested-containers
     - luna-syntax-definition
+    - luna-text-processing
     - prologue
+    - vector-text
 
 default-extensions:
     - AllowAmbiguousTypes

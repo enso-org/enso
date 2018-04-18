@@ -20,6 +20,7 @@ import qualified Luna.Pass.Attr                      as Attr
 import qualified Luna.Pass.Scheduler                 as Scheduler
 import qualified Luna.Runner                         as Runner
 import qualified Luna.Syntax.Prettyprint             as Prettyprint
+import qualified Luna.Syntax.Text.Parser.Class       as Parser
 import qualified Luna.Syntax.Text.Parser.CodeSpan    as CodeSpan
 import qualified Luna.Syntax.Text.Parser.Parser      as Token
 import qualified Luna.Syntax.Text.Parser.Parsing     as Parsing
@@ -32,12 +33,29 @@ import qualified OCI.Pass.Registry                   as Registry
 import Data.Text.Position               (Delta)
 import Luna.IR.Component.Link           (type (*-*), Link)
 import Luna.Pass                        (Pass)
+import Luna.Syntax.Text.Parser.Class    (IRBS, Parser)
 import Luna.Syntax.Text.Parser.CodeSpan (CodeSpan)
 import Luna.Syntax.Text.Parser.Errors   (Invalids)
-import Luna.Syntax.Text.Parser.Pass     (IRBS, Parser)
 import Luna.Syntax.Text.Scope           (Scope)
+import Luna.Syntax.Text.Source          (Source)
 import Luna.Test.Source.Text.Utils      (s)
 import Test.Hspec                       (Expectation, Spec, describe, it)
+
+
+
+
+-- runParser :: Text32 -> IO ()
+-- runParser src = Scheduler.runManual reg sched where
+--     reg = do
+--         Runner.registerAll
+--         Registry.registerPrimLayer @IR.Terms @CodeSpan
+--     sched = do
+--         Scheduler.registerAttr     @Invalids
+--         Scheduler.enableAttrByType @Invalids
+--         Scheduler.registerAttr     @Source
+--         Scheduler.enableAttrByType @Source
+--         Scheduler.registerPassFromFunction__ pass
+--         Scheduler.runPassByType @pass
 
 
 -----------------------
@@ -53,14 +71,13 @@ runPass = runPasses . pure
 
 runPasses :: ∀ pass. OnDemandPass pass => [Pass pass ()] -> IO ()
 runPasses passes = Scheduler.runManual reg $ do
+    Parser.registerDynamic
     for_ passes $ \pass -> do
-        Scheduler.registerAttr     @Invalids
-        Scheduler.enableAttrByType @Invalids
         Scheduler.registerPassFromFunction__ pass
         Scheduler.runPassByType @pass
     where reg = do
               Runner.registerAll
-              Registry.registerPrimLayer @IR.Terms @CodeSpan
+              Parser.registerStatic
 
 -- run2Passes :: ∀ pass. OnDemandPass pass => Pass pass () -> Pass pass () -> IO ()
 -- run2Passes p1 p2 = runPasses [p1,p2]
@@ -71,7 +88,7 @@ runPass' = runPass
 shouldParseAs :: Token.Parser (IRBS IR.SomeTerm) -> Text -> Text
               {- -> (Delta, Delta)-} -> IO ()
 shouldParseAs parser input output {-desiredSpan-} = runPass' $ do
-    (((ir,cs),scope), _) <- flip Parsing.parsingBase (convert input) $ do
+    (((ir,cs),scope), _) <- flip Parser.runParser__ (convert input) $ do
         irb   <- parser
         scope <- State.get @Scope
         let Parser.IRBS irx = irb
