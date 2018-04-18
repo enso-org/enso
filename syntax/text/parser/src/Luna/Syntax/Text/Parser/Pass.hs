@@ -28,7 +28,7 @@ import Luna.Pass                         (Pass)
 import Luna.Syntax.Text.Parser.Class     (Error)
 import Luna.Syntax.Text.Parser.Class     (Stream)
 import Luna.Syntax.Text.Parser.Class     (Parser)
-import Luna.Syntax.Text.Parser.Class     (IRBS)
+import Luna.Syntax.Text.Parser.Class     (IRBS, Result)
 import Luna.Syntax.Text.Parser.Class     (fromIRBS)
 import Luna.Syntax.Text.Parser.CodeSpan  (CodeSpan, CodeSpanRange)
 import Luna.Syntax.Text.Parser.Errors    (Invalids)
@@ -56,7 +56,7 @@ instance Pass.Definition Parser where
     definition = do
         src             <- Attr.get @Source
         (unit, markers) <- runParser__ Parsing.unit (convert src)
-        return ()
+        Attr.put @Result (wrap unit)
 
 
 -- === API === --
@@ -71,6 +71,8 @@ registerDynamic = do
     Scheduler.enableAttrByType @Invalids
     Scheduler.registerAttr     @Source
     Scheduler.enableAttrByType @Source
+    Scheduler.registerAttr     @Result
+    Scheduler.enableAttrByType @Result
     Scheduler.registerPass     @Parser
 
 

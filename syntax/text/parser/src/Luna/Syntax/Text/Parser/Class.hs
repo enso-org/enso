@@ -18,8 +18,10 @@ import qualified Data.List              as List
 import qualified Data.Set               as Set
 import qualified Luna.IR                as IR
 import qualified Luna.Pass              as Pass
+import qualified Luna.Pass.Attr         as Attr
 import qualified Luna.Syntax.Text.Lexer as Lexer
 import qualified Luna.Syntax.Text.Lexer as Lexer
+import qualified OCI.IR.Component.Class as Component
 import qualified Text.Megaparsec        as Parser
 import qualified Text.Megaparsec.Error  as Error
 import qualified Text.Megaparsec.Error  as Error
@@ -36,11 +38,26 @@ import Luna.Syntax.Text.Source        (Source)
 import Text.Megaparsec                hiding (Pos, Stream, parse, uncons, (<?>))
 
 
+
+--------------------
+-- === Result === --
+--------------------
+
+newtype Result = Result (IR.Term IR.Unit) deriving (Show, Eq)
+makeLenses ''Result
+
+type instance Attr.Type Result = Attr.Atomic
+
+instance Default Result where
+    def = Result Component.unsafeNull ; {-# INLINE def #-}
+
+
+
 data Parser
 
 type instance Pass.Spec Parser t = ParserSpec t
 type family   ParserSpec  t where
-    ParserSpec (Pass.In  Pass.Attrs) = '[Source, Invalids]
+    ParserSpec (Pass.In  Pass.Attrs) = '[Source, Result, Invalids]
     ParserSpec (Pass.In  IR.Terms)   = CodeSpan
                                     ': Pass.BasicPassSpec (Pass.In IR.Terms)
     ParserSpec (Pass.Out t)          = ParserSpec (Pass.In t)
@@ -88,12 +105,7 @@ instance Show (IRBS a) where
 
 
 
--- --------------------
--- -- === Result === --
--- --------------------
 
--- newtype Result = Result (IR.Term IR.Unit) deriving (Show, Eq, Mempty)
--- type instance Attr.Type Result = Attr.Atomic
 
 
 
