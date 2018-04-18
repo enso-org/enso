@@ -5,17 +5,9 @@ module Luna.Syntax.Text.Parser.Class where
 import           Prologue hiding (String, Symbol, Tok, Type)
 import qualified Prologue as P
 
-import qualified Luna.IR as IR
--- import           Luna.Syntax.Text.Layer.Loc
--- import OCI.Pass.Class
--- import OCI.Pass.Definition
-
-import Luna.Syntax.Text.Parser.CodeSpan
--- import Luna.Syntax.Text.Parser.Marker   (MarkedExprMap)
--- -- import Luna.Syntax.Text.Source (Source)
--- import qualified OCI.IR                           as IR
 import qualified Data.List              as List
 import qualified Data.Set               as Set
+import qualified Luna.IR                as IR
 import qualified Luna.IR                as IR
 import qualified Luna.Pass              as Pass
 import qualified Luna.Pass.Attr         as Attr
@@ -27,15 +19,17 @@ import qualified Text.Megaparsec.Error  as Error
 import qualified Text.Megaparsec.Error  as Error
 
 
-import Control.Monad.State.Layered    (StatesT)
-import Data.Set                       (Set)
-import Data.Text.Position             (Delta)
-import Luna.Pass                      (Pass)
-import Luna.Syntax.Text.Parser.Errors (Invalids)
-import Luna.Syntax.Text.Parser.Marker (MarkedExprMap, MarkerState,
-                                       UnmarkedExprs)
-import Luna.Syntax.Text.Source        (Source)
-import Text.Megaparsec                hiding (Pos, Stream, parse, uncons, (<?>))
+import Control.Monad.State.Layered      (StatesT)
+import Data.Set                         (Set)
+import Data.Text.Position               (Delta)
+import Luna.Pass                        (Pass)
+import Luna.Syntax.Text.Parser.CodeSpan
+import Luna.Syntax.Text.Parser.Errors   (Invalids)
+import Luna.Syntax.Text.Parser.Marker   (MarkedExprMap, MarkerState,
+                                         UnmarkedExprs)
+import Luna.Syntax.Text.Source          (Source)
+import Text.Megaparsec                  hiding (Pos, Stream, parse, uncons,
+                                         (<?>))
 
 
 
