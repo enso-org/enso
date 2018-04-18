@@ -21,7 +21,7 @@ import Data.Set (Set)
 import Luna.Syntax.Text.Parser.Class    (MonadParser, Tok)
 import Luna.Syntax.Text.Parser.Marker   (MarkerState, cleanLastTokenMarker,
                                          newLastTokenMarker)
-import Luna.Syntax.Text.Parser.Reserved (Reservation)
+import Luna.Syntax.Text.Parser.Reserved (Reserved)
 import Text.Megaparsec.Error            (ErrorItem, ParseError)
 -- -- import           OCI.IR                           (Name)
 import Text.Megaparsec (MonadParsec, token, withRecovery)
@@ -49,10 +49,10 @@ type MonadLoc m = (State.MonadStates '[FileOffset, Pos.Position, LeftSpanner, Ma
 -- token :: (Token s -> Either (Maybe (ErrorItem (Token s)), Set (ErrorItem (Token s)))        a) -> Maybe (Token s) -> m a
 -- | Token overrides Megaparsec's one, with special position handling. We cannot do it another way around
 --   because Megaparsec's `token` signature prevents any monadic action while consuming tokens.
-token' :: (MonadParsec e Stream m, MonadLoc m, State.Getter Reservation m)
-       => (Reservation -> Tok -> Either (Maybe (ErrorItem Tok), Set (ErrorItem Tok)) a) -> Maybe Tok -> m a
+token' :: (MonadParsec e Stream m, MonadLoc m, State.Getter Reserved m)
+       => (Reserved -> Tok -> Either (Maybe (ErrorItem Tok), Set (ErrorItem Tok)) a) -> Maybe Tok -> m a
 token' f mt = do
-    s <- State.get @Reservation
+    s <- State.get @Reserved
     let f' t = (t,) <$> f s t
     (tok, a) <- token f' mt
     updatePositions tok

@@ -88,7 +88,7 @@ satisfTest :: (Lexer.Symbol -> Maybe a) -> Parser a
 satisfy_   f = void $ satisfy f                  ; {-# INLINE satisfy_ #-}
 satisfy    f = satisfTest $ \s -> justIf (f s) s ; {-# INLINE satisfy  #-}
 satisfTest f = token' test Nothing where
-    test r t = case Reserved.lookupSymbolReservation r (t ^. Lexer.element) of
+    test r t = case Reserved.lookup r (t ^. Lexer.element) of
         True  -> Left (Just $ Tokens (pure t), Set.empty)
         False -> satisfyTestSymbol f t
 {-# INLINE satisfTest #-}
@@ -376,11 +376,11 @@ number = irbs $ do
 
 
 list :: Parser (IRBS SomeTerm) -> Parser (IRBS SomeTerm)
-list p = irbs $ Reserved.withLocalUnreservedSymbol sep $ braced $ (\g -> liftIRBS1 IR.list' $ sequence g) <$> elems where
+list p = irbs $ Reserved.withoutLocal sep $ braced $ (\g -> liftIRBS1 IR.list' $ sequence g) <$> elems where
     missing :: Parser (IRBS SomeTerm)
     missing   = irbs . pure $ IR.missing'
     sep       = Lexer.Operator ","
-    elem      = Reserved.withLocalReservedSymbol sep p
+    elem      = Reserved.withLocal sep p
     optElem   = elem <|> missing
     bodyH     = (:) <$> elem    <*> many       (separator *> optElem)
     bodyT     = (:) <$> missing <*> someAsList (separator *> optElem)
@@ -391,12 +391,12 @@ list p = irbs $ Reserved.withLocalUnreservedSymbol sep $ braced $ (\g -> liftIRB
 -- FIXME[WD]: This `try` should be refactored out
 -- FIXME[WD]: Tuple and List parsers are too similar no to be refactored to common part. However tuples will disappear soon.
 tuple :: Parser (IRBS SomeTerm) -> Parser (IRBS SomeTerm)
-tuple p = try $ irbs $ Reserved.withLocalUnreservedSymbol sep $ parensed
+tuple p = try $ irbs $ Reserved.withoutLocal sep $ parensed
         $ (liftIRBS1 IR.tuple' . sequence) <$> elems where
     missing :: Parser (IRBS SomeTerm)
     missing    = irbs $ pure IR.missing'
     sep        = Lexer.Operator ","
-    elem       = Reserved.withLocalReservedSymbol sep p
+    elem       = Reserved.withLocal sep p
     optElem    = elem <|> missing
     body       = (:) <$> optElem <*> someAsList (separator *> optElem)
     elems      = option mempty body
@@ -606,7 +606,7 @@ mfixVarSeg  = do
     if TreeSet.null nameSet
         then pure cvar
         else -- catchInvalidWith (span <>) (pure . posIndependent . unlabeledAtom)
-           {-$-} Reserved.withReservedSymbols (Lexer.Var . convertVia @String <$> TreeSet.keys nameSet) -- FIXME: conversion Name -> Text
+           {-$-} Reserved.withMany (Lexer.Var . convertVia @String <$> TreeSet.keys nameSet) -- FIXME: conversion Name -> Text
            $ do segmentToks <- exprFreeSegmentsLocal
                 namedSegs   <- option mempty (parseMixfixSegments nameSet)
                 if null namedSegs then pure (cvar <> segmentToks) else do
@@ -625,11 +625,11 @@ opSeg   = do
     let segment isFirst isLast = pure . Expr.tokenx $ operator & if
             | isSingle    -> labeled (Name.unspaced            name) . Symbol.atom
             | isUMinus    -> labeled (Name.unspaced Builtin.uminusName) . Symbol.prefix . app
-            | isFirst     -> labeled (Name.spacedNameIf after  name) . Symbol.prefix . sectionLeft
-            | isLast      -> labeled (Name.spacedNameIf before name) . Symbol.suffix . sectionRight
-            | symmetrical -> labeled (Name.spacedNameIf after  name) . Symbol.infixx . appSides
-            | before      -> labeled (Name.lspaced             name) . Symbol.prefix . sectionLeft
-            | otherwise   -> labeled (Name.rspaced             name) . Symbol.suffix . sectionRight
+            | isFirst     -> labeled (Name.spacedIf after  name) . Symbol.prefix . sectionLeft
+            | isLast      -> labeled (Name.spacedIf before name) . Symbol.suffix . sectionRight
+            | symmetrical -> labeled (Name.spacedIf after  name) . Symbol.infixx . appSides
+            | before      -> labeled (Name.lspaced         name) . Symbol.prefix . sectionLeft
+            | otherwise   -> labeled (Name.rspaced         name) . Symbol.suffix . sectionRight
             where isMinus     = name == Builtin.minusName
                   isSingle    = isFirst && isLast
                   isUMinus    = isMinus && not after && (isFirst || before) && not isLast
@@ -645,7 +645,7 @@ typedSeg   = do
     when_ (off /= off') $ error "TODO: before and after offsets have to match"
     let seg :: IRBS SomeTerm -> IRBS SomeTerm
         seg = flip (inheritCodeSpan2 IR.typed') tp
-    pure . posIndependent . labeled (Name.spacedNameIf off Builtin.typedName) $ Symbol.suffix seg
+    pure . posIndependent . labeled (Name.spacedIf off Builtin.typedName) $ Symbol.suffix seg
 
 accSectNames :: Parser (NonEmpty (CodeSpan, Name))
 accSectNames = do
@@ -668,7 +668,7 @@ accSeg = fmap2 Expr.tokenx $ do
                        $ irbsFromSpan (mconcat spans)
                        $ IR.accSection' (convert names)
         uname          = Name.unspaced Builtin.accName
-        sname          = Name.spacedNameIf beforeDot Builtin.accName
+        sname          = Name.spacedIf beforeDot Builtin.accName
         accConss       =  labeled sname ( Symbol.suffix $ uncurry accCons n )
                       :| (labeled uname . Symbol.suffix . uncurry accCons <$> ns)
         Just fupdt           = mupdt -- FIXME[WD]: make it nicer
@@ -720,7 +720,7 @@ match = irbs $ (\n (p,ps) -> liftIRBS2 IR.match' n (sequence $ p:ps))
       where clause = pat <**> lamBldr
 
 pat :: Parser (IRBS SomeTerm)
-pat = Reserved.withLocalReservedSymbol Lexer.BlockStart nonemptyValExprLocal
+pat = Reserved.withLocal Lexer.BlockStart nonemptyValExprLocal
 
 
 lamBldr :: Parser (IRBS SomeTerm -> IRBS SomeTerm)
@@ -743,7 +743,7 @@ parseMixfixSegments nameSet = do
         Just nameSet' -> do
             let possiblePaths = TreeSet.keys nameSet'
             anySymbol_
-            segment <- Reserved.withReservedSymbols (Lexer.Var . convertVia @String <$> possiblePaths) nonemptyValExpr -- FIXME: conversion Name -> Text
+            segment <- Reserved.withMany (Lexer.Var . convertVia @String <$> possiblePaths) nonemptyValExpr -- FIXME: conversion Name -> Text
             let restMod = if total then option mempty else (<|> unexpected (fromString $ "Unexpected end of mixfix expression, expecting one of " <> show possiblePaths))
             ((name,segment):) <$> restMod (parseMixfixSegments nameSet')
 

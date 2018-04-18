@@ -20,8 +20,6 @@ import qualified Luna.Syntax.Text.Parser.Parsing     as Parsing
 import qualified OCI.Pass.Registry                   as Registry
 import qualified Text.Megaparsec                     as Parser
 
-import Control.Monad.State.Layered        (StatesT)
-import Control.Monad.State.Layered        (StateT)
 import Data.Text.Position                 (FileOffset)
 import Data.Text32                        (Text32)
 import Luna.Pass                          (Pass)
@@ -34,13 +32,14 @@ import Luna.Syntax.Text.Parser.Loc        (LeftSpanner)
 import Luna.Syntax.Text.Parser.Marker     (MarkedExprMap, MarkerState,
                                            UnmarkedExprs)
 import Luna.Syntax.Text.Parser.Parser     (ParserBase)
-import Luna.Syntax.Text.Parser.Reserved   (Reservation)
+import Luna.Syntax.Text.Parser.Reserved   (Reserved)
 import Luna.Syntax.Text.Scope             (Scope)
 import Luna.Syntax.Text.Source            (Source)
 import Text.Megaparsec                    (ParseError, ParsecT)
 import Text.Megaparsec.Error              (parseErrorPretty)
 import Text.Parser.Backend.Megaparsec     ()
 import Text.Parser.Indent                 (Indent)
+
 
 
 -------------------------
@@ -84,7 +83,7 @@ runParserContext__ :: MonadIO m =>
 runParserContext__ p s
     = flip runParsec__ s
     $ State.evalDefT @CodeSpanRange
-    $ State.evalDefT @Reservation
+    $ State.evalDefT @Reserved
     $ State.evalDefT @Scope
     $ State.evalDefT @LeftSpanner
     $ State.evalDefT @MarkerState

@@ -25,7 +25,7 @@ import Luna.Syntax.Text.Parser.Hardcoded (hardcode)
 import Luna.Syntax.Text.Parser.Loc       (LeftSpanner)
 import Luna.Syntax.Text.Parser.Marker    (MarkedExprMap, MarkerState,
                                           UnmarkedExprs)
-import Luna.Syntax.Text.Parser.Reserved  (Reservation)
+import Luna.Syntax.Text.Parser.Reserved  (Reserved)
 import Luna.Syntax.Text.Scope            (Scope)
 import Text.Megaparsec                   (ParseError, ParsecT)
 import Text.Parser.Backend.Megaparsec    ()
@@ -37,7 +37,7 @@ import Text.Parser.Indent                (Indent)
 type ParserBase = ParsecT Error Stream IO
 
 -- type Parser = StatesT '[Indent, FileOffset, Position, MarkerState
---     , LeftSpanner, Scope, Reservation, CodeSpanRange] ParserBase
+--     , LeftSpanner, Scope, Reserved, CodeSpanRange] ParserBase
 type Parser = StatesT ParserStates ParserBase
 type ParserStates
     = '[ Indent
@@ -45,7 +45,7 @@ type ParserStates
        , MarkerState
        , LeftSpanner
        , Scope
-       , Reservation
+       , Reserved
        , CodeSpanRange
        ]
 

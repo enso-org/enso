@@ -8,7 +8,7 @@ import qualified Language.Symbol.Operator.Assoc as Assoc
 import qualified Language.Symbol.Operator.Prec  as Prec
 
 import Control.Monad.State.Layered (StateT)
-import Luna.Syntax.Text.Scope
+import Luna.Syntax.Text.Scope      (Scope)
 import OCI.Data.Name               (Name)
 
 
@@ -18,15 +18,17 @@ import OCI.Data.Name               (Name)
 
 -- === Definition === --
 
-data SpacedName = SpacedName { _spacing :: !Spacing
-                             , _rawName :: !Name
-                             } deriving (Show)
+data SpacedName = SpacedName
+    { _spacing :: !Spacing
+    , _rawName :: !Name
+    } deriving (Show)
 
-data Spacing = Spaced
-             | LSpaced
-             | RSpaced
-             | Unspaced
-             deriving (Show)
+data Spacing
+    = Spaced
+    | LSpaced
+    | RSpaced
+    | Unspaced
+    deriving (Show)
 
 makeLenses ''SpacedName
 
@@ -34,40 +36,39 @@ makeLenses ''SpacedName
 -- === Construction === --
 
 spaced :: Name -> SpacedName
-spaced = SpacedName Spaced
+spaced = SpacedName Spaced ; {-# INLINE spaced#-}
 
 lspaced :: Name -> SpacedName
-lspaced = SpacedName LSpaced
+lspaced = SpacedName LSpaced ; {-# INLINE lspaced #-}
 
 rspaced :: Name -> SpacedName
-rspaced = SpacedName RSpaced
+rspaced = SpacedName RSpaced ; {-# INLINE rspaced #-}
 
 unspaced :: Name -> SpacedName
-unspaced = SpacedName Unspaced
+unspaced = SpacedName Unspaced ; {-# INLINE unspaced #-}
 
-spacingBool :: Bool -> Spacing
-spacingBool b = if b then Spaced else Unspaced
-
-spacedNameIf :: Bool -> Name -> SpacedName
-spacedNameIf = SpacedName . spacingBool
+spacedIf :: Bool -> Name -> SpacedName
+spacedIf b = SpacedName $ if b then Spaced else Unspaced ; {-# INLINE spacedIf #-}
 
 anyLeftSpacing :: Spacing -> Spacing
 anyLeftSpacing = \case
     Spaced  -> Spaced
     LSpaced -> Spaced
     _       -> Unspaced
+{-# INLINE anyLeftSpacing #-}
 
 anyRightSpacing :: Spacing -> Spacing
 anyRightSpacing = \case
     Spaced  -> Spaced
     RSpaced -> Spaced
     _       -> Unspaced
+{-# INLINE anyRightSpacing #-}
 
 anyLeftSpaced :: SpacedName -> SpacedName
-anyLeftSpaced = spacing %~ anyLeftSpacing
+anyLeftSpaced = spacing %~ anyLeftSpacing ; {-# INLINE anyLeftSpaced #-}
 
 anyRightSpaced :: SpacedName -> SpacedName
-anyRightSpaced = spacing %~ anyRightSpacing
+anyRightSpaced = spacing %~ anyRightSpacing ; {-# INLINE anyRightSpaced #-}
 
 
 -- === Instances === --
@@ -77,10 +78,11 @@ instance Monad m => Prec.RelReader SpacedName (StateT Scope m) where
     readRelLabel (SpacedName sa a) (SpacedName sb b) = case (sa, sb) of
          (Spaced  , Spaced  ) -> Prec.readRel a b
          (Unspaced, Unspaced) -> Prec.readRel a b
-         (_       , Spaced  ) -> return GT
-         (Spaced, _         ) -> return LT
+         (_       , Spaced  ) -> pure GT
+         (Spaced, _         ) -> pure LT
          _                    -> Prec.readRel a b
+    {-# INLINE readRelLabel #-}
 
 -- Association
 instance Monad m => Assoc.Reader SpacedName (StateT Scope m) where
-    readLabel (SpacedName _ n) = Assoc.readLabel n
+    readLabel (SpacedName _ n) = Assoc.readLabel n ; {-# INLINE readLabel #-}
