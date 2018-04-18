@@ -154,6 +154,11 @@ lookupAttr = fmap unsafeCoerce . Map.lookup (Attr.rep @attr) . view attrs
          <$> State.get @State
 {-# INLINE lookupAttr #-}
 
+setAttr :: ∀ attr m. (MonadScheduler m, Typeable attr) => attr -> m ()
+setAttr attr = State.modify_ @State mod where
+    mod = attrs %~ Map.insert (Attr.rep @attr) (unsafeCoerce attr)
+{-# INLINE setAttr #-}
+
 
 -- === Instances === --
 
