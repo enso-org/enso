@@ -82,7 +82,7 @@ nameSpec :: Spec
 nameSpec = describe "names" $ do
     it "encoding" $ runPass' $ do
         v        <- IR.var "a"
-        IR.Var n <- IR.match v
+        IR.Var n <- IR.model v
         n `shouldBe`    "a"
         n `shouldNotBe` "b"
 
@@ -97,7 +97,7 @@ irCreationSpec = describe "ir creation" $ do
         v1           <- IR.var "a"
         v2           <- IR.var "b"
         u1           <- IR.unify v1 v2
-        IR.Unify l r <- IR.match u1
+        IR.Unify l r <- IR.model u1
         lsrc         <- Layer.read @IR.Source l
         rsrc         <- Layer.read @IR.Source r
         ltgt         <- Layer.read @IR.Target l
@@ -111,7 +111,7 @@ irCreationSpec = describe "ir creation" $ do
         v1           <- IR.var "a"
         v2           <- IR.var "b"
         u1           <- IR.unify v1 v2
-        IR.Unify l r <- IR.match u1
+        IR.Unify l r <- IR.model u1
         v1_users     <- Set.toList =<< Layer.read @IR.Users v1
         v2_users     <- Set.toList =<< Layer.read @IR.Users v2
         v1_users `shouldBe` [Layout.relayout l]
