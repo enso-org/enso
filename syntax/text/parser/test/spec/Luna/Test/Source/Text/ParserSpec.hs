@@ -117,10 +117,14 @@ identSpec = describe "identifier" $ do
     it "wildcard"          $ expr "_"
     it "caseless header"   $ exprAs "מfoo" "Invalid CaselessNameHead"
     it "double underscore" $ exprAs "__"   "Invalid UnexpectedSuffix 1"
-    it "invalid name 1"    $ exprAs "f'o"  "Invalid UnexpectedSuffix 1"
-    it "invalid name 2"    $ exprAs "f?o"  "Invalid UnexpectedSuffix 1"
-    it "invalid name 3"    $ exprAs "f'?"  "Invalid UnexpectedSuffix 1"
-    it "invalid name 4"    $ exprAs "f_a"  "Invalid UnexpectedSuffix 2"
+    it "invalid var 1"     $ exprAs "f'o"  "Invalid UnexpectedSuffix 1"
+    it "invalid var 2"     $ exprAs "f?o"  "Invalid UnexpectedSuffix 1"
+    it "invalid var 3"     $ exprAs "f'?"  "Invalid UnexpectedSuffix 1"
+    it "invalid var 4"     $ exprAs "f_a"  "Invalid UnexpectedSuffix 2"
+    it "invalid cons 1"    $ exprAs "F'o"  "Invalid UnexpectedSuffix 2"
+    it "invalid cons 2"    $ exprAs "F?o"  "Invalid UnexpectedSuffix 2"
+    it "invalid cons 3"    $ exprAs "F'?"  "Invalid UnexpectedSuffix 2"
+    it "invalid cons 4"    $ exprAs "F_a"  "Invalid UnexpectedSuffix 2"
 
 literalNumberSpec :: Spec
 literalNumberSpec = describe "number" $ do

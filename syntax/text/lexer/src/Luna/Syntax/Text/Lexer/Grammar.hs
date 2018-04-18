@@ -113,7 +113,7 @@ lexVariable = checkInvalidSuffix validVar where
 {-# INLINE lexVariable #-}
 
 lexConstructor :: Lexer
-lexConstructor = Symbol.Cons <$> takeWhile isIdentBodyChar
+lexConstructor = checkInvalidSuffix $ Symbol.Cons <$> takeWhile isIdentBodyChar
 {-# INLINE lexConstructor #-}
 
 
@@ -266,8 +266,8 @@ fmtStrBody hlen = choice [body, escape, quotes, linebr, code] where
         if Txt.length qs == hlen
             then Symbol.Quote Symbol.FmtStr Symbol.End <$ unliftEntry
             else pure $ Symbol.Str qs
-    code        = Symbol.Block Symbol.Begin
-               <$ (liftEntry . StrCodeEntry =<< beginQuotes natStrQuote)
+    code       = Symbol.Block Symbol.Begin
+              <$ (liftEntry . StrCodeEntry =<< beginQuotes natStrQuote)
 {-# INLINE fmtStrBody #-}
 
 fmtStrCode :: Int -> Lexer
