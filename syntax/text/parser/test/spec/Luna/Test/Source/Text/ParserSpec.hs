@@ -21,7 +21,7 @@ import qualified Luna.Pass.Scheduler                 as Scheduler
 import qualified Luna.Runner                         as Runner
 import qualified Luna.Syntax.Prettyprint             as Prettyprint
 import qualified Luna.Syntax.Text.Parser.CodeSpan    as CodeSpan
-import qualified Luna.Syntax.Text.Parser.Parser      as Token
+import qualified Luna.Syntax.Text.Parser.Class      as Token
 import qualified Luna.Syntax.Text.Parser.Parsing     as Parsing
 import qualified Luna.Syntax.Text.Parser.Pass        as Parser
 import qualified Luna.Syntax.Text.Parser.Pass.Class  as Parser
@@ -406,13 +406,13 @@ spec = do
 -- import Luna.Syntax.Text.Parser.Parsing
 -- import Text.Megaparsec (eof, ParseError)
 -- import qualified Luna.Syntax.Text.Pretty.Pretty as CodeGen
--- import Luna.Syntax.Text.Parser.Parser (Error, IRB(IRB), Parsing)
+-- import Luna.Syntax.Text.Parser.Class (Error, IRB(IRB), Parsing)
 
 -- import System.Log (Logging, dropLogs)
 -- import qualified Luna.Syntax.Text.Layer.Loc as Loc
--- import qualified Luna.Syntax.Text.Parser.Parser   as Parser
+-- import qualified Luna.Syntax.Text.Parser.Class   as Parser
 -- import qualified Luna.Syntax.Text.Parser.Parsing  as Parsing
--- import           Luna.Syntax.Text.Parser.Parser   (IRParser, ParsedExpr, IRBSParser)
+-- import           Luna.Syntax.Text.Parser.Class   (IRParser, ParsedExpr, IRBSParser)
 -- import qualified Luna.Syntax.Text.Parser.CodeSpan as CodeSpan
 -- import           Luna.Syntax.Text.Parser.CodeSpan (CodeSpan)
 -- import           Luna.Syntax.Text.Parser.Errors   (Invalids)

@@ -2,40 +2,40 @@
 
 module Luna.Syntax.Text.Parser.Loc where
 
-import Prologue hiding (Symbol)
+import Prologue hiding (Lexer.Symbol)
 
-import qualified Control.Monad.State.Layered      as State
-import qualified Data.Set                         as Set
-import qualified Data.Text.Position               as Pos
-import qualified Data.Text.Span                   as Span
-import qualified Luna.Syntax.Text.Lexer           as Lexer
-import qualified Luna.Syntax.Text.Parser.Reserved as Reserved
-import qualified Text.Megaparsec                  as Parser
-import qualified Text.Megaparsec.Pos              as Parser
+import qualified Control.Monad.State.Layered            as State
+import qualified Data.Set                               as Set
+import qualified Data.Text.Position                     as Pos
+import qualified Data.Text.Span                         as Span
+import qualified Luna.Syntax.Text.Lexer                 as Lexer
+import qualified Luna.Syntax.Text.Parser.State.Reserved as Reserved
+import qualified Text.Megaparsec                        as Parser
+import qualified Text.Megaparsec.Pos                    as Parser
 
-import Data.Set                           (Set)
-import Data.Text.Position                 (Delta)
-import Data.Text.Position                 (FileOffset)
-import Luna.Syntax.Text.Parser.Marker     (MarkerState, cleanLastTokenMarker,
-                                           newLastTokenMarker)
-import Luna.Syntax.Text.Parser.Pass.Class (MonadParser, Stream, Symbol, Tok)
-import Luna.Syntax.Text.Parser.Reserved   (Reserved)
-import Text.Megaparsec                    (MonadParsec, token, withRecovery)
-import Text.Megaparsec.Error              (ErrorItem, ParseError)
+import Data.Set                                 (Set)
+import Data.Text.Position                       (Delta)
+import Data.Text.Position                       (FileOffset)
+import Luna.Syntax.Text.Parser.Class            (MonadParser, Stream,
+                                                 Tok)
+import Luna.Syntax.Text.Parser.Marker           (MarkerState,
+                                                 cleanLastTokenMarker,
+                                                 newLastTokenMarker)
+import Luna.Syntax.Text.Parser.State.LastOffset (LastOffset (LastOffset))
+import Luna.Syntax.Text.Parser.State.Reserved   (Reserved)
+import Text.Megaparsec                          (MonadParsec, token,
+                                                 withRecovery)
+import Text.Megaparsec.Error                    (ErrorItem, ParseError)
 
 
 
-newtype LeftSpanner = LeftSpanner Delta deriving (Show)
-makeLenses ''LeftSpanner
-
-instance Default LeftSpanner where def = LeftSpanner mempty
 
 
 -- -----------------
 -- -- === Loc === --
 -- -----------------
 
-type MonadLoc m = (State.MonadStates '[FileOffset, Pos.Position, LeftSpanner, MarkerState] m, MonadIO m) -- FIXME[WD]: remove IO
+type MonadLoc m = (State.MonadStates '[FileOffset, Pos.Position, LastOffset, MarkerState] m, MonadIO m) -- FIXME[WD]: remove IO
 
 -- -- === Utils === --
 
@@ -72,10 +72,10 @@ previewNextToken = head <$> previewTokens
 previewTokens :: MonadParsec e Stream m => m [Tok]
 previewTokens = getStream
 
-previewSymbols :: MonadParsec e Stream m => m [Symbol]
+previewSymbols :: MonadParsec e Stream m => m [Lexer.Symbol]
 previewSymbols = view Lexer.element <<$>> previewTokens
 
-previewNextSymbol :: MonadParsec e Stream m => m (Maybe Symbol)
+previewNextSymbol :: MonadParsec e Stream m => m (Maybe Lexer.Symbol)
 previewNextSymbol = view Lexer.element <<$>> previewNextToken
 
 getNextOffset :: MonadParsec e Stream m => m Delta
@@ -110,16 +110,16 @@ getTokens i = catMaybes <$> sequence (replicate i getNextToken)
 uncheckedGetNextToken :: (MonadParsec e Stream m, MonadLoc m) => m Tok
 uncheckedGetNextToken = maybe (error "Impossible happened: token stream end") id <$> getNextToken
 
-uncheckedGetNextSymbol :: (MonadParsec e Stream m, MonadLoc m) => m Symbol
+uncheckedGetNextSymbol :: (MonadParsec e Stream m, MonadLoc m) => m Lexer.Symbol
 uncheckedGetNextSymbol = view Lexer.element <$> uncheckedGetNextToken
 
 uncheckedPreviewNextToken :: (MonadParsec e Stream m, MonadLoc m) => m Tok
 uncheckedPreviewNextToken = maybe (error "Impossible happened: token stream end") id <$> previewNextToken
 
-uncheckedPreviewNextSymbol :: (MonadParsec e Stream m, MonadLoc m) => m Symbol
+uncheckedPreviewNextSymbol :: (MonadParsec e Stream m, MonadLoc m) => m Lexer.Symbol
 uncheckedPreviewNextSymbol = view Lexer.element <$> uncheckedPreviewNextToken
 
-getNextSymbol :: (MonadParsec e Stream m, MonadLoc m) => m (Maybe Symbol)
+getNextSymbol :: (MonadParsec e Stream m, MonadLoc m) => m (Maybe Lexer.Symbol)
 getNextSymbol = view Lexer.element <<$>> getNextToken
 
 unregisteredDropNextToken :: (MonadParsec e Stream m, MonadLoc m) => m ()
@@ -127,19 +127,19 @@ unregisteredDropNextToken = void getNextToken
 
 dropNextTokenAsMarker :: (MonadParsec e Stream m, MonadLoc m) => m ()
 dropNextTokenAsMarker = withJustM getNextToken'' go where
-    go t = State.modify_ @FileOffset (+ (convert delta)) >> State.modify_ @LeftSpanner (wrapped %~ (+delta)) where
+    go t = State.modify_ @FileOffset (+ (convert delta)) >> State.modify_ @LastOffset (wrapped %~ (+delta)) where
         delta = (t ^. Lexer.span) + (t ^. Lexer.offset)
 
 unregisteredDropTokensUntil :: (MonadParsec e Stream m, MonadLoc m) => (Tok -> Bool) -> m ()
 unregisteredDropTokensUntil f = withJustM previewNextToken $ \t -> if f t then return () else unregisteredDropNextToken >> unregisteredDropTokensUntil f
 
-unregisteredDropSymbolsUntil :: (MonadParsec e Stream m, MonadLoc m) => (Symbol -> Bool) -> m ()
+unregisteredDropSymbolsUntil :: (MonadParsec e Stream m, MonadLoc m) => (Lexer.Symbol -> Bool) -> m ()
 unregisteredDropSymbolsUntil f = unregisteredDropTokensUntil $ f . view Lexer.element
 
-unregisteredDropSymbolsUntil' :: (MonadParsec e Stream m, MonadLoc m) => (Symbol -> Bool) -> m ()
+unregisteredDropSymbolsUntil' :: (MonadParsec e Stream m, MonadLoc m) => (Lexer.Symbol -> Bool) -> m ()
 unregisteredDropSymbolsUntil' f = unregisteredDropSymbolsUntil f >> unregisteredDropNextToken
 
-getTokensUntil :: (MonadParsec e Stream m, MonadLoc m) => (Symbol -> Bool) -> m [Tok]
+getTokensUntil :: (MonadParsec e Stream m, MonadLoc m) => (Lexer.Symbol -> Bool) -> m [Tok]
 getTokensUntil f = withJustM previewNextToken
                $ \t -> if f (t ^. Lexer.element)
                            then return mempty
@@ -163,8 +163,8 @@ updatePositions t = do
                            }
     case t ^. Lexer.element of
         -- Lexer.Marker m -> withJust m newLastTokenMarker -- FIXME[WD]: should we handle the wrong markers?
-        Lexer.EOL      -> State.modify_ @LeftSpanner (wrapped %~ (+ (len + off))) >> Pos.succLine >> Pos.incColumn off
-        _              -> State.put @LeftSpanner (wrap off) >> Pos.incColumn (len + off)
+        Lexer.EOL      -> State.modify_ @LastOffset (wrapped %~ (+ (len + off))) >> Pos.succLine >> Pos.incColumn off
+        _              -> State.put @LastOffset (wrap off) >> Pos.incColumn (len + off)
 
 
 -- -- FIXME[WD]: This is just a hack. We store file offset and last spacing in Megaparsec's file position datatype,
@@ -176,10 +176,10 @@ updatePositions t = do
 --     out  <- withRecovery f ma
 --     pos' <- Parser.getPosition
 --     State.modify_ @FileOffset (+ convert (Parser.unPos (Parser.sourceColumn pos') - Parser.unPos (Parser.sourceColumn pos)))
---     State.put @LeftSpanner $ wrap (convert $ Parser.unPos (Parser.sourceLine pos') - 1)
+--     State.put @LastOffset $ wrap (convert $ Parser.unPos (Parser.sourceLine pos') - 1)
 --     return out
 
--- updateLineAndCol :: (MonadParsec e Stream m, MonadLoc m) => Lexer.Token Lexer.Symbol -> m ()
+-- updateLineAndCol :: (MonadParsec e Stream m, MonadLoc m) => Lexer.Token Lexer.Lexer.Symbol -> m ()
 -- updateLineAndCol t = do
 --     Pos.incColumn (t ^. Lexer.span)
 --     when ((t ^. Lexer.element) == Lexer.EOL) $ Pos.succLine

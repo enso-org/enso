@@ -1,15 +1,23 @@
 module Text.Parser.Combinators where
 
+-- import qualified Text.Megaparsec as Parsec
+
 import Control.Applicative as Applicative
 import Control.Lens
 import Control.Monad
 import Data.List.NonEmpty
 import Prelude
+-- import Text.Megaparsec     (MonadParsec)
+
+
+-- infix 1 <?>
+-- (<?>) :: MonadParsec e s m => m a -> String -> m a
+-- (<?>) = (Parsec.<?>) ; {-# INLINE (<?>) #-}
 
 
 a <**?> f = a <**> option id f
-f <?*> a = option id f <*> a
-f ?$ a = f a <|> pure a
+f <?*>  a = option id f <*> a
+f ?$    a = f a <|> pure a
 
 
 option :: Alternative m => a -> m a -> m a
@@ -40,3 +48,6 @@ some p = (:|) <$> p <*> many p ; {-# INLINE some #-}
 
 someAsList :: (Applicative m, Alternative m) => m a -> m [a]
 someAsList = Applicative.some ; {-# INLINE someAsList #-}
+
+
+

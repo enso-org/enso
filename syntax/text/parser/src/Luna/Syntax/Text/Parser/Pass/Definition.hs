@@ -13,32 +13,31 @@ import qualified Luna.Pass                           as Pass
 import qualified Luna.Pass.Attr                      as Attr
 import qualified Luna.Pass.Scheduler                 as Scheduler
 import qualified Luna.Syntax.Text.Lexer              as Lexer
-import qualified Luna.Syntax.Text.Parser.Parser      as Class
-import qualified Luna.Syntax.Text.Parser.Parser      as Token
+import qualified Luna.Syntax.Text.Parser.Class       as Class
+import qualified Luna.Syntax.Text.Parser.Class       as Token
+import qualified Luna.Syntax.Text.Parser.Class       as Parser
 import qualified Luna.Syntax.Text.Parser.Parsing     as Parsing
-import qualified Luna.Syntax.Text.Parser.Pass.Class  as Parser
 import qualified OCI.Pass.Registry                   as Registry
 import qualified Text.Megaparsec                     as Parser
 
-import Data.Text.Position                 (FileOffset)
-import Data.Text32                        (Text32)
-import Luna.Pass                          (Pass)
-import Luna.Syntax.Text.Parser.Attributes (Invalids, Result (Result))
-import Luna.Syntax.Text.Parser.CodeSpan   (CodeSpan, CodeSpanRange)
-import Luna.Syntax.Text.Parser.Hardcoded  (hardcode)
-import Luna.Syntax.Text.Parser.Loc        (LeftSpanner)
-import Luna.Syntax.Text.Parser.Marker     (MarkedExprMap, MarkerState,
-                                           UnmarkedExprs)
-import Luna.Syntax.Text.Parser.Parser     (ParserBase)
-import Luna.Syntax.Text.Parser.Pass.Class (Error, IRBS, Parser, Stream,
-                                           fromIRBS)
-import Luna.Syntax.Text.Parser.Reserved   (Reserved)
-import Luna.Syntax.Text.Scope             (Scope)
-import Luna.Syntax.Text.Source            (Source)
-import Text.Megaparsec                    (ParseError, ParsecT)
-import Text.Megaparsec.Error              (parseErrorPretty)
-import Text.Parser.Backend.Megaparsec     ()
-import Text.Parser.Indent                 (Indent)
+import Data.Text.Position                       (FileOffset)
+import Data.Text32                              (Text32)
+import Luna.Pass                                (Pass)
+import Luna.Syntax.Text.Parser.Attributes       (Invalids, Result (Result))
+import Luna.Syntax.Text.Parser.Class            (Error, ParserBase, Stream)
+import Luna.Syntax.Text.Parser.CodeSpan         (CodeSpan, CodeSpanRange)
+import Luna.Syntax.Text.Parser.Hardcoded        (hardcode)
+import Luna.Syntax.Text.Parser.Marker           (MarkedExprMap, MarkerState,
+                                                 UnmarkedExprs)
+import Luna.Syntax.Text.Parser.Pass.Class       (IRBS, Parser, fromIRBS)
+import Luna.Syntax.Text.Parser.State.LastOffset (LastOffset)
+import Luna.Syntax.Text.Parser.State.Reserved   (Reserved)
+import Luna.Syntax.Text.Scope                   (Scope)
+import Luna.Syntax.Text.Source                  (Source)
+import Text.Megaparsec                          (ParseError, ParsecT)
+import Text.Megaparsec.Error                    (parseErrorPretty)
+import Text.Parser.Backend.Megaparsec           ()
+import Text.Parser.Indent                       (Indent)
 
 
 
@@ -85,7 +84,7 @@ runParserContext__ p s
     $ State.evalDefT @CodeSpanRange
     $ State.evalDefT @Reserved
     $ State.evalDefT @Scope
-    $ State.evalDefT @LeftSpanner
+    $ State.evalDefT @LastOffset
     $ State.evalDefT @MarkerState
     -- $ State.evalDefT @Position
     $ State.evalDefT @FileOffset
