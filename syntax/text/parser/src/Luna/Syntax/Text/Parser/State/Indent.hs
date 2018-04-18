@@ -1,16 +1,48 @@
-module Text.Parser.Indent.Monad where
+module Luna.Syntax.Text.Parser.State.Indent where
 
 import Prologue hiding (guard)
 
 import qualified Control.Monad               as Monad
 import qualified Control.Monad.State.Layered as State
 import qualified Data.Text.Position          as Position
-import qualified Text.Parser.Indent.Class    as Indent
 
-import Data.Text.Position       (Delta, Position)
-import Text.Parser.Indent.Class (Indent, level, stack)
+import Data.Text.Position (Delta, Position)
 
--- === Indent management === --
+
+
+--------------------------
+-- === Indent State === --
+--------------------------
+
+-- === Definition === --
+
+data Indent = Indent
+    { _level :: Delta
+    , _stack :: [Delta]
+    } deriving (Show)
+makeLenses ''Indent
+
+
+-- === Pure API === --
+
+push' :: Delta -> Indent -> Indent
+push' d i = i & stack %~ (i ^. level :)
+                & level .~ d
+{-# INLINE push' #-}
+
+pop' :: Indent -> (Delta, Indent)
+pop' i = (i ^. level,) $ i & level .~ unsafeHead (i ^. stack)
+                            & stack %~ unsafeTail
+{-# INLINE pop' #-}
+
+
+-- === Instances === --
+
+instance Default Indent where
+    def = Indent 1 mempty
+
+
+-- === Monadic API === --
 
 get :: State.Getter Indent m => m Delta
 get = view level <$> State.get @Indent
@@ -19,10 +51,10 @@ pushCurrent :: (State.Monad Indent m, State.Getter Position m) => m ()
 pushCurrent = push =<< Position.getColumn
 
 push :: State.Monad Indent m => Delta -> m ()
-push = State.modify_ @Indent . Indent.push
+push = State.modify_ @Indent . push'
 
 pop :: State.Monad Indent m => m Delta
-pop = State.modify @Indent Indent.pop
+pop = State.modify @Indent pop'
 
 with :: State.Monad Indent m => Delta -> m a -> m a
 with d m = push d *> m <* pop

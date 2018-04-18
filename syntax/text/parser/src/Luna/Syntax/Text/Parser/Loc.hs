@@ -2,7 +2,7 @@
 
 module Luna.Syntax.Text.Parser.Loc where
 
-import Prologue hiding (Lexer.Symbol)
+import Prologue
 
 import qualified Control.Monad.State.Layered            as State
 import qualified Data.Set                               as Set
@@ -16,8 +16,7 @@ import qualified Text.Megaparsec.Pos                    as Parser
 import Data.Set                                 (Set)
 import Data.Text.Position                       (Delta)
 import Data.Text.Position                       (FileOffset)
-import Luna.Syntax.Text.Parser.Class            (MonadParser, Stream,
-                                                 Tok)
+import Luna.Syntax.Text.Parser.Class            (MonadParser, Stream, Tok)
 import Luna.Syntax.Text.Parser.Marker           (MarkerState,
                                                  cleanLastTokenMarker,
                                                  newLastTokenMarker)
@@ -40,8 +39,6 @@ type MonadLoc m = (State.MonadStates '[FileOffset, Pos.Position, LastOffset, Mar
 -- -- === Utils === --
 
 
--- token :: (Token s -> Either (Set   (ErrorItem (Token s)), Set (ErrorItem (Token s)), Set e) a) -> Maybe (Token s) -> m a
--- token :: (Token s -> Either (Maybe (ErrorItem (Token s)), Set (ErrorItem (Token s)))        a) -> Maybe (Token s) -> m a
 -- | Token overrides Megaparsec's one, with special position handling. We cannot do it another way around
 --   because Megaparsec's `token` signature prevents any monadic action while consuming tokens.
 token' :: (MonadParsec e Stream m, MonadLoc m, State.Getter Reserved m)

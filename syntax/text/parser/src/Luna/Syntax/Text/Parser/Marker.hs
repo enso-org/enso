@@ -10,7 +10,6 @@ import qualified Control.Monad.State.Layered as State
 import qualified Data.Map.Strict             as Map
 import           Data.Text.Position
 import qualified Luna.IR                     as IR
-import           Luna.Syntax.Text.Layer.Loc
 import qualified Luna.Syntax.Text.Lexer      as Lexer
 
 import Data.Map.Strict (Map)
@@ -44,6 +43,7 @@ addMarkedExpr gid expr = State.modify_ @MarkedExprMap
 
 addUnmarkedExpr :: State.Monad UnmarkedExprs m => IR.SomeTerm -> m ()
 addUnmarkedExpr expr = State.modify_ @UnmarkedExprs $ wrapped %~ (expr :)
+
 
 
 -------------------------

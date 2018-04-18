@@ -6,9 +6,7 @@ module Luna.Syntax.Text.Parser.Attributes where
 
 import Prologue hiding (Span, String, Type, span, (<|))
 
-import Data.Text.Position         ()
-import Luna.Syntax.Text.Layer.Loc ()
-import Type.Any                   (AnyType)
+import Type.Any (AnyType)
 
 import qualified Luna.IR                as IR
 import qualified Luna.Pass.Attr         as Attr

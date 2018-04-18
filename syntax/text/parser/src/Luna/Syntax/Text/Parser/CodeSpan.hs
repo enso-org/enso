@@ -11,10 +11,9 @@ import qualified Data.Text.Span              as Span
 import qualified Foreign.Storable.Deriving   as Storable
 import qualified Luna.IR.Layer               as Layer
 
-import Data.Text.Position         (Delta)
-import Data.Text.Span             (LeftSpacedSpan, length, offset)
-import Luna.Syntax.Text.Layer.Loc
-import Type.Any                   (AnyType)
+import Data.Text.Position (Delta)
+import Data.Text.Span     (LeftSpacedSpan, length, offset)
+import Type.Any           (AnyType)
 
 
 ------------------------

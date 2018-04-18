@@ -29,12 +29,13 @@ import qualified Luna.Syntax.Text.Parser.Hardcoded      as Builtin
 import qualified Luna.Syntax.Text.Parser.Loc            as Loc
 import qualified Luna.Syntax.Text.Parser.Marker         as Marker
 import qualified Luna.Syntax.Text.Parser.Name           as Name
+import qualified Luna.Syntax.Text.Parser.State.Indent   as Indent
 import qualified Luna.Syntax.Text.Parser.State.Reserved as Reserved
 import qualified Luna.Syntax.Text.Scope                 as Scope
 import qualified OCI.Data.Name.Multipart                as Name.Multipart
 import qualified OCI.IR.Layout                          as Layout
-import qualified Text.Parser.Expr                       as Expr
-import qualified Text.Parser.Indent                     as Indent
+import qualified Luna.Syntax.Text.Parser.Expr                       as Expr
+
 
 import Data.List.NonEmpty                       ((<|))
 import Data.Set                                 (Set)

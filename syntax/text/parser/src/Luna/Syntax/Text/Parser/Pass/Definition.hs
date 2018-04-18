@@ -36,8 +36,7 @@ import Luna.Syntax.Text.Scope                   (Scope)
 import Luna.Syntax.Text.Source                  (Source)
 import Text.Megaparsec                          (ParseError, ParsecT)
 import Text.Megaparsec.Error                    (parseErrorPretty)
-import Text.Parser.Backend.Megaparsec           ()
-import Text.Parser.Indent                       (Indent)
+import Luna.Syntax.Text.Parser.State.Indent                       (Indent)
 
 
 

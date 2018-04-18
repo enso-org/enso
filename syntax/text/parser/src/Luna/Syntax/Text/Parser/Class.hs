@@ -28,14 +28,13 @@ import Luna.Syntax.Text.Scope                   (Scope)
 import Text.Megaparsec                          (ParseError, ParsecT)
 import Text.Megaparsec                          (MonadParsec)
 import Text.Parser.Backend.Megaparsec           ()
-import Text.Parser.Indent                       (Indent)
+import Luna.Syntax.Text.Parser.State.Indent                       (Indent)
 
--- type ParserBase = ParsecT Error Text (StateT Scope IO)
+
+
+
 type ParserBase = ParsecT Error Stream IO
-
--- type Parser = StatesT '[Indent, FileOffset, Position, MarkerState
---     , LastOffset, Scope, Reserved, CodeSpanRange] ParserBase
-type Parser = StatesT ParserStates ParserBase
+type Parser     = StatesT ParserStates ParserBase
 type ParserStates
     = '[ Indent
        , FileOffset
@@ -50,12 +49,6 @@ type ParserStates
 
 
 
-
-
-
-
-
--- type Symbol      = Lexer.Symbol
 type Stream      = [Tok]
 type Error       = Void
 type Tok         = Lexer.Token Lexer.Symbol
