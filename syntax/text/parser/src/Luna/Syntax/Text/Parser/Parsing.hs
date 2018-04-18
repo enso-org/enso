@@ -28,9 +28,9 @@ import qualified Luna.Syntax.Text.Parser.CodeSpan       as CodeSpan
 import qualified Luna.Syntax.Text.Parser.Expr           as Expr
 import qualified Luna.Syntax.Text.Parser.Hardcoded      as Builtin
 import qualified Luna.Syntax.Text.Parser.Loc            as Loc
-import qualified Luna.Syntax.Text.Parser.Marker         as Marker
 import qualified Luna.Syntax.Text.Parser.Name           as Name
 import qualified Luna.Syntax.Text.Parser.State.Indent   as Indent
+import qualified Luna.Syntax.Text.Parser.State.Marker   as Marker
 import qualified Luna.Syntax.Text.Parser.State.Reserved as Reserved
 import qualified Luna.Syntax.Text.Scope                 as Scope
 import qualified OCI.Data.Name.Multipart                as Name.Multipart
@@ -52,12 +52,6 @@ import Luna.Syntax.Text.Parser.CodeSpan         (CodeSpan (CodeSpan),
                                                  CodeSpanRange (..))
 import Luna.Syntax.Text.Parser.Loc              (checkNextOffset,
                                                  previewNextSymbol, token')
-import Luna.Syntax.Text.Parser.Marker           (MarkedExprMap, MarkerId,
-                                                 MarkerState, UnmarkedExprs,
-                                                 addMarkedExpr, addUnmarkedExpr,
-                                                 getLastTokenMarker,
-                                                 useLastTokenMarker)
-import Luna.Syntax.Text.Parser.Marker           (MarkedExprMap, UnmarkedExprs)
 import Luna.Syntax.Text.Parser.Name             (SpacedName)
 import Luna.Syntax.Text.Parser.Pass.Class       (IRB, IRBS (IRBS), fromIRBS,
                                                  liftIRBS1, liftIRBS2,
@@ -142,7 +136,7 @@ spanned :: Parser a -> Parser (CodeSpan, a)
 spanned p = do
     lastCodeSpan <- unwrap <$> State.get @CodeSpanRange
     fileOffStart <- unwrap <$> State.get @FileOffset
-    marker       <- Marker.getLastTokenMarker
+    marker       <- Marker.getLast
     State.put @CodeSpanRange $ wrap fileOffStart
     out          <- p
     fileOffEnd   <- unwrap <$> State.get @FileOffset
@@ -255,8 +249,8 @@ invalidToken = irbs $ invalid <$> satisfTest Lexer.matchInvalidSymbol ; {-# INLI
 -- === Markers === --
 ---------------------
 
-markerIRB :: Parser (MarkerId, IRBS SomeTerm)
-markerIRB = useLastTokenMarker >>= \case
+markerIRB :: Parser (Marker.ID, IRBS SomeTerm)
+markerIRB = Marker.getAndClearLast >>= \case
     Nothing -> expected "marker"
     Just t  -> do
         crange <- unwrap <$> State.get @CodeSpanRange
@@ -277,9 +271,9 @@ marked = option registerUnmarkedExpr $ uncurry markedExpr <$> markerIRB where
                           expr
 
 registerUnmarkedExpr ::             IRBS SomeTerm -> IRBS SomeTerm
-registerMarkedExpr   :: MarkerId -> IRBS SomeTerm -> IRBS SomeTerm
-registerUnmarkedExpr = wrapped %~ (>>~ addUnmarkedExpr) ; {-# INLINE registerUnmarkedExpr #-}
-registerMarkedExpr m = wrapped %~ (>>~ addMarkedExpr m) ; {-# INLINE registerMarkedExpr   #-}
+registerMarkedExpr   :: Marker.ID -> IRBS SomeTerm -> IRBS SomeTerm
+registerUnmarkedExpr = wrapped %~ (>>~ Marker.registerOrphan) ; {-# INLINE registerUnmarkedExpr #-}
+registerMarkedExpr m = wrapped %~ (>>~ Marker.register m) ; {-# INLINE registerMarkedExpr   #-}
 
 
 
@@ -1008,7 +1002,7 @@ optionalBlockAny = option mempty nonEmptyBlockAny
 -- type ParsingPassReq2 m = Req m '[ Editor // Net   // '[AnyExpr, AnyExprLink]
 --                                , Editor  // Layer // AnyExpr // CodeSpan
 --                                , Reader  // Attr  // Source
---                                , Writer  // Attr  // '[ParsedExpr, MarkedExprMap]
+--                                , Writer  // Attr  // '[ParsedExpr, Marker.TermMap]
 --                                , Editor  // Attr  // Invalids
 --                                , Emitter // New   // '[AnyExpr, AnyExprLink]
 
@@ -1038,7 +1032,7 @@ optionalBlockAny = option mempty nonEmptyBlockAny
 --     src <- getAttr @Source
 --     (ref, gidMap) <- parsingBase p (convert src)
 --     putAttr @ParsedExpr    $ wrap ref
---     putAttr @MarkedExprMap $ gidMap
+--     putAttr @Marker.TermMap $ gidMap
 
 
 
@@ -1056,13 +1050,13 @@ optionalBlockAny = option mempty nonEmptyBlockAny
 -- reparserPass :: MonadPassManager m => Parser (IRBS SomeTerm) -> Pass Reparsing m
 -- reparserPass p = do
 --     -- Reading previous analysis
---     gidMapOld <- getAttr @MarkedExprMap
+--     gidMapOld <- getAttr @Marker.TermMap
 --     refOld    <- getAttr @ParsedExpr
 
 --     -- parsing new file and updating updated analysis
---     putAttr @MarkedExprMap mempty
+--     putAttr @Marker.TermMap mempty
 --     parsingPassM p
---     gidMap    <- getAttr @MarkedExprMap
+--     gidMap    <- getAttr @Marker.TermMap
 --     ref       <- getAttr @ParsedExpr
 
 --     -- Preparing reparsing status
@@ -1071,13 +1065,13 @@ optionalBlockAny = option mempty nonEmptyBlockAny
 
 
 
--- cmpMarkedExprMaps :: IsomorphicCheckCtx m => MarkedExprMap -> MarkedExprMap -> m [ReparsingChange]
+-- cmpMarkedExprMaps :: IsomorphicCheckCtx m => Marker.TermMap -> Marker.TermMap -> m [ReparsingChange]
 -- cmpMarkedExprMaps (oldMap'@(_unwrap -> oldMap)) (_unwrap -> newMap) = (remExprs <>) <$> mapM (uncurry $ cmpMarkedExpr oldMap') newAssocs where
 --     newAssocs = Map.assocs newMap
 --     oldAssocs = Map.assocs oldMap
 --     remExprs  = fmap RemovedExpr . catMaybes $ (\(k,v) -> if_ (not $ Map.member k newMap) (Just v)) <$> oldAssocs
 
--- cmpMarkedExpr :: IsomorphicCheckCtx m => MarkedExprMap -> MarkerId -> SomeTerm -> m ReparsingChange
+-- cmpMarkedExpr :: IsomorphicCheckCtx m => Marker.TermMap -> Marker.ID -> SomeTerm -> m ReparsingChange
 -- cmpMarkedExpr (_unwrap -> map) mid newExpr = case map ^. at mid of
 --     Nothing      -> pure $ AddedExpr newExpr
 --     Just oldExpr -> checkIsoExpr (unsafeGeneralize oldExpr) (unsafeGeneralize newExpr) <&> \case -- FIXME [WD]: remove unsafeGeneralize, we should use SomeTerm / SomeTerm everywhere

@@ -9,6 +9,7 @@ import qualified Data.Set                               as Set
 import qualified Data.Text.Position                     as Pos
 import qualified Data.Text.Span                         as Span
 import qualified Luna.Syntax.Text.Lexer                 as Lexer
+import qualified Luna.Syntax.Text.Parser.State.Marker   as Marker
 import qualified Luna.Syntax.Text.Parser.State.Reserved as Reserved
 import qualified Text.Megaparsec                        as Parser
 import qualified Text.Megaparsec.Pos                    as Parser
@@ -17,9 +18,6 @@ import Data.Set                                 (Set)
 import Data.Text.Position                       (Delta)
 import Data.Text.Position                       (FileOffset)
 import Luna.Syntax.Text.Parser.Class            (MonadParser, Stream, Token)
-import Luna.Syntax.Text.Parser.Marker           (MarkerState,
-                                                 cleanLastTokenMarker,
-                                                 newLastTokenMarker)
 import Luna.Syntax.Text.Parser.State.LastOffset (LastOffset (LastOffset))
 import Luna.Syntax.Text.Parser.State.Reserved   (Reserved)
 import Text.Megaparsec                          (MonadParsec, token,
@@ -34,7 +32,7 @@ import Text.Megaparsec.Error                    (ErrorItem, ParseError)
 -- -- === Loc === --
 -- -----------------
 
-type MonadLoc m = (State.MonadStates '[FileOffset, Pos.Position, LastOffset, MarkerState] m, MonadIO m) -- FIXME[WD]: remove IO
+type MonadLoc m = (State.MonadStates '[FileOffset, Pos.Position, LastOffset, Marker.State] m, MonadIO m) -- FIXME[WD]: remove IO
 
 -- -- === Utils === --
 
@@ -48,13 +46,13 @@ token' f mt = do
     let f' t = (t,) <$> f s t
     (tok, a) <- token f' mt
     updatePositions tok
-    cleanLastTokenMarker
+    Marker.clearLast
     dropMarkers
     return a
 
 dropMarkers :: (MonadParsec e Stream m, MonadLoc m) => m ()
 dropMarkers = withJustM previewNextToken $ \t -> case t ^. Lexer.element of
-    Lexer.Marker m -> newLastTokenMarker (t & Lexer.element .~ m) >> dropNextTokenAsMarker >> dropMarkers -- FIXME[WD]: should we handle the wrong markers?
+    Lexer.Marker m -> Marker.setLast (t & Lexer.element .~ m) >> dropNextTokenAsMarker >> dropMarkers -- FIXME[WD]: should we handle the wrong markers?
     _              -> return ()
 
 getStream :: MonadParsec e Stream m => m Stream
@@ -84,7 +82,7 @@ checkNextOffset = (>0) <$> getNextOffset
 getNextToken :: (MonadParsec e Stream m, MonadLoc m) => m (Maybe Token)
 getNextToken = do
     tok <- getNextToken'
-    cleanLastTokenMarker
+    Marker.clearLast
     dropMarkers
     return tok
 
@@ -159,7 +157,7 @@ updatePositions t = do
                            , Parser.sourceLine   = Parser.mkPos $ unwrap (off + 1)
                            }
     case t ^. Lexer.element of
-        -- Lexer.Marker m -> withJust m newLastTokenMarker -- FIXME[WD]: should we handle the wrong markers?
+        -- Lexer.Marker m -> withJust m Marker.setLast -- FIXME[WD]: should we handle the wrong markers?
         Lexer.EOL      -> State.modify_ @LastOffset (wrapped %~ (+ (len + off))) >> Pos.succLine >> Pos.incColumn off
         _              -> State.put @LastOffset (wrap off) >> Pos.incColumn (len + off)
 

@@ -420,7 +420,7 @@ spec = do
 -- import           Data.TypeDesc (getTypeDesc)
 -- import Data.Text.Position
 -- import Control.Monad.State.Dependent
--- import Luna.Syntax.Text.Parser.Marker (MarkedExprMap)
+-- import Luna.Syntax.Text.Parser.State.Marker (MarkedExprMap)
 -- import Luna.Syntax.Text.Source
 
 -- import qualified Luna.Syntax.Text.Lexer as Lexer

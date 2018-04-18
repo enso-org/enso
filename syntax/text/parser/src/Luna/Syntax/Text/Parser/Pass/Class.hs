@@ -5,17 +5,17 @@ module Luna.Syntax.Text.Parser.Pass.Class where
 import           Prologue hiding (String, Symbol, Tok, Type)
 import qualified Prologue as P
 
-import qualified Data.List              as List
-import qualified Data.Set               as Set
-import qualified Luna.IR                as IR
-import qualified Luna.IR                as IR
-import qualified Luna.Pass              as Pass
-import qualified Luna.Pass.Attr         as Attr
-import qualified Luna.Syntax.Text.Lexer as Lexer
-import qualified Luna.Syntax.Text.Lexer as Lexer
-import qualified Text.Megaparsec        as Parser
-import qualified Text.Megaparsec.Error  as Error
-import qualified Text.Megaparsec.Error  as Error
+import qualified Data.List                            as List
+import qualified Data.Set                             as Set
+import qualified Luna.IR                              as IR
+import qualified Luna.IR                              as IR
+import qualified Luna.Pass                            as Pass
+import qualified Luna.Pass.Attr                       as Attr
+import qualified Luna.Syntax.Text.Lexer               as Lexer
+import qualified Luna.Syntax.Text.Parser.State.Marker as Marker
+import qualified Text.Megaparsec                      as Parser
+import qualified Text.Megaparsec.Error                as Error
+import qualified Text.Megaparsec.Error                as Error
 
 
 import Control.Monad.State.Layered        (StatesT)
@@ -24,8 +24,6 @@ import Data.Text.Position                 (Delta)
 import Luna.Pass                          (Pass)
 import Luna.Syntax.Text.Parser.Attributes (Invalids, Result)
 import Luna.Syntax.Text.Parser.CodeSpan   (CodeSpan)
-import Luna.Syntax.Text.Parser.Marker     (MarkedExprMap, MarkerState,
-                                           UnmarkedExprs)
 import Luna.Syntax.Text.Source            (Source)
 import Text.Megaparsec                    ()
 
@@ -62,7 +60,7 @@ Pass.cache_phase2 ''Parser
 --   of IRBS is handled by functions which guarantee that IRB has all code
 --   spanning information encoded
 
-type    IRB    = StatesT '[UnmarkedExprs, MarkedExprMap] (Pass Parser)
+type    IRB    = StatesT '[Marker.TermOrphanList, Marker.TermMap] (Pass Parser)
 newtype IRBS a = IRBS (IRB a)
     deriving (Functor, Applicative, Monad)
 makeLenses ''IRBS

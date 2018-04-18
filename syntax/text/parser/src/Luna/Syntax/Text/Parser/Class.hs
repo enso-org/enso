@@ -6,13 +6,13 @@ module Luna.Syntax.Text.Parser.Class where
 
 import Prologue
 
-import qualified Luna.Syntax.Text.Lexer as Lexer
-import qualified Text.Megaparsec        as Parsec
+import qualified Luna.Syntax.Text.Lexer               as Lexer
+import qualified Luna.Syntax.Text.Parser.State.Marker as Marker
+import qualified Text.Megaparsec                      as Parsec
 
 import Control.Monad.State.Layered              (StatesT)
 import Data.Text.Position                       (FileOffset)
 import Luna.Syntax.Text.Parser.CodeSpan         (CodeSpanRange)
-import Luna.Syntax.Text.Parser.Marker           (MarkerState)
 import Luna.Syntax.Text.Parser.State.Indent     (Indent)
 import Luna.Syntax.Text.Parser.State.LastOffset (LastOffset)
 import Luna.Syntax.Text.Parser.State.Reserved   (Reserved)
@@ -38,7 +38,7 @@ type Parser      = StatesT ParserStates ParserBase
 type ParserStates
     = '[ Indent
        , FileOffset
-       , MarkerState
+       , Marker.State
        , LastOffset
        , Scope
        , Reserved

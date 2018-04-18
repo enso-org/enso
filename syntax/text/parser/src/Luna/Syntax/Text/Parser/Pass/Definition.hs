@@ -6,17 +6,18 @@ module Luna.Syntax.Text.Parser.Pass.Definition where
 
 import Prologue
 
-import qualified Control.Monad.State.Layered         as State
-import qualified Luna.IR                             as IR
-import qualified Luna.IR.Component.Term.Construction as Term
-import qualified Luna.Pass                           as Pass
-import qualified Luna.Pass.Attr                      as Attr
-import qualified Luna.Pass.Scheduler                 as Scheduler
-import qualified Luna.Syntax.Text.Lexer              as Lexer
-import qualified Luna.Syntax.Text.Parser.Class       as Token
-import qualified Luna.Syntax.Text.Parser.Parsing     as Parsing
-import qualified OCI.Pass.Registry                   as Registry
-import qualified Text.Megaparsec                     as Parser
+import qualified Control.Monad.State.Layered          as State
+import qualified Luna.IR                              as IR
+import qualified Luna.IR.Component.Term.Construction  as Term
+import qualified Luna.Pass                            as Pass
+import qualified Luna.Pass.Attr                       as Attr
+import qualified Luna.Pass.Scheduler                  as Scheduler
+import qualified Luna.Syntax.Text.Lexer               as Lexer
+import qualified Luna.Syntax.Text.Parser.Class        as Token
+import qualified Luna.Syntax.Text.Parser.Parsing      as Parsing
+import qualified Luna.Syntax.Text.Parser.State.Marker as Marker
+import qualified OCI.Pass.Registry                    as Registry
+import qualified Text.Megaparsec                      as Parser
 
 import Data.Text.Position                       (FileOffset)
 import Data.Text32                              (Text32)
@@ -26,8 +27,6 @@ import Luna.Syntax.Text.Parser.Class            (Error, ParserBase, Stream,
                                                  Token)
 import Luna.Syntax.Text.Parser.CodeSpan         (CodeSpan, CodeSpanRange)
 import Luna.Syntax.Text.Parser.Hardcoded        (hardcode)
-import Luna.Syntax.Text.Parser.Marker           (MarkedExprMap, MarkerState,
-                                                 UnmarkedExprs)
 import Luna.Syntax.Text.Parser.Pass.Class       (IRBS, Parser, fromIRBS)
 import Luna.Syntax.Text.Parser.State.Indent     (Indent)
 import Luna.Syntax.Text.Parser.State.LastOffset (LastOffset)
@@ -83,23 +82,23 @@ runParserContext__ p s
     $ State.evalDefT @Reserved
     $ State.evalDefT @Scope
     $ State.evalDefT @LastOffset
-    $ State.evalDefT @MarkerState
+    $ State.evalDefT @Marker.State
     -- $ State.evalDefT @Position
     $ State.evalDefT @FileOffset
     $ State.evalDefT @Indent
     $ hardcode >> p
 {-# INLINE runParserContext__ #-}
 
-runParser__ :: Token.Parser (IRBS a) -> Text32 -> Pass Parser (a, MarkedExprMap)
+runParser__ :: Token.Parser (IRBS a) -> Text32 -> Pass Parser (a, Marker.TermMap)
 runParser__ p src = do
     let tokens = Lexer.evalDefLexer src
         parser = Parsing.stx *> p <* Parsing.etx
     runParserContext__ parser tokens >>= \case
         Left e -> error ("Parser error: " <> parseErrorPretty e)
         Right irbs -> do
-            ((ref, unmarked), gidMap) <- State.runDefT @MarkedExprMap
-                                        $ State.runDefT @UnmarkedExprs
-                                        $ fromIRBS irbs
+            ((ref, unmarked), gidMap) <- State.runDefT @Marker.TermMap
+                                       $ State.runDefT @Marker.TermOrphanList
+                                       $ fromIRBS irbs
             pure (ref, gidMap)
 
 
