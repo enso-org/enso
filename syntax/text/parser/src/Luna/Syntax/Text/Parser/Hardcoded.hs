@@ -12,9 +12,9 @@ import Luna.IR                (Name)
 import Luna.Syntax.Text.Scope (Scope)
 
 
--------------------------------------------
--- Hardcoded stuff, to be removed slowly --
--------------------------------------------
+------------------------------------
+-- Hardcoded stuff, to be removed --
+------------------------------------
 
 hardcodePrecRelMap :: Prec.RelWriter Name m => m ()
 hardcodePrecRelMap = do

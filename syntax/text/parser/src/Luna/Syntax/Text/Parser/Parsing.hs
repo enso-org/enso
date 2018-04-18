@@ -8,32 +8,32 @@ import qualified Prelude  as P
 import           Prologue hiding (seq, some)
 import qualified Prologue
 
-import qualified Control.Monad.State.Layered       as State
-import qualified Data.Char                         as Char
-import qualified Data.Set                          as Set
-import qualified Data.Text.Span                    as Span
-import qualified Data.Text32                       as Text32
-import qualified Data.TreeSet                      as TreeSet
-import qualified Language.Symbol                   as Symbol
-import qualified Luna.Data.Name                    as Name
-import qualified Luna.IR                           as IR
-import qualified Luna.IR.Layer                     as Layer
-import qualified Luna.IR.Term.Ast                  as Import
-import qualified Luna.IR.Term.Ast.Invalid          as Invalid
-import qualified Luna.Syntax.Text.Lexer            as Lexer
-import qualified Luna.Syntax.Text.Lexer.Symbol     as Lexer
-import qualified Luna.Syntax.Text.Parser.CodeSpan  as CodeSpan
-import qualified Luna.Syntax.Text.Parser.Errors    as Invalid
-import qualified Luna.Syntax.Text.Parser.Hardcoded as Builtin
-import qualified Luna.Syntax.Text.Parser.Loc       as Loc
-import qualified Luna.Syntax.Text.Parser.Marker    as Marker
-import qualified Luna.Syntax.Text.Parser.Name      as Name
-import qualified Luna.Syntax.Text.Parser.Reserved  as Reserved
-import qualified Luna.Syntax.Text.Scope            as Scope
-import qualified OCI.Data.Name.Multipart           as Name.Multipart
-import qualified OCI.IR.Layout                     as Layout
-import qualified Text.Parser.Expr                  as Expr
-import qualified Text.Parser.Indent                as Indent
+import qualified Control.Monad.State.Layered        as State
+import qualified Data.Char                          as Char
+import qualified Data.Set                           as Set
+import qualified Data.Text.Span                     as Span
+import qualified Data.Text32                        as Text32
+import qualified Data.TreeSet                       as TreeSet
+import qualified Language.Symbol                    as Symbol
+import qualified Luna.Data.Name                     as Name
+import qualified Luna.IR                            as IR
+import qualified Luna.IR.Layer                      as Layer
+import qualified Luna.IR.Term.Ast                   as Import
+import qualified Luna.IR.Term.Ast.Invalid           as Invalid
+import qualified Luna.Syntax.Text.Lexer             as Lexer
+import qualified Luna.Syntax.Text.Lexer.Symbol      as Lexer
+import qualified Luna.Syntax.Text.Parser.Attributes as Attr
+import qualified Luna.Syntax.Text.Parser.CodeSpan   as CodeSpan
+import qualified Luna.Syntax.Text.Parser.Hardcoded  as Builtin
+import qualified Luna.Syntax.Text.Parser.Loc        as Loc
+import qualified Luna.Syntax.Text.Parser.Marker     as Marker
+import qualified Luna.Syntax.Text.Parser.Name       as Name
+import qualified Luna.Syntax.Text.Parser.Reserved   as Reserved
+import qualified Luna.Syntax.Text.Scope             as Scope
+import qualified OCI.Data.Name.Multipart            as Name.Multipart
+import qualified OCI.IR.Layout                      as Layout
+import qualified Text.Parser.Expr                   as Expr
+import qualified Text.Parser.Indent                 as Indent
 
 import Data.List.NonEmpty               ((<|))
 import Data.Set                         (Set)
@@ -223,7 +223,7 @@ irbsF2 p = uncurry (fmap2 . irbsFromSpan) <$> spanned p ; {-# INLINE irbsF2 #-}
 invalid :: Invalid.Symbol -> IRB SomeTerm
 invalid t = do
     inv <- IR.invalid' t
-    Invalid.register inv
+    Attr.registerInvalid inv
     pure $ Layout.relayout inv
 {-# INLINE invalid #-}
 

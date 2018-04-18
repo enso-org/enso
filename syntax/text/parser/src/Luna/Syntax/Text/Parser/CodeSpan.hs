@@ -11,20 +11,10 @@ import qualified Data.Text.Span              as Span
 import qualified Foreign.Storable.Deriving   as Storable
 import qualified Luna.IR.Layer               as Layer
 
-import Data.Text.Position (Delta)
-import Data.Text.Span     (LeftSpacedSpan, length, offset)
--- import Luna.IR
--- import Luna.IR.Layer.Succs         (Succs)
--- import Luna.IR.ToRefactor2         (Listener, addElemEventListener, listener,
---                                     readInputSources, readSource, readTarget,
---                                     tpElemPass)
+import Data.Text.Position         (Delta)
+import Data.Text.Span             (LeftSpacedSpan, length, offset)
 import Luna.Syntax.Text.Layer.Loc
-import Luna.Syntax.Text.Parser.AST
--- import OCI.IR                      hiding (IRBuilder, get)
--- import OCI.Pass                    hiding (get, inputs)
--- import OCI.Pass.Definition
--- import Text.Megaparsec.Prim (MonadParsec)
-import Type.Any (AnyType)
+import Type.Any                   (AnyType)
 
 
 ------------------------

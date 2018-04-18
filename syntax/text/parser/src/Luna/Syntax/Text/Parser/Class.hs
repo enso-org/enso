@@ -13,42 +13,31 @@ import qualified Luna.Pass              as Pass
 import qualified Luna.Pass.Attr         as Attr
 import qualified Luna.Syntax.Text.Lexer as Lexer
 import qualified Luna.Syntax.Text.Lexer as Lexer
-import qualified OCI.IR.Component.Class as Component
 import qualified Text.Megaparsec        as Parser
 import qualified Text.Megaparsec.Error  as Error
 import qualified Text.Megaparsec.Error  as Error
 
 
-import Control.Monad.State.Layered      (StatesT)
-import Data.Set                         (Set)
-import Data.Text.Position               (Delta)
-import Luna.Pass                        (Pass)
-import Luna.Syntax.Text.Parser.CodeSpan
-import Luna.Syntax.Text.Parser.Errors   (Invalids)
-import Luna.Syntax.Text.Parser.Marker   (MarkedExprMap, MarkerState,
-                                         UnmarkedExprs)
-import Luna.Syntax.Text.Source          (Source)
-import Text.Megaparsec                  hiding (Pos, Stream, parse, uncons,
-                                         (<?>))
+import Control.Monad.State.Layered        (StatesT)
+import Data.Set                           (Set)
+import Data.Text.Position                 (Delta)
+import Luna.Pass                          (Pass)
+import Luna.Syntax.Text.Parser.Attributes (Invalids, Result)
+import Luna.Syntax.Text.Parser.CodeSpan   (CodeSpan)
+import Luna.Syntax.Text.Parser.Marker     (MarkedExprMap, MarkerState,
+                                           UnmarkedExprs)
+import Luna.Syntax.Text.Source            (Source)
+import Text.Megaparsec                    hiding (Pos, Stream, parse, uncons,
+                                           (<?>))
 
 
+-------------------------
+-- === Parser pass === --
+-------------------------
 
---------------------
--- === Result === --
---------------------
-
-newtype Result = Result (IR.Term IR.Unit) deriving (Show, Eq)
-makeLenses ''Result
-
-type instance Attr.Type Result = Attr.Atomic
-
-instance Default Result where
-    def = Result Component.unsafeNull ; {-# INLINE def #-}
-
-
+-- === Definition === --
 
 data Parser
-
 type instance Pass.Spec Parser t = ParserSpec t
 type family   ParserSpec  t where
     ParserSpec (Pass.In  Pass.Attrs) = '[Source, Result, Invalids]
@@ -59,6 +48,7 @@ type family   ParserSpec  t where
 
 Pass.cache_phase1 ''Parser
 Pass.cache_phase2 ''Parser
+
 
 
 -----------------
@@ -113,7 +103,7 @@ infix 1 <?>
 
 type Symbol      = Lexer.Symbol
 type Stream      = [Tok]
-type Error       = Void -- Error.Dec
+type Error       = Void
 type Tok         = Lexer.Token Lexer.Symbol
 type MonadParser = MonadParsec Error Stream
 

@@ -30,16 +30,16 @@ import qualified OCI.IR.Component                    as Component
 import qualified OCI.IR.Layout                       as Layout
 import qualified OCI.Pass.Registry                   as Registry
 
-import Data.Text.Position               (Delta)
-import Luna.IR.Component.Link           (type (*-*), Link)
-import Luna.Pass                        (Pass)
-import Luna.Syntax.Text.Parser.Class    (IRBS, Parser)
-import Luna.Syntax.Text.Parser.CodeSpan (CodeSpan)
-import Luna.Syntax.Text.Parser.Errors   (Invalids)
-import Luna.Syntax.Text.Scope           (Scope)
-import Luna.Syntax.Text.Source          (Source)
-import Luna.Test.Source.Text.Utils      (s)
-import Test.Hspec                       (Expectation, Spec, describe, it)
+import Data.Text.Position                 (Delta)
+import Luna.IR.Component.Link             (type (*-*), Link)
+import Luna.Pass                          (Pass)
+import Luna.Syntax.Text.Parser.Attributes (Invalids)
+import Luna.Syntax.Text.Parser.Class      (IRBS, Parser)
+import Luna.Syntax.Text.Parser.CodeSpan   (CodeSpan)
+import Luna.Syntax.Text.Scope             (Scope)
+import Luna.Syntax.Text.Source            (Source)
+import Luna.Test.Source.Text.Utils        (s)
+import Test.Hspec                         (Expectation, Spec, describe, it)
 
 
 

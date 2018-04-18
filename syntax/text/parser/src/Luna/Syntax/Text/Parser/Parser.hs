@@ -21,7 +21,6 @@ import Luna.Pass                         (Pass)
 import Luna.Syntax.Text.Parser.Class     as X (Error)
 import Luna.Syntax.Text.Parser.Class     (Stream)
 import Luna.Syntax.Text.Parser.CodeSpan  (CodeSpan, CodeSpanRange)
-import Luna.Syntax.Text.Parser.Errors    (Invalids)
 import Luna.Syntax.Text.Parser.Hardcoded (hardcode)
 import Luna.Syntax.Text.Parser.Loc       (LeftSpanner)
 import Luna.Syntax.Text.Parser.Marker    (MarkedExprMap, MarkerState,
