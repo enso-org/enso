@@ -229,7 +229,7 @@ invalid t = do
 {-# INLINE invalid #-}
 
 invalidToken :: Parser (IRBS SomeTerm)
-invalidToken = irbs $ invalid <$> satisfTest Lexer.matchInvalid ; {-# INLINE invalidToken #-}
+invalidToken = irbs $ invalid <$> satisfTest Lexer.matchInvalidSymbol ; {-# INLINE invalidToken #-}
 
 -- invalidSymbol :: (Lexer.Symbol -> Text32) -> Parser (IRBS SomeTerm)
 -- invalidSymbol f = irbs $ invalid . f <$> anySymbol

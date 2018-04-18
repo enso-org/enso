@@ -71,8 +71,8 @@ instance Default EntryPoint where def = TopLevelEntry ; {-# INLINE def #-}
 -- === Layouting === --
 -----------------------
 
-notNewlineStart :: Char -> Bool
-notNewlineStart c = c /= '\n' && c /= '\r' ; {-# INLINE notNewlineStart #-}
+newlineStartChar :: Char -> Bool
+newlineStartChar c = c == '\n' || c == '\r' ; {-# INLINE newlineStartChar #-}
 
 
 
@@ -87,21 +87,15 @@ isIdentBodyChar c = Char.isAlphaNum c ; {-# INLINE isIdentBodyChar  #-}
 isVarHead       c = Char.isLower    c ; {-# INLINE isVarHead        #-}
 isConsHead      c = Char.isUpper    c ; {-# INLINE isConsHead       #-}
 
--- | WARNING!
---   We assume that we have already checked for valid headers before
---   using this check!.
-isInvalidVarHead :: Char -> Bool
-isInvalidVarHead = Char.isAlpha ; {-# INLINE isInvalidVarHead #-}
-
-varBreakChars :: [Char]
-varBreakChars = "!@#$%^&*()-=+[]{}\\|;:<>,./ \t\n" ; {-# INLINE varBreakChars #-}
+tokenBreakingChars :: [Char]
+tokenBreakingChars = "!@#$%^&*()-=+[]{}\\|;:<>,./ \t\n" ; {-# INLINE tokenBreakingChars #-}
 
 
 -- === Names === --
 
 invalidSuffix :: Parser (Symbol -> Symbol)
-invalidSuffix = Symbol.Invalid . Invalid.UnexpectedSuffix . Txt.length
-            <$> takeWhile1 (`notElem` varBreakChars)
+invalidSuffix = Symbol.InvalidSymbol . Invalid.UnexpectedSuffix . Txt.length
+            <$> takeWhile1 (`notElem` tokenBreakingChars)
 {-# INLINE invalidSuffix #-}
 
 checkInvalidSuffix :: Lexer -> Lexer
@@ -122,11 +116,20 @@ lexConstructor :: Lexer
 lexConstructor = Symbol.Cons <$> takeWhile isIdentBodyChar
 {-# INLINE lexConstructor #-}
 
+
+-- === Invalid names === --
+
+-- | WARNING!
+--   We assume that we have already checked for valid headers before
+--   using this check!.
+isInvalidVarHead :: Char -> Bool
+isInvalidVarHead = Char.isAlpha ; {-# INLINE isInvalidVarHead #-}
+
 -- | WARNING!
 --   We assume that we have already checked for valid headers before
 --   using this check!.
 lexInvalidVariable :: Lexer
-lexInvalidVariable = Symbol.Invalid Invalid.CaselessNameHead . Symbol.Var
+lexInvalidVariable = Symbol.InvalidSymbol Invalid.CaselessNameHead . Symbol.Var
                  <$> takeWhile isIdentBodyChar
 {-# INLINE lexInvalidVariable #-}
 
@@ -224,14 +227,16 @@ natStrBody hlen = code <|> quotes where
 
 rawStrBody :: Int -> Lexer
 rawStrBody hlen = choice [body, escape, quotes, linebr] where
-    bodyCheck c = c /= rawStrQuote && notNewlineStart c && c /= escapeChar
-    body        = Symbol.Str <$> takeWhile1 bodyCheck
-    linebr      = Symbol.EOL <$ newline
-    escape      = token escapeChar *> option (Symbol.Str $ convert escapeChar)
-                                             (Symbol.StrEsc <$> esct)
-    esct        = (Symbol.SlashEsc <$ token escapeChar)
-              <|> (Symbol.QuoteEscape Symbol.RawStr <$ token rawStrQuote)
-    quotes      = do
+    bodyChar c = c /= rawStrQuote
+              && c /= escapeChar
+              && not (newlineStartChar c)
+    body       = Symbol.Str <$> takeWhile1 bodyChar
+    linebr     = Symbol.EOL <$  newline
+    escape     = token escapeChar <**> option (Symbol.Str . convert)
+                                      (const . Symbol.StrEsc <$> esct)
+    esct       = (Symbol.SlashEsc <$ token escapeChar)
+             <|> (Symbol.QuoteEscape Symbol.RawStr <$ token rawStrQuote)
+    quotes     = do
         qs <- takeMany1 rawStrQuote
         if Txt.length qs == hlen
             then Symbol.Quote Symbol.RawStr Symbol.End <$ unliftEntry
@@ -243,20 +248,20 @@ rawStrBody hlen = choice [body, escape, quotes, linebr] where
 
 fmtStrBody :: Int -> Lexer
 fmtStrBody hlen = choice [body, escape, quotes, linebr, code] where
-    bodyCheck c = c /= fmtStrQuote
-               && c /= natStrQuote
-               && c /= escapeChar
-               && notNewlineStart c
-    body        = Symbol.Str <$> takeWhile1 bodyCheck
-    linebr      = Symbol.EOL <$  newline
-    escape      = token escapeChar *> esct
-    rawQEsc     = Symbol.QuoteEscape Symbol.RawStr
-    fmtQEsc     = Symbol.QuoteEscape Symbol.FmtStr
-    esct        = (Symbol.StrEsc Symbol.SlashEsc <$ token escapeChar)
-              <|> (Symbol.StrEsc rawQEsc         <$ token rawStrQuote)
-              <|> (Symbol.StrEsc fmtQEsc         <$ token fmtStrQuote)
-              <|> lexEscSeq
-    quotes      = do
+    bodyChar c = c /= fmtStrQuote
+              && c /= natStrQuote
+              && c /= escapeChar
+              && not (newlineStartChar c)
+    body       = Symbol.Str <$> takeWhile1 bodyChar
+    linebr     = Symbol.EOL <$  newline
+    escape     = token escapeChar *> esct
+    rawQEsc    = Symbol.QuoteEscape Symbol.RawStr
+    fmtQEsc    = Symbol.QuoteEscape Symbol.FmtStr
+    esct       = (Symbol.StrEsc Symbol.SlashEsc <$ token escapeChar)
+             <|> (Symbol.StrEsc rawQEsc         <$ token rawStrQuote)
+             <|> (Symbol.StrEsc fmtQEsc         <$ token fmtStrQuote)
+             <|> lexEscSeq
+    quotes     = do
         qs <- takeMany1 fmtStrQuote
         if Txt.length qs == hlen
             then Symbol.Quote Symbol.FmtStr Symbol.End <$ unliftEntry
@@ -303,7 +308,7 @@ lexEscSeq = numEsc <|> chrEcs <|> badEsc where
     numEsc = Symbol.StrEsc . Symbol.NumStrEsc . unsafeRead . convert
          <$> takeWhile1 isDecDigitChar
     chrEcs = choice $ uncurry parseEsc <$> zip [1..] [esc1Map, esc2Map, esc3Map]
-    badEsc = Symbol.StrWrongEsc . Char.ord <$> anyToken
+    badEsc = Symbol.InvalidEscapeCode . Char.ord <$> anyToken
 
 parseEsc :: Int -> Map String Int -> Lexer
 parseEsc n m = do

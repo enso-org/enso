@@ -280,7 +280,11 @@ prettyprintSimple ir = Layer.read @IR.Model ir >>= \case
         -> simple . parensed .: flip (<+>) <$> subgenBody op <*> subgenBody a
     IR.UniTermSeq (IR.Seq a b) -> simple .: (</>) <$> subgenBody a <*> subgenBody b
     IR.UniTermString (IR.String s)
-        -> simple . quoted . convert <$> Vector.toList s -- FIXME [WD]: add proper multi-line strings indentation
+        -> simple . quoted . convert . concat . fmap escape <$> Vector.toList s where -- FIXME [WD]: add proper multi-line strings indentation
+        escape = \case
+            '"'  -> "\\\""
+            '\\' -> "\\\\"
+            c    -> [c]
     IR.UniTermTuple (IR.Tuple elems)
         -> simple . parensed . (intercalate ", ")
        <$> (mapM subgenBody =<< List.toList elems)
