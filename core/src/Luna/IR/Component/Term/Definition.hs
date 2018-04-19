@@ -118,7 +118,8 @@ type family AddToOutput var field layout where
 --       type instance Format.Of Test = Format.Thunk
 --
 --       instance HasInputs Test where
---           inputs (Test a0 a1) = pure [] >>= prependLinks a1 >>= prependLinks a0
+--           inputsIO (Test a0 a1) = pure [] >>= prependLinks a1 >>= prependLinks a0
+--           {-# INLINE inputs #-}
 --
 --       test :: forall a t1 t2 m. Creator Test m
 --             => FieldCons t1 Foo
@@ -236,23 +237,23 @@ defineHasInputsInst :: Name -> Name -> Int -> Dec
 defineHasInputsInst typeName consName fieldsCount =
     classInstance ''Link.HasInputs typeName [] definition where
         fieldNames     = unsafeGenNames fieldsCount
-        methodName     = 'Link.inputs
+        methodName     = 'Link.inputsIO
         definition     = [implementation, inlinePragma]
         implementation = TH.FunD methodName [clause [pat] body []]
         pat            = cons consName $ var <$> fieldNames
         body           = foldl addLinks pureEmpty (reverse fieldNames)
         inlinePragma   = THBuilder.inline TH.FunLike methodName
 
-        addLinks links field = bind' links (prependLinks' $ var field)
+        addLinks links field = bindTH links (prependLinksTH $ var field)
 
         pureEmpty :: TH.Exp
         pureEmpty = TH.AppE (var 'pure) (TH.ListE [])
 
-        prependLinks' :: TH.Exp -> TH.Exp
-        prependLinks' = app $ var 'Link.prependLinks
+        prependLinksTH :: TH.Exp -> TH.Exp
+        prependLinksTH = app $ var 'Link.prependLinks
 
-        bind' :: TH.Exp -> TH.Exp -> TH.Exp
-        bind' = app2 $ var '(>>=)
+        bindTH :: TH.Exp -> TH.Exp -> TH.Exp
+        bindTH = app2 $ var '(>>=)
 
 
 -- === Helpers === --
@@ -379,8 +380,8 @@ makeSmartConsGenBody fname varNum = do
 --       instance Term.IsUni ConsMissing where toUni = UniTermMissing
 --
 --       instance HasInputs UniTerm where
---           inputs (UniTermCons a) = inputs a
---           inputs (UniTermVar  a) = inputs a
+--           inputsIO (UniTermCons a) = inputsIO a
+--           inputsIO (UniTermVar  a) = inputsIO a
 --           ...
 --
 makeUniTerm :: Q [Dec]
@@ -403,7 +404,7 @@ makeUniTerm = do
     storableInst  <- Storable.derive'   dataDecl
     storable1Inst <- Storable1.derive'  dataDecl
     let hasInputsInst = defineHasInputsUniTermInst dataName
-                                                   (mkUniTermName <$> termNames)
+                      $ mkUniTermName <$> termNames
     pure $ [ dataDecl
            , hasInputsInst
            ]
@@ -418,7 +419,7 @@ defineHasInputsUniTermInst :: Name -> [Name] -> Dec
 defineHasInputsUniTermInst dataName consNames =
     classInstance ''Link.HasInputs dataName [] definition where
         definition        = [implementation]
-        methodName        = 'Link.inputs
+        methodName        = 'Link.inputsIO
         implementation    = TH.FunD methodName clauses
         clauses           = mkClause <$> consNames
         patVarName        = unsafeGenName
