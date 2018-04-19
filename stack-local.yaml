@@ -38,6 +38,7 @@ packages:
     - lib/code-builder
     - lib/cpp-containers
     - lib/data-tag
+    - lib/data-construction
     - lib/data-typemap
     - lib/exception
     - lib/foreign-utils

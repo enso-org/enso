@@ -6,6 +6,8 @@ module OCI.IR.Layer where
 
 import Prologue hiding (Data, Wrapped)
 
+import qualified Control.Lens               as Lens
+import qualified Data.Construction          as Data
 import qualified Foreign.Storable           as Storable
 import qualified Foreign.Storable.Utils     as Storable
 import qualified Foreign.Storable1          as Storable1
@@ -88,11 +90,20 @@ instance Storable.Storable t => Storable1.Storable1 (Simple t) where
 
 -- === Definition === --
 
+class Layer layer where
+    type family Layout layer layout :: Type
+    type family Cons   layer        :: Type -> Type
+    type family View   layer layout :: Type -> Type
+    manager :: Manager layer
+
+    type Layout layer layout = layout
+    type View   layer layout = Cons layer
+    default manager :: Default1 (Cons layer) => Manager layer
+    manager = staticManager ; {-# INLINE manager #-}
 
 type WrappedData   layer layout = Cons layer (Layout layer layout)
 type Data          layer layout = Unwrap (Cons layer (Layout layer layout))
-
-type StorableData layer = Storable1 (Cons layer)
+type StorableData  layer        = Storable1 (Cons layer)
 
 
 -- === Construction === --
@@ -101,28 +112,81 @@ class IsCons1 layer t where
     cons1 :: ∀ a. t a -> Data layer a
 
 
--- === Initialization === --
-
-class Layer layer where
-    type family Layout layer layout :: Type
-    type family Cons   layer        :: Type -> Type
-    type family View   layer layout :: Type -> Type
-
-    type Layout layer layout = layout
-    type View   layer layout = Cons layer
-
-    initialize :: ∀ layout. Maybe     (Cons layer layout)
-    construct  :: ∀ layout. Maybe (IO (Cons layer layout))
-    destruct   :: ∀ layout. Maybe (Cons layer layout -> IO ())
-    initialize = Nothing ; {-# INLINE initialize #-}
-    construct  = Nothing ; {-# INLINE construct  #-}
-    destruct   = Nothing ; {-# INLINE destruct   #-}
-
-
 -- === General Information === --
 
 byteSize :: ∀ layer. StorableData layer => Int
 byteSize = Storable1.sizeOf' @(Cons layer) ; {-# INLINE byteSize #-}
+
+
+
+----------------------------------
+-- === Layer Memory Manager === --
+----------------------------------
+
+-- === Definition === --
+
+data Manager (layer :: Type)
+    = NoManager
+    | Static  !(StaticManager  layer)
+    | Dynamic !(DynamicManager layer)
+
+newtype StaticManager layer = StaticManager
+    { _initializer :: ∀ layout. Cons layer layout
+    }
+
+data DynamicManager layer = DynamicManager
+    { _constructor :: !(∀ layout. IO (Cons layer layout))
+    , _destructor  :: !(∀ layout. Cons layer layout -> IO ())
+    }
+
+
+-- === Smart constructors === --
+
+noManager :: Manager layer
+noManager = NoManager ; {-# INLINE noManager #-}
+
+staticManager :: Default1 (Cons layer) => Manager layer
+staticManager = Static $ StaticManager def1 ; {-# INLINE staticManager #-}
+
+dynamicManager :: ( Data.Constructor1' IO (Cons layer)
+                  , Data.Destructor1   IO (Cons layer)
+                  ) => Manager layer
+dynamicManager = Dynamic $ DynamicManager Data.new1 Data.destruct1 ; {-# INLINE dynamicManager #-}
+
+customStaticManager :: (∀ layout. Cons layer layout) -> Manager layer
+customStaticManager !t = Static $ StaticManager t ; {-# INLINE customStaticManager #-}
+
+customDynamicManager :: (∀ layout. IO (Cons layer layout))
+                     -> (∀ layout. Cons layer layout -> IO ())
+                     -> Manager layer
+customDynamicManager !s !t = Dynamic $ DynamicManager s t ; {-# INLINE customDynamicManager #-}
+
+
+-- === Smart patterns === --
+
+matchStaticManager :: Manager layer -> Maybe (StaticManager layer)
+matchStaticManager = \case
+    Static a -> Just a
+    _        -> Nothing
+{-# INLINE matchStaticManager #-}
+
+matchDynamicManager :: Manager layer -> Maybe (DynamicManager layer)
+matchDynamicManager = \case
+    Dynamic a -> Just a
+    _         -> Nothing
+{-# INLINE matchDynamicManager #-}
+
+checkStaticManager :: ∀ layer. Layer layer => Maybe (StaticManager layer)
+checkStaticManager = matchStaticManager $ manager @layer ; {-# INLINE checkStaticManager #-}
+
+checkDynamicManager :: ∀ layer. Layer layer => Maybe (DynamicManager layer)
+checkDynamicManager = matchDynamicManager $ manager @layer ; {-# INLINE checkDynamicManager #-}
+
+
+-- === Instances === --
+
+Lens.makeLenses ''StaticManager
+Lens.makeLenses ''DynamicManager
 
 
 

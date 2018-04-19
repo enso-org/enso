@@ -107,19 +107,31 @@ registerPrimLayerRep s staticInit dynamicInit comp layer =
         pure $ m & components .~ components'
 {-# INLINE registerPrimLayerRep #-}
 
-registerComponent :: ∀ comp m.       (MonadRegistry m, Typeable comp) => m ()
-registerPrimLayer :: ∀ comp layer m. (MonadRegistry m, Typeable comp, Typeable layer, Layer.StorableData layer, Layer layer) => m ()
+registerComponent :: ∀ comp m. (MonadRegistry m, Typeable comp) => m ()
 registerComponent = registerComponentRep (someTypeRep @comp) ; {-# INLINE registerComponent #-}
+
+registerPrimLayer :: ∀ comp layer m.
+    ( MonadRegistry m
+    , Typeable comp
+    , Typeable layer
+    , Layer.StorableData layer
+    , Layer layer
+    ) => m ()
 registerPrimLayer = do
-    initializer    <- liftIO $ fmap coerce . mapM Ptr1.new
-                    $ Layer.initialize @layer
-    let constructor = applyDyn <$> Layer.construct @layer
-        byteSize    = Layer.byteSize @layer
-        comp        = someTypeRep @comp
-        layer       = someTypeRep @layer
-    registerPrimLayerRep byteSize initializer constructor comp layer
-    where applyDyn :: Storable1 t => IO (t a) -> (SomePtr -> IO ())
-          applyDyn t ptr = Storable1.poke (coerce ptr) =<< t ; {-# INLINE applyDyn #-}
+    init <- withJust (Layer.checkStaticManager @layer)
+          $ liftIO . fmap (Just . coerce) . Ptr1.new . view Layer.initializer
+    let ctor     = withJust (Layer.checkDynamicManager @layer)
+                 $ Just . ctorDyn . view Layer.constructor
+        dtor     = withJust (Layer.checkDynamicManager @layer)
+                 $ Just . dtorDyn . view Layer.destructor
+        byteSize = Layer.byteSize @layer
+        comp     = someTypeRep @comp
+        layer    = someTypeRep @layer
+    registerPrimLayerRep byteSize init ctor comp layer
+    where ctorDyn :: Storable1 t => IO (t a) -> (SomePtr -> IO ())
+          dtorDyn :: Storable1 t => (t a -> IO ()) -> (SomePtr -> IO ())
+          ctorDyn t ptr = Storable1.poke (coerce ptr) =<< t ; {-# INLINE ctorDyn #-}
+          dtorDyn f ptr = f =<< Storable1.peek (coerce ptr) ; {-# INLINE dtorDyn #-}
 {-# INLINE registerPrimLayer #-}
 
 

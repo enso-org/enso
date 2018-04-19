@@ -6,6 +6,7 @@ module OCI.IR.Component.Container where
 import OCI.IR.Component.Class
 import Prologue
 
+import qualified Data.Construction          as Data
 import qualified Data.Set.Mutable.Class     as Set
 import qualified Foreign.Storable1.Deriving as Storable1
 
@@ -17,10 +18,15 @@ import Foreign.Storable    (Storable)
 -- === Set === --
 -----------------
 
+-- === Definition === --
+
 newtype Set comp layout = Set (UnmanagedPtrSet (Component comp layout))
     deriving (Show, Storable)
 makeLenses       ''Set
 Storable1.derive ''Set
+
+
+-- === Instances === --
 
 type instance Set.Item (Set comp layout) = Component comp layout
 instance MonadIO m => Set.Set m (Set comp layout) where
@@ -31,3 +37,9 @@ instance MonadIO m => Set.Set m (Set comp layout) where
     size   = Set.size   . unwrap ; {-# INLINE size   #-}
     null   = Set.null   . unwrap ; {-# INLINE null   #-}
     toList = Set.toList . unwrap ; {-# INLINE toList #-}
+
+instance MonadIO m => Data.Constructor2 () m Set where
+    construct2 _ = wrap <$> Data.new1 ; {-# INLINE construct2 #-}
+
+instance MonadIO m => Data.Destructor2 m Set where
+    destruct2 = Data.destruct1 . unwrap ; {-# INLINE destruct2 #-}

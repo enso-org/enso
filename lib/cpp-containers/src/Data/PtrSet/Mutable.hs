@@ -4,17 +4,17 @@ module Data.PtrSet.Mutable where
 
 import Prologue hiding (null, toList)
 
+import qualified Data.Construction          as Data
+import qualified Data.Set.Mutable.Class     as Set
+import qualified Foreign.Storable1.Deriving as Storable1
+
 import Control.Monad.IO.Class
 import Foreign.ForeignPtr
-import Foreign.Marshal.Alloc
 import Foreign.Marshal.Array
 import Foreign.Ptr
 import Foreign.Ptr.Utils      (SomePtr, fromCBool)
 import Foreign.Storable       (Storable)
 import System.IO.Unsafe       (unsafePerformIO)
-
-import qualified Data.Set.Mutable.Class     as Set
-import qualified Foreign.Storable1.Deriving as Storable1
 
 
 type IsPtr a = BiConvertible' SomePtr a
@@ -161,3 +161,9 @@ instance (IsPtr a, MonadIO m)
     size   = size   ; {-# INLINE size   #-}
     null   = null   ; {-# INLINE null   #-}
     toList = toList ; {-# INLINE toList #-}
+
+instance MonadIO m => Data.Constructor1 () m UnmanagedPtrSet where
+    construct1 _ = new ; {-# INLINE construct1 #-}
+
+instance MonadIO m => Data.Destructor1 m UnmanagedPtrSet where
+    destruct1 = free ; {-# INLINE destruct1 #-}

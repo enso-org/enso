@@ -39,6 +39,7 @@ data Model
 instance Layer Model where
     type Cons  Model        = Term.Uni
     type View  Model layout = Term.TagToCons (Layout.Get Model layout)
+    manager = Layer.noManager
 
 
 -- === Utils === --
@@ -64,18 +65,22 @@ data Type
 instance Layer  Type where
     type Cons   Type = Link
     type Layout Type layout = Layout.Get Type layout *-* layout
+    manager = Layer.noManager
 type instance Layout.Default Type = ()
 
 
 
 -------------------
 -- === Users === --
--------------------
+-------------------x
 
 data Users
 instance Layer  Users where
     type Cons   Users = Link.Set
     type Layout Users layout = layout *-* Layout.Set Model () layout
-    construct = Just $ wrap <$> PtrSet.new  ; {-# INLINE construct #-}
-    destruct  = Just $ PtrSet.free . unwrap ; {-# INLINE destruct  #-}
+    manager = Layer.dynamicManager
+    -- manager = Just $ Layer.Dynamic (wrap <$> PtrSet.new)
+    --                                    (PtrSet.free . unwrap)
+    -- construct = Just $ wrap <$> PtrSet.new  ; {-# INLINE construct #-}
+    -- destruct  = Just $ PtrSet.free . unwrap ; {-# INLINE destruct  #-}
 

@@ -39,6 +39,7 @@ packages:
     - lib/cpp-containers
     - lib/data-tag
     - lib/data-typemap
+    - lib/data-construction    
     - lib/exception
     - lib/foreign-utils
     - lib/hspec-jenkins
