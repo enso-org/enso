@@ -34,14 +34,16 @@ type src *-* tgt = Layout '[Source := src, Target := tgt]
 -- === Definition === --
 
 data Source
-type instance Layer.Cons   Source        = Term
-type instance Layer.Layout Source layout = Layout.Get Source layout
-instance      Layer        Source
+instance Layer  Source where
+    type Cons   Source = Term
+    type Layout Source layout = Layout.Get Source layout
 
 data Target
-type instance Layer.Cons   Target        = Term
-type instance Layer.Layout Target layout = Layout.Get Target layout
-instance      Layer        Target
+instance Layer  Target where
+    type Cons   Target        = Term
+    type Layout Target layout = Layout.Get Target layout
+
+
 
 type instance Cmp Source Target = 'LT
 type instance Cmp Target Source = 'GT

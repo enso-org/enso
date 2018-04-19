@@ -36,17 +36,15 @@ import OCI.IR.Layer                 (Layer)
 -- === Definition === --
 
 data Model
-type instance Layer.Cons     Model        = Term.Uni
-type instance Layer.Layout   Model layout = layout
-type instance Layer.ViewCons Model layout
-   = Term.TagToCons (Layout.Get Model layout)
-instance Layer Model
+instance Layer Model where
+    type Cons  Model        = Term.Uni
+    type View  Model layout = Term.TagToCons (Layout.Get Model layout)
 
 
 -- === Utils === --
 
 model :: Layer.ViewReader Terms Model layout m
-      => Term layout -> m (Layer.View Model layout)
+      => Term layout -> m (Layer.ViewData Model layout)
 model = Layer.readView @Model ; {-# INLINE model #-}
 
 
@@ -63,10 +61,10 @@ instance (Term.IsUni t, Layer.IsUnwrapped Term.Uni)
 ------------------
 
 data Type
+instance Layer  Type where
+    type Cons   Type = Link
+    type Layout Type layout = Layout.Get Type layout *-* layout
 type instance Layout.Default Type = ()
-type instance Layer.Cons     Type = Link
-type instance Layer.Layout   Type layout = Layout.Get Type layout *-* layout
-instance      Layer          Type
 
 
 
@@ -75,8 +73,9 @@ instance      Layer          Type
 -------------------
 
 data Users
-type instance Layer.Cons   Users = Link.Set
-type instance Layer.Layout Users layout = layout *-* Layout.Set Model () layout
-instance      Layer        Users where
-    construct = Just (wrap <$> PtrSet.new) ; {-# INLINE construct #-}
+instance Layer  Users where
+    type Cons   Users = Link.Set
+    type Layout Users layout = layout *-* Layout.Set Model () layout
+    construct = Just $ wrap <$> PtrSet.new  ; {-# INLINE construct #-}
+    destruct  = Just $ PtrSet.free . unwrap ; {-# INLINE destruct  #-}
 

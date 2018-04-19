@@ -88,8 +88,7 @@ instance Storable.Storable t => Storable1.Storable1 (Simple t) where
 
 -- === Definition === --
 
-type family Cons   layer        :: Type -> Type
-type family Layout layer layout :: Type
+
 type WrappedData   layer layout = Cons layer (Layout layer layout)
 type Data          layer layout = Unwrap (Cons layer (Layout layer layout))
 
@@ -105,19 +104,19 @@ class IsCons1 layer t where
 -- === Initialization === --
 
 class Layer layer where
+    type family Layout layer layout :: Type
+    type family Cons   layer        :: Type -> Type
+    type family View   layer layout :: Type -> Type
+
+    type Layout layer layout = layout
+    type View   layer layout = Cons layer
+
     initialize :: ∀ layout. Maybe     (Cons layer layout)
     construct  :: ∀ layout. Maybe (IO (Cons layer layout))
     destruct   :: ∀ layout. Maybe (Cons layer layout -> IO ())
     initialize = Nothing ; {-# INLINE initialize #-}
     construct  = Nothing ; {-# INLINE construct  #-}
     destruct   = Nothing ; {-# INLINE destruct   #-}
-
--- class Initializer layer where
---     initStatic  :: ∀ layout. Maybe     (Cons layer layout)
---     initDynamic :: ∀ layout. Maybe (IO (Cons layer layout))
---     initStatic  = Nothing ; {-# INLINE initStatic  #-}
---     initDynamic = Nothing ; {-# INLINE initDynamic #-}
---     {-# MINIMAL initStatic | initDynamic #-}
 
 
 -- === General Information === --
@@ -231,9 +230,8 @@ instance            Writer comp layer ImpM1 where write__ _ _ = impossible
 -- === Layer View === --
 ------------------------
 
-type family ViewCons layer layout :: Type -> Type
-type View         layer layout = ViewCons layer layout (Layout layer layout)
-type StorableView layer layout = Storable1 (ViewCons layer layout)
+type ViewData     layer layout = View layer layout (Layout layer layout)
+type StorableView layer layout = Storable1 (View layer layout)
 
 
 
@@ -249,10 +247,10 @@ type ViewEditor comp layer layout m =
    )
 
 class ViewReader comp layer layout m where
-    readView__ :: Component comp layout -> m (View layer layout)
+    readView__ :: Component comp layout -> m (ViewData layer layout)
 
 class ViewWriter comp layer layout m where
-    writeView__ :: Component comp layout -> View layer layout -> m ()
+    writeView__ :: Component comp layout -> ViewData layer layout -> m ()
 
 
 -- === API === --
@@ -262,13 +260,13 @@ class ViewWriter comp layer layout m where
         , MonadIO m                 \
         )
 
-unsafePeekView :: CTX => SomePtr -> m (View layer layout)
-unsafePokeView :: CTX => SomePtr ->   (View layer layout) -> m ()
+unsafePeekView :: CTX => SomePtr -> m (ViewData layer layout)
+unsafePokeView :: CTX => SomePtr ->   (ViewData layer layout) -> m ()
 unsafePeekView !ptr = liftIO $ Storable1.peekByteOff (coerce ptr) consByteSize; {-# INLINE unsafePeekView #-}
 unsafePokeView !ptr = liftIO . Storable1.pokeByteOff (coerce ptr) consByteSize; {-# INLINE unsafePokeView #-}
 
-unsafePeekViewByteOff :: CTX => Int -> SomePtr -> m (View layer layout)
-unsafePokeViewByteOff :: CTX => Int -> SomePtr -> View layer layout -> m ()
+unsafePeekViewByteOff :: CTX => Int -> SomePtr -> m (ViewData layer layout)
+unsafePokeViewByteOff :: CTX => Int -> SomePtr -> ViewData layer layout -> m ()
 unsafePeekViewByteOff !d !ptr = unsafePeekView @layer @comp @layout
                               $ ptr `plusPtr` d
 unsafePokeViewByteOff !d !ptr = unsafePokeView @layer @comp @layout
@@ -277,22 +275,22 @@ unsafePokeViewByteOff !d !ptr = unsafePokeView @layer @comp @layout
 {-# INLINE unsafePokeViewByteOff #-}
 
 unsafeReadViewByteOff :: CTX => Int -> Component comp layout
-                      -> m (View layer layout)
+                      -> m (ViewData layer layout)
 unsafeReadViewByteOff !d = unsafePeekViewByteOff @layer @comp @layout d
                          . coerce
 unsafeWriteViewByteOff :: CTX => Int -> Component comp layout
-                       -> (View layer layout) -> m ()
+                       -> (ViewData layer layout) -> m ()
 unsafeWriteViewByteOff !d = unsafePokeViewByteOff @layer @comp @layout d
                           . coerce
 {-# INLINE unsafeReadViewByteOff  #-}
 {-# INLINE unsafeWriteViewByteOff #-}
 
 readView :: ∀ layer comp layout m. ViewReader comp layer layout m
-         => Component comp layout -> m (View layer layout)
+         => Component comp layout -> m (ViewData layer layout)
 readView = readView__ @comp @layer @layout @m ; {-# INLINE readView #-}
 
 writeView :: ∀ layer comp layout m. ViewWriter comp layer layout m
-          => Component comp layout -> View layer layout -> m ()
+          => Component comp layout -> ViewData layer layout -> m ()
 writeView = writeView__ @comp @layer @layout @m ; {-# INLINE writeView #-}
 
 #undef CTX
