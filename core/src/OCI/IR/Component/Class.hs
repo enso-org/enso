@@ -43,9 +43,9 @@ type Allocator comp m =
     )
 
 type Creator comp m =
-    ( Allocator                   comp m
-    , Pass.LayerInitializerGetter comp m
-    , Pass.ComponentSizeGetter    comp m
+    ( Allocator                  comp m
+    , Pass.LayerMemManagerGetter comp m
+    , Pass.ComponentSizeGetter   comp m
     )
 
 unsafeNull :: Component comp layout
@@ -60,11 +60,11 @@ alloc = do
 new :: ∀ comp m layout. Creator comp m => m (Component comp layout)
 new = do
     ir   <- alloc
-    init <- Pass.getLayerInitializer @comp
-    size <- Pass.getComponentSize    @comp
+    init <- Pass.getLayerMemManager @comp
+    size <- Pass.getComponentSize   @comp
     let ptr = coerce ir
-    liftIO $ Mem.copyBytes ptr (init ^. Pass.staticInit) size
-    liftIO $ (init ^. Pass.dynamicInit) ptr
+    liftIO $ Mem.copyBytes ptr (init ^. Pass.initializer) size
+    liftIO $ (init ^. Pass.constructor) ptr
     pure ir
 {-# INLINE new #-}
 

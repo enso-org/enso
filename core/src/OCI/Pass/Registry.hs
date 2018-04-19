@@ -33,8 +33,9 @@ newtype ComponentInfo = ComponentInfo
 
 data LayerInfo = LayerInfo
     { _byteSize    :: !Int
-    , _staticInit  :: !(Maybe SomePtr)
-    , _dynamicInit :: !(Maybe (SomePtr -> IO ()))
+    , _initializer :: !(Maybe SomePtr)
+    , _constructor :: !(Maybe (SomePtr -> IO ()))
+    , _destructor  :: !(Maybe (SomePtr -> IO ()))
     }
 
 
@@ -51,9 +52,7 @@ makeLenses ''LayerInfo
 --------------------
 
 data Error
-    = DuplicateComponent SomeTypeRep
-    | DuplicateLayer     SomeTypeRep SomeTypeRep
-    | MissingComponent   SomeTypeRep
+    = MissingComponent SomeTypeRep
     deriving (Show)
 
 instance Exception Error
@@ -87,23 +86,25 @@ execT = State.execDefT . unwrap ; {-# INLINE execT #-}
 -- === Component management === --
 
 registerComponentRep :: MonadRegistry m => SomeTypeRep -> m ()
-registerComponentRep comp = State.modifyM_ @State $ \m -> do
-    when_ (Map.member comp $ m ^. components) . throw $ DuplicateComponent comp
-    pure $ m & components %~ Map.insert comp def
+registerComponentRep comp = State.modify_ @State
+                          $ components %~ Map.insert comp def
 {-# INLINE registerComponentRep #-}
 
 registerPrimLayerRep :: MonadRegistry m
-    => Int -> Maybe SomePtr -> Maybe (SomePtr -> IO ())
-    -> SomeTypeRep -> SomeTypeRep -> m ()
-registerPrimLayerRep s staticInit dynamicInit comp layer =
+    => Int                      -- ^ byte size
+    -> Maybe SomePtr            -- ^ initial memory layout
+    -> Maybe (SomePtr -> IO ()) -- ^ dynamic constructor
+    -> Maybe (SomePtr -> IO ()) -- ^ dynamic destructor
+    -> SomeTypeRep              -- ^ component type rep
+    -> SomeTypeRep              -- ^ layer type rep
+    -> m ()
+registerPrimLayerRep size init ctor dtor comp layer =
     State.modifyM_ @State $ \m -> do
         components' <- flip (at comp) (m ^. components) $ \case
             Nothing       -> throw $ MissingComponent comp
             Just compInfo -> do
-                when_ (Map.member layer $ compInfo ^. layers) $
-                    throw $ DuplicateLayer comp layer
                 pure $ Just $ compInfo & layers %~ Map.insert layer
-                    (LayerInfo s staticInit dynamicInit)
+                    (LayerInfo size init ctor dtor)
         pure $ m & components .~ components'
 {-# INLINE registerPrimLayerRep #-}
 
@@ -120,15 +121,15 @@ registerPrimLayer :: ∀ comp layer m.
 registerPrimLayer = do
     init <- withJust (Layer.checkStaticManager @layer)
           $ liftIO . fmap (Just . coerce) . Ptr1.new . view Layer.initializer
-    let ctor     = withJust (Layer.checkDynamicManager @layer)
-                 $ Just . ctorDyn . view Layer.constructor
-        dtor     = withJust (Layer.checkDynamicManager @layer)
-                 $ Just . dtorDyn . view Layer.destructor
-        byteSize = Layer.byteSize @layer
-        comp     = someTypeRep @comp
-        layer    = someTypeRep @layer
-    registerPrimLayerRep byteSize init ctor comp layer
-    where ctorDyn :: Storable1 t => IO (t a) -> (SomePtr -> IO ())
+    let ctor  = withJust (Layer.checkDynamicManager @layer)
+              $ Just . ctorDyn . view Layer.constructor
+        dtor  = withJust (Layer.checkDynamicManager @layer)
+              $ Just . dtorDyn . view Layer.destructor
+        size  = Layer.byteSize @layer
+        comp  = someTypeRep @comp
+        layer = someTypeRep @layer
+    registerPrimLayerRep size init ctor dtor comp layer
+    where ctorDyn :: Storable1 t => IO (t a)       -> (SomePtr -> IO ())
           dtorDyn :: Storable1 t => (t a -> IO ()) -> (SomePtr -> IO ())
           ctorDyn t ptr = Storable1.poke (coerce ptr) =<< t ; {-# INLINE ctorDyn #-}
           dtorDyn f ptr = f =<< Storable1.peek (coerce ptr) ; {-# INLINE dtorDyn #-}

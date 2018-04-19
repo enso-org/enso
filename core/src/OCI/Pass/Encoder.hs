@@ -38,11 +38,12 @@ newtype State = State
     }
 
 data ComponentInfo = ComponentInfo
-    { _byteSize         :: !Int
-    , _layers           :: !(Map SomeTypeRep LayerInfo)
-    , _layerStaticInit  :: !SomePtr
-    , _layerDynamicInit :: !(SomePtr -> IO ())
-    , _memPool          :: !MemPool
+    { _byteSize          :: !Int
+    , _layers            :: !(Map SomeTypeRep LayerInfo)
+    , _layersInitializer :: !SomePtr
+    , _layersConstructor :: !(SomePtr -> IO ())
+    , _layersDestructor  :: !(SomePtr -> IO ())
+    , _memPool           :: !MemPool
     }
 
 newtype LayerInfo = LayerInfo
@@ -69,40 +70,49 @@ computeComponentInfo compCfg = compInfo where
     compSize     = sum layerSizes
     compInfo     = ComponentInfo compSize
                <$> pure (fromList $ zip layerReps layerCfgs)
-               <*> prepareStaticLayerInitializer  layerInfos
-               <*> prepareDynamicLayerInitializer layerInfos
+               <*> prepareLayerInitializer  layerInfos
+               <*> prepareLayersConstructor layerInfos
+               <*> prepareLayersDestructor  layerInfos
                <*> MemPool.new def (MemPool.ItemSize compSize)
 
-prepareStaticLayerInitializer :: MonadIO m => [Reg.LayerInfo] -> m SomePtr
-prepareStaticLayerInitializer ls = do
-    ptr <- mallocStaticLayerInitializer ls
-    liftIO $ fillStaticLayerInitializer ptr ls
+prepareLayerInitializer :: MonadIO m => [Reg.LayerInfo] -> m SomePtr
+prepareLayerInitializer ls = do
+    ptr <- mallocLayerInitializer ls
+    liftIO $ fillLayerInitializer ptr ls
     pure ptr
 
-mallocStaticLayerInitializer :: MonadIO m => [Reg.LayerInfo] -> m SomePtr
-mallocStaticLayerInitializer = \case
+mallocLayerInitializer :: MonadIO m => [Reg.LayerInfo] -> m SomePtr
+mallocLayerInitializer = \case
     [] -> pure Ptr.nullPtr
     ls -> liftIO . Mem.mallocBytes . sum $ view Reg.byteSize <$> ls
 
-fillStaticLayerInitializer :: SomePtr -> [Reg.LayerInfo] -> IO ()
-fillStaticLayerInitializer = go where
+fillLayerInitializer :: SomePtr -> [Reg.LayerInfo] -> IO ()
+fillLayerInitializer = go where
     go ptr = \case
         []     -> pure ()
-        (l:ls) -> mapM_ (flip (Mem.copyBytes ptr) byteSize) staticInit
+        (l:ls) -> mapM_ (flip (Mem.copyBytes ptr) byteSize) initializer
                >> go ptr' ls
-            where staticInit = l ^. Reg.staticInit
-                  byteSize   = l ^. Reg.byteSize
-                  ptr'       = Ptr.plusPtr ptr byteSize
+            where initializer = l ^. Reg.initializer
+                  byteSize    = l ^. Reg.byteSize
+                  ptr'        = Ptr.plusPtr ptr byteSize
+
+prepareLayersConstructor :: Monad m => [Reg.LayerInfo] -> m (SomePtr -> IO ())
+prepareLayersDestructor  :: Monad m => [Reg.LayerInfo] -> m (SomePtr -> IO ())
+prepareLayersConstructor = concatLayersIOActions Reg.constructor ; {-# INLINE prepareLayersConstructor #-}
+prepareLayersDestructor  = concatLayersIOActions Reg.destructor  ; {-# INLINE prepareLayersDestructor #-}
 
 -- | The function is defined in monad in order to compute the dynamic
 --   initializer during monad resolution. Otherwise, the Maybe pattern
 --   matching would be deffered to the layer initializer, which will
 --   consequently run slower.
-prepareDynamicLayerInitializer :: Monad m => [Reg.LayerInfo] -> m (SomePtr -> IO ())
-prepareDynamicLayerInitializer = go where
+concatLayersIOActions :: Monad m
+    => Lens' Reg.LayerInfo (Maybe (SomePtr -> IO ()))
+    -> [Reg.LayerInfo]
+    -> m (SomePtr -> IO ())
+concatLayersIOActions lens = go where
     go = \case
         []           -> pure $ const (pure ())
-        (!l : (!ls)) -> flip fuse (l ^. Reg.dynamicInit) =<< go ls where
+        (!l : (!ls)) -> flip fuse (l ^. lens) =<< go ls where
             !byteSize = l ^. Reg.byteSize
             fuse !g   = \case
                 Nothing -> pure $ \(!ptr) ->
@@ -114,6 +124,7 @@ prepareDynamicLayerInitializer = go where
                         !out   = proc1 >> proc2
                     in  out
             {-# INLINE fuse #-}
+
 
 
 
@@ -171,13 +182,13 @@ instance ( layers   ~ Pass.Vars pass comp
          , targets  ~ Pass.ComponentLayerLayout Pass.LayerByteOffset pass comp
          , compMemPool ~ Pass.ComponentMemPool comp
          , compSize    ~ Pass.ComponentSize    comp
-         , layerInit   ~ Pass.LayerInitializer comp
+         , layerInit   ~ Pass.LayerMemManager  comp
          , Typeables layers
          , Typeable  comp
          , Encoder__ pass comps
          , PassDataElemEncoder  compMemPool MemPool pass
          , PassDataElemEncoder  compSize    Int     pass
-         , PassDataElemEncoder  layerInit   (Pass.LayerInitializer comp) pass
+         , PassDataElemEncoder  layerInit   (Pass.LayerMemManager comp) pass
          , PassDataElemsEncoder targets     Int     pass
          ) => Encoder__ pass (comp ': comps) where
     encode__ cfg = encoders where
@@ -193,8 +204,10 @@ instance ( layers   ~ Pass.Vars pass comp
             sizeEncoder  = encodePassDataElem  @compSize    $ i ^. byteSize
             layerEncoder = encodePassDataElems @targets <$> layerOffsets
             initEncoder  = encodePassDataElem  @layerInit
-                         $ Pass.LayerInitializer @comp (i ^. layerStaticInit)
-                                                       (i ^. layerDynamicInit)
+                         $ Pass.LayerMemManager @comp
+                           (i ^. layersInitializer)
+                           (i ^. layersConstructor)
+                           (i ^. layersDestructor)
             layerTypes   = someTypeReps @layers
             layerOffsets = view byteOffset <<$>> layerInfos
             layerInfos   = mapLeft wrap $ catEithers
@@ -230,33 +243,6 @@ appSemiLeft f a = case f of
 {-# INLINE appSemiLeft #-}
 
 
-
--- === Attr encoder === --
-
--- encodeAttrs :: ∀ pass. AttrEncoder pass
---             => Map Attr.Rep Any -> (Pass.State pass -> Pass.State pass)
--- encodeAttrs = encodeAttrs__ @pass @(AttrEncoderTarget pass) ; {-# INLINE encodeAttrs #-}
-
--- type  AttrEncoder       pass = AttrEncoder__ pass (AttrEncoderTarget pass)
--- type  AttrEncoderTarget pass = Pass.Vars pass Pass.Attrs
--- class AttrEncoder__     pass (attrs :: [Type]) where
---     encodeAttrs__ :: Map Attr.Rep Any -> (Pass.State pass -> Pass.State pass)
-
--- instance AttrEncoder__ pass '[] where
---     encodeAttrs__ _ = id ; {-# INLINE encodeAttrs__ #-}
-
--- instance ( attr ~ Pass.Attr a
---          , AttrEncoder__ pass as
---          , PassDataElemEncoder attr attr pass
---          , Typeable a
---          ) => AttrEncoder__ pass (a ': as) where
---     encodeAttrs__ m = encoder . subEncoder where
---         Just a = Map.lookup (Attr.rep @a) m -- FIXME: unsafe match!
---         encoder    = encodePassDataElem @attr (unsafeCoerce a :: attr)
---         subEncoder = encodeAttrs__ @pass @as m
---     {-# INLINE encodeAttrs__ #-}
-
-
 -- === Attr encoder === --
 
 encodeAttrs :: ∀ pass. AttrEncoder pass
@@ -281,7 +267,6 @@ instance ( attr ~ Pass.AttrValue a
         encoder    = encodePassDataElem @attr (unsafeCoerce a :: attr)
         subEncoder = encodeAttrs__ @pass @as as
     {-# INLINE encodeAttrs__ #-}
-
 
 
 -- === Attr encoder === --
@@ -310,9 +295,6 @@ instance ( attr ~ Pass.AttrValue a
         a  = unsafeCoerce $ decodePassDataElem @attr s
         as = decodeAttrs__ @pass @as s
     {-# INLINE decodeAttrs__ #-}
-
-
-
 
 
 -- === Element encoders === --

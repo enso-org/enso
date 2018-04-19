@@ -71,15 +71,16 @@ newtype AttrValue        attr       = AttrValue        Any
 newtype ComponentMemPool comp       = ComponentMemPool MemPool
 newtype ComponentSize    comp       = ComponentSize    Int
 newtype LayerByteOffset  comp layer = LayerByteOffset  Int
-data    LayerInitializer comp       = LayerInitializer
-    { _staticInit  :: SomePtr
-    , _dynamicInit :: SomePtr -> IO ()
+data    LayerMemManager  comp       = LayerMemManager
+    { _initializer :: SomePtr
+    , _constructor :: SomePtr -> IO ()
+    , _destructor  :: SomePtr -> IO ()
     }
 makeLenses ''AttrValue
 makeLenses ''ComponentMemPool
 makeLenses ''ComponentSize
 makeLenses ''LayerByteOffset
-makeLenses ''LayerInitializer
+makeLenses ''LayerMemManager
 
 
 -- === Instances === --
@@ -88,8 +89,8 @@ instance Default (AttrValue        a)   where def = wrap $ unsafeCoerce ()  ; {-
 instance Default (ComponentMemPool c)   where def = wrap MemPool.unsafeNull ; {-# INLINE def #-}
 instance Default (ComponentSize    c)   where def = wrap 0                  ; {-# INLINE def #-}
 instance Default (LayerByteOffset  c l) where def = wrap 0                  ; {-# INLINE def #-}
-instance Default (LayerInitializer c)   where
-    def = LayerInitializer Ptr.nullPtr (const $ pure ())
+instance Default (LayerMemManager  c)   where
+    def = LayerMemManager Ptr.nullPtr (const $ pure ()) (const $ pure ())
     {-# INLINE def #-}
 
 instance (Typeable comp, Typeable layer)
@@ -123,12 +124,12 @@ type ComputeStateLayout pass = List.Append (LayersLayout      pass)
                              ( List.Append (AttrValues        pass)
                              ( List.Append (ComponentMemPools pass)
                              ( List.Append (ComponentSizes    pass)
-                                           (LayerInitializers pass) )))
+                                           (LayerMemManagers pass) )))
 
 type LayersLayout      pass = MapLayerByteOffset        pass (Vars pass Elems)
 type ComponentMemPools pass = List.Map ComponentMemPool      (Vars pass Elems)
 type ComponentSizes    pass = List.Map ComponentSize         (Vars pass Elems)
-type LayerInitializers pass = List.Map LayerInitializer      (Vars pass Elems)
+type LayerMemManagers  pass = List.Map LayerMemManager       (Vars pass Elems)
 type AttrValues        pass = List.Map AttrValue             (Vars pass Attrs)
 
 type MapLayerByteOffset p c = MapOverCompsAndVars LayerByteOffset p c
@@ -235,13 +236,13 @@ instance (Monad m, MonadState m, TypeMap.ElemSetter a (DiscoverStateLayout m))
     putData a = State.modify_ @(DiscoverState m) $ wrapped %~ TypeMap.setElem a ; {-# INLINE putData #-}
 
 type LayerByteOffsetGetter  c l m = DataGetter (LayerByteOffset  c l) m
-type LayerInitializerGetter c   m = DataGetter (LayerInitializer c)   m
+type LayerMemManagerGetter  c   m = DataGetter (LayerMemManager  c)   m
 type ComponentMemPoolGetter c   m = DataGetter (ComponentMemPool c)   m
 type ComponentSizeGetter    c   m = DataGetter (ComponentSize    c)   m
 type AttrValueGetter        a   m = DataGetter (AttrValue        a)   m
 type AttrValueSetter        a   m = DataSetter (AttrValue        a)   m
 getLayerByteOffset  :: ∀ c l m. LayerByteOffsetGetter  c l m => m Int
-getLayerInitializer :: ∀ c   m. LayerInitializerGetter c   m => m (LayerInitializer c)
+getLayerMemManager  :: ∀ c   m. LayerMemManagerGetter  c   m => m (LayerMemManager c)
 getComponentMemPool :: ∀ c   m. ComponentMemPoolGetter c   m => m MemPool
 getComponentSize    :: ∀ c   m. ComponentSizeGetter    c   m => m Int
 getAttrValue        :: ∀ a   m. AttrValueGetter        a   m => m Any
@@ -250,7 +251,7 @@ getLayerByteOffset  = unwrap <$> getData @(LayerByteOffset  c l) ; {-# INLINE ge
 getComponentMemPool = unwrap <$> getData @(ComponentMemPool c)   ; {-# INLINE getComponentMemPool #-}
 getComponentSize    = unwrap <$> getData @(ComponentSize    c)   ; {-# INLINE getComponentSize    #-}
 getAttrValue        = unwrap <$> getData @(AttrValue        a)   ; {-# INLINE getAttrValue        #-}
-getLayerInitializer = getData @(LayerInitializer c)              ; {-# INLINE getLayerInitializer #-}
+getLayerMemManager  = getData @(LayerMemManager c)               ; {-# INLINE getLayerMemManager #-}
 putAttrValue        = putData @(AttrValue a) . wrap              ; {-# INLINE putAttrValue        #-}
 
 
