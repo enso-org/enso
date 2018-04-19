@@ -59,7 +59,6 @@ Term.define [d|
 
  |]
 
-
 -- === Smart constructors === --
 
 -- | The smart constructor of 'Top' is special one, because its type link loops
