@@ -33,7 +33,7 @@ import Type.Error        ((:<+>:))
 
 type SomeComponent t = Component t ()
 newtype  Component t (layout :: Type) = Component SomePtr
-    deriving (Eq, Show, Storable)
+    deriving (Eq, Ord, Show, Storable)
 makeLenses       ''Component
 Storable1.derive ''Component
 

@@ -119,6 +119,16 @@ byteSize = Storable1.sizeOf' @(Cons layer) ; {-# INLINE byteSize #-}
 
 
 
+------------------------
+-- === Destructor === --
+------------------------
+
+class Destructor where
+    destruct :: Cons layer layout -> IO ()
+
+
+
+
 ----------------------------------
 -- === Layer Memory Manager === --
 ----------------------------------
