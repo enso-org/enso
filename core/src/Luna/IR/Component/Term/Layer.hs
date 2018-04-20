@@ -65,7 +65,7 @@ data Type
 instance Layer  Type where
     type Cons   Type = Link
     type Layout Type layout = Layout.Get Type layout *-* layout
-    manager = Layer.unsafeNoManager
+    manager = Layer.unsafeOnlyDestructorManager
 type instance Layout.Default Type = ()
 
 
@@ -79,8 +79,3 @@ instance Layer  Users where
     type Cons   Users = Link.Set
     type Layout Users layout = layout *-* Layout.Set Model () layout
     manager = Layer.dynamicManager
-    -- manager = Just $ Layer.Dynamic (wrap <$> PtrSet.new)
-    --                                    (PtrSet.free . unwrap)
-    -- construct = Just $ wrap <$> PtrSet.new  ; {-# INLINE construct #-}
-    -- destruct  = Just $ PtrSet.free . unwrap ; {-# INLINE destruct  #-}
-

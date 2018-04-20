@@ -89,3 +89,11 @@ type instance Cmp Names Model = 'GT
 type instance Cmp Names Terms = 'LT
 type instance Cmp Terms Names = 'GT
 
+
+
+
+-- class MapFields ctx f a where
+--     mapFields :: (forall t. ctx t => (t -> t)) -> a -> a
+
+-- instance MapFields ctx f (ConsCons a) where
+--     mapFields f (Cons n as) = Cons (f n) (f as)

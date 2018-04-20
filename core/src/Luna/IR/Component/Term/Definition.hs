@@ -17,7 +17,6 @@ import qualified Language.Haskell.TH.Builder         as THBuilder
 import qualified Language.Haskell.TH.Syntax          as TH
 import qualified Luna.IR.Component.Link              as Link
 import qualified Luna.IR.Component.Link.Discovery    as Link
-import qualified Luna.IR.Component.Link.TH           as Link
 import qualified Luna.IR.Component.Term.Class        as Term
 import qualified Luna.IR.Component.Term.Construction as Term
 import qualified Luna.IR.Component.Term.Discovery    as Discovery
@@ -26,20 +25,20 @@ import qualified OCI.Data.Name                       as IR
 import qualified OCI.IR.Layout                       as Layout
 import qualified Type.Data.Map                       as TypeMap
 
-import Data.Map.Strict              (Map)
-import Luna.IR.Component.Link       (type (*-*), Link)
-import Luna.IR.Component.Term.Layer (Model)
-
 import Control.Monad.State.Layered  (StateT)
+import Data.Map.Strict              (Map)
 import Language.Haskell.TH          (Type (AppT, ConT))
 import Language.Haskell.TH.Builder  hiding (Field)
+import Luna.IR.Component.Link       (type (*-*), Link)
 import Luna.IR.Component.Term.Class (Term)
+import Luna.IR.Component.Term.Layer (Model)
 import OCI.IR.Layout                (Layout)
 
 import           Data.PtrList.Mutable (UnmanagedPtrList)
 import qualified Data.PtrList.Mutable as PtrList
 
 type List = UnmanagedPtrList
+
 
 ---------------------
 -- === Helpers === --
@@ -49,7 +48,6 @@ type List = UnmanagedPtrList
 
 -- | 'LinkTo' is a phantom helper type for link definition. It gets resolved to
 --   much more complex form during 'ExpandField' resolution.
-type Ln = LinkTo
 data LinkTo t
 
 -- | 'Field' is a typeclass which unifies how fields of smart cons get
@@ -105,8 +103,8 @@ type family AddToOutput var field layout where
 --   @
 --       Tag.familyInstance "TermCons" "Test"
 --       data ConsTest a = Test
---           { __left  :: {-# UNPACK #-} !(ExpandField Test a Foo)
---           , __right :: {-# UNPACK #-} !(ExpandField Test a Bar)
+--           { __foo :: {-# UNPACK #-} !(ExpandField Test a Foo)
+--           , __bar :: {-# UNPACK #-} !(ExpandField Test a Bar)
 --           } deriving (Show, Eq)
 --       instance Discovery.IsTermTag Test
 --       type instance Format.Of      Test     = Format.Phrase
@@ -119,7 +117,8 @@ type family AddToOutput var field layout where
 --       type instance Format.Of Test = Format.Thunk
 --
 --       instance HasInputs Test where
---           inputsIO (Test a0 a1) = pure [] >>= prependLinks a1 >>= prependLinks a0
+--           inputsIO (Test a0 a1) = pure [] >>= prependLinks a1
+--                                           >>= prependLinks a0
 --           {-# INLINE inputs #-}
 --
 --       test :: forall a t1 t2 m. Creator Test m

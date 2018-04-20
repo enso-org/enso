@@ -9,19 +9,15 @@ import Data.PtrList.Mutable         (UnmanagedPtrList)
 import Luna.IR.Component.Link.Class (Link, SomeLink)
 
 
+
+----------------------------
+-- === Link Discovery === --
+----------------------------
+
 -- === Definition === --
 
 class PrependLinks a where
     prependLinks :: a -> [SomeLink] -> IO [SomeLink]
-
-class HasInputs (a :: Type -> Type) where
-    inputsIO :: forall t. a t -> IO [SomeLink]
-
-
--- === API === --
-
-inputs :: (HasInputs a, MonadIO m) => a t -> m [SomeLink]
-inputs = liftIO . inputsIO ; {-# INLINE inputs #-}
 
 
 -- === Instances === --

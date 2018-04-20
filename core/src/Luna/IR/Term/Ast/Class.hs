@@ -12,7 +12,7 @@ import qualified OCI.Data.Name                     as Name
 
 import Data.Vector.Storable.Foreign      (Vector)
 import Luna.IR.Component.Term.Class      (Terms)
-import Luna.IR.Component.Term.Definition (LinkTo, Ln)
+import Luna.IR.Component.Term.Definition (LinkTo)
 import OCI.Data.Name                     (Name)
 
 -- FIXME: remove when refactoring Cmp instances

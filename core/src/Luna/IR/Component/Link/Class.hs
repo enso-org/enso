@@ -26,6 +26,15 @@ type SomeLink = Link ()
 type src *-* tgt = Layout '[Source := src, Target := tgt]
 
 
+-- === Inputs === --
+
+class HasInputs (a :: Type -> Type) where
+    inputsIO :: ∀ t. a t -> IO [SomeLink]
+
+inputs :: (HasInputs a, MonadIO m) => a t -> m [SomeLink]
+inputs = liftIO . inputsIO ; {-# INLINE inputs #-}
+
+
 
 --------------------
 -- === Layers === --
@@ -37,13 +46,13 @@ data Source
 instance Layer  Source where
     type Cons   Source = Term
     type Layout Source layout = Layout.Get Source layout
-    manager = Layer.unsafeNoManager
+    manager = Layer.unsafeOnlyDestructorManager
 
 data Target
 instance Layer  Target where
     type Cons   Target        = Term
     type Layout Target layout = Layout.Get Target layout
-    manager = Layer.unsafeNoManager
+    manager = Layer.unsafeOnlyDestructorManager
 
 type instance Cmp Source Target = 'LT
 type instance Cmp Target Source = 'GT
@@ -55,24 +64,6 @@ source :: Layer.Reader Links Source m => Link layout -> m (Term (Layout.Get Sour
 target :: Layer.Reader Links Target m => Link layout -> m (Term (Layout.Get Target layout))
 source = Layer.read @Source ; {-# INLINE source #-}
 target = Layer.read @Target ; {-# INLINE target #-}
-
-
-
-----------------------
--- === HasLinks === --
-----------------------
-
-class HasLinks a where
-    readLinksIO :: a -> IO [SomeLink]
-
-readLinks :: (HasLinks a, MonadIO m) => a -> m [SomeLink]
-readLinks = liftIO . readLinksIO
-{-# INLINE readLinks #-}
-
-instance HasLinks (Link a) where
-
-instance HasLinks Int where
-    readLinksIO _ = pure mempty ; {-# INLINE readLinksIO #-}
 
 
 

@@ -123,9 +123,30 @@ byteSize = Storable1.sizeOf' @(Cons layer) ; {-# INLINE byteSize #-}
 -- === Destructor === --
 ------------------------
 
-class Destructor where
-    destruct :: Cons layer layout -> IO ()
+-- | Layer Constructor / Destructor. These are typeclasses which manage
+--   raw Components as layers in a special way - without touching them.
+--   If a layer is any other structure, the call is redirected to
+--   appropriate Data.Construction mechanism.
 
+-- === Definition === --
+
+class Constructor t where construct :: ∀ layout. IO (t layout)
+class Destructor  t where destruct  :: ∀ layout. t layout -> IO ()
+
+
+-- === Special cases === --
+
+instance Destructor (Component comp) where
+    destruct = const $ pure () ; {-# INLINE destruct #-}
+
+
+-- === Defaulting === ---
+
+instance {-# OVERLAPPABLE #-} Data.Destructor1 t IO
+    => Destructor t where destruct = Data.destruct1 ; {-# INLINE destruct #-}
+
+instance {-# OVERLAPPABLE #-} Data.Constructor1' t IO
+    => Constructor t where construct = Data.new ; {-# INLINE construct #-}
 
 
 
@@ -149,16 +170,15 @@ unsafeNoManager :: Manager layer
 unsafeNoManager = Manager Nothing Nothing Nothing ; {-# INLINE unsafeNoManager #-}
 
 -- | WARNING! Using this function will result in uninitialized layer memory.
-unsafeOnlyDestructorManager :: Data.Destructor1 (Cons layer) IO => Manager layer
-unsafeOnlyDestructorManager = Manager Nothing Nothing (Just Data.destruct1) ; {-# INLINE unsafeOnlyDestructorManager #-}
+unsafeOnlyDestructorManager :: ∀ layer. Destructor (Cons layer) => Manager layer
+unsafeOnlyDestructorManager = Manager Nothing Nothing (Just $ destruct) ; {-# INLINE unsafeOnlyDestructorManager #-}
 
 staticManager :: Default1 (Cons layer) => Manager layer
 staticManager = Manager (Just def1) Nothing Nothing ; {-# INLINE staticManager #-}
 
-dynamicManager :: ( Data.Constructor1' (Cons layer) IO
-                  , Data.Destructor1   (Cons layer) IO
-                  ) => Manager layer
-dynamicManager = Manager Nothing (Just Data.new1) (Just Data.destruct1) ; {-# INLINE dynamicManager #-}
+dynamicManager :: (Constructor (Cons layer), Destructor (Cons layer))
+               => Manager layer
+dynamicManager = Manager Nothing (Just construct) (Just destruct) ; {-# INLINE dynamicManager #-}
 
 customStaticManager :: (∀ layout. Cons layer layout) -> Manager layer
 customStaticManager !t = Manager (Just t) Nothing Nothing ; {-# INLINE customStaticManager #-}
