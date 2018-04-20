@@ -31,8 +31,9 @@ import Type.Error        ((:<+>:))
 
 -- === Definition === --
 
-newtype Component     t (layout :: Type) = Component SomePtr deriving (Eq, Show, Storable)
-type    SomeComponent t = Component t ()
+type SomeComponent t = Component t ()
+newtype  Component t (layout :: Type) = Component SomePtr
+    deriving (Eq, Show, Storable)
 makeLenses       ''Component
 Storable1.derive ''Component
 
@@ -59,24 +60,31 @@ alloc = do
     wrap <$> MemPool.alloc pool
 {-# INLINE alloc #-}
 
+dealloc :: ∀ comp m layout. Allocator comp m => Component comp layout -> m ()
+dealloc comp = do
+    pool <- Pass.getComponentMemPool @comp
+    MemPool.free pool $ unwrap comp
+{-# INLINE dealloc #-}
+
 dispose :: Creator comp m => Component comp layout -> m ()
 dispose = destruct ; {-# INLINE dispose #-}
 
 instance Creator comp m => Data.Constructor1 () (Component comp) m where
     construct1 _ = do
-        ir   <- alloc
-        init <- Pass.getLayerMemManager @comp
-        size <- Pass.getComponentSize   @comp
+        ir    <- alloc
+        layer <- Pass.getLayerMemManager @comp
+        size  <- Pass.getComponentSize   @comp
         let ptr = coerce ir
-        liftIO $ Mem.copyBytes ptr (init ^. Pass.initializer) size
-        liftIO $ (init ^. Pass.constructor) ptr
+        liftIO $ Mem.copyBytes ptr (layer ^. Pass.initializer) size
+        liftIO $ (layer ^. Pass.constructor) ptr
         pure ir
     {-# INLINE construct1 #-}
 
 instance Creator comp m => Data.Destructor1 (Component comp) m where
     destruct1 ir = do
-        init <- Pass.getLayerMemManager @comp
-        liftIO $ (init ^. Pass.destructor) (coerce ir)
+        layer <- Pass.getLayerMemManager @comp
+        liftIO $ (layer ^. Pass.destructor) (coerce ir)
+        dealloc ir
     {-# INLINE destruct1 #-}
 
 

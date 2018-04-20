@@ -123,8 +123,16 @@ attribsSpec = describe "attributes" $ do
         (Attr.put $ IntAttr 9)
         (Attr.get >>= (`shouldBe` (IntAttr 9)))
 
+irDisposeSpec :: Spec
+irDisposeSpec = describe "ir dispose" $ do
+    it "simple" $ runPass' $ do
+        v <- IR.var "a"
+        IR.dispose v
+
+
 spec :: Spec
 spec = do
     nameSpec
     irCreationSpec
     attribsSpec
+    irDisposeSpec
