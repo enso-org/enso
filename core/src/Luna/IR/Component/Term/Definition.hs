@@ -13,10 +13,11 @@ import qualified Data.Tag                            as Tag
 import qualified Foreign.Storable.Deriving           as Storable
 import qualified Foreign.Storable1.Deriving          as Storable1
 import qualified Language.Haskell.TH                 as TH
-import qualified Language.Haskell.TH.Builder         as State
+import qualified Language.Haskell.TH.Builder         as THBuilder
 import qualified Language.Haskell.TH.Syntax          as TH
 import qualified Luna.IR.Component.Link              as Link
 import qualified Luna.IR.Component.Link.TH           as Link
+import qualified Luna.IR.Component.Link.Discovery    as Link
 import qualified Luna.IR.Component.Term.Class        as Term
 import qualified Luna.IR.Component.Term.Construction as Term
 import qualified Luna.IR.Component.Term.Discovery    as Discovery
@@ -39,7 +40,6 @@ import           Data.PtrList.Mutable (UnmanagedPtrList)
 import qualified Data.PtrList.Mutable as PtrList
 
 type List = UnmanagedPtrList
-
 
 ---------------------
 -- === Helpers === --
@@ -116,6 +116,10 @@ type family AddToOutput var field layout where
 --       Storable1.derive ''ConsTest
 --       Link.discover    ''ConsTest
 --       type instance Format.Of Test = Format.Thunk
+--
+--       instance HasInputs Test where
+--           inputsIO (Test a0 a1) = pure [] >>= prependLinks a1 >>= prependLinks a0
+--           {-# INLINE inputs #-}
 --
 --       test :: forall a t1 t2 m. Creator Test m
 --             => FieldCons t1 Foo
@@ -209,6 +213,7 @@ defineSingleCons needsSmartCons dataName con = do
     storableInst  <- Storable.derive'   termDecl'
     storable1Inst <- Storable1.derive'  termDecl'
     smartCons     <- makeSmartCons tagName param fieldTypes
+    let inputsInst = defineHasInputsInst typeName conName (length fieldTypes)
 
     pure $ tagDecls
         <> lensInst
@@ -216,6 +221,7 @@ defineSingleCons needsSmartCons dataName con = do
            , tagToConsInst
            , consToTagInst
            , formatInst
+           , inputsInst
            ]
         <> storableInst
         <> storable1Inst
@@ -226,6 +232,28 @@ defineSingleCons needsSmartCons dataName con = do
 
 expandField :: Name -> Name -> TH.Type -> TH.Type
 expandField self param field = app3 (cons' ''ExpandField) (cons' self) (var param) field
+
+defineHasInputsInst :: Name -> Name -> Int -> Dec
+defineHasInputsInst typeName consName fieldsCount =
+    classInstance ''Link.HasInputs typeName [] definition where
+        fieldNames     = unsafeGenNames fieldsCount
+        methodName     = 'Link.inputsIO
+        definition     = [implementation, inlinePragma]
+        implementation = TH.FunD methodName [clause [pat] body []]
+        pat            = cons consName $ var <$> fieldNames
+        body           = foldl addLinks pureEmpty (reverse fieldNames)
+        inlinePragma   = THBuilder.inline TH.FunLike methodName
+
+        addLinks links field = bindTH links (prependLinksTH $ var field)
+
+        pureEmpty :: TH.Exp
+        pureEmpty = TH.AppE (var 'pure) (TH.ListE [])
+
+        prependLinksTH :: TH.Exp -> TH.Exp
+        prependLinksTH = app $ var 'Link.prependLinks
+
+        bindTH :: TH.Exp -> TH.Exp -> TH.Exp
+        bindTH = app2 $ var '(>>=)
 
 
 -- === Helpers === --
@@ -351,6 +379,11 @@ makeSmartConsGenBody fname varNum = do
 --       instance Term.IsUni ConsVar     where toUni = UniTermVar
 --       instance Term.IsUni ConsMissing where toUni = UniTermMissing
 --
+--       instance HasInputs UniTerm where
+--           inputsIO (UniTermCons a) = inputsIO a
+--           inputsIO (UniTermVar  a) = inputsIO a
+--           ...
+--
 makeUniTerm :: Q [Dec]
 makeUniTerm = do
     let unpackInst = \case
@@ -370,7 +403,10 @@ makeUniTerm = do
         isUniInsts   = isUniInst <$> termNames
     storableInst  <- Storable.derive'   dataDecl
     storable1Inst <- Storable1.derive'  dataDecl
+    let hasInputsInst = defineHasInputsUniTermInst dataName
+                      $ mkUniTermName <$> termNames
     pure $ [ dataDecl
+           , hasInputsInst
            ]
         <> storableInst
         <> storable1Inst
@@ -379,3 +415,13 @@ makeUniTerm = do
 mkUniTermName :: (IsString a, Semigroup a) => a -> a
 mkUniTermName = ("UniTerm" <>)
 
+defineHasInputsUniTermInst :: Name -> [Name] -> Dec
+defineHasInputsUniTermInst dataName consNames =
+    classInstance ''Link.HasInputs dataName [] definition where
+        definition        = [implementation]
+        methodName        = 'Link.inputsIO
+        implementation    = TH.FunD methodName clauses
+        clauses           = mkClause <$> consNames
+        patVarName        = unsafeGenName
+        mkClause consName = clause [cons consName [var patVarName]] body []
+        body              = app (var methodName) (var patVarName)
