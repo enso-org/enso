@@ -119,15 +119,13 @@ registerPrimLayer :: ∀ comp layer m.
     , Layer layer
     ) => m ()
 registerPrimLayer = do
-    init <- withJust (Layer.checkStaticManager @layer)
-          $ liftIO . fmap (Just . coerce) . Ptr1.new . view Layer.initializer
-    let ctor  = withJust (Layer.checkDynamicManager @layer)
-              $ Just . ctorDyn . view Layer.constructor
-        dtor  = withJust (Layer.checkDynamicManager @layer)
-              $ Just . dtorDyn . view Layer.destructor
-        size  = Layer.byteSize @layer
-        comp  = someTypeRep @comp
-        layer = someTypeRep @layer
+    let manager = Layer.manager @layer
+        ctor    = ctorDyn <$> manager ^. Layer.constructor
+        dtor    = dtorDyn <$> manager ^. Layer.destructor
+        size    = Layer.byteSize @layer
+        comp    = someTypeRep @comp
+        layer   = someTypeRep @layer
+    init <- mapM (fmap coerce . Ptr1.new) $ manager ^. Layer.initializer
     registerPrimLayerRep size init ctor dtor comp layer
     where ctorDyn :: Storable1 t => IO (t a)       -> (SomePtr -> IO ())
           dtorDyn :: Storable1 t => (t a -> IO ()) -> (SomePtr -> IO ())

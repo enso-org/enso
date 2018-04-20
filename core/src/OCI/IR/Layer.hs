@@ -125,68 +125,43 @@ byteSize = Storable1.sizeOf' @(Cons layer) ; {-# INLINE byteSize #-}
 
 -- === Definition === --
 
-data Manager (layer :: Type)
-    = NoManager
-    | Static  !(StaticManager  layer)
-    | Dynamic !(DynamicManager layer)
-
-newtype StaticManager layer = StaticManager
-    { _initializer :: ∀ layout. Cons layer layout
-    }
-
-data DynamicManager layer = DynamicManager
-    { _constructor :: !(∀ layout. IO (Cons layer layout))
-    , _destructor  :: !(∀ layout. Cons layer layout -> IO ())
+data Manager (layer :: Type) = Manager
+    { _initializer :: ∀ layout. Maybe (Cons layer layout)
+    , _constructor :: ∀ layout. Maybe (IO (Cons layer layout))
+    , _destructor  :: ∀ layout. Maybe (Cons layer layout -> IO ())
     }
 
 
 -- === Smart constructors === --
 
-noManager :: Manager layer
-noManager = NoManager ; {-# INLINE noManager #-}
+-- | WARNING! Using this function will result in uninitialized layer memory.
+unsafeNoManager :: Manager layer
+unsafeNoManager = Manager Nothing Nothing Nothing ; {-# INLINE unsafeNoManager #-}
+
+-- | WARNING! Using this function will result in uninitialized layer memory.
+unsafeOnlyDestructorManager :: Data.Destructor1 (Cons layer) IO => Manager layer
+unsafeOnlyDestructorManager = Manager Nothing Nothing (Just Data.destruct1) ; {-# INLINE unsafeOnlyDestructorManager #-}
 
 staticManager :: Default1 (Cons layer) => Manager layer
-staticManager = Static $ StaticManager def1 ; {-# INLINE staticManager #-}
+staticManager = Manager (Just def1) Nothing Nothing ; {-# INLINE staticManager #-}
 
 dynamicManager :: ( Data.Constructor1' (Cons layer) IO
                   , Data.Destructor1   (Cons layer) IO
                   ) => Manager layer
-dynamicManager = Dynamic $ DynamicManager Data.new1 Data.destruct1 ; {-# INLINE dynamicManager #-}
+dynamicManager = Manager Nothing (Just Data.new1) (Just Data.destruct1) ; {-# INLINE dynamicManager #-}
 
 customStaticManager :: (∀ layout. Cons layer layout) -> Manager layer
-customStaticManager !t = Static $ StaticManager t ; {-# INLINE customStaticManager #-}
+customStaticManager !t = Manager (Just t) Nothing Nothing ; {-# INLINE customStaticManager #-}
 
 customDynamicManager :: (∀ layout. IO (Cons layer layout))
                      -> (∀ layout. Cons layer layout -> IO ())
                      -> Manager layer
-customDynamicManager !s !t = Dynamic $ DynamicManager s t ; {-# INLINE customDynamicManager #-}
-
-
--- === Smart patterns === --
-
-matchStaticManager :: Manager layer -> Maybe (StaticManager layer)
-matchStaticManager = \case
-    Static a -> Just a
-    _        -> Nothing
-{-# INLINE matchStaticManager #-}
-
-matchDynamicManager :: Manager layer -> Maybe (DynamicManager layer)
-matchDynamicManager = \case
-    Dynamic a -> Just a
-    _         -> Nothing
-{-# INLINE matchDynamicManager #-}
-
-checkStaticManager :: ∀ layer. Layer layer => Maybe (StaticManager layer)
-checkStaticManager = matchStaticManager $ manager @layer ; {-# INLINE checkStaticManager #-}
-
-checkDynamicManager :: ∀ layer. Layer layer => Maybe (DynamicManager layer)
-checkDynamicManager = matchDynamicManager $ manager @layer ; {-# INLINE checkDynamicManager #-}
+customDynamicManager !s !t = Manager Nothing (Just s) (Just t) ; {-# INLINE customDynamicManager #-}
 
 
 -- === Instances === --
 
-Lens.makeLenses ''StaticManager
-Lens.makeLenses ''DynamicManager
+Lens.makeLenses ''Manager
 
 
 

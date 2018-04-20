@@ -39,7 +39,7 @@ data Model
 instance Layer Model where
     type Cons  Model        = Term.Uni
     type View  Model layout = Term.TagToCons (Layout.Get Model layout)
-    manager = Layer.noManager
+    manager = Layer.unsafeNoManager
 
 
 -- === Utils === --
@@ -65,7 +65,7 @@ data Type
 instance Layer  Type where
     type Cons   Type = Link
     type Layout Type layout = Layout.Get Type layout *-* layout
-    manager = Layer.noManager
+    manager = Layer.unsafeNoManager
 type instance Layout.Default Type = ()
 
 
