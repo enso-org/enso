@@ -16,8 +16,8 @@ import qualified Language.Haskell.TH                 as TH
 import qualified Language.Haskell.TH.Builder         as THBuilder
 import qualified Language.Haskell.TH.Syntax          as TH
 import qualified Luna.IR.Component.Link              as Link
-import qualified Luna.IR.Component.Link.TH           as Link
 import qualified Luna.IR.Component.Link.Discovery    as Link
+import qualified Luna.IR.Component.Link.TH           as Link
 import qualified Luna.IR.Component.Term.Class        as Term
 import qualified Luna.IR.Component.Term.Construction as Term
 import qualified Luna.IR.Component.Term.Discovery    as Discovery
@@ -68,9 +68,10 @@ instance Link.Creator m => Field t [Term a] m (List (Link b)) where
     consField self = PtrList.fromList <=< mapM (consField self) ; {-# INLINE consField #-}
 
 type family ExpandField self layout a where
-    ExpandField self layout (LinkTo t) = Link (Layout.Get t layout *-* Layout.Set Model self layout)
-    ExpandField self layout (t a)        = t (ExpandField self layout a)
-    ExpandField self layout a            = a
+    ExpandField self layout (LinkTo t) = Link ( Layout.Get t layout
+                                            *-* Layout.Set Model self layout)
+    ExpandField self layout (t a)      = t (ExpandField self layout a)
+    ExpandField self layout a          = a
 
 type family FieldCons var field where
     FieldCons var (LinkTo t) = Term var
@@ -231,7 +232,8 @@ defineSingleCons needsSmartCons dataName con = do
           maybeNameStr = fmap TH.nameBase . view maybeName
 
 expandField :: Name -> Name -> TH.Type -> TH.Type
-expandField self param field = app3 (cons' ''ExpandField) (cons' self) (var param) field
+expandField self param field = app3 (cons' ''ExpandField) (cons' self)
+                                    (var param) field
 
 defineHasInputsInst :: Name -> Name -> Int -> Dec
 defineHasInputsInst typeName consName fieldsCount =

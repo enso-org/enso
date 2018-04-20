@@ -228,16 +228,20 @@ write = write__ @comp @layer @m ; {-# INLINE write #-}
 -- === Instances === --
 
 instance {-# OVERLAPPABLE #-}
-         (StorableData layer, Pass.LayerByteOffsetGetter comp layer (Pass pass), Wrapped (Cons layer))
-    => Reader comp layer (Pass pass) where
+    ( StorableData layer
+    , Pass.LayerByteOffsetGetter comp layer (Pass pass)
+    , Wrapped (Cons layer)
+    ) => Reader comp layer (Pass pass) where
     read__ !comp = do
         !off <- Pass.getLayerByteOffset @comp @layer
         unsafeReadByteOff @layer off comp
     {-# INLINE read__ #-}
 
 instance {-# OVERLAPPABLE #-}
-         (StorableData layer, Pass.LayerByteOffsetGetter comp layer (Pass pass), Wrapped (Cons layer))
-    => Writer comp layer (Pass pass) where
+    ( StorableData layer
+    , Pass.LayerByteOffsetGetter comp layer (Pass pass)
+    , Wrapped (Cons layer)
+    ) => Writer comp layer (Pass pass) where
     write__ !comp !d = do
         !off <- Pass.getLayerByteOffset @comp @layer
         unsafeWriteByteOff @layer off comp d
