@@ -59,6 +59,9 @@ alloc = do
     wrap <$> MemPool.alloc pool
 {-# INLINE alloc #-}
 
+dispose :: Creator comp m => Component comp layout -> m ()
+dispose = destruct ; {-# INLINE dispose #-}
+
 instance Creator comp m => Data.Constructor1 () (Component comp) m where
     construct1 _ = do
         ir   <- alloc
