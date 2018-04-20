@@ -162,8 +162,8 @@ instance (IsPtr a, MonadIO m)
     null   = null   ; {-# INLINE null   #-}
     toList = toList ; {-# INLINE toList #-}
 
-instance MonadIO m => Data.Constructor1 () m UnmanagedPtrSet where
+instance MonadIO m => Data.Constructor1 () UnmanagedPtrSet m where
     construct1 _ = new ; {-# INLINE construct1 #-}
 
-instance MonadIO m => Data.Destructor1 m UnmanagedPtrSet where
+instance MonadIO m => Data.Destructor1 UnmanagedPtrSet m where
     destruct1 = free ; {-# INLINE destruct1 #-}

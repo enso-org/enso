@@ -148,8 +148,8 @@ noManager = NoManager ; {-# INLINE noManager #-}
 staticManager :: Default1 (Cons layer) => Manager layer
 staticManager = Static $ StaticManager def1 ; {-# INLINE staticManager #-}
 
-dynamicManager :: ( Data.Constructor1' IO (Cons layer)
-                  , Data.Destructor1   IO (Cons layer)
+dynamicManager :: ( Data.Constructor1' (Cons layer) IO
+                  , Data.Destructor1   (Cons layer) IO
                   ) => Manager layer
 dynamicManager = Dynamic $ DynamicManager Data.new1 Data.destruct1 ; {-# INLINE dynamicManager #-}
 

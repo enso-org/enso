@@ -1,10 +1,12 @@
 {-# LANGUAGE TypeInType           #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module OCI.IR.Component.Class where
+module OCI.IR.Component.Class (module OCI.IR.Component.Class, module X) where
+import Data.Construction as X (destruct, destruct1, new, new1)
 
 import Prologue hiding (Castable, ConversionError)
 
+import qualified Data.Construction          as Data
 import qualified Data.Tag                   as Tag
 import qualified Foreign.Marshal.Utils      as Mem
 import qualified Foreign.Memory.Pool        as MemPool
@@ -57,16 +59,22 @@ alloc = do
     wrap <$> MemPool.alloc pool
 {-# INLINE alloc #-}
 
-new :: ∀ comp m layout. Creator comp m => m (Component comp layout)
-new = do
-    ir   <- alloc
-    init <- Pass.getLayerMemManager @comp
-    size <- Pass.getComponentSize   @comp
-    let ptr = coerce ir
-    liftIO $ Mem.copyBytes ptr (init ^. Pass.initializer) size
-    liftIO $ (init ^. Pass.constructor) ptr
-    pure ir
-{-# INLINE new #-}
+instance Creator comp m => Data.Constructor1 () (Component comp) m where
+    construct1 _ = do
+        ir   <- alloc
+        init <- Pass.getLayerMemManager @comp
+        size <- Pass.getComponentSize   @comp
+        let ptr = coerce ir
+        liftIO $ Mem.copyBytes ptr (init ^. Pass.initializer) size
+        liftIO $ (init ^. Pass.constructor) ptr
+        pure ir
+    {-# INLINE construct1 #-}
+
+instance Creator comp m => Data.Destructor1 (Component comp) m where
+    destruct1 ir = do
+        init <- Pass.getLayerMemManager @comp
+        liftIO $ (init ^. Pass.destructor) (coerce ir)
+    {-# INLINE destruct1 #-}
 
 
 -- === Relayout === --

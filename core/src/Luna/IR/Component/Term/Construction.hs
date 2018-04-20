@@ -10,6 +10,7 @@ import qualified Foreign.Storable.Deriving        as Storable
 import qualified Foreign.Storable1.Deriving       as Storable1
 import qualified Luna.IR.Component.Link           as Link
 import qualified Luna.IR.Component.Link.TH        as Link
+import qualified Luna.IR.Component.Term.Class     as Term
 import qualified Luna.IR.Component.Term.Discovery as Discovery
 import qualified Luna.IR.Component.Term.Layer     as Layer
 import qualified Luna.IR.Term.Format              as Format
@@ -17,9 +18,10 @@ import qualified OCI.IR.Component                 as Component
 import qualified OCI.IR.Layer                     as Layer
 import qualified OCI.IR.Layout                    as Layout
 
-import Luna.IR.Component.Term.Class  as Term
-import Luna.IR.Component.Term.Layer
-import Luna.IR.Component.Term.Layout ()
+import Luna.IR.Component.Term.Class (Term, Terms)
+import Luna.IR.Component.Term.Layer (Model)
+import OCI.IR.Component             (Component)
+
 
 
 ------------------------------
@@ -37,7 +39,7 @@ class DefaultType m where
 type UntypedCreator t m =
     ( Component.Creator Terms   m
     , Layer.Writer  Terms Model m
-    , Layer.IsCons1 Model (TagToCons t)
+    , Layer.IsCons1 Model (Term.TagToCons t)
     , Layer.IsUnwrapped Term.Uni
     )
 
@@ -64,9 +66,9 @@ type CreatorX m =
 type LayoutModelCheck tag layout = Layout.Get Model layout ~ tag
 
 uncheckedUntypedNewM :: UntypedCreator tag m
-    => (Term any -> m (TagToCons tag layout)) -> m (Term any)
+    => (Term any -> m (Term.TagToCons tag layout)) -> m (Term any)
 uncheckedUntypedNewM !cons = do
-    ir <- Component.new @Terms
+    ir <- Component.new1 @(Component Terms)
     let !ir' = Layout.unsafeRelayout ir
     !term <- cons ir'
     Layer.write @Model ir $! Layer.cons1 @Model term
@@ -74,18 +76,19 @@ uncheckedUntypedNewM !cons = do
 {-# INLINE uncheckedUntypedNewM #-}
 
 untypedNewM :: ( UntypedCreator tag m, LayoutModelCheck tag layout)
-     => (Term layout -> m (TagToCons tag layout)) -> m (Term layout)
+     => (Term layout -> m (Term.TagToCons tag layout)) -> m (Term layout)
 untypedNewM = uncheckedUntypedNewM ; {-# INLINE untypedNewM #-}
 
-uncheckedUntypedNew :: UntypedCreator tag m => TagToCons tag layout -> m (Term any)
+uncheckedUntypedNew :: UntypedCreator tag m
+                    => Term.TagToCons tag layout -> m (Term any)
 uncheckedUntypedNew = uncheckedUntypedNewM . const . pure ; {-# INLINE uncheckedUntypedNew #-}
 
 untypedNew :: (UntypedCreator tag m, Layout.AssertEQ Model layout tag)
-    => TagToCons tag layout -> m (Term layout)
+    => Term.TagToCons tag layout -> m (Term layout)
 untypedNew = uncheckedUntypedNew ; {-# INLINE untypedNew #-}
 
 uncheckedNewM :: Creator tag m
-              => (Term any -> m (TagToCons tag layout)) -> m (Term any)
+              => (Term any -> m (Term.TagToCons tag layout)) -> m (Term any)
 uncheckedNewM !cons = uncheckedUntypedNewM $ \self -> do
     typeTerm <- defaultType
     typeLink <- Link.new typeTerm self
@@ -94,8 +97,8 @@ uncheckedNewM !cons = uncheckedUntypedNewM $ \self -> do
 {-# INLINE uncheckedNewM #-}
 
 newM :: (Creator tag m, LayoutModelCheck tag layout)
-     => (Term layout -> m (TagToCons tag layout)) -> m (Term layout)
+     => (Term layout -> m (Term.TagToCons tag layout)) -> m (Term layout)
 newM = uncheckedNewM ; {-# INLINE newM #-}
 
-uncheckedNew :: Creator tag m => TagToCons tag layout -> m (Term any)
+uncheckedNew :: Creator tag m => Term.TagToCons tag layout -> m (Term any)
 uncheckedNew = uncheckedNewM . const . pure ; {-# INLINE uncheckedNew #-}
