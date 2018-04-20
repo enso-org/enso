@@ -13,6 +13,7 @@ import qualified Luna.IR.Layer               as Layer
 
 import Data.Text.Position (Delta)
 import Data.Text.Span     (LeftSpacedSpan, length, offset)
+import Luna.IR.Layer      (Layer)
 import Type.Any           (AnyType)
 
 
@@ -101,9 +102,9 @@ instance Semigroup CodeSpan where
 -- === CodeSpan layer === --
 ----------------------------
 
-type instance Layer.Cons CodeSpan = Layer.Simple CodeSpan
-instance Layer.Initializer CodeSpan where
-    initStatic = Just (Layer.Simple mempty)
+instance Layer CodeSpan where
+    type Cons  CodeSpan = Layer.Simple CodeSpan
+    manager = Layer.customStaticManager (Layer.Simple mempty)
 
 
 
