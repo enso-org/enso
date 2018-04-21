@@ -112,10 +112,11 @@ type family AddToOutput var field layout where
 --       type instance Format.Of      Test     = Format.Phrase
 --       type instance Term.TagToCons Test     = ConsTest
 --       type instance Term.ConsToTag ConsTest = Test
---       makeLenses       ''ConsTest
---       Storable.derive  ''ConsTest
---       Storable1.derive ''ConsTest
---       Link.discover    ''ConsTest
+--       makeLenses                ''ConsTest
+--       Storable.derive           ''ConsTest
+--       Storable1.derive          ''ConsTest
+--       Link.discover             ''ConsTest
+--       Tag.showTag1ConstInstance ''ConsTest "Test"
 --       type instance Format.Of Test = Format.Thunk
 --
 --       instance HasInputs Test where
@@ -204,6 +205,7 @@ defineSingleCons needsSmartCons dataName con = do
                         (cons' typeName)
         consToTagInst = typeInstance ''Term.ConsToTag [cons' typeName]
                         (cons' tagName)
+        showTag1Inst  = Tag.showTag1ConstInstance typeName conNameStr
         format        = TH.mkName
                       $ "Format" <> "." <> convert dataName
         formatInst    = typeInstance ''Format.Of [cons' tagName] (cons' format)
@@ -223,6 +225,7 @@ defineSingleCons needsSmartCons dataName con = do
            , consToTagInst
            , formatInst
            , inputsInst
+           , showTag1Inst
            ]
         <> storableInst
         <> storable1Inst
@@ -381,6 +384,11 @@ makeSmartConsGenBody fname varNum = do
 --       instance Term.IsUni ConsVar     where toUni = UniTermVar
 --       instance Term.IsUni ConsMissing where toUni = UniTermMissing
 --
+--       instance ShowTag1 UniTerm where
+--           showTag1 (UniTermCons a) = showTag1 a
+--           showTag1 (UniTermVar  a) = showTag1 a
+--           ...
+--
 --       instance HasInputs UniTerm where
 --           inputsIO (UniTermCons a) = inputsIO a
 --           inputsIO (UniTermVar  a) = inputsIO a
@@ -403,12 +411,20 @@ makeUniTerm = do
                        (TH.AppT (cons' ''Term.IsUni) (cons' $ mkTypeName n))
                        [TH.ValD "toUni" (TH.NormalB . cons' $ mkUniTermName n) []]
         isUniInsts   = isUniInst <$> termNames
+        consNames    = mkUniTermName <$> termNames
     storableInst  <- Storable.derive'   dataDecl
     storable1Inst <- Storable1.derive'  dataDecl
-    let hasInputsInst = defineHasInputsUniTermInst dataName
-                      $ mkUniTermName <$> termNames
+    let hasInputsInst = defineDelegatingUniTermInst ''Link.HasInputs
+                                                    ['Link.inputsIO]
+                                                    dataName
+                                                    consNames
+        showTag1Inst = defineDelegatingUniTermInst ''Tag.ShowTag1
+                                                   ['Tag.showTag1]
+                                                   dataName
+                                                   consNames
     pure $ [ dataDecl
            , hasInputsInst
+           , showTag1Inst
            ]
         <> storableInst
         <> storable1Inst
@@ -417,13 +433,18 @@ makeUniTerm = do
 mkUniTermName :: (IsString a, Semigroup a) => a -> a
 mkUniTermName = ("UniTerm" <>)
 
-defineHasInputsUniTermInst :: Name -> [Name] -> Dec
-defineHasInputsUniTermInst dataName consNames =
-    classInstance ''Link.HasInputs dataName [] definition where
-        definition        = [implementation]
-        methodName        = 'Link.inputsIO
-        implementation    = TH.FunD methodName clauses
-        clauses           = mkClause <$> consNames
-        patVarName        = unsafeGenName
-        mkClause consName = clause [cons consName [var patVarName]] body []
-        body              = app (var methodName) (var patVarName)
+-- | Defines an instance of a given class, with specified methods,
+--   by pattern matching on single-field constructors
+--   and delegating the defined method to the only field.
+defineDelegatingUniTermInst :: Name -> [Name] -> Name -> [Name] -> Dec
+defineDelegatingUniTermInst className methodNames dataName consNames = inst
+    where
+        inst            = classInstance className dataName [] definition
+        definition      = implementations
+        implementations = implement <$> methodNames
+
+        implement methodName = TH.FunD methodName clauses where
+            patVarName        = unsafeGenName
+            clauses           = mkClause <$> consNames
+            mkClause consName = clause [cons consName [var patVarName]] body []
+            body              = app (var methodName) (var patVarName)
