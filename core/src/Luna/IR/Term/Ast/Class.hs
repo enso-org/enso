@@ -100,3 +100,5 @@ Term.define [d|
                           , locName :: Name         , tp   :: LinkTo  Terms }
     | ForeignImportSafety { safety  :: ForeignImportType                    }
  |]
+
+

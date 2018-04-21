@@ -21,4 +21,3 @@ data Symbol
 
 Storable.derive ''Symbol
 instance NFData Symbol
-

@@ -4,10 +4,10 @@ module Luna.IR.Component.Term.Layer.Model where
 
 import Prologue
 
-import qualified Luna.IR.Component.Link.Class as Link
-import qualified Luna.IR.Component.Term.Class as Term
-import qualified OCI.IR.Layer                 as Layer
-import qualified OCI.IR.Layout                as Layout
+import qualified Luna.IR.Component.Link.Provider as Link
+import qualified Luna.IR.Component.Term.Class    as Term
+import qualified OCI.IR.Layer                    as Layer
+import qualified OCI.IR.Layout                   as Layout
 
 import Luna.IR.Component.Link.Class (SomeLink)
 import Luna.IR.Component.Term.Class (Term, Terms)
