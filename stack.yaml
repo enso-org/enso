@@ -42,6 +42,7 @@ packages:
     - lib/data-construction    
     - lib/exception
     - lib/foreign-utils
+    - lib/generic-traversable
     - lib/hspec-jenkins
     - lib/memory-manager
     - lib/memory-pool

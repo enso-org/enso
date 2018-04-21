@@ -26,15 +26,6 @@ type SomeLink = Link ()
 type src *-* tgt = Layout '[Source := src, Target := tgt]
 
 
--- === Inputs === --
-
-class HasInputs (a :: Type -> Type) where
-    inputsIO :: ∀ t. a t -> IO [SomeLink]
-
-inputs :: (HasInputs a, MonadIO m) => a t -> m [SomeLink]
-inputs = liftIO . inputsIO ; {-# INLINE inputs #-}
-
-
 
 --------------------
 -- === Layers === --

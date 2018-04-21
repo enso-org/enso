@@ -1,3 +1,5 @@
+{-# LANGUAGE UndecidableInstances #-}
+
 module Luna.IR.Term.Literal where
 
 import           Prologue hiding (String)
@@ -9,8 +11,6 @@ import qualified Luna.IR.Component.Term.Definition as Term
 import qualified Luna.IR.Term.Format               as Format
 
 import Data.Vector.Storable.Foreign (Vector)
-
-
 
 
 --------------------
@@ -26,7 +26,6 @@ Term.define [d|
              , fracPart :: Vector Word8 }
     | String { val      :: Vector Char  }
  |]
-
 
 
 

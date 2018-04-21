@@ -13,6 +13,7 @@ import qualified Luna.IR.Term.Format                 as Format
 import qualified OCI.IR.Layer                        as Layer
 import qualified OCI.IR.Layout                       as Layout
 
+import Data.PtrList.Mutable              (UnmanagedPtrList)
 import Data.Vector.Storable.Foreign      (Vector)
 import Luna.IR.Component.Term.Class      (Term, Terms)
 import Luna.IR.Component.Term.Definition (LinkTo)
@@ -21,10 +22,8 @@ import Luna.IR.Component.Term.Layout     (Names)
 import OCI.Data.Name                     (Name)
 import Type.Data.Ord                     (Cmp)
 
-
-import Data.PtrList.Mutable (UnmanagedPtrList)
-
 type LinkListTo a = UnmanagedPtrList (LinkTo a)
+
 
 
 ----------------
@@ -39,7 +38,7 @@ type LinkListTo a = UnmanagedPtrList (LinkTo a)
 Term.define [d|
 
  data Value
-    = App     { base :: LinkTo Terms, arg   :: LinkTo Terms                    } -- FIXME: flip args
+    = App     { base :: LinkTo Terms, arg   :: LinkTo Terms                    }
     | Cons    { name :: Name        , args  :: LinkListTo Terms                }
     | Top_
 
@@ -88,12 +87,3 @@ type instance Cmp Names Model = 'GT
 
 type instance Cmp Names Terms = 'LT
 type instance Cmp Terms Names = 'GT
-
-
-
-
--- class MapFields ctx f a where
---     mapFields :: (forall t. ctx t => (t -> t)) -> a -> a
-
--- instance MapFields ctx f (ConsCons a) where
---     mapFields f (Cons n as) = Cons (f n) (f as)
