@@ -43,9 +43,15 @@ type TagConsInvariant tag cons =
     )
 
 
+-- === Discovery === --
+
+-- | IsTermTag is used to gather all IR terms when generating UniTerm in TH.
+class IsTermTag (t :: Type)
+
+
 -- === Instances === --
 
 type instance Layout.Merge (TermCons a) (TermCons b) = Merge__ a b
 type family Merge__ a b where
     Merge__ a a = TermCons a
-    -- Merge__ a b =
+    -- Merge__ a b = -- TODO: when needed

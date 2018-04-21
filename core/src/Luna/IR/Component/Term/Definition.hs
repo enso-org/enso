@@ -17,10 +17,8 @@ import qualified Language.Haskell.TH                 as TH
 import qualified Language.Haskell.TH.Builder         as THBuilder
 import qualified Language.Haskell.TH.Syntax          as TH
 import qualified Luna.IR.Component.Link              as Link
-import qualified Luna.IR.Component.Link.Discovery    as Link
 import qualified Luna.IR.Component.Term.Class        as Term
 import qualified Luna.IR.Component.Term.Construction as Term
-import qualified Luna.IR.Component.Term.Discovery    as Discovery
 import qualified Luna.IR.Term.Format                 as Format
 import qualified OCI.Data.Name                       as IR
 import qualified OCI.IR.Layout                       as Layout
@@ -102,12 +100,14 @@ type family AddToOutput var field layout where
 --   Generates:
 --
 --   @
+--       -- === Definition === --
+--
 --       Tag.familyInstance "TermCons" "Test"
 --       data ConsTest a = Test
 --           { __foo :: {-# UNPACK #-} !(ExpandField Test a Foo)
 --           , __bar :: {-# UNPACK #-} !(ExpandField Test a Bar)
 --           } deriving (Show, Eq)
---       instance Discovery.IsTermTag Test
+--       instance Term.IsTermTag Test
 --       type instance Format.Of      Test     = Format.Thunk
 --       type instance Term.TagToCons Test     = ConsTest
 --       type instance Term.ConsToTag ConsTest = Test
@@ -116,10 +116,8 @@ type family AddToOutput var field layout where
 --       Storable.derive     ''ConsTest
 --       makeLenses          ''ConsTest
 --
---       instance HasInputs Test where
---           inputsIO (Test a0 a1) = pure [] >>= prependLinks a1
---                                           >>= prependLinks a0
---           {-# INLINE inputs #-}
+--
+--       -- === Smart constructors === --
 --
 --       test :: forall a t1 t2 m. Creator Test m
 --             => FieldCons t1 Foo
@@ -138,6 +136,12 @@ type family AddToOutput var field layout where
 --                 ) -> Term t1 -> Term t2 -> m (Term out)
 --       test' t1 t2 = Layout.relayout <$> test t1 t2
 --       {-# INLINE test' #-}
+--
+--
+--       -- === Instances === --
+--
+--       instance Link.Provider1 ConsTest where
+--           linksIO1 = Link.glinks ; {-# INLINE linksIO1 #-}
 --   @
 --
 --   Moreover:
@@ -197,8 +201,12 @@ defineSingleCons needsSmartCons dataName con = do
 
         tagDecls      = Tag.familyInstance' ''Term.TermCons conNameStr
         isTermTagInst = TH.InstanceD Nothing []
-                        (TH.AppT (cons' ''Discovery.IsTermTag) (cons' tagName))
+                        (TH.AppT (cons' ''Term.IsTermTag) (cons' tagName))
                         []
+        linkProviderI = TH.InstanceD Nothing []
+                        (TH.AppT (cons' ''Link.Provider1) (cons' typeName))
+                        [ TH.ValD (var 'Link.linksIO1) (TH.NormalB $ var 'Link.glinks) []
+                        ]
         tagToConsInst = typeInstance ''Term.TagToCons [cons' tagName]
                         (cons' typeName)
         consToTagInst = typeInstance ''Term.ConsToTag [cons' typeName]
@@ -209,25 +217,30 @@ defineSingleCons needsSmartCons dataName con = do
 
         fieldTypes    = fmap (view _3) . view namedFields $ con
 
-    lensInst      <- Lens.declareLenses (pure [termDecl'])
-    storableInst  <- Storable.derive'    termDecl'
-    storable1Inst <- Storable1.derive'   termDecl'
-    gtraverseInst <- GTraversable.deriveByDec termDecl'
+    instLens      <- Lens.declareLenses (pure [termDecl'])
+    instStorable  <- Storable.derive'    termDecl'
+    instStorable1 <- Storable1.derive'   termDecl'
+    instGtraverse <- GTraversable.derive termDecl'
     smartCons     <- makeSmartCons tagName param fieldTypes
-    -- let inputsInst = defineHasInputsInst typeName conName (length fieldTypes)
 
-    pure $ tagDecls
-        <> lensInst
+    pure
+        -- === Definition ===
+         $ tagDecls
+        <> instLens
         <> [ isTermTagInst
            , tagToConsInst
            , consToTagInst
            , formatInst
-        --    , inputsInst
            ]
-        <> storableInst
-        <> storable1Inst
-        <> gtraverseInst
-        <> if needSmartCons then smartCons else []
+        <> instStorable
+        <> instStorable1
+        <> instGtraverse
+
+        -- === Smart constructors === --
+        <> (if needSmartCons then smartCons else [])
+
+        -- === Instances === --
+        <> [ linkProviderI ]
 
     where maybeNameStr :: MayHaveName a => a -> (Maybe String)
           maybeNameStr = fmap TH.nameBase . view maybeName
@@ -236,27 +249,6 @@ expandField :: Name -> Name -> TH.Type -> TH.Type
 expandField self param field = app3 (cons' ''ExpandField) (cons' self)
                                     (var param) field
 
--- defineHasInputsInst :: Name -> Name -> Int -> Dec
--- defineHasInputsInst typeName consName fieldsCount =
---     classInstance ''Link.HasInputs typeName [] definition where
---         fieldNames     = unsafeGenNames fieldsCount
---         methodName     = 'Link.inputsIO
---         definition     = [implementation, inlinePragma]
---         implementation = TH.FunD methodName [clause [pat] body []]
---         pat            = cons consName $ var <$> fieldNames
---         body           = foldl addLinks pureEmpty (reverse fieldNames)
---         inlinePragma   = THBuilder.inline TH.FunLike methodName
-
---         addLinks links field = bindTH links (prependLinksTH $ var field)
-
---         pureEmpty :: TH.Exp
---         pureEmpty = TH.AppE (var 'pure) (TH.ListE [])
-
---         prependLinksTH :: TH.Exp -> TH.Exp
---         prependLinksTH = app $ var 'Link.prependLinks
-
---         bindTH :: TH.Exp -> TH.Exp -> TH.Exp
---         bindTH = app2 $ var '(>>=)
 
 
 -- === Helpers === --
@@ -375,24 +367,20 @@ makeSmartConsGenBody fname varNum = do
 --           | UniTermMissing !(ConsMissing a)
 --           ...
 --           deriving (Show, Eq)
---       Storable.derive  ''UniTerm
---       Storable1.derive ''UniTerm
+--       Storable.derive     ''UniTerm
+--       Storable1.derive    ''UniTerm
+--       GTraversable.derive ''UniTerm
 --
 --       instance Term.IsUni ConsTop     where toUni = UniTermTop
 --       instance Term.IsUni ConsVar     where toUni = UniTermVar
 --       instance Term.IsUni ConsMissing where toUni = UniTermMissing
---
---       instance HasInputs UniTerm where
---           inputsIO (UniTermCons a) = inputsIO a
---           inputsIO (UniTermVar  a) = inputsIO a
---           ...
 --
 makeUniTerm :: Q [Dec]
 makeUniTerm = do
     let unpackInst = \case
             TH.InstanceD _ _ (TH.AppT _ (TH.ConT n)) _ -> n
             _ -> error "impossible"
-    termNames <- unpackInst <<$>> TH.reifyInstances ''Discovery.IsTermTag ["x"]
+    termNames <- unpackInst <<$>> TH.reifyInstances ''Term.IsTermTag ["x"]
     let dataName     = "UniTerm"
         mkCons n     = TH.NormalC consName [(unpackStrictAnn, TH.AppT (TH.ConT childName) "a")] where
             consName  = dataName <> n
@@ -404,27 +392,15 @@ makeUniTerm = do
                        (TH.AppT (cons' ''Term.IsUni) (cons' $ mkTypeName n))
                        [TH.ValD "toUni" (TH.NormalB . cons' $ mkUniTermName n) []]
         isUniInsts   = isUniInst <$> termNames
-    storableInst  <- Storable.derive'   dataDecl
-    storable1Inst <- Storable1.derive'  dataDecl
-    -- let hasInputsInst = defineHasInputsUniTermInst dataName
-    --                   $ mkUniTermName <$> termNames
-    pure $ [ dataDecl
-        --    , hasInputsInst
-           ]
-        <> storableInst
-        <> storable1Inst
+    instStorable  <- Storable.derive'    dataDecl
+    instStorable1 <- Storable1.derive'   dataDecl
+    instGtraverse <- GTraversable.derive dataDecl
+
+    pure $ [ dataDecl ]
+        <> instStorable
+        <> instStorable1
+        <> instGtraverse
         <> isUniInsts
 
 mkUniTermName :: (IsString a, Semigroup a) => a -> a
 mkUniTermName = ("UniTerm" <>)
-
--- defineHasInputsUniTermInst :: Name -> [Name] -> Dec
--- defineHasInputsUniTermInst dataName consNames =
---     classInstance ''Link.HasInputs dataName [] definition where
---         definition        = [implementation]
---         methodName        = 'Link.inputsIO
---         implementation    = TH.FunD methodName clauses
---         clauses           = mkClause <$> consNames
---         patVarName        = unsafeGenName
---         mkClause consName = clause [cons consName [var patVarName]] body []
---         body              = app (var methodName) (var patVarName)
