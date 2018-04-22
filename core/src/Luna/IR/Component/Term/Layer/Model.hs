@@ -22,10 +22,10 @@ import OCI.IR.Layer                 (Layer)
 -- === Definition === --
 
 data Model
-instance Layer Model where
+instance Layer.Destructor1 Term.Uni => Layer Model where
     type Cons  Model        = Term.Uni
     type View  Model layout = Term.TagToCons (Layout.Get Model layout)
-    manager = Layer.unsafeNoManager
+    manager = Layer.unsafeOnlyDestructorManager
 
 
 -- === Utils === --

@@ -25,6 +25,7 @@ import Luna.IR.Component.Link (type (*-*), Link)
 import Luna.Pass              (Pass)
 import Test.Hspec             (Expectation, Spec, describe, it)
 
+import qualified Type.Show as TS
 
 
 -----------------------
@@ -76,6 +77,7 @@ run2Passes' p1 p2 = runPasses [p1,p2]
 
 
 -------------------
+-- === Tests === --
 -------------------
 
 nameSpec :: Spec
@@ -104,6 +106,7 @@ irCreationSpec = describe "ir creation" $ do
         rsrc         <- Layer.read @IR.Source r
         ltgt         <- Layer.read @IR.Target l
         rtgt         <- Layer.read @IR.Target r
+        lnks         <- IR.inputs u1
         lsrc `shouldBe` v1
         ltgt `shouldBe` u1
         rsrc `shouldBe` v2
@@ -126,15 +129,15 @@ attribsSpec = describe "attributes" $ do
         (Attr.put $ IntAttr 9)
         (Attr.get >>= (`shouldBe` (IntAttr 9)))
 
-irDisposeSpec :: Spec
-irDisposeSpec = describe "ir dispose" $ do
+irDestructSpec :: Spec
+irDestructSpec = describe "ir dispose" $ do
     it "simple" $ runPass' $ do
         v <- IR.var "a"
-        IR.dispose v
+        IR.destruct v
 
 spec :: Spec
 spec = do
     nameSpec
     irCreationSpec
     attribsSpec
-    irDisposeSpec
+    irDestructSpec

@@ -2,6 +2,7 @@ module OCI.Data.Name where
 
 import Prologue
 
+import qualified Data.Construction     as Data
 import qualified Data.IntMap.Strict    as IntMap
 import qualified FastString            as FastString
 import qualified Language.Symbol.Label as Label
@@ -149,7 +150,9 @@ instance Semigroup Value where
         !out = convert $ v <> v'
     {-# INLINE (<>) #-}
 
--- TODO !!!!!!
--- Remove?
+instance Monad m => Data.Destructor m Name where
+    destruct = const $ pure () ; {-# INLINE destruct #-}
 
+-- TODO !!!!!!
+-- Remove? vvv
 instance Label.HasLabel Name

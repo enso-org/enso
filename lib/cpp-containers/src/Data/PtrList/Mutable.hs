@@ -17,11 +17,13 @@ import           Prologue hiding (fromList, length, mapM, null, toList,
                            unsafeHead, unsafeLast)
 import qualified Prologue as P
 
+import qualified Data.Construction as Data
+
 import Control.Monad          ((<=<))
 import Control.Monad.IO.Class
 import Data.Maybe             (fromJust)
 import Foreign.ForeignPtr
-import Foreign.Marshal.Alloc
+import Foreign.Marshal.Alloc  hiding (free)
 import Foreign.Marshal.Array
 import Foreign.Ptr
 import Foreign.Ptr.Utils
@@ -198,3 +200,5 @@ instance IsPtrList UnmanagedPtrList where
     newIO        = c_new ; {-# INLINE newIO  #-}
     withIO !s !f = f s             ; {-# INLINE withIO #-}
 
+instance MonadIO m => Data.Destructor1 m UnmanagedPtrList where
+    destruct1 = free ; {-# INLINE destruct1 #-}

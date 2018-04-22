@@ -38,8 +38,8 @@ instance MonadIO m => Set.Set m (Set comp layout) where
     null   = Set.null   . unwrap ; {-# INLINE null   #-}
     toList = Set.toList . unwrap ; {-# INLINE toList #-}
 
-instance MonadIO m => Data.Constructor2 () Set m where
+instance MonadIO m => Data.Constructor2 m () Set where
     construct2 _ = wrap <$> Data.new1 ; {-# INLINE construct2 #-}
 
-instance MonadIO m => Data.Destructor2 Set m where
+instance MonadIO m => Data.Destructor2 m Set where
     destruct2 = Data.destruct1 . unwrap ; {-# INLINE destruct2 #-}

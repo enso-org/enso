@@ -26,11 +26,11 @@ type LinksTo a = UnmanagedPtrList (LinkTo a)
 
 
 
------------------
--- === Ast === --
------------------
+---------------------
+-- === Imports === --
+---------------------
 
--- === Import helpers === --
+-- === Helpers === --
 
 data ImportSourceData
     = Relative (Vector Name)
@@ -47,6 +47,24 @@ data ImportTargetData
 Storable.derive     ''ImportTargetData
 GTraversable.derive ''ImportTargetData
 
+
+-- === FFI === --
+
+-- FIXME: May be able to become a `Maybe` pending discussion in the
+-- following issue: https://github.com/luna/luna/issues/179
+data ForeignImportType
+    = Default
+    | Safe
+    | Unsafe
+    deriving (Eq, Generic, Show)
+Storable.derive     ''ForeignImportType
+GTraversable.derive ''ForeignImportType
+
+
+
+-----------------
+-- === Ast === --
+-----------------
 
 -- === Definition === --
 
@@ -85,17 +103,7 @@ Term.define [d|
  |]
 
 
--- === FFI Imports === --
-
--- FIXME: May be able to become a `Maybe` pending discussion in the
--- following issue: https://github.com/luna/luna/issues/179
-data ForeignImportType
-    = Default
-    | Safe
-    | Unsafe
-    deriving (Eq, Generic, Show)
-Storable.derive     ''ForeignImportType
-GTraversable.derive ''ForeignImportType
+-- === FFI === --
 
 Term.define [d|
  data Ast
@@ -105,5 +113,4 @@ Term.define [d|
                           , locName :: Name         , tp   :: LinkTo  Terms }
     | ForeignImportSafety { safety  :: ForeignImportType                    }
  |]
-
 

@@ -6,6 +6,7 @@ module Luna.IR.Term.Core where
 import Prologue
 
 import qualified Luna.IR.Component.Link              as Link
+import qualified Luna.IR.Component.Term.Class        as Term
 import qualified Luna.IR.Component.Term.Construction as Term
 import qualified Luna.IR.Component.Term.Definition   as Term
 import qualified Luna.IR.Component.Term.Layer        as Layer
@@ -87,3 +88,6 @@ type instance Cmp Names Model = 'GT
 
 type instance Cmp Names Terms = 'LT
 type instance Cmp Terms Names = 'GT
+
+
+

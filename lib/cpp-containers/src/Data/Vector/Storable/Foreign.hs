@@ -2,6 +2,7 @@ module Data.Vector.Storable.Foreign where
 
 import Prologue hiding (empty, fromList, toList, unsafeRead)
 
+import qualified Data.Construction         as Data
 import qualified Data.List                 as List
 import qualified Foreign.Marshal.Alloc     as Mem
 import qualified Foreign.Storable.Deriving as Storable
@@ -35,6 +36,9 @@ new elNum = fmap (Vector elNum) . liftIO . Mem.mallocBytes
 
 empty :: ∀ a. Vector a
 empty = Vector 0 nullPtr ; {-# INLINE empty #-}
+
+free :: MonadIO m => Vector a -> m ()
+free = liftIO . Mem.free . view ptr ; {-# INLINE free #-}
 
 
 -- === Lookup === --
@@ -72,3 +76,9 @@ instance (Show a, Storable a) => Show (Vector a) where
     show = show . unsafePerformIO . toList ; {-# NOINLINE show #-}
 
 instance Mempty (Vector a) where mempty = empty ; {-# INLINE mempty #-}
+
+
+-- === Instances === --
+
+instance MonadIO m => Data.Destructor1 m Vector where
+    destruct1 = free ; {-# INLINE destruct1 #-}

@@ -66,7 +66,7 @@ dealloc comp = do
     MemPool.free pool $ unwrap comp
 {-# INLINE dealloc #-}
 
-instance Creator comp m => Data.Constructor1 () (Component comp) m where
+instance Creator comp m => Data.Constructor1 m () (Component comp) where
     construct1 _ = do
         ir    <- alloc
         layer <- Pass.getLayerMemManager @comp
@@ -77,7 +77,7 @@ instance Creator comp m => Data.Constructor1 () (Component comp) m where
         pure ir
     {-# INLINE construct1 #-}
 
-instance Creator comp m => Data.Destructor1 (Component comp) m where
+instance Creator comp m => Data.Destructor1 m (Component comp) where
     destruct1 ir = do
         layer <- Pass.getLayerMemManager @comp
         liftIO $ (layer ^. Pass.destructor) (coerce ir)

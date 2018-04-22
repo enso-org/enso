@@ -18,8 +18,7 @@ import GHC.TypeLits
 -- === Definition === --
 
 type family SymbolRepr (t :: k) :: Symbol where
-    SymbolRepr Int = "Int"
-    SymbolRepr a   = ShowGeneric (Rep a)
+    SymbolRepr a = ShowGeneric (Rep a)
 
 type Show a = KnownSymbol (SymbolRepr a)
 
