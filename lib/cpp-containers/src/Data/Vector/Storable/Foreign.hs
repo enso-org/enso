@@ -80,5 +80,5 @@ instance Mempty (Vector a) where mempty = empty ; {-# INLINE mempty #-}
 
 -- === Instances === --
 
-instance MonadIO m => Data.Destructor1 m Vector where
-    destruct1 = free ; {-# INLINE destruct1 #-}
+instance MonadIO m => Data.ShallowDestructor1 m Vector where
+    destructShallow1 = free ; {-# INLINE destructShallow1 #-}

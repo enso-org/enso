@@ -9,14 +9,15 @@ import Luna.IR.Term.Core    as X
 import Luna.IR.Term.Format  as X (Ast, Draft, Literal, Phrase, Thunk, Value)
 import Luna.IR.Term.Literal as X
 
+import qualified Data.Construction                 as Data
 import qualified Data.Generics.Traversable         as GTraversable
 import qualified Luna.IR.Component.Link            as Link
 import qualified Luna.IR.Component.Term.Class      as Term
 import qualified Luna.IR.Component.Term.Definition as Term
 import qualified OCI.IR.Layer                      as Layer
 
-import qualified Data.Construction         as Data
-import           Data.Generics.Traversable (GTraversable)
+import Data.Generics.Traversable (GTraversable)
+
 
 
 ----------------------
@@ -42,7 +43,8 @@ instance StyledShow Term.TagOnly (UniTerm a) where
     styledShow _ = GTraversable.gfoldl' @Term.ShowTag f mempty where
         f acc a = acc <> Term.showTag a
 
-instance MonadIO m => Data.Destructor1 m UniTerm where
-    destruct1 = GTraversable.gmapM_ @(GTraversable Layer.Destructor)
-              $ GTraversable.gmapM_ @Layer.Destructor Layer.destruct
-    {-# INLINE destruct1 #-}
+instance (MonadIO m, ctx ~ Data.ShallowDestructor m)
+      => Data.ShallowDestructor1 m UniTerm where
+    destructShallow1 = GTraversable.gmapM_ @(GTraversable ctx)
+                     $ GTraversable.gmapM_ @ctx Data.destructShallow
+    {-# INLINE destructShallow1 #-}

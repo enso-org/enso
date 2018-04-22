@@ -1,12 +1,15 @@
+{-# LANGUAGE UndecidableInstances #-}
+
 module OCI.Data.Name where
 
 import Prologue
 
-import qualified Data.Construction     as Data
-import qualified Data.IntMap.Strict    as IntMap
-import qualified FastString            as FastString
-import qualified Language.Symbol.Label as Label
-import qualified Prelude               as Prelude
+import qualified Data.Construction                  as Data
+import qualified Data.Generics.Traversable.Deriving as GTraversable
+import qualified Data.IntMap.Strict                 as IntMap
+import qualified FastString                         as FastString
+import qualified Language.Symbol.Label              as Label
+import qualified Prelude                            as Prelude
 
 import Binary           (Binary)
 import Data.IntMap      (IntMap)
@@ -68,7 +71,8 @@ instance Show Value where
 -- === Definition === ---
 
 newtype Name = Name Int deriving (Eq, Num, Ord, Storable)
-makeLenses ''Name
+makeLenses          ''Name
+GTraversable.derive ''Name
 
 
 -- === API === --
@@ -150,8 +154,6 @@ instance Semigroup Value where
         !out = convert $ v <> v'
     {-# INLINE (<>) #-}
 
-instance Monad m => Data.Destructor m Name where
-    destruct = const $ pure () ; {-# INLINE destruct #-}
 
 -- TODO !!!!!!
 -- Remove? vvv

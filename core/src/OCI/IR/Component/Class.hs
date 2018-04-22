@@ -66,6 +66,9 @@ dealloc comp = do
     MemPool.free pool $ unwrap comp
 {-# INLINE dealloc #-}
 
+
+-- === Construction / Destruction === --
+
 instance Creator comp m => Data.Constructor1 m () (Component comp) where
     construct1 _ = do
         ir    <- alloc
@@ -83,6 +86,9 @@ instance Creator comp m => Data.Destructor1 m (Component comp) where
         liftIO $ (layer ^. Pass.destructor) (coerce ir)
         dealloc ir
     {-# INLINE destruct1 #-}
+
+instance Monad m => Data.ShallowDestructor1 m (Component comp) where
+    destructShallow1 = const $ pure () ; {-# INLINE destructShallow1 #-}
 
 
 -- === Relayout === --

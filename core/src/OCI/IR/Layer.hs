@@ -119,60 +119,6 @@ byteSize = Storable1.sizeOf' @(Cons layer) ; {-# INLINE byteSize #-}
 
 
 
-------------------------
--- === Destructor === --
-------------------------
-
--- | Layer Constructor / Destructor. These are typeclasses which manage
---   raw Components as layers in a special way - without touching them.
---   If a layer is any other structure, the call is redirected to
---   appropriate Data.Construction mechanism.
-
--- === Definition === --
-
-class Constructor  a where constructIO  :: IO a
-class Destructor   a where destructIO   :: a -> IO ()
-class Constructor1 a where constructIO1 :: ∀ t1. IO (a t1)
-class Destructor1  a where destructIO1  :: ∀ t1. a t1 -> IO ()
-
-
--- === Special cases === --
-
-instance Destructor (Component comp layout) where
-    destructIO = const $ pure () ; {-# INLINE destructIO #-}
-
-instance Destructor1 (Component comp) where
-    destructIO1 = const $ pure () ; {-# INLINE destructIO1 #-}
-
-
--- === Defaulting === ---
-
-instance {-# OVERLAPPABLE #-} Data.Destructor IO a
-    => Destructor a where destructIO = Data.destruct ; {-# INLINE destructIO #-}
-
-instance {-# OVERLAPPABLE #-} Data.Constructor' IO a
-    => Constructor a where constructIO = Data.new ; {-# INLINE constructIO #-}
-
-instance {-# OVERLAPPABLE #-} Data.Destructor1 IO a
-    => Destructor1 a where destructIO1 = Data.destruct1 ; {-# INLINE destructIO1 #-}
-
-instance {-# OVERLAPPABLE #-} Data.Constructor1' IO a
-    => Constructor1 a where constructIO1 = Data.new ; {-# INLINE constructIO1 #-}
-
-
--- === API === --
-
-construct  :: (MonadIO m, Constructor  a) => m  a
-construct1 :: (MonadIO m, Constructor1 a) => m (a t1)
-destruct   :: (MonadIO m, Destructor   a) => a    -> m ()
-destruct1  :: (MonadIO m, Destructor1  a) => a t1 -> m ()
-construct  = liftIO constructIO   ; {-# INLINE construct  #-}
-construct1 = liftIO constructIO1  ; {-# INLINE construct1 #-}
-destruct   = liftIO . destructIO  ; {-# INLINE destruct   #-}
-destruct1  = liftIO . destructIO1 ; {-# INLINE destruct1  #-}
-
-
-
 ----------------------------------
 -- === Layer Memory Manager === --
 ----------------------------------
@@ -193,15 +139,16 @@ unsafeNoManager :: Manager layer
 unsafeNoManager = Manager Nothing Nothing Nothing ; {-# INLINE unsafeNoManager #-}
 
 -- | WARNING! Using this function will result in uninitialized layer memory.
-unsafeOnlyDestructorManager :: ∀ layer. Destructor1 (Cons layer) => Manager layer
-unsafeOnlyDestructorManager = Manager Nothing Nothing (Just $ destruct1) ; {-# INLINE unsafeOnlyDestructorManager #-}
+unsafeOnlyDestructorManager :: ∀ layer. Data.ShallowDestructor1 IO (Cons layer)
+                            => Manager layer
+unsafeOnlyDestructorManager = Manager Nothing Nothing (Just $ Data.destructShallow1) ; {-# INLINE unsafeOnlyDestructorManager #-}
 
 staticManager :: Default1 (Cons layer) => Manager layer
 staticManager = Manager (Just def1) Nothing Nothing ; {-# INLINE staticManager #-}
 
-dynamicManager :: (Constructor1 (Cons layer), Destructor1 (Cons layer))
+dynamicManager :: (Data.Constructor1 IO () (Cons layer), Data.ShallowDestructor1 IO (Cons layer))
                => Manager layer
-dynamicManager = Manager Nothing (Just construct1) (Just destruct1) ; {-# INLINE dynamicManager #-}
+dynamicManager = Manager Nothing (Just Data.new1) (Just Data.destructShallow1) ; {-# INLINE dynamicManager #-}
 
 customStaticManager :: (∀ layout. Cons layer layout) -> Manager layer
 customStaticManager !t = Manager (Just t) Nothing Nothing ; {-# INLINE customStaticManager #-}

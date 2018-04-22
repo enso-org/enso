@@ -200,5 +200,5 @@ instance IsPtrList UnmanagedPtrList where
     newIO        = c_new ; {-# INLINE newIO  #-}
     withIO !s !f = f s             ; {-# INLINE withIO #-}
 
-instance MonadIO m => Data.Destructor1 m UnmanagedPtrList where
-    destruct1 = free ; {-# INLINE destruct1 #-}
+instance MonadIO m => Data.ShallowDestructor1 m UnmanagedPtrList where
+    destructShallow1 = free ; {-# INLINE destructShallow1 #-}

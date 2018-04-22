@@ -41,5 +41,5 @@ instance MonadIO m => Set.Set m (Set comp layout) where
 instance MonadIO m => Data.Constructor2 m () Set where
     construct2 _ = wrap <$> Data.new1 ; {-# INLINE construct2 #-}
 
-instance MonadIO m => Data.Destructor2 m Set where
-    destruct2 = Data.destruct1 . unwrap ; {-# INLINE destruct2 #-}
+instance MonadIO m => Data.ShallowDestructor2 m Set where
+    destructShallow2 = Data.destruct1 . unwrap ; {-# INLINE destructShallow2 #-}

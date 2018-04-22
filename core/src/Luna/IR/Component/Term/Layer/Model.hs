@@ -4,6 +4,7 @@ module Luna.IR.Component.Term.Layer.Model where
 
 import Prologue
 
+import qualified Data.Construction               as Data
 import qualified Luna.IR.Component.Link.Provider as Link
 import qualified Luna.IR.Component.Term.Class    as Term
 import qualified OCI.IR.Layer                    as Layer
@@ -22,7 +23,7 @@ import OCI.IR.Layer                 (Layer)
 -- === Definition === --
 
 data Model
-instance Layer.Destructor1 Term.Uni => Layer Model where
+instance Data.ShallowDestructor1 IO Term.Uni => Layer Model where
     type Cons  Model        = Term.Uni
     type View  Model layout = Term.TagToCons (Layout.Get Model layout)
     manager = Layer.unsafeOnlyDestructorManager
