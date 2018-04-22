@@ -115,6 +115,7 @@ type family AddToOutput var field layout where
 --       Storable1.derive    ''ConsTest
 --       Storable.derive     ''ConsTest
 --       makeLenses          ''ConsTest
+--       Tag.showTag1ConstInstance ''ConsTest "Test"
 --
 --
 --       -- === Smart constructors === --
@@ -211,6 +212,7 @@ defineSingleCons needsSmartCons dataName con = do
                         (cons' typeName)
         consToTagInst = typeInstance ''Term.ConsToTag [cons' typeName]
                         (cons' tagName)
+        -- showTag1Inst  = Tag.showTag1ConstInstance typeName conNameStr
         format        = TH.mkName
                       $ "Format" <> "." <> convert dataName
         formatInst    = typeInstance ''Format.Of [cons' tagName] (cons' format)
@@ -231,6 +233,7 @@ defineSingleCons needsSmartCons dataName con = do
            , tagToConsInst
            , consToTagInst
            , formatInst
+        --    , showTag1Inst
            ]
         <> instStorable
         <> instStorable1
@@ -383,6 +386,11 @@ makeSmartConsGenBody fname varNum = do
 --
 --       instance Link.Provider1 UniTerm where
 --           linksIO1 = Link.glinks ; {-# INLINE linksIO1 #-}
+--
+--       instance ShowTag1 UniTerm where
+--           showTag1 (UniTermCons a) = showTag1 a
+--           showTag1 (UniTermVar  a) = showTag1 a
+--           ...
 --
 makeUniTerm :: Q [Dec]
 makeUniTerm = do
