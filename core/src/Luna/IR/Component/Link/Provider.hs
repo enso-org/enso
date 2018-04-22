@@ -7,13 +7,13 @@ import Type.Data.Ord
 
 import qualified Data.PtrList.Mutable         as PtrList
 import qualified Data.Vector.Storable.Foreign as Foreign
+import qualified Luna.IR.Component.Term.Class as Term
 import qualified OCI.IR.Component             as Component
 import qualified OCI.IR.Layer                 as Layer
 import qualified OCI.IR.Layout                as Layout
 
 import Data.Generics.Traversable    (GTraversable, gfoldlM)
 import Luna.IR.Component.Link.Class (Link, SomeLink)
-import Luna.IR.Component.Term.Class (Term)
 import OCI.Data.Name                (Name)
 import OCI.IR.Layer                 (Layer)
 import OCI.IR.Layout                ((:=), Layout)
@@ -31,7 +31,7 @@ class Provider  a where
     linksIO = const $ pure mempty ; {-# INLINE linksIO #-}
 
 class Provider1 a where
-    linksIO1 :: ∀ t1. (a t1) -> IO [SomeLink]
+    linksIO1 :: ∀ t1. a t1 -> IO [SomeLink]
     linksIO1 = const $ pure mempty ; {-# INLINE linksIO1 #-}
 
 
@@ -68,3 +68,7 @@ instance Provider1 Link where
 
 instance Provider (PtrList.UnmanagedPtrList (Link t)) where
     linksIO lst = fmap Layout.relayout <$> PtrList.toList lst ; {-# INLINE linksIO #-}
+
+instance GTraversable Provider (Term.Constructor t a)
+    => Provider (Term.Constructor t a) where
+    linksIO = glinks ; {-# INLINE linksIO #-}

@@ -16,7 +16,7 @@ import OCI.IR.Layout                      ((:=), Layout)
 
 data Names
 
-type instance Layout.ToLayout (Term.TermCons a) = Layout '[Model := (Term.TermCons a)]
+type instance Layout.ToLayout (Term.TermTag a) = Layout '[Model := (Term.TermTag a)]
 
 type layout -* term = Layout.Set Terms term (Layout.ToLayout layout)
 type layout -# name = Layout.Set Names name (Layout.ToLayout layout)

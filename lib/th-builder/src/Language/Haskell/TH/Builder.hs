@@ -559,9 +559,11 @@ instance a ~ TH.Pat  => Convertible (Tuple a) TH.Pat  where convert (Tuple len e
 instance a ~ TH.Exp  => Convertible (Tuple a) TH.Exp  where convert (Tuple len els) = if len == 1 then cons "OneTuple" (field' <$> els) else TH.TupE els
 
 
+-- FIXME[WD->PM]: TypeInfo does not make a sense. This type consist of some
+--                related data useful for a specific usage only
 data TypeInfo = TypeInfo
     { __name   :: Name
-    , __tyVars :: [TH.TyVarBndr]
+    , __tyVars :: [TH.Type]
     , __conss  :: [TH.Con]
     }
 makeLenses ''TypeInfo
@@ -576,9 +578,14 @@ reifyTypeInfo ty = do
 
 getTypeInfo :: Dec -> TypeInfo
 getTypeInfo = uncurry TypeInfo . \case
-    TH.DataD    _ nm tyVars _ cs _ -> (nm, tyVars, cs)
-    TH.NewtypeD _ nm tyVars _ c  _ -> (nm, tyVars, [c])
-    _ -> error "***error*** deriveStorable: type may not be a type synonym."
+    TH.DataD        _ nm vars _ cs _ -> (nm, tv2t <$> vars, cs)
+    TH.NewtypeD     _ nm vars _ c  _ -> (nm, tv2t <$> vars, [c])
+    TH.DataInstD    _ nm vars _ cs _ -> (nm, vars, cs)
+    TH.NewtypeInstD _ nm vars _ c  _ -> (nm, vars, [c])
+    _ -> error "Type info: not supported."
+    where tv2t = \case
+              TH.PlainTV  n   -> var n
+              TH.KindedTV n _ -> var n
 
 
 
@@ -592,25 +599,19 @@ data ClassInstance = ClassInstance
     , __ctx     :: TH.Cxt
     , __name    :: Name
     , __tpname  :: Name
-    , __params  :: [TH.TyVarBndr]
+    , __params  :: [TH.Type]
     , __decs    :: [TH.Dec]
     }
 
 classInstance :: (Convertible ClassInstance a)
-              => Name -> Name -> [TH.TyVarBndr] -> [TH.Dec] -> a
+              => Name -> Name -> [TH.Type] -> [TH.Dec] -> a
 classInstance n tn ts decs = convert $ ClassInstance Nothing mempty n tn ts decs
 {-# INLINE classInstance #-}
-
--- classInstance' :: (ToTypeName n, ToType t, IsDec dec)
---               => n -> [t] -> [dec] -> ClassInstance
--- classInstance' = classInstance ([] :: Cxt) ; {-# INLINE classInstance' #-}
 
 instance Convertible ClassInstance TH.Dec where
     convert (ClassInstance olap cxt n tn ts decs) =
         TH.InstanceD olap cxt instanceT decs
-            where instanceT = TH.AppT (TH.ConT n) (foldl' apply (TH.ConT tn) ts)
-                  apply t (TH.PlainTV name)    = TH.AppT t (TH.VarT name)
-                  apply t (TH.KindedTV name _) = TH.AppT t (TH.VarT name)
+            where instanceT = TH.AppT (TH.ConT n) (foldl' TH.AppT (TH.ConT tn) ts)
     {-# INLINE convert #-}
 
 ------------------------

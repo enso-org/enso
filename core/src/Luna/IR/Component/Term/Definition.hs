@@ -102,20 +102,17 @@ type family AddToOutput var field layout where
 --   @
 --       -- === Definition === --
 --
---       Tag.familyInstance "TermCons" "Test"
---       data ConsTest a = Test
+--       Tag.familyInstance "TermTag" "Test"
+--       instance Term.IsTermTag Test
+--       data instance Term.Constructor Test a = Test
 --           { __foo :: {-# UNPACK #-} !(ExpandField Test a Foo)
 --           , __bar :: {-# UNPACK #-} !(ExpandField Test a Bar)
 --           } deriving (Show, Eq)
---       instance Term.IsTermTag Test
---       type instance Format.Of      Test     = Format.Thunk
---       type instance Term.TagToCons Test     = ConsTest
---       type instance Term.ConsToTag ConsTest = Test
---       GTraversable.derive ''ConsTest
---       Storable1.derive    ''ConsTest
---       Storable.derive     ''ConsTest
---       makeLenses          ''ConsTest
---       Tag.showTag1ConstInstance ''ConsTest "Test"
+--       type instance Format.Of Test = Format.Thunk
+--       GTraversable.derive 'Test
+--       Storable1.derive    'Test
+--       Storable.derive     'Test
+--       makeLenses          'Test
 --
 --
 --       -- === Smart constructors === --
@@ -137,16 +134,10 @@ type family AddToOutput var field layout where
 --                 ) -> Term t1 -> Term t2 -> m (Term out)
 --       test' t1 t2 = Layout.relayout <$> test t1 t2
 --       {-# INLINE test' #-}
---
---
---       -- === Instances === --
---
---       instance Link.Provider1 ConsTest where
---           linksIO1 = Link.glinks ; {-# INLINE linksIO1 #-}
 --   @
 --
 --   Moreover:
---   1. Every single field data type is converted to newtype automatically.
+--   1. Every single-field data-type is converted to newtype automatically.
 
 define :: Q [Dec] -> Q [Dec]
 define = defineChoice True
@@ -175,13 +166,11 @@ defineSingleCons needsSmartCons dataName con = do
             _        -> (True,  conName1)
         isNewtype     = length (getBangTypes con) == 1
         termDecl      = if isNewtype
-            then TH.NewtypeD [] conName [TH.PlainTV param] Nothing  con  []
-            else TH.DataD    [] conName [TH.PlainTV param] Nothing [con] []
+            then TH.NewtypeInstD [] ''Term.Constructor [cons' conName, var param] Nothing  con  []
+            else TH.DataInstD    [] ''Term.Constructor [cons' conName, var param] Nothing [con] []
         conName       = TH.mkName conNameStr
         typeNameStr   = mkTypeName conNameStr
         tagName       = convert conNameStr
-        typeName      = convert typeNameStr
-
         bangFields    = if isNewtype then id else
                         namedFields %~ fmap (_2 .~ unpackStrictAnn)
         mangleFields  = namedFields %~ fmap (_1 %~ mangleFieldName conNameStr)
@@ -191,28 +180,16 @@ defineSingleCons needsSmartCons dataName con = do
                       . rebindFields
                       . (maybeName .~ Just conName)
                       $ con
-
-        setTypeName   = maybeName    .~ Just typeName
         setDerivs     = derivClauses .~ [TH.DerivClause Nothing derivs]
         derivs        = cons' <$> [''Show, ''Eq]
         termDecl'     = (consList .~ [con'])
-                      . setTypeName
                       . setDerivs
                       $ termDecl
 
-        tagDecls      = Tag.familyInstance' ''Term.TermCons conNameStr
+        tagDecls      = Tag.familyInstance' ''Term.TermTag conNameStr
         isTermTagInst = TH.InstanceD Nothing []
                         (TH.AppT (cons' ''Term.IsTermTag) (cons' tagName))
                         []
-        linkProviderI = TH.InstanceD Nothing []
-                        (TH.AppT (cons' ''Link.Provider1) (cons' typeName))
-                        [ TH.ValD (var 'Link.linksIO1) (TH.NormalB $ var 'Link.glinks) []
-                        ]
-        tagToConsInst = typeInstance ''Term.TagToCons [cons' tagName]
-                        (cons' typeName)
-        consToTagInst = typeInstance ''Term.ConsToTag [cons' typeName]
-                        (cons' tagName)
-        -- showTag1Inst  = Tag.showTag1ConstInstance typeName conNameStr
         format        = TH.mkName
                       $ "Format" <> "." <> convert dataName
         formatInst    = typeInstance ''Format.Of [cons' tagName] (cons' format)
@@ -230,10 +207,7 @@ defineSingleCons needsSmartCons dataName con = do
          $ tagDecls
         <> instLens
         <> [ isTermTagInst
-           , tagToConsInst
-           , consToTagInst
            , formatInst
-        --    , showTag1Inst
            ]
         <> instStorable
         <> instStorable1
@@ -241,9 +215,6 @@ defineSingleCons needsSmartCons dataName con = do
 
         -- === Smart constructors === --
         <> (if needSmartCons then smartCons else [])
-
-        -- === Instances === --
-        <> [ linkProviderI ]
 
     where maybeNameStr :: MayHaveName a => a -> (Maybe String)
           maybeNameStr = fmap TH.nameBase . view maybeName
@@ -384,14 +355,6 @@ makeSmartConsGenBody fname varNum = do
 --       instance Term.IsUni ConsMissing where toUni = UniTermMissing
 --       instance ...
 --
---       instance Link.Provider1 UniTerm where
---           linksIO1 = Link.glinks ; {-# INLINE linksIO1 #-}
---
---       instance ShowTag1 UniTerm where
---           showTag1 (UniTermCons a) = showTag1 a
---           showTag1 (UniTermVar  a) = showTag1 a
---           ...
---
 makeUniTerm :: Q [Dec]
 makeUniTerm = do
     let unpackInst = \case
@@ -399,19 +362,15 @@ makeUniTerm = do
             _ -> error "impossible"
     termNames <- unpackInst <<$>> TH.reifyInstances ''Term.IsTermTag ["x"]
     let dataName      = "UniTerm"
-        mkCons n      = TH.NormalC consName [(unpackStrictAnn, TH.AppT (TH.ConT childName) "a")] where
+        mkCons n      = TH.NormalC consName [(unpackStrictAnn, TH.AppT (childName) "a")] where
             consName  = dataName <> n
-            childName = mkTypeName n
+            childName = app (cons' ''Term.Constructor) (cons' n)
         derivs        = [TH.DerivClause Nothing $ cons' <$> [''Show, ''Eq]]
         dataDecl      = TH.DataD [] dataName ["a"] Nothing (mkCons <$> termNames)
                         derivs
         isUniInst n   = TH.InstanceD Nothing []
-                        (TH.AppT (cons' ''Term.IsUni) (cons' $ mkTypeName n))
+                        (TH.AppT (cons' ''Term.IsUni) (app (cons' ''Term.Constructor) (cons' n)))
                         [TH.ValD "toUni" (TH.NormalB . cons' $ mkUniTermName n) []]
-        linkProviderI = TH.InstanceD Nothing []
-                        (TH.AppT (cons' ''Link.Provider1) (cons' dataName))
-                        [ TH.ValD (var 'Link.linksIO1) (TH.NormalB $ var 'Link.glinks) []
-                        ]
         isUniInsts   = isUniInst <$> termNames
     instStorable  <- Storable.derive'    dataDecl
     instStorable1 <- Storable1.derive'   dataDecl
@@ -422,7 +381,6 @@ makeUniTerm = do
         <> instStorable1
         <> instGtraverse
         <> isUniInsts
-        <> [ linkProviderI ]
 
 mkUniTermName :: (IsString a, Semigroup a) => a -> a
 mkUniTermName = ("UniTerm" <>)

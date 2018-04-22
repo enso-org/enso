@@ -31,16 +31,20 @@ class IsUni t where
 -- === Definition === --
 
 Component.define "Term"
-Tag.family "TermCons"
+Tag.family "TermTag"
 
 type SomeTerm = Term ()
 
-type family TagToCons tag = (cons :: Type -> Type) | cons -> tag
-type family ConsToTag (cons :: Type -> Type) = tag | tag  -> cons
-type TagConsInvariant tag cons =
-    ( cons ~ TagToCons tag
-    , tag  ~ ConsToTag cons
-    )
+
+-- === Term Constructor === --
+
+data family Constructor (term :: Type) (layout :: Type)
+
+type family TagToCons t where
+    TagToCons t = Constructor t
+
+type family ConsToTag a where
+    ConsToTag (Constructor t) = t
 
 
 -- === Discovery === --
@@ -51,7 +55,7 @@ class IsTermTag (t :: Type)
 
 -- === Instances === --
 
-type instance Layout.Merge (TermCons a) (TermCons b) = Merge__ a b
+type instance Layout.Merge (TermTag a) (TermTag b) = Merge__ a b
 type family Merge__ a b where
-    Merge__ a a = TermCons a
+    Merge__ a a = TermTag a
     -- Merge__ a b = -- TODO: when needed
