@@ -5,11 +5,13 @@ module Luna.IR.Term.Ast.Class where
 
 import Prologue hiding (Imp, seq)
 
-import qualified Foreign.Storable.Deriving         as Storable
-import qualified Luna.IR.Component.Term.Definition as Term
-import qualified Luna.IR.Term.Ast.Invalid          as Invalid
-import qualified Luna.IR.Term.Format               as Format
-import qualified OCI.Data.Name                     as Name
+import qualified Data.Generics.Traversable.Deriving as GTraversable
+import qualified Foreign.Storable.Deriving          as Storable
+import qualified Luna.IR.Component.Link             as Link
+import qualified Luna.IR.Component.Term.Definition  as Term
+import qualified Luna.IR.Term.Ast.Invalid           as Invalid
+import qualified Luna.IR.Term.Format                as Format
+import qualified OCI.Data.Name                      as Name
 
 import Data.Vector.Storable.Foreign      (Vector)
 import Luna.IR.Component.Term.Class      (Terms)
@@ -35,13 +37,15 @@ data ImportSourceData
     | Absolute (Vector Name)
     | World
     deriving (Eq, Generic, Show)
-Storable.derive ''ImportSourceData
+Storable.derive     ''ImportSourceData
+GTraversable.derive ''ImportSourceData
 
 data ImportTargetData
     = Everything
     | Listed (Vector Name)
     deriving (Eq, Generic, Show)
-Storable.derive ''ImportTargetData
+Storable.derive     ''ImportTargetData
+GTraversable.derive ''ImportTargetData
 
 
 -- === Definition === --
@@ -90,7 +94,8 @@ data ForeignImportType
     | Safe
     | Unsafe
     deriving (Eq, Generic, Show)
-Storable.derive ''ForeignImportType
+Storable.derive     ''ForeignImportType
+GTraversable.derive ''ForeignImportType
 
 Term.define [d|
  data Ast

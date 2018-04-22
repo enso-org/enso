@@ -5,11 +5,18 @@ module Luna.IR.Component.Link.Provider where
 import Prologue
 import Type.Data.Ord
 
-import qualified Data.PtrList.Mutable as PtrList
-import qualified OCI.IR.Layout        as Layout
+import qualified Data.PtrList.Mutable         as PtrList
+import qualified Data.Vector.Storable.Foreign as Foreign
+import qualified OCI.IR.Component             as Component
+import qualified OCI.IR.Layer                 as Layer
+import qualified OCI.IR.Layout                as Layout
 
 import Data.Generics.Traversable    (GTraversable, gfoldlM)
 import Luna.IR.Component.Link.Class (Link, SomeLink)
+import Luna.IR.Component.Term.Class (Term)
+import OCI.Data.Name                (Name)
+import OCI.IR.Layer                 (Layer)
+import OCI.IR.Layout                ((:=), Layout)
 
 
 
@@ -19,7 +26,7 @@ import Luna.IR.Component.Link.Class (Link, SomeLink)
 
 -- === Definition === --
 
-class Provider a where
+class Provider  a where
     linksIO :: a -> IO [SomeLink]
     linksIO = const $ pure mempty ; {-# INLINE linksIO #-}
 
@@ -41,14 +48,20 @@ glinks = gfoldlM @Provider (\acc a -> (acc <>) <$> links a) mempty ; {-# INLINE 
 
 -- === Redirect instances === --
 
+instance {-# OVERLAPPABLE #-} GTraversable Provider a => Provider a where
+    linksIO = glinks ; {-# INLINE linksIO #-}
+
 instance {-# OVERLAPPABLE #-} Provider1 a => Provider (a t1) where
     linksIO = linksIO1 ; {-# INLINE linksIO #-}
 
 
 -- === Std instances === --
 
-instance {-# OVERLAPPABLE #-} Provider  a
-instance {-# OVERLAPPABLE #-} Provider1 a
+instance Provider Bool
+instance Provider Name
+instance Provider Word8
+instance Provider Word64
+instance {-# OVERLAPPABLE #-} Provider (Foreign.Vector a)
 
 instance Provider1 Link where
     linksIO1 = pure . pure . Layout.relayout ; {-# INLINE linksIO1 #-}

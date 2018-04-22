@@ -361,19 +361,28 @@ makeSmartConsGenBody fname varNum = do
 --
 --   The generated code looks like:
 --
+--       -- === Definition === --
+--
 --       data UniTerm a
 --           = UniTermTop     !(ConsTop     a)
 --           | UniTermVar     !(ConsVar     a)
 --           | UniTermMissing !(ConsMissing a)
---           ...
+--           | ...
 --           deriving (Show, Eq)
 --       Storable.derive     ''UniTerm
 --       Storable1.derive    ''UniTerm
 --       GTraversable.derive ''UniTerm
 --
+--
+--       -- === Instances === --
+--
 --       instance Term.IsUni ConsTop     where toUni = UniTermTop
 --       instance Term.IsUni ConsVar     where toUni = UniTermVar
 --       instance Term.IsUni ConsMissing where toUni = UniTermMissing
+--       instance ...
+--
+--       instance Link.Provider1 UniTerm where
+--           linksIO1 = Link.glinks ; {-# INLINE linksIO1 #-}
 --
 makeUniTerm :: Q [Dec]
 makeUniTerm = do
@@ -381,16 +390,20 @@ makeUniTerm = do
             TH.InstanceD _ _ (TH.AppT _ (TH.ConT n)) _ -> n
             _ -> error "impossible"
     termNames <- unpackInst <<$>> TH.reifyInstances ''Term.IsTermTag ["x"]
-    let dataName     = "UniTerm"
-        mkCons n     = TH.NormalC consName [(unpackStrictAnn, TH.AppT (TH.ConT childName) "a")] where
+    let dataName      = "UniTerm"
+        mkCons n      = TH.NormalC consName [(unpackStrictAnn, TH.AppT (TH.ConT childName) "a")] where
             consName  = dataName <> n
             childName = mkTypeName n
-        derivs       = [TH.DerivClause Nothing $ cons' <$> [''Show, ''Eq]]
-        dataDecl     = TH.DataD [] dataName ["a"] Nothing (mkCons <$> termNames)
-                       derivs
-        isUniInst n  = TH.InstanceD Nothing []
-                       (TH.AppT (cons' ''Term.IsUni) (cons' $ mkTypeName n))
-                       [TH.ValD "toUni" (TH.NormalB . cons' $ mkUniTermName n) []]
+        derivs        = [TH.DerivClause Nothing $ cons' <$> [''Show, ''Eq]]
+        dataDecl      = TH.DataD [] dataName ["a"] Nothing (mkCons <$> termNames)
+                        derivs
+        isUniInst n   = TH.InstanceD Nothing []
+                        (TH.AppT (cons' ''Term.IsUni) (cons' $ mkTypeName n))
+                        [TH.ValD "toUni" (TH.NormalB . cons' $ mkUniTermName n) []]
+        linkProviderI = TH.InstanceD Nothing []
+                        (TH.AppT (cons' ''Link.Provider1) (cons' dataName))
+                        [ TH.ValD (var 'Link.linksIO1) (TH.NormalB $ var 'Link.glinks) []
+                        ]
         isUniInsts   = isUniInst <$> termNames
     instStorable  <- Storable.derive'    dataDecl
     instStorable1 <- Storable1.derive'   dataDecl
@@ -401,6 +414,7 @@ makeUniTerm = do
         <> instStorable1
         <> instGtraverse
         <> isUniInsts
+        <> [ linkProviderI ]
 
 mkUniTermName :: (IsString a, Semigroup a) => a -> a
 mkUniTermName = ("UniTerm" <>)

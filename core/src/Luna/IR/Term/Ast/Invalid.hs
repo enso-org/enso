@@ -1,8 +1,11 @@
+{-# LANGUAGE UndecidableInstances #-}
+
 module Luna.IR.Term.Ast.Invalid where
 
 import Prologue hiding (Symbol)
 
-import qualified Foreign.Storable.Deriving as Storable
+import qualified Data.Generics.Traversable.Deriving as GTraversable
+import qualified Foreign.Storable.Deriving          as Storable
 
 
 -----------------------------
@@ -19,5 +22,6 @@ data Symbol
     | CaselessNameHead
     deriving (Eq, Ord, Generic, Show)
 
-Storable.derive ''Symbol
+Storable.derive     ''Symbol
+GTraversable.derive ''Symbol
 instance NFData Symbol

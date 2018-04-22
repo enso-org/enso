@@ -102,10 +102,12 @@ irCreationSpec = describe "ir creation" $ do
         rsrc         <- Layer.read @IR.Source r
         ltgt         <- Layer.read @IR.Target l
         rtgt         <- Layer.read @IR.Target r
+        lnks         <- IR.inputs u1
         lsrc `shouldBe` v1
         ltgt `shouldBe` u1
         rsrc `shouldBe` v2
         rtgt `shouldBe` u1
+        lnks `shouldBe` (Layout.relayout <$> [l,r])
 
     it "users layer" $ runPass' $ do
         v1           <- IR.var "a"
