@@ -12,7 +12,7 @@ import qualified Data.Char as Char
 
 dataWithAlias :: Name -> Name -> Name -> [TH.Dec]
 dataWithAlias dataName aliasName aliasCons = [dataDecl, aliasDecl]
-    where dataDecl  = data' dataName
+    where dataDecl  = convert $ data'' dataName & derivs .~ [TH.DerivClause Nothing [cons' ''Generic]]
           aliasDecl = alias aliasName $ app (cons' aliasCons) (cons' dataName)
 
 
@@ -69,18 +69,3 @@ familyWithInstances famNameStr subTypeNamesStr = mainDecls <> subDecls
 class Family a where family :: String -> a
 instance t ~ [String] => Family (t -> Q [TH.Dec]) where family = return .: familyWithInstances
 instance                 Family      (Q [TH.Dec]) where family = return .  familyHeader
-
--- | Create a ShowTag1 instance ignoring the value and returning a constant tag.
---   `Tag.showTag1ConstInstance ''Foo "Bar"` will generate:
---   > instance ShowTag1 Foo where
---   >     showTag1 _ = convert "Bar" ; {-# INLINE showTag1 #-}
-showTag1ConstInstance :: Name -> String -> TH.Dec
-showTag1ConstInstance typeName tagName = inst where
-    inst           = classInstance ''ShowTag1 typeName [] definition
-    definition     = [funDefinition, inlinePragma]
-    funDefinition  = TH.FunD 'showTag1 implementation
-    implementation = [THBuilder.clause [TH.WildP]
-                                       (app (var 'convert)
-                                            (TH.LitE $ TH.StringL tagName))
-                                       []]
-    inlinePragma   = THBuilder.inline TH.FunLike 'showTag1

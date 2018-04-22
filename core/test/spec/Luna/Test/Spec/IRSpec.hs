@@ -26,6 +26,7 @@ import Luna.Pass              (Pass)
 import Test.Hspec             (Expectation, Spec, describe, it)
 
 
+
 -----------------------
 -- === Test pass === --
 -----------------------
@@ -75,7 +76,6 @@ run2Passes' p1 p2 = runPasses [p1,p2]
 
 
 -------------------
--- === Tests === --
 -------------------
 
 nameSpec :: Spec
@@ -89,9 +89,11 @@ nameSpec = describe "names" $ do
 irCreationSpec :: Spec
 irCreationSpec = describe "ir creation" $ do
     it "single term" $ runPass' $ do
-        v <- IR.var "a"
-        m <- Layer.read @IR.Model v
-        m `shouldBe` IR.UniTermVar (IR.Var "a")
+        v   <- IR.var "a"
+        m   <- Layer.read @IR.Model v
+        tag <- IR.showTag <$> Layer.read @IR.Model v
+        m   `shouldBe` IR.UniTermVar (IR.Var "a")
+        tag `shouldBe` "VAR"
 
     it "complex term" $ runPass' $ do
         v1           <- IR.var "a"
@@ -102,7 +104,6 @@ irCreationSpec = describe "ir creation" $ do
         rsrc         <- Layer.read @IR.Source r
         ltgt         <- Layer.read @IR.Target l
         rtgt         <- Layer.read @IR.Target r
-        lnks         <- IR.inputs u1
         lsrc `shouldBe` v1
         ltgt `shouldBe` u1
         rsrc `shouldBe` v2
@@ -130,7 +131,6 @@ irDisposeSpec = describe "ir dispose" $ do
     it "simple" $ runPass' $ do
         v <- IR.var "a"
         IR.dispose v
-
 
 spec :: Spec
 spec = do

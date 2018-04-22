@@ -9,10 +9,12 @@ import Luna.IR.Term.Core    as X
 import Luna.IR.Term.Format  as X (Ast, Draft, Literal, Phrase, Thunk, Value)
 import Luna.IR.Term.Literal as X
 
+import qualified Data.Generics.Traversable         as GTraversable
 import qualified Luna.IR.Component.Link            as Link
 import qualified Luna.IR.Component.Term.Class      as Term
 import qualified Luna.IR.Component.Term.Definition as Term
 import qualified OCI.IR.Layer                      as Layer
+
 
 
 ----------------------
@@ -33,3 +35,7 @@ type instance Term.Uni = UniTerm
 
 instance Link.Provider1 UniTerm where
     linksIO1 = Link.glinks ; {-# INLINE linksIO1 #-}
+
+instance StyledShow Term.TagOnly (UniTerm a) where
+    styledShow _ = GTraversable.gfoldl' @Term.ShowTag f mempty where
+        f acc a = acc <> Term.showTag a

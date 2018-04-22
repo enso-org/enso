@@ -47,5 +47,3 @@ inputs = Link.links1 <=< Layer.read @Model ; {-# INLINE inputs #-}
 instance (Term.IsUni t, Layer.IsUnwrapped Term.Uni)
       => Layer.IsCons1 Model t where
     cons1 = Term.toUni ; {-# INLINE cons1 #-}
-
-

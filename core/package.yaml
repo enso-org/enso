@@ -116,6 +116,8 @@ tests:
             - luna-core
             - prologue
 
+            - luna-typelevel
+
 default-extensions:
     - AllowAmbiguousTypes
     - ApplicativeDo

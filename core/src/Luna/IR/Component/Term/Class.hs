@@ -9,6 +9,7 @@ import qualified Data.Tag         as Tag
 import qualified OCI.IR.Component as Component
 import qualified OCI.IR.Layer     as Layer
 import qualified OCI.IR.Layout    as Layout
+import qualified Type.Show        as Type
 
 
 ---------------------
@@ -38,7 +39,7 @@ type SomeTerm = Term ()
 
 -- === Term Constructor === --
 
-data family Constructor (term :: Type) (layout :: Type)
+data family Constructor (tag :: Type) (layout :: Type)
 
 type family TagToCons t where
     TagToCons t = Constructor t
@@ -59,3 +60,20 @@ type instance Layout.Merge (TermTag a) (TermTag b) = Merge__ a b
 type family Merge__ a b where
     Merge__ a a = TermTag a
     -- Merge__ a b = -- TODO: when needed
+
+
+
+---------------------
+-- === TagShow === --
+---------------------
+
+data TagOnly = TagOnly
+type ShowTag = StyledShow TagOnly
+type instance StyledShowOutput TagOnly = Text
+
+instance (Tag.Tag fam name ~ tag, Type.Show name)
+    => StyledShow TagOnly (Constructor tag layout) where
+    styledShow _ _ = convert $ Type.show @name
+
+showTag :: ShowTag a => a -> Text
+showTag = styledShow TagOnly ; {-# INLINE showTag #-}
