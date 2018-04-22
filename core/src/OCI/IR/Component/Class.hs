@@ -66,9 +66,6 @@ dealloc comp = do
     MemPool.free pool $ unwrap comp
 {-# INLINE dealloc #-}
 
-dispose :: Creator comp m => Component comp layout -> m ()
-dispose = destruct ; {-# INLINE dispose #-}
-
 instance Creator comp m => Data.Constructor1 () (Component comp) m where
     construct1 _ = do
         ir    <- alloc
