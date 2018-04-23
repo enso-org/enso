@@ -1,3 +1,4 @@
+{-# LANGUAGE TypeInType           #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module OCI.Pass.Interface where
@@ -27,9 +28,19 @@ import qualified OCI.Pass.Definition as Pass
 -- > test :: Pass.Interface Analysis m => m ()
 -- > test = ...
 --
+--   It is also possible to list multiple interfaces using the same API, like:
+--
+-- > test :: Pass.Interface '[Analysis, Simplification] m => m ()
+-- > test = ...
 
-type family Interface pass m :: Constraint where
-    Interface pass m = Interface__ pass m
+type family   Interface (pass :: k) (m :: Type -> Type) :: Constraint
+type instance Interface passes m = Interfaces  passes m
+type instance Interface pass   m = Interface__ pass   m
+
+type family Interfaces passes m :: Constraint where
+    Interfaces '[]       m = ()
+    Interfaces (i ': is) m = (Interface__ i m, Interfaces is m)
+
 
 type Interface__ pass m =
     ( MapCompIface Layer.Reader m pass (Pass.Ins  pass Pass.Elems)
