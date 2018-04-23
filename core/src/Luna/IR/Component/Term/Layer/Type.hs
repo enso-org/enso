@@ -32,7 +32,7 @@ import OCI.IR.Layer                 (Layer)
 -- === Type === --
 ------------------
 
-data Type
+data Type deriving (Generic)
 instance Layer  Type where
     type Cons   Type = Link
     type Layout Type layout = Layout.Get Type layout *-* layout

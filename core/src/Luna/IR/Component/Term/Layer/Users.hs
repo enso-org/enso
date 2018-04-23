@@ -33,7 +33,7 @@ import OCI.IR.Layer                       (Layer)
 -- === Users === --
 -------------------
 
-data Users
+data Users deriving (Generic)
 instance Layer  Users where
     type Cons   Users = Link.Set
     type Layout Users layout = layout *-* Layout.Set Model () layout

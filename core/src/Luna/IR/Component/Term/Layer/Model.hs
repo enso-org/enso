@@ -22,7 +22,7 @@ import OCI.IR.Layer                 (Layer)
 
 -- === Definition === --
 
-data Model
+data Model deriving (Generic)
 instance Data.ShallowDestructor1 IO Term.Uni => Layer Model where
     type Cons  Model        = Term.Uni
     type View  Model layout = Term.TagToCons (Layout.Get Model layout)

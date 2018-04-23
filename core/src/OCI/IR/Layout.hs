@@ -2,18 +2,18 @@
 {-# LANGUAGE UndecidableInstances #-}
 
 module OCI.IR.Layout (module OCI.IR.Layout, module X) where
-import Type.Data.Map as X ((:=))
+import Type.Data.Map.Generic as X ((:=))
 
 import Prologue hiding (Default)
 
-import qualified Type.Data.Map as Map
+import qualified Type.Data.Map.Generic as Map
 
 import Data.Tag
-import Type.Data.Bool     (And)
-import Type.Data.Map      (Map)
+import Type.Data.Bool        (And)
+import Type.Data.Map.Generic (Map)
 import Type.Data.Maybe
 import Type.Data.Ord
-import Type.Data.Property hiding (Set)
+import Type.Data.Property    hiding (Set)
 
 
 

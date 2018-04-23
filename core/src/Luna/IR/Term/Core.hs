@@ -73,21 +73,3 @@ top = Term.uncheckedUntypedNewM $ \self -> do
 
 instance Term.Creator Top m => Term.DefaultType m where
     defaultType = coerce <$> top ; {-# INLINE defaultType #-}
-
-
-
--------------------------
--- === TO AUTOMATE === --
--------------------------
-
-type instance Cmp Model Terms = 'LT
-type instance Cmp Terms Model = 'GT
-
-type instance Cmp Model Names = 'LT
-type instance Cmp Names Model = 'GT
-
-type instance Cmp Names Terms = 'LT
-type instance Cmp Terms Names = 'GT
-
-
-
