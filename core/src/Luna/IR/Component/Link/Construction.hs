@@ -1,7 +1,6 @@
 module Luna.IR.Component.Link.Construction where
 
 import Prologue
-import Type.Data.Ord
 
 import qualified Data.Set.Mutable.Class as Set
 import qualified OCI.IR.Component       as Component
@@ -11,7 +10,6 @@ import qualified OCI.IR.Layout          as Layout
 import Luna.IR.Component.Link.Class
 import Luna.IR.Component.Term.Class (Term, Terms)
 import Luna.IR.Component.Term.Layer (Users)
-import OCI.IR.Layout                ((:=), Layout)
 
 
 

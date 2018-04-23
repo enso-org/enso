@@ -1,4 +1,5 @@
 {-# LANGUAGE UndecidableInstances #-}
+{-# OPTIONS_GHC -Wno-unused-foralls #-}
 
 module Luna.IR.Term.Literal where
 

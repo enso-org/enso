@@ -2,15 +2,12 @@
 
 module Luna.IR.Component.Term.Layout where
 
-import Prologue
-
 import qualified Luna.IR.Component.Term.Class as Term
 import qualified OCI.IR.Layout                as Layout
 
 import Luna.IR.Component.Term.Class       (Terms)
 import Luna.IR.Component.Term.Layer.Model (Model)
 import OCI.IR.Layout                      ((:=), Layout)
-
 
 
 

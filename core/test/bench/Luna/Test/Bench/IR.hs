@@ -4,12 +4,9 @@ module Luna.Test.Bench.IR where
 
 import Prologue
 
-import qualified Control.Monad.Exception     as Exception
 import qualified Control.Monad.State.Layered as State
 import qualified Criterion.Main              as Criterion
 import qualified Criterion.Measurement       as Criterion
-import qualified Criterion.Types             as Criterion hiding (measure)
-import qualified Data.List                   as List
 import qualified Data.Tuple.Strict           as Tuple
 import qualified Data.TypeMap.Strict         as TypeMap
 import qualified Foreign.Marshal.Alloc       as Ptr
@@ -17,7 +14,6 @@ import qualified Foreign.Marshal.Utils       as Ptr
 import qualified Foreign.Memory.Pool         as MemPool
 import qualified Foreign.Storable            as Storable
 import qualified Luna.IR                     as IR
-import qualified Luna.IR.Layer               as Layer
 import qualified Luna.IR.Term.Format         as Format
 import qualified Luna.Pass                   as Pass
 import qualified Luna.Pass.Scheduler         as Scheduler
@@ -27,8 +23,6 @@ import qualified OCI.Pass.Definition         as Pass
 import qualified OCI.Pass.Encoder            as Encoder
 import qualified OCI.Pass.Registry           as Registry
 import qualified System.Console.ANSI         as ANSI
-
-import qualified Data.PtrSet.Mutable as PtrSet
 
 import Control.DeepSeq   (force)
 import Control.Exception (evaluate)
@@ -58,7 +52,7 @@ timeIt :: NFData a => IO a -> IO Double
 timeIt act = do
     start <- Criterion.getTime
     out <- act
-    evaluate . force $ out
+    void . evaluate . force $ out
     end <- Criterion.getTime
     pure $ end - start
 
@@ -70,15 +64,15 @@ checkToRef exp percAllow ref f = do
     stime <- timeItExp exp $ ref ^. func
     btime <- timeItExp exp $ f   ^. func
     if (btime < stime)
-        then return True
-        else return $ ((btime - stime) / stime) * 100 < percAllow
+        then pure True
+        else pure $ ((btime - stime) / stime) * 100 < percAllow
 
 checkRetry :: IO Bool -> IO (Either Int Int)
 checkRetry = checkRetry' 1 where
     checkRetry' n f = if n > maxRetries
-        then return $ Left maxRetries
+        then pure $ Left maxRetries
         else f >>= \case
-            True  -> return $ Right n
+            True  -> pure $ Right n
             False -> checkRetry' (n + 1) f
 
 assertBenchToRef :: String -> Int -> Double -> Bench -> Bench -> IO Bool
@@ -90,11 +84,11 @@ assertBenchToRef str exp percAllow ref f = do
         Left n -> do
             ANSI.cursorUpLine 1
             printStatus "FAIL" n ANSI.Red
-            return False
+            pure False
         Right n -> do
             ANSI.cursorUpLine 1
             printStatus "PASS" n ANSI.Green
-            return True
+            pure True
 
 printStatus :: String -> Int -> ANSI.Color -> IO ()
 printStatus status n color = do
@@ -166,7 +160,7 @@ readWrite_cptr = Bench "cptr" $ void . c_ptr_rwloop 1 ; {-# INLINE readWrite_cpt
 readWrite_ptr :: Bench
 readWrite_ptr = Bench "rawPtr" $ \i -> do
     !ptr <- Ptr.new (0 :: Int)
-    let go !0 = return ()
+    let go !0 = pure ()
         go !j = do
             !x <- Storable.peek ptr
             Storable.poke ptr $! x + 1
@@ -248,7 +242,7 @@ createIR_mallocPtr :: Bench
 createIR_mallocPtr = Bench "mallocPtr" $ \i -> do
     let go !0 = pure ()
         go !j = do
-            !ptr <- Ptr.new (0 :: Int)
+            !_ <- Ptr.new (0 :: Int)
             go $! j - 1
     go i
 {-# NOINLINE createIR_mallocPtr #-}
@@ -257,7 +251,7 @@ createIR_normal :: Bench
 createIR_normal = Bench "normal" $ \i -> runPass' $ do
     let go !0 = pure ()
         go !j = do
-            !ir <- IR.var 0
+            !_ <- IR.var 0
             go $! j - 1
     go i
 {-# NOINLINE createIR_normal #-}
@@ -269,7 +263,7 @@ createIR_normal = Bench "normal" $ \i -> runPass' $ do
 
 -- test :: Bench
 -- test = Bench "test" $ \i -> do
---     let go !0 = return ()
+--     let go !0 = pure ()
 --         go !j = do
 --             (s :: PtrSet.UnmanagedPtrSet ()) <- PtrSet.new
 --             go $! j - 1

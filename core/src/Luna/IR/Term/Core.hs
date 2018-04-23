@@ -1,12 +1,12 @@
 {-# LANGUAGE TypeInType           #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# OPTIONS_GHC -Wno-unused-foralls #-}
 
 module Luna.IR.Term.Core where
 
 import Prologue
 
 import qualified Luna.IR.Component.Link              as Link
-import qualified Luna.IR.Component.Term.Class        as Term
 import qualified Luna.IR.Component.Term.Construction as Term
 import qualified Luna.IR.Component.Term.Definition   as Term
 import qualified Luna.IR.Component.Term.Layer        as Layer
@@ -18,10 +18,8 @@ import Data.PtrList.Mutable              (UnmanagedPtrList)
 import Data.Vector.Storable.Foreign      (Vector)
 import Luna.IR.Component.Term.Class      (Term, Terms)
 import Luna.IR.Component.Term.Definition (LinkTo)
-import Luna.IR.Component.Term.Layer      (Model)
-import Luna.IR.Component.Term.Layout     (Names)
+import Luna.IR.Component.Term.Layout     ()
 import OCI.Data.Name                     (Name)
-import Type.Data.Ord                     (Cmp)
 
 type LinkListTo a = UnmanagedPtrList (LinkTo a)
 

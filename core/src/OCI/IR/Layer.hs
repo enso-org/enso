@@ -6,17 +6,13 @@ module OCI.IR.Layer where
 
 import Prologue hiding (Data, Wrapped)
 
-import qualified Control.Lens               as Lens
-import qualified Data.Construction          as Data
-import qualified Foreign.Storable           as Storable
-import qualified Foreign.Storable.Utils     as Storable
-import qualified Foreign.Storable1          as Storable1
-import qualified Foreign.Storable1          as Storable1
-import qualified Foreign.Storable1.Deriving as Storable1
-import qualified OCI.IR.Component           as Component
-import qualified OCI.Pass.Definition        as Pass
+import qualified Control.Lens        as Lens
+import qualified Data.Construction   as Data
+import qualified Foreign.Storable    as Storable
+import qualified Foreign.Storable1   as Storable1
+import qualified OCI.Pass.Definition as Pass
 
-import Foreign.Ptr            (Ptr, plusPtr)
+import Foreign.Ptr            (plusPtr)
 import Foreign.Ptr.Utils      (SomePtr)
 import Foreign.Storable.Utils (sizeOf')
 import Foreign.Storable1      (Storable1)
@@ -188,34 +184,37 @@ class Monad m => Writer comp layer m where
 
 -- === API === --
 
-#define CTX ∀ layer comp layout m.  \
-        ( StorableData layer        \
-        , Wrapped (Cons layer)      \
-        , MonadIO m                 \
-        )
+type StorableLayer layer m =
+    ( StorableData layer
+    , Wrapped (Cons layer)
+    , MonadIO m
+    )
 
-unsafePeekWrapped :: CTX => SomePtr -> m (WrappedData layer layout)
-unsafePokeWrapped :: CTX => SomePtr ->   (WrappedData layer layout) -> m ()
+#define CTX1 ∀ layer      layout m. StorableLayer layer m
+#define CTX2 ∀ layer comp layout m. StorableLayer layer m
+
+unsafePeekWrapped :: CTX1 => SomePtr -> m (WrappedData layer layout)
+unsafePokeWrapped :: CTX1 => SomePtr ->   (WrappedData layer layout) -> m ()
 unsafePeekWrapped !ptr = liftIO $ Storable1.peek (coerce ptr) ; {-# INLINE unsafePeekWrapped #-}
 unsafePokeWrapped !ptr = liftIO . Storable1.poke (coerce ptr) ; {-# INLINE unsafePokeWrapped #-}
 
-unsafePeek :: CTX => SomePtr -> m (Data layer layout)
-unsafePeek !p = view (from shape) <$> unsafePeekWrapped @layer @comp @layout p ; {-# INLINE unsafePeek #-}
-unsafePoke :: CTX => SomePtr -> (Data layer layout) -> m ()
-unsafePoke !p d = unsafePokeWrapped @layer @comp @layout p $ view shape d ; {-# INLINE unsafePoke #-}
+unsafePeek :: CTX1 => SomePtr -> m (Data layer layout)
+unsafePeek !p = view (from shape) <$> unsafePeekWrapped @layer @layout p ; {-# INLINE unsafePeek #-}
+unsafePoke :: CTX1 => SomePtr -> (Data layer layout) -> m ()
+unsafePoke !p d = unsafePokeWrapped @layer @layout p $ view shape d ; {-# INLINE unsafePoke #-}
 
-unsafePeekByteOff :: CTX => Int -> SomePtr -> m (Data layer layout)
-unsafePokeByteOff :: CTX => Int -> SomePtr ->   (Data layer layout) -> m ()
-unsafePeekByteOff !d !ptr = unsafePeek @layer @comp @layout (ptr `plusPtr` d) ; {-# INLINE unsafePeekByteOff #-}
-unsafePokeByteOff !d !ptr = unsafePoke @layer @comp @layout (ptr `plusPtr` d) ; {-# INLINE unsafePokeByteOff #-}
+unsafePeekByteOff :: CTX1 => Int -> SomePtr -> m (Data layer layout)
+unsafePokeByteOff :: CTX1 => Int -> SomePtr ->   (Data layer layout) -> m ()
+unsafePeekByteOff !d !ptr = unsafePeek @layer @layout (ptr `plusPtr` d) ; {-# INLINE unsafePeekByteOff #-}
+unsafePokeByteOff !d !ptr = unsafePoke @layer @layout (ptr `plusPtr` d) ; {-# INLINE unsafePokeByteOff #-}
 
-unsafeReadByteOff :: CTX => Int -> Component comp layout
+unsafeReadByteOff :: CTX2 => Int -> Component comp layout
                          -> m (Data layer layout)
-unsafeReadByteOff  !d = unsafePeekByteOff @layer @comp @layout d . coerce ; {-# INLINE unsafeReadByteOff  #-}
+unsafeReadByteOff  !d = unsafePeekByteOff @layer @layout d . coerce ; {-# INLINE unsafeReadByteOff  #-}
 
-unsafeWriteByteOff :: CTX => Int -> Component comp layout
+unsafeWriteByteOff :: CTX2 => Int -> Component comp layout
                           -> (Data layer layout) -> m ()
-unsafeWriteByteOff !d = unsafePokeByteOff @layer @comp @layout d . coerce ; {-# INLINE unsafeWriteByteOff #-}
+unsafeWriteByteOff !d = unsafePokeByteOff @layer @layout d . coerce ; {-# INLINE unsafeWriteByteOff #-}
 
 read :: ∀ layer comp layout m. Reader comp layer m
      => Component comp layout -> m (Data layer layout)
@@ -225,7 +224,8 @@ write :: ∀ layer comp layout m. Writer comp layer m
       => Component comp layout -> Data layer layout -> m ()
 write = write__ @comp @layer @m ; {-# INLINE write #-}
 
-#undef CTX
+#undef CTX1
+#undef CTX2
 
 
 -- === Instances === --
@@ -301,33 +301,32 @@ class ViewWriter comp layer layout m where
 
 -- === API === --
 
-#define CTX ∀ layer comp layout m.  \
-        ( StorableView layer layout \
-        , MonadIO m                 \
-        )
+type StorableLayerView layer layout m =
+    ( StorableView layer layout
+    , MonadIO m
+    )
 
-unsafePeekView :: CTX => SomePtr -> m (ViewData layer layout)
-unsafePokeView :: CTX => SomePtr ->   (ViewData layer layout) -> m ()
+#define CTX1 ∀ layer      layout m. StorableLayerView layer layout m
+#define CTX2 ∀ layer comp layout m. StorableLayerView layer layout m
+
+unsafePeekView :: CTX1 => SomePtr -> m (ViewData layer layout)
+unsafePokeView :: CTX1 => SomePtr ->   (ViewData layer layout) -> m ()
 unsafePeekView !ptr = liftIO $ Storable1.peekByteOff (coerce ptr) consByteSize; {-# INLINE unsafePeekView #-}
 unsafePokeView !ptr = liftIO . Storable1.pokeByteOff (coerce ptr) consByteSize; {-# INLINE unsafePokeView #-}
 
-unsafePeekViewByteOff :: CTX => Int -> SomePtr -> m (ViewData layer layout)
-unsafePokeViewByteOff :: CTX => Int -> SomePtr -> ViewData layer layout -> m ()
-unsafePeekViewByteOff !d !ptr = unsafePeekView @layer @comp @layout
-                              $ ptr `plusPtr` d
-unsafePokeViewByteOff !d !ptr = unsafePokeView @layer @comp @layout
-                              $ ptr `plusPtr` d
+unsafePeekViewByteOff :: CTX1 => Int -> SomePtr -> m (ViewData layer layout)
+unsafePokeViewByteOff :: CTX1 => Int -> SomePtr -> ViewData layer layout -> m ()
+unsafePeekViewByteOff !d !ptr = unsafePeekView @layer @layout $ ptr `plusPtr` d
+unsafePokeViewByteOff !d !ptr = unsafePokeView @layer @layout $ ptr `plusPtr` d
 {-# INLINE unsafePeekViewByteOff #-}
 {-# INLINE unsafePokeViewByteOff #-}
 
-unsafeReadViewByteOff :: CTX => Int -> Component comp layout
+unsafeReadViewByteOff :: CTX2 => Int -> Component comp layout
                       -> m (ViewData layer layout)
-unsafeReadViewByteOff !d = unsafePeekViewByteOff @layer @comp @layout d
-                         . coerce
-unsafeWriteViewByteOff :: CTX => Int -> Component comp layout
+unsafeReadViewByteOff !d = unsafePeekViewByteOff @layer @layout d . coerce
+unsafeWriteViewByteOff :: CTX2 => Int -> Component comp layout
                        -> (ViewData layer layout) -> m ()
-unsafeWriteViewByteOff !d = unsafePokeViewByteOff @layer @comp @layout d
-                          . coerce
+unsafeWriteViewByteOff !d = unsafePokeViewByteOff @layer @layout d . coerce
 {-# INLINE unsafeReadViewByteOff  #-}
 {-# INLINE unsafeWriteViewByteOff #-}
 
@@ -339,7 +338,8 @@ writeView :: ∀ layer comp layout m. ViewWriter comp layer layout m
           => Component comp layout -> ViewData layer layout -> m ()
 writeView = writeView__ @comp @layer @layout @m ; {-# INLINE writeView #-}
 
-#undef CTX
+#undef CTX1
+#undef CTX2
 
 
 -- === Instances === --

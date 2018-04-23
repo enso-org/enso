@@ -1,19 +1,16 @@
 {-# LANGUAGE UndecidableInstances #-}
+{-# OPTIONS_GHC -Wno-missing-signatures #-}
 
 module Main where
 
 import Prologue
 
-import qualified Luna.IR             as IR
-import qualified Luna.IR.Layer       as Layer
 import qualified Luna.Pass           as Pass
-import qualified Luna.Pass.Attr      as Attr
 import qualified Luna.Pass.Scheduler as Scheduler
 import qualified Luna.Runner         as Runner
 import qualified Luna.Test.Bench.IR  as IRBench
-import qualified OCI.Pass.Registry   as Registry
 
-import Criterion.Measurement (getTime, initializeTime)
+import Criterion.Measurement (initializeTime)
 import Luna.Pass             (Pass)
 import System.IO             (BufferMode (NoBuffering), hSetBuffering, stdout)
 

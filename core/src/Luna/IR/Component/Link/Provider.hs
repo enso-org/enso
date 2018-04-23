@@ -3,20 +3,15 @@
 module Luna.IR.Component.Link.Provider where
 
 import Prologue
-import Type.Data.Ord
 
 import qualified Data.PtrList.Mutable         as PtrList
 import qualified Data.Vector.Storable.Foreign as Foreign
 import qualified Luna.IR.Component.Term.Class as Term
-import qualified OCI.IR.Component             as Component
-import qualified OCI.IR.Layer                 as Layer
 import qualified OCI.IR.Layout                as Layout
 
 import Data.Generics.Traversable    (GTraversable, gfoldlM)
 import Luna.IR.Component.Link.Class (Link, SomeLink)
 import OCI.Data.Name                (Name)
-import OCI.IR.Layer                 (Layer)
-import OCI.IR.Layout                ((:=), Layout)
 
 
 

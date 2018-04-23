@@ -1,4 +1,5 @@
 {-# LANGUAGE UndecidableInstances #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
 
 module Luna.IR.Term (module Luna.IR.Term, module X) where
 
@@ -14,7 +15,6 @@ import qualified Data.Generics.Traversable         as GTraversable
 import qualified Luna.IR.Component.Link            as Link
 import qualified Luna.IR.Component.Term.Class      as Term
 import qualified Luna.IR.Component.Term.Definition as Term
-import qualified OCI.IR.Layer                      as Layer
 
 import Data.Generics.Traversable (GTraversable)
 

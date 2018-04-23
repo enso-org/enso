@@ -54,7 +54,7 @@ modify   :: ∀ attr m t. Editor attr m => (attr ->   (t, attr)) -> m t
 modify_  :: ∀ attr m.   Editor attr m => (attr ->       attr)  -> m ()
 modifyM_  = modifyM  . (fmap.fmap) ((),) ; {-# INLINE modifyM_ #-}
 modify    = modifyM  . fmap pure         ; {-# INLINE modify   #-}
-modify_   = modifyM_ . fmap return       ; {-# INLINE modify_  #-}
+modify_   = modifyM_ . fmap pure         ; {-# INLINE modify_  #-}
 modifyM f = do (!t,!a) <- f =<< get
                t <$ put a
 {-# INLINE modifyM #-}
@@ -64,7 +64,7 @@ with          :: ∀ attr m a. Editor attr m =>  attr            -> m a -> m a
 withModified  :: ∀ attr m a. Editor attr m => (attr ->   attr) -> m a -> m a
 withModifiedM :: ∀ attr m a. Editor attr m => (attr -> m attr) -> m a -> m a
 with              = withModified  . const          ; {-# INLINE with          #-}
-withModified      = withModifiedM . fmap return    ; {-# INLINE withModified  #-}
+withModified      = withModifiedM . fmap pure      ; {-# INLINE withModified  #-}
 withModifiedM f m = branch @attr $ modifyM_ f >> m ; {-# INLINE withModifiedM #-}
 branch          m = do s <- get @attr
                        m <* put s

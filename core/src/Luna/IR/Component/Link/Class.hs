@@ -3,13 +3,11 @@
 module Luna.IR.Component.Link.Class where
 
 import Prologue
-import Type.Data.Ord
 
 import qualified OCI.IR.Component as Component
 import qualified OCI.IR.Layer     as Layer
 import qualified OCI.IR.Layout    as Layout
 
-import Data.Generics.Traversable    (GTraversable, gfoldlM)
 import Luna.IR.Component.Term.Class (Term)
 import OCI.IR.Layer                 (Layer)
 import OCI.IR.Layout                ((:=), Layout)

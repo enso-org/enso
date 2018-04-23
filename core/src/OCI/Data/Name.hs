@@ -1,10 +1,10 @@
 {-# LANGUAGE UndecidableInstances #-}
 
 module OCI.Data.Name where
+import OCI.Data.Name.Instances ()
 
 import Prologue
 
-import qualified Data.Construction                  as Data
 import qualified Data.Generics.Traversable.Deriving as GTraversable
 import qualified Data.IntMap.Strict                 as IntMap
 import qualified FastString                         as FastString
@@ -20,18 +20,6 @@ import GHC.IO.Unsafe    (unsafeDupablePerformIO)
 import Outputable       (Outputable)
 import System.IO.Unsafe (unsafePerformIO)
 import Unique           (Uniquable)
-
-
-
-------------------------
--- === FastString === --
-------------------------
-
--- === Missing instances === --
-
-instance Convertible String     FastString where convert = fromString          ; {-# INLINE convert #-}
-instance Convertible FastString String     where convert = FastString.unpackFS ; {-# INLINE convert #-}
-instance Semigroup   FastString            where (<>)    = FastString.appendFS ; {-# INLINE (<>)    #-}
 
 
 
@@ -122,7 +110,7 @@ registerName !name = out where
         let nameRef = convertTo @Name name
         atomicModifyIORef' nameMap
             $ (,()) . (wrapped %~ IntMap.insert (coerce nameRef) name)
-        return name
+        pure name
 {-# NOINLINE registerName #-}
 
 

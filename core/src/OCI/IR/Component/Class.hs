@@ -4,24 +4,20 @@
 module OCI.IR.Component.Class (module OCI.IR.Component.Class, module X) where
 import Data.Construction as X (destruct, destruct1, new, new1)
 
-import Prologue hiding (Castable, ConversionError)
+import Prologue hiding (ConversionError)
 
 import qualified Data.Construction          as Data
 import qualified Data.Tag                   as Tag
 import qualified Foreign.Marshal.Utils      as Mem
 import qualified Foreign.Memory.Pool        as MemPool
 import qualified Foreign.Ptr                as Ptr
-import qualified Foreign.Storable           as Storable
-import qualified Foreign.Storable1          as Storable1
 import qualified Foreign.Storable1.Deriving as Storable1
 import qualified Language.Haskell.TH        as TH
 import qualified OCI.Pass.Definition        as Pass
-import qualified Type.Error                 as Error
 
 import Foreign.Ptr.Utils (SomePtr)
 import Foreign.Storable  (Storable)
 import OCI.IR.Layout     (Relayout, UnsafeRelayout)
-import Type.Error        ((:<+>:))
 
 
 

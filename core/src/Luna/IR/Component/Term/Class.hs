@@ -5,12 +5,10 @@ module Luna.IR.Component.Term.Class where
 
 import Prologue
 
-import qualified Data.Construction as Data
-import qualified Data.Tag          as Tag
-import qualified OCI.IR.Component  as Component
-import qualified OCI.IR.Layer      as Layer
-import qualified OCI.IR.Layout     as Layout
-import qualified Type.Show         as Type
+import qualified Data.Tag         as Tag
+import qualified OCI.IR.Component as Component
+import qualified OCI.IR.Layout    as Layout
+import qualified Type.Show        as Type
 
 
 

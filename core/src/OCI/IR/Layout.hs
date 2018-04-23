@@ -8,12 +8,7 @@ import Prologue hiding (Default)
 
 import qualified Type.Data.Map.Generic as Map
 
-import Data.Tag
-import Type.Data.Bool        (And)
-import Type.Data.Map.Generic (Map)
 import Type.Data.Maybe
-import Type.Data.Ord
-import Type.Data.Property    hiding (Set)
 
 
 

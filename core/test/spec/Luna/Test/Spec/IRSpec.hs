@@ -1,31 +1,24 @@
 {-# LANGUAGE OverloadedStrings    #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# OPTIONS_GHC -Wno-missing-signatures #-}
 
 module Luna.Test.Spec.IRSpec where
 
 import Prologue
 import Test.Hspec.Expectations.Lifted
 
-import qualified Data.Set.Mutable.Class              as Set
-import qualified Foreign.Marshal.Alloc               as Mem
-import qualified Foreign.Storable                    as Storable
-import qualified Luna.IR                             as IR
-import qualified Luna.IR.Component.Link              as Link
-import qualified Luna.IR.Component.Term.Construction as Term
-import qualified Luna.IR.Layer                       as Layer
-import qualified Luna.Pass                           as Pass
-import qualified Luna.Pass.Attr                      as Attr
-import qualified Luna.Pass.Scheduler                 as Scheduler
-import qualified Luna.Runner                         as Runner
-import qualified OCI.Data.Name                       as Name
-import qualified OCI.IR.Component                    as Component
-import qualified OCI.IR.Layout                       as Layout
+import qualified Data.Set.Mutable.Class as Set
+import qualified Luna.IR                as IR
+import qualified Luna.IR.Layer          as Layer
+import qualified Luna.Pass              as Pass
+import qualified Luna.Pass.Attr         as Attr
+import qualified Luna.Pass.Scheduler    as Scheduler
+import qualified Luna.Runner            as Runner
+import qualified OCI.IR.Layout          as Layout
 
-import Luna.IR.Component.Link (type (*-*), Link)
-import Luna.Pass              (Pass)
-import Test.Hspec             (Expectation, Spec, describe, it)
+import Luna.Pass  (Pass)
+import Test.Hspec (Spec, describe, it)
 
-import qualified Type.Show as TS
 
 
 -----------------------

@@ -6,32 +6,23 @@ module Luna.IR.Component.Term.Definition where
 import Prologue
 
 import qualified Control.Lens.TH                     as Lens
-import qualified Control.Monad.State.Layered         as State
-import qualified Data.Char                           as Char
 import qualified Data.Generics.Traversable.Deriving  as GTraversable
-import qualified Data.Map.Strict                     as Map
 import qualified Data.Tag                            as Tag
 import qualified Foreign.Storable.Deriving           as Storable
 import qualified Foreign.Storable1.Deriving          as Storable1
 import qualified Language.Haskell.TH                 as TH
-import qualified Language.Haskell.TH.Builder         as THBuilder
-import qualified Language.Haskell.TH.Syntax          as TH
 import qualified Luna.IR.Component.Link              as Link
 import qualified Luna.IR.Component.Term.Class        as Term
 import qualified Luna.IR.Component.Term.Construction as Term
 import qualified Luna.IR.Term.Format                 as Format
-import qualified OCI.Data.Name                       as IR
 import qualified OCI.IR.Layout                       as Layout
 import qualified Type.Data.Map                       as TypeMap
 
-import Control.Monad.State.Layered  (StateT)
-import Data.Map.Strict              (Map)
-import Language.Haskell.TH          (Type (AppT, ConT))
+import Language.Haskell.TH          (Type (AppT))
 import Language.Haskell.TH.Builder  hiding (Field)
 import Luna.IR.Component.Link       (type (*-*), Link)
 import Luna.IR.Component.Term.Class (Term)
 import Luna.IR.Component.Term.Layer (Model)
-import OCI.IR.Layout                (Layout)
 
 import           Data.PtrList.Mutable (UnmanagedPtrList)
 import qualified Data.PtrList.Mutable as PtrList
@@ -139,25 +130,20 @@ type family AddToOutput var field layout where
 --   Moreover:
 --   1. Every single-field data-type is converted to newtype automatically.
 
+
 define :: Q [Dec] -> Q [Dec]
-define = defineChoice True
-
-defineNoSmartCons :: Q [Dec] -> Q [Dec]
-defineNoSmartCons = defineChoice False
-
-defineChoice :: Bool -> Q [Dec] -> Q [Dec]
-defineChoice needsSmartCons declsQ = do
+define declsQ = do
     decls <- declsQ
-    concat <$> mapM (defineSingle needsSmartCons) decls
+    concat <$> mapM defineSingle decls
 
-defineSingle :: Bool -> Dec -> Q [Dec]
-defineSingle needsSmartCons termDecl = case termDecl of
-    TH.DataD ctx dataName [] kind cons derivs
-      -> concat <$> mapM (defineSingleCons needsSmartCons dataName) cons
+defineSingle :: Dec -> Q [Dec]
+defineSingle termDecl = case termDecl of
+    TH.DataD _ dataName [] _ cons _
+      -> concat <$> mapM (defineSingleCons dataName) cons
     _ -> fail "Term constructor should be a non-parametrized data type"
 
-defineSingleCons :: Bool -> Name -> TH.Con -> Q [Dec]
-defineSingleCons needsSmartCons dataName con = do
+defineSingleCons :: Name -> TH.Con -> Q [Dec]
+defineSingleCons dataName con = do
     conName1 <- maybe (fail "All constructors have to be named") pure
               $ convert $ con ^. maybeName
     param    <- newName "a"
@@ -169,7 +155,6 @@ defineSingleCons needsSmartCons dataName con = do
             then TH.NewtypeInstD [] ''Term.Constructor [cons' conName, var param] Nothing  con  []
             else TH.DataInstD    [] ''Term.Constructor [cons' conName, var param] Nothing [con] []
         conName       = TH.mkName conNameStr
-        typeNameStr   = mkTypeName conNameStr
         tagName       = convert conNameStr
         bangFields    = if isNewtype then id else
                         namedFields %~ fmap (_2 .~ unpackStrictAnn)
@@ -216,8 +201,6 @@ defineSingleCons needsSmartCons dataName con = do
         -- === Smart constructors === --
         <> (if needSmartCons then smartCons else [])
 
-    where maybeNameStr :: MayHaveName a => a -> (Maybe String)
-          maybeNameStr = fmap TH.nameBase . view maybeName
 
 expandField :: Name -> Name -> TH.Type -> TH.Type
 expandField self param field = app3 (cons' ''ExpandField) (cons' self)
