@@ -25,24 +25,24 @@ optionsDropUnary = options { JSON.unwrapUnaryRecords = True }
 optionsYamlStyle :: JSON.Options
 optionsYamlStyle = JSON.defaultOptions
     { JSON.unwrapUnaryRecords = True
-    , JSON.omitNothingFields = True
+    , JSON.omitNothingFields  = True
     , JSON.fieldLabelModifier = yaml } where
-        yaml str = JSON.camelTo2 '-' $ List.dropWhile (== '_') str
+        yaml = JSON.camelTo2 '-' . List.dropWhile (== '_')
 
 parse :: (Generic a, JSON.GFromJSON JSON.Zero (Rep a)) => JSON.Value
       -> JSON.Parser a
-parse = JSON.genericParseJSON  options
+parse = JSON.genericParseJSON options
 
 toEncoding :: (Generic a, JSON.GToEncoding JSON.Zero (Rep a)) => a
            -> JSON.Encoding
 toEncoding = JSON.genericToEncoding options
 
 toJSON :: (Generic a, JSON.GToJSON JSON.Zero (Rep a)) => a -> JSON.Value
-toJSON = JSON.genericToJSON     options
+toJSON = JSON.genericToJSON options
 
 parseDropUnary :: (Generic a, JSON.GFromJSON JSON.Zero (Rep a)) => JSON.Value
                -> JSON.Parser a
-parseDropUnary = JSON.genericParseJSON  optionsDropUnary
+parseDropUnary = JSON.genericParseJSON optionsDropUnary
 
 toEncodingDropUnary :: (Generic a, JSON.GToEncoding JSON.Zero (Rep a)) => a
                     -> JSON.Encoding
@@ -54,7 +54,7 @@ toJSONDropUnary = JSON.genericToJSON optionsDropUnary
 
 parseYamlStyle :: (Generic a, JSON.GFromJSON JSON.Zero (Rep a)) => JSON.Value
                -> JSON.Parser a
-parseYamlStyle = JSON.genericParseJSON  optionsYamlStyle
+parseYamlStyle = JSON.genericParseJSON optionsYamlStyle
 
 toEncodingYamlStyle :: (Generic a, JSON.GToEncoding JSON.Zero (Rep a)) => a
                     -> JSON.Encoding
@@ -62,6 +62,6 @@ toEncodingYamlStyle = JSON.genericToEncoding optionsYamlStyle
 
 toJSONYamlStyle :: (Generic a, JSON.GToJSON JSON.Zero (Rep a)) => a
                 -> JSON.Value
-toJSONYamlStyle = JSON.genericToJSON     optionsYamlStyle
+toJSONYamlStyle = JSON.genericToJSON optionsYamlStyle
 
 
