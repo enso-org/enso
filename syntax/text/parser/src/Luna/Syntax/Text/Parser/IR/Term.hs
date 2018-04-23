@@ -9,32 +9,31 @@ import           Prologue                hiding (seq, some)
 import qualified Prologue
 import           Text.Parser.Combinators
 
-import qualified Control.Monad.State.Layered            as State
-import qualified Data.Char                              as Char
-import qualified Data.Set                               as Set
-import qualified Data.Text.Span                         as Span
-import qualified Data.Text32                            as Text32
-import qualified Data.TreeSet                           as TreeSet
-import qualified Language.Symbol                        as Symbol
-import qualified Luna.Data.Name                         as Name
-import qualified Luna.IR                                as IR
-import qualified Luna.IR.Layer                          as Layer
-import qualified Luna.IR.Term.Ast                       as Import
-import qualified Luna.IR.Term.Ast.Invalid               as Invalid
-import qualified Luna.Syntax.Text.Lexer                 as Lexer
-import qualified Luna.Syntax.Text.Lexer.Symbol          as Lexer
-import qualified Luna.Syntax.Text.Parser.Data.CodeSpan  as CodeSpan
-import qualified Luna.Syntax.Text.Parser.Data.Invalid   as Attr
+import qualified Control.Monad.State.Layered               as State
+import qualified Data.Char                                 as Char
+import qualified Data.Set                                  as Set
+import qualified Data.Text.Span                            as Span
+import qualified Data.Text32                               as Text32
+import qualified Data.TreeSet                              as TreeSet
+import qualified Language.Symbol                           as Symbol
+import qualified Luna.Data.Name                            as Name
+import qualified Luna.IR                                   as IR
+import qualified Luna.IR.Layer                             as Layer
+import qualified Luna.IR.Term.Ast                          as Import
+import qualified Luna.IR.Term.Ast.Invalid                  as Invalid
+import qualified Luna.Syntax.Text.Lexer                    as Lexer
+import qualified Luna.Syntax.Text.Lexer.Symbol             as Lexer
+import qualified Luna.Syntax.Text.Parser.Data.CodeSpan     as CodeSpan
+import qualified Luna.Syntax.Text.Parser.Data.Invalid      as Attr
+import qualified Luna.Syntax.Text.Parser.Data.Name.Spaced  as Name
+import qualified Luna.Syntax.Text.Parser.Data.Name.Special as SpecialName
 import qualified Luna.Syntax.Text.Parser.IR.Expr           as Expr
-import qualified Luna.Syntax.Text.Parser.Loc            as Loc
-import qualified Luna.Syntax.Text.Parser.Data.Name.Spaced    as Name
-import qualified Luna.Syntax.Text.Parser.Data.Name.Special   as SpecialName
-import qualified Luna.Syntax.Text.Parser.State.Indent   as Indent
-import qualified Luna.Syntax.Text.Parser.State.Marker   as Marker
-import qualified Luna.Syntax.Text.Parser.State.Reserved as Reserved
-import qualified Luna.Syntax.Text.Scope                 as Scope
-import qualified OCI.Data.Name.Multipart                as Name.Multipart
-import qualified OCI.IR.Layout                          as Layout
+import qualified Luna.Syntax.Text.Parser.Loc               as Loc
+import qualified Luna.Syntax.Text.Parser.State.Indent      as Indent
+import qualified Luna.Syntax.Text.Parser.State.Marker      as Marker
+import qualified Luna.Syntax.Text.Parser.State.Reserved    as Reserved
+import qualified Luna.Syntax.Text.Scope                    as Scope
+import qualified OCI.IR.Layout                             as Layout
 
 
 import Data.List.NonEmpty                       ((<|))
@@ -47,12 +46,12 @@ import Language.Symbol                          (Labeled (Labeled), SomeSymbol,
                                                  labeled)
 import Luna.IR                                  (SomeTerm, Term)
 import Luna.Pass                                (Pass)
-import Luna.Syntax.Text.Parser.IR.Class            (Parser, Stream, Token)
 import Luna.Syntax.Text.Parser.Data.CodeSpan    (CodeSpan (CodeSpan),
                                                  CodeSpanRange (..))
+import Luna.Syntax.Text.Parser.Data.Name.Spaced (SpacedName)
+import Luna.Syntax.Text.Parser.IR.Class         (Parser, Stream, Token)
 import Luna.Syntax.Text.Parser.Loc              (checkNextOffset,
                                                  previewNextSymbol, token')
-import Luna.Syntax.Text.Parser.Data.Name.Spaced      (SpacedName)
 import Luna.Syntax.Text.Parser.Pass.Class       (IRB, IRBS (IRBS), fromIRBS,
                                                  liftIRBS1, liftIRBS2,
                                                  liftIRBS3)
