@@ -54,6 +54,9 @@ native class Int:
         ss = self.succ
         if self <= i then Prepend self (ss . upto i) else []
 
+    # `x.shift i` shifts x left by i bits if it is positive, or right by -i otherwise.
+    def shift that: primIntShift self that
+
 # Class representing floating point numbers.
 native class Real:
     # Floating point addition.
