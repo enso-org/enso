@@ -24,11 +24,7 @@ optionsDropUnary = options { JSON.unwrapUnaryRecords = True }
 
 optionsYamlStyle :: JSON.Options
 optionsYamlStyle = JSON.defaultOptions { JSON.fieldLabelModifier = yaml } where
-    yaml str = List.intercalate "-"
-            $ (\xs -> Char.toLower <$> xs) <$> splitUpperKeep noUnderscores
-        where noUnderscores  = List.dropWhile (== '_') str
-              splitUpperKeep = List.split
-                (List.keepDelimsL $ List.oneOf ['A'..'Z'])
+    yaml str = JSON.camelTo2 '-' $ List.dropWhile (== '_') str
 
 parse :: (Generic a, JSON.GFromJSON JSON.Zero (Rep a)) => JSON.Value
       -> JSON.Parser a
