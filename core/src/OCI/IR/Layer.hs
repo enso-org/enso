@@ -141,13 +141,16 @@ unsafeNoManager = Manager Nothing Nothing Nothing ; {-# INLINE unsafeNoManager #
 -- | WARNING! Using this function will result in uninitialized layer memory.
 unsafeOnlyDestructorManager :: ∀ layer. Data.ShallowDestructor1 IO (Cons layer)
                             => Manager layer
-unsafeOnlyDestructorManager = Manager Nothing Nothing (Just $ Data.destructShallow1) ; {-# INLINE unsafeOnlyDestructorManager #-}
+unsafeOnlyDestructorManager = Manager Nothing Nothing
+                            $ Just Data.destructShallow1
+{-# INLINE unsafeOnlyDestructorManager #-}
 
 staticManager :: Default1 (Cons layer) => Manager layer
 staticManager = Manager (Just def1) Nothing Nothing ; {-# INLINE staticManager #-}
 
-dynamicManager :: (Data.Constructor1 IO () (Cons layer), Data.ShallowDestructor1 IO (Cons layer))
-               => Manager layer
+dynamicManager :: ( Data.Constructor1 IO () (Cons layer)
+                  , Data.ShallowDestructor1 IO (Cons layer)
+                  ) => Manager layer
 dynamicManager = Manager Nothing (Just Data.new1) (Just Data.destructShallow1) ; {-# INLINE dynamicManager #-}
 
 customStaticManager :: (∀ layout. Cons layer layout) -> Manager layer
@@ -197,9 +200,9 @@ unsafePeekWrapped !ptr = liftIO $ Storable1.peek (coerce ptr) ; {-# INLINE unsaf
 unsafePokeWrapped !ptr = liftIO . Storable1.poke (coerce ptr) ; {-# INLINE unsafePokeWrapped #-}
 
 unsafePeek :: CTX => SomePtr -> m (Data layer layout)
-unsafePeek !ptr = view (from shape) <$> unsafePeekWrapped @layer @comp @layout ptr ; {-# INLINE unsafePeek #-}
+unsafePeek !p = view (from shape) <$> unsafePeekWrapped @layer @comp @layout p ; {-# INLINE unsafePeek #-}
 unsafePoke :: CTX => SomePtr -> (Data layer layout) -> m ()
-unsafePoke !ptr d = unsafePokeWrapped @layer @comp @layout ptr $ view shape d ; {-# INLINE unsafePoke #-}
+unsafePoke !p d = unsafePokeWrapped @layer @comp @layout p $ view shape d ; {-# INLINE unsafePoke #-}
 
 unsafePeekByteOff :: CTX => Int -> SomePtr -> m (Data layer layout)
 unsafePokeByteOff :: CTX => Int -> SomePtr ->   (Data layer layout) -> m ()
