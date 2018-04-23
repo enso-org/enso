@@ -131,6 +131,7 @@ spec = do
                 it "tripple double-quoted oneliner"             $ do shouldParseAs'     expr [s|"""The quick brown fox jumps over the lazy dog"""|] [s|"The quick brown fox jumps over the lazy dog"|] [(0,49)]
                 it "escaping qote"                              $ do shouldParseAs'     expr [s|"foo\""|] [s|"foo""|] [(0,7)] -- FIXME: Fix escaping in pretty printer
                 it "escaping newline"                           $ do shouldParseAs'     expr [s|'\n'|] "\"\n\"" [(0,4)]
+                it "invalid string"                             $ do shouldParseAs'     expr [s|'\c'|] "Invalid \"Invalid string literal\"" [(0,4)]
             describe "interpolated" $ do
                 it "oneliner"                                   $ do shouldParseAs      expr "'The quick brown fox jumps over the lazy dog'" "\"The quick brown fox jumps over the lazy dog\""
             --     it "tripple single-quoted oneliner"             $ do shouldParseAs expr     "'''The quick brown fox jumps over the lazy dog'''"    "'The quick brown fox jumps over the lazy dog'"
