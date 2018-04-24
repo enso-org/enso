@@ -24,9 +24,10 @@ optionsDropUnary = options { JSON.unwrapUnaryRecords = True }
 
 optionsYamlStyle :: JSON.Options
 optionsYamlStyle = JSON.defaultOptions
-    { JSON.unwrapUnaryRecords = True
-    , JSON.omitNothingFields = True
-    , JSON.fieldLabelModifier = yaml } where
+    { JSON.unwrapUnaryRecords     = True
+    , JSON.omitNothingFields      = True
+    , JSON.fieldLabelModifier     = yaml
+    , JSON.constructorTagModifier = yaml} where
         yaml str = JSON.camelTo2 '-' $ List.dropWhile (== '_') str
 
 parse :: (Generic a, JSON.GFromJSON JSON.Zero (Rep a)) => JSON.Value
