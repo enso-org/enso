@@ -6,8 +6,8 @@ import qualified Control.Monad.State.Layered as State
 import qualified Data.Map.Strict             as Map
 import qualified Foreign.Storable1           as Storable1
 import qualified Foreign.Storable1.Ptr       as Ptr1
+import qualified OCI.IR.Component.Provider   as Component
 import qualified OCI.IR.Layer                as Layer
-import qualified OCI.IR.Ptr.Provider         as PtrProvider
 
 import Control.Monad.Exception     (Throws, throw)
 import Control.Monad.State.Layered (StateT)
@@ -36,7 +36,7 @@ data LayerInfo = LayerInfo
     , _initializer   :: !(Maybe SomePtr)
     , _constructor   :: !(Maybe (SomePtr -> IO ()))
     , _destructor    :: !(Maybe (SomePtr -> IO ()))
-    , _pointerGetter :: !(PtrProvider.PointerGetter)
+    , _DynamicGetter :: !(Component.DynamicGetter)
     }
 
 
@@ -96,7 +96,7 @@ registerPrimLayerRep :: MonadRegistry m
     -> Maybe SomePtr             -- ^ initial memory layout
     -> Maybe (SomePtr -> IO ())  -- ^ dynamic constructor
     -> Maybe (SomePtr -> IO ())  -- ^ dynamic destructor
-    -> PtrProvider.PointerGetter -- ^ func to retrieve all pointers of a comp.
+    -> Component.DynamicGetter -- ^ func to retrieve all pointers of a comp.
     -> SomeTypeRep               -- ^ component type rep
     -> SomeTypeRep               -- ^ layer type rep
     -> m ()
@@ -119,7 +119,7 @@ registerPrimLayer :: ∀ comp layer m.
     , Typeable layer
     , Layer    layer
     , Layer.StorableData  layer
-    , Layer.ConsPtrGetter layer
+    , Component.Provider1 (Layer.Cons layer)
     ) => m ()
 registerPrimLayer = do
     let manager   = Layer.manager @layer
@@ -128,7 +128,7 @@ registerPrimLayer = do
         size      = Layer.byteSize @layer
         comp      = someTypeRep @comp
         layer     = someTypeRep @layer
-        ptrGetter = PtrProvider.makeDynamicGetter $ PtrProvider.pointers1 @(Layer.Cons layer)
+        ptrGetter = Component.makeDynamicGetter $ Component.pointers1 @(Layer.Cons layer)
     init <- mapM (fmap coerce . Ptr1.new) $ manager ^. Layer.initializer
     registerPrimLayerRep size init ctor dtor ptrGetter comp layer
     where ctorDyn :: Storable1 t => IO (t a)       -> (SomePtr -> IO ())

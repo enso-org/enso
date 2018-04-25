@@ -4,15 +4,15 @@ module OCI.Pass.Encoder where
 
 import Prologue
 
-import qualified Data.Map              as Map
-import qualified Data.TypeMap.Strict   as TypeMap
-import qualified Foreign.Marshal.Alloc as Mem
-import qualified Foreign.Marshal.Utils as Mem
-import qualified Foreign.Memory.Pool   as MemPool
-import qualified Foreign.Ptr           as Ptr
-import qualified OCI.IR.Ptr.Provider   as PtrProvider
-import qualified OCI.Pass.Definition   as Pass
-import qualified OCI.Pass.Registry     as Reg
+import qualified Data.Map                  as Map
+import qualified Data.TypeMap.Strict       as TypeMap
+import qualified Foreign.Marshal.Alloc     as Mem
+import qualified Foreign.Marshal.Utils     as Mem
+import qualified Foreign.Memory.Pool       as MemPool
+import qualified Foreign.Ptr               as Ptr
+import qualified OCI.IR.Component.Provider as Component
+import qualified OCI.Pass.Definition       as Pass
+import qualified OCI.Pass.Registry         as Reg
 
 import Control.Monad.Exception (Throws, throw)
 import Data.Map.Strict         (Map)
@@ -43,7 +43,7 @@ data ComponentInfo = ComponentInfo
     , _layersInitializer :: !SomePtr
     , _layersConstructor :: !(SomePtr -> IO ())
     , _layersDestructor  :: !(SomePtr -> IO ())
-    , _pointerGetter     :: !PtrProvider.PointerGetter
+    , _dynamicGetter     :: !Component.DynamicGetter
     , _memPool           :: !MemPool
     }
 
@@ -129,10 +129,10 @@ concatLayersIOActions lens = go where
             {-# INLINE fuse #-}
 
 
-preparePtrGetter :: MonadIO m => [(Int, Reg.LayerInfo)] -> m PtrProvider.PointerGetter
+preparePtrGetter :: MonadIO m => [(Int, Reg.LayerInfo)] -> m Component.DynamicGetter
 preparePtrGetter ls = do
     let getFromLayer :: SomePtr -> Int -> Reg.LayerInfo -> IO [SomePtr]
-        getFromLayer p off l = (l ^. Reg.pointerGetter) (p `Ptr.plusPtr` off)
+        getFromLayer p off l = (l ^. Reg.dynamicGetter) (p `Ptr.plusPtr` off)
 
     pure $ (\ptr -> concat <$> mapM (uncurry $ getFromLayer ptr) ls)
 
@@ -190,14 +190,14 @@ instance ( layers   ~ Pass.Vars pass comp
          , targets  ~ Pass.ComponentLayerLayout Pass.LayerByteOffset pass comp
          , compMemPool ~ Pass.ComponentMemPool comp
          , compSize    ~ Pass.ComponentSize    comp
-         , ptrGetter   ~ Pass.PointerGetter    comp
+         , ptrGetter   ~ Pass.DynamicGetter    comp
          , layerInit   ~ Pass.LayerMemManager  comp
          , Typeables layers
          , Typeable  comp
          , Encoder__ pass comps
          , PassDataElemEncoder  compMemPool MemPool pass
          , PassDataElemEncoder  compSize    Int     pass
-         , PassDataElemEncoder  ptrGetter   (Pass.PointerGetter    comp) pass
+         , PassDataElemEncoder  ptrGetter   (Pass.DynamicGetter    comp) pass
          , PassDataElemEncoder  layerInit   (Pass.LayerMemManager  comp) pass
          , PassDataElemsEncoder targets     Int     pass
          ) => Encoder__ pass (comp ': comps) where
@@ -218,7 +218,7 @@ instance ( layers   ~ Pass.Vars pass comp
                                                       (i ^. layersConstructor)
                                                       (i ^. layersDestructor)
             ptrGetterEncoder = encodePassDataElem    @ptrGetter
-                             $ Pass.PointerGetter    @comp (i ^. pointerGetter)
+                             $ Pass.DynamicGetter    @comp (i ^. dynamicGetter)
             layerTypes       = someTypeReps @layers
             layerOffsets     = view byteOffset <<$>> layerInfos
             layerInfos       = mapLeft wrap $ catEithers

@@ -17,9 +17,7 @@ import           Prologue hiding (fromList, length, mapM, null, toList,
                            unsafeHead, unsafeLast)
 import qualified Prologue as P
 
-import qualified Data.Construction      as Data
-import qualified Foreign.Storable       as Storable
-import qualified Foreign.Storable.Utils as Storable
+import qualified Data.Construction as Data
 
 import Control.Monad          ((<=<))
 import Control.Monad.IO.Class

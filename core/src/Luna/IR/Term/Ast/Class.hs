@@ -7,17 +7,13 @@ module Luna.IR.Term.Ast.Class where
 import Prologue hiding (Imp, seq)
 
 import qualified Data.Generics.Traversable.Deriving as GTraversable
-import qualified Foreign.Storable                   as Storable
 import qualified Foreign.Storable.Deriving          as Storable
 import qualified Luna.IR.Component.Term.Definition  as Term
 import qualified Luna.IR.Term.Ast.Invalid           as Invalid
 import qualified Luna.IR.Term.Format                as Format
 
 import Data.Vector.Storable.Foreign      (Vector)
-import Foreign.Ptr                       (castPtr, plusPtr)
-import Foreign.Ptr.Utils                 (SomePtr)
-import Luna.IR.Component.Link            (Links)
-import Luna.IR.Component.Term.Class      (Constructor, Terms)
+import Luna.IR.Component.Term.Class      (Terms)
 import Luna.IR.Component.Term.Definition (LinkTo)
 import OCI.Data.Name                     (Name)
 

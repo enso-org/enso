@@ -55,7 +55,7 @@ type HasSize comp m =
 
 type HasPointers comp m =
     ( MonadIO m
-    , Pass.PointerGetterGetter comp m
+    , Pass.DynamicGetterGetter comp m
     )
 
 unsafeNull :: Component comp layout
@@ -97,20 +97,20 @@ instance Creator comp m => Data.Destructor1 m (Component comp) where
 instance Monad m => Data.ShallowDestructor1 m (Component comp) where
     destructShallow1 = const $ pure () ; {-# INLINE destructShallow1 #-}
 
-unsafeToPtr :: Component t layout -> SomePtr
+unsafeToPtr :: Component comp layout -> SomePtr
 unsafeToPtr = coerce ; {-# INLINE unsafeToPtr #-}
 
-unsafeFromPtr :: ∀ t layout. SomePtr -> Component t layout
+unsafeFromPtr :: ∀ comp layout. SomePtr -> Component comp layout
 unsafeFromPtr = coerce ; {-# INLINE unsafeFromPtr #-}
 
-size :: ∀ comp m l. HasSize comp m => Component comp l -> m Int
-size _ = Pass.getComponentSize @comp
+byteSize :: ∀ comp m l. HasSize comp m => Component comp l -> m Int
+byteSize _ = Pass.getComponentSize @comp
 
 pointers :: ∀ comp m l. HasPointers comp m
          => Component comp l -> m [SomePtr]
 pointers comp = do
     let ptr      = unsafeToPtr comp
-    getPointers <- unwrap <$> Pass.getPointerGetter @comp
+    getPointers <- unwrap <$> Pass.getDynamicGetter @comp
     liftIO $ getPointers ptr
 
 -- === Relayout === --

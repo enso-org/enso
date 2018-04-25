@@ -1,6 +1,6 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module OCI.IR.Ptr.Provider where
+module OCI.IR.Component.Provider where
 
 import Prologue
 
@@ -33,7 +33,7 @@ class Provider1 a where
 
 -- === API === --
 
-type PointerGetter = SomePtr -> IO [SomePtr]
+type DynamicGetter = SomePtr -> IO [SomePtr]
 
 pointers  :: (Provider  a, MonadIO m) => a    -> m [SomePtr]
 pointers1 :: (Provider1 a, MonadIO m) => a t1 -> m [SomePtr]
@@ -43,7 +43,7 @@ pointers1 = liftIO . pointersIO1 ; {-# INLINE pointers1 #-}
 gpointers :: (GTraversable Provider a, MonadIO m) => a -> m [SomePtr]
 gpointers = gfoldlM @Provider (\acc a -> (acc <>) <$> pointers a) mempty ; {-# INLINE gpointers #-}
 
-makeDynamicGetter :: Storable1 t => (t a -> IO [SomePtr]) -> PointerGetter
+makeDynamicGetter :: Storable1 t => (t a -> IO [SomePtr]) -> DynamicGetter
 makeDynamicGetter getterFun ptr = getterFun =<< Storable1.peek (coerce ptr)
 
 

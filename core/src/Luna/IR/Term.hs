@@ -15,7 +15,7 @@ import qualified Data.Generics.Traversable         as GTraversable
 import qualified Luna.IR.Component.Link            as Link
 import qualified Luna.IR.Component.Term.Class      as Term
 import qualified Luna.IR.Component.Term.Definition as Term
-import qualified OCI.IR.Ptr.Provider               as Ptr
+import qualified OCI.IR.Component.Provider         as Component
 
 import Data.Generics.Traversable (GTraversable)
 
@@ -40,8 +40,8 @@ type instance Term.Uni = UniTerm
 instance Link.Provider1 UniTerm where
     linksIO1 = Link.glinks ; {-# INLINE linksIO1 #-}
 
-instance Ptr.Provider1 UniTerm where
-    pointersIO1 = Ptr.gpointers ; {-# INLINE pointersIO1 #-}
+instance Component.Provider1 UniTerm where
+    pointersIO1 = Component.gpointers ; {-# INLINE pointersIO1 #-}
 
 instance StyledShow Term.TagOnly (UniTerm a) where
     styledShow _ = GTraversable.gfoldl' @Term.ShowTag f mempty where

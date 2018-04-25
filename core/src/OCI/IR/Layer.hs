@@ -10,7 +10,6 @@ import qualified Control.Lens        as Lens
 import qualified Data.Construction   as Data
 import qualified Foreign.Storable    as Storable
 import qualified Foreign.Storable1   as Storable1
-import qualified OCI.IR.Ptr.Provider as Ptr
 import qualified OCI.Pass.Definition as Pass
 
 import Foreign.Ptr            (plusPtr)
@@ -101,7 +100,6 @@ class Layer layer where
 type WrappedData   layer layout = Cons layer    (Layout layer layout)
 type Data          layer layout = Unwrap        (Cons layer (Layout layer layout))
 type StorableData  layer        = Storable1     (Cons layer)
-type ConsPtrGetter layer        = Ptr.Provider1 (Cons layer)
 
 -- === Construction === --
 
