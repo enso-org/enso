@@ -1,4 +1,4 @@
-module Luna.Test.Package.ParserTestUtils where
+module Luna.Package.ParserUtils.Test where
 
 import Prologue
 

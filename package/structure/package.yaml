@@ -1,4 +1,4 @@
-name:       luna-package-resolver
+name:       luna-package-structure
 version:    "0.1"
 author:     Luna Team <contact@luna-lang.org>
 maintainer: Luna Team <contact@luna-lang.org>
@@ -16,28 +16,21 @@ tests:
             - filepath
             - hspec
             - hspec-jenkins
-            - hspec-megaparsec
             - luna-ci
-            - luna-core
-            - luna-package-parserutils
-            - luna-package-resolver
+            - luna-package-structure
             - open-browser
+            - temporary
 
 dependencies:
     - base
-    - containers
-    - impossible
+    - directory
+    - filepath
     - lens
-    - lens-utils
-    - luna-core
-    - luna-package-parserutils
-    - megaparsec
-    - mtl
+    - luna-exception
+    - luna-package-configuration
+    - luna-syntax-text-lexer
     - prologue
-    - sbv
     - text
-    - typelevel
-    - yaml
 
 default-extensions:
     - AllowAmbiguousTypes

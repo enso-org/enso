@@ -2,6 +2,9 @@ module Luna.Package.Version where
 
 import Prologue hiding (min, fromString)
 
+import qualified Control.Lens.Aeson as Lens
+import qualified Data.Yaml          as Yaml
+
 import Data.Word                (Word64)
 import Luna.Package.ParserUtils (Parser, dot, natural)
 import Text.Megaparsec          (option, optional)
@@ -12,9 +15,9 @@ import Text.Megaparsec.Char     (string, char)
 -- |
 -- | The prerelease is optional.
 
----------------------
--- === Version === --
----------------------
+----------------------------
+-- === PrereleaseType === --
+----------------------------
 
 -- === Definition === --
 
@@ -25,13 +28,67 @@ data PrereleaseType
     = Alpha
     | Beta
     | RC
-    deriving (Eq, Generic, Ord, Show)
+    deriving (Enum, Eq, Generic, Ord, Show)
+
+
+-- === API === --
+
+prereleaseTyToNum :: PrereleaseType -> Word64
+prereleaseTyToNum = fromIntegral . fromEnum
+
+numToPrereleaseTy :: Word64 -> PrereleaseType
+numToPrereleaseTy = toEnum . fromIntegral
+
+
+-- === Instances === --
+
+instance StyledShow Pretty PrereleaseType where
+    styledShow _ Alpha = "alpha"
+    styledShow _ Beta  = "beta"
+    styledShow _ RC    = "rc"
+
+instance Yaml.FromJSON PrereleaseType where
+    parseJSON = Lens.parseYamlStyle
+
+instance Yaml.ToJSON PrereleaseType where
+    toJSON     = Lens.toJSON
+    toEncoding = Lens.toEncoding
+
+
+
+------------------------
+-- === Prerelease === --
+------------------------
+
+-- === Definition === --
 
 data Prerelease = Prerelease
-    { __prType  :: !PrereleaseType
-    , __version :: !Word64
+    { _preType    :: !PrereleaseType
+    , _preVersion :: !Word64
     } deriving (Eq, Generic, Ord, Show)
 makeLenses ''Prerelease
+
+
+-- === Instances === --
+
+instance StyledShow Pretty Prerelease where
+    styledShow tx (Prerelease ty ver) = styledShow tx ty <> "."
+        <> convert (show ver)
+
+instance Yaml.FromJSON Prerelease where
+    parseJSON = Lens.parseYamlStyle
+
+instance Yaml.ToJSON Prerelease where
+    toJSON     = Lens.toJSONYamlStyle
+    toEncoding = Lens.toEncodingYamlStyle
+
+
+
+---------------------
+-- === Version === --
+---------------------
+
+-- === Definition === --
 
 data Version = Version
     { __major      :: !Word64
@@ -48,27 +105,8 @@ isPrerelease :: Version -> Bool
 isPrerelease = \case (Version _ _ _ (Just _)) -> True
                      _                        -> False
 
-prereleaseTyToNum :: PrereleaseType -> Word64
-prereleaseTyToNum Alpha = 0
-prereleaseTyToNum Beta  = 1
-prereleaseTyToNum RC    = 2
-
-numToPrereleaseTy :: Word64 -> PrereleaseType
-numToPrereleaseTy 0 = Alpha
-numToPrereleaseTy 1 = Beta
-numToPrereleaseTy 2 = RC
-numToPrereleaseTy _ = RC
-
 
 -- === Instances === --
-
-instance PrettyShow PrereleaseType where
-    prettyShow Alpha = "alpha"
-    prettyShow Beta  = "beta"
-    prettyShow RC    = "rc"
-
-instance PrettyShow Prerelease where
-    prettyShow (Prerelease ty ver) = prettyShow ty <> "." <> convert (show ver)
 
 instance Ord Version where
     (Version maj1 min1 pat1 pre1) < (Version maj2 min2 pat2 pre2) = if
@@ -92,14 +130,26 @@ instance Ord Version where
 
     v1 <= v2 = (v1 < v2) || (v1 == v2)
 
-instance PrettyShow Version where
-    prettyShow (Version maj min patch pr) = nums <> showPre pr
+instance StyledShow Pretty Version where
+    styledShow tx (Version maj min patch pr) = nums <> showPre pr
         where nums    = cShow maj <> "." <> cShow min <> "."
                       <> cShow patch
               showPre = \case
                   Nothing -> ""
-                  Just pre -> "-" <> prettyShow pre
+                  Just pre -> "-" <> styledShow tx pre
               cShow = convert . show
+
+instance Default Version where
+    def = Version 0 0 1 Nothing
+
+instance Yaml.FromJSON Version where
+    parseJSON = Lens.parseYamlStyle
+
+instance Yaml.ToJSON Version where
+    toJSON     = Lens.toJSONYamlStyle
+    toEncoding = Lens.toEncodingYamlStyle
+
+
 
 -------------------------------
 -- === Parsing Functions === --

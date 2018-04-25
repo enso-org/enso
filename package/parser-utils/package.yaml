@@ -1,4 +1,4 @@
-name:       luna-package-resolver
+name:       luna-package-parserutils
 version:    "0.1"
 author:     Luna Team <contact@luna-lang.org>
 maintainer: Luna Team <contact@luna-lang.org>
@@ -7,37 +7,13 @@ library:
     source-dirs:
         - src
 
-tests:
-    spec:
-        main: Main.hs
-        source-dirs: test/spec
-        dependencies:
-            - directory
-            - filepath
-            - hspec
-            - hspec-jenkins
-            - hspec-megaparsec
-            - luna-ci
-            - luna-core
-            - luna-package-parserutils
-            - luna-package-resolver
-            - open-browser
-
 dependencies:
     - base
-    - containers
-    - impossible
-    - lens
-    - lens-utils
-    - luna-core
-    - luna-package-parserutils
+    - hspec
+    - hspec-megaparsec
     - megaparsec
-    - mtl
     - prologue
-    - sbv
     - text
-    - typelevel
-    - yaml
 
 default-extensions:
     - AllowAmbiguousTypes

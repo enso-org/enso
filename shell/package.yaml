@@ -1,43 +1,32 @@
-name:       luna-package-resolver
-version:    "0.1"
+name:       luna-shell
+version:    "1.1"
 author:     Luna Team <contact@luna-lang.org>
 maintainer: Luna Team <contact@luna-lang.org>
 
 library:
     source-dirs:
         - src
+    dependencies:
+        - base
+        - directory
+        - filepath
+        - layered-state
+        - luna-package-configuration
+        - luna-package-resolver
+        - luna-package-structure
+        - optparse-applicative
+        - prologue
+        - text
+        - yaml
 
-tests:
-    spec:
-        main: Main.hs
-        source-dirs: test/spec
+executables:
+    luna:
+        main: src/Main.hs
+        ghc-options: -threaded "-with-rtsopts=-N -T"
         dependencies:
-            - directory
-            - filepath
-            - hspec
-            - hspec-jenkins
-            - hspec-megaparsec
-            - luna-ci
-            - luna-core
-            - luna-package-parserutils
-            - luna-package-resolver
-            - open-browser
-
-dependencies:
-    - base
-    - containers
-    - impossible
-    - lens
-    - lens-utils
-    - luna-core
-    - luna-package-parserutils
-    - megaparsec
-    - mtl
-    - prologue
-    - sbv
-    - text
-    - typelevel
-    - yaml
+            - base
+            - luna-shell
+            - prologue
 
 default-extensions:
     - AllowAmbiguousTypes
@@ -66,7 +55,6 @@ default-extensions:
     - MonadComprehensions
     - MultiWayIf
     - NamedWildCards
-    - NamedFieldPuns
     - NegativeLiterals
     - NoImplicitPrelude
     - NumDecimals
@@ -86,5 +74,4 @@ default-extensions:
     - TypeFamilyDependencies
     - TypeOperators
     - ViewPatterns
-#    - MonadFailDesugaring
 

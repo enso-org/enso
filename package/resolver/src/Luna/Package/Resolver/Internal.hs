@@ -75,7 +75,6 @@ makeLenses ''SVersion
 
 -- === API === ---
 
--- TODO [Ara] Have this take a parameter dictating whether or not it maximizes
 mkSymbolicSVersion :: String -> OptTag -> SBV.Symbolic SVersion
 mkSymbolicSVersion name tag = do
     let genOptName component = optTag <> nameConnector <> name <> nameConnector

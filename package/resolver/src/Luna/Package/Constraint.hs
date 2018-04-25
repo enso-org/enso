@@ -43,15 +43,16 @@ isEQPrerelease = \case (Constraint EQ ver) -> Version.isPrerelease ver
 
 -- === Instances === --
 
-instance PrettyShow ConstraintType where
-    prettyShow = \case EQ -> "=="
-                       GT -> ">"
-                       LT -> "<"
-                       LE -> "<="
-                       GE -> ">="
+instance StyledShow Pretty ConstraintType where
+    styledShow _ = \case EQ -> "=="
+                         GT -> ">"
+                         LT -> "<"
+                         LE -> "<="
+                         GE -> ">="
 
-instance PrettyShow Constraint where
-    prettyShow (Constraint ty ver) = prettyShow ty <> " " <> prettyShow ver
+instance StyledShow Pretty Constraint where
+    styledShow tx (Constraint ty ver) = styledShow tx ty <> " "
+        <> styledShow tx ver
 
 
 

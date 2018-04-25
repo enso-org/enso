@@ -13,8 +13,8 @@ import Text.Megaparsec.Char (space, string, char, digitChar)
 
 -- === Definition === --
 
-type Parser = Parsec () Text
-type Error  = ParseError Char ()
+type Parser = Parsec Void Text
+type Error  = ParseError Char Void
 
 
 -- === API === ---

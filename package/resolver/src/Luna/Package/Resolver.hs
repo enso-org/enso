@@ -3,12 +3,6 @@ module Luna.Package.Resolver
     , module X )
     where
 
-import Prologue hiding (Constraint, Constraints)
-
-import qualified Data.List               as List
-import qualified Data.Map.Strict         as Map
-import qualified Luna.Package.Constraint as Constraint
-
 import Luna.Package.Resolver.Internal as X ( constraintQuery
                                            , SolverError
                                              ( UnavailablePackages
@@ -20,6 +14,12 @@ import Luna.Package.Resolver.Internal as X ( constraintQuery
                                              , InternalError
                                              , MissingVariables )
                                            , solverConfig )
+
+import Prologue hiding (Constraint, Constraints)
+
+import qualified Data.List               as List
+import qualified Data.Map.Strict         as Map
+import qualified Luna.Package.Constraint as Constraint
 
 
 

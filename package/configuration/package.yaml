@@ -1,4 +1,4 @@
-name:       luna-package-resolver
+name:       luna-package-configuration
 version:    "0.1"
 author:     Luna Team <contact@luna-lang.org>
 maintainer: Luna Team <contact@luna-lang.org>
@@ -12,31 +12,26 @@ tests:
         main: Main.hs
         source-dirs: test/spec
         dependencies:
-            - directory
-            - filepath
             - hspec
             - hspec-jenkins
-            - hspec-megaparsec
             - luna-ci
-            - luna-core
-            - luna-package-parserutils
+            - luna-package-configuration
+            - bytestring
             - luna-package-resolver
             - open-browser
+            - raw-strings-qq
 
 dependencies:
+    - aeson
     - base
-    - containers
-    - impossible
+    - filepath
     - lens
     - lens-utils
-    - luna-core
     - luna-package-parserutils
+    - luna-package-resolver
     - megaparsec
-    - mtl
     - prologue
-    - sbv
     - text
-    - typelevel
     - yaml
 
 default-extensions:

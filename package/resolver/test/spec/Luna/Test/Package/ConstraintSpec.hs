@@ -4,11 +4,11 @@ import Prologue
 
 import qualified Luna.Package.Constraint as Constraint
 
-import Luna.Package.Constraint           (Constraint(Constraint))
-import Luna.Package.Version              (Version(Version))
-import Luna.Test.Package.ParserTestUtils ( shouldParseTo
-                                         , shouldFailToParse )
-import Test.Hspec                        (Spec, describe, it)
+import Luna.Package.Constraint       (Constraint(Constraint))
+import Luna.Package.Version          (Version(Version))
+import Luna.Package.ParserUtils.Test ( shouldParseTo
+                                     , shouldFailToParse )
+import Test.Hspec                    (Spec, describe, it)
 
 spec :: Spec
 spec = do

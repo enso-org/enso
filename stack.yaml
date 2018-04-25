@@ -1,5 +1,4 @@
 resolver: ./config/snapshot.yaml
-
 package-indices:
     - name:            standard-hackage
       download-prefix: https://hackage.haskell.org/package/
@@ -28,7 +27,11 @@ local-bin-path: dist/bin/public/luna
 packages:
     - core
     - debug
+    - package/configuration
     - package/resolver
+    - package/parser-utils
+    - package/structure
+    - shell
     - syntax/text/lexer
     - syntax/text/model
     - syntax/text/parser
@@ -40,7 +43,7 @@ packages:
     - lib/cpp-containers
     - lib/data-tag
     - lib/data-typemap
-    - lib/data-construction    
+    - lib/data-construction
     - lib/exception
     - lib/foreign-utils
     - lib/generic-traversable
