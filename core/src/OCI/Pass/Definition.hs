@@ -10,6 +10,7 @@ import qualified Control.Monad.State.Layered as State
 import qualified Data.TypeMap.Strict         as TypeMap
 import qualified Foreign.Memory.Pool         as MemPool
 import qualified Foreign.Ptr                 as Ptr
+import qualified OCI.IR.Ptr.Provider         as PtrProvider
 import qualified OCI.Pass.Attr               as Attr
 import qualified Type.Data.List              as List
 
@@ -76,10 +77,14 @@ data    LayerMemManager  comp       = LayerMemManager
     , _constructor :: SomePtr -> IO ()
     , _destructor  :: SomePtr -> IO ()
     }
+newtype PointerGetter    comp = PointerGetter    PtrProvider.PointerGetter
+
+
 makeLenses ''AttrValue
 makeLenses ''ComponentMemPool
 makeLenses ''ComponentSize
 makeLenses ''LayerByteOffset
+makeLenses ''PointerGetter
 makeLenses ''LayerMemManager
 
 
@@ -92,6 +97,7 @@ instance Default (LayerByteOffset  c l) where def = wrap 0                  ; {-
 instance Default (LayerMemManager  c)   where
     def = LayerMemManager Ptr.nullPtr (const $ pure ()) (const $ pure ())
     {-# INLINE def #-}
+instance Default (PointerGetter    c)   where def = wrap (\_ -> pure mempty) ; {-# INLINE def #-}
 
 instance (Typeable comp, Typeable layer)
       => Show (LayerByteOffset comp layer) where
@@ -124,13 +130,15 @@ type ComputeStateLayout pass = List.Append (LayersLayout      pass)
                              ( List.Append (AttrValues        pass)
                              ( List.Append (ComponentMemPools pass)
                              ( List.Append (ComponentSizes    pass)
-                                           (LayerMemManagers pass) )))
+                             ( List.Append (PointerGetters    pass)
+                                           (LayerMemManagers pass )))))
 
-type LayersLayout      pass = MapLayerByteOffset        pass (Vars pass Elems)
-type ComponentMemPools pass = List.Map ComponentMemPool      (Vars pass Elems)
-type ComponentSizes    pass = List.Map ComponentSize         (Vars pass Elems)
-type LayerMemManagers  pass = List.Map LayerMemManager       (Vars pass Elems)
-type AttrValues        pass = List.Map AttrValue             (Vars pass Attrs)
+type LayersLayout      pass = MapLayerByteOffset        pass   (Vars pass Elems)
+type ComponentMemPools pass = List.Map ComponentMemPool        (Vars pass Elems)
+type ComponentSizes    pass = List.Map ComponentSize           (Vars pass Elems)
+type PointerGetters    pass = List.Map PointerGetter           (Vars pass Elems)
+type LayerMemManagers  pass = List.Map LayerMemManager         (Vars pass Elems)
+type AttrValues        pass = List.Map AttrValue               (Vars pass Attrs)
 
 type MapLayerByteOffset p c = MapOverCompsAndVars LayerByteOffset p c
 
@@ -236,23 +244,26 @@ instance (Monad m, MonadState m, TypeMap.ElemSetter a (DiscoverStateLayout m))
     putData a = State.modify_ @(DiscoverState m) $ wrapped %~ TypeMap.setElem a ; {-# INLINE putData #-}
 
 type LayerByteOffsetGetter  c l m = DataGetter (LayerByteOffset  c l) m
+type PointerGetterGetter    c   m = DataGetter (PointerGetter    c)   m
 type LayerMemManagerGetter  c   m = DataGetter (LayerMemManager  c)   m
 type ComponentMemPoolGetter c   m = DataGetter (ComponentMemPool c)   m
 type ComponentSizeGetter    c   m = DataGetter (ComponentSize    c)   m
 type AttrValueGetter        a   m = DataGetter (AttrValue        a)   m
 type AttrValueSetter        a   m = DataSetter (AttrValue        a)   m
-getLayerByteOffset  :: ∀ c l m. LayerByteOffsetGetter  c l m => m Int
-getLayerMemManager  :: ∀ c   m. LayerMemManagerGetter  c   m => m (LayerMemManager c)
-getComponentMemPool :: ∀ c   m. ComponentMemPoolGetter c   m => m MemPool
-getComponentSize    :: ∀ c   m. ComponentSizeGetter    c   m => m Int
-getAttrValue        :: ∀ a   m. AttrValueGetter        a   m => m Any
-putAttrValue        :: ∀ a   m. AttrValueSetter        a   m => Any -> m ()
-getLayerByteOffset  = unwrap <$> getData @(LayerByteOffset  c l) ; {-# INLINE getLayerByteOffset  #-}
-getComponentMemPool = unwrap <$> getData @(ComponentMemPool c)   ; {-# INLINE getComponentMemPool #-}
-getComponentSize    = unwrap <$> getData @(ComponentSize    c)   ; {-# INLINE getComponentSize    #-}
-getAttrValue        = unwrap <$> getData @(AttrValue        a)   ; {-# INLINE getAttrValue        #-}
-getLayerMemManager  = getData @(LayerMemManager c)               ; {-# INLINE getLayerMemManager #-}
-putAttrValue        = putData @(AttrValue a) . wrap              ; {-# INLINE putAttrValue        #-}
+getLayerByteOffset     :: ∀ c l m. LayerByteOffsetGetter  c l m => m Int
+getPointerGetter       :: ∀ c   m. PointerGetterGetter    c   m => m (PointerGetter    c)
+getComponentMemPool    :: ∀ c   m. ComponentMemPoolGetter c   m => m MemPool
+getComponentSize       :: ∀ c   m. ComponentSizeGetter    c   m => m Int
+getLayerMemManager     :: ∀ c   m. LayerMemManagerGetter  c   m => m (LayerMemManager c)
+getAttrValue           :: ∀ a   m. AttrValueGetter        a   m => m Any
+putAttrValue           :: ∀ a   m. AttrValueSetter        a   m => Any -> m ()
+getLayerByteOffset     = unwrap <$> getData @(LayerByteOffset  c l) ; {-# INLINE getLayerByteOffset     #-}
+getComponentMemPool    = unwrap <$> getData @(ComponentMemPool c)   ; {-# INLINE getComponentMemPool    #-}
+getComponentSize       = unwrap <$> getData @(ComponentSize    c)   ; {-# INLINE getComponentSize       #-}
+getAttrValue           = unwrap <$> getData @(AttrValue        a)   ; {-# INLINE getAttrValue           #-}
+getPointerGetter       = getData @(PointerGetter    c)              ; {-# INLINE getPointerGetter       #-}
+getLayerMemManager     = getData @(LayerMemManager c)               ; {-# INLINE getLayerMemManager     #-}
+putAttrValue           = putData @(AttrValue a) . wrap              ; {-# INLINE putAttrValue           #-}
 
 
 -- === Instances === --

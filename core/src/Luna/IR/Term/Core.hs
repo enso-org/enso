@@ -16,7 +16,8 @@ import qualified OCI.IR.Layout                       as Layout
 
 import Data.PtrList.Mutable              (UnmanagedPtrList)
 import Data.Vector.Storable.Foreign      (Vector)
-import Luna.IR.Component.Term.Class      (Term, Terms)
+import Luna.IR.Component.Link.Class      (Links)
+import Luna.IR.Component.Term.Class      (Constructor, Term, Terms)
 import Luna.IR.Component.Term.Definition (LinkTo)
 import Luna.IR.Component.Term.Layout     ()
 import OCI.Data.Name                     (Name)

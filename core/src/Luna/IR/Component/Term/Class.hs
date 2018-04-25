@@ -5,12 +5,14 @@ module Luna.IR.Component.Term.Class where
 
 import Prologue
 
-import qualified Data.Tag         as Tag
-import qualified OCI.IR.Component as Component
-import qualified OCI.IR.Layout    as Layout
-import qualified Type.Show        as Type
+import qualified Data.Tag            as Tag
+import qualified OCI.IR.Component    as Component
+import qualified OCI.IR.Layout       as Layout
+import qualified OCI.IR.Ptr.Provider as Ptr
+import qualified Type.Show           as Type
 
-
+import Data.Generics.Traversable (GTraversable)
+import Foreign.Ptr.Utils         (SomePtr)
 
 ---------------------
 -- === UniTerm === --
@@ -61,7 +63,11 @@ type family Merge__ a b where
     Merge__ a a = TermTag a
     -- Merge__ a b = -- TODO: when needed
 
+instance GTraversable Ptr.Provider (Constructor t a)
+    => Ptr.Provider (Constructor t a) where
+    pointersIO = Ptr.gpointers  ; {-# INLINE pointersIO #-}
 
+instance Ptr.Provider1 Term
 
 ---------------------
 -- === TagShow === --
