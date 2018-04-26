@@ -40,7 +40,6 @@ links1 = liftIO . linksIO1 ; {-# INLINE links1 #-}
 glinks :: (GTraversable Provider a, MonadIO m) => a -> m [SomeLink]
 glinks = gfoldlM @Provider (\acc a -> (acc <>) <$> links a) mempty ; {-# INLINE glinks #-}
 
-
 -- === Redirect instances === --
 
 instance {-# OVERLAPPABLE #-} GTraversable Provider a => Provider a where

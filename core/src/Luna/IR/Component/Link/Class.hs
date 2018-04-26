@@ -4,10 +4,13 @@ module Luna.IR.Component.Link.Class where
 
 import Prologue
 
-import qualified OCI.IR.Component as Component
-import qualified OCI.IR.Layer     as Layer
-import qualified OCI.IR.Layout    as Layout
+import qualified OCI.IR.Component          as Component
+import qualified OCI.IR.Component.Provider as Component
+import qualified OCI.IR.Layer              as Layer
+import qualified OCI.IR.Layout             as Layout
 
+import Data.PtrSet.Mutable          (IsPtr)
+import Foreign.Ptr.Utils            (SomePtr)
 import Luna.IR.Component.Term.Class (Term)
 import OCI.IR.Layer                 (Layer)
 import OCI.IR.Layout                ((:=), Layout)
@@ -45,6 +48,12 @@ instance Layer  Target where
     manager = Layer.unsafeOnlyDestructorManager
 
 
+-- === Instances === --
+
+instance Component.Provider1 Link where
+    pointersIO1 = pure . pure . convertTo' @SomePtr
+
+
 -- === Helpers === --
 
 source :: Layer.Reader Links Source m
@@ -62,3 +71,6 @@ target = Layer.read @Target ; {-# INLINE target #-}
 ------------------------
 
 type Set = Component.Set Links
+
+instance Component.Provider1 Set where
+    pointersIO1 = Component.pointersIO1 . unwrap

@@ -176,6 +176,12 @@ toList t = do
             convert' <<$>> peekArray n arr))
 {-# INLINE toList #-}
 
+-- | A version of `toList` that fills a pre-allocated chunk instead
+--   of allocating one by itself.
+fillList :: (IsPtr a, IsPtrList t, MonadIO m) => t a -> SomePtr -> m ()
+fillList t arr = with t (c_toList $ castPtr arr)
+{-# INLINE fillList #-}
+
 -- | Convert a pure haskell list to the c++'s std::list.
 fromList :: (IsPtrList t, MonadIO m, IsPtr a) => [a] -> m (t a)
 fromList es = do

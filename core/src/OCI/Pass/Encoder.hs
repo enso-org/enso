@@ -4,14 +4,15 @@ module OCI.Pass.Encoder where
 
 import Prologue
 
-import qualified Data.Map              as Map
-import qualified Data.TypeMap.Strict   as TypeMap
-import qualified Foreign.Marshal.Alloc as Mem
-import qualified Foreign.Marshal.Utils as Mem
-import qualified Foreign.Memory.Pool   as MemPool
-import qualified Foreign.Ptr           as Ptr
-import qualified OCI.Pass.Definition   as Pass
-import qualified OCI.Pass.Registry     as Reg
+import qualified Data.Map                  as Map
+import qualified Data.TypeMap.Strict       as TypeMap
+import qualified Foreign.Marshal.Alloc     as Mem
+import qualified Foreign.Marshal.Utils     as Mem
+import qualified Foreign.Memory.Pool       as MemPool
+import qualified Foreign.Ptr               as Ptr
+import qualified OCI.IR.Component.Provider as Component
+import qualified OCI.Pass.Definition       as Pass
+import qualified OCI.Pass.Registry         as Reg
 
 import Control.Monad.Exception (Throws, throw)
 import Data.Map.Strict         (Map)
@@ -42,6 +43,7 @@ data ComponentInfo = ComponentInfo
     , _layersInitializer :: !SomePtr
     , _layersConstructor :: !(SomePtr -> IO ())
     , _layersDestructor  :: !(SomePtr -> IO ())
+    , _dynamicGetter     :: !Component.DynamicGetter
     , _memPool           :: !MemPool
     }
 
@@ -61,18 +63,20 @@ computeConfig cfg = wrap <$> mapM computeComponentInfo (cfg ^. Reg.components) ;
 
 computeComponentInfo :: MonadIO m => Reg.ComponentInfo -> m ComponentInfo
 computeComponentInfo compCfg = compInfo where
-    layerReps    = Map.keys  $ compCfg ^. Reg.layers
-    layerInfos   = Map.elems $ compCfg ^. Reg.layers
-    layerSizes   = view Reg.byteSize <$> layerInfos
-    layerOffsets = scanl (+) 0 layerSizes
-    layerCfgs    = wrap <$> layerOffsets
-    compSize     = sum layerSizes
-    compInfo     = ComponentInfo compSize
-               <$> pure (fromList $ zip layerReps layerCfgs)
-               <*> prepareLayerInitializer  layerInfos
-               <*> prepareLayersConstructor layerInfos
-               <*> prepareLayersDestructor  layerInfos
-               <*> MemPool.new def (MemPool.ItemSize compSize)
+    layerReps     = Map.keys  $ compCfg ^. Reg.layers
+    layerInfos    = Map.elems $ compCfg ^. Reg.layers
+    layerSizes    = view Reg.byteSize <$> layerInfos
+    layerOffsets  = scanl (+) 0 layerSizes
+    layerCfgs     = wrap <$> layerOffsets
+    layerOffInfos = zip layerOffsets layerInfos
+    compSize      = sum layerSizes
+    compInfo      = ComponentInfo compSize
+                <$> pure (fromList $ zip layerReps layerCfgs)
+                <*> prepareLayerInitializer  layerInfos
+                <*> prepareLayersConstructor layerInfos
+                <*> prepareLayersDestructor  layerInfos
+                <*> preparePtrGetter               layerOffInfos
+                <*> MemPool.new def (MemPool.ItemSize compSize)
 
 prepareLayerInitializer :: MonadIO m => [Reg.LayerInfo] -> m SomePtr
 prepareLayerInitializer ls = do
@@ -125,7 +129,12 @@ concatLayersIOActions lens = go where
             {-# INLINE fuse #-}
 
 
+preparePtrGetter :: MonadIO m => [(Int, Reg.LayerInfo)] -> m Component.DynamicGetter
+preparePtrGetter ls = do
+    let getFromLayer :: SomePtr -> Int -> Reg.LayerInfo -> IO [SomePtr]
+        getFromLayer p off l = (l ^. Reg.dynamicGetter) (p `Ptr.plusPtr` off)
 
+    pure $ (\ptr -> concat <$> mapM (uncurry $ getFromLayer ptr) ls)
 
 ---------------------
 -- === Encoder === --
@@ -181,13 +190,15 @@ instance ( layers   ~ Pass.Vars pass comp
          , targets  ~ Pass.ComponentLayerLayout Pass.LayerByteOffset pass comp
          , compMemPool ~ Pass.ComponentMemPool comp
          , compSize    ~ Pass.ComponentSize    comp
+         , ptrGetter   ~ Pass.DynamicGetter    comp
          , layerInit   ~ Pass.LayerMemManager  comp
          , Typeables layers
          , Typeable  comp
          , Encoder__ pass comps
          , PassDataElemEncoder  compMemPool MemPool pass
          , PassDataElemEncoder  compSize    Int     pass
-         , PassDataElemEncoder  layerInit   (Pass.LayerMemManager comp) pass
+         , PassDataElemEncoder  ptrGetter   (Pass.DynamicGetter    comp) pass
+         , PassDataElemEncoder  layerInit   (Pass.LayerMemManager  comp) pass
          , PassDataElemsEncoder targets     Int     pass
          ) => Encoder__ pass (comp ': comps) where
     encode__ cfg = encoders where
@@ -198,19 +209,20 @@ instance ( layers   ~ Pass.Vars pass comp
                    . lookupComponent tgtComp $ cfg ^. components
         tgtComp    = someTypeRep @comp
         procComp i = (encoders .) <$> layerEncoder where
-            encoders     = initEncoder . memEncoder . sizeEncoder
+            encoders     = ptrGetterEncoder . initEncoder . memEncoder . sizeEncoder
             memEncoder   = encodePassDataElem  @compMemPool $ i ^. memPool
             sizeEncoder  = encodePassDataElem  @compSize    $ i ^. byteSize
             layerEncoder = encodePassDataElems @targets <$> layerOffsets
             initEncoder  = encodePassDataElem  @layerInit
-                         $ Pass.LayerMemManager @comp
-                           (i ^. layersInitializer)
-                           (i ^. layersConstructor)
-                           (i ^. layersDestructor)
-            layerTypes   = someTypeReps @layers
-            layerOffsets = view byteOffset <<$>> layerInfos
-            layerInfos   = mapLeft wrap $ catEithers
-                         $ flip lookupLayer (i ^. layers) <$> layerTypes
+                         $ Pass.LayerMemManager @comp (i ^. layersInitializer)
+                                                      (i ^. layersConstructor)
+                                                      (i ^. layersDestructor)
+            ptrGetterEncoder = encodePassDataElem    @ptrGetter
+                             $ Pass.DynamicGetter    @comp (i ^. dynamicGetter)
+            layerTypes       = someTypeReps @layers
+            layerOffsets     = view byteOffset <<$>> layerInfos
+            layerInfos       = mapLeft wrap $ catEithers
+                             $ flip lookupLayer (i ^. layers) <$> layerTypes
     {-# INLINE encode__ #-}
 
 lookupComponent :: SomeTypeRep -> Map SomeTypeRep v -> EncodingResult v
