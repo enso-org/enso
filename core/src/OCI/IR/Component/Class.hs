@@ -1,4 +1,3 @@
-{-# LANGUAGE TypeInType           #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module OCI.IR.Component.Class (module OCI.IR.Component.Class, module X) where
@@ -13,7 +12,6 @@ import qualified Foreign.Memory.Pool        as MemPool
 import qualified Foreign.Ptr                as Ptr
 import qualified Foreign.Storable1.Deriving as Storable1
 import qualified Language.Haskell.TH        as TH
-import qualified OCI.Pass.Definition        as Pass
 
 import Foreign.Ptr.Utils (SomePtr)
 import Foreign.Storable  (Storable)
@@ -27,91 +25,11 @@ import OCI.IR.Layout     (Relayout, UnsafeRelayout)
 
 -- === Definition === --
 
-type SomeComponent t = Component t ()
-newtype  Component t (layout :: Type) = Component SomePtr
+newtype Component (t :: Type) (layout :: Type) = Component SomePtr
     deriving (Eq, Ord, Show, Storable)
 makeLenses       ''Component
 Storable1.derive ''Component
 
-
--- === API === --
-
-type Allocator comp m =
-    ( MonadIO m
-    , Pass.ComponentMemPoolGetter comp m
-    )
-
-type Creator comp m =
-    ( Allocator                  comp m
-    , Pass.LayerMemManagerGetter comp m
-    , Pass.ComponentSizeGetter   comp m
-    )
-
-
-type HasSize comp m =
-    ( MonadIO m
-    , Pass.ComponentSizeGetter comp m
-    )
-
-type HasPointers comp m =
-    ( MonadIO m
-    , Pass.DynamicGetterGetter comp m
-    )
-
-unsafeNull :: Component comp layout
-unsafeNull = Component Ptr.nullPtr ; {-# INLINE unsafeNull #-}
-
-alloc :: ∀ comp m layout. Allocator comp m => m (Component comp layout)
-alloc = do
-    pool <- Pass.getComponentMemPool @comp
-    wrap <$> MemPool.alloc pool
-{-# INLINE alloc #-}
-
-dealloc :: ∀ comp m layout. Allocator comp m => Component comp layout -> m ()
-dealloc comp = do
-    pool <- Pass.getComponentMemPool @comp
-    MemPool.free pool $ unwrap comp
-{-# INLINE dealloc #-}
-
-
--- === Construction / Destruction === --
-
-instance Creator comp m => Data.Constructor1 m () (Component comp) where
-    construct1 _ = do
-        ir    <- alloc
-        layer <- Pass.getLayerMemManager @comp
-        size  <- Pass.getComponentSize   @comp
-        let ptr = coerce ir
-        liftIO $ Mem.copyBytes ptr (layer ^. Pass.initializer) size
-        liftIO $ (layer ^. Pass.constructor) ptr
-        pure ir
-    {-# INLINE construct1 #-}
-
-instance Creator comp m => Data.Destructor1 m (Component comp) where
-    destruct1 ir = do
-        layer <- Pass.getLayerMemManager @comp
-        liftIO $ (layer ^. Pass.destructor) (coerce ir)
-        dealloc ir
-    {-# INLINE destruct1 #-}
-
-instance Monad m => Data.ShallowDestructor1 m (Component comp) where
-    destructShallow1 = const $ pure () ; {-# INLINE destructShallow1 #-}
-
-unsafeToPtr :: Component comp layout -> SomePtr
-unsafeToPtr = coerce ; {-# INLINE unsafeToPtr #-}
-
-unsafeFromPtr :: ∀ comp layout. SomePtr -> Component comp layout
-unsafeFromPtr = coerce ; {-# INLINE unsafeFromPtr #-}
-
-byteSize :: ∀ comp m l. HasSize comp m => Component comp l -> m Int
-byteSize _ = Pass.getComponentSize @comp
-
-pointers :: ∀ comp m l. HasPointers comp m
-         => Component comp l -> m [SomePtr]
-pointers comp = do
-    let ptr      = unsafeToPtr comp
-    getPointers <- unwrap <$> Pass.getDynamicGetter @comp
-    liftIO $ getPointers ptr
 
 -- === Relayout === --
 
@@ -141,6 +59,12 @@ instance {-# OVERLAPPABLE #-} t ~ t'
 
 -- === Conversions === --
 
+unsafeToPtr :: Component comp layout -> SomePtr
+unsafeToPtr = coerce ; {-# INLINE unsafeToPtr #-}
+
+unsafeFromPtr :: ∀ comp layout. SomePtr -> Component comp layout
+unsafeFromPtr = coerce ; {-# INLINE unsafeFromPtr #-}
+
 -- TODO: Change to UnsafeConvertible
 instance Convertible (Component t a) SomePtr         where convert = coerce ; {-# INLINE convert #-}
 instance Convertible SomePtr         (Component t a) where convert = coerce ; {-# INLINE convert #-}
@@ -152,3 +76,35 @@ define :: String -> TH.Q [TH.Dec]
 define el = Tag.nonStandardFamilyInstance ''Component el (el <> "s")
 
 
+
+-----------------
+-- === Rep === --
+-----------------
+
+-- === Definition === --
+
+newtype TagRep    = TagRep    SomeTypeRep deriving (Eq, Ord, Show)
+newtype LayoutRep = LayoutRep SomeTypeRep deriving (Eq, Ord, Show)
+data    Rep       = Rep TagRep LayoutRep  deriving (Eq, Ord, Show)
+makeLenses ''TagRep
+makeLenses ''LayoutRep
+makeLenses ''Rep
+
+
+-- === API === --
+
+tagRep    :: ∀ tag        . Typeable tag             => TagRep
+layoutRep :: ∀     layout . Typeable layout          => LayoutRep
+rep       :: ∀ tag layout . Typeables '[tag, layout] => Rep
+rep1      :: ∀ tag        . Typeable tag             => Rep
+tagRep    = wrap $ someTypeRep @tag               ; {-# INLINE tagRep    #-}
+layoutRep = wrap $ someTypeRep @layout            ; {-# INLINE layoutRep #-}
+rep       = Rep (tagRep @tag) (layoutRep @layout) ; {-# INLINE rep       #-}
+rep1      = rep @tag @()                          ; {-# INLINE rep1      #-}
+
+repOf       :: ∀ t lyt. Typeables '[t, lyt] => Component t lyt -> Rep
+tagRepOf    :: ∀ t lyt. Typeable  t         => Component t lyt -> TagRep
+layoutRepOf :: ∀ t lyt. Typeable  lyt       => Component t lyt -> LayoutRep
+repOf       _ = rep    @t @lyt ; {-# INLINE repOf       #-}
+tagRepOf    _ = tagRep    @t   ; {-# INLINE tagRepOf    #-}
+layoutRepOf _ = layoutRep @lyt ; {-# INLINE layoutRepOf #-}

@@ -63,11 +63,15 @@ type family Merge__ a b where
     Merge__ a a = TermTag a
     -- Merge__ a b = -- TODO: when needed
 
-instance GTraversable Component.Provider (Constructor t a)
-    => Component.Provider (Constructor t a) where
-    pointersIO = Component.gpointers  ; {-# INLINE pointersIO #-}
+instance GTraversable (Component.Provider tag) (Constructor t a)
+    => Component.Provider tag (Constructor t a) where
+    componentsIO = Component.gcomponents @tag  ; {-# INLINE componentsIO #-}
 
-instance Component.Provider1 Term
+instance GTraversable Component.DynamicProvider (Constructor t a)
+    => Component.DynamicProvider (Constructor t a) where
+    dynamicComponentsIO = Component.gdynamicComponents  ; {-# INLINE dynamicComponentsIO #-}
+
+-- instance Component.Provider1 Term
 
 ---------------------
 -- === TagShow === --

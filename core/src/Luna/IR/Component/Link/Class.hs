@@ -28,6 +28,17 @@ type SomeLink = Link ()
 type src *-* tgt = Layout '[Source := src, Target := tgt]
 
 
+-- === Provider === --
+
+type Provider  = Component.Provider  Links
+type Provider1 = Component.Provider1 Links
+
+links  :: (MonadIO m, Provider  a) => a    -> m [SomeLink]
+links1 :: (MonadIO m, Provider1 a) => a t1 -> m [SomeLink]
+links  = Component.components  @Links ; {-# INLINE links  #-}
+links1 = Component.components1 @Links ; {-# INLINE links1 #-}
+
+
 
 --------------------
 -- === Layers === --
@@ -50,8 +61,8 @@ instance Layer  Target where
 
 -- === Instances === --
 
-instance Component.Provider1 Link where
-    pointersIO1 = pure . pure . convertTo' @SomePtr
+-- instance Component.Provider1 Link where
+--     pointersIO1 = pure . pure . convertTo' @SomePtr
 
 
 -- === Helpers === --
@@ -72,5 +83,5 @@ target = Layer.read @Target ; {-# INLINE target #-}
 
 type Set = Component.Set Links
 
-instance Component.Provider1 Set where
-    pointersIO1 = Component.pointersIO1 . unwrap
+-- instance Component.Provider1 Set where
+--     pointersIO1 = Component.pointersIO1 . unwrap

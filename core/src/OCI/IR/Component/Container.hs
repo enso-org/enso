@@ -9,6 +9,7 @@ import Prologue
 import qualified Data.Construction          as Data
 import qualified Data.Set.Mutable.Class     as Set
 import qualified Foreign.Storable1.Deriving as Storable1
+import qualified OCI.IR.Component.Provider  as Component
 
 import Data.PtrSet.Mutable (UnmanagedPtrSet)
 import Foreign.Storable    (Storable)
@@ -20,7 +21,7 @@ import Foreign.Storable    (Storable)
 
 -- === Definition === --
 
-newtype Set comp layout = Set (UnmanagedPtrSet (Component comp layout))
+newtype Set tag layout = Set (UnmanagedPtrSet (Component tag layout))
     deriving (Show, Storable)
 makeLenses       ''Set
 Storable1.derive ''Set
@@ -28,8 +29,8 @@ Storable1.derive ''Set
 
 -- === Instances === --
 
-type instance Set.Item (Set comp layout) = Component comp layout
-instance MonadIO m => Set.Set m (Set comp layout) where
+type instance Set.Item (Set tag layout) = Component tag layout
+instance MonadIO m => Set.Set m (Set tag layout) where
     new    = wrap <$> Set.new    ; {-# INLINE new    #-}
     insert = Set.insert . unwrap ; {-# INLINE insert #-}
     delete = Set.delete . unwrap ; {-# INLINE delete #-}
@@ -43,3 +44,6 @@ instance MonadIO m => Data.Constructor2 m () Set where
 
 instance MonadIO m => Data.ShallowDestructor2 m Set where
     destructShallow2 = Data.destruct1 . unwrap ; {-# INLINE destructShallow2 #-}
+
+instance Typeable tag => Component.DynamicProvider1 (Set tag) where
+    dynamicComponentsIO1 = Component.dynamicComponentsIO . unwrap ; {-# INLINE dynamicComponentsIO1 #-}

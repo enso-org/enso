@@ -57,7 +57,7 @@ instance {-# OVERLAPPABLE #-}
     , DescAttrs Pass.Out pass
     , DescComps Pass.In pass comps
     , DescComps Pass.Out pass comps
-    , Typeables attrs
+    , TypeableMany attrs
     ) => Known pass where
     describe = descAttrs @Pass.In  @pass inputs
              . descAttrs @Pass.Out @pass outputs
@@ -77,7 +77,7 @@ instance DescAttrs t Impossible where
     descAttrs _ _ = impossible
 
 instance ( attrs  ~ Pass.Spec pass (t Pass.Attrs)
-         , Typeables attrs
+         , TypeableMany attrs
          ) => DescAttrs t pass where
     descAttrs f = (f . attrs) .~ Attr.reps @attrs
     {-# INLINE descAttrs #-}
@@ -93,7 +93,7 @@ instance DescComps t pass '[] where
 
 instance ( layers ~ Pass.Spec pass (t comp)
          , Typeable  comp
-         , Typeables layers
+         , TypeableMany layers
          , DescComps t pass comps
          ) => DescComps t pass (comp ': comps) where
     descComps f = trans . descComps @t @pass @comps f where
