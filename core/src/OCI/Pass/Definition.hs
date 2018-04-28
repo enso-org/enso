@@ -1,5 +1,4 @@
 {-# LANGUAGE ExistentialQuantification #-}
-{-# LANGUAGE TypeInType                #-}
 {-# LANGUAGE UndecidableInstances      #-}
 
 module OCI.Pass.Definition where
@@ -11,11 +10,14 @@ import qualified Data.TypeMap.Strict         as TypeMap
 import qualified Foreign.Memory.Pool         as MemPool
 import qualified Foreign.Ptr                 as Ptr
 import qualified OCI.IR.Component.Dynamic    as Component
+import qualified OCI.IR.Layer                as Layer
 import qualified OCI.Pass.Attr               as Attr
 import qualified Type.Data.List              as List
 
 import Control.Monad.State.Layered (StateT)
+import Data.Graph.Component.Class  (Component)
 import Data.TypeMap.Strict         (TypeMap)
+import Foreign.Info.ByteSize       (ByteSize (ByteSize))
 import Foreign.Memory.Pool         (MemPool)
 import Foreign.Ptr.Utils           (SomePtr)
 import GHC.Exts                    (Any)
@@ -69,36 +71,36 @@ type Vars pass prop
 -- === ComponentMemPool === --
 
 newtype AttrValue          attr       = AttrValue        Any
-newtype ComponentMemPool   comp       = ComponentMemPool MemPool
-newtype ComponentSize      comp       = ComponentSize    Int
+-- newtype ComponentMemPool   comp       = ComponentMemPool MemPool
+-- newtype ComponentSize      comp       = ComponentSize    Int
 newtype LayerByteOffset    comp layer = LayerByteOffset  Int
 newtype ComponentTraversal comp       = ComponentTraversal
                                         (SomePtr -> IO [Component.Dynamic])
-data    LayerMemManager    comp       = LayerMemManager
-    { _initializer :: SomePtr
-    , _constructor :: SomePtr -> IO ()
-    , _destructor  :: SomePtr -> IO ()
-    }
+-- data    Layer.DynamicManager    comp       = Layer.DynamicManager
+--     { _initializer :: SomePtr
+--     , _constructor :: SomePtr -> IO ()
+--     , _destructor  :: SomePtr -> IO ()
+--     }
 
 
 makeLenses ''AttrValue
-makeLenses ''ComponentMemPool
-makeLenses ''ComponentSize
+-- makeLenses ''ComponentMemPool
+-- makeLenses ''ComponentSize
 makeLenses ''LayerByteOffset
 makeLenses ''ComponentTraversal
-makeLenses ''LayerMemManager
+-- makeLenses ''Layer.DynamicManager
 
 
 -- === Instances === --
 
 instance Default (AttrValue          a) where def = wrap $ unsafeCoerce ()   ; {-# INLINE def #-}
-instance Default (ComponentMemPool   c) where def = wrap MemPool.unsafeNull  ; {-# INLINE def #-}
-instance Default (ComponentSize      c) where def = wrap 0                   ; {-# INLINE def #-}
+-- instance Default (ComponentMemPool   c) where def = wrap MemPool.unsafeNull  ; {-# INLINE def #-}
+-- instance Default (ComponentSize      c) where def = wrap 0                   ; {-# INLINE def #-}
 instance Default (LayerByteOffset  c l) where def = wrap 0                   ; {-# INLINE def #-}
 instance Default (ComponentTraversal c) where def = wrap (\_ -> pure mempty) ; {-# INLINE def #-}
-instance Default (LayerMemManager    c) where
-    def = LayerMemManager Ptr.nullPtr (const $ pure ()) (const $ pure ())
-    {-# INLINE def #-}
+-- instance Default (Layer.DynamicManager    c) where
+--     def = Layer.DynamicManager Ptr.nullPtr (const $ pure ()) (const $ pure ())
+--     {-# INLINE def #-}
 
 instance (Typeable comp, Typeable layer)
       => Show (LayerByteOffset comp layer) where
@@ -109,12 +111,12 @@ instance (Typeable comp, Typeable layer)
                    , '@' : show (typeRep @layer)
                    ]
 
-instance Typeable comp => Show (ComponentMemPool comp) where
-    showsPrec d (unwrap -> a) = showParen' d $ showString name . showsPrec' a
-        where name = (<> " ") $ unwords
-                   [ "ComponentMemPool"
-                   , '@' : show (typeRep @comp)
-                   ]
+-- instance Typeable comp => Show (ComponentMemPool comp) where
+--     showsPrec d (unwrap -> a) = showParen' d $ showString name . showsPrec' a
+--         where name = (<> " ") $ unwords
+--                    [ "ComponentMemPool"
+--                    , '@' : show (typeRep @comp)
+--                    ]
 
 
 
@@ -135,13 +137,23 @@ type ComputeStateLayout pass = List.Append (LayersLayout      pass)
                                            (LayerMemManagers pass )))))
 
 type LayersLayout      pass = MapLayerByteOffset        pass   (Vars pass Elems)
-type ComponentMemPools pass = List.Map ComponentMemPool        (Vars pass Elems)
-type ComponentSizes    pass = List.Map ComponentSize           (Vars pass Elems)
-type DynamicGetters    pass = List.Map ComponentTraversal           (Vars pass Elems)
-type LayerMemManagers  pass = List.Map LayerMemManager         (Vars pass Elems)
+type ComponentMemPools pass = MapComponentMemPool              (Vars pass Elems)
+type ComponentSizes    pass = MapComponentByteSize             (Vars pass Elems)
+type DynamicGetters    pass = List.Map ComponentTraversal      (Vars pass Elems)
+type LayerMemManagers  pass = List.Map Layer.DynamicManager    (Vars pass Elems)
 type AttrValues        pass = List.Map AttrValue               (Vars pass Attrs)
 
 type MapLayerByteOffset p c = MapOverCompsAndVars LayerByteOffset p c
+
+type family MapComponentMemPool ls where
+    MapComponentMemPool '[]       = '[]
+    MapComponentMemPool (l ': ls) = MemPool (Component l ())
+                                 ': MapComponentMemPool ls
+
+type family MapComponentByteSize ls where
+    MapComponentByteSize '[]       = '[]
+    MapComponentByteSize (l ': ls) = ByteSize (Component l)
+                                  ': MapComponentByteSize ls
 
 type family MapOverCompsAndVars t pass comps where
     MapOverCompsAndVars t pass '[] = '[]
@@ -246,24 +258,24 @@ instance (Monad m, MonadState m, TypeMap.ElemSetter a (DiscoverStateLayout m))
 
 type LayerByteOffsetGetter  c l m = DataGetter (LayerByteOffset  c l) m
 type ComponentTraversalGetter c m = DataGetter (ComponentTraversal c) m
-type LayerMemManagerGetter    c m = DataGetter (LayerMemManager    c) m
-type ComponentMemPoolGetter   c m = DataGetter (ComponentMemPool   c) m
-type ComponentSizeGetter      c m = DataGetter (ComponentSize      c) m
+-- type LayerMemManagerGetter    c m = DataGetter (Layer.DynamicManager    c) m
+-- type ComponentMemPoolGetter   c m = DataGetter (ComponentMemPool   c) m
+-- type ComponentSizeGetter      c m = DataGetter (ByteSize      c) m
 type AttrValueGetter          a m = DataGetter (AttrValue          a) m
 type AttrValueSetter          a m = DataSetter (AttrValue          a) m
 getLayerByteOffset    :: ∀ c l m. LayerByteOffsetGetter  c l m => m Int
 getComponentTraversal :: ∀ c   m. ComponentTraversalGetter c m => m (ComponentTraversal c)
-getComponentMemPool   :: ∀ c   m. ComponentMemPoolGetter   c m => m MemPool
-getComponentSize      :: ∀ c   m. ComponentSizeGetter      c m => m Int
-getLayerMemManager    :: ∀ c   m. LayerMemManagerGetter    c m => m (LayerMemManager c)
+-- getComponentMemPool   :: ∀ c   m. ComponentMemPoolGetter   c m => m MemPool
+-- getComponentSize      :: ∀ c   m. ComponentSizeGetter      c m => m Int
+-- getLayerMemManager    :: ∀ c   m. LayerMemManagerGetter    c m => m (Layer.DynamicManager c)
 getAttrValue          :: ∀ a   m. AttrValueGetter          a m => m Any
 putAttrValue          :: ∀ a   m. AttrValueSetter          a m => Any -> m ()
 getLayerByteOffset     = unwrap <$> getData @(LayerByteOffset  c l) ; {-# INLINE getLayerByteOffset     #-}
-getComponentMemPool    = unwrap <$> getData @(ComponentMemPool c)   ; {-# INLINE getComponentMemPool    #-}
-getComponentSize       = unwrap <$> getData @(ComponentSize    c)   ; {-# INLINE getComponentSize       #-}
+-- getComponentMemPool    = unwrap <$> getData @(ComponentMemPool c)   ; {-# INLINE getComponentMemPool    #-}
+-- getComponentSize       = unwrap <$> getData @(ByteSize    c)   ; {-# INLINE getComponentSize       #-}
 getAttrValue           = unwrap <$> getData @(AttrValue        a)   ; {-# INLINE getAttrValue           #-}
 getComponentTraversal  = getData @(ComponentTraversal c)            ; {-# INLINE getComponentTraversal  #-}
-getLayerMemManager     = getData @(LayerMemManager c)               ; {-# INLINE getLayerMemManager     #-}
+-- getLayerMemManager     = getData @(Layer.DynamicManager c)               ; {-# INLINE getLayerMemManager     #-}
 putAttrValue           = putData @(AttrValue a) . wrap              ; {-# INLINE putAttrValue           #-}
 
 
@@ -276,3 +288,64 @@ instance AttrValueGetter attr (Pass pass)
 instance AttrValueSetter attr (Pass pass)
       => Attr.RawSetter attr (Pass pass) where
     putRaw = putAttrValue @attr . unsafeCoerce ; {-# INLINE putRaw #-}
+
+
+
+-- instance DataGetter (Layer.DynamicManager comp) (Pass pass)
+--     => State.Getter (Layer.DynamicManager comp) (Pass pass) where
+--     get = getData  @(Layer.DynamicManager comp) ; {-# INLINE get #-}
+
+-- instance DataGetter (ByteSize (Component comp)) (Pass pass)
+--     => State.Getter (ByteSize (Component comp)) (Pass pass) where
+--     get = getData  @(ByteSize (Component comp)) ; {-# INLINE get #-}
+
+-- instance DataGetter (MemPool (Component comp ())) (Pass pass)
+--     => State.Getter (MemPool (Component comp ())) (Pass pass) where
+--     get = getData  @(MemPool (Component comp ())) ; {-# INLINE get #-}
+
+instance {-# OVERLAPPABLE #-} DataGetter t (Pass pass)
+    => State.Getter t (Pass pass) where
+    get = getData  @t ; {-# INLINE get #-}
+
+
+
+
+instance {-# OVERLAPPABLE #-}
+    ( Layer.StorableData layer
+    , LayerByteOffsetGetter comp layer (Pass pass)
+    , Layer.Wrapped (Layer.Cons layer)
+    ) => Layer.Reader comp layer (Pass pass) where
+    read__ !comp = do
+        !off <- getLayerByteOffset @comp @layer
+        Layer.unsafeReadByteOff @layer off comp
+    {-# INLINE read__ #-}
+
+instance {-# OVERLAPPABLE #-}
+    ( Layer.StorableData layer
+    , LayerByteOffsetGetter comp layer (Pass pass)
+    , Layer.Wrapped (Layer.Cons layer)
+    ) => Layer.Writer comp layer (Pass pass) where
+    write__ !comp !d = do
+        !off <- getLayerByteOffset @comp @layer
+        Layer.unsafeWriteByteOff @layer off comp d
+    {-# INLINE write__ #-}
+
+
+
+instance {-# OVERLAPPABLE #-}
+    ( Layer.StorableView layer layout
+    , LayerByteOffsetGetter comp layer (Pass pass)
+    ) => Layer.ViewReader comp layer layout (Pass pass) where
+    readView__ !comp = do
+        !off <- getLayerByteOffset @comp @layer
+        Layer.unsafeReadViewByteOff @layer off comp
+    {-# INLINE readView__ #-}
+
+instance {-# OVERLAPPABLE #-}
+    ( Layer.StorableView layer layout
+    , LayerByteOffsetGetter comp layer (Pass pass)
+    ) => Layer.ViewWriter comp layer layout (Pass pass) where
+    writeView__ !comp !d = do
+        !off <- getLayerByteOffset @comp @layer
+        Layer.unsafeWriteViewByteOff @layer off comp d
+    {-# INLINE writeView__ #-}

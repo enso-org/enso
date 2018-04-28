@@ -6,7 +6,7 @@ import qualified Control.Monad.State.Layered as State
 import qualified Data.Map.Strict             as Map
 import qualified Foreign.Storable1           as Storable1
 import qualified Foreign.Storable1.Ptr       as Ptr1
-import qualified OCI.IR.Component.Class      as Component
+import qualified Data.Graph.Component.Class      as Component
 import qualified OCI.IR.Component.Dynamic    as Component
 import qualified OCI.IR.Component.Provider   as Component
 import qualified OCI.IR.Layer                as Layer

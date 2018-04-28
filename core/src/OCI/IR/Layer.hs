@@ -6,18 +6,19 @@ module OCI.IR.Layer where
 
 import Prologue hiding (Data, Wrapped)
 
-import qualified Control.Lens        as Lens
-import qualified Data.Construction   as Data
-import qualified Foreign.Storable    as Storable
-import qualified Foreign.Storable1   as Storable1
-import qualified OCI.Pass.Definition as Pass
+import qualified Control.Lens      as Lens
+import qualified Data.Construction as Data
+import qualified Foreign.Ptr       as Ptr
+import qualified Foreign.Storable  as Storable
+import qualified Foreign.Storable1 as Storable1
+-- import qualified OCI.Pass.Definition as Pass
 
-import Foreign.Ptr            (plusPtr)
-import Foreign.Ptr.Utils      (SomePtr)
-import Foreign.Storable.Utils (sizeOf')
-import Foreign.Storable1      (Storable1)
-import OCI.IR.Component       (Component (Component))
-import OCI.Pass.Definition    (Pass)
+import Data.Graph.Component.Class (Component (Component))
+import Foreign.Ptr                (plusPtr)
+import Foreign.Ptr.Utils          (SomePtr)
+import Foreign.Storable.Utils     (sizeOf')
+import Foreign.Storable1          (Storable1)
+-- import OCI.Pass.Definition    (Pass)
 
 
 
@@ -126,6 +127,12 @@ data Manager (layer :: Type) = Manager
     , _destructor  :: ∀ layout. Maybe (Cons layer layout -> IO ())
     }
 
+data DynamicManager comp = DynamicManager
+    { _dynamicInitializer :: SomePtr
+    , _dynamicConstructor :: SomePtr -> IO ()
+    , _dynamicDestructor  :: SomePtr -> IO ()
+    }
+
 
 -- === Smart constructors === --
 
@@ -160,6 +167,10 @@ customDynamicManager !s !t = Manager Nothing (Just s) (Just t) ; {-# INLINE cust
 -- === Instances === --
 
 Lens.makeLenses ''Manager
+Lens.makeLenses ''DynamicManager
+
+instance Default (DynamicManager comp) where
+    def = DynamicManager Ptr.nullPtr (const $ pure ()) (const $ pure ()) ; {-# INLINE def #-}
 
 
 
@@ -229,25 +240,25 @@ write = write__ @comp @layer @m ; {-# INLINE write #-}
 
 -- === Instances === --
 
-instance {-# OVERLAPPABLE #-}
-    ( StorableData layer
-    , Pass.LayerByteOffsetGetter comp layer (Pass pass)
-    , Wrapped (Cons layer)
-    ) => Reader comp layer (Pass pass) where
-    read__ !comp = do
-        !off <- Pass.getLayerByteOffset @comp @layer
-        unsafeReadByteOff @layer off comp
-    {-# INLINE read__ #-}
+-- instance {-# OVERLAPPABLE #-}
+--     ( StorableData layer
+--     , Pass.LayerByteOffsetGetter comp layer (Pass pass)
+--     , Wrapped (Cons layer)
+--     ) => Reader comp layer (Pass pass) where
+--     read__ !comp = do
+--         !off <- Pass.getLayerByteOffset @comp @layer
+--         unsafeReadByteOff @layer off comp
+--     {-# INLINE read__ #-}
 
-instance {-# OVERLAPPABLE #-}
-    ( StorableData layer
-    , Pass.LayerByteOffsetGetter comp layer (Pass pass)
-    , Wrapped (Cons layer)
-    ) => Writer comp layer (Pass pass) where
-    write__ !comp !d = do
-        !off <- Pass.getLayerByteOffset @comp @layer
-        unsafeWriteByteOff @layer off comp d
-    {-# INLINE write__ #-}
+-- instance {-# OVERLAPPABLE #-}
+--     ( StorableData layer
+--     , Pass.LayerByteOffsetGetter comp layer (Pass pass)
+--     , Wrapped (Cons layer)
+--     ) => Writer comp layer (Pass pass) where
+--     write__ !comp !d = do
+--         !off <- Pass.getLayerByteOffset @comp @layer
+--         unsafeWriteByteOff @layer off comp d
+--     {-# INLINE write__ #-}
 
 instance {-# OVERLAPPABLE #-} (Monad (t m), MonadTrans t, Writer comp layer m)
     => Writer comp layer (t m) where
@@ -343,23 +354,23 @@ writeView = writeView__ @comp @layer @layout @m ; {-# INLINE writeView #-}
 
 -- === Instances === --
 
-instance {-# OVERLAPPABLE #-}
-    ( StorableView layer layout
-    , Pass.LayerByteOffsetGetter comp layer (Pass pass)
-    ) => ViewReader comp layer layout (Pass pass) where
-    readView__ !comp = do
-        !off <- Pass.getLayerByteOffset @comp @layer
-        unsafeReadViewByteOff @layer off comp
-    {-# INLINE readView__ #-}
+-- instance {-# OVERLAPPABLE #-}
+--     ( StorableView layer layout
+--     , Pass.LayerByteOffsetGetter comp layer (Pass pass)
+--     ) => ViewReader comp layer layout (Pass pass) where
+--     readView__ !comp = do
+--         !off <- Pass.getLayerByteOffset @comp @layer
+--         unsafeReadViewByteOff @layer off comp
+--     {-# INLINE readView__ #-}
 
-instance {-# OVERLAPPABLE #-}
-    ( StorableView layer layout
-    , Pass.LayerByteOffsetGetter comp layer (Pass pass)
-    ) => ViewWriter comp layer layout (Pass pass) where
-    writeView__ !comp !d = do
-        !off <- Pass.getLayerByteOffset @comp @layer
-        unsafeWriteViewByteOff @layer off comp d
-    {-# INLINE writeView__ #-}
+-- instance {-# OVERLAPPABLE #-}
+--     ( StorableView layer layout
+--     , Pass.LayerByteOffsetGetter comp layer (Pass pass)
+--     ) => ViewWriter comp layer layout (Pass pass) where
+--     writeView__ !comp !d = do
+--         !off <- Pass.getLayerByteOffset @comp @layer
+--         unsafeWriteViewByteOff @layer off comp d
+--     {-# INLINE writeView__ #-}
 
 
 -- === Early resolution block === --

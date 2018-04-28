@@ -8,7 +8,7 @@ import qualified Data.PtrList.Mutable         as PtrList
 import qualified Data.PtrSet.Mutable          as PtrSet
 import qualified Data.Vector.Storable.Foreign as Foreign
 import qualified Foreign.Storable1            as Storable1
-import qualified OCI.IR.Component.Class       as Component
+import qualified Data.Graph.Component.Class       as Component
 import qualified OCI.IR.Component.Dynamic     as Component
 import qualified OCI.IR.Layout                as Layout
 
@@ -17,7 +17,7 @@ import Data.PtrList.Mutable      (IsPtr)
 import Foreign.Ptr.Utils         (SomePtr)
 import Foreign.Storable1         (Storable1)
 import OCI.Data.Name             (Name)
-import OCI.IR.Component.Class    (Component)
+import Data.Graph.Component.Class    (Component)
 
 
 

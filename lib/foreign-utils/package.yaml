@@ -19,6 +19,7 @@ library:
     dependencies:
         - base
         - lens
+        - layered-state
         - luna-th-builder
         - prologue >= 3.0.0
         - template-haskell

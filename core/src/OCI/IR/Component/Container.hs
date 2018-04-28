@@ -3,7 +3,7 @@
 
 module OCI.IR.Component.Container where
 
-import OCI.IR.Component.Class
+import Data.Graph.Component.Class
 import Prologue
 
 import qualified Data.Construction          as Data

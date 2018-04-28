@@ -15,7 +15,9 @@ import           Foreign.Storable.Utils (sizeOf')
 import qualified Foreign.Memory.Manager as Mgr
 
 
-type MemPool = Mgr.MemoryManager
+newtype MemPool a = MemPool Mgr.MemoryManager
+makeLenses ''MemPool
+
 newtype BlockSize = BlockSize { _blockSize :: Int }
 newtype ItemSize  = ItemSize  { _itemSize  :: Int }
 makeLenses ''BlockSize
@@ -29,29 +31,34 @@ allocPtr = liftIO Foreign.malloc ; {-# INLINE allocPtr #-}
 allocBytes :: forall a m. MonadIO m => Int -> m (Ptr a)
 allocBytes t = liftIO $ Foreign.mallocBytes t ; {-# INLINE allocBytes #-}
 
-unsafeNull :: MemPool
-unsafeNull = Mgr.unsafeNull ; {-# INLINE unsafeNull #-}
+unsafeNull :: MemPool a
+unsafeNull = wrap Mgr.unsafeNull ; {-# INLINE unsafeNull #-}
 
 -- | Create a new memory manager.
 new :: MonadIO m => BlockSize -- ^ the number of items to pre-allocate
                  -> ItemSize  -- ^ the size of one item
-                 -> m MemPool -- ^ a new manager instance
-new (BlockSize bs) (ItemSize is) = Mgr.newManager bs is ; {-# INLINE new #-}
+                 -> m (MemPool a) -- ^ a new manager instance
+new (BlockSize bs) (ItemSize is) = wrap <$> Mgr.newManager bs is ; {-# INLINE new #-}
 
 -- | Allocate an element using the provided manager instance.
 --   Note that even though the function is polymorphic in its
 --   return type, the size of the allocated piece of memory will
 --   be based on the manager used as the argument.
-alloc :: MonadIO m => MemPool -> m (Ptr a)
-alloc = Mgr.newItem ; {-# INLINE alloc #-}
+alloc :: MonadIO m => MemPool a -> m SomePtr
+alloc = Mgr.newItem . unwrap ; {-# INLINE alloc #-}
 
 -- | Free the memory obtained by using `alloc`.
-free :: MonadIO m => MemPool -> Ptr a -> m ()
-free = Mgr.deleteItem ; {-# INLINE free #-}
+free :: MonadIO m => MemPool a -> SomePtr -> m ()
+free = Mgr.deleteItem . unwrap ; {-# INLINE free #-}
 
 -- | Delete the manager, freeing all of the memory it allocated.
-delete :: MonadIO m => MemPool -> m ()
-delete = Mgr.deleteManager ; {-# INLINE delete #-}
+delete :: MonadIO m => MemPool a -> m ()
+delete = Mgr.deleteManager . unwrap ; {-# INLINE delete #-}
+
+
+-- FIXME: this instance is unsafe
+instance Default (MemPool a) where
+    def = unsafeNull ; {-# INLINE def #-}
 
 --
 -- import Foreign.Marshal.Alloc (mallocBytes)

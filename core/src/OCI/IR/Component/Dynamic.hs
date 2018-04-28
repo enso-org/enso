@@ -2,10 +2,10 @@ module OCI.IR.Component.Dynamic where
 
 import Prologue
 
-import qualified OCI.IR.Component.Class as Component
+import qualified Data.Graph.Component.Class as Component
 
 import Foreign.Ptr.Utils      (SomePtr)
-import OCI.IR.Component.Class (Component)
+import Data.Graph.Component.Class (Component)
 
 
 

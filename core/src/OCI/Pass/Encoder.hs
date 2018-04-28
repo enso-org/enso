@@ -4,23 +4,26 @@ module OCI.Pass.Encoder where
 
 import Prologue
 
-import qualified Data.Map                  as Map
-import qualified Data.TypeMap.Strict       as TypeMap
-import qualified Foreign.Marshal.Alloc     as Mem
-import qualified Foreign.Marshal.Utils     as Mem
-import qualified Foreign.Memory.Pool       as MemPool
-import qualified Foreign.Ptr               as Ptr
-import qualified OCI.IR.Component.Class    as Component
-import qualified OCI.IR.Component.Dynamic  as Component
-import qualified OCI.IR.Component.Provider as Component
-import qualified OCI.Pass.Definition       as Pass
-import qualified OCI.Pass.Registry         as Reg
+import qualified Data.Graph.Component.Class as Component
+import qualified Data.Map                   as Map
+import qualified Data.TypeMap.Strict        as TypeMap
+import qualified Foreign.Marshal.Alloc      as Mem
+import qualified Foreign.Marshal.Utils      as Mem
+import qualified Foreign.Memory.Pool        as MemPool
+import qualified Foreign.Ptr                as Ptr
+import qualified OCI.IR.Component.Dynamic   as Component
+import qualified OCI.IR.Component.Provider  as Component
+import qualified OCI.IR.Layer               as Layer
+import qualified OCI.Pass.Definition        as Pass
+import qualified OCI.Pass.Registry          as Reg
 
-import Control.Monad.Exception (Throws, throw)
-import Data.Map.Strict         (Map)
-import Foreign.Memory.Pool     (MemPool)
-import Foreign.Ptr.Utils       (SomePtr)
-import GHC.Exts                (Any)
+import Control.Monad.Exception    (Throws, throw)
+import Data.Graph.Component.Class (Component)
+import Data.Map.Strict            (Map)
+import Foreign.Info.ByteSize      (ByteSize (ByteSize))
+import Foreign.Memory.Pool        (MemPool)
+import Foreign.Ptr.Utils          (SomePtr)
+import GHC.Exts                   (Any)
 
 
 
@@ -46,7 +49,7 @@ data ComponentInfo = ComponentInfo
     , _layersConstructor :: !(SomePtr -> IO ())
     , _layersDestructor  :: !(SomePtr -> IO ())
     , _layersComponents  :: !(SomePtr -> IO [Component.Dynamic])
-    , _memPool           :: !MemPool
+    , _memPool           :: !(MemPool ())
     }
 
 newtype LayerInfo = LayerInfo
@@ -194,17 +197,17 @@ instance Encoder__ pass '[] where
 
 instance ( layers      ~ Pass.Vars pass comp
          , targets     ~ Pass.ComponentLayerLayout Pass.LayerByteOffset pass comp
-         , compMemPool ~ Pass.ComponentMemPool   comp
-         , compSize    ~ Pass.ComponentSize      comp
+         , compMemPool ~ MemPool (Component comp ())
+         , compSize    ~ ByteSize (Component comp)
          , compTravsl  ~ Pass.ComponentTraversal comp
-         , layerInit   ~ Pass.LayerMemManager    comp
+         , layerInit   ~ Layer.DynamicManager    comp
          , TypeableMany layers
          , Typeable  comp
          , Encoder__ pass comps
-         , PassDataElemEncoder  compMemPool MemPool pass
-         , PassDataElemEncoder  compSize    Int     pass
-         , PassDataElemEncoder  compTravsl (Pass.ComponentTraversal comp) pass
-         , PassDataElemEncoder  layerInit  (Pass.LayerMemManager    comp) pass
+         , PassDataElemEncoder  compMemPool compMemPool pass
+         , PassDataElemEncoder  compSize    compSize    pass
+         , PassDataElemEncoder  compTravsl  compTravsl  pass
+         , PassDataElemEncoder  layerInit   layerInit   pass
          , PassDataElemsEncoder targets     Int     pass
          ) => Encoder__ pass (comp ': comps) where
     encode__ cfg = encoders where
@@ -216,11 +219,11 @@ instance ( layers      ~ Pass.Vars pass comp
         tgtComp    = Component.tagRep @comp
         procComp i = (encoders .) <$> layerEncoder where
             encoders     = ptrGetterEncoder . initEncoder . memEncoder . sizeEncoder
-            memEncoder   = encodePassDataElem  @compMemPool $ i ^. memPool
-            sizeEncoder  = encodePassDataElem  @compSize    $ i ^. byteSize
+            memEncoder   = encodePassDataElem  @compMemPool $ (coerce (i ^. memPool) :: compMemPool)
+            sizeEncoder  = encodePassDataElem  @compSize    $ (ByteSize (i ^. byteSize) :: compSize)
             layerEncoder = encodePassDataElems @targets <$> layerOffsets
             initEncoder  = encodePassDataElem  @layerInit
-                         $ Pass.LayerMemManager @comp (i ^. layersInitializer)
+                         $ Layer.DynamicManager @comp (i ^. layersInitializer)
                                                       (i ^. layersConstructor)
                                                       (i ^. layersDestructor)
             ptrGetterEncoder = encodePassDataElem @compTravsl

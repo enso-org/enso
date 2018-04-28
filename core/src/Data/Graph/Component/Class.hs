@@ -1,6 +1,6 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module OCI.IR.Component.Class (module OCI.IR.Component.Class, module X) where
+module Data.Graph.Component.Class (module Data.Graph.Component.Class, module X) where
 import Data.Construction as X (destruct, destruct1, new, new1)
 
 import Prologue hiding (ConversionError)
@@ -25,7 +25,7 @@ import OCI.IR.Layout     (Relayout, UnsafeRelayout)
 
 -- === Definition === --
 
-newtype Component (t :: Type) (layout :: Type) = Component SomePtr
+newtype Component tag layout = Component SomePtr
     deriving (Eq, Ord, Show, Storable)
 makeLenses       ''Component
 Storable1.derive ''Component
@@ -33,7 +33,7 @@ Storable1.derive ''Component
 
 -- === Relayout === --
 
-class Relayout__ (t :: Type) (layout :: Type) (layout' :: Type)
+class Relayout__ tag layout layout'
 instance {-# OVERLAPPABLE #-} Relayout l l'
       => Relayout__ t l l'
 instance Relayout__ t l ()
