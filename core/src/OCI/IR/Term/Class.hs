@@ -1,18 +1,21 @@
 {-# LANGUAGE TypeInType           #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Luna.IR.Component.Term.Class where
+module OCI.IR.Term.Class where
 
 import Prologue
 
-import qualified Data.Tag                  as Tag
 import qualified Data.Graph.Component          as Component
+import qualified Data.Graph.Component.Layout   as Layout
 import qualified Data.Graph.Component.Provider as Component
-import qualified Data.Graph.Component.Layout             as Layout
-import qualified Type.Show                 as Type
+import qualified Data.Tag                      as Tag
+import qualified Type.Show                     as Type
 
 import Data.Generics.Traversable (GTraversable)
+import Data.Graph.Component      (SomeComponent)
 import Foreign.Ptr.Utils         (SomePtr)
+
+
 
 ---------------------
 -- === UniTerm === --
@@ -35,8 +38,7 @@ class IsUni t where
 
 Component.define "Term"
 Tag.family "TermTag"
-
-type SomeTerm = Term ()
+type SomeTerm = SomeComponent Terms
 
 
 -- === Term Constructor === --
@@ -71,7 +73,7 @@ instance GTraversable Component.DynamicProvider (Constructor t a)
     => Component.DynamicProvider (Constructor t a) where
     dynamicComponentsIO = Component.gdynamicComponents  ; {-# INLINE dynamicComponentsIO #-}
 
--- instance Component.Provider1 Term
+
 
 ---------------------
 -- === TagShow === --

@@ -6,13 +6,14 @@ module Data.Graph.Component.Container where
 import Data.Graph.Component.Class
 import Prologue
 
-import qualified Data.Construction          as Data
-import qualified Data.Set.Mutable.Class     as Set
-import qualified Foreign.Storable1.Deriving as Storable1
-import qualified Data.Graph.Component.Provider  as Component
+import qualified Data.Construction             as Data
+import qualified Data.Graph.Component.Provider as Component
+import qualified Data.Set.Mutable.Class        as Set
+import qualified Foreign.Storable1.Deriving    as Storable1
 
 import Data.PtrSet.Mutable (UnmanagedPtrSet)
 import Foreign.Storable    (Storable)
+
 
 
 -----------------

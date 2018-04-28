@@ -1,12 +1,12 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Luna.IR.Component.Term.Layout where
+module OCI.IR.Term.Layout where
 
-import qualified Luna.IR.Component.Term.Class as Term
+import qualified OCI.IR.Term.Class as Term
 import qualified Data.Graph.Component.Layout                as Layout
 
-import Luna.IR.Component.Term.Class       (Terms)
-import Luna.IR.Component.Term.Layer.Model (Model)
+import OCI.IR.Term.Class       (Terms)
+import OCI.IR.Term.Layer.Model (Model)
 import Data.Graph.Component.Layout                      ((:=), Layout)
 
 

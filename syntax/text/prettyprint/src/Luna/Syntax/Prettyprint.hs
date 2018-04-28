@@ -15,7 +15,7 @@ import qualified Data.Vector.Storable.Foreign   as Vector
 import qualified Language.Symbol.Operator.Assoc as Assoc
 import qualified Language.Symbol.Operator.Prec  as Prec
 import qualified Luna.IR                        as IR
-import qualified Luna.IR.Component.Link.Class   as Link
+import qualified OCI.IR.Link.Class   as Link
 import qualified Luna.IR.Layer                  as Layer
 import qualified Luna.IR.Link                   as Link
 import qualified Luna.IR.Term.Literal           as Literal

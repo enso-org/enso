@@ -12,13 +12,13 @@ import Luna.IR.Term.Literal as X
 
 import qualified Data.Construction                 as Data
 import qualified Data.Generics.Traversable         as GTraversable
-import qualified Luna.IR.Component.Link            as Link
-import qualified Luna.IR.Component.Term.Class      as Term
-import qualified Luna.IR.Component.Term.Definition as Term
+import qualified OCI.IR.Link            as Link
+import qualified OCI.IR.Term.Class      as Term
+import qualified OCI.IR.Term.Definition as Term
 import qualified Data.Graph.Component.Provider         as Component
 
 import Data.Generics.Traversable (GTraversable)
-import Luna.IR.Component.Link    (Link)
+import OCI.IR.Link    (Link)
 
 
 

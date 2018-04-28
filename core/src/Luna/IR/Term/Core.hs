@@ -6,19 +6,19 @@ module Luna.IR.Term.Core where
 
 import Prologue
 
-import qualified Luna.IR.Component.Link              as Link
-import qualified Luna.IR.Component.Term.Construction as Term
-import qualified Luna.IR.Component.Term.Definition   as Term
-import qualified Luna.IR.Component.Term.Layer        as Layer
+import qualified OCI.IR.Link              as Link
+import qualified OCI.IR.Term.Construction as Term
+import qualified OCI.IR.Term.Definition   as Term
+import qualified OCI.IR.Term.Layer        as Layer
 import qualified Luna.IR.Term.Format                 as Format
 import qualified Data.Graph.Component.Layer                        as Layer
 import qualified Data.Graph.Component.Layout                       as Layout
 
 import Data.PtrList.Mutable              (UnmanagedPtrList)
 import Data.Vector.Storable.Foreign      (Vector)
-import Luna.IR.Component.Term.Class      (Term, Terms)
-import Luna.IR.Component.Term.Definition (LinkTo)
-import Luna.IR.Component.Term.Layout     ()
+import OCI.IR.Term.Class      (Term, Terms)
+import OCI.IR.Term.Definition (LinkTo)
+import OCI.IR.Term.Layout     ()
 import OCI.Data.Name                     (Name)
 
 type LinkListTo a = UnmanagedPtrList (LinkTo a)

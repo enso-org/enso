@@ -10,6 +10,7 @@ import Prologue hiding (ConversionError)
 import qualified Control.Monad.State.Layered as State
 import qualified Data.Construction           as Data
 import qualified Data.Graph.Component.Class  as Component
+import qualified Data.Graph.Component.Layer  as Layer
 import qualified Data.Tag                    as Tag
 import qualified Foreign.Info.ByteSize       as ByteSize
 import qualified Foreign.Marshal.Utils       as Mem
@@ -17,12 +18,11 @@ import qualified Foreign.Memory.Pool         as MemPool
 import qualified Foreign.Ptr                 as Ptr
 import qualified Foreign.Storable1.Deriving  as Storable1
 import qualified Language.Haskell.TH         as TH
-import qualified Data.Graph.Component.Layer                as Layer
 
-import Data.Graph.Component.Class (Component (Component))
-import Foreign.Memory.Pool        (MemPool)
-import Foreign.Storable           (Storable)
-import Data.Graph.Component.Layout              (Relayout, UnsafeRelayout)
+import Data.Graph.Component.Class  (Component (Component))
+import Data.Graph.Component.Layout (Relayout, UnsafeRelayout)
+import Foreign.Memory.Pool         (MemPool)
+import Foreign.Storable            (Storable)
 
 
 

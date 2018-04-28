@@ -11,14 +11,12 @@ import qualified Data.Construction as Data
 import qualified Foreign.Ptr       as Ptr
 import qualified Foreign.Storable  as Storable
 import qualified Foreign.Storable1 as Storable1
--- import qualified OCI.Pass.Definition as Pass
 
 import Data.Graph.Component.Class (Component (Component))
 import Foreign.Ptr                (plusPtr)
 import Foreign.Ptr.Utils          (SomePtr)
 import Foreign.Storable.Utils     (sizeOf')
 import Foreign.Storable1          (Storable1)
--- import OCI.Pass.Definition    (Pass)
 
 
 

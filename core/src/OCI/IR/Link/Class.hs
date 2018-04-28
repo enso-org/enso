@@ -1,6 +1,6 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Luna.IR.Component.Link.Class where
+module OCI.IR.Link.Class where
 
 import Prologue
 
@@ -9,13 +9,12 @@ import qualified Data.Graph.Component.Layer    as Layer
 import qualified Data.Graph.Component.Layout   as Layout
 import qualified Data.Graph.Component.Provider as Component
 
-import Data.Graph.Component         (SomeComponent)
-import Data.Graph.Component.Layer   (Layer)
-import Data.Graph.Component.Layout  ((:=), Layout)
-import Data.PtrSet.Mutable          (IsPtr)
-import Foreign.Ptr.Utils            (SomePtr)
-import Luna.IR.Component.Term.Class (Term)
-
+import Data.Graph.Component        (SomeComponent)
+import Data.Graph.Component.Layer  (Layer)
+import Data.Graph.Component.Layout ((:=), Layout)
+import Data.PtrSet.Mutable         (IsPtr)
+import Foreign.Ptr.Utils           (SomePtr)
+import OCI.IR.Term.Class           (Term)
 
 
 

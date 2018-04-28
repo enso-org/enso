@@ -1,17 +1,17 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Luna.IR.Component.Term.Layer.Model where
+module OCI.IR.Term.Layer.Model where
 
 import Prologue
 
 import qualified Data.Construction            as Data
-import qualified Luna.IR.Component.Link.Class as Link
-import qualified Luna.IR.Component.Term.Class as Term
+import qualified OCI.IR.Link.Class as Link
+import qualified OCI.IR.Term.Class as Term
 import qualified Data.Graph.Component.Layer                 as Layer
 import qualified Data.Graph.Component.Layout                as Layout
 
-import Luna.IR.Component.Link.Class (SomeLink)
-import Luna.IR.Component.Term.Class (Term, Terms)
+import OCI.IR.Link.Class (SomeLink)
+import OCI.IR.Term.Class (Term, Terms)
 import Data.Graph.Component.Layer                 (Layer)
 
 

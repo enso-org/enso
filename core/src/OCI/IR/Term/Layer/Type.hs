@@ -1,14 +1,14 @@
 {-# LANGUAGE TypeInType           #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Luna.IR.Component.Term.Layer.Type where
+module OCI.IR.Term.Layer.Type where
 
 import Prologue hiding (Type)
 
 import qualified Data.Graph.Component.Layer  as Layer
 import qualified Data.Graph.Component.Layout as Layout
 
-import Luna.IR.Component.Link.Class (type (*-*), Link)
+import OCI.IR.Link.Class (type (*-*), Link)
 import Data.Graph.Component.Layer                 (Layer)
 
 

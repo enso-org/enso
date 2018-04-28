@@ -4,8 +4,8 @@ import Prologue
 
 import qualified Data.Graph.Component.Class as Component
 
-import Foreign.Ptr.Utils      (SomePtr)
 import Data.Graph.Component.Class (Component)
+import Foreign.Ptr.Utils          (SomePtr)
 
 
 

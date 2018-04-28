@@ -8,8 +8,8 @@ import qualified Prologue as P
 
 import qualified Data.Char                         as Char
 import qualified Data.Vector.Storable.Foreign      as Vector
-import qualified Luna.IR.Component.Term.Class      as Term
-import qualified Luna.IR.Component.Term.Definition as Term
+import qualified OCI.IR.Term.Class      as Term
+import qualified OCI.IR.Term.Definition as Term
 import qualified Luna.IR.Term.Format               as Format
 
 import Data.Vector.Storable.Foreign (Vector)

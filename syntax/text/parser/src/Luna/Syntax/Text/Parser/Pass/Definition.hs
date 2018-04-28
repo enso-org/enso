@@ -8,7 +8,7 @@ import Prologue
 
 import qualified Control.Monad.State.Layered          as State
 import qualified Luna.IR                              as IR
-import qualified Luna.IR.Component.Term.Construction  as Term
+import qualified OCI.IR.Term.Construction  as Term
 import qualified Luna.Pass                            as Pass
 import qualified Luna.Pass.Attr                       as Attr
 import qualified Luna.Pass.Scheduler                  as Scheduler

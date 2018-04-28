@@ -12,8 +12,8 @@ import qualified Data.Set.Mutable.Class              as Set
 import qualified Foreign.Marshal.Alloc               as Mem
 import qualified Foreign.Storable                    as Storable
 import qualified Luna.IR                             as IR
-import qualified Luna.IR.Component.Link              as Link
-import qualified Luna.IR.Component.Term.Construction as Term
+import qualified OCI.IR.Link              as Link
+import qualified OCI.IR.Term.Construction as Term
 import qualified Luna.IR.Layer                       as Layer
 import qualified Luna.Pass                           as Pass
 import qualified Luna.Pass.Attr                      as Attr
@@ -31,7 +31,7 @@ import qualified Data.Graph.Component.Layout                       as Layout
 import qualified OCI.Pass.Registry                   as Registry
 
 import Data.Text.Position                 (Delta)
-import Luna.IR.Component.Link             (type (*-*), Link)
+import OCI.IR.Link             (type (*-*), Link)
 import Luna.Pass                          (Pass)
 import Luna.Syntax.Text.Parser.Data.Invalid (Invalids)
 import Luna.Syntax.Text.Parser.Data.CodeSpan   (CodeSpan)

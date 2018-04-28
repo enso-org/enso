@@ -1,4 +1,4 @@
-module Luna.IR.Component.Link.Construction where
+module OCI.IR.Link.Construction where
 
 import Prologue
 
@@ -7,9 +7,9 @@ import qualified Data.Graph.Component.Layer  as Layer
 import qualified Data.Graph.Component.Layout as Layout
 import qualified Data.Set.Mutable.Class      as Set
 
-import Luna.IR.Component.Link.Class
-import Luna.IR.Component.Term.Class (Term, Terms)
-import Luna.IR.Component.Term.Layer (Users)
+import OCI.IR.Link.Class
+import OCI.IR.Term.Class (Term, Terms)
+import OCI.IR.Term.Layer (Users)
 
 
 
@@ -30,7 +30,7 @@ new :: Creator m => Term src -> Term tgt -> m (Link (src *-* tgt))
 new src tgt = do
     link    <- Component.new
     userMap <- Layer.read @Users src
-    Set.insert userMap (Layout.unsafeRelayout link) -- FIXME: can we do safe here?
+    Set.insert userMap (Layout.unsafeRelayout link)
     Layer.write @Source link src
     Layer.write @Target link tgt
     pure link
