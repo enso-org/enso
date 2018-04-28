@@ -5,15 +5,17 @@ module Luna.IR.Component.Link.Class where
 import Prologue
 
 import qualified Data.Graph.Component          as Component
+import qualified Data.Graph.Component.Layer    as Layer
+import qualified Data.Graph.Component.Layout   as Layout
 import qualified Data.Graph.Component.Provider as Component
-import qualified Data.Graph.Component.Layer              as Layer
-import qualified Data.Graph.Component.Layout             as Layout
 
+import Data.Graph.Component         (SomeComponent)
+import Data.Graph.Component.Layer   (Layer)
+import Data.Graph.Component.Layout  ((:=), Layout)
 import Data.PtrSet.Mutable          (IsPtr)
 import Foreign.Ptr.Utils            (SomePtr)
 import Luna.IR.Component.Term.Class (Term)
-import Data.Graph.Component.Layer                 (Layer)
-import Data.Graph.Component.Layout                ((:=), Layout)
+
 
 
 
@@ -24,7 +26,7 @@ import Data.Graph.Component.Layout                ((:=), Layout)
 -- === Definition === ---
 
 Component.define "Link"
-type SomeLink = Link ()
+type SomeLink = SomeComponent Links
 type src *-* tgt = Layout '[Source := src, Target := tgt]
 
 
@@ -59,12 +61,6 @@ instance Layer  Target where
     manager = Layer.unsafeOnlyDestructorManager
 
 
--- === Instances === --
-
--- instance Component.Provider1 Link where
---     pointersIO1 = pure . pure . convertTo' @SomePtr
-
-
 -- === Helpers === --
 
 source :: Layer.Reader Links Source m
@@ -82,6 +78,3 @@ target = Layer.read @Target ; {-# INLINE target #-}
 ------------------------
 
 type Set = Component.Set Links
-
--- instance Component.Provider1 Set where
---     pointersIO1 = Component.pointersIO1 . unwrap

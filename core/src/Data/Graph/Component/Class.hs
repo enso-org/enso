@@ -13,9 +13,9 @@ import qualified Foreign.Ptr                as Ptr
 import qualified Foreign.Storable1.Deriving as Storable1
 import qualified Language.Haskell.TH        as TH
 
-import Foreign.Ptr.Utils (SomePtr)
-import Foreign.Storable  (Storable)
-import Data.Graph.Component.Layout     (Relayout, UnsafeRelayout)
+import Data.Graph.Component.Layout (Relayout, UnsafeRelayout)
+import Foreign.Ptr.Utils           (SomePtr)
+import Foreign.Storable            (Storable)
 
 
 
@@ -29,6 +29,8 @@ newtype Component tag layout = Component SomePtr
     deriving (Eq, Ord, Show, Storable)
 makeLenses       ''Component
 Storable1.derive ''Component
+
+type SomeComponent tag = Component tag ()
 
 
 -- === Relayout === --
