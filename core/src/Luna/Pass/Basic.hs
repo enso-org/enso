@@ -12,6 +12,10 @@ import Luna.IR.Term.Core ()
 
 
 
+--------------------------------------
+-- === Basic pass configuration === --
+--------------------------------------
+
 data BasicPass
 type instance Spec BasicPass t = BasicPassSpec t
 type family   BasicPassSpec  t where

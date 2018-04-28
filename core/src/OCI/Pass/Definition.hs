@@ -5,14 +5,14 @@ module OCI.Pass.Definition where
 
 import Prologue
 
-import qualified Control.Monad.State.Layered as State
-import qualified Data.TypeMap.Strict         as TypeMap
-import qualified Foreign.Memory.Pool         as MemPool
-import qualified Foreign.Ptr                 as Ptr
-import qualified Data.Graph.Component.Dynamic    as Component
-import qualified Data.Graph.Component.Layer                as Layer
-import qualified OCI.Pass.Attr               as Attr
-import qualified Type.Data.List              as List
+import qualified Control.Monad.State.Layered  as State
+import qualified Data.Graph.Component.Dynamic as Component
+import qualified Data.Graph.Component.Layer   as Layer
+import qualified Data.TypeMap.Strict          as TypeMap
+import qualified Foreign.Memory.Pool          as MemPool
+import qualified Foreign.Ptr                  as Ptr
+import qualified OCI.Pass.Attr                as Attr
+import qualified Type.Data.List               as List
 
 import Control.Monad.State.Layered (StateT)
 import Data.Graph.Component.Class  (Component)
@@ -21,6 +21,7 @@ import Foreign.Info.ByteSize       (ByteSize (ByteSize))
 import Foreign.Memory.Pool         (MemPool)
 import Foreign.Ptr.Utils           (SomePtr)
 import GHC.Exts                    (Any)
+
 
 
 ------------------------------
