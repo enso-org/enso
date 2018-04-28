@@ -28,7 +28,7 @@ type Creator m =
 
 new :: Creator m => Term src -> Term tgt -> m (Link (src *-* tgt))
 new src tgt = do
-    link    <- Component.new
+    link    <- Component.construct'
     userMap <- Layer.read @Users src
     Set.insert userMap (Layout.unsafeRelayout link)
     Layer.write @Source link src

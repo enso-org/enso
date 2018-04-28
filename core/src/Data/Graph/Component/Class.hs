@@ -1,7 +1,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 
 module Data.Graph.Component.Class (module Data.Graph.Component.Class, module X) where
-import Data.Construction as X (destruct, destruct1, new, new1)
+import Data.Construction as X (construct', construct1', destruct, destruct1)
 
 import Prologue hiding (ConversionError)
 

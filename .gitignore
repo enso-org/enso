@@ -43,3 +43,12 @@ report.html
 *.swp
 *.projections.json
 
+
+
+############
+## Images ##
+############
+
+*.jpg
+*.jpeg
+*.png

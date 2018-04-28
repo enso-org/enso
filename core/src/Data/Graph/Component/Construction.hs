@@ -3,7 +3,7 @@
 
 module Data.Graph.Component.Construction
     (module Data.Graph.Component.Construction, module X) where
-import Data.Construction as X (destruct, destruct1, new, new1)
+import Data.Construction as X (construct', construct1', destruct, destruct1)
 
 import Prologue hiding (ConversionError)
 
@@ -19,7 +19,7 @@ import qualified Foreign.Ptr                 as Ptr
 import qualified Foreign.Storable1.Deriving  as Storable1
 import qualified Language.Haskell.TH         as TH
 
-import Data.Graph.Component.Class  (Component (Component))
+import Data.Graph.Component.Class  (Component (Component), SomeComponent)
 import Data.Graph.Component.Layout (Relayout, UnsafeRelayout)
 import Foreign.Memory.Pool         (MemPool)
 import Foreign.Storable            (Storable)
@@ -34,7 +34,7 @@ import Foreign.Storable            (Storable)
 
 type Allocator comp m =
     ( MonadIO m
-    , State.Getter (MemPool (Component comp ())) m
+    , State.Getter (MemPool (SomeComponent comp)) m
     )
 
 type Creator comp m =

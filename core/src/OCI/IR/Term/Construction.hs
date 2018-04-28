@@ -5,16 +5,16 @@ module OCI.IR.Term.Construction where
 
 import Prologue
 
-import qualified OCI.IR.Link       as Link
-import qualified OCI.IR.Term.Class as Term
-import qualified OCI.IR.Term.Layer as Layer
-import qualified Data.Graph.Component             as Component
-import qualified Data.Graph.Component.Layer                 as Layer
-import qualified Data.Graph.Component.Layout                as Layout
+import qualified Data.Graph.Component        as Component
+import qualified Data.Graph.Component.Layer  as Layer
+import qualified Data.Graph.Component.Layout as Layout
+import qualified OCI.IR.Link                 as Link
+import qualified OCI.IR.Term.Class           as Term
+import qualified OCI.IR.Term.Layer           as Layer
 
-import OCI.IR.Term.Class (Term, Terms)
-import OCI.IR.Term.Layer (Model)
-import Data.Graph.Component             (Component)
+import Data.Graph.Component (Component)
+import OCI.IR.Term.Class    (Term, Terms)
+import OCI.IR.Term.Layer    (Model)
 
 
 
@@ -45,16 +45,6 @@ type Creator tag m =
     )
 
 
--- TODO[WD]: Rename, its used as Req term construction when tag is known
-type CreatorX m =
-    ( Link.Creator m
-    , Layer.Writer Terms Layer.Type m
-    , DefaultType m
-    , Component.Creator Terms   m
-    , Layer.Writer  Terms Model m
-    )
-
-
 -- === Construction === --
 
 type LayoutModelCheck tag layout = Layout.Get Model layout ~ tag
@@ -62,7 +52,7 @@ type LayoutModelCheck tag layout = Layout.Get Model layout ~ tag
 uncheckedUntypedNewM :: UntypedCreator tag m
     => (Term any -> m (Term.TagToCons tag layout)) -> m (Term any)
 uncheckedUntypedNewM !cons = do
-    ir <- Component.new1 @(Component Terms)
+    ir <- Component.construct1' @(Component Terms)
     let !ir' = Layout.unsafeRelayout ir
     !term <- cons ir'
     Layer.write @Model ir $! Layer.cons1 @Model term

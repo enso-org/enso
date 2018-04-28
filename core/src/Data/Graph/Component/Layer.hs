@@ -96,9 +96,12 @@ class Layer layer where
     default manager :: Default1 (Cons layer) => Manager layer
     manager = staticManager ; {-# INLINE manager #-}
 
-type WrappedData   layer layout = Cons layer    (Layout layer layout)
-type Data          layer layout = Unwrap        (Cons layer (Layout layer layout))
-type StorableData  layer        = Storable1     (Cons layer)
+type WrappedData   layer layout = Cons layer (Layout layer layout)
+type Data          layer layout = Unwrap     (Cons layer (Layout layer layout))
+type ViewData      layer layout = View       layer layout (Layout layer layout)
+type StorableData  layer        = Storable1  (Cons layer)
+type StorableView  layer layout = Storable1  (View layer layout)
+
 
 -- === Construction === --
 
@@ -151,7 +154,10 @@ staticManager = Manager (Just def1) Nothing Nothing ; {-# INLINE staticManager #
 dynamicManager :: ( Data.Constructor1 IO () (Cons layer)
                   , Data.ShallowDestructor1 IO (Cons layer)
                   ) => Manager layer
-dynamicManager = Manager Nothing (Just Data.new1) (Just Data.destructShallow1) ; {-# INLINE dynamicManager #-}
+dynamicManager = Manager Nothing
+                 (Just Data.construct1')
+                 (Just Data.destructShallow1)
+{-# INLINE dynamicManager #-}
 
 customStaticManager :: (∀ layout. Cons layer layout) -> Manager layer
 customStaticManager !t = Manager (Just t) Nothing Nothing ; {-# INLINE customStaticManager #-}
@@ -238,26 +244,6 @@ write = write__ @comp @layer @m ; {-# INLINE write #-}
 
 -- === Instances === --
 
--- instance {-# OVERLAPPABLE #-}
---     ( StorableData layer
---     , Pass.LayerByteOffsetGetter comp layer (Pass pass)
---     , Wrapped (Cons layer)
---     ) => Reader comp layer (Pass pass) where
---     read__ !comp = do
---         !off <- Pass.getLayerByteOffset @comp @layer
---         unsafeReadByteOff @layer off comp
---     {-# INLINE read__ #-}
-
--- instance {-# OVERLAPPABLE #-}
---     ( StorableData layer
---     , Pass.LayerByteOffsetGetter comp layer (Pass pass)
---     , Wrapped (Cons layer)
---     ) => Writer comp layer (Pass pass) where
---     write__ !comp !d = do
---         !off <- Pass.getLayerByteOffset @comp @layer
---         unsafeWriteByteOff @layer off comp d
---     {-# INLINE write__ #-}
-
 instance {-# OVERLAPPABLE #-} (Monad (t m), MonadTrans t, Writer comp layer m)
     => Writer comp layer (t m) where
         write__ = lift .: write__ @comp @layer ; {-# INLINE write__ #-}
@@ -277,15 +263,6 @@ instance            Reader comp layer ImpM1 where read__ _ = impossible
 instance Monad m => Writer Imp  layer m     where write__ _ _ = impossible
 instance Monad m => Writer comp Imp   m     where write__ _ _ = impossible
 instance            Writer comp layer ImpM1 where write__ _ _ = impossible
-
-
-
-------------------------
--- === Layer View === --
-------------------------
-
-type ViewData     layer layout = View layer layout (Layout layer layout)
-type StorableView layer layout = Storable1 (View layer layout)
 
 
 
@@ -348,27 +325,6 @@ writeView = writeView__ @comp @layer @layout @m ; {-# INLINE writeView #-}
 
 #undef CTX1
 #undef CTX2
-
-
--- === Instances === --
-
--- instance {-# OVERLAPPABLE #-}
---     ( StorableView layer layout
---     , Pass.LayerByteOffsetGetter comp layer (Pass pass)
---     ) => ViewReader comp layer layout (Pass pass) where
---     readView__ !comp = do
---         !off <- Pass.getLayerByteOffset @comp @layer
---         unsafeReadViewByteOff @layer off comp
---     {-# INLINE readView__ #-}
-
--- instance {-# OVERLAPPABLE #-}
---     ( StorableView layer layout
---     , Pass.LayerByteOffsetGetter comp layer (Pass pass)
---     ) => ViewWriter comp layer layout (Pass pass) where
---     writeView__ !comp !d = do
---         !off <- Pass.getLayerByteOffset @comp @layer
---         unsafeWriteViewByteOff @layer off comp d
---     {-# INLINE writeView__ #-}
 
 
 -- === Early resolution block === --

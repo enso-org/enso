@@ -13,11 +13,10 @@ import qualified Data.Vector.Storable.Foreign as Foreign
 import qualified Foreign.Storable1            as Storable1
 
 import Data.Generics.Traversable  (GTraversable, gfoldlM)
-import Data.Graph.Component.Class (Component)
+import Data.Graph.Component.Class (Component, SomeComponent)
 import Data.PtrList.Mutable       (IsPtr)
 import Foreign.Ptr.Utils          (SomePtr)
 import Foreign.Storable1          (Storable1)
-import OCI.Data.Name              (Name)
 
 
 
@@ -28,26 +27,26 @@ import OCI.Data.Name              (Name)
 -- === Definition === --
 
 class Provider tag a where
-    componentsIO :: a -> IO [Component tag ()]
+    componentsIO :: a -> IO [SomeComponent tag]
     componentsIO = const $ pure mempty ; {-# INLINE componentsIO #-}
 
 class Provider1 tag a where
-    componentsIO1 :: ∀ t1. a t1 -> IO [Component tag ()]
+    componentsIO1 :: ∀ t1. a t1 -> IO [SomeComponent tag]
     componentsIO1 = const $ pure mempty ; {-# INLINE componentsIO1 #-}
 
 
 -- === API === --
 
 components  :: ∀ tag a m. (MonadIO m, Provider tag a)
-            => a -> m [Component tag ()]
+            => a -> m [SomeComponent tag]
 components  = liftIO . componentsIO ; {-# INLINE components #-}
 
 components1 :: ∀ tag a m t1. (MonadIO m, Provider1 tag a)
-            => a t1 -> m [Component tag ()]
+            => a t1 -> m [SomeComponent tag]
 components1 = liftIO . componentsIO1 ; {-# INLINE components1 #-}
 
 gcomponents :: ∀ tag a m. (GTraversable (Provider tag) a, MonadIO m)
-            => a -> m [Component tag ()]
+            => a -> m [SomeComponent tag]
 gcomponents = gfoldlM @(Provider tag) (\acc a -> (acc <>) <$> components @tag a)
               mempty
 {-# INLINE gcomponents #-}
@@ -65,7 +64,6 @@ instance {-# OVERLAPPABLE #-} Provider1 tag a => Provider tag (a t1) where
 -- === Std instances === --
 
 instance Provider tag Bool
-instance Provider tag Name
 instance Provider tag Word8
 instance Provider tag Word64
 instance Provider tag SomePtr
@@ -75,8 +73,10 @@ instance {-# OVERLAPPABLE #-}
 instance Provider1 tag (Component tag) where
     componentsIO1 = pure . pure . Layout.relayout ; {-# INLINE componentsIO1 #-}
 
--- FIXME
-instance {-# OVERLAPPABLE #-} Provider tag (Foreign.Vector a)
+instance {-# OVERLAPPABLE #-}
+         Provider tag (Foreign.Vector a)
+instance Provider tag (Foreign.Vector (Component tag layout)) where
+    componentsIO a = Layout.relayout <<$>> Foreign.toList a ; {-# INLINE componentsIO #-}
 
 instance {-# OVERLAPPABLE #-}
          Provider tag (PtrList.UnmanagedPtrList a)
@@ -134,7 +134,6 @@ instance {-# OVERLAPPABLE #-} DynamicProvider1 a => DynamicProvider (a t1) where
 -- === Std instances === --
 
 instance DynamicProvider Bool
-instance DynamicProvider Name
 instance DynamicProvider Word8
 instance DynamicProvider Word64
 instance DynamicProvider SomePtr
@@ -143,8 +142,11 @@ instance Typeable tag => DynamicProvider1 (Component tag) where
     dynamicComponentsIO1 = pure . pure . Component.toDynamic1
     {-# INLINE dynamicComponentsIO1 #-}
 
--- FIXME
-instance {-# OVERLAPPABLE #-} DynamicProvider (Foreign.Vector a)
+instance {-# OVERLAPPABLE #-}
+         DynamicProvider (Foreign.Vector a)
+instance Typeable tag
+      => DynamicProvider (Foreign.Vector (Component tag layout)) where
+    dynamicComponentsIO a = Component.toDynamic1 <<$>> Foreign.toList a ; {-# INLINE dynamicComponentsIO #-}
 
 instance Typeable tag
       => DynamicProvider (PtrList.UnmanagedPtrList (Component tag layout)) where

@@ -17,9 +17,15 @@ import qualified Data.Generics.Traversable as GTraversable
 
 -- === Definition === --
 
-class Monad m => Constructor  m args a where construct  ::          args -> m  a
-class Monad m => Constructor1 m args a where construct1 :: ∀ t1.    args -> m (a t1)
-class Monad m => Constructor2 m args a where construct2 :: ∀ t1 t2. args -> m (a t1 t2)
+class Monad m => Constructor m args a where
+    construct :: args -> m a
+
+class Monad m => Constructor1 m args a where
+    construct1 :: ∀ t1. args -> m (a t1)
+
+class Monad m => Constructor2 m args a where
+    construct2 :: ∀ t1 t2. args -> m (a t1 t2)
+
 type Constructor'  m = Constructor  m ()
 type Constructor1' m = Constructor1 m ()
 type Constructor2' m = Constructor2 m ()
@@ -27,12 +33,12 @@ type Constructor2' m = Constructor2 m ()
 
 -- === API === --
 
-new  :: ∀ a m.       Constructor'  m a => m a
-new1 :: ∀ a m t1.    Constructor1' m a => m (a t1)
-new2 :: ∀ a m t1 t2. Constructor2' m a => m (a t1 t2)
-new  = construct  () ; {-# INLINE new  #-}
-new1 = construct1 () ; {-# INLINE new1 #-}
-new2 = construct2 () ; {-# INLINE new2 #-}
+construct'  :: ∀ a m.       Constructor'  m a => m a
+construct1' :: ∀ a m t1.    Constructor1' m a => m (a t1)
+construct2' :: ∀ a m t1 t2. Constructor2' m a => m (a t1 t2)
+construct'  = construct  () ; {-# INLINE construct'  #-}
+construct1' = construct1 () ; {-# INLINE construct1' #-}
+construct2' = construct2 () ; {-# INLINE construct2' #-}
 
 
 -- === Defaulting === --

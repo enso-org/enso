@@ -5,29 +5,30 @@ module OCI.IR.Term.Definition where
 
 import Prologue
 
-import qualified Control.Lens.TH                     as Lens
-import qualified Data.Generics.Traversable.Deriving  as GTraversable
-import qualified Data.Tag                            as Tag
-import qualified Foreign.Storable.Deriving           as Storable
-import qualified Foreign.Storable1.Deriving          as Storable1
-import qualified Language.Haskell.TH                 as TH
-import qualified OCI.IR.Link              as Link
-import qualified OCI.IR.Term.Class        as Term
-import qualified OCI.IR.Term.Construction as Term
-import qualified Luna.IR.Term.Format                 as Format
-import qualified Data.Graph.Component.Layout                       as Layout
-import qualified Type.Data.Map                       as TypeMap
+import qualified Control.Lens.TH                    as Lens
+import qualified Data.Generics.Traversable.Deriving as GTraversable
+import qualified Data.Graph.Component.Layout        as Layout
+import qualified Data.Tag                           as Tag
+import qualified Foreign.Storable.Deriving          as Storable
+import qualified Foreign.Storable1.Deriving         as Storable1
+import qualified Language.Haskell.TH                as TH
+import qualified OCI.IR.Link                        as Link
+import qualified OCI.IR.Term.Class                  as Term
+import qualified OCI.IR.Term.Construction           as Term
+import qualified OCI.IR.Term.Format                 as Format
+import qualified Type.Data.Map                      as TypeMap
 
-import Language.Haskell.TH          (Type (AppT))
-import Language.Haskell.TH.Builder  hiding (Field)
-import OCI.IR.Link       (type (*-*), Link)
-import OCI.IR.Term.Class (Term)
-import OCI.IR.Term.Layer (Model)
+import Language.Haskell.TH         (Type (AppT))
+import Language.Haskell.TH.Builder hiding (Field)
+import OCI.IR.Link                 (type (*-*), Link)
+import OCI.IR.Term.Class           (Term)
+import OCI.IR.Term.Layer           (Model)
 
 import           Data.PtrList.Mutable (UnmanagedPtrList)
 import qualified Data.PtrList.Mutable as PtrList
 
 type List = UnmanagedPtrList
+
 
 
 ---------------------

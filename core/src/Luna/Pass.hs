@@ -6,4 +6,3 @@ import OCI.Pass.Definition as X (Attrs, Definition, Elems, In, Out, Pass,
                                  Preserves, Spec, definition)
 import OCI.Pass.Dynamic    as X
 import OCI.Pass.Interface  as X (Interface)
-

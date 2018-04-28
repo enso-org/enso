@@ -41,7 +41,7 @@ instance MonadIO m => Set.Set m (Set tag layout) where
     toList = Set.toList . unwrap ; {-# INLINE toList #-}
 
 instance MonadIO m => Data.Constructor2 m () Set where
-    construct2 _ = wrap <$> Data.new1 ; {-# INLINE construct2 #-}
+    construct2 _ = wrap <$> Data.construct1' ; {-# INLINE construct2 #-}
 
 instance MonadIO m => Data.ShallowDestructor2 m Set where
     destructShallow2 = Data.destruct1 . unwrap ; {-# INLINE destructShallow2 #-}
