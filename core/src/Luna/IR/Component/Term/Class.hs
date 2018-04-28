@@ -8,7 +8,7 @@ import Prologue
 import qualified Data.Tag                  as Tag
 import qualified Data.Graph.Component          as Component
 import qualified Data.Graph.Component.Provider as Component
-import qualified OCI.IR.Layout             as Layout
+import qualified Data.Graph.Component.Layout             as Layout
 import qualified Type.Show                 as Type
 
 import Data.Generics.Traversable (GTraversable)

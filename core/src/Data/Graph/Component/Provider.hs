@@ -10,7 +10,7 @@ import qualified Data.Vector.Storable.Foreign as Foreign
 import qualified Foreign.Storable1            as Storable1
 import qualified Data.Graph.Component.Class       as Component
 import qualified Data.Graph.Component.Dynamic     as Component
-import qualified OCI.IR.Layout                as Layout
+import qualified Data.Graph.Component.Layout                as Layout
 
 import Data.Generics.Traversable (GTraversable, gfoldlM)
 import Data.PtrList.Mutable      (IsPtr)

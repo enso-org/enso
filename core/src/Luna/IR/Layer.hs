@@ -1,3 +1,3 @@
 module Luna.IR.Layer (module X) where
 
-import OCI.IR.Layer as X
+import Data.Graph.Component.Layer as X

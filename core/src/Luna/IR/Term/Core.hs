@@ -11,8 +11,8 @@ import qualified Luna.IR.Component.Term.Construction as Term
 import qualified Luna.IR.Component.Term.Definition   as Term
 import qualified Luna.IR.Component.Term.Layer        as Layer
 import qualified Luna.IR.Term.Format                 as Format
-import qualified OCI.IR.Layer                        as Layer
-import qualified OCI.IR.Layout                       as Layout
+import qualified Data.Graph.Component.Layer                        as Layer
+import qualified Data.Graph.Component.Layout                       as Layout
 
 import Data.PtrList.Mutable              (UnmanagedPtrList)
 import Data.Vector.Storable.Foreign      (Vector)

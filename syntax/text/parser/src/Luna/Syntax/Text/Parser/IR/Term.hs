@@ -33,7 +33,7 @@ import qualified Luna.Syntax.Text.Parser.State.Indent      as Indent
 import qualified Luna.Syntax.Text.Parser.State.Marker      as Marker
 import qualified Luna.Syntax.Text.Parser.State.Reserved    as Reserved
 import qualified Luna.Syntax.Text.Scope                    as Scope
-import qualified OCI.IR.Layout                             as Layout
+import qualified Data.Graph.Component.Layout                             as Layout
 
 
 import Data.List.NonEmpty                       ((<|))

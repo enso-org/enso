@@ -17,12 +17,12 @@ import qualified Foreign.Memory.Pool         as MemPool
 import qualified Foreign.Ptr                 as Ptr
 import qualified Foreign.Storable1.Deriving  as Storable1
 import qualified Language.Haskell.TH         as TH
-import qualified OCI.IR.Layer                as Layer
+import qualified Data.Graph.Component.Layer                as Layer
 
 import Data.Graph.Component.Class (Component (Component))
 import Foreign.Memory.Pool        (MemPool)
 import Foreign.Storable           (Storable)
-import OCI.IR.Layout              (Relayout, UnsafeRelayout)
+import Data.Graph.Component.Layout              (Relayout, UnsafeRelayout)
 
 
 

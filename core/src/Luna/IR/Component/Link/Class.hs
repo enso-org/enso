@@ -6,14 +6,14 @@ import Prologue
 
 import qualified Data.Graph.Component          as Component
 import qualified Data.Graph.Component.Provider as Component
-import qualified OCI.IR.Layer              as Layer
-import qualified OCI.IR.Layout             as Layout
+import qualified Data.Graph.Component.Layer              as Layer
+import qualified Data.Graph.Component.Layout             as Layout
 
 import Data.PtrSet.Mutable          (IsPtr)
 import Foreign.Ptr.Utils            (SomePtr)
 import Luna.IR.Component.Term.Class (Term)
-import OCI.IR.Layer                 (Layer)
-import OCI.IR.Layout                ((:=), Layout)
+import Data.Graph.Component.Layer                 (Layer)
+import Data.Graph.Component.Layout                ((:=), Layout)
 
 
 

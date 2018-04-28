@@ -9,14 +9,14 @@ import qualified Foreign.Storable1.Ptr       as Ptr1
 import qualified Data.Graph.Component.Class      as Component
 import qualified Data.Graph.Component.Dynamic    as Component
 import qualified Data.Graph.Component.Provider   as Component
-import qualified OCI.IR.Layer                as Layer
+import qualified Data.Graph.Component.Layer                as Layer
 
 import Control.Monad.Exception     (Throws, throw)
 import Control.Monad.State.Layered (StateT)
 import Data.Map.Strict             (Map)
 import Foreign.Ptr.Utils           (SomePtr)
 import Foreign.Storable1           (Storable1)
-import OCI.IR.Layer                (Layer)
+import Data.Graph.Component.Layer                (Layer)
 
 
 

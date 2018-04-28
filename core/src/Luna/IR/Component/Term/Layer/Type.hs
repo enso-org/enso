@@ -5,11 +5,11 @@ module Luna.IR.Component.Term.Layer.Type where
 
 import Prologue hiding (Type)
 
-import qualified OCI.IR.Layer  as Layer
-import qualified OCI.IR.Layout as Layout
+import qualified Data.Graph.Component.Layer  as Layer
+import qualified Data.Graph.Component.Layout as Layout
 
 import Luna.IR.Component.Link.Class (type (*-*), Link)
-import OCI.IR.Layer                 (Layer)
+import Data.Graph.Component.Layer                 (Layer)
 
 
 ------------------

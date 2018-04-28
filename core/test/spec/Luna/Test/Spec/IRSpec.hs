@@ -14,7 +14,7 @@ import qualified Luna.Pass              as Pass
 import qualified Luna.Pass.Attr         as Attr
 import qualified Luna.Pass.Scheduler    as Scheduler
 import qualified Luna.Runner            as Runner
-import qualified OCI.IR.Layout          as Layout
+import qualified Data.Graph.Component.Layout          as Layout
 
 import Luna.Pass  (Pass)
 import Test.Hspec (Spec, describe, it)

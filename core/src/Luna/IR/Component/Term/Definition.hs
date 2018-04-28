@@ -15,7 +15,7 @@ import qualified Luna.IR.Component.Link              as Link
 import qualified Luna.IR.Component.Term.Class        as Term
 import qualified Luna.IR.Component.Term.Construction as Term
 import qualified Luna.IR.Term.Format                 as Format
-import qualified OCI.IR.Layout                       as Layout
+import qualified Data.Graph.Component.Layout                       as Layout
 import qualified Type.Data.Map                       as TypeMap
 
 import Language.Haskell.TH          (Type (AppT))

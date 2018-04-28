@@ -13,7 +13,7 @@ import qualified Foreign.Memory.Pool        as MemPool
 import qualified Foreign.Ptr                as Ptr
 import qualified Data.Graph.Component.Dynamic   as Component
 import qualified Data.Graph.Component.Provider  as Component
-import qualified OCI.IR.Layer               as Layer
+import qualified Data.Graph.Component.Layer               as Layer
 import qualified OCI.Pass.Definition        as Pass
 import qualified OCI.Pass.Registry          as Reg
 

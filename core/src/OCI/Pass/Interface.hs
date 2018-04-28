@@ -5,7 +5,7 @@ module OCI.Pass.Interface where
 
 import Prologue
 
-import qualified OCI.IR.Layer        as Layer
+import qualified Data.Graph.Component.Layer        as Layer
 import qualified OCI.Pass.Attr       as Attr
 import qualified OCI.Pass.Definition as Pass
 

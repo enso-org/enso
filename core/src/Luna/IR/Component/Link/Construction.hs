@@ -4,8 +4,8 @@ import Prologue
 
 import qualified Data.Set.Mutable.Class as Set
 import qualified Data.Graph.Component       as Component
-import qualified OCI.IR.Layer           as Layer
-import qualified OCI.IR.Layout          as Layout
+import qualified Data.Graph.Component.Layer           as Layer
+import qualified Data.Graph.Component.Layout          as Layout
 
 import Luna.IR.Component.Link.Class
 import Luna.IR.Component.Term.Class (Term, Terms)

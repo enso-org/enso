@@ -9,8 +9,8 @@ import qualified Luna.IR.Component.Link       as Link
 import qualified Luna.IR.Component.Term.Class as Term
 import qualified Luna.IR.Component.Term.Layer as Layer
 import qualified Data.Graph.Component             as Component
-import qualified OCI.IR.Layer                 as Layer
-import qualified OCI.IR.Layout                as Layout
+import qualified Data.Graph.Component.Layer                 as Layer
+import qualified Data.Graph.Component.Layout                as Layout
 
 import Luna.IR.Component.Term.Class (Term, Terms)
 import Luna.IR.Component.Term.Layer (Model)

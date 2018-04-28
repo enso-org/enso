@@ -2,7 +2,7 @@
 {-# LANGUAGE TypeInType           #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module OCI.IR.Layer where
+module Data.Graph.Component.Layer where
 
 import Prologue hiding (Data, Wrapped)
 

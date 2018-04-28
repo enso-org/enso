@@ -22,7 +22,7 @@ import qualified Luna.IR.Term.Literal           as Literal
 import qualified Luna.Pass                      as Pass
 import qualified Luna.Syntax.Text.Lexer.Grammar as Grammar
 import qualified Luna.Syntax.Text.Scope         as Scope
-import qualified OCI.IR.Layout                  as Layout
+import qualified Data.Graph.Component.Layout                  as Layout
 
 import Control.Monad.State.Layered  (StateT)
 import Data.Layout                  (quoted, space, (</>))

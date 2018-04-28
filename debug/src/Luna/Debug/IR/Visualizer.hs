@@ -14,7 +14,7 @@ import qualified Data.Tag                   as Tag
 import qualified Luna.IR                    as IR
 import qualified Luna.IR.Layer              as Layer
 import qualified Luna.Pass                  as Pass
-import qualified OCI.IR.Layout              as IR
+import qualified Data.Graph.Component.Layout              as IR
 import qualified System.Environment         as System
 import qualified Web.Browser                as Browser
 

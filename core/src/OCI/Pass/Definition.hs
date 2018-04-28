@@ -10,7 +10,7 @@ import qualified Data.TypeMap.Strict         as TypeMap
 import qualified Foreign.Memory.Pool         as MemPool
 import qualified Foreign.Ptr                 as Ptr
 import qualified Data.Graph.Component.Dynamic    as Component
-import qualified OCI.IR.Layer                as Layer
+import qualified Data.Graph.Component.Layer                as Layer
 import qualified OCI.Pass.Attr               as Attr
 import qualified Type.Data.List              as List
 

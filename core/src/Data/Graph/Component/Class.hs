@@ -15,7 +15,7 @@ import qualified Language.Haskell.TH        as TH
 
 import Foreign.Ptr.Utils (SomePtr)
 import Foreign.Storable  (Storable)
-import OCI.IR.Layout     (Relayout, UnsafeRelayout)
+import Data.Graph.Component.Layout     (Relayout, UnsafeRelayout)
 
 
 

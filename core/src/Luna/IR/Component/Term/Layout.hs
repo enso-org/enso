@@ -3,11 +3,11 @@
 module Luna.IR.Component.Term.Layout where
 
 import qualified Luna.IR.Component.Term.Class as Term
-import qualified OCI.IR.Layout                as Layout
+import qualified Data.Graph.Component.Layout                as Layout
 
 import Luna.IR.Component.Term.Class       (Terms)
 import Luna.IR.Component.Term.Layer.Model (Model)
-import OCI.IR.Layout                      ((:=), Layout)
+import Data.Graph.Component.Layout                      ((:=), Layout)
 
 
 
