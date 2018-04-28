@@ -6,9 +6,10 @@ module OCI.Pass.Attr where
 import           Prologue hiding (Type, Wrapped, read)
 import qualified Prologue as P
 
-import           Control.Concurrent.MVar (MVar)
-import qualified Control.Concurrent.MVar as MVar
+import qualified Control.Concurrent.MVar     as MVar
+import qualified Control.Monad.State.Layered as State
 
+import Control.Concurrent.MVar (MVar)
 
 type T = P.Type
 
@@ -29,7 +30,8 @@ makeLenses ''Attr
 
 -- === Instances === --
 
-deriving instance Show (Wrapped attr attr) => Show (Attr attr)
+deriving instance Show    (Wrapped attr attr) => Show    (Attr attr)
+deriving instance Default (Wrapped attr attr) => Default (Attr attr)
 
 
 -- === Getter / Setter === --
@@ -69,25 +71,6 @@ withModifiedM f m = branch @attr $ modifyM_ f >> m ; {-# INLINE withModifiedM #-
 branch          m = do s <- get @attr
                        m <* put s
 {-#INLINE branch #-}
-
-
--- === RawGetter / RawSetter === --
-
--- | Attributes live in some state. We can access them or update them.
---   However, in order to change their value, we do not always have to write
---   them back to state. If they were implemented using some mutable structure
---   (like 'MVar'), we only need to read them (their reference) and mutate it.
---   Thus the attribute type determines if the 'write' is needed.
-
-
-class Monad m => RawGetter attr m where getRaw :: m (Attr attr)
-class Monad m => RawSetter attr m where putRaw :: Attr attr -> m ()
-
-instance {-# OVERLAPPABLE #-} (Monad (t m), MonadTrans t, RawGetter attr m)
-      => RawGetter attr (t m) where getRaw = lift getRaw ; {-# INLINE getRaw #-}
-
-instance {-# OVERLAPPABLE #-} (Monad (t m), MonadTrans t, RawSetter attr m)
-      => RawSetter attr (t m) where putRaw = lift . putRaw ; {-# INLINE putRaw #-}
 
 
 -- === TypedGetter / TypedSetter === --
@@ -156,11 +139,13 @@ repOf _ = rep @attr ; {-# INLINE repOf #-}
 data Atomic
 type instance Wrapper Atomic = Identity
 
-instance RawGetter attr m => TypedGetter Atomic attr m where
-    getTyped = unwrap . unwrap <$> getRaw @attr ; {-# INLINE getTyped #-}
+instance (Monad m, State.Getter (Attr attr) m)
+      => TypedGetter Atomic attr m where
+    getTyped = unwrap . unwrap <$> State.get @(Attr attr) ; {-# INLINE getTyped #-}
 
-instance RawSetter attr m => TypedSetter Atomic attr m where
-    putTyped = putRaw @attr . wrap . wrap ; {-# INLINE putTyped #-}
+instance (Monad m, State.Setter (Attr attr) m)
+      => TypedSetter Atomic attr m where
+    putTyped = State.put @(Attr attr) . wrap . wrap ; {-# INLINE putTyped #-}
 
 instance Monad m => FanInTyped Atomic attr m where
     fanInTyped = \case
@@ -181,11 +166,13 @@ instance Monad m => FanInTyped Atomic attr m where
 data ParAppend
 type instance Wrapper ParAppend = Identity
 
-instance RawGetter attr m => TypedGetter ParAppend attr m where
-    getTyped = unwrap . unwrap <$> getRaw @attr ; {-# INLINE getTyped #-}
+instance (Monad m, State.Getter (Attr attr) m)
+      => TypedGetter ParAppend attr m where
+    getTyped = unwrap . unwrap <$> State.get @(Attr attr) ; {-# INLINE getTyped #-}
 
-instance RawSetter attr m => TypedSetter ParAppend attr m where
-    putTyped = putRaw @attr . wrap . wrap ; {-# INLINE putTyped #-}
+instance (Monad m, State.Setter (Attr attr) m)
+      => TypedSetter ParAppend attr m where
+    putTyped = State.put @(Attr attr) . wrap . wrap ; {-# INLINE putTyped #-}
 
 instance (Monad m, Semigroup attr)
       => FanInTyped ParAppend attr m where
@@ -206,17 +193,17 @@ instance (Monad m, Semigroup attr)
 data UncheckedMutable
 type instance Wrapper UncheckedMutable = MVar
 
-instance (MonadIO m, RawGetter attr m)
+instance (MonadIO m, State.Getter (Attr attr) m)
       => TypedGetter UncheckedMutable attr m where
     getTyped = do
-        mvar <- unwrap <$> getRaw @attr
+        mvar <- unwrap <$> State.get @(Attr attr)
         liftIO $ MVar.readMVar mvar
     {-# INLINE getTyped #-}
 
-instance (MonadIO m, RawGetter attr m)
+instance (MonadIO m, State.Getter (Attr attr) m)
       => TypedSetter UncheckedMutable attr m where
     putTyped a = do
-        mvar <- unwrap <$> getRaw @attr
+        mvar <- unwrap <$> State.get @(Attr attr)
         liftIO $ MVar.putMVar mvar a
     {-# INLINE putTyped #-}
 

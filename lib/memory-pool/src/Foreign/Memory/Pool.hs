@@ -18,6 +18,16 @@ import qualified Foreign.Memory.Manager as Mgr
 newtype MemPool a = MemPool Mgr.MemoryManager
 makeLenses ''MemPool
 
+
+
+-- instance Typeable comp => Show (ComponentMemPool comp) where
+--     showsPrec d (unwrap -> a) = showParen' d $ showString name . showsPrec' a
+--         where name = (<> " ") $ unwords
+--                    [ "ComponentMemPool"
+--                    , '@' : show (typeRep @comp)
+--                    ]
+
+
 newtype BlockSize = BlockSize { _blockSize :: Int }
 newtype ItemSize  = ItemSize  { _itemSize  :: Int }
 makeLenses ''BlockSize

@@ -4,18 +4,18 @@ module OCI.Pass.Encoder where
 
 import Prologue
 
-import qualified Data.Graph.Component.Class as Component
-import qualified Data.Map                   as Map
-import qualified Data.TypeMap.Strict        as TypeMap
-import qualified Foreign.Marshal.Alloc      as Mem
-import qualified Foreign.Marshal.Utils      as Mem
-import qualified Foreign.Memory.Pool        as MemPool
-import qualified Foreign.Ptr                as Ptr
-import qualified Data.Graph.Component.Dynamic   as Component
-import qualified Data.Graph.Component.Provider  as Component
-import qualified Data.Graph.Component.Layer               as Layer
-import qualified OCI.Pass.Definition        as Pass
-import qualified OCI.Pass.Registry          as Reg
+import qualified Data.Graph.Component.Class    as Component
+import qualified Data.Graph.Component.Dynamic  as Component
+import qualified Data.Graph.Component.Layer    as Layer
+import qualified Data.Graph.Component.Provider as Component
+import qualified Data.Map                      as Map
+import qualified Data.TypeMap.Strict           as TypeMap
+import qualified Foreign.Marshal.Alloc         as Mem
+import qualified Foreign.Marshal.Utils         as Mem
+import qualified Foreign.Memory.Pool           as MemPool
+import qualified Foreign.Ptr                   as Ptr
+import qualified OCI.Pass.Definition           as Pass
+import qualified OCI.Pass.Registry             as Reg
 
 import Control.Monad.Exception    (Throws, throw)
 import Data.Graph.Component.Class (Component)
@@ -24,6 +24,7 @@ import Foreign.Info.ByteSize      (ByteSize (ByteSize))
 import Foreign.Memory.Pool        (MemPool)
 import Foreign.Ptr.Utils          (SomePtr)
 import GHC.Exts                   (Any)
+import OCI.Pass.Attr              (Attr)
 
 
 
@@ -277,7 +278,7 @@ class AttrEncoder__     pass (attrs :: [Type]) where
 instance AttrEncoder__ pass '[] where
     encodeAttrs__ _ = id ; {-# INLINE encodeAttrs__ #-}
 
-instance ( attr ~ Pass.AttrValue a
+instance ( attr ~ Attr a
          , AttrEncoder__ pass as
          , PassDataElemEncoder attr attr pass
          , Typeable a
@@ -306,7 +307,7 @@ class AttrDecoder__        pass (attrs :: [Type]) where
 instance AttrDecoder__ pass '[] where
     decodeAttrs__ _ = mempty ; {-# INLINE decodeAttrs__ #-}
 
-instance ( attr ~ Pass.AttrValue a
+instance ( attr ~ Attr a
          , AttrDecoder__ pass as
          , PassDataElemDecoder attr pass
          , Typeable a
