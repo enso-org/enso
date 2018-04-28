@@ -1,8 +1,8 @@
 {-# LANGUAGE TypeInType           #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module OCI.IR.Component.Construction
-    (module OCI.IR.Component.Construction, module X) where
+module Data.Graph.Component.Construction
+    (module Data.Graph.Component.Construction, module X) where
 import Data.Construction as X (destruct, destruct1, new, new1)
 
 import Prologue hiding (ConversionError)
@@ -21,7 +21,6 @@ import qualified OCI.IR.Layer                as Layer
 
 import Data.Graph.Component.Class (Component (Component))
 import Foreign.Memory.Pool        (MemPool)
-import Foreign.Ptr.Utils          (SomePtr)
 import Foreign.Storable           (Storable)
 import OCI.IR.Layout              (Relayout, UnsafeRelayout)
 
@@ -44,6 +43,8 @@ type Creator comp m =
     , ByteSize.Known (Component comp) m
     )
 
+
+-- === API === --
 
 unsafeNull :: Component comp layout
 unsafeNull = Component Ptr.nullPtr ; {-# INLINE unsafeNull #-}
@@ -83,24 +84,3 @@ instance Creator comp m => Data.Destructor1 m (Component comp) where
 
 instance Monad m => Data.ShallowDestructor1 m (Component comp) where
     destructShallow1 = const $ pure () ; {-# INLINE destructShallow1 #-}
-
-
-
-
--- type HasSize comp m = Pass.ComponentSizeGetter comp m
-
--- type HasPointers comp m =
---     ( MonadIO m
---     , Pass.DynamicGetterGetter comp m
---     )
-
-
--- byteSize :: ∀ comp m l. HasSize comp m => Component comp l -> m Int
--- byteSize _ = Pass.getComponentSize @comp
-
--- pointers :: ∀ comp m l. HasPointers comp m
---          => Component comp l -> m [SomePtr]
--- pointers comp = do
---     let ptr      = Component.unsafeToPtr comp
---     getPointers <- unwrap <$> Pass.getDynamicGetter @comp
---     liftIO $ getPointers ptr

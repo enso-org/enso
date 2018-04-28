@@ -8,13 +8,13 @@ import Prologue
 import qualified Luna.IR.Component.Link       as Link
 import qualified Luna.IR.Component.Term.Class as Term
 import qualified Luna.IR.Component.Term.Layer as Layer
-import qualified OCI.IR.Component             as Component
+import qualified Data.Graph.Component             as Component
 import qualified OCI.IR.Layer                 as Layer
 import qualified OCI.IR.Layout                as Layout
 
 import Luna.IR.Component.Term.Class (Term, Terms)
 import Luna.IR.Component.Term.Layer (Model)
-import OCI.IR.Component             (Component)
+import Data.Graph.Component             (Component)
 
 
 

@@ -1,6 +1,6 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module OCI.IR.Component.Provider where
+module Data.Graph.Component.Provider where
 
 import Prologue
 
@@ -9,7 +9,7 @@ import qualified Data.PtrSet.Mutable          as PtrSet
 import qualified Data.Vector.Storable.Foreign as Foreign
 import qualified Foreign.Storable1            as Storable1
 import qualified Data.Graph.Component.Class       as Component
-import qualified OCI.IR.Component.Dynamic     as Component
+import qualified Data.Graph.Component.Dynamic     as Component
 import qualified OCI.IR.Layout                as Layout
 
 import Data.Generics.Traversable (GTraversable, gfoldlM)

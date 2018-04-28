@@ -27,7 +27,7 @@ import qualified System.Console.ANSI         as ANSI
 import Control.DeepSeq   (force)
 import Control.Exception (evaluate)
 import Luna.Pass         (Pass)
-import OCI.IR.Component  (Component (Component))
+import Data.Graph.Component  (Component (Component))
 
 
 

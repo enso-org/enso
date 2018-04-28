@@ -9,7 +9,7 @@ import qualified Control.Monad.State.Layered as State
 import qualified Data.TypeMap.Strict         as TypeMap
 import qualified Foreign.Memory.Pool         as MemPool
 import qualified Foreign.Ptr                 as Ptr
-import qualified OCI.IR.Component.Dynamic    as Component
+import qualified Data.Graph.Component.Dynamic    as Component
 import qualified OCI.IR.Layer                as Layer
 import qualified OCI.Pass.Attr               as Attr
 import qualified Type.Data.List              as List

@@ -4,8 +4,8 @@ module Luna.IR.Component.Link.Class where
 
 import Prologue
 
-import qualified OCI.IR.Component          as Component
-import qualified OCI.IR.Component.Provider as Component
+import qualified Data.Graph.Component          as Component
+import qualified Data.Graph.Component.Provider as Component
 import qualified OCI.IR.Layer              as Layer
 import qualified OCI.IR.Layout             as Layout
 

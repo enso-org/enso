@@ -15,7 +15,7 @@ import qualified Data.Generics.Traversable         as GTraversable
 import qualified Luna.IR.Component.Link            as Link
 import qualified Luna.IR.Component.Term.Class      as Term
 import qualified Luna.IR.Component.Term.Definition as Term
-import qualified OCI.IR.Component.Provider         as Component
+import qualified Data.Graph.Component.Provider         as Component
 
 import Data.Generics.Traversable (GTraversable)
 import Luna.IR.Component.Link    (Link)

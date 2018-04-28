@@ -26,7 +26,7 @@ import qualified Luna.Syntax.Text.Parser.IR.Term     as Parsing
 import qualified Luna.Syntax.Text.Parser.Pass        as Parser
 import qualified Luna.Syntax.Text.Parser.Pass.Class  as Parser
 import qualified OCI.Data.Name                       as Name
-import qualified OCI.IR.Component                    as Component
+import qualified Data.Graph.Component                    as Component
 import qualified OCI.IR.Layout                       as Layout
 import qualified OCI.Pass.Registry                   as Registry
 

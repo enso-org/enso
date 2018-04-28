@@ -1,4 +1,4 @@
-module OCI.IR.Component.Dynamic where
+module Data.Graph.Component.Dynamic where
 
 import Prologue
 
