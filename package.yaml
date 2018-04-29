@@ -1,5 +1,5 @@
 name: impossible
-version: 1.1.1
+version: 1.1.2
 synopsis: Set of data and type definitions of impossible types. Impossible types are
   useful when declaring type classes / type families instances that should not be
   expanded by GHC until a specific type is provided in order to keep the types nice

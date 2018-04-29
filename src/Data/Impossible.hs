@@ -15,11 +15,11 @@ class ImpCls
 
 -- === Utils === --
 
-impossible   :: HasCallStack => a
-impossibleTo :: HasCallStack => String -> a
-impossible   = withFrozenCallStack $ error "Impossible happened"         ; {-# INLINE impossible   #-}
+imp, impossible :: HasCallStack => a
+impossibleTo    :: HasCallStack => String -> a
+impossible   = withFrozenCallStack $ error "Impossible happened"          ; {-# INLINE impossible   #-}
 impossibleTo = withFrozenCallStack . error . ("Impossible happened: " <>) ; {-# INLINE impossibleTo #-}
-
+imp          = impossible                                                 ; {-# INLINE imp          #-}
 
 -- === Primitives === --
 
