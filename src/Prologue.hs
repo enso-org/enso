@@ -1,6 +1,10 @@
 module Prologue (module Prologue, module X) where
 
 
+-- === Orphans === --
+
+import Prologue.OrphanInstances()
+
 
 -- === Basic === --
 
