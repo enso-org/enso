@@ -126,9 +126,9 @@ import GHC.TypeLits                     as X (Nat, Symbol, type (-), type (+), t
 import Type.Known                       as X (KnownType, KnownTypeVal, fromType, fromType', KnownNat, KnownSymbol)
 import Type.Show                        as X
 import Data.Kind                        as X (Type, Constraint)
-import Type.Operators                   as X
-import Type.Monoid                      as X (type (<>))
-import Type.Applicative                 as X (type (<$>), type (<*>))
+-- import Type.Operators                   as X
+-- import Type.Monoid                      as X (type (<>))
+-- import Type.Applicative                 as X (type (<$>), type (<*>))
 
 -- === Unsafe === --
 import Unsafe.Coerce                    as X (unsafeCoerce)
