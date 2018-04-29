@@ -1,4 +1,3 @@
-{-# LANGUAGE TypeInType           #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -Wno-unused-foralls #-}
 
@@ -68,6 +67,3 @@ top = Term.uncheckedUntypedNewM $ \self -> do
     Layer.write @Layer.Type self (Layout.relayout typeLink)
     pure Top
 {-# INLINE top #-}
-
-instance Term.Creator Top m => Term.DefaultType m where
-    defaultType = coerce <$> top ; {-# INLINE defaultType #-}

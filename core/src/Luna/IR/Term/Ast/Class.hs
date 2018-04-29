@@ -4,18 +4,18 @@
 
 module Luna.IR.Term.Ast.Class where
 
-import Prologue hiding (Imp, seq)
+import Prologue hiding (Imp, imp, seq)
 
 import qualified Data.Generics.Traversable.Deriving as GTraversable
 import qualified Foreign.Storable.Deriving          as Storable
-import qualified OCI.IR.Term.Definition  as Term
 import qualified Luna.IR.Term.Ast.Invalid           as Invalid
 import qualified Luna.IR.Term.Format                as Format
+import qualified OCI.IR.Term.Definition             as Term
 
-import Data.Vector.Storable.Foreign      (Vector)
-import OCI.IR.Term.Class      (Terms)
-import OCI.IR.Term.Definition (LinkTo)
-import OCI.Data.Name                     (Name)
+import Data.Vector.Storable.Foreign (Vector)
+import OCI.Data.Name                (Name)
+import OCI.IR.Term.Class            (Terms)
+import OCI.IR.Term.Definition       (LinkTo)
 
 -- FIXME: remove when refactoring Cmp instances
 import Luna.IR.Term.Core ()

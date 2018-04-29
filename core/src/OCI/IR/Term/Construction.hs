@@ -32,7 +32,7 @@ class DefaultType m where
 
 type UntypedCreator t m =
     ( Component.Creator Terms   m
-    , Layer.Writer  Terms Model m
+    , Layer.Writer  Term  Model m
     , Layer.IsCons1 Model (Term.TagToCons t)
     , Layer.IsUnwrapped Term.Uni
     )
@@ -40,7 +40,7 @@ type UntypedCreator t m =
 type Creator tag m =
     ( UntypedCreator tag m
     , Link.Creator m
-    , Layer.Writer Terms Layer.Type m
+    , Layer.Writer Term Layer.Type m
     , DefaultType m
     )
 

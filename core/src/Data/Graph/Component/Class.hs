@@ -5,15 +5,19 @@ import Data.Construction as X (construct', construct1', destruct, destruct1)
 
 import Prologue hiding (ConversionError)
 
-import qualified Data.Construction          as Data
-import qualified Data.Tag                   as Tag
-import qualified Foreign.Marshal.Utils      as Mem
-import qualified Foreign.Memory.Pool        as MemPool
-import qualified Foreign.Ptr                as Ptr
-import qualified Foreign.Storable1.Deriving as Storable1
-import qualified Language.Haskell.TH        as TH
+import qualified Control.Monad.State.Layered as State
+import qualified Data.Construction           as Data
+import qualified Data.Graph.Component.Layer  as Layer
+import qualified Data.Tag                    as Tag
+import qualified Foreign.Info.ByteSize       as ByteSize
+import qualified Foreign.Marshal.Utils       as Mem
+import qualified Foreign.Memory.Pool         as MemPool
+import qualified Foreign.Ptr                 as Ptr
+import qualified Foreign.Storable1.Deriving  as Storable1
+import qualified Language.Haskell.TH         as TH
 
 import Data.Graph.Component.Layout (Relayout, UnsafeRelayout)
+import Foreign.Memory.Pool         (MemPool)
 import Foreign.Ptr.Utils           (SomePtr)
 import Foreign.Storable            (Storable)
 
@@ -31,6 +35,69 @@ makeLenses       ''Component
 Storable1.derive ''Component
 
 type SomeComponent tag = Component tag ()
+
+
+-- === Conversions === --
+
+unsafeToPtr :: Component comp layout -> SomePtr
+unsafeToPtr = coerce ; {-# INLINE unsafeToPtr #-}
+
+unsafeFromPtr :: ∀ comp layout. SomePtr -> Component comp layout
+unsafeFromPtr = coerce ; {-# INLINE unsafeFromPtr #-}
+
+-- TODO: Change to UnsafeConvertible
+instance Convertible (Component t a) SomePtr         where convert = coerce ; {-# INLINE convert #-}
+instance Convertible SomePtr         (Component t a) where convert = coerce ; {-# INLINE convert #-}
+
+
+-- === Construction / Destruction === --
+
+type Allocator comp m =
+    ( MonadIO m
+    , State.Getter (MemPool (SomeComponent comp)) m
+    )
+
+type Creator comp m =
+    ( Allocator comp m
+    , State.Getter (Layer.DynamicManager comp) m
+    , ByteSize.Known (Component comp) m
+    )
+
+unsafeNull :: Component comp layout
+unsafeNull = Component Ptr.nullPtr ; {-# INLINE unsafeNull #-}
+
+alloc :: ∀ comp m layout. Allocator comp m => m (Component comp layout)
+alloc = do
+    pool <- State.get @(MemPool (Component comp ()))
+    wrap <$> MemPool.alloc pool
+{-# INLINE alloc #-}
+
+dealloc :: ∀ comp m layout. Allocator comp m => Component comp layout -> m ()
+dealloc comp = do
+    pool <- State.get @(MemPool (Component comp ()))
+    MemPool.free pool $ unwrap comp
+{-# INLINE dealloc #-}
+
+instance Creator comp m => Data.Constructor1 m () (Component comp) where
+    construct1 _ = do
+        ir    <- alloc
+        layer <- State.get @(Layer.DynamicManager comp)
+        size  <- ByteSize.get @(Component comp)
+        let ptr = coerce ir
+        liftIO $ Mem.copyBytes ptr (layer ^. Layer.dynamicInitializer) size
+        liftIO $ (layer ^. Layer.dynamicConstructor) ptr
+        pure ir
+    {-# INLINE construct1 #-}
+
+instance Creator comp m => Data.Destructor1 m (Component comp) where
+    destruct1 ir = do
+        layer <- State.get @(Layer.DynamicManager comp)
+        liftIO $ (layer ^. Layer.dynamicDestructor) (coerce ir)
+        dealloc ir
+    {-# INLINE destruct1 #-}
+
+instance Monad m => Data.ShallowDestructor1 m (Component comp) where
+    destructShallow1 = const $ pure () ; {-# INLINE destructShallow1 #-}
 
 
 -- === Relayout === --
@@ -57,19 +124,6 @@ instance {-# OVERLAPPABLE #-} a ~ Component t l'
 
 instance {-# OVERLAPPABLE #-} t ~ t'
       => UnsafeRelayout (Component t l) (Component t' l')
-
-
--- === Conversions === --
-
-unsafeToPtr :: Component comp layout -> SomePtr
-unsafeToPtr = coerce ; {-# INLINE unsafeToPtr #-}
-
-unsafeFromPtr :: ∀ comp layout. SomePtr -> Component comp layout
-unsafeFromPtr = coerce ; {-# INLINE unsafeFromPtr #-}
-
--- TODO: Change to UnsafeConvertible
-instance Convertible (Component t a) SomePtr         where convert = coerce ; {-# INLINE convert #-}
-instance Convertible SomePtr         (Component t a) where convert = coerce ; {-# INLINE convert #-}
 
 
 -- === TH === --

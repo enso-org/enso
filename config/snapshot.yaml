@@ -4,7 +4,7 @@ name: luna
 
 packages:
 - layered-state-1.1.2
-- impossible-1.1.1
+- impossible-1.1.2
 - typelevel-1.2.2
 - container-0.3.3
 - hspec-core-2.5.0
@@ -23,5 +23,5 @@ packages:
 - vector-text-1.1.3
 - either-5
 - monad-branch-1.0.3
-- prologue-3.2.1
+- prologue-3.2.2
 - functor-utils-1.17.1

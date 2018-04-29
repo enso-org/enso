@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
 
 module Luna.Test.Bench.IR where
 
@@ -7,6 +8,7 @@ import Prologue
 import qualified Control.Monad.State.Layered as State
 import qualified Criterion.Main              as Criterion
 import qualified Criterion.Measurement       as Criterion
+import qualified Data.Graph.Component.Layer  as Layer
 import qualified Data.Tuple.Strict           as Tuple
 import qualified Data.TypeMap.Strict         as TypeMap
 import qualified Foreign.Marshal.Alloc       as Ptr
@@ -18,16 +20,25 @@ import qualified Luna.IR.Term.Format         as Format
 import qualified Luna.Pass                   as Pass
 import qualified Luna.Pass.Scheduler         as Scheduler
 import qualified Luna.Runner                 as Runner
-import qualified Data.Graph.Component.Layer                as Layer
 import qualified OCI.Pass.Definition         as Pass
 import qualified OCI.Pass.Encoder            as Encoder
 import qualified OCI.Pass.Registry           as Registry
 import qualified System.Console.ANSI         as ANSI
 
-import Control.DeepSeq   (force)
-import Control.Exception (evaluate)
-import Luna.Pass         (Pass)
-import Data.Graph.Component  (Component (Component))
+import Control.DeepSeq      (force)
+import Control.Exception    (evaluate)
+import Data.Graph.Component (Component (Component))
+import Luna.Pass            (Pass)
+
+
+
+---------------------
+-- === Orphans === --
+---------------------
+
+instance a ~ Criterion.Benchmark
+      => IsString ([Criterion.Benchmark] -> a) where
+    fromString = Criterion.bgroup
 
 
 
@@ -302,7 +313,3 @@ main = do
     invariants
     benchmarks
 
-
-instance a ~ Criterion.Benchmark
-      => IsString ([Criterion.Benchmark] -> a) where
-    fromString = Criterion.bgroup

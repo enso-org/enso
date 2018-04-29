@@ -4,18 +4,17 @@ module OCI.Pass.Encoder where
 
 import Prologue
 
-import qualified Data.Graph.Component.Class    as Component
-import qualified Data.Graph.Component.Dynamic  as Component
-import qualified Data.Graph.Component.Layer    as Layer
-import qualified Data.Graph.Component.Provider as Component
-import qualified Data.Map                      as Map
-import qualified Data.TypeMap.Strict           as TypeMap
-import qualified Foreign.Marshal.Alloc         as Mem
-import qualified Foreign.Marshal.Utils         as Mem
-import qualified Foreign.Memory.Pool           as MemPool
-import qualified Foreign.Ptr                   as Ptr
-import qualified OCI.Pass.Definition           as Pass
-import qualified OCI.Pass.Registry             as Reg
+import qualified Data.Graph.Component.Class   as Component
+import qualified Data.Graph.Component.Dynamic as Component
+import qualified Data.Graph.Component.Layer   as Layer
+import qualified Data.Map                     as Map
+import qualified Data.TypeMap.Strict          as TypeMap
+import qualified Foreign.Marshal.Alloc        as Mem
+import qualified Foreign.Marshal.Utils        as Mem
+import qualified Foreign.Memory.Pool          as MemPool
+import qualified Foreign.Ptr                  as Ptr
+import qualified OCI.Pass.Definition          as Pass
+import qualified OCI.Pass.Registry            as Reg
 
 import Control.Monad.Exception    (Throws, throw)
 import Data.Graph.Component.Class (Component)
@@ -205,38 +204,45 @@ instance ( layers      ~ Pass.Vars pass comp
          , TypeableMany layers
          , Typeable  comp
          , Encoder__ pass comps
-         , PassDataElemEncoder  compMemPool compMemPool pass
-         , PassDataElemEncoder  compSize    compSize    pass
-         , PassDataElemEncoder  compTravsl  compTravsl  pass
-         , PassDataElemEncoder  layerInit   layerInit   pass
-         , PassDataElemsEncoder targets     Int     pass
+         , PassDataElemEncoder  compMemPool pass
+         , PassDataElemEncoder  compSize    pass
+         , PassDataElemEncoder  compTravsl  pass
+         , PassDataElemEncoder  layerInit   pass
+         , PassDataElemsEncoder targets Int pass
          ) => Encoder__ pass (comp ': comps) where
-    encode__ cfg = encoders where
-        encoders   = appSemiLeft encoder subEncoder
+    encode__ cfg = encode where
+        encode     = appSemiLeft encoder subEncoder
         encoder    = procComp =<< mcomp
         subEncoder = encode__ @pass @comps cfg
         mcomp      = mapLeft (wrap . pure)
-                   . lookupComponent tgtComp $ cfg ^. components
+                   . lookupComp tgtComp $ cfg ^. components
         tgtComp    = Component.tagRep @comp
         procComp i = (encoders .) <$> layerEncoder where
-            encoders     = ptrGetterEncoder . initEncoder . memEncoder . sizeEncoder
-            memEncoder   = encodePassDataElem  @compMemPool $ (coerce (i ^. memPool) :: compMemPool)
-            sizeEncoder  = encodePassDataElem  @compSize    $ (ByteSize (i ^. byteSize) :: compSize)
+            memEncoder   = encodePassDataElem  @compMemPool
+                         $ coerce (i ^. memPool)
+            sizeEncoder  = encodePassDataElem  @compSize
+                         $ ByteSize (i ^. byteSize)
             layerEncoder = encodePassDataElems @targets <$> layerOffsets
             initEncoder  = encodePassDataElem  @layerInit
-                         $ Layer.DynamicManager @comp (i ^. layersInitializer)
-                                                      (i ^. layersConstructor)
-                                                      (i ^. layersDestructor)
-            ptrGetterEncoder = encodePassDataElem @compTravsl
-                             $ Pass.ComponentTraversal @comp (i ^. layersComponents)
-            layerTypes       = someTypeReps @layers
-            layerOffsets     = view byteOffset <<$>> layerInfos
-            layerInfos       = mapLeft wrap $ catEithers
-                             $ flip lookupLayer (i ^. layers) <$> layerTypes
+                         $ Layer.DynamicManager @comp
+                           (i ^. layersInitializer)
+                           (i ^. layersConstructor)
+                           (i ^. layersDestructor)
+            travEncoder  = encodePassDataElem @compTravsl
+                         $ Pass.ComponentTraversal @comp (i ^. layersComponents)
+            layerTypes   = someTypeReps @layers
+            layerOffsets = view byteOffset <<$>> layerInfos
+            layerInfos   = mapLeft wrap $ catEithers
+                         $ flip lookupLayer (i ^. layers) <$> layerTypes
+            encoders     = travEncoder
+                         . initEncoder
+                         . memEncoder
+                         . sizeEncoder
+
     {-# INLINE encode__ #-}
 
-lookupComponent :: Component.TagRep -> Map Component.TagRep v -> EncodingResult v
-lookupComponent k m = justErr (MissingComponent k) $ Map.lookup k m ; {-# INLINE lookupComponent #-}
+lookupComp :: Component.TagRep -> Map Component.TagRep v -> EncodingResult v
+lookupComp k m = justErr (MissingComponent k) $ Map.lookup k m ; {-# INLINE lookupComp #-}
 
 lookupLayer :: SomeTypeRep -> Map SomeTypeRep v -> EncodingResult v
 lookupLayer k m = justErr (MissingLayer k) $ Map.lookup k m ; {-# INLINE lookupLayer #-}
@@ -280,7 +286,7 @@ instance AttrEncoder__ pass '[] where
 
 instance ( attr ~ Attr a
          , AttrEncoder__ pass as
-         , PassDataElemEncoder attr attr pass
+         , PassDataElemEncoder attr pass
          , Typeable a
          ) => AttrEncoder__ pass (a ': as) where
     encodeAttrs__ []     = impossible
@@ -320,17 +326,17 @@ instance ( attr ~ Attr a
 
 -- === Element encoders === --
 
-type  PassDataElemEncoder  el t pass = PassDataElemsEncoder '[el] t pass
+type  PassDataElemEncoder  el pass = PassDataElemsEncoder '[el] el pass
 class PassDataElemsEncoder (els :: [Type]) t pass where
     encodePassDataElems :: [t] -> Pass.State pass -> Pass.State pass
 
-encodePassDataElem :: ∀ el t pass. PassDataElemEncoder el t pass
+encodePassDataElem :: ∀ t pass. PassDataElemEncoder t pass
                    => t -> Pass.State pass -> Pass.State pass
-encodePassDataElem = encodePassDataElems @'[el] @t @pass . pure
+encodePassDataElem = encodePassDataElems @'[t] @t @pass . pure
 
-instance PassDataElemsEncoder '[Imp] t   pass where encodePassDataElems = impossible
-instance PassDataElemsEncoder els    Imp pass where encodePassDataElems = impossible
-instance PassDataElemsEncoder els    t   Imp  where encodePassDataElems = impossible
+instance PassDataElemsEncoder '[Imp] t   pass where encodePassDataElems = imp
+instance PassDataElemsEncoder els    Imp pass where encodePassDataElems = imp
+instance PassDataElemsEncoder els    t   Imp  where encodePassDataElems = imp
 instance TypeMap.SetElemsFromList els t (Pass.StateLayout pass)
       => PassDataElemsEncoder els t pass where
     encodePassDataElems vals = wrapped %~ TypeMap.setElemsFromList @els vals ; {-# INLINE encodePassDataElems #-}

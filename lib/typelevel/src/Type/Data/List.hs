@@ -1,7 +1,8 @@
 {-# LANGUAGE TypeInType           #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Type.Data.List (module Type.Data.List) where
+module Type.Data.List (module Type.Data.List, module X) where
+import Type.Data.Semigroup as X (type (<>))
 
 import Prelude
 
@@ -9,7 +10,6 @@ import Data.Kind
 import GHC.TypeLits
 import Type.Data.Bool
 import Type.Data.Maybe
-
 
 
 -- === Info === --
@@ -36,6 +36,7 @@ type family Uncons (lst :: [k]) :: Maybe (k, [k]) where
     Uncons '[] = 'Nothing
     Uncons (a ': as) = 'Just '(a,as)
 
+type instance (a :: [k]) <> (b :: [k]) = Append a b
 type family Append (lst :: [k]) (lst' :: [k]) :: [k] where
     Append '[]       lst = lst
     Append (l ': ls) lst = l ': Append ls lst

@@ -8,7 +8,7 @@ import qualified Data.Graph.Component.Layout as Layout
 import qualified Data.Set.Mutable.Class      as Set
 
 import OCI.IR.Link.Class
-import OCI.IR.Term.Class (Term, Terms)
+import OCI.IR.Term.Class (Term)
 import OCI.IR.Term.Layer (Users)
 
 
@@ -21,9 +21,9 @@ import OCI.IR.Term.Layer (Users)
 
 type Creator m =
     ( Component.Creator Links m
-    , Layer.Writer Links Source m
-    , Layer.Writer Links Target m
-    , Layer.Editor Terms Users  m
+    , Layer.Writer Link Source m
+    , Layer.Writer Link Target m
+    , Layer.Editor Term Users  m
     )
 
 new :: Creator m => Term src -> Term tgt -> m (Link (src *-* tgt))

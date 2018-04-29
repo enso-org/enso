@@ -4,15 +4,15 @@ module OCI.IR.Term.Layer.Model where
 
 import Prologue
 
-import qualified Data.Construction            as Data
-import qualified OCI.IR.Link.Class as Link
-import qualified OCI.IR.Term.Class as Term
-import qualified Data.Graph.Component.Layer                 as Layer
-import qualified Data.Graph.Component.Layout                as Layout
+import qualified Data.Construction           as Data
+import qualified Data.Graph.Component.Layer  as Layer
+import qualified Data.Graph.Component.Layout as Layout
+import qualified OCI.IR.Link.Class           as Link
+import qualified OCI.IR.Term.Class           as Term
 
-import OCI.IR.Link.Class (SomeLink)
-import OCI.IR.Term.Class (Term, Terms)
-import Data.Graph.Component.Layer                 (Layer)
+import Data.Graph.Component.Layer (Layer)
+import OCI.IR.Link.Class          (SomeLink)
+import OCI.IR.Term.Class          (Term)
 
 
 
@@ -31,11 +31,11 @@ instance Data.ShallowDestructor1 IO Term.Uni => Layer Model where
 
 -- === Utils === --
 
-model :: Layer.ViewReader Terms Model layout m
+model :: Layer.ViewReader Term Model layout m
       => Term layout -> m (Layer.ViewData Model layout)
 model = Layer.readView @Model ; {-# INLINE model #-}
 
-inputs :: ( Layer.Reader Terms Model m
+inputs :: ( Layer.Reader Term Model m
           , Layer.IsUnwrapped Term.Uni
           , Link.Provider1    Term.Uni
           , MonadIO m

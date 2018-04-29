@@ -5,15 +5,13 @@ module OCI.IR.Term.Class where
 
 import Prologue
 
-import qualified Data.Graph.Component          as Component
-import qualified Data.Graph.Component.Layout   as Layout
-import qualified Data.Graph.Component.Provider as Component
-import qualified Data.Tag                      as Tag
-import qualified Type.Show                     as Type
+import qualified Data.Graph.Component        as Component
+import qualified Data.Graph.Component.Layout as Layout
+import qualified Data.Tag                    as Tag
+import qualified Type.Show                   as Type
 
 import Data.Generics.Traversable (GTraversable)
 import Data.Graph.Component      (SomeComponent)
-import Foreign.Ptr.Utils         (SomePtr)
 
 
 

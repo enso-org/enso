@@ -5,9 +5,11 @@ module OCI.Pass.Interface where
 
 import Prologue
 
-import qualified Data.Graph.Component.Layer        as Layer
-import qualified OCI.Pass.Attr       as Attr
-import qualified OCI.Pass.Definition as Pass
+import qualified Data.Graph.Component.Layer as Layer
+import qualified OCI.Pass.Attr              as Attr
+import qualified OCI.Pass.Definition        as Pass
+
+import Data.Graph.Component (Component)
 
 
 -----------------------
@@ -54,14 +56,16 @@ type Interface__ pass m =
 
 type family MapCompIface ctx m pass comps :: Constraint where
     MapCompIface ctx m pass '[]       = ()
-    MapCompIface ctx m pass (c ': cs) = ( CompIface  ctx m c (Pass.Ins pass c)
+    MapCompIface ctx m pass (c ': cs) = ( CompIface ctx m c (Pass.Ins pass c)
                                         , MapCompIface ctx m pass cs
                                         )
 
 
 type family CompIface ctx (m :: Type -> Type) comp layers :: Constraint where
     CompIface ctx m comp '[]       = ()
-    CompIface ctx m comp (l ': ls) = (ctx comp l m, CompIface ctx m comp ls)
+    CompIface ctx m comp (l ': ls) = ( ctx (Component comp) l m
+                                     , CompIface ctx m comp ls
+                                     )
 
 
 -- === Attributes === --

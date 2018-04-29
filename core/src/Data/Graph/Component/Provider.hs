@@ -4,19 +4,15 @@ module Data.Graph.Component.Provider where
 
 import Prologue
 
-import qualified Data.Graph.Component.Class   as Component
 import qualified Data.Graph.Component.Dynamic as Component
 import qualified Data.Graph.Component.Layout  as Layout
 import qualified Data.PtrList.Mutable         as PtrList
 import qualified Data.PtrSet.Mutable          as PtrSet
 import qualified Data.Vector.Storable.Foreign as Foreign
-import qualified Foreign.Storable1            as Storable1
 
 import Data.Generics.Traversable  (GTraversable, gfoldlM)
 import Data.Graph.Component.Class (Component, SomeComponent)
-import Data.PtrList.Mutable       (IsPtr)
 import Foreign.Ptr.Utils          (SomePtr)
-import Foreign.Storable1          (Storable1)
 
 
 

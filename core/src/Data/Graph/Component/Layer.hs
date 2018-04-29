@@ -12,11 +12,10 @@ import qualified Foreign.Ptr       as Ptr
 import qualified Foreign.Storable  as Storable
 import qualified Foreign.Storable1 as Storable1
 
-import Data.Graph.Component.Class (Component (Component))
-import Foreign.Ptr                (plusPtr)
-import Foreign.Ptr.Utils          (SomePtr)
-import Foreign.Storable.Utils     (sizeOf')
-import Foreign.Storable1          (Storable1)
+import Foreign.Ptr            (plusPtr)
+import Foreign.Ptr.Utils      (SomePtr)
+import Foreign.Storable.Utils (sizeOf')
+import Foreign.Storable1      (Storable1)
 
 
 
@@ -184,16 +183,16 @@ instance Default (DynamicManager comp) where
 
 -- === Definition === --
 
-type Editor comp layer m =
-   ( Reader comp layer m
-   , Writer comp layer m
+type Editor t layer m =
+   ( Reader t layer m
+   , Writer t layer m
    )
 
-class Monad m => Reader comp layer m where
-    read__  :: ∀ layout. Component comp layout -> m (Data layer layout)
+class Monad m => Reader t layer m where
+    read__  :: ∀ layout. t layout -> m (Data layer layout)
 
-class Monad m => Writer comp layer m where
-    write__ :: ∀ layout. Component comp layout -> Data layer layout -> m ()
+class Monad m => Writer t layer m where
+    write__ :: ∀ layout. t layout -> Data layer layout -> m ()
 
 
 -- === API === --
@@ -204,8 +203,10 @@ type StorableLayer layer m =
     , MonadIO m
     )
 
-#define CTX1 ∀ layer      layout m. StorableLayer layer m
-#define CTX2 ∀ layer comp layout m. StorableLayer layer m
+#define CTX1 ∀ layer   layout m.   StorableLayer layer m
+#define CTX2 ∀ layer t layout m. ( StorableLayer layer m           \
+                                 , Convertible' (t layout) SomePtr \
+                                 )
 
 unsafePeekWrapped :: CTX1 => SomePtr -> m (WrappedData layer layout)
 unsafePokeWrapped :: CTX1 => SomePtr ->   (WrappedData layer layout) -> m ()
@@ -222,21 +223,15 @@ unsafePokeByteOff :: CTX1 => Int -> SomePtr ->   (Data layer layout) -> m ()
 unsafePeekByteOff !d !ptr = unsafePeek @layer @layout (ptr `plusPtr` d) ; {-# INLINE unsafePeekByteOff #-}
 unsafePokeByteOff !d !ptr = unsafePoke @layer @layout (ptr `plusPtr` d) ; {-# INLINE unsafePokeByteOff #-}
 
-unsafeReadByteOff :: CTX2 => Int -> Component comp layout
-                         -> m (Data layer layout)
-unsafeReadByteOff  !d = unsafePeekByteOff @layer @layout d . coerce ; {-# INLINE unsafeReadByteOff  #-}
+unsafeReadByteOff  :: CTX2 => Int -> t layout -> m (Data layer layout)
+unsafeWriteByteOff :: CTX2 => Int -> t layout -> (Data layer layout) -> m ()
+unsafeReadByteOff  !d = unsafePeekByteOff @layer @layout d . convert' ; {-# INLINE unsafeReadByteOff  #-}
+unsafeWriteByteOff !d = unsafePokeByteOff @layer @layout d . convert' ; {-# INLINE unsafeWriteByteOff #-}
 
-unsafeWriteByteOff :: CTX2 => Int -> Component comp layout
-                          -> (Data layer layout) -> m ()
-unsafeWriteByteOff !d = unsafePokeByteOff @layer @layout d . coerce ; {-# INLINE unsafeWriteByteOff #-}
-
-read :: ∀ layer comp layout m. Reader comp layer m
-     => Component comp layout -> m (Data layer layout)
-read = read__ @comp @layer @m ; {-# INLINE read #-}
-
-write :: ∀ layer comp layout m. Writer comp layer m
-      => Component comp layout -> Data layer layout -> m ()
-write = write__ @comp @layer @m ; {-# INLINE write #-}
+read  :: ∀ layer t lyt m. Reader t layer m => t lyt -> m (Data layer lyt)
+write :: ∀ layer t lyt m. Writer t layer m => t lyt -> Data layer lyt -> m ()
+read  = read__  @t @layer @m ; {-# INLINE read  #-}
+write = write__ @t @layer @m ; {-# INLINE write #-}
 
 #undef CTX1
 #undef CTX2
@@ -256,13 +251,13 @@ instance {-# OVERLAPPABLE #-} (Monad (t m), MonadTrans t, Reader comp layer m)
 
 -- === Early resolution block === --
 
-instance Monad m => Reader Imp  layer m     where read__ _ = impossible
-instance Monad m => Reader comp Imp   m     where read__ _ = impossible
-instance            Reader comp layer ImpM1 where read__ _ = impossible
+instance Monad m => Reader ImpM1 layer m     where read__ _ = impossible
+instance Monad m => Reader comp  Imp   m     where read__ _ = impossible
+instance            Reader comp  layer ImpM1 where read__ _ = impossible
 
-instance Monad m => Writer Imp  layer m     where write__ _ _ = impossible
-instance Monad m => Writer comp Imp   m     where write__ _ _ = impossible
-instance            Writer comp layer ImpM1 where write__ _ _ = impossible
+instance Monad m => Writer ImpM1 layer m     where write__ _ _ = impossible
+instance Monad m => Writer comp  Imp   m     where write__ _ _ = impossible
+instance            Writer comp  layer ImpM1 where write__ _ _ = impossible
 
 
 
@@ -277,11 +272,11 @@ type ViewEditor comp layer layout m =
    , ViewWriter comp layer layout m
    )
 
-class ViewReader comp layer layout m where
-    readView__ :: Component comp layout -> m (ViewData layer layout)
+class ViewReader t layer layout m where
+    readView__ :: t layout -> m (ViewData layer layout)
 
-class ViewWriter comp layer layout m where
-    writeView__ :: Component comp layout -> ViewData layer layout -> m ()
+class ViewWriter t layer layout m where
+    writeView__ :: t layout -> ViewData layer layout -> m ()
 
 
 -- === API === --
@@ -291,8 +286,10 @@ type StorableLayerView layer layout m =
     , MonadIO m
     )
 
-#define CTX1 ∀ layer      layout m. StorableLayerView layer layout m
-#define CTX2 ∀ layer comp layout m. StorableLayerView layer layout m
+#define CTX1 ∀ layer   layout m.   StorableLayerView layer layout m
+#define CTX2 ∀ layer t layout m. ( StorableLayerView layer layout m \
+                                 , Convertible' (t layout) SomePtr  \
+                                 )
 
 unsafePeekView :: CTX1 => SomePtr -> m (ViewData layer layout)
 unsafePokeView :: CTX1 => SomePtr ->   (ViewData layer layout) -> m ()
@@ -306,22 +303,22 @@ unsafePokeViewByteOff !d !ptr = unsafePokeView @layer @layout $ ptr `plusPtr` d
 {-# INLINE unsafePeekViewByteOff #-}
 {-# INLINE unsafePokeViewByteOff #-}
 
-unsafeReadViewByteOff :: CTX2 => Int -> Component comp layout
+unsafeReadViewByteOff :: CTX2 => Int -> t layout
                       -> m (ViewData layer layout)
-unsafeReadViewByteOff !d = unsafePeekViewByteOff @layer @layout d . coerce
-unsafeWriteViewByteOff :: CTX2 => Int -> Component comp layout
+unsafeReadViewByteOff !d = unsafePeekViewByteOff @layer @layout d . convert'
+unsafeWriteViewByteOff :: CTX2 => Int -> t layout
                        -> (ViewData layer layout) -> m ()
-unsafeWriteViewByteOff !d = unsafePokeViewByteOff @layer @layout d . coerce
+unsafeWriteViewByteOff !d = unsafePokeViewByteOff @layer @layout d . convert'
 {-# INLINE unsafeReadViewByteOff  #-}
 {-# INLINE unsafeWriteViewByteOff #-}
 
-readView :: ∀ layer comp layout m. ViewReader comp layer layout m
-         => Component comp layout -> m (ViewData layer layout)
-readView = readView__ @comp @layer @layout @m ; {-# INLINE readView #-}
+readView :: ∀ layer t layout m. ViewReader t layer layout m
+         => t layout -> m (ViewData layer layout)
+readView = readView__ @t @layer @layout @m ; {-# INLINE readView #-}
 
-writeView :: ∀ layer comp layout m. ViewWriter comp layer layout m
-          => Component comp layout -> ViewData layer layout -> m ()
-writeView = writeView__ @comp @layer @layout @m ; {-# INLINE writeView #-}
+writeView :: ∀ layer t layout m. ViewWriter t layer layout m
+          => t layout -> ViewData layer layout -> m ()
+writeView = writeView__ @t @layer @layout @m ; {-# INLINE writeView #-}
 
 #undef CTX1
 #undef CTX2
@@ -329,13 +326,13 @@ writeView = writeView__ @comp @layer @layout @m ; {-# INLINE writeView #-}
 
 -- === Early resolution block === --
 
-instance ViewReader Imp  layer layout m     where readView__ _ = impossible
-instance ViewReader comp Imp   layout m     where readView__ _ = impossible
-instance ViewReader comp layer Imp    m     where readView__ _ = impossible
-instance ViewReader comp layer layout ImpM1 where readView__ _ = impossible
+instance ViewReader ImpM1 layer layout m     where readView__ _ = impossible
+instance ViewReader comp  Imp   layout m     where readView__ _ = impossible
+instance ViewReader comp  layer Imp    m     where readView__ _ = impossible
+instance ViewReader comp  layer layout ImpM1 where readView__ _ = impossible
 
-instance ViewWriter Imp  layer layout m     where writeView__ _ _ = impossible
-instance ViewWriter comp Imp   layout m     where writeView__ _ _ = impossible
-instance ViewWriter comp layer Imp    m     where writeView__ _ _ = impossible
-instance ViewWriter comp layer layout ImpM1 where writeView__ _ _ = impossible
+instance ViewWriter ImpM1 layer layout m     where writeView__ _ _ = impossible
+instance ViewWriter comp  Imp   layout m     where writeView__ _ _ = impossible
+instance ViewWriter comp  layer Imp    m     where writeView__ _ _ = impossible
+instance ViewWriter comp  layer layout ImpM1 where writeView__ _ _ = impossible
 

@@ -9,19 +9,16 @@ import qualified Control.Monad.State.Layered  as State
 import qualified Data.Graph.Component.Dynamic as Component
 import qualified Data.Graph.Component.Layer   as Layer
 import qualified Data.TypeMap.Strict          as TypeMap
-import qualified Foreign.Memory.Pool          as MemPool
-import qualified Foreign.Ptr                  as Ptr
-import qualified OCI.Pass.Attr                as Attr
 import qualified Type.Data.List               as List
 
 import Control.Monad.State.Layered (StateT)
 import Data.Graph.Component.Class  (Component)
 import Data.TypeMap.Strict         (TypeMap)
-import Foreign.Info.ByteSize       (ByteSize (ByteSize))
+import Foreign.Info.ByteSize       (ByteSize)
 import Foreign.Memory.Pool         (MemPool)
 import Foreign.Ptr.Utils           (SomePtr)
-import GHC.Exts                    (Any)
 import OCI.Pass.Attr               (Attr)
+import Type.Data.List              (type (<>))
 
 
 
@@ -61,8 +58,7 @@ type family Spec (pass :: Type) (prop :: Property) :: [Type]
 
 type Ins  pass prop = Spec pass (In  prop)
 type Outs pass prop = Spec pass (Out prop)
-type Vars pass prop
-    = List.Unique (List.Append (Ins pass prop) (Outs pass prop))
+type Vars pass prop = List.Unique (Ins pass prop <> Outs pass prop)
 
 
 
@@ -105,19 +101,13 @@ instance (Typeable comp, Typeable layer)
 newtype     State       pass = State (StateData pass)
 type        StateData   pass = TypeMap (StateLayout pass)
 type family StateLayout pass :: [Type] -- CACHED WITH OCI.Pass.Cache.define
-type ComputeStateLayout pass = List.Append (LayersLayout      pass)
-                             ( List.Append (AttrValues        pass)
-                             ( List.Append (ComponentMemPools pass)
-                             ( List.Append (ComponentSizes    pass)
-                             ( List.Append (DynamicGetters    pass)
-                                           (LayerMemManagers pass )))))
-
-type LayersLayout      pass = MapLayerByteOffset pass       (Vars pass Elems)
-type ComponentMemPools pass = MapComponentMemPool           (Vars pass Elems)
-type ComponentSizes    pass = MapComponentByteSize          (Vars pass Elems)
-type DynamicGetters    pass = List.Map ComponentTraversal   (Vars pass Elems)
-type LayerMemManagers  pass = List.Map Layer.DynamicManager (Vars pass Elems)
-type AttrValues        pass = List.Map Attr                 (Vars pass Attrs)
+type ComputeStateLayout pass
+    = MapLayerByteOffset pass       (Vars pass Elems)
+   <> List.Map Attr                 (Vars pass Attrs)
+   <> MapComponentMemPool           (Vars pass Elems)
+   <> MapComponentByteSize          (Vars pass Elems)
+   <> List.Map ComponentTraversal   (Vars pass Elems)
+   <> List.Map Layer.DynamicManager (Vars pass Elems)
 
 type MapLayerByteOffset p c = MapOverCompsAndVars LayerByteOffset p c
 
@@ -258,7 +248,7 @@ instance {-# OVERLAPPABLE #-}
     ( Layer.StorableData layer
     , LayerByteOffsetGetter comp layer (Pass pass)
     , Layer.Wrapped (Layer.Cons layer)
-    ) => Layer.Reader comp layer (Pass pass) where
+    ) => Layer.Reader (Component comp) layer (Pass pass) where
     read__ !comp = do
         !off <- getLayerByteOffset @comp @layer
         Layer.unsafeReadByteOff @layer off comp
@@ -268,7 +258,7 @@ instance {-# OVERLAPPABLE #-}
     ( Layer.StorableData layer
     , LayerByteOffsetGetter comp layer (Pass pass)
     , Layer.Wrapped (Layer.Cons layer)
-    ) => Layer.Writer comp layer (Pass pass) where
+    ) => Layer.Writer (Component comp) layer (Pass pass) where
     write__ !comp !d = do
         !off <- getLayerByteOffset @comp @layer
         Layer.unsafeWriteByteOff @layer off comp d
@@ -280,7 +270,7 @@ instance {-# OVERLAPPABLE #-}
 instance {-# OVERLAPPABLE #-}
     ( Layer.StorableView layer layout
     , LayerByteOffsetGetter comp layer (Pass pass)
-    ) => Layer.ViewReader comp layer layout (Pass pass) where
+    ) => Layer.ViewReader (Component comp) layer layout (Pass pass) where
     readView__ !comp = do
         !off <- getLayerByteOffset @comp @layer
         Layer.unsafeReadViewByteOff @layer off comp
@@ -289,7 +279,7 @@ instance {-# OVERLAPPABLE #-}
 instance {-# OVERLAPPABLE #-}
     ( Layer.StorableView layer layout
     , LayerByteOffsetGetter comp layer (Pass pass)
-    ) => Layer.ViewWriter comp layer layout (Pass pass) where
+    ) => Layer.ViewWriter (Component comp) layer layout (Pass pass) where
     writeView__ !comp !d = do
         !off <- getLayerByteOffset @comp @layer
         Layer.unsafeWriteViewByteOff @layer off comp d

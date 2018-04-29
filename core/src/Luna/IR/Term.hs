@@ -5,20 +5,21 @@ module Luna.IR.Term (module Luna.IR.Term, module X) where
 
 import Prologue
 
-import Luna.IR.Term.Ast     as X
-import Luna.IR.Term.Core    as X
-import Luna.IR.Term.Format  as X (Ast, Draft, Literal, Phrase, Thunk, Value)
-import Luna.IR.Term.Literal as X
+import Luna.IR.Term.Ast       as X
+import Luna.IR.Term.Core      as X
+import Luna.IR.Term.Format    as X (Ast, Draft, Literal, Phrase, Thunk, Value)
+import Luna.IR.Term.Instances as X ()
+import Luna.IR.Term.Literal   as X
 
-import qualified Data.Construction                 as Data
-import qualified Data.Generics.Traversable         as GTraversable
-import qualified OCI.IR.Link            as Link
-import qualified OCI.IR.Term.Class      as Term
-import qualified OCI.IR.Term.Definition as Term
-import qualified Data.Graph.Component.Provider         as Component
+import qualified Data.Construction             as Data
+import qualified Data.Generics.Traversable     as GTraversable
+import qualified Data.Graph.Component.Provider as Component
+import qualified OCI.IR.Link                   as Link
+import qualified OCI.IR.Term.Class             as Term
+import qualified OCI.IR.Term.Definition        as Term
 
 import Data.Generics.Traversable (GTraversable)
-import OCI.IR.Link    (Link)
+import OCI.IR.Link               (Link)
 
 
 
