@@ -6,15 +6,17 @@ module Luna.Syntax.Text.Parser.Data.CodeSpan where
 
 import Prologue hiding (Span, String, Type, length, span)
 
-import qualified Control.Monad.State.Layered as State
-import qualified Data.Text.Span              as Span
-import qualified Foreign.Storable.Deriving   as Storable
-import qualified Luna.IR.Layer               as Layer
+import qualified Control.Monad.State.Layered        as State
+import qualified Data.Generics.Traversable.Deriving as GTraversable
+import qualified Data.Text.Span                     as Span
+import qualified Foreign.Storable.Deriving          as Storable
+import qualified Luna.IR.Layer                      as Layer
 
 import Data.Text.Position (Delta)
 import Data.Text.Span     (LeftSpacedSpan, length, offset)
 import Luna.IR.Layer      (Layer)
 import Type.Any           (AnyType)
+
 
 
 ------------------------
@@ -47,8 +49,9 @@ data CodeSpan = CodeSpan
     { _realSpan :: !LeftSpacedSpan
     , _viewSpan :: !LeftSpacedSpan
     } deriving (Show)
-makeLenses      ''CodeSpan
-Storable.derive ''CodeSpan
+makeLenses          ''CodeSpan
+Storable.derive     ''CodeSpan
+GTraversable.derive ''CodeSpan
 
 
 -- === Utils === --

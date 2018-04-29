@@ -1,10 +1,11 @@
 {-# LANGUAGE UndecidableInstances #-}
- {-# EXT      InlineAll            #-}
+{-# EXT InlineAll #-}
 
 module Data.Text.Span where
 
-import qualified Control.Monad.State.Layered as State
-import qualified Foreign.Storable.Deriving   as Storable
+import qualified Control.Monad.State.Layered        as State
+import qualified Data.Generics.Traversable.Deriving as GTraversable
+import qualified Foreign.Storable.Deriving          as Storable
 
 import Data.Maybe         (isJust)
 import Data.Text.Position (Delta)
@@ -22,8 +23,9 @@ data SpacedSpan = SpacedSpan
     { __offset :: !Delta
     , __length :: !Delta
     } deriving (Eq, Ord, Show)
-Storable.derive ''SpacedSpan
-makeLenses      ''SpacedSpan
+makeLenses          ''SpacedSpan
+Storable.derive     ''SpacedSpan
+GTraversable.derive ''SpacedSpan
 
 newtype LeftSpacedSpan = LeftSpacedSpan SpacedSpan
     deriving (Eq, Ord, Show, Storable)
@@ -31,8 +33,10 @@ newtype LeftSpacedSpan = LeftSpacedSpan SpacedSpan
 newtype RightSpacedSpan = RightSpacedSpan SpacedSpan
     deriving (Eq, Ord, Show, Storable)
 
-makeLenses ''LeftSpacedSpan
-makeLenses ''RightSpacedSpan
+makeLenses          ''LeftSpacedSpan
+makeLenses          ''RightSpacedSpan
+GTraversable.derive ''LeftSpacedSpan
+GTraversable.derive ''RightSpacedSpan
 
 class    IsSpacedSpan t               where spacedSpan :: Iso' t SpacedSpan
 instance IsSpacedSpan LeftSpacedSpan  where spacedSpan = wrapped

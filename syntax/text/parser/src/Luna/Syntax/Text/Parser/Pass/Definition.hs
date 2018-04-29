@@ -8,34 +8,34 @@ import Prologue
 
 import qualified Control.Monad.State.Layered          as State
 import qualified Luna.IR                              as IR
-import qualified OCI.IR.Term.Construction  as Term
 import qualified Luna.Pass                            as Pass
 import qualified Luna.Pass.Attr                       as Attr
 import qualified Luna.Pass.Scheduler                  as Scheduler
 import qualified Luna.Syntax.Text.Lexer               as Lexer
-import qualified Luna.Syntax.Text.Parser.IR.Class        as Token
+import qualified Luna.Syntax.Text.Parser.IR.Class     as Token
 import qualified Luna.Syntax.Text.Parser.IR.Term      as Parsing
 import qualified Luna.Syntax.Text.Parser.State.Marker as Marker
+import qualified OCI.IR.Term.Construction             as Term
 import qualified OCI.Pass.Registry                    as Registry
 import qualified Text.Megaparsec                      as Parser
 
-import Data.Text.Position                       (FileOffset)
-import Data.Text32                              (Text32)
-import Luna.Pass                                (Pass)
+import Data.Text.Position                          (FileOffset)
+import Data.Text32                                 (Text32)
+import Luna.Pass                                   (Pass)
+import Luna.Syntax.Text.Parser.Data.CodeSpan       (CodeSpan, CodeSpanRange)
+import Luna.Syntax.Text.Parser.Data.Invalid        (Invalids)
+import Luna.Syntax.Text.Parser.Data.Name.Hardcoded (hardcode)
+import Luna.Syntax.Text.Parser.Data.Result         (Result (Result))
 import Luna.Syntax.Text.Parser.IR.Class            (Error, ParserBase, Stream,
-                                                 Token)
-import Luna.Syntax.Text.Parser.Data.CodeSpan    (CodeSpan, CodeSpanRange)
-import Luna.Syntax.Text.Parser.Data.Invalid     (Invalids)
-import Luna.Syntax.Text.Parser.Data.Result      (Result (Result))
-import Luna.Syntax.Text.Parser.Data.Name.Hardcoded   (hardcode)
-import Luna.Syntax.Text.Parser.Pass.Class       (IRBS, Parser, fromIRBS)
-import Luna.Syntax.Text.Parser.State.Indent     (Indent)
-import Luna.Syntax.Text.Parser.State.LastOffset (LastOffset)
-import Luna.Syntax.Text.Parser.State.Reserved   (Reserved)
-import Luna.Syntax.Text.Scope                   (Scope)
-import Luna.Syntax.Text.Source                  (Source)
-import Text.Megaparsec                          (ParseError, ParsecT)
-import Text.Megaparsec.Error                    (parseErrorPretty)
+                                                    Token)
+import Luna.Syntax.Text.Parser.Pass.Class          (IRBS, Parser, fromIRBS)
+import Luna.Syntax.Text.Parser.State.Indent        (Indent)
+import Luna.Syntax.Text.Parser.State.LastOffset    (LastOffset)
+import Luna.Syntax.Text.Parser.State.Reserved      (Reserved)
+import Luna.Syntax.Text.Scope                      (Scope)
+import Luna.Syntax.Text.Source                     (Source)
+import Text.Megaparsec                             (ParseError, ParsecT)
+import Text.Megaparsec.Error                       (parseErrorPretty)
 
 
 
@@ -101,7 +101,3 @@ runParser__ p src = do
                                        $ State.runDefT @Marker.TermOrphanList
                                        $ fromIRBS irbs
             pure (ref, gidMap)
-
-
-
-

@@ -8,6 +8,7 @@ import qualified Prelude  as P
 import           Prologue hiding (Symbol)
 
 import qualified Control.Monad.State.Layered    as State
+import qualified Data.Graph.Component.Layout    as Layout
 import qualified Data.Layout                    as Layout
 import qualified Data.Layout                    as Doc
 import qualified Data.PtrList.Mutable           as List
@@ -15,14 +16,13 @@ import qualified Data.Vector.Storable.Foreign   as Vector
 import qualified Language.Symbol.Operator.Assoc as Assoc
 import qualified Language.Symbol.Operator.Prec  as Prec
 import qualified Luna.IR                        as IR
-import qualified OCI.IR.Link.Class   as Link
 import qualified Luna.IR.Layer                  as Layer
 import qualified Luna.IR.Link                   as Link
 import qualified Luna.IR.Term.Literal           as Literal
 import qualified Luna.Pass                      as Pass
 import qualified Luna.Syntax.Text.Lexer.Grammar as Grammar
 import qualified Luna.Syntax.Text.Scope         as Scope
-import qualified Data.Graph.Component.Layout                  as Layout
+import qualified OCI.IR.Link.Class              as Link
 
 import Control.Monad.State.Layered  (StateT)
 import Data.Layout                  (quoted, space, (</>))
@@ -230,8 +230,8 @@ instance ( MonadIO m -- DEBUG ONLY
          , Prec.RelReader SpacedName m
          , Assoc.Reader (Maybe SpacedName) m
          , State.Monad Scope m
-         , Layer.Reader IR.Terms IR.Model m
-         , Layer.Reader IR.Links Link.Source m
+         , Layer.Reader IR.Term IR.Model m
+         , Layer.Reader IR.Link Link.Source m
          ) => Prettyprinter Simple m where
     prettyprint = prettyprintSimple
 
@@ -400,8 +400,8 @@ prettyprintSimple ir = Layer.read @IR.Model ir >>= \case
 -- === Utils === --
 
 isMultilineBlock ::
-     ( Layer.Reader IR.Terms IR.Model m
-     , Layer.Reader Link.Links Link.Source m
+     ( Layer.Reader IR.Term IR.Model m
+     , Layer.Reader IR.Link Link.Source m
      ) => (IR.Link a) -> m Bool
 isMultilineBlock lnk = do
     ir <- Link.source (Layout.relayout lnk :: IR.SomeLink)

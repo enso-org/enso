@@ -35,6 +35,7 @@ dependencies:
     - lens-utils
     - luna-core
     - luna-foreign-utils
+    - luna-generic-traversable    
     - luna-nested-containers
     - luna-syntax-definition
     - luna-syntax-text-lexer

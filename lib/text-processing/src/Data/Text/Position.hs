@@ -1,8 +1,11 @@
+{-# LANGUAGE UndecidableInstances #-}
+
 module Data.Text.Position where
 
 import Prologue hiding (range)
 
-import qualified Control.Monad.State.Layered as State
+import qualified Control.Monad.State.Layered        as State
+import qualified Data.Generics.Traversable.Deriving as GTraversable
 
 import Data.Bits
 import Foreign.Storable
@@ -19,7 +22,8 @@ import Text.Printf
 -- === Definition === --
 
 newtype Delta = Delta Int deriving (Bits, Bounded, Data, Enum, Eq, FiniteBits, Generic, Integral, Ix, NFData, Num, Ord, PrintfArg, Read, Real, Storable)
-makeLenses ''Delta
+makeLenses          ''Delta
+GTraversable.derive ''Delta
 
 
 -- === Instances === --

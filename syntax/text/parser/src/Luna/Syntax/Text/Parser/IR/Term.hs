@@ -5,12 +5,13 @@
 module Luna.Syntax.Text.Parser.IR.Term where
 
 import qualified Prelude                 as P
-import           Prologue                hiding (seq, some)
+import           Prologue                hiding (imp, seq, some)
 import qualified Prologue
 import           Text.Parser.Combinators
 
 import qualified Control.Monad.State.Layered               as State
 import qualified Data.Char                                 as Char
+import qualified Data.Graph.Component.Layout               as Layout
 import qualified Data.Set                                  as Set
 import qualified Data.Text.Span                            as Span
 import qualified Data.Text32                               as Text32
@@ -33,7 +34,6 @@ import qualified Luna.Syntax.Text.Parser.State.Indent      as Indent
 import qualified Luna.Syntax.Text.Parser.State.Marker      as Marker
 import qualified Luna.Syntax.Text.Parser.State.Reserved    as Reserved
 import qualified Luna.Syntax.Text.Scope                    as Scope
-import qualified Data.Graph.Component.Layout                             as Layout
 
 
 import Data.List.NonEmpty                       ((<|))

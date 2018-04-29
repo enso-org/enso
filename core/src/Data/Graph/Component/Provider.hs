@@ -5,6 +5,7 @@ module Data.Graph.Component.Provider where
 import Prologue
 
 import qualified Data.Graph.Component.Dynamic as Component
+import qualified Data.Graph.Component.Layer   as Layer
 import qualified Data.Graph.Component.Layout  as Layout
 import qualified Data.PtrList.Mutable         as PtrList
 import qualified Data.PtrSet.Mutable          as PtrSet
@@ -68,6 +69,9 @@ instance {-# OVERLAPPABLE #-}
          Provider1 tag (Component tag')
 instance Provider1 tag (Component tag) where
     componentsIO1 = pure . pure . Layout.relayout ; {-# INLINE componentsIO1 #-}
+
+instance Provider tag t => Provider1 tag (Layer.Simple t) where
+    componentsIO1 = componentsIO @tag . unwrap ; {-# INLINE componentsIO1 #-}
 
 instance {-# OVERLAPPABLE #-}
          Provider tag (Foreign.Vector a)
@@ -137,6 +141,9 @@ instance DynamicProvider SomePtr
 instance Typeable tag => DynamicProvider1 (Component tag) where
     dynamicComponentsIO1 = pure . pure . Component.toDynamic1
     {-# INLINE dynamicComponentsIO1 #-}
+
+instance DynamicProvider t => DynamicProvider1 (Layer.Simple t) where
+    dynamicComponentsIO1 = dynamicComponentsIO . unwrap ; {-# INLINE dynamicComponentsIO1 #-}
 
 instance {-# OVERLAPPABLE #-}
          DynamicProvider (Foreign.Vector a)
