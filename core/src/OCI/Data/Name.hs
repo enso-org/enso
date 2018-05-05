@@ -30,7 +30,7 @@ import Unique           (Uniquable)
 -- === Definition === --
 
 newtype Value = Value FastString
-    deriving ( Binary, Data, Eq, Prelude.Monoid, Ord, Outputable, Uniquable )
+    deriving ( Binary, Data, Eq, Ord, Outputable, Uniquable )
 makeLenses ''Value
 
 
@@ -137,6 +137,7 @@ instance Convertible Name   Value  where
             Just n  -> pure n
     {-# NOINLINE convert #-}
 
+deriving instance Prelude.Monoid Value
 instance Semigroup Value where
     Value v <> Value v' = out where
         !out = convert $ v <> v'
