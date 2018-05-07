@@ -20,8 +20,23 @@ data Symbol
     | FunctionBlock
     | UnexpectedSuffix {- len -} !Int
     | CaselessNameHead
+    | Literal InvalidLiteral
+    deriving (Eq, Ord, Generic, Show)
+
+data InvalidLiteral
+    = String InvalidString
+    deriving (Eq, Ord, Generic, Show)
+
+data InvalidString
+    = EscapeCode
     deriving (Eq, Ord, Generic, Show)
 
 Storable.derive     ''Symbol
+Storable.derive     ''InvalidLiteral
+Storable.derive     ''InvalidString
 GTraversable.derive ''Symbol
+GTraversable.derive ''InvalidLiteral
+GTraversable.derive ''InvalidString
 instance NFData Symbol
+instance NFData InvalidLiteral
+instance NFData InvalidString

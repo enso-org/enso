@@ -93,13 +93,13 @@ tokenBreakingChars = "`!@#$%^&*()-=+[]{}\\|;:<>,./ \t\n" ; {-# INLINE tokenBreak
 
 -- === Names === --
 
-invalidSuffix :: Parser (Symbol -> Symbol)
-invalidSuffix = Symbol.InvalidSymbol . Invalid.UnexpectedSuffix . Txt.length
+invalidSuffix :: Parser Symbol
+invalidSuffix = Symbol.Invalid . Invalid.UnexpectedSuffix . Txt.length
             <$> takeWhile1 (`notElem` tokenBreakingChars)
 {-# INLINE invalidSuffix #-}
 
 checkInvalidSuffix :: Lexer -> Lexer
-checkInvalidSuffix = (<**> option id invalidSuffix) ; {-# INLINE checkInvalidSuffix #-}
+checkInvalidSuffix =  (<**> option id (const <$> invalidSuffix)) ; {-# INLINE checkInvalidSuffix #-}
 
 lexWildcard :: Lexer
 lexWildcard = checkInvalidSuffix $ Symbol.Wildcard <$ token '_' ; {-# INLINE lexWildcard #-}
@@ -129,8 +129,8 @@ isInvalidVarHead = Char.isAlpha ; {-# INLINE isInvalidVarHead #-}
 --   We assume that we have already checked for valid headers before
 --   using this check!.
 lexInvalidVariable :: Lexer
-lexInvalidVariable = Symbol.InvalidSymbol Invalid.CaselessNameHead . Symbol.Var
-                 <$> takeWhile isIdentBodyChar
+lexInvalidVariable = Symbol.Invalid Invalid.CaselessNameHead
+                  <$ takeWhile isIdentBodyChar
 {-# INLINE lexInvalidVariable #-}
 
 
@@ -308,7 +308,8 @@ lexEscSeq = numEsc <|> chrEcs <|> badEsc where
     numEsc = Symbol.StrEsc . Symbol.NumStrEsc . unsafeRead . convert
          <$> takeWhile1 isDecDigitChar
     chrEcs = choice $ uncurry parseEsc <$> zip [1..] [esc1Map, esc2Map, esc3Map]
-    badEsc = Symbol.InvalidEscapeCode . Char.ord <$> anyToken
+    badEsc = Symbol.Invalid
+             (Invalid.Literal $ Invalid.String Invalid.EscapeCode) <$ anyToken
 
 parseEsc :: Int -> Map String Int -> Lexer
 parseEsc n m = do

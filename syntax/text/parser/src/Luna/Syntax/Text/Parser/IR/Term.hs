@@ -227,7 +227,7 @@ invalid t = do
 {-# INLINE invalid #-}
 
 invalidToken :: Parser (IRBS SomeTerm)
-invalidToken = irbs $ invalid <$> satisfTest Lexer.matchInvalidSymbol ; {-# INLINE invalidToken #-}
+invalidToken = irbs $ invalid <$> satisfTest Lexer.matchInvalid ; {-# INLINE invalidToken #-}
 
 -- invalidSymbol :: (Lexer.Symbol -> Text32) -> Parser (IRBS SomeTerm)
 -- invalidSymbol f = irbs $ invalid . f <$> anySymbol
@@ -408,7 +408,8 @@ string = rawStr <|> fmtStr
 rawStr :: Parser (IRBS SomeTerm)
 rawStr = irbs $ do
     rawQuoteBegin
-    (IR.rawString' . convertVia @String) <$> Indent.withCurrent (strBody rawQuoteEnd) -- FIXME[WD]: We're converting Text -> String here.
+    (IR.rawString' . convertVia @String) <$> Indent.withCurrent body -- FIXME[WD]: We're converting Text -> String here.
+    where body = (strBody <|> pure mempty) <* rawQuoteEnd
     -- withRecovery (\e -> invalid "Invalid string literal" <$ Loc.unregisteredDropSymbolsUntil' (== (Lexer.Quote Lexer.RawStr Lexer.End)))
     --              $ (IR.rawString' . convertVia @String)
     --            <$> Indent.withCurrent (strBody rawQuoteEnd) -- FIXME[WD]: We're converting Text -> String here.
@@ -421,21 +422,13 @@ rawStr = irbs $ do
 --     --              $ (IR.rawString' . convertVia @String)
 --     --            <$> Indent.withCurrent (strBody fmtQuoteEnd) -- FIXME[WD]: We're converting Text -> String here.
 
-strBody :: Parser () -> Parser Text32
-strBody ending = segStr <|> end <|> nl where
-    segStr = (<>) <$> strContent <*> strBody ending
-    end    = mempty <$ ending
-    nl     = Text32.cons '\n' <$ eol <*> (line <|> nl)
-    line   = do Indent.indentedOrEq
-                (<>) . convert . flip replicate ' ' <$> Indent.indentation <*> strBody ending
-
-strBody2 :: Parser Text32
-strBody2 = segStr <|> nl where
-    segStr = (<>) <$> satisfTest Lexer.matchStr <*> (strBody2 <|> pure mempty)
+strBody :: Parser Text32
+strBody = segStr <|> nl where
+    segStr = (<>) <$> strContent <*> (strBody <|> pure mempty)
     nl     = Text32.cons '\n' <$ eol <*> (line <|> nl <|> pure mempty)
     line   = do Indent.indentedOrEq
                 (<>) . convert . flip replicate ' ' <$> Indent.indentation
-                                                    <*> strBody2
+                                                    <*> strBody
 
 strContent :: Parser Text32
 strContent = satisfTest Lexer.matchStr <|> strEsc
@@ -450,7 +443,7 @@ fmtStr = irbs $ (liftIRBS1 IR.fmtString' . sequence) <$> (fmtQuoteBegin *> body)
     body    = chunk  <|> end
     element = rawStr <|> code
     end     = mempty <$ fmtQuoteEnd
-    rawStr  = irbs $ IR.rawString' . convertVia @String <$> strBody2
+    rawStr  = irbs $ IR.rawString' . convertVia @String <$> strBody
     code    = symbol (Lexer.Block Lexer.Begin) *> lineExpr <* symbol (Lexer.Block Lexer.End)
 
 strEsc :: Parser Text32

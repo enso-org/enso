@@ -8,7 +8,7 @@ import Language.Haskell.TH.Builder
 import Prologue                    hiding (cons)
 
 _MAX_TUPLE_SIZE :: Int
-_MAX_TUPLE_SIZE = 20
+_MAX_TUPLE_SIZE = 30
 
 tup els = cons (convert $ "T" <> show (length els)) $ field' <$> els
 

@@ -106,10 +106,9 @@ data Symbol
     -- | Pragma ...
 
     -- Other
-    | Unknown           !Text32 -- DEPRECATED
-    | Incorrect         !Text32 -- DEPRECATED
-    | InvalidSymbol     !Invalid.Symbol !Symbol
-    | InvalidEscapeCode !Int
+    | Unknown     !Text32 -- DEPRECATED
+    | Incorrect   !Text32 -- DEPRECATED
+    | Invalid     !Invalid.Symbol
     deriving (Eq, Generic, Ord, Show)
 
 data StrEscType
@@ -157,64 +156,61 @@ matchVar, matchCons, matchOperator, matchModifier, matchStr, matchDocComment,
 matchStrEsc            :: Symbol -> Maybe StrEscType
 matchNumber            :: Symbol -> Maybe Number
 matchMarker            :: Symbol -> Maybe Word64
-matchInvalidSymbol     :: Symbol -> Maybe Invalid.Symbol
-matchInvalidEscapeCode :: Symbol -> Maybe Int
-matchVar               = \case { Var               a -> Just a ; _ -> Nothing } ; {-# INLINE matchVar               #-}
-matchCons              = \case { Cons              a -> Just a ; _ -> Nothing } ; {-# INLINE matchCons              #-}
-matchOperator          = \case { Operator          a -> Just a ; _ -> Nothing } ; {-# INLINE matchOperator          #-}
-matchModifier          = \case { Modifier          a -> Just a ; _ -> Nothing } ; {-# INLINE matchModifier          #-}
-matchStr               = \case { Str               a -> Just a ; _ -> Nothing } ; {-# INLINE matchStr               #-}
-matchStrEsc            = \case { StrEsc            a -> Just a ; _ -> Nothing } ; {-# INLINE matchStrEsc            #-}
-matchNumber            = \case { Number            a -> Just a ; _ -> Nothing } ; {-# INLINE matchNumber            #-}
-matchMarker            = \case { Marker            a -> Just a ; _ -> Nothing } ; {-# INLINE matchMarker            #-}
-matchDocComment        = \case { Doc               a -> Just a ; _ -> Nothing } ; {-# INLINE matchDocComment        #-}
-matchMetadata          = \case { Metadata          a -> Just a ; _ -> Nothing } ; {-# INLINE matchMetadata          #-}
-matchInvalidSymbol     = \case { InvalidSymbol   a _ -> Just a ; _ -> Nothing } ; {-# INLINE matchInvalidSymbol     #-}
-matchInvalidEscapeCode = \case { InvalidEscapeCode a -> Just a ; _ -> Nothing } ; {-# INLINE matchInvalidEscapeCode #-}
+matchInvalid     :: Symbol -> Maybe Invalid.Symbol
+matchVar               = \case { Var      a -> Just a ; _ -> Nothing } ; {-# INLINE matchVar         #-}
+matchCons              = \case { Cons     a -> Just a ; _ -> Nothing } ; {-# INLINE matchCons        #-}
+matchOperator          = \case { Operator a -> Just a ; _ -> Nothing } ; {-# INLINE matchOperator    #-}
+matchModifier          = \case { Modifier a -> Just a ; _ -> Nothing } ; {-# INLINE matchModifier    #-}
+matchStr               = \case { Str      a -> Just a ; _ -> Nothing } ; {-# INLINE matchStr         #-}
+matchStrEsc            = \case { StrEsc   a -> Just a ; _ -> Nothing } ; {-# INLINE matchStrEsc      #-}
+matchNumber            = \case { Number   a -> Just a ; _ -> Nothing } ; {-# INLINE matchNumber      #-}
+matchMarker            = \case { Marker   a -> Just a ; _ -> Nothing } ; {-# INLINE matchMarker      #-}
+matchDocComment        = \case { Doc      a -> Just a ; _ -> Nothing } ; {-# INLINE matchDocComment  #-}
+matchMetadata          = \case { Metadata a -> Just a ; _ -> Nothing } ; {-# INLINE matchMetadata    #-}
+matchInvalid           = \case { Invalid  a -> Just a ; _ -> Nothing } ; {-# INLINE matchInvalid     #-}
 
 
 pretty :: Symbol -> Text32
 pretty = \case
-    STX                {} -> "start of text"
-    ETX                {} -> "end of text"
-    EOL                {} -> "end of line"
-    Terminator         {} -> "expression terminator"
-    BlockStart         {} -> "expression block start"
-    Block              {} -> "block"
-    Group              {} -> "expression group"
-    Marker             {} -> "metadata (position marker)"
-    Var                {} -> "variable name"
-    Cons               {} -> "Constructor"
-    Wildcard           {} -> "wildcard"
-    KwAll              {} -> "keyword `All`"
-    KwCase             {} -> "keyword `Case`"
-    KwClass            {} -> "keyword `Class`"
-    KwDef              {} -> "keyword `Def`"
-    KwForeign          {} -> "keyword `Foreign`"
-    KwImport           {} -> "keyword `Import`"
-    KwNative           {} -> "keyword `Native`"
-    KwOf               {} -> "keyword `Of`"
-    Operator           {} -> "operator"
-    Modifier           {} -> "modifier"
-    Accessor           {} -> "accessor"
-    Assignment         {} -> "assignment"
-    Typed              {} -> "typed"
-    TypeApp            {} -> "type application"
-    Merge              {} -> "merge operator"
-    Range              {} -> "range operator"
-    Anything           {} -> "anything operator"
-    Number             {} -> "number"
-    Quote              {} -> "quote"
-    Str                {} -> "string literal"
-    StrEsc             {} -> "string escape sequence"
-    List               {} -> "list"
-    Disable            {} -> "disable block"
-    Doc                {} -> "documentation"
-    Metadata           {} -> "metadata"
-    Unknown           s   -> "unknown symbol " <> s
-    Incorrect         s   -> "incorrect " <> s
-    InvalidSymbol     s _ -> "invalid " <> convert (show s)
-    InvalidEscapeCode  {} -> "wrong string escape sequence"
+    STX        {} -> "start of text"
+    ETX        {} -> "end of text"
+    EOL        {} -> "end of line"
+    Terminator {} -> "expression terminator"
+    BlockStart {} -> "expression block start"
+    Block      {} -> "block"
+    Group      {} -> "expression group"
+    Marker     {} -> "metadata (position marker)"
+    Var        {} -> "variable name"
+    Cons       {} -> "Constructor"
+    Wildcard   {} -> "wildcard"
+    KwAll      {} -> "keyword `All`"
+    KwCase     {} -> "keyword `Case`"
+    KwClass    {} -> "keyword `Class`"
+    KwDef      {} -> "keyword `Def`"
+    KwForeign  {} -> "keyword `Foreign`"
+    KwImport   {} -> "keyword `Import`"
+    KwNative   {} -> "keyword `Native`"
+    KwOf       {} -> "keyword `Of`"
+    Operator   {} -> "operator"
+    Modifier   {} -> "modifier"
+    Accessor   {} -> "accessor"
+    Assignment {} -> "assignment"
+    Typed      {} -> "typed"
+    TypeApp    {} -> "type application"
+    Merge      {} -> "merge operator"
+    Range      {} -> "range operator"
+    Anything   {} -> "anything operator"
+    Number     {} -> "number"
+    Quote      {} -> "quote"
+    Str        {} -> "string literal"
+    StrEsc     {} -> "string escape sequence"
+    List       {} -> "list"
+    Disable    {} -> "disable block"
+    Doc        {} -> "documentation"
+    Metadata   {} -> "metadata"
+    Unknown     s -> "unknown symbol " <> s
+    Incorrect   s -> "incorrect " <> s
+    Invalid     s -> "invalid " <> convert (show s)
 {-# INLINE pretty #-}
 
 
@@ -261,8 +257,7 @@ instance ShowCons Symbol where
         Metadata          {} -> "Metadata"
         Unknown           {} -> "Unknown"
         Incorrect         {} -> "Incorrect"
-        InvalidSymbol     {} -> "InvalidSymbol"
-        InvalidEscapeCode {} -> "InvalidEscapeCode"
+        Invalid     {} -> "Invalid"
     {-# INLINE showCons #-}
 
 instance IsTagged Symbol where
@@ -305,8 +300,7 @@ instance IsTagged Symbol where
         Metadata          {} -> "Config"
         Unknown           {} -> "Error"
         Incorrect         {} -> "Error"
-        InvalidSymbol     {} -> "Error"
-        InvalidEscapeCode {} -> "Error"
+        Invalid     {}       -> "Error"
     {-# INLINE getTags #-}
 
 

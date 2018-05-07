@@ -8,6 +8,7 @@ import qualified Prelude  as P
 import           Prologue hiding (Symbol)
 
 import qualified Control.Monad.State.Layered    as State
+import qualified Data.Char                      as Char
 import qualified Data.Graph.Component.Layout    as Layout
 import qualified Data.Layout                    as Layout
 import qualified Data.Layout                    as Doc
@@ -289,8 +290,12 @@ prettyprintSimple ir = Layer.read @IR.Model ir >>= \case
     IR.UniTermFmtString (IR.FmtString elems)
         -> simple . singleQuoted . mconcat <$> (mapM subgen =<< List.toList elems) where
                subgen a = (Layer.read @IR.Model <=< Link.source) a >>= \case
-                   IR.UniTermRawString (IR.RawString s) -> convert <$> Vector.toList s
+                   IR.UniTermRawString (IR.RawString s) -> convert . concat . fmap escape <$> Vector.toList s
                    _ -> backticked <$> subgenBody a
+               escape = \case
+                    '\'' -> "\\'"
+                    '\\' -> "\\\\"
+                    c    -> Char.showLitChar c ""
     IR.UniTermTuple (IR.Tuple elems)
         -> simple . parensed . (intercalate ", ")
        <$> (mapM subgenBody =<< List.toList elems)

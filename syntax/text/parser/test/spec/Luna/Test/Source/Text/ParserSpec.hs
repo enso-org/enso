@@ -155,9 +155,16 @@ literalStringSpec = describe "string" $ do
         -- it "wrong escape e-1"  $ exprAs [s|"foo\Nbar"|]   [s|"dasd"|]
 
     describe "interpolated" $ do
-        it "empty"          $ expr [s|''|]
-        it "simple"         $ expr [s|'Test'|]
-        it "simple term"    $ expr [s|'foo `2`'|]
+        it "empty"            $ expr [s|''|]
+        it "simple"           $ expr [s|'Test'|]
+        it "simple term 1"    $ expr [s|'foo `2`'|]
+        it "simple term 2"    $ expr [s|'foo `2 + 2`'|]
+        it "escape quote"     $ expr [s|'foo\''|]
+        it "integer escape"   $ exprAs [s|'foo\100ar'|]  [s|'foodar'|]
+        it "escape e-1"       $ exprAs [s|'foo\nbar'|]   [s|'foo\nbar'|]
+        it "escape e-2"       $ exprAs [s|'foo\BSbar'|]  [s|'foo\bbar'|]
+        it "escape e-3"       $ exprAs [s|'foo\NULbar'|] [s|'foo\NULbar'|]
+        it "wrong escape e-1" $ exprAs [s|'foo\Nbar'|]   [s|'dasd'|]
         -- it "escaping newline"  $ exprAs [s|'\n'|] "\"\n\""              -- [(0,4)]
         --     it "tripple single-quoted oneliner"             $ do shouldParseAs expr     "'''The quick brown fox jumps over the lazy dog'''"    "'The quick brown fox jumps over the lazy dog'"
         --     it "multiline string with inline start"         $ do shouldParseAs expr     "'The quick \n brown fox jumps over the lazy dog'"     "'The quick \nbrown fox jumps over the lazy dog'"
