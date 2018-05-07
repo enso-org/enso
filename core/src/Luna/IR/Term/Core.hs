@@ -17,10 +17,8 @@ import Data.PtrList.Mutable         (UnmanagedPtrList)
 import Data.Vector.Storable.Foreign (Vector)
 import OCI.Data.Name                (Name)
 import OCI.IR.Term.Class            (Term, Terms)
-import OCI.IR.Term.Definition       (LinkTo)
+import OCI.IR.Term.Definition       (LinkTo, LinksTo)
 import OCI.IR.Term.Layout           ()
-
-type LinkListTo a = UnmanagedPtrList (LinkTo a)
 
 
 
@@ -37,13 +35,13 @@ Term.define [d|
 
  data Value
     = App     { base :: LinkTo Terms, arg   :: LinkTo Terms                    }
-    | Cons    { name :: Name        , args  :: LinkListTo Terms                }
+    | Cons    { name :: Name        , args  :: LinksTo Terms                   }
     | Top_
 
  data Thunk
     = Acc     { base :: LinkTo Terms, name  :: Name                            }
     | Lam     { arg  :: LinkTo Terms, body  :: LinkTo Terms                    }
-    | Match   { arg  :: LinkTo Terms, ways  :: LinkListTo Terms                }
+    | Match   { arg  :: LinkTo Terms, ways  :: LinksTo Terms                   }
     | Update  { base :: LinkTo Terms, path  :: Vector Name, val :: LinkTo Terms}
 
  data Phrase

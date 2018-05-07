@@ -88,7 +88,7 @@ isVarHead       c = Char.isLower    c ; {-# INLINE isVarHead        #-}
 isConsHead      c = Char.isUpper    c ; {-# INLINE isConsHead       #-}
 
 tokenBreakingChars :: [Char]
-tokenBreakingChars = "!@#$%^&*()-=+[]{}\\|;:<>,./ \t\n" ; {-# INLINE tokenBreakingChars #-}
+tokenBreakingChars = "`!@#$%^&*()-=+[]{}\\|;:<>,./ \t\n" ; {-# INLINE tokenBreakingChars #-}
 
 
 -- === Names === --

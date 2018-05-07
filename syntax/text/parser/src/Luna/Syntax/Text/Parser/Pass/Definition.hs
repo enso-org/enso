@@ -95,7 +95,7 @@ runParser__ p src = do
     let tokens = Lexer.evalDefLexer src
         parser = Parsing.stx *> p <* Parsing.etx
     runParserContext__ parser tokens >>= \case
-        Left e -> error ("Parser error: " <> parseErrorPretty e)
+        Left e -> error ("Parser error: " <> parseErrorPretty e <> "\ntokens:\n" <> show tokens)
         Right irbs -> do
             ((ref, unmarked), gidMap) <- State.runDefT @Marker.TermMap
                                        $ State.runDefT @Marker.TermOrphanList

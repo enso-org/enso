@@ -408,18 +408,18 @@ string = rawStr <|> fmtStr
 rawStr :: Parser (IRBS SomeTerm)
 rawStr = irbs $ do
     rawQuoteBegin
-    (IR.string' . convertVia @String) <$> Indent.withCurrent (strBody rawQuoteEnd) -- FIXME[WD]: We're converting Text -> String here.
+    (IR.rawString' . convertVia @String) <$> Indent.withCurrent (strBody rawQuoteEnd) -- FIXME[WD]: We're converting Text -> String here.
     -- withRecovery (\e -> invalid "Invalid string literal" <$ Loc.unregisteredDropSymbolsUntil' (== (Lexer.Quote Lexer.RawStr Lexer.End)))
-    --              $ (IR.string' . convertVia @String)
+    --              $ (IR.rawString' . convertVia @String)
     --            <$> Indent.withCurrent (strBody rawQuoteEnd) -- FIXME[WD]: We're converting Text -> String here.
 
-fmtStr :: Parser (IRBS SomeTerm)
-fmtStr = irbs $ do
-    fmtQuoteBegin
-    (IR.string' . convertVia @String) <$> Indent.withCurrent (strBody fmtQuoteEnd) -- FIXME[WD]: We're converting Text -> String here.
-    -- withRecovery (\e -> invalid "Invalid string literal" <$ Loc.unregisteredDropSymbolsUntil' (== (Lexer.Quote Lexer.FmtStr Lexer.End)))
-    --              $ (IR.string' . convertVia @String)
-    --            <$> Indent.withCurrent (strBody fmtQuoteEnd) -- FIXME[WD]: We're converting Text -> String here.
+-- fmtStr :: Parser (IRBS SomeTerm)
+-- fmtStr = irbs $ do
+--     fmtQuoteBegin
+--     (IR.rawString' . convertVia @String) <$> Indent.withCurrent (strBody fmtQuoteEnd) -- FIXME[WD]: We're converting Text -> String here.
+--     -- withRecovery (\e -> invalid "Invalid string literal" <$ Loc.unregisteredDropSymbolsUntil' (== (Lexer.Quote Lexer.FmtStr Lexer.End)))
+--     --              $ (IR.rawString' . convertVia @String)
+--     --            <$> Indent.withCurrent (strBody fmtQuoteEnd) -- FIXME[WD]: We're converting Text -> String here.
 
 strBody :: Parser () -> Parser Text32
 strBody ending = segStr <|> end <|> nl where
@@ -429,8 +429,29 @@ strBody ending = segStr <|> end <|> nl where
     line   = do Indent.indentedOrEq
                 (<>) . convert . flip replicate ' ' <$> Indent.indentation <*> strBody ending
 
+strBody2 :: Parser Text32
+strBody2 = segStr <|> nl where
+    segStr = (<>) <$> satisfTest Lexer.matchStr <*> (strBody2 <|> pure mempty)
+    nl     = Text32.cons '\n' <$ eol <*> (line <|> nl <|> pure mempty)
+    line   = do Indent.indentedOrEq
+                (<>) . convert . flip replicate ' ' <$> Indent.indentation
+                                                    <*> strBody2
+
 strContent :: Parser Text32
 strContent = satisfTest Lexer.matchStr <|> strEsc
+
+
+-- match = irbs $ (\n (p,ps) -> liftIRBS2 IR.match' n (sequence $ p:ps))
+
+
+fmtStr :: Parser (IRBS SomeTerm)
+fmtStr = irbs $ (liftIRBS1 IR.fmtString' . sequence) <$> (fmtQuoteBegin *> body) where
+    chunk   = (:) <$> element <*> body
+    body    = chunk  <|> end
+    element = rawStr <|> code
+    end     = mempty <$ fmtQuoteEnd
+    rawStr  = irbs $ IR.rawString' . convertVia @String <$> strBody2
+    code    = symbol (Lexer.Block Lexer.Begin) *> lineExpr <* symbol (Lexer.Block Lexer.End)
 
 strEsc :: Parser Text32
 strEsc = satisfTest Lexer.matchStrEsc >>= pure . \case

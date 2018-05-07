@@ -25,7 +25,8 @@ import qualified Luna.Syntax.Text.Scope         as Scope
 import qualified OCI.IR.Link.Class              as Link
 
 import Control.Monad.State.Layered  (StateT)
-import Data.Layout                  (quoted, space, (</>))
+import Data.Layout                  (backticked, quoted, singleQuoted, space,
+                                     (</>))
 import Data.Layout                  (block, indented, parensed, (<+>))
 import Data.Vector.Storable.Foreign (Vector)
 import Language.Symbol.Label        (Labeled (Labeled), label, labeled, unlabel)
@@ -258,7 +259,7 @@ prettyprintSimple ir = Layer.read @IR.Model ir >>= \case
        <$> subgenBody n
        <*> subgenBody tp
     IR.UniTermGrouped (IR.Grouped expr) -> simple . parensed <$> subgenBody expr
-    IR.UniTermNumber num                -> simple . convert <$> Literal.prettyshow num
+    IR.UniTermNumber num                -> simple . convert <$> Literal.prettyShow num
     IR.UniTermImportHub (IR.ImportHub is)
         -> simple . foldl (</>) mempty <$> (mapM subgenBody =<< List.toList is)
     IR.UniTermInvalid (IR.Invalid t)
@@ -279,12 +280,17 @@ prettyprintSimple ir = Layer.read @IR.Model ir >>= \case
     IR.UniTermSectionRight (IR.SectionRight op a)
         -> simple . parensed .: flip (<+>) <$> subgenBody op <*> subgenBody a
     IR.UniTermSeq (IR.Seq a b) -> simple .: (</>) <$> subgenBody a <*> subgenBody b
-    IR.UniTermString (IR.String s)
+    IR.UniTermRawString (IR.RawString s)
         -> simple . quoted . convert . concat . fmap escape <$> Vector.toList s where -- FIXME [WD]: add proper multi-line strings indentation
         escape = \case
             '"'  -> "\\\""
             '\\' -> "\\\\"
             c    -> [c]
+    IR.UniTermFmtString (IR.FmtString elems)
+        -> simple . singleQuoted . mconcat <$> (mapM subgen =<< List.toList elems) where
+               subgen a = (Layer.read @IR.Model <=< Link.source) a >>= \case
+                   IR.UniTermRawString (IR.RawString s) -> convert <$> Vector.toList s
+                   _ -> backticked <$> subgenBody a
     IR.UniTermTuple (IR.Tuple elems)
         -> simple . parensed . (intercalate ", ")
        <$> (mapM subgenBody =<< List.toList elems)
@@ -387,7 +393,8 @@ prettyprintSimple ir = Layer.read @IR.Model ir >>= \case
 --                   body'     <- subgenBody body
 --                   pure $ if multiline then lamName </> indented (block body')
 --                                         else lamName <> space <> body'
-    where subgen     = prettyprint @Simple . Layout.relayout <=< Link.source
+    where subgen     = prettyprint @Simple <=< src
+          src        = fmap Layout.relayout . Link.source
           subgenBody = fmap getBody . subgen
           smartBlock body = do
             multiline <- isMultilineBlock body

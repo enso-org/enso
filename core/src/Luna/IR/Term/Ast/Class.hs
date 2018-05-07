@@ -15,13 +15,10 @@ import qualified OCI.IR.Term.Definition             as Term
 import Data.Vector.Storable.Foreign (Vector)
 import OCI.Data.Name                (Name)
 import OCI.IR.Term.Class            (Terms)
-import OCI.IR.Term.Definition       (LinkTo)
+import OCI.IR.Term.Definition       (LinkTo, LinksTo)
 
 -- FIXME: remove when refactoring Cmp instances
 import Luna.IR.Term.Core ()
-
-import Data.PtrList.Mutable (UnmanagedPtrList)
-type LinksTo a = UnmanagedPtrList (LinkTo a)
 
 
 

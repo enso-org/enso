@@ -6,13 +6,16 @@ module Luna.IR.Term.Literal where
 import           Prologue hiding (String)
 import qualified Prologue as P
 
-import qualified Data.Char                         as Char
-import qualified Data.Vector.Storable.Foreign      as Vector
-import qualified OCI.IR.Term.Class      as Term
-import qualified OCI.IR.Term.Definition as Term
-import qualified Luna.IR.Term.Format               as Format
+import qualified Data.Char                    as Char
+import qualified Data.Vector.Storable.Foreign as Vector
+import qualified Luna.IR.Term.Format          as Format
+import qualified OCI.IR.Term.Class            as Term
+import qualified OCI.IR.Term.Definition       as Term
 
 import Data.Vector.Storable.Foreign (Vector)
+import OCI.IR.Term.Class            (Terms)
+import OCI.IR.Term.Definition       (LinksTo)
+
 
 
 --------------------
@@ -23,18 +26,19 @@ import Data.Vector.Storable.Foreign (Vector)
 
 Term.define [d|
  data Value
-    = Number { base     :: Word8
-             , intPart  :: Vector Word8
-             , fracPart :: Vector Word8 }
-    | String { val      :: Vector Char  }
+    = Number    { base     :: Word8
+                , intPart  :: Vector  Word8
+                , fracPart :: Vector  Word8 }
+    | RawString { val      :: Vector  Char  }
+    | FmtString { segments :: LinksTo Terms }
  |]
 
 
 
 -- === API === --
 
-prettyshow :: MonadIO m => Term.Constructor Number a -> m P.String
-prettyshow (Number base intPart fracPart) = do
+prettyShow :: MonadIO m => Term.Constructor Number a -> m P.String
+prettyShow (Number base intPart fracPart) = do
     intPartS  <- showVec intPart
     fracPartS <- showVec fracPart
     let frac = if fracPartS /= "" then "." <> fracPartS else mempty

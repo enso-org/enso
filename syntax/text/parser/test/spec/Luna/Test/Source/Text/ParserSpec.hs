@@ -7,39 +7,39 @@ module Luna.Test.Source.Text.ParserSpec where
 import Prologue
 import Test.Hspec.Expectations.Lifted
 
-import qualified Control.Monad.State.Layered         as State
-import qualified Data.Set.Mutable.Class              as Set
-import qualified Foreign.Marshal.Alloc               as Mem
-import qualified Foreign.Storable                    as Storable
-import qualified Luna.IR                             as IR
-import qualified OCI.IR.Link              as Link
-import qualified OCI.IR.Term.Construction as Term
-import qualified Luna.IR.Layer                       as Layer
-import qualified Luna.Pass                           as Pass
-import qualified Luna.Pass.Attr                      as Attr
-import qualified Luna.Pass.Scheduler                 as Scheduler
-import qualified Luna.Runner                         as Runner
-import qualified Luna.Syntax.Prettyprint             as Prettyprint
-import qualified Luna.Syntax.Text.Parser.Data.CodeSpan    as CodeSpan
+import qualified Control.Monad.State.Layered           as State
+import qualified Data.Graph.Component                  as Component
+import qualified Data.Graph.Component.Layout           as Layout
+import qualified Data.Set.Mutable.Class                as Set
+import qualified Foreign.Marshal.Alloc                 as Mem
+import qualified Foreign.Storable                      as Storable
+import qualified Luna.IR                               as IR
+import qualified Luna.IR.Layer                         as Layer
+import qualified Luna.Pass                             as Pass
+import qualified Luna.Pass.Attr                        as Attr
+import qualified Luna.Pass.Scheduler                   as Scheduler
+import qualified Luna.Runner                           as Runner
+import qualified Luna.Syntax.Prettyprint               as Prettyprint
+import qualified Luna.Syntax.Text.Parser.Data.CodeSpan as CodeSpan
 import qualified Luna.Syntax.Text.Parser.IR.Class      as Token
-import qualified Luna.Syntax.Text.Parser.IR.Term     as Parsing
-import qualified Luna.Syntax.Text.Parser.Pass        as Parser
-import qualified Luna.Syntax.Text.Parser.Pass.Class  as Parser
-import qualified OCI.Data.Name                       as Name
-import qualified Data.Graph.Component                    as Component
-import qualified Data.Graph.Component.Layout                       as Layout
-import qualified OCI.Pass.Registry                   as Registry
+import qualified Luna.Syntax.Text.Parser.IR.Term       as Parsing
+import qualified Luna.Syntax.Text.Parser.Pass          as Parser
+import qualified Luna.Syntax.Text.Parser.Pass.Class    as Parser
+import qualified OCI.Data.Name                         as Name
+import qualified OCI.IR.Link                           as Link
+import qualified OCI.IR.Term.Construction              as Term
+import qualified OCI.Pass.Registry                     as Registry
 
-import Data.Text.Position                 (Delta)
-import OCI.IR.Link             (type (*-*), Link)
-import Luna.Pass                          (Pass)
-import Luna.Syntax.Text.Parser.Data.Invalid (Invalids)
-import Luna.Syntax.Text.Parser.Data.CodeSpan   (CodeSpan)
-import Luna.Syntax.Text.Parser.Pass.Class (IRBS, Parser)
-import Luna.Syntax.Text.Scope             (Scope)
-import Luna.Syntax.Text.Source            (Source)
-import Luna.Test.Source.Text.Utils        (s)
-import Test.Hspec                         (Expectation, Spec, describe, it)
+import Data.Text.Position                    (Delta)
+import Luna.Pass                             (Pass)
+import Luna.Syntax.Text.Parser.Data.CodeSpan (CodeSpan)
+import Luna.Syntax.Text.Parser.Data.Invalid  (Invalids)
+import Luna.Syntax.Text.Parser.Pass.Class    (IRBS, Parser)
+import Luna.Syntax.Text.Scope                (Scope)
+import Luna.Syntax.Text.Source               (Source)
+import Luna.Test.Source.Text.Utils           (s)
+import OCI.IR.Link                           (type (*-*), Link)
+import Test.Hspec                            (Expectation, Spec, describe, it)
 
 
 
@@ -147,8 +147,17 @@ literalStringSpec = describe "string" $ do
         it "escape quote"      $ expr   [s|"foo\""|]
         it "escape escape"     $ expr   [s|"foo\\"|]
         it "implicite escape"  $ exprAs [s|"foo\bar"|] [s|"foo\\bar"|]
+
+        -- it "integer escape"    $ exprAs [s|"foo\100ar"|]  [s|"foo\\100ar"|]
+        -- it "escape e-1"        $ exprAs [s|"foo\nbar"|]   [s|"foo\\nbar"|]
+        -- it "escape e-2"        $ exprAs [s|"foo\BSbar"|]  [s|"foo\\BSbar"|]
+        -- it "escape e-3"        $ exprAs [s|"foo\NULbar"|] [s|"foo\\NULbar"|]
+        -- it "wrong escape e-1"  $ exprAs [s|"foo\Nbar"|]   [s|"dasd"|]
+
     describe "interpolated" $ do
-        it "simple"         $ exprAs [s|'Test'|] [s|"Test"|]
+        it "empty"          $ expr [s|''|]
+        it "simple"         $ expr [s|'Test'|]
+        it "simple term"    $ expr [s|'foo `2`'|]
         -- it "escaping newline"  $ exprAs [s|'\n'|] "\"\n\""              -- [(0,4)]
         --     it "tripple single-quoted oneliner"             $ do shouldParseAs expr     "'''The quick brown fox jumps over the lazy dog'''"    "'The quick brown fox jumps over the lazy dog'"
         --     it "multiline string with inline start"         $ do shouldParseAs expr     "'The quick \n brown fox jumps over the lazy dog'"     "'The quick \nbrown fox jumps over the lazy dog'"
