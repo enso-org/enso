@@ -40,7 +40,7 @@ import OCI.Pass.State.IRInfo      (CompiledIRInfo)
 
 data EncodingError
     = MissingComponent Component.TagRep
-    | MissingLayer     SomeTypeRep
+    | MissingLayer     Layer.Rep
     deriving (Show)
 
 newtype Error = Error (NonEmpty EncodingError)
@@ -118,7 +118,7 @@ instance ( layers      ~ Pass.Vars pass comp
             travEncoder  = encodePassDataElem @compTravsl
                          . Component.DynamicTraversal @comp
                          $ i ^. IRInfo.layersComponents
-            layerTypes   = someTypeReps @layers
+            layerTypes   = Layer.reps @layers
             layerOffsets = view IRInfo.byteOffset <<$>> layerInfos
             layerInfos   = mapLeft wrap $ catEithers
                          $ flip lookupLayer (i ^. IRInfo.compiledLayers)
@@ -133,7 +133,7 @@ instance ( layers      ~ Pass.Vars pass comp
 lookupComp :: Component.TagRep -> Map Component.TagRep v -> EncodingResult v
 lookupComp k m = justErr (MissingComponent k) $ Map.lookup k m ; {-# INLINE lookupComp #-}
 
-lookupLayer :: SomeTypeRep -> Map SomeTypeRep v -> EncodingResult v
+lookupLayer :: Layer.Rep -> Map Layer.Rep v -> EncodingResult v
 lookupLayer k m = justErr (MissingLayer k) $ Map.lookup k m ; {-# INLINE lookupLayer #-}
 
 catEithers :: [Either l r] -> Either (NonEmpty l) [r]

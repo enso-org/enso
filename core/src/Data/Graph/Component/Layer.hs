@@ -1,5 +1,4 @@
 {-# LANGUAGE CPP                  #-}
-{-# LANGUAGE TypeInType           #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Data.Graph.Component.Layer where
@@ -336,3 +335,21 @@ instance ViewWriter comp  Imp   layout m     where writeView__ _ _ = impossible
 instance ViewWriter comp  layer Imp    m     where writeView__ _ _ = impossible
 instance ViewWriter comp  layer layout ImpM1 where writeView__ _ _ = impossible
 
+
+
+-----------------
+-- === Rep === --
+-----------------
+
+-- === Definition === --
+
+newtype Rep = Rep SomeTypeRep deriving (Eq, Ord, Show)
+makeLenses ''Rep
+
+
+-- === API === --
+
+rep  :: ∀ layer.  Typeable layer        => Rep
+reps :: ∀ layers. (TypeableMany layers) => [Rep]
+rep  = wrap  $  someTypeRep  @layer  ; {-# INLINE rep  #-}
+reps = wrap <$> someTypeReps @layers ; {-# INLINE reps #-}

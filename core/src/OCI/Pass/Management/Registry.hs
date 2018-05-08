@@ -82,7 +82,7 @@ registerPrimLayer = do
         dtor      = dtorDyn <$> manager ^. Layer.destructor
         size      = Layer.byteSize @layer
         comp      = Component.tagRep @comp
-        layer     = someTypeRep @layer
+        layer     = Layer.rep @layer
     init <- mapM (fmap coerce . Ptr1.new) $ manager ^. Layer.initializer
     State.modifyM_ @IRInfo $ \m -> do
         components' <- flip (at comp) (m ^. IRInfo.components) $ \case

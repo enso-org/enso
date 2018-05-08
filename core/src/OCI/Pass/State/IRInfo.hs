@@ -4,6 +4,7 @@ import Prologue
 
 import qualified Data.Graph.Component.Class   as Component
 import qualified Data.Graph.Component.Dynamic as Component
+import qualified Data.Graph.Component.Layer   as Layer
 import qualified Data.Map                     as Map
 import qualified Foreign.Marshal.Alloc        as Mem
 import qualified Foreign.Marshal.Utils        as Mem
@@ -20,14 +21,14 @@ import Foreign.Ptr.Utils   (SomePtr)
 -- === IRInfo === --
 --------------------
 
--- === RegistryInfo === --
+-- === Registry Info === --
 
 newtype IRInfo = IRInfo
     { _components :: Map Component.TagRep ComponentInfo
     } deriving (Default)
 
 newtype ComponentInfo = ComponentInfo
-    { _layers :: Map SomeTypeRep LayerInfo
+    { _layers :: Map Layer.Rep LayerInfo
     } deriving (Default, Mempty, Semigroup)
 
 data LayerInfo = LayerInfo
@@ -36,21 +37,21 @@ data LayerInfo = LayerInfo
     , _constructor   :: !(Maybe (SomePtr -> IO ()))
     , _destructor    :: !(Maybe (SomePtr -> IO ()))
     , _subComponents :: !(SomePtr -> IO [Component.Dynamic])
-    }
+    } deriving (Show)
 
 makeLenses ''IRInfo
 makeLenses ''ComponentInfo
 makeLenses ''LayerInfo
 
 
--- === RuntimeInfo === --
+-- === Runtime Info === --
 
 newtype CompiledIRInfo = CompiledIRInfo
     { _compiledComponents :: Map Component.TagRep ComponentCompiledInfo
     }
 
 data ComponentCompiledInfo = ComponentCompiledInfo
-    { _compiledLayers    :: !(Map SomeTypeRep LayerCompiledInfo)
+    { _compiledLayers    :: !(Map Layer.Rep LayerCompiledInfo)
     , _layersByteSize    :: !Int
     , _layersInitializer :: !SomePtr
     , _layersConstructor :: !(SomePtr -> IO ())
@@ -59,8 +60,9 @@ data ComponentCompiledInfo = ComponentCompiledInfo
     , _memPool           :: !(MemPool ())
     }
 
-newtype LayerCompiledInfo = LayerCompiledInfo
-    { _byteOffset :: Int
+data LayerCompiledInfo = LayerCompiledInfo
+    { _byteOffset :: !Int
+    , _layerInfo  :: !LayerInfo
     } deriving (Show)
 
 makeLenses ''CompiledIRInfo
@@ -79,7 +81,7 @@ computeComponentInfo compCfg = compInfo where
     layerInfos    = Map.elems $ compCfg ^. layers
     layerSizes    = view layerByteSize <$> layerInfos
     layerOffsets  = scanl (+) 0 layerSizes
-    layerCfgs     = wrap <$> layerOffsets
+    layerCfgs     = zipWith LayerCompiledInfo layerOffsets layerInfos
     layerOffInfos = zip layerOffsets layerInfos
     compSize      = sum layerSizes
     compInfo      = ComponentCompiledInfo

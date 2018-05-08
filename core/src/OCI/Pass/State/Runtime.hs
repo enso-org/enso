@@ -12,15 +12,15 @@ import qualified Data.Graph.Component.Layer   as Layer
 import qualified Data.TypeMap.Strict          as TypeMap
 import qualified Type.Data.List               as List
 
-import Control.Monad.State.Layered (StateT)
-import Data.Graph.Component.Class  (Component)
-import Data.TypeMap.Strict         (TypeMap)
-import Foreign.Info.ByteSize       (ByteSize)
-import Foreign.Memory.Pool         (MemPool)
-import Foreign.Ptr.Utils           (SomePtr)
-import OCI.Pass.State.Attr               (Attr)
-import OCI.Pass.Definition.Declaration
-import Type.Data.List              (type (<>))
+import Control.Monad.State.Layered     (StateT)
+import Data.Graph.Component.Class      (Component)
+import Data.TypeMap.Strict             (TypeMap)
+import Foreign.Info.ByteSize           (ByteSize)
+import Foreign.Memory.Pool             (MemPool)
+import Foreign.Ptr.Utils               (SomePtr)
+import OCI.Pass.Definition.Declaration (Attrs, Elems, Vars)
+import OCI.Pass.State.Attr             (Attr)
+import Type.Data.List                  (type (<>))
 
 
 
@@ -93,5 +93,3 @@ makeLenses ''State
 
 deriving instance Show    (StateData pass) => Show    (State pass)
 deriving instance Default (StateData pass) => Default (State pass)
-
-
