@@ -188,5 +188,28 @@ genIntTupleIxElemSetters = return decls where
     decls = concat $ genDeclsForTup <$> [0.._MAX_TUPLE_SIZE]
 
 
+-- >> type instance Prepended t (T2 t1 t2) = T3 t t1 t2
+genPrepended :: Q [Dec]
+genPrepended = return decls where
+    genDecl tupLen = TySynInstD "Prepended"
+        (TySynEqn ["t", tup vs] (tup $ "t" : vs)) where
+            vs = var <$> unsafeGenNamesTN tupLen
+    decls = genDecl <$> [0..(_MAX_TUPLE_SIZE - 1)]
+
+-- >> instance Prependable t (T3 t1 t2 t3) where
+-- >>     prepend t (T3 !t1 !t2 !t3) = T4 t t1 t2 t3 ; {-# INLINE prepend #-}
+genPrependable :: Q [Dec]
+genPrependable = return decls where
+    genDecl tupLen = decl where
+        ns     = unsafeGenNamesTN tupLen
+        tvs    = var <$> ns
+        pvs    = var <$> ns
+        evs    = var <$> ns
+        header = apps (cons' "Prependable") ["t", tup tvs]
+        fun    = FunD "prepend" [ TH.Clause ["t", tup $ BangP <$> pvs]
+                 (NormalB (tup $ "t" : evs)) []]
+        prag   = PragmaD (InlineP "prepend" Inline FunLike AllPhases)
+        decl   = InstanceD Nothing [] header [fun, prag]
+    decls = genDecl <$> [0.. (_MAX_TUPLE_SIZE - 1)]
 
 replaceLst i v lst = take i lst <> [v] <> drop (i+1) lst

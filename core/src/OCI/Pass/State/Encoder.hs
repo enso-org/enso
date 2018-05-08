@@ -18,11 +18,13 @@ import qualified OCI.Pass.Definition.Class       as Pass
 import qualified OCI.Pass.Definition.Declaration as Pass
 import qualified OCI.Pass.Management.Registry    as Reg
 import qualified OCI.Pass.State.IRInfo           as IRInfo
+import qualified OCI.Pass.State.Runtime          as Runtime
 import qualified OCI.Pass.State.Runtime          as Pass
 
 import Control.Monad.Exception    (Throws, throw)
-import Data.Graph.Component.Class (Component)
+import Data.Graph.Component.Class (Component, SomeComponent)
 import Data.Map.Strict            (Map)
+import Data.TypeMap.Strict        (TypeMap)
 import Foreign.Info.ByteSize      (ByteSize (ByteSize))
 import Foreign.Memory.Pool        (MemPool)
 import Foreign.Ptr.Utils          (SomePtr)
@@ -47,20 +49,30 @@ newtype Error = Error (NonEmpty EncodingError)
     deriving (Semigroup, Show)
 makeLenses ''Error
 
-type EncoderResult  = Either Error
-type EncodingResult = Either EncodingError
+type EncoderResult = Either Error
 
 instance Exception Error
 
 
+
+--------------------------
+-- === StateEncoder === --
+--------------------------
+
+-- === Definition === --
+
+type Encoder pass = StateEncoder (Pass.StateLayout pass)
+
+class StateEncoder fields where
+    encodeState :: CompiledIRInfo -> EncoderResult (TypeMap fields)
+
+
 -- === API === --
 
-type Encoding pass = (Encoder pass, Default (Pass.State pass))
+tryRun :: ∀ pass. Encoder pass => CompiledIRInfo -> EncoderResult (Pass.State pass)
+tryRun = fmap Runtime.State . encodeState ; {-# INLINE tryRun #-}
 
-tryRun :: Encoding pass => CompiledIRInfo -> EncoderResult (Pass.State pass)
-tryRun cfg = ($ def) <$> encode cfg ; {-# INLINE tryRun #-}
-
-run :: ∀ pass m. (Encoding pass, Throws Error m)
+run :: ∀ pass m. (Encoder pass, Throws Error m)
     => CompiledIRInfo -> m (Pass.State pass)
 run cfg = case tryRun cfg of
     Left  e -> throw e
@@ -68,98 +80,107 @@ run cfg = case tryRun cfg of
 {-# INLINE run #-}
 
 
--- === Encoding utils === --
+-- === Instances === --
 
-encode :: ∀ pass. Encoder pass
-       => CompiledIRInfo -> EncoderResult (Pass.State pass -> Pass.State pass)
-encode = encode__ @pass @(EncoderTarget pass) ; {-# INLINE encode #-}
+instance StateEncoder '[] where
+    encodeState _ = pure TypeMap.empty ; {-# INLINE encodeState #-}
 
-type  Encoder       pass = Encoder__ pass (EncoderTarget pass)
-type  EncoderTarget pass = Pass.Vars pass Pass.Elems
-class Encoder__     pass (cs :: [Type]) where
-    encode__ :: CompiledIRInfo -> EncoderResult (Pass.State pass -> Pass.State pass)
+instance ( TypeMap.Prependable t ts
+         , FieldEncoder t
+         , StateEncoder ts
+         ) => StateEncoder (t ': ts) where
+    encodeState info = appSemiLeft (TypeMap.prepend <$> encodeField @t info)
+                     $ encodeState @ts info
+    {-# INLINE encodeState #-}
 
-instance Encoder__ pass '[] where
-    encode__ _ = Right id ; {-# INLINE encode__ #-}
 
-instance ( layers      ~ Pass.Vars pass comp
-         , targets     ~ Pass.ComponentLayerLayout Pass.LayerByteOffset pass comp
-         , compMemPool ~ MemPool (Component comp ())
-         , compSize    ~ ByteSize (Component comp)
-         , compTravsl  ~ Component.DynamicTraversal comp
-         , layerInit   ~ Layer.DynamicManager comp
-         , TypeableMany layers
-         , Typeable  comp
-         , Encoder__ pass comps
-         , PassDataElemEncoder  compMemPool pass
-         , PassDataElemEncoder  compSize    pass
-         , PassDataElemEncoder  compTravsl  pass
-         , PassDataElemEncoder  layerInit   pass
-         , PassDataElemsEncoder targets Int pass
-         ) => Encoder__ pass (comp ': comps) where
-    encode__ cfg = encode where
-        encode     = appSemiLeft encoder subEncoder
-        encoder    = procComp =<< mcomp
-        subEncoder = encode__ @pass @comps cfg
-        mcomp      = mapLeft (wrap . pure)
-                   . lookupComp tgtComp $ cfg ^. IRInfo.compiledComponents
-        tgtComp    = Component.tagRep @comp
-        procComp i = (encoders .) <$> layerEncoder where
-            memEncoder   = encodePassDataElem  @compMemPool
-                         $ coerce (i ^. IRInfo.memPool)
-            sizeEncoder  = encodePassDataElem  @compSize
-                         $ ByteSize (i ^. IRInfo.layersByteSize)
-            layerEncoder = encodePassDataElems @targets <$> layerOffsets
-            initEncoder  = encodePassDataElem  @layerInit
-                         $ Layer.DynamicManager @comp
-                           (i ^. IRInfo.layersInitializer)
-                           (i ^. IRInfo.layersConstructor)
-                           (i ^. IRInfo.layersDestructor)
-            travEncoder  = encodePassDataElem @compTravsl
-                         . Component.DynamicTraversal @comp
-                         $ i ^. IRInfo.layersComponents
-            layerTypes   = Layer.reps @layers
-            layerOffsets = view IRInfo.byteOffset <<$>> layerInfos
-            layerInfos   = mapLeft wrap $ catEithers
-                         $ flip lookupLayer (i ^. IRInfo.compiledLayers)
-                       <$> layerTypes
-            encoders     = travEncoder
-                         . initEncoder
-                         . memEncoder
-                         . sizeEncoder
+--------------------------
+-- === FieldEncoder === --
+--------------------------
 
-    {-# INLINE encode__ #-}
+-- === Definition === --
 
-lookupComp :: Component.TagRep -> Map Component.TagRep v -> EncodingResult v
-lookupComp k m = justErr (MissingComponent k) $ Map.lookup k m ; {-# INLINE lookupComp #-}
+class FieldEncoder field where
+    encodeField :: CompiledIRInfo -> EncoderResult field
 
-lookupLayer :: Layer.Rep -> Map Layer.Rep v -> EncodingResult v
-lookupLayer k m = justErr (MissingLayer k) $ Map.lookup k m ; {-# INLINE lookupLayer #-}
 
-catEithers :: [Either l r] -> Either (NonEmpty l) [r]
-catEithers lst = case partitionEithers lst of
-    ([]    ,rs) -> Right rs
-    ((l:ls),_)  -> Left $ l :| ls
-{-# INLINE catEithers #-}
+-- === Instances === --
 
--- TODO
--- We should probably think about using other structure than Either here
--- Data.Validation is almost what we need, but its Semigroup instance
--- uses only lefts, which makes is not suitable for the purpose of
--- simple Either replacement.
+instance Typeables '[comp,layer]
+      => FieldEncoder (Pass.LayerByteOffset comp layer) where
+    encodeField info = do
+        compInfo  <- lookupComp  @comp  $ info ^. IRInfo.compiledComponents
+        layerInfo <- lookupLayer @layer $ compInfo ^. IRInfo.compiledLayers
+        pure . wrap $ layerInfo ^. IRInfo.byteOffset
+    {-# INLINE encodeField #-}
+
+instance Typeable comp
+      => FieldEncoder (ByteSize (Component comp)) where
+    encodeField info = do
+        compInfo <- lookupComp  @comp  $ info ^. IRInfo.compiledComponents
+        pure . wrap $ compInfo ^. IRInfo.layersByteSize
+    {-# INLINE encodeField #-}
+
+instance Default (Attr a)
+      => FieldEncoder (Attr a) where
+    encodeField _ = pure def
+    {-# INLINE encodeField #-}
+
+instance (Typeable comp)
+      => FieldEncoder (MemPool (SomeComponent comp)) where
+    encodeField info = do
+        compInfo <- lookupComp @comp $ info ^. IRInfo.compiledComponents
+        pure . coerce $ compInfo ^. IRInfo.memPool
+    {-# INLINE encodeField #-}
+
+instance (Typeable comp)
+      => FieldEncoder (Component.DynamicTraversal comp) where
+    encodeField info = do
+        compInfo <- lookupComp @comp $ info ^. IRInfo.compiledComponents
+        pure . wrap $ compInfo ^. IRInfo.layersComponents
+    {-# INLINE encodeField #-}
+
+instance (Typeable comp)
+      => FieldEncoder (Layer.DynamicManager comp) where
+    encodeField info = do
+        compInfo <- lookupComp @comp $ info ^. IRInfo.compiledComponents
+        pure $ Layer.DynamicManager
+            (compInfo ^. IRInfo.layersInitializer)
+            (compInfo ^. IRInfo.layersConstructor)
+            (compInfo ^. IRInfo.layersDestructor)
+    {-# INLINE encodeField #-}
+
+
+-- === Helpers === --
+
+lookupComp :: ∀ comp a. Typeable comp
+           => Map Component.TagRep a -> EncoderResult a
+lookupComp m = justErr (Error . pure $ MissingComponent k) $ Map.lookup k m
+    where k = Component.tagRep @comp
+{-# INLINE lookupComp #-}
+
+lookupLayer :: ∀ layer a. Typeable layer
+            => Map Layer.Rep a -> EncoderResult a
+lookupLayer m = justErr (Error . pure $ MissingLayer k) $ Map.lookup k m
+    where k = Layer.rep @layer
+{-# INLINE lookupLayer #-}
+
 appSemiLeft :: Semigroup e
-            => (Either e (b -> c)) -> Either e (a -> b) -> Either e (a -> c)
+            => (Either e (a -> b)) -> Either e a -> Either e b
 appSemiLeft f a = case f of
     Left e -> case a of
         Left e' -> Left (e <> e')
         _       -> Left e
     Right ff -> case a of
         Left e   -> Left e
-        Right aa -> Right $ ff . aa
+        Right aa -> Right $ ff aa
 {-# INLINE appSemiLeft #-}
 
 
--- === Attr encoder === --
+
+-------------------------
+-- === AttrEncoder === --
+-------------------------
 
 encodeAttrs :: ∀ pass. AttrEncoder pass
             => [Any] -> (Pass.State pass -> Pass.State pass)

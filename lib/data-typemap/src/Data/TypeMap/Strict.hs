@@ -15,7 +15,7 @@ import qualified Data.Tuple.Strict as Tuple
 -- === Definition === --
 
 newtype TypeMap (ts :: [Type]) = TypeMap (TypeMapData ts)
-type    TypeMapData ts = Tuple.FromList ts
+type TypeMapData ts = Tuple.FromList ts
 makeLenses ''TypeMap
 
 
@@ -30,6 +30,16 @@ getElem t = Tuple.getElem (unwrap t) ; {-# INLINE getElem #-}
 setElem :: ∀ el ts. ElemSetter el ts => el -> TypeMap ts -> TypeMap ts
 setElem v = wrapped %~ (Tuple.setElemKeepType @el v) ; {-# INLINE setElem #-}
 
+empty :: TypeMap '[]
+empty = wrap Tuple.T0 ; {-# INLINE empty #-}
+
+
+type Prependable t ts = ( Tuple.Prepended t (Tuple.FromList ts)
+                        ~ Tuple.FromList (t : ts)
+                        , Tuple.Prependable t (Tuple.FromList ts)
+                        )
+prepend :: Prependable t ts => t -> TypeMap ts -> TypeMap (t ': ts)
+prepend t tm = wrap $ Tuple.prepend t (unwrap tm) ; {-# INLINE prepend #-}
 
 
 -- === SetElemsFromList === --

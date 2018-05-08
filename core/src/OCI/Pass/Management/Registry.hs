@@ -77,12 +77,12 @@ registerPrimLayer :: ∀ comp layer m.
     , Component.DynamicProvider1 (Layer.Cons layer)
     ) => m ()
 registerPrimLayer = do
-    let manager   = Layer.manager @layer
-        ctor      = ctorDyn <$> manager ^. Layer.constructor
-        dtor      = dtorDyn <$> manager ^. Layer.destructor
-        size      = Layer.byteSize @layer
-        comp      = Component.tagRep @comp
-        layer     = Layer.rep @layer
+    let manager = Layer.manager @layer
+        ctor    = ctorDyn <$> manager ^. Layer.constructor
+        dtor    = dtorDyn <$> manager ^. Layer.destructor
+        size    = Layer.byteSize @layer
+        comp    = Component.tagRep @comp
+        layer   = Layer.rep @layer
     init <- mapM (fmap coerce . Ptr1.new) $ manager ^. Layer.initializer
     State.modifyM_ @IRInfo $ \m -> do
         components' <- flip (at comp) (m ^. IRInfo.components) $ \case

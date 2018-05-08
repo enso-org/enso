@@ -28,5 +28,4 @@ get = unwrap <$> State.get @(ByteSize a) ; {-# INLINE get #-}
 
 -- === Instances === --
 
-instance Default (ByteSize a) where def    = mempty ; {-# INLINE def    #-}
-instance Mempty  (ByteSize a) where mempty = wrap 0 ; {-# INLINE mempty #-}
+instance Mempty (ByteSize a) where mempty = wrap 0 ; {-# INLINE mempty #-}

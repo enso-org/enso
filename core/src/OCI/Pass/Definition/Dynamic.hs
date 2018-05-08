@@ -141,7 +141,7 @@ instance Mempty IODesc where
 -- === API === --
 
 type Compile pass m =
-    ( Encoder.Encoding       pass
+    ( Encoder.Encoder        pass
     , Encoder.AttrEncoder    pass
     , Encoder.OutAttrDecoder pass
     , Known pass

@@ -33,6 +33,13 @@ genIxElemSetters
 -- >>     def = T2 def def ; {-# INLINE def #-}
 genDefaultInstances
 
+-- >> type instance Prepended t (T2 t1 t2) = T3 t t1 t2
+genPrepended
+
+-- >> instance Prependable t (T3 t1 t2 t3) where
+-- >>     prepend t (T3 !t1 !t2 !t3) = T4 t t1 t2 t3 ; {-# INLINE prepend #-}
+genPrependable
+
 
 type ElemIndex  el t = (List.ElemIndex' el (ToList t))
 type ElemSetter el t = IxElemSetter (ElemIndex el t) t
@@ -54,3 +61,4 @@ setElem = setElemAt @(ElemIndex el t) ; {-# INLINE setElem #-}
 -- | Like 'setElem', but does not modify the result type
 setElemKeepType :: ∀ el t. ElemSetterKeepType el t => el -> t -> t
 setElemKeepType = setElem @el ; {-# INLINE setElemKeepType #-}
+

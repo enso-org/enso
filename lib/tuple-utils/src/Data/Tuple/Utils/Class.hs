@@ -21,3 +21,8 @@ class IxElemGetter (idx :: Nat) tup where
 
 class IxElemSetter (idx :: Nat) tup where
     setElemAt :: forall a. a -> tup -> SetElemAt idx a tup
+
+class Prependable t tup where
+    prepend :: t -> tup -> Prepended t tup
+
+type family Prepended (t :: Type) (tup :: Type) :: Type

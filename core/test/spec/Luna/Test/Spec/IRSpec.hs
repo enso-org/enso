@@ -7,14 +7,14 @@ module Luna.Test.Spec.IRSpec where
 import Prologue
 import Test.Hspec.Expectations.Lifted
 
-import qualified Data.Set.Mutable.Class as Set
-import qualified Luna.IR                as IR
-import qualified Luna.IR.Layer          as Layer
-import qualified Luna.Pass              as Pass
-import qualified Luna.Pass.Attr         as Attr
-import qualified Luna.Pass.Scheduler    as Scheduler
-import qualified Luna.Runner            as Runner
-import qualified Data.Graph.Component.Layout          as Layout
+import qualified Data.Graph.Component.Layout as Layout
+import qualified Data.Set.Mutable.Class      as Set
+import qualified Luna.IR                     as IR
+import qualified Luna.IR.Layer               as Layer
+import qualified Luna.Pass                   as Pass
+import qualified Luna.Pass.Attr              as Attr
+import qualified Luna.Pass.Scheduler         as Scheduler
+import qualified Luna.Runner                 as Runner
 
 import Luna.Pass  (Pass)
 import Test.Hspec (Spec, describe, it)

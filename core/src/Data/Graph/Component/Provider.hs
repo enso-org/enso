@@ -168,6 +168,3 @@ instance Typeable tag
 
 newtype DynamicTraversal comp = DynamicTraversal (SomePtr -> IO [Component.Dynamic])
 makeLenses ''DynamicTraversal
-
-instance Default (DynamicTraversal comp) where
-    def = wrap (\_ -> pure mempty) ; {-# INLINE def #-}

@@ -171,9 +171,6 @@ customDynamicManager !s !t = Manager Nothing (Just s) (Just t) ; {-# INLINE cust
 Lens.makeLenses ''Manager
 Lens.makeLenses ''DynamicManager
 
-instance Default (DynamicManager comp) where
-    def = DynamicManager Ptr.nullPtr (const $ pure ()) (const $ pure ()) ; {-# INLINE def #-}
-
 
 
 -----------------------------------

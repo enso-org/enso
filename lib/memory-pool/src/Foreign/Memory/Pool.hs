@@ -66,10 +66,6 @@ delete :: MonadIO m => MemPool a -> m ()
 delete = Mgr.deleteManager . unwrap ; {-# INLINE delete #-}
 
 
--- FIXME: this instance is unsafe
-instance Default (MemPool a) where
-    def = unsafeNull ; {-# INLINE def #-}
-
 --
 -- import Foreign.Marshal.Alloc (mallocBytes)
 -- import Foreign (Ptr, nullPtr, plusPtr, castPtr)

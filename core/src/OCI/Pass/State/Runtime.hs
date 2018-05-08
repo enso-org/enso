@@ -20,6 +20,7 @@ import Foreign.Memory.Pool             (MemPool)
 import Foreign.Ptr.Utils               (SomePtr)
 import OCI.Pass.Definition.Declaration (Attrs, Elems, Vars)
 import OCI.Pass.State.Attr             (Attr)
+import OCI.Pass.State.IRInfo           (CompiledIRInfo)
 import Type.Data.List                  (type (<>))
 
 
@@ -35,8 +36,6 @@ makeLenses ''LayerByteOffset
 
 
 -- === Instances === --
-
-instance Default (LayerByteOffset  c l) where def = wrap 0 ; {-# INLINE def #-}
 
 instance (Typeable comp, Typeable layer)
       => Show (LayerByteOffset comp layer) where
@@ -65,6 +64,7 @@ type ComputeStateLayout pass
    <> MapComponentByteSize                (Vars pass Elems)
    <> List.Map Component.DynamicTraversal (Vars pass Elems)
    <> List.Map Layer.DynamicManager       (Vars pass Elems)
+--    <> '[CompiledIRInfo]
 
 type MapLayerByteOffset p c = MapOverCompsAndVars LayerByteOffset p c
 
