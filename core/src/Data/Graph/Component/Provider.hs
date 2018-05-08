@@ -159,3 +159,15 @@ instance Typeable tag
       => DynamicProvider (PtrSet.UnmanagedPtrSet (Component tag layout)) where
     dynamicComponentsIO a = Component.toDynamic1 <<$>> PtrSet.toList a ; {-# INLINE dynamicComponentsIO #-}
 
+
+
+
+------------------------------
+-- === DynamicTraversal === --
+------------------------------
+
+newtype DynamicTraversal comp = DynamicTraversal (SomePtr -> IO [Component.Dynamic])
+makeLenses ''DynamicTraversal
+
+instance Default (DynamicTraversal comp) where
+    def = wrap (\_ -> pure mempty) ; {-# INLINE def #-}

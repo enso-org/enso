@@ -4,17 +4,18 @@ module OCI.Pass.Encoder where
 
 import Prologue
 
-import qualified Data.Graph.Component.Class   as Component
-import qualified Data.Graph.Component.Dynamic as Component
-import qualified Data.Graph.Component.Layer   as Layer
-import qualified Data.Map                     as Map
-import qualified Data.TypeMap.Strict          as TypeMap
-import qualified Foreign.Marshal.Alloc        as Mem
-import qualified Foreign.Marshal.Utils        as Mem
-import qualified Foreign.Memory.Pool          as MemPool
-import qualified Foreign.Ptr                  as Ptr
-import qualified OCI.Pass.Definition          as Pass
-import qualified OCI.Pass.Registry            as Reg
+import qualified Data.Graph.Component.Class    as Component
+import qualified Data.Graph.Component.Dynamic  as Component
+import qualified Data.Graph.Component.Layer    as Layer
+import qualified Data.Graph.Component.Provider as Component
+import qualified Data.Map                      as Map
+import qualified Data.TypeMap.Strict           as TypeMap
+import qualified Foreign.Marshal.Alloc         as Mem
+import qualified Foreign.Marshal.Utils         as Mem
+import qualified Foreign.Memory.Pool           as MemPool
+import qualified Foreign.Ptr                   as Ptr
+import qualified OCI.Pass.Definition           as Pass
+import qualified OCI.Pass.Registry             as Reg
 
 import Control.Monad.Exception    (Throws, throw)
 import Data.Graph.Component.Class (Component)
@@ -199,8 +200,8 @@ instance ( layers      ~ Pass.Vars pass comp
          , targets     ~ Pass.ComponentLayerLayout Pass.LayerByteOffset pass comp
          , compMemPool ~ MemPool (Component comp ())
          , compSize    ~ ByteSize (Component comp)
-         , compTravsl  ~ Pass.ComponentTraversal comp
-         , layerInit   ~ Layer.DynamicManager    comp
+         , compTravsl  ~ Component.DynamicTraversal comp
+         , layerInit   ~ Layer.DynamicManager comp
          , TypeableMany layers
          , Typeable  comp
          , Encoder__ pass comps
@@ -229,7 +230,7 @@ instance ( layers      ~ Pass.Vars pass comp
                            (i ^. layersConstructor)
                            (i ^. layersDestructor)
             travEncoder  = encodePassDataElem @compTravsl
-                         $ Pass.ComponentTraversal @comp (i ^. layersComponents)
+                         $ Component.DynamicTraversal @comp (i ^. layersComponents)
             layerTypes   = someTypeReps @layers
             layerOffsets = view byteOffset <<$>> layerInfos
             layerInfos   = mapLeft wrap $ catEithers
