@@ -8,9 +8,10 @@ import qualified Control.Monad.State.Layered as State
 import qualified Data.List                   as List
 import qualified Data.Map.Strict             as Map
 import qualified OCI.Pass.Attr               as Attr
-import qualified OCI.Pass.Definition         as Pass
+import qualified OCI.Pass.Class         as Pass
 import qualified OCI.Pass.Dynamic            as Pass
-import qualified OCI.Pass.Encoder            as Encoder
+import qualified OCI.Pass.State.Encoder            as Encoder
+import qualified OCI.Pass.State.IRInfo               as Info
 import qualified OCI.Pass.Registry           as Registry
 
 import Control.Concurrent.Async    (Async, async)
@@ -18,7 +19,7 @@ import Control.Monad.Exception     (Throws, throw)
 import Control.Monad.State.Layered (StateT)
 import Data.Map.Strict             (Map)
 import GHC.Exts                    (Any)
-import OCI.Pass.Definition         (Pass)
+import OCI.Pass.Class         (Pass)
 import OCI.Pass.Dynamic            (DynamicPass)
 import OCI.Pass.Registry           (RegistryT)
 
@@ -48,7 +49,7 @@ data State = State
     { _passes   :: !(Map Pass.Rep DynamicPass)
     , _attrDefs :: !(Map Attr.Rep DynAttr)
     , _attrs    :: !(Map Attr.Rep Any)
-    , _layout   :: !Encoder.State
+    , _layout   :: !Info.CompiledInfo
     }
 
 data DynAttr = DynAttr
@@ -62,7 +63,7 @@ makeLenses ''DynAttr
 
 -- === API === --
 
-buildState :: Encoder.State -> State
+buildState :: Info.CompiledInfo -> State
 buildState = State mempty mempty mempty ; {-# INLINE buildState #-}
 
 
@@ -89,10 +90,10 @@ makeLenses ''SchedulerT
 
 -- === Running === --
 
-runT  :: MonadIO m => SchedulerT m a -> Registry.State -> m (a, State)
-execT :: MonadIO m => SchedulerT m a -> Registry.State -> m State
-evalT :: MonadIO m => SchedulerT m a -> Registry.State -> m a
-runT  f = State.runT (unwrap f) . buildState <=< Encoder.computeConfig ; {-# INLINE runT  #-}
+runT  :: MonadIO m => SchedulerT m a -> Info.Info -> m (a, State)
+execT :: MonadIO m => SchedulerT m a -> Info.Info -> m State
+evalT :: MonadIO m => SchedulerT m a -> Info.Info -> m a
+runT  f = State.runT (unwrap f) . buildState <=< Info.compile ; {-# INLINE runT  #-}
 execT   = fmap snd .: runT ; {-# INLINE execT #-}
 evalT   = fmap fst .: runT ; {-# INLINE evalT #-}
 

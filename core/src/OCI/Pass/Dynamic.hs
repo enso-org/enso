@@ -6,17 +6,19 @@ module OCI.Pass.Dynamic where
 
 import Prologue
 
-import qualified Data.Map.Strict     as Map
-import qualified Data.Set            as Set
-import qualified OCI.Pass.Attr       as Attr
-import qualified OCI.Pass.Definition as Pass
-import qualified OCI.Pass.Encoder    as Encoder
+import qualified Data.Map.Strict        as Map
+import qualified Data.Set               as Set
+import qualified OCI.Pass.Attr          as Attr
+import qualified OCI.Pass.Definition         as Pass
+import qualified OCI.Pass.Class    as Pass
+import qualified OCI.Pass.State.Encoder as Encoder
 
 import Control.Monad.Exception (Throws)
 import Data.Map.Strict         (Map)
 import Data.Set                (Set)
 import GHC.Exts                (Any)
-import OCI.Pass.Definition     (Pass)
+import OCI.Pass.Class     (Pass)
+import OCI.Pass.State.IRInfo           (CompiledInfo)
 
 
 
@@ -147,7 +149,7 @@ type Compile pass m =
     )
 
 compile :: ∀ pass m. Compile pass m
-        => Pass pass () -> Encoder.State -> m DynamicPass
+        => Pass pass () -> CompiledInfo -> m DynamicPass
 compile !pass !cfg = do
     !s <- Encoder.run @pass cfg
     let !desc         = describe @pass

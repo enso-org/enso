@@ -3,7 +3,7 @@
 
 module Luna.Pass.Basic where
 
-import qualified OCI.Pass.Cache as Pass
+import qualified OCI.Pass.State.Cache as Pass
 
 import OCI.Pass.Definition as X (Attrs, Elems, In, Out, Spec)
 

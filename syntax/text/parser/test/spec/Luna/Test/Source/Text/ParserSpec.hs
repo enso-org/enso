@@ -410,7 +410,7 @@ spec = do
 -- import           Control.Exception   (PatternMatchFail)
 -- import           Data.Maybe          (isJust)
 -- import qualified OCI.Pass           as Pass
--- import           OCI.Pass.Class
+-- import           OCI.Pass.Definition
 -- import           OCI.Pass           (Pass, SubPass)
 -- import           OCI.Pass.Manager   (MonadPassManager)
 -- import           Luna.IR           hiding (IRBuilder, expr, unit')

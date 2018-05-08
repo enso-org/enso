@@ -5,7 +5,7 @@ module Luna.Runner where
 import Prologue hiding (Type)
 
 import qualified Luna.IR            as IR
-import qualified OCI.Pass.Encoder   as Pass.Encoder
+import qualified OCI.Pass.State.Encoder   as Pass.Encoder
 import qualified OCI.Pass.Registry  as Registry
 import qualified OCI.Pass.Scheduler as Scheduler
 

@@ -1,6 +1,6 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module OCI.Pass.Encoder where
+module OCI.Pass.State.Encoder where
 
 import Prologue
 
@@ -14,135 +14,21 @@ import qualified Foreign.Marshal.Alloc         as Mem
 import qualified Foreign.Marshal.Utils         as Mem
 import qualified Foreign.Memory.Pool           as MemPool
 import qualified Foreign.Ptr                   as Ptr
+import qualified OCI.Pass.Class                as Pass
 import qualified OCI.Pass.Definition           as Pass
 import qualified OCI.Pass.Registry             as Reg
+import qualified OCI.Pass.State.IRInfo  as Info
+import qualified OCI.Pass.State.Runtime        as Pass
 
-import Control.Monad.Exception    (Throws, throw)
-import Data.Graph.Component.Class (Component)
-import Data.Map.Strict            (Map)
-import Foreign.Info.ByteSize      (ByteSize (ByteSize))
-import Foreign.Memory.Pool        (MemPool)
-import Foreign.Ptr.Utils          (SomePtr)
-import GHC.Exts                   (Any)
-import OCI.Pass.Attr              (Attr)
-
-
-
---------------------
--- === Config === --
---------------------
-
--- | Config is computed once after all components and primitive layers
---   have been registered. It encodes information about memory layout which
---   is constant trough all of compiler passes.
-
-
--- === Definition === --
-
-newtype State = State
-    { _components :: Map Component.TagRep ComponentInfo
-    }
-
-data ComponentInfo = ComponentInfo
-    { _byteSize          :: !Int
-    , _layers            :: !(Map SomeTypeRep LayerInfo)
-    , _layersInitializer :: !SomePtr
-    , _layersConstructor :: !(SomePtr -> IO ())
-    , _layersDestructor  :: !(SomePtr -> IO ())
-    , _layersComponents  :: !(SomePtr -> IO [Component.Dynamic])
-    , _memPool           :: !(MemPool ())
-    }
-
-newtype LayerInfo = LayerInfo
-    { _byteOffset :: Int
-    } deriving (Show)
-
-makeLenses ''LayerInfo
-makeLenses ''ComponentInfo
-makeLenses ''State
-
-
--- === Construction === --
-
-computeConfig :: MonadIO m => Reg.State -> m State
-computeConfig cfg = wrap <$> mapM computeComponentInfo (cfg ^. Reg.components) ; {-# INLINE computeConfig #-}
-
-computeComponentInfo :: MonadIO m => Reg.ComponentInfo -> m ComponentInfo
-computeComponentInfo compCfg = compInfo where
-    layerReps     = Map.keys  $ compCfg ^. Reg.layers
-    layerInfos    = Map.elems $ compCfg ^. Reg.layers
-    layerSizes    = view Reg.byteSize <$> layerInfos
-    layerOffsets  = scanl (+) 0 layerSizes
-    layerCfgs     = wrap <$> layerOffsets
-    layerOffInfos = zip layerOffsets layerInfos
-    compSize      = sum layerSizes
-    compInfo      = ComponentInfo compSize
-                <$> pure (fromList $ zip layerReps layerCfgs)
-                <*> prepareLayerInitializer      layerInfos
-                <*> prepareLayersConstructor     layerInfos
-                <*> prepareLayersDestructor      layerInfos
-                <*> prepareSubComponentDiscovery layerOffInfos
-                <*> MemPool.new def (MemPool.ItemSize compSize)
-
-prepareLayerInitializer :: MonadIO m => [Reg.LayerInfo] -> m SomePtr
-prepareLayerInitializer ls = do
-    ptr <- mallocLayerInitializer ls
-    liftIO $ fillLayerInitializer ptr ls
-    pure ptr
-
-mallocLayerInitializer :: MonadIO m => [Reg.LayerInfo] -> m SomePtr
-mallocLayerInitializer = \case
-    [] -> pure Ptr.nullPtr
-    ls -> liftIO . Mem.mallocBytes . sum $ view Reg.byteSize <$> ls
-
-fillLayerInitializer :: SomePtr -> [Reg.LayerInfo] -> IO ()
-fillLayerInitializer = go where
-    go ptr = \case
-        []     -> pure ()
-        (l:ls) -> mapM_ (flip (Mem.copyBytes ptr) byteSize) initializer
-               >> go ptr' ls
-            where initializer = l ^. Reg.initializer
-                  byteSize    = l ^. Reg.byteSize
-                  ptr'        = Ptr.plusPtr ptr byteSize
-
-prepareLayersConstructor :: Monad m => [Reg.LayerInfo] -> m (SomePtr -> IO ())
-prepareLayersDestructor  :: Monad m => [Reg.LayerInfo] -> m (SomePtr -> IO ())
-prepareLayersConstructor = concatLayersIOActions Reg.constructor ; {-# INLINE prepareLayersConstructor #-}
-prepareLayersDestructor  = concatLayersIOActions Reg.destructor  ; {-# INLINE prepareLayersDestructor #-}
-
--- | The function is defined in monad in order to compute the dynamic
---   initializer during monad resolution. Otherwise, the Maybe pattern
---   matching would be deffered to the layer initializer, which will
---   consequently run slower.
-concatLayersIOActions :: Monad m
-    => Lens' Reg.LayerInfo (Maybe (SomePtr -> IO ()))
-    -> [Reg.LayerInfo]
-    -> m (SomePtr -> IO ())
-concatLayersIOActions lens = go where
-    go = \case
-        []           -> pure $ const (pure ())
-        (!l : (!ls)) -> flip fuse (l ^. lens) =<< go ls where
-            !byteSize = l ^. Reg.byteSize
-            fuse !g   = \case
-                Nothing -> pure $ \(!ptr) ->
-                    let !out = g $! Ptr.plusPtr ptr byteSize
-                    in  out
-                Just f  -> pure $ \(!ptr) ->
-                    let !proc1 = f ptr
-                        !proc2 = g $! Ptr.plusPtr ptr byteSize
-                        !out   = proc1 >> proc2
-                    in  out
-            {-# INLINE fuse #-}
-
-
--- FIXME : check if the above hack applies here too
-prepareSubComponentDiscovery :: MonadIO m
-    => [(Int, Reg.LayerInfo)] -> m (SomePtr -> IO [Component.Dynamic])
-prepareSubComponentDiscovery ls = do
-    pure $ (\ptr -> concat <$> mapM (uncurry $ getFromLayer ptr) ls)
-    where
-    getFromLayer :: SomePtr -> Int -> Reg.LayerInfo -> IO [Component.Dynamic]
-    getFromLayer p off l = (l ^. Reg.subComponents) (p `Ptr.plusPtr` off)
+import Control.Monad.Exception      (Throws, throw)
+import Data.Graph.Component.Class   (Component)
+import Data.Map.Strict              (Map)
+import Foreign.Info.ByteSize        (ByteSize (ByteSize))
+import Foreign.Memory.Pool          (MemPool)
+import Foreign.Ptr.Utils            (SomePtr)
+import GHC.Exts                     (Any)
+import OCI.Pass.Attr                (Attr)
+import OCI.Pass.State.IRInfo (CompiledInfo)
 
 
 
@@ -171,11 +57,11 @@ instance Exception Error
 
 type Encoding pass = (Encoder pass, Default (Pass.State pass))
 
-tryRun :: Encoding pass => State -> EncoderResult (Pass.State pass)
+tryRun :: Encoding pass => CompiledInfo -> EncoderResult (Pass.State pass)
 tryRun cfg = ($ def) <$> encode cfg ; {-# INLINE tryRun #-}
 
 run :: ∀ pass m. (Encoding pass, Throws Error m)
-    => State -> m (Pass.State pass)
+    => CompiledInfo -> m (Pass.State pass)
 run cfg = case tryRun cfg of
     Left  e -> throw e
     Right a -> pure a
@@ -185,13 +71,13 @@ run cfg = case tryRun cfg of
 -- === Encoding utils === --
 
 encode :: ∀ pass. Encoder pass
-       => State -> EncoderResult (Pass.State pass -> Pass.State pass)
+       => CompiledInfo -> EncoderResult (Pass.State pass -> Pass.State pass)
 encode = encode__ @pass @(EncoderTarget pass) ; {-# INLINE encode #-}
 
 type  Encoder       pass = Encoder__ pass (EncoderTarget pass)
 type  EncoderTarget pass = Pass.Vars pass Pass.Elems
 class Encoder__     pass (cs :: [Type]) where
-    encode__ :: State -> EncoderResult (Pass.State pass -> Pass.State pass)
+    encode__ :: CompiledInfo -> EncoderResult (Pass.State pass -> Pass.State pass)
 
 instance Encoder__ pass '[] where
     encode__ _ = Right id ; {-# INLINE encode__ #-}
@@ -216,25 +102,27 @@ instance ( layers      ~ Pass.Vars pass comp
         encoder    = procComp =<< mcomp
         subEncoder = encode__ @pass @comps cfg
         mcomp      = mapLeft (wrap . pure)
-                   . lookupComp tgtComp $ cfg ^. components
+                   . lookupComp tgtComp $ cfg ^. Info.compiledComponents
         tgtComp    = Component.tagRep @comp
         procComp i = (encoders .) <$> layerEncoder where
             memEncoder   = encodePassDataElem  @compMemPool
-                         $ coerce (i ^. memPool)
+                         $ coerce (i ^. Info.memPool)
             sizeEncoder  = encodePassDataElem  @compSize
-                         $ ByteSize (i ^. byteSize)
+                         $ ByteSize (i ^. Info.layersByteSize)
             layerEncoder = encodePassDataElems @targets <$> layerOffsets
             initEncoder  = encodePassDataElem  @layerInit
                          $ Layer.DynamicManager @comp
-                           (i ^. layersInitializer)
-                           (i ^. layersConstructor)
-                           (i ^. layersDestructor)
+                           (i ^. Info.layersInitializer)
+                           (i ^. Info.layersConstructor)
+                           (i ^. Info.layersDestructor)
             travEncoder  = encodePassDataElem @compTravsl
-                         $ Component.DynamicTraversal @comp (i ^. layersComponents)
+                         . Component.DynamicTraversal @comp
+                         $ i ^. Info.layersComponents
             layerTypes   = someTypeReps @layers
-            layerOffsets = view byteOffset <<$>> layerInfos
+            layerOffsets = view Info.byteOffset <<$>> layerInfos
             layerInfos   = mapLeft wrap $ catEithers
-                         $ flip lookupLayer (i ^. layers) <$> layerTypes
+                         $ flip lookupLayer (i ^. Info.compiledLayers)
+                       <$> layerTypes
             encoders     = travEncoder
                          . initEncoder
                          . memEncoder

@@ -7,7 +7,7 @@ import Prologue
 
 import qualified Data.Graph.Component.Layer as Layer
 import qualified OCI.Pass.Attr              as Attr
-import qualified OCI.Pass.Definition        as Pass
+import qualified OCI.Pass.Definition             as Pass
 
 import Data.Graph.Component (Component)
 
