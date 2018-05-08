@@ -1,4 +1,4 @@
-module OCI.Pass.Registry where
+module OCI.Pass.Management.Registry where
 
 import Prologue as P
 
@@ -10,7 +10,7 @@ import qualified Data.Graph.Component.Provider as Component
 import qualified Data.Map.Strict               as Map
 import qualified Foreign.Storable1             as Storable1
 import qualified Foreign.Storable1.Ptr         as Ptr1
-import qualified OCI.Pass.State.IRInfo                 as Info
+import qualified OCI.Pass.State.IRInfo         as IRInfo
 
 import Control.Monad.Exception     (Throws, throw)
 import Control.Monad.State.Layered (StateT)
@@ -18,7 +18,8 @@ import Data.Graph.Component.Layer  (Layer)
 import Data.Map.Strict             (Map)
 import Foreign.Ptr.Utils           (SomePtr)
 import Foreign.Storable1           (Storable1)
-import OCI.Pass.State.IRInfo               (Info)
+import OCI.Pass.State.IRInfo       (IRInfo)
+
 
 
 --------------------
@@ -40,9 +41,9 @@ instance Exception Error
 -- === Definition === --
 
 type Monad m = MonadRegistry m
-type MonadRegistry m = (State.Monad Info m, Throws Error m, MonadIO m)
+type MonadRegistry m = (State.Monad IRInfo m, Throws Error m, MonadIO m)
 
-newtype RegistryT m a = RegistryT (StateT Info m a)
+newtype RegistryT m a = RegistryT (StateT IRInfo m a)
     deriving ( Applicative, Alternative, Functor, P.Monad, MonadFail, MonadFix
              , MonadIO, MonadPlus, MonadTrans, MonadThrow)
 makeLenses ''RegistryT
@@ -53,15 +54,15 @@ makeLenses ''RegistryT
 evalT :: Functor m => RegistryT m a -> m a
 evalT = State.evalDefT . unwrap ; {-# INLINE evalT #-}
 
-execT :: Functor m => RegistryT m a -> m Info
+execT :: Functor m => RegistryT m a -> m IRInfo
 execT = State.execDefT . unwrap ; {-# INLINE execT #-}
 
 
 -- === Component management === --
 
 registerComponentRep :: MonadRegistry m => Component.TagRep -> m ()
-registerComponentRep comp = State.modify_ @Info
-                          $ Info.components %~ Map.insert comp def
+registerComponentRep comp = State.modify_ @IRInfo
+                          $ IRInfo.components %~ Map.insert comp def
 {-# INLINE registerComponentRep #-}
 
 registerComponent :: ∀ comp m. (MonadRegistry m, Typeable comp) => m ()
@@ -83,13 +84,13 @@ registerPrimLayer = do
         comp      = Component.tagRep @comp
         layer     = someTypeRep @layer
     init <- mapM (fmap coerce . Ptr1.new) $ manager ^. Layer.initializer
-    State.modifyM_ @Info $ \m -> do
-        components' <- flip (at comp) (m ^. Info.components) $ \case
+    State.modifyM_ @IRInfo $ \m -> do
+        components' <- flip (at comp) (m ^. IRInfo.components) $ \case
             Nothing       -> throw $ MissingComponent comp
             Just compInfo -> do
-                pure $ Just $ compInfo & Info.layers %~ Map.insert layer
-                    (Info.LayerInfo size init ctor dtor subComponentDyn)
-        pure $ m & Info.components .~ components'
+                pure $ Just $ compInfo & IRInfo.layers %~ Map.insert layer
+                    (IRInfo.LayerInfo size init ctor dtor subComponentDyn)
+        pure $ m & IRInfo.components .~ components'
     where
     ctorDyn :: Storable1 t => IO (t a)       -> (SomePtr -> IO ())
     dtorDyn :: Storable1 t => (t a -> IO ()) -> (SomePtr -> IO ())
@@ -106,8 +107,8 @@ registerPrimLayer = do
 
 -- === Instances === --
 
-instance P.Monad m => State.Getter Info (RegistryT m) where
+instance P.Monad m => State.Getter IRInfo (RegistryT m) where
     get = wrap State.get' ; {-# INLINE get #-}
 
-instance P.Monad m => State.Setter Info (RegistryT m) where
+instance P.Monad m => State.Setter IRInfo (RegistryT m) where
     put = wrap . State.put' ; {-# INLINE put #-}

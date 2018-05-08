@@ -2,23 +2,23 @@
 {-# LANGUAGE TypeInType                #-}
 {-# LANGUAGE UndecidableInstances      #-}
 
-module OCI.Pass.Dynamic where
+module OCI.Pass.Definition.Dynamic where
 
 import Prologue
 
-import qualified Data.Map.Strict        as Map
-import qualified Data.Set               as Set
-import qualified OCI.Pass.Attr          as Attr
-import qualified OCI.Pass.Definition         as Pass
-import qualified OCI.Pass.Class    as Pass
-import qualified OCI.Pass.State.Encoder as Encoder
+import qualified Data.Map.Strict                 as Map
+import qualified Data.Set                        as Set
+import qualified OCI.Pass.Definition.Class       as Pass
+import qualified OCI.Pass.Definition.Declaration as Pass
+import qualified OCI.Pass.State.Attr             as Attr
+import qualified OCI.Pass.State.Encoder          as Encoder
 
-import Control.Monad.Exception (Throws)
-import Data.Map.Strict         (Map)
-import Data.Set                (Set)
-import GHC.Exts                (Any)
-import OCI.Pass.Class     (Pass)
-import OCI.Pass.State.IRInfo           (CompiledInfo)
+import Control.Monad.Exception   (Throws)
+import Data.Map.Strict           (Map)
+import Data.Set                  (Set)
+import GHC.Exts                  (Any)
+import OCI.Pass.Definition.Class (Pass)
+import OCI.Pass.State.IRInfo     (CompiledIRInfo)
 
 
 
@@ -149,7 +149,7 @@ type Compile pass m =
     )
 
 compile :: ∀ pass m. Compile pass m
-        => Pass pass () -> CompiledInfo -> m DynamicPass
+        => Pass pass () -> CompiledIRInfo -> m DynamicPass
 compile !pass !cfg = do
     !s <- Encoder.run @pass cfg
     let !desc         = describe @pass

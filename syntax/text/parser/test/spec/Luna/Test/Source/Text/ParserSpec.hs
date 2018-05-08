@@ -28,7 +28,7 @@ import qualified Luna.Syntax.Text.Parser.Pass.Class    as Parser
 import qualified OCI.Data.Name                         as Name
 import qualified OCI.IR.Link                           as Link
 import qualified OCI.IR.Term.Construction              as Term
-import qualified OCI.Pass.Registry                     as Registry
+import qualified OCI.Pass.Management.Registry                     as Registry
 
 import Data.Text.Position                    (Delta)
 import Luna.Pass                             (Pass)
@@ -410,7 +410,7 @@ spec = do
 -- import           Control.Exception   (PatternMatchFail)
 -- import           Data.Maybe          (isJust)
 -- import qualified OCI.Pass           as Pass
--- import           OCI.Pass.Definition
+-- import           OCI.Pass.Definition.Declaration
 -- import           OCI.Pass           (Pass, SubPass)
 -- import           OCI.Pass.Manager   (MonadPassManager)
 -- import           Luna.IR           hiding (IRBuilder, expr, unit')

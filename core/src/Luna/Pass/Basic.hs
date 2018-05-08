@@ -5,7 +5,7 @@ module Luna.Pass.Basic where
 
 import qualified OCI.Pass.State.Cache as Pass
 
-import OCI.Pass.Definition as X (Attrs, Elems, In, Out, Spec)
+import OCI.Pass.Definition.Declaration as X (Attrs, Elems, In, Out, Spec)
 
 import Luna.IR
 import Luna.IR.Term.Core ()

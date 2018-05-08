@@ -4,31 +4,31 @@ module OCI.Pass.State.Encoder where
 
 import Prologue
 
-import qualified Data.Graph.Component.Class    as Component
-import qualified Data.Graph.Component.Dynamic  as Component
-import qualified Data.Graph.Component.Layer    as Layer
-import qualified Data.Graph.Component.Provider as Component
-import qualified Data.Map                      as Map
-import qualified Data.TypeMap.Strict           as TypeMap
-import qualified Foreign.Marshal.Alloc         as Mem
-import qualified Foreign.Marshal.Utils         as Mem
-import qualified Foreign.Memory.Pool           as MemPool
-import qualified Foreign.Ptr                   as Ptr
-import qualified OCI.Pass.Class                as Pass
-import qualified OCI.Pass.Definition           as Pass
-import qualified OCI.Pass.Registry             as Reg
-import qualified OCI.Pass.State.IRInfo  as Info
-import qualified OCI.Pass.State.Runtime        as Pass
+import qualified Data.Graph.Component.Class      as Component
+import qualified Data.Graph.Component.Dynamic    as Component
+import qualified Data.Graph.Component.Layer      as Layer
+import qualified Data.Graph.Component.Provider   as Component
+import qualified Data.Map                        as Map
+import qualified Data.TypeMap.Strict             as TypeMap
+import qualified Foreign.Marshal.Alloc           as Mem
+import qualified Foreign.Marshal.Utils           as Mem
+import qualified Foreign.Memory.Pool             as MemPool
+import qualified Foreign.Ptr                     as Ptr
+import qualified OCI.Pass.Definition.Class       as Pass
+import qualified OCI.Pass.Definition.Declaration as Pass
+import qualified OCI.Pass.Management.Registry    as Reg
+import qualified OCI.Pass.State.IRInfo           as IRInfo
+import qualified OCI.Pass.State.Runtime          as Pass
 
-import Control.Monad.Exception      (Throws, throw)
-import Data.Graph.Component.Class   (Component)
-import Data.Map.Strict              (Map)
-import Foreign.Info.ByteSize        (ByteSize (ByteSize))
-import Foreign.Memory.Pool          (MemPool)
-import Foreign.Ptr.Utils            (SomePtr)
-import GHC.Exts                     (Any)
-import OCI.Pass.Attr                (Attr)
-import OCI.Pass.State.IRInfo (CompiledInfo)
+import Control.Monad.Exception    (Throws, throw)
+import Data.Graph.Component.Class (Component)
+import Data.Map.Strict            (Map)
+import Foreign.Info.ByteSize      (ByteSize (ByteSize))
+import Foreign.Memory.Pool        (MemPool)
+import Foreign.Ptr.Utils          (SomePtr)
+import GHC.Exts                   (Any)
+import OCI.Pass.State.Attr        (Attr)
+import OCI.Pass.State.IRInfo      (CompiledIRInfo)
 
 
 
@@ -57,11 +57,11 @@ instance Exception Error
 
 type Encoding pass = (Encoder pass, Default (Pass.State pass))
 
-tryRun :: Encoding pass => CompiledInfo -> EncoderResult (Pass.State pass)
+tryRun :: Encoding pass => CompiledIRInfo -> EncoderResult (Pass.State pass)
 tryRun cfg = ($ def) <$> encode cfg ; {-# INLINE tryRun #-}
 
 run :: ∀ pass m. (Encoding pass, Throws Error m)
-    => CompiledInfo -> m (Pass.State pass)
+    => CompiledIRInfo -> m (Pass.State pass)
 run cfg = case tryRun cfg of
     Left  e -> throw e
     Right a -> pure a
@@ -71,13 +71,13 @@ run cfg = case tryRun cfg of
 -- === Encoding utils === --
 
 encode :: ∀ pass. Encoder pass
-       => CompiledInfo -> EncoderResult (Pass.State pass -> Pass.State pass)
+       => CompiledIRInfo -> EncoderResult (Pass.State pass -> Pass.State pass)
 encode = encode__ @pass @(EncoderTarget pass) ; {-# INLINE encode #-}
 
 type  Encoder       pass = Encoder__ pass (EncoderTarget pass)
 type  EncoderTarget pass = Pass.Vars pass Pass.Elems
 class Encoder__     pass (cs :: [Type]) where
-    encode__ :: CompiledInfo -> EncoderResult (Pass.State pass -> Pass.State pass)
+    encode__ :: CompiledIRInfo -> EncoderResult (Pass.State pass -> Pass.State pass)
 
 instance Encoder__ pass '[] where
     encode__ _ = Right id ; {-# INLINE encode__ #-}
@@ -102,26 +102,26 @@ instance ( layers      ~ Pass.Vars pass comp
         encoder    = procComp =<< mcomp
         subEncoder = encode__ @pass @comps cfg
         mcomp      = mapLeft (wrap . pure)
-                   . lookupComp tgtComp $ cfg ^. Info.compiledComponents
+                   . lookupComp tgtComp $ cfg ^. IRInfo.compiledComponents
         tgtComp    = Component.tagRep @comp
         procComp i = (encoders .) <$> layerEncoder where
             memEncoder   = encodePassDataElem  @compMemPool
-                         $ coerce (i ^. Info.memPool)
+                         $ coerce (i ^. IRInfo.memPool)
             sizeEncoder  = encodePassDataElem  @compSize
-                         $ ByteSize (i ^. Info.layersByteSize)
+                         $ ByteSize (i ^. IRInfo.layersByteSize)
             layerEncoder = encodePassDataElems @targets <$> layerOffsets
             initEncoder  = encodePassDataElem  @layerInit
                          $ Layer.DynamicManager @comp
-                           (i ^. Info.layersInitializer)
-                           (i ^. Info.layersConstructor)
-                           (i ^. Info.layersDestructor)
+                           (i ^. IRInfo.layersInitializer)
+                           (i ^. IRInfo.layersConstructor)
+                           (i ^. IRInfo.layersDestructor)
             travEncoder  = encodePassDataElem @compTravsl
                          . Component.DynamicTraversal @comp
-                         $ i ^. Info.layersComponents
+                         $ i ^. IRInfo.layersComponents
             layerTypes   = someTypeReps @layers
-            layerOffsets = view Info.byteOffset <<$>> layerInfos
+            layerOffsets = view IRInfo.byteOffset <<$>> layerInfos
             layerInfos   = mapLeft wrap $ catEithers
-                         $ flip lookupLayer (i ^. Info.compiledLayers)
+                         $ flip lookupLayer (i ^. IRInfo.compiledLayers)
                        <$> layerTypes
             encoders     = travEncoder
                          . initEncoder

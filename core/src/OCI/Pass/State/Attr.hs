@@ -1,7 +1,7 @@
 {-# LANGUAGE TypeInType           #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module OCI.Pass.Attr where
+module OCI.Pass.State.Attr where
 
 import           Prologue hiding (Type, Wrapped, read)
 import qualified Prologue as P

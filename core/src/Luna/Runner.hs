@@ -6,11 +6,11 @@ import Prologue hiding (Type)
 
 import qualified Luna.IR            as IR
 import qualified OCI.Pass.State.Encoder   as Pass.Encoder
-import qualified OCI.Pass.Registry  as Registry
-import qualified OCI.Pass.Scheduler as Scheduler
+import qualified OCI.Pass.Management.Registry  as Registry
+import qualified OCI.Pass.Management.Scheduler as Scheduler
 
 import Control.Monad.Exception (Throws)
-import OCI.Pass.Scheduler      (SchedulerT)
+import OCI.Pass.Management.Scheduler      (SchedulerT)
 
 
 registerAll :: Registry.Monad m => m ()

@@ -16,13 +16,13 @@ import Foreign.Ptr.Utils   (SomePtr)
 
 
 
-------------------
--- === Info === --
-------------------
+--------------------
+-- === IRInfo === --
+--------------------
 
 -- === RegistryInfo === --
 
-newtype Info = Info
+newtype IRInfo = IRInfo
     { _components :: Map Component.TagRep ComponentInfo
     } deriving (Default)
 
@@ -38,14 +38,14 @@ data LayerInfo = LayerInfo
     , _subComponents :: !(SomePtr -> IO [Component.Dynamic])
     }
 
-makeLenses ''Info
+makeLenses ''IRInfo
 makeLenses ''ComponentInfo
 makeLenses ''LayerInfo
 
 
 -- === RuntimeInfo === --
 
-newtype CompiledInfo = CompiledInfo
+newtype CompiledIRInfo = CompiledIRInfo
     { _compiledComponents :: Map Component.TagRep ComponentCompiledInfo
     }
 
@@ -63,14 +63,14 @@ newtype LayerCompiledInfo = LayerCompiledInfo
     { _byteOffset :: Int
     } deriving (Show)
 
-makeLenses ''CompiledInfo
+makeLenses ''CompiledIRInfo
 makeLenses ''ComponentCompiledInfo
 makeLenses ''LayerCompiledInfo
 
 
 -- === API === --
 
-compile :: MonadIO m => Info -> m CompiledInfo
+compile :: MonadIO m => IRInfo -> m CompiledIRInfo
 compile cfg = wrap <$> mapM computeComponentInfo (cfg ^. components) ; {-# INLINE compile #-}
 
 computeComponentInfo :: MonadIO m => ComponentInfo -> m ComponentCompiledInfo

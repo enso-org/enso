@@ -1,7 +1,7 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE UndecidableInstances      #-}
 
-module OCI.Pass.Class where
+module OCI.Pass.Definition.Class where
 
 import Prologue
 
@@ -18,8 +18,8 @@ import Data.TypeMap.Strict         (TypeMap)
 import Foreign.Info.ByteSize       (ByteSize)
 import Foreign.Memory.Pool         (MemPool)
 import Foreign.Ptr.Utils           (SomePtr)
-import OCI.Pass.Attr               (Attr)
-import OCI.Pass.Definition
+import OCI.Pass.State.Attr               (Attr)
+import OCI.Pass.Definition.Declaration
 import OCI.Pass.State.Runtime
 import Type.Data.List              (type (<>))
 

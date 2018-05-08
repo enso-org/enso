@@ -20,9 +20,9 @@ import qualified Luna.IR.Term.Format         as Format
 import qualified Luna.Pass                   as Pass
 import qualified Luna.Pass.Scheduler         as Scheduler
 import qualified Luna.Runner                 as Runner
-import qualified OCI.Pass.Class         as Pass
+import qualified OCI.Pass.Definition.Class         as Pass
 import qualified OCI.Pass.State.Encoder            as Encoder
-import qualified OCI.Pass.Registry           as Registry
+import qualified OCI.Pass.Management.Registry           as Registry
 import qualified System.Console.ANSI         as ANSI
 
 import Control.DeepSeq      (force)
