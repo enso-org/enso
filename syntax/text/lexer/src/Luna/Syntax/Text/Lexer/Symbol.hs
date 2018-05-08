@@ -3,8 +3,7 @@
 
 module Luna.Syntax.Text.Lexer.Symbol where
 
-import Luna.Syntax.Text.Lexer.Token
-import Prologue                     hiding (List, Symbol, element)
+import Prologue hiding (List, Symbol, element)
 
 import qualified Data.Text32              as Text32
 import qualified Luna.IR.Term.Ast.Invalid as Invalid
@@ -152,22 +151,22 @@ checkSpecialVar = \case
 {-# INLINE checkSpecialVar #-}
 
 matchVar, matchCons, matchOperator, matchModifier, matchStr, matchDocComment,
-    matchMetadata      :: Symbol -> Maybe Text32
-matchStrEsc            :: Symbol -> Maybe StrEscType
-matchNumber            :: Symbol -> Maybe Number
-matchMarker            :: Symbol -> Maybe Word64
-matchInvalid     :: Symbol -> Maybe Invalid.Symbol
-matchVar               = \case { Var      a -> Just a ; _ -> Nothing } ; {-# INLINE matchVar         #-}
-matchCons              = \case { Cons     a -> Just a ; _ -> Nothing } ; {-# INLINE matchCons        #-}
-matchOperator          = \case { Operator a -> Just a ; _ -> Nothing } ; {-# INLINE matchOperator    #-}
-matchModifier          = \case { Modifier a -> Just a ; _ -> Nothing } ; {-# INLINE matchModifier    #-}
-matchStr               = \case { Str      a -> Just a ; _ -> Nothing } ; {-# INLINE matchStr         #-}
-matchStrEsc            = \case { StrEsc   a -> Just a ; _ -> Nothing } ; {-# INLINE matchStrEsc      #-}
-matchNumber            = \case { Number   a -> Just a ; _ -> Nothing } ; {-# INLINE matchNumber      #-}
-matchMarker            = \case { Marker   a -> Just a ; _ -> Nothing } ; {-# INLINE matchMarker      #-}
-matchDocComment        = \case { Doc      a -> Just a ; _ -> Nothing } ; {-# INLINE matchDocComment  #-}
-matchMetadata          = \case { Metadata a -> Just a ; _ -> Nothing } ; {-# INLINE matchMetadata    #-}
-matchInvalid           = \case { Invalid  a -> Just a ; _ -> Nothing } ; {-# INLINE matchInvalid     #-}
+    matchMetadata :: Symbol -> Maybe Text32
+matchStrEsc       :: Symbol -> Maybe StrEscType
+matchNumber       :: Symbol -> Maybe Number
+matchMarker       :: Symbol -> Maybe Word64
+matchInvalid      :: Symbol -> Maybe Invalid.Symbol
+matchVar          = \case { Var      a -> Just a ; _ -> Nothing } ; {-# INLINE matchVar         #-}
+matchCons         = \case { Cons     a -> Just a ; _ -> Nothing } ; {-# INLINE matchCons        #-}
+matchOperator     = \case { Operator a -> Just a ; _ -> Nothing } ; {-# INLINE matchOperator    #-}
+matchModifier     = \case { Modifier a -> Just a ; _ -> Nothing } ; {-# INLINE matchModifier    #-}
+matchStr          = \case { Str      a -> Just a ; _ -> Nothing } ; {-# INLINE matchStr         #-}
+matchStrEsc       = \case { StrEsc   a -> Just a ; _ -> Nothing } ; {-# INLINE matchStrEsc      #-}
+matchNumber       = \case { Number   a -> Just a ; _ -> Nothing } ; {-# INLINE matchNumber      #-}
+matchMarker       = \case { Marker   a -> Just a ; _ -> Nothing } ; {-# INLINE matchMarker      #-}
+matchDocComment   = \case { Doc      a -> Just a ; _ -> Nothing } ; {-# INLINE matchDocComment  #-}
+matchMetadata     = \case { Metadata a -> Just a ; _ -> Nothing } ; {-# INLINE matchMetadata    #-}
+matchInvalid      = \case { Invalid  a -> Just a ; _ -> Nothing } ; {-# INLINE matchInvalid     #-}
 
 
 pretty :: Symbol -> Text32
@@ -308,4 +307,3 @@ instance IsTagged Symbol where
 
 instance HasSymbol (Symbol, a) where symbol = _1 ; {-# INLINE symbol #-}
 instance HasSymbol (a, Symbol) where symbol = _2 ; {-# INLINE symbol #-}
-instance HasSymbol a => HasSymbol (Token a) where symbol = element . symbol ; {-# INLINE symbol #-}

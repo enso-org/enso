@@ -2,8 +2,12 @@
 
 module Luna.Syntax.Text.Lexer.Token where
 
-import Data.Text.Position (Delta)
-import Prologue           hiding (element, span)
+import Prologue hiding (Symbol, element, span)
+
+import qualified Luna.Syntax.Text.Lexer.Symbol as Symbol
+
+import Data.Text.Position            (Delta)
+import Luna.Syntax.Text.Lexer.Symbol (Symbol)
 
 
 -------------------
@@ -33,3 +37,12 @@ instance Show a => Show (Token a) where
         . showsPrec' (t ^. element)
     {-# INLINE showsPrec #-}
 
+
+instance Symbol.HasSymbol a => Symbol.HasSymbol (Token a) where
+    symbol = element . Symbol.symbol ; {-# INLINE symbol #-}
+
+
+-- === Special tokens === --
+
+etx :: Token Symbol
+etx = Token 0 0 Symbol.ETX ; {-# INLINE etx #-}

@@ -86,7 +86,7 @@ satisfy_   :: (Lexer.Symbol -> Bool)    -> Parser ()
 satisfTest :: (Lexer.Symbol -> Maybe a) -> Parser a
 satisfy_   f = void $ satisfy f                  ; {-# INLINE satisfy_ #-}
 satisfy    f = satisfTest $ \s -> justIf (f s) s ; {-# INLINE satisfy  #-}
-satisfTest f = token' test Nothing where
+satisfTest f = token' test where
     test r t = case Reserved.lookup r (t ^. Lexer.element) of
         True  -> Left (Just $ Tokens (pure t), Set.empty)
         False -> satisfyTestSymbol f t
@@ -97,7 +97,7 @@ satisfyUnchecked_    :: (Lexer.Symbol -> Bool)    -> Parser ()
 satisfyUncheckedTest :: (Lexer.Symbol -> Maybe a) -> Parser a
 satisfyUnchecked_    f = void $ satisfyUnchecked f                    ; {-# INLINE satisfyUnchecked_    #-}
 satisfyUnchecked     f = satisfyUncheckedTest $ \s -> justIf (f s) s  ; {-# INLINE satisfyUnchecked     #-}
-satisfyUncheckedTest f = token' (const $ satisfyTestSymbol f) Nothing ; {-# INLINE satisfyUncheckedTest #-}
+satisfyUncheckedTest f = token' (const $ satisfyTestSymbol f)         ; {-# INLINE satisfyUncheckedTest #-}
 
 satisfyTestSymbol :: (t -> Maybe b) -> Lexer.Token t
                   -> Either (Maybe (ErrorItem (Lexer.Token t)), Set a) b
@@ -328,7 +328,7 @@ previewVarName :: Parser Name
 previewVarName = do
     s <- previewNextSymbol
     maybe (unexpected . fromString $ "Expecting variable, got: " <> show s)
-          (pure . convert) $ Lexer.matchVar =<< s
+          (pure . convert) $ Lexer.matchVar s
 {-# INLINE previewVarName #-}
 
 matchVar, matchCons, matchOp :: Text32 -> Parser ()
@@ -408,11 +408,14 @@ string = rawStr <|> fmtStr
 rawStr :: Parser (IRBS SomeTerm)
 rawStr = irbs $ do
     rawQuoteBegin
-    (IR.rawString' . convertVia @String) <$> Indent.withCurrent body -- FIXME[WD]: We're converting Text -> String here.
+    withRecovery (\e -> invalid Invalid.FunctionHeader <$ Loc.dropSymbolsUntilAndGatherErrors (== (Lexer.Quote Lexer.RawStr Lexer.End)) []) p
     where body = (strBody <|> pure mempty) <* rawQuoteEnd
+          p    = (IR.rawString' . convertVia @String) <$> Indent.withCurrent body  -- FIXME[WD]: We're converting Text -> String here.
     -- withRecovery (\e -> invalid "Invalid string literal" <$ Loc.unregisteredDropSymbolsUntil' (== (Lexer.Quote Lexer.RawStr Lexer.End)))
     --              $ (IR.rawString' . convertVia @String)
     --            <$> Indent.withCurrent (strBody rawQuoteEnd) -- FIXME[WD]: We're converting Text -> String here.
+    -- dropSymbolsUntilAndGatherErrors
+    -- :: (MonadParsec e Stream m, MonadLoc m) => (Lexer.Symbol -> Bool) -> [Token] -> m [Token]
 
 -- fmtStr :: Parser (IRBS SomeTerm)
 -- fmtStr = irbs $ do
@@ -438,13 +441,24 @@ strContent = satisfTest Lexer.matchStr <|> strEsc
 
 
 fmtStr :: Parser (IRBS SomeTerm)
-fmtStr = irbs $ (liftIRBS1 IR.fmtString' . sequence) <$> (fmtQuoteBegin *> body) where
+fmtStr = irbs $ fmtQuoteBegin *> (withRecovery handler str) where
+    str     = (liftIRBS1 IR.fmtString' . sequence) <$> body
     chunk   = (:) <$> element <*> body
     body    = chunk  <|> end
     element = rawStr <|> code
     end     = mempty <$ fmtQuoteEnd
     rawStr  = irbs $ IR.rawString' . convertVia @String <$> strBody
     code    = symbol (Lexer.Block Lexer.Begin) *> lineExpr <* symbol (Lexer.Block Lexer.End)
+    handler e = do
+        out <- Loc.dropSymbolsUntilAndGatherErrors (== (Lexer.Quote Lexer.FmtStr Lexer.End)) []
+        -- FIXME: We might want to do it safe way and report all errors in
+        --        string literal. However, we need to think how to do it right.
+        --        It seems this is the only place where multiple errors can
+        --        occur within a single IR.
+        let err = case out of
+                Left  {} -> error "TODO: no closing mark" -- FIXME: finish me
+                Right s  -> fromJust (error "PANIC: no error discovered in wrong string literal") (head s)
+        pure $ invalid err
 
 strEsc :: Parser Text32
 strEsc = satisfTest Lexer.matchStrEsc >>= pure . \case

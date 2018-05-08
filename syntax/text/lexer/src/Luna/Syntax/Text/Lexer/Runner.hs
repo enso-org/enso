@@ -13,7 +13,7 @@ import Luna.Syntax.Text.IO
 import Luna.Syntax.Text.Lexer.Grammar
 import Luna.Syntax.Text.Lexer.Stream  (ParseError, conduitParserEither)
 import Luna.Syntax.Text.Lexer.Symbol
-import Luna.Syntax.Text.Lexer.Token
+import Luna.Syntax.Text.Lexer.Token   hiding (etx)
 
 
 ---------------------
@@ -23,9 +23,8 @@ import Luna.Syntax.Text.Lexer.Token
 fromLexerResult :: Either ParseError a -> a
 fromLexerResult = either (error . ("Impossible happened: lexer error: " <>) . show) id ; {-# INLINE fromLexerResult #-}
 
--- FIXME[WD]: concatenating STX to the end of list could be slow
 parseBase :: (Monad m, IsSourceBorder t) => Parser (t, Int) -> EntryStack -> ConduitM a Text32 m () -> ConduitM a c0 m [Either ParseError (Token t)]
-parseBase p s f = fmap (<> [etx]) $ f .| prependSTX (conduitParserEither s $ State.runT @EntryStack p) .| sinkList ; {-# INLINE parseBase #-}
+parseBase p s f = f .| prependSTX (conduitParserEither s $ State.runT @EntryStack p) .| sinkList ; {-# INLINE parseBase #-}
 
 parse        :: IsSourceBorder a =>                  Parser (a, Int) -> EntryStack -> Text32   ->   [Token a]
 tryParse     :: IsSourceBorder a =>                  Parser (a, Int) -> EntryStack -> Text32   ->   Either ParseError [Token a]

@@ -7,12 +7,13 @@ module Luna.Syntax.Text.Parser.IR.Class where
 import Prologue
 
 import qualified Luna.Syntax.Text.Lexer               as Lexer
+import qualified Luna.Syntax.Text.Lexer.Token         as Token
 import qualified Luna.Syntax.Text.Parser.State.Marker as Marker
 import qualified Text.Megaparsec                      as Parsec
 
 import Control.Monad.State.Layered              (StatesT)
 import Data.Text.Position                       (FileOffset)
-import Luna.Syntax.Text.Parser.Data.CodeSpan         (CodeSpanRange)
+import Luna.Syntax.Text.Parser.Data.CodeSpan    (CodeSpanRange)
 import Luna.Syntax.Text.Parser.State.Indent     (Indent)
 import Luna.Syntax.Text.Parser.State.LastOffset (LastOffset)
 import Luna.Syntax.Text.Parser.State.Reserved   (Reserved)
@@ -65,8 +66,9 @@ instance Parsec.Stream Stream where
     advance1      _ _ p _ = p  -- FIXME
     advanceN      _ _ p _ = p  -- FIXME
     take1_              = \case (a:as) -> Just (a,as)
-                                []     -> Nothing
+                                []     -> Just (Token.etx, [])
     takeN_        0 s      = Just ([],s)
+    takeN_        1 []     = Just ([Token.etx],[])
     takeN_        i (a:as) = app_tmp a <$> Parsec.takeN_ (i - 1) as
     takeN_        _ _      = Nothing
 
