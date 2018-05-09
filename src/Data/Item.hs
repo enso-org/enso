@@ -7,6 +7,8 @@ import qualified Data.Map.Strict as MapStrict
 import qualified Data.Text       as Strict
 import qualified Data.Text.Lazy  as Lazy
 
+import Data.Set (Set)
+
 
 type family Item a
 
@@ -15,3 +17,4 @@ type instance Item (MapLazy.Map   k v) = (k,v)
 type instance Item (MapStrict.Map k v) = (k,v)
 type instance Item Strict.Text         = Char
 type instance Item Lazy.Text           = Char
+type instance Item (Set a)             = a
