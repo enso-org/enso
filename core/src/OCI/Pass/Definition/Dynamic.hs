@@ -154,7 +154,7 @@ compile !pass !cfg = do
     !s <- Encoder.run @pass cfg
     let !desc         = describe @pass
         runner !attrs = do
-            s' <- Pass.exec pass $! Encoder.encodeAttrs (unwrap attrs) s
+            !s' <- Pass.exec pass $! Encoder.encodeAttrs (unwrap attrs) s
             pure . wrap $ Encoder.decodeOutAttrs s'
     pure $! DynamicPass desc runner
 {-# INLINE compile #-}

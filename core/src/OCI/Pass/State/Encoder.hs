@@ -177,7 +177,7 @@ appSemiLeft f a = case f of
 
 encodeAttrs :: ∀ pass. AttrEncoder pass
             => [Any] -> (Pass.State pass -> Pass.State pass)
-encodeAttrs = encodeAttrs__ @pass @(AttrEncoderTarget pass) ; {-# INLINE encodeAttrs #-}
+encodeAttrs = encodeAttrs__ @pass @(AttrEncoderTarget pass)
 
 type  AttrEncoder       pass = AttrEncoder__ pass (AttrEncoderTarget pass)
 type  AttrEncoderTarget pass = Pass.Vars pass Pass.Attrs
@@ -185,7 +185,7 @@ class AttrEncoder__     pass (attrs :: [Type]) where
     encodeAttrs__ :: [Any] -> (Pass.State pass -> Pass.State pass)
 
 instance AttrEncoder__ pass '[] where
-    encodeAttrs__ _ = id ; {-# INLINE encodeAttrs__ #-}
+    encodeAttrs__ _ = id
 
 instance ( attr ~ Attr a
          , AttrEncoder__ pass as
@@ -196,15 +196,14 @@ instance ( attr ~ Attr a
     encodeAttrs__ (a:as) = encoder . subEncoder where
         encoder    = encodePassDataElem @attr (unsafeCoerce a :: attr)
         subEncoder = encodeAttrs__ @pass @as as
-    {-# INLINE encodeAttrs__ #-}
 
 
 -- === Attr encoder === --
 
 decodeAttrs    :: ∀ pass. AttrDecoder    pass => Pass.State pass -> [Any]
 decodeOutAttrs :: ∀ pass. OutAttrDecoder pass => Pass.State pass -> [Any]
-decodeAttrs    = decodeAttrs__ @pass @(AttrDecoderTarget    pass) ; {-# INLINE decodeAttrs #-}
-decodeOutAttrs = decodeAttrs__ @pass @(OutAttrDecoderTarget pass) ; {-# INLINE decodeOutAttrs #-}
+decodeAttrs    = decodeAttrs__ @pass @(AttrDecoderTarget    pass)
+decodeOutAttrs = decodeAttrs__ @pass @(OutAttrDecoderTarget pass)
 
 type  AttrDecoder          pass = AttrDecoder__ pass (AttrDecoderTarget    pass)
 type  OutAttrDecoder       pass = AttrDecoder__ pass (OutAttrDecoderTarget pass)
@@ -214,7 +213,7 @@ class AttrDecoder__        pass (attrs :: [Type]) where
     decodeAttrs__ :: Pass.State pass -> [Any]
 
 instance AttrDecoder__ pass '[] where
-    decodeAttrs__ _ = mempty ; {-# INLINE decodeAttrs__ #-}
+    decodeAttrs__ _ = mempty
 
 instance ( attr ~ Attr a
          , AttrDecoder__ pass as
@@ -224,7 +223,6 @@ instance ( attr ~ Attr a
     decodeAttrs__ s = a : as where
         a  = unsafeCoerce $ decodePassDataElem @attr s
         as = decodeAttrs__ @pass @as s
-    {-# INLINE decodeAttrs__ #-}
 
 
 -- === Element encoders === --
@@ -242,11 +240,11 @@ instance PassDataElemsEncoder els    Imp pass where encodePassDataElems = imp
 instance PassDataElemsEncoder els    t   Imp  where encodePassDataElems = imp
 instance TypeMap.SetElemsFromList els t (Pass.StateLayout pass)
       => PassDataElemsEncoder els t pass where
-    encodePassDataElems vals = wrapped %~ TypeMap.setElemsFromList @els vals ; {-# INLINE encodePassDataElems #-}
+    encodePassDataElems vals = wrapped %~ TypeMap.setElemsFromList @els vals
 
 
 type PassDataElemDecoder t pass = TypeMap.ElemGetter t (Pass.StateLayout pass)
 
 decodePassDataElem :: ∀ t pass. PassDataElemDecoder t pass
                    => Pass.State pass -> t
-decodePassDataElem = TypeMap.getElem @t . unwrap ; {-# INLINE decodePassDataElem #-}
+decodePassDataElem = TypeMap.getElem @t . unwrap
