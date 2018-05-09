@@ -2,22 +2,24 @@ module OCI.Pass.Management.Registry where
 
 import Prologue as P
 
-import qualified Control.Monad.State.Layered   as State
+import qualified Control.Monad.State.Layered        as State
 import qualified Data.Graph.Data.Component.Class    as Component
 import qualified Data.Graph.Data.Component.Dynamic  as Component
-import qualified Data.Graph.Data.Layer.Class    as Layer
 import qualified Data.Graph.Data.Component.Provider as Component
-import qualified Data.Map.Strict               as Map
-import qualified Foreign.Storable1             as Storable1
-import qualified Foreign.Storable1.Ptr         as Ptr1
-import qualified OCI.Pass.State.IRInfo         as IRInfo
+import qualified Data.Graph.Data.Layer.Class        as Layer
+import qualified Data.Map.Strict                    as Map
+import qualified Foreign.Storable1                  as Storable1
+import qualified Foreign.Storable1.Ptr              as Ptr1
+import qualified OCI.Pass.State.IRInfo              as IRInfo
 
 import Control.Monad.Exception     (Throws, throw)
 import Control.Monad.State.Layered (StateT)
-import Data.Graph.Data.Layer.Class  (Layer)
+import Data.Graph.Data.Layer.Class (Layer)
 import Data.Map.Strict             (Map)
 import Foreign.Ptr.Utils           (SomePtr)
 import Foreign.Storable1           (Storable1)
+import OCI.IR.Link.Class           (Links, SomeLink)
+import OCI.IR.Term                 (SomeTerm)
 import OCI.Pass.State.IRInfo       (IRInfo)
 
 
@@ -76,6 +78,7 @@ registerPrimLayer :: ∀ comp layer m.
     , Layer    layer
     , Layer.StorableData  layer
     , Component.DynamicProvider1 (Layer.Cons layer)
+    , Component.Provider1 Links (Layer.Cons layer)
     ) => m ()
 registerPrimLayer = do
     let manager = Layer.manager @layer
@@ -90,7 +93,7 @@ registerPrimLayer = do
             Nothing       -> throw $ MissingComponent comp
             Just compInfo -> do
                 pure $ Just $ compInfo & IRInfo.layers %~ Map.insert layer
-                    (IRInfo.LayerInfo size init ctor dtor subComponentDyn)
+                    (IRInfo.LayerInfo size init ctor dtor subComponentDyn linksDyn)
         pure $ m & IRInfo.components .~ components'
     where
     ctorDyn :: Storable1 t => IO (t a)       -> (SomePtr -> IO ())
@@ -102,6 +105,10 @@ registerPrimLayer = do
                     => SomePtr -> IO [Component.Dynamic]
     subComponentDyn ptr = Storable1.peek (coerce ptr)
                       >>= Component.dynamicComponents1 @(Layer.Cons layer)
+    linksDyn :: Component.Provider1 Links (Layer.Cons layer)
+             => SomeTerm -> IO [SomeLink]
+    linksDyn ptr = Storable1.peek (coerce $ Component.unsafeToPtr ptr)
+               >>= Component.components1 @Links @(Layer.Cons layer)
 {-# INLINE registerPrimLayer #-}
 
 

@@ -4,33 +4,35 @@ module OCI.Pass.State.Encoder where
 
 import Prologue
 
-import qualified Data.Graph.Data.Component.Class      as Component
-import qualified Data.Graph.Data.Component.Dynamic    as Component
-import qualified Data.Graph.Data.Layer.Class      as Layer
-import qualified Data.Graph.Data.Component.Provider   as Component
-import qualified Data.Map                        as Map
-import qualified Data.TypeMap.Strict             as TypeMap
-import qualified Foreign.Marshal.Alloc           as Mem
-import qualified Foreign.Marshal.Utils           as Mem
-import qualified Foreign.Memory.Pool             as MemPool
-import qualified Foreign.Ptr                     as Ptr
-import qualified OCI.Pass.Definition.Class       as Pass
-import qualified OCI.Pass.Definition.Declaration as Pass
-import qualified OCI.Pass.Management.Registry    as Reg
-import qualified OCI.Pass.State.IRInfo           as IRInfo
-import qualified OCI.Pass.State.Runtime          as Runtime
-import qualified OCI.Pass.State.Runtime          as Pass
+import qualified Data.Graph.Component.Edge          as Edge
+import qualified Data.Graph.Data.Component.Class    as Component
+import qualified Data.Graph.Data.Component.Dynamic  as Component
+import qualified Data.Graph.Data.Component.Provider as Component
+import qualified Data.Graph.Data.Layer.Class        as Layer
+import qualified Data.Map                           as Map
+import qualified Data.TypeMap.Strict                as TypeMap
+import qualified Foreign.Marshal.Alloc              as Mem
+import qualified Foreign.Marshal.Utils              as Mem
+import qualified Foreign.Memory.Pool                as MemPool
+import qualified Foreign.Ptr                        as Ptr
+import qualified OCI.Pass.Definition.Class          as Pass
+import qualified OCI.Pass.Definition.Declaration    as Pass
+import qualified OCI.Pass.Management.Registry       as Reg
+import qualified OCI.Pass.State.IRInfo              as IRInfo
+import qualified OCI.Pass.State.Runtime             as Runtime
+import qualified OCI.Pass.State.Runtime             as Pass
 
-import Control.Monad.Exception    (Throws, throw)
+import Control.Monad.Exception         (Throws, throw)
 import Data.Graph.Data.Component.Class (Component, SomeComponent)
-import Data.Map.Strict            (Map)
-import Data.TypeMap.Strict        (TypeMap)
-import Foreign.Info.ByteSize      (ByteSize (ByteSize))
-import Foreign.Memory.Pool        (MemPool)
-import Foreign.Ptr.Utils          (SomePtr)
-import GHC.Exts                   (Any)
-import OCI.Pass.State.Attr        (Attr)
-import OCI.Pass.State.IRInfo      (CompiledIRInfo)
+import Data.Map.Strict                 (Map)
+import Data.TypeMap.Strict             (TypeMap)
+import Foreign.Info.ByteSize           (ByteSize (ByteSize))
+import Foreign.Memory.Pool             (MemPool)
+import Foreign.Ptr.Utils               (SomePtr)
+import GHC.Exts                        (Any)
+import OCI.IR.Term                     (Terms)
+import OCI.Pass.State.Attr             (Attr)
+import OCI.Pass.State.IRInfo           (CompiledIRInfo)
 
 
 
@@ -123,6 +125,11 @@ instance Typeable comp
     encodeField info = do
         compInfo <- lookupComp @comp $ info ^. IRInfo.compiledComponents
         pure . wrap $ compInfo ^. IRInfo.layersComponents
+
+instance FieldEncoder (Edge.ComponentProvider Terms) where
+    encodeField info = do
+        compInfo <- lookupComp @Terms $ info ^. IRInfo.compiledComponents
+        pure . Edge.ComponentProvider $ compInfo ^. IRInfo.layersLinks
 
 instance Typeable comp
       => FieldEncoder (MemPool (SomeComponent comp)) where

@@ -7,16 +7,17 @@ module Luna.Test.Spec.IRSpec where
 import Prologue
 import Test.Hspec.Expectations.Lifted
 
-import qualified Data.Graph.Traversal.Discovery as Discovery
-import qualified Data.Graph.Data.Component.Dynamic   as Component
-import qualified Data.Graph.Data.Layer.Layout    as Layout
-import qualified Data.Set.Mutable.Class         as Set
-import qualified Luna.IR                        as IR
-import qualified Luna.IR.Layer                  as Layer
-import qualified Luna.Pass                      as Pass
-import qualified Luna.Pass.Attr                 as Attr
-import qualified Luna.Pass.Scheduler            as Scheduler
-import qualified Luna.Runner                    as Runner
+import qualified Data.Graph.Component.Edge.Class   as Edge
+import qualified Data.Graph.Data.Component.Dynamic as Component
+import qualified Data.Graph.Data.Layer.Layout      as Layout
+import qualified Data.Graph.Traversal.Discovery    as Discovery
+import qualified Data.Set.Mutable.Class            as Set
+import qualified Luna.IR                           as IR
+import qualified Luna.IR.Layer                     as Layer
+import qualified Luna.Pass                         as Pass
+import qualified Luna.Pass.Attr                    as Attr
+import qualified Luna.Pass.Scheduler               as Scheduler
+import qualified Luna.Runner                       as Runner
 
 import Luna.Pass  (Pass)
 import Test.Hspec (Spec, describe, it)
@@ -131,13 +132,18 @@ irDestructSpec = describe "ir dispose" $ do
         IR.destruct v
 
 irDiscoverySpec :: Spec
-irDiscoverySpec = describe "ir discovery" $ do
-    it "simple" $ runPass' $ do
+irDiscoverySpec = describe "traversal" $ do
+    it "discovery" $ runPass' $ do
         v     <- IR.var "a"
         terms <- Discovery.discover v
         -- 4 = [term, link to type, type, link to itself]:
         length (toList terms) `shouldBe` 4
 
+    it "input edges" $ runPass' $ do
+        v   <- IR.var "a"
+        ins <- Edge.componentEdges v
+        tp  <- Layer.read @IR.Type v
+        ins `shouldBe` [Layout.relayout tp]
 
 spec :: Spec
 spec = do

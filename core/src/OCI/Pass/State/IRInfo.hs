@@ -4,16 +4,18 @@ import Prologue
 
 import qualified Data.Graph.Data.Component.Class   as Component
 import qualified Data.Graph.Data.Component.Dynamic as Component
-import qualified Data.Graph.Data.Layer.Class   as Layer
-import qualified Data.Map.Strict              as Map
-import qualified Foreign.Marshal.Alloc        as Mem
-import qualified Foreign.Marshal.Utils        as Mem
-import qualified Foreign.Memory.Pool          as MemPool
-import qualified Foreign.Ptr                  as Ptr
+import qualified Data.Graph.Data.Layer.Class       as Layer
+import qualified Data.Map.Strict                   as Map
+import qualified Foreign.Marshal.Alloc             as Mem
+import qualified Foreign.Marshal.Utils             as Mem
+import qualified Foreign.Memory.Pool               as MemPool
+import qualified Foreign.Ptr                       as Ptr
 
 import Data.Map.Strict     (Map)
 import Foreign.Memory.Pool (MemPool)
 import Foreign.Ptr.Utils   (SomePtr)
+import OCI.IR.Link.Class   (SomeLink)
+import OCI.IR.Term         (SomeTerm)
 
 
 
@@ -37,6 +39,7 @@ data LayerInfo = LayerInfo
     , _constructor   :: !(Maybe (SomePtr -> IO ()))
     , _destructor    :: !(Maybe (SomePtr -> IO ()))
     , _subComponents :: !(SomePtr -> IO [Component.Dynamic])
+    , _links         :: !(SomeTerm -> IO [SomeLink])
     } deriving (Show)
 
 makeLenses ''IRInfo
@@ -57,6 +60,7 @@ data ComponentCompiledInfo = ComponentCompiledInfo
     , _layersConstructor :: !(SomePtr -> IO ())
     , _layersDestructor  :: !(SomePtr -> IO ())
     , _layersComponents  :: !(SomePtr -> IO [Component.Dynamic])
+    , _layersLinks       :: !(SomeTerm -> IO [SomeLink])
     , _memPool           :: !(MemPool ())
     }
 
@@ -87,10 +91,11 @@ computeComponentInfo compCfg = compInfo where
     compInfo      = ComponentCompiledInfo
                 <$> pure (fromList $ zip layerReps layerCfgs)
                 <*> pure compSize
-                <*> prepareLayerInitializer      layerInfos
-                <*> prepareLayersConstructor     layerInfos
-                <*> prepareLayersDestructor      layerInfos
-                <*> prepareSubComponentDiscovery layerOffInfos
+                <*> prepareLayerInitializer       layerInfos
+                <*> prepareLayersConstructor      layerInfos
+                <*> prepareLayersDestructor       layerInfos
+                <*> prepareSubComponentDiscovery  layerOffInfos
+                <*> prepareSubComponentDiscovery2 layerOffInfos
                 <*> MemPool.new def (MemPool.ItemSize compSize)
 
 prepareLayerInitializer :: MonadIO m => [LayerInfo] -> m SomePtr
@@ -152,4 +157,15 @@ prepareSubComponentDiscovery ls = do
     where
     getFromLayer :: SomePtr -> Int -> LayerInfo -> IO [Component.Dynamic]
     getFromLayer p off l = (l ^. subComponents) (p `Ptr.plusPtr` off)
+
+-- FIXME : check if the above hack applies here too
+-- FIXME : and maybe merge with the above code?
+prepareSubComponentDiscovery2 :: MonadIO m
+    => [(Int, LayerInfo)] -> m (SomeTerm -> IO [SomeLink])
+prepareSubComponentDiscovery2 ls = do
+    pure $ (\ptr -> concat <$> mapM (uncurry $ getFromLayer ptr) ls)
+    where
+    getFromLayer :: SomeTerm -> Int -> LayerInfo -> IO [SomeLink]
+    getFromLayer p off l = (l ^. links)
+        $ Component.unsafeFromPtr (Component.unsafeToPtr p `Ptr.plusPtr` off)
 
