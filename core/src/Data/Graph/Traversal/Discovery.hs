@@ -1,4 +1,4 @@
-module Data.Graph.Data.Component.Discovery where
+module Data.Graph.Traversal.Discovery where
 
 import Prologue
 

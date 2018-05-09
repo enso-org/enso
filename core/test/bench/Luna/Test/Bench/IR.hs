@@ -9,7 +9,7 @@ import qualified Control.Monad.State.Layered               as State
 import qualified Criterion.Main                            as Criterion
 import qualified Criterion.Measurement                     as Criterion
 import qualified Data.Graph.Data.Layer.Class          as Layer
-import qualified Data.Graph.Data.Component.Discovery as Discovery
+import qualified Data.Graph.Traversal.Discovery as Discovery
 import qualified Data.Tuple.Strict                         as Tuple
 import qualified Data.TypeMap.Strict                       as TypeMap
 import qualified Foreign.Marshal.Alloc                     as Ptr

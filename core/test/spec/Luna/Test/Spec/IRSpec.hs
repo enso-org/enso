@@ -7,7 +7,7 @@ module Luna.Test.Spec.IRSpec where
 import Prologue
 import Test.Hspec.Expectations.Lifted
 
-import qualified Data.Graph.Data.Component.Discovery as Discovery
+import qualified Data.Graph.Traversal.Discovery as Discovery
 import qualified Data.Graph.Data.Component.Dynamic   as Component
 import qualified Data.Graph.Data.Layer.Layout    as Layout
 import qualified Data.Set.Mutable.Class         as Set
