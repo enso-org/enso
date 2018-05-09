@@ -39,15 +39,15 @@ between' a = between a a
 space :: IsString a => a
 space = " "
 
-parensed, bracked, braced, chevroned, spaced, quoted, squoted, backticked :: (Semigroup a, IsString a) => a -> a
-parensed   = between "(" ")"
-bracked    = between "[" "]"
-braced     = between "{" "}"
-chevroned  = between "<" ">"
-spaced     = between' " "
-quoted     = between' "\""
-squoted    = between' "'"
-backticked = between' "`"
+parensed, bracked, braced, chevroned, spaced, quoted, singleQuoted, backticked :: (Semigroup a, IsString a) => a -> a
+parensed     = between "(" ")"
+bracked      = between "[" "]"
+braced       = between "{" "}"
+chevroned    = between "<" ">"
+spaced       = between' " "
+quoted       = between' "\""
+singleQuoted = between' "'"
+backticked   = between' "`"
 
 
 -- === Text layouting === --
