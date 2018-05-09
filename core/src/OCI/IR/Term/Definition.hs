@@ -5,24 +5,24 @@ module OCI.IR.Term.Definition where
 
 import Prologue
 
-import qualified Control.Lens.TH                    as Lens
-import qualified Data.Generics.Traversable.Deriving as GTraversable
-import qualified Data.Graph.Data.Layer.Layout        as Layout
-import qualified Data.Tag                           as Tag
-import qualified Foreign.Storable.Deriving          as Storable
-import qualified Foreign.Storable1.Deriving         as Storable1
-import qualified Language.Haskell.TH                as TH
-import qualified OCI.IR.Link                        as Link
-import qualified OCI.IR.Term.Class                  as Term
-import qualified OCI.IR.Term.Construction           as Term
-import qualified OCI.IR.Term.Format                 as Format
-import qualified Type.Data.Map                      as TypeMap
+import qualified Control.Lens.TH                        as Lens
+import qualified Data.Generics.Traversable.Deriving     as GTraversable
+import qualified Data.Graph.Component.Edge              as Edge
+import qualified Data.Graph.Component.Node.Class        as Term
+import qualified Data.Graph.Component.Node.Construction as Term
+import qualified Data.Graph.Data.Layer.Layout           as Layout
+import qualified Data.Tag                               as Tag
+import qualified Foreign.Storable.Deriving              as Storable
+import qualified Foreign.Storable1.Deriving             as Storable1
+import qualified Language.Haskell.TH                    as TH
+import qualified OCI.IR.Term.Format                     as Format
+import qualified Type.Data.Map                          as TypeMap
 
-import Language.Haskell.TH         (Type (AppT))
-import Language.Haskell.TH.Builder hiding (Field)
-import OCI.IR.Link                 (type (*-*), Link)
-import OCI.IR.Term.Class           (Term)
-import OCI.IR.Term.Layer           (Model)
+import Data.Graph.Component.Edge       (type (*-*), Edge)
+import Data.Graph.Component.Node.Layer (Model)
+import Language.Haskell.TH             (Type (AppT))
+import Language.Haskell.TH.Builder     hiding (Field)
+import OCI.IR.Term.Class               (Term)
 
 import           Data.PtrList.Mutable (UnmanagedPtrList)
 import qualified Data.PtrList.Mutable as PtrList
@@ -51,14 +51,14 @@ class Monad m => Field t a m b where
 instance Monad m => Field t a m a where
     consField _ = pure ; {-# INLINE consField #-}
 
-instance Link.Creator m => Field t (Term a) m (Link b) where
-    consField self t = Layout.unsafeRelayout <$> Link.new t self ; {-# INLINE consField #-}
+instance Edge.Creator m => Field t (Term a) m (Edge b) where
+    consField self t = Layout.unsafeRelayout <$> Edge.new t self ; {-# INLINE consField #-}
 
-instance Link.Creator m => Field t [Term a] m (List (Link b)) where
+instance Edge.Creator m => Field t [Term a] m (List (Edge b)) where
     consField self = PtrList.fromList <=< mapM (consField self) ; {-# INLINE consField #-}
 
 type family ExpandField self layout a where
-    ExpandField self layout (LinkTo t) = Link ( Layout.Get t layout
+    ExpandField self layout (LinkTo t) = Edge ( Layout.Get t layout
                                             *-* Layout.Set Model self layout)
     ExpandField self layout (t a)      = t (ExpandField self layout a)
     ExpandField self layout a          = a
@@ -173,7 +173,7 @@ defineSingleCons dataName con = do
                       . setDerivs
                       $ termDecl
 
-        tagDecls      = Tag.familyInstance' ''Term.TermTag conNameStr
+        tagDecls      = Tag.familyInstance' ''Term.NodeTag conNameStr
         isTermTagInst = TH.InstanceD Nothing []
                         (TH.AppT (cons' ''Term.IsTermTag) (cons' tagName))
                         []

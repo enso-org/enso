@@ -5,7 +5,7 @@ module Luna.IR.Term.Instances where
 
 import Prologue
 
-import qualified OCI.IR.Term.Construction as Term
+import qualified Data.Graph.Component.Node.Construction as Term
 
 import Luna.IR.Term.Core (Top, top)
 

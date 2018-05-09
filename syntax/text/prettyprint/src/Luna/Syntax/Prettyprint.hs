@@ -23,7 +23,7 @@ import qualified Luna.IR.Term.Literal           as Literal
 import qualified Luna.Pass                      as Pass
 import qualified Luna.Syntax.Text.Lexer.Grammar as Grammar
 import qualified Luna.Syntax.Text.Scope         as Scope
-import qualified OCI.IR.Link.Class              as Link
+import qualified Data.Graph.Component.Edge.Class              as Link
 
 import Control.Monad.State.Layered  (StateT)
 import Data.Layout                  (backticked, quoted, singleQuoted, space,

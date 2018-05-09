@@ -15,7 +15,7 @@ import qualified Luna.Syntax.Text.Lexer               as Lexer
 import qualified Luna.Syntax.Text.Parser.IR.Class     as Token
 import qualified Luna.Syntax.Text.Parser.IR.Term      as Parsing
 import qualified Luna.Syntax.Text.Parser.State.Marker as Marker
-import qualified OCI.IR.Term.Construction             as Term
+import qualified Data.Graph.Component.Node.Construction             as Term
 import qualified OCI.Pass.Management.Registry                    as Registry
 import qualified Text.Megaparsec                      as Parser
 

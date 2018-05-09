@@ -26,8 +26,8 @@ import qualified Luna.Syntax.Text.Parser.IR.Term       as Parsing
 import qualified Luna.Syntax.Text.Parser.Pass          as Parser
 import qualified Luna.Syntax.Text.Parser.Pass.Class    as Parser
 import qualified OCI.Data.Name                         as Name
-import qualified OCI.IR.Link                           as Link
-import qualified OCI.IR.Term.Construction              as Term
+import qualified Data.Graph.Component.Edge                           as Link
+import qualified Data.Graph.Component.Node.Construction              as Term
 import qualified OCI.Pass.Management.Registry                     as Registry
 
 import Data.Text.Position                    (Delta)
@@ -38,7 +38,7 @@ import Luna.Syntax.Text.Parser.Pass.Class    (IRBS, Parser)
 import Luna.Syntax.Text.Scope                (Scope)
 import Luna.Syntax.Text.Source               (Source)
 import Luna.Test.Source.Text.Utils           (s)
-import OCI.IR.Link                           (type (*-*), Link)
+import Data.Graph.Component.Edge                           (type (*-*), Link)
 import Test.Hspec                            (Expectation, Spec, describe, it)
 
 

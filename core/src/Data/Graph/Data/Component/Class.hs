@@ -6,21 +6,21 @@ import Data.Construction as X (construct', construct1', destruct, destruct1)
 
 import Prologue hiding (ConversionError)
 
-import qualified Control.Monad.State.Layered      as State
-import qualified Data.Construction                as Data
+import qualified Control.Monad.State.Layered as State
+import qualified Data.Construction           as Data
 import qualified Data.Graph.Data.Layer.Class as Layer
-import qualified Data.Tag                         as Tag
-import qualified Foreign.Info.ByteSize            as ByteSize
-import qualified Foreign.Marshal.Utils            as Mem
-import qualified Foreign.Memory.Pool              as MemPool
-import qualified Foreign.Ptr                      as Ptr
-import qualified Foreign.Storable1.Deriving       as Storable1
-import qualified Language.Haskell.TH              as TH
+import qualified Data.Tag                    as Tag
+import qualified Foreign.Info.ByteSize       as ByteSize
+import qualified Foreign.Marshal.Utils       as Mem
+import qualified Foreign.Memory.Pool         as MemPool
+import qualified Foreign.Ptr                 as Ptr
+import qualified Foreign.Storable1.Deriving  as Storable1
+import qualified Language.Haskell.TH         as TH
 
 import Data.Graph.Data.Layer.Layout (Relayout, UnsafeRelayout)
-import Foreign.Memory.Pool               (MemPool)
-import Foreign.Ptr.Utils                 (SomePtr)
-import Foreign.Storable                  (Storable)
+import Foreign.Memory.Pool          (MemPool)
+import Foreign.Ptr.Utils            (SomePtr)
+import Foreign.Storable             (Storable)
 
 
 

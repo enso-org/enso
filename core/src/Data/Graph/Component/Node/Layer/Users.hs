@@ -1,17 +1,17 @@
 {-# LANGUAGE TypeInType           #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module OCI.IR.Term.Layer.Users where
+module Data.Graph.Component.Node.Layer.Users where
 
 import Prologue hiding (Type)
 
 import qualified Data.Graph.Data.Layer.Class  as Layer
 import qualified Data.Graph.Data.Layer.Layout as Layout
-import qualified OCI.IR.Link.Class           as Link
+import qualified Data.Graph.Component.Edge.Class           as Link
 
 import Data.Graph.Data.Layer.Class (Layer)
-import OCI.IR.Link.Class          (type (*-*))
-import OCI.IR.Term.Layer.Model    (Model)
+import Data.Graph.Component.Edge.Class          (type (*-*))
+import Data.Graph.Component.Node.Layer.Model    (Model)
 
 
 

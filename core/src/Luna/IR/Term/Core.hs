@@ -5,13 +5,13 @@ module Luna.IR.Term.Core where
 
 import Prologue
 
-import qualified Data.Graph.Data.Layer.Class  as Layer
-import qualified Data.Graph.Data.Layer.Layout as Layout
-import qualified Luna.IR.Term.Format         as Format
-import qualified OCI.IR.Link                 as Link
-import qualified OCI.IR.Term.Construction    as Term
-import qualified OCI.IR.Term.Definition      as Term
-import qualified OCI.IR.Term.Layer           as Layer
+import qualified Data.Graph.Component.Edge              as Link
+import qualified Data.Graph.Component.Node.Construction as Term
+import qualified Data.Graph.Component.Node.Layer        as Layer
+import qualified Data.Graph.Data.Layer.Class            as Layer
+import qualified Data.Graph.Data.Layer.Layout           as Layout
+import qualified Luna.IR.Term.Format                    as Format
+import qualified OCI.IR.Term.Definition                 as Term
 
 import Data.PtrList.Mutable         (UnmanagedPtrList)
 import Data.Vector.Storable.Foreign (Vector)

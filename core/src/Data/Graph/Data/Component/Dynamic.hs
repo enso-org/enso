@@ -5,7 +5,7 @@ import Prologue
 import qualified Data.Graph.Data.Component.Class as Component
 
 import Data.Graph.Data.Component.Class (Component)
-import Foreign.Ptr.Utils          (SomePtr)
+import Foreign.Ptr.Utils               (SomePtr)
 
 
 

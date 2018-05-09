@@ -6,16 +6,17 @@ import Prologue
 
 import qualified Data.Graph.Data.Component.Class   as Component
 import qualified Data.Graph.Data.Component.Dynamic as Component
-import qualified Data.Graph.Data.Layer.Class   as Layer
-import qualified Data.Graph.Data.Layer.Layout  as Layout
-import qualified Data.PtrList.Mutable         as PtrList
-import qualified Data.PtrSet.Mutable          as PtrSet
-import qualified Data.Vector.Storable.Foreign as Foreign
+import qualified Data.Graph.Data.Layer.Class       as Layer
+import qualified Data.Graph.Data.Layer.Layout      as Layout
+import qualified Data.PtrList.Mutable              as PtrList
+import qualified Data.PtrSet.Mutable               as PtrSet
+import qualified Data.Vector.Storable.Foreign      as Foreign
 
-import Data.Generics.Traversable  (GTraversable, gfoldlM)
+import Data.Generics.Traversable       (GTraversable, gfoldlM)
 import Data.Graph.Data.Component.Class (Component, SomeComponent)
-import Data.Map.Strict            (Map)
-import Foreign.Ptr.Utils          (SomePtr)
+import Data.Map.Strict                 (Map)
+import Foreign.Ptr.Utils               (SomePtr)
+
 
 
 ----------------------
