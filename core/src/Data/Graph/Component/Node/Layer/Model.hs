@@ -40,7 +40,7 @@ inputs :: ( Layer.Reader Node Model m
           , Edge.Provider1    Node.Uni
           , MonadIO m
           ) => Node layout -> m [SomeEdge]
-inputs = Edge.links1 <=< Layer.read @Model ; {-# INLINE inputs #-}
+inputs = Edge.edges1 <=< Layer.read @Model ; {-# INLINE inputs #-}
 
 
 -- === Instances === --
