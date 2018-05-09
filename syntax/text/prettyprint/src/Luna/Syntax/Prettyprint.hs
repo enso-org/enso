@@ -9,7 +9,7 @@ import           Prologue hiding (Symbol)
 
 import qualified Control.Monad.State.Layered    as State
 import qualified Data.Char                      as Char
-import qualified Data.Graph.Component.Layer.Layout    as Layout
+import qualified Data.Graph.Data.Layer.Layout    as Layout
 import qualified Data.Layout                    as Layout
 import qualified Data.Layout                    as Doc
 import qualified Data.PtrList.Mutable           as List

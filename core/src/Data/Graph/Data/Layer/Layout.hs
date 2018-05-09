@@ -1,8 +1,8 @@
 {-# LANGUAGE TypeInType           #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Data.Graph.Component.Layer.Layout
-    (module Data.Graph.Component.Layer.Layout, module X) where
+module Data.Graph.Data.Layer.Layout
+    (module Data.Graph.Data.Layer.Layout, module X) where
 import Type.Data.Map.Generic as X ((:=))
 
 import Prologue hiding (Default)

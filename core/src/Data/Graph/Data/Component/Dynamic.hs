@@ -1,10 +1,10 @@
-module Data.Graph.Component.Definition.Dynamic where
+module Data.Graph.Data.Component.Dynamic where
 
 import Prologue
 
-import qualified Data.Graph.Component.Definition.Class as Component
+import qualified Data.Graph.Data.Component.Class as Component
 
-import Data.Graph.Component.Definition.Class (Component)
+import Data.Graph.Data.Component.Class (Component)
 import Foreign.Ptr.Utils          (SomePtr)
 
 

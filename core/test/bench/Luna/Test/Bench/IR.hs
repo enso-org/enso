@@ -8,8 +8,8 @@ import Prologue
 import qualified Control.Monad.State.Layered               as State
 import qualified Criterion.Main                            as Criterion
 import qualified Criterion.Measurement                     as Criterion
-import qualified Data.Graph.Component.Layer.Class          as Layer
-import qualified Data.Graph.Component.Management.Discovery as Discovery
+import qualified Data.Graph.Data.Layer.Class          as Layer
+import qualified Data.Graph.Data.Component.Discovery as Discovery
 import qualified Data.Tuple.Strict                         as Tuple
 import qualified Data.TypeMap.Strict                       as TypeMap
 import qualified Foreign.Marshal.Alloc                     as Ptr
@@ -29,7 +29,7 @@ import qualified System.Console.ANSI                       as ANSI
 
 import Control.DeepSeq      (force)
 import Control.Exception    (evaluate)
-import Data.Graph.Component (Component (Component))
+import Data.Graph.Data (Component (Component))
 import Luna.Pass            (Pass)
 
 

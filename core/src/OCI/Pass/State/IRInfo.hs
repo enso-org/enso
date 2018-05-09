@@ -2,9 +2,9 @@ module OCI.Pass.State.IRInfo where
 
 import Prologue
 
-import qualified Data.Graph.Component.Definition.Class   as Component
-import qualified Data.Graph.Component.Definition.Dynamic as Component
-import qualified Data.Graph.Component.Layer.Class   as Layer
+import qualified Data.Graph.Data.Component.Class   as Component
+import qualified Data.Graph.Data.Component.Dynamic as Component
+import qualified Data.Graph.Data.Layer.Class   as Layer
 import qualified Data.Map.Strict              as Map
 import qualified Foreign.Marshal.Alloc        as Mem
 import qualified Foreign.Marshal.Utils        as Mem

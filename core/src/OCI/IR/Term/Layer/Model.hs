@@ -5,12 +5,12 @@ module OCI.IR.Term.Layer.Model where
 import Prologue
 
 import qualified Data.Construction           as Data
-import qualified Data.Graph.Component.Layer.Class  as Layer
-import qualified Data.Graph.Component.Layer.Layout as Layout
+import qualified Data.Graph.Data.Layer.Class  as Layer
+import qualified Data.Graph.Data.Layer.Layout as Layout
 import qualified OCI.IR.Link.Class           as Link
 import qualified OCI.IR.Term.Class           as Term
 
-import Data.Graph.Component.Layer.Class (Layer)
+import Data.Graph.Data.Layer.Class (Layer)
 import OCI.IR.Link.Class          (SomeLink)
 import OCI.IR.Term.Class          (Term)
 

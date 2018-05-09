@@ -6,7 +6,7 @@ import Prologue
 
 import qualified Luna.IR                as IR
 import qualified Luna.Pass.Attr         as Attr
-import qualified Data.Graph.Component.Definition.Class as Component
+import qualified Data.Graph.Data.Component.Class as Component
 
 
 

@@ -4,13 +4,13 @@ module OCI.IR.Link.Class where
 
 import Prologue
 
-import qualified Data.Graph.Component        as Component
-import qualified Data.Graph.Component.Layer.Class  as Layer
-import qualified Data.Graph.Component.Layer.Layout as Layout
+import qualified Data.Graph.Data        as Component
+import qualified Data.Graph.Data.Layer.Class  as Layer
+import qualified Data.Graph.Data.Layer.Layout as Layout
 
-import Data.Graph.Component        (SomeComponent)
-import Data.Graph.Component.Layer.Class  (Layer)
-import Data.Graph.Component.Layer.Layout ((:=), Layout)
+import Data.Graph.Data        (SomeComponent)
+import Data.Graph.Data.Layer.Class  (Layer)
+import Data.Graph.Data.Layer.Layout ((:=), Layout)
 import OCI.IR.Term.Class           (Term)
 
 

@@ -4,10 +4,10 @@ module OCI.Pass.State.Encoder where
 
 import Prologue
 
-import qualified Data.Graph.Component.Definition.Class      as Component
-import qualified Data.Graph.Component.Definition.Dynamic    as Component
-import qualified Data.Graph.Component.Layer.Class      as Layer
-import qualified Data.Graph.Component.Management.Provider   as Component
+import qualified Data.Graph.Data.Component.Class      as Component
+import qualified Data.Graph.Data.Component.Dynamic    as Component
+import qualified Data.Graph.Data.Layer.Class      as Layer
+import qualified Data.Graph.Data.Component.Provider   as Component
 import qualified Data.Map                        as Map
 import qualified Data.TypeMap.Strict             as TypeMap
 import qualified Foreign.Marshal.Alloc           as Mem
@@ -22,7 +22,7 @@ import qualified OCI.Pass.State.Runtime          as Runtime
 import qualified OCI.Pass.State.Runtime          as Pass
 
 import Control.Monad.Exception    (Throws, throw)
-import Data.Graph.Component.Definition.Class (Component, SomeComponent)
+import Data.Graph.Data.Component.Class (Component, SomeComponent)
 import Data.Map.Strict            (Map)
 import Data.TypeMap.Strict        (TypeMap)
 import Foreign.Info.ByteSize      (ByteSize (ByteSize))

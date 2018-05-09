@@ -11,7 +11,7 @@ import           Text.Parser.Combinators
 
 import qualified Control.Monad.State.Layered               as State
 import qualified Data.Char                                 as Char
-import qualified Data.Graph.Component.Layer.Layout               as Layout
+import qualified Data.Graph.Data.Layer.Layout               as Layout
 import qualified Data.Set                                  as Set
 import qualified Data.Text.Span                            as Span
 import qualified Data.Text32                               as Text32

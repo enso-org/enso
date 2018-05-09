@@ -8,8 +8,8 @@ import Prologue
 import Test.Hspec.Expectations.Lifted
 
 import qualified Control.Monad.State.Layered           as State
-import qualified Data.Graph.Component                  as Component
-import qualified Data.Graph.Component.Layer.Layout           as Layout
+import qualified Data.Graph.Data                  as Component
+import qualified Data.Graph.Data.Layer.Layout           as Layout
 import qualified Data.Set.Mutable.Class                as Set
 import qualified Foreign.Marshal.Alloc                 as Mem
 import qualified Foreign.Storable                      as Storable

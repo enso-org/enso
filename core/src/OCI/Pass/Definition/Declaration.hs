@@ -6,14 +6,14 @@ module OCI.Pass.Definition.Declaration where
 import Prologue
 
 import qualified Control.Monad.State.Layered  as State
-import qualified Data.Graph.Component         as Component
-import qualified Data.Graph.Component.Definition.Dynamic as Component
-import qualified Data.Graph.Component.Layer.Class   as Layer
+import qualified Data.Graph.Data         as Component
+import qualified Data.Graph.Data.Component.Dynamic as Component
+import qualified Data.Graph.Data.Layer.Class   as Layer
 import qualified Data.TypeMap.Strict          as TypeMap
 import qualified Type.Data.List               as List
 
 import Control.Monad.State.Layered (StateT)
-import Data.Graph.Component.Definition.Class  (Component)
+import Data.Graph.Data.Component.Class  (Component)
 import Data.TypeMap.Strict         (TypeMap)
 import Foreign.Info.ByteSize       (ByteSize)
 import Foreign.Memory.Pool         (MemPool)
