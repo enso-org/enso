@@ -39,17 +39,6 @@ class Definition pass where
     definition :: Pass pass ()
 
 
--- === Discovery === --
-
-type family DiscoverPass m where
-    DiscoverPass (Pass pass) = pass
-    DiscoverPass (t m)       = DiscoverPass m
-
-type DiscoverState       m = Runtime.State       (DiscoverPass m)
-type DiscoverStateData   m = Runtime.StateData   (DiscoverPass m)
-type DiscoverStateLayout m = Runtime.StateLayout (DiscoverPass m)
-
-
 -- === API === --
 
 exec :: ∀ pass a. Pass pass a -> Runtime.State pass -> IO (Runtime.State pass)
@@ -66,6 +55,14 @@ instance State.Getter (Runtime.State pass) (Pass pass) where
 
 instance State.Setter (Runtime.State pass) (Pass pass) where
     put = wrap . State.put' ; {-# INLINE put #-}
+
+instance {-# OVERLAPPABLE #-} Runtime.Getter pass a (Pass pass)
+      => State.Getter a (Pass pass) where
+    get = Runtime.get @pass ; {-# INLINE get #-}
+
+instance {-# OVERLAPPABLE #-} Runtime.Setter pass a (Pass pass)
+      => State.Setter a (Pass pass) where
+    put = Runtime.put @pass ; {-# INLINE put #-}
 
 
 -- === Layer Reader / Writer === --
@@ -126,42 +123,3 @@ rep = wrap $ someTypeRep @pass ; {-# INLINE rep #-}
 repOf :: ∀ pass a. Typeable pass => Pass pass a -> Rep
 repOf _ = rep @pass ; {-# INLINE repOf #-}
 
-
-
--------------------------
---- === MonadState === --
--------------------------
-
--- === Definition === --
-
-type MonadState m = State.Monad (DiscoverState m) m
-
-
--- === API === --
-
-class Monad m => DataGetter a m where getData :: m a
-class Monad m => DataSetter a m where putData :: a -> m ()
-
-instance Monad m => DataGetter Imp m     where getData = impossible
-instance Monad m => DataSetter Imp m     where putData = impossible
-instance            DataGetter a   ImpM1 where getData = impossible
-instance            DataSetter a   ImpM1 where putData = impossible
-
-instance (Monad m, MonadState m, TypeMap.ElemGetter a (DiscoverStateLayout m))
-    => DataGetter a m where
-    getData = TypeMap.getElem @a . unwrap <$> State.get @(DiscoverState m) ; {-# INLINE getData #-}
-
-instance (Monad m, MonadState m, TypeMap.ElemSetter a (DiscoverStateLayout m))
-    => DataSetter a m where
-    putData a = State.modify_ @(DiscoverState m) $ wrapped %~ TypeMap.setElem a ; {-# INLINE putData #-}
-
-
--- === Accessing pass data === --
-
-instance {-# OVERLAPPABLE #-} DataGetter t (Pass pass)
-    => State.Getter t (Pass pass) where
-    get = getData @t ; {-# INLINE get #-}
-
-instance {-# OVERLAPPABLE #-} DataSetter t (Pass pass)
-    => State.Setter t (Pass pass) where
-    put = putData @t ; {-# INLINE put #-}

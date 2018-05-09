@@ -10,6 +10,7 @@ import qualified Data.Graph.Component         as Component
 import qualified Data.Graph.Component.Dynamic as Component
 import qualified Data.Graph.Component.Layer   as Layer
 import qualified Data.TypeMap.Strict          as TypeMap
+import qualified OCI.Pass.State.IRInfo        as IRInfo
 import qualified Type.Data.List               as List
 
 import Control.Monad.State.Layered     (StateT)
@@ -93,3 +94,38 @@ makeLenses ''State
 
 deriving instance Show    (StateData pass) => Show    (State pass)
 deriving instance Default (StateData pass) => Default (State pass)
+
+
+
+------------------------
+-- === MonadState === --
+------------------------
+
+-- | Local State Monad. It is just a nice interface for accessing elements
+--   handling all needed special cases.
+
+-- === Definition === --
+
+class Monad m => Getter pass a m where get :: m a
+class Monad m => Setter pass a m where put :: a -> m ()
+
+instance {-# OVERLAPPABLE #-}
+    ( Monad m
+    , TypeMap.ElemGetter a (StateLayout pass)
+    , State.Getter (State pass) m)
+    => Getter pass a m where
+    get = TypeMap.getElem @a . unwrap <$> State.get @(State pass) ; {-# INLINE get #-}
+
+instance {-# OVERLAPPABLE #-}
+    ( Monad m
+    , TypeMap.ElemSetter a (StateLayout pass)
+    , State.Monad (State pass) m)
+    => Setter pass a m where
+    put t = State.modify_ @(State pass) $ wrapped %~ TypeMap.setElem t ; {-# INLINE put #-}
+
+instance (Getter pass CompiledIRInfo m, Monad m)
+      => Getter pass Component.DynamicTraversalMap m where
+    get = wrap . fmap (view IRInfo.layersComponents)
+               . view IRInfo.compiledComponents
+      <$> get @pass @CompiledIRInfo
+    {-# INLINE get #-}

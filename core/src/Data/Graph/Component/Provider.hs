@@ -4,6 +4,7 @@ module Data.Graph.Component.Provider where
 
 import Prologue
 
+import qualified Data.Graph.Component.Class   as Component
 import qualified Data.Graph.Component.Dynamic as Component
 import qualified Data.Graph.Component.Layer   as Layer
 import qualified Data.Graph.Component.Layout  as Layout
@@ -13,8 +14,8 @@ import qualified Data.Vector.Storable.Foreign as Foreign
 
 import Data.Generics.Traversable  (GTraversable, gfoldlM)
 import Data.Graph.Component.Class (Component, SomeComponent)
+import Data.Map.Strict            (Map)
 import Foreign.Ptr.Utils          (SomePtr)
-
 
 
 ----------------------
@@ -166,8 +167,11 @@ instance Typeable tag
 -- === DynamicTraversal === --
 ------------------------------
 
-newtype DynamicTraversal comp = DynamicTraversal (SomePtr -> IO [Component.Dynamic])
+type DynamicTraversalSig = SomePtr -> IO [Component.Dynamic]
+newtype DynamicTraversal comp = DynamicTraversal DynamicTraversalSig
 makeLenses ''DynamicTraversal
 
--- newtype DynamicTraversalMap = DynamicTraversalMap
+newtype DynamicTraversalMap = DynamicTraversalMap
+    (Map Component.TagRep DynamicTraversalSig)
+makeLenses ''DynamicTraversalMap
 

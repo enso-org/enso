@@ -70,7 +70,7 @@ class StateEncoder fields where
 -- === API === --
 
 tryRun :: ∀ pass. Encoder pass => CompiledIRInfo -> EncoderResult (Pass.State pass)
-tryRun = fmap Runtime.State . encodeState ; {-# NOINLINE tryRun #-}
+tryRun = fmap Runtime.State . encodeState
 
 run :: ∀ pass m. (Encoder pass, Throws Error m)
     => CompiledIRInfo -> m (Pass.State pass)

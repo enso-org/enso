@@ -168,7 +168,8 @@ foreign import ccall unsafe "c_ptr_rwloop"
     c_ptr_rwloop :: Int -> Int -> IO Int
 
 readWrite_cptr :: Bench
-readWrite_cptr = Bench "cptr" $ void . c_ptr_rwloop 1 ; {-# INLINE readWrite_cptr #-}
+readWrite_cptr = Bench "cptr" $ void . c_ptr_rwloop 1
+{-# INLINE readWrite_cptr #-}
 
 readWrite_ptr :: Bench
 readWrite_ptr = Bench "rawPtr" $ \i -> do
@@ -183,7 +184,8 @@ readWrite_ptr = Bench "rawPtr" $ \i -> do
 {-# NOINLINE readWrite_ptr #-}
 
 mockNewComponent :: MonadIO m => m (IR.Term Format.Draft)
-mockNewComponent = Component . coerce <$> MemPool.allocPtr @(IR.UniTerm ()) ; {-# INLINE mockNewComponent #-}
+mockNewComponent = Component . coerce <$> MemPool.allocPtr @(IR.UniTerm ())
+{-# INLINE mockNewComponent #-}
 
 readWrite_expTM :: Bench
 readWrite_expTM = Bench "explicitTypeMap" $ \i -> do
@@ -225,7 +227,8 @@ readWrite_layerMock = Bench "staticRun" $ \i -> do
     Pass.eval (go i) state
     where layerLoc :: Int
           layerLoc = 0
-          localRegistry :: (Registry.Monad m, MonadIO m) => m IRInfo.CompiledIRInfo
+          localRegistry :: (Registry.Monad m, MonadIO m)
+                        => m IRInfo.CompiledIRInfo
           localRegistry = do
                Runner.registerAll
                reg     <- State.get @IRInfo.IRInfo
@@ -275,15 +278,15 @@ createIR_normal = Bench "normal" $ \i -> runPass' $ do
 -- === IR Discovery === --
 --------------------------
 
--- discoverIR_simple :: Bench
--- discoverIR_simple = Bench "simple" $ \i -> runPass' $ do
---     v <- IR.var "a"
---     let go !0 = pure ()
---         go !j = do
---             !_ <- Discovery.discover v
---             go $! j - 1
---     go i
--- {-# NOINLINE discoverIR_simple #-}
+discoverIR_simple :: Bench
+discoverIR_simple = Bench "simple" $ \i -> runPass' $ do
+    v <- IR.var "a"
+    let go !0 = pure ()
+        go !j = do
+            !_ <- Discovery.discover v
+            go $! j - 1
+    go i
+{-# NOINLINE discoverIR_simple #-}
 
 
 
@@ -326,9 +329,9 @@ benchmarks = Criterion.defaultMain
             , createIR_normal
             ]
 
-        -- , "discovery" $ bench 6 <$>
-        --     [ discoverIR_simple
-        --     ]
+        , "discovery" $ bench 6 <$>
+            [ discoverIR_simple
+            ]
         ]
     ]
 

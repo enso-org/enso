@@ -8,6 +8,7 @@ import Prologue
 import Test.Hspec.Expectations.Lifted
 
 import qualified Data.Graph.Component.Discovery as Discovery
+import qualified Data.Graph.Component.Dynamic   as Component
 import qualified Data.Graph.Component.Layout    as Layout
 import qualified Data.Set.Mutable.Class         as Set
 import qualified Luna.IR                        as IR
@@ -132,11 +133,10 @@ irDestructSpec = describe "ir dispose" $ do
 irDiscoverySpec :: Spec
 irDiscoverySpec = describe "ir discovery" $ do
     it "simple" $ runPass' $ do
-        v <- IR.var "a"
-        x <- Discovery.discover v
-        putStrLn ""
-        pprint x
-        True `shouldBe` False
+        v     <- IR.var "a"
+        terms <- Discovery.discover v
+        -- 4 = [term, link to type, type, link to itself]:
+        length (toList terms) `shouldBe` 4
 
 
 spec :: Spec
