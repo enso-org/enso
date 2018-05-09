@@ -5,7 +5,7 @@ import Prologue
 import qualified Data.Graph.Component.Class   as Component
 import qualified Data.Graph.Component.Dynamic as Component
 import qualified Data.Graph.Component.Layer   as Layer
-import qualified Data.Map                     as Map
+import qualified Data.Map.Strict              as Map
 import qualified Foreign.Marshal.Alloc        as Mem
 import qualified Foreign.Marshal.Utils        as Mem
 import qualified Foreign.Memory.Pool          as MemPool

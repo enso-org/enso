@@ -19,6 +19,7 @@ data Dynamic = Dynamic
     { _rep :: !Component.Rep
     , _ptr :: !SomePtr
     } deriving (Show)
+makeLenses ''Dynamic
 
 
 -- === API === --
@@ -42,3 +43,9 @@ fromDynamicRelayout (Dynamic (Component.Rep trep _) ptr)
         then Just $ Component.unsafeFromPtr ptr
         else Nothing
 {-# INLINE fromDynamicRelayout #-}
+
+
+-- === Instances === --
+
+instance Eq  Dynamic where (==)    = (==)    `on` view ptr ; {-# INLINE (==)    #-}
+instance Ord Dynamic where compare = compare `on` view ptr ; {-# INLINE compare #-}

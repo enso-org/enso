@@ -70,20 +70,19 @@ class StateEncoder fields where
 -- === API === --
 
 tryRun :: ∀ pass. Encoder pass => CompiledIRInfo -> EncoderResult (Pass.State pass)
-tryRun = fmap Runtime.State . encodeState ; {-# INLINE tryRun #-}
+tryRun = fmap Runtime.State . encodeState ; {-# NOINLINE tryRun #-}
 
 run :: ∀ pass m. (Encoder pass, Throws Error m)
     => CompiledIRInfo -> m (Pass.State pass)
 run cfg = case tryRun cfg of
     Left  e -> throw e
     Right a -> pure a
-{-# INLINE run #-}
 
 
 -- === Instances === --
 
 instance StateEncoder '[] where
-    encodeState _ = pure TypeMap.empty ; {-# INLINE encodeState #-}
+    encodeState _ = pure TypeMap.empty
 
 instance ( TypeMap.Prependable t ts
          , FieldEncoder t
@@ -91,7 +90,7 @@ instance ( TypeMap.Prependable t ts
          ) => StateEncoder (t ': ts) where
     encodeState info = appSemiLeft (TypeMap.prepend <$> encodeField @t info)
                      $ encodeState @ts info
-    {-# INLINE encodeState #-}
+
 
 
 --------------------------
@@ -106,41 +105,32 @@ class FieldEncoder field where
 
 -- === Instances === --
 
-instance Typeables '[comp,layer]
-      => FieldEncoder (Pass.LayerByteOffset comp layer) where
-    encodeField info = do
-        compInfo  <- lookupComp  @comp  $ info ^. IRInfo.compiledComponents
-        layerInfo <- lookupLayer @layer $ compInfo ^. IRInfo.compiledLayers
-        pure . wrap $ layerInfo ^. IRInfo.byteOffset
-    {-# INLINE encodeField #-}
+instance FieldEncoder CompiledIRInfo where
+    encodeField = pure
+
+instance Default (Attr a)
+      => FieldEncoder (Attr a) where
+    encodeField _ = pure def
 
 instance Typeable comp
       => FieldEncoder (ByteSize (Component comp)) where
     encodeField info = do
         compInfo <- lookupComp  @comp  $ info ^. IRInfo.compiledComponents
         pure . wrap $ compInfo ^. IRInfo.layersByteSize
-    {-# INLINE encodeField #-}
 
-instance Default (Attr a)
-      => FieldEncoder (Attr a) where
-    encodeField _ = pure def
-    {-# INLINE encodeField #-}
-
-instance (Typeable comp)
-      => FieldEncoder (MemPool (SomeComponent comp)) where
-    encodeField info = do
-        compInfo <- lookupComp @comp $ info ^. IRInfo.compiledComponents
-        pure . coerce $ compInfo ^. IRInfo.memPool
-    {-# INLINE encodeField #-}
-
-instance (Typeable comp)
+instance Typeable comp
       => FieldEncoder (Component.DynamicTraversal comp) where
     encodeField info = do
         compInfo <- lookupComp @comp $ info ^. IRInfo.compiledComponents
         pure . wrap $ compInfo ^. IRInfo.layersComponents
-    {-# INLINE encodeField #-}
 
-instance (Typeable comp)
+instance Typeable comp
+      => FieldEncoder (MemPool (SomeComponent comp)) where
+    encodeField info = do
+        compInfo <- lookupComp @comp $ info ^. IRInfo.compiledComponents
+        pure . coerce $ compInfo ^. IRInfo.memPool
+
+instance Typeable comp
       => FieldEncoder (Layer.DynamicManager comp) where
     encodeField info = do
         compInfo <- lookupComp @comp $ info ^. IRInfo.compiledComponents
@@ -148,7 +138,13 @@ instance (Typeable comp)
             (compInfo ^. IRInfo.layersInitializer)
             (compInfo ^. IRInfo.layersConstructor)
             (compInfo ^. IRInfo.layersDestructor)
-    {-# INLINE encodeField #-}
+
+instance Typeables '[comp,layer]
+      => FieldEncoder (Pass.LayerByteOffset comp layer) where
+    encodeField info = do
+        compInfo  <- lookupComp  @comp  $ info ^. IRInfo.compiledComponents
+        layerInfo <- lookupLayer @layer $ compInfo ^. IRInfo.compiledLayers
+        pure . wrap $ layerInfo ^. IRInfo.byteOffset
 
 
 -- === Helpers === --
@@ -157,13 +153,11 @@ lookupComp :: ∀ comp a. Typeable comp
            => Map Component.TagRep a -> EncoderResult a
 lookupComp m = justErr (Error . pure $ MissingComponent k) $ Map.lookup k m
     where k = Component.tagRep @comp
-{-# INLINE lookupComp #-}
 
 lookupLayer :: ∀ layer a. Typeable layer
             => Map Layer.Rep a -> EncoderResult a
 lookupLayer m = justErr (Error . pure $ MissingLayer k) $ Map.lookup k m
     where k = Layer.rep @layer
-{-# INLINE lookupLayer #-}
 
 appSemiLeft :: Semigroup e
             => (Either e (a -> b)) -> Either e a -> Either e b
@@ -174,7 +168,6 @@ appSemiLeft f a = case f of
     Right ff -> case a of
         Left e   -> Left e
         Right aa -> Right $ ff aa
-{-# INLINE appSemiLeft #-}
 
 
 

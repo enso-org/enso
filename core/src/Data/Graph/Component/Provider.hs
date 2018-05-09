@@ -168,3 +168,6 @@ instance Typeable tag
 
 newtype DynamicTraversal comp = DynamicTraversal (SomePtr -> IO [Component.Dynamic])
 makeLenses ''DynamicTraversal
+
+-- newtype DynamicTraversalMap = DynamicTraversalMap
+

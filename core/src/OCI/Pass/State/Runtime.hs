@@ -64,7 +64,7 @@ type ComputeStateLayout pass
    <> MapComponentByteSize                (Vars pass Elems)
    <> List.Map Component.DynamicTraversal (Vars pass Elems)
    <> List.Map Layer.DynamicManager       (Vars pass Elems)
---    <> '[CompiledIRInfo]
+   <> '[CompiledIRInfo]
 
 type MapLayerByteOffset p c = MapOverCompsAndVars LayerByteOffset p c
 
