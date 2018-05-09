@@ -8,7 +8,7 @@ import qualified Control.Lens.Aeson          as Lens
 import qualified Control.Monad.State         as State
 import qualified Data.Aeson                  as Aeson
 import qualified Data.ByteString.Lazy.Char8  as ByteString
-import qualified Data.Graph.Component.Layout as IR
+import qualified Data.Graph.Component.Layer.Layout as IR
 import qualified Data.Map                    as Map
 import qualified Data.Set                    as Set
 import qualified Data.Tag                    as Tag

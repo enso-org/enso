@@ -1,13 +1,13 @@
 {-# LANGUAGE TypeInType           #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Data.Graph.Component.Container where
+module Data.Graph.Container.Set where
 
-import Data.Graph.Component.Class
+import Data.Graph.Component.Definition.Class
 import Prologue
 
 import qualified Data.Construction             as Data
-import qualified Data.Graph.Component.Provider as Component
+import qualified Data.Graph.Component.Management.Provider as Component
 import qualified Data.Set.Mutable.Class        as Set
 import qualified Foreign.Storable1.Deriving    as Storable1
 

@@ -5,11 +5,11 @@ module OCI.IR.Term.Layer.Users where
 
 import Prologue hiding (Type)
 
-import qualified Data.Graph.Component.Layer  as Layer
-import qualified Data.Graph.Component.Layout as Layout
+import qualified Data.Graph.Component.Layer.Class  as Layer
+import qualified Data.Graph.Component.Layer.Layout as Layout
 import qualified OCI.IR.Link.Class           as Link
 
-import Data.Graph.Component.Layer (Layer)
+import Data.Graph.Component.Layer.Class (Layer)
 import OCI.IR.Link.Class          (type (*-*))
 import OCI.IR.Term.Layer.Model    (Model)
 

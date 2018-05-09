@@ -7,14 +7,14 @@ import Prologue
 
 import qualified Control.Monad.State.Layered  as State
 import qualified Data.Graph.Component         as Component
-import qualified Data.Graph.Component.Dynamic as Component
-import qualified Data.Graph.Component.Layer   as Layer
+import qualified Data.Graph.Component.Definition.Dynamic as Component
+import qualified Data.Graph.Component.Layer.Class   as Layer
 import qualified Data.TypeMap.Strict          as TypeMap
 import qualified OCI.Pass.State.IRInfo        as IRInfo
 import qualified Type.Data.List               as List
 
 import Control.Monad.State.Layered     (StateT)
-import Data.Graph.Component.Class      (Component)
+import Data.Graph.Component.Definition.Class      (Component)
 import Data.TypeMap.Strict             (TypeMap)
 import Foreign.Info.ByteSize           (ByteSize)
 import Foreign.Memory.Pool             (MemPool)

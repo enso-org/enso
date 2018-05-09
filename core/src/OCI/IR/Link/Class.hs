@@ -5,12 +5,12 @@ module OCI.IR.Link.Class where
 import Prologue
 
 import qualified Data.Graph.Component        as Component
-import qualified Data.Graph.Component.Layer  as Layer
-import qualified Data.Graph.Component.Layout as Layout
+import qualified Data.Graph.Component.Layer.Class  as Layer
+import qualified Data.Graph.Component.Layer.Layout as Layout
 
 import Data.Graph.Component        (SomeComponent)
-import Data.Graph.Component.Layer  (Layer)
-import Data.Graph.Component.Layout ((:=), Layout)
+import Data.Graph.Component.Layer.Class  (Layer)
+import Data.Graph.Component.Layer.Layout ((:=), Layout)
 import OCI.IR.Term.Class           (Term)
 
 

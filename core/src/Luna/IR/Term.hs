@@ -13,7 +13,7 @@ import Luna.IR.Term.Literal   as X
 
 import qualified Data.Construction             as Data
 import qualified Data.Generics.Traversable     as GTraversable
-import qualified Data.Graph.Component.Provider as Component
+import qualified Data.Graph.Component.Management.Provider as Component
 import qualified OCI.IR.Link                   as Link
 import qualified OCI.IR.Term.Class             as Term
 import qualified OCI.IR.Term.Definition        as Term

@@ -3,10 +3,10 @@ module OCI.Pass.Management.Registry where
 import Prologue as P
 
 import qualified Control.Monad.State.Layered   as State
-import qualified Data.Graph.Component.Class    as Component
-import qualified Data.Graph.Component.Dynamic  as Component
-import qualified Data.Graph.Component.Layer    as Layer
-import qualified Data.Graph.Component.Provider as Component
+import qualified Data.Graph.Component.Definition.Class    as Component
+import qualified Data.Graph.Component.Definition.Dynamic  as Component
+import qualified Data.Graph.Component.Layer.Class    as Layer
+import qualified Data.Graph.Component.Management.Provider as Component
 import qualified Data.Map.Strict               as Map
 import qualified Foreign.Storable1             as Storable1
 import qualified Foreign.Storable1.Ptr         as Ptr1
@@ -14,7 +14,7 @@ import qualified OCI.Pass.State.IRInfo         as IRInfo
 
 import Control.Monad.Exception     (Throws, throw)
 import Control.Monad.State.Layered (StateT)
-import Data.Graph.Component.Layer  (Layer)
+import Data.Graph.Component.Layer.Class  (Layer)
 import Data.Map.Strict             (Map)
 import Foreign.Ptr.Utils           (SomePtr)
 import Foreign.Storable1           (Storable1)
@@ -66,7 +66,8 @@ registerComponentRep comp = State.modify_ @IRInfo
 {-# INLINE registerComponentRep #-}
 
 registerComponent :: ∀ comp m. (MonadRegistry m, Typeable comp) => m ()
-registerComponent = registerComponentRep (Component.tagRep @comp) ; {-# INLINE registerComponent #-}
+registerComponent = registerComponentRep (Component.tagRep @comp)
+{-# INLINE registerComponent #-}
 
 registerPrimLayer :: ∀ comp layer m.
     ( MonadRegistry m

@@ -5,8 +5,8 @@ module Luna.IR.Term.Core where
 
 import Prologue
 
-import qualified Data.Graph.Component.Layer  as Layer
-import qualified Data.Graph.Component.Layout as Layout
+import qualified Data.Graph.Component.Layer.Class  as Layer
+import qualified Data.Graph.Component.Layer.Layout as Layout
 import qualified Luna.IR.Term.Format         as Format
 import qualified OCI.IR.Link                 as Link
 import qualified OCI.IR.Term.Construction    as Term

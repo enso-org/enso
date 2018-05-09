@@ -5,27 +5,27 @@ module Luna.Test.Bench.IR where
 
 import Prologue
 
-import qualified Control.Monad.State.Layered    as State
-import qualified Criterion.Main                 as Criterion
-import qualified Criterion.Measurement          as Criterion
-import qualified Data.Graph.Component.Discovery as Discovery
-import qualified Data.Graph.Component.Layer     as Layer
-import qualified Data.Tuple.Strict              as Tuple
-import qualified Data.TypeMap.Strict            as TypeMap
-import qualified Foreign.Marshal.Alloc          as Ptr
-import qualified Foreign.Marshal.Utils          as Ptr
-import qualified Foreign.Memory.Pool            as MemPool
-import qualified Foreign.Storable               as Storable
-import qualified Luna.IR                        as IR
-import qualified Luna.IR.Term.Format            as Format
-import qualified Luna.Pass                      as Pass
-import qualified Luna.Pass.Scheduler            as Scheduler
-import qualified Luna.Runner                    as Runner
-import qualified OCI.Pass.Definition.Class      as Pass
-import qualified OCI.Pass.Management.Registry   as Registry
-import qualified OCI.Pass.State.Encoder         as Encoder
-import qualified OCI.Pass.State.IRInfo          as IRInfo
-import qualified System.Console.ANSI            as ANSI
+import qualified Control.Monad.State.Layered               as State
+import qualified Criterion.Main                            as Criterion
+import qualified Criterion.Measurement                     as Criterion
+import qualified Data.Graph.Component.Layer.Class          as Layer
+import qualified Data.Graph.Component.Management.Discovery as Discovery
+import qualified Data.Tuple.Strict                         as Tuple
+import qualified Data.TypeMap.Strict                       as TypeMap
+import qualified Foreign.Marshal.Alloc                     as Ptr
+import qualified Foreign.Marshal.Utils                     as Ptr
+import qualified Foreign.Memory.Pool                       as MemPool
+import qualified Foreign.Storable                          as Storable
+import qualified Luna.IR                                   as IR
+import qualified Luna.IR.Term.Format                       as Format
+import qualified Luna.Pass                                 as Pass
+import qualified Luna.Pass.Scheduler                       as Scheduler
+import qualified Luna.Runner                               as Runner
+import qualified OCI.Pass.Definition.Class                 as Pass
+import qualified OCI.Pass.Management.Registry              as Registry
+import qualified OCI.Pass.State.Encoder                    as Encoder
+import qualified OCI.Pass.State.IRInfo                     as IRInfo
+import qualified System.Console.ANSI                       as ANSI
 
 import Control.DeepSeq      (force)
 import Control.Exception    (evaluate)
@@ -329,7 +329,7 @@ benchmarks = Criterion.defaultMain
             , createIR_normal
             ]
 
-        , "discovery" $ bench 6 <$>
+        , "discovery" $ bench 5 <$>
             [ discoverIR_simple
             ]
         ]

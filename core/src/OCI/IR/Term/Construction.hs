@@ -6,8 +6,8 @@ module OCI.IR.Term.Construction where
 import Prologue
 
 import qualified Data.Graph.Component        as Component
-import qualified Data.Graph.Component.Layer  as Layer
-import qualified Data.Graph.Component.Layout as Layout
+import qualified Data.Graph.Component.Layer.Class  as Layer
+import qualified Data.Graph.Component.Layer.Layout as Layout
 import qualified OCI.IR.Link                 as Link
 import qualified OCI.IR.Term.Class           as Term
 import qualified OCI.IR.Term.Layer           as Layer

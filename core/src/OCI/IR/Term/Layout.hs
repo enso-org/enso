@@ -2,10 +2,10 @@
 
 module OCI.IR.Term.Layout where
 
-import qualified Data.Graph.Component.Layout as Layout
+import qualified Data.Graph.Component.Layer.Layout as Layout
 import qualified OCI.IR.Term.Class           as Term
 
-import Data.Graph.Component.Layout ((:=), Layout)
+import Data.Graph.Component.Layer.Layout ((:=), Layout)
 import OCI.IR.Term.Class           (Terms)
 import OCI.IR.Term.Layer.Model     (Model)
 

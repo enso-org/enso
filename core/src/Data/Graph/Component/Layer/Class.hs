@@ -1,7 +1,7 @@
 {-# LANGUAGE CPP                  #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Data.Graph.Component.Layer where
+module Data.Graph.Component.Layer.Class where
 
 import Prologue hiding (Data, Wrapped)
 

@@ -7,7 +7,7 @@ import Prologue
 
 import qualified Control.Lens.TH                    as Lens
 import qualified Data.Generics.Traversable.Deriving as GTraversable
-import qualified Data.Graph.Component.Layout        as Layout
+import qualified Data.Graph.Component.Layer.Layout        as Layout
 import qualified Data.Tag                           as Tag
 import qualified Foreign.Storable.Deriving          as Storable
 import qualified Foreign.Storable1.Deriving         as Storable1

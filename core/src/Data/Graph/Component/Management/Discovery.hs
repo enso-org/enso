@@ -1,16 +1,16 @@
-module Data.Graph.Component.Discovery where
+module Data.Graph.Component.Management.Discovery where
 
 import Prologue
 
 import qualified Control.Monad.State.Layered  as State
-import qualified Data.Graph.Component.Class   as Component
-import qualified Data.Graph.Component.Dynamic as Component
-import qualified Data.Graph.Component.Dynamic as Dynamic
+import qualified Data.Graph.Component.Definition.Class   as Component
+import qualified Data.Graph.Component.Definition.Dynamic as Component
+import qualified Data.Graph.Component.Definition.Dynamic as Dynamic
 import qualified Data.Map.Strict              as Map
 import qualified Data.Set                     as Set
 
-import Data.Graph.Component.Class    (Component)
-import Data.Graph.Component.Provider (DynamicTraversalMap (..))
+import Data.Graph.Component.Definition.Class    (Component)
+import Data.Graph.Component.Management.Provider (DynamicTraversalMap (..))
 import Data.Set                      (Set)
 
 

@@ -1,25 +1,26 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Data.Graph.Component.Class (module Data.Graph.Component.Class, module X) where
+module Data.Graph.Component.Definition.Class
+    (module Data.Graph.Component.Definition.Class, module X) where
 import Data.Construction as X (construct', construct1', destruct, destruct1)
 
 import Prologue hiding (ConversionError)
 
-import qualified Control.Monad.State.Layered as State
-import qualified Data.Construction           as Data
-import qualified Data.Graph.Component.Layer  as Layer
-import qualified Data.Tag                    as Tag
-import qualified Foreign.Info.ByteSize       as ByteSize
-import qualified Foreign.Marshal.Utils       as Mem
-import qualified Foreign.Memory.Pool         as MemPool
-import qualified Foreign.Ptr                 as Ptr
-import qualified Foreign.Storable1.Deriving  as Storable1
-import qualified Language.Haskell.TH         as TH
+import qualified Control.Monad.State.Layered      as State
+import qualified Data.Construction                as Data
+import qualified Data.Graph.Component.Layer.Class as Layer
+import qualified Data.Tag                         as Tag
+import qualified Foreign.Info.ByteSize            as ByteSize
+import qualified Foreign.Marshal.Utils            as Mem
+import qualified Foreign.Memory.Pool              as MemPool
+import qualified Foreign.Ptr                      as Ptr
+import qualified Foreign.Storable1.Deriving       as Storable1
+import qualified Language.Haskell.TH              as TH
 
-import Data.Graph.Component.Layout (Relayout, UnsafeRelayout)
-import Foreign.Memory.Pool         (MemPool)
-import Foreign.Ptr.Utils           (SomePtr)
-import Foreign.Storable            (Storable)
+import Data.Graph.Component.Layer.Layout (Relayout, UnsafeRelayout)
+import Foreign.Memory.Pool               (MemPool)
+import Foreign.Ptr.Utils                 (SomePtr)
+import Foreign.Storable                  (Storable)
 
 
 

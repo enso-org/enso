@@ -6,7 +6,7 @@ module OCI.IR.Term.Class where
 import Prologue
 
 import qualified Data.Graph.Component        as Component
-import qualified Data.Graph.Component.Layout as Layout
+import qualified Data.Graph.Component.Layer.Layout as Layout
 import qualified Data.Tag                    as Tag
 import qualified Type.Show                   as Type
 
