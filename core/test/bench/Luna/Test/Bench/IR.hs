@@ -5,32 +5,34 @@ module Luna.Test.Bench.IR where
 
 import Prologue
 
-import qualified Control.Monad.State.Layered               as State
-import qualified Criterion.Main                            as Criterion
-import qualified Criterion.Measurement                     as Criterion
-import qualified Data.Graph.Data.Layer.Class          as Layer
-import qualified Data.Graph.Traversal.Discovery as Discovery
-import qualified Data.Tuple.Strict                         as Tuple
-import qualified Data.TypeMap.Strict                       as TypeMap
-import qualified Foreign.Marshal.Alloc                     as Ptr
-import qualified Foreign.Marshal.Utils                     as Ptr
-import qualified Foreign.Memory.Pool                       as MemPool
-import qualified Foreign.Storable                          as Storable
-import qualified Luna.IR                                   as IR
-import qualified Luna.IR.Term.Format                       as Format
-import qualified Luna.Pass                                 as Pass
-import qualified Luna.Pass.Scheduler                       as Scheduler
-import qualified Luna.Runner                               as Runner
-import qualified OCI.Pass.Definition.Class                 as Pass
-import qualified OCI.Pass.Management.Registry              as Registry
-import qualified OCI.Pass.State.Encoder                    as Encoder
-import qualified OCI.Pass.State.IRInfo                     as IRInfo
-import qualified System.Console.ANSI                       as ANSI
+import qualified Control.Monad.State.Layered           as State
+import qualified Criterion.Main                        as Criterion
+import qualified Criterion.Measurement                 as Criterion
+import qualified Data.Graph.Component.Node.Destruction as IR
+import qualified Data.Graph.Data.Component.Class       as Component
+import qualified Data.Graph.Data.Layer.Class           as Layer
+import qualified Data.Graph.Traversal.Discovery        as Discovery
+import qualified Data.Tuple.Strict                     as Tuple
+import qualified Data.TypeMap.Strict                   as TypeMap
+import qualified Foreign.Marshal.Alloc                 as Ptr
+import qualified Foreign.Marshal.Utils                 as Ptr
+import qualified Foreign.Memory.Pool                   as MemPool
+import qualified Foreign.Storable                      as Storable
+import qualified Luna.IR                               as IR
+import qualified Luna.IR.Term.Format                   as Format
+import qualified Luna.Pass                             as Pass
+import qualified Luna.Pass.Scheduler                   as Scheduler
+import qualified Luna.Runner                           as Runner
+import qualified OCI.Pass.Definition.Class             as Pass
+import qualified OCI.Pass.Management.Registry          as Registry
+import qualified OCI.Pass.State.Encoder                as Encoder
+import qualified OCI.Pass.State.IRInfo                 as IRInfo
+import qualified System.Console.ANSI                   as ANSI
 
-import Control.DeepSeq      (force)
-import Control.Exception    (evaluate)
-import Data.Graph.Data (Component (Component))
-import Luna.Pass            (Pass)
+import Control.DeepSeq   (force)
+import Control.Exception (evaluate)
+import Data.Graph.Data   (Component (Component))
+import Luna.Pass         (Pass)
 
 
 
@@ -272,6 +274,47 @@ createIR_normal = Bench "normal" $ \i -> runPass' $ do
     go i
 {-# NOINLINE createIR_normal #-}
 
+createIR_normal2 :: Bench
+createIR_normal2 = Bench "normal2" $ \i -> runPass' $ do
+    let go !0 = pure ()
+        go !j = do
+            !v <- IR.var 0
+            IR.delete v
+            go $! j - 1
+    go i
+{-# NOINLINE createIR_normal2 #-}
+
+createIR_normal3 :: Bench
+createIR_normal3 = Bench "normal3" $ \i -> runPass' $ do
+    let go !0 = pure ()
+        go !j = do
+            !v <- IR.var 0
+            !tpLink <- Layer.read @IR.Type v
+            -- Component.destruct tpLink
+            Component.destruct v
+            go $! j - 1
+    go i
+{-# NOINLINE createIR_normal3 #-}
+
+class Foo a where foo :: IO ()
+instance Foo a where foo = pure () ; {-# INLINE foo #-}
+
+createIR_normal4 :: Bench
+createIR_normal4 = Bench "normal4" $ \i -> runPass' $ do
+    let go !0 = pure ()
+        go !j = do
+            !v <- IR.var 0
+            !tpLink <- Layer.read @IR.Type v
+            -- Component.destruct tpLink
+            -- Component.destruct v
+            -- modelManager = Layer.manager @IR.Model
+            -- typeManager  = Layer.manager @IR.Type
+            foo @IR.Model
+            foo @IR.Type
+
+            go $! j - 1
+    go i
+{-# NOINLINE createIR_normal4 #-}
 
 
 --------------------------
@@ -314,19 +357,22 @@ invariants = checkInvariants $
 benchmarks :: IO ()
 benchmarks = Criterion.defaultMain
     [ "ir"
-        [ "layer"
-            [ "rw" $ bench 7 <$>
-                [ readWrite_cptr
-                , readWrite_ptr
-                , readWrite_expTM
-                -- , readWrite_layerMock
-                , readWrite_layer
-                ]
-            ]
+        -- [ "layer"
+        --     [ "rw" $ bench 7 <$>
+        --         [ readWrite_cptr
+        --         , readWrite_ptr
+        --         , readWrite_expTM
+        --         -- , readWrite_layerMock
+        --         , readWrite_layer
+        --         ]
+        --     ]
 
-        , "create" $ bench 6 <$>
+        [ "create" $ bench 5 <$>
             [ createIR_mallocPtr
             , createIR_normal
+            , createIR_normal2
+            , createIR_normal3
+            , createIR_normal4
             ]
 
         , "discovery" $ bench 5 <$>
@@ -337,6 +383,6 @@ benchmarks = Criterion.defaultMain
 
 main :: IO ()
 main = do
-    invariants
+    -- invariants
     benchmarks
 

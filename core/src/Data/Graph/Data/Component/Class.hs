@@ -2,7 +2,9 @@
 
 module Data.Graph.Data.Component.Class
     (module Data.Graph.Data.Component.Class, module X) where
-import Data.Construction as X (construct', construct1', destruct, destruct1)
+import Data.Construction as X (Constructor, Constructor1, Destructor,
+                               Destructor1, construct', construct1', destruct,
+                               destruct1)
 
 import Prologue hiding (ConversionError)
 

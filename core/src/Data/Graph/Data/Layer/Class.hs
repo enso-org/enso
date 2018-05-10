@@ -127,9 +127,9 @@ data Manager (layer :: Type) = Manager
     }
 
 data DynamicManager comp = DynamicManager
-    { _dynamicInitializer :: SomePtr
-    , _dynamicConstructor :: SomePtr -> IO ()
-    , _dynamicDestructor  :: SomePtr -> IO ()
+    { _dynamicInitializer :: !SomePtr
+    , _dynamicConstructor :: !(SomePtr -> IO ())
+    , _dynamicDestructor  :: !(SomePtr -> IO ())
     }
 
 

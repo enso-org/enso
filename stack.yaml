@@ -13,7 +13,7 @@ ghc-options:
         -fexcess-precision
         -fexpose-all-unfoldings
         -flate-dmd-anal
-        -fmax-worker-args=200
+        -fmax-worker-args=1000
         -fsimpl-tick-factor=400
         -fspec-constr-keen
         -fspecialise-aggressively
