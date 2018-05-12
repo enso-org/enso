@@ -13,7 +13,7 @@ import qualified Data.PtrSet.Mutable               as PtrSet
 import qualified Data.Vector.Storable.Foreign      as Foreign
 
 import Data.Generics.Traversable       (GTraversable, gfoldlM)
-import Data.Graph.Data.Component.Class (Component, SomeComponent)
+import Data.Graph.Data.Component.Class (Component)
 import Data.Map.Strict                 (Map)
 import Foreign.Ptr.Utils               (SomePtr)
 
@@ -26,26 +26,26 @@ import Foreign.Ptr.Utils               (SomePtr)
 -- === Definition === --
 
 class Provider tag a where
-    componentsIO :: a -> IO [SomeComponent tag]
+    componentsIO :: a -> IO [Component.Some tag]
     componentsIO = const $ pure mempty ; {-# INLINE componentsIO #-}
 
 class Provider1 tag a where
-    componentsIO1 :: ∀ t1. a t1 -> IO [SomeComponent tag]
+    componentsIO1 :: ∀ t1. a t1 -> IO [Component.Some tag]
     componentsIO1 = const $ pure mempty ; {-# INLINE componentsIO1 #-}
 
 
 -- === API === --
 
 components  :: ∀ tag a m. (MonadIO m, Provider tag a)
-            => a -> m [SomeComponent tag]
+            => a -> m [Component.Some tag]
 components  = liftIO . componentsIO ; {-# INLINE components #-}
 
 components1 :: ∀ tag a m t1. (MonadIO m, Provider1 tag a)
-            => a t1 -> m [SomeComponent tag]
+            => a t1 -> m [Component.Some tag]
 components1 = liftIO . componentsIO1 ; {-# INLINE components1 #-}
 
 gcomponents :: ∀ tag a m. (GTraversable (Provider tag) a, MonadIO m)
-            => a -> m [SomeComponent tag]
+            => a -> m [Component.Some tag]
 gcomponents = gfoldlM @(Provider tag) (\acc a -> (acc <>) <$> components @tag a)
               mempty
 {-# INLINE gcomponents #-}

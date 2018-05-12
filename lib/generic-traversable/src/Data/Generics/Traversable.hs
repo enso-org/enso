@@ -1,4 +1,5 @@
 {-# LANGUAGE NoMonoLocalBinds        #-}
+{-# LANGUAGE Strict                  #-}
 {-# LANGUAGE UndecidableInstances    #-}
 {-# LANGUAGE UndecidableSuperClasses #-}
 
@@ -78,18 +79,22 @@ gmapM1_ f = void . gmapM1 @ctx (\d -> d <$ f d) ; {-# INLINE gmapM1_ #-}
 -- | Generic monoidal fold over the immediate subterms (cf. 'Data.Foldable.foldMap')
 gfoldMap :: ∀ c r a . (Monoid r, GTraversable c a)
          => (∀ d . (c d) => d -> r) -> a -> r
-gfoldMap f = getConstant . gtraverse @c (Constant . f) ; {-# INLINE gfoldMap #-}
+gfoldMap !f = getConstant . gtraverse @c (Constant . f) ; {-# INLINE gfoldMap #-}
 
 -- | Generic right fold over the immediate subterms
 gfoldr :: ∀ c a r . (GTraversable c a)
        => (∀ d . (c d) => d -> r -> r) -> r -> a -> r
-gfoldr f z t = appEndo (gfoldMap @c (Endo . f) t) z ; {-# INLINE gfoldr #-}
+gfoldr f z t = out where
+    !s   = gfoldMap @c (Endo . f) t
+    !out = appEndo s z
+{-# INLINE gfoldr #-}
 
 -- | Generic strict left fold over the immediate subterms
 gfoldl' :: ∀ c a r . (GTraversable c a)
         => (∀ d . (c d) => r -> d -> r) -> r -> a -> r
-gfoldl' f z0 xs = gfoldr @c f' id xs z0 where
-    f' x k z = k $! f z x
+gfoldl' !f !z0 !xs = out where
+    f' !x !k !z = k $! f z x
+    !out = gfoldr @c f' id xs z0
 {-# INLINE gfoldl' #-}
 
 gfoldlM :: ∀ c a r m. (GTraversable c a, Monad m)

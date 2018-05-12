@@ -11,7 +11,7 @@ import qualified Foreign.Ptr       as Ptr
 import qualified Foreign.Storable  as Storable
 import qualified Foreign.Storable1 as Storable1
 
-import Foreign.Ptr            (plusPtr)
+import Foreign.Ptr            (Ptr, plusPtr)
 import Foreign.Ptr.Utils      (SomePtr)
 import Foreign.Storable.Utils (sizeOf')
 import Foreign.Storable1      (Storable1)
@@ -74,6 +74,16 @@ instance Storable.Storable t => Storable1.Storable1 (Simple t) where
     alignment _ = Storable.alignment (undefined :: t) ; {-# INLINE alignment #-}
     peek      p = wrap <$> Storable.peek (coerce p)   ; {-# INLINE peek      #-}
     poke      p = Storable.poke (coerce p) . unwrap   ; {-# INLINE poke      #-}
+
+
+
+--------------------
+-- === Layer2 === --
+--------------------
+
+class Layer2 layer where
+    constructor2 :: ∀ layout. Ptr (Cons layer layout) -> IO ()
+    destructor2  :: ∀ layout. Ptr (Cons layer layout) -> IO ()
 
 
 

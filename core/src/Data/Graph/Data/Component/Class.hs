@@ -1,3 +1,4 @@
+{-# LANGUAGE Strict               #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Data.Graph.Data.Component.Class
@@ -37,7 +38,8 @@ newtype Component tag layout = Component SomePtr
 makeLenses       ''Component
 Storable1.derive ''Component
 
-type SomeComponent tag = Component tag ()
+type Some tag = Component tag ()
+type Any      = Some ()
 
 
 -- === Conversions === --
@@ -57,7 +59,7 @@ instance Convertible SomePtr         (Component t a) where convert = coerce ; {-
 
 type Allocator comp m =
     ( MonadIO m
-    , State.Getter (MemPool (SomeComponent comp)) m
+    , State.Getter (MemPool (Some comp)) m
     )
 
 type Creator comp m =
@@ -115,6 +117,9 @@ instance {-# OVERLAPPABLE #-} (Relayout__ t l l', a ~ Component t l')
 
 instance {-# OVERLAPPABLE #-} (Relayout__ t l l', a ~ Component t l')
       => Relayout (Component t l) a
+
+instance {-# OVERLAPPABLE #-} (Relayout__ t l l')
+      => Relayout (Component t l) (Component () l')
 
 instance {-# OVERLAPPABLE #-} (Relayout__ t l l', t ~ t')
       => Relayout (Component t l) (Component t' l')

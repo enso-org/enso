@@ -1,17 +1,22 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE Strict            #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 module Luna.Test.Bench.IR where
 
 import Prologue
 
+import qualified Control.Monad.Exception               as Exception
 import qualified Control.Monad.State.Layered           as State
 import qualified Criterion.Main                        as Criterion
 import qualified Criterion.Measurement                 as Criterion
+import qualified Data.Graph.Class                      as Graph
 import qualified Data.Graph.Component.Node.Destruction as IR
 import qualified Data.Graph.Data.Component.Class       as Component
 import qualified Data.Graph.Data.Layer.Class           as Layer
+import qualified Data.Graph.Data.Layer.Layout          as Layout
 import qualified Data.Graph.Traversal.Discovery        as Discovery
+import qualified Data.Set                              as Set
 import qualified Data.Tuple.Strict                     as Tuple
 import qualified Data.TypeMap.Strict                   as TypeMap
 import qualified Foreign.Marshal.Alloc                 as Ptr
@@ -27,11 +32,13 @@ import qualified OCI.Pass.Definition.Class             as Pass
 import qualified OCI.Pass.Management.Registry          as Registry
 import qualified OCI.Pass.State.Encoder                as Encoder
 import qualified OCI.Pass.State.IRInfo                 as IRInfo
+import qualified OCI.Pass.State.Runtime                as Runtime
 import qualified System.Console.ANSI                   as ANSI
 
 import Control.DeepSeq   (force)
 import Control.Exception (evaluate)
 import Data.Graph.Data   (Component (Component))
+import Data.Set          (Set)
 import Luna.Pass         (Pass)
 
 
@@ -148,15 +155,19 @@ bench i f = Criterion.bgroup (f ^. name) $ expNFIO f <$> loop i
 -- === Benchark pass === --
 ----------------------------
 
-type OnDemandPass pass = (Typeable pass, Pass.Compile pass IO)
+type OnDemandPass pass m = (Typeable pass, Pass.Compile pass IO, MonadIO m
+    , Exception.MonadException Registry.Error m
+    , Exception.MonadException Scheduler.Error m
+    , Exception.MonadException Encoder.Error m
+    )
 
-runPass :: ∀ pass. OnDemandPass pass => Pass pass () -> IO ()
+runPass :: ∀ pass m. OnDemandPass pass m => Pass pass () -> m ()
 runPass !pass = Runner.runManual $ do
     Scheduler.registerPassFromFunction__ pass
     Scheduler.runPassSameThreadByType @pass
 {-# INLINE runPass #-}
 
-runPass' :: Pass Pass.BasicPass () -> IO ()
+runPass' :: OnDemandPass Pass.BasicPass m => Pass Pass.BasicPass () -> m ()
 runPass' = runPass
 {-# INLINE runPass' #-}
 
@@ -250,6 +261,19 @@ readWrite_layer = Bench "normal" $ \i -> runPass' $ do
     go i
 {-# NOINLINE readWrite_layer #-}
 
+readWrite_layerptr :: Bench
+readWrite_layerptr = Bench "normal" $ \i -> runPass' $ do
+    !a <- IR.var 0
+    let go :: Int -> Pass Pass.BasicPass ()
+        go 0 = pure ()
+        go j = do
+            !tp <- Layer.read @IR.Type a
+            !s  <- Layer.read @IR.Source tp
+            -- Layer.write @IR.Model a (IR.UniTermVar $ IR.Var $! x + 1)
+            go (j - 1)
+    go i
+{-# NOINLINE readWrite_layerptr #-}
+
 
 
 -----------------------
@@ -299,6 +323,15 @@ createIR_normal3 = Bench "normal3" $ \i -> runPass' $ do
 class Foo a where foo :: IO ()
 instance Foo a where foo = pure () ; {-# INLINE foo #-}
 
+
+
+data Luna
+type instance Graph.Components      Luna          = '[IR.Terms, IR.Links]
+type instance Graph.ComponentLayers Luna IR.Terms = '[IR.Model, IR.Users, IR.Type] -- , IR.Users]
+type instance Graph.ComponentLayers Luna IR.Links = '[IR.Source, IR.Target]
+
+type instance Graph.DiscoverGraphTag m = Luna -- HACK
+
 createIR_normal4 :: Bench
 createIR_normal4 = Bench "normal4" $ \i -> runPass' $ do
     let go !0 = pure ()
@@ -309,8 +342,8 @@ createIR_normal4 = Bench "normal4" $ \i -> runPass' $ do
             -- Component.destruct v
             -- modelManager = Layer.manager @IR.Model
             -- typeManager  = Layer.manager @IR.Type
-            foo @IR.Model
-            foo @IR.Type
+            liftIO $ foo @IR.Model
+            liftIO $ foo @IR.Type
 
             go $! j - 1
     go i
@@ -322,14 +355,71 @@ createIR_normal4 = Bench "normal4" $ \i -> runPass' $ do
 --------------------------
 
 discoverIR_simple :: Bench
-discoverIR_simple = Bench "simple" $ \i -> runPass' $ do
+discoverIR_simple = Bench "simple" $ \i -> Graph.run @Luna $ runPass' $ do
     v <- IR.var "a"
     let go !0 = pure ()
         go !j = do
-            !_ <- Discovery.discover v
+            !x <- Discovery.discover v
             go $! j - 1
     go i
 {-# NOINLINE discoverIR_simple #-}
+
+discoverIR_hack :: Bench
+discoverIR_hack = Bench "manual" $ \i -> Graph.run @Luna $ runPass' $ do
+    v <- IR.var "a"
+    let go !0 = pure ()
+        go !j = do
+            let !f = manualDiscoverIRHack (Layout.relayout v)
+            !out <- f (pure [])
+            go $! j - 1
+    go i
+{-# NOINLINE discoverIR_hack #-}
+
+-- | The manualDiscoverIRHack function allows us to discover IR with an
+--   assumption that everything is just a Var with chain of Top types.
+manualDiscoverIRHack
+    :: ( Layer.Reader IR.Term IR.Type   m
+       , Layer.Reader IR.Term IR.Model  m
+       , Layer.Reader IR.Link IR.Source m
+       , Layer.Reader IR.Link IR.Target m
+       , MonadIO m
+       )
+    => IR.SomeTerm -> (m [Component.Any] -> m [Component.Any])
+manualDiscoverIRHack !term !mr = do
+    !tl    <- Layer.read @IR.Type  term
+    !model <- Layer.read @IR.Model term
+    let mr' = case model of
+            IR.UniTermVar (IR.Var {}) -> (Layout.relayout term :) <$> mr
+            IR.UniTermTop (IR.Top {}) -> (Layout.relayout term :) <$> mr
+            a                         -> error "not supported"
+    !(src :: IR.SomeTerm)  <- Layout.relayout <$> Layer.read @IR.Source tl
+    !(tgt :: IR.SomeTerm)  <- Layout.relayout <$> Layer.read @IR.Target tl
+    let f = if src == tgt then id else manualDiscoverIRHack src
+        !mr''  = (Layout.relayout tl :) <$> mr'
+        !mr''' = f mr''
+    mr'''
+
+
+discoverIR_hack3 :: Bench
+discoverIR_hack3 = Bench "generic" $ \i -> Graph.run @Luna $ runPass' $ do
+    !v <- IR.var "a"
+    let !x = pure mempty
+    -- print "!!!"
+    -- print =<< State.get @(Runtime.LayerByteOffset IR.Terms IR.Model)
+    -- print =<< State.get @(Runtime.LayerByteOffset IR.Terms IR.Type)
+    -- print =<< State.get @(Runtime.LayerByteOffset IR.Terms IR.Users)
+    let go !0 = let !o = pure () in o
+        go !j = do
+            -- putStrLn ""
+            !out <- Discovery.getNeighbours v x
+            -- print out
+            -- !tl  <- Layer.read @IR.Type v
+            -- !t   <- Layer.read @IR.Source tl
+            -- !ttl <- Layer.read @IR.Type t
+            -- print [Component.unsafeToPtr v, Component.unsafeToPtr tl, Component.unsafeToPtr t]
+            let !o = go $! j - 1 in o
+    go i
+{-# NOINLINE discoverIR_hack3 #-}
 
 
 
@@ -350,13 +440,14 @@ discoverIR_simple = Bench "simple" $ \i -> runPass' $ do
 
 invariants :: IO ()
 invariants = checkInvariants $
-    [ assertBenchToRef "Create IR" 6 10 createIR_mallocPtr createIR_normal
-    , assertBenchToRef "Layer R/W" 7 10 readWrite_cptr readWrite_layer
+    -- [ assertBenchToRef "Create IR" 6 10 createIR_mallocPtr createIR_normal
+    [ assertBenchToRef "Layer R/W" 7 10 readWrite_cptr readWrite_layer
     ]
 
 benchmarks :: IO ()
-benchmarks = Criterion.defaultMain
-    [ "ir"
+benchmarks = do
+    Criterion.defaultMain
+      [ "ir"
         -- [ "layer"
         --     [ "rw" $ bench 7 <$>
         --         [ readWrite_cptr
@@ -367,22 +458,28 @@ benchmarks = Criterion.defaultMain
         --         ]
         --     ]
 
-        [ "create" $ bench 5 <$>
-            [ createIR_mallocPtr
-            , createIR_normal
-            , createIR_normal2
-            , createIR_normal3
-            , createIR_normal4
-            ]
+        -- [ "create" $ bench 5 <$>
+        --     [ createIR_mallocPtr
+        --     , createIR_normal
+        --     , createIR_normal2
+        --     , createIR_normal3
+        --     , createIR_normal4
+        --     ]
+        -- [ "layer" $ bench 7 <$>
+        --     [readWrite_layerptr]
 
-        , "discovery" $ bench 5 <$>
-            [ discoverIR_simple
+        [ "discovery" $ bench 6 <$>
+            [ discoverIR_hack3
+            , discoverIR_hack
+            , discoverIR_simple
             ]
         ]
-    ]
+      ]
 
 main :: IO ()
 main = do
-    -- invariants
+    invariants
     benchmarks
+
+
 

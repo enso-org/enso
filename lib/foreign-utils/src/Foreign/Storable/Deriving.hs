@@ -73,8 +73,8 @@ align = app (var 'Storable.alignment) undefinedAsInt
 whereClause :: Name -> TH.Exp -> TH.Dec
 whereClause n e = ValD (var n) (NormalB e) mempty
 
-wildCardClause :: TH.Exp -> TH.Clause
-wildCardClause expr = clause [WildP] expr mempty
+wildCardLazyClause :: TH.Exp -> TH.Clause
+wildCardLazyClause expr = clause [TildeP WildP] expr mempty
 
 
 
@@ -145,7 +145,7 @@ genOffsets isSingleCons con = do
 --   It will pure the largest possible size of a given data type.
 --   The mechanism is much like unions in C.
 genSizeOf :: [TH.Con] -> TH.Dec
-genSizeOf conss = FunD 'Storable.sizeOf [wildCardClause expr]
+genSizeOf conss = FunD 'Storable.sizeOf [wildCardLazyClause expr]
     where expr = case conss of
             []  -> intLit 0
             [c] -> sizeOfCon c
@@ -162,7 +162,7 @@ genAlignment :: TH.Dec
 genAlignment = FunD 'Storable.alignment [genAlignmentClause]
 
 genAlignmentClause :: TH.Clause
-genAlignmentClause = wildCardClause $ app (var 'Storable.sizeOf) undefinedAsInt
+genAlignmentClause = wildCardLazyClause $ app (var 'Storable.sizeOf) undefinedAsInt
 
 -- | Generate the `peek` method of the `Storable` class.
 --   It will behave differently for single- and multi-constructor types,

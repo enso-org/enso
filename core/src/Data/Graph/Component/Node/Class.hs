@@ -11,8 +11,6 @@ import qualified Data.Tag                     as Tag
 import qualified Type.Show                    as Type
 
 import Data.Generics.Traversable (GTraversable)
-import Data.Graph.Data           (SomeComponent)
-
 
 
 
@@ -24,7 +22,7 @@ import Data.Graph.Data           (SomeComponent)
 
 Component.define "Node"
 Tag.family "NodeTag"
-type SomeNode = SomeComponent Nodes
+type SomeNode = Component.Some Nodes
 
 
 -- === Node Constructor === --

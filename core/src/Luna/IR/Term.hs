@@ -1,3 +1,4 @@
+{-# LANGUAGE Strict               #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
@@ -13,9 +14,11 @@ import Luna.IR.Term.Literal   as X
 
 import qualified Data.Construction                  as Data
 import qualified Data.Generics.Traversable          as GTraversable
+import qualified Data.Graph.Class                   as Graph
 import qualified Data.Graph.Component.Edge          as Link
 import qualified Data.Graph.Component.Node.Class    as Term
 import qualified Data.Graph.Data.Component.Provider as Component
+import qualified Data.Graph.Traversal.Discovery     as Discovery
 import qualified OCI.IR.Term.Definition             as Term
 
 import Data.Generics.Traversable (GTraversable)
@@ -54,3 +57,8 @@ instance (MonadIO m, ctx ~ Data.ShallowDestructor m)
     destructShallow1 = GTraversable.gmapM_ @(GTraversable ctx)
                      $ GTraversable.gmapM_ @ctx Data.destructShallow
     {-# INLINE destructShallow1 #-}
+
+
+instance (Monad m, Discovery.GetLayersNeighbours m (Graph.DiscoverComponentLayers m Link.Edges))
+      => Discovery.GetNeighbours1 m UniTerm where
+    getNeighbours1 = Discovery.ggetNeighbours ; {-# INLINE getNeighbours1 #-}

@@ -10,7 +10,7 @@ import qualified Data.Graph.Data.Layer.Class  as Layer
 import qualified Data.Graph.Data.Layer.Layout as Layout
 
 import Data.Graph.Component.Node.Class (Node)
-import Data.Graph.Data                 (Component, SomeComponent)
+import Data.Graph.Data                 (Component)
 import Data.Graph.Data.Layer.Class     (Layer)
 import Data.Graph.Data.Layer.Layout    ((:=), Layout)
 
@@ -23,7 +23,7 @@ import Data.Graph.Data.Layer.Layout    ((:=), Layout)
 -- === Definition === ---
 
 Component.define "Edge"
-type SomeEdge = SomeComponent Edges
+type SomeEdge = Component.Some Edges
 type src *-* tgt = Layout '[Source := src, Target := tgt]
 
 
@@ -41,7 +41,7 @@ edges1 = Component.components1 @Edges ; {-# INLINE edges1 #-}
 -- === ComponentProvider === --
 
 newtype ComponentProvider tag = ComponentProvider
-    (SomeComponent tag -> IO [SomeEdge])
+    (Component.Some tag -> IO [SomeEdge])
 
 componentEdges
     :: ∀ tag m layout. (MonadIO m, State.Getter (ComponentProvider tag) m)

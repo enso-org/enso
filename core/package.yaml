@@ -97,6 +97,7 @@ benchmarks:
             - prologue
             - unboxed-ref >= 0.4.0.0
             - vector
+            - containers
 
 tests:
     spec:
@@ -164,4 +165,5 @@ default-extensions:
     - TypeOperators
     - UnicodeSyntax
     - ViewPatterns
+    - Strict
 

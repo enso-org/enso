@@ -23,7 +23,7 @@ import qualified OCI.Pass.State.Runtime             as Runtime
 import qualified OCI.Pass.State.Runtime             as Pass
 
 import Control.Monad.Exception         (Throws, throw)
-import Data.Graph.Data.Component.Class (Component, SomeComponent)
+import Data.Graph.Data.Component.Class (Component)
 import Data.Map.Strict                 (Map)
 import Data.TypeMap.Strict             (TypeMap)
 import Foreign.Info.ByteSize           (ByteSize (ByteSize))
@@ -132,7 +132,7 @@ instance FieldEncoder (Edge.ComponentProvider Terms) where
         pure . Edge.ComponentProvider $ compInfo ^. IRInfo.layersLinks
 
 instance Typeable comp
-      => FieldEncoder (MemPool (SomeComponent comp)) where
+      => FieldEncoder (MemPool (Component.Some comp)) where
     encodeField info = do
         compInfo <- lookupComp @comp $ info ^. IRInfo.compiledComponents
         pure . coerce $ compInfo ^. IRInfo.memPool

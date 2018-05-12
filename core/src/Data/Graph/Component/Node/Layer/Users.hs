@@ -1,3 +1,4 @@
+{-# LANGUAGE Strict               #-}
 {-# LANGUAGE TypeInType           #-}
 {-# LANGUAGE UndecidableInstances #-}
 
@@ -5,13 +6,13 @@ module Data.Graph.Component.Node.Layer.Users where
 
 import Prologue hiding (Type)
 
-import qualified Data.Graph.Data.Layer.Class  as Layer
-import qualified Data.Graph.Data.Layer.Layout as Layout
-import qualified Data.Graph.Component.Edge.Class           as Link
+import qualified Data.Graph.Component.Edge.Class as Link
+import qualified Data.Graph.Data.Layer.Class     as Layer
+import qualified Data.Graph.Data.Layer.Layout    as Layout
 
-import Data.Graph.Data.Layer.Class (Layer)
-import Data.Graph.Component.Edge.Class          (type (*-*))
-import Data.Graph.Component.Node.Layer.Model    (Model)
+import Data.Graph.Component.Edge.Class       (type (*-*))
+import Data.Graph.Component.Node.Layer.Model (Model)
+import Data.Graph.Data.Layer.Class           (Layer)
 
 
 
