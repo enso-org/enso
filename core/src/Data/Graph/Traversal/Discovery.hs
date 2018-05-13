@@ -87,11 +87,11 @@ getNeighboursx info comp = neighbours where
 type family Result t
 type family EnabledLayer t layer :: Bool
 
-class Monad m => Foldable t m a where
-    fold :: a -> m (Result t) -> m (Result t)
+class Monad m => FoldableBuilder t m a where
+    buildFold :: a -> m (Result t) -> m (Result t)
 
-class Monad m => Foldable1 t m a where
-    fold1 :: ∀ t1. a t1 -> m (Result t) -> m (Result t)
+class Monad m => FoldableBuilder1 t m a where
+    buildFold1 :: ∀ t1. a t1 -> m (Result t) -> m (Result t)
 
 class Monad m => FoldableLayer t m layer where
     foldLayer :: ∀ layout. Layer.Cons layer layout -> Result t -> m (Result t)
@@ -102,13 +102,14 @@ class Monad m => FoldableComponent t m tag where
 
 -- === Generics === --
 
-gfold :: ∀ t a m. (GTraversable (Foldable t m) a)
+gfold :: ∀ t a m. (GTraversable (FoldableBuilder t m) a)
       => a -> m (Result t) -> m (Result t)
-gfold = GTraversable.gfoldl' @(Foldable t m) (\r d x -> r $! fold @t d x) id ; {-# INLINE gfold #-}
+gfold = GTraversable.gfoldl' @(FoldableBuilder t m) (\r d x -> r $! buildFold @t d x) id
+{-# INLINE gfold #-}
 
-instance {-# OVERLAPPABLE #-} (GTraversable (Foldable t m) a, Monad m)
-      => Foldable t m a where
-    fold = gfold @t ; {-# INLINE fold #-}
+instance {-# OVERLAPPABLE #-} (GTraversable (FoldableBuilder t m) a, Monad m)
+      => FoldableBuilder t m a where
+    buildFold = gfold @t ; {-# INLINE buildFold #-}
 
 
 -- === Instances === --
@@ -116,12 +117,12 @@ instance {-# OVERLAPPABLE #-} (GTraversable (Foldable t m) a, Monad m)
 instance ( layers ~ Graph.DiscoverComponentLayers m tag
          , Monad m
          , FoldableComponent t m tag
-         , FoldableLayers__ t layers m )
-      => Foldable t m (Component tag layout) where
-    fold comp mr = do
-        r <- foldLayers__ @t @layers (Component.unsafeToPtr comp) mr
+         , LayersFoldableBuilder__ t layers m )
+      => FoldableBuilder t m (Component tag layout) where
+    buildFold comp mr = do
+        r <- buildLayersFold__ @t @layers (Component.unsafeToPtr comp) mr
         foldComponent @t comp r
-    {-# INLINE fold #-}
+    {-# INLINE buildFold #-}
 
 
 
@@ -131,44 +132,44 @@ instance ( layers ~ Graph.DiscoverComponentLayers m tag
 
 -- === FoldableLayers === --
 
-class FoldableLayers__ t (layers :: [Type]) m where
-    foldLayers__ :: SomePtr -> m (Result t) -> m (Result t)
+class LayersFoldableBuilder__ t (layers :: [Type]) m where
+    buildLayersFold__ :: SomePtr -> m (Result t) -> m (Result t)
 
-instance Monad m => FoldableLayers__ t '[] m where
-    foldLayers__ _ = id ; {-# INLINE foldLayers__ #-}
+instance Monad m => LayersFoldableBuilder__ t '[] m where
+    buildLayersFold__ _ = id ; {-# INLINE buildLayersFold__ #-}
 
 instance ( MonadIO m
          , Storable.Storable (Layer.Cons l ())
          , Layer.StorableLayer l m
-         , FoldableLayer__ (EnabledLayer t l) t m l
-         , FoldableLayers__ t ls m )
-     => FoldableLayers__ t (l ': ls) m where
-    foldLayers__ ptr mr = do
-        let f    = foldLayer__ @(EnabledLayer t l) @t @m @l ptr
-            fs   = foldLayers__ @t @ls ptr'
+         , LayerFoldableBuilder__ (EnabledLayer t l) t m l
+         , LayersFoldableBuilder__ t ls m )
+     => LayersFoldableBuilder__ t (l ': ls) m where
+    buildLayersFold__ ptr mr = do
+        let f    = buildLayerFold__ @(EnabledLayer t l) @t @m @l ptr
+            fs   = buildLayersFold__ @t @ls ptr'
             ptr' = Ptr.plusPtr ptr $ Layer.byteSize @l
             out  = f $! fs mr
         out
-    {-# INLINE foldLayers__ #-}
+    {-# INLINE buildLayersFold__ #-}
 
 
 -- === FoldableLayer === --
 
-class Monad m => FoldableLayer__ (active :: Bool) t m layer where
-    foldLayer__ :: SomePtr -> m (Result t) -> m (Result t)
+class Monad m => LayerFoldableBuilder__ (active :: Bool) t m layer where
+    buildLayerFold__ :: SomePtr -> m (Result t) -> m (Result t)
 
 instance {-# OVERLAPPABLE #-} Monad m
-      => FoldableLayer__ 'False t m layer where
-    foldLayer__ _ = id ; {-# INLINE foldLayer__ #-}
+      => LayerFoldableBuilder__ 'False t m layer where
+    buildLayerFold__ _ = id ; {-# INLINE buildLayerFold__ #-}
 
 
 instance (Monad m, Layer.StorableLayer layer m, FoldableLayer t m layer)
-      => FoldableLayer__ 'True t m layer where
-    foldLayer__ ptr mr = do
+      => LayerFoldableBuilder__ 'True t m layer where
+    buildLayerFold__ ptr mr = do
         layer <- Layer.unsafePeekWrapped @layer ptr
         r     <- mr
         foldLayer @t @m @layer layer r
-    {-# INLINE foldLayer__ #-}
+    {-# INLINE buildLayerFold__ #-}
 
 
 
@@ -196,8 +197,8 @@ type family DiscoveryEnabledLayer layer where
 
 -- === API === --
 
-getNeighbours :: Foldable Discovery m a => a -> (m [Component.Any] -> m [Component.Any])
-getNeighbours = fold @Discovery ; {-# INLINE getNeighbours #-}
+getNeighbours :: FoldableBuilder Discovery m a => a -> (m [Component.Any] -> m [Component.Any])
+getNeighbours = buildFold @Discovery ; {-# INLINE getNeighbours #-}
 
 
 -- === Instances === --
@@ -205,13 +206,13 @@ getNeighbours = fold @Discovery ; {-# INLINE getNeighbours #-}
 instance Monad m => FoldableComponent Discovery m tag where
     foldComponent comp = pure . (Layout.relayout comp :) ; {-# INLINE foldComponent #-}
 
-instance (Foldable1 Discovery m (Layer.Cons Model), Monad m)
+instance (FoldableBuilder1 Discovery m (Layer.Cons Model), Monad m)
       => FoldableLayer Discovery m Model where
-    foldLayer layer acc = fold1 @Discovery layer (pure acc) ; {-# INLINE foldLayer #-}
+    foldLayer layer acc = buildFold1 @Discovery layer (pure acc) ; {-# INLINE foldLayer #-}
 
 instance ( MonadIO m
-         , Foldable1 Discovery m (Layer.Cons Model)
-         , Foldable  Discovery m (Node.Node ())
+         , FoldableBuilder1 Discovery m (Layer.Cons Model)
+         , FoldableBuilder  Discovery m (Node.Node ())
          , Layer.Reader Edge.Edge Edge.Source m
          , Layer.Reader Edge.Edge Edge.Target m
          )
@@ -219,7 +220,7 @@ instance ( MonadIO m
     foldLayer layer acc = do
         (src :: Node.Node ()) <- Layout.relayout <$> Layer.read @Edge.Source layer
         (tgt :: Node.Node ()) <- Layout.relayout <$> Layer.read @Edge.Target layer
-        let f     = if src == tgt then id else fold @Discovery src
+        let f     = if src == tgt then id else buildFold @Discovery src
             acc'  = Layout.relayout layer : acc
             acc'' = f (pure acc')
         acc''

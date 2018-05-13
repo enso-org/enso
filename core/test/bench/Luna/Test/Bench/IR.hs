@@ -396,7 +396,7 @@ manualDiscoverIRHack !term !r = do
     !tgt <- Layer.read @IR.Target tl
     let !(src' :: IR.SomeTerm) = Layout.relayout src
     let !(tgt' :: IR.SomeTerm) = Layout.relayout tgt
-    let !f = if src' == tgt' then pure else manualDiscoverIRHack src' ; {-# INLINE f #-}
+    let !f = if src' == tgt' then pure else manualDiscoverIRHack src'
         !r'' = Layout.relayout tl : r'
         !mr''' = f r''
     mr'''
