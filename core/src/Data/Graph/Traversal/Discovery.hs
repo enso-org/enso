@@ -87,10 +87,10 @@ getNeighboursx info comp = neighbours where
 type family Result t
 type family EnabledLayer t layer :: Bool
 
-class Monad m => FoldableBuilder t m a where
+class Monad m => Foldable t m a where
     buildFold :: a -> m (Result t) -> m (Result t)
 
-class Monad m => FoldableBuilder1 t m a where
+class Monad m => Foldable1 t m a where
     buildFold1 :: ∀ t1. a t1 -> m (Result t) -> m (Result t)
 
 class Monad m => FoldableLayer t m layer where
@@ -102,14 +102,17 @@ class Monad m => FoldableComponent t m tag where
 
 -- === Generics === --
 
-gfold :: ∀ t a m. (GTraversable (FoldableBuilder t m) a)
-      => a -> m (Result t) -> m (Result t)
-gfold = GTraversable.gfoldl' @(FoldableBuilder t m) (\r d x -> r $! buildFold @t d x) id
-{-# INLINE gfold #-}
+fold :: ∀ t a m. Foldable t m a => a -> Result t -> m (Result t)
+fold a = buildFold @t a . pure ; {-# INLINE fold #-}
 
-instance {-# OVERLAPPABLE #-} (GTraversable (FoldableBuilder t m) a, Monad m)
-      => FoldableBuilder t m a where
-    buildFold = gfold @t ; {-# INLINE buildFold #-}
+gbuildFold :: ∀ t a m. (GTraversable (Foldable t m) a)
+           => a -> m (Result t) -> m (Result t)
+gbuildFold = GTraversable.gfoldl' @(Foldable t m) (\r d x -> r $! buildFold @t d x) id
+{-# INLINE gbuildFold #-}
+
+instance {-# OVERLAPPABLE #-} (GTraversable (Foldable t m) a, Monad m)
+      => Foldable t m a where
+    buildFold = gbuildFold @t ; {-# INLINE buildFold #-}
 
 
 -- === Instances === --
@@ -118,7 +121,7 @@ instance ( layers ~ Graph.DiscoverComponentLayers m tag
          , Monad m
          , FoldableComponent t m tag
          , LayersFoldableBuilder__ t layers m )
-      => FoldableBuilder t m (Component tag layout) where
+      => Foldable t m (Component tag layout) where
     buildFold comp mr = do
         r <- buildLayersFold__ @t @layers (Component.unsafeToPtr comp) mr
         foldComponent @t comp r
@@ -197,8 +200,8 @@ type family DiscoveryEnabledLayer layer where
 
 -- === API === --
 
-getNeighbours :: FoldableBuilder Discovery m a => a -> (m [Component.Any] -> m [Component.Any])
-getNeighbours = buildFold @Discovery ; {-# INLINE getNeighbours #-}
+getNeighbours :: Foldable Discovery m a => a -> m [Component.Any]
+getNeighbours a = fold @Discovery a mempty ; {-# INLINE getNeighbours #-}
 
 
 -- === Instances === --
@@ -206,13 +209,13 @@ getNeighbours = buildFold @Discovery ; {-# INLINE getNeighbours #-}
 instance Monad m => FoldableComponent Discovery m tag where
     foldComponent comp = pure . (Layout.relayout comp :) ; {-# INLINE foldComponent #-}
 
-instance (FoldableBuilder1 Discovery m (Layer.Cons Model), Monad m)
+instance (Foldable1 Discovery m (Layer.Cons Model), Monad m)
       => FoldableLayer Discovery m Model where
     foldLayer layer acc = buildFold1 @Discovery layer (pure acc) ; {-# INLINE foldLayer #-}
 
 instance ( MonadIO m
-         , FoldableBuilder1 Discovery m (Layer.Cons Model)
-         , FoldableBuilder  Discovery m (Node.Node ())
+         , Foldable1 Discovery m (Layer.Cons Model)
+         , Foldable  Discovery m (Node.Node ())
          , Layer.Reader Edge.Edge Edge.Source m
          , Layer.Reader Edge.Edge Edge.Target m
          )

@@ -405,7 +405,6 @@ manualDiscoverIRHack !term !r = do
 discoverIR_hack3 :: Bench
 discoverIR_hack3 = Bench "generic" $ \i -> Graph.run @Luna $ runPass' $ do
     !v <- IR.var "a"
-    let !x = pure mempty
     -- print "!!!"
     -- print =<< State.get @(Runtime.LayerByteOffset IR.Terms IR.Model)
     -- print =<< State.get @(Runtime.LayerByteOffset IR.Terms IR.Type)
@@ -413,7 +412,7 @@ discoverIR_hack3 = Bench "generic" $ \i -> Graph.run @Luna $ runPass' $ do
     let go !0 = let !o = pure () in o
         go !j = do
             -- putStrLn ""
-            !out <- Discovery.getNeighbours v x
+            !out <- Discovery.getNeighbours v
             -- print out
             -- !tl  <- Layer.read @IR.Type v
             -- !t   <- Layer.read @IR.Source tl
