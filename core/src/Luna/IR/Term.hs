@@ -59,6 +59,6 @@ instance (MonadIO m, ctx ~ Data.ShallowDestructor m)
     {-# INLINE destructShallow1 #-}
 
 
-instance (Monad m, Discovery.GetLayersNeighbours m (Graph.DiscoverComponentLayers m Link.Edges))
-      => Discovery.GetNeighbours1 m UniTerm where
-    getNeighbours1 = Discovery.ggetNeighbours ; {-# INLINE getNeighbours1 #-}
+instance (Monad m, Discovery.FoldableLayers Discovery.Discovery (Graph.DiscoverComponentLayers m Link.Edges) m)
+      => Discovery.Foldable1 Discovery.Discovery m UniTerm where
+    fold1 = Discovery.gfold @Discovery.Discovery ; {-# INLINE fold1 #-}

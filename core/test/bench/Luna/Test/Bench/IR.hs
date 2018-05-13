@@ -370,7 +370,7 @@ discoverIR_hack = Bench "manual" $ \i -> Graph.run @Luna $ runPass' $ do
     let go !0 = pure ()
         go !j = do
             let !f = manualDiscoverIRHack (Layout.relayout v)
-            !out <- f (pure [])
+            !out <- f []
             go $! j - 1
     go i
 {-# NOINLINE discoverIR_hack #-}
@@ -384,19 +384,21 @@ manualDiscoverIRHack
        , Layer.Reader IR.Link IR.Target m
        , MonadIO m
        )
-    => IR.SomeTerm -> (m [Component.Any] -> m [Component.Any])
-manualDiscoverIRHack !term !mr = do
+    => IR.SomeTerm -> [Component.Any] -> m [Component.Any]
+manualDiscoverIRHack !term !r = do
     !tl    <- Layer.read @IR.Type  term
     !model <- Layer.read @IR.Model term
-    let mr' = case model of
-            IR.UniTermVar (IR.Var {}) -> (Layout.relayout term :) <$> mr
-            IR.UniTermTop (IR.Top {}) -> (Layout.relayout term :) <$> mr
+    let !r' = case model of
+            IR.UniTermVar (IR.Var {}) -> let !o = Layout.relayout term : r in o
+            IR.UniTermTop (IR.Top {}) -> let !o = Layout.relayout term : r in o
             a                         -> error "not supported"
-    !(src :: IR.SomeTerm)  <- Layout.relayout <$> Layer.read @IR.Source tl
-    !(tgt :: IR.SomeTerm)  <- Layout.relayout <$> Layer.read @IR.Target tl
-    let f = if src == tgt then id else manualDiscoverIRHack src
-        !mr''  = (Layout.relayout tl :) <$> mr'
-        !mr''' = f mr''
+    !src <- Layer.read @IR.Source tl
+    !tgt <- Layer.read @IR.Target tl
+    let !(src' :: IR.SomeTerm) = Layout.relayout src
+    let !(tgt' :: IR.SomeTerm) = Layout.relayout tgt
+    let !f = if src' == tgt' then pure else manualDiscoverIRHack src' ; {-# INLINE f #-}
+        !r'' = Layout.relayout tl : r'
+        !mr''' = f r''
     mr'''
 
 
@@ -416,7 +418,7 @@ discoverIR_hack3 = Bench "generic" $ \i -> Graph.run @Luna $ runPass' $ do
             -- !tl  <- Layer.read @IR.Type v
             -- !t   <- Layer.read @IR.Source tl
             -- !ttl <- Layer.read @IR.Type t
-            -- print [Component.unsafeToPtr v, Component.unsafeToPtr tl, Component.unsafeToPtr t]
+            -- print [Component.unsafeToPtr v, Component.unsafeToPtr tl, Component.unsafeToPtr t, Component.unsafeToPtr ttl]
             let !o = go $! j - 1 in o
     go i
 {-# NOINLINE discoverIR_hack3 #-}

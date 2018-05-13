@@ -3,7 +3,7 @@
 
 module Data.Graph.Traversal.Discovery where
 
-import Prologue
+import Prologue hiding (Foldable, Foldable1, Traversable, fold, fold1, traverse)
 
 import qualified Control.Monad.State.Layered          as State
 import qualified Data.Generics.Traversable            as GTraversable
@@ -75,93 +75,112 @@ getNeighboursx info comp = neighbours where
 
 
 
-class Monad m => GetNeighbours m t where
-    getNeighbours :: t -> (m [SomePtr] -> m [SomePtr])
+data Discovery
 
-class Monad m => GetNeighbours1 m t where
-    getNeighbours1 :: ∀ a. t a -> (m [SomePtr] -> m [SomePtr])
+type family Result t
+type family TraversableLayer t layer :: Bool
 
-instance {-# OVERLAPPABLE #-} (GTraversable (GetNeighbours m) t, Monad m)
-      => GetNeighbours m t where
-    getNeighbours = ggetNeighbours ; {-# INLINE getNeighbours #-}
+type instance Result Discovery = [Component.Any]
 
-ggetNeighbours :: ∀ t m. (GTraversable (GetNeighbours m) t)
-               => t -> (m [SomePtr] -> m [SomePtr])
-ggetNeighbours = GTraversable.gfoldl' @(GetNeighbours m)
-                 (\r d x -> r $! getNeighbours d x) id
-{-# INLINE ggetNeighbours #-}
-
-instance (Monad m, GetLayersNeighbours m (Graph.DiscoverComponentLayers m tag))
-      => GetNeighbours m (Component tag layout) where
-    getNeighbours !t = fmap (fmap (Component.unsafeToPtr t :))
-        $! getLayersNeighbours @m @(Graph.DiscoverComponentLayers m tag) $! (Component.unsafeToPtr t)
-    {-# INLINE getNeighbours #-}
+type instance TraversableLayer Discovery layer = DiscoveryLayers layer
+type family DiscoveryLayers layer where
+    DiscoveryLayers Model     = 'True
+    DiscoveryLayers Type.Type = 'True
+    DiscoveryLayers _         = 'False
 
 
-class GetLayersNeighbours m (layers :: [Type]) where
-    getLayersNeighbours :: SomePtr -> (m [SomePtr] -> m [SomePtr])
 
-instance Monad m => GetLayersNeighbours m '[] where
-    getLayersNeighbours !_ = id ; {-# INLINE getLayersNeighbours #-}
+
+
+getNeighbours :: Foldable Discovery m a => a -> (m [Component.Any] -> m [Component.Any])
+getNeighbours = fold @Discovery
+
+class Monad m => Foldable t m a where
+    fold :: a -> (m (Result t) -> m (Result t))
+
+class Monad m => Foldable1 t m a where
+    fold1 :: ∀ t1. a t1 -> (m (Result t) -> m (Result t))
+
+instance {-# OVERLAPPABLE #-} (GTraversable (Foldable t m) a, Monad m)
+      => Foldable t m a where
+    fold = gfold @t ; {-# INLINE fold #-}
+
+gfold :: ∀ t a m. (GTraversable (Foldable t m) a)
+      => a -> (m (Result t) -> m (Result t))
+gfold = GTraversable.gfoldl' @(Foldable t m) (\r d x -> r $! fold @t d x) id ; {-# INLINE gfold #-}
+
+instance (Monad m, FoldableLayers t (Graph.DiscoverComponentLayers m tag) m, t ~ Discovery) -- FIXME
+      => Foldable t m (Component tag layout) where
+    fold !t = fmap (fmap (Layout.relayout t :))
+        $! foldLayers @t @(Graph.DiscoverComponentLayers m tag) $! (Component.unsafeToPtr t)
+    {-# INLINE fold #-}
+
+
+
+
+
+
+class FoldableLayers t (layers :: [Type]) m where
+    foldLayers :: SomePtr -> (m (Result t) -> m (Result t))
+
+instance Monad m => FoldableLayers t '[] m where
+    foldLayers _ = id ; {-# INLINE foldLayers #-}
 
 instance (MonadIO m, Storable.Storable (Layer.Cons l ()), Layer.StorableLayer l m
-         , GetLayerNeighbours m l, GetLayersNeighbours m ls)
-     => GetLayersNeighbours m (l ': ls) where
-    getLayersNeighbours !ptr !mr = do
-        -- !l <- Layer.unsafePeekWrapped @l ptr
-        -- mr
-        let !f    = getLayerNeighbours  @m @l  ptr
-            !fs   = getLayersNeighbours @m @ls ptr'
-            !ptr' = Ptr.plusPtr ptr $ Layer.byteSize @l
-            !out  = f $! fs mr
+         , FoldableLayer__ (TraversableLayer Discovery l) Discovery m l, FoldableLayers Discovery ls m)
+     => FoldableLayers Discovery (l ': ls) m where
+    foldLayers ptr mr = do
+        let f    = foldLayer__ @(TraversableLayer Discovery l) @Discovery @m @l ptr
+            fs   = foldLayers @Discovery @ls ptr'
+            ptr' = Ptr.plusPtr ptr $ Layer.byteSize @l
+            out  = f $! fs mr
         out
-        -- f $! fs mr
-        -- undefined
-    {-# INLINE getLayersNeighbours #-}
-        -- l <- liftIO $ Storable.peek (coerce ptr) :: m (Layer.Cons l ())
-        -- undefined
+    {-# INLINE foldLayers #-}
 
-class Monad m => GetLayerNeighbours m layer where
-    getLayerNeighbours :: ∀ layout. SomePtr -> (m [SomePtr] -> m [SomePtr])
 
+class Monad m => FoldableLayer t m layer where
+    foldLayer :: ∀ layout. Layer.Cons layer layout -> Result t -> m (Result t)
+
+class Monad m => FoldableLayer__ (active :: Bool) t m layer where
+    foldLayer__ :: SomePtr -> (m (Result t) -> m (Result t))
 
 instance {-# OVERLAPPABLE #-} Monad m
-      => GetLayerNeighbours m layer where
-    getLayerNeighbours !_ !a = a ; {-# INLINE getLayerNeighbours #-}
+      => FoldableLayer__ 'False t m layer where
+    foldLayer__ _ = id ; {-# INLINE foldLayer__ #-}
 
 
-instance (GetNeighbours1 m (Layer.Cons Model), Monad m, Layer.StorableLayer Model m)
-      => GetLayerNeighbours m Model where
-    getLayerNeighbours !ptr !mr = do
-        !layer <- Layer.unsafePeekWrapped @Model ptr
-        let !f   = getNeighbours1 layer
-            !out = f mr
-        out
-    {-# INLINE getLayerNeighbours #-}
+instance (Monad m, Layer.StorableLayer layer m, FoldableLayer t m layer)
+      => FoldableLayer__ 'True t m layer where
+    foldLayer__ !ptr !mr = do
+        layer <- Layer.unsafePeekWrapped @layer ptr
+        r     <- mr
+        foldLayer @t @m @layer layer r
+    {-# INLINE foldLayer__ #-}
 
 
-
--- instance (GetNeighbours1 m (Layer.Cons Model), Monad m)
---       => GetLayerNeighbours m Model where
---     getLayerNeighbours = getNeighbours1 ; {-# INLINE getLayerNeighbours #-}
+instance (Foldable1 t m (Layer.Cons Model), Monad m)
+      => FoldableLayer t m Model where
+    foldLayer layer acc = fold1 @t layer (pure acc) ; {-# INLINE foldLayer #-}
 
 
 instance ( MonadIO m
-         , GetNeighbours1 m (Layer.Cons Model)
-         , GetNeighbours  m (Node.Node ())
+         , Foldable1 t m (Layer.Cons Model)
+         , Foldable  t m (Node.Node ())
          , Layer.Reader Edge.Edge Edge.Source m
          , Layer.Reader Edge.Edge Edge.Target m
+         , t ~ Discovery -- FIXME
          )
-      => GetLayerNeighbours m Type.Type where
-    getLayerNeighbours !ptr !mr = do
-        !layer <- Layer.unsafePeekWrapped @Type.Type ptr
-        !(src :: Node.Node ()) <- Layout.relayout <$> Layer.read @Edge.Source layer
-        !(tgt :: Node.Node ()) <- Layout.relayout <$> Layer.read @Edge.Target layer
-        let f = if src == tgt then id else getNeighbours src ; {-# INLINE f #-}
-            !mr'  = (Component.unsafeToPtr layer :) <$> mr
-            !mr'' = f mr'
-        mr''
-    {-# INLINE getLayerNeighbours #-}
+      => FoldableLayer t m Type.Type where
+    foldLayer layer acc = do
+        (src :: Node.Node ()) <- Layout.relayout <$> Layer.read @Edge.Source layer
+        (tgt :: Node.Node ()) <- Layout.relayout <$> Layer.read @Edge.Target layer
+        let f     = if src == tgt then id else fold @t src
+            acc'  = Layout.relayout layer : acc
+            acc'' = f (pure acc')
+        acc''
+    {-# INLINE foldLayer #-}
+
+
 
 instance GTraversable ctx (UnmanagedPtrList a) where gtraverse _ = error "e1"
 instance GTraversable ctx (Vector a) where gtraverse _ = error "e2"
