@@ -22,7 +22,7 @@ import Data.Generics.Traversable (GTraversable)
 
 Component.define "Node"
 Tag.family "NodeTag"
-type SomeNode = Component.Some Nodes
+type Some = Component.Some Nodes
 
 
 -- === Node Constructor === --

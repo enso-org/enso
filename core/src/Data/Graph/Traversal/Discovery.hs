@@ -21,6 +21,7 @@ import qualified Data.Map.Strict                      as Map
 import qualified Data.Set                             as Set
 import qualified Foreign.Ptr                          as Ptr
 import qualified Foreign.Storable                     as Storable
+import qualified Type.Data.List                       as List
 
 import Data.Graph.Data.Component.Class    (Component)
 import Data.Graph.Data.Component.Provider (DynamicTraversalMap (..))
@@ -75,17 +76,15 @@ getNeighboursx info comp = neighbours where
 
 
 
-
-
-
 ----------------------
 -- === Foldable === --
 ----------------------
 
 -- === Definition === --
 
-type family Result t
-type family EnabledLayer t layer :: Bool
+type family Result    t
+type family Whitelist t :: [Type]
+type EnabledLayer t layer = List.In layer (Whitelist t)
 
 class Monad m => Foldable t m a where
     fold :: a -> (Result t) -> m (Result t)
@@ -123,6 +122,10 @@ instance ( layers ~ Graph.DiscoverComponentLayers m tag
         r <- buildLayersFold__ @t @layers (Component.unsafeToPtr comp) (pure mr)
         foldComponent @t comp r
     {-# INLINE fold #-}
+
+instance {-# OVERLAPPABLE #-} (Monad m, Foldable1 t m (Layer.Cons layer))
+      => FoldableLayer t m layer where
+    foldLayer = fold1 @t ; {-# INLINE foldLayer #-}
 
 
 
@@ -185,12 +188,8 @@ instance (Monad m, Layer.StorableLayer layer m, FoldableLayer t m layer)
 -- === Definition === --
 
 data Discovery
-type instance Result Discovery = [Component.Any]
-type instance EnabledLayer Discovery layer = DiscoveryEnabledLayer layer
-type family DiscoveryEnabledLayer layer where
-    DiscoveryEnabledLayer Model     = 'True
-    DiscoveryEnabledLayer Type.Type = 'True
-    DiscoveryEnabledLayer _         = 'False
+type instance Result    Discovery = [Component.Any]
+type instance Whitelist Discovery = [Model, Type.Type]
 
 
 -- === API === --
@@ -204,20 +203,16 @@ getNeighbours a = fold @Discovery a mempty ; {-# INLINE getNeighbours #-}
 instance Monad m => FoldableComponent Discovery m tag where
     foldComponent comp = pure . (Layout.relayout comp :) ; {-# INLINE foldComponent #-}
 
-instance (Foldable1 Discovery m (Layer.Cons Model), Monad m)
-      => FoldableLayer Discovery m Model where
-    foldLayer layer acc = fold1 @Discovery layer acc ; {-# INLINE foldLayer #-}
-
 instance ( MonadIO m
          , Foldable1 Discovery m (Layer.Cons Model)
-         , Foldable  Discovery m (Node.Node ())
+         , Foldable  Discovery m Node.Some
          , Layer.Reader Edge.Edge Edge.Source m
          , Layer.Reader Edge.Edge Edge.Target m
          )
       => FoldableLayer Discovery m Type.Type where
     foldLayer layer acc = do
-        (src :: Node.Node ()) <- Layout.relayout <$> Layer.read @Edge.Source layer
-        (tgt :: Node.Node ()) <- Layout.relayout <$> Layer.read @Edge.Target layer
+        (src :: Node.Some) <- Layout.relayout <$> Layer.read @Edge.Source layer
+        (tgt :: Node.Some) <- Layout.relayout <$> Layer.read @Edge.Target layer
         let f     = if src == tgt then pure else fold @Discovery src
             acc'  = Layout.relayout layer : acc
             acc'' = f acc'

@@ -117,7 +117,7 @@ registerPass :: ∀ pass m. (PassRegister pass m, Pass.Definition pass) => m ()
 registerPass = registerPassFromFunction__ (Pass.definition @pass) ; {-# INLINE registerPass #-}
 
 registerPassFromFunction__ :: ∀ pass m.
-    PassRegister pass m => Pass pass () -> m ()
+    PassRegister pass m => Pass pass IO () -> m ()
 registerPassFromFunction__ !pass = do
     !lyt     <- view layout <$> State.get @State
     !dynPass <- Pass.compile pass lyt
@@ -254,14 +254,14 @@ runPassSameThreadByType :: ∀ pass m. (MonadScheduler m, Typeable pass) => m ()
 runPassSameThreadByType = runPassSameThread $ Pass.rep @pass ; {-# INLINE runPassSameThreadByType #-}
 
 debugRunPassDefs :: ∀ pass m. (Typeable pass, PassRegister pass m)
-                 => [Pass pass ()] -> m ()
+                 => [Pass pass IO ()] -> m ()
 debugRunPassDefs passes = for_ passes $ \pass -> do
     registerPassFromFunction__ pass
     runPassByType @pass
 {-# INLINE debugRunPassDefs #-}
 
 debugRunPassDef :: ∀ pass m. (Typeable pass, PassRegister pass m)
-                => Pass pass () -> m ()
+                => Pass pass IO () -> m ()
 debugRunPassDef = debugRunPassDefs . pure ; {-# INLINE debugRunPassDef #-}
 
 

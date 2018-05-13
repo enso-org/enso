@@ -149,7 +149,7 @@ type Compile pass m =
     )
 
 compile :: ∀ pass m. Compile pass m
-        => Pass pass () -> CompiledIRInfo -> m DynamicPass
+        => Pass pass IO () -> CompiledIRInfo -> m DynamicPass
 compile !pass !cfg = do
     !s <- Encoder.run @pass cfg
     let !desc         = describe @pass

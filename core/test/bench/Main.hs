@@ -34,23 +34,23 @@ Pass.cache_phase2 ''TestPass
 
 type OnDemandPass pass = (Typeable pass, Pass.Compile pass IO)
 
-runPass :: ∀ pass. OnDemandPass pass => Pass pass () -> IO ()
+runPass :: ∀ pass. OnDemandPass pass => Pass pass IO () -> IO ()
 runPass = runPasses . pure
 
-runPasses :: ∀ pass. OnDemandPass pass => [Pass pass ()] -> IO ()
+runPasses :: ∀ pass. OnDemandPass pass => [Pass pass IO ()] -> IO ()
 runPasses passes = Scheduler.runManual registry $ do
     Scheduler.debugRunPassDefs passes
     where registry = do
               Runner.registerAll
 
 
-run2Passes :: ∀ pass. OnDemandPass pass => Pass pass () -> Pass pass () -> IO ()
+run2Passes :: ∀ pass. OnDemandPass pass => Pass pass IO () -> Pass pass IO () -> IO ()
 run2Passes p1 p2 = runPasses [p1,p2]
 
-runPass' :: Pass TestPass () -> IO ()
+runPass' :: Pass TestPass IO () -> IO ()
 runPass' = runPass
 
-run2Passes' :: Pass TestPass () -> Pass TestPass () -> IO ()
+run2Passes' :: Pass TestPass IO () -> Pass TestPass IO () -> IO ()
 run2Passes' p1 p2 = runPasses [p1,p2]
 
 

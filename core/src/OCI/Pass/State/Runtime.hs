@@ -28,6 +28,55 @@ import Type.Data.List                  (type (<>))
 
 
 
+------------------------
+-- === MultiState === --
+------------------------
+
+-- === Definition === --
+
+newtype MultiState (s :: [Type]) m a = MultiState (StateT (TypeMap s) m a)
+    deriving ( Applicative, Alternative, Functor, Monad, MonadFail, MonadFix
+             , MonadIO, MonadPlus, MonadThrow, MonadTrans)
+makeLenses ''MultiState
+
+
+-- === State instances === --
+
+instance (elem ~ List.In a s, Getter__ elem s m a)
+      => State.Getter a (MultiState s m) where
+    get = get__ @elem ; {-# INLINE get #-}
+
+instance (elem ~ List.In a s, Setter__ elem s m a)
+      => State.Setter a (MultiState s m) where
+    put = put__ @elem ; {-# INLINE put #-}
+
+class Monad m => Getter__ (elem :: Bool) s m a where
+    get__ :: MultiState s m a
+
+class Monad m => Setter__ (elem :: Bool) s m a where
+    put__ :: a -> MultiState s m ()
+
+instance (Monad m, State.Getter a m) => Getter__ 'False s m a where
+    get__ = lift $ State.get @a ; {-# INLINE get__ #-}
+
+instance (Monad m, State.Setter a m) => Setter__ 'False s m a where
+    put__ = lift . State.put @a ; {-# INLINE put__ #-}
+
+instance (Monad m, TypeMap.ElemGetter a s)
+      => Getter__ 'True s m a where
+    get__ = wrap $ TypeMap.getElem @a <$> State.get @(TypeMap s)
+    {-# INLINE get__ #-}
+
+instance (Monad m, TypeMap.ElemSetter a s)
+      => Setter__ 'True s m a where
+    put__ a = wrap $ State.modify_ @(TypeMap s) $ TypeMap.setElem @a a
+    {-# INLINE put__ #-}
+
+
+
+
+
+
 ----------------------
 -- === Metadata === --
 ----------------------
@@ -125,9 +174,9 @@ instance {-# OVERLAPPABLE #-}
     => Setter pass a m where
     put t = State.modify_ @(State pass) $ wrapped %~ TypeMap.setElem t ; {-# INLINE put #-}
 
-instance (Getter pass CompiledIRInfo m, Monad m)
-      => Getter pass Component.DynamicTraversalMap m where
-    get = wrap . fmap (view IRInfo.layersComponents)
-               . view IRInfo.compiledComponents
-      <$> get @pass @CompiledIRInfo
-    {-# INLINE get #-}
+-- instance (Getter pass CompiledIRInfo m, Monad m)
+--       => Getter pass Component.DynamicTraversalMap m where
+--     get = wrap . fmap (view IRInfo.layersComponents)
+--                . view IRInfo.compiledComponents
+--       <$> get @pass @CompiledIRInfo
+--     {-# INLINE get #-}

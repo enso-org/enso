@@ -161,13 +161,13 @@ type OnDemandPass pass m = (Typeable pass, Pass.Compile pass IO, MonadIO m
     , Exception.MonadException Encoder.Error m
     )
 
-runPass :: ∀ pass m. OnDemandPass pass m => Pass pass () -> m ()
+runPass :: ∀ pass m. OnDemandPass pass m => Pass pass IO () -> m ()
 runPass !pass = Runner.runManual $ do
     Scheduler.registerPassFromFunction__ pass
     Scheduler.runPassSameThreadByType @pass
 {-# INLINE runPass #-}
 
-runPass' :: OnDemandPass Pass.BasicPass m => Pass Pass.BasicPass () -> m ()
+runPass' :: OnDemandPass Pass.BasicPass m => Pass Pass.BasicPass IO () -> m ()
 runPass' = runPass
 {-# INLINE runPass' #-}
 
@@ -228,7 +228,7 @@ readWrite_layerMock :: Bench
 readWrite_layerMock = Bench "staticRun" $ \i -> do
     ir <- mockNewComponent
     Layer.unsafeWriteByteOff @IR.Model layerLoc ir (IR.UniTermVar $ IR.Var 0)
-    let go :: Int -> Pass Pass.BasicPass ()
+    let go :: Int -> Pass Pass.BasicPass IO ()
         go 0 = pure ()
         go j = do
             IR.UniTermVar (IR.Var !x) <- Layer.read @IR.Model ir
@@ -252,7 +252,7 @@ readWrite_layerMock = Bench "staticRun" $ \i -> do
 readWrite_layer :: Bench
 readWrite_layer = Bench "normal" $ \i -> runPass' $ do
     !a <- IR.var 0
-    let go :: Int -> Pass Pass.BasicPass ()
+    let go :: Int -> Pass Pass.BasicPass IO ()
         go 0 = pure ()
         go j = do
             IR.UniTermVar (IR.Var !x) <- Layer.read @IR.Model a
@@ -264,7 +264,7 @@ readWrite_layer = Bench "normal" $ \i -> runPass' $ do
 readWrite_layerptr :: Bench
 readWrite_layerptr = Bench "normal" $ \i -> runPass' $ do
     !a <- IR.var 0
-    let go :: Int -> Pass Pass.BasicPass ()
+    let go :: Int -> Pass Pass.BasicPass IO ()
         go 0 = pure ()
         go j = do
             !tp <- Layer.read @IR.Type a
@@ -354,15 +354,15 @@ createIR_normal4 = Bench "normal4" $ \i -> runPass' $ do
 -- === IR Discovery === --
 --------------------------
 
-discoverIR_simple :: Bench
-discoverIR_simple = Bench "simple" $ \i -> Graph.run @Luna $ runPass' $ do
-    v <- IR.var "a"
-    let go !0 = pure ()
-        go !j = do
-            !x <- Discovery.discover v
-            go $! j - 1
-    go i
-{-# NOINLINE discoverIR_simple #-}
+-- discoverIR_simple :: Bench
+-- discoverIR_simple = Bench "simple" $ \i -> Graph.run @Luna $ runPass' $ do
+--     v <- IR.var "a"
+--     let go !0 = pure ()
+--         go !j = do
+--             !x <- Discovery.discover v
+--             go $! j - 1
+--     go i
+-- {-# NOINLINE discoverIR_simple #-}
 
 discoverIR_hack :: Bench
 discoverIR_hack = Bench "manual" $ \i -> Graph.run @Luna $ runPass' $ do
@@ -449,30 +449,30 @@ benchmarks :: IO ()
 benchmarks = do
     Criterion.defaultMain
       [ "ir"
-        -- [ "layer"
-        --     [ "rw" $ bench 7 <$>
-        --         [ readWrite_cptr
-        --         , readWrite_ptr
-        --         , readWrite_expTM
-        --         -- , readWrite_layerMock
-        --         , readWrite_layer
-        --         ]
-        --     ]
+        [ "layer"
+            [ "rw" $ bench 7 <$>
+                [ readWrite_cptr
+                , readWrite_ptr
+                , readWrite_expTM
+                -- , readWrite_layerMock
+                , readWrite_layer
+                ]
+            ]
 
-        -- [ "create" $ bench 5 <$>
-        --     [ createIR_mallocPtr
-        --     , createIR_normal
-        --     , createIR_normal2
-        --     , createIR_normal3
-        --     , createIR_normal4
-        --     ]
+        , "create" $ bench 5 <$>
+            [ createIR_mallocPtr
+            , createIR_normal
+            , createIR_normal2
+            , createIR_normal3
+            , createIR_normal4
+            ]
         -- [ "layer" $ bench 7 <$>
         --     [readWrite_layerptr]
 
-        [ "discovery" $ bench 6 <$>
+        , "discovery" $ bench 6 <$>
             [ discoverIR_hack3
             , discoverIR_hack
-            , discoverIR_simple
+            -- , discoverIR_simple
             ]
         ]
       ]
