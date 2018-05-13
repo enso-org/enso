@@ -5,29 +5,110 @@ module Data.Graph.Class where
 import Prologue
 
 import qualified Control.Monad.State.Layered as State
+import qualified Data.Graph.Data.Layer.Class as Layer
 import qualified Data.TypeMap.Strict         as TypeMap
 import qualified OCI.Pass.State.Runtime      as MultiState
+import qualified Type.Data.List              as List
 
 import OCI.Pass.State.Runtime (MultiStateT)
 
 
-type family Components      tag      :: [Type]
-type family ComponentLayers tag comp :: [Type]
 
-type StateData tag = '[]
-type State tag = TypeMap.TypeMap (StateData tag)
+-----------------------------
+-- === LayerByteOffset === --
+-----------------------------
+
+-- === Definition === --
+
+newtype LayerByteOffset comp layer = LayerByteOffset Int
+makeLenses ''LayerByteOffset
+
+
+-- === Instances === --
+
+instance (Typeable comp, Typeable layer)
+      => Show (LayerByteOffset comp layer) where
+    showsPrec d (unwrap -> a) = showParen' d $ showString name . showsPrec' a
+        where name = (<> " ") $ unwords
+                   [ "LayerByteOffset"
+                   , '@' : show (typeRep @comp)
+                   , '@' : show (typeRep @layer)
+                   ]
 
 
 
 
 
 
-type family DiscoverGraphTag (m :: Type -> Type) :: Type -- where
-    -- DiscoverGraphTag (Graph tag m) = tag
-    -- DiscoverGraphTag (t m)         = DiscoverGraphTag m
+type family Components      graph      :: [Type]
+type family ComponentLayers graph comp :: [Type]
 
-type DiscoverComponents      m = Components (DiscoverGraphTag m)
-type DiscoverComponentLayers m comp = ComponentLayers (DiscoverGraphTag m) comp
+type State graph = TypeMap.TypeMap (StateData graph)
+
+
+type StateData graph = MapLayerByteOffset graph (Components graph)
+
+
+type MapLayerByteOffset graph comps
+   = MapOverCompsAndLayers LayerByteOffset graph comps
+
+type family MapOverCompsAndLayers f graph comps where
+    MapOverCompsAndLayers f graph '[] = '[]
+    MapOverCompsAndLayers f graph (c ': cs) = List.Append
+        (MapOverLayers f graph c) (MapOverCompsAndLayers f graph cs)
+
+type MapOverLayers f graph component
+    = List.Map (f component) (ComponentLayers graph component)
+
+
+type family DiscoverGraph (m :: Type -> Type) :: Type -- where
+    -- DiscoverGraph (Graph tag m) = tag
+    -- DiscoverGraph (t m)         = DiscoverGraph m
+
+type DiscoverComponents      m = Components (DiscoverGraph m)
+type DiscoverComponentLayers m comp = ComponentLayers (DiscoverGraph m) comp
+
+
+
+---------------------
+-- === Encoder === --
+---------------------
+
+
+-- === API === --
+
+type EncoderResult = Either ()
+
+type StateEncoder  graph m = (StateEncoder' graph, Applicative m)
+type StateEncoder' graph   = TypeMap.Encoder (StateData graph)
+                             () EncoderResult
+
+tryEncodeState :: ∀ graph. StateEncoder' graph => EncoderResult (State graph)
+tryEncodeState = TypeMap.encode ()
+
+encodeState :: ∀ graph m. StateEncoder graph m => m (State graph)
+encodeState = case tryEncodeState @graph of
+    -- Left  e -> throw e
+    Right a -> pure a
+
+
+-- === Instances === --
+
+instance ( layers ~ DiscoverComponentLayers m comp
+         , Applicative m
+         , LayerByteOffsetEncoder layer layers )
+      => TypeMap.FieldEncoder (LayerByteOffset comp layer) () m where
+    encodeField _ = pure $ LayerByteOffset $ encodeLayerByteOffset @layer @layers
+
+class LayerByteOffsetEncoder layer (layers :: [Type]) where
+    encodeLayerByteOffset :: Int
+
+instance LayerByteOffsetEncoder l (l ': ls) where
+    encodeLayerByteOffset = 0 ; {-# INLINE encodeLayerByteOffset #-}
+
+instance {-# OVERLAPPABLE #-} (Layer.StorableData k, LayerByteOffsetEncoder l ls)
+      => LayerByteOffsetEncoder l (k ': ls) where
+    encodeLayerByteOffset = Layer.byteSize @k + encodeLayerByteOffset @l @ls ; {-# INLINE encodeLayerByteOffset #-}
 
 
 
@@ -46,8 +127,8 @@ makeLenses ''GraphT
 
 -- === API === --
 
-run :: ∀ t m a. Functor m => GraphT t m a -> m a
-run g = MultiState.evalT (unwrap g) TypeMap.empty ; {-# INLINE run #-}
+run :: ∀ graph m a. (Monad m, StateEncoder graph m) => GraphT graph m a -> m a
+run g = MultiState.evalT (unwrap g) =<< encodeState @graph ; {-# INLINE run #-}
 
 -- run  :: ∀ tag m a. Monad m => GraphT tag m a -> State tag -> m (a, State tag)
 -- exec :: ∀ tag m a. Monad m => GraphT tag m a -> State tag -> m (State tag)

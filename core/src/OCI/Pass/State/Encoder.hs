@@ -61,18 +61,13 @@ instance Exception Error
 -- === StateEncoder === --
 --------------------------
 
--- === Definition === --
-
-type Encoder pass = StateEncoder (Pass.StateLayout pass)
-
-class StateEncoder fields where
-    encodeState :: CompiledIRInfo -> EncoderResult (TypeMap fields)
-
-
 -- === API === --
 
+type Encoder pass = TypeMap.Encoder (Pass.StateLayout pass)
+                    CompiledIRInfo (Either Error)
+
 tryRun :: ∀ pass. Encoder pass => CompiledIRInfo -> EncoderResult (Pass.State pass)
-tryRun = fmap Runtime.State . encodeState
+tryRun = fmap Runtime.State . TypeMap.encode
 
 run :: ∀ pass m. (Encoder pass, Throws Error m)
     => CompiledIRInfo -> m (Pass.State pass)
@@ -83,62 +78,36 @@ run cfg = case tryRun cfg of
 
 -- === Instances === --
 
-instance StateEncoder '[] where
-    encodeState _ = pure TypeMap.empty
-
-instance ( TypeMap.Prependable t ts
-         , FieldEncoder t
-         , StateEncoder ts
-         ) => StateEncoder (t ': ts) where
-    encodeState info = appSemiLeft (TypeMap.prepend <$> encodeField @t info)
-                     $ encodeState @ts info
-
-
-
---------------------------
--- === FieldEncoder === --
---------------------------
-
--- === Definition === --
-
-class FieldEncoder field where
-    encodeField :: CompiledIRInfo -> EncoderResult field
-
-
--- === Instances === --
-
-instance FieldEncoder CompiledIRInfo where
-    encodeField = pure
-
-instance Default (Attr a)
-      => FieldEncoder (Attr a) where
+instance (inp ~ CompiledIRInfo, m ~ EncoderResult, Default (Attr a))
+      => TypeMap.FieldEncoder (Attr a) inp m where
     encodeField _ = pure def
 
-instance Typeable comp
-      => FieldEncoder (ByteSize (Component comp)) where
+instance (inp ~ CompiledIRInfo, m ~ EncoderResult, Typeable comp)
+      => TypeMap.FieldEncoder (ByteSize (Component comp)) inp m where
     encodeField info = do
         compInfo <- lookupComp  @comp  $ info ^. IRInfo.compiledComponents
         pure . wrap $ compInfo ^. IRInfo.layersByteSize
 
-instance Typeable comp
-      => FieldEncoder (Component.DynamicTraversal comp) where
+instance (inp ~ CompiledIRInfo, m ~ EncoderResult, Typeable comp)
+      => TypeMap.FieldEncoder (Component.DynamicTraversal comp) inp m where
     encodeField info = do
         compInfo <- lookupComp @comp $ info ^. IRInfo.compiledComponents
         pure . wrap $ compInfo ^. IRInfo.layersComponents
 
-instance FieldEncoder (Edge.ComponentProvider Terms) where
+instance (inp ~ CompiledIRInfo, m ~ EncoderResult)
+      => TypeMap.FieldEncoder (Edge.ComponentProvider Terms) inp m where
     encodeField info = do
         compInfo <- lookupComp @Terms $ info ^. IRInfo.compiledComponents
         pure . Edge.ComponentProvider $ compInfo ^. IRInfo.layersLinks
 
-instance Typeable comp
-      => FieldEncoder (MemPool (Component.Some comp)) where
+instance (inp ~ CompiledIRInfo, m ~ EncoderResult, Typeable comp)
+      => TypeMap.FieldEncoder (MemPool (Component.Some comp)) inp m where
     encodeField info = do
         compInfo <- lookupComp @comp $ info ^. IRInfo.compiledComponents
         pure . coerce $ compInfo ^. IRInfo.memPool
 
-instance Typeable comp
-      => FieldEncoder (Layer.DynamicManager comp) where
+instance (inp ~ CompiledIRInfo, m ~ EncoderResult, Typeable comp)
+      => TypeMap.FieldEncoder (Layer.DynamicManager comp) inp m where
     encodeField info = do
         compInfo <- lookupComp @comp $ info ^. IRInfo.compiledComponents
         pure $ Layer.DynamicManager
@@ -146,8 +115,8 @@ instance Typeable comp
             (compInfo ^. IRInfo.layersConstructor)
             (compInfo ^. IRInfo.layersDestructor)
 
-instance Typeables '[comp,layer]
-      => FieldEncoder (Pass.LayerByteOffset comp layer) where
+instance (inp ~ CompiledIRInfo, m ~ EncoderResult, Typeables '[comp,layer])
+      => TypeMap.FieldEncoder (Pass.LayerByteOffset comp layer) inp m where
     encodeField info = do
         compInfo  <- lookupComp  @comp  $ info ^. IRInfo.compiledComponents
         layerInfo <- lookupLayer @layer $ compInfo ^. IRInfo.compiledLayers
@@ -165,16 +134,6 @@ lookupLayer :: ∀ layer a. Typeable layer
             => Map Layer.Rep a -> EncoderResult a
 lookupLayer m = justErr (Error . pure $ MissingLayer k) $ Map.lookup k m
     where k = Layer.rep @layer
-
-appSemiLeft :: Semigroup e
-            => (Either e (a -> b)) -> Either e a -> Either e b
-appSemiLeft f a = case f of
-    Left e -> case a of
-        Left e' -> Left (e <> e')
-        _       -> Left e
-    Right ff -> case a of
-        Left e   -> Left e
-        Right aa -> Right $ ff aa
 
 
 

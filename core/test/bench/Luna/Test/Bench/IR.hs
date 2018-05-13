@@ -330,7 +330,7 @@ type instance Graph.Components      Luna          = '[IR.Terms, IR.Links]
 type instance Graph.ComponentLayers Luna IR.Terms = '[IR.Model, IR.Users, IR.Type] -- , IR.Users]
 type instance Graph.ComponentLayers Luna IR.Links = '[IR.Source, IR.Target]
 
-type instance Graph.DiscoverGraphTag m = Luna -- HACK
+type instance Graph.DiscoverGraph m = Luna -- HACK
 
 createIR_normal4 :: Bench
 createIR_normal4 = Bench "normal4" $ \i -> runPass' $ do

@@ -2,7 +2,7 @@
 
 module Data.TypeMap.Strict where
 
-import Prologue
+import Prologue hiding (empty)
 
 import qualified Data.Tuple.Strict as Tuple
 
@@ -68,3 +68,36 @@ instance ( ElemSetter s ts
 
 deriving instance Show    (TypeMapData ts) => Show    (TypeMap ts)
 deriving instance Default (TypeMapData ts) => Default (TypeMap ts)
+
+
+
+
+---------------------
+-- === Encoder === --
+---------------------
+
+-- === Definition === --
+
+class Encoder fields a m where
+    encode :: a -> m (TypeMap fields)
+
+class FieldEncoder field a m where
+    encodeField :: a -> m field
+
+
+-- === Instances === --
+
+
+instance Applicative m
+      => Encoder '[] a m where
+    encode _ = pure empty
+    {-# INLINE encode #-}
+
+instance (Applicative m, Encoder ts a m, FieldEncoder t a m, Prependable t ts)
+      => Encoder (t ': ts) a m where
+    encode a = prepend <$> encodeField @t a <*> encode @ts a
+    {-# INLINE encode #-}
+
+instance {-# OVERLAPPABLE #-} Applicative m
+      => FieldEncoder a a m where
+    encodeField = pure ; {-# INLINE encodeField #-}
