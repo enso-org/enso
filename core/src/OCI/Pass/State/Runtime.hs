@@ -34,27 +34,37 @@ import Type.Data.List                  (type (<>))
 
 -- === Definition === --
 
-newtype MultiState (s :: [Type]) m a = MultiState (StateT (TypeMap s) m a)
+newtype MultiStateT (s :: [Type]) m a = MultiStateT (StateT (TypeMap s) m a)
     deriving ( Applicative, Alternative, Functor, Monad, MonadFail, MonadFix
              , MonadIO, MonadPlus, MonadThrow, MonadTrans)
-makeLenses ''MultiState
+makeLenses ''MultiStateT
+
+
+-- === API === --
+
+runT  ::              MultiStateT s m a -> TypeMap s -> m (a, TypeMap s)
+execT :: Functor m => MultiStateT s m a -> TypeMap s -> m (TypeMap s)
+evalT :: Functor m => MultiStateT s m a -> TypeMap s -> m a
+runT  = State.runT  . unwrap ; {-# INLINE runT  #-}
+execT = State.execT . unwrap ; {-# INLINE execT #-}
+evalT = State.evalT . unwrap ; {-# INLINE evalT #-}
 
 
 -- === State instances === --
 
 instance (elem ~ List.In a s, Getter__ elem s m a)
-      => State.Getter a (MultiState s m) where
+      => State.Getter a (MultiStateT s m) where
     get = get__ @elem ; {-# INLINE get #-}
 
 instance (elem ~ List.In a s, Setter__ elem s m a)
-      => State.Setter a (MultiState s m) where
+      => State.Setter a (MultiStateT s m) where
     put = put__ @elem ; {-# INLINE put #-}
 
 class Monad m => Getter__ (elem :: Bool) s m a where
-    get__ :: MultiState s m a
+    get__ :: MultiStateT s m a
 
 class Monad m => Setter__ (elem :: Bool) s m a where
-    put__ :: a -> MultiState s m ()
+    put__ :: a -> MultiStateT s m ()
 
 instance (Monad m, State.Getter a m) => Getter__ 'False s m a where
     get__ = lift $ State.get @a ; {-# INLINE get__ #-}
@@ -148,31 +158,31 @@ deriving instance Default (StateData pass) => Default (State pass)
 
 
 
-------------------------
--- === MonadState === --
-------------------------
+-- ------------------------
+-- -- === MonadState === --
+-- ------------------------
 
--- | Local State Monad. It is just a nice interface for accessing elements
---   handling all needed special cases.
+-- -- | Local State Monad. It is just a nice interface for accessing elements
+-- --   handling all needed special cases.
 
--- === Definition === --
+-- -- === Definition === --
 
-class Monad m => Getter pass a m where get :: m a
-class Monad m => Setter pass a m where put :: a -> m ()
+-- class Monad m => Getter pass a m where get :: m a
+-- class Monad m => Setter pass a m where put :: a -> m ()
 
-instance {-# OVERLAPPABLE #-}
-    ( Monad m
-    , TypeMap.ElemGetter a (StateLayout pass)
-    , State.Getter (State pass) m)
-    => Getter pass a m where
-    get = TypeMap.getElem @a . unwrap <$> State.get @(State pass) ; {-# INLINE get #-}
+-- instance {-# OVERLAPPABLE #-}
+--     ( Monad m
+--     , TypeMap.ElemGetter a (StateLayout pass)
+--     , State.Getter (State pass) m)
+--     => Getter pass a m where
+--     get = TypeMap.getElem @a . unwrap <$> State.get @(State pass) ; {-# INLINE get #-}
 
-instance {-# OVERLAPPABLE #-}
-    ( Monad m
-    , TypeMap.ElemSetter a (StateLayout pass)
-    , State.Monad (State pass) m)
-    => Setter pass a m where
-    put t = State.modify_ @(State pass) $ wrapped %~ TypeMap.setElem t ; {-# INLINE put #-}
+-- instance {-# OVERLAPPABLE #-}
+--     ( Monad m
+--     , TypeMap.ElemSetter a (StateLayout pass)
+--     , State.Monad (State pass) m)
+--     => Setter pass a m where
+--     put t = State.modify_ @(State pass) $ wrapped %~ TypeMap.setElem t ; {-# INLINE put #-}
 
 -- instance (Getter pass CompiledIRInfo m, Monad m)
 --       => Getter pass Component.DynamicTraversalMap m where
