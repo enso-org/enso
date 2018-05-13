@@ -88,10 +88,10 @@ type family Result t
 type family EnabledLayer t layer :: Bool
 
 class Monad m => Foldable t m a where
-    buildFold :: a -> m (Result t) -> m (Result t)
+    fold :: a -> (Result t) -> m (Result t)
 
 class Monad m => Foldable1 t m a where
-    buildFold1 :: ∀ t1. a t1 -> m (Result t) -> m (Result t)
+    fold1 :: ∀ t1. a t1 -> (Result t) -> m (Result t)
 
 class Monad m => FoldableLayer t m layer where
     foldLayer :: ∀ layout. Layer.Cons layer layout -> Result t -> m (Result t)
@@ -102,17 +102,14 @@ class Monad m => FoldableComponent t m tag where
 
 -- === Generics === --
 
-fold :: ∀ t a m. Foldable t m a => a -> Result t -> m (Result t)
-fold a = buildFold @t a . pure ; {-# INLINE fold #-}
-
-gbuildFold :: ∀ t a m. (GTraversable (Foldable t m) a)
-           => a -> m (Result t) -> m (Result t)
-gbuildFold = GTraversable.gfoldl' @(Foldable t m) (\r d x -> r $! buildFold @t d x) id
-{-# INLINE gbuildFold #-}
+gfold :: ∀ t a m. (GTraversable (Foldable t m) a, Applicative m)
+      => a -> (Result t) -> m (Result t)
+gfold = GTraversable.gfoldl' @(Foldable t m) (\r d x -> r =<< fold @t d x) pure
+{-# INLINE gfold #-}
 
 instance {-# OVERLAPPABLE #-} (GTraversable (Foldable t m) a, Monad m)
       => Foldable t m a where
-    buildFold = gbuildFold @t ; {-# INLINE buildFold #-}
+    fold = gfold @t ; {-# INLINE fold #-}
 
 
 -- === Instances === --
@@ -122,10 +119,10 @@ instance ( layers ~ Graph.DiscoverComponentLayers m tag
          , FoldableComponent t m tag
          , LayersFoldableBuilder__ t layers m )
       => Foldable t m (Component tag layout) where
-    buildFold comp mr = do
-        r <- buildLayersFold__ @t @layers (Component.unsafeToPtr comp) mr
+    fold comp mr = do
+        r <- buildLayersFold__ @t @layers (Component.unsafeToPtr comp) (pure mr)
         foldComponent @t comp r
-    {-# INLINE buildFold #-}
+    {-# INLINE fold #-}
 
 
 
@@ -181,8 +178,6 @@ instance (Monad m, Layer.StorableLayer layer m, FoldableLayer t m layer)
 
 
 
-
-
 -----------------------
 -- === Discovery === --
 -----------------------
@@ -211,7 +206,7 @@ instance Monad m => FoldableComponent Discovery m tag where
 
 instance (Foldable1 Discovery m (Layer.Cons Model), Monad m)
       => FoldableLayer Discovery m Model where
-    foldLayer layer acc = buildFold1 @Discovery layer (pure acc) ; {-# INLINE foldLayer #-}
+    foldLayer layer acc = fold1 @Discovery layer acc ; {-# INLINE foldLayer #-}
 
 instance ( MonadIO m
          , Foldable1 Discovery m (Layer.Cons Model)
@@ -223,9 +218,9 @@ instance ( MonadIO m
     foldLayer layer acc = do
         (src :: Node.Node ()) <- Layout.relayout <$> Layer.read @Edge.Source layer
         (tgt :: Node.Node ()) <- Layout.relayout <$> Layer.read @Edge.Target layer
-        let f     = if src == tgt then id else buildFold @Discovery src
+        let f     = if src == tgt then pure else fold @Discovery src
             acc'  = Layout.relayout layer : acc
-            acc'' = f (pure acc')
+            acc'' = f acc'
         acc''
     {-# INLINE foldLayer #-}
 
