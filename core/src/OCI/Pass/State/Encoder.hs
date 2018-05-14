@@ -4,6 +4,7 @@ module OCI.Pass.State.Encoder where
 
 import Prologue
 
+import qualified Data.Graph.Class                   as Graph
 import qualified Data.Graph.Component.Edge          as Edge
 import qualified Data.Graph.Data.Component.Class    as Component
 import qualified Data.Graph.Data.Component.Dynamic  as Component
@@ -64,7 +65,7 @@ instance Exception Error
 -- === API === --
 
 type Encoder pass = TypeMap.Encoder (Pass.StateLayout pass)
-                    CompiledIRInfo (Either Error)
+                    CompiledIRInfo EncoderResult
 
 tryRun :: ∀ pass. Encoder pass => CompiledIRInfo -> EncoderResult (Pass.State pass)
 tryRun = fmap Runtime.State . TypeMap.encode
@@ -115,8 +116,8 @@ instance (inp ~ CompiledIRInfo, m ~ EncoderResult, Typeable comp)
             (compInfo ^. IRInfo.layersConstructor)
             (compInfo ^. IRInfo.layersDestructor)
 
-instance (inp ~ CompiledIRInfo, m ~ EncoderResult, Typeables '[comp,layer])
-      => TypeMap.FieldEncoder (Pass.LayerByteOffset comp layer) inp m where
+instance {-# OVERLAPPABLE #-} (inp ~ CompiledIRInfo, m ~ EncoderResult, Typeables '[comp,layer])
+      => TypeMap.FieldEncoder (Graph.LayerByteOffset comp layer) inp m where
     encodeField info = do
         compInfo  <- lookupComp  @comp  $ info ^. IRInfo.compiledComponents
         layerInfo <- lookupLayer @layer $ compInfo ^. IRInfo.compiledLayers

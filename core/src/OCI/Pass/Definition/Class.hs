@@ -6,23 +6,24 @@ module OCI.Pass.Definition.Class where
 import Prologue
 
 import qualified Control.Monad.State.Layered       as State
+import qualified Data.Graph.Class                  as Graph
 import qualified Data.Graph.Data                   as Component
 import qualified Data.Graph.Data.Component.Dynamic as Component
 import qualified Data.Graph.Data.Layer.Class       as Layer
+import qualified Data.TypeMap.MultiState           as MultiState
 import qualified Data.TypeMap.Strict               as TypeMap
 import qualified OCI.Pass.State.Runtime            as Runtime
-import qualified OCI.Pass.State.Runtime            as MultiState
 import qualified Type.Data.List                    as List
 
 import Control.Monad.State.Layered     (StateT)
 import Data.Graph.Class                (Graph)
 import Data.Graph.Data.Component.Class (Component)
+import Data.TypeMap.MultiState         (MultiStateT)
 import Data.TypeMap.Strict             (TypeMap)
 import Foreign.Info.ByteSize           (ByteSize)
 import Foreign.Memory.Pool             (MemPool)
 import Foreign.Ptr.Utils               (SomePtr)
 import OCI.Pass.State.Attr             (Attr)
-import OCI.Pass.State.Runtime          (MultiStateT)
 import Type.Data.List                  (type (<>))
 
 
@@ -71,22 +72,22 @@ instance (Monad m, State.Setter a (MultiStateT (Runtime.StateLayout pass) m))
 instance {-# OVERLAPPABLE #-}
     ( MonadIO m
     , Layer.StorableData layer
-    , State.Getter (Runtime.LayerByteOffset comp layer) (Pass pass m)
+    , State.Getter (Graph.LayerByteOffset comp layer) (Pass pass m)
     , Layer.Wrapped (Layer.Cons layer)
     ) => Layer.Reader (Component comp) layer (Pass pass m) where
     read__ !comp = do
-        !off <- unwrap <$> State.get @(Runtime.LayerByteOffset comp layer)
+        !off <- unwrap <$> State.get @(Graph.LayerByteOffset comp layer)
         Layer.unsafeReadByteOff @layer off comp
     {-# INLINE read__ #-}
 
 instance {-# OVERLAPPABLE #-}
     ( MonadIO m
     , Layer.StorableData layer
-    , State.Getter (Runtime.LayerByteOffset comp layer) (Pass pass m)
+    , State.Getter (Graph.LayerByteOffset comp layer) (Pass pass m)
     , Layer.Wrapped (Layer.Cons layer)
     ) => Layer.Writer (Component comp) layer (Pass pass m) where
     write__ !comp !d = do
-        !off <- unwrap <$> State.get @(Runtime.LayerByteOffset comp layer)
+        !off <- unwrap <$> State.get @(Graph.LayerByteOffset comp layer)
         Layer.unsafeWriteByteOff @layer off comp d
     {-# INLINE write__ #-}
 
@@ -96,20 +97,20 @@ instance {-# OVERLAPPABLE #-}
 instance {-# OVERLAPPABLE #-}
     ( MonadIO m
     , Layer.StorableView layer layout
-    , State.Getter (Runtime.LayerByteOffset comp layer) (Pass pass m)
+    , State.Getter (Graph.LayerByteOffset comp layer) (Pass pass m)
     ) => Layer.ViewReader (Component comp) layer layout (Pass pass m) where
     readView__ !comp = do
-        !off <- unwrap <$> State.get @(Runtime.LayerByteOffset comp layer)
+        !off <- unwrap <$> State.get @(Graph.LayerByteOffset comp layer)
         Layer.unsafeReadViewByteOff @layer off comp
     {-# INLINE readView__ #-}
 
 instance {-# OVERLAPPABLE #-}
     ( MonadIO m
     , Layer.StorableView layer layout
-    , State.Getter (Runtime.LayerByteOffset comp layer) (Pass pass m)
+    , State.Getter (Graph.LayerByteOffset comp layer) (Pass pass m)
     ) => Layer.ViewWriter (Component comp) layer layout (Pass pass m) where
     writeView__ !comp !d = do
-        !off <- unwrap <$> State.get @(Runtime.LayerByteOffset comp layer)
+        !off <- unwrap <$> State.get @(Graph.LayerByteOffset comp layer)
         Layer.unsafeWriteViewByteOff @layer off comp d
     {-# INLINE writeView__ #-}
 

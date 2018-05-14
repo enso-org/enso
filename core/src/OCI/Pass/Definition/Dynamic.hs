@@ -6,6 +6,7 @@ module OCI.Pass.Definition.Dynamic where
 
 import Prologue
 
+import qualified Data.Graph.Class                as Graph
 import qualified Data.Map.Strict                 as Map
 import qualified Data.Set                        as Set
 import qualified OCI.Pass.Definition.Class       as Pass
@@ -14,6 +15,7 @@ import qualified OCI.Pass.State.Attr             as Attr
 import qualified OCI.Pass.State.Encoder          as Encoder
 
 import Control.Monad.Exception   (Throws)
+import Data.Graph.Class          (Graph)
 import Data.Map.Strict           (Map)
 import Data.Set                  (Set)
 import GHC.Exts                  (Any)
@@ -119,16 +121,16 @@ instance ( layers ~ Pass.Spec pass (t comp)
 
 -- === Definition === --
 
-data DynamicPass = DynamicPass
+data DynamicPass graph = DynamicPass
     { _desc   :: !Desc
-    , _runner :: !(AttrVals -> IO AttrVals)
+    , _runner :: !(AttrVals -> Graph graph AttrVals)
     }
 makeLenses ''DynamicPass
 
 
 -- === Instances === --
 
-instance Show DynamicPass where
+instance Show (DynamicPass graph) where
     show _ = "DynamicPass" ; {-# INLINE show #-}
 
 instance Mempty Desc where
@@ -148,8 +150,8 @@ type Compile pass m =
     , Throws Encoder.Error m
     )
 
-compile :: ∀ pass m. Compile pass m
-        => Pass pass IO () -> CompiledIRInfo -> m DynamicPass
+compile :: ∀ graph pass m. Compile pass m
+        => Pass pass (Graph graph) () -> CompiledIRInfo -> m (DynamicPass graph)
 compile !pass !cfg = do
     !s <- Encoder.run @pass cfg
     let !desc         = describe @pass
@@ -159,5 +161,5 @@ compile !pass !cfg = do
     pure $! DynamicPass desc runner
 {-# INLINE compile #-}
 
-run :: MonadIO m => DynamicPass -> AttrVals -> m AttrVals
-run pass attrs = liftIO $ (pass ^. runner) attrs ; {-# INLINE run #-}
+run :: DynamicPass graph -> AttrVals -> Graph graph AttrVals
+run pass attrs = (pass ^. runner) attrs ; {-# INLINE run #-}

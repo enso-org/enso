@@ -11,6 +11,7 @@ import qualified Control.Monad.State.Layered           as State
 import qualified Criterion.Main                        as Criterion
 import qualified Criterion.Measurement                 as Criterion
 import qualified Data.Graph.Class                      as Graph
+import qualified Data.Graph.Class                      as Graph
 import qualified Data.Graph.Component.Node.Destruction as IR
 import qualified Data.Graph.Data.Component.Class       as Component
 import qualified Data.Graph.Data.Layer.Class           as Layer
@@ -37,9 +38,20 @@ import qualified System.Console.ANSI                   as ANSI
 
 import Control.DeepSeq   (force)
 import Control.Exception (evaluate)
+import Data.Graph.Class  (Graph)
 import Data.Graph.Data   (Component (Component))
 import Data.Set          (Set)
 import Luna.Pass         (Pass)
+
+
+
+
+data Luna
+type instance Graph.Components      Luna          = '[IR.Terms, IR.Links]
+type instance Graph.ComponentLayers Luna IR.Terms = '[IR.Model, IR.Users, IR.Type] -- , IR.Users]
+type instance Graph.ComponentLayers Luna IR.Links = '[IR.Source, IR.Target]
+
+type instance Graph.DiscoverGraph m = Luna -- HACK
 
 
 
@@ -161,14 +173,15 @@ type OnDemandPass pass m = (Typeable pass, Pass.Compile pass IO, MonadIO m
     , Exception.MonadException Encoder.Error m
     )
 
-runPass :: ∀ pass m. OnDemandPass pass m => Pass pass IO () -> m ()
+runPass :: ∀ pass. (Typeable pass, Pass.Compile pass IO) => Pass pass (Graph Luna) () -> Graph Luna ()
 runPass !pass = Runner.runManual $ do
     Scheduler.registerPassFromFunction__ pass
-    Scheduler.runPassSameThreadByType @pass
+    Scheduler.runPassSameThreadByType @Luna @pass
 {-# INLINE runPass #-}
 
-runPass' :: OnDemandPass Pass.BasicPass m => Pass Pass.BasicPass IO () -> m ()
-runPass' = runPass
+runPass' :: Pass Pass.BasicPass (Graph Luna) () -> IO ()
+-- runPass' :: OnDemandPass Pass.BasicPass m => Pass Pass.BasicPass (Graph Luna) () -> IO ()
+runPass' = Graph.run . runPass
 {-# INLINE runPass' #-}
 
 
@@ -252,7 +265,7 @@ readWrite_layerMock = Bench "staticRun" $ \i -> do
 readWrite_layer :: Bench
 readWrite_layer = Bench "normal" $ \i -> runPass' $ do
     !a <- IR.var 0
-    let go :: Int -> Pass Pass.BasicPass IO ()
+    let go :: Int -> Pass Pass.BasicPass (Graph Luna) ()
         go 0 = pure ()
         go j = do
             IR.UniTermVar (IR.Var !x) <- Layer.read @IR.Model a
@@ -264,7 +277,7 @@ readWrite_layer = Bench "normal" $ \i -> runPass' $ do
 readWrite_layerptr :: Bench
 readWrite_layerptr = Bench "normal" $ \i -> runPass' $ do
     !a <- IR.var 0
-    let go :: Int -> Pass Pass.BasicPass IO ()
+    let go :: Int -> Pass Pass.BasicPass (Graph Luna) ()
         go 0 = pure ()
         go j = do
             !tp <- Layer.read @IR.Type a
@@ -325,12 +338,7 @@ instance Foo a where foo = pure () ; {-# INLINE foo #-}
 
 
 
-data Luna
-type instance Graph.Components      Luna          = '[IR.Terms, IR.Links]
-type instance Graph.ComponentLayers Luna IR.Terms = '[IR.Model, IR.Users, IR.Type] -- , IR.Users]
-type instance Graph.ComponentLayers Luna IR.Links = '[IR.Source, IR.Target]
 
-type instance Graph.DiscoverGraph m = Luna -- HACK
 
 createIR_normal4 :: Bench
 createIR_normal4 = Bench "normal4" $ \i -> runPass' $ do
@@ -365,7 +373,7 @@ createIR_normal4 = Bench "normal4" $ \i -> runPass' $ do
 -- {-# NOINLINE discoverIR_simple #-}
 
 discoverIR_hack :: Bench
-discoverIR_hack = Bench "manual" $ \i -> Graph.run @Luna $ runPass' $ do
+discoverIR_hack = Bench "manual" $ \i -> runPass' $ do
     v <- IR.var "a"
     let go !0 = pure ()
         go !j = do
@@ -403,7 +411,7 @@ manualDiscoverIRHack !term !r = do
 
 
 discoverIR_hack3 :: Bench
-discoverIR_hack3 = Bench "generic" $ \i -> Graph.run @Luna $ runPass' $ do
+discoverIR_hack3 = Bench "generic" $ \i -> runPass' $ do
     !v <- IR.var "a"
     -- print "!!!"
     -- print =<< State.get @(Runtime.LayerByteOffset IR.Terms IR.Model)

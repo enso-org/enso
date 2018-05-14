@@ -18,6 +18,7 @@ library:
         - src
     dependencies:
         - base
+        - layered-state
         - luna-tuple-utils
         - luna-typelevel
         - prologue >= 3.0.0

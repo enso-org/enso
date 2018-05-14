@@ -6,11 +6,11 @@ import Prologue
 
 import qualified Control.Monad.State.Layered as State
 import qualified Data.Graph.Data.Layer.Class as Layer
+import qualified Data.TypeMap.MultiState     as MultiState
 import qualified Data.TypeMap.Strict         as TypeMap
-import qualified OCI.Pass.State.Runtime      as MultiState
 import qualified Type.Data.List              as List
 
-import OCI.Pass.State.Runtime (MultiStateT)
+import Data.TypeMap.MultiState (MultiStateT)
 
 
 
@@ -108,7 +108,8 @@ instance LayerByteOffsetEncoder l (l ': ls) where
 
 instance {-# OVERLAPPABLE #-} (Layer.StorableData k, LayerByteOffsetEncoder l ls)
       => LayerByteOffsetEncoder l (k ': ls) where
-    encodeLayerByteOffset = Layer.byteSize @k + encodeLayerByteOffset @l @ls ; {-# INLINE encodeLayerByteOffset #-}
+    encodeLayerByteOffset = Layer.byteSize @k + encodeLayerByteOffset @l @ls
+    {-# INLINE encodeLayerByteOffset #-}
 
 
 
