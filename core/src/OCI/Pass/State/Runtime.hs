@@ -63,8 +63,8 @@ newtype     State       pass = State (StateData pass)
 type        StateData   pass = TypeMap (StateLayout pass)
 type family StateLayout pass :: [Type] -- CACHED WITH OCI.Pass.Cache.define
 type ComputeStateLayout pass
-    = MapLayerByteOffset pass             (Vars pass Elems)
-   <> List.Map Attr                       (Vars pass Attrs)
+    = -- MapLayerByteOffset pass             (Vars pass Elems)
+   List.Map Attr                       (Vars pass Attrs)
    <> MapComponentMemPool                 (Vars pass Elems)
    <> MapComponentByteSize                (Vars pass Elems)
    <> List.Map Component.DynamicTraversal (Vars pass Elems)

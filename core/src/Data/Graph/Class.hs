@@ -37,11 +37,11 @@ instance (Typeable comp, Typeable layer)
 
 -- === Encoder === --
 
--- instance ( layers ~ DiscoverComponentLayers m comp
---          , Applicative m
---          , ComputeLayerByteOffset layer layers )
---       => TypeMap.FieldEncoder (LayerByteOffset comp layer) () m where
---     encodeField _ = pure $ LayerByteOffset $ computeLayerByteOffset @layer @layers
+instance ( layers ~ DiscoverComponentLayers m comp
+         , Applicative m
+         , ComputeLayerByteOffset layer layers )
+      => TypeMap.FieldEncoder (LayerByteOffset comp layer) () m where
+    encodeField _ = pure $ LayerByteOffset $ computeLayerByteOffset @layer @layers
 
 class ComputeLayerByteOffset layer (layers :: [Type]) where
     computeLayerByteOffset :: Int
@@ -64,7 +64,7 @@ type family ComponentLayers graph comp :: [Type]
 type State graph = TypeMap.TypeMap (StateData graph)
 
 
-type StateData graph = '[] -- MapLayerByteOffset graph (Components graph)
+type StateData graph = MapLayerByteOffset graph (Components graph)
 
 
 type MapLayerByteOffset graph comps
