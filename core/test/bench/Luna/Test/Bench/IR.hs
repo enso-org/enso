@@ -39,7 +39,7 @@ import qualified System.Console.ANSI                   as ANSI
 
 import Control.DeepSeq   (force)
 import Control.Exception (evaluate)
-import Data.Graph.Class  (Graph)
+import Data.Graph.Class  (Graph, Luna)
 import Data.Graph.Data   (Component (Component))
 import Data.Set          (Set)
 import Luna.Pass         (Pass)
@@ -47,7 +47,6 @@ import Luna.Pass         (Pass)
 
 
 
-data Luna
 type instance Graph.Components      Luna          = '[IR.Terms, IR.Links]
 type instance Graph.ComponentLayers Luna IR.Terms = '[IR.Users, IR.Model, IR.Type] -- , IR.Users]
 type instance Graph.ComponentLayers Luna IR.Links = '[IR.Target, IR.Source]
@@ -174,7 +173,7 @@ type OnDemandPass pass m = (Typeable pass, Pass.Compile pass IO, MonadIO m
     , Exception.MonadException Encoder.Error m
     )
 
-runPass :: ∀ pass. (Typeable pass, Pass.Compile pass IO) => Pass pass (Graph Luna) () -> Graph Luna ()
+runPass :: ∀ pass. (Typeable pass, Pass.Compile pass IO) => Pass pass (Graph Luna) () -> IO ()
 runPass !pass = Runner.runManual $ do
     Scheduler.registerPassFromFunction__ pass
     Scheduler.runPassSameThreadByType @Luna @pass
@@ -182,7 +181,7 @@ runPass !pass = Runner.runManual $ do
 
 runPass' :: Pass Pass.BasicPass (Graph Luna) () -> IO ()
 -- runPass' :: OnDemandPass Pass.BasicPass m => Pass Pass.BasicPass (Graph Luna) () -> IO ()
-runPass' p = Graph.run $! runPass p
+runPass' p = runPass p
 {-# INLINE runPass' #-}
 
 

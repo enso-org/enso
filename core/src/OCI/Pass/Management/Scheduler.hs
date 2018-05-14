@@ -5,6 +5,7 @@ import Prologue as P
 import qualified Control.Concurrent.Async     as Async
 import qualified Control.Monad.Exception      as Exception
 import qualified Control.Monad.State.Layered  as State
+import qualified Data.Graph.Class             as Graph
 import qualified Data.List                    as List
 import qualified Data.Map.Strict              as Map
 import qualified OCI.Pass.Definition.Class    as Pass
@@ -112,6 +113,7 @@ type PassRegister t pass m =
     ( Typeable       pass
     , Pass.Compile   pass m
     , MonadScheduler t m
+    , t ~ Graph.Luna
     )
 
 registerPass :: ∀ t pass m. (PassRegister t pass m, Pass.Definition pass) => m ()
@@ -218,7 +220,7 @@ gatherAttrs !passRep !resultAttrs = do
 
 -- === Pass Threads === --
 
-initPass :: ∀ t m. MonadScheduler t m => Pass.Rep -> m (Graph t Pass.AttrVals)
+initPass :: ∀ t m. MonadScheduler t m => Pass.Rep -> m (IO Pass.AttrVals)
 initPass !passRep = do
     !state   <- State.get @(State t)
     !dynPass <- Exception.fromJust (MissingPass passRep)
@@ -245,13 +247,13 @@ initPass !passRep = do
 
 -- -- === Debug Pass runners === --
 
-runPassSameThread :: ∀ t. Pass.Rep -> SchedulerT t (Graph t) ()
+runPassSameThread :: ∀ t. Pass.Rep -> SchedulerT t IO ()
 runPassSameThread !rep = do
-    !attrs <- join (lift <$> initPass rep)
+    !attrs <- join (lift <$> initPass @t rep)
     gatherAttrs @t rep $ pure attrs
 {-# INLINE runPassSameThread #-}
 
-runPassSameThreadByType :: ∀ t pass. (Typeable pass) => SchedulerT t (Graph t) ()
+runPassSameThreadByType :: ∀ t pass. (Typeable pass) => SchedulerT t IO ()
 runPassSameThreadByType = runPassSameThread $ Pass.rep @pass ; {-# INLINE runPassSameThreadByType #-}
 
 -- debugRunPassDefs :: ∀ t pass m. (Typeable pass, PassRegister t pass m)

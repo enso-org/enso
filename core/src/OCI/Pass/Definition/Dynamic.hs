@@ -123,7 +123,7 @@ instance ( layers ~ Pass.Spec pass (t comp)
 
 data DynamicPass graph = DynamicPass
     { _desc   :: !Desc
-    , _runner :: !(AttrVals -> Graph graph AttrVals)
+    , _runner :: !(AttrVals -> IO AttrVals)
     }
 makeLenses ''DynamicPass
 
@@ -148,18 +148,19 @@ type Compile pass m =
     , Encoder.OutAttrDecoder pass
     , Known pass
     , Throws Encoder.Error m
+    , Graph.StateEncoder Graph.Luna m
     )
 
-compile :: ∀ graph pass m. Compile pass m
+compile :: ∀ graph pass m. (Compile pass m, graph ~ Graph.Luna)
         => Pass pass (Graph graph) () -> CompiledIRInfo -> m (DynamicPass graph)
 compile !pass !cfg = do
     !s <- Encoder.run @pass cfg
     let !desc         = describe @pass
         runner !attrs = do
-            !s' <- Pass.exec pass $! Encoder.encodeAttrs (unwrap attrs) s
+            !s' <- Graph.run $! Pass.exec pass $! Encoder.encodeAttrs (unwrap attrs) s
             pure . wrap $ Encoder.decodeOutAttrs s'
     pure $! DynamicPass desc runner
 {-# INLINE compile #-}
 
-run :: DynamicPass graph -> AttrVals -> Graph graph AttrVals
+run :: DynamicPass graph -> AttrVals -> IO AttrVals
 run pass attrs = (pass ^. runner) attrs ; {-# INLINE run #-}

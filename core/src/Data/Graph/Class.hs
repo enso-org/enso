@@ -14,6 +14,9 @@ import Data.TypeMap.MultiState (MultiStateT)
 
 
 
+data Luna
+
+
 -----------------------------
 -- === LayerByteOffset === --
 -----------------------------
