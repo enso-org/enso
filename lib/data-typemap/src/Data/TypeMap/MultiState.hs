@@ -1,3 +1,4 @@
+{-# LANGUAGE Strict               #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Data.TypeMap.MultiState where
@@ -51,18 +52,18 @@ class Monad m => Setter__ (elem :: Bool) s m a where
     put__ :: a -> MultiStateT s m ()
 
 instance (Monad m, State.Getter a m) => Getter__ 'False s m a where
-    get__ = lift $ State.get @a ; {-# INLINE get__ #-}
+    get__ = lift $! State.get @a ; {-# INLINE get__ #-}
 
 instance (Monad m, State.Setter a m) => Setter__ 'False s m a where
-    put__ = lift . State.put @a ; {-# INLINE put__ #-}
+    put__ !x = lift $! State.put @a x ; {-# INLINE put__ #-}
 
 instance (Monad m, TypeMap.ElemGetter a s)
       => Getter__ 'True s m a where
-    get__ = wrap $ TypeMap.getElem @a <$> State.get @(TypeMap s)
+    get__ = wrap $! TypeMap.getElem @a <$> State.get @(TypeMap s)
     {-# INLINE get__ #-}
 
 instance (Monad m, TypeMap.ElemSetter a s)
       => Setter__ 'True s m a where
-    put__ a = wrap $ State.modify_ @(TypeMap s) $ TypeMap.setElem @a a
+    put__ !a = wrap $! State.modify_ @(TypeMap s) $! TypeMap.setElem @a a
     {-# INLINE put__ #-}
 

@@ -28,4 +28,4 @@ registerAll = do
 
 runManual :: (MonadIO m, Throws '[Registry.Error, Pass.Encoder.Error] m)
           => SchedulerT t m a -> m a
-runManual = Scheduler.runManual registerAll
+runManual = Scheduler.runManual registerAll ; {-# INLINE runManual #-}

@@ -19,6 +19,7 @@ import qualified Data.Graph.Data.Layer.Layout          as Layout
 import qualified Data.Graph.Traversal.Discovery        as Discovery
 import qualified Data.Set                              as Set
 import qualified Data.Tuple.Strict                     as Tuple
+import qualified Data.TypeMap.MultiState               as MultiState
 import qualified Data.TypeMap.Strict                   as TypeMap
 import qualified Foreign.Marshal.Alloc                 as Ptr
 import qualified Foreign.Marshal.Utils                 as Ptr
@@ -48,8 +49,8 @@ import Luna.Pass         (Pass)
 
 data Luna
 type instance Graph.Components      Luna          = '[IR.Terms, IR.Links]
-type instance Graph.ComponentLayers Luna IR.Terms = '[IR.Model, IR.Users, IR.Type] -- , IR.Users]
-type instance Graph.ComponentLayers Luna IR.Links = '[IR.Source, IR.Target]
+type instance Graph.ComponentLayers Luna IR.Terms = '[IR.Users, IR.Model, IR.Type] -- , IR.Users]
+type instance Graph.ComponentLayers Luna IR.Links = '[IR.Target, IR.Source]
 
 type instance Graph.DiscoverGraph m = Luna -- HACK
 
@@ -181,7 +182,7 @@ runPass !pass = Runner.runManual $ do
 
 runPass' :: Pass Pass.BasicPass (Graph Luna) () -> IO ()
 -- runPass' :: OnDemandPass Pass.BasicPass m => Pass Pass.BasicPass (Graph Luna) () -> IO ()
-runPass' = Graph.run . runPass
+runPass' p = Graph.run $! runPass p
 {-# INLINE runPass' #-}
 
 
@@ -237,30 +238,30 @@ readWrite_expTM = Bench "explicitTypeMap" $ \i -> do
               (0 :: Int)
 {-# NOINLINE readWrite_expTM #-}
 
-readWrite_layerMock :: Bench
-readWrite_layerMock = Bench "staticRun" $ \i -> do
-    ir <- mockNewComponent
-    Layer.unsafeWriteByteOff @IR.Model layerLoc ir (IR.UniTermVar $ IR.Var 0)
-    let go :: Int -> Pass Pass.BasicPass IO ()
-        go 0 = pure ()
-        go j = do
-            IR.UniTermVar (IR.Var !x) <- Layer.read @IR.Model ir
-            Layer.write @IR.Model ir (IR.UniTermVar $ IR.Var $! x + 1)
-            go (j - 1)
+-- readWrite_layerMock :: Bench
+-- readWrite_layerMock = Bench "staticRun" $ \i -> do
+--     ir <- mockNewComponent
+--     Layer.unsafeWriteByteOff @IR.Model layerLoc ir (IR.UniTermVar $ IR.Var 0)
+--     let go :: Int -> Pass Pass.BasicPass IO ()
+--         go 0 = pure ()
+--         go j = do
+--             IR.UniTermVar (IR.Var !x) <- Layer.read @IR.Model ir
+--             Layer.write @IR.Model ir (IR.UniTermVar $ IR.Var $! x + 1)
+--             go (j - 1)
 
-    cfg   <- Registry.evalT localRegistry
-    state <- Encoder.run @Pass.BasicPass cfg
-    Pass.eval (go i) state
-    where layerLoc :: Int
-          layerLoc = 0
-          localRegistry :: (Registry.Monad m, MonadIO m)
-                        => m IRInfo.CompiledIRInfo
-          localRegistry = do
-               Runner.registerAll
-               reg     <- State.get @IRInfo.IRInfo
-               passCfg <- IRInfo.compile reg
-               pure passCfg
-{-# NOINLINE readWrite_layerMock #-}
+--     cfg   <- Registry.evalT localRegistry
+--     state <- Encoder.run @Pass.BasicPass cfg
+--     Pass.eval (go i) state
+--     where layerLoc :: Int
+--           layerLoc = 0
+--           localRegistry :: (Registry.Monad m, MonadIO m)
+--                         => m IRInfo.CompiledIRInfo
+--           localRegistry = do
+--                Runner.registerAll
+--                reg     <- State.get @IRInfo.IRInfo
+--                passCfg <- IRInfo.compile reg
+--                pure passCfg
+-- {-# NOINLINE readWrite_layerMock #-}
 
 readWrite_layer :: Bench
 readWrite_layer = Bench "normal" $ \i -> runPass' $ do
@@ -433,6 +434,55 @@ discoverIR_hack3 = Bench "generic" $ \i -> runPass' $ do
 
 
 
+
+newtype X = X Int
+newtype Y = Y Int
+
+readWrite_MS_1 :: Bench
+readWrite_MS_1 = Bench "R/W MultiState" $ \i -> do
+    let go 0 = pure ()
+        go j = do
+            X !x <- State.get @X
+            let !x' = x + 1
+            State.put @X $ X x'
+            go (j - 1)
+    MultiState.evalT (go i) s
+    where s :: TypeMap.TypeMap '[ Proxy 1, Proxy 2, Proxy 3, Proxy 4, X ]
+          s = TypeMap.TypeMap $ Tuple.T5
+              (Proxy :: Proxy 1)
+              (Proxy :: Proxy 2)
+              (Proxy :: Proxy 3)
+              (Proxy :: Proxy 4)
+              (X 0)
+{-# NOINLINE readWrite_MS_1 #-}
+
+
+readWrite_MS_2 :: Bench
+readWrite_MS_2 = Bench "R/W MultiState" $ \i -> do
+    let go 0 = pure ()
+        go j = do
+            X !x <- State.get @X
+            let !x' = x + 1
+            State.put @X $ X x'
+            go (j - 1)
+    MultiState.evalT (MultiState.evalT (go i) s2) s
+    where s :: TypeMap.TypeMap '[ Proxy 1, Proxy 2, Proxy 3, Proxy 4, X ]
+          s = TypeMap.TypeMap $ Tuple.T5
+              (Proxy :: Proxy 1)
+              (Proxy :: Proxy 2)
+              (Proxy :: Proxy 3)
+              (Proxy :: Proxy 4)
+              (X 0)
+          s2 :: TypeMap.TypeMap '[ Proxy 1, Proxy 2, Proxy 3, Proxy 4, Y ]
+          s2 = TypeMap.TypeMap $ Tuple.T5
+              (Proxy :: Proxy 1)
+              (Proxy :: Proxy 2)
+              (Proxy :: Proxy 3)
+              (Proxy :: Proxy 4)
+              (Y 0)
+{-# NOINLINE readWrite_MS_2 #-}
+
+
 --------------------------------
 -- === Running Benchmarks === --
 --------------------------------
@@ -459,34 +509,62 @@ benchmarks = do
       [ "ir"
         [ "layer"
             [ "rw" $ bench 7 <$>
-                [ readWrite_cptr
-                , readWrite_ptr
-                , readWrite_expTM
-                -- , readWrite_layerMock
-                , readWrite_layer
+                -- [ readWrite_cptr
+                -- , readWrite_ptr
+                -- , readWrite_expTM
+                -- -- , readWrite_layerMock
+                [ readWrite_layer
+                , readWrite_MS_1
+                , readWrite_MS_2
                 ]
             ]
 
-        , "create" $ bench 5 <$>
-            [ createIR_mallocPtr
-            , createIR_normal
-            , createIR_normal2
-            , createIR_normal3
-            , createIR_normal4
-            ]
-        -- [ "layer" $ bench 7 <$>
-        --     [readWrite_layerptr]
+        -- , "create" $ bench 5 <$>
+        --     [ createIR_mallocPtr
+        --     , createIR_normal
+        --     , createIR_normal2
+        --     , createIR_normal3
+        --     , createIR_normal4
+        --     ]
+        -- -- [ "layer" $ bench 7 <$>
+        -- --     [readWrite_layerptr]
 
-        , "discovery" $ bench 6 <$>
-            [ discoverIR_hack3
-            , discoverIR_hack
-            -- , discoverIR_simple
-            ]
+        -- , "discovery" $ bench 6 <$>
+        --     [ discoverIR_hack3
+        --     , discoverIR_hack
+        --     -- , discoverIR_simple
+        --     ]
         ]
       ]
 
+
+testx :: Int -> IO ()
+testx i = runPass' $ do
+    print "var creation"
+    print =<< State.get @(Graph.LayerByteOffset IR.Terms IR.Model)
+    print =<< State.get @(Graph.LayerByteOffset IR.Terms IR.Type)
+    print =<< State.get @(Graph.LayerByteOffset IR.Terms IR.Users)
+    print =<< State.get @(Graph.LayerByteOffset IR.Links IR.Source)
+    print =<< State.get @(Graph.LayerByteOffset IR.Links IR.Target)
+    !a <- IR.var 0
+    print "var created"
+    let go :: Int -> Pass Pass.BasicPass (Graph Luna) ()
+        go 0 = pure ()
+        go j = do
+            print ">> 1"
+            IR.UniTermVar (IR.Var !x) <- Layer.read @IR.Model a
+            print ">> 2"
+            Layer.write @IR.Model a (IR.UniTermVar $ IR.Var $! x + 1)
+            print ">> 3"
+            go (j - 1)
+    go i
+{-# NOINLINE testx #-}
+
 main :: IO ()
 main = do
+    print "manual start"
+    testx 1
+    print "manual end"
     invariants
     benchmarks
 

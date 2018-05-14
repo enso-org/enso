@@ -116,7 +116,7 @@ instance (inp ~ CompiledIRInfo, m ~ EncoderResult, Typeable comp)
             (compInfo ^. IRInfo.layersConstructor)
             (compInfo ^. IRInfo.layersDestructor)
 
-instance {-# OVERLAPPABLE #-} (inp ~ CompiledIRInfo, m ~ EncoderResult, Typeables '[comp,layer])
+instance (inp ~ CompiledIRInfo, m ~ EncoderResult, Typeables '[comp,layer])
       => TypeMap.FieldEncoder (Graph.LayerByteOffset comp layer) inp m where
     encodeField info = do
         compInfo  <- lookupComp  @comp  $ info ^. IRInfo.compiledComponents

@@ -35,6 +35,24 @@ instance (Typeable comp, Typeable layer)
                    , '@' : show (typeRep @layer)
                    ]
 
+-- === Encoder === --
+
+-- instance ( layers ~ DiscoverComponentLayers m comp
+--          , Applicative m
+--          , ComputeLayerByteOffset layer layers )
+--       => TypeMap.FieldEncoder (LayerByteOffset comp layer) () m where
+--     encodeField _ = pure $ LayerByteOffset $ computeLayerByteOffset @layer @layers
+
+class ComputeLayerByteOffset layer (layers :: [Type]) where
+    computeLayerByteOffset :: Int
+
+instance ComputeLayerByteOffset l (l ': ls) where
+    computeLayerByteOffset = 0 ; {-# INLINE computeLayerByteOffset #-}
+
+instance {-# OVERLAPPABLE #-} (Layer.StorableData k, ComputeLayerByteOffset l ls)
+      => ComputeLayerByteOffset l (k ': ls) where
+    computeLayerByteOffset = Layer.byteSize @k + computeLayerByteOffset @l @ls
+    {-# INLINE computeLayerByteOffset #-}
 
 
 
@@ -46,7 +64,7 @@ type family ComponentLayers graph comp :: [Type]
 type State graph = TypeMap.TypeMap (StateData graph)
 
 
-type StateData graph = MapLayerByteOffset graph (Components graph)
+type StateData graph = '[] -- MapLayerByteOffset graph (Components graph)
 
 
 type MapLayerByteOffset graph comps
@@ -88,28 +106,12 @@ tryEncodeState = TypeMap.encode ()
 
 encodeState :: ∀ graph m. StateEncoder graph m => m (State graph)
 encodeState = case tryEncodeState @graph of
-    -- Left  e -> throw e
+    Left  e -> error "UH!" -- throw e
     Right a -> pure a
 
 
 -- === Instances === --
 
-instance ( layers ~ DiscoverComponentLayers m comp
-         , Applicative m
-         , LayerByteOffsetEncoder layer layers )
-      => TypeMap.FieldEncoder (LayerByteOffset comp layer) () m where
-    encodeField _ = pure $ LayerByteOffset $ encodeLayerByteOffset @layer @layers
-
-class LayerByteOffsetEncoder layer (layers :: [Type]) where
-    encodeLayerByteOffset :: Int
-
-instance LayerByteOffsetEncoder l (l ': ls) where
-    encodeLayerByteOffset = 0 ; {-# INLINE encodeLayerByteOffset #-}
-
-instance {-# OVERLAPPABLE #-} (Layer.StorableData k, LayerByteOffsetEncoder l ls)
-      => LayerByteOffsetEncoder l (k ': ls) where
-    encodeLayerByteOffset = Layer.byteSize @k + encodeLayerByteOffset @l @ls
-    {-# INLINE encodeLayerByteOffset #-}
 
 
 
@@ -129,7 +131,11 @@ makeLenses ''GraphT
 -- === API === --
 
 run :: ∀ graph m a. (Monad m, StateEncoder graph m) => GraphT graph m a -> m a
-run g = MultiState.evalT (unwrap g) =<< encodeState @graph ; {-# INLINE run #-}
+run g = do
+    !s <- encodeState @graph
+    !out <- MultiState.evalT (unwrap g) s
+    pure out
+{-# INLINE run #-}
 
 -- run  :: ∀ tag m a. Monad m => GraphT tag m a -> State tag -> m (a, State tag)
 -- exec :: ∀ tag m a. Monad m => GraphT tag m a -> State tag -> m (State tag)
