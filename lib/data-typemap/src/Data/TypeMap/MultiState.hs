@@ -1,4 +1,4 @@
-{-# LANGUAGE Strict               #-}
+{-# LANGUAGE NoStrict             #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Data.TypeMap.MultiState where
@@ -28,11 +28,11 @@ makeLenses ''MultiStateT
 -- === API === --
 
 runT  ::              MultiStateT s m a -> TypeMap s -> m (a, TypeMap s)
-execT :: Functor m => MultiStateT s m a -> TypeMap s -> m (TypeMap s)
-evalT :: Functor m => MultiStateT s m a -> TypeMap s -> m a
-runT  = State.runT  . unwrap ; {-# INLINE runT  #-}
-execT = State.execT . unwrap ; {-# INLINE execT #-}
-evalT = State.evalT . unwrap ; {-# INLINE evalT #-}
+execT :: Monad m => MultiStateT s m a -> TypeMap s -> m (TypeMap s)
+evalT :: Monad m => MultiStateT s m a -> TypeMap s -> m a
+runT  !m !s = State.runT  (unwrap m) s ; {-# INLINE runT  #-}
+execT !m !s = State.execT (unwrap m) s ; {-# INLINE execT #-}
+evalT !m !s = State.evalT (unwrap m) s ; {-# INLINE evalT #-}
 
 
 -- === State instances === --

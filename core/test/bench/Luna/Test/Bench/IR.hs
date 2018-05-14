@@ -48,7 +48,7 @@ import Luna.Pass         (Pass)
 
 
 type instance Graph.Components      Luna          = '[IR.Terms, IR.Links]
-type instance Graph.ComponentLayers Luna IR.Terms = '[IR.Users, IR.Model, IR.Type] -- , IR.Users]
+type instance Graph.ComponentLayers Luna IR.Terms = '[IR.Model] -- '[IR.Users, IR.Model, IR.Type] -- , IR.Users]
 type instance Graph.ComponentLayers Luna IR.Links = '[IR.Target, IR.Source]
 
 type instance Graph.DiscoverGraph m = Luna -- HACK
@@ -176,7 +176,7 @@ type OnDemandPass pass m = (Typeable pass, Pass.Compile pass IO, MonadIO m
 runPass :: ∀ pass. (Typeable pass, Pass.Compile pass IO) => Pass pass (Graph Luna) () -> IO ()
 runPass !pass = Runner.runManual $ do
     Scheduler.registerPassFromFunction__ pass
-    Scheduler.runPassSameThreadByType @Luna @pass
+    Scheduler.runPassSameThreadByType @pass
 {-# INLINE runPass #-}
 
 runPass' :: Pass Pass.BasicPass (Graph Luna) () -> IO ()
@@ -274,18 +274,18 @@ readWrite_layer = Bench "normal" $ \i -> runPass' $ do
     go i
 {-# NOINLINE readWrite_layer #-}
 
-readWrite_layerptr :: Bench
-readWrite_layerptr = Bench "normal" $ \i -> runPass' $ do
-    !a <- IR.var 0
-    let go :: Int -> Pass Pass.BasicPass (Graph Luna) ()
-        go 0 = pure ()
-        go j = do
-            !tp <- Layer.read @IR.Type a
-            !s  <- Layer.read @IR.Source tp
-            -- Layer.write @IR.Model a (IR.UniTermVar $ IR.Var $! x + 1)
-            go (j - 1)
-    go i
-{-# NOINLINE readWrite_layerptr #-}
+    -- readWrite_layerptr :: Bench
+    -- readWrite_layerptr = Bench "normal" $ \i -> runPass' $ do
+    --     !a <- IR.var 0
+    --     let go :: Int -> Pass Pass.BasicPass (Graph Luna) ()
+    --         go 0 = pure ()
+    --         go j = do
+    --             !tp <- Layer.read @IR.Type a
+    --             !s  <- Layer.read @IR.Source tp
+    --             -- Layer.write @IR.Model a (IR.UniTermVar $ IR.Var $! x + 1)
+    --             go (j - 1)
+    --     go i
+    -- {-# NOINLINE readWrite_layerptr #-}
 
 
 
@@ -321,17 +321,17 @@ createIR_normal2 = Bench "normal2" $ \i -> runPass' $ do
     go i
 {-# NOINLINE createIR_normal2 #-}
 
-createIR_normal3 :: Bench
-createIR_normal3 = Bench "normal3" $ \i -> runPass' $ do
-    let go !0 = pure ()
-        go !j = do
-            !v <- IR.var 0
-            !tpLink <- Layer.read @IR.Type v
-            -- Component.destruct tpLink
-            Component.destruct v
-            go $! j - 1
-    go i
-{-# NOINLINE createIR_normal3 #-}
+    -- createIR_normal3 :: Bench
+    -- createIR_normal3 = Bench "normal3" $ \i -> runPass' $ do
+    --     let go !0 = pure ()
+    --         go !j = do
+    --             !v <- IR.var 0
+    --             !tpLink <- Layer.read @IR.Type v
+    --             -- Component.destruct tpLink
+    --             Component.destruct v
+    --             go $! j - 1
+    --     go i
+    -- {-# NOINLINE createIR_normal3 #-}
 
 class Foo a where foo :: IO ()
 instance Foo a where foo = pure () ; {-# INLINE foo #-}
@@ -340,22 +340,22 @@ instance Foo a where foo = pure () ; {-# INLINE foo #-}
 
 
 
-createIR_normal4 :: Bench
-createIR_normal4 = Bench "normal4" $ \i -> runPass' $ do
-    let go !0 = pure ()
-        go !j = do
-            !v <- IR.var 0
-            !tpLink <- Layer.read @IR.Type v
-            -- Component.destruct tpLink
-            -- Component.destruct v
-            -- modelManager = Layer.manager @IR.Model
-            -- typeManager  = Layer.manager @IR.Type
-            liftIO $ foo @IR.Model
-            liftIO $ foo @IR.Type
+    -- createIR_normal4 :: Bench
+    -- createIR_normal4 = Bench "normal4" $ \i -> runPass' $ do
+    --     let go !0 = pure ()
+    --         go !j = do
+    --             !v <- IR.var 0
+    --             !tpLink <- Layer.read @IR.Type v
+    --             -- Component.destruct tpLink
+    --             -- Component.destruct v
+    --             -- modelManager = Layer.manager @IR.Model
+    --             -- typeManager  = Layer.manager @IR.Type
+    --             liftIO $ foo @IR.Model
+    --             liftIO $ foo @IR.Type
 
-            go $! j - 1
-    go i
-{-# NOINLINE createIR_normal4 #-}
+    --             go $! j - 1
+    --     go i
+    -- {-# NOINLINE createIR_normal4 #-}
 
 
 --------------------------
@@ -372,63 +372,63 @@ createIR_normal4 = Bench "normal4" $ \i -> runPass' $ do
 --     go i
 -- {-# NOINLINE discoverIR_simple #-}
 
-discoverIR_hack :: Bench
-discoverIR_hack = Bench "manual" $ \i -> runPass' $ do
-    v <- IR.var "a"
-    let go !0 = pure ()
-        go !j = do
-            let !f = manualDiscoverIRHack (Layout.relayout v)
-            !out <- f []
-            go $! j - 1
-    go i
-{-# NOINLINE discoverIR_hack #-}
+    -- discoverIR_hack :: Bench
+    -- discoverIR_hack = Bench "manual" $ \i -> runPass' $ do
+    --     v <- IR.var "a"
+    --     let go !0 = pure ()
+    --         go !j = do
+    --             let !f = manualDiscoverIRHack (Layout.relayout v)
+    --             !out <- f []
+    --             go $! j - 1
+    --     go i
+    -- {-# NOINLINE discoverIR_hack #-}
 
--- | The manualDiscoverIRHack function allows us to discover IR with an
---   assumption that everything is just a Var with chain of Top types.
-manualDiscoverIRHack
-    :: ( Layer.Reader IR.Term IR.Type   m
-       , Layer.Reader IR.Term IR.Model  m
-       , Layer.Reader IR.Link IR.Source m
-       , Layer.Reader IR.Link IR.Target m
-       , MonadIO m
-       )
-    => IR.SomeTerm -> [Component.Any] -> m [Component.Any]
-manualDiscoverIRHack !term !r = do
-    !tl    <- Layer.read @IR.Type  term
-    !model <- Layer.read @IR.Model term
-    let !r' = case model of
-            IR.UniTermVar (IR.Var {}) -> let !o = Layout.relayout term : r in o
-            IR.UniTermTop (IR.Top {}) -> let !o = Layout.relayout term : r in o
-            a                         -> error "not supported"
-    !src <- Layer.read @IR.Source tl
-    !tgt <- Layer.read @IR.Target tl
-    let !(src' :: IR.SomeTerm) = Layout.relayout src
-    let !(tgt' :: IR.SomeTerm) = Layout.relayout tgt
-    let !f = if src' == tgt' then pure else manualDiscoverIRHack src'
-        !r'' = Layout.relayout tl : r'
-        !mr''' = f r''
-    mr'''
+    -- -- | The manualDiscoverIRHack function allows us to discover IR with an
+    -- --   assumption that everything is just a Var with chain of Top types.
+    -- manualDiscoverIRHack
+    --     :: ( Layer.Reader IR.Term IR.Type   m
+    --        , Layer.Reader IR.Term IR.Model  m
+    --        , Layer.Reader IR.Link IR.Source m
+    --        , Layer.Reader IR.Link IR.Target m
+    --        , MonadIO m
+    --        )
+    --     => IR.SomeTerm -> [Component.Any] -> m [Component.Any]
+    -- manualDiscoverIRHack !term !r = do
+    --     !tl    <- Layer.read @IR.Type  term
+    --     !model <- Layer.read @IR.Model term
+    --     let !r' = case model of
+    --             IR.UniTermVar (IR.Var {}) -> let !o = Layout.relayout term : r in o
+    --             IR.UniTermTop (IR.Top {}) -> let !o = Layout.relayout term : r in o
+    --             a                         -> error "not supported"
+    --     !src <- Layer.read @IR.Source tl
+    --     !tgt <- Layer.read @IR.Target tl
+    --     let !(src' :: IR.SomeTerm) = Layout.relayout src
+    --     let !(tgt' :: IR.SomeTerm) = Layout.relayout tgt
+    --     let !f = if src' == tgt' then pure else manualDiscoverIRHack src'
+    --         !r'' = Layout.relayout tl : r'
+    --         !mr''' = f r''
+    --     mr'''
 
 
-discoverIR_hack3 :: Bench
-discoverIR_hack3 = Bench "generic" $ \i -> runPass' $ do
-    !v <- IR.var "a"
-    -- print "!!!"
-    -- print =<< State.get @(Runtime.LayerByteOffset IR.Terms IR.Model)
-    -- print =<< State.get @(Runtime.LayerByteOffset IR.Terms IR.Type)
-    -- print =<< State.get @(Runtime.LayerByteOffset IR.Terms IR.Users)
-    let go !0 = let !o = pure () in o
-        go !j = do
-            -- putStrLn ""
-            !out <- Discovery.getNeighbours v
-            -- print out
-            -- !tl  <- Layer.read @IR.Type v
-            -- !t   <- Layer.read @IR.Source tl
-            -- !ttl <- Layer.read @IR.Type t
-            -- print [Component.unsafeToPtr v, Component.unsafeToPtr tl, Component.unsafeToPtr t, Component.unsafeToPtr ttl]
-            let !o = go $! j - 1 in o
-    go i
-{-# NOINLINE discoverIR_hack3 #-}
+    -- discoverIR_hack3 :: Bench
+    -- discoverIR_hack3 = Bench "generic" $ \i -> runPass' $ do
+    --     !v <- IR.var "a"
+    --     -- print "!!!"
+    --     -- print =<< State.get @(Runtime.LayerByteOffset IR.Terms IR.Model)
+    --     -- print =<< State.get @(Runtime.LayerByteOffset IR.Terms IR.Type)
+    --     -- print =<< State.get @(Runtime.LayerByteOffset IR.Terms IR.Users)
+    --     let go !0 = let !o = pure () in o
+    --         go !j = do
+    --             -- putStrLn ""
+    --             !out <- Discovery.getNeighbours v
+    --             -- print out
+    --             -- !tl  <- Layer.read @IR.Type v
+    --             -- !t   <- Layer.read @IR.Source tl
+    --             -- !ttl <- Layer.read @IR.Type t
+    --             -- print [Component.unsafeToPtr v, Component.unsafeToPtr tl, Component.unsafeToPtr t, Component.unsafeToPtr ttl]
+    --             let !o = go $! j - 1 in o
+    --     go i
+    -- {-# NOINLINE discoverIR_hack3 #-}
 
 
 
@@ -540,11 +540,11 @@ benchmarks = do
 testx :: Int -> IO ()
 testx i = runPass' $ do
     print "var creation"
-    print =<< State.get @(Graph.LayerByteOffset IR.Terms IR.Model)
-    print =<< State.get @(Graph.LayerByteOffset IR.Terms IR.Type)
-    print =<< State.get @(Graph.LayerByteOffset IR.Terms IR.Users)
-    print =<< State.get @(Graph.LayerByteOffset IR.Links IR.Source)
-    print =<< State.get @(Graph.LayerByteOffset IR.Links IR.Target)
+    -- print =<< State.get @(Graph.LayerByteOffset IR.Terms IR.Model)
+    -- print =<< State.get @(Graph.LayerByteOffset IR.Terms IR.Type)
+    -- print =<< State.get @(Graph.LayerByteOffset IR.Terms IR.Users)
+    -- print =<< State.get @(Graph.LayerByteOffset IR.Links IR.Source)
+    -- print =<< State.get @(Graph.LayerByteOffset IR.Links IR.Target)
     !a <- IR.var 0
     print "var created"
     let go :: Int -> Pass Pass.BasicPass (Graph Luna) ()

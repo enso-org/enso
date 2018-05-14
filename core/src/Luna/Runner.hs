@@ -18,8 +18,8 @@ registerAll :: Registry.Monad m => m ()
 registerAll = do
     Registry.registerComponent @IR.Terms
     Registry.registerPrimLayer @IR.Terms @IR.Model
-    Registry.registerPrimLayer @IR.Terms @IR.Type
-    Registry.registerPrimLayer @IR.Terms @IR.Users
+    -- Registry.registerPrimLayer @IR.Terms @IR.Type
+    -- Registry.registerPrimLayer @IR.Terms @IR.Users
 
     Registry.registerComponent @IR.Links
     Registry.registerPrimLayer @IR.Links @IR.Source

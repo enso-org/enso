@@ -105,13 +105,15 @@ type StateEncoder' graph   = TypeMap.Encoder (StateData graph)
                              () EncoderResult
 
 tryEncodeState :: ∀ graph. StateEncoder' graph => EncoderResult (State graph)
-tryEncodeState = TypeMap.encode ()
+tryEncodeState = let !out = TypeMap.encode () in out
 
-encodeState :: ∀ graph m. StateEncoder graph m => m (State graph)
-encodeState = case tryEncodeState @graph of
-    Left  e -> error "UH!" -- throw e
-    Right a -> pure a
-
+encodeState :: ∀ graph m. (StateEncoder graph m, Monad m) => m (State graph)
+encodeState = do
+    !out <- case tryEncodeState @graph of
+        Left  e -> error "UH!" -- throw e
+        Right a -> pure a
+    pure out
+{-# NOINLINE encodeState #-}
 
 -- === Instances === --
 
@@ -139,6 +141,12 @@ run g = do
     !out <- MultiState.evalT (unwrap g) s
     pure out
 {-# INLINE run #-}
+
+run2 :: ∀ graph m a. Monad m => GraphT graph m a -> TypeMap.TypeMap (StateData graph) -> m a
+run2 !g !s = do
+    !out <- MultiState.evalT (unwrap g) s
+    pure out
+{-# INLINE run2 #-}
 
 -- run  :: ∀ tag m a. Monad m => GraphT tag m a -> State tag -> m (a, State tag)
 -- exec :: ∀ tag m a. Monad m => GraphT tag m a -> State tag -> m (State tag)

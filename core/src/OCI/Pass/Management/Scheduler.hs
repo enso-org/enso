@@ -83,6 +83,8 @@ type MonadScheduler t m =
     , MonadIO m
     , Throws Error m
     , Throws Encoder.Error m
+    , t ~ Graph.Luna
+    , Graph.StateEncoder t m
     )
 
 newtype SchedulerT t m a = SchedulerT (StateT (State t) m a)
@@ -247,13 +249,13 @@ initPass !passRep = do
 
 -- -- === Debug Pass runners === --
 
-runPassSameThread :: ∀ t. Pass.Rep -> SchedulerT t IO ()
+runPassSameThread :: Graph.StateEncoder Graph.Luna IO => Pass.Rep -> SchedulerT Graph.Luna IO ()
 runPassSameThread !rep = do
-    !attrs <- join (lift <$> initPass @t rep)
-    gatherAttrs @t rep $ pure attrs
+    !attrs <- join (lift <$> initPass rep)
+    gatherAttrs @Graph.Luna rep $ pure attrs
 {-# INLINE runPassSameThread #-}
 
-runPassSameThreadByType :: ∀ t pass. (Typeable pass) => SchedulerT t IO ()
+runPassSameThreadByType :: ∀ pass. Graph.StateEncoder Graph.Luna IO => (Typeable pass) => SchedulerT Graph.Luna IO ()
 runPassSameThreadByType = runPassSameThread $ Pass.rep @pass ; {-# INLINE runPassSameThreadByType #-}
 
 -- debugRunPassDefs :: ∀ t pass m. (Typeable pass, PassRegister t pass m)

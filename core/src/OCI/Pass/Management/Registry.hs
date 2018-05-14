@@ -53,10 +53,10 @@ makeLenses ''RegistryT
 
 -- === Running === --
 
-evalT :: Functor m => RegistryT m a -> m a
+evalT :: P.Monad m => RegistryT m a -> m a
 evalT = State.evalDefT . unwrap ; {-# INLINE evalT #-}
 
-execT :: Functor m => RegistryT m a -> m IRInfo
+execT :: P.Monad m => RegistryT m a -> m IRInfo
 execT = State.execDefT . unwrap ; {-# INLINE execT #-}
 
 

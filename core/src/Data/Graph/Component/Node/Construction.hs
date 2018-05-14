@@ -40,7 +40,7 @@ type UntypedCreator t m =
 type Creator tag m =
     ( UntypedCreator tag m
     , Edge.Creator m
-    , Layer.Writer Node Layer.Type m
+    -- , Layer.Writer Node Layer.Type m
     , DefaultType m
     )
 
@@ -76,7 +76,7 @@ uncheckedNewM :: Creator tag m
 uncheckedNewM !cons = uncheckedUntypedNewM $ \self -> do
     typeNode <- defaultType
     typeEdge <- Edge.new typeNode self
-    Layer.write @Layer.Type self (Layout.unsafeRelayout typeEdge)
+    -- Layer.write @Layer.Type self (Layout.unsafeRelayout typeEdge)
     cons self
 {-# INLINE uncheckedNewM #-}
 

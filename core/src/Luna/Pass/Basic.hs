@@ -20,7 +20,7 @@ data BasicPass
 type instance Spec BasicPass t = BasicPassSpec t
 type family   BasicPassSpec  t where
     BasicPassSpec (In Elems) = '[Terms, Links]
-    BasicPassSpec (In Terms) = '[Model, Type, Users]
+    BasicPassSpec (In Terms) = '[Model] -- , Type, Users]
     BasicPassSpec (In Links) = '[Source, Target]
     BasicPassSpec (In Attrs) = '[]
     BasicPassSpec (Out a)    = BasicPassSpec (In a)
