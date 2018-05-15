@@ -32,7 +32,7 @@ Pass.cache_phase2 ''TestPass
 
 -- === API === --
 
-type OnDemandPass pass = (Typeable pass, Pass.Compile pass IO)
+-- type OnDemandPass pass = (Typeable pass, Pass.Compile pass IO)
 
 -- runPass :: ∀ pass. OnDemandPass pass => Pass pass IO () -> IO ()
 -- runPass = runPasses . pure

@@ -167,21 +167,24 @@ bench i f = Criterion.bgroup (f ^. name) $ expNFIO f <$> loop i
 -- === Benchark pass === --
 ----------------------------
 
-type OnDemandPass pass m = (Typeable pass, Pass.Compile pass IO, MonadIO m
-    , Exception.MonadException Registry.Error m
+type OnDemandPass graph pass m =
+    ( MonadIO m
+    , Typeable pass
+    , Pass.Compile graph pass m
+    , Exception.MonadException Registry.Error  m
     , Exception.MonadException Scheduler.Error m
-    , Exception.MonadException Encoder.Error m
+    , Exception.MonadException Encoder.Error   m
     )
 
-runPass :: ∀ pass. (Typeable pass, Pass.Compile pass IO) => Pass pass (Graph Luna) () -> IO ()
+runPass :: ∀ graph pass m. OnDemandPass graph pass m
+        => Pass pass (Graph graph) () -> m ()
 runPass !pass = Runner.runManual $ do
     Scheduler.registerPassFromFunction__ pass
     Scheduler.runPassSameThreadByType @pass
 {-# INLINE runPass #-}
 
 runPass' :: Pass Pass.BasicPass (Graph Luna) () -> IO ()
--- runPass' :: OnDemandPass Pass.BasicPass m => Pass Pass.BasicPass (Graph Luna) () -> IO ()
-runPass' p = runPass p
+runPass' p = Graph.encodeAndEval @Luna (runPass p)
 {-# INLINE runPass' #-}
 
 

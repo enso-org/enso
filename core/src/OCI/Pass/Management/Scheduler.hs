@@ -48,8 +48,8 @@ instance Exception Error
 
 -- === Definition === --
 
-data State t = State
-    { _passes   :: !(Map Pass.Rep (DynamicPass t))
+data State = State
+    { _passes   :: !(Map Pass.Rep DynamicPass)
     , _attrDefs :: !(Map Attr.Rep DynAttr)
     , _attrs    :: !(Map Attr.Rep Any)
     , _layout   :: !CompiledIRInfo
@@ -66,7 +66,7 @@ makeLenses ''DynAttr
 
 -- === API === --
 
-buildState :: CompiledIRInfo -> State t
+buildState :: CompiledIRInfo -> State
 buildState = State mempty mempty mempty ; {-# INLINE buildState #-}
 
 
@@ -77,15 +77,15 @@ buildState = State mempty mempty mempty ; {-# INLINE buildState #-}
 
 -- === Definition === --
 
-type Monad t m = MonadScheduler t m
-type MonadScheduler t m =
-    ( State.Monad (State t) m
+type Monad m = MonadScheduler m
+type MonadScheduler m =
+    ( State.Monad State m
     , MonadIO m
     , Throws Error m
     , Throws Encoder.Error m
     )
 
-newtype SchedulerT t m a = SchedulerT (StateT (State t) m a)
+newtype SchedulerT m a = SchedulerT (StateT State m a)
     deriving ( Applicative, Alternative, Functor, M, MonadFail, MonadFix
              , MonadIO, MonadPlus, MonadTrans, MonadThrow)
 makeLenses ''SchedulerT
@@ -93,14 +93,14 @@ makeLenses ''SchedulerT
 
 -- === Running === --
 
-runT  :: MonadIO m => SchedulerT t m a -> IRInfo -> m (a, State t)
-execT :: MonadIO m => SchedulerT t m a -> IRInfo -> m (State t)
-evalT :: MonadIO m => SchedulerT t m a -> IRInfo -> m a
+runT  :: MonadIO m => SchedulerT m a -> IRInfo -> m (a, State)
+execT :: MonadIO m => SchedulerT m a -> IRInfo -> m State
+evalT :: MonadIO m => SchedulerT m a -> IRInfo -> m a
 runT  f = State.runT (unwrap f) . buildState <=< IRInfo.compile ; {-# INLINE runT  #-}
 execT   = fmap snd .: runT ; {-# INLINE execT #-}
 evalT   = fmap fst .: runT ; {-# INLINE evalT #-}
 
-runManual :: MonadIO m => RegistryT m () -> SchedulerT t m a -> m a
+runManual :: MonadIO m => RegistryT m () -> SchedulerT m a -> m a
 runManual freg fsched = do
     reg <- Registry.execT freg
     evalT fsched reg
@@ -109,67 +109,67 @@ runManual freg fsched = do
 
 -- === Passes === --
 
-type PassRegister t pass m =
+type PassRegister graph pass m =
     ( Typeable       pass
-    , Pass.Compile   t pass m
-    , MonadScheduler t m
+    , Pass.Compile   graph pass m
+    , MonadScheduler m
     )
 
-registerPass :: ∀ t pass m. (PassRegister t pass m, Pass.Definition pass) => m ()
-registerPass = registerPassFromFunction__ @t (Pass.definition @pass) ; {-# INLINE registerPass #-}
+registerPass :: ∀ graph pass m. (PassRegister graph pass m, Pass.Definition pass) => m ()
+registerPass = registerPassFromFunction__ @graph (Pass.definition @pass) ; {-# INLINE registerPass #-}
 
-registerPassFromFunction__ :: ∀ t pass m.
-    PassRegister t pass m => Pass pass (Graph t) () -> m ()
+registerPassFromFunction__ :: ∀ graph pass m.
+    PassRegister graph pass m => Pass pass (Graph graph) () -> m ()
 registerPassFromFunction__ !pass = do
-    !lyt     <- view layout <$> State.get @(State t)
+    !lyt     <- view layout <$> State.get @State
     !dynPass <- Pass.compile pass lyt
-    State.modify_ @(State t) $ passes . at (Pass.rep @pass) .~ Just dynPass
+    State.modify_ @State $ passes . at (Pass.rep @pass) .~ Just dynPass
 {-# INLINE registerPassFromFunction__ #-}
 
 
 -- === Attrs === --
 
-registerAttr :: ∀ t a m. (Default a, MonadScheduler t m, Typeable a, Attr.FanIn a IO) => m ()
-registerAttr = State.modify_ @(State t)
+registerAttr :: ∀ a m. (Default a, MonadScheduler m, Typeable a, Attr.FanIn a IO) => m ()
+registerAttr = State.modify_ @State
              $ attrDefs . at (Attr.rep @a) .~ Just da
     where da = DynAttr (unsafeCoerce $ def @a)
              $ unsafeCoerce $ Attr.fanIn @a @IO
 {-# INLINE registerAttr #-}
 
-enableAttr :: ∀ t m. MonadScheduler t m => Attr.Rep -> m ()
-enableAttr rep = State.modifyM_ @(State t) $ \s -> do
+enableAttr :: MonadScheduler m => Attr.Rep -> m ()
+enableAttr rep = State.modifyM_ @State $ \s -> do
     dynAttr <- Exception.fromJust (MissingAttrs [rep])
              $ Map.lookup rep (s ^. attrDefs)
     pure     $ s & attrs . at rep .~ Just (dynAttr ^. defVal)
 {-# INLINE enableAttr #-}
 
-disableAttr :: ∀ t m. MonadScheduler t m => Attr.Rep -> m ()
-disableAttr rep = State.modify_ @(State t) $ attrs . at rep .~ Nothing
+disableAttr :: MonadScheduler m => Attr.Rep -> m ()
+disableAttr rep = State.modify_ @State $ attrs . at rep .~ Nothing
 {-# INLINE disableAttr #-}
 
-enableAttrByType  :: ∀ t attr m. (MonadScheduler t m, Typeable attr) => m ()
-disableAttrByType :: ∀ t attr m. (MonadScheduler t m, Typeable attr) => m ()
-enableAttrByType  = enableAttr  @t $ Attr.rep @attr ; {-# INLINE enableAttrByType #-}
-disableAttrByType = disableAttr @t $ Attr.rep @attr ; {-# INLINE disableAttrByType #-}
+enableAttrByType  :: ∀ attr m. (MonadScheduler m, Typeable attr) => m ()
+disableAttrByType :: ∀ attr m. (MonadScheduler m, Typeable attr) => m ()
+enableAttrByType  = enableAttr  $ Attr.rep @attr ; {-# INLINE enableAttrByType #-}
+disableAttrByType = disableAttr $ Attr.rep @attr ; {-# INLINE disableAttrByType #-}
 
-lookupAttr :: ∀ t attr m. (MonadScheduler t m, Typeable attr)
+lookupAttr :: ∀ attr m. (MonadScheduler m, Typeable attr)
            => m (Maybe attr)
 lookupAttr = fmap unsafeCoerce . Map.lookup (Attr.rep @attr) . view attrs
-         <$> State.get @(State t)
+         <$> State.get @State
 {-# INLINE lookupAttr #-}
 
-setAttr :: ∀ t attr m. (MonadScheduler t m, Typeable attr) => attr -> m ()
-setAttr attr = State.modify_ @(State t) mod where
+setAttr :: ∀ attr m. (MonadScheduler m, Typeable attr) => attr -> m ()
+setAttr attr = State.modify_ @State mod where
     mod = attrs %~ Map.insert (Attr.rep @attr) (unsafeCoerce attr)
 {-# INLINE setAttr #-}
 
 
 -- === Instances === --
 
-instance P.Monad m => State.Getter (State t) (SchedulerT t m) where
+instance P.Monad m => State.Getter State (SchedulerT m) where
     get = wrap State.get' ; {-# INLINE get #-}
 
-instance P.Monad m => State.Setter (State t) (SchedulerT t m) where
+instance P.Monad m => State.Setter State (SchedulerT m) where
     put = wrap . State.put' ; {-# INLINE put #-}
 
 
@@ -192,15 +192,15 @@ makeLenses ''PassThread
 waitAndGetAttrs :: MonadIO m => PassThread -> m Pass.AttrVals
 waitAndGetAttrs = liftIO . Async.wait . unwrap ; {-# INLINE waitAndGetAttrs #-}
 
-gatherSingle :: ∀ t m. MonadScheduler t m => Pass.Rep -> PassThread -> m ()
-gatherSingle !pass = gather @t pass . pure ; {-# INLINE gatherSingle #-}
+gatherSingle :: MonadScheduler m => Pass.Rep -> PassThread -> m ()
+gatherSingle !pass = gather pass . pure ; {-# INLINE gatherSingle #-}
 
-gather :: ∀ t m. MonadScheduler t m => Pass.Rep -> NonEmpty PassThread -> m ()
-gather !passRep !threads = gatherAttrs @t passRep =<< mapM waitAndGetAttrs threads ; {-# INLINE gather #-}
+gather :: MonadScheduler m => Pass.Rep -> NonEmpty PassThread -> m ()
+gather !passRep !threads = gatherAttrs passRep =<< mapM waitAndGetAttrs threads ; {-# INLINE gather #-}
 
-gatherAttrs :: ∀ t m. MonadScheduler t m => Pass.Rep -> NonEmpty Pass.AttrVals -> m ()
+gatherAttrs :: MonadScheduler m => Pass.Rep -> NonEmpty Pass.AttrVals -> m ()
 gatherAttrs !passRep !resultAttrs = do
-    !state   <- State.get @(State t)
+    !state   <- State.get @State
     !dynPass <- Exception.fromJust (MissingPass passRep)
               $ Map.lookup passRep $ state ^. passes
     let !grpAttrs = transposeList $ unwrap <$> resultAttrs
@@ -213,15 +213,15 @@ gatherAttrs !passRep !resultAttrs = do
     let !attrs'  = foldl' (flip $ uncurry Map.insert) (state ^. attrs)
                  $ zip outAttrs newAttrs
         !state'  = state & attrs .~ attrs'
-    State.put @(State t) state'
+    State.put @State state'
 {-# INLINE gatherAttrs #-}
 
 
 -- === Pass Threads === --
 
-initPass :: ∀ t m. MonadScheduler t m => Pass.Rep -> m (IO Pass.AttrVals)
+initPass :: MonadScheduler m => Pass.Rep -> m (IO Pass.AttrVals)
 initPass !passRep = do
-    !state   <- State.get @(State t)
+    !state   <- State.get @State
     !dynPass <- Exception.fromJust (MissingPass passRep)
               $ Map.lookup passRep $ state ^. passes
     let !attrReps          = dynPass ^. (Pass.desc . Pass.attrLayout)
@@ -231,40 +231,40 @@ initPass !passRep = do
     pure . Pass.run dynPass $ wrap attrVals
 {-# INLINE initPass #-}
 
--- forkPass :: MonadScheduler t m => Pass.Rep -> m PassThread
--- forkPass passRep = liftIO . fmap wrap . async =<< initPass passRep ; {-# INLINE forkPass #-}
+forkPass :: MonadScheduler m => Pass.Rep -> m PassThread
+forkPass passRep = liftIO . fmap wrap . async =<< initPass passRep ; {-# INLINE forkPass #-}
 
--- forkPassByType :: ∀ t pass m. (MonadScheduler t m, Typeable pass) => m PassThread
--- forkPassByType = forkPass $ Pass.rep @pass ; {-# INLINE forkPassByType #-}
+forkPassByType :: ∀ pass m. (MonadScheduler m, Typeable pass) => m PassThread
+forkPassByType = forkPass $ Pass.rep @pass ; {-# INLINE forkPassByType #-}
 
--- runPass :: (MonadScheduler t m, Throws Error m) => Pass.Rep -> m ()
--- runPass !rep = gatherSingle rep =<< forkPass rep ; {-# INLINE runPass #-}
+runPass :: (MonadScheduler m, Throws Error m) => Pass.Rep -> m ()
+runPass !rep = gatherSingle rep =<< forkPass rep ; {-# INLINE runPass #-}
 
--- runPassByType :: ∀ t pass m. (MonadScheduler t m, Typeable pass) => m ()
--- runPassByType = runPass $ Pass.rep @pass ; {-# INLINE runPassByType #-}
+runPassByType :: ∀ pass m. (MonadScheduler m, Typeable pass) => m ()
+runPassByType = runPass $ Pass.rep @pass ; {-# INLINE runPassByType #-}
 
 
--- -- === Debug Pass runners === --
+-- === Debug Pass runners === --
 
-runPassSameThread :: Graph.StateEncoder Graph.Luna IO => Pass.Rep -> SchedulerT Graph.Luna IO ()
+runPassSameThread :: MonadScheduler m => Pass.Rep -> m ()
 runPassSameThread !rep = do
-    !attrs <- join (lift <$> initPass rep)
-    gatherAttrs @Graph.Luna rep $ pure attrs
+    !attrs <- join (liftIO <$> initPass rep)
+    gatherAttrs rep $ pure attrs
 {-# INLINE runPassSameThread #-}
 
-runPassSameThreadByType :: ∀ pass. Graph.StateEncoder Graph.Luna IO => (Typeable pass) => SchedulerT Graph.Luna IO ()
+runPassSameThreadByType :: ∀ pass m. (MonadScheduler m, Typeable pass) => m ()
 runPassSameThreadByType = runPassSameThread $ Pass.rep @pass ; {-# INLINE runPassSameThreadByType #-}
 
--- debugRunPassDefs :: ∀ t pass m. (Typeable pass, PassRegister t pass m)
---                  => [Pass pass IO ()] -> m ()
--- debugRunPassDefs passes = for_ passes $ \pass -> do
---     registerPassFromFunction__ pass
---     runPassByType @pass
--- {-# INLINE debugRunPassDefs #-}
+debugRunPassDefs :: ∀ graph pass m. (Typeable pass, PassRegister graph pass m)
+                 => [Pass pass (Graph graph) ()] -> m ()
+debugRunPassDefs passes = for_ passes $ \pass -> do
+    registerPassFromFunction__ pass
+    runPassByType @pass
+{-# INLINE debugRunPassDefs #-}
 
--- debugRunPassDef :: ∀ t pass m. (Typeable pass, PassRegister t pass m)
---                 => Pass pass IO () -> m ()
--- debugRunPassDef = debugRunPassDefs . pure ; {-# INLINE debugRunPassDef #-}
+debugRunPassDef :: ∀ graph pass m. (Typeable pass, PassRegister graph pass m)
+                => Pass pass (Graph graph) () -> m ()
+debugRunPassDef = debugRunPassDefs . pure ; {-# INLINE debugRunPassDef #-}
 
 
 

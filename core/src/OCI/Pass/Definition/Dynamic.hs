@@ -122,16 +122,16 @@ instance ( layers ~ Pass.Spec pass (t comp)
 
 -- === Definition === --
 
-data DynamicPass graph = DynamicPass
+data DynamicPass = DynamicPass
     { _desc   :: !Desc
-    , _runner :: !(Graph.State graph -> AttrVals -> IO AttrVals)
+    , _runner :: !(AttrVals -> IO AttrVals)
     }
 makeLenses ''DynamicPass
 
 
 -- === Instances === --
 
-instance Show (DynamicPass graph) where
+instance Show DynamicPass where
     show _ = "DynamicPass" ; {-# INLINE show #-}
 
 instance Mempty Desc where
@@ -183,12 +183,12 @@ type Compile graph pass m =
 --   definition. It enables crucial optimizations and is a very sensitive part
 --   of the code. Please carefuly watch benchmarks when editing it.
 compile :: ∀ graph pass m. Compile graph pass m
-        => Pass pass (Graph graph) () -> CompiledIRInfo -> m (DynamicPass graph)
+        => Pass pass (Graph graph) () -> CompiledIRInfo -> m DynamicPass
 compile pass cfg = do
     graphState <- Graph.getState @graph
     passState <- Encoder.run @pass cfg
     let desc = describe @pass
-        runner graphState attrs = do
+        runner attrs = do
             let attrState = Encoder.encodeAttrs (unwrap attrs) passState
                 passFunc  = Pass.exec pass attrState
             out <- Graph.eval passFunc graphState
@@ -196,9 +196,9 @@ compile pass cfg = do
     pure $! DynamicPass desc runner
 {-# INLINE compile #-}
 
-run :: ∀ graph m. (Graph.StateEncoder graph m, MonadIO m) => DynamicPass graph -> AttrVals -> m AttrVals
+run :: ∀ m. MonadIO m => DynamicPass -> AttrVals -> m AttrVals
 run pass attrs = do
-    graphState <- Graph.encodeState @graph
-    out        <- liftIO $ (pass ^. runner) graphState attrs
+    -- graphState <- Graph.encodeState @graph
+    out        <- liftIO $ (pass ^. runner) attrs
     pure out
 {-# INLINE run #-}

@@ -75,6 +75,9 @@ instance {-# OVERLAPPABLE #-} (Layer.StorableData k, ComputeLayerByteOffset l ls
 
 
 
+-------------------
+-- === State === --
+-------------------
 
 newtype State      graph = State (StateData graph)
 type    StateData  graph = TypeMap.TypeMap (StateElems graph)
@@ -120,14 +123,14 @@ makeLenses ''State
 
 type EncoderResult = Either ()
 
-type StateEncoder  graph m = (StateEncoder' graph, Applicative m)
+type StateEncoder  graph m = (StateEncoder' graph, P.Monad m)
 type StateEncoder' graph   = TypeMap.Encoder (StateElems graph)
                              () EncoderResult
 
 tryEncodeState :: ∀ graph. StateEncoder' graph => EncoderResult (State graph)
 tryEncodeState = wrap <$> TypeMap.encode ()
 
-encodeState :: ∀ graph m. (StateEncoder graph m, P.Monad m) => m (State graph)
+encodeState :: ∀ graph m. StateEncoder graph m => m (State graph)
 encodeState = do
     !out <- case tryEncodeState @graph of
         Left  e -> error "UH!" -- throw e
@@ -162,13 +165,16 @@ run  g s = coerce <$> MultiState.runT  (unwrap g) (unwrap s) ; {-# INLINE run  #
 exec g s = coerce <$> MultiState.execT (unwrap g) (unwrap s) ; {-# INLINE exec #-}
 eval g s = MultiState.evalT (unwrap g) (unwrap s)            ; {-# INLINE eval #-}
 
+encodeAndEval :: ∀ graph m a. StateEncoder graph m => GraphT graph m a -> m a
+encodeAndEval g = eval g =<< encodeState ; {-# INLINE encodeAndEval #-}
+
 getState :: ∀ graph m. Monad graph m => m (State graph)
 getState = State.get @(State graph) ; {-# INLINE getState #-}
 
 
 -- === State === --
 
-type Monad graph m = State.Monad (State graph) m
+type Monad graph m = State.Getter (State graph) m
 
 instance {-# OVERLAPPABLE #-}
          (P.Monad m, State.Getter a (MultiStateT (StateElems graph) m))
