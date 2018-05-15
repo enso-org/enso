@@ -66,7 +66,7 @@ type ComputeStateLayout pass
     = -- MapLayerByteOffset pass             (Vars pass Elems)
    List.Map Attr                       (Vars pass Attrs)
 --    <> MapComponentMemPool                 (Vars pass Elems)
-   <> MapComponentByteSize                (Vars pass Elems)
+--    <> MapComponentByteSize                (Vars pass Elems)
    <> List.Map Component.DynamicTraversal (Vars pass Elems)
    <> List.Map Layer.DynamicManager       (Vars pass Elems)
    <> '[CompiledIRInfo, Edge.ComponentProvider Terms]
@@ -78,10 +78,10 @@ type MapLayerByteOffset p c = MapOverCompsAndVars LayerByteOffset p c
 --     MapComponentMemPool (l ': ls) = MemPool (Component l ())
 --                                  ': MapComponentMemPool ls
 
-type family MapComponentByteSize ls where
-    MapComponentByteSize '[]       = '[]
-    MapComponentByteSize (l ': ls) = ByteSize (Component l)
-                                  ': MapComponentByteSize ls
+-- type family MapComponentByteSize ls where
+--     MapComponentByteSize '[]       = '[]
+--     MapComponentByteSize (l ': ls) = ByteSize (Component l)
+--                                   ': MapComponentByteSize ls
 
 type family MapOverCompsAndVars t pass comps where
     MapOverCompsAndVars t pass '[] = '[]

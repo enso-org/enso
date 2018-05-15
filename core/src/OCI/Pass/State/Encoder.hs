@@ -83,11 +83,11 @@ instance (inp ~ CompiledIRInfo, m ~ EncoderResult, Default (Attr a))
       => TypeMap.FieldEncoder (Attr a) inp m where
     encodeField _ = pure def
 
-instance (inp ~ CompiledIRInfo, m ~ EncoderResult, Typeable comp)
-      => TypeMap.FieldEncoder (ByteSize (Component comp)) inp m where
-    encodeField info = do
-        compInfo <- lookupComp  @comp  $ info ^. IRInfo.compiledComponents
-        pure . wrap $ compInfo ^. IRInfo.layersByteSize
+-- instance (inp ~ CompiledIRInfo, m ~ EncoderResult, Typeable comp)
+--       => TypeMap.FieldEncoder (ByteSize (Component comp)) inp m where
+--     encodeField info = do
+--         compInfo <- lookupComp  @comp  $ info ^. IRInfo.compiledComponents
+--         pure . wrap $ compInfo ^. IRInfo.layersByteSize
 
 instance (inp ~ CompiledIRInfo, m ~ EncoderResult, Typeable comp)
       => TypeMap.FieldEncoder (Component.DynamicTraversal comp) inp m where

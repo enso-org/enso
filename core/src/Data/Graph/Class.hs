@@ -14,6 +14,7 @@ import qualified Type.Data.List              as List
 
 import Data.Graph.Data.Component.Class (Component)
 import Data.TypeMap.MultiState         (MultiStateT)
+import Foreign.Info.ByteSize           (ByteSize (ByteSize))
 import Foreign.Memory.Pool             (MemPool)
 import Type.Data.List                  (type (<>))
 
@@ -83,13 +84,13 @@ instance {-# OVERLAPPABLE #-} (Layer.StorableData k, ComputeLayerByteOffset l ls
     {-# INLINE computeLayerByteOffset #-}
 
 
--- === MemPool === --
+-- === Component ByteSize === --
 
 instance ( layers ~ DiscoverComponentLayers m comp
          , MonadIO m
          , ComputeComponentSize layers )
-      => TypeMap.FieldEncoder (MemPool (Component comp layout)) () m where
-    encodeField _ = MemPool.new def $ MemPool.ItemSize $ computeComponentSize @layers
+      => TypeMap.FieldEncoder (ByteSize (Component comp)) () m where
+    encodeField _ = pure . wrap $ computeComponentSize @layers
 
 class ComputeComponentSize (layers :: [Type]) where
     computeComponentSize :: Int
@@ -103,6 +104,15 @@ instance {-# OVERLAPPABLE #-} (Layer.StorableData l, ComputeComponentSize ls)
     {-# INLINE computeComponentSize #-}
 
 
+-- === MemPool === --
+
+instance ( layers ~ DiscoverComponentLayers m comp
+         , MonadIO m
+         , ComputeComponentSize layers )
+      => TypeMap.FieldEncoder (MemPool (Component comp layout)) () m where
+    encodeField _ = MemPool.new def $ MemPool.ItemSize $ computeComponentSize @layers
+
+
 
 -------------------
 -- === State === --
@@ -111,7 +121,8 @@ instance {-# OVERLAPPABLE #-} (Layer.StorableData l, ComputeComponentSize ls)
 newtype State      graph = State (StateData graph)
 type    StateData  graph = TypeMap.TypeMap (StateElems graph)
 type    StateElems graph = MapLayerByteOffset graph (Components graph)
-                        <> MapComponentMemPool (Components graph)
+                        <> MapComponentByteSize     (Components graph)
+                        <> MapComponentMemPool      (Components graph)
 
 type MapLayerByteOffset graph comps
    = MapOverCompsAndLayers LayerByteOffset graph comps
@@ -128,6 +139,11 @@ type family MapComponentMemPool ls where
     MapComponentMemPool '[]       = '[]
     MapComponentMemPool (l ': ls) = MemPool (Component l ())
                                  ': MapComponentMemPool ls
+
+type family MapComponentByteSize ls where
+    MapComponentByteSize '[]       = '[]
+    MapComponentByteSize (l ': ls) = ByteSize (Component l)
+                                  ': MapComponentByteSize ls
 
 makeLenses ''State
 
