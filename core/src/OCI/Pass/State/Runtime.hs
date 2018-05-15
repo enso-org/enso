@@ -65,7 +65,7 @@ type family StateLayout pass :: [Type] -- CACHED WITH OCI.Pass.Cache.define
 type ComputeStateLayout pass
     = -- MapLayerByteOffset pass             (Vars pass Elems)
    List.Map Attr                       (Vars pass Attrs)
-   <> MapComponentMemPool                 (Vars pass Elems)
+--    <> MapComponentMemPool                 (Vars pass Elems)
    <> MapComponentByteSize                (Vars pass Elems)
    <> List.Map Component.DynamicTraversal (Vars pass Elems)
    <> List.Map Layer.DynamicManager       (Vars pass Elems)
@@ -73,10 +73,10 @@ type ComputeStateLayout pass
 
 type MapLayerByteOffset p c = MapOverCompsAndVars LayerByteOffset p c
 
-type family MapComponentMemPool ls where
-    MapComponentMemPool '[]       = '[]
-    MapComponentMemPool (l ': ls) = MemPool (Component l ())
-                                 ': MapComponentMemPool ls
+-- type family MapComponentMemPool ls where
+--     MapComponentMemPool '[]       = '[]
+--     MapComponentMemPool (l ': ls) = MemPool (Component l ())
+--                                  ': MapComponentMemPool ls
 
 type family MapComponentByteSize ls where
     MapComponentByteSize '[]       = '[]

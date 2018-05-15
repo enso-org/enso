@@ -101,11 +101,11 @@ instance (inp ~ CompiledIRInfo, m ~ EncoderResult)
         compInfo <- lookupComp @Terms $ info ^. IRInfo.compiledComponents
         pure . Edge.ComponentProvider $ compInfo ^. IRInfo.layersLinks
 
-instance (inp ~ CompiledIRInfo, m ~ EncoderResult, Typeable comp)
-      => TypeMap.FieldEncoder (MemPool (Component.Some comp)) inp m where
-    encodeField info = do
-        compInfo <- lookupComp @comp $ info ^. IRInfo.compiledComponents
-        pure . coerce $ compInfo ^. IRInfo.memPool
+-- instance (inp ~ CompiledIRInfo, m ~ EncoderResult, Typeable comp)
+--       => TypeMap.FieldEncoder (MemPool (Component.Some comp)) inp m where
+--     encodeField info = do
+--         compInfo <- lookupComp @comp $ info ^. IRInfo.compiledComponents
+--         pure . coerce $ compInfo ^. IRInfo.memPool
 
 instance (inp ~ CompiledIRInfo, m ~ EncoderResult, Typeable comp)
       => TypeMap.FieldEncoder (Layer.DynamicManager comp) inp m where

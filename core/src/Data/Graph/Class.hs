@@ -9,9 +9,13 @@ import qualified Control.Monad.State.Layered as State
 import qualified Data.Graph.Data.Layer.Class as Layer
 import qualified Data.TypeMap.MultiState     as MultiState
 import qualified Data.TypeMap.Strict         as TypeMap
+import qualified Foreign.Memory.Pool         as MemPool
 import qualified Type.Data.List              as List
 
-import Data.TypeMap.MultiState (MultiStateT)
+import Data.Graph.Data.Component.Class (Component)
+import Data.TypeMap.MultiState         (MultiStateT)
+import Foreign.Memory.Pool             (MemPool)
+import Type.Data.List                  (type (<>))
 
 
 
@@ -52,7 +56,14 @@ instance (Typeable comp, Typeable layer)
                    , '@' : show (typeRep @layer)
                    ]
 
--- === Encoder === --
+
+
+
+----------------------
+-- === Encoders === --
+----------------------
+
+-- === LayerByteOffset === --
 
 instance ( layers ~ DiscoverComponentLayers m comp
          , Applicative m
@@ -72,6 +83,24 @@ instance {-# OVERLAPPABLE #-} (Layer.StorableData k, ComputeLayerByteOffset l ls
     {-# INLINE computeLayerByteOffset #-}
 
 
+-- === MemPool === --
+
+instance ( layers ~ DiscoverComponentLayers m comp
+         , MonadIO m
+         , ComputeComponentSize layers )
+      => TypeMap.FieldEncoder (MemPool (Component comp layout)) () m where
+    encodeField _ = MemPool.new def $ MemPool.ItemSize $ computeComponentSize @layers
+
+class ComputeComponentSize (layers :: [Type]) where
+    computeComponentSize :: Int
+
+instance ComputeComponentSize '[] where
+    computeComponentSize = 0 ; {-# INLINE computeComponentSize #-}
+
+instance {-# OVERLAPPABLE #-} (Layer.StorableData l, ComputeComponentSize ls)
+      => ComputeComponentSize (l ': ls) where
+    computeComponentSize = Layer.byteSize @l + computeComponentSize @ls
+    {-# INLINE computeComponentSize #-}
 
 
 
@@ -82,6 +111,7 @@ instance {-# OVERLAPPABLE #-} (Layer.StorableData k, ComputeLayerByteOffset l ls
 newtype State      graph = State (StateData graph)
 type    StateData  graph = TypeMap.TypeMap (StateElems graph)
 type    StateElems graph = MapLayerByteOffset graph (Components graph)
+                        <> MapComponentMemPool (Components graph)
 
 type MapLayerByteOffset graph comps
    = MapOverCompsAndLayers LayerByteOffset graph comps
@@ -94,6 +124,10 @@ type family MapOverCompsAndLayers f graph comps where
 type MapOverLayers f graph component
     = List.Map (f component) (ComponentLayers graph component)
 
+type family MapComponentMemPool ls where
+    MapComponentMemPool '[]       = '[]
+    MapComponentMemPool (l ': ls) = MemPool (Component l ())
+                                 ': MapComponentMemPool ls
 
 makeLenses ''State
 
@@ -123,20 +157,22 @@ makeLenses ''State
 
 type EncoderResult = Either ()
 
-type StateEncoder  graph m = (StateEncoder' graph, P.Monad m)
-type StateEncoder' graph   = TypeMap.Encoder (StateElems graph)
-                             () EncoderResult
-
-tryEncodeState :: ∀ graph. StateEncoder' graph => EncoderResult (State graph)
-tryEncodeState = wrap <$> TypeMap.encode ()
+type StateEncoder graph m =
+    ( MonadIO m
+    , TypeMap.Encoder (StateElems graph) () m
+    )
 
 encodeState :: ∀ graph m. StateEncoder graph m => m (State graph)
-encodeState = do
-    !out <- case tryEncodeState @graph of
-        Left  e -> error "UH!" -- throw e
-        Right a -> pure a
-    pure out
+encodeState = wrap <$> TypeMap.encode ()
 {-# NOINLINE encodeState #-}
+
+-- encodeState :: ∀ graph m. StateEncoder graph m => m (State graph)
+-- encodeState = do
+--     !out <- case tryEncodeState @graph of
+--         Left  e -> error "UH!" -- throw e
+--         Right a -> pure a
+--     pure out
+-- {-# NOINLINE encodeState #-}
 
 -- === Instances === --
 
