@@ -124,10 +124,10 @@ type StateEncoder  graph m = (StateEncoder' graph, Applicative m)
 type StateEncoder' graph   = TypeMap.Encoder (StateElems graph)
                              () EncoderResult
 
-tryEncodeState :: ∀ graph. StateEncoder' graph => EncoderResult (StateData graph)
-tryEncodeState = let !out = TypeMap.encode () in out
+tryEncodeState :: ∀ graph. StateEncoder' graph => EncoderResult (State graph)
+tryEncodeState = wrap <$> TypeMap.encode ()
 
-encodeState :: ∀ graph m. (StateEncoder graph m, P.Monad m) => m (StateData graph)
+encodeState :: ∀ graph m. (StateEncoder graph m, P.Monad m) => m (State graph)
 encodeState = do
     !out <- case tryEncodeState @graph of
         Left  e -> error "UH!" -- throw e
@@ -155,12 +155,12 @@ makeLenses ''GraphT
 
 -- === API === --
 
-run  :: ∀ graph m a. P.Monad m => GraphT graph m a -> StateData graph -> m (a, StateData graph)
-exec :: ∀ graph m a. P.Monad m => GraphT graph m a -> StateData graph -> m (StateData graph)
-eval :: ∀ graph m a. P.Monad m => GraphT graph m a -> StateData graph -> m a
-run  = MultiState.runT  . unwrap ; {-# INLINE run  #-}
-exec = MultiState.execT . unwrap ; {-# INLINE exec #-}
-eval = MultiState.evalT . unwrap ; {-# INLINE eval #-}
+run  :: ∀ graph m a. P.Monad m => GraphT graph m a -> State graph -> m (a, State graph)
+exec :: ∀ graph m a. P.Monad m => GraphT graph m a -> State graph -> m (State graph)
+eval :: ∀ graph m a. P.Monad m => GraphT graph m a -> State graph -> m a
+run  g s = coerce <$> MultiState.runT  (unwrap g) (unwrap s) ; {-# INLINE run  #-}
+exec g s = coerce <$> MultiState.execT (unwrap g) (unwrap s) ; {-# INLINE exec #-}
+eval g s = MultiState.evalT (unwrap g) (unwrap s)            ; {-# INLINE eval #-}
 
 getState :: ∀ graph m. Monad graph m => m (State graph)
 getState = State.get @(State graph) ; {-# INLINE getState #-}

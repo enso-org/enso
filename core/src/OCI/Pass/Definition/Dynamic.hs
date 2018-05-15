@@ -169,34 +169,36 @@ instance Mempty IODesc where
 
 
 
-type Compile pass m =
+type Compile graph pass m =
     ( Encoder.Encoder        pass
     , Encoder.AttrEncoder    pass
     , Encoder.OutAttrDecoder pass
     , Known pass
     , Throws Encoder.Error m
+    , Graph.Monad graph m
     -- , Graph.Monad Graph.Luna m
     )
 
 -- | Graph state is evaluated while compiling pass in order to inline its
 --   definition. It enables crucial optimizations and is a very sensitive part
 --   of the code. Please carefuly watch benchmarks when editing it.
-compile :: ∀ graph pass m. Compile pass m
+compile :: ∀ graph pass m. Compile graph pass m
         => Pass pass (Graph graph) () -> CompiledIRInfo -> m (DynamicPass graph)
 compile pass cfg = do
+    graphState <- Graph.getState @graph
     passState <- Encoder.run @pass cfg
     let desc = describe @pass
         runner graphState attrs = do
             let attrState = Encoder.encodeAttrs (unwrap attrs) passState
                 passFunc  = Pass.exec pass attrState
-            out <- Graph.eval passFunc (unwrap graphState)
+            out <- Graph.eval passFunc graphState
             pure . wrap $! Encoder.decodeOutAttrs out
     pure $! DynamicPass desc runner
 {-# INLINE compile #-}
 
-run :: ∀ graph. (Graph.StateEncoder graph IO) => DynamicPass graph -> AttrVals -> IO AttrVals
+run :: ∀ graph m. (Graph.StateEncoder graph m, MonadIO m) => DynamicPass graph -> AttrVals -> m AttrVals
 run pass attrs = do
-    graphState <- wrap <$> Graph.encodeState @graph
-    out        <- (pass ^. runner) graphState attrs
+    graphState <- Graph.encodeState @graph
+    out        <- liftIO $ (pass ^. runner) graphState attrs
     pure out
 {-# INLINE run #-}

@@ -83,8 +83,6 @@ type MonadScheduler t m =
     , MonadIO m
     , Throws Error m
     , Throws Encoder.Error m
-    , t ~ Graph.Luna
-    , Graph.StateEncoder t m
     )
 
 newtype SchedulerT t m a = SchedulerT (StateT (State t) m a)
@@ -113,9 +111,8 @@ runManual freg fsched = do
 
 type PassRegister t pass m =
     ( Typeable       pass
-    , Pass.Compile   pass m
+    , Pass.Compile   t pass m
     , MonadScheduler t m
-    , t ~ Graph.Luna
     )
 
 registerPass :: ∀ t pass m. (PassRegister t pass m, Pass.Definition pass) => m ()
