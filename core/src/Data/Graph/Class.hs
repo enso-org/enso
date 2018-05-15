@@ -2,7 +2,8 @@
 
 module Data.Graph.Class where
 
-import Prologue
+import           Prologue hiding (Monad)
+import qualified Prologue as P
 
 import qualified Control.Monad.State.Layered as State
 import qualified Data.Graph.Data.Layer.Class as Layer
@@ -15,6 +16,19 @@ import Data.TypeMap.MultiState (MultiStateT)
 
 
 data Luna
+
+
+
+type family Components      graph      :: [Type]
+type family ComponentLayers graph comp :: [Type]
+
+type family DiscoverGraph (m :: Type -> Type) :: Type -- where
+    -- DiscoverGraph (Graph graph m) = graph
+    -- DiscoverGraph (t m)         = DiscoverGraph m
+
+type DiscoverComponents      m = Components (DiscoverGraph m)
+type DiscoverComponentLayers m comp = ComponentLayers (DiscoverGraph m) comp
+
 
 
 -----------------------------
@@ -61,14 +75,10 @@ instance {-# OVERLAPPABLE #-} (Layer.StorableData k, ComputeLayerByteOffset l ls
 
 
 
-type family Components      graph      :: [Type]
-type family ComponentLayers graph comp :: [Type]
 
-type State graph = TypeMap.TypeMap (StateData graph)
-
-
-type StateData graph = MapLayerByteOffset graph (Components graph)
-
+newtype State      graph = State (StateData graph)
+type    StateData  graph = TypeMap.TypeMap (StateElems graph)
+type    StateElems graph = MapLayerByteOffset graph (Components graph)
 
 type MapLayerByteOffset graph comps
    = MapOverCompsAndLayers LayerByteOffset graph comps
@@ -82,12 +92,22 @@ type MapOverLayers f graph component
     = List.Map (f component) (ComponentLayers graph component)
 
 
-type family DiscoverGraph (m :: Type -> Type) :: Type -- where
-    -- DiscoverGraph (Graph tag m) = tag
-    -- DiscoverGraph (t m)         = DiscoverGraph m
+makeLenses ''State
 
-type DiscoverComponents      m = Components (DiscoverGraph m)
-type DiscoverComponentLayers m comp = ComponentLayers (DiscoverGraph m) comp
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -101,13 +121,13 @@ type DiscoverComponentLayers m comp = ComponentLayers (DiscoverGraph m) comp
 type EncoderResult = Either ()
 
 type StateEncoder  graph m = (StateEncoder' graph, Applicative m)
-type StateEncoder' graph   = TypeMap.Encoder (StateData graph)
+type StateEncoder' graph   = TypeMap.Encoder (StateElems graph)
                              () EncoderResult
 
-tryEncodeState :: ∀ graph. StateEncoder' graph => EncoderResult (State graph)
+tryEncodeState :: ∀ graph. StateEncoder' graph => EncoderResult (StateData graph)
 tryEncodeState = let !out = TypeMap.encode () in out
 
-encodeState :: ∀ graph m. (StateEncoder graph m, Monad m) => m (State graph)
+encodeState :: ∀ graph m. (StateEncoder graph m, P.Monad m) => m (StateData graph)
 encodeState = do
     !out <- case tryEncodeState @graph of
         Left  e -> error "UH!" -- throw e
@@ -126,43 +146,40 @@ encodeState = do
 
 -- === Definition === --
 
-type    Graph  tag     = GraphT tag IO
-newtype GraphT tag m a = GraphT (MultiStateT (StateData tag) m a)
-    deriving ( Applicative, Alternative, Functor, Monad, MonadFail, MonadFix
+type    Graph  graph     = GraphT graph IO
+newtype GraphT graph m a = GraphT (MultiStateT (StateElems graph) m a)
+    deriving ( Applicative, Alternative, Functor, P.Monad, MonadFail, MonadFix
              , MonadIO, MonadPlus, MonadThrow, MonadTrans)
 makeLenses ''GraphT
 
 
 -- === API === --
 
-run :: ∀ graph m a. (Monad m, StateEncoder graph m) => GraphT graph m a -> m a
-run g = do
-    !s <- encodeState @graph
-    !out <- MultiState.evalT (unwrap g) s
-    pure out
-{-# INLINE run #-}
+run  :: ∀ graph m a. P.Monad m => GraphT graph m a -> StateData graph -> m (a, StateData graph)
+exec :: ∀ graph m a. P.Monad m => GraphT graph m a -> StateData graph -> m (StateData graph)
+eval :: ∀ graph m a. P.Monad m => GraphT graph m a -> StateData graph -> m a
+run  = MultiState.runT  . unwrap ; {-# INLINE run  #-}
+exec = MultiState.execT . unwrap ; {-# INLINE exec #-}
+eval = MultiState.evalT . unwrap ; {-# INLINE eval #-}
 
-run2 :: ∀ graph m a. Monad m => GraphT graph m a -> TypeMap.TypeMap (StateData graph) -> m a
-run2 !g !s = do
-    !out <- MultiState.evalT (unwrap g) s
-    pure out
-{-# INLINE run2 #-}
-
--- run  :: ∀ tag m a. Monad m => GraphT tag m a -> State tag -> m (a, State tag)
--- exec :: ∀ tag m a. Monad m => GraphT tag m a -> State tag -> m (State tag)
--- eval :: ∀ tag m a. Monad m => GraphT tag m a -> State tag -> m a
--- run  = MultiState.runT  . unwrap ; {-# INLINE run  #-}
--- exec = MultiState.execT . unwrap ; {-# INLINE exec #-}
--- eval = MultiState.evalT . unwrap ; {-# INLINE eval #-}
+getState :: ∀ graph m. Monad graph m => m (State graph)
+getState = State.get @(State graph) ; {-# INLINE getState #-}
 
 
 -- === State === --
 
-instance (Monad m, State.Getter a (MultiStateT (StateData tag) m))
-      => State.Getter a (GraphT tag m) where
-     get = wrap $ State.get @a ; {-# INLINE get #-}
+type Monad graph m = State.Monad (State graph) m
 
-instance (Monad m, State.Setter a (MultiStateT (StateData tag) m))
-      => State.Setter a (GraphT tag m) where
-     put = wrap . State.put @a ; {-# INLINE put #-}
+instance {-# OVERLAPPABLE #-}
+         (P.Monad m, State.Getter a (MultiStateT (StateElems graph) m))
+      => State.Getter a (GraphT graph m) where
+    get = wrap $ State.get @a ; {-# INLINE get #-}
 
+instance {-# OVERLAPPABLE #-}
+         (P.Monad m, State.Setter a (MultiStateT (StateElems graph) m))
+      => State.Setter a (GraphT graph m) where
+    put = wrap . State.put @a ; {-# INLINE put #-}
+
+instance P.Monad m
+      => State.Getter (State graph) (GraphT graph m) where
+    get = wrap $! wrap <$> MultiState.getAll ; {-# INLINE get #-}

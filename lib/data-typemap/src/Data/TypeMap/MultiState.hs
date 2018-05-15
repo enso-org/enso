@@ -34,6 +34,9 @@ runT  !m !s = State.runT  (unwrap m) s ; {-# INLINE runT  #-}
 execT !m !s = State.execT (unwrap m) s ; {-# INLINE execT #-}
 evalT !m !s = State.evalT (unwrap m) s ; {-# INLINE evalT #-}
 
+getAll :: ∀ s m. Monad m => MultiStateT s m (TypeMap s)
+getAll = wrap $ State.get @(TypeMap s) ; {-# INLINE getAll #-}
+
 
 -- === State instances === --
 
