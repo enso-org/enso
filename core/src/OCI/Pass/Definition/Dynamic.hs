@@ -178,7 +178,10 @@ type Compile pass m =
     -- , Graph.Monad Graph.Luna m
     )
 
-compile :: ∀ graph pass m. (Compile pass m, graph ~ Graph.Luna)
+-- | Graph state is evaluated while compiling pass in order to inline its
+--   definition. It enables crucial optimizations and is a very sensitive part
+--   of the code. Please carefuly watch benchmarks when editing it.
+compile :: ∀ graph pass m. Compile pass m
         => Pass pass (Graph graph) () -> CompiledIRInfo -> m (DynamicPass graph)
 compile pass cfg = do
     passState <- Encoder.run @pass cfg
@@ -191,7 +194,7 @@ compile pass cfg = do
     pure $! DynamicPass desc runner
 {-# INLINE compile #-}
 
-run :: ∀ graph. (Graph.StateEncoder graph IO, graph ~ Graph.Luna) => DynamicPass graph -> AttrVals -> IO AttrVals
+run :: ∀ graph. (Graph.StateEncoder graph IO) => DynamicPass graph -> AttrVals -> IO AttrVals
 run pass attrs = do
     graphState <- wrap <$> Graph.encodeState @graph
     out        <- (pass ^. runner) graphState attrs
