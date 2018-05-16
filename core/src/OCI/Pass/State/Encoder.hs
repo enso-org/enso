@@ -89,17 +89,17 @@ instance (inp ~ CompiledIRInfo, m ~ EncoderResult, Default (Attr a))
 --         compInfo <- lookupComp  @comp  $ info ^. IRInfo.compiledComponents
 --         pure . wrap $ compInfo ^. IRInfo.layersByteSize
 
-instance (inp ~ CompiledIRInfo, m ~ EncoderResult, Typeable comp)
-      => TypeMap.FieldEncoder (Component.DynamicTraversal comp) inp m where
-    encodeField info = do
-        compInfo <- lookupComp @comp $ info ^. IRInfo.compiledComponents
-        pure . wrap $ compInfo ^. IRInfo.layersComponents
+-- instance (inp ~ CompiledIRInfo, m ~ EncoderResult, Typeable comp)
+--       => TypeMap.FieldEncoder (Component.DynamicTraversal comp) inp m where
+--     encodeField info = do
+--         compInfo <- lookupComp @comp $ info ^. IRInfo.compiledComponents
+--         pure . wrap $ compInfo ^. IRInfo.layersComponents
 
-instance (inp ~ CompiledIRInfo, m ~ EncoderResult)
-      => TypeMap.FieldEncoder (Edge.ComponentProvider Terms) inp m where
-    encodeField info = do
-        compInfo <- lookupComp @Terms $ info ^. IRInfo.compiledComponents
-        pure . Edge.ComponentProvider $ compInfo ^. IRInfo.layersLinks
+-- instance (inp ~ CompiledIRInfo, m ~ EncoderResult)
+--       => TypeMap.FieldEncoder (Edge.ComponentProvider Terms) inp m where
+--     encodeField info = do
+--         compInfo <- lookupComp @Terms $ info ^. IRInfo.compiledComponents
+--         pure . Edge.ComponentProvider $ compInfo ^. IRInfo.layersLinks
 
 -- instance (inp ~ CompiledIRInfo, m ~ EncoderResult, Typeable comp)
 --       => TypeMap.FieldEncoder (MemPool (Component.Some comp)) inp m where
@@ -107,14 +107,14 @@ instance (inp ~ CompiledIRInfo, m ~ EncoderResult)
 --         compInfo <- lookupComp @comp $ info ^. IRInfo.compiledComponents
 --         pure . coerce $ compInfo ^. IRInfo.memPool
 
-instance (m ~ EncoderResult, Typeable comp)
-      => TypeMap.FieldEncoder (Layer.DynamicManager comp) CompiledIRInfo m where
-    encodeField info = do
-        compInfo <- lookupComp @comp $ info ^. IRInfo.compiledComponents
-        pure $ Layer.DynamicManager
-            (compInfo ^. IRInfo.layersInitializer)
-            (compInfo ^. IRInfo.layersConstructor)
-            (compInfo ^. IRInfo.layersDestructor)
+-- instance (m ~ EncoderResult, Typeable comp)
+--       => TypeMap.FieldEncoder (Layer.DynamicManager comp) CompiledIRInfo m where
+--     encodeField info = do
+--         compInfo <- lookupComp @comp $ info ^. IRInfo.compiledComponents
+--         pure $ Layer.DynamicManager
+--             (compInfo ^. IRInfo.layersInitializer)
+--             (compInfo ^. IRInfo.layersConstructor)
+--             (compInfo ^. IRInfo.layersDestructor)
 
 -- instance (inp ~ CompiledIRInfo, m ~ EncoderResult, Typeables '[comp,layer])
 --       => TypeMap.FieldEncoder (Graph.LayerByteOffset comp layer) inp m where

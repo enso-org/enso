@@ -39,19 +39,18 @@ import qualified System.Console.ANSI                   as ANSI
 
 import Control.DeepSeq   (force)
 import Control.Exception (evaluate)
-import Data.Graph.Class  (Graph, Luna)
+import Data.Graph.Class  (Graph)
 import Data.Graph.Data   (Component (Component))
 import Data.Set          (Set)
 import Luna.Pass         (Pass)
 
 
 
+data Luna
 
 type instance Graph.Components      Luna          = '[IR.Terms, IR.Links]
-type instance Graph.ComponentLayers Luna IR.Terms = '[IR.Model] -- '[IR.Users, IR.Model, IR.Type] -- , IR.Users]
+type instance Graph.ComponentLayers Luna IR.Terms = '[IR.Users, IR.Model, IR.Type] -- , IR.Users]
 type instance Graph.ComponentLayers Luna IR.Links = '[IR.Target, IR.Source]
-
-type instance Graph.DiscoverGraph m = Luna -- HACK
 
 
 
@@ -516,8 +515,8 @@ benchmarks = do
                 -- , readWrite_expTM
                 -- -- , readWrite_layerMock
                 [ readWrite_layer
-                , readWrite_MS_1
-                , readWrite_MS_2
+                -- , readWrite_MS_1
+                -- , readWrite_MS_2
                 ]
             ]
         , "create" $ bench 5 <$>

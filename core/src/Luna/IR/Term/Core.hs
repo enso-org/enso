@@ -63,6 +63,6 @@ Term.define [d|
 top :: Term.Creator Top m => m (Term Top)
 top = Term.uncheckedUntypedNewM $ \self -> do
     typeLink <- Link.new self self
-    -- Layer.write @Layer.Type self (Layout.relayout typeLink)
+    Layer.write @Layer.Type self (Layout.relayout typeLink)
     pure Top
 {-# INLINE top #-}

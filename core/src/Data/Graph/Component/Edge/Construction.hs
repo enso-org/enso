@@ -23,14 +23,14 @@ type Creator m =
     ( Component.Creator Edges m
     , Layer.Writer Edge Source m
     , Layer.Writer Edge Target m
-    -- , Layer.Editor Node Users  m
+    , Layer.Editor Node Users  m
     )
 
 new :: Creator m => Node src -> Node tgt -> m (Edge (src *-* tgt))
 new src tgt = do
     link    <- Component.construct'
-    -- userMap <- Layer.read @Users src
-    -- Set.insert userMap (Layout.unsafeRelayout link)
+    userMap <- Layer.read @Users src
+    Set.insert userMap (Layout.unsafeRelayout link)
     Layer.write @Source link src
     Layer.write @Target link tgt
     pure link
