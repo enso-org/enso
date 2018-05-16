@@ -9,13 +9,17 @@ import qualified Control.Monad.State.Layered as State
 import qualified Data.Graph.Data.Layer.Class as Layer
 import qualified Data.TypeMap.MultiState     as MultiState
 import qualified Data.TypeMap.Strict         as TypeMap
+import qualified Foreign.Marshal.Alloc       as Mem
 import qualified Foreign.Memory.Pool         as MemPool
+import qualified Foreign.Ptr                 as Ptr
+import qualified Foreign.Storable1           as Storable1
 import qualified Type.Data.List              as List
 
 import Data.Graph.Data.Component.Class (Component)
 import Data.TypeMap.MultiState         (MultiStateT)
 import Foreign.Info.ByteSize           (ByteSize (ByteSize))
 import Foreign.Memory.Pool             (MemPool)
+import Foreign.Ptr.Utils               (SomePtr)
 import Type.Data.List                  (type (<>))
 
 
@@ -88,30 +92,103 @@ instance {-# OVERLAPPABLE #-} (Layer.StorableData k, ComputeLayerByteOffset l ls
 
 instance ( layers ~ DiscoverComponentLayers m comp
          , MonadIO m
-         , ComputeComponentSize layers )
+         , KnownComponentSize layers )
       => TypeMap.FieldEncoder (ByteSize (Component comp)) () m where
-    encodeField _ = pure . wrap $ computeComponentSize @layers
+    encodeField _ = pure . wrap $ componentSize @layers
 
-class ComputeComponentSize (layers :: [Type]) where
-    computeComponentSize :: Int
+class KnownComponentSize (layers :: [Type]) where
+    componentSize :: Int
 
-instance ComputeComponentSize '[] where
-    computeComponentSize = 0 ; {-# INLINE computeComponentSize #-}
+instance KnownComponentSize '[] where
+    componentSize = 0 ; {-# INLINE componentSize #-}
 
-instance {-# OVERLAPPABLE #-} (Layer.StorableData l, ComputeComponentSize ls)
-      => ComputeComponentSize (l ': ls) where
-    computeComponentSize = Layer.byteSize @l + computeComponentSize @ls
-    {-# INLINE computeComponentSize #-}
+instance {-# OVERLAPPABLE #-} (Layer.StorableData l, KnownComponentSize ls)
+      => KnownComponentSize (l ': ls) where
+    componentSize = Layer.byteSize @l + componentSize @ls
+    {-# INLINE componentSize #-}
 
 
 -- === MemPool === --
 
 instance ( layers ~ DiscoverComponentLayers m comp
          , MonadIO m
-         , ComputeComponentSize layers )
+         , KnownComponentSize layers )
       => TypeMap.FieldEncoder (MemPool (Component comp layout)) () m where
-    encodeField _ = MemPool.new def $ MemPool.ItemSize $ computeComponentSize @layers
+    encodeField _ = MemPool.new def $ MemPool.ItemSize $ componentSize @layers
 
+
+-- === Layer memory management === --
+
+
+instance ( layers ~ DiscoverComponentLayers m comp
+         , ComputeComponentConstructor layers
+         , ComputeComponentDestructor  layers
+         , ComputeComponentStaticInit  layers
+         , KnownComponentSize layers
+         , MonadIO m )
+      => TypeMap.FieldEncoder (Layer.DynamicManager comp) () m where
+    encodeField _ = do
+        init <- liftIO . Mem.mallocBytes $ componentSize @layers
+        liftIO $ computeComponentStaticInit @layers init
+        pure $ Layer.DynamicManager
+               init
+               (computeComponentConstructor @layers)
+               (computeComponentDestructor  @layers)
+
+class ComputeComponentStaticInit (layers :: [Type]) where
+    computeComponentStaticInit :: SomePtr -> IO ()
+
+instance ComputeComponentStaticInit '[] where
+    computeComponentStaticInit _ = pure () ; {-# INLINE computeComponentStaticInit #-}
+
+instance {-# OVERLAPPABLE #-} (Layer.Layer l, Layer.StorableData l, ComputeComponentStaticInit ls)
+      => ComputeComponentStaticInit (l ': ls) where
+    computeComponentStaticInit ptr = out where
+        mctor = Layer.manager @l ^. Layer.initializer
+        size  = Layer.byteSize @l
+        ptr'  = ptr `Ptr.plusPtr` size
+        ctor' = computeComponentStaticInit @ls ptr'
+        out    = maybe id (\f -> (dynf f >>)) mctor $ ctor'
+        dynf f = Storable1.poke (coerce ptr) f
+    {-# INLINE computeComponentStaticInit #-}
+
+
+
+class ComputeComponentConstructor (layers :: [Type]) where
+    computeComponentConstructor :: SomePtr -> IO ()
+
+instance ComputeComponentConstructor '[] where
+    computeComponentConstructor _ = pure () ; {-# INLINE computeComponentConstructor #-}
+
+instance {-# OVERLAPPABLE #-} (Layer.Layer l, Layer.StorableData l, ComputeComponentConstructor ls)
+      => ComputeComponentConstructor (l ': ls) where
+    computeComponentConstructor ptr = out where
+        mctor = Layer.manager @l ^. Layer.constructor
+        size  = Layer.byteSize @l
+        ptr'  = ptr `Ptr.plusPtr` size
+        ctor' = computeComponentConstructor @ls ptr'
+        out    = maybe id (\f -> (dynf f >>)) mctor $ ctor'
+        dynf f = Storable1.poke (coerce ptr) =<< f
+    {-# INLINE computeComponentConstructor #-}
+
+
+
+class ComputeComponentDestructor (layers :: [Type]) where
+    computeComponentDestructor :: SomePtr -> IO ()
+
+instance ComputeComponentDestructor '[] where
+    computeComponentDestructor _ = pure () ; {-# INLINE computeComponentDestructor #-}
+
+instance {-# OVERLAPPABLE #-} (Layer.Layer l, Layer.StorableData l, ComputeComponentDestructor ls)
+      => ComputeComponentDestructor (l ': ls) where
+    computeComponentDestructor ptr = out where
+        mctor = Layer.manager @l ^. Layer.destructor
+        size  = Layer.byteSize @l
+        ptr'  = ptr `Ptr.plusPtr` size
+        ctor' = computeComponentDestructor @ls ptr'
+        out    = maybe id (\f -> (dynf f >>)) mctor $ ctor'
+        dynf f = f =<< Storable1.peek (coerce ptr)
+    {-# INLINE computeComponentDestructor #-}
 
 
 -------------------
@@ -120,9 +197,10 @@ instance ( layers ~ DiscoverComponentLayers m comp
 
 newtype State      graph = State (StateData graph)
 type    StateData  graph = TypeMap.TypeMap (StateElems graph)
-type    StateElems graph = MapLayerByteOffset graph (Components graph)
-                        <> MapComponentByteSize     (Components graph)
-                        <> MapComponentMemPool      (Components graph)
+type    StateElems graph = MapLayerByteOffset graph      (Components graph)
+                        <> MapComponentByteSize          (Components graph)
+                        <> MapComponentMemPool           (Components graph)
+                        <> List.Map Layer.DynamicManager (Components graph)
 
 type MapLayerByteOffset graph comps
    = MapOverCompsAndLayers LayerByteOffset graph comps

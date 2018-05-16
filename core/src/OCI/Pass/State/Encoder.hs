@@ -107,8 +107,8 @@ instance (inp ~ CompiledIRInfo, m ~ EncoderResult)
 --         compInfo <- lookupComp @comp $ info ^. IRInfo.compiledComponents
 --         pure . coerce $ compInfo ^. IRInfo.memPool
 
-instance (inp ~ CompiledIRInfo, m ~ EncoderResult, Typeable comp)
-      => TypeMap.FieldEncoder (Layer.DynamicManager comp) inp m where
+instance (m ~ EncoderResult, Typeable comp)
+      => TypeMap.FieldEncoder (Layer.DynamicManager comp) CompiledIRInfo m where
     encodeField info = do
         compInfo <- lookupComp @comp $ info ^. IRInfo.compiledComponents
         pure $ Layer.DynamicManager

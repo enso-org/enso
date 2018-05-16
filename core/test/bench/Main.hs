@@ -26,8 +26,8 @@ type instance Pass.Spec TestPass t = TestPassSpec t
 type family   TestPassSpec  t where
     TestPassSpec t = Pass.BasicPassSpec t
 
-Pass.cache_phase1 ''TestPass
-Pass.cache_phase2 ''TestPass
+-- Pass.cache_phase1 ''TestPass
+-- Pass.cache_phase2 ''TestPass
 
 
 -- === API === --

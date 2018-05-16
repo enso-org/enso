@@ -59,19 +59,20 @@ import Type.Data.List                  (type (<>))
 
 -- === Definition === --
 
-newtype     State       pass = State (StateData pass)
-type        StateData   pass = TypeMap (StateLayout pass)
-type family StateLayout pass :: [Type] -- CACHED WITH OCI.Pass.Cache.define
-type ComputeStateLayout pass
-    = -- MapLayerByteOffset pass             (Vars pass Elems)
-   List.Map Attr                       (Vars pass Attrs)
+newtype State       pass = State (StateData pass)
+type    StateData   pass = TypeMap (StateLayout pass)
+type    StateLayout pass = List.Map Attr (Vars pass Attrs)
+-- :: [Type] -- CACHED WITH OCI.Pass.Cache.define
+-- type ComputeStateLayout pass
+    -- = -- MapLayerByteOffset pass             (Vars pass Elems)
+--    List.Map Attr                       (Vars pass Attrs)
 --    <> MapComponentMemPool                 (Vars pass Elems)
 --    <> MapComponentByteSize                (Vars pass Elems)
-   <> List.Map Component.DynamicTraversal (Vars pass Elems)
-   <> List.Map Layer.DynamicManager       (Vars pass Elems)
-   <> '[CompiledIRInfo, Edge.ComponentProvider Terms]
+--    <> List.Map Component.DynamicTraversal (Vars pass Elems)
+--    <> List.Map Layer.DynamicManager       (Vars pass Elems)
+--    <> '[CompiledIRInfo] -- , Edge.ComponentProvider Terms]
 
-type MapLayerByteOffset p c = MapOverCompsAndVars LayerByteOffset p c
+-- type MapLayerByteOffset p c = MapOverCompsAndVars LayerByteOffset p c
 
 -- type family MapComponentMemPool ls where
 --     MapComponentMemPool '[]       = '[]
@@ -83,13 +84,13 @@ type MapLayerByteOffset p c = MapOverCompsAndVars LayerByteOffset p c
 --     MapComponentByteSize (l ': ls) = ByteSize (Component l)
 --                                   ': MapComponentByteSize ls
 
-type family MapOverCompsAndVars t pass comps where
-    MapOverCompsAndVars t pass '[] = '[]
-    MapOverCompsAndVars t pass (c ': cs) = List.Append
-        (ComponentLayerLayout t pass c) (MapOverCompsAndVars t pass cs)
+-- type family MapOverCompsAndVars t pass comps where
+--     MapOverCompsAndVars t pass '[] = '[]
+--     MapOverCompsAndVars t pass (c ': cs) = List.Append
+--         (ComponentLayerLayout t pass c) (MapOverCompsAndVars t pass cs)
 
-type ComponentLayerLayout t pass component
-    = List.Map (t component) (Vars pass component)
+-- type ComponentLayerLayout t pass component
+--     = List.Map (t component) (Vars pass component)
 
 makeLenses ''State
 

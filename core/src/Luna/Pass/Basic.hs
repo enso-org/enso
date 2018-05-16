@@ -25,6 +25,3 @@ type family   BasicPassSpec  t where
     BasicPassSpec (In Attrs) = '[]
     BasicPassSpec (Out a)    = BasicPassSpec (In a)
     BasicPassSpec t          = '[]
-
-Pass.cache_phase1 ''BasicPass
-Pass.cache_phase2 ''BasicPass
