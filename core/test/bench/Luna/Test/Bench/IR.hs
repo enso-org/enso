@@ -1,5 +1,19 @@
+{-# LANGUAGE CPP               #-}
+{-# LANGUAGE ConstraintKinds   #-}
+{-# LANGUAGE DefaultSignatures #-}
+{-# LANGUAGE DeriveAnyClass    #-}
+{-# LANGUAGE FlexibleContexts  #-}
+{-# LANGUAGE GADTs             #-}
+{-# LANGUAGE MagicHash         #-}
+{-# LANGUAGE NoStrict          #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PatternSynonyms   #-}
+{-# LANGUAGE PolyKinds         #-}
+{-# LANGUAGE RankNTypes        #-}
 {-# LANGUAGE Strict            #-}
+{-# LANGUAGE UnboxedTuples     #-}
+{-# LANGUAGE Unsafe            #-}
+{-# LANGUAGE ViewPatterns      #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 module Luna.Test.Bench.IR where
@@ -18,6 +32,7 @@ import qualified Data.Graph.Data.Layer.Class           as Layer
 import qualified Data.Graph.Data.Layer.Layout          as Layout
 import qualified Data.Graph.Traversal.Discovery        as Discovery
 import qualified Data.Set                              as Set
+import qualified Data.Struct                           as Struct
 import qualified Data.Tuple.Strict                     as Tuple
 import qualified Data.TypeMap.MultiState               as MultiState
 import qualified Data.TypeMap.Strict                   as TypeMap
@@ -38,9 +53,11 @@ import Control.Exception (evaluate)
 import Data.Graph.Class  (Graph)
 import Data.Graph.Data   (Component (Component))
 import Data.Set          (Set)
+import GHC.Exts          (Any, Int (I#), SmallMutableArray#, State#,
+                          readSmallArray#, unsafeCoerce#, writeSmallArray#)
 import Luna.Pass         (Pass)
 
-
+import Control.Monad.Primitive (primitive)
 
 data Luna
 
@@ -490,6 +507,52 @@ readWrite_MS_2 = Bench "R/W MultiState" $ \i -> do
 -- {-# NOINLINE test #-}
 
 
+getField :: (PrimMonad m, Struct.Struct x) => x (PrimState m) -> m Int
+getField = \x -> primitive (go (Struct.destruct x)) where
+    go :: (forall s. SmallMutableArray# s Any -> State# s -> (# State# s, Int #))
+    go = (\m s -> unsafeCoerce# readSmallArray# m i s) ; {-# INLINE go #-}
+    I# i = 0
+{-# INLINE getField #-}
+
+setField :: (PrimMonad m, Struct.Struct x) => x (PrimState m) -> Int -> m ()
+setField = \x y -> primitive_ (go (Struct.destruct x) y) where
+    go :: (forall s. SmallMutableArray# s Any -> Int -> State# s -> State# s)
+    go = \m a s -> unsafeCoerce# writeSmallArray# m i a s ; {-# INLINE go #-}
+    I# i = 0
+{-# INLINE setField #-}
+
+-- field :: Int {- ^ slot -} -> Field s a
+-- field (I# i) = Field
+--   (\m s -> unsafeCoerce# readSmallArray# m i s)
+--   (\m a s -> unsafeCoerce# writeSmallArray# m i a s)
+-- {-# INLINE field #-}
+
+test :: IO ()
+test = do
+   obj <- Struct.alloc 1 :: IO (Struct.Object (PrimState IO))
+   let f0 = Struct.field 0 :: Struct.Field Struct.Object Int
+   Struct.setField f0 obj 17
+   print =<< Struct.getField f0 obj
+   pure ()
+
+readWrite_structs_layer :: Bench
+readWrite_structs_layer = Bench "structs" $ \i -> do
+    !obj <- Struct.alloc 1 :: IO (Struct.Object (PrimState IO))
+    let f0 = Struct.field 0 :: Struct.Field Struct.Object Int
+    setField obj 0
+    let go :: Int -> IO ()
+        go 0 = pure ()
+        go j = do
+            !x <- getField obj
+            setField obj $! x + 1
+            go (j - 1)
+    go i
+{-# NOINLINE readWrite_structs_layer #-}
+-- >>> isNil (Nil :: Object (PrimState IO))
+-- True
+-- >>> o <- alloc 1 :: IO (Object (PrimState IO))
+-- >>> isNil o
+
 invariants :: IO ()
 invariants = checkInvariants $
     -- [ assertBenchToRef "Create IR" 6 10 createIR_mallocPtr createIR_normal
@@ -507,6 +570,7 @@ benchmarks = do
                 -- , readWrite_expTM
                 -- -- , readWrite_layerMock
                 [ readWrite_layer
+                , readWrite_structs_layer
                 -- , readWrite_MS_1
                 -- , readWrite_MS_2
                 ]
@@ -554,6 +618,9 @@ testx i = runPass' $ do
 
 main :: IO ()
 main = do
+    test
+    test
+    test
     print "manual start"
     testx 1
     print "manual end"

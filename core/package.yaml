@@ -98,6 +98,8 @@ benchmarks:
             - unboxed-ref >= 0.4.0.0
             - vector
             - containers
+            - structs
+            - primitive
 
 tests:
     spec:
