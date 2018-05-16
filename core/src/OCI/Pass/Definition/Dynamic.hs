@@ -21,7 +21,6 @@ import Data.Map.Strict           (Map)
 import Data.Set                  (Set)
 import GHC.Exts                  (Any)
 import OCI.Pass.Definition.Class (Pass)
-import OCI.Pass.State.IRInfo     (CompiledIRInfo)
 
 
 
@@ -143,39 +142,12 @@ instance Mempty IODesc where
 
 -- -- === API === --
 
--- type Compile pass m =
---     ( Encoder.Encoder        pass
---     , Encoder.AttrEncoder    pass
---     , Encoder.OutAttrDecoder pass
---     , Known pass
---     , Throws Encoder.Error m
---     )
-
--- compile :: ∀ graph pass m. (Compile pass m)
---         => Pass pass (Graph graph) () -> CompiledIRInfo -> m (DynamicPass graph)
--- compile !pass !cfg = do
---     !s <- Encoder.run @pass cfg
---     let !desc         = describe @pass
---         runner !attrs = do
---             !s' <- Pass.exec pass $! Encoder.encodeAttrs (unwrap attrs) s
---             pure . wrap $ Encoder.decodeOutAttrs s'
---     pure $! DynamicPass desc runner
--- {-# INLINE compile #-}
-
--- run :: (graph ~ Graph.Luna, Graph.StateEncoder Graph.Luna IO)
---     => DynamicPass graph -> AttrVals -> IO AttrVals
--- run pass attrs = Graph.run $! (pass ^. runner) attrs ; {-# INLINE run #-}
-
-
-
-
 type Compile graph pass m =
-    ( Encoder.Encoder        pass
-    , Encoder.AttrEncoder    pass
+    ( Encoder.AttrEncoder    pass
     , Encoder.OutAttrDecoder pass
     , Known pass
-    , Throws Encoder.Error m
     , Graph.Monad graph m
+    , Default (Pass.State pass)
     -- , Graph.Monad Graph.Luna m
     )
 
@@ -183,13 +155,12 @@ type Compile graph pass m =
 --   definition. It enables crucial optimizations and is a very sensitive part
 --   of the code. Please carefuly watch benchmarks when editing it.
 compile :: ∀ graph pass m. Compile graph pass m
-        => Pass pass (Graph graph) () -> CompiledIRInfo -> m DynamicPass
-compile pass cfg = do
+        => Pass pass (Graph graph) () -> m DynamicPass
+compile pass = do
     graphState <- Graph.getState @graph
-    passState <- Encoder.run @pass cfg
     let desc = describe @pass
         runner attrs = do
-            let attrState = Encoder.encodeAttrs (unwrap attrs) passState
+            let attrState = Encoder.encodeAttrs (unwrap attrs) def
                 passFunc  = Pass.exec pass attrState
             out <- Graph.eval passFunc graphState
             pure . wrap $! Encoder.decodeOutAttrs out
@@ -197,8 +168,4 @@ compile pass cfg = do
 {-# INLINE compile #-}
 
 run :: ∀ m. MonadIO m => DynamicPass -> AttrVals -> m AttrVals
-run pass attrs = do
-    -- graphState <- Graph.encodeState @graph
-    out        <- liftIO $ (pass ^. runner) attrs
-    pure out
-{-# INLINE run #-}
+run pass attrs = liftIO $! (pass ^. runner) attrs ; {-# INLINE run #-}

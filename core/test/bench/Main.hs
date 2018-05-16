@@ -7,7 +7,6 @@ import Prologue
 
 import qualified Luna.Pass           as Pass
 import qualified Luna.Pass.Scheduler as Scheduler
-import qualified Luna.Runner         as Runner
 import qualified Luna.Test.Bench.IR  as IRBench
 
 import Criterion.Measurement (initializeTime)

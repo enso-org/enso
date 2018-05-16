@@ -1,32 +1,27 @@
 module OCI.Pass.Management.Scheduler where
 
-import Prologue as P
+import Prologue as Std
 
-import qualified Control.Concurrent.Async     as Async
-import qualified Control.Monad.Exception      as Exception
-import qualified Control.Monad.State.Layered  as State
-import qualified Data.Graph.Class             as Graph
-import qualified Data.List                    as List
-import qualified Data.Map.Strict              as Map
-import qualified OCI.Pass.Definition.Class    as Pass
-import qualified OCI.Pass.Definition.Dynamic  as Pass
-import qualified OCI.Pass.Management.Registry as Registry
-import qualified OCI.Pass.State.Attr          as Attr
-import qualified OCI.Pass.State.Encoder       as Encoder
-import qualified OCI.Pass.State.IRInfo        as IRInfo
+import qualified Control.Concurrent.Async    as Async
+import qualified Control.Monad.Exception     as Exception
+import qualified Control.Monad.State.Layered as State
+import qualified Data.Graph.Class            as Graph
+import qualified Data.List                   as List
+import qualified Data.Map.Strict             as Map
+import qualified OCI.Pass.Definition.Class   as Pass
+import qualified OCI.Pass.Definition.Dynamic as Pass
+import qualified OCI.Pass.State.Attr         as Attr
+import qualified OCI.Pass.State.Encoder      as Encoder
 
-import Control.Concurrent.Async     (Async, async)
-import Control.Monad.Exception      (Throws, throw)
-import Control.Monad.State.Layered  (StateT)
-import Data.Graph.Class             (Graph)
-import Data.Map.Strict              (Map)
-import GHC.Exts                     (Any)
-import OCI.Pass.Definition.Class    (Pass)
-import OCI.Pass.Definition.Dynamic  (DynamicPass)
-import OCI.Pass.Management.Registry (RegistryT)
-import OCI.Pass.State.IRInfo        (CompiledIRInfo, IRInfo)
+import Control.Concurrent.Async    (Async, async)
+import Control.Monad.Exception     (Throws, throw)
+import Control.Monad.State.Layered (StateT)
+import Data.Graph.Class            (Graph)
+import Data.Map.Strict             (Map)
+import GHC.Exts                    (Any)
+import OCI.Pass.Definition.Class   (Pass)
+import OCI.Pass.Definition.Dynamic (DynamicPass)
 
-type M = P.Monad
 
 
 --------------------
@@ -52,7 +47,6 @@ data State = State
     { _passes   :: !(Map Pass.Rep DynamicPass)
     , _attrDefs :: !(Map Attr.Rep DynAttr)
     , _attrs    :: !(Map Attr.Rep Any)
-    , _layout   :: !CompiledIRInfo
     }
 
 data DynAttr = DynAttr
@@ -66,8 +60,8 @@ makeLenses ''DynAttr
 
 -- === API === --
 
-buildState :: CompiledIRInfo -> State
-buildState = State mempty mempty mempty ; {-# INLINE buildState #-}
+instance Default State where
+    def = State mempty mempty mempty ; {-# INLINE def #-}
 
 
 
@@ -82,29 +76,22 @@ type MonadScheduler m =
     ( State.Monad State m
     , MonadIO m
     , Throws Error m
-    , Throws Encoder.Error m
     )
 
 newtype SchedulerT m a = SchedulerT (StateT State m a)
-    deriving ( Applicative, Alternative, Functor, M, MonadFail, MonadFix
+    deriving ( Applicative, Alternative, Functor, Std.Monad, MonadFail, MonadFix
              , MonadIO, MonadPlus, MonadTrans, MonadThrow)
 makeLenses ''SchedulerT
 
 
 -- === Running === --
 
-runT  :: MonadIO m => SchedulerT m a -> IRInfo -> m (a, State)
-execT :: MonadIO m => SchedulerT m a -> IRInfo -> m State
-evalT :: MonadIO m => SchedulerT m a -> IRInfo -> m a
-runT  f = State.runT (unwrap f) . buildState <=< IRInfo.compile ; {-# INLINE runT  #-}
-execT   = fmap snd .: runT ; {-# INLINE execT #-}
-evalT   = fmap fst .: runT ; {-# INLINE evalT #-}
-
-runManual :: MonadIO m => RegistryT m () -> SchedulerT m a -> m a
-runManual freg fsched = do
-    reg <- Registry.execT freg
-    evalT fsched reg
-{-# INLINE runManual #-}
+runT  :: MonadIO m => SchedulerT m a -> m (a, State)
+execT :: MonadIO m => SchedulerT m a -> m State
+evalT :: MonadIO m => SchedulerT m a -> m a
+runT  = State.runDefT  . unwrap ; {-# INLINE runT  #-}
+execT = State.execDefT . unwrap ; {-# INLINE execT #-}
+evalT = State.evalDefT . unwrap ; {-# INLINE evalT #-}
 
 
 -- === Passes === --
@@ -121,8 +108,7 @@ registerPass = registerPassFromFunction__ @graph (Pass.definition @pass) ; {-# I
 registerPassFromFunction__ :: ∀ graph pass m.
     PassRegister graph pass m => Pass pass (Graph graph) () -> m ()
 registerPassFromFunction__ !pass = do
-    !lyt     <- view layout <$> State.get @State
-    !dynPass <- Pass.compile pass lyt
+    !dynPass <- Pass.compile pass
     State.modify_ @State $ passes . at (Pass.rep @pass) .~ Just dynPass
 {-# INLINE registerPassFromFunction__ #-}
 
@@ -166,10 +152,10 @@ setAttr attr = State.modify_ @State mod where
 
 -- === Instances === --
 
-instance P.Monad m => State.Getter State (SchedulerT m) where
+instance Std.Monad m => State.Getter State (SchedulerT m) where
     get = wrap State.get' ; {-# INLINE get #-}
 
-instance P.Monad m => State.Setter State (SchedulerT m) where
+instance Std.Monad m => State.Setter State (SchedulerT m) where
     put = wrap . State.put' ; {-# INLINE put #-}
 
 
@@ -182,9 +168,6 @@ instance P.Monad m => State.Setter State (SchedulerT m) where
 
 newtype PassThread = PassThread (Async Pass.AttrVals)
 makeLenses ''PassThread
-
-
-
 
 
 -- === Attrib gather === --

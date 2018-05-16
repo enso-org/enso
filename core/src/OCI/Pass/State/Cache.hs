@@ -4,11 +4,11 @@ module OCI.Pass.State.Cache where
 
 import Prologue
 
-import qualified OCI.Pass.State.Runtime as Pass
-import qualified Type.Cache             as Type
+-- import qualified OCI.Pass.State.Runtime as Pass
+-- import qualified Type.Cache             as Type
 
-import Language.Haskell.TH
-import Language.Haskell.TH.Builder
+-- import Language.Haskell.TH
+-- import Language.Haskell.TH.Builder
 
 
 

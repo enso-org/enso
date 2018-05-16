@@ -12,7 +12,6 @@ import qualified Data.Graph.Data.Component.Dynamic as Component
 import qualified Data.Graph.Data.Layer.Class       as Layer
 import qualified Data.TypeMap.MultiState           as MultiState
 import qualified Data.TypeMap.Strict               as TypeMap
-import qualified OCI.Pass.State.Runtime            as Runtime
 import qualified Type.Data.List                    as List
 
 import Control.Monad.State.Layered     (StateT)
@@ -23,8 +22,28 @@ import Data.TypeMap.Strict             (TypeMap)
 import Foreign.Info.ByteSize           (ByteSize)
 import Foreign.Memory.Pool             (MemPool)
 import Foreign.Ptr.Utils               (SomePtr)
+import OCI.Pass.Definition.Declaration (Attrs, Vars)
 import OCI.Pass.State.Attr             (Attr)
 import Type.Data.List                  (type (<>))
+
+
+
+------------------------
+-- === Pass State === --
+------------------------
+
+-- === Definition === --
+
+newtype State       pass = State (StateData pass)
+type    StateData   pass = TypeMap (StateLayout pass)
+type    StateLayout pass = List.Map Attr (Vars pass Attrs)
+makeLenses ''State
+
+
+-- === Instances === --
+
+deriving instance Show    (StateData pass) => Show    (State pass)
+deriving instance Default (StateData pass) => Default (State pass)
 
 
 
@@ -34,7 +53,7 @@ import Type.Data.List                  (type (<>))
 
 -- === Definition === --
 
-newtype Pass pass m a = Pass (MultiStateT (Runtime.StateLayout pass) m a)
+newtype Pass pass m a = Pass (MultiStateT (StateLayout pass) m a)
     deriving ( Applicative, Alternative, Functor, Monad, MonadFail, MonadFix
              , MonadIO, MonadPlus, MonadThrow, MonadTrans)
 makeLenses ''Pass
@@ -46,23 +65,23 @@ class Definition pass where
 -- === API === --
 
 exec :: ∀ pass m a. Monad m
-     => Pass pass m a -> Runtime.State pass -> m (Runtime.State pass)
+     => Pass pass m a -> State pass -> m (State pass)
 exec !pass !state = wrap <$> MultiState.execT (coerce pass) (unwrap state)
 {-# INLINE exec #-}
 
 eval :: ∀ pass m a. Monad m
-     => Pass pass m a -> Runtime.State pass -> m ()
+     => Pass pass m a -> State pass -> m ()
 eval !pass !state = void $ exec pass state
 {-# INLINE eval #-}
 
 
 -- === State === --
 
-instance (Monad m, State.Getter a (MultiStateT (Runtime.StateLayout pass) m))
+instance (Monad m, State.Getter a (MultiStateT (StateLayout pass) m))
       => State.Getter a (Pass pass m) where
      get = wrap $ State.get @a ; {-# INLINE get #-}
 
-instance (Monad m, State.Setter a (MultiStateT (Runtime.StateLayout pass) m))
+instance (Monad m, State.Setter a (MultiStateT (StateLayout pass) m))
       => State.Setter a (Pass pass m) where
      put = wrap . State.put @a ; {-# INLINE put #-}
 

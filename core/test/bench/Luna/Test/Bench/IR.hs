@@ -29,12 +29,8 @@ import qualified Luna.IR                               as IR
 import qualified Luna.IR.Term.Format                   as Format
 import qualified Luna.Pass                             as Pass
 import qualified Luna.Pass.Scheduler                   as Scheduler
-import qualified Luna.Runner                           as Runner
 import qualified OCI.Pass.Definition.Class             as Pass
-import qualified OCI.Pass.Management.Registry          as Registry
 import qualified OCI.Pass.State.Encoder                as Encoder
-import qualified OCI.Pass.State.IRInfo                 as IRInfo
-import qualified OCI.Pass.State.Runtime                as Runtime
 import qualified System.Console.ANSI                   as ANSI
 
 import Control.DeepSeq   (force)
@@ -170,14 +166,12 @@ type OnDemandPass graph pass m =
     ( MonadIO m
     , Typeable pass
     , Pass.Compile graph pass m
-    , Exception.MonadException Registry.Error  m
     , Exception.MonadException Scheduler.Error m
-    , Exception.MonadException Encoder.Error   m
     )
 
 runPass :: ∀ graph pass m. OnDemandPass graph pass m
         => Pass pass (Graph graph) () -> m ()
-runPass !pass = Runner.runManual $ do
+runPass !pass = Scheduler.evalT $ do
     Scheduler.registerPassFromFunction__ pass
     Scheduler.runPassSameThreadByType @pass
 {-# INLINE runPass #-}
