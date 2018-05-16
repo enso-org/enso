@@ -45,8 +45,8 @@ type instance Term.Uni = UniTerm
 instance Component.Provider1 tag Link => Component.Provider1 tag UniTerm where
     componentsIO1 = Component.gcomponents @tag ; {-# INLINE componentsIO1 #-}
 
-instance Component.DynamicProvider1 UniTerm where
-    dynamicComponentsIO1 = Component.gdynamicComponents ; {-# INLINE dynamicComponentsIO1 #-}
+-- instance Component.DynamicProvider1 UniTerm where
+--     dynamicComponentsIO1 = Component.gdynamicComponents ; {-# INLINE dynamicComponentsIO1 #-}
 
 instance StyledShow Term.TagOnly (UniTerm a) where
     styledShow _ = GTraversable.gfoldl' @Term.ShowTag f mempty where

@@ -49,9 +49,9 @@ instance GTraversable (Component.Provider tag) (Constructor t a)
     => Component.Provider tag (Constructor t a) where
     componentsIO = Component.gcomponents @tag  ; {-# INLINE componentsIO #-}
 
-instance GTraversable Component.DynamicProvider (Constructor t a)
-    => Component.DynamicProvider (Constructor t a) where
-    dynamicComponentsIO = Component.gdynamicComponents  ; {-# INLINE dynamicComponentsIO #-}
+-- instance GTraversable Component.DynamicProvider (Constructor t a)
+--     => Component.DynamicProvider (Constructor t a) where
+--     dynamicComponentsIO = Component.gdynamicComponents  ; {-# INLINE dynamicComponentsIO #-}
 
 
 

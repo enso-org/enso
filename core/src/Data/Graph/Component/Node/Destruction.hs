@@ -16,8 +16,8 @@ import Data.Graph.Component.Node.Class (Node, Nodes)
 
 -- === API === --
 
-delete :: ( MonadIO m
-          , State.Getter (Edge.ComponentProvider Nodes) m
-          , Component.Destructor1 m Edge
-          ) => Node layout -> m ()
-delete = mapM_ Component.destruct1 <=< Edge.componentEdges ; {-# INLINE delete #-}
+-- delete :: ( MonadIO m
+--           , State.Getter (Edge.ComponentProvider Nodes) m
+--           , Component.Destructor1 m Edge
+--           ) => Node layout -> m ()
+-- delete = mapM_ Component.destruct1 <=< Edge.componentEdges ; {-# INLINE delete #-}

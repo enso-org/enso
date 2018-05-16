@@ -40,16 +40,16 @@ edges1 = Component.components1 @Edges ; {-# INLINE edges1 #-}
 
 -- === ComponentProvider === --
 
-newtype ComponentProvider tag = ComponentProvider
-    (Component.Some tag -> IO [SomeEdge])
+-- newtype ComponentProvider tag = ComponentProvider
+--     (Component.Some tag -> IO [SomeEdge])
 
-componentEdges
-    :: ∀ tag m layout. (MonadIO m, State.Getter (ComponentProvider tag) m)
-    => Component tag layout -> m [SomeEdge]
-componentEdges cmp = do
-    ComponentProvider f <- State.get @(ComponentProvider tag)
-    liftIO . f $ coerce cmp
-{-# INLINE componentEdges #-}
+-- componentEdges
+--     :: ∀ tag m layout. (MonadIO m, State.Getter (ComponentProvider tag) m)
+--     => Component tag layout -> m [SomeEdge]
+-- componentEdges cmp = do
+--     ComponentProvider f <- State.get @(ComponentProvider tag)
+--     liftIO . f $ coerce cmp
+-- {-# INLINE componentEdges #-}
 
 
 

@@ -46,8 +46,8 @@ instance MonadIO m => Data.Constructor2 m () Set where
 instance MonadIO m => Data.ShallowDestructor2 m Set where
     destructShallow2 = Data.destruct1 . unwrap ; {-# INLINE destructShallow2 #-}
 
-instance Typeable tag => Component.DynamicProvider1 (Set tag) where
-    dynamicComponentsIO1 = Component.dynamicComponentsIO . unwrap ; {-# INLINE dynamicComponentsIO1 #-}
+-- instance Typeable tag => Component.DynamicProvider1 (Set tag) where
+--     dynamicComponentsIO1 = Component.dynamicComponentsIO . unwrap ; {-# INLINE dynamicComponentsIO1 #-}
 
 instance Component.Provider  tag (UnmanagedPtrSet (Component tag' layout))
       => Component.Provider1 tag (Set tag') where

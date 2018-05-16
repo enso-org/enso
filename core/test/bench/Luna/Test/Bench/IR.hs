@@ -270,18 +270,18 @@ readWrite_layer = Bench "normal" $ \i -> runPass' $ do
     go i
 {-# NOINLINE readWrite_layer #-}
 
-    -- readWrite_layerptr :: Bench
-    -- readWrite_layerptr = Bench "normal" $ \i -> runPass' $ do
-    --     !a <- IR.var 0
-    --     let go :: Int -> Pass Pass.BasicPass (Graph Luna) ()
-    --         go 0 = pure ()
-    --         go j = do
-    --             !tp <- Layer.read @IR.Type a
-    --             !s  <- Layer.read @IR.Source tp
-    --             -- Layer.write @IR.Model a (IR.UniTermVar $ IR.Var $! x + 1)
-    --             go (j - 1)
-    --     go i
-    -- {-# NOINLINE readWrite_layerptr #-}
+-- readWrite_layerptr :: Bench
+-- readWrite_layerptr = Bench "normal" $ \i -> runPass' $ do
+--     !a <- IR.var 0
+--     let go :: Int -> Pass Pass.BasicPass (Graph Luna) ()
+--         go 0 = pure ()
+--         go j = do
+--             !tp <- Layer.read @IR.Type a
+--             !s  <- Layer.read @IR.Source tp
+--             -- Layer.write @IR.Model a (IR.UniTermVar $ IR.Var $! x + 1)
+--             go (j - 1)
+--     go i
+-- {-# NOINLINE readWrite_layerptr #-}
 
 
 
@@ -317,20 +317,18 @@ createIR_normal = Bench "normal" $ \i -> runPass' $ do
 --     go i
 -- {-# NOINLINE createIR_normal2 #-}
 
-    -- createIR_normal3 :: Bench
-    -- createIR_normal3 = Bench "normal3" $ \i -> runPass' $ do
-    --     let go !0 = pure ()
-    --         go !j = do
-    --             !v <- IR.var 0
-    --             !tpLink <- Layer.read @IR.Type v
-    --             -- Component.destruct tpLink
-    --             Component.destruct v
-    --             go $! j - 1
-    --     go i
-    -- {-# NOINLINE createIR_normal3 #-}
+createIR_normal3 :: Bench
+createIR_normal3 = Bench "normal3" $ \i -> runPass' $ do
+    let go !0 = pure ()
+        go !j = do
+            !v <- IR.var 0
+            !tpLink <- Layer.read @IR.Type v
+            -- Component.destruct tpLink
+            Component.destruct v
+            go $! j - 1
+    go i
+{-# NOINLINE createIR_normal3 #-}
 
-class Foo a where foo :: IO ()
-instance Foo a where foo = pure () ; {-# INLINE foo #-}
 
 
 
@@ -517,7 +515,7 @@ benchmarks = do
             [ createIR_mallocPtr
             , createIR_normal
             -- , createIR_normal2
-        --     , createIR_normal3
+            , createIR_normal3
         --     , createIR_normal4
             ]
         -- -- [ "layer" $ bench 7 <$>

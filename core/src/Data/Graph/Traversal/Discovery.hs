@@ -23,9 +23,8 @@ import qualified Foreign.Ptr                          as Ptr
 import qualified Foreign.Storable                     as Storable
 import qualified Type.Data.List                       as List
 
-import Data.Graph.Data.Component.Class    (Component)
-import Data.Graph.Data.Component.Provider (DynamicTraversalMap (..))
-import Data.Set                           (Set)
+import Data.Graph.Data.Component.Class (Component)
+import Data.Set                        (Set)
 
 import Data.Generics.Traversable (GTraversable)
 import Foreign.Ptr.Utils         (SomePtr)
@@ -33,46 +32,6 @@ import Foreign.Ptr.Utils         (SomePtr)
 import Data.Graph.Component.Node.Layer.Model (Model)
 import Data.PtrList.Mutable                  (UnmanagedPtrList)
 import Data.Vector.Storable.Foreign          (Vector)
-
-
-
----------------------------------
--- === Component Discovery === --
----------------------------------
-
--- === API === --
-
-discover :: (MonadIO m, State.Getter DynamicTraversalMap m, Typeable tag)
-    => Component tag layout -> m (Set Component.Dynamic)
-discover = discoverDynamic . Component.toDynamic1
-{-# INLINE discover #-}
-
-discoverDynamic :: (MonadIO m, State.Getter DynamicTraversalMap m)
-    => Component.Dynamic -> m (Set Component.Dynamic)
-discoverDynamic comp = do
-    info <- State.get @DynamicTraversalMap
-    discoverDynamic__ info mempty comp
-{-# INLINE discoverDynamic #-}
-
-discoverDynamic__ :: MonadIO m
-    => DynamicTraversalMap -> Set Component.Dynamic -> Component.Dynamic
-    -> m (Set Component.Dynamic)
-discoverDynamic__ info = go where
-    go all comp = do
-        nbrs <- getNeighboursx info comp
-        let newComps = filter (flip Set.notMember all) nbrs
-            all'     = foldr Set.insert all newComps
-        foldM go all' newComps
-{-# INLINE discoverDynamic__ #-}
-
-getNeighboursx :: MonadIO m
-    => DynamicTraversalMap -> Component.Dynamic -> m [Component.Dynamic]
-getNeighboursx info comp = neighbours where
-    Component.Rep tagRep _ = comp ^. Dynamic.rep
-    compPtr    = comp ^. Dynamic.ptr
-    compInfo   = unsafeFromJust $ Map.lookup tagRep $ unwrap info  -- TODO: convert to panic
-    neighbours = liftIO $ compInfo compPtr
-{-# INLINE getNeighboursx #-}
 
 
 

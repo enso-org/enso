@@ -92,74 +92,74 @@ instance Provider tag (PtrSet.UnmanagedPtrSet (Component tag layout)) where
 
 
 
------------------------------
--- === DynamicProvider === --
------------------------------
+-- -----------------------------
+-- -- === DynamicProvider === --
+-- -----------------------------
 
--- === Definition === --
+-- -- === Definition === --
 
-class DynamicProvider a where
-    dynamicComponentsIO :: a -> IO [Component.Dynamic]
-    dynamicComponentsIO = const $ pure mempty ; {-# INLINE dynamicComponentsIO #-}
+-- class DynamicProvider a where
+--     dynamicComponentsIO :: a -> IO [Component.Dynamic]
+--     dynamicComponentsIO = const $ pure mempty ; {-# INLINE dynamicComponentsIO #-}
 
-class DynamicProvider1 a where
-    dynamicComponentsIO1 :: ∀ t1. a t1 -> IO [Component.Dynamic]
-    dynamicComponentsIO1 = const $ pure mempty ; {-# INLINE dynamicComponentsIO1 #-}
-
-
--- === API === --
-
-dynamicComponents :: ∀ a m. (MonadIO m, DynamicProvider a)
-                  => a -> m [Component.Dynamic]
-dynamicComponents = liftIO . dynamicComponentsIO ; {-# INLINE dynamicComponents #-}
-
-dynamicComponents1 :: ∀ a m t1. (MonadIO m, DynamicProvider1 a)
-                   => a t1 -> m [Component.Dynamic]
-dynamicComponents1 = liftIO . dynamicComponentsIO1 ; {-# INLINE dynamicComponents1 #-}
-
-gdynamicComponents :: ∀ a m. (GTraversable DynamicProvider a, MonadIO m)
-                   => a -> m [Component.Dynamic]
-gdynamicComponents = gfoldlM @DynamicProvider (\acc a -> (acc <>) <$> dynamicComponents a)
-              mempty
-{-# INLINE gdynamicComponents #-}
+-- class DynamicProvider1 a where
+--     dynamicComponentsIO1 :: ∀ t1. a t1 -> IO [Component.Dynamic]
+--     dynamicComponentsIO1 = const $ pure mempty ; {-# INLINE dynamicComponentsIO1 #-}
 
 
--- === Redirect instances === --
+-- -- === API === --
 
-instance {-# OVERLAPPABLE #-} GTraversable DynamicProvider a => DynamicProvider a where
-    dynamicComponentsIO = gdynamicComponents ; {-# INLINE dynamicComponentsIO #-}
+-- dynamicComponents :: ∀ a m. (MonadIO m, DynamicProvider a)
+--                   => a -> m [Component.Dynamic]
+-- dynamicComponents = liftIO . dynamicComponentsIO ; {-# INLINE dynamicComponents #-}
 
-instance {-# OVERLAPPABLE #-} DynamicProvider1 a => DynamicProvider (a t1) where
-    dynamicComponentsIO = dynamicComponentsIO1 ; {-# INLINE dynamicComponentsIO #-}
+-- dynamicComponents1 :: ∀ a m t1. (MonadIO m, DynamicProvider1 a)
+--                    => a t1 -> m [Component.Dynamic]
+-- dynamicComponents1 = liftIO . dynamicComponentsIO1 ; {-# INLINE dynamicComponents1 #-}
+
+-- gdynamicComponents :: ∀ a m. (GTraversable DynamicProvider a, MonadIO m)
+--                    => a -> m [Component.Dynamic]
+-- gdynamicComponents = gfoldlM @DynamicProvider (\acc a -> (acc <>) <$> dynamicComponents a)
+--               mempty
+-- {-# INLINE gdynamicComponents #-}
 
 
--- === Std instances === --
+-- -- === Redirect instances === --
 
-instance DynamicProvider Bool
-instance DynamicProvider Word8
-instance DynamicProvider Word64
-instance DynamicProvider SomePtr
+-- instance {-# OVERLAPPABLE #-} GTraversable DynamicProvider a => DynamicProvider a where
+--     dynamicComponentsIO = gdynamicComponents ; {-# INLINE dynamicComponentsIO #-}
 
-instance Typeable tag => DynamicProvider1 (Component tag) where
-    dynamicComponentsIO1 = pure . pure . Component.toDynamic1
-    {-# INLINE dynamicComponentsIO1 #-}
+-- instance {-# OVERLAPPABLE #-} DynamicProvider1 a => DynamicProvider (a t1) where
+--     dynamicComponentsIO = dynamicComponentsIO1 ; {-# INLINE dynamicComponentsIO #-}
 
-instance DynamicProvider t => DynamicProvider1 (Layer.Simple t) where
-    dynamicComponentsIO1 = dynamicComponentsIO . unwrap ; {-# INLINE dynamicComponentsIO1 #-}
 
-instance {-# OVERLAPPABLE #-}
-         DynamicProvider (Foreign.Vector a)
-instance Typeable tag
-      => DynamicProvider (Foreign.Vector (Component tag layout)) where
-    dynamicComponentsIO a = Component.toDynamic1 <<$>> Foreign.toList a ; {-# INLINE dynamicComponentsIO #-}
+-- -- === Std instances === --
 
-instance Typeable tag
-      => DynamicProvider (PtrList.UnmanagedPtrList (Component tag layout)) where
-    dynamicComponentsIO a = Component.toDynamic1 <<$>> PtrList.toList a ; {-# INLINE dynamicComponentsIO #-}
+-- instance DynamicProvider Bool
+-- instance DynamicProvider Word8
+-- instance DynamicProvider Word64
+-- instance DynamicProvider SomePtr
 
-instance Typeable tag
-      => DynamicProvider (PtrSet.UnmanagedPtrSet (Component tag layout)) where
-    dynamicComponentsIO a = Component.toDynamic1 <<$>> PtrSet.toList a ; {-# INLINE dynamicComponentsIO #-}
+-- instance Typeable tag => DynamicProvider1 (Component tag) where
+--     dynamicComponentsIO1 = pure . pure . Component.toDynamic1
+--     {-# INLINE dynamicComponentsIO1 #-}
+
+-- instance DynamicProvider t => DynamicProvider1 (Layer.Simple t) where
+--     dynamicComponentsIO1 = dynamicComponentsIO . unwrap ; {-# INLINE dynamicComponentsIO1 #-}
+
+-- instance {-# OVERLAPPABLE #-}
+--          DynamicProvider (Foreign.Vector a)
+-- instance Typeable tag
+--       => DynamicProvider (Foreign.Vector (Component tag layout)) where
+--     dynamicComponentsIO a = Component.toDynamic1 <<$>> Foreign.toList a ; {-# INLINE dynamicComponentsIO #-}
+
+-- instance Typeable tag
+--       => DynamicProvider (PtrList.UnmanagedPtrList (Component tag layout)) where
+--     dynamicComponentsIO a = Component.toDynamic1 <<$>> PtrList.toList a ; {-# INLINE dynamicComponentsIO #-}
+
+-- instance Typeable tag
+--       => DynamicProvider (PtrSet.UnmanagedPtrSet (Component tag layout)) where
+--     dynamicComponentsIO a = Component.toDynamic1 <<$>> PtrSet.toList a ; {-# INLINE dynamicComponentsIO #-}
 
 
 
@@ -167,11 +167,11 @@ instance Typeable tag
 -- === DynamicTraversal === --
 ------------------------------
 
-type DynamicTraversalSig = SomePtr -> IO [Component.Dynamic]
-newtype DynamicTraversal comp = DynamicTraversal DynamicTraversalSig
-makeLenses ''DynamicTraversal
+-- type DynamicTraversalSig = SomePtr -> IO [Component.Dynamic]
+-- newtype DynamicTraversal comp = DynamicTraversal DynamicTraversalSig
+-- makeLenses ''DynamicTraversal
 
-newtype DynamicTraversalMap = DynamicTraversalMap
-    (Map Component.TagRep DynamicTraversalSig)
-makeLenses ''DynamicTraversalMap
+-- newtype DynamicTraversalMap = DynamicTraversalMap
+--     (Map Component.TagRep DynamicTraversalSig)
+-- makeLenses ''DynamicTraversalMap
 
