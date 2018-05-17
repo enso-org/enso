@@ -14,6 +14,7 @@ import qualified Data.Graph.Component.Node.Layer.Type as Type
 import qualified Data.Graph.Data.Component.Class      as Component
 import qualified Data.Graph.Data.Component.Dynamic    as Component
 import qualified Data.Graph.Data.Component.Dynamic    as Dynamic
+import qualified Data.Graph.Data.Component.Provider   as Provider
 import qualified Data.Graph.Data.Container.Set        as Setx
 import qualified Data.Graph.Data.Layer.Class          as Layer
 import qualified Data.Graph.Data.Layer.Layout         as Layout
@@ -23,16 +24,14 @@ import qualified Foreign.Ptr                          as Ptr
 import qualified Foreign.Storable                     as Storable
 import qualified Type.Data.List                       as List
 
-import Data.Graph.Data.Component.Class (Component)
-import Data.Set                        (Set)
-
-import Data.Generics.Traversable (GTraversable)
-import Foreign.Ptr.Utils         (SomePtr)
-
+import Data.Generics.Traversable             (GTraversable)
 import Data.Graph.Component.Node.Layer.Model (Model)
+import Data.Graph.Data.Component.Class       (Component)
 import Data.PtrList.Mutable                  (UnmanagedPtrList)
+import Data.Set                              (Set)
 import Data.Vector.Storable.Foreign          (Vector)
-
+import Foreign.Ptr.Utils                     (SomePtr)
+import Type.Data.Bool                        (Not, type (||))
 
 
 ----------------------
@@ -41,9 +40,19 @@ import Data.Vector.Storable.Foreign          (Vector)
 
 -- === Definition === --
 
-type family Result    t
-type family Whitelist t :: [Type]
-type EnabledLayer t layer = List.In layer (Whitelist t)
+data Scope
+    = Everything
+    | Whitelist [Type]
+    | Blacklist [Type]
+
+type family Result     t
+type family LayerScope t :: Scope
+
+type EnabledLayer t layer = EnabledLayer__ (LayerScope t) layer
+type family EnabledLayer__ t layer where
+    EnabledLayer__ 'Everything      _ = 'True
+    EnabledLayer__ ('Whitelist lst) l =      List.In l lst
+    EnabledLayer__ ('Blacklist lst) l = Not (List.In l lst)
 
 class Monad m => Foldable t m a where
     fold :: a -> (Result t) -> m (Result t)
@@ -124,7 +133,6 @@ instance {-# OVERLAPPABLE #-} Monad m
       => LayerFoldableBuilder__ 'False t m layer where
     buildLayerFold__ _ = id ; {-# INLINE buildLayerFold__ #-}
 
-
 instance (Monad m, Layer.StorableLayer layer m, FoldableLayer t m layer)
       => LayerFoldableBuilder__ 'True t m layer where
     buildLayerFold__ ptr mr = do
@@ -140,44 +148,71 @@ instance (Monad m, Layer.StorableLayer layer m, FoldableLayer t m layer)
 
 
 
------------------------
--- === Discovery === --
------------------------
+------------------------------
+-- === SubTreeDiscovery === --
+------------------------------
 
 -- === Definition === --
 
-data Discovery
-type instance Result    Discovery = [Component.Any]
-type instance Whitelist Discovery = [Model, Type.Type]
+data SubTreeDiscovery
+type instance Result     SubTreeDiscovery = [Component.Any]
+type instance LayerScope SubTreeDiscovery = 'Whitelist '[Model, Type.Type]
 
 
 -- === API === --
 
-getNeighbours :: Foldable Discovery m a => a -> m [Component.Any]
-getNeighbours a = fold @Discovery a mempty ; {-# INLINE getNeighbours #-}
+getSubTree :: Foldable SubTreeDiscovery m a => a -> m [Component.Any]
+getSubTree a = fold @SubTreeDiscovery a mempty ; {-# INLINE getSubTree #-}
 
 
 -- === Instances === --
 
-instance Monad m => FoldableComponent Discovery m tag where
+instance Monad m => FoldableComponent SubTreeDiscovery m tag where
     foldComponent comp = pure . (Layout.relayout comp :) ; {-# INLINE foldComponent #-}
 
 instance ( MonadIO m
-         , Foldable1 Discovery m (Layer.Cons Model)
-         , Foldable  Discovery m Node.Some
+         , Foldable SubTreeDiscovery m Node.Some
          , Layer.Reader Edge.Edge Edge.Source m
          , Layer.Reader Edge.Edge Edge.Target m
          )
-      => FoldableLayer Discovery m Type.Type where
-    foldLayer layer acc = do
-        (src :: Node.Some) <- Layout.relayout <$> Layer.read @Edge.Source layer
-        (tgt :: Node.Some) <- Layout.relayout <$> Layer.read @Edge.Target layer
-        let f     = if src == tgt then pure else fold @Discovery src
-            acc'  = Layout.relayout layer : acc
+      => FoldableLayer SubTreeDiscovery m Type.Type where
+    foldLayer tpLink acc = do
+        (tp  :: Node.Some) <- Layout.relayout <$> Layer.read @Edge.Source tpLink
+        (tgt :: Node.Some) <- Layout.relayout <$> Layer.read @Edge.Target tpLink
+        let f     = if tp == tgt then pure else fold @SubTreeDiscovery tp
+            acc'  = Layout.relayout tpLink : acc
             acc'' = f acc'
         acc''
     {-# INLINE foldLayer #-}
 
+
+
+--------------------------------
+-- === ComponentDiscovery === --
+--------------------------------
+
+-- === Definition === --
+
+data ComponentDiscovery comp
+type instance Result     (ComponentDiscovery comp) = [Component.Some comp]
+type instance LayerScope (ComponentDiscovery comp) = 'Everything
+
+
+-- === API === --
+
+discoverComponents :: ∀ comp a m. Foldable (ComponentDiscovery comp) m a => a -> m [Component.Some comp]
+discoverComponents a = fold @(ComponentDiscovery comp) a mempty ; {-# INLINE discoverComponents #-}
+
+
+-- === Instances === --
+
+instance Monad m => FoldableComponent (ComponentDiscovery comp) m tag where
+    foldComponent _ = pure ; {-# INLINE foldComponent #-}
+
+instance (MonadIO m, Provider.Provider1 comp (Layer.Cons layer))
+      => FoldableLayer (ComponentDiscovery comp) m layer where
+    foldLayer layerData acc = (<>) <$> Provider.components1 @comp layerData <*> pure acc
+    {-# INLINE foldLayer #-}
 
 
 

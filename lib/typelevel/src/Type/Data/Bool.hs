@@ -47,3 +47,5 @@ type family (a :: k) == (b :: k) where
     a == b = 'False
 
 type a != b = Not (a == b)
+
+type a || b = Or a b

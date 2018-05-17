@@ -421,25 +421,38 @@ createIR_normal3 = Bench "normal3" $ \i -> runPass' $ do
     --     mr'''
 
 
-    -- discoverIR_hack3 :: Bench
-    -- discoverIR_hack3 = Bench "generic" $ \i -> runPass' $ do
-    --     !v <- IR.var "a"
-    --     -- print "!!!"
-    --     -- print =<< State.get @(Runtime.LayerByteOffset IR.Terms IR.Model)
-    --     -- print =<< State.get @(Runtime.LayerByteOffset IR.Terms IR.Type)
-    --     -- print =<< State.get @(Runtime.LayerByteOffset IR.Terms IR.Users)
-    --     let go !0 = let !o = pure () in o
-    --         go !j = do
-    --             -- putStrLn ""
-    --             !out <- Discovery.getNeighbours v
-    --             -- print out
-    --             -- !tl  <- Layer.read @IR.Type v
-    --             -- !t   <- Layer.read @IR.Source tl
-    --             -- !ttl <- Layer.read @IR.Type t
-    --             -- print [Component.unsafeToPtr v, Component.unsafeToPtr tl, Component.unsafeToPtr t, Component.unsafeToPtr ttl]
-    --             let !o = go $! j - 1 in o
-    --     go i
-    -- {-# NOINLINE discoverIR_hack3 #-}
+subTreeDiscovery :: Bench
+subTreeDiscovery = Bench "subTree" $ \i -> runPass' $ do
+    !v <- IR.var "a"
+    let go !0 = let !o = pure () in o
+        go !j = do
+            !out <- Discovery.getSubTree v
+            -- putStrLn ""
+            -- print out
+            -- !tl  <- Layer.read @IR.Type v
+            -- !t   <- Layer.read @IR.Source tl
+            -- !ttl <- Layer.read @IR.Type t
+            -- print [Component.unsafeToPtr v, Component.unsafeToPtr tl, Component.unsafeToPtr t, Component.unsafeToPtr ttl]
+            let !o = go $! j - 1 in o
+    go i
+{-# NOINLINE subTreeDiscovery #-}
+
+linkDiscovery :: Bench
+linkDiscovery = Bench "link" $ \i -> runPass' $ do
+    !v <- IR.var "a"
+    let go !0 = let !o = pure () in o
+        go !j = do
+            !out <- Discovery.discoverComponents @IR.Links v
+            -- putStrLn ""
+            -- print out
+            -- !tl  <- Layer.read @IR.Type v
+            -- print tl
+            -- !t   <- Layer.read @IR.Source tl
+            -- !ttl <- Layer.read @IR.Type t
+            -- print [Component.unsafeToPtr v, Component.unsafeToPtr tl, Component.unsafeToPtr t, Component.unsafeToPtr ttl]
+            let !o = go $! j - 1 in o
+    go i
+{-# NOINLINE linkDiscovery #-}
 
 
 
@@ -585,11 +598,12 @@ benchmarks = do
         -- -- [ "layer" $ bench 7 <$>
         -- --     [readWrite_layerptr]
 
-        -- , "discovery" $ bench 6 <$>
-        --     [ discoverIR_hack3
+        , "discovery" $ bench 6 <$>
+            [ subTreeDiscovery
+            , linkDiscovery
         --     , discoverIR_hack
         --     -- , discoverIR_simple
-        --     ]
+            ]
         ]
       ]
 
