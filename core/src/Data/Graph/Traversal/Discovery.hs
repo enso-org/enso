@@ -154,7 +154,7 @@ type instance LayerScope SubTreeDiscovery = 'Whitelist '[Model, Type.Type]
 -- === API === --
 
 getSubTree :: Foldable SubTreeDiscovery m a => a -> m [Component.Any]
-getSubTree = \a -> buildFold @SubTreeDiscovery a $! pure mempty ; {-# INLINE getSubTree #-}
+getSubTree = \a -> buildFold @SubTreeDiscovery a $! pure $! mempty ; {-# INLINE getSubTree #-}
 
 
 -- === Instances === --
