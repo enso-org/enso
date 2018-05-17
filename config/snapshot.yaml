@@ -2,10 +2,10 @@ resolver: nightly-2018-05-05
 name: luna
 packages:
 - megaparsec-6.5.0
-- layered-state-1.1.2
+- layered-state-1.1.3
 - convert-1.4.2
 - typelevel-1.2.2
-- container-0.3.4
+- container-1.1.0
 - layouting-1.1.3
 - monoid-0.1.8
 - vector-text-1.1.3
