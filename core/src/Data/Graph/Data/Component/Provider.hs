@@ -28,11 +28,11 @@ import Foreign.Ptr.Utils               (SomePtr)
 
 class Provider tag m a where
     gather :: a -> m [Component.Some tag] -> m [Component.Some tag]
-    gather _ a = a ; {-# INLINE gather #-}
+    gather = \_ a -> a ; {-# INLINE gather #-}
 
 class Provider1 tag m a where
     gather1 :: ∀ t. a t -> m [Component.Some tag] -> m [Component.Some tag]
-    gather1 _ a = a ; {-# INLINE gather1 #-}
+    gather1 = \_ a -> a ; {-# INLINE gather1 #-}
 
 
 -- === API === --
@@ -72,28 +72,31 @@ instance Provider tag m SomePtr
 instance {-# OVERLAPPABLE #-} Provider1 tag m (Component tag')
 instance Functor m
       => Provider1 tag m (Component tag) where
-    gather1 a acc = (Layout.relayout a :) <$> acc ; {-# INLINE gather1 #-}
+    gather1 = \a acc -> (Layout.relayout a :) <$> acc ; {-# INLINE gather1 #-}
 
 instance Provider tag m t
       => Provider1 tag m (Layer.Simple t) where
-    gather1 a = gather @tag (unwrap a) ; {-# INLINE gather1 #-}
+    gather1 = \a -> gather @tag (unwrap a) ; {-# INLINE gather1 #-}
 
 instance {-# OVERLAPPABLE #-} Provider tag m (Foreign.Vector a)
 instance MonadIO m
       => Provider tag m (Foreign.Vector (Component tag layout)) where
-    gather a acc = (\a b -> a <> b) <$> (Layout.relayout <<$>> Foreign.toList a) <*> acc
+    gather = \a acc -> (\a b -> a <> b) <$> (Layout.relayout <<$>> Foreign.toList a)
+                                        <*> acc
     {-# INLINE gather #-}
 
 instance {-# OVERLAPPABLE #-} Provider tag m (PtrList.UnmanagedPtrList a)
 instance MonadIO m
       => Provider tag m (PtrList.UnmanagedPtrList (Component tag layout)) where
-    gather a acc = (\a b -> a <> b) <$> (Layout.relayout <<$>> PtrList.toList a) <*> acc
+    gather = \a acc -> (\a b -> a <> b) <$> (Layout.relayout <<$>> PtrList.toList a)
+                                        <*> acc
     {-# INLINE gather #-}
 
 instance {-# OVERLAPPABLE #-} Provider tag m (PtrSet.UnmanagedPtrSet a)
 instance MonadIO m
       => Provider tag m (PtrSet.UnmanagedPtrSet (Component tag layout)) where
-    gather a acc = (\a b -> a <> b) <$> (Layout.relayout <<$>> PtrSet.toList a) <*> acc
+    gather = \a acc -> (\a b -> a <> b) <$> (Layout.relayout <<$>> PtrSet.toList a)
+                                        <*> acc
     {-# INLINE gather #-}
 
 

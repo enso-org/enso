@@ -86,7 +86,7 @@ instance ( layers ~ Graph.DiscoverComponentLayers m tag
          , FoldableComponent t m tag
          , LayersFoldableBuilder__ t layers m )
       => Foldable t m (Component tag layout) where
-    buildFold comp mr = buildComponentFold @t comp
+    buildFold = \comp mr -> buildComponentFold @t comp
         $! buildLayersFold__ @t @layers (Component.unsafeToPtr comp) mr
     {-# INLINE buildFold #-}
 
@@ -106,7 +106,7 @@ class LayersFoldableBuilder__ t (layers :: [Type]) m where
     buildLayersFold__ :: SomePtr -> m (Result t) -> m (Result t)
 
 instance Monad m => LayersFoldableBuilder__ t '[] m where
-    buildLayersFold__ _ a = a ; {-# INLINE buildLayersFold__ #-}
+    buildLayersFold__ = \_ a -> a ; {-# INLINE buildLayersFold__ #-}
 
 instance ( MonadIO m
          , Storable.Storable (Layer.Cons l ())
@@ -114,12 +114,10 @@ instance ( MonadIO m
          , LayerFoldableBuilder__ (EnabledLayer t l) t m l
          , LayersFoldableBuilder__ t ls m )
      => LayersFoldableBuilder__ t (l ': ls) m where
-    buildLayersFold__ ptr mr = do
-        let f    = buildLayerFold__ @(EnabledLayer t l) @t @m @l ptr
-            fs   = buildLayersFold__ @t @ls ptr'
+    buildLayersFold__ = \ptr mr -> do
+        let fs   = buildLayersFold__ @t @ls ptr'
             ptr' = Ptr.plusPtr ptr $ Layer.byteSize @l
-            out  = f $! fs mr
-        out
+        buildLayerFold__ @(EnabledLayer t l) @t @m @l ptr $! fs mr
     {-# INLINE buildLayersFold__ #-}
 
 
@@ -130,19 +128,15 @@ class Monad m => LayerFoldableBuilder__ (active :: Bool) t m layer where
 
 instance {-# OVERLAPPABLE #-} Monad m
       => LayerFoldableBuilder__ 'False t m layer where
-    buildLayerFold__ _ a = a ; {-# INLINE buildLayerFold__ #-}
+    buildLayerFold__ = \_ a -> a ; {-# INLINE buildLayerFold__ #-}
 
 instance (Monad m, Layer.StorableLayer layer m, FoldableLayer t m layer)
       => LayerFoldableBuilder__ 'True t m layer where
-    buildLayerFold__ ptr mr = do
+    buildLayerFold__ = \ptr mr -> do
         layer <- Layer.unsafePeekWrapped @layer ptr
-        buildLayerFold @t @m @layer layer mr
+        r     <- mr -- | Performance
+        buildLayerFold @t @m @layer layer (pure r)
     {-# INLINE buildLayerFold__ #-}
-
-
-
-
-
 
 
 
@@ -160,13 +154,16 @@ type instance LayerScope SubTreeDiscovery = 'Whitelist '[Model, Type.Type]
 -- === API === --
 
 getSubTree :: Foldable SubTreeDiscovery m a => a -> m [Component.Any]
-getSubTree a = buildFold @SubTreeDiscovery a $! pure mempty ; {-# INLINE getSubTree #-}
+getSubTree = \a -> buildFold @SubTreeDiscovery a $! pure mempty ; {-# INLINE getSubTree #-}
 
 
 -- === Instances === --
 
 instance Monad m => FoldableComponent SubTreeDiscovery m tag where
-    buildComponentFold comp acc = (Layout.relayout comp :) <$> acc ; {-# INLINE buildComponentFold #-}
+    buildComponentFold = \comp acc -> do
+        a <- acc
+        pure $! Layout.relayout comp : a
+    {-# INLINE buildComponentFold #-}
 
 instance ( MonadIO m
          , Foldable SubTreeDiscovery m Node.Some
@@ -174,17 +171,14 @@ instance ( MonadIO m
          , Layer.Reader Edge.Edge Edge.Target m
          )
       => FoldableLayer SubTreeDiscovery m Type.Type where
-    buildLayerFold tpLink acc = do
-        (tp  :: Node.Some) <- remonad $ Layer.read @Edge.Source tpLink
-        (tgt :: Node.Some) <- remonad $ Layer.read @Edge.Target tpLink
-        let f     = if tp == tgt then id else buildFold @SubTreeDiscovery tp
-            acc'  = (Layout.relayout tpLink :) <$> acc
-            acc'' = f acc'
-        acc''
+    buildLayerFold = \tpLink acc -> do
+        (tp  :: Node.Some) <- Layout.relayout <$> Layer.read @Edge.Source tpLink
+        (tgt :: Node.Some) <- Layout.relayout <$> Layer.read @Edge.Target tpLink
+        a <- acc
+        let acc' = pure $! Layout.relayout tpLink : a
+        if tp == tgt then acc' else buildFold @SubTreeDiscovery tp acc'
     {-# INLINE buildLayerFold #-}
 
-remonad :: m a -> m b
-remonad = unsafeCoerce ; {-# INLINE remonad #-}
 
 
 --------------------------------
@@ -201,13 +195,13 @@ type instance LayerScope (ComponentDiscovery comp) = 'Everything
 -- === API === --
 
 discoverComponents :: ∀ comp a m. Foldable (ComponentDiscovery comp) m a => a -> m [Component.Some comp]
-discoverComponents a = buildFold @(ComponentDiscovery comp) a $! pure mempty ; {-# INLINE discoverComponents #-}
+discoverComponents = \a -> buildFold @(ComponentDiscovery comp) a $! pure $! mempty ; {-# INLINE discoverComponents #-}
 
 
 -- === Instances === --
 
 instance Monad m => FoldableComponent (ComponentDiscovery comp) m tag where
-    buildComponentFold _ a = a ; {-# INLINE buildComponentFold #-}
+    buildComponentFold = \_ a -> a ; {-# INLINE buildComponentFold #-}
 
 instance (MonadIO m, Provider.Provider1 comp m (Layer.Cons layer))
       => FoldableLayer (ComponentDiscovery comp) m layer where
@@ -218,7 +212,7 @@ instance (MonadIO m, Provider.Provider1 comp m (Layer.Cons layer))
 
 
 
-
+-- FIXME !!!
 
 instance GTraversable ctx (UnmanagedPtrList a) where gtraverse _ = error "e1"
 instance GTraversable ctx (Vector a) where gtraverse _ = error "e2"

@@ -372,52 +372,42 @@ createIR_normal3 = Bench "normal3" $ \i -> runPass' $ do
 -- === IR Discovery === --
 --------------------------
 
--- discoverIR_simple :: Bench
--- discoverIR_simple = Bench "simple" $ \i -> Graph.run @Luna $ runPass' $ do
---     v <- IR.var "a"
---     let go !0 = pure ()
---         go !j = do
---             !x <- Discovery.discover v
---             go $! j - 1
---     go i
--- {-# NOINLINE discoverIR_simple #-}
 
-    -- discoverIR_hack :: Bench
-    -- discoverIR_hack = Bench "manual" $ \i -> runPass' $ do
-    --     v <- IR.var "a"
-    --     let go !0 = pure ()
-    --         go !j = do
-    --             let !f = manualDiscoverIRHack (Layout.relayout v)
-    --             !out <- f []
-    --             go $! j - 1
-    --     go i
-    -- {-# NOINLINE discoverIR_hack #-}
+subTree_manual :: Bench
+subTree_manual = Bench "subTree manual" $ \i -> runPass' $ do
+    v <- IR.var "a"
+    let go !0 = pure ()
+        go !j = do
+            let !f = manualDiscoverIRHack (Layout.relayout v)
+            !out <- f []
+            go $! j - 1
+    go i
+{-# NOINLINE subTree_manual #-}
 
-    -- -- | The manualDiscoverIRHack function allows us to discover IR with an
-    -- --   assumption that everything is just a Var with chain of Top types.
-    -- manualDiscoverIRHack
-    --     :: ( Layer.Reader IR.Term IR.Type   m
-    --        , Layer.Reader IR.Term IR.Model  m
-    --        , Layer.Reader IR.Link IR.Source m
-    --        , Layer.Reader IR.Link IR.Target m
-    --        , MonadIO m
-    --        )
-    --     => IR.SomeTerm -> [Component.Any] -> m [Component.Any]
-    -- manualDiscoverIRHack !term !r = do
-    --     !tl    <- Layer.read @IR.Type  term
-    --     !model <- Layer.read @IR.Model term
-    --     let !r' = case model of
-    --             IR.UniTermVar (IR.Var {}) -> let !o = Layout.relayout term : r in o
-    --             IR.UniTermTop (IR.Top {}) -> let !o = Layout.relayout term : r in o
-    --             a                         -> error "not supported"
-    --     !src <- Layer.read @IR.Source tl
-    --     !tgt <- Layer.read @IR.Target tl
-    --     let !(src' :: IR.SomeTerm) = Layout.relayout src
-    --     let !(tgt' :: IR.SomeTerm) = Layout.relayout tgt
-    --     let !f = if src' == tgt' then pure else manualDiscoverIRHack src'
-    --         !r'' = Layout.relayout tl : r'
-    --         !mr''' = f r''
-    --     mr'''
+-- | The manualDiscoverIRHack function allows us to discover IR with an
+--   assumption that everything is just a Var with chain of Top types.
+manualDiscoverIRHack
+    :: ( Layer.Reader IR.Term IR.Type   m
+       , Layer.Reader IR.Term IR.Model  m
+       , Layer.Reader IR.Link IR.Source m
+       , Layer.Reader IR.Link IR.Target m
+       , MonadIO m
+       )
+    => IR.SomeTerm -> [Component.Any] -> m [Component.Any]
+manualDiscoverIRHack !term !r = do
+    !tl    <- Layer.read @IR.Type  term
+    !model <- Layer.read @IR.Model term
+    let !r' = case model of
+            IR.UniTermVar (IR.Var {}) -> let !o = Layout.relayout term : r in o
+            IR.UniTermTop (IR.Top {}) -> let !o = Layout.relayout term : r in o
+            a                         -> error "not supported"
+    !src <- Layer.read @IR.Source tl
+    !tgt <- Layer.read @IR.Target tl
+    let !(src' :: IR.SomeTerm) = Layout.relayout src
+    let !(tgt' :: IR.SomeTerm) = Layout.relayout tgt
+    let !r'' = Layout.relayout tl : r'
+    if src' == tgt' then pure r'' else manualDiscoverIRHack src' r''
+{-# INLINABLE manualDiscoverIRHack #-}
 
 
 subTreeDiscovery :: Bench
@@ -599,8 +589,8 @@ benchmarks = do
 
         , "discovery" $ bench 6 <$>
             [ subTreeDiscovery
+            , subTree_manual
             , linkDiscovery
-        --     , discoverIR_hack
         --     -- , discoverIR_simple
             ]
         ]

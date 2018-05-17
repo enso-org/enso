@@ -51,4 +51,4 @@ instance MonadIO m => Data.ShallowDestructor2 m Set where
 
 instance Component.Provider  tag m (UnmanagedPtrSet (Component tag' layout))
       => Component.Provider1 tag m (Set tag') where
-    gather1 = Component.gather . unwrap ; {-# INLINE gather1 #-}
+    gather1 = \a -> Component.gather $! unwrap a ; {-# INLINE gather1 #-}
