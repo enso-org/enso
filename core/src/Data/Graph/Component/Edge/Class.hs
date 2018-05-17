@@ -29,13 +29,13 @@ type src *-* tgt = Layout '[Source := src, Target := tgt]
 
 -- === Provider === --
 
-type Provider  = Component.Provider  Edges
-type Provider1 = Component.Provider1 Edges
+-- type Provider  = Component.Provider  Edges
+-- type Provider1 = Component.Provider1 Edges
 
-edges  :: (MonadIO m, Provider  a) => a    -> m [SomeEdge]
-edges1 :: (MonadIO m, Provider1 a) => a t1 -> m [SomeEdge]
-edges  = Component.components  @Edges ; {-# INLINE edges  #-}
-edges1 = Component.components1 @Edges ; {-# INLINE edges1 #-}
+-- edges  :: (MonadIO m, Provider  a) => a    -> m [SomeEdge]
+-- edges1 :: (MonadIO m, Provider1 a) => a t1 -> m [SomeEdge]
+-- edges  = Component.components  @Edges ; {-# INLINE edges  #-}
+-- edges1 = Component.components1 @Edges ; {-# INLINE edges1 #-}
 
 
 -- === ComponentProvider === --

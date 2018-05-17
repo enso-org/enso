@@ -45,9 +45,9 @@ type family Merge__ a b where
     Merge__ a a = NodeTag a
     -- Merge__ a b = -- TODO: when needed
 
-instance GTraversable (Component.Provider tag) (Constructor t a)
-    => Component.Provider tag (Constructor t a) where
-    componentsIO = Component.gcomponents @tag  ; {-# INLINE componentsIO #-}
+instance GTraversable (Component.Provider tag m) (Constructor t a)
+    => Component.Provider tag m (Constructor t a) where
+    gather = Component.ggather @tag  ; {-# INLINE gather #-}
 
 -- instance GTraversable Component.DynamicProvider (Constructor t a)
 --     => Component.DynamicProvider (Constructor t a) where

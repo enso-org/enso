@@ -4,6 +4,7 @@ module Data.Graph.Data.Component.Provider where
 
 import Prologue
 
+import qualified Data.Generics.Traversable         as GTraversable
 import qualified Data.Graph.Data.Component.Class   as Component
 import qualified Data.Graph.Data.Component.Dynamic as Component
 import qualified Data.Graph.Data.Layer.Class       as Layer
@@ -12,7 +13,7 @@ import qualified Data.PtrList.Mutable              as PtrList
 import qualified Data.PtrSet.Mutable               as PtrSet
 import qualified Data.Vector.Storable.Foreign      as Foreign
 
-import Data.Generics.Traversable       (GTraversable, gfoldlM)
+import Data.Generics.Traversable       (GTraversable)
 import Data.Graph.Data.Component.Class (Component)
 import Data.Map.Strict                 (Map)
 import Foreign.Ptr.Utils               (SomePtr)
@@ -25,70 +26,75 @@ import Foreign.Ptr.Utils               (SomePtr)
 
 -- === Definition === --
 
-class Provider tag a where
-    componentsIO :: a -> IO [Component.Some tag]
-    componentsIO = const $ pure mempty ; {-# INLINE componentsIO #-}
+class Provider tag m a where
+    gather :: a -> m [Component.Some tag] -> m [Component.Some tag]
+    gather _ a = a ; {-# INLINE gather #-}
 
-class Provider1 tag a where
-    componentsIO1 :: ∀ t1. a t1 -> IO [Component.Some tag]
-    componentsIO1 = const $ pure mempty ; {-# INLINE componentsIO1 #-}
+class Provider1 tag m a where
+    gather1 :: ∀ t. a t -> m [Component.Some tag] -> m [Component.Some tag]
+    gather1 _ a = a ; {-# INLINE gather1 #-}
 
 
 -- === API === --
 
-components  :: ∀ tag a m. (MonadIO m, Provider tag a)
-            => a -> m [Component.Some tag]
-components  = liftIO . componentsIO ; {-# INLINE components #-}
+-- gather  :: ∀ tag a m. (MonadIO m, Provider tag a)
+--             => a -> m [Component.Some tag]
+-- gather  = liftIO . gather ; {-# INLINE gather #-}
 
-components1 :: ∀ tag a m t1. (MonadIO m, Provider1 tag a)
-            => a t1 -> m [Component.Some tag]
-components1 = liftIO . componentsIO1 ; {-# INLINE components1 #-}
+-- gather1 :: ∀ tag a m t1. (MonadIO m, Provider1 tag a)
+--             => a t1 -> m [Component.Some tag]
+-- gather1 = liftIO . gather1 ; {-# INLINE gather1 #-}
 
-gcomponents :: ∀ tag a m. (GTraversable (Provider tag) a, MonadIO m)
-            => a -> m [Component.Some tag]
-gcomponents = gfoldlM @(Provider tag) (\acc a -> (acc <>) <$> components @tag a)
-              mempty
-{-# INLINE gcomponents #-}
+ggather :: ∀ tag m a. (GTraversable (Provider tag m) a)
+        => a -> m [Component.Some tag] -> m [Component.Some tag]
+ggather = GTraversable.gfoldl' @(Provider tag m) (\f a x -> f $! gather @tag a x) (\a -> a)
+{-# INLINE ggather #-}
 
 
 -- === Redirect instances === --
 
-instance {-# OVERLAPPABLE #-} GTraversable (Provider tag) a => Provider tag a where
-    componentsIO = gcomponents @tag ; {-# INLINE componentsIO #-}
+instance {-# OVERLAPPABLE #-} GTraversable (Provider tag m) a
+      => Provider tag m a where
+    gather = ggather @tag ; {-# INLINE gather #-}
 
-instance {-# OVERLAPPABLE #-} Provider1 tag a => Provider tag (a t1) where
-    componentsIO = componentsIO1 @tag ; {-# INLINE componentsIO #-}
+instance {-# OVERLAPPABLE #-} Provider1 tag m a
+      => Provider tag m (a t1) where
+    gather = gather1 @tag ; {-# INLINE gather #-}
 
 
 -- === Std instances === --
 
-instance Provider tag Bool
-instance Provider tag Word8
-instance Provider tag Word64
-instance Provider tag SomePtr
+instance Provider tag m Bool
+instance Provider tag m Word8
+instance Provider tag m Word64
+instance Provider tag m SomePtr
 
-instance {-# OVERLAPPABLE #-}
-         Provider1 tag (Component tag')
-instance Provider1 tag (Component tag) where
-    componentsIO1 = pure . pure . Layout.relayout ; {-# INLINE componentsIO1 #-}
+instance {-# OVERLAPPABLE #-} Provider1 tag m (Component tag')
+instance Functor m
+      => Provider1 tag m (Component tag) where
+    gather1 a acc = (Layout.relayout a :) <$> acc ; {-# INLINE gather1 #-}
 
-instance Provider tag t => Provider1 tag (Layer.Simple t) where
-    componentsIO1 = componentsIO @tag . unwrap ; {-# INLINE componentsIO1 #-}
+instance Provider tag m t
+      => Provider1 tag m (Layer.Simple t) where
+    gather1 a = gather @tag (unwrap a) ; {-# INLINE gather1 #-}
 
-instance {-# OVERLAPPABLE #-}
-         Provider tag (Foreign.Vector a)
-instance Provider tag (Foreign.Vector (Component tag layout)) where
-    componentsIO a = Layout.relayout <<$>> Foreign.toList a ; {-# INLINE componentsIO #-}
+instance {-# OVERLAPPABLE #-} Provider tag m (Foreign.Vector a)
+instance MonadIO m
+      => Provider tag m (Foreign.Vector (Component tag layout)) where
+    gather a acc = (\a b -> a <> b) <$> (Layout.relayout <<$>> Foreign.toList a) <*> acc
+    {-# INLINE gather #-}
 
-instance {-# OVERLAPPABLE #-}
-         Provider tag (PtrList.UnmanagedPtrList a)
-instance Provider tag (PtrList.UnmanagedPtrList (Component tag layout)) where
-    componentsIO a = Layout.relayout <<$>> PtrList.toList a ; {-# INLINE componentsIO #-}
+instance {-# OVERLAPPABLE #-} Provider tag m (PtrList.UnmanagedPtrList a)
+instance MonadIO m
+      => Provider tag m (PtrList.UnmanagedPtrList (Component tag layout)) where
+    gather a acc = (\a b -> a <> b) <$> (Layout.relayout <<$>> PtrList.toList a) <*> acc
+    {-# INLINE gather #-}
 
-instance {-# OVERLAPPABLE #-}
-         Provider tag (PtrSet.UnmanagedPtrSet a)
-instance Provider tag (PtrSet.UnmanagedPtrSet (Component tag layout)) where
-    componentsIO a = Layout.relayout <<$>> PtrSet.toList a ; {-# INLINE componentsIO #-}
+instance {-# OVERLAPPABLE #-} Provider tag m (PtrSet.UnmanagedPtrSet a)
+instance MonadIO m
+      => Provider tag m (PtrSet.UnmanagedPtrSet (Component tag layout)) where
+    gather a acc = (\a b -> a <> b) <$> (Layout.relayout <<$>> PtrSet.toList a) <*> acc
+    {-# INLINE gather #-}
 
 
 

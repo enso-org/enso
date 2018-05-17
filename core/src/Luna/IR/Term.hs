@@ -42,8 +42,8 @@ type instance Term.Uni = UniTerm
 
 -- === Instances === --
 
-instance Component.Provider1 tag Link => Component.Provider1 tag UniTerm where
-    componentsIO1 = Component.gcomponents @tag ; {-# INLINE componentsIO1 #-}
+instance Component.Provider1 tag m Link => Component.Provider1 tag m UniTerm where
+    gather1 = Component.ggather @tag ; {-# INLINE gather1 #-}
 
 -- instance Component.DynamicProvider1 UniTerm where
 --     dynamicComponentsIO1 = Component.gdynamicComponents ; {-# INLINE dynamicComponentsIO1 #-}
@@ -61,4 +61,4 @@ instance (MonadIO m, ctx ~ Data.ShallowDestructor m)
 
 instance (Monad m, Discovery.LayersFoldableBuilder__ Discovery.SubTreeDiscovery (Graph.DiscoverComponentLayers m Link.Edges) m)
       => Discovery.Foldable1 Discovery.SubTreeDiscovery m UniTerm where
-    fold1 = Discovery.gfold @Discovery.SubTreeDiscovery ; {-# INLINE fold1 #-}
+    buildFold1 = Discovery.gbuildFold @Discovery.SubTreeDiscovery ; {-# INLINE buildFold1 #-}

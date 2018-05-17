@@ -36,12 +36,14 @@ model :: Layer.ViewReader Node Model layout m
       => Node layout -> m (Layer.ViewData Model layout)
 model = Layer.readView @Model ; {-# INLINE model #-}
 
-inputs :: ( Layer.Reader Node Model m
-          , Layer.IsUnwrapped Node.Uni
-          , Edge.Provider1    Node.Uni
-          , MonadIO m
-          ) => Node layout -> m [SomeEdge]
-inputs = Edge.edges1 <=< Layer.read @Model ; {-# INLINE inputs #-}
+-- inputs :: ( Layer.Reader Node Model m
+--           , Layer.IsUnwrapped Node.Uni
+--           , Edge.Provider1    Node.Uni
+--           , MonadIO m
+--           ) => Node layout -> m [SomeEdge]
+-- inputs = Edge.edges1 <=< Layer.read @Model ; {-# INLINE inputs #-}
+inputs :: Node layout -> m [SomeEdge]
+inputs = undefined
 
 
 -- === Instances === --
