@@ -7,6 +7,7 @@
 {-# LANGUAGE TypeInType             #-}
 {-# LANGUAGE RankNTypes             #-}
 {-# LANGUAGE BangPatterns #-}
+
 {-# EXT      InlineAll              #-}
 -- {-# LANGUAGE Strict #-} -- https://ghc.haskell.org/trac/ghc/ticket/14815#ticket
 
@@ -144,18 +145,18 @@ stateT :: (s -> m (a,s)) -> StateT s m a
 stateT = StateT . S.StateT ; {-# INLINE stateT #-}
 
 runT  :: ∀ s m a.              StateT s m a -> s -> m (a, s)
-evalT :: ∀ s m a. Functor m => StateT s m a -> s -> m a
-execT :: ∀ s m a. Functor m => StateT s m a -> s -> m s
-runT    = S.runStateT  . unwrap ; {-# INLINE runT  #-}
-evalT m = fmap fst . runT m     ; {-# INLINE evalT #-}
-execT m = fmap snd . runT m     ; {-# INLINE execT #-}
+evalT :: ∀ s m a. S.Monad m => StateT s m a -> s -> m a
+execT :: ∀ s m a. S.Monad m => StateT s m a -> s -> m s
+runT  = S.runStateT . unwrap ; {-# INLINE runT  #-}
+evalT !m !s = let fst (!a, !_) = a in fst <$> runT m s ; {-# INLINE evalT #-}
+execT !m !s = let snd (!_, !a) = a in snd <$> runT m s ; {-# INLINE execT #-}
 
 runDefT  :: ∀ s m a.            Default s  => StateT s m a -> m (a, s)
-evalDefT :: ∀ s m a. (Functor m,Default s) => StateT s m a -> m a
-execDefT :: ∀ s m a. (Functor m,Default s) => StateT s m a -> m s
-runDefT  = flip runT  def ; {-# INLINE runDefT  #-}
-evalDefT = flip evalT def ; {-# INLINE evalDefT #-}
-execDefT = flip execT def ; {-# INLINE execDefT #-}
+evalDefT :: ∀ s m a. (S.Monad m,Default s) => StateT s m a -> m a
+execDefT :: ∀ s m a. (S.Monad m,Default s) => StateT s m a -> m s
+runDefT  !s = runT  s def ; {-# INLINE runDefT  #-}
+evalDefT !s = evalT s def ; {-# INLINE evalDefT #-}
+execDefT !s = execT s def ; {-# INLINE execDefT #-}
 
 run  :: ∀ s a. State s a -> s -> (a, s)
 eval :: ∀ s a. State s a -> s -> a
