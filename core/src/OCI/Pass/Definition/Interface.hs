@@ -5,9 +5,9 @@ module OCI.Pass.Definition.Interface where
 
 import Prologue
 
-import qualified Data.Graph.Data.Layer.Class as Layer
-import qualified OCI.Pass.State.Attr              as Attr
-import qualified OCI.Pass.Definition.Declaration             as Pass
+import qualified Data.Graph.Data.Layer.Class     as Layer
+import qualified OCI.Pass.Definition.Declaration as Pass
+import qualified OCI.Pass.State.Attr             as Attr
 
 import Data.Graph.Data (Component)
 

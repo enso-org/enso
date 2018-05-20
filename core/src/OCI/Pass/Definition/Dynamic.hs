@@ -74,13 +74,13 @@ instance {-# OVERLAPPABLE #-}
 
 -- === Attrs === --
 
-class DescAttrs (t :: Type -> Pass.Property) pass where
+class DescAttrs (t :: Type -> Type) pass where
     descAttrs :: Lens' Desc IODesc -> Desc -> Desc
 
 instance DescAttrs t Impossible where
     descAttrs _ _ = impossible
 
-instance ( attrs  ~ Pass.Spec pass (t Pass.Attrs)
+instance ( attrs ~ Pass.Resolve t pass Pass.Attrs
          , TypeableMany attrs
          ) => DescAttrs t pass where
     descAttrs f = (f . attrs) .~ Attr.reps @attrs
@@ -89,13 +89,13 @@ instance ( attrs  ~ Pass.Spec pass (t Pass.Attrs)
 
 -- === Comps === --
 
-class DescComps (t :: Type -> Pass.Property) pass (comps :: [Type]) where
+class DescComps (t :: Type -> Type) pass (comps :: [Type]) where
     descComps :: Lens' Desc IODesc -> Desc -> Desc
 
 instance DescComps t pass '[] where
     descComps _ = id ; {-# INLINE descComps #-}
 
-instance ( layers ~ Pass.Spec pass (t comp)
+instance ( layers ~ Pass.Resolve t pass comp
          , Typeable  comp
          , TypeableMany layers
          , DescComps t pass comps
@@ -142,11 +142,11 @@ instance Mempty IODesc where
 
 -- -- === API === --
 
-type Compile graph pass m =
+type Compile pass m =
     ( Encoder.AttrEncoder    pass
     , Encoder.OutAttrDecoder pass
     , Known pass
-    , Graph.Monad graph m
+    , Graph.Monad (Pass.StageOf pass) m
     , Default (Pass.State pass)
     -- , Graph.Monad Graph.Luna m
     )
@@ -154,10 +154,9 @@ type Compile graph pass m =
 -- | Graph state is evaluated while compiling pass in order to inline its
 --   definition. It enables crucial optimizations and is a very sensitive part
 --   of the code. Please carefuly watch benchmarks when editing it.
-compile :: ∀ graph pass m. Compile graph pass m
-        => Pass pass (Graph graph) () -> m DynamicPass
+compile :: ∀ pass m. Compile pass m => Pass pass () -> m DynamicPass
 compile pass = do
-    graphState <- Graph.getState @graph
+    graphState <- Graph.getState @(Pass.StageOf pass)
     let desc = describe @pass
         runner attrs = do
             let attrState = Encoder.encodeAttrs (unwrap attrs) def

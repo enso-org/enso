@@ -3,7 +3,7 @@
 
 module OCI.Pass.Definition.Class where
 
-import Prologue
+import Prologue hiding (FromList)
 
 import qualified Control.Monad.State.Layered       as State
 import qualified Data.Graph.Class                  as Graph
@@ -22,7 +22,7 @@ import Data.TypeMap.Strict             (TypeMap)
 import Foreign.Info.ByteSize           (ByteSize)
 import Foreign.Memory.Pool             (MemPool)
 import Foreign.Ptr.Utils               (SomePtr)
-import OCI.Pass.Definition.Declaration (Attrs, Vars)
+import OCI.Pass.Definition.Declaration (Attrs, FromList, StageOf, Vars)
 import OCI.Pass.State.Attr             (Attr)
 import Type.Data.List                  (type (<>))
 
@@ -53,58 +53,55 @@ deriving instance Default (StateData pass) => Default (State pass)
 
 -- === Definition === --
 
-newtype Pass pass m a = Pass (MultiStateT (StateLayout pass) m a)
+type    Env  pass = Graph (StageOf pass)
+newtype Pass pass a = Pass (MultiStateT (StateLayout pass) (Env pass) a)
     deriving ( Applicative, Alternative, Functor, Monad, MonadFail, MonadFix
-             , MonadIO, MonadPlus, MonadThrow, MonadTrans)
+             , MonadIO, MonadPlus, MonadThrow)
 makeLenses ''Pass
 
 class Definition pass where
-    definition :: Pass pass m ()
+    definition :: Pass pass ()
 
 
 -- === API === --
 
-exec :: ∀ pass m a. Monad m
-     => Pass pass m a -> State pass -> m (State pass)
+exec :: ∀ pass a. Pass pass a -> State pass -> Env pass (State pass)
 exec !pass !state = wrap <$> MultiState.execT (coerce pass) (unwrap state)
 {-# INLINE exec #-}
 
-eval :: ∀ pass m a. Monad m
-     => Pass pass m a -> State pass -> m ()
+eval :: ∀ pass a. Pass pass a -> State pass -> Env pass ()
 eval !pass !state = void $ exec pass state
 {-# INLINE eval #-}
 
 
 -- === State === --
 
-instance (Monad m, State.Getter a (MultiStateT (StateLayout pass) m))
-      => State.Getter a (Pass pass m) where
+instance State.Getter a (MultiStateT (StateLayout pass) (Env pass))
+      => State.Getter a (Pass pass) where
      get = wrap $ State.get @a ; {-# INLINE get #-}
 
-instance (Monad m, State.Setter a (MultiStateT (StateLayout pass) m))
-      => State.Setter a (Pass pass m) where
+instance State.Setter a (MultiStateT (StateLayout pass) (Env pass))
+      => State.Setter a (Pass pass) where
      put = wrap . State.put @a ; {-# INLINE put #-}
 
 
 -- === Layer Reader / Writer === --
 
 instance {-# OVERLAPPABLE #-}
-    ( MonadIO m
-    , Layer.StorableData layer
-    , State.Getter (Graph.LayerByteOffset comp layer) (Pass pass m)
+    ( Layer.StorableData layer
+    , State.Getter (Graph.LayerByteOffset comp layer) (Pass pass)
     , Layer.Wrapped (Layer.Cons layer)
-    ) => Layer.Reader (Component comp) layer (Pass pass m) where
+    ) => Layer.Reader (Component comp) layer (Pass pass) where
     read__ !comp = do
         !off <- unwrap <$> State.get @(Graph.LayerByteOffset comp layer)
         Layer.unsafeReadByteOff @layer off comp
     {-# INLINE read__ #-}
 
 instance {-# OVERLAPPABLE #-}
-    ( MonadIO m
-    , Layer.StorableData layer
-    , State.Getter (Graph.LayerByteOffset comp layer) (Pass pass m)
+    ( Layer.StorableData layer
+    , State.Getter (Graph.LayerByteOffset comp layer) (Pass pass)
     , Layer.Wrapped (Layer.Cons layer)
-    ) => Layer.Writer (Component comp) layer (Pass pass m) where
+    ) => Layer.Writer (Component comp) layer (Pass pass) where
     write__ !comp !d = do
         !off <- unwrap <$> State.get @(Graph.LayerByteOffset comp layer)
         Layer.unsafeWriteByteOff @layer off comp d
@@ -114,24 +111,27 @@ instance {-# OVERLAPPABLE #-}
 -- === Layer.View Reader / Writer === --
 
 instance {-# OVERLAPPABLE #-}
-    ( MonadIO m
-    , Layer.StorableView layer layout
-    , State.Getter (Graph.LayerByteOffset comp layer) (Pass pass m)
-    ) => Layer.ViewReader (Component comp) layer layout (Pass pass m) where
+    ( Layer.StorableView layer layout
+    , State.Getter (Graph.LayerByteOffset comp layer) (Pass pass)
+    ) => Layer.ViewReader (Component comp) layer layout (Pass pass) where
     readView__ !comp = do
         !off <- unwrap <$> State.get @(Graph.LayerByteOffset comp layer)
         Layer.unsafeReadViewByteOff @layer off comp
     {-# INLINE readView__ #-}
 
 instance {-# OVERLAPPABLE #-}
-    ( MonadIO m
-    , Layer.StorableView layer layout
-    , State.Getter (Graph.LayerByteOffset comp layer) (Pass pass m)
-    ) => Layer.ViewWriter (Component comp) layer layout (Pass pass m) where
+    ( Layer.StorableView layer layout
+    , State.Getter (Graph.LayerByteOffset comp layer) (Pass pass)
+    ) => Layer.ViewWriter (Component comp) layer layout (Pass pass) where
     writeView__ !comp !d = do
         !off <- unwrap <$> State.get @(Graph.LayerByteOffset comp layer)
         Layer.unsafeWriteViewByteOff @layer off comp d
     {-# INLINE writeView__ #-}
+
+
+-- === Instances === --
+
+type instance Graph.Discover (Pass pass) = StageOf pass
 
 
 
@@ -145,6 +145,6 @@ makeLenses ''Rep
 rep :: ∀ (pass :: Type). Typeable pass => Rep
 rep = wrap $ someTypeRep @pass ; {-# INLINE rep #-}
 
-repOf :: ∀ pass m a. Typeable pass => Pass pass m a -> Rep
+repOf :: ∀ stage pass a. Typeable pass => Pass pass a -> Rep
 repOf _ = rep @pass ; {-# INLINE repOf #-}
 

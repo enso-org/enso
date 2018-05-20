@@ -16,10 +16,12 @@ import qualified Foreign.Storable1           as Storable1
 import qualified Type.Data.List              as List
 
 import Data.Graph.Data.Component.Class (Component)
+import Data.Graph.Data.Layer.Class     (Layer)
 import Data.TypeMap.MultiState         (MultiStateT)
 import Foreign.Info.ByteSize           (ByteSize (ByteSize))
 import Foreign.Memory.Pool             (MemPool)
 import Foreign.Ptr.Utils               (SomePtr)
+import Foreign.Storable1               (Storable1)
 import Type.Data.List                  (type (<>))
 
 
@@ -108,12 +110,11 @@ makeLenses ''GraphT
 
 -- === Discovery === --
 
-type family DiscoverGraph (m :: Type -> Type) :: Type where
-    DiscoverGraph (GraphT graph m) = graph
-    DiscoverGraph (t m)            = DiscoverGraph m
+type family   Discover (m :: Type -> Type) :: Type
+type instance Discover (GraphT graph m) = graph
 
-type DiscoverComponents      m      = Components      (DiscoverGraph m)
-type DiscoverComponentLayers m comp = ComponentLayers (DiscoverGraph m) comp
+type DiscoverComponents      m      = Components      (Discover m)
+type DiscoverComponentLayers m comp = ComponentLayers (Discover m) comp
 
 
 -- === API === --
@@ -248,92 +249,54 @@ instance ( layers ~ ComponentLayers graph comp
 
 -- === Layer memory management === --
 
-
 instance ( layers ~ ComponentLayers graph comp
-         , ComputeComponentConstructor layers
-         , ComputeComponentDestructor  layers
-         , ComputeComponentStaticInit  layers
+         , StorableLayers     layers
          , KnownComponentSize layers
          , MonadIO m )
       => FieldEncoder graph (Layer.DynamicManager comp) m where
     encodeField = do
         init <- liftIO . Mem.mallocBytes $ componentSize @layers
-        liftIO $ computeComponentStaticInit @layers init
+        liftIO $ mkCompInitializer @layers init
         pure $ Layer.DynamicManager
                init
-               (computeComponentConstructor @layers)
-               (computeComponentDestructor  @layers)
+               (mkCompConstructor @layers)
+               (mkCompDestructor  @layers)
 
-class ComputeComponentStaticInit (layers :: [Type]) where
-    computeComponentStaticInit :: SomePtr -> IO ()
+class MapLayersMem ctx (layers :: [Type]) where
+    mapLayersMem :: (∀ layer a. ctx layer => Proxy layer
+                                          -> Ptr.Ptr (Layer.Cons layer a)
+                                          -> Maybe (IO ())
+                    ) -> SomePtr -> IO ()
 
-instance ComputeComponentStaticInit '[] where
-    computeComponentStaticInit _ = pure () ; {-# INLINE computeComponentStaticInit #-}
+instance MapLayersMem ctx '[] where
+    mapLayersMem _ _ = pure () ; {-# INLINE mapLayersMem #-}
 
-instance {-# OVERLAPPABLE #-} (Layer.Layer l, Layer.StorableData l, ComputeComponentStaticInit ls)
-      => ComputeComponentStaticInit (l ': ls) where
-    computeComponentStaticInit ptr = out where
-        mctor = Layer.manager @l ^. Layer.initializer
-        size  = Layer.byteSize @l
-        ptr'  = ptr `Ptr.plusPtr` size
-        ctor' = computeComponentStaticInit @ls ptr'
-        out    = maybe id (\f -> (dynf f >>)) mctor $ ctor'
-        dynf f = Storable1.poke (coerce ptr) f
-    {-# INLINE computeComponentStaticInit #-}
+instance {-# OVERLAPPABLE #-} (ctx l, Layer.StorableData l, MapLayersMem ctx ls)
+      => MapLayersMem ctx (l ': ls) where
+    mapLayersMem f ptr = out where
+        size   = Layer.byteSize @l
+        ptr'   = ptr `Ptr.plusPtr` size
+        frest' = mapLayersMem @ctx @ls f ptr'
+        out    = maybe id (>>) (f (Proxy :: Proxy l) (coerce ptr)) frest'
+    {-# NOINLINE mapLayersMem #-}
+    -- | NOINLINE is better for performance.
+    --   Inlining moves Maybe resolution to runtime.
 
+type StorableLayers layers = MapLayersMem StorableLayer layers
+class    (Layer l, Layer.StorableData l) => StorableLayer l
+instance (Layer l, Layer.StorableData l) => StorableLayer l
 
+mkCompInitializer :: ∀ layers. StorableLayers layers => SomePtr -> IO ()
+mkCompInitializer = mapLayersMem @StorableLayer @layers $ \(_ :: Proxy l) ptr ->
+    Storable1.poke ptr <$> Layer.manager @l ^. Layer.initializer
+{-# INLINE mkCompInitializer #-}
 
-class ComputeComponentConstructor (layers :: [Type]) where
-    computeComponentConstructor :: SomePtr -> IO ()
+mkCompConstructor :: ∀ layers. StorableLayers layers => SomePtr -> IO ()
+mkCompConstructor = mapLayersMem @StorableLayer @layers $ \(_ :: Proxy l) ptr ->
+    (Storable1.poke ptr =<<) <$> Layer.manager @l ^. Layer.constructor
+{-# INLINE mkCompConstructor #-}
 
-instance ComputeComponentConstructor '[] where
-    computeComponentConstructor _ = pure () ; {-# INLINE computeComponentConstructor #-}
-
-instance {-# OVERLAPPABLE #-} (Layer.Layer l, Layer.StorableData l, ComputeComponentConstructor ls)
-      => ComputeComponentConstructor (l ': ls) where
-    computeComponentConstructor ptr = out where
-        mctor = Layer.manager @l ^. Layer.constructor
-        size  = Layer.byteSize @l
-        ptr'  = ptr `Ptr.plusPtr` size
-        ctor' = computeComponentConstructor @ls ptr'
-        out    = maybe id (\f -> (dynf f >>)) mctor $ ctor'
-        dynf f = Storable1.poke (coerce ptr) =<< f
-    {-# INLINE computeComponentConstructor #-}
-
-
-
-class ComputeComponentDestructor (layers :: [Type]) where
-    computeComponentDestructor :: SomePtr -> IO ()
-
-instance ComputeComponentDestructor '[] where
-    computeComponentDestructor _ = pure () ; {-# INLINE computeComponentDestructor #-}
-
-instance {-# OVERLAPPABLE #-} (Layer.Layer l, Layer.StorableData l, ComputeComponentDestructor ls)
-      => ComputeComponentDestructor (l ': ls) where
-    computeComponentDestructor ptr = out where
-        mctor = Layer.manager @l ^. Layer.destructor
-        size  = Layer.byteSize @l
-        ptr'  = ptr `Ptr.plusPtr` size
-        ctor' = computeComponentDestructor @ls ptr'
-        out    = maybe id (\f -> (dynf f >>)) mctor $ ctor'
-        dynf f = f =<< Storable1.peek (coerce ptr)
-    {-# INLINE computeComponentDestructor #-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+mkCompDestructor :: ∀ layers. StorableLayers layers => SomePtr -> IO ()
+mkCompDestructor = mapLayersMem @StorableLayer @layers $ \(_ :: Proxy l) ptr ->
+    (=<< Storable1.peek ptr) <$> Layer.manager @l ^. Layer.destructor
+{-# INLINE mkCompDestructor #-}

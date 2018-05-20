@@ -96,17 +96,17 @@ evalT = State.evalDefT . unwrap ; {-# INLINE evalT #-}
 
 -- === Passes === --
 
-type PassRegister graph pass m =
+type PassRegister pass m =
     ( Typeable       pass
-    , Pass.Compile   graph pass m
+    , Pass.Compile   pass m
     , MonadScheduler m
     )
 
-registerPass :: ∀ graph pass m. (PassRegister graph pass m, Pass.Definition pass) => m ()
-registerPass = registerPassFromFunction__ @graph (Pass.definition @pass) ; {-# INLINE registerPass #-}
+registerPass :: ∀ pass m. (PassRegister pass m, Pass.Definition pass) => m ()
+registerPass = registerPassFromFunction__ (Pass.definition @pass) ; {-# INLINE registerPass #-}
 
-registerPassFromFunction__ :: ∀ graph pass m.
-    PassRegister graph pass m => Pass pass (Graph graph) () -> m ()
+registerPassFromFunction__ :: ∀ pass m.
+    PassRegister pass m => Pass pass () -> m ()
 registerPassFromFunction__ !pass = do
     !dynPass <- Pass.compile pass
     State.modify_ @State $ passes . at (Pass.rep @pass) .~ Just dynPass
@@ -238,15 +238,15 @@ runPassSameThread !rep = do
 runPassSameThreadByType :: ∀ pass m. (MonadScheduler m, Typeable pass) => m ()
 runPassSameThreadByType = runPassSameThread $ Pass.rep @pass ; {-# INLINE runPassSameThreadByType #-}
 
-debugRunPassDefs :: ∀ graph pass m. (Typeable pass, PassRegister graph pass m)
-                 => [Pass pass (Graph graph) ()] -> m ()
+debugRunPassDefs :: ∀ pass m. (Typeable pass, PassRegister pass m)
+                 => [Pass pass ()] -> m ()
 debugRunPassDefs passes = for_ passes $ \pass -> do
     registerPassFromFunction__ pass
     runPassByType @pass
 {-# INLINE debugRunPassDefs #-}
 
-debugRunPassDef :: ∀ graph pass m. (Typeable pass, PassRegister graph pass m)
-                => Pass pass (Graph graph) () -> m ()
+debugRunPassDef :: ∀ pass m. (Typeable pass, PassRegister pass m)
+                => Pass pass () -> m ()
 debugRunPassDef = debugRunPassDefs . pure ; {-# INLINE debugRunPassDef #-}
 
 

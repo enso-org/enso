@@ -24,7 +24,6 @@ import qualified Control.Monad.State.Layered           as State
 import qualified Criterion.Main                        as Criterion
 import qualified Criterion.Measurement                 as Criterion
 import qualified Data.Graph.Class                      as Graph
-import qualified Data.Graph.Class                      as Graph
 import qualified Data.Graph.Component.Node.Destruction as IR
 import qualified Data.Graph.Data.Component.Class       as Component
 import qualified Data.Graph.Data.Layer.Class           as Layer
@@ -47,22 +46,18 @@ import qualified OCI.Pass.Definition.Class             as Pass
 import qualified OCI.Pass.State.Encoder                as Encoder
 import qualified System.Console.ANSI                   as ANSI
 
-import Control.DeepSeq   (force)
-import Control.Exception (evaluate)
-import Data.Graph.Class  (Graph)
-import Data.Graph.Data   (Component (Component))
-import Data.Set          (Set)
-import GHC.Exts          (Any, Int (I#), SmallMutableArray#, State#,
-                          readSmallArray#, unsafeCoerce#, writeSmallArray#)
-import Luna.Pass         (Pass)
+import Control.Concurrent (threadDelay)
+import Control.DeepSeq    (force)
+import Control.Exception  (evaluate)
+import Data.Graph.Class   (Graph)
+import Data.Graph.Data    (Component (Component))
+import Data.Set           (Set)
+import GHC.Exts           (Any, Int (I#), SmallMutableArray#, State#,
+                           readSmallArray#, unsafeCoerce#, writeSmallArray#)
+import Luna.Pass          (Pass)
 
 import Control.Monad.Primitive (primitive)
-
-data Luna
-
-type instance Graph.Components      Luna          = '[IR.Terms, IR.Links]
-type instance Graph.ComponentLayers Luna IR.Terms = '[IR.Users, IR.Model, IR.Type] -- , IR.Users]
-type instance Graph.ComponentLayers Luna IR.Links = '[IR.Target, IR.Source]
+import Luna.Pass.Basic         (Compilation)
 
 
 
@@ -118,7 +113,10 @@ checkRetry = checkRetry' 1 where
         then pure $ Left maxRetries
         else f >>= \case
             True  -> pure $ Right n
-            False -> checkRetry' (n + 1) f
+            False -> do
+                printStatus "TEST" n [ANSI.Reset]
+                threadDelay 1000000
+                checkRetry' (n + 1) f
 
 assertBenchToRef :: String -> Int -> Double -> Bench -> Bench -> IO Bool
 assertBenchToRef str exp percAllow ref f = do
@@ -127,37 +125,39 @@ assertBenchToRef str exp percAllow ref f = do
     putStrLn msg
     checkRetry (checkToRef exp percAllow ref f) >>= \case
         Left n -> do
-            ANSI.cursorUpLine 1
-            printStatus "FAIL" n ANSI.Red
+            printStatus "FAIL" n [ANSI.SetColor ANSI.Foreground ANSI.Vivid ANSI.Red]
             pure False
         Right n -> do
-            ANSI.cursorUpLine 1
-            printStatus "PASS" n ANSI.Green
+            printStatus "PASS" n [ANSI.SetColor ANSI.Foreground ANSI.Vivid ANSI.Green]
             pure True
 
-printStatus :: String -> Int -> ANSI.Color -> IO ()
+printStatus :: String -> Int -> [ANSI.SGR] -> IO ()
 printStatus status n color = do
-    ANSI.setSGR [ANSI.SetColor ANSI.Foreground ANSI.Vivid color]
+    ANSI.cursorUpLine 1
+    ANSI.setSGR color
     putStrLn $ "[" <> status <> ":" <> show n <> "]"
     ANSI.setSGR [ANSI.Reset]
 
 maxRetries :: Int
 maxRetries = 9
 
-checkInvariants :: [IO Bool] -> IO ()
-checkInvariants invs = do
+checkInvariants :: Double -> [IO Bool] -> IO ()
+checkInvariants percAllow invs = do
     putStrLn ""
-    putStrLn $ "Testing invariants (max retries = " <> show maxRetries <> "):"
+    putStrLn $ "Testing invariants (max retries = " <> show maxRetries <> ", max diff = " <> show percAllow <> "%):"
     putStrLn ""
     ok <- and <$> sequence invs
     when_ (not ok) $ do
-        ANSI.setSGR [ANSI.SetColor ANSI.Foreground ANSI.Vivid ANSI.Red]
-        putStrLn $ "One or more invariants failed."
-        putStrLn $ "Invariants may fail depending on current CPU usage."
-        putStrLn $ "Try running them again. If the problem persist, it means"
-        putStrLn $ "that the implementation is broken and need to be fixed."
+        putStrLn ""
+        printErrLn $ "One or more invariants failed."
+        printErrLn $ "Invariants may fail depending on current CPU usage."
+        printErrLn $ "Try running them again. If the problem persist, it means"
+        printErrLn $ "that the implementation is broken and needs to be fixed."
         ANSI.setSGR [ANSI.Reset]
     putStrLn ""
+    where printErrLn s = do
+              ANSI.setSGR [ANSI.SetColor ANSI.Foreground ANSI.Vivid ANSI.Red]
+              putStrLn s
 
 loopRange :: Int
 loopRange = 1
@@ -178,22 +178,22 @@ bench i f = Criterion.bgroup (f ^. name) $ expNFIO f <$> loop i
 -- === Benchark pass === --
 ----------------------------
 
-type OnDemandPass graph pass m =
+type OnDemandPass pass m =
     ( MonadIO m
     , Typeable pass
-    , Pass.Compile graph pass m
+    , Pass.Compile pass m
     , Exception.MonadException Scheduler.Error m
     )
 
-runPass :: ∀ graph pass m. OnDemandPass graph pass m
-        => Pass pass (Graph graph) () -> m ()
+runPass :: ∀ pass m. OnDemandPass pass m
+        => Pass pass () -> m ()
 runPass !pass = Scheduler.evalT $ do
     Scheduler.registerPassFromFunction__ pass
     Scheduler.runPassSameThreadByType @pass
 {-# INLINE runPass #-}
 
-runPass' :: Pass Pass.BasicPass (Graph Luna) () -> IO ()
-runPass' p = Graph.encodeAndEval @Luna (runPass p)
+runPass' :: Pass Pass.BasicPass () -> IO ()
+runPass' p = Graph.encodeAndEval @Compilation (runPass p)
 {-# INLINE runPass' #-}
 
 
@@ -277,7 +277,7 @@ readWrite_expTM = Bench "explicitTypeMap" $ \i -> do
 readWrite_layer :: Bench
 readWrite_layer = Bench "normal" $ \i -> runPass' $ do
     !a <- IR.var 0
-    let go :: Int -> Pass Pass.BasicPass (Graph Luna) ()
+    let go :: Int -> Pass Pass.BasicPass ()
         go 0 = pure ()
         go j = do
             IR.UniTermVar (IR.Var !x) <- Layer.read @IR.Model a
@@ -289,7 +289,7 @@ readWrite_layer = Bench "normal" $ \i -> runPass' $ do
 -- readWrite_layerptr :: Bench
 -- readWrite_layerptr = Bench "normal" $ \i -> runPass' $ do
 --     !a <- IR.var 0
---     let go :: Int -> Pass Pass.BasicPass (Graph Luna) ()
+--     let go :: Int -> Pass Pass.BasicPass ()
 --         go 0 = pure ()
 --         go j = do
 --             !tp <- Layer.read @IR.Type a
@@ -373,16 +373,28 @@ createIR_normal3 = Bench "normal3" $ \i -> runPass' $ do
 --------------------------
 
 
-subTree_manual :: Bench
-subTree_manual = Bench "subTree manual" $ \i -> runPass' $ do
+-- TODO [Performance]
+-- We need to analyze why the manualDiscoverIRHack runs MUCH slower when we use
+-- the if branch. Without it it runs about 60 times faster. Of course then we
+-- remove the recursion too, but the recursion for each test evaluates only a
+-- single time. It seems that in fact this could be a problem. This function
+-- might not optimize to tight loop and we pay for function evaluation.
+subTreeDiscovery_manual :: Bench
+subTreeDiscovery_manual = Bench "manual" $ \i -> runPass' $ do
     v <- IR.var "a"
+    let !empty = ACLNil
     let go !0 = pure ()
         go !j = do
             let !f = manualDiscoverIRHack (Layout.relayout v)
-            !out <- f []
+            !out <- f empty
             go $! j - 1
     go i
-{-# NOINLINE subTree_manual #-}
+{-# NOINLINE subTreeDiscovery_manual #-}
+
+data AnyComponentList
+    = ACLCons !Component.Any !AnyComponentList
+    | ACLNil
+    deriving (Show, Eq)
 
 -- | The manualDiscoverIRHack function allows us to discover IR with an
 --   assumption that everything is just a Var with chain of Top types.
@@ -393,25 +405,25 @@ manualDiscoverIRHack
        , Layer.Reader IR.Link IR.Target m
        , MonadIO m
        )
-    => IR.SomeTerm -> [Component.Any] -> m [Component.Any]
+    => IR.SomeTerm -> AnyComponentList -> m AnyComponentList
 manualDiscoverIRHack !term !r = do
     !tl    <- Layer.read @IR.Type  term
     !model <- Layer.read @IR.Model term
     let !r' = case model of
-            IR.UniTermVar (IR.Var {}) -> let !o = Layout.relayout term : r in o
-            IR.UniTermTop (IR.Top {}) -> let !o = Layout.relayout term : r in o
+            IR.UniTermVar (IR.Var {}) -> let !o = ACLCons (Layout.relayout term) r in o
+            IR.UniTermTop (IR.Top {}) -> let !o = ACLCons (Layout.relayout term) r in o
             a                         -> error "not supported"
     !src <- Layer.read @IR.Source tl
     !tgt <- Layer.read @IR.Target tl
     let !(src' :: IR.SomeTerm) = Layout.relayout src
     let !(tgt' :: IR.SomeTerm) = Layout.relayout tgt
-    let !r'' = Layout.relayout tl : r'
+    let !r'' = ACLCons (Layout.relayout tl) r'
     if src' == tgt' then pure r'' else manualDiscoverIRHack src' r''
-{-# INLINABLE manualDiscoverIRHack #-}
+-- {-# INLINABLE manualDiscoverIRHack #-}
 
 
 subTreeDiscovery :: Bench
-subTreeDiscovery = Bench "subTree" $ \i -> runPass' $ do
+subTreeDiscovery = Bench "generic" $ \i -> runPass' $ do
     !v <- IR.var "a"
     let go !0 = let !o = pure () in o
         go !j = do
@@ -529,14 +541,6 @@ setField = \x y -> primitive_ (go (Struct.destruct x) y) where
 --   (\m a s -> unsafeCoerce# writeSmallArray# m i a s)
 -- {-# INLINE field #-}
 
-test :: IO ()
-test = do
-   obj <- Struct.alloc 1 :: IO (Struct.Object (PrimState IO))
-   let f0 = Struct.field 0 :: Struct.Field Struct.Object Int
-   Struct.setField f0 obj 17
-   print =<< Struct.getField f0 obj
-   pure ()
-
 readWrite_structs_layer :: Bench
 readWrite_structs_layer = Bench "structs" $ \i -> do
     !obj <- Struct.alloc 1 :: IO (Struct.Object (PrimState IO))
@@ -556,40 +560,42 @@ readWrite_structs_layer = Bench "structs" $ \i -> do
 -- >>> isNil o
 
 invariants :: IO ()
-invariants = checkInvariants $
+invariants = checkInvariants maxPercDiff $
     -- [ assertBenchToRef "Create IR" 6 10 createIR_mallocPtr createIR_normal
-    [ assertBenchToRef "Layer R/W" 7 10 readWrite_cptr readWrite_layer
+    [ assertBenchToRef "Layer R/W        " 7 maxPercDiff readWrite_cptr readWrite_layer
+    , assertBenchToRef "SubTree Discovery" 6 maxPercDiff subTreeDiscovery_manual subTreeDiscovery
     ]
+    where maxPercDiff = 5
 
 benchmarks :: IO ()
 benchmarks = do
     Criterion.defaultMain
       [ "ir"
-        [ "layer"
-            [ "rw" $ bench 7 <$>
-                -- [ readWrite_cptr
-                -- , readWrite_ptr
-                -- , readWrite_expTM
-                -- -- , readWrite_layerMock
-                [ readWrite_layer
-                , readWrite_structs_layer
-                -- , readWrite_MS_1
-                -- , readWrite_MS_2
-                ]
-            ]
-        , "create" $ bench 5 <$>
-            [ createIR_mallocPtr
-            , createIR_normal
+        -- [ "layer"
+        --     [ "rw" $ bench 7 <$>
+        --         -- [ readWrite_cptr
+        --         -- , readWrite_ptr
+        --         -- , readWrite_expTM
+        --         -- -- , readWrite_layerMock
+        --         [ readWrite_layer
+        --         , readWrite_structs_layer
+        --         -- , readWrite_MS_1
+        --         -- , readWrite_MS_2
+        --         ]
+        --     ]
+        [ "create" $ bench 5 <$>
+            -- [ createIR_mallocPtr
+            [ createIR_normal
             -- , createIR_normal2
             , createIR_normal3
         --     , createIR_normal4
             ]
-        -- -- [ "layer" $ bench 7 <$>
-        -- --     [readWrite_layerptr]
+        -- [ "layer" $ bench 7 <$>
+        --     [readWrite_layerptr]
 
         , "discovery" $ bench 6 <$>
             [ subTreeDiscovery
-            , subTree_manual
+            , subTreeDiscovery_manual
             , linkDiscovery
         --     -- , discoverIR_simple
             ]
@@ -597,36 +603,8 @@ benchmarks = do
       ]
 
 
-testx :: Int -> IO ()
-testx i = runPass' $ do
-    print "var creation"
-    -- print =<< State.get @(Graph.LayerByteOffset IR.Terms IR.Model)
-    -- print =<< State.get @(Graph.LayerByteOffset IR.Terms IR.Type)
-    -- print =<< State.get @(Graph.LayerByteOffset IR.Terms IR.Users)
-    -- print =<< State.get @(Graph.LayerByteOffset IR.Links IR.Source)
-    -- print =<< State.get @(Graph.LayerByteOffset IR.Links IR.Target)
-    !a <- IR.var 0
-    print "var created"
-    let go :: Int -> Pass Pass.BasicPass (Graph Luna) ()
-        go 0 = pure ()
-        go j = do
-            print ">> 1"
-            IR.UniTermVar (IR.Var !x) <- Layer.read @IR.Model a
-            print ">> 2"
-            Layer.write @IR.Model a (IR.UniTermVar $ IR.Var $! x + 1)
-            print ">> 3"
-            go (j - 1)
-    go i
-{-# NOINLINE testx #-}
-
 main :: IO ()
 main = do
-    test
-    test
-    test
-    print "manual start"
-    testx 1
-    print "manual end"
     invariants
     benchmarks
 
