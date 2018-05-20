@@ -123,7 +123,7 @@ null s = fromCBool =<< with s c_null ; {-# INLINE null #-}
 -- | Get all of the elements from the set (in ascending order).
 --   Note: do not overuse this function, as it will not perform very well.
 toList :: (IsPtr a, IsPtrSet s, MonadIO m) => s a -> m [a]
-toList s = do
+toList !s = do
     n <- size s
     with s $ \ptr ->
         allocaArray @SomePtr n $ \arr -> do

@@ -6,10 +6,9 @@ module Data.Graph.Data.Component.Set where
 import Data.Graph.Data.Component.Class
 import Prologue
 
-import qualified Data.Construction                  as Data
-import qualified Data.Graph.Traversal.Provider as Component
-import qualified Data.Set.Mutable.Class             as Set
-import qualified Foreign.Storable1.Deriving         as Storable1
+import qualified Data.Construction          as Data
+import qualified Data.Set.Mutable.Class     as Set
+import qualified Foreign.Storable1.Deriving as Storable1
 
 import Data.PtrSet.Mutable (UnmanagedPtrSet)
 import Foreign.Storable    (Storable)
@@ -46,6 +45,6 @@ instance MonadIO m => Data.Constructor2 m () Set where
 instance MonadIO m => Data.ShallowDestructor2 m Set where
     destructShallow2 = Data.destruct1 . unwrap ; {-# INLINE destructShallow2 #-}
 
-instance Component.Provider  tag m (UnmanagedPtrSet (Component tag' layout))
-      => Component.Provider1 tag m (Set tag') where
-    gather1 = \a -> Component.gather $! unwrap a ; {-# INLINE gather1 #-}
+-- instance Component.Provider  tag m (UnmanagedPtrSet (Component tag' layout))
+--       => Component.Provider1 tag m (Set tag') where
+--     gather1 = \a -> Component.gather $! unwrap a ; {-# INLINE gather1 #-}

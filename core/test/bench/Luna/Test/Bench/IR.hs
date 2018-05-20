@@ -23,13 +23,14 @@ import qualified Control.Monad.Exception               as Exception
 import qualified Control.Monad.State.Layered           as State
 import qualified Criterion.Main                        as Criterion
 import qualified Criterion.Measurement                 as Criterion
-import qualified Data.Graph.Data.Graph.Class                      as Graph
 import qualified Data.Graph.Component.Node.Destruction as IR
 import qualified Data.Graph.Data.Component.Class       as Component
+import qualified Data.Graph.Data.Graph.Class           as Graph
 import qualified Data.Graph.Data.Layer.Class           as Layer
 import qualified Data.Graph.Data.Layer.Layout          as Layout
 import qualified Data.Graph.Traversal.Component        as Discovery.Component
 import qualified Data.Graph.Traversal.SubTree          as Discovery.SubTree
+import qualified Data.IORef                            as IORef
 import qualified Data.Set                              as Set
 import qualified Data.Struct                           as Struct
 import qualified Data.Tuple.Strict                     as Tuple
@@ -47,15 +48,16 @@ import qualified OCI.Pass.Definition.Class             as Pass
 import qualified OCI.Pass.State.Encoder                as Encoder
 import qualified System.Console.ANSI                   as ANSI
 
-import Control.Concurrent (threadDelay)
-import Control.DeepSeq    (force)
-import Control.Exception  (evaluate)
-import Data.Graph.Data.Graph.Class   (Graph)
-import Data.Graph.Data    (Component (Component))
-import Data.Set           (Set)
-import GHC.Exts           (Any, Int (I#), SmallMutableArray#, State#,
-                           readSmallArray#, unsafeCoerce#, writeSmallArray#)
-import Luna.Pass          (Pass)
+import Control.Concurrent          (threadDelay)
+import Control.DeepSeq             (force)
+import Control.Exception           (evaluate)
+import Data.Graph.Data             (Component (Component))
+import Data.Graph.Data.Graph.Class (Graph)
+import Data.Set                    (Set)
+import GHC.Exts                    (Any, Int (I#), SmallMutableArray#, State#,
+                                    readSmallArray#, unsafeCoerce#,
+                                    writeSmallArray#)
+import Luna.Pass                   (Pass)
 
 import Control.Monad.Primitive (primitive)
 import Luna.Pass.Basic         (Compilation)
@@ -555,6 +557,18 @@ readWrite_structs_layer = Bench "structs" $ \i -> do
             go (j - 1)
     go i
 {-# NOINLINE readWrite_structs_layer #-}
+
+readWrite_ioref :: Bench
+readWrite_ioref = Bench "ioref" $ \i -> do
+    !ref <- IORef.newIORef (1 :: Int)
+    let go :: Int -> IO ()
+        go 0 = pure ()
+        go j = do
+            !x <- IORef.readIORef ref
+            IORef.writeIORef ref $! x + 1
+            go (j - 1)
+    go i
+{-# NOINLINE readWrite_ioref #-}
 -- >>> isNil (Nil :: Object (PrimState IO))
 -- True
 -- >>> o <- alloc 1 :: IO (Object (PrimState IO))
@@ -572,32 +586,33 @@ benchmarks :: IO ()
 benchmarks = do
     Criterion.defaultMain
       [ "ir"
-        -- [ "layer"
-        --     [ "rw" $ bench 7 <$>
-        --         -- [ readWrite_cptr
-        --         -- , readWrite_ptr
-        --         -- , readWrite_expTM
-        --         -- -- , readWrite_layerMock
-        --         [ readWrite_layer
-        --         , readWrite_structs_layer
-        --         -- , readWrite_MS_1
-        --         -- , readWrite_MS_2
-        --         ]
-        --     ]
-        [ "create" $ bench 5 <$>
-            -- [ createIR_mallocPtr
-            [ createIR_normal
-            -- , createIR_normal2
-            , createIR_normal3
-        --     , createIR_normal4
+        [ "layer"
+            [ "rw" $ bench 7 <$>
+                -- [ readWrite_cptr
+                -- , readWrite_ptr
+                -- , readWrite_expTM
+                -- -- , readWrite_layerMock
+                [ readWrite_layer
+                , readWrite_structs_layer
+                , readWrite_ioref
+                -- , readWrite_MS_1
+                -- , readWrite_MS_2
+                ]
             ]
+        -- [ "create" $ bench 5 <$>
+        --     -- [ createIR_mallocPtr
+        --     [ createIR_normal
+        --     -- , createIR_normal2
+        --     , createIR_normal3
+        -- --     , createIR_normal4
+        --     ]
         -- [ "layer" $ bench 7 <$>
         --     [readWrite_layerptr]
 
         , "discovery" $ bench 6 <$>
-            [ subTreeDiscovery
-            , subTreeDiscovery_manual
-            , linkDiscovery
+            -- [ subTreeDiscovery
+            -- , subTreeDiscovery_manual
+            [ linkDiscovery
         --     -- , discoverIR_simple
             ]
         ]
