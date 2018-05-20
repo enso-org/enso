@@ -1,7 +1,7 @@
 -- {-# LANGUAGE Strict               #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Data.Graph.Traversal.Discovery where
+module Data.Graph.Traversal.Fold where
 
 import Prologue hiding (Foldable, Foldable1, Traversable, fold, fold1, traverse)
 
@@ -12,8 +12,6 @@ import qualified Data.Graph.Component.Edge            as Edge
 import qualified Data.Graph.Component.Node.Class      as Node
 import qualified Data.Graph.Component.Node.Layer.Type as Type
 import qualified Data.Graph.Data.Component.Class      as Component
-import qualified Data.Graph.Data.Component.Dynamic    as Component
-import qualified Data.Graph.Data.Component.Dynamic    as Dynamic
 import qualified Data.Graph.Data.Component.Provider   as Provider
 import qualified Data.Graph.Data.Container.Set        as Setx
 import qualified Data.Graph.Data.Layer.Class          as Layer
@@ -41,7 +39,7 @@ import Type.Data.Bool                        (Not, type (||))
 -- === Definition === --
 
 data Scope
-    = Everything
+    = All
     | Whitelist [Type]
     | Blacklist [Type]
 
@@ -50,7 +48,7 @@ type family LayerScope t :: Scope
 
 type        EnabledLayer   t layer = EnabledLayer__ (LayerScope t) layer
 type family EnabledLayer__ t layer where
-    EnabledLayer__ 'Everything      _ = 'True
+    EnabledLayer__ 'All             _ = 'True
     EnabledLayer__ ('Whitelist lst) l =      List.In l lst
     EnabledLayer__ ('Blacklist lst) l = Not (List.In l lst)
 
@@ -71,7 +69,7 @@ class Monad m => FoldableComponent t m tag where
 
 gbuildFold :: ∀ t a m. (GTraversable (Foldable t m) a, Applicative m)
       => a -> m (Result t) -> m (Result t)
-gbuildFold = GTraversable.gfoldl' @(Foldable t m) (\r d x -> r $! buildFold @t d x) (\a -> a)
+gbuildFold = GTraversable.gfoldl' @(Foldable t m) (\r d x -> r $! buildFold @t d x) id
 {-# INLINE gbuildFold #-}
 
 instance {-# OVERLAPPABLE #-} (GTraversable (Foldable t m) a, Monad m)
@@ -137,76 +135,6 @@ instance (Monad m, Layer.StorableLayer layer m, FoldableLayer t m layer)
         r     <- mr -- | Performance
         buildLayerFold @t @m @layer layer (pure r)
     {-# INLINE buildLayerFold__ #-}
-
-
-
-------------------------------
--- === SubTreeDiscovery === --
-------------------------------
-
--- === Definition === --
-
-data SubTreeDiscovery
-type instance Result     SubTreeDiscovery = [Component.Any]
-type instance LayerScope SubTreeDiscovery = 'Whitelist '[Model, Type.Type]
-
-
--- === API === --
-
-getSubTree :: Foldable SubTreeDiscovery m a => a -> m [Component.Any]
-getSubTree = \a -> buildFold @SubTreeDiscovery a $! pure mempty ; {-# INLINE getSubTree #-}
-
-
--- === Instances === --
-
-instance Monad m => FoldableComponent SubTreeDiscovery m tag where
-    buildComponentFold = \comp acc -> do
-        a <- acc
-        pure $! Layout.relayout comp : a
-    {-# INLINE buildComponentFold #-}
-
-instance ( MonadIO m
-         , Foldable SubTreeDiscovery m Node.Some
-         , Layer.Reader Edge.Edge Edge.Source m
-         , Layer.Reader Edge.Edge Edge.Target m
-         )
-      => FoldableLayer SubTreeDiscovery m Type.Type where
-    buildLayerFold = \tpLink acc -> do
-        (tp  :: Node.Some) <- Layout.relayout <$> Layer.read @Edge.Source tpLink
-        (tgt :: Node.Some) <- Layout.relayout <$> Layer.read @Edge.Target tpLink
-        a <- acc
-        let acc' = pure $! Layout.relayout tpLink : a
-        if tp == tgt then acc' else buildFold @SubTreeDiscovery tp acc'
-    {-# INLINE buildLayerFold #-}
-
-
-
---------------------------------
--- === ComponentDiscovery === --
---------------------------------
-
--- === Definition === --
-
-data ComponentDiscovery comp
-type instance Result     (ComponentDiscovery comp) = [Component.Some comp]
-type instance LayerScope (ComponentDiscovery comp) = 'Everything
-
-
--- === API === --
-
-discoverComponents :: ∀ comp a m. Foldable (ComponentDiscovery comp) m a => a -> m [Component.Some comp]
-discoverComponents = \a -> buildFold @(ComponentDiscovery comp) a $! pure $! mempty ; {-# INLINE discoverComponents #-}
-
-
--- === Instances === --
-
-instance Monad m => FoldableComponent (ComponentDiscovery comp) m tag where
-    buildComponentFold = \_ a -> a ; {-# INLINE buildComponentFold #-}
-
-instance (MonadIO m, Provider.Provider1 comp m (Layer.Cons layer))
-      => FoldableLayer (ComponentDiscovery comp) m layer where
-    buildLayerFold = Provider.gather1 @comp
-    {-# INLINE buildLayerFold #-}
 
 
 

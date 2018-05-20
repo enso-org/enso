@@ -18,7 +18,8 @@ import qualified Data.Graph.Class                   as Graph
 import qualified Data.Graph.Component.Edge          as Link
 import qualified Data.Graph.Component.Node.Class    as Term
 import qualified Data.Graph.Data.Component.Provider as Component
-import qualified Data.Graph.Traversal.Discovery     as Discovery
+import qualified Data.Graph.Traversal.Fold          as Fold
+import qualified Data.Graph.Traversal.SubTree       as SubTree
 import qualified OCI.IR.Term.Definition             as Term
 
 import Data.Generics.Traversable (GTraversable)
@@ -59,6 +60,6 @@ instance (MonadIO m, ctx ~ Data.ShallowDestructor m)
     {-# INLINE destructShallow1 #-}
 
 
-instance (Monad m, Discovery.LayersFoldableBuilder__ Discovery.SubTreeDiscovery (Graph.DiscoverComponentLayers m Link.Edges) m)
-      => Discovery.Foldable1 Discovery.SubTreeDiscovery m UniTerm where
-    buildFold1 = Discovery.gbuildFold @Discovery.SubTreeDiscovery ; {-# INLINE buildFold1 #-}
+instance (Monad m, Fold.LayersFoldableBuilder__ SubTree.SubTreeDiscovery (Graph.DiscoverComponentLayers m Link.Edges) m)
+      => Fold.Foldable1 SubTree.SubTreeDiscovery m UniTerm where
+    buildFold1 = Fold.gbuildFold @SubTree.SubTreeDiscovery ; {-# INLINE buildFold1 #-}

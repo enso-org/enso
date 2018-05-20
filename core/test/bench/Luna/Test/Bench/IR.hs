@@ -28,7 +28,8 @@ import qualified Data.Graph.Component.Node.Destruction as IR
 import qualified Data.Graph.Data.Component.Class       as Component
 import qualified Data.Graph.Data.Layer.Class           as Layer
 import qualified Data.Graph.Data.Layer.Layout          as Layout
-import qualified Data.Graph.Traversal.Discovery        as Discovery
+import qualified Data.Graph.Traversal.Component        as Discovery.Component
+import qualified Data.Graph.Traversal.SubTree          as Discovery.SubTree
 import qualified Data.Set                              as Set
 import qualified Data.Struct                           as Struct
 import qualified Data.Tuple.Strict                     as Tuple
@@ -427,7 +428,7 @@ subTreeDiscovery = Bench "generic" $ \i -> runPass' $ do
     !v <- IR.var "a"
     let go !0 = let !o = pure () in o
         go !j = do
-            !out <- Discovery.getSubTree v
+            !out <- Discovery.SubTree.getSubTree v
             -- putStrLn ""
             -- print out
             -- !tl  <- Layer.read @IR.Type v
@@ -443,7 +444,7 @@ linkDiscovery = Bench "link" $ \i -> runPass' $ do
     !v <- IR.var "a"
     let go !0 = let !o = pure () in o
         go !j = do
-            !out <- Discovery.discoverComponents @IR.Links v
+            !out <- Discovery.Component.discoverComponents @IR.Links v
             -- putStrLn ""
             -- print out
             -- !tl  <- Layer.read @IR.Type v

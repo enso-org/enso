@@ -7,7 +7,6 @@ import Prologue
 import qualified Data.Graph.Class                   as Graph
 import qualified Data.Graph.Component.Edge          as Edge
 import qualified Data.Graph.Data.Component.Class    as Component
-import qualified Data.Graph.Data.Component.Dynamic  as Component
 import qualified Data.Graph.Data.Component.Provider as Component
 import qualified Data.Graph.Data.Layer.Class        as Layer
 import qualified Data.Map                           as Map
