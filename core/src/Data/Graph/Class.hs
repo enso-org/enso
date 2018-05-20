@@ -278,9 +278,10 @@ instance {-# OVERLAPPABLE #-} (ctx l, Layer.StorableData l, MapLayersMem ctx ls)
         ptr'   = ptr `Ptr.plusPtr` size
         frest' = mapLayersMem @ctx @ls f ptr'
         out    = maybe id (>>) (f (Proxy :: Proxy l) (coerce ptr)) frest'
-    {-# NOINLINE mapLayersMem #-}
-    -- | NOINLINE is better for performance.
-    --   Inlining moves Maybe resolution to runtime.
+    {-# INLINABLE mapLayersMem #-}
+    -- | INLINABLE is better for performance. Both INLINE and NOINLINE are
+    --   worse. INLINE because of GHC bug regarding recursive functions, while
+    --   NOINLINE because we got no specializations.
 
 type StorableLayers layers = MapLayersMem StorableLayer layers
 class    (Layer l, Layer.StorableData l) => StorableLayer l
