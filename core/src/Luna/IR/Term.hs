@@ -14,10 +14,10 @@ import Luna.IR.Term.Literal   as X
 
 import qualified Data.Construction                  as Data
 import qualified Data.Generics.Traversable          as GTraversable
-import qualified Data.Graph.Class                   as Graph
+import qualified Data.Graph.Data.Graph.Class                   as Graph
 import qualified Data.Graph.Component.Edge          as Link
 import qualified Data.Graph.Component.Node.Class    as Term
-import qualified Data.Graph.Data.Component.Provider as Component
+import qualified Data.Graph.Traversal.Provider as Component
 import qualified Data.Graph.Traversal.Fold          as Fold
 import qualified Data.Graph.Traversal.SubTree       as SubTree
 import qualified OCI.IR.Term.Definition             as Term

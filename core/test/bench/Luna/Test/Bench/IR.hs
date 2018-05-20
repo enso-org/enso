@@ -23,7 +23,7 @@ import qualified Control.Monad.Exception               as Exception
 import qualified Control.Monad.State.Layered           as State
 import qualified Criterion.Main                        as Criterion
 import qualified Criterion.Measurement                 as Criterion
-import qualified Data.Graph.Class                      as Graph
+import qualified Data.Graph.Data.Graph.Class                      as Graph
 import qualified Data.Graph.Component.Node.Destruction as IR
 import qualified Data.Graph.Data.Component.Class       as Component
 import qualified Data.Graph.Data.Layer.Class           as Layer
@@ -50,7 +50,7 @@ import qualified System.Console.ANSI                   as ANSI
 import Control.Concurrent (threadDelay)
 import Control.DeepSeq    (force)
 import Control.Exception  (evaluate)
-import Data.Graph.Class   (Graph)
+import Data.Graph.Data.Graph.Class   (Graph)
 import Data.Graph.Data    (Component (Component))
 import Data.Set           (Set)
 import GHC.Exts           (Any, Int (I#), SmallMutableArray#, State#,

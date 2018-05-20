@@ -6,7 +6,7 @@ module OCI.Pass.Definition.Declaration where
 import Prologue hiding (FromList)
 
 import qualified Control.Monad.State.Layered as State
-import qualified Data.Graph.Class            as Graph
+import qualified Data.Graph.Data.Graph.Class            as Graph
 import qualified Data.Graph.Data             as Component
 import qualified Data.Graph.Data.Layer.Class as Layer
 import qualified Data.TypeMap.Strict         as TypeMap

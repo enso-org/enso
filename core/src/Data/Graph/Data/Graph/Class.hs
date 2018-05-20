@@ -1,6 +1,6 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Data.Graph.Class where
+module Data.Graph.Data.Graph.Class where
 
 import           Prologue hiding (Monad)
 import qualified Prologue as P

@@ -8,7 +8,7 @@ import Prologue
 import Test.Hspec.Expectations.Lifted
 
 import qualified Control.Monad.Exception           as Exception
-import qualified Data.Graph.Class                  as Graph
+import qualified Data.Graph.Data.Graph.Class                  as Graph
 import qualified Data.Graph.Component.Edge.Class   as Edge
 import qualified Data.Graph.Data.Component.Dynamic as Component
 import qualified Data.Graph.Data.Layer.Layout      as Layout
@@ -21,7 +21,7 @@ import qualified Luna.Pass.Attr                    as Attr
 import qualified Luna.Pass.Basic                   as Pass
 import qualified Luna.Pass.Scheduler               as Scheduler
 
-import Data.Graph.Class (Graph)
+import Data.Graph.Data.Graph.Class (Graph)
 import Luna.Pass        (Pass)
 import Luna.Pass.Basic  (Compilation)
 import Test.Hspec       (Spec, describe, it)

@@ -5,7 +5,7 @@ import Prologue as Std
 import qualified Control.Concurrent.Async    as Async
 import qualified Control.Monad.Exception     as Exception
 import qualified Control.Monad.State.Layered as State
-import qualified Data.Graph.Class            as Graph
+import qualified Data.Graph.Data.Graph.Class            as Graph
 import qualified Data.List                   as List
 import qualified Data.Map.Strict             as Map
 import qualified OCI.Pass.Definition.Class   as Pass
@@ -16,7 +16,7 @@ import qualified OCI.Pass.State.Encoder      as Encoder
 import Control.Concurrent.Async    (Async, async)
 import Control.Monad.Exception     (Throws, throw)
 import Control.Monad.State.Layered (StateT)
-import Data.Graph.Class            (Graph)
+import Data.Graph.Data.Graph.Class            (Graph)
 import Data.Map.Strict             (Map)
 import GHC.Exts                    (Any)
 import OCI.Pass.Definition.Class   (Pass)

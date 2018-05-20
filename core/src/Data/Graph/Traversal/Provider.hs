@@ -1,6 +1,6 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Data.Graph.Data.Component.Provider where
+module Data.Graph.Traversal.Provider where
 
 import Prologue
 

@@ -1,13 +1,13 @@
 {-# LANGUAGE TypeInType           #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Data.Graph.Data.Container.Set where
+module Data.Graph.Data.Component.Set where
 
 import Data.Graph.Data.Component.Class
 import Prologue
 
 import qualified Data.Construction                  as Data
-import qualified Data.Graph.Data.Component.Provider as Component
+import qualified Data.Graph.Traversal.Provider as Component
 import qualified Data.Set.Mutable.Class             as Set
 import qualified Foreign.Storable1.Deriving         as Storable1
 
@@ -45,9 +45,6 @@ instance MonadIO m => Data.Constructor2 m () Set where
 
 instance MonadIO m => Data.ShallowDestructor2 m Set where
     destructShallow2 = Data.destruct1 . unwrap ; {-# INLINE destructShallow2 #-}
-
--- instance Typeable tag => Component.DynamicProvider1 (Set tag) where
---     dynamicComponentsIO1 = Component.dynamicComponentsIO . unwrap ; {-# INLINE dynamicComponentsIO1 #-}
 
 instance Component.Provider  tag m (UnmanagedPtrSet (Component tag' layout))
       => Component.Provider1 tag m (Set tag') where
