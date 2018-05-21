@@ -26,8 +26,10 @@ derive ty = do
 
 derive' :: Dec -> Q [TH.Dec]
 derive' dec = do
+    sizeOf    <- genSizeOf
+    alignment <- genAlignment
     let TypeInfo tyConName tyVars _ = getTypeInfo dec
-    let decs = concat [genSizeOf, genAlignment, genPeek, genPoke]
+        decs = concat [sizeOf, alignment, genPeek, genPoke]
     case tyVars of
         [] -> fail "[Storable1.derive] Kind of type needs to be: * -> *"
         _  -> pure [classInstance ''Storable1 tyConName (unsafeInit tyVars) decs]
@@ -44,14 +46,23 @@ genClause n = clause mempty (var n) mempty
 genFun :: Name -> Name -> [TH.Dec]
 genFun n1 n2 = [FunD n1 [genClause n2], inlineF n1]
 
-genSizeOf :: [TH.Dec]
-genSizeOf = genFun 'Storable1.sizeOf 'Storable.sizeOf
+genLazyClause :: Name -> Q TH.Clause
+genLazyClause funName = do
+    a <- newName "a"
+    let pat  = TH.TildeP $ TH.VarP a
+        exp  = app (var 'Storable.sizeOf) (var a)
+        lam  = TH.LamE [pat] exp
+    pure $ TH.Clause mempty (TH.NormalB lam) mempty
 
-genAlignment :: [TH.Dec]
-genAlignment = genFun 'Storable1.alignment 'Storable.alignment
+genLazyFun :: Name -> Name -> Q [TH.Dec]
+genLazyFun n1 n2 = do
+    lazyClause <- genLazyClause n2
+    pure [FunD n1 [lazyClause], inlineF n1]
 
-genPeek :: [TH.Dec]
+genAlignment, genSizeOf :: Q [TH.Dec]
+genSizeOf    = genLazyFun 'Storable1.sizeOf    'Storable.sizeOf
+genAlignment = genLazyFun 'Storable1.alignment 'Storable.alignment
+
+genPoke, genPeek :: [TH.Dec]
 genPeek = genFun 'Storable1.peek 'Storable.peek
-
-genPoke :: [TH.Dec]
 genPoke = genFun 'Storable1.poke 'Storable.poke
