@@ -7,29 +7,29 @@ module Luna.Test.Source.Text.ParserSpec where
 import Prologue
 import Test.Hspec.Expectations.Lifted
 
-import qualified Control.Monad.State.Layered           as State
-import qualified Data.Graph.Data                  as Component
+import qualified Control.Monad.State.Layered            as State
+import qualified Data.Graph.Component.Edge              as Link
+import qualified Data.Graph.Component.Node.Construction as Term
+import qualified Data.Graph.Data                        as Component
+import qualified Data.Graph.Data.Graph.Class            as Graph
 import qualified Data.Graph.Data.Layer.Layout           as Layout
-import qualified Data.Set.Mutable.Class                as Set
-import qualified Foreign.Marshal.Alloc                 as Mem
-import qualified Foreign.Storable                      as Storable
-import qualified Luna.IR                               as IR
-import qualified Luna.IR.Layer                         as Layer
-import qualified Luna.Pass                             as Pass
-import qualified Luna.Pass.Attr                        as Attr
-import qualified Luna.Pass.Scheduler                   as Scheduler
-import qualified Luna.Runner                           as Runner
-import qualified Luna.Syntax.Prettyprint               as Prettyprint
-import qualified Luna.Syntax.Text.Parser.Data.CodeSpan as CodeSpan
-import qualified Luna.Syntax.Text.Parser.IR.Class      as Token
-import qualified Luna.Syntax.Text.Parser.IR.Term       as Parsing
-import qualified Luna.Syntax.Text.Parser.Pass          as Parser
-import qualified Luna.Syntax.Text.Parser.Pass.Class    as Parser
-import qualified OCI.Data.Name                         as Name
-import qualified Data.Graph.Component.Edge                           as Link
-import qualified Data.Graph.Component.Node.Construction              as Term
-import qualified OCI.Pass.Management.Registry                     as Registry
+import qualified Data.Set.Mutable.Class                 as Set
+import qualified Foreign.Marshal.Alloc                  as Mem
+import qualified Foreign.Storable                       as Storable
+import qualified Luna.IR                                as IR
+import qualified Luna.IR.Layer                          as Layer
+import qualified Luna.Pass                              as Pass
+import qualified Luna.Pass.Attr                         as Attr
+import qualified Luna.Pass.Scheduler                    as Scheduler
+import qualified Luna.Syntax.Prettyprint                as Prettyprint
+import qualified Luna.Syntax.Text.Parser.Data.CodeSpan  as CodeSpan
+import qualified Luna.Syntax.Text.Parser.IR.Class       as Token
+import qualified Luna.Syntax.Text.Parser.IR.Term        as Parsing
+import qualified Luna.Syntax.Text.Parser.Pass           as Parser
+import qualified Luna.Syntax.Text.Parser.Pass.Class     as Parser
+import qualified OCI.Data.Name                          as Name
 
+import Data.Graph.Data.Graph.Class           (Graph)
 import Data.Text.Position                    (Delta)
 import Luna.Pass                             (Pass)
 import Luna.Syntax.Text.Parser.Data.CodeSpan (CodeSpan)
@@ -38,7 +38,7 @@ import Luna.Syntax.Text.Parser.Pass.Class    (IRBS, Parser)
 import Luna.Syntax.Text.Scope                (Scope)
 import Luna.Syntax.Text.Source               (Source)
 import Luna.Test.Source.Text.Utils           (s)
-import Data.Graph.Component.Edge                           (type (*-*), Link)
+import OCI.IR.Link.Class                     (type (*-*), Link)
 import Test.Hspec                            (Expectation, Spec, describe, it)
 
 
@@ -49,21 +49,17 @@ import Test.Hspec                            (Expectation, Spec, describe, it)
 
 -- === API === --
 
-type OnDemandPass pass = (Typeable pass, Pass.Compile pass IO)
+type OnDemandPass pass = (Typeable pass, Pass.Compile pass (Graph Parser.Parsing))
 
 runPass :: ∀ pass. OnDemandPass pass => Pass pass () -> IO ()
 runPass = runPasses . pure
 
 runPasses :: ∀ pass. OnDemandPass pass => [Pass pass ()] -> IO ()
-runPasses passes = Scheduler.runManual reg sched where
-    reg = do
-        Runner.registerAll
-        Parser.registerStatic
-    sched = do
-        Parser.registerDynamic
-        for_ passes $ \pass -> do
-            Scheduler.registerPassFromFunction__ pass -- ONLY FOR TEST SPEC
-            Scheduler.runPassByType @pass
+runPasses passes = Graph.encodeAndEval @Parser.Parsing $ Scheduler.evalT $ do
+    Parser.registerDynamic
+    for_ passes $ \pass -> do
+        Scheduler.registerPassFromFunction__ pass -- ONLY FOR TEST SPEC
+        Scheduler.runPassByType @pass
 
 shouldParseAs :: Token.Parser (IRBS IR.SomeTerm) -> Text -> Text
               {- -> (Delta, Delta)-} -> IO ()

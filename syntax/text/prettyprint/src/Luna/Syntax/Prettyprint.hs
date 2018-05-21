@@ -7,23 +7,23 @@ module Luna.Syntax.Prettyprint where
 import qualified Prelude  as P
 import           Prologue hiding (Symbol)
 
-import qualified Control.Monad.State.Layered    as State
-import qualified Data.Char                      as Char
+import qualified Control.Monad.State.Layered     as State
+import qualified Data.Char                       as Char
+import qualified Data.Graph.Component.Edge.Class as Link
 import qualified Data.Graph.Data.Layer.Layout    as Layout
-import qualified Data.Layout                    as Layout
-import qualified Data.Layout                    as Doc
-import qualified Data.PtrList.Mutable           as List
-import qualified Data.Vector.Storable.Foreign   as Vector
-import qualified Language.Symbol.Operator.Assoc as Assoc
-import qualified Language.Symbol.Operator.Prec  as Prec
-import qualified Luna.IR                        as IR
-import qualified Luna.IR.Layer                  as Layer
-import qualified Luna.IR.Link                   as Link
-import qualified Luna.IR.Term.Literal           as Literal
-import qualified Luna.Pass                      as Pass
-import qualified Luna.Syntax.Text.Lexer.Grammar as Grammar
-import qualified Luna.Syntax.Text.Scope         as Scope
-import qualified Data.Graph.Component.Edge.Class              as Link
+import qualified Data.Layout                     as Layout
+import qualified Data.Layout                     as Doc
+import qualified Data.PtrList.Mutable            as List
+import qualified Data.Vector.Storable.Foreign    as Vector
+import qualified Language.Symbol.Operator.Assoc  as Assoc
+import qualified Language.Symbol.Operator.Prec   as Prec
+import qualified Luna.IR                         as IR
+import qualified Luna.IR.Layer                   as Layer
+import qualified Luna.IR.Link                    as Link
+import qualified Luna.IR.Term.Literal            as Literal
+import qualified Luna.Pass                       as Pass
+import qualified Luna.Syntax.Text.Lexer.Grammar  as Grammar
+import qualified Luna.Syntax.Text.Scope          as Scope
 
 import Control.Monad.State.Layered  (StateT)
 import Data.Layout                  (backticked, quoted, singleQuoted, space,
@@ -54,8 +54,6 @@ arrowName    = "->"
 
 data Prettyprint
 type instance Pass.Spec Prettyprint t = Pass.BasicPassSpec t
-Pass.cache_phase1 ''Prettyprint
-Pass.cache_phase2 ''Prettyprint
 
 
 ---------------------------------

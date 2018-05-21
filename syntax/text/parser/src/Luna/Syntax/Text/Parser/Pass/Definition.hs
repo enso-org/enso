@@ -6,18 +6,17 @@ module Luna.Syntax.Text.Parser.Pass.Definition where
 
 import Prologue
 
-import qualified Control.Monad.State.Layered          as State
-import qualified Luna.IR                              as IR
-import qualified Luna.Pass                            as Pass
-import qualified Luna.Pass.Attr                       as Attr
-import qualified Luna.Pass.Scheduler                  as Scheduler
-import qualified Luna.Syntax.Text.Lexer               as Lexer
-import qualified Luna.Syntax.Text.Parser.IR.Class     as Token
-import qualified Luna.Syntax.Text.Parser.IR.Term      as Parsing
-import qualified Luna.Syntax.Text.Parser.State.Marker as Marker
-import qualified Data.Graph.Component.Node.Construction             as Term
-import qualified OCI.Pass.Management.Registry                    as Registry
-import qualified Text.Megaparsec                      as Parser
+import qualified Control.Monad.State.Layered            as State
+import qualified Data.Graph.Component.Node.Construction as Term
+import qualified Luna.IR                                as IR
+import qualified Luna.Pass                              as Pass
+import qualified Luna.Pass.Attr                         as Attr
+import qualified Luna.Pass.Scheduler                    as Scheduler
+import qualified Luna.Syntax.Text.Lexer                 as Lexer
+import qualified Luna.Syntax.Text.Parser.IR.Class       as Token
+import qualified Luna.Syntax.Text.Parser.IR.Term        as Parsing
+import qualified Luna.Syntax.Text.Parser.State.Marker   as Marker
+import qualified Text.Megaparsec                        as Parser
 
 import Data.Text.Position                          (FileOffset)
 import Data.Text32                                 (Text32)
@@ -54,11 +53,11 @@ instance Pass.Definition Parser where
 
 -- === API === --
 
-registerStatic :: Registry.Monad m => m ()
-registerStatic = do
-    Registry.registerPrimLayer @IR.Terms @CodeSpan
+-- registerStatic :: Registry.Monad m => m ()
+-- registerStatic = do
+--     Registry.registerPrimLayer @IR.Terms @CodeSpan
 
-registerDynamic :: Scheduler.Monad m => m ()
+registerDynamic :: (Scheduler.PassRegister Parser m, Scheduler.Monad m) => m ()
 registerDynamic = do
     Scheduler.registerAttr     @Invalids
     Scheduler.enableAttrByType @Invalids

@@ -71,10 +71,14 @@ instance {-# OVERLAPPABLE #-} (GTraversable (Foldable t m) a, Monad m)
       => Foldable t m a where
     buildFold = gbuildFold @t ; {-# INLINE buildFold #-}
 
+instance {-# OVERLAPPABLE #-} (Foldable1 s m t, Monad m)
+      => Foldable s m (t a) where
+    buildFold = buildFold1 @s ; {-# INLINE buildFold #-}
+
 
 -- === Instances === --
 
-instance ( layers ~ Graph.DiscoverComponentLayers m tag
+instance {-# OVERLAPPABLE #-} ( layers ~ Graph.DiscoverComponentLayers m tag
          , Monad m
          , FoldableComponent t m tag
          , LayersFoldableBuilder__ t layers m )

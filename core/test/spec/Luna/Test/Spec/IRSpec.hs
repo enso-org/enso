@@ -7,24 +7,24 @@ module Luna.Test.Spec.IRSpec where
 import Prologue
 import Test.Hspec.Expectations.Lifted
 
-import qualified Control.Monad.Exception           as Exception
-import qualified Data.Graph.Data.Graph.Class                  as Graph
-import qualified Data.Graph.Component.Edge.Class   as Edge
-import qualified Data.Graph.Data.Component.Dynamic as Component
-import qualified Data.Graph.Data.Layer.Layout      as Layout
-import qualified Data.Graph.Traversal.Discovery    as Discovery
-import qualified Data.Set.Mutable.Class            as Set
-import qualified Luna.IR                           as IR
-import qualified Luna.IR.Layer                     as Layer
-import qualified Luna.Pass                         as Pass
-import qualified Luna.Pass.Attr                    as Attr
-import qualified Luna.Pass.Basic                   as Pass
-import qualified Luna.Pass.Scheduler               as Scheduler
+import qualified Control.Monad.Exception         as Exception
+import qualified Data.Graph.Component.Edge.Class as Edge
+import qualified Data.Graph.Data.Graph.Class     as Graph
+import qualified Data.Graph.Data.Layer.Layout    as Layout
+import qualified Data.Graph.Traversal.Component  as Discovery2
+import qualified Data.Graph.Traversal.Fold       as Fold
+import qualified Data.Set.Mutable.Class          as Set
+import qualified Luna.IR                         as IR
+import qualified Luna.IR.Layer                   as Layer
+import qualified Luna.Pass                       as Pass
+import qualified Luna.Pass.Attr                  as Attr
+import qualified Luna.Pass.Basic                 as Pass
+import qualified Luna.Pass.Scheduler             as Scheduler
 
 import Data.Graph.Data.Graph.Class (Graph)
-import Luna.Pass        (Pass)
-import Luna.Pass.Basic  (Compilation)
-import Test.Hspec       (Spec, describe, it)
+import Luna.Pass                   (Pass)
+import Luna.Pass.Basic             (Compilation)
+import Test.Hspec                  (Spec, describe, it)
 
 
 
@@ -108,12 +108,23 @@ irCreationSpec = describe "ir creation" $ do
         rsrc         <- Layer.read @IR.Source r
         ltgt         <- Layer.read @IR.Target l
         rtgt         <- Layer.read @IR.Target r
-        lnks         <- IR.inputs u1
+        -- lnks         <- Discovery2.discoverComponents @IR.Links u1
+        -- lnks         <- IR.inputs u1
+
+        print "---"
+        tp  <- Layer.read @IR.Type u1
+        print tp
+        mod <- Layer.read @IR.Model u1
+
+        x <- Fold.buildFold1 @(Discovery2.ComponentDiscovery IR.Links) u1 (pure mempty)
+        print "%%%"
+        print x
+
         lsrc `shouldBe` v1
         ltgt `shouldBe` u1
         rsrc `shouldBe` v2
         rtgt `shouldBe` u1
-        lnks `shouldBe` (Layout.relayout <$> [l,r])
+        -- lnks `shouldBe` (Layout.relayout <$> [l,r])
 
     it "users layer" $ runPass' $ do
         v1           <- IR.var "a"

@@ -349,6 +349,32 @@ createIR_normal3 = Bench "normal3" $ \i -> runPass' $ do
 {-# NOINLINE createIR_normal3 #-}
 
 
+data MockEdge = MockEdge (IORef.IORef MockIR) (IORef.IORef MockIR)
+data MockModel = MockVar !Int
+data MockIR = MockIR !MockModel (IORef.IORef MockEdge) -- (Set.Set (IORef.IORef MockEdge))
+
+mockNewVar :: Int -> IO (IORef.IORef MockIR)
+mockNewVar i = do
+    tref   <- IORef.newIORef undefined
+    ttedge <- IORef.newIORef (MockEdge tref tref)
+    let !t = MockIR (MockVar 0) ttedge -- mempty
+    IORef.writeIORef tref t
+
+    xref  <- IORef.newIORef undefined
+    xedge <- IORef.newIORef (MockEdge xref tref)
+    let !x = MockIR (MockVar i) xedge -- mempty
+    IORef.writeIORef xref x
+
+    pure xref
+
+create_IORef :: Bench
+create_IORef = Bench "ioref" $ \i -> do
+    let go !0 = pure ()
+        go !j = do
+            !v <- mockNewVar 0
+            go $! j - 1
+    go i
+{-# NOINLINE create_IORef #-}
 
 
 
@@ -528,14 +554,14 @@ getField :: (PrimMonad m, Struct.Struct x) => x (PrimState m) -> m Int
 getField = \x -> primitive (go (Struct.destruct x)) where
     go :: (forall s. SmallMutableArray# s Any -> State# s -> (# State# s, Int #))
     go = (\m s -> unsafeCoerce# readSmallArray# m i s) ; {-# INLINE go #-}
-    I# i = 0
+    !(I# i) = 0
 {-# INLINE getField #-}
 
 setField :: (PrimMonad m, Struct.Struct x) => x (PrimState m) -> Int -> m ()
 setField = \x y -> primitive_ (go (Struct.destruct x) y) where
     go :: (forall s. SmallMutableArray# s Any -> Int -> State# s -> State# s)
     go = \m a s -> unsafeCoerce# writeSmallArray# m i a s ; {-# INLINE go #-}
-    I# i = 0
+    !(I# i) = 0
 {-# INLINE setField #-}
 
 -- field :: Int {- ^ slot -} -> Field s a
@@ -586,30 +612,31 @@ benchmarks :: IO ()
 benchmarks = do
     Criterion.defaultMain
       [ "ir"
-        [ "layer"
-            [ "rw" $ bench 7 <$>
-                -- [ readWrite_cptr
-                -- , readWrite_ptr
-                -- , readWrite_expTM
-                -- -- , readWrite_layerMock
-                [ readWrite_layer
-                , readWrite_structs_layer
-                , readWrite_ioref
-                -- , readWrite_MS_1
-                -- , readWrite_MS_2
-                ]
-            ]
-        -- [ "create" $ bench 5 <$>
+        -- [ "layer"
+        --     [ "rw" $ bench 7 <$>
+        --         -- [ readWrite_cptr
+        --         -- , readWrite_ptr
+        --         -- , readWrite_expTM
+        --         -- -- , readWrite_layerMock
+        --         [ readWrite_layer
+        --         , readWrite_structs_layer
+        --         , readWrite_ioref
+        --         -- , readWrite_MS_1
+        --         -- , readWrite_MS_2
+        --         ]
+        --     ]
+        -- , "create" $ bench 5 <$>
         --     -- [ createIR_mallocPtr
         --     [ createIR_normal
         --     -- , createIR_normal2
         --     , createIR_normal3
+        --     , create_IORef
         -- --     , createIR_normal4
         --     ]
         -- [ "layer" $ bench 7 <$>
         --     [readWrite_layerptr]
 
-        , "discovery" $ bench 6 <$>
+        [ "discovery" $ bench 6 <$>
             -- [ subTreeDiscovery
             -- , subTreeDiscovery_manual
             [ linkDiscovery

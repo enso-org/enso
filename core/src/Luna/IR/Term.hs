@@ -44,8 +44,8 @@ type instance Term.Uni = UniTerm
 
 -- === Instances === --
 
-instance (Component.Provider1 tag m Link, Monad m) => Component.Provider1 tag m UniTerm where
-    gather1 = Component.ggather @tag ; {-# INLINE gather1 #-}
+-- instance (Component.Provider1 tag m Link, Monad m) => Component.Provider1 tag m UniTerm where
+--     gather1 = Component.ggather @tag ; {-# INLINE gather1 #-}
 
 -- instance Component.DynamicProvider1 UniTerm where
 --     dynamicComponentsIO1 = Component.gdynamicComponents ; {-# INLINE dynamicComponentsIO1 #-}
@@ -61,10 +61,11 @@ instance (MonadIO m, ctx ~ Data.ShallowDestructor m)
     {-# INLINE destructShallow1 #-}
 
 
-instance (Monad m, Fold.LayersFoldableBuilder__ SubTree.SubTreeDiscovery (Graph.DiscoverComponentLayers m Link.Edges) m)
-      => Fold.Foldable1 SubTree.SubTreeDiscovery m UniTerm where
-    buildFold1 = Fold.gbuildFold @SubTree.SubTreeDiscovery ; {-# INLINE buildFold1 #-}
+-- instance (Monad m, Fold.LayersFoldableBuilder__ SubTree.SubTreeDiscovery (Graph.DiscoverComponentLayers m Link.Edges) m)
+--       => Fold.Foldable1 SubTree.SubTreeDiscovery m UniTerm where
+--     buildFold1 = Fold.gbuildFold @SubTree.SubTreeDiscovery ; {-# INLINE buildFold1 #-}
 
--- instance (Monad m, Fold.LayersFoldableBuilder__ (Component.ComponentDiscovery comp) (Graph.DiscoverComponentLayers m Link.Edges) m)
---       => Fold.Foldable1 (Component.ComponentDiscovery comp) m UniTerm where
---     buildFold1 = Fold.gbuildFold @(Component.ComponentDiscovery comp) ; {-# INLINE buildFold1 #-}
+-- FIXME: remove MonadIO
+instance (MonadIO m, Fold.LayersFoldableBuilder__ (Component.ComponentDiscovery comp) (Graph.DiscoverComponentLayers m Link.Edges) m)
+      => Fold.Foldable1 (Component.ComponentDiscovery comp) m UniTerm where
+    buildFold1 = Fold.gbuildFold @(Component.ComponentDiscovery comp) ; {-# INLINE buildFold1 #-}

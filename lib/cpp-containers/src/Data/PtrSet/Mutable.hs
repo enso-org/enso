@@ -131,6 +131,7 @@ toList !s = do
             convert' <<$>> peekArray n arr
 {-# INLINE toList #-}
 
+
 -- | Convert a list to the set.
 fromList :: (IsPtr a, IsPtrSet s, MonadIO m) => [a] -> m (s a)
 fromList es = do

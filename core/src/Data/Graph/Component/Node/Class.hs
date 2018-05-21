@@ -13,7 +13,6 @@ import qualified Type.Show                    as Type
 import Data.Generics.Traversable (GTraversable)
 
 
-
 ------------------
 -- === Node === --
 ------------------
@@ -45,9 +44,10 @@ type family Merge__ a b where
     Merge__ a a = NodeTag a
     -- Merge__ a b = -- TODO: when needed
 
-instance GTraversable (Component.Provider tag m) (Constructor t a)
-    => Component.Provider tag m (Constructor t a) where
-    gather = Component.ggather @tag  ; {-# INLINE gather #-}
+
+-- instance GTraversable (Component.Provider tag m) (Constructor t a)
+--     => Component.Provider tag m (Constructor t a) where
+--     gather = Component.ggather @tag  ; {-# INLINE gather #-}
 
 -- instance GTraversable Component.DynamicProvider (Constructor t a)
 --     => Component.DynamicProvider (Constructor t a) where
