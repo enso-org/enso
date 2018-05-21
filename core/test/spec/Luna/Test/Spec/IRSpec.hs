@@ -108,15 +108,19 @@ irCreationSpec = describe "ir creation" $ do
         rsrc         <- Layer.read @IR.Source r
         ltgt         <- Layer.read @IR.Target l
         rtgt         <- Layer.read @IR.Target r
-        -- lnks         <- Discovery2.discoverComponents @IR.Links u1
+        lnks         <- Discovery2.discoverComponents @IR.Links u1
         -- lnks         <- IR.inputs u1
 
-        print "---"
+        -- print "---"
+        -- print "---"
+        -- print lnks
         tp  <- Layer.read @IR.Type u1
-        print tp
+        -- print tp
         mod <- Layer.read @IR.Model u1
 
-        x <- Fold.buildFold1 @(Discovery2.ComponentDiscovery IR.Links) u1 (pure mempty)
+        print "--"
+        x <- Fold.buildFold1 @(Discovery2.ComponentDiscovery IR.Links) mod (pure mempty)
+        -- x <- Fold.gbuildFold @(Discovery2.ComponentDiscovery IR.Links) mod (pure mempty)
         print "%%%"
         print x
 
@@ -124,7 +128,7 @@ irCreationSpec = describe "ir creation" $ do
         ltgt `shouldBe` u1
         rsrc `shouldBe` v2
         rtgt `shouldBe` u1
-        -- lnks `shouldBe` (Layout.relayout <$> [l,r])
+        lnks `shouldBe` (Layout.relayout <$> [l,r])
 
     it "users layer" $ runPass' $ do
         v1           <- IR.var "a"

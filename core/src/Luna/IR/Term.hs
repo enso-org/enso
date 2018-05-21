@@ -23,9 +23,9 @@ import qualified Data.Graph.Traversal.Provider   as Component
 import qualified Data.Graph.Traversal.SubTree    as SubTree
 import qualified OCI.IR.Term.Definition          as Term
 
-import Data.Generics.Traversable (GTraversable)
-import OCI.IR.Link.Class         (Link)
-
+import Data.Generics.Traversable       (GTraversable)
+import Data.Graph.Data.Component.Class (Component)
+import OCI.IR.Link.Class               (Link)
 
 
 ----------------------
@@ -66,6 +66,39 @@ instance (MonadIO m, ctx ~ Data.ShallowDestructor m)
 --     buildFold1 = Fold.gbuildFold @SubTree.SubTreeDiscovery ; {-# INLINE buildFold1 #-}
 
 -- FIXME: remove MonadIO
-instance (MonadIO m, Fold.LayersFoldableBuilder__ (Component.ComponentDiscovery comp) (Graph.DiscoverComponentLayers m Link.Edges) m)
-      => Fold.Foldable1 (Component.ComponentDiscovery comp) m UniTerm where
-    buildFold1 = Fold.gbuildFold @(Component.ComponentDiscovery comp) ; {-# INLINE buildFold1 #-}
+-- instance (MonadIO m
+--          , GTraversable (Fold.Foldable (Component.ComponentDiscovery comp) m) (UniTerm a)
+--          , Fold.Foldable1 (Component.ComponentDiscovery comp) m (Component Link.Edges)
+--          , Fold.Foldable1 (Component.ComponentDiscovery comp) m (Component Term.Nodes)
+--          )
+--       => Fold.Foldable1 (Component.ComponentDiscovery comp) m UniTerm where
+--     buildFold1 = Fold.gbuildFold @(Component.ComponentDiscovery comp) ; {-# INLINE buildFold1 #-}
+
+
+
+class UniTermFold t m a where
+    buildUniTermFold :: a -> m (Fold.Result t) -> m (Fold.Result t)
+
+gbuildUniTermFold :: ∀ t a m. (GTraversable (UniTermFold t m) a, Applicative m)
+      => a -> m (Fold.Result t) -> m (Fold.Result t)
+gbuildUniTermFold = GTraversable.gfoldl' @(UniTermFold t m) (\r d x -> r $! buildUniTermFold @t d x) id
+{-# INLINE gbuildUniTermFold #-}
+
+instance ( Monad m
+         , Fold.Foldable1 t m (Component Link.Edges)
+         )
+      => Fold.Foldable1 t m UniTerm where
+    buildFold1 = gbuildUniTermFold @t ; {-# INLINE buildFold1 #-}
+
+
+instance {-# OVERLAPPABLE #-} (Fold.Foldable t m a)
+      => UniTermFold t m a where
+    buildUniTermFold = Fold.buildFold @t ; {-# INLINE buildUniTermFold #-}
+
+instance Fold.Foldable1 t m (Component comp)
+      => UniTermFold t m (Component comp layout) where
+    buildUniTermFold = Fold.buildFold1 @t ; {-# INLINE buildUniTermFold #-}
+
+instance (Monad m, GTraversable (UniTermFold t m) (Constructor comp layout))
+      => UniTermFold t m (Constructor comp layout) where
+    buildUniTermFold = gbuildUniTermFold @t ; {-# INLINE buildUniTermFold #-}

@@ -48,16 +48,13 @@ type instance Fold.LayerScope (ComponentDiscovery comp) = 'Fold.All
 
 -- === API === --
 
-discoverComponents :: ∀ comp a m. Fold.Foldable (ComponentDiscovery comp) m a
-    => a -> m [Component.Some comp]
-discoverComponents = \a -> Fold.buildFold @(ComponentDiscovery comp) a $! pure $! mempty ; {-# INLINE discoverComponents #-}
+discoverComponents :: ∀ comp comp' layout a m. Fold.Foldable (Fold.DepthFold (ComponentDiscovery comp)) m (Component comp' layout)
+-- discoverComponents :: ∀ comp comp' layout a m. (Monad m)
+    => Component comp' layout -> m [Component.Some comp]
+discoverComponents = \a -> Fold.buildFold @(Fold.DepthFold (ComponentDiscovery comp)) a $! pure $! mempty ; {-# INLINE discoverComponents #-}
 
 
 -- === Instances === --
-
-instance Monad m => Fold.FoldableComponent (ComponentDiscovery comp) m tag where
-    buildComponentFold = \_ a -> a ; {-# INLINE buildComponentFold #-}
-
 
 instance {-# OVERLAPPABLE #-} Monad m
       => Fold.Foldable1 (ComponentDiscovery comp) m (Component comp') where
@@ -69,15 +66,6 @@ instance Monad m
     {-# INLINE buildFold1 #-}
 
 instance {-# OVERLAPPABLE #-} Monad m
-      => Fold.Foldable (ComponentDiscovery comp) m (Component comp' l) where
-    buildFold = \_ a -> a ; {-# INLINE buildFold #-}
-
-instance Monad m
-      => Fold.Foldable (ComponentDiscovery comp) m (Component comp l) where
-    buildFold = \comp mr -> (Layout.relayout comp :) <$> mr
-    {-# INLINE buildFold #-}
-
-instance {-# OVERLAPPABLE #-} Monad m
       => Fold.Foldable1 (ComponentDiscovery comp) m (Component.Set comp') where
     buildFold1 = \_ -> id ; {-# INLINE buildFold1 #-}
 
@@ -86,21 +74,3 @@ instance MonadIO m
     buildFold1 = \a acc -> (\a b -> a <> b) <$> (Layout.relayout <<$>> PtrSet.toList (unwrap a))
                                             <*> acc
     {-# INLINE buildFold1 #-}
-
-
-instance (MonadIO m, Show (Constructor t a), GTraversable (Fold.Foldable (ComponentDiscovery comp) m) (Constructor t a))
-    => Fold.Foldable (ComponentDiscovery comp) m (Constructor t a) where
-    buildFold a mx = do
-        print ">>>"
-        print a
-        out <- Fold.gbuildFold @(ComponentDiscovery comp) a mx
-        print out
-        print "<<<"
-        pure out
-    {-# INLINE buildFold #-}
-
-instance Monad m => Fold.Foldable s m (UnmanagedPtrList x) where
-    buildFold = undefined
-
-instance Monad m => Fold.Foldable s m (Vector x) where
-    buildFold = undefined
