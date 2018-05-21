@@ -46,10 +46,17 @@ instance {-# OVERLAPPABLE #-} ( layers ~ Graph.DiscoverComponentLayers m tag
          , FoldableComponent t m tag
          , LayersFoldableBuilder__ t layers m )
       => Foldable (DepthFold t) m (Component tag layout) where
-    buildFold = \comp mr -> buildComponentFold @t comp
-        $! buildLayersFold__ @t @layers (Component.unsafeToPtr comp) mr
+    buildFold = buildFold1 @(DepthFold t)
     {-# INLINE buildFold #-}
 
+instance {-# OVERLAPPABLE #-} ( layers ~ Graph.DiscoverComponentLayers m tag
+         , Monad m
+         , FoldableComponent t m tag
+         , LayersFoldableBuilder__ t layers m )
+      => Foldable1 (DepthFold t) m (Component tag) where
+    buildFold1 = \comp mr -> buildComponentFold @t comp
+        $! buildLayersFold__ @t @layers (Component.unsafeToPtr comp) mr
+    {-# INLINE buildFold1 #-}
 
 
 
@@ -83,8 +90,8 @@ class Monad m => Foldable1 t m a where
 class Monad m => FoldableLayer t m layer where
     buildLayerFold :: ∀ layout. Layer.Cons layer layout -> m (Result t) -> m (Result t)
 
-class Monad m => FoldableComponent t m tag where
-    buildComponentFold :: ∀ layout. Component tag layout -> m (Result t) -> m (Result t)
+class Monad m => FoldableComponent t m comp where
+    buildComponentFold :: ∀ layout. Component comp layout -> m (Result t) -> m (Result t)
 
 
 -- === Generics === --
@@ -94,15 +101,12 @@ gbuildFold :: ∀ t a m. (GTraversable (Foldable t m) a, Applicative m)
 gbuildFold = GTraversable.gfoldl' @(Foldable t m) (\r d x -> r $! buildFold @t d x) id
 {-# INLINE gbuildFold #-}
 
+
+-- === Instances === --
+
 instance {-# OVERLAPPABLE #-} (GTraversable (Foldable t m) a, Monad m)
       => Foldable t m a where
     buildFold = gbuildFold @t ; {-# INLINE buildFold #-}
-
--- instance {-# OVERLAPPABLE #-} (Foldable1 s m t, Monad m)
---       => Foldable s m (t a) where
---     buildFold = buildFold1 @s ; {-# INLINE buildFold #-}
-
-
 
 instance {-# OVERLAPPABLE #-} (Monad m, Foldable1 t m (Layer.Cons layer))
       => FoldableLayer t m layer where
@@ -110,6 +114,7 @@ instance {-# OVERLAPPABLE #-} (Monad m, Foldable1 t m (Layer.Cons layer))
 
 instance {-# OVERLAPPABLE #-} Monad m => FoldableComponent t m comp where
     buildComponentFold = \_ -> id ; {-# INLINE buildComponentFold #-}
+
 
 
 ----------------------

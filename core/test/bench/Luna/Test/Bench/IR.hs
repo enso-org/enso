@@ -637,9 +637,9 @@ benchmarks = do
         --     [readWrite_layerptr]
 
         [ "discovery" $ bench 6 <$>
-            -- [ subTreeDiscovery
+            [ subTreeDiscovery
             -- , subTreeDiscovery_manual
-            [ linkDiscovery
+            , linkDiscovery
         --     -- , discoverIR_simple
             ]
         ]
