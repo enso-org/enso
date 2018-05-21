@@ -4,19 +4,18 @@ module OCI.Pass.State.Encoder where
 
 import Prologue
 
-import qualified Data.Graph.Data.Graph.Class                   as Graph
-import qualified Data.Graph.Component.Edge          as Edge
-import qualified Data.Graph.Data.Component.Class    as Component
-import qualified Data.Graph.Traversal.Provider as Component
-import qualified Data.Graph.Data.Layer.Class        as Layer
-import qualified Data.Map                           as Map
-import qualified Data.TypeMap.Strict                as TypeMap
-import qualified Foreign.Marshal.Alloc              as Mem
-import qualified Foreign.Marshal.Utils              as Mem
-import qualified Foreign.Memory.Pool                as MemPool
-import qualified Foreign.Ptr                        as Ptr
-import qualified OCI.Pass.Definition.Class          as Pass
-import qualified OCI.Pass.Definition.Declaration    as Pass
+import qualified Data.Graph.Component.Edge       as Edge
+import qualified Data.Graph.Data.Component.Class as Component
+import qualified Data.Graph.Data.Graph.Class     as Graph
+import qualified Data.Graph.Data.Layer.Class     as Layer
+import qualified Data.Map                        as Map
+import qualified Data.TypeMap.Strict             as TypeMap
+import qualified Foreign.Marshal.Alloc           as Mem
+import qualified Foreign.Marshal.Utils           as Mem
+import qualified Foreign.Memory.Pool             as MemPool
+import qualified Foreign.Ptr                     as Ptr
+import qualified OCI.Pass.Definition.Class       as Pass
+import qualified OCI.Pass.Definition.Declaration as Pass
 
 import Control.Monad.Exception         (Throws, throw)
 import Data.Graph.Data.Component.Class (Component)

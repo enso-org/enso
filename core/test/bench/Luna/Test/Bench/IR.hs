@@ -28,8 +28,8 @@ import qualified Data.Graph.Data.Component.Class       as Component
 import qualified Data.Graph.Data.Graph.Class           as Graph
 import qualified Data.Graph.Data.Layer.Class           as Layer
 import qualified Data.Graph.Data.Layer.Layout          as Layout
-import qualified Data.Graph.Traversal.Component        as Discovery.Component
-import qualified Data.Graph.Traversal.SubTree          as Discovery.SubTree
+import qualified Data.Graph.Traversal.SubComponents           as Traversal
+import qualified Data.Graph.Traversal.SubTree          as Traversal
 import qualified Data.IORef                            as IORef
 import qualified Data.Set                              as Set
 import qualified Data.Struct                           as Struct
@@ -456,7 +456,7 @@ subTreeDiscovery = Bench "generic" $ \i -> runPass' $ do
     !v <- IR.var "a"
     let go !0 = let !o = pure () in o
         go !j = do
-            !out <- Discovery.SubTree.getSubTree v
+            !out <- Traversal.subTree' v
             -- putStrLn ""
             -- print out
             -- !tl  <- Layer.read @IR.Type v
@@ -472,7 +472,7 @@ linkDiscovery = Bench "link" $ \i -> runPass' $ do
     !v <- IR.var "a"
     let go !0 = let !o = pure () in o
         go !j = do
-            !out <- Discovery.Component.discoverComponents @IR.Links v
+            !out <- Traversal.subComponents @IR.Links v
             -- putStrLn ""
             -- print out
             -- !tl  <- Layer.read @IR.Type v

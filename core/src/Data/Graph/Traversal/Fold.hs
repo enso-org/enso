@@ -3,7 +3,7 @@
 
 module Data.Graph.Traversal.Fold where
 
-import Prologue hiding (Foldable, Foldable1, Traversable, fold, fold1, traverse)
+import Prologue hiding (Traversable, fold, fold1, traverse)
 
 import qualified Control.Monad.State.Layered     as State
 import qualified Data.Generics.Traversable       as GTraversable
@@ -28,149 +28,47 @@ import Type.Data.Bool                  (Not, type (||))
 
 
 
--------------------
--- === Depth === --
--------------------
-
--- === Definition === --
-
-data DepthFold t
-type instance Result     (DepthFold t) = Result     t
-type instance LayerScope (DepthFold t) = LayerScope t
-
-
--- === Instances === --
-
-instance {-# OVERLAPPABLE #-} ( layers ~ Graph.DiscoverComponentLayers m tag
-         , Monad m
-         , FoldableComponent t m tag
-         , LayersFoldableBuilder__ t layers m )
-      => Foldable (DepthFold t) m (Component tag layout) where
-    buildFold = buildFold1 @(DepthFold t)
-    {-# INLINE buildFold #-}
-
-instance {-# OVERLAPPABLE #-} ( layers ~ Graph.DiscoverComponentLayers m tag
-         , Monad m
-         , FoldableComponent t m tag
-         , LayersFoldableBuilder__ t layers m )
-      => Foldable1 (DepthFold t) m (Component tag) where
-    buildFold1 = \comp mr -> buildComponentFold @t comp
-        $! buildLayersFold__ @t @layers (Component.unsafeToPtr comp) mr
-    {-# INLINE buildFold1 #-}
-
-
-
-
 ------------------
 -- === Fold === --
 ------------------
 
 -- === Definition === --
 
-data Scope
-    = All
-    | Whitelist [Type]
-    | Blacklist [Type]
 
-type family Result     t
-type family LayerScope t :: Scope
 
-type        EnabledLayer   t layer = EnabledLayer__ (LayerScope t) layer
-type family EnabledLayer__ t layer where
-    EnabledLayer__ 'All             _ = 'True
-    EnabledLayer__ ('Whitelist lst) l =      List.In l lst
-    EnabledLayer__ ('Blacklist lst) l = Not (List.In l lst)
+type family Result t
 
-class Monad m => Foldable t m a where
-    buildFold :: a -> m (Result t) -> m (Result t)
+class Monad m => Builder t m a where
+    build :: a -> m (Result t) -> m (Result t)
 
-class Monad m => Foldable1 t m a where
-    buildFold1 :: ∀ t1. a t1 -> m (Result t) -> m (Result t)
-
-class Monad m => FoldableLayer t m layer where
-    buildLayerFold :: ∀ layout. Layer.Cons layer layout -> m (Result t) -> m (Result t)
-
-class Monad m => FoldableComponent t m comp where
-    buildComponentFold :: ∀ layout. Component comp layout -> m (Result t) -> m (Result t)
+class Monad m => Builder1 t m a where
+    build1 :: ∀ t1. a t1 -> m (Result t) -> m (Result t)
 
 
 -- === Generics === --
 
-gbuildFold :: ∀ t a m. (GTraversable (Foldable t m) a, Applicative m)
+gbuild :: ∀ t a m. (GTraversable (Builder t m) a, Applicative m)
       => a -> m (Result t) -> m (Result t)
-gbuildFold = GTraversable.gfoldl' @(Foldable t m) (\r d x -> r $! buildFold @t d x) id
-{-# INLINE gbuildFold #-}
+gbuild = GTraversable.gfoldl' @(Builder t m) (\r d x -> r $! build @t d x) id
+{-# INLINE gbuild #-}
 
 
 -- === Instances === --
 
-instance {-# OVERLAPPABLE #-} (GTraversable (Foldable t m) a, Monad m)
-      => Foldable t m a where
-    buildFold = gbuildFold @t ; {-# INLINE buildFold #-}
-
-instance {-# OVERLAPPABLE #-} (Monad m, Foldable1 t m (Layer.Cons layer))
-      => FoldableLayer t m layer where
-    buildLayerFold = buildFold1 @t ; {-# INLINE buildLayerFold #-}
-
-instance {-# OVERLAPPABLE #-} Monad m => FoldableComponent t m comp where
-    buildComponentFold = \_ -> id ; {-# INLINE buildComponentFold #-}
+instance {-# OVERLAPPABLE #-} (GTraversable (Builder t m) a, Monad m)
+      => Builder t m a where
+    build = gbuild @t ; {-# INLINE build #-}
 
 
+-- === No-op instances === --
 
-----------------------
--- === Internal === --
-----------------------
+-- FIXME: check if we really don't need them.
+--        Luna/IR/Term.hs defaults to them (!)
 
--- === FoldableLayers === --
+instance {-# OVERLAPPABLE #-} Monad m => Builder s m (UnmanagedPtrList x) where
+    build = \_ -> id
+    {-# INLINE build #-}
 
-class LayersFoldableBuilder__ t (layers :: [Type]) m where
-    buildLayersFold__ :: SomePtr -> m (Result t) -> m (Result t)
-
-instance Monad m => LayersFoldableBuilder__ t '[] m where
-    buildLayersFold__ = \_ a -> a ; {-# INLINE buildLayersFold__ #-}
-
-instance ( MonadIO m
-         , Storable.Storable (Layer.Cons l ())
-         , Layer.StorableLayer l m
-         , LayerFoldableBuilder__ (EnabledLayer t l) t m l
-         , LayersFoldableBuilder__ t ls m )
-     => LayersFoldableBuilder__ t (l ': ls) m where
-    buildLayersFold__ = \ptr mr -> do
-        let fs   = buildLayersFold__ @t @ls ptr'
-            ptr' = Ptr.plusPtr ptr $ Layer.byteSize @l
-        buildLayerFold__ @(EnabledLayer t l) @t @m @l ptr $! fs mr
-    {-# INLINE buildLayersFold__ #-}
-
-
--- === FoldableLayer === --
-
-class Monad m => LayerFoldableBuilder__ (active :: Bool) t m layer where
-    buildLayerFold__ :: SomePtr -> m (Result t) -> m (Result t)
-
-instance {-# OVERLAPPABLE #-} Monad m
-      => LayerFoldableBuilder__ 'False t m layer where
-    buildLayerFold__ = \_ a -> a ; {-# INLINE buildLayerFold__ #-}
-
-instance (Monad m, Layer.StorableLayer layer m, FoldableLayer t m layer)
-      => LayerFoldableBuilder__ 'True t m layer where
-    buildLayerFold__ = \ptr mr -> do
-        layer <- Layer.unsafePeekWrapped @layer ptr
-        r     <- mr -- | Performance
-        buildLayerFold @t @m @layer layer (pure r)
-    {-# INLINE buildLayerFold__ #-}
-
-
-
-
-
--- FIXME !!!
-
-instance GTraversable ctx (UnmanagedPtrList a) where gtraverse _ = error "e1"
-instance GTraversable ctx (Vector a) where gtraverse _ = error "e2"
-instance GTraversable ctx (Setx.Set a k) where gtraverse _ = error "e3"
-
-instance {-# OVERLAPPABLE #-} Monad m => Foldable s m (UnmanagedPtrList x) where
-    buildFold = undefined
-
-instance {-# OVERLAPPABLE #-} Monad m => Foldable s m (Vector x) where
-    buildFold = undefined
+instance {-# OVERLAPPABLE #-} Monad m => Builder s m (Vector x) where
+    build = \_ -> id
+    {-# INLINE build #-}

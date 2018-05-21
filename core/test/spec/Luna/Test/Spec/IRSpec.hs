@@ -7,20 +7,20 @@ module Luna.Test.Spec.IRSpec where
 import Prologue
 import Test.Hspec.Expectations.Lifted
 
-import qualified Control.Monad.Exception         as Exception
-import qualified Data.Graph.Component.Edge.Class as Edge
-import qualified Data.Graph.Data.Graph.Class     as Graph
-import qualified Data.Graph.Data.Layer.Layout    as Layout
-import qualified Data.Graph.Traversal.Component  as Discovery2
-import qualified Data.Graph.Traversal.Fold       as Fold
-import qualified Data.Graph.Traversal.SubTree    as SubTree
-import qualified Data.Set.Mutable.Class          as Set
-import qualified Luna.IR                         as IR
-import qualified Luna.IR.Layer                   as Layer
-import qualified Luna.Pass                       as Pass
-import qualified Luna.Pass.Attr                  as Attr
-import qualified Luna.Pass.Basic                 as Pass
-import qualified Luna.Pass.Scheduler             as Scheduler
+import qualified Control.Monad.Exception            as Exception
+import qualified Data.Graph.Component.Edge.Class    as Edge
+import qualified Data.Graph.Data.Graph.Class        as Graph
+import qualified Data.Graph.Data.Layer.Layout       as Layout
+import qualified Data.Graph.Traversal.Fold          as Fold
+import qualified Data.Graph.Traversal.SubComponents as Traversal
+import qualified Data.Graph.Traversal.SubTree       as Traversal
+import qualified Data.Set.Mutable.Class             as Set
+import qualified Luna.IR                            as IR
+import qualified Luna.IR.Layer                      as Layer
+import qualified Luna.Pass                          as Pass
+import qualified Luna.Pass.Attr                     as Attr
+import qualified Luna.Pass.Basic                    as Pass
+import qualified Luna.Pass.Scheduler                as Scheduler
 
 import Data.Graph.Data.Graph.Class (Graph)
 import Luna.Pass                   (Pass)
@@ -109,7 +109,7 @@ irCreationSpec = describe "ir creation" $ do
         rsrc         <- Layer.read @IR.Source r
         ltgt         <- Layer.read @IR.Target l
         rtgt         <- Layer.read @IR.Target r
-        lnks         <- Discovery2.discoverComponents @IR.Links u1
+        lnks         <- Traversal.subComponents @IR.Links u1
         -- lnks         <- IR.inputs u1
 
         -- print "---"
@@ -120,13 +120,15 @@ irCreationSpec = describe "ir creation" $ do
         mod <- Layer.read @IR.Model u1
 
         print "--"
-        x <- Discovery2.discoverComponents @IR.Links u1
-        y <- SubTree.discoverSimple u1
-        -- x <- Fold.buildFold1 @(Discovery2.ComponentDiscovery IR.Links) mod (pure mempty)
+        x <- Traversal.subComponents @IR.Links u1
+        y <- Traversal.subTree' u1
+        -- z <- Inputs.get @IR.Links mod
+        -- z <- Fold.build @(Inputs.Discovery IR.Links) mod (pure mempty)
         -- x <- Fold.gbuildFold @(Discovery2.ComponentDiscovery IR.Links) mod (pure mempty)
         print "%%%"
         print x
         print y
+        -- print z
 
         lsrc `shouldBe` v1
         ltgt `shouldBe` u1

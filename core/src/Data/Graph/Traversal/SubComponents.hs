@@ -1,9 +1,9 @@
 -- {-# LANGUAGE Strict               #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Data.Graph.Traversal.Component where
+module Data.Graph.Traversal.SubComponents where
 
-import Prologue hiding (Foldable, Foldable1, Traversable, fold, fold1, traverse)
+import Prologue hiding (Traversable, Traversal, fold, fold1, traverse)
 
 import qualified Control.Monad.State.Layered          as State
 import qualified Data.Generics.Traversable            as GTraversable
@@ -16,6 +16,7 @@ import qualified Data.Graph.Data.Graph.Class          as Graph
 import qualified Data.Graph.Data.Layer.Class          as Layer
 import qualified Data.Graph.Data.Layer.Layout         as Layout
 import qualified Data.Graph.Traversal.Fold            as Fold
+import qualified Data.Graph.Traversal.Scoped          as Fold
 import qualified Data.Map.Strict                      as Map
 import qualified Data.PtrSet.Mutable                  as PtrSet
 import qualified Data.Set                             as Set
@@ -35,42 +36,60 @@ import Type.Data.Bool                        (Not, type (||))
 import Data.Graph.Component.Node.Class (Constructor)
 
 
---------------------------------
--- === ComponentDiscovery === --
---------------------------------
+-----------------------
+-- === Discovery === --
+-----------------------
 
 -- === Definition === --
 
-data ComponentDiscovery comp
-type instance Fold.Result     (ComponentDiscovery comp) = [Component.Some comp]
-type instance Fold.LayerScope (ComponentDiscovery comp) = 'Fold.All
+data Discovery comp
+type instance Fold.Result     (Discovery comp) = [Component.Some comp]
+type instance Fold.LayerScope (Discovery comp) = 'Fold.All
 
 
 -- === API === --
 
-discoverComponents :: ∀ comp comp' layout a m. Fold.Foldable (Fold.DepthFold (ComponentDiscovery comp)) m (Component comp' layout)
--- discoverComponents :: ∀ comp comp' layout a m. (Monad m)
-    => Component comp' layout -> m [Component.Some comp]
-discoverComponents = \a -> Fold.buildFold @(Fold.DepthFold (ComponentDiscovery comp)) a $! pure $! mempty ; {-# INLINE discoverComponents #-}
+class SubComponents comp m a where
+    subComponents :: a -> m [Component.Some comp]
+
+instance {-# OVERLAPPABLE #-} (Fold.Builder (Discovery comp) m a)
+      => SubComponents comp m a where
+    subComponents = \a -> Fold.build @(Discovery comp) a $! pure $! mempty
+    {-# INLINE subComponents #-}
+
+instance Fold.Builder (Fold.Scoped (Discovery comp)) m
+         (Component comp' layout)
+      => SubComponents comp m (Component comp' layout) where
+    subComponents = \a -> Fold.build @(Fold.Scoped (Discovery comp)) a
+             $! pure $! mempty
+    {-# INLINE subComponents #-}
 
 
 -- === Instances === --
 
+instance (Fold.Builder1 (Discovery comp) m (Component comp))
+      => Fold.Builder (Discovery comp) m (Component comp layout) where
+    build = Fold.build1 @(Discovery comp)
+    {-# INLINE build #-}
+
 instance {-# OVERLAPPABLE #-} Monad m
-      => Fold.Foldable1 (ComponentDiscovery comp) m (Component comp') where
-    buildFold1 = \_ a -> a ; {-# INLINE buildFold1 #-}
+      => Fold.Builder1 (Discovery comp) m (Component comp') where
+    build1 = \_ a -> a
+    {-# INLINE build1 #-}
 
 instance Monad m
-      => Fold.Foldable1 (ComponentDiscovery comp) m (Component comp) where
-    buildFold1 = \comp mr -> (Layout.relayout comp :) <$> mr
-    {-# INLINE buildFold1 #-}
+      => Fold.Builder1 (Discovery comp) m (Component comp) where
+    build1 = \comp mr -> (Layout.relayout comp :) <$> mr
+    {-# INLINE build1 #-}
 
 instance {-# OVERLAPPABLE #-} Monad m
-      => Fold.Foldable1 (ComponentDiscovery comp) m (Component.Set comp') where
-    buildFold1 = \_ -> id ; {-# INLINE buildFold1 #-}
+      => Fold.Builder1 (Discovery comp) m (Component.Set comp') where
+    build1 = \_ -> id
+    {-# INLINE build1 #-}
 
 instance MonadIO m
-      => Fold.Foldable1 (ComponentDiscovery comp) m (Component.Set comp) where
-    buildFold1 = \a acc -> (\a b -> a <> b) <$> (Layout.relayout <<$>> PtrSet.toList (unwrap a))
-                                            <*> acc
-    {-# INLINE buildFold1 #-}
+      => Fold.Builder1 (Discovery comp) m (Component.Set comp) where
+    build1 = \a acc
+        -> (\a b -> a <> b) <$> (Layout.relayout <<$>> PtrSet.toList (unwrap a))
+                            <*> acc
+    {-# INLINE build1 #-}
