@@ -7,7 +7,6 @@ import Prologue hiding (Traversable, Traversal, fold, fold1, traverse)
 
 import qualified Control.Monad.State.Layered          as State
 import qualified Data.Generics.Traversable            as GTraversable
-import qualified Data.Graph.Component.Edge            as Edge
 import qualified Data.Graph.Component.Node.Class      as Node
 import qualified Data.Graph.Component.Node.Layer.Type as Type
 import qualified Data.Graph.Data.Component.Class      as Component
@@ -24,14 +23,13 @@ import qualified Foreign.Ptr                          as Ptr
 import qualified Foreign.Storable                     as Storable
 import qualified Type.Data.List                       as List
 
-import Data.Generics.Traversable             (GTraversable)
-import Data.Graph.Component.Node.Layer.Model (Model)
-import Data.Graph.Data.Component.Class       (Component)
-import Data.PtrList.Mutable                  (UnmanagedPtrList)
-import Data.Set                              (Set)
-import Data.Vector.Storable.Foreign          (Vector)
-import Foreign.Ptr.Utils                     (SomePtr)
-import Type.Data.Bool                        (Not, type (||))
+import Data.Generics.Traversable       (GTraversable)
+import Data.Graph.Data.Component.Class (Component)
+import Data.PtrList.Mutable            (UnmanagedPtrList)
+import Data.Set                        (Set)
+import Data.Vector.Storable.Foreign    (Vector)
+import Foreign.Ptr.Utils               (SomePtr)
+import Type.Data.Bool                  (Not, type (||))
 
 import Data.Graph.Component.Node.Class (Constructor)
 

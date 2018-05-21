@@ -28,7 +28,7 @@ import qualified Data.Graph.Data.Component.Class       as Component
 import qualified Data.Graph.Data.Graph.Class           as Graph
 import qualified Data.Graph.Data.Layer.Class           as Layer
 import qualified Data.Graph.Data.Layer.Layout          as Layout
-import qualified Data.Graph.Traversal.SubComponents           as Traversal
+import qualified Data.Graph.Traversal.SubComponents    as Traversal
 import qualified Data.Graph.Traversal.SubTree          as Traversal
 import qualified Data.IORef                            as IORef
 import qualified Data.Set                              as Set
@@ -51,6 +51,7 @@ import qualified System.Console.ANSI                   as ANSI
 import Control.Concurrent          (threadDelay)
 import Control.DeepSeq             (force)
 import Control.Exception           (evaluate)
+import Control.Monad.Primitive     (primitive)
 import Data.Graph.Data             (Component (Component))
 import Data.Graph.Data.Graph.Class (Graph)
 import Data.Set                    (Set)
@@ -58,9 +59,7 @@ import GHC.Exts                    (Any, Int (I#), SmallMutableArray#, State#,
                                     readSmallArray#, unsafeCoerce#,
                                     writeSmallArray#)
 import Luna.Pass                   (Pass)
-
-import Control.Monad.Primitive (primitive)
-import Luna.Pass.Basic         (Compilation)
+import Luna.Pass.Basic             (Compilation)
 
 
 

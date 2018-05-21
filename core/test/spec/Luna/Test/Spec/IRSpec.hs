@@ -110,18 +110,24 @@ irCreationSpec = describe "ir creation" $ do
         ltgt         <- Layer.read @IR.Target l
         rtgt         <- Layer.read @IR.Target r
         lnks         <- Traversal.subComponents @IR.Links u1
+        u1tpl        <- Layer.read @IR.Type u1
+        v1tpl        <- Layer.read @IR.Type u1
+        v2tpl        <- Layer.read @IR.Type u1
         -- lnks         <- IR.inputs u1
 
         -- print "---"
         -- print "---"
-        -- print lnks
-        tp  <- Layer.read @IR.Type u1
+        let allComps = Set.fromList
+                [ Layout.relayout v1    , Layout.relayout v2    , Layout.relayout u1
+                , Layout.relayout l     , Layout.relayout r     , Layout.relayout u1tpl
+                , Layout.relayout u1tpl , Layout.relayout v1tpl , Layout.relayout v2tpl
+                ]
         -- print tp
         mod <- Layer.read @IR.Model u1
 
         print "--"
-        x <- Traversal.subComponents @IR.Links u1
-        y <- Traversal.subTree' u1
+        subComps <- Set.fromList <$> Traversal.subComponents @IR.Links u1
+        -- y <- Traversal.subTree' u1
         -- z <- Inputs.get @IR.Links mod
         -- z <- Fold.build @(Inputs.Discovery IR.Links) mod (pure mempty)
         -- x <- Fold.gbuildFold @(Discovery2.ComponentDiscovery IR.Links) mod (pure mempty)
@@ -134,6 +140,7 @@ irCreationSpec = describe "ir creation" $ do
         ltgt `shouldBe` u1
         rsrc `shouldBe` v2
         rtgt `shouldBe` u1
+        subComps `shouldBe` allComps
         lnks `shouldBe` (Layout.relayout <$> [l,r])
 
     it "users layer" $ runPass' $ do

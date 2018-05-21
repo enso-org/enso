@@ -66,10 +66,12 @@ class Monad m => ComponentBuilder t m comp where
 
 instance {-# OVERLAPPABLE #-} (Monad m, Fold.Builder1 t m (Layer.Cons layer))
       => LayerBuilder t m layer where
-    layerBuild = Fold.build1 @t ; {-# INLINE layerBuild #-}
+    layerBuild = Fold.build1 @t
+    {-# INLINE layerBuild #-}
 
 instance {-# OVERLAPPABLE #-} Monad m => ComponentBuilder t m comp where
-    componentBuild = \_ -> id ; {-# INLINE componentBuild #-}
+    componentBuild = \_ -> id
+    {-# INLINE componentBuild #-}
 
 
 -- === Instances === --
@@ -103,7 +105,8 @@ class Monad m => LayersFoldableBuilder__ t (layers :: [Type]) m where
     buildLayersFold__ :: SomePtr -> m (Fold.Result t) -> m (Fold.Result t)
 
 instance Monad m => LayersFoldableBuilder__ t '[] m where
-    buildLayersFold__ = \_ a -> a ; {-# INLINE buildLayersFold__ #-}
+    buildLayersFold__ = \_ a -> a
+    {-# INLINE buildLayersFold__ #-}
 
 instance ( MonadIO m
          , Storable.Storable (Layer.Cons l ())
@@ -125,7 +128,8 @@ class Monad m => LayerFoldableBuilder__ (active :: Bool) t m layer where
 
 instance {-# OVERLAPPABLE #-} Monad m
       => LayerFoldableBuilder__ 'False t m layer where
-    layerBuild__ = \_ a -> a ; {-# INLINE layerBuild__ #-}
+    layerBuild__ = \_ a -> a
+    {-# INLINE layerBuild__ #-}
 
 instance (Monad m, Layer.StorableLayer layer m, LayerBuilder t m layer)
       => LayerFoldableBuilder__ 'True t m layer where

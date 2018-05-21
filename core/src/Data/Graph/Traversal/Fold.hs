@@ -34,8 +34,6 @@ import Type.Data.Bool                  (Not, type (||))
 
 -- === Definition === --
 
-
-
 type family Result t
 
 class Monad m => Builder t m a where
@@ -57,7 +55,8 @@ gbuild = GTraversable.gfoldl' @(Builder t m) (\r d x -> r $! build @t d x) id
 
 instance {-# OVERLAPPABLE #-} (GTraversable (Builder t m) a, Monad m)
       => Builder t m a where
-    build = gbuild @t ; {-# INLINE build #-}
+    build = gbuild @t
+    {-# INLINE build #-}
 
 
 -- === No-op instances === --
