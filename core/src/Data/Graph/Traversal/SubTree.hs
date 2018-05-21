@@ -3,7 +3,8 @@
 
 module Data.Graph.Traversal.SubTree where
 
-import Prologue hiding (Foldable, Foldable1, Traversable, fold, fold1, traverse)
+import Prologue hiding (Foldable, Foldable1, Traversable, Traversal, Traversal',
+                 fold, fold1, traverse)
 
 import qualified Control.Monad.State.Layered          as State
 import qualified Data.Generics.Traversable            as GTraversable
@@ -24,6 +25,7 @@ import qualified Foreign.Storable                     as Storable
 import qualified Type.Data.List                       as List
 
 import Data.Generics.Traversable             (GTraversable)
+import Data.Graph.Component.Edge.Class       (Source)
 import Data.Graph.Component.Node.Layer.Model (Model)
 import Data.Graph.Data.Component.Class       (Component)
 import Data.PtrList.Mutable                  (UnmanagedPtrList)
@@ -33,48 +35,65 @@ import Foreign.Ptr.Utils                     (SomePtr)
 import Type.Data.Bool                        (Not, type (||))
 
 
-------------------------------
--- === SubTreeDiscovery === --
-------------------------------
+-----------------------
+-- === Discovery === --
+-----------------------
 
 -- === Definition === --
 
-data SubTreeDiscovery
-type instance Fold.Result     SubTreeDiscovery = [Component.Any]
-type instance Fold.LayerScope SubTreeDiscovery = 'Fold.Whitelist '[Model, Type.Type]
+data Discovery (edges :: [Type])
+type instance Fold.Result     (Discovery es) = [Component.Any]
+type instance Fold.LayerScope (Discovery es) = 'Fold.Whitelist es
 
 
 -- === API === --
 
-getSubTree :: Fold.Foldable (Fold.DepthFold SubTreeDiscovery) m a => a -> m [Component.Any]
-getSubTree = \a -> Fold.buildFold @(Fold.DepthFold SubTreeDiscovery) a $! pure mempty ; {-# INLINE getSubTree #-}
+type Traversal  es = Fold.Foldable  (Fold.DepthFold (Discovery es))
+type Traversal1 es = Fold.Foldable1 (Fold.DepthFold (Discovery es))
+
+discover :: ∀ es m a. Traversal es m a => a -> m [Component.Any]
+discover = \a -> Fold.buildFold @(Fold.DepthFold (Discovery es)) a $! pure mempty
+{-# INLINE discover #-}
+
+
+-- === Simple === --
+
+type SimpleDiscoveryTarget = '[Model, Type.Type, Source]
+type Discovery'  = Discovery SimpleDiscoveryTarget
+type Traversal'  = Fold.Foldable  (Fold.DepthFold Discovery')
+type Traversal1' = Fold.Foldable1 (Fold.DepthFold Discovery')
+
+discoverSimple :: ∀ m a. Traversal' m a => a -> m [Component.Any]
+discoverSimple = discover @SimpleDiscoveryTarget
+{-# INLINE discoverSimple #-}
 
 
 -- === Instances === --
 
 instance Monad m
-      => Fold.FoldableComponent SubTreeDiscovery m tag where
+      => Fold.FoldableComponent (Discovery es) m tag where
     buildComponentFold = \comp acc -> do
         a <- acc
         pure $! Layout.relayout comp : a
     {-# INLINE buildComponentFold #-}
 
 instance ( MonadIO m
-         , Fold.Foldable (Fold.DepthFold SubTreeDiscovery) m Node.Some
+         , Traversal es m Node.Some
          , Layer.Reader Edge.Edge Edge.Source m
          , Layer.Reader Edge.Edge Edge.Target m
          )
-      => Fold.FoldableLayer SubTreeDiscovery m Type.Type where
+      => Fold.FoldableLayer (Discovery es) m Type.Type where
     buildLayerFold = \tpLink acc -> do
         (tp  :: Node.Some) <- Layout.relayout <$> Layer.read @Edge.Source tpLink
         (tgt :: Node.Some) <- Layout.relayout <$> Layer.read @Edge.Target tpLink
         a <- acc
         let acc' = pure $! Layout.relayout tpLink : a
-        if tp == tgt then acc' else Fold.buildFold @(Fold.DepthFold SubTreeDiscovery) tp acc'
+        if tp == tgt then acc'
+                     else Fold.buildFold @(Fold.DepthFold (Discovery es)) tp acc'
     {-# INLINE buildLayerFold #-}
 
 
-instance {-# OVERLAPPABLE #-} (Monad m, Fold.Foldable1 (Fold.DepthFold SubTreeDiscovery) m (Layer.Cons layer))
-      => Fold.FoldableLayer SubTreeDiscovery m layer where
-    buildLayerFold = Fold.buildFold1 @(Fold.DepthFold SubTreeDiscovery)
+instance {-# OVERLAPPABLE #-} (Monad m, Traversal1 es m (Layer.Cons layer))
+      => Fold.FoldableLayer (Discovery es) m layer where
+    buildLayerFold = Fold.buildFold1 @(Fold.DepthFold (Discovery es))
     {-# INLINE buildLayerFold #-}

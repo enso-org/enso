@@ -13,6 +13,7 @@ import qualified Data.Graph.Data.Graph.Class     as Graph
 import qualified Data.Graph.Data.Layer.Layout    as Layout
 import qualified Data.Graph.Traversal.Component  as Discovery2
 import qualified Data.Graph.Traversal.Fold       as Fold
+import qualified Data.Graph.Traversal.SubTree    as SubTree
 import qualified Data.Set.Mutable.Class          as Set
 import qualified Luna.IR                         as IR
 import qualified Luna.IR.Layer                   as Layer
@@ -119,10 +120,13 @@ irCreationSpec = describe "ir creation" $ do
         mod <- Layer.read @IR.Model u1
 
         print "--"
-        x <- Fold.buildFold1 @(Discovery2.ComponentDiscovery IR.Links) mod (pure mempty)
+        x <- Discovery2.discoverComponents @IR.Links u1
+        y <- SubTree.discoverSimple u1
+        -- x <- Fold.buildFold1 @(Discovery2.ComponentDiscovery IR.Links) mod (pure mempty)
         -- x <- Fold.gbuildFold @(Discovery2.ComponentDiscovery IR.Links) mod (pure mempty)
         print "%%%"
         print x
+        print y
 
         lsrc `shouldBe` v1
         ltgt `shouldBe` u1
