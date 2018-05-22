@@ -101,7 +101,7 @@ instance {-# OVERLAPPABLE #-}
 
 -- === FoldableLayers === --
 
-class Monad m => LayersFoldableBuilder__ t (layers :: [Type]) m where
+class LayersFoldableBuilder__ t (layers :: [Type]) m where
     buildLayersFold__ :: SomePtr -> m (Fold.Result t) -> m (Fold.Result t)
 
 instance Monad m => LayersFoldableBuilder__ t '[] m where
