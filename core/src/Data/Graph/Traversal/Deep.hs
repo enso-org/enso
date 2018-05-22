@@ -25,6 +25,7 @@ import Data.Generics.Traversable             (GTraversable)
 import Data.Graph.Component.Edge.Class       (Source)
 import Data.Graph.Component.Node.Layer.Model (Model)
 import Data.Graph.Data.Component.Class       (Component)
+import Data.Graph.Traversal.Fold             (Result)
 import Data.PtrList.Mutable                  (UnmanagedPtrList)
 import Data.Vector.Storable.Foreign          (Vector)
 import Foreign.Ptr.Utils                     (SomePtr)
@@ -47,14 +48,19 @@ type instance Fold.LayerScope (Deep t) = Fold.LayerScope t
 type Builder  t = Fold.Builder  (Fold.Scoped (Deep t))
 type Builder1 t = Fold.Builder1 (Fold.Scoped (Deep t))
 
-build :: ∀ t m a. Builder t m a => a -> m (Fold.Result t) -> m (Fold.Result t)
-build = Fold.build @(Fold.Scoped (Deep t))
-{-# INLINE build #-}
-
-build1 :: ∀ t m a t1. Builder1 t m a
-       => a t1 -> m (Fold.Result t) -> m (Fold.Result t)
+build  :: ∀ t m a.    Builder  t m a => a    -> m (Result t) -> m (Result t)
+build1 :: ∀ t m a t1. Builder1 t m a => a t1 -> m (Result t) -> m (Result t)
+build  = Fold.build  @(Fold.Scoped (Deep t))
 build1 = Fold.build1 @(Fold.Scoped (Deep t))
+{-# INLINE build #-}
 {-# INLINE build1 #-}
+
+run  :: ∀ t m a.    (Builder  t m a, Mempty (Result t)) => a    -> m (Result t)
+run1 :: ∀ t m a t1. (Builder1 t m a, Mempty (Result t)) => a t1 -> m (Result t)
+run  = \a -> build  @t a $! pure $! mempty
+run1 = \a -> build1 @t a $! pure $! mempty
+{-# INLINE run  #-}
+{-# INLINE run1 #-}
 
 
 -- === Instances === --
@@ -73,12 +79,9 @@ instance ( MonadIO m
     layerBuild = \tpLink acc -> do
         (tp  :: Node.Some) <- Layout.relayout <$> Layer.read @Edge.Source tpLink
         (tgt :: Node.Some) <- Layout.relayout <$> Layer.read @Edge.Target tpLink
-        a <- acc
         let acc' = Fold.componentBuild @(Deep t) tpLink acc
-        if tp == tgt then acc'
-                     else Fold.build @(Fold.Scoped (Deep t)) tp acc'
+        if tp == tgt then acc' else Fold.build @(Fold.Scoped (Deep t)) tp acc'
     {-# INLINE layerBuild #-}
-
 
 instance {-# OVERLAPPABLE #-} (Monad m, Builder1 t m (Layer.Cons layer))
       => Fold.LayerBuilder (Deep t) m layer where

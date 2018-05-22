@@ -12,6 +12,7 @@ import qualified Data.Graph.Data.Component.Class as Component
 
 -- === Definition === --
 
+type List' = List ()
 data List l
     = Cons !(Component.Some l) !(List l)
     | Nil
@@ -27,5 +28,5 @@ type family Lists ls where
 
 -- === Instances === --
 
-instance Default (List l) where
-    def = Nil ; {-# INLINE def #-}
+instance Mempty  (List l) where mempty = Nil    ; {-# INLINE mempty #-}
+instance Default (List l) where def    = mempty ; {-# INLINE def    #-}

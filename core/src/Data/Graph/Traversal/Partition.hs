@@ -2,7 +2,7 @@
 
 module Data.Graph.Traversal.Partition where
 
-import Prologue hiding (empty)
+import Prologue
 
 import qualified Data.Graph.Component.Edge            as Edge
 import qualified Data.Graph.Component.Node.Class      as Node
@@ -32,13 +32,14 @@ import Data.TypeMap.Strict             (TypeMap)
 
 -- === Datatypes and aliases === --
 
-type Clusters  comps = TypeMap  (Component.Lists comps)
-type ClustersM m     = Clusters (Graph.DiscoverComponents m)
+type Clusters   comps = TypeMap   (Component.Lists comps)
+type ClustersM  m     = Clusters  (Graph.DiscoverComponents m)
+type DiscoveryM m     = Discovery (Graph.DiscoverComponents m)
 
 data Discovery  (comps :: [Type])
-type DiscoveryM m = Discovery (Graph.DiscoverComponents m)
 type instance Fold.Result     (Discovery comps) = Clusters comps
-type instance Fold.LayerScope (Discovery comps) = 'Fold.Blacklist '[Target, Users]
+type instance Fold.LayerScope (Discovery comps)
+   = 'Fold.Blacklist '[Target, Users]
 
 type ClusterEditor t ts = TypeMap.ElemEditor (Component.List  t)
                                              (Component.Lists ts)
@@ -48,16 +49,13 @@ type ClusterEditor t ts = TypeMap.ElemEditor (Component.List  t)
 
 type Partition comp m =
     ( Deep.Builder1 (DiscoveryM m) m (Component comp)
-    , Default (ClustersM m)
+    , Mempty (ClustersM m)
     )
 
 partition :: ∀ comp m layout. Partition comp m
           => Component comp layout -> m (ClustersM m)
-partition = \comp -> Deep.build1 @(DiscoveryM m) comp (pure $! emptyM @m)
+partition = Deep.run1 @(DiscoveryM m)
 {-# INLINE partition #-}
-
-emptyM :: ∀ m. Default (ClustersM m) => ClustersM m
-emptyM = def ; {-# INLINE emptyM #-}
 
 
 -- === Instances === --

@@ -153,6 +153,19 @@ genDefaultInstances = return decls where
         decl   = InstanceD Nothing ctx header [fun, prag]
     decls = genDecl <$> [0.._MAX_TUPLE_SIZE]
 
+genMemptyInstances :: Q [Dec]
+genMemptyInstances = return decls where
+    genDecl tupLen = decl where
+        ns     = unsafeGenNamesTN tupLen
+        tvs    = var <$> ns
+        header = apps (cons' "Mempty") [tup tvs]
+        fun    = FunD "mempty" [ TH.Clause []
+                 (NormalB (tup $ replicate tupLen "mempty")) []]
+        prag   = PragmaD (InlineP "mempty" Inline FunLike AllPhases)
+        ctx    = app (cons' "Mempty") <$> tvs
+        decl   = InstanceD Nothing ctx header [fun, prag]
+    decls = genDecl <$> [0.._MAX_TUPLE_SIZE]
+
 -- >> instance IxElemSetter 0 (T3 t1 t2 t3) where
 -- >>     setElemAt v (T3 !t1 !t2 !t3) = T3 v t2 t3 ; {-# INLINE setElemAt #-}
 

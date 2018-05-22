@@ -2,8 +2,7 @@
 
 module Data.Graph.Traversal.SubTree where
 
-import Prologue hiding (Traversable, Traversal, Traversal', fold, fold1,
-                 traverse)
+import Prologue
 
 import qualified Control.Monad.State.Layered          as State
 import qualified Data.Generics.Traversable            as GTraversable
@@ -11,6 +10,7 @@ import qualified Data.Graph.Component.Edge            as Edge
 import qualified Data.Graph.Component.Node.Class      as Node
 import qualified Data.Graph.Component.Node.Layer.Type as Type
 import qualified Data.Graph.Data.Component.Class      as Component
+import qualified Data.Graph.Data.Component.List       as Component
 import qualified Data.Graph.Data.Graph.Class          as Graph
 import qualified Data.Graph.Data.Layer.Class          as Layer
 import qualified Data.Graph.Data.Layer.Layout         as Layout
@@ -32,6 +32,7 @@ import Foreign.Ptr.Utils                     (SomePtr)
 import Type.Data.Bool                        (Not, type (||))
 
 
+
 -----------------------
 -- === Discovery === --
 -----------------------
@@ -39,7 +40,7 @@ import Type.Data.Bool                        (Not, type (||))
 -- === Definition === --
 
 data Discovery (scope :: Fold.Scope)
-type instance Fold.Result     (Discovery scope) = [Component.Any]
+type instance Fold.Result     (Discovery scope) = Component.List'
 type instance Fold.LayerScope (Discovery scope) = scope
 
 
@@ -48,25 +49,30 @@ type instance Fold.LayerScope (Discovery scope) = scope
 type SubTree  scope = Deep.Builder  (Discovery scope)
 type SubTree1 scope = Deep.Builder1 (Discovery scope)
 
-subTree :: ∀ scope m a. SubTree scope m a => a -> m [Component.Any]
-subTree = \a -> Deep.build @(Discovery scope) a $! pure mempty
+subTree  :: ∀ scope m a.   SubTree  scope m a => a   -> m Component.List'
+subTree1 :: ∀ scope m a t. SubTree1 scope m a => a t -> m Component.List'
+subTree  = Deep.run  @(Discovery scope)
+subTree1 = Deep.run1 @(Discovery scope)
 {-# INLINE subTree #-}
+{-# INLINE subTree1 #-}
 
 
 -- === Simple === --
 
 type SimpleDiscoveryScope = 'Fold.Whitelist '[Model, Type.Type, Source]
-type Discovery' = Discovery SimpleDiscoveryScope
-type SubTree'   = SubTree   SimpleDiscoveryScope
-type SubTree1'  = SubTree1  SimpleDiscoveryScope
+type SubTree'   = SubTree  SimpleDiscoveryScope
+type SubTree1'  = SubTree1 SimpleDiscoveryScope
 
-subTree' :: ∀ m a. SubTree' m a => a -> m [Component.Any]
-subTree' = subTree @SimpleDiscoveryScope
-{-# INLINE subTree' #-}
+subTree'  :: ∀ m a.   SubTree'  m a => a   -> m Component.List'
+subTree1' :: ∀ m a t. SubTree1' m a => a t -> m Component.List'
+subTree'  = subTree  @SimpleDiscoveryScope
+subTree1' = subTree1 @SimpleDiscoveryScope
+{-# INLINE subTree'  #-}
+{-# INLINE subTree1' #-}
 
 
 -- === Instances === --
 
 instance Monad m => Fold.ComponentBuilder (Discovery scope) m tag where
-    componentBuild = \comp acc -> (Layout.relayout comp :) <$> acc
+    componentBuild = \cmp acc -> (Component.Cons $ Layout.relayout cmp) <$> acc
     {-# INLINE componentBuild #-}

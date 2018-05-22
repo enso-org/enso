@@ -33,6 +33,10 @@ genIxElemSetters
 -- >>     def = T2 def def ; {-# INLINE def #-}
 genDefaultInstances
 
+-- >> instance (Mempty t1, Mempty t2) => Mempty (T2 t1 t2) where
+-- >>     mempty = T2 mempty mempty ; {-# INLINE mempty #-}
+genMemptyInstances
+
 -- >> type instance Prepended t (T2 t1 t2) = T3 t t1 t2
 genPrepended
 

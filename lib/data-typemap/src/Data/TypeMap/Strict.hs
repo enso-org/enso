@@ -74,6 +74,7 @@ instance ( ElemSetter s ts
 -- === Instances === --
 
 deriving instance Show    (TypeMapData ts) => Show    (TypeMap ts)
+deriving instance Mempty  (TypeMapData ts) => Mempty  (TypeMap ts)
 deriving instance Default (TypeMapData ts) => Default (TypeMap ts)
 
 
