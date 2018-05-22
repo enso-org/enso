@@ -70,10 +70,10 @@ instance Semigroup t => Semigroup (Simple t layout) where
 
 -- TODO[PM]: Storable1.derive ''Simple
 instance Storable.Storable t => Storable1.Storable1 (Simple t) where
-    sizeOf    _ = Storable.sizeOf   (undefined :: t)  ; {-# INLINE sizeOf    #-}
-    alignment _ = Storable.alignment (undefined :: t) ; {-# INLINE alignment #-}
-    peek      p = wrap <$> Storable.peek (coerce p)   ; {-# INLINE peek      #-}
-    poke      p = Storable.poke (coerce p) . unwrap   ; {-# INLINE poke      #-}
+    sizeOf    = \ ~_ -> Storable.sizeOf   (undefined :: t)  ; {-# INLINE sizeOf    #-}
+    alignment = \ ~_ -> Storable.alignment (undefined :: t) ; {-# INLINE alignment #-}
+    peek      = \p   -> wrap <$> Storable.peek (coerce p)   ; {-# INLINE peek      #-}
+    poke      = \p   -> Storable.poke (coerce p) . unwrap   ; {-# INLINE poke      #-}
 
 
 
