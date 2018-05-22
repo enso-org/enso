@@ -28,6 +28,7 @@ import qualified Data.Graph.Data.Component.Class       as Component
 import qualified Data.Graph.Data.Graph.Class           as Graph
 import qualified Data.Graph.Data.Layer.Class           as Layer
 import qualified Data.Graph.Data.Layer.Layout          as Layout
+import qualified Data.Graph.Traversal.Partition        as Partition
 import qualified Data.Graph.Traversal.SubComponents    as Traversal
 import qualified Data.Graph.Traversal.SubTree          as Traversal
 import qualified Data.IORef                            as IORef
@@ -455,13 +456,7 @@ subTreeDiscovery = Bench "generic" $ \i -> runPass' $ do
     !v <- IR.var "a"
     let go !0 = let !o = pure () in o
         go !j = do
-            !out <- Traversal.subTree' v
-            -- putStrLn ""
-            -- print out
-            -- !tl  <- Layer.read @IR.Type v
-            -- !t   <- Layer.read @IR.Source tl
-            -- !ttl <- Layer.read @IR.Type t
-            -- print [Component.unsafeToPtr v, Component.unsafeToPtr tl, Component.unsafeToPtr t, Component.unsafeToPtr ttl]
+            !_ <- Traversal.subTree' v
             let !o = go $! j - 1 in o
     go i
 {-# NOINLINE subTreeDiscovery #-}
@@ -484,7 +479,27 @@ linkDiscovery = Bench "link" $ \i -> runPass' $ do
 {-# NOINLINE linkDiscovery #-}
 
 
+partitionsSingleVar :: Bench
+partitionsSingleVar = Bench "partitions single var" $ \i -> runPass' $ do
+    !v <- IR.var "a"
+    let go !0 = let !o = pure () in o
+        go !j = do
+            !_ <- Partition.partition v
+            let !o = go $! j - 1 in o
+    go i
+{-# NOINLINE partitionsSingleVar #-}
 
+partitionsUnify :: Bench
+partitionsUnify = Bench "partitions unify" $ \i -> runPass' $ do
+    !a <- IR.var "a"
+    !b <- IR.var "b"
+    !u <- IR.unify a b
+    let go !0 = let !o = pure () in o
+        go !j = do
+            !_ <- Partition.partition u
+            let !o = go $! j - 1 in o
+    go i
+{-# NOINLINE partitionsUnify #-}
 
 
 newtype X = X Int
@@ -602,8 +617,9 @@ readWrite_ioref = Bench "ioref" $ \i -> do
 invariants :: IO ()
 invariants = checkInvariants maxPercDiff $
     -- [ assertBenchToRef "Create IR" 6 10 createIR_mallocPtr createIR_normal
-    [ assertBenchToRef "Layer R/W        " 7 maxPercDiff readWrite_cptr readWrite_layer
-    , assertBenchToRef "SubTree Discovery" 6 maxPercDiff subTreeDiscovery_manual subTreeDiscovery
+    [ assertBenchToRef "Layer R/W        "  7 maxPercDiff readWrite_cptr readWrite_layer
+    , assertBenchToRef "SubTree Discovery"  6 maxPercDiff subTreeDiscovery_manual subTreeDiscovery
+    , assertBenchToRef "SubTree Partitions" 6 (maxPercDiff + 5) subTreeDiscovery partitionsSingleVar
     ]
     where maxPercDiff = 5
 
@@ -637,9 +653,9 @@ benchmarks = do
 
         [ "discovery" $ bench 6 <$>
             [ subTreeDiscovery
-            -- , subTreeDiscovery_manual
             , linkDiscovery
-        --     -- , discoverIR_simple
+            , partitionsSingleVar
+            , partitionsUnify
             ]
         ]
       ]

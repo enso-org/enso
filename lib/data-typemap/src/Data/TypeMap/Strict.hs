@@ -23,12 +23,19 @@ makeLenses ''TypeMap
 
 type ElemGetter el ts = Tuple.ElemGetter         el (TypeMapData ts)
 type ElemSetter el ts = Tuple.ElemSetterKeepType el (TypeMapData ts)
+type ElemEditor el ts = (ElemGetter el ts, ElemSetter el ts)
 
 getElem :: ∀ el ts. ElemGetter el ts => TypeMap ts -> el
 getElem t = Tuple.getElem (unwrap t) ; {-# INLINE getElem #-}
 
 setElem :: ∀ el ts. ElemSetter el ts => el -> TypeMap ts -> TypeMap ts
 setElem v = wrapped %~ (Tuple.setElemKeepType @el v) ; {-# INLINE setElem #-}
+
+modifyElem_ :: ∀ el ts. ElemEditor el ts
+            => (el -> el) -> TypeMap ts -> TypeMap ts
+modifyElem_ f tm = setElem @el el' tm where
+    !el' = f $! getElem @el tm
+{-# INLINE modifyElem_ #-}
 
 empty :: TypeMap '[]
 empty = wrap Tuple.T0 ; {-# INLINE empty #-}

@@ -167,5 +167,5 @@ default-extensions:
     - TypeOperators
     - UnicodeSyntax
     - ViewPatterns
-    # - Strict
+    - Strict
 
