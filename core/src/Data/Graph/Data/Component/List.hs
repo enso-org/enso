@@ -3,6 +3,9 @@ module Data.Graph.Data.Component.List where
 import Prologue
 
 import qualified Data.Graph.Data.Component.Class as Component
+import qualified Data.Graph.Data.Layer.Layout    as Layout
+
+import Data.Graph.Data.Component.Class (Component)
 
 
 
@@ -13,8 +16,8 @@ import qualified Data.Graph.Data.Component.Class as Component
 -- === Definition === --
 
 type List' = List ()
-data List l
-    = Cons !(Component.Some l) !(List l)
+data List comp
+    = Cons !(Component.Some comp) !(List comp)
     | Nil
     deriving Show
 
@@ -28,5 +31,18 @@ type family Lists ls where
 
 -- === Instances === --
 
-instance Mempty  (List l) where mempty = Nil    ; {-# INLINE mempty #-}
-instance Default (List l) where def    = mempty ; {-# INLINE def    #-}
+instance Mempty  (List comp) where mempty = Nil    ; {-# INLINE mempty #-}
+instance Default (List comp) where def    = mempty ; {-# INLINE def    #-}
+
+instance comp ~ comp'
+      => Convertible [Component comp layout] (List comp') where
+    convert = \case
+        []     -> Nil
+        (a:as) -> Cons (Layout.relayout a) $! convert as
+    {-# INLINABLE convert #-}
+
+instance Semigroup (List comp) where
+    l <> l' = case l of
+        Nil       -> l'
+        Cons a as -> Cons a (as <> l')
+    {-# INLINABLE (<>) #-}

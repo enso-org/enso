@@ -8,11 +8,12 @@ import Prologue
 import qualified Data.Construction                  as Data
 import qualified Data.Graph.Component.Edge.Class    as Edge
 import qualified Data.Graph.Component.Node.Class    as Node
+import qualified Data.Graph.Data.Component.List     as Component
 import qualified Data.Graph.Data.Layer.Class        as Layer
 import qualified Data.Graph.Data.Layer.Layout       as Layout
 import qualified Data.Graph.Traversal.SubComponents as Traversal
 
-import Data.Graph.Component.Edge.Class (Edges, SomeEdge)
+import Data.Graph.Component.Edge.Class (Edges)
 import Data.Graph.Component.Node.Class (Node)
 import Data.Graph.Data.Layer.Class     (Layer)
 
@@ -42,7 +43,7 @@ inputs :: ( Layer.Reader Node Model m
           , Layer.IsUnwrapped Node.Uni
           , Traversal.SubComponents Edges m (Node.Uni layout)
           , MonadIO m
-          ) => Node layout -> m [SomeEdge]
+          ) => Node layout -> m (Component.List Edges)
 inputs = Traversal.subComponents @Edges <=< Layer.read @Model
 {-# INLINE inputs #-}
 

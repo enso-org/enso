@@ -10,6 +10,7 @@ import qualified Data.Generics.Traversable            as GTraversable
 import qualified Data.Graph.Component.Node.Class      as Node
 import qualified Data.Graph.Component.Node.Layer.Type as Type
 import qualified Data.Graph.Data.Component.Class      as Component
+import qualified Data.Graph.Data.Component.List       as Component
 import qualified Data.Graph.Data.Component.Set        as Component
 import qualified Data.Graph.Data.Graph.Class          as Graph
 import qualified Data.Graph.Data.Layer.Class          as Layer
@@ -41,14 +42,14 @@ import Data.Graph.Component.Node.Class (Constructor)
 -- === Definition === --
 
 data Discovery comp
-type instance Fold.Result     (Discovery comp) = [Component.Some comp]
+type instance Fold.Result     (Discovery comp) = Component.List comp
 type instance Fold.LayerScope (Discovery comp) = 'Fold.All
 
 
 -- === API === --
 
 class SubComponents comp m a where
-    subComponents :: a -> m [Component.Some comp]
+    subComponents :: a -> m (Component.List comp)
 
 instance {-# OVERLAPPABLE #-} (Fold.Builder (Discovery comp) m a)
       => SubComponents comp m a where
@@ -77,7 +78,7 @@ instance {-# OVERLAPPABLE #-} Monad m
 
 instance Monad m
       => Fold.Builder1 (Discovery comp) m (Component comp) where
-    build1 = \comp mr -> (Layout.relayout comp :) <$> mr
+    build1 = \comp mr -> (Component.Cons $! Layout.relayout comp) <$> mr
     {-# INLINE build1 #-}
 
 instance {-# OVERLAPPABLE #-} Monad m
@@ -88,6 +89,5 @@ instance {-# OVERLAPPABLE #-} Monad m
 instance MonadIO m
       => Fold.Builder1 (Discovery comp) m (Component.Set comp) where
     build1 = \a acc
-        -> (\a b -> a <> b) <$> (Layout.relayout <<$>> PtrSet.toList (unwrap a))
-                            <*> acc
+        -> (\a b -> a <> b) <$> (convert <$> PtrSet.toList (unwrap a)) <*> acc
     {-# INLINE build1 #-}
