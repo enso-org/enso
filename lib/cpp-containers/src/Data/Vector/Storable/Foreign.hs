@@ -4,13 +4,15 @@ import Prologue hiding (empty, fromList, toList, unsafeRead)
 
 import qualified Data.Construction         as Data
 import qualified Data.List                 as List
+import qualified Foreign.DynamicStorable   as DynamicStorable
 import qualified Foreign.Marshal.Alloc     as Mem
 import qualified Foreign.Storable.Deriving as Storable
 import qualified Foreign.Storable.Utils    as Storable
 
-import Foreign.Ptr      (Ptr, nullPtr)
-import Foreign.Storable (Storable)
-import System.IO.Unsafe (unsafeDupablePerformIO, unsafePerformIO)
+import Foreign.DynamicStorable (DynamicStorable)
+import Foreign.Ptr             (Ptr, nullPtr)
+import Foreign.Storable        (Storable)
+import System.IO.Unsafe        (unsafeDupablePerformIO, unsafePerformIO)
 
 
 --------------------
@@ -82,3 +84,9 @@ instance Mempty (Vector a) where mempty = empty ; {-# INLINE mempty #-}
 
 instance MonadIO m => Data.ShallowDestructor1 m Vector where
     destructShallow1 = free ; {-# INLINE destructShallow1 #-}
+
+instance Storable a => DynamicStorable (Vector a) where
+    sizeOf = \v -> pure $ (v ^. size) * Storable.sizeOf' @a
+    {-# INLINE sizeOf #-}
+
+    -- peek ptr =

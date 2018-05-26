@@ -20,10 +20,12 @@ import qualified Data.Graph.Data.Graph.Class        as Graph
 import qualified Data.Graph.Traversal.Fold          as Fold
 import qualified Data.Graph.Traversal.SubComponents as Component
 import qualified Data.Graph.Traversal.SubTree       as SubTree
+import qualified Foreign.PartitionStorable          as PartitionStorable
 import qualified OCI.IR.Term.Definition             as Term
 
 import Data.Generics.Traversable       (GTraversable)
 import Data.Graph.Data.Component.Class (Component)
+import Foreign.PartitionStorable       (PartitionStorable)
 import OCI.IR.Link.Class               (Link)
 
 
@@ -91,3 +93,4 @@ instance (Monad m, GTraversable (UniTermFold t m) (Constructor comp layout))
       => UniTermFold t m (Constructor comp layout) where
     buildFold__ = gbuildFold__ @t
     {-# INLINE buildFold__ #-}
+

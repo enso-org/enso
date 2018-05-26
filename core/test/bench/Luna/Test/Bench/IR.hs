@@ -619,7 +619,7 @@ invariants = checkInvariants maxPercDiff $
     -- [ assertBenchToRef "Create IR" 6 10 createIR_mallocPtr createIR_normal
     [ assertBenchToRef "Layer R/W        "  7 maxPercDiff readWrite_cptr readWrite_layer
     , assertBenchToRef "SubTree Discovery"  6 maxPercDiff subTreeDiscovery_manual subTreeDiscovery
-    , assertBenchToRef "SubTree Partitions" 6 (maxPercDiff + 5) subTreeDiscovery partitionsSingleVar
+    , assertBenchToRef "SubTree Partitions" 6 maxPercDiff subTreeDiscovery partitionsSingleVar
     ]
     where maxPercDiff = 5
 
