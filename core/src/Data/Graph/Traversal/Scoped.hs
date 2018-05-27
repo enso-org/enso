@@ -21,7 +21,6 @@ import qualified Type.Data.List                  as List
 
 import Data.Generics.Traversable       (GTraversable)
 import Data.Graph.Data.Component.Class (Component)
-import Data.PtrList.Mutable            (UnmanagedPtrList)
 import Data.Set                        (Set)
 import Data.Vector.Storable.Foreign    (Vector)
 import Foreign.Ptr.Utils               (SomePtr)

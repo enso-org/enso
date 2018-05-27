@@ -14,7 +14,6 @@ import qualified Data.Graph.Data.Layer.Layout           as Layout
 import qualified Luna.IR.Term.Format                    as Format
 import qualified OCI.IR.Term.Definition                 as Term
 
-import Data.PtrList.Mutable         (UnmanagedPtrList)
 import Data.Vector.Storable.Foreign (Vector)
 import OCI.Data.Name                (Name)
 import OCI.IR.Term.Class            (Term, Terms)

@@ -11,16 +11,17 @@ import qualified FastString                         as FastString
 import qualified Language.Symbol.Label              as Label
 import qualified Prelude                            as Prelude
 
-import Binary           (Binary)
-import Data.IntMap      (IntMap)
-import Data.IORef       (IORef, atomicModifyIORef', newIORef, readIORef)
-import FastString       (FastString)
-import Foreign.Storable (Storable)
-import GHC.IO.Unsafe    (unsafeDupablePerformIO)
-import Outputable       (Outputable)
-import System.IO.Unsafe (unsafePerformIO)
-import Unique           (Uniquable)
-
+import Binary                    (Binary)
+import Data.IntMap               (IntMap)
+import Data.IORef                (IORef, atomicModifyIORef', newIORef,
+                                  readIORef)
+import FastString                (FastString)
+import Foreign.PartitionStorable (DynamicSubStorable)
+import Foreign.Storable          (Storable)
+import GHC.IO.Unsafe             (unsafeDupablePerformIO)
+import Outputable                (Outputable)
+import System.IO.Unsafe          (unsafePerformIO)
+import Unique                    (Uniquable)
 
 
 -------------------
@@ -147,3 +148,5 @@ instance Semigroup Value where
 -- TODO !!!!!!
 -- Remove? vvv
 instance Label.HasLabel Name
+
+instance DynamicSubStorable Name

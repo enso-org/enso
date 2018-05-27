@@ -26,10 +26,10 @@ import Data.Graph.Component.Edge.Class       (Source)
 import Data.Graph.Component.Node.Layer.Model (Model)
 import Data.Graph.Data.Component.Class       (Component)
 import Data.Graph.Traversal.Fold             (Result)
-import Data.PtrList.Mutable                  (UnmanagedPtrList)
 import Data.Vector.Storable.Foreign          (Vector)
 import Foreign.Ptr.Utils                     (SomePtr)
 import Type.Data.Bool                        (Not, type (||))
+
 
 
 ------------------

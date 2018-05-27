@@ -7,6 +7,8 @@ import Prologue hiding (Symbol)
 import qualified Data.Generics.Traversable.Deriving as GTraversable
 import qualified Foreign.Storable.Deriving          as Storable
 
+import Foreign.PartitionStorable (DynamicSubStorable)
+
 
 -----------------------------
 -- === Invalid Symbols === --
@@ -22,6 +24,7 @@ data Symbol
     | CaselessNameHead
     | Literal InvalidLiteral
     deriving (Eq, Ord, Generic, Show)
+instance DynamicSubStorable Symbol
 
 data InvalidLiteral
     = String InvalidString

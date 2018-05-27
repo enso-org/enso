@@ -6,13 +6,17 @@ import qualified Data.Construction         as Data
 import qualified Data.List                 as List
 import qualified Foreign.DynamicStorable   as DynamicStorable
 import qualified Foreign.Marshal.Alloc     as Mem
+import qualified Foreign.Marshal.Utils     as Mem
+import qualified Foreign.PartitionStorable as DynamicSubStorable
 import qualified Foreign.Storable.Deriving as Storable
 import qualified Foreign.Storable.Utils    as Storable
 
-import Foreign.DynamicStorable (DynamicStorable)
-import Foreign.Ptr             (Ptr, nullPtr)
-import Foreign.Storable        (Storable)
-import System.IO.Unsafe        (unsafeDupablePerformIO, unsafePerformIO)
+import Foreign.DynamicStorable   (DynamicStorable)
+import Foreign.PartitionStorable (DynamicSubStorable)
+import Foreign.Ptr               (Ptr, nullPtr)
+import Foreign.Storable          (Storable)
+import Foreign.Storable.Utils    (castPeekAndOffset, castPokeAndOffset)
+import System.IO.Unsafe          (unsafeDupablePerformIO, unsafePerformIO)
 
 
 --------------------
@@ -54,8 +58,8 @@ unsafeWrite v off a = liftIO $ Storable.pokeElemOff (v ^. ptr) off a ; {-# INLIN
 
 -- === List === --
 
-fromList :: Storable a => [a] -> Vector a
-fromList lst = unsafeDupablePerformIO $ do
+fromList :: (MonadIO m, Storable a) => [a] -> m (Vector a)
+fromList lst = liftIO $ do
     v <- new (List.length lst)
     mapM_ (uncurry $ unsafeWrite v) $ zip [0..] lst
     pure v
@@ -67,9 +71,9 @@ toList v = mapM (unsafeRead v) [0 .. (v ^. size) - 1] ; {-# INLINE toList #-}
 
 -- === Conversions === --
 
-type instance Item (Vector a) = a
-instance (Convertible' a b, Storable b) => Convertible [a] (Vector b) where
-    convert = fromList . fmap convert' ; {-# INLINE convert #-}
+-- type instance Item (Vector a) = a
+-- instance (Convertible' a b, Storable b) => Convertible [a] (Vector b) where
+--     convert = fromList . fmap convert' ; {-# INLINE convert #-}
 
 
 -- === Debug === --
@@ -86,7 +90,28 @@ instance MonadIO m => Data.ShallowDestructor1 m Vector where
     destructShallow1 = free ; {-# INLINE destructShallow1 #-}
 
 instance Storable a => DynamicStorable (Vector a) where
-    sizeOf = \v -> pure $ (v ^. size) * Storable.sizeOf' @a
+    sizeOf = \v -> let
+        headerSize = Storable.sizeOf' @Int
+        bodySize   = (v ^. size) * Storable.sizeOf' @a
+        in pure $! headerSize + bodySize
     {-# INLINE sizeOf #-}
 
-    -- peek ptr =
+    peek ptr = do
+        (size, bodyPtr) <- castPeekAndOffset @Int ptr
+        let byteSize = size * Storable.sizeOf' @a
+        newBodyPtr <- Mem.mallocBytes byteSize
+        Mem.copyBytes newBodyPtr bodyPtr byteSize
+        pure $ Vector size newBodyPtr
+    {-# INLINE peek #-}
+
+    poke ptr (Vector size bodyPtr) = do
+        let headerSize = Storable.sizeOf' @Int
+            byteSize   = headerSize + size * Storable.sizeOf' @a
+        newBodyPtr <- castPokeAndOffset @Int ptr size
+        Mem.copyBytes newBodyPtr bodyPtr byteSize
+    {-# INLINE poke #-}
+
+instance Storable a => DynamicSubStorable (Vector a) where
+    sizeOf          = DynamicStorable.sizeOf                                     ; {-# INLINE sizeOf #-}
+    load dynPtr ptr = Storable.poke ptr =<< DynamicStorable.peek (coerce dynPtr) ; {-# INLINE load   #-}
+    dump dynPtr ptr = DynamicStorable.poke (coerce dynPtr) =<< Storable.peek ptr ; {-# INLINE dump   #-}

@@ -25,14 +25,12 @@ import qualified Foreign.Storable                     as Storable
 import qualified Type.Data.List                       as List
 
 import Data.Generics.Traversable       (GTraversable)
+import Data.Graph.Component.Node.Class (Constructor)
 import Data.Graph.Data.Component.Class (Component)
-import Data.PtrList.Mutable            (UnmanagedPtrList)
 import Data.Set                        (Set)
 import Data.Vector.Storable.Foreign    (Vector)
 import Foreign.Ptr.Utils               (SomePtr)
 import Type.Data.Bool                  (Not, type (||))
-
-import Data.Graph.Component.Node.Class (Constructor)
 
 
 -----------------------

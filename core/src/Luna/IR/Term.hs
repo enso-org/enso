@@ -20,12 +20,12 @@ import qualified Data.Graph.Data.Graph.Class        as Graph
 import qualified Data.Graph.Traversal.Fold          as Fold
 import qualified Data.Graph.Traversal.SubComponents as Component
 import qualified Data.Graph.Traversal.SubTree       as SubTree
-import qualified Foreign.PartitionStorable          as PartitionStorable
+import qualified Foreign.PartitionStorable          as DynamicSubStorable
 import qualified OCI.IR.Term.Definition             as Term
 
 import Data.Generics.Traversable       (GTraversable)
 import Data.Graph.Data.Component.Class (Component)
-import Foreign.PartitionStorable       (PartitionStorable)
+import Foreign.PartitionStorable       (DynamicSubStorable)
 import OCI.IR.Link.Class               (Link)
 
 
@@ -94,3 +94,20 @@ instance (Monad m, GTraversable (UniTermFold t m) (Constructor comp layout))
     buildFold__ = gbuildFold__ @t
     {-# INLINE buildFold__ #-}
 
+
+
+instance DynamicSubStorable (UniTerm layout) where
+    sizeOf = GTraversable.gfoldlM @DynamicSubStorable
+                  (\i a -> (i +) <$> DynamicSubStorable.sizeOf a) 0
+    {-# INLINE sizeOf #-}
+
+
+instance (GTraversable DynamicSubStorable (Constructor comp layout))
+      => DynamicSubStorable (Constructor comp layout) where
+    sizeOf = GTraversable.gfoldlM @DynamicSubStorable
+                  (\i a -> (i +) <$> DynamicSubStorable.sizeOf a) 0
+    {-# INLINE sizeOf #-}
+
+
+instance DynamicSubStorable (Component comp layout) where
+    sizeOf = \_ -> pure 0 ; {-# INLINE sizeOf #-}
