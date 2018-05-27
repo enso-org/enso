@@ -76,18 +76,18 @@ instance {-# OVERLAPPABLE #-} Monad m => ComponentBuilder t m comp where
 -- === Instances === --
 
 instance {-# OVERLAPPABLE #-}
-         ( layers ~ Graph.DiscoverComponentLayers m tag
-         , ComponentBuilder t m tag
+         ( layers ~ Graph.DiscoverComponentLayers m comp
+         , ComponentBuilder t m comp
          , LayersFoldableBuilder__ t layers m )
-      => Fold.Builder (Scoped t) m (Component tag layout) where
+      => Fold.Builder (Scoped t) m (Component comp layout) where
     build = Fold.build1 @(Scoped t)
     {-# INLINE build #-}
 
 instance {-# OVERLAPPABLE #-}
-         ( layers ~ Graph.DiscoverComponentLayers m tag
-         , ComponentBuilder t m tag
+         ( layers ~ Graph.DiscoverComponentLayers m comp
+         , ComponentBuilder t m comp
          , LayersFoldableBuilder__ t layers m )
-      => Fold.Builder1 (Scoped t) m (Component tag) where
+      => Fold.Builder1 (Scoped t) m (Component comp) where
     build1 = \comp mr -> componentBuild @t comp
         $! buildLayersFold__ @t @layers (Component.unsafeToPtr comp) mr
     {-# INLINE build1 #-}

@@ -13,7 +13,7 @@ import qualified Luna.IR.Term.Format                as Format
 import qualified OCI.IR.Term.Definition             as Term
 
 import Data.Vector.Storable.Foreign (Vector)
-import Foreign.PartitionStorable    (DynamicSubStorable)
+import Foreign.PartitionStorable    (ExternalStorable)
 import OCI.Data.Name                (Name)
 import OCI.IR.Term.Class            (Terms)
 import OCI.IR.Term.Definition       (LinkTo, LinksTo)
@@ -36,7 +36,7 @@ data ImportSourceData
     deriving (Eq, Generic, Show)
 Storable.derive     ''ImportSourceData
 GTraversable.derive ''ImportSourceData
-instance DynamicSubStorable ImportSourceData
+instance ExternalStorable ImportSourceData
 
 data ImportTargetData
     = Everything
@@ -44,7 +44,7 @@ data ImportTargetData
     deriving (Eq, Generic, Show)
 Storable.derive     ''ImportTargetData
 GTraversable.derive ''ImportTargetData
-instance DynamicSubStorable ImportTargetData
+instance ExternalStorable ImportTargetData
 
 
 -- === FFI === --
@@ -58,7 +58,7 @@ data ForeignImportType
     deriving (Eq, Generic, Show)
 Storable.derive     ''ForeignImportType
 GTraversable.derive ''ForeignImportType
-instance DynamicSubStorable ForeignImportType
+instance ExternalStorable ForeignImportType
 
 
 -----------------

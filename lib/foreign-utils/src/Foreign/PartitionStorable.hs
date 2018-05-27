@@ -34,20 +34,23 @@ type DynamicPtr = Ptr ()
 
 
 
-class DynamicSubStorable a where
-    sizeOf  :: a -> IO Int
-    load    :: DynamicPtr -> Ptr a -> IO ()
-    dump    :: DynamicPtr -> Ptr a -> IO ()
+class ExternalStorable a where
+    loadBuilder :: Ptr a -> IO DynamicPtr -> IO DynamicPtr
+    dumpBuilder :: Ptr a -> IO DynamicPtr -> IO DynamicPtr
 
-    sizeOf = \_   -> pure 0  ; {-# INLINE sizeOf #-}
-    load   = \_ _ -> pure () ; {-# INLINE load   #-}
-    dump   = \_ _ -> pure () ; {-# INLINE dump   #-}
+    loadBuilder = \_ -> id ; {-# INLINE loadBuilder #-}
+    dumpBuilder = \_ -> id ; {-# INLINE dumpBuilder #-}
+
+load :: ExternalStorable a => Ptr a -> DynamicPtr -> IO DynamicPtr
+dump :: ExternalStorable a => Ptr a -> DynamicPtr -> IO DynamicPtr
+load = \ptr -> loadBuilder ptr . pure ; {-# INLINE load #-}
+dump = \ptr -> dumpBuilder ptr . pure ; {-# INLINE dump #-}
 
 
-instance DynamicSubStorable Bool
-instance DynamicSubStorable Char
-instance DynamicSubStorable Int
-instance DynamicSubStorable Word16
-instance DynamicSubStorable Word32
-instance DynamicSubStorable Word64
-instance DynamicSubStorable Word8
+instance ExternalStorable Bool
+instance ExternalStorable Char
+instance ExternalStorable Int
+instance ExternalStorable Word16
+instance ExternalStorable Word32
+instance ExternalStorable Word64
+instance ExternalStorable Word8

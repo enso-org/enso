@@ -2,19 +2,25 @@
 
 module Data.PtrSet.Mutable where
 
-import Prologue hiding (null, toList)
+import Prologue hiding (fromList, null, toList)
 
 import qualified Data.Construction          as Data
 import qualified Data.Set.Mutable.Class     as Set
+import qualified Foreign.DynamicStorable    as DynamicStorable
+import qualified Foreign.PartitionStorable  as ExternalStorable
+import qualified Foreign.Storable.Utils     as Storable
 import qualified Foreign.Storable1.Deriving as Storable1
 
 import Control.Monad.IO.Class
+import Foreign.DynamicStorable   (DynamicStorable)
 import Foreign.ForeignPtr
 import Foreign.Marshal.Array
+import Foreign.PartitionStorable (ExternalStorable)
 import Foreign.Ptr
-import Foreign.Ptr.Utils      (SomePtr, fromCBool)
-import Foreign.Storable       (Storable)
-import System.IO.Unsafe       (unsafePerformIO)
+import Foreign.Ptr.Utils         (SomePtr, fromCBool)
+import Foreign.Storable          (Storable)
+import Foreign.Storable.Utils    (castPeekAndOffset, castPokeAndOffset)
+import System.IO.Unsafe          (unsafePerformIO)
 
 
 type IsPtr a = BiConvertible' SomePtr a
@@ -131,6 +137,11 @@ toList !s = do
             convert' <<$>> peekArray n arr
 {-# INLINE toList #-}
 
+-- | A version of `toList` that fills a pre-allocated chunk instead
+--   of allocating one by itself.
+fillList :: (IsPtr a, IsPtrSet t, MonadIO m) => t a -> SomePtr -> m ()
+fillList t arr = with t (c_toList $ castPtr arr)
+{-# INLINE fillList #-}
 
 -- | Convert a list to the set.
 fromList :: (IsPtr a, IsPtrSet s, MonadIO m) => [a] -> m (s a)
@@ -168,3 +179,40 @@ instance MonadIO m => Data.Constructor1 m () UnmanagedPtrSet where
 
 instance MonadIO m => Data.Destructor1 m UnmanagedPtrSet where
     destruct1 = free ; {-# INLINE destruct1 #-}
+
+
+instance (Storable a, IsPtr a) => DynamicStorable (UnmanagedPtrSet a) where
+    sizeOf = \a -> do
+        elems <- size a
+        let headerSize = Storable.sizeOf' @Int
+            bodySize   = elems * Storable.sizeOf' @a
+        pure $! headerSize + bodySize
+    {-# INLINE sizeOf #-}
+
+    peek = \ptr -> do
+        (elems, srcBodyPtr) <- castPeekAndOffset @Int ptr
+        list <- peekArray elems (Storable.castPtrTo @a srcBodyPtr)
+        fromList list
+    {-# INLINE peek #-}
+
+    poke = \ptr a -> do
+        elems <- size a
+        let bodyByteSize = elems * Storable.sizeOf' @a
+        tgtBodyPtr <- castPokeAndOffset @Int ptr elems
+        fillList a tgtBodyPtr
+    {-# INLINE poke #-}
+
+instance (Storable a, IsPtr a) => ExternalStorable (UnmanagedPtrSet a) where
+    loadBuilder = \ptr mdynPtr -> do
+        dynPtr <- mdynPtr
+        a      <- DynamicStorable.peek (coerce dynPtr)
+        Storable.poke ptr a
+        (ptr `plusPtr`) <$> DynamicStorable.sizeOf a
+    {-# INLINE loadBuilder #-}
+
+    dumpBuilder = \ptr mdynPtr -> do
+        dynPtr <- mdynPtr
+        a      <- Storable.peek ptr
+        DynamicStorable.poke (coerce dynPtr) a
+        (ptr `plusPtr`) <$> DynamicStorable.sizeOf a
+    {-# INLINE dumpBuilder #-}

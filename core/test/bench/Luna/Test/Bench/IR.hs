@@ -28,6 +28,7 @@ import qualified Data.Graph.Data.Component.Class       as Component
 import qualified Data.Graph.Data.Graph.Class           as Graph
 import qualified Data.Graph.Data.Layer.Class           as Layer
 import qualified Data.Graph.Data.Layer.Layout          as Layout
+import qualified Data.Graph.Serialize                  as Graph
 import qualified Data.Graph.Traversal.Partition        as Partition
 import qualified Data.Graph.Traversal.SubComponents    as Traversal
 import qualified Data.Graph.Traversal.SubTree          as Traversal
@@ -482,6 +483,7 @@ linkDiscovery = Bench "link" $ \i -> runPass' $ do
 partitionsSingleVar :: Bench
 partitionsSingleVar = Bench "partitions single var" $ \i -> runPass' $ do
     !v <- IR.var "a"
+    _ <- Graph.dumpComponent v undefined
     let go !0 = let !o = pure () in o
         go !j = do
             !_ <- Partition.partition v

@@ -16,7 +16,7 @@ import Data.IntMap               (IntMap)
 import Data.IORef                (IORef, atomicModifyIORef', newIORef,
                                   readIORef)
 import FastString                (FastString)
-import Foreign.PartitionStorable (DynamicSubStorable)
+import Foreign.PartitionStorable (ExternalStorable)
 import Foreign.Storable          (Storable)
 import GHC.IO.Unsafe             (unsafeDupablePerformIO)
 import Outputable                (Outputable)
@@ -149,4 +149,4 @@ instance Semigroup Value where
 -- Remove? vvv
 instance Label.HasLabel Name
 
-instance DynamicSubStorable Name
+instance ExternalStorable Name

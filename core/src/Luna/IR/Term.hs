@@ -25,7 +25,7 @@ import qualified OCI.IR.Term.Definition             as Term
 
 import Data.Generics.Traversable       (GTraversable)
 import Data.Graph.Data.Component.Class (Component)
-import Foreign.PartitionStorable       (DynamicSubStorable)
+import Foreign.PartitionStorable       (ExternalStorable)
 import OCI.IR.Link.Class               (Link)
 
 
@@ -96,18 +96,29 @@ instance (Monad m, GTraversable (UniTermFold t m) (Constructor comp layout))
 
 
 
-instance DynamicSubStorable (UniTerm layout) where
-    sizeOf = GTraversable.gfoldlM @DynamicSubStorable
-                  (\i a -> (i +) <$> DynamicSubStorable.sizeOf a) 0
-    {-# INLINE sizeOf #-}
+-- instance ExternalStorable (UniTerm layout) where
+--     sizeOf = GTraversable.gfoldlM @ExternalStorable
+--                   (\i a -> (i +) <$> ExternalStorable.sizeOf a) 0
+--     {-# INLINE sizeOf #-}
 
 
-instance (GTraversable DynamicSubStorable (Constructor comp layout))
-      => DynamicSubStorable (Constructor comp layout) where
-    sizeOf = GTraversable.gfoldlM @DynamicSubStorable
-                  (\i a -> (i +) <$> DynamicSubStorable.sizeOf a) 0
-    {-# INLINE sizeOf #-}
+-- instance (GTraversable ExternalStorable (Constructor comp layout))
+--       => ExternalStorable (Constructor comp layout)
+--     loadBuilder = \ptr mdynPtr -> do
+--         GTraversable.gfoldl' @ExternalStorable (\mdynPtr' a -> loadBuilder )
+
+    -- sizeOf = GTraversable.gfoldl' @ExternalStorable
+    --               (\i a -> (i +) <$> ExternalStorable.sizeOf a) 0
+    -- {-# INLINE sizeOf #-}
 
 
-instance DynamicSubStorable (Component comp layout) where
-    sizeOf = \_ -> pure 0 ; {-# INLINE sizeOf #-}
+instance ExternalStorable (Component comp layout)
+
+
+
+-- class ExternalStorable a where
+--     loadBuilder :: Ptr a -> IO DynamicPtr -> IO DynamicPtr
+--     dumpBuilder :: Ptr a -> IO DynamicPtr -> IO DynamicPtr
+
+--     loadBuilder = \_ -> id ; {-# INLINE loadBuilder #-}
+--     dumpBuilder = \_ -> id ; {-# INLINE dumpBuilder #-}

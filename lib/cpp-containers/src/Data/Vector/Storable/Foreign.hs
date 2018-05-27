@@ -7,13 +7,13 @@ import qualified Data.List                 as List
 import qualified Foreign.DynamicStorable   as DynamicStorable
 import qualified Foreign.Marshal.Alloc     as Mem
 import qualified Foreign.Marshal.Utils     as Mem
-import qualified Foreign.PartitionStorable as DynamicSubStorable
+import qualified Foreign.PartitionStorable as ExternalStorable
 import qualified Foreign.Storable.Deriving as Storable
 import qualified Foreign.Storable.Utils    as Storable
 
 import Foreign.DynamicStorable   (DynamicStorable)
-import Foreign.PartitionStorable (DynamicSubStorable)
-import Foreign.Ptr               (Ptr, nullPtr)
+import Foreign.PartitionStorable (ExternalStorable)
+import Foreign.Ptr               (Ptr, nullPtr, plusPtr)
 import Foreign.Storable          (Storable)
 import Foreign.Storable.Utils    (castPeekAndOffset, castPokeAndOffset)
 import System.IO.Unsafe          (unsafeDupablePerformIO, unsafePerformIO)
@@ -91,27 +91,37 @@ instance MonadIO m => Data.ShallowDestructor1 m Vector where
 
 instance Storable a => DynamicStorable (Vector a) where
     sizeOf = \v -> let
+        elems      = v ^. size
         headerSize = Storable.sizeOf' @Int
-        bodySize   = (v ^. size) * Storable.sizeOf' @a
+        bodySize   = elems * Storable.sizeOf' @a
         in pure $! headerSize + bodySize
     {-# INLINE sizeOf #-}
 
-    peek ptr = do
-        (size, bodyPtr) <- castPeekAndOffset @Int ptr
-        let byteSize = size * Storable.sizeOf' @a
-        newBodyPtr <- Mem.mallocBytes byteSize
-        Mem.copyBytes newBodyPtr bodyPtr byteSize
-        pure $ Vector size newBodyPtr
+    peek = \ptr -> do
+        (elems, srcBodyPtr) <- castPeekAndOffset @Int ptr
+        let byteSize = elems * Storable.sizeOf' @a
+        tgtBodyPtr <- Mem.mallocBytes byteSize
+        Mem.copyBytes tgtBodyPtr srcBodyPtr byteSize
+        pure $ Vector elems tgtBodyPtr
     {-# INLINE peek #-}
 
-    poke ptr (Vector size bodyPtr) = do
-        let headerSize = Storable.sizeOf' @Int
-            byteSize   = headerSize + size * Storable.sizeOf' @a
-        newBodyPtr <- castPokeAndOffset @Int ptr size
-        Mem.copyBytes newBodyPtr bodyPtr byteSize
+    poke = \ptr (Vector elems srcBodyPtr) -> do
+        let bodyByteSize = elems * Storable.sizeOf' @a
+        tgtBodyPtr <- castPokeAndOffset @Int ptr elems
+        Mem.copyBytes tgtBodyPtr srcBodyPtr bodyByteSize
     {-# INLINE poke #-}
 
-instance Storable a => DynamicSubStorable (Vector a) where
-    sizeOf          = DynamicStorable.sizeOf                                     ; {-# INLINE sizeOf #-}
-    load dynPtr ptr = Storable.poke ptr =<< DynamicStorable.peek (coerce dynPtr) ; {-# INLINE load   #-}
-    dump dynPtr ptr = DynamicStorable.poke (coerce dynPtr) =<< Storable.peek ptr ; {-# INLINE dump   #-}
+instance Storable a => ExternalStorable (Vector a) where
+    loadBuilder = \ptr mdynPtr -> do
+        dynPtr <- mdynPtr
+        v      <- DynamicStorable.peek (coerce dynPtr)
+        Storable.poke ptr v
+        (ptr `plusPtr`) <$> DynamicStorable.sizeOf v
+    {-# INLINE loadBuilder #-}
+
+    dumpBuilder = \ptr mdynPtr -> do
+        dynPtr <- mdynPtr
+        v      <- Storable.peek ptr
+        DynamicStorable.poke (coerce dynPtr) v
+        (ptr `plusPtr`) <$> DynamicStorable.sizeOf v
+    {-# INLINE dumpBuilder #-}

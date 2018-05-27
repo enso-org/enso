@@ -10,8 +10,9 @@ import qualified Data.Construction          as Data
 import qualified Data.Set.Mutable.Class     as Set
 import qualified Foreign.Storable1.Deriving as Storable1
 
-import Data.PtrSet.Mutable (UnmanagedPtrSet)
-import Foreign.Storable    (Storable)
+import Data.PtrSet.Mutable       (UnmanagedPtrSet)
+import Foreign.PartitionStorable (ExternalStorable)
+import Foreign.Storable          (Storable)
 
 
 
@@ -22,7 +23,7 @@ import Foreign.Storable    (Storable)
 -- === Definition === --
 
 newtype Set tag layout = Set (UnmanagedPtrSet (Component tag layout))
-    deriving (Show, Storable)
+    deriving (Show, Storable, ExternalStorable)
 makeLenses       ''Set
 Storable1.derive ''Set
 
