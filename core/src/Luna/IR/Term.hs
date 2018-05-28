@@ -113,18 +113,17 @@ instance (Monad m, GTraversable (UniTermFold t m) (Constructor comp layout))
 data UniTermExternalSizeDiscovery
 type instance Fold.Result UniTermExternalSizeDiscovery = Int
 
-instance External.Measured1 UniTerm where
-    size1 = \a -> Fold.build1 @UniTermExternalSizeDiscovery a (pure 0)
-    {-# INLINE size1 #-}
+instance External.SizeBuilder1 UniTerm where
+    sizeBuilder1 = Fold.build1 @UniTermExternalSizeDiscovery
+    {-# INLINE sizeBuilder1 #-}
 
-instance MonadIO m
-      => Fold.Builder1 UniTermExternalSizeDiscovery m (Component comp) where
-    build1 a msize = (+) <$> msize <*> liftIO (External.size1 a)
+instance Fold.Builder1 UniTermExternalSizeDiscovery IO (Component comp) where
+    build1 = External.sizeBuilder1
     {-# INLINE build1 #-}
 
-instance (External.Measured a, MonadIO m)
-      => Fold.Builder UniTermExternalSizeDiscovery m a where
-    build a msize = (+) <$> msize <*> liftIO (External.size a)
+instance External.SizeBuilder a
+      => Fold.Builder UniTermExternalSizeDiscovery IO a where
+    build = External.sizeBuilder
     {-# INLINE build #-}
 
 
@@ -145,6 +144,13 @@ instance External.ExternalStorable (UniTerm layout) where
         pure dynPtr'
     {-# INLINE loadBuilder #-}
 
+instance External.SizeBuilder (UniTerm layout) where
+    sizeBuilder = GTraversable.gfoldl' @External.SizeBuilder
+        (\f a -> f . External.sizeBuilder a) id
+    {-# INLINE sizeBuilder #-}
+
+
+-- === Constructor === --
 
 instance (GTraversable External.ExternalFieldStorable (Constructor comp layout))
       => External.ExternalFieldStorable (Constructor comp layout) where
@@ -169,34 +175,11 @@ instance (GTraversable External.ExternalFieldStorable (Constructor comp layout))
                 pure a) cons
     {-# INLINE dumpFieldBuilder #-}
 
-instance External.Measured (UniTerm layout) where
-    size = GTraversable.gfoldlM @External.Measured
-        (\i a -> (i +) <$> External.size a) 0
-    {-# INLINE size #-}
-
-instance (GTraversable External.Measured (Constructor comp layout))
-      => External.Measured (Constructor comp layout) where
-    size = GTraversable.gfoldlM @External.Measured
-        (\i a -> (i +) <$> External.size a) 0
-    {-# INLINE size #-}
 
 
-
-
-
-
-
--- data ExternalSizeDiscovery
-
--- type instance Fold.Result     ExternalSizeDiscovery = Int
--- type instance Fold.LayerScope ExternalSizeDiscovery = 'Fold.All
-
--- compExternalSize :: (Fold.Builder (Fold.Scoped ExternalSizeDiscovery) m (Component comp layout))
---                  => Component comp layout -> m Int
--- compExternalSize a = Fold.build @(Fold.Scoped ExternalSizeDiscovery) a (pure 0)
-
--- instance (MonadIO m, External.Measured1 (Layer.Cons layer) )
---       => Fold.LayerBuilder ExternalSizeDiscovery m layer where
---     layerBuild = \layer msize -> (+) <$> msize <*> liftIO (External.size1 layer)
-
+instance (GTraversable External.SizeBuilder (Constructor comp layout))
+      => External.SizeBuilder (Constructor comp layout) where
+    sizeBuilder = GTraversable.gfoldl' @External.SizeBuilder
+        (\f a -> f . External.sizeBuilder a) id
+    {-# INLINE sizeBuilder #-}
 

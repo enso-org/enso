@@ -8,12 +8,10 @@ import Prologue
 
 import qualified Data.Construction          as Data
 import qualified Data.Set.Mutable.Class     as Set
-import qualified Data.Graph.Storable.External   as ExternalStorable
 import qualified Foreign.Storable1.Deriving as Storable1
 
-import Data.PtrSet.Mutable      (UnmanagedPtrSet)
-import Data.Graph.Storable.External (ExternalStorable)
-import Foreign.Storable         (Storable)
+import Data.PtrSet.Mutable (UnmanagedPtrSet)
+import Foreign.Storable    (Storable)
 
 
 
@@ -24,7 +22,7 @@ import Foreign.Storable         (Storable)
 -- === Definition === --
 
 newtype Set tag layout = Set (UnmanagedPtrSet (Component tag layout))
-    deriving (Show, Storable, ExternalStorable)
+    deriving (Show, Storable) -- ExternalStorable
 makeLenses       ''Set
 Storable1.derive ''Set
 
@@ -48,7 +46,3 @@ instance MonadIO m => Data.Constructor2 m () Set where
 instance MonadIO m => Data.ShallowDestructor2 m Set where
     destructShallow2 = Data.destruct1 . unwrap
     {-# INLINE destructShallow2 #-}
-
-instance ExternalStorable.Measured1 (Set comp) where
-    size1 = ExternalStorable.size . unwrap
-    {-# INLINE size1 #-}

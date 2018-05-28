@@ -4,11 +4,12 @@ module Data.Graph.Storable.External where
 
 import Prologue
 
-import qualified Data.Graph.Data.Layer.Class as Layer
-import qualified Data.Graph.Traversal.Fold   as Fold
-import qualified Data.Graph.Traversal.Scoped as Fold
-import qualified Foreign.DynamicStorable     as DynamicStorable
-import qualified Foreign.Storable.Utils      as Storable
+import qualified Data.Graph.Data.Component.Set as Component
+import qualified Data.Graph.Data.Layer.Class   as Layer
+import qualified Data.Graph.Traversal.Fold     as Fold
+import qualified Data.Graph.Traversal.Scoped   as Fold
+import qualified Foreign.DynamicStorable       as DynamicStorable
+import qualified Foreign.Storable.Utils        as Storable
 
 import Data.Graph.Data.Component.Class (Component)
 import Data.PtrSet.Mutable             (IsPtr, UnmanagedPtrSet)
@@ -25,27 +26,48 @@ import Foreign.Storable.Utils          (Storable)
 
 -- === Definition === --
 
-class Measured a where
-    size :: a -> IO Int
-    size = \_ -> pure 0 ; {-# INLINE size #-}
+class SizeBuilder a where
+    sizeBuilder :: a -> IO Int -> IO Int
+    sizeBuilder = \_ -> id ; {-# INLINE sizeBuilder #-}
 
-class Measured1 a where
-    size1 :: ∀ t1. a t1 -> IO Int
-    size1 = \_ -> pure 0 ; {-# INLINE size1 #-}
+class SizeBuilder1 a where
+    sizeBuilder1 :: ∀ t1. a t1 -> IO Int -> IO Int
+    sizeBuilder1 = \_ -> id ; {-# INLINE sizeBuilder1 #-}
+
+
+-- === API === --
+
+size  :: SizeBuilder  a => a    -> IO Int
+size1 :: SizeBuilder1 a => a t1 -> IO Int
+size  = \a -> sizeBuilder  a $! pure 0 ; {-# INLINE size  #-}
+size1 = \a -> sizeBuilder1 a $! pure 0 ; {-# INLINE size1 #-}
 
 
 -- === Instances === --
 
-instance Measured Bool
-instance Measured Char
-instance Measured Int
-instance Measured Word16
-instance Measured Word32
-instance Measured Word64
-instance Measured Word8
+instance SizeBuilder Bool
+instance SizeBuilder Char
+instance SizeBuilder Int
+instance SizeBuilder Word16
+instance SizeBuilder Word32
+instance SizeBuilder Word64
+instance SizeBuilder Word8
 
-instance Measured  (Component comp layout)
-instance Measured1 (Component comp)
+instance SizeBuilder  (Component comp layout)
+instance SizeBuilder1 (Component comp)
+
+instance (Storable a, IsPtr a) => SizeBuilder (UnmanagedPtrSet a) where
+    sizeBuilder = \a mi -> (+) <$> mi <*> DynamicStorable.sizeOf a
+    {-# INLINE sizeBuilder #-}
+
+instance Storable a => SizeBuilder (Vector a) where
+    sizeBuilder = \a mi -> (+) <$> mi <*> DynamicStorable.sizeOf a
+    {-# INLINE sizeBuilder #-}
+
+instance SizeBuilder1 (Component.Set comp) where
+    sizeBuilder1 = sizeBuilder . unwrap
+    {-# INLINE sizeBuilder1 #-}
+
 
 
 
@@ -120,8 +142,7 @@ instance ExternalFieldStorable (Component comp layout)
 
 -- === UnmanagedPtrSet === --
 
-instance (Storable a, IsPtr a) => Measured (UnmanagedPtrSet a) where
-    size = DynamicStorable.sizeOf ; {-# INLINE size #-}
+
 
 instance (Storable a, IsPtr a) => ExternalStorable (UnmanagedPtrSet a) where
     loadBuilder = \ptr mdynPtr -> do
@@ -140,9 +161,6 @@ instance (Storable a, IsPtr a) => ExternalStorable (UnmanagedPtrSet a) where
 
 
 -- === Vector === --
-
-instance Storable a => Measured (Vector a) where
-    size = DynamicStorable.sizeOf ; {-# INLINE size #-}
 
 instance Storable a => ExternalStorable (Vector a) where
     loadBuilder = \ptr mdynPtr -> do
@@ -191,7 +209,7 @@ componentSize ::
 componentSize a = Fold.build @(Fold.Scoped Discovery) a (pure 0)
 {-# INLINE componentSize #-}
 
-instance (MonadIO m, Measured1 (Layer.Cons layer) )
+instance (MonadIO m, SizeBuilder1 (Layer.Cons layer) )
       => Fold.LayerBuilder Discovery m layer where
     layerBuild = \layer msize -> (+) <$> msize <*> liftIO (size1 layer)
     {-# INLINE layerBuild #-}

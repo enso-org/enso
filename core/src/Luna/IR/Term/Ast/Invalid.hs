@@ -5,7 +5,7 @@ module Luna.IR.Term.Ast.Invalid where
 import Prologue hiding (Symbol)
 
 import qualified Data.Generics.Traversable.Deriving as GTraversable
-import qualified Data.Graph.Storable.External           as ExternalStorable
+import qualified Data.Graph.Storable.External       as ExternalStorable
 import qualified Foreign.Storable.Deriving          as Storable
 
 import Data.Graph.Storable.External (ExternalFieldStorable, ExternalStorable)
@@ -27,7 +27,7 @@ data Symbol
     deriving (Eq, Ord, Generic, Show)
 instance ExternalStorable Symbol
 instance ExternalFieldStorable Symbol
-instance ExternalStorable.Measured Symbol
+instance ExternalStorable.SizeBuilder Symbol
 
 data InvalidLiteral
     = String InvalidString

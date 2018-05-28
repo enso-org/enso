@@ -7,14 +7,14 @@ module Luna.IR.Term.Ast.Class where
 import Prologue hiding (Imp, imp, seq)
 
 import qualified Data.Generics.Traversable.Deriving as GTraversable
-import qualified Data.Graph.Storable.External           as ExternalStorable
+import qualified Data.Graph.Storable.External       as ExternalStorable
 import qualified Foreign.Storable.Deriving          as Storable
 import qualified Luna.IR.Term.Ast.Invalid           as Invalid
 import qualified Luna.IR.Term.Format                as Format
 import qualified OCI.IR.Term.Definition             as Term
 
+import Data.Graph.Storable.External (ExternalFieldStorable, ExternalStorable)
 import Data.Vector.Storable.Foreign (Vector)
-import Data.Graph.Storable.External     (ExternalFieldStorable, ExternalStorable)
 import OCI.Data.Name                (Name)
 import OCI.IR.Term.Class            (Terms)
 import OCI.IR.Term.Definition       (LinkTo, LinksTo)
@@ -39,7 +39,7 @@ Storable.derive     ''ImportSourceData
 GTraversable.derive ''ImportSourceData
 instance ExternalStorable ImportSourceData
 instance ExternalFieldStorable ImportSourceData
-instance ExternalStorable.Measured ImportSourceData
+instance ExternalStorable.SizeBuilder ImportSourceData
 
 data ImportTargetData
     = Everything
@@ -49,7 +49,7 @@ Storable.derive     ''ImportTargetData
 GTraversable.derive ''ImportTargetData
 instance ExternalStorable ImportTargetData
 instance ExternalFieldStorable ImportTargetData
-instance ExternalStorable.Measured ImportTargetData
+instance ExternalStorable.SizeBuilder ImportTargetData
 
 
 -- === FFI === --
@@ -65,7 +65,7 @@ Storable.derive     ''ForeignImportType
 GTraversable.derive ''ForeignImportType
 instance ExternalStorable ForeignImportType
 instance ExternalFieldStorable ForeignImportType
-instance ExternalStorable.Measured ForeignImportType
+instance ExternalStorable.SizeBuilder ForeignImportType
 
 
 -----------------
