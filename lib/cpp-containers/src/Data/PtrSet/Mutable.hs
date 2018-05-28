@@ -7,20 +7,18 @@ import Prologue hiding (fromList, null, toList)
 import qualified Data.Construction          as Data
 import qualified Data.Set.Mutable.Class     as Set
 import qualified Foreign.DynamicStorable    as DynamicStorable
-import qualified Foreign.PartitionStorable  as ExternalStorable
 import qualified Foreign.Storable.Utils     as Storable
 import qualified Foreign.Storable1.Deriving as Storable1
 
 import Control.Monad.IO.Class
-import Foreign.DynamicStorable   (DynamicStorable)
+import Foreign.DynamicStorable (DynamicStorable)
 import Foreign.ForeignPtr
 import Foreign.Marshal.Array
-import Foreign.PartitionStorable (ExternalStorable)
 import Foreign.Ptr
-import Foreign.Ptr.Utils         (SomePtr, fromCBool)
-import Foreign.Storable          (Storable)
-import Foreign.Storable.Utils    (castPeekAndOffset, castPokeAndOffset)
-import System.IO.Unsafe          (unsafePerformIO)
+import Foreign.Ptr.Utils       (SomePtr, fromCBool)
+import Foreign.Storable        (Storable)
+import Foreign.Storable.Utils  (castPeekAndOffset, castPokeAndOffset)
+import System.IO.Unsafe        (unsafePerformIO)
 
 
 type IsPtr a = BiConvertible' SomePtr a
@@ -180,7 +178,6 @@ instance MonadIO m => Data.Constructor1 m () UnmanagedPtrSet where
 instance MonadIO m => Data.Destructor1 m UnmanagedPtrSet where
     destruct1 = free ; {-# INLINE destruct1 #-}
 
-
 instance (Storable a, IsPtr a) => DynamicStorable (UnmanagedPtrSet a) where
     sizeOf = \a -> do
         elems <- size a
@@ -202,17 +199,3 @@ instance (Storable a, IsPtr a) => DynamicStorable (UnmanagedPtrSet a) where
         fillList a tgtBodyPtr
     {-# INLINE poke #-}
 
-instance (Storable a, IsPtr a) => ExternalStorable (UnmanagedPtrSet a) where
-    loadBuilder = \ptr mdynPtr -> do
-        dynPtr <- mdynPtr
-        a      <- DynamicStorable.peek (coerce dynPtr)
-        Storable.poke ptr a
-        (ptr `plusPtr`) <$> DynamicStorable.sizeOf a
-    {-# INLINE loadBuilder #-}
-
-    dumpBuilder = \ptr mdynPtr -> do
-        dynPtr <- mdynPtr
-        a      <- Storable.peek ptr
-        DynamicStorable.poke (coerce dynPtr) a
-        (ptr `plusPtr`) <$> DynamicStorable.sizeOf a
-    {-# INLINE dumpBuilder #-}

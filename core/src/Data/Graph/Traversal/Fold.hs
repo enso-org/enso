@@ -8,7 +8,6 @@ import Prologue hiding (Traversable, fold, fold1, traverse)
 import qualified Control.Monad.State.Layered     as State
 import qualified Data.Generics.Traversable       as GTraversable
 import qualified Data.Graph.Data.Component.Class as Component
-import qualified Data.Graph.Data.Component.Set   as Setx
 import qualified Data.Graph.Data.Graph.Class     as Graph
 import qualified Data.Graph.Data.Layer.Class     as Layer
 import qualified Data.Graph.Data.Layer.Layout    as Layout

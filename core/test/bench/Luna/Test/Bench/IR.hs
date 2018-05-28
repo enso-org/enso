@@ -29,6 +29,7 @@ import qualified Data.Graph.Data.Graph.Class           as Graph
 import qualified Data.Graph.Data.Layer.Class           as Layer
 import qualified Data.Graph.Data.Layer.Layout          as Layout
 import qualified Data.Graph.Serialize                  as Graph
+import qualified Data.Graph.Storable.External          as External
 import qualified Data.Graph.Traversal.Partition        as Partition
 import qualified Data.Graph.Traversal.SubComponents    as Traversal
 import qualified Data.Graph.Traversal.SubTree          as Traversal
@@ -38,11 +39,13 @@ import qualified Data.Struct                           as Struct
 import qualified Data.Tuple.Strict                     as Tuple
 import qualified Data.TypeMap.MultiState               as MultiState
 import qualified Data.TypeMap.Strict                   as TypeMap
+import qualified Foreign.DynamicStorable               as DynamicStorable
 import qualified Foreign.Marshal.Alloc                 as Ptr
 import qualified Foreign.Marshal.Utils                 as Ptr
 import qualified Foreign.Memory.Pool                   as MemPool
 import qualified Foreign.Storable                      as Storable
 import qualified Luna.IR                               as IR
+import qualified Luna.IR.Term                          as Term
 import qualified Luna.IR.Term.Format                   as Format
 import qualified Luna.Pass                             as Pass
 import qualified Luna.Pass.Scheduler                   as Scheduler
@@ -458,7 +461,7 @@ subTreeDiscovery = Bench "generic" $ \i -> runPass' $ do
     let go !0 = let !o = pure () in o
         go !j = do
             !_ <- Traversal.subTree' v
-            let !o = go $! j - 1 in o
+            go $! j - 1
     go i
 {-# NOINLINE subTreeDiscovery #-}
 
@@ -475,7 +478,7 @@ linkDiscovery = Bench "link" $ \i -> runPass' $ do
             -- !t   <- Layer.read @IR.Source tl
             -- !ttl <- Layer.read @IR.Type t
             -- print [Component.unsafeToPtr v, Component.unsafeToPtr tl, Component.unsafeToPtr t, Component.unsafeToPtr ttl]
-            let !o = go $! j - 1 in o
+            go $! j - 1
     go i
 {-# NOINLINE linkDiscovery #-}
 
@@ -483,11 +486,10 @@ linkDiscovery = Bench "link" $ \i -> runPass' $ do
 partitionsSingleVar :: Bench
 partitionsSingleVar = Bench "partitions single var" $ \i -> runPass' $ do
     !v <- IR.var "a"
-    _ <- Graph.dumpComponent v undefined
     let go !0 = let !o = pure () in o
         go !j = do
             !_ <- Partition.partition v
-            let !o = go $! j - 1 in o
+            go $! j - 1
     go i
 {-# NOINLINE partitionsSingleVar #-}
 
@@ -499,9 +501,19 @@ partitionsUnify = Bench "partitions unify" $ \i -> runPass' $ do
     let go !0 = let !o = pure () in o
         go !j = do
             !_ <- Partition.partition u
-            let !o = go $! j - 1 in o
+            go $! j - 1
     go i
 {-# NOINLINE partitionsUnify #-}
+
+externalSizeDiscovery :: Bench
+externalSizeDiscovery = Bench "external size" $ \i -> runPass' $ do
+    !v <- IR.var "a"
+    let go !0 = let !o = pure () in o
+        go !j = do
+            !_ <- External.componentSize v
+            go $! j - 1
+    go i
+{-# NOINLINE externalSizeDiscovery #-}
 
 
 newtype X = X Int
@@ -658,13 +670,22 @@ benchmarks = do
             , linkDiscovery
             , partitionsSingleVar
             , partitionsUnify
+            , externalSizeDiscovery
             ]
         ]
       ]
 
 
+test :: IO ()
+test = runPass' $ do
+    !v <- IR.var "a"
+    -- _ <- Graph.dumpComponent v undefined
+    size <- External.componentSize v
+    print size
+
 main :: IO ()
 main = do
+    test
     invariants
     benchmarks
 

@@ -8,11 +8,12 @@ import Prologue
 
 import qualified Data.Construction          as Data
 import qualified Data.Set.Mutable.Class     as Set
+import qualified Data.Graph.Storable.External   as ExternalStorable
 import qualified Foreign.Storable1.Deriving as Storable1
 
-import Data.PtrSet.Mutable       (UnmanagedPtrSet)
-import Foreign.PartitionStorable (ExternalStorable)
-import Foreign.Storable          (Storable)
+import Data.PtrSet.Mutable      (UnmanagedPtrSet)
+import Data.Graph.Storable.External (ExternalStorable)
+import Foreign.Storable         (Storable)
 
 
 
@@ -41,11 +42,13 @@ instance MonadIO m => Set.Set m (Set tag layout) where
     toList = Set.toList . unwrap ; {-# INLINE toList #-}
 
 instance MonadIO m => Data.Constructor2 m () Set where
-    construct2 _ = wrap <$> Data.construct1' ; {-# INLINE construct2 #-}
+    construct2 _ = wrap <$> Data.construct1'
+    {-# INLINE construct2 #-}
 
 instance MonadIO m => Data.ShallowDestructor2 m Set where
-    destructShallow2 = Data.destruct1 . unwrap ; {-# INLINE destructShallow2 #-}
+    destructShallow2 = Data.destruct1 . unwrap
+    {-# INLINE destructShallow2 #-}
 
--- instance Component.Provider  tag m (UnmanagedPtrSet (Component tag' layout))
---       => Component.Provider1 tag m (Set tag') where
---     gather1 = \a -> Component.gather $! unwrap a ; {-# INLINE gather1 #-}
+instance ExternalStorable.Measured1 (Set comp) where
+    size1 = ExternalStorable.size . unwrap
+    {-# INLINE size1 #-}

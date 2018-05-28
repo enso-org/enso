@@ -7,16 +7,14 @@ import qualified Data.List                 as List
 import qualified Foreign.DynamicStorable   as DynamicStorable
 import qualified Foreign.Marshal.Alloc     as Mem
 import qualified Foreign.Marshal.Utils     as Mem
-import qualified Foreign.PartitionStorable as ExternalStorable
 import qualified Foreign.Storable.Deriving as Storable
 import qualified Foreign.Storable.Utils    as Storable
 
-import Foreign.DynamicStorable   (DynamicStorable)
-import Foreign.PartitionStorable (ExternalStorable)
-import Foreign.Ptr               (Ptr, nullPtr, plusPtr)
-import Foreign.Storable          (Storable)
-import Foreign.Storable.Utils    (castPeekAndOffset, castPokeAndOffset)
-import System.IO.Unsafe          (unsafeDupablePerformIO, unsafePerformIO)
+import Foreign.DynamicStorable (DynamicStorable)
+import Foreign.Ptr             (Ptr, nullPtr, plusPtr)
+import Foreign.Storable        (Storable)
+import Foreign.Storable.Utils  (castPeekAndOffset, castPokeAndOffset)
+import System.IO.Unsafe        (unsafeDupablePerformIO, unsafePerformIO)
 
 
 --------------------
@@ -69,13 +67,6 @@ toList :: (MonadIO m, Storable a) => Vector a -> m [a]
 toList v = mapM (unsafeRead v) [0 .. (v ^. size) - 1] ; {-# INLINE toList #-}
 
 
--- === Conversions === --
-
--- type instance Item (Vector a) = a
--- instance (Convertible' a b, Storable b) => Convertible [a] (Vector b) where
---     convert = fromList . fmap convert' ; {-# INLINE convert #-}
-
-
 -- === Debug === --
 
 instance (Show a, Storable a) => Show (Vector a) where
@@ -111,17 +102,3 @@ instance Storable a => DynamicStorable (Vector a) where
         Mem.copyBytes tgtBodyPtr srcBodyPtr bodyByteSize
     {-# INLINE poke #-}
 
-instance Storable a => ExternalStorable (Vector a) where
-    loadBuilder = \ptr mdynPtr -> do
-        dynPtr <- mdynPtr
-        v      <- DynamicStorable.peek (coerce dynPtr)
-        Storable.poke ptr v
-        (ptr `plusPtr`) <$> DynamicStorable.sizeOf v
-    {-# INLINE loadBuilder #-}
-
-    dumpBuilder = \ptr mdynPtr -> do
-        dynPtr <- mdynPtr
-        v      <- Storable.peek ptr
-        DynamicStorable.poke (coerce dynPtr) v
-        (ptr `plusPtr`) <$> DynamicStorable.sizeOf v
-    {-# INLINE dumpBuilder #-}

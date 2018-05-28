@@ -11,12 +11,12 @@ import qualified Data.Graph.Data.Layer.Layout         as Layout
 import qualified Data.Graph.Traversal.Deep            as Deep
 import qualified Data.Graph.Traversal.Fold            as Fold
 import qualified Data.Graph.Traversal.Scoped          as Fold
-import qualified Foreign.PartitionStorable            as ExternalStorable
+import qualified Data.Graph.Storable.External             as ExternalStorable
 
 import Data.Graph.Component.Edge.Class       (Source)
 import Data.Graph.Component.Node.Layer.Model (Model)
 import Data.Graph.Data.Component.Class       (Component)
-import Foreign.PartitionStorable             (DynamicPtr, ExternalStorable)
+import Data.Graph.Storable.External              (ExternalStorable)
 import Foreign.Ptr                           (Ptr, plusPtr)
 import Foreign.Ptr.Utils                     (SomePtr)
 import Foreign.Storable1                     (Storable1)
@@ -71,7 +71,7 @@ import Foreign.Storable1                     (Storable1)
 
 
 class ExternalStorableLayers (layers :: [Type]) where
-    dumpLayersBuilder :: SomePtr -> IO DynamicPtr -> IO DynamicPtr
+    dumpLayersBuilder :: SomePtr -> IO SomePtr -> IO SomePtr
 
 instance ExternalStorableLayers '[] where
     dumpLayersBuilder = \_ -> id
@@ -88,7 +88,7 @@ instance ( ExternalStorableLayers ls
     {-# INLINE dumpLayersBuilder #-}
 
 dumpLayers :: ∀ layers. ExternalStorableLayers layers
-           => SomePtr -> DynamicPtr -> IO DynamicPtr
+           => SomePtr -> SomePtr -> IO SomePtr
 dumpLayers = \ptr -> dumpLayersBuilder @layers ptr . pure
 {-# INLINE dumpLayers #-}
 
@@ -98,7 +98,7 @@ type ExternalStorableComponent comp m =
     )
 
 dumpComponent :: ∀ comp m layout. ExternalStorableComponent comp m
-              => Component comp layout -> DynamicPtr -> m DynamicPtr
+              => Component comp layout -> SomePtr -> m SomePtr
 dumpComponent = \comp dynPtr -> liftIO
     $! dumpLayers @(Graph.DiscoverComponentLayers m comp) (coerce comp) dynPtr
 {-# INLINE dumpComponent #-}

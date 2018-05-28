@@ -8,20 +8,20 @@ import Prologue
 import qualified Data.Generics.Traversable.Deriving as GTraversable
 import qualified Data.IntMap.Strict                 as IntMap
 import qualified FastString                         as FastString
+import qualified Data.Graph.Storable.External           as ExternalStorable
 import qualified Language.Symbol.Label              as Label
 import qualified Prelude                            as Prelude
 
-import Binary                    (Binary)
-import Data.IntMap               (IntMap)
-import Data.IORef                (IORef, atomicModifyIORef', newIORef,
-                                  readIORef)
-import FastString                (FastString)
-import Foreign.PartitionStorable (ExternalStorable)
-import Foreign.Storable          (Storable)
-import GHC.IO.Unsafe             (unsafeDupablePerformIO)
-import Outputable                (Outputable)
-import System.IO.Unsafe          (unsafePerformIO)
-import Unique                    (Uniquable)
+import Binary                   (Binary)
+import Data.IntMap              (IntMap)
+import Data.IORef               (IORef, atomicModifyIORef', newIORef, readIORef)
+import FastString               (FastString)
+import Data.Graph.Storable.External (ExternalFieldStorable, ExternalStorable)
+import Foreign.Storable         (Storable)
+import GHC.IO.Unsafe            (unsafeDupablePerformIO)
+import Outputable               (Outputable)
+import System.IO.Unsafe         (unsafePerformIO)
+import Unique                   (Uniquable)
 
 
 -------------------
@@ -150,3 +150,5 @@ instance Semigroup Value where
 instance Label.HasLabel Name
 
 instance ExternalStorable Name
+instance ExternalFieldStorable Name
+instance ExternalStorable.Measured Name
