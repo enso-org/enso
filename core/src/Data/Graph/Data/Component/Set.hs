@@ -1,13 +1,16 @@
 {-# LANGUAGE TypeInType           #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Data.Graph.Data.Component.Set where
+module Data.Graph.Data.Component.Set
+    (module Data.Graph.Data.Component.Set, module X) where
+import Data.Set.Mutable.Class as X hiding (Set)
 
 import Data.Graph.Data.Component.Class
 import Prologue
 
 import qualified Data.Construction          as Data
 import qualified Data.Set.Mutable.Class     as Set
+import qualified Foreign.Storable.Utils     as Storable
 import qualified Foreign.Storable1.Deriving as Storable1
 
 import Data.PtrSet.Mutable (UnmanagedPtrSet)
@@ -28,6 +31,9 @@ Storable1.derive ''Set
 
 
 -- === Instances === --
+
+type instance Storable.Dynamics (Set comp) = 'Storable.Dynamic
+
 
 type instance Set.Item (Set tag layout) = Component tag layout
 instance MonadIO m => Set.Set m (Set tag layout) where

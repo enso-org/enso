@@ -1,3 +1,5 @@
+{-# LANGUAGE PolyKinds #-}
+
 module Foreign.Storable.Utils (module Foreign.Storable.Utils, module X) where
 import Foreign.Storable as X
 
@@ -6,6 +8,13 @@ import Prologue
 import Foreign.Ptr      (Ptr, castPtr, plusPtr)
 import Foreign.Storable (Storable, alignment, peek, peekByteOff, poke,
                          pokeByteOff, sizeOf)
+
+
+data DynamicsType
+    = Static
+    | Dynamic
+
+type family Dynamics (a :: k) :: DynamicsType
 
 sizeOf'    :: forall a. Storable a => Int
 alignment' :: forall a. Storable a => Int

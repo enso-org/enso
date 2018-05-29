@@ -27,7 +27,6 @@ data Symbol
     deriving (Eq, Ord, Generic, Show)
 instance ExternalStorable Symbol
 instance ExternalFieldStorable Symbol
-instance ExternalStorable.SizeBuilder Symbol
 
 data InvalidLiteral
     = String InvalidString

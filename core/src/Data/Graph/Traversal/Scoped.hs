@@ -5,18 +5,20 @@ module Data.Graph.Traversal.Scoped where
 
 import Prologue hiding (Traversable, fold, fold1, traverse)
 
-import qualified Control.Monad.State.Layered     as State
-import qualified Data.Generics.Traversable       as GTraversable
-import qualified Data.Graph.Data.Component.Class as Component
-import qualified Data.Graph.Data.Graph.Class     as Graph
-import qualified Data.Graph.Data.Layer.Class     as Layer
-import qualified Data.Graph.Data.Layer.Layout    as Layout
-import qualified Data.Graph.Traversal.Fold       as Fold
-import qualified Data.Map.Strict                 as Map
-import qualified Data.Set                        as Set
-import qualified Foreign.Ptr                     as Ptr
-import qualified Foreign.Storable                as Storable
-import qualified Type.Data.List                  as List
+import qualified Control.Monad.State.Layered      as State
+import qualified Data.Generics.Traversable        as GTraversable
+import qualified Data.Graph.Data.Component.Class  as Component
+import qualified Data.Graph.Data.Component.Set    as ComponentSet
+import qualified Data.Graph.Data.Component.Vector as ComponentVector
+import qualified Data.Graph.Data.Graph.Class      as Graph
+import qualified Data.Graph.Data.Layer.Class      as Layer
+import qualified Data.Graph.Data.Layer.Layout     as Layout
+import qualified Data.Graph.Traversal.Fold        as Fold
+import qualified Data.Map.Strict                  as Map
+import qualified Data.Set                         as Set
+import qualified Foreign.Ptr                      as Ptr
+import qualified Foreign.Storable                 as Storable
+import qualified Type.Data.List                   as List
 
 import Data.Generics.Traversable       (GTraversable)
 import Data.Graph.Data.Component.Class (Component)
@@ -89,6 +91,22 @@ instance {-# OVERLAPPABLE #-}
       => Fold.Builder1 (Scoped t) m (Component comp) where
     build1 = \comp mr -> componentBuild @t comp
         $! buildLayersFold__ @t @layers (Component.unsafeToPtr comp) mr
+    {-# INLINE build1 #-}
+
+instance {-# OVERLAPPABLE #-} (MonadIO m, Fold.Builder1 t m (Component comp))
+      => Fold.Builder1 t m (ComponentVector.Vector comp) where
+    build1 = \comp mr -> do
+        lst <- ComponentVector.toList comp
+        let f = foldl' (\f a -> f . Fold.build1 @t a) id lst
+        f mr
+    {-# INLINE build1 #-}
+
+instance {-# OVERLAPPABLE #-} (MonadIO m, Fold.Builder1 t m (Component comp))
+      => Fold.Builder1 t m (ComponentSet.Set comp) where
+    build1 = \comp mr -> do
+        lst <- ComponentSet.toList comp
+        let f = foldl' (\f a -> f . Fold.build1 @t a) id lst
+        f mr
     {-# INLINE build1 #-}
 
 

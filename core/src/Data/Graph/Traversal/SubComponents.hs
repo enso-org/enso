@@ -12,6 +12,7 @@ import qualified Data.Graph.Component.Node.Layer.Type as Type
 import qualified Data.Graph.Data.Component.Class      as Component
 import qualified Data.Graph.Data.Component.List       as Component
 import qualified Data.Graph.Data.Component.Set        as Component
+import qualified Data.Graph.Data.Component.Vector     as ComponentVector
 import qualified Data.Graph.Data.Graph.Class          as Graph
 import qualified Data.Graph.Data.Layer.Class          as Layer
 import qualified Data.Graph.Data.Layer.Layout         as Layout
@@ -62,7 +63,7 @@ instance Fold.Builder (Fold.Scoped (Discovery comp)) m
     {-# INLINE subComponents #-}
 
 
--- === Instances === --
+-- === Component === --
 
 instance (Fold.Builder1 (Discovery comp) m (Component comp))
       => Fold.Builder (Discovery comp) m (Component comp layout) where
@@ -79,6 +80,9 @@ instance Monad m
     build1 = \comp mr -> (Component.Cons $! Layout.relayout comp) <$> mr
     {-# INLINE build1 #-}
 
+
+-- === ComponentSet === --
+
 instance {-# OVERLAPPABLE #-} Monad m
       => Fold.Builder1 (Discovery comp) m (Component.Set comp') where
     build1 = \_ -> id
@@ -88,4 +92,23 @@ instance MonadIO m
       => Fold.Builder1 (Discovery comp) m (Component.Set comp) where
     build1 = \a acc
         -> (\a b -> a <> b) <$> (convert <$> PtrSet.toList (unwrap a)) <*> acc
+    {-# INLINE build1 #-}
+
+
+-- === ComponentVector === --
+
+instance (Fold.Builder1 (Discovery comp) m (ComponentVector.Vector comp))
+      => Fold.Builder (Discovery comp) m (ComponentVector.Vector comp layout) where
+    build = Fold.build1 @(Discovery comp)
+    {-# INLINE build #-}
+
+instance {-# OVERLAPPABLE #-} Monad m
+      => Fold.Builder1 (Discovery comp) m (ComponentVector.Vector comp') where
+    build1 = \_ -> id
+    {-# INLINE build1 #-}
+
+instance MonadIO m
+      => Fold.Builder1 (Discovery comp) m (ComponentVector.Vector comp) where
+    build1 = \a acc
+        -> (\a b -> a <> b) <$> (convert <$> ComponentVector.toList a) <*> acc
     {-# INLINE build1 #-}

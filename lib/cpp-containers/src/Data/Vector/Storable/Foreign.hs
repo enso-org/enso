@@ -26,7 +26,7 @@ import System.IO.Unsafe        (unsafeDupablePerformIO, unsafePerformIO)
 data Vector a = Vector
     { _size :: !Int
     , _ptr  :: !(Ptr a)
-    } deriving (Eq)
+    }
 makeLenses      ''Vector
 Storable.derive ''Vector
 
@@ -76,6 +76,9 @@ instance Mempty (Vector a) where mempty = empty ; {-# INLINE mempty #-}
 
 
 -- === Instances === --
+
+instance Eq (Vector a) where
+    (==) = (==) `on` view ptr ; {-# INLINE (==) #-}
 
 instance MonadIO m => Data.ShallowDestructor1 m Vector where
     destructShallow1 = free ; {-# INLINE destructShallow1 #-}

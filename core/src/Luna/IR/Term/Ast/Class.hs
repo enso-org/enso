@@ -39,7 +39,7 @@ Storable.derive     ''ImportSourceData
 GTraversable.derive ''ImportSourceData
 instance ExternalStorable ImportSourceData
 instance ExternalFieldStorable ImportSourceData
-instance ExternalStorable.SizeBuilder ImportSourceData
+-- instance ExternalStorable.SizeBuilder ImportSourceData
 
 data ImportTargetData
     = Everything
@@ -49,7 +49,7 @@ Storable.derive     ''ImportTargetData
 GTraversable.derive ''ImportTargetData
 instance ExternalStorable ImportTargetData
 instance ExternalFieldStorable ImportTargetData
-instance ExternalStorable.SizeBuilder ImportTargetData
+-- instance ExternalStorable.SizeBuilder ImportTargetData
 
 
 -- === FFI === --
@@ -65,7 +65,7 @@ Storable.derive     ''ForeignImportType
 GTraversable.derive ''ForeignImportType
 instance ExternalStorable ForeignImportType
 instance ExternalFieldStorable ForeignImportType
-instance ExternalStorable.SizeBuilder ForeignImportType
+-- instance ExternalStorable.SizeBuilder ForeignImportType
 
 
 -----------------

@@ -4,16 +4,19 @@ module Data.Graph.Storable.External where
 
 import Prologue
 
-import qualified Data.Graph.Data.Component.Set as Component
-import qualified Data.Graph.Data.Layer.Class   as Layer
-import qualified Data.Graph.Traversal.Fold     as Fold
-import qualified Data.Graph.Traversal.Scoped   as Fold
-import qualified Foreign.DynamicStorable       as DynamicStorable
-import qualified Foreign.Storable.Utils        as Storable
+import qualified Data.Graph.Data.Component.Set    as Component
+import qualified Data.Graph.Data.Component.Set    as ComponentSet
+import qualified Data.Graph.Data.Component.Vector as ComponentVector
+import qualified Data.Graph.Data.Layer.Class      as Layer
+import qualified Data.Graph.Traversal.Fold        as Fold
+import qualified Data.Graph.Traversal.Scoped      as Fold
+import qualified Foreign.DynamicStorable          as DynamicStorable
+import qualified Foreign.Storable.Utils           as Storable
 
 import Data.Graph.Data.Component.Class (Component)
 import Data.PtrSet.Mutable             (IsPtr, UnmanagedPtrSet)
 import Data.Vector.Storable.Foreign    (Vector)
+import Foreign.DynamicStorable         (DynamicStorable)
 import Foreign.Ptr                     (Ptr, plusPtr)
 import Foreign.Ptr.Utils               (SomePtr)
 import Foreign.Storable.Utils          (Storable)
@@ -26,49 +29,111 @@ import Foreign.Storable.Utils          (Storable)
 
 -- === Definition === --
 
-class SizeBuilder a where
-    sizeBuilder :: a -> IO Int -> IO Int
-    sizeBuilder = \_ -> id ; {-# INLINE sizeBuilder #-}
+-- class Measured a where
+--     byteSize :: a -> IO Int
 
-class SizeBuilder1 a where
-    sizeBuilder1 :: ∀ t1. a t1 -> IO Int -> IO Int
-    sizeBuilder1 = \_ -> id ; {-# INLINE sizeBuilder1 #-}
+-- class SizeBuilder a where
+--     sizeBuilder :: a -> IO Int -> IO Int
+--     sizeBuilder = \_ -> id ; {-# INLINE sizeBuilder #-}
+
+-- class SizeBuilder1 a where
+--     sizeBuilder1 :: ∀ t1. a t1 -> IO Int -> IO Int
+--     sizeBuilder1 = \_ -> id ; {-# INLINE sizeBuilder1 #-}
 
 
 -- === API === --
 
-size  :: SizeBuilder  a => a    -> IO Int
-size1 :: SizeBuilder1 a => a t1 -> IO Int
-size  = \a -> sizeBuilder  a $! pure 0 ; {-# INLINE size  #-}
-size1 = \a -> sizeBuilder1 a $! pure 0 ; {-# INLINE size1 #-}
+-- size  :: SizeBuilder  a => a    -> IO Int
+-- size1 :: SizeBuilder1 a => a t1 -> IO Int
+-- size  = \a -> sizeBuilder  a $! pure 0 ; {-# INLINE size  #-}
+-- size1 = \a -> sizeBuilder1 a $! pure 0 ; {-# INLINE size1 #-}
 
 
 -- === Instances === --
 
-instance SizeBuilder Bool
-instance SizeBuilder Char
-instance SizeBuilder Int
-instance SizeBuilder Word16
-instance SizeBuilder Word32
-instance SizeBuilder Word64
-instance SizeBuilder Word8
+-- instance SizeBuilder Bool
+-- instance SizeBuilder Char
+-- instance SizeBuilder Int
+-- instance SizeBuilder Word16
+-- instance SizeBuilder Word32
+-- instance SizeBuilder Word64
+-- instance SizeBuilder Word8
 
-instance SizeBuilder  (Component comp layout)
-instance SizeBuilder1 (Component comp)
-
-instance (Storable a, IsPtr a) => SizeBuilder (UnmanagedPtrSet a) where
-    sizeBuilder = \a mi -> (+) <$> mi <*> DynamicStorable.sizeOf a
-    {-# INLINE sizeBuilder #-}
-
-instance Storable a => SizeBuilder (Vector a) where
-    sizeBuilder = \a mi -> (+) <$> mi <*> DynamicStorable.sizeOf a
-    {-# INLINE sizeBuilder #-}
-
-instance SizeBuilder1 (Component.Set comp) where
-    sizeBuilder1 = sizeBuilder . unwrap
-    {-# INLINE sizeBuilder1 #-}
+-- instance SizeBuilder  (Component comp layout)
+-- instance SizeBuilder1 (Component comp)
 
 
+class ExternalSizeBuilder a where
+    externalSizeBuilder :: a -> IO Int -> IO Int
+
+class ExternalSizeBuilder1 a where
+    externalSizeBuilder1 :: ∀ t1. a t1 -> IO Int -> IO Int
+
+instance (Storable a, IsPtr a) => ExternalSizeBuilder (UnmanagedPtrSet a) where
+    externalSizeBuilder = \a mi -> (+) <$> mi <*> DynamicStorable.sizeOf a
+    {-# INLINE externalSizeBuilder #-}
+
+instance Storable a => ExternalSizeBuilder (Vector a) where
+    externalSizeBuilder = \a mi -> (+) <$> mi <*> DynamicStorable.sizeOf a
+    {-# INLINE externalSizeBuilder #-}
+
+
+
+instance ExternalSizeBuilder1 (Component.Set comp) where
+    externalSizeBuilder1 = externalSizeBuilder . unwrap
+    {-# INLINE externalSizeBuilder1 #-}
+
+instance ExternalSizeBuilder1 (ComponentVector.Vector comp) where
+    externalSizeBuilder1 = externalSizeBuilder . unwrap
+    {-# INLINE externalSizeBuilder1 #-}
+
+
+
+-- instance (dynamics ~ Storable.Dynamics a, SizeBuilder__ dynamics a)
+--       => SizeBuilder a where
+--     sizeBuilder = sizeBuilder__ @dynamics
+--     {-# INLINE sizeBuilder #-}
+
+class SB a where sb :: a -> IO Int -> IO Int
+instance (dynamics ~ Storable.Dynamics a, SizeBuilder__ dynamics a)
+      => SB a where sb = sizeBuilder__ @dynamics ; {-# INLINE sb #-}
+
+class SB1 a where sb1 :: ∀ t1. a t1 -> IO Int -> IO Int
+instance (dynamics ~ Storable.Dynamics a, SizeBuilder1__ dynamics a)
+      => SB1 a where sb1 = sizeBuilder1__ @dynamics ; {-# INLINE sb1 #-}
+
+size  :: ∀ a. SizeBuilder__ (Storable.Dynamics a) a => a -> IO Int
+size = \a -> sizeBuilder__ @(Storable.Dynamics a) a $! pure 0 ; {-# INLINE size #-}
+
+type S1 a = SizeBuilder1__ (Storable.Dynamics a) a
+size1  :: ∀ a t1. SizeBuilder1__ (Storable.Dynamics a) a => a t1 -> IO Int
+size1 = \a -> sizeBuilder1__ @(Storable.Dynamics a) a $! pure 0 ; {-# INLINE size1 #-}
+
+class SizeBuilder__ (dynamics :: Storable.DynamicsType) a where
+    sizeBuilder__ :: a -> IO Int -> IO Int
+
+instance SizeBuilder__ 'Storable.Static a where
+    sizeBuilder__ = \_ -> id ; {-# INLINE sizeBuilder__ #-}
+
+instance ExternalSizeBuilder a => SizeBuilder__ 'Storable.Dynamic a where
+    sizeBuilder__ = externalSizeBuilder
+    {-# INLINE sizeBuilder__ #-}
+
+
+class SizeBuilder1__ (dynamics :: Storable.DynamicsType) a where
+    sizeBuilder1__ :: ∀ t1. a t1 -> IO Int -> IO Int
+
+instance SizeBuilder1__ 'Storable.Static a where
+    sizeBuilder1__ = \_ -> id ; {-# INLINE sizeBuilder1__ #-}
+
+instance ExternalSizeBuilder1 a => SizeBuilder1__ 'Storable.Dynamic a where
+    sizeBuilder1__ = externalSizeBuilder1
+    {-# INLINE sizeBuilder1__ #-}
+
+
+-- data DynamicsTarget (dyn :: Storable.DynamicsType)
+
+-- instance Fold.Builder
 
 
 ---------------------------------
@@ -142,8 +207,6 @@ instance ExternalFieldStorable (Component comp layout)
 
 -- === UnmanagedPtrSet === --
 
-
-
 instance (Storable a, IsPtr a) => ExternalStorable (UnmanagedPtrSet a) where
     loadBuilder = \ptr mdynPtr -> do
         dynPtr <- mdynPtr
@@ -158,6 +221,24 @@ instance (Storable a, IsPtr a) => ExternalStorable (UnmanagedPtrSet a) where
         DynamicStorable.poke (coerce dynPtr) a
         (dynPtr `plusPtr`) <$> DynamicStorable.sizeOf a
     {-# INLINE dumpBuilder #-}
+
+instance (Storable a, IsPtr a) => ExternalFieldStorable (UnmanagedPtrSet a) where
+    loadFieldBuilder = \mdata -> do
+        (!_, !dynPtr) <- mdata
+        a <- DynamicStorable.peek (coerce dynPtr)
+        dynPtr' <- (dynPtr `plusPtr`) <$> DynamicStorable.sizeOf a
+        pure (a, dynPtr')
+    {-# INLINE loadFieldBuilder #-}
+
+    dumpFieldBuilder = \a mdynPtr -> do
+        dynPtr <- mdynPtr
+        DynamicStorable.poke (coerce dynPtr) a
+        (dynPtr `plusPtr`) <$> DynamicStorable.sizeOf a
+        dynPtr' <- (dynPtr `plusPtr`) <$> DynamicStorable.sizeOf a
+        pure dynPtr'
+    {-# INLINE dumpFieldBuilder #-}
+
+deriving instance ExternalFieldStorable (ComponentSet.Set comp layout)
 
 
 -- === Vector === --
@@ -193,6 +274,7 @@ instance Storable a => ExternalFieldStorable (Vector a) where
         pure dynPtr'
     {-# INLINE dumpFieldBuilder #-}
 
+deriving instance ExternalFieldStorable (ComponentVector.Vector comp layout)
 
 
 -----------------------
@@ -209,7 +291,7 @@ componentSize ::
 componentSize a = Fold.build @(Fold.Scoped Discovery) a (pure 0)
 {-# INLINE componentSize #-}
 
-instance (MonadIO m, SizeBuilder1 (Layer.Cons layer) )
+instance (MonadIO m, S1 (Layer.Cons layer))
       => Fold.LayerBuilder Discovery m layer where
     layerBuild = \layer msize -> (+) <$> msize <*> liftIO (size1 layer)
     {-# INLINE layerBuild #-}

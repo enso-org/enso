@@ -679,8 +679,12 @@ benchmarks = do
 test :: IO ()
 test = runPass' $ do
     !v <- IR.var "a"
+    !v2 <- IR.var "a"
+    !u <- IR.match v [v2]
     -- _ <- Graph.dumpComponent v undefined
     size <- External.componentSize v
+    ins <- IR.inputs u
+    print ins
     print size
 
 main :: IO ()

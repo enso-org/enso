@@ -152,4 +152,3 @@ instance Label.HasLabel Name
 
 instance ExternalStorable Name
 instance ExternalFieldStorable Name
-instance ExternalStorable.SizeBuilder Name

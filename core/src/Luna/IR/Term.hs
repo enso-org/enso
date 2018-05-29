@@ -17,6 +17,8 @@ import qualified Data.Construction                  as Data
 import qualified Data.Generics.Traversable          as GTraversable
 import qualified Data.Graph.Component.Edge          as Link
 import qualified Data.Graph.Component.Node.Class    as Term
+import qualified Data.Graph.Data.Component.Set      as ComponentSet
+import qualified Data.Graph.Data.Component.Vector   as ComponentVector
 import qualified Data.Graph.Data.Graph.Class        as Graph
 import qualified Data.Graph.Data.Layer.Class        as Layer
 import qualified Data.Graph.Storable.External       as External
@@ -26,6 +28,7 @@ import qualified Data.Graph.Traversal.SubComponents as Component
 import qualified Data.Graph.Traversal.SubTree       as SubTree
 import qualified Foreign.DynamicStorable            as Dynamic
 import qualified Foreign.Storable                   as Storable
+import qualified Foreign.Storable.Utils             as Storable
 import qualified OCI.IR.Term.Definition             as Term
 
 import Control.Monad.State.Layered     (State)
@@ -70,8 +73,12 @@ instance (MonadIO m, ctx ~ Data.ShallowDestructor m)
 
 -- === Definition === --
 
-instance (Monad m, Fold.Builder1 t m (Component Link.Edges))
-      => Fold.Builder1 t m UniTerm where
+instance
+    ( Monad m
+    , Fold.Builder1 t m (Component Link.Edges)
+    , Fold.Builder1 t m (ComponentVector.Vector Link.Edges)
+    , Fold.Builder1 t m (ComponentSet.Set       Link.Edges)
+    ) => Fold.Builder1 t m UniTerm where
     build1 = gbuildFold__ @t
     {-# INLINE build1 #-}
 
@@ -97,6 +104,16 @@ instance Fold.Builder1 t m (Component comp)
     buildFold__ = Fold.build1 @t
     {-# INLINE buildFold__ #-}
 
+instance Fold.Builder1 t m (ComponentVector.Vector comp)
+      => UniTermFold t m (ComponentVector.Vector comp layout) where
+    buildFold__ = Fold.build1 @t
+    {-# INLINE buildFold__ #-}
+
+instance Fold.Builder1 t m (ComponentSet.Set comp)
+      => UniTermFold t m (ComponentSet.Set comp layout) where
+    buildFold__ = Fold.build1 @t
+    {-# INLINE buildFold__ #-}
+
 instance (Monad m, GTraversable (UniTermFold t m) (Constructor comp layout))
       => UniTermFold t m (Constructor comp layout) where
     buildFold__ = gbuildFold__ @t
@@ -113,17 +130,26 @@ instance (Monad m, GTraversable (UniTermFold t m) (Constructor comp layout))
 data UniTermExternalSizeDiscovery
 type instance Fold.Result UniTermExternalSizeDiscovery = Int
 
-instance External.SizeBuilder1 UniTerm where
-    sizeBuilder1 = Fold.build1 @UniTermExternalSizeDiscovery
-    {-# INLINE sizeBuilder1 #-}
+instance External.ExternalSizeBuilder1 UniTerm where
+    externalSizeBuilder1 = Fold.build1 @UniTermExternalSizeDiscovery
+    {-# INLINE externalSizeBuilder1 #-}
 
+-- FIXME: make these 2 instances nicer? merge?
 instance Fold.Builder1 UniTermExternalSizeDiscovery IO (Component comp) where
-    build1 = External.sizeBuilder1
+    build1 = External.sb1
     {-# INLINE build1 #-}
 
-instance External.SizeBuilder a
+instance Fold.Builder1 UniTermExternalSizeDiscovery IO (ComponentVector.Vector comp) where
+    build1 = External.sb1
+    {-# INLINE build1 #-}
+
+instance Fold.Builder1 UniTermExternalSizeDiscovery IO (ComponentSet.Set comp) where
+    build1 = External.sb1
+    {-# INLINE build1 #-}
+
+instance External.SB a
       => Fold.Builder UniTermExternalSizeDiscovery IO a where
-    build = External.sizeBuilder
+    build = External.sb
     {-# INLINE build #-}
 
 
@@ -144,10 +170,10 @@ instance External.ExternalStorable (UniTerm layout) where
         pure dynPtr'
     {-# INLINE loadBuilder #-}
 
-instance External.SizeBuilder (UniTerm layout) where
-    sizeBuilder = GTraversable.gfoldl' @External.SizeBuilder
-        (\f a -> f . External.sizeBuilder a) id
-    {-# INLINE sizeBuilder #-}
+instance External.ExternalSizeBuilder (UniTerm layout) where
+    externalSizeBuilder = GTraversable.gfoldl' @External.SB
+        (\f a -> f . External.sb a) id
+    {-# INLINE externalSizeBuilder #-}
 
 
 -- === Constructor === --
@@ -177,9 +203,16 @@ instance (GTraversable External.ExternalFieldStorable (Constructor comp layout))
 
 
 
-instance (GTraversable External.SizeBuilder (Constructor comp layout))
-      => External.SizeBuilder (Constructor comp layout) where
-    sizeBuilder = GTraversable.gfoldl' @External.SizeBuilder
-        (\f a -> f . External.sizeBuilder a) id
-    {-# INLINE sizeBuilder #-}
+instance (GTraversable External.ExternalSizeBuilder (Constructor comp layout))
+      => External.ExternalSizeBuilder (Constructor comp layout) where
+    externalSizeBuilder = GTraversable.gfoldl' @External.ExternalSizeBuilder
+        (\f a -> f . External.externalSizeBuilder a) id
+    {-# INLINE externalSizeBuilder #-}
 
+
+
+type instance Storable.Dynamics (Component comp) = 'Storable.Static
+
+-- FIXME
+type instance Storable.Dynamics UniTerm = 'Storable.Static
+type instance Storable.Dynamics (Constructor comp layout) = 'Storable.Static

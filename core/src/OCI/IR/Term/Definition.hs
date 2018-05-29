@@ -10,8 +10,10 @@ import qualified Data.Generics.Traversable.Deriving     as GTraversable
 import qualified Data.Graph.Component.Edge              as Edge
 import qualified Data.Graph.Component.Node.Class        as Term
 import qualified Data.Graph.Component.Node.Construction as Term
+import qualified Data.Graph.Data.Component.Vector       as ComponentVector
 import qualified Data.Graph.Data.Layer.Layout           as Layout
 import qualified Data.Tag                               as Tag
+import qualified Data.Vector.Storable.Foreign           as Vector
 import qualified Data.Vector.Storable.Foreign           as Vector
 import qualified Foreign.Storable.Deriving              as Storable
 import qualified Foreign.Storable1.Deriving             as Storable1
@@ -19,7 +21,7 @@ import qualified Language.Haskell.TH                    as TH
 import qualified OCI.IR.Term.Format                     as Format
 import qualified Type.Data.Map                          as TypeMap
 
-import Data.Graph.Component.Edge       (type (*-*), Edge)
+import Data.Graph.Component.Edge       (type (*-*), Edge, Edges)
 import Data.Graph.Component.Node.Layer (Model)
 import Data.Vector.Storable.Foreign    (Vector)
 import Foreign.Storable                (Storable)
@@ -39,9 +41,9 @@ import OCI.IR.Term.Class               (Term)
 
 -- | 'LinkTo' is a phantom helper type for link definition. It gets resolved to
 --   much more complex form during 'ExpandField' resolution.
-type List = Vector
+-- type List = Component.Vector
 data LinkTo  t
-type LinksTo t = List (LinkTo t)
+data LinksTo t -- = List (LinkTo t)
 
 -- | 'Field' is a typeclass which unifies how fields of smart cons get
 --   constructed. It's created only to make the generated code shorter and
@@ -55,27 +57,30 @@ instance Monad m => Field t a m a where
 instance Edge.Creator m => Field t (Term a) m (Edge b) where
     consField = \self t -> Layout.unsafeRelayout <$> Edge.new t self ; {-# INLINE consField #-}
 
-instance Edge.Creator m => Field t [Term a] m (List (Edge b)) where
-    consField = \self -> Vector.fromList <=< mapM (consField self) ; {-# INLINE consField #-}
+instance Edge.Creator m => Field t [Term a] m (ComponentVector.Vector Edges b) where
+    consField = \self -> ComponentVector.fromList <=< mapM (consField self) ; {-# INLINE consField #-}
 
-instance (Storable a, MonadIO m) => Field t [a] m (List a) where
+instance (Storable a, MonadIO m) => Field t [a] m (Vector a) where
     consField = \self -> Vector.fromList ; {-# INLINE consField #-}
 
 type family ExpandField self layout a where
-    ExpandField self layout (LinkTo t) = Edge ( Layout.Get t layout
-                                            *-* Layout.Set Model self layout)
-    ExpandField self layout (t a)      = t (ExpandField self layout a)
-    ExpandField self layout a          = a
+    ExpandField self layout (LinkTo t)  = Edge
+        (Layout.Get t layout *-* Layout.Set Model self layout)
+    ExpandField self layout (LinksTo t) = ComponentVector.Vector Edges
+        (Layout.Get t layout *-* Layout.Set Model self layout)
+    ExpandField self layout (t a)       = t (ExpandField self layout a)
+    ExpandField self layout a           = a
 
 type family FieldCons var field where
-    FieldCons var (LinkTo t) = Term var
-    FieldCons var (List a)   = [FieldCons var a]
-    FieldCons var a          = a
+    FieldCons var (LinkTo  t) = Term var
+    FieldCons var (LinksTo t) = [Term var]
+    FieldCons var a           = a
 
 type family AddToOutput var field layout where
-    AddToOutput var (LinkTo t) layout = Layout.SetMerge t var layout
-    AddToOutput var (t a)      layout = AddToOutput var a layout
-    AddToOutput var a          layout = layout
+    AddToOutput var (LinkTo  t) layout = Layout.SetMerge t var layout
+    AddToOutput var (LinksTo t) layout = Layout.SetMerge t var layout
+    AddToOutput var (t a)       layout = AddToOutput var a layout
+    AddToOutput var a           layout = layout
 
 
 
