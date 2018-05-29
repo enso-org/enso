@@ -10,6 +10,9 @@ import Foreign.ForeignPtr     (ForeignPtr, mallocForeignPtr, withForeignPtr)
 import Foreign.Storable       (Storable, peek, poke)
 
 
+type SomeForeignPtr = ForeignPtr ()
+
+
 mkForeignPtr :: (Storable a, MonadIO m) => a -> m (ForeignPtr a)
 mkForeignPtr a = do
     ptr <- liftIO mallocForeignPtr

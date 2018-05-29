@@ -31,6 +31,8 @@ type family Lists ls where
 
 -- === Instances === --
 
+type instance Item (List comp) = Component.Some comp
+
 instance Mempty  (List comp) where mempty = Nil    ; {-# INLINE mempty #-}
 instance Default (List comp) where def    = mempty ; {-# INLINE def    #-}
 
@@ -39,6 +41,13 @@ instance comp ~ comp'
     convert = \case
         []     -> Nil
         (a:as) -> Cons (Layout.relayout a) $! convert as
+    {-# INLINABLE convert #-}
+
+instance comp ~ comp'
+      => Convertible (List comp') [Component.Some comp] where
+    convert = \case
+        Nil       -> []
+        Cons a as -> let as' = convert as in a : as'
     {-# INLINABLE convert #-}
 
 instance Semigroup (List comp) where

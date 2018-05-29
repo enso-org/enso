@@ -185,10 +185,11 @@ data Discovery
 type instance Fold.Result     Discovery = Int
 type instance Fold.LayerScope Discovery = 'Fold.All
 
-componentSize ::
-    (Fold.Builder (Fold.Scoped Discovery) m (Component comp layout))
-    => Component comp layout -> m Int
-componentSize a = Fold.build @(Fold.Scoped Discovery) a (pure 0)
+type ComponentSize comp m =
+    Fold.Builder1 (Fold.Scoped Discovery) m (Component comp)
+
+componentSize :: ComponentSize comp m => Component comp layout -> m Int
+componentSize a = Fold.build1 @(Fold.Scoped Discovery) a (pure 0)
 {-# INLINE componentSize #-}
 
 instance (MonadIO m, Measured1 (Layer.Cons layer) )
