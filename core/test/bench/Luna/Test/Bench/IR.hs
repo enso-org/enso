@@ -678,23 +678,17 @@ benchmarks = do
 
 test :: IO ()
 test = runPass' $ do
-    print ">> 1"
     !v <- IR.var "a"
-    print ">> 2"
     !v2 <- IR.var "a"
-    print ">> 3"
     !u <- IR.match v [v2]
-    print ">> 4"
     -- _ <- Graph.dumpComponent v undefined
     size <- External.size u
-    print ">> 5"
     ins <- IR.inputs u
     print ins
     print size
 
 main :: IO ()
 main = do
-    print "!!!"
     test
     invariants
     benchmarks

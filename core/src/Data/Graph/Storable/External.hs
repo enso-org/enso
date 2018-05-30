@@ -10,6 +10,7 @@ import qualified Data.Graph.Data.Component.Vector as ComponentVector
 import qualified Data.Graph.Data.Layer.Class      as Layer
 import qualified Data.Graph.Traversal.Fold        as Fold
 import qualified Data.Graph.Traversal.Scoped      as Fold
+import qualified Data.Graph.Traversal.Struct      as Fold
 import qualified Foreign.DynamicStorable          as DynamicStorable
 import qualified Foreign.Storable.Utils           as Storable
 

@@ -18,6 +18,7 @@ import qualified Data.Graph.Data.Layer.Class          as Layer
 import qualified Data.Graph.Data.Layer.Layout         as Layout
 import qualified Data.Graph.Traversal.Fold            as Fold
 import qualified Data.Graph.Traversal.Scoped          as Fold
+import qualified Data.Graph.Traversal.Struct          as Fold
 import qualified Data.Map.Strict                      as Map
 import qualified Data.PtrSet.Mutable                  as PtrSet
 import qualified Data.Set                             as Set

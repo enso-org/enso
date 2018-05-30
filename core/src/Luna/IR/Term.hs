@@ -24,6 +24,7 @@ import qualified Data.Graph.Data.Layer.Class        as Layer
 import qualified Data.Graph.Storable.External       as External
 import qualified Data.Graph.Traversal.Fold          as Fold
 import qualified Data.Graph.Traversal.Scoped        as Fold
+import qualified Data.Graph.Traversal.Struct        as Fold
 import qualified Data.Graph.Traversal.SubComponents as Component
 import qualified Data.Graph.Traversal.SubTree       as SubTree
 import qualified Foreign.DynamicStorable            as Dynamic
@@ -126,34 +127,6 @@ instance (Monad m, GUniTermFold t m (Constructor comp layout))
 -- === ExternalStorable === --
 ------------------------------
 
--- === Size discovery === --
-
--- data UniTermExternalSizeDiscovery
--- type instance Fold.Result UniTermExternalSizeDiscovery = Int
-
--- instance External.ExternalSizeBuilder1 UniTerm where
---     externalSizeBuilder1 = Fold.build1 @(Fold.Struct UniTermExternalSizeDiscovery)
---     {-# INLINE externalSizeBuilder1 #-}
-
--- -- FIXME: make these 2 instances nicer? merge?
--- instance Fold.Builder1 UniTermExternalSizeDiscovery IO (Component comp) where
---     build1 = External.sb1
---     {-# INLINE build1 #-}
-
--- instance Fold.Builder1 UniTermExternalSizeDiscovery IO (ComponentVector.Vector comp) where
---     build1 = External.sb1
---     {-# INLINE build1 #-}
-
--- instance Fold.Builder1 UniTermExternalSizeDiscovery IO (ComponentSet.Set comp) where
---     build1 = External.sb1
---     {-# INLINE build1 #-}
-
--- instance External.SB a
---       => Fold.Builder UniTermExternalSizeDiscovery IO a where
---     build = External.sb
---     {-# INLINE build #-}
-
-
 -- === Dump / load === --
 
 instance External.ExternalStorable (UniTerm layout) where
@@ -170,11 +143,6 @@ instance External.ExternalStorable (UniTerm layout) where
         Storable.poke ptr uni'
         pure dynPtr'
     {-# INLINE loadBuilder #-}
-
--- instance External.ExternalSizeBuilder (UniTerm layout) where
---     externalSizeBuilder = GTraversable.gfoldl' @External.SB
---         (\f a -> f . External.sb a) id
---     {-# INLINE externalSizeBuilder #-}
 
 
 -- === Constructor === --
@@ -201,15 +169,6 @@ instance (GTraversable External.ExternalFieldStorable (Constructor comp layout))
                 State.put @SomePtr dynPtr'
                 pure a) cons
     {-# INLINE dumpFieldBuilder #-}
-
-
-
--- instance (GTraversable External.ExternalSizeBuilder (Constructor comp layout))
---       => External.ExternalSizeBuilder (Constructor comp layout) where
---     externalSizeBuilder = GTraversable.gfoldl' @External.ExternalSizeBuilder
---         (\f a -> f . External.externalSizeBuilder a) id
---     {-# INLINE externalSizeBuilder #-}
-
 
 
 type instance Storable.Dynamics (Component comp) = 'Storable.Static
