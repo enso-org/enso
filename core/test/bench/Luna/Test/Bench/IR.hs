@@ -29,6 +29,7 @@ import qualified Data.Graph.Data.Graph.Class           as Graph
 import qualified Data.Graph.Data.Layer.Class           as Layer
 import qualified Data.Graph.Data.Layer.Layout          as Layout
 import qualified Data.Graph.Serialize                  as Graph
+import qualified Data.Graph.Serialize.Internal         as Graph
 import qualified Data.Graph.Storable.External          as External
 import qualified Data.Graph.Traversal.Partition        as Partition
 import qualified Data.Graph.Traversal.SubComponents    as Traversal
@@ -53,19 +54,20 @@ import qualified OCI.Pass.Definition.Class             as Pass
 import qualified OCI.Pass.State.Encoder                as Encoder
 import qualified System.Console.ANSI                   as ANSI
 
-import Control.Concurrent          (threadDelay)
-import Control.DeepSeq             (force)
-import Control.Exception           (evaluate)
-import Control.Monad.Primitive     (primitive)
-import Data.Graph.Data             (Component (Component))
-import Data.Graph.Data.Graph.Class (Graph)
-import Data.Set                    (Set)
-import GHC.Exts                    (Any, Int (I#), SmallMutableArray#, State#,
-                                    readSmallArray#, unsafeCoerce#,
-                                    writeSmallArray#)
-import Luna.Pass                   (Pass)
-import Luna.Pass.Basic             (Compilation)
-
+import Control.Concurrent              (threadDelay)
+import Control.DeepSeq                 (force)
+import Control.Exception               (evaluate)
+import Control.Monad.Primitive         (primitive)
+import Data.Graph.Component.Edge.Class (Edges)
+import Data.Graph.Component.Node.Class (Nodes)
+import Data.Graph.Data                 (Component (Component))
+import Data.Graph.Data.Graph.Class     (Graph)
+import Data.Set                        (Set)
+import GHC.Exts                        (Any, Int (I#), SmallMutableArray#,
+                                        State#, readSmallArray#, unsafeCoerce#,
+                                        writeSmallArray#)
+import Luna.Pass                       (Pass)
+import Luna.Pass.Basic                 (Compilation)
 
 
 ---------------------
@@ -515,6 +517,16 @@ externalSizeDiscovery = Bench "external size" $ \i -> runPass' $ do
     go i
 {-# NOINLINE externalSizeDiscovery #-}
 
+fullSizeDiscovery :: Bench
+fullSizeDiscovery = Bench "full size" $ \i -> runPass' $ do
+    !v <- IR.var "a"
+    !clusters <- Partition.partition v
+    let go !0 = let !o = pure () in o
+        go !j = do
+            !_ <- Graph.clusterByteSize @('[Nodes, Edges]) clusters
+            go $! j - 1
+    go i
+{-# NOINLINE fullSizeDiscovery #-}
 
 newtype X = X Int
 newtype Y = Y Int
@@ -671,6 +683,7 @@ benchmarks = do
             , partitionsSingleVar
             , partitionsUnify
             , externalSizeDiscovery
+            , fullSizeDiscovery
             ]
         ]
       ]

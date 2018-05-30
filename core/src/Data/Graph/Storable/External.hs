@@ -294,8 +294,3 @@ instance Storable a => ExternalFieldStorable (Vector a) where
 
 deriving instance ExternalFieldStorable (ComponentVector.Vector comp layout)
 
-
------------------------
--- === Discovery === --
------------------------
-

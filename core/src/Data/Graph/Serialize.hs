@@ -8,19 +8,23 @@ import qualified Data.Graph.Data.Component.List       as Component
 import qualified Data.Graph.Data.Graph.Class          as Graph
 import qualified Data.Graph.Data.Layer.Class          as Layer
 import qualified Data.Graph.Data.Layer.Layout         as Layout
+import qualified Data.Graph.Serialize.Internal        as Serialize
+import qualified Data.Graph.Storable.External         as ExternalStorable
 import qualified Data.Graph.Traversal.Deep            as Deep
 import qualified Data.Graph.Traversal.Fold            as Fold
+import qualified Data.Graph.Traversal.Partition       as Partition
 import qualified Data.Graph.Traversal.Scoped          as Fold
-import qualified Data.Graph.Storable.External             as ExternalStorable
 
 import Data.Graph.Component.Edge.Class       (Source)
 import Data.Graph.Component.Node.Layer.Model (Model)
 import Data.Graph.Data.Component.Class       (Component)
-import Data.Graph.Storable.External              (ExternalStorable)
+import Data.Graph.Storable.External          (ExternalStorable)
+import Foreign.ForeignPtr.Utils              (SomeForeignPtr,
+                                              mallocForeignPtrBytes,
+                                              plusForeignPtr)
 import Foreign.Ptr                           (Ptr, plusPtr)
 import Foreign.Ptr.Utils                     (SomePtr)
 import Foreign.Storable1                     (Storable1)
-
 
 -- -----------------------
 -- -- === Discovery === --
@@ -102,3 +106,29 @@ dumpComponent :: ∀ comp m layout. ExternalStorableComponent comp m
 dumpComponent = \comp dynPtr -> liftIO
     $! dumpLayers @(Graph.DiscoverComponentLayers m comp) (coerce comp) dynPtr
 {-# INLINE dumpComponent #-}
+
+
+
+------------------------------------
+-- === SubGraph serialization === --
+------------------------------------
+
+data SubGraphMemoryRegion = SubGraphMemoryRegion
+    { _static  :: !SomeForeignPtr
+    , _dynamic :: !SomeForeignPtr
+    }
+makeLenses ''SubGraphMemoryRegion
+
+type Allocator comps m =
+    ( Serialize.ClusterSizeDiscovery comps m
+    , MonadIO m
+    )
+
+alloc :: ∀ comps m. Allocator comps m
+      => Partition.Clusters comps -> m SubGraphMemoryRegion
+alloc clusters = do
+    Serialize.Size !stSize !dynSize <- Serialize.clusterByteSize @comps clusters
+    let totalSize = stSize + dynSize
+    ptr <- liftIO $! mallocForeignPtrBytes totalSize
+    pure $! SubGraphMemoryRegion ptr $! ptr `plusForeignPtr` stSize
+{-# INLINE alloc #-}
