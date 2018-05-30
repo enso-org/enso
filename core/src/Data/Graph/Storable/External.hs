@@ -102,12 +102,7 @@ class SB1 a where sb1 :: ∀ t1. a t1 -> IO Int -> IO Int
 instance (dynamics ~ Storable.Dynamics a, SizeBuilder1__ dynamics a)
       => SB1 a where sb1 = sizeBuilder1__ @dynamics ; {-# INLINE sb1 #-}
 
-size  :: ∀ a. SizeBuilder__ (Storable.Dynamics a) a => a -> IO Int
-size = \a -> sizeBuilder__ @(Storable.Dynamics a) a $! pure 0 ; {-# INLINE size #-}
 
-type S1 a = SizeBuilder1__ (Storable.Dynamics a) a
-size1  :: ∀ a t1. SizeBuilder1__ (Storable.Dynamics a) a => a t1 -> IO Int
-size1 = \a -> sizeBuilder1__ @(Storable.Dynamics a) a $! pure 0 ; {-# INLINE size1 #-}
 
 class SizeBuilder__ (dynamics :: Storable.DynamicsType) a where
     sizeBuilder__ :: a -> IO Int -> IO Int
@@ -131,10 +126,67 @@ instance ExternalSizeBuilder1 a => SizeBuilder1__ 'Storable.Dynamic a where
     {-# INLINE sizeBuilder1__ #-}
 
 
--- data DynamicsTarget (dyn :: Storable.DynamicsType)
 
--- instance Fold.Builder
+data If (pass :: Bool) t
+type instance Fold.Result (If _ t) = Fold.Result t
 
+instance Monad m            => Fold.Builder (If 'False t) m a
+instance Fold.Builder t m a => Fold.Builder (If 'True  t) m a where
+    build = Fold.build @t ; {-# INLINE build #-}
+
+instance Monad m             => Fold.Builder1 (If 'False t) m a
+instance Fold.Builder1 t m a => Fold.Builder1 (If 'True  t) m a where
+    build1 = Fold.build1 @t ; {-# INLINE build1 #-}
+
+
+
+data DynamicsTarget (dyn :: Storable.DynamicsType) t
+type instance Fold.Result (DynamicsTarget _ t) = Fold.Result t
+
+instance
+    ( dyn'    ~ Storable.Dynamics a
+    , ok      ~ (dyn == dyn')
+    , subFold ~ If ok t
+    , Fold.Builder subFold m a
+    ) => Fold.Builder (DynamicsTarget dyn t) m a where
+    build = Fold.build @subFold ; {-# INLINE build #-}
+
+instance
+    ( dyn'    ~ Storable.Dynamics a
+    , ok      ~ (dyn == dyn')
+    , subFold ~ If ok t
+    , Fold.Builder1 subFold m a
+    ) => Fold.Builder1 (DynamicsTarget dyn t) m a where
+    build1 = Fold.build1 @subFold ; {-# INLINE build1 #-}
+
+
+data ESB
+type instance Fold.Result ESB = Int
+
+-- size  :: ∀ a m. Fold.Builder (DynamicsTarget 'Storable.Dynamic ESB) m a => a -> m Int
+-- size = \a -> Fold.build @(DynamicsTarget 'Storable.Dynamic ESB) a $! pure 0 ; {-# INLINE size #-}
+-- size = \a -> sizeBuilder__ @(Storable.Dynamics a) a $! pure 0 ; {-# INLINE size #-}
+
+-- type S1 a = SizeBuilder1__ (Storable.Dynamics a) a
+-- size1  :: ∀ a t1. SizeBuilder1__ (Storable.Dynamics a) a => a t1 -> IO Int
+-- size1 = \a -> sizeBuilder1__ @(Storable.Dynamics a) a $! pure 0 ; {-# INLINE size1 #-}
+
+type SizeDiscovery1 a m = Fold.Builder1 (DynamicsTarget 'Storable.Dynamic ESB) m a
+
+instance MonadIO m => Fold.Builder1 ESB m (Component.Set comp) where
+    build1 = Fold.build @ESB . unwrap ; {-# INLINE build1 #-}
+
+instance (MonadIO m, Storable a, IsPtr a) => Fold.Builder ESB m (UnmanagedPtrSet a) where
+    build = \a mi -> (+) <$> mi <*> liftIO (DynamicStorable.sizeOf a)
+    {-# INLINE build #-}
+
+-- size1  :: ∀ a t1 m. SizeDiscovery1 a m => a t1 -> m Int
+-- size1 = \a -> Fold.build1 @(DynamicsTarget 'Storable.Dynamic ESB) a $! pure 0 ; {-# INLINE size1 #-}
+-- size1 = \a -> sizeBuilder1__ @(Storable.Dynamics a) a $! pure 0 ; {-# INLINE size1 #-}
+
+type S1 a = SizeBuilder1__ (Storable.Dynamics a) a
+size1  :: ∀ a t1. SizeBuilder1__ (Storable.Dynamics a) a => a t1 -> IO Int
+size1 = \a -> sizeBuilder1__ @(Storable.Dynamics a) a $! pure 0 ; {-# INLINE size1 #-}
 
 ---------------------------------
 -- === ExternalStorable === --

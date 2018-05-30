@@ -63,6 +63,19 @@ instance Fold.Builder (Fold.Scoped (Discovery comp)) m
     {-# INLINE subComponents #-}
 
 
+-- === Struct === --
+
+instance {-# OVERLAPPABLE #-}
+    (Monad m, Fold.Builder (Fold.Struct (Discovery comp)) m a)
+      => Fold.Builder (Discovery comp) m a where
+    build = Fold.build @(Fold.Struct (Discovery comp))
+    {-# INLINE build #-}
+
+-- instance Fold.Builder (Discovery comp) m (Component comp' layout)
+--       => Fold.Builder (Fold.Struct (Discovery comp)) m (Component comp' layout) where
+--     build = Fold.build @(Discovery comp) ; {-# INLINE build #-}
+
+
 -- === Component === --
 
 instance (Fold.Builder1 (Discovery comp) m (Component comp))
@@ -112,3 +125,8 @@ instance MonadIO m
     build1 = \a acc
         -> (\a b -> a <> b) <$> (convert <$> ComponentVector.toList a) <*> acc
     {-# INLINE build1 #-}
+
+instance {-# OVERLAPPABLE #-}
+    (Monad m, Fold.Builder1 (Fold.Struct (Discovery comp)) m a)
+      => Fold.Builder1 (Discovery comp) m a where
+    build1 = Fold.build1 @(Fold.Struct (Discovery comp)) ; {-# INLINE build1 #-}

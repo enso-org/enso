@@ -37,9 +37,11 @@ type family Result t
 
 class Monad m => Builder t m a where
     build :: a -> m (Result t) -> m (Result t)
+    build = \_ -> id ; {-# INLINE build #-}
 
 class Monad m => Builder1 t m a where
     build1 :: ∀ t1. a t1 -> m (Result t) -> m (Result t)
+    build1 = \_ -> id ; {-# INLINE build1 #-}
 
 
 -- === Generics === --
@@ -52,10 +54,7 @@ gbuild = GTraversable.gfoldl' @(Builder t m) (\r d x -> r $! build @t d x) id
 
 -- === Instances === --
 
-instance {-# OVERLAPPABLE #-} (GTraversable (Builder t m) a, Monad m)
-      => Builder t m a where
-    build = gbuild @t
-    {-# INLINE build #-}
+
 
 
 -- === No-op instances === --
@@ -67,6 +66,41 @@ instance {-# OVERLAPPABLE #-} (GTraversable (Builder t m) a, Monad m)
 --     build = \_ -> id
 --     {-# INLINE build #-}
 
-instance {-# OVERLAPPABLE #-} Monad m => Builder s m (Vector x) where
+-- FIXME: ugly one
+instance {-# OVERLAPPABLE #-} Monad m => Builder (Struct t) m (Vector x) where
     build = \_ -> id
+    {-# INLINE build #-}
+
+
+
+
+
+-- instance {-# OVERLAPPABLE #-} (MonadIO m, Fold.Builder1 t m (Component comp))
+--       => Fold.Builder1 t m (ComponentVector.Vector comp) where
+--     build1 = \comp mr -> do
+--         lst <- ComponentVector.toList comp
+--         let f = foldl' (\f a -> f . Fold.build1 @t a) id lst
+--         f mr
+--     {-# INLINE build1 #-}
+
+-- instance {-# OVERLAPPABLE #-} (MonadIO m, Fold.Builder1 t m (Component comp))
+--       => Fold.Builder1 t m (ComponentSet.Set comp) where
+--     build1 = \comp mr -> do
+--         lst <- ComponentSet.toList comp
+--         let f = foldl' (\f a -> f . Fold.build1 @t a) id lst
+--         f mr
+--     {-# INLINE build1 #-}
+
+
+
+
+data Struct t
+type instance Result (Struct t) = Result t
+
+
+type GBuilder t m a = GTraversable (Builder t m) a
+
+instance {-# OVERLAPPABLE #-} (GTraversable (Builder t m) a, Monad m)
+      => Builder (Struct t) m a where
+    build = gbuild @t
     {-# INLINE build #-}

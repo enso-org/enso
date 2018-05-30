@@ -93,22 +93,28 @@ instance {-# OVERLAPPABLE #-}
         $! buildLayersFold__ @t @layers (Component.unsafeToPtr comp) mr
     {-# INLINE build1 #-}
 
-instance {-# OVERLAPPABLE #-} (MonadIO m, Fold.Builder1 t m (Component comp))
-      => Fold.Builder1 t m (ComponentVector.Vector comp) where
+-- FIXME WD: the below instance is generic. We can use 't' instead of 'Scoped t'
+--           but it will overlap then. We need to think for better generalization of it here.
+instance {-# OVERLAPPABLE #-} (MonadIO m, Fold.Builder1 (Scoped t) m (Component comp))
+      => Fold.Builder1 (Scoped t) m (ComponentVector.Vector comp) where
     build1 = \comp mr -> do
         lst <- ComponentVector.toList comp
-        let f = foldl' (\f a -> f . Fold.build1 @t a) id lst
+        let f = foldl' (\f a -> f . Fold.build1 @(Scoped t) a) id lst
         f mr
     {-# INLINE build1 #-}
 
-instance {-# OVERLAPPABLE #-} (MonadIO m, Fold.Builder1 t m (Component comp))
-      => Fold.Builder1 t m (ComponentSet.Set comp) where
+instance {-# OVERLAPPABLE #-} (MonadIO m, Fold.Builder1 (Scoped t) m (Component comp))
+      => Fold.Builder1 (Scoped t) m (ComponentSet.Set comp) where
     build1 = \comp mr -> do
         lst <- ComponentSet.toList comp
-        let f = foldl' (\f a -> f . Fold.build1 @t a) id lst
+        let f = foldl' (\f a -> f . Fold.build1 @(Scoped t) a) id lst
         f mr
     {-# INLINE build1 #-}
 
+instance {-# OVERLAPPABLE #-}
+    (Monad m, Fold.Builder1 (Fold.Struct (Scoped t)) m a)
+      => Fold.Builder1 (Scoped t) m a where
+    build1 = Fold.build1 @(Fold.Struct (Scoped t)) ; {-# INLINE build1 #-}
 
 
 ----------------------
