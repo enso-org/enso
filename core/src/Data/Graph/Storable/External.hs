@@ -8,9 +8,10 @@ import qualified Data.Graph.Data.Component.Set    as Component
 import qualified Data.Graph.Data.Component.Set    as ComponentSet
 import qualified Data.Graph.Data.Component.Vector as ComponentVector
 import qualified Data.Graph.Data.Layer.Class      as Layer
-import qualified Data.Graph.Fold.Class        as Fold
-import qualified Data.Graph.Fold.Scoped      as Fold
-import qualified Data.Graph.Fold.Struct      as Fold
+import qualified Data.Graph.Fold.Class            as Fold
+import qualified Data.Graph.Fold.Filter           as Fold
+import qualified Data.Graph.Fold.Scoped           as Fold
+import qualified Data.Graph.Fold.Struct           as Fold
 import qualified Foreign.DynamicStorable          as DynamicStorable
 import qualified Foreign.Storable.Utils           as Storable
 
@@ -25,54 +26,34 @@ import Foreign.Storable.Utils          (Storable)
 import qualified Data.Graph.Component.Node.Class as Term
 
 
------------------------
--- === If - Fold === --
------------------------
-
--- === Definition === --
-
-data If (pass :: Bool) t
-type instance Fold.Result (If _ t) = Fold.Result t
-
-
--- === Instances === --
-
-instance Monad m            => Fold.Builder (If 'False t) m a
-instance Fold.Builder t m a => Fold.Builder (If 'True  t) m a where
-    build = Fold.build @t ; {-# INLINE build #-}
-
-instance Monad m             => Fold.Builder1 (If 'False t) m a
-instance Fold.Builder1 t m a => Fold.Builder1 (If 'True  t) m a where
-    build1 = Fold.build1 @t ; {-# INLINE build1 #-}
 
 
 
-------------------------------
--- === MapDynamics Fold === --
-------------------------------
+-- ------------------------------
+-- -- === MapDynamics Fold === --
+-- ------------------------------
 
--- === Definition === --
+-- -- === Definition === --
 
-data MapDynamics (dyn :: Storable.DynamicsType) t
-type instance Fold.Result (MapDynamics _ t) = Fold.Result t
+-- data MapDynamics (dyn :: Storable.DynamicsType) t
+-- type instance Fold.Result (MapDynamics _ t) = Fold.Result t
 
 
--- === Instances === --
+-- -- === Instances === --
 
-instance
-    ( dyn'    ~ Storable.Dynamics a
-    , subFold ~ If (dyn == dyn') t
-    , Fold.Builder subFold m a
-    ) => Fold.Builder (MapDynamics dyn t) m a where
-    build = Fold.build @subFold ; {-# INLINE build #-}
+-- instance
+--     ( dyn'    ~ Storable.Dynamics a
+--     , subFold ~ If (dyn == dyn') t
+--     , Fold.Builder subFold m a
+--     ) => Fold.Builder (MapDynamics dyn t) m a where
+--     build = Fold.build @subFold ; {-# INLINE build #-}
 
-instance
-    ( dyn'    ~ Storable.Dynamics a
-    , subFold ~ If (dyn == dyn') t
-    , Fold.Builder1 subFold m a
-    ) => Fold.Builder1 (MapDynamics dyn t) m a where
-    build1 = Fold.build1 @subFold ; {-# INLINE build1 #-}
-
+-- instance
+--     ( dyn'    ~ Storable.Dynamics a
+--     , subFold ~ If (dyn == dyn') t
+--     , Fold.Builder1 subFold m a
+--     ) => Fold.Builder1 (MapDynamics dyn t) m a where
+--     build1 = Fold.build1 @subFold ; {-# INLINE build1 #-}
 
 
 ---------------------------
@@ -84,8 +65,9 @@ instance
 data Discovery
 type instance Fold.Result     Discovery = Int
 type instance Fold.LayerScope Discovery = 'Fold.All
-type SizeDiscoveryCfg      = MapDynamics 'Storable.Dynamic Discovery
 type SizeDiscoveryBuilder1 = Fold.Builder1 SizeDiscoveryCfg
+type SizeDiscoveryCfg      = Fold.Filter Storable.Dynamics Storable.Dynamic
+                                         Discovery
 
 
 -- === API === --

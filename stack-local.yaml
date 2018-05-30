@@ -42,8 +42,9 @@ packages:
     - lib/ci
     - lib/code-builder
     - lib/cpp-containers
-    - lib/data-tag
     - lib/data-construction
+    - lib/data-property
+    - lib/data-tag
     - lib/data-typemap
     - lib/exception
     - lib/foreign-utils

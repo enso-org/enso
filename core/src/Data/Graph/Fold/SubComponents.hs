@@ -1,4 +1,3 @@
--- {-# LANGUAGE Strict               #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Data.Graph.Fold.SubComponents where
@@ -16,9 +15,9 @@ import qualified Data.Graph.Data.Component.Vector     as ComponentVector
 import qualified Data.Graph.Data.Graph.Class          as Graph
 import qualified Data.Graph.Data.Layer.Class          as Layer
 import qualified Data.Graph.Data.Layer.Layout         as Layout
-import qualified Data.Graph.Fold.Class            as Fold
-import qualified Data.Graph.Fold.Scoped          as Fold
-import qualified Data.Graph.Fold.Struct          as Fold
+import qualified Data.Graph.Fold.Class                as Fold
+import qualified Data.Graph.Fold.Scoped               as Fold
+import qualified Data.Graph.Fold.Struct               as Fold
 import qualified Data.Map.Strict                      as Map
 import qualified Data.PtrSet.Mutable                  as PtrSet
 import qualified Data.Set                             as Set
@@ -33,6 +32,7 @@ import Data.Set                        (Set)
 import Data.Vector.Storable.Foreign    (Vector)
 import Foreign.Ptr.Utils               (SomePtr)
 import Type.Data.Bool                  (Not, type (||))
+
 
 
 -----------------------
@@ -71,10 +71,6 @@ instance {-# OVERLAPPABLE #-}
       => Fold.Builder (Discovery comp) m a where
     build = Fold.build @(Fold.Struct (Discovery comp))
     {-# INLINE build #-}
-
--- instance Fold.Builder (Discovery comp) m (Component comp' layout)
---       => Fold.Builder (Fold.Struct (Discovery comp)) m (Component comp' layout) where
---     build = Fold.build @(Discovery comp) ; {-# INLINE build #-}
 
 
 -- === Component === --

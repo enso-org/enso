@@ -42,9 +42,10 @@ packages:
     - lib/ci
     - lib/code-builder
     - lib/cpp-containers
+    - lib/data-construction
+    - lib/data-property    
     - lib/data-tag
     - lib/data-typemap
-    - lib/data-construction
     - lib/exception
     - lib/foreign-utils
     - lib/generic-traversable

@@ -7,6 +7,7 @@ import Data.Graph.Data.Component.Class
 import Prologue                        hiding (fromList)
 
 import qualified Data.Construction            as Data
+import qualified Data.Property                as Property
 import qualified Data.Vector.Storable.Foreign as Vector
 import qualified Foreign.Storable.Utils       as Storable
 import qualified Foreign.Storable1.Deriving   as Storable1
@@ -38,7 +39,7 @@ toList = Vector.toList . unwrap ; {-# INLINE toList #-}
 
 -- === Instances === --
 
-type instance Storable.Dynamics (Vector comp) = 'Storable.Dynamic
+type instance Property.Get Storable.Dynamics (Vector comp) = Storable.Dynamic
 
 -- type instance Vector.Item (Vector comp layout) = Component comp layout
 

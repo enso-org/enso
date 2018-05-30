@@ -12,25 +12,26 @@ import Luna.IR.Term.Format    as X (Ast, Draft, Literal, Phrase, Thunk, Value)
 import Luna.IR.Term.Instances as X ()
 import Luna.IR.Term.Literal   as X
 
-import qualified Control.Monad.State.Layered        as State
-import qualified Data.Construction                  as Data
-import qualified Data.Generics.Traversable          as GTraversable
-import qualified Data.Graph.Component.Edge          as Link
-import qualified Data.Graph.Component.Node.Class    as Term
-import qualified Data.Graph.Data.Component.Set      as ComponentSet
-import qualified Data.Graph.Data.Component.Vector   as ComponentVector
-import qualified Data.Graph.Data.Graph.Class        as Graph
-import qualified Data.Graph.Data.Layer.Class        as Layer
-import qualified Data.Graph.Storable.External       as External
-import qualified Data.Graph.Fold.Class          as Fold
-import qualified Data.Graph.Fold.Scoped        as Fold
-import qualified Data.Graph.Fold.Struct        as Fold
-import qualified Data.Graph.Fold.SubComponents as Component
-import qualified Data.Graph.Fold.SubTree       as SubTree
-import qualified Foreign.DynamicStorable            as Dynamic
-import qualified Foreign.Storable                   as Storable
-import qualified Foreign.Storable.Utils             as Storable
-import qualified OCI.IR.Term.Definition             as Term
+import qualified Control.Monad.State.Layered      as State
+import qualified Data.Construction                as Data
+import qualified Data.Generics.Traversable        as GTraversable
+import qualified Data.Graph.Component.Edge        as Link
+import qualified Data.Graph.Component.Node.Class  as Term
+import qualified Data.Graph.Data.Component.Set    as ComponentSet
+import qualified Data.Graph.Data.Component.Vector as ComponentVector
+import qualified Data.Graph.Data.Graph.Class      as Graph
+import qualified Data.Graph.Data.Layer.Class      as Layer
+import qualified Data.Graph.Fold.Class            as Fold
+import qualified Data.Graph.Fold.Scoped           as Fold
+import qualified Data.Graph.Fold.Struct           as Fold
+import qualified Data.Graph.Fold.SubComponents    as Component
+import qualified Data.Graph.Fold.SubTree          as SubTree
+import qualified Data.Graph.Storable.External     as External
+import qualified Data.Property                    as Property
+import qualified Foreign.DynamicStorable          as Dynamic
+import qualified Foreign.Storable                 as Storable
+import qualified Foreign.Storable.Utils           as Storable
+import qualified OCI.IR.Term.Definition           as Term
 
 import Control.Monad.State.Layered     (State)
 import Data.Generics.Traversable       (GTraversable)
@@ -96,7 +97,8 @@ gbuildFold__ = GTraversable.gfoldl' @(Fold.Builder (UniTermFold t) m)
                (\r d -> r . Fold.build @(UniTermFold t) d) id
 {-# INLINE gbuildFold__ #-}
 
-instance {-# OVERLAPPABLE #-} (Monad m, Fold.Builder (Fold.Struct (UniTermFold t)) m a)
+instance {-# OVERLAPPABLE #-}
+    (Monad m, Fold.Builder (Fold.Struct (UniTermFold t)) m a)
       => Fold.Builder (UniTermFold t) m a where
     build = Fold.build @(Fold.Struct (UniTermFold t))
     {-# INLINE build #-}
@@ -171,8 +173,8 @@ instance (GTraversable External.ExternalFieldStorable (Constructor comp layout))
     {-# INLINE dumpFieldBuilder #-}
 
 
-type instance Storable.Dynamics (Component comp) = 'Storable.Static
+type instance Property.Get Storable.Dynamics (Component comp) = Storable.Static
 
 -- FIXME
-type instance Storable.Dynamics UniTerm = 'Storable.Dynamic
-type instance Storable.Dynamics (Constructor comp layout) = 'Storable.Dynamic
+type instance Property.Get Storable.Dynamics UniTerm = Storable.Dynamic
+type instance Property.Get Storable.Dynamics (Constructor comp layout) = Storable.Dynamic

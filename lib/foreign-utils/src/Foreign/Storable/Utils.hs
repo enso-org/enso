@@ -10,11 +10,10 @@ import Foreign.Storable (Storable, alignment, peek, peekByteOff, poke,
                          pokeByteOff, sizeOf)
 
 
-data DynamicsType
-    = Static
-    | Dynamic
+data Dynamics
+data Static
+data Dynamic
 
-type family Dynamics (a :: k) :: DynamicsType
 
 sizeOf'    :: forall a. Storable a => Int
 alignment' :: forall a. Storable a => Int
