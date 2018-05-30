@@ -510,7 +510,7 @@ externalSizeDiscovery = Bench "external size" $ \i -> runPass' $ do
     !v <- IR.var "a"
     let go !0 = let !o = pure () in o
         go !j = do
-            !_ <- External.componentSize v
+            !_ <- External.size v
             go $! j - 1
     go i
 {-# NOINLINE externalSizeDiscovery #-}
@@ -678,17 +678,23 @@ benchmarks = do
 
 test :: IO ()
 test = runPass' $ do
+    print ">> 1"
     !v <- IR.var "a"
+    print ">> 2"
     !v2 <- IR.var "a"
+    print ">> 3"
     !u <- IR.match v [v2]
+    print ">> 4"
     -- _ <- Graph.dumpComponent v undefined
-    size <- External.componentSize v
+    size <- External.size u
+    print ">> 5"
     ins <- IR.inputs u
     print ins
     print size
 
 main :: IO ()
 main = do
+    print "!!!"
     test
     invariants
     benchmarks

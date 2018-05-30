@@ -95,7 +95,8 @@ instance {-# OVERLAPPABLE #-}
 
 -- FIXME WD: the below instance is generic. We can use 't' instead of 'Scoped t'
 --           but it will overlap then. We need to think for better generalization of it here.
-instance {-# OVERLAPPABLE #-} (MonadIO m, Fold.Builder1 (Scoped t) m (Component comp))
+instance {-# OVERLAPPABLE #-}
+    (MonadIO m, Fold.Builder1 (Scoped t) m (Component comp))
       => Fold.Builder1 (Scoped t) m (ComponentVector.Vector comp) where
     build1 = \comp mr -> do
         lst <- ComponentVector.toList comp
@@ -103,7 +104,8 @@ instance {-# OVERLAPPABLE #-} (MonadIO m, Fold.Builder1 (Scoped t) m (Component 
         f mr
     {-# INLINE build1 #-}
 
-instance {-# OVERLAPPABLE #-} (MonadIO m, Fold.Builder1 (Scoped t) m (Component comp))
+instance {-# OVERLAPPABLE #-}
+    (MonadIO m, Fold.Builder1 (Scoped t) m (Component comp))
       => Fold.Builder1 (Scoped t) m (ComponentSet.Set comp) where
     build1 = \comp mr -> do
         lst <- ComponentSet.toList comp

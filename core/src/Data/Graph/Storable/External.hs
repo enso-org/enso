@@ -21,114 +21,20 @@ import Foreign.Ptr                     (Ptr, plusPtr)
 import Foreign.Ptr.Utils               (SomePtr)
 import Foreign.Storable.Utils          (Storable)
 
+import qualified Data.Graph.Component.Node.Class as Term
 
 
-----------------------
--- === Measured === --
-----------------------
+-----------------------
+-- === If - Fold === --
+-----------------------
 
 -- === Definition === --
 
--- class Measured a where
---     byteSize :: a -> IO Int
-
--- class SizeBuilder a where
---     sizeBuilder :: a -> IO Int -> IO Int
---     sizeBuilder = \_ -> id ; {-# INLINE sizeBuilder #-}
-
--- class SizeBuilder1 a where
---     sizeBuilder1 :: ∀ t1. a t1 -> IO Int -> IO Int
---     sizeBuilder1 = \_ -> id ; {-# INLINE sizeBuilder1 #-}
-
-
--- === API === --
-
--- size  :: SizeBuilder  a => a    -> IO Int
--- size1 :: SizeBuilder1 a => a t1 -> IO Int
--- size  = \a -> sizeBuilder  a $! pure 0 ; {-# INLINE size  #-}
--- size1 = \a -> sizeBuilder1 a $! pure 0 ; {-# INLINE size1 #-}
+data If (pass :: Bool) t
+type instance Fold.Result (If _ t) = Fold.Result t
 
 
 -- === Instances === --
-
--- instance SizeBuilder Bool
--- instance SizeBuilder Char
--- instance SizeBuilder Int
--- instance SizeBuilder Word16
--- instance SizeBuilder Word32
--- instance SizeBuilder Word64
--- instance SizeBuilder Word8
-
--- instance SizeBuilder  (Component comp layout)
--- instance SizeBuilder1 (Component comp)
-
-
-class ExternalSizeBuilder a where
-    externalSizeBuilder :: a -> IO Int -> IO Int
-
-class ExternalSizeBuilder1 a where
-    externalSizeBuilder1 :: ∀ t1. a t1 -> IO Int -> IO Int
-
-instance (Storable a, IsPtr a) => ExternalSizeBuilder (UnmanagedPtrSet a) where
-    externalSizeBuilder = \a mi -> (+) <$> mi <*> DynamicStorable.sizeOf a
-    {-# INLINE externalSizeBuilder #-}
-
-instance Storable a => ExternalSizeBuilder (Vector a) where
-    externalSizeBuilder = \a mi -> (+) <$> mi <*> DynamicStorable.sizeOf a
-    {-# INLINE externalSizeBuilder #-}
-
-
-
-instance ExternalSizeBuilder1 (Component.Set comp) where
-    externalSizeBuilder1 = externalSizeBuilder . unwrap
-    {-# INLINE externalSizeBuilder1 #-}
-
-instance ExternalSizeBuilder1 (ComponentVector.Vector comp) where
-    externalSizeBuilder1 = externalSizeBuilder . unwrap
-    {-# INLINE externalSizeBuilder1 #-}
-
-
-
--- instance (dynamics ~ Storable.Dynamics a, SizeBuilder__ dynamics a)
---       => SizeBuilder a where
---     sizeBuilder = sizeBuilder__ @dynamics
---     {-# INLINE sizeBuilder #-}
-
-class SB a where sb :: a -> IO Int -> IO Int
-instance (dynamics ~ Storable.Dynamics a, SizeBuilder__ dynamics a)
-      => SB a where sb = sizeBuilder__ @dynamics ; {-# INLINE sb #-}
-
-class SB1 a where sb1 :: ∀ t1. a t1 -> IO Int -> IO Int
-instance (dynamics ~ Storable.Dynamics a, SizeBuilder1__ dynamics a)
-      => SB1 a where sb1 = sizeBuilder1__ @dynamics ; {-# INLINE sb1 #-}
-
-
-
-class SizeBuilder__ (dynamics :: Storable.DynamicsType) a where
-    sizeBuilder__ :: a -> IO Int -> IO Int
-
-instance SizeBuilder__ 'Storable.Static a where
-    sizeBuilder__ = \_ -> id ; {-# INLINE sizeBuilder__ #-}
-
-instance ExternalSizeBuilder a => SizeBuilder__ 'Storable.Dynamic a where
-    sizeBuilder__ = externalSizeBuilder
-    {-# INLINE sizeBuilder__ #-}
-
-
-class SizeBuilder1__ (dynamics :: Storable.DynamicsType) a where
-    sizeBuilder1__ :: ∀ t1. a t1 -> IO Int -> IO Int
-
-instance SizeBuilder1__ 'Storable.Static a where
-    sizeBuilder1__ = \_ -> id ; {-# INLINE sizeBuilder1__ #-}
-
-instance ExternalSizeBuilder1 a => SizeBuilder1__ 'Storable.Dynamic a where
-    sizeBuilder1__ = externalSizeBuilder1
-    {-# INLINE sizeBuilder1__ #-}
-
-
-
-data If (pass :: Bool) t
-type instance Fold.Result (If _ t) = Fold.Result t
 
 instance Monad m            => Fold.Builder (If 'False t) m a
 instance Fold.Builder t m a => Fold.Builder (If 'True  t) m a where
@@ -140,57 +46,116 @@ instance Fold.Builder1 t m a => Fold.Builder1 (If 'True  t) m a where
 
 
 
-data DynamicsTarget (dyn :: Storable.DynamicsType) t
-type instance Fold.Result (DynamicsTarget _ t) = Fold.Result t
+------------------------------
+-- === MapDynamics Fold === --
+------------------------------
+
+-- === Definition === --
+
+data MapDynamics (dyn :: Storable.DynamicsType) t
+type instance Fold.Result (MapDynamics _ t) = Fold.Result t
+
+
+-- === Instances === --
 
 instance
     ( dyn'    ~ Storable.Dynamics a
-    , ok      ~ (dyn == dyn')
-    , subFold ~ If ok t
+    , subFold ~ If (dyn == dyn') t
     , Fold.Builder subFold m a
-    ) => Fold.Builder (DynamicsTarget dyn t) m a where
+    ) => Fold.Builder (MapDynamics dyn t) m a where
     build = Fold.build @subFold ; {-# INLINE build #-}
 
 instance
     ( dyn'    ~ Storable.Dynamics a
-    , ok      ~ (dyn == dyn')
-    , subFold ~ If ok t
+    , subFold ~ If (dyn == dyn') t
     , Fold.Builder1 subFold m a
-    ) => Fold.Builder1 (DynamicsTarget dyn t) m a where
+    ) => Fold.Builder1 (MapDynamics dyn t) m a where
     build1 = Fold.build1 @subFold ; {-# INLINE build1 #-}
 
 
-data ESB
-type instance Fold.Result ESB = Int
 
--- size  :: ∀ a m. Fold.Builder (DynamicsTarget 'Storable.Dynamic ESB) m a => a -> m Int
--- size = \a -> Fold.build @(DynamicsTarget 'Storable.Dynamic ESB) a $! pure 0 ; {-# INLINE size #-}
--- size = \a -> sizeBuilder__ @(Storable.Dynamics a) a $! pure 0 ; {-# INLINE size #-}
+---------------------------
+-- === SizeDiscovery === --
+---------------------------
 
--- type S1 a = SizeBuilder1__ (Storable.Dynamics a) a
--- size1  :: ∀ a t1. SizeBuilder1__ (Storable.Dynamics a) a => a t1 -> IO Int
--- size1 = \a -> sizeBuilder1__ @(Storable.Dynamics a) a $! pure 0 ; {-# INLINE size1 #-}
+-- === Definition === --
 
-type SizeDiscovery1 a m = Fold.Builder1 (DynamicsTarget 'Storable.Dynamic ESB) m a
+data Discovery
+type instance Fold.Result     Discovery = Int
+type instance Fold.LayerScope Discovery = 'Fold.All
+type SizeDiscoveryCfg      = MapDynamics 'Storable.Dynamic Discovery
+type SizeDiscoveryBuilder1 = Fold.Builder1 SizeDiscoveryCfg
 
-instance MonadIO m => Fold.Builder1 ESB m (Component.Set comp) where
-    build1 = Fold.build @ESB . unwrap ; {-# INLINE build1 #-}
 
-instance (MonadIO m, Storable a, IsPtr a) => Fold.Builder ESB m (UnmanagedPtrSet a) where
+-- === API === --
+
+class SizeDiscovery  m a where size  ::       a    -> m Int
+class SizeDiscovery1 m a where size1 :: ∀ t1. a t1 -> m Int
+
+instance {-# OVERLAPPABLE #-} Fold.Builder SizeDiscoveryCfg m a
+      => SizeDiscovery m a where
+    size = \a -> Fold.build @SizeDiscoveryCfg a $ pure 0
+    {-# INLINE size #-}
+
+instance {-# OVERLAPPABLE #-} SizeDiscoveryBuilder1 m a
+      => SizeDiscovery1 m a where
+    size1 = size1__
+    {-# INLINE size1 #-}
+
+instance {-# OVERLAPPABLE #-} SizeDiscovery1 m (Component comp)
+      => SizeDiscovery m (Component comp layout) where
+    size = size1
+    {-# INLINE size #-}
+
+instance {-# OVERLAPPABLE #-}
+    Fold.Builder1 (Fold.Scoped Discovery) m (Component comp)
+      => SizeDiscovery1 m (Component comp) where
+    size1 = \a -> Fold.build1 @(Fold.Scoped Discovery) a $ pure 0
+    {-# INLINE size1 #-}
+
+size1__ :: SizeDiscoveryBuilder1 m a => a t1 -> m Int
+size1__ = \a -> Fold.build1 @SizeDiscoveryCfg a $ pure 0
+{-# INLINE size1__ #-}
+
+
+-- === Instances === --
+
+instance (MonadIO m, SizeDiscoveryBuilder1 m (Layer.Cons layer))
+      => Fold.LayerBuilder Discovery m layer where
+    layerBuild = \a mi -> (+) <$> mi <*> size1__ a
+    {-# INLINE layerBuild #-}
+
+instance MonadIO m
+      => Fold.Builder1 Discovery m (ComponentSet.Set comp) where
+    build1 = Fold.build @Discovery . unwrap
+    {-# INLINE build1 #-}
+
+instance MonadIO m
+      => Fold.Builder1 Discovery m (ComponentVector.Vector comp) where
+    build1 = Fold.build @Discovery . unwrap
+    {-# INLINE build1 #-}
+
+instance (MonadIO m, Storable a, IsPtr a)
+      => Fold.Builder Discovery m (UnmanagedPtrSet a) where
     build = \a mi -> (+) <$> mi <*> liftIO (DynamicStorable.sizeOf a)
     {-# INLINE build #-}
 
--- size1  :: ∀ a t1 m. SizeDiscovery1 a m => a t1 -> m Int
--- size1 = \a -> Fold.build1 @(DynamicsTarget 'Storable.Dynamic ESB) a $! pure 0 ; {-# INLINE size1 #-}
--- size1 = \a -> sizeBuilder1__ @(Storable.Dynamics a) a $! pure 0 ; {-# INLINE size1 #-}
+instance (MonadIO m, Storable a)
+      => Fold.Builder Discovery m (Vector a) where
+    build = \a mi -> (+) <$> mi <*> liftIO (DynamicStorable.sizeOf a)
+    {-# INLINE build #-}
 
-type S1 a = SizeBuilder1__ (Storable.Dynamics a) a
-size1  :: ∀ a t1. SizeBuilder1__ (Storable.Dynamics a) a => a t1 -> IO Int
-size1 = \a -> sizeBuilder1__ @(Storable.Dynamics a) a $! pure 0 ; {-# INLINE size1 #-}
+instance {-# OVERLAPPABLE #-}
+    (Monad m, Fold.Builder1 (Fold.Struct SizeDiscoveryCfg) m a)
+      => Fold.Builder1 Discovery m a where
+    build1 = Fold.build1 @(Fold.Struct SizeDiscoveryCfg)
+    {-# INLINE build1 #-}
 
----------------------------------
+
+
+------------------------------
 -- === ExternalStorable === --
----------------------------------
+------------------------------
 
 -- === Definition === --
 
@@ -333,17 +298,3 @@ deriving instance ExternalFieldStorable (ComponentVector.Vector comp layout)
 -- === Discovery === --
 -----------------------
 
-data Discovery
-type instance Fold.Result     Discovery = Int
-type instance Fold.LayerScope Discovery = 'Fold.All
-
-componentSize ::
-    (Fold.Builder (Fold.Scoped Discovery) m (Component comp layout))
-    => Component comp layout -> m Int
-componentSize a = Fold.build @(Fold.Scoped Discovery) a (pure 0)
-{-# INLINE componentSize #-}
-
-instance (MonadIO m, S1 (Layer.Cons layer))
-      => Fold.LayerBuilder Discovery m layer where
-    layerBuild = \layer msize -> (+) <$> msize <*> liftIO (size1 layer)
-    {-# INLINE layerBuild #-}

@@ -85,40 +85,38 @@ instance
 
 -- === Internal === --
 
-data UTF t
-type instance Fold.Result (UTF t) = Fold.Result t
+data UniTermFold t
+type instance Fold.Result (UniTermFold t) = Fold.Result t
+type GUniTermFold t m = GTraversable (Fold.Builder (UniTermFold t) m)
 
--- class UniTermFold t m a where
---     buildFold__ :: a -> m (Fold.Result t) -> m (Fold.Result t)
-
-gbuildFold__ :: ∀ t a m. (GTraversable (Fold.Builder (UTF t) m) a, Applicative m)
+gbuildFold__ :: ∀ t a m. (GUniTermFold t m a, Applicative m)
              => a -> m (Fold.Result t) -> m (Fold.Result t)
-gbuildFold__ = GTraversable.gfoldl' @(Fold.Builder (UTF t) m)
-               (\r d x -> r $! Fold.build @(UTF t) d x) id
+gbuildFold__ = GTraversable.gfoldl' @(Fold.Builder (UniTermFold t) m)
+               (\r d -> r . Fold.build @(UniTermFold t) d) id
 {-# INLINE gbuildFold__ #-}
 
-instance {-# OVERLAPPABLE #-} (Monad m, Fold.Builder (Fold.Struct (UTF t)) m a)
-      => Fold.Builder (UTF t) m a where
-    build = Fold.build @(Fold.Struct (UTF t))
+instance {-# OVERLAPPABLE #-} (Monad m, Fold.Builder (Fold.Struct (UniTermFold t)) m a)
+      => Fold.Builder (UniTermFold t) m a where
+    build = Fold.build @(Fold.Struct (UniTermFold t))
     {-# INLINE build #-}
 
 instance Fold.Builder1 t m (Component comp)
-      => Fold.Builder (UTF t) m (Component comp layout) where
+      => Fold.Builder (UniTermFold t) m (Component comp layout) where
     build = Fold.build1 @t
     {-# INLINE build #-}
 
 instance Fold.Builder1 t m (ComponentVector.Vector comp)
-      => Fold.Builder (UTF t) m (ComponentVector.Vector comp layout) where
+      => Fold.Builder (UniTermFold t) m (ComponentVector.Vector comp layout) where
     build = Fold.build1 @t
     {-# INLINE build #-}
 
 instance Fold.Builder1 t m (ComponentSet.Set comp)
-      => Fold.Builder (UTF t) m (ComponentSet.Set comp layout) where
+      => Fold.Builder (UniTermFold t) m (ComponentSet.Set comp layout) where
     build = Fold.build1 @t
     {-# INLINE build #-}
 
-instance (Monad m, GTraversable (Fold.Builder (UTF t) m) (Constructor comp layout))
-      => Fold.Builder (UTF t) m (Constructor comp layout) where
+instance (Monad m, GUniTermFold t m (Constructor comp layout))
+      => Fold.Builder (UniTermFold t) m (Constructor comp layout) where
     build = gbuildFold__ @t
     {-# INLINE build #-}
 
@@ -130,32 +128,30 @@ instance (Monad m, GTraversable (Fold.Builder (UTF t) m) (Constructor comp layou
 
 -- === Size discovery === --
 
-data UniTermExternalSizeDiscovery
-type instance Fold.Result UniTermExternalSizeDiscovery = Int
+-- data UniTermExternalSizeDiscovery
+-- type instance Fold.Result UniTermExternalSizeDiscovery = Int
 
--- instance Fold.Builder1 External.ESB
+-- instance External.ExternalSizeBuilder1 UniTerm where
+--     externalSizeBuilder1 = Fold.build1 @(Fold.Struct UniTermExternalSizeDiscovery)
+--     {-# INLINE externalSizeBuilder1 #-}
 
-instance External.ExternalSizeBuilder1 UniTerm where
-    externalSizeBuilder1 = Fold.build1 @(Fold.Struct UniTermExternalSizeDiscovery)
-    {-# INLINE externalSizeBuilder1 #-}
+-- -- FIXME: make these 2 instances nicer? merge?
+-- instance Fold.Builder1 UniTermExternalSizeDiscovery IO (Component comp) where
+--     build1 = External.sb1
+--     {-# INLINE build1 #-}
 
--- FIXME: make these 2 instances nicer? merge?
-instance Fold.Builder1 UniTermExternalSizeDiscovery IO (Component comp) where
-    build1 = External.sb1
-    {-# INLINE build1 #-}
+-- instance Fold.Builder1 UniTermExternalSizeDiscovery IO (ComponentVector.Vector comp) where
+--     build1 = External.sb1
+--     {-# INLINE build1 #-}
 
-instance Fold.Builder1 UniTermExternalSizeDiscovery IO (ComponentVector.Vector comp) where
-    build1 = External.sb1
-    {-# INLINE build1 #-}
+-- instance Fold.Builder1 UniTermExternalSizeDiscovery IO (ComponentSet.Set comp) where
+--     build1 = External.sb1
+--     {-# INLINE build1 #-}
 
-instance Fold.Builder1 UniTermExternalSizeDiscovery IO (ComponentSet.Set comp) where
-    build1 = External.sb1
-    {-# INLINE build1 #-}
-
-instance External.SB a
-      => Fold.Builder UniTermExternalSizeDiscovery IO a where
-    build = External.sb
-    {-# INLINE build #-}
+-- instance External.SB a
+--       => Fold.Builder UniTermExternalSizeDiscovery IO a where
+--     build = External.sb
+--     {-# INLINE build #-}
 
 
 -- === Dump / load === --
@@ -175,10 +171,10 @@ instance External.ExternalStorable (UniTerm layout) where
         pure dynPtr'
     {-# INLINE loadBuilder #-}
 
-instance External.ExternalSizeBuilder (UniTerm layout) where
-    externalSizeBuilder = GTraversable.gfoldl' @External.SB
-        (\f a -> f . External.sb a) id
-    {-# INLINE externalSizeBuilder #-}
+-- instance External.ExternalSizeBuilder (UniTerm layout) where
+--     externalSizeBuilder = GTraversable.gfoldl' @External.SB
+--         (\f a -> f . External.sb a) id
+--     {-# INLINE externalSizeBuilder #-}
 
 
 -- === Constructor === --
@@ -208,16 +204,16 @@ instance (GTraversable External.ExternalFieldStorable (Constructor comp layout))
 
 
 
-instance (GTraversable External.ExternalSizeBuilder (Constructor comp layout))
-      => External.ExternalSizeBuilder (Constructor comp layout) where
-    externalSizeBuilder = GTraversable.gfoldl' @External.ExternalSizeBuilder
-        (\f a -> f . External.externalSizeBuilder a) id
-    {-# INLINE externalSizeBuilder #-}
+-- instance (GTraversable External.ExternalSizeBuilder (Constructor comp layout))
+--       => External.ExternalSizeBuilder (Constructor comp layout) where
+--     externalSizeBuilder = GTraversable.gfoldl' @External.ExternalSizeBuilder
+--         (\f a -> f . External.externalSizeBuilder a) id
+--     {-# INLINE externalSizeBuilder #-}
 
 
 
 type instance Storable.Dynamics (Component comp) = 'Storable.Static
 
 -- FIXME
-type instance Storable.Dynamics UniTerm = 'Storable.Static
-type instance Storable.Dynamics (Constructor comp layout) = 'Storable.Static
+type instance Storable.Dynamics UniTerm = 'Storable.Dynamic
+type instance Storable.Dynamics (Constructor comp layout) = 'Storable.Dynamic
