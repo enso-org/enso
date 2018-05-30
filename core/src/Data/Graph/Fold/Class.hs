@@ -1,6 +1,6 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Data.Graph.Traversal.Fold where
+module Data.Graph.Fold.Class where
 
 import Prologue hiding (Traversable, fold, fold1, traverse)
 
@@ -16,19 +16,20 @@ import Data.Generics.Traversable (GTraversable)
 -- === Definition === --
 
 type family Result t
+type Transformation m t = m (Result t) -> m (Result t)
 
 class Monad m => Builder t m a where
-    build :: a -> m (Result t) -> m (Result t)
+    build :: a -> Transformation m t
     build = \_ -> id ; {-# INLINE build #-}
 
 class Monad m => Builder1 t m a where
-    build1 :: ∀ t1. a t1 -> m (Result t) -> m (Result t)
+    build1 :: ∀ t1. a t1 -> Transformation m t
     build1 = \_ -> id ; {-# INLINE build1 #-}
 
 
 -- === Generics === --
 
 gbuild :: ∀ t a m. (GTraversable (Builder t m) a, Applicative m)
-      => a -> m (Result t) -> m (Result t)
-gbuild = GTraversable.gfoldl' @(Builder t m) (\r d x -> r $! build @t d x) id
+      => a -> Transformation m t
+gbuild = GTraversable.gfoldl' @(Builder t m) (\r d -> r . build @t d) id
 {-# INLINE gbuild #-}

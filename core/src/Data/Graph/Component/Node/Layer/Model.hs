@@ -11,7 +11,7 @@ import qualified Data.Graph.Component.Node.Class    as Node
 import qualified Data.Graph.Data.Component.List     as Component
 import qualified Data.Graph.Data.Layer.Class        as Layer
 import qualified Data.Graph.Data.Layer.Layout       as Layout
-import qualified Data.Graph.Traversal.SubComponents as Traversal
+import qualified Data.Graph.Fold.SubComponents as Traversal
 
 import Data.Graph.Component.Edge.Class (Edges)
 import Data.Graph.Component.Node.Class (Node)

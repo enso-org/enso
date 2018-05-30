@@ -22,11 +22,11 @@ import qualified Data.Graph.Data.Component.Vector   as ComponentVector
 import qualified Data.Graph.Data.Graph.Class        as Graph
 import qualified Data.Graph.Data.Layer.Class        as Layer
 import qualified Data.Graph.Storable.External       as External
-import qualified Data.Graph.Traversal.Fold          as Fold
-import qualified Data.Graph.Traversal.Scoped        as Fold
-import qualified Data.Graph.Traversal.Struct        as Fold
-import qualified Data.Graph.Traversal.SubComponents as Component
-import qualified Data.Graph.Traversal.SubTree       as SubTree
+import qualified Data.Graph.Fold.Class          as Fold
+import qualified Data.Graph.Fold.Scoped        as Fold
+import qualified Data.Graph.Fold.Struct        as Fold
+import qualified Data.Graph.Fold.SubComponents as Component
+import qualified Data.Graph.Fold.SubTree       as SubTree
 import qualified Foreign.DynamicStorable            as Dynamic
 import qualified Foreign.Storable                   as Storable
 import qualified Foreign.Storable.Utils             as Storable

@@ -11,10 +11,10 @@ import qualified Control.Monad.Exception            as Exception
 import qualified Data.Graph.Component.Edge.Class    as Edge
 import qualified Data.Graph.Data.Graph.Class        as Graph
 import qualified Data.Graph.Data.Layer.Layout       as Layout
-import qualified Data.Graph.Traversal.Fold          as Fold
-import qualified Data.Graph.Traversal.Partition     as Partition
-import qualified Data.Graph.Traversal.SubComponents as Traversal
-import qualified Data.Graph.Traversal.SubTree       as SubTree
+import qualified Data.Graph.Fold.Class          as Fold
+import qualified Data.Graph.Fold.Partition     as Partition
+import qualified Data.Graph.Fold.SubComponents as Traversal
+import qualified Data.Graph.Fold.SubTree       as SubTree
 import qualified Data.Set.Mutable.Class             as Set
 import qualified Luna.IR                            as IR
 import qualified Luna.IR.Layer                      as Layer

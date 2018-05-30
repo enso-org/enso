@@ -1,23 +1,17 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Data.Graph.Traversal.Partition where
+module Data.Graph.Fold.Partition where
 
 import Prologue
 
-import qualified Data.Graph.Component.Edge            as Edge
-import qualified Data.Graph.Component.Node.Class      as Node
-import qualified Data.Graph.Component.Node.Layer.Type as Type
-import qualified Data.Graph.Data.Component.Class      as Component
-import qualified Data.Graph.Data.Component.List       as Component
-import qualified Data.Graph.Data.Graph.Class          as Graph
-import qualified Data.Graph.Data.Layer.Class          as Layer
-import qualified Data.Graph.Data.Layer.Layout         as Layout
-import qualified Data.Graph.Traversal.Deep            as Deep
-import qualified Data.Graph.Traversal.Fold            as Fold
-import qualified Data.Graph.Traversal.Scoped          as Fold
-import qualified Data.Set                             as Set
-import qualified Data.Set.Mutable.Class               as MutableSet
-import qualified Data.TypeMap.Strict                  as TypeMap
+import qualified Data.Graph.Data.Component.Class as Component
+import qualified Data.Graph.Data.Component.List  as Component
+import qualified Data.Graph.Data.Graph.Class     as Graph
+import qualified Data.Graph.Data.Layer.Layout    as Layout
+import qualified Data.Graph.Fold.Class           as Fold
+import qualified Data.Graph.Fold.Deep            as Deep
+import qualified Data.Graph.Fold.Scoped          as Fold
+import qualified Data.TypeMap.Strict             as TypeMap
 
 import Data.Graph.Component.Edge       (Target)
 import Data.Graph.Component.Node.Layer (Users)

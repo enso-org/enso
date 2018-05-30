@@ -10,10 +10,10 @@ import qualified Data.Graph.Data.Layer.Class          as Layer
 import qualified Data.Graph.Data.Layer.Layout         as Layout
 import qualified Data.Graph.Serialize.Internal        as Serialize
 import qualified Data.Graph.Storable.External         as ExternalStorable
-import qualified Data.Graph.Traversal.Deep            as Deep
-import qualified Data.Graph.Traversal.Fold            as Fold
-import qualified Data.Graph.Traversal.Partition       as Partition
-import qualified Data.Graph.Traversal.Scoped          as Fold
+import qualified Data.Graph.Fold.Deep            as Deep
+import qualified Data.Graph.Fold.Class            as Fold
+import qualified Data.Graph.Fold.Partition       as Partition
+import qualified Data.Graph.Fold.Scoped          as Fold
 
 import Data.Graph.Component.Edge.Class       (Source)
 import Data.Graph.Component.Node.Layer.Model (Model)

@@ -8,9 +8,9 @@ import qualified Data.Graph.Data.Component.Set    as Component
 import qualified Data.Graph.Data.Component.Set    as ComponentSet
 import qualified Data.Graph.Data.Component.Vector as ComponentVector
 import qualified Data.Graph.Data.Layer.Class      as Layer
-import qualified Data.Graph.Traversal.Fold        as Fold
-import qualified Data.Graph.Traversal.Scoped      as Fold
-import qualified Data.Graph.Traversal.Struct      as Fold
+import qualified Data.Graph.Fold.Class        as Fold
+import qualified Data.Graph.Fold.Scoped      as Fold
+import qualified Data.Graph.Fold.Struct      as Fold
 import qualified Foreign.DynamicStorable          as DynamicStorable
 import qualified Foreign.Storable.Utils           as Storable
 

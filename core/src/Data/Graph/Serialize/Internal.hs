@@ -7,7 +7,7 @@ import Prologue
 import qualified Data.Graph.Data.Component.Class as Component
 import qualified Data.Graph.Data.Component.List  as Component
 import qualified Data.Graph.Storable.External    as External
-import qualified Data.Graph.Traversal.Partition  as Partition
+import qualified Data.Graph.Fold.Partition  as Partition
 import qualified Data.TypeMap.Strict             as TypeMap
 import qualified Foreign.Info.ByteSize           as ByteSize
 

@@ -1,7 +1,7 @@
 -- {-# LANGUAGE Strict               #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Data.Graph.Traversal.SubComponents where
+module Data.Graph.Fold.SubComponents where
 
 import Prologue hiding (Traversable, Traversal, fold, fold1, traverse)
 
@@ -16,9 +16,9 @@ import qualified Data.Graph.Data.Component.Vector     as ComponentVector
 import qualified Data.Graph.Data.Graph.Class          as Graph
 import qualified Data.Graph.Data.Layer.Class          as Layer
 import qualified Data.Graph.Data.Layer.Layout         as Layout
-import qualified Data.Graph.Traversal.Fold            as Fold
-import qualified Data.Graph.Traversal.Scoped          as Fold
-import qualified Data.Graph.Traversal.Struct          as Fold
+import qualified Data.Graph.Fold.Class            as Fold
+import qualified Data.Graph.Fold.Scoped          as Fold
+import qualified Data.Graph.Fold.Struct          as Fold
 import qualified Data.Map.Strict                      as Map
 import qualified Data.PtrSet.Mutable                  as PtrSet
 import qualified Data.Set                             as Set

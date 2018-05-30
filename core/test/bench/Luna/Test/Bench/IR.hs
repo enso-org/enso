@@ -31,9 +31,9 @@ import qualified Data.Graph.Data.Layer.Layout          as Layout
 import qualified Data.Graph.Serialize                  as Graph
 import qualified Data.Graph.Serialize.Internal         as Graph
 import qualified Data.Graph.Storable.External          as External
-import qualified Data.Graph.Traversal.Partition        as Partition
-import qualified Data.Graph.Traversal.SubComponents    as Traversal
-import qualified Data.Graph.Traversal.SubTree          as Traversal
+import qualified Data.Graph.Fold.Partition        as Partition
+import qualified Data.Graph.Fold.SubComponents    as Traversal
+import qualified Data.Graph.Fold.SubTree          as Traversal
 import qualified Data.IORef                            as IORef
 import qualified Data.Set                              as Set
 import qualified Data.Struct                           as Struct
