@@ -4,96 +4,67 @@ module Data.Graph.Serialize.Internal where
 
 import Prologue
 
-import qualified Data.Graph.Data.Component.Class as Component
-import qualified Data.Graph.Data.Component.List  as Component
-import qualified Data.Graph.Storable.External    as External
-import qualified Data.Graph.Fold.Partition  as Partition
-import qualified Data.TypeMap.Strict             as TypeMap
-import qualified Foreign.Info.ByteSize           as ByteSize
+import qualified Control.Monad.State.Layered       as State
+import qualified Data.Graph.Data.Component.List    as Component
+import qualified Data.Graph.Fold.Partition         as Partition
+import qualified Data.Graph.Serialize.Alloc        as Alloc
+import qualified Data.Graph.Serialize.Component    as Component
+import qualified Data.Graph.Serialize.MemoryRegion as MemoryRegion
+import qualified Data.TypeMap.Strict               as TypeMap
 
-import Data.Graph.Data.Component.Class (Component)
-
-
----------------------------
--- === SubGraph size === --
----------------------------
-
--- === Size === --
-
-data Size = Size
-    { _static  :: !Int
-    , _dynamic :: !Int
-    }
-makeLenses ''Size
-
-instance Default Size where def = Size 0 0  ; {-# INLINE def #-}
-
-addSizes :: Size -> Size -> Size
-addSizes = \(Size !s1 !d1) (Size !s2 !d2) ->
-        let s = s1 + s2
-            d = d1 + d2
-        in Size s d
-{-# INLINE addSizes #-}
-
-addSizesM :: Applicative m => m Size -> m Size -> m Size
-addSizesM = liftA2 addSizes
-{-# INLINE addSizesM #-}
+import Data.Graph.Serialize.Component    (ExternalStorableComponent,
+                                          ExternalStorableComponents)
+import Data.Graph.Serialize.MemoryRegion (MemoryRegion, RawMemoryRegion)
+import Data.Map                          (Map)
+import Foreign.Ptr.Utils                 (SomePtr)
 
 
--- === Helpers === --
 
-type ComponentSize comp m =
-    ( External.SizeDiscovery1 m (Component comp)
-    , ByteSize.Known (Component comp) m
-    )
+---------------------------------------
+-- === Serialization of Clusters === --
+---------------------------------------
 
-compSizeFull :: ∀ comp m. ComponentSize comp m
-             => Component.Some comp -> m Size
-compSizeFull = \comp -> Size <$> ByteSize.get @(Component comp)
-                             <*> External.size1 comp
-{-# INLINE compSizeFull #-}
+-- === Iterate over Cluster and serialize each list === --
 
-addCompSize :: ∀ comp m. ComponentSize comp m
-            => Size -> Component.Some comp -> m Size
-addCompSize = \acc comp -> addSizesM (pure acc) $! compSizeFull comp
-{-# INLINE addCompSize #-}
+class ClusterSerializer' (cs :: [Type]) comps m where
+    serializeClusters' :: Partition.Clusters comps -> m RawMemoryRegion -> m RawMemoryRegion
 
-componentListSize :: ∀ comp m. ComponentSize comp m
-                  => Component.List comp -> m Size
-componentListSize = \compList -> do
-    let compList' = toList compList
-    foldM addCompSize def compList'
-{-# INLINE componentListSize #-}
-
-
--- === Cluster size discovery === --
-
--- | Class used to calculate the global size of all the components in the typemap
-class ClusterSizeDiscovery' (cs :: [Type]) comps m where
-    componentsSize :: Partition.Clusters comps -> m Size -> m Size
-
-instance Applicative m => ClusterSizeDiscovery' '[] ts m where
-    componentsSize = \_ -> id   ; {-# INLINE componentsSize #-}
+instance ClusterSerializer' '[] ts m where
+    serializeClusters' = \_ -> id   ; {-# INLINE serializeClusters' #-}
 
 instance
     ( TypeMap.ElemGetter (Component.List comp) (Component.Lists comps)
-    , ByteSize.Known (Component comp) m
-    , ComponentSize comp m
-    , ClusterSizeDiscovery' cs comps m
+    , ExternalStorableComponent comp m
+    , ClusterSerializer' cs comps m
+    , State.Monad Component.PointerMap m
     , MonadIO m
-    ) => ClusterSizeDiscovery' (comp ': cs) comps m where
-    componentsSize clusters accM = do
+    ) => ClusterSerializer' (comp ': cs) comps m where
+    serializeClusters' clusters accM = do
         let compList = TypeMap.getElem @(Component.List comp) clusters
-            acc'     = addSizesM accM $! componentListSize compList
-        componentsSize @cs @comps clusters acc'
-    {-# INLINE componentsSize #-}
+            acc'     = Component.dumpComponentList compList accM
+        serializeClusters' @cs @comps clusters acc'
+    {-# INLINE serializeClusters' #-}
 
 
 -- === API === --
 
-type ClusterSizeDiscovery comps m = ClusterSizeDiscovery' comps comps m
+data SerializeInfo = SerializeInfo
+    { _memoryRegion :: !MemoryRegion
+    , _ptrMapping   :: !(Map SomePtr SomePtr)
+    }
+makeLenses ''SerializeInfo
 
-clusterByteSize :: ∀ comps m. (ClusterSizeDiscovery comps m, MonadIO m)
-     => Partition.Clusters comps -> m Size
-clusterByteSize clusters = componentsSize @comps @comps clusters $! pure def
-{-# INLINE clusterByteSize #-}
+type ClusterSerializer comps m =
+    ( Alloc.Allocator comps m
+    , ExternalStorableComponents comps m
+    , ClusterSerializer' comps comps (State.StateT Component.PointerMap m)
+    )
+
+serializeClusters :: ∀ comps m. ClusterSerializer comps m
+                  => Partition.Clusters comps -> MemoryRegion -> m SerializeInfo
+serializeClusters clusters memReg = do
+    ptrMap <- State.execDefT @Component.PointerMap $!
+        MemoryRegion.withRaw memReg $ \rawMemReg ->
+            serializeClusters' @comps @comps clusters $ pure rawMemReg
+    pure $! SerializeInfo memReg $! unwrap ptrMap
+{-# INLINE serializeClusters #-}

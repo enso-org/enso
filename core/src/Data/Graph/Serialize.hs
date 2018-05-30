@@ -2,29 +2,14 @@ module Data.Graph.Serialize where
 
 import Prologue
 
-import qualified Data.Graph.Component.Node.Layer.Type as Type
-import qualified Data.Graph.Data.Component.Class      as Component
-import qualified Data.Graph.Data.Component.List       as Component
-import qualified Data.Graph.Data.Graph.Class          as Graph
-import qualified Data.Graph.Data.Layer.Class          as Layer
-import qualified Data.Graph.Data.Layer.Layout         as Layout
-import qualified Data.Graph.Serialize.Internal        as Serialize
-import qualified Data.Graph.Storable.External         as ExternalStorable
-import qualified Data.Graph.Fold.Deep            as Deep
-import qualified Data.Graph.Fold.Class            as Fold
-import qualified Data.Graph.Fold.Partition       as Partition
-import qualified Data.Graph.Fold.Scoped          as Fold
+import qualified Data.Graph.Data.Graph.Class   as Graph
+import qualified Data.Graph.Fold.Partition     as Partition
+import qualified Data.Graph.Serialize.Alloc    as Alloc
+import qualified Data.Graph.Serialize.Internal as Serialize
 
-import Data.Graph.Component.Edge.Class       (Source)
-import Data.Graph.Component.Node.Layer.Model (Model)
-import Data.Graph.Data.Component.Class       (Component)
-import Data.Graph.Storable.External          (ExternalStorable)
-import Foreign.ForeignPtr.Utils              (SomeForeignPtr,
-                                              mallocForeignPtrBytes,
-                                              plusForeignPtr)
-import Foreign.Ptr                           (Ptr, plusPtr)
-import Foreign.Ptr.Utils                     (SomePtr)
-import Foreign.Storable1                     (Storable1)
+import Data.Graph.Data.Component.Class   (Component)
+import Data.Graph.Serialize.MemoryRegion (MemoryRegion)
+
 
 -- -----------------------
 -- -- === Discovery === --
@@ -74,61 +59,23 @@ import Foreign.Storable1                     (Storable1)
 
 
 
-class ExternalStorableLayers (layers :: [Type]) where
-    dumpLayersBuilder :: SomePtr -> IO SomePtr -> IO SomePtr
-
-instance ExternalStorableLayers '[] where
-    dumpLayersBuilder = \_ -> id
-    {-# INLINE dumpLayersBuilder #-}
-
-instance ( ExternalStorableLayers ls
-         , ExternalStorable (Layer.Cons l ()) -- FIXME
-         , Storable1 (Layer.Cons l) )
-       => ExternalStorableLayers (l ': ls) where
-    dumpLayersBuilder ptr mdynPtr = dumpLayersBuilder @ls ptr' mdynPtr' where
-        ptr'     = ptr `plusPtr` Layer.byteSize @l
-        mdynPtr' = ExternalStorable.dumpBuilder
-                   (coerce ptr :: Ptr (Layer.Cons l ())) mdynPtr
-    {-# INLINE dumpLayersBuilder #-}
-
-dumpLayers :: ∀ layers. ExternalStorableLayers layers
-           => SomePtr -> SomePtr -> IO SomePtr
-dumpLayers = \ptr -> dumpLayersBuilder @layers ptr . pure
-{-# INLINE dumpLayers #-}
-
-type ExternalStorableComponent comp m =
-    ( MonadIO m
-    , ExternalStorableLayers (Graph.DiscoverComponentLayers m comp)
-    )
-
-dumpComponent :: ∀ comp m layout. ExternalStorableComponent comp m
-              => Component comp layout -> SomePtr -> m SomePtr
-dumpComponent = \comp dynPtr -> liftIO
-    $! dumpLayers @(Graph.DiscoverComponentLayers m comp) (coerce comp) dynPtr
-{-# INLINE dumpComponent #-}
-
-
-
 ------------------------------------
 -- === SubGraph serialization === --
 ------------------------------------
 
-data SubGraphMemoryRegion = SubGraphMemoryRegion
-    { _static  :: !SomeForeignPtr
-    , _dynamic :: !SomeForeignPtr
-    }
-makeLenses ''SubGraphMemoryRegion
-
-type Allocator comps m =
-    ( Serialize.ClusterSizeDiscovery comps m
-    , MonadIO m
+type Serializer comp m comps =
+    ( Partition.Partition comp  m
+    , Alloc.Allocator comps m
+    , Serialize.ClusterSerializer comps m
     )
 
-alloc :: ∀ comps m. Allocator comps m
-      => Partition.Clusters comps -> m SubGraphMemoryRegion
-alloc clusters = do
-    Serialize.Size !stSize !dynSize <- Serialize.clusterByteSize @comps clusters
-    let totalSize = stSize + dynSize
-    ptr <- liftIO $! mallocForeignPtrBytes totalSize
-    pure $! SubGraphMemoryRegion ptr $! ptr `plusForeignPtr` stSize
-{-# INLINE alloc #-}
+serialize :: ∀ comp m layout comps.
+    ( comps ~ Graph.DiscoverComponents m
+    , Serializer comp m comps
+    ) => Component comp layout -> m MemoryRegion
+serialize comp = do
+    clusters  <- Partition.partition comp
+    memRegion <- Alloc.alloc @comps clusters
+    serInfo   <- Serialize.serializeClusters @comps clusters memRegion
+    pure $! serInfo ^. Serialize.memoryRegion
+{-# INLINE serialize #-}
