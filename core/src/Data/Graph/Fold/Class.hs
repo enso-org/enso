@@ -2,7 +2,7 @@
 
 module Data.Graph.Fold.Class where
 
-import Prologue hiding (Traversable, fold, fold1, traverse)
+import Prologue
 
 import qualified Data.Generics.Traversable as GTraversable
 
