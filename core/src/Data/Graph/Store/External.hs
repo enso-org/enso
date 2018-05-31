@@ -1,6 +1,6 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Data.Graph.Storable.External where
+module Data.Graph.Store.External where
 
 import Prologue
 
@@ -25,35 +25,6 @@ import Foreign.Storable.Utils          (Storable)
 
 import qualified Data.Graph.Component.Node.Class as Term
 
-
-
-
-
--- ------------------------------
--- -- === MapDynamics Fold === --
--- ------------------------------
-
--- -- === Definition === --
-
--- data MapDynamics (dyn :: Storable.DynamicsType) t
--- type instance Fold.Result (MapDynamics _ t) = Fold.Result t
-
-
--- -- === Instances === --
-
--- instance
---     ( dyn'    ~ Storable.Dynamics a
---     , subFold ~ If (dyn == dyn') t
---     , Fold.Builder subFold m a
---     ) => Fold.Builder (MapDynamics dyn t) m a where
---     build = Fold.build @subFold ; {-# INLINE build #-}
-
--- instance
---     ( dyn'    ~ Storable.Dynamics a
---     , subFold ~ If (dyn == dyn') t
---     , Fold.Builder1 subFold m a
---     ) => Fold.Builder1 (MapDynamics dyn t) m a where
---     build1 = Fold.build1 @subFold ; {-# INLINE build1 #-}
 
 
 ---------------------------

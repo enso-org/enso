@@ -1,18 +1,18 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Data.Graph.Serialize.Alloc where
+module Data.Graph.Store.Alloc where
 
 import Prologue
 
 import qualified Data.Graph.Data.Component.Class as Component
 import qualified Data.Graph.Data.Component.List  as Component
 import qualified Data.Graph.Fold.Partition       as Partition
-import qualified Data.Graph.Storable.External    as External
+import qualified Data.Graph.Store.External    as External
 import qualified Data.TypeMap.Strict             as TypeMap
 import qualified Foreign.Info.ByteSize           as ByteSize
 
 import Data.Graph.Data.Component.Class   (Component)
-import Data.Graph.Serialize.MemoryRegion (MemoryRegion (MemoryRegion))
+import Data.Graph.Store.MemoryRegion (MemoryRegion (MemoryRegion))
 import Foreign.ForeignPtr.Utils          (mallocForeignPtrBytes, plusForeignPtr)
 
 ---------------------------

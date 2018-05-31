@@ -26,7 +26,7 @@ import qualified Data.Graph.Fold.Scoped           as Fold
 import qualified Data.Graph.Fold.Struct           as Fold
 import qualified Data.Graph.Fold.SubComponents    as Component
 import qualified Data.Graph.Fold.SubTree          as SubTree
-import qualified Data.Graph.Storable.External     as External
+import qualified Data.Graph.Store.External     as External
 import qualified Data.Property                    as Property
 import qualified Foreign.DynamicStorable          as Dynamic
 import qualified Foreign.Storable                 as Storable

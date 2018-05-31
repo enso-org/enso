@@ -1,6 +1,6 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Data.Graph.Serialize.Component where
+module Data.Graph.Store.Component where
 
 import Prologue
 
@@ -10,17 +10,17 @@ import qualified Data.Graph.Data.Component.List    as Component
 import qualified Data.Graph.Data.Graph.Class       as Graph
 import qualified Data.Graph.Data.Layer.Class       as Layer
 import qualified Data.Graph.Fold.Partition         as Partition
-import qualified Data.Graph.Serialize.Alloc        as Alloc
-import qualified Data.Graph.Serialize.MemoryRegion as MemoryRegion
-import qualified Data.Graph.Storable.External      as ExternalStorable
+import qualified Data.Graph.Store.Alloc        as Alloc
+import qualified Data.Graph.Store.MemoryRegion as MemoryRegion
+import qualified Data.Graph.Store.External      as ExternalStorable
 import qualified Data.Map                          as Map
 import qualified Data.TypeMap.Strict               as TypeMap
 import qualified Foreign.Storable.Utils            as Storable
 
 import Data.Graph.Data.Component.Class   (Component)
-import Data.Graph.Serialize.MemoryRegion (MemoryRegion,
+import Data.Graph.Store.MemoryRegion (MemoryRegion,
                                           RawMemoryRegion (RawMemoryRegion))
-import Data.Graph.Storable.External      (ExternalStorable)
+import Data.Graph.Store.External      (ExternalStorable)
 import Data.Map                          (Map)
 import Foreign.Ptr                       (Ptr, plusPtr)
 import Foreign.Ptr.Utils                 (SomePtr)

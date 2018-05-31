@@ -1,4 +1,4 @@
-module Data.Graph.Serialize.MemoryRegion where
+module Data.Graph.Store.MemoryRegion where
 
 import Prologue
 

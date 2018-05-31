@@ -6,14 +6,14 @@ import OCI.Data.Name.Instances ()
 import Prologue
 
 import qualified Data.Generics.Traversable.Deriving as GTraversable
-import qualified Data.Graph.Storable.External       as ExternalStorable
+import qualified Data.Graph.Store.External       as ExternalStorable
 import qualified Data.IntMap.Strict                 as IntMap
 import qualified FastString                         as FastString
 import qualified Language.Symbol.Label              as Label
 import qualified Prelude                            as Prelude
 
 import Binary                       (Binary)
-import Data.Graph.Storable.External (ExternalFieldStorable, ExternalStorable)
+import Data.Graph.Store.External (ExternalFieldStorable, ExternalStorable)
 import Data.IntMap                  (IntMap)
 import Data.IORef                   (IORef, atomicModifyIORef', newIORef,
                                      readIORef)

@@ -7,13 +7,13 @@ module Luna.IR.Term.Ast.Class where
 import Prologue hiding (Imp, imp, seq)
 
 import qualified Data.Generics.Traversable.Deriving as GTraversable
-import qualified Data.Graph.Storable.External       as ExternalStorable
+import qualified Data.Graph.Store.External       as ExternalStorable
 import qualified Foreign.Storable.Deriving          as Storable
 import qualified Luna.IR.Term.Ast.Invalid           as Invalid
 import qualified Luna.IR.Term.Format                as Format
 import qualified OCI.IR.Term.Definition             as Term
 
-import Data.Graph.Storable.External (ExternalFieldStorable, ExternalStorable)
+import Data.Graph.Store.External (ExternalFieldStorable, ExternalStorable)
 import Data.Vector.Storable.Foreign (Vector)
 import OCI.Data.Name                (Name)
 import OCI.IR.Term.Class            (Terms)

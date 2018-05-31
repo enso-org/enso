@@ -1,14 +1,14 @@
-module Data.Graph.Serialize where
+module Data.Graph.Store where
 
 import Prologue
 
 import qualified Data.Graph.Data.Graph.Class   as Graph
 import qualified Data.Graph.Fold.Partition     as Partition
-import qualified Data.Graph.Serialize.Alloc    as Alloc
-import qualified Data.Graph.Serialize.Internal as Serialize
+import qualified Data.Graph.Store.Alloc    as Alloc
+import qualified Data.Graph.Store.Internal as Serialize
 
 import Data.Graph.Data.Component.Class   (Component)
-import Data.Graph.Serialize.MemoryRegion (MemoryRegion)
+import Data.Graph.Store.MemoryRegion (MemoryRegion)
 
 
 -- -----------------------

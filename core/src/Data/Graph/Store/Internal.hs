@@ -1,20 +1,20 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Data.Graph.Serialize.Internal where
+module Data.Graph.Store.Internal where
 
 import Prologue
 
 import qualified Control.Monad.State.Layered       as State
 import qualified Data.Graph.Data.Component.List    as Component
 import qualified Data.Graph.Fold.Partition         as Partition
-import qualified Data.Graph.Serialize.Alloc        as Alloc
-import qualified Data.Graph.Serialize.Component    as Component
-import qualified Data.Graph.Serialize.MemoryRegion as MemoryRegion
+import qualified Data.Graph.Store.Alloc        as Alloc
+import qualified Data.Graph.Store.Component    as Component
+import qualified Data.Graph.Store.MemoryRegion as MemoryRegion
 import qualified Data.TypeMap.Strict               as TypeMap
 
-import Data.Graph.Serialize.Component    (ExternalStorableComponent,
+import Data.Graph.Store.Component    (ExternalStorableComponent,
                                           ExternalStorableComponents)
-import Data.Graph.Serialize.MemoryRegion (MemoryRegion, RawMemoryRegion)
+import Data.Graph.Store.MemoryRegion (MemoryRegion, RawMemoryRegion)
 import Data.Map                          (Map)
 import Foreign.Ptr.Utils                 (SomePtr)
 
