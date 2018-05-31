@@ -8,18 +8,22 @@ import Foreign.ForeignPtr.Utils  (SomeForeignPtr)
 import Foreign.Ptr.Utils         (SomePtr)
 
 
--- === Memory regions === --
+--------------------------
+-- === MemoryRegion === --
+--------------------------
+
+-- === Definition === --
 
 data MemoryRegion = MemoryRegion
     { _staticMem  :: !SomeForeignPtr
     , _dynamicMem :: !SomeForeignPtr
-    }
+    } deriving (Show)
 makeLenses ''MemoryRegion
 
 data RawMemoryRegion = RawMemoryRegion
     { _staticMemPtr  :: !SomePtr
     , _dynamicMemPtr :: !SomePtr
-    }
+    } deriving (Show)
 makeLenses ''RawMemoryRegion
 
 unsafeMakeRaw :: MemoryRegion -> RawMemoryRegion

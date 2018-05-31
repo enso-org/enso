@@ -46,8 +46,33 @@ foldlM :: Monad m
        => (a -> Component.Some comp -> m a) -> a -> ComponentList comp -> m a
 foldlM = \f z0 xs ->
     let f' x k z = f z x >>= k
-    in  foldr f' return xs z0
+    in  foldr f' pure xs z0
 {-# INLINE foldlM #-}
+
+mapList :: (Component.Some comp -> a) -> ComponentList comp -> [a]
+mapList = \f ->
+    let go = \case
+            Nil         -> []
+            Cons !a !as ->
+                let a'  = f a
+                    as' = go as
+                in  a' : as'
+        {-# INLINABLE go #-}
+    in go
+{-# INLINE mapList #-}
+
+mapM :: Applicative m
+     => (Component.Some comp -> m a) -> ComponentList comp -> m [a]
+mapM = \f ->
+    let go = \case
+            Nil         -> pure []
+            Cons !a !as -> do
+                a'  <- f a
+                as' <- go as
+                pure $ a' : as'
+        {-# INLINABLE go #-}
+    in go
+{-# INLINE mapM #-}
 
 
 -- === Instances === --

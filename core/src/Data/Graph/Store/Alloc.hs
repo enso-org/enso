@@ -18,9 +18,9 @@ import Foreign.ForeignPtr.Utils        (mallocForeignPtrBytes, plusForeignPtr)
 
 
 
----------------------------
--- === SubGraph size === --
----------------------------
+------------------
+-- === Size === --
+------------------
 
 -- === Definition === --
 
@@ -29,6 +29,13 @@ data Size = Size
     , _externalSize :: !Int
     }
 makeLenses ''Size
+
+
+-- === API === --
+
+totalSize :: Size -> Int
+totalSize = \(Size s e) -> s + e
+{-# INLINE totalSize #-}
 
 
 -- === Instances === --
@@ -46,66 +53,58 @@ instance Semigroup Size where
 
 
 
--- === Helpers === --
+-----------------------
+-- === Discovery === --
+-----------------------
 
-type ComponentSize comp m =
+-- === Component === --
+
+type ComponentSizeDiscovery comp m =
     ( External.SizeDiscovery1 m (Component comp)
     , ByteSize.Known (Component comp) m
     )
 
-compSizeFull :: ∀ comp m. ComponentSize comp m
-             => Component.Some comp -> m Size
-compSizeFull = \comp -> do
+componentSize :: ∀ comp m. ComponentSizeDiscovery comp m
+    => Component.Some comp -> m Size
+componentSize = \comp -> do
     staticSize   <- ByteSize.get @(Component comp)
     externalSize <- External.size comp
     pure $! Size staticSize externalSize
-{-# INLINE compSizeFull #-}
-
-addCompSize :: ∀ comp m. ComponentSize comp m
-            => Size -> Component.Some comp -> m Size
-addCompSize = \acc -> fmap (acc <>) . compSizeFull
-{-# INLINE addCompSize #-}
-
-componentListSize :: ∀ comp m. ComponentSize comp m
-                  => ComponentList comp -> m Size
-componentListSize = \compList -> do
-    let compList' = toList compList
-    foldM addCompSize mempty compList'
-{-# INLINE componentListSize #-}
+{-# INLINE componentSize #-}
 
 
 -- === Cluster size discovery === --
 
--- | Class used to calculate the global size of all the components in the typemap
-class ClusterSizeDiscovery' (cs :: [Type]) comps m where
-    componentsSize :: Partition.Clusters comps -> m Size -> m Size
+type ClusterSizeDiscovery comps m = ClusterSizeBuilder comps comps m
 
-instance Applicative m => ClusterSizeDiscovery' '[] ts m where
-    componentsSize = \_ -> id   ; {-# INLINE componentsSize #-}
+clusterSize :: ∀ comps m. (ClusterSizeDiscovery comps m, MonadIO m)
+     => Partition.Clusters comps -> m Size
+clusterSize clusters = buildClusterSize @comps @comps clusters mempty
+{-# INLINE clusterSize #-}
+
+class ClusterSizeBuilder (cs :: [Type]) comps m where
+    buildClusterSize :: Partition.Clusters comps -> Size -> m Size
+
+instance Applicative m => ClusterSizeBuilder '[] ts m where
+    buildClusterSize = \_ -> pure ; {-# INLINE buildClusterSize #-}
 
 instance
     ( TypeMap.ElemGetter (ComponentList comp) (ComponentLists comps)
     , ByteSize.Known (Component comp) m
-    , ComponentSize comp m
-    , ClusterSizeDiscovery' cs comps m
+    , ComponentSizeDiscovery comp m
+    , ClusterSizeBuilder cs comps m
     , MonadIO m
-    ) => ClusterSizeDiscovery' (comp ': cs) comps m where
-    componentsSize clusters accM = do
-        let compList = TypeMap.getElem @(ComponentList comp) clusters
-            listSize = componentListSize compList
-            acc'     = (<>) <$> accM <*> listSize
-        componentsSize @cs @comps clusters acc'
-    {-# INLINE componentsSize #-}
+    ) => ClusterSizeBuilder (comp ': cs) comps m where
+    buildClusterSize clusters acc = do
+        let compList    = TypeMap.getElem @(ComponentList comp) clusters
+        listSize <- ComponentList.foldlM accComponentSize mempty compList
+        buildClusterSize @cs @comps clusters $! acc <> listSize
+    {-# INLINE buildClusterSize #-}
 
-
--- === API === --
-
-type ClusterSizeDiscovery comps m = ClusterSizeDiscovery' comps comps m
-
-clusterByteSize :: ∀ comps m. (ClusterSizeDiscovery comps m, MonadIO m)
-     => Partition.Clusters comps -> m Size
-clusterByteSize clusters = componentsSize @comps @comps clusters $! pure mempty
-{-# INLINE clusterByteSize #-}
+accComponentSize :: ∀ comp m. ComponentSizeDiscovery comp m
+    => Size -> Component.Some comp -> m Size
+accComponentSize = \acc -> fmap (acc <>) . componentSize
+{-# INLINE accComponentSize #-}
 
 
 
@@ -121,7 +120,7 @@ type Allocator comps m =
 alloc :: ∀ comps m. Allocator comps m
       => Partition.Clusters comps -> m MemoryRegion
 alloc clusters = do
-    Size !stSize !dynSize <- clusterByteSize @comps clusters
+    Size stSize dynSize <- clusterSize @comps clusters
     let totalSize = stSize + dynSize
     ptr <- liftIO $! mallocForeignPtrBytes totalSize
     pure $! MemoryRegion ptr

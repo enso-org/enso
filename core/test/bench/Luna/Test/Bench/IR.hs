@@ -31,10 +31,10 @@ import qualified Data.Graph.Data.Layer.Layout          as Layout
 import qualified Data.Graph.Fold.Partition             as Partition
 import qualified Data.Graph.Fold.SubComponents         as Traversal
 import qualified Data.Graph.Fold.SubTree               as Traversal
-import qualified Data.Graph.Store                  as Graph
-import qualified Data.Graph.Store.Alloc            as Graph
-import qualified Data.Graph.Store.Internal         as Graph
-import qualified Data.Graph.Store.External          as External
+import qualified Data.Graph.Store                      as Graph
+import qualified Data.Graph.Store.Alloc                as Graph
+import qualified Data.Graph.Store.External             as External
+import qualified Data.Graph.Store.Internal             as Graph
 import qualified Data.IORef                            as IORef
 import qualified Data.Set                              as Set
 import qualified Data.Struct                           as Struct
@@ -524,7 +524,7 @@ fullSizeDiscovery = Bench "full size" $ \i -> runPass' $ do
     !clusters <- Partition.partition v
     let go !0 = let !o = pure () in o
         go !j = do
-            !_ <- Graph.clusterByteSize @('[Nodes, Edges]) clusters
+            !_ <- Graph.clusterSize @('[Nodes, Edges]) clusters
             go $! j - 1
     go i
 {-# NOINLINE fullSizeDiscovery #-}
