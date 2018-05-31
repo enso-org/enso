@@ -6,7 +6,7 @@ module Language.Haskell.TH.Builder (module Language.Haskell.TH.Builder, module X
 
 import Prologue hiding (Cons, Data, Type, cons, inline)
 
-import           Control.Lens (makePrisms, _3)
+import           Control.Lens (lens, makePrisms, _3)
 import qualified Data.Char    as Char
 
 import           Data.List.Split            (splitOn)
@@ -582,7 +582,7 @@ getTypeInfo = uncurry TypeInfo . \case
     TH.NewtypeD     _ nm vars _ c  _ -> (nm, tv2t <$> vars, [c])
     TH.DataInstD    _ nm vars _ cs _ -> (nm, vars, cs)
     TH.NewtypeInstD _ nm vars _ c  _ -> (nm, vars, [c])
-    _ -> error "Type info: not supported."
+    a -> error $ "Type info: not supported: " <> show a
     where tv2t = \case
               TH.PlainTV  n   -> var n
               TH.KindedTV n _ -> var n
@@ -643,6 +643,9 @@ conNameArity c = let (n, fs) = conNameTypes c in (n, fromIntegral $ length fs)
 conArity :: TH.Con -> Int
 conArity = snd . conNameArity
 
+conName :: TH.Con -> Name
+conName = fst . conNameArity
+
 noArgCon :: TH.Con -> Bool
 noArgCon = (== 0) . conArity
 
@@ -678,6 +681,15 @@ fixDuplicateRecordNamesGHCBug s = case splitOn ":" s of
     [a] -> a
     as  -> unsafeLast $ unsafeInit as
 
+op :: Name -> TH.Exp -> TH.Exp -> TH.Exp
+op = app2 . var
+
+plus, mul :: TH.Exp -> TH.Exp -> TH.Exp
+plus = op '(+)
+mul  = op '(*)
+
+intLit :: Integer -> TH.Exp
+intLit = TH.LitE . TH.IntegerL
 
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
