@@ -508,18 +508,18 @@ partitionsUnify = Bench "partitions unify" $ \i -> runPass' $ do
     go i
 {-# NOINLINE partitionsUnify #-}
 
-externalSizeDiscovery :: Bench
-externalSizeDiscovery = Bench "external size" $ \i -> runPass' $ do
+externalSizeDiscovery_1n :: Bench
+externalSizeDiscovery_1n = Bench "external size 1n" $ \i -> runPass' $ do
     !v <- IR.var "a"
     let go !0 = let !o = pure () in o
         go !j = do
             !_ <- External.size v
             go $! j - 1
     go i
-{-# NOINLINE externalSizeDiscovery #-}
+{-# NOINLINE externalSizeDiscovery_1n #-}
 
-fullSizeDiscovery :: Bench
-fullSizeDiscovery = Bench "full size" $ \i -> runPass' $ do
+externalSizeDiscovery_2n2e :: Bench
+externalSizeDiscovery_2n2e = Bench "external size 2n 2e" $ \i -> runPass' $ do
     !v <- IR.var "a"
     !clusters <- Partition.partition v
     let go !0 = let !o = pure () in o
@@ -527,7 +527,7 @@ fullSizeDiscovery = Bench "full size" $ \i -> runPass' $ do
             !_ <- Graph.clusterSize @('[Nodes, Edges]) clusters
             go $! j - 1
     go i
-{-# NOINLINE fullSizeDiscovery #-}
+{-# NOINLINE externalSizeDiscovery_2n2e #-}
 
 newtype X = X Int
 newtype Y = Y Int
@@ -647,6 +647,7 @@ invariants = checkInvariants maxPercDiff $
     [ assertBenchToRef "Layer R/W        "  7 maxPercDiff readWrite_cptr readWrite_layer
     , assertBenchToRef "SubTree Discovery"  6 maxPercDiff subTreeDiscovery_manual subTreeDiscovery
     , assertBenchToRef "SubTree Partitions" 6 maxPercDiff subTreeDiscovery partitionsSingleVar
+    , assertBenchToRef "Size Discovery"     6 (maxPercDiff + 300) externalSizeDiscovery_1n externalSizeDiscovery_2n2e
     ]
     where maxPercDiff = 5
 
@@ -683,8 +684,8 @@ benchmarks = do
             , linkDiscovery
             , partitionsSingleVar
             , partitionsUnify
-            , externalSizeDiscovery
-            , fullSizeDiscovery
+            , externalSizeDiscovery_1n
+            , externalSizeDiscovery_2n2e
             ]
         ]
       ]
