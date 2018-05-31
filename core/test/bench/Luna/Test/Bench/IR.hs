@@ -668,18 +668,18 @@ benchmarks = do
         --         -- , readWrite_MS_2
         --         ]
         --     ]
-        -- , "create" $ bench 5 <$>
-        --     -- [ createIR_mallocPtr
-        --     [ createIR_normal
-        --     -- , createIR_normal2
-        --     , createIR_normal3
-        --     , create_IORef
-        -- --     , createIR_normal4
-        --     ]
+        [ "create" $ bench 5 <$>
+            [ createIR_mallocPtr
+            , createIR_normal
+            -- , createIR_normal2
+            , createIR_normal3
+            , create_IORef
+        --     , createIR_normal4
+            ]
         -- [ "layer" $ bench 7 <$>
         --     [readWrite_layerptr]
 
-        [ "discovery" $ bench 6 <$>
+        , "discovery" $ bench 6 <$>
             [ subTreeDiscovery
             , linkDiscovery
             , partitionsSingleVar

@@ -26,6 +26,9 @@ data RawMemoryRegion = RawMemoryRegion
     } deriving (Show)
 makeLenses ''RawMemoryRegion
 
+
+-- === API === --
+
 unsafeMakeRaw :: MemoryRegion -> RawMemoryRegion
 unsafeMakeRaw (MemoryRegion !staticMem !dynamicMem) =
     let staticPtr  = unsafeForeignPtrToPtr staticMem
