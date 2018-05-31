@@ -3,7 +3,6 @@ module Foreign.Storable.Deriving (derive, derive') where
 
 import Prologue
 
-import Control.Lens                (view, _2, _3)
 import Data.Bifunctor              (first)
 import Foreign.Storable            (Storable)
 import GHC.Num
@@ -30,8 +29,8 @@ concretizeType = \case
 -- | Instantiate all the free type variables to Int for a consturctor
 extractConcreteTypes :: TH.Con -> [TH.Type]
 extractConcreteTypes = \case
-    NormalC n bts -> (concretizeType . view _2) <$> bts
-    RecC    n bts -> (concretizeType . view _3) <$> bts
+    NormalC n bts -> concretizeType . view _2 <$> bts
+    RecC    n bts -> concretizeType . view _3 <$> bts
     _ -> error "***error*** Storable.derive: type not yet supported"
 
 
@@ -45,16 +44,6 @@ sizeOfType = app (var 'Storable.sizeOf) . (var 'undefined -::)
 
 sizeOfInt :: TH.Exp
 sizeOfInt = sizeOfType $ cons' ''Int
-
-op :: Name -> TH.Exp -> TH.Exp -> TH.Exp
-op = app2 . var
-
-plus, mul :: TH.Exp -> TH.Exp -> TH.Exp
-plus = op '(+)
-mul  = op '(*)
-
-intLit :: Integer -> TH.Exp
-intLit = LitE . IntegerL
 
 undefinedAsInt :: TH.Exp
 undefinedAsInt = var 'undefined -:: cons' ''Int
@@ -85,7 +74,7 @@ wildCardLazyClause expr = clause [TildeP WildP] expr mempty
 -- FIXME[WD->PM]: IRREFUTABLE PATTERN!
 -- | Generate the `Storable` instance for a type.
 --   The constraint is that all of the fields of
---   the type's constructor must be Ints.
+--   the type's constructor must be Ints/Pointers.
 derive :: Name -> Q [TH.Dec]
 derive ty = do
     TH.TyConI tyCon <- TH.reify ty
@@ -136,8 +125,8 @@ genOffsets isSingleCons con = do
                 addIfMulti :: a -> [a] -> [a]
                 addIfMulti e es = if isSingleCons then es else e:es
 
-                clauses    = off0D :| (addIfMulti off1D offDecls)
-                finalNames = n0    :| (addIfMulti n1    ns)
+                clauses    = off0D :| addIfMulti off1D offDecls
+                finalNames = n0    :| addIfMulti n1 ns
 
             pure (finalNames, clauses)
 
@@ -195,36 +184,50 @@ genPeekCaseMatch isSingleCons ptr idx con = do
         --   it was used
         (firstCon, offs) = case offNames of
                 allOs@(off1:os) -> first mkFirstCon $ if isSingleCons then (off0, allOs) else (off1, os)
-                _               -> if (arity == 0) then (app (var 'pure) (ConE cName), [])
-                                                   else (mkFirstCon off0, [])
+                _               -> if arity == 0 then (app (var 'pure) (ConE cName), [])
+                                                 else (mkFirstCon off0, [])
         body             = NormalB $ foldl appPeekByte firstCon offs
         pat              = LitP $ IntegerL idx
-    pure $ TH.Match pat body (NonEmpty.toList whereCs)
+        whereCs'         = if isSingleCons then NonEmpty.toList whereCs
+                                           else NonEmpty.tail whereCs
+    pure $ TH.Match pat body whereCs'
 
 -- | Generate a catch-all branch of the case to account for
 --   non-exhaustive patterns warnings.
-genPeekCatchAllMatch :: TH.Match
-genPeekCatchAllMatch = TH.Match TH.WildP (TH.NormalB body) mempty
-    where body = app (var 'error) (TH.LitE $ TH.StringL "[peek] Unrecognized constructor")
+genPeekCatchAllMatch :: [TH.Con] -> Q TH.Match
+genPeekCatchAllMatch cs = do
+    t <- newName "t"
+    let cNames    = show . conName <$> cs
+        cNamesFmt = foldl (\a b -> a <> ", " <> b) "" cNames
+        errorMsg  = "[peek] Unrecognized constructor (not one of"
+                 <> cNamesFmt <> "), got tag: "
+        errorLit  = TH.LitE $ TH.StringL errorMsg
+        showT     = app (var 'show) (var t)
+        wholeMsg  = op '(<>) errorLit showT
+        body      = app (var 'error) wholeMsg
+
+    pure $ TH.Match (TH.VarP t) (TH.NormalB body) mempty
 
 -- | Generate the `peek` clause for a single-constructor types.
 --   In this case the fields are stored raw, without the tag.
 genPeekSingleCons :: Name -> TH.Con -> Q TH.Clause
 genPeekSingleCons ptr con = do
     TH.Match _ body whereCs <- genPeekCaseMatch True ptr 0 con
-    let pat = if noArgCon con then TH.WildP else var ptr
+    let pat      = if noArgCon con then TH.WildP else var ptr
+        whereCs' = if noArgCon con then []       else whereCs
     case body of
-        TH.NormalB e  -> pure $ clause [pat] e whereCs
+        TH.NormalB e  -> pure $ clause [pat] e whereCs'
         TH.GuardedB _ -> fail "[genPeekSingleCons] Guarded bodies not supported"
 
 -- Generate the `peek` method for multi-constructor data types.
 genPeekMultiCons :: Name -> Name -> [TH.Con] -> Q TH.Clause
 genPeekMultiCons ptr tag cs = do
     peekCases <- zipWithM (genPeekCaseMatch False ptr) [0..] cs
+    catchAll  <- genPeekCatchAllMatch cs
     let peekTag      = app (app (var 'Storable.peekByteOff) (var ptr)) (intLit 0)
         peekTagTyped = peekTag -:: app (cons' ''IO) (cons' ''Int)
         bind         = BindS (var tag) peekTagTyped
-        cases        = CaseE (var tag) $ peekCases <> [genPeekCatchAllMatch]
+        cases        = CaseE (var tag) $ peekCases <> [catchAll]
         doE          = DoE [bind, NoBindS cases]
     pure $ clause [var ptr] doE mempty
 
