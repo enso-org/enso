@@ -45,10 +45,11 @@ unsafeNull :: MemPool a
 unsafeNull = wrap Mgr.unsafeNull ; {-# INLINE unsafeNull #-}
 
 -- | Create a new memory manager.
-new :: MonadIO m => BlockSize -- ^ the number of items to pre-allocate
-                 -> ItemSize  -- ^ the size of one item
+new :: MonadIO m => BlockSize     -- ^ the number of items to pre-allocate
+                 -> ItemSize      -- ^ the size of one item
                  -> m (MemPool a) -- ^ a new manager instance
-new (BlockSize bs) (ItemSize is) = wrap <$> Mgr.newManager bs is ; {-# INLINE new #-}
+new (BlockSize bs) (ItemSize is) = wrap <$> Mgr.newManager bs is
+{-# INLINE new #-}
 
 -- | Allocate an element using the provided manager instance.
 --   Note that even though the function is polymorphic in its
@@ -56,6 +57,9 @@ new (BlockSize bs) (ItemSize is) = wrap <$> Mgr.newManager bs is ; {-# INLINE ne
 --   be based on the manager used as the argument.
 alloc :: MonadIO m => MemPool a -> m SomePtr
 alloc = Mgr.newItem . unwrap ; {-# INLINE alloc #-}
+
+allocN :: MonadIO m => MemPool a -> Int -> m (Ptr a)
+allocN = Mgr.newItemN . unwrap ; {-# INLINE allocN #-}
 
 -- | Free the memory obtained by using `alloc`.
 free :: MonadIO m => MemPool a -> SomePtr -> m ()
@@ -65,6 +69,9 @@ free = Mgr.deleteItem . unwrap ; {-# INLINE free #-}
 delete :: MonadIO m => MemPool a -> m ()
 delete = Mgr.deleteManager . unwrap ; {-# INLINE delete #-}
 
+unsafeFreeN :: MonadIO m => MemPool a -> SomePtr -> ItemSize -> Int -> m ()
+unsafeFreeN (unwrap -> mgr) ptr (unwrap -> sz) =
+    Mgr.unsafeDeleteItemN mgr ptr sz
 
 --
 -- import Foreign.Marshal.Alloc (mallocBytes)

@@ -11,7 +11,7 @@ import Prologue hiding (Item)
 import Control.DeepSeq        (NFData)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Data.Convert           (convert)
-import Foreign                (Ptr, castPtr, nullPtr)
+import Foreign                (Ptr, castPtr, nullPtr, plusPtr)
 import Foreign.C              (CDouble (..), CSize (..))
 import GHC.Generics           (Generic)
 
@@ -63,6 +63,12 @@ newItemN mm n = liftIO $ do
 deleteItem :: MonadIO m => MemoryManager -> Ptr a -> m ()
 deleteItem mm = liftIO . c_deleteItem mm . castPtr
 {-# INLINE deleteItem #-}
+
+unsafeDeleteItemN :: MonadIO m => MemoryManager -> Ptr a -> Int -> Int -> m ()
+unsafeDeleteItemN !mm !startPtr !itemSize !itemCount = liftIO $ do
+    let ptrs = plusPtr startPtr . (* itemSize) <$> [0 .. (itemCount - 1)]
+    for_ ptrs (deleteItem mm)
+{-# INLINE unsafeDeleteItemN #-}
 
 unsafeNull :: MemoryManager
 unsafeNull = MemoryManager nullPtr
