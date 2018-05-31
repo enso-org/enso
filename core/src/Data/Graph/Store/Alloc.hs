@@ -31,13 +31,6 @@ data Size = Size
 makeLenses ''Size
 
 
--- === API === --
-
-totalSize :: Size -> Int
-totalSize = \(Size s e) -> s + e
-{-# INLINE totalSize #-}
-
-
 -- === Instances === --
 
 instance Mempty Size where
@@ -96,7 +89,7 @@ instance
     , MonadIO m
     ) => ClusterSizeBuilder (comp ': cs) comps m where
     buildClusterSize clusters acc = do
-        let compList    = TypeMap.getElem @(ComponentList comp) clusters
+        let compList = TypeMap.getElem @(ComponentList comp) clusters
         listSize <- ComponentList.foldlM accComponentSize mempty compList
         buildClusterSize @cs @comps clusters $! acc <> listSize
     {-# INLINE buildClusterSize #-}

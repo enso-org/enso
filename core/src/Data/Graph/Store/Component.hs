@@ -39,8 +39,9 @@ newtype PointerMap = PointerMap (Map SomePtr SomePtr) deriving Default
 makeLenses ''PointerMap
 
 recordMapping :: State.Monad PointerMap m => SomePtr -> SomePtr -> m ()
-recordMapping = \oldPtr newPtr ->
-    State.modify_ @PointerMap (wrap . Map.insert oldPtr newPtr . unwrap)
+recordMapping = \oldPtr newPtr -> State.modify_ @PointerMap
+                                $ wrapped %~ Map.insert oldPtr newPtr
+{-# INLINE recordMapping #-}
 
 
 -- === Serializing layers === --
@@ -75,7 +76,7 @@ type ExternalStorableComponent comp m =
     , ExternalStorableLayers (Graph.DiscoverComponentLayers m comp)
     )
 
-type family ExternalStorableComponents comps m :: Constraint  where
+type family ExternalStorableComponents comps m :: Constraint where
     ExternalStorableComponents '[] m = ()
     ExternalStorableComponents (c ': cs) m =
         (ExternalStorableComponent c m, ExternalStorableComponents cs m)
@@ -91,7 +92,7 @@ dumpComponentToMemRegion :: ∀ comp m.
     , Storable (Component.Some comp)
     , State.Monad PointerMap m
     ) => RawMemoryRegion -> Component.Some comp -> m RawMemoryRegion
-dumpComponentToMemRegion = \(RawMemoryRegion !staticPtr !dynamicPtr) comp -> do
+dumpComponentToMemRegion = \(RawMemoryRegion staticPtr dynamicPtr) comp -> do
     staticPtr'  <- Storable.castPokeAndOffset staticPtr comp
     dynamicPtr' <- dumpComponent comp dynamicPtr
     recordMapping staticPtr staticPtr'
@@ -104,8 +105,7 @@ dumpComponentToMemRegion = \(RawMemoryRegion !staticPtr !dynamicPtr) comp -> do
 dumpComponentList :: ∀ comp m.
     ( ExternalStorableComponent comp m
     , State.Monad PointerMap m
-    ) =>  ComponentList comp -> m RawMemoryRegion -> m RawMemoryRegion
-dumpComponentList = \compList memRegM -> do
-    memReg <- memRegM
-    foldM dumpComponentToMemRegion memReg $! toList compList
+    ) => ComponentList comp -> RawMemoryRegion -> m RawMemoryRegion
+dumpComponentList = \compList memReg -> do
+    ComponentList.foldlM dumpComponentToMemRegion memReg compList
 {-# INLINE dumpComponentList #-}

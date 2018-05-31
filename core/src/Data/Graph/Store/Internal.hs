@@ -27,24 +27,26 @@ import Foreign.Ptr.Utils              (SomePtr)
 
 -- === Iterate over Cluster and serialize each list === --
 
-class ClusterSerializer' (cs :: [Type]) comps m where
-    serializeClusters' :: Partition.Clusters comps -> m RawMemoryRegion -> m RawMemoryRegion
+class ClusterSerializerBuilder (cs :: [Type]) comps m where
+    buildClusterSerializer :: Partition.Clusters comps
+                           -> RawMemoryRegion -> m RawMemoryRegion
 
-instance ClusterSerializer' '[] ts m where
-    serializeClusters' = \_ -> id   ; {-# INLINE serializeClusters' #-}
+instance Applicative m => ClusterSerializerBuilder '[] ts m where
+    buildClusterSerializer = \_ -> pure
+    {-# INLINE buildClusterSerializer #-}
 
 instance
     ( TypeMap.ElemGetter (ComponentList comp) (ComponentLists comps)
     , ExternalStorableComponent comp m
-    , ClusterSerializer' cs comps m
+    , ClusterSerializerBuilder cs comps m
     , State.Monad Component.PointerMap m
     , MonadIO m
-    ) => ClusterSerializer' (comp ': cs) comps m where
-    serializeClusters' clusters accM = do
+    ) => ClusterSerializerBuilder (comp ': cs) comps m where
+    buildClusterSerializer clusters acc = do
         let compList = TypeMap.getElem @(ComponentList comp) clusters
-            acc'     = Component.dumpComponentList compList accM
-        serializeClusters' @cs @comps clusters acc'
-    {-# INLINE serializeClusters' #-}
+        acc' <- Component.dumpComponentList compList acc
+        buildClusterSerializer @cs @comps clusters acc'
+    {-# INLINE buildClusterSerializer #-}
 
 
 -- === API === --
@@ -58,14 +60,14 @@ makeLenses ''SerializeInfo
 type ClusterSerializer comps m =
     ( Alloc.Allocator comps m
     , ExternalStorableComponents comps m
-    , ClusterSerializer' comps comps (State.StateT Component.PointerMap m)
+    , ClusterSerializerBuilder comps comps (State.StateT Component.PointerMap m)
     )
 
 serializeClusters :: ∀ comps m. ClusterSerializer comps m
                   => Partition.Clusters comps -> MemoryRegion -> m SerializeInfo
 serializeClusters clusters memReg = do
-    ptrMap <- State.execDefT @Component.PointerMap $!
-        MemoryRegion.withRaw memReg $ \rawMemReg ->
-            serializeClusters' @comps @comps clusters $ pure rawMemReg
-    pure $! SerializeInfo memReg $! unwrap ptrMap
+    ptrMap <- State.execDefT @Component.PointerMap
+        $! MemoryRegion.withRaw memReg
+        $! buildClusterSerializer @comps @comps clusters
+    pure $ SerializeInfo memReg $ unwrap ptrMap
 {-# INLINE serializeClusters #-}
