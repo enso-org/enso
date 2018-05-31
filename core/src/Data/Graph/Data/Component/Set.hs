@@ -19,24 +19,25 @@ import Foreign.Storable    (Storable)
 
 
 
------------------
--- === Set === --
------------------
+--------------------------
+-- === ComponentSet === --
+-------------------------------------------
 
 -- === Definition === --
 
-newtype Set tag layout = Set (UnmanagedPtrSet (Component tag layout))
-    deriving (Show, Storable) -- ExternalStorable
-makeLenses       ''Set
-Storable1.derive ''Set
+newtype ComponentSet tag layout
+    = ComponentSet (UnmanagedPtrSet (Component tag layout))
+    deriving (Show, Storable)
+makeLenses       ''ComponentSet
+Storable1.derive ''ComponentSet
 
 
 -- === Instances === --
 
-type instance Property.Get Storable.Dynamics (Set comp) = Storable.Dynamic
+type instance Property.Get Storable.Dynamics (ComponentSet _) = Storable.Dynamic
 
-type instance Set.Item (Set tag layout) = Component tag layout
-instance MonadIO m => Set.Set m (Set tag layout) where
+type instance Set.Item (ComponentSet tag layout) = Component tag layout
+instance MonadIO m => Set.Set m (ComponentSet tag layout) where
     new    = wrap <$> Set.new    ; {-# INLINE new    #-}
     insert = Set.insert . unwrap ; {-# INLINE insert #-}
     delete = Set.delete . unwrap ; {-# INLINE delete #-}
@@ -45,10 +46,10 @@ instance MonadIO m => Set.Set m (Set tag layout) where
     null   = Set.null   . unwrap ; {-# INLINE null   #-}
     toList = Set.toList . unwrap ; {-# INLINE toList #-}
 
-instance MonadIO m => Data.Constructor2 m () Set where
+instance MonadIO m => Data.Constructor2 m () ComponentSet where
     construct2 _ = wrap <$> Data.construct1'
     {-# INLINE construct2 #-}
 
-instance MonadIO m => Data.ShallowDestructor2 m Set where
+instance MonadIO m => Data.ShallowDestructor2 m ComponentSet where
     destructShallow2 = Data.destruct1 . unwrap
     {-# INLINE destructShallow2 #-}

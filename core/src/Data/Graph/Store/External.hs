@@ -15,15 +15,15 @@ import qualified Data.Graph.Fold.Struct           as Fold
 import qualified Foreign.DynamicStorable          as DynamicStorable
 import qualified Foreign.Storable.Utils           as Storable
 
-import Data.Graph.Data.Component.Class (Component)
-import Data.PtrSet.Mutable             (IsPtr, UnmanagedPtrSet)
-import Data.Vector.Storable.Foreign    (Vector)
-import Foreign.DynamicStorable         (DynamicStorable)
-import Foreign.Ptr                     (Ptr, plusPtr)
-import Foreign.Ptr.Utils               (SomePtr)
-import Foreign.Storable.Utils          (Storable)
-
-import qualified Data.Graph.Component.Node.Class as Term
+import Data.Graph.Data.Component.Class  (Component)
+import Data.Graph.Data.Component.Set    (ComponentSet)
+import Data.Graph.Data.Component.Vector (ComponentVector)
+import Data.PtrSet.Mutable              (IsPtr, UnmanagedPtrSet)
+import Data.Vector.Storable.Foreign     (Vector)
+import Foreign.DynamicStorable          (DynamicStorable)
+import Foreign.Ptr                      (Ptr, plusPtr)
+import Foreign.Ptr.Utils                (SomePtr)
+import Foreign.Storable.Utils           (Storable)
 
 
 
@@ -80,12 +80,12 @@ instance (MonadIO m, SizeDiscoveryBuilder1 m (Layer.Cons layer))
     {-# INLINE layerBuild #-}
 
 instance MonadIO m
-      => Fold.Builder1 Discovery m (ComponentSet.Set comp) where
+      => Fold.Builder1 Discovery m (ComponentSet comp) where
     build1 = Fold.build @Discovery . unwrap
     {-# INLINE build1 #-}
 
 instance MonadIO m
-      => Fold.Builder1 Discovery m (ComponentVector.Vector comp) where
+      => Fold.Builder1 Discovery m (ComponentVector comp) where
     build1 = Fold.build @Discovery . unwrap
     {-# INLINE build1 #-}
 
@@ -209,7 +209,7 @@ instance (Storable a, IsPtr a) => ExternalFieldStorable (UnmanagedPtrSet a) wher
         pure dynPtr'
     {-# INLINE dumpFieldBuilder #-}
 
-deriving instance ExternalFieldStorable (ComponentSet.Set comp layout)
+deriving instance ExternalFieldStorable (ComponentSet comp layout)
 
 
 -- === Vector === --
@@ -245,5 +245,5 @@ instance Storable a => ExternalFieldStorable (Vector a) where
         pure dynPtr'
     {-# INLINE dumpFieldBuilder #-}
 
-deriving instance ExternalFieldStorable (ComponentVector.Vector comp layout)
+deriving instance ExternalFieldStorable (ComponentVector comp layout)
 

@@ -9,8 +9,8 @@ import qualified Data.Generics.Traversable            as GTraversable
 import qualified Data.Graph.Component.Node.Class      as Node
 import qualified Data.Graph.Component.Node.Layer.Type as Type
 import qualified Data.Graph.Data.Component.Class      as Component
-import qualified Data.Graph.Data.Component.List       as Component
-import qualified Data.Graph.Data.Component.Set        as Component
+import qualified Data.Graph.Data.Component.List       as ComponentList
+import qualified Data.Graph.Data.Component.Set        as ComponentSet
 import qualified Data.Graph.Data.Component.Vector     as ComponentVector
 import qualified Data.Graph.Data.Graph.Class          as Graph
 import qualified Data.Graph.Data.Layer.Class          as Layer
@@ -25,13 +25,16 @@ import qualified Foreign.Ptr                          as Ptr
 import qualified Foreign.Storable                     as Storable
 import qualified Type.Data.List                       as List
 
-import Data.Generics.Traversable       (GTraversable)
-import Data.Graph.Component.Node.Class (Constructor)
-import Data.Graph.Data.Component.Class (Component)
-import Data.Set                        (Set)
-import Data.Vector.Storable.Foreign    (Vector)
-import Foreign.Ptr.Utils               (SomePtr)
-import Type.Data.Bool                  (Not, type (||))
+import Data.Generics.Traversable        (GTraversable)
+import Data.Graph.Component.Node.Class  (Constructor)
+import Data.Graph.Data.Component.Class  (Component)
+import Data.Graph.Data.Component.List   (ComponentList)
+import Data.Graph.Data.Component.Set    (ComponentSet)
+import Data.Graph.Data.Component.Vector (ComponentVector)
+import Data.Set                         (Set)
+import Data.Vector.Storable.Foreign     (Vector)
+import Foreign.Ptr.Utils                (SomePtr)
+import Type.Data.Bool                   (Not, type (||))
 
 
 
@@ -42,14 +45,14 @@ import Type.Data.Bool                  (Not, type (||))
 -- === Definition === --
 
 data Discovery comp
-type instance Fold.Result     (Discovery comp) = Component.List comp
+type instance Fold.Result     (Discovery comp) = ComponentList comp
 type instance Fold.LayerScope (Discovery comp) = 'Fold.All
 
 
 -- === API === --
 
 class SubComponents comp m a where
-    subComponents :: a -> m (Component.List comp)
+    subComponents :: a -> m (ComponentList comp)
 
 instance {-# OVERLAPPABLE #-} (Fold.Builder (Discovery comp) m a)
       => SubComponents comp m a where
@@ -87,19 +90,19 @@ instance {-# OVERLAPPABLE #-} Monad m
 
 instance Monad m
       => Fold.Builder1 (Discovery comp) m (Component comp) where
-    build1 = \comp mr -> (Component.Cons $! Layout.relayout comp) <$> mr
+    build1 = \comp mr -> (ComponentList.Cons $! Layout.relayout comp) <$> mr
     {-# INLINE build1 #-}
 
 
 -- === ComponentSet === --
 
 instance {-# OVERLAPPABLE #-} Monad m
-      => Fold.Builder1 (Discovery comp) m (Component.Set comp') where
+      => Fold.Builder1 (Discovery comp) m (ComponentSet comp') where
     build1 = \_ -> id
     {-# INLINE build1 #-}
 
 instance MonadIO m
-      => Fold.Builder1 (Discovery comp) m (Component.Set comp) where
+      => Fold.Builder1 (Discovery comp) m (ComponentSet comp) where
     build1 = \a acc
         -> (\a b -> a <> b) <$> (convert <$> PtrSet.toList (unwrap a)) <*> acc
     {-# INLINE build1 #-}
@@ -107,18 +110,18 @@ instance MonadIO m
 
 -- === ComponentVector === --
 
-instance (Fold.Builder1 (Discovery comp) m (ComponentVector.Vector comp))
-      => Fold.Builder (Discovery comp) m (ComponentVector.Vector comp layout) where
+instance (Fold.Builder1 (Discovery comp) m (ComponentVector comp))
+      => Fold.Builder (Discovery comp) m (ComponentVector comp layout) where
     build = Fold.build1 @(Discovery comp)
     {-# INLINE build #-}
 
 instance {-# OVERLAPPABLE #-} Monad m
-      => Fold.Builder1 (Discovery comp) m (ComponentVector.Vector comp') where
+      => Fold.Builder1 (Discovery comp) m (ComponentVector comp') where
     build1 = \_ -> id
     {-# INLINE build1 #-}
 
 instance MonadIO m
-      => Fold.Builder1 (Discovery comp) m (ComponentVector.Vector comp) where
+      => Fold.Builder1 (Discovery comp) m (ComponentVector comp) where
     build1 = \a acc
         -> (\a b -> a <> b) <$> (convert <$> ComponentVector.toList a) <*> acc
     {-# INLINE build1 #-}

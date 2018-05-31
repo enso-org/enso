@@ -26,18 +26,20 @@ import qualified Data.Graph.Fold.Scoped           as Fold
 import qualified Data.Graph.Fold.Struct           as Fold
 import qualified Data.Graph.Fold.SubComponents    as Component
 import qualified Data.Graph.Fold.SubTree          as SubTree
-import qualified Data.Graph.Store.External     as External
+import qualified Data.Graph.Store.External        as External
 import qualified Data.Property                    as Property
 import qualified Foreign.DynamicStorable          as Dynamic
 import qualified Foreign.Storable                 as Storable
 import qualified Foreign.Storable.Utils           as Storable
 import qualified OCI.IR.Term.Definition           as Term
 
-import Control.Monad.State.Layered     (State)
-import Data.Generics.Traversable       (GTraversable)
-import Data.Graph.Data.Component.Class (Component)
-import Foreign.Ptr.Utils               (SomePtr)
-import OCI.IR.Link.Class               (Link)
+import Control.Monad.State.Layered      (State)
+import Data.Generics.Traversable        (GTraversable)
+import Data.Graph.Data.Component.Class  (Component)
+import Data.Graph.Data.Component.Set    (ComponentSet)
+import Data.Graph.Data.Component.Vector (ComponentVector)
+import Foreign.Ptr.Utils                (SomePtr)
+import OCI.IR.Link.Class                (Link)
 
 
 
@@ -78,8 +80,8 @@ instance (MonadIO m, ctx ~ Data.ShallowDestructor m)
 instance
     ( Monad m
     , Fold.Builder1 t m (Component Link.Edges)
-    , Fold.Builder1 t m (ComponentVector.Vector Link.Edges)
-    , Fold.Builder1 t m (ComponentSet.Set       Link.Edges)
+    , Fold.Builder1 t m (ComponentVector Link.Edges)
+    , Fold.Builder1 t m (ComponentSet    Link.Edges)
     ) => Fold.Builder1 (Fold.Struct t) m UniTerm where
     build1 = gbuildFold__ @t
     {-# INLINE build1 #-}
@@ -108,13 +110,13 @@ instance Fold.Builder1 t m (Component comp)
     build = Fold.build1 @t
     {-# INLINE build #-}
 
-instance Fold.Builder1 t m (ComponentVector.Vector comp)
-      => Fold.Builder (UniTermFold t) m (ComponentVector.Vector comp layout) where
+instance Fold.Builder1 t m (ComponentVector comp)
+      => Fold.Builder (UniTermFold t) m (ComponentVector comp layout) where
     build = Fold.build1 @t
     {-# INLINE build #-}
 
-instance Fold.Builder1 t m (ComponentSet.Set comp)
-      => Fold.Builder (UniTermFold t) m (ComponentSet.Set comp layout) where
+instance Fold.Builder1 t m (ComponentSet comp)
+      => Fold.Builder (UniTermFold t) m (ComponentSet comp layout) where
     build = Fold.build1 @t
     {-# INLINE build #-}
 

@@ -13,20 +13,22 @@ import qualified Data.Graph.Data.Component.Vector as ComponentVector
 import qualified Data.Graph.Data.Graph.Class      as Graph
 import qualified Data.Graph.Data.Layer.Class      as Layer
 import qualified Data.Graph.Data.Layer.Layout     as Layout
-import qualified Data.Graph.Fold.Class        as Fold
-import qualified Data.Graph.Fold.Struct      as Fold
+import qualified Data.Graph.Fold.Class            as Fold
+import qualified Data.Graph.Fold.Struct           as Fold
 import qualified Data.Map.Strict                  as Map
 import qualified Data.Set                         as Set
 import qualified Foreign.Ptr                      as Ptr
 import qualified Foreign.Storable                 as Storable
 import qualified Type.Data.List                   as List
 
-import Data.Generics.Traversable       (GTraversable)
-import Data.Graph.Data.Component.Class (Component)
-import Data.Set                        (Set)
-import Data.Vector.Storable.Foreign    (Vector)
-import Foreign.Ptr.Utils               (SomePtr)
-import Type.Data.Bool                  (Not, type (||))
+import Data.Generics.Traversable        (GTraversable)
+import Data.Graph.Data.Component.Class  (Component)
+import Data.Graph.Data.Component.Set    (ComponentSet)
+import Data.Graph.Data.Component.Vector (ComponentVector)
+import Data.Set                         (Set)
+import Data.Vector.Storable.Foreign     (Vector)
+import Foreign.Ptr.Utils                (SomePtr)
+import Type.Data.Bool                   (Not, type (||))
 
 
 
@@ -98,7 +100,7 @@ instance {-# OVERLAPPABLE #-}
 --           but it will overlap then. We need to think for better generalization of it here.
 instance {-# OVERLAPPABLE #-}
     (MonadIO m, Fold.Builder1 (Scoped t) m (Component comp))
-      => Fold.Builder1 (Scoped t) m (ComponentVector.Vector comp) where
+      => Fold.Builder1 (Scoped t) m (ComponentVector comp) where
     build1 = \comp mr -> do
         lst <- ComponentVector.toList comp
         let f = foldl' (\f a -> f . Fold.build1 @(Scoped t) a) id lst
@@ -107,7 +109,7 @@ instance {-# OVERLAPPABLE #-}
 
 instance {-# OVERLAPPABLE #-}
     (MonadIO m, Fold.Builder1 (Scoped t) m (Component comp))
-      => Fold.Builder1 (Scoped t) m (ComponentSet.Set comp) where
+      => Fold.Builder1 (Scoped t) m (ComponentSet comp) where
     build1 = \comp mr -> do
         lst <- ComponentSet.toList comp
         let f = foldl' (\f a -> f . Fold.build1 @(Scoped t) a) id lst

@@ -21,15 +21,14 @@ import qualified Language.Haskell.TH                    as TH
 import qualified OCI.IR.Term.Format                     as Format
 import qualified Type.Data.Map                          as TypeMap
 
-import Data.Graph.Component.Edge       (type (*-*), Edge, Edges)
-import Data.Graph.Component.Node.Layer (Model)
-import Data.Vector.Storable.Foreign    (Vector)
-import Foreign.Storable                (Storable)
-import Language.Haskell.TH             (Type (AppT))
-import Language.Haskell.TH.Builder     hiding (Field)
-import OCI.IR.Term.Class               (Term)
-
-
+import Data.Graph.Component.Edge        (type (*-*), Edge, Edges)
+import Data.Graph.Component.Node.Layer  (Model)
+import Data.Graph.Data.Component.Vector (ComponentVector)
+import Data.Vector.Storable.Foreign     (Vector)
+import Foreign.Storable                 (Storable)
+import Language.Haskell.TH              (Type (AppT))
+import Language.Haskell.TH.Builder      hiding (Field)
+import OCI.IR.Term.Class                (Term)
 
 
 
@@ -57,7 +56,7 @@ instance Monad m => Field t a m a where
 instance Edge.Creator m => Field t (Term a) m (Edge b) where
     consField = \self t -> Layout.unsafeRelayout <$> Edge.new t self ; {-# INLINE consField #-}
 
-instance Edge.Creator m => Field t [Term a] m (ComponentVector.Vector Edges b) where
+instance Edge.Creator m => Field t [Term a] m (ComponentVector Edges b) where
     consField = \self -> ComponentVector.fromList <=< mapM (consField self) ; {-# INLINE consField #-}
 
 instance (Storable a, MonadIO m) => Field t [a] m (Vector a) where
@@ -66,7 +65,7 @@ instance (Storable a, MonadIO m) => Field t [a] m (Vector a) where
 type family ExpandField self layout a where
     ExpandField self layout (LinkTo t)  = Edge
         (Layout.Get t layout *-* Layout.Set Model self layout)
-    ExpandField self layout (LinksTo t) = ComponentVector.Vector Edges
+    ExpandField self layout (LinksTo t) = ComponentVector Edges
         (Layout.Get t layout *-* Layout.Set Model self layout)
     ExpandField self layout (t a)       = t (ExpandField self layout a)
     ExpandField self layout a           = a

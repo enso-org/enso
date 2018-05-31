@@ -11,6 +11,7 @@ import qualified Data.Graph.Data.Layer.Layout as Layout
 
 import Data.Graph.Component.Node.Class (Node)
 import Data.Graph.Data                 (Component)
+import Data.Graph.Data.Component.Set   (ComponentSet)
 import Data.Graph.Data.Layer.Class     (Layer)
 import Data.Graph.Data.Layer.Layout    ((:=), Layout)
 
@@ -25,31 +26,6 @@ import Data.Graph.Data.Layer.Layout    ((:=), Layout)
 Component.define "Edge"
 type SomeEdge = Component.Some Edges
 type src *-* tgt = Layout '[Source := src, Target := tgt]
-
-
--- === Provider === --
-
--- type Provider  = Component.Provider  Edges
--- type Provider1 = Component.Provider1 Edges
-
--- edges  :: (MonadIO m, Provider  a) => a    -> m [SomeEdge]
--- edges1 :: (MonadIO m, Provider1 a) => a t1 -> m [SomeEdge]
--- edges  = Component.components  @Edges ; {-# INLINE edges  #-}
--- edges1 = Component.components1 @Edges ; {-# INLINE edges1 #-}
-
-
--- === ComponentProvider === --
-
--- newtype ComponentProvider tag = ComponentProvider
---     (Component.Some tag -> IO [SomeEdge])
-
--- componentEdges
---     :: ∀ tag m layout. (MonadIO m, State.Getter (ComponentProvider tag) m)
---     => Component tag layout -> m [SomeEdge]
--- componentEdges cmp = do
---     ComponentProvider f <- State.get @(ComponentProvider tag)
---     liftIO . f $ coerce cmp
--- {-# INLINE componentEdges #-}
 
 
 
@@ -88,5 +64,5 @@ target = Layer.read @Target ; {-# INLINE target #-}
 -- === Components === --
 ------------------------
 
-type Set = Component.Set Edges
+type Set = ComponentSet Edges
 

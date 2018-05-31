@@ -4,19 +4,20 @@ module Data.Graph.Store.Internal where
 
 import Prologue
 
-import qualified Control.Monad.State.Layered       as State
-import qualified Data.Graph.Data.Component.List    as Component
-import qualified Data.Graph.Fold.Partition         as Partition
-import qualified Data.Graph.Store.Alloc        as Alloc
-import qualified Data.Graph.Store.Component    as Component
-import qualified Data.Graph.Store.MemoryRegion as MemoryRegion
-import qualified Data.TypeMap.Strict               as TypeMap
+import qualified Control.Monad.State.Layered    as State
+import qualified Data.Graph.Data.Component.List as Component
+import qualified Data.Graph.Fold.Partition      as Partition
+import qualified Data.Graph.Store.Alloc         as Alloc
+import qualified Data.Graph.Store.Component     as Component
+import qualified Data.Graph.Store.MemoryRegion  as MemoryRegion
+import qualified Data.TypeMap.Strict            as TypeMap
 
-import Data.Graph.Store.Component    (ExternalStorableComponent,
-                                          ExternalStorableComponents)
-import Data.Graph.Store.MemoryRegion (MemoryRegion, RawMemoryRegion)
-import Data.Map                          (Map)
-import Foreign.Ptr.Utils                 (SomePtr)
+import Data.Graph.Data.Component.List (ComponentList, ComponentLists)
+import Data.Graph.Store.Component     (ExternalStorableComponent,
+                                       ExternalStorableComponents)
+import Data.Graph.Store.MemoryRegion  (MemoryRegion, RawMemoryRegion)
+import Data.Map                       (Map)
+import Foreign.Ptr.Utils              (SomePtr)
 
 
 
@@ -33,14 +34,14 @@ instance ClusterSerializer' '[] ts m where
     serializeClusters' = \_ -> id   ; {-# INLINE serializeClusters' #-}
 
 instance
-    ( TypeMap.ElemGetter (Component.List comp) (Component.Lists comps)
+    ( TypeMap.ElemGetter (ComponentList comp) (ComponentLists comps)
     , ExternalStorableComponent comp m
     , ClusterSerializer' cs comps m
     , State.Monad Component.PointerMap m
     , MonadIO m
     ) => ClusterSerializer' (comp ': cs) comps m where
     serializeClusters' clusters accM = do
-        let compList = TypeMap.getElem @(Component.List comp) clusters
+        let compList = TypeMap.getElem @(ComponentList comp) clusters
             acc'     = Component.dumpComponentList compList accM
         serializeClusters' @cs @comps clusters acc'
     {-# INLINE serializeClusters' #-}

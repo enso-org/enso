@@ -5,7 +5,7 @@ module Data.Graph.Fold.Partition where
 import Prologue
 
 import qualified Data.Graph.Data.Component.Class as Component
-import qualified Data.Graph.Data.Component.List  as Component
+import qualified Data.Graph.Data.Component.List  as ComponentList
 import qualified Data.Graph.Data.Graph.Class     as Graph
 import qualified Data.Graph.Data.Layer.Layout    as Layout
 import qualified Data.Graph.Fold.Class           as Fold
@@ -16,8 +16,8 @@ import qualified Data.TypeMap.Strict             as TypeMap
 import Data.Graph.Component.Edge       (Target)
 import Data.Graph.Component.Node.Layer (Users)
 import Data.Graph.Data.Component.Class (Component)
+import Data.Graph.Data.Component.List  (ComponentList, ComponentLists)
 import Data.TypeMap.Strict             (TypeMap)
-
 
 
 -------------------------------
@@ -26,7 +26,7 @@ import Data.TypeMap.Strict             (TypeMap)
 
 -- === Datatypes and aliases === --
 
-type Clusters   comps = TypeMap   (Component.Lists comps)
+type Clusters   comps = TypeMap   (ComponentLists comps)
 type ClustersM  m     = Clusters  (Graph.DiscoverComponents m)
 type DiscoveryM m     = Discovery (Graph.DiscoverComponents m)
 
@@ -35,8 +35,8 @@ type instance Fold.Result     (Discovery comps) = Clusters comps
 type instance Fold.LayerScope (Discovery comps)
    = 'Fold.Blacklist '[Target, Users]
 
-type ClusterEditor t ts = TypeMap.ElemEditor (Component.List  t)
-                                             (Component.Lists ts)
+type ClusterEditor t ts = TypeMap.ElemEditor (ComponentList  t)
+                                             (ComponentLists ts)
 
 
 -- === API === --
@@ -56,8 +56,8 @@ partition = Deep.run1 @(DiscoveryM m)
 
 instance (Monad m, ClusterEditor comp comps)
     => Fold.ComponentBuilder (Discovery comps) m comp where
-    componentBuild = \comp acc -> TypeMap.modifyElem_ @(Component.List comp)
-                                  (Component.Cons $ Layout.relayout comp)
+    componentBuild = \comp acc -> TypeMap.modifyElem_ @(ComponentList comp)
+                                  (ComponentList.Cons $ Layout.relayout comp)
                               <$> acc
     {-# INLINE componentBuild #-}
 
