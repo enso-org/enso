@@ -29,6 +29,7 @@ library:
         - container
         - luna-data-construction
         - luna-foreign-utils
+        - luna-typelevel
         - prologue >= 3.0.0
 
 default-extensions:

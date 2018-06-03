@@ -5,9 +5,10 @@ module Main where
 
 import Prologue
 
-import qualified Luna.Pass           as Pass
-import qualified Luna.Pass.Scheduler as Scheduler
-import qualified Luna.Test.Bench.IR  as IRBench
+import qualified Luna.Pass            as Pass
+import qualified Luna.Pass.Scheduler  as Scheduler
+import qualified Luna.Test.Bench.IR   as IRBench
+import qualified Luna.Test.Bench.Test as Test
 
 import Criterion.Measurement (initializeTime)
 import Luna.Pass             (Pass)
@@ -62,6 +63,8 @@ main :: IO ()
 main = do
     hSetBuffering stdout NoBuffering
     initializeTime
+
+    Test.main
     IRBench.main
 
     -- defaultMain
