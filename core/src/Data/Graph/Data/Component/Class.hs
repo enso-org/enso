@@ -20,6 +20,7 @@ import qualified Foreign.Ptr                 as Ptr
 import qualified Foreign.Storable1.Deriving  as Storable1
 import qualified Language.Haskell.TH         as TH
 
+import Data.Generics.Traversable    (GTraversable)
 import Data.Graph.Data.Layer.Layout (Relayout, UnsafeRelayout)
 import Foreign.Memory.Pool          (MemPool)
 import Foreign.Ptr.Utils            (SomePtr)
@@ -103,6 +104,15 @@ instance Creator comp m => Data.Destructor1 m (Component comp) where
 
 instance Monad m => Data.ShallowDestructor1 m (Component comp) where
     destructShallow1 = const $ pure () ; {-# INLINE destructShallow1 #-}
+
+
+-- === Traversals === --
+
+-- instance GTraversable ctx (Component comp layout) where
+--     gtraverse = \f comp ->
+
+-- class GTraversableLayers__ ctx (layers :: [Type]) m where
+--     buildLayersFold__ :: SomePtr -> m (Fold.Result t) -> m (Fold.Result t)
 
 
 -- === Relayout === --
