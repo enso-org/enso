@@ -44,6 +44,7 @@ packages:
     - lib/cpp-containers
     - lib/data-construction
     - lib/data-property
+    - lib/data-storable
     - lib/data-tag
     - lib/data-typemap
     - lib/exception

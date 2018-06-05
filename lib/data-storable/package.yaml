@@ -1,4 +1,4 @@
-name        : luna-cpp-containers
+name        : luna-data-storable
 version     : 1.0.0
 category    : Data
 license     : Apache-2.0
@@ -12,23 +12,12 @@ maintainer  : Luna Team
 ghc-options:
     - -O2
     - -Wall
-extra-source-files:
-    - src/cbits/*
 
 library:
     source-dirs:
         - src
-    c-sources:
-        - src/cbits/*.cpp
-    include-dirs:
-        - src/cbits
-    extra-libraries: stdc++
-    cc-options: -std=c++17 -O3
     dependencies:
         - base
-        - container
-        - luna-data-construction
-        - luna-data-storable        
         - luna-foreign-utils
         - luna-typelevel
         - prologue >= 3.0.0

@@ -1,26 +1,37 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeApplications    #-}
-{-# LANGUAGE TypeInType          #-}
+{-# LANGUAGE AllowAmbiguousTypes  #-}
+{-# LANGUAGE ScopedTypeVariables  #-}
+{-# LANGUAGE TypeApplications     #-}
+{-# LANGUAGE TypeInType           #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Type.Known (module Type.Known, module X) where
-
 import GHC.TypeLits as X (KnownNat, KnownSymbol)
 
-import Data.Convert
-import Data.Kind    (Constraint, Type)
-import Data.Proxy
-import GHC.TypeLits
 import Prelude
 
+import Data.Convert (Convertible', convert')
+import Data.Kind    (Constraint, Type)
+import Data.Proxy   (Proxy (Proxy))
+import GHC.TypeLits (type (-), Nat, Symbol, natVal, symbolVal)
 
-----------------------------------------
--- === Types to values conversion === --
-----------------------------------------
+
+
+--------------------------------------
+-- === Type -> Value conversion === --
+--------------------------------------
 
 -- === Definition === --
 
-class Known t where from :: KnownVal t
+class Known  t   where val  :: KnownVal t
+class Known' t v where val' :: v
+
+
+-- === Internal === --
+
+instance {-# OVERLAPPABLE #-} (Known t, Convertible' (KnownVal t) v)
+      => Known' t v where
+    val' = convert' (val @t :: KnownVal t)
+    {-# INLINE val' #-}
 
 type family KnownVal (t :: k) where
     KnownVal (t :: k) = KnownKindVal k
@@ -35,26 +46,47 @@ type family Knowns (ts :: [k]) :: Constraint where
     Knowns (t ': ts) = (Known t, Knowns ts)
 
 
--- === Utils === --
 
-from' :: forall t s. (Known t, Convertible' (KnownVal t) s) => s
-from' = convert' $ from @t ; {-# INLINE from' #-}
-
-
+-----------------------
 -- === Instances === --
+-----------------------
 
-instance KnownNat t => Known (t :: Nat) where
-    from = natVal (Proxy @t) ; {-# INLINE from #-}
+-- === Nat === --
 
-instance KnownSymbol t => Known (t :: Symbol) where
-    from = symbolVal (Proxy @t) ; {-# INLINE from #-}
+instance KnownNat t
+      => Known (t :: Nat) where
+    val = natVal (Proxy @t)
+    {-# INLINE val #-}
 
-instance Known 'True  where from = True  ; {-# INLINE from #-}
-instance Known 'False where from = False ; {-# INLINE from #-}
+type KnownInt n = Known' n Int
+instance {-# OVERLAPPABLE #-} KnownInt (n - 1)
+      => Known' (n :: Nat) Int where
+    val' = 1 + val' @(n - 1)
+    {-# INLINE val' #-}
+
+instance Known' (0 :: Nat) Int where
+    val' = 0
+    {-# INLINE val' #-}
+
+
+-- === Symbol === --
+
+instance KnownSymbol t
+      => Known (t :: Symbol) where
+    val = symbolVal (Proxy @t)
+    {-# INLINE val #-}
+
+
+-- === Bool === --
+
+instance Known 'True  where val = True  ; {-# INLINE val #-}
+instance Known 'False where val = False ; {-# INLINE val #-}
+
+
 
 -- FIXME!
 -- The infered constraint `KnownKindVal k ~ k`
--- is not correct. It fails for `foo = from @('Just 7)`
+-- is not correct. It fails for `foo = val @('Just 7)`
 instance (Known a, KnownKindVal k ~ k)
-      => Known ('Just (a :: k)) where from = Just $ from @a ; {-# INLINE from #-}
-instance Known 'Nothing         where from = Nothing        ; {-# INLINE from #-}
+      => Known ('Just (a :: k)) where val = Just $ val @a ; {-# INLINE val #-}
+instance Known 'Nothing         where val = Nothing       ; {-# INLINE val #-}

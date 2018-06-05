@@ -89,6 +89,7 @@ benchmarks:
             - luna-autovector
             - luna-core
             - luna-cpp-containers
+            - luna-data-storable
             - luna-data-typemap
             - luna-exception
             - luna-foreign-utils
