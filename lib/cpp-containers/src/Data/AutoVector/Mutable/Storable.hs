@@ -32,7 +32,7 @@ import Unsafe.Coerce
 
 -- === Definition === --
 
-newtype Vector       a = Vector (Struct (VectorLayout a))
+newtype Vector       a = Vector (Struct (VectorLayout a)) deriving (NFData)
 type    VectorLayout a =
    '[ "length"   -:: Int
     , "size"     -:: Int

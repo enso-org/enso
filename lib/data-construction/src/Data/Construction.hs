@@ -7,7 +7,7 @@ import Prelude
 
 import           Data.Generics.Traversable (GTraversable)
 import qualified Data.Generics.Traversable as GTraversable
-
+import qualified Foreign.Marshal.Alloc     as Mem
 
 
 --------------------------
@@ -109,3 +109,42 @@ instance {-# OVERLAPPABLE #-} (Monad m, ShallowDestructor2 m a)
 instance {-# OVERLAPPABLE #-} (Monad m, GTraversable (ShallowDestructor m) a)
     => ShallowDestructor m a where
     destructShallow = GTraversable.gmapM_ @(ShallowDestructor m) destructShallow ; {-# INLINE destructShallow #-}
+
+
+
+-- -----------------------
+-- -- === Allocator === --
+-- -----------------------
+
+-- -- === Definition === --
+
+-- class Allocator t m a where
+--     alloc :: Int -> m (Ptr a)
+
+
+-- -- === Malloc === --
+
+-- data Malloc
+-- instance Allocator Malloc m a where
+--     alloc = liftIO . Mem.malloc
+--     {-# INLINE alloc #-}
+
+
+
+-- -------------------------------
+-- -- === Copy Construction === --
+-- -------------------------------
+
+-- -- === Definition === --
+
+-- class CopyWith t m a where
+--     copyWith :: a -> m a
+
+
+-- -- === Malloc === --
+
+-- type Copy = CopyWith Malloc
+-- copy :: Copy m a => a -> m a
+-- copy = copyWith @Malloc
+-- {-# INLINE copy #-}
+

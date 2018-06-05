@@ -199,3 +199,5 @@ instance (Storable a, IsPtr a) => DynamicStorable (UnmanagedPtrSet a) where
         fillList a tgtBodyPtr
     {-# INLINE poke #-}
 
+instance NFData (UnmanagedPtrSet a) where
+    rnf _ = ()

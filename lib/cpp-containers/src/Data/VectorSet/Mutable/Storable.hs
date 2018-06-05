@@ -1,5 +1,5 @@
 module Data.VectorSet.Mutable.Storable
-    (module Data.VectorSet.Mutable.Storable) where
+    (module Data.VectorSet.Mutable.Storable, module X) where
 import Data.AutoVector.Mutable.Class as X
 
 import Prologue hiding (FromList, Read, ToList, empty, fromList, length, toList,
@@ -31,7 +31,7 @@ import System.IO.Unsafe                 (unsafeDupablePerformIO,
 
 -- === Definition === --
 
-newtype VectorSet a = VectorSet (Vector a)
+newtype VectorSet a = VectorSet (Vector a) deriving (NFData)
 makeLenses ''VectorSet
 
 type instance Item (VectorSet a) = a
@@ -53,7 +53,8 @@ remove = \s a -> withElemEnv (Vector.remove (unwrap s))
 
 -- === Instances === --
 
-instance MonadIO m => Length m (VectorSet a) where
+instance MonadIO m
+      => Length m (VectorSet a) where
     length = length . unwrap
     {-# INLINE length #-}
 
@@ -90,6 +91,31 @@ withElemEnv__ ff fe s a = go where
     {-# INLINABLE go #-}
 {-# INLINE withElemEnv__ #-}
 
+
+instance (MonadIO m, Storable a)
+      => Read m (VectorSet a) where
+    unsafeRead = unsafeRead . unwrap
+    {-# INLINE unsafeRead #-}
+
+instance (MonadIO m, Storable a)
+      => Write m (VectorSet a) where
+    unsafeWrite = unsafeWrite. unwrap
+    {-# INLINE unsafeWrite #-}
+
+-- instance (MonadIO m, Storable a)
+--       => FromList m (VectorSet a) where
+--     fromList = \lst -> liftIO $ do
+--         a <- new $! List.length lst
+--         mapM_ (pushBack a) lst
+--         pure a
+--     {-# INLINE fromList #-}
+
+instance (MonadIO m, Storable a)
+      => ToList m (VectorSet a) where
+    toList = \a -> do
+        len <- length a
+        mapM (unsafeRead a) [0 .. len - 1]
+    {-# INLINE toList #-}
 
 
 -- === Debug === --
