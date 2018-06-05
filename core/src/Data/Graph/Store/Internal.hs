@@ -15,7 +15,7 @@ import qualified Data.TypeMap.Strict            as TypeMap
 import Data.Graph.Data.Component.List (ComponentList, ComponentLists)
 import Data.Graph.Store.Component     (ExternalStorableComponent,
                                        ExternalStorableComponents)
-import Data.Graph.Store.MemoryRegion  (MemoryRegion, RawMemoryRegion)
+import Data.Graph.Store.MemoryRegion  (MemoryRegion)
 import Data.Map                       (Map)
 import Foreign.Ptr.Utils              (SomePtr)
 
@@ -29,7 +29,7 @@ import Foreign.Ptr.Utils              (SomePtr)
 
 class ClusterSerializerBuilder (cs :: [Type]) comps m where
     buildClusterSerializer :: Partition.Clusters comps
-                           -> RawMemoryRegion -> m RawMemoryRegion
+                           -> MemoryRegion.Raw -> m MemoryRegion.Raw
 
 instance Applicative m => ClusterSerializerBuilder '[] ts m where
     buildClusterSerializer = \_ -> pure

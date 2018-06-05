@@ -15,39 +15,56 @@ import Foreign.Ptr.Utils         (SomePtr)
 -- === Definition === --
 
 data MemoryRegion = MemoryRegion
-    { _staticMem  :: !SomeForeignPtr
-    , _dynamicMem :: !SomeForeignPtr
+    { _staticMem      :: SomeForeignPtr
+    , _dynamicMem     :: SomeForeignPtr
+    , _dynamicPtrsMem :: SomeForeignPtr
     } deriving (Show)
 makeLenses ''MemoryRegion
 
-data RawMemoryRegion = RawMemoryRegion
-    { _staticMemPtr  :: !SomePtr
-    , _dynamicMemPtr :: !SomePtr
+data Raw = Raw
+    { _staticMemPtr      :: SomePtr
+    , _dynamicMemPtr     :: SomePtr
+    , _dynamicPtrsMemPtr :: SomePtr
     } deriving (Show)
-makeLenses ''RawMemoryRegion
+makeLenses ''Raw
 
+data Dynamic = Dynamic
+    { _noPointersMem :: SomePtr
+    , _pointersMem   :: SomePtr
+    } deriving (Show)
+makeLenses ''Dynamic
 
--- === API === --
+type DynamicMemVariant = Lens' Dynamic SomePtr
 
-unsafeMakeRaw :: MemoryRegion -> RawMemoryRegion
-unsafeMakeRaw (MemoryRegion !staticMem !dynamicMem) =
+unsafeMakeRaw :: MemoryRegion -> Raw
+unsafeMakeRaw = \(MemoryRegion staticMem dynamicMem ptrsMem) ->
     let staticPtr  = unsafeForeignPtrToPtr staticMem
         dynamicPtr = unsafeForeignPtrToPtr dynamicMem
-    in RawMemoryRegion staticPtr dynamicPtr
+        ptrsPtr    = unsafeForeignPtrToPtr ptrsMem
+    in Raw staticPtr dynamicPtr ptrsPtr
 {-# INLINE unsafeMakeRaw #-}
 
 touch :: MonadIO m => MemoryRegion -> m ()
-touch (MemoryRegion !staticMem !dynamicMem) = liftIO $! do
+touch = \(MemoryRegion staticMem dynamicMem ptrsMem) -> liftIO $! do
     touchForeignPtr staticMem
     touchForeignPtr dynamicMem
+    touchForeignPtr ptrsMem
 {-# INLINE touch #-}
 
 withRaw :: MonadIO m
-        => MemoryRegion -> (RawMemoryRegion -> m RawMemoryRegion)
+        => MemoryRegion -> (Raw -> m Raw)
         -> m MemoryRegion
-withRaw memReg f = do
+withRaw = \memReg f -> do
     let rawMemReg = unsafeMakeRaw memReg
-    !_ <- f rawMemReg
+    _ <- f rawMemReg
     touch memReg
     pure $! memReg
 {-# INLINE withRaw #-}
+
+viewDynamic :: Raw -> Dynamic
+viewDynamic = \(Raw _ dm dpm) -> Dynamic dm dpm
+{-# INLINE viewDynamic #-}
+
+constructRaw :: Dynamic -> SomePtr -> Raw
+constructRaw = \(Dynamic dm dpm) ptr -> Raw ptr dm dpm
+{-# INLINE constructRaw #-}

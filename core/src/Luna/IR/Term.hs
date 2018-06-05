@@ -27,6 +27,7 @@ import qualified Data.Graph.Fold.Struct           as Fold
 import qualified Data.Graph.Fold.SubComponents    as Component
 import qualified Data.Graph.Fold.SubTree          as SubTree
 import qualified Data.Graph.Store.External        as External
+import qualified Data.Graph.Store.MemoryRegion    as MemoryRegion
 import qualified Data.Property                    as Property
 import qualified Foreign.DynamicStorable          as Dynamic
 import qualified Foreign.Storable                 as Storable
@@ -38,6 +39,8 @@ import Data.Generics.Traversable        (GTraversable)
 import Data.Graph.Data.Component.Class  (Component)
 import Data.Graph.Data.Component.Set    (ComponentSet)
 import Data.Graph.Data.Component.Vector (ComponentVector)
+import Data.Graph.Store.External        (ExternalFieldStorable,
+                                         ExternalStorable)
 import Foreign.Ptr.Utils                (SomePtr)
 import OCI.IR.Link.Class                (Link)
 
@@ -133,44 +136,44 @@ instance (Monad m, GUniTermFold t m (Constructor comp layout))
 
 -- === Dump / load === --
 
-instance External.ExternalStorable (UniTerm layout) where
-    loadBuilder = \ptr mdynPtr -> do
-        dynPtr <- mdynPtr
+instance ExternalStorable (UniTerm layout) where
+    loadBuilder = \ptr mdynReg -> do
+        dynReg <- mdynReg
         uni    <- Storable.peek ptr
-        (!uni', dynPtr') <- flip (State.runT @SomePtr) dynPtr
-            $ GTraversable.gtraverse @External.ExternalFieldStorable (\cons -> do
-                dynPtr <- State.get @SomePtr
-                (!cons', !dynPtr') <- liftIO $ External.loadFieldBuilder
-                    $ pure (cons, dynPtr)
-                State.put @SomePtr dynPtr'
+        (!uni', dynReg') <- flip (State.runT @MemoryRegion.Dynamic) dynReg
+            $ GTraversable.gtraverse @ExternalFieldStorable (\cons -> do
+                dynReg <- State.get @MemoryRegion.Dynamic
+                (!cons', !dynReg') <- liftIO $ External.loadFieldBuilder
+                    $ pure (cons, dynReg)
+                State.put @MemoryRegion.Dynamic dynReg'
                 pure cons') uni
         Storable.poke ptr uni'
-        pure dynPtr'
+        pure dynReg'
     {-# INLINE loadBuilder #-}
 
 
 -- === Constructor === --
 
-instance (GTraversable External.ExternalFieldStorable (Constructor comp layout))
-      => External.ExternalFieldStorable (Constructor comp layout) where
+instance (GTraversable ExternalFieldStorable (Constructor comp layout))
+      => ExternalFieldStorable (Constructor comp layout) where
     loadFieldBuilder = \mdata -> do
-        (!cons, !dynPtr) <- mdata
-        flip (State.runT @SomePtr) dynPtr
-            $ GTraversable.gtraverse @External.ExternalFieldStorable (\a -> do
-                dynPtr <- State.get @SomePtr
-                (!a', !dynPtr') <- liftIO $ External.loadFieldBuilder
-                                 $ pure (a, dynPtr)
-                State.put @SomePtr dynPtr'
+        (!cons, !dynReg) <- mdata
+        flip (State.runT @MemoryRegion.Dynamic) dynReg
+            $ GTraversable.gtraverse @ExternalFieldStorable (\a -> do
+                dynReg <- State.get @MemoryRegion.Dynamic
+                (!a', !dynReg') <- liftIO $ External.loadFieldBuilder
+                                 $ pure (a, dynReg)
+                State.put @MemoryRegion.Dynamic dynReg'
                 pure a') cons
     {-# INLINE loadFieldBuilder #-}
 
-    dumpFieldBuilder = \cons mdynPtr -> do
-        dynPtr <- mdynPtr
-        flip (State.execT @SomePtr) dynPtr
-            $ GTraversable.gtraverse @External.ExternalFieldStorable (\a -> do
-                dynPtr  <- State.get @SomePtr
-                dynPtr' <- liftIO $ External.dumpFieldBuilder a (pure dynPtr)
-                State.put @SomePtr dynPtr'
+    dumpFieldBuilder = \cons mdynReg -> do
+        dynReg <- mdynReg
+        flip (State.execT @MemoryRegion.Dynamic) dynReg
+            $ GTraversable.gtraverse @ExternalFieldStorable (\a -> do
+                dynReg  <- State.get @MemoryRegion.Dynamic
+                dynReg' <- liftIO $ External.dumpFieldBuilder a (pure dynReg)
+                State.put @MemoryRegion.Dynamic dynReg'
                 pure a) cons
     {-# INLINE dumpFieldBuilder #-}
 
