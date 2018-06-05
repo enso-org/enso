@@ -25,25 +25,40 @@ import Foreign.ForeignPtr.Utils        (mallocForeignPtrBytes, plusForeignPtr)
 -- === Definition === --
 
 data Size = Size
-    { _staticSize   :: !Int
-    , _externalSize :: !Int
-    }
+    { _staticSize   :: Int
+    , _externalSize :: External.Size
+    } deriving Show
 makeLenses ''Size
 
 
 -- === Instances === --
 
 instance Mempty Size where
-    mempty = Size 0 0
+    mempty = Size 0 mempty
     {-# INLINE mempty #-}
 
 instance Semigroup Size where
-    (<>) = \(Size !s1 !d1) (Size !s2 !d2) ->
+    (<>) = \(Size s1 d1) (Size s2 d2) ->
         let s = s1 + s2
-            d = d1 + d2
+            d = d1 <> d2
         in Size s d
     {-# INLINE (<>) #-}
 
+
+-- === Helpers === --
+
+totalSize :: Size -> Int
+totalSize (Size static external) = static + (External.totalSize external)
+{-# INLINE totalSize #-}
+
+allocRegionForSize :: MonadIO m => Size -> m MemoryRegion
+allocRegionForSize = \size -> do
+    ptr <- liftIO $! mallocForeignPtrBytes $! totalSize size
+    let dynSize    = size ^. externalSize . External.noPointersSize
+        dynMemPtr  = plusForeignPtr ptr $! size ^. staticSize
+        ptrsMemPtr = plusForeignPtr dynMemPtr dynSize
+    pure $! MemoryRegion ptr dynMemPtr ptrsMemPtr
+{-# INLINE allocRegionForSize #-}
 
 
 -----------------------
@@ -112,10 +127,5 @@ type Allocator comps m =
 
 alloc :: ∀ comps m. Allocator comps m
       => Partition.Clusters comps -> m MemoryRegion
-alloc clusters = do
-    Size stSize dynSize <- clusterSize @comps clusters
-    let totalSize = stSize + dynSize
-    ptr <- liftIO $! mallocForeignPtrBytes totalSize
-    pure $! MemoryRegion ptr
-         $! ptr `plusForeignPtr` stSize
+alloc = allocRegionForSize <=< clusterSize @comps
 {-# INLINE alloc #-}

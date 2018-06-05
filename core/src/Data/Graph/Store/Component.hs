@@ -20,13 +20,13 @@ import qualified Foreign.Storable.Utils          as Storable
 import Data.Graph.Data.Component.Class (Component)
 import Data.Graph.Data.Component.List  (ComponentList)
 import Data.Graph.Store.External       (ExternalStorable)
-import Data.Graph.Store.MemoryRegion   (MemoryRegion,
-                                        RawMemoryRegion (RawMemoryRegion))
+import Data.Graph.Store.MemoryRegion   (MemoryRegion)
 import Data.Map                        (Map)
 import Foreign.Ptr                     (Ptr, plusPtr)
 import Foreign.Ptr.Utils               (SomePtr)
 import Foreign.Storable.Utils          (Storable)
 import Foreign.Storable1               (Storable1)
+
 
 
 ------------------------------------
@@ -47,7 +47,7 @@ recordMapping = \oldPtr newPtr -> State.modify_ @PointerMap
 -- === Serializing layers === --
 
 class ExternalStorableLayers (layers :: [Type]) where
-    dumpLayersBuilder :: SomePtr -> IO SomePtr -> IO SomePtr
+    dumpLayersBuilder :: SomePtr -> IO MemoryRegion.Dynamic -> IO MemoryRegion.Dynamic
 
 instance ExternalStorableLayers '[] where
     dumpLayersBuilder = \_ -> id
@@ -64,7 +64,7 @@ instance ( ExternalStorableLayers ls
     {-# INLINE dumpLayersBuilder #-}
 
 dumpLayers :: ∀ layers. ExternalStorableLayers layers
-           => SomePtr -> SomePtr -> IO SomePtr
+           => SomePtr -> MemoryRegion.Dynamic -> IO MemoryRegion.Dynamic
 dumpLayers = \ptr -> dumpLayersBuilder @layers ptr . pure
 {-# INLINE dumpLayers #-}
 
@@ -82,7 +82,7 @@ type family ExternalStorableComponents comps m :: Constraint where
         (ExternalStorableComponent c m, ExternalStorableComponents cs m)
 
 dumpComponent :: ∀ comp m layout. ExternalStorableComponent comp m
-              => Component comp layout -> SomePtr -> m SomePtr
+              => Component comp layout -> MemoryRegion.Dynamic -> m MemoryRegion.Dynamic
 dumpComponent = \comp dynPtr -> liftIO
     $! dumpLayers @(Graph.DiscoverComponentLayers m comp) (coerce comp) dynPtr
 {-# INLINE dumpComponent #-}
@@ -91,12 +91,14 @@ dumpComponentToMemRegion :: ∀ comp m.
     ( ExternalStorableComponent comp m
     , Storable (Component.Some comp)
     , State.Monad PointerMap m
-    ) => RawMemoryRegion -> Component.Some comp -> m RawMemoryRegion
-dumpComponentToMemRegion = \(RawMemoryRegion staticPtr dynamicPtr) comp -> do
+    ) => MemoryRegion.Raw -> Component.Some comp -> m MemoryRegion.Raw
+dumpComponentToMemRegion = \memReg comp -> do
+    let staticPtr  = memReg ^. MemoryRegion.staticMemPtr
+        dynamicReg = MemoryRegion.viewDynamic memReg
     staticPtr'  <- Storable.castPokeAndOffset staticPtr comp
-    dynamicPtr' <- dumpComponent comp dynamicPtr
+    dynamicReg' <- dumpComponent comp dynamicReg
     recordMapping staticPtr staticPtr'
-    pure $! RawMemoryRegion staticPtr' dynamicPtr'
+    pure $! MemoryRegion.constructRaw dynamicReg' staticPtr'
 {-# INLINE dumpComponentToMemRegion #-}
 
 
@@ -105,7 +107,7 @@ dumpComponentToMemRegion = \(RawMemoryRegion staticPtr dynamicPtr) comp -> do
 dumpComponentList :: ∀ comp m.
     ( ExternalStorableComponent comp m
     , State.Monad PointerMap m
-    ) => ComponentList comp -> RawMemoryRegion -> m RawMemoryRegion
+    ) => ComponentList comp -> MemoryRegion.Raw -> m MemoryRegion.Raw
 dumpComponentList = \compList memReg -> do
     ComponentList.foldlM dumpComponentToMemRegion memReg compList
 {-# INLINE dumpComponentList #-}
