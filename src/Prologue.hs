@@ -136,6 +136,7 @@ import Unsafe.Coerce                    as X (unsafeCoerce)
 -- === Lenses === --
 import Control.Lens                     as X (Lens, Lens', Iso, Iso', Traversal, Traversal', At, Ixed, Index, IxValue, ix, iso, at, from, lens, over, both, _1, _2, _3, _4, _5, _6, _7, _8, _9)
 import Control.Lens                     as X (view, set)
+import Control.Lens                     as X (_1, _2, _3)
 import Control.Lens                     as X ((^.), (.~), (%~), (^?), (<&>))
 import Control.Lens.Utils.Wrapped       as X (wrap, unwrap, wrapped, wrapped')
 import Control.Lens.Utils.TH            as X (makeLenses, makeClassy)
