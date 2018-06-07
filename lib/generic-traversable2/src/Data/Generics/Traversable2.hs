@@ -143,12 +143,20 @@ instance Functor (EndoFold s r) where
     fmap = \_ a -> coerce (coerce a :: r -> r)
     {-# INLINE fmap #-}
 
-instance Applicative (EndoFold s r) where
+instance Applicative (EndoFold EndoFoldLeft r) where
+    pure = \_ -> EndoFold id
+    {-# INLINE pure #-}
+
+    (<*>) = coerce ((\f g a -> g $! f a) :: (r -> r) -> (r -> r) -> (r -> r))
+    {-# INLINE (<*>) #-}
+
+instance Applicative (EndoFold EndoFoldRight r) where
     pure = \_ -> EndoFold id
     {-# INLINE pure #-}
 
     (<*>) = coerce ((\f g a -> f $! g a) :: (r -> r) -> (r -> r) -> (r -> r))
     {-# INLINE (<*>) #-}
+
 
 
 
@@ -223,10 +231,10 @@ appEndoFoldM = \(EndoFoldM s) -> State.execStateT s
 
 -- === Definition === --
 
-type ToListByType t = Foldr (ToListByType__ Int) [t]
+type ToListByType t = Foldr (ToListByType__ t) [t]
 
 toListByType :: ∀ t a. ToListByType t a => a -> [t]
-toListByType = foldr @(ToListByType__ Int) mempty
+toListByType = foldr @(ToListByType__ t) mempty
 {-# INLINE toListByType #-}
 
 
