@@ -429,7 +429,7 @@ gt_fold_bench2 j = benchEnv "gtfold2" (pure $ FooA 1 2 3 4 5 6 7 "asd" "fds" 0.8
              $ \a -> let
     go 0 = pure ()
     go i = do
-        x <- GTraversable2.foldrM @SumEls (0 :: Int) a
+        x <- GTraversable2.foldlM @SumEls (0 :: Int) a
         evaluate $ force x
         go (i - 1)
     in go j
@@ -490,13 +490,26 @@ instance GTraversable2.FoldElem SumEls Int Int where
     foldElem a s = a + s
     {-# INLINE foldElem #-}
 
+data GatherEls
+instance {-# OVERLAPPABLE #-} GTraversable2.FoldElemM GatherEls a IO [Int]
+instance GTraversable2.FoldElemM GatherEls Int IO [Int] where
+    foldElemM a s = pure $ a : s
+    {-# INLINE foldElemM #-}
+
+instance {-# OVERLAPPABLE #-} GTraversable2.FoldElem GatherEls a [Int]
+instance GTraversable2.FoldElem GatherEls Int [Int] where
+    foldElem a s = a : s
+    {-# INLINE foldElem #-}
+
+
 test :: IO ()
 test = do
     print "test"
     let foo = FooA 1 2 3 4 5 6 7 "asd" "fds" 0.8 11.4
-    foo' <- GTraversable2.foldrM @SumEls (0 :: Int) foo
-    print foo'
-    print $ GTraversable2.foldr @SumEls (0 :: Int) foo
+    x2 <- GTraversable2.foldlM @GatherEls (mempty :: [Int]) foo
+    print x2
+    print "---"
+    print $ GTraversable2.foldl @GatherEls (mempty :: [Int]) foo
     -- print $ GTraversable2.toListByType @Int foo
     print "/ test"
 

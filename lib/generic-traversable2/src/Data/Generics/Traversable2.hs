@@ -174,30 +174,19 @@ class FoldElemM t a m r where
     {-# INLINE foldElemM #-}
 
 type FoldlM t m r a = (Traversable (FoldlM__ t m r) a, Monad m)
-type FoldrM t m r a = (Traversable (FoldrM__ t m r) a, Monad m)
 
 foldlM :: ∀ t r a m. FoldlM t m r a => r -> a -> m r
-foldrM :: ∀ t r a m. FoldrM t m r a => r -> a -> m r
 foldlM = \r a -> appEndoFoldM (traverse @(FoldlM__ t m r) a) r
-foldrM = \r a -> appEndoFoldM (traverse @(FoldrM__ t m r) a) r
 {-# INLINE foldlM #-}
-{-# INLINE foldrM #-}
 
 
 -- === Implementation === --
 
 data FoldlM__ t (m :: Type -> Type) r
-data FoldrM__ t (m :: Type -> Type) r
 type instance Result (FoldlM__ t m r) = EndoFoldlM m r
-type instance Result (FoldrM__ t m r) = EndoFoldrM m r
 
 instance (FoldElemM t a m r, Functor m)
       => TraverseElem (FoldlM__ t m r) a where
-    traverseElem = endoFoldM (foldElemM @t)
-    {-# INLINE traverseElem #-}
-
-instance (FoldElemM t a m r, Functor m)
-      => TraverseElem (FoldrM__ t m r) a where
     traverseElem = endoFoldM (foldElemM @t)
     {-# INLINE traverseElem #-}
 
@@ -208,7 +197,6 @@ instance (FoldElemM t a m r, Functor m)
 newtype EndoFoldM s m r a = EndoFoldM (StateT r m a)
     deriving (Functor, Applicative, Monad, MonadIO)
 
-type EndoFoldrM = EndoFoldM EndoFoldRight
 type EndoFoldlM = EndoFoldM EndoFoldLeft
 
 endoFoldM :: Functor m => (a -> r -> m r) -> a -> EndoFoldM s m r a
