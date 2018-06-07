@@ -12,7 +12,7 @@ packages:
 - lens-utils-1.4.5
 - hspec-expectations-lifted-0.10.0
 - monad-branch-1.0.3
-- prologue-3.2.2
+- prologue-3.2.3
 - functor-utils-1.17.1
 - impossible-1.1.2
 - placeholders-0.1

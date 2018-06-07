@@ -93,9 +93,12 @@ benchmarks:
             - luna-data-typemap
             - luna-exception
             - luna-foreign-utils
+            - luna-generic-traversable
+            - luna-generic-traversable2
             - luna-memory-manager
             - luna-memory-pool
             - luna-tuple-utils
+            - mtl
             - prologue
             - unboxed-ref >= 0.4.0.0
             - vector

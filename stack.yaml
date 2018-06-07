@@ -50,6 +50,7 @@ packages:
     - lib/exception
     - lib/foreign-utils
     - lib/generic-traversable
+    - lib/generic-traversable2
     - lib/hspec-jenkins
     - lib/memory-manager
     - lib/memory-pool
