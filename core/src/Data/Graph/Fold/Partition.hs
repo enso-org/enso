@@ -30,7 +30,7 @@ type Clusters   comps = TypeMap   (ComponentLists comps)
 type ClustersM  m     = Clusters  (Graph.DiscoverComponents m)
 type DiscoveryM m     = Discovery (Graph.DiscoverComponents m)
 
-data Discovery  (comps :: [Type])
+data Discovery  (comps :: [Type]) deriving (Generic)
 type instance Fold.Result     (Discovery comps) = Clusters comps
 type instance Fold.LayerScope (Discovery comps)
    = 'Fold.Blacklist '[Target, Users]

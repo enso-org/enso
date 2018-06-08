@@ -26,6 +26,10 @@ class Monad m => Builder1 t m a where
     build1 :: ∀ t1. a t1 -> Transformation m t
     build1 = \_ -> id ; {-# INLINE build1 #-}
 
+class Monad m => Builder1x t m a where
+    build1x :: ∀ t1. a t1 -> Transformation m t
+    build1x = \_ -> id ; {-# INLINE build1x #-}
+
 
 -- === Generics === --
 

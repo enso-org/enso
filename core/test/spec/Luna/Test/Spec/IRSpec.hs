@@ -7,21 +7,23 @@ module Luna.Test.Spec.IRSpec where
 import Prologue
 import Test.Hspec.Expectations.Lifted
 
-import qualified Control.Monad.Exception            as Exception
-import qualified Data.Graph.Component.Edge.Class    as Edge
-import qualified Data.Graph.Data.Graph.Class        as Graph
-import qualified Data.Graph.Data.Layer.Layout       as Layout
-import qualified Data.Graph.Fold.Class          as Fold
-import qualified Data.Graph.Fold.Partition     as Partition
-import qualified Data.Graph.Fold.SubComponents as Traversal
-import qualified Data.Graph.Fold.SubTree       as SubTree
-import qualified Data.Set.Mutable.Class             as Set
-import qualified Luna.IR                            as IR
-import qualified Luna.IR.Layer                      as Layer
-import qualified Luna.Pass                          as Pass
-import qualified Luna.Pass.Attr                     as Attr
-import qualified Luna.Pass.Basic                    as Pass
-import qualified Luna.Pass.Scheduler                as Scheduler
+import qualified Control.Monad.Exception         as Exception
+import qualified Data.Graph.Component.Edge.Class as Edge
+import qualified Data.Graph.Data.Graph.Class     as Graph
+import qualified Data.Graph.Data.Layer.Layout    as Layout
+import qualified Data.Graph.Fold.Class           as Fold
+import qualified Data.Graph.Fold.Partition       as Partition
+import qualified Data.Graph.Fold.SubComponents   as Traversal
+import qualified Data.Graph.Fold.SubTree         as Traversal
+import qualified Data.Graph.Fold.SubTree         as SubTree
+import qualified Data.Set                        as StdSet
+import qualified Data.Set.Mutable.Class          as Set
+import qualified Luna.IR                         as IR
+import qualified Luna.IR.Layer                   as Layer
+import qualified Luna.Pass                       as Pass
+import qualified Luna.Pass.Attr                  as Attr
+import qualified Luna.Pass.Basic                 as Pass
+import qualified Luna.Pass.Scheduler             as Scheduler
 
 import Data.Graph.Data.Graph.Class (Graph)
 import Luna.Pass                   (Pass)
@@ -84,94 +86,92 @@ run2Passes' p1 p2 = Graph.encodeAndEval @Pass.Compilation $ runPasses [p1,p2]
 -- === Tests === --
 -------------------
 
--- nameSpec :: Spec
--- nameSpec = describe "names" $ do
---     it "encoding" $ runPass' $ do
---         v        <- IR.var "a"
---         IR.Var n <- IR.model v
---         n `shouldBe`    "a"
---         n `shouldNotBe` "b"
+nameSpec :: Spec
+nameSpec = describe "names" $ do
+    it "encoding" $ runPass' $ do
+        v        <- IR.var "a"
+        IR.Var n <- IR.model v
+        n `shouldBe`    "a"
+        n `shouldNotBe` "b"
 
--- irCreationSpec :: Spec
--- irCreationSpec = describe "ir creation" $ do
---     it "single term" $ runPass' $ do
---         v   <- IR.var "a"
---         m   <- Layer.read @IR.Model v
---         tag <- IR.showTag <$> Layer.read @IR.Model v
---         m   `shouldBe` IR.UniTermVar (IR.Var "a")
---         tag `shouldBe` "VAR"
+irCreationSpec :: Spec
+irCreationSpec = describe "ir creation" $ do
+    it "single term" $ runPass' $ do
+        v   <- IR.var "a"
+        m   <- Layer.read @IR.Model v
+        tag <- IR.showTag <$> Layer.read @IR.Model v
+        m   `shouldBe` IR.UniTermVar (IR.Var "a")
+        tag `shouldBe` "VAR"
 
---     it "complex term" $ runPass' $ do
---         v1           <- IR.var "a"
---         v2           <- IR.var "b"
---         u1           <- IR.unify v1 v2
---         IR.Unify l r <- IR.model u1
---         lsrc         <- Layer.read @IR.Source l
---         rsrc         <- Layer.read @IR.Source r
---         ltgt         <- Layer.read @IR.Target l
---         rtgt         <- Layer.read @IR.Target r
---         lnks         <- Traversal.subComponents @IR.Links u1
---         -- lnks         <- IR.inputs u1
+    it "complex term" $ runPass' $ do
+        v1           <- IR.var "a"
+        v2           <- IR.var "b"
+        u1           <- IR.unify v1 v2
+        IR.Unify l r <- IR.model u1
+        lsrc         <- Layer.read @IR.Source l
+        rsrc         <- Layer.read @IR.Source r
+        ltgt         <- Layer.read @IR.Target l
+        rtgt         <- Layer.read @IR.Target r
+        lnks         <- IR.inputs u1
 
---         -- print "---"
---         -- print "---"
---         -- print lnks
---         tp  <- Layer.read @IR.Type u1
---         -- print tp
---         mod <- Layer.read @IR.Model u1
+        tp  <- Layer.read @IR.Type u1
+        mod <- Layer.read @IR.Model u1
 
---         print "--"
---         x <- Traversal.subComponents @IR.Links u1
---         y <- Traversal.subTree' u1
---         -- z <- Inputs.get @IR.Links mod
---         -- z <- Fold.build @(Inputs.Discovery IR.Links) mod (pure mempty)
---         -- x <- Fold.gbuildFold @(Discovery2.ComponentDiscovery IR.Links) mod (pure mempty)
---         print "%%%"
---         print x
---         print y
---         -- print z
+        lsrc `shouldBe` v1
+        ltgt `shouldBe` u1
+        rsrc `shouldBe` v2
+        rtgt `shouldBe` u1
 
---         lsrc `shouldBe` v1
---         ltgt `shouldBe` u1
---         rsrc `shouldBe` v2
---         rtgt `shouldBe` u1
---         lnks `shouldBe` (Layout.relayout <$> [l,r])
+        u1_subComps <- StdSet.fromList . toList
+                   <$> Traversal.subComponents @IR.Links u1
+        let u1_subComps' = StdSet.fromList
+                         [ Layout.relayout tp
+                         , Layout.relayout l
+                         , Layout.relayout r
+                         ]
 
---     it "users layer" $ runPass' $ do
---         v1           <- IR.var "a"
---         v2           <- IR.var "b"
---         u1           <- IR.unify v1 v2
---         IR.Unify l r <- IR.model u1
---         v1_users     <- Set.toList =<< Layer.read @IR.Users v1
---         v2_users     <- Set.toList =<< Layer.read @IR.Users v2
---         v1_users `shouldBe` [Layout.relayout l]
---         v2_users `shouldBe` [Layout.relayout r]
+        u1_subComps `shouldBe` u1_subComps'
 
--- attribsSpec :: Spec
--- attribsSpec = describe "attributes" $ do
---     it "passing between passes" $ run2Passes'
---         (Attr.put $ IntAttr 9)
---         (Attr.get >>= (`shouldBe` (IntAttr 9)))
+    it "users layer" $ runPass' $ do
+        v1           <- IR.var "a"
+        v2           <- IR.var "b"
+        u1           <- IR.unify v1 v2
+        IR.Unify l r <- IR.model u1
+        v1_users     <- Set.toList =<< Layer.read @IR.Users v1
+        v2_users     <- Set.toList =<< Layer.read @IR.Users v2
+        v1_users `shouldBe` [Layout.relayout l]
+        v2_users `shouldBe` [Layout.relayout r]
 
--- irDestructSpec :: Spec
--- irDestructSpec = describe "ir dispose" $ do
---     it "simple" $ runPass' $ do
---         v <- IR.var "a"
---         IR.destruct v
+attribsSpec :: Spec
+attribsSpec = describe "attributes" $ do
+    it "passing between passes" $ run2Passes'
+        (Attr.put $ IntAttr 9)
+        (Attr.get >>= (`shouldBe` (IntAttr 9)))
 
--- irDiscoverySpec :: Spec
--- irDiscoverySpec = describe "traversal" $ do
---     it "discovery" $ runPass' $ do
---         v     <- IR.var "a"
---         terms <- Discovery.discover v
---         -- 4 = [term, link to type, type, link to itself]:
---         length (toList terms) `shouldBe` 4
+irDestructSpec :: Spec
+irDestructSpec = describe "ir dispose" $ do
+    it "simple" $ runPass' $ do
+        v <- IR.var "a"
+        IR.destruct v
 
---     it "input edges" $ runPass' $ do
---         v   <- IR.var "a"
---         ins <- Edge.componentEdges v
---         tp  <- Layer.read @IR.Type v
---         ins `shouldBe` [Layout.relayout tp]
+irDiscoverySpec :: Spec
+irDiscoverySpec = describe "traversal" $ do
+    it "discovery" $ runPass' $ do
+        v     <- IR.var "a"
+        terms <- Traversal.subTree' v
+
+        tpl  <- Layer.read @IR.Type v
+        tp   <- Layer.read @IR.Source tpl
+        ttpl <- Layer.read @IR.Type tp
+
+        let termSet  = StdSet.fromList $ toList terms
+            allNodes = StdSet.fromList
+                     $ [ Layout.relayout v
+                       , Layout.relayout tpl
+                       , Layout.relayout tp
+                       , Layout.relayout ttpl
+                       ]
+        termSet `shouldBe` allNodes
 
 partitionSpec :: Spec
 partitionSpec = describe "Component children partition" $ do
@@ -183,9 +183,9 @@ partitionSpec = describe "Component children partition" $ do
 
 spec :: Spec
 spec = do
-    -- nameSpec
-    -- irCreationSpec
-    -- attribsSpec
-    -- irDestructSpec
-    -- irDiscoverySpec
+    nameSpec
+    irCreationSpec
+    attribsSpec
+    irDestructSpec
+    irDiscoverySpec
     partitionSpec

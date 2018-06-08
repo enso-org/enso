@@ -119,6 +119,7 @@ tests:
         dependencies:
             - base
             - container
+            - containers
             - hspec
             - hspec-expectations-lifted
             - luna-core

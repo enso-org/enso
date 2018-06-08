@@ -66,6 +66,8 @@ instance Fold.Builder (Fold.Scoped (Discovery comp)) m
              $! pure $! mempty
     {-# INLINE subComponents #-}
 
+instance Monad m => Fold.ComponentBuilder (Discovery comp) m comp'
+
 
 -- === Struct === --
 

@@ -59,13 +59,15 @@ instance ( MonadIO m
          , Builder t m Node.Some
          , Layer.Reader Edge.Edge Edge.Source m
          , Layer.Reader Edge.Edge Edge.Target m
+         , Fold.ComponentBuilder t m Edge.Edges
          )
       => Fold.LayerBuilder (Deep t) m Type.Type where
     layerBuild = \tpLink acc -> do
         (tp  :: Node.Some) <- Layout.relayout <$> Layer.read @Edge.Source tpLink
         (tgt :: Node.Some) <- Layout.relayout <$> Layer.read @Edge.Target tpLink
-        let acc' = Fold.componentBuild @(Deep t) tpLink acc
-        if tp == tgt then acc' else Fold.build @(Fold.Scoped (Deep t)) tp acc'
+        acc' <- Fold.componentBuild @(Deep t) tpLink acc
+        if tp == tgt then pure acc'
+                     else Fold.build @(Fold.Scoped (Deep t)) tp (pure acc')
     {-# INLINE layerBuild #-}
 
 instance {-# OVERLAPPABLE #-} (Monad m, Builder1 t m (Layer.Cons layer))

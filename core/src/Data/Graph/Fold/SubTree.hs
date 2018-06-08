@@ -39,7 +39,7 @@ import Type.Data.Bool                        (Not, type (||))
 
 -- === Definition === --
 
-data Discovery (scope :: Fold.Scope)
+data Discovery (scope :: Fold.Scope) deriving (Generic)
 type instance Fold.Result     (Discovery scope) = SomeComponentList
 type instance Fold.LayerScope (Discovery scope) = scope
 
@@ -73,6 +73,7 @@ subTree1' = subTree1 @SimpleDiscoveryScope
 
 -- === Instances === --
 
-instance Monad m => Fold.ComponentBuilder (Discovery scope) m tag where
-    componentBuild = \cmp acc -> (ComponentList.Cons $ Layout.relayout cmp) <$> acc
+instance MonadIO m => Fold.ComponentBuilder (Discovery scope) m tag where
+    componentBuild = \cmp acc
+        -> (ComponentList.Cons $ Layout.relayout cmp) <$> acc
     {-# INLINE componentBuild #-}

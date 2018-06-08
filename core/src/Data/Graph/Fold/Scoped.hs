@@ -31,6 +31,7 @@ import Foreign.Ptr.Utils                (SomePtr)
 import Type.Data.Bool                   (Not, type (||))
 
 
+import qualified Type.Show as Type
 
 --------------------
 -- === Scoped === --
@@ -63,6 +64,8 @@ class Monad m => LayerBuilder t m layer where
 
 class Monad m => ComponentBuilder t m comp where
     componentBuild :: ∀ layout. Component comp layout -> m (Fold.Result t) -> m (Fold.Result t)
+    componentBuild = \_ -> id
+    {-# INLINE componentBuild #-}
 
 
 -- === Defaults === --
@@ -71,10 +74,6 @@ instance {-# OVERLAPPABLE #-} (Monad m, Fold.Builder1 t m (Layer.Cons layer))
       => LayerBuilder t m layer where
     layerBuild = Fold.build1 @t
     {-# INLINE layerBuild #-}
-
-instance {-# OVERLAPPABLE #-} Monad m => ComponentBuilder t m comp where
-    componentBuild = \_ -> id
-    {-# INLINE componentBuild #-}
 
 
 -- === Instances === --
