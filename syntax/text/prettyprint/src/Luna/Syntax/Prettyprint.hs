@@ -7,23 +7,23 @@ module Luna.Syntax.Prettyprint where
 import qualified Prelude  as P
 import           Prologue hiding (Symbol)
 
-import qualified Control.Monad.State.Layered     as State
-import qualified Data.Char                       as Char
-import qualified Data.Graph.Component.Edge.Class as Link
-import qualified Data.Graph.Data.Layer.Layout    as Layout
-import qualified Data.Layout                     as Layout
-import qualified Data.Layout                     as Doc
-import qualified Data.PtrList.Mutable            as List
-import qualified Data.Vector.Storable.Foreign    as Vector
-import qualified Language.Symbol.Operator.Assoc  as Assoc
-import qualified Language.Symbol.Operator.Prec   as Prec
-import qualified Luna.IR                         as IR
-import qualified Luna.IR.Layer                   as Layer
-import qualified Luna.IR.Link                    as Link
-import qualified Luna.IR.Term.Literal            as Literal
-import qualified Luna.Pass                       as Pass
-import qualified Luna.Syntax.Text.Lexer.Grammar  as Grammar
-import qualified Luna.Syntax.Text.Scope          as Scope
+import qualified Control.Monad.State.Layered      as State
+import qualified Data.Char                        as Char
+import qualified Data.Graph.Component.Edge.Class  as Link
+import qualified Data.Graph.Data.Component.Vector as ComponentVector
+import qualified Data.Graph.Data.Layer.Layout     as Layout
+import qualified Data.Layout                      as Layout
+import qualified Data.Layout                      as Doc
+import qualified Data.Vector.Storable.Foreign     as Vector
+import qualified Language.Symbol.Operator.Assoc   as Assoc
+import qualified Language.Symbol.Operator.Prec    as Prec
+import qualified Luna.IR                          as IR
+import qualified Luna.IR.Layer                    as Layer
+import qualified Luna.IR.Link                     as Link
+import qualified Luna.IR.Term.Literal             as Literal
+import qualified Luna.Pass                        as Pass
+import qualified Luna.Syntax.Text.Lexer.Grammar   as Grammar
+import qualified Luna.Syntax.Text.Scope           as Scope
 
 import Control.Monad.State.Layered  (StateT)
 import Data.Layout                  (backticked, quoted, singleQuoted, space,
@@ -248,11 +248,11 @@ prettyprintSimple ir = Layer.read @IR.Model ir >>= \case
     IR.UniTermApp  (IR.App f a)         -> join $ appSymbols <$> subgen f <*> subgen a
     IR.UniTermBlank IR.Blank            -> pure $ simple wildcardName
     IR.UniTermCons (IR.Cons name args)  -> do
-        args' <- mapM subgen =<< List.toList args
+        args' <- mapM subgen =<< ComponentVector.toList args
         foldM appSymbols (simple $ convert name) args'
     IR.UniTermFunction (IR.Function n as body)
         -> simple .:. (\n' as' body' -> "def" <+> n' <> arglist as' <> body')
-       <$> subgenBody n <*> (mapM subgenBody =<< List.toList as) <*> smartBlock body
+       <$> subgenBody n <*> (mapM subgenBody =<< ComponentVector.toList as) <*> smartBlock body
     IR.UniTermFunctionSig (IR.FunctionSig n tp)
         -> simple .: (\n' tp' -> "def" <+> n' <+> typedName <+> tp')
        <$> subgenBody n
@@ -260,7 +260,7 @@ prettyprintSimple ir = Layer.read @IR.Model ir >>= \case
     IR.UniTermGrouped (IR.Grouped expr) -> simple . parensed <$> subgenBody expr
     IR.UniTermNumber num                -> simple . convert <$> Literal.prettyShow num
     IR.UniTermImportHub (IR.ImportHub is)
-        -> simple . foldl (</>) mempty <$> (mapM subgenBody =<< List.toList is)
+        -> simple . foldl (</>) mempty <$> (mapM subgenBody =<< ComponentVector.toList is)
     IR.UniTermInvalid (IR.Invalid t)
         -> pure . named (spaced appName) . Atom $ "Invalid" <+> convert (show t)
     IR.UniTermLam (IR.Lam arg body)
@@ -268,10 +268,10 @@ prettyprintSimple ir = Layer.read @IR.Model ir >>= \case
         .: (<>) <$> subgenBody arg <*> smartBlock body
     IR.UniTermList (IR.List elems)
         -> simple . Doc.bracked . intercalate ", "
-       <$> (mapM subgenBody =<< List.toList elems)
+       <$> (mapM subgenBody =<< ComponentVector.toList elems)
     IR.UniTermMatch (IR.Match a cs) -> simple
         .: (\expr body -> "case" <+> expr <+> "of" </> indented (block $ foldl (</>) mempty body))
-        <$> subgenBody a <*> (mapM subgenBody =<< List.toList cs)
+        <$> subgenBody a <*> (mapM subgenBody =<< ComponentVector.toList cs)
 
     IR.UniTermMissing IR.Missing -> pure $ simple mempty
     IR.UniTermSectionLeft  (IR.SectionLeft  op a)
@@ -286,7 +286,7 @@ prettyprintSimple ir = Layer.read @IR.Model ir >>= \case
             '\\' -> "\\\\"
             c    -> [c]
     IR.UniTermFmtString (IR.FmtString elems)
-        -> simple . singleQuoted . mconcat <$> (mapM subgen =<< List.toList elems) where
+        -> simple . singleQuoted . mconcat <$> (mapM subgen =<< ComponentVector.toList elems) where
                subgen a = (Layer.read @IR.Model <=< Link.source) a >>= \case
                    IR.UniTermRawString (IR.RawString s) -> convert . concat . fmap escape <$> Vector.toList s
                    _ -> backticked <$> subgenBody a
@@ -296,7 +296,7 @@ prettyprintSimple ir = Layer.read @IR.Model ir >>= \case
                     c    -> Char.showLitChar c ""
     IR.UniTermTuple (IR.Tuple elems)
         -> simple . parensed . (intercalate ", ")
-       <$> (mapM subgenBody =<< List.toList elems)
+       <$> (mapM subgenBody =<< ComponentVector.toList elems)
     IR.UniTermTyped (IR.Typed expr tp)
         -> named (spaced typedName) . Atom
         .: mappendWith (Doc.spaced typedName)
@@ -312,7 +312,7 @@ prettyprintSimple ir = Layer.read @IR.Model ir >>= \case
         Layer.read @IR.Model cls >>= \case
             IR.UniTermRecord (IR.Record _ _ _ _ ds)
                 -> unnamed . Atom .: go <$> subgenBody im
-                                        <*> (mapM subgenBody =<< List.toList ds)
+                                        <*> (mapM subgenBody =<< ComponentVector.toList ds)
                 where go imps defs = let glue = ""
                         in  imps <> glue <> foldl (</>) mempty defs
 

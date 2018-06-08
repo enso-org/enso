@@ -11,11 +11,12 @@ import           Text.Parser.Combinators
 
 import qualified Control.Monad.State.Layered               as State
 import qualified Data.Char                                 as Char
-import qualified Data.Graph.Data.Layer.Layout               as Layout
+import qualified Data.Graph.Data.Layer.Layout              as Layout
 import qualified Data.Set                                  as Set
 import qualified Data.Text.Span                            as Span
 import qualified Data.Text32                               as Text32
 import qualified Data.TreeSet                              as TreeSet
+import qualified Data.Vector.Storable.Foreign              as Vector
 import qualified Language.Symbol                           as Symbol
 import qualified Luna.Data.Name                            as Name
 import qualified Luna.IR                                   as IR
@@ -371,7 +372,9 @@ fmtQuoteEnd   = symbol $ Lexer.Quote Lexer.FmtStr Lexer.End   ; {-# INLINE fmtQu
 number :: Parser (IRBS SomeTerm)
 number = irbs $ do
     Lexer.NumRep base i f <- satisfTest Lexer.matchNumber
-    pure $ IR.number' base (convert i) (convert f)
+    i' <- Vector.fromList i
+    f' <- Vector.fromList f
+    pure $ IR.number' base i' f'
 
 
 list :: Parser (IRBS SomeTerm) -> Parser (IRBS SomeTerm)
@@ -410,7 +413,10 @@ rawStr = irbs $ do
     rawQuoteBegin
     withRecovery (\e -> invalid Invalid.FunctionHeader <$ Loc.dropSymbolsUntilAndGatherErrors (== (Lexer.Quote Lexer.RawStr Lexer.End)) []) p
     where body = (strBody <|> pure mempty) <* rawQuoteEnd
-          p    = (IR.rawString' . convertVia @String) <$> Indent.withCurrent body  -- FIXME[WD]: We're converting Text -> String here.
+          p    = do
+              b <- Indent.withCurrent body
+              let bodyStr = convertTo @String b -- FIXME[WD]: We're converting Text -> String here.
+              IR.rawString' <$> Vector.fromList bodyStr
     -- withRecovery (\e -> invalid "Invalid string literal" <$ Loc.unregisteredDropSymbolsUntil' (== (Lexer.Quote Lexer.RawStr Lexer.End)))
     --              $ (IR.rawString' . convertVia @String)
     --            <$> Indent.withCurrent (strBody rawQuoteEnd) -- FIXME[WD]: We're converting Text -> String here.
@@ -447,7 +453,7 @@ fmtStr = irbs $ fmtQuoteBegin *> (withRecovery handler str) where
     body    = chunk  <|> end
     element = rawStr <|> code
     end     = mempty <$ fmtQuoteEnd
-    rawStr  = irbs $ IR.rawString' . convertVia @String <$> strBody
+    rawStr  = irbs $ IR.rawString' <$> (Vector.fromList =<< (convertTo @String <$> strBody))
     code    = symbol (Lexer.Block Lexer.Begin) *> lineExpr <* symbol (Lexer.Block Lexer.End)
     handler e = do
         out <- Loc.dropSymbolsUntilAndGatherErrors (== (Lexer.Quote Lexer.FmtStr Lexer.End)) []
@@ -500,7 +506,7 @@ grouped = irbs . parensed . fmap (liftIRBS1 IR.grouped') ; {-# INLINE grouped #-
 
 -- FIXME: performance
 metadata :: Parser (IRBS SomeTerm)
-metadata = irbs $ IR.metadata' . convertVia @String <$> metaContent ; {-# INLINE metadata #-}
+metadata = irbs $ IR.metadata' <$> (Vector.fromList =<< (convertTo @String <$> metaContent)) ; {-# INLINE metadata #-}
 
 metaContent :: Parser Text32
 metaContent = satisfTest Lexer.matchMetadata ; {-# INLINE metaContent #-}
@@ -689,25 +695,25 @@ accSeg = fmap2 Expr.tokenx $ do
     mupdt <- option Nothing (Just <$ symbol Lexer.Assignment <*> nonemptyValExpr)
     mmod  <- option Nothing (Just .: (,) <$> modifierName <*> nonemptyValExpr)
     let (spans, (names :: [Name])) = unzip $ convert snames
-        symmetrical    = beforeDot == afterDot
+    vnames <- Vector.fromList names
+    let symmetrical    = beforeDot == afterDot
         accCons s n    = inheritCodeSpan1With (<> s) (flip IR.acc' n)
         accSect        = labeled uname . Symbol.atom
                        $ irbsFromSpan (mconcat spans)
-                       $ IR.accSection' (convert names)
+                       $ IR.accSection' vnames
         uname          = Name.unspaced SpecialName.acc
         sname          = Name.spacedIf beforeDot SpecialName.acc
         accConss       =  labeled sname ( Symbol.suffix $ uncurry accCons n )
                       :| (labeled uname . Symbol.suffix . uncurry accCons <$> ns)
         Just fupdt           = mupdt -- FIXME[WD]: make it nicer
         Just (modName, fmod) = mmod  -- FIXME[WD]: make it nicer
-        path = convert names
 
         -- FIXME[WD]: make it nicer vvv
         updateAtom = labeled sname . Symbol.suffix
-                   $ flip (inheritCodeSpan2With (<>) (flip IR.update' path))
+                   $ flip (inheritCodeSpan2With (<>) (flip IR.update' vnames))
                           (unsafeModifyCodeSpan (CodeSpan.asOffsetSpan (mconcat spans) <>) fupdt)
         modifyAtom = labeled sname . Symbol.suffix
-                   $ flip (inheritCodeSpan2With (<>) (flip (flip IR.modify' path) modName))
+                   $ flip (inheritCodeSpan2With (<>) (flip (flip IR.modify' vnames) modName))
                           (unsafeModifyCodeSpan (CodeSpan.asOffsetSpan (mconcat spans) <>) fmod)
 
 
@@ -789,7 +795,13 @@ possiblyDocumented p = documented p <|> p
 
 -- FIXME: performance
 documented :: Parser (IRBS SomeTerm) -> Parser (IRBS SomeTerm)
-documented p = irbs $ (\d t -> liftIRBS1 (IR.documented' $ convertVia @String d) t) <$> doc <*> p
+documented p = irbs $ do
+    d <- doc
+    t <- p
+    let x = convertTo @String d
+    ir <- IR.documented' <$> Vector.fromList x
+    pure $ liftIRBS1 ir t
+    -- (\d t -> liftIRBS1 (IR.documented' $ convert @String d) t) <$> doc <*> p
 
 doc :: Parser Text32
 doc = intercalate "\n" <$> some (satisfTest Lexer.matchDocComment <* eol)
@@ -843,8 +855,9 @@ recordCons = irbs $ (\n fields -> liftIRBS1 (IR.recordCons' n) (sequence fields)
     inlineDecl = many unnamedField
 
 recordNamedFields :: Parser (IRBS SomeTerm)
-recordNamedFields = irbs $ liftIRBS1 . IR.recordFields' . convert
-                <$> many varName <* symbol Lexer.Typed <*> valExpr
+recordNamedFields = irbs $ do
+    varNames <- Vector.fromList =<< many varName
+    liftIRBS1 (IR.recordFields' varNames) <$ symbol Lexer.Typed <*> valExpr
 
 unnamedField :: Parser (IRBS SomeTerm)
 unnamedField = irbs $ liftIRBS1 (IR.recordFields' mempty)
@@ -870,13 +883,13 @@ imp :: Parser (IRBS SomeTerm)
 imp = irbs $ (\a tgts -> liftIRBS1 (flip IR.imp' tgts) a)
    <$ symbol Lexer.KwImport <*> importSource <*> impTgt where
     impTgt  = option Import.Everything $ symbol Lexer.BlockStart *> listTgt
-    listTgt = Import.Listed . convert <$> many (varName <|> consName)
+    listTgt = Import.Listed <$> (Vector.fromList =<< many (varName <|> consName))
 
 importSource :: Parser (IRBS SomeTerm)
 importSource = irbs . fmap IR.importSource' $ choice
-    [ Import.World              <$  matchCons "World"
-    , Import.Relative . convert <$  symbol Lexer.Accessor <*> qualConsName
-    , Import.Absolute . convert <$> qualConsName
+    [ Import.World    <$  matchCons "World"
+    , Import.Relative <$  symbol Lexer.Accessor <*> (Vector.fromList =<< qualConsName)
+    , Import.Absolute <$> (Vector.fromList =<< qualConsName)
     ]
 
 
