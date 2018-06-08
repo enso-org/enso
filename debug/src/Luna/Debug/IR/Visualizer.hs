@@ -9,6 +9,7 @@ import qualified Control.Monad.State         as State
 import qualified Data.Aeson                  as Aeson
 import qualified Data.ByteString.Lazy.Char8  as ByteString
 import qualified Data.Graph.Data.Layer.Layout as IR
+import qualified Data.Graph.Data.Component.List as ComponentList
 import qualified Data.Map                    as Map
 import qualified Data.Set                    as Set
 import qualified Data.Tag                    as Tag
@@ -67,7 +68,7 @@ gatherNodesFrom root = State.execStateT (go $ IR.relayout root) def where
         visited <- State.gets $ Set.member root
         when_ (not visited) $ do
             model <- Layer.read @IR.Model root
-            inps  <- traverse IR.source =<< IR.inputs root
+            inps  <- ComponentList.mapM IR.source =<< IR.inputs root
             tp    <- IR.source =<< Layer.read @IR.Type root
             State.modify $ Set.insert root
             traverse_ (go . IR.relayout) inps
@@ -86,7 +87,7 @@ buildVisualizationNode :: MonadVis m
     => Map IR.SomeTerm NodeId -> IR.SomeTerm -> m (Node, [Edge])
 buildVisualizationNode idsMap ref = do
     model <- Layer.read @IR.Model ref
-    inps  <- traverse IR.source =<< IR.inputs ref
+    inps  <- ComponentList.mapM IR.source =<< IR.inputs ref
     tp    <- IR.source =<< Layer.read @IR.Type ref
     let getNodeId :: ∀ layout. IR.Term layout -> NodeId
         getNodeId = unsafeFromJust . flip Map.lookup idsMap . IR.relayout
