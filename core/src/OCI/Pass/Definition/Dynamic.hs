@@ -6,7 +6,7 @@ module OCI.Pass.Definition.Dynamic where
 
 import Prologue
 
-import qualified Data.Graph.Data.Graph.Class                as Graph
+import qualified Data.Graph.Data.Graph.Class     as Graph
 import qualified Data.Map.Strict                 as Map
 import qualified Data.Set                        as Set
 import qualified Data.TypeMap.Strict             as TypeMap
@@ -15,12 +15,12 @@ import qualified OCI.Pass.Definition.Declaration as Pass
 import qualified OCI.Pass.State.Attr             as Attr
 import qualified OCI.Pass.State.Encoder          as Encoder
 
-import Control.Monad.Exception   (Throws)
-import Data.Graph.Data.Graph.Class          (Graph)
-import Data.Map.Strict           (Map)
-import Data.Set                  (Set)
-import GHC.Exts                  (Any)
-import OCI.Pass.Definition.Class (Pass)
+import Control.Monad.Exception     (Throws)
+import Data.Graph.Data.Graph.Class (Graph)
+import Data.Map.Strict             (Map)
+import Data.Set                    (Set)
+import GHC.Exts                    (Any)
+import OCI.Pass.Definition.Class   (Pass)
 
 
 
@@ -142,11 +142,11 @@ instance Mempty IODesc where
 
 -- -- === API === --
 
-type Compile pass m =
+type Compile stage pass m =
     ( Encoder.AttrEncoder    pass
     , Encoder.OutAttrDecoder pass
     , Known pass
-    , Graph.Monad (Pass.StageOf pass) m
+    , Graph.Monad stage m
     , Default (Pass.State pass)
     -- , Graph.Monad Graph.Luna m
     )
@@ -154,9 +154,9 @@ type Compile pass m =
 -- | Graph state is evaluated while compiling pass in order to inline its
 --   definition. It enables crucial optimizations and is a very sensitive part
 --   of the code. Please carefuly watch benchmarks when editing it.
-compile :: ∀ pass m. Compile pass m => Pass pass () -> m DynamicPass
+compile :: ∀ stage pass m. Compile stage pass m => Pass stage pass () -> m DynamicPass
 compile pass = do
-    graphState <- Graph.getState @(Pass.StageOf pass)
+    graphState <- Graph.getState @stage
     let desc = describe @pass
         runner attrs = do
             let attrState = Encoder.encodeAttrs (unwrap attrs) def

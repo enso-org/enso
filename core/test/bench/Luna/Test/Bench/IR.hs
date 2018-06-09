@@ -188,21 +188,21 @@ bench i f = Criterion.bgroup (f ^. name) $ expNFIO f <$> loop i
 -- === Benchark pass === --
 ----------------------------
 
-type OnDemandPass pass m =
+type OnDemandPass stage pass m =
     ( MonadIO m
     , Typeable pass
-    , Pass.Compile pass m
+    , Pass.Compile stage pass m
     , Exception.MonadException Scheduler.Error m
     )
 
-runPass :: ∀ pass m. OnDemandPass pass m
-        => Pass pass () -> m ()
+runPass :: ∀ stage pass m. OnDemandPass stage pass m
+        => Pass stage pass () -> m ()
 runPass !pass = Scheduler.evalT $ do
     Scheduler.registerPassFromFunction__ pass
     Scheduler.runPassSameThreadByType @pass
 {-# INLINE runPass #-}
 
-runPass' :: Pass Pass.BasicPass () -> IO ()
+runPass' :: Pass Compilation Pass.BasicPass () -> IO ()
 runPass' p = Graph.encodeAndEval @Compilation (runPass p)
 {-# INLINE runPass' #-}
 
@@ -287,7 +287,7 @@ readWrite_expTM = Bench "explicitTypeMap" $ \i -> do
 readWrite_layer :: Bench
 readWrite_layer = Bench "normal" $ \i -> runPass' $ do
     !a <- IR.var 0
-    let go :: Int -> Pass Pass.BasicPass ()
+    let go :: Int -> Pass Compilation Pass.BasicPass ()
         go 0 = pure ()
         go j = do
             IR.UniTermVar (IR.Var !x) <- Layer.read @IR.Model a
@@ -508,26 +508,26 @@ partitionsUnify = Bench "partitions unify" $ \i -> runPass' $ do
     go i
 {-# NOINLINE partitionsUnify #-}
 
-externalSizeDiscovery_1n :: Bench
-externalSizeDiscovery_1n = Bench "external size 1n" $ \i -> runPass' $ do
-    !v <- IR.var "a"
-    let go !0 = let !o = pure () in o
-        go !j = do
-            !_ <- External.size v
-            go $! j - 1
-    go i
-{-# NOINLINE externalSizeDiscovery_1n #-}
+-- externalSizeDiscovery_1n :: Bench
+-- externalSizeDiscovery_1n = Bench "external size 1n" $ \i -> runPass' $ do
+--     !v <- IR.var "a"
+--     let go !0 = let !o = pure () in o
+--         go !j = do
+--             !_ <- External.size v
+--             go $! j - 1
+--     go i
+-- {-# NOINLINE externalSizeDiscovery_1n #-}
 
-externalSizeDiscovery_2n2e :: Bench
-externalSizeDiscovery_2n2e = Bench "external size 2n 2e" $ \i -> runPass' $ do
-    !v <- IR.var "a"
-    !clusters <- Partition.partition v
-    let go !0 = let !o = pure () in o
-        go !j = do
-            !_ <- Graph.clusterSize @('[Nodes, Edges]) clusters
-            go $! j - 1
-    go i
-{-# NOINLINE externalSizeDiscovery_2n2e #-}
+-- externalSizeDiscovery_2n2e :: Bench
+-- externalSizeDiscovery_2n2e = Bench "external size 2n 2e" $ \i -> runPass' $ do
+--     !v <- IR.var "a"
+--     !clusters <- Partition.partition v
+--     let go !0 = let !o = pure () in o
+--         go !j = do
+--             !_ <- Graph.clusterSize @('[Nodes, Edges]) clusters
+--             go $! j - 1
+--     go i
+-- {-# NOINLINE externalSizeDiscovery_2n2e #-}
 
 newtype X = X Int
 newtype Y = Y Int
@@ -647,7 +647,7 @@ invariants = checkInvariants maxPercDiff $
     [ assertBenchToRef "Layer R/W        "  7 maxPercDiff readWrite_cptr readWrite_layer
     , assertBenchToRef "SubTree Discovery"  6 maxPercDiff subTreeDiscovery_manual subTreeDiscovery
     , assertBenchToRef "SubTree Partitions" 6 maxPercDiff subTreeDiscovery partitionsSingleVar
-    , assertBenchToRef "Size Discovery"     6 (maxPercDiff + 300) externalSizeDiscovery_1n externalSizeDiscovery_2n2e
+    -- , assertBenchToRef "Size Discovery"     6 (maxPercDiff + 300) externalSizeDiscovery_1n externalSizeDiscovery_2n2e
     ]
     where maxPercDiff = 5
 
@@ -684,8 +684,8 @@ benchmarks = do
             , linkDiscovery
             , partitionsSingleVar
             , partitionsUnify
-            , externalSizeDiscovery_1n
-            , externalSizeDiscovery_2n2e
+            -- , externalSizeDiscovery_1n
+            -- , externalSizeDiscovery_2n2e
             ]
         ]
       ]
@@ -697,10 +697,10 @@ test = runPass' $ do
     !v2 <- IR.var "a"
     !u <- IR.match v [v2]
     -- _ <- Graph.dumpComponent v undefined
-    size <- External.size u
+    -- size <- External.size u
     ins <- IR.inputs u
     print ins
-    print size
+    -- print size
 
 main :: IO ()
 main = do

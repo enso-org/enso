@@ -49,14 +49,14 @@ import Test.Hspec                            (Expectation, Spec, describe, it)
 
 -- === API === --
 
-type OnDemandPass pass = (Typeable pass, Pass.Compile pass (Graph Parser.Parsing))
+type OnDemandPass pass = (Typeable pass, Pass.Compile Parser.Parsing pass (Graph Parser.Parsing))
 
-runPass :: ∀ pass. OnDemandPass pass => Pass pass () -> IO ()
+runPass :: ∀ pass. OnDemandPass pass => Pass Parser.Parsing pass () -> IO ()
 runPass = runPasses . pure
 
-runPasses :: ∀ pass. OnDemandPass pass => [Pass pass ()] -> IO ()
+runPasses :: ∀ pass. OnDemandPass pass => [Pass Parser.Parsing pass ()] -> IO ()
 runPasses passes = Graph.encodeAndEval @Parser.Parsing $ Scheduler.evalT $ do
-    Parser.registerDynamic
+    Parser.registerDynamic @Parser.Parsing
     for_ passes $ \pass -> do
         Scheduler.registerPassFromFunction__ pass -- ONLY FOR TEST SPEC
         Scheduler.runPassByType @pass
@@ -67,8 +67,8 @@ shouldParseAs parser input output {-desiredSpan-} = runPass $ do
     (((ir,cs),scope), _) <- flip Parser.runParser__ (convert input) $ do
         irb   <- parser
         scope <- State.get @Scope
-        let Parser.IRBS irx = irb
-            irb' = Parser.IRBS $ do
+        let Parser.IRBS (Parser.IRB irx) = irb
+            irb' = Parser.IRBS $ Parser.IRB $ do
                 ir <- irx
                 cs <- Layer.read @CodeSpan ir
                 pure (ir,cs)

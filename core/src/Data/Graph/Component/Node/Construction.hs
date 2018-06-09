@@ -44,6 +44,15 @@ type Creator tag m =
     , DefaultType m
     )
 
+-- FIXME: Clean up all the Creator... definitions
+type CreatorX m =
+    ( Component.Creator Nodes   m
+    , Layer.Writer  Node  Model m
+    , Edge.Creator m
+    , Layer.Writer Node Layer.Type m
+    , DefaultType m
+    )
+
 
 -- === Construction === --
 

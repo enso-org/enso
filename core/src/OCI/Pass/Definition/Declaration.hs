@@ -6,8 +6,8 @@ module OCI.Pass.Definition.Declaration where
 import Prologue hiding (FromList)
 
 import qualified Control.Monad.State.Layered as State
-import qualified Data.Graph.Data.Graph.Class            as Graph
 import qualified Data.Graph.Data             as Component
+import qualified Data.Graph.Data.Graph.Class as Graph
 import qualified Data.Graph.Data.Layer.Class as Layer
 import qualified Data.TypeMap.Strict         as TypeMap
 import qualified Type.Data.List              as List
@@ -41,17 +41,7 @@ import Type.Data.List                  (type (<>))
 
 -- === Definition === --
 
-type family Spec (pass :: Type) (prop :: Type) :: Type
-
-
--------------------
--- === Stage === --
--------------------
-
--- === Definition === --
-
-data Stage
-type StageOf pass = Spec pass Stage
+type family Spec (pass :: Type) (prop :: Type) :: [Type]
 
 
 ----------------------
@@ -70,8 +60,9 @@ data Attrs
 
 -- === Values === --
 
-data List (lst :: [Type])
-data All
+-- data List (lst :: [Type])
+-- type family FromList list where FromList (List list) = list
+
 
 -- === Utils === --
 
@@ -79,10 +70,4 @@ type Ins  pass prop = Resolve In  pass prop
 type Outs pass prop = Resolve Out pass prop
 type Vars pass prop = List.Unique (Ins pass prop <> Outs pass prop)
 
-type Resolve t pass prop = IOResolve pass prop (Spec pass (t prop))
-type family IOResolve pass prop a where
-    IOResolve _ _ (List lst) = lst
-    IOResolve pass Elems All = Graph.Components (StageOf pass)
-    IOResolve pass prop  All = Graph.ComponentLayers (StageOf pass) prop
-
-type family FromList lst where FromList (List lst) = lst
+type Resolve t pass prop = Spec pass (t prop)

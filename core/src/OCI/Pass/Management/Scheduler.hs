@@ -5,7 +5,7 @@ import Prologue as Std
 import qualified Control.Concurrent.Async    as Async
 import qualified Control.Monad.Exception     as Exception
 import qualified Control.Monad.State.Layered as State
-import qualified Data.Graph.Data.Graph.Class            as Graph
+import qualified Data.Graph.Data.Graph.Class as Graph
 import qualified Data.List                   as List
 import qualified Data.Map.Strict             as Map
 import qualified OCI.Pass.Definition.Class   as Pass
@@ -16,7 +16,7 @@ import qualified OCI.Pass.State.Encoder      as Encoder
 import Control.Concurrent.Async    (Async, async)
 import Control.Monad.Exception     (Throws, throw)
 import Control.Monad.State.Layered (StateT)
-import Data.Graph.Data.Graph.Class            (Graph)
+import Data.Graph.Data.Graph.Class (Graph)
 import Data.Map.Strict             (Map)
 import GHC.Exts                    (Any)
 import OCI.Pass.Definition.Class   (Pass)
@@ -96,17 +96,18 @@ evalT = State.evalDefT . unwrap ; {-# INLINE evalT #-}
 
 -- === Passes === --
 
-type PassRegister pass m =
+type PassRegister stage pass m =
     ( Typeable       pass
-    , Pass.Compile   pass m
+    , Pass.Compile   stage pass m
     , MonadScheduler m
     )
 
-registerPass :: ∀ pass m. (PassRegister pass m, Pass.Definition pass) => m ()
-registerPass = registerPassFromFunction__ (Pass.definition @pass) ; {-# INLINE registerPass #-}
+registerPass :: ∀ stage pass m. (PassRegister stage pass m, Pass.Definition stage pass) => m ()
+registerPass = registerPassFromFunction__ (Pass.definition @stage @pass)
+{-# INLINE registerPass #-}
 
-registerPassFromFunction__ :: ∀ pass m.
-    PassRegister pass m => Pass pass () -> m ()
+registerPassFromFunction__ :: ∀ stage pass m.
+    PassRegister stage pass m => Pass stage pass () -> m ()
 registerPassFromFunction__ !pass = do
     !dynPass <- Pass.compile pass
     State.modify_ @State $ passes . at (Pass.rep @pass) .~ Just dynPass
@@ -238,15 +239,15 @@ runPassSameThread !rep = do
 runPassSameThreadByType :: ∀ pass m. (MonadScheduler m, Typeable pass) => m ()
 runPassSameThreadByType = runPassSameThread $ Pass.rep @pass ; {-# INLINE runPassSameThreadByType #-}
 
-debugRunPassDefs :: ∀ pass m. (Typeable pass, PassRegister pass m)
-                 => [Pass pass ()] -> m ()
+debugRunPassDefs :: ∀ stage pass m. (Typeable pass, PassRegister stage pass m)
+                 => [Pass stage pass ()] -> m ()
 debugRunPassDefs passes = for_ passes $ \pass -> do
     registerPassFromFunction__ pass
     runPassByType @pass
 {-# INLINE debugRunPassDefs #-}
 
-debugRunPassDef :: ∀ pass m. (Typeable pass, PassRegister pass m)
-                => Pass pass () -> m ()
+debugRunPassDef :: ∀ stage pass m. (Typeable pass, PassRegister stage pass m)
+                => Pass stage pass () -> m ()
 debugRunPassDef = debugRunPassDefs . pure ; {-# INLINE debugRunPassDef #-}
 
 

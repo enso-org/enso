@@ -5,9 +5,10 @@ module OCI.Pass.Definition.Interface where
 
 import Prologue
 
-import qualified Data.Graph.Data.Layer.Class     as Layer
-import qualified OCI.Pass.Definition.Declaration as Pass
-import qualified OCI.Pass.State.Attr             as Attr
+import qualified Data.Graph.Component.Node.Construction as Term
+import qualified Data.Graph.Data.Layer.Class            as Layer
+import qualified OCI.Pass.Definition.Declaration        as Pass
+import qualified OCI.Pass.State.Attr                    as Attr
 
 import Data.Graph.Data (Component)
 
@@ -45,20 +46,21 @@ type family Interfaces passes m :: Constraint where
 
 
 type Interface__ pass m =
-    ( MapCompIface Layer.Reader m pass (Pass.Ins  pass Pass.Elems)
-    , MapCompIface Layer.Writer m pass (Pass.Outs pass Pass.Elems)
-    , MapAttrIface Attr.Getter  m      (Pass.Ins  pass Pass.Attrs)
-    , MapAttrIface Attr.Setter  m      (Pass.Outs pass Pass.Attrs)
+    ( Term.CreatorX m
+    , MapCompLayers Layer.Reader m pass Pass.In  (Pass.Vars pass Pass.Elems)
+    , MapCompLayers Layer.Writer m pass Pass.Out (Pass.Vars pass Pass.Elems)
+    , MapCtx Attr.Getter  m                (Pass.Ins  pass Pass.Attrs)
+    , MapCtx Attr.Setter  m                (Pass.Outs pass Pass.Attrs)
     )
 
 
 -- === Components === --
 
-type family MapCompIface ctx m pass comps :: Constraint where
-    MapCompIface ctx m pass '[]       = ()
-    MapCompIface ctx m pass (c ': cs) = ( CompIface ctx m c (Pass.Ins pass c)
-                                        , MapCompIface ctx m pass cs
-                                        )
+type family MapCompLayers ctx m pass s comps :: Constraint where
+    MapCompLayers ctx m pass s '[]       = ()
+    MapCompLayers ctx m pass s (c ': cs) = ( CompIface ctx m c (Pass.Resolve s pass c)
+                                           , MapCompLayers ctx m pass s cs
+                                           )
 
 
 type family CompIface ctx (m :: Type -> Type) comp layers :: Constraint where
@@ -70,6 +72,6 @@ type family CompIface ctx (m :: Type -> Type) comp layers :: Constraint where
 
 -- === Attributes === --
 
-type family MapAttrIface ctx (m :: Type -> Type) attrs :: Constraint where
-    MapAttrIface ctx m '[]       = ()
-    MapAttrIface ctx m (a ': as) = (ctx a m, MapAttrIface ctx m as)
+type family MapCtx ctx (m :: Type -> Type) attrs :: Constraint where
+    MapCtx ctx m '[]       = ()
+    MapCtx ctx m (a ': as) = (ctx a m, MapCtx ctx m as)

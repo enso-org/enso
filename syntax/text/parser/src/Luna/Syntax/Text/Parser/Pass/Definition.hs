@@ -27,7 +27,8 @@ import Luna.Syntax.Text.Parser.Data.Name.Hardcoded (hardcode)
 import Luna.Syntax.Text.Parser.Data.Result         (Result (Result))
 import Luna.Syntax.Text.Parser.IR.Class            (Error, ParserBase, Stream,
                                                     Token)
-import Luna.Syntax.Text.Parser.Pass.Class          (IRBS, Parser, fromIRBS)
+import Luna.Syntax.Text.Parser.Pass.Class          (IRB (fromIRB), IRBS, Parser,
+                                                    ParserPass, fromIRBS)
 import Luna.Syntax.Text.Parser.State.Indent        (Indent)
 import Luna.Syntax.Text.Parser.State.LastOffset    (LastOffset)
 import Luna.Syntax.Text.Parser.State.Reserved      (Reserved)
@@ -44,7 +45,7 @@ import Text.Megaparsec.Error                       (parseErrorPretty)
 
 -- === Definition === --
 
-instance Pass.Definition Parser where
+instance ParserPass (Pass stage Parser) => Pass.Definition stage Parser where
     definition = do
         src             <- Attr.get @Source
         (unit, markers) <- runParser__ Parsing.unit (convert src)
@@ -57,7 +58,11 @@ instance Pass.Definition Parser where
 -- registerStatic = do
 --     Registry.registerPrimLayer @IR.Terms @CodeSpan
 
-registerDynamic :: (Scheduler.PassRegister Parser m, Scheduler.Monad m) => m ()
+registerDynamic :: ∀ stage m.
+    ( ParserPass (Pass stage Parser)
+    , Scheduler.PassRegister stage Parser m
+    , Scheduler.Monad m
+    ) => m ()
 registerDynamic = do
     Scheduler.registerAttr     @Invalids
     Scheduler.enableAttrByType @Invalids
@@ -65,7 +70,7 @@ registerDynamic = do
     Scheduler.enableAttrByType @Source
     Scheduler.registerAttr     @Result
     Scheduler.enableAttrByType @Result
-    Scheduler.registerPass     @Parser
+    Scheduler.registerPass     @stage @Parser
 
 
 -- === Internal === --
@@ -89,7 +94,8 @@ runParserContext__ p s
     $ hardcode >> p
 {-# INLINE runParserContext__ #-}
 
-runParser__ :: Token.Parser (IRBS a) -> Text32 -> Pass Parser (a, Marker.TermMap)
+runParser__ :: ParserPass (Pass stage Parser)
+    => Token.Parser (IRBS a) -> Text32 -> Pass stage Parser (a, Marker.TermMap)
 runParser__ p src = do
     let tokens = Lexer.evalDefLexer src
         parser = Parsing.stx *> p <* Parsing.etx
@@ -98,5 +104,5 @@ runParser__ p src = do
         Right irbs -> do
             ((ref, unmarked), gidMap) <- State.runDefT @Marker.TermMap
                                        $ State.runDefT @Marker.TermOrphanList
-                                       $ fromIRBS irbs
+                                       $ fromIRB $ fromIRBS irbs
             pure (ref, gidMap)
