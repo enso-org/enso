@@ -4,12 +4,9 @@ jobs:
     environment:
       GHC_RTS: -M3G
     docker:
-      - image: fpco/stack-build:lts-11
+      - image: lunalang/luna-core-ci:1.0
     steps:
       - checkout
-      - run: apt-get update && apt-get install -y z3
-      - run: add-apt-repository -y ppa:jonathonf/gcc-7.1
-      - run: apt-get update && apt-get install -y gcc-7 g++-7
       - run: stack setup
       - run: stack build --fast --ghc-options="-pgmc gcc-7" --test
 
