@@ -33,6 +33,7 @@ executables:
       - executable-path
       - filepath
       - prologue
+      - layered-state
       - luna-cpp-containers
       - luna-data-tag
       - luna-debug
@@ -40,7 +41,6 @@ executables:
 default-extensions:
     - AllowAmbiguousTypes
     - ApplicativeDo
-    - Arrows
     - BangPatterns
     - BinaryLiterals
     - ConstraintKinds
@@ -60,8 +60,8 @@ default-extensions:
     - GeneralizedNewtypeDeriving
     - InstanceSigs
     - LambdaCase
+    - LiberalTypeSynonyms
     - MonadComprehensions
-#    - MonadFailDesugaring
     - MultiWayIf
     - NamedWildCards
     - NegativeLiterals
@@ -69,9 +69,11 @@ default-extensions:
     - NumDecimals
     - OverloadedLabels
     - PackageImports
+    - PatternSynonyms
     - QuasiQuotes
     - RankNTypes
     - RecursiveDo
+    - RelaxedPolyRec
     - ScopedTypeVariables
     - StandaloneDeriving
     - TemplateHaskell
@@ -80,7 +82,5 @@ default-extensions:
     - TypeFamilies
     - TypeFamilyDependencies
     - TypeOperators
+    - UnicodeSyntax
     - ViewPatterns
-
-    - LiberalTypeSynonyms
-    - RelaxedPolyRec

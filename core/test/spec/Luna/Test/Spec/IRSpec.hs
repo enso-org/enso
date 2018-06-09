@@ -47,24 +47,24 @@ instance Default IntAttr where
 data TestPass
 type instance Pass.Spec TestPass t = TestPassSpec t
 type family   TestPassSpec  t where
-    TestPassSpec (Pass.In  Pass.Attrs) = Pass.List '[IntAttr]
-    TestPassSpec (Pass.Out Pass.Attrs) = Pass.List '[IntAttr]
+    TestPassSpec (Pass.In  Pass.Attrs) = '[IntAttr]
+    TestPassSpec (Pass.Out Pass.Attrs) = '[IntAttr]
     TestPassSpec t                     = Pass.BasicPassSpec t
 
 
 -- === API === --
 
-type OnDemandPass pass m =
+type OnDemandPass stage pass m =
     ( Typeable pass
-    , Pass.Compile pass m
+    , Pass.Compile stage pass m
     , MonadIO m
     , Exception.MonadException Scheduler.Error m
     )
 
-runPass :: ∀ pass m. OnDemandPass pass m => Pass pass () -> m ()
+runPass :: ∀ stage pass m. OnDemandPass stage pass m => Pass stage pass () -> m ()
 runPass = runPasses . pure
 
-runPasses :: ∀ pass m. OnDemandPass pass m => [Pass pass ()] -> m ()
+runPasses :: ∀ stage pass m. OnDemandPass stage pass m => [Pass stage pass ()] -> m ()
 runPasses passes = Scheduler.evalT $ do
     Scheduler.registerAttr     @IntAttr
     Scheduler.enableAttrByType @IntAttr
@@ -72,13 +72,13 @@ runPasses passes = Scheduler.evalT $ do
         Scheduler.registerPassFromFunction__ pass
         Scheduler.runPassByType @pass
 
-run2Passes :: ∀ pass m. OnDemandPass pass m => Pass pass () -> Pass pass () -> m ()
+run2Passes :: ∀ stage pass m. OnDemandPass stage pass m => Pass stage pass () -> Pass stage pass () -> m ()
 run2Passes p1 p2 = runPasses [p1,p2]
 
-runPass' :: Pass TestPass () -> IO ()
+runPass' :: Pass Pass.Compilation TestPass () -> IO ()
 runPass' p = Graph.encodeAndEval @Pass.Compilation $ runPass p
 
-run2Passes' :: Pass TestPass () -> Pass TestPass () -> IO ()
+run2Passes' :: Pass Pass.Compilation TestPass () -> Pass Pass.Compilation TestPass () -> IO ()
 run2Passes' p1 p2 = Graph.encodeAndEval @Pass.Compilation $ runPasses [p1,p2]
 
 

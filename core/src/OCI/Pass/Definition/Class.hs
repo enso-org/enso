@@ -111,8 +111,9 @@ instance {-# OVERLAPPABLE #-}
 
 instance {-# OVERLAPPABLE #-}
     ( Layer.StorableView layer layout
-    , State.Getter (Graph.LayerByteOffset comp layer) (Pass stage pass)
-    ) => Layer.ViewReader (Component comp) layer layout (Pass stage pass) where
+    , State.Getter (Graph.LayerByteOffset comp layer) m
+    , MonadIO m
+    ) => Layer.ViewReader (Component comp) layer layout m where
     readView__ !comp = do
         !off <- unwrap <$> State.get @(Graph.LayerByteOffset comp layer)
         Layer.unsafeReadViewByteOff @layer off comp
@@ -120,8 +121,9 @@ instance {-# OVERLAPPABLE #-}
 
 instance {-# OVERLAPPABLE #-}
     ( Layer.StorableView layer layout
-    , State.Getter (Graph.LayerByteOffset comp layer) (Pass stage pass)
-    ) => Layer.ViewWriter (Component comp) layer layout (Pass stage pass) where
+    , State.Getter (Graph.LayerByteOffset comp layer) m
+    , MonadIO m
+    ) => Layer.ViewWriter (Component comp) layer layout m where
     writeView__ !comp !d = do
         !off <- unwrap <$> State.get @(Graph.LayerByteOffset comp layer)
         Layer.unsafeWriteViewByteOff @layer off comp d
