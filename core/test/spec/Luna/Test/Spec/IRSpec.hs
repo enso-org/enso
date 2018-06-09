@@ -16,6 +16,7 @@ import qualified Data.Graph.Fold.Partition       as Partition
 import qualified Data.Graph.Fold.SubComponents   as Traversal
 import qualified Data.Graph.Fold.SubTree         as Traversal
 import qualified Data.Graph.Fold.SubTree         as SubTree
+import qualified Data.Graph.Store                as Store
 import qualified Data.Set                        as StdSet
 import qualified Data.Set.Mutable.Class          as Set
 import qualified Luna.IR                         as IR
@@ -181,8 +182,15 @@ partitionSpec = describe "Component children partition" $ do
         st <- SubTree.subTree' v
         1 `shouldBe` 1
 
+-- test :: Spec
+-- test = describe "test" $ it "test" $ runPass' $ do
+--     v <- IR.var "a"
+--     Store.serialize v
+--     True `shouldBe` False
+
 spec :: Spec
 spec = do
+    -- test
     nameSpec
     irCreationSpec
     attribsSpec

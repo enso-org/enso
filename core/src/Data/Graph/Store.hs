@@ -2,13 +2,13 @@ module Data.Graph.Store where
 
 import Prologue
 
-import qualified Data.Graph.Data.Graph.Class   as Graph
-import qualified Data.Graph.Fold.Partition     as Partition
-import qualified Data.Graph.Store.Alloc    as Alloc
-import qualified Data.Graph.Store.Internal as Serialize
+import qualified Data.Graph.Data.Graph.Class as Graph
+import qualified Data.Graph.Fold.Partition   as Partition
+import qualified Data.Graph.Store.Alloc      as Alloc
+import qualified Data.Graph.Store.Internal   as Serialize
 
-import Data.Graph.Data.Component.Class   (Component)
-import Data.Graph.Store.MemoryRegion (MemoryRegion)
+import Data.Graph.Data.Component.Class (Component)
+import Data.Graph.Store.MemoryRegion   (MemoryRegion)
 
 
 -- -----------------------
@@ -72,10 +72,11 @@ type Serializer comp m comps =
 serialize :: ∀ comp m layout comps.
     ( comps ~ Graph.DiscoverComponents m
     , Serializer comp m comps
-    ) => Component comp layout -> m MemoryRegion
+    ) => Component comp layout -> m () -- MemoryRegion
 serialize comp = do
     clusters  <- Partition.partition comp
-    memRegion <- Alloc.alloc @comps clusters
-    serInfo   <- Serialize.serializeClusters @comps clusters memRegion
-    pure $! serInfo ^. Serialize.memoryRegion
+    -- memRegion <- Alloc.alloc @comps clusters
+    pure ()
+    -- serInfo   <- Serialize.serializeClusters @comps clusters memRegion
+    -- pure $! serInfo ^. Serialize.memoryRegion
 {-# INLINE serialize #-}
