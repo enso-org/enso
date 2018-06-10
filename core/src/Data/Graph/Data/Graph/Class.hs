@@ -44,13 +44,13 @@ type family ComponentLayers graph comp :: [Type]
 
 newtype State      graph = State (StateData graph)
 type    StateData  graph = TypeMap.TypeMap (StateElems graph)
-type    StateElems graph = MapLayerByteOffset graph      (Components graph)
-                        <> MapComponentByteSize          (Components graph)
+type    StateElems graph = -- MapLayerByteOffset graph      (Components graph)
+                           MapComponentByteSize          (Components graph)
                         <> MapComponentMemPool           (Components graph)
                         <> List.Map Layer.DynamicManager (Components graph)
 
-type MapLayerByteOffset graph comps
-   = MapOverCompsAndLayers Layer.ByteOffset graph comps
+-- type MapLayerByteOffset graph comps
+--    = MapOverCompsAndLayers Layer.ByteOffset graph comps
 
 type family MapOverCompsAndLayers f graph comps where
     MapOverCompsAndLayers f graph '[] = '[]
@@ -179,11 +179,18 @@ encodeState = wrap <$> encode @graph
 
 -- === Layer.ByteOffset === --
 
-instance ( layers ~ ComponentLayers graph comp
-         , Applicative m
-         , ComputeLayerByteOffset layer layers )
-      => FieldEncoder graph (Layer.ByteOffset (Component comp) layer) m where
-    encodeField = pure $ Layer.ByteOffset $ computeLayerByteOffset @layer @layers
+-- instance ( layers ~ ComponentLayers graph comp
+--          , Applicative m
+--          , ComputeLayerByteOffset layer layers )
+--       => FieldEncoder graph (Layer.ByteOffset (Component comp) layer) m where
+--     encodeField = pure $ Layer.ByteOffset $ computeLayerByteOffset @layer @layers
+
+instance
+    ( layers ~ ComponentLayers graph comp
+    , ComputeLayerByteOffset layer layers )
+      => Layer.KnownLayer (Component comp) layer (Graph graph) where
+    layerByteOffset = computeLayerByteOffset @layer @layers
+    {-# INLINE layerByteOffset #-}
 
 class ComputeLayerByteOffset layer (layers :: [Type]) where
     computeLayerByteOffset :: Int
@@ -195,6 +202,8 @@ instance {-# OVERLAPPABLE #-} (Layer.StorableData k, ComputeLayerByteOffset l ls
       => ComputeLayerByteOffset l (k ': ls) where
     computeLayerByteOffset = Layer.byteSize @k + computeLayerByteOffset @l @ls
     {-# INLINE computeLayerByteOffset #-}
+
+
 
 
 -- === Component ByteSize === --

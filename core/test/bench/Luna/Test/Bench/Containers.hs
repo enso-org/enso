@@ -441,12 +441,12 @@ pxels :: [Ptr.Ptr ()]
 pxels = unsafeCoerce ([7, 3, 5, 12, 18, 2, 23, 14, 1, 3] :: [Int])
 {-# INLINE pxels #-}
 
-ptrSet_tree2 :: Criterion.Benchmark
-ptrSet_tree2 = benchEnv "stdSet" PtrSet.new
-             $ \ (s :: PtrSet.UnmanagedPtrSet (Ptr.Ptr ())) -> do
-    mapM_ (PtrSet.insert s) pxels
-    mapM_ (PtrSet.delete s) pxels
-{-# NOINLINE ptrSet_tree2 #-}
+-- ptrSet_tree2 :: Criterion.Benchmark
+-- ptrSet_tree2 = benchEnv "stdSet" PtrSet.new
+--              $ \ (s :: PtrSet.UnmanagedPtrSet (Ptr.Ptr ())) -> do
+--     mapM_ (PtrSet.insert s) pxels
+--     mapM_ (PtrSet.delete s) pxels
+-- {-# NOINLINE ptrSet_tree2 #-}
 
 vectorSet_insert2 :: Criterion.Benchmark
 vectorSet_insert2 = benchEnv "vectorSet" (VectorSet.VectorSet <$> Vector.new 32)
@@ -466,7 +466,7 @@ benchmarks = do
         , gt_bench   1
         , gtx_bench  1
         , gtx2_bench 1
-        , ptrSet_tree2
+        -- , ptrSet_tree2
         , vectorSet_insert2
         , "create" $ bench 5 <$>
             [ rw_ptr_ptr

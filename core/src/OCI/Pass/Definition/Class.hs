@@ -89,6 +89,11 @@ instance State.Setter a (MultiStateT (StateLayout pass) (Env stage))
 
 type instance Graph.Discover (Pass stage pass) = stage
 
+instance Layer.KnownLayer t layer (Env stage)
+      => Layer.KnownLayer t layer (Pass stage pass) where
+    layerByteOffset = Layer.layerByteOffset @t @layer @(Env stage)
+    {-# INLINE layerByteOffset #-}
+
 
 
 -----------------
