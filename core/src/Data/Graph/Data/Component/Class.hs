@@ -11,6 +11,7 @@ import Prologue hiding (ConversionError)
 
 import qualified Control.Monad.State.Layered as State
 import qualified Data.Construction           as Data
+import qualified Data.Convert2               as Convert
 import qualified Data.Graph.Data.Layer.Class as Layer
 import qualified Data.Tag                    as Tag
 import qualified Foreign.Info.ByteSize       as ByteSize
@@ -45,15 +46,31 @@ type Any      = Some ()
 
 -- === Conversions === --
 
+-- TODO: remove, we've got conversions now
 unsafeToPtr :: Component comp layout -> SomePtr
 unsafeToPtr = coerce ; {-# INLINE unsafeToPtr #-}
 
+-- TODO: remove, we've got conversions now
 unsafeFromPtr :: ∀ comp layout. SomePtr -> Component comp layout
 unsafeFromPtr = coerce ; {-# INLINE unsafeFromPtr #-}
 
--- TODO: Change to UnsafeConvertible
-instance Convertible (Component t a) SomePtr         where convert = coerce ; {-# INLINE convert #-}
-instance Convertible SomePtr         (Component t a) where convert = coerce ; {-# INLINE convert #-}
+instance Convert.To2 SomePtr Component where
+    to2 = coerce
+    {-# INLINE to2 #-}
+
+instance Convert.From2 SomePtr Component where
+    from2 = coerce
+    {-# INLINE from2 #-}
+
+-- REMOVEME: DEPRACATED
+instance Convertible (Component t a) SomePtr where
+    convert = coerce
+    {-# INLINE convert #-}
+
+-- REMOVEME: DEPRACATED
+instance Convertible SomePtr (Component t a) where
+    convert = coerce
+    {-# INLINE convert #-}
 
 
 -- === Construction / Destruction === --
@@ -182,3 +199,5 @@ layoutRepOf :: ∀ t lyt. Typeable  lyt       => Component t lyt -> LayoutRep
 repOf       _ = rep    @t @lyt ; {-# INLINE repOf       #-}
 tagRepOf    _ = tagRep    @t   ; {-# INLINE tagRepOf    #-}
 layoutRepOf _ = layoutRep @lyt ; {-# INLINE layoutRepOf #-}
+
+

@@ -2,15 +2,17 @@
 
 module Data.PtrSet.Mutable where
 
-import Prologue hiding (fromList, null, toList)
+import Prologue hiding (convert, convert', fromList, null, toList)
 
 import qualified Data.Construction          as Data
+import qualified Data.Convert2              as Convert
 import qualified Data.Set.Mutable.Class     as Set
 import qualified Foreign.DynamicStorable    as DynamicStorable
 import qualified Foreign.Storable.Utils     as Storable
 import qualified Foreign.Storable1.Deriving as Storable1
 
 import Control.Monad.IO.Class
+import Data.Convert2           (convert, convert')
 import Foreign.DynamicStorable (DynamicStorable)
 import Foreign.ForeignPtr
 import Foreign.Marshal.Array
@@ -21,7 +23,7 @@ import Foreign.Storable.Utils  (castPeekAndOffset, castPokeAndOffset)
 import System.IO.Unsafe        (unsafePerformIO)
 
 
-type IsPtr a = BiConvertible' SomePtr a
+type IsPtr a = Convert.Bi' SomePtr a
 
 
 --------------------
@@ -132,7 +134,7 @@ toList !s = do
     with s $ \ptr ->
         allocaArray @SomePtr n $ \arr -> do
             c_toList arr ptr
-            convert' <<$>> peekArray n arr
+            Convert.from' <<$>> peekArray n arr
 {-# INLINE toList #-}
 
 -- | A version of `toList` that fills a pre-allocated chunk instead

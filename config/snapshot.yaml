@@ -3,7 +3,7 @@ name: luna
 packages:
 - megaparsec-6.5.0
 - layered-state-1.1.3
-- convert-1.4.2
+- convert-1.5
 - typelevel-1.2.2
 - container-1.1.0
 - layouting-1.1.3

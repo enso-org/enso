@@ -67,7 +67,7 @@ instance Default World where
 --         return ()
 
 test :: ∀ stage m.
-    (Pass.Interface XD m, State.Getter (Graph.LayerByteOffset IR.Terms IR.Model) m) => m ()
+    (Pass.Interface XD m, State.Getter (Layer.ByteOffset IR.Term IR.Model) m) => m ()
 test = do
     World root <- Attr.get @World
     print root

@@ -3,19 +3,21 @@
 
 module Data.Graph.Data.Layer.Class where
 
-import Prologue hiding (Data, Wrapped)
+import Prologue hiding (Data, Wrapped, convert, convert1)
 
-import qualified Control.Lens      as Lens
-import qualified Data.Construction as Data
-import qualified Foreign.Ptr       as Ptr
-import qualified Foreign.Storable  as Storable
-import qualified Foreign.Storable1 as Storable1
+import qualified Control.Lens                as Lens
+import qualified Control.Monad.State.Layered as State
+import qualified Data.Construction           as Data
+import qualified Data.Convert2               as Convert
+import qualified Foreign.Ptr                 as Ptr
+import qualified Foreign.Storable            as Storable
+import qualified Foreign.Storable1           as Storable1
 
+import Data.Convert2          (convert, convert1)
 import Foreign.Ptr            (Ptr, plusPtr)
 import Foreign.Ptr.Utils      (SomePtr)
 import Foreign.Storable.Utils (sizeOf')
 import Foreign.Storable1      (Storable1)
-
 
 
 -----------------------
@@ -77,13 +79,37 @@ instance Storable.Storable t => Storable1.Storable1 (Simple t) where
 
 
 
---------------------
--- === Layer2 === --
---------------------
+-- --------------------
+-- -- === Layer2 === --
+-- --------------------
 
-class Layer2 layer where
-    constructor2 :: ∀ layout. Ptr (Cons layer layout) -> IO ()
-    destructor2  :: ∀ layout. Ptr (Cons layer layout) -> IO ()
+-- class Layer2 layer where
+--     constructor2 :: ∀ layout. Ptr (Cons layer layout) -> IO ()
+--     destructor2  :: ∀ layout. Ptr (Cons layer layout) -> IO ()
+
+
+
+------------------------------
+-- === Layer ByteOffset === --
+------------------------------
+
+-- === Definition === --
+
+newtype ByteOffset (t :: Type -> Type) layer = ByteOffset Int
+makeLenses ''ByteOffset
+
+
+-- === Instances === --
+
+-- instance (Typeable comp, Typeable layer)
+--       => Show (ByteOffset comp layer) where
+--     showsPrec d (unwrap -> a) = showParen' d $ showString name . showsPrec' a
+--         where name = (<> " ") $ unwords
+--                    [ "ByteOffset"
+--                    , '@' : show (typeRep @comp)
+--                    , '@' : show (typeRep @layer)
+--                    ]
+
 
 
 
@@ -194,11 +220,60 @@ type Editor t layer m =
    , Writer t layer m
    )
 
-class Monad m => Reader t layer m where
+class Monad m => Reader (t :: Type -> Type) layer m where
     read__  :: ∀ layout. t layout -> m (Data layer layout)
 
 class Monad m => Writer t layer m where
     write__ :: ∀ layout. t layout -> Data layer layout -> m ()
+
+instance {-# OVERLAPPABLE #-}
+    ( StorableData layer
+    , State.Getter (ByteOffset t layer) m
+    , Wrapped (Cons layer)
+    , Convert.To1 SomePtr t
+    , MonadIO m
+    ) => Reader t layer m where
+    read__ !comp = do
+        !off <- unwrap <$> State.get @(ByteOffset t layer)
+        unsafeReadByteOff @layer off comp
+    {-# INLINE read__ #-}
+
+instance {-# OVERLAPPABLE #-}
+    ( StorableData layer
+    , State.Getter (ByteOffset t layer) m
+    , Wrapped (Cons layer)
+    , Convert.To1 SomePtr t
+    , MonadIO m
+    ) => Writer t layer m where
+    write__ !comp !d = do
+        !off <- unwrap <$> State.get @(ByteOffset t layer)
+        unsafeWriteByteOff @layer off comp d
+    {-# INLINE write__ #-}
+
+
+-- === View Reader / Writer === --
+
+instance {-# OVERLAPPABLE #-}
+    ( StorableView layer layout
+    , State.Getter (ByteOffset t layer) m
+    , Convert.To1 SomePtr t
+    , MonadIO m
+    ) => ViewReader t layer layout m where
+    readView__ !comp = do
+        !off <- unwrap <$> State.get @(ByteOffset t layer)
+        unsafeReadViewByteOff @layer off comp
+    {-# INLINE readView__ #-}
+
+instance {-# OVERLAPPABLE #-}
+    ( StorableView layer layout
+    , State.Getter (ByteOffset t layer) m
+    , Convert.To1 SomePtr t
+    , MonadIO m
+    ) => ViewWriter t layer layout m where
+    writeView__ !comp !d = do
+        !off <- unwrap <$> State.get @(ByteOffset t layer)
+        unsafeWriteViewByteOff @layer off comp d
+    {-# INLINE writeView__ #-}
 
 
 -- === API === --
@@ -210,8 +285,8 @@ type StorableLayer layer m =
     )
 
 #define CTX1 ∀ layer   layout m.   StorableLayer layer m
-#define CTX2 ∀ layer t layout m. ( StorableLayer layer m           \
-                                 , Convertible' (t layout) SomePtr \
+#define CTX2 ∀ layer t layout m. ( StorableLayer layer m \
+                                 , Convert.To1 SomePtr t \
                                  )
 
 unsafePeekWrapped :: CTX1 => SomePtr -> m (WrappedData layer layout)
@@ -231,8 +306,8 @@ unsafePokeByteOff !d !ptr = unsafePoke @layer @layout (ptr `plusPtr` d) ; {-# IN
 
 unsafeReadByteOff  :: CTX2 => Int -> t layout -> m (Data layer layout)
 unsafeWriteByteOff :: CTX2 => Int -> t layout -> (Data layer layout) -> m ()
-unsafeReadByteOff  !d = unsafePeekByteOff @layer @layout d . convert' ; {-# INLINE unsafeReadByteOff  #-}
-unsafeWriteByteOff !d = unsafePokeByteOff @layer @layout d . convert' ; {-# INLINE unsafeWriteByteOff #-}
+unsafeReadByteOff  !d = unsafePeekByteOff @layer @layout d . convert1 ; {-# INLINE unsafeReadByteOff  #-}
+unsafeWriteByteOff !d = unsafePokeByteOff @layer @layout d . convert1 ; {-# INLINE unsafeWriteByteOff #-}
 
 read  :: ∀ layer t lyt m. Reader t layer m => t lyt -> m (Data layer lyt)
 write :: ∀ layer t lyt m. Writer t layer m => t lyt -> Data layer lyt -> m ()
@@ -257,13 +332,13 @@ instance {-# OVERLAPPABLE #-} (Monad (t m), MonadTrans t, Reader comp layer m)
 
 -- === Early resolution block === --
 
-instance Monad m => Reader ImpM1 layer m     where read__ _ = impossible
-instance Monad m => Reader comp  Imp   m     where read__ _ = impossible
-instance            Reader comp  layer ImpM1 where read__ _ = impossible
+-- instance Monad m => Reader ImpM1 layer m     where read__ _ = impossible
+-- instance Monad m => Reader comp  Imp   m     where read__ _ = impossible
+-- instance            Reader comp  layer ImpM1 where read__ _ = impossible
 
-instance Monad m => Writer ImpM1 layer m     where write__ _ _ = impossible
-instance Monad m => Writer comp  Imp   m     where write__ _ _ = impossible
-instance            Writer comp  layer ImpM1 where write__ _ _ = impossible
+-- instance Monad m => Writer ImpM1 layer m     where write__ _ _ = impossible
+-- instance Monad m => Writer comp  Imp   m     where write__ _ _ = impossible
+-- instance            Writer comp  layer ImpM1 where write__ _ _ = impossible
 
 
 
@@ -294,7 +369,7 @@ type StorableLayerView layer layout m =
 
 #define CTX1 ∀ layer   layout m.   StorableLayerView layer layout m
 #define CTX2 ∀ layer t layout m. ( StorableLayerView layer layout m \
-                                 , Convertible' (t layout) SomePtr  \
+                                 , Convert.To1 SomePtr t            \
                                  )
 
 unsafePeekView :: CTX1 => SomePtr -> m (ViewData layer layout)
@@ -311,10 +386,10 @@ unsafePokeViewByteOff !d !ptr = unsafePokeView @layer @layout $ ptr `plusPtr` d
 
 unsafeReadViewByteOff :: CTX2 => Int -> t layout
                       -> m (ViewData layer layout)
-unsafeReadViewByteOff !d = unsafePeekViewByteOff @layer @layout d . convert'
+unsafeReadViewByteOff !d = unsafePeekViewByteOff @layer @layout d . convert1
 unsafeWriteViewByteOff :: CTX2 => Int -> t layout
                        -> (ViewData layer layout) -> m ()
-unsafeWriteViewByteOff !d = unsafePokeViewByteOff @layer @layout d . convert'
+unsafeWriteViewByteOff !d = unsafePokeViewByteOff @layer @layout d . convert1
 {-# INLINE unsafeReadViewByteOff  #-}
 {-# INLINE unsafeWriteViewByteOff #-}
 

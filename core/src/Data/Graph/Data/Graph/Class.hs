@@ -34,27 +34,6 @@ type family ComponentLayers graph comp :: [Type]
 
 
 
------------------------------
--- === LayerByteOffset === --
------------------------------
-
--- === Definition === --
-
-newtype LayerByteOffset comp layer = LayerByteOffset Int
-makeLenses ''LayerByteOffset
-
-
--- === Instances === --
-
-instance (Typeable comp, Typeable layer)
-      => Show (LayerByteOffset comp layer) where
-    showsPrec d (unwrap -> a) = showParen' d $ showString name . showsPrec' a
-        where name = (<> " ") $ unwords
-                   [ "LayerByteOffset"
-                   , '@' : show (typeRep @comp)
-                   , '@' : show (typeRep @layer)
-                   ]
-
 
 
 
@@ -71,15 +50,15 @@ type    StateElems graph = MapLayerByteOffset graph      (Components graph)
                         <> List.Map Layer.DynamicManager (Components graph)
 
 type MapLayerByteOffset graph comps
-   = MapOverCompsAndLayers LayerByteOffset graph comps
+   = MapOverCompsAndLayers Layer.ByteOffset graph comps
 
 type family MapOverCompsAndLayers f graph comps where
     MapOverCompsAndLayers f graph '[] = '[]
     MapOverCompsAndLayers f graph (c ': cs) = List.Append
         (MapOverLayers f graph c) (MapOverCompsAndLayers f graph cs)
 
-type MapOverLayers f graph component
-    = List.Map (f component) (ComponentLayers graph component)
+type MapOverLayers f graph comp
+    = List.Map (f (Component comp)) (ComponentLayers graph comp)
 
 type family MapComponentMemPool ls where
     MapComponentMemPool '[]       = '[]
@@ -198,13 +177,13 @@ encodeState = wrap <$> encode @graph
 -- === Encoders === --
 ----------------------
 
--- === LayerByteOffset === --
+-- === Layer.ByteOffset === --
 
 instance ( layers ~ ComponentLayers graph comp
          , Applicative m
          , ComputeLayerByteOffset layer layers )
-      => FieldEncoder graph (LayerByteOffset comp layer) m where
-    encodeField = pure $ LayerByteOffset $ computeLayerByteOffset @layer @layers
+      => FieldEncoder graph (Layer.ByteOffset (Component comp) layer) m where
+    encodeField = pure $ Layer.ByteOffset $ computeLayerByteOffset @layer @layers
 
 class ComputeLayerByteOffset layer (layers :: [Type]) where
     computeLayerByteOffset :: Int

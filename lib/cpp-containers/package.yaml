@@ -27,6 +27,7 @@ library:
     dependencies:
         - base
         - container
+        - convert
         - luna-data-construction
         - luna-data-storable        
         - luna-foreign-utils

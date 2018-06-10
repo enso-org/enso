@@ -155,7 +155,7 @@ defineSingle termDecl = case termDecl of
 defineSingleCons :: Name -> TH.Con -> Q [Dec]
 defineSingleCons dataName con = do
     conName1 <- maybe (fail "All constructors have to be named") pure
-              $ convert $ con ^. maybeName
+              $ fmap convert $ con ^. maybeName
     param    <- newName "a"
     let (needSmartCons, conNameStr) = case last conName1 of
             Just '_' -> (False, unsafeInit conName1)
