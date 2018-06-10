@@ -1,5 +1,5 @@
 name: convert
-version: 1.4.2
+version: '1.5'
 synopsis: Safe and unsafe data conversion utilities with strong type-level operation.
   checking.
 category: Data
@@ -24,6 +24,7 @@ library:
   - bytestring
   - containers
   - data-default
+  - impossible
   - lens
   - template-haskell
   - text
