@@ -59,6 +59,7 @@ import Control.Concurrent              (threadDelay)
 import Control.DeepSeq                 (force)
 import Control.Exception               (evaluate)
 import Control.Monad.Primitive         (primitive)
+import Criterion.Main                  (Benchmark)
 import Data.Graph.Component.Edge.Class (Edges)
 import Data.Graph.Component.Node.Class (Nodes)
 import Data.Graph.Data                 (Component (Component))
@@ -295,6 +296,16 @@ readWrite_layer = Bench "normal" $ \i -> runPass' $ do
             go (j - 1)
     go i
 {-# NOINLINE readWrite_layer #-}
+
+
+
+
+benchEnv :: NFData env => String -> IO env -> (env -> IO ()) -> Benchmark
+benchEnv name env f = Criterion.env env
+    $ \ (~a) -> Criterion.bench name $ Criterion.whnfIO $ f a
+{-# INLINE benchEnv #-}
+
+
 
 -- readWrite_layerptr :: Bench
 -- readWrite_layerptr = Bench "normal" $ \i -> runPass' $ do
@@ -645,7 +656,7 @@ invariants :: IO ()
 invariants = checkInvariants maxPercDiff $
     -- [ assertBenchToRef "Create IR" 6 10 createIR_mallocPtr createIR_normal
     [ assertBenchToRef "Layer R/W        "  7 maxPercDiff readWrite_cptr readWrite_layer
-    , assertBenchToRef "SubTree Discovery"  6 maxPercDiff subTreeDiscovery_manual subTreeDiscovery
+    -- , assertBenchToRef "SubTree Discovery"  6 maxPercDiff subTreeDiscovery_manual subTreeDiscovery
     , assertBenchToRef "SubTree Partitions" 6 maxPercDiff subTreeDiscovery partitionsSingleVar
     -- , assertBenchToRef "Size Discovery"     6 (maxPercDiff + 300) externalSizeDiscovery_1n externalSizeDiscovery_2n2e
     ]
@@ -655,20 +666,22 @@ benchmarks :: IO ()
 benchmarks = do
     Criterion.defaultMain
       [ "ir"
-        -- [ "layer"
-        --     [ "rw" $ bench 7 <$>
-        --         -- [ readWrite_cptr
-        --         -- , readWrite_ptr
-        --         -- , readWrite_expTM
-        --         -- -- , readWrite_layerMock
+        [ "layer"
+            [ "rw" $ bench 4 <$>
+                [ readWrite_cptr
+                , readWrite_layer
+                ]
+                -- , readWrite_ptr
+                -- , readWrite_expTM
+                -- -- , readWrite_layerMock
         --         [ readWrite_layer
         --         , readWrite_structs_layer
         --         , readWrite_ioref
         --         -- , readWrite_MS_1
         --         -- , readWrite_MS_2
         --         ]
-        --     ]
-        [ "create" $ bench 5 <$>
+            ]
+        , "create" $ bench 5 <$>
             [ createIR_mallocPtr
             , createIR_normal
             -- , createIR_normal2
@@ -680,7 +693,8 @@ benchmarks = do
         --     [readWrite_layerptr]
 
         , "discovery" $ bench 6 <$>
-            [ subTreeDiscovery
+            [ subTreeDiscovery_manual
+            , subTreeDiscovery
             , linkDiscovery
             , partitionsSingleVar
             , partitionsUnify
