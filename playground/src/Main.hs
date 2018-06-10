@@ -34,40 +34,34 @@ import Data.Set  (Set)
 import Luna.Pass (Pass)
 
 
--------------------
--- === Shell === --
--------------------
+
+----------------------
+-- === TestPass === --
+----------------------
+
+-- === Definition === --
+
+data TestPass = TestPass
+
+type instance Pass.Spec TestPass t = TestPassSpec t
+type family TestPassSpec t where
+    TestPassSpec (Pass.In Pass.Attrs) = '[World]
+    TestPassSpec t = Pass.BasicPassSpec t
 
 
-data XD = XD
-
-type instance Pass.Spec XD t = XDSpec t
-type family XDSpec t where
-    XDSpec (Pass.In Pass.Attrs) = '[World]
-    XDSpec t = Pass.BasicPassSpec t
+-- === Attrs === --
 
 newtype World = World (IR.Term IR.Unit)
 type instance Attr.Type World = Attr.Atomic
 instance Default World where
     def = undefined
 
--- instance Pass.Interface XD (Pass stage XD) => Pass.Definition stage XD where
---     definition = do
---         World root <- Attr.get @World
---         print root
---         Vis.displayVisualization "foo" root
---         u@(IR.Unit imphub units cls) <- IR.model root
---         print =<< IR.inputs root
---         x <- Layer.read @IR.Source imphub
---         print =<< IR.inputs x
---         bar <- IR.var "bar"
---         foo <- IR.acc bar "foo"
---         print =<< IR.inputs bar
---         print =<< IR.inputs foo
---         return ()
+instance Pass.Interface TestPass (Pass stage TestPass)
+      => Pass.Definition stage TestPass where
+    definition = testPass
 
-test :: ∀ stage m. (Pass.Interface XD m) => m ()
-test = do
+testPass :: ∀ stage m. (Pass.Interface TestPass m) => m ()
+testPass = do
     World root <- Attr.get @World
     print root
     Vis.displayVisualization "foo" root
@@ -81,19 +75,25 @@ test = do
     print =<< IR.inputs foo
     return ()
 
+
+
+---------------------
+-- === Testing === --
+---------------------
+
 main :: IO ()
-main = pure () -- Graph.encodeAndEval @Pass.Compilation $ Scheduler.evalT $ do
-        -- let lunafilePath = "/Users/marcinkostrzewa/code/luna/stdlib/Std/src/System.luna"
-        -- lunafile <- readFile lunafilePath
-        -- Scheduler.registerAttr @World
-        -- Scheduler.enableAttrByType @World
-        -- Scheduler.registerPass @Pass.Compilation @XD
-        -- Scheduler.setAttr @Parser.Source (convert lunafile)
-        -- Scheduler.runPassByType @Parser.Parser
-        -- Just r <- fmap unwrap <$> Scheduler.lookupAttr @Parser.Result
-        -- Scheduler.setAttr $ World r
-        -- print "parsed"
-        -- Scheduler.runPassByType @XD
+main = Graph.encodeAndEval @Pass.Compilation $ Scheduler.evalT $ do
+    let lunafilePath = "/tmp/System.luna"
+    lunafile <- readFile lunafilePath
+    Scheduler.registerAttr @World
+    Scheduler.enableAttrByType @World
+    Scheduler.registerPass @Pass.Compilation @TestPass
+    Scheduler.setAttr @Parser.Source (convert lunafile)
+    Scheduler.runPassByType @Parser.Parser
+    Just r <- fmap unwrap <$> Scheduler.lookupAttr @Parser.Result
+    Scheduler.setAttr $ World r
+    print "parsed"
+    Scheduler.runPassByType @TestPass
 
 
 -- stdlibPath :: IO FilePath
