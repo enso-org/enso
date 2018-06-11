@@ -162,15 +162,16 @@ nativeLoadLibrary library = Unix.dlopen library [Unix.RTLD_LAZY]
 nativeLoadSymbol :: Handle -> String -> IO (FunPtr a)
 nativeLoadSymbol handle symbol = Unix.dlsym handle symbol
 
-cLibrary :: IO Handle
-cLibrary = nativeLoadLibrary ""
-
 dynamicLibraryExtensions :: [String]
 nativeLibraryProjectDir  :: String
+
 #if linux_HOST_OS
 dynamicLibraryExtensions = [".so", ""]
 
 nativeLibraryProjectDir = "linux"
+
+cLibrary :: IO Handle
+cLibrary = nativeLoadLibrary ""
 
 nativeSearchPaths :: [FilePath]
 nativeSearchPaths = unsafePerformIO $ do
@@ -203,6 +204,9 @@ nativeLoadFromCache namePattern = do
 dynamicLibraryExtensions = [".dylib", ""]
 
 nativeLibraryProjectDir = "macos"
+
+cLibrary :: IO Handle
+cLibrary = nativeLoadLibrary "c++"
 
 -- based on https://developer.apple.com/library/content/documentation/DeveloperTools/Conceptual/DynamicLibraries/100-Articles/UsingDynamicLibraries.html
 nativeSearchPaths :: [FilePath]
