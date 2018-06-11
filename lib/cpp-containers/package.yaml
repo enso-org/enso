@@ -29,6 +29,7 @@ library:
         - container
         - convert
         - luna-data-construction
+        - luna-data-property        
         - luna-data-storable        
         - luna-foreign-utils
         - luna-typelevel

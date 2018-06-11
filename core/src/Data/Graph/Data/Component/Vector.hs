@@ -13,6 +13,7 @@ import qualified Foreign.Storable.Utils       as Storable
 import qualified Foreign.Storable1.Deriving   as Storable1
 
 import Data.Vector.Storable.Foreign (Vector)
+import Foreign.DynamicStorable      (DynamicStorable)
 import Foreign.Storable             (Storable)
 
 
@@ -24,7 +25,7 @@ import Foreign.Storable             (Storable)
 
 newtype ComponentVector comp layout
     = ComponentVector (Vector (Component comp layout))
-    deriving (Eq, Show, Storable)
+    deriving (Eq, Show, Storable, DynamicStorable)
 makeLenses       ''ComponentVector
 Storable1.derive ''ComponentVector
 

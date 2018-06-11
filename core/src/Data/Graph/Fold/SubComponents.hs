@@ -95,6 +95,8 @@ instance Monad m
     build1 = \comp mr -> (ComponentList.Cons $! Layout.relayout comp) <$> mr
     {-# INLINE build1 #-}
 
+instance Monad m => Fold.Builder (Discovery comp) m (Vector a)
+
 
 -- === ComponentSet === --
 

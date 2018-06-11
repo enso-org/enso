@@ -14,8 +14,9 @@ import qualified Data.Set.Mutable.Class     as Set
 import qualified Foreign.Storable.Utils     as Storable
 import qualified Foreign.Storable1.Deriving as Storable1
 
-import Data.PtrSet.Mutable (UnmanagedPtrSet)
-import Foreign.Storable    (Storable)
+import Data.PtrSet.Mutable     (UnmanagedPtrSet)
+import Foreign.DynamicStorable (DynamicStorable)
+import Foreign.Storable        (Storable)
 
 
 
@@ -27,7 +28,7 @@ import Foreign.Storable    (Storable)
 
 newtype ComponentSet tag layout
     = ComponentSet (UnmanagedPtrSet (Component tag layout))
-    deriving (Show, Storable)
+    deriving (Show, Storable, DynamicStorable)
 makeLenses       ''ComponentSet
 Storable1.derive ''ComponentSet
 

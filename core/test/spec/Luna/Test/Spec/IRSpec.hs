@@ -9,6 +9,7 @@ import Test.Hspec.Expectations.Lifted
 
 import qualified Control.Monad.Exception         as Exception
 import qualified Data.Graph.Component.Edge.Class as Edge
+import qualified Data.Graph.Data.Component.Set   as PtrSet
 import qualified Data.Graph.Data.Graph.Class     as Graph
 import qualified Data.Graph.Data.Layer.Layout    as Layout
 import qualified Data.Graph.Fold.Class           as Fold
@@ -17,8 +18,10 @@ import qualified Data.Graph.Fold.SubComponents   as Traversal
 import qualified Data.Graph.Fold.SubTree         as Traversal
 import qualified Data.Graph.Fold.SubTree         as SubTree
 import qualified Data.Graph.Store                as Store
+import qualified Data.Graph.Store.Size.Discovery as Size
 import qualified Data.Set                        as StdSet
 import qualified Data.Set.Mutable.Class          as Set
+import qualified Data.Vector.Storable.Foreign    as Vector
 import qualified Luna.IR                         as IR
 import qualified Luna.IR.Layer                   as Layer
 import qualified Luna.Pass                       as Pass
@@ -174,26 +177,43 @@ irDiscoverySpec = describe "traversal" $ do
                        ]
         termSet `shouldBe` allNodes
 
-partitionSpec :: Spec
-partitionSpec = describe "Component children partition" $ do
-    it "should not be wrong" $ runPass' $ do
-        v <- IR.var "a"
-        ps <- Partition.partition v
-        st <- SubTree.subTree' v
-        1 `shouldBe` 1
+-- partitionSpec :: Spec
+-- partitionSpec = describe "Component children partition" $ do
+--     it "should not be wrong" $ runPass' $ do
+--         v <- IR.var "a"
+--         ps <- Partition.partition v
+--         st <- SubTree.subTree' v
+--         1 `shouldBe` 1
 
--- test :: Spec
--- test = describe "test" $ it "test" $ runPass' $ do
---     v <- IR.var "a"
---     Store.serialize v
---     True `shouldBe` False
+test :: Spec
+test = describe "test" $ it "test" $ runPass' $ do
+    v <- IR.var "a"
+    v2 <- IR.var "a"
+    vn <- Vector.fromList ["foo", "bar", "baz"]
+
+    print "vvvvvvvvvv"
+    u <- IR.update v vn v
+    print "^^^^^^^^^^"
+
+    print $ ": v  = " <> show v
+    print $ ": v2 = " <> show v2
+    print $ ": u  = " <> show u
+
+    users <- Layer.read @IR.Users v
+    tp    <- Layer.read @IR.Type v
+    print $ "tp: " <> show tp
+    print =<< PtrSet.toList users
+    print =<< PtrSet.size   users
+    print "***"
+    print =<< Size.size u
+    True `shouldBe` False
 
 spec :: Spec
 spec = do
-    -- test
+    test
     nameSpec
     irCreationSpec
     attribsSpec
     irDestructSpec
     irDiscoverySpec
-    partitionSpec
+    -- partitionSpec

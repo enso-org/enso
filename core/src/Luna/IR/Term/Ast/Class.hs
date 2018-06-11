@@ -7,13 +7,13 @@ module Luna.IR.Term.Ast.Class where
 import Prologue hiding (Imp, imp, seq)
 
 import qualified Data.Generics.Traversable.Deriving as GTraversable
-import qualified Data.Graph.Store.External       as ExternalStorable
-import qualified Foreign.Storable.Deriving          as Storable
-import qualified Luna.IR.Term.Ast.Invalid           as Invalid
-import qualified Luna.IR.Term.Format                as Format
-import qualified OCI.IR.Term.Definition             as Term
+-- import qualified Data.Graph.Store.External          as ExternalStorable
+import qualified Foreign.Storable.Deriving as Storable
+import qualified Luna.IR.Term.Ast.Invalid  as Invalid
+import qualified Luna.IR.Term.Format       as Format
+import qualified OCI.IR.Term.Definition    as Term
 
-import Data.Graph.Store.External (ExternalFieldStorable, ExternalStorable)
+-- import Data.Graph.Store.External (ExternalFieldStorable, ExternalStorable)
 import Data.Vector.Storable.Foreign (Vector)
 import OCI.Data.Name                (Name)
 import OCI.IR.Term.Class            (Terms)
@@ -37,8 +37,8 @@ data ImportSourceData
     deriving (Eq, Generic, Show)
 Storable.derive     ''ImportSourceData
 GTraversable.derive ''ImportSourceData
-instance ExternalStorable ImportSourceData
-instance ExternalFieldStorable ImportSourceData
+-- instance ExternalStorable ImportSourceData
+-- instance ExternalFieldStorable ImportSourceData
 -- instance ExternalStorable.SizeBuilder ImportSourceData
 
 data ImportTargetData
@@ -47,8 +47,8 @@ data ImportTargetData
     deriving (Eq, Generic, Show)
 Storable.derive     ''ImportTargetData
 GTraversable.derive ''ImportTargetData
-instance ExternalStorable ImportTargetData
-instance ExternalFieldStorable ImportTargetData
+-- instance ExternalStorable ImportTargetData
+-- instance ExternalFieldStorable ImportTargetData
 -- instance ExternalStorable.SizeBuilder ImportTargetData
 
 
@@ -63,8 +63,8 @@ data ForeignImportType
     deriving (Eq, Generic, Show)
 Storable.derive     ''ForeignImportType
 GTraversable.derive ''ForeignImportType
-instance ExternalStorable ForeignImportType
-instance ExternalFieldStorable ForeignImportType
+-- instance ExternalStorable ForeignImportType
+-- instance ExternalFieldStorable ForeignImportType
 -- instance ExternalStorable.SizeBuilder ForeignImportType
 
 

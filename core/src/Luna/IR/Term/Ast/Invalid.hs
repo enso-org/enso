@@ -5,10 +5,10 @@ module Luna.IR.Term.Ast.Invalid where
 import Prologue hiding (Symbol)
 
 import qualified Data.Generics.Traversable.Deriving as GTraversable
-import qualified Data.Graph.Store.External       as ExternalStorable
-import qualified Foreign.Storable.Deriving          as Storable
+-- import qualified Data.Graph.Store.External          as ExternalStorable
+import qualified Foreign.Storable.Deriving as Storable
 
-import Data.Graph.Store.External (ExternalFieldStorable, ExternalStorable)
+-- import Data.Graph.Store.External (ExternalFieldStorable, ExternalStorable)
 
 
 -----------------------------
@@ -25,8 +25,8 @@ data Symbol
     | CaselessNameHead
     | Literal InvalidLiteral
     deriving (Eq, Ord, Generic, Show)
-instance ExternalStorable Symbol
-instance ExternalFieldStorable Symbol
+-- instance ExternalStorable Symbol
+-- instance ExternalFieldStorable Symbol
 
 data InvalidLiteral
     = String InvalidString

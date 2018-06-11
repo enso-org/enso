@@ -4,6 +4,7 @@ import Prologue hiding (empty, fromList, toList, unsafeRead)
 
 import qualified Data.Construction         as Data
 import qualified Data.List                 as List
+import qualified Data.Property             as Property
 import qualified Foreign.DynamicStorable   as DynamicStorable
 import qualified Foreign.Marshal.Alloc     as Mem
 import qualified Foreign.Marshal.Utils     as Mem
@@ -14,6 +15,7 @@ import Foreign.DynamicStorable (DynamicStorable)
 import Foreign.Ptr             (Ptr, nullPtr, plusPtr)
 import Foreign.Storable        (Storable)
 import Foreign.Storable.Utils  (castPeekAndOffset, castPokeAndOffset)
+import Foreign.Storable.Utils  (Dynamic, Dynamics)
 import System.IO.Unsafe        (unsafeDupablePerformIO, unsafePerformIO)
 
 
@@ -76,6 +78,8 @@ instance Mempty (Vector a) where mempty = empty ; {-# INLINE mempty #-}
 
 
 -- === Instances === --
+
+type instance Property.Get Dynamics (Vector a) = Dynamic
 
 instance Eq (Vector a) where
     (==) = (==) `on` view ptr ; {-# INLINE (==) #-}

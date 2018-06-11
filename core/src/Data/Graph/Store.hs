@@ -8,7 +8,7 @@ import qualified Data.Graph.Store.Alloc      as Alloc
 import qualified Data.Graph.Store.Internal   as Serialize
 
 import Data.Graph.Data.Component.Class (Component)
-import Data.Graph.Store.MemoryRegion   (MemoryRegion)
+-- import Data.Graph.Store.MemoryRegion   (MemoryRegion)
 
 
 -- -----------------------
@@ -63,10 +63,10 @@ import Data.Graph.Store.MemoryRegion   (MemoryRegion)
 -- === SubGraph serialization === --
 ------------------------------------
 
-type Serializer comp m comps =
+type Serializer comp m (comps :: [Type]) =
     ( Partition.Partition comp  m
-    , Alloc.Allocator comps m
-    , Serialize.ClusterSerializer comps m
+    -- , Alloc.Allocator comps m
+    -- , Serialize.ClusterSerializer comps m
     )
 
 serialize :: ∀ comp m layout comps.

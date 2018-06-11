@@ -23,6 +23,7 @@ library:
     dependencies:
         - async
         - base
+        - bytestring
         - container
         - containers
         - convert
@@ -123,6 +124,7 @@ tests:
             - hspec
             - hspec-expectations-lifted
             - luna-core
+            - luna-cpp-containers
             - luna-exception
             - luna-typelevel
             - prologue

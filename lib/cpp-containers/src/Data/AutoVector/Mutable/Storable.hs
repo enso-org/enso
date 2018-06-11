@@ -10,19 +10,17 @@ import Prologue hiding (FromList, Read, ToList, empty, fromList, length, toList,
 import qualified Data.Construction         as Data
 import qualified Data.List                 as List
 import qualified Data.Storable             as Struct
-import qualified Foreign.DynamicStorable   as DynamicStorable
 import qualified Foreign.Marshal.Alloc     as Mem
 import qualified Foreign.Marshal.Utils     as Mem
 import qualified Foreign.Storable.Deriving as Storable
 import qualified Foreign.Storable.Utils    as Storable
 import qualified Type.Known                as Type
 
-import Data.Storable           (type (-::), Struct)
-import Foreign.DynamicStorable (DynamicStorable)
-import Foreign.Ptr             (Ptr, nullPtr, plusPtr)
-import Foreign.Storable        (Storable)
-import Foreign.Storable.Utils  (castPeekAndOffset, castPokeAndOffset)
-import System.IO.Unsafe        (unsafeDupablePerformIO, unsafePerformIO)
+import Data.Storable          (type (-::), Struct)
+import Foreign.Ptr            (Ptr, nullPtr, plusPtr)
+import Foreign.Storable       (Storable)
+import Foreign.Storable.Utils (castPeekAndOffset, castPokeAndOffset)
+import System.IO.Unsafe       (unsafeDupablePerformIO, unsafePerformIO)
 import Unsafe.Coerce
 
 

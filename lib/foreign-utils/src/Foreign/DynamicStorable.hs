@@ -26,8 +26,8 @@ class DynamicStorable a where
 
 -- === Default instances === --
 
-instance {-# OVERLAPPABLE #-} Storable a
-      => DynamicStorable a where
-    sizeOf = pure . Storable.sizeOf ; {-# INLINE sizeOf #-}
-    peek   = Storable.peek          ; {-# INLINE peek   #-}
-    poke   = Storable.poke          ; {-# INLINE poke   #-}
+-- instance {-# OVERLAPPABLE #-} Storable a
+--       => DynamicStorable a where
+--     sizeOf = pure . Storable.sizeOf ; {-# INLINE sizeOf #-}
+--     peek   = Storable.peek          ; {-# INLINE peek   #-}
+--     poke   = Storable.poke          ; {-# INLINE poke   #-}

@@ -120,6 +120,9 @@ instance {-# OVERLAPPABLE #-}
       => Fold.Builder1 (Scoped t) m a where
     build1 = Fold.build1 @(Fold.Struct (Scoped t)) ; {-# INLINE build1 #-}
 
+instance Monad m => Fold.Builder (Scoped t) m (Vector a)
+
+
 
 ----------------------
 -- === Internal === --

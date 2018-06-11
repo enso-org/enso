@@ -26,23 +26,25 @@ import qualified Data.Graph.Fold.Scoped           as Fold
 import qualified Data.Graph.Fold.Struct           as Fold
 import qualified Data.Graph.Fold.SubComponents    as Component
 import qualified Data.Graph.Fold.SubTree          as SubTree
-import qualified Data.Graph.Store.External        as External
-import qualified Data.Graph.Store.MemoryRegion    as MemoryRegion
-import qualified Data.Property                    as Property
-import qualified Foreign.DynamicStorable          as Dynamic
-import qualified Foreign.Storable                 as Storable
-import qualified Foreign.Storable.Utils           as Storable
-import qualified OCI.IR.Term.Definition           as Term
+-- import qualified Data.Graph.Store.External        as External
+-- import qualified Data.Graph.Store.MemoryRegion as MemoryRegion
+import qualified Data.Property           as Property
+import qualified Foreign.DynamicStorable as Dynamic
+import qualified Foreign.Storable        as Storable
+import qualified Foreign.Storable.Utils  as Storable
+import qualified OCI.IR.Term.Definition  as Term
 
 import Control.Monad.State.Layered      (State)
 import Data.Generics.Traversable        (GTraversable)
 import Data.Graph.Data.Component.Class  (Component)
 import Data.Graph.Data.Component.Set    (ComponentSet)
 import Data.Graph.Data.Component.Vector (ComponentVector)
-import Data.Graph.Store.External        (ExternalFieldStorable,
-                                         ExternalStorable)
-import Foreign.Ptr.Utils                (SomePtr)
-import OCI.IR.Link.Class                (Link)
+-- import Data.Graph.Store.External        (ExternalFieldStorable,
+--                                          ExternalStorable)
+import Data.Vector.Storable.Foreign (Vector)
+import Foreign.Ptr.Utils            (SomePtr)
+import OCI.Data.Name                (Name)
+import OCI.IR.Link.Class            (Link)
 
 
 
@@ -85,6 +87,9 @@ instance
     , Fold.Builder1 t m (Component Link.Edges)
     , Fold.Builder1 t m (ComponentVector Link.Edges)
     , Fold.Builder1 t m (ComponentSet    Link.Edges)
+    , Fold.Builder  t m (Vector Word8)
+    , Fold.Builder  t m (Vector Char)
+    , Fold.Builder  t m (Vector Name)
     ) => Fold.Builder1 (Fold.Struct t) m UniTerm where
     build1 = gbuildFold__ @t
     {-# INLINE build1 #-}
@@ -128,54 +133,58 @@ instance (Monad m, GUniTermFold t m (Constructor comp layout))
     build = gbuildFold__ @t
     {-# INLINE build #-}
 
+instance Fold.Builder t m (Vector a)
+      => Fold.Builder (UniTermFold t) m (Vector a) where
+    build = Fold.build @t
+    {-# INLINE build #-}
 
 
-------------------------------
--- === ExternalStorable === --
-------------------------------
+-- ------------------------------
+-- -- === ExternalStorable === --
+-- ------------------------------
 
--- === Dump / load === --
+-- -- === Dump / load === --
 
-instance ExternalStorable (UniTerm layout) where
-    loadBuilder = \ptr mdynReg -> do
-        dynReg <- mdynReg
-        uni    <- Storable.peek ptr
-        (!uni', dynReg') <- flip (State.runT @MemoryRegion.Dynamic) dynReg
-            $ GTraversable.gtraverse @ExternalFieldStorable (\cons -> do
-                dynReg <- State.get @MemoryRegion.Dynamic
-                (!cons', !dynReg') <- liftIO $ External.loadFieldBuilder
-                    $ pure (cons, dynReg)
-                State.put @MemoryRegion.Dynamic dynReg'
-                pure cons') uni
-        Storable.poke ptr uni'
-        pure dynReg'
-    {-# INLINE loadBuilder #-}
+-- instance ExternalStorable (UniTerm layout) where
+--     loadBuilder = \ptr mdynReg -> do
+--         dynReg <- mdynReg
+--         uni    <- Storable.peek ptr
+--         (!uni', dynReg') <- flip (State.runT @MemoryRegion.Dynamic) dynReg
+--             $ GTraversable.gtraverse @ExternalFieldStorable (\cons -> do
+--                 dynReg <- State.get @MemoryRegion.Dynamic
+--                 (!cons', !dynReg') <- liftIO $ External.loadFieldBuilder
+--                     $ pure (cons, dynReg)
+--                 State.put @MemoryRegion.Dynamic dynReg'
+--                 pure cons') uni
+--         Storable.poke ptr uni'
+--         pure dynReg'
+--     {-# INLINE loadBuilder #-}
 
 
--- === Constructor === --
+-- -- === Constructor === --
 
-instance (GTraversable ExternalFieldStorable (Constructor comp layout))
-      => ExternalFieldStorable (Constructor comp layout) where
-    loadFieldBuilder = \mdata -> do
-        (!cons, !dynReg) <- mdata
-        flip (State.runT @MemoryRegion.Dynamic) dynReg
-            $ GTraversable.gtraverse @ExternalFieldStorable (\a -> do
-                dynReg <- State.get @MemoryRegion.Dynamic
-                (!a', !dynReg') <- liftIO $ External.loadFieldBuilder
-                                 $ pure (a, dynReg)
-                State.put @MemoryRegion.Dynamic dynReg'
-                pure a') cons
-    {-# INLINE loadFieldBuilder #-}
+-- instance (GTraversable ExternalFieldStorable (Constructor comp layout))
+--       => ExternalFieldStorable (Constructor comp layout) where
+--     loadFieldBuilder = \mdata -> do
+--         (!cons, !dynReg) <- mdata
+--         flip (State.runT @MemoryRegion.Dynamic) dynReg
+--             $ GTraversable.gtraverse @ExternalFieldStorable (\a -> do
+--                 dynReg <- State.get @MemoryRegion.Dynamic
+--                 (!a', !dynReg') <- liftIO $ External.loadFieldBuilder
+--                                  $ pure (a, dynReg)
+--                 State.put @MemoryRegion.Dynamic dynReg'
+--                 pure a') cons
+--     {-# INLINE loadFieldBuilder #-}
 
-    dumpFieldBuilder = \cons mdynReg -> do
-        dynReg <- mdynReg
-        flip (State.execT @MemoryRegion.Dynamic) dynReg
-            $ GTraversable.gtraverse @ExternalFieldStorable (\a -> do
-                dynReg  <- State.get @MemoryRegion.Dynamic
-                dynReg' <- liftIO $ External.dumpFieldBuilder a (pure dynReg)
-                State.put @MemoryRegion.Dynamic dynReg'
-                pure a) cons
-    {-# INLINE dumpFieldBuilder #-}
+--     dumpFieldBuilder = \cons mdynReg -> do
+--         dynReg <- mdynReg
+--         flip (State.execT @MemoryRegion.Dynamic) dynReg
+--             $ GTraversable.gtraverse @ExternalFieldStorable (\a -> do
+--                 dynReg  <- State.get @MemoryRegion.Dynamic
+--                 dynReg' <- liftIO $ External.dumpFieldBuilder a (pure dynReg)
+--                 State.put @MemoryRegion.Dynamic dynReg'
+--                 pure a) cons
+--     {-# INLINE dumpFieldBuilder #-}
 
 
 type instance Property.Get Storable.Dynamics (Component comp) = Storable.Static

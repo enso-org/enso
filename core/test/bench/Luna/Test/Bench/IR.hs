@@ -33,8 +33,8 @@ import qualified Data.Graph.Fold.SubComponents         as Traversal
 import qualified Data.Graph.Fold.SubTree               as Traversal
 import qualified Data.Graph.Store                      as Graph
 import qualified Data.Graph.Store.Alloc                as Graph
-import qualified Data.Graph.Store.External             as External
 import qualified Data.Graph.Store.Internal             as Graph
+import qualified Data.Graph.Store.Size.Discovery       as Size
 import qualified Data.IORef                            as IORef
 import qualified Data.Set                              as Set
 import qualified Data.Struct                           as Struct
@@ -519,15 +519,15 @@ partitionsUnify = Bench "partitions unify" $ \i -> runPass' $ do
     go i
 {-# NOINLINE partitionsUnify #-}
 
--- externalSizeDiscovery_1n :: Bench
--- externalSizeDiscovery_1n = Bench "external size 1n" $ \i -> runPass' $ do
---     !v <- IR.var "a"
---     let go !0 = let !o = pure () in o
---         go !j = do
---             !_ <- External.size v
---             go $! j - 1
---     go i
--- {-# NOINLINE externalSizeDiscovery_1n #-}
+externalSizeDiscovery_1n :: Bench
+externalSizeDiscovery_1n = Bench "external size 1n" $ \i -> runPass' $ do
+    !v <- IR.var "a"
+    let go !0 = let !o = pure () in o
+        go !j = do
+            !_ <- Size.size v
+            go $! j - 1
+    go i
+{-# NOINLINE externalSizeDiscovery_1n #-}
 
 -- externalSizeDiscovery_2n2e :: Bench
 -- externalSizeDiscovery_2n2e = Bench "external size 2n 2e" $ \i -> runPass' $ do
