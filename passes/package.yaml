@@ -1,43 +1,25 @@
-name:       luna-playground
+name:       luna-passes
 version:    "0.1"
 author:     Luna Team <contact@luna-lang.org>
 maintainer: Luna Team <contact@luna-lang.org>
 
-executables:
-  lunapg:
-    main: Main.hs
-    source-dirs: src
-    ghc-options: -threaded "-with-rtsopts=-N -T"
+ghc-options:
+    - -Wall
+    - -O2
+
+library:
+    source-dirs:
+        - src
     dependencies:
-      - base
-      - layouting
-      - luna-core
-      - luna-passes
-      - luna-syntax-text-lexer
-      - luna-syntax-text-model
-      - luna-syntax-text-parser
-      - open-browser
-      - containers
-      - unordered-containers
-      - aeson
-      - MissingH
-      - bytestring
-      - mtl
-      - reflection
-      - directory
-      - path >= 0.6.0
-      - bimap
-      - optparse-applicative
-      - terminal-text
-      - text
-      - ansi-wl-pprint
-      - executable-path
-      - filepath
-      - prologue
-      - layered-state
-      - luna-cpp-containers
-      - luna-data-tag
-      - luna-debug
+        - base
+        - container
+        - containers
+        - layered-state
+        - luna-core
+        - luna-debug
+        - mtl
+        - prologue >= 3.0.0
+        - transformers
 
 default-extensions:
     - AllowAmbiguousTypes
@@ -85,3 +67,4 @@ default-extensions:
     - TypeOperators
     - UnicodeSyntax
     - ViewPatterns
+

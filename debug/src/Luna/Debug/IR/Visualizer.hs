@@ -21,6 +21,7 @@ import qualified Web.Browser                 as Browser
 
 import Data.Map (Map)
 import Data.Set (Set)
+import Data.Graph.Data.Component.Class (Component (..))
 
 
 
@@ -30,7 +31,7 @@ import Data.Set (Set)
 
 -- === Definitions === --
 
-type NodeId = Int
+type NodeId = Text
 
 data Node = Node
     { __label  :: Text
@@ -78,19 +79,18 @@ buildVisualizationGraph :: MonadVis m => IR.Term layout -> m Graph
 buildVisualizationGraph root = do
     allNodes <- gatherNodesFrom root
     let nodesWithIds = Map.fromList $ zip (Set.toList allNodes) [1..]
-    visNodes <- traverse (buildVisualizationNode nodesWithIds)
-              $ Map.keys nodesWithIds
+    visNodes <- traverse buildVisualizationNode $ Set.toList allNodes
     pure $ Graph (fst <$> visNodes) (concat $ snd <$> visNodes)
 
 
 buildVisualizationNode :: MonadVis m
-    => Map IR.SomeTerm NodeId -> IR.SomeTerm -> m (Node, [Edge])
-buildVisualizationNode idsMap ref = do
+    => IR.SomeTerm -> m (Node, [Edge])
+buildVisualizationNode ref = do
     model <- Layer.read @IR.Model ref
     inps  <- ComponentList.mapM IR.source =<< IR.inputs ref
     tp    <- IR.source =<< Layer.read @IR.Type ref
     let getNodeId :: ∀ layout. IR.Term layout -> NodeId
-        getNodeId = unsafeFromJust . flip Map.lookup idsMap . IR.relayout
+        getNodeId = convert . show . unwrap
         tgtId     = getNodeId ref
         tag       = IR.showTag model
         tpEdge    = Edge (getNodeId tp) tgtId ["type"]

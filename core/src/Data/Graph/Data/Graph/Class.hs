@@ -90,7 +90,8 @@ makeLenses ''GraphT
 -- === Discovery === --
 
 type family   Discover (m :: Type -> Type) :: Type
-type instance Discover (GraphT graph m) = graph
+type instance Discover (GraphT graph m)   = graph
+type instance Discover (State.StateT s m) = Discover m
 
 type DiscoverComponents      m      = Components      (Discover m)
 type DiscoverComponentLayers m comp = ComponentLayers (Discover m) comp

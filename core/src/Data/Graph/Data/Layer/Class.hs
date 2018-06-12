@@ -3,7 +3,7 @@
 
 module Data.Graph.Data.Layer.Class where
 
-import Prologue hiding (Data, Wrapped, convert, convert1)
+import Prologue hiding (Data, Wrapped, convert, convert1, read)
 
 import qualified Control.Lens                as Lens
 import qualified Control.Monad.State.Layered as State
@@ -73,6 +73,12 @@ instance Semigroup t => Semigroup (Simple t layout) where
 
 -- TODO[PM]: Storable1.derive ''Simple
 instance Storable.Storable t => Storable1.Storable1 (Simple t) where
+    sizeOf    = \ ~_ -> Storable.sizeOf    (undefined :: t) ; {-# INLINE sizeOf    #-}
+    alignment = \ ~_ -> Storable.alignment (undefined :: t) ; {-# INLINE alignment #-}
+    peek      = \p   -> wrap <$> Storable.peek (coerce p)   ; {-# INLINE peek      #-}
+    poke      = \p   -> Storable.poke (coerce p) . unwrap   ; {-# INLINE poke      #-}
+
+instance Storable.Storable t => Storable.Storable (Simple t layout) where
     sizeOf    = \ ~_ -> Storable.sizeOf    (undefined :: t) ; {-# INLINE sizeOf    #-}
     alignment = \ ~_ -> Storable.alignment (undefined :: t) ; {-# INLINE alignment #-}
     peek      = \p   -> wrap <$> Storable.peek (coerce p)   ; {-# INLINE peek      #-}
@@ -307,6 +313,19 @@ read  = read__  @t @layer
 write = write__ @t @layer
 {-# INLINE read  #-}
 {-# INLINE write #-}
+
+modify  :: ∀ layer t lyt m a. (Reader t layer m, Writer t layer m)
+        => t lyt -> (Data layer lyt -> (a, Data layer lyt)) -> m a
+modify_ :: ∀ layer t lyt m a. (Reader t layer m, Writer t layer m)
+        => t lyt -> (Data layer lyt ->     Data layer lyt)  -> m ()
+modify comp f = do
+    old <- read @layer comp
+    let (!res, !new) = f old
+    write @layer comp new
+    return res
+modify_ comp f = read @layer comp >>= write @layer comp . f
+{-# INLINE modify  #-}
+{-# INLINE modify_ #-}
 
 #undef CTX1
 #undef CTX2

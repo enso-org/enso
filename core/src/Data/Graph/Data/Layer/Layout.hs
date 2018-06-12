@@ -53,14 +53,17 @@ type family Default key
 
 type family Get (key :: Type) (layout :: Type) :: Type where
     Get key (Layout__ map) = FromMaybe (Default key) (Map.LookupRaw key map)
+    Get key ()             = ()
     Get key a              = Get key (ToLayout a)
 
 type family Set key val layout where
     Set key val (Layout__ map) = Layout__ (Map.InsertRaw key val map)
+    Set key val ()             = ()
     Set key val a              = Set key val (ToLayout a)
 
 type family ToLayout a
 type instance ToLayout (Layout__ m) = Layout__ m
+type instance ToLayout () = ()
 
 type family Merge a b
 type family MergeList lst where

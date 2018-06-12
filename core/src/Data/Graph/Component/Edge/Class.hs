@@ -58,7 +58,13 @@ target :: Layer.Reader Edge Target m
        => Edge layout -> m (Node (Layout.Get Target layout))
 target = Layer.read @Target ; {-# INLINE target #-}
 
-
+isCyclic ::
+    ( Layer.Reader Edge Source m
+    , Layer.Reader Edge Target m
+    , Layout.Get Source l ~ Layout.Get Target l
+    ) => Edge l -> m Bool
+isCyclic = \edge -> (==) <$> Layer.read @Source edge <*> Layer.read @Target edge
+{-# INLINE isCyclic #-}
 
 ------------------------
 -- === Components === --

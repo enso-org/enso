@@ -68,6 +68,17 @@ instance Fold.Builder (Fold.Scoped (Discovery comp)) m
 
 instance Monad m => Fold.ComponentBuilder (Discovery comp) m comp'
 
+-- === API === --
+
+type SubComponents1 c m comp
+    = Fold.Builder1 (Fold.Scoped (Discovery c)) m (Component comp)
+
+subComponents1 :: ∀ c comp m layout. SubComponents1 c m comp
+    => Component comp layout -> m (ComponentList c)
+subComponents1 = \a -> Fold.build1 @(Fold.Scoped (Discovery c)) a
+    $! pure $! mempty
+{-# INLINE subComponents1 #-}
+
 
 -- === Struct === --
 

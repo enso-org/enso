@@ -27,14 +27,25 @@ import qualified Luna.Syntax.Text.Source             as Parser
 import qualified OCI.Pass.Definition.Interface       as Pass
 import qualified System.Environment                  as System
 import qualified Text.PrettyPrint.ANSI.Leijen        as Doc
-
+import qualified Data.Graph.Data.Layer.Layout    as Layout
 
 import Data.Map  (Map)
 import Data.Set  (Set)
 import Luna.Pass (Pass)
 
+import Data.Graph.Data.Component.Class (unsafeNull)
 
+import Luna.Syntax.Text.Parser.Data.CodeSpan (CodeSpan)
+import Luna.Syntax.Text.Parser.Data.Invalid (Invalids)
 
+import qualified Data.Graph.Data.Graph.Class          as Graph
+import Data.Graph.Component.Node.Destruction
+
+import Luna.Pass.Transform.Desugar.RemoveGrouped
+import Luna.Pass.Transform.Desugar.TransformPatterns
+import Luna.Pass.Resolve.Data.UnresolvedVariables
+import Luna.Pass.Resolve.AliasAnalysis
+import Luna.Pass.Data.Root
 ----------------------
 -- === TestPass === --
 ----------------------
@@ -45,16 +56,21 @@ data TestPass = TestPass
 
 type instance Pass.Spec TestPass t = TestPassSpec t
 type family TestPassSpec t where
-    TestPassSpec (Pass.In Pass.Attrs) = '[World]
+    TestPassSpec (Pass.In Pass.Attrs) = '[Root, VisName]
     TestPassSpec t = Pass.BasicPassSpec t
 
 
 -- === Attrs === --
 
+newtype VisName = VisName String
+type instance Attr.Type VisName = Attr.Atomic
+instance Default VisName where
+    def = VisName ""
+
 newtype World = World (IR.Term IR.Unit)
 type instance Attr.Type World = Attr.Atomic
 instance Default World where
-    def = undefined
+    def = World unsafeNull
 
 instance Pass.Interface TestPass (Pass stage TestPass)
       => Pass.Definition stage TestPass where
@@ -62,19 +78,31 @@ instance Pass.Interface TestPass (Pass stage TestPass)
 
 testPass :: ∀ stage m. (Pass.Interface TestPass m) => m ()
 testPass = do
-    World root <- Attr.get @World
+    Root root <- Attr.get
+    VisName n <- Attr.get
     print root
-    Vis.displayVisualization "foo" root
-    u@(IR.Unit imphub units cls) <- IR.model root
-    print =<< IR.inputs root
-    x <- Layer.read @IR.Source imphub
-    print =<< IR.inputs x
-    bar <- IR.var "bar"
-    foo <- IR.acc bar "foo"
-    print =<< IR.inputs bar
-    print =<< IR.inputs foo
-    return ()
+    {-a <- IR.var "a"-}
+    {-b <- IR.cons "X" [a]-}
+    {-print a-}
+    {-print b-}
+    Vis.displayVisualization n root
+    {-u@(IR.Unit imphub units cls) <- IR.model root-}
+    {-print =<< IR.inputs root-}
+    {-x <- Layer.read @IR.Source imphub-}
+    {-print =<< IR.inputs x-}
+    {-bar <- IR.var "bar"-}
+    {-foo <- IR.acc bar "foo"-}
+    {-print =<< IR.inputs bar-}
+    {-print =<< IR.inputs foo-}
+    {-return ()-}
 
+
+data ShellCompiler
+
+type instance Graph.Components      ShellCompiler          = '[IR.Terms, IR.Links]
+type instance Graph.ComponentLayers ShellCompiler IR.Links = '[IR.Target, IR.Source]
+type instance Graph.ComponentLayers ShellCompiler IR.Terms
+   = '[IR.Users, IR.Model, IR.Type, CodeSpan]
 
 
 ---------------------
@@ -82,18 +110,57 @@ testPass = do
 ---------------------
 
 main :: IO ()
-main = Graph.encodeAndEval @Pass.Compilation $ Scheduler.evalT $ do
-    let lunafilePath = "/tmp/System.luna"
-    lunafile <- readFile lunafilePath
+main = Graph.encodeAndEval @ShellCompiler $ Scheduler.evalT $ do
+    {-let lunafilePath = "/Users/marcinkostrzewa/code/luna/stdlib/Std/src/System.luna"-}
+    {-let lunafile :: String = unlines [ "def foo a b c:"-}
+                                     {-, "    x = a: a + b"-}
+                                     {-, "    y = x b"-}
+                                     {-, "    c"-}
+                                     {-]-}
+    let lunafile :: String = unlines [ "def foo x:"
+                                     , "    Just y = x"
+                                     , "    z = (Lel x): x"
+                                     ]
+
     Scheduler.registerAttr @World
     Scheduler.enableAttrByType @World
-    Scheduler.registerPass @Pass.Compilation @TestPass
+
+    Scheduler.registerAttr @VisName
+    Scheduler.enableAttrByType @VisName
+
+    Scheduler.registerAttr @Root
+    Scheduler.enableAttrByType @Root
+
+    Scheduler.registerAttr @UnresolvedVariables
+    Scheduler.enableAttrByType @UnresolvedVariables
+
+    Scheduler.registerAttr @Parser.Source
+    Scheduler.enableAttrByType @Parser.Source
+
+    Scheduler.registerAttr @Invalids
+    Scheduler.enableAttrByType @Invalids
+
+    Scheduler.registerAttr @Parser.Result
+    Scheduler.enableAttrByType @Parser.Result
+
+    Scheduler.registerPass @ShellCompiler @TestPass
+    Scheduler.registerPass @ShellCompiler @Parser.Parser
+    Scheduler.registerPass @ShellCompiler @RemoveGrouped
+    Scheduler.registerPass @ShellCompiler @AliasAnalysis
+    Scheduler.registerPass @ShellCompiler @TransformPatterns
+
     Scheduler.setAttr @Parser.Source (convert lunafile)
     Scheduler.runPassByType @Parser.Parser
-    Just r <- fmap unwrap <$> Scheduler.lookupAttr @Parser.Result
-    Scheduler.setAttr $ World r
-    print "parsed"
+    Just r <- fmap (Layout.unsafeRelayout . unwrap) <$> Scheduler.lookupAttr @Parser.Result
+    Scheduler.setAttr $ Root r
+    Scheduler.setAttr $ VisName "before"
     Scheduler.runPassByType @TestPass
+    Scheduler.runPassByType @RemoveGrouped
+    Scheduler.runPassByType @TransformPatterns
+    Scheduler.runPassByType @AliasAnalysis
+    Scheduler.setAttr $ VisName "after"
+    Scheduler.runPassByType @TestPass
+
 
 
 -- stdlibPath :: IO FilePath
