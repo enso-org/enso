@@ -72,7 +72,6 @@ tryLoad path = do
     return $ EitherR.fmapL errorDetails loadRes
 
 loadLibrary :: String -> IO Handle
-loadLibrary ""          = cLibrary
 loadLibrary namePattern = do
     projectDir <- return ""
     nativeDirs <- (nativeLibs :) <$> findLocalNativeLibsDirs projectDir
@@ -120,8 +119,6 @@ nativeLoadLibrary library = Win32.loadLibrary library
 nativeLoadSymbol :: Handle -> String -> IO (FunPtr a)
 nativeLoadSymbol handle symbol = Foreign.castPtrToFunPtr <$> Win32.getProcAddress handle symbol
 
-cLibrary :: IO Handle
-cLibrary = nativeLoadLibrary "msvcrt"
 
 dynamicLibraryExtensions :: [String]
 dynamicLibraryExtensions = [".dll"]
@@ -170,9 +167,6 @@ dynamicLibraryExtensions = [".so", ""]
 
 nativeLibraryProjectDir = "linux"
 
-cLibrary :: IO Handle
-cLibrary = nativeLoadLibrary ""
-
 nativeSearchPaths :: [FilePath]
 nativeSearchPaths = unsafePerformIO $ do
     ldLibraryPathDirectories <- lookupSearchPath "LD_LIBRARY_PATH"
@@ -204,9 +198,6 @@ nativeLoadFromCache namePattern = do
 dynamicLibraryExtensions = [".dylib", ""]
 
 nativeLibraryProjectDir = "macos"
-
-cLibrary :: IO Handle
-cLibrary = nativeLoadLibrary "c++"
 
 -- based on https://developer.apple.com/library/content/documentation/DeveloperTools/Conceptual/DynamicLibraries/100-Articles/UsingDynamicLibraries.html
 nativeSearchPaths :: [FilePath]

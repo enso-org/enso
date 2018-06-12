@@ -1,5 +1,11 @@
 import Std.Base
+import Std.System
 import Std.Foreign.C.Value
+
+def cStdLib: case System.currentPlatform of
+    Windows: "msvcrt"
+    MacOS: "c++"
+    Linux: ""
 
 def lookupSymbol dll symbol: primLookupSymbol dll symbol
 
