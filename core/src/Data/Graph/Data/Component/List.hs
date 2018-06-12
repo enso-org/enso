@@ -1,6 +1,6 @@
 module Data.Graph.Data.Component.List where
 
-import Prologue hiding (foldr)
+import Prologue hiding (foldr, mapM)
 
 import qualified Data.Graph.Data.Component.Class as Component
 import qualified Data.Graph.Data.Layer.Layout    as Layout
@@ -74,6 +74,10 @@ mapM = \f ->
     in go
 {-# INLINE mapM #-}
 
+mapM_ :: Applicative m
+       => (Component.Some comp -> m a) -> ComponentList comp -> m ()
+mapM_ = \f -> foldr ((*>) . f) (return ())
+{-# INLINE mapM_ #-}
 
 -- === Instances === --
 
