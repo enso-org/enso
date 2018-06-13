@@ -201,3 +201,16 @@ class ExitCode:
     def shortRep: self . toText
 
     def toJSON: self . toInt . toJSON
+
+class Platform:
+    Windows
+    Linux
+    MacOS
+
+    def toText: case self of
+        Windows: "Windows"
+        Linux: "Linux"
+        MacOS: "MacOS"
+
+class System:
+    def currentPlatform: primPlatform

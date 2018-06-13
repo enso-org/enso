@@ -72,7 +72,6 @@ tryLoad path = do
     return $ EitherR.fmapL errorDetails loadRes
 
 loadLibrary :: String -> IO Handle
-loadLibrary ""          = cLibrary
 loadLibrary namePattern = do
     projectDir <- return ""
     nativeDirs <- (nativeLibs :) <$> findLocalNativeLibsDirs projectDir
@@ -120,8 +119,6 @@ nativeLoadLibrary library = Win32.loadLibrary library
 nativeLoadSymbol :: Handle -> String -> IO (FunPtr a)
 nativeLoadSymbol handle symbol = Foreign.castPtrToFunPtr <$> Win32.getProcAddress handle symbol
 
-cLibrary :: IO Handle
-cLibrary = nativeLoadLibrary "msvcrt"
 
 dynamicLibraryExtensions :: [String]
 dynamicLibraryExtensions = [".dll"]
@@ -162,11 +159,9 @@ nativeLoadLibrary library = Unix.dlopen library [Unix.RTLD_LAZY]
 nativeLoadSymbol :: Handle -> String -> IO (FunPtr a)
 nativeLoadSymbol handle symbol = Unix.dlsym handle symbol
 
-cLibrary :: IO Handle
-cLibrary = nativeLoadLibrary ""
-
 dynamicLibraryExtensions :: [String]
 nativeLibraryProjectDir  :: String
+
 #if linux_HOST_OS
 dynamicLibraryExtensions = [".so", ""]
 

@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Luna.Prim.System where
@@ -26,6 +27,21 @@ import           GHC.IO.Exception            (IOErrorType (ResourceVanished), IO
 import           GHC.IO.Handle               (Handle, BufferMode (..))
 import qualified GHC.IO.Handle               as Handle
 import           Foreign.C                   (ePIPE, Errno (Errno))
+
+data System = Linux | MacOS | Windows deriving Show
+
+
+currentHost :: System
+
+#ifdef linux_HOST_OS
+currentHost =  Linux
+#elif darwin_HOST_OS
+currentHost =  MacOS
+#elif mingw32_HOST_OS
+currentHost =  Windows
+#else
+Running on unsupported system.
+#endif
 
 exports :: Imports -> IO (Map Name Function)
 exports std = do
@@ -83,6 +99,10 @@ exports std = do
         hSetBufferingVal = Handle.hSetBuffering
     hSetBuffering' <- makeFunctionIO (toLunaValue std hSetBufferingVal) [fileHandleT, LCons "BufferMode" []] noneT
 
+    let hPlatformVal :: System
+        hPlatformVal = currentHost
+    hPlatform' <- makeFunctionIO (toLunaValue std hPlatformVal) [] (LCons "Platform" [])
+
     return $ Map.fromList [ ("primRunProcess", runProcess')
                           , ("primHIsOpen", hIsOpen')
                           , ("primHIsClosed", hIsClosed')
@@ -93,6 +113,7 @@ exports std = do
                           , ("primHFlush", hFlush')
                           , ("primHSetBuffering", hSetBuffering')
                           , ("primWaitForProcess", waitForProcess')
+                          , ("primPlatform", hPlatform')
                           ]
 
 instance FromLunaData CreateProcess where
@@ -142,9 +163,15 @@ instance ToLunaData ExitCode where
             makeConstructor (ExitFailure c) = Constructor "ExitFailure" [toLunaData imps $ integer c] in
         LunaObject $ Object (makeConstructor ec) $ getObjectMethodMap "ExitCode" imps
 
+instance ToLunaData System where
+    toLunaData imps sys =
+        let makeConstructor Windows = Constructor "Windows" []
+            makeConstructor Linux   = Constructor "Linux" []
+            makeConstructor MacOS   = Constructor "MacOS" [] in
+        LunaObject $ Object (makeConstructor sys) $ getObjectMethodMap "Platform" imps
+
 type instance RuntimeRepOf Handle        = AsNative "FileHandle"
 type instance RuntimeRepOf ProcessHandle = AsNative "ProcessHandle"
 
 instance {-# OVERLAPS #-} ToLunaData (Maybe Handle, Maybe Handle, Maybe Handle, ProcessHandle) where
     toLunaData imps (hin, hout, herr, ph) = LunaObject $ Object (Constructor "Process" [toLunaData imps hin, toLunaData imps hout, toLunaData imps herr, toLunaData imps ph]) $ getObjectMethodMap "Process" imps
-
