@@ -114,10 +114,17 @@ type family Monads__ p ss m :: Constraint where
 
 -- === Accessing === --
 
-gets :: ∀ l m s a. (Getter l m, s ~ InferStateData l m)
+use :: ∀ l m s a. (Getter l m, s ~ InferStateData l m)
      => Lens' s a -> m a
-gets l = view l <$> get @l ; {-# INLINE gets #-}
+use l = view l <$> get @l ; {-# INLINE use #-}
 
+uses :: ∀ l m s r a. (Getter l m, s ~ InferStateData l m)
+     => Lens' s a -> (a -> r) -> m r
+uses l f = r . view l <$> get @l ; {-# INLINE uses #-}
+
+gets :: ∀ l m s a. (Getter l m, s ~ InferStateData l m)
+     => (s -> a) -> m a
+gets f = f <$> get @l ; {-# INLINE gets #-}
 
 
 -- === Top state accessing === --
