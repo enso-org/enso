@@ -120,7 +120,7 @@ use l = view l <$> get @l ; {-# INLINE use #-}
 
 uses :: ∀ l m s r a. (Getter l m, s ~ InferStateData l m)
      => Lens' s a -> (a -> r) -> m r
-uses l f = r . view l <$> get @l ; {-# INLINE uses #-}
+uses l f = f . view l <$> get @l ; {-# INLINE uses #-}
 
 gets :: ∀ l m s a. (Getter l m, s ~ InferStateData l m)
      => (s -> a) -> m a
