@@ -11,10 +11,10 @@ class StaticGrow      m a where staticGrow     :: a -> m a
 
 -- === Dynamic === --
 
-class Empty      a where empty       :: a
+class New      m a where new         :: m a
 class Length   m a where length      :: a -> m Int
 class Size     m a where size        :: a -> m Int
-class New      m a where new         :: Int -> m a
+class Alloc    m a where alloc       :: Int -> m a
 class Free     m a where free        :: a -> m ()
 class Read     m a where unsafeRead  :: a -> Int -> m (Item a)
 class Write    m a where unsafeWrite :: a -> Int -> Item a -> m ()

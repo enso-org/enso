@@ -21,6 +21,7 @@ library:
         - lens
         - layered-state
         - luna-th-builder
+        - luna-typelevel
         - prologue >= 3.0.0
         - template-haskell
 

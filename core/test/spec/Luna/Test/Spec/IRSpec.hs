@@ -7,32 +7,36 @@ module Luna.Test.Spec.IRSpec where
 import Prologue
 import Test.Hspec.Expectations.Lifted
 
-import qualified Control.Monad.Exception         as Exception
-import qualified Data.Graph.Component.Edge.Class as Edge
-import qualified Data.Graph.Data.Component.Set   as PtrSet
-import qualified Data.Graph.Data.Graph.Class     as Graph
-import qualified Data.Graph.Data.Layer.Layout    as Layout
-import qualified Data.Graph.Fold.Class           as Fold
-import qualified Data.Graph.Fold.Partition       as Partition
-import qualified Data.Graph.Fold.SubComponents   as Traversal
-import qualified Data.Graph.Fold.SubTree         as Traversal
-import qualified Data.Graph.Fold.SubTree         as SubTree
-import qualified Data.Graph.Store                as Store
-import qualified Data.Graph.Store.Size.Discovery as Size
-import qualified Data.Set                        as StdSet
-import qualified Data.Set.Mutable.Class          as Set
-import qualified Data.Vector.Storable.Foreign    as Vector
-import qualified Luna.IR                         as IR
-import qualified Luna.IR.Layer                   as Layer
-import qualified Luna.Pass                       as Pass
-import qualified Luna.Pass.Attr                  as Attr
-import qualified Luna.Pass.Basic                 as Pass
-import qualified Luna.Pass.Scheduler             as Scheduler
+import qualified Control.Monad.Exception               as Exception
+import qualified Data.Graph.Component.Edge.Class       as Edge
+import qualified Data.Graph.Data.Component.Set         as PtrSet
+import qualified Data.Graph.Data.Graph.Class           as Graph
+import qualified Data.Graph.Data.Layer.Layout          as Layout
+import qualified Data.Graph.Fold.Class                 as Fold
+import qualified Data.Graph.Fold.Partition             as Partition
+import qualified Data.Graph.Fold.SubComponents         as Traversal
+import qualified Data.Graph.Fold.SubTree               as Traversal
+import qualified Data.Graph.Fold.SubTree               as SubTree
+import qualified Data.Graph.Store                      as Store
+import qualified Data.Graph.Store.Size.Discovery       as Size
+import qualified Data.Set                              as StdSet
+import qualified Data.Set.Mutable.Class                as Set
+import qualified Data.SmallAutoVector.Mutable.Storable as SmallVector
+import qualified Data.Vector.Storable.Foreign          as Vector
+import qualified Foreign.Marshal.Alloc                 as Mem
+import qualified Foreign.Storable.Utils                as Storable
+import qualified Luna.IR                               as IR
+import qualified Luna.IR.Layer                         as Layer
+import qualified Luna.Pass                             as Pass
+import qualified Luna.Pass.Attr                        as Attr
+import qualified Luna.Pass.Basic                       as Pass
+import qualified Luna.Pass.Scheduler                   as Scheduler
 
-import Data.Graph.Data.Graph.Class (Graph)
-import Luna.Pass                   (Pass)
-import Luna.Pass.Basic             (Compilation)
-import Test.Hspec                  (Spec, describe, it)
+import Data.Graph.Data.Graph.Class           (Graph)
+import Data.SmallAutoVector.Mutable.Storable (SmallVector)
+import Luna.Pass                             (Pass)
+import Luna.Pass.Basic                       (Compilation)
+import Test.Hspec                            (Spec, describe, it)
 
 
 
@@ -185,8 +189,61 @@ irDiscoverySpec = describe "traversal" $ do
 --         st <- SubTree.subTree' v
 --         1 `shouldBe` 1
 
+
+type MyVec = SmallVector 16 Int
+
+testVec :: Spec
+testVec = describe "test" $ it "test" $ do
+    print ""
+    (print "---" :: IO ())
+    (vec :: MyVec) <- SmallVector.new
+    print =<< SmallVector.length vec
+    SmallVector.pushBack vec 8
+    print "--"
+    print =<< SmallVector.elemsPtr vec
+    print =<< SmallVector.length vec
+    print =<< SmallVector.size vec
+    print =<< SmallVector.unsafeRead vec 0
+    SmallVector.pushBack vec 7
+    print "--"
+    print =<< SmallVector.elemsPtr vec
+    print =<< SmallVector.length vec
+    print =<< SmallVector.size vec
+    print =<< SmallVector.unsafeRead vec 0
+    print =<< SmallVector.unsafeRead vec 1
+    SmallVector.pushBack vec 6
+    print "--"
+    print =<< SmallVector.elemsPtr vec
+    print =<< SmallVector.length vec
+    print =<< SmallVector.size vec
+    print =<< SmallVector.unsafeRead vec 0
+    print =<< SmallVector.unsafeRead vec 1
+    print =<< SmallVector.unsafeRead vec 2
+    SmallVector.pushBack vec 5
+    SmallVector.pushBack vec 4
+    SmallVector.pushBack vec 3
+    SmallVector.pushBack vec 2
+    SmallVector.pushBack vec 1
+    SmallVector.pushBack vec 10
+    print "--"
+    print =<< SmallVector.elemsPtr vec
+    print =<< SmallVector.length vec
+    print =<< SmallVector.size vec
+    print =<< SmallVector.unsafeRead vec 0
+    print =<< SmallVector.unsafeRead vec 1
+    print =<< SmallVector.unsafeRead vec 2
+    print =<< SmallVector.unsafeRead vec 3
+    print =<< SmallVector.unsafeRead vec 4
+    print =<< SmallVector.unsafeRead vec 5
+    print =<< SmallVector.unsafeRead vec 6
+    print =<< SmallVector.unsafeRead vec 7
+    print =<< SmallVector.unsafeRead vec 8
+
+    True `shouldBe` False
+
 test :: Spec
 test = describe "test" $ it "test" $ runPass' $ do
+
     v <- IR.var "a"
     v2 <- IR.var "a"
     vn <- Vector.fromList ["foo", "bar", "baz"]
@@ -210,6 +267,8 @@ test = describe "test" $ it "test" $ runPass' $ do
 
 spec :: Spec
 spec = do
+
+    -- testVec
     test
     nameSpec
     irCreationSpec

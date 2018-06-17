@@ -126,6 +126,7 @@ tests:
             - luna-core
             - luna-cpp-containers
             - luna-exception
+            - luna-foreign-utils
             - luna-typelevel
             - prologue
 

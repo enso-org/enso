@@ -71,12 +71,12 @@ instance MonadIO m => Size m (Vector a) where
     {-# INLINE size #-}
 
 instance (MonadIO m, Storable a)
-      => New m (Vector a) where
-    new = \size -> liftIO $ do
+      => Alloc m (Vector a) where
+    alloc = \size -> liftIO $ do
         let elemsByteSize = size * Storable.sizeOf' @a
         elemsPtr <- liftIO $ Mem.mallocBytes elemsByteSize
         Struct.construct @(Vector a) 0 size elemsPtr
-    {-# INLINE new #-}
+    {-# INLINE alloc #-}
 
 instance MonadIO m
       => Free m (Vector a) where
@@ -103,7 +103,7 @@ instance (MonadIO m, Storable a)
 instance (MonadIO m, Storable a)
       => FromList m (Vector a) where
     fromList = \lst -> liftIO $ do
-        a <- new $! List.length lst
+        a <- alloc $! List.length lst
         mapM_ (pushBack a) lst
         pure a
     {-# INLINE fromList #-}

@@ -5,79 +5,45 @@ module Data.Storable where
 
 import Prologue hiding (product)
 
-import Foreign.Ptr         (Ptr, plusPtr)
-import Foreign.Ptr.Utils   (SomePtr)
-import Type.Data.Semigroup (type (<>))
-
 import qualified Foreign.Marshal.Alloc  as Mem
 import qualified Foreign.Marshal.Utils  as Mem
-import qualified Foreign.Storable       as Storable
-import qualified Foreign.Storable.Utils as Storable
+import qualified Foreign.Storable.Class as Storable
 import qualified Type.Data.List         as List
 import qualified Type.Known             as Type
 
-
-
-----------------------
--- === Storable === --
-----------------------
-
--- === Definition === --
-
-class Storable t a where
-    peekIO :: Ptr a      -> IO a
-    pokeIO :: Ptr a -> a -> IO ()
-
-    default peekIO :: Storable.Storable a => Ptr a -> IO a
-    peekIO = Storable.peek
-    {-# INLINE peekIO #-}
-
-    default pokeIO :: Storable.Storable a => Ptr a -> a -> IO ()
-    pokeIO = Storable.poke
-    {-# INLINE pokeIO #-}
-
-
--- === API === --
-
-peek :: ∀ t a m. (Storable t a, MonadIO m) => Ptr a      -> m a
-poke :: ∀ t a m. (Storable t a, MonadIO m) => Ptr a -> a -> m ()
-peek = liftIO .  peekIO @t ; {-# INLINE peek #-}
-poke = liftIO .: pokeIO @t ; {-# INLINE poke #-}
-
-
--- === Instances === --
-
-instance {-# OVERLAPPABLE #-} Storable t Int
-instance {-# OVERLAPPABLE #-} Storable t (Ptr a)
+import Foreign.Ptr            (Ptr, plusPtr)
+import Foreign.Ptr.Utils      (SomePtr)
+import Foreign.Storable.Class (Storable)
+import Type.Data.Semigroup    (type (<>))
 
 
 
-----------------------
--- === ByteSize === --
-----------------------
+-- ----------------------
+-- -- === ByteSize === --
+-- ----------------------
 
--- === Definition === --
+-- -- === Definition === --
 
-type family ByteSize t (a :: k) :: Nat
-
-
--- === API === --
-
-type KnownByteSize t a = Type.KnownInt (ByteSize t a)
-size :: ∀ t a. KnownByteSize t a => Int
-size = Type.val' @(ByteSize t a)
-{-# INLINE size #-}
-
-type family SumByteSizes t (ls :: [k]) where
-    SumByteSizes t '[]       = 0
-    SumByteSizes t (a ': as) = ByteSize t a + ByteSize t as
+-- type family ByteSize t (a :: k) :: Nat
 
 
--- === Instances === --
+-- -- === API === --
 
-type instance ByteSize t (a :: [k]) = SumByteSizes t a
-type instance ByteSize _ Int     = 8
-type instance ByteSize _ (Ptr _) = 8
+-- type KnownByteSize t a = Type.KnownInt (ByteSize t a)
+-- size :: ∀ t a. KnownByteSize t a => Int
+-- size = Type.val' @(ByteSize t a)
+-- {-# INLINE size #-}
+
+-- type family SumByteSizes t (ls :: [k]) where
+--     SumByteSizes t '[]       = 0
+--     SumByteSizes t (a ': as) = ByteSize t a + ByteSize t as
+
+
+-- -- === Instances === --
+
+-- type instance ByteSize t (a :: [k]) = SumByteSizes t a
+-- type instance ByteSize _ Int     = 8
+-- type instance ByteSize _ (Ptr _) = 8
 
 
 
@@ -97,9 +63,9 @@ field = FieldRef
 
 -- === API === --
 
-type KnownFieldSize a = KnownByteSize Field a
+type KnownFieldSize a = Storable.KnownStaticSize Field a
 fieldSize :: ∀ a. KnownFieldSize a => Int
-fieldSize = size @Field @a
+fieldSize = Storable.staticSize @Field @a
 {-# INLINE fieldSize #-}
 
 
@@ -119,7 +85,9 @@ type family MapFieldSigName fields where
     MapFieldSigName (f ': fs) = FieldSigName f ': MapFieldSigName fs
     MapFieldSigName '[]       = '[]
 
-type instance ByteSize t ('FieldSig _ a) = ByteSize t a
+instance Storable.KnownStaticSize t a
+      => Storable.KnownStaticSize t ('FieldSig n a) where
+    staticSize = Storable.staticSize @t @a
 
 
 -- === FieldType === --
@@ -157,12 +125,12 @@ instance IsStruct (Struct fields) where
 
 -- === Helpers === --
 
-type StructByteSize      a = ByteSize Field a
-type KnownStructByteSize a = Type.KnownInt (StructByteSize a)
+-- type StructByteSize      a = ByteSize Field a
+-- type KnownStructByteSize a = Type.KnownInt (StructByteSize a)
 
-structByteSize :: ∀ a. KnownStructByteSize a => Int
-structByteSize = Type.val' @(StructByteSize a)
-{-# INLINE structByteSize #-}
+-- structByteSize :: ∀ a. KnownStructByteSize a => Int
+-- structByteSize = Type.val' @(StructByteSize a)
+-- {-# INLINE structByteSize #-}
 
 
 -- === Instances === --
@@ -229,22 +197,22 @@ class HasField__ (name :: Symbol) (fs :: [FieldSig]) (idx :: Maybe Nat) where
     fieldPtr__ :: Struct fs -> Ptr (LookupFieldType name fs)
 
 instance
-    ( staticOffset ~ FieldByteOffset idx (MapFieldSigType fields)
-    , Type.KnownInt staticOffset
+    ( fields' ~ List.Take idx (MapFieldSigType fields)
+    , Storable.KnownStaticSize Field fields'
     ) => HasField__ name fields ('Just idx) where
     fieldPtr__ = \(Struct !ptr) ->
-        let off = Type.val' @staticOffset
+        let off = Storable.staticSize @Field @fields'
         in  ptr `plusPtr` off
     {-# INLINE fieldPtr__ #-}
 
-instance (HasField name a, Storable Field (FieldType name a))
+instance (HasField name a, Storable.Peek Field IO (FieldType name a))
       => FieldReader name a where
-    readFieldByNameIO = \a -> peek @Field (fieldPtrByName @name a)
+    readFieldByNameIO = \a -> Storable.peek @Field (fieldPtrByName @name a)
     {-# INLINE readFieldByNameIO #-}
 
-instance (HasField name a, Storable Field (FieldType name a))
+instance (HasField name a, Storable.Poke Field IO (FieldType name a))
       => FieldWriter name a where
-    writeFieldByNameIO = \a val -> poke @Field (fieldPtrByName @name a) val
+    writeFieldByNameIO = \a val -> Storable.poke @Field (fieldPtrByName @name a) val
     {-# INLINE writeFieldByNameIO #-}
 
 instance
@@ -256,9 +224,6 @@ instance
     fieldPtrByName = fieldPtr__ @name @fields @idx . view struct
     {-# INLINE fieldPtrByName #-}
 
-type family FieldByteOffset (count :: Nat) types where
-    FieldByteOffset 0 _         = 0
-    FieldByteOffset n (a ': as) = ByteSize Field a + FieldByteOffset (n - 1) as
 
 
 
@@ -304,19 +269,19 @@ class Cons__ a types where
 instance
     ( Cons__ fields fs
     , KnownFieldSize f
-    , Storable Field f
+    , Storable.Poke Field IO f
     ) => Cons__ fields (f ': fs) where
     cons__ = \alloc f a -> cons__ @fields @fs alloc $ \ptr ->
         let (!m, !ptr') = f ptr
-            f'          = m >> poke @Field (coerce ptr') a
+            f'          = m >> Storable.poke @Field (coerce ptr') a
             ptr''       = ptr' `plusPtr` fieldSize @f
         in  (f', ptr'')
     {-# INLINE cons__ #-}
 
-instance (IsStruct a, KnownStructByteSize (Fields a))
+instance (IsStruct a, Storable.KnownStaticSize Field (Fields a))
       => Cons__ a '[] where
     cons__ = \alloc f -> do
-        ptr <- alloc $! structByteSize @(Fields a)
+        ptr <- alloc $! Storable.staticSize @Field @(Fields a)
         let (!m, !_) = f ptr
         (Struct ptr ^. from struct) <$ m
     {-# INLINE cons__ #-}
