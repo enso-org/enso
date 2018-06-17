@@ -64,8 +64,8 @@ type family   TestPassSpec  t where
 
 main :: IO ()
 main = do
---     VectorSet.test
---     hSetBuffering stdout NoBuffering
+    hSetBuffering stdout NoBuffering
+    --     VectorSet.test
 --     initializeTime
 
 --     Containers.main

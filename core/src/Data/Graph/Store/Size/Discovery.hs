@@ -46,33 +46,33 @@ type SizeDiscoveryCfg      = Fold.Filter Storable.Dynamics Storable.Dynamic
 
 -- === API === --
 
-class SizeDiscovery  m a where size  ::       a    -> m DynamicSize
-class SizeDiscovery1 m a where size1 :: ∀ t1. a t1 -> m DynamicSize
+class SizeDiscovery  m a where discover  ::       a    -> m DynamicSize
+class SizeDiscovery1 m a where discover1 :: ∀ t1. a t1 -> m DynamicSize
 
 instance {-# OVERLAPPABLE #-} Fold.Builder SizeDiscoveryCfg m a
       => SizeDiscovery m a where
-    size = \a -> Fold.build @SizeDiscoveryCfg a $ pure mempty
-    {-# INLINE size #-}
+    discover = \a -> Fold.build @SizeDiscoveryCfg a $ pure mempty
+    {-# INLINE discover #-}
 
 instance {-# OVERLAPPABLE #-} SizeDiscoveryBuilder1 m a
       => SizeDiscovery1 m a where
-    size1 = foldSize1
-    {-# INLINE size1 #-}
+    discover1 = foldDiscover1
+    {-# INLINE discover1 #-}
 
 instance {-# OVERLAPPABLE #-} SizeDiscovery1 m (Component comp)
       => SizeDiscovery m (Component comp layout) where
-    size = size1
-    {-# INLINE size #-}
+    discover = discover1
+    {-# INLINE discover #-}
 
 instance {-# OVERLAPPABLE #-}
     Fold.Builder1 (Fold.Scoped Discovery) m (Component comp)
       => SizeDiscovery1 m (Component comp) where
-    size1 = \a -> Fold.build1 @(Fold.Scoped Discovery) a $ pure mempty
-    {-# INLINE size1 #-}
+    discover1 = \a -> Fold.build1 @(Fold.Scoped Discovery) a $ pure mempty
+    {-# INLINE discover1 #-}
 
-foldSize1 :: SizeDiscoveryBuilder1 m a => a t1 -> m DynamicSize
-foldSize1 = \a -> Fold.build1 @SizeDiscoveryCfg a $ pure mempty
-{-# INLINE foldSize1 #-}
+foldDiscover1 :: SizeDiscoveryBuilder1 m a => a t1 -> m DynamicSize
+foldDiscover1 = \a -> Fold.build1 @SizeDiscoveryCfg a $ pure mempty
+{-# INLINE foldDiscover1 #-}
 
 
 -- === Instances === --
@@ -81,7 +81,7 @@ instance Monad m => Fold.ComponentBuilder Discovery m comp
 
 instance (MonadIO m, SizeDiscoveryBuilder1 m (Layer.Cons layer))
       => Fold.LayerBuilder Discovery m layer where
-    layerBuild = \a mi -> (<>) <$> mi <*> foldSize1 a
+    layerBuild = \a mi -> (<>) <$> mi <*> foldDiscover1 a
     {-# INLINE layerBuild #-}
 
 instance MonadIO m
