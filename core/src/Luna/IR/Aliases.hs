@@ -5,8 +5,10 @@ module Luna.IR.Aliases where
 import qualified Luna.IR.Term as IR
 
 pattern Function n as b <- IR.UniTermFunction (IR.Function n as b)
-pattern LeftSection f a <- IR.UniTermSectionLeft (IR.SectionLeft f a)
-pattern RightSection f a <- IR.UniTermSectionRight (IR.SectionRight f a)
+pattern SectionLeft f a <- IR.UniTermSectionLeft (IR.SectionLeft f a)
+pattern SectionRight f a <- IR.UniTermSectionRight (IR.SectionRight f a)
+pattern AccSection n <- IR.UniTermAccSection (IR.AccSection n)
+pattern Match t cls <- IR.UniTermMatch (IR.Match t cls)
 pattern Unit n as b <- IR.UniTermUnit (IR.Unit n as b)
 pattern Unify l r <- IR.UniTermUnify (IR.Unify l r)
 pattern Lam i o <- IR.UniTermLam (IR.Lam i o)

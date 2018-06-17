@@ -43,9 +43,11 @@ import Data.Graph.Component.Node.Destruction
 
 import Luna.Pass.Transform.Desugar.RemoveGrouped
 import Luna.Pass.Transform.Desugar.TransformPatterns
+import Luna.Pass.Transform.Desugar.DesugarPartialApplications
 import Luna.Pass.Resolve.Data.UnresolvedVariables
 import Luna.Pass.Resolve.AliasAnalysis
 import Luna.Pass.Data.Root
+import Luna.Pass.Data.UniqueNameGen
 ----------------------
 -- === TestPass === --
 ----------------------
@@ -118,12 +120,16 @@ main = Graph.encodeAndEval @ShellCompiler $ Scheduler.evalT $ do
                                      {-, "    c"-}
                                      {-]-}
     let lunafile :: String = unlines [ "def foo x:"
-                                     , "    Just y = x"
-                                     , "    z = (Lel x): x"
+                                     , "    a = .foo.bar.baz"
+                                     , "    b = + 2 +"
+                                     , "    c = x . map (_ . map _)"
                                      ]
 
     Scheduler.registerAttr @World
     Scheduler.enableAttrByType @World
+
+    Scheduler.registerAttr @UniqueNameGen
+    Scheduler.enableAttrByType @UniqueNameGen
 
     Scheduler.registerAttr @VisName
     Scheduler.enableAttrByType @VisName
@@ -148,6 +154,7 @@ main = Graph.encodeAndEval @ShellCompiler $ Scheduler.evalT $ do
     Scheduler.registerPass @ShellCompiler @RemoveGrouped
     Scheduler.registerPass @ShellCompiler @AliasAnalysis
     Scheduler.registerPass @ShellCompiler @TransformPatterns
+    Scheduler.registerPass @ShellCompiler @DesugarPartialApplications
 
     Scheduler.setAttr @Parser.Source (convert lunafile)
     Scheduler.runPassByType @Parser.Parser
@@ -155,6 +162,7 @@ main = Graph.encodeAndEval @ShellCompiler $ Scheduler.evalT $ do
     Scheduler.setAttr $ Root r
     Scheduler.setAttr $ VisName "before"
     Scheduler.runPassByType @TestPass
+    Scheduler.runPassByType @DesugarPartialApplications
     Scheduler.runPassByType @RemoveGrouped
     Scheduler.runPassByType @TransformPatterns
     Scheduler.runPassByType @AliasAnalysis
