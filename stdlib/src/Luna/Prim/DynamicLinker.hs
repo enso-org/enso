@@ -71,6 +71,10 @@ tryLoad path = do
             "loading \"" ++ path ++ "\" failed with: " ++ displayException exc
     return $ EitherR.fmapL errorDetails loadRes
 
+parseError :: [String] -> [String]
+parseError e = if ((length $ snd partitioned) == 0) then fst partitioned else snd partitioned where
+    partitioned = List.partition (List.isSuffixOf "No such file or directory)") e
+
 loadLibrary :: String -> IO Handle
 loadLibrary namePattern = do
     projectDir <- return ""
@@ -102,7 +106,8 @@ loadLibrary namePattern = do
         forM allPaths $ \path -> do
             EitherR.ExceptRT $ ExceptT $ tryLoad path
     case result of
-        Left  e -> throwM $ NativeLibraryLoadingException namePattern e
+        Left  e -> throwM $ NativeLibraryLoadingException namePattern err where
+            err = parseError e
         Right h -> return h
 
 loadSymbol :: Handle -> String -> IO (FunPtr a)
@@ -154,7 +159,7 @@ lookupSearchPath env = do
     return $ FP.splitSearchPath envValue
 
 nativeLoadLibrary :: String -> IO Handle
-nativeLoadLibrary library = Unix.dlopen library [Unix.RTLD_LAZY]
+nativeLoadLibrary library = Unix.dlopen library [Unix.RTLD_NOW]
 
 nativeLoadSymbol :: Handle -> String -> IO (FunPtr a)
 nativeLoadSymbol handle symbol = Unix.dlsym handle symbol
