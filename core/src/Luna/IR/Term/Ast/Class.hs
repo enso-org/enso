@@ -15,7 +15,7 @@ import qualified OCI.IR.Term.Definition    as Term
 
 -- import Data.Graph.Store.External (ExternalFieldStorable, ExternalStorable)
 import Data.Vector.Storable.Foreign (Vector)
-import OCI.Data.Name                (Name)
+import OCI.Data.Name                (Name, Qualified)
 import OCI.IR.Term.Class            (Terms)
 import OCI.IR.Term.Definition       (LinkTo, LinksTo)
 
@@ -31,8 +31,8 @@ import Luna.IR.Term.Core ()
 -- === Helpers === --
 
 data ImportSourceData
-    = Relative (Vector Name)
-    | Absolute (Vector Name)
+    = Relative Qualified
+    | Absolute Qualified
     | World
     deriving (Eq, Generic, Show)
 Storable.derive     ''ImportSourceData

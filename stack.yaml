@@ -30,6 +30,7 @@ packages:
     - debug
     - passes
     - playground
+    - project
     - syntax/text/lexer
     - syntax/text/model
     - syntax/text/parser

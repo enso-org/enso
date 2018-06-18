@@ -904,8 +904,8 @@ imp = irbs $ (\a tgts -> liftIRBS1 (flip (irb2 IR.imp') tgts) a)
 importSource :: Parser (IRBS SomeTerm)
 importSource = irbs . fmap (irb1 IR.importSource') $ choice
     [ Import.World    <$  matchCons "World"
-    , Import.Relative <$  symbol Lexer.Accessor <*> (Vector.fromList =<< qualConsName)
-    , Import.Absolute <$> (Vector.fromList =<< qualConsName)
+    , Import.Relative <$  symbol Lexer.Accessor <*> (convert <$> qualConsName)
+    , Import.Absolute . convert <$> qualConsName
     ]
 
 
