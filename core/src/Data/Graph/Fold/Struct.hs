@@ -6,6 +6,7 @@ import Prologue hiding (Traversable, fold, fold1, traverse)
 
 import qualified Data.Generics.Traversable   as GTraversable
 import qualified Data.Graph.Data.Layer.Class as Layer
+import qualified Data.Graph.Data.Layer.Class as Layer
 import qualified Data.Graph.Fold.Class       as Fold
 
 import Data.Generics.Traversable    (GTraversable)
@@ -33,7 +34,14 @@ instance {-# OVERLAPPABLE #-} (GTraversable (Fold.Builder t m) a, Monad m)
     build = Fold.gbuild @t
     {-# INLINE build #-}
 
-instance {-# OVERLAPPABLE #-} (GTraversable (Fold.Builder t m) layer, Monad m)
-      => Fold.Builder1 (Struct t) m (Layer.Simple layer) where
-    build1 = Fold.gbuild @t . unwrap
+instance Fold.Builder t m a
+      => Fold.Builder1 (Struct t) m (Layer.Simple a) where
+    build1 = Fold.build @t . unwrap
     {-# INLINE build1 #-}
+
+instance Fold.Builder t m a
+      => Fold.Builder (Struct t) m (Maybe a) where
+    build = \case
+        Nothing -> id
+        Just a  -> Fold.build @t a
+    {-# INLINE build #-}
