@@ -44,6 +44,7 @@ import Data.Graph.Component.Node.Destruction
 import Luna.Pass.Transform.Desugar.RemoveGrouped
 import Luna.Pass.Transform.Desugar.TransformPatterns
 import Luna.Pass.Transform.Desugar.DesugarPartialApplications
+import Luna.Pass.Transform.Desugar.DesugarListLiterals
 import Luna.Pass.Resolve.Data.UnresolvedVariables
 import Luna.Pass.Resolve.AliasAnalysis
 import Luna.Pass.Data.Root
@@ -113,7 +114,8 @@ type instance Graph.ComponentLayers ShellCompiler IR.Terms
 
 main :: IO ()
 main = Graph.encodeAndEval @ShellCompiler $ Scheduler.evalT $ do
-    {-let lunafilePath = "/Users/marcinkostrzewa/code/luna/stdlib/Std/src/System.luna"-}
+    {-let lunafilePath = "/Users/marcinkostrzewa/code/luna/stdlib/Std/src/Base.luna"-}
+    {-lunafile <- readFile lunafilePath-}
     {-let lunafile :: String = unlines [ "def foo a b c:"-}
                                      {-, "    x = a: a + b"-}
                                      {-, "    y = x b"-}
@@ -123,6 +125,7 @@ main = Graph.encodeAndEval @ShellCompiler $ Scheduler.evalT $ do
                                      , "    a = .foo.bar.baz"
                                      , "    b = + 2 +"
                                      , "    c = x . map (_ . map _)"
+                                     , "    (x,,y) = (1,2,3)"
                                      ]
 
     Scheduler.registerAttr @World
@@ -155,6 +158,7 @@ main = Graph.encodeAndEval @ShellCompiler $ Scheduler.evalT $ do
     Scheduler.registerPass @ShellCompiler @AliasAnalysis
     Scheduler.registerPass @ShellCompiler @TransformPatterns
     Scheduler.registerPass @ShellCompiler @DesugarPartialApplications
+    Scheduler.registerPass @ShellCompiler @DesugarListLiterals
 
     Scheduler.setAttr @Parser.Source (convert lunafile)
     Scheduler.runPassByType @Parser.Parser
@@ -162,6 +166,7 @@ main = Graph.encodeAndEval @ShellCompiler $ Scheduler.evalT $ do
     Scheduler.setAttr $ Root r
     Scheduler.setAttr $ VisName "before"
     Scheduler.runPassByType @TestPass
+    Scheduler.runPassByType @DesugarListLiterals
     Scheduler.runPassByType @DesugarPartialApplications
     Scheduler.runPassByType @RemoveGrouped
     Scheduler.runPassByType @TransformPatterns
