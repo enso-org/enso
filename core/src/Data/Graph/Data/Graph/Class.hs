@@ -5,6 +5,7 @@ module Data.Graph.Data.Graph.Class where
 import           Prologue hiding (Monad)
 import qualified Prologue as P
 
+import qualified Control.Concurrent.Async    as Async
 import qualified Control.Monad.State.Layered as State
 import qualified Data.Graph.Data.Layer.Class as Layer
 import qualified Data.TypeMap.MultiState     as MultiState
@@ -133,7 +134,14 @@ instance P.Monad m
 
 
 
+------------------------
+-- === Concurrent === --
+------------------------
 
+async :: ∀ graph m a. (Monad graph m, MonadIO m)
+      => GraphT graph IO a -> m (Async.Async a)
+async m = liftIO . Async.async . eval m =<< getState
+{-# INLINE async #-}
 
 ----------------------
 -- === Encoders === --
