@@ -9,6 +9,7 @@ executables:
     source-dirs: src
     ghc-options: -threaded "-with-rtsopts=-N -T"
     dependencies:
+      - async
       - base
       - layouting
       - luna-core

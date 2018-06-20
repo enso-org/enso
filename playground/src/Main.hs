@@ -7,7 +7,9 @@ import Prologue
 
 import qualified Control.Monad.State                 as State
 import qualified Control.Monad.State.Layered         as State
+import qualified Control.Concurrent.Async            as Async
 import qualified Data.Graph.Data.Graph.Class         as Graph
+import qualified  Data.Graph.Data.Component.Vector   as ComponentVector
 import qualified Data.List                           as List
 import qualified Data.Map                            as Map
 import qualified Data.Set                            as Set
@@ -15,6 +17,7 @@ import qualified Data.Tag                            as Tag
 import qualified Data.Text                           as Text
 import qualified Luna.Debug.IR.Visualizer            as Vis
 import qualified Luna.IR                             as IR
+import qualified Luna.IR.Aliases                     as Uni
 import qualified Luna.IR.Layer                       as Layer
 import qualified Luna.Pass                           as Pass
 import qualified Luna.Pass.Attr                      as Attr
@@ -59,8 +62,24 @@ data TestPass = TestPass
 
 type instance Pass.Spec TestPass t = TestPassSpec t
 type family TestPassSpec t where
-    TestPassSpec (Pass.In Pass.Attrs) = '[Root, VisName]
+    TestPassSpec (Pass.In Pass.Attrs) = '[Root]
+    TestPassSpec (Pass.Out Pass.Attrs) = '[ModuleMap]
     TestPassSpec t = Pass.BasicPassSpec t
+
+data VisPass = VisPass
+
+type instance Pass.Spec VisPass t = VisPassSpec t
+type family VisPassSpec t where
+    VisPassSpec (Pass.In Pass.Attrs) = '[Root, VisName]
+    VisPassSpec t = Pass.BasicPassSpec t
+
+data ModuleMap = ModuleMap
+    { _functions :: Map.Map IR.Name (IR.Term IR.Function)
+    , _classes   :: Map.Map IR.Name (IR.Term IR.Record)
+    } deriving (Show)
+type instance Attr.Type ModuleMap = Attr.Atomic
+instance Default ModuleMap where
+    def = ModuleMap def def
 
 
 -- === Attrs === --
@@ -77,27 +96,31 @@ instance Default World where
 
 instance Pass.Interface TestPass (Pass stage TestPass)
       => Pass.Definition stage TestPass where
-    definition = testPass
+    definition = do
+        Root root <- Attr.get
+        print root
+        u@(IR.Unit imphub units cls) <- IR.model (Layout.unsafeRelayout root :: IR.Term IR.Unit)
+        clas <- IR.source cls
+        Layer.read @IR.Model clas >>= \case
+            Uni.Record isNative name params conss decls' -> do
+                decls <- traverse IR.source =<< ComponentVector.toList decls'
+                ds <- for decls $ \d -> Layer.read @IR.Model d >>= \case
+                    Uni.Function nvar' _ _ -> do
+                        nvar :: IR.Term IR.Var <- Layout.unsafeRelayout <$> IR.source nvar'
+                        (IR.Var n) <- IR.model nvar
+                        return $ Just (n, Layout.unsafeRelayout d)
+                    _ -> return Nothing
+                Attr.put $ ModuleMap (Map.fromList $ catMaybes ds) def
 
-testPass :: ∀ stage m. (Pass.Interface TestPass m) => m ()
-testPass = do
-    Root root <- Attr.get
-    VisName n <- Attr.get
-    print root
-    {-a <- IR.var "a"-}
-    {-b <- IR.cons "X" [a]-}
-    {-print a-}
-    {-print b-}
-    Vis.displayVisualization n root
-    {-u@(IR.Unit imphub units cls) <- IR.model root-}
-    {-print =<< IR.inputs root-}
-    {-x <- Layer.read @IR.Source imphub-}
-    {-print =<< IR.inputs x-}
-    {-bar <- IR.var "bar"-}
-    {-foo <- IR.acc bar "foo"-}
-    {-print =<< IR.inputs bar-}
-    {-print =<< IR.inputs foo-}
-    {-return ()-}
+
+instance Pass.Interface VisPass (Pass stage VisPass)
+      => Pass.Definition stage VisPass where
+    definition = do
+        Root root <- Attr.get
+        VisName n <- Attr.get
+        print root
+        Vis.displayVisualization n root
+
 
 
 data ShellCompiler
@@ -108,28 +131,17 @@ type instance Graph.ComponentLayers ShellCompiler IR.Terms
    = '[IR.Users, IR.Model, IR.Type, CodeSpan]
 
 
+makeLenses ''ModuleMap
 ---------------------
 -- === Testing === --
 ---------------------
 
-main :: IO ()
-main = Graph.encodeAndEval @ShellCompiler $ Scheduler.evalT $ do
-    {-let lunafilePath = "/Users/marcinkostrzewa/code/luna/stdlib/Std/src/Base.luna"-}
-    {-lunafile <- readFile lunafilePath-}
-    {-let lunafile :: String = unlines [ "def foo a b c:"-}
-                                     {-, "    x = a: a + b"-}
-                                     {-, "    y = x b"-}
-                                     {-, "    c"-}
-                                     {-]-}
-    let lunafile :: String = unlines [ "def foo x:"
-                                     , "    a = .foo.bar.baz"
-                                     , "    b = + 2 +"
-                                     , "    c = x . map (_ . map _)"
-                                     , "    (x,,y) = (1,2,3)"
-                                     ]
-
+funDiscoverFlow src = do
     Scheduler.registerAttr @World
     Scheduler.enableAttrByType @World
+
+    Scheduler.registerAttr @ModuleMap
+    Scheduler.enableAttrByType @ModuleMap
 
     Scheduler.registerAttr @UniqueNameGen
     Scheduler.enableAttrByType @UniqueNameGen
@@ -152,6 +164,53 @@ main = Graph.encodeAndEval @ShellCompiler $ Scheduler.evalT $ do
     Scheduler.registerAttr @Parser.Result
     Scheduler.enableAttrByType @Parser.Result
 
+    Scheduler.registerPass @ShellCompiler @VisPass
+    Scheduler.registerPass @ShellCompiler @TestPass
+    Scheduler.registerPass @ShellCompiler @Parser.Parser
+
+    Scheduler.setAttr @Parser.Source (convert src)
+    Scheduler.runPassByType @Parser.Parser
+    Just r <- fmap (Layout.unsafeRelayout . unwrap) <$> Scheduler.lookupAttr @Parser.Result
+    Scheduler.setAttr $ Root r
+
+    Scheduler.setAttr $ VisName "parsed"
+    Scheduler.runPassByType @VisPass
+
+    Scheduler.runPassByType @TestPass
+
+    Just modmap <- Scheduler.lookupAttr @ModuleMap
+    print modmap
+    return (modmap, r)
+
+funDesugarFlow root = do
+    Scheduler.registerAttr @World
+    Scheduler.enableAttrByType @World
+
+    Scheduler.registerAttr @ModuleMap
+    Scheduler.enableAttrByType @ModuleMap
+
+    Scheduler.registerAttr @UniqueNameGen
+    Scheduler.enableAttrByType @UniqueNameGen
+
+    Scheduler.registerAttr @VisName
+    Scheduler.enableAttrByType @VisName
+
+    Scheduler.registerAttr @Root
+    Scheduler.enableAttrByType @Root
+
+    Scheduler.registerAttr @UnresolvedVariables
+    Scheduler.enableAttrByType @UnresolvedVariables
+
+    Scheduler.registerAttr @Parser.Source
+    Scheduler.enableAttrByType @Parser.Source
+
+    Scheduler.registerAttr @Invalids
+    Scheduler.enableAttrByType @Invalids
+
+    Scheduler.registerAttr @Parser.Result
+    Scheduler.enableAttrByType @Parser.Result
+
+    Scheduler.registerPass @ShellCompiler @VisPass
     Scheduler.registerPass @ShellCompiler @TestPass
     Scheduler.registerPass @ShellCompiler @Parser.Parser
     Scheduler.registerPass @ShellCompiler @RemoveGrouped
@@ -160,21 +219,78 @@ main = Graph.encodeAndEval @ShellCompiler $ Scheduler.evalT $ do
     Scheduler.registerPass @ShellCompiler @DesugarPartialApplications
     Scheduler.registerPass @ShellCompiler @DesugarListLiterals
 
-    Scheduler.setAttr @Parser.Source (convert lunafile)
-    Scheduler.runPassByType @Parser.Parser
-    Just r <- fmap (Layout.unsafeRelayout . unwrap) <$> Scheduler.lookupAttr @Parser.Result
-    Scheduler.setAttr $ Root r
-    Scheduler.setAttr $ VisName "before"
-    Scheduler.runPassByType @TestPass
+    Scheduler.setAttr $ Root root
+
     Scheduler.runPassByType @DesugarListLiterals
     Scheduler.runPassByType @DesugarPartialApplications
     Scheduler.runPassByType @RemoveGrouped
     Scheduler.runPassByType @TransformPatterns
     Scheduler.runPassByType @AliasAnalysis
-    Scheduler.setAttr $ VisName "after"
-    Scheduler.runPassByType @TestPass
 
+    Scheduler.setAttr $ VisName $ show root
+    Scheduler.runPassByType @VisPass
 
+visFlow name root = do
+    Scheduler.registerAttr @World
+    Scheduler.enableAttrByType @World
+
+    Scheduler.registerAttr @ModuleMap
+    Scheduler.enableAttrByType @ModuleMap
+
+    Scheduler.registerAttr @UniqueNameGen
+    Scheduler.enableAttrByType @UniqueNameGen
+
+    Scheduler.registerAttr @VisName
+    Scheduler.enableAttrByType @VisName
+
+    Scheduler.registerAttr @Root
+    Scheduler.enableAttrByType @Root
+
+    Scheduler.registerAttr @UnresolvedVariables
+    Scheduler.enableAttrByType @UnresolvedVariables
+
+    Scheduler.registerAttr @Parser.Source
+    Scheduler.enableAttrByType @Parser.Source
+
+    Scheduler.registerAttr @Invalids
+    Scheduler.enableAttrByType @Invalids
+
+    Scheduler.registerAttr @Parser.Result
+    Scheduler.enableAttrByType @Parser.Result
+
+    Scheduler.registerPass @ShellCompiler @VisPass
+    Scheduler.registerPass @ShellCompiler @TestPass
+    Scheduler.registerPass @ShellCompiler @Parser.Parser
+    Scheduler.registerPass @ShellCompiler @RemoveGrouped
+    Scheduler.registerPass @ShellCompiler @AliasAnalysis
+    Scheduler.registerPass @ShellCompiler @TransformPatterns
+    Scheduler.registerPass @ShellCompiler @DesugarPartialApplications
+    Scheduler.registerPass @ShellCompiler @DesugarListLiterals
+
+    Scheduler.setAttr $ Root root
+
+    Scheduler.setAttr $ VisName name
+    Scheduler.runPassByType @VisPass
+
+main :: IO ()
+main = Graph.encodeAndEval @ShellCompiler $ do
+    {-let lunafile :: String = unlines [ "def foo x:"-}
+                                     {-, "    (((((None)))))"-}
+                                     {-, "def bar y:"-}
+                                     {-, "    (((None)))"-}
+                                     {-]-}
+    let lunafilePath = "/Users/marcinkostrzewa/code/luna/stdlib/Std/src/Graphics2D.luna"
+    lunafile <- readFile lunafilePath
+    {-let lunafile :: String = unlines [ "def foo a b c:"-}
+                                     {-, "    x = a: a + b"-}
+                                     {-, "    y = x b"-}
+                                     {-, "    c"-}
+                                     {-]-}
+    (modMap, root) <- Scheduler.evalT $ funDiscoverFlow lunafile
+    asyncs <- for (modMap ^. functions) $ Graph.async @ShellCompiler . Scheduler.evalT . funDesugarFlow . Layout.relayout
+    liftIO $ for_ asyncs Async.wait
+    Scheduler.evalT $ visFlow "after" root
+    return ()
 
 -- stdlibPath :: IO FilePath
 -- stdlibPath = do
@@ -198,3 +314,4 @@ main = Graph.encodeAndEval @ShellCompiler $ Scheduler.evalT $ do
 --                 <> Project.lunaRootEnv
 --                 <> " environment variable"
 --     return stdPath
+
