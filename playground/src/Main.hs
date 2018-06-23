@@ -44,14 +44,20 @@ import Luna.Syntax.Text.Parser.Data.Invalid (Invalids)
 import qualified Data.Graph.Data.Graph.Class          as Graph
 import Data.Graph.Component.Node.Destruction
 
-import Luna.Pass.Transform.Desugar.RemoveGrouped
-import Luna.Pass.Transform.Desugar.TransformPatterns
-import Luna.Pass.Transform.Desugar.DesugarPartialApplications
-import Luna.Pass.Transform.Desugar.DesugarListLiterals
-import Luna.Pass.Resolve.Data.UnresolvedVariables
+import qualified Luna.Pass.Preprocess.PreprocessDef as PreprocessDef
+import qualified Luna.Pass.Resolve.Data.Resolution  as Res
 import Luna.Pass.Resolve.AliasAnalysis
 import Luna.Pass.Data.Root
 import Luna.Pass.Data.UniqueNameGen
+
+import qualified Luna.Pass.Sourcing.UnitLoader as ModLoader
+import qualified Luna.Pass.Sourcing.Data.Unit  as Unit
+import qualified Luna.Pass.Sourcing.Data.Def   as Def
+import qualified Luna.Pass.Sourcing.Data.Class as Class
+import qualified Luna.Pass.Sourcing.UnitMapper as UnitMap
+import qualified Luna.Project as Project
+import qualified Data.Bimap as Bimap
+import qualified Path as Path
 ----------------------
 -- === TestPass === --
 ----------------------
@@ -136,161 +142,53 @@ makeLenses ''ModuleMap
 -- === Testing === --
 ---------------------
 
-funDiscoverFlow src = do
-    Scheduler.registerAttr @World
-    Scheduler.enableAttrByType @World
-
-    Scheduler.registerAttr @ModuleMap
-    Scheduler.enableAttrByType @ModuleMap
-
-    Scheduler.registerAttr @UniqueNameGen
-    Scheduler.enableAttrByType @UniqueNameGen
-
-    Scheduler.registerAttr @VisName
-    Scheduler.enableAttrByType @VisName
-
-    Scheduler.registerAttr @Root
-    Scheduler.enableAttrByType @Root
-
-    Scheduler.registerAttr @UnresolvedVariables
-    Scheduler.enableAttrByType @UnresolvedVariables
-
-    Scheduler.registerAttr @Parser.Source
-    Scheduler.enableAttrByType @Parser.Source
-
-    Scheduler.registerAttr @Invalids
-    Scheduler.enableAttrByType @Invalids
-
-    Scheduler.registerAttr @Parser.Result
-    Scheduler.enableAttrByType @Parser.Result
-
-    Scheduler.registerPass @ShellCompiler @VisPass
-    Scheduler.registerPass @ShellCompiler @TestPass
-    Scheduler.registerPass @ShellCompiler @Parser.Parser
-
-    Scheduler.setAttr @Parser.Source (convert src)
-    Scheduler.runPassByType @Parser.Parser
-    Just r <- fmap (Layout.unsafeRelayout . unwrap) <$> Scheduler.lookupAttr @Parser.Result
-    Scheduler.setAttr $ Root r
-
-    Scheduler.setAttr $ VisName "parsed"
-    Scheduler.runPassByType @VisPass
-
-    Scheduler.runPassByType @TestPass
-
-    Just modmap <- Scheduler.lookupAttr @ModuleMap
-    print modmap
-    return (modmap, r)
-
-funDesugarFlow root = do
-    Scheduler.registerAttr @World
-    Scheduler.enableAttrByType @World
-
-    Scheduler.registerAttr @ModuleMap
-    Scheduler.enableAttrByType @ModuleMap
-
-    Scheduler.registerAttr @UniqueNameGen
-    Scheduler.enableAttrByType @UniqueNameGen
-
-    Scheduler.registerAttr @VisName
-    Scheduler.enableAttrByType @VisName
-
-    Scheduler.registerAttr @Root
-    Scheduler.enableAttrByType @Root
-
-    Scheduler.registerAttr @UnresolvedVariables
-    Scheduler.enableAttrByType @UnresolvedVariables
-
-    Scheduler.registerAttr @Parser.Source
-    Scheduler.enableAttrByType @Parser.Source
-
-    Scheduler.registerAttr @Invalids
-    Scheduler.enableAttrByType @Invalids
-
-    Scheduler.registerAttr @Parser.Result
-    Scheduler.enableAttrByType @Parser.Result
-
-    Scheduler.registerPass @ShellCompiler @VisPass
-    Scheduler.registerPass @ShellCompiler @TestPass
-    Scheduler.registerPass @ShellCompiler @Parser.Parser
-    Scheduler.registerPass @ShellCompiler @RemoveGrouped
-    Scheduler.registerPass @ShellCompiler @AliasAnalysis
-    Scheduler.registerPass @ShellCompiler @TransformPatterns
-    Scheduler.registerPass @ShellCompiler @DesugarPartialApplications
-    Scheduler.registerPass @ShellCompiler @DesugarListLiterals
-
-    Scheduler.setAttr $ Root root
-
-    Scheduler.runPassByType @DesugarListLiterals
-    Scheduler.runPassByType @DesugarPartialApplications
-    Scheduler.runPassByType @RemoveGrouped
-    Scheduler.runPassByType @TransformPatterns
-    Scheduler.runPassByType @AliasAnalysis
-
-    Scheduler.setAttr $ VisName $ show root
-    Scheduler.runPassByType @VisPass
-
-visFlow name root = do
-    Scheduler.registerAttr @World
-    Scheduler.enableAttrByType @World
-
-    Scheduler.registerAttr @ModuleMap
-    Scheduler.enableAttrByType @ModuleMap
-
-    Scheduler.registerAttr @UniqueNameGen
-    Scheduler.enableAttrByType @UniqueNameGen
-
-    Scheduler.registerAttr @VisName
-    Scheduler.enableAttrByType @VisName
-
-    Scheduler.registerAttr @Root
-    Scheduler.enableAttrByType @Root
-
-    Scheduler.registerAttr @UnresolvedVariables
-    Scheduler.enableAttrByType @UnresolvedVariables
-
-    Scheduler.registerAttr @Parser.Source
-    Scheduler.enableAttrByType @Parser.Source
-
-    Scheduler.registerAttr @Invalids
-    Scheduler.enableAttrByType @Invalids
-
-    Scheduler.registerAttr @Parser.Result
-    Scheduler.enableAttrByType @Parser.Result
-
-    Scheduler.registerPass @ShellCompiler @VisPass
-    Scheduler.registerPass @ShellCompiler @TestPass
-    Scheduler.registerPass @ShellCompiler @Parser.Parser
-    Scheduler.registerPass @ShellCompiler @RemoveGrouped
-    Scheduler.registerPass @ShellCompiler @AliasAnalysis
-    Scheduler.registerPass @ShellCompiler @TransformPatterns
-    Scheduler.registerPass @ShellCompiler @DesugarPartialApplications
-    Scheduler.registerPass @ShellCompiler @DesugarListLiterals
-
-    Scheduler.setAttr $ Root root
-
-    Scheduler.setAttr $ VisName name
-    Scheduler.runPassByType @VisPass
-
 main :: IO ()
-main = Graph.encodeAndEval @ShellCompiler $ do
-    {-let lunafile :: String = unlines [ "def foo x:"-}
-                                     {-, "    (((((None)))))"-}
-                                     {-, "def bar y:"-}
-                                     {-, "    (((None)))"-}
-                                     {-]-}
-    let lunafilePath = "/Users/marcinkostrzewa/code/luna/stdlib/Std/src/Graphics2D.luna"
-    lunafile <- readFile lunafilePath
-    {-let lunafile :: String = unlines [ "def foo a b c:"-}
-                                     {-, "    x = a: a + b"-}
-                                     {-, "    y = x b"-}
-                                     {-, "    c"-}
-                                     {-]-}
-    (modMap, root) <- Scheduler.evalT $ funDiscoverFlow lunafile
-    asyncs <- for (modMap ^. functions) $ Graph.async @ShellCompiler . Scheduler.evalT . funDesugarFlow . Layout.relayout
-    liftIO $ for_ asyncs Async.wait
-    Scheduler.evalT $ visFlow "after" root
+main = Graph.encodeAndEval @ShellCompiler $ Scheduler.evalT $ do
+    p <- Path.parseAbsDir "/Users/marcinkostrzewa/code/luna/stdlib/Std"
+    sourcesMap <- fmap Path.toFilePath . Bimap.toMapR <$> Project.findProjectSources p
+    ModLoader.init @ShellCompiler
+    Scheduler.registerAttr @Unit.UnitRefsMap
+    Scheduler.enableAttrByType @Unit.UnitRefsMap
+    ModLoader.loadUnit sourcesMap [] (convert ("Std.OAuth" :: IR.Name))
+    Unit.UnitRefsMap mods <- Scheduler.getAttr
+    print mods
+
+    units <- for mods $ UnitMap.mapUnit @ShellCompiler . view Unit.root
+
+    let unitResolvers   = Map.mapWithKey Res.resolverFromUnit units
+        importResolvers = Map.mapWithKey (Res.resolverForUnit unitResolvers) $ view Unit.imports <$> mods
+
+    for (Map.toList importResolvers) $ \(unitName, resolver) -> do
+        print unitName
+        let Just (Unit.Unit (Def.DefsMap defs) classes) = Map.lookup unitName units
+        for defs $ \(Def.Documented _ fun) -> do
+            PreprocessDef.preprocessDef @ShellCompiler resolver fun
+        for classes $ \(Def.Documented _ (Class.Class _ (Def.DefsMap meths))) -> do
+            for meths $ \(Def.Documented _ fun) -> do
+                PreprocessDef.preprocessDef @ShellCompiler resolver fun
     return ()
+
+
+
+
+
+
+
+
+    {-let [(_, r)] = Map.toList mods-}
+
+    {-Scheduler.setAttr $ Root $ Layout.relayout r-}
+    {-Scheduler.setAttr $ VisName "lel"-}
+    {-Scheduler.registerPass @ShellCompiler @VisPass-}
+    {-Scheduler.runPassByType @VisPass-}
+
+
+    {-for_ mods $ \mod -> do-}
+        {-Scheduler.setAttr $ Root $ Layout.relayout mod-}
+        {-Scheduler.runPassByType @UnitMap.UnitMapper-}
+        {-UnitMap.PartiallyMappedUnit m c <- Scheduler.getAttr-}
+        {-print m-}
+        {-print c-}
 
 -- stdlibPath :: IO FilePath
 -- stdlibPath = do

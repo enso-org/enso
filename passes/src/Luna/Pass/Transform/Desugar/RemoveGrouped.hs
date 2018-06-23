@@ -3,7 +3,6 @@ module Luna.Pass.Transform.Desugar.RemoveGrouped where
 
 import Prologue
 
-import qualified Control.Monad.State            as State
 import qualified Data.Graph.Data.Component.List as ComponentList
 import qualified Data.Set                       as Set
 import qualified Luna.IR                        as IR
@@ -15,10 +14,10 @@ import qualified Luna.Pass.Basic                as Pass
 import Luna.Pass.Data.Root (Root (Root))
 
 
-
 --------------------------------
 -- === RemoveGrouped Pass === --
 --------------------------------
+
 
 data RemoveGrouped
 

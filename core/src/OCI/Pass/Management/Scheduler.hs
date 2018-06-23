@@ -150,6 +150,17 @@ setAttr attr = State.modify_ @State mod where
     mod = attrs %~ Map.insert (Attr.rep @attr) (unsafeCoerce attr)
 {-# INLINE setAttr #-}
 
+getAttr :: ∀ attr m. (MonadScheduler m, Typeable attr) => m attr
+getAttr = do
+    attr <- lookupAttr @attr
+    Exception.fromJust (MissingAttrs [Attr.rep @attr]) attr
+{-# INLINE getAttr #-}
+
+modifyAttr_ :: ∀ attr a m. (MonadScheduler m, Typeable attr)
+           => (attr -> attr) -> m ()
+modifyAttr_ = \f -> setAttr @attr . f =<< getAttr @attr
+{-# INLINE modifyAttr_ #-}
+
 
 -- === Instances === --
 

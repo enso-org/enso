@@ -39,6 +39,8 @@ type family ConsToTag a where
 
 -- === Instances === --
 
+type instance Layout.Default Nodes = ()
+
 type instance Layout.Merge (NodeTag a) (NodeTag b) = Merge__ a b
 type family Merge__ a b where
     Merge__ a a = NodeTag a
