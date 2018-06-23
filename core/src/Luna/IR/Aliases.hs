@@ -30,6 +30,6 @@ pattern IRNumber a b c <- IR.UniTermNumber (IR.Number a b c)
 pattern Record a b c d e <- IR.UniTermRecord (IR.Record a b c d e)
 pattern Metadata a <- IR.UniTermMetadata (IR.Metadata a)
 pattern ImportHub a <- IR.UniTermImportHub (IR.ImportHub a)
-pattern Import doc e <- IR.UniTermImp (IR.Imp doc e)
-pattern ImportSrc a <- IR.UniTermImportSource (IR.ImportSource a)
+pattern Imp doc e <- IR.UniTermImp (IR.Imp doc e)
+pattern ImportSource a <- IR.UniTermImportSource (IR.ImportSource a)
 

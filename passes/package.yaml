@@ -14,7 +14,11 @@ library:
         - base
         - container
         - containers
+        - filepath
+        - luna-exception
         - luna-cpp-containers
+        - luna-syntax-text-parser
+        - luna-syntax-text-model
         - layered-state
         - luna-core
         - luna-debug
