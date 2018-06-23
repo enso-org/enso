@@ -38,7 +38,7 @@ makeLenses ''Value
 -- === API === --
 
 concatValues :: [Value] -> Value
-concatValues = wrap . FastString.concatFS . fmap unwrap ; {-# INLINE concatValues #-}
+concatValues = convert . FastString.concatFS . fmap unwrap ; {-# INLINE concatValues #-}
 
 
 -- === Instances === --
