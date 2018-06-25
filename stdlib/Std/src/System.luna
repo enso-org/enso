@@ -214,3 +214,13 @@ class Platform:
 
 class System:
     def currentPlatform: primPlatform
+
+    # Lookup an environment variable `v`,
+    # returning `Just` result if it exists, `Nothing` otherwise.
+    def lookupEnv v: primLookupEnv v
+
+    # Try to retrieve an evnironment variable `v` and
+    # throw an exception if it fails.
+    def getEnv v: case System.lookupEnv v of
+        Just res: res
+        Nothing: throw ("Environment variable not found: " + v)

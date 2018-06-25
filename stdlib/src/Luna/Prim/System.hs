@@ -20,6 +20,7 @@ import           Luna.Builtin.Data.Function  (Function)
 import           Luna.Builtin.Data.Module    (Imports, getObjectMethodMap)
 import           Luna.Std.Builder            (LTp (..), makeFunctionIO, int, integer)
 
+import           System.Environment          (lookupEnv)
 import           System.Exit                 (ExitCode (ExitFailure, ExitSuccess))
 import           System.Process              (CreateProcess, ProcessHandle, StdStream (CreatePipe, Inherit, NoStream, UseHandle))
 import qualified System.Process              as Process
@@ -49,6 +50,7 @@ exports std = do
         boolT       = LCons "Bool"       []
         noneT       = LCons "None"       []
         textT       = LCons "Text"       []
+        maybeT t    = LCons "Maybe"      [t]
 
     let runProcessVal :: CreateProcess -> IO (Maybe Handle, Maybe Handle, Maybe Handle, ProcessHandle)
         runProcessVal = Process.createProcess
@@ -103,6 +105,10 @@ exports std = do
         hPlatformVal = currentHost
     hPlatform' <- makeFunctionIO (toLunaValue std hPlatformVal) [] (LCons "Platform" [])
 
+    let hLookupEnv :: Text -> IO (Maybe Text)
+        hLookupEnv vName = convert <<$>> lookupEnv (convert vName)
+    hLookupEnv' <- makeFunctionIO (toLunaValue std hLookupEnv) [textT] (maybeT textT)
+
     return $ Map.fromList [ ("primRunProcess", runProcess')
                           , ("primHIsOpen", hIsOpen')
                           , ("primHIsClosed", hIsClosed')
@@ -114,6 +120,7 @@ exports std = do
                           , ("primHSetBuffering", hSetBuffering')
                           , ("primWaitForProcess", waitForProcess')
                           , ("primPlatform", hPlatform')
+                          , ("primLookupEnv", hLookupEnv')
                           ]
 
 instance FromLunaData CreateProcess where
