@@ -40,16 +40,20 @@ import Luna.Syntax.Text.Scope       (Scope)
 -- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 -- FIXME -> take it from Builtin
 -- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-minusName    = "-"
-uminusName   = "#uminus#"
-appName      = "#app#"
-accName      = "."
-lamName      = ":"
-typedName    = "::"
-wildcardName = "_"
-unifyName    = "="
-updateName   = "=" -- #update# ?
-arrowName    = "->"
+minusName       = "-"
+uminusName      = "#uminus#"
+appName         = "#app#"
+accName         = "."
+lamName         = ":"
+typedName       = "::"
+wildcardName    = "_"
+unifyName       = "="
+updateName      = "=" -- #update# ?
+arrowName       = "->"
+
+markerBeginChar, markerEndChar :: String
+markerBeginChar = "«"
+markerEndChar   = "»"
 
 
 data Prettyprint
@@ -315,6 +319,9 @@ prettyprintSimple ir = Layer.read @IR.Model ir >>= \case
                                         <*> (mapM subgenBody =<< ComponentVector.toList ds)
                 where go imps defs = let glue = ""
                         in  imps <> glue <> foldl (</>) mempty defs
+    IR.UniTermMarked (IR.Marked m a) -> unnamed . Atom .: (<>) <$> subgenBody m <*> subgenBody a
+    IR.UniTermMarker (IR.Marker a) -> pure . unnamed . Atom $ convert markerBeginChar <> convert (show a) <> convert markerEndChar
+
 
     IR.UniTermVar (IR.Var name) -> Scope.lookupMultipartName name <&> \case
         Just (n:|ns) -> labeled Nothing $ Mixfix (convert n) ns

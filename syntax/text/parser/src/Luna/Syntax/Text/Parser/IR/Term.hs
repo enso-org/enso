@@ -514,6 +514,9 @@ apps, seqs :: IRBS SomeTerm -> [IRBS SomeTerm] -> IRBS SomeTerm
 apps = foldl' app ; {-# INLINE apps #-}
 seqs = foldl' seq ; {-# INLINE seqs #-}
 
+seqs2 :: NonEmpty (IRBS SomeTerm) -> IRBS SomeTerm
+seqs2 = \(a :| as) -> foldl' seq a as ; {-# INLINE seqs2 #-}
+
 grouped :: Parser (IRBS SomeTerm) -> Parser (IRBS SomeTerm)
 grouped = irbs . parensed . fmap (liftIRBS1 (irb1 IR.grouped')) ; {-# INLINE grouped #-}
 
@@ -763,9 +766,9 @@ accSeg = fmap2 Expr.tokenx $ do
     pure $ SegmentBuilder segment
 
 match :: Parser (IRBS SomeTerm)
-match = irbs $ (\n (p,ps) -> liftIRBS2 (irb2 IR.match') n (sequence $ p:ps))
+match = irbs $ (\n (p :| ps) -> liftIRBS2 (irb2 IR.match') n (sequence $ p:ps))
       <$ symbol Lexer.KwCase <*> nonemptyValExprLocal
-      <* symbol Lexer.KwOf   <*> discover (nonEmptyBlock clause)
+      <* symbol Lexer.KwOf   <*> possibleNonEmptyBlock clause
       where clause = pat <**> lamBldr
 
 pat :: Parser (IRBS SomeTerm)
@@ -774,8 +777,8 @@ pat = Reserved.withLocal Lexer.BlockStart nonemptyValExprLocal
 
 lamBldr :: Parser (IRBS SomeTerm -> IRBS SomeTerm)
 lamBldr = do
-    body <- symbol Lexer.BlockStart *> discover (nonEmptyBlock lineExpr)
-    pure $ flip (inheritCodeSpan2 (irb2 IR.lam')) (uncurry seqs body)
+    body <- symbol Lexer.BlockStart *> possibleNonEmptyBlock lineExpr
+    pure $ flip (inheritCodeSpan2 (irb2 IR.lam')) (seqs2 body)
 
 
 -- === Utils === --
@@ -841,13 +844,13 @@ func = irbs $ funcHdr <**> (funcSig <|> funcDef) where
                   (`elem` [Lexer.BlockStart, Lexer.EOL, Lexer.ETX])
     funcSig     = (\tp name -> liftIRBS2 (irb2 IR.functionSig') name tp)
                <$ symbol Lexer.Typed <*> valExpr
-    funcDef     = (\args body name -> liftIRBS3 (irb3 IR.function') name (sequence args) (uncurry seqs body))
+    funcDef     = (\args body name -> liftIRBS3 (irb3 IR.function') name (sequence args) (seqs2 body))
               <$> many nonSpacedPattern
               <*> withRecovery blockRec block
     block       = symbol Lexer.BlockStart
-               *> discover (nonEmptyBlock lineExpr)
+               *> possibleNonEmptyBlock lineExpr
     -- blockRec :: Int -> Parser ((IRBS SomeTerm),[IRBS SomeTerm])
-    blockRec e  = (,[]) <$> (irbs $ invalid Invalid.FunctionBlock
+    blockRec e  = pure <$> (irbs $ invalid Invalid.FunctionBlock
                <$ optionalBlockAny)
 
             -- withRecovery (\e -> invalid "Invalid string literal" <$ Loc.unregisteredDropSymbolsUntil' (== (Lexer.Quote Lexer.RawStr Lexer.End)))
@@ -867,7 +870,7 @@ record = irbs $ (\nat n args (cs,ds) -> liftIRBS3 (irb5 IR.record' nat n) (seque
 
 recordCons :: Parser (IRBS SomeTerm)
 recordCons = irbs $ (\n fields -> liftIRBS1 (irb2 IR.recordCons' n) (sequence fields)) <$> consName <*> (blockDecl <|> inlineDecl) where
-    blockDecl  = symbol Lexer.BlockStart *> discover (nonEmptyBlock' recordNamedFields)
+    blockDecl  = symbol Lexer.BlockStart *> possibleNonEmptyBlock' recordNamedFields
     inlineDecl = many unnamedField
 
 recordNamedFields :: Parser (IRBS SomeTerm)
@@ -920,7 +923,7 @@ foreignImportList = irbs $
     <$  (symbol Lexer.KwForeign *> symbol Lexer.KwImport)
     <*> foreignLangName
     <*  symbol Lexer.BlockStart
-    <*> discover (nonEmptyBlock' foreignLocationImportList)
+    <*> possibleNonEmptyBlock' foreignLocationImportList
 
 foreignLocationImportList :: Parser (IRBS SomeTerm)
 foreignLocationImportList = irbs $
@@ -928,7 +931,7 @@ foreignLocationImportList = irbs $
         liftIRBS2 (irb2 IR.foreignImportList') loc (sequence imports))
     <$> stringOrVarName
     <*  symbol Lexer.BlockStart
-    <*> discover (nonEmptyBlock' foreignSymbolImport)
+    <*> possibleNonEmptyBlock' foreignSymbolImport
 
 foreignSymbolImport :: Parser (IRBS SomeTerm)
 foreignSymbolImport = irbs $ withRecovery recover
@@ -998,15 +1001,30 @@ unitCls = irbs $ (\ds -> liftIRBS1 (irb5 IR.record' False "" [] [])
 skipEOLs :: Parser ()
 skipEOLs = void $ many eol
 
-discover :: Parser a -> Parser a
-discover p = skipEOLs >> p
+possibleNonEmptyBlock :: Parser a -> Parser (NonEmpty a)
+possibleNonEmptyBlock = \p -> (eol >> skipEOLs >> nonEmptyBlock2 p) <|> (pure <$> p)
+{-# INLINE possibleNonEmptyBlock #-}
+
+possibleNonEmptyBlock' :: Parser a -> Parser [a]
+possibleNonEmptyBlock' = fmap convert . possibleNonEmptyBlock
+{-# INLINE possibleNonEmptyBlock' #-}
 
 discoverIndent :: Parser a -> Parser a
-discoverIndent = discover . Indent.withCurrent
+discoverIndent = discover . Indent.withCurrent where
+    discover p = skipEOLs >> p
 
 nonEmptyBlock', nonEmptyBlockBody' :: Parser a -> Parser [a]
 nonEmptyBlock'     = uncurry (:) <<$>> nonEmptyBlock
 nonEmptyBlockBody' = uncurry (:) <<$>> nonEmptyBlockBody
+
+nonEmptyBlock2 ::  Parser a -> Parser (NonEmpty a)
+nonEmptyBlock2 p = Indent.indented >> Indent.withCurrent (nonEmptyBlockBody2 p)
+
+nonEmptyBlockBody2 ::  Parser a -> Parser (NonEmpty a)
+nonEmptyBlockBody2 p = (:|) <$> p <*> lines where
+    spacing = many eol
+    indent  = spacing <* Indent.indentedEq <* notFollowedBy etx
+    lines   = many $ try indent *> p
 
 nonEmptyBlock , nonEmptyBlockBody  :: Parser a -> Parser (a, [a])
 nonEmptyBlock     p = Indent.indented >> Indent.withCurrent (nonEmptyBlockBody p)

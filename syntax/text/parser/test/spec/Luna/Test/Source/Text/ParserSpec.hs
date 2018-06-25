@@ -376,6 +376,15 @@ caseSpec = describe "case expression" $ do
                                        </> "    B: b"
                                           ) -- [(5,1),(0,1),(2,1),(8,4),(0,1),(2,1),(5,4),(0,27)]
 
+layoutSpec :: Spec
+layoutSpec = describe "layout" $ do
+    it "nested lambda layout" $ expr ("def main:"
+                                  </> "    x = a: b:"
+                                  </> "        a + b"
+                                  </> "        a - b"
+                                  </> "    c"
+                                  )
+
 definitionSpec :: Spec
 definitionSpec = do
     definitionFunctionSpec
@@ -395,6 +404,7 @@ spec = do
     termSpec
     definitionSpec
     fixSpec
+    layoutSpec
     -- pure (s)
 
 
