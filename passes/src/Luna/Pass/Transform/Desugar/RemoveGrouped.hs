@@ -3,6 +3,7 @@ module Luna.Pass.Transform.Desugar.RemoveGrouped where
 
 import Prologue
 
+import qualified Control.Monad.State                 as State
 import qualified Data.Graph.Data.Component.List      as ComponentList
 import qualified Data.Set                            as Set
 import qualified Luna.IR                             as IR

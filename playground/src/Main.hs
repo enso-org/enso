@@ -52,12 +52,6 @@ import Luna.Pass.Resolve.Data.UnresolvedVariables
 import Luna.Pass.Resolve.AliasAnalysis
 import Luna.Pass.Data.Root
 import Luna.Pass.Data.UniqueNameGen
-
-import qualified Luna.Pass.Sourcing.ModuleLoader as ModLoader
-import qualified Luna.Pass.Sourcing.Data.ModulesMap as ModMap
-import qualified Luna.Project as Project
-import qualified Data.Bimap as Bimap
-import qualified Path as Path
 ----------------------
 -- === TestPass === --
 ----------------------
@@ -279,15 +273,23 @@ visFlow name root = do
     Scheduler.runPassByType @VisPass
 
 main :: IO ()
-main = Graph.encodeAndEval @ShellCompiler $ Scheduler.evalT $ do
-    p <- Path.parseAbsDir "/Users/marcinkostrzewa/code/luna/stdlib/Std"
-    sourcesMap <- fmap Path.toFilePath . Bimap.toMapR <$> Project.findProjectSources p
-    ModLoader.init @ShellCompiler
-    Scheduler.registerAttr @ModMap.ModulesMap
-    Scheduler.enableAttrByType @ModMap.ModulesMap
-    ModLoader.loadModule sourcesMap [] (convert ("Std.OAuth" :: IR.Name))
-    ModMap.ModulesMap mods <- Scheduler.getAttr
-    print mods
+main = Graph.encodeAndEval @ShellCompiler $ do
+    {-let lunafile :: String = unlines [ "def foo x:"-}
+                                     {-, "    (((((None)))))"-}
+                                     {-, "def bar y:"-}
+                                     {-, "    (((None)))"-}
+                                     {-]-}
+    let lunafilePath = "/Users/marcinkostrzewa/code/luna/stdlib/Std/src/Graphics2D.luna"
+    lunafile <- readFile lunafilePath
+    {-let lunafile :: String = unlines [ "def foo a b c:"-}
+                                     {-, "    x = a: a + b"-}
+                                     {-, "    y = x b"-}
+                                     {-, "    c"-}
+                                     {-]-}
+    (modMap, root) <- Scheduler.evalT $ funDiscoverFlow lunafile
+    asyncs <- for (modMap ^. functions) $ Graph.async @ShellCompiler . Scheduler.evalT . funDesugarFlow . Layout.relayout
+    liftIO $ for_ asyncs Async.wait
+    Scheduler.evalT $ visFlow "after" root
     return ()
 
 -- stdlibPath :: IO FilePath

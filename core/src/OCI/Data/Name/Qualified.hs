@@ -30,7 +30,7 @@ instance Convertible Qualified Name.Name where
     {-# INLINE convert #-}
 
 instance Convertible [Name.Name] Qualified where
-    convert = convert . Name.concat . intersperse (convert ".")
+    convert ns = convert $ Name.concat $ intersperse (convert ".") ns
     {-# INLINE convert #-}
 
 type instance Item Qualified = Name.Name
