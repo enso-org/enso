@@ -77,15 +77,15 @@ parseError e = if ((length $ snd partitioned) == 0) then fst partitioned else sn
 
 loadLibrary :: String -> IO Handle
 loadLibrary namePattern = do
-    projectDir <- return ""
-    nativeDirs <- (nativeLibs :) <$> findLocalNativeLibsDirs projectDir
+    projectDir <- Dir.getCurrentDirectory
+    nativeDirs <- ((projectDir </> nativeLibs) :) <$> findLocalNativeLibsDirs projectDir
     let possibleNames = [ prefix ++ namePattern ++ extension
                         | prefix    <- ["lib", ""]
                         , extension <- dynamicLibraryExtensions
                         ]
         projectNativeDirectories =
             [ nativeDir </> nativeLibraryProjectDir | nativeDir <- nativeDirs ]
-        possiblePaths = [ dir </> name | dir  <- ("" : projectNativeDirectories)
+        possiblePaths = [ dir </> name | dir  <- projectNativeDirectories
                                        , name <- possibleNames
                         ]
     let library = concat $
@@ -111,7 +111,12 @@ loadLibrary namePattern = do
         Right h -> return h
 
 loadSymbol :: Handle -> String -> IO (FunPtr a)
-loadSymbol handle symbol = nativeLoadSymbol handle symbol
+loadSymbol handle symbol = do
+    result <- tryAny $ nativeLoadSymbol handle symbol
+    case result of
+        Left  e -> throwM $ NativeLibraryLoadingException symbol [(displayException e)]
+        Right h -> return h
+
 
 closeLibrary :: Handle -> IO ()
 closeLibrary handle = return ()
@@ -119,7 +124,9 @@ closeLibrary handle = return ()
 
 #if mingw32_HOST_OS
 nativeLoadLibrary :: String -> IO Handle
-nativeLoadLibrary library = Win32.loadLibrary library
+nativeLoadLibrary library =
+    Win32.loadLibraryEx library Foreign.nullPtr Win32.lOAD_WITH_ALTERED_SEARCH_PATH
+
 
 nativeLoadSymbol :: Handle -> String -> IO (FunPtr a)
 nativeLoadSymbol handle symbol = Foreign.castPtrToFunPtr <$> Win32.getProcAddress handle symbol
