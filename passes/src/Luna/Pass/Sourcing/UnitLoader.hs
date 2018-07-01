@@ -23,7 +23,7 @@ import qualified Luna.Syntax.Text.Source              as Parser
 
 import Control.Monad.Exception              (MonadException)
 import Luna.Pass.Data.Root
-import Luna.Pass.Sourcing.Data.Unit
+import Luna.Pass.Sourcing.Data.Unit as Unit
 import Luna.Pass.Sourcing.ImportsPlucker
 
 type UnitRequestStack = [IR.Qualified]
@@ -93,7 +93,7 @@ loadUnit sourcesMap stack modName = do
 
     imports <- Scheduler.getAttr @Imports
 
-    let unitRef = UnitRef root imports
+    let unitRef = UnitRef (Unit.Graph root) imports
     Scheduler.modifyAttr_ @UnitRefsMap $ wrapped . at modName .~ Just unitRef
 
     traverse_ (loadUnitIfMissing sourcesMap (modName : stack)) (unwrap imports)

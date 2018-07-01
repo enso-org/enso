@@ -1,0 +1,104 @@
+name:       luna-stdlib
+version:    "0.1"
+author:     Luna Team <contact@luna-lang.org>
+maintainer: Luna Team <contact@luna-lang.org>
+
+library:
+    source-dirs:
+        - src
+    other-modules: Paths_luna_stdlib
+
+when:
+    - condition: os(windows)
+      then:
+          dependencies: Win32
+      else:
+          dependencies: unix
+
+dependencies:
+    - async
+    - base
+    - bytestring
+    - containers
+    - case-insensitive
+    - deepseq
+    - directory
+    - errors
+    - libffi
+    - luna-core
+    - mtl
+    - transformers
+    - filepath
+    - safe
+    - safe-exceptions
+    - exceptions
+    - typelevel
+    - lens
+    - luna-passes
+    - luna-runtime
+    - text
+    - scientific
+    - unordered-containers
+    - aeson
+    - http-client
+    - http-client-tls
+    - http-conduit
+    - http-types
+    - uuid
+    - process
+    - data-msgpack
+    - time
+    - prologue
+    - random
+    - authenticate-oauth
+    - network
+    - websockets
+    - wuss
+
+default-extensions:
+    - AllowAmbiguousTypes
+    - ApplicativeDo
+    - Arrows
+    - BangPatterns
+    - BinaryLiterals
+    - ConstraintKinds
+    - DataKinds
+    - DefaultSignatures
+    - DeriveDataTypeable
+    - DeriveFoldable
+    - DeriveFunctor
+    - DeriveGeneric
+    - DeriveTraversable
+    - DoAndIfThenElse
+    - DuplicateRecordFields
+    - EmptyDataDecls
+    - FlexibleContexts
+    - FlexibleInstances
+    - FunctionalDependencies
+    - GeneralizedNewtypeDeriving
+    - InstanceSigs
+    - LambdaCase
+    - MonadComprehensions
+#    - MonadFailDesugaring
+    - MultiWayIf
+    - NamedWildCards
+    - NegativeLiterals
+    - NoImplicitPrelude
+    - NumDecimals
+    - OverloadedLabels
+    - PackageImports
+    - QuasiQuotes
+    - RankNTypes
+    - RecursiveDo
+    - ScopedTypeVariables
+    - StandaloneDeriving
+    - TemplateHaskell
+    - TupleSections
+    - TypeApplications
+    - TypeFamilies
+    - TypeFamilyDependencies
+    - TypeOperators
+    - ViewPatterns
+
+    - LiberalTypeSynonyms
+    - RelaxedPolyRec

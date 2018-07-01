@@ -382,9 +382,11 @@ instance
          $ GTraversable.gmapM @ctx (redirectPointers f)
 
 instance Applicative m => PointerRedirection m (SmallVectorA t alloc n IR.Name)
+instance Applicative m => PointerRedirection m (SmallVectorA t alloc n IR.Qualified)
 instance Applicative m => PointerRedirection m (SmallVectorA t alloc n Char)
 instance Applicative m => PointerRedirection m (SmallVectorA t alloc n Word8)
 instance Applicative m => PointerRedirection m IR.Name
+instance Applicative m => PointerRedirection m IR.Qualified
 instance Applicative m => PointerRedirection m IR.ForeignImportType
 instance Applicative m => PointerRedirection m IR.ImportSourceData
 instance Applicative m => PointerRedirection m IR.ImportTargetData
@@ -483,6 +485,9 @@ instance MonadIO m => Mutable.UnswizzleRelTo m (ComponentVectorA alloc tag layou
 instance Applicative m => Mutable.UnswizzleRelTo m (SmallVectorA t alloc n IR.Name) where
     unswizzleRelTo = \_ a -> pure a
 
+instance Applicative m => Mutable.UnswizzleRelTo m (SmallVectorA t alloc n IR.Qualified) where
+    unswizzleRelTo = \_ a -> pure a
+
 instance Applicative m => Mutable.UnswizzleRelTo m (Component comp layout) where
     unswizzleRelTo = \ptr comp -> do
         let compPtr = Component.unsafeToPtr comp
@@ -503,6 +508,7 @@ instance Applicative m => Mutable.UnswizzleRelTo m (Word16) where unswizzleRelTo
 instance Applicative m => Mutable.UnswizzleRelTo m (Word32) where unswizzleRelTo = \_ a -> pure a
 instance Applicative m => Mutable.UnswizzleRelTo m (Word64) where unswizzleRelTo = \_ a -> pure a
 instance Applicative m => Mutable.UnswizzleRelTo m (IR.Name) where unswizzleRelTo = \_ a -> pure a
+instance Applicative m => Mutable.UnswizzleRelTo m (IR.Qualified) where unswizzleRelTo = \_ a -> pure a
 instance Applicative m => Mutable.UnswizzleRelTo m (IR.ForeignImportType) where unswizzleRelTo = \_ a -> pure a
 instance Applicative m => Mutable.UnswizzleRelTo m (Bool) where unswizzleRelTo = \_ a -> pure a
 instance Applicative m => Mutable.UnswizzleRelTo m (InvalidIR.Symbol) where unswizzleRelTo = \_ a -> pure a
@@ -1106,9 +1112,11 @@ instance
          $ GTraversable.gmapM @ctx (redirectPointers_2 f)
 
 instance Applicative m => PointerRedirection_2 m (SmallVectorA t alloc n IR.Name)
+instance Applicative m => PointerRedirection_2 m (SmallVectorA t alloc n IR.Qualified)
 instance Applicative m => PointerRedirection_2 m (SmallVectorA t alloc n Char)
 instance Applicative m => PointerRedirection_2 m (SmallVectorA t alloc n Word8)
 instance Applicative m => PointerRedirection_2 m IR.Name
+instance Applicative m => PointerRedirection_2 m IR.Qualified
 instance Applicative m => PointerRedirection_2 m IR.ForeignImportType
 instance Applicative m => PointerRedirection_2 m IR.ImportSourceData
 instance Applicative m => PointerRedirection_2 m IR.ImportTargetData

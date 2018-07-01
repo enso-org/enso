@@ -15,6 +15,8 @@ executables:
       - luna-core
       - luna-passes
       - luna-project
+      - luna-runtime
+      - luna-stdlib
       - luna-syntax-text-lexer
       - luna-syntax-text-model
       - luna-syntax-text-parser

@@ -55,9 +55,17 @@ import qualified Luna.Pass.Sourcing.Data.Unit  as Unit
 import qualified Luna.Pass.Sourcing.Data.Def   as Def
 import qualified Luna.Pass.Sourcing.Data.Class as Class
 import qualified Luna.Pass.Sourcing.UnitMapper as UnitMap
+import qualified Luna.Pass.Evaluation.Interpreter as Interpreter
+import qualified Luna.Pass.Evaluation.EvaluateUnits as EvaluateUnits
 import qualified Luna.Project as Project
 import qualified Data.Bimap as Bimap
 import qualified Path as Path
+
+import qualified Luna.Runtime.Data.Future as Future
+import qualified Luna.Runtime as Runtime
+import qualified Luna.Std as Std
+
+import qualified Luna.Pass.Preprocess.PreprocessUnit as PreprocessUnit
 ----------------------
 -- === TestPass === --
 ----------------------
@@ -144,51 +152,35 @@ makeLenses ''ModuleMap
 
 main :: IO ()
 main = Graph.encodeAndEval @ShellCompiler $ Scheduler.evalT $ do
-    p <- Path.parseAbsDir "/Users/marcinkostrzewa/code/luna/stdlib/Std"
-    sourcesMap <- fmap Path.toFilePath . Bimap.toMapR <$> Project.findProjectSources p
+    pstd <- Path.parseAbsDir "/Users/marcinkostrzewa/code/luna-core/stdlib/Std"
+    ptest <- Path.parseAbsDir "/Users/marcinkostrzewa/luna/projects/OpenCV"
+    stdSourcesMap <- fmap Path.toFilePath . Bimap.toMapR <$> Project.findProjectSources pstd
+    testSourcesMap <- fmap Path.toFilePath . Bimap.toMapR <$> Project.findProjectSources ptest
     ModLoader.init @ShellCompiler
+    (finalize, stdUnitRef) <- liftIO Std.stdlib
     Scheduler.registerAttr @Unit.UnitRefsMap
-    Scheduler.enableAttrByType @Unit.UnitRefsMap
-    ModLoader.loadUnit sourcesMap [] (convert ("Std.OAuth" :: IR.Name))
+    Scheduler.setAttr $ Unit.UnitRefsMap $ Map.singleton "Std.Primitive" stdUnitRef
+    ModLoader.loadUnit (Map.union stdSourcesMap testSourcesMap) [] "OpenCV.Main"
+    for Std.stdlibImports $
+        ModLoader.loadUnit (Map.union stdSourcesMap testSourcesMap) []
     Unit.UnitRefsMap mods <- Scheduler.getAttr
-    print mods
 
-    units <- for mods $ UnitMap.mapUnit @ShellCompiler . view Unit.root
+    units <- for mods $ \u -> case u ^. Unit.root of
+        Unit.Graph r -> UnitMap.mapUnit @ShellCompiler r
+        Unit.Precompiled u -> pure u
 
     let unitResolvers   = Map.mapWithKey Res.resolverFromUnit units
-        importResolvers = Map.mapWithKey (Res.resolverForUnit unitResolvers) $ view Unit.imports <$> mods
+        importResolvers = Map.mapWithKey (Res.resolverForUnit unitResolvers) $ over wrapped ("Std.Base" :) . over wrapped ("Std.Primitive" :) . view Unit.imports <$> mods
 
     for (Map.toList importResolvers) $ \(unitName, resolver) -> do
-        print unitName
-        let Just (Unit.Unit (Def.DefsMap defs) classes) = Map.lookup unitName units
-        for defs $ \(Def.Documented _ fun) -> do
-            PreprocessDef.preprocessDef @ShellCompiler resolver fun
-        for classes $ \(Def.Documented _ (Class.Class _ (Def.DefsMap meths))) -> do
-            for meths $ \(Def.Documented _ fun) -> do
-                PreprocessDef.preprocessDef @ShellCompiler resolver fun
+        let Just unit = Map.lookup unitName units
+        PreprocessUnit.preprocessUnit @ShellCompiler resolver unit
+
+    computedUnits <- EvaluateUnits.evaluateUnits @ShellCompiler units
+    fun <- Runtime.lookupSymbol computedUnits "OpenCV.Main" "main"
+    liftIO $ Runtime.runIO fun
+
     return ()
-
-
-
-
-
-
-
-
-    {-let [(_, r)] = Map.toList mods-}
-
-    {-Scheduler.setAttr $ Root $ Layout.relayout r-}
-    {-Scheduler.setAttr $ VisName "lel"-}
-    {-Scheduler.registerPass @ShellCompiler @VisPass-}
-    {-Scheduler.runPassByType @VisPass-}
-
-
-    {-for_ mods $ \mod -> do-}
-        {-Scheduler.setAttr $ Root $ Layout.relayout mod-}
-        {-Scheduler.runPassByType @UnitMap.UnitMapper-}
-        {-UnitMap.PartiallyMappedUnit m c <- Scheduler.getAttr-}
-        {-print m-}
-        {-print c-}
 
 -- stdlibPath :: IO FilePath
 -- stdlibPath = do

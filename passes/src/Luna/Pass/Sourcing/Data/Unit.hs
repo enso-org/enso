@@ -22,9 +22,10 @@ type instance Attr.Type Imports = Attr.Atomic
 instance Default Imports where
     def = Imports def
 
+data UnitLocation = Graph (IR.Term IR.Unit) | Precompiled Unit deriving Show
 
 data UnitRef = UnitRef
-    { _root    :: IR.Term IR.Unit
+    { _root    :: UnitLocation
     , _imports :: Imports
     } deriving Show
 

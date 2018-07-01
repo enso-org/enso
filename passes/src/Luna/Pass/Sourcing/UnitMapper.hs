@@ -14,6 +14,7 @@ import qualified Luna.Pass                           as Pass
 import qualified Luna.Pass.Attr                      as Attr
 import qualified Luna.Pass.Basic                     as Pass
 import qualified Luna.Pass.Scheduler                 as Scheduler
+import qualified Luna.Pass.Sourcing.Data.Def         as Def
 import qualified Luna.Pass.Sourcing.Utils            as Sourcing
 
 import Data.Map (Map)
@@ -67,7 +68,8 @@ registerDecl map t = do
         Uni.Function n _ _ -> do
             IR.source n >>= Layer.read @IR.Model >>= \case
                 Uni.Var name -> do
-                    let documented = Documented doc (Layout.unsafeRelayout root)
+                    let documented =
+                          Documented doc (Def.Body $ Layout.unsafeRelayout root)
                     return $ map & defs . wrapped . at name .~ Just documented
                 _ -> return map
         Uni.Record _ n _ _ _ -> do

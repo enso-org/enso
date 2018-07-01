@@ -9,11 +9,9 @@ import qualified Prologue as P
 import qualified Data.Char                             as Char
 import qualified Data.Graph.Component.Node.Class       as Term
 import qualified Data.Mutable.Storable.SmallAutoVector as SmallVector
-import qualified Data.Vector.Storable.Foreign          as Vector
 import qualified Luna.IR.Term.Format                   as Format
 import qualified OCI.IR.Term.Definition                as Term
 
-import Data.Vector.Storable.Foreign (Vector)
 import OCI.IR.Term.Class            (Terms)
 import OCI.IR.Term.Definition       (LinksTo)
 
@@ -58,9 +56,28 @@ prettyShow (Number base intPart fracPart) = do
               16 -> "0x"
               _  -> error "unsupported base"
 
+isInteger :: MonadIO m => Term.Constructor Number a -> m Bool
+isInteger (Number _ _ fracPart) = null <$> SmallVector.toList fracPart
+{-# INLINE isInteger #-}
 
+toInteger :: MonadIO m => Term.Constructor Number a -> m Integer
+toInteger (Number base' digits' _) = do
+    digits <- fromIntegral <<$>> SmallVector.toList digits'
+    let base = fromIntegral base'
+    return $ sum $ zipWith (\digit pow -> digit * base ^ pow)
+                           (reverse digits)
+                           [0..]
 
-
+toDouble :: MonadIO m => Term.Constructor Number a -> m Double
+toDouble (Number base' int' frac') = do
+    let base = fromIntegral base'
+    int  <- fromIntegral <<$>> SmallVector.toList int'
+    frac <- fromIntegral <<$>> SmallVector.toList frac'
+    let intPart = sum $ zipWith (\digit pow -> digit * base ^^ pow)
+                                (reverse int)
+                                [0..]
+        fracPart = sum $ zipWith (\digit pow -> digit / base ^^ pow) frac [1..]
+    return $ intPart + fracPart
 
 
 

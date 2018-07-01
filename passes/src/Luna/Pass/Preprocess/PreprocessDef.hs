@@ -29,10 +29,8 @@ import Luna.Pass.Transform.Desugar.DesugarPartialApplications (DesugarPartialApp
 import Luna.Pass.Transform.Desugar.RemoveGrouped              (RemoveGrouped)
 import Luna.Pass.Transform.Desugar.TransformPatterns          (TransformPatterns)
 
-
-preprocessDef :: forall stage m.
-    ( Scheduler.MonadScheduler m
-    , Scheduler.PassRegister stage DesugarListLiterals        m
+type Ctx stage m =
+    ( Scheduler.PassRegister stage DesugarListLiterals        m
     , Scheduler.PassRegister stage DesugarPartialApplications m
     , Scheduler.PassRegister stage RemoveGrouped              m
     , Scheduler.PassRegister stage TransformPatterns          m
@@ -46,6 +44,11 @@ preprocessDef :: forall stage m.
     , Pass.Definition stage AliasAnalysis
     , Pass.Definition stage DefResolution
     , Pass.Definition stage ConsResolution
+    )
+
+preprocessDef :: forall stage m.
+    ( Ctx stage m
+    , Scheduler.MonadScheduler m
     ) => UnitResolver -> IR.Term IR.Function -> m ()
 preprocessDef resolver root = do
     Scheduler.registerPass @stage @DesugarListLiterals

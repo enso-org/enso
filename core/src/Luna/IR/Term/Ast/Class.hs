@@ -79,12 +79,8 @@ GTraversable.derive ''ForeignImportType
 
 Term.define [d|
  data Ast
-<<<<<<< HEAD
     = AccSection   { path     :: Vec16 Name                                   }
-=======
-    = AccSection   { path     :: Vector Name                                   }
     | Cons         { name     :: Name         , args  :: LinksTo Terms         }
->>>>>>> 78368c2... Module loading and resolution
     | Disabled     { body     :: LinkTo Terms                                  }
     | Documented   { doc      :: Vec16  Char  , base   :: LinkTo  Terms        }
     | Function     { name     :: LinkTo Terms , args   :: LinksTo Terms

@@ -4,17 +4,19 @@ module Luna.Pass.Sourcing.ClassProcessor where
 
 import Prologue
 
-import qualified Data.Graph.Data.Component.Vector    as ComponentVector
-import qualified Data.Graph.Data.Layer.Layout        as Layout
-import qualified Data.Map                            as Map
-import qualified Data.Vector.Storable.Foreign        as Vector
-import qualified Luna.IR                             as IR
-import qualified Luna.IR.Aliases                     as Uni
-import qualified Luna.IR.Layer                       as Layer
-import qualified Luna.Pass                           as Pass
-import qualified Luna.Pass.Attr                      as Attr
-import qualified Luna.Pass.Basic                     as Pass
-import qualified Luna.Pass.Sourcing.Utils            as Sourcing
+import qualified Data.Graph.Data.Component.Vector      as ComponentVector
+import qualified Data.Graph.Data.Layer.Layout          as Layout
+import qualified Data.Map                              as Map
+import qualified Data.Mutable.Storable.SmallAutoVector as SmallVector
+import qualified Data.Vector.Storable.Foreign          as Vector
+import qualified Luna.IR                               as IR
+import qualified Luna.IR.Aliases                       as Uni
+import qualified Luna.IR.Layer                         as Layer
+import qualified Luna.Pass                             as Pass
+import qualified Luna.Pass.Attr                        as Attr
+import qualified Luna.Pass.Basic                       as Pass
+import qualified Luna.Pass.Sourcing.Data.Def           as Def
+import qualified Luna.Pass.Sourcing.Utils              as Sourcing
 
 import Data.Map (Map)
 import Luna.Pass.Data.Root
@@ -88,7 +90,7 @@ generateGetter consName fieldsCount fieldPos fieldName = do
     clause     <- IR.lam clauseCons retVar
     match      <- IR.match selfVar [clause]
     getter     <- IR.function funName [] match
-    doc        <- Vector.fromList "Field getter"
+    doc        <- SmallVector.fromList "Field getter"
     documented <- IR.documented doc getter
     return $ Layout.relayout documented
 
@@ -106,7 +108,7 @@ registerFields :: Pass.Interface ClassProcessor m
                => Fields -> IR.SomeTerm -> m Fields
 registerFields fs root = Layer.read @IR.Model root >>= \case
     Uni.RecordFields ns _ -> do
-        names <- Vector.toList ns
+        names <- SmallVector.toList ns
         let fields = if null names then [Nothing] else Just <$> names
         return $ fs <> fields
     _ -> return fs
@@ -135,7 +137,7 @@ registerMethod map t = do
                 Uni.Var name -> do
                     newRoot <- addSelf $ Layout.unsafeRelayout root
                     IR.replace newRoot root
-                    let documented = Documented doc newRoot
+                    let documented = Documented doc (Def.Body newRoot)
                     return $ map & wrapped . at name .~ Just documented
                 _ -> return map
         _ -> return map

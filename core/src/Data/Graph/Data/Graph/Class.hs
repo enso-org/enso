@@ -149,6 +149,11 @@ async :: ∀ graph m a. (Monad graph m, MonadIO m)
 async m = liftIO . Async.async . eval m =<< getState
 {-# INLINE async #-}
 
+local :: ∀ graph m a. (Monad graph m, MonadIO m)
+      => GraphT graph IO a -> m a
+local m = liftIO . eval m =<< getState
+{-# INLINE local #-}
+
 ----------------------
 -- === Encoders === --
 ----------------------

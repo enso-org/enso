@@ -73,7 +73,7 @@ buildResolvedCons positive term (ConsRef unit cls cons) = do
         let arity = cons ^. Class.arity
         args <- sequence $ take arity $ repeat (IR.var =<< NameGen.generateName)
         newCons <- IR.resolvedCons' unit cls n args
-        foldM (flip IR.lam') newCons args
+        foldM (flip IR.lam') newCons $ reverse args
     else do
         args <- traverse IR.source =<< ComponentVector.toList as
         IR.resolvedCons' unit cls n args
