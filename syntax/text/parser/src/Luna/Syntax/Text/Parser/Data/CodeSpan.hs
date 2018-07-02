@@ -107,7 +107,7 @@ instance Semigroup CodeSpan where
 
 instance Layer CodeSpan where
     type Cons  CodeSpan = Layer.Simple CodeSpan
-    manager = Layer.customStaticManager (Layer.Simple mempty)
+    manager = Layer.customStaticManager (pure $ Layer.Simple mempty)
 
 
 

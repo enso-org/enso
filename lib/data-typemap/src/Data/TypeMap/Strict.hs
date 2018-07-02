@@ -48,6 +48,17 @@ type Prependable t ts = ( Tuple.Prepended t (Tuple.FromList ts)
 prepend :: Prependable t ts => t -> TypeMap ts -> TypeMap (t ': ts)
 prepend t tm = wrap $ Tuple.prepend t (unwrap tm) ; {-# INLINE prepend #-}
 
+type SplitHead t ts =
+    ( Tuple.Head (Tuple.FromList (t ': ts)) ~ t
+    , Tuple.Tail (Tuple.FromList (t ': ts)) ~ Tuple.FromList ts
+    , Tuple.HeadGetter (Tuple.FromList (t ': ts))
+    , Tuple.TailGetter (Tuple.FromList (t ': ts))
+    )
+
+splitHead :: SplitHead t ts => TypeMap (t ': ts) -> (t, TypeMap ts)
+splitHead = \tm -> wrap <$> Tuple.splitHead (unwrap tm)
+{-# INLINE splitHead #-}
+
 
 -- === SetElemsFromList === --
 

@@ -18,6 +18,7 @@ library:
         - src
     dependencies:
         - base
+        - convert
         - luna-foreign-utils
         - luna-typelevel
         - prologue >= 3.0.0

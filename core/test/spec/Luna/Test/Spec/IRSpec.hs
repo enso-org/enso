@@ -8,6 +8,7 @@ import Prologue
 import Test.Hspec.Expectations.Lifted
 
 import qualified Control.Monad.Exception               as Exception
+import qualified Data.Generics.Traversable             as GTraversable
 import qualified Data.Graph.Component.Edge.Class       as Edge
 import qualified Data.Graph.Data.Component.Set         as PtrSet
 import qualified Data.Graph.Data.Graph.Class           as Graph
@@ -19,9 +20,10 @@ import qualified Data.Graph.Fold.SubTree               as Traversal
 import qualified Data.Graph.Fold.SubTree               as SubTree
 import qualified Data.Graph.Store                      as Store
 import qualified Data.Graph.Store.Size.Discovery       as Size
+import qualified Data.Mutable.Class                    as Mutable
+import qualified Data.Mutable.Storable.SmallAutoVector as SmallVector
+import qualified Data.Mutable.Storable.SmallSet        as SmallSet
 import qualified Data.Set                              as StdSet
-import qualified Data.Set.Mutable.Class                as Set
-import qualified Data.SmallAutoVector.Mutable.Storable as SmallVector
 import qualified Data.Vector.Storable.Foreign          as Vector
 import qualified Foreign.Marshal.Alloc                 as Mem
 import qualified Foreign.Storable.Utils                as Storable
@@ -32,8 +34,11 @@ import qualified Luna.Pass.Attr                        as Attr
 import qualified Luna.Pass.Basic                       as Pass
 import qualified Luna.Pass.Scheduler                   as Scheduler
 
+import qualified Data.Graph.Store.Buffer  as Buffer
+import qualified Luna.IR.Term.Ast.Invalid as InvalidIR
+
 import Data.Graph.Data.Graph.Class           (Graph)
-import Data.SmallAutoVector.Mutable.Storable (SmallVector)
+import Data.Mutable.Storable.SmallAutoVector (SmallVector, UnmanagedSmallVector)
 import Luna.Pass                             (Pass)
 import Luna.Pass.Basic                       (Compilation)
 import Test.Hspec                            (Spec, describe, it)
@@ -145,8 +150,8 @@ irCreationSpec = describe "ir creation" $ do
         v2           <- IR.var "b"
         u1           <- IR.unify v1 v2
         IR.Unify l r <- IR.model u1
-        v1_users     <- Set.toList =<< Layer.read @IR.Users v1
-        v2_users     <- Set.toList =<< Layer.read @IR.Users v2
+        v1_users     <- Mutable.toList =<< Layer.read @IR.Users v1
+        v2_users     <- Mutable.toList =<< Layer.read @IR.Users v2
         v1_users `shouldBe` [Layout.relayout l]
         v2_users `shouldBe` [Layout.relayout r]
 
@@ -190,85 +195,182 @@ irDiscoverySpec = describe "traversal" $ do
 --         1 `shouldBe` 1
 
 
-type MyVec = SmallVector 16 Int
-
 testVec :: Spec
-testVec = describe "test" $ it "test" $ do
+testVec = describe "test" $ it "vec" $ do
     print ""
-    (print "---" :: IO ())
-    (vec :: MyVec) <- SmallVector.new
-    print =<< SmallVector.length vec
-    SmallVector.pushBack vec 8
+    (print "--- vec ---" :: IO ())
+    (a :: UnmanagedSmallVector 0 Int) <- Mutable.new
+    print =<< SmallVector.elemsPtr a
+    print =<< Mutable.size a
+    Mutable.pushBack a 8
     print "--"
-    print =<< SmallVector.elemsPtr vec
-    print =<< SmallVector.length vec
-    print =<< SmallVector.size vec
-    print =<< SmallVector.unsafeRead vec 0
-    SmallVector.pushBack vec 7
+    print a
+    print =<< SmallVector.elemsPtr a
+    print =<< Mutable.size a
+    print =<< Mutable.capacity a
+    print =<< Mutable.unsafeRead a 0
+    Mutable.pushBack a 7
     print "--"
-    print =<< SmallVector.elemsPtr vec
-    print =<< SmallVector.length vec
-    print =<< SmallVector.size vec
-    print =<< SmallVector.unsafeRead vec 0
-    print =<< SmallVector.unsafeRead vec 1
-    SmallVector.pushBack vec 6
+    print =<< SmallVector.elemsPtr a
+    print =<< Mutable.size a
+    print =<< Mutable.capacity a
+    print =<< Mutable.unsafeRead a 0
+    print =<< Mutable.unsafeRead a 1
+    Mutable.pushBack a 6
     print "--"
-    print =<< SmallVector.elemsPtr vec
-    print =<< SmallVector.length vec
-    print =<< SmallVector.size vec
-    print =<< SmallVector.unsafeRead vec 0
-    print =<< SmallVector.unsafeRead vec 1
-    print =<< SmallVector.unsafeRead vec 2
-    SmallVector.pushBack vec 5
-    SmallVector.pushBack vec 4
-    SmallVector.pushBack vec 3
-    SmallVector.pushBack vec 2
-    SmallVector.pushBack vec 1
-    SmallVector.pushBack vec 10
+    print =<< SmallVector.elemsPtr a
+    print =<< Mutable.size a
+    print =<< Mutable.capacity a
+    print =<< Mutable.unsafeRead a 0
+    print =<< Mutable.unsafeRead a 1
+    print =<< Mutable.unsafeRead a 2
+    Mutable.pushBack a 5
+    Mutable.pushBack a 4
+    Mutable.pushBack a 3
+    Mutable.pushBack a 2
+    Mutable.pushBack a 1
+    Mutable.pushBack a 10
     print "--"
-    print =<< SmallVector.elemsPtr vec
-    print =<< SmallVector.length vec
-    print =<< SmallVector.size vec
-    print =<< SmallVector.unsafeRead vec 0
-    print =<< SmallVector.unsafeRead vec 1
-    print =<< SmallVector.unsafeRead vec 2
-    print =<< SmallVector.unsafeRead vec 3
-    print =<< SmallVector.unsafeRead vec 4
-    print =<< SmallVector.unsafeRead vec 5
-    print =<< SmallVector.unsafeRead vec 6
-    print =<< SmallVector.unsafeRead vec 7
-    print =<< SmallVector.unsafeRead vec 8
+    print =<< SmallVector.elemsPtr a
+    print =<< Mutable.size a
+    print =<< Mutable.capacity a
+    print =<< Mutable.unsafeRead a 0
+    print =<< Mutable.unsafeRead a 1
+    print =<< Mutable.unsafeRead a 2
+    print =<< Mutable.unsafeRead a 3
+    print =<< Mutable.unsafeRead a 4
+    print =<< Mutable.unsafeRead a 5
+    print =<< Mutable.unsafeRead a 6
+    print =<< Mutable.unsafeRead a 7
+    print =<< Mutable.unsafeRead a 8
+
+    True `shouldBe` False
+
+
+testSet :: Spec
+testSet = describe "test" $ it "set" $ do
+    print ""
+    (print "--- set ---" :: IO ())
+    (a :: SmallSet.SmallSet 2 Int) <- Mutable.new
+    print =<< Mutable.size a
+    Mutable.insert a 8
+    print "--"
+    print =<< Mutable.size a
+    print =<< Mutable.capacity a
+    print a
+    Mutable.insert a 7
+    print "--"
+    print =<< Mutable.size a
+    print =<< Mutable.capacity a
+    print a
+    Mutable.insert a 6
+    Mutable.remove a 7
+    Mutable.insert a 8
+    print "--"
+    print =<< Mutable.size a
+    print =<< Mutable.capacity a
+    print a
+    Mutable.insert a 5
+    Mutable.insert a 4
+    Mutable.insert a 3
+    Mutable.insert a 2
+    Mutable.insert a 1
+    Mutable.insert a 10
+    print "--"
+    print =<< Mutable.size a
+    print =<< Mutable.capacity a
+    print a
 
     True `shouldBe` False
 
 test :: Spec
 test = describe "test" $ it "test" $ runPass' $ do
 
-    v <- IR.var "a"
-    v2 <- IR.var "a"
-    vn <- Vector.fromList ["foo", "bar", "baz"]
+    print "=============="
+    print "=============="
+    print "=============="
 
-    print "vvvvvvvvvv"
+    v  <- IR.var "a"
+
+    vn <- Mutable.fromList ["foo", "bar", "baz"]
     u <- IR.update v vn v
-    print "^^^^^^^^^^"
+    IR.Update vu1 _ vu2 <- IR.model u
 
-    print $ ": v  = " <> show v
-    print $ ": v2 = " <> show v2
-    print $ ": u  = " <> show u
 
-    users <- Layer.read @IR.Users v
-    tp    <- Layer.read @IR.Type v
-    print $ "tp: " <> show tp
-    print =<< PtrSet.toList users
-    print =<< PtrSet.size   users
-    print "***"
-    print =<< Size.discover u
-    True `shouldBe` True
+
+
+    -- users <- Layer.read @IR.Users v
+    putStrLn "\n=== elements ==="
+    vtpl    <- Layer.read @IR.Type v
+    vtp     <- Layer.read @IR.Source vtpl
+    vttpl   <- Layer.read @IR.Type vtp
+
+    putStrLn $ ": v     = " <> show v
+    putStrLn $ ": u     = " <> show u
+    putStrLn $ ": vu1   = " <> show vu1
+    putStrLn $ ": vu2   = " <> show vu2
+    putStrLn $ ": vtpl  = " <> show vtpl
+    putStrLn $ ": vtp   = " <> show vtp
+    putStrLn $ ": vttpl = " <> show vttpl
+
+
+    -- print $ "tp: " <> show tp
+    -- print =<< PtrSet.toList users
+    -- print =<< PtrSet.size   users
+    -- print "***"
+
+    -- print =<< Size.discoverDynamic v
+    -- print vn
+
+    -- print "--------------------------"
+
+    buffer <- Store.serialize u
+    putStrLn "\n---------------------\n"
+
+    u' <- Store.deserialize @IR.Terms buffer
+    m  <- Layer.read @IR.Model u'
+    print $ IR.showTag m
+    print u'
+
+    -- case m of
+    --     IR.UniTermVar (IR.Var n) -> Layer.write @IR.Model c (IR.UniTermVar (IR.Var "X"))
+    --     _                        -> print "nope :("
+
+    putStrLn $ ": v      = " <> show v
+    putStrLn $ ": u      = " <> show u
+    putStrLn $ ": vu1    = " <> show vu1
+    putStrLn $ ": vu2    = " <> show vu2
+    putStrLn $ ": vtpl   = " <> show vtpl
+    putStrLn $ ": vtp    = " <> show vtp
+    putStrLn $ ": vttpl  = " <> show vttpl
+    putStrLn ""
+
+    m <- Layer.read @IR.Model u'
+    case m of
+        IR.UniTermUpdate (IR.Update vu1' n vu2') -> do
+
+            v' <- Layer.read @IR.Source vu1'
+
+            putStrLn $ ": v'     = " <> show v'
+            putStrLn $ ": vu1'   = " <> show vu1'
+            putStrLn $ ": vu2'   = " <> show vu2'
+
+            vm' <- Layer.read @IR.Model v'
+            print $ IR.showTag vm'
+        _ -> print "nope :("
+
+    -- vm <- Layer.read @IR.Model v
+    -- case vm of
+    --     IR.UniTermVar (IR.Var n) -> print ("!!!", n)
+    --     _                        -> print "nope :("
+
+    -- True `shouldBe` True
 
 spec :: Spec
 spec = do
 
     -- testVec
+    -- testSet
     test
     nameSpec
     irCreationSpec
@@ -276,3 +378,35 @@ spec = do
     irDestructSpec
     irDiscoverySpec
     -- partitionSpec
+
+
+
+
+-- TODO: REMOVE REMOVE REMOVE
+-- instance Applicative m => Buffer.CopyInitializerP1 m IR.UniTerm
+
+
+instance
+    ( ctx ~ Buffer.PointerRedirection m
+    , MonadIO m
+    ) => Buffer.PointerRedirection1 m IR.UniTerm where
+    redirectPointers1 = \f
+        -> GTraversable.gmapM @(GTraversable.GTraversable ctx)
+         $ GTraversable.gmapM @ctx (Buffer.redirectPointers f)
+
+
+    --      instance (MonadIO m, ctx ~ Data.ShallowDestructor m)
+    --      => Data.ShallowDestructor1 m UniTerm where
+    --    destructShallow1 = GTraversable.gmapM_ @(GTraversable ctx)
+    --                     $ GTraversable.gmapM_ @ctx Data.destructShallow
+    --    {-# INLINE destructShallow1 #-}
+
+
+instance Applicative m => Buffer.PointerRedirection m (SmallVector.SmallVectorA t alloc n IR.Name)
+instance Applicative m => Buffer.PointerRedirection m (SmallVector.SmallVectorA t alloc n Char)
+instance Applicative m => Buffer.PointerRedirection m (SmallVector.SmallVectorA t alloc n Word8)
+instance Applicative m => Buffer.PointerRedirection m IR.Name
+instance Applicative m => Buffer.PointerRedirection m IR.ForeignImportType
+instance Applicative m => Buffer.PointerRedirection m IR.ImportSourceData
+instance Applicative m => Buffer.PointerRedirection m IR.ImportTargetData
+instance Applicative m => Buffer.PointerRedirection m InvalidIR.Symbol

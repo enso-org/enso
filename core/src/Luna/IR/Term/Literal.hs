@@ -6,16 +6,19 @@ module Luna.IR.Term.Literal where
 import           Prologue hiding (String)
 import qualified Prologue as P
 
-import qualified Data.Char                       as Char
-import qualified Data.Graph.Component.Node.Class as Term
-import qualified Data.Vector.Storable.Foreign    as Vector
-import qualified Luna.IR.Term.Format             as Format
-import qualified OCI.IR.Term.Definition          as Term
+import qualified Data.Char                             as Char
+import qualified Data.Graph.Component.Node.Class       as Term
+import qualified Data.Mutable.Storable.SmallAutoVector as SmallVector
+import qualified Data.Vector.Storable.Foreign          as Vector
+import qualified Luna.IR.Term.Format                   as Format
+import qualified OCI.IR.Term.Definition                as Term
 
 import Data.Vector.Storable.Foreign (Vector)
 import OCI.IR.Term.Class            (Terms)
 import OCI.IR.Term.Definition       (LinksTo)
 
+-- FIXME: Storable.derive doesnt support Nat literals
+type V16 = SmallVector.UnmanagedSmallVector 16
 
 
 --------------------
@@ -27,9 +30,9 @@ import OCI.IR.Term.Definition       (LinksTo)
 Term.define [d|
  data Value
     = Number    { base     :: Word8
-                , intPart  :: Vector  Word8
-                , fracPart :: Vector  Word8 }
-    | RawString { val      :: Vector  Char  }
+                , intPart  :: V16  Word8
+                , fracPart :: V16  Word8  }
+    | RawString { val      :: V16  Char   }
     | FmtString { segments :: LinksTo Terms }
  |]
 
@@ -43,8 +46,8 @@ prettyShow (Number base intPart fracPart) = do
     fracPartS <- showVec fracPart
     let frac = if fracPartS /= "" then "." <> fracPartS else mempty
     pure . pfx $ intPartS <> frac
-    where showVec :: MonadIO m => Vector Word8 -> m P.String
-          showVec     = fmap (concat . fmap showDigit) . Vector.toList
+    where showVec :: MonadIO m => V16 Word8 -> m P.String
+          showVec     = fmap (concat . fmap showDigit) . SmallVector.toList
           showDigit d = if d < 10
               then show d
               else [Char.chr $ Char.ord 'a' + convert d - 10]

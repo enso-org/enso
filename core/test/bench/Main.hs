@@ -9,7 +9,6 @@ import qualified Data.Storable                   as Data
 import qualified Data.VectorSet.Mutable.Storable as VectorSet
 import qualified Luna.Pass                       as Pass
 import qualified Luna.Pass.Scheduler             as Scheduler
-import qualified Luna.Test.Bench.Containers      as Containers
 import qualified Luna.Test.Bench.IR              as IRBench
 import qualified Luna.Test.Bench.Test            as Test
 

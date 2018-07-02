@@ -4,10 +4,11 @@ module Data.Graph.Component.Edge.Class where
 
 import Prologue
 
-import qualified Control.Monad.State.Layered  as State
-import qualified Data.Graph.Data              as Component
-import qualified Data.Graph.Data.Layer.Class  as Layer
-import qualified Data.Graph.Data.Layer.Layout as Layout
+import qualified Control.Monad.State.Layered     as State
+import qualified Data.Graph.Component.Node.Class as Node
+import qualified Data.Graph.Data                 as Component
+import qualified Data.Graph.Data.Layer.Class     as Layer
+import qualified Data.Graph.Data.Layer.Layout    as Layout
 
 import Data.Graph.Component.Node.Class (Node)
 import Data.Graph.Data                 (Component)
@@ -58,13 +59,16 @@ target :: Layer.Reader Edge Target m
        => Edge layout -> m (Node (Layout.Get Target layout))
 target = Layer.read @Target ; {-# INLINE target #-}
 
-isCyclic ::
-    ( Layer.Reader Edge Source m
-    , Layer.Reader Edge Target m
-    , Layout.Get Source l ~ Layout.Get Target l
-    ) => Edge l -> m Bool
-isCyclic = \edge -> (==) <$> Layer.read @Source edge <*> Layer.read @Target edge
-{-# INLINE isCyclic #-}
+-- TODO: make 'generalize' anstraction and simplify relayout here
+cyclic :: (Layer.Reader Edge Source m, Layer.Reader Edge Target m)
+       => Edge l -> m Bool
+cyclic = \edge -> do
+    src <- source edge
+    tgt <- target edge
+    pure $ (Layout.unsafeRelayout src :: Node.Some)
+        == (Layout.unsafeRelayout tgt :: Node.Some)
+{-# INLINE cyclic #-}
+
 
 ------------------------
 -- === Components === --

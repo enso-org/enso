@@ -101,6 +101,55 @@ genGetElemAt = return decls where
     genDeclsForTup i = (`genDecl` i) <$> [0..(i - 1)]
     decls = concat $ genDeclsForTup <$> [0.._MAX_TUPLE_SIZE]
 
+-- >> type instance Head (T3 t1 t2 t3) = t1
+genHead :: Q [Dec]
+genHead = return decls where
+    genDecl tupLen = TySynInstD "Head"
+        (TySynEqn [tup vs] (vs !! 0)) where
+            vs = var <$> unsafeGenNamesTN tupLen
+    decls = genDecl <$> [1.._MAX_TUPLE_SIZE]
+
+-- >> type instance Tail (T3 t1 t2 t3) = T2 t2 t3
+genTail :: Q [Dec]
+genTail = return decls where
+    genDecl tupLen = TySynInstD "Tail"
+        (TySynEqn [tup vs] (tup $ unsafeTail vs)) where
+            vs = var <$> unsafeGenNamesTN tupLen
+    decls = genDecl <$> [1.._MAX_TUPLE_SIZE]
+
+-- >> instance HeadGetter (T3 t1 t2 t3) where
+-- >>     head (T3 !t1 !t2 !t3) = t1 ; {-# INLINE head #-}
+genHeadGetter :: Q [Dec]
+genHeadGetter = return decls where
+    genDecl tupLen = decl where
+        ns     = unsafeGenNamesTN tupLen
+        tvs    = var <$> ns
+        pvs    = var <$> ns
+        evs    = var <$> ns
+        header = apps (cons' "HeadGetter") [tup tvs]
+        fun    = FunD "head" [ TH.Clause [tup $ BangP <$> pvs]
+                 (NormalB (evs !! 0)) []]
+        prag   = PragmaD (InlineP "head" Inline FunLike AllPhases)
+        decl   = InstanceD Nothing [] header [fun, prag]
+    decls = genDecl <$> [1.._MAX_TUPLE_SIZE]
+
+-- >> instance TailGetter (T3 t1 t2 t3) where
+-- >>     tail (T3 !t1 !t2 !t3) = T2 t2 t3 ; {-# INLINE tail #-}
+genTailGetter :: Q [Dec]
+genTailGetter = return decls where
+    genDecl tupLen = decl where
+        ns     = unsafeGenNamesTN tupLen
+        tvs    = var <$> ns
+        pvs    = var <$> ns
+        evs    = var <$> ns
+        header = apps (cons' "TailGetter") [tup tvs]
+        fun    = FunD "tail" [ TH.Clause [tup $ BangP <$> pvs]
+                 (NormalB (tup $ unsafeTail evs)) []]
+        prag   = PragmaD (InlineP "tail" Inline FunLike AllPhases)
+        decl   = InstanceD Nothing [] header [fun, prag]
+    decls = genDecl <$> [1.._MAX_TUPLE_SIZE]
+
+
 -- >> type instance SetElemAt 0 v (T2 t1 t2) = T2 v t2
 genSetElemAt :: Q [Dec]
 genSetElemAt = return decls where
@@ -110,6 +159,8 @@ genSetElemAt = return decls where
     genDeclsForTup i = (\a -> genDecl a i) <$> [0..(i - 1)]
     decls = concat $ genDeclsForTup <$> [0.._MAX_TUPLE_SIZE]
 
+-- >> instance IxElemGetter 0 (T3 t1 t2 t3) where
+-- >>     getElemAt (T3 !t1 !t2 !t3) = t1 ; {-# INLINE getElemAt #-}
 genIxElemGetters :: Q [Dec]
 genIxElemGetters = return decls where
     genDecl elIdx tupLen = decl where

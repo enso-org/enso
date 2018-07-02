@@ -35,6 +35,7 @@ dependencies:
     - lens-utils
     - luna-core
     - luna-cpp-containers
+    - luna-data-storable
     - luna-foreign-utils
     - luna-generic-traversable    
     - luna-nested-containers

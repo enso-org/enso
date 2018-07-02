@@ -18,6 +18,7 @@ library:
         - src
     dependencies:
         - base
+        - convert
         - lens
         - layered-state
         - luna-th-builder

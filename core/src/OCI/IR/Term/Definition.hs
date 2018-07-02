@@ -21,14 +21,15 @@ import qualified Language.Haskell.TH                    as TH
 import qualified OCI.IR.Term.Format                     as Format
 import qualified Type.Data.Map                          as TypeMap
 
-import Data.Graph.Component.Edge        (type (*-*), Edge, Edges)
-import Data.Graph.Component.Node.Layer  (Model)
-import Data.Graph.Data.Component.Vector (ComponentVector)
-import Data.Vector.Storable.Foreign     (Vector)
-import Foreign.Storable                 (Storable)
-import Language.Haskell.TH              (Type (AppT))
-import Language.Haskell.TH.Builder      hiding (Field)
-import OCI.IR.Term.Class                (Term)
+import Data.Graph.Component.Edge             (type (*-*), Edge, Edges)
+import Data.Graph.Component.Node.Layer       (Model)
+import Data.Graph.Data.Component.Vector      (ComponentVector)
+import Data.Mutable.Storable.SmallAutoVector (UnmanagedSmallVector)
+import Data.Vector.Storable.Foreign          (Vector)
+import Foreign.Storable                      (Storable)
+import Language.Haskell.TH                   (Type (AppT))
+import Language.Haskell.TH.Builder           hiding (Field)
+import OCI.IR.Term.Class                     (Term)
 
 
 
@@ -43,6 +44,8 @@ import OCI.IR.Term.Class                (Term)
 -- type List = Component.Vector
 data LinkTo  t
 data LinksTo t -- = List (LinkTo t)
+
+type List = UnmanagedSmallVector 0
 
 -- | 'Field' is a typeclass which unifies how fields of smart cons get
 --   constructed. It's created only to make the generated code shorter and

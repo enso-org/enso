@@ -8,10 +8,11 @@ import Prologue hiding (Imp, imp, seq)
 
 import qualified Data.Generics.Traversable.Deriving as GTraversable
 -- import qualified Data.Graph.Store.External          as ExternalStorable
-import qualified Foreign.Storable.Deriving as Storable
-import qualified Luna.IR.Term.Ast.Invalid  as Invalid
-import qualified Luna.IR.Term.Format       as Format
-import qualified OCI.IR.Term.Definition    as Term
+import qualified Data.Mutable.Storable.SmallAutoVector as SmallVector
+import qualified Foreign.Storable.Deriving             as Storable
+import qualified Luna.IR.Term.Ast.Invalid              as Invalid
+import qualified Luna.IR.Term.Format                   as Format
+import qualified OCI.IR.Term.Definition                as Term
 
 -- import Data.Graph.Store.External (ExternalFieldStorable, ExternalStorable)
 import Data.Vector.Storable.Foreign (Vector)
@@ -22,6 +23,9 @@ import OCI.IR.Term.Definition       (LinkTo, LinksTo)
 -- FIXME: remove when refactoring Cmp instances
 import Luna.IR.Term.Core ()
 
+
+type Vec = SmallVector.UnmanagedSmallVector
+type Vec16 = Vec 16 -- FIXME: Storable.derive doesnt support Nat literals
 
 
 ---------------------
@@ -43,7 +47,7 @@ GTraversable.derive ''ImportSourceData
 
 data ImportTargetData
     = Everything
-    | Listed (Vector Name)
+    | Listed (Vec16 Name)
     deriving (Eq, Generic, Show)
 Storable.derive     ''ImportTargetData
 GTraversable.derive ''ImportTargetData
@@ -76,9 +80,9 @@ GTraversable.derive ''ForeignImportType
 
 Term.define [d|
  data Ast
-    = AccSection   { path     :: Vector Name                                   }
+    = AccSection   { path     :: Vec16 Name                                   }
     | Disabled     { body     :: LinkTo Terms                                  }
-    | Documented   { doc      :: Vector Char  , base   :: LinkTo  Terms        }
+    | Documented   { doc      :: Vec16  Char  , base   :: LinkTo  Terms        }
     | Function     { name     :: LinkTo Terms , args   :: LinksTo Terms
                    , body     :: LinkTo Terms                                  }
     | Grouped      { body     :: LinkTo Terms                                  }
@@ -91,14 +95,14 @@ Term.define [d|
     | Marker       { id       :: Word64                                        }
     | SectionLeft  { operator :: LinkTo Terms , body   :: LinkTo Terms         }
     | SectionRight { operator :: LinkTo Terms , body   :: LinkTo Terms         }
-    | Modify       { base     :: LinkTo Terms , path   :: Vector Name
+    | Modify       { base     :: LinkTo Terms , path   :: Vec16 Name
                    , operator :: Name         , value  :: LinkTo Terms         }
-    | Metadata     { content  :: Vector Char                                   }
+    | Metadata     { content  :: Vec16 Char                                    }
     | Record       { isNative :: Bool         , name   :: Name
                    , params   :: LinksTo Terms, conss  :: LinksTo Terms
                    , decls    :: LinksTo Terms                                 }
     | RecordCons   { name     :: Name         , fields :: LinksTo Terms        }
-    | RecordFields { names    :: Vector Name  , tp     :: LinkTo Terms         }
+    | RecordFields { names    :: Vec16  Name  , tp     :: LinkTo Terms         }
     | Seq          { former   :: LinkTo Terms , later  :: LinkTo Terms         }
     | Tuple        { items    :: LinksTo Terms                                 }
     | Typed        { base     :: LinkTo Terms , tp     :: LinkTo Terms         }

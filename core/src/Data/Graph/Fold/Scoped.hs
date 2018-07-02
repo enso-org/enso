@@ -16,20 +16,21 @@ import qualified Data.Graph.Data.Layer.Layout     as Layout
 import qualified Data.Graph.Fold.Class            as Fold
 import qualified Data.Graph.Fold.Struct           as Fold
 import qualified Data.Map.Strict                  as Map
+import qualified Data.Mutable.Class               as Mutable
 import qualified Data.Set                         as Set
 import qualified Foreign.Ptr                      as Ptr
 import qualified Foreign.Storable                 as Storable
 import qualified Type.Data.List                   as List
 
-import Data.Generics.Traversable        (GTraversable)
-import Data.Graph.Data.Component.Class  (Component)
-import Data.Graph.Data.Component.Set    (ComponentSet)
-import Data.Graph.Data.Component.Vector (ComponentVector)
-import Data.Set                         (Set)
-import Data.Vector.Storable.Foreign     (Vector)
-import Foreign.Ptr.Utils                (SomePtr)
-import Type.Data.Bool                   (Not, type (||))
-
+import Data.Generics.Traversable             (GTraversable)
+import Data.Graph.Data.Component.Class       (Component)
+import Data.Graph.Data.Component.Set         (ComponentSet)
+import Data.Graph.Data.Component.Vector      (ComponentVectorA)
+import Data.Mutable.Storable.SmallAutoVector (SmallVectorA)
+import Data.Set                              (Set)
+import Data.Vector.Storable.Foreign          (Vector)
+import Foreign.Ptr.Utils                     (SomePtr)
+import Type.Data.Bool                        (Not, type (||))
 
 import qualified Type.Show as Type
 
@@ -56,8 +57,8 @@ type family EnabledLayer__ t layer where
 -- === Definition === --
 
 data Scoped t
-type instance Fold.Result(Scoped t) = Fold.Result t
-type instance LayerScope (Scoped t) = LayerScope  t
+type instance Fold.Result (Scoped t) = Fold.Result t
+type instance LayerScope  (Scoped t) = LayerScope  t
 
 class Monad m => LayerBuilder t m layer where
     layerBuild :: ∀ layout. Layer.Cons layer layout -> m (Fold.Result t) -> m (Fold.Result t)
@@ -70,16 +71,16 @@ class Monad m => ComponentBuilder t m comp where
 
 -- === Defaults === --
 
-instance {-# OVERLAPPABLE #-} (Monad m, Fold.Builder1 t m (Layer.Cons layer))
-      => LayerBuilder t m layer where
-    layerBuild = Fold.build1 @t
-    {-# INLINE layerBuild #-}
+-- instance {-# OVERLAPPABLE #-} (Monad m, Fold.Builder1 t m (Layer.Cons layer))
+--       => LayerBuilder t m layer where
+--     layerBuild = Fold.build1 @t
+--     {-# INLINE layerBuild #-}
 
 
 -- === Instances === --
 
 instance {-# OVERLAPPABLE #-}
-         ( layers ~ Graph.DiscoverComponentLayers m comp
+         ( layers ~ Graph.ComponentLayersM m comp
          , ComponentBuilder t m comp
          , LayersFoldableBuilder__ t layers m )
       => Fold.Builder (Scoped t) m (Component comp layout) where
@@ -87,7 +88,7 @@ instance {-# OVERLAPPABLE #-}
     {-# INLINE build #-}
 
 instance {-# OVERLAPPABLE #-}
-         ( layers ~ Graph.DiscoverComponentLayers m comp
+         ( layers ~ Graph.ComponentLayersM m comp
          , ComponentBuilder t m comp
          , LayersFoldableBuilder__ t layers m )
       => Fold.Builder1 (Scoped t) m (Component comp) where
@@ -99,9 +100,9 @@ instance {-# OVERLAPPABLE #-}
 --           but it will overlap then. We need to think for better generalization of it here.
 instance {-# OVERLAPPABLE #-}
     (MonadIO m, Fold.Builder1 (Scoped t) m (Component comp))
-      => Fold.Builder1 (Scoped t) m (ComponentVector comp) where
+      => Fold.Builder1 (Scoped t) m (ComponentVectorA alloc comp) where
     build1 = \comp mr -> do
-        lst <- ComponentVector.toList comp
+        lst <- Mutable.toList comp
         let f = foldl' (\f a -> f . Fold.build1 @(Scoped t) a) id lst
         f mr
     {-# INLINE build1 #-}
@@ -110,7 +111,7 @@ instance {-# OVERLAPPABLE #-}
     (MonadIO m, Fold.Builder1 (Scoped t) m (Component comp))
       => Fold.Builder1 (Scoped t) m (ComponentSet comp) where
     build1 = \comp mr -> do
-        lst <- ComponentSet.toList comp
+        lst <- Mutable.toList comp
         let f = foldl' (\f a -> f . Fold.build1 @(Scoped t) a) id lst
         f mr
     {-# INLINE build1 #-}
@@ -121,6 +122,7 @@ instance {-# OVERLAPPABLE #-}
     build1 = Fold.build1 @(Fold.Struct (Scoped t)) ; {-# INLINE build1 #-}
 
 instance Monad m => Fold.Builder (Scoped t) m (Vector a)
+instance Monad m => Fold.Builder (Scoped t) m (SmallVectorA s alloc n a)
 
 
 

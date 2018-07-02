@@ -15,6 +15,7 @@ library:
         - container
         - containers
         - luna-cpp-containers
+        - luna-data-storable
         - layered-state
         - luna-core
         - luna-debug

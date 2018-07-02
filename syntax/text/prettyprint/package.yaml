@@ -13,6 +13,7 @@ dependencies:
     - layouting
     - luna-core
     - luna-cpp-containers
+    - luna-data-storable
     - luna-syntax-definition
     - luna-syntax-text-lexer
     - luna-syntax-text-model

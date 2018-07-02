@@ -12,10 +12,23 @@ import qualified Type.Data.List as List
 -- >> data T2 a b = T2 !a !b deriving (Show)
 genStrictTupDecls
 
--- >> FromList '[t1, t2] = T2 t1 t2
--- >> ToList   T2 t1 t2  = '[t1, t2]
+-- >> type family FromList where ... FromList '[t1, t2]  = T2 t1 t2
+-- >> type family ToList   where ... ToList   (T2 t1 t2) = '[t1, t2]
 genFromList
 genToList
+
+-- >> type instance Tail (T3 t1 t2 t3) = T2 t2 t3
+-- >> type instance Head (T3 t1 t2 t3) = t1
+genHead
+genTail
+
+-- >> instance HeadGetter (T3 t1 t2 t3) where
+-- >>     head (T3 !t1 !t2 !t3) = t1 ; {-# INLINE head #-}
+genHeadGetter
+
+-- >> instance TailGetter (T3 t1 t2 t3) where
+-- >>     tail (T3 !t1 !t2 !t3) = T2 t2 t3 ; {-# INLINE tail #-}
+genTailGetter
 
 -- >> type instance GetElemAt 0 (T2 t1 t2) = t1
 -- >> type instance SetElemAt 0 v (T2 t1 t2) = T2 v t2

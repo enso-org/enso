@@ -6,7 +6,6 @@ import Prologue hiding (convert, convert', fromList, null, toList)
 
 import qualified Data.Construction          as Data
 import qualified Data.Convert2              as Convert
-import qualified Data.Set.Mutable.Class     as Set
 import qualified Foreign.DynamicStorable    as DynamicStorable
 import qualified Foreign.Storable.Utils     as Storable
 import qualified Foreign.Storable1.Deriving as Storable1
@@ -163,16 +162,16 @@ instance IsPtrSet UnmanagedPtrSet where
     newIO        = c_createPtrSet ; {-# INLINE newIO  #-}
     withIO !s !f = f s            ; {-# INLINE withIO #-}
 
-type instance Set.Item (UnmanagedPtrSet a) = a
-instance (IsPtr a, MonadIO m)
-      => Set.Set m (UnmanagedPtrSet a) where
-    new    = new    ; {-# INLINE new #-}
-    insert = insert ; {-# INLINE insert #-}
-    delete = delete ; {-# INLINE delete #-}
-    member = member ; {-# INLINE member #-}
-    size   = size   ; {-# INLINE size   #-}
-    null   = null   ; {-# INLINE null   #-}
-    toList = toList ; {-# INLINE toList #-}
+-- type instance Set.Item (UnmanagedPtrSet a) = a
+-- instance (IsPtr a, MonadIO m)
+--       => Set.Set m (UnmanagedPtrSet a) where
+--     new    = new    ; {-# INLINE new #-}
+--     insert = insert ; {-# INLINE insert #-}
+--     delete = delete ; {-# INLINE delete #-}
+--     member = member ; {-# INLINE member #-}
+--     size   = size   ; {-# INLINE size   #-}
+--     null   = null   ; {-# INLINE null   #-}
+--     toList = toList ; {-# INLINE toList #-}
 
 instance MonadIO m => Data.Constructor1 m () UnmanagedPtrSet where
     construct1 _ = new ; {-# INLINE construct1 #-}

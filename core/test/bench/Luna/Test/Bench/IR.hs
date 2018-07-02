@@ -519,15 +519,15 @@ partitionsUnify = Bench "partitions unify" $ \i -> runPass' $ do
     go i
 {-# NOINLINE partitionsUnify #-}
 
-externalSizeDiscovery_1n :: Bench
-externalSizeDiscovery_1n = Bench "external size 1n" $ \i -> runPass' $ do
-    !v <- IR.var "a"
-    let go !0 = let !o = pure () in o
-        go !j = do
-            !_ <- Size.size v
-            go $! j - 1
-    go i
-{-# NOINLINE externalSizeDiscovery_1n #-}
+-- externalSizeDiscovery_1n :: Bench
+-- externalSizeDiscovery_1n = Bench "external size 1n" $ \i -> runPass' $ do
+--     !v <- IR.var "a"
+--     let go !0 = let !o = pure () in o
+--         go !j = do
+--             !_ <- Size.discover v
+--             go $! j - 1
+--     go i
+-- {-# NOINLINE externalSizeDiscovery_1n #-}
 
 -- externalSizeDiscovery_2n2e :: Bench
 -- externalSizeDiscovery_2n2e = Bench "external size 2n 2e" $ \i -> runPass' $ do

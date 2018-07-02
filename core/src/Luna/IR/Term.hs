@@ -34,11 +34,12 @@ import qualified Foreign.Storable        as Storable
 import qualified Foreign.Storable.Utils  as Storable
 import qualified OCI.IR.Term.Definition  as Term
 
-import Control.Monad.State.Layered      (State)
-import Data.Generics.Traversable        (GTraversable)
-import Data.Graph.Data.Component.Class  (Component)
-import Data.Graph.Data.Component.Set    (ComponentSet)
-import Data.Graph.Data.Component.Vector (ComponentVector)
+import Control.Monad.State.Layered           (State)
+import Data.Generics.Traversable             (GTraversable)
+import Data.Graph.Data.Component.Class       (Component)
+import Data.Graph.Data.Component.Set         (ComponentSet)
+import Data.Graph.Data.Component.Vector      (ComponentVector)
+import Data.Mutable.Storable.SmallAutoVector (UnmanagedSmallVector)
 -- import Data.Graph.Store.External        (ExternalFieldStorable,
 --                                          ExternalStorable)
 import Data.Vector.Storable.Foreign (Vector)
@@ -87,9 +88,10 @@ instance
     , Fold.Builder1 t m (Component Link.Edges)
     , Fold.Builder1 t m (ComponentVector Link.Edges)
     , Fold.Builder1 t m (ComponentSet    Link.Edges)
-    , Fold.Builder  t m (Vector Word8)
-    , Fold.Builder  t m (Vector Char)
-    , Fold.Builder  t m (Vector Name)
+    , Fold.Builder  t m (UnmanagedSmallVector 16 Word8)
+    , Fold.Builder  t m (UnmanagedSmallVector 16 Char)
+    , Fold.Builder  t m (UnmanagedSmallVector 16 Name) -- x
+    , Fold.Builder  t m (Term.List Name)
     ) => Fold.Builder1 (Fold.Struct t) m UniTerm where
     build1 = gbuildFold__ @t
     {-# INLINE build1 #-}
@@ -137,6 +139,12 @@ instance Fold.Builder t m (Vector a)
       => Fold.Builder (UniTermFold t) m (Vector a) where
     build = Fold.build @t
     {-# INLINE build #-}
+
+instance Fold.Builder t m (UnmanagedSmallVector n a)
+      => Fold.Builder (UniTermFold t) m (UnmanagedSmallVector n a) where
+    build = Fold.build @t
+    {-# INLINE build #-}
+
 
 
 -- ------------------------------

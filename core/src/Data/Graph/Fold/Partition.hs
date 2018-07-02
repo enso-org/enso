@@ -20,15 +20,44 @@ import Data.Graph.Data.Component.List  (ComponentList, ComponentLists)
 import Data.TypeMap.Strict             (TypeMap)
 
 
+----------------------
+-- === Clusters === --
+----------------------
+
+-- === Definitions === --
+
+type    Clusters__ comps = TypeMap (ComponentLists comps)
+newtype Clusters   comps = Clusters (Clusters__ comps)
+
+makeLenses ''Clusters
+
+
+-- === API === --
+
+type SplitHead comp comps
+   = TypeMap.SplitHead (ComponentList comp) (ComponentLists comps)
+
+splitHead :: SplitHead comp comps
+    => Clusters (comp ': comps) -> (ComponentList comp, Clusters comps)
+splitHead = fmap wrap . TypeMap.splitHead . unwrap
+{-# INLINE splitHead #-}
+
+
+-- === Instances === --
+
+deriving instance Mempty (Clusters__ comps) => Mempty (Clusters comps)
+deriving instance Show   (Clusters__ comps) => Show   (Clusters comps)
+
+
+
 -------------------------------
 -- === Cluster Discovery === --
 -------------------------------
 
--- === Datatypes and aliases === --
+-- === Definition === --
 
-type Clusters   comps = TypeMap   (ComponentLists comps)
-type ClustersM  m     = Clusters  (Graph.DiscoverComponents m)
-type DiscoveryM m     = Discovery (Graph.DiscoverComponents m)
+type ClustersM  m     = Clusters  (Graph.ComponentsM m)
+type DiscoveryM m     = Discovery (Graph.ComponentsM m)
 
 data Discovery  (comps :: [Type]) deriving (Generic)
 type instance Fold.Result     (Discovery comps) = Clusters comps
@@ -56,9 +85,12 @@ partition = Deep.run1 @(DiscoveryM m)
 
 instance (Monad m, ClusterEditor comp comps)
     => Fold.ComponentBuilder (Discovery comps) m comp where
-    componentBuild = \comp acc -> TypeMap.modifyElem_ @(ComponentList comp)
-                                  (ComponentList.Cons $ Layout.relayout comp)
-                              <$> acc
+    componentBuild = \comp acc
+       -> wrap
+        . TypeMap.modifyElem_ @(ComponentList comp)
+          (ComponentList.Cons $ Layout.relayout comp)
+        . unwrap
+      <$> acc
     {-# INLINE componentBuild #-}
 
 

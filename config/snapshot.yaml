@@ -1,4 +1,4 @@
-resolver: nightly-2018-06-26
+resolver: nightly-2018-05-30
 name: luna
 packages:
     - container-1.1.0

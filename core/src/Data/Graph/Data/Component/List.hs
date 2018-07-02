@@ -79,6 +79,15 @@ mapM_ :: Applicative m
 mapM_ = \f -> foldr ((*>) . f) (return ())
 {-# INLINE mapM_ #-}
 
+length :: ComponentList comp -> Int
+length = go 0 where
+    go :: Int -> ComponentList comp -> Int
+    go s = \case
+        Nil -> s
+        Cons _ lst -> go (s + 1) lst
+{-# INLINABLE length #-}
+
+
 -- === Instances === --
 
 type instance Item (ComponentList comp) = Component.Some comp

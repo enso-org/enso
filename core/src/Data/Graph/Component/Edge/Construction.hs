@@ -5,7 +5,7 @@ import Prologue
 import qualified Data.Graph.Data              as Component
 import qualified Data.Graph.Data.Layer.Class  as Layer
 import qualified Data.Graph.Data.Layer.Layout as Layout
-import qualified Data.Set.Mutable.Class       as Set
+import qualified Data.Mutable.Class           as Mutable
 
 import Data.Graph.Component.Edge.Class
 import Data.Graph.Component.Node.Class (Node)
@@ -30,7 +30,7 @@ new :: Creator m => Node src -> Node tgt -> m (Edge (src *-* tgt))
 new src tgt = do
     link    <- Component.construct'
     userMap <- Layer.read @Users src
-    Set.insert userMap (Layout.unsafeRelayout link)
+    Mutable.insert userMap (Layout.unsafeRelayout link)
     Layer.write @Source link src
     Layer.write @Target link tgt
     pure link
