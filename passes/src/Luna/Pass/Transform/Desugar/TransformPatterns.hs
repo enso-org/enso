@@ -4,18 +4,24 @@ module Luna.Pass.Transform.Desugar.TransformPatterns where
 
 import Prologue
 
-import qualified Control.Monad.State                 as State
-import qualified Data.Graph.Data.Component.List      as ComponentList
-import qualified Data.Graph.Data.Component.Vector    as ComponentVector
-import qualified Data.Graph.Data.Layer.Layout        as Layout
-import qualified Luna.IR                             as IR
-import qualified Luna.IR.Aliases                     as Uni
-import qualified Luna.IR.Layer                       as Layer
-import qualified Luna.Pass                           as Pass
-import qualified Luna.Pass.Attr                      as Attr
-import qualified Luna.Pass.Basic                     as Pass
+import qualified Control.Monad.State              as State
+import qualified Data.Graph.Data.Component.List   as ComponentList
+import qualified Data.Graph.Data.Component.Vector as ComponentVector
+import qualified Data.Graph.Data.Layer.Layout     as Layout
+import qualified Luna.IR                          as IR
+import qualified Luna.IR.Aliases                  as Uni
+import qualified Luna.IR.Layer                    as Layer
+import qualified Luna.Pass                        as Pass
+import qualified Luna.Pass.Attr                   as Attr
+import qualified Luna.Pass.Basic                  as Pass
 
-import Luna.Pass.Data.Root
+import Luna.Pass.Data.Root (Root (Root))
+
+
+
+------------------------------------
+-- === TransformPatterns Pass === --
+------------------------------------
 
 data TransformPatterns
 
@@ -24,15 +30,16 @@ type family TransformPatternsSpec t where
     TransformPatternsSpec (Pass.In  Pass.Attrs) = '[Root]
     TransformPatternsSpec t = Pass.BasicPassSpec t
 
-instance ( Pass.Interface TransformPatterns (Pass.Pass stage TransformPatterns)
-         , IR.DeleteSubtree (Pass.Pass stage TransformPatterns)
-         ) => Pass.Definition stage TransformPatterns where
+instance
+    ( Pass.Interface TransformPatterns (Pass.Pass stage TransformPatterns)
+    , IR.DeleteSubtree (Pass.Pass stage TransformPatterns)
+    ) => Pass.Definition stage TransformPatterns where
     definition = do
         Root root <- Attr.get
         transformPatterns root
 
 dumpConsApplication :: Pass.Interface TransformPatterns m
-                    => IR.SomeTerm -> m (IR.Name, [IR.SomeTerm])
+    => IR.SomeTerm -> m (IR.Name, [IR.SomeTerm])
 dumpConsApplication expr = Layer.read @IR.Model expr >>= \case
     Uni.Grouped g -> dumpConsApplication =<< IR.source g
     Uni.Cons n _  -> return (n, [])
@@ -42,7 +49,7 @@ dumpConsApplication expr = Layer.read @IR.Model expr >>= \case
         return (n, arg : args)
 
 flattenPattern :: Pass.Interface TransformPatterns m
-               => IR.SomeTerm -> m IR.SomeTerm
+    => IR.SomeTerm -> m IR.SomeTerm
 flattenPattern expr = Layer.read @IR.Model expr >>= \case
     Uni.Grouped g -> flattenPattern =<< IR.source g
     Uni.Var{}     -> return expr
@@ -53,9 +60,10 @@ flattenPattern expr = Layer.read @IR.Model expr >>= \case
         IR.cons' name flatChildren
     _ -> return expr
 
-transformPatterns :: (Pass.Interface TransformPatterns m,
-                      IR.DeleteSubtree m)
-                  => IR.SomeTerm -> m ()
+transformPatterns ::
+    ( Pass.Interface TransformPatterns m
+    , IR.DeleteSubtree m
+    ) => IR.SomeTerm -> m ()
 transformPatterns expr = Layer.read @IR.Model expr >>= \case
     Uni.Lam i o -> do
         inp <- IR.source i

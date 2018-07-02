@@ -16,18 +16,27 @@ import qualified Luna.IR.Layer                    as Layer
 import qualified Luna.Pass                        as Pass
 import qualified Luna.Pass.Attr                   as Attr
 import qualified Luna.Pass.Basic                  as Pass
+import qualified Luna.Pass.Data.UniqueNameGen     as NameGen
 
-import Data.Map                     (Map)
-import Luna.Pass.Data.Root
-import Luna.Pass.Data.UniqueNameGen as NameGen
+import Data.Map            (Map)
+import Luna.Pass.Data.Root (Root (Root))
 
+
+
+---------------------------------------------
+-- === DesugarPartialApplications Pass === --
+---------------------------------------------
 
 data DesugarPartialApplications
 
-type instance Pass.Spec DesugarPartialApplications t = DesugarPartialApplicationsSpec t
+type instance Pass.Spec DesugarPartialApplications t
+   = DesugarPartialApplicationsSpec t
+
 type family DesugarPartialApplicationsSpec t where
-    DesugarPartialApplicationsSpec (Pass.In  Pass.Attrs) = '[Root, UniqueNameGen]
-    DesugarPartialApplicationsSpec (Pass.Out Pass.Attrs) = '[Root, UniqueNameGen]
+    DesugarPartialApplicationsSpec (Pass.In  Pass.Attrs)
+        = '[Root, NameGen.UniqueNameGen]
+    DesugarPartialApplicationsSpec (Pass.Out Pass.Attrs)
+        = '[Root, NameGen.UniqueNameGen]
     DesugarPartialApplicationsSpec t = Pass.BasicPassSpec t
 
 instance ( Pass.Interface DesugarPartialApplications

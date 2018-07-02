@@ -3,15 +3,22 @@ module Luna.Pass.Transform.Desugar.RemoveGrouped where
 
 import Prologue
 
-import qualified Control.Monad.State                 as State
-import qualified Data.Graph.Data.Component.List      as ComponentList
-import qualified Data.Set                            as Set
-import qualified Luna.IR                             as IR
-import qualified Luna.IR.Layer                       as Layer
-import qualified Luna.Pass                           as Pass
-import qualified Luna.Pass.Attr                      as Attr
-import qualified Luna.Pass.Basic                     as Pass
-import Luna.Pass.Data.Root
+import qualified Control.Monad.State            as State
+import qualified Data.Graph.Data.Component.List as ComponentList
+import qualified Data.Set                       as Set
+import qualified Luna.IR                        as IR
+import qualified Luna.IR.Layer                  as Layer
+import qualified Luna.Pass                      as Pass
+import qualified Luna.Pass.Attr                 as Attr
+import qualified Luna.Pass.Basic                as Pass
+
+import Luna.Pass.Data.Root (Root (Root))
+
+
+
+--------------------------------
+-- === RemoveGrouped Pass === --
+--------------------------------
 
 data RemoveGrouped
 
@@ -21,16 +28,17 @@ type family RemoveGroupedSpec t where
     RemoveGroupedSpec (Pass.Out Pass.Attrs) = '[Root]
     RemoveGroupedSpec t = Pass.BasicPassSpec t
 
-instance (Pass.Interface RemoveGrouped (Pass.Pass stage RemoveGrouped),
-          IR.DeleteSubtree (Pass.Pass stage RemoveGrouped))
-      => Pass.Definition stage RemoveGrouped where
+instance
+    ( Pass.Interface RemoveGrouped (Pass.Pass stage RemoveGrouped)
+    , IR.DeleteSubtree (Pass.Pass stage RemoveGrouped)
+    ) => Pass.Definition stage RemoveGrouped where
     definition = do
         Root root <- Attr.get
         newRoot   <- runRemoveGrouped root
         Attr.put $ Root newRoot
 
 runRemoveGrouped :: (Pass.Interface RemoveGrouped m, IR.DeleteSubtree m)
-                 => IR.SomeTerm -> m IR.SomeTerm
+    => IR.SomeTerm -> m IR.SomeTerm
 runRemoveGrouped root = do
     inputEdges <- IR.inputs root
     ComponentList.mapM_ (runRemoveGrouped <=< Layer.read @IR.Source) inputEdges

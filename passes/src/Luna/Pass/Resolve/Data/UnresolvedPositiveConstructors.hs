@@ -5,9 +5,22 @@ import Prologue
 import qualified Luna.IR        as IR
 import qualified Luna.Pass.Attr as Attr
 
-newtype UnresolvedPositiveConstructors = UnresolvedPositiveConstructors [IR.Term IR.Cons]
+
+
+--------------------------------------------
+-- === UnresolvedPositiveConstructors === --
+--------------------------------------------
+
+-- === Definition === --
+
+newtype UnresolvedPositiveConstructors
+      = UnresolvedPositiveConstructors [IR.Term IR.Cons]
+makeLenses ''UnresolvedPositiveConstructors
+
+
+-- === Instances === --
+
 type instance Attr.Type UnresolvedPositiveConstructors = Attr.Atomic
 instance Default UnresolvedPositiveConstructors where
     def = UnresolvedPositiveConstructors def
 
-makeLenses ''UnresolvedPositiveConstructors

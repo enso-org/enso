@@ -1,30 +1,37 @@
+{-# LANGUAGE OverloadedStrings    #-}
 {-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 module Luna.Pass.Transform.Desugar.DesugarListLiterals where
 
 import Prologue
 
-import qualified Control.Monad.State                 as State
-import qualified Data.Graph.Data.Component.List      as ComponentList
-import qualified Data.Graph.Data.Component.Vector    as ComponentVector
-import qualified Data.Graph.Data.Layer.Layout        as Layout
-import qualified Luna.IR                             as IR
-import qualified Luna.IR.Aliases                     as Uni
-import qualified Luna.IR.Layer                       as Layer
-import qualified Luna.Pass                           as Pass
-import qualified Luna.Pass.Attr                      as Attr
-import qualified Luna.Pass.Basic                     as Pass
+import qualified Control.Monad.State              as State
+import qualified Data.Graph.Data.Component.List   as ComponentList
+import qualified Data.Graph.Data.Component.Vector as ComponentVector
+import qualified Data.Graph.Data.Layer.Layout     as Layout
+import qualified Luna.IR                          as IR
+import qualified Luna.IR.Aliases                  as Uni
+import qualified Luna.IR.Layer                    as Layer
+import qualified Luna.Pass                        as Pass
+import qualified Luna.Pass.Attr                   as Attr
+import qualified Luna.Pass.Basic                  as Pass
+import qualified Luna.Pass.Data.UniqueNameGen     as NameGen
 
-import Luna.Pass.Data.Root
-import Luna.Pass.Data.UniqueNameGen as NameGen
+import Luna.Pass.Data.Root (Root (Root))
+
+
+
+--------------------------------------
+-- === DesugarListLiterals Pass === --
+--------------------------------------
 
 data DesugarListLiterals
 
 type instance Pass.Spec DesugarListLiterals t = DesugarListLiteralsSpec t
 type family DesugarListLiteralsSpec t where
-    DesugarListLiteralsSpec (Pass.In  Pass.Attrs) = '[Root, UniqueNameGen]
-    DesugarListLiteralsSpec (Pass.Out Pass.Attrs) = '[UniqueNameGen]
+    DesugarListLiteralsSpec (Pass.In  Pass.Attrs)
+        = '[Root, NameGen.UniqueNameGen]
+    DesugarListLiteralsSpec (Pass.Out Pass.Attrs) = '[NameGen.UniqueNameGen]
     DesugarListLiteralsSpec t = Pass.BasicPassSpec t
 
 instance ( Pass.Interface DesugarListLiterals (Pass.Pass stage DesugarListLiterals)
