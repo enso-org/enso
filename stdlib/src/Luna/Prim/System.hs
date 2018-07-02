@@ -20,7 +20,8 @@ import           Luna.Builtin.Data.Function  (Function)
 import           Luna.Builtin.Data.Module    (Imports, getObjectMethodMap)
 import           Luna.Std.Builder            (LTp (..), makeFunctionIO, int, integer)
 
-import           System.Environment          (lookupEnv)
+import qualified System.Directory            as Dir
+import           System.Environment          (lookupEnv, setEnv)
 import           System.Exit                 (ExitCode (ExitFailure, ExitSuccess))
 import           System.Process              (CreateProcess, ProcessHandle, StdStream (CreatePipe, Inherit, NoStream, UseHandle))
 import qualified System.Process              as Process
@@ -109,6 +110,14 @@ exports std = do
         hLookupEnv vName = convert <<$>> lookupEnv (convert vName)
     hLookupEnv' <- makeFunctionIO (toLunaValue std hLookupEnv) [textT] (maybeT textT)
 
+    let hSetEnv :: Text -> Text -> IO ()
+        hSetEnv envName envVal = setEnv (convert envName) (convert envVal)
+    hSetEnv' <- makeFunctionIO (toLunaValue std hSetEnv) [textT, textT] noneT
+
+    let hGetCurrentDirectory :: IO Text
+        hGetCurrentDirectory = convert <$> Dir.getCurrentDirectory
+    hGetCurrentDirectory' <- makeFunctionIO (toLunaValue std hGetCurrentDirectory) [] textT
+
     return $ Map.fromList [ ("primRunProcess", runProcess')
                           , ("primHIsOpen", hIsOpen')
                           , ("primHIsClosed", hIsClosed')
@@ -121,6 +130,8 @@ exports std = do
                           , ("primWaitForProcess", waitForProcess')
                           , ("primPlatform", hPlatform')
                           , ("primLookupEnv", hLookupEnv')
+                          , ("primSetEnv", hSetEnv')
+                          , ("primGetCurrentDirectory", hGetCurrentDirectory')
                           ]
 
 instance FromLunaData CreateProcess where

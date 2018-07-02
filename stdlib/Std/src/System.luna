@@ -219,8 +219,16 @@ class System:
     # returning `Just` result if it exists, `Nothing` otherwise.
     def lookupEnv v: primLookupEnv v
 
-    # Try to retrieve an evnironment variable `v` and
+    # Try to retrieve an environment variable `v` and
     # throw an exception if it fails.
     def getEnv v: case System.lookupEnv v of
         Just res: res
         Nothing: throw ("Environment variable not found: " + v)
+
+    # Set an environment variable to desired value.
+    # Unsets the variable if "" is given as value.
+    def setEnv name val:
+        primSetEnv name val
+
+class Directory:
+    def current: primGetCurrentDirectory
