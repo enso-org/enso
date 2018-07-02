@@ -73,3 +73,5 @@ type ImpM6 = ImpossibleM6
 type ImpM7 = ImpossibleM7
 type ImpM8 = ImpossibleM8
 type ImpM9 = ImpossibleM9
+
+type ImpSymbol = "*I*M*P*O*S*S*I*B*L*E*"
