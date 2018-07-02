@@ -2,7 +2,7 @@
 
 module Data.Graph.Store.Buffer where
 
-import Prologue hiding (Data)
+import Prologue hiding (Data, putStrLn)
 
 import qualified Control.Monad.State.Layered           as State
 import qualified Data.ByteString.Internal              as ByteString
@@ -63,6 +63,10 @@ import qualified Type.Show                as Type
 
 
 type RedirectMap = Map Memory.SomeUnmanagedPtr Memory.SomeUnmanagedPtr
+
+
+putStrLn :: Applicative m => String -> m ()
+putStrLn = const $ pure ()
 
 
 ------------------------------
@@ -313,7 +317,7 @@ instance (MonadIO m, PointerRedirection1 m (Layer.Cons layer), State.Getter Redi
         mapLayer = \a _ -> do
             m <- State.get @RedirectMap
             let f ptr = do
-                    print $ "LOOKUP " <> show ptr
+                    putStrLn $ "LOOKUP " <> show ptr
                     pure . unsafeFromJust . flip Map.lookup m $ ptr
             (,()) <$> redirectPointers1 f a
 
@@ -341,9 +345,9 @@ class PointerRedirection m a where
 instance MonadIO m
       => PointerRedirection1 m (ComponentSetA alloc tag) where
     redirectPointers1 = \f a -> do
-        print ">> redirection ComponentSetA"
+        putStrLn ">> redirection ComponentSetA"
         out <- a <$ Mutable.mapM a (redirectPointers1 f)
-        print ">> redirection ComponentSetA"
+        putStrLn ">> redirection ComponentSetA"
         pure out
     {-# INLINE redirectPointers1 #-}
 
@@ -354,9 +358,9 @@ instance Applicative m => PointerRedirection1 m (Component comp) where
 
 instance MonadIO m => PointerRedirection m (ComponentVectorA alloc tag layout) where
     redirectPointers = \f a -> do
-        print ">> redirection ComponentVectorA"
+        putStrLn ">> redirection ComponentVectorA"
         out <- a <$ Mutable.mapM a (redirectPointers1 f)
-        print "<< redirection ComponentVectorA"
+        putStrLn "<< redirection ComponentVectorA"
         pure out
     {-# INLINE redirectPointers #-}
 
@@ -369,6 +373,22 @@ instance Applicative m => PointerRedirection m Word32
 instance Applicative m => PointerRedirection m Word64
 instance Applicative m => PointerRedirection m Bool
 
+instance
+    ( ctx ~ PointerRedirection m
+    , MonadIO m
+    ) => PointerRedirection1 m IR.UniTerm where
+    redirectPointers1 = \f
+        -> GTraversable.gmapM @(GTraversable.GTraversable ctx)
+         $ GTraversable.gmapM @ctx (redirectPointers f)
+
+instance Applicative m => PointerRedirection m (SmallVectorA t alloc n IR.Name)
+instance Applicative m => PointerRedirection m (SmallVectorA t alloc n Char)
+instance Applicative m => PointerRedirection m (SmallVectorA t alloc n Word8)
+instance Applicative m => PointerRedirection m IR.Name
+instance Applicative m => PointerRedirection m IR.ForeignImportType
+instance Applicative m => PointerRedirection m IR.ImportSourceData
+instance Applicative m => PointerRedirection m IR.ImportTargetData
+instance Applicative m => PointerRedirection m InvalidIR.Symbol
 
 
 
@@ -450,11 +470,11 @@ instance
     , MonadIO m
     ) => Foo IR.UniTerm m where
     foo = \ptr -> do
-        print ">> uni unswizzle"
+        putStrLn ">> uni unswizzle"
         uni <- liftIO $ StdStorable.peek ptr
         GTraversable.gmapM @(GTraversable.GTraversable ctx)
             (GTraversable.gmapM @ctx (Mutable.unswizzleRelTo (coerce ptr))) uni
-        print "<< uni unswizzle"
+        putStrLn "<< uni unswizzle"
         pure ()
 
 instance MonadIO m => Mutable.UnswizzleRelTo m (ComponentVectorA alloc tag layout) where
@@ -522,9 +542,9 @@ foldUnswizzleComponents = \comp -> Fold.build1 @(LayerMap.Scoped ComponentUnswiz
 -- instance MonadIO m
 --       => PointerRedirection1 m (ComponentSetA alloc tag) where
 --     redirectPointers1 = \f a -> do
---         print ">> redirection ComponentSetA"
+--         putStrLn ">> redirection ComponentSetA"
 --         out <- a <$ Mutable.mapM a (redirectPointers1 f)
---         print ">> redirection ComponentSetA"
+--         putStrLn ">> redirection ComponentSetA"
 --         pure out
 --     {-# INLINE redirectPointers1 #-}
 
@@ -535,9 +555,9 @@ foldUnswizzleComponents = \comp -> Fold.build1 @(LayerMap.Scoped ComponentUnswiz
 
 -- instance MonadIO m => PointerRedirection m (ComponentVectorA alloc tag layout) where
 --     redirectPointers = \f a -> do
---         print ">> redirection ComponentVectorA"
+--         putStrLn ">> redirection ComponentVectorA"
 --         out <- a <$ Mutable.mapM a (redirectPointers1 f)
---         print "<< redirection ComponentVectorA"
+--         putStrLn "<< redirection ComponentVectorA"
 --         pure out
 --     {-# INLINE redirectPointers #-}
 
@@ -653,15 +673,15 @@ alloc = \ccount size -> liftIO $ do
 
 -- === Conversions === --
 
-unsafeFreeze :: (MonadIO m, Graph.KnownComponentNumber graph)
+unsafeFreeze :: ∀ m graph. (MonadIO m, Graph.KnownComponentNumberM m)
     => Buffer graph -> m ByteString
 unsafeFreeze = \a -> do
+    let headerSize = Storable.constantSize @(HeaderLayoutM m)
     staticSize  <- Struct.read staticDataRegionSize  a
     dynDataSize <- Struct.read dynamicDataRegionSize a
     dynPtrSize  <- Struct.read pointerDataRegionSize a
-    let mem = dataRegion a
-    let totalSize = staticSize + dynDataSize + dynPtrSize
-    pure $ ByteString.PS (coerce mem) 0 totalSize
+    let totalSize = headerSize + staticSize + dynDataSize + dynPtrSize
+    pure $ ByteString.PS (coerce a) 0 totalSize
 
 unsafeThaw :: Monad m => ByteString -> m (Buffer (Graph.Discover m))
 unsafeThaw = \(ByteString.PS ptr _ _) -> pure $ coerce ptr
@@ -1002,7 +1022,7 @@ instance (MonadIO m, PointerRedirection1_2 m (Layer.Cons layer), State.Getter De
         mapLayer = \a _ -> do
             m <- State.get @DecodeOffsetMap
             -- let f ptr = do
-            --         print $ "LOOKUP " <> show ptr
+            --         putStrLn $ "LOOKUP " <> show ptr
             --         pure . unsafeFromJust . flip Map.lookup m $ ptr
             (,()) <$> redirectPointers1_2 m a
 
@@ -1035,9 +1055,9 @@ instance
     ) => PointerRedirection1_2 m (ComponentSetA alloc tag) where
     redirectPointers1_2 = \f a -> do
         -- let idx = Type.val' @idx :: Int
-        print ">> redirection ComponentSetA"
+        putStrLn ">> redirection ComponentSetA"
         out <- a <$ Mutable.mapM a (redirectPointers1_2 f)
-        print ">> redirection ComponentSetA"
+        putStrLn ">> redirection ComponentSetA"
         pure out
     {-# INLINE redirectPointers1_2 #-}
 
@@ -1060,9 +1080,9 @@ instance
 instance (MonadIO m, PointerRedirection1_2 m (Component tag))
       => PointerRedirection_2 m (ComponentVectorA alloc tag layout) where
     redirectPointers_2 = \f a -> do
-        print ">> redirection ComponentVectorA"
+        putStrLn ">> redirection ComponentVectorA"
         out <- a <$ Mutable.mapM a (redirectPointers1_2 f)
-        print "<< redirection ComponentVectorA"
+        putStrLn "<< redirection ComponentVectorA"
         pure out
     {-# INLINE redirectPointers_2 #-}
 

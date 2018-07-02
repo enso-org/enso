@@ -9,17 +9,22 @@ import qualified OCI.Data.Name.Class                as Name
 
 import Foreign.Storable (Storable)
 
+
 ----------------------
 -- === Qualified === --
 ----------------------
 
 -- === Definition === --
 
-newtype Qualified = Qualified Name.Name deriving (Eq, IsString, Ord, Show, Storable)
+newtype Qualified = Qualified Name.Name
+    deriving (Eq, IsString, Ord, Show, Storable)
 makeLenses          ''Qualified
 GTraversable.derive ''Qualified
 
+
 -- === Instances === --
+
+type instance Item Qualified = Name.Name
 
 instance Convertible Name.Name Qualified where
     convert = wrap
@@ -33,4 +38,3 @@ instance Convertible [Name.Name] Qualified where
     convert ns = convert $ Name.concat $ intersperse (convert ".") ns
     {-# INLINE convert #-}
 
-type instance Item Qualified = Name.Name

@@ -1,6 +1,6 @@
 module Data.Graph.Store where
 
-import Prologue
+import Prologue hiding (putStrLn)
 
 import qualified Data.Graph.Data.Component.Class as Component
 import qualified Data.Graph.Data.Graph.Class     as Graph
@@ -11,8 +11,12 @@ import qualified Data.Graph.Store.Internal       as Serialize
 import qualified Data.Graph.Store.Size.Discovery as Size
 import qualified Memory                          as Memory
 
+import Data.ByteString                 (ByteString)
 import Data.Graph.Data.Component.Class (Component)
 -- import Data.Graph.Store.MemoryRegion   (MemoryRegion)
+
+putStrLn :: Applicative m => String -> m ()
+putStrLn = const $ pure ()
 
 
 -- -----------------------
@@ -86,7 +90,7 @@ type Serializer comp m =
     )
 
 serialize :: ∀ comp m layout. Serializer comp m
-    => Component comp layout -> m (Buffer.BufferM m) -- MemoryRegion
+    => Component comp layout -> m ByteString -- MemoryRegion
 serialize comp = do
     putStrLn "\nSERIALIZE"
 
@@ -107,8 +111,6 @@ serialize comp = do
     putStrLn "\n=== encodeStaticRegion ==="
     redirectMap <- Memory.withUnmanagedPtr dataRegionPtr $ Buffer.encodeStaticRegion clusters
 
-    -- Buffer.encodeStaticRegion clusters
-
     putStrLn "\n=== redirectMap ==="
     pprint redirectMap
 
@@ -118,10 +120,14 @@ serialize comp = do
     putStrLn "\n=== pointerRedirection ==="
     Buffer.redirectComponents @(Graph.ComponentsM m) redirectMap ccount dataRegion
 
+    -- FIXME FIXME FIXME
+    -- FIXME FIXME FIXME
+    -- FIXME FIXME FIXME
+    -- Unswizzling is disabled for now. Enable it and create swizzling!
     -- putStrLn "\n=== pointer unswizzling ==="
     -- Buffer.unswizzleComponents__ @(Graph.ComponentsM m) ccount dataRegion
 
-    pure buffer
+    Buffer.unsafeFreeze buffer
 {-# INLINE serialize #-}
 
 
@@ -133,8 +139,10 @@ type Deserializer m =
     , Buffer.ComponentStaticRedirection2 (Graph.ComponentsM m) m
     )
 
-deserialize :: ∀ comp layout m. Deserializer m => Buffer.BufferM m -> m (Component comp layout)
-deserialize = \buffer -> do
+deserialize :: ∀ comp layout m. Deserializer m => ByteString -> m (Component comp layout)
+deserialize = \bs -> do
+    buffer <- Buffer.unsafeThaw bs
+
     putStrLn "\n=== decodeComponentCount ==="
     ccount <- Buffer.decodeComponentCount buffer
 

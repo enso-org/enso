@@ -386,27 +386,4 @@ spec = do
 -- instance Applicative m => Buffer.CopyInitializerP1 m IR.UniTerm
 
 
-instance
-    ( ctx ~ Buffer.PointerRedirection m
-    , MonadIO m
-    ) => Buffer.PointerRedirection1 m IR.UniTerm where
-    redirectPointers1 = \f
-        -> GTraversable.gmapM @(GTraversable.GTraversable ctx)
-         $ GTraversable.gmapM @ctx (Buffer.redirectPointers f)
 
-
-    --      instance (MonadIO m, ctx ~ Data.ShallowDestructor m)
-    --      => Data.ShallowDestructor1 m UniTerm where
-    --    destructShallow1 = GTraversable.gmapM_ @(GTraversable ctx)
-    --                     $ GTraversable.gmapM_ @ctx Data.destructShallow
-    --    {-# INLINE destructShallow1 #-}
-
-
-instance Applicative m => Buffer.PointerRedirection m (SmallVector.SmallVectorA t alloc n IR.Name)
-instance Applicative m => Buffer.PointerRedirection m (SmallVector.SmallVectorA t alloc n Char)
-instance Applicative m => Buffer.PointerRedirection m (SmallVector.SmallVectorA t alloc n Word8)
-instance Applicative m => Buffer.PointerRedirection m IR.Name
-instance Applicative m => Buffer.PointerRedirection m IR.ForeignImportType
-instance Applicative m => Buffer.PointerRedirection m IR.ImportSourceData
-instance Applicative m => Buffer.PointerRedirection m IR.ImportTargetData
-instance Applicative m => Buffer.PointerRedirection m InvalidIR.Symbol

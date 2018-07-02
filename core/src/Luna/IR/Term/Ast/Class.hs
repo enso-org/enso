@@ -6,17 +6,16 @@ module Luna.IR.Term.Ast.Class where
 
 import Prologue hiding (Imp, imp, seq)
 
-import qualified Data.Generics.Traversable.Deriving as GTraversable
--- import qualified Data.Graph.Store.External          as ExternalStorable
+import qualified Data.Generics.Traversable.Deriving    as GTraversable
 import qualified Data.Mutable.Storable.SmallAutoVector as SmallVector
 import qualified Foreign.Storable.Deriving             as Storable
 import qualified Luna.IR.Term.Ast.Invalid              as Invalid
 import qualified Luna.IR.Term.Format                   as Format
+import qualified OCI.Data.Name                         as Name
 import qualified OCI.IR.Term.Definition                as Term
 
--- import Data.Graph.Store.External (ExternalFieldStorable, ExternalStorable)
 import Data.Vector.Storable.Foreign (Vector)
-import OCI.Data.Name                (Name, Qualified)
+import OCI.Data.Name                (Name)
 import OCI.IR.Term.Class            (Terms)
 import OCI.IR.Term.Definition       (LinkTo, LinksTo)
 
@@ -35,8 +34,8 @@ type Vec16 = Vec 16 -- FIXME: Storable.derive doesnt support Nat literals
 -- === Helpers === --
 
 data ImportSourceData
-    = Relative Qualified
-    | Absolute Qualified
+    = Relative Name.Qualified
+    | Absolute Name.Qualified
     | World
     deriving (Eq, Generic, Show)
 Storable.derive     ''ImportSourceData
