@@ -133,7 +133,7 @@ nativeLoadSymbol handle symbol = Foreign.castPtrToFunPtr <$> Win32.getProcAddres
 
 
 dynamicLibraryExtensions :: [String]
-dynamicLibraryExtensions = [".dll"]
+dynamicLibraryExtensions = ["", ".dll"]
 
 nativeLibraryProjectDir :: String
 nativeLibraryProjectDir = "windows"
