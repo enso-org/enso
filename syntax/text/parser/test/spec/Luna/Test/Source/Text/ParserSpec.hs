@@ -13,7 +13,6 @@ import qualified Data.Graph.Component.Node.Construction as Term
 import qualified Data.Graph.Data                        as Component
 import qualified Data.Graph.Data.Graph.Class            as Graph
 import qualified Data.Graph.Data.Layer.Layout           as Layout
-import qualified Data.Set.Mutable.Class                 as Set
 import qualified Foreign.Marshal.Alloc                  as Mem
 import qualified Foreign.Storable                       as Storable
 import qualified Luna.IR                                as IR
