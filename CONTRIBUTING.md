@@ -157,9 +157,9 @@ stack build --stack-yaml build/stack-local.yaml
 ```
 
 ### Running Luna
-As a prerequisite, you need to set a `LUNA_HOME` variable to point to the 
+As a prerequisite, you need to set a `LUNA_LIBS_PATH` variable to point to the 
 location of the Luna standard library. Assuming your repo is at 
-`$LUNA_REPO_PATH`, you will need to set `LUNA_HOME` to `$LUNA_REPO_PATH/stdlib`.
+`$LUNA_REPO_PATH`, you will need to set `LUNA_LIBS_PATH` to `$LUNA_REPO_PATH/stdlib`.
 
 Next, you need to create the project: create a directory structure like this:
 
