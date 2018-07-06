@@ -10,7 +10,15 @@ import qualified Control.Monad.State.Layered        as State
 import qualified Data.Generics.Traversable.Deriving as GTraversable
 import qualified Data.Text.Span                     as Span
 import qualified Foreign.Storable.Deriving          as Storable
+import qualified Luna.IR                            as IR
 import qualified Luna.IR.Layer                      as Layer
+import qualified Data.Graph.Fold.Class              as FoldClass
+import qualified Data.Graph.Fold.Scoped             as Fold
+import qualified Data.Graph.Fold.Deep               as Fold
+import qualified Data.Graph.Fold.Partition          as Fold
+import qualified Data.Graph.Store.Buffer            as Buffer
+import qualified Data.Graph.Store.Size.Discovery    as Buffer
+
 
 import Data.Text.Position (Delta)
 import Data.Text.Span     (LeftSpacedSpan, length, offset)
@@ -109,6 +117,10 @@ instance Layer CodeSpan where
     type Cons  CodeSpan = Layer.Simple CodeSpan
     manager = Layer.customStaticManager (pure $ Layer.Simple mempty)
 
+instance Monad m => FoldClass.Builder (Fold.Scoped (Fold.Deep (Fold.Discovery a))) m CodeSpan
+instance Monad m => FoldClass.Builder Buffer.CopyInitialization2 m CodeSpan
+instance Monad m => FoldClass.Builder Buffer.CopyInitialization  m CodeSpan
+instance Monad m => FoldClass.Builder Buffer.Discovery  m CodeSpan
 
 
 -- initCodeSpan :: Req m '[Writer // Layer // Abstract (Elem t) // CodeSpan] => Listener (New // Elem t) m

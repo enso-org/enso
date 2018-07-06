@@ -334,6 +334,10 @@ foldRedirectComponent = \comp -> Fold.build1 @(Fold.ScopedMap ComponentRedirecti
 class PointerRedirection1 m a where
     redirectPointers1 :: (Memory.SomeUnmanagedPtr -> m Memory.SomeUnmanagedPtr)
                       -> a t1 -> m (a t1)
+    default redirectPointers1 :: Applicative m
+                              => (Memory.SomeUnmanagedPtr -> m Memory.SomeUnmanagedPtr)
+                              -> a t1 -> m (a t1)
+    redirectPointers1 = \_ -> pure
 
 class PointerRedirection m a where
     redirectPointers :: (Memory.SomeUnmanagedPtr -> m Memory.SomeUnmanagedPtr)
@@ -354,6 +358,8 @@ instance MonadIO m
 instance Applicative m => PointerRedirection1 m (Component comp) where
     redirectPointers1 = \f a -> Component.unsafeFromPtr
         . unwrap <$> f (wrap $ Component.unsafeToPtr a)
+
+instance Applicative m => PointerRedirection1 m (Layer.Simple a)
 
 
 instance MonadIO m => PointerRedirection m (ComponentVectorA alloc tag layout) where
@@ -452,26 +458,30 @@ type instance LayerMap.LayerScope ComponentUnswizzling = 'LayerMap.All
 --       => LayerMap.LayerMap ComponentUnswizzling m layer where
 --         mapLayerPtr = \a _ -> () <$ Mutable.unswizzle (SAV.Field1 $ wrap a)
 
-instance (MonadIO m, Foo (Layer.Cons layer) m)
+instance (MonadIO m, UnswizzleX (Layer.Cons layer) m)
       => LayerMap.LayerMap ComponentUnswizzling m layer where
-        mapLayerPtr = \a _ -> () <$ foo a
+        mapLayerPtr = \a _ -> () <$ unswizzleX a
 
-class Foo a m where
-    foo :: forall t1. Ptr (a t1) -> m ()
+class UnswizzleX a m where
+    unswizzleX :: forall t1. Ptr (a t1) -> m ()
+    default unswizzleX :: Applicative m => Ptr (a t1) -> m ()
+    unswizzleX = \_ -> pure () ; {-# INLINE unswizzleX #-}
 
-instance MonadIO m => Foo (ComponentSetA alloc tag) m where
-    foo = Mutable.unswizzle1 <=< (liftIO . StdStorable.peek)
+instance MonadIO m => UnswizzleX (ComponentSetA alloc tag) m where
+    unswizzleX = Mutable.unswizzle1 <=< (liftIO . StdStorable.peek)
 
-instance MonadIO m => Foo (Component comp) m where
-    foo = Mutable.unswizzle . SAV.Field . wrap
+instance MonadIO m => UnswizzleX (Component comp) m where
+    unswizzleX = Mutable.unswizzle . SAV.Field . wrap
+
+instance Applicative m => UnswizzleX (Layer.Simple a) m
 
             -- Fold.build1 @ComponentUnswizzling
 
 instance
     ( ctx ~ Mutable.UnswizzleRelTo m
     , MonadIO m
-    ) => Foo IR.UniTerm m where
-    foo = \ptr -> do
+    ) => UnswizzleX IR.UniTerm m where
+    unswizzleX = \ptr -> do
         putStrLn ">> uni unswizzle"
         uni <- liftIO $ StdStorable.peek ptr
         GTraversable.gmapM @(GTraversable.GTraversable ctx)
@@ -1045,6 +1055,10 @@ foldRedirectComponent2 = \comp -> Fold.build1 @(Fold.ScopedMap ComponentRedirect
 class PointerRedirection1_2 m a where
     redirectPointers1_2 :: DecodeOffsetMap
                       -> a t1 -> m (a t1)
+    default redirectPointers1_2 :: Applicative m
+                                => DecodeOffsetMap
+                                -> a t1 -> m (a t1)
+    redirectPointers1_2 = \_ -> pure
 
 class PointerRedirection_2 m a where
     redirectPointers_2 :: DecodeOffsetMap
@@ -1095,6 +1109,8 @@ instance (MonadIO m, PointerRedirection1_2 m (Component tag))
 instance (Applicative m, PointerRedirection1_2 m (Component comp))
       => PointerRedirection_2 m (Component comp layout) where
     redirectPointers_2 = redirectPointers1_2
+
+instance Applicative m => PointerRedirection1_2 m (Layer.Simple a)
 
 instance Applicative m => PointerRedirection_2 m Word8
 instance Applicative m => PointerRedirection_2 m Word16
