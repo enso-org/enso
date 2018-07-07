@@ -1,41 +1,38 @@
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE MagicHash         #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Luna.Prim.Foreign where
 
 import Prologue
 
-import           Control.Exception.Safe      (handleAny, throwString)
-import           Data.Map                    (Map)
 import qualified Data.Map                    as Map
 import qualified Data.Text                   as Text
-import           Foreign.C.Types             (CDouble, CFloat, CChar, CUChar,
-                                              CWchar, CInt, CUInt, CLong,
-                                              CULong, CSize, CTime)
-import           Foreign.C.String            (peekCString, newCString, CString)
-import           Foreign.ForeignPtr.Unsafe   (unsafeForeignPtrToPtr)
 import qualified Foreign.ForeignPtr          as ForeignPtr
 import qualified Foreign.LibFFI              as LibFFI
-import           Foreign.Marshal.Alloc       (mallocBytes, finalizerFree, free)
-import           Foreign.Ptr                 (Ptr, FunPtr, castFunPtr, castPtr,
-                                              castPtrToFunPtr, nullPtr,
-                                              plusPtr)
-import           Foreign.Storable            (Storable(..))
-import           GHC.ForeignPtr              (ForeignPtr(..))
-import           GHC.Exts                    (Int(..), plusAddr#)
-import           Luna.Prim.CTypes            (CInt8(..), CInt16(..),
-                                              CInt32(..), CInt64(..),
-                                              CUInt8(..), CUInt16(..),
-                                              CUInt32(..), CUInt64(..))
-import qualified Luna.IR as IR
-import qualified Luna.Runtime as Luna
-import qualified Luna.Prim.DynamicLinker     as Linker
+import qualified Luna.IR                     as IR
 import qualified Luna.Pass.Sourcing.Data.Def as Def
-import           Luna.Std.Builder            (makeFunctionIO, makeFunctionPure,
-                                              maybeLT, LTp (..), int, integer,
-                                              real)
-import           Luna.Std.Finalizers         (FinalizersCtx, registerFinalizer)
+import qualified Luna.Prim.DynamicLinker     as Linker
+import qualified Luna.Runtime                as Luna
 import qualified System.Mem.Weak             as Weak
+
+import Control.Exception.Safe    (handleAny, throwString)
+import Data.Map                  (Map)
+import Foreign.C.String          (CString, newCString, peekCString)
+import Foreign.C.Types           (CChar, CDouble, CFloat, CInt, CLong, CSize,
+                                  CTime, CUChar, CUInt, CULong, CWchar)
+import Foreign.ForeignPtr.Unsafe (unsafeForeignPtrToPtr)
+import Foreign.Marshal.Alloc     (finalizerFree, free, mallocBytes)
+import Foreign.Ptr               (FunPtr, Ptr, castFunPtr, castPtr,
+                                  castPtrToFunPtr, nullPtr, plusPtr)
+import Foreign.Storable          (Storable (..))
+import GHC.Exts                  (Int (..), plusAddr#)
+import GHC.ForeignPtr            (ForeignPtr (..))
+import Luna.Prim.CTypes          (CInt16 (..), CInt32 (..), CInt64 (..),
+                                  CInt8 (..), CUInt16 (..), CUInt32 (..),
+                                  CUInt64 (..), CUInt8 (..))
+import Luna.Std.Builder          (LTp (..), int, integer, makeFunctionIO,
+                                  makeFunctionPure, maybeLT, real)
+import Luna.Std.Finalizers       (FinalizersCtx, registerFinalizer)
 
 
 ptrT :: LTp -> LTp
@@ -46,6 +43,19 @@ fPtrT t = LCons "ForeignPtr" [t]
 
 retTypeT :: LTp -> LTp
 retTypeT t = LCons "RetType" [t]
+
+
+primIntSeq :: ∀ a. (PrimStorable a, PrimNum a, PrimIntegral a)
+    => [IO (Map IR.Name Def.Def)]
+primIntSeq  = [primStorable @a, primNum @a, primIntegral @a]
+
+primRealSeq :: ∀ a. (PrimStorable a, PrimNum a, PrimReal a)
+    => [IO (Map IR.Name Def.Def)]
+primRealSeq = [primStorable @a, primNum @a, primReal @a]
+
+primFracSeq :: ∀ a. (PrimStorable a, PrimNum a, PrimReal a, PrimFrac a)
+    => [IO (Map IR.Name Def.Def)]
+primFracSeq = [primStorable @a, primNum @a, primReal @a, primFrac @a]
 
 exports :: FinalizersCtx -> IO (Map IR.Name Def.Def)
 exports finalizersCtx = do
@@ -78,95 +88,31 @@ exports finalizersCtx = do
     fptr    <- primForeignPtr finalizersCtx
     cstring <- primCString
 
-    cchar  <- Map.unions <$> sequence [ primStorable @CChar
-                                      , primNum      @CChar
-                                      , primIntegral @CChar
-                                      ]
-    cuchar <- Map.unions <$> sequence [ primStorable @CUChar
-                                      , primNum      @CUChar
-                                      , primIntegral @CUChar
-                                      ]
-    cwchar <- Map.unions <$> sequence [ primStorable @CWchar
-                                      , primNum      @CWchar
-                                      , primIntegral @CWchar
-                                      ]
-    cint   <- Map.unions <$> sequence [ primStorable @CInt
-                                      , primNum      @CInt
-                                      , primIntegral @CInt
-                                      ]
-    cint8  <- Map.unions <$> sequence [ primStorable @CInt8
-                                      , primNum      @CInt8
-                                      , primIntegral @CInt8
-                                      ]
-    cint16 <- Map.unions <$> sequence [ primStorable @CInt16
-                                      , primNum      @CInt16
-                                      , primIntegral @CInt16
-                                      ]
-    cint32 <- Map.unions <$> sequence [ primStorable @CInt32
-                                      , primNum      @CInt32
-                                      , primIntegral @CInt32
-                                      ]
-    cint64 <- Map.unions <$> sequence [ primStorable @CInt64
-                                      , primNum      @CInt64
-                                      , primIntegral @CInt64
-                                      ]
-    cuint  <- Map.unions <$> sequence [ primStorable @CUInt
-                                      , primNum      @CUInt
-                                      , primIntegral @CUInt
-                                      ]
-    cuint8  <- Map.unions <$> sequence [ primStorable @CUInt8
-                                       , primNum      @CUInt8
-                                       , primIntegral @CUInt8
-                                       ]
-    cuint16 <- Map.unions <$> sequence [ primStorable @CUInt16
-                                       , primNum      @CUInt16
-                                       , primIntegral @CUInt16
-                                       ]
-    cuint32 <- Map.unions <$> sequence [ primStorable @CUInt32
-                                       , primNum      @CUInt32
-                                       , primIntegral @CUInt32
-                                       ]
-    cuint64 <- Map.unions <$> sequence [ primStorable @CUInt64
-                                       , primNum      @CUInt64
-                                       , primIntegral @CUInt64
-                                       ]
-    clong  <- Map.unions <$> sequence [ primStorable @CLong
-                                      , primNum      @CLong
-                                      , primIntegral @CLong
-                                      ]
-    culong <- Map.unions <$> sequence [ primStorable @CULong
-                                      , primNum      @CULong
-                                      , primIntegral @CULong
-                                      ]
-    csize  <- Map.unions <$> sequence [ primStorable @CSize
-                                      , primNum      @CSize
-                                      , primIntegral @CSize
-                                      ]
+    cchar   <- Map.unions <$> sequence (primIntSeq  @CChar)
+    cuchar  <- Map.unions <$> sequence (primIntSeq  @CUChar)
+    cwchar  <- Map.unions <$> sequence (primIntSeq  @CWchar)
+    cint    <- Map.unions <$> sequence (primIntSeq  @CInt)
+    cint8   <- Map.unions <$> sequence (primIntSeq  @CInt8)
+    cint16  <- Map.unions <$> sequence (primIntSeq  @CInt16)
+    cint32  <- Map.unions <$> sequence (primIntSeq  @CInt32)
+    cint64  <- Map.unions <$> sequence (primIntSeq  @CInt64)
+    cuint   <- Map.unions <$> sequence (primIntSeq  @CUInt)
+    cuint8  <- Map.unions <$> sequence (primIntSeq  @CUInt8)
+    cuint16 <- Map.unions <$> sequence (primIntSeq  @CUInt16)
+    cuint32 <- Map.unions <$> sequence (primIntSeq  @CUInt32)
+    cuint64 <- Map.unions <$> sequence (primIntSeq  @CUInt64)
+    clong   <- Map.unions <$> sequence (primIntSeq  @CLong)
+    culong  <- Map.unions <$> sequence (primIntSeq  @CULong)
+    csize   <- Map.unions <$> sequence (primIntSeq  @CSize)
+    ctime   <- Map.unions <$> sequence (primRealSeq @CTime)
+    cdouble <- Map.unions <$> sequence (primFracSeq @CDouble)
+    cfloat  <- Map.unions <$> sequence (primFracSeq @CFloat)
 
-    ctime  <- Map.unions <$> sequence [ primStorable @CTime
-                                      , primNum      @CTime
-                                      , primReal     @CTime
-                                      ]
-
-    cdouble <- Map.unions <$> sequence [ primStorable @CDouble
-                                       , primNum      @CDouble
-                                       , primReal     @CDouble
-                                       , primFrac     @CDouble
-                                       ]
-    cfloat  <- Map.unions <$> sequence [ primStorable @CFloat
-                                       , primNum      @CFloat
-                                       , primReal     @CFloat
-                                       , primFrac     @CFloat
-                                       ]
-
-    return $ Map.unions [ local, ptr, fptr
-                        , cstring, cchar, cuchar, cwchar
-                        , cint, cuint, clong, culong
-                        , cint8, cint16, cint32, cint64
-                        , cuint8, cuint16, cuint32, cuint64
-                        , csize, ctime
-                        , cdouble, cfloat
-                        ]
+    return $ Map.unions
+        [ local, ptr, fptr, cstring, cchar, cuchar, cwchar, cint, cuint, clong
+        , culong, cint8, cint16, cint32, cint64, cuint8, cuint16, cuint32
+        , cuint64, csize, ctime, cdouble, cfloat
+        ]
 
 primPtr :: IO (Map IR.Name Def.Def)
 primPtr = do
@@ -261,15 +207,18 @@ class PrimCFFI a where
 makePrimFunName :: IR.Name -> IR.Name -> IR.Name
 makePrimFunName cls fun = "prim" <> cls <> fun
 
-primStorable :: forall a. ( PrimCFFI a
-                          , Storable a
-                          , Luna.IsNative a
-                          , Luna.ToData a
-                          , Luna.ToValue a
-                          , Luna.ToData (a -> IO ())
-                          , Luna.ToData (a -> Integer)
-                          , Luna.ToData (a -> LibFFI.Arg)
-                          ) => IO (Map IR.Name Def.Def)
+type PrimStorable a =
+    ( PrimCFFI a
+    , Storable a
+    , Luna.IsNative a
+    , Luna.ToData a
+    , Luna.ToValue a
+    , Luna.ToData (a -> IO ())
+    , Luna.ToData (a -> Integer)
+    , Luna.ToData (a -> LibFFI.Arg)
+    )
+
+primStorable :: forall a. PrimStorable a => IO (Map IR.Name Def.Def)
 primStorable = do
     let typeName = Luna.classNameOf @a
         tp       = LCons typeName []
@@ -301,17 +250,20 @@ primStorable = do
                            , (mkName "ByteSize", primByteSize)
                            ]
 
-primNum :: forall a. ( Num a
-                     , Ord a
-                     , Show a
-                     , Luna.IsNative a
-                     , Luna.ToData a
-                     , Luna.ToValue a
-                     , Luna.ToValue (a -> a)
-                     , Luna.ToValue (a -> Text)
-                     , Luna.ToValue (a -> a -> a)
-                     , Luna.ToValue (a -> a -> Bool)
-                     ) => IO (Map IR.Name Def.Def)
+type PrimNum a =
+    ( Num a
+    , Ord a
+    , Show a
+    , Luna.IsNative a
+    , Luna.ToData a
+    , Luna.ToValue a
+    , Luna.ToValue (a -> a)
+    , Luna.ToValue (a -> Text)
+    , Luna.ToValue (a -> a -> a)
+    , Luna.ToValue (a -> a -> Bool)
+    )
+
+primNum :: forall a. PrimNum a => IO (Map IR.Name Def.Def)
 primNum = do
     let typeName = Luna.classNameOf @a
         tp       = LCons typeName []
@@ -351,13 +303,16 @@ primNum = do
                           , (mkName "Abs", primAbs)
                           ]
 
-primIntegral :: forall a. ( Integral a
-                          , Luna.IsNative a
-                          , Luna.ToData a
-                          , Luna.ToValue a
-                          , Luna.ToValue (a -> Integer)
-                          , Luna.ToValue (a -> a -> a)
-                          ) => IO (Map IR.Name Def.Def)
+type PrimIntegral a =
+    ( Integral a
+    , Luna.IsNative a
+    , Luna.ToData a
+    , Luna.ToValue a
+    , Luna.ToValue (a -> Integer)
+    , Luna.ToValue (a -> a -> a)
+    )
+
+primIntegral :: forall a. PrimIntegral a => IO (Map IR.Name Def.Def)
 primIntegral = do
     let typeName = Luna.classNameOf @a
         tp       = LCons typeName []
@@ -384,13 +339,16 @@ primIntegral = do
                           , (mkName "Mod", primMod)
                           ]
 
-primFrac :: forall a. ( Real a
-                      , Fractional a
-                      , Luna.IsNative a
-                      , Luna.ToData a
-                      , Luna.ToValue a
-                      , Luna.ToValue (a -> a -> a)
-                      ) => IO (Map IR.Name Def.Def)
+type PrimFrac a =
+    ( Real a
+    , Fractional a
+    , Luna.IsNative a
+    , Luna.ToData a
+    , Luna.ToValue a
+    , Luna.ToValue (a -> a -> a)
+    )
+
+primFrac :: forall a. PrimFrac a => IO (Map IR.Name Def.Def)
 primFrac = do
     let typeName = Luna.classNameOf @a
         tp       = LCons typeName []
@@ -410,11 +368,14 @@ primFrac = do
                           , (mkName "FromReal", primFromReal)
                           ]
 
-primReal :: forall a. ( Real a
-                      , Luna.IsNative a
-                      , Luna.ToValue a
-                      , Luna.ToValue (a -> Double)
-                      ) => IO (Map IR.Name Def.Def)
+type PrimReal a =
+    ( Real a
+    , Luna.IsNative a
+    , Luna.ToValue a
+    , Luna.ToValue (a -> Double)
+    )
+
+primReal :: forall a. PrimReal a => IO (Map IR.Name Def.Def)
 primReal = do
     let typeName = Luna.classNameOf @a
         tp       = LCons typeName []

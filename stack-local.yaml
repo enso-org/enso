@@ -31,6 +31,8 @@ packages:
     - passes
     - playground
     - project
+    - runtime
+    - stdlib
     - syntax/text/lexer
     - syntax/text/model
     - syntax/text/parser
