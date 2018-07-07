@@ -366,6 +366,17 @@ test = describe "test" $ it "test" $ runPass' $ do
 
     -- True `shouldBe` True
 
+delTest :: Spec
+delTest = describe "delete" $ it "test" $ runPass' $ do
+    print "create"
+    v1 <- IR.var "v1"
+    v2 <- IR.var "v2"
+    c  <- IR.cons2 []
+    print "delete"
+    IR.destruct1 c
+    print "done"
+
+
 spec :: Spec
 spec = do
 
@@ -377,6 +388,7 @@ spec = do
     attribsSpec
     irDestructSpec
     irDiscoverySpec
+    delTest
     -- partitionSpec
 
 

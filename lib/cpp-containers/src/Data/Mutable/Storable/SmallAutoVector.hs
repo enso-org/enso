@@ -315,10 +315,6 @@ instance (t ~ 'Memory.Unmanaged, MonadIO m, Storable.KnownConstantSize (SmallVec
         in  Memory.copyBytes ptr (coerce a) size
     {-# INLINE poke #-}
 
-instance MonadIO m
-      => Data.ShallowDestructor1 m (SmallVectorA 'Memory.Unmanaged alloc n) where
-    destructShallow1 = free
-    {-# INLINE destructShallow1 #-}
 
 instance
     ( MonadIO m
@@ -373,3 +369,9 @@ instance (MonadIO m, Memory.PtrType t)
             $ Memory.free =<< Struct.read _externalMem a
     {-# INLINE destruct1 #-}
 
+-- WARNING: this instance is strange. It does not release self-memory,
+--          because it is used for placement-new objects
+instance MonadIO m
+      => Data.ShallowDestructor1 m (SmallVectorA 'Memory.Unmanaged alloc n) where
+    destructShallow1 = const $ pure () -- free
+    {-# INLINE destructShallow1 #-}
