@@ -371,7 +371,7 @@ delTest = describe "delete" $ it "test" $ runPass' $ do
     print "create"
     v1 <- IR.var "v1"
     v2 <- IR.var "v2"
-    c  <- IR.cons2 []
+    c  <- IR.cons "A" []
     print "delete"
     IR.destruct1 c
     print "done"
