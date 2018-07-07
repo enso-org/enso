@@ -19,8 +19,8 @@ type Delete m =
     )
 
 delete :: Delete m => Edge layout -> m ()
-delete = \edge -> return () --do
-    {-srcUsers <- Layer.read @Users =<< Layer.read @Source edge-}
-    {-Mutable.remove srcUsers $! Layout.unsafeRelayout edge-}
-    {-Component.destruct1 edge-}
+delete = \edge -> do
+    srcUsers <- Layer.read @Users =<< Layer.read @Source edge
+    Mutable.remove srcUsers $! Layout.unsafeRelayout edge
+    Component.destruct1 edge
 {-# INLINE delete #-}

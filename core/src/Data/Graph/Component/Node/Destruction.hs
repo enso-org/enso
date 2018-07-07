@@ -40,7 +40,7 @@ delete = \node -> do
     edges <- subComponents1 @Edges node
     let es = Set.toList $ Set.fromList $ (convert edges :: [Edge.SomeEdge])
     traverse Edge.delete es
-    {-Component.destruct1 node-}
+    Component.destruct1 node
     return ()
 {-# INLINE delete #-}
 
