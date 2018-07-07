@@ -102,6 +102,12 @@ dealloc comp = do
     MemPool.free pool $ unwrap comp
 {-# INLINE dealloc #-}
 
+getAllAllocated :: ∀ comp m layout. Allocator comp m => m [Component comp layout]
+getAllAllocated = do
+    pool <- State.get @(MemPool (Component comp ()))
+    fmap wrap <$> MemPool.allocatedItems pool
+{-# INLINE getAllAllocated #-}
+
 instance Creator comp m => Data.Constructor1 m () (Component comp) where
     construct1 _ = do
         ir    <- alloc

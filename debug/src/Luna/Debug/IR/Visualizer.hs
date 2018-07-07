@@ -4,25 +4,24 @@ module Luna.Debug.IR.Visualizer where
 
 import Prologue
 
-import qualified Control.Lens.Aeson          as Lens
-import qualified Control.Monad.State         as State
-import qualified Data.Aeson                  as Aeson
-import qualified Data.ByteString.Lazy.Char8  as ByteString
-import qualified Data.Graph.Data.Layer.Layout as IR
-import qualified Data.Graph.Data.Component.List as ComponentList
-import qualified Data.Map                    as Map
-import qualified Data.Set                    as Set
-import qualified Data.Tag                    as Tag
-import qualified Luna.IR                     as IR
-import qualified Luna.IR.Layer               as Layer
-import qualified Luna.Pass                   as Pass
-import qualified System.Environment          as System
-import qualified Web.Browser                 as Browser
+import qualified Control.Lens.Aeson              as Lens
+import qualified Control.Monad.State             as State
+import qualified Data.Aeson                      as Aeson
+import qualified Data.ByteString.Lazy.Char8      as ByteString
+import qualified Data.Graph.Data.Layer.Layout    as IR
+import qualified Data.Graph.Data.Component.Class as Graph
+import qualified Data.Graph.Data.Component.List  as ComponentList
+import qualified Data.Map                        as Map
+import qualified Data.Set                        as Set
+import qualified Data.Tag                        as Tag
+import qualified Luna.IR                         as IR
+import qualified Luna.IR.Layer                   as Layer
+import qualified Luna.Pass                       as Pass
+import qualified System.Environment              as System
+import qualified Web.Browser                     as Browser
 
 import Data.Map (Map)
 import Data.Set (Set)
-import Data.Graph.Data.Component.Class (Component (..))
-
 
 
 ---------------------------
@@ -58,10 +57,14 @@ type MonadVis m =
     , Layer.Reader IR.Term IR.Model  m
     , Layer.Reader IR.Term IR.Type   m
     , Layer.Reader IR.Link IR.Source m
+    , Graph.Allocator IR.Terms m
     )
 
 
 -- === Private API === --
+
+getAllNodes :: MonadVis m => m [IR.SomeTerm]
+getAllNodes = IR.getAllAllocated
 
 gatherNodesFrom :: MonadVis m => IR.Term layout -> m (Set IR.SomeTerm)
 gatherNodesFrom root = State.execStateT (go $ IR.relayout root) def where
@@ -75,13 +78,20 @@ gatherNodesFrom root = State.execStateT (go $ IR.relayout root) def where
             traverse_ (go . IR.relayout) inps
             go $ IR.relayout tp
 
-buildVisualizationGraph :: MonadVis m => IR.Term layout -> m Graph
-buildVisualizationGraph root = do
-    allNodes <- gatherNodesFrom root
-    let nodesWithIds = Map.fromList $ zip (Set.toList allNodes) [1..]
-    visNodes <- traverse buildVisualizationNode $ Set.toList allNodes
-    pure $ Graph (fst <$> visNodes) (concat $ snd <$> visNodes)
+buildVisualizationGraphFromRoot :: MonadVis m => IR.Term layout -> m Graph
+buildVisualizationGraphFromRoot root = do
+    allNodes <- Set.toList <$> gatherNodesFrom root
+    buildVisualizationGraph allNodes
 
+buildVisualizationGraphFromAll :: MonadVis m => m Graph
+buildVisualizationGraphFromAll = do
+    allNodes <- getAllNodes
+    buildVisualizationGraph allNodes
+
+buildVisualizationGraph :: MonadVis m => [IR.SomeTerm] -> m Graph
+buildVisualizationGraph nodes = do
+    visNodes <- traverse buildVisualizationNode nodes
+    pure $ Graph (fst <$> visNodes) (concat $ snd <$> visNodes)
 
 buildVisualizationNode :: MonadVis m
     => IR.SomeTerm -> m (Node, [Edge])
@@ -97,20 +107,27 @@ buildVisualizationNode ref = do
         inpEdges  = (\n -> Edge (getNodeId n) tgtId ["input"]) <$> inps
     pure (Node tag [tag] tgtId, tpEdge : inpEdges)
 
+displayGraph :: MonadIO m => String -> Graph -> m ()
+displayGraph name graph = liftIO $ do
+    let visData = ByteString.unpack $ Aeson.encode graph
+    dataPath  <- System.lookupEnv "VIS_DATA_PATH"
+    visUriEnv <- System.lookupEnv "VIS_URI"
+    let visUri = fromJust "http://localhost:8000" visUriEnv
+    for_ dataPath $ \path -> do
+        writeFile (path <> "/" <> name <> ".json") visData
+        Browser.openBrowser $ visUri <> "?cfgPath=" <> name
 
 -- === Public API === --
 
-displayVisualization :: MonadVis m => String -> IR.Term layout -> m ()
-displayVisualization name root = do
-    graph <- buildVisualizationGraph root
-    let visData = ByteString.unpack $ Aeson.encode graph
-    liftIO $ do
-        dataPath  <- System.lookupEnv "VIS_DATA_PATH"
-        visUriEnv <- System.lookupEnv "VIS_URI"
-        let visUri = fromJust "http://localhost:8000" visUriEnv
-        for_ dataPath $ \path -> do
-            writeFile (path <> "/" <> name <> ".json") visData
-            Browser.openBrowser $ visUri <> "?cfgPath=" <> name
+visualizeSubtree :: MonadVis m => String -> IR.Term layout -> m ()
+visualizeSubtree name root = do
+    graph <- buildVisualizationGraphFromRoot root
+    displayGraph name graph
+
+visualizeAll :: MonadVis m => String -> m ()
+visualizeAll name = do
+    graph <- buildVisualizationGraphFromAll
+    displayGraph name graph
 
 
 -- === Instances === --

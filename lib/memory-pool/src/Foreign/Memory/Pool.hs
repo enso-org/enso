@@ -73,6 +73,9 @@ unsafeFreeN :: MonadIO m => MemPool a -> SomePtr -> ItemSize -> Int -> m ()
 unsafeFreeN (unwrap -> mgr) ptr (unwrap -> sz) =
     Mgr.unsafeDeleteItemN mgr ptr sz
 
+allocatedItems :: MonadIO m => MemPool a -> m [SomePtr]
+allocatedItems (unwrap -> mgr) = Mgr.allocatedItems mgr
+
 --
 -- import Foreign.Marshal.Alloc (mallocBytes)
 -- import Foreign (Ptr, nullPtr, plusPtr, castPtr)

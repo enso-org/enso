@@ -9,9 +9,10 @@ module Foreign.Memory.Manager where
 import Prologue hiding (Item)
 
 import Control.DeepSeq        (NFData)
+import Control.Exception      (bracket)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Data.Convert           (convert)
-import Foreign                (Ptr, castPtr, nullPtr, plusPtr)
+import Foreign                (Ptr, castPtr, nullPtr, plusPtr, peek, peekArray, alloca)
 import Foreign.C              (CDouble (..), CSize (..))
 import GHC.Generics           (Generic)
 
@@ -35,8 +36,8 @@ foreign import ccall unsafe "newItem"       c_newItem       :: MemoryManager -> 
 foreign import ccall unsafe "newItems"      c_newItems      :: MemoryManager -> CSize -> IO Item
 foreign import ccall unsafe "deleteItem"    c_deleteItem    :: MemoryManager -> Item -> IO ()
 
--- foreign import ccall unsafe "acquireItemList" c_acquireItemList :: MemoryManager -> Ptr CSize -> IO (Ptr Item)
--- foreign import ccall unsafe "releaseItemList" c_releaseItemList :: Ptr Item -> IO ()
+foreign import ccall unsafe "acquireItemList" c_acquireItemList :: MemoryManager -> Ptr CSize -> IO (Ptr Item)
+foreign import ccall unsafe "releaseItemList" c_releaseItemList :: Ptr Item -> IO ()
 
 ----------------------------------------
 -- === Wrappers for foreign calls === --
@@ -73,11 +74,12 @@ unsafeDeleteItemN !mm !startPtr !itemSize !itemCount = liftIO $ do
 unsafeNull :: MemoryManager
 unsafeNull = MemoryManager nullPtr
 
--- allocatedItems :: MemoryManager -> IO [Item]
--- allocatedItems mgr = alloca $ \outListSize ->
---     bracket (acquireItemList mgr outListSize) releaseItemList $
---         \listPtr ->
---             if listPtr /= nullPtr then do
---                 obtainedSize <- peek outListSize
---                 peekArray (fromInteger $ toInteger obtainedSize) listPtr
---              else return []
+allocatedItems :: MonadIO m => MemoryManager -> m [Ptr a]
+allocatedItems mgr = liftIO $ alloca $ \outListSize ->
+    bracket (c_acquireItemList mgr outListSize) c_releaseItemList $
+        \listPtr ->
+            if listPtr /= nullPtr then do
+                obtainedSize <- peek outListSize
+                lst <- peekArray (fromInteger $ toInteger obtainedSize) listPtr
+                return $ castPtr <$> lst
+             else return []
