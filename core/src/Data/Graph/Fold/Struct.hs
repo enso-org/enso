@@ -41,7 +41,5 @@ instance Fold.Builder t m a
 
 instance Fold.Builder t m a
       => Fold.Builder (Struct t) m (Maybe a) where
-    build = \case
-        Nothing -> id
-        Just a  -> Fold.build @t a
+    build = maybe id (Fold.build @t)
     {-# INLINE build #-}

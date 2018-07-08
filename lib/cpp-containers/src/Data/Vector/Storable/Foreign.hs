@@ -1,3 +1,5 @@
+{-# LANGUAGE UndecidableInstances #-}
+
 module Data.Vector.Storable.Foreign where
 
 import Prologue hiding (empty, fromList, toList, unsafeRead)

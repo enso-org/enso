@@ -608,6 +608,11 @@ classInstance :: (Convertible ClassInstance a)
 classInstance n tn ts decs = convert $ ClassInstance Nothing mempty n tn ts decs
 {-# INLINE classInstance #-}
 
+classInstanceWithCtx :: (Convertible ClassInstance a)
+              => TH.Cxt -> Name -> Name -> [TH.Type] -> [TH.Dec] -> a
+classInstanceWithCtx ctx n tn ts decs = convert $ ClassInstance Nothing ctx n tn ts decs
+{-# INLINE classInstanceWithCtx #-}
+
 instance Convertible ClassInstance TH.Dec where
     convert (ClassInstance olap cxt n tn ts decs) =
         TH.InstanceD olap cxt instanceT decs

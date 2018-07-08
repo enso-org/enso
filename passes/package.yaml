@@ -20,6 +20,7 @@ library:
         - luna-exception
         - luna-cpp-containers
         - luna-data-storable
+        - luna-data-construction
         - luna-runtime
         - luna-syntax-text-parser
         - luna-syntax-text-model

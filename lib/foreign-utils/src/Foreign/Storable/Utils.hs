@@ -5,10 +5,11 @@ import Foreign.Storable as X
 
 import Prologue
 
+import qualified Foreign.Storable.Deriving as Storable
+
 import Foreign.Ptr      (Ptr, castPtr, plusPtr)
 import Foreign.Storable (Storable, alignment, peek, peekByteOff, poke,
                          pokeByteOff, sizeOf)
-
 
 data Dynamics
 data Static
@@ -45,3 +46,5 @@ peekAndOffset = castPeekAndOffset ; {-# INLINE peekAndOffset #-}
 
 pokeAndOffset :: ∀ a b m. (MonadIO m, Storable a) => Ptr a -> a -> m (Ptr b)
 pokeAndOffset = castPokeAndOffset ; {-# INLINE pokeAndOffset #-}
+
+Storable.derive ''Maybe
