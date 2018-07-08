@@ -16,6 +16,7 @@ import qualified Data.Graph.Fold.Partition        as Partition
 import qualified Data.Graph.Fold.Scoped           as Fold
 import qualified Data.Graph.Fold.Struct           as Fold
 import qualified Data.Graph.Store.Size.Class      as Size
+import qualified Data.Set                         as Set
 import qualified Data.TypeMap.Strict              as TypeMap
 import qualified Foreign.DynamicStorable          as DynamicStorable
 import qualified Foreign.Storable.Class           as Storable
@@ -29,6 +30,7 @@ import Data.Graph.Data.Component.Vector      (ComponentVector)
 import Data.Graph.Store.Size.Class           (DynamicSize, Size (Size))
 import Data.Mutable.Storable.SmallAutoVector (SmallVectorA)
 import Data.PtrSet.Mutable                   (IsPtr, UnmanagedPtrSet)
+import Data.Set                              (Set)
 import Data.Vector.Storable.Foreign          (Vector)
 import Foreign.DynamicStorable               (DynamicStorable)
 import Foreign.Ptr                           (Ptr, plusPtr)
@@ -160,16 +162,22 @@ instance
     , Monad m
     ) => ClusterSizeDiscovery (comp ': comps) m where
     foldClusterSize cluster acc = do
-        let (  !compList
+        let (  !compSet
              , !cluster') = Partition.splitHead cluster
             sizeDiscovery = \acc -> fmap (acc <>) . discoverDynamic
             compSize      = Layer.byteSize @layers
-            staticSize    = compSize * ComponentList.length compList
-        dynamicSize <- ComponentList.foldlM sizeDiscovery mempty compList
+            staticSize    = compSize * Set.size compSet
+        dynamicSize <- setFoldlM sizeDiscovery mempty compSet
         foldClusterSize cluster' $! acc <> Size staticSize dynamicSize
     {-# INLINE foldClusterSize #-}
 
 
+setFoldlM :: Monad m
+       => (a -> t -> m a) -> a -> Set t -> m a
+setFoldlM = \f z0 xs ->
+    let f' x k z = f z x >>= k
+    in  Set.foldr f' pure xs z0
+{-# INLINE setFoldlM #-}
 
 ------------------------------------
 -- === Cluster size discovery === --
@@ -196,9 +204,9 @@ instance
     , Monad m
     ) => ClusterSizeCount (comp ': comps) m where
     foldComponentCount cluster acc = do
-        let (!compList,
+        let (!compSet,
              !cluster') = Partition.splitHead cluster
-            count = ComponentList.length compList
+            count = Set.size compSet
         foldComponentCount cluster' $! acc <> [count]
     {-# INLINE foldComponentCount #-}
 

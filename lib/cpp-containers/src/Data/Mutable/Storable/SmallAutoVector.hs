@@ -337,9 +337,9 @@ instance
 
 -- === Debug instances === --
 
-instance (Show a, ToList IO (SmallVectorA t alloc n a))
+instance (Show a, ToList IO (SmallVectorA t alloc n a), Show (Memory.PtrImpl t ()))
       => Show (SmallVectorA t alloc n a) where
-    show = show . unsafePerformIO . toList
+    show a = (show . unsafePerformIO . toList $ a) <> " @ " <> show (unwrap a)
 
 
 

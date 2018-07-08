@@ -19,6 +19,15 @@ import Data.Graph.Data.Component.Class (Component)
 import Data.Graph.Data.Component.List  (ComponentList, ComponentLists)
 import Data.TypeMap.Strict             (TypeMap)
 
+import           Data.Set (Set)
+import qualified Data.Set as Set
+
+type ComponentSet comp = Set (Component.Some comp)
+
+type family ComponentSets comps where
+    ComponentSets '[] = '[]
+    ComponentSets (c ': cs) = (ComponentSet c ': ComponentSets cs)
+
 
 ----------------------
 -- === Clusters === --
@@ -26,7 +35,7 @@ import Data.TypeMap.Strict             (TypeMap)
 
 -- === Definitions === --
 
-type    Clusters__ comps = TypeMap (ComponentLists comps)
+type    Clusters__ comps = TypeMap (ComponentSets comps)
 newtype Clusters   comps = Clusters (Clusters__ comps)
 
 makeLenses ''Clusters
@@ -35,10 +44,10 @@ makeLenses ''Clusters
 -- === API === --
 
 type SplitHead comp comps
-   = TypeMap.SplitHead (ComponentList comp) (ComponentLists comps)
+   = TypeMap.SplitHead (ComponentSet comp) (ComponentSets comps)
 
 splitHead :: SplitHead comp comps
-    => Clusters (comp ': comps) -> (ComponentList comp, Clusters comps)
+    => Clusters (comp ': comps) -> (ComponentSet comp, Clusters comps)
 splitHead = fmap wrap . TypeMap.splitHead . unwrap
 {-# INLINE splitHead #-}
 
@@ -64,8 +73,8 @@ type instance Fold.Result     (Discovery comps) = Clusters comps
 type instance Fold.LayerScope (Discovery comps)
    = 'Fold.Blacklist '[Target, Users]
 
-type ClusterEditor t ts = TypeMap.ElemEditor (ComponentList  t)
-                                             (ComponentLists ts)
+type ClusterEditor t ts = TypeMap.ElemEditor (ComponentSet  t)
+                                             (ComponentSets ts)
 
 
 -- === API === --
@@ -87,8 +96,8 @@ instance (Monad m, ClusterEditor comp comps)
     => Fold.ComponentBuilder (Discovery comps) m comp where
     componentBuild = \comp acc
        -> wrap
-        . TypeMap.modifyElem_ @(ComponentList comp)
-          (ComponentList.Cons $ Layout.relayout comp)
+        . TypeMap.modifyElem_ @(ComponentSet comp)
+          (Set.insert $ Layout.relayout comp)
         . unwrap
       <$> acc
     {-# INLINE componentBuild #-}

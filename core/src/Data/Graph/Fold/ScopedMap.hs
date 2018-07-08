@@ -165,6 +165,7 @@ instance (Monad m, Layer.StorableLayer layer m, LayerMap t m layer)
     layerBuild__ = \ptr mr -> do
         layer <- Layer.unsafePeekWrapped @layer ptr
         r     <- mr -- | Performance
+        -- putStrLn $ "$ mapLayer " <> show ptr
         (!layer', !out) <- mapLayer @t @m @layer layer (pure r)
         Layer.unsafePokeWrapped @layer ptr (unsafeCoerce layer') -- FIXME: !!!!!!!!
         pure out

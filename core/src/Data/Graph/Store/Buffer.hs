@@ -2,7 +2,7 @@
 
 module Data.Graph.Store.Buffer where
 
-import Prologue hiding (Data, putStrLn)
+import Prologue hiding (Data, pprint, print, putStrLn)
 
 import qualified Control.Monad.State.Layered           as State
 import qualified Data.ByteString.Internal              as ByteString
@@ -24,6 +24,7 @@ import qualified Data.Mutable.Class2                   as Mutable
 import qualified Data.Mutable.Plain                    as Data
 import qualified Data.Mutable.Storable.Array           as Array
 import qualified Data.Mutable.Storable.SmallAutoVector as SAV
+import qualified Data.Set                              as Set
 import qualified Data.Storable                         as Struct
 import qualified Foreign.ForeignPtr                    as ForeignPtr
 import qualified Foreign.Memory.Pool                   as MemPool
@@ -47,6 +48,7 @@ import Data.Graph.Store.Size.Class           (Size)
 import Data.Map.Strict                       (Map)
 import Data.Mutable.Storable.Array           (ManagedArray)
 import Data.Mutable.Storable.SmallAutoVector (SmallVectorA)
+import Data.Set                              (Set)
 import Data.Storable                         (type (-::), ManagedStruct)
 import Foreign.ForeignPtr                    (touchForeignPtr)
 import Foreign.ForeignPtr.Unsafe             (unsafeForeignPtrToPtr)
@@ -67,6 +69,12 @@ type RedirectMap = Map Memory.SomeUnmanagedPtr Memory.SomeUnmanagedPtr
 
 putStrLn :: Applicative m => String -> m ()
 putStrLn = const $ pure ()
+
+print :: Applicative m => a -> m ()
+print = const $ pure ()
+
+pprint :: Applicative m => a -> m ()
+pprint = const $ pure ()
 
 
 ------------------------------
@@ -147,9 +155,11 @@ type instance Fold.LayerScope CopyInitialization = 'Fold.All
 
 instance Monad m => Fold.ComponentBuilder CopyInitialization m comp
 
-instance (Monad m, CopyInitializerP1 m (Layer.Cons layer))
+instance (MonadIO m, Type.Show layer, CopyInitializerP1 m (Layer.Cons layer))
       => Fold.LayerBuilder CopyInitialization m layer where
-        layerBuild = \layer _ -> () <$ copyInitializeP1 layer
+        layerBuild = \layer m -> do
+            putStrLn $ "CopyInitializer layer " <> Type.show @layer -- <> "!!"
+            m <* copyInitializeP1 layer
 
 
 -- === CopyInitializerP1 === --
@@ -159,9 +169,15 @@ class Applicative m => CopyInitializerP1 m a where
     copyInitializeP1 = pure
     {-# INLINE copyInitializeP1 #-}
 
-instance (Data.CopyInitializer1 m (ComponentSetA StoreDynAllocator comp), Applicative m)
+instance (MonadIO m, Data.CopyInitializer1 m (ComponentSetA StoreDynAllocator comp), Applicative m)
       => CopyInitializerP1 m (ComponentSet comp) where
-    copyInitializeP1 = \a -> a <$ Data.copyInitialize1 (Memory.setAllocator @StoreDynAllocator a)
+    copyInitializeP1 = \a -> do
+        -- a <$ Data.copyInitialize1 (Memory.setAllocator @StoreDynAllocator a)
+        print "!! CopyInitializer (ComponentSet comp)"
+        print a
+        Data.copyInitialize1 (Memory.setAllocator @StoreDynAllocator a)
+        print a
+        pure a
 
 instance Applicative m => CopyInitializerP1 m (Component comp)
 
@@ -174,19 +190,32 @@ instance {-# OVERLAPPABLE #-}
 
 -- === CopyInitialization Folds === --
 
-instance (Data.CopyInitializer1 m (ComponentSetA StoreDynAllocator comp), Monad m)
+instance ( MonadIO m -- debug
+      , Data.CopyInitializer1 m (ComponentSetA StoreDynAllocator comp), Monad m)
       => Fold.Builder1 CopyInitialization m (ComponentSet comp) where
-    build1 = \a x -> x <* Data.copyInitialize1 (Memory.setAllocator @StoreDynAllocator a)
+    build1 = \a x -> do
+        -- x <* Data.copyInitialize1 (Memory.setAllocator @StoreDynAllocator a)
+        print "! CopyInitializer (ComponentSet comp)"
+        print a
+        Data.copyInitialize1 (Memory.setAllocator @StoreDynAllocator a)
+        print a
+        x
     {-# INLINE build1 #-}
 
-instance (Data.CopyInitializer1 m (ComponentVectorA StoreDynAllocator comp), Monad m)
+instance (MonadIO m -- debug
+    , Data.CopyInitializer1 m (ComponentVectorA StoreDynAllocator comp), Monad m)
       => Fold.Builder1 CopyInitialization m (ComponentVector comp) where
-    build1 = \a x -> x <* Data.copyInitialize1 (Memory.setAllocator @StoreDynAllocator a)
+    build1 = \a x -> do
+        print "? CopyInitializer (ComponentVector comp)"
+        x <* Data.copyInitialize1 (Memory.setAllocator @StoreDynAllocator a)
     {-# INLINE build1 #-}
 
-instance (Data.CopyInitializer m (SmallVectorA t StoreDynAllocator comp a), Monad m)
+instance (MonadIO m -- debug
+      , Data.CopyInitializer m (SmallVectorA t StoreDynAllocator comp a), Monad m)
       => Fold.Builder CopyInitialization m (SmallVectorA t alloc comp a) where
-    build = \a x -> x <* Data.copyInitialize (Memory.setAllocator @StoreDynAllocator a)
+    build = \a x -> do
+        print "? CopyInitializer (SmallVectorA ...)"
+        x <* Data.copyInitialize (Memory.setAllocator @StoreDynAllocator a)
     {-# INLINE build #-}
 
 instance Monad m => Fold.Builder1 CopyInitialization m (Component comp)
@@ -247,10 +276,12 @@ instance
         let compSize   = Layer.byteSize @layers
             regionPtr  = unwrap region
             regionPtr' = wrap $ regionPtr `Memory.plus` (compSize * compCount)
+        putStrLn ""
         putStrLn $ "copyInitializeComponents for " <> Type.show @comp <> " (" <> show compCount <> ")"
         flip mapM_ [0 .. compCount - 1] $ \ix -> do
-            putStrLn $ ">> " <> show ix <> " (" <> show region <> ")"
+            putStrLn $ "\n>> " <> show ix <> " (" <> show region <> ")"
             let ptr  = regionPtr `Memory.plus` (ix * compSize)
+            putStrLn $ "??? " <> show ptr
             Memory.withUnmanagedPtr ptr $ \uptr ->
                 let comp = Component.unsafeFromPtr @comp (unwrap uptr)
                 in  foldInitializeComponent comp
@@ -288,6 +319,7 @@ instance
     , ComponentRedirectFold m comp
     , ComponentStaticRedirection__ comps m
     , MonadIO m
+    , FoldRedirectComponent comp m
     -- debug:
     , Type.Show comp
     )
@@ -312,13 +344,22 @@ type instance Fold.LayerScope ComponentRedirection = 'Fold.All
 
 instance Monad m => Fold.ComponentMap ComponentRedirection m comp
 
-instance (MonadIO m, PointerRedirection1 m (Layer.Cons layer), State.Getter RedirectMap m)
+instance (Show (Layer.Cons layer ()), Type.Show layer, MonadIO m, PointerRedirection1 m (Layer.Cons layer), State.Getter RedirectMap m)
       => Fold.LayerMap ComponentRedirection m layer where
         mapLayer = \a _ -> do
+            print $ "redirecting layer " <> Type.show @layer
             m <- State.get @RedirectMap
             let f ptr = do
                     putStrLn $ "LOOKUP " <> show ptr
-                    pure . unsafeFromJust . flip Map.lookup m $ ptr
+                    let mitem = Map.lookup ptr m
+                    case mitem of
+                        Just x  -> pure x
+                        Nothing -> error
+                            $ "REDIRECTION LOOKUP ERROR. Layer = "
+                           <> Type.show @layer
+                           <> ". Key = " <> show ptr
+                           <> " " <> show (unsafeCoerce a :: Layer.Cons layer ())
+                    -- pure . unsafeFromJust . flip Map.lookup m $ ptr
             (,()) <$> redirectPointers1 f a
 
             -- Fold.build1 @ComponentRedirection
@@ -326,10 +367,28 @@ instance (MonadIO m, PointerRedirection1 m (Layer.Cons layer), State.Getter Redi
 
 
 type ComponentRedirectFold m comp
-   = Fold.Builder1 (Fold.ScopedMap ComponentRedirection) m (Component comp)
+   = ( MonadIO m, Type.Show comp -- debug
+    --  , Layer.Reader (Component comp) IR.Model m -- debug
+     , Fold.Builder1 (Fold.ScopedMap ComponentRedirection) m (Component comp)
+     )
 
-foldRedirectComponent :: ComponentRedirectFold m comp => Component comp layout -> m ()
-foldRedirectComponent = \comp -> Fold.build1 @(Fold.ScopedMap ComponentRedirection) comp (pure ())
+class FoldRedirectComponent comp m where
+    foldRedirectComponent :: forall layout. ComponentRedirectFold m comp => Component comp layout -> m ()
+
+instance {-# OVERLAPPABLE #-} FoldRedirectComponent comp m where
+    foldRedirectComponent = \comp -> do
+        putStrLn $ "Redirecting component " <> Type.show @comp -- <> convert (IR.showTag comp)
+        -- print . IR.showTag =<< Layer.read @IR.Model comp
+        Fold.build1 @(Fold.ScopedMap ComponentRedirection) comp (pure ())
+
+
+instance Layer.Reader IR.Term IR.Model m
+      => FoldRedirectComponent IR.Terms m where
+    foldRedirectComponent = \comp -> do
+        putStrLn $ "\nRedirecting Term " <> show comp -- <> convert (IR.showTag comp)
+        print . IR.showTag =<< Layer.read @IR.Model comp
+        Fold.build1 @(Fold.ScopedMap ComponentRedirection) comp (pure ())
+
 
 class PointerRedirection1 m a where
     redirectPointers1 :: (Memory.SomeUnmanagedPtr -> m Memory.SomeUnmanagedPtr)
@@ -596,8 +655,6 @@ instance MonadIO m
         liftIO $ StdStorable.poke (coerce $ unwrap ptr) (compPtr `minusPtr` (unwrap ptr))
 
 
-
-
 --------------------------
 -- === MemoryRegion === --
 --------------------------
@@ -745,8 +802,8 @@ instance
     , Monad m
     ) => StaticRegionEncoder__ (comp ': comps) m where
     encodeStaticRegion__ = \clusters ptr -> do
-        let (!compList, !clusters') = Partition.splitHead clusters
-        ptr' <- ComponentList.foldlM encodeComponentStatic__ ptr compList
+        let (!compSet, !clusters') = Partition.splitHead clusters
+        ptr' <- setFoldlM encodeComponentStatic__ ptr compSet
         encodeStaticRegion__ clusters' ptr'
     {-# INLINE encodeStaticRegion__ #-}
 
@@ -755,6 +812,13 @@ class StaticComponentEncoder__ comp m where
         :: Memory.SomeUnmanagedPtr
         -> Component.Some comp
         -> m Memory.SomeUnmanagedPtr
+
+setFoldlM :: Monad m
+       => (a -> t -> m a) -> a -> Set t -> m a
+setFoldlM = \f z0 xs ->
+    let f' x k z = f z x >>= k
+    in  Set.foldr f' pure xs z0
+{-# INLINE setFoldlM #-}
 
 instance
     ( layers ~ Graph.ComponentLayersM m comp
@@ -876,7 +940,7 @@ instance Monad m => Fold.ComponentBuilder CopyInitialization2 m comp
 
 instance (Monad m, CopyInitializerP1_2 m (Layer.Cons layer))
       => Fold.LayerBuilder CopyInitialization2 m layer where
-        layerBuild = \layer _ -> () <$ copyInitializeP1_2 layer
+        layerBuild = \layer m -> m <* copyInitializeP1_2 layer
 
 
 -- === CopyInitializerP1_2 === --

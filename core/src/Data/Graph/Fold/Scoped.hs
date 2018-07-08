@@ -162,10 +162,12 @@ instance {-# OVERLAPPABLE #-} Monad m
     layerBuild__ = \_ a -> a
     {-# INLINE layerBuild__ #-}
 
-instance (Monad m, Layer.StorableLayer layer m, LayerBuilder t m layer)
+instance (MonadIO m, Layer.StorableLayer layer m, LayerBuilder t m layer)
       => LayerFoldableBuilder__ 'True t m layer where
     layerBuild__ = \ptr mr -> do
         layer <- Layer.unsafePeekWrapped @layer ptr
-        r     <- mr -- | Performance
-        layerBuild @t @m @layer layer (pure r)
+        -- r     <- mr -- | We've observed better performance here, but it
+        --                  makes the evaluation reversed, which is bad for cache
+        -- putStrLn $ "$ layerBuild " <> show ptr
+        layerBuild @t @m @layer layer mr
     {-# INLINE layerBuild__ #-}

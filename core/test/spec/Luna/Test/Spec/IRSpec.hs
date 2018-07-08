@@ -377,6 +377,83 @@ delTest = describe "delete" $ it "test" $ runPass' $ do
     print "done"
 
 
+subIRTest2 :: Spec
+subIRTest2 =  describe "subir" $ it "test2" $ runPass' $ do
+    v   <- IR.blank
+    l1  <- IR.lam v v
+    l2  <- IR.lam v l1
+    g   <- IR.grouped l2
+
+    v_tpl    <- Layer.read @IR.Type v
+    v_tp     <- Layer.read @IR.Source v_tpl
+    v_ttpl   <- Layer.read @IR.Type v_tp
+    v_users  <- Layer.read @IR.Users v
+    v_tp_users  <- Layer.read @IR.Users v_tp
+
+    IR.Lam l1_A l1_B <- IR.model l1
+    l1_tpl    <- Layer.read @IR.Type l1
+    l1_tp     <- Layer.read @IR.Source l1_tpl
+    l1_ttpl   <- Layer.read @IR.Type l1_tp
+    l1_users  <- Layer.read @IR.Users l1
+    l1_tp_users  <- Layer.read @IR.Users l1_tp
+
+    IR.Lam l2_A l2_B <- IR.model l2
+    l2_tpl    <- Layer.read @IR.Type l2
+    l2_tp     <- Layer.read @IR.Source l2_tpl
+    l2_ttpl   <- Layer.read @IR.Type l2_tp
+    l2_users  <- Layer.read @IR.Users l2
+    l2_tp_users  <- Layer.read @IR.Users l2_tp
+
+    IR.Grouped g_A <- IR.model g
+    g_tpl    <- Layer.read @IR.Type g
+    g_tp     <- Layer.read @IR.Source g_tpl
+    g_ttpl   <- Layer.read @IR.Type g_tp
+    g_users  <- Layer.read @IR.Users g
+    g_tp_users  <- Layer.read @IR.Users g_tp
+
+    -- putStrLn $ "v           = " <> show v
+    -- putStrLn $ "v_tpl       = " <> show v_tpl
+    -- putStrLn $ "v_tp        = " <> show v_tp
+    -- putStrLn $ "v_ttpl      = " <> show v_ttpl
+    -- putStrLn $ "v_users     = " <> show v_users
+    -- putStrLn $ "v_tp_users  = " <> show v_tp_users
+    -- putStrLn ""
+    -- putStrLn $ "l1          = " <> show l1
+    -- putStrLn $ "l1_A        = " <> show l1_A
+    -- putStrLn $ "l1_B        = " <> show l1_B
+    -- putStrLn $ "l1_tpl      = " <> show l1_tpl
+    -- putStrLn $ "l1_tp       = " <> show l1_tp
+    -- putStrLn $ "l1_ttpl     = " <> show l1_ttpl
+    -- putStrLn $ "l1_users    = " <> show l1_users
+    -- putStrLn $ "l1_tp_users = " <> show l1_tp_users
+    -- putStrLn ""
+    -- putStrLn $ "l2          = " <> show l2
+    -- putStrLn $ "l2_A        = " <> show l2_A
+    -- putStrLn $ "l2_B        = " <> show l2_B
+    -- putStrLn $ "l2_tpl      = " <> show l2_tpl
+    -- putStrLn $ "l2_tp       = " <> show l2_tp
+    -- putStrLn $ "l2_ttpl     = " <> show l2_ttpl
+    -- putStrLn $ "l2_users    = " <> show l2_users
+    -- putStrLn $ "l2_tp_users = " <> show l2_tp_users
+    -- putStrLn ""
+    -- putStrLn $ "g          = " <> show g
+    -- putStrLn $ "g_A        = " <> show g_A
+    -- putStrLn $ "g_tpl      = " <> show g_tpl
+    -- putStrLn $ "g_tp       = " <> show g_tp
+    -- putStrLn $ "g_ttpl     = " <> show g_ttpl
+    -- putStrLn $ "g_users    = " <> show g_users
+    -- putStrLn $ "g_tp_users = " <> show g_tp_users
+
+    -- print "!!!"
+    -- print . IR.showTag =<< Layer.read @IR.Model v
+    -- print =<< Layer.read @IR.Users v_tp
+
+
+    Store.serialize (Layout.relayout g :: IR.SomeTerm)
+    return ()
+
+    True `shouldBe` True
+
 spec :: Spec
 spec = do
 
@@ -389,6 +466,7 @@ spec = do
     irDestructSpec
     irDiscoverySpec
     delTest
+    subIRTest2
     -- partitionSpec
 
 
