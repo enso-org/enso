@@ -24,13 +24,13 @@
 #include <wrl/wrappers/corewrappers.h>
 #endif
 
-// Define when using C++ benchmark - so root API calls don't get inlined 
+// Define when using C++ benchmark - so root API calls don't get inlined
 // (similarly like Haskell FFI prevents inlining)
 #ifdef PREVENT_INLINE
 #ifdef _MSC_VER
 #define NOINLINE  __declspec(noinline)
 #else
-#define NOINLINE  __attribute__ ((noinline)) 
+#define NOINLINE  __attribute__ ((noinline))
 #endif
 #else
 #define NOINLINE
@@ -86,7 +86,7 @@ namespace locking_policy
 			{
 				rhs.s = nullptr;
 			}
-			~Guardian() 
+			~Guardian()
 			{
 				if(s)
 					s->state.store(Unlocked, std::memory_order_release);
@@ -177,7 +177,7 @@ class MemoryManager
 	{
 		return block.memory <= item && static_cast<char*>(block.memory) + blockSize > item;
 	}
-	
+
 	void *obtainUnitializedItem(Block &block)
 	{
 		return obtainUnitializedItems(block, 1);
@@ -202,7 +202,7 @@ public:
 		addBlock();
 	}
 
-	void *newItem() 
+	void *newItem()
 	{
 		const auto lockGuard = mx.lock();
 		if(head != nullptr)
@@ -239,33 +239,33 @@ public:
  		head = item;
 	}
 
-	// auto allocatedItems() const
-	// {
-	// 	const auto lockGuard = mx.lock();
-	// 	const auto addItemsFromBlock = [this] (auto &out, const Block &block) -> void
-	// 	{
-	// 		const auto perhapsUsedInBlock = itemsPerBlock - block.unitializedItems;
-	// 		for(auto i = 0u; i < perhapsUsedInBlock; ++i)
-	// 			out.insert(out.end(), block.itemAtIndex(itemSize, i));
-	// 	};
+  auto allocatedItems()
+  {
+    const auto lockGuard = mx.lock();
+    const auto addItemsFromBlock = [this] (auto &out, const Block &block) -> void
+    {
+      const auto perhapsUsedInBlock = itemsPerBlock - block.unitializedItems;
+      for(auto i = 0u; i < perhapsUsedInBlock; ++i)
+        out.insert(out.end(), block.itemAtIndex(itemSize, i));
+    };
 
-	// 	std::unordered_set<void*> ret;
-		
-	// 	// add all allocated
-	// 	for(const Block &block : blocks)
-	// 		addItemsFromBlock(ret, block);
+    std::unordered_set<void*> ret;
 
-	// 	// remove allocated and then freed: 
-	// 	// iterate over the free pointers list
-	// 	auto itr = this->head;
-	// 	while(itr != nullptr)
-	// 	{
-	// 		ret.erase(itr);
-	// 		itr = storedPtr(itr);
-	// 	}
+    // add all allocated
+    for(const Block &block : blocks)
+      addItemsFromBlock(ret, block);
 
-	// 	return ret;
-	// }
+    // remove allocated and then freed:
+    // iterate over the free pointers list
+    auto itr = this->head;
+    while(itr != nullptr)
+    {
+      ret.erase(itr);
+      itr = storedPtr(itr);
+    }
+
+    return ret;
+  }
 };
 
 template<typename F, typename ...Args>
@@ -474,27 +474,26 @@ extern "C"
 		static_cast<MemoryManagerToUse*>(manager)->deleteItem(item);
 	}
 
-	// void** acquireItemList(void *manager, size_t *outCount)
-	// {
-	// 	const auto items = static_cast<MemoryManagerToUse*>(manager)->allocatedItems();
-	// 	const auto count = items.size();
+  void** acquireItemList(void *manager, size_t *outCount)
+  {
+    const auto items = static_cast<MemoryManagerToUse*>(manager)->allocatedItems();
+    const auto count = items.size();
 
-	// 	void** ret = static_cast<void**>(std::malloc(sizeof(void*) * count));
-	// 	if(!ret)
-	// 		return nullptr;
-		
-	// 	*outCount = count;
-	// 	void **itr = ret;
-	// 	for(auto item : items)
-	// 		*itr++ = item;
+    void** ret = static_cast<void**>(std::malloc(sizeof(void*) * count));
+    if(!ret)
+      return nullptr;
+    *outCount = count;
+    void **itr = ret;
+    for(auto item : items)
+      *itr++ = item;
 
-	// 	return ret;
-	// }
+    return ret;
+  }
 
-	// void releaseItemList(void **items)
-	// {
-	// 	std::free(items);
-	// }
+   void releaseItemList(void **items)
+   {
+     std::free(items);
+   }
 
 	// BELOW APIs are for tests / benchmarks only //////////////////
 	void benchmark(size_t N, size_t itemSize, size_t itemsPerBlock)

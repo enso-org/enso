@@ -19,21 +19,12 @@ import qualified Language.Haskell.TH as TH
 -- === TH info extracting utils === --
 --------------------------------------
 
-concretizeType :: TH.Type -> TH.Type
-concretizeType = \case
-    ConT n   -> ConT n
-    VarT _   -> ConT ''Int
-    AppT l r -> AppT (concretizeType l) (concretizeType r)
-    _        -> error "***error*** Storable.derive: only reasonably complex types supported"
-
--- | Instantiate all the free type variables to Int for a consturctor
-extractConcreteTypes :: TH.Con -> [TH.Type]
-extractConcreteTypes = \case
-    NormalC n bts -> concretizeType . view _2 <$> bts
-    RecC    n bts -> concretizeType . view _3 <$> bts
-    _ -> error "***error*** Storable.derive: type not yet supported"
-
-
+extractFieldTypes :: TH.Con -> [TH.Type]
+extractFieldTypes = \case
+    TH.NormalC _ bangTypes     -> view _2 <$> bangTypes
+    TH.RecC    _ nameBangTypes -> view _3 <$> nameBangTypes
+    TH.InfixC  bangT1 _ bangT2 -> view _2 <$> [bangT1, bangT2]
+    _ -> error "Storable.derive: GADTs and existentials not supported yet"
 
 -------------------------------------
 -- === TH convenience wrappers === --
@@ -49,7 +40,7 @@ undefinedAsInt :: TH.Exp
 undefinedAsInt = var 'undefined -:: cons' ''Int
 
 conFieldSizes :: TH.Con -> [TH.Exp]
-conFieldSizes = fmap sizeOfType . extractConcreteTypes
+conFieldSizes = fmap sizeOfType . extractFieldTypes
 
 sizeOfCon :: TH.Con -> TH.Exp
 sizeOfCon con
@@ -84,9 +75,22 @@ derive' :: Dec -> Q [TH.Dec]
 derive' dec = do
     let TypeInfo tyConName tyVars cs = getTypeInfo dec
     decs <- sequence [pure $ genSizeOf cs, pure genAlignment, genPeek cs, genPoke cs]
-    let inst = classInstance ''Storable tyConName tyVars decs
+    let ctx = generateConstraint ''Storable cs
+    let inst = classInstanceWithCtx ctx ''Storable tyConName tyVars decs
     pure [inst]
 
+
+-----------------------------------
+-- === Constraints generator === --
+-----------------------------------
+
+generateConstraintForField :: TH.Name -> TH.Type -> TH.Type
+generateConstraintForField className tp = app (cons' className) tp
+
+generateConstraint :: TH.Name -> [TH.Con] -> TH.Cxt
+generateConstraint className conses = constraint where
+    constraint = generateConstraintForField className <$> allFields
+    allFields  = concatMap extractFieldTypes conses
 
 -------------------------------
 -- === Method generators === --
