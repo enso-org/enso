@@ -20,7 +20,6 @@ import Data.Mutable.Class as X
 -- import Foreign.Ptr            (Ptr, nullPtr, plusPtr)
 -- import Foreign.Storable       (Storable)
 -- import Foreign.Storable.Utils (castPeekAndOffset, castPokeAndOffset)
--- import System.IO.Unsafe       (unsafeDupablePerformIO, unsafePerformIO)
 -- import Unsafe.Coerce
 
 
@@ -172,5 +171,3 @@ import Data.Mutable.Class as X
 
 -- -- === Debug === --
 
--- instance (Show a, Storable a) => Show (Vector a) where
---     show = show . unsafePerformIO . toList

@@ -18,7 +18,6 @@ import Data.Mutable.Class as X
 -- import Foreign.Ptr            (Ptr, nullPtr, plusPtr)
 -- import Foreign.Storable       (Storable)
 -- import Foreign.Storable.Utils (castPeekAndOffset, castPokeAndOffset)
--- import System.IO.Unsafe       (unsafeDupablePerformIO, unsafePerformIO)
 
 
 -- --------------------

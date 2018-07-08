@@ -18,7 +18,6 @@ import Foreign.Ptr             (Ptr, nullPtr, plusPtr)
 import Foreign.Storable        (Storable)
 import Foreign.Storable.Utils  (castPeekAndOffset, castPokeAndOffset)
 import Foreign.Storable.Utils  (Dynamic, Dynamics)
-import System.IO.Unsafe        (unsafeDupablePerformIO, unsafePerformIO)
 
 
 --------------------
@@ -73,8 +72,8 @@ toList v = mapM (unsafeRead v) [0 .. (v ^. size) - 1] ; {-# INLINE toList #-}
 
 -- === Debug === --
 
-instance (Show a, Storable a) => Show (Vector a) where
-    show = show . unsafePerformIO . toList ; {-# NOINLINE show #-}
+-- instance (Show a, Storable a) => Show (Vector a) where
+--     show = show . unsafeIO . toList ; {-# NOINLINE show #-}
 
 instance Mempty (Vector a) where mempty = empty ; {-# INLINE mempty #-}
 

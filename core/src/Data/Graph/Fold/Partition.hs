@@ -22,6 +22,13 @@ import Data.TypeMap.Strict             (TypeMap)
 import           Data.Set (Set)
 import qualified Data.Set as Set
 
+
+-- TODO
+-- This implementation uses now Set to store components, however, we do not
+-- check if a component was already traversed and we traverse components many
+-- times if they build a tree which branches and joins. We should use the
+-- information in sets to make it more efficient.
+
 type ComponentSet comp = Set (Component.Some comp)
 
 type family ComponentSets comps where

@@ -2,6 +2,7 @@ module Data.Graph.Store where
 
 import Prologue hiding (pprint, print, putStrLn)
 
+import qualified Data.Graph.Component.Node.Class as Component
 import qualified Data.Graph.Data.Component.Class as Component
 import qualified Data.Graph.Data.Graph.Class     as Graph
 import qualified Data.Graph.Fold.Partition       as Partition
@@ -9,10 +10,15 @@ import qualified Data.Graph.Store.Alloc          as Alloc
 import qualified Data.Graph.Store.Buffer         as Buffer
 import qualified Data.Graph.Store.Internal       as Serialize
 import qualified Data.Graph.Store.Size.Discovery as Size
+import qualified Data.Map.Strict                 as Map
+import qualified Data.Mutable.Class              as Mutable
 import qualified Memory                          as Memory
 
 import Data.ByteString                 (ByteString)
 import Data.Graph.Data.Component.Class (Component)
+import Data.Graph.Data.Component.Set   (ComponentSet, ComponentSetA)
+import Foreign.Ptr.Utils               (SomePtr)
+
 -- import Data.Graph.Store.MemoryRegion   (MemoryRegion)
 
 
@@ -96,10 +102,11 @@ type Serializer comp m =
     -- , Serialize.ClusterSerializer comps m
     )
 
-serialize :: ∀ comp m layout. Serializer comp m
-    => Component comp layout -> m ByteString -- MemoryRegion
+serialize :: ∀ comp m layout. Serializer Component.Nodes m
+    => Component.Node layout -> m ByteString -- MemoryRegion
 serialize comp = do
     putStrLn "\nSERIALIZE"
+    putStrLn $ "root = " <> show comp
 
     clusters  <- Partition.partition comp
     size      <- Size.clusterSize clusters
@@ -116,7 +123,7 @@ serialize comp = do
     putStrLn $ "\nccount = " <> show ccount
 
     putStrLn "\n=== encodeStaticRegion ==="
-    redirectMap <- Memory.withUnmanagedPtr dataRegionPtr $ Buffer.encodeStaticRegion clusters
+    redirectMap <- Memory.withUnmanagedPtr dataRegionPtr $ Buffer.encodeStaticRegion comp clusters
 
     putStrLn "\n=== redirectMap ==="
     pprint redirectMap

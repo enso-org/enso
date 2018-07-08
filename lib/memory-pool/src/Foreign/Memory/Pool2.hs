@@ -17,7 +17,6 @@ import Foreign                 (Ptr, Storable, peek, poke)
 import Foreign.ForeignPtr      (ForeignPtr)
 import Foreign.Ptr.Utils       (SomePtr)
 import Foreign.Storable.Utils  (sizeOf')
-import System.IO.Unsafe        (unsafePerformIO)
 
 
 

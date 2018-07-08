@@ -27,7 +27,6 @@ import Foreign.Ptr            (Ptr, minusPtr, nullPtr, plusPtr)
 import Foreign.Storable.Class (Copy, Storable, View)
 import Foreign.Storable.Utils (Dynamic, Dynamics)
 import Foreign.Storable.Utils (castPeekAndOffset, castPokeAndOffset)
-import System.IO.Unsafe       (unsafeDupablePerformIO, unsafePerformIO)
 
 
 
@@ -328,7 +327,7 @@ instance
         ptr       <- elemsPtr a
         let elemByteSize  = Storable.constantSize @a
             bytesToCopy   = elemByteSize * elemCount
-        (newElemsPtr :: Memory.UnmanagedPtr a) <- Memory.allocate @alloc cap
+        (newElemsPtr :: Memory.UnmanagedPtr a) <- Memory.allocate @alloc elemCount
         let newElemsPtr' = coerce (unwrap newElemsPtr)
         Memory.copyBytes newElemsPtr' ptr bytesToCopy
         Struct.write _externalMem a newElemsPtr'
@@ -337,10 +336,7 @@ instance
 
 -- === Debug instances === --
 
-instance (Show a, ToList IO (SmallVectorA t alloc n a), Show (Memory.PtrImpl t ()))
-      => Show (SmallVectorA t alloc n a) where
-    show a = (show . unsafePerformIO . toList $ a) <> " @ " <> show (unwrap a)
-
+deriving instance Show (SmallVector__ t n a) => Show (SmallVectorA t alloc n a)
 
 
 -- === Deprecated instances === --

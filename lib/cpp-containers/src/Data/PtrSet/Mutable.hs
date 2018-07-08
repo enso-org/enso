@@ -19,7 +19,6 @@ import Foreign.Ptr
 import Foreign.Ptr.Utils       (SomePtr, fromCBool)
 import Foreign.Storable        (Storable)
 import Foreign.Storable.Utils  (castPeekAndOffset, castPokeAndOffset)
-import System.IO.Unsafe        (unsafePerformIO)
 
 
 type IsPtr a = Convert.Bi' SomePtr a
@@ -86,8 +85,8 @@ with !s !f = liftIO $ withIO s f ; {-# INLINE with #-}
 new :: (IsPtrSet s, MonadIO m) => m (s a)
 new = liftIO newIO ; {-# INLINE new #-}
 
-new' :: IsPtrSet s => (s a)
-new' = unsafePerformIO new ; {-# NOINLINE new' #-}
+-- new' :: IsPtrSet s => (s a)
+-- new' = unsafeIO new ; {-# NOINLINE new' #-}
 
 free :: (IsPtrSet s, MonadIO m) => s a -> m ()
 free s = with s c_deleteSet ; {-# INLINE free #-}
@@ -155,8 +154,6 @@ fromList es = do
 
 -- === Instances === --
 
-instance (IsPtr a, Show a) => Show (UnmanagedPtrSet a) where
-    show = show . unsafePerformIO . toList
 
 instance IsPtrSet UnmanagedPtrSet where
     newIO        = c_createPtrSet ; {-# INLINE newIO  #-}

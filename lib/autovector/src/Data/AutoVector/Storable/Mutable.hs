@@ -12,7 +12,6 @@ module Data.AutoVector.Storable.Mutable where
 -- import Data.Vector.Storable.Mutable (MVector)
 -- import Foreign.ForeignPtr           (ForeignPtr)
 -- import Foreign.Storable             (Storable)
--- import System.IO.Unsafe             (unsafePerformIO)
 
 
 -- ------------------------------
@@ -190,8 +189,6 @@ module Data.AutoVector.Storable.Mutable where
 
 -- -- === Instances === --
 
--- instance (s ~ RealWorld, Show a, Storable a) => Show (MAutoVector s a) where
---     show = show . unsafePerformIO . unsafeFreeze ; {-# INLINE show #-}
 
 -- instance NFData (MAutoVector s a) where
 --     rnf v = () where
