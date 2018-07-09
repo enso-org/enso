@@ -8,7 +8,7 @@ jobs:
     steps:
       - checkout
       - run: stack setup
-      - run: stack build --fast --ghc-options="-pgmc gcc-7" --test
+      - run: stack build -j1 --fast --ghc-options="-pgmc gcc-7" --test
 
 workflows:
   version: 2
