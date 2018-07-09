@@ -132,6 +132,7 @@ tests:
             - luna-generic-traversable
             - luna-typelevel
             - prologue
+            - random 
 
 default-extensions:
     - AllowAmbiguousTypes

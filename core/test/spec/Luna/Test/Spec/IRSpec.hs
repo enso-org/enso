@@ -21,6 +21,7 @@ import qualified Data.Graph.Fold.SubTree               as Traversal
 import qualified Data.Graph.Fold.SubTree               as SubTree
 import qualified Data.Graph.Store                      as Store
 import qualified Data.Graph.Store.Size.Discovery       as Size
+import qualified Data.List                             as List
 import qualified Data.Mutable.Class                    as Mutable
 import qualified Data.Mutable.Storable.SmallAutoVector as SmallVector
 import qualified Data.Mutable.Storable.SmallSet        as SmallSet
@@ -34,6 +35,7 @@ import qualified Luna.Pass                             as Pass
 import qualified Luna.Pass.Attr                        as Attr
 import qualified Luna.Pass.Basic                       as Pass
 import qualified Luna.Pass.Scheduler                   as Scheduler
+import qualified System.Random                         as Random
 
 import qualified Data.Graph.Store.Buffer  as Buffer
 import qualified Luna.IR.Term.Ast.Invalid as InvalidIR
@@ -252,25 +254,33 @@ testSet :: Spec
 testSet = describe "test" $ it "set" $ do
     print ""
     (print "--- set ---" :: IO ())
-    (a :: SmallSet.SmallSet 2 Int) <- Mutable.new
+    (a :: SmallSet.SmallSet 0 Int) <- Mutable.new
     print =<< Mutable.size a
+    Mutable.insert a 8
+    Mutable.insert a 8
+    Mutable.insert a 8
+    Mutable.remove a 9
     Mutable.insert a 8
     print "--"
     print =<< Mutable.size a
     print =<< Mutable.capacity a
-    print a
+    print =<< Mutable.toList a
     Mutable.insert a 7
     print "--"
     print =<< Mutable.size a
     print =<< Mutable.capacity a
-    print a
+    print =<< Mutable.toList a
+    Mutable.insert a 6
+    Mutable.insert a 6
+    Mutable.insert a 6
+    Mutable.insert a 6
     Mutable.insert a 6
     Mutable.remove a 7
     Mutable.insert a 8
     print "--"
     print =<< Mutable.size a
     print =<< Mutable.capacity a
-    print a
+    print =<< Mutable.toList a
     Mutable.insert a 5
     Mutable.insert a 4
     Mutable.insert a 3
@@ -280,7 +290,20 @@ testSet = describe "test" $ it "set" $ do
     print "--"
     print =<< Mutable.size a
     print =<< Mutable.capacity a
-    print a
+    print =<< Mutable.toList a
+
+    print "============="
+
+    flip mapM [0 .. 10000] $ \i -> do
+        s <- Random.getStdRandom (Random.randomR(1,100))
+        if i `mod` 2 == 1
+            then Mutable.insert a s
+            else Mutable.remove a s
+
+    lst <- Mutable.toList a
+    print lst
+    print (lst == List.nub lst)
+
 
     True `shouldBe` False
 
@@ -489,7 +512,7 @@ spec = do
 
     -- testVec
     -- testSet
-    test
+    -- test
     nameSpec
     irCreationSpec
     attribsSpec
