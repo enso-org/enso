@@ -331,6 +331,7 @@ instance
         let newElemsPtr' = coerce (unwrap newElemsPtr)
         Memory.copyBytes newElemsPtr' ptr bytesToCopy
         Struct.write _externalMem a newElemsPtr'
+        Struct.write _capacity    a elemCount
     {-# INLINE copyInitialize #-}
 
 
