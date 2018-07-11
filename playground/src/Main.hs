@@ -5,11 +5,12 @@ module Main where
 
 import Prologue
 
+import qualified Control.Concurrent.Async            as Async
 import qualified Control.Monad.State                 as State
 import qualified Control.Monad.State.Layered         as State
-import qualified Control.Concurrent.Async            as Async
+import qualified Data.Graph.Data.Component.Vector    as ComponentVector
 import qualified Data.Graph.Data.Graph.Class         as Graph
-import qualified  Data.Graph.Data.Component.Vector   as ComponentVector
+import qualified Data.Graph.Data.Layer.Layout        as Layout
 import qualified Data.List                           as List
 import qualified Data.Map                            as Map
 import qualified Data.Set                            as Set
@@ -30,7 +31,6 @@ import qualified Luna.Syntax.Text.Source             as Parser
 import qualified OCI.Pass.Definition.Interface       as Pass
 import qualified System.Environment                  as System
 import qualified Text.PrettyPrint.ANSI.Leijen        as Doc
-import qualified Data.Graph.Data.Layer.Layout    as Layout
 
 import Data.Map  (Map)
 import Data.Set  (Set)
@@ -39,31 +39,31 @@ import Luna.Pass (Pass)
 import Data.Graph.Data.Component.Class (unsafeNull)
 
 import Luna.Syntax.Text.Parser.Data.CodeSpan (CodeSpan)
-import Luna.Syntax.Text.Parser.Data.Invalid (Invalids)
+import Luna.Syntax.Text.Parser.Data.Invalid  (Invalids)
 
-import qualified Data.Graph.Data.Graph.Class          as Graph
-import Data.Graph.Component.Node.Destruction
+import           Data.Graph.Component.Node.Destruction
+import qualified Data.Graph.Data.Graph.Class           as Graph
 
+import           Luna.Pass.Data.Root
+import           Luna.Pass.Data.UniqueNameGen
 import qualified Luna.Pass.Preprocess.PreprocessDef as PreprocessDef
+import           Luna.Pass.Resolve.AliasAnalysis
 import qualified Luna.Pass.Resolve.Data.Resolution  as Res
-import Luna.Pass.Resolve.AliasAnalysis
-import Luna.Pass.Data.Root
-import Luna.Pass.Data.UniqueNameGen
 
-import qualified Luna.Pass.Sourcing.UnitLoader as ModLoader
-import qualified Luna.Pass.Sourcing.Data.Unit  as Unit
-import qualified Luna.Pass.Sourcing.Data.Def   as Def
-import qualified Luna.Pass.Sourcing.Data.Class as Class
-import qualified Luna.Pass.Sourcing.UnitMapper as UnitMap
-import qualified Luna.Pass.Evaluation.Interpreter as Interpreter
+import qualified Data.Bimap                         as Bimap
 import qualified Luna.Pass.Evaluation.EvaluateUnits as EvaluateUnits
-import qualified Luna.Project as Project
-import qualified Data.Bimap as Bimap
-import qualified Path as Path
+import qualified Luna.Pass.Evaluation.Interpreter   as Interpreter
+import qualified Luna.Pass.Sourcing.Data.Class      as Class
+import qualified Luna.Pass.Sourcing.Data.Def        as Def
+import qualified Luna.Pass.Sourcing.Data.Unit       as Unit
+import qualified Luna.Pass.Sourcing.UnitLoader      as ModLoader
+import qualified Luna.Pass.Sourcing.UnitMapper      as UnitMap
+import qualified Luna.Project                       as Project
+import qualified Path                               as Path
 
+import qualified Luna.Runtime             as Runtime
 import qualified Luna.Runtime.Data.Future as Future
-import qualified Luna.Runtime as Runtime
-import qualified Luna.Std as Std
+import qualified Luna.Std                 as Std
 
 import qualified Luna.Pass.Preprocess.PreprocessUnit as PreprocessUnit
 ----------------------
@@ -133,7 +133,7 @@ instance Pass.Interface VisPass (Pass stage VisPass)
         Root root <- Attr.get
         VisName n <- Attr.get
         print root
-        Vis.displayVisualization n root
+        Vis.visualizeSubtree n root
 
 
 
@@ -166,7 +166,7 @@ main = Graph.encodeAndEval @ShellCompiler $ Scheduler.evalT $ do
     Unit.UnitRefsMap mods <- Scheduler.getAttr
 
     units <- for mods $ \u -> case u ^. Unit.root of
-        Unit.Graph r -> UnitMap.mapUnit @ShellCompiler r
+        Unit.Graph r       -> UnitMap.mapUnit @ShellCompiler r
         Unit.Precompiled u -> pure u
 
     let unitResolvers   = Map.mapWithKey Res.resolverFromUnit units
