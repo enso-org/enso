@@ -19,7 +19,7 @@ library:
     source-dirs:
         - src
     c-sources:
-        - src/cbits/*.cpp
+        - src/cbits/memory.cpp
     include-dirs:
         - src/cbits
     extra-libraries: stdc++
