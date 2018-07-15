@@ -68,7 +68,6 @@ loadUnitIfMissing sourcesMap stack modName = do
     UnitRefsMap m <- Scheduler.getAttr
     when (Map.notMember modName m) $ loadUnit sourcesMap stack modName
 
-
 loadUnit ::
     forall m.
     ( Scheduler.MonadScheduler m
@@ -97,3 +96,4 @@ loadUnit sourcesMap stack modName = do
     Scheduler.modifyAttr_ @UnitRefsMap $ wrapped . at modName .~ Just unitRef
 
     traverse_ (loadUnitIfMissing sourcesMap (modName : stack)) (unwrap imports)
+

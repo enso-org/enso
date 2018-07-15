@@ -30,9 +30,10 @@ packages:
     - debug
     - passes
     - playground
-    - project
+    - package
     - runtime
     - stdlib
+    - shell
     - syntax/text/lexer
     - syntax/text/model
     - syntax/text/parser
@@ -43,7 +44,7 @@ packages:
     - lib/code-builder
     - lib/cpp-containers
     - lib/data-construction
-    - lib/data-property    
+    - lib/data-property
     - lib/data-storable
     - lib/data-tag
     - lib/data-typemap

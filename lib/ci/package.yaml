@@ -9,10 +9,10 @@ library:
 
 dependencies:
     - base
-    - hspec
-    - hspec-jenkins
     - directory
     - filepath
+    - hspec
+    - hspec-jenkins
 
 default-extensions:
     - AllowAmbiguousTypes

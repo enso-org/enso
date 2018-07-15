@@ -151,3 +151,4 @@ addSelf fun = do
     body <- IR.source b
     self <- IR.var' $ convert "self"
     Layout.unsafeRelayout <$> IR.function name (self : args) body
+

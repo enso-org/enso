@@ -1,7 +1,5 @@
 {-# LANGUAGE CPP                  #-}
 {-# LANGUAGE UndecidableInstances #-}
-{-# EXT InlineAll #-}
-
 
 module Language.Symbol (module Language.Symbol, module X) where
 import Language.Symbol.Label as X

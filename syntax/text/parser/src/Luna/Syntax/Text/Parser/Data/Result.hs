@@ -1,5 +1,3 @@
-{-# EXT InlineAll #-}
-
 module Luna.Syntax.Text.Parser.Data.Result where
 
 import Prologue

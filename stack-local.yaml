@@ -30,7 +30,7 @@ packages:
     - debug
     - passes
     - playground
-    - project
+    - package
     - runtime
     - stdlib
     - syntax/text/lexer

@@ -133,11 +133,12 @@ Where `<component>` is one of the following:
 
 - `luna-core` (found in `$LUNA_REPO_PATH/core`)
 - `lune-passes` (found in `$LUNA_REPO_PATH/passes`)
-- `luna-project` (found in `$LUNA_REPO_PATH/project`)
+- `luna-package` (found in `$LUNA_REPO_PATH/package`)
+- `luna-runtime` (found in `$LUNA_REPO_PATH/runtime`)
 - `luna-shell` (found in `$LUNA_REPO_PATH/shell`)
 - `luna-stdlib` (found in `$LUNA_REPO_PATH/stdlib`)
-- `luna-lexer` (found in `$LUNA_REPO_PATH/syntax/text/lexer`)
-- `luna-parser` (found in `$LUNA_REPO_PATH/syntax/text/parser`)
+- `luna-syntax-text-lexer` (found in `$LUNA_REPO_PATH/syntax/text/lexer`)
+- `luna-syntax-text-parser` (found in `$LUNA_REPO_PATH/syntax/text/parser`)
 
 #### Developing with Local Libraries
 If you are hacking on the libraries that Luna uses, you'll want to be building

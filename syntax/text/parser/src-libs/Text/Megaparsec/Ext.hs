@@ -1,5 +1,3 @@
-{-# EXT InlineAll #-}
-
 module Text.Megaparsec.Ext where
 
 import Prelude

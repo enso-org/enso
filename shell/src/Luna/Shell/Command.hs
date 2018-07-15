@@ -2,16 +2,27 @@ module Luna.Shell.Command where
 
 import Prologue hiding (init)
 
-import qualified Control.Exception                 as Exception
-import qualified Control.Monad.State.Layered       as State
-import qualified Data.Text.IO                      as Text
-import qualified Data.Yaml                         as Yaml
-import qualified Luna.Package.Configuration.Global as Global
-import qualified Luna.Package.Configuration.Local  as Local
-import qualified Luna.Package.Structure.Generate   as Generate
-import qualified System.Directory                  as Directory
+import qualified Control.Exception                  as Exception
+import qualified Control.Monad.Exception            as MException
+import qualified Control.Monad.State.Layered        as State
+import qualified Data.Yaml                          as Yaml
+import qualified Luna.Package                       as Package
+import qualified Luna.Package.Configuration.Global  as Global
+import qualified Luna.Package.Configuration.License as License
+import qualified Luna.Package.Configuration.Local   as Local
+import qualified Luna.Package.Structure.Generate    as Generate
+import qualified Luna.Package.Structure.Name        as Package
+import qualified Luna.Shell.CWD                     as CWD
+import qualified Luna.Shell.Interpret               as Interpret
+import qualified Path                               as Path
+import qualified System.Directory                   as Directory
+import qualified Text.Megaparsec                    as Megaparsec
 
-import System.FilePath ((</>))
+import Control.Lens.Prism      (_Just)
+import Control.Monad.Exception (MonadException)
+import System.FilePath         ((</>))
+import System.IO               (hPutStrLn, stderr)
+
 
 -------------------------------
 -- === Config State Monad == --
@@ -30,9 +41,15 @@ type ConfigStateIO m =
 
 -- === Definition === --
 
+newtype RunOpts = RunOpts
+    { _target :: FilePath
+    } deriving (Eq, Generic, Ord, Show)
+makeLenses ''RunOpts
+
 data InitOpts = InitOpts
-    { _name        :: String
-    , _lunaVersion :: String
+    { _name            :: String
+    , _lunaVersion     :: String
+    , _licenseOverride :: String
     } deriving (Eq, Generic, Ord, Show)
 makeLenses ''InitOpts
 
@@ -42,12 +59,6 @@ data BuildOpts = BuildOpts
     , __standaloneFileName :: String
     } deriving (Eq, Generic, Ord, Show)
 makeLenses ''BuildOpts
-
-data RunOpts = RunOpts
-    { __standaloneFileName :: String
-    , __doNotBuild         :: Bool
-    } deriving (Eq, Generic, Ord, Show)
-makeLenses ''RunOpts
 
 data TestOpts = TestOpts
     { __doNotBuild  :: Bool
@@ -106,21 +117,21 @@ newtype DownloadOpts = DownloadOpts
 makeLenses ''DownloadOpts
 
 data Command
-    = Init InitOpts
-    | Build BuildOpts
-    | Run RunOpts
-    | Test TestOpts
+    = Build BuildOpts
     | Clean CleanOpts
     | Doc
+    | Download DownloadOpts
+    | Freeze FreezeOpts
+    | Init InitOpts
+    | Install InstallOpts
+    | Options OptionOpts
     | Publish PublishOpts
     | Retract RetractOpts
-    | Options OptionOpts
     | Rollback RollbackOpts
-    | Update UpdateOpts
-    | Freeze FreezeOpts
+    | Run RunOpts
+    | Test TestOpts
     | Unfreeze FreezeOpts
-    | Install InstallOpts
-    | Download DownloadOpts
+    | Update UpdateOpts
     deriving (Eq, Generic, Ord, Show)
 
 
@@ -131,67 +142,66 @@ data Command
 
 -- === API === --
 
--- TODO [Ara] Circular Dep Detection
--- TODO [Ara] Check optional version for validity, actually use it.
-init :: ConfigStateIO m => InitOpts -> m ()
-init opts = Generate.genPackageStructure (view name opts) >>= \case
-    Left err -> case err of
-        Generate.InvalidPackageLocation msg -> liftIO $ Text.putStrLn msg
-        Generate.InvalidPackageName _       -> putStrLn
-            $ view name opts <> " is not a valid package name."
-        Generate.SystemError msg -> liftIO . Text.putStrLn
-            $ "System Error: " <> msg
-    Right projectPath -> liftIO . putStrLn
-        $ "Initialised package at " <> projectPath
-
--- TODO [Ara] Swap build modes based on flags and file
-build :: ConfigStateIO m => BuildOpts -> m ()
-build opts = liftIO $ print opts
-
--- TODO [Ara] Run based on inputs
 run :: ConfigStateIO m => RunOpts -> m ()
-run opts = liftIO $ print opts
+run (RunOpts target) = liftIO $ catch compute recover where
+    compute =
+        if not $ null target then do
+            canonicalPath <- Directory.canonicalizePath target
+            fileExists    <- Directory.doesFileExist canonicalPath
+            projectExists <- Directory.doesDirectoryExist canonicalPath
 
--- TODO [Ara] Work out how to detect benchmarks
-test :: ConfigStateIO m => TestOpts -> m ()
-test opts = liftIO $ print opts
+            if fileExists then do
+                filePath <- Path.parseAbsFile canonicalPath
+                if Path.fileExtension filePath /= Package.lunaFileExt then
+                    hPutStrLn stderr $ canonicalPath <> " is not a Luna file."
+                else Interpret.file filePath
+            else if projectExists then runPackage canonicalPath
+            else hPutStrLn stderr $ target <> " not found."
+        else do
+            cwd <- CWD.get
+            runPackage cwd
 
-clean :: ConfigStateIO m => CleanOpts -> m ()
-clean opts = liftIO $ print opts
+    -- FIXME This can be done much better.
+    recover (e :: SomeException) = hPutStrLn stderr $ displayException e
 
--- TODO [Ara] print warning message for now
-doc :: ConfigStateIO m => m ()
-doc = liftIO $ print ("DOC" :: String)
+    runPackage path = do
+        packagePath   <- Path.parseAbsDir path
+        isLunaPackage <- Package.isLunaPackage packagePath
 
--- TODO [Ara] Need to validate the prerelease as valid and an increase..
-publish :: ConfigStateIO m => PublishOpts -> m ()
-publish opts = liftIO $ print opts
+        if isLunaPackage then Interpret.package packagePath
+        else hPutStrLn stderr $ path <> " is not a Luna Package."
 
--- TODO [Ara] Validate provided version
--- TODO [Ara] Ask user for confirmation
-retract :: ConfigStateIO m => RetractOpts -> m ()
-retract opts = liftIO $ print opts
+init :: (ConfigStateIO m, MonadException Path.PathException m) => InitOpts
+    -> m ()
+init opts = do
+    licenseConfig <- view Global.license <$> State.get @Global.Config
 
-options :: ConfigStateIO m => OptionOpts -> m ()
-options opts = liftIO $ print opts
+    let mLicense = if null $ view licenseOverride opts then
+            case licenseConfig ^? _Just . Global.defaultLicense . _Just of
+                Nothing -> Nothing
+                Just key -> hush $ Megaparsec.runParser License.license "" key
+        else hush $ Megaparsec.runParser License.license "" . convert
+            $ view licenseOverride opts
 
-rollback :: ConfigStateIO m => RollbackOpts -> m ()
-rollback opts = liftIO $ print opts
+    {- let mLicense = if null $ view licenseOverride opts then -}
+            {- case licenseConfig of -}
+                {- Nothing                           -> Nothing -}
+                {- Just (Global.LicenseConfig _ lic) -> case lic of -}
+                    {- Nothing  -> Nothing -}
+                    {- Just key -> hush -}
+                        {- $ Megaparsec.runParser License.license "" key -}
+        {- else hush $ Megaparsec.runParser License.license "" . convert -}
+            {- $ view licenseOverride opts -}
 
-update :: ConfigStateIO m => UpdateOpts -> m ()
-update opts = liftIO $ print opts
-
-freeze :: ConfigStateIO m => FreezeOpts -> m ()
-freeze opts = liftIO $ print opts
-
-unfreeze :: ConfigStateIO m => FreezeOpts -> m ()
-unfreeze opts = liftIO $ print opts
-
-install :: ConfigStateIO m => InstallOpts -> m ()
-install opts = liftIO $ print opts
-
-download :: ConfigStateIO m => DownloadOpts -> m ()
-download opts = liftIO $ print opts
+    Generate.genPackageStructure (view name opts) mLicense >>= \case
+        Left err -> case err of
+            Generate.InvalidPackageLocation msg -> putStrLn $ convert msg
+            Generate.InvalidPackageName _       -> putStrLn
+                $ view name opts <> " is not a valid package name."
+            Generate.SystemError msg -> putStrLn
+                $ "System Error: " <> convert msg
+        Right projectPath -> putStrLn
+            $ "Initialised package at " <> projectPath
 
 
 
@@ -201,7 +211,7 @@ download opts = liftIO $ print opts
 
 -- === API === --
 
-runLuna :: MonadIO m => Command -> m ()
+runLuna :: (MonadIO m) => Command -> m ()
 runLuna command = do
     globalConfig <- acquireGlobalConfig >>= \case
         Left errText -> do
@@ -209,27 +219,39 @@ runLuna command = do
             pure $ def @Global.Config
         Right config -> pure config
 
-    -- TODO [Ara] Pick the real config up if inside project
+    -- Defaulting to be filled later where relevant.
     let localConfig = def @Local.Config
 
-    -- TODO [Ara] Needs to be some shorthand for this.
-    (flip State.evalT) localConfig $ (flip State.evalT) globalConfig
-        $ case command of
-            Init     opts -> init     opts
-            Build    opts -> build    opts
-            Run      opts -> run      opts
-            Test     opts -> test     opts
-            Clean    opts -> clean    opts
-            Doc           -> doc
-            Publish  opts -> publish  opts
-            Retract  opts -> retract  opts
-            Options  opts -> options  opts
-            Rollback opts -> rollback opts
-            Update   opts -> update   opts
-            Freeze   opts -> freeze   opts
-            Unfreeze opts -> unfreeze opts
-            Install  opts -> install  opts
-            Download opts -> download opts
+    (flip State.evalT) localConfig $ (flip State.evalT) globalConfig $
+        case command of
+            Build    _ -> putStrLn
+                "Building of executables is not yet implemented."
+            Clean    _ -> putStrLn
+                "Cleaning build artefacts is not yet implemented."
+            Doc        -> putStrLn
+                "Building documentation is not yet implemented."
+            Download _ -> putStrLn
+                "Downloading of packages is not yet implemented."
+            Freeze   _ -> putStrLn
+                "Freezing package dependencies is not yet implemented."
+            Init opts  -> MException.catch (\(e :: Path.PathException) ->
+                liftIO . hPutStrLn stderr $ displayException e) (init opts)
+            Install  _ -> putStrLn
+                "Installing dependencies is not yet implemented."
+            Options  _ -> putStrLn
+                "Setting compiler options is not yet implemented."
+            Publish  _ -> putStrLn "Publishing packages is not yet implemented."
+            Retract  _ -> putStrLn
+                "Retraction of package versions is not yet implemented."
+            Rollback _ -> putStrLn
+                "Rolling back dependencies is not yet implemented."
+            Run opts   -> run opts
+            Test     _ -> putStrLn
+                "Executing test suites is not yet implemented."
+            Unfreeze _ -> putStrLn
+                "Unfreezing package dependencies is not yet implemented."
+            Update   _ -> putStrLn
+                "Updating package dependencies is not yet implemented."
 
 acquireGlobalConfig :: forall m . MonadIO m => m (Either Text Global.Config)
 acquireGlobalConfig = liftIO $ Exception.catch acquire recovery where
@@ -251,7 +273,7 @@ acquireGlobalConfig = liftIO $ Exception.catch acquire recovery where
         configFileExists <- Directory.doesFileExist lunaConfigFile
 
         unless configFileExists $ do
-            print ("Generating Global Config" :: String)
+            putStrLn "Generating Global Config"
             let defaultConfig = def @Global.Config
             Yaml.encodeFile lunaConfigFile defaultConfig
 
@@ -266,4 +288,3 @@ acquireGlobalConfig = liftIO $ Exception.catch acquire recovery where
                     putStrLn $ "Please fill in your email in " <> lunaConfigFile
 
                 pure $ Right config
-

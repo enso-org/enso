@@ -49,14 +49,14 @@ desugarLists ::
 desugarLists isPattern e = Layer.read @IR.Model e >>= \case
     Uni.List elts' -> do
         elts <- traverse IR.source =<< ComponentVector.toList elts'
-        traverse_ (desugarLists isPattern) elts
-        properList <- properListRep isPattern (Just <$> elts)
+        newElts <- traverse (desugarLists isPattern) elts
+        properList <- properListRep isPattern (Just <$> newElts)
         IR.replace properList e
         return properList
     Uni.Tuple elts' -> do
         elts <- traverse IR.source =<< ComponentVector.toList elts'
-        traverse_ (desugarLists isPattern) elts
-        properTuple <- properTupleRep isPattern (Just <$> elts)
+        newElts <- traverse (desugarLists isPattern) elts
+        properTuple <- properTupleRep isPattern (Just <$> newElts)
         IR.replace properTuple e
         return properTuple
     Uni.Unify l r -> do

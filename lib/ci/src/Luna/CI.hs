@@ -2,9 +2,10 @@ module Luna.CI where
 
 import Prelude
 
-import Data.Maybe         (fromJust, isJust)
+import System.Environment as Environment
+
+import Data.Maybe         (fromMaybe, fromJust, isJust)
 import System.Directory   (createDirectoryIfMissing)
-import System.Environment (lookupEnv)
 import System.FilePath    ((</>))
 
 import Test.Hspec
@@ -18,12 +19,18 @@ main spec = do
     config <-
         if buildInCI then do
             -- if in CI, CIRCLE_TEST_REPORTS is always defined
-            circleTestPath <- fmap fromJust $ lookupEnv "CIRCLE_TEST_REPORTS"
-            let testPath = circleTestPath </> "hspec"
-            createDirectoryIfMissing True testPath
-            return $ defaultConfig { configFormatter = Just xmlFormatter
-                                   , configOutputFile = Right $ testPath </> "output.xml" }
-        else return defaultConfig
+            envResult <- Environment.lookupEnv "CIRCLE_TEST_REPORTS"
+            let circleTestPath = fromMaybe "" envResult
+
+            if null circleTestPath then
+                pure defaultConfig
+            else do
+                let testPath = circleTestPath </> "hspec"
+                createDirectoryIfMissing True testPath
+                pure $ defaultConfig { configFormatter = Just xmlFormatter
+                                     , configOutputFile = Right
+                                        $ testPath </> "output.xml" }
+        else pure defaultConfig
 
     hspecWith config spec
 

@@ -21,36 +21,16 @@ import Options.Applicative  (Parser)
 
 parseLunaCommand :: Parser Command
 parseLunaCommand = Options.hsubparser
-    (  Options.command "init"  (Options.info init
-        (Options.progDesc "Initialize a new Luna package."))
-    <> Options.command "build" (Options.info build
-        (Options.progDesc "Build a Luna Package, or build a standalone file."))
-    <> Options.command "run" (Options.info run
+    (  Options.command "run" (Options.info run
         (Options.progDesc "Execute a luna package, or standalone file."))
-    <> Options.command "test" (Options.info test
-        (Options.progDesc "Execute the tests for your package."))
-    <> Options.command "clean" (Options.info clean
-        (Options.progDesc "Clean build artefacts."))
-    <> Options.command "doc" (Options.info (pure Command.Doc)
-        (Options.progDesc "Generate HTML documentation."))
-    <> Options.command "publish" (Options.info publish
-        (Options.progDesc "Publish your package to the Luna repository."))
-    <> Options.command "retract" (Options.info retract
-        (Options.progDesc "Retract a package version from the repository."))
-    <> Options.command "options" (Options.info options
-        (Options.progDesc "Set Luna options for this project (or globally)"))
-    <> Options.command "rollback" (Options.info rollback
-        (Options.progDesc "Rollback package dependency state."))
-    <> Options.command "update" (Options.info update
-        (Options.progDesc "Update a dependency."))
-    <> Options.command "freeze" (Options.info freeze
-        (Options.progDesc "Freeze a dependency."))
-    <> Options.command "unfreeze" (Options.info unfreeze
-        (Options.progDesc "Unfreeze a dependency."))
-    <> Options.command "install" (Options.info install
-        (Options.progDesc "Install Luna packages."))
-    <> Options.command "download" (Options.info download
-        (Options.progDesc "Download Luna packages.")))
+    <> Options.command "init" (Options.info init
+        (Options.progDesc "Initialise a new luna package.")))
+
+run :: Parser Command
+run = Command.Run <$> (Command.RunOpts
+    <$> Options.strOption (Options.long "target"
+        <> Options.metavar "FILE/FOLDER" <> Options.value ""
+        <> Options.help "Execute FILE/FOLDER in interpreted mode."))
 
 init :: Parser Command
 init = Command.Init <$> ( Command.InitOpts
@@ -58,7 +38,10 @@ init = Command.Init <$> ( Command.InitOpts
     <*> Options.strOption (Options.long "luna-version"
         <> Options.metavar "VERSION" <> Options.value ""
         <> Options.help
-            "Initialise the package with the provided Luna version."))
+            "Initialise the package with the provided Luna version.")
+    <*> Options.strOption (Options.long "license"
+        <> Options.metavar "LICENSE" <> Options.value ""
+        <> Options.help "Initialise the package with the specified license."))
 
 build :: Parser Command
 build = Command.Build <$> (Command.BuildOpts
@@ -69,14 +52,6 @@ build = Command.Build <$> (Command.BuildOpts
     <*> Options.strOption (Options.long "file"
         <> Options.metavar "FILE" <> Options.value ""
         <> Options.help "Build a standalone FILE."))
-
-run :: Parser Command
-run = Command.Run <$> (Command.RunOpts
-    <$> Options.strOption (Options.long "file"
-        <> Options.metavar "FILE" <> Options.value ""
-        <> Options.help "Execute a standalone FILE in interpreted mode.")
-    <*> Options.switch (Options.long "no-build"
-        <> Options.help "Do not rebuild before executing."))
 
 test :: Parser Command
 test = Command.Test <$> (Command.TestOpts

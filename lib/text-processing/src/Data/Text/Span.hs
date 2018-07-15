@@ -1,5 +1,4 @@
 {-# LANGUAGE UndecidableInstances #-}
-{-# EXT InlineAll #-}
 
 module Data.Text.Span where
 

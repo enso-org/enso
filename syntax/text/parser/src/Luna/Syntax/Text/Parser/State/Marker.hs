@@ -1,5 +1,4 @@
 {-# LANGUAGE UndecidableInstances #-}
-{-# EXT      InlineAll            #-}
 
 module Luna.Syntax.Text.Parser.State.Marker where
 

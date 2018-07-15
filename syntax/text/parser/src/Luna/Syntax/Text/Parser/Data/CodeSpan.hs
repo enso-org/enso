@@ -1,6 +1,5 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE UndecidableInstances      #-}
-{-# EXT      InlineAll                 #-}
 
 module Luna.Syntax.Text.Parser.Data.CodeSpan where
 

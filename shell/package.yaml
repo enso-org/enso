@@ -1,5 +1,5 @@
 name:       luna-shell
-version:    "1.1"
+version:    "1.2"
 author:     Luna Team <contact@luna-lang.org>
 maintainer: Luna Team <contact@luna-lang.org>
 
@@ -8,20 +8,31 @@ library:
         - src
     dependencies:
         - base
+        - bimap
+        - containers
         - directory
         - filepath
         - layered-state
-        - luna-package-configuration
-        - luna-package-resolver
-        - luna-package-structure
+        - lens
+        - luna-core
+        - luna-exception
+        - luna-package
+        - luna-passes
+        - luna-runtime
+        - luna-stdlib
+        - luna-syntax-text-parser
+        - megaparsec
+        - mtl
         - optparse-applicative
+        - path
         - prologue
         - text
+        - unordered-containers
         - yaml
 
 executables:
     luna:
-        main: src/Main.hs
+        main: src-app/Main.hs
         ghc-options: -threaded "-with-rtsopts=-N -T"
         dependencies:
             - base
