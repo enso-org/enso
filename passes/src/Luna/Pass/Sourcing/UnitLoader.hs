@@ -20,6 +20,7 @@ import qualified Luna.Syntax.Text.Parser.Data.Invalid as Parser
 import qualified Luna.Syntax.Text.Parser.Pass         as Parser
 import qualified Luna.Syntax.Text.Parser.Pass         as Parser
 import qualified Luna.Syntax.Text.Source              as Parser
+import qualified System.IO                            as IO
 
 import Control.Monad.Exception              (MonadException)
 import Luna.Pass.Data.Root
@@ -79,7 +80,10 @@ loadUnit sourcesMap stack modName = do
     resetParserState
     srcPath <- Exception.fromJust (UnitSourcesNotFound stack modName)
                                   (Map.lookup modName sourcesMap)
-    src <- readFile srcPath
+
+    fileHandle <- liftIO $ IO.openFile srcPath IO.ReadMode
+    liftIO $ IO.hSetEncoding fileHandle IO.utf8
+    src <- liftIO $ IO.hGetContents fileHandle
 
     Scheduler.setAttr @Parser.Source $ convert src
     Scheduler.runPassByType @Parser.Parser
