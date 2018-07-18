@@ -12,9 +12,10 @@ dependencies:
     - async
     - base
     - containers
+    - luna-core
+    - luna-future
     - mtl
     - prologue
-    - luna-core
 
 default-extensions:
     - AllowAmbiguousTypes

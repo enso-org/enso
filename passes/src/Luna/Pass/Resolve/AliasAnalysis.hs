@@ -15,6 +15,7 @@ import qualified Luna.IR.Layer                    as Layer
 import qualified Luna.Pass                        as Pass
 import qualified Luna.Pass.Attr                   as Attr
 import qualified Luna.Pass.Basic                  as Pass
+import qualified Luna.Pass.Data.Stage             as TC
 
 import Data.Map                                   (Map)
 import Luna.Pass.Data.Root                        (Root (Root))
@@ -36,31 +37,22 @@ type family AliasAnalysisSpec t where
 
 type AliasMap = Map IR.Name (IR.Term IR.Var)
 
-instance
-    ( Pass.Interface AliasAnalysis (Pass.Pass stage AliasAnalysis)
-    , IR.DeleteSubtree (State.StateT AliasMap (Pass.Pass stage AliasAnalysis))
-    ) => Pass.Definition stage AliasAnalysis where
+instance Pass.Definition TC.Stage AliasAnalysis where
     definition = do
         Root root <- Attr.get
-        void $ State.runT @AliasMap (resolveAliases root) def
+        void $ State.runT (resolveAliases root) def
 
-reportUnknownVariable :: Pass.Interface AliasAnalysis m
-    => IR.Term IR.Var -> m ()
+reportUnknownVariable :: IR.Term IR.Var -> State.StateT AliasMap (TC.Pass AliasAnalysis) ()
 reportUnknownVariable v = Attr.modify_ @UnresolvedVariables (wrapped %~ (v :))
 
-discoverVars :: Pass.Interface AliasAnalysis m
-    => IR.SomeTerm -> m AliasMap
+discoverVars :: IR.SomeTerm -> State.StateT AliasMap (TC.Pass AliasAnalysis) AliasMap
 discoverVars e = Layer.read @IR.Model e >>= \case
     Uni.Var n -> return $ Map.singleton n $ Layout.unsafeRelayout e
     _ -> do
         inps <- IR.inputs e
         Map.unions <$> ComponentList.mapM (discoverVars <=< IR.source) inps
 
-resolveAliases ::
-    ( Pass.Interface AliasAnalysis m
-    , IR.DeleteSubtree m
-    , State.Monad AliasMap m
-    ) => IR.SomeTerm -> m ()
+resolveAliases :: IR.SomeTerm -> State.StateT AliasMap (TC.Pass AliasAnalysis) ()
 resolveAliases expr = Layer.read @IR.Model expr >>= \case
     Uni.Var name -> do
         existingVar <- State.gets @AliasMap $ Map.lookup name

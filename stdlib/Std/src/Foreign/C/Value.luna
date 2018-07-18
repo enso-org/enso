@@ -734,7 +734,7 @@ native class ForeignPtr a:
     def isNull: self == primNullForeignPtr
     def moveBytes i: primForeignPtrPlus self i
     def free: primForeignPtrFree self
-    def _ptr: primForeignPtrToPtr self
+    def ptr: primForeignPtrToPtr self
 
 class ManagedPointer a:
     ManagedPointer    a
@@ -745,7 +745,7 @@ class ManagedPointer a:
         ManagedPointerVal a _: a
 
     def ptr: case self of
-        ManagedPointerVal _ p: p._ptr
+        ManagedPointerVal _ p: p.ptr
 
     def fptr: case self of
         ManagedPointerVal _ p: p

@@ -4,15 +4,15 @@ module Luna.Runtime.Data.Evaluated where
 
 import Prologue
 
-import qualified Data.Map                 as Map
-import qualified Luna.IR                  as IR
-import qualified Luna.Pass.Attr           as Attr
-import qualified Luna.Runtime.Data        as Luna
-import qualified Luna.Runtime.Eff         as Luna
-import qualified Luna.Runtime.Data.Future as Future
+import qualified Control.Concurrent.Future as Future
+import qualified Data.Map                  as Map
+import qualified Luna.IR                   as IR
+import qualified Luna.Pass.Attr            as Attr
+import qualified Luna.Runtime.Data         as Luna
+import qualified Luna.Runtime.Eff          as Luna
 
 import Data.Map (Map)
-import Luna.Runtime.Data.Future (Future)
+import Control.Concurrent.Future (Future)
 
 newtype Units = Units (Map IR.Qualified Unit)
 type instance Attr.Type Units = Attr.Atomic

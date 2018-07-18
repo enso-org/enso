@@ -14,6 +14,7 @@ import qualified Data.Graph.Component.Node.Class       as Node
 import qualified Data.Graph.Data.Component.Class       as Component
 import qualified Data.Graph.Data.Component.List        as ComponentList
 import qualified Data.Graph.Data.Component.List        as ComponentList
+import qualified Data.Graph.Data.Component.Maybe       as MaybeComponent
 import qualified Data.Graph.Data.Graph.Class           as Graph
 import qualified Data.Graph.Data.Layer.Class           as Layer
 import qualified Data.Graph.Data.Layer.Layout          as Layout
@@ -46,6 +47,7 @@ import Data.ByteString                       (ByteString)
 import Data.Graph.Data.Component.Class       (Component)
 import Data.Graph.Data.Component.Set         (ComponentSet, ComponentSetA)
 import Data.Graph.Data.Component.Vector      (ComponentVector, ComponentVectorA)
+import Data.Graph.Data.Component.Maybe       (MaybeComponent)
 import Data.Graph.Store.Size.Class           (Size)
 import Data.Map.Strict                       (Map)
 import Data.Mutable.Storable.Array           (ManagedArray)
@@ -56,7 +58,7 @@ import Foreign.ForeignPtr                    (touchForeignPtr)
 import Foreign.ForeignPtr.Unsafe             (unsafeForeignPtrToPtr)
 import Foreign.ForeignPtr.Utils              (SomeForeignPtr)
 import Foreign.Memory.Pool                   (MemPool)
-import Foreign.Ptr                           (Ptr, minusPtr, plusPtr)
+import Foreign.Ptr                           (Ptr, minusPtr, plusPtr, castPtr)
 import Foreign.Ptr.Utils                     (SomePtr)
 import Type.Data.Semigroup                   (type (<>))
 
@@ -77,7 +79,6 @@ print = const $ pure ()
 
 pprint :: Applicative m => a -> m ()
 pprint = const $ pure ()
-
 
 ------------------------------
 -- === DynamicMemRegion === --
@@ -455,6 +456,9 @@ instance Applicative m => PointerRedirection1 m (Component comp) where
 
 instance Applicative m => PointerRedirection1 m (Layer.Simple a)
 
+instance Applicative m => PointerRedirection1 m (MaybeComponent comp) where
+    redirectPointers1 = MaybeComponent.mapM . redirectPointers1
+    {-# INLINE redirectPointers1 #-}
 
 instance MonadIO m => PointerRedirection m (ComponentVectorA alloc tag layout) where
     redirectPointers = \f a -> do
@@ -563,6 +567,14 @@ class UnswizzleX a m where
 
 instance MonadIO m => UnswizzleX (ComponentSetA alloc tag) m where
     unswizzleX = Mutable.unswizzle1 <=< (liftIO . StdStorable.peek)
+
+instance MonadIO m => UnswizzleX (MaybeComponent comp) m where
+    unswizzleX = \p -> do
+        may        <- liftIO $ StdStorable.peek p
+        unswizzled <- MaybeComponent.mapM (Mutable.unswizzleRelTo $ castPtr p) may
+        liftIO $ StdStorable.poke p unswizzled
+    {-# INLINE unswizzleX #-}
+
 
 instance MonadIO m => UnswizzleX (Component comp) m where
     unswizzleX = Mutable.unswizzle . SAV.Field . wrap
@@ -1228,6 +1240,11 @@ instance (MonadIO m, PointerRedirection1_2 m (Component tag))
 instance (Applicative m, PointerRedirection1_2 m (Component comp))
       => PointerRedirection_2 m (Component comp layout) where
     redirectPointers_2 = redirectPointers1_2
+
+instance (Applicative m, PointerRedirection1_2 m (Component comp))
+      => PointerRedirection1_2 m (MaybeComponent comp) where
+    redirectPointers1_2 = MaybeComponent.mapM . redirectPointers1_2
+    {-# INLINE redirectPointers1_2 #-}
 
 instance Applicative m => PointerRedirection1_2 m (Layer.Simple a)
 

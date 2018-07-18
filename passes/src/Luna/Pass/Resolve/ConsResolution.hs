@@ -13,6 +13,7 @@ import qualified Luna.IR.Layer                       as Layer
 import qualified Luna.Pass                           as Pass
 import qualified Luna.Pass.Attr                      as Attr
 import qualified Luna.Pass.Basic                     as Pass
+import qualified Luna.Pass.Data.Stage                as TC
 import qualified Luna.Pass.Sourcing.Data.Class       as Class
 
 import Luna.Pass.Data.Root
@@ -28,16 +29,12 @@ type family ConsResolutionSpec t where
     ConsResolutionSpec (Pass.Out Pass.Attrs) = '[UniqueNameGen]
     ConsResolutionSpec t = Pass.BasicPassSpec t
 
-instance ( Pass.Interface ConsResolution (Pass.Pass stage ConsResolution)
-         , IR.DeleteSubtree (Pass.Pass stage ConsResolution)
-         ) => Pass.Definition stage ConsResolution where
+instance Pass.Definition TC.Stage ConsResolution where
     definition = do
         Root root <- Attr.get
         resolveConstructors True root
 
-resolveConstructors :: ( Pass.Interface ConsResolution m
-                       , IR.DeleteSubtree m
-                       ) => Bool -> IR.SomeTerm -> m ()
+resolveConstructors :: Bool -> IR.SomeTerm -> TC.Pass ConsResolution ()
 resolveConstructors positive root = Layer.read @IR.Model root >>= \case
     Uni.Cons n as -> do
         args <- traverse IR.source =<< ComponentVector.toList as
@@ -77,5 +74,3 @@ buildResolvedCons positive term (ConsRef unit cls cons) = do
     else do
         args <- traverse IR.source =<< ComponentVector.toList as
         IR.resolvedCons' unit cls n args
-
-

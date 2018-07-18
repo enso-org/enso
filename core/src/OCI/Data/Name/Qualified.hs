@@ -5,6 +5,7 @@ module OCI.Data.Name.Qualified where
 import Prologue
 
 import qualified Data.Generics.Traversable.Deriving as GTraversable
+import qualified GHC.TypeLits                       as Symbol
 import qualified Foreign.Storable.Class             as Storable
 import qualified OCI.Data.Name.Class                as Name
 
@@ -57,3 +58,5 @@ instance Convertible String Qualified where
     convert = convertVia @Name.Name
     {-# INLINE convert #-}
 
+qualFromSymbol :: forall s. Symbol.KnownSymbol s => Qualified
+qualFromSymbol = convert $ Symbol.symbolVal $ Proxy @s

@@ -9,6 +9,7 @@ import qualified Luna.IR                             as IR
 import qualified Luna.IR.Layer                       as Layer
 import qualified Luna.Pass                           as Pass
 import qualified Luna.Pass.Attr                      as Attr
+import qualified Luna.Pass.Data.Stage                as TC
 import qualified Luna.Pass.Basic                     as Pass
 
 import Luna.Pass.Data.Root
@@ -23,17 +24,13 @@ type family DefResolutionSpec t where
     DefResolutionSpec (Pass.Out Pass.Attrs) = '[UnresolvedVariables]
     DefResolutionSpec t = Pass.BasicPassSpec t
 
-instance ( Pass.Interface DefResolution (Pass.Pass stage DefResolution)
-         , IR.DeleteSubtree (Pass.Pass stage DefResolution)
-         ) => Pass.Definition stage DefResolution where
+instance Pass.Definition TC.Stage DefResolution where
     definition = do
         UnresolvedVariables vars <- Attr.get
         Attr.put $ UnresolvedVariables []
         traverse_ resolveDef vars
 
-resolveDef :: ( Pass.Interface DefResolution m
-              , IR.DeleteSubtree m
-              ) => IR.Term IR.Var -> m ()
+resolveDef :: IR.Term IR.Var -> TC.Pass DefResolution ()
 resolveDef v = do
     IR.Var n   <- IR.model v
     resolver   <- Attr.get @DefResolver

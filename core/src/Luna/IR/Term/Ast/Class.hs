@@ -85,6 +85,8 @@ Term.define [d|
     | Documented   { doc      :: Vec16  Char  , base   :: LinkTo  Terms        }
     | Function     { name     :: LinkTo Terms , args   :: LinksTo Terms
                    , body     :: LinkTo Terms                                  }
+    | DefHeader    { tp       :: LinkTo Terms  , unis   :: LinksTo Terms
+                   , accs     :: LinksTo Terms , apps   :: LinksTo Terms       }
     | Grouped      { body     :: LinkTo Terms                                  }
     | Imp          { source   :: LinkTo Terms , target :: ImportTargetData     }
     | ImportHub    { imps     :: LinksTo Terms                                 }

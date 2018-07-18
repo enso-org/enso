@@ -5,6 +5,7 @@ import Prologue
 import qualified Data.Graph.Data.Component.Vector    as ComponentVector
 import qualified Data.Graph.Data.Layer.Layout        as Layout
 import qualified Data.Map                            as Map
+import qualified Luna.Pass.Data.Stage                as TC
 import qualified Luna.IR                             as IR
 import qualified Luna.IR.Aliases                     as Uni
 import qualified Luna.IR.Layer                       as Layer
@@ -29,35 +30,15 @@ import Luna.Pass.Transform.Desugar.DesugarPartialApplications (DesugarPartialApp
 import Luna.Pass.Transform.Desugar.RemoveGrouped              (RemoveGrouped)
 import Luna.Pass.Transform.Desugar.TransformPatterns          (TransformPatterns)
 
-type Ctx stage m =
-    ( Scheduler.PassRegister stage DesugarListLiterals        m
-    , Scheduler.PassRegister stage DesugarPartialApplications m
-    , Scheduler.PassRegister stage RemoveGrouped              m
-    , Scheduler.PassRegister stage TransformPatterns          m
-    , Scheduler.PassRegister stage AliasAnalysis              m
-    , Scheduler.PassRegister stage DefResolution              m
-    , Scheduler.PassRegister stage ConsResolution             m
-    , Pass.Definition stage DesugarListLiterals
-    , Pass.Definition stage DesugarPartialApplications
-    , Pass.Definition stage RemoveGrouped
-    , Pass.Definition stage TransformPatterns
-    , Pass.Definition stage AliasAnalysis
-    , Pass.Definition stage DefResolution
-    , Pass.Definition stage ConsResolution
-    )
-
-preprocessDef :: forall stage m.
-    ( Ctx stage m
-    , Scheduler.MonadScheduler m
-    ) => UnitResolver -> IR.Term IR.Function -> m ()
+preprocessDef :: UnitResolver -> IR.SomeTerm -> TC.Monad ()
 preprocessDef resolver root = do
-    Scheduler.registerPass @stage @DesugarListLiterals
-    Scheduler.registerPass @stage @DesugarPartialApplications
-    Scheduler.registerPass @stage @RemoveGrouped
-    Scheduler.registerPass @stage @TransformPatterns
-    Scheduler.registerPass @stage @AliasAnalysis
-    Scheduler.registerPass @stage @DefResolution
-    Scheduler.registerPass @stage @ConsResolution
+    Scheduler.registerPass @TC.Stage @DesugarListLiterals
+    Scheduler.registerPass @TC.Stage @DesugarPartialApplications
+    Scheduler.registerPass @TC.Stage @RemoveGrouped
+    Scheduler.registerPass @TC.Stage @TransformPatterns
+    Scheduler.registerPass @TC.Stage @AliasAnalysis
+    Scheduler.registerPass @TC.Stage @DefResolution
+    Scheduler.registerPass @TC.Stage @ConsResolution
 
     Scheduler.registerAttr @UniqueNameGen
     Scheduler.registerAttr @UnresolvedVariables
@@ -67,7 +48,7 @@ preprocessDef resolver root = do
 
     Scheduler.enableAttrByType @UniqueNameGen
     Scheduler.enableAttrByType @UnresolvedVariables
-    Scheduler.setAttr $ Root $ Layout.relayout root
+    Scheduler.setAttr $ Root root
     Scheduler.setAttr $ resolver ^. Resolution.defs
     Scheduler.setAttr $ resolver ^. Resolution.conses
 

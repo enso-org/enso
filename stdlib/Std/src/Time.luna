@@ -174,7 +174,7 @@ class Time:
     def setTimeZone tz: case self of
         TimeVal days tod _: TimeVal days tod tz
 
-    def _days: case self of
+    def days: case self of
         TimeVal days _ _: days
 
     # Advances the date by a given number of days.
@@ -194,7 +194,7 @@ class Time:
     def endOfDay: Time.beginningOfDay . addDays 1
 
     # Gets the time of year in form of a tuple: (year, month, day)
-    def timeOfYear: primTimeOfYear self._days
+    def timeOfYear: primTimeOfYear self.days
 
     # Creates a `Time` object from its parameters: the year, month and day and an optional `TimeZone`..
     def fromTimeOfYear y m d tz:

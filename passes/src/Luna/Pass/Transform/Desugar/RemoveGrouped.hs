@@ -10,6 +10,7 @@ import qualified Luna.IR.Layer                  as Layer
 import qualified Luna.Pass                      as Pass
 import qualified Luna.Pass.Attr                 as Attr
 import qualified Luna.Pass.Basic                as Pass
+import qualified Luna.Pass.Data.Stage           as TC
 
 import Luna.Pass.Data.Root (Root (Root))
 
@@ -27,17 +28,13 @@ type family RemoveGroupedSpec t where
     RemoveGroupedSpec (Pass.Out Pass.Attrs) = '[Root]
     RemoveGroupedSpec t = Pass.BasicPassSpec t
 
-instance
-    ( Pass.Interface RemoveGrouped (Pass.Pass stage RemoveGrouped)
-    , IR.DeleteSubtree (Pass.Pass stage RemoveGrouped)
-    ) => Pass.Definition stage RemoveGrouped where
+instance Pass.Definition TC.Stage RemoveGrouped where
     definition = do
         Root root <- Attr.get
         newRoot   <- runRemoveGrouped root
         Attr.put $ Root newRoot
 
-runRemoveGrouped :: (Pass.Interface RemoveGrouped m, IR.DeleteSubtree m)
-    => IR.SomeTerm -> m IR.SomeTerm
+runRemoveGrouped :: IR.SomeTerm -> TC.Pass RemoveGrouped IR.SomeTerm
 runRemoveGrouped root = do
     inputEdges <- IR.inputs root
     ComponentList.mapM_ (runRemoveGrouped <=< Layer.read @IR.Source) inputEdges

@@ -13,8 +13,10 @@ import qualified Luna.IR.Layer                       as Layer
 import qualified Luna.Pass                           as Pass
 import qualified Luna.Pass.Attr                      as Attr
 import qualified Luna.Pass.Basic                     as Pass
+import qualified Luna.Pass.Data.Stage                as TC
 import qualified Luna.Pass.Scheduler                 as Scheduler
 import qualified Luna.Pass.Sourcing.Data.Def         as Def
+import qualified Luna.Pass.Sourcing.Data.Unit        as Unit
 import qualified Luna.Pass.Sourcing.Utils            as Sourcing
 
 import Data.Map (Map)
@@ -42,15 +44,13 @@ instance Default PartiallyMappedUnit where
 
 makeLenses ''PartiallyMappedUnit
 
-instance Pass.Interface UnitMapper (Pass.Pass stage UnitMapper)
-      => Pass.Definition stage UnitMapper where
+instance Pass.Definition TC.Stage UnitMapper where
     definition = do
         Root root <- Attr.get
         unitMap   <- partiallyMapUnit $ Layout.unsafeRelayout root
         Attr.put unitMap
 
-partiallyMapUnit :: Pass.Interface UnitMapper m
-        => IR.Term IR.Unit -> m PartiallyMappedUnit
+partiallyMapUnit :: IR.Term IR.Unit -> TC.Pass UnitMapper PartiallyMappedUnit
 partiallyMapUnit root = do
     IR.Unit _ _ cls <- IR.model root
     klass <- IR.source cls
@@ -60,8 +60,7 @@ partiallyMapUnit root = do
             foldM registerDecl def decls
         _ -> return def
 
-registerDecl :: Pass.Interface UnitMapper m
-             => PartiallyMappedUnit -> IR.SomeTerm -> m PartiallyMappedUnit
+registerDecl :: PartiallyMappedUnit -> IR.SomeTerm -> TC.Pass UnitMapper PartiallyMappedUnit
 registerDecl map t = do
     (doc, root) <- Sourcing.cutDoc t
     Layer.read @IR.Model root >>= \case
@@ -77,25 +76,20 @@ registerDecl map t = do
             return $ map & clss . at n .~ Just documented
         _ -> return map
 
-
-mapUnit :: forall stage m.
-        ( Scheduler.MonadScheduler m
-        , Scheduler.PassRegister stage ClassProcessor m
-        , Pass.Definition stage ClassProcessor
-        , Scheduler.PassRegister stage UnitMapper m
-        , Pass.Definition stage UnitMapper
-        ) => IR.Term IR.Unit -> m Unit
-mapUnit root = do
+mapUnit :: IR.Qualified -> IR.Term IR.Unit -> TC.Monad Unit
+mapUnit unitName root = do
     Scheduler.registerAttr @Root
     Scheduler.registerAttr @PartiallyMappedUnit
     Scheduler.registerAttr @Class
+    Scheduler.registerAttr @Unit.Name
     Scheduler.enableAttrByType @Class
     Scheduler.enableAttrByType @PartiallyMappedUnit
 
     Scheduler.setAttr $ Root $ Layout.relayout root
+    Scheduler.setAttr $ Unit.Name $ unitName
 
-    Scheduler.registerPass @stage @ClassProcessor
-    Scheduler.registerPass @stage @UnitMapper
+    Scheduler.registerPass @TC.Stage @ClassProcessor
+    Scheduler.registerPass @TC.Stage @UnitMapper
 
     Scheduler.runPassByType @UnitMapper
 

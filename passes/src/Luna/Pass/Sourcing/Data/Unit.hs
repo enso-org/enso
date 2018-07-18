@@ -34,6 +34,11 @@ type instance Attr.Type UnitRefsMap = Attr.Atomic
 instance Default UnitRefsMap where
     def = UnitRefsMap def
 
+newtype Name = Name IR.Qualified
+type instance Attr.Type Name = Attr.Atomic
+instance Default Name where
+    def = Name $ convert ""
+
 makeLenses ''UnitRef
 makeLenses ''UnitRefsMap
 makeLenses ''Imports

@@ -16,6 +16,7 @@ import qualified Luna.IR.Layer                    as Layer
 import qualified Luna.Pass                        as Pass
 import qualified Luna.Pass.Attr                   as Attr
 import qualified Luna.Pass.Basic                  as Pass
+import qualified Luna.Pass.Data.Stage             as TC
 import qualified Luna.Pass.Data.UniqueNameGen     as NameGen
 
 import Data.Map            (Map)
@@ -39,20 +40,14 @@ type family DesugarPartialApplicationsSpec t where
         = '[Root, NameGen.UniqueNameGen]
     DesugarPartialApplicationsSpec t = Pass.BasicPassSpec t
 
-instance ( Pass.Interface DesugarPartialApplications
-              (Pass.Pass stage DesugarPartialApplications)
-         , IR.DeleteSubtree (Pass.Pass stage DesugarPartialApplications)
-         ) => Pass.Definition stage DesugarPartialApplications where
+instance Pass.Definition TC.Stage DesugarPartialApplications where
     definition = do
         Root root <- Attr.get
         root'   <- desugarSections root
         newRoot <- desugarBlanks root'
         Attr.put $ Root newRoot
 
-desugarSections ::
-    ( Pass.Interface DesugarPartialApplications m
-    , IR.DeleteSubtree m
-    ) => IR.SomeTerm -> m IR.SomeTerm
+desugarSections :: IR.SomeTerm -> TC.Pass DesugarPartialApplications IR.SomeTerm
 desugarSections root = do
     inps <- IR.inputs root
     ComponentList.mapM_ (desugarSections <=< IR.source) inps
@@ -80,33 +75,23 @@ desugarSections root = do
             return app
         _ -> return root
 
-desugarBlanks :: ( Pass.Interface DesugarPartialApplications m
-           , IR.DeleteSubtree m
-           ) => IR.SomeTerm -> m IR.SomeTerm
+desugarBlanks :: IR.SomeTerm -> TC.Pass DesugarPartialApplications IR.SomeTerm
 desugarBlanks root = do
     res <- partialDesugarBlanks root
     replaceWithLam root res
 
-desugarBlanks_ ::
-    ( Pass.Interface DesugarPartialApplications m
-    , IR.DeleteSubtree m
-    ) => IR.SomeTerm -> m [IR.Term IR.Var]
+desugarBlanks_ :: IR.SomeTerm -> TC.Pass DesugarPartialApplications [IR.Term IR.Var]
 desugarBlanks_ root = desugarBlanks root >> return []
 
-replaceWithLam :: ( Pass.Interface DesugarPartialApplications m
-                  , IR.DeleteSubtree m
-                  ) => IR.SomeTerm -> [IR.Term IR.Var] -> m IR.SomeTerm
+replaceWithLam :: IR.SomeTerm -> [IR.Term IR.Var] -> TC.Pass DesugarPartialApplications IR.SomeTerm
 replaceWithLam e vars = if null vars then return e else do
     tmpBlank <- IR.blank'
-    newNode  <- foldM (flip IR.lam') tmpBlank vars
+    newNode  <- foldM (flip IR.lam') tmpBlank $ reverse vars
     IR.substitute newNode e
     IR.replace e tmpBlank
     return newNode
 
-partialDesugarBlanks ::
-    ( Pass.Interface DesugarPartialApplications m
-    , IR.DeleteSubtree m
-    ) => IR.SomeTerm -> m [IR.Term IR.Var]
+partialDesugarBlanks :: IR.SomeTerm -> TC.Pass DesugarPartialApplications [IR.Term IR.Var]
 partialDesugarBlanks e = Layer.read @IR.Model e >>= \case
     Uni.Blank -> do
         v <- IR.var =<< NameGen.generateName

@@ -15,6 +15,7 @@ import qualified Luna.IR.Layer                    as Layer
 import qualified Luna.Pass                        as Pass
 import qualified Luna.Pass.Attr                   as Attr
 import qualified Luna.Pass.Basic                  as Pass
+import qualified Luna.Pass.Data.Stage             as TC
 import qualified Luna.Pass.Data.UniqueNameGen     as NameGen
 
 import Luna.Pass.Data.Root (Root (Root))
@@ -34,18 +35,13 @@ type family DesugarListLiteralsSpec t where
     DesugarListLiteralsSpec (Pass.Out Pass.Attrs) = '[NameGen.UniqueNameGen]
     DesugarListLiteralsSpec t = Pass.BasicPassSpec t
 
-instance ( Pass.Interface DesugarListLiterals (Pass.Pass stage DesugarListLiterals)
-         , IR.DeleteSubtree (Pass.Pass stage DesugarListLiterals)
-         ) => Pass.Definition stage DesugarListLiterals where
+instance Pass.Definition TC.Stage DesugarListLiterals where
     definition = do
         Root root <- Attr.get
         newRoot <- desugarLists False root
         Attr.put $ Root newRoot
 
-desugarLists ::
-    ( Pass.Interface DesugarListLiterals m
-    , IR.DeleteSubtree m
-    ) => Bool -> IR.SomeTerm -> m IR.SomeTerm
+desugarLists :: Bool -> IR.SomeTerm -> TC.Pass DesugarListLiterals IR.SomeTerm
 desugarLists isPattern e = Layer.read @IR.Model e >>= \case
     Uni.List elts' -> do
         elts <- traverse IR.source =<< ComponentVector.toList elts'
@@ -75,15 +71,13 @@ desugarLists isPattern e = Layer.read @IR.Model e >>= \case
         ComponentList.mapM_ (desugarLists isPattern <=< IR.source) =<< IR.inputs e
         return e
 
-properListRep :: Pass.Interface DesugarListLiterals m
-              => Bool -> [Maybe IR.SomeTerm] -> m IR.SomeTerm
+properListRep :: Bool -> [Maybe IR.SomeTerm] -> TC.Pass DesugarListLiterals IR.SomeTerm
 properListRep isPattern elts = do
     (binds, elems) <- prepareBinders elts
     list           <- mkListOf elems
     if isPattern then return list else makeLams binds list
 
-mkListOf :: Pass.Interface DesugarListLiterals m
-         => [IR.SomeTerm] -> m IR.SomeTerm
+mkListOf :: [IR.SomeTerm] -> TC.Pass DesugarListLiterals IR.SomeTerm
 mkListOf [] = IR.cons' "Empty" []
 mkListOf (e:elts) = prepend e =<< mkListOf elts where
     prepend e rest = do
@@ -91,22 +85,18 @@ mkListOf (e:elts) = prepend e =<< mkListOf elts where
         withE <- IR.app prep e
         IR.app' withE rest
 
-properTupleRep :: Pass.Interface DesugarListLiterals m
-               => Bool -> [Maybe IR.SomeTerm] -> m IR.SomeTerm
+properTupleRep :: Bool -> [Maybe IR.SomeTerm] -> TC.Pass DesugarListLiterals IR.SomeTerm
 properTupleRep isPattern elts = do
     (binds, elems) <- prepareBinders elts
     tuple <- mkTupleOf elems
     if isPattern then return tuple else makeLams binds tuple
 
-mkTupleOf :: Pass.Interface DesugarListLiterals m
-          => [IR.SomeTerm] -> m IR.SomeTerm
+mkTupleOf :: [IR.SomeTerm] -> TC.Pass DesugarListLiterals IR.SomeTerm
 mkTupleOf elts = flip (foldlM IR.app') elts =<< IR.cons' consName [] where
     size     = length elts
     consName = convert $ "Tuple" <> show size
 
-prepareBinders
-    :: Pass.Interface DesugarListLiterals m
-    => [Maybe IR.SomeTerm] -> m ([IR.SomeTerm], [IR.SomeTerm])
+prepareBinders :: [Maybe IR.SomeTerm] -> TC.Pass DesugarListLiterals ([IR.SomeTerm], [IR.SomeTerm])
 prepareBinders []               = return ([], [])
 prepareBinders (Just e : elts)  = Layer.read @IR.Model e >>= \case
     Uni.Blank   -> prepareBinders $ Nothing : elts
@@ -117,8 +107,7 @@ prepareBinders (Nothing : elts) = do
     v           <- IR.var' =<< NameGen.generateName
     return (v : binds, v : es)
 
-makeLams :: Pass.Interface DesugarListLiterals m
-         => [IR.SomeTerm] -> IR.SomeTerm -> m IR.SomeTerm
+makeLams :: [IR.SomeTerm] -> IR.SomeTerm -> TC.Pass DesugarListLiterals IR.SomeTerm
 makeLams []     o = return o
 makeLams (a:as) o = do
     newO <- makeLams as o

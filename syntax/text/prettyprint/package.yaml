@@ -16,6 +16,7 @@ dependencies:
     - luna-data-storable
     - luna-syntax-definition
     - luna-syntax-text-lexer
+    - luna-syntax-text-parser
     - luna-syntax-text-model
     - prologue
 

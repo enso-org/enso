@@ -3,18 +3,15 @@
 module Luna.Prim.HTTP where
 
 import           Prologue
-import qualified Luna.IR as IR
 
-import           Control.Arrow               ((***))
-import           Data.ByteString             (ByteString)
 import qualified Data.ByteString             as ByteString hiding (pack)
 import qualified Data.ByteString.Char8       as ByteString
 import qualified Data.CaseInsensitive        as CI
-import           Data.Map                    (Map)
 import qualified Data.Map                    as Map
-import           Luna.Prim.Base              ()
-import qualified Luna.Runtime as Luna
-
+import qualified Luna.IR                     as IR
+import qualified Luna.Pass.Sourcing.Data.Def as Def
+import qualified Luna.Runtime                as Luna
+import qualified Luna.Std.Builder            as Builder
 import qualified Network.HTTP.Client         as HTTP
 import qualified Network.HTTP.Client.TLS     as HTTP
 import qualified Network.HTTP.Simple         as HTTP
@@ -22,21 +19,29 @@ import qualified Network.HTTP.Types          as HTTP
 import qualified Network.HTTP.Types.Header   as HTTP
 import qualified Web.Authenticate.OAuth      as OAuth
 
-import qualified Luna.Pass.Sourcing.Data.Def as Def
-import           Luna.Std.Builder            (makeFunctionIO, makeFunctionPure, maybeLT, listLT, LTp (..), integer)
+import           Control.Arrow               ((***))
+import           Data.ByteString             (ByteString)
+import           Data.Map                    (Map)
+import           Luna.Prim.Base              ()
+import           Luna.Std.Builder            ( makeFunctionIO
+                                             , makeFunctionPure
+                                             , LTp (..)
+                                             , integer
+                                             )
 
 
-exports :: IO (Map IR.Name Def.Def)
+exports :: forall graph m. Builder.StdBuilder graph m => m (Map IR.Name Def.Def)
 exports = do
-    let tupleT              = tuple2T textT textT
-        oauthT              = maybeLT $ tuple4T textT textT textT textT
-        maybeLTupleT        = maybeLT tupleT
-        tupleListT          = listLT  tupleT
-        tupleMaybeListT     = listLT $ tuple2T textT $ maybeLT textT
-        textT               = LCons "Text"   []
-        binaryT             = LCons "Binary" []
-        tuple2T t1 t2       = LCons "Tuple2" [t1, t2]
-        tuple4T t1 t2 t3 t4 = LCons "Tuple4" [t1, t2, t3, t4]
+    let tupleT          = tuple2T textT textT
+        oauthT          = Builder.maybeLT $ tuple4T textT textT textT textT
+        maybeLTupleT    = Builder.maybeLT tupleT
+        tupleListT      = Builder.listLT  tupleT
+        tupleMaybeListT = Builder.listLT $ tuple2T textT $ Builder.maybeLT textT
+        textT           = Builder.textLT
+        binaryT         = Builder.binaryLT
+        tuple2T         = Builder.tuple2LT
+        tuple4T         = Builder.tuple4LT
+        httpResponseT   = LCons "Std.HTTP" "HttpResponse" []
 
     let signOAuth1 :: (Text, Text, Text, Text) -> HTTP.Request -> IO HTTP.Request
         signOAuth1 (cak, cas, ot, ots) req = do
@@ -68,13 +73,13 @@ exports = do
             manager <- HTTP.newManager managerSettings
             HTTP.responseOpen req manager
 
-    primPerformHttp <- makeFunctionIO (flip Luna.toValue primPerformHttpVal)
+    primPerformHttp <- makeFunctionIO @graph (flip Luna.toValue primPerformHttpVal)
                                     [textT, textT, tupleListT, maybeLTupleT, oauthT, tupleMaybeListT, binaryT]
-                                    (LCons "HttpResponse" [])
+                                    httpResponseT
 
     let primUrlEncodeVal :: Text -> Text
         primUrlEncodeVal = convert . HTTP.urlEncode False . convert
-    primUrlEncode <- makeFunctionPure (flip Luna.toValue primUrlEncodeVal) ["Text"] "Text"
+    primUrlEncode <- makeFunctionPure @graph (flip Luna.toValue primUrlEncodeVal) [textT] textT
 
     return $ Map.fromList [ ("primPerformHttp", primPerformHttp)
                           , ("primUrlEncode", primUrlEncode)

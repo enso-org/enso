@@ -14,6 +14,7 @@ import qualified Luna.IR.Layer                    as Layer
 import qualified Luna.Pass                        as Pass
 import qualified Luna.Pass.Attr                   as Attr
 import qualified Luna.Pass.Basic                  as Pass
+import qualified Luna.Pass.Data.Stage             as TC
 
 import Luna.Pass.Data.Root (Root (Root))
 
@@ -30,16 +31,12 @@ type family TransformPatternsSpec t where
     TransformPatternsSpec (Pass.In  Pass.Attrs) = '[Root]
     TransformPatternsSpec t = Pass.BasicPassSpec t
 
-instance
-    ( Pass.Interface TransformPatterns (Pass.Pass stage TransformPatterns)
-    , IR.DeleteSubtree (Pass.Pass stage TransformPatterns)
-    ) => Pass.Definition stage TransformPatterns where
+instance Pass.Definition TC.Stage TransformPatterns where
     definition = do
         Root root <- Attr.get
         transformPatterns root
 
-dumpConsApplication :: Pass.Interface TransformPatterns m
-    => IR.SomeTerm -> m (IR.Name, [IR.SomeTerm])
+dumpConsApplication :: IR.SomeTerm -> TC.Pass TransformPatterns (IR.Name, [IR.SomeTerm])
 dumpConsApplication expr = Layer.read @IR.Model expr >>= \case
     Uni.Grouped g -> dumpConsApplication =<< IR.source g
     Uni.Cons n _  -> return (n, [])
@@ -48,8 +45,7 @@ dumpConsApplication expr = Layer.read @IR.Model expr >>= \case
         arg <- IR.source a
         return (n, arg : args)
 
-flattenPattern :: Pass.Interface TransformPatterns m
-    => IR.SomeTerm -> m IR.SomeTerm
+flattenPattern :: IR.SomeTerm -> TC.Pass TransformPatterns IR.SomeTerm
 flattenPattern expr = Layer.read @IR.Model expr >>= \case
     Uni.Grouped g -> flattenPattern =<< IR.source g
     Uni.Var{}     -> return expr
@@ -60,10 +56,7 @@ flattenPattern expr = Layer.read @IR.Model expr >>= \case
         IR.cons' name flatChildren
     _ -> return expr
 
-transformPatterns ::
-    ( Pass.Interface TransformPatterns m
-    , IR.DeleteSubtree m
-    ) => IR.SomeTerm -> m ()
+transformPatterns :: IR.SomeTerm -> TC.Pass TransformPatterns ()
 transformPatterns expr = Layer.read @IR.Model expr >>= \case
     Uni.Lam i o -> do
         inp <- IR.source i
@@ -85,4 +78,3 @@ transformPatterns expr = Layer.read @IR.Model expr >>= \case
     _ -> do
         inps <- IR.inputs expr
         ComponentList.mapM_ (transformPatterns <=< IR.source) inps
-

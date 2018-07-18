@@ -50,6 +50,7 @@ packages:
     - lib/data-typemap
     - lib/exception
     - lib/foreign-utils
+    - lib/future
     - lib/generic-traversable
     - lib/generic-traversable2
     - lib/hspec-jenkins

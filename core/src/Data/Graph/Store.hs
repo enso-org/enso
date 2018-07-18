@@ -17,10 +17,10 @@ import qualified Memory                          as Memory
 import Data.ByteString                 (ByteString)
 import Data.Graph.Data.Component.Class (Component)
 import Data.Graph.Data.Component.Set   (ComponentSet, ComponentSetA)
+import Data.Map.Strict                 (Map)
 import Foreign.Ptr.Utils               (SomePtr)
 
 -- import Data.Graph.Store.MemoryRegion   (MemoryRegion)
-
 
 putStrLn :: Applicative m => String -> m ()
 putStrLn = const $ pure ()
@@ -78,7 +78,14 @@ pprint = const $ pure ()
 --         (Component.Cons $ Layout.relayout cmp) <$> acc
 --     {-# INLINE componentBuild #-}
 
+newtype Rooted cmp = Rooted ByteString
+makeLenses ''Rooted
 
+data RootedWithRedirects cmp = RootedWithRedirects
+    { _rooted       :: Rooted cmp
+    , _redirections :: Buffer.RedirectMap
+    }
+makeLenses ''RootedWithRedirects
 
 ------------------------------------
 -- === SubGraph serialization === --
@@ -102,9 +109,9 @@ type Serializer comp m =
     -- , Serialize.ClusterSerializer comps m
     )
 
-serialize :: ∀ comp m layout. Serializer Component.Nodes m
-    => Component.Node layout -> m ByteString -- MemoryRegion
-serialize comp = do
+serializeWithRedirectMap :: ∀ comp m layout. Serializer Component.Nodes m
+    => Component.Node layout -> m (RootedWithRedirects (Component comp layout)) -- MemoryRegion
+serializeWithRedirectMap comp = do
     putStrLn "\nSERIALIZE"
     putStrLn $ "root = " <> show comp
 
@@ -141,8 +148,25 @@ serialize comp = do
     -- putStrLn "\n=== pointer unswizzling ==="
     -- Buffer.unswizzleComponents__ @(Graph.ComponentsM m) ccount dataRegion
 
-    Buffer.unsafeFreeze buffer
+    rooted <- wrap <$> Buffer.unsafeFreeze buffer
+    return $ RootedWithRedirects rooted redirectMap
+{-# INLINE serializeWithRedirectMap #-}
+
+serialize :: ∀ comp m layout. Serializer Component.Nodes m
+    => Component.Node layout -> m (Rooted (Component comp layout)) -- MemoryRegion
+serialize = fmap (view rooted) . serializeWithRedirectMap
 {-# INLINE serialize #-}
+
+class ComponentOffsetDecoder (comps :: [Type]) where
+    decodeComponentOffsets :: Buffer.DecodeOffsetMap -> Map SomeTypeRep Int
+
+instance ComponentOffsetDecoder '[] where
+    decodeComponentOffsets = const def
+
+instance (Typeable c, ComponentOffsetDecoder cs)
+      => ComponentOffsetDecoder (c ': cs) where
+    decodeComponentOffsets (o:offs) =
+        Map.insert (someTypeRep @c) o $ decodeComponentOffsets @cs offs
 
 
 type Deserializer m =
@@ -151,11 +175,14 @@ type Deserializer m =
     , Buffer.StaticComponentsDecoder m
     , Buffer.ComponentStaticInitializer2 m
     , Buffer.ComponentStaticRedirection2 (Graph.ComponentsM m) m
+    , ComponentOffsetDecoder (Graph.ComponentsM m)
     )
 
-deserialize :: ∀ comp layout m. Deserializer m => ByteString -> m (Component comp layout)
-deserialize = \bs -> do
-    buffer <- Buffer.unsafeThaw bs
+deserializeWithRedirects :: ∀ comp layout m. Deserializer m
+    => Rooted (Component comp layout)
+    -> m (Component comp layout, Map SomeTypeRep Int)
+deserializeWithRedirects = \bs -> do
+    buffer <- Buffer.unsafeThaw $ unwrap bs
 
     putStrLn "\n=== decodeComponentCount ==="
     ccount <- Buffer.decodeComponentCount buffer
@@ -174,9 +201,14 @@ deserialize = \bs -> do
     Buffer.redirectComponents2 @(Graph.ComponentsM m) offs ccount cmpPtrs
 
     let (p:_) = cmpPtrs
-    pure $ Component.unsafeFromPtr (unwrap p)
+    pure $ (Component.unsafeFromPtr (unwrap p), decodeComponentOffsets @(Graph.ComponentsM m) offs)
 
     -- putStrLn "\n=== copyInitializeComps2 ==="
     -- Buffer.copyInitializeComps2 ccount buffer
 
     -- pure ()
+
+deserialize :: ∀ comp layout m. Deserializer m
+    => Rooted (Component comp layout)
+    -> m (Component comp layout)
+deserialize = fmap fst . deserializeWithRedirects

@@ -836,7 +836,7 @@ doc = intercalate "\n" <$> some (satisfTest Lexer.matchDocComment <* eol)
 --------------------------
 
 topLvlDecl :: Parser (IRBS SomeTerm)
-topLvlDecl = possiblyDocumented $ func <|> record <|> metadata
+topLvlDecl = possiblyDocumented $ (marked <*> func) <|> record <|> metadata
 
 -- === Functions === --
 

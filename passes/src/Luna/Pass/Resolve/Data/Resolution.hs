@@ -85,20 +85,36 @@ makeLenses ''DefResolver
 instance Resolves DefResolver IR.Name DefRef where
     resolve k = resolve k . unwrap
 
+-- === ClassResolver === --
+
+newtype ClassRef = ClassRef IR.Qualified deriving Show
+makeLenses ''ClassRef
+
+newtype ClassResolver = ClassResolver (Resolver IR.Name ClassRef)
+    deriving (Show, Default, Mempty, Semigroup)
+type instance Attr.Type ClassResolver = Attr.Atomic
+makeLenses ''ClassResolver
+
+instance Resolves ClassResolver IR.Name ClassRef where
+    resolve k = resolve k . unwrap
+
+
 -- === UnitResolver === --
 
 data UnitResolver = UnitResolver
-    { _conses :: ConsResolver
-    , _defs   :: DefResolver
+    { _conses  :: ConsResolver
+    , _defs    :: DefResolver
+    , _classes :: ClassResolver
     } deriving Show
 makeLenses ''UnitResolver
 
 instance Mempty UnitResolver where
-    mempty = UnitResolver mempty mempty
+    mempty = UnitResolver mempty mempty mempty
 
 instance Semigroup UnitResolver where
-    UnitResolver c1 d1 <> UnitResolver c2 d2 = UnitResolver (c1 <> c2)
-                                                            (d1 <> d2)
+    UnitResolver c1 d1 cl1 <> UnitResolver c2 d2 cl2 = UnitResolver (c1  <> c2)
+                                                                    (d1  <> d2)
+                                                                    (cl1 <> cl2)
 
 ----------------------
 -- === Builders === --
@@ -106,11 +122,12 @@ instance Semigroup UnitResolver where
 
 resolverFromUnit :: IR.Qualified -> Unit.Unit -> UnitResolver
 resolverFromUnit unitName (Unit.Unit defs clss) = result where
-    result   = UnitResolver consRes (DefResolver $ Resolver defsRes)
+    result   = UnitResolver consRes (DefResolver $ Resolver defsRes) clsRes
     defsRes  = Resolved (DefRef unitName) <$ unwrap defs
     consRes  = mconcat consRess
     consRess = Map.elems $ Map.mapWithKey (consResolverFromClass unitName) classes
     classes  = view Def.documented <$> clss
+    clsRes   = ClassResolver $ Resolver $ Resolved (ClassRef unitName) <$ clss
 
 consResolverFromClass ::
     IR.Qualified -> IR.Name -> Class.Class -> ConsResolver

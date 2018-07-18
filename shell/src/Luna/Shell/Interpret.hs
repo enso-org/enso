@@ -9,6 +9,7 @@ import qualified Data.Map                            as Map
 import qualified Luna.IR                             as IR
 import qualified Luna.Package                        as Package
 import qualified Luna.Package.Structure.Name         as Package
+import qualified Luna.Pass.Data.Stage                as TC
 import qualified Luna.Pass.Evaluation.EvaluateUnits  as EvaluateUnits
 import qualified Luna.Pass.Preprocess.PreprocessUnit as PreprocessUnit
 import qualified Luna.Pass.Resolve.Data.Resolution   as Res
@@ -31,26 +32,6 @@ import Luna.Syntax.Text.Parser.Data.CodeSpan (CodeSpan)
 import Path                                  (Path, Abs, Dir, File)
 
 
-
--------------------------------
--- === Shell Interpreter === --
--------------------------------
-
--- === Definition === --
-
-data ShellInterpreter
-
-
--- === Instances === --
-
-type instance Graph.Components ShellInterpreter = '[IR.Terms, IR.Links]
-type instance Graph.ComponentLayers ShellInterpreter IR.Links =
-    '[IR.Target, IR.Source]
-type instance Graph.ComponentLayers ShellInterpreter IR.Terms =
-    '[IR.Users, IR.Model, IR.Type, CodeSpan]
-
-
-
 -------------------------------
 -- === Interpreter Monad === --
 -------------------------------
@@ -71,21 +52,20 @@ type InterpreterMonad m = ( MonadIO m
 
 -- === API === --
 
-interpretWithMain :: (InterpreterMonad m)
-    => IR.Qualified -> Map IR.Qualified FilePath -> m ()
-interpretWithMain name sourcesMap = Graph.encodeAndEval @ShellInterpreter
+interpretWithMain :: IR.Qualified -> Map IR.Qualified FilePath -> IO ()
+interpretWithMain name sourcesMap = Graph.encodeAndEval @TC.Stage
     $ Scheduler.evalT $ do
-        ModLoader.init @ShellInterpreter
-        (_, stdUnitRef) <- liftIO Std.stdlib
+        ModLoader.init
+        (_, stdUnitRef) <- Std.stdlib @TC.Stage
         Scheduler.registerAttr @Unit.UnitRefsMap
         Scheduler.setAttr $ Unit.UnitRefsMap
             $ Map.singleton "Std.Primitive" stdUnitRef
-        ModLoader.loadUnit sourcesMap [] name
-        for Std.stdlibImports $ ModLoader.loadUnit sourcesMap []
+        ModLoader.loadUnit def sourcesMap [] name
+        for Std.stdlibImports $ ModLoader.loadUnit def sourcesMap []
         Unit.UnitRefsMap mods <- Scheduler.getAttr
 
-        units <- for mods $ \u -> case u ^. Unit.root of
-            Unit.Graph r       -> UnitMap.mapUnit @ShellInterpreter r
+        units <- flip Map.traverseWithKey mods $ \n u -> case u ^. Unit.root of
+            Unit.Graph r       -> UnitMap.mapUnit n r
             Unit.Precompiled u -> pure u
 
         let unitResolvers = Map.mapWithKey Res.resolverFromUnit units
@@ -95,13 +75,12 @@ interpretWithMain name sourcesMap = Graph.encodeAndEval @ShellInterpreter
 
         for (Map.toList importResolvers) $ \(unitName, resolver) -> do
             case Map.lookup unitName units of
-                Just uni -> PreprocessUnit.preprocessUnit @ShellInterpreter
-                            resolver uni
+                Just uni -> PreprocessUnit.preprocessUnit resolver uni
                 Nothing  -> liftIO $ IO.hPutStrLn IO.stderr $
                             "Unable to resolve compilation unit "
                             <> convert unitName
 
-        computedUnits <- EvaluateUnits.evaluateUnits @ShellInterpreter units
+        computedUnits <- EvaluateUnits.evaluateUnits units
         mainFunc      <- Runtime.lookupSymbol computedUnits name
             $ convert Package.mainFuncName
 
@@ -122,7 +101,7 @@ file filePath = do
     let fileName = convertVia @Name.Name . FilePath.dropExtension
             . Path.fromRelFile $ Path.filename filePath
 
-    interpretWithMain fileName fileSources
+    liftIO $ interpretWithMain fileName fileSources
 
     liftIO $ Directory.setCurrentDirectory originalDir
 
@@ -142,7 +121,7 @@ package pkgPath = Exception.rethrowFromIO @Path.PathException $ do
         mainFileName = (convert $ Package.getPackageName packageRoot) <> "."
             <> Package.mainFileName
 
-    interpretWithMain mainFileName pkgSrcMap
+    liftIO $ interpretWithMain mainFileName pkgSrcMap
 
     -- Swap the working directory back
     liftIO $ Directory.setCurrentDirectory originalDir

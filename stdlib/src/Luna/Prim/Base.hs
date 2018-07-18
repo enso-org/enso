@@ -24,10 +24,11 @@ import           Data.Scientific             (toRealFloat, Scientific, coefficie
 import qualified Data.Text                   as Text
 import qualified Data.Text.Encoding          as Text
 
+import qualified Luna.Std.Builder            as Builder
 import qualified Luna.Runtime as Luna
 import qualified Luna.Pass.Sourcing.Data.Def as Def
 
-import           Luna.Std.Builder            (LTp (..), makeFunctionPure, makeFunctionIO, maybeLT, listLT, eitherLT, integer, int)
+import           Luna.Std.Builder            (makeFunctionPure, makeFunctionIO, maybeLT, listLT, eitherLT, integer, int)
 import           Luna.Std.Finalizers         (FinalizersCtx, registerFinalizer, cancelFinalizer)
 import           Text.Read                   (readMaybe)
 
@@ -35,7 +36,7 @@ import           System.Random               (randomIO)
 import           System.Directory            (canonicalizePath)
 import           System.FilePath             (pathSeparator)
 
-primReal :: IO (Map IR.Name Def.Def)
+primReal :: forall graph m. Builder.StdBuilder graph m => m (Map IR.Name Def.Def)
 primReal = do
     let plusVal     = flip Luna.toValue ((+)          :: Double -> Double -> Double)
         timesVal    = flip Luna.toValue ((*)          :: Double -> Double -> Double)
@@ -73,45 +74,45 @@ primReal = do
         uminusVal   = flip Luna.toValue ((* (-1)) :: Double -> Double)
         toScientificVal = flip Luna.toValue (fromFloatDigits :: Double -> Scientific)
 
-    plus  <- makeFunctionPure plusVal ["Real", "Real"] "Real"
-    times <- makeFunctionPure timesVal ["Real", "Real"] "Real"
-    minus <- makeFunctionPure minusVal ["Real", "Real"] "Real"
-    div <- makeFunctionPure divVal ["Real", "Real"] "Real"
-    logBase <- makeFunctionPure logBaseVal ["Real", "Real"] "Real"
-    pow <- makeFunctionPure powVal ["Real", "Real"] "Real"
+    plus    <- makeFunctionPure @graph plusVal    [Builder.realLT, Builder.realLT] Builder.realLT
+    times   <- makeFunctionPure @graph timesVal   [Builder.realLT, Builder.realLT] Builder.realLT
+    minus   <- makeFunctionPure @graph minusVal   [Builder.realLT, Builder.realLT] Builder.realLT
+    div     <- makeFunctionPure @graph divVal     [Builder.realLT, Builder.realLT] Builder.realLT
+    logBase <- makeFunctionPure @graph logBaseVal [Builder.realLT, Builder.realLT] Builder.realLT
+    pow     <- makeFunctionPure @graph powVal     [Builder.realLT, Builder.realLT] Builder.realLT
 
-    eq <- makeFunctionPure eqVal ["Real", "Real"] "Bool"
-    lt <- makeFunctionPure ltVal ["Real", "Real"] "Bool"
-    gt <- makeFunctionPure gtVal ["Real", "Real"] "Bool"
+    eq <- makeFunctionPure @graph eqVal [Builder.realLT, Builder.realLT] Builder.intLT
+    lt <- makeFunctionPure @graph ltVal [Builder.realLT, Builder.realLT] Builder.intLT
+    gt <- makeFunctionPure @graph gtVal [Builder.realLT, Builder.realLT] Builder.intLT
 
-    round <- makeFunctionPure roundVal ["Real", "Int"] "Real"
-    show  <- makeFunctionPure showVal  ["Real"] "Text"
+    round <- makeFunctionPure @graph roundVal [Builder.realLT, Builder.intLT] Builder.realLT
+    show  <- makeFunctionPure @graph showVal  [Builder.realLT] Builder.textLT
 
-    floor <- makeFunctionPure floorVal ["Real"] "Int"
-    ceiling <- makeFunctionPure ceilingVal ["Real"] "Int"
+    floor   <- makeFunctionPure @graph floorVal   [Builder.realLT] Builder.intLT
+    ceiling <- makeFunctionPure @graph ceilingVal [Builder.realLT] Builder.intLT
 
-    sin <- makeFunctionPure sinVal ["Real"] "Real"
-    cos <- makeFunctionPure cosVal ["Real"] "Real"
-    tan <- makeFunctionPure tanVal ["Real"] "Real"
+    sin <- makeFunctionPure @graph sinVal [Builder.realLT] Builder.realLT
+    cos <- makeFunctionPure @graph cosVal [Builder.realLT] Builder.realLT
+    tan <- makeFunctionPure @graph tanVal [Builder.realLT] Builder.realLT
 
-    asin <- makeFunctionPure asinVal ["Real"] "Real"
-    acos <- makeFunctionPure acosVal ["Real"] "Real"
-    atan <- makeFunctionPure atanVal ["Real"] "Real"
+    asin <- makeFunctionPure @graph asinVal [Builder.realLT] Builder.realLT
+    acos <- makeFunctionPure @graph acosVal [Builder.realLT] Builder.realLT
+    atan <- makeFunctionPure @graph atanVal [Builder.realLT] Builder.realLT
 
-    sinh <- makeFunctionPure sinhVal ["Real"] "Real"
-    cosh <- makeFunctionPure coshVal ["Real"] "Real"
-    tanh <- makeFunctionPure tanhVal ["Real"] "Real"
+    sinh <- makeFunctionPure @graph sinhVal [Builder.realLT] Builder.realLT
+    cosh <- makeFunctionPure @graph coshVal [Builder.realLT] Builder.realLT
+    tanh <- makeFunctionPure @graph tanhVal [Builder.realLT] Builder.realLT
 
-    asinh <- makeFunctionPure asinhVal ["Real"] "Real"
-    acosh <- makeFunctionPure acoshVal ["Real"] "Real"
-    atanh <- makeFunctionPure atanhVal ["Real"] "Real"
+    asinh <- makeFunctionPure @graph asinhVal [Builder.realLT] Builder.realLT
+    acosh <- makeFunctionPure @graph acoshVal [Builder.realLT] Builder.realLT
+    atanh <- makeFunctionPure @graph atanhVal [Builder.realLT] Builder.realLT
 
-    exp <- makeFunctionPure expVal ["Real"] "Real"
-    sqrt <- makeFunctionPure sqrtVal ["Real"] "Real"
-    log <- makeFunctionPure logVal ["Real"] "Real"
-    uminus <- makeFunctionPure uminusVal ["Real"] "Real"
+    exp    <- makeFunctionPure @graph expVal    [Builder.realLT] Builder.realLT
+    sqrt   <- makeFunctionPure @graph sqrtVal   [Builder.realLT] Builder.realLT
+    log    <- makeFunctionPure @graph logVal    [Builder.realLT] Builder.realLT
+    uminus <- makeFunctionPure @graph uminusVal [Builder.realLT] Builder.realLT
 
-    toScientific <- makeFunctionPure toScientificVal ["Real"] "Scientific"
+    toScientific <- makeFunctionPure @graph toScientificVal [Builder.realLT] Builder.scientificLT
 
     return $ Map.fromList [ ("primRealAdd",      plus)
                           , ("primRealMultiply", times)
@@ -154,7 +155,7 @@ primReal = do
                           , ("primRealToScientific", toScientific)
                           ]
 
-primInt :: IO (Map IR.Name Def.Def)
+primInt :: forall graph m. Builder.StdBuilder graph m => m (Map IR.Name Def.Def)
 primInt = do
     let plusVal        = flip Luna.toValue ((+)      :: Integer -> Integer -> Integer)
         timesVal        = flip Luna.toValue ((*)      :: Integer -> Integer -> Integer)
@@ -173,24 +174,24 @@ primInt = do
         shiftFun x i = Bits.shift (fromIntegral x) (fromIntegral i)
         shiftVal       = flip Luna.toValue shiftFun
 
-    plus <- makeFunctionPure plusVal ["Int", "Int"] "Int"
-    times <- makeFunctionPure timesVal ["Int", "Int"] "Int"
-    minus <- makeFunctionPure minusVal ["Int", "Int"] "Int"
-    div <- makeFunctionPure divVal ["Int", "Int"] "Int"
-    mod <- makeFunctionPure modVal ["Int", "Int"] "Int"
+    plus <- makeFunctionPure @graph plusVal [Builder.intLT, Builder.intLT] Builder.intLT
+    times <- makeFunctionPure @graph timesVal [Builder.intLT, Builder.intLT] Builder.intLT
+    minus <- makeFunctionPure @graph minusVal [Builder.intLT, Builder.intLT] Builder.intLT
+    div <- makeFunctionPure @graph divVal [Builder.intLT, Builder.intLT] Builder.intLT
+    mod <- makeFunctionPure @graph modVal [Builder.intLT, Builder.intLT] Builder.intLT
 
-    eq <- makeFunctionPure eqVal ["Int", "Int"] "Bool"
-    lt <- makeFunctionPure ltVal ["Int", "Int"] "Bool"
-    gt <- makeFunctionPure gtVal ["Int", "Int"] "Bool"
+    eq <- makeFunctionPure @graph eqVal [Builder.intLT, Builder.intLT] Builder.boolLT
+    lt <- makeFunctionPure @graph ltVal [Builder.intLT, Builder.intLT] Builder.boolLT
+    gt <- makeFunctionPure @graph gtVal [Builder.intLT, Builder.intLT] Builder.boolLT
 
-    pred <- makeFunctionPure predVal ["Int"] "Int"
-    succ <- makeFunctionPure succVal ["Int"] "Int"
-    negate <- makeFunctionPure negateVal ["Int"] "Int"
+    pred <- makeFunctionPure @graph predVal [Builder.intLT] Builder.intLT
+    succ <- makeFunctionPure @graph succVal [Builder.intLT] Builder.intLT
+    negate <- makeFunctionPure @graph negateVal [Builder.intLT] Builder.intLT
 
-    show <- makeFunctionPure showVal ["Int"] "Text"
-    toReal <- makeFunctionPure toRealVal ["Int"] "Real"
+    show <- makeFunctionPure @graph showVal [Builder.intLT] Builder.textLT
+    toReal <- makeFunctionPure @graph toRealVal [Builder.intLT] Builder.realLT
 
-    shift <- makeFunctionPure shiftVal ["Int", "Int"] "Int"
+    shift <- makeFunctionPure @graph shiftVal [Builder.intLT, Builder.intLT] Builder.intLT
 
 
     return $ Map.fromList [ ("primIntAdd",         plus)
@@ -209,7 +210,7 @@ primInt = do
                           , ("primIntShift",       shift)
                           ]
 
-primBinary :: IO (Map IR.Name Def.Def)
+primBinary :: forall graph m. Builder.StdBuilder graph m => m (Map IR.Name Def.Def)
 primBinary = do
     let toTextVal  = flip Luna.toValue Text.decodeUtf8
         eqVal      = flip Luna.toValue ((==) :: ByteString -> ByteString -> Bool)
@@ -218,12 +219,12 @@ primBinary = do
         takeVal    = flip Luna.toValue (flip (ByteString.take . fromIntegral) :: ByteString -> Integer -> ByteString)
         dropVal    = flip Luna.toValue (flip (ByteString.drop . fromIntegral) :: ByteString -> Integer -> ByteString)
 
-    toText <- makeFunctionPure toTextVal ["Binary"] "Text"
-    eq <- makeFunctionPure eqVal ["Binary", "Binary"] "Binary"
-    plus <- makeFunctionPure plusVal ["Binary", "Binary"] "Binary"
-    len <- makeFunctionPure lenVal ["Binary"] "Int"
-    take <- makeFunctionPure takeVal ["Binary"] "Binary"
-    drop <- makeFunctionPure dropVal ["Binary"] "Binary"
+    toText <- makeFunctionPure @graph toTextVal [Builder.binaryLT] Builder.textLT
+    eq <- makeFunctionPure @graph eqVal [Builder.binaryLT, Builder.binaryLT] Builder.binaryLT
+    plus <- makeFunctionPure @graph plusVal [Builder.binaryLT, Builder.binaryLT] Builder.binaryLT
+    len <- makeFunctionPure @graph lenVal [Builder.binaryLT] Builder.intLT
+    take <- makeFunctionPure @graph takeVal [Builder.binaryLT] Builder.binaryLT
+    drop <- makeFunctionPure @graph dropVal [Builder.binaryLT] Builder.binaryLT
     return $ Map.fromList [ ("primBinaryToText",   toText)
                           , ("primBinaryEquals",   eq)
                           , ("primBinaryConcat",   plus)
@@ -232,7 +233,7 @@ primBinary = do
                           , ("primBinaryDrop",     drop)
                           ]
 
-primText :: IO (Map IR.Name Def.Def)
+primText :: forall graph m. Builder.StdBuilder graph m => m (Map IR.Name Def.Def)
 primText = do
     let plusVal       = flip Luna.toValue ((<>) :: Text -> Text -> Text)
         shortRepVal   = flip Luna.toValue (Text.take 100 :: Text -> Text)
@@ -253,24 +254,24 @@ primText = do
         toIntVal      = flip Luna.toValue (readMaybe . convert :: Text -> Maybe Integer)
         toRealVal     = flip Luna.toValue (readMaybe . convert :: Text -> Maybe Double)
 
-    plus <- makeFunctionPure plusVal ["Text", "Text"] "Text"
-    shortRep <- makeFunctionPure shortRepVal ["Text"] "Text"
-    eq <- makeFunctionPure eqVal ["Text", "Text"] "Bool"
-    gt <- makeFunctionPure gtVal ["Text", "Text"] "Bool"
-    lt <- makeFunctionPure ltVal ["Text", "Text"] "Bool"
-    isEmpty <- makeFunctionPure isEmptyVal ["Text"] "Bool"
-    length <- makeFunctionPure lengthVal ["Text"] "Int"
-    hasPrefix <- makeFunctionPure hasPrefixVal ["Text", "Text"] "Bool"
-    words <- makeFunctionPure wordsVal ["Text"] (listLT "Text")
-    lines <- makeFunctionPure linesVal ["Text"] (listLT "Text")
-    chars <- makeFunctionPure charsVal ["Text"] (listLT "Text")
-    lowercase <- makeFunctionPure lowercaseVal ["Text"] "Text"
-    uppercase <- makeFunctionPure uppercaseVal ["Text"] "Text"
-    reverse <- makeFunctionPure reverseVal ["Text"] "Text"
-    toBinary <- makeFunctionPure toBinaryVal ["Text"] "Binary"
-    escapeJSON <- makeFunctionPure escapeJSONVal ["Text"] "Text"
-    toInt <- makeFunctionPure toIntVal ["Text"] (maybeLT "Int")
-    toReal <- makeFunctionPure toRealVal ["Text"] (maybeLT "Real")
+    plus <- makeFunctionPure @graph plusVal [Builder.textLT, Builder.textLT] Builder.textLT
+    shortRep <- makeFunctionPure @graph shortRepVal [Builder.textLT] Builder.textLT
+    eq <- makeFunctionPure @graph eqVal [Builder.textLT, Builder.textLT] Builder.boolLT
+    gt <- makeFunctionPure @graph gtVal [Builder.textLT, Builder.textLT] Builder.boolLT
+    lt <- makeFunctionPure @graph ltVal [Builder.textLT, Builder.textLT] Builder.boolLT
+    isEmpty <- makeFunctionPure @graph isEmptyVal [Builder.textLT] Builder.boolLT
+    length <- makeFunctionPure @graph lengthVal [Builder.textLT] Builder.intLT
+    hasPrefix <- makeFunctionPure @graph hasPrefixVal [Builder.textLT, Builder.textLT] Builder.boolLT
+    words <- makeFunctionPure @graph wordsVal [Builder.textLT] (listLT Builder.textLT)
+    lines <- makeFunctionPure @graph linesVal [Builder.textLT] (listLT Builder.textLT)
+    chars <- makeFunctionPure @graph charsVal [Builder.textLT] (listLT Builder.textLT)
+    lowercase <- makeFunctionPure @graph lowercaseVal [Builder.textLT] Builder.textLT
+    uppercase <- makeFunctionPure @graph uppercaseVal [Builder.textLT] Builder.textLT
+    reverse <- makeFunctionPure @graph reverseVal [Builder.textLT] Builder.textLT
+    toBinary <- makeFunctionPure @graph toBinaryVal [Builder.textLT] Builder.binaryLT
+    escapeJSON <- makeFunctionPure @graph escapeJSONVal [Builder.textLT] Builder.textLT
+    toInt <- makeFunctionPure @graph toIntVal [Builder.textLT] (maybeLT Builder.intLT)
+    toReal <- makeFunctionPure @graph toRealVal [Builder.textLT] (maybeLT Builder.realLT)
 
 
     return $ Map.fromList [ ("primTextConcat",     plus)
@@ -293,89 +294,90 @@ primText = do
                           , ("primTextToReal",     toReal)
                           ]
 
-operators :: IO (Map IR.Name Def.Def)
+operators :: forall graph m. Builder.StdBuilder graph m => m (Map IR.Name Def.Def)
 operators = do
     let iffVal = (\a b c -> if a then b else c) :: Bool -> Luna.Value -> Luna.Value -> Luna.Value
-    iff <- makeFunctionPure (flip Luna.toValue iffVal) ["Bool", "a", "a"] "a"
+    iff <- makeFunctionPure @graph (flip Luna.toValue iffVal) [Builder.boolLT, "a", "a"] "a"
     return $ Map.fromList [ ("if.then.else", iff) ]
 
-io :: FinalizersCtx -> IO (Map IR.Name Def.Def)
+io :: forall graph m. Builder.StdBuilder graph m
+   => FinalizersCtx -> m (Map IR.Name Def.Def)
 io finalizersCtx = do
 
-    let noneT   = "None"
-        realT   = "Real"
-        textT   = "Text"
-        intT    = "Int"
-        binaryT = "Binary"
+    let noneT   = Builder.noneLT
+        realT   = Builder.realLT
+        textT   = Builder.textLT
+        intT    = Builder.intLT
+        binaryT = Builder.binaryLT
 
     let putStr :: Text -> IO ()
         putStr = putStrLn . convert
-    printLn <- makeFunctionIO (flip Luna.toValue putStr) ["Text"] "None"
+    printLn <- makeFunctionIO @graph (flip Luna.toValue putStr) [Builder.textLT] Builder.noneLT
 
     let runErrVal = flip Luna.toValue $ \(x :: Luna.Value) -> ((_Left %~ unwrap) <$> Luna.runError x :: Luna.Eff (Either Text Luna.Data))
-    runErr <- makeFunctionPure runErrVal ["a"] (eitherLT "Text" "a")
+    runErr <- makeFunctionPure @graph runErrVal ["a"] (eitherLT Builder.textLT "a")
 
     let errVal = flip Luna.toValue $ \(a :: Text) -> (Luna.throw a :: Luna.Value)
-    err <- makeFunctionPure errVal ["Text"] "a"
+    err <- makeFunctionPure @graph errVal [Builder.textLT] "a"
 
     let expandPathVal :: Text -> IO Text
         expandPathVal = fmap convert . canonicalizePath . convert
-    expandPathF <- makeFunctionIO (flip Luna.toValue expandPathVal) [textT] textT
+    expandPathF <- makeFunctionIO @graph (flip Luna.toValue expandPathVal) [textT] textT
 
     let readFileVal :: Text -> IO Text
         readFileVal = fmap convert . readFile . convert
-    readFileF <- makeFunctionIO (flip Luna.toValue readFileVal) [textT] textT
+    readFileF <- makeFunctionIO @graph (flip Luna.toValue readFileVal) [textT] textT
 
     let readBinaryVal :: Text -> IO ByteString
         readBinaryVal = ByteString.readFile . convert
-    readBinaryF <- makeFunctionIO (flip Luna.toValue readBinaryVal) [textT] binaryT
+    readBinaryF <- makeFunctionIO @graph (flip Luna.toValue readBinaryVal) [textT] binaryT
 
     let parseJSONVal :: Text -> Either Text Aeson.Value
         parseJSONVal = Bifunc.first convert . Aeson.eitherDecode . convert . Text.encodeUtf8
-    parseJSON <- makeFunctionPure (flip Luna.toValue parseJSONVal) ["Text"] (eitherLT "Text" "JSON")
+    parseJSON <- makeFunctionPure @graph (flip Luna.toValue parseJSONVal) [Builder.textLT] (eitherLT Builder.textLT Builder.jsonLT)
 
     let randomRealVal = randomIO :: IO Double
-    randomReal <- makeFunctionIO (flip Luna.toValue randomRealVal) [] realT
+    randomReal <- makeFunctionIO @graph (flip Luna.toValue randomRealVal) [] realT
 
     let sleepVal = threadDelay . int
-    sleep <- makeFunctionIO (flip Luna.toValue sleepVal) [intT] noneT
+    sleep <- makeFunctionIO @graph (flip Luna.toValue sleepVal) [intT] noneT
 
     let forkVal :: Luna.Eff () -> IO ()
         forkVal act = mdo
             uid <- registerFinalizer finalizersCtx $ Async.uninterruptibleCancel a
             a   <- Async.async $ void (Luna.runIO $ Luna.runError act) `Exception.finally` cancelFinalizer finalizersCtx uid
             return ()
-    fork <- makeFunctionIO (flip Luna.toValue forkVal) [noneT] noneT
+    fork <- makeFunctionIO @graph (flip Luna.toValue forkVal) [noneT] noneT
 
     let newEmptyMVarVal :: IO (MVar Luna.Data)
         newEmptyMVarVal = newEmptyMVar
-    newEmptyMVar' <- makeFunctionIO (flip Luna.toValue newEmptyMVarVal) [] (LCons "MVar" [LVar "a"])
+    newEmptyMVar' <- makeFunctionIO @graph (flip Luna.toValue newEmptyMVarVal) [] (Builder.mvarLT "a")
 
     let putMVarVal :: MVar Luna.Data -> Luna.Data -> IO ()
         putMVarVal = putMVar
-    putMVar' <- makeFunctionIO (flip Luna.toValue putMVarVal) [LCons "MVar" [LVar "a"], LVar "a"] noneT
+    putMVar' <- makeFunctionIO @graph (flip Luna.toValue putMVarVal) [Builder.mvarLT "a", "a"] noneT
 
     let takeMVarVal :: MVar Luna.Data -> IO Luna.Data
         takeMVarVal = takeMVar
         readMVarVal :: MVar Luna.Data -> IO Luna.Data
         readMVarVal = readMVar
-    takeMVar' <- makeFunctionIO (flip Luna.toValue takeMVarVal) [LCons "MVar" [LVar "a"]] (LVar "a")
+    takeMVar' <- makeFunctionIO @graph (flip Luna.toValue takeMVarVal) [Builder.mvarLT "a"] "a"
 
 
     let writeFileVal :: Text -> Text -> IO ()
         writeFileVal p c = writeFile (convert p) (convert c)
-    writeFile' <- makeFunctionIO (flip Luna.toValue writeFileVal) [textT, textT] noneT
+    writeFile' <- makeFunctionIO @graph (flip Luna.toValue writeFileVal) [textT, textT] noneT
 
     let evaluateVal :: Text -> IO Text
         evaluateVal t = do
             Exception.evaluate $ rnf t
             return t
-    evaluate' <- makeFunctionIO (flip Luna.toValue evaluateVal) [textT] textT
+    evaluate' <- makeFunctionIO @graph (flip Luna.toValue evaluateVal) [textT] textT
 
 
     let pathSepVal :: Text
         pathSepVal = convert pathSeparator
-    pathSep <- makeFunctionPure (flip Luna.toValue pathSepVal) [] textT
+    pathSep <- makeFunctionPure @graph (flip Luna.toValue pathSepVal) [] textT
 
     return $ Map.fromList [ ("putStr", printLn)
                           , ("errorStr", err)
@@ -396,14 +398,15 @@ io finalizersCtx = do
                           , ("primEvaluate", evaluate')
                           ]
 
-exports :: FinalizersCtx -> IO (Map IR.Name Def.Def)
+exports :: forall graph m. Builder.StdBuilder graph m
+        => FinalizersCtx -> m (Map IR.Name Def.Def)
 exports finalizersCtx = do
-    realFuns <- primReal
-    intFuns  <- primInt
-    textFuns <- primText
-    binFuns  <- primBinary
-    opFuns   <- operators
-    ioFuns   <- io finalizersCtx
+    realFuns <- primReal   @graph
+    intFuns  <- primInt    @graph
+    textFuns <- primText   @graph
+    binFuns  <- primBinary @graph
+    opFuns   <- operators  @graph
+    ioFuns   <- io @graph finalizersCtx
     return $ Map.unions [realFuns, intFuns, textFuns, binFuns, opFuns, ioFuns]
 
 type instance Luna.RuntimeRepOf (IMap.Map a b) = Luna.AsClass (IMap.Map a b) ('Luna.ClassRep "Std.Base" "Map")

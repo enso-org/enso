@@ -55,7 +55,7 @@ instance Semigroup CodeOffset where CodeOffset r v <> CodeOffset r' v' = CodeOff
 data CodeSpan = CodeSpan
     { _realSpan :: !LeftSpacedSpan
     , _viewSpan :: !LeftSpacedSpan
-    } deriving (Show)
+    } deriving (Show, Generic)
 makeLenses          ''CodeSpan
 Storable.derive     ''CodeSpan
 GTraversable.derive ''CodeSpan

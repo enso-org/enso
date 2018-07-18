@@ -67,6 +67,13 @@ instance Wrapped (Simple t) where shape = coerced ; {-# INLINE shape #-}
 instance Show t => Show (Simple t layout) where
     show = show . unwrap ; {-# INLINE show #-}
 
+
+instance Default t => Default1 (Simple t) where
+    def1 = wrap def ; {-# INLINE def1 #-}
+
+instance Data.ShallowDestructor m t => Data.ShallowDestructor1 m (Simple t) where
+    destructShallow1 = Data.destructShallow . unwrap ; {-# INLINE destructShallow1 #-}
+
 instance Default   t => Default   (Simple t layout) where def    = wrap def    ; {-# INLINE def #-}
 instance Mempty    t => Mempty    (Simple t layout) where mempty = wrap mempty ; {-# INLINE mempty #-}
 instance Semigroup t => Semigroup (Simple t layout) where
@@ -190,10 +197,11 @@ unsafeOnlyDestructorManager = Manager Nothing
 staticManager :: Default1 (Cons layer) => Manager layer
 staticManager = Manager (Just $ pure def1) Nothing ; {-# INLINE staticManager #-}
 
-dynamicManager :: ( Data.ShallowDestructor1 IO (Cons layer)
+dynamicManager :: ( Default1 (Cons layer)
+                  , Data.ShallowDestructor1 IO (Cons layer)
                   ) => Manager layer
-dynamicManager = Manager Nothing
-                 (Just Data.destructShallow1)
+dynamicManager = Manager (Just $ pure def1)
+                         (Just Data.destructShallow1)
 {-# INLINE dynamicManager #-}
 
 customStaticManager :: (∀ layout. IO (Cons layer layout)) -> Manager layer

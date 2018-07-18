@@ -56,23 +56,29 @@ type DeleteSubtree m =
     , Layer.IsUnwrapped Node.Uni
     )
 
+safeToDelete :: ∀ m. DeleteSubtree m
+             => Set.Set Node.Some -> Node.Some -> m Bool
+safeToDelete whitelist root = do
+    succs <- Mutable.toList =<< Layer.read @Users root
+    loops <- traverse Edge.cyclic succs
+    let allLoops    = and loops
+        whitelisted = Set.member root whitelist
+    return $ allLoops && not whitelisted
+{-# INLINE safeToDelete #-}
+
 deleteSubtreeWithWhitelist :: ∀ layout m. DeleteSubtree m
                            => Set.Set Node.Some -> Node layout -> m ()
-deleteSubtreeWithWhitelist whitelist = go . Layout.relayout where
+deleteSubtreeWithWhitelist whitelist (Layout.relayout -> root) = whenM (safeToDelete whitelist root) $ go root where
     go :: Node.Some -> m ()
     go root = do
-        succs <- Mutable.toList =<< Layer.read @Users root
-        loops <- traverse Edge.cyclic succs
-        let allLoops    = and loops
-            whitelisted = Set.member root whitelist
-        when (allLoops && not whitelisted) $ do
-            inputEdges :: [Edge.SomeEdge] <- convert <$> Node.inputs root
-            tpEdge <- Layer.read @Type root
-            let allInputEdges = Layout.relayout tpEdge : inputEdges
-            nonCyclicEdges <- filterM (fmap not . Edge.cyclic) allInputEdges
-            inputs         <- traverse (Layer.read @Source) nonCyclicEdges
-            delete root
-            traverse_ go $ Set.toList $ Set.fromList inputs
+        inputEdges :: [Edge.SomeEdge] <- convert <$> Node.inputs root
+        tpEdge <- Layer.read @Type root
+        let allInputEdges = Layout.relayout tpEdge : inputEdges
+        nonCyclicEdges <- filterM (fmap not . Edge.cyclic) allInputEdges
+        inputs         <- traverse (Layer.read @Source) nonCyclicEdges
+        delete root
+        safeChildren <- filterM (safeToDelete whitelist) $ Set.toList $ Set.fromList inputs
+        traverse_ go safeChildren
 {-# INLINE deleteSubtreeWithWhitelist #-}
 
 deleteSubtree :: DeleteSubtree m => Node layout -> m ()

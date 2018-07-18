@@ -11,6 +11,8 @@ import qualified Luna.IR.Layer                       as Layer
 import qualified Luna.Pass                           as Pass
 import qualified Luna.Pass.Attr                      as Attr
 import qualified Luna.Pass.Basic                     as Pass
+import qualified Luna.Pass.Data.Stage                as TC
+import qualified Luna.Pass.Scheduler                 as Scheduler
 
 import Luna.Pass.Data.Root
 import Luna.Pass.Sourcing.Data.Unit
@@ -23,15 +25,13 @@ type family ImportsPluckerSpec t where
     ImportsPluckerSpec (Pass.Out Pass.Attrs) = '[Imports]
     ImportsPluckerSpec t = Pass.BasicPassSpec t
 
-instance Pass.Interface ImportsPlucker (Pass.Pass stage ImportsPlucker)
-      => Pass.Definition stage ImportsPlucker where
+instance Pass.Definition TC.Stage ImportsPlucker where
     definition = do
         Root root <- Attr.get
         imps <- getImports root
         Attr.put $ Imports imps
 
-getImports :: Pass.Interface ImportsPlucker m
-           => IR.SomeTerm -> m [IR.Qualified]
+getImports :: IR.SomeTerm -> TC.Pass ImportsPlucker [IR.Qualified]
 getImports root = Layer.read @IR.Model root >>= \case
     Uni.Unit impHub _ _ -> do
         getImports =<< IR.source impHub
@@ -41,3 +41,15 @@ getImports root = Layer.read @IR.Model root >>= \case
     Uni.Imp src _ -> getImports =<< IR.source src
     Uni.ImportSource (IR.Absolute name) -> return [name]
     _ -> return []
+
+run :: IR.SomeTerm -> TC.Monad [IR.Qualified]
+run root = do
+    Scheduler.registerAttr @Imports
+    Scheduler.registerAttr @Root
+    Scheduler.enableAttrByType @Imports
+    Scheduler.setAttr $ Root root
+
+    Scheduler.registerPass @TC.Stage @ImportsPlucker
+    Scheduler.runPassByType @ImportsPlucker
+
+    unwrap <$> Scheduler.getAttr @Imports

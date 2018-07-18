@@ -32,6 +32,8 @@ hardcodePrecRelMap = do
     Prec.writeRel LT (Name.acc   :: Name) (Name.app   :: Name)
     Prec.writeRel LT (Name.app   :: Name) (Name.lam   :: Name)
 
+    Prec.writeRel EQ (Name.app   :: Name) (Name.app   :: Name)
+
     Prec.writeRel EQ ("-"     :: Name) ("+"         :: Name)
     Prec.writeRel EQ (">"     :: Name) ("<"         :: Name)
     Prec.writeRel EQ (">="    :: Name) (">"         :: Name)

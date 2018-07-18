@@ -6,81 +6,101 @@ import Prologue
 
 import qualified Luna.IR as IR
 
-import           Data.Fixed                  (Pico)
-import           Data.Map                    (Map)
 import qualified Data.Map                    as Map
-import           Data.Time                   (DiffTime)
 import qualified Data.Time                   as Time
 import qualified Data.Time.Calendar          as Time
 import qualified Data.Time.Format            as Time
-import           Luna.Std.Builder            (makeFunctionIO, makeFunctionPure, maybeLT, LTp (..), int, integer, real)
-import qualified Luna.Runtime                as Luna
 import qualified Luna.Pass.Sourcing.Data.Def as Def
+import qualified Luna.Runtime                as Luna
+import qualified Luna.Std.Builder            as Builder
+import qualified OCI.Data.Name               as Name
+
+import           Data.Fixed                  (Pico)
+import           Data.Map                    (Map)
+import           Data.Time                   (DiffTime)
+import           Luna.Std.Builder            ( makeFunctionIO
+                                             , makeFunctionPure
+                                             , LTp (..), int, integer, real
+                                             )
+
+type TimeModule = "Std.Time"
+
+timeModule :: Name.Qualified
+timeModule = Name.qualFromSymbol @TimeModule
+
+timeLT, utcTimeLT, timeZoneLT, timeIntervalLT :: LTp
+timeLT         = LCons timeModule "Time" []
+utcTimeLT      = LCons timeModule "UTCTime" []
+timeZoneLT     = LCons timeModule "TimeZone" []
+timeIntervalLT = LCons timeModule "TimeInterval" []
+
 
 pico :: Double -> Pico
 pico = realToFrac
 
-exports :: IO (Map IR.Name Def.Def)
+exports :: forall graph m.
+    ( Builder.StdBuilder graph m
+    ) => m (Map IR.Name Def.Def)
 exports = do
-    let intT             = LCons "Int"    []
-        tuple3T t1 t2 t3 = LCons "Tuple3" [t1, t2, t3]
+    let intT    = Builder.intLT
+        tuple3T = Builder.tuple3LT
 
     let primGetCurrentTimeVal :: IO Time.ZonedTime
         primGetCurrentTimeVal = Time.getZonedTime
-    primGetCurrentTime <- makeFunctionIO (flip Luna.toValue primGetCurrentTimeVal) [] $ LCons "Time" []
+    primGetCurrentTime <- makeFunctionIO @graph (flip Luna.toValue primGetCurrentTimeVal) [] timeLT
 
     let primGetCurrentTimeZoneVal :: IO Time.TimeZone
         primGetCurrentTimeZoneVal = Time.getCurrentTimeZone
-    primGetCurrentTimeZone <- makeFunctionIO (flip Luna.toValue primGetCurrentTimeZoneVal) [] $ LCons "TimeZone" []
+    primGetCurrentTimeZone <- makeFunctionIO @graph (flip Luna.toValue primGetCurrentTimeZoneVal) [] timeZoneLT
 
     let primTimeToUTCVal = flip Luna.toValue Time.zonedTimeToUTC
-    primTimeToUTC <- makeFunctionPure primTimeToUTCVal ["Time"] "UTCTime"
+    primTimeToUTC <- makeFunctionPure @graph primTimeToUTCVal [timeLT] utcTimeLT
 
     let primTimeFromUTCVal = flip Luna.toValue Time.utcToZonedTime
-    primTimeFromUTC <- makeFunctionPure primTimeFromUTCVal ["TimeZone", "UTCTime"] "Time"
+    primTimeFromUTC <- makeFunctionPure @graph primTimeFromUTCVal [timeZoneLT, utcTimeLT] timeLT
 
     let primDiffTimesVal = flip Luna.toValue Time.diffUTCTime
-    primDiffTimes <- makeFunctionPure primDiffTimesVal ["UTCTime", "UTCTime"] "TimeInterval"
+    primDiffTimes <- makeFunctionPure @graph primDiffTimesVal [utcTimeLT, utcTimeLT] timeIntervalLT
 
     let fmtTime :: Text -> Time.ZonedTime -> Text
         fmtTime fmt = convert . Time.formatTime Time.defaultTimeLocale (convert fmt :: String)
-    primFormatTime <- makeFunctionPure (flip Luna.toValue fmtTime) ["Text", "Time"] "Text"
+    primFormatTime <- makeFunctionPure @graph (flip Luna.toValue fmtTime) [Builder.textLT, timeLT] Builder.textLT
 
     let fmtUTCTime :: Text -> Time.UTCTime -> Text
         fmtUTCTime fmt = convert . Time.formatTime Time.defaultTimeLocale (convert fmt :: String)
-    primFormatUTCTime <- makeFunctionPure (flip Luna.toValue fmtUTCTime) ["Text", "UTCTime"] "Text"
+    primFormatUTCTime <- makeFunctionPure @graph (flip Luna.toValue fmtUTCTime) [Builder.textLT, utcTimeLT] Builder.textLT
 
     let primTimesEqVal = flip Luna.toValue ((==) :: Time.UTCTime -> Time.UTCTime -> Bool)
-    primTimesEq <- makeFunctionPure primTimesEqVal ["UTCTime", "UTCTime"] "Bool"
+    primTimesEq <- makeFunctionPure @graph primTimesEqVal [utcTimeLT, utcTimeLT] Builder.boolLT
 
     let primAddUTCTimeVal = flip Luna.toValue Time.addUTCTime
         primSubUTCTimeVal = flip Luna.toValue (\d t -> Time.addUTCTime (-d) t)
-    primAddUTCTime <- makeFunctionPure primAddUTCTimeVal ["TimeInterval", "UTCTime"] "UTCTime"
-    primSubUTCTime <- makeFunctionPure primSubUTCTimeVal ["TimeInterval", "UTCTime"] "UTCTime"
+    primAddUTCTime <- makeFunctionPure @graph primAddUTCTimeVal [timeIntervalLT, utcTimeLT] utcTimeLT
+    primSubUTCTime <- makeFunctionPure @graph primSubUTCTimeVal [timeIntervalLT, utcTimeLT] utcTimeLT
 
     let primTimeOfDayVal :: Time.DiffTime -> (Integer, Integer, Double)
         primTimeOfDayVal t = let Time.TimeOfDay h m s = Time.timeToTimeOfDay t in (convert h, convert m, realToFrac s)
-    primTimeOfDay <- makeFunctionPure (flip Luna.toValue primTimeOfDayVal) [LCons "TimeInterval" []] $ tuple3T intT intT intT
+    primTimeOfDay <- makeFunctionPure @graph (flip Luna.toValue primTimeOfDayVal) [timeIntervalLT] $ tuple3T intT intT intT
 
     let primTimeOfYearVal :: Time.Day -> (Integer, Integer, Integer)
         primTimeOfYearVal t = let (y, m, d) = Time.toGregorian t in (y, integer m, integer d)
-    primTimeOfYear <- makeFunctionPure (flip Luna.toValue primTimeOfYearVal) [intT] $ tuple3T intT intT intT
+    primTimeOfYear <- makeFunctionPure @graph (flip Luna.toValue primTimeOfYearVal) [intT] $ tuple3T intT intT intT
 
     let primFromTimeOfYearVal :: Integer -> Integer -> Integer -> Time.Day
         primFromTimeOfYearVal y m d = Time.fromGregorian y (int m) (int d)
-    primFromTimeOfYear <- makeFunctionPure (flip Luna.toValue primFromTimeOfYearVal) [intT, intT, intT] intT
+    primFromTimeOfYear <- makeFunctionPure @graph (flip Luna.toValue primFromTimeOfYearVal) [intT, intT, intT] intT
 
     let primMonthLengthVal :: Integer -> Integer -> Integer
         primMonthLengthVal y m = integer $ Time.gregorianMonthLength y (int m)
-    primMonthLength <- makeFunctionPure (flip Luna.toValue primMonthLengthVal) [intT, intT] intT
+    primMonthLength <- makeFunctionPure @graph (flip Luna.toValue primMonthLengthVal) [intT, intT] intT
 
     let parseTime :: Text -> Text -> Maybe Time.ZonedTime
         parseTime fmt str = Time.parseTimeM True Time.defaultTimeLocale (convert fmt) (convert str)
-    primParseTime <- makeFunctionPure (flip Luna.toValue parseTime) ["Text", "Text"] (maybeLT "Time")
+    primParseTime <- makeFunctionPure @graph (flip Luna.toValue parseTime) [Builder.textLT, Builder.textLT] (Builder.maybeLT timeLT)
 
     let primIntMilisecondsVal :: Integer -> Time.DiffTime
         primIntMilisecondsVal = (/ 1000) . realToFrac
-    primIntMiliseconds <- makeFunctionPure (flip Luna.toValue primIntMilisecondsVal) ["Int"] "TimeInterval"
+    primIntMiliseconds <- makeFunctionPure @graph (flip Luna.toValue primIntMilisecondsVal) [Builder.intLT] timeIntervalLT
 
     return $ Map.fromList [ ("primGetCurrentTime", primGetCurrentTime)
                           , ("primGetCurrentTimeZone", primGetCurrentTimeZone)
@@ -102,15 +122,15 @@ exports = do
 
 
 type instance Luna.RuntimeRepOf Time.DiffTime =
-    Luna.AsClass Time.DiffTime ('Luna.ClassRep "Std.Time" "TimeInterval")
+    Luna.AsClass Time.DiffTime ('Luna.ClassRep TimeModule "TimeInterval")
 type instance Luna.RuntimeRepOf Time.UTCTime =
-    Luna.AsClass Time.UTCTime ('Luna.ClassRep "Std.Time" "UTCTime")
+    Luna.AsClass Time.UTCTime ('Luna.ClassRep TimeModule "UTCTime")
 type instance Luna.RuntimeRepOf Time.TimeOfDay =
-    Luna.AsClass Time.TimeOfDay ('Luna.ClassRep "Std.Time" "TimeOfDay")
+    Luna.AsClass Time.TimeOfDay ('Luna.ClassRep TimeModule "TimeOfDay")
 type instance Luna.RuntimeRepOf Time.TimeZone =
-    Luna.AsClass Time.TimeZone ('Luna.ClassRep "Std.Time" "TimeZone")
+    Luna.AsClass Time.TimeZone ('Luna.ClassRep TimeModule "TimeZone")
 type instance Luna.RuntimeRepOf Time.ZonedTime =
-    Luna.AsClass Time.ZonedTime ('Luna.ClassRep "Std.Time" "Time")
+    Luna.AsClass Time.ZonedTime ('Luna.ClassRep TimeModule "Time")
 
 
 instance Luna.FromData Time.NominalDiffTime where

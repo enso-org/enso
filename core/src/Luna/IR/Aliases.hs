@@ -25,6 +25,7 @@ pattern List  l <- IR.UniTermList (IR.List l)
 pattern Tuple t <- IR.UniTermTuple (IR.Tuple t)
 pattern Seq l r <- IR.UniTermSeq (IR.Seq l r)
 pattern Blank <- IR.UniTermBlank (IR.Blank)
+pattern Top <- IR.UniTermTop IR.Top
 pattern Acc n e <- IR.UniTermAcc (IR.Acc n e)
 pattern Documented doc e <- IR.UniTermDocumented (IR.Documented doc e)
 pattern RawString s <- IR.UniTermRawString (IR.RawString s)

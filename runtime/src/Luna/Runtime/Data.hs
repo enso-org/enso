@@ -5,14 +5,14 @@ module Luna.Runtime.Data where
 
 import Prologue hiding (Data, force)
 
-import qualified Data.Map                 as Map
-import qualified Luna.IR                  as IR
-import qualified Luna.Runtime.Eff         as Luna
-import qualified Luna.Runtime.Data.Future as Future
+import qualified Data.Map                  as Map
+import qualified Luna.IR                   as IR
+import qualified Luna.Runtime.Eff          as Luna
+import qualified Control.Concurrent.Future as Future
 
-import Data.Map                 (Map)
-import GHC.Exts                 (Any)
-import Luna.Runtime.Data.Future (Future)
+import Data.Map                  (Map)
+import GHC.Exts                  (Any)
+import Control.Concurrent.Future (Future)
 
 type DefMap = Map IR.Name (Future Value)
 
@@ -62,10 +62,11 @@ dispatchMethod s = go where
         Just f  -> Future.get f >>= \fun -> applyFun fun $ return x
 
 tryDispatchMethod :: IR.Name -> Data -> Luna.Eff (Maybe Value)
-tryDispatchMethod s = go where
-    go x@(Native a) = return $ tryDispatch x a
-    go x@(Cons   a) = return $ tryDispatch x a
-    go _            = return Nothing
+tryDispatchMethod s = force' >=> go where
+    go (Error e)     = Luna.throw e
+    go x@(Native a)  = return $ tryDispatch x a
+    go x@(Cons   a)  = return $ tryDispatch x a
+    go _             = return Nothing
 
     tryDispatch :: Data -> Object a -> Maybe Value
     tryDispatch x (Object _ _ _ ms) = case Map.lookup s ms of

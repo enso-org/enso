@@ -6,7 +6,8 @@ import qualified Data.Map       as Map
 import qualified Luna.IR        as IR
 import qualified Luna.Runtime   as Luna
 
-import Control.Lens.TH (makePrisms)
+import Control.Lens.TH  (makePrisms)
+import Data.Graph.Store (Rooted)
 
 data Documented a = Documented
     { _documentation :: Maybe Text
@@ -14,7 +15,10 @@ data Documented a = Documented
     } deriving (Show, Functor, Foldable, Traversable)
 makeLenses ''Documented
 
-data PrecompiledDef = PrecompiledDef { _value :: Luna.Units -> Luna.Value }
+data PrecompiledDef = PrecompiledDef
+    { _value  :: Luna.Units -> Luna.Value
+    , _header :: Rooted (IR.Term IR.DefHeader)
+    }
 makeLenses ''PrecompiledDef
 
 instance Show PrecompiledDef where

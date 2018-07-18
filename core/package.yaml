@@ -48,7 +48,6 @@ library:
         - luna-memory-pool
         - luna-nested-containers
         - luna-syntax-definition
-        - luna-text-processing
         - luna-th-builder
         - luna-tuple-utils
         - luna-type-cache
@@ -60,6 +59,7 @@ library:
         - prologue >= 3.0.0
         - random
         - split
+        - storable-tuple
         - template-haskell
         - transformers
         - vector
@@ -132,7 +132,7 @@ tests:
             - luna-generic-traversable
             - luna-typelevel
             - prologue
-            - random 
+            - random
 
 default-extensions:
     - AllowAmbiguousTypes

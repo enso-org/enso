@@ -21,16 +21,22 @@ library:
         - luna-cpp-containers
         - luna-data-storable
         - luna-data-construction
+        - luna-foreign-utils
+        - luna-future
+        - luna-generic-traversable
         - luna-runtime
         - luna-syntax-text-parser
         - luna-syntax-text-model
+        - luna-text-processing
         - layered-state
         - luna-core
         - luna-debug
         - mtl
         - prologue >= 3.0.0
+        - storable-tuple
         - text
         - transformers
+        - uuid-types
 
 default-extensions:
     - AllowAmbiguousTypes

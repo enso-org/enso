@@ -1,5 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
-module Foreign.Storable.Deriving (derive, derive') where
+module Foreign.Storable.Deriving (derive, derive', deriveNoContext) where
 
 import Prologue
 
@@ -71,12 +71,20 @@ derive ty = do
     TH.TyConI tyCon <- TH.reify ty
     derive' tyCon
 
+deriveNoContext :: Name -> Q [TH.Dec]
+deriveNoContext ty = do
+    TH.TyConI tyCon <- TH.reify ty
+    deriveCondCtx False tyCon
+
 derive' :: Dec -> Q [TH.Dec]
-derive' dec = do
+derive' = deriveCondCtx True
+
+deriveCondCtx :: Bool -> Dec -> Q [TH.Dec]
+deriveCondCtx genConstraint dec = do
     let TypeInfo tyConName tyVars cs = getTypeInfo dec
     decs <- sequence [pure $ genSizeOf cs, pure genAlignment, genPeek cs, genPoke cs]
     let ctx = generateConstraint ''Storable cs
-    let inst = classInstanceWithCtx ctx ''Storable tyConName tyVars decs
+    let inst = classInstanceWithCtx (if genConstraint then ctx else []) ''Storable tyConName tyVars decs
     pure [inst]
 
 

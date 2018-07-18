@@ -5,9 +5,11 @@ module Data.Construction where
 
 import Prelude
 
-import           Data.Generics.Traversable (GTraversable)
 import qualified Data.Generics.Traversable as GTraversable
 import qualified Foreign.Marshal.Alloc     as Mem
+
+import Data.Generics.Traversable (GTraversable)
+import Data.Foldable             (traverse_)
 
 
 --------------------------
@@ -109,6 +111,19 @@ instance {-# OVERLAPPABLE #-} (Monad m, ShallowDestructor2 m a)
 instance {-# OVERLAPPABLE #-} (Monad m, GTraversable (ShallowDestructor m) a)
     => ShallowDestructor m a where
     destructShallow = GTraversable.gmapM_ @(ShallowDestructor m) destructShallow ; {-# INLINE destructShallow #-}
+
+-- === Instances === --
+
+-- FIXME[MK->WD]: This instance is equivalent to the GTraversable default above,
+-- but can't be resolved due to instance resolution rules ((Maybe a) looks more like
+-- (a t) in the ShallowDestructor1 default than a in the GTraversable one.
+instance {-# OVERLAPPABLE #-} (Applicative m, ShallowDestructor m a)
+    => ShallowDestructor m (Maybe a) where
+    destructShallow = traverse_ destructShallow ; {-# INLINE destructShallow #-}
+
+instance {-# OVERLAPPABLE #-} (Applicative m, ShallowDestructor m a, ShallowDestructor m b)
+    => ShallowDestructor m (a, b) where
+    destructShallow = \(a, b) -> destructShallow a >> destructShallow b ; {-# INLINE destructShallow #-}
 
 
 

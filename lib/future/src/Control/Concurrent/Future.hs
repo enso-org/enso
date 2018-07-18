@@ -1,4 +1,4 @@
-module Luna.Runtime.Data.Future where
+module Control.Concurrent.Future where
 
 import Prologue
 

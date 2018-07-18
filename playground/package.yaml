@@ -20,6 +20,7 @@ executables:
       - luna-syntax-text-lexer
       - luna-syntax-text-model
       - luna-syntax-text-parser
+      - time
       - open-browser
       - containers
       - unordered-containers
@@ -42,6 +43,7 @@ executables:
       - luna-cpp-containers
       - luna-data-tag
       - luna-debug
+      - luna-memory-manager
 
 default-extensions:
     - AllowAmbiguousTypes

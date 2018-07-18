@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Luna.Debug.IR.Visualizer where
 
@@ -17,6 +18,9 @@ import qualified Data.Tag                        as Tag
 import qualified Luna.IR                         as IR
 import qualified Luna.IR.Layer                   as Layer
 import qualified Luna.Pass                       as Pass
+import qualified Luna.Pass.Attr                  as Attr
+import qualified Luna.Pass.Basic                 as Pass
+import qualified Luna.Pass.Scheduler             as Scheduler
 import qualified System.Environment              as System
 import qualified Web.Browser                     as Browser
 
@@ -42,6 +46,7 @@ makeLenses ''Node
 data Edge = Edge
     { __src    :: NodeId
     , __dst    :: NodeId
+    , __label  :: Text
     , __styles :: [Text]
     } deriving (Generic, Show)
 makeLenses ''Edge
@@ -97,14 +102,16 @@ buildVisualizationNode :: MonadVis m
     => IR.SomeTerm -> m (Node, [Edge])
 buildVisualizationNode ref = do
     model <- Layer.read @IR.Model ref
-    inps  <- ComponentList.mapM IR.source =<< IR.inputs ref
-    tp    <- IR.source =<< Layer.read @IR.Type ref
-    let getNodeId :: ∀ layout. IR.Term layout -> NodeId
+    inps  <- IR.inputs ref
+    srcs  <- ComponentList.mapM (\i -> (i,) <$> IR.source i) inps
+    tpl   <- Layer.read @IR.Type ref
+    tp    <- IR.source tpl
+    let getNodeId :: ∀ c layout. Graph.Component c layout -> NodeId
         getNodeId = convert . show . unwrap
         tgtId     = getNodeId ref
         tag       = IR.showTag model
-        tpEdge    = Edge (getNodeId tp) tgtId ["type"]
-        inpEdges  = (\n -> Edge (getNodeId n) tgtId ["input"]) <$> inps
+        tpEdge    = Edge (getNodeId tp) tgtId (getNodeId tpl) ["type"]
+        inpEdges  = (\(l, n) -> Edge (getNodeId n) tgtId (getNodeId l) ["input"]) <$> srcs
     pure (Node tag [tag] tgtId, tpEdge : inpEdges)
 
 displayGraph :: MonadIO m => String -> Graph -> m ()
@@ -128,6 +135,48 @@ visualizeAll :: MonadVis m => String -> m ()
 visualizeAll name = do
     graph <- buildVisualizationGraphFromAll
     displayGraph name graph
+
+-- === Pass === --
+
+newtype VisRoot = VisRoot IR.SomeTerm
+type instance Attr.Type VisRoot = Attr.Atomic
+instance Default VisRoot where
+    def = VisRoot Graph.unsafeNull
+
+newtype VisName = VisName String
+type instance Attr.Type VisName = Attr.Atomic
+instance Default VisName where
+    def = VisName ""
+
+data Visualizer
+type instance Pass.Spec Visualizer t = VisualizerSpec t
+type family VisualizerSpec t where
+    VisualizerSpec (Pass.In  Pass.Attrs) = '[VisRoot, VisName]
+    VisualizerSpec (Pass.Out Pass.Attrs) = '[]
+    VisualizerSpec t = Pass.BasicPassSpec t
+
+instance Pass.Interface Visualizer (Pass.Pass stage Visualizer)
+      => Pass.Definition stage Visualizer where
+    definition = do
+        VisName n <- Attr.get
+        VisRoot r <- Attr.get
+        visualizeSubtree n r
+
+runPass :: forall stage m.
+    ( Scheduler.MonadScheduler m
+    , Scheduler.PassRegister stage Visualizer m
+    , Pass.Definition stage Visualizer
+    ) => String -> IR.SomeTerm -> m ()
+runPass n r = do
+    Scheduler.registerPass @stage @Visualizer
+
+    Scheduler.registerAttr @VisName
+    Scheduler.registerAttr @VisRoot
+
+    Scheduler.setAttr $ VisName n
+    Scheduler.setAttr $ VisRoot r
+
+    Scheduler.runPassByType @Visualizer
 
 
 -- === Instances === --

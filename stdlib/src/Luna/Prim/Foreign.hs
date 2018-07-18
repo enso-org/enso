@@ -13,6 +13,8 @@ import qualified Luna.IR                     as IR
 import qualified Luna.Pass.Sourcing.Data.Def as Def
 import qualified Luna.Prim.DynamicLinker     as Linker
 import qualified Luna.Runtime                as Luna
+import qualified Luna.Std.Builder            as Builder
+import qualified OCI.Data.Name               as Name
 import qualified System.Mem.Weak             as Weak
 
 import Control.Exception.Safe    (handleAny, throwString)
@@ -34,79 +36,117 @@ import Luna.Std.Builder          (LTp (..), int, integer, makeFunctionIO,
                                   makeFunctionPure, maybeLT, real)
 import Luna.Std.Finalizers       (FinalizersCtx, registerFinalizer)
 
+type ForeignValModule = "Std.Foreign.C.Value"
+
+foreignValModule :: Name.Qualified
+foreignValModule = Name.qualFromSymbol @ForeignValModule
+
+type ForeignModule = "Std.Foreign"
+
+foreignModule :: Name.Qualified
+foreignModule = Name.qualFromSymbol @ForeignModule
+
 
 ptrT :: LTp -> LTp
-ptrT t = LCons "Ptr" [t]
+ptrT = LCons foreignValModule "Ptr" . pure
 
 fPtrT :: LTp -> LTp
-fPtrT t = LCons "ForeignPtr" [t]
+fPtrT = LCons foreignValModule "ForeignPtr" . pure
 
 retTypeT :: LTp -> LTp
-retTypeT t = LCons "RetType" [t]
+retTypeT = LCons foreignValModule "RetType" . pure
+
+argT :: LTp
+argT = LCons foreignValModule "Arg" []
+
+ccharT :: LTp
+ccharT = LCons foreignValModule "CChar" []
+
+funPtrT :: LTp
+funPtrT = LCons foreignModule "FunPtr" []
 
 
-primIntSeq :: ∀ a. (PrimStorable a, PrimNum a, PrimIntegral a)
-    => [IO (Map IR.Name Def.Def)]
-primIntSeq  = [primStorable @a, primNum @a, primIntegral @a]
+primIntSeq :: ∀ graph a m.
+    ( Builder.StdBuilder graph m
+    , PrimStorable a
+    , PrimNum a
+    , PrimIntegral a
+    ) => [m (Map IR.Name Def.Def)]
+primIntSeq  = [primStorable @graph @a, primNum @graph @a, primIntegral @graph @a]
 
-primRealSeq :: ∀ a. (PrimStorable a, PrimNum a, PrimReal a)
-    => [IO (Map IR.Name Def.Def)]
-primRealSeq = [primStorable @a, primNum @a, primReal @a]
+primRealSeq :: ∀ graph a m.
+    ( Builder.StdBuilder graph m
+    , PrimStorable a
+    , PrimNum a
+    , PrimReal a
+    ) => [m (Map IR.Name Def.Def)]
+primRealSeq = [primStorable @graph @a, primNum @graph @a, primReal @graph @a]
 
-primFracSeq :: ∀ a. (PrimStorable a, PrimNum a, PrimReal a, PrimFrac a)
-    => [IO (Map IR.Name Def.Def)]
-primFracSeq = [primStorable @a, primNum @a, primReal @a, primFrac @a]
+primFracSeq :: ∀ graph a m.
+    ( Builder.StdBuilder graph m
+    , PrimStorable a
+    , PrimNum a
+    , PrimReal a
+    , PrimFrac a
+    ) => [m (Map IR.Name Def.Def)]
+primFracSeq = [ primStorable @graph @a
+              , primNum      @graph @a
+              , primReal     @graph @a
+              , primFrac     @graph @a
+              ]
 
-exports :: FinalizersCtx -> IO (Map IR.Name Def.Def)
+exports :: forall graph m.
+    ( Builder.StdBuilder graph m
+    ) => FinalizersCtx -> m (Map IR.Name Def.Def)
 exports finalizersCtx = do
     let primLookupSymbolVal :: Text -> Text -> IO (FunPtr Luna.Data)
         primLookupSymbolVal (convert -> dll) (convert -> symbol) = do
             dl       <- Linker.loadLibrary dll
             sym      <- Linker.loadSymbol dl symbol
             return sym
-    primLookupSymbol <- makeFunctionIO (flip Luna.toValue primLookupSymbolVal)
-                            ["Text", "Text"] "FunPtr"
+    primLookupSymbol <- makeFunctionIO @graph (flip Luna.toValue primLookupSymbolVal)
+                            [Builder.textLT, Builder.textLT] funPtrT
 
     let primCallFunPtrVal :: FunPtr Luna.Data -> LibFFI.RetType Luna.Data
                           -> [LibFFI.Arg] -> IO Luna.Data
         primCallFunPtrVal = LibFFI.callFFI
-    primCallFunPtr <- makeFunctionIO (flip Luna.toValue primCallFunPtrVal)
-                          ["FunPtr", retTypeT "a", LCons "List" ["Arg"]] "a"
+    primCallFunPtr <- makeFunctionIO @graph (flip Luna.toValue primCallFunPtrVal)
+                          [funPtrT, retTypeT "a", Builder.listLT argT] "a"
 
 
     let primVoidRetTypeVal :: Luna.Units -> LibFFI.RetType Luna.Data
         primVoidRetTypeVal std = fmap (Luna.toData std) $ LibFFI.retVoid
-    primVoidRetType <- makeFunctionPure (\std -> Luna.toValue std $ primVoidRetTypeVal std)
-                           [] (retTypeT "None")
+    primVoidRetType <- makeFunctionPure @graph (\std -> Luna.toValue std $ primVoidRetTypeVal std)
+                           [] (retTypeT Builder.noneLT)
 
     let local = Map.fromList [ ("primLookupSymbol", primLookupSymbol)
                              , ("primCallFunPtr", primCallFunPtr)
                              , ("primVoidRetType", primVoidRetType)
                              ]
 
-    ptr     <- primPtr
-    fptr    <- primForeignPtr finalizersCtx
-    cstring <- primCString
+    ptr     <- primPtr        @graph
+    fptr    <- primForeignPtr @graph finalizersCtx
+    cstring <- primCString    @graph
 
-    cchar   <- Map.unions <$> sequence (primIntSeq  @CChar)
-    cuchar  <- Map.unions <$> sequence (primIntSeq  @CUChar)
-    cwchar  <- Map.unions <$> sequence (primIntSeq  @CWchar)
-    cint    <- Map.unions <$> sequence (primIntSeq  @CInt)
-    cint8   <- Map.unions <$> sequence (primIntSeq  @CInt8)
-    cint16  <- Map.unions <$> sequence (primIntSeq  @CInt16)
-    cint32  <- Map.unions <$> sequence (primIntSeq  @CInt32)
-    cint64  <- Map.unions <$> sequence (primIntSeq  @CInt64)
-    cuint   <- Map.unions <$> sequence (primIntSeq  @CUInt)
-    cuint8  <- Map.unions <$> sequence (primIntSeq  @CUInt8)
-    cuint16 <- Map.unions <$> sequence (primIntSeq  @CUInt16)
-    cuint32 <- Map.unions <$> sequence (primIntSeq  @CUInt32)
-    cuint64 <- Map.unions <$> sequence (primIntSeq  @CUInt64)
-    clong   <- Map.unions <$> sequence (primIntSeq  @CLong)
-    culong  <- Map.unions <$> sequence (primIntSeq  @CULong)
-    csize   <- Map.unions <$> sequence (primIntSeq  @CSize)
-    ctime   <- Map.unions <$> sequence (primRealSeq @CTime)
-    cdouble <- Map.unions <$> sequence (primFracSeq @CDouble)
-    cfloat  <- Map.unions <$> sequence (primFracSeq @CFloat)
+    cchar   <- Map.unions <$> sequence (primIntSeq  @graph @CChar)
+    cuchar  <- Map.unions <$> sequence (primIntSeq  @graph @CUChar)
+    cwchar  <- Map.unions <$> sequence (primIntSeq  @graph @CWchar)
+    cint    <- Map.unions <$> sequence (primIntSeq  @graph @CInt)
+    cint8   <- Map.unions <$> sequence (primIntSeq  @graph @CInt8)
+    cint16  <- Map.unions <$> sequence (primIntSeq  @graph @CInt16)
+    cint32  <- Map.unions <$> sequence (primIntSeq  @graph @CInt32)
+    cint64  <- Map.unions <$> sequence (primIntSeq  @graph @CInt64)
+    cuint   <- Map.unions <$> sequence (primIntSeq  @graph @CUInt)
+    cuint8  <- Map.unions <$> sequence (primIntSeq  @graph @CUInt8)
+    cuint16 <- Map.unions <$> sequence (primIntSeq  @graph @CUInt16)
+    cuint32 <- Map.unions <$> sequence (primIntSeq  @graph @CUInt32)
+    cuint64 <- Map.unions <$> sequence (primIntSeq  @graph @CUInt64)
+    clong   <- Map.unions <$> sequence (primIntSeq  @graph @CLong)
+    culong  <- Map.unions <$> sequence (primIntSeq  @graph @CULong)
+    csize   <- Map.unions <$> sequence (primIntSeq  @graph @CSize)
+    ctime   <- Map.unions <$> sequence (primRealSeq @graph @CTime)
+    cdouble <- Map.unions <$> sequence (primFracSeq @graph @CDouble)
+    cfloat  <- Map.unions <$> sequence (primFracSeq @graph @CFloat)
 
     return $ Map.unions
         [ local, ptr, fptr, cstring, cchar, cuchar, cwchar, cint, cuint, clong
@@ -114,59 +154,61 @@ exports finalizersCtx = do
         , cuint64, csize, ctime, cdouble, cfloat
         ]
 
-primPtr :: IO (Map IR.Name Def.Def)
+primPtr :: forall graph m.
+    ( Builder.StdBuilder graph m
+    ) => m (Map IR.Name Def.Def)
 primPtr = do
     let primPtrToCArgVal :: Ptr Luna.Data -> LibFFI.Arg
         primPtrToCArgVal ptr = LibFFI.argPtr ptr
-    primPtrToCArg <- makeFunctionPure (flip Luna.toValue primPtrToCArgVal)
-                         [ptrT "a"] "Arg"
+    primPtrToCArg <- makeFunctionPure @graph (flip Luna.toValue primPtrToCArgVal)
+                         [ptrT "a"] argT
 
     let primPtrPlusVal :: Ptr Luna.Data -> Integer -> Ptr Luna.Data
         primPtrPlusVal ptr bytes = ptr `plusPtr` fromIntegral bytes
-    primPtrPlus <- makeFunctionPure (flip Luna.toValue primPtrPlusVal)
-                       [ptrT "a", "Int"] (ptrT "a")
+    primPtrPlus <- makeFunctionPure @graph (flip Luna.toValue primPtrPlusVal)
+                       [ptrT "a", Builder.intLT] (ptrT "a")
 
     let primPtrRetTypeVal :: Luna.Units -> LibFFI.RetType Luna.Data -> LibFFI.RetType Luna.Data
         primPtrRetTypeVal std = fmap (Luna.toData std) . LibFFI.retPtr
-    primPtrRetType <- makeFunctionPure (\std -> Luna.toValue std $ primPtrRetTypeVal std)
+    primPtrRetType <- makeFunctionPure @graph (\std -> Luna.toValue std $ primPtrRetTypeVal std)
                           [retTypeT "a"] (retTypeT (ptrT "a"))
 
     let primPtrByteSizeVal :: Integer
         primPtrByteSizeVal = fromIntegral $ sizeOf (undefined :: Ptr ())
-    primPtrByteSize <- makeFunctionPure (flip Luna.toValue primPtrByteSizeVal)
-                           [] "Int"
+    primPtrByteSize <- makeFunctionPure @graph (flip Luna.toValue primPtrByteSizeVal)
+                           [] Builder.intLT
 
     let primPtrCastVal :: Ptr Luna.Data -> Ptr Luna.Data
         primPtrCastVal = id
-    primPtrCast <- makeFunctionPure (flip Luna.toValue primPtrCastVal)
+    primPtrCast <- makeFunctionPure @graph (flip Luna.toValue primPtrCastVal)
                        [ptrT "a"] (ptrT "b")
 
     let primPtrReadPtrVal :: Ptr Luna.Data -> IO (Ptr Luna.Data)
         primPtrReadPtrVal p = peek (castPtr p :: Ptr (Ptr Luna.Data))
-    primPtrReadPtr <- makeFunctionIO (flip Luna.toValue primPtrReadPtrVal)
+    primPtrReadPtr <- makeFunctionIO @graph (flip Luna.toValue primPtrReadPtrVal)
                           [ptrT (ptrT "a")] (ptrT "a")
 
     let primPtrWritePtrVal :: Ptr Luna.Data -> Ptr Luna.Data -> IO ()
         primPtrWritePtrVal p = poke (castPtr p :: Ptr (Ptr Luna.Data))
-    primPtrWritePtr <- makeFunctionIO (flip Luna.toValue primPtrWritePtrVal)
-                           [ptrT (ptrT "a"), ptrT "a"] "None"
+    primPtrWritePtr <- makeFunctionIO @graph (flip Luna.toValue primPtrWritePtrVal)
+                           [ptrT (ptrT "a"), ptrT "a"] Builder.noneLT
 
     let primPtrEqVal :: Ptr Luna.Data -> Ptr Luna.Data -> Bool
         primPtrEqVal = (==)
-    primPtrEq <- makeFunctionPure (flip Luna.toValue primPtrEqVal)
-                     [ptrT "a", ptrT "a"] "Bool"
+    primPtrEq <- makeFunctionPure @graph (flip Luna.toValue primPtrEqVal)
+                     [ptrT "a", ptrT "a"] Builder.boolLT
 
-    primNullPtr <- makeFunctionPure (flip Luna.toValue (nullPtr :: Ptr Luna.Data))
+    primNullPtr <- makeFunctionPure @graph (flip Luna.toValue (nullPtr :: Ptr Luna.Data))
                        [] (ptrT "a")
 
     let primMallocVal :: Integer -> IO (Ptr Luna.Data)
         primMallocVal = mallocBytes . fromIntegral
-    primMalloc <- makeFunctionIO (flip Luna.toValue primMallocVal)
-                      ["Int"] (ptrT "a")
+    primMalloc <- makeFunctionIO @graph (flip Luna.toValue primMallocVal)
+                      [Builder.intLT] (ptrT "a")
 
     let primFreeVal :: Ptr Luna.Data -> IO ()
         primFreeVal = free
-    primFree <- makeFunctionIO (flip Luna.toValue primFreeVal) [ptrT "a"] "None"
+    primFree <- makeFunctionIO @graph (flip Luna.toValue primFreeVal) [ptrT "a"] Builder.noneLT
 
 
     return $ Map.fromList [ ("primNullPtr", primNullPtr)
@@ -182,19 +224,21 @@ primPtr = do
                           , ("primFree", primFree)
                           ]
 
-primCString :: IO (Map IR.Name Def.Def)
+primCString :: forall graph m.
+    ( Builder.StdBuilder graph m
+    ) => m (Map IR.Name Def.Def)
 primCString = do
     let primCStringFromTextVal :: Text -> IO (Ptr Luna.Data)
         primCStringFromTextVal = fmap castPtr . newCString . convert
-    primCStringFromText <- makeFunctionIO
+    primCStringFromText <- makeFunctionIO @graph
                                (flip Luna.toValue primCStringFromTextVal)
-                               ["Text"]
-                               (ptrT "CChar")
+                               [Builder.textLT]
+                               (ptrT ccharT)
 
     let primCStringToTextVal :: Ptr Luna.Data -> IO Text
         primCStringToTextVal = fmap convert . peekCString . castPtr
-    primCStringToText <- makeFunctionIO (flip Luna.toValue primCStringToTextVal)
-                             [ptrT "CChar"] "Text"
+    primCStringToText <- makeFunctionIO @graph (flip Luna.toValue primCStringToTextVal)
+                             [ptrT ccharT] Builder.textLT
 
     return $ Map.fromList [ ("primCStringFromText", primCStringFromText)
                           , ("primCStringToText", primCStringToText)
@@ -218,28 +262,32 @@ type PrimStorable a =
     , Luna.ToData (a -> LibFFI.Arg)
     )
 
-primStorable :: forall a. PrimStorable a => IO (Map IR.Name Def.Def)
+primStorable :: forall graph a m.
+    ( Builder.StdBuilder graph m
+    , PrimStorable a
+    ) => m (Map IR.Name Def.Def)
 primStorable = do
     let typeName = Luna.classNameOf @a
-        tp       = LCons typeName []
-    !primToArg   <- makeFunctionPure (flip Luna.toValue (toArg @a)) [tp] "Arg"
-    !primRetType <- makeFunctionPure
+        modName  = Luna.moduleNameOf   @a
+        tp       = LCons modName typeName []
+    !primToArg   <- makeFunctionPure @graph (flip Luna.toValue (toArg @a)) [tp] argT
+    !primRetType <- makeFunctionPure @graph
                         (\std -> Luna.toValue std (Luna.toData std <$> (retType @a)))
                         []
                         (retTypeT tp)
 
     let primWritePtrVal :: Ptr Luna.Data -> a -> IO ()
         primWritePtrVal p = poke $ coerce p
-    !primWritePtr <- makeFunctionIO (flip Luna.toValue primWritePtrVal)
-                         [ptrT tp, tp] "None"
+    !primWritePtr <- makeFunctionIO @graph (flip Luna.toValue primWritePtrVal)
+                         [ptrT tp, tp] Builder.noneLT
 
     let primReadPtrVal :: Ptr Luna.Data -> IO a
         primReadPtrVal p = peek $ coerce p
-    !primReadPtr <- makeFunctionIO (flip Luna.toValue primReadPtrVal) [ptrT tp] tp
+    !primReadPtr <- makeFunctionIO @graph (flip Luna.toValue primReadPtrVal) [ptrT tp] tp
 
     let primByteSizeVal :: Integer
         primByteSizeVal = fromIntegral $ sizeOf (undefined :: a)
-    !primByteSize <- makeFunctionIO (flip Luna.toValue primByteSizeVal) [] "Int"
+    !primByteSize <- makeFunctionIO @graph (flip Luna.toValue primByteSizeVal) [] Builder.intLT
 
     let mkName = makePrimFunName typeName
 
@@ -263,32 +311,36 @@ type PrimNum a =
     , Luna.ToValue (a -> a -> Bool)
     )
 
-primNum :: forall a. PrimNum a => IO (Map IR.Name Def.Def)
+primNum :: forall graph a m. 
+    ( Builder.StdBuilder graph m
+    , PrimNum a
+    ) => m (Map IR.Name Def.Def)
 primNum = do
     let typeName = Luna.classNameOf @a
-        tp       = LCons typeName []
+        modName  = Luna.moduleNameOf   @a
+        tp       = LCons modName typeName []
 
-    primPlus <- makeFunctionPure (flip Luna.toValue ((+) :: a -> a -> a))
+    primPlus <- makeFunctionPure @graph (flip Luna.toValue ((+) :: a -> a -> a))
                     [tp, tp] tp
-    primMul  <- makeFunctionPure (flip Luna.toValue ((*) :: a -> a -> a))
+    primMul  <- makeFunctionPure @graph (flip Luna.toValue ((*) :: a -> a -> a))
                     [tp, tp] tp
-    primSub  <- makeFunctionPure (flip Luna.toValue ((-) :: a -> a -> a))
+    primSub  <- makeFunctionPure @graph (flip Luna.toValue ((-) :: a -> a -> a))
                     [tp, tp] tp
 
-    primToText <- makeFunctionPure
+    primToText <- makeFunctionPure @graph
                       (flip Luna.toValue (convert . show :: a -> Text))
                       [tp]
-                      "Text"
+                      Builder.textLT
 
-    primEq <- makeFunctionPure (flip Luna.toValue ((==) :: a -> a -> Bool))
-                  [tp, tp] "Bool"
-    primLt <- makeFunctionPure (flip Luna.toValue ((<)  :: a -> a -> Bool))
-                  [tp, tp] "Bool"
-    primGt <- makeFunctionPure (flip Luna.toValue ((>)  :: a -> a -> Bool))
-                  [tp, tp] "Bool"
+    primEq <- makeFunctionPure @graph (flip Luna.toValue ((==) :: a -> a -> Bool))
+                  [tp, tp] Builder.boolLT
+    primLt <- makeFunctionPure @graph (flip Luna.toValue ((<)  :: a -> a -> Bool))
+                  [tp, tp] Builder.boolLT
+    primGt <- makeFunctionPure @graph (flip Luna.toValue ((>)  :: a -> a -> Bool))
+                  [tp, tp] Builder.boolLT
 
-    primNegate <- makeFunctionPure (flip Luna.toValue (negate :: a -> a)) [tp] tp
-    primAbs    <- makeFunctionPure (flip Luna.toValue (abs    :: a -> a)) [tp] tp
+    primNegate <- makeFunctionPure @graph (flip Luna.toValue (negate :: a -> a)) [tp] tp
+    primAbs    <- makeFunctionPure @graph (flip Luna.toValue (abs    :: a -> a)) [tp] tp
 
     let mkName = makePrimFunName typeName
 
@@ -312,23 +364,27 @@ type PrimIntegral a =
     , Luna.ToValue (a -> a -> a)
     )
 
-primIntegral :: forall a. PrimIntegral a => IO (Map IR.Name Def.Def)
+primIntegral :: forall graph a m.
+    ( Builder.StdBuilder graph m
+    , PrimIntegral a
+    ) => m (Map IR.Name Def.Def)
 primIntegral = do
     let typeName = Luna.classNameOf @a
-        tp       = LCons typeName []
+        modName  = Luna.moduleNameOf   @a
+        tp       = LCons modName typeName []
 
-    primToInt   <- makeFunctionPure
+    primToInt   <- makeFunctionPure @graph
                        (flip Luna.toValue (fromIntegral :: a -> Integer))
                        [tp]
-                       "Int"
-    primFromInt <- makeFunctionPure
+                       Builder.intLT
+    primFromInt <- makeFunctionPure @graph
                        (flip Luna.toValue (fromIntegral :: Integer -> a))
-                       ["Int"]
+                       [Builder.intLT]
                        tp
 
-    primDiv <- makeFunctionPure (flip Luna.toValue (div :: a -> a -> a))
+    primDiv <- makeFunctionPure @graph (flip Luna.toValue (div :: a -> a -> a))
                    [tp, tp] tp
-    primMod <- makeFunctionPure (flip Luna.toValue (mod :: a -> a -> a))
+    primMod <- makeFunctionPure @graph (flip Luna.toValue (mod :: a -> a -> a))
                    [tp, tp] tp
 
     let mkName = makePrimFunName typeName
@@ -348,18 +404,22 @@ type PrimFrac a =
     , Luna.ToValue (a -> a -> a)
     )
 
-primFrac :: forall a. PrimFrac a => IO (Map IR.Name Def.Def)
+primFrac :: forall graph a m.
+    ( Builder.StdBuilder graph m
+    , PrimFrac a
+    ) => m (Map IR.Name Def.Def)
 primFrac = do
     let typeName = Luna.classNameOf @a
-        tp       = LCons typeName []
+        modName  = Luna.moduleNameOf   @a
+        tp       = LCons modName typeName []
 
-    primDiv      <- makeFunctionPure
+    primDiv      <- makeFunctionPure @graph
                         (flip Luna.toValue ((/) :: a -> a -> a))
                         [tp, tp]
                         tp
-    primFromReal <- makeFunctionPure
+    primFromReal <- makeFunctionPure @graph
                         (flip Luna.toValue (realToFrac :: Double -> a))
-                        ["Real"]
+                        [Builder.realLT]
                         tp
 
     let mkName = makePrimFunName typeName
@@ -375,18 +435,22 @@ type PrimReal a =
     , Luna.ToValue (a -> Double)
     )
 
-primReal :: forall a. PrimReal a => IO (Map IR.Name Def.Def)
+primReal :: forall graph a m.
+    ( Builder.StdBuilder graph m
+    , PrimReal a
+    ) => m (Map IR.Name Def.Def)
 primReal = do
     let typeName = Luna.classNameOf @a
-        tp       = LCons typeName []
+        modName  = Luna.moduleNameOf   @a
+        tp       = LCons modName typeName []
 
-    primToReal  <- makeFunctionPure
+    primToReal  <- makeFunctionPure @graph
                        (flip Luna.toValue (realToFrac :: a -> Double))
                        [tp]
-                       "Real"
-    primFromInt <- makeFunctionPure
+                       Builder.realLT
+    primFromInt <- makeFunctionPure @graph
                        (flip Luna.toValue (fromIntegral :: Integer -> a))
-                       ["Int"]
+                       [Builder.intLT]
                        tp
 
     let mkName = makePrimFunName typeName
@@ -398,19 +462,21 @@ primReal = do
 plusForeignPtr :: ForeignPtr a -> Int -> ForeignPtr b
 plusForeignPtr (ForeignPtr addr c) (I# d) = ForeignPtr (plusAddr# addr d) c
 
-primForeignPtr :: FinalizersCtx -> IO (Map IR.Name Def.Def)
+primForeignPtr :: forall graph m.
+    ( Builder.StdBuilder graph m
+    ) => FinalizersCtx -> m (Map IR.Name Def.Def)
 primForeignPtr finalizersCtx = do
     let primForeignPtrToCArgVal :: ForeignPtr Luna.Data -> LibFFI.Arg
         primForeignPtrToCArgVal fptr =
             LibFFI.argPtr $ unsafeForeignPtrToPtr fptr
-    primForeignPtrToCArg <- makeFunctionIO
+    primForeignPtrToCArg <- makeFunctionIO @graph
                                 (flip Luna.toValue primForeignPtrToCArgVal)
                                 [fPtrT "a"]
-                                "Arg"
+                                argT
 
     let primForeignPtrCastVal :: ForeignPtr Luna.Data -> ForeignPtr Luna.Data
         primForeignPtrCastVal = id
-    primForeignPtrCast <- makeFunctionPure
+    primForeignPtrCast <- makeFunctionPure @graph
                               (flip Luna.toValue primForeignPtrCastVal)
                               [fPtrT "a"]
                               (fPtrT "b")
@@ -419,27 +485,27 @@ primForeignPtr finalizersCtx = do
                             -> ForeignPtr Luna.Data
                             -> Bool
         primForeignPtrEqVal = (==)
-    primForeignPtrEq <- makeFunctionPure (flip Luna.toValue primForeignPtrEqVal)
-                            [fPtrT "a", fPtrT "a"] "Bool"
+    primForeignPtrEq <- makeFunctionPure @graph (flip Luna.toValue primForeignPtrEqVal)
+                            [fPtrT "a", fPtrT "a"] Builder.boolLT
 
     let primNullForeignPtrVal :: IO (ForeignPtr Luna.Data)
         primNullForeignPtrVal = ForeignPtr.newForeignPtr_ nullPtr
-    primNullForeignPtr <- makeFunctionIO (flip Luna.toValue primNullForeignPtrVal)
+    primNullForeignPtr <- makeFunctionIO @graph (flip Luna.toValue primNullForeignPtrVal)
                               [] (fPtrT "a")
 
     let primForeignPtrPlusVal :: ForeignPtr Luna.Data
                               -> Integer
                               -> ForeignPtr Luna.Data
         primForeignPtrPlusVal fptr i = plusForeignPtr fptr (fromIntegral i)
-    primForeignPtrPlus <- makeFunctionPure
+    primForeignPtrPlus <- makeFunctionPure @graph
                               (flip Luna.toValue primForeignPtrPlusVal)
-                              [fPtrT "a", "Int"]
+                              [fPtrT "a", Builder.intLT]
                               (fPtrT "a")
 
     let primForeignPtrFreeVal :: ForeignPtr Luna.Data -> IO ()
         primForeignPtrFreeVal fptr = ForeignPtr.finalizeForeignPtr fptr
-    primForeignPtrFree <- makeFunctionIO (flip Luna.toValue primForeignPtrFreeVal)
-                              [fPtrT "a"] "None"
+    primForeignPtrFree <- makeFunctionIO @graph (flip Luna.toValue primForeignPtrFreeVal)
+                              [fPtrT "a"] Builder.noneLT
 
     let attachFinalizer :: ForeignPtr a -> IO ()
         attachFinalizer fptr = do
@@ -458,8 +524,8 @@ primForeignPtr finalizersCtx = do
             fptr <- ForeignPtr.newForeignPtr (castFunPtr finalizer) ptr
             attachFinalizer fptr
             return fptr
-    primNewForeignPtr <- makeFunctionIO (flip Luna.toValue primNewForeignPtrVal)
-                             ["FunPtr", ptrT "a"] (fPtrT "a")
+    primNewForeignPtr <- makeFunctionIO @graph (flip Luna.toValue primNewForeignPtrVal)
+                             [funPtrT, ptrT "a"] (fPtrT "a")
 
     let primMallocForeignPtrBytesVal :: Integer -> IO (ForeignPtr Luna.Data)
         primMallocForeignPtrBytesVal bytes = do
@@ -467,12 +533,12 @@ primForeignPtr finalizersCtx = do
             fptr <- ForeignPtr.newForeignPtr finalizerFree ptr
             attachFinalizer fptr
             return fptr
-    primMallocForeignPtrBytes <- makeFunctionIO
-        (flip Luna.toValue primMallocForeignPtrBytesVal) ["Int"] (fPtrT "a")
+    primMallocForeignPtrBytes <- makeFunctionIO @graph
+        (flip Luna.toValue primMallocForeignPtrBytesVal) [Builder.intLT] (fPtrT "a")
 
     let primForeignPtrToPtrVal :: ForeignPtr Luna.Data -> Ptr Luna.Data
         primForeignPtrToPtrVal = unsafeForeignPtrToPtr
-    primForeignPtrToPtr <- makeFunctionPure
+    primForeignPtrToPtr <- makeFunctionPure @graph
                                (flip Luna.toValue primForeignPtrToPtrVal)
                                [fPtrT "a"]
                                (ptrT "a")
@@ -490,104 +556,104 @@ primForeignPtr finalizersCtx = do
         ]
 
 
-type instance Luna.RuntimeRepOf CChar = Luna.AsNative ('Luna.ClassRep "Std.Foreign.C.Value" "CChar")
+type instance Luna.RuntimeRepOf CChar = Luna.AsNative ('Luna.ClassRep ForeignValModule "CChar")
 instance PrimCFFI CChar where
     retType = LibFFI.retCChar ; {-# INLINE retType #-}
     toArg   = LibFFI.argCChar ; {-# INLINE toArg   #-}
 
-type instance Luna.RuntimeRepOf CUChar = Luna.AsNative ('Luna.ClassRep "Std.Foreign.C.Value" "CUChar")
+type instance Luna.RuntimeRepOf CUChar = Luna.AsNative ('Luna.ClassRep ForeignValModule "CUChar")
 instance PrimCFFI CUChar where
     retType = LibFFI.retCUChar ; {-# INLINE retType #-}
     toArg   = LibFFI.argCUChar ; {-# INLINE toArg   #-}
 
-type instance Luna.RuntimeRepOf CWchar = Luna.AsNative ('Luna.ClassRep "Std.Foreign.C.Value" "CWChar")
+type instance Luna.RuntimeRepOf CWchar = Luna.AsNative ('Luna.ClassRep ForeignValModule "CWChar")
 instance PrimCFFI CWchar where
     retType = LibFFI.retCWchar ; {-# INLINE retType #-}
     toArg   = LibFFI.argCWchar ; {-# INLINE toArg   #-}
 
-type instance Luna.RuntimeRepOf CInt = Luna.AsNative ('Luna.ClassRep "Std.Foreign.C.Value" "CInt")
+type instance Luna.RuntimeRepOf CInt = Luna.AsNative ('Luna.ClassRep ForeignValModule "CInt")
 instance PrimCFFI CInt where
     retType = LibFFI.retCInt ; {-# INLINE retType #-}
     toArg   = LibFFI.argCInt ; {-# INLINE toArg   #-}
 
-type instance Luna.RuntimeRepOf CInt8 = Luna.AsNative ('Luna.ClassRep "Std.Foreign.C.Value" "CInt8")
+type instance Luna.RuntimeRepOf CInt8 = Luna.AsNative ('Luna.ClassRep ForeignValModule "CInt8")
 instance PrimCFFI CInt8 where
     retType = fmap coerce LibFFI.retInt8 ; {-# INLINE retType #-}
     toArg   = LibFFI.argInt8 . coerce    ; {-# INLINE toArg   #-}
 
-type instance Luna.RuntimeRepOf CInt16 = Luna.AsNative ('Luna.ClassRep "Std.Foreign.C.Value" "CInt16")
+type instance Luna.RuntimeRepOf CInt16 = Luna.AsNative ('Luna.ClassRep ForeignValModule "CInt16")
 instance PrimCFFI CInt16 where
     retType = fmap coerce LibFFI.retInt16 ; {-# INLINE retType #-}
     toArg   = LibFFI.argInt16 . coerce    ; {-# INLINE toArg   #-}
 
-type instance Luna.RuntimeRepOf CInt32 = Luna.AsNative ('Luna.ClassRep "Std.Foreign.C.Value" "CInt32")
+type instance Luna.RuntimeRepOf CInt32 = Luna.AsNative ('Luna.ClassRep ForeignValModule "CInt32")
 instance PrimCFFI CInt32 where
     retType = fmap coerce LibFFI.retInt32 ; {-# INLINE retType #-}
     toArg   = LibFFI.argInt32 . coerce    ; {-# INLINE toArg   #-}
 
-type instance Luna.RuntimeRepOf CInt64 = Luna.AsNative ('Luna.ClassRep "Std.Foreign.C.Value" "CInt64")
+type instance Luna.RuntimeRepOf CInt64 = Luna.AsNative ('Luna.ClassRep ForeignValModule "CInt64")
 instance PrimCFFI CInt64 where
     retType = fmap coerce LibFFI.retInt64 ; {-# INLINE retType #-}
     toArg   = LibFFI.argInt64 . coerce    ; {-# INLINE toArg   #-}
 
-type instance Luna.RuntimeRepOf CUInt = Luna.AsNative ('Luna.ClassRep "Std.Foreign.C.Value" "CUInt")
+type instance Luna.RuntimeRepOf CUInt = Luna.AsNative ('Luna.ClassRep ForeignValModule "CUInt")
 instance PrimCFFI CUInt where
     retType = LibFFI.retCUInt ; {-# INLINE retType #-}
     toArg   = LibFFI.argCUInt ; {-# INLINE toArg   #-}
 
-type instance Luna.RuntimeRepOf CUInt8 = Luna.AsNative ('Luna.ClassRep "Std.Foreign.C.Value" "CUInt8")
+type instance Luna.RuntimeRepOf CUInt8 = Luna.AsNative ('Luna.ClassRep ForeignValModule "CUInt8")
 instance PrimCFFI CUInt8 where
     retType = fmap coerce LibFFI.retWord8 ; {-# INLINE retType #-}
     toArg   = LibFFI.argWord8  . coerce   ; {-# INLINE toArg   #-}
 
-type instance Luna.RuntimeRepOf CUInt16 = Luna.AsNative ('Luna.ClassRep "Std.Foreign.C.Value" "CUInt16")
+type instance Luna.RuntimeRepOf CUInt16 = Luna.AsNative ('Luna.ClassRep ForeignValModule "CUInt16")
 instance PrimCFFI CUInt16 where
     retType = fmap coerce LibFFI.retWord16 ; {-# INLINE retType #-}
     toArg   = LibFFI.argWord16 . coerce    ; {-# INLINE toArg   #-}
 
-type instance Luna.RuntimeRepOf CUInt32 = Luna.AsNative ('Luna.ClassRep "Std.Foreign.C.Value" "CUInt32")
+type instance Luna.RuntimeRepOf CUInt32 = Luna.AsNative ('Luna.ClassRep ForeignValModule "CUInt32")
 instance PrimCFFI CUInt32 where
     retType = fmap coerce LibFFI.retWord32 ; {-# INLINE retType #-}
     toArg   = LibFFI.argWord32 . coerce    ; {-# INLINE toArg   #-}
 
-type instance Luna.RuntimeRepOf CUInt64 = Luna.AsNative ('Luna.ClassRep "Std.Foreign.C.Value" "CUInt64")
+type instance Luna.RuntimeRepOf CUInt64 = Luna.AsNative ('Luna.ClassRep ForeignValModule "CUInt64")
 instance PrimCFFI CUInt64 where
     retType = fmap coerce LibFFI.retWord64 ; {-# INLINE retType #-}
     toArg   = LibFFI.argWord64 . coerce    ; {-# INLINE toArg   #-}
 
-type instance Luna.RuntimeRepOf CLong = Luna.AsNative ('Luna.ClassRep "Std.Foreign.C.Value" "CLong")
+type instance Luna.RuntimeRepOf CLong = Luna.AsNative ('Luna.ClassRep ForeignValModule "CLong")
 instance PrimCFFI CLong where
     retType = LibFFI.retCLong ; {-# INLINE retType #-}
     toArg   = LibFFI.argCLong ; {-# INLINE toArg   #-}
 
-type instance Luna.RuntimeRepOf CULong = Luna.AsNative ('Luna.ClassRep "Std.Foreign.C.Value" "CULong")
+type instance Luna.RuntimeRepOf CULong = Luna.AsNative ('Luna.ClassRep ForeignValModule "CULong")
 instance PrimCFFI CULong where
     retType = LibFFI.retCULong ; {-# INLINE retType #-}
     toArg   = LibFFI.argCULong ; {-# INLINE toArg   #-}
 
-type instance Luna.RuntimeRepOf CSize = Luna.AsNative ('Luna.ClassRep "Std.Foreign.C.Value" "CSize")
+type instance Luna.RuntimeRepOf CSize = Luna.AsNative ('Luna.ClassRep ForeignValModule "CSize")
 instance PrimCFFI CSize where
     retType = LibFFI.retCSize ; {-# INLINE retType #-}
     toArg   = LibFFI.argCSize ; {-# INLINE toArg   #-}
 
-type instance Luna.RuntimeRepOf CTime = Luna.AsNative ('Luna.ClassRep "Std.Foreign.C.Value" "CTime")
+type instance Luna.RuntimeRepOf CTime = Luna.AsNative ('Luna.ClassRep ForeignValModule "CTime")
 instance PrimCFFI CTime where
     retType = LibFFI.retCTime ; {-# INLINE retType #-}
     toArg   = LibFFI.argCTime ; {-# INLINE toArg   #-}
 
-type instance Luna.RuntimeRepOf CFloat = Luna.AsNative ('Luna.ClassRep "Std.Foreign.C.Value" "CFloat")
+type instance Luna.RuntimeRepOf CFloat = Luna.AsNative ('Luna.ClassRep ForeignValModule "CFloat")
 instance PrimCFFI CFloat where
     retType = LibFFI.retCFloat ; {-# INLINE retType #-}
     toArg   = LibFFI.argCFloat ; {-# INLINE toArg   #-}
 
-type instance Luna.RuntimeRepOf CDouble = Luna.AsNative ('Luna.ClassRep "Std.Foreign.C.Value" "CDouble")
+type instance Luna.RuntimeRepOf CDouble = Luna.AsNative ('Luna.ClassRep ForeignValModule "CDouble")
 instance PrimCFFI CDouble where
     retType = LibFFI.retCDouble ; {-# INLINE retType #-}
     toArg   = LibFFI.argCDouble ; {-# INLINE toArg   #-}
 
 
-type instance Luna.RuntimeRepOf LibFFI.Arg                = Luna.AsNative ('Luna.ClassRep "Std.Foreign.C.Value" "Arg")
-type instance Luna.RuntimeRepOf (LibFFI.RetType Luna.Data) = Luna.AsNative ('Luna.ClassRep "Std.Foreign.C.Value" "RetType")
-type instance Luna.RuntimeRepOf (FunPtr         Luna.Data) = Luna.AsNative ('Luna.ClassRep "Std.Foreign" "FunPtr")
-type instance Luna.RuntimeRepOf (Ptr            Luna.Data) = Luna.AsNative ('Luna.ClassRep "Std.Foreign.C.Value" "Ptr")
-type instance Luna.RuntimeRepOf (ForeignPtr     Luna.Data) = Luna.AsNative ('Luna.ClassRep "Std.Foreign.C.Value" "ForeignPtr")
+type instance Luna.RuntimeRepOf LibFFI.Arg                 = Luna.AsNative ('Luna.ClassRep ForeignValModule "Arg")
+type instance Luna.RuntimeRepOf (LibFFI.RetType Luna.Data) = Luna.AsNative ('Luna.ClassRep ForeignValModule "RetType")
+type instance Luna.RuntimeRepOf (FunPtr         Luna.Data) = Luna.AsNative ('Luna.ClassRep ForeignModule    "FunPtr")
+type instance Luna.RuntimeRepOf (Ptr            Luna.Data) = Luna.AsNative ('Luna.ClassRep ForeignValModule "Ptr")
+type instance Luna.RuntimeRepOf (ForeignPtr     Luna.Data) = Luna.AsNative ('Luna.ClassRep ForeignValModule "ForeignPtr")

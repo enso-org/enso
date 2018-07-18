@@ -1,91 +1,125 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Luna.Std.Builder where
 
 import Prologue
 
-import qualified Data.Set   as Set
-import qualified Data.Map   as Map
-import qualified Luna.IR    as IR
-import qualified Luna.Runtime as Luna
-import qualified Luna.Pass.Sourcing.Data.Def as Def
+import qualified Data.Graph.Data.Graph.Class           as Graph
+import qualified Data.Graph.Data.Layer.Layout          as Layout
+import qualified Data.Graph.Store                      as Store
+import qualified Data.Set                              as Set
+import qualified Data.Map                              as Map
+import qualified Luna.IR                               as IR
+import qualified Luna.Runtime                          as Luna
+import qualified Luna.Pass.Sourcing.Data.Def           as Def
+import qualified Luna.Pass                             as Pass
+import qualified Luna.Pass.Attr                        as Attr
+import qualified Luna.Pass.Basic                       as Pass
+import qualified Luna.Pass.Scheduler                   as Scheduler
+import qualified Luna.Std.Instances                    as Base
 
 import           Data.Set                                     (Set)
 import           Data.Map                                     (Map)
-import           Data.Char                                    (isUpper)
-import Luna.Std.Instances ()
+import           Data.Graph.Store                             (Rooted (..))
 
-data LTp = LVar IR.Name | LCons IR.Name [LTp]
+data LTp = LVar IR.Name
+         | LCons IR.Qualified IR.Name [LTp]
+         deriving (Show)
 
 instance IsString LTp where
-    fromString ""      = error "LTp.fromString: empty string does not represent a type"
-    fromString s@(c:_) = let s' = convert s in if isUpper c then LCons s' [] else LVar s'
+    fromString = LVar . convert
 
-{-varNamesFromType :: LTp -> Set Name-}
-{-varNamesFromType (LVar n)    = Set.singleton n-}
-{-varNamesFromType (LCons n s) = varNamesFromTypes s-}
+varNamesFromType :: LTp -> Set IR.Name
+varNamesFromType (LVar n)    = Set.singleton n
+varNamesFromType (LCons mod n s) = varNamesFromTypes s
 
-{-varNamesFromTypes :: [LTp] -> Set Name-}
-{-varNamesFromTypes = Set.unions . fmap varNamesFromType-}
+varNamesFromTypes :: [LTp] -> Set IR.Name
+varNamesFromTypes = Set.unions . fmap varNamesFromType
 
-listLT :: LTp -> LTp
-listLT t  = LCons "List"  [t]
+data Signature = Signature
+    { _args :: [LTp]
+    , _out  :: LTp
+    }
+type instance Attr.Type Signature = Attr.Atomic
+instance Default Signature where
+    def = Signature [] $ LVar "a"
+makeLenses ''Signature
 
-maybeLT :: LTp -> LTp
-maybeLT t = LCons "Maybe" [t]
+newtype CompiledSignature = CompiledSignature (Rooted (IR.Term IR.DefHeader))
+type instance Attr.Type CompiledSignature = Attr.Atomic
+instance Default CompiledSignature where
+    def = CompiledSignature $ Rooted mempty
+makeLenses ''CompiledSignature
 
-eitherLT :: LTp -> LTp -> LTp
-eitherLT l r = LCons "Either" [l, r]
+data PrimTypeBuilder
+type instance Pass.Spec PrimTypeBuilder t = PrimTypeBuilderSpec t
+type family PrimTypeBuilderSpec t where
+    PrimTypeBuilderSpec (Pass.In  Pass.Attrs) = '[Signature]
+    PrimTypeBuilderSpec (Pass.Out Pass.Attrs) = '[CompiledSignature]
+    PrimTypeBuilderSpec t = Pass.BasicPassSpec t
 
-{-mkType :: (MonadRef m, MonadPassManager m) => Map Name (Expr Draft) -> LTp -> SubPass TestPass m (Expr Draft, Expr Draft)-}
-{-mkType vars ltp = do-}
-    {-mv  <- var "a"-}
-    {-res <- go ltp-}
-    {-mon <- monadic res mv-}
-    {-return (generalize mon, generalize mv)-}
-  {-where-}
-    {-go (LVar  n)    = return $ fromJust $ Map.lookup n vars-}
-    {-go (LCons n fs) = fmap generalize $ mapM go fs >>= cons n-}
+instance ( Pass.Interface PrimTypeBuilder (Pass.Pass stage PrimTypeBuilder)
+         , Store.Serializer IR.Terms (Pass.Pass stage PrimTypeBuilder)
+         , IR.DeleteSubtree (Pass.Pass stage PrimTypeBuilder)
+         ) => Pass.Definition stage PrimTypeBuilder where
+    definition = do
+        Signature args out <- Attr.get
+        let varNames = Set.toList $ varNamesFromTypes $ out : args
+        vars <- for varNames $ \v -> (v,) <$> IR.var' v
+        let varMap = Map.fromList vars
+        argTypes  <- traverse (mkType varMap) args
+        outType   <- mkType varMap out
+        funType   <- foldM (flip IR.lam') outType $ reverse argTypes
+        funHeader <- IR.defHeader funType ([] :: [IR.SomeTerm])
+                                          ([] :: [IR.SomeTerm])
+                                          ([] :: [IR.SomeTerm])
+        rooted <- Store.serialize (Layout.unsafeRelayout funHeader)
+        IR.deleteSubtree funHeader
+        Attr.put $ CompiledSignature rooted
 
-{-makeType :: [LTp] -> LTp -> Name -> IO (Assumptions, Rooted SomeExpr)-}
-{-makeType args out outMonadName = do-}
-    {-res <- runPM False $ do-}
-        {-runRegs-}
-        {-Pass.eval' @TestPass $ do-}
-            {-let varNames = Set.toList $ varNamesFromTypes $ out : args-}
-            {-vars <- fmap generalize <$> mapM var varNames-}
-            {-let varMap = Map.fromList $ zip varNames vars-}
-            {-fieldTypes <- mapM (mkType varMap) args-}
-            {-(outType, outM) <- mkType varMap out-}
-            {-pure       <- cons_ @Draft "Pure"-}
-            {-outMonad   <- cons_ @Draft outMonadName-}
-            {-let lamInPure o i = do-}
-                    {-l  <- lam i o-}
-                    {-lm <- monadic l pure-}
-                    {-return $ generalize lm-}
-            {-funType <- foldM lamInPure outType $ fst <$> reverse fieldTypes-}
-            {-monads  <- scanM (fmap generalize .: unify) (unsafeGeneralize outMonad) (snd <$> fieldTypes)-}
-            {-let lastMonad = head $ reverse monads-}
-            {-replace lastMonad outM-}
-            {-res <- compile $ generalize funType-}
-            {-return (Assumptions def (tail monads) def def, res)-}
-    {-case res of-}
-        {-Right r -> return r-}
-        {-Left e  -> error $ show e-}
+mkType :: (Pass.Interface PrimTypeBuilder m
+          ) => Map IR.Name IR.SomeTerm -> LTp -> m IR.SomeTerm
+mkType vars = \case
+    LVar n -> return $ fromJust (error "impossible") $ Map.lookup n vars
+    LCons mod n fs -> IR.resolvedCons' mod n "" =<< traverse (mkType vars) fs
 
-{-makeTypePure :: [LTp] -> LTp -> IO (Assumptions, Rooted SomeExpr)-}
-{-makeTypePure args out = makeType args out "Pure"-}
+type StdBuilder graph m =
+    ( MonadIO m
+    , Graph.Encoder graph m
+    , Scheduler.MonadScheduler m
+    , Scheduler.PassRegister graph PrimTypeBuilder m
+    , Pass.Definition graph PrimTypeBuilder
+    , Store.Serializer IR.Terms (Pass.Pass graph PrimTypeBuilder)
+    )
 
-makeFunction :: (Luna.Units -> Luna.Value) -> [LTp] -> LTp -> IR.Name -> IO Def.Def
-makeFunction val args out outMonad = do
-    {-(assumptions, rooted) <- makeType args out outMonad-}
-    return $ Def.Precompiled $ Def.PrecompiledDef val
+makeType :: forall graph m. StdBuilder graph m
+         => [LTp] -> LTp -> m (Rooted (IR.Term IR.DefHeader))
+makeType args out = Graph.encodeAndEval @graph $ Scheduler.evalT $ do
+    Scheduler.registerAttr @Signature
+    Scheduler.registerAttr @CompiledSignature
 
-makeFunctionPure :: (Luna.Units -> Luna.Value) -> [LTp] -> LTp -> IO Def.Def
-makeFunctionPure val args out = makeFunction val args out "Pure"
+    Scheduler.setAttr $ Signature args out
+    Scheduler.enableAttrByType @CompiledSignature
 
-makeFunctionIO :: (Luna.Units -> Luna.Value) -> [LTp] -> LTp -> IO Def.Def
-makeFunctionIO val args out = makeFunction val args out "IO"
+    Scheduler.registerPass @graph @PrimTypeBuilder
+    Scheduler.runPassByType @PrimTypeBuilder
+
+    unwrap <$> Scheduler.getAttr @CompiledSignature
+
+makeFunction :: forall graph m. StdBuilder graph m
+             => (Luna.Units -> Luna.Value) -> [LTp] -> LTp -> m Def.Def
+makeFunction val args out = do
+    rooted <- makeType @graph args out
+    return $ Def.Precompiled $ Def.PrecompiledDef val rooted
+
+makeFunctionPure :: forall graph m. StdBuilder graph m
+                 => (Luna.Units -> Luna.Value) -> [LTp] -> LTp -> m Def.Def
+makeFunctionPure val args out = makeFunction @graph val args out
+
+makeFunctionIO :: forall graph m. StdBuilder graph m
+               => (Luna.Units -> Luna.Value) -> [LTp] -> LTp -> m Def.Def
+makeFunctionIO val args out = makeFunction @graph val args out
 
 {-compileFunction :: Imports -> SubPass TestPass (PMStack IO) SomeExpr -> IO Function-}
 {-compileFunction imps pass = do-}
@@ -188,3 +222,48 @@ integer = fromIntegral
 
 real :: Real a => a -> Double
 real = realToFrac
+
+jsonLT :: LTp
+jsonLT = LCons Base.baseModule "JSON" []
+
+listLT :: LTp -> LTp
+listLT t  = LCons Base.baseModule "List"  [t]
+
+maybeLT :: LTp -> LTp
+maybeLT t = LCons Base.baseModule "Maybe" [t]
+
+tuple2LT :: LTp -> LTp -> LTp
+tuple2LT t1 t2 = LCons Base.baseModule "Tuple2" [t1, t2]
+
+tuple3LT :: LTp -> LTp -> LTp -> LTp
+tuple3LT t1 t2 t3 = LCons Base.baseModule "Tuple3" [t1, t2, t3]
+
+tuple4LT :: LTp -> LTp -> LTp -> LTp -> LTp
+tuple4LT t1 t2 t3 t4 = LCons Base.baseModule "Tuple4" [t1, t2, t3, t4]
+
+eitherLT :: LTp -> LTp -> LTp
+eitherLT l r = LCons Base.baseModule "Either" [l, r]
+
+mvarLT :: LTp -> LTp
+mvarLT = LCons Base.baseModule "MVar" . pure
+
+textLT :: LTp
+textLT = LCons Base.baseModule "Text" []
+
+intLT :: LTp
+intLT = LCons Base.baseModule "Int" []
+
+realLT :: LTp
+realLT = LCons Base.baseModule "Real" []
+
+boolLT :: LTp
+boolLT = LCons Base.baseModule "Bool" []
+
+scientificLT :: LTp
+scientificLT = LCons Base.baseModule "Scientific" []
+
+binaryLT :: LTp
+binaryLT = LCons Base.baseModule "Binary" []
+
+noneLT :: LTp
+noneLT = LCons Base.baseModule "None" []

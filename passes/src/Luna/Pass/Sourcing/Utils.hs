@@ -20,4 +20,4 @@ cutDoc t = Layer.read @IR.Model t >>= \case
         return (Just d, t')
     Uni.Marked m term -> cutDoc =<< IR.source term
     _ -> return (Nothing, t)
-
+{-# INLINE cutDoc #-}
