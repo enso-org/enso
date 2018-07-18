@@ -2,6 +2,7 @@
 
 #include <stddef.h>
 
+#include <algorithm>
 #include <atomic>
 #include <cassert>
 #include <cstdlib>
@@ -16,6 +17,7 @@
 #include <vector>
 
 #ifdef _MSC_VER
+#define NOMINMAX
 #include <wrl/wrappers/corewrappers.h>
 #endif
 
@@ -80,12 +82,14 @@ class MemoryManager
 {
     struct Block
     {
+        size_t itemCount = 0;
         size_t unitializedItems = 0;
         void *memory = nullptr;
 
-        Block(size_t itemSize, size_t itemsPerBlock)
-            : memory(std::malloc(itemSize * itemsPerBlock))
-            , unitializedItems(itemsPerBlock)
+        Block(size_t itemSize, size_t itemsCount)
+            : itemCount(itemsCount)
+            , unitializedItems(itemsCount)
+            , memory(std::malloc(sizeInBytes(itemSize)))
         {
             if(!memory)
                 throw std::runtime_error("out of memory");
@@ -93,7 +97,8 @@ class MemoryManager
 
         Block(const Block &) = delete;
         Block(Block &&rhs)
-            : unitializedItems(rhs.unitializedItems)
+            : itemCount(rhs.itemCount)
+            , unitializedItems(rhs.unitializedItems)
             , memory(rhs.memory)
         {
             rhs.memory = nullptr;
@@ -106,6 +111,16 @@ class MemoryManager
             return static_cast<char*>(memory) + index * itemSize;
         }
 
+        bool contains(void *item, size_t itemSize) const
+        {
+            return memory <= item && static_cast<char*>(memory) + sizeInBytes(itemSize) > item;
+        }
+
+        size_t sizeInBytes(size_t itemSize) const
+        {
+            return itemSize * itemCount;
+        }
+
         ~Block()
         {
             std::free(memory);
@@ -113,21 +128,22 @@ class MemoryManager
     };
 
     const size_t itemSize;
-    const size_t itemsPerBlock;
-    const size_t blockSize = itemSize * itemsPerBlock;
+    const size_t defaultItemsPerBlock;
 
-    //boost::container::small_vector<Block, 200> blocks;
     std::vector<Block> blocks;
     void * head = nullptr; // points to the last free, initialized element
-    //std::vector<void*> freed;
 
     LockPolicy mx;
-    //boost::mutex mx;
 
 
-    decltype(auto) addBlock()
+    Block &addBlock()
     {
-        blocks.emplace_back(itemSize, itemsPerBlock);
+        return addBlock(defaultItemsPerBlock);
+    }
+
+    Block &addBlock(size_t itemsCount)
+    {
+        blocks.emplace_back(itemSize, itemsCount);
         return blocks.back();
     }
 
@@ -139,15 +155,10 @@ class MemoryManager
     Block &getBlock(void *item)
     {
         for(auto &block : blocks)
-            if(belongsTo(block, item))
+            if(block.contains(item, itemSize))
                 return block;
 
         throw std::runtime_error("cannot find block for item");
-    }
-
-    bool belongsTo(const Block &block, void *item)
-    {
-        return block.memory <= item && static_cast<char*>(block.memory) + blockSize > item;
     }
 
     void *obtainUnitializedItem(Block &block)
@@ -158,15 +169,15 @@ class MemoryManager
     void *obtainUnitializedItems(Block &block, size_t count)
     {
         assert(block.unitializedItems >= count);
-        const auto ret = block.itemAtIndex(itemSize, itemsPerBlock - block.unitializedItems);
+        const auto ret = block.itemAtIndex(itemSize, block.itemCount - block.unitializedItems);
         block.unitializedItems -= count;
         return ret;
     }
 
 public:
-    MemoryManager(size_t itemSize, size_t itemsPerBlock)
+    MemoryManager(size_t itemSize, size_t defaultItemsPerBlock)
         : itemSize(itemSize)
-        , itemsPerBlock(itemsPerBlock)
+        , defaultItemsPerBlock(defaultItemsPerBlock)
     {
         if(itemSize < sizeof(void*))
             throw std::runtime_error("item size must be at least of size of a pointer");
@@ -196,12 +207,14 @@ public:
     void *newItems(size_t count)
     {
         const auto lockGuard = mx.lock();
-        assert(count <= itemsPerBlock);
         for(auto &block : blocks)
             if(block.unitializedItems >= count)
                 return obtainUnitializedItems(block, count);
 
-        return obtainUnitializedItems(addBlock(), count);
+        // If user requested more elements than default block size, prepare a bigger block.
+        const auto countToAllocate = std::max(count, defaultItemsPerBlock);
+        auto &newBlock = addBlock(countToAllocate);
+        return obtainUnitializedItems(newBlock, count);
     }
 
     void deleteItem(void *item)
@@ -216,7 +229,7 @@ public:
         const auto lockGuard = mx.lock();
         const auto addItemsFromBlock = [this] (auto &out, const Block &block) -> void
         {
-            const auto perhapsUsedInBlock = itemsPerBlock - block.unitializedItems;
+            const auto perhapsUsedInBlock = block.itemCount - block.unitializedItems;
             for(auto i = 0u; i < perhapsUsedInBlock; ++i)
                 out.insert(out.end(), block.itemAtIndex(itemSize, i));
         };
