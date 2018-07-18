@@ -3,8 +3,10 @@ module Luna.Package.Structure.Generate.Internal where
 import Prologue
 
 import qualified Control.Exception                       as Exception
+import qualified Data.Text                               as Text
 import qualified Data.Yaml                               as Yaml
 import qualified GHC.IO.Exception                        as Exception
+import qualified Luna.Package.Configuration.Global       as Global
 import qualified Luna.Package.Configuration.License      as License
 import qualified Luna.Package.Configuration.License.Data as License
 import qualified Luna.Package.Configuration.Local        as Local
@@ -17,8 +19,6 @@ import qualified System.IO.Error                         as Exception
 
 import Luna.Package.Configuration.License (License)
 import System.FilePath                    (FilePath, (</>))
-
--- TODO [Ara] Write the license type into the project config.
 
 
 
@@ -83,11 +83,18 @@ recovery canonicalName ex = do
 
 -- === API === --
 
-generateConfigDir :: FilePath -> Maybe License -> IO ()
-generateConfigDir pkgPath mLicense = do
+generateConfigDir :: FilePath -> Maybe License -> Global.Config -> IO ()
+generateConfigDir pkgPath mLicense globalCfg = do
     let configPath = pkgPath </> Path.fromRelDir Name.configDirectory
-        initConfig = set Local.license (fromJust License.None mLicense)
-            $ set Local.projectName (convert pkgName) (def @Local.Config)
+        authorName = globalCfg ^. Global.user . Global.name
+        authorMail = globalCfg ^. Global.user . Global.email
+        maintainer = if Text.null authorMail then "" else
+            authorName <> " <" <> authorMail <> ">"
+        initConfig = (def @Local.Config)
+            & Local.license     .~ (fromJust License.None mLicense)
+            & Local.projectName .~ (convert pkgName)
+            & Local.author      .~ authorName
+            & Local.maintainer  .~ maintainer
         pkgName    = unsafeLast $ FilePath.splitDirectories pkgPath
         -- By this point it is guaranteed to have a valid name
 

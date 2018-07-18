@@ -28,7 +28,6 @@ import qualified System.IO                           as IO
 
 import Control.Monad.Exception               (MonadExceptions)
 import Data.Map                              (Map)
-import Luna.Syntax.Text.Parser.Data.CodeSpan (CodeSpan)
 import Path                                  (Path, Abs, Dir, File)
 
 

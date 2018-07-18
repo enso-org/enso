@@ -104,7 +104,9 @@ instance Yaml.ToJSON ExternalTarget where
 type LunaOption = Text
 
 data Config = Config
-    { _projectName     :: Text
+    { _author          :: Text
+    , _maintainer      :: Text
+    , _projectName     :: Text
     , _projectVersion  :: Version
     , _license         :: License
     , _buildType       :: BuildType
@@ -119,7 +121,7 @@ makeLenses ''Config
 -- === Instances === --
 
 instance Default Config where
-    def = Config def def def def def def Nothing Nothing
+    def = Config def def def def def def def def Nothing Nothing
 
 instance Yaml.FromJSON Config where
     parseJSON = Lens.parseYamlStyle

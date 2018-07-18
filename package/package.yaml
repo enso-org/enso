@@ -43,6 +43,7 @@ dependencies:
     - path >= 0.6.0
     - prologue
     - safe-exceptions
+    - text
     - yaml
 
 default-extensions:

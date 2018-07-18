@@ -174,26 +174,17 @@ run (RunOpts target) = liftIO $ catch compute recover where
 init :: (ConfigStateIO m, MonadException Path.PathException m) => InitOpts
     -> m ()
 init opts = do
-    licenseConfig <- view Global.license <$> State.get @Global.Config
+    globalCfg <- State.get @Global.Config
 
-    let mLicense = if null $ view licenseOverride opts then
+    let licenseConfig = view Global.license globalCfg
+        mLicense      = if null $ view licenseOverride opts then
             case licenseConfig ^? _Just . Global.defaultLicense . _Just of
                 Nothing -> Nothing
                 Just key -> hush $ Megaparsec.runParser License.license "" key
         else hush $ Megaparsec.runParser License.license "" . convert
             $ view licenseOverride opts
 
-    {- let mLicense = if null $ view licenseOverride opts then -}
-            {- case licenseConfig of -}
-                {- Nothing                           -> Nothing -}
-                {- Just (Global.LicenseConfig _ lic) -> case lic of -}
-                    {- Nothing  -> Nothing -}
-                    {- Just key -> hush -}
-                        {- $ Megaparsec.runParser License.license "" key -}
-        {- else hush $ Megaparsec.runParser License.license "" . convert -}
-            {- $ view licenseOverride opts -}
-
-    Generate.genPackageStructure (view name opts) mLicense >>= \case
+    Generate.genPackageStructure (view name opts) mLicense globalCfg >>= \case
         Left err -> case err of
             Generate.InvalidPackageLocation msg -> putStrLn $ convert msg
             Generate.InvalidPackageName _       -> putStrLn
@@ -274,17 +265,14 @@ acquireGlobalConfig = liftIO $ Exception.catch acquire recovery where
 
         unless configFileExists $ do
             putStrLn "Generating Global Config"
+            putStrLn $ "Please fill in your name in " <> lunaConfigFile
+            putStrLn $ "Please fill in your email in " <> lunaConfigFile
             let defaultConfig = def @Global.Config
             Yaml.encodeFile lunaConfigFile defaultConfig
 
         globalConfig <- Yaml.decodeFileEither @Global.Config lunaConfigFile
 
         case globalConfig of
-            Left _ -> pure $ Left "Unable to decode global configuration."
-            Right config -> do
-                when (view (Global.user . Global.name) config == "") $
-                    putStrLn $ "Please fill in your name in " <> lunaConfigFile
-                when (view (Global.user . Global.email) config == "") $
-                    putStrLn $ "Please fill in your email in " <> lunaConfigFile
+            Left _    -> pure $ Left "Unable to decode global configuration."
+            Right cfg -> pure $ Right cfg
 
-                pure $ Right config

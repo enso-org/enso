@@ -2,6 +2,7 @@ module Luna.Package.Structure.GenerateSpec where
 
 import Prologue
 
+import qualified Luna.Package.Configuration.Global  as Global
 import qualified Luna.Package.Configuration.License as License
 import qualified Luna.Package.Structure.Name        as Name
 import qualified Path                               as Path
@@ -18,6 +19,7 @@ import Test.Hspec                      ( Spec, Expectation, it, describe
 -- === Testing Helper Functions === --
 --------------------------------------
 
+
 testPkgDir :: (FilePath -> Expectation) -> Expectation
 testPkgDir = Temp.withSystemTempDirectory "pkgTest"
 
@@ -25,7 +27,7 @@ doesExist :: FilePath -> FilePath -> Expectation
 doesExist path tempDir = do
     canonicalPath <- Directory.canonicalizePath tempDir
     let packageDir = canonicalPath </> "TestPackage"
-    _ <- genPackageStructure packageDir $ Just License.MIT
+    _ <- genPackageStructure packageDir (Just License.MIT) $ def @Global.Config
 
     dirExists <- Directory.doesPathExist (packageDir </> path)
 
@@ -34,7 +36,8 @@ doesExist path tempDir = do
 findPackageDir :: Bool -> FilePath -> FilePath -> Expectation
 findPackageDir shouldFind name rootPath = do
     canonicalPath <- Directory.canonicalizePath rootPath
-    result <- genPackageStructure (canonicalPath </> name) $ Just License.MIT
+    result <- genPackageStructure (canonicalPath </> name) (Just License.MIT)
+        $ def @Global.Config
 
     case result of
         Right path -> do
@@ -48,8 +51,8 @@ testNesting isNested tempPath = do
     canonicalPath <- Directory.canonicalizePath tempPath
 
     when isNested (Directory.createDirectory $ canonicalPath </> configDir)
-    result <- genPackageStructure (canonicalPath </> "TestPackage") $
-        Just License.MIT
+    result <- genPackageStructure (canonicalPath </> "TestPackage")
+        (Just License.MIT) $ def @Global.Config
     case result of
         Left _ -> isNested `shouldBe` True
         Right _ -> isNested `shouldBe` False

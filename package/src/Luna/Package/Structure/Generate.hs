@@ -8,6 +8,7 @@ import Luna.Package.Structure.Utilities         as X (isValidPkgName)
 import Prologue
 
 import qualified Control.Exception                        as Exception
+import qualified Luna.Package.Configuration.Global        as Global
 import qualified Luna.Package.Structure.Generate.Internal as Internal
 import qualified Luna.Package.Structure.Utilities         as Utilities
 import qualified System.Directory                         as Directory
@@ -23,9 +24,9 @@ import System.FilePath                          (FilePath)
 
 -- === API === --
 
-genPackageStructure :: MonadIO m => FilePath -> Maybe License
+genPackageStructure :: MonadIO m => FilePath -> Maybe License -> Global.Config
                     -> m (Either GeneratorError FilePath)
-genPackageStructure name mLicense = do
+genPackageStructure name mLicense globalConf = do
     let pkgName = snd $ FilePath.splitFileName name
 
     canonicalName <- liftIO $ Directory.canonicalizePath name
@@ -46,7 +47,7 @@ genPackageStructure name mLicense = do
             canonicalPath <- Directory.canonicalizePath name
             Directory.createDirectoryIfMissing True canonicalPath
 
-            Internal.generateConfigDir       canonicalPath mLicense
+            Internal.generateConfigDir       canonicalPath mLicense globalConf
             Internal.generateDistributionDir canonicalPath
             Internal.generateSourceDir       canonicalPath
             Internal.generateLicense         canonicalPath mLicense

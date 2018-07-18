@@ -5,12 +5,12 @@ import Prologue
 import qualified Luna.Package.Configuration.License as License
 import qualified Luna.Package.Configuration.Local   as Local
 
-import Data.ByteString                               ( ByteString )
-import Luna.Package.Version                          ( Version(Version) )
+import Data.ByteString                          ( ByteString )
+import Luna.Package.Version                     ( Version(Version) )
 import Luna.Package.Configuration.YamlTestUtils ( shouldDecodeAs
-                                                     , shouldNotDecode
-                                                     , shouldGenerate )
-import Test.Hspec                                    ( Spec, describe, it)
+                                                , shouldNotDecode
+                                                , shouldGenerate )
+import Test.Hspec                               ( Spec, describe, it)
 
 allFieldsUsed :: ByteString
 allFieldsUsed = [qqStr|
@@ -31,7 +31,9 @@ luna-options:
 - Bar
 - Baz
 build-type: library
+maintainer: joe@email.com
 synopsis: This is a test package.
+author: Joe Bloggs
 license:
   tag: unknown
   contents: My Custom License
@@ -40,6 +42,8 @@ description: This is my package description.
 
 allFieldsUsedResult :: Local.Config
 allFieldsUsedResult = Local.Config
+    "Joe Bloggs"
+    "joe@email.com"
     "Foo"
     (Version 0 0 1 Nothing)
     (License.Unknown "My Custom License")
@@ -57,7 +61,9 @@ project-version:
   major: 0
   patch: 1
 build-type: library
+maintainer: joe@email.com
 synopsis: This is a test package.
+author: Joe Bloggs
 license:
   tag: mit
 description: This is my package description.
@@ -65,6 +71,8 @@ description: This is my package description.
 
 optionalFieldsOmittedResult :: Local.Config
 optionalFieldsOmittedResult = Local.Config
+    "Joe Bloggs"
+    "joe@email.com"
     "Foo"
     (Version 0 0 1 Nothing)
     (License.MIT)
