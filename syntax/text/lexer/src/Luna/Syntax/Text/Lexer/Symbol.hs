@@ -67,7 +67,6 @@ data Symbol
     | Wildcard
 
     -- Keyword
-    | KwAll
     | KwCase
     | KwClass
     | KwDef
@@ -139,7 +138,6 @@ makeLenses ''Number
 
 checkSpecialVar :: Text32 -> Symbol
 checkSpecialVar = \case
-    "all"     -> KwAll
     "case"    -> KwCase
     "class"   -> KwClass
     "def"     -> KwDef
@@ -182,7 +180,6 @@ pretty = \case
     Var        {} -> "variable name"
     Cons       {} -> "Constructor"
     Wildcard   {} -> "wildcard"
-    KwAll      {} -> "keyword `All`"
     KwCase     {} -> "keyword `Case`"
     KwClass    {} -> "keyword `Class`"
     KwDef      {} -> "keyword `Def`"
@@ -229,7 +226,6 @@ instance ShowCons Symbol where
         Var               {} -> "Var"
         Cons              {} -> "Cons"
         Wildcard          {} -> "Wildcard"
-        KwAll             {} -> "KwAll"
         KwCase            {} -> "KwCase"
         KwClass           {} -> "KwClass"
         KwDef             {} -> "KwDef"
@@ -272,7 +268,6 @@ instance IsTagged Symbol where
         Var               {} -> "Ident"
         Cons              {} -> "Ident"
         Wildcard          {} -> "Ident"
-        KwAll             {} -> "Keyword"
         KwCase            {} -> "Keyword"
         KwClass           {} -> "Keyword"
         KwDef             {} -> "Keyword"
