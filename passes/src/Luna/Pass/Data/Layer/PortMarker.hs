@@ -37,7 +37,7 @@ data PortMarker deriving Generic
 instance Layer PortMarker where
     type Cons PortMarker = Layer.Simple (Maybe OutPortRefLike)
     type Layout PortMarker layout = Layout.Get PortMarker layout
-    manager = Layer.dynamicManager
+    manager = Layer.staticManager
 
 
 instance Monad m => FoldClass.Builder (Fold.Scoped (Fold.Deep (Fold.Discovery a))) m (Maybe OutPortRefLike)

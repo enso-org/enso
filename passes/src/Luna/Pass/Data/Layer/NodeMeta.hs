@@ -48,7 +48,7 @@ data Meta deriving Generic
 instance Layer Meta where
     type Cons Meta = Layer.Simple (Maybe NodeMetaLike)
     type Layout Meta layout = Layout.Get Meta layout
-    manager = Layer.dynamicManager
+    manager = Layer.staticManager
 
 
 instance Monad m => FoldClass.Builder (Fold.Scoped (Fold.Deep (Fold.Discovery a))) m (Maybe NodeMetaLike)
