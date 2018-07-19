@@ -11,6 +11,7 @@ import qualified Luna.IR.Aliases                       as Uni
 import qualified Luna.IR.Layer                         as Layer
 import qualified Luna.Pass                             as Pass
 import qualified Luna.Pass.Attr                        as Attr
+import qualified Luna.Pass.Data.Error                  as Error
 import qualified Luna.Pass.Data.Layer.Requester        as Requester
 import qualified Luna.Pass.Typing.Base                 as TC
 import qualified Luna.Pass.Data.Stage                  as TC
@@ -48,18 +49,25 @@ trySimplify app = do
     IR.App f a <- IR.model app
     fun <- IR.source f
     arg <- IR.source a
+    requester <- Requester.getRequester app
+    arising   <- Requester.getArising   app
     Layer.read @IR.Model fun >>= \case
         Uni.Lam i o -> do
             inp       <- IR.source i
             out       <- IR.source o
             uni       <- IR.unify inp arg
-            requester <- traverse IR.source =<< Requester.get app
-            Requester.set requester app
+            requester <- Requester.getRequester app
+            arising   <- Requester.getArising   app
+            Requester.setRequester requester uni
+            Requester.setArising   arising   uni
             UniQueue.register $ Layout.unsafeRelayout uni
             IR.replace out app
             return True
-        Uni.ResolvedCons {} -> do
-            Requester.set Nothing app
+        Uni.ResolvedCons m c _ _ -> do
+            Requester.setRequester Nothing app
             IR.deleteSubtree app
+            for_ requester $ Error.setError $ Just
+                                $ Error.cannotUseObjectAsAFunction m c
+                                    & Error.arisingFrom .~ arising
             return True
         _ -> return False

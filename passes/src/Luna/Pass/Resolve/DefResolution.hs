@@ -9,6 +9,7 @@ import qualified Luna.IR                             as IR
 import qualified Luna.IR.Layer                       as Layer
 import qualified Luna.Pass                           as Pass
 import qualified Luna.Pass.Attr                      as Attr
+import qualified Luna.Pass.Data.Error                as Error
 import qualified Luna.Pass.Data.Stage                as TC
 import qualified Luna.Pass.Basic                     as Pass
 
@@ -35,9 +36,9 @@ resolveDef v = do
     IR.Var n   <- IR.model v
     resolver   <- Attr.get @DefResolver
     let resolution = resolve n resolver
-    {-putStrLn $ show n <> " : " <> show resolution-}
     case resolution of
         Resolved (DefRef m) -> do
             resolved <- IR.resolvedDef m n
             IR.replace resolved v
-        _ -> return ()
+        _ -> do
+            Error.setError (Just $ Error.varNotFound n) v

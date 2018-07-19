@@ -15,6 +15,7 @@ import qualified Luna.IR.Layer                         as Layer
 import qualified Luna.Pass                             as Pass
 import qualified Luna.Pass.Attr                        as Attr
 import qualified Luna.Pass.Data.Layer.Requester        as Requester
+import qualified Luna.Pass.Data.Error                  as Error
 import qualified Luna.Pass.Data.Stage                  as TC
 import qualified Luna.Pass.Data.UniqueNameGen          as NameGen
 import qualified Luna.Pass.Typing.Base                 as TC
@@ -52,7 +53,7 @@ importDefs expr = Layer.read @IR.Model expr >>= \case
     Uni.ResolvedDef mod n -> do
         resolution <- unwrap <$> Typed.requestDef mod n
         case resolution of
-            Left e -> return ()
+            Left e -> Error.setError (Just e) expr
             Right rooted -> do
                 hdr <- Store.deserialize rooted
                 IR.DefHeader tp' unis' accs' apps' <- IR.model hdr
@@ -63,9 +64,9 @@ importDefs expr = Layer.read @IR.Model expr >>= \case
                 UniQueue.registers $ Layout.unsafeRelayout <$> unis
                 AccQueue.registers $ Layout.unsafeRelayout <$> accs
                 AppQueue.registers $ Layout.unsafeRelayout <$> apps
-                traverse_ (Requester.set $ Just expr) unis
-                traverse_ (Requester.set $ Just expr) accs
-                traverse_ (Requester.set $ Just expr) apps
+                traverse_ (Requester.setRequester $ Just expr) unis
+                traverse_ (Requester.setRequester $ Just expr) accs
+                traverse_ (Requester.setRequester $ Just expr) apps
                 oldTp <- IR.source =<< Layer.read @IR.Type expr
                 IR.replace tp oldTp
                 IR.deleteSubtreeWithWhitelist (Set.fromList $ unis <> accs <> apps) hdr

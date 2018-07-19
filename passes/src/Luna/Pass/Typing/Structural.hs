@@ -70,20 +70,20 @@ attachStructuralType expr = do
             partTps <- traverse getStructuralType parts
             txt <- IR.resolvedCons' baseMod "Text" "Text" ([] :: [IR.SomeTerm])
             unis <- traverse (IR.unify txt) partTps
-            traverse_ (Requester.set $ Just expr) unis
+            traverse_ (Requester.setRequester $ Just expr) unis
             UniQueue.registers $ Layout.unsafeRelayout <$> unis
             return txt
         Uni.Acc a n -> do
             at <- getStructuralType =<< IR.source a
             acc <- IR.acc' at n
-            Requester.set (Just expr) acc
+            Requester.setRequester (Just expr) acc
             AccQueue.register $ Layout.unsafeRelayout acc
             return acc
         Uni.App f a -> do
             at <- getStructuralType =<< IR.source a
             ft <- getStructuralType =<< IR.source f
             app <- IR.app' ft at
-            Requester.set (Just expr) app
+            Requester.setRequester (Just expr) app
             AppQueue.register $ Layout.unsafeRelayout app
             return app
         Uni.Lam i o -> do
@@ -94,7 +94,7 @@ attachStructuralType expr = do
             lt <- getStructuralType =<< IR.source l
             rt <- getStructuralType =<< IR.source r
             uni <- IR.unify lt rt
-            Requester.set (Just expr) uni
+            Requester.setRequester (Just expr) uni
             UniQueue.register $ Layout.unsafeRelayout uni
             return rt
         Uni.Function n as' o -> do
@@ -104,7 +104,7 @@ attachStructuralType expr = do
             nt   <- getStructuralType =<< IR.source n
             lamt <- foldM (flip IR.lam') ot (reverse args)
             uni  <- IR.unify nt lamt
-            Requester.set (Just expr) uni
+            Requester.setRequester (Just expr) uni
             UniQueue.register $ Layout.unsafeRelayout uni
             return lamt
         Uni.Grouped g  -> getStructuralType =<< IR.source g
@@ -118,13 +118,13 @@ attachStructuralType expr = do
             clausest <- traverse getStructuralType clauses
             clauseOuts <- for clausest $ \ct -> do
                 retT <- IR.app ct at
-                Requester.set (Just expr) retT
+                Requester.setRequester (Just expr) retT
                 AppQueue.register $ Layout.unsafeRelayout retT
                 return retT
             outTp <- IR.var' =<< NameGen.generateName
             unis  <- traverse (IR.unify outTp) clauseOuts
             UniQueue.registers $ Layout.unsafeRelayout <$> unis
-            traverse_ (Requester.set $ Just expr) unis
+            traverse_ (Requester.setRequester $ Just expr) unis
             return outTp
         _ -> do
             inps <- IR.inputs expr

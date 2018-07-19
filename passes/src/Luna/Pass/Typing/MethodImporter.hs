@@ -72,7 +72,9 @@ solve :: IR.Term IR.Acc
       -> TC.Pass MethodImporter (Either (IR.Term IR.Acc) [IR.Term IR.Acc])
 solve expr = do
     IR.Acc t n <- IR.model expr
-    target <- IR.source t
+    target     <- IR.source t
+    req        <- Requester.getRequester expr
+    arising    <- Requester.getArising expr
     Layer.read @IR.Model target >>= \case
         Uni.ResolvedCons unit cls _ _ -> do
             compilationTarget <- Attr.get @Target.Target
@@ -81,13 +83,12 @@ solve expr = do
                     rootTp    <- IR.source =<< Layer.read @IR.Type root
                     return $ Right (rootTp, [])
                 else do
-                    req <- traverse IR.source =<< Requester.get expr
-                    importMethodDef req unit cls n
+                    importMethodDef req arising unit cls n
             case replacement of
                 Left e -> do
-                    Requester.set Nothing expr
+                    Requester.setRequester Nothing expr
                     IR.deleteSubtree expr
-                    --TODO err
+                    traverse_ (Error.setError $ Just e) req
                     return $ Right []
                 Right (imported, new) -> do
                     ap <- IR.app imported target
@@ -95,19 +96,22 @@ solve expr = do
                     IR.replace ap expr
                     return $ Right new
         Uni.Lam{} -> do
-            Requester.set Nothing expr
+            Requester.setRequester Nothing expr
             IR.deleteSubtree expr
-            -- TODO err
+            for_ req $ Error.setError $ Just
+                          $ Error.cannotCallMethodOnAFunction n
+                              & Error.arisingFrom .~ arising
             return $ Right []
         _ -> return $ Left expr
 
-importMethodDef :: Maybe IR.SomeTerm -> IR.Qualified -> IR.Name -> IR.Name
+importMethodDef :: Maybe IR.SomeTerm -> [Target.Target] -> IR.Qualified
+                -> IR.Name -> IR.Name
                 -> TC.Pass MethodImporter (Either Error.CompileError
                                 (IR.SomeTerm, [IR.Term IR.Acc]))
-importMethodDef req mod cls n = do
+importMethodDef req arising mod cls n = do
     resolution <- unwrap <$> Typed.requestMethod mod cls n
     case resolution of
-        Left e -> return $ Left e
+        Left e -> return $ Left $ e & Error.arisingFrom .~ arising
         Right rooted -> do
             hdr <- Store.deserialize rooted
             IR.DefHeader tp' unis' accs' apps' <- IR.model hdr
@@ -117,8 +121,8 @@ importMethodDef req mod cls n = do
             apps <- traverse IR.source =<< ComponentVector.toList apps'
             UniQueue.registers $ Layout.unsafeRelayout <$> unis
             AppQueue.registers $ Layout.unsafeRelayout <$> apps
-            traverse_ (Requester.set req) unis
-            traverse_ (Requester.set req) accs
-            traverse_ (Requester.set req) apps
+            traverse_ (Requester.setRequester req) unis
+            traverse_ (Requester.setRequester req) accs
+            traverse_ (Requester.setRequester req) apps
             IR.deleteSubtreeWithWhitelist (Set.fromList $ [tp] <> unis <> accs <> apps) hdr
             return $ Right (tp, Layout.unsafeRelayout <$> accs)

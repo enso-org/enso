@@ -18,10 +18,12 @@ import qualified Luna.Pass.Data.Layer.Requester        as Requester
 import qualified Luna.Pass.Data.Stage                  as TC
 import qualified Luna.Pass.Data.UniqueNameGen          as NameGen
 import qualified Luna.Pass.Scheduler                   as Scheduler
+import qualified Luna.Pass.Data.Error                  as Error
 import qualified Luna.Pass.Typing.Base                 as TC
 import qualified Luna.Pass.Typing.Data.AccQueue        as AccQueue
 import qualified Luna.Pass.Typing.Data.AppQueue        as AppQueue
 import qualified Luna.Pass.Typing.Data.UniQueue        as UniQueue
+import qualified Luna.Pass.Typing.Data.Target          as Target
 import qualified Luna.Pass.Typing.Data.Typed           as Typed
 
 import Luna.Pass.Data.Root (Root (..))
@@ -34,6 +36,7 @@ type family HeaderBuilderSpec t where
                                                , AppQueue.AppQueue
                                                , AccQueue.AccQueue
                                                , UniQueue.UniQueue
+                                               , Target.Target
                                                ]
     HeaderBuilderSpec (Pass.Out Pass.Attrs) = '[ Typed.DefHeader
                                                , AppQueue.AppQueue
@@ -45,39 +48,51 @@ type family HeaderBuilderSpec t where
 instance Pass.Definition TC.Stage HeaderBuilder where
     definition = do
         Root root <- Attr.get
+        tgt       <- Attr.get @Target.Target
         AppQueue.AppQueue apps <- Attr.get
         AccQueue.AccQueue accs <- Attr.get
         UniQueue.UniQueue unis <- Attr.get
-        traverse_ (Requester.set Nothing) apps
-        traverse_ (Requester.set Nothing) accs
-        traverse_ (Requester.set Nothing) unis
+        traverse_ (Requester.setRequester Nothing) apps
+        traverse_ (Requester.setRequester Nothing) accs
+        traverse_ (Requester.setRequester Nothing) unis
+        traverse_ (Requester.pushArising tgt) apps
+        traverse_ (Requester.pushArising tgt) accs
+        traverse_ (Requester.pushArising tgt) unis
         tmpBlank <- IR.blank
-
         IR.substitute tmpBlank root
-        hdr        <- IR.defHeader root unis accs apps
-        prerooted  <- Store.serialize $ (Layout.unsafeRelayout hdr :: IR.Term IR.DefHeader)
-        IR.replace root tmpBlank
-        let hdrInps = Set.fromList $ concat [ [root]
-                                            , Layout.relayout <$> apps
-                                            , Layout.relayout <$> accs
-                                            , Layout.relayout <$> unis
-                                            ]
-        IR.deleteSubtreeWithWhitelist hdrInps hdr
-        rooted <- do
-            copyHdr <- Store.deserialize prerooted
-            IR.DefHeader croot' cunis' caccs' capps' <- IR.model copyHdr
-            croot <- IR.source croot'
-            cunis <- traverse IR.source =<< ComponentVector.toList cunis'
-            caccs <- traverse IR.source =<< ComponentVector.toList caccs'
-            capps <- traverse IR.source =<< ComponentVector.toList capps'
-            ctype <- IR.source =<< Layer.read @IR.Type croot
-            chdr  <- IR.defHeader ctype cunis caccs capps
-            IR.deleteSubtree copyHdr
-            rooted <- Store.serialize $ Layout.unsafeRelayout chdr
-            IR.deleteSubtree chdr
-            return rooted
+        hdr <- IR.defHeader root unis accs apps
+        err <- Error.getError root
 
-        Attr.put $ Typed.DefHeader $ Right rooted
+        r <- case err of
+            Just e -> do
+                IR.replace root tmpBlank
+                IR.deleteSubtreeWithWhitelist (Set.singleton root) hdr
+                pure $ Typed.DefHeader $ Left $ e & Error.failedAt %~ (tgt :)
+            Nothing -> do
+                prerooted  <- Store.serialize
+                    (Layout.unsafeRelayout hdr :: IR.Term IR.DefHeader)
+                IR.replace root tmpBlank
+                let hdrInps = Set.fromList $ concat [ [root]
+                                                    , Layout.relayout <$> apps
+                                                    , Layout.relayout <$> accs
+                                                    , Layout.relayout <$> unis
+                                                    ]
+                IR.deleteSubtreeWithWhitelist hdrInps hdr
+
+                copyHdr <- Store.deserialize prerooted
+                IR.DefHeader croot' cunis' caccs' capps' <- IR.model copyHdr
+                croot <- IR.source croot'
+                cunis <- traverse IR.source =<< ComponentVector.toList cunis'
+                caccs <- traverse IR.source =<< ComponentVector.toList caccs'
+                capps <- traverse IR.source =<< ComponentVector.toList capps'
+                ctype <- IR.source =<< Layer.read @IR.Type croot
+                chdr  <- IR.defHeader ctype cunis caccs capps
+                IR.deleteSubtree copyHdr
+                rooted <- Store.serialize $ Layout.unsafeRelayout chdr
+                IR.deleteSubtree chdr
+                pure $ Typed.DefHeader $ Right rooted
+
+        Attr.put r
 
 newtype GraphCopy = GraphCopy (Store.Rooted IR.SomeTerm)
 makeLenses ''GraphCopy

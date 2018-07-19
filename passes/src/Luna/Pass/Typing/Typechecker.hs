@@ -16,13 +16,14 @@ import qualified Luna.Pass.Typing.Data.Progress        as Progress
 import qualified Luna.Pass.Typing.Data.Target          as Target
 import qualified Luna.Pass.Typing.Data.Typed           as Typed
 
-import Luna.Pass.Typing.DefImporter    (DefImporter)
-import Luna.Pass.Typing.MethodImporter (MethodImporter)
-import Luna.Pass.Typing.ConsImporter   (ConsImporter)
-import Luna.Pass.Typing.Structural     (StructuralTyping)
-import Luna.Pass.Typing.UniSolver      (UniSolver)
-import Luna.Pass.Typing.AppSolver      (AppSolver)
-import Luna.Pass.Typing.HeaderBuilder  (HeaderBuilder)
+import Luna.Pass.Typing.DefImporter      (DefImporter)
+import Luna.Pass.Typing.MethodImporter   (MethodImporter)
+import Luna.Pass.Typing.ConsImporter     (ConsImporter)
+import Luna.Pass.Typing.Structural       (StructuralTyping)
+import Luna.Pass.Typing.UniSolver        (UniSolver)
+import Luna.Pass.Typing.AppSolver        (AppSolver)
+import Luna.Pass.Typing.HeaderBuilder    (HeaderBuilder)
+import Luna.Pass.Typing.ErrorPropagation (ErrorPropagation)
 
 runTypechecker :: Target.Target -> IR.SomeTerm
                -> Typed.Units -> TC.Monad Typed.DefHeader
@@ -54,6 +55,7 @@ runTypechecker tgt root units = do
     Scheduler.registerPass @TC.Stage @HeaderBuilder
     Scheduler.registerPass @TC.Stage @ConsImporter
     Scheduler.registerPass @TC.Stage @MethodImporter
+    Scheduler.registerPass @TC.Stage @ErrorPropagation
 
     Scheduler.runPassByType @DefImporter
     Scheduler.runPassByType @StructuralTyping
@@ -61,6 +63,7 @@ runTypechecker tgt root units = do
 
     loopWhileProgress
 
+    Scheduler.runPassByType @ErrorPropagation
     Scheduler.runPassByType @HeaderBuilder
 
     Scheduler.getAttr @Typed.DefHeader

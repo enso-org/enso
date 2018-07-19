@@ -46,7 +46,7 @@ getDef mod n m = do
     let fut = m ^? wrapped . ix mod . definitions . ix n . wrapped
     case fut of
         Just fut -> Future.get fut
-        Nothing  -> return $ wrap $ Left $ Error.functionNotFound mod n
+        Nothing  -> return $ wrap $ Left $ Error.unexpectedFunctionNotFound mod n
 
 requestDef :: (MonadIO m, Attr.Getter Units m)
            => IR.Qualified -> IR.Name

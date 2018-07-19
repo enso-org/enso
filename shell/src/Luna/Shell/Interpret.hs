@@ -10,13 +10,14 @@ import qualified Luna.IR                             as IR
 import qualified Luna.Package                        as Package
 import qualified Luna.Package.Structure.Name         as Package
 import qualified Luna.Pass.Data.Stage                as TC
-import qualified Luna.Pass.Evaluation.EvaluateUnits  as EvaluateUnits
+import qualified Luna.Pass.Flow.ProcessUnits         as ProcessUnits
 import qualified Luna.Pass.Preprocess.PreprocessUnit as PreprocessUnit
 import qualified Luna.Pass.Resolve.Data.Resolution   as Res
 import qualified Luna.Pass.Scheduler                 as Scheduler
 import qualified Luna.Pass.Sourcing.Data.Unit        as Unit
 import qualified Luna.Pass.Sourcing.UnitLoader       as ModLoader
 import qualified Luna.Pass.Sourcing.UnitMapper       as UnitMap
+import qualified Luna.Pass.Typing.Data.Typed         as Typed
 import qualified Luna.Runtime                        as Runtime
 import qualified Luna.Shell.CWD                      as CWD
 import qualified Luna.Std                            as Std
@@ -71,6 +72,8 @@ interpretWithMain name sourcesMap = Graph.encodeAndEval @TC.Stage
             importResolvers = Map.mapWithKey (Res.resolverForUnit unitResolvers)
                 $ over wrapped ("Std.Base" :) . over wrapped ("Std.Primitive" :)
                 . view Unit.imports <$> mods
+            unitsWithResolvers = flip Map.mapWithKey units $ \n u ->
+                (importResolvers Map.! n, u)
 
         for (Map.toList importResolvers) $ \(unitName, resolver) -> do
             case Map.lookup unitName units of
@@ -79,14 +82,15 @@ interpretWithMain name sourcesMap = Graph.encodeAndEval @TC.Stage
                             "Unable to resolve compilation unit "
                             <> convert unitName
 
-        computedUnits <- EvaluateUnits.evaluateUnits units
-        mainFunc      <- Runtime.lookupSymbol computedUnits name
+        (tUnits, cUnits) <- ProcessUnits.processUnits def def unitsWithResolvers
+        tFunc <- Typed.getDef name (convert Package.mainFuncName) tUnits
+        mainFunc <- Runtime.lookupSymbol cUnits name
             $ convert Package.mainFuncName
-
-        putStrLn $ "Running in interpreted mode."
-        liftIO $ Runtime.runIO mainFunc
-
-        pure ()
+        case unwrap tFunc of
+            Left e  -> print e
+            Right _ -> do
+                putStrLn $ "Running in interpreted mode."
+                void $ liftIO $ Runtime.runIO mainFunc
 
 file :: (InterpreterMonad m) => Path Abs File -> m ()
 file filePath = do

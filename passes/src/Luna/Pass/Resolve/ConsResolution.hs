@@ -13,6 +13,7 @@ import qualified Luna.IR.Layer                       as Layer
 import qualified Luna.Pass                           as Pass
 import qualified Luna.Pass.Attr                      as Attr
 import qualified Luna.Pass.Basic                     as Pass
+import qualified Luna.Pass.Data.Error                as Error
 import qualified Luna.Pass.Data.Stage                as TC
 import qualified Luna.Pass.Sourcing.Data.Class       as Class
 
@@ -47,7 +48,7 @@ resolveConstructors positive root = Layer.read @IR.Model root >>= \case
                                          (Layout.unsafeRelayout root)
                                          consRef
                 IR.replace new root
-            _ -> return ()
+            _ -> Error.setError (Just $ Error.consNotFound n) root
     Uni.Unify l r -> do
         resolveConstructors False =<< IR.source l
         resolveConstructors True  =<< IR.source r

@@ -14,6 +14,7 @@ import qualified Luna.IR.Aliases                       as Uni
 import qualified Luna.IR.Layer                         as Layer
 import qualified Luna.Pass                             as Pass
 import qualified Luna.Pass.Attr                        as Attr
+import qualified Luna.Pass.Data.Error                  as Error
 import qualified Luna.Pass.Data.Layer.Requester        as Requester
 import qualified Luna.Pass.Data.Stage                  as TC
 import qualified Luna.Pass.Data.UniqueNameGen          as NameGen
@@ -47,7 +48,10 @@ importConses expr = Layer.read @IR.Model expr >>= \case
     Uni.ResolvedCons u cls n as -> do
         resolution <- Typed.requestCons u cls n
         case resolution of
-            Nothing -> return ()
+            Nothing -> do
+                Error.setError
+                    (Just $ Error.unexpectedConsTypeNotFound u cls n)
+                    expr
             Just rooted -> do
                 cs <- Store.deserialize rooted
                 IR.ResolvedCons _ _ _ typedAs <- IR.model cs
@@ -55,7 +59,7 @@ importConses expr = Layer.read @IR.Model expr >>= \case
                 tp    <- IR.source =<< Layer.read @IR.Type cs
                 oldTp <- IR.source =<< Layer.read @IR.Type expr
                 uniTp <- Layout.unsafeRelayout <$> IR.unify tp oldTp
-                Requester.set (Just expr) uniTp
+                Requester.setRequester (Just expr) uniTp
                 UniQueue.register uniTp
 
                 oldArgs <- traverse IR.source =<< ComponentVector.toList as
@@ -64,7 +68,7 @@ importConses expr = Layer.read @IR.Model expr >>= \case
                 newArgTypes <- traverse (IR.source <=< Layer.read @IR.Type) newArgs
 
                 unis <- zipWithM IR.unify oldArgTypes newArgTypes
-                traverse_ (Requester.set $ Just expr) unis
+                traverse_ (Requester.setRequester $ Just expr) unis
                 UniQueue.registers $ Layout.unsafeRelayout <$> unis
 
                 IR.deleteSubtree cs

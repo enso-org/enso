@@ -15,10 +15,12 @@ import qualified Data.Graph.Data.Layer.Layout     as Layout
 import qualified Data.Layout                      as Layout
 import qualified Data.Layout                      as Doc
 import qualified Data.Mutable.Class               as Mutable
+import qualified Data.Text                        as Text
 import qualified Data.Vector.Storable.Foreign     as Vector
 import qualified Language.Symbol.Operator.Assoc   as Assoc
 import qualified Language.Symbol.Operator.Prec    as Prec
 import qualified Luna.IR                          as IR
+import qualified Luna.IR.Aliases                  as Uni
 import qualified Luna.IR.Layer                    as Layer
 import qualified Luna.IR.Link                     as Link
 import qualified Luna.IR.Term.Literal             as Literal
@@ -435,8 +437,36 @@ isMultilineBlock lnk = do
 
 
 
+-- ---------------------------------
+-- -- === Type pretty printer === --
+-- ---------------------------------
 
-
+printType ::
+    ( Layer.Reader IR.Term IR.Model m
+    , Layer.Reader IR.Link Link.Source m
+    ) => IR.SomeTerm -> m Text
+printType = go False False where
+    parenIf shouldParen e = if shouldParen then "(" <> e <> ")" else e
+    go parenApps parenFuns = Layer.read @IR.Model >=> \case
+        Uni.Var n   -> pure $ Text.dropWhile (== '#') $ convert n
+        Uni.Lam i o -> do
+            iRep <- go False True  =<< IR.source i
+            oRep <- go False False =<< IR.source o
+            pure $ parenIf parenFuns $ iRep <> " -> " <> oRep
+        Uni.ResolvedCons mod cls _ as -> do
+            args    <- traverse IR.source =<< ComponentVector.toList as
+            argReps <- traverse (go True True) args
+            let cName = convertVia @String mod <> "." <> convert cls
+                out   = Text.concat $ intersperse " " $ cName : argReps
+            pure $ parenIf (parenApps && not (null args)) out
+        Uni.Acc t n -> do
+            tRep <- go True True =<< IR.source t
+            pure $ tRep <> "." <> convert n
+        Uni.App f a -> do
+            fRep <- go False True =<< IR.source f
+            aRep <- go True  True =<< IR.source a
+            pure $ parenIf parenApps $ fRep <> " " <> aRep
+        t -> pure $ parenIf True $ convert $ show t
 
 -- ------------------------------------
 -- -- === Compact pretty printer === --

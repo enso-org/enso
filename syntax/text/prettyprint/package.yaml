@@ -19,6 +19,7 @@ dependencies:
     - luna-syntax-text-parser
     - luna-syntax-text-model
     - prologue
+    - text
 
 default-extensions:
     - AllowAmbiguousTypes

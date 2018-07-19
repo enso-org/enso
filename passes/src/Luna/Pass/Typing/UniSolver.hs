@@ -15,11 +15,13 @@ import qualified Luna.IR.Aliases                       as Uni
 import qualified Luna.IR.Layer                         as Layer
 import qualified Luna.Pass                             as Pass
 import qualified Luna.Pass.Attr                        as Attr
+import qualified Luna.Pass.Data.Error                  as Error
 import qualified Luna.Pass.Data.Layer.Requester        as Requester
 import qualified Luna.Pass.Data.Stage                  as TC
 import qualified Luna.Pass.Typing.Base                 as TC
 import qualified Luna.Pass.Typing.Data.UniQueue        as UniQueue
 import qualified Luna.Pass.Typing.Data.Progress        as Progress
+import qualified Luna.Syntax.Prettyprint               as Pretty
 
 symmetrical :: Applicative f => (a -> a -> f b) -> a -> a -> f b
 symmetrical f a b = f a b *> f b a
@@ -68,13 +70,21 @@ deleteUni :: SolverRule m
 deleteUni uni a b = IR.deleteSubtreeWithWhitelist (Set.fromList [a, b]) uni
 
 resolveError :: SolverRule m
-resolveError uni a b = IR.deleteSubtree uni >> resolve_
+resolveError uni a b = do
+    aRep <- Pretty.printType a
+    bRep <- Pretty.printType b
+    requester <- Requester.getRequester uni
+    arising   <- Requester.getArising   uni
+    for_ requester $ Error.setError $ Just
+        $ Error.unificationError aRep bRep
+            & Error.arisingFrom .~ arising
+    IR.deleteSubtree uni
+    resolve_
 
 reflexivity :: SolverRule m
 reflexivity uni a b = when (a == b) $ do
     IR.deleteSubtreeWithWhitelist (Set.fromList [a, b]) uni
     resolve_
-
 
 variable :: SolverRule m
 variable uni a b = do
@@ -130,14 +140,16 @@ allRules uni l r = do
 
 solveUnification :: IR.Term IR.Unify -> TC.Pass UniSolver (Either [IR.Term IR.Unify] ())
 solveUnification uni = do
-    req <- traverse IR.source =<< Requester.get uni
+    req     <- Requester.getRequester uni
+    arising <- Requester.getArising   uni
     IR.Unify l' r' <- IR.model uni
     l <- IR.source l'
     r <- IR.source r'
     solution <- runResolutionT $ allRules uni l r
     case solution of
         Left new -> do
-            traverse_ (Requester.set req) new
+            traverse_ (Requester.setRequester req)     new
+            traverse_ (Requester.setArising   arising) new
         Right _ -> return ()
     return solution
 

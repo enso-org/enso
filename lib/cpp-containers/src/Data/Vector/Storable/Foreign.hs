@@ -29,7 +29,7 @@ import Foreign.Storable.Utils  (Dynamic, Dynamics)
 data Vector a = Vector
     { _size :: !Int
     , _ptr  :: !(Ptr a)
-    }
+    } deriving (Show)
 makeLenses      ''Vector
 Storable.derive ''Vector
 
