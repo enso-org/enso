@@ -53,6 +53,7 @@ propagateErrors expr = do
             updateErrors expr
         Uni.Marked _ e -> do
             propagateErrors =<< IR.source e
+            updateErrors expr
         Uni.Unify a b -> do
             propagateErrors =<< IR.source a
             propagateErrors =<< IR.source b

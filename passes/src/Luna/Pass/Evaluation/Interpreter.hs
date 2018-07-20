@@ -19,6 +19,7 @@ import qualified Luna.Pass                             as Pass
 import qualified Luna.Pass.Attr                        as Attr
 import qualified Luna.Pass.Basic                       as Pass
 import qualified Luna.Pass.Data.Stage                  as TC
+import qualified Luna.Pass.Data.Error                  as Error
 import qualified Luna.Pass.Scheduler                   as Scheduler
 import qualified Luna.Runtime                          as Runtime
 
@@ -157,7 +158,14 @@ instance Pass.Definition TC.Stage Interpreter where
         Attr.put $ InterpreterResult result
 
 interpret :: Runtime.Units -> IR.SomeTerm -> TC.Pass Interpreter (ScopeT Runtime.Eff Runtime.Data)
-interpret glob expr = Layer.read @IR.Model expr >>= \case
+interpret glob expr = do
+    err <- Error.getError expr
+    case err of
+        Just e  -> pure $ pure $ Runtime.Error (e ^. Error.contents)
+        Nothing -> interpret' glob expr
+
+interpret' :: Runtime.Units -> IR.SomeTerm -> TC.Pass Interpreter (ScopeT Runtime.Eff Runtime.Data)
+interpret' glob expr = Layer.read @IR.Model expr >>= \case
     Uni.RawString s -> do
         str <- SmallVector.toList s
         let lunaStr = mkString glob (convert str)
