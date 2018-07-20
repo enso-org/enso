@@ -220,7 +220,7 @@ primBinary = do
         dropVal    = flip Luna.toValue (flip (ByteString.drop . fromIntegral) :: ByteString -> Integer -> ByteString)
 
     toText <- makeFunctionPure @graph toTextVal [Builder.binaryLT] Builder.textLT
-    eq <- makeFunctionPure @graph eqVal [Builder.binaryLT, Builder.binaryLT] Builder.binaryLT
+    eq <- makeFunctionPure @graph eqVal [Builder.binaryLT, Builder.binaryLT] Builder.boolLT
     plus <- makeFunctionPure @graph plusVal [Builder.binaryLT, Builder.binaryLT] Builder.binaryLT
     len <- makeFunctionPure @graph lenVal [Builder.binaryLT] Builder.intLT
     take <- makeFunctionPure @graph takeVal [Builder.binaryLT] Builder.binaryLT
