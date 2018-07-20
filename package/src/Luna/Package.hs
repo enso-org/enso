@@ -75,13 +75,34 @@ getLunaPackagesFromDir dir = Exception.rethrowFromIO @Path.PathException $ do
     hasConfigDir  <- liftIO . Directory.doesDirectoryExist $ Path.toFilePath
         configDirPath
 
-    if not hasConfigDir then pure [] else do
+    if not hasConfigDir then tryConvertPackageFormat dir else do
         filesInDir <- liftIO $ Directory.listDirectory
             (Path.toFilePath configDirPath)
         files      <- mapM Path.parseRelFile filesInDir
 
-        pure . fmap (dir </>) $ filter
+        pure . fmap (configDirPath </>) $ filter
             (\file -> Path.fileExtension file == Name.packageExt) files
+
+tryConvertPackageFormat :: (MonadIO m, MonadException Path.PathException m)
+    => Path Abs Dir -> m [Path Abs File]
+tryConvertPackageFormat dir = Exception.rethrowFromIO @Path.PathException $ do
+    filesInDir <- liftIO $ Directory.listDirectory (Path.toFilePath dir)
+    files      <- mapM Path.parseRelFile filesInDir
+    let configFiles = filter
+            (\file -> Path.fileExtension file == Name.packageExt) files
+    case configFiles of
+        []    -> return []
+        files -> do
+            let configDirPath = dir </> Name.configDirectory
+            liftIO $ for files $ \file -> do
+                Directory.createDirectoryIfMissing True $
+                    Path.toFilePath configDirPath
+                Directory.copyFile
+                    (Path.toFilePath $ dir </> file)
+                    (Path.toFilePath $ configDirPath </> file)
+                SafeException.tryAny $ Directory.removeFile
+                    (Path.toFilePath $ dir </> file)
+            return $ map (configDirPath </>) files
 
 findPackageFile :: (MonadIO m, MonadException Path.PathException m)
     => Path Abs Dir -> m (Maybe (Path Abs File))
