@@ -740,31 +740,12 @@ accSeg = fmap2 Expr.tokenx $ do
                    $ flip (inheritCodeSpan2With (<>) (flip (flip (irb4 IR.modify') vnames3) modName))
                           (unsafeModifyCodeSpan (CodeSpan.asOffsetSpan (mconcat spans) <>) fmod)
 
-
-    -- INFO: The following code contains hack allowing for fields updates
-    --       and modifications that are not nested e.g. `a' = a.x = 5`, but
-    --       does not support `a' = a.foo.x = 5`. If we use the above definition
-    --       instead all nested use cases will be supported in parser, but
-    --       need to be supported in backend too. Using this hack, the above
-    --       definition is translated in parser to `a' = a.x= 5`,
-    --       where `x=` is method name!
-    -- vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-
-    let (nameSpan, name) = n
-        updateAtomHack   = pure $ labeled sname ( Symbol.suffix $ \x -> app (accCons nameSpan (name <> "=") x) fupdt )
-        modifyAtomHack   = pure $ labeled sname ( Symbol.suffix $ \x -> app (accCons nameSpan (name <> modName <> "=") x) fmod )
-
-    when_ (isJust mupdt && not (null ns)) $ fail "Updating nested fields is not supported yet."
-    when_ (isJust mmod  && not (null ns)) $ fail "Modification of nested fields is not supported yet."
-
-    -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
     let segment isFirst isLast = if
             | isFirst     -> pure accSect
              -- FIXME[WD]: make it nicer vvv
             | symmetrical -> if
-                | isJust mupdt -> if True == True then updateAtomHack else pure updateAtom -- hack for typechecker (see the above description)
-                | isJust mmod  -> if True == True then modifyAtomHack else pure modifyAtom -- hack for typechecker (see the above description)
+                | isJust mupdt -> pure updateAtom
+                | isJust mmod  -> pure modifyAtom
                 | otherwise    -> accConss
             | beforeDot   -> pure accSect
             | otherwise   -> error "unsupported" -- FIXME[WD]: make nice error here

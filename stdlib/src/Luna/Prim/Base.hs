@@ -314,7 +314,7 @@ io finalizersCtx = do
         putStr = putStrLn . convert
     printLn <- makeFunctionIO @graph (flip Luna.toValue putStr) [Builder.textLT] Builder.noneLT
 
-    let runErrVal = flip Luna.toValue $ \(x :: Luna.Value) -> ((_Left %~ unwrap) <$> Luna.runError x :: Luna.Eff (Either Text Luna.Data))
+    let runErrVal = flip Luna.toValue $ \(x :: Luna.Value) -> ((_Left %~ unwrap) <$> Luna.runError (Luna.force x) :: Luna.Eff (Either Text Luna.Data))
     runErr <- makeFunctionPure @graph runErrVal ["a"] (eitherLT Builder.textLT "a")
 
     let errVal = flip Luna.toValue $ \(a :: Text) -> (Luna.throw a :: Luna.Value)

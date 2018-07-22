@@ -22,8 +22,10 @@ import qualified Luna.Pass.Sourcing.Data.Def           as Def
 import qualified Luna.Pass.Sourcing.Data.Class         as Class
 import qualified Luna.Pass.Sourcing.Data.Unit          as Unit
 import qualified Luna.Pass.Sourcing.Utils              as Sourcing
+import qualified Luna.Syntax.Text.Lexer.Symbol         as Syntax
 
-import Data.Map (Map)
+import Control.Lens ((^..), _Just)
+import Data.Map     (Map)
 import Luna.Pass.Data.Root
 import Luna.Pass.Sourcing.Data.Class
 import Luna.Pass.Sourcing.Data.Def
@@ -52,15 +54,15 @@ prepareClass = \modName klass -> do
     paramNames      <- getParamNames parameters
     constructors    <- traverse IR.source =<< ComponentVector.toList conses
     (newConses, constructorsMap) <- processConses native name constructors
-    getters         <- generateGetters constructorsMap
+    accs            <- generateFieldAccessors constructorsMap
     methods         <- traverse IR.source =<< ComponentVector.toList defs
     newKlass <- IR.record' native
                            name
                            parameters
                            newConses
-                           (getters <> methods)
+                           (accs <> methods)
     IR.replace newKlass klass
-    defsMap <- foldM (registerMethod modName name paramNames) def (getters <> methods)
+    defsMap <- foldM (registerMethod modName name paramNames) def (accs <> methods)
     return (newKlass, Class (Constructor . length <$> constructorsMap)
                             defsMap
                             (Layout.unsafeRelayout newKlass))
@@ -78,26 +80,35 @@ getParamNames ts = fmap catMaybes $ for ts $ Layer.read @IR.Model >=> \case
     Uni.Var n -> return $ Just n
     _         -> return Nothing
 
-generateGetters :: ConsMap ->  TC.Pass ClassProcessor [IR.SomeTerm]
-generateGetters = \consMap -> do
-    case Map.toList consMap of
-        [(consName, fields)] -> do
-            let fieldsCount = length fields
-            fmap catMaybes $ for (zip [0..] fields) $ \(ix, mayFname) ->
-                for mayFname $ \fname -> do
-                    generateGetter consName fieldsCount ix fname
-        _ -> return []
+generateFieldAccessors :: ConsMap ->  TC.Pass ClassProcessor [IR.SomeTerm]
+generateFieldAccessors = \consMap -> case Map.toList consMap of
+    [(consName, fields)] -> do
+        let fieldsCount = length fields
+        accs <- for (zip [0..] fields) $ \(ix, mayFname) ->
+            for mayFname $ \fname -> do
+                get <- generateGetter consName fieldsCount ix fname
+                set <- generateSetter consName fieldsCount ix fname
+                pure (get, set)
+        pure $ accs ^.. traverse . _Just . both
+    _ -> return []
 
-generateGetter :: IR.Name -> Int -> Int -> IR.Name -> TC.Pass ClassProcessor IR.SomeTerm
+-- | generateGetter Cons n i field generates a method of the following shape:
+--     def field:
+--         case self of
+--             Cons _1 ... a_i ... _n: a_i
+generateGetter :: IR.Name -> Int -> Int -> IR.Name
+               -> TC.Pass ClassProcessor IR.SomeTerm
 generateGetter = \consName fieldsCount fieldPos fieldName -> do
     retVar   <- IR.var  fieldName
     matchVar <- IR.var' fieldName
-    selfVar  <- IR.var  "self"
+    selfVar  <- IR.var  $ convert Syntax.selfName
     funName  <- IR.var  fieldName
     blanks   <- sequence $ take (fieldsCount - 1) $ repeat IR.blank'
-    let matchers :: [IR.SomeTerm] =  take fieldPos blanks
+    let argsBeforeMatched = take fieldPos blanks
+        argsAfterMatched  = drop fieldPos blanks
+        matchers :: [IR.SomeTerm] =  argsBeforeMatched
                                   <> [matchVar]
-                                  <> drop fieldPos blanks
+                                  <> argsAfterMatched
     clauseCons <- IR.cons consName matchers
     clause     <- IR.lam clauseCons retVar
     match      <- IR.match selfVar [clause]
@@ -105,6 +116,37 @@ generateGetter = \consName fieldsCount fieldPos fieldName -> do
     doc        <- SmallVector.fromList "Field getter"
     documented <- IR.documented doc getter
     return $ Layout.relayout documented
+
+-- | generateSetter Cons n i field generates a method of the following shape:
+--     def field= v:
+--         case self of
+--             Cons a_1 ... a_i ... a_n:
+--                 Cons a_1 ... v ... a_n
+generateSetter :: IR.Name -> Int -> Int -> IR.Name
+               -> TC.Pass ClassProcessor IR.SomeTerm
+generateSetter consName fieldsCount fieldPos fieldName = do
+    -- since we are defining function body, it's safe to hardcode
+    -- local variable names here
+    self      <- IR.var $ convert Syntax.selfName
+    argVarIn  <- IR.var  "v"
+    argVarOut <- IR.var' "v"
+    funName   <- IR.var $ convert $ Syntax.fieldSetterName $ convert fieldName
+    let manyNames = ("a" <>) . convert . show <$> [1..]
+    matchVars <- sequence $ take fieldsCount $ IR.var  <$> manyNames
+    retVars   <- sequence $ take fieldsCount $ IR.var' <$> manyNames
+    let argsBeforeMatched = take fieldPos       retVars
+    let argsAfterMatched  = drop (fieldPos + 1) retVars
+    let outVars :: [IR.SomeTerm] =  argsBeforeMatched
+                                 <> [argVarOut]
+                                 <> argsAfterMatched
+    outCons :: IR.SomeTerm <- IR.cons' consName ([] :: [IR.SomeTerm])
+    outConsApplied <- foldM IR.app' outCons outVars
+    inCons <- IR.cons consName matchVars
+    clause <- IR.lam inCons outConsApplied
+    match  <- IR.match self [clause]
+    setter <- IR.function funName [argVarIn] match
+    doc    <- SmallVector.fromList "Field setter"
+    IR.documented' doc setter
 
 registerCons :: ([IR.SomeTerm], ConsMap) -> IR.SomeTerm -> TC.Pass ClassProcessor ([IR.SomeTerm], ConsMap)
 registerCons = \(cs, map) root -> Layer.read @IR.Model root >>= \case

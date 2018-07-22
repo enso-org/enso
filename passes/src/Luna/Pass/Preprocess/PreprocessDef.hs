@@ -27,12 +27,14 @@ import Luna.Pass.Resolve.DefResolution                        (DefResolution)
 import Luna.Pass.Resolve.ConsResolution                       (ConsResolution)
 import Luna.Pass.Transform.Desugar.DesugarListLiterals        (DesugarListLiterals)
 import Luna.Pass.Transform.Desugar.DesugarPartialApplications (DesugarPartialApplications)
+import Luna.Pass.Transform.Desugar.DesugarFieldModifiers      (DesugarFieldModifiers)
 import Luna.Pass.Transform.Desugar.RemoveGrouped              (RemoveGrouped)
 import Luna.Pass.Transform.Desugar.TransformPatterns          (TransformPatterns)
 
 preprocessDef :: UnitResolver -> IR.SomeTerm -> TC.Monad ()
 preprocessDef resolver root = do
     Scheduler.registerPass @TC.Stage @DesugarListLiterals
+    Scheduler.registerPass @TC.Stage @DesugarFieldModifiers
     Scheduler.registerPass @TC.Stage @DesugarPartialApplications
     Scheduler.registerPass @TC.Stage @RemoveGrouped
     Scheduler.registerPass @TC.Stage @TransformPatterns
@@ -53,6 +55,7 @@ preprocessDef resolver root = do
     Scheduler.setAttr $ resolver ^. Resolution.conses
 
     Scheduler.runPassByType @DesugarListLiterals
+    Scheduler.runPassByType @DesugarFieldModifiers
     Scheduler.runPassByType @DesugarPartialApplications
     Scheduler.runPassByType @RemoveGrouped
     Scheduler.runPassByType @TransformPatterns

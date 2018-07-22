@@ -136,6 +136,12 @@ makeLenses ''Number
 
 -- === Utils === --
 
+fieldSetterName :: Text -> Text
+fieldSetterName t = t <> "="
+
+selfName :: Text
+selfName = "self"
+
 checkSpecialVar :: Text32 -> Symbol
 checkSpecialVar = \case
     "case"    -> KwCase

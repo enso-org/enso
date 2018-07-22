@@ -1,8 +1,15 @@
 import Std.Base
 import Std.Test
+
 import StdTest.Lang.PatternMatch
 import StdTest.Lang.Errors
+import StdTest.Lang.FieldModifications
+
+import StdTest.Data.Map
 
 def main:
     PatternMatchTest.run
     ErrorsTest.run
+    FieldModificationsTest.run
+
+    MapTest.run

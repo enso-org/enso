@@ -38,4 +38,6 @@ pattern Metadata a <- IR.UniTermMetadata (IR.Metadata a)
 pattern ImportHub a <- IR.UniTermImportHub (IR.ImportHub a)
 pattern Imp doc e <- IR.UniTermImp (IR.Imp doc e)
 pattern ImportSource a <- IR.UniTermImportSource (IR.ImportSource a)
+pattern Update a b c <- IR.UniTermUpdate (IR.Update a b c)
+pattern Modify a b c d <- IR.UniTermModify (IR.Modify a b c d)
 

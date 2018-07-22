@@ -26,6 +26,7 @@ library:
         - luna-generic-traversable
         - luna-runtime
         - luna-syntax-text-parser
+        - luna-syntax-text-lexer
         - luna-syntax-text-model
         - luna-syntax-text-prettyprint
         - luna-text-processing
