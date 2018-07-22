@@ -230,6 +230,19 @@ instance (MonadIO m -- debug
         x <* Data.copyInitialize (Memory.setAllocator @StoreDynAllocator a)
     {-# INLINE build #-}
 
+instance {-# OVERLAPPABLE #-} (Monad m, Fold.Builder CopyInitialization m a)
+      => Fold.Builder CopyInitialization m (Maybe a) where
+    build = \m x -> maybe x (\t -> Fold.build @CopyInitialization t x) m
+    {-# INLINE build #-}
+
+instance {-# OVERLAPPABLE #-}
+    ( Monad m, Fold.Builder CopyInitialization m a
+    , Fold.Builder CopyInitialization m b
+    ) => Fold.Builder CopyInitialization m (a, b) where
+    build = \(a, b) x -> Fold.build @CopyInitialization a
+                       $ Fold.build @CopyInitialization b x
+    {-# INLINE build #-}
+
 instance Monad m => Fold.Builder1 CopyInitialization m (Component comp)
 
 
@@ -1046,6 +1059,20 @@ instance (Data.CopyInitializer m (SmallVectorA t alloc comp a), Monad m)
       => Fold.Builder CopyInitialization2 m (SmallVectorA t alloc comp a) where
     build = \a x -> x <* Data.copyInitialize a
     {-# INLINE build #-}
+
+instance {-# OVERLAPPABLE #-} (Monad m, Fold.Builder CopyInitialization2 m a)
+      => Fold.Builder CopyInitialization2 m (Maybe a) where
+    build = \m x -> maybe x (\t -> Fold.build @CopyInitialization2 t x) m
+    {-# INLINE build #-}
+
+instance {-# OVERLAPPABLE #-}
+    ( Monad m, Fold.Builder CopyInitialization2 m a
+    , Fold.Builder CopyInitialization2 m b
+    ) => Fold.Builder CopyInitialization2 m (a, b) where
+    build = \(a, b) x -> Fold.build @CopyInitialization2 a
+                       $ Fold.build @CopyInitialization2 b x
+    {-# INLINE build #-}
+
 
 instance Monad m => Fold.Builder1 CopyInitialization2 m (Component comp)
 

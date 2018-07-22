@@ -15,7 +15,7 @@ import qualified Data.Graph.Component.Edge             as Edge
 import qualified Data.Graph.Component.Edge.Destruction as Edge
 import qualified Data.Graph.Store.Buffer               as Buffer
 import qualified Data.Graph.Store.Size.Discovery       as Buffer
-import qualified Data.Vector.Storable.Foreign          as Foreign
+import qualified Data.Mutable.Storable.SmallAutoVector as SAV
 import qualified Foreign.Storable.Deriving             as Storable
 import qualified Luna.IR                               as IR
 import qualified Luna.IR.Layer                         as Layer
@@ -35,25 +35,16 @@ instance Layer Requester where
     type Layout Requester layout = () *-* layout
     manager = Layer.staticManager
 
-newtype ArisingFromData = ArisingFromData (Maybe (Foreign.Vector Target))
-    deriving (Default, Data.ShallowDestructor m)
-makeLenses ''ArisingFromData
-Storable.deriveNoContext ''ArisingFromData
-GTraversable.derive ''ArisingFromData
-
-instance Show ArisingFromData where
-    show _ = "ArisingFromData"
-
+type ArisingFromStore = Maybe (SAV.UnmanagedSmallVector 0 Target)
 data ArisingFrom deriving Generic
 instance Layer ArisingFrom where
-    type Cons ArisingFrom = Layer.Simple ArisingFromData
-    manager = Layer.staticManager
+    type Cons ArisingFrom = Layer.Simple ArisingFromStore
+    manager = Layer.dynamicManager
 
--- FIXME[MK]: These are wrong. They leak memory and cause segfaults when trying to free the layer.
-instance Monad m => FoldClass.Builder (Fold.Scoped (Fold.Deep (Fold.Discovery a))) m ArisingFromData
-instance Monad m => FoldClass.Builder Buffer.CopyInitialization2 m ArisingFromData
-instance Monad m => FoldClass.Builder Buffer.CopyInitialization  m ArisingFromData
-instance Monad m => FoldClass.Builder Buffer.Discovery           m ArisingFromData
+instance Monad m => FoldClass.Builder (Fold.Scoped (Fold.Deep
+                                          (Fold.Discovery
+                                              '[IR.Terms, IR.Links])))
+                        m ArisingFromStore
 
 getRequesterEdge :: Layer.Reader IR.Term Requester m
                  => IR.Term a -> m (Maybe IR.SomeLink)
@@ -86,18 +77,17 @@ setArising ::
     ) => [Target] -> IR.Term b -> m ()
 setArising = \err tgt -> do
     old <- Layer.read @ArisingFrom tgt
-    -- FIXME[MK]: Uncomment when we can safely delete the layer without segfaults.
-    {-Data.destructShallow old-}
-    new <- Foreign.fromList err
-    Layer.write @ArisingFrom tgt $ wrap $ Just new
+    Data.destructShallow old
+    new <- SAV.fromList err
+    Layer.write @ArisingFrom tgt $ Just new
 {-# INLINE setArising #-}
 
 getArising ::
     ( Layer.Reader IR.Term ArisingFrom m
     ) => IR.Term a -> m [Target]
 getArising = \r -> do
-    d <- unwrap <$> Layer.read @ArisingFrom r
-    maybe (pure mempty) Foreign.toList d
+    d <- Layer.read @ArisingFrom r
+    maybe (pure mempty) SAV.toList d
 {-# INLINE getArising #-}
 
 pushArising ::

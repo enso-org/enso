@@ -123,6 +123,20 @@ instance (MonadIO m, Storable.KnownDynamicSize m (SmallVectorA t alloc n a))
         (Size.dataRegion %~ (+size)) <$> mi
     {-# INLINE build #-}
 
+instance {-# OVERLAPPABLE #-} (Monad m, Fold.Builder Discovery m a)
+      => Fold.Builder Discovery m (Maybe a) where
+    build = \a x -> maybe x (\t -> Fold.build @Discovery t x) a
+    {-# INLINE build #-}
+
+instance {-# OVERLAPPABLE #-}
+    ( Monad m, Fold.Builder Discovery m a
+    , Fold.Builder Discovery m b
+    ) => Fold.Builder Discovery m (a, b) where
+    build = \(a, b) x -> Fold.build @Discovery a
+                       $ Fold.build @Discovery b x
+    {-# INLINE build #-}
+
+
 instance {-# OVERLAPPABLE #-}
     (Monad m, Fold.Builder1 (Fold.Struct Discovery) m a)
       => Fold.Builder1 Discovery m a where

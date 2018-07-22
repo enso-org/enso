@@ -5,22 +5,24 @@ module Luna.Pass.Data.Error where
 
 import Prologue
 
-import qualified Data.Construction                  as Data
-import qualified Data.Generics.Traversable.Deriving as GTraversable
-import qualified Data.Graph.Fold.Class              as FoldClass
-import qualified Data.Graph.Fold.Scoped             as Fold
-import qualified Data.Graph.Fold.Deep               as Fold
-import qualified Data.Graph.Fold.Partition          as Fold
-import qualified Data.Graph.Store.Buffer            as Buffer
-import qualified Data.Graph.Store.Size.Discovery    as Buffer
-import qualified Data.Vector.Storable.Foreign       as Foreign
-import qualified Foreign.Storable.Deriving          as Storable
-import qualified Luna.Pass.Typing.Data.Target       as Target
-import qualified Luna.IR                            as IR
-import qualified Luna.IR.Layer                      as Layer
+import qualified Control.Monad.State.Layered           as State
+import qualified Data.Construction                     as Data
+import qualified Data.Generics.Traversable.Deriving    as GTraversable
+import qualified Data.Graph.Fold.Class                 as FoldClass
+import qualified Data.Graph.Fold.Scoped                as Fold
+import qualified Data.Graph.Fold.Deep                  as Fold
+import qualified Data.Graph.Fold.Partition             as Fold
+import qualified Data.Graph.Store.Buffer               as Buffer
+import qualified Data.Graph.Store.Size.Discovery       as Buffer
+import qualified Data.Mutable.Class                    as Mutable
+import qualified Foreign.Storable.Deriving             as Storable
+import qualified Luna.Pass.Typing.Data.Target          as Target
+import qualified Luna.IR                               as IR
+import qualified Luna.IR.Layer                         as Layer
 
-import Data.Graph.Data.Layer.Class  (Layer)
-import Luna.Pass.Typing.Data.Target (Target)
+import Data.Graph.Data.Layer.Class           (Layer)
+import Data.Mutable.Storable.SmallAutoVector (UnmanagedSmallVector)
+import Luna.Pass.Typing.Data.Target          (Target)
 
 data CompileError = CompileError
     { _contents    :: Text
@@ -29,37 +31,63 @@ data CompileError = CompileError
     } deriving (Show, Eq)
 makeLenses ''CompileError
 
-data CompileErrorStore = CompileErrorStore (Foreign.Vector Char)
-                                           (Foreign.Vector Target)
-                                           (Foreign.Vector Target)
+data CompileErrorStore = CompileErrorStore (UnmanagedSmallVector 0 Char)
+                                           (UnmanagedSmallVector 4 Target)
+                                           (UnmanagedSmallVector 4 Target)
                        deriving (Show)
 Storable.deriveNoContext ''CompileErrorStore
 GTraversable.derive      ''CompileErrorStore
 
+instance MonadIO m
+      => FoldClass.Builder Buffer.CopyInitialization2 m CompileErrorStore where
+    build = \(CompileErrorStore x y z) a
+        -> FoldClass.build @Buffer.CopyInitialization2 x
+         $ FoldClass.build @Buffer.CopyInitialization2 y
+         $ FoldClass.build @Buffer.CopyInitialization2 z
+         $ a
+    {-# INLINE build #-}
+
+instance (State.Monad Buffer.StoreDynState m, MonadIO m)
+      => FoldClass.Builder Buffer.CopyInitialization m CompileErrorStore where
+    build = \(CompileErrorStore x y z) a
+        -> FoldClass.build @Buffer.CopyInitialization x
+         $ FoldClass.build @Buffer.CopyInitialization y
+         $ FoldClass.build @Buffer.CopyInitialization z
+         $ a
+    {-# INLINE build #-}
+
+instance MonadIO m
+      => FoldClass.Builder Buffer.Discovery m CompileErrorStore where
+    build = \(CompileErrorStore x y z) a
+        -> FoldClass.build @Buffer.Discovery x
+         $ FoldClass.build @Buffer.Discovery y
+         $ FoldClass.build @Buffer.Discovery z
+         $ a
+    {-# INLINE build #-}
+
+instance Monad m => FoldClass.Builder (Fold.Scoped (Fold.Deep
+                                          (Fold.Discovery
+                                              '[IR.Terms, IR.Links])))
+                        m (Maybe CompileErrorStore)
+
 data Error deriving Generic
 instance Layer Error where
     type Cons Error = Layer.Simple (Maybe CompileErrorStore)
-    manager = Layer.staticManager
-
--- FIXME[MK]: These are wrong. They leak memory and cause segfaults when trying to free the layer.
-instance Monad m => FoldClass.Builder (Fold.Scoped (Fold.Deep (Fold.Discovery a))) m (Maybe CompileErrorStore)
-instance Monad m => FoldClass.Builder Buffer.CopyInitialization2 m (Maybe CompileErrorStore)
-instance Monad m => FoldClass.Builder Buffer.CopyInitialization  m (Maybe CompileErrorStore)
-instance Monad m => FoldClass.Builder Buffer.Discovery           m (Maybe CompileErrorStore)
+    manager = Layer.dynamicManager
 
 errorToStore :: MonadIO m => CompileError -> m CompileErrorStore
 errorToStore = \(CompileError c a f) -> do
-    contents <- Foreign.fromList $ convert c
-    arising  <- Foreign.fromList a
-    fail     <- Foreign.fromList f
+    contents <- Mutable.fromList $ convert c
+    arising  <- Mutable.fromList a
+    fail     <- Mutable.fromList f
     pure $ CompileErrorStore contents arising fail
 {-# INLINE errorToStore #-}
 
 storeToError :: MonadIO m => CompileErrorStore -> m CompileError
 storeToError = \(CompileErrorStore c a f) -> do
-    contents <- Foreign.toList c
-    arising  <- Foreign.toList a
-    fail     <- Foreign.toList f
+    contents <- Mutable.toList c
+    arising  <- Mutable.toList a
+    fail     <- Mutable.toList f
     pure $ CompileError (convert contents) arising fail
 {-# INLINE storeToError #-}
 
@@ -68,8 +96,7 @@ setError ::
     ) => Maybe CompileError -> IR.Term b -> m ()
 setError = \err tgt -> do
     old <- Layer.read @Error tgt
-    -- FIXME[MK]: Uncomment when we can safely delete the layer without segfaults.
-    {-Data.destructShallow old-}
+    Data.destructShallow old
     new <- traverse errorToStore err
     Layer.write @Error tgt new
 {-# INLINE setError #-}
