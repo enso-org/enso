@@ -1379,3 +1379,11 @@ def throw e: errorStr e
 def catch v f: case runError v of
     Left e:  f e
     Right d: d
+
+def bracket before after thing:
+    sth = before
+    result = runError (thing sth)
+    after sth
+    case result of
+        Left error: throw error
+        Right value: value
