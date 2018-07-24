@@ -36,6 +36,7 @@ dependencies:
     - lens
     - luna-passes
     - luna-runtime
+    - luna-syntax-text-prettyprint
     - text
     - scientific
     - unordered-containers

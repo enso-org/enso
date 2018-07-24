@@ -298,7 +298,13 @@ operators :: forall graph m. Builder.StdBuilder graph m => m (Map IR.Name Def.De
 operators = do
     let iffVal = (\a b c -> if a then b else c) :: Bool -> Luna.Value -> Luna.Value -> Luna.Value
     iff <- makeFunctionPure @graph (flip Luna.toValue iffVal) [Builder.boolLT, "a", "a"] "a"
-    return $ Map.fromList [ ("if.then.else", iff) ]
+    let uminusVal = flip Luna.toValue $ Luna.dispatchMethod Builder.uminusMethodName
+    uminusHdr <- Builder.makeUnaryMinusType @graph
+    let uminus = Def.Precompiled $ Def.PrecompiledDef uminusVal uminusHdr
+
+    return $ Map.fromList [ ("if.then.else", iff)
+                          , (Builder.uminusFunName, uminus)
+                          ]
 
 io :: forall graph m. Builder.StdBuilder graph m
    => FinalizersCtx -> m (Map IR.Name Def.Def)

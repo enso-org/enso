@@ -1,0 +1,9 @@
+import Std.Base
+import Std.Test
+
+class BasicTest:
+    def testUnaryMinus:
+        TestSubject (-5) . should (be 5.negate)
+
+    def run:
+        Test.specify "unary negation delegates to `negate` method" self.testUnaryMinus

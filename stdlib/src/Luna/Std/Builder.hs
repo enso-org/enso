@@ -18,6 +18,7 @@ import qualified Luna.Pass.Attr                        as Attr
 import qualified Luna.Pass.Basic                       as Pass
 import qualified Luna.Pass.Scheduler                   as Scheduler
 import qualified Luna.Std.Instances                    as Base
+import qualified Luna.Syntax.Prettyprint               as Syntax
 
 import           Data.Set                                     (Set)
 import           Data.Map                                     (Map)
@@ -90,7 +91,9 @@ type StdBuilder graph m =
     , Scheduler.MonadScheduler m
     , Scheduler.PassRegister graph PrimTypeBuilder m
     , Pass.Definition graph PrimTypeBuilder
+    , Pass.Interface PrimTypeBuilder (Pass.Pass graph PrimTypeBuilder)
     , Store.Serializer IR.Terms (Pass.Pass graph PrimTypeBuilder)
+    , IR.DeleteSubtree (Pass.Pass graph PrimTypeBuilder)
     )
 
 makeType :: forall graph m. StdBuilder graph m
@@ -121,98 +124,34 @@ makeFunctionIO :: forall graph m. StdBuilder graph m
                => (Luna.Units -> Luna.Value) -> [LTp] -> LTp -> m Def.Def
 makeFunctionIO val args out = makeFunction @graph val args out
 
-{-compileFunction :: Imports -> SubPass TestPass (PMStack IO) SomeExpr -> IO Function-}
-{-compileFunction imps pass = do-}
-    {-Right res <- runPM False $ do-}
-        {-runRegs-}
-        {-root   <- Pass.eval' pass-}
-        {-trans  <- typecheck TgtNone imps [unsafeGeneralize root]-}
-        {-let newRoot = fromJust $ Map.lookup (unsafeGeneralize root) trans-}
-        {-val              <- Pass.eval' $ interpret imps newRoot-}
-        {-Just (unifies :: Unifications)    <- unsafeCoerce <$> unsafeGetAttr (getTypeDesc @Unifications)-}
-        {-Just (merges  :: MergeQueue)      <- unsafeCoerce <$> unsafeGetAttr (getTypeDesc @MergeQueue)-}
-        {-Just (apps    :: SimplifierQueue) <- unsafeCoerce <$> unsafeGetAttr (getTypeDesc @SimplifierQueue)-}
-        {-Just (accs    :: UnresolvedAccs)  <- unsafeCoerce <$> unsafeGetAttr (getTypeDesc @UnresolvedAccs)-}
-        {-rooted <- Pass.eval' @TestPass $ do-}
-            {-tp <- getLayer @Type root >>= readSource-}
-            {-let whiteList = Set.unions [ Set.singleton (generalize tp)-}
-                                       {-, Set.fromList (generalize <$> unwrap unifies)-}
-                                       {-, Set.fromList (generalize <$> unwrap merges)-}
-                                       {-, Set.fromList (generalize <$> unwrap apps)-}
-                                       {-, Set.fromList (generalize <$> getAccs accs)-}
-                                       {-]-}
-            {-deepDeleteWithWhitelist root whiteList-}
-            {-compile tp-}
-        {-let value       = evalScopeT val def-}
-            {-assumptions = Assumptions (unwrap unifies)-}
-                                      {-(unwrap merges)-}
-                                      {-(unwrap apps)-}
-                                      {-(getAccs accs)-}
-        {-return $ Function rooted value assumptions-}
-    {-return res-}
 
-{-preludeUnaryOp :: Name -> IO Function-}
-{-preludeUnaryOp op = compileFunction def $ do-}
-    {-a     <- var "a"-}
-    {-acpl  <- acc a op-}
-    {-l1    <- lam a acpl-}
-    {-tpA   <- var "a"-}
-    {-monA  <- var "monA"-}
-    {-monB  <- var "monB"-}
-    {-montA <- monadic tpA monA-}
-    {-montB <- monadic tpA monB-}
-    {-tl1   <- lam montA montB-}
-    {-pure  <- cons_ @Draft "Pure"-}
-    {-tl1M  <- monadic tl1 pure-}
-    {-reconnectLayer' @UserType (Just tl1M) l1-}
-    {-return $ generalize l1-}
+makeUnaryMinusType :: forall graph m.
+    ( StdBuilder graph m
+    ) => m (Rooted (IR.Term IR.DefHeader))
+makeUnaryMinusType = Graph.encodeAndEval @graph $ Scheduler.evalT $ do
+    Scheduler.registerAttr     @CompiledSignature
+    Scheduler.enableAttrByType @CompiledSignature
+    Scheduler.registerAttr     @Signature
+    Scheduler.enableAttrByType @Signature
 
-{-preludeArithOp :: Name -> IO Function-}
-{-preludeArithOp op = compileFunction def $ do-}
-    {-a     <- var "a"-}
-    {-b     <- var "b"-}
-    {-acpl  <- acc a op-}
-    {-apb   <- app acpl b-}
-    {-l1    <- lam b apb-}
-    {-l2    <- lam a l1-}
-    {-tpA   <- var "a"-}
-    {-monA  <- var "monA"-}
-    {-monB  <- var "monB"-}
-    {-monC  <- var "monC"-}
-    {-montA <- monadic tpA monA-}
-    {-montB <- monadic tpA monB-}
-    {-montC <- monadic tpA monC-}
-    {-tl1   <- lam montA montB-}
-    {-pure  <- cons_ @Draft "Pure"-}
-    {-tl1M  <- monadic tl1 pure-}
-    {-tl2   <- lam montC tl1M-}
-    {-tl2M  <- monadic tl2 pure-}
-    {-reconnectLayer' @UserType (Just tl2M) l2-}
-    {-return $ generalize l2-}
+    Scheduler.registerPassFromFunction__ @graph @PrimTypeBuilder $ do
+        typeVar <- IR.var "#a"
+        lam     <- IR.lam typeVar typeVar
+        acc     <- IR.acc typeVar uminusMethodName
+        uni     <- IR.unify typeVar acc
+        hdr     <- IR.defHeader lam [uni] [acc] ([] :: [IR.SomeTerm])
+        rooted  <- Store.serialize (Layout.unsafeRelayout hdr)
+        IR.deleteSubtree hdr
+        Attr.put $ CompiledSignature rooted
+    Scheduler.runPassByType @PrimTypeBuilder
 
-{-preludeCmpOp :: Imports -> Name -> IO Function-}
-{-preludeCmpOp imports op = compileFunction imports $ do-}
-    {-a    <- var "a"-}
-    {-b    <- var "b"-}
-    {-acpl <- acc a op-}
-    {-apb  <- app acpl b-}
-    {-l1   <- lam b apb-}
-    {-l2   <- lam a l1-}
-    {-tpA  <- var "a"-}
-    {-bool' <- cons_ @Draft "Bool"-}
-    {-monA <- var "monA"-}
-    {-monB <- var "monB"-}
-    {-monC <- var "monC"-}
-    {-montA <- monadic tpA monA-}
-    {-montB <- monadic bool' monB-}
-    {-montC <- monadic tpA monC-}
-    {-tl1   <- lam montA montB-}
-    {-pure  <- cons_ @Draft "Pure"-}
-    {-tl1M  <- monadic tl1 pure-}
-    {-tl2   <- lam montC tl1M-}
-    {-tl2M  <- monadic tl2 pure-}
-    {-reconnectLayer' @UserType (Just tl2M) l2-}
-    {-return $ generalize l2-}
+    unwrap <$> Scheduler.getAttr @CompiledSignature
+
+uminusMethodName :: IR.Name
+uminusMethodName = "negate"
+
+uminusFunName :: IR.Name
+uminusFunName = Syntax.uminusName
 
 int :: Integer -> Int
 int = fromIntegral

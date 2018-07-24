@@ -7,9 +7,13 @@ import StdTest.Lang.FieldModifications
 
 import StdTest.Data.Map
 
+import StdTest.Lib.Basic
+
 def main:
     PatternMatchTest.run
     ErrorsTest.run
     FieldModificationsTest.run
 
     MapTest.run
+
+    BasicTest.run
