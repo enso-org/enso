@@ -62,7 +62,7 @@ getRelativePathForModule :: (MonadIO m, MonadCatch m) => Path Abs File
     -> Path Abs File -> m (Maybe (Path Rel File))
 getRelativePathForModule packageFile =
     fmap eitherToMaybe . SafeException.try . Path.stripProperPrefix
-        (Path.parent packageFile)
+        (Path.parent $ Path.parent packageFile)
     where
         eitherToMaybe :: Either Path.PathException (Path Rel File)
                       -> Maybe (Path Rel File)
