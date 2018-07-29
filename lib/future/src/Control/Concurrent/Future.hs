@@ -7,6 +7,7 @@ import qualified Control.Concurrent.MVar  as MVar
 
 import Control.Concurrent.Async (Async)
 import Control.Concurrent.MVar  (MVar)
+import System.IO.Unsafe         (unsafePerformIO)
 
 data FutureState a = Suspended (IO a)
                    | Computed  a
@@ -20,9 +21,12 @@ instance Applicative Future where
     pure a = Future (pure a) (pure ())
     Future fg ff <*> Future ag af = Future (fg <*> ag) (ff >> af)
 
-
 get :: MonadIO m => Future a -> m a
 get = liftIO . _get
+
+unsafeGet :: Future a -> a
+unsafeGet = unsafePerformIO . get
+{-# NOINLINE unsafeGet #-}
 
 force :: MonadIO m => Future a -> m ()
 force = liftIO . _force

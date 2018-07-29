@@ -14,6 +14,7 @@ import Data.Map                  (Map)
 import GHC.Exts                  (Any)
 import Control.Concurrent.Future (Future)
 
+
 type DefMap = Map IR.Name (Future Value)
 
 data Constructor = Constructor { _tag    :: IR.Name
@@ -59,7 +60,11 @@ dispatchMethod s = go where
                               <> "."
                               <> convert c
                               <> "."
-        Just f  -> Future.get f >>= \fun -> applyFun fun $ return x
+        -- | The use of `Future.unsafeGet` here is safe.
+        --   The action inside future is suspended and the result cached
+        --   inside an MVar, and the action itself is self–sufficient, not
+        --   interacting with any outside resources.
+        Just f  -> applyFun (Future.unsafeGet f) $ return x
 
 tryDispatchMethod :: IR.Name -> Data -> Luna.Eff (Maybe Value)
 tryDispatchMethod s = force' >=> go where
@@ -94,14 +99,24 @@ applyFun f a = do
 
 force :: Value -> Value
 force = (>>= force')
+{-# INLINE force #-}
 
 force' :: Data -> Value
 force' (Thunk a) = force a
 force' (Susp  a) = force a
 force' x = pure x
 
+mkThunk :: Value -> Data
+mkThunk = Thunk . force
+{-# INLINE mkThunk #-}
+
+mkSusp :: Value -> Data
+mkSusp = Susp . force
+{-# INLINE mkSusp #-}
+
 forceThunks :: Value -> Value
 forceThunks = (>>= forceThunks')
+{-# INLINE forceThunks #-}
 
 forceThunks' :: Data -> Value
 forceThunks' (Thunk a) = forceThunks a

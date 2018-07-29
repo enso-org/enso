@@ -6,12 +6,9 @@ module Luna.Pass.Evaluation.Interpreter where
 import Prologue
 
 import qualified Control.Monad.State.Layered           as State
-import qualified Data.Graph.Data.Component.List        as ComponentList
 import qualified Data.Graph.Data.Component.Vector      as ComponentVector
-import qualified Data.Graph.Data.Layer.Layout          as Layout
 import qualified Data.Map                              as Map
 import qualified Data.Mutable.Storable.SmallAutoVector as SmallVector
-import qualified Data.Vector.Storable.Foreign          as Vector
 import qualified Luna.IR                               as IR
 import qualified Luna.IR.Aliases                       as Uni
 import qualified Luna.IR.Layer                         as Layer
@@ -20,72 +17,15 @@ import qualified Luna.Pass.Attr                        as Attr
 import qualified Luna.Pass.Basic                       as Pass
 import qualified Luna.Pass.Data.Stage                  as TC
 import qualified Luna.Pass.Data.Error                  as Error
+import qualified Luna.Pass.Evaluation.Data.Scope       as Scope
 import qualified Luna.Pass.Scheduler                   as Scheduler
 import qualified Luna.Runtime                          as Runtime
 
-import Data.IORef          (IORef, newIORef, readIORef, writeIORef)
-import Data.Map            (Map)
-import Luna.Pass.Data.Root (Root (..))
+import Data.IORef                      (newIORef, readIORef)
+import Data.Map                        (Map)
+import Luna.Pass.Data.Root             (Root (..))
+import Luna.Pass.Evaluation.Data.Scope (LocalScope, MonadScope)
 
-
--------------------
--- === Scope === --
--------------------
-
-newtype LocalScope = LocalScope { _localVars :: Map IR.SomeTerm Runtime.Data }
-makeLenses ''LocalScope
-
-instance Default LocalScope where
-    def = LocalScope def
-
-localLookup :: IR.SomeTerm -> LocalScope -> Maybe Runtime.Data
-localLookup e = Map.lookup e . view localVars
-
-localInsert :: IR.SomeTerm -> Runtime.Data -> LocalScope -> LocalScope
-localInsert e d = localVars %~ Map.insert e d
-
-mergeScopes :: Map IR.SomeTerm Runtime.Data -> LocalScope -> LocalScope
-mergeScopes m = localVars %~ Map.union m
-
-newtype ScopeT m a = ScopeT
-    { unScopeT :: State.StateT (IORef LocalScope) m a }
-    deriving (Functor, Applicative, Monad, MonadTrans, MonadIO)
-
-get :: MonadIO m => ScopeT m LocalScope
-get = ScopeT $ State.get @(IORef LocalScope) >>= liftIO . readIORef
-{-# INLINE get #-}
-
-put :: MonadIO m => LocalScope -> ScopeT m ()
-put = \s -> ScopeT $ State.get @(IORef LocalScope) >>= liftIO . flip writeIORef s
-{-# INLINE put #-}
-
-modify :: MonadIO m => (LocalScope -> LocalScope) -> ScopeT m ()
-modify = \f -> fmap f get >>= put
-{-# INLINE modify #-}
-
-gets :: MonadIO m => (LocalScope -> a) -> ScopeT m a
-gets = \f -> f <$> get
-{-# INLINE gets #-}
-
-evalWithRef :: Monad m => ScopeT m a -> IORef LocalScope -> m a
-evalWithRef = State.evalT . unScopeT
-{-# INLINE evalWithRef #-}
-
-runScopeT :: MonadIO m => ScopeT m a -> LocalScope -> m (a, LocalScope)
-runScopeT = \m scope -> do
-    ref <- liftIO $ newIORef scope
-    result <- State.evalT (unScopeT m) ref
-    newState <- liftIO $ readIORef ref
-    return (result, newState)
-{-# INLINE runScopeT #-}
-
-evalScopeT :: MonadIO m => ScopeT m a -> LocalScope -> m a
-evalScopeT = fmap fst .: runScopeT
-{-# INLINE evalScopeT #-}
-
-execScopeT :: MonadIO m => ScopeT m a -> LocalScope -> m LocalScope
-execScopeT = fmap snd .: runScopeT
-{-# INLINE execScopeT #-}
 
 ------------------------------
 -- === Literal Creation === --
@@ -107,64 +47,90 @@ mkNothing imps = Runtime.toData imps ()
 -- === Scheduler Flow === --
 ----------------------------
 
-runInterpreter' :: IR.SomeTerm -> Runtime.Units -> TC.Monad (ScopeT Runtime.Eff Runtime.Data)
-runInterpreter' root units = do
+runInterpreter :: IR.SomeTerm -> Runtime.Units -> TC.Monad Runtime.Value
+runInterpreter root units = do
     Scheduler.registerAttr @Runtime.Units
     Scheduler.registerAttr @Root
-    Scheduler.registerAttr @InterpreterResult
+    Scheduler.registerAttr @ResultValue
 
     Scheduler.setAttr $ Root root
     Scheduler.setAttr units
-    Scheduler.enableAttrByType @InterpreterResult
+    Scheduler.enableAttrByType @ResultValue
 
-    Scheduler.registerPass @TC.Stage @Interpreter
-    Scheduler.runPassByType @Interpreter
+    Scheduler.registerPass @TC.Stage @(Interpreter ResultValue)
+    Scheduler.runPassByType @(Interpreter ResultValue)
 
-    InterpreterResult res <- Scheduler.getAttr @InterpreterResult
+    ResultValue res <- Scheduler.getAttr
     return res
 
-runInterpreter :: IR.SomeTerm -> Runtime.Units -> TC.Monad Runtime.Value
-runInterpreter root units = do
-    res <- runInterpreter' root units
-    return $ Runtime.force $ evalScopeT res def
-
-execInterpreter :: IR.SomeTerm -> Runtime.Units -> TC.Monad (Runtime.Eff LocalScope)
+execInterpreter :: IR.SomeTerm -> Runtime.Units -> TC.Monad (IO LocalScope)
 execInterpreter root units = do
-    res <- runInterpreter' root units
-    return $ execScopeT res def
+    Scheduler.registerAttr @Runtime.Units
+    Scheduler.registerAttr @Root
+    Scheduler.registerAttr @ResultScope
+
+    Scheduler.setAttr $ Root root
+    Scheduler.setAttr units
+    Scheduler.enableAttrByType @ResultScope
+
+    Scheduler.registerPass @TC.Stage @(Interpreter ResultScope)
+    Scheduler.runPassByType @(Interpreter ResultScope)
+
+    ResultScope res <- Scheduler.getAttr
+    return res
 
 ------------------
 -- === Pass === --
 ------------------
 
-data Interpreter
+data Interpreter res
 
-newtype InterpreterResult = InterpreterResult (ScopeT Runtime.Eff Runtime.Data)
-type instance Attr.Type InterpreterResult = Attr.Atomic
-instance Default InterpreterResult where
-    def = InterpreterResult $ lift $ Runtime.throw "Uninitialized interpreter"
+data ResultValue = ResultValue Runtime.Value
+type instance Attr.Type ResultValue = Attr.Atomic
+instance Default ResultValue where
+    def = ResultValue $ Runtime.throw "Uninitialized interpreter"
 
-type instance Pass.Spec Interpreter t = InterpreterSpec t
-type family InterpreterSpec t where
-    InterpreterSpec (Pass.In  Pass.Attrs) = '[Root, Runtime.Units]
-    InterpreterSpec (Pass.Out Pass.Attrs) = '[InterpreterResult]
-    InterpreterSpec t = Pass.BasicPassSpec t
+data ResultScope = ResultScope (IO LocalScope)
+type instance Attr.Type ResultScope = Attr.Atomic
+instance Default ResultScope where
+    def = ResultScope $ pure def
 
-instance Pass.Definition TC.Stage Interpreter where
+type instance Pass.Spec (Interpreter res) t = InterpreterSpec res t
+type family InterpreterSpec res t where
+    InterpreterSpec _ (Pass.In  Pass.Attrs) = '[Root, Runtime.Units]
+    InterpreterSpec r (Pass.Out Pass.Attrs) = '[r]
+    InterpreterSpec _ t = Pass.BasicPassSpec t
+
+instance Pass.Definition TC.Stage (Interpreter ResultValue) where
     definition = do
         Root root <- Attr.get
         units  <- Attr.get @Runtime.Units
         result <- interpret units root
-        Attr.put $ InterpreterResult result
+        Attr.put $ ResultValue $ Runtime.force
+            $ State.evalT result (def :: LocalScope)
 
-interpret :: Runtime.Units -> IR.SomeTerm -> TC.Pass Interpreter (ScopeT Runtime.Eff Runtime.Data)
+instance Pass.Definition TC.Stage (Interpreter ResultScope) where
+    definition = do
+        Root root <- Attr.get
+        units  <- Attr.get @Runtime.Units
+        result <- interpret units root
+        Attr.put $ ResultScope $ do
+            scopeRef <- newIORef def
+            Runtime.runIO $ Runtime.runError $ Scope.evalWithRef result scopeRef
+            readIORef scopeRef
+
+interpret :: (m ~ t Runtime.Eff, MonadScope m, MonadTrans t)
+          => Runtime.Units -> IR.SomeTerm
+          -> TC.Pass (Interpreter r) (m Runtime.Data)
 interpret glob expr = do
     err <- Error.getError expr
     case err of
         Just e  -> pure $ pure $ Runtime.Error (e ^. Error.contents)
         Nothing -> interpret' glob expr
 
-interpret' :: Runtime.Units -> IR.SomeTerm -> TC.Pass Interpreter (ScopeT Runtime.Eff Runtime.Data)
+interpret' :: (m ~ t Runtime.Eff, MonadScope m, MonadTrans t)
+           => Runtime.Units -> IR.SomeTerm
+           -> TC.Pass (Interpreter r) (m Runtime.Data)
 interpret' glob expr = Layer.read @IR.Model expr >>= \case
     Uni.RawString s -> do
         str <- SmallVector.toList s
@@ -183,7 +149,7 @@ interpret' glob expr = Layer.read @IR.Model expr >>= \case
                           else mkDouble glob <$> IR.toDouble n
         return $ return num
     Uni.Var name -> return $ do
-        val <- gets (localLookup expr)
+        val <- State.gets @LocalScope (Scope.localLookup expr)
         case val of
             Just v  -> return v
             Nothing -> lift $ Runtime.throw $ "Variable not found: "
@@ -194,17 +160,17 @@ interpret' glob expr = Layer.read @IR.Model expr >>= \case
         bodyVal <- interpret glob =<< IR.source o'
         inputMatcher <- irrefutableMatcher =<< IR.source i'
         return $ do
-            env <- get
+            env <- State.get @LocalScope
             return $ Runtime.Function $ \d -> do
-                newBinds <- inputMatcher $ Runtime.Thunk d
-                evalScopeT bodyVal $ mergeScopes newBinds env
+                newBinds <- inputMatcher $ Runtime.mkThunk d
+                State.evalT bodyVal $ Scope.merge newBinds env
     Uni.App f a -> do
         fun <- interpret glob =<< IR.source f
         arg <- interpret glob =<< IR.source a
         return $ do
-            env <- get
-            let fun' = evalScopeT fun env
-                arg' = evalScopeT arg env
+            env <- State.get @LocalScope
+            let fun' = State.evalT fun env
+                arg' = State.evalT arg env
             lift $ Runtime.force $ Runtime.applyFun fun' arg'
     Uni.Acc a' name -> do
         a <- interpret glob =<< IR.source a'
@@ -216,31 +182,33 @@ interpret' glob expr = Layer.read @IR.Model expr >>= \case
         l   <- IR.source l'
         pat <- irrefutableMatcher l
         return $ do
-            env <- get
-            let rhs' = evalScopeT rhs (localInsert l (Runtime.Thunk rhs') env)
+            env <- State.get @LocalScope
+            let rhs' = State.evalT rhs (Scope.localInsert l rhsT env)
+                rhsT = Runtime.mkThunk rhs'
             rhsV <- lift $ Runtime.runError $ Runtime.force rhs'
             case rhsV of
                 Left e -> do
-                    modify $ localInsert l
+                    State.modify_ @LocalScope $ Scope.localInsert l
                         $ Runtime.Error $ unwrap e
                     lift $ Runtime.throw $ unwrap e
                 Right v -> do
-                    modify . mergeScopes =<< lift (pat v)
+                    State.modify_ @LocalScope . Scope.merge =<< lift (pat v)
                     return v
     Uni.Function n' as' b' -> do
         n <- IR.source n'
         asList <- ComponentVector.toList as'
         as <- traverse (irrefutableMatcher <=< IR.source) asList
         rhs <- interpret glob =<< IR.source b'
-        let makeFuns []       e = evalScopeT rhs e
+        let makeFuns []       e = State.evalT rhs e
             makeFuns (m : ms) e = return $ Runtime.Function $ \d -> do
-                newBinds <- m $ Runtime.Thunk d
-                makeFuns ms (mergeScopes newBinds e)
+                newBinds <- m $ Runtime.mkThunk d
+                makeFuns ms (Scope.merge newBinds e)
         return $ do
-            env <- get
-            let rhs' = makeFuns as (localInsert n (Runtime.Thunk rhs') env)
-            modify $ localInsert n $ Runtime.Thunk rhs'
-            return $ Runtime.Susp rhs'
+            env <- State.get @LocalScope
+            let rhs' = makeFuns as (Scope.localInsert n rhst env)
+                rhst = Runtime.mkThunk rhs'
+            State.modify_ @LocalScope $ Scope.localInsert n rhst
+            return $ Runtime.mkSusp rhs'
     Uni.Seq l' r' -> do
         lhs <- interpret glob =<< IR.source l'
         rhs <- interpret glob =<< IR.source r'
@@ -263,11 +231,11 @@ interpret' glob expr = Layer.read @IR.Model expr >>= \case
             Uni.Lam pat res -> (,) <$> (matcher =<< IR.source pat)
                                <*> (interpret glob =<< IR.source res)
         return $ do
-            env <- get
-            let tgt' = evalScopeT target env
+            env <- State.get @LocalScope
+            let tgt' = State.evalT target env
             tgt <- lift $ Runtime.force tgt'
             (scope, cl) <- lift $ runMatch clauses tgt
-            lift $ evalScopeT cl (mergeScopes scope env)
+            lift $ State.evalT cl (Scope.merge scope env)
     Uni.Marked _ b -> interpret glob =<< IR.source b
     s -> return $ lift $ Runtime.throw
              $ "Unexpected (report this as a bug): " <> convert (show s)
@@ -310,7 +278,7 @@ tryBoxedMatch i d' = Runtime.force' d' >>= \case
         matchRes = if Runtime.fromNative o == i then Just def else Nothing
     d -> return (Nothing, d)
 
-matcher :: IR.SomeTerm -> TC.Pass Interpreter Matcher
+matcher :: IR.SomeTerm -> TC.Pass (Interpreter t) Matcher
 matcher expr = Layer.read @IR.Model expr >>= \case
     Uni.Var _ -> return $ \d -> return (Just $ Map.fromList [(expr, d)], d)
     Uni.ResolvedCons mod cls n as -> do
@@ -334,7 +302,7 @@ matcher expr = Layer.read @IR.Model expr >>= \case
         Runtime.throw $ convert $ "Unexpected pattern: " <> show s
 
 irrefutableMatcher :: IR.SomeTerm
-                   -> TC.Pass Interpreter (Runtime.Data
+                   -> TC.Pass (Interpreter t) (Runtime.Data
                           -> Runtime.Eff (Map IR.SomeTerm Runtime.Data))
 irrefutableMatcher expr = do
     m <- matcher expr
