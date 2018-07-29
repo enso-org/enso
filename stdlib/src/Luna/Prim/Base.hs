@@ -81,9 +81,9 @@ primReal = do
     logBase <- makeFunctionPure @graph logBaseVal [Builder.realLT, Builder.realLT] Builder.realLT
     pow     <- makeFunctionPure @graph powVal     [Builder.realLT, Builder.realLT] Builder.realLT
 
-    eq <- makeFunctionPure @graph eqVal [Builder.realLT, Builder.realLT] Builder.intLT
-    lt <- makeFunctionPure @graph ltVal [Builder.realLT, Builder.realLT] Builder.intLT
-    gt <- makeFunctionPure @graph gtVal [Builder.realLT, Builder.realLT] Builder.intLT
+    eq <- makeFunctionPure @graph eqVal [Builder.realLT, Builder.realLT] Builder.boolLT
+    lt <- makeFunctionPure @graph ltVal [Builder.realLT, Builder.realLT] Builder.boolLT
+    gt <- makeFunctionPure @graph gtVal [Builder.realLT, Builder.realLT] Builder.boolLT
 
     round <- makeFunctionPure @graph roundVal [Builder.realLT, Builder.intLT] Builder.realLT
     show  <- makeFunctionPure @graph showVal  [Builder.realLT] Builder.textLT
