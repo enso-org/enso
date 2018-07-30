@@ -12,13 +12,12 @@ import qualified Luna.IR.Aliases                     as Uni
 import qualified Luna.IR.Layer                       as Layer
 import qualified Luna.Pass                           as Pass
 import qualified Luna.Pass.Attr                      as Attr
-import qualified Luna.Pass.Basic                     as Pass
 import qualified Luna.Pass.Data.Error                as Error
 import qualified Luna.Pass.Data.Stage                as TC
 import qualified Luna.Pass.Sourcing.Data.Class       as Class
 
 import Luna.Pass.Data.Root
-import Luna.Pass.Resolve.Data.Resolution
+import Luna.Pass.Resolve.Data.Resolution hiding (cons)
 import Luna.Pass.Data.UniqueNameGen as NameGen
 
 
@@ -57,7 +56,7 @@ resolveConstructors positive root = Layer.read @IR.Model root >>= \case
         resolveConstructors True  =<< IR.source o
     Uni.Function _ as o -> do
         args <- traverse IR.source =<< ComponentVector.toList as
-        traverse (resolveConstructors False) args
+        traverse_ (resolveConstructors False) args
         resolveConstructors True =<< IR.source o
     _ -> do
         inps <- IR.inputs root

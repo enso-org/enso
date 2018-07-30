@@ -4,16 +4,12 @@ module Luna.Pass.Resolve.DefResolution where
 
 import Prologue
 
-import qualified Data.Graph.Data.Layer.Layout        as Layout
 import qualified Luna.IR                             as IR
-import qualified Luna.IR.Layer                       as Layer
 import qualified Luna.Pass                           as Pass
 import qualified Luna.Pass.Attr                      as Attr
 import qualified Luna.Pass.Data.Error                as Error
 import qualified Luna.Pass.Data.Stage                as TC
-import qualified Luna.Pass.Basic                     as Pass
 
-import Luna.Pass.Data.Root
 import Luna.Pass.Resolve.Data.UnresolvedVariables
 import Luna.Pass.Resolve.Data.Resolution
 

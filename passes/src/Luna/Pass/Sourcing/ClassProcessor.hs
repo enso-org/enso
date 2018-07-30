@@ -27,8 +27,8 @@ import qualified Luna.Syntax.Text.Lexer.Symbol         as Syntax
 import Control.Lens ((^..), _Just)
 import Data.Map     (Map)
 import Luna.Pass.Data.Root
-import Luna.Pass.Sourcing.Data.Class
-import Luna.Pass.Sourcing.Data.Def
+import Luna.Pass.Sourcing.Data.Class hiding (root)
+import Luna.Pass.Sourcing.Data.Def hiding (documented)
 
 data ClassProcessor
 

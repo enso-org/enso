@@ -5,7 +5,6 @@ import Prologue
 import qualified Control.Concurrent.Async              as Async
 import qualified Data.Graph.Data.Layer.Layout          as Layout
 import qualified Data.Map                              as Map
-import qualified Luna.IR                               as IR
 import qualified Luna.Pass.Preprocess.PreprocessDef    as PreprocessDef
 import qualified Luna.Pass.Resolve.ConsFieldResolution as ConsFieldResolution
 import qualified Luna.Pass.Scheduler                   as Scheduler
@@ -30,7 +29,7 @@ preprocessDef resolver def = case def of
 
 preprocessDefs :: UnitResolver -> [Def.Def] -> TC.Monad ()
 preprocessDefs resolver defs = do
-    for defs $ preprocessDef resolver
+    for_ defs $ preprocessDef resolver
     return ()
 
 preprocessUnit :: UnitResolver -> Unit.Unit -> TC.Monad ()

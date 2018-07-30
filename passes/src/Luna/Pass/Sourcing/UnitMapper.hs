@@ -6,13 +6,11 @@ import Prologue
 
 import qualified Data.Graph.Data.Component.Vector    as ComponentVector
 import qualified Data.Graph.Data.Layer.Layout        as Layout
-import qualified Data.Map                            as Map
 import qualified Luna.IR                             as IR
 import qualified Luna.IR.Aliases                     as Uni
 import qualified Luna.IR.Layer                       as Layer
 import qualified Luna.Pass                           as Pass
 import qualified Luna.Pass.Attr                      as Attr
-import qualified Luna.Pass.Basic                     as Pass
 import qualified Luna.Pass.Data.Stage                as TC
 import qualified Luna.Pass.Scheduler                 as Scheduler
 import qualified Luna.Pass.Sourcing.Data.Def         as Def
@@ -21,9 +19,9 @@ import qualified Luna.Pass.Sourcing.Utils            as Sourcing
 
 import Data.Map (Map)
 import Luna.Pass.Data.Root
-import Luna.Pass.Sourcing.Data.Unit
-import Luna.Pass.Sourcing.Data.Class
-import Luna.Pass.Sourcing.Data.Def
+import Luna.Pass.Sourcing.Data.Unit  hiding (root)
+import Luna.Pass.Sourcing.Data.Class hiding (root)
+import Luna.Pass.Sourcing.Data.Def   hiding (documented)
 import Luna.Pass.Sourcing.ClassProcessor
 
 data UnitMapper
@@ -93,10 +91,10 @@ mapUnit unitName root = do
 
     Scheduler.runPassByType @UnitMapper
 
-    PartiallyMappedUnit defs clss <- Scheduler.getAttr
+    PartiallyMappedUnit defs' clss' <- Scheduler.getAttr
 
-    classMap <- (traverse.traverse) mapClass clss
-    return $ Unit defs classMap
+    classMap <- (traverse.traverse) mapClass clss'
+    return $ Unit defs' classMap
 
 
 mapClass :: Scheduler.MonadScheduler m

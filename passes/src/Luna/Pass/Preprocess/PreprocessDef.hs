@@ -2,21 +2,11 @@ module Luna.Pass.Preprocess.PreprocessDef where
 
 import Prologue
 
-import qualified Data.Graph.Data.Component.Vector    as ComponentVector
-import qualified Data.Graph.Data.Layer.Layout        as Layout
-import qualified Data.Map                            as Map
 import qualified Luna.Pass.Data.Stage                as TC
 import qualified Luna.IR                             as IR
-import qualified Luna.IR.Aliases                     as Uni
-import qualified Luna.IR.Layer                       as Layer
-import qualified Luna.Pass                           as Pass
-import qualified Luna.Pass.Attr                      as Attr
-import qualified Luna.Pass.Basic                     as Pass
 import qualified Luna.Pass.Resolve.Data.Resolution   as Resolution
 import qualified Luna.Pass.Scheduler                 as Scheduler
-import qualified Luna.Pass.Sourcing.Utils            as Sourcing
 
-import Data.Map (Map)
 import Luna.Pass.Data.Root          (Root (..))
 import Luna.Pass.Data.UniqueNameGen (UniqueNameGen)
 import Luna.Pass.Resolve.Data.Resolution (DefResolver, ConsResolver, UnitResolver)

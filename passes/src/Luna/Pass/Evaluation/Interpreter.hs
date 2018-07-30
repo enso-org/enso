@@ -14,7 +14,6 @@ import qualified Luna.IR.Aliases                       as Uni
 import qualified Luna.IR.Layer                         as Layer
 import qualified Luna.Pass                             as Pass
 import qualified Luna.Pass.Attr                        as Attr
-import qualified Luna.Pass.Basic                       as Pass
 import qualified Luna.Pass.Data.Stage                  as TC
 import qualified Luna.Pass.Data.Error                  as Error
 import qualified Luna.Pass.Evaluation.Data.Scope       as Scope
@@ -298,7 +297,7 @@ matcher expr = Layer.read @IR.Model expr >>= \case
         s <- SmallVector.toList s
         return $ tryBoxedMatch $ (convert s :: Text)
     Uni.Blank -> return $ \d -> return (Just def, d)
-    s -> return $ \d ->
+    s -> return $ const $
         Runtime.throw $ convert $ "Unexpected pattern: " <> show s
 
 irrefutableMatcher :: IR.SomeTerm
