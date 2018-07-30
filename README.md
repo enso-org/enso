@@ -121,26 +121,23 @@ As a prerequisite, you need to set a `LUNA_HOME` variable to point to the
 location of the Luna standard library. Assuming your repo is at 
 `$LUNA_REPO_PATH`, you will need to set `LUNA_HOME` to `$LUNA_REPO_PATH/stdlib`.
 
-Next, you need to create the project: create a directory structure like this:
+Next, you need to create the project. This is as simple as executing 
+`luna init <project-path>`, which will create a project in the directory 
+specified with the correct structure. It will create a defaulted `Main.luna`
+file for you as well, allowing you to immediately execute this.
+
+To interpret and run the project, simply type `luna run` in the main project 
+directory. Alternatively, you can pass the project directory explicitly as 
+follows:
 
 ```
-your_project/
- ┖─ src/
-    ┠─ Main.luna
-    ┖─ any other *.luna files
-```
-A sample `Main.luna` file may look like this:
-
-```python
-import Std.Base
-
-def main:
-    print "Hello world"
-    print (2 + 2)
+luna exec --target path/to/MyProject
 ```
 
-To compile and run the project, simply type `luna` in the main project 
-directory.
+#### Executing Luna on Standalone Files
+The Luna interpreter is also capable of executing standalone Luna files. This 
+can be done by passing a luna source file to the `--target` flag, similarly to
+the above.
 
 ## Contributing to Luna
 If you are interested in contributing to the development of Luna, please read
