@@ -317,6 +317,7 @@ def * a b: a.* b
 def ^ a b: a.^ b
 def / a b: a./ b
 def % a b: a.% b
+def $ f a: f a
 
 
 # Greater or equal operator. Requires the objects to define both `>` and `==` methods.
@@ -375,6 +376,12 @@ class Tuple2 a b:
     # Tuple equality. Two tuples are equal when their respective elements are equal.
     def == that:
         self.first.== that.first . and (self.second.== that.second)
+
+    # Lexicographic comparison. `(a1, a2) < (b1, b2)` if a1 < b1
+    # or a1 == b1 and a2 < b2.
+    def < that:
+        self.first.< that.first . or (self.first.== that.first . and (self.second.< that.second))
+
 
 # Class representing triples of elements of arbitrary type.
 class Tuple3 a b c:
@@ -1078,6 +1085,9 @@ class JSON:
     def lookup key: case self of
         JSONObject m: m.lookup key
         other: Nothing
+
+    # Checks if given key is present in the structure.
+    def has key: self . lookup key . isJust
 
     # Returns the value associated with a given key. Throws an error when
     # the `JSON` is not an object or the key is missing.
