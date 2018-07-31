@@ -156,6 +156,7 @@ generateLicense pkgPath mLicense = do
         Just key -> case key of
             License.Unknown tx -> IO.appendFile licensePath $ convert tx
             License.None       -> pure ()
-            _                  -> IO.appendFile licensePath
-                $ License.getLicenseText key
+            _                  -> do
+                licenseText <- License.getLicenseText key
+                IO.appendFile licensePath licenseText
 

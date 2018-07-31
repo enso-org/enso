@@ -9,6 +9,9 @@ library:
         - src
     other-modules: Paths_luna_package
 
+data-files:
+    - ./data/licenses/*
+
 tests:
     spec:
         main: Main.hs
