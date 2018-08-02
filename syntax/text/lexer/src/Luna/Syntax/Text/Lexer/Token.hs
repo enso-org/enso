@@ -20,8 +20,8 @@ import Luna.Syntax.Text.Lexer.Symbol  (Symbol)
 data Token = Token
     { _span       :: !Delta
     , _offset     :: !Delta
-    -- , _column  :: !Delta
-    -- , _row     :: !Delta
+    , _column     :: !Delta
+    , _row        :: !Delta
     , _symbol     :: !Symbol
     , _entryStack :: !EntryStack
     } deriving (Eq, Generic, Ord, Show)
@@ -39,5 +39,5 @@ instance Symbol.HasSymbol Token where
 -- === Special tokens === --
 
 etx :: Token
-etx = Token 0 0 Symbol.ETX mempty
+etx = Token 0 0 0 0 Symbol.ETX mempty
 {-# INLINE etx #-}

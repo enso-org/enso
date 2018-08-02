@@ -29,7 +29,7 @@ import Text.Parser.Backend.Megaparsec           ()
 
 -- === Definition === --
 
-type Token       = Lexer.Token Lexer.Symbol
+type Token       = Lexer.Token
 type Stream      = [Token]
 type Error       = Void
 type MonadParser = MonadParsec Error Stream

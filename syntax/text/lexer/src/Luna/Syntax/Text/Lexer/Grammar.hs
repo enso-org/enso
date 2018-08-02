@@ -14,10 +14,11 @@ import qualified Data.Vector                   as Vector
 import qualified Luna.IR.Term.Ast.Invalid      as Invalid
 import qualified Luna.Syntax.Text.Lexer.Symbol as Symbol
 
-import Control.Monad.State.Layered      (StateT)
+import Control.Monad.State.Layered      (StatesT)
 import Data.Map.Strict                  (Map)
 import Data.Parser                      hiding (Token)
 import Data.Parser.Instances.Attoparsec ()
+import Data.Text.Position               (Delta)
 import Data.Vector                      (Vector)
 import Luna.Syntax.Text.Lexer.Symbol    (Symbol)
 
@@ -25,12 +26,34 @@ type Txt = Txt.Text32
 
 
 
--------------------------
--- === Lexer types === --
--------------------------
+----------------------
+-- === Location === --
+----------------------
 
-type Parser = StateT EntryStack Parsec.Parser
-type Lexer  = Parser Symbol
+-- === Definition === --
+
+data Location = Location
+    { _column :: Delta
+    , _row    :: Delta
+    } deriving (Eq, Generic, Ord, Show)
+makeLenses ''Location
+
+
+-- === Utils === --
+
+getColumn, getRow :: State.Monad Location m => m Delta
+getColumn = view column <$> State.get @Location
+getRow    = view row    <$> State.get @Location
+{-# INLINE getColumn #-}
+{-# INLINE getRow    #-}
+
+
+-- === Instances === --
+
+instance NFData Location
+instance Mempty Location where
+    mempty = Location 0 0
+    {-# INLINE mempty #-}
 
 
 
@@ -75,12 +98,21 @@ instance Default EntryPoint where
 
 
 
+-------------------------
+-- === Lexer types === --
+-------------------------
+
+type Parser = StatesT '[EntryStack, Location] Parsec.Parser
+type Lexer  = Parser Symbol
+
+
+
 -----------------------
 -- === Layouting === --
 -----------------------
 
 newlineStartChar :: Char -> Bool
-newlineStartChar c = c == '\n' || c == '\r'
+newlineStartChar = \c -> c == '\n' || c == '\r'
 {-# INLINE newlineStartChar #-}
 
 
@@ -92,9 +124,9 @@ newlineStartChar c = c == '\n' || c == '\r'
 -- === Char by char checking === --
 
 isIdentBodyChar, isVarHead, isConsHead :: Char -> Bool
-isIdentBodyChar c = Char.isAlphaNum c
-isVarHead       c = Char.isLower    c
-isConsHead      c = Char.isUpper    c
+isIdentBodyChar = Char.isAlphaNum
+isVarHead       = Char.isLower
+isConsHead      = Char.isUpper
 {-# INLINE isIdentBodyChar  #-}
 {-# INLINE isVarHead        #-}
 {-# INLINE isConsHead       #-}
@@ -155,7 +187,7 @@ lexInvalidVariable = Symbol.Invalid Invalid.CaselessNameHead
 ---------------------
 
 isDigitCharAtBase :: Word8 -> Char -> Bool
-isDigitCharAtBase base char = case charToDigit char of
+isDigitCharAtBase = \base char -> case charToDigit char of
     Just n  -> n < base
     Nothing -> False
 {-# INLINE isDigitCharAtBase #-}
@@ -164,16 +196,17 @@ isDecDigitChar :: Char -> Bool
 isDecDigitChar = isDigitCharAtBase 10 ; {-# INLINE isDecDigitChar #-}
 
 charToDigit :: Char -> Maybe Word8
-charToDigit char = unsafeConvert <$> if
-    | n >= 48 && n <= 57  -> Just $ n - 48      -- 0 to 9
-    | n >= 65 && n <= 90  -> Just $ n - 65 + 10 -- A to Z
-    | n >= 97 && n <= 122 -> Just $ n - 97 + 10 -- a to z
-    | otherwise           -> Nothing
-    where n = Char.ord char
+charToDigit = \char -> let
+    n = Char.ord char
+    in unsafeConvert <$> if
+        | n >= 48 && n <= 57  -> Just $ n - 48      -- 0 to 9
+        | n >= 65 && n <= 90  -> Just $ n - 65 + 10 -- A to Z
+        | n >= 97 && n <= 122 -> Just $ n - 97 + 10 -- a to z
+        | otherwise           -> Nothing
 {-# INLINE charToDigit #-}
 
 unsafeCharToDigit :: Char -> Word8
-unsafeCharToDigit c = case charToDigit c of
+unsafeCharToDigit = \c -> case charToDigit c of
     Just t  -> t
     Nothing -> error $ "Cannot convert char " <> [c] <> " to digit."
 {-# INLINE unsafeCharToDigit #-}
@@ -198,17 +231,17 @@ lexNumber = checkInvalidSuffix number where
 -- === String parsing utils === --
 
 beginStr :: Symbol.StrType -> Char -> Lexer
-beginStr t c = Symbol.Quote t Symbol.Begin
-            <$ (liftEntry . StrEntry t =<< beginQuotes c)
+beginStr = \t c -> Symbol.Quote t Symbol.Begin
+                <$ (liftEntry . StrEntry t =<< beginQuotes c)
 {-# INLINE beginStr #-}
 
 beginQuotes :: Char -> Parser Int
-beginQuotes !c = beginMultiQuotes c <|> (1 <$ token c)
+beginQuotes = \c -> beginMultiQuotes c <|> (1 <$ token c)
 {-# INLINE beginQuotes #-}
 
 beginMultiQuotes :: Char -> Parser Int
-beginMultiQuotes !c = do
-    !len <- Txt.length <$> takeMany1 c
+beginMultiQuotes = \c -> do
+    len <- Txt.length <$> takeMany1 c
     when_ (len == 2) $ fail "Empty string"
     pure len
 {-# INLINE beginMultiQuotes #-}
@@ -238,20 +271,21 @@ fmtStr = beginStr Symbol.FmtStr fmtStrQuote
 -- === Native String === --
 
 natStrBody :: Int -> Lexer
-natStrBody hlen = code <|> quotes where
+natStrBody = \hlen -> let
     code   = Symbol.Str <$> takeWhile1 (/= natStrQuote)
     quotes = do
         qs <- takeMany1 natStrQuote
         if Txt.length qs == hlen
             then Symbol.Quote Symbol.NatStr Symbol.End <$ unliftEntry
             else pure $ Symbol.Str qs
+    in code <|> quotes
 {-# INLINE natStrBody #-}
 
 
 -- === Raw String === --
 
 rawStrBody :: Int -> Lexer
-rawStrBody hlen = choice [body, escape, quotes, linebr] where
+rawStrBody = \hlen -> let
     bodyChar c = c /= rawStrQuote
               && c /= escapeChar
               && not (newlineStartChar c)
@@ -266,13 +300,14 @@ rawStrBody hlen = choice [body, escape, quotes, linebr] where
         if Txt.length qs == hlen
             then Symbol.Quote Symbol.RawStr Symbol.End <$ unliftEntry
             else pure $ Symbol.Str qs
+    in choice [body, escape, quotes, linebr]
 {-# INLINE rawStrBody #-}
 
 
 -- === Fmt String === --
 
 fmtStrBody :: Int -> Lexer
-fmtStrBody hlen = choice [body, escape, quotes, linebr, code] where
+fmtStrBody = \hlen -> let
     bodyChar c = c /= fmtStrQuote
               && c /= natStrQuote
               && c /= escapeChar
@@ -293,14 +328,16 @@ fmtStrBody hlen = choice [body, escape, quotes, linebr, code] where
             else pure $ Symbol.Str qs
     code       = Symbol.Block Symbol.Begin
               <$ (liftEntry . StrCodeEntry =<< beginQuotes natStrQuote)
+    in choice [body, escape, quotes, linebr, code]
 {-# INLINE fmtStrBody #-}
 
 fmtStrCode :: Int -> Lexer
-fmtStrCode hlen = ending <|> topEntryPoint where
+fmtStrCode = \hlen -> let
     ending = do
         qs <- takeMany1 natStrQuote
         when_ (Txt.length qs /= hlen) $ fail "Not an ending"
         Symbol.Block Symbol.End <$ unliftEntry
+    in ending <|> topEntryPoint
 {-# INLINE fmtStrCode #-}
 
 

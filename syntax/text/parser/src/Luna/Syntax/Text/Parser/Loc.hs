@@ -55,8 +55,8 @@ token' f = do
     return a
 
 dropMarkers :: (MonadParsec e Stream m, MonadLoc m) => m ()
-dropMarkers = previewNextToken >>= \t -> case t ^. Lexer.element of
-    Lexer.Marker m -> Marker.setLast (t & Lexer.element .~ m) >> dropNextTokenAsMarker >> dropMarkers -- FIXME[WD]: should we handle the wrong markers?
+dropMarkers = previewNextToken >>= \t -> case t ^. Lexer.symbol of
+    Lexer.Marker m -> undefined -- Marker.setLast (t & Lexer.symbol .~ m) >> dropNextTokenAsMarker >> dropMarkers -- FIXME[WD]: should we handle the wrong markers?
     _              -> return ()
 
 getStream :: MonadParsec e Stream m => m Stream
@@ -72,10 +72,10 @@ previewTokens :: MonadParsec e Stream m => m [Token]
 previewTokens = getStream
 
 previewSymbols :: MonadParsec e Stream m => m [Lexer.Symbol]
-previewSymbols = view Lexer.element <<$>> previewTokens
+previewSymbols = view Lexer.symbol <<$>> previewTokens
 
 previewNextSymbol :: MonadParsec e Stream m => m Lexer.Symbol
-previewNextSymbol = view Lexer.element <$> previewNextToken
+previewNextSymbol = view Lexer.symbol <$> previewNextToken
 
 getNextOffset :: MonadParsec e Stream m => m Delta
 getNextOffset = view Lexer.offset <$> previewNextToken
@@ -110,16 +110,16 @@ getTokens i = catMaybes <$> sequence (replicate i getNextToken)
 -- uncheckedGetNextToken = maybe (error "Impossible happened: token stream end") id <$> getNextToken
 
 -- uncheckedGetNextSymbol :: (MonadParsec e Stream m, MonadLoc m) => m Lexer.Symbol
--- uncheckedGetNextSymbol = view Lexer.element <$> uncheckedGetNextToken
+-- uncheckedGetNextSymbol = view Lexer.symbol <$> uncheckedGetNextToken
 
 -- uncheckedPreviewNextToken :: (MonadParsec e Stream m, MonadLoc m) => m Token
 -- uncheckedPreviewNextToken = maybe (error "Impossible happened: token stream end") id <$> previewNextToken
 
 -- uncheckedPreviewNextSymbol :: (MonadParsec e Stream m, MonadLoc m) => m Lexer.Symbol
--- uncheckedPreviewNextSymbol = view Lexer.element <$> uncheckedPreviewNextToken
+-- uncheckedPreviewNextSymbol = view Lexer.symbol <$> uncheckedPreviewNextToken
 
 getNextSymbol :: (MonadParsec e Stream m, MonadLoc m) => m (Maybe Lexer.Symbol)
-getNextSymbol = view Lexer.element <<$>> getNextToken
+getNextSymbol = view Lexer.symbol <<$>> getNextToken
 
 unregisteredDropNextToken :: (MonadParsec e Stream m, MonadLoc m) => m ()
 unregisteredDropNextToken = void getNextToken
@@ -133,7 +133,7 @@ unregisteredDropTokensUntil :: (MonadParsec e Stream m, MonadLoc m) => (Token ->
 unregisteredDropTokensUntil f = previewNextToken >>= \t -> if f t then return () else unregisteredDropNextToken >> unregisteredDropTokensUntil f
 
 unregisteredDropSymbolsUntil :: (MonadParsec e Stream m, MonadLoc m) => (Lexer.Symbol -> Bool) -> m ()
-unregisteredDropSymbolsUntil f = unregisteredDropTokensUntil $ f . view Lexer.element
+unregisteredDropSymbolsUntil f = unregisteredDropTokensUntil $ f . view Lexer.symbol
 
 unregisteredDropSymbolsUntil' :: (MonadParsec e Stream m, MonadLoc m) => (Lexer.Symbol -> Bool) -> m ()
 unregisteredDropSymbolsUntil' f = unregisteredDropSymbolsUntil f >> unregisteredDropNextToken
@@ -149,18 +149,18 @@ dropSymbolsUntilAndGatherErrors f es = previewNextToken >>= go where
                 let es' = maybe es (:es) (Lexer.matchInvalid el)
                 unregisteredDropNextToken
                 dropSymbolsUntilAndGatherErrors f es'
-        where el = t ^. Lexer.element
+        where el = t ^. Lexer.symbol
 
 getTokensUntil :: (MonadParsec e Stream m, MonadLoc m) => (Lexer.Symbol -> Bool) -> m [Token]
 getTokensUntil f = previewNextToken >>=
-               \t -> if f (t ^. Lexer.element)
+               \t -> if f (t ^. Lexer.symbol)
                            then return mempty
                            else unregisteredDropNextToken
                              >> ((t:) <$> getTokensUntil f)
 {-# INLINE getTokensUntil #-}
 
 
-updatePositions :: (MonadParsec e Stream m, MonadLoc m) => Lexer.Token Lexer.Symbol -> m ()
+updatePositions :: (MonadParsec e Stream m, MonadLoc m) => Lexer.Token -> m ()
 updatePositions t = do
     let len = t ^. Lexer.span
         off = t ^. Lexer.offset
@@ -173,7 +173,7 @@ updatePositions t = do
     Parser.setPosition $ p { Parser.sourceColumn = Parser.mkPos $ Parser.unPos (Parser.sourceColumn p) + (unwrap $ len + off)
                            , Parser.sourceLine   = Parser.mkPos $ unwrap (off + 1)
                            }
-    case t ^. Lexer.element of
+    case t ^. Lexer.symbol of
         -- Lexer.Marker m -> withJust m Marker.setLast -- FIXME[WD]: should we handle the wrong markers?
         Lexer.EOL      -> State.modify_ @LastOffset (wrapped %~ (+ (len + off))) >> Pos.succLine >> Pos.incColumn off
         _              -> State.put @LastOffset (wrap off) >> Pos.incColumn (len + off)
@@ -194,5 +194,5 @@ updatePositions t = do
 -- updateLineAndCol :: (MonadParsec e Stream m, MonadLoc m) => Lexer.Token Lexer.Lexer.Symbol -> m ()
 -- updateLineAndCol t = do
 --     Pos.incColumn (t ^. Lexer.span)
---     when ((t ^. Lexer.element) == Lexer.EOL) $ Pos.succLine
+--     when ((t ^. Lexer.symbol) == Lexer.EOL) $ Pos.succLine
 --     Pos.incColumn (t ^. Lexer.offset)

@@ -91,7 +91,7 @@ satisfTest :: (Lexer.Symbol -> Maybe a) -> Parser a
 satisfy_   f = void $ satisfy f
 satisfy    f = satisfTest $ \s -> justIf (f s) s
 satisfTest f = token' test where
-    test r t = if Reserved.lookup r (t ^. Lexer.element)
+    test r t = if Reserved.lookup r (t ^. Lexer.symbol)
         then Left (Just $ Tokens (pure t), Set.empty)
         else satisfyTestSymbol f t
 {-# INLINE satisfy_   #-}
@@ -108,10 +108,10 @@ satisfyUncheckedTest f = token' (const $ satisfyTestSymbol f)
 {-# INLINE satisfyUnchecked     #-}
 {-# INLINE satisfyUncheckedTest #-}
 
-satisfyTestSymbol :: (t -> Maybe b) -> Lexer.Token t
-                  -> Either (Maybe (ErrorItem (Lexer.Token t)), Set a) b
+satisfyTestSymbol :: (Lexer.Symbol -> Maybe b) -> Lexer.Token
+                  -> Either (Maybe (ErrorItem Lexer.Token), Set a) b
 satisfyTestSymbol f t = note (Just $ Tokens (pure t), Set.empty)
-                      $ f (t ^. Lexer.element)
+                      $ f (t ^. Lexer.symbol)
 {-# INLINE satisfyTestSymbol #-}
 
 symbol :: Lexer.Symbol -> Parser ()
@@ -275,9 +275,9 @@ markerIRB = Marker.getAndClearLast >>= \case
             markerOffL = foEnd - crange - markerLen - markerOffR
             markerSpan = Span.leftSpacedSpan markerOffL markerLen
         State.modify_ @CodeSpanRange $ wrapped .~ foEnd
-        pure $ ( t ^. Lexer.element
+        pure $ ( t ^. Lexer.symbol
                , irbsFromSpan (CodeSpan.mkPhantomSpan markerSpan)
-                                  (id $ irb1 IR.marker' $ t ^. Lexer.element)
+                                  (id $ irb1 IR.marker' $ t ^. Lexer.symbol)
                )
 
 marked :: Parser (IRBS SomeTerm -> IRBS SomeTerm)

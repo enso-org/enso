@@ -13,6 +13,7 @@ import qualified Luna.Syntax.Text.Lexer.Symbol  as Symbol
 import Data.Attoparsec.Internal.Types (IResult)
 import Data.Parser                    (PartialParser, closePartial,
                                        parsePartial)
+import Data.Text.Position             (Delta)
 import Data.Text32                    (Text32)
 import Luna.Syntax.Text.Lexer.Grammar (EntryStack, Parser, lexer)
 import Luna.Syntax.Text.Lexer.Symbol  (Symbol)
@@ -21,14 +22,19 @@ import Luna.Syntax.Text.Lexer.Token   (Token (Token))
 import Data.Parser.Instances.Attoparsec ()
 
 
+
 ---------------------
 -- === Running === --
 ---------------------
 
-parse2 :: Parser (a, Int) -> EntryStack -> Text32   -> IResult Text32 ((a, Int), EntryStack)
-parse2 p x s = parsePartial (State.runT @EntryStack p x) s
+parse2 :: Parser (a, Int) -> EntryStack -> Text32 -> Delta -> Delta
+       -> IResult Text32 ((a, Int), EntryStack)
+parse2 p x s col row
+    = flip parsePartial s
+    $ flip (State.evalT @Grammar.Location) (Grammar.Location col row)
+    $ flip (State.runT  @EntryStack) x
+    $ p
 {-# INLINE parse2 #-}
-
 
 parse2' :: Text32 -> [Token]
 parse2' = \s ->
@@ -37,33 +43,37 @@ parse2' = \s ->
     in  stx off : evalDefLexer s'
 {-# INLINE parse2' #-}
 
-
 evalDefLexer :: Text32 -> [Token]
-evalDefLexer = evalDefLexer_ mempty
+evalDefLexer = reverse . evalDefLexer_ mempty mempty mempty
 {-# INLINE evalDefLexer #-}
 
-evalDefLexer_ :: [Token] -> Text32 -> [Token]
+evalDefLexer_ :: Delta -> Delta -> [Token] -> Text32 -> [Token]
 evalDefLexer_ = go where
-    go ts s = let
+    go col row toks txt = let
 
-        handleDone s' ((!symbol, !off), !stack) =
-            let span  = convert $! Text32.length s - Text32.length s' - off
-                isEnd = Text32.null s'
-                token = Token span (convert off) symbol stack
-                ts'   = token : ts
-            in if isEnd then ts' else go ts' s'
+        handleDone txt' ((!symbol, !ioff), !stack) =
+            let pdiff = convert $! Text32.length txt - Text32.length txt'
+                off   = convert ioff
+                span  = pdiff - off
+                isEnd = Text32.null txt'
+                token = Token span off col row symbol stack
+                toks' = token : toks
+                (!col', !row') = if symbol == Symbol.EOL
+                    then (0, row + 1)
+                    else (col + pdiff, row)
+            in if isEnd then toks' else go col' row' toks' txt'
         {-# INLINE handleDone #-}
 
         handleOut f = \case
-            Parser.Done !(s') !r -> handleDone s' r
-            Parser.Fail !_ !_ !e -> error e
-            Parser.Partial !g    -> f $! g mempty
+            Parser.Done !(txt') !r -> handleDone txt' r
+            Parser.Fail !_ !_ !e   -> error e
+            Parser.Partial !g      -> f $! g mempty
         {-# INLINE handleOut  #-}
 
         runSteps = handleOut $! handleOut (const impossible)
         {-# INLINE runSteps #-}
 
-        in runSteps $! parse2 lexer def s
+        in runSteps $! parse2 lexer def txt col row
 {-# INLINE evalDefLexer_ #-}
 
 
@@ -80,8 +90,8 @@ instance IsSourceBorder r => IsSourceBorder (Either l r) where
     {-# INLINE etx #-}
 
 instance IsSourceBorder Token where
-    stx i = Token mempty (convert i) (stx i) mempty
-    etx   = Token mempty mempty      etx     mempty
+    stx i = Token mempty (convert i) 0 0 (stx i) mempty
+    etx   = Token mempty mempty      0 0 etx     mempty
     {-# INLINE stx #-}
     {-# INLINE etx #-}
 
