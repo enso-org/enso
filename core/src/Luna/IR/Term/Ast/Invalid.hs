@@ -34,6 +34,7 @@ data InvalidLiteral
 
 data InvalidString
     = EscapeCode
+    | NoClosingMark
     deriving (Eq, Ord, Generic, Show)
 
 Storable.derive     ''Symbol

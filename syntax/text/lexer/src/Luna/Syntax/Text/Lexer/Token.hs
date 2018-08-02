@@ -6,8 +6,9 @@ import Prologue hiding (Symbol, element, span)
 
 import qualified Luna.Syntax.Text.Lexer.Symbol as Symbol
 
-import Data.Text.Position            (Delta)
-import Luna.Syntax.Text.Lexer.Symbol (Symbol)
+import Data.Text.Position             (Delta)
+import Luna.Syntax.Text.Lexer.Grammar (EntryStack)
+import Luna.Syntax.Text.Lexer.Symbol  (Symbol)
 
 
 -------------------
@@ -16,33 +17,27 @@ import Luna.Syntax.Text.Lexer.Symbol (Symbol)
 
 -- === Definition === --
 
-data Token a = Token
-    { _span    :: !Delta
-    , _offset  :: !Delta
-    , _element :: !a
-    } deriving (Eq, Generic, Ord)
+data Token = Token
+    { _span       :: !Delta
+    , _offset     :: !Delta
+    -- , _column  :: !Delta
+    -- , _row     :: !Delta
+    , _symbol     :: !Symbol
+    , _entryStack :: !EntryStack
+    } deriving (Eq, Generic, Ord, Show)
 makeLenses ''Token
 
 
 -- === Instances === --
 
-instance NFData a => NFData (Token a)
-instance Show a => Show (Token a) where
-    showsPrec d t = showParen' d
-        $ showString "Token "
-        . showsPrec' (t ^. span)
-        . showString " "
-        . showsPrec' (t ^. offset)
-        . showString " "
-        . showsPrec' (t ^. element)
-    {-# INLINE showsPrec #-}
-
-
-instance Symbol.HasSymbol a => Symbol.HasSymbol (Token a) where
-    symbol = element . Symbol.symbol ; {-# INLINE symbol #-}
+instance NFData Token
+instance Symbol.HasSymbol Token where
+    symbol = symbol
+    {-# INLINE symbol #-}
 
 
 -- === Special tokens === --
 
-etx :: Token Symbol
-etx = Token 0 0 Symbol.ETX ; {-# INLINE etx #-}
+etx :: Token
+etx = Token 0 0 Symbol.ETX mempty
+{-# INLINE etx #-}

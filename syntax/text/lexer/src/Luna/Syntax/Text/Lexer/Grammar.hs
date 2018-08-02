@@ -24,12 +24,14 @@ import Luna.Syntax.Text.Lexer.Symbol    (Symbol)
 type Txt = Txt.Text32
 
 
+
 -------------------------
 -- === Lexer types === --
 -------------------------
 
 type Parser = StateT EntryStack Parsec.Parser
 type Lexer  = Parser Symbol
+
 
 
 ------------------------
@@ -42,7 +44,7 @@ data EntryPoint
    = TopLevelEntry
    | StrEntry      !Symbol.StrType !Int
    | StrCodeEntry  !Int
-   deriving (Generic, Show)
+   deriving (Eq, Generic, Ord, Show)
 
 type EntryStack = [EntryPoint]
 
@@ -50,21 +52,27 @@ type EntryStack = [EntryPoint]
 -- === Utils === --
 
 liftEntry :: State.Monad EntryStack m => EntryPoint -> m ()
-liftEntry = State.modify_ @EntryStack . (:) ; {-# INLINE liftEntry #-}
+liftEntry = State.modify_ @EntryStack . (:)
+{-# INLINE liftEntry #-}
 
 unliftEntry :: State.Monad EntryStack m => m ()
 unliftEntry = State.modify_ @EntryStack $ \lst -> case tail lst of
     Just p  -> p
-    Nothing -> error "Trying to unlift global lexer entry."
+    Nothing -> error "Panic. Trying to unlift global lexer entry."
 {-# INLINE unliftEntry #-}
 
 getEntryPoint :: State.Monad EntryStack m => m EntryPoint
-getEntryPoint = maybe def id . head <$> State.get @EntryStack ; {-# INLINE getEntryPoint #-}
+getEntryPoint = maybe def id . head <$> State.get @EntryStack
+{-# INLINE getEntryPoint #-}
 
 
 -- === Instances === --
 
-instance Default EntryPoint where def = TopLevelEntry ; {-# INLINE def #-}
+instance NFData  EntryPoint
+instance Default EntryPoint where
+    def = TopLevelEntry
+    {-# INLINE def #-}
+
 
 
 -----------------------
@@ -72,7 +80,8 @@ instance Default EntryPoint where def = TopLevelEntry ; {-# INLINE def #-}
 -----------------------
 
 newlineStartChar :: Char -> Bool
-newlineStartChar c = c == '\n' || c == '\r' ; {-# INLINE newlineStartChar #-}
+newlineStartChar c = c == '\n' || c == '\r'
+{-# INLINE newlineStartChar #-}
 
 
 
@@ -83,12 +92,16 @@ newlineStartChar c = c == '\n' || c == '\r' ; {-# INLINE newlineStartChar #-}
 -- === Char by char checking === --
 
 isIdentBodyChar, isVarHead, isConsHead :: Char -> Bool
-isIdentBodyChar c = Char.isAlphaNum c ; {-# INLINE isIdentBodyChar  #-}
-isVarHead       c = Char.isLower    c ; {-# INLINE isVarHead        #-}
-isConsHead      c = Char.isUpper    c ; {-# INLINE isConsHead       #-}
+isIdentBodyChar c = Char.isAlphaNum c
+isVarHead       c = Char.isLower    c
+isConsHead      c = Char.isUpper    c
+{-# INLINE isIdentBodyChar  #-}
+{-# INLINE isVarHead        #-}
+{-# INLINE isConsHead       #-}
 
 tokenBreakingChars :: [Char]
-tokenBreakingChars = "`!@#$%^&*()-=+[]{}\\|;:<>,./ \t\n" ; {-# INLINE tokenBreakingChars #-}
+tokenBreakingChars = "`!@#$%^&*()-=+[]{}\\|;:<>,./ \t\n"
+{-# INLINE tokenBreakingChars #-}
 
 
 -- === Names === --
@@ -99,10 +112,12 @@ invalidSuffix = Symbol.Invalid . Invalid.UnexpectedSuffix . Txt.length
 {-# INLINE invalidSuffix #-}
 
 checkInvalidSuffix :: Lexer -> Lexer
-checkInvalidSuffix =  (<**> option id (const <$> invalidSuffix)) ; {-# INLINE checkInvalidSuffix #-}
+checkInvalidSuffix =  (<**> option id (const <$> invalidSuffix))
+{-# INLINE checkInvalidSuffix #-}
 
 lexWildcard :: Lexer
-lexWildcard = checkInvalidSuffix $ Symbol.Wildcard <$ token '_' ; {-# INLINE lexWildcard #-}
+lexWildcard = checkInvalidSuffix $ Symbol.Wildcard <$ token '_'
+{-# INLINE lexWildcard #-}
 
 lexVariable :: Lexer
 lexVariable = checkInvalidSuffix validVar where
@@ -158,8 +173,9 @@ charToDigit char = unsafeConvert <$> if
 {-# INLINE charToDigit #-}
 
 unsafeCharToDigit :: Char -> Word8
-unsafeCharToDigit c = fromJust err $ charToDigit c where
-    err = error $ "Cannot convert char " <> [c] <> " to digit."
+unsafeCharToDigit c = case charToDigit c of
+    Just t  -> t
+    Nothing -> error $ "Cannot convert char " <> [c] <> " to digit."
 {-# INLINE unsafeCharToDigit #-}
 
 lexNumber :: Lexer
@@ -183,10 +199,12 @@ lexNumber = checkInvalidSuffix number where
 
 beginStr :: Symbol.StrType -> Char -> Lexer
 beginStr t c = Symbol.Quote t Symbol.Begin
-            <$ (liftEntry . StrEntry t =<< beginQuotes c) ; {-# INLINE beginStr #-}
+            <$ (liftEntry . StrEntry t =<< beginQuotes c)
+{-# INLINE beginStr #-}
 
 beginQuotes :: Char -> Parser Int
-beginQuotes !c = beginMultiQuotes c <|> (1 <$ token c) ; {-# INLINE beginQuotes #-}
+beginQuotes !c = beginMultiQuotes c <|> (1 <$ token c)
+{-# INLINE beginQuotes #-}
 
 beginMultiQuotes :: Char -> Parser Int
 beginMultiQuotes !c = do
@@ -199,15 +217,22 @@ beginMultiQuotes !c = do
 -- === Top level string parsers === --
 
 natStrQuote, rawStrQuote, fmtStrQuote, escapeChar :: Char
-natStrQuote = '`'  ; {-# INLINE natStrQuote #-}
-rawStrQuote = '"'  ; {-# INLINE rawStrQuote #-}
-fmtStrQuote = '\'' ; {-# INLINE fmtStrQuote #-}
-escapeChar  = '\\' ; {-# INLINE escapeChar  #-}
+natStrQuote = '`'
+rawStrQuote = '"'
+fmtStrQuote = '\''
+escapeChar  = '\\'
+{-# INLINE natStrQuote #-}
+{-# INLINE rawStrQuote #-}
+{-# INLINE fmtStrQuote #-}
+{-# INLINE escapeChar  #-}
 
 natStr, rawStr, fmtStr :: Lexer
-natStr = beginStr Symbol.NatStr natStrQuote ; {-# INLINE natStr #-}
-rawStr = beginStr Symbol.RawStr rawStrQuote ; {-# INLINE rawStr #-}
-fmtStr = beginStr Symbol.FmtStr fmtStrQuote ; {-# INLINE fmtStr #-}
+natStr = beginStr Symbol.NatStr natStrQuote
+rawStr = beginStr Symbol.RawStr rawStrQuote
+fmtStr = beginStr Symbol.FmtStr fmtStrQuote
+{-# INLINE natStr #-}
+{-# INLINE rawStr #-}
+{-# INLINE fmtStr #-}
 
 
 -- === Native String === --
@@ -286,6 +311,7 @@ esc1Map = Char.ord <$> fromList
     [ ("a", '\a'), ("b", '\b'), ("f", '\f'), ("n", '\n'), ("r", '\r')
     , ("t", '\t'), ("v", '\v')
     ]
+{-# INLINE esc1Map #-}
 
 esc2Map :: Map String Int
 esc2Map = Char.ord <$> fromList
@@ -293,6 +319,7 @@ esc2Map = Char.ord <$> fromList
     , ("CR", '\CR'), ("SO", '\SO'), ("SI", '\SI'), ("EM", '\EM'), ("FS", '\FS')
     , ("GS", '\GS'), ("RS", '\RS'), ("US", '\US'), ("SP", '\SP')
     ]
+{-# INLINE esc2Map #-}
 
 esc3Map :: Map String Int
 esc3Map = Char.ord <$> fromList
@@ -302,6 +329,7 @@ esc3Map = Char.ord <$> fromList
     , ("DC4", '\DC4'), ("NAK", '\NAK'), ("SYN", '\SYN'), ("ETB", '\ETB')
     , ("CAN", '\CAN'), ("SUB", '\SUB'), ("ESC", '\ESC'), ("DEL", '\DEL')
     ]
+{-# INLINE esc3Map #-}
 
 lexEscSeq :: Lexer
 lexEscSeq = numEsc <|> chrEcs <|> badEsc where
@@ -310,6 +338,7 @@ lexEscSeq = numEsc <|> chrEcs <|> badEsc where
     chrEcs = choice $ uncurry parseEsc <$> zip [1..] [esc1Map, esc2Map, esc3Map]
     badEsc = Symbol.Invalid
              (Invalid.Literal $ Invalid.String Invalid.EscapeCode) <$ anyToken
+{-# INLINE lexEscSeq #-}
 
 parseEsc :: Int -> Map String Int -> Lexer
 parseEsc n m = do
@@ -317,7 +346,7 @@ parseEsc n m = do
     case Map.lookup s m of
         Just i  -> pure . Symbol.StrEsc $ Symbol.CharStrEsc i
         Nothing -> fail "Escape not matched"
-
+{-# INLINE parseEsc #-}
 
 
 --------------------
@@ -325,26 +354,33 @@ parseEsc n m = do
 --------------------
 
 markerBegin, markerEnd :: Char
-markerBegin = '«' ; {-# INLINE markerBegin #-}
-markerEnd   = '»' ; {-# INLINE markerEnd   #-}
+markerBegin = '«'
+markerEnd   = '»'
+{-# INLINE markerBegin #-}
+{-# INLINE markerEnd   #-}
 
 metadataHeader :: IsString s => s
-metadataHeader = "META" ; {-# INLINE metadataHeader #-}
+metadataHeader = "META"
+{-# INLINE metadataHeader #-}
 
 mkMetadata :: (IsString s, Semigroup s) => s -> s
-mkMetadata s = "### " <> metadataHeader <> s ; {-# INLINE mkMetadata #-}
+mkMetadata s = "### " <> metadataHeader <> s
+{-# INLINE mkMetadata #-}
 
 lexConfig :: Lexer
-lexConfig = takeMany ' ' *> lexMetadata ; {-# INLINE lexConfig #-}
+lexConfig = takeMany ' ' *> lexMetadata
+{-# INLINE lexConfig #-}
 
 lexMetadata :: Lexer
-lexMetadata = Symbol.Metadata <$  tokens metadataHeader
-                              <*  takeMany1 ' '
-                              <*> takeLine
+lexMetadata = Symbol.Metadata
+    <$  tokens metadataHeader
+    <*  takeMany1 ' '
+    <*> takeLine
 {-# INLINE lexMetadata #-}
 
 lexComment :: Lexer
-lexComment = Symbol.Doc <$> takeLine ; {-# INLINE lexComment #-}
+lexComment = Symbol.Doc <$> takeLine
+{-# INLINE lexComment #-}
 
 lexMarker :: Lexer
 lexMarker = token markerBegin *> (correct <|> incorrect) <* token markerEnd
@@ -361,10 +397,12 @@ lexMarker = token markerBegin *> (correct <|> incorrect) <* token markerEnd
 -----------------------
 
 operatorChars :: [Char]
-operatorChars = "!$%&*+-/<>?^~\\" ; {-# INLINE operatorChars #-}
+operatorChars = "!$%&*+-/<>?^~\\"
+{-# INLINE operatorChars #-}
 
 isOperatorChar :: Char -> Bool
-isOperatorChar = (`elem` operatorChars) ; {-# INLINE isOperatorChar #-}
+isOperatorChar = (`elem` operatorChars)
+{-# INLINE isOperatorChar #-}
 
 isOperator :: Convertible' s String => s -> Bool
 isOperator = test . convertTo' @String where
@@ -383,13 +421,14 @@ isOperator = test . convertTo' @String where
 
 -- | The size of `symmap` - Vector-based map from head Char to related parser.
 symmapSize :: Int
-symmapSize = 200 ; {-# INLINE symmapSize #-}
+symmapSize = 200
+{-# INLINE symmapSize #-}
 
 symmap :: Vector (Lexer)
 symmap = Vector.generate symmapSize $ \i -> let c = Char.chr i in if
 
     -- Layouting
-    | c == ';'          -> Symbol.Terminator  <$ dropToken
+    | c == ';'          -> Symbol.Terminator         <$ dropToken
     | c == '{'          -> Symbol.Block Symbol.Begin <$ dropToken
     | c == '}'          -> Symbol.Block Symbol.End   <$ dropToken
     | c == '('          -> Symbol.Group Symbol.Begin <$ dropToken
@@ -447,7 +486,8 @@ symmap = Vector.generate symmapSize $ \i -> let c = Char.chr i in if
 -- -- === Utils === --
 
 unknownCharSym :: Char -> Lexer
-unknownCharSym c = dropToken >> pure (Symbol.Unknown $ convert c) ; {-# INLINE unknownCharSym #-}
+unknownCharSym c = dropToken >> pure (Symbol.Unknown $ convert c)
+{-# INLINE unknownCharSym #-}
 
 
 
@@ -455,9 +495,11 @@ unknownCharSym c = dropToken >> pure (Symbol.Unknown $ convert c) ; {-# INLINE u
 -- === Top level combinators === --
 -----------------------------------
 
-lexer     :: Parser (Symbol, Int)
+lexer :: Parser (Symbol, Int)
+lexer = lexeme =<< lexEntryPoint
+{-# INLINE lexer #-}
+
 lexerCont :: Parser ((Symbol, EntryStack), Int)
-lexer     = lexeme =<< lexEntryPoint ; {-# INLINE lexer #-}
 lexerCont = do
     s         <- lexEntryPoint
     (s', off) <- lexeme s
@@ -476,7 +518,8 @@ lexEntryPoint = getEntryPoint >>= \case
 {-# INLINE lexEntryPoint #-}
 
 topEntryPoint :: Lexer
-topEntryPoint = peekToken >>= lexSymChar ; {-# INLINE topEntryPoint #-}
+topEntryPoint = lexSymChar =<< peekToken
+{-# INLINE topEntryPoint #-}
 
 -- | (1): fetch  lexers for ASCII from precomputed cache
 --   (2): create lexers for unicode names on the fly
@@ -500,4 +543,5 @@ lexeme s = case s of
 {-# INLINE lexeme #-}
 
 spacing :: Parser Int
-spacing = Txt.length <$> takeMany ' ' ; {-# INLINE spacing #-}
+spacing = Txt.length <$> takeMany ' '
+{-# INLINE spacing #-}

@@ -201,11 +201,7 @@ instance Semigroup (Spantree a) where a <> b = wrap $ unwrap a <> unwrap b ; {-#
 
 -- === Spantree construction === --
 
--- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
--- !!! FIXME[WD]: GHC PANIC HERE !!!
--- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-buildSpanTree :: Text32 -> [Lexer.Token Lexer.Symbol] -> Spantree Text32
+buildSpanTree :: Text32 -> [Lexer.Token] -> Spantree Text32
 buildSpanTree src = \case
     []     -> empty
     (t:ts) -> tailTree & case t ^. Lexer.symbol of

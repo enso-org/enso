@@ -7,37 +7,42 @@ module Luna.Syntax.Prettyprint where
 import qualified Prelude  as P
 import           Prologue hiding (Symbol)
 
-import qualified Control.Monad.State.Layered      as State
-import qualified Data.Char                        as Char
-import qualified Data.Graph.Component.Edge.Class  as Link
-import qualified Data.Graph.Data.Component.Vector as ComponentVector
-import qualified Data.Graph.Data.Layer.Layout     as Layout
-import qualified Data.Layout                      as Layout
-import qualified Data.Layout                      as Doc
-import qualified Data.Mutable.Class               as Mutable
-import qualified Data.Text                        as Text
-import qualified Data.Vector.Storable.Foreign     as Vector
-import qualified Language.Symbol.Operator.Assoc   as Assoc
-import qualified Language.Symbol.Operator.Prec    as Prec
-import qualified Luna.IR                          as IR
-import qualified Luna.IR.Aliases                  as Uni
-import qualified Luna.IR.Layer                    as Layer
-import qualified Luna.IR.Link                     as Link
-import qualified Luna.IR.Term.Literal             as Literal
-import qualified Luna.Pass                        as Pass
-import qualified Luna.Syntax.Text.Lexer.Grammar   as Grammar
-import qualified Luna.Syntax.Text.Scope           as Scope
-import qualified OCI.Data.Name                    as Name
-import Control.Monad.State.Layered  (StateT)
-import Data.Layout                  (backticked, quoted, singleQuoted, space,
-                                     (</>))
-import Data.Layout                  (block, indented, parensed, (<+>))
-import Data.Vector.Storable.Foreign (Vector)
-import Language.Symbol.Label        (Labeled (Labeled), label, labeled, unlabel)
-import Luna.IR                      (Name)
-import Luna.Pass                    (Pass)
-import Luna.Syntax.Text.Parser.Data.Name.Hardcoded (hardcode)
-import Luna.Syntax.Text.Scope       (Scope)
+import           Control.Monad.State.Layered                 (StateT)
+import qualified Control.Monad.State.Layered                 as State
+import qualified Data.Char                                   as Char
+import qualified Data.Graph.Component.Edge.Class             as Link
+import qualified Data.Graph.Data.Component.Vector            as ComponentVector
+import qualified Data.Graph.Data.Layer.Layout                as Layout
+import           Data.Layout                                 (backticked,
+                                                              quoted,
+                                                              singleQuoted,
+                                                              space, (</>))
+import           Data.Layout                                 (block, indented,
+                                                              parensed, (<+>))
+import qualified Data.Layout                                 as Layout
+import qualified Data.Layout                                 as Doc
+import qualified Data.Mutable.Class                          as Mutable
+import qualified Data.Text                                   as Text
+import           Data.Vector.Storable.Foreign                (Vector)
+import qualified Data.Vector.Storable.Foreign                as Vector
+import           Language.Symbol.Label                       (Labeled (Labeled),
+                                                              label, labeled,
+                                                              unlabel)
+import qualified Language.Symbol.Operator.Assoc              as Assoc
+import qualified Language.Symbol.Operator.Prec               as Prec
+import           Luna.IR                                     (Name)
+import qualified Luna.IR                                     as IR
+import qualified Luna.IR.Aliases                             as Uni
+import qualified Luna.IR.Layer                               as Layer
+import qualified Luna.IR.Link                                as Link
+import qualified Luna.IR.Term.Literal                        as Literal
+import           Luna.Pass                                   (Pass)
+import qualified Luna.Pass                                   as Pass
+import qualified Luna.Syntax.Text.Lexer.Grammar              as Grammar
+import           Luna.Syntax.Text.Parser.Data.Name.Hardcoded (hardcode)
+import           Luna.Syntax.Text.Scope                      (Scope)
+import qualified Luna.Syntax.Text.Scope                      as Scope
+import qualified OCI.Data.Name                               as Name
 
 
 
@@ -338,6 +343,15 @@ instance ( MonadIO m -- DEBUG ONLY
             args' <- mapM subgen =<< ComponentVector.toList args
             foldM appSymbols (simple $ convert (Name.concat [convert m, ".", c, ".", cons])) args'
         IR.UniTermResolvedDef (IR.ResolvedDef m n) -> pure . unnamed $ Atom (convert $ Name.concat [convert m, ".", n])
+
+        IR.UniTermUpdate (IR.Update a ns v) -> named (spaced updateName) . Atom .:.
+            (\a' v' ns' -> convert a' <> "." <> intercalate "." (convert <$> ns')
+            <+> "=" <+> convert v') <$> subgen a <*> subgen v <*> Mutable.toList ns
+
+        IR.UniTermModify (IR.Modify a ns n v) -> named (spaced updateName) . Atom .:.
+            (\a' v' ns' -> convert a' <> "." <> intercalate "." (convert <$> ns')
+                <+> convert n <> "=" <+> convert v')
+            <$> subgen a <*> subgen v <*> Mutable.toList ns
 
         t -> error $ "NO PRETTYPRINT FOR: " <> show t
 

@@ -28,12 +28,12 @@ GTraversable.derive ''Delta
 
 -- === Instances === --
 
-instance Convertible Int   Delta where convert = coerce
-instance Convertible Delta Int   where convert = coerce
+instance Convertible Int   Delta where convert = coerce ; {-# INLINE convert #-}
+instance Convertible Delta Int   where convert = coerce ; {-# INLINE convert #-}
 
-instance Default   Delta where def    = 0
-instance Mempty    Delta where mempty = 0
-instance Semigroup Delta where (<>)   = (+)
+instance Default   Delta where def    = 0   ; {-# INLINE def    #-}
+instance Mempty    Delta where mempty = 0   ; {-# INLINE mempty #-}
+instance Semigroup Delta where (<>)   = (+) ; {-# INLINE (<>)   #-}
 
 instance Show Delta where show = show . unwrap ; {-# INLINE show #-}
 
@@ -62,10 +62,10 @@ incOffset i = State.modify_ @Offset (+i)
 
 -- === Instances === --
 
-instance Convertible Delta  Offset where convert = coerce
-instance Convertible Offset Delta  where convert = coerce
-instance Convertible Int    Offset where convert = convertVia @Delta
-instance Convertible Offset Int    where convert = convertVia @Delta
+instance Convertible Delta  Offset where convert = coerce            ; {-# INLINE convert #-}
+instance Convertible Offset Delta  where convert = coerce            ; {-# INLINE convert #-}
+instance Convertible Int    Offset where convert = convertVia @Delta ; {-# INLINE convert #-}
+instance Convertible Offset Int    where convert = convertVia @Delta ; {-# INLINE convert #-}
 
 
 
