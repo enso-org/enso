@@ -16,72 +16,82 @@ import Data.Text.Position (Delta, Position)
 
 -- === Definition === --
 
-data Indent = Indent
+newtype Indent = Indent
     { _level :: Delta
-    , _stack :: [Delta]
     } deriving (Show)
 makeLenses ''Indent
 
 
 -- === Pure API === --
 
-push' :: Delta -> Indent -> Indent
-push' d i = i & stack %~ (i ^. level :)
-                & level .~ d
-{-# INLINE push' #-}
-
-pop' :: Indent -> (Delta, Indent)
-pop' i = (i ^. level,) $ i & level .~ unsafeHead (i ^. stack)
-                            & stack %~ unsafeTail
-{-# INLINE pop' #-}
+put' :: Delta -> Indent -> Indent
+put' d i = i & level .~ d
+{-# INLINE put' #-}
 
 
 -- === Instances === --
 
 instance Default Indent where
-    def = Indent 1 mempty
+    def = Indent 0
+    {-# INLINE def #-}
 
 
 -- === Monadic API === --
 
+put :: State.Monad Indent m => Delta -> m ()
+put = State.modify_ @Indent . put'
+{-# INLINE put #-}
+
 get :: State.Getter Indent m => m Delta
 get = view level <$> State.get @Indent
-
-pushCurrent :: (State.Monad Indent m, State.Getter Position m) => m ()
-pushCurrent = push =<< Position.getColumn
-
-push :: State.Monad Indent m => Delta -> m ()
-push = State.modify_ @Indent . push'
-
-pop :: State.Monad Indent m => m Delta
-pop = State.modify @Indent pop'
+{-# INLINE get #-}
 
 with :: State.Monad Indent m => Delta -> m a -> m a
-with d m = push d *> m <* pop
+with = \ind m -> do
+    old <- get
+    put ind
+    out <- m
+    put old
+    pure out
+{-# INLINE with #-}
 
 withCurrent :: (State.Monad Indent m, State.Getter Position m) => m a -> m a
-withCurrent m = pushCurrent *> m <* pop
+withCurrent = \m -> do
+    col <- Position.getColumn
+    with col m
+{-# INLINE withCurrent #-}
 
 withRoot :: State.Monad Indent m => m a -> m a
-withRoot = with 1
+withRoot = with $ def ^. level
+{-# INLINE withRoot #-}
 
-checkIndentRef :: State.Getters '[Indent, Position] m => (Delta -> Delta -> a) -> m a
-checkIndentRef f = f <$> Position.getColumn <*> get
+checkIndentRef :: State.Getters '[Indent, Position] m
+    => (Delta -> Delta -> a) -> m a
+checkIndentRef = \f -> f <$> Position.getColumn <*> get
+{-# INLINE checkIndentRef #-}
 
 checkIndent :: State.Getters '[Indent, Position] m => (Delta -> a) -> m a
-checkIndent f = checkIndentRef $ f .: (-)
+checkIndent = \f -> checkIndentRef $ f .: (-)
+{-# INLINE checkIndent #-}
 
 checkIndented :: State.Getters '[Indent, Position] m => (Ordering -> a) -> m a
-checkIndented f = checkIndentRef $ f .: compare
+checkIndented = \f -> checkIndentRef $ f .: compare
+{-# INLINE checkIndented #-}
 
--- TODO[WD]: make it safe
-guard :: State.Getters '[Indent, Position] m => (Ordering -> Bool) -> String -> m ()
-guard ord err = flip when (Monad.fail err) . not =<< checkIndented ord
+guard :: State.Getters '[Indent, Position] m
+    => (Ordering -> Bool) -> String -> m ()
+guard = \ord err -> flip when (Monad.fail err) . not =<< checkIndented ord
+{-# INLINE guard #-}
 
-indented, indentedOrEq, indentedEq :: State.Getters '[Indent, Position] m => m ()
+indented, indentedOrEq, indentedEq
+    :: State.Getters '[Indent, Position] m => m ()
 indented     = guard (== GT) "Expected indentation"
 indentedOrEq = guard (/= LT) "Expected indentation"
 indentedEq   = guard (== EQ) "Indentation does not match the previous one"
+{-# INLINE indented     #-}
+{-# INLINE indentedOrEq #-}
+{-# INLINE indentedEq   #-}
 
 indentation :: State.Getters '[Indent, Position] m => m Delta
 indentation = (-) <$> Position.getColumn <*> get
+{-# INLINE indentation #-}
