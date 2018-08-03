@@ -275,9 +275,9 @@ markerIRB = Marker.getAndClearLast >>= \case
             markerOffL = foEnd - crange - markerLen - markerOffR
             markerSpan = Span.leftSpacedSpan markerOffL markerLen
         State.modify_ @CodeSpanRange $ wrapped .~ foEnd
-        pure $ ( t ^. Lexer.symbol
+        pure $ ( t ^. Marker.markerID
                , irbsFromSpan (CodeSpan.mkPhantomSpan markerSpan)
-                                  (id $ irb1 IR.marker' $ t ^. Lexer.symbol)
+                                  (id $ irb1 IR.marker' $ t ^. Marker.markerID)
                )
 
 marked :: Parser (IRBS SomeTerm -> IRBS SomeTerm)

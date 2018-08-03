@@ -17,7 +17,7 @@ import Data.Text.Position             (Delta)
 import Data.Text32                    (Text32)
 import Luna.Syntax.Text.Lexer.Grammar (EntryStack, Parser, lexer)
 import Luna.Syntax.Text.Lexer.Symbol  (Symbol)
-import Luna.Syntax.Text.Lexer.Token   (Token (Token))
+import Luna.Syntax.Text.Lexer.Token   (Token, token)
 
 import Data.Parser.Instances.Attoparsec ()
 
@@ -36,32 +36,29 @@ parse2 p x s col row
     $ p
 {-# INLINE parse2 #-}
 
-parse2' :: Text32 -> [Token]
-parse2' = \s ->
+evalDefLexer :: Text32 -> [Token]
+evalDefLexer = \s ->
     let s'  = Text32.dropWhile (== ' ') s
         off = Text32.length s - Text32.length s'
-    in  stx off : evalDefLexer s'
-{-# INLINE parse2' #-}
-
-evalDefLexer :: Text32 -> [Token]
-evalDefLexer = reverse . evalDefLexer_ mempty mempty mempty
+        go  = reverse . evalLexer_ mempty mempty mempty mempty
+    in  stx off : go s'
 {-# INLINE evalDefLexer #-}
 
-evalDefLexer_ :: Delta -> Delta -> [Token] -> Text32 -> [Token]
-evalDefLexer_ = go where
-    go col row toks txt = let
+evalLexer_ :: EntryStack -> Delta -> Delta -> [Token] -> Text32 -> [Token]
+evalLexer_ = go where
+    go stack col row toks txt = let
 
-        handleDone txt' ((!symbol, !ioff), !stack) =
+        handleDone txt' ((!symbol, !ioff), !stack') =
             let pdiff = convert $! Text32.length txt - Text32.length txt'
                 off   = convert ioff
                 span  = pdiff - off
                 isEnd = Text32.null txt'
-                token = Token span off col row symbol stack
-                toks' = token : toks
+                tok   = token span off col row stack' symbol
+                toks' = tok : toks
                 (!col', !row') = if symbol == Symbol.EOL
                     then (0, row + 1)
                     else (col + pdiff, row)
-            in if isEnd then toks' else go col' row' toks' txt'
+            in if isEnd then toks' else go stack' col' row' toks' txt'
         {-# INLINE handleDone #-}
 
         handleOut f = \case
@@ -73,8 +70,8 @@ evalDefLexer_ = go where
         runSteps = handleOut $! handleOut (const impossible)
         {-# INLINE runSteps #-}
 
-        in runSteps $! parse2 lexer def txt col row
-{-# INLINE evalDefLexer_ #-}
+        in runSteps $! parse2 lexer stack txt col row
+{-# INLINE evalLexer_ #-}
 
 
 -- === STX / ETX handling === --
@@ -90,8 +87,8 @@ instance IsSourceBorder r => IsSourceBorder (Either l r) where
     {-# INLINE etx #-}
 
 instance IsSourceBorder Token where
-    stx i = Token mempty (convert i) 0 0 (stx i) mempty
-    etx   = Token mempty mempty      0 0 etx     mempty
+    stx i = token mempty (convert i) 0 0 mempty (stx i)
+    etx   = token mempty mempty      0 0 mempty etx
     {-# INLINE stx #-}
     {-# INLINE etx #-}
 

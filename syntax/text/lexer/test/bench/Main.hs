@@ -60,7 +60,7 @@ main = do
     -- putStrLn $ "'" <> convert code <> "'"
     -- pprint $ evalDefLexer $ code
     -- pprint $ evalDefLexer $ "a = 'foo'"
-    pprint $ Lexer.parse2' $ "  a = a.x += 5"
+    pprint $ Lexer.evalDefLexer $ "\"\""
 
     -- pprint $ tagColumn mempty $ evalDefLexer " ff #def foo:\n      bar\n    def baz: pass"
     -- pprint $ tagDisabled' [0] $ evalDefLexer " ff #def foo:\n      bar\n    def baz: pass"

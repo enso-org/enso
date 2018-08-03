@@ -62,11 +62,21 @@ incOffset i = State.modify_ @Offset (+i)
 
 -- === Instances === --
 
-instance Convertible Delta  Offset where convert = coerce            ; {-# INLINE convert #-}
-instance Convertible Offset Delta  where convert = coerce            ; {-# INLINE convert #-}
-instance Convertible Int    Offset where convert = convertVia @Delta ; {-# INLINE convert #-}
-instance Convertible Offset Int    where convert = convertVia @Delta ; {-# INLINE convert #-}
+instance Convertible Delta Offset where
+    convert = coerce
+    {-# INLINE convert #-}
 
+instance Convertible Offset Delta where
+    convert = coerce
+    {-# INLINE convert #-}
+
+instance Convertible Int Offset where
+    convert = convertVia @Delta
+    {-# INLINE convert #-}
+
+instance Convertible Offset Int where
+    convert = convertVia @Delta
+    {-# INLINE convert #-}
 
 
 ---------------------
