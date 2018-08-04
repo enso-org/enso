@@ -1,4 +1,4 @@
-module Luna.Syntax.Text.Parser.State.Indent where
+module Text.Parser.State.Indent where
 
 import Prologue hiding (guard)
 
@@ -6,7 +6,8 @@ import qualified Control.Monad               as Monad
 import qualified Control.Monad.State.Layered as State
 import qualified Data.Text.Position          as Position
 
-import Data.Text.Position (Delta, Position)
+import Control.Monad.State.Layered (StateT)
+import Data.Text.Position          (Delta, Position)
 
 
 
@@ -18,8 +19,15 @@ import Data.Text.Position (Delta, Position)
 
 newtype Indent = Indent
     { _level :: Delta
-    } deriving (Show)
+    } deriving (Default, Mempty, Show)
 makeLenses ''Indent
+
+
+-- === Running === --
+
+eval :: Monad m => StateT Indent m a -> m a
+eval = flip (State.evalT @Indent) mempty
+{-# INLINE eval #-}
 
 
 -- === Pure API === --
@@ -27,13 +35,6 @@ makeLenses ''Indent
 put' :: Delta -> Indent -> Indent
 put' d i = i & level .~ d
 {-# INLINE put' #-}
-
-
--- === Instances === --
-
-instance Default Indent where
-    def = Indent 0
-    {-# INLINE def #-}
 
 
 -- === Monadic API === --
@@ -62,7 +63,7 @@ withCurrent = \m -> do
 {-# INLINE withCurrent #-}
 
 withRoot :: State.Monad Indent m => m a -> m a
-withRoot = with $ def ^. level
+withRoot = with $ mempty ^. level
 {-# INLINE withRoot #-}
 
 checkIndentRef :: State.Getters '[Indent, Position] m

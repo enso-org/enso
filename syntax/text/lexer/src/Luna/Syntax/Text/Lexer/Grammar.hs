@@ -13,14 +13,17 @@ import qualified Data.Text32                   as Txt
 import qualified Data.Vector                   as Vector
 import qualified Luna.IR.Term.Ast.Invalid      as Invalid
 import qualified Luna.Syntax.Text.Lexer.Symbol as Symbol
+import qualified Text.Parser.State.Indent      as Indent
 
 import Control.Monad.State.Layered      (StatesT)
 import Data.Map.Strict                  (Map)
-import Data.Parser                      hiding (Token)
 import Data.Parser.Instances.Attoparsec ()
 import Data.Text.Position               (Delta)
 import Data.Vector                      (Vector)
 import Luna.Syntax.Text.Lexer.Symbol    (Symbol)
+import Text.Parser.State.Indent         (Indent)
+
+import Data.Parser hiding (Token)
 
 type Txt = Txt.Text32
 
@@ -65,8 +68,8 @@ instance Mempty Location where
 
 data EntryPoint
    = TopLevelEntry
-   | StrEntry      !Symbol.StrType !Int
-   | StrCodeEntry  !Int
+   | StrEntry      Symbol.StrType Int
+   | StrCodeEntry  Int
    deriving (Eq, Generic, Ord, Show)
 
 type EntryStack = [EntryPoint]
@@ -102,7 +105,7 @@ instance Default EntryPoint where
 -- === Lexer types === --
 -------------------------
 
-type Parser = StatesT '[EntryStack, Location] Parsec.Parser
+type Parser = StatesT '[Indent, EntryStack, Location] Parsec.Parser
 type Lexer  = Parser Symbol
 
 
@@ -166,15 +169,13 @@ lexConstructor = checkInvalidSuffix $ Symbol.Cons <$> takeWhile isIdentBodyChar
 
 -- === Invalid names === --
 
--- | WARNING!
---   We assume that we have already checked for valid headers before
---   using this check!.
+-- | WARNING! We assume that we have already checked for valid headers before
+--   using this check!
 isInvalidVarHead :: Char -> Bool
 isInvalidVarHead = Char.isAlpha ; {-# INLINE isInvalidVarHead #-}
 
--- | WARNING!
---   We assume that we have already checked for valid headers before
---   using this check!.
+-- | WARNING! We assume that we have already checked for valid headers before
+--   using this check!
 lexInvalidVariable :: Lexer
 lexInvalidVariable = Symbol.Invalid Invalid.CaselessNameHead
                   <$ takeWhile isIdentBodyChar
@@ -231,8 +232,9 @@ lexNumber = checkInvalidSuffix number where
 -- === String parsing utils === --
 
 beginStr :: Symbol.StrType -> Char -> Lexer
-beginStr = \t c -> Symbol.Quote t Symbol.Begin
-                <$ (liftEntry . StrEntry t =<< beginQuotes c)
+beginStr = \t c -> do
+    liftEntry . StrEntry t =<< beginQuotes c
+    pure $ Symbol.Quote t Symbol.Begin
 {-# INLINE beginStr #-}
 
 beginQuotes :: Char -> Parser Int

@@ -32,10 +32,10 @@ import qualified Luna.Syntax.Text.Parser.Data.Name.Spaced  as Name
 import qualified Luna.Syntax.Text.Parser.Data.Name.Special as SpecialName
 import qualified Luna.Syntax.Text.Parser.IR.Expr           as Expr
 import qualified Luna.Syntax.Text.Parser.Loc               as Loc
-import qualified Luna.Syntax.Text.Parser.State.Indent      as Indent
 import qualified Luna.Syntax.Text.Parser.State.Marker      as Marker
 import qualified Luna.Syntax.Text.Parser.State.Reserved    as Reserved
 import qualified Luna.Syntax.Text.Scope                    as Scope
+import qualified Text.Parser.State.Indent                  as Indent
 
 
 import Data.List.NonEmpty                       ((<|))

@@ -33,6 +33,7 @@ packages:
     - package
     - runtime
     - stdlib
+    - shell
     - syntax/text/lexer
     - syntax/text/model
     - syntax/text/parser
@@ -49,12 +50,14 @@ packages:
     - lib/data-typemap
     - lib/exception
     - lib/foreign-utils
+    - lib/future
     - lib/generic-traversable
     - lib/generic-traversable2
     - lib/hspec-jenkins
     - lib/memory-manager
     - lib/memory-pool
     - lib/nested-containers
+    - lib/parser-utils
     - lib/syntax-definition
     - lib/text-processing
     - lib/th-builder

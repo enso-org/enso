@@ -39,6 +39,7 @@ dependencies:
     - luna-foreign-utils
     - luna-generic-traversable    
     - luna-nested-containers
+    - luna-parser-utils
     - luna-syntax-definition
     - luna-syntax-text-lexer
     - luna-syntax-text-model

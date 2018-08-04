@@ -57,6 +57,7 @@ packages:
     - lib/memory-manager
     - lib/memory-pool
     - lib/nested-containers
+    - lib/parser-utils    
     - lib/syntax-definition
     - lib/text-processing
     - lib/th-builder

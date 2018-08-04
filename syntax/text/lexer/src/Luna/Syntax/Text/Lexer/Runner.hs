@@ -9,6 +9,7 @@ import qualified Data.Attoparsec.Internal.Types as Parser
 import qualified Data.Text32                    as Text32
 import qualified Luna.Syntax.Text.Lexer.Grammar as Grammar
 import qualified Luna.Syntax.Text.Lexer.Symbol  as Symbol
+import qualified Text.Parser.State.Indent       as State.Indent
 
 import Data.Attoparsec.Internal.Types (IResult)
 import Data.Parser                    (PartialParser, closePartial,
@@ -27,25 +28,16 @@ import Data.Parser.Instances.Attoparsec ()
 -- === Running === --
 ---------------------
 
-parse2 :: Parser (a, Int) -> EntryStack -> Text32 -> Delta -> Delta
-       -> IResult Text32 ((a, Int), EntryStack)
-parse2 p x s col row
-    = flip parsePartial s
-    $ flip (State.evalT @Grammar.Location) (Grammar.Location col row)
-    $ flip (State.runT  @EntryStack) x
-    $ p
-{-# INLINE parse2 #-}
-
 evalDefLexer :: Text32 -> [Token]
 evalDefLexer = \s ->
     let s'  = Text32.dropWhile (== ' ') s
         off = Text32.length s - Text32.length s'
-        go  = reverse . evalLexer_ mempty mempty mempty mempty
+        go  = reverse . evalLexer__ mempty mempty mempty mempty
     in  stx off : go s'
 {-# INLINE evalDefLexer #-}
 
-evalLexer_ :: EntryStack -> Delta -> Delta -> [Token] -> Text32 -> [Token]
-evalLexer_ = go where
+evalLexer__ :: EntryStack -> Delta -> Delta -> [Token] -> Text32 -> [Token]
+evalLexer__ = go where
     go stack col row toks txt = let
 
         handleDone txt' ((!symbol, !ioff), !stack') =
@@ -70,8 +62,18 @@ evalLexer_ = go where
         runSteps = handleOut $! handleOut (const impossible)
         {-# INLINE runSteps #-}
 
-        in runSteps $! parse2 lexer stack txt col row
-{-# INLINE evalLexer_ #-}
+        in runSteps $! runner__ lexer stack txt col row
+{-# INLINE evalLexer__ #-}
+
+runner__ :: Parser (a, Int) -> EntryStack -> Text32 -> Delta -> Delta
+       -> IResult Text32 ((a, Int), EntryStack)
+runner__ p x s col row
+    = flip parsePartial s
+    $ flip (State.evalT @Grammar.Location) (Grammar.Location col row)
+    $ flip (State.runT  @EntryStack) x
+    $ State.Indent.eval
+    $ p
+{-# INLINE runner__ #-}
 
 
 -- === STX / ETX handling === --

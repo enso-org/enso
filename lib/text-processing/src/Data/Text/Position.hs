@@ -12,7 +12,7 @@ import Foreign.Storable
 import Text.Printf
 
 
--- FIXME[WD]: We should remove Delta and rename Offset -> Offset Linear or something like that
+
 -------------------
 -- === Delta === --
 -------------------
@@ -21,7 +21,9 @@ import Text.Printf
 
 -- === Definition === --
 
-newtype Delta = Delta Int deriving (Bits, Bounded, Data, Enum, Eq, FiniteBits, Generic, Integral, Ix, NFData, Num, Ord, PrintfArg, Read, Real, Storable)
+newtype Delta = Delta Int
+    deriving ( Bits, Bounded, Data, Enum, Eq, FiniteBits, Generic, Integral, Ix
+             , NFData, Num, Ord, PrintfArg, Read, Real, Storable)
 makeLenses          ''Delta
 GTraversable.derive ''Delta
 
@@ -47,7 +49,10 @@ instance Show Delta where show = show . unwrap ; {-# INLINE show #-}
 
 -- === Definition === --
 
-newtype Offset = Offset Delta deriving (Bits, Bounded, Data, Default, Enum, Eq, FiniteBits, Integral, Ix, Mempty, Num, Ord, PrintfArg, Read, Real, Semigroup, Show, Storable)
+newtype Offset = Offset Delta
+    deriving ( Bits, Bounded, Data, Default, Enum, Eq, FiniteBits, Integral, Ix
+             , Mempty, NFData, Num, Ord, PrintfArg, Read, Real, Semigroup, Show
+             , Storable)
 makeLenses ''Offset
 
 
