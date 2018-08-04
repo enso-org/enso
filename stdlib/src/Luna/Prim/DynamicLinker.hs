@@ -5,6 +5,7 @@ module Luna.Prim.DynamicLinker (
       loadLibrary
     , loadSymbol
     , closeLibrary
+    , Handle
     ) where
 
 import           Prologue hiding (throwM)

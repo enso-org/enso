@@ -5,17 +5,17 @@ module Luna.Prim.Foreign where
 
 import Prologue
 
-import qualified Data.Map                    as Map
-import qualified Data.Text                   as Text
-import qualified Foreign.ForeignPtr          as ForeignPtr
-import qualified Foreign.LibFFI              as LibFFI
-import qualified Luna.IR                     as IR
-import qualified Luna.Pass.Sourcing.Data.Def as Def
-import qualified Luna.Prim.DynamicLinker     as Linker
-import qualified Luna.Runtime                as Luna
-import qualified Luna.Std.Builder            as Builder
-import qualified OCI.Data.Name               as Name
-import qualified System.Mem.Weak             as Weak
+import qualified Data.Map                      as Map
+import qualified Data.Text                     as Text
+import qualified Foreign.ForeignPtr            as ForeignPtr
+import qualified Foreign.LibFFI                as LibFFI
+import qualified Luna.IR                       as IR
+import qualified Luna.Pass.Sourcing.Data.Def   as Def
+import qualified Luna.Prim.DynamicLinker.Cache as Linker
+import qualified Luna.Runtime                  as Luna
+import qualified Luna.Std.Builder              as Builder
+import qualified OCI.Data.Name                 as Name
+import qualified System.Mem.Weak               as Weak
 
 import Control.Exception.Safe    (handleAny, throwString)
 import Data.Map                  (Map)
@@ -97,12 +97,12 @@ primFracSeq = [ primStorable @graph @a
 
 exports :: forall graph m.
     ( Builder.StdBuilder graph m
-    ) => FinalizersCtx -> m (Map IR.Name Def.Def)
-exports finalizersCtx = do
+    ) => FinalizersCtx -> Linker.CacheCtx -> m (Map IR.Name Def.Def)
+exports finalizersCtx linkerCacheCtx = do
     let primLookupSymbolVal :: Text -> Text -> IO (FunPtr Luna.Data)
-        primLookupSymbolVal (convert -> dll) (convert -> symbol) = do
-            dl       <- Linker.loadLibrary dll
-            sym      <- Linker.loadSymbol dl symbol
+        primLookupSymbolVal dll symbol = do
+            dl       <- Linker.loadLibraryCached  linkerCacheCtx dll
+            sym      <- Linker.lookupSymbolCached linkerCacheCtx (dl, symbol)
             return sym
     primLookupSymbol <- makeFunctionIO @graph (flip Luna.toValue primLookupSymbolVal)
                             [Builder.textLT, Builder.textLT] funPtrT

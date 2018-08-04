@@ -24,6 +24,7 @@ dependencies:
     - deepseq
     - directory
     - errors
+    - hashable
     - libffi
     - luna-core
     - mtl
