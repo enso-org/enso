@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Luna.Syntax.Text.Lexer.Runner where
@@ -16,7 +17,7 @@ import Data.Parser                    (PartialParser, closePartial,
                                        parsePartial)
 import Data.Text.Position             (Delta)
 import Data.Text32                    (Text32)
-import Luna.Syntax.Text.Lexer.Grammar (EntryStack, Parser, lexer)
+import Luna.Syntax.Text.Lexer.Grammar (Parser, lexer)
 import Luna.Syntax.Text.Lexer.Symbol  (Symbol)
 import Luna.Syntax.Text.Lexer.Token   (Token, token)
 
@@ -32,47 +33,85 @@ evalDefLexer :: Text32 -> [Token]
 evalDefLexer = \s ->
     let s'  = Text32.dropWhile (== ' ') s
         off = Text32.length s - Text32.length s'
-        go  = reverse . evalLexer__ mempty mempty mempty mempty
+        go  = reverse . evalLexer__
     in  stx off : go s'
 {-# INLINE evalDefLexer #-}
 
-evalLexer__ :: EntryStack -> Delta -> Delta -> [Token] -> Text32 -> [Token]
-evalLexer__ = go where
-    go stack col row toks txt = let
+-- evalLexer__ :: EntryStack -> Delta -> Delta -> [Token] -> Text32 -> [Token]
+-- evalLexer__ = go where
+--     go stack col row toks txt = let
 
-        handleDone txt' ((!symbol, !ioff), !stack') =
-            let pdiff = convert $! Text32.length txt - Text32.length txt'
-                off   = convert ioff
-                span  = pdiff - off
-                isEnd = Text32.null txt'
-                tok   = token span off col row stack' symbol
-                toks' = tok : toks
-                (!col', !row') = if symbol == Symbol.EOL
-                    then (0, row + 1)
-                    else (col + pdiff, row)
-            in if isEnd then toks' else go stack' col' row' toks' txt'
-        {-# INLINE handleDone #-}
+--         handleDone txt' ((!symbol, !ioff), !stack') =
+--             let pdiff = convert $! Text32.length txt - Text32.length txt'
+--                 off   = convert ioff
+--                 span  = pdiff - off
+--                 isEnd = Text32.null txt'
+--                 tok   = token span off col row stack' symbol
+--                 toks' = tok : toks
+--                 (!col', !row') = if symbol == Symbol.EOL
+--                     then (0, row + 1)
+--                     else (col + pdiff, row)
+--             in if isEnd then toks' else go stack' col' row' toks' txt'
+--         {-# INLINE handleDone #-}
 
-        handleOut f = \case
-            Parser.Done !(txt') !r -> handleDone txt' r
-            Parser.Fail !_ !_ !e   -> error e
-            Parser.Partial !g      -> f $! g mempty
-        {-# INLINE handleOut  #-}
+--         handleOut f = \case
+--             Parser.Done !(txt') !r -> handleDone txt' r
+--             Parser.Fail !_ !_ !e   -> error e
+--             Parser.Partial !g      -> f $! g mempty
+--         {-# INLINE handleOut  #-}
 
-        runSteps = handleOut $! handleOut (const impossible)
-        {-# INLINE runSteps #-}
+--         runSteps = handleOut $! handleOut (const impossible)
+--         {-# INLINE runSteps #-}
 
-        in runSteps $! runner__ lexer stack txt col row
+--         in runSteps $! runner__ lexer stack txt col row
+-- {-# INLINE evalLexer__ #-}
+
+evalLexer__ :: Text32 -> [Token]
+evalLexer__ = \txt -> case runner__ txt of
+    Parser.Done !(txt') !r -> if (Text32.length txt' /= 0)
+        then error $ "Panic. Not all input consumed by lexer: " <> show txt'
+        else unwrap r
+    Parser.Partial g -> case g mempty of
+        Parser.Done !(txt') !r -> if (Text32.length txt' /= 0)
+            then error $ "Panic. Not all input consumed by lexer: " <> show txt'
+            else unwrap r
+        Parser.Fail !_ !_ !e   -> error e
+        Parser.Partial {} -> impossible
+
+    Parser.Fail !_ !_ !e   -> error e
+
+        -- handleDone txt' ((!symbol, !ioff), !stack') =
+        --     let pdiff = convert $! Text32.length txt - Text32.length txt'
+        --         off   = convert ioff
+        --         span  = pdiff - off
+        --         isEnd = Text32.null txt'
+        --         tok   = token span off col row stack' symbol
+        --         toks' = tok : toks
+        --         (!col', !row') = if symbol == Symbol.EOL
+        --             then (0, row + 1)
+        --             else (col + pdiff, row)
+        --     in if isEnd then toks' else go stack' col' row' toks' txt'
+        -- {-# INLINE handleDone #-}
+
+        -- handleOut f = \case
+        --     Parser.Done !(txt') !r -> handleDone txt' r
+        --     Parser.Fail !_ !_ !e   -> error e
+        --     Parser.Partial !g      -> f $! g mempty
+        -- {-# INLINE handleOut  #-}
+
+        -- runSteps = handleOut $! handleOut (const impossible)
+        -- {-# INLINE runSteps #-}
+
+        -- in runSteps $! runner__ lexer stack txt col row
 {-# INLINE evalLexer__ #-}
 
-runner__ :: Parser (a, Int) -> EntryStack -> Text32 -> Delta -> Delta
-       -> IResult Text32 ((a, Int), EntryStack)
-runner__ p x s col row
-    = flip parsePartial s
-    $ flip (State.evalT @Grammar.Location) (Grammar.Location col row)
-    $ flip (State.runT  @EntryStack) x
-    $ State.Indent.eval
-    $ p
+runner__ :: Text32 -> IResult Text32 Grammar.Result
+runner__ = \txt
+    -> flip parsePartial (txt <> "\ETX")
+     $ flip (State.evalT @Grammar.Location) mempty
+     $ State.Indent.eval
+     $ flip (State.execT  @Grammar.Result) mempty
+     $ lexer
 {-# INLINE runner__ #-}
 
 
@@ -89,8 +128,8 @@ instance IsSourceBorder r => IsSourceBorder (Either l r) where
     {-# INLINE etx #-}
 
 instance IsSourceBorder Token where
-    stx i = token mempty (convert i) 0 0 mempty (stx i)
-    etx   = token mempty mempty      0 0 mempty etx
+    stx i = token mempty (convert i) 0 0 True (stx i)
+    etx   = token mempty mempty      0 0 True etx
     {-# INLINE stx #-}
     {-# INLINE etx #-}
 
@@ -100,11 +139,11 @@ instance IsSourceBorder Symbol where
     {-# INLINE stx #-}
     {-# INLINE etx #-}
 
-instance IsSourceBorder (Symbol, EntryStack) where
-    stx i = (stx i, mempty)
-    etx   = (etx, mempty)
-    {-# INLINE stx #-}
-    {-# INLINE etx #-}
+-- instance IsSourceBorder (Symbol, EntryStack) where
+--     stx i = (stx i, mempty)
+--     etx   = (etx, mempty)
+--     {-# INLINE stx #-}
+--     {-# INLINE etx #-}
 
 
 

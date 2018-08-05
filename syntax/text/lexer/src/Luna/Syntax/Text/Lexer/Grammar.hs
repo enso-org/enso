@@ -3,31 +3,42 @@
 
 module Luna.Syntax.Text.Lexer.Grammar where
 
-import Prologue hiding (Symbol, Text, Type, catch, range, span, takeWhile)
+import Prologue hiding (Symbol, Text, Type, break, catch, range, span,
+                 takeWhile)
 
-import qualified Control.Monad.State.Layered   as State
-import qualified Data.Attoparsec.Text32        as Parsec
-import qualified Data.Char                     as Char
-import qualified Data.Map.Strict               as Map
-import qualified Data.Text32                   as Txt
-import qualified Data.Vector                   as Vector
-import qualified Luna.IR.Term.Ast.Invalid      as Invalid
-import qualified Luna.Syntax.Text.Lexer.Symbol as Symbol
-import qualified Text.Parser.State.Indent      as Indent
+import qualified Control.Monad.State.Layered    as State
+import qualified Data.Attoparsec.Internal.Types as AttoParsec
+import qualified Data.Attoparsec.Text32         as Parsec
+import qualified Data.Char                      as Char
+import qualified Data.Map.Strict                as Map
+import qualified Data.Text32                    as Txt
+import qualified Data.Vector                    as Vector
+import qualified Luna.IR.Term.Ast.Invalid       as Invalid
+import qualified Luna.Syntax.Text.Lexer.Symbol  as Symbol
+import qualified Text.Parser.State.Indent       as Indent
 
 import Control.Monad.State.Layered      (StatesT)
 import Data.Map.Strict                  (Map)
 import Data.Parser.Instances.Attoparsec ()
 import Data.Text.Position               (Delta)
 import Data.Vector                      (Vector)
-import Luna.Syntax.Text.Lexer.Symbol    (Symbol)
+import Luna.Syntax.Text.Lexer.Symbol    (Symbol, symbol)
+import Luna.Syntax.Text.Lexer.Token     (Token (Token), TokenInfo (TokenInfo))
 import Text.Parser.State.Indent         (Indent)
 
-import Data.Parser hiding (Token)
+import Data.Parser hiding (Result, Token, endOfInput)
 
 type Txt = Txt.Text32
 
 
+endOfInput = peekToken >>= \case
+    '\ETX' -> pure ()
+    _      -> fail "Not ETX."
+
+loopUnless :: (Monad m, Alternative m) => m a -> m b -> m b
+loopUnless f g = go where
+    go = (f >> go) <|> g
+{-# INLINE loopUnless #-}
 
 ----------------------
 -- === Location === --
@@ -36,68 +47,46 @@ type Txt = Txt.Text32
 -- === Definition === --
 
 data Location = Location
-    { _column :: Delta
-    , _row    :: Delta
+    { _offset     :: Delta
+    , _column     :: Delta
+    , _row        :: Delta
+    , _isTopLevel :: Bool
     } deriving (Eq, Generic, Ord, Show)
 makeLenses ''Location
 
 
 -- === Utils === --
 
-getColumn, getRow :: State.Monad Location m => m Delta
+getOffset, getColumn, getRow :: State.Monad Location m => m Delta
+getOffset = view offset <$> State.get @Location
 getColumn = view column <$> State.get @Location
 getRow    = view row    <$> State.get @Location
+{-# INLINE getOffset #-}
 {-# INLINE getColumn #-}
 {-# INLINE getRow    #-}
+
+putOffset, putColumn, putRow :: State.Monad Location m => Delta -> m ()
+putOffset = \a -> State.modify_ @Location $ offset .~ a
+putColumn = \a -> State.modify_ @Location $ column .~ a
+putRow    = \a -> State.modify_ @Location $ row    .~ a
+{-# INLINE putOffset #-}
+{-# INLINE putColumn #-}
+{-# INLINE putRow    #-}
+
+getIsTopLevel :: State.Monad Location m => m Bool
+putIsTopLevel :: State.Monad Location m => Bool -> m ()
+getIsTopLevel = view isTopLevel <$> State.get @Location
+putIsTopLevel = \a -> State.modify_ @Location $ isTopLevel .~ a
+{-# INLINE getIsTopLevel #-}
+{-# INLINE putIsTopLevel #-}
 
 
 -- === Instances === --
 
 instance NFData Location
 instance Mempty Location where
-    mempty = Location 0 0
+    mempty = Location 0 0 0 True
     {-# INLINE mempty #-}
-
-
-
-------------------------
--- === EntryStack === --
-------------------------
-
--- === Definition === --
-
-data EntryPoint
-   = TopLevelEntry
-   | StrEntry      Symbol.StrType Int
-   | StrCodeEntry  Int
-   deriving (Eq, Generic, Ord, Show)
-
-type EntryStack = [EntryPoint]
-
-
--- === Utils === --
-
-liftEntry :: State.Monad EntryStack m => EntryPoint -> m ()
-liftEntry = State.modify_ @EntryStack . (:)
-{-# INLINE liftEntry #-}
-
-unliftEntry :: State.Monad EntryStack m => m ()
-unliftEntry = State.modify_ @EntryStack $ \lst -> case tail lst of
-    Just p  -> p
-    Nothing -> error "Panic. Trying to unlift global lexer entry."
-{-# INLINE unliftEntry #-}
-
-getEntryPoint :: State.Monad EntryStack m => m EntryPoint
-getEntryPoint = maybe def id . head <$> State.get @EntryStack
-{-# INLINE getEntryPoint #-}
-
-
--- === Instances === --
-
-instance NFData  EntryPoint
-instance Default EntryPoint where
-    def = TopLevelEntry
-    {-# INLINE def #-}
 
 
 
@@ -105,8 +94,56 @@ instance Default EntryPoint where
 -- === Lexer types === --
 -------------------------
 
-type Parser = StatesT '[Indent, EntryStack, Location] Parsec.Parser
-type Lexer  = Parser Symbol
+type Parser = StatesT '[Result, Indent, Location] Parsec.Parser
+type Lexer  = Parser ()
+
+getParsecPos :: AttoParsec.Parser t Delta
+getParsecPos = AttoParsec.Parser $ \t pos more _ succ ->
+    succ t pos more (convert $! AttoParsec.fromPos pos)
+{-# INLINE getParsecPos #-}
+
+getParsecPos' :: Parser Delta
+getParsecPos' = lift $ lift $ lift getParsecPos
+{-# INLINE getParsecPos' #-}
+
+
+newtype Result = Result [Token] deriving (Mempty, Show)
+makeLenses ''Result
+
+addSymbol :: Symbol -> Parser ()
+addSymbol = \symbol -> do
+    col      <- getColumn
+    row      <- getRow
+    off      <- getParsecPos'
+    oldOff   <- getOffset
+    spacing  <- lexeme
+    topLevel <- getIsTopLevel
+    let span      = off - oldOff
+        totalSpan = span + spacing
+        token     = Token (TokenInfo span spacing col row topLevel) symbol
+        (!col', !row') = if symbol == Symbol.EOL
+            then (spacing, row + 1)
+            else (col + totalSpan, row)
+    putOffset     (off + spacing)
+    putColumn     col'
+    putRow        row'
+    putIsTopLevel False
+    State.modify_ @Result $ wrapped %~ (token :)
+{-# INLINE addSymbol #-}
+
+getLastSymbol :: Parser Symbol
+getLastSymbol = (unwrap <$> State.get @Result) >>= \case
+    (t : _) -> pure $ t ^. symbol
+    _       -> error "Panic. Unable to get last lexer symbol."
+{-# INLINE getLastSymbol #-}
+
+lexeme :: Parser Delta
+lexeme = convert . Txt.length <$> whiteSpace
+{-# INLINE lexeme #-}
+
+whiteSpace :: Parser Txt
+whiteSpace = takeMany ' '
+{-# INLINE whiteSpace #-}
 
 
 
@@ -117,6 +154,10 @@ type Lexer  = Parser Symbol
 newlineStartChar :: Char -> Bool
 newlineStartChar = \c -> c == '\n' || c == '\r'
 {-# INLINE newlineStartChar #-}
+
+newlineStartChars :: [Char]
+newlineStartChars = ['\n', '\r']
+{-# INLINE newlineStartChars #-}
 
 
 
@@ -135,7 +176,7 @@ isConsHead      = Char.isUpper
 {-# INLINE isConsHead       #-}
 
 tokenBreakingChars :: [Char]
-tokenBreakingChars = "`!@#$%^&*()-=+[]{}\\|;:<>,./ \t\n"
+tokenBreakingChars = "`!@#$%^&*()-=+[]{}\\|;:<>,./ \t\n\ETX"
 {-# INLINE tokenBreakingChars #-}
 
 
@@ -146,16 +187,18 @@ invalidSuffix = Symbol.Invalid . Invalid.UnexpectedSuffix . Txt.length
             <$> takeWhile1 (`notElem` tokenBreakingChars)
 {-# INLINE invalidSuffix #-}
 
-checkInvalidSuffix :: Lexer -> Lexer
+checkInvalidSuffix :: Parser Symbol -> Parser Symbol
 checkInvalidSuffix =  (<**> option id (const <$> invalidSuffix))
 {-# INLINE checkInvalidSuffix #-}
 
 lexWildcard :: Lexer
-lexWildcard = checkInvalidSuffix $ Symbol.Wildcard <$ token '_'
+lexWildcard = do
+    sym <- checkInvalidSuffix $ Symbol.Wildcard <$ token '_'
+    addSymbol sym
 {-# INLINE lexWildcard #-}
 
 lexVariable :: Lexer
-lexVariable = checkInvalidSuffix validVar where
+lexVariable = addSymbol =<< checkInvalidSuffix validVar where
     validVar   = Symbol.checkSpecialVar <$> validName
     validName  = takeWhile isIdentBodyChar
           <**> option id (flip Txt.snoc <$> token '?')
@@ -163,7 +206,9 @@ lexVariable = checkInvalidSuffix validVar where
 {-# INLINE lexVariable #-}
 
 lexConstructor :: Lexer
-lexConstructor = checkInvalidSuffix $ Symbol.Cons <$> takeWhile isIdentBodyChar
+lexConstructor = do
+    sym <- checkInvalidSuffix $ Symbol.Cons <$> takeWhile isIdentBodyChar
+    addSymbol sym
 {-# INLINE lexConstructor #-}
 
 
@@ -177,8 +222,9 @@ isInvalidVarHead = Char.isAlpha ; {-# INLINE isInvalidVarHead #-}
 -- | WARNING! We assume that we have already checked for valid headers before
 --   using this check!
 lexInvalidVariable :: Lexer
-lexInvalidVariable = Symbol.Invalid Invalid.CaselessNameHead
-                  <$ takeWhile isIdentBodyChar
+lexInvalidVariable = do
+    _ <- takeWhile isIdentBodyChar
+    addSymbol $ Symbol.Invalid Invalid.CaselessNameHead
 {-# INLINE lexInvalidVariable #-}
 
 
@@ -213,7 +259,7 @@ unsafeCharToDigit = \c -> case charToDigit c of
 {-# INLINE unsafeCharToDigit #-}
 
 lexNumber :: Lexer
-lexNumber = checkInvalidSuffix number where
+lexNumber = addSymbol =<< checkInvalidSuffix number where
     number  = Symbol.Number <$> (special <|> dec)
     special = token '0' *> choice [p0 'x' 16, p0 'o' 8, p0 'b' 2]
     dec     = Symbol.NumRep 10            <$> body 10 <*> frac 10
@@ -231,10 +277,11 @@ lexNumber = checkInvalidSuffix number where
 
 -- === String parsing utils === --
 
-beginStr :: Symbol.StrType -> Char -> Lexer
-beginStr = \t c -> do
-    liftEntry . StrEntry t =<< beginQuotes c
-    pure $ Symbol.Quote t Symbol.Begin
+beginStr :: Symbol.StrType -> Char -> (Int -> Lexer) -> Lexer
+beginStr = \t c p -> do
+    quotNum <- beginQuotes c
+    addSymbol $ Symbol.Quote t Symbol.Begin
+    p quotNum
 {-# INLINE beginStr #-}
 
 beginQuotes :: Char -> Parser Int
@@ -251,20 +298,22 @@ beginMultiQuotes = \c -> do
 
 -- === Top level string parsers === --
 
-natStrQuote, rawStrQuote, fmtStrQuote, escapeChar :: Char
+natStrQuote, rawStrQuote, fmtStrQuote, escapeChar, etxChar :: Char
 natStrQuote = '`'
 rawStrQuote = '"'
 fmtStrQuote = '\''
 escapeChar  = '\\'
+etxChar     = '\ETX'
 {-# INLINE natStrQuote #-}
 {-# INLINE rawStrQuote #-}
 {-# INLINE fmtStrQuote #-}
 {-# INLINE escapeChar  #-}
+{-# INLINE etxChar     #-}
 
 natStr, rawStr, fmtStr :: Lexer
-natStr = beginStr Symbol.NatStr natStrQuote
-rawStr = beginStr Symbol.RawStr rawStrQuote
-fmtStr = beginStr Symbol.FmtStr fmtStrQuote
+natStr = undefined -- beginStr Symbol.NatStr natStrQuote
+rawStr = beginStr Symbol.RawStr rawStrQuote rawStrBody
+fmtStr = beginStr Symbol.FmtStr fmtStrQuote fmtStrBody
 {-# INLINE natStr #-}
 {-# INLINE rawStr #-}
 {-# INLINE fmtStr #-}
@@ -272,75 +321,117 @@ fmtStr = beginStr Symbol.FmtStr fmtStrQuote
 
 -- === Native String === --
 
-natStrBody :: Int -> Lexer
-natStrBody = \hlen -> let
-    code   = Symbol.Str <$> takeWhile1 (/= natStrQuote)
-    quotes = do
-        qs <- takeMany1 natStrQuote
-        if Txt.length qs == hlen
-            then Symbol.Quote Symbol.NatStr Symbol.End <$ unliftEntry
-            else pure $ Symbol.Str qs
-    in code <|> quotes
-{-# INLINE natStrBody #-}
+-- natStrBody :: Int -> Lexer
+-- natStrBody = \hlen -> let
+--     code   = Symbol.Str <$> takeWhile1 (/= natStrQuote)
+--     quotes = do
+--         qs <- takeMany1 natStrQuote
+--         if Txt.length qs == hlen
+--             then pure $ Symbol.Quote Symbol.NatStr Symbol.End -- <$ unliftEntry
+--             else pure $ Symbol.Str qs
+--     in addSymbol =<< (code <|> quotes)
+-- {-# INLINE natStrBody #-}
 
 
 -- === Raw String === --
 
-rawStrBody :: Int -> Lexer
-rawStrBody = \hlen -> let
-    bodyChar c = c /= rawStrQuote
-              && c /= escapeChar
-              && not (newlineStartChar c)
-    body       = Symbol.Str <$> takeWhile1 bodyChar
-    linebr     = Symbol.EOL <$  newline
-    escape     = token escapeChar <**> option (Symbol.Str . convert)
-                                      (const . Symbol.StrEsc <$> esct)
-    esct       = (Symbol.SlashEsc <$ token escapeChar)
-             <|> (Symbol.QuoteEscape Symbol.RawStr <$ token rawStrQuote)
-    quotes     = do
-        qs <- takeMany1 rawStrQuote
-        if Txt.length qs == hlen
-            then Symbol.Quote Symbol.RawStr Symbol.End <$ unliftEntry
-            else pure $ Symbol.Str qs
-    in choice [body, escape, quotes, linebr]
-{-# INLINE rawStrBody #-}
+-- rawStrBody :: Int -> Lexer
+-- rawStrBody = \hlen -> let
+--     bodyChar c = c /= rawStrQuote
+--               && c /= escapeChar
+--               && c /= etxChar
+--               && not (newlineStartChar c)
+--     body       = Symbol.Str <$> takeWhile1 bodyChar
+--     linebr     = Symbol.EOL <$  newline
+--     escape     = token escapeChar <**> option (Symbol.Str . convert)
+--                                       (const . Symbol.StrEsc <$> esct)
+--     esct       = (Symbol.SlashEsc <$ token escapeChar)
+--              <|> (Symbol.QuoteEscape Symbol.RawStr <$ token rawStrQuote)
+--     quotes     = do
+--         qs <- takeMany1 rawStrQuote
+--         if Txt.length qs == hlen
+--             then pure $ Symbol.Quote Symbol.RawStr Symbol.End -- unliftEntry
+--             else pure $ Symbol.Str qs
+--     in addSymbol =<< choice [body, escape, quotes, linebr]
+-- {-# INLINE rawStrBody #-}
 
 
 -- === Fmt String === --
 
+data Action = Continue | Break deriving (Show, Eq)
+
+continue, break :: Parser Symbol -> Parser Action
+continue f = Continue <$ (addSymbol =<< f)
+break    f = Break    <$ (addSymbol =<< f)
+{-# INLINE continue #-}
+{-# INLINE break    #-}
+
 fmtStrBody :: Int -> Lexer
-fmtStrBody = \hlen -> let
-    bodyChar c = c /= fmtStrQuote
-              && c /= natStrQuote
-              && c /= escapeChar
-              && not (newlineStartChar c)
-    body       = Symbol.Str <$> takeWhile1 bodyChar
-    linebr     = Symbol.EOL <$  newline
-    escape     = token escapeChar *> esct
-    rawQEsc    = Symbol.QuoteEscape Symbol.RawStr
-    fmtQEsc    = Symbol.QuoteEscape Symbol.FmtStr
-    esct       = (Symbol.StrEsc Symbol.SlashEsc <$ token escapeChar)
-             <|> (Symbol.StrEsc rawQEsc         <$ token rawStrQuote)
-             <|> (Symbol.StrEsc fmtQEsc         <$ token fmtStrQuote)
-             <|> lexEscSeq
-    quotes     = do
-        qs <- takeMany1 fmtStrQuote
-        if Txt.length qs == hlen
-            then Symbol.Quote Symbol.FmtStr Symbol.End <$ unliftEntry
-            else pure $ Symbol.Str qs
-    code       = Symbol.Block Symbol.Begin
-              <$ (liftEntry . StrCodeEntry =<< beginQuotes natStrQuote)
-    in choice [body, escape, quotes, linebr, code]
+fmtStrBody = strBodyBuilder Symbol.FmtStr fmtStrQuote bodyExcl [strInterpolation] escs where
+    escs     = [slashEsc, rawEsc, fmtEsc, lexEscSeq]
+    bodyExcl = fmtStrQuote : natStrQuote : escapeChar : etxChar : newlineStartChars
 {-# INLINE fmtStrBody #-}
 
-fmtStrCode :: Int -> Lexer
-fmtStrCode = \hlen -> let
-    ending = do
-        qs <- takeMany1 natStrQuote
-        when_ (Txt.length qs /= hlen) $ fail "Not an ending"
-        Symbol.Block Symbol.End <$ unliftEntry
-    in ending <|> topEntryPoint
-{-# INLINE fmtStrCode #-}
+rawStrBody :: Int -> Lexer
+rawStrBody = strBodyBuilder Symbol.RawStr rawStrQuote bodyExcl [strInterpolation] escs where
+    escs     = [slashEsc, rawEsc, noEsc]
+    noEsc    = pure . Symbol.Str $ convert escapeChar
+    bodyExcl = rawStrQuote : escapeChar : etxChar : newlineStartChars
+{-# INLINE rawStrBody #-}
+
+escBuilder :: Char -> Symbol.StrEscType -> Parser Symbol
+escBuilder t f = Symbol.StrEsc f <$ token t
+{-# INLINE escBuilder #-}
+
+slashEsc, rawEsc, fmtEsc :: Parser Symbol
+slashEsc = escBuilder escapeChar  $ Symbol.SlashEsc
+rawEsc   = escBuilder rawStrQuote $ Symbol.QuoteEscape Symbol.RawStr
+fmtEsc   = escBuilder fmtStrQuote $ Symbol.QuoteEscape Symbol.FmtStr
+{-# INLINE slashEsc #-}
+{-# INLINE rawEsc   #-}
+{-# INLINE fmtEsc   #-}
+
+strBodyBuilder :: Symbol.StrType -> Char -> [Char] -> [Lexer] -> [Parser Symbol] -> Int -> Lexer
+strBodyBuilder = \tp quote bodyExcl bodyExts escs hlen -> let
+    bodyElem   = not . (`elem` bodyExcl)
+    body       = continue $ Symbol.Str <$> takeWhile1 bodyElem
+    linebr     = continue $ Symbol.EOL <$ newline
+    escape     = continue $ token escapeChar >> choice escs
+    bodyParser = choice $ body : escape : linebr : quotes : etx
+                        : ((Continue <$) <$> bodyExts)
+    quotes      = do
+        qs <- takeMany1 quote
+        if Txt.length qs == hlen
+            then break    $ pure (Symbol.Quote tp Symbol.End)
+            else continue $ Symbol.Str . (qs <>) <$> whiteSpace
+    etx    = break $ Symbol.Invalid
+       (Invalid.Literal $ Invalid.String Invalid.NoClosingMark) <$ endOfInput
+    go = bodyParser >>= \case
+        Continue -> go
+        Break    -> pure ()
+    in go
+{-# INLINE strBodyBuilder #-}
+
+
+strInterpolation :: Lexer
+strInterpolation = let
+    ending = token natStrQuote >> addSymbol (Symbol.Block Symbol.End)
+    in do
+        token natStrQuote
+        addSymbol (Symbol.Block Symbol.Begin)
+        topExpr `loopUnless` (ending <|> endOfInput)
+{-# INLINE strInterpolation #-}
+
+
+-- fmtStrCode :: Int -> Lexer
+-- fmtStrCode = \hlen -> let
+--     ending = do
+--         qs <- takeMany1 natStrQuote
+--         when_ (Txt.length qs /= hlen) $ fail "Not an ending"
+--         -- unliftEntry
+--         addSymbol $ Symbol.Block Symbol.End
+--     in ending <|> topEntryPoint
+-- {-# INLINE fmtStrCode #-}
 
 
 -- === Escape maps === --
@@ -370,7 +461,7 @@ esc3Map = Char.ord <$> fromList
     ]
 {-# INLINE esc3Map #-}
 
-lexEscSeq :: Lexer
+lexEscSeq :: Parser Symbol
 lexEscSeq = numEsc <|> chrEcs <|> badEsc where
     numEsc = Symbol.StrEsc . Symbol.NumStrEsc . unsafeRead . convert
          <$> takeWhile1 isDecDigitChar
@@ -379,13 +470,14 @@ lexEscSeq = numEsc <|> chrEcs <|> badEsc where
              (Invalid.Literal $ Invalid.String Invalid.EscapeCode) <$ anyToken
 {-# INLINE lexEscSeq #-}
 
-parseEsc :: Int -> Map String Int -> Lexer
+parseEsc :: Int -> Map String Int -> Parser Symbol
 parseEsc n m = do
     s <- count n anyToken
     case Map.lookup s m of
         Just i  -> pure . Symbol.StrEsc $ Symbol.CharStrEsc i
         Nothing -> fail "Escape not matched"
 {-# INLINE parseEsc #-}
+
 
 
 --------------------
@@ -406,27 +498,28 @@ mkMetadata :: (IsString s, Semigroup s) => s -> s
 mkMetadata s = "### " <> metadataHeader <> s
 {-# INLINE mkMetadata #-}
 
-lexConfig :: Lexer
+lexConfig :: Parser Symbol
 lexConfig = takeMany ' ' *> lexMetadata
 {-# INLINE lexConfig #-}
 
-lexMetadata :: Lexer
+lexMetadata :: Parser Symbol
 lexMetadata = Symbol.Metadata
     <$  tokens metadataHeader
     <*  takeMany1 ' '
     <*> takeLine
 {-# INLINE lexMetadata #-}
 
-lexComment :: Lexer
+lexComment :: Parser Symbol
 lexComment = Symbol.Doc <$> takeLine
 {-# INLINE lexComment #-}
 
 lexMarker :: Lexer
-lexMarker = token markerBegin *> (correct <|> incorrect) <* token markerEnd
+lexMarker = addSymbol =<< sym
     where incorrect = Symbol.Incorrect . ("Marker " <>)
                   <$> takeTill (== markerEnd)
           correct   = Symbol.Marker . unsafeRead . convert
                   <$> takeWhile1 isDecDigitChar
+          sym = token markerBegin *> (correct <|> incorrect) <* token markerEnd
 {-# INLINE lexMarker #-}
 
 
@@ -463,18 +556,19 @@ symmapSize :: Int
 symmapSize = 200
 {-# INLINE symmapSize #-}
 
-symmap :: Vector (Lexer)
+symmap :: Vector Lexer
 symmap = Vector.generate symmapSize $ \i -> let c = Char.chr i in if
 
     -- Layouting
-    | c == ';'          -> Symbol.Terminator         <$ dropToken
-    | c == '{'          -> Symbol.Block Symbol.Begin <$ dropToken
-    | c == '}'          -> Symbol.Block Symbol.End   <$ dropToken
-    | c == '('          -> Symbol.Group Symbol.Begin <$ dropToken
-    | c == ')'          -> Symbol.Group Symbol.End   <$ dropToken
-    | c == '\n'         -> Symbol.EOL <$ dropToken
-    | c == '\r'         -> Symbol.EOL <$ dropToken <* option_ (token '\n')
-    | c == ':'          -> handleColons =<< takeMany ':'
+    | c == ';'          -> dropToken >> addSymbol Symbol.Terminator
+    | c == '{'          -> dropToken >> addSymbol (Symbol.Block Symbol.Begin)
+    | c == '}'          -> dropToken >> addSymbol (Symbol.Block Symbol.End)
+    | c == '('          -> dropToken >> addSymbol (Symbol.Group Symbol.Begin)
+    | c == ')'          -> dropToken >> addSymbol (Symbol.Group Symbol.End)
+    | c == '\n'         -> dropToken >> addSymbol Symbol.EOL
+    | c == '\r'         -> dropToken >> option_ (token '\n')
+                        >> addSymbol Symbol.EOL
+    | c == ':'          -> addSymbol =<< handleColons =<< takeMany ':'
     | c == markerBegin  -> lexMarker
 
     -- Identifiers & Keywords
@@ -483,27 +577,27 @@ symmap = Vector.generate symmapSize $ \i -> let c = Char.chr i in if
     | isConsHead c      -> lexConstructor
 
     -- Operators
-    | c == '@'          -> Symbol.TypeApp <$ dropToken
-    | c == '|'          -> Symbol.Merge   <$ dropToken
-    | c == '.'          -> handleDots =<< takeMany '.'
-    | c == '='          -> handleEqs  =<< takeMany '='
-    | isOperatorChar c  -> handleOp <$> takeWhile1 isOperatorChar
-                                    <*> takeMany '='
+    | c == '@'          -> dropToken >> addSymbol Symbol.TypeApp
+    | c == '|'          -> dropToken >> addSymbol Symbol.Merge
+    | c == '.'          -> addSymbol =<< handleDots =<< takeMany '.'
+    | c == '='          -> addSymbol =<< handleEqs  =<< takeMany '='
+    | isOperatorChar c  -> addSymbol =<< (handleOp <$> takeWhile1 isOperatorChar
+                                     <*> takeMany '=')
 
     -- Literals
-    | c == '['          -> Symbol.List Symbol.Begin   <$ dropToken
-    | c == ']'          -> Symbol.List Symbol.End     <$ dropToken
-    | c == ','          -> Symbol.Operator "," <$ dropToken
+    | c == '['          -> dropToken >> addSymbol (Symbol.List Symbol.Begin)
+    | c == ']'          -> dropToken >> addSymbol (Symbol.List Symbol.End)
+    | c == ','          -> dropToken >> addSymbol (Symbol.Operator ",")
     | c == rawStrQuote  -> rawStr
     | c == fmtStrQuote  -> fmtStr
-    | c == natStrQuote  -> natStr
+    -- | c == natStrQuote  -> natStr
     | isDecDigitChar c  -> lexNumber
 
     -- Meta
-    | c == '#'          -> handleHash =<< takeMany '#'
+    | c == '#'          -> addSymbol =<< handleHash =<< takeMany '#'
 
     -- Utils
-    | otherwise         -> unknownCharSym c
+    | otherwise         -> fail $ "Unknown " <> show c -- unknownCharSym c
 
     where
     handleColons = handleReps  [ Symbol.BlockStart, Symbol.Typed]
@@ -525,7 +619,7 @@ symmap = Vector.generate symmapSize $ \i -> let c = Char.chr i in if
 -- -- === Utils === --
 
 unknownCharSym :: Char -> Lexer
-unknownCharSym c = dropToken >> pure (Symbol.Unknown $ convert c)
+unknownCharSym c = dropToken >> addSymbol (Symbol.Unknown $ convert c)
 {-# INLINE unknownCharSym #-}
 
 
@@ -534,53 +628,48 @@ unknownCharSym c = dropToken >> pure (Symbol.Unknown $ convert c)
 -- === Top level combinators === --
 -----------------------------------
 
-lexer :: Parser (Symbol, Int)
-lexer = lexeme =<< lexEntryPoint
+lexer :: Parser ()
+lexer = topEntryPoint `loopUnless` (() <$ token '\ETX')
 {-# INLINE lexer #-}
 
-lexerCont :: Parser ((Symbol, EntryStack), Int)
-lexerCont = do
-    s         <- lexEntryPoint
-    (s', off) <- lexeme s
-    es        <- State.get @EntryStack
-    pure ((s', es), off)
-{-# INLINE lexerCont #-}
-
-lexEntryPoint :: Lexer
-lexEntryPoint = getEntryPoint >>= \case
-    TopLevelEntry  -> topEntryPoint
-    StrCodeEntry i -> fmtStrCode i
-    StrEntry   t i -> case t of
-        Symbol.RawStr -> rawStrBody i
-        Symbol.FmtStr -> fmtStrBody i
-        Symbol.NatStr -> natStrBody i
-{-# INLINE lexEntryPoint #-}
-
 topEntryPoint :: Lexer
-topEntryPoint = lexSymChar =<< peekToken
+topEntryPoint = putIsTopLevel True >> (topExpr <|> skipUnknown) where
+    skipUnknown = unknownCharSym =<< anyToken
 {-# INLINE topEntryPoint #-}
+
+topExpr :: Lexer
+topExpr = lexSymChar =<< peekToken
+{-# INLINE topExpr #-}
 
 -- | (1): fetch  lexers for ASCII from precomputed cache
 --   (2): create lexers for unicode names on the fly
 lexSymChar :: Char -> Lexer
-lexSymChar c
-  | chord < symmapSize = Vector.unsafeIndex symmap chord -- (1)
-  | isVarHead        c = lexVariable                     -- (2)
-  | isConsHead       c = lexConstructor
-  | isInvalidVarHead c = lexInvalidVariable
-  | otherwise          = unknownCharSym c
-  where chord = Char.ord c
+lexSymChar = \c -> let chord = Char.ord c in if
+    | chord < symmapSize -> Vector.unsafeIndex symmap chord -- (1)
+    | isVarHead        c -> lexVariable                     -- (2)
+    | isConsHead       c -> lexConstructor
+    | isInvalidVarHead c -> lexInvalidVariable
+    | otherwise          -> unknownCharSym c
 {-# INLINE lexSymChar #-}
 
 -- | (1): Do not include whitespaces as offset inside text.
 --   (2): Do not include whitespaces as offset after inline text code.
-lexeme :: Symbol -> Parser (Symbol, Int)
-lexeme s = case s of
-    Symbol.Quote _ Symbol.Begin -> pure (s, 0) -- (1)
-    Symbol.Block Symbol.End     -> pure (s, 0) -- (2)
-    _                           -> (s,) <$> spacing
-{-# INLINE lexeme #-}
+-- lexeme :: Parser Int
+-- lexeme = getLastSymbol >>= \case
+--     Symbol.Quote _ Symbol.Begin -> pure 0 -- (1)
+--     Symbol.Block Symbol.End     -> pure 0 -- (2)
+--     _                           -> spacing
+-- {-# INLINE lexeme #-}
 
-spacing :: Parser Int
-spacing = Txt.length <$> takeMany ' '
-{-# INLINE spacing #-}
+
+-- lexEntryPoint :: Lexer
+-- lexEntryPoint = getEntryPoint >>= \case
+--     TopLevelEntry  -> topEntryPoint
+--     StrCodeEntry i -> fmtStrCode i
+--     StrEntry   t i -> case t of
+--         Symbol.RawStr -> rawStrBody i
+--         Symbol.FmtStr -> fmtStrBody i
+--         Symbol.NatStr -> natStrBody i
+-- {-# INLINE lexEntryPoint #-}
+
+

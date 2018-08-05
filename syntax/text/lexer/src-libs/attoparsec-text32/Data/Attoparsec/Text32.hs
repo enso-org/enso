@@ -2,16 +2,16 @@
 
 module Data.Attoparsec.Text32 where
 
-import Prelude                        hiding (getChar, succ, take, takeWhile)
 import Control.Applicative            ((<$>))
 import Control.Monad                  (when)
 import Data.Attoparsec.Internal
-import Data.Attoparsec.Internal.Types hiding (Parser, Failure, Success, fromPos)
+import Data.Attoparsec.Internal.Types hiding (Failure, Parser, Success, fromPos)
 import Data.List                      (intercalate)
+import Prelude                        hiding (getChar, succ, take, takeWhile)
 
+import           Data.Coerce
 import           Data.Text32 (Text32)
 import qualified Data.Text32 as Text32
-import           Data.Coerce
 
 import qualified Data.Attoparsec.Internal.Types as T
 
@@ -32,7 +32,7 @@ instance Chunk Text32 where
     type ChunkElem Text32 = Char
     nullChunk             = Text32.null                         ; {-# INLINE nullChunk       #-}
     pappendChunk          = (<>)                                ; {-# INLINE pappendChunk    #-}
-    atBufferEnd     _     = toPos . Text32.length               ; {-# INLINE atBufferEnd     #-}
+    atBufferEnd     (~_)  = toPos . Text32.length               ; {-# INLINE atBufferEnd     #-}
     bufferElemAt    _ i b = (,1) <$> Text32.index b (fromPos i) ; {-# INLINE bufferElemAt    #-}
     chunkElemToChar _     = id                                  ; {-# INLINE chunkElemToChar #-}
 

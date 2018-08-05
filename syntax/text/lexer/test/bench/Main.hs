@@ -60,22 +60,91 @@ main = do
     -- putStrLn $ "'" <> convert code <> "'"
     -- pprint $ evalDefLexer $ code
     -- pprint $ evalDefLexer $ "a = 'foo'"
-    pprint $ Lexer.evalDefLexer $ "a = ' foo'"
+    pprint $ Lexer.evalDefLexer $ "\"\""
 
     -- pprint $ tagColumn mempty $ evalDefLexer " ff #def foo:\n      bar\n    def baz: pass"
     -- pprint $ tagDisabled' [0] $ evalDefLexer " ff #def foo:\n      bar\n    def baz: pass"
-    defaultMain
-        [ bgroup "big variable"                $ expCodeGenBenchs Lexer.evalDefLexer           mkBigVariable
-        , bgroup "random code"                 $ expCodeGenBenchs Lexer.evalDefLexer           mkRandomCode
-        , bgroup "variables L1"                $ expCodeGenBenchs Lexer.evalDefLexer           mkVariablesL1
-        , bgroup "variables L5"                $ expCodeGenBenchs Lexer.evalDefLexer           mkVariablesL5
-        , bgroup "variables L10"               $ expCodeGenBenchs Lexer.evalDefLexer           mkVariablesL10
-        , bgroup "terminators"                 $ expCodeGenBenchs Lexer.evalDefLexer           mkCodeTerminators
-        , bgroup "manual terminator parser 16" $ expCodeGenBenchs manualTerminatorParser16 mkCodeTerminators
-        , bgroup "manual terminator parser 32" $ expCodeGenBenchs manualTerminatorParser32 mkCodeTerminators
-        ]
+    -- defaultMain
+    --     [ bgroup "big variable"                $ expCodeGenBenchs Lexer.evalDefLexer           mkBigVariable
+    --     , bgroup "random code"                 $ expCodeGenBenchs Lexer.evalDefLexer           mkRandomCode
+    --     , bgroup "variables L1"                $ expCodeGenBenchs Lexer.evalDefLexer           mkVariablesL1
+    --     , bgroup "variables L5"                $ expCodeGenBenchs Lexer.evalDefLexer           mkVariablesL5
+    --     , bgroup "variables L10"               $ expCodeGenBenchs Lexer.evalDefLexer           mkVariablesL10
+    --     , bgroup "terminators"                 $ expCodeGenBenchs Lexer.evalDefLexer           mkCodeTerminators
+    --     , bgroup "manual terminator parser 16" $ expCodeGenBenchs manualTerminatorParser16 mkCodeTerminators
+    --     , bgroup "manual terminator parser 32" $ expCodeGenBenchs manualTerminatorParser32 mkCodeTerminators
+    --     ]
 
 manualTerminatorParser16 :: Text   -> Either String [Char]
 manualTerminatorParser32 :: Text32 -> Either String [Char]
 manualTerminatorParser16 = parseOnly     $ many (char ';')     ; {-# INLINE manualTerminatorParser16 #-}
 manualTerminatorParser32 = T32.parseOnly $ many (T32.char ';') ; {-# INLINE manualTerminatorParser32 #-}
+
+
+
+-- txx = do
+--     let f = 15 + (17
+--         - 8)
+--     print f
+-- foo = '
+--     bar
+--     baz
+--     bax'
+
+-- foo = 'bar
+--        baz
+--        bax
+--       '
+
+-- foo =
+--    'bar
+--     baz
+--     bax
+--    '
+
+-- foo =
+--    'bar
+--     baz'
+
+-- foo =
+--    'bar
+--     baz
+--     bax
+--   '
+
+
+
+-- foo = a -> b -> bar
+--    'dsafaa
+--     fasfas
+--     fasfas
+--    '
+
+
+-- foo = a -> b -> bar '
+--     dsafaa
+--     fasfas
+--     fasfas
+--    '
+
+
+-- license =
+--  """
+--  dsadi asfm asomf iasfom iasf iasf
+--  mofisam oiamf isaif sifas
+--  fasfsafasf
+--  asfasfasfas
+--  fasfsafaasf
+--  """
+
+-- license = '
+--     dsadi asfm asomf iasfom iasf iasf
+--     mofisam oiamf isaif sifas
+--     fasfsafasf
+--     asfasfasfas
+--     fasfsafaasf
+--  '
+
+
+--     a = foo bar (baz 5
+--      7 - 8)
