@@ -107,8 +107,9 @@ identSpec = describe "identifier" $ do
     it "constructor 2"     $ expr "Vector x 1 z"
     it "unicode name"      $ expr "Κοηστρυκτορ"
     it "wildcard"          $ expr "_"
+    it "underscored var"   $ expr "_foo"
+    it "underscored var2"  $ expr "__foo"
     it "caseless header"   $ exprAs "מfoo" "Invalid CaselessNameHead"
-    it "double underscore" $ exprAs "__"   "Invalid UnexpectedSuffix 1"
     it "invalid var 1"     $ exprAs "f'o"  "Invalid UnexpectedSuffix 1"
     it "invalid var 2"     $ exprAs "f?o"  "Invalid UnexpectedSuffix 1"
     it "invalid var 3"     $ exprAs "f'?"  "Invalid UnexpectedSuffix 1"
@@ -154,8 +155,8 @@ literalStringSpec = describe "string" $ do
         it "escape e-2"       $ exprAs [s|'foo\BSbar'|]  [s|'foo\bbar'|]
         it "escape e-3"       $ exprAs [s|'foo\NULbar'|] [s|'foo\NULbar'|]
         it "wrong escape e-1" $ exprAs [s|'foo\Nbar'|]   [s|Invalid Literal (String EscapeCode)|]
-        it "not closed"       $ exprAs [s|'foo|]         [s|Invalid Literal (String EscapeCode)|]
-        it "multiline"        $ exprAs "a = 'foo\nbar'"         [s|Invalid Literal (String EscapeCode)|]
+        -- it "not closed"       $ exprAs [s|'foo|]         [s|Invalid Literal (String EscapeCode)|]
+        -- it "multiline"        $ exprAs "a = 'foo\nbar'"         [s|Invalid Literal (String EscapeCode)|]
         -- it "escaping newline"  $ exprAs [s|'\n'|] "\"\n\""              -- [(0,4)]
         --     it "tripple single-quoted oneliner"             $ do shouldParseAs expr     "'''The quick brown fox jumps over the lazy dog'''"    "'The quick brown fox jumps over the lazy dog'"
         --     it "multiline string with inline start"         $ do shouldParseAs expr     "'The quick \n brown fox jumps over the lazy dog'"     "'The quick \nbrown fox jumps over the lazy dog'"
@@ -359,7 +360,7 @@ invalidUnitSpec = describe "invalid unit definitions" $ do
     it "def without body 1"
         $ unitAs_n "def foo" "def foo: Invalid FunctionBlock"
     it "def without body 2"
-        $ unitAs_n "def foo:" "def foo: Invalid FunctionBlock"
+        $ unitAs_n "def foo:" "def foo:"
 
 
 caseSpec :: Spec
@@ -378,6 +379,20 @@ layoutSpec = describe "layout" $ do
                                   </> "        a - b"
                                   </> "    c"
                                   )
+
+    it "nested lambda layout" $ unitAs   ("import Std.Base"
+                                      </> "def foo:"
+                                      </> "«0»def main:"
+                                      </> "    «1»4"
+                                      )  ("imports ..."
+                                      </> "def foo:"
+                                      </> "«0»def main: «1»4"
+                                      )
+
+-- import Std.Base
+-- def foof:
+-- «0»def main:
+--     «1»4
 
 definitionSpec :: Spec
 definitionSpec = do

@@ -352,6 +352,7 @@ instance ( MonadIO m -- DEBUG ONLY
             (\a' v' ns' -> convert a' <> "." <> intercalate "." (convert <$> ns')
                 <+> convert n <> "=" <+> convert v')
             <$> subgen a <*> subgen v <*> Mutable.toList ns
+        IR.UniTermImp {} -> pure $ simple "imports ..."
 
         t -> error $ "NO PRETTYPRINT FOR: " <> show t
 

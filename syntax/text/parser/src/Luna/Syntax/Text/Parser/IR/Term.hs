@@ -830,18 +830,16 @@ func = irbs $ funcHdr <**> (funcSig <|> funcDef) where
                   (`elem` [Lexer.BlockStart, Lexer.EOL, Lexer.ETX])
     funcSig     = (\tp name -> liftIRBS2 (irb2 IR.functionSig') name tp)
                <$ symbol Lexer.Typed <*> valExpr
-    funcDef     = (\args body name -> liftIRBS3 (irb3 IR.function') name (sequence args) (seqs2 body))
+    funcDef     = (\args body name -> liftIRBS3 (irb3 IR.function') name
+                                      (sequence args) (seqs2 body))
               <$> many nonSpacedPattern
               <*> withRecovery blockRec block
     block       = symbol Lexer.BlockStart
-               *> possibleNonEmptyBlock lineExpr
-    -- blockRec :: Int -> Parser ((IRBS SomeTerm),[IRBS SomeTerm])
+               *> (possibleNonEmptyBlock lineExpr <|> missing)
+    missing :: Parser (NonEmpty (IRBS SomeTerm))
+    missing = fmap pure . irbs . pure $ irb0 IR.missing'
     blockRec e  = pure <$> (irbs $ invalid Invalid.FunctionBlock
                <$ optionalBlockAny)
-
-            -- withRecovery (\e -> invalid "Invalid string literal" <$ Loc.unregisteredDropSymbolsUntil' (== (Lexer.Quote Lexer.RawStr Lexer.End)))
-    --              $ (IR.string' . convertVia @String)
-    --            <$> Indent.withCurrent (strBody rawQuoteEnd) -- FIXME[WD]: We're converting Text -> String here.
 
 
 -- -- === Classes == --
@@ -990,7 +988,8 @@ skipEOLs :: Parser ()
 skipEOLs = void $ many eol
 
 possibleNonEmptyBlock :: Parser a -> Parser (NonEmpty a)
-possibleNonEmptyBlock = \p -> (eol >> skipEOLs >> nonEmptyBlock2 p) <|> (pure <$> p)
+possibleNonEmptyBlock = \p -> (es >> nonEmptyBlock2 p) <|> (pure <$> p) where
+    es = try (eol >> skipEOLs >> Indent.indented)
 {-# INLINE possibleNonEmptyBlock #-}
 
 possibleNonEmptyBlock' :: Parser a -> Parser [a]
@@ -1006,7 +1005,7 @@ nonEmptyBlock'     = uncurry (:) <<$>> nonEmptyBlock
 nonEmptyBlockBody' = uncurry (:) <<$>> nonEmptyBlockBody
 
 nonEmptyBlock2 ::  Parser a -> Parser (NonEmpty a)
-nonEmptyBlock2 p = Indent.indented >> Indent.withCurrent (nonEmptyBlockBody2 p)
+nonEmptyBlock2 p = Indent.withCurrent (nonEmptyBlockBody2 p)
 
 nonEmptyBlockBody2 ::  Parser a -> Parser (NonEmpty a)
 nonEmptyBlockBody2 p = (:|) <$> p <*> lines where

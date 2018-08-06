@@ -12,6 +12,7 @@ import qualified Luna.Pass                              as Pass
 import qualified Luna.Pass.Attr                         as Attr
 import qualified Luna.Pass.Scheduler                    as Scheduler
 import qualified Luna.Syntax.Text.Lexer                 as Lexer
+import qualified Luna.Syntax.Text.Lexer.Symbol          as Symbol
 import qualified Luna.Syntax.Text.Parser.IR.Class       as Token
 import qualified Luna.Syntax.Text.Parser.IR.Term        as Parsing
 import qualified Luna.Syntax.Text.Parser.State.Marker   as Marker
@@ -100,7 +101,8 @@ runParser__ p src = do
     let tokens = Lexer.evalDefLexer src
         parser = Parsing.stx *> p <* Parsing.etx
     runParserContext__ parser tokens >>= \case
-        Left e -> error ("Parser error: " <> parseErrorPretty e <> "\ntokens:\n" <> show tokens)
+        Left e -> error ("Parser error: " <> parseErrorPretty e <> "\ntokens:\n"
+               <> show (view Symbol.symbol <$> tokens))
         Right irbs -> do
             ((ref, unmarked), gidMap) <- State.runDefT @Marker.TermMap
                                        $ State.runDefT @Marker.TermOrphanList

@@ -56,7 +56,7 @@ token' f = do
 
 dropMarkers :: (MonadParsec e Stream m, MonadLoc m) => m ()
 dropMarkers = previewNextToken >>= \t -> case t ^. Lexer.symbol of
-    Lexer.Marker m -> undefined -- Marker.setLast (t & Lexer.symbol .~ m) >> dropNextTokenAsMarker >> dropMarkers -- FIXME[WD]: should we handle the wrong markers?
+    Lexer.Marker m -> Marker.setLast (Marker.Token (t ^. Lexer.info) m) >> dropNextTokenAsMarker >> dropMarkers -- FIXME[WD]: should we handle the wrong markers?
     _              -> return ()
 
 getStream :: MonadParsec e Stream m => m Stream

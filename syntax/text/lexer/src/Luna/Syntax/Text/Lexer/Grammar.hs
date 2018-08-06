@@ -191,16 +191,16 @@ checkInvalidSuffix :: Parser Symbol -> Parser Symbol
 checkInvalidSuffix =  (<**> option id (const <$> invalidSuffix))
 {-# INLINE checkInvalidSuffix #-}
 
-lexWildcard :: Lexer
-lexWildcard = do
-    sym <- checkInvalidSuffix $ Symbol.Wildcard <$ token '_'
-    addSymbol sym
-{-# INLINE lexWildcard #-}
+-- lexWildcard :: Lexer
+-- lexWildcard = do
+--     sym <- checkInvalidSuffix $ Symbol.Wildcard <$ token '_'
+--     addSymbol sym
+-- {-# INLINE lexWildcard #-}
 
 lexVariable :: Lexer
 lexVariable = addSymbol =<< checkInvalidSuffix validVar where
     validVar   = Symbol.checkSpecialVar <$> validName
-    validName  = takeWhile isIdentBodyChar
+    validName  = ((<>) <$> takeMany '_' <*> takeWhile isIdentBodyChar)
           <**> option id (flip Txt.snoc <$> token '?')
           <**> option id (flip (<>)     <$> takeMany1 '\'')
 {-# INLINE lexVariable #-}
@@ -572,7 +572,7 @@ symmap = Vector.generate symmapSize $ \i -> let c = Char.chr i in if
     | c == markerBegin  -> lexMarker
 
     -- Identifiers & Keywords
-    | c == '_'          -> lexWildcard
+    | c == '_'          -> lexVariable
     | isVarHead  c      -> lexVariable
     | isConsHead c      -> lexConstructor
 

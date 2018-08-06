@@ -35,13 +35,13 @@ instance HasPosition SourcePos where
 
 -- Position getter
 instance (Stream s, Ord e) => State.Getter Position (ParsecT e s m) where
-    get = (column %~ (subtract 1)) . view position <$> getPosition
+    get = {-(column %~ (subtract 1)) . -} view position <$> getPosition
     {-# INLINE get #-}
 
 instance (Stream s, Ord e) => State.Setter Position (ParsecT e s m) where
     put p = do
         pp <- getPosition
-        setPosition $ pp & position .~ (p & column %~ (+ 1))
+        setPosition $ pp & position .~ (p) -- & column %~ (+ 1))
     {-# INLINE put #-}
 
 -- Other States
