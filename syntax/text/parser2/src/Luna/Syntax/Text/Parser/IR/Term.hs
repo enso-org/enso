@@ -4,14 +4,15 @@
 
 module Luna.Syntax.Text.Parser.IR.Term where
 
-import qualified Prelude                 as P
-import           Prologue                hiding (imp, seq, some)
+import qualified Prelude  as P
+import           Prologue hiding (imp, seq, some, takeWhile)
 import qualified Prologue
-import           Text.Parser.Combinators
+-- import           Text.Parser.Combinators
 
 import qualified Control.Monad.State.Layered as State
 -- import qualified Data.Char                                 as Char
--- import qualified Data.Graph.Data.Layer.Layout              as Layout
+import qualified Data.Graph.Data.Layer.Layout as Layout
+import qualified Data.Text32                  as Txt
 -- import qualified Data.Mutable.Class                        as Mutable
 -- import qualified Data.Set                                  as Set
 import qualified Data.Text.Span as Span
@@ -23,11 +24,12 @@ import qualified Data.Text.Span as Span
 import qualified Luna.IR       as IR
 import qualified Luna.IR.Layer as Layer
 -- import qualified Luna.IR.Term.Ast                          as Import
--- import qualified Luna.IR.Term.Ast.Invalid                  as Invalid
+import qualified Data.Char                             as Char
+import qualified Luna.IR.Term.Ast.Invalid              as Invalid
 import qualified Luna.Syntax.Text.Lexer                as Lexer
 import qualified Luna.Syntax.Text.Lexer.Symbol         as Lexer
 import qualified Luna.Syntax.Text.Parser.Data.CodeSpan as CodeSpan
--- import qualified Luna.Syntax.Text.Parser.Data.Invalid      as Attr
+import qualified Luna.Syntax.Text.Parser.Data.Invalid  as Attr
 -- import qualified Luna.Syntax.Text.Parser.Data.Name.Spaced  as Name
 -- import qualified Luna.Syntax.Text.Parser.Data.Name.Special as SpecialName
 -- import qualified Luna.Syntax.Text.Parser.IR.Expr           as Expr
@@ -87,6 +89,62 @@ import Data.Parser.Instances.Attoparsec ()
 
 
 
+-- data Ast a
+--     = Var { name :: Name }
+    -- = AccSection   { path     :: [Name]                               }
+    -- | Cons         { name     :: Name    , args  :: [Ast]             }
+    -- | Disabled     { body     :: Ast                                  }
+    -- | Documented   { doc      :: Txt     , base   :: Ast              }
+    -- | Function     { name     :: Ast     , args   :: [Ast]
+    --                , body     :: Ast                                  }
+    -- | DefHeader    { tp       :: Ast     , unis   :: [Ast]
+    --                , accs     :: [Ast]   , apps   :: [Ast]            }
+    -- | Grouped      { body     :: Ast                                  }
+    -- | Imp          { source   :: Ast     , target :: ImportTargetData }
+    -- | ImportHub    { imps     :: [Ast]                                }
+    -- | ImportSource { body     :: ImportSourceData                     }
+    -- | Invalid      { desc     :: Invalid.Symbol                       }
+    -- | List         { items    :: [Ast]                                }
+    -- | Marked       { marker   :: Ast     , body   :: Ast              }
+    -- | Marker       { id       :: Word64                               }
+    -- | SectionLeft  { operator :: Ast     , body   :: Ast              }
+    -- | SectionRight { operator :: Ast     , body   :: Ast              }
+    -- | Modify       { base     :: Ast     , path   :: [Name]
+    --                , operator :: Name    , value  :: Ast              }
+    -- | Metadata     { content  :: Txt                                  }
+    -- | Record       { isNative :: Bool    , name   :: Name
+    --                , params   :: [Ast]   , conss  :: [Ast]
+    --                , decls    :: [Ast]                                }
+    -- | RecordCons   { name     :: Name    , fields :: [Ast]            }
+    -- | RecordFields { names    :: [Name]  , tp     :: Ast              }
+    -- | Seq          { former   :: Ast     , later  :: Ast              }
+    -- | Tuple        { items    :: [Ast]                                }
+    -- | Typed        { base     :: Ast     , tp     :: Ast              }
+    -- | Unit         { imps     :: Ast     , units  :: [Ast]
+    --                , cls      :: Ast                                  }
+    -- DEPRECATED:
+    -- | FunctionSig  { name     :: Ast     , sig    :: Ast         }
+
+
+
+data Var a = Var { name :: Name        } deriving (Show)
+data App a = App { base :: a, arg :: a } deriving (Show)
+
+data Ast a
+    = AstVar (Var a)
+    | AstApp (App a)
+    deriving (Show)
+
+data SpannedAst = SpannedAst CodeSpan (Ast SpannedAst)
+    deriving (Show)
+
+-- type Ast = Spanned AstData
+
+
+type Txt = Txt.Text32
+-- x
+
+
 data Location = Location
     { _offset :: Delta
     , _column :: Delta
@@ -111,8 +169,8 @@ type Parser = StatesT '[Indent, Location, LastOffset, CodeSpanRange, Marker.Stat
 
 
 -- TODO: Can we do better?
--- instance Convertible Text32.Text32 Name where
---     convert = convertVia @String ; {-# INLINE convert #-}
+instance Convertible Txt.Text32 Name where
+    convert = convertVia @String ; {-# INLINE convert #-}
 
 
 
@@ -265,16 +323,16 @@ irbsF2 p = uncurry (fmap2 . irbsFromSpan) <$> spanned p ; {-# INLINE irbsF2 #-}
 
 
 
--- --------------------
--- -- === Errors === --
--- --------------------
+--------------------
+-- === Errors === --
+--------------------
 
--- invalid :: Invalid.Symbol -> IRB SomeTerm
--- invalid t = IRB $ do
---     inv <- IR.invalid' t
---     Attr.registerInvalid inv
---     pure $ Layout.relayout inv
--- {-# INLINE invalid #-}
+invalid :: Invalid.Symbol -> IRB SomeTerm
+invalid t = IRB $ do
+    inv <- IR.invalid' t
+    Attr.registerInvalid inv
+    pure $ Layout.relayout inv
+{-# INLINE invalid #-}
 
 -- invalidToken :: Parser (IRBS SomeTerm)
 -- invalidToken = irbs $ invalid <$> satisfTest Lexer.matchInvalid
@@ -351,26 +409,159 @@ irbsF2 p = uncurry (fmap2 . irbsFromSpan) <$> spanned p ; {-# INLINE irbsF2 #-}
 
 
 
--- -------------------------
--- -- === Identifiers === --
--- -------------------------
+-------------------------
+-- === Identifiers === --
+-------------------------
 
-var :: Parser (IRBS SomeTerm)
+-- var :: Parser (IRBS SomeTerm)
 -- cons, var, op, wildcard :: Parser (IRBS SomeTerm)
 -- cons     = snd <$> namedCons                             ; {-# INLINE cons     #-}
-var      = snd <$> namedVar                              ; {-# INLINE var      #-}
+-- var      = snd <$> namedVar                              ; {-# INLINE var      #-}
 -- op       = snd <$> namedOp                               ; {-# INLINE op       #-}
 -- wildcard = irbs $ irb0 IR.blank' <$ symbol Lexer.Wildcard ; {-# INLINE wildcard #-}
 
-namedVar :: Parser (Name, IRBS SomeTerm)
+-- namedVar :: Parser (Name, IRBS SomeTerm)
 -- namedCons, namedVar, namedOp, namedIdent :: Parser (Name, IRBS SomeTerm)
 -- namedCons  = irbsNamed (flip (irb2 IR.cons') []) consName ; {-# INLINE namedCons  #-}
-namedVar   = irbsNamed (irb1 IR.var')            varName  ; {-# INLINE namedVar   #-}
+-- namedVar   = undefined -- irbsNamed (irb1 IR.var')            varName  ; {-# INLINE namedVar   #-}
 -- namedOp    = irbsNamed (irb1 IR.var')            opName   ; {-# INLINE namedOp    #-}
 -- namedIdent = namedVar <|> namedCons <|> namedOp    ; {-# INLINE namedIdent #-}
 
-varName :: Parser Name
-varName = convert <$> token 'a'
+
+-- === Identifiers === --
+
+var :: Parser (IRBS SomeTerm)
+var = irbs $ either err cons <$> varName where
+    cons = irb1 IR.var'
+    err  = invalid . Invalid.UnexpectedVarNameSuffix
+{-# INLINE var #-}
+
+cons :: Parser (IRBS SomeTerm)
+cons = irbs $ either err cons <$> consName where
+    cons = flip (irb2 IR.cons') []
+    err  = invalid . Invalid.UnexpectedTypeNameSuffix
+{-# INLINE cons #-}
+
+wildcard :: Parser (IRBS SomeTerm)
+wildcard = irbs $ irb0 IR.blank' <$ token '_'
+{-# INLINE wildcard #-}
+
+ident :: Parser (IRBS SomeTerm)
+ident = var <|> cons
+{-# INLINE ident #-}
+
+
+-- === Identifier names === --
+
+varName :: Parser (Either Int Name)
+varName = (fmap convert . fmap . (<>) <$> header) <*> identBody where
+    header = Txt.snoc <$> pfx <*> head
+    pfx    = takeMany '_'
+    head   = satisfy Char.isLower
+{-# INLINE varName #-}
+
+consName :: Parser (Either Int Name)
+consName = (fmap convert . fmap . (<>) <$> header) <*> identBody where
+    header = Txt.singleton <$> satisfy Char.isUpper
+{-# INLINE consName #-}
+
+identBody :: Parser (Either Int Txt)
+identBody = check name where
+    check = (<**> option id (const . Left <$> invalidIdentSuffix)) . fmap Right
+    body  = takeWhile isIdentBodyChar
+    sfx   = option id (flip (<>) <$> takeMany1 '\'')
+    name  = body <**> sfx
+{-# INLINE identBody #-}
+
+
+-- === Lexing === --
+
+isIdentBodyChar, isVarHead, isConsHead :: Char -> Bool
+isIdentBodyChar = Char.isAlphaNum
+isVarHead       = Char.isLower
+isConsHead      = Char.isUpper
+{-# INLINE isIdentBodyChar  #-}
+{-# INLINE isVarHead        #-}
+{-# INLINE isConsHead       #-}
+
+invalidIdentSuffix :: Parser Int
+invalidIdentSuffix = Txt.length <$> takeWhile1 (not . checkChar) where
+    checkChar c       = (c `elem` specialChars)
+                     || (Char.generalCategory c `elem` okCategories)
+    okCategories      = [Char.Space, Char.Control, Char.MathSymbol]
+    specialChars      = modifiers <> otherPunctuations <> currencySymbols
+                     <> openPunctuations <> closePunctuations
+                     <> dashPunctuations
+    modifiers         = "`^"             :: [Char]
+    otherPunctuations = "!@#%&*\\;:,./?" :: [Char]
+    currencySymbols   = "$"              :: [Char]
+    openPunctuations  = "([{"            :: [Char]
+    closePunctuations = ")]}"            :: [Char]
+    dashPunctuations  = "-"              :: [Char]
+{-# INLINE invalidIdentSuffix #-}
+
+
+-- === Operators === --
+
+data Operator
+    = Operator Txt
+    | Modifier Txt
+    deriving (Show)
+
+operator :: Parser (Either Int Operator)
+operator = result where
+    base         = handleOp <$> takeWhile1 isOperatorChar <*> takeMany '='
+    handleOp p s = if (p == "<" || p == ">") && s == "="
+        then Right $ Operator (p <> s)
+        else case s of
+            "=" -> Right $ Modifier p
+            ""  -> Right $ Operator p
+            _   -> Left  $ Txt.length s
+    result = do
+        base <- handleOp <$> takeWhile1 isOperatorChar <*> takeMany '='
+        sfx  <- takeWhile isOperatorChar
+        let sfxLen = Txt.length sfx
+        pure $ if sfxLen == 0 then base else case base of
+            Left  i -> Left $ i + sfxLen
+            Right _ -> Left $ sfxLen
+{-# INLINE operator #-}
+
+operatorChars :: [Char]
+operatorChars = "!$%&*+-/<>?^~\\"
+{-# INLINE operatorChars #-}
+
+isOperatorChar :: Char -> Bool
+isOperatorChar = (`elem` operatorChars)
+{-# INLINE isOperatorChar #-}
+
+isOperator :: Convertible' s String => s -> Bool
+isOperator = test . convertTo' @String where
+    test s = all isOperatorChar s
+          || s `elem` [",", "..", "...", "=="]
+          || (last s == Just '=') && isOperator (unsafeInit s)
+{-# INLINE isOperator #-}
+
+
+-- === Helpers === --
+
+-- irbsNamed :: (Name -> IRB (Term a)) -> Parser Name -> Parser (Name, IRBS (Term a))
+-- irbsNamed cons = irbsF . fmap (\name -> (name, cons name)) ; {-# INLINE irbsNamed #-}
+
+
+
+
+
+expr = ident
+
+
+-- checkInvalidSuffix :: Parser Symbol -> Parser Symbol
+-- checkInvalidSuffix =  (<**> option id (const <$> invalidSuffix))
+-- {-# INLINE checkInvalidSuffix #-}
+
+
+
+
+
 -- consName, varName, opName, identName, modifierName :: Parser Name
 -- foreignLangName                                    :: Parser Name
 -- consName        = convert <$> satisfTest Lexer.matchCons     ; {-# INLINE consName        #-}
@@ -396,8 +587,7 @@ varName = convert <$> token 'a'
 
 -- === Helpers === --
 
-irbsNamed :: (Name -> IRB (Term a)) -> Parser Name -> Parser (Name, IRBS (Term a))
-irbsNamed cons = irbsF . fmap (\name -> (name, cons name)) ; {-# INLINE irbsNamed #-}
+
 
 
 -- -- Qualified names

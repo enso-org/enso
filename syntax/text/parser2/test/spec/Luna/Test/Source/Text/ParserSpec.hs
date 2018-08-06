@@ -85,8 +85,8 @@ shouldParseItself parser input = shouldParseAs parser input input
 -- unit       = shouldParseItself Parsing.unit'
 -- unit_n   s = unitAs_n s s
 -- unitAs_n s = unitAs s . ("\n" <>)
-exprAs     = shouldParseAs     Parsing.var
-expr       = shouldParseItself Parsing.var
+exprAs     = shouldParseAs     Parsing.expr
+expr       = shouldParseItself Parsing.expr
 
 
 
@@ -96,28 +96,20 @@ expr       = shouldParseItself Parsing.var
 
 identSpec :: Spec
 identSpec = describe "identifier" $ do
-    it "variable 1"        $ expr "a"
-    -- it "name'"             $ expr "foo'"
-    -- it "name''"            $ expr "foo''"
-    -- it "name?"             $ expr "foo?"
---     it "name?'"            $ expr "foo?'"
---     it "name?''"           $ expr "foo?''"
---     it "unicode name"      $ expr "фываΧξωβ김동욱"
---     it "constructor 1"     $ expr "Vector"
---     it "constructor 2"     $ expr "Vector x 1 z"
---     it "unicode name"      $ expr "Κοηστρυκτορ"
---     it "wildcard"          $ expr "_"
---     it "underscored var"   $ expr "_foo"
---     it "underscored var2"  $ expr "__foo"
---     it "caseless header"   $ exprAs "מfoo" "Invalid CaselessNameHead"
---     it "invalid var 1"     $ exprAs "f'o"  "Invalid UnexpectedSuffix 1"
---     it "invalid var 2"     $ exprAs "f?o"  "Invalid UnexpectedSuffix 1"
---     it "invalid var 3"     $ exprAs "f'?"  "Invalid UnexpectedSuffix 1"
---     it "invalid var 4"     $ exprAs "f_a"  "Invalid UnexpectedSuffix 2"
---     it "invalid cons 1"    $ exprAs "F'o"  "Invalid UnexpectedSuffix 2"
---     it "invalid cons 2"    $ exprAs "F?o"  "Invalid UnexpectedSuffix 2"
---     it "invalid cons 3"    $ exprAs "F'?"  "Invalid UnexpectedSuffix 2"
---     it "invalid cons 4"    $ exprAs "F_a"  "Invalid UnexpectedSuffix 2"
+    it "var"               $ expr   "var"
+    it "_var"              $ expr   "_var"
+    it "var'"              $ expr   "var'"
+    it "var''"             $ expr   "var''"
+    it "unicode"           $ expr   "фываΧξωβ김동욱"
+    it "invalid var: a⸗"   $ exprAs "a⸗"    "Invalid UnexpectedVarNameSuffix 1"
+    it "invalid var: f'o"  $ exprAs "f'o"  "Invalid UnexpectedVarNameSuffix 1"
+    it "invalid var: f_a"  $ exprAs "f_a"  "Invalid UnexpectedVarNameSuffix 2"
+    it "Cons"              $ expr   "Cons"
+    it "Cons'"             $ expr   "Cons'"
+    it "Cons''"            $ expr   "Cons''"
+    it "invalid cons: C⸗"  $ exprAs "C⸗"    "Invalid UnexpectedTypeNameSuffix 1"
+    it "invalid cons: C'o" $ exprAs "C'o"  "Invalid UnexpectedTypeNameSuffix 1"
+    it "invalid cons: C_a" $ exprAs "C_a"  "Invalid UnexpectedTypeNameSuffix 2"
 
 -- literalNumberSpec :: Spec
 -- literalNumberSpec = describe "number" $ do

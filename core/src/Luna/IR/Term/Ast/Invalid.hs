@@ -24,6 +24,8 @@ data Symbol
     | UnexpectedSuffix {- len -} !Int
     | CaselessNameHead
     | Literal InvalidLiteral
+    | UnexpectedVarNameSuffix {- len -} Int
+    | UnexpectedTypeNameSuffix {- len -} Int
     deriving (Eq, Ord, Generic, Show)
 -- instance ExternalStorable Symbol
 -- instance ExternalFieldStorable Symbol
