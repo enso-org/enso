@@ -37,35 +37,6 @@ evalDefLexer = \s ->
     in  stx off : go s'
 {-# INLINE evalDefLexer #-}
 
--- evalLexer__ :: EntryStack -> Delta -> Delta -> [Token] -> Text32 -> [Token]
--- evalLexer__ = go where
---     go stack col row toks txt = let
-
---         handleDone txt' ((!symbol, !ioff), !stack') =
---             let pdiff = convert $! Text32.length txt - Text32.length txt'
---                 off   = convert ioff
---                 span  = pdiff - off
---                 isEnd = Text32.null txt'
---                 tok   = token span off col row stack' symbol
---                 toks' = tok : toks
---                 (!col', !row') = if symbol == Symbol.EOL
---                     then (0, row + 1)
---                     else (col + pdiff, row)
---             in if isEnd then toks' else go stack' col' row' toks' txt'
---         {-# INLINE handleDone #-}
-
---         handleOut f = \case
---             Parser.Done !(txt') !r -> handleDone txt' r
---             Parser.Fail !_ !_ !e   -> error e
---             Parser.Partial !g      -> f $! g mempty
---         {-# INLINE handleOut  #-}
-
---         runSteps = handleOut $! handleOut (const impossible)
---         {-# INLINE runSteps #-}
-
---         in runSteps $! runner__ lexer stack txt col row
--- {-# INLINE evalLexer__ #-}
-
 evalLexer__ :: Text32 -> [Token]
 evalLexer__ = \txt -> case runner__ txt of
     Parser.Done !(txt') !r -> if (Text32.length txt' /= 0)
@@ -79,30 +50,6 @@ evalLexer__ = \txt -> case runner__ txt of
         Parser.Partial {} -> impossible
 
     Parser.Fail !_ !_ !e   -> error e
-
-        -- handleDone txt' ((!symbol, !ioff), !stack') =
-        --     let pdiff = convert $! Text32.length txt - Text32.length txt'
-        --         off   = convert ioff
-        --         span  = pdiff - off
-        --         isEnd = Text32.null txt'
-        --         tok   = token span off col row stack' symbol
-        --         toks' = tok : toks
-        --         (!col', !row') = if symbol == Symbol.EOL
-        --             then (0, row + 1)
-        --             else (col + pdiff, row)
-        --     in if isEnd then toks' else go stack' col' row' toks' txt'
-        -- {-# INLINE handleDone #-}
-
-        -- handleOut f = \case
-        --     Parser.Done !(txt') !r -> handleDone txt' r
-        --     Parser.Fail !_ !_ !e   -> error e
-        --     Parser.Partial !g      -> f $! g mempty
-        -- {-# INLINE handleOut  #-}
-
-        -- runSteps = handleOut $! handleOut (const impossible)
-        -- {-# INLINE runSteps #-}
-
-        -- in runSteps $! runner__ lexer stack txt col row
 {-# INLINE evalLexer__ #-}
 
 runner__ :: Text32 -> IResult Text32 Grammar.Result
@@ -144,37 +91,3 @@ instance IsSourceBorder Symbol where
 --     etx   = (etx, mempty)
 --     {-# INLINE stx #-}
 --     {-# INLINE etx #-}
-
-
-
-
-
--- prependSTX :: (Monad m, IsSourceBorder s) => ConduitM Text32 s m () -> ConduitM Text32 s m ()
--- prependSTX f = await >>= \case
---     Nothing -> pure ()
---     Just t  -> yield (stx $ Text32.length s) >> when (not $ Text32.null t') (leftover t') >> f where
---         (s,t') = Text32.span (== ' ') t
--- {-# INLINE prependSTX #-}
-
-
--- fromLexerResult :: Either ParseError a -> a
--- fromLexerResult = either (error . ("Impossible happened: lexer error: " <>) . show) id ; {-# INLINE fromLexerResult #-}
-
--- parseBase :: (Monad m, IsSourceBorder t) => Parser (t, Int) -> EntryStack -> ConduitM a Text32 m () -> ConduitM a c0 m [Either ParseError (Token t)]
--- parseBase p s f = f .| prependSTX (conduitParserEither s $ State.runT @EntryStack p) .| sinkList ; {-# INLINE parseBase #-}
-
--- parse        :: IsSourceBorder a =>                  Parser (a, Int) -> EntryStack -> Text32   ->   [Token a]
--- tryParse     :: IsSourceBorder a =>                  Parser (a, Int) -> EntryStack -> Text32   ->   Either ParseError [Token a]
--- parseFile    :: IsSourceBorder a => MonadIO m => Parser (a, Int) -> EntryStack -> FilePath -> m [Token a]
--- tryParseFile :: IsSourceBorder a => MonadIO m => Parser (a, Int) -> EntryStack -> FilePath -> m (Either ParseError [Token a])
--- parse              = fromLexerResult .:. tryParse                                                ; {-# INLINE parse        #-}
--- parseFile          = fromLexerResult .:: tryParseFile                                            ; {-# INLINE parseFile    #-}
--- tryParse     p s t = sequence . runConduitPure $ parseBase p s (sourceProducer t)                ; {-# INLINE tryParse     #-}
--- tryParseFile p s t = liftIO . fmap sequence . runConduitRes $ parseBase p s (sourceReader t) ; {-# INLINE tryParseFile #-}
-
--- runLexer     :: EntryStack -> Text32 -> [Token (Symbol, EntryStack)]
--- evalLexer    :: EntryStack -> Text32 -> [Token Symbol]
--- evalDefLexer ::               Text32 -> [Token Symbol]
--- runLexer     = parse lexerCont ; {-# INLINE runLexer     #-}
--- evalLexer    = parse lexer     ; {-# INLINE evalLexer    #-}
--- evalDefLexer = evalLexer def   ; {-# INLINE evalDefLexer #-}
