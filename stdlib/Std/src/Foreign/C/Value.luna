@@ -33,6 +33,9 @@ class CString:
 
     def free: self.ptr.free
 
+    def with text f: 
+        bracket (self.fromText text) .free f
+
 class Array a:
     Array a
     ArrayVal Int (Pointer a)
@@ -80,6 +83,9 @@ class Array a:
         withIndex = 0 . upto size . zip l
         withIndex . each (i, e): arr.writeAt i e
         arr
+
+    def with list f:
+        bracket (self.fromList list) .free f
 
 
 class NullTerminatedArray a:
@@ -724,6 +730,9 @@ class Pointer a:
         PointerVal tp ptr
 
     def free: self.ptr.free
+
+    def with f:
+        bracket (self.malloc) .free f
 
 def nullPtr: primNullPtr
 
