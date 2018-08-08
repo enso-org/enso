@@ -1020,6 +1020,9 @@ class Scientific:
 
     def toInt: self.coefficient
 
+    def == that:
+        self.coefficient.== that.coefficient . and $ self.exponent.== that.exponent
+
 # Class representing JSON objects.
 class JSON:
     JSON
@@ -1068,6 +1071,19 @@ class JSON:
     # Returns an empty `JSON` object
     def empty: JSONObject Tip
 
+    # Tests two `JSON` objects for equality.
+    # JSON objects are considered equal if they represent the same kind of data
+    # and if stored data (when present) in both objects compares equal.
+    def == that:
+        case (self, that) of
+            (JSONNumber d, JSONNumber thatD): d.== thatD
+            (JSONString s, JSONString thatS): s.== thatS
+            (JSONArray  l, JSONArray  thatL): l.== thatL
+            (JSONBool   b, JSONBool   thatB): b.== thatB
+            (JSONNull    , JSONNull        ): True
+            (JSONObject m, JSONObject thatM): m.== thatM
+            _: False    
+    
     # Inserts a value for a given key into the `JSON` object.
     # Throws an exception when the `JSON` does not represent an object.
     def insert k v: case self of
