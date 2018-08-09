@@ -6,7 +6,6 @@ import           Prologue
 import qualified Luna.IR as IR
 
 import Control.Lens (_Left)
-import           Control.Concurrent          (MVar, newEmptyMVar, takeMVar, readMVar, putMVar, forkFinally, killThread, threadDelay)
 import qualified Control.Concurrent.Async    as Async
 import qualified Control.Exception           as Exception (evaluate)
 import qualified Control.Exception.Safe      as Exception
@@ -15,26 +14,33 @@ import qualified Data.Bifunctor              as Bifunc
 import qualified Data.Bits                   as Bits
 import           Data.ByteString             (ByteString)
 import qualified Data.ByteString             as ByteString
+import qualified Data.ByteString.Lazy        as LazyByteString
 import           Data.Foldable               as Foldable (toList)
 import qualified Data.HashMap.Lazy           as HM
 import           Data.Map                    (Map)
 import qualified Data.Map                    as Map
 import qualified Data.Map.Internal           as IMap
-import           Data.Scientific             (toRealFloat, Scientific, coefficient, base10Exponent, fromFloatDigits)
 import qualified Data.Text                   as Text
 import qualified Data.Text.Encoding          as Text
+import qualified Data.Vector                 as Vector
 
 import qualified Luna.Std.Builder            as Builder
 import qualified Luna.Runtime as Luna
 import qualified Luna.Pass.Sourcing.Data.Def as Def
 
-import           Luna.Std.Builder            (makeFunctionPure, makeFunctionIO, maybeLT, listLT, eitherLT, integer, int)
-import           Luna.Std.Finalizers         (FinalizersCtx, registerFinalizer, cancelFinalizer)
-import           Text.Read                   (readMaybe)
+import Control.Concurrent   ( MVar, newEmptyMVar, takeMVar, readMVar, putMVar
+                            , forkFinally, killThread, threadDelay)
+import Data.Scientific      ( toRealFloat, scientific, Scientific, coefficient
+                            , base10Exponent, fromFloatDigits)
+import Data.Vector          (Vector)
+import Luna.Std.Builder     ( makeFunctionPure, makeFunctionIO, maybeLT, listLT
+                            , eitherLT, integer, int)
+import Luna.Std.Finalizers  (FinalizersCtx, registerFinalizer, cancelFinalizer)
+import System.Random        (randomIO)
+import System.Directory     (canonicalizePath)
+import System.FilePath      (pathSeparator)
+import Text.Read            (readMaybe)
 
-import           System.Random               (randomIO)
-import           System.Directory            (canonicalizePath)
-import           System.FilePath             (pathSeparator)
 
 primReal :: forall graph m. Builder.StdBuilder graph m => m (Map IR.Name Def.Def)
 primReal = do
@@ -218,6 +224,7 @@ primBinary = do
         lenVal     = flip Luna.toValue (fromIntegral . ByteString.length :: ByteString -> Integer)
         takeVal    = flip Luna.toValue (flip (ByteString.take . fromIntegral) :: ByteString -> Integer -> ByteString)
         dropVal    = flip Luna.toValue (flip (ByteString.drop . fromIntegral) :: ByteString -> Integer -> ByteString)
+        concatVal  = flip Luna.toValue ByteString.concat
 
     toText <- makeFunctionPure @graph toTextVal [Builder.binaryLT] Builder.textLT
     eq <- makeFunctionPure @graph eqVal [Builder.binaryLT, Builder.binaryLT] Builder.boolLT
@@ -225,12 +232,25 @@ primBinary = do
     len <- makeFunctionPure @graph lenVal [Builder.binaryLT] Builder.intLT
     take <- makeFunctionPure @graph takeVal [Builder.binaryLT] Builder.binaryLT
     drop <- makeFunctionPure @graph dropVal [Builder.binaryLT] Builder.binaryLT
+    concat <- makeFunctionPure @graph concatVal [Builder.listLT Builder.binaryLT] Builder.binaryLT
     return $ Map.fromList [ ("primBinaryToText",   toText)
                           , ("primBinaryEquals",   eq)
                           , ("primBinaryConcat",   plus)
                           , ("primBinaryLength",   len)
                           , ("primBinaryTake",     take)
                           , ("primBinaryDrop",     drop)
+                          , ("concatBinary",       concat)
+                          ]
+
+primVector :: forall graph m. Builder.StdBuilder graph m => m (Map IR.Name Def.Def)
+primVector = do
+    let toListVal  = flip Luna.toValue (Vector.toList :: Vector Luna.Data -> [Luna.Data])
+        fromListVal  = flip Luna.toValue (Vector.fromList :: [Luna.Data] -> Vector Luna.Data)
+
+    toList <- makeFunctionPure @graph toListVal [Builder.vectorLT "a"] (Builder.listLT "a")
+    fromList <- makeFunctionPure @graph fromListVal [Builder.listLT "a"] (Builder.vectorLT "a")
+    return $ Map.fromList [ ("primVectorToList",   toList)
+                          , ("primVectorFromList", fromList)
                           ]
 
 primText :: forall graph m. Builder.StdBuilder graph m => m (Map IR.Name Def.Def)
@@ -342,6 +362,10 @@ io finalizersCtx = do
         parseJSONVal = Bifunc.first convert . Aeson.eitherDecode . convert . Text.encodeUtf8
     parseJSON <- makeFunctionPure @graph (flip Luna.toValue parseJSONVal) [Builder.textLT] (eitherLT Builder.textLT Builder.jsonLT)
 
+    let renderJSONVal :: Aeson.Value -> Text
+        renderJSONVal = Text.decodeUtf8 . LazyByteString.toStrict . Aeson.encode
+    renderJSON <- makeFunctionPure @graph (flip Luna.toValue renderJSONVal) [Builder.jsonLT] Builder.textLT
+
     let randomRealVal = randomIO :: IO Double
     randomReal <- makeFunctionIO @graph (flip Luna.toValue randomRealVal) [] realT
 
@@ -392,6 +416,7 @@ io finalizersCtx = do
                           , ("pathSeparator", pathSep)
                           , ("primWriteFile", writeFile')
                           , ("parseJSON", parseJSON)
+                          , ("renderJSON", renderJSON)
                           , ("randomReal", randomReal)
                           , ("primFork", fork)
                           , ("sleep", sleep)
@@ -409,25 +434,44 @@ exports finalizersCtx = do
     intFuns  <- primInt    @graph
     textFuns <- primText   @graph
     binFuns  <- primBinary @graph
+    vecFuns  <- primVector @graph
     opFuns   <- operators  @graph
     ioFuns   <- io @graph finalizersCtx
-    return $ Map.unions [realFuns, intFuns, textFuns, binFuns, opFuns, ioFuns]
+    return $ Map.unions [realFuns, intFuns, textFuns, binFuns, vecFuns, opFuns, ioFuns]
 
 type instance Luna.RuntimeRepOf (IMap.Map a b) = Luna.AsClass (IMap.Map a b) ('Luna.ClassRep "Std.Base" "Map")
 instance (Luna.ToData a, Luna.ToData b) => Luna.ToObject (IMap.Map a b) where
-    toConstructor imps IMap.Tip = Luna.Constructor "Tip" []
+    toConstructor imps IMap.Tip             = Luna.Constructor "Tip" []
     toConstructor imps (IMap.Bin s k v l r) = Luna.Constructor "Bin" [Luna.toData imps $ integer s, Luna.toData imps k, Luna.toData imps v, Luna.toData imps l, Luna.toData imps r]
+instance (Luna.FromData a, Luna.FromData b) => Luna.FromObject (IMap.Map a b) where
+    fromConstructor (Luna.Constructor "Tip" []) = pure IMap.Tip
+    fromConstructor (Luna.Constructor "Bin" [s, k, v, l, r]) = IMap.Bin <$> (fromIntegral <$> Luna.fromData @Integer s)
+                                                                        <*> Luna.fromData k
+                                                                        <*> Luna.fromData v
+                                                                        <*> Luna.fromData l
+                                                                        <*> Luna.fromData r
 
 type instance Luna.RuntimeRepOf Scientific = Luna.AsClass Scientific ('Luna.ClassRep "Std.Base" "Scientific")
 instance Luna.ToObject Scientific where
     toConstructor imps s = Luna.Constructor "Scientific" [Luna.toData imps $ coefficient s, Luna.toData imps $ integer $ base10Exponent s]
+instance Luna.FromObject Scientific where
+    fromConstructor (Luna.Constructor "Scientific" [coeff, exp]) = scientific <$> Luna.fromData coeff
+                                                                              <*> (fromIntegral <$> Luna.fromData @Integer exp)
 
 type instance Luna.RuntimeRepOf Aeson.Value = Luna.AsClass Aeson.Value ('Luna.ClassRep "Std.Base" "JSON")
 instance Luna.ToObject Aeson.Value where
-    toConstructor imps (Aeson.Array  a) = Luna.Constructor "JSONArray"  [Luna.toData imps . Foldable.toList $ a]
+    toConstructor imps (Aeson.Array  a) = Luna.Constructor "JSONArray"  [Luna.toData imps . fmap (Luna.toData imps) $ Vector.toList a]
     toConstructor imps (Aeson.String a) = Luna.Constructor "JSONString" [Luna.toData imps a]
     toConstructor imps (Aeson.Number a) = Luna.Constructor "JSONNumber" [Luna.toData imps a]
     toConstructor imps (Aeson.Bool   a) = Luna.Constructor "JSONBool"   [Luna.toData imps a]
     toConstructor imps  Aeson.Null      = Luna.Constructor "JSONNull"   []
-    toConstructor imps (Aeson.Object a) = Luna.Constructor "JSONObject" [Luna.toData imps $ (Map.fromList $ HM.toList a :: Map Text Aeson.Value)]
+    toConstructor imps (Aeson.Object a) = Luna.Constructor "JSONObject" [Luna.toData imps $ Map.fromList $ HM.toList a]
+
+instance Luna.FromObject Aeson.Value where
+    fromConstructor (Luna.Constructor "JSONArray"  [a]) = fmap (Aeson.Array . Vector.fromList) $ traverse Luna.fromData =<< Luna.fromData a
+    fromConstructor (Luna.Constructor "JSONString" [a]) = Aeson.String <$> Luna.fromData a
+    fromConstructor (Luna.Constructor "JSONNumber" [a]) = Aeson.Number <$> Luna.fromData a
+    fromConstructor (Luna.Constructor "JSONBool"   [a]) = Aeson.Bool   <$> Luna.fromData a
+    fromConstructor (Luna.Constructor "JSONNull"   [] ) = pure $ Aeson.Null
+    fromConstructor (Luna.Constructor "JSONObject" [a]) = Aeson.Object . HM.fromList . Map.toList <$> Luna.fromData a
 

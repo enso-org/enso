@@ -54,6 +54,7 @@ dependencies:
     - typelevel
     - unordered-containers
     - uuid
+    - vector
     - websockets
     - wuss
 

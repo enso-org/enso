@@ -1047,15 +1047,7 @@ class JSON:
     def toJSON: self
 
     # Dumps a `JSON` structure into a `Text` object.
-    def toText: case self of
-        JSONNumber d: d.toText
-        JSONString s: s.escapeJSON
-        JSONArray  l: "[" + (l . map (x : x.toText) . intersperse "," . fold "" (+)) + "]"
-        JSONBool   b: case b of
-            True:  "true"
-            False: "false"
-        JSONNull: "null"
-        JSONObject m: "{" + (m . toList . map ((Tuple2 k v): k.escapeJSON + ": " + v.toText) . intersperse "," . fold "" (+)) + "}"
+    def toText: renderJSON self
 
     # Dumps a `JSON` structure into a `Binary` object, by rendering it
     # into `Text` and converting it to `Binary`.
