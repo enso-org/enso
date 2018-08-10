@@ -4,10 +4,10 @@ import Prologue
 
 import qualified Luna.Package.Version as Version
 
-import Luna.Package.Version          (Version(Version), Prerelease(Prerelease))
-import Luna.Package.ParserUtils.Test (shouldParseTo, shouldFailToParse)
-import Test.Hspec                    ( Spec, describe, it, shouldSatisfy
-                                     , shouldNotSatisfy )
+import Luna.Package.Version  (Version(Version), Prerelease(Prerelease))
+import Luna.ParserUtils.Test (shouldParseTo, shouldFailToParse)
+import Test.Hspec            ( Spec, describe, it, shouldSatisfy
+                             , shouldNotSatisfy )
 
 spec :: Spec
 spec = do

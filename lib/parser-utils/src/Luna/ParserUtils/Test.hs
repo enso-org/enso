@@ -1,11 +1,11 @@
-module Luna.Package.ParserUtils.Test where
+module Luna.ParserUtils.Test where
 
 import Prologue
 
-import Luna.Package.ParserUtils (Parser)
-import Test.Hspec               (Expectation, shouldBe)
-import Test.Hspec.Megaparsec    (shouldFailOn)
-import Text.Megaparsec          (runParser, parse)
+import Luna.ParserUtils      (Parser)
+import Test.Hspec            (Expectation, shouldBe)
+import Test.Hspec.Megaparsec (shouldFailOn)
+import Text.Megaparsec       (runParser, parse)
 
 shouldParseTo :: (Eq a, Show a) => Text -> Parser a -> a -> Expectation
 shouldParseTo input parser result = do

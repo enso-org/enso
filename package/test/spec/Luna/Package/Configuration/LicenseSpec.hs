@@ -4,13 +4,13 @@ import Prologue
 
 import Luna.Package.Configuration.License as License
 
-import Data.ByteString                          ( ByteString )
-import Luna.Package.Configuration.License       ( License )
-import Luna.Package.ParserUtils.Test            ( shouldParseTo
-                                                , shouldFailToParse )
-import Luna.Package.Configuration.YamlTestUtils ( shouldDecodeAs
-                                                , shouldGenerate )
-import Test.Hspec                               ( Spec, describe, it )
+import Data.ByteString                    ( ByteString )
+import Luna.Package.Configuration.License ( License )
+import Luna.ParserUtils.Test              ( shouldParseTo
+                                          , shouldFailToParse )
+import Luna.YamlUtils.Test                ( shouldDecodeAs
+                                          , shouldGenerate )
+import Test.Hspec                         ( Spec, describe, it )
 
 knownLicense :: ByteString
 knownLicense = [qqStr|

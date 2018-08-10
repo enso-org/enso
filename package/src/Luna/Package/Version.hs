@@ -5,10 +5,10 @@ import Prologue hiding (min, fromString)
 import qualified Control.Lens.Aeson as Lens
 import qualified Data.Yaml          as Yaml
 
-import Data.Word                (Word64)
-import Luna.Package.ParserUtils (Parser, dot, natural)
-import Text.Megaparsec          (option, optional)
-import Text.Megaparsec.Char     (string, char)
+import Data.Word            (Word64)
+import Luna.ParserUtils     (Parser, dot, natural)
+import Text.Megaparsec      (option, optional)
+import Text.Megaparsec.Char (string, char)
 
 -- | Versioning in Luna follows the following convention:
 -- |      major.minor.patch-prerelease.version

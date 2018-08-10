@@ -1,60 +1,63 @@
-name:       luna-package
-version:    "0.2"
-author:     Luna Team <contact@luna-lang.org>
-maintainer: Luna Team <contact@luna-lang.org>
+name        : luna-benchmark
+version     : 0.0.1
+stability   : experimental
+homepage    : https://github.com/luna/luna
+bug-reports : https://github.com/luna/luna/issues
+author      : Luna Team
+copyright   : Copyright (C) 2018 Luna Team
+maintainer:
+    - Ara Adkins <ara.adkins@luna-lang.org>
 
+ghc-options:
+    - -Wall
+    - -O2
 
 library:
     source-dirs:
         - src
-    other-modules: Paths_luna_package
-
-data-files:
-    - ./data/licenses/*
+    dependencies:
+        - base
+        - containers
+        - criterion
+        - directory
+        - filepath
+        - layered-state
+        - layouting
+        - lens
+        - lens-utils
+        - mtl
+        - path
+        - perf
+        - prologue
+        - terminal-text
+        - time
+        - transformers
+        - weigh
+        - yaml
 
 tests:
     spec:
         main: Main.hs
-        source-dirs: test/spec
+        source-dirs:
+            - test/spec
+        ghc-options:
+            - -rtsopts
+            - -threaded
+            - -with-rtsopts=-N
+            - -with-rtsopts=-T
         dependencies:
+            - base
             - bytestring
             - hspec
-            - hspec-jenkins
+            - hspec-expectations-lifted
+            - luna-benchmark
             - luna-ci
-            - luna-package
             - luna-yaml-utils
-            - megaparsec
-            - open-browser
-            - temporary-rc
-
-dependencies:
-    - aeson
-    - base
-    - bimap
-    - containers
-    - directory
-    - exceptions
-    - filemanip
-    - filepath
-    - hspec
-    - hspec-megaparsec
-    - lens-utils
-    - luna-core
-    - luna-exception
-    - luna-parser-utils
-    - luna-syntax-text-lexer
-    - megaparsec
-    - mtl
-    - path >= 0.6.0
-    - prologue
-    - safe-exceptions
-    - text
-    - yaml
+            - prologue
 
 default-extensions:
     - AllowAmbiguousTypes
     - ApplicativeDo
-    - Arrows
     - BangPatterns
     - BinaryLiterals
     - ConstraintKinds
@@ -74,8 +77,8 @@ default-extensions:
     - GeneralizedNewtypeDeriving
     - InstanceSigs
     - LambdaCase
+    - LiberalTypeSynonyms
     - MonadComprehensions
-#    - MonadFailDesugaring
     - MultiWayIf
     - NamedWildCards
     - NegativeLiterals
@@ -84,9 +87,11 @@ default-extensions:
     - OverloadedLabels
     - OverloadedStrings
     - PackageImports
+    - PatternSynonyms
     - QuasiQuotes
     - RankNTypes
     - RecursiveDo
+    - RelaxedPolyRec
     - ScopedTypeVariables
     - StandaloneDeriving
     - TemplateHaskell
@@ -95,7 +100,7 @@ default-extensions:
     - TypeFamilies
     - TypeFamilyDependencies
     - TypeOperators
+    - UnicodeSyntax
     - ViewPatterns
+    - Strict
 
-    - LiberalTypeSynonyms
-    - RelaxedPolyRec

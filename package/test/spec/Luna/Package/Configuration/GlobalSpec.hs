@@ -4,11 +4,11 @@ import Prologue
 
 import qualified Luna.Package.Configuration.Global as Global
 
-import Data.ByteString                          ( ByteString )
-import Luna.Package.Configuration.YamlTestUtils ( shouldDecodeAs
-                                                , shouldNotDecode
-                                                , shouldGenerate )
-import Test.Hspec                               ( Spec, describe, it)
+import Data.ByteString     ( ByteString )
+import Luna.YamlUtils.Test ( shouldDecodeAs
+                           , shouldNotDecode
+                           , shouldGenerate )
+import Test.Hspec          ( Spec, describe, it)
 
 allFieldsUsed :: ByteString
 allFieldsUsed = [qqStr|

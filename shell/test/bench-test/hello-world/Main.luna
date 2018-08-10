@@ -1,0 +1,7 @@
+import Std.Base
+
+def main:
+    hello = "Hello, world!"
+    print hello
+    None
+

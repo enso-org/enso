@@ -1,4 +1,4 @@
-module Luna.Package.Configuration.YamlTestUtils where
+module Luna.YamlUtils.Test where
 
 import Prologue
 

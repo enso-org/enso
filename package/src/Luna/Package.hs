@@ -91,10 +91,10 @@ tryConvertPackageFormat dir = Exception.rethrowFromIO @Path.PathException $ do
     let configFiles = filter
             (\file -> Path.fileExtension file == Name.packageExt) files
     case configFiles of
-        []    -> return []
+        []    -> pure []
         files -> do
             let configDirPath = dir </> Name.configDirectory
-            liftIO $ for files $ \file -> do
+            void . liftIO . for files $ \file -> do
                 Directory.createDirectoryIfMissing True $
                     Path.toFilePath configDirPath
                 Directory.copyFile
@@ -102,7 +102,7 @@ tryConvertPackageFormat dir = Exception.rethrowFromIO @Path.PathException $ do
                     (Path.toFilePath $ configDirPath </> file)
                 SafeException.tryAny $ Directory.removeFile
                     (Path.toFilePath $ dir </> file)
-            return $ map (configDirPath </>) files
+            pure $ map (configDirPath </>) files
 
 findPackageFile :: (MonadIO m, MonadException Path.PathException m)
     => Path Abs Dir -> m (Maybe (Path Abs File))

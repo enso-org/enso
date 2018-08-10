@@ -5,12 +5,12 @@ import Prologue
 import qualified Luna.Package.Configuration.License as License
 import qualified Luna.Package.Configuration.Local   as Local
 
-import Data.ByteString                          ( ByteString )
-import Luna.Package.Version                     ( Version(Version) )
-import Luna.Package.Configuration.YamlTestUtils ( shouldDecodeAs
-                                                , shouldNotDecode
-                                                , shouldGenerate )
-import Test.Hspec                               ( Spec, describe, it)
+import Data.ByteString      ( ByteString )
+import Luna.Package.Version ( Version(Version) )
+import Luna.YamlUtils.Test  ( shouldDecodeAs
+                            , shouldNotDecode
+                            , shouldGenerate )
+import Test.Hspec           ( Spec, describe, it)
 
 allFieldsUsed :: ByteString
 allFieldsUsed = [qqStr|

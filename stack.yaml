@@ -40,6 +40,7 @@ packages:
     - syntax/text/prettyprint
 
     - lib/autovector
+    - lib/benchmark
     - lib/ci
     - lib/code-builder
     - lib/cpp-containers
@@ -57,10 +58,12 @@ packages:
     - lib/memory-manager
     - lib/memory-pool
     - lib/nested-containers
+    - lib/parser-utils
     - lib/syntax-definition
     - lib/text-processing
     - lib/th-builder
     - lib/tuple-utils
     - lib/type-cache
     - lib/typelevel
+    - lib/yaml-utils
 

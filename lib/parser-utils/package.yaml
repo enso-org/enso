@@ -1,5 +1,5 @@
-name:       luna-package
-version:    "0.2"
+name:       luna-parser-utils
+version:    "0.1"
 author:     Luna Team <contact@luna-lang.org>
 maintainer: Luna Team <contact@luna-lang.org>
 
@@ -7,49 +7,15 @@ maintainer: Luna Team <contact@luna-lang.org>
 library:
     source-dirs:
         - src
-    other-modules: Paths_luna_package
-
-data-files:
-    - ./data/licenses/*
-
-tests:
-    spec:
-        main: Main.hs
-        source-dirs: test/spec
-        dependencies:
-            - bytestring
-            - hspec
-            - hspec-jenkins
-            - luna-ci
-            - luna-package
-            - luna-yaml-utils
-            - megaparsec
-            - open-browser
-            - temporary-rc
-
-dependencies:
-    - aeson
-    - base
-    - bimap
-    - containers
-    - directory
-    - exceptions
-    - filemanip
-    - filepath
-    - hspec
-    - hspec-megaparsec
-    - lens-utils
-    - luna-core
-    - luna-exception
-    - luna-parser-utils
-    - luna-syntax-text-lexer
-    - megaparsec
-    - mtl
-    - path >= 0.6.0
-    - prologue
-    - safe-exceptions
-    - text
-    - yaml
+    dependencies:
+        - base
+        - bytestring
+        - megaparsec
+        - prologue
+        - text
+        - yaml
+        - hspec
+        - hspec-megaparsec
 
 default-extensions:
     - AllowAmbiguousTypes

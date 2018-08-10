@@ -5,9 +5,9 @@ import Prologue
 import qualified Control.Lens.Aeson as Lens
 import qualified Data.Yaml          as Yaml
 
-import Luna.Package.ParserUtils (Parser)
-import Text.Megaparsec          (choice)
-import Text.Megaparsec.Char     (anyChar, string)
+import Luna.ParserUtils     (Parser)
+import Text.Megaparsec      (choice)
+import Text.Megaparsec.Char (anyChar, string)
 
 
 

@@ -39,6 +39,7 @@ packages:
     - syntax/text/prettyprint
 
     - lib/autovector
+    - lib/benchmark
     - lib/ci
     - lib/code-builder
     - lib/cpp-containers
