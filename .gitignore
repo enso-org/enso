@@ -21,7 +21,6 @@ cabal.sandbox.config
 *.DS_Store
 .stack-work/
 
-
 ############
 ## Python ##
 ############
@@ -108,3 +107,36 @@ build/dist/
 build/.stack-work/
 bin/luna
 myproj
+=======
+# hlint
+report.html
+
+
+
+############
+## System ##
+############
+
+# OSX
+.DS_Store
+
+
+
+#############
+## Editors ##
+#############
+
+# Vim
+*.swp
+*.projections.json
+
+
+
+############
+## Images ##
+############
+
+*.jpg
+*.jpeg
+*.png
+

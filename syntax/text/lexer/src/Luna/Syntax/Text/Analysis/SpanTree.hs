@@ -3,22 +3,18 @@
 
 module Luna.Syntax.Text.Analysis.SpanTree where
 
-import Prologue hiding (span, (|>), (<|), empty)
+import qualified Prelude  as P
+import           Prologue hiding (empty, span, (<|), (|>))
 
-import qualified Prelude                       as P
-import qualified Data.FingerTree               as FT
-import qualified Data.Text32                   as Text32
-import qualified Luna.Syntax.Text.Lexer        as Lexer
-import           Data.FingerTree               (Measured, FingerTree, measure)
-import           Data.Text.Position            (Delta)
-import           Data.Text32                   (Text32)
+import qualified Data.FingerTree        as FT
+import qualified Data.Text32            as Text32
+import qualified Luna.Syntax.Text.Lexer as Lexer
+
+import Data.FingerTree    (FingerTree, Measured, measure)
+import Data.Text.Position (Delta)
+import Data.Text32        (Text32)
 
 
--- vvv Missing instances vvv --
-
-instance Measured v a => Semigroup (FingerTree v a) where (<>) = (FT.><) ; {-# INLINE (<>) #-}
-
--- ^^^ ----------------- ^^^ --
 
 ------------------
 -- === Span === --
@@ -26,18 +22,21 @@ instance Measured v a => Semigroup (FingerTree v a) where (<>) = (FT.><) ; {-# I
 
 -- === Definition === --
 
-data SpanType = TextSpan
-              | OffSpan
-              | MarkerSpan
-              deriving (Show, Eq)
+data SpanType
+    = TextSpan
+    | OffSpan
+    | MarkerSpan
+    deriving (Show, Eq)
 
-data Span = Span { _spanType   :: !SpanType
-                 , _spanLength :: !Delta
-                 } deriving (Show)
+data Span = Span
+    { _spanType   :: !SpanType
+    , _spanLength :: !Delta
+    } deriving (Show)
 
-data SpanGroup = SpanGroup { _realLength :: !Delta
-                           , _viewLength :: !Delta
-                           } deriving (Show)
+data SpanGroup = SpanGroup
+    { _realLength :: !Delta
+    , _viewLength :: !Delta
+    } deriving (Show)
 
 makeClassy ''Span
 makeLenses ''SpanGroup
@@ -203,6 +202,10 @@ instance Semigroup (Spantree a) where a <> b = wrap $ unwrap a <> unwrap b ; {-#
 
 -- === Spantree construction === --
 
+-- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+-- !!! FIXME[WD]: GHC PANIC HERE !!!
+-- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 buildSpanTree :: Text32 -> [Lexer.Token Lexer.Symbol] -> Spantree Text32
 buildSpanTree src = \case
     []     -> empty
@@ -215,6 +218,7 @@ buildSpanTree src = \case
               addOffSpan       = preprendSpan off $ flip offSpanned offSrc
               (txtSrc, src')   = Text32.splitAt (convert span) src
               (offSrc, src'')  = Text32.splitAt (convert off)  src'
+              preprendSpan :: Delta -> (Delta -> Spanned a) -> (Spantree a -> Spantree a)
               preprendSpan d f = if d > 0 then (f d <|) else id
 {-# NOINLINE buildSpanTree #-}
 
@@ -265,3 +269,4 @@ insertTextByMarker skipMarkers d t st = pre <> if betweenSegments then simplePos
 
 breakLine :: Delta -> Spantree Text32 -> Spantree Text32
 breakLine = flip (insertTextByMarker False) "\n" ; {-# INLINE breakLine #-}
+

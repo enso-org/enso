@@ -1,33 +1,36 @@
 module Luna.Pass.Data.UniqueNameGen where
 
-import Luna.Prelude as P
-import Luna.IR
-import OCI.Pass.Manager
-import Data.TypeDesc
+import Prologue
 
-newtype UniqueNameGen = UniqueNameGen P.String
-makeWrapped ''UniqueNameGen
+import qualified Luna.IR        as IR
+import qualified Luna.Pass.Attr as Attr
 
-initNameGen :: MonadPassManager m => m ()
-initNameGen = setAttr (getTypeDesc @UniqueNameGen) $ UniqueNameGen ""
 
-advanceGen :: UniqueNameGen -> (P.String, UniqueNameGen)
-advanceGen a = ('#' : str, gen) where
-    gen = wrap str
-    str = incString $ unwrap a
 
-    incString s = case incString' s of
-        (s, True)  -> 'a' : s
-        (s, False) -> s
+---------------------------
+-- === UniqueNameGen === --
+---------------------------
 
-    incString' ""       = ("", True)
-    incString' (a : as) = case incString' as of
-        (s, False) -> (a : s, False)
-        (s, True)  -> if a == 'z' then ('a' : s, True) else (succ a : s, False)
+-- === Definition === --
 
-genName :: Editor Attr UniqueNameGen m => m Name
-genName = do
-    gen <- getAttr @UniqueNameGen
-    let (res, newGen) = advanceGen gen
-    putAttr @UniqueNameGen newGen
-    return $ convert res
+newtype UniqueNameGen = UniqueNameGen [String]
+
+
+-- === API === --
+
+allNames :: [String]
+allNames = ('a' :) . show <$> [0..]
+
+generateName :: Attr.Editor UniqueNameGen m => m IR.Name
+generateName = do
+    UniqueNameGen (n : ns) <- Attr.get
+    Attr.put (UniqueNameGen ns)
+    return $ convert n
+
+
+-- === Instances === --
+
+type instance Attr.Type UniqueNameGen = Attr.Atomic
+instance Default UniqueNameGen where
+    def = UniqueNameGen allNames
+

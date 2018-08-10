@@ -1,0 +1,68 @@
+name       : luna-syntax-text-model
+version    : "0.1"
+author     : Luna Team <contact@luna-lang.org>
+maintainer : Luna Team <contact@luna-lang.org>
+
+library:
+    source-dirs:
+        - src
+
+dependencies:
+    - base
+    - containers
+    - layered-state
+    - lens-utils
+    - luna-core
+    - luna-nested-containers
+    - luna-syntax-definition
+    - luna-text-processing
+    - prologue
+    - vector-text
+
+default-extensions:
+    - AllowAmbiguousTypes
+    - ApplicativeDo
+    - Arrows
+    - BangPatterns
+    - BinaryLiterals
+    - ConstraintKinds
+    - DataKinds
+    - DefaultSignatures
+    - DeriveDataTypeable
+    - DeriveFoldable
+    - DeriveFunctor
+    - DeriveGeneric
+    - DeriveTraversable
+    - DoAndIfThenElse
+    - DuplicateRecordFields
+    - EmptyDataDecls
+    - FlexibleContexts
+    - FlexibleInstances
+    - FunctionalDependencies
+    - GeneralizedNewtypeDeriving
+    - InstanceSigs
+    - LambdaCase
+    - LiberalTypeSynonyms
+    - MonadComprehensions
+    - MultiWayIf
+    - NamedWildCards
+    - NegativeLiterals
+    - NoImplicitPrelude
+    - NumDecimals
+    - OverloadedLabels
+    - PackageImports
+    - QuasiQuotes
+    - RankNTypes
+    - RecursiveDo
+    - RelaxedPolyRec
+    - ScopedTypeVariables
+    - StandaloneDeriving
+    - TemplateHaskell
+    - TupleSections
+    - TypeApplications
+    - TypeFamilies
+    - TypeFamilyDependencies
+    - TypeOperators
+    - UnicodeSyntax
+    - ViewPatterns
+

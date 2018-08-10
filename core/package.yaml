@@ -1,89 +1,142 @@
-name:       luna-core
-version:    "0.1"
-author:     Luna Team <contact@luna-lang.org>
-maintainer: Luna Team <contact@luna-lang.org>
+name        : luna-core
+version     : 0.0.6
+synopsis    : Luna Core
+category    : Data
+license     : Apache-2.0
+stability   : experimental
+homepage    : https://github.com/luna/luna
+bug-reports : https://github.com/luna/luna/issues
+author      : Luna Team
+copyright   : Copyright (C) 2018 Luna Team
+maintainer:
+    - Wojciech Danilo  <wojciech.danilo@luna-lang.org>
+    - Marcin Kostrzewa <marcin.kostrzewa@luna-lang.org>
+    - Piotr Moczurad   <piotr.moczurad@luna-lang.org>
+
+ghc-options:
+    - -Wall
+    - -O2
 
 library:
     source-dirs:
         - src
-        - src-libs
-    other-modules: Paths_luna_core
-
-flags:
-    debug:
-        manual: false
-        default: false
-
-when:
-    - condition: flag(debug)
-      cpp-options: -DDEBUG
+    dependencies:
+        - async
+        - base
+        - bytestring
+        - container
+        - containers
+        - convert
+        - data-default
+        - deepseq
+        - functor-utils
+        - ghc
+        - layered-state
+        - lens
+        - lens-utils
+        - luna-autovector
+        - luna-cpp-containers
+        - luna-data-construction
+        - luna-data-property
+        - luna-data-storable
+        - luna-data-tag
+        - luna-data-typemap
+        - luna-exception
+        - luna-foreign-utils
+        - luna-generic-traversable
+        - luna-memory-manager
+        - luna-memory-pool
+        - luna-nested-containers
+        - luna-syntax-definition
+        - luna-th-builder
+        - luna-tuple-utils
+        - luna-type-cache
+        - luna-typelevel
+        - monad-branch
+        - monoid
+        - mtl
+        - primitive
+        - prologue >= 3.0.0
+        - random
+        - split
+        - storable-tuple
+        - template-haskell
+        - transformers
+        - vector
 
 benchmarks:
-    graph-builder:
+    array-benchmark:
         main: Main.hs
-        source-dirs: test/bench
+        source-dirs:
+            - test/bench
+        c-sources:
+            - test/bench/cbits/*.cpp
+        include-dirs:
+            - test/bench/cbits
+        extra-libraries: stdc++
+        cc-options: -std=c++14 -O3
+        ghc-options:
+            - -rtsopts
+            - -threaded
+            - -with-rtsopts=-N
+            - -with-rtsopts=-T
         dependencies:
-            - criterion
+            - ansi-terminal
+            - base
+            - convert
+            - criterion >= 1.3.0.0
+            - deepseq
+            - ghc
+            - layered-state
+            - luna-autovector
             - luna-core
+            - luna-cpp-containers
+            - luna-data-storable
+            - luna-data-typemap
+            - luna-exception
+            - luna-foreign-utils
+            - luna-generic-traversable
+            - luna-generic-traversable2
+            - luna-memory-manager
+            - luna-memory-pool
+            - luna-tuple-utils
+            - mtl
+            - prologue
+            - unboxed-ref >= 0.4.0.0
+            - vector
+            - containers
+            - structs
+            - primitive
 
 tests:
     spec:
         main: Main.hs
-        source-dirs: test/spec
+        source-dirs:
+            - test/spec
+        ghc-options:
+            - -rtsopts
+            - -threaded
+            - -with-rtsopts=-N
+            - -with-rtsopts=-T
         dependencies:
-            - luna-core
-            - luna-ci
-            - directory
-            - filepath
+            - base
+            - container
+            - containers
             - hspec
-            - hspec-jenkins
-            - open-browser
-
-dependencies:
-    - aeson
-    - base
-    - binary
-    - data-base
-    - data-construction
-    - dependent-state
-    - ghc
-    - mtl
-    - prologue
-    - transformers
-    - ansi-wl-pprint # from now on src-libs deps vvv
-    - bytestring
-    - constraints
-    - container
-    - convert
-    - data-default
-    - data-prop
-    - data-rtuple
-    - either
-    - exceptions
-    - functor-utils
-    - hspec
-    - lens
-    - lens-utils
-    - open-browser
-    - primitive
-    - reflection
-    - safe-exceptions
-    - template-haskell
-    - text
-    - time
-    - time-locale-compat
-    - typelevel
-    - uuid
-    - vector
-    - ansi-terminal
-    - text-processing
-    - vector-text
-    - terminal-text
+            - hspec-expectations-lifted
+            - luna-core
+            - luna-cpp-containers
+            - luna-data-storable
+            - luna-exception
+            - luna-foreign-utils
+            - luna-generic-traversable
+            - luna-typelevel
+            - prologue
+            - random
 
 default-extensions:
     - AllowAmbiguousTypes
     - ApplicativeDo
-    - Arrows
     - BangPatterns
     - BinaryLiterals
     - ConstraintKinds
@@ -103,8 +156,8 @@ default-extensions:
     - GeneralizedNewtypeDeriving
     - InstanceSigs
     - LambdaCase
+    - LiberalTypeSynonyms
     - MonadComprehensions
-#    - MonadFailDesugaring
     - MultiWayIf
     - NamedWildCards
     - NegativeLiterals
@@ -112,18 +165,20 @@ default-extensions:
     - NumDecimals
     - OverloadedLabels
     - PackageImports
+    - PatternSynonyms
     - QuasiQuotes
     - RankNTypes
     - RecursiveDo
+    - RelaxedPolyRec
     - ScopedTypeVariables
     - StandaloneDeriving
+    - Strict
     - TemplateHaskell
     - TupleSections
     - TypeApplications
     - TypeFamilies
     - TypeFamilyDependencies
     - TypeOperators
+    - UnicodeSyntax
     - ViewPatterns
 
-    - LiberalTypeSynonyms
-    - RelaxedPolyRec

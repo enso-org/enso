@@ -1,0 +1,79 @@
+#####################################################################
+# HLint configuration file
+# https://github.com/ndmitchell/hlint
+#####################################################################
+
+
+#####################################################################
+## DISABLED LINTS
+
+- ignore: {name: "Parse error"}
+- ignore: {name: "Redundant lambda"}
+
+
+#####################################################################
+## RESTRICTIONS
+
+- extensions:
+  - default: false
+  - name: [ AllowAmbiguousTypes
+          , ApplicativeDo
+          , BangPatterns
+          , BinaryLiterals
+          , ConstraintKinds
+          , DataKinds
+          , DefaultSignatures
+          , DeriveDataTypeable
+          , DeriveFoldable
+          , DeriveFunctor
+          , DeriveGeneric
+          , DeriveTraversable
+          , DoAndIfThenElse
+          , DuplicateRecordFields
+          , EmptyDataDecls
+          , FlexibleContexts
+          , FlexibleInstances
+          , ForeignFunctionInterface
+          , FunctionalDependencies
+          , GeneralizedNewtypeDeriving
+          , InstanceSigs
+          , LambdaCase
+          , MonadComprehensions
+          , MonadFailDesugaring
+          , MultiWayIf
+          , NamedWildCards
+          , NegativeLiterals
+          , NoImplicitPrelude
+          , NumDecimals
+          , OverloadedLabels
+          , OverloadedLists
+          , OverloadedStrings
+          , PackageImports
+          , PolyKinds
+          , QuasiQuotes
+          , PatternSynonyms
+          , RankNTypes
+          , RecursiveDo
+          , ScopedTypeVariables
+          , StandaloneDeriving
+          , TemplateHaskell
+          , TupleSections
+          , TypeApplications
+          , TypeFamilies
+          , TypeFamilyDependencies
+          , TypeInType
+          , TypeOperators
+          , UndecidableInstances
+          , UnliftedFFITypes
+          , UnicodeSyntax
+          , ViewPatterns
+          , LiberalTypeSynonyms
+          , RelaxedPolyRec
+          ]
+
+
+#####################################################################
+## OTHER HINTS
+
+- group: {name: dollar, enabled: true}
+- group: {name: generalise, enabled: true}

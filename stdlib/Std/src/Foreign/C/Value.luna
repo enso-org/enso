@@ -1,3 +1,5 @@
+import Std.Primitive
+
 class CString:
     CString
     CStringVal (Ptr CChar)
@@ -31,6 +33,9 @@ class CString:
 
     def free: self.ptr.free
 
+    def with text f:
+        bracket (self.fromText text) .free f
+
 class Array a:
     Array a
     ArrayVal Int (Pointer a)
@@ -50,8 +55,6 @@ class Array a:
 
     def free:
         self.ptr.free
-
-    def toCArg: self . ptr . toCArg
 
     def assertInBounds index:
         inBounds = (index < self.size) . and (index >= 0)
@@ -80,6 +83,9 @@ class Array a:
         withIndex = 0 . upto size . zip l
         withIndex . each (i, e): arr.writeAt i e
         arr
+
+    def with list f:
+        bracket (self.fromList list) .free f
 
 
 class NullTerminatedArray a:
@@ -118,9 +124,6 @@ class NullTerminatedArray a:
     def make: NullTerminatedArrayVal
 
     def free: self.ptr.free
-
-
-
 
 
 native class CChar:
@@ -725,6 +728,9 @@ class Pointer a:
 
     def free: self.ptr.free
 
+    def with f:
+        bracket (self.malloc) .free f
+
 def nullPtr: primNullPtr
 
 native class ForeignPtr a:
@@ -734,7 +740,7 @@ native class ForeignPtr a:
     def isNull: self == primNullForeignPtr
     def moveBytes i: primForeignPtrPlus self i
     def free: primForeignPtrFree self
-    def _ptr: primForeignPtrToPtr self
+    def ptr: primForeignPtrToPtr self
 
 class ManagedPointer a:
     ManagedPointer    a
@@ -745,7 +751,7 @@ class ManagedPointer a:
         ManagedPointerVal a _: a
 
     def ptr: case self of
-        ManagedPointerVal _ p: p._ptr
+        ManagedPointerVal _ p: p.ptr
 
     def fptr: case self of
         ManagedPointerVal _ p: p
@@ -781,3 +787,4 @@ class ManagedPointer a:
         ManagedPointerVal tp ptr
 
     def free: self.ptr.free
+

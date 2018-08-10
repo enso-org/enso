@@ -3,58 +3,46 @@ version:    "0.1"
 author:     Luna Team <contact@luna-lang.org>
 maintainer: Luna Team <contact@luna-lang.org>
 
+ghc-options:
+    - -Wall
+    - -O2
+
 library:
     source-dirs:
         - src
-    other-modules: Paths_luna_passes
-
-tests:
-    bench:
-        main: Main.hs
-        source-dirs: test/bench
-        dependencies:
-            - luna-core
-            - luna-passes
-            - luna-stdlib
-            - criterion
-    spec:
-        main: Main.hs
-        source-dirs: test/spec
-        dependencies:
-            - luna-core
-            - luna-passes
-            - luna-parser
-            - luna-lexer
-            - luna-stdlib
-            - luna-ci
-            - directory
-            - filepath
-            - hspec
-            - hspec-jenkins
-            - open-browser
-
-dependencies:
-    - base
-    - containers
-    - dependent-state
-    - luna-core
-    - mtl
-    - transformers
-    - typelevel
-    - text
-    - bytestring
-    - cryptonite
-    - functor-utils
-    - luna-parser
-    - luna-lexer
-    - binary
-    - utf8-string
-    - vector-text
+    dependencies:
+        - async
+        - base
+        - container
+        - containers
+        - filepath
+        - lens
+        - luna-exception
+        - luna-cpp-containers
+        - luna-data-storable
+        - luna-data-construction
+        - luna-foreign-utils
+        - luna-future
+        - luna-generic-traversable
+        - luna-runtime
+        - luna-syntax-text-parser
+        - luna-syntax-text-lexer
+        - luna-syntax-text-model
+        - luna-syntax-text-prettyprint
+        - luna-text-processing
+        - layered-state
+        - luna-core
+        - luna-debug
+        - mtl
+        - prologue >= 3.0.0
+        - storable-tuple
+        - text
+        - transformers
+        - uuid-types
 
 default-extensions:
     - AllowAmbiguousTypes
     - ApplicativeDo
-    - Arrows
     - BangPatterns
     - BinaryLiterals
     - ConstraintKinds
@@ -74,8 +62,8 @@ default-extensions:
     - GeneralizedNewtypeDeriving
     - InstanceSigs
     - LambdaCase
+    - LiberalTypeSynonyms
     - MonadComprehensions
-#    - MonadFailDesugaring
     - MultiWayIf
     - NamedWildCards
     - NegativeLiterals
@@ -83,9 +71,11 @@ default-extensions:
     - NumDecimals
     - OverloadedLabels
     - PackageImports
+    - PatternSynonyms
     - QuasiQuotes
     - RankNTypes
     - RecursiveDo
+    - RelaxedPolyRec
     - ScopedTypeVariables
     - StandaloneDeriving
     - TemplateHaskell
@@ -94,7 +84,6 @@ default-extensions:
     - TypeFamilies
     - TypeFamilyDependencies
     - TypeOperators
+    - UnicodeSyntax
     - ViewPatterns
 
-    - LiberalTypeSynonyms
-    - RelaxedPolyRec

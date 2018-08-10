@@ -16,48 +16,50 @@ when:
           dependencies: unix
 
 dependencies:
+    - aeson
     - async
+    - authenticate-oauth
     - base
     - bytestring
-    - containers
     - case-insensitive
+    - containers
+    - data-msgpack
     - deepseq
-    - dependent-state
     - directory
     - errors
-    - libffi
-    - luna-core
-    - luna-parser
-    - mtl
-    - transformers
-    - filepath
-    - safe
-    - safe-exceptions
     - exceptions
-    - typelevel
-    - luna-passes
-    - text
-    - scientific
-    - unordered-containers
-    - aeson
+    - filepath
+    - hashable
     - http-client
     - http-client-tls
     - http-conduit
     - http-types
-    - uuid
-    - process
-    - data-msgpack
-    - time
-    - random
-    - authenticate-oauth
+    - lens
+    - libffi
+    - luna-core
+    - luna-passes
+    - luna-runtime
+    - luna-syntax-text-prettyprint
+    - mtl
     - network
+    - process
+    - prologue
+    - random
+    - safe
+    - safe-exceptions
+    - scientific
+    - text
+    - time
+    - transformers
+    - typelevel
+    - unordered-containers
+    - uuid
     - websockets
     - wuss
 
 default-extensions:
     - AllowAmbiguousTypes
     - ApplicativeDo
-    - Arrows
     - BangPatterns
     - BinaryLiterals
     - ConstraintKinds
@@ -77,8 +79,8 @@ default-extensions:
     - GeneralizedNewtypeDeriving
     - InstanceSigs
     - LambdaCase
+    - LiberalTypeSynonyms
     - MonadComprehensions
-#    - MonadFailDesugaring
     - MultiWayIf
     - NamedWildCards
     - NegativeLiterals
@@ -86,18 +88,20 @@ default-extensions:
     - NumDecimals
     - OverloadedLabels
     - PackageImports
+    - PatternSynonyms
     - QuasiQuotes
     - RankNTypes
     - RecursiveDo
+    - RelaxedPolyRec
     - ScopedTypeVariables
     - StandaloneDeriving
+    - Strict
     - TemplateHaskell
     - TupleSections
     - TypeApplications
     - TypeFamilies
     - TypeFamilyDependencies
     - TypeOperators
+    - UnicodeSyntax
     - ViewPatterns
 
-    - LiberalTypeSynonyms
-    - RelaxedPolyRec

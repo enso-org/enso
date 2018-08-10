@@ -5,15 +5,17 @@ module Luna.Prim.DynamicLinker (
       loadLibrary
     , loadSymbol
     , closeLibrary
+    , Handle
     ) where
 
-import           Luna.Prelude hiding (throwM)
+import           Prologue hiding (throwM)
 
 import           Control.Exception.Safe (catchAny, throwM, tryAny)
 import           Control.Monad.Except   (ExceptT(..), runExceptT)
 import           Data.Char              (isSpace)
 import qualified Data.EitherR           as EitherR
 import qualified Data.List              as List
+import           Data.Maybe             (maybeToList)
 import qualified Data.Text              as Text
 import           Foreign                (FunPtr)
 import qualified Foreign
@@ -45,12 +47,13 @@ type Handle = Unix.DL
 nativeLibs :: FilePath
 nativeLibs = "native_libs"
 
-data NativeLibraryLoadingException = NativeLibraryLoadingException String [String]
-    deriving Show
+data NativeLibraryLoadingException =
+    NativeLibraryLoadingException String [String] deriving Show
 
 instance Exception NativeLibraryLoadingException where
     displayException (NativeLibraryLoadingException name details) =
-        "Native library " ++ name ++ " could not be loaded. Details:\n\n" ++ unlines details
+        "Native library " <> name <> " could not be loaded. Details:\n\n"
+            <> unlines details
 
 findLocalNativeLibsDirs :: FilePath -> IO [FilePath]
 findLocalNativeLibsDirs projectDir = do
@@ -59,27 +62,31 @@ findLocalNativeLibsDirs projectDir = do
     case localDeps of
         Left  exc  -> return []
         Right dirs -> do
-            localNativeDirs <- forM dirs $ \dir -> do
+            localNativeDirs <- for dirs $ \dir ->
                 findLocalNativeLibsDirs (localDepsDir </> dir)
-            return $ map (\a -> localDepsDir </> a </> nativeLibs) dirs
+            return $ fmap (\a -> localDepsDir </> a </> nativeLibs) dirs
                   <> concat localNativeDirs
 
 tryLoad :: FilePath -> IO (Either String Handle)
 tryLoad path = do
     loadRes <- tryAny $ nativeLoadLibrary path
     let errorDetails exc =
-            "loading \"" ++ path ++ "\" failed with: " ++ displayException exc
+            "loading \"" <> path <> "\" failed with: " <> displayException exc
     return $ EitherR.fmapL errorDetails loadRes
 
 parseError :: [String] -> [String]
-parseError e = if ((length $ snd partitioned) == 0) then fst partitioned else snd partitioned where
-    partitioned = List.partition (List.isSuffixOf "No such file or directory)") e
+parseError e = if ((length $ snd partitioned) == 0) then
+        fst partitioned
+    else snd partitioned where
+    partitioned =
+        List.partition (List.isSuffixOf "No such file or directory)") e
 
 loadLibrary :: String -> IO Handle
 loadLibrary namePattern = do
     projectDir <- Dir.getCurrentDirectory
-    nativeDirs <- ((projectDir </> nativeLibs) :) <$> findLocalNativeLibsDirs projectDir
-    let possibleNames = [ prefix ++ namePattern ++ extension
+    nativeDirs <- ((projectDir </> nativeLibs) :)
+              <$> findLocalNativeLibsDirs projectDir
+    let possibleNames = [ prefix <> namePattern <> extension
                         | prefix    <- ["lib", ""]
                         , extension <- dynamicLibraryExtensions
                         ]
@@ -97,14 +104,14 @@ loadLibrary namePattern = do
                                 not (null extension)
                   ]
     linkerCache <- maybeToList <$> nativeLoadFromCache library
-    extendedSearchPaths <- fmap concat $ forM nativeSearchPaths $ \path -> do
+    extendedSearchPaths <- fmap concat . for nativeSearchPaths $ \path -> do
         files <- Dir.listDirectory path `catchAny` \_ -> return []
         let matchingFiles = filter (List.isInfixOf library) files
-        return $ map (path </>) matchingFiles
-    result <- runExceptT $ EitherR.runExceptRT $ do
+        return $ fmap (path </>) matchingFiles
+    result <- runExceptT . EitherR.runExceptRT $ do
         let allPaths = possiblePaths <> linkerCache <> extendedSearchPaths
-        forM allPaths $ \path -> do
-            EitherR.ExceptRT $ ExceptT $ tryLoad path
+        for allPaths $ \path ->
+            EitherR.ExceptRT . ExceptT $ tryLoad path
     case result of
         Left  e -> throwM $ NativeLibraryLoadingException namePattern err where
             err = parseError e
@@ -114,7 +121,8 @@ loadSymbol :: Handle -> String -> IO (FunPtr a)
 loadSymbol handle symbol = do
     result <- tryAny $ nativeLoadSymbol handle symbol
     case result of
-        Left  e -> throwM $ NativeLibraryLoadingException symbol [(displayException e)]
+        Left  e -> throwM $ NativeLibraryLoadingException symbol
+                    [displayException e]
         Right h -> return h
 
 
@@ -124,12 +132,13 @@ closeLibrary handle = return ()
 
 #if mingw32_HOST_OS
 nativeLoadLibrary :: String -> IO Handle
-nativeLoadLibrary library =
-    Win32.loadLibraryEx library Foreign.nullPtr Win32.lOAD_WITH_ALTERED_SEARCH_PATH
+nativeLoadLibrary library = Win32.loadLibraryEx library Foreign.nullPtr
+    Win32.lOAD_WITH_ALTERED_SEARCH_PATH
 
 
 nativeLoadSymbol :: Handle -> String -> IO (FunPtr a)
-nativeLoadSymbol handle symbol = Foreign.castPtrToFunPtr <$> Win32.getProcAddress handle symbol
+nativeLoadSymbol handle symbol = Foreign.castPtrToFunPtr
+    <$> Win32.getProcAddress handle symbol
 
 
 dynamicLibraryExtensions :: [String]
@@ -169,7 +178,7 @@ nativeLoadLibrary :: String -> IO Handle
 nativeLoadLibrary library = Unix.dlopen library [Unix.RTLD_NOW]
 
 nativeLoadSymbol :: Handle -> String -> IO (FunPtr a)
-nativeLoadSymbol handle symbol = Unix.dlsym handle symbol
+nativeLoadSymbol = Unix.dlsym
 
 dynamicLibraryExtensions :: [String]
 nativeLibraryProjectDir  :: String

@@ -1,0 +1,12 @@
+import Std.Time
+
+def benchmark desc act:
+    t0 = Time.now
+    a = act
+    t1 = Time.now
+    a
+
+def main:
+    [125, 250, 500].each n:
+        benchmark (1.upto n . each i: i)
+

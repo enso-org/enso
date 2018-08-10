@@ -9,10 +9,10 @@ library:
 
 dependencies:
     - base
-    - hspec
-    - hspec-jenkins
     - directory
     - filepath
+    - hspec
+    - hspec-jenkins
 
 default-extensions:
     - AllowAmbiguousTypes
@@ -37,6 +37,7 @@ default-extensions:
     - GeneralizedNewtypeDeriving
     - InstanceSigs
     - LambdaCase
+    - LiberalTypeSynonyms
     - MonadComprehensions
     - MultiWayIf
     - NamedWildCards
@@ -48,6 +49,7 @@ default-extensions:
     - QuasiQuotes
     - RankNTypes
     - RecursiveDo
+    - RelaxedPolyRec
     - ScopedTypeVariables
     - StandaloneDeriving
     - TemplateHaskell
@@ -58,5 +60,3 @@ default-extensions:
     - TypeOperators
     - ViewPatterns
 
-    - LiberalTypeSynonyms
-    - RelaxedPolyRec

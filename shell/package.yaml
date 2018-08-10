@@ -1,62 +1,65 @@
 name:       luna-shell
-version:    "0.1"
+version:    "1.2"
 author:     Luna Team <contact@luna-lang.org>
 maintainer: Luna Team <contact@luna-lang.org>
 
+library:
+    source-dirs:
+        - src
+    dependencies:
+        - base
+        - bimap
+        - containers
+        - directory
+        - filepath
+        - layered-state
+        - lens
+        - luna-core
+        - luna-exception
+        - luna-package
+        - luna-passes
+        - luna-runtime
+        - luna-stdlib
+        - luna-syntax-text-parser
+        - megaparsec
+        - mtl
+        - optparse-applicative
+        - path
+        - prologue
+        - text
+        - unordered-containers
+        - yaml
+
 executables:
-  luna-gendoc:
-    main: GenDoc.hs
-    source-dirs: src
-    ghc-options: -threaded "-with-rtsopts=-N -T"
-    dependencies:
-      - base
-      - luna-core
-      - luna-project
-      - luna-lexer
-      - luna-parser
-      - luna-passes
-      - containers
-      - mtl
-      - prologue
-      - directory
-      - text-processing
-  luna:
-    main: Main.hs
-    source-dirs: src
-    ghc-options: -threaded "-with-rtsopts=-N -T"
-    dependencies:
-      - base
-      - layouting
-      - luna-core
-      - luna-project
-      - luna-lexer
-      - luna-parser
-      - luna-passes
-      - luna-stdlib
-      - open-browser
-      - containers
-      - unordered-containers
-      - aeson
-      - data-rtuple
-      - MissingH
-      - bytestring
-      - mtl
-      - reflection
-      - data-prop
-      - dependent-state
-      - directory
-      - path >= 0.6.0
-      - bimap
-      - optparse-applicative
-      - terminal-text
-      - text
-      - ansi-wl-pprint
-      - executable-path
-      - filepath
-      - fsnotify
-      - stm
-      - async
-      - safe-exceptions
+    luna:
+        main: src-app/Main.hs
+        ghc-options: -threaded "-with-rtsopts=-N -T"
+        dependencies:
+            - base
+            - luna-shell
+            - prologue
+
+benchmarks:
+    interpreter-benchmark:
+        main: Main.hs
+        source-dirs:
+            - test/bench
+        ghc-options:
+            - -rtsopts
+            - -threaded
+            - -with-rtsopts=-N
+            - -with-rtsopts=-T
+        dependencies:
+            - base
+            - directory
+            - filepath
+            - luna-benchmark
+            - luna-exception
+            - luna-package
+            - luna-shell
+            - path
+            - prologue
+            - template-haskell
 
 default-extensions:
     - AllowAmbiguousTypes
@@ -81,18 +84,20 @@ default-extensions:
     - GeneralizedNewtypeDeriving
     - InstanceSigs
     - LambdaCase
+    - LiberalTypeSynonyms
     - MonadComprehensions
-#    - MonadFailDesugaring
     - MultiWayIf
     - NamedWildCards
     - NegativeLiterals
     - NoImplicitPrelude
     - NumDecimals
     - OverloadedLabels
+    - OverloadedStrings
     - PackageImports
     - QuasiQuotes
     - RankNTypes
     - RecursiveDo
+    - RelaxedPolyRec
     - ScopedTypeVariables
     - StandaloneDeriving
     - TemplateHaskell
@@ -103,5 +108,3 @@ default-extensions:
     - TypeOperators
     - ViewPatterns
 
-    - LiberalTypeSynonyms
-    - RelaxedPolyRec

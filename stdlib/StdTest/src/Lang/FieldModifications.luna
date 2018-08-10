@@ -1,0 +1,35 @@
+import Std.Base
+import Std.Test
+
+class FieldTest a b:
+    testField1 :: a
+    testField2 :: b
+
+    def toPair: (self.testField1, self.testField2)
+    def == a:   self.toPair.== a.toPair
+    def toText: self.toPair.toText
+
+class FieldModificationsTest:
+    def testOneLevelSet:
+        actual   = FieldTest 1 "foo" . testField1 = "bar"
+        expected = FieldTest "bar" "foo"
+        TestSubject actual . should (be expected)
+
+    def testMultilevelSet:
+        init     = FieldTest 1 (FieldTest False "foo")
+        actual   = init.testField2.testField1 = 20
+        expected = FieldTest 1 (FieldTest 20 "foo")
+        TestSubject actual . should (be expected)
+
+    def testMultilevelModify:
+        init     = FieldTest False (FieldTest 10 "foo")
+        actual   = init.testField2.testField1 += 20
+        expected = FieldTest False (FieldTest 30 "foo")
+        TestSubject actual . should (be expected)
+
+
+    def run:
+        Test.specify "Simple one level set changes field value"     self.testOneLevelSet
+        Test.specify "Multilevel set changes nested field value"    self.testMultilevelSet
+        Test.specify "Multilevel modify changes nested field value" self.testMultilevelModify
+

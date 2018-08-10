@@ -1,0 +1,106 @@
+name        : luna-benchmark
+version     : 0.0.1
+stability   : experimental
+homepage    : https://github.com/luna/luna
+bug-reports : https://github.com/luna/luna/issues
+author      : Luna Team
+copyright   : Copyright (C) 2018 Luna Team
+maintainer:
+    - Ara Adkins <ara.adkins@luna-lang.org>
+
+ghc-options:
+    - -Wall
+    - -O2
+
+library:
+    source-dirs:
+        - src
+    dependencies:
+        - base
+        - containers
+        - criterion
+        - directory
+        - filepath
+        - layered-state
+        - layouting
+        - lens
+        - lens-utils
+        - mtl
+        - path
+        - perf
+        - prologue
+        - terminal-text
+        - time
+        - transformers
+        - weigh
+        - yaml
+
+tests:
+    spec:
+        main: Main.hs
+        source-dirs:
+            - test/spec
+        ghc-options:
+            - -rtsopts
+            - -threaded
+            - -with-rtsopts=-N
+            - -with-rtsopts=-T
+        dependencies:
+            - base
+            - bytestring
+            - hspec
+            - hspec-expectations-lifted
+            - luna-benchmark
+            - luna-ci
+            - luna-yaml-utils
+            - prologue
+
+default-extensions:
+    - AllowAmbiguousTypes
+    - ApplicativeDo
+    - BangPatterns
+    - BinaryLiterals
+    - ConstraintKinds
+    - DataKinds
+    - DefaultSignatures
+    - DeriveDataTypeable
+    - DeriveFoldable
+    - DeriveFunctor
+    - DeriveGeneric
+    - DeriveTraversable
+    - DoAndIfThenElse
+    - DuplicateRecordFields
+    - EmptyDataDecls
+    - FlexibleContexts
+    - FlexibleInstances
+    - FunctionalDependencies
+    - GeneralizedNewtypeDeriving
+    - InstanceSigs
+    - LambdaCase
+    - LiberalTypeSynonyms
+    - MonadComprehensions
+    - MultiWayIf
+    - NamedWildCards
+    - NegativeLiterals
+    - NoImplicitPrelude
+    - NumDecimals
+    - OverloadedLabels
+    - OverloadedStrings
+    - PackageImports
+    - PatternSynonyms
+    - QuasiQuotes
+    - RankNTypes
+    - RecursiveDo
+    - RelaxedPolyRec
+    - ScopedTypeVariables
+    - StandaloneDeriving
+    - TemplateHaskell
+    - TupleSections
+    - TypeApplications
+    - TypeFamilies
+    - TypeFamilyDependencies
+    - TypeOperators
+    - UnicodeSyntax
+    - ViewPatterns
+    - Strict
+

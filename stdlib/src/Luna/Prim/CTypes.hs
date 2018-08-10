@@ -1,6 +1,6 @@
 module Luna.Prim.CTypes where
 
-import Luna.Prelude
+import Prologue
 import Foreign
 
 newtype CInt8 = CInt8 Int8
@@ -74,3 +74,4 @@ instance Show CUInt64 where
 
 instance Read CUInt64 where
     readsPrec i a = map (over _1 CUInt64) (readsPrec i a)
+

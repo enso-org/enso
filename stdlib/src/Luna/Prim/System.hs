@@ -1,40 +1,38 @@
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE CPP #-}
 
 module Luna.Prim.System where
 
-import qualified Prelude                     as P
-import           Luna.Prelude                hiding (Text)
-import           Luna.IR
+import Prologue
 
 import qualified Control.Exception           as Exception
-import           Data.Map                    (Map)
 import qualified Data.Map                    as Map
-import           Data.Text.Lazy              (Text)
-import qualified Data.Text.Lazy              as Text
-
-import           Luna.Builtin.Prim           (toLunaValue, ToLunaData, toLunaData, FromLunaData, fromLunaData, RuntimeRepOf, RuntimeRep (..))
-import           Luna.Builtin.Data.LunaValue (LunaData (LunaObject), Object (..), Constructor (..), constructor, fields, tag, force')
-import           Luna.Builtin.Data.LunaEff   (LunaEff, throw)
-import           Luna.Builtin.Data.Function  (Function)
-import           Luna.Builtin.Data.Module    (Imports, getObjectMethodMap)
-import           Luna.Std.Builder            (LTp (..), makeFunctionIO, int, integer)
-
+import qualified Data.Text                   as Text
+import qualified GHC.IO.Handle               as Handle
+import qualified Luna.IR                     as IR
+import qualified Luna.Runtime                as Luna
+import qualified Luna.Std.Builder            as Builder
+import qualified Luna.Pass.Sourcing.Data.Def as Def
+import qualified OCI.Data.Name               as Name
 import qualified System.Directory            as Dir
-import           System.Environment          (lookupEnv, setEnv)
-import           System.Exit                 (ExitCode (ExitFailure, ExitSuccess))
-import           System.Process              (CreateProcess, ProcessHandle, StdStream (CreatePipe, Inherit, NoStream, UseHandle))
 import qualified System.Process              as Process
+
+import           Data.Map                    (Map)
+import           Foreign.C                   (ePIPE, Errno (Errno))
 import           GHC.IO.Exception            (IOErrorType (ResourceVanished), IOException (..))
 import           GHC.IO.Handle               (Handle, BufferMode (..))
-import qualified GHC.IO.Handle               as Handle
-import           Foreign.C                   (ePIPE, Errno (Errno))
+import           Luna.Std.Builder            (LTp (..), makeFunctionIO, int, integer, maybeLT)
+import           System.Environment          (lookupEnv, setEnv)
+import           System.Exit                 (ExitCode (ExitFailure, ExitSuccess))
+import           System.Process              ( CreateProcess
+                                             , ProcessHandle
+                                             , StdStream (CreatePipe, Inherit, NoStream, UseHandle)
+                                             )
 
+data Process = Process (Maybe Handle) (Maybe Handle) (Maybe Handle) (ProcessHandle)
 data System = Linux | MacOS | Windows deriving Show
 
-
 currentHost :: System
-
 #ifdef linux_HOST_OS
 currentHost =  Linux
 #elif darwin_HOST_OS
@@ -45,27 +43,53 @@ currentHost =  Windows
 Running on unsupported system.
 #endif
 
-exports :: Imports -> IO (Map Name Function)
-exports std = do
-    let fileHandleT = LCons "FileHandle" []
-        boolT       = LCons "Bool"       []
-        noneT       = LCons "None"       []
-        textT       = LCons "Text"       []
-        maybeT t    = LCons "Maybe"      [t]
+type SystemModule = "Std.System"
 
-    let runProcessVal :: CreateProcess -> IO (Maybe Handle, Maybe Handle, Maybe Handle, ProcessHandle)
-        runProcessVal = Process.createProcess
-    runProcess' <- makeFunctionIO (toLunaValue std runProcessVal) [ LCons "ProcessDescription" [] ] ( LCons "Process" [ LCons "Maybe" [ LCons "FileHandle" [] ]
-                                                                                                                    , LCons "Maybe" [ LCons "FileHandle" [] ]
-                                                                                                                    , LCons "Maybe" [ LCons "FileHandle" [] ]
-                                                                                                                    , LCons "ProcessHandle" [] ] )
+systemModule :: Name.Qualified
+systemModule = Name.qualFromSymbol @SystemModule
+
+fileHandleLT :: LTp
+fileHandleLT = LCons systemModule "FileHandle" []
+
+processLT :: LTp
+processLT = LCons systemModule "Process" []
+
+processDescriptionLT :: LTp
+processDescriptionLT = LCons systemModule "ProcessDescription" []
+
+processHandleLT :: LTp
+processHandleLT = LCons systemModule "ProcessHandle" []
+
+exitCodeLT :: LTp
+exitCodeLT = LCons systemModule "ExitCode" []
+
+bufferModeLT :: LTp
+bufferModeLT = LCons systemModule "BufferMode" []
+
+platformLT :: LTp
+platformLT = LCons systemModule "Platform" []
+
+exports :: forall graph m.
+    ( Builder.StdBuilder graph m
+    ) => m (Map IR.Name Def.Def)
+exports = do
+    let fileHandleT = fileHandleLT
+        boolT       = Builder.boolLT
+        noneT       = Builder.noneLT
+        textT       = Builder.textLT
+
+    let runProcessVal :: CreateProcess -> IO Process
+        runProcessVal p =
+            fmap (\(hin, hout, herr, ph) -> Process hin hout herr ph)
+                 (Process.createProcess p)
+    runProcess' <- makeFunctionIO @graph (flip Luna.toValue runProcessVal) [processDescriptionLT] processLT
     let hIsOpenVal :: Handle -> IO Bool
         hIsOpenVal = Handle.hIsOpen
-    hIsOpen' <- makeFunctionIO (toLunaValue std hIsOpenVal) [fileHandleT] boolT
+    hIsOpen' <- makeFunctionIO @graph (flip Luna.toValue hIsOpenVal) [fileHandleT] boolT
 
     let hIsClosedVal :: Handle -> IO Bool
         hIsClosedVal = Handle.hIsClosed
-    hIsClosed' <- makeFunctionIO (toLunaValue std hIsClosedVal) [fileHandleT] boolT
+    hIsClosed' <- makeFunctionIO @graph (flip Luna.toValue hIsClosedVal) [fileHandleT] boolT
 
     let ignoreSigPipe :: IO () -> IO ()
         ignoreSigPipe = Exception.handle $ \e -> case e of
@@ -76,47 +100,47 @@ exports std = do
         hCloseVal :: Handle -> IO ()
         hCloseVal = ignoreSigPipe . Handle.hClose
 
-    hClose' <- makeFunctionIO (toLunaValue std hCloseVal) [fileHandleT] noneT
+    hClose' <- makeFunctionIO @graph (flip Luna.toValue hCloseVal) [fileHandleT] noneT
 
     let hGetContentsVal :: Handle -> IO Text
         hGetContentsVal = fmap Text.pack . Handle.hGetContents
-    hGetContents' <- makeFunctionIO (toLunaValue std hGetContentsVal) [fileHandleT] textT
+    hGetContents' <- makeFunctionIO @graph (flip Luna.toValue hGetContentsVal) [fileHandleT] textT
 
     let hGetLineVal :: Handle -> IO Text
         hGetLineVal = fmap Text.pack . Handle.hGetLine
-    hGetLine' <- makeFunctionIO (toLunaValue std hGetLineVal) [fileHandleT] textT
+    hGetLine' <- makeFunctionIO @graph (flip Luna.toValue hGetLineVal) [fileHandleT] textT
 
     let hPutTextVal :: Handle -> Text -> IO ()
         hPutTextVal h = Handle.hPutStr h . Text.unpack
-    hPutText' <- makeFunctionIO (toLunaValue std hPutTextVal) [fileHandleT, textT] noneT
+    hPutText' <- makeFunctionIO @graph (flip Luna.toValue hPutTextVal) [fileHandleT, textT] noneT
 
     let hFlushVal :: Handle -> IO ()
         hFlushVal = Handle.hFlush
-    hFlush' <- makeFunctionIO (toLunaValue std hFlushVal) [fileHandleT] noneT
+    hFlush' <- makeFunctionIO @graph (flip Luna.toValue hFlushVal) [fileHandleT] noneT
 
     let waitForProcessVal :: ProcessHandle -> IO ExitCode
         waitForProcessVal = Process.waitForProcess
-    waitForProcess' <- makeFunctionIO (toLunaValue std waitForProcessVal) [LCons "ProcessHandle" []] (LCons "ExitCode" [])
+    waitForProcess' <- makeFunctionIO @graph (flip Luna.toValue waitForProcessVal) [processHandleLT] exitCodeLT
 
     let hSetBufferingVal :: Handle -> BufferMode -> IO ()
         hSetBufferingVal = Handle.hSetBuffering
-    hSetBuffering' <- makeFunctionIO (toLunaValue std hSetBufferingVal) [fileHandleT, LCons "BufferMode" []] noneT
+    hSetBuffering' <- makeFunctionIO @graph (flip Luna.toValue hSetBufferingVal) [fileHandleT, bufferModeLT] noneT
 
     let hPlatformVal :: System
         hPlatformVal = currentHost
-    hPlatform' <- makeFunctionIO (toLunaValue std hPlatformVal) [] (LCons "Platform" [])
+    hPlatform' <- makeFunctionIO @graph (flip Luna.toValue hPlatformVal) [] platformLT
 
     let hLookupEnv :: Text -> IO (Maybe Text)
         hLookupEnv vName = convert <<$>> lookupEnv (convert vName)
-    hLookupEnv' <- makeFunctionIO (toLunaValue std hLookupEnv) [textT] (maybeT textT)
+    hLookupEnv' <- makeFunctionIO @graph (flip Luna.toValue hLookupEnv) [textT] (maybeLT textT)
 
     let hSetEnv :: Text -> Text -> IO ()
         hSetEnv envName envVal = setEnv (convert envName) (convert envVal)
-    hSetEnv' <- makeFunctionIO (toLunaValue std hSetEnv) [textT, textT] noneT
+    hSetEnv' <- makeFunctionIO @graph (flip Luna.toValue hSetEnv) [textT, textT] noneT
 
     let hGetCurrentDirectory :: IO Text
         hGetCurrentDirectory = convert <$> Dir.getCurrentDirectory
-    hGetCurrentDirectory' <- makeFunctionIO (toLunaValue std hGetCurrentDirectory) [] textT
+    hGetCurrentDirectory' <- makeFunctionIO @graph (flip Luna.toValue hGetCurrentDirectory) [] textT
 
     return $ Map.fromList [ ("primRunProcess", runProcess')
                           , ("primHIsOpen", hIsOpen')
@@ -134,62 +158,65 @@ exports std = do
                           , ("primGetCurrentDirectory", hGetCurrentDirectory')
                           ]
 
-instance FromLunaData CreateProcess where
-    fromLunaData v = let errorMsg = "Expected a ProcessDescription luna object, got unexpected constructor" in
-        force' v >>= \case
-            LunaObject obj -> case obj ^. constructor . fields of
-                [command, args, stdin, stdout, stderr] -> do
-                    p       <- Process.proc <$> fmap Text.unpack (fromLunaData command) <*> fmap (map Text.unpack) (fromLunaData args)
-                    stdin'  <- fromLunaData stdin
-                    stdout' <- fromLunaData stdout
-                    stderr' <- fromLunaData stderr
-                    return $ p { Process.std_in = stdin', Process.std_out = stdout', Process.std_err = stderr' }
-                _ -> throw errorMsg
-            _ -> throw errorMsg
+type instance Luna.RuntimeRepOf CreateProcess = Luna.AsClass CreateProcess ('Luna.ClassRep SystemModule "ProcessDescription")
+instance Luna.FromObject CreateProcess where
+    fromConstructor c = let errorMsg = "Expected a ProcessDescription luna object, got unexpected constructor" in
+        case c of
+            Luna.Constructor _ [command, args, stdin, stdout, stderr] -> do
+                p       <- Process.proc <$> fmap Text.unpack (Luna.fromData command) <*> fmap (map Text.unpack) (Luna.fromData args)
+                stdin'  <- Luna.fromData stdin
+                stdout' <- Luna.fromData stdout
+                stderr' <- Luna.fromData stderr
+                return $ p { Process.std_in = stdin', Process.std_out = stdout', Process.std_err = stderr' }
+            _ -> Luna.throw errorMsg
 
-instance FromLunaData StdStream where
-    fromLunaData v = let errorMsg = "Expected a PipeRequest luna object, got unexpected constructor: " in
-        force' v >>= \case
-            LunaObject obj -> case obj ^. constructor . tag of
-                "Inherit"    -> return Inherit
-                "UseHandle"  -> UseHandle <$> (fromLunaData . head $ obj ^. constructor . fields)
-                "CreatePipe" -> return CreatePipe
-                "NoStream"   -> return NoStream
-                c            -> throw (errorMsg <> convert c)
-            c -> throw (errorMsg <> "Not a LunaObject")
+type instance Luna.RuntimeRepOf StdStream = Luna.AsClass StdStream ('Luna.ClassRep SystemModule "PipeRequest")
+instance Luna.FromObject StdStream where
+    fromConstructor c = let errorMsg = "Expected a PipeRequest luna object, got unexpected constructor: " in
+        case c of
+            Luna.Constructor "Inherit"    _   -> return Inherit
+            Luna.Constructor "UseHandle"  [f] -> UseHandle <$> (Luna.fromData f)
+            Luna.Constructor "CreatePipe" _   -> return CreatePipe
+            Luna.Constructor "NoStream"   _   -> return NoStream
+            Luna.Constructor r            _   -> Luna.throw (errorMsg <> convert r)
 
-instance FromLunaData BufferMode where
-    fromLunaData v = let errorMsg = "Expected a BufferMode luna object, got unexpected constructor: " in
-        force' v >>= \case
-            LunaObject obj -> case obj ^. constructor . tag of
-                "NoBuffering"    -> return NoBuffering
-                "LineBuffering"  -> return LineBuffering
-                "BlockBuffering" -> fmap (BlockBuffering . fmap int) . fromLunaData . head $ obj ^. constructor . fields
-                c                -> throw (errorMsg <> convert c)
-            c -> throw (errorMsg <> "Not a LunaObject")
+type instance Luna.RuntimeRepOf BufferMode = Luna.AsClass BufferMode ('Luna.ClassRep SystemModule "BufferMode")
+instance Luna.FromObject BufferMode where
+    fromConstructor c = let errorMsg = "Expected a BufferMode luna object, got unexpected constructor: " in
+        case c of
+            Luna.Constructor "NoBuffering"    _   -> return NoBuffering
+            Luna.Constructor "LineBuffering"  _   -> return LineBuffering
+            Luna.Constructor "BlockBuffering" [f] -> fmap (BlockBuffering . fmap int) . Luna.fromData $ f
+            Luna.Constructor r                _   -> Luna.throw (errorMsg <> convert r)
 
-instance FromLunaData ExitCode where
-    fromLunaData v = force' v >>= \case
-        LunaObject obj -> case obj ^. constructor . tag of
-            "ExitSuccess" -> return ExitSuccess
-            "ExitFailure" -> fmap (ExitFailure . int) . fromLunaData . head $ obj ^. constructor . fields
-        _ -> throw "Expected a ExitCode luna object, got unexpected constructor"
+type instance Luna.RuntimeRepOf ExitCode = Luna.AsClass ExitCode ('Luna.ClassRep SystemModule "ExitCode")
+instance Luna.FromObject ExitCode where
+    fromConstructor c = case c of
+        Luna.Constructor "ExitSuccess" _   -> return ExitSuccess
+        Luna.Constructor "ExitFailure" [f] -> fmap (ExitFailure . int) . Luna.fromData $ f
+        _ -> Luna.throw "Expected a ExitCode luna object, got unexpected constructor"
 
-instance ToLunaData ExitCode where
-    toLunaData imps ec =
-        let makeConstructor ExitSuccess     = Constructor "ExitSuccess" []
-            makeConstructor (ExitFailure c) = Constructor "ExitFailure" [toLunaData imps $ integer c] in
-        LunaObject $ Object (makeConstructor ec) $ getObjectMethodMap "ExitCode" imps
+instance Luna.ToObject ExitCode where
+    toConstructor imps ec =
+        let makeConstructor ExitSuccess     = Luna.Constructor "ExitSuccess" []
+            makeConstructor (ExitFailure c) = Luna.Constructor "ExitFailure" [Luna.toData imps $ integer c] in
+        makeConstructor ec
 
-instance ToLunaData System where
-    toLunaData imps sys =
-        let makeConstructor Windows = Constructor "Windows" []
-            makeConstructor Linux   = Constructor "Linux" []
-            makeConstructor MacOS   = Constructor "MacOS" [] in
-        LunaObject $ Object (makeConstructor sys) $ getObjectMethodMap "Platform" imps
+type instance Luna.RuntimeRepOf Handle        = Luna.AsNative ('Luna.ClassRep SystemModule "FileHandle")
+type instance Luna.RuntimeRepOf ProcessHandle = Luna.AsNative ('Luna.ClassRep SystemModule "ProcessHandle")
+type instance Luna.RuntimeRepOf Process = Luna.AsClass Process ('Luna.ClassRep SystemModule "Process")
+type instance Luna.RuntimeRepOf System = Luna.AsClass System ('Luna.ClassRep SystemModule "Platform")
 
-type instance RuntimeRepOf Handle        = AsNative "FileHandle"
-type instance RuntimeRepOf ProcessHandle = AsNative "ProcessHandle"
+instance Luna.ToObject Process where
+    toConstructor imps (Process hin hout herr ph) =
+        Luna.Constructor "Process"
+                         [ Luna.toData imps hin
+                         , Luna.toData imps hout
+                         , Luna.toData imps herr
+                         , Luna.toData imps ph ]
 
-instance {-# OVERLAPS #-} ToLunaData (Maybe Handle, Maybe Handle, Maybe Handle, ProcessHandle) where
-    toLunaData imps (hin, hout, herr, ph) = LunaObject $ Object (Constructor "Process" [toLunaData imps hin, toLunaData imps hout, toLunaData imps herr, toLunaData imps ph]) $ getObjectMethodMap "Process" imps
+instance Luna.ToObject System where
+    toConstructor imps Windows = Luna.Constructor "Windows" []
+    toConstructor imps Linux   = Luna.Constructor "Linux"   []
+    toConstructor imps MacOS   = Luna.Constructor "MacOS"   []
+

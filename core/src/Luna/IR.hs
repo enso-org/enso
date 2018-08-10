@@ -1,16 +1,13 @@
 module Luna.IR (module X) where
 
+import Data.Graph.Component.Node.Destruction as X
+import Data.Graph.Data                       as X (destruct, destruct1,
+                                                   getAllAllocated)
+import Data.Graph.Transform.Substitute       as X
+import Luna.IR.Term                          as X
+import OCI.Data.Name                         as X (Name, Qualified)
+import OCI.IR.Link.Class                     as X (Link, Links, SomeLink,
+                                                   Source, Target, source,
+                                                   target)
+import OCI.IR.Term                           as X
 
-import OCI.IR               as X hiding (Definition, Import, decls, Update, update, update')
-import Luna.IR.ToRefactor   as X
-import Luna.IR.Layer        as X (Type, UserType, UID, Succs, Requester, Errors, CompileError (..), RequiredBy)
-import Luna.IR.Term.Uni     as X
-import Luna.IR.Format       as X
-import Luna.IR.Term.Literal as X (HasLiteral, literal)
-import Luna.IR.Term.Uni     as X
-
--- FIXME[WD]:
--- this trick hides constructors:
--- it's needed until we get rid of UniTerm
-import Luna.IR.Expr as X hiding (Number, String, FmtString, Acc, App, Lam, Unify, Seq, Match, Monadic, Cons, Var, FieldLens, Grouped, Blank, Star, Missing, ASGFunction, FunctionSig, RootedFunction, ASGRootedFunction, ClsASG, Unit, UnitProxy, UnresolvedImport, UnresolvedImportSrc, ForeignImportList, ForeignLocationImportList, ForeignSymbolImport, ForeignImportSafety, World, Typed, RecASG, FieldASG, Invalid, List, Tuple, LeftSection, RightSection, AccSection, Disabled, Marker, Marked, Metadata, Update, Modify, Documented)
-import Luna.IR.Expr as X        (Number, String, FmtString, Acc, App, Lam, Unify, Seq, Match, Monadic, Cons, Var, FieldLens, Grouped, Blank, Star, Missing, ASGFunction, FunctionSig, RootedFunction, ASGRootedFunction, ClsASG, Unit, UnitProxy, UnresolvedImport, UnresolvedImportSrc, ForeignImportList, ForeignLocationImportList, ForeignSymbolImport, ForeignImportSafety, World, Typed, RecASG, FieldASG, Invalid, List, Tuple, LeftSection, RightSection, AccSection, Disabled, Marker, Marked, Metadata, Update, Modify, Documented)

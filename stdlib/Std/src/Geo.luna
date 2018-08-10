@@ -1,8 +1,20 @@
+import Std.Primitive
 import Std.Base
+
+class GeoPoint:
+    latitude  :: Real
+    longitude :: Real
+
+    def toJSON: JSON.empty.insert "type" "Point" . insert "coordinates" [self.longitude, self.latitude]
+    def shortRep: "(" + self.latitude.toText + ", " + self.longitude.toText + ")"
+    def toFeature: GeoJSONFeature JSON.empty self.toJSON
 
 class GeoJSONFeature:
     properties :: JSON
     geometry   :: JSON
+
+    def addProperty k v:
+        self.properties = self.properties.insert k v
 
     def toJSON: JSON . empty . insert "type" "Feature" . insert "properties" self.properties . insert "geometry" self.geometry
 
@@ -11,3 +23,4 @@ class GeoJSONFeatureCollection:
     features :: List GeoJSONFeature
 
     def toJSON: JSON . empty . insert "type" "FeatureCollection" . insert "features" self.features
+

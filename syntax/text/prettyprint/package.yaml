@@ -1,0 +1,71 @@
+name       : luna-syntax-text-prettyprint
+version    : "0.1"
+author     : Luna Team <contact@luna-lang.org>
+maintainer : Luna Team <contact@luna-lang.org>
+
+library:
+    source-dirs:
+        - src
+
+dependencies:
+    - base
+    - layered-state
+    - layouting
+    - luna-core
+    - luna-cpp-containers
+    - luna-data-storable
+    - luna-syntax-definition
+    - luna-syntax-text-lexer
+    - luna-syntax-text-parser
+    - luna-syntax-text-model
+    - prologue
+    - text
+
+default-extensions:
+    - AllowAmbiguousTypes
+    - ApplicativeDo
+    - Arrows
+    - BangPatterns
+    - BinaryLiterals
+    - ConstraintKinds
+    - DataKinds
+    - DefaultSignatures
+    - DeriveDataTypeable
+    - DeriveFoldable
+    - DeriveFunctor
+    - DeriveGeneric
+    - DeriveTraversable
+    - DoAndIfThenElse
+    - DuplicateRecordFields
+    - EmptyDataDecls
+    - FlexibleContexts
+    - FlexibleInstances
+    - FunctionalDependencies
+    - GeneralizedNewtypeDeriving
+    - InstanceSigs
+    - LambdaCase
+    - LiberalTypeSynonyms
+    - MonadComprehensions
+    - MultiWayIf
+    - NamedWildCards
+    - NegativeLiterals
+    - NoImplicitPrelude
+    - NumDecimals
+    - OverloadedLabels
+    - PackageImports
+    - QuasiQuotes
+    - RankNTypes
+    - RecursiveDo
+    - RelaxedPolyRec
+    - ScopedTypeVariables
+    - StandaloneDeriving
+    - TemplateHaskell
+    - TupleSections
+    - TypeApplications
+    - TypeFamilies
+    - TypeFamilyDependencies
+    - TypeOperators
+    - UnicodeSyntax
+    - ViewPatterns
+#    - MonadFailDesugaring
+

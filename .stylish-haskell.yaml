@@ -13,12 +13,33 @@ steps:
 
   - records: {}
 
+  - simple_align:
+      cases              : true
+      top_level_patterns : true
+      records            : true
+
+  - imports:
+      align            : group
+      list_align       : after_alias
+      pad_module_names : true
+      long_list_align  : inline
+      empty_list_align : inherit
+      list_padding     : 4
+      separate_lists   : true
+      space_surround   : false
+
+  - language_pragmas:
+      style            : vertical
+      align            : true
+      remove_redundant : false
+
   - tabs:
       spaces: 4
 
   - trailing_whitespace: {}
 
-columns: 200
+columns: 80
+newline: native
 
 language_extensions:
     - AllowAmbiguousTypes
@@ -37,14 +58,16 @@ language_extensions:
     - DoAndIfThenElse
     - DuplicateRecordFields
     - EmptyDataDecls
+    - ExplicitNamespaces
     - FlexibleContexts
     - FlexibleInstances
     - FunctionalDependencies
     - GeneralizedNewtypeDeriving
     - InstanceSigs
     - LambdaCase
+    - LiberalTypeSynonyms
     - MonadComprehensions
-#    - MonadFailDesugaring
+    - MultiParamTypeClasses
     - MultiWayIf
     - NamedWildCards
     - NegativeLiterals
@@ -53,8 +76,12 @@ language_extensions:
     - OverloadedLabels
     - OverloadedStrings
     - PackageImports
+    - PatternSynonyms
+    - PolyKinds
+    - QuasiQuotes
     - RankNTypes
     - RecursiveDo
+    - RelaxedPolyRec
     - ScopedTypeVariables
     - StandaloneDeriving
     - TemplateHaskell
@@ -63,8 +90,6 @@ language_extensions:
     - TypeFamilies
     - TypeFamilyDependencies
     - TypeOperators
+    - UnicodeSyntax
     - ViewPatterns
 
-    - LiberalTypeSynonyms
-    - RelaxedPolyRecs
-    - MultiParamTypeClasses

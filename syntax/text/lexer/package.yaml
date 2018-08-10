@@ -1,60 +1,60 @@
-name:       luna-lexer
-version:    "0.2"
-author:     Luna Team <contact@luna-lang.org>
-maintainer: Luna Team <contact@luna-lang.org>
-
+name       : luna-syntax-text-lexer
+version    : "0.2"
+author     : Luna Team <contact@luna-lang.org>
+maintainer : Luna Team <contact@luna-lang.org>
 library:
     source-dirs:
         - src
         - src-libs/attoparsec-text32
-        - src-libs/parsing
         - src-libs/conduit-utils
-    other-modules: Paths_luna_lexer
+        - src-libs/parsing
+    other-modules: Paths_luna_syntax_text_lexer
 
 benchmarks:
     lexer-benchmark:
-        main:        Main.hs
+        main: Main.hs
         source-dirs: test/bench
         dependencies:
-            - criterion
-            - luna-lexer
-            - random
-            - timeit
+            - attoparsec
             - conduit
             - conduit-combinators
             - conduit-extra
-            - attoparsec
+            - criterion
+            - luna-syntax-text-lexer
+            - random
+            - timeit
 
 
 dependencies:
-    - base
-    - prologue
-    - dependent-state
-    - lens
-    - containers
-    - mtl
-    - vector
-    - text-processing
-    - parsert
-    - vector-text
-    - fingertree
     - attoparsec
-    - text
+    - base
+    - bytestring
     - conduit
     - conduit-combinators
-    - bytestring
-    - resourcet
+    - containers
     - convert
+    - fingertree
     - functor-utils
+    - layered-state
+    - lens
+    - luna-core
+    - luna-syntax-text-model
+    - luna-text-processing
+    - mtl
+    - prologue
+    - resourcet
+    - text
+    - vector
+    - vector-text
 
     # remove:
-    - lens-utils
-    - exceptions
-    - primitive
-    - data-default
-    - typelevel
-    - transformers
     - constraints
+    - data-default
+    - exceptions
+    - lens-utils
+    - primitive
+    - transformers
+    - typelevel
 
 default-extensions:
     - AllowAmbiguousTypes
@@ -79,8 +79,8 @@ default-extensions:
     - GeneralizedNewtypeDeriving
     - InstanceSigs
     - LambdaCase
+    - LiberalTypeSynonyms
     - MonadComprehensions
-#    - MonadFailDesugaring
     - MultiWayIf
     - NamedWildCards
     - NegativeLiterals
@@ -91,6 +91,7 @@ default-extensions:
     - QuasiQuotes
     - RankNTypes
     - RecursiveDo
+    - RelaxedPolyRec
     - ScopedTypeVariables
     - StandaloneDeriving
     - TemplateHaskell
@@ -101,5 +102,3 @@ default-extensions:
     - TypeOperators
     - ViewPatterns
 
-    - LiberalTypeSynonyms
-    - RelaxedPolyRec

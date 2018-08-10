@@ -4,15 +4,17 @@ module Luna.Syntax.Text.Lexer.Runner where
 
 import Prologue hiding (Symbol)
 
-import           Data.Text32          (Text32)
-import qualified Data.Text32          as Text32
-import           Control.Monad.State.Layered
-import           Luna.Syntax.Text.IO
-import           Luna.Syntax.Text.Lexer.Grammar
-import           Luna.Syntax.Text.Lexer.Stream  (ParseError, conduitParserEither)
-import           Luna.Syntax.Text.Lexer.Symbol
-import           Luna.Syntax.Text.Lexer.Token
-import           Conduit hiding (liftIO)
+import qualified Control.Monad.State.Layered as State
+import qualified Data.Text32                 as Text32
+
+import Conduit                        hiding (liftIO)
+import Data.Text32                    (Text32)
+import Luna.Syntax.Text.IO
+import Luna.Syntax.Text.Lexer.Grammar
+import Luna.Syntax.Text.Lexer.Stream  (ParseError, conduitParserEither)
+import Luna.Syntax.Text.Lexer.Symbol
+import Luna.Syntax.Text.Lexer.Token   hiding (etx)
+
 
 
 ---------------------
@@ -22,18 +24,17 @@ import           Conduit hiding (liftIO)
 fromLexerResult :: Either ParseError a -> a
 fromLexerResult = either (error . ("Impossible happened: lexer error: " <>) . show) id ; {-# INLINE fromLexerResult #-}
 
--- FIXME[WD]: concatenating STX to the end of list could be slow
 parseBase :: (Monad m, IsSourceBorder t) => Parser (t, Int) -> EntryStack -> ConduitM a Text32 m () -> ConduitM a c0 m [Either ParseError (Token t)]
-parseBase p s f = fmap (<> [etx]) $ f .| prependSTX (conduitParserEither s $ runStateT @EntryStack p) .| sinkList ; {-# INLINE parseBase #-}
+parseBase p s f = f .| prependSTX (conduitParserEither s $ State.runT @EntryStack p) .| sinkList ; {-# INLINE parseBase #-}
 
 parse        :: IsSourceBorder a =>                  Parser (a, Int) -> EntryStack -> Text32   ->   [Token a]
 tryParse     :: IsSourceBorder a =>                  Parser (a, Int) -> EntryStack -> Text32   ->   Either ParseError [Token a]
-parseFile    :: IsSourceBorder a => PrimMonadIO m => Parser (a, Int) -> EntryStack -> FilePath -> m [Token a]
-tryParseFile :: IsSourceBorder a => PrimMonadIO m => Parser (a, Int) -> EntryStack -> FilePath -> m (Either ParseError [Token a])
+parseFile    :: IsSourceBorder a => MonadIO m => Parser (a, Int) -> EntryStack -> FilePath -> m [Token a]
+tryParseFile :: IsSourceBorder a => MonadIO m => Parser (a, Int) -> EntryStack -> FilePath -> m (Either ParseError [Token a])
 parse              = fromLexerResult .:. tryParse                                                ; {-# INLINE parse        #-}
 parseFile          = fromLexerResult .:: tryParseFile                                            ; {-# INLINE parseFile    #-}
 tryParse     p s t = sequence . runConduitPure $ parseBase p s (sourceProducer t)                ; {-# INLINE tryParse     #-}
-tryParseFile p s t = liftPrimIO . fmap sequence . runConduitRes $ parseBase p s (sourceReader t) ; {-# INLINE tryParseFile #-}
+tryParseFile p s t = liftIO . fmap sequence . runConduitRes $ parseBase p s (sourceReader t) ; {-# INLINE tryParseFile #-}
 
 runLexer     :: EntryStack -> Text32 -> [Token (Symbol, EntryStack)]
 evalLexer    :: EntryStack -> Text32 -> [Token Symbol]
@@ -71,3 +72,4 @@ instance IsSourceBorder Symbol where
 instance IsSourceBorder (Symbol, EntryStack) where
     stx i = (stx i, mempty) ; {-# INLINE stx #-}
     etx   = (etx, mempty)   ; {-# INLINE etx #-}
+

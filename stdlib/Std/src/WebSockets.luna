@@ -1,3 +1,4 @@
+import Std.Primitive
 import Std.Base
 
 
@@ -135,3 +136,4 @@ class WebSocket:
     # ```
     def server host port:
         primCreateWSServer host port
+

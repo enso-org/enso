@@ -1,0 +1,72 @@
+name        : luna-generic-traversable
+version     : 1.0.0
+category    : Data
+license     : Apache-2.0
+stability   : experimental
+homepage    : https://github.com/luna/luna
+bug-reports : https://github.com/luna/luna/issues
+author      : Luna Team
+copyright   : Copyright (C) 2018 Luna Team
+maintainer  : Luna Team
+
+ghc-options:
+    - -O2
+    - -Wall
+
+library:
+    source-dirs:
+        - src
+    dependencies:
+        - base
+        - mtl
+        - prologue
+        - template-haskell
+        - transformers
+
+default-extensions:
+    - AllowAmbiguousTypes
+    - ApplicativeDo
+    - BangPatterns
+    - BinaryLiterals
+    - ConstraintKinds
+    - DataKinds
+    - DefaultSignatures
+    - DeriveDataTypeable
+    - DeriveFoldable
+    - DeriveFunctor
+    - DeriveGeneric
+    - DeriveTraversable
+    - DoAndIfThenElse
+    - DuplicateRecordFields
+    - EmptyDataDecls
+    - FlexibleContexts
+    - FlexibleInstances
+    - FunctionalDependencies
+    - GeneralizedNewtypeDeriving
+    - InstanceSigs
+    - LambdaCase
+    - LiberalTypeSynonyms
+    - MonadComprehensions
+    - MultiWayIf
+    - NamedWildCards
+    - NegativeLiterals
+    - NoImplicitPrelude
+    - NumDecimals
+    - OverloadedLabels
+    - PackageImports
+    - PatternSynonyms
+    - QuasiQuotes
+    - RankNTypes
+    - RecursiveDo
+    - RelaxedPolyRec
+    - ScopedTypeVariables
+    - StandaloneDeriving
+    - TemplateHaskell
+    - TupleSections
+    - TypeApplications
+    - TypeFamilies
+    - TypeFamilyDependencies
+    - TypeOperators
+    - UnicodeSyntax
+    - ViewPatterns
+

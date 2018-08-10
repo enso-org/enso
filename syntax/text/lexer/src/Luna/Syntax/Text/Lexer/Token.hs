@@ -2,8 +2,13 @@
 
 module Luna.Syntax.Text.Lexer.Token where
 
-import Prologue hiding (span, element)
-import Data.Text.Position (Delta)
+import Prologue hiding (Symbol, element, span)
+
+import qualified Luna.Syntax.Text.Lexer.Symbol as Symbol
+
+import Data.Text.Position            (Delta)
+import Luna.Syntax.Text.Lexer.Symbol (Symbol)
+
 
 
 -------------------
@@ -16,7 +21,7 @@ data Token a = Token
     { _span    :: !Delta
     , _offset  :: !Delta
     , _element :: !a
-    } deriving (Eq, Generic)
+    } deriving (Eq, Generic, Ord)
 makeLenses ''Token
 
 
@@ -33,5 +38,12 @@ instance Show a => Show (Token a) where
         . showsPrec' (t ^. element)
     {-# INLINE showsPrec #-}
 
--- FIXME: Required by Megaparsec in luna-parser, it sould not be.
-deriving instance Ord a => Ord (Token a)
+instance Symbol.HasSymbol a => Symbol.HasSymbol (Token a) where
+    symbol = element . Symbol.symbol ; {-# INLINE symbol #-}
+
+
+-- === Special tokens === --
+
+etx :: Token Symbol
+etx = Token 0 0 Symbol.ETX ; {-# INLINE etx #-}
+

@@ -1,0 +1,32 @@
+import Std.Base
+import Std.Test
+import Std.Time
+
+class MapTest:
+    def testIsEmpty:
+        TestSubject Map.empty . should (satisfy .isEmpty)
+
+    def testInsertLookup:
+        subject = Map . empty . insert "foo" 20 . insert "bar" 30
+
+        TestSubject (subject . lookup "baz") . should (be Nothing)
+        TestSubject (subject . lookup "foo") . should (be (Just 20))
+        TestSubject (subject . lookup "bar") . should (be (Just 30))
+
+    def testDelete:
+        subject  = Map . empty . insert "foo" 20 . insert "bar" 30
+        expected = Map . empty . insert "bar" 30
+
+        TestSubject (subject . delete "foo") . should (be expected)
+
+    def testComplexDelete:
+        start   = 1 . upto 100 . fold Map.empty (k: m: m . insert k k)
+        subject = 1 . upto 50 . fold start (k: m: m . delete (2 * k))
+        expected = 0 . upto 49 . fold Map.empty (k: m: m . insert (2*k + 1) (2*k + 1))
+        TestSubject subject . should (be expected)
+
+    def run:
+        Test.specify "emptiness"             self.testIsEmpty
+        Test.specify "inserts and lookups"   self.testInsertLookup
+        Test.specify "key deletions"         self.testDelete
+        Test.specify "complex key deletions" self.testComplexDelete

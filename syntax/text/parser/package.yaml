@@ -1,7 +1,7 @@
-name:       luna-parser
-version:    "0.2"
-author:     Luna Team <contact@luna-lang.org>
-maintainer: Luna Team <contact@luna-lang.org>
+name       : luna-syntax-text-parser
+version    : "0.2"
+author     : Luna Team <contact@luna-lang.org>
+maintainer : Luna Team <contact@luna-lang.org>
 
 library:
     source-dirs:
@@ -13,33 +13,43 @@ tests:
         main: Main.hs
         source-dirs: test/spec
         dependencies:
-            - luna-core
-            - luna-parser
-            - luna-lexer
-            - luna-ci
+            - container
             - directory
             - filepath
             - hspec
+            - hspec-expectations-lifted
             - hspec-megaparsec
-            - hspec-jenkins
+            - luna-core
+            - luna-syntax-text-lexer
+            - luna-syntax-text-parser
+            - luna-syntax-text-prettyprint
             - open-browser
+            - template-haskell
 
 dependencies:
     - base
-    - luna-core
-    - luna-lexer
-    - prologue
-    - dependent-state
-    - lens
-    - megaparsec
     - containers
+    - layered-state
+    - layouting
+    - lens
+    - lens-utils
+    - luna-core
+    - luna-cpp-containers
+    - luna-data-storable
+    - luna-foreign-utils
+    - luna-generic-traversable
+    - luna-nested-containers
+    - luna-syntax-definition
+    - luna-syntax-text-lexer
+    - luna-syntax-text-model
+    - luna-text-processing
+    - megaparsec == 6.5.0
     - mtl
+    - prologue
     - text
     - typelevel
     - vector
-    - text-processing
     - vector-text
-    - layouting
 
 default-extensions:
     - AllowAmbiguousTypes
@@ -64,8 +74,8 @@ default-extensions:
     - GeneralizedNewtypeDeriving
     - InstanceSigs
     - LambdaCase
+    - LiberalTypeSynonyms
     - MonadComprehensions
-#    - MonadFailDesugaring
     - MultiWayIf
     - NamedWildCards
     - NegativeLiterals
@@ -84,7 +94,6 @@ default-extensions:
     - TypeFamilies
     - TypeFamilyDependencies
     - TypeOperators
+    - UnicodeSyntax
     - ViewPatterns
 
-    - LiberalTypeSynonyms
-    - RelaxedPolyRec

@@ -1,3 +1,4 @@
+import Std.Primitive
 import Std.Base
 
 # A class representing Http request method
@@ -242,3 +243,4 @@ class Http:
     # There is no need to call `perform` here, as it returns a `JSON` response.
     def getJSON uri:
         Http.get uri . perform . json
+

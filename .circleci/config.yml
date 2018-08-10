@@ -1,0 +1,24 @@
+version: 2
+jobs:
+  luna-compiler:
+    environment:
+      GHC_RTS: -M3G
+    docker:
+      - image: lunalang/luna-core-ci:1.0
+    steps:
+      - checkout
+      - restore-cache:
+          keys: stack-v1
+      - run: stack setup
+      - run: stack build -j1 --fast --ghc-options="-pgmc gcc-7" --test
+      - save-cache:
+          key: stack-v1
+          paths:
+              - "~/.stack"
+              - ".stack-work"
+
+workflows:
+  version: 2
+  percommit:
+    jobs:
+      - luna-compiler

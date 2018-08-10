@@ -1,281 +1,311 @@
+{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Luna.Pass.Evaluation.Interpreter where
 
-import Prelude as P (read)
-import Luna.Prelude   as P hiding (seq, force, Constructor, Text)
-import GHC.Exts (Any)
-import Unsafe.Coerce (unsafeCoerce)
-import Data.IORef    (IORef, newIORef, readIORef, writeIORef)
+import Prologue
 
-import Data.Text.Lazy (Text)
-import Data.Map (Map)
-import qualified Data.Map as Map
-import Data.Ratio (numerator)
-import Data.Maybe (fromMaybe)
-import Luna.IR.Term.Literal (isInteger, toDouble, toInt)
-import qualified Luna.IR.Layer.Errors as Errors
+import qualified Control.Monad.State.Layered           as State
+import qualified Data.Graph.Data.Component.Vector      as ComponentVector
+import qualified Data.Map                              as Map
+import qualified Data.Mutable.Storable.SmallAutoVector as SmallVector
+import qualified Luna.IR                               as IR
+import qualified Luna.IR.Aliases                       as Uni
+import qualified Luna.IR.Layer                         as Layer
+import qualified Luna.Pass                             as Pass
+import qualified Luna.Pass.Attr                        as Attr
+import qualified Luna.Pass.Data.Stage                  as TC
+import qualified Luna.Pass.Data.Error                  as Error
+import qualified Luna.Pass.Evaluation.Data.Scope       as Scope
+import qualified Luna.Pass.Scheduler                   as Scheduler
+import qualified Luna.Runtime                          as Runtime
 
-import           Luna.IR   hiding (get, put, modify)
-import           OCI.Pass (SubPass, Inputs, Outputs, Preserves, Events)
-import qualified OCI.Pass        as Pass
-import qualified Control.Monad.Trans.State.Strict as State
-
-import Luna.Builtin.Data.LunaValue
-import Luna.Builtin.Prim
-import Luna.Builtin.Data.Module    as Module
-import Luna.Builtin.Data.Function  as Function
-import Luna.Builtin.Data.LunaEff    (runError, throw, runIO, performIO, LunaEff)
-
-data Interpreter
-type instance Abstract Interpreter = Interpreter
-type instance Inputs  Net   Interpreter = '[AnyExpr, AnyExprLink]
-type instance Outputs Net   Interpreter = '[AnyExpr, AnyExprLink]
-type instance Inputs  Layer Interpreter = '[AnyExpr // Model, AnyExpr // Type, AnyExprLink // Model, AnyExpr // Errors]
-type instance Outputs Layer Interpreter = '[]
-type instance Inputs  Attr  Interpreter = '[]
-type instance Outputs Attr  Interpreter = '[]
-type instance Inputs  Event Interpreter = '[]
-type instance Outputs Event Interpreter = '[]
-type instance Preserves     Interpreter = '[]
-
-------------------------
--- === LocalScope === --
-------------------------
-
-data LocalScope  = LocalScope { _localVars   :: Map (Expr Draft) LunaData
-                              , _localDefs   :: Map Name LunaValue
-                              }
-makeLenses ''LocalScope
-
-instance Default LocalScope where
-    def = LocalScope def def
-
-localLookup :: Expr Draft -> LocalScope -> Maybe LunaData
-localLookup e = Map.lookup e . view localVars
-
-localDefLookup :: Name -> LocalScope -> Maybe LunaValue
-localDefLookup e = Map.lookup e . view localDefs
-
-localInsert :: Expr Draft -> LunaData -> LocalScope -> LocalScope
-localInsert e d = localVars %~ Map.insert e d
-
-mergeScopes :: Map (Expr Draft) LunaData -> LocalScope -> LocalScope
-mergeScopes m = localVars %~ Map.union m
-
-globalLookup :: Name -> Imports -> Maybe LunaValue
-globalLookup n imps = imps ^? importedFunctions . ix n . documentedItem . _Right . value
-
-------------------------
--- === MonadScope === --
-------------------------
-
-newtype ScopeT m a = ScopeT
-        { unScopeT :: State.StateT (IORef LocalScope) m a
-        } deriving (Functor, Applicative, Monad, MonadIO, MonadTrans)
+import Data.IORef                      (newIORef, readIORef)
+import Data.Map                        (Map)
+import Luna.Pass.Data.Root             (Root (..))
+import Luna.Pass.Evaluation.Data.Scope (LocalScope, MonadScope)
 
 
-class Monad m => MonadScope m where
-    get :: m LocalScope
-    put :: LocalScope -> m ()
+------------------------------
+-- === Literal Creation === --
+------------------------------
 
-instance MonadIO m => MonadScope (ScopeT m) where
-    get   = ScopeT $ State.get >>= liftIO . readIORef
-    put s = ScopeT $ State.get >>= liftIO . flip writeIORef s
+mkInt :: Runtime.Units -> Integer -> Runtime.Data
+mkInt = Runtime.toData
 
-modify :: MonadScope m => (LocalScope -> LocalScope) -> m ()
-modify f = fmap f get >>= put
+mkDouble :: Runtime.Units -> Double -> Runtime.Data
+mkDouble = Runtime.toData
 
-gets :: MonadScope m => (LocalScope -> a) -> m a
-gets f = f <$> get
+mkString :: Runtime.Units -> Text -> Runtime.Data
+mkString = Runtime.toData
 
-runScopeT :: MonadIO m => ScopeT m a -> LocalScope -> m (a, LocalScope)
-runScopeT m scope = do
-    ref      <- liftIO $ newIORef scope
-    result   <- State.evalStateT (unScopeT m) ref
-    newState <- liftIO $ readIORef ref
-    return (result, newState)
-
-evalScopeT :: MonadIO m => ScopeT m a -> LocalScope -> m a
-evalScopeT m scope = fst <$> runScopeT m scope
-
-------------------------------------
--- === Constants construction === --
-------------------------------------
-
-mkInt :: Imports -> Integer -> LunaData
-mkInt = toLunaData
-
-mkDouble :: Imports -> Double -> LunaData
-mkDouble = toLunaData
-
-mkString :: Imports -> Text -> LunaData
-mkString = toLunaData
-
-mkNothing :: Imports -> LunaData
-mkNothing imps = toLunaData imps ()
+mkNothing :: Runtime.Units -> Runtime.Data
+mkNothing imps = Runtime.toData imps ()
 
 ----------------------------
--- === Interpretation === --
+-- === Scheduler Flow === --
 ----------------------------
 
-interpret :: MonadRef m => Imports -> Expr Draft
-          -> SubPass Interpreter m (ScopeT LunaEff LunaData)
-interpret = interpret'
+runInterpreter :: IR.SomeTerm -> Runtime.Units -> TC.Monad Runtime.Value
+runInterpreter root units = do
+    Scheduler.registerAttr @Runtime.Units
+    Scheduler.registerAttr @Root
+    Scheduler.registerAttr @ResultValue
 
-interpret' :: ( MonadRef m
-              , Readers Layer '[ AnyExpr // Model
-                               , AnyExpr // Type
-                               , AnyExprLink // Model
-                               , AnyExpr // Errors
-                               ] m
-              , Editors Net '[AnyExpr, AnyExprLink] m)
-           => Imports -> Expr Draft -> m (ScopeT LunaEff LunaData)
-interpret' glob expr = do
-    errors    <- getLayer @Errors expr
-    hasErrors <- not . null <$> getLayer @Errors expr
-    let errorValue = return $ LunaError (head errors ^. Errors.description . to convert)
-    if hasErrors then return errorValue else matchExpr expr $ \case
-        String s  -> let res = mkString glob (convert s) in return $ return res
-        Number a  -> let res = if isInteger a then mkInt glob $ toInt a else mkDouble glob $ toDouble a in return $ return res
-        Var name  -> do
-            let globSym = globalLookup name glob
-            return $ do
-                localDef <- gets (localDefLookup name)
-                local    <- gets (localLookup expr)
-                case (local, localDef, globSym) of
-                    (Just v, _, _) -> return v
-                    (_, Just v, _) -> lift $ v
-                    (_, _, Just v) -> lift $ v
-                    _              -> return LunaNoValue
-        Lam i' o' -> do
-            bodyVal    <- interpret' glob    =<< source o'
-            inpMatcher <- irrefutableMatcher =<< source i'
-            return $ do
-                env <- get
-                return $ LunaFunction $ \d -> do
-                    newBinds <- inpMatcher $ LunaThunk d
-                    evalScopeT bodyVal $ mergeScopes newBinds env
-        App f' a' -> do
-            f   <- source f'
-            a   <- source a'
-            fun <- interpret' glob f
-            arg <- interpret' glob a
-            return $ do
-                env  <- get
-                let fun' = evalScopeT fun env
-                    arg' = evalScopeT arg env
-                lift $ force $ applyFun fun' arg'
+    Scheduler.setAttr $ Root root
+    Scheduler.setAttr units
+    Scheduler.enableAttrByType @ResultValue
 
-        Acc a' name -> do
-            a <- source a' >>= interpret' glob
-            return $ do
-                arg <- a
-                lift $ force $ dispatchMethod name arg
-        Unify l' r' -> do
-            l    <- source l'
-            r    <- source r'
-            rhs  <- interpret' glob r
-            lpat <- irrefutableMatcher l
-            return $ do
-                env  <- get
-                let rhs' = evalScopeT rhs (localInsert l (LunaThunk rhs') env)
-                rhsV <- lift $ runError $ force rhs'
-                case rhsV of
-                    Left e -> do
-                        modify $ localInsert l $ LunaError e
-                        lift $ throw e
-                    Right v -> lift (lpat v) >>= modify . mergeScopes
-                return $ mkNothing glob
-        ASGFunction n' as' b' -> do
-            n   <- source n'
-            as  <- mapM (irrefutableMatcher <=< source) as'
-            rhs <- interpret' glob =<< source b'
-            let makeFuns []       e = evalScopeT rhs e
-                makeFuns (m : ms) e = return $ LunaFunction $ \d -> do
-                    newBinds <- m $ LunaThunk d
-                    makeFuns ms (mergeScopes newBinds e)
-            return $ do
-                env <- get
-                let rhs' = makeFuns as (localInsert n (LunaThunk rhs') env)
-                modify $ localInsert n (LunaThunk rhs')
-                return $ LunaSusp rhs'
-        Seq l' r'  -> do
-            l   <- source l'
-            r   <- source r'
-            lhs <- interpret' glob l
-            rhs <- interpret' glob r
-            return $ do
-                lV <- lhs
-                lift $ forceThunks' lV
-                rhs
-        Cons n fs -> do
-            fields <- mapM (interpret' glob <=< source) fs
-            let mets = getConstructorMethodMap n glob
-            return $ do
-                fs        <- sequence fields
-                return $ LunaObject $ Object (Constructor n fs) mets
-        Match t' cls' -> do
-            t       <- source t'
-            cls     <- mapM source cls'
-            target  <- interpret' glob t
-            clauses <- forM cls $ \clause -> matchExpr clause $ \case
-                Lam pat res -> (,) <$> (matcher =<< source pat)
-                                   <*> (interpret' glob =<< source res)
-            return $ do
-                env <- get
-                let tgt' = evalScopeT target env
-                tgt <- lift $ force tgt'
-                (scope, cl) <- lift $ runMatch clauses tgt
-                lift $ evalScopeT cl (mergeScopes scope env)
-        Marked _ b -> interpret' glob =<< source b
-        s -> error $ "unexpected " ++ show s
+    Scheduler.registerPass @TC.Stage @(Interpreter ResultValue)
+    Scheduler.runPassByType @(Interpreter ResultValue)
 
-type MatchRes  = (Maybe (Map (Expr Draft) LunaData), LunaData)
-type MatchResM = LunaEff MatchRes
-type Matcher   = LunaData -> MatchResM
+    ResultValue res <- Scheduler.getAttr
+    return res
 
-runMatch :: [(Matcher, a)] -> LunaData -> LunaEff (Map (Expr Draft) LunaData, a)
-runMatch [] _ = throw "Inexhaustive Luna pattern match"
+execInterpreter :: IR.SomeTerm -> Runtime.Units -> TC.Monad (IO LocalScope)
+execInterpreter root units = do
+    Scheduler.registerAttr @Runtime.Units
+    Scheduler.registerAttr @Root
+    Scheduler.registerAttr @ResultScope
+
+    Scheduler.setAttr $ Root root
+    Scheduler.setAttr units
+    Scheduler.enableAttrByType @ResultScope
+
+    Scheduler.registerPass @TC.Stage @(Interpreter ResultScope)
+    Scheduler.runPassByType @(Interpreter ResultScope)
+
+    ResultScope res <- Scheduler.getAttr
+    return res
+
+------------------
+-- === Pass === --
+------------------
+
+data Interpreter res
+
+data ResultValue = ResultValue Runtime.Value
+type instance Attr.Type ResultValue = Attr.Atomic
+instance Default ResultValue where
+    def = ResultValue $ Runtime.throw "Uninitialized interpreter"
+
+data ResultScope = ResultScope (IO LocalScope)
+type instance Attr.Type ResultScope = Attr.Atomic
+instance Default ResultScope where
+    def = ResultScope $ pure def
+
+type instance Pass.Spec (Interpreter res) t = InterpreterSpec res t
+type family InterpreterSpec res t where
+    InterpreterSpec _ (Pass.In  Pass.Attrs) = '[Root, Runtime.Units]
+    InterpreterSpec r (Pass.Out Pass.Attrs) = '[r]
+    InterpreterSpec _ t = Pass.BasicPassSpec t
+
+instance Pass.Definition TC.Stage (Interpreter ResultValue) where
+    definition = do
+        Root root <- Attr.get
+        units  <- Attr.get @Runtime.Units
+        result <- interpret units root
+        Attr.put $ ResultValue $ Runtime.force
+            $ State.evalT result (def :: LocalScope)
+
+instance Pass.Definition TC.Stage (Interpreter ResultScope) where
+    definition = do
+        Root root <- Attr.get
+        units  <- Attr.get @Runtime.Units
+        result <- interpret units root
+        Attr.put $ ResultScope $ do
+            scopeRef <- newIORef def
+            Runtime.runIO $ Runtime.runError $ Scope.evalWithRef result scopeRef
+            readIORef scopeRef
+
+interpret :: (m ~ t Runtime.Eff, MonadScope m, MonadTrans t)
+          => Runtime.Units -> IR.SomeTerm
+          -> TC.Pass (Interpreter r) (m Runtime.Data)
+interpret glob expr = do
+    err <- Error.getError expr
+    case err of
+        Just e  -> pure $ pure $ Runtime.Error (e ^. Error.contents)
+        Nothing -> interpret' glob expr
+
+interpret' :: (m ~ t Runtime.Eff, MonadScope m, MonadTrans t)
+           => Runtime.Units -> IR.SomeTerm
+           -> TC.Pass (Interpreter r) (m Runtime.Data)
+interpret' glob expr = Layer.read @IR.Model expr >>= \case
+    Uni.RawString s -> do
+        str <- SmallVector.toList s
+        let lunaStr = mkString glob (convert str)
+        return $ return lunaStr
+    Uni.FmtString s -> do
+        parts <- ComponentVector.toList s
+        case parts of
+            []  -> return $ return $ mkString glob ""
+            [a] -> interpret glob =<< IR.source a
+            _   -> return $ lift $
+                Runtime.throw "Interpolated strings not supported yet."
+    IR.UniTermNumber n -> do
+        isInt <- IR.isInteger n
+        num   <- if isInt then mkInt glob    <$> IR.toInteger n
+                          else mkDouble glob <$> IR.toDouble n
+        return $ return num
+    Uni.Var name -> return $ do
+        val <- State.gets @LocalScope (Scope.localLookup expr)
+        case val of
+            Just v  -> return v
+            Nothing -> lift $ Runtime.throw $ "Variable not found: "
+                                            <> convert name
+    Uni.ResolvedDef mod name -> do
+        lift . Runtime.force <$> Runtime.lookupSymbol glob mod name
+    Uni.Lam i' o' -> do
+        bodyVal <- interpret glob =<< IR.source o'
+        inputMatcher <- irrefutableMatcher =<< IR.source i'
+        return $ do
+            env <- State.get @LocalScope
+            return $ Runtime.Function $ \d -> do
+                newBinds <- inputMatcher $ Runtime.mkThunk d
+                State.evalT bodyVal $ Scope.merge newBinds env
+    Uni.App f a -> do
+        fun <- interpret glob =<< IR.source f
+        arg <- interpret glob =<< IR.source a
+        return $ do
+            env <- State.get @LocalScope
+            let fun' = State.evalT fun env
+                arg' = State.evalT arg env
+            lift $ Runtime.force $ Runtime.applyFun fun' arg'
+    Uni.Acc a' name -> do
+        a <- interpret glob =<< IR.source a'
+        return $ do
+            arg <- a
+            lift $ Runtime.force $ Runtime.dispatchMethod name arg
+    Uni.Unify l' r' -> do
+        rhs <- interpret glob =<< IR.source r'
+        l   <- IR.source l'
+        pat <- irrefutableMatcher l
+        return $ do
+            env <- State.get @LocalScope
+            let rhs' = State.evalT rhs (Scope.localInsert l rhsT env)
+                rhsT = Runtime.mkThunk rhs'
+            rhsV <- lift $ Runtime.runError $ Runtime.force rhs'
+            case rhsV of
+                Left e -> do
+                    State.modify_ @LocalScope $ Scope.localInsert l
+                        $ Runtime.Error $ unwrap e
+                    lift $ Runtime.throw $ unwrap e
+                Right v -> do
+                    State.modify_ @LocalScope . Scope.merge =<< lift (pat v)
+                    return v
+    Uni.Function n' as' b' -> do
+        n <- IR.source n'
+        asList <- ComponentVector.toList as'
+        as <- traverse (irrefutableMatcher <=< IR.source) asList
+        rhs <- interpret glob =<< IR.source b'
+        let makeFuns []       e = State.evalT rhs e
+            makeFuns (m : ms) e = return $ Runtime.Function $ \d -> do
+                newBinds <- m $ Runtime.mkThunk d
+                makeFuns ms (Scope.merge newBinds e)
+        return $ do
+            env <- State.get @LocalScope
+            let rhs' = makeFuns as (Scope.localInsert n rhst env)
+                rhst = Runtime.mkThunk rhs'
+            State.modify_ @LocalScope $ Scope.localInsert n rhst
+            return $ Runtime.mkSusp rhs'
+    Uni.Seq l' r' -> do
+        lhs <- interpret glob =<< IR.source l'
+        rhs <- interpret glob =<< IR.source r'
+        return $ do
+            lV <- lhs
+            lift $ Runtime.forceThunks' lV
+            rhs
+    Uni.ResolvedCons mod cls name fs -> do
+        fsList <- ComponentVector.toList fs
+        fields <- mapM (interpret glob <=< IR.source) fsList
+        let mets = Runtime.getObjectMethodMap glob mod cls
+        return $ do
+            fs <- sequence fields
+            let cons = Runtime.Constructor name fs
+            return $ Runtime.Cons $ Runtime.Object mod cls cons mets
+    Uni.Match t' cls' -> do
+        target <- interpret glob =<< IR.source t'
+        cls    <- traverse IR.source =<< ComponentVector.toList cls'
+        clauses <- for cls $ \clause -> Layer.read @IR.Model clause >>= \case
+            Uni.Lam pat res -> (,) <$> (matcher =<< IR.source pat)
+                               <*> (interpret glob =<< IR.source res)
+        return $ do
+            env <- State.get @LocalScope
+            let tgt' = State.evalT target env
+            tgt <- lift $ Runtime.force tgt'
+            (scope, cl) <- lift $ runMatch clauses tgt
+            lift $ State.evalT cl (Scope.merge scope env)
+    Uni.Marked _ b -> interpret glob =<< IR.source b
+    s -> return $ lift $ Runtime.throw
+             $ "Unexpected (report this as a bug): " <> convert (show s)
+
+------------------------------
+-- === Pattern Matching === --
+------------------------------
+
+type MatchRes  = (Maybe (Map IR.SomeTerm Runtime.Data), Runtime.Data)
+type MatchResM = Runtime.Eff MatchRes
+type Matcher   = Runtime.Data -> MatchResM
+
+runMatch :: [(Matcher, a)]
+         -> Runtime.Data
+         -> Runtime.Eff (Map IR.SomeTerm Runtime.Data, a)
+runMatch [] _ = Runtime.throw "Inexhaustive pattern match."
 runMatch ((m, p) : ms) d = do
     (res, nextObj) <- m d
     case res of
         Just newScope -> return (newScope, p)
         Nothing       -> runMatch ms nextObj
 
-tryConsMatch :: Name -> [Matcher] -> Matcher
-tryConsMatch name fieldMatchers d' = force' d' >>= go where
-    go d@(LunaObject (Object (Constructor n fs) ms)) = if n == name then matchFields else return (Nothing, d) where
-        matchFields :: MatchResM
-        matchFields = do
-            results <- zipWithM ($) fieldMatchers fs
-            let binds  = fmap Map.unions $ sequence $ fst <$> results
-                newObj = LunaObject (Object (Constructor n (snd <$> results)) ms)
-            return (binds, newObj)
-    go d = return (Nothing, d)
+tryConsMatch :: IR.Name -> [Matcher] -> Matcher
+tryConsMatch name fieldMatchers d' = Runtime.force' d' >>= \case
+    d@(Runtime.Cons (Runtime.Object mod cls (Runtime.Constructor n fs) ms)) ->
+        if n == name then matchFields else return (Nothing, d) where
+            matchFields :: MatchResM
+            matchFields = do
+                results <- zipWithM ($) fieldMatchers fs
+                let binds = fmap Map.unions $ sequence $ fst <$> results
+                    newObj = Runtime.Cons
+                               (Runtime.Object mod cls
+                                  (Runtime.Constructor n (snd <$> results)) ms)
+                return (binds, newObj)
+    d -> return (Nothing, d)
 
-tryBoxedMatch :: (Eq a, IsBoxed a) => a -> Matcher
-tryBoxedMatch i d' = force' d' >>= go where
-    go d@(LunaBoxed o) = return (if fromBoxed o == i then Just def else Nothing, d)
-    go d = return (Nothing, d)
+tryBoxedMatch :: (Eq a, Runtime.IsNative a) => a -> Matcher
+tryBoxedMatch i d' = Runtime.force' d' >>= \case
+    d@(Runtime.Native o) -> return (matchRes, d) where
+        matchRes = if Runtime.fromNative o == i then Just def else Nothing
+    d -> return (Nothing, d)
 
-matcher :: (MonadRef m, Readers Layer '[AnyExpr // Model, AnyExpr // Type, AnyExprLink // Model] m, Editors Net '[AnyExpr, AnyExprLink] m)
-        => Expr Draft -> m Matcher
-matcher expr = matchExpr expr $ \case
-    Var  _    -> return $ \d -> return (Just $ Map.fromList [(expr, d)], d)
-    Grouped g -> matcher =<< source g
-    Cons n as -> do
-        argMatchers <- mapM (matcher <=< source) as
+matcher :: IR.SomeTerm -> TC.Pass (Interpreter t) Matcher
+matcher expr = Layer.read @IR.Model expr >>= \case
+    Uni.Var _ -> return $ \d -> return (Just $ Map.fromList [(expr, d)], d)
+    Uni.ResolvedCons mod cls n as -> do
+        asList <- ComponentVector.toList as
+        argMatchers <- traverse (matcher <=< IR.source) asList
         return $ tryConsMatch n argMatchers
-    Number n -> if isInteger n then return $ tryBoxedMatch $ toInt n else return $ tryBoxedMatch $ toDouble n
-    String s -> return $ tryBoxedMatch $ (convert s :: Text)
-    Blank -> return $ \d -> return (Just def, d)
-    s -> error $ "unexpected pattern: " ++ show s
+    IR.UniTermNumber n -> do
+        isInt <- IR.isInteger n
+        case isInt of
+            True -> do
+                num <- IR.toInteger n
+                return $ tryBoxedMatch num
+            _ -> do
+                num <- IR.toDouble n
+                return $ tryBoxedMatch num
+    Uni.RawString s -> do
+        s <- SmallVector.toList s
+        return $ tryBoxedMatch $ (convert s :: Text)
+    Uni.Blank -> return $ \d -> return (Just def, d)
+    s -> return $ const $
+        Runtime.throw $ convert $ "Unexpected pattern: " <> show s
 
-irrefutableMatcher :: (MonadRef m, Readers Layer '[AnyExpr // Model, AnyExpr // Type, AnyExprLink // Model] m, Editors Net '[AnyExpr, AnyExprLink] m)
-                   => Expr Draft -> m (LunaData -> LunaEff (Map (Expr Draft) LunaData))
+irrefutableMatcher :: IR.SomeTerm
+                   -> TC.Pass (Interpreter t) (Runtime.Data
+                          -> Runtime.Eff (Map IR.SomeTerm Runtime.Data))
 irrefutableMatcher expr = do
     m <- matcher expr
     return $ \d -> do
         res <- fst <$> m d
-        maybe (throw "Irrefutable pattern match failed.") return res
+        maybe (Runtime.throw "Irrefutable pattern match failed.") return res
+

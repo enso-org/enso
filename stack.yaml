@@ -1,21 +1,69 @@
+resolver: ./config/snapshot.yaml
+
+package-indices:
+    - name:            standard-hackage
+      download-prefix: https://hackage.haskell.org/package/
+      http:            https://hackage.haskell.org/01-index.tar.gz
+
 ghc-options:
     $locals:
-        -DFastCompilation
-        -fenable-rewrite-rules
-        -threaded
+        -O2
+        -Wall
+        -Wno-name-shadowing
+        -fexcess-precision
+        -fexpose-all-unfoldings
+        -flate-dmd-anal
+        -fmax-worker-args=1000
+        -fsimpl-tick-factor=400
+        -fspec-constr-keen
+        -fspecialise-aggressively
+        -fstatic-argument-transformation
         -funbox-strict-fields
-        -O0
-        -fconstraint-solver-iterations=100
+        -threaded
     $everything:
         -fconstraint-solver-iterations=100
+
 local-bin-path: dist/bin/public/luna
+
 packages:
-    - location: shell
-    - location: core
-    - location: passes
-    - location: stdlib
-    - location: project
-    - location: syntax/text/parser
-    - location: syntax/text/lexer
-    - location: lib/ci
-resolver: ./build_config/luna-snapshot.yaml
+    - core
+    - debug
+    - passes
+    - playground
+    - package
+    - runtime
+    - stdlib
+    - shell
+    - syntax/text/lexer
+    - syntax/text/model
+    - syntax/text/parser
+    - syntax/text/prettyprint
+
+    - lib/autovector
+    - lib/benchmark
+    - lib/ci
+    - lib/code-builder
+    - lib/cpp-containers
+    - lib/data-construction
+    - lib/data-property
+    - lib/data-storable
+    - lib/data-tag
+    - lib/data-typemap
+    - lib/exception
+    - lib/foreign-utils
+    - lib/future
+    - lib/generic-traversable
+    - lib/generic-traversable2
+    - lib/hspec-jenkins
+    - lib/memory-manager
+    - lib/memory-pool
+    - lib/nested-containers
+    - lib/parser-utils
+    - lib/syntax-definition
+    - lib/text-processing
+    - lib/th-builder
+    - lib/tuple-utils
+    - lib/type-cache
+    - lib/typelevel
+    - lib/yaml-utils
+

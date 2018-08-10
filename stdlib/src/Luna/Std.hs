@@ -3,47 +3,57 @@
 
 module Luna.Std where
 
-import           Luna.Prelude
+import Prologue
 
-import           Data.Map                    (Map)
-import qualified Data.Map                    as Map
+import qualified Data.Map                      as Map
+import qualified Luna.IR                       as IR
+import qualified Luna.Runtime                  as Luna
+import qualified Luna.Pass.Sourcing.Data.Def   as Def
+import qualified Luna.Pass.Sourcing.Data.Unit  as Unit
+import qualified Luna.Prim.Base                as Base
+import qualified Luna.Prim.DynamicLinker.Cache as DynamicLinkerCache
+import qualified Luna.Prim.Foreign             as Foreign
+import qualified Luna.Prim.Time                as Time
+import qualified Luna.Prim.WebSockets          as WebSockets
+import qualified Luna.Prim.System              as System
+import qualified Luna.Prim.HTTP                as HTTP
+import qualified Luna.Std.Builder              as Builder
 
-import           OCI.IR.Name.Qualified       (QualName)
-import           OCI.IR.Name                 (Name)
-import           Luna.Std.Finalizers         (finalize, initFinalizersCtx)
-import           Luna.Builtin.Data.Module    (Imports)
-import           Luna.Builtin.Data.Function  (Function)
+import Data.Map            (Map)
+import Luna.Std.Finalizers (finalize, initFinalizersCtx)
 
-import qualified Luna.Prim.Base as Base
-import qualified Luna.Prim.Foreign as Foreign
-import qualified Luna.Prim.Time as Time
-import qualified Luna.Prim.WebSockets as WebSockets
-import qualified Luna.Prim.System as System
-import qualified Luna.Prim.HTTP as HTTP
-import qualified Luna.Prim.MsgPack as MsgPack
-
-stdlibImports :: [QualName]
-stdlibImports = [ ["Std", "Base"]
-                , ["Std", "HTTP"]
-                , ["Std", "System"]
-                , ["Std", "Time"]
-                , ["Std", "WebSockets"]
-                , ["Std", "Foreign"]
-                , ["Std", "Foreign", "C", "Value"]
+stdlibImports :: [IR.Qualified]
+stdlibImports = [ "Std.Base"
+                , "Std.HTTP"
+                , "Std.System"
+                , "Std.Time"
+                , "Std.WebSockets"
+                , "Std.Foreign"
+                , "Std.Foreign.C.Value"
                 ]
 
-stdlib :: Imports -> IO (IO (), Map Name Function)
-stdlib std = do
-    finalizersCtx <- initFinalizersCtx
+stdlib :: forall graph m.
+    ( Builder.StdBuilder graph m
+    ) => m (IO (), Unit.UnitRef)
+stdlib = do
+    finalizersCtx <- liftIO initFinalizersCtx
+    linkerCacheCtx <- liftIO DynamicLinkerCache.create
 
-    baseFuncs    <- Base.exports std finalizersCtx
-    timeFuncs    <- Time.exports std
-    wsFuncs      <- WebSockets.exports std finalizersCtx
-    sysFuncs     <- System.exports std
-    httpFuncs    <- HTTP.exports std
-    msgPackFuncs <- MsgPack.exports std
-    foreignFuncs <- Foreign.exports std finalizersCtx
+    baseFuncs    <- Base.exports       @graph finalizersCtx
+    timeFuncs    <- Time.exports       @graph
+    wsFuncs      <- WebSockets.exports @graph finalizersCtx
+    sysFuncs     <- System.exports     @graph
+    httpFuncs    <- HTTP.exports       @graph
+    foreignFuncs <- Foreign.exports    @graph finalizersCtx linkerCacheCtx
 
-    return (finalize finalizersCtx, Map.unions [baseFuncs, timeFuncs, wsFuncs, sysFuncs, httpFuncs, msgPackFuncs, foreignFuncs])
+    let defs = Map.unions [baseFuncs, timeFuncs, wsFuncs, sysFuncs, httpFuncs, foreignFuncs]
+        docDefs = Def.Documented def <$> defs
+        unit = Unit.Unit (Def.DefsMap docDefs) def
+        unitRef = Unit.UnitRef (Unit.Precompiled unit) (Unit.Imports stdlibImports)
 
+    let finalizeAction = do
+            DynamicLinkerCache.finalize linkerCacheCtx
+            finalize finalizersCtx
+
+    return (finalizeAction, unitRef)
 
