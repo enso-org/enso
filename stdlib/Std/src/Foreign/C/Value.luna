@@ -56,6 +56,8 @@ class Array a:
     def free:
         self.ptr.free
 
+    def toCArg: self . ptr . toCArg
+
     def assertInBounds index:
         inBounds = (index < self.size) . and (index >= 0)
         when (inBounds.not) (throw "Array index out of bounds.")
