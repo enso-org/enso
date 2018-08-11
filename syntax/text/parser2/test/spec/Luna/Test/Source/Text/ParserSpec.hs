@@ -419,7 +419,8 @@ fixSpec = describe "error" $ it "x" $ do
 
     -- pprint $ Parser.runParserxx__ Parsing.expr "a . b -> c -= d >= f "
     -- pprint $ Parser.runParserxx__ Parsing.expr "a -> b -> a + b"
-    pprint $ Parser.runParserxx__ Parsing.Syntax1 Parsing.expr "def foo a:\n a"
+    -- pprint $ Parser.runParserxx__ Parsing.Syntax1 Parsing.expr "def foo a:\n a"
+    pprint $ Parser.runParserxx__ Parsing.Syntax2 Parsing.expr "foo\n bar baz"
     True `shouldBe` False
     -- it "error" $ expr "def foo:\n x = 1\n def"
 

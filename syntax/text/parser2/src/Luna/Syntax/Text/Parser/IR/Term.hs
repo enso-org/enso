@@ -567,20 +567,23 @@ invalid' = fmap Ast.invalid'
 old_funcDef :: Parser Ast
 old_funcDef = syntax1Only parser where
 
-    header     = Ast.lexeme $ tokens "def"
+    -- Utils
+    blockChar  = ':'
+    keyword    = "def"
+    header     = Ast.lexeme $ tokens keyword
 
-    -- name
+    -- Name
     name       = var <|> opName <|> invName
-    opName     = operatorBy (\c -> isOperatorChar c && c /= ':')
+    opName     = operatorBy (\c -> isOperatorChar c && c /= blockChar)
     invName    = invalid $ Invalid.InvalidFunctionName <$> chunk
 
-    -- arg
-    invArg     = invalid $ Invalid.InvalidFunctionArg  <$> chunkOfNot [':']
+    -- Args
+    invArg     = invalid $ Invalid.InvalidFunctionArg <$> chunkOfNot [blockChar]
     args       = many (old_nonSpacedExpr <|> invArg)
 
-    blockStart = Ast.lexeme $ token ':'
+    blockStart = Ast.lexeme $ token blockChar
 
-    -- body
+    -- Body
     body       = multiLine <|> lineExpr <|> pure Ast.missing
     multiLine  = (Ast.block <$> discoverBlock1 lineExpr)
     singleLine = lineExpr
@@ -588,7 +591,7 @@ old_funcDef = syntax1Only parser where
     invBody    = Ast.computeSpan $ Ast.invalid' Invalid.MissingColonBlock
               <$ anyLine <* flexBlock anyLine
 
-    -- def
+    -- Def
     invDef     = invalid' $ Invalid.InvalidFunctionDefinition
               <$ anyLine <* flexBlock anyLine
     valDef     = Ast.function' <$> name <*> args <*> impl
