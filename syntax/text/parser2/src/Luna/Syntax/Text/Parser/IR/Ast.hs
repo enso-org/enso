@@ -218,38 +218,19 @@ putLastOffset :: State.Setter LastOffset m => Delta -> m ()
 putLastOffset = State.put @LastOffset . wrap
 {-# INLINE putLastOffset #-}
 
--- spanned2 :: Parser a -> Parser (CodeSpan, a)
--- spanned2 = \parser -> do
---     start   <- getParserOffset
---     out     <- parser
---     end     <- getParserOffset
---     lastOff <- getLastOffset
-
---     WhiteSpace wst nextOff <- whiteSpace2
---     putLastOffset nextOff
-
---     let bodyLen   = end - start
---         totalSpan = bodyLen + nextOff
---         realSpan  = Span.leftSpacedSpan lastOff bodyLen
-
---     case wst of
---         SingleLine  -> Position.incColumn totalSpan
---         MultiLine i -> Position.succLine >> Position.incColumn i
-
---     pure (CodeSpan realSpan realSpan, out)
--- {-# INLINE spanned2 #-}
-
 spanned :: Parser a -> Parser (CodeSpan, a)
 spanned = \parser -> do
-    start   <- getParserOffset
-    out     <- parser
-    end     <- getParserOffset
-    lastOff <- getLastOffset
-    nextOff <- whiteSpace
+    lastEndOff <- getLastOffset
+    startOff   <- getParserOffset
+    out        <- parser
+    endOff     <- getParserOffset
+    nextOff    <- whiteSpace
+    putLastOffset endOff
 
-    let bodyLen   = end - start
+    let spacing   = startOff - lastEndOff
+        bodyLen   = endOff - startOff
         totalSpan = bodyLen + nextOff
-        realSpan  = Span.leftSpacedSpan lastOff bodyLen
+        realSpan  = Span.leftSpacedSpan spacing bodyLen
 
     Position.incColumn totalSpan
     pure (CodeSpan realSpan realSpan, out)
@@ -259,65 +240,16 @@ newline :: Parser ()
 newline = do
     len <- eol
     off <- whiteSpace
-    lastOff <- getLastOffset
-    putLastOffset $! lastOff + len + off
     Position.succLine
     Position.incColumn off
-
 {-# INLINE newline #-}
-
-    -- lastCodeSpan <- unwrap <$> State.get @CodeSpanRange
-    -- fileOffStart <- unwrap <$> State.get @FileOffset
-    -- marker       <- Marker.getLast
-    -- State.put @CodeSpanRange $ wrap fileOffStart
-    -- out          <- p
-    -- fileOffEnd   <- unwrap <$> State.get @FileOffset
-    -- lastOffset   <- getLastOffset
-    -- _ <- lexeme -- TODO
-    -- let end       = fileOffEnd   - lastOffset
-    --     off       = fileOffStart - lastCodeSpan
-    --     emptySpan = Span.leftSpacedSpan mempty mempty
-    --     realLen   = max 0 (end - fileOffStart)
-    --     newRange  = max end fileOffStart
-    --     realSpan  = Span.leftSpacedSpan off realLen
-    --     viewSpan  = case marker of
-    --         Nothing -> realSpan
-    --         Just m  -> Span.leftSpacedSpan
-    --                    (off - m ^. Lexer.span - m ^. Lexer.offset) realLen
-    -- State.put @CodeSpanRange $ convert newRange
-    -- pure (CodeSpan realSpan viewSpan, out)
-
--- data WhiteSpace = WhiteSpace
---     { _wsType      :: WhiteSpaceType
---     , _totalOffset :: Delta
---     }
-
--- data WhiteSpaceType
---     = SingleLine
---     | MultiLine {- last line offset -} Delta
--- data WhiteSpace
---     = SingleLine {- size -} Int
---     | MultiLine  {- size -} Int {- last line offset -} Int
-
--- whiteSpace2 :: Parser WhiteSpace
--- whiteSpace2 = parser where
---     line       = convert . Text.length <$> takeMany ' '
---     otherLines = multiple ((,) <$> eol <*> line)
---     multiple p = p <**> option id (mergeTups <$> multiple p)
---     mergeTups  = \(!a, !b) (!a', !b') -> (a + a' + b', b)
---     parser     = line <**> option (WhiteSpace SingleLine)
---                  ((\(!b, !c) a -> WhiteSpace (MultiLine c) (a + b)) <$> otherLines)
--- {-# INLINE whiteSpace2 #-}
 
 lexeme :: Parser a -> Parser a
 lexeme = \p -> p <* whiteSpace
 {-# INLINE lexeme #-}
 
 whiteSpace :: Parser Delta
-whiteSpace = do
-    len <- convert . Text.length <$> takeMany ' '
-    putLastOffset len
-    pure len
+whiteSpace = convert . Text.length <$> takeMany ' '
 {-# INLINE whiteSpace #-}
 
 computeSpan :: Parser Unspanned -> Parser Spanned
@@ -356,12 +288,19 @@ exprList = inheritCodeSpanListx $ \exprs -> AstExprList $ ExprList exprs
 
 inheritCodeSpanListx
     :: (NonEmpty (NonEmpty Spanned) -> Unspanned) -> (NonEmpty (NonEmpty Spanned) -> Spanned)
-inheritCodeSpanListx = \f ts -> let
-    start = view span (neHead $ neHead ts)
-    end   = view span (neLast $ neLast ts)
-    in Spanned (start <> end) $ f ts
+inheritCodeSpanListx = \f ts -> inheritCodeSpanList' (nneFlatten' ts) $ f ts
 {-# INLINE inheritCodeSpanListx #-}
 
+nneFlatten :: NonEmpty (NonEmpty a) -> [a]
+nneFlatten = concat . flatten . fmap flatten where
+    flatten (a :| as) = a : as
+{-# INLINE nneFlatten #-}
+
+nneFlatten' :: NonEmpty (NonEmpty a) -> NonEmpty a
+nneFlatten' = \s -> let
+    (a : as) = nneFlatten s
+    in a :| as
+{-# INLINE nneFlatten' #-}
 
 invalid' :: Invalid.Symbol -> Unspanned
 invalid' = \desc -> AstInvalid $ Invalid desc
@@ -428,7 +367,7 @@ buildIR = \(Spanned cs ast)   -> case ast of
     AstCons (Cons name)       -> IR.cons' name []
     AstWildcard {}            -> IR.blank'
     AstInvalid (Invalid a)    -> IR.invalid' a
-    AstExprList (ExprList ss) -> IR.exprList' =<< mapM buildIR (neFlatten ss)
+    AstExprList (ExprList ss) -> IR.exprList' =<< mapM buildIR (nneFlatten ss)
     AstApp  (App  base arg) -> do
         base' <- buildIR base
         arg'  <- buildIR arg
@@ -441,11 +380,6 @@ buildIR = \(Spanned cs ast)   -> case ast of
 
     x -> error $ "TODO: " <> show x
 {-# INLINE buildIR #-}
-
-neFlatten :: NonEmpty (NonEmpty a) -> [a]
-neFlatten = \(t :| ts) -> flt t <> (concat $ flt <$> ts) where
-    flt (a :| as) = a : as
-{-# INLINE neFlatten #-}
 
 
 
