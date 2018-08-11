@@ -128,7 +128,7 @@ succColumn :: State.Monad Position m => m ()
 succColumn = modColumn succ
 
 succLine :: State.Monad Position m => m ()
-succLine = State.modify_ @Position $ (column .~ 1) . (line %~ succ)
+succLine = State.modify_ @Position $ (column .~ mempty) . (line %~ succ)
 
 
 -- === Instances === --

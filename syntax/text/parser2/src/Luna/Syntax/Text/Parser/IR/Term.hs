@@ -5,14 +5,14 @@
 module Luna.Syntax.Text.Parser.IR.Term where
 
 import qualified Prelude  as P
-import           Prologue hiding (imp, seq, some, takeWhile)
+import           Prologue hiding (Text, imp, seq, some, takeWhile)
 import qualified Prologue
 -- import           Text.Parser.Combinators
 
 import qualified Control.Monad.State.Layered as State
 -- import qualified Data.Char                                 as Char
 import qualified Data.Graph.Data.Layer.Layout as Layout
-import qualified Data.Text32                  as Txt
+import qualified Data.Text32                  as Text
 -- import qualified Data.Mutable.Class                        as Mutable
 -- import qualified Data.Set                                  as Set
 import qualified Data.Text.Span as Span
@@ -36,8 +36,8 @@ import qualified Luna.Syntax.Text.Parser.Data.Invalid  as Attr
 -- import qualified Luna.Syntax.Text.Parser.Loc               as Loc
 import qualified Luna.Syntax.Text.Parser.State.Marker as Marker
 -- import qualified Luna.Syntax.Text.Parser.State.Reserved    as Reserved
-import qualified Luna.Syntax.Text.Scope as Scope
--- import qualified Text.Parser.State.Indent                  as Indent
+import qualified Luna.Syntax.Text.Scope   as Scope
+import qualified Text.Parser.State.Indent as Indent
 
 
 -- import Data.List.NonEmpty                       ((<|))
@@ -73,17 +73,20 @@ import OCI.Data.Name                            (Name)
 -- import Text.Megaparsec.Ext                      (expected)
 
 
-import qualified Data.Attoparsec.Text32 as Parsec
+import qualified Data.Attoparsec.Text32         as Parsec
+import qualified Luna.Syntax.Text.Parser.IR.Ast as Ast
 
 import Control.Monad.State.Layered        (StatesT)
 import Data.Text.Position                 (Delta)
+import Luna.Syntax.Text.Parser.IR.Ast     (Parser)
 import Luna.Syntax.Text.Parser.Pass.Class (IRB (IRB, fromIRB), IRBS (IRBS),
                                            fromIRBS, irb0, irb1, irb2, irb3,
                                            irb4, irb5, liftIRBS1, liftIRBS2,
                                            liftIRBS3, withIRB)
 import Text.Parser.State.Indent           (Indent)
 
-import Data.Parser hiding (Result, Token, endOfInput)
+import Data.Parser             hiding (Result, Token, endOfInput)
+import Text.Parser.Combinators (some)
 
 import Data.Parser.Instances.Attoparsec ()
 
@@ -94,7 +97,7 @@ import Data.Parser.Instances.Attoparsec ()
     -- = AccSection   { path     :: [Name]                               }
     -- | Cons         { name     :: Name    , args  :: [Ast]             }
     -- | Disabled     { body     :: Ast                                  }
-    -- | Documented   { doc      :: Txt     , base   :: Ast              }
+    -- | Documented   { doc      :: Text     , base   :: Ast              }
     -- | Function     { name     :: Ast     , args   :: [Ast]
     --                , body     :: Ast                                  }
     -- | DefHeader    { tp       :: Ast     , unis   :: [Ast]
@@ -111,7 +114,7 @@ import Data.Parser.Instances.Attoparsec ()
     -- | SectionRight { operator :: Ast     , body   :: Ast              }
     -- | Modify       { base     :: Ast     , path   :: [Name]
     --                , operator :: Name    , value  :: Ast              }
-    -- | Metadata     { content  :: Txt                                  }
+    -- | Metadata     { content  :: Text                                  }
     -- | Record       { isNative :: Bool    , name   :: Name
     --                , params   :: [Ast]   , conss  :: [Ast]
     --                , decls    :: [Ast]                                }
@@ -127,49 +130,24 @@ import Data.Parser.Instances.Attoparsec ()
 
 
 
-data Var a = Var { name :: Name        } deriving (Show)
-data App a = App { base :: a, arg :: a } deriving (Show)
+type Text = Text.Text32
 
-data Ast a
-    = AstVar (Var a)
-    | AstApp (App a)
-    deriving (Show)
-
-data SpannedAst = SpannedAst CodeSpan (Ast SpannedAst)
-    deriving (Show)
-
--- type Ast = Spanned AstData
+type Ast = Ast.Spanned
 
 
-type Txt = Txt.Text32
 -- x
 
 
-data Location = Location
-    { _offset :: Delta
-    , _column :: Delta
-    , _row    :: Delta
-    } deriving (Eq, Generic, Ord, Show)
-makeLenses ''Location
-
-
--- === Instances === --
-
-instance NFData Location
-instance Default Location where
-    def = Location 0 0 0
-    {-# INLINE def #-}
 
 
 
-type Parser = StatesT '[Indent, Location, LastOffset, CodeSpanRange, Marker.State, FileOffset, Scope.Scope] Parsec.Parser
 
 
 
 
 
 -- TODO: Can we do better?
-instance Convertible Txt.Text32 Name where
+instance Convertible Text.Text32 Name where
     convert = convertVia @String ; {-# INLINE convert #-}
 
 
@@ -219,8 +197,8 @@ instance Convertible Txt.Text32 Name where
 -- {-# INLINE anySymbol_ #-}
 
 getLastOffset   :: State.Getter LastOffset m => m Delta
--- checkLastOffset :: State.Getter LastOffset m => m Bool
 getLastOffset   = unwrap <$> State.get @LastOffset
+-- checkLastOffset :: State.Getter LastOffset m => m Bool
 -- checkLastOffset = (>0)   <$> getLastOffset
 -- {-# INLINE getLastOffset   #-}
 -- {-# INLINE checkLastOffset #-}
@@ -233,93 +211,101 @@ getLastOffset   = unwrap <$> State.get @LastOffset
 
 
 ----------------------------------
--- === Code span management === --
-----------------------------------
+-- -- === Code span management === --
+-- ----------------------------------
 
-attachCodeSpanLayer :: CodeSpan -> IRB (Term a) -> IRB (Term a)
-attachCodeSpanLayer s = withIRB (>>~ flip (Layer.write @CodeSpan) s) ; {-# INLINE attachCodeSpanLayer #-}
+-- attachCodeSpanLayer :: CodeSpan -> IRB (Term a) -> IRB (Term a)
+-- attachCodeSpanLayer s = withIRB (>>~ flip (Layer.write @CodeSpan) s) ; {-# INLINE attachCodeSpanLayer #-}
 
-spanned :: Parser a -> Parser (CodeSpan, a)
-spanned p = do
-    lastCodeSpan <- unwrap <$> State.get @CodeSpanRange
-    fileOffStart <- unwrap <$> State.get @FileOffset
-    marker       <- Marker.getLast
-    State.put @CodeSpanRange $ wrap fileOffStart
-    out          <- p
-    fileOffEnd   <- unwrap <$> State.get @FileOffset
-    lastOffset   <- getLastOffset
-    let end       = fileOffEnd   - lastOffset
-        off       = fileOffStart - lastCodeSpan
-        emptySpan = Span.leftSpacedSpan mempty mempty
-        realLen   = max 0 (end - fileOffStart)
-        newRange  = max end fileOffStart
-        realSpan  = Span.leftSpacedSpan off realLen
-        viewSpan  = case marker of
-            Nothing -> realSpan
-            Just m  -> Span.leftSpacedSpan
-                       (off - m ^. Lexer.span - m ^. Lexer.offset) realLen
-    State.put @CodeSpanRange $ convert newRange
-    pure (CodeSpan realSpan viewSpan, out)
-{-# INLINE spanned #-}
+-- computeSpan :: Parser a -> Parser (CodeSpan, a)
+-- computeSpan p = do
+--     lastCodeSpan <- unwrap <$> State.get @CodeSpanRange
+--     fileOffStart <- unwrap <$> State.get @FileOffset
+--     marker       <- Marker.getLast
+--     State.put @CodeSpanRange $ wrap fileOffStart
+--     out          <- p
+--     fileOffEnd   <- unwrap <$> State.get @FileOffset
+--     lastOffset   <- getLastOffset
+--     let end       = fileOffEnd   - lastOffset
+--         off       = fileOffStart - lastCodeSpan
+--         emptySpan = Span.leftSpacedSpan mempty mempty
+--         realLen   = max 0 (end - fileOffStart)
+--         newRange  = max end fileOffStart
+--         realSpan  = Span.leftSpacedSpan off realLen
+--         viewSpan  = case marker of
+--             Nothing -> realSpan
+--             Just m  -> Span.leftSpacedSpan
+--                        (off - m ^. Lexer.span - m ^. Lexer.offset) realLen
+--     State.put @CodeSpanRange $ convert newRange
+--     pure (CodeSpan realSpan viewSpan, out)
+-- {-# INLINE computeSpan #-}
 
-spanOf :: Parser a -> Parser a
-spanOf = fmap snd . spanned ; {-# INLINE spanOf #-}
+-- spanOf :: Parser a -> Parser a
+-- spanOf = fmap snd . computeSpan ; {-# INLINE spanOf #-}
 
-inheritCodeSpan1 :: (     SomeTerm -> IRB  SomeTerm)
-                 -> (IRBS SomeTerm -> IRBS SomeTerm)
-inheritCodeSpan1 = inheritCodeSpan1With id ; {-# INLINE inheritCodeSpan1 #-}
+-- inheritCodeSpan1 :: (     SomeTerm -> IRB  SomeTerm)
+--                  -> (IRBS SomeTerm -> IRBS SomeTerm)
+-- inheritCodeSpan1 = inheritCodeSpan1With id ; {-# INLINE inheritCodeSpan1 #-}
 
-inheritCodeSpan2 :: (     SomeTerm ->      SomeTerm -> IRB  SomeTerm)
-                 -> (IRBS SomeTerm -> IRBS SomeTerm -> IRBS SomeTerm)
-inheritCodeSpan2 = inheritCodeSpan2With (CodeSpan.concat) ; {-# INLINE inheritCodeSpan2 #-} -- FIXME Is CodeSpan.concat deprecated?
+-- inheritCodeSpan2 :: (     SomeTerm ->      SomeTerm -> IRB  SomeTerm)
+--                  -> (IRBS SomeTerm -> IRBS SomeTerm -> IRBS SomeTerm)
+-- inheritCodeSpan2 = inheritCodeSpan2With (CodeSpan.concat) ; {-# INLINE inheritCodeSpan2 #-} -- FIXME Is CodeSpan.concat deprecated?
 
-inheritCodeSpan1With :: (CodeSpan -> CodeSpan)
-                     -> (     SomeTerm -> IRB  SomeTerm)
-                     -> (IRBS SomeTerm -> IRBS SomeTerm)
-inheritCodeSpan1With sf f (IRBS (IRB irb1)) = wrap $ IRB $ do
-    t1 <- irb1
-    s1 <- Layer.read @CodeSpan t1
-    let s1' = CodeSpan.dropOffset s1
-    -- The new IR becomes a new parent, so it handles the left offset.
-    Layer.write @CodeSpan t1 s1'
-    fromIRB $ unwrap $ irbsFromSpan (sf s1) $ f t1
-{-# INLINE inheritCodeSpan1With #-}
+-- inheritCodeSpan1With :: (CodeSpan -> CodeSpan)
+--                      -> (     SomeTerm -> IRB  SomeTerm)
+--                      -> (IRBS SomeTerm -> IRBS SomeTerm)
+-- inheritCodeSpan1With sf f (IRBS (IRB irb1)) = wrap $ IRB $ do
+--     t1 <- irb1
+--     s1 <- Layer.read @CodeSpan t1
+--     let s1' = CodeSpan.dropOffset s1
+--     -- The new IR becomes a new parent, so it handles the left offset.
+--     Layer.write @CodeSpan t1 s1'
+--     fromIRB $ unwrap $ irbsFromSpan (sf s1) $ f t1
+-- {-# INLINE inheritCodeSpan1With #-}
 
-inheritCodeSpan2With :: (CodeSpan -> CodeSpan -> CodeSpan)
-                     -> (     SomeTerm ->      SomeTerm -> IRB  SomeTerm)
-                     -> (IRBS SomeTerm -> IRBS SomeTerm -> IRBS SomeTerm)
-inheritCodeSpan2With sf f (IRBS (IRB irb1)) (IRBS (IRB irb2)) = wrap $ IRB $ do
-    t1 <- irb1
-    s1 <- Layer.read @CodeSpan t1
-    -- The new IR becomes a new parent, so it handles the left offset.
-    let s1' = CodeSpan.dropOffset s1
-    Layer.write @CodeSpan t1 s1'
-    t2 <- irb2
-    s2 <- Layer.read @CodeSpan t2
-    fromIRB $ unwrap $ irbsFromSpan (sf s1 s2) $ f t1 t2
-{-# INLINE inheritCodeSpan2With #-}
+-- inheritCodeSpan2With :: (CodeSpan -> CodeSpan -> CodeSpan)
+--                      -> (     SomeTerm ->      SomeTerm -> IRB  SomeTerm)
+--                      -> (IRBS SomeTerm -> IRBS SomeTerm -> IRBS SomeTerm)
+-- inheritCodeSpan2With sf f (IRBS (IRB irb1)) (IRBS (IRB irb2)) = wrap $ IRB $ do
+--     t1 <- irb1
+--     s1 <- Layer.read @CodeSpan t1
+--     -- The new IR becomes a new parent, so it handles the left offset.
+--     let s1' = CodeSpan.dropOffset s1
+--     Layer.write @CodeSpan t1 s1'
+--     t2 <- irb2
+--     s2 <- Layer.read @CodeSpan t2
+--     fromIRB $ unwrap $ irbsFromSpan (sf s1 s2) $ f t1 t2
+-- {-# INLINE inheritCodeSpan2With #-}
 
--- | Magic helper. Use with care only if you really know what you do.
-unsafeModifyCodeSpan :: (CodeSpan -> CodeSpan) -> IRBS SomeTerm -> IRBS SomeTerm
-unsafeModifyCodeSpan f (IRBS (IRB irb1)) = wrap $ IRB $ do
-    t1 <- irb1
-    s1 <- Layer.read @CodeSpan t1
-    Layer.write @CodeSpan t1 (f s1)
-    pure t1
-{-# INLINE unsafeModifyCodeSpan #-}
+-- -- | Magic helper. Use with care only if you really know what you do.
+-- unsafeModifyCodeSpan :: (CodeSpan -> CodeSpan) -> IRBS SomeTerm -> IRBS SomeTerm
+-- unsafeModifyCodeSpan f (IRBS (IRB irb1)) = wrap $ IRB $ do
+--     t1 <- irb1
+--     s1 <- Layer.read @CodeSpan t1
+--     Layer.write @CodeSpan t1 (f s1)
+--     pure t1
+-- {-# INLINE unsafeModifyCodeSpan #-}
 
 
--- === IRBS construction === --
+-- -- === IRBS construction === --
 
-irbsFromSpan :: CodeSpan -> IRB (Term a) -> IRBS (Term a)
-irbsFromSpan = IRBS .: attachCodeSpanLayer ; {-# INLINE irbsFromSpan #-}
+-- irbsFromSpan :: CodeSpan -> IRB (Term a) -> IRBS (Term a)
+-- irbsFromSpan = IRBS .: attachCodeSpanLayer ; {-# INLINE irbsFromSpan #-}
 
-irbs   ::                    Parser       (IRB (Term a))   -> Parser       (IRBS (Term a))
-irbsF  :: Functor f       => Parser (f    (IRB (Term a)))  -> Parser (f    (IRBS (Term a)))
-irbsF2 :: Functors '[f,g] => Parser (f (g (IRB (Term a)))) -> Parser (f (g (IRBS (Term a))))
-irbs   p = uncurry          irbsFromSpan  <$> spanned p ; {-# INLINE irbs   #-}
-irbsF  p = uncurry (fmap  . irbsFromSpan) <$> spanned p ; {-# INLINE irbsF  #-}
-irbsF2 p = uncurry (fmap2 . irbsFromSpan) <$> spanned p ; {-# INLINE irbsF2 #-}
+-- irbs   ::                    Parser       (IRB (Term a))   -> Parser       (IRBS (Term a))
+-- irbsF  :: Functor f       => Parser (f    (IRB (Term a)))  -> Parser (f    (IRBS (Term a)))
+-- irbsF2 :: Functors '[f,g] => Parser (f (g (IRB (Term a)))) -> Parser (f (g (IRBS (Term a))))
+-- irbs   p = uncurry          irbsFromSpan  <$> computeSpan p ; {-# INLINE irbs   #-}
+-- irbsF  p = uncurry (fmap  . irbsFromSpan) <$> computeSpan p ; {-# INLINE irbsF  #-}
+-- irbsF2 p = uncurry (fmap2 . irbsFromSpan) <$> computeSpan p ; {-# INLINE irbsF2 #-}
+
+
+-- -- irbsFromSpan :: CodeSpan -> IRB (Term a) -> IRBS (Term a)
+-- -- irbsFromSpan = IRBS .: attachCodeSpanLayer ; {-# INLINE irbsFromSpan #-}
+
+-- spanned :: Parser Ast.Unspanned -> Parser Ast.Spanned
+-- spanned = \p -> uncurry Ast.Spanned <$> computeSpan p
+-- {-# INLINE spanned #-}
 
 
 
@@ -327,12 +313,12 @@ irbsF2 p = uncurry (fmap2 . irbsFromSpan) <$> spanned p ; {-# INLINE irbsF2 #-}
 -- === Errors === --
 --------------------
 
-invalid :: Invalid.Symbol -> IRB SomeTerm
-invalid t = IRB $ do
-    inv <- IR.invalid' t
-    Attr.registerInvalid inv
-    pure $ Layout.relayout inv
-{-# INLINE invalid #-}
+-- invalid :: Invalid.Symbol -> IRB SomeTerm
+-- invalid t = IRB $ do
+--     inv <- IR.invalid' t
+--     Attr.registerInvalid inv
+--     pure $ Layout.relayout inv
+-- {-# INLINE invalid #-}
 
 -- invalidToken :: Parser (IRBS SomeTerm)
 -- invalidToken = irbs $ invalid <$> satisfTest Lexer.matchInvalid
@@ -348,7 +334,7 @@ invalid t = IRB $ do
 -- -- catchInvalidWith :: HasCallStack => (Span.LeftSpacedSpan -> Span.LeftSpacedSpan)
 -- --                  -> (IRBS SomeTerm -> a) -> Parser a -> Parser a
 -- -- catchInvalidWith spanf f p = undefined -- do
--- --     -- (span, result) <- spanned $ catchParseErrors p
+-- --     -- (span, result) <- computeSpan $ catchParseErrors p
 -- --     -- pure $ flip fromRight result $ f . irbsFromSpan (spanf span) . invalid . convert
 
 
@@ -409,9 +395,6 @@ invalid t = IRB $ do
 
 
 
--------------------------
--- === Identifiers === --
--------------------------
 
 -- var :: Parser (IRBS SomeTerm)
 -- cons, var, op, wildcard :: Parser (IRBS SomeTerm)
@@ -428,25 +411,27 @@ invalid t = IRB $ do
 -- namedIdent = namedVar <|> namedCons <|> namedOp    ; {-# INLINE namedIdent #-}
 
 
+-------------------------
+-- === Identifiers === --
+-------------------------
+
 -- === Identifiers === --
 
-var :: Parser (IRBS SomeTerm)
-var = irbs $ either err cons <$> varName where
-    cons = irb1 IR.var'
-    err  = invalid . Invalid.UnexpectedVarNameSuffix
+var :: Parser Ast
+var = Ast.computeSpan $ either err Ast.var' <$> varName where
+    err = Ast.invalid' . Invalid.UnexpectedVarNameSuffix
 {-# INLINE var #-}
 
-cons :: Parser (IRBS SomeTerm)
-cons = irbs $ either err cons <$> consName where
-    cons = flip (irb2 IR.cons') []
-    err  = invalid . Invalid.UnexpectedTypeNameSuffix
+cons :: Parser Ast
+cons = Ast.computeSpan $ either err Ast.cons' <$> consName where
+    err = Ast.invalid' . Invalid.UnexpectedTypeNameSuffix
 {-# INLINE cons #-}
 
-wildcard :: Parser (IRBS SomeTerm)
-wildcard = irbs $ irb0 IR.blank' <$ token '_'
+wildcard :: Parser Ast
+wildcard = Ast.computeSpan $ Ast.wildcard' <$ token '_'
 {-# INLINE wildcard #-}
 
-ident :: Parser (IRBS SomeTerm)
+ident :: Parser Ast
 ident = var <|> cons
 {-# INLINE ident #-}
 
@@ -455,17 +440,17 @@ ident = var <|> cons
 
 varName :: Parser (Either Int Name)
 varName = (fmap convert . fmap . (<>) <$> header) <*> identBody where
-    header = Txt.snoc <$> pfx <*> head
+    header = Text.snoc <$> pfx <*> head
     pfx    = takeMany '_'
     head   = satisfy Char.isLower
 {-# INLINE varName #-}
 
 consName :: Parser (Either Int Name)
 consName = (fmap convert . fmap . (<>) <$> header) <*> identBody where
-    header = Txt.singleton <$> satisfy Char.isUpper
+    header = Text.singleton <$> satisfy Char.isUpper
 {-# INLINE consName #-}
 
-identBody :: Parser (Either Int Txt)
+identBody :: Parser (Either Int Text)
 identBody = check name where
     check = (<**> option id (const . Left <$> invalidIdentSuffix)) . fmap Right
     body  = takeWhile isIdentBodyChar
@@ -484,62 +469,70 @@ isConsHead      = Char.isUpper
 {-# INLINE isVarHead        #-}
 {-# INLINE isConsHead       #-}
 
+-- | We are not using full (33-126 / ['"`]) range here, because we need to check
+--   such invalid suffixes as `foo'a`.
 invalidIdentSuffix :: Parser Int
-invalidIdentSuffix = Txt.length <$> takeWhile1 (not . checkChar) where
-    checkChar c       = (c `elem` specialChars)
+invalidIdentSuffix = Text.length <$> takeWhile1 (not . checkChar) where
+    checkChar c       = checkSeparator c
                      || (Char.generalCategory c `elem` okCategories)
     okCategories      = [Char.Space, Char.Control, Char.MathSymbol]
-    specialChars      = modifiers <> otherPunctuations <> currencySymbols
-                     <> openPunctuations <> closePunctuations
-                     <> dashPunctuations
-    modifiers         = "`^"             :: [Char]
-    otherPunctuations = "!@#%&*\\;:,./?" :: [Char]
-    currencySymbols   = "$"              :: [Char]
-    openPunctuations  = "([{"            :: [Char]
-    closePunctuations = ")]}"            :: [Char]
-    dashPunctuations  = "-"              :: [Char]
+    checkSeparator c  = check where
+        ord   = Char.ord c
+        check = (ord == 33)                -- !
+             || (ord >= 35  && ord <= 38)  -- #$%&
+             || (ord >= 40  && ord <= 94)  -- ()*+,-./:;<=>?@[\]^`
+             || (ord >= 123 && ord <= 126) -- {|}~
 {-# INLINE invalidIdentSuffix #-}
 
 
 -- === Operators === --
 
-data Operator
-    = Operator Txt
-    | Modifier Txt
-    deriving (Show)
-
-operator :: Parser (Either Int Operator)
-operator = result where
-    base         = handleOp <$> takeWhile1 isOperatorChar <*> takeMany '='
-    handleOp p s = if (p == "<" || p == ">") && s == "="
-        then Right $ Operator (p <> s)
-        else case s of
-            "=" -> Right $ Modifier p
-            ""  -> Right $ Operator p
-            _   -> Left  $ Txt.length s
-    result = do
-        base <- handleOp <$> takeWhile1 isOperatorChar <*> takeMany '='
-        sfx  <- takeWhile isOperatorChar
-        let sfxLen = Txt.length sfx
-        pure $ if sfxLen == 0 then base else case base of
-            Left  i -> Left $ i + sfxLen
-            Right _ -> Left $ sfxLen
+operator :: Parser Ast
+operator = operatorBy isOperatorChar
 {-# INLINE operator #-}
 
-operatorChars :: [Char]
-operatorChars = "!$%&*+-/<>?^~\\"
-{-# INLINE operatorChars #-}
+operatorBy :: (Char -> Bool) -> Parser Ast
+operatorBy f = Ast.computeSpan result where
+    handleOp p s = if (p == "<" || p == ">") && s == "="
+        then Right $ Ast.operator' (convert $ p <> s)
+        else case s of
+            "=" -> Right $ Ast.modifier' (convert p)
+            ""  -> Right $ Ast.operator' (convert p)
+            _   -> Left  $ Text.length s
+    normalOp = handleOp <$> takeWhile1 f <*> takeMany eqChar
+    eqOp     = Right . Ast.operator' . convert <$> takeMany1 eqChar
+    result = do
+        base <- normalOp <|> eqOp
+        sfx  <- takeWhile f
+        let sfxLen = Text.length sfx
+            base'  = if sfxLen == 0 then base else case base of
+                Left  i -> Left $ i + sfxLen
+                Right _ -> Left $ sfxLen
+        pure $ case base' of
+            Right a -> a
+            Left  i -> Ast.invalid' $ Invalid.UnexpectedOperatorSuffix i
+{-# INLINE operatorBy #-}
+
+eqChar :: Char
+eqChar = '='
+{-# INLINE eqChar #-}
 
 isOperatorChar :: Char -> Bool
-isOperatorChar = (`elem` operatorChars)
+isOperatorChar = \c -> let
+    ord   = Char.ord c
+    check = (ord == 33)              -- !
+         || (ord >= 36 && ord <= 38) -- $%&
+         || (ord >= 42 && ord <= 47) -- *+,-./
+         || (ord == 58)              -- :
+         || (ord == 60)              -- <
+         || (ord == 62)              -- >
+         || (ord == 63)              -- ?
+         || (ord == 92)              -- \
+         || (ord == 94)              -- ^
+         || (ord == 126)             -- ~
+         || (c /= '=' && Char.generalCategory c == Char.MathSymbol)
+    in check
 {-# INLINE isOperatorChar #-}
-
-isOperator :: Convertible' s String => s -> Bool
-isOperator = test . convertTo' @String where
-    test s = all isOperatorChar s
-          || s `elem` [",", "..", "...", "=="]
-          || (last s == Just '=') && isOperator (unsafeInit s)
-{-# INLINE isOperator #-}
 
 
 -- === Helpers === --
@@ -547,11 +540,254 @@ isOperator = test . convertTo' @String where
 -- irbsNamed :: (Name -> IRB (Term a)) -> Parser Name -> Parser (Name, IRBS (Term a))
 -- irbsNamed cons = irbsF . fmap (\name -> (name, cons name)) ; {-# INLINE irbsNamed #-}
 
+lamBlock :: Parser ([Ast] -> NonEmpty Ast)
+lamBlock = (\a b c -> a :| b : c) <$> arrow <*> body where
+    arrow = Ast.computeSpan $ Ast.operator' . convert <$> tokP
+    body  = Ast.block <$> discoverBlock1 lineExpr
+    tokP  = State.get @Ast.SyntaxVersion >>= \case
+        Ast.Syntax1 -> tokens ":"
+        Ast.Syntax2 -> tokens "->"
+{-# INLINE lamBlock #-}
+
+syntax1Only :: Parser a -> Parser a
+syntax1Only = \p -> State.get @Ast.SyntaxVersion >>= \case
+    Ast.Syntax1 -> p
+    Ast.Syntax2 -> fail "syntax 1 only"
+{-# INLINE syntax1Only #-}
+
+
+invalid :: Parser Invalid.Symbol -> Parser Ast
+invalid = Ast.computeSpan . invalid'
+{-# INLINE invalid #-}
+
+invalid' :: Parser Invalid.Symbol -> Parser Ast.Unspanned
+invalid' = fmap Ast.invalid'
+{-# INLINE invalid' #-}
+
+old_funcDef :: Parser Ast
+old_funcDef = syntax1Only parser where
+
+    header     = Ast.lexeme $ tokens "def"
+
+    -- name
+    name       = var <|> opName <|> invName
+    opName     = operatorBy (\c -> isOperatorChar c && c /= ':')
+    invName    = invalid $ Invalid.InvalidFunctionName <$> chunk
+
+    -- arg
+    invArg     = invalid $ Invalid.InvalidFunctionArg  <$> chunkOfNot [':']
+    args       = many (old_nonSpacedExpr <|> invArg)
+
+    blockStart = Ast.lexeme $ token ':'
+
+    -- body
+    body       = multiLine <|> lineExpr <|> pure Ast.missing
+    multiLine  = (Ast.block <$> discoverBlock1 lineExpr)
+    singleLine = lineExpr
+    impl       = (blockStart *> body) <|> invBody
+    invBody    = Ast.computeSpan $ Ast.invalid' Invalid.MissingColonBlock
+              <$ anyLine <* flexBlock anyLine
+
+    -- def
+    invDef     = invalid' $ Invalid.InvalidFunctionDefinition
+              <$ anyLine <* flexBlock anyLine
+    valDef     = Ast.function' <$> name <*> args <*> impl
+    parser     = Ast.computeSpan $ header >> (valDef <|> invDef)
+
+
+
+old_nonSpacedExpr :: Parser Ast
+old_nonSpacedExpr = choice
+    [ var
+    , cons
+    ]
+{-# INLINE old_nonSpacedExpr #-}
+
+
+anyLine :: Parser Text
+anyLine = takeWhile $ not . (`elem` Ast.eolStartChars)
+{-# INLINE anyLine #-}
+
+chunk :: Parser Int
+chunk = Text.length <$> takeWhile1 (not . (`elem` break)) where
+    break = ' ' : Ast.eolStartChars
+{-# INLINE chunk #-}
+
+chunkOfNot :: [Char] -> Parser Int
+chunkOfNot s = Text.length <$> takeWhile1 (not . (`elem` break)) where
+    break = ' ' : (s <> Ast.eolStartChars)
+{-# INLINE chunkOfNot #-}
 
 
 
 
-expr = ident
+-------------------------
+-- === Expressions === --
+-------------------------
+
+-- lineExpr :: Parser Ast
+-- lineExpr = Ast.exprList <$> multiLineBlock1 (some $ choice [var, cons, lamBlock, operator])
+-- {-# INLINE lineExpr #-}
+
+lineExpr :: Parser Ast
+lineExpr = Ast.exprList <$> multiLineBlock1 (gatherMany1 elems) where
+    single = ((:|) <$>)
+    elems  = choice
+        [ single old_funcDef
+        , single var
+        , single cons
+        , lamBlock
+        , single operator
+        ]
+{-# INLINE lineExpr #-}
+
+
+
+expr :: Parser Ast
+expr = lineExpr -- <**> assignment where
+    -- assignment = option id (flip Ast.unify <$ Ast.lexeme (token '=') <*> lineExpr)
+
+
+gatherWith1 :: (Alternative m, Mempty a) => (b -> a) -> m (a -> b) -> m b
+gatherWith1 = \f p -> let go = p <*> option mempty (f <$> go) in go
+{-# INLINE gatherWith1 #-}
+
+gatherMany1 :: (Alternative m) => m ([a] -> NonEmpty a) -> m (NonEmpty a)
+gatherMany1 = gatherWith1 convert
+{-# INLINE gatherMany1 #-}
+
+
+    -- = (:) <$> p <*> (many1x p <|> pure mempty)
+
+nePrepend :: a -> NonEmpty a -> NonEmpty a
+nePrepend = \a (t :| ts) -> a :| (t : ts)
+{-# INLINE nePrepend #-}
+
+
+--------------------
+-- === Layout === --
+--------------------
+
+-- multiLineBlock1 :: Parser a -> Parser (NonEmpty a)
+-- multiLineBlock1 p = (:|) <$> p <*> option [] ps where
+--     line = Ast.newline >> Indent.indented >> ps
+--     ps   = p <**> (flip (:) <$> (ps <|> line <|> pure []))
+-- {-# INLINE multiLineBlock1 #-}
+
+
+
+discoverBlock1 :: Parser a -> Parser (NonEmpty a)
+discoverBlock1 = \p -> let
+    line   = some Ast.newline >> Indent.indentedEq >> p
+    block  = (:|) <$> p <*> many line
+    header = some Ast.newline >> Indent.indented
+    in header >> Indent.withCurrent block
+
+multiLineBlock1 :: Parser a -> Parser (NonEmpty a)
+multiLineBlock1 = \p -> let
+    line = some Ast.newline >> Indent.indented >> p
+    in (:|) <$> p <*> many line
+{-# INLINE multiLineBlock1 #-}
+
+
+flexBlock1 :: Parser a -> Parser (NonEmpty a)
+flexBlock1 = \p -> let
+    line = some Ast.newline >> Indent.indented >> p
+    in some line
+{-# INLINE flexBlock1 #-}
+
+flexBlock :: Parser a -> Parser [a]
+flexBlock = \p -> option mempty $ convert <$> flexBlock1 p
+{-# INLINE flexBlock #-}
+
+
+
+-- foo = a -> b ->
+--     c -> d ->
+--     e -> f
+
+-- foo = a -> b
+--     -> c -> d
+--     -> e -> f
+
+
+-- bar f = f 1
+
+-- bar (foo ...)
+
+
+-- foo bar baz gaz faz
+--   $ daz naz uaz
+--   jaz kaz
+--   raz laz
+
+-- s = sphere
+--     radius   = 10
+--     color    = red
+--     position = Point 0 0 0
+
+
+
+-- x = foo.sum 1
+-- skipEOLs :: Parser ()
+-- skipEOLs = void $ many eol
+
+-- possibleNonEmptyBlock :: Parser a -> Parser (NonEmpty a)
+-- possibleNonEmptyBlock = \p -> (es >> nonEmptyBlock2 p) <|> (pure <$> p) where
+--     es = try (eol >> skipEOLs >> Indent.indented)
+-- {-# INLINE possibleNonEmptyBlock #-}
+
+-- possibleNonEmptyBlock' :: Parser a -> Parser [a]
+-- possibleNonEmptyBlock' = fmap convert . possibleNonEmptyBlock
+-- {-# INLINE possibleNonEmptyBlock' #-}
+
+-- discoverIndent :: Parser a -> Parser a
+-- discoverIndent = discover . Indent.withCurrent where
+--     discover p = skipEOLs >> p
+
+-- nonEmptyBlock', nonEmptyBlockBody' :: Parser a -> Parser [a]
+-- nonEmptyBlock'     = uncurry (:) <<$>> nonEmptyBlock
+-- nonEmptyBlockBody' = uncurry (:) <<$>> nonEmptyBlockBody
+
+-- nonEmptyBlock2 ::  Parser a -> Parser (NonEmpty a)
+-- nonEmptyBlock2 p = Indent.withCurrent (nonEmptyBlockBody2 p)
+
+-- nonEmptyBlockBody2 ::  Parser a -> Parser (NonEmpty a)
+-- nonEmptyBlockBody2 p = (:|) <$> p <*> lines where
+--     spacing = many eol
+--     indent  = spacing <* Indent.indentedEq <* notFollowedBy etx
+--     lines   = many $ try indent *> p
+
+-- nonEmptyBlock , nonEmptyBlockBody  :: Parser a -> Parser (a, [a])
+-- nonEmptyBlock     p = Indent.indented >> Indent.withCurrent (nonEmptyBlockBody p)
+-- nonEmptyBlockTop    = Indent.withRoot    . nonEmptyBlockBody
+-- nonEmptyBlockBody p = (,) <$> p <*> lines where
+--     spacing = many eol
+--     indent  = spacing <* Indent.indentedEq <* notFollowedBy etx
+--     lines   = many $ try indent *> p
+
+-- optionalBlock, optionalBlockTop, optionalBlockBody :: Parser a -> Parser [a]
+-- optionalBlock     p = option mempty $ uncurry (:) <$> nonEmptyBlock     p
+-- optionalBlockTop  p = option mempty $ uncurry (:) <$> nonEmptyBlockTop  p
+-- optionalBlockBody p = option mempty $ uncurry (:) <$> nonEmptyBlockBody p
+
+-- breakableNonEmptyBlock', breakableNonEmptyBlockTop', breakableNonEmptyBlockBody' :: Parser a -> Parser     [a]
+-- breakableNonEmptyBlock , breakableNonEmptyBlockTop , breakableNonEmptyBlockBody  :: Parser a -> Parser (a, [a])
+-- breakableNonEmptyBlock'      = uncurry (:) <<$>> breakableNonEmptyBlock
+-- breakableNonEmptyBlockTop'   = uncurry (:) <<$>> breakableNonEmptyBlockTop
+-- breakableNonEmptyBlockBody'  = uncurry (:) <<$>> breakableNonEmptyBlockBody
+-- breakableNonEmptyBlock       = Indent.withCurrent . breakableNonEmptyBlockBody
+-- breakableNonEmptyBlockTop    = Indent.withRoot    . breakableNonEmptyBlockBody
+-- breakableNonEmptyBlockBody p = (,) <$> lexedp <*> lines where
+--     spacing = many eol
+--     lines   = many $ Indent.indentedEq *> lexedp
+--     lexedp  = p <* spacing
+
+
+
+
+
+
 
 
 -- checkInvalidSuffix :: Parser Symbol -> Parser Symbol
@@ -882,7 +1118,7 @@ expr = ident
 
 -- mfixVarSeg :: Parser ExprSegmentBuilder
 -- mfixVarSeg  = do
---     (span, name) <- spanned varName
+--     (span, name) <- computeSpan varName
 --     nameSet      <- Scope.lookupMultipartNames name
 --     let cvar = posIndependent $ unlabeledAtom $ irbsFromSpan span (irb1 IR.var' name)
 --     if TreeSet.null nameSet
@@ -903,7 +1139,7 @@ expr = ident
 -- opSeg :: Parser ExprSegmentBuilder
 -- opSeg   = do
 --     (before, after) <- checkOffsets
---     (span, name)    <- spanned opName
+--     (span, name)    <- computeSpan opName
 --     let segment isFirst isLast = pure . Expr.tokenx $ operator & if
 --             | isSingle    -> labeled (Name.unspaced            name) . Symbol.atom
 --             | isUMinus    -> labeled (Name.unspaced SpecialName.uminus) . Symbol.prefix . app
@@ -931,7 +1167,7 @@ expr = ident
 
 -- accSectNames :: Parser (NonEmpty (CodeSpan, Name))
 -- accSectNames = do
---     sname <- spanned $ symbol Lexer.Accessor *> identName
+--     sname <- computeSpan $ symbol Lexer.Accessor *> identName
 --     (beforeDot, afterDot) <- checkOffsets
 --     (sname :|) <$> if beforeDot || afterDot then pure   mempty
 --                                             else option mempty (convert <$> accSectNames)

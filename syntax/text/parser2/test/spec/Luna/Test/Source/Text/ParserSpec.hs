@@ -22,6 +22,8 @@ import qualified Luna.Pass.Attr                         as Attr
 import qualified Luna.Pass.Scheduler                    as Scheduler
 import qualified Luna.Syntax.Prettyprint                as Prettyprint
 import qualified Luna.Syntax.Text.Parser.Data.CodeSpan  as CodeSpan
+import qualified Luna.Syntax.Text.Parser.IR.Ast         as Ast
+import qualified Luna.Syntax.Text.Parser.IR.Ast         as Parsing (Parser, SyntaxVersion (..))
 import qualified Luna.Syntax.Text.Parser.IR.Class       as Token
 import qualified Luna.Syntax.Text.Parser.IR.Term        as Parsing
 import qualified Luna.Syntax.Text.Parser.Pass           as Parser
@@ -39,6 +41,8 @@ import Luna.Syntax.Text.Source               (Source)
 import Luna.Test.Source.Text.Utils           (s)
 import OCI.IR.Link.Class                     (type (*-*), Link)
 import Test.Hspec                            (Expectation, Spec, describe, it)
+
+
 
 
 
@@ -60,33 +64,39 @@ runPasses passes = Graph.encodeAndEval @Parser.Parsing $ Scheduler.evalT $ do
         Scheduler.registerPassFromFunction__ pass -- ONLY FOR TEST SPEC
         Scheduler.runPassByType @pass
 
-shouldParseAs :: Parsing.Parser (IRBS IR.SomeTerm) -> Text -> Text
+
+        -- runParser__ :: ParserPass (Pass stage Parser)
+        -- => Parsing.Parser Ast.Spanned -> Text32 -> Pass stage Parser (SomeTerm, Marker.TermMap)
+
+shouldParseAs :: Parsing.SyntaxVersion -> Parsing.Parser Ast.Spanned -> Text -> Text
               {- -> (Delta, Delta)-} -> IO ()
-shouldParseAs parser input output {-desiredSpan-} = runPass $ do
-    (((ir,cs),scope), _) <- flip Parser.runParser__ (convert input) $ do
-        irb   <- parser
-        scope <- State.get @Scope
-        let Parser.IRBS (Parser.IRB irx) = irb
-            irb' = Parser.IRBS $ Parser.IRB $ do
-                ir <- irx
-                cs <- Layer.read @CodeSpan ir
-                pure (ir,cs)
-        pure $ (,scope) <$> irb'
+shouldParseAs sv parser input output {-desiredSpan-} = runPass $ do
+    (ir,cs) <- Parser.runParser__ sv parser (convert input)
+        -- irb   <- parser
+        -- scope <- State.get @Scope
+        -- let Parser.IRBS (Parser.IRB irx) = irb
+        --     irb' = Parser.IRBS $ Parser.IRB $ do
+        --         ir <- irx
+        --         cs <- Layer.read @CodeSpan ir
+        --         pure (ir,cs)
+        -- pure $ (,scope) <$> irb'
+        -- pure $ (,scope) <$> irb
+    let scope = def
     genCode <- Prettyprint.run @Prettyprint.Simple scope ir
 
-    let span = convert $ view CodeSpan.realSpan cs :: (Delta,Delta)
+    -- let span = convert $ view CodeSpan.realSpan cs :: (Delta,Delta)
     genCode `shouldBe` output
     -- span `shouldBe` desiredSpan
 
-shouldParseItself :: Parsing.Parser (IRBS IR.SomeTerm) -> Text {- -> (Delta, Delta)-} -> IO ()
-shouldParseItself parser input = shouldParseAs parser input input
+shouldParseItself :: Parsing.SyntaxVersion -> Parsing.Parser Ast.Spanned -> Text {- -> (Delta, Delta)-} -> IO ()
+shouldParseItself sv parser input = shouldParseAs sv parser input input
 
 -- unitAs     = shouldParseAs     Parsing.unit'
 -- unit       = shouldParseItself Parsing.unit'
 -- unit_n   s = unitAs_n s s
 -- unitAs_n s = unitAs s . ("\n" <>)
-exprAs     = shouldParseAs     Parsing.expr
-expr       = shouldParseItself Parsing.expr
+exprAs     = shouldParseAs     Parsing.Syntax1 Parsing.expr
+expr       = shouldParseItself Parsing.Syntax1 Parsing.expr
 
 
 
@@ -110,6 +120,10 @@ identSpec = describe "identifier" $ do
     it "invalid cons: C⸗"  $ exprAs "C⸗"    "Invalid UnexpectedTypeNameSuffix 1"
     it "invalid cons: C'o" $ exprAs "C'o"  "Invalid UnexpectedTypeNameSuffix 1"
     it "invalid cons: C_a" $ exprAs "C_a"  "Invalid UnexpectedTypeNameSuffix 2"
+
+exprSpec :: Spec
+exprSpec = describe "expression" $ do
+    it "a b"               $ expr   "a b"
 
 -- literalNumberSpec :: Spec
 -- literalNumberSpec = describe "number" $ do
@@ -393,14 +407,27 @@ identSpec = describe "identifier" $ do
 --     invalidUnitSpec
 --     caseSpec
 
--- fixSpec :: Spec
--- fixSpec = do
---     it "error" $ expr "_"
---     -- it "error" $ expr "def foo:\n x = 1\n def"
+-- «12»
+
+
+
+
+fixSpec :: Spec
+fixSpec = describe "error" $ it "x" $ do
+    pure () :: IO ()
+    putStrLn "\n"
+
+    -- pprint $ Parser.runParserxx__ Parsing.expr "a . b -> c -= d >= f "
+    -- pprint $ Parser.runParserxx__ Parsing.expr "a -> b -> a + b"
+    pprint $ Parser.runParserxx__ Parsing.Syntax1 Parsing.expr "def foo a +: a"
+    True `shouldBe` False
+    -- it "error" $ expr "def foo:\n x = 1\n def"
 
 spec :: Spec
 spec = do
     identSpec
+    exprSpec
+    fixSpec
     -- literalSpec
     -- termSpec
     -- definitionSpec

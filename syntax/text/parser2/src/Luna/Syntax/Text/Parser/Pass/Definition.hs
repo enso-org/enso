@@ -16,6 +16,8 @@ import qualified Luna.Pass.Attr                         as Attr
 import qualified Luna.Pass.Scheduler                    as Scheduler
 import qualified Luna.Syntax.Text.Lexer                 as Lexer
 import qualified Luna.Syntax.Text.Lexer.Symbol          as Symbol
+import qualified Luna.Syntax.Text.Parser.IR.Ast         as Ast
+import qualified Luna.Syntax.Text.Parser.IR.Ast         as Parsing
 import qualified Luna.Syntax.Text.Parser.IR.Class       as Token
 import qualified Luna.Syntax.Text.Parser.IR.Term        as Parsing
 import qualified Luna.Syntax.Text.Parser.State.Marker   as Marker
@@ -25,8 +27,9 @@ import qualified Text.Parser.State.Indent               as State.Indent
 import Data.Attoparsec.Internal.Types              (IResult)
 import Data.Parser                                 (PartialParser, closePartial,
                                                     parsePartial, token)
-import Data.Text.Position                          (FileOffset)
+import Data.Text.Position                          (FileOffset, Position)
 import Data.Text32                                 (Text32)
+import Luna.IR                                     (SomeTerm)
 import Luna.Pass                                   (Pass)
 import Luna.Syntax.Text.Parser.Data.CodeSpan       (CodeSpan, CodeSpanRange)
 import Luna.Syntax.Text.Parser.Data.Invalid        (Invalids)
@@ -104,13 +107,22 @@ registerDynamic = do
 --     $ hardcode >> p
 -- {-# INLINE runParserContext__ #-}
 
+-- runParser__ :: ParserPass (Pass stage Parser)
+--     => Parsing.Parser (IRBS a) -> Text32 -> Pass stage Parser (a, Marker.TermMap)
+-- runParser__ p src = do
+--     let irbs = runParserxx__ p src
+--     ((ref, unmarked), gidMap) <- State.runDefT @Marker.TermMap
+--                                $ State.runDefT @Marker.TermOrphanList
+--                                $ fromIRB $ fromIRBS irbs
+--     pure (ref, gidMap)
+
 runParser__ :: ParserPass (Pass stage Parser)
-    => Parsing.Parser (IRBS a) -> Text32 -> Pass stage Parser (a, Marker.TermMap)
-runParser__ p src = do
-    let irbs = runParserxx__ p src
+    => Parsing.SyntaxVersion -> Parsing.Parser Ast.Spanned -> Text32 -> Pass stage Parser (SomeTerm, Marker.TermMap)
+runParser__ sv p src = do
+    let ast = runParserxx__ sv p src
     ((ref, unmarked), gidMap) <- State.runDefT @Marker.TermMap
                                $ State.runDefT @Marker.TermOrphanList
-                               $ fromIRB $ fromIRBS irbs
+                               $ Ast.buildIR ast
     pure (ref, gidMap)
 
     -- let tokens = Lexer.evalDefLexer src
@@ -126,16 +138,16 @@ runParser__ p src = do
 
 
 
-runParserxx__ :: Parsing.Parser (IRBS a) -> Text32 -> IRBS a
-runParserxx__ = \p s ->
+runParserxx__ :: Parsing.SyntaxVersion -> Parsing.Parser a -> Text32 -> a
+runParserxx__ = \sv p s ->
     let s'  = Text32.dropWhile (== ' ') s
         off = Text32.length s - Text32.length s'
-        go  = evalLexer__ p
+        go  = evalLexer__ sv p
     in  {- stx off : -} go s'
 {-# INLINE runParserxx__ #-}
 
-evalLexer__ :: Parsing.Parser (IRBS a) -> Text32 -> IRBS a
-evalLexer__ = \p txt -> case runner__ p txt of
+evalLexer__ :: Parsing.SyntaxVersion -> Parsing.Parser a -> Text32 -> a
+evalLexer__ = \sv p txt -> case runner__ sv p txt of
     Parser.Done !(txt') !r -> if (Text32.length txt' /= 0)
         then error $ "Panic. Not all input consumed by lexer: " <> show txt'
         else r
@@ -149,18 +161,22 @@ evalLexer__ = \p txt -> case runner__ p txt of
     Parser.Fail !_ !_ !e   -> error e
 {-# INLINE evalLexer__ #-}
 
-runner__ :: Parsing.Parser (IRBS a) -> Text32 -> IResult Text32 (IRBS a)
-runner__ = \p txt
+runner__ :: Parsing.SyntaxVersion -> Parsing.Parser a -> Text32 -> IResult Text32 a
+runner__ = \sv p txt
     -> flip parsePartial (txt <> "\ETX")
      $ State.evalDefT @Scope
      $ State.evalDefT @FileOffset
      $ State.evalDefT @Marker.State
      $ State.evalDefT @CodeSpanRange
      $ State.evalDefT @LastOffset
-     $ State.evalDefT @Parsing.Location
+     $ State.evalDefT @Position
      $ State.Indent.eval
+     $ flip (State.evalT @Parsing.SyntaxVersion) sv
      $ (p <* token '\ETX')
 {-# INLINE runner__ #-}
+
+
+
 
 
 

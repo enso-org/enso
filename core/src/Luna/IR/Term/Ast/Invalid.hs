@@ -24,8 +24,14 @@ data Symbol
     | UnexpectedSuffix {- len -} !Int
     | CaselessNameHead
     | Literal InvalidLiteral
-    | UnexpectedVarNameSuffix {- len -} Int
+    | UnexpectedVarNameSuffix  {- len -} Int
     | UnexpectedTypeNameSuffix {- len -} Int
+    | UnexpectedOperatorSuffix {- len -} Int
+    | InvalidMarker
+    | InvalidFunctionName {- len -} Int
+    | InvalidFunctionArg  {- len -} Int
+    | MissingColonBlock
+    | InvalidFunctionDefinition
     deriving (Eq, Ord, Generic, Show)
 -- instance ExternalStorable Symbol
 -- instance ExternalFieldStorable Symbol

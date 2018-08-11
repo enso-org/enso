@@ -19,12 +19,9 @@ import Data.Text.Position          (Delta, Position)
 
 newtype Indent = Indent
     { _level :: Delta
-    } deriving (Show)
+    } deriving (Default, Show, Mempty)
 makeLenses ''Indent
 
--- FIXME: change to 0 and make sure tests work
-instance Default Indent where def = Indent 1
-instance Mempty Indent where mempty = Indent 1
 
 -- === Running === --
 
