@@ -32,6 +32,7 @@ data Symbol
     | InvalidFunctionArg  {- len -} Int
     | MissingColonBlock
     | InvalidFunctionDefinition
+    | Unknown
     deriving (Eq, Ord, Generic, Show)
 -- instance ExternalStorable Symbol
 -- instance ExternalFieldStorable Symbol

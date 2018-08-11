@@ -37,6 +37,7 @@ import Luna.Syntax.Text.Parser.Data.Name.Hardcoded (hardcode)
 import Luna.Syntax.Text.Parser.Data.Result         (Result (Result))
 import Luna.Syntax.Text.Parser.IR.Class            (Error, ParserBase, Stream,
                                                     Token)
+import Luna.Syntax.Text.Parser.IR.Term             (Ast)
 import Luna.Syntax.Text.Parser.Pass.Class          (IRB (fromIRB), IRBS, Parser,
                                                     ParserPass, fromIRBS)
 import Luna.Syntax.Text.Parser.State.LastOffset    (LastOffset)
@@ -117,7 +118,7 @@ registerDynamic = do
 --     pure (ref, gidMap)
 
 runParser__ :: ParserPass (Pass stage Parser)
-    => Parsing.SyntaxVersion -> Parsing.Parser Ast.Spanned -> Text32 -> Pass stage Parser (SomeTerm, Marker.TermMap)
+    => Parsing.SyntaxVersion -> Parsing.Parser Ast -> Text32 -> Pass stage Parser (SomeTerm, Marker.TermMap)
 runParser__ sv p src = do
     let ast = runParserxx__ sv p src
     ((ref, unmarked), gidMap) <- State.runDefT @Marker.TermMap

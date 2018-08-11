@@ -132,8 +132,8 @@ import Data.Parser.Instances.Attoparsec ()
 
 type Text = Text.Text32
 
-type Ast = Ast.Spanned
-
+type Ast = Ast.Spanned Ast.Ast
+type UnspannedAst = Ast.Ast
 
 -- x
 
@@ -303,7 +303,7 @@ getLastOffset   = unwrap <$> State.get @LastOffset
 -- -- irbsFromSpan :: CodeSpan -> IRB (Term a) -> IRBS (Term a)
 -- -- irbsFromSpan = IRBS .: attachCodeSpanLayer ; {-# INLINE irbsFromSpan #-}
 
--- spanned :: Parser Ast.Unspanned -> Parser Ast.Spanned
+-- spanned :: Parser UnspannedAst -> Parser Ast.Spanned
 -- spanned = \p -> uncurry Ast.Spanned <$> computeSpan p
 -- {-# INLINE spanned #-}
 
@@ -527,7 +527,7 @@ isOperatorChar = \c -> let
          || (ord == 60)              -- <
          || (ord == 62)              -- >
          || (ord == 63)              -- ?
-         || (ord == 92)              -- \
+        --  || (ord == 92)              -- \
          || (ord == 94)              -- ^
          || (ord == 126)             -- ~
          || (c /= '=' && Char.generalCategory c == Char.MathSymbol)
@@ -560,17 +560,21 @@ invalid :: Parser Invalid.Symbol -> Parser Ast
 invalid = Ast.computeSpan . invalid'
 {-# INLINE invalid #-}
 
-invalid' :: Parser Invalid.Symbol -> Parser Ast.Unspanned
+invalid' :: Parser Invalid.Symbol -> Parser UnspannedAst
 invalid' = fmap Ast.invalid'
 {-# INLINE invalid' #-}
+
+
+keyword :: Text -> Parser Text
+keyword = Ast.lexeme . tokens
+{-# INLINE keyword #-}
 
 old_funcDef :: Parser Ast
 old_funcDef = syntax1Only parser where
 
     -- Utils
     blockChar  = ':'
-    keyword    = "def"
-    header     = Ast.lexeme $ tokens keyword
+    header     = keyword "def"
 
     -- Name
     name       = var <|> opName <|> invName
@@ -598,6 +602,9 @@ old_funcDef = syntax1Only parser where
     parser     = Ast.computeSpan $ header >> (valDef <|> invDef)
 
 
+-- typeDef :: Parser Ast
+-- typeDef = where
+--     header = keyword "type" <*> consName
 
 old_nonSpacedExpr :: Parser Ast
 old_nonSpacedExpr = choice
@@ -633,7 +640,9 @@ chunkOfNot s = Text.length <$> takeWhile1 (not . (`elem` break)) where
 -- {-# INLINE lineExpr #-}
 
 lineExpr :: Parser Ast
-lineExpr = Ast.exprList <$> multiLineBlock1 (gatherMany1 elems) where
+lineExpr = Ast.exprList <$> multiLineBlock1 line where
+    line   = gatherMany1 elems <**> (option id (flip (<>) <$ glue <*> line))
+    glue   = Ast.lexeme (token '\\') <* some Ast.newline
     single = ((:|) <$>)
     elems  = choice
         [ single old_funcDef
@@ -641,9 +650,13 @@ lineExpr = Ast.exprList <$> multiLineBlock1 (gatherMany1 elems) where
         , single cons
         , lamBlock
         , single operator
+        , single unknown
         ]
 {-# INLINE lineExpr #-}
 
+unknown :: Parser Ast
+unknown = invalid $ Invalid.Unknown <$ chunk
+{-# INLINE unknown #-}
 
 
 expr :: Parser Ast
@@ -670,14 +683,6 @@ nePrepend = \a (t :| ts) -> a :| (t : ts)
 --------------------
 -- === Layout === --
 --------------------
-
--- multiLineBlock1 :: Parser a -> Parser (NonEmpty a)
--- multiLineBlock1 p = (:|) <$> p <*> option [] ps where
---     line = Ast.newline >> Indent.indented >> ps
---     ps   = p <**> (flip (:) <$> (ps <|> line <|> pure []))
--- {-# INLINE multiLineBlock1 #-}
-
-
 
 discoverBlock1 :: Parser a -> Parser (NonEmpty a)
 discoverBlock1 = \p -> let

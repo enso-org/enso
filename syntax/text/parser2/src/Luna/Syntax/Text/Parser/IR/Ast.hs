@@ -126,54 +126,88 @@ instance (MonadTrans t, Monad (t m), KnownParserOffset m)
     -- DEPRECATED:
     -- | FunctionSig  { name     :: Ast     , sig    :: Ast         }
 
+-- data Foo a = Foo {-# UNPACK #-} !a
+-- data Spanned2 a = Spanned2
+--     { _span2 :: CodeSpan
+--     , _ast2  :: a
+--     } deriving (Show)
+
+-- type family Link t a
+
+-- data TypeDef t = TypeDef { name2 :: {-# Unpack #-} !(Maybe Int) , body :: {-# UNPACK #-} !(Link t (Maybe (Block2 t))) }
+-- data Block2  t = Block2  { lines2 :: Link t (NonEmpty (Ast2 t)) }
+
+-- data Ast2 t
+--     = AstTypeDef (TypeDef t)
+--     | AstBlock2  (Block2 t)
 
 
-
-data App      a = App      { base  :: a, arg :: a           } deriving (Show)
-data Block    a = Block    { lines :: NonEmpty a            } deriving (Show)
-data Cons     a = Cons     { name  :: Name                  } deriving (Show)
-data ExprList a = ExprList { exprs :: NonEmpty (NonEmpty a) } deriving (Show)
-data Invalid  a = Invalid  { desc  :: Invalid.Symbol        } deriving (Show)
-data Marker   a = Marker   { mid   :: Int                   } deriving (Show)
-data Modifier a = Modifier { name  :: Name                  } deriving (Show)
-data Operator a = Operator { name  :: Name                  } deriving (Show)
-data Unify    a = Unify    { left  :: a, right :: a         } deriving (Show)
-data Var      a = Var      { name  :: Name                  } deriving (Show)
-data Wildcard a = Wildcard                                    deriving (Show)
-data Missing  a = Missing                                     deriving (Show)
-
--- OLD
-data Function a = Function { nm   :: a, args :: [a], body :: a } deriving (Show)
-
-data Ast a
-    = AstApp      (App a)
-    | AstBlock    (Block a)
-    | AstCons     (Cons a)
-    | AstExprList (ExprList a)
-    | AstInvalid  (Invalid a)
-    | AstMarker   (Marker a)
-    | AstModifier (Modifier a)
-    | AstOperator (Operator a)
-    | AstUnify    (Unify a)
-    | AstVar      (Var a)
-    | AstWildcard (Wildcard a)
-    | AstMissing  (Missing a)
-
-    -- OLD
-    | AstFunction (Function a)
-    deriving (Show)
-
-
-type Unspanned = Ast Spanned
-data Spanned   = Spanned
+-- type Unspanned = Ast Spanned
+data Spanned a = Spanned
     { _span :: CodeSpan
-    , _ast  :: Unspanned
+    , _ast  :: a
     } deriving (Show)
 makeLenses ''Spanned
 
+type family ExpandField t a
+data Simple
+
+-- type instance Link Parsed a = Spanned2 (LinkParsed a)
+-- type family LinkParsed a where
+--     LinkParsed (Maybe a) = Maybe (LinkParsed a)
+
+type S a = ExpandField Simple a
+
+type instance ExpandField Simple a = ExpandFieldSimple a
+
+type family ExpandFieldSimple a where
+    ExpandFieldSimple Ast            = Spanned Ast
+    ExpandFieldSimple (NonEmpty a)   = NonEmpty (ExpandFieldSimple a)
+    ExpandFieldSimple [a]            = [ExpandFieldSimple a]
+    ExpandFieldSimple Name           = Name
+    ExpandFieldSimple Int            = Int
+    ExpandFieldSimple Invalid.Symbol = Invalid.Symbol
+
+data App      = App      { base  :: S Ast, arg :: S Ast         } deriving (Show)
+data Block    = Block    { lines :: S (NonEmpty Ast)            } deriving (Show)
+data Cons     = Cons     { name  :: S Name                      } deriving (Show)
+data ExprList = ExprList { exprs :: S (NonEmpty (NonEmpty Ast)) } deriving (Show)
+data Invalid  = Invalid  { desc  :: S Invalid.Symbol            } deriving (Show)
+data Marker   = Marker   { mid   :: S Int                       } deriving (Show)
+data Modifier = Modifier { name  :: S Name                      } deriving (Show)
+data Operator = Operator { name  :: S Name                      } deriving (Show)
+data Unify    = Unify    { left  :: S Ast, right :: S Ast       } deriving (Show)
+data Var      = Var      { name  :: S Name                      } deriving (Show)
+data Wildcard = Wildcard                                          deriving (Show)
+data Missing  = Missing                                           deriving (Show)
+
+-- OLD
+data Function = Function { nm   :: S Ast, args :: S [Ast], body :: S Ast } deriving (Show)
+
+data Ast
+    = AstApp      App
+    | AstBlock    Block
+    | AstCons     Cons
+    | AstExprList ExprList
+    | AstInvalid  Invalid
+    | AstMarker   Marker
+    | AstModifier Modifier
+    | AstOperator Operator
+    | AstUnify    Unify
+    | AstVar      Var
+    | AstWildcard Wildcard
+    | AstMissing  Missing
+
+    -- OLD
+    | AstFunction Function
+    deriving (Show)
+
+
+
+
 
 inheritCodeSpan2
-    :: (Spanned -> Spanned -> Unspanned) -> (Spanned -> Spanned -> Spanned)
+    :: (Spanned Ast -> Spanned Ast -> Ast) -> (Spanned Ast -> Spanned Ast -> Spanned Ast)
 inheritCodeSpan2 = \f t1 t2 -> let
     s1 = t1 ^. span
     s2 = t2 ^. span
@@ -181,14 +215,14 @@ inheritCodeSpan2 = \f t1 t2 -> let
 {-# INLINE inheritCodeSpan2 #-}
 
 inheritCodeSpanList
-    :: (NonEmpty Spanned -> Unspanned) -> (NonEmpty Spanned -> Spanned)
+    :: (NonEmpty (Spanned Ast) -> Ast) -> (NonEmpty (Spanned Ast) -> (Spanned Ast))
 inheritCodeSpanList = \f ts -> let
     (s :| ss) = view span <$> ts
     in Spanned (foldl' (<>) s ss) $ f ts
 {-# INLINE inheritCodeSpanList #-}
 
 inheritCodeSpanList'
-    :: NonEmpty Spanned -> Unspanned -> Spanned
+    :: NonEmpty (Spanned Ast) -> Ast -> (Spanned Ast)
 inheritCodeSpanList' = \ts -> let
     (s :| ss) = view span <$> ts
     in Spanned (foldl' (<>) s ss)
@@ -252,7 +286,7 @@ whiteSpace :: Parser Delta
 whiteSpace = convert . Text.length <$> takeMany ' '
 {-# INLINE whiteSpace #-}
 
-computeSpan :: Parser Unspanned -> Parser Spanned
+computeSpan :: Parser Ast -> Parser (Spanned Ast)
 computeSpan = \p -> uncurry Spanned <$> spanned p
 {-# INLINE computeSpan #-}
 
@@ -270,24 +304,24 @@ eolStartChars = ['\n', '\r', '\ETX']
 
 -- === Smart constructors === --
 
-app :: Spanned -> Spanned -> Spanned
+app :: Spanned Ast -> Spanned Ast -> Spanned Ast
 app = inheritCodeSpan2 $ \base arg -> AstApp $ App base arg
 {-# INLINE app #-}
 
-block :: NonEmpty Spanned -> Spanned
+block :: NonEmpty (Spanned Ast) -> Spanned Ast
 block = inheritCodeSpanList $ \lines -> AstBlock $ Block lines
 {-# INLINE block #-}
 
-cons' :: Name -> Unspanned
+cons' :: Name -> Ast
 cons' = \name -> AstCons $ Cons name
 {-# INLINE cons' #-}
 
-exprList :: NonEmpty (NonEmpty Spanned) -> Spanned
+exprList :: NonEmpty (NonEmpty (Spanned Ast)) -> Spanned Ast
 exprList = inheritCodeSpanListx $ \exprs -> AstExprList $ ExprList exprs
 {-# INLINE exprList #-}
 
 inheritCodeSpanListx
-    :: (NonEmpty (NonEmpty Spanned) -> Unspanned) -> (NonEmpty (NonEmpty Spanned) -> Spanned)
+    :: (NonEmpty (NonEmpty (Spanned Ast)) -> Ast) -> (NonEmpty (NonEmpty (Spanned Ast)) -> Spanned Ast)
 inheritCodeSpanListx = \f ts -> inheritCodeSpanList' (nneFlatten' ts) $ f ts
 {-# INLINE inheritCodeSpanListx #-}
 
@@ -302,33 +336,33 @@ nneFlatten' = \s -> let
     in a :| as
 {-# INLINE nneFlatten' #-}
 
-invalid' :: Invalid.Symbol -> Unspanned
+invalid' :: Invalid.Symbol -> Ast
 invalid' = \desc -> AstInvalid $ Invalid desc
 {-# INLINE invalid' #-}
 
-marker' :: Int -> Unspanned
+marker' :: Int -> Ast
 marker' = \id -> AstMarker $ Marker id
 {-# INLINE marker' #-}
 
-modifier' :: Name -> Unspanned
+modifier' :: Name -> Ast
 modifier' = \name -> AstModifier $ Modifier name
 {-# INLINE modifier' #-}
 
-operator' :: Name -> Unspanned
+operator' :: Name -> Ast
 operator' = \name -> AstOperator $ Operator name
 {-# INLINE operator' #-}
 
-unify :: Spanned -> Spanned -> Spanned
+unify :: Spanned Ast -> Spanned Ast -> Spanned Ast
 unify = inheritCodeSpan2 $ \left right -> AstUnify $ Unify left right
 {-# INLINE unify #-}
 
-var' :: Name -> Unspanned
+var' :: Name -> Ast
 var' = \name -> AstVar $ Var name
 {-# INLINE var' #-}
 
 
 
--- function :: Name -> [Spanned] -> Spanned -> Spanned
+-- function :: Name -> [Spanned Ast] -> Spanned Ast -> Spanned Ast
 -- function = \name args block -> let
 --     lst = case args of
 --         []       -> block :| []
@@ -336,7 +370,7 @@ var' = \name -> AstVar $ Var name
 --     in inheritCodeSpanList' lst $ AstFunction $ Function name args block
 -- {-# INLINE function #-}
 
-function' :: Spanned -> [Spanned] -> Spanned -> Unspanned
+function' :: Spanned Ast -> [Spanned Ast] -> Spanned Ast -> Ast
 function' = \name args block -> let
     lst = case args of
         []       -> block :| []
@@ -346,22 +380,22 @@ function' = \name args block -> let
 
 
 
-wildcard' :: Unspanned
+wildcard' :: Ast
 wildcard' = AstWildcard Wildcard
 {-# INLINE wildcard' #-}
 
-missing' :: Unspanned
+missing' :: Ast
 missing' = AstMissing Missing
 {-# INLINE missing' #-}
 
-missing :: Spanned
+missing :: Spanned Ast
 missing = Spanned mempty $ AstMissing Missing
 {-# INLINE missing #-}
 
 
 
 
-buildIR :: Parser.IRBMonad m => Spanned -> m SomeTerm
+buildIR :: Parser.IRBMonad m => Spanned Ast -> m SomeTerm
 buildIR = \(Spanned cs ast)   -> case ast of
     AstVar  (Var  name)       -> IR.var'  name
     AstCons (Cons name)       -> IR.cons' name []
@@ -391,7 +425,7 @@ markerEnd   = '»'
 {-# INLINE markerBegin #-}
 {-# INLINE markerEnd   #-}
 
-parseMarker :: Parser Spanned
+parseMarker :: Parser (Spanned Ast)
 parseMarker = computeSpan parser where
     correct   = AstMarker . Marker <$> decimal
     incorrect = invalid' Invalid.InvalidMarker <$ takeTill (== markerEnd)
