@@ -152,6 +152,9 @@ instance Convertible Text.Text32 Name where
 
 
 
+
+
+
 -- ---------------------
 -- -- === Satisfy === --
 -- ---------------------
@@ -411,6 +414,72 @@ getLastOffset   = unwrap <$> State.get @LastOffset
 -- namedIdent = namedVar <|> namedCons <|> namedOp    ; {-# INLINE namedIdent #-}
 
 
+-- === Helpers === --
+
+-- irbsNamed :: (Name -> IRB (Term a)) -> Parser Name -> Parser (Name, IRBS (Term a))
+-- irbsNamed cons = irbsF . fmap (\name -> (name, cons name)) ; {-# INLINE irbsNamed #-}
+
+
+
+-------------------------------
+-- === Syntax management === --
+-------------------------------
+
+syntax1Only :: Parser a -> Parser a
+syntax1Only = \p -> State.get @Ast.SyntaxVersion >>= \case
+    Ast.Syntax1 -> p
+    Ast.Syntax2 -> fail "syntax 1 only"
+{-# INLINE syntax1Only #-}
+
+
+
+---------------------
+-- === Helpers === --
+---------------------
+
+symbol :: Text -> Parser Text
+symbol = Ast.lexeme . tokens
+{-# INLINE symbol #-}
+
+invalid :: Parser Invalid.Symbol -> Parser Ast
+invalid = Ast.computeSpan . invalid'
+{-# INLINE invalid #-}
+
+invalid' :: Parser Invalid.Symbol -> Parser UnspannedAst
+invalid' = fmap Ast.invalid'
+{-# INLINE invalid' #-}
+
+unknown :: Parser Ast
+unknown = invalid $ do
+    txt <- chunk
+    Ast.checkBlacklistedUnknown $ Text.head txt
+    pure $ Invalid.Unknown
+{-# INLINE unknown #-}
+
+gatherWith1 :: (Alternative m, Mempty a) => (b -> a) -> m (a -> b) -> m b
+gatherWith1 = \f p -> let go = p <*> option mempty (f <$> go) in go
+{-# INLINE gatherWith1 #-}
+
+gatherMany1 :: (Alternative m) => m ([a] -> NonEmpty a) -> m (NonEmpty a)
+gatherMany1 = gatherWith1 convert
+{-# INLINE gatherMany1 #-}
+
+anyLine :: Parser Text
+anyLine = takeWhile $ not . (`elem` Ast.eolStartChars)
+{-# INLINE anyLine #-}
+
+chunk :: Parser Text
+chunk = takeWhile1 (not . (`elem` break)) where
+    break = ' ' : Ast.eolStartChars
+{-# INLINE chunk #-}
+
+chunkOfNot :: [Char] -> Parser Int
+chunkOfNot s = Text.length <$> takeWhile1 (not . (`elem` break)) where
+    break = ' ' : (s <> Ast.eolStartChars)
+{-# INLINE chunkOfNot #-}
+
+
+
 -------------------------
 -- === Identifiers === --
 -------------------------
@@ -527,7 +596,7 @@ isOperatorChar = \c -> let
          || (ord == 60)              -- <
          || (ord == 62)              -- >
          || (ord == 63)              -- ?
-        --  || (ord == 92)              -- \
+         || (ord == 92)              -- \
          || (ord == 94)              -- ^
          || (ord == 126)             -- ~
          || (c /= '=' && Char.generalCategory c == Char.MathSymbol)
@@ -535,10 +604,48 @@ isOperatorChar = \c -> let
 {-# INLINE isOperatorChar #-}
 
 
--- === Helpers === --
 
--- irbsNamed :: (Name -> IRB (Term a)) -> Parser Name -> Parser (Name, IRBS (Term a))
--- irbsNamed cons = irbsF . fmap (\name -> (name, cons name)) ; {-# INLINE irbsNamed #-}
+-------------------------
+-- === Expressions === --
+-------------------------
+
+-- === Parsers === --
+
+expr :: Parser Ast
+expr = lineExpr -- <**> assignment where
+    -- assignment = option id (flip Ast.unify <$ Ast.lexeme (token '=') <*> lineExpr)
+
+lineExpr :: Parser Ast
+lineExpr = lineExprBldr isOperatorChar
+{-# INLINE lineExpr #-}
+
+lineExprBldr :: (Char -> Bool) -> Parser Ast
+lineExprBldr = \opFilter -> let
+    -- line   = Ast.exprLine <$> gatherMany1 elems
+    single = ((:|) <$>)
+    nlOp   = Ast.computeSpan $ Ast.operator' "#linebreak#" <$ some Ast.newline <* Indent.indented
+    elems  = choice
+        [ single old_funcDef
+        , single var
+        , single cons
+        , lamBlock
+        , single (operatorBy opFilter)
+        , single group
+        , single unknown
+        , single nlOp
+        ]
+    in Ast.expr <$> gatherMany1 elems
+{-# INLINE lineExprBldr #-}
+
+-- multiLineBlock1x :: Parser Ast -> Parser (NonEmpty Ast)
+-- multiLineBlock1x = \p -> let
+--     line = (:) <$> nlOp <* Indent.indented <*> p
+--     nlOp = Ast.computeSpan $ Ast.operator' "#linebreak#" <$ some Ast.newline
+--     in (:|) <$> p <*> many line
+-- {-# INLINE multiLineBlock1x #-}
+
+
+-- === Elements === --
 
 lamBlock :: Parser ([Ast] -> NonEmpty Ast)
 lamBlock = (\a b c -> a :| b : c) <$> arrow <*> body where
@@ -549,40 +656,21 @@ lamBlock = (\a b c -> a :| b : c) <$> arrow <*> body where
         Ast.Syntax2 -> tokens "->"
 {-# INLINE lamBlock #-}
 
-syntax1Only :: Parser a -> Parser a
-syntax1Only = \p -> State.get @Ast.SyntaxVersion >>= \case
-    Ast.Syntax1 -> p
-    Ast.Syntax2 -> fail "syntax 1 only"
-{-# INLINE syntax1Only #-}
-
-
-invalid :: Parser Invalid.Symbol -> Parser Ast
-invalid = Ast.computeSpan . invalid'
-{-# INLINE invalid #-}
-
-invalid' :: Parser Invalid.Symbol -> Parser UnspannedAst
-invalid' = fmap Ast.invalid'
-{-# INLINE invalid' #-}
-
-
-keyword :: Text -> Parser Text
-keyword = Ast.lexeme . tokens
-{-# INLINE keyword #-}
 
 old_funcDef :: Parser Ast
 old_funcDef = syntax1Only parser where
 
     -- Utils
     blockChar  = ':'
-    header     = keyword "def"
+    header     = symbol "def"
 
     -- Name
     name       = var <|> opName <|> invName
     opName     = operatorBy (\c -> isOperatorChar c && c /= blockChar)
-    invName    = invalid $ Invalid.InvalidFunctionName <$> chunk
+    invName    = invalid $ Invalid.InvalidFunctionName <$ chunk
 
     -- Args
-    invArg     = invalid $ Invalid.InvalidFunctionArg <$> chunkOfNot [blockChar]
+    invArg     = invalid $ Invalid.InvalidFunctionArg <$ chunkOfNot [blockChar]
     args       = many (old_nonSpacedExpr <|> invArg)
 
     blockStart = Ast.lexeme $ token blockChar
@@ -602,82 +690,44 @@ old_funcDef = syntax1Only parser where
     parser     = Ast.computeSpan $ header >> (valDef <|> invDef)
 
 
--- typeDef :: Parser Ast
--- typeDef = where
---     header = keyword "type" <*> consName
+-- a co jesli [a,b,c] potraktujemy jako mixfix?
+
+-- list :: Parser Ast
+-- list = Ast.computeSpan $ braced $ Ast.list' <$> elems where
+--     missing :: Parser (IRBS SomeTerm)
+--     missing   = irbs . pure $ irb0 IR.missing'
+--     elem      = Reserved.withLocal sep p
+--     optElem   = elem <|> missing
+--     bodyH     = (:) <$> elem    <*> many       (separator *> optElem)
+--     bodyT     = (:) <$> missing <*> someAsList (separator *> optElem)
+--     elems     = option mempty $ bodyH <|> bodyT
+--     separator = symbol ","
+
 
 old_nonSpacedExpr :: Parser Ast
 old_nonSpacedExpr = choice
     [ var
     , cons
+    , group
     ]
 {-# INLINE old_nonSpacedExpr #-}
 
 
-anyLine :: Parser Text
-anyLine = takeWhile $ not . (`elem` Ast.eolStartChars)
-{-# INLINE anyLine #-}
+group :: Parser Ast
+group = Ast.computeSpan $ Ast.grouped' <$> parensed expr where
+{-# INLINE group #-}
 
-chunk :: Parser Int
-chunk = Text.length <$> takeWhile1 (not . (`elem` break)) where
-    break = ' ' : Ast.eolStartChars
-{-# INLINE chunk #-}
+parensed :: Parser a -> Parser a
+parensed = \p -> symbol "(" *> Ast.withBlacklistedUnknown ')' p <* symbol ")"
+{-# INLINE parensed #-}
 
-chunkOfNot :: [Char] -> Parser Int
-chunkOfNot s = Text.length <$> takeWhile1 (not . (`elem` break)) where
-    break = ' ' : (s <> Ast.eolStartChars)
-{-# INLINE chunkOfNot #-}
+braced :: Parser a -> Parser a
+braced = \p -> symbol "[" *> Ast.withBlacklistedUnknown ']' p <* symbol "]"
+{-# INLINE braced #-}
 
 
 
 
--------------------------
--- === Expressions === --
--------------------------
-
--- lineExpr :: Parser Ast
--- lineExpr = Ast.exprList <$> multiLineBlock1 (some $ choice [var, cons, lamBlock, operator])
--- {-# INLINE lineExpr #-}
-
-lineExpr :: Parser Ast
-lineExpr = Ast.exprList <$> multiLineBlock1 line where
-    line   = gatherMany1 elems <**> (option id (flip (<>) <$ glue <*> line))
-    glue   = Ast.lexeme (token '\\') <* some Ast.newline
-    single = ((:|) <$>)
-    elems  = choice
-        [ single old_funcDef
-        , single var
-        , single cons
-        , lamBlock
-        , single operator
-        , single unknown
-        ]
-{-# INLINE lineExpr #-}
-
-unknown :: Parser Ast
-unknown = invalid $ Invalid.Unknown <$ chunk
-{-# INLINE unknown #-}
-
-
-expr :: Parser Ast
-expr = lineExpr -- <**> assignment where
-    -- assignment = option id (flip Ast.unify <$ Ast.lexeme (token '=') <*> lineExpr)
-
-
-gatherWith1 :: (Alternative m, Mempty a) => (b -> a) -> m (a -> b) -> m b
-gatherWith1 = \f p -> let go = p <*> option mempty (f <$> go) in go
-{-# INLINE gatherWith1 #-}
-
-gatherMany1 :: (Alternative m) => m ([a] -> NonEmpty a) -> m (NonEmpty a)
-gatherMany1 = gatherWith1 convert
-{-# INLINE gatherMany1 #-}
-
-
-    -- = (:) <$> p <*> (many1x p <|> pure mempty)
-
-nePrepend :: a -> NonEmpty a -> NonEmpty a
-nePrepend = \a (t :| ts) -> a :| (t : ts)
-{-# INLINE nePrepend #-}
 
 
 --------------------
@@ -1412,7 +1462,7 @@ flexBlock = \p -> option mempty $ convert <$> flexBlock1 p
 --     (\safety -> id (irb1 IR.foreignImportSafety' safety))
 --     <$> ((pure Import.Default) :: Parser IR.ForeignImportType)
 
--- -- TODO [Ara, WD] Need to have the lexer deal with these as contextual keywords
+-- -- TODO [Ara, WD] Need to have the lexer deal with these as contextual symbols
 -- -- using a positive lookahead in the _Lexer_.
 -- specifiedFISafety :: Parser (IRBS SomeTerm)
 -- specifiedFISafety = irbs $

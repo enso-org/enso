@@ -24,6 +24,7 @@ import qualified Control.Monad.State.Layered          as State
 import qualified Data.Attoparsec.Internal.Types       as AttoParsec
 import qualified Data.Attoparsec.Text32               as Parsec
 import qualified Data.Char                            as Char
+import qualified Data.Set                             as Set
 import qualified Data.Text.Position                   as Position
 import qualified Data.Text.Span                       as Span
 import qualified Luna.Syntax.Text.Lexer               as Lexer
@@ -32,6 +33,7 @@ import qualified Luna.Syntax.Text.Parser.State.Marker as Marker
 import qualified Luna.Syntax.Text.Scope               as Scope
 
 import Control.Monad.State.Layered              (StatesT)
+import Data.Set                                 (Set)
 import Data.Text.Position                       (FileOffset (..))
 import Data.Text.Position                       (Delta, Position)
 import Luna.Syntax.Text.Parser.State.LastOffset (LastOffset (LastOffset))
@@ -46,7 +48,62 @@ type Text = Text.Text32
 data SyntaxVersion = Syntax1 | Syntax2 deriving (Show)
 
 
--- data Location = Location
+
+-----------------------
+-- === Blacklist === --
+-----------------------
+
+-- === Definition === --
+
+data Blacklist = Blacklist
+    { _unknownBlacklist :: Set Char
+    , _operators        :: Set Name
+    }
+makeLenses ''Blacklist
+
+
+-- === API === --
+
+withBlacklistedUnknown :: State.Monad Blacklist m => Char -> m a -> m a
+withBlacklistedUnknown = \a
+     -> State.withModified @Blacklist (unknownBlacklist %~ Set.insert a)
+{-# INLINE withBlacklistedUnknown #-}
+
+
+withBlacklistedOperator :: State.Monad Blacklist m => Name -> m a -> m a
+withBlacklistedOperator = \a -> State.withModified @Blacklist (operators %~ Set.insert a)
+{-# INLINE withBlacklistedOperator #-}
+
+
+checkBlacklistedUnknown :: Char -> Parser ()
+checkBlacklistedUnknown = \a -> do
+    blacklisted <- Set.member a . view unknownBlacklist <$> State.get @Blacklist
+    when_ blacklisted $ fail "Blacklisted"
+{-# INLINE checkBlacklistedUnknown #-}
+
+checkBlacklistedOperator :: Name -> Parser ()
+checkBlacklistedOperator = \a -> do
+    blacklisted <- Set.member a . view operators <$> State.get @Blacklist
+    when_ blacklisted $ fail "Blacklisted"
+{-# INLINE checkBlacklistedOperator #-}
+
+
+
+-- === Instances === --
+
+instance Mempty Blacklist where
+    mempty = Blacklist mempty mempty
+    {-# INLINE mempty #-}
+
+instance Default Blacklist where
+    def = mempty
+    {-# INLINE def #-}
+
+
+
+
+
+    -- data Location = Location
 --     { _offset :: Delta
 --     , _column :: Delta
 --     , _row    :: Delta
@@ -62,7 +119,7 @@ data SyntaxVersion = Syntax1 | Syntax2 deriving (Show)
 --     {-# INLINE def #-}
 
 
-type Parser = StatesT '[SyntaxVersion, Indent, Position, LastOffset, CodeSpanRange, Marker.State, FileOffset, Scope.Scope] Parsec.Parser
+type Parser = StatesT '[SyntaxVersion, Blacklist, Indent, Position, LastOffset, CodeSpanRange, Marker.State, FileOffset, Scope.Scope] Parsec.Parser
 
 
 
@@ -146,7 +203,7 @@ instance (MonadTrans t, Monad (t m), KnownParserOffset m)
 data Spanned a = Spanned
     { _span :: CodeSpan
     , _ast  :: a
-    } deriving (Show)
+    } deriving (Functor, Show)
 makeLenses ''Spanned
 
 type family ExpandField t a
@@ -161,18 +218,24 @@ type S a = ExpandField Simple a
 type instance ExpandField Simple a = ExpandFieldSimple a
 
 type family ExpandFieldSimple a where
-    ExpandFieldSimple Ast            = Spanned Ast
     ExpandFieldSimple (NonEmpty a)   = NonEmpty (ExpandFieldSimple a)
     ExpandFieldSimple [a]            = [ExpandFieldSimple a]
-    ExpandFieldSimple Name           = Name
     ExpandFieldSimple Int            = Int
+    ExpandFieldSimple Bool           = Bool
+    ExpandFieldSimple Name           = Name
     ExpandFieldSimple Invalid.Symbol = Invalid.Symbol
+
+    ExpandFieldSimple Ast            = Spanned Ast
+    ExpandFieldSimple Expr           = Spanned Expr
+
 
 data App      = App      { base  :: S Ast, arg :: S Ast         } deriving (Show)
 data Block    = Block    { lines :: S (NonEmpty Ast)            } deriving (Show)
 data Cons     = Cons     { name  :: S Name                      } deriving (Show)
-data ExprList = ExprList { exprs :: S (NonEmpty (NonEmpty Ast)) } deriving (Show)
+data Expr     = Expr     { line  :: S (NonEmpty Ast)            } deriving (Show)
+data Grouped  = Grouped  { body  :: S Ast                       } deriving (Show)
 data Invalid  = Invalid  { desc  :: S Invalid.Symbol            } deriving (Show)
+data List     = List     { elems :: S [Ast]                     } deriving (Show)
 data Marker   = Marker   { mid   :: S Int                       } deriving (Show)
 data Modifier = Modifier { name  :: S Name                      } deriving (Show)
 data Operator = Operator { name  :: S Name                      } deriving (Show)
@@ -180,6 +243,9 @@ data Unify    = Unify    { left  :: S Ast, right :: S Ast       } deriving (Show
 data Var      = Var      { name  :: S Name                      } deriving (Show)
 data Wildcard = Wildcard                                          deriving (Show)
 data Missing  = Missing                                           deriving (Show)
+data Record   = Record   { isNative :: S Bool , name  :: S Name
+                         , params   :: S [Ast], conss :: S [Ast]
+                         , decls    :: S [Ast]                  } deriving (Show)
 
 -- OLD
 data Function = Function { nm   :: S Ast, args :: S [Ast], body :: S Ast } deriving (Show)
@@ -188,8 +254,10 @@ data Ast
     = AstApp      App
     | AstBlock    Block
     | AstCons     Cons
-    | AstExprList ExprList
+    | AstExpr     Expr
+    | AstGrouped  Grouped
     | AstInvalid  Invalid
+    | AstList     List
     | AstMarker   Marker
     | AstModifier Modifier
     | AstOperator Operator
@@ -215,7 +283,7 @@ inheritCodeSpan2 = \f t1 t2 -> let
 {-# INLINE inheritCodeSpan2 #-}
 
 inheritCodeSpanList
-    :: (NonEmpty (Spanned Ast) -> Ast) -> (NonEmpty (Spanned Ast) -> (Spanned Ast))
+    :: (NonEmpty (Spanned a) -> b) -> (NonEmpty (Spanned a) -> (Spanned b))
 inheritCodeSpanList = \f ts -> let
     (s :| ss) = view span <$> ts
     in Spanned (foldl' (<>) s ss) $ f ts
@@ -316,29 +384,21 @@ cons' :: Name -> Ast
 cons' = \name -> AstCons $ Cons name
 {-# INLINE cons' #-}
 
-exprList :: NonEmpty (NonEmpty (Spanned Ast)) -> Spanned Ast
-exprList = inheritCodeSpanListx $ \exprs -> AstExprList $ ExprList exprs
-{-# INLINE exprList #-}
+expr :: NonEmpty (Spanned Ast) -> Spanned Ast
+expr = inheritCodeSpanList $ \toks -> AstExpr $ Expr toks
+{-# INLINE expr #-}
 
-inheritCodeSpanListx
-    :: (NonEmpty (NonEmpty (Spanned Ast)) -> Ast) -> (NonEmpty (NonEmpty (Spanned Ast)) -> Spanned Ast)
-inheritCodeSpanListx = \f ts -> inheritCodeSpanList' (nneFlatten' ts) $ f ts
-{-# INLINE inheritCodeSpanListx #-}
-
-nneFlatten :: NonEmpty (NonEmpty a) -> [a]
-nneFlatten = concat . flatten . fmap flatten where
-    flatten (a :| as) = a : as
-{-# INLINE nneFlatten #-}
-
-nneFlatten' :: NonEmpty (NonEmpty a) -> NonEmpty a
-nneFlatten' = \s -> let
-    (a : as) = nneFlatten s
-    in a :| as
-{-# INLINE nneFlatten' #-}
+grouped' :: Spanned Ast -> Ast
+grouped' = \body -> AstGrouped $ Grouped body
+{-# INLINE grouped' #-}
 
 invalid' :: Invalid.Symbol -> Ast
 invalid' = \desc -> AstInvalid $ Invalid desc
 {-# INLINE invalid' #-}
+
+list' :: [Spanned Ast] -> Ast
+list' = \elems -> AstList $ List elems
+{-# INLINE list' #-}
 
 marker' :: Int -> Ast
 marker' = \id -> AstMarker $ Marker id
@@ -395,13 +455,18 @@ missing = Spanned mempty $ AstMissing Missing
 
 
 
-buildIR :: Parser.IRBMonad m => Spanned Ast -> m SomeTerm
-buildIR = \(Spanned cs ast)   -> case ast of
-    AstVar  (Var  name)       -> IR.var'  name
-    AstCons (Cons name)       -> IR.cons' name []
-    AstWildcard {}            -> IR.blank'
-    AstInvalid (Invalid a)    -> IR.invalid' a
-    AstExprList (ExprList ss) -> IR.exprList' =<< mapM buildIR (nneFlatten ss)
+buildIR :: forall m. Parser.IRBMonad m => Spanned Ast -> m SomeTerm
+buildIR = \(Spanned cs ast)  -> case ast of
+    AstVar  (Var  name)      -> IR.var'  name
+    AstCons (Cons name)      -> IR.cons' name []
+    AstWildcard {}           -> IR.blank'
+    AstInvalid (Invalid a)   -> IR.invalid' a
+    AstExpr    (Expr a)      -> IR.exprList' =<< mapM buildIR (convert a)
+    --     (els :: [SomeTerm]) <- ((:) <$> run s <*> mapM runX ss)
+    --     IR.exprList' els
+    --     where
+    --     run  (Spanned _ (Expr     a)) =                 IR.exprList' =<< mapM buildIR (convert a)
+    --     runX (Spanned _ (Expr     a)) = IR.grouped' =<< IR.exprList  =<< mapM buildIR (convert a)
     AstApp  (App  base arg) -> do
         base' <- buildIR base
         arg'  <- buildIR arg
@@ -411,6 +476,9 @@ buildIR = \(Spanned cs ast)   -> case ast of
         args' <- mapM buildIR args
         body' <- buildIR body
         IR.function' name' args' body'
+    AstMissing _ -> IR.missing'
+    AstGrouped (Grouped a) -> IR.grouped' =<< buildIR a
+    AstOperator (Operator a) -> IR.var' a
 
     x -> error $ "TODO: " <> show x
 {-# INLINE buildIR #-}

@@ -172,6 +172,7 @@ runner__ = \sv p txt
      $ State.evalDefT @LastOffset
      $ State.evalDefT @Position
      $ State.Indent.eval
+     $ State.evalDefT @Parsing.Blacklist
      $ flip (State.evalT @Parsing.SyntaxVersion) sv
      $ (p <* token '\ETX')
 {-# INLINE runner__ #-}

@@ -112,19 +112,32 @@ identSpec = describe "identifier" $ do
     it "var'"              $ expr   "var'"
     it "var''"             $ expr   "var''"
     it "unicode"           $ expr   "фываΧξωβ김동욱"
-    it "invalid var: a⸗"   $ exprAs "a⸗"    "Invalid UnexpectedVarNameSuffix 1"
-    it "invalid var: f'o"  $ exprAs "f'o"  "Invalid UnexpectedVarNameSuffix 1"
-    it "invalid var: f_a"  $ exprAs "f_a"  "Invalid UnexpectedVarNameSuffix 2"
+    it "invalid var: a⸗"   $ exprAs "a⸗"    "(UnexpectedVarNameSuffix 1)"
+    it "invalid var: f'o"  $ exprAs "f'o"  "(UnexpectedVarNameSuffix 1)"
+    it "invalid var: f_a"  $ exprAs "f_a"  "(UnexpectedVarNameSuffix 2)"
     it "Cons"              $ expr   "Cons"
     it "Cons'"             $ expr   "Cons'"
     it "Cons''"            $ expr   "Cons''"
-    it "invalid cons: C⸗"  $ exprAs "C⸗"    "Invalid UnexpectedTypeNameSuffix 1"
-    it "invalid cons: C'o" $ exprAs "C'o"  "Invalid UnexpectedTypeNameSuffix 1"
-    it "invalid cons: C_a" $ exprAs "C_a"  "Invalid UnexpectedTypeNameSuffix 2"
+    it "invalid cons: C⸗"  $ exprAs "C⸗"    "(UnexpectedTypeNameSuffix 1)"
+    it "invalid cons: C'o" $ exprAs "C'o"  "(UnexpectedTypeNameSuffix 1)"
+    it "invalid cons: C_a" $ exprAs "C_a"  "(UnexpectedTypeNameSuffix 2)"
 
 exprSpec :: Spec
 exprSpec = describe "expression" $ do
-    it "a b"               $ expr   "a b"
+    it "app"        $ expr   "a b"
+    it "operator"   $ expr   "a + b"
+    it "group"      $ expr   "(a b)"
+    it "multiline"  $ exprAs "foo\n bar baz" "foo \n bar baz"
+    it "a)"         $ exprAs "a)" "a (Unknown)"
+
+funcDefSpec :: Spec
+funcDefSpec = describe "function" $ do
+    it "def"        $ exprAs "def" "(InvalidFunctionDefinition)"
+    it "def _"      $ exprAs "def _" "def (InvalidFunctionName): (MissingColonBlock)"
+    it "def f"      $ exprAs "def f" "def f: (MissingColonBlock)"
+    it "def f +: a" $ exprAs "def f +: a" "def f (InvalidFunctionArg): a"
+    it "def f a:"   $ expr   "def f a:"
+    it "def f a: a" $ expr   "def f a: a"
 
 -- literalNumberSpec :: Spec
 -- literalNumberSpec = describe "number" $ do
@@ -421,7 +434,8 @@ fixSpec = describe "error" $ it "x" $ do
     -- pprint $ Parser.runParserxx__ Parsing.expr "a . b -> c -= d >= f "
     -- pprint $ Parser.runParserxx__ Parsing.expr "a -> b -> a + b"
     -- pprint $ Parser.runParserxx__ Parsing.Syntax1 Parsing.expr "def foo a:\n a"
-    pprint $ Parser.runParserxx__ Parsing.Syntax2 Parsing.expr "foo (bar baz"
+    -- pprint $ Parser.runParserxx__ Parsing.Syntax2 Parsing.expr "foo (bar baz"
+    pprint $ Parser.runParserxx__ Parsing.Syntax2 Parsing.expr "foo\n bar baz"
     True `shouldBe` False
     -- it "error" $ expr "def foo:\n x = 1\n def"
 
@@ -429,6 +443,7 @@ spec :: Spec
 spec = do
     identSpec
     exprSpec
+    funcDefSpec
     fixSpec
     -- literalSpec
     -- termSpec

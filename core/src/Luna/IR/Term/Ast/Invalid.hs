@@ -28,8 +28,8 @@ data Symbol
     | UnexpectedTypeNameSuffix {- len -} Int
     | UnexpectedOperatorSuffix {- len -} Int
     | InvalidMarker
-    | InvalidFunctionName {- len -} Int
-    | InvalidFunctionArg  {- len -} Int
+    | InvalidFunctionName
+    | InvalidFunctionArg
     | MissingColonBlock
     | InvalidFunctionDefinition
     | Unknown

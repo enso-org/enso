@@ -51,6 +51,7 @@ import qualified OCI.Data.Name                               as Name
 -- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 minusName       = "-"
 uminusName      = "#uminus#"
+lineBreakName   = "#linebreak#"
 appName         = "#app#"
 accName         = "."
 lamName         = ":"
@@ -276,7 +277,7 @@ instance ( MonadIO m -- DEBUG ONLY
         IR.UniTermImportHub (IR.ImportHub is)
             -> simple . foldl (</>) mempty <$> (mapM subgenBody =<< ComponentVector.toList is)
         IR.UniTermInvalid (IR.Invalid t)
-            -> pure . named (spaced appName) . Atom $ "Invalid" <+> convert (show t)
+            -> pure . named (spaced appName) . Atom $ parensed <$> convert (show t)
         IR.UniTermLam (IR.Lam arg body)
             -> named (notSpaced lamName) . Atom
             .: (<>) <$> subgenBody arg <*> smartBlock body
@@ -336,9 +337,10 @@ instance ( MonadIO m -- DEBUG ONLY
         IR.UniTermVar (IR.Var name) -> Scope.lookupMultipartName name <&> \case
             Just (n:|ns) -> labeled Nothing $ Mixfix (convert n) ns
             Nothing -> if | Grammar.isOperator name -> named (spaced    name) $ Infix (convert name)
-                          | name == appName    -> named (notSpaced name) $ Infix (convert name)
-                          | name == uminusName -> named (notSpaced name) $ Prefix minusName
-                          | otherwise          -> unnamed                $ Atom   (convert name)
+                          | name == appName         -> named (notSpaced name) $ Infix (convert name)
+                          | name == uminusName      -> named (notSpaced name) $ Prefix minusName
+                          | name == lineBreakName   -> unnamed                $ Atom   "\n"
+                          | otherwise               -> unnamed                $ Atom   (convert name)
         IR.UniTermResolvedCons (IR.ResolvedCons m c cons args) -> do
             args' <- mapM subgen =<< ComponentVector.toList args
             foldM appSymbols (simple $ convert (Name.concat [convert m, ".", c, ".", cons])) args'
