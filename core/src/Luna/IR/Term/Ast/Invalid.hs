@@ -24,10 +24,6 @@ data Symbol
     | UnexpectedSuffix {- len -} !Int
     | CaselessNameHead
     | Literal InvalidLiteral
-    | UnexpectedVarNameSuffix  {- len -} Int
-    | UnexpectedTypeNameSuffix {- len -} Int
-    | UnexpectedOperatorSuffix {- len -} Int
-    | UnexpectedWildcardSuffix {- len -} Int
     | InvalidMarker
     | InvalidFunctionName
     | InvalidFunctionArg

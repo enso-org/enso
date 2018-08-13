@@ -57,6 +57,10 @@ data Spanned a = Spanned
 makeLenses ''Spanned
 
 
+unspan :: Spanned a -> a
+unspan = \(Spanned _ a) -> a
+{-# INLINE unspan #-}
+
 
 -----------------------
 -- === Blacklist === --

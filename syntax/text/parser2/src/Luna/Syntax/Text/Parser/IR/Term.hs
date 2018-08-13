@@ -7,131 +7,52 @@ module Luna.Syntax.Text.Parser.IR.Term where
 import qualified Prelude  as P
 import           Prologue hiding (Text, imp, seq, some, takeWhile)
 import qualified Prologue
--- import           Text.Parser.Combinators
 
-import qualified Control.Monad.State.Layered as State
--- import qualified Data.Char                                 as Char
-import qualified Data.Graph.Data.Layer.Layout as Layout
-import qualified Data.Text32                  as Text
--- import qualified Data.Mutable.Class                        as Mutable
--- import qualified Data.Set                                  as Set
-import qualified Data.Text.Span as Span
--- import qualified Data.Text32                               as Text32
--- import qualified Data.TreeSet                              as TreeSet
--- import qualified Data.Vector.Storable.Foreign              as Vector
--- import qualified Language.Symbol                           as Symbol
--- import qualified Luna.Data.Name                            as Name
-import qualified Luna.IR       as IR
-import qualified Luna.IR.Layer as Layer
--- import qualified Luna.IR.Term.Ast                          as Import
+import qualified Control.Monad.State.Layered           as State
+import qualified Data.Attoparsec.Text32                as Parsec
 import qualified Data.Char                             as Char
+import qualified Data.Graph.Data.Layer.Layout          as Layout
 import qualified Data.Text.Position                    as Position
+import qualified Data.Text.Span                        as Span
+import qualified Data.Text32                           as Text
+import qualified Data.Vector                           as Vector
+import qualified Luna.IR                               as IR
+import qualified Luna.IR.Layer                         as Layer
 import qualified Luna.IR.Term.Ast.Invalid              as Invalid
 import qualified Luna.Syntax.Text.Lexer                as Lexer
 import qualified Luna.Syntax.Text.Lexer.Symbol         as Lexer
 import qualified Luna.Syntax.Text.Parser.Data.CodeSpan as CodeSpan
 import qualified Luna.Syntax.Text.Parser.Data.Invalid  as Attr
--- import qualified Luna.Syntax.Text.Parser.Data.Name.Spaced  as Name
--- import qualified Luna.Syntax.Text.Parser.Data.Name.Special as SpecialName
--- import qualified Luna.Syntax.Text.Parser.IR.Expr           as Expr
--- import qualified Luna.Syntax.Text.Parser.Loc               as Loc
-import qualified Luna.Syntax.Text.Parser.State.Marker as Marker
--- import qualified Luna.Syntax.Text.Parser.State.Reserved    as Reserved
-import qualified Data.Vector            as Vector
-import qualified Luna.Syntax.Text.Scope as Scope
-
-import qualified Text.Parser.State.Indent as Indent
+import qualified Luna.Syntax.Text.Parser.IR.Ast        as Ast
+import qualified Luna.Syntax.Text.Parser.State.Marker  as Marker
+import qualified Luna.Syntax.Text.Scope                as Scope
+import qualified Text.Parser.State.Indent              as Indent
 
 
--- import Data.List.NonEmpty                       ((<|))
--- import Data.Set                                 (Set)
-import Data.Text.Position (FileOffset (..))
--- import Data.Text.Position                       (Delta)
--- import Data.Text32                              (Text32)
--- import Data.TreeSet                             (SparseTreeSet)
--- import Language.Symbol                          (Labeled (Labeled), SomeSymbol,
---                                                  labeled)
-import Luna.IR (SomeTerm, Term)
--- import Luna.Pass                                (Pass)
-import Luna.Syntax.Text.Parser.Data.CodeSpan (CodeSpan (CodeSpan),
-                                              CodeSpanRange (..))
--- import Luna.Syntax.Text.Parser.Data.Name.Spaced (SpacedName)
--- import Luna.Syntax.Text.Parser.IR.Class         (Parser, Stream, Token)
--- import Luna.Syntax.Text.Parser.Loc              (checkNextOffset,
---                                                  previewNextSymbol, token')
-
+import Control.Monad.State.Layered              (StatesT)
+import Data.Parser                              hiding (Result, Token,
+                                                 endOfInput)
+import Data.Text.Position                       (FileOffset (..))
+import Data.Text.Position                       (Delta)
 import Data.Vector                              (Vector)
+import Luna.IR                                  (SomeTerm, Term)
+import Luna.Syntax.Text.Parser.Data.CodeSpan    (CodeSpan (CodeSpan),
+                                                 CodeSpanRange (..))
+import Luna.Syntax.Text.Parser.IR.Ast           (isEolBeginChar)
+import Luna.Syntax.Text.Parser.IR.Ast           (Parser)
+import Luna.Syntax.Text.Parser.Pass.Class       (IRB (IRB, fromIRB),
+                                                 IRBS (IRBS), fromIRBS, irb0,
+                                                 irb1, irb2, irb3, irb4, irb5,
+                                                 liftIRBS1, liftIRBS2,
+                                                 liftIRBS3, withIRB)
 import Luna.Syntax.Text.Parser.State.LastOffset (LastOffset (LastOffset))
 import OCI.Data.Name                            (Name)
--- import Text.Megaparsec                          (ErrorItem (Tokens),
---                                                  MonadParsec, ParseError,
---                                                  between, choice, hidden,
---                                                  lookAhead, manyTill,
---                                                  notFollowedBy, skipMany, try,
---                                                  unexpected, withRecovery)
--- import Text.Megaparsec.Char                     (anyChar, char, digitChar,
---                                                  letterChar, lowerChar,
---                                                  spaceChar, upperChar)
--- import Text.Megaparsec.Error                    (parseErrorPretty,
---                                                  parseErrorTextPretty)
--- import Text.Megaparsec.Ext                      (expected)
-
-
-import qualified Data.Attoparsec.Text32         as Parsec
-import qualified Luna.Syntax.Text.Parser.IR.Ast as Ast
-
-import Control.Monad.State.Layered        (StatesT)
-import Data.Text.Position                 (Delta)
-import Luna.Syntax.Text.Parser.IR.Ast     (isEolBeginChar)
-import Luna.Syntax.Text.Parser.IR.Ast     (Parser)
-import Luna.Syntax.Text.Parser.Pass.Class (IRB (IRB, fromIRB), IRBS (IRBS),
-                                           fromIRBS, irb0, irb1, irb2, irb3,
-                                           irb4, irb5, liftIRBS1, liftIRBS2,
-                                           liftIRBS3, withIRB)
-import Text.Parser.State.Indent           (Indent)
-
-import Data.Parser             hiding (Result, Token, endOfInput)
-import Text.Parser.Combinators (some)
+import Text.Parser.Combinators                  (some)
+import Text.Parser.State.Indent                 (Indent)
 
 import Data.Parser.Instances.Attoparsec ()
 
 
-
--- data Ast a
---     = Var { name :: Name }
-    -- = AccSection   { path     :: [Name]                               }
-    -- | Cons         { name     :: Name    , args  :: [Ast]             }
-    -- | Disabled     { body     :: Ast                                  }
-    -- | Documented   { doc      :: Text     , base   :: Ast              }
-    -- | Function     { name     :: Ast     , args   :: [Ast]
-    --                , body     :: Ast                                  }
-    -- | DefHeader    { tp       :: Ast     , unis   :: [Ast]
-    --                , accs     :: [Ast]   , apps   :: [Ast]            }
-    -- | Grouped      { body     :: Ast                                  }
-    -- | Imp          { source   :: Ast     , target :: ImportTargetData }
-    -- | ImportHub    { imps     :: [Ast]                                }
-    -- | ImportSource { body     :: ImportSourceData                     }
-    -- | Invalid      { desc     :: Invalid.Symbol                       }
-    -- | List         { items    :: [Ast]                                }
-    -- | Marked       { marker   :: Ast     , body   :: Ast              }
-    -- | Marker       { id       :: Word64                               }
-    -- | SectionLeft  { operator :: Ast     , body   :: Ast              }
-    -- | SectionRight { operator :: Ast     , body   :: Ast              }
-    -- | Modify       { base     :: Ast     , path   :: [Name]
-    --                , operator :: Name    , value  :: Ast              }
-    -- | Metadata     { content  :: Text                                  }
-    -- | Record       { isNative :: Bool    , name   :: Name
-    --                , params   :: [Ast]   , conss  :: [Ast]
-    --                , decls    :: [Ast]                                }
-    -- | RecordCons   { name     :: Name    , fields :: [Ast]            }
-    -- | RecordFields { names    :: [Name]  , tp     :: Ast              }
-    -- | Seq          { former   :: Ast     , later  :: Ast              }
-    -- | Tuple        { items    :: [Ast]                                }
-    -- | Typed        { base     :: Ast     , tp     :: Ast              }
-    -- | Unit         { imps     :: Ast     , units  :: [Ast]
-    --                , cls      :: Ast                                  }
-    -- DEPRECATED:
-    -- | FunctionSig  { name     :: Ast     , sig    :: Ast         }
 
 
 
@@ -139,15 +60,6 @@ type Text = Text.Text32
 
 type Ast = Ast.Spanned Ast.Ast
 type UnspannedAst = Ast.Ast
-
--- x
-
-
-
-
-
-
-
 
 
 
@@ -169,269 +81,11 @@ trimIndent = \texts -> let
 
 
 
--- ---------------------
--- -- === Satisfy === --
--- ---------------------
 
--- satisfy    :: (Lexer.Symbol -> Bool)    -> Parser Lexer.Symbol
--- satisfy_   :: (Lexer.Symbol -> Bool)    -> Parser ()
--- satisfTest :: (Lexer.Symbol -> Maybe a) -> Parser a
--- satisfy_   f = void $ satisfy f
--- satisfy    f = satisfTest $ \s -> justIf (f s) s
--- satisfTest f = token' test where
---     test r t = if Reserved.lookup r (t ^. Lexer.symbol)
---         then Left (Just $ Tokens (pure t), Set.empty)
---         else satisfyTestSymbol f t
--- {-# INLINE satisfy_   #-}
--- {-# INLINE satisfy    #-}
--- {-# INLINE satisfTest #-}
-
--- satisfyUnchecked     :: (Lexer.Symbol -> Bool)    -> Parser Lexer.Symbol
--- satisfyUnchecked_    :: (Lexer.Symbol -> Bool)    -> Parser ()
--- satisfyUncheckedTest :: (Lexer.Symbol -> Maybe a) -> Parser a
--- satisfyUnchecked_    f = void $ satisfyUnchecked f
--- satisfyUnchecked     f = satisfyUncheckedTest $ \s -> justIf (f s) s
--- satisfyUncheckedTest f = token' (const $ satisfyTestSymbol f)
--- {-# INLINE satisfyUnchecked_    #-}
--- {-# INLINE satisfyUnchecked     #-}
--- {-# INLINE satisfyUncheckedTest #-}
-
--- satisfyTestSymbol :: (Lexer.Symbol -> Maybe b) -> Lexer.Token
---                   -> Either (Maybe (ErrorItem Lexer.Token), Set a) b
--- satisfyTestSymbol f t = note (Just $ Tokens (pure t), Set.empty)
---                       $ f (t ^. Lexer.symbol)
--- {-# INLINE satisfyTestSymbol #-}
-
--- symbol :: Lexer.Symbol -> Parser ()
--- symbol = satisfy_ . (==)
--- {-# INLINE symbol #-}
-
--- anySymbol  :: Parser Lexer.Symbol
--- anySymbol_ :: Parser ()
--- anySymbol  = satisfyUnchecked $ const True
--- anySymbol_ = void anySymbol
--- {-# INLINE anySymbol #-}
--- {-# INLINE anySymbol_ #-}
 
 getLastOffset   :: State.Getter LastOffset m => m Delta
 getLastOffset   = unwrap <$> State.get @LastOffset
--- checkLastOffset :: State.Getter LastOffset m => m Bool
--- checkLastOffset = (>0)   <$> getLastOffset
--- {-# INLINE getLastOffset   #-}
--- {-# INLINE checkLastOffset #-}
 
--- checkOffsets :: (MonadParsec e Stream m, State.Getter LastOffset m)
---              => m (Bool, Bool)
--- checkOffsets = (,) <$> checkLastOffset <*> checkNextOffset
--- {-# INLINE checkOffsets #-}
-
-
-
-----------------------------------
--- -- === Code span management === --
--- ----------------------------------
-
--- attachCodeSpanLayer :: CodeSpan -> IRB (Term a) -> IRB (Term a)
--- attachCodeSpanLayer s = withIRB (>>~ flip (Layer.write @CodeSpan) s) ; {-# INLINE attachCodeSpanLayer #-}
-
--- computeSpan :: Parser a -> Parser (CodeSpan, a)
--- computeSpan p = do
---     lastCodeSpan <- unwrap <$> State.get @CodeSpanRange
---     fileOffStart <- unwrap <$> State.get @FileOffset
---     marker       <- Marker.getLast
---     State.put @CodeSpanRange $ wrap fileOffStart
---     out          <- p
---     fileOffEnd   <- unwrap <$> State.get @FileOffset
---     lastOffset   <- getLastOffset
---     let end       = fileOffEnd   - lastOffset
---         off       = fileOffStart - lastCodeSpan
---         emptySpan = Span.leftSpacedSpan mempty mempty
---         realLen   = max 0 (end - fileOffStart)
---         newRange  = max end fileOffStart
---         realSpan  = Span.leftSpacedSpan off realLen
---         viewSpan  = case marker of
---             Nothing -> realSpan
---             Just m  -> Span.leftSpacedSpan
---                        (off - m ^. Lexer.span - m ^. Lexer.offset) realLen
---     State.put @CodeSpanRange $ convert newRange
---     pure (CodeSpan realSpan viewSpan, out)
--- {-# INLINE computeSpan #-}
-
--- spanOf :: Parser a -> Parser a
--- spanOf = fmap snd . computeSpan ; {-# INLINE spanOf #-}
-
--- inheritCodeSpan1 :: (     SomeTerm -> IRB  SomeTerm)
---                  -> (IRBS SomeTerm -> IRBS SomeTerm)
--- inheritCodeSpan1 = inheritCodeSpan1With id ; {-# INLINE inheritCodeSpan1 #-}
-
--- inheritCodeSpan2 :: (     SomeTerm ->      SomeTerm -> IRB  SomeTerm)
---                  -> (IRBS SomeTerm -> IRBS SomeTerm -> IRBS SomeTerm)
--- inheritCodeSpan2 = inheritCodeSpan2With (CodeSpan.concat) ; {-# INLINE inheritCodeSpan2 #-} -- FIXME Is CodeSpan.concat deprecated?
-
--- inheritCodeSpan1With :: (CodeSpan -> CodeSpan)
---                      -> (     SomeTerm -> IRB  SomeTerm)
---                      -> (IRBS SomeTerm -> IRBS SomeTerm)
--- inheritCodeSpan1With sf f (IRBS (IRB irb1)) = wrap $ IRB $ do
---     t1 <- irb1
---     s1 <- Layer.read @CodeSpan t1
---     let s1' = CodeSpan.dropOffset s1
---     -- The new IR becomes a new parent, so it handles the left offset.
---     Layer.write @CodeSpan t1 s1'
---     fromIRB $ unwrap $ irbsFromSpan (sf s1) $ f t1
--- {-# INLINE inheritCodeSpan1With #-}
-
--- inheritCodeSpan2With :: (CodeSpan -> CodeSpan -> CodeSpan)
---                      -> (     SomeTerm ->      SomeTerm -> IRB  SomeTerm)
---                      -> (IRBS SomeTerm -> IRBS SomeTerm -> IRBS SomeTerm)
--- inheritCodeSpan2With sf f (IRBS (IRB irb1)) (IRBS (IRB irb2)) = wrap $ IRB $ do
---     t1 <- irb1
---     s1 <- Layer.read @CodeSpan t1
---     -- The new IR becomes a new parent, so it handles the left offset.
---     let s1' = CodeSpan.dropOffset s1
---     Layer.write @CodeSpan t1 s1'
---     t2 <- irb2
---     s2 <- Layer.read @CodeSpan t2
---     fromIRB $ unwrap $ irbsFromSpan (sf s1 s2) $ f t1 t2
--- {-# INLINE inheritCodeSpan2With #-}
-
--- -- | Magic helper. Use with care only if you really know what you do.
--- unsafeModifyCodeSpan :: (CodeSpan -> CodeSpan) -> IRBS SomeTerm -> IRBS SomeTerm
--- unsafeModifyCodeSpan f (IRBS (IRB irb1)) = wrap $ IRB $ do
---     t1 <- irb1
---     s1 <- Layer.read @CodeSpan t1
---     Layer.write @CodeSpan t1 (f s1)
---     pure t1
--- {-# INLINE unsafeModifyCodeSpan #-}
-
-
--- -- === IRBS construction === --
-
--- irbsFromSpan :: CodeSpan -> IRB (Term a) -> IRBS (Term a)
--- irbsFromSpan = IRBS .: attachCodeSpanLayer ; {-# INLINE irbsFromSpan #-}
-
--- irbs   ::                    Parser       (IRB (Term a))   -> Parser       (IRBS (Term a))
--- irbsF  :: Functor f       => Parser (f    (IRB (Term a)))  -> Parser (f    (IRBS (Term a)))
--- irbsF2 :: Functors '[f,g] => Parser (f (g (IRB (Term a)))) -> Parser (f (g (IRBS (Term a))))
--- irbs   p = uncurry          irbsFromSpan  <$> computeSpan p ; {-# INLINE irbs   #-}
--- irbsF  p = uncurry (fmap  . irbsFromSpan) <$> computeSpan p ; {-# INLINE irbsF  #-}
--- irbsF2 p = uncurry (fmap2 . irbsFromSpan) <$> computeSpan p ; {-# INLINE irbsF2 #-}
-
-
--- -- irbsFromSpan :: CodeSpan -> IRB (Term a) -> IRBS (Term a)
--- -- irbsFromSpan = IRBS .: attachCodeSpanLayer ; {-# INLINE irbsFromSpan #-}
-
--- spanned :: Parser UnspannedAst -> Parser Ast.Spanned
--- spanned = \p -> uncurry Ast.Spanned <$> computeSpan p
--- {-# INLINE spanned #-}
-
-
-
---------------------
--- === Errors === --
---------------------
-
--- invalid :: Invalid.Symbol -> IRB SomeTerm
--- invalid t = IRB $ do
---     inv <- IR.invalid' t
---     Attr.registerInvalid inv
---     pure $ Layout.relayout inv
--- {-# INLINE invalid #-}
-
--- invalidToken :: Parser (IRBS SomeTerm)
--- invalidToken = irbs $ invalid <$> satisfTest Lexer.matchInvalid
--- {-# INLINE invalidToken #-}
-
--- -- invalidSymbol :: (Lexer.Symbol -> Text32) -> Parser (IRBS SomeTerm)
--- -- invalidSymbol f = irbs $ invalid . f <$> anySymbol
-
--- -- catchParseErrors :: Parser a -> Parser (Either String a)
--- -- catchParseErrors p = withRecovery2 (pure . Left . parseErrorTextPretty)
--- --                                    (Right <$> p)
-
--- -- catchInvalidWith :: HasCallStack => (Span.LeftSpacedSpan -> Span.LeftSpacedSpan)
--- --                  -> (IRBS SomeTerm -> a) -> Parser a -> Parser a
--- -- catchInvalidWith spanf f p = undefined -- do
--- --     -- (span, result) <- computeSpan $ catchParseErrors p
--- --     -- pure $ flip fromRight result $ f . irbsFromSpan (spanf span) . invalid . convert
-
-
-
--- ---------------------
--- -- === Markers === --
--- ---------------------
-
--- markerIRB :: Parser (Marker.ID, IRBS SomeTerm)
--- markerIRB = Marker.getAndClearLast >>= \case
---     Nothing -> expected "marker"
---     Just t  -> do
---         crange <- unwrap <$> State.get @CodeSpanRange
---         foEnd  <- unwrap <$> State.get @FileOffset
---         let markerLen  = t ^. Lexer.span
---             markerOffR = t ^. Lexer.offset
---             markerOffL = foEnd - crange - markerLen - markerOffR
---             markerSpan = Span.leftSpacedSpan markerOffL markerLen
---         State.modify_ @CodeSpanRange $ wrapped .~ foEnd
---         pure $ ( t ^. Marker.markerID
---                , irbsFromSpan (CodeSpan.mkPhantomSpan markerSpan)
---                                   (id $ irb1 IR.marker' $ t ^. Marker.markerID)
---                )
-
--- marked :: Parser (IRBS SomeTerm -> IRBS SomeTerm)
--- marked = option registerUnmarkedExpr $ uncurry markedExpr <$> markerIRB where
---     markedExpr mid expr = registerMarkedExpr mid
---                         . inheritCodeSpan2 (irb2 IR.marked') expr
-
--- registerUnmarkedExpr ::              IRBS SomeTerm -> IRBS SomeTerm
--- registerMarkedExpr   :: Marker.ID -> IRBS SomeTerm -> IRBS SomeTerm
--- registerUnmarkedExpr = wrapped %~ withIRB (>>~ Marker.registerOrphan)
--- registerMarkedExpr m = wrapped %~ withIRB (>>~ Marker.register m)
--- {-# INLINE registerUnmarkedExpr #-}
--- {-# INLINE registerMarkedExpr   #-}
-
-
-
--- ---------------------
--- -- === Symbols === --
--- ---------------------
-
--- stx, etx, eol :: Parser ()
--- stx = symbol Lexer.STX ; {-# INLINE stx #-}
--- etx = symbol Lexer.ETX ; {-# INLINE etx #-}
--- eol = symbol Lexer.EOL ; {-# INLINE eol #-}
-
--- braceBegin, braceEnd :: Parser ()
--- braceBegin = symbol $ Lexer.List Lexer.Begin ; {-# INLINE braceBegin #-}
--- braceEnd   = symbol $ Lexer.List Lexer.End   ; {-# INLINE braceEnd   #-}
-
--- groupBegin, groupEnd :: Parser ()
--- groupBegin = symbol $ Lexer.Group Lexer.Begin ; {-# INLINE groupBegin #-}
--- groupEnd   = symbol $ Lexer.Group Lexer.End   ; {-# INLINE groupEnd   #-}
-
--- parensed :: Parser a -> Parser a
--- parensed p = groupBegin *> p <* groupEnd ; {-# INLINE parensed #-}
-
-
-
-
--- var :: Parser (IRBS SomeTerm)
--- cons, var, op, wildcard :: Parser (IRBS SomeTerm)
--- cons     = snd <$> namedCons                             ; {-# INLINE cons     #-}
--- var      = snd <$> namedVar                              ; {-# INLINE var      #-}
--- op       = snd <$> namedOp                               ; {-# INLINE op       #-}
--- wildcard = irbs $ irb0 IR.blank' <$ symbol Lexer.Wildcard ; {-# INLINE wildcard #-}
-
--- namedVar :: Parser (Name, IRBS SomeTerm)
--- namedCons, namedVar, namedOp, namedIdent :: Parser (Name, IRBS SomeTerm)
--- namedCons  = irbsNamed (flip (irb2 IR.cons') []) consName ; {-# INLINE namedCons  #-}
--- namedVar   = undefined -- irbsNamed (irb1 IR.var')            varName  ; {-# INLINE namedVar   #-}
--- namedOp    = irbsNamed (irb1 IR.var')            opName   ; {-# INLINE namedOp    #-}
--- namedIdent = namedVar <|> namedCons <|> namedOp    ; {-# INLINE namedIdent #-}
-
-
--- === Helpers === --
-
--- irbsNamed :: (Name -> IRB (Term a)) -> Parser Name -> Parser (Name, IRBS (Term a))
--- irbsNamed cons = irbsF . fmap (\name -> (name, cons name)) ; {-# INLINE irbsNamed #-}
 
 
 
@@ -498,66 +152,58 @@ chunkOfNot s = Text.length <$> takeWhile1 (not . (`elem` break)) where
 -- === Identifiers === --
 -------------------------
 
--- === Identifiers === --
+-- === API === --
 
-var :: Parser Ast
-var = Ast.computeSpan $ either err Ast.var' <$> varName where
-    err = Ast.invalid' . Invalid.UnexpectedVarNameSuffix
+var :: Parser ()
+var = Ast.register =<< checkInvalidIndentSuffix (Ast.var' <$> varName)
 {-# INLINE var #-}
 
-cons :: Parser Ast
-cons = Ast.computeSpan $ either err Ast.cons' <$> consName where
-    err = Ast.invalid' . Invalid.UnexpectedTypeNameSuffix
+cons :: Parser ()
+cons = Ast.register =<< checkInvalidIndentSuffix (Ast.cons' <$> consName)
 {-# INLINE cons #-}
 
-wildcard :: Parser Ast
-wildcard = Ast.computeSpan $ either err (const Ast.wildcard') <$> parser where
-    err    = Ast.invalid' . Invalid.UnexpectedWildcardSuffix
-    parser = checkIndentInvalidSuffix (token '_')
+wildcard :: Parser ()
+wildcard = Ast.register =<< checkInvalidIndentSuffix (Ast.wildcard' <$ token '_')
 {-# INLINE wildcard #-}
 
-ident :: Parser Ast
-ident = var <|> cons
-{-# INLINE ident #-}
+isIdentBodyChar, isVarHead, isConsHead :: Char -> Bool
+isIdentBodyChar = \c -> Char.isAlphaNum c || c == '_'
+isVarHead       = \c -> Char.isLower    c || c == '_'
+isConsHead      = Char.isUpper
+{-# INLINE isIdentBodyChar  #-}
+{-# INLINE isVarHead        #-}
+{-# INLINE isConsHead       #-}
 
 
--- === Identifier names === --
+-- === Names === --
 
-varName :: Parser (Either Int Name)
-varName = (fmap convert . fmap . (<>) <$> header) <*> identBody where
+varName :: Parser Name
+varName = convert . (<>) <$> header <*> identBody where
     header = Text.snoc <$> pfx <*> head
     pfx    = takeMany '_'
     head   = satisfy Char.isLower
 {-# INLINE varName #-}
 
-consName :: Parser (Either Int Name)
-consName = (fmap convert . fmap . (<>) <$> header) <*> identBody where
-    header = Text.singleton <$> satisfy Char.isUpper
+consName :: Parser Name
+consName = convert . Text.cons <$> header <*> identBody where
+    header = satisfy Char.isUpper
 {-# INLINE consName #-}
 
-identBody :: Parser (Either Int Text)
-identBody = checkIndentInvalidSuffix name where
+identBody :: Parser Text
+identBody = body <**> sfx where
     body  = takeWhile isIdentBodyChar
     sfx   = option id (flip (<>) <$> takeMany1 '\'')
-    name  = body <**> sfx
 {-# INLINE identBody #-}
 
-checkIndentInvalidSuffix :: Parser a -> Parser (Either Int a)
-checkIndentInvalidSuffix = (<**> option id inv) . fmap Right where
-    inv = const . Left <$> invalidIdentSuffix
-{-# INLINE checkIndentInvalidSuffix #-}
 
+-- === Validation === --
 
-
--- === Lexing === --
-
-isIdentBodyChar, isVarHead, isConsHead :: Char -> Bool
-isIdentBodyChar = \c -> Char.isAlphaNum c || c == '_'
-isVarHead       = \c -> Char.isLower c || c == '_'
-isConsHead      = Char.isUpper
-{-# INLINE isIdentBodyChar  #-}
-{-# INLINE isVarHead        #-}
-{-# INLINE isConsHead       #-}
+checkInvalidIndentSuffix :: Parser UnspannedAst -> Parser Ast
+checkInvalidIndentSuffix = \parser -> let
+    inv     = Ast.invalid' . Invalid.UnexpectedSuffix <$> invalidIdentSuffix
+    result  = parser <**> option id (const <$> inv)
+    in Ast.computeSpan result
+{-# INLINE checkInvalidIndentSuffix #-}
 
 -- | We are not using full (33-126 / ['"`]) range here, because we need to check
 --   such invalid suffixes as `foo'a`.
@@ -575,88 +221,159 @@ invalidIdentSuffix = Text.length <$> takeWhile1 (not . checkChar) where
 {-# INLINE invalidIdentSuffix #-}
 
 
+
+-----------------------
 -- === Operators === --
+-----------------------
 
-operator :: Parser Ast
-operator = operatorBy isOperatorChar
-{-# INLINE operator #-}
+-- === API === --
 
-operatorBy :: (Char -> Bool) -> Parser Ast
-operatorBy f = Ast.computeSpan result where
-    handleOp p s = if (p == "<" || p == ">") && s == "="
-        then Right $ Ast.operator' (convert $ p <> s)
-        else case s of
-            "=" -> Right $ Ast.modifier' (convert p)
-            ""  -> Right $ Ast.operator' (convert p)
-            _   -> Left  $ Text.length s
-    normalOp = handleOp <$> takeWhile1 f <*> takeMany eqChar
-    eqOp     = do
-        chars <- takeWhile1 (== eqChar)
-        let clen = Text.length chars - 2
-        pure $ if clen > 0
-            then Left clen
-            else Right . Ast.operator' $ convert chars
-    result   = do
-        base <- normalOp <|> eqOp
-        sfx  <- takeWhile f
-        let sfxLen = Text.length sfx
-            base'  = if sfxLen == 0 then base else case base of
-                Left  i -> Left $ i + sfxLen
-                Right _ -> Left $ sfxLen
-        pure $ case base' of
-            Right a -> a
-            Left  i -> Ast.invalid' $ Invalid.UnexpectedOperatorSuffix i
-{-# NOINLINE operatorBy #-}
-
-eqChar :: Char
-eqChar = '='
-{-# INLINE eqChar #-}
-
-isOperatorChar :: Char -> Bool
-isOperatorChar = \c -> let
-    ord   = Char.ord c
-    check = c /= eqChar
-          && ( (ord == 33)              -- !
-            || (ord >= 36 && ord <= 38) -- $%&
-            || (ord >= 42 && ord <= 47) -- *+,-./
-            || (ord >= 58 && ord <= 63) -- :;<>=?
-            || (ord == 92)              -- \
-            || (ord == 94)              -- ^
-            || (ord == 126)             -- ~
-            || Char.generalCategory c == Char.MathSymbol
-             )
-    in check
-{-# INLINE isOperatorChar #-}
-
-isOperatorBeginChar :: Char -> Bool
-isOperatorBeginChar = \c -> c == eqChar || isOperatorChar c
-{-# INLINE isOperatorBeginChar #-}
-
-
--- | The size of `symmap` - Vector-based map from head Char to related parser.
-lookupTableSize :: Int
-lookupTableSize = 200
-{-# INLINE lookupTableSize #-}
-
-
-isOpenCloseChar :: Char -> Bool
-isOpenCloseChar = (`elem` ("(){}[]" :: [Char]))
+operator :: Parser ()
+operator = let
+    base       = convert <$> takeWhile1 isOperatorBodyChar
+    specialOps = tokens <$> ["<=", ">=", "==", "="]
+    special    = Ast.operator' . convert <$> choice specialOps
+    normal     = base <**> option Ast.operator' (Ast.modifier' <$ token eqChar)
+    in Ast.register =<< checkInvalidOperatorSuffix (special <|> normal)
+{-# NOINLINE operator #-}
 
 unsafeAnyTokenOperator :: Parser ()
 unsafeAnyTokenOperator = Ast.register
     =<< Ast.computeSpan (Ast.operator' . convert <$> anyToken)
 {-# INLINE unsafeAnyTokenOperator #-}
 
+eqChar :: Char
+eqChar = '='
+{-# INLINE eqChar #-}
+
+isOpenCloseChar :: Char -> Bool
+isOpenCloseChar = (`elem` ("(){}[]" :: [Char]))
+
+
+-- === Helpers === --
+
+isOperatorBeginChar :: Char -> Bool
+isOperatorBeginChar = \c -> let
+    ord   = Char.ord c
+    check = (ord == 33)              -- !
+         || (ord >= 36 && ord <= 38) -- $%&
+         || (ord >= 42 && ord <= 47) -- *+,-./
+         || (ord >= 58 && ord <= 63) -- :;<>=?
+         || (ord == 92)              -- \
+         || (ord == 94)              -- ^
+         || (ord == 126)             -- ~
+         || Char.generalCategory c == Char.MathSymbol
+    in check
+{-# INLINE isOperatorBeginChar #-}
+
+isOperatorBodyChar :: Char -> Bool
+isOperatorBodyChar = \c -> c /= eqChar && isOperatorBeginChar c
+{-# INLINE isOperatorBodyChar #-}
+
+
+-- === Validation === --
+
+checkInvalidOperatorSuffix :: Parser UnspannedAst -> Parser Ast
+checkInvalidOperatorSuffix = \parser -> let
+    inv     = Ast.invalid' . Invalid.UnexpectedSuffix <$> invalidOperatorSuffix
+    result  = parser <**> option id (const <$> inv)
+    invalidOperatorSuffix = Text.length <$> takeWhile1 isOperatorBeginChar
+    in Ast.computeSpan result
+{-# INLINE checkInvalidOperatorSuffix #-}
+
+
+
+----------------------
+-- === Comments === --
+----------------------
+
+-- === API === --
+
+comment :: Parser ()
+comment = commentChar >> parser where
+    commentChar = token commentStartChar
+    body        = trimIndent <$> (multiLine <|> singleLine)
+    multiLine   = commentChar *> flexBlock rawLine
+    singleLine  = pure <$> rawLine
+    rawLine     = takeWhile (not . isEolBeginChar)
+    parser      = Ast.register =<< Ast.computeSpan (Ast.comment' <$> body)
+{-# INLINE comment #-}
+
+commentStartChar :: Char
+commentStartChar = '#'
+{-# INLINE commentStartChar #-}
+
+isCommentStartChar :: Char -> Bool
+isCommentStartChar = (== commentStartChar)
+{-# INLINE isCommentStartChar #-}
+
+
+
+---------------------
+-- === Markers === --
+---------------------
+
+markerBegin, markerEnd :: Char
+markerBegin = '«'
+markerEnd   = '»'
+{-# INLINE markerBegin #-}
+{-# INLINE markerEnd   #-}
+
+isMarkerBeginChar :: Char -> Bool
+isMarkerBeginChar = (== markerBegin)
+{-# INLINE isMarkerBeginChar #-}
+
+marker :: Parser ()
+marker = Ast.register =<< Ast.computeSpan parser where
+    correct   = Ast.marker' <$> decimal
+    incorrect = Ast.invalid' Invalid.InvalidMarker <$ takeTill (== markerEnd)
+    parser    = token markerBegin *> (correct <|> incorrect) <* token markerEnd
+{-# INLINE marker #-}
+
+
+
+-------------------------
+-- === Expressions === --
+-------------------------
+
+-- === API === --
+
+expr :: Parser ()
+expr = fastExprByChar =<< peekToken
+{-# INLINE expr #-}
+
+exprs :: Parser ()
+exprs = void $ many expr >> token '\ETX'
+
+unknownExpr :: Parser ()
+unknownExpr = Ast.register =<< unknown
+{-# INLINE unknownExpr #-}
+
+lineBreak :: Parser ()
+lineBreak = Ast.register =<< ast where
+    ast = Ast.computeSpan $ do
+        some Ast.newline
+        Ast.nl' <$> Position.getColumn
+{-# INLINE lineBreak #-}
+
+
+-- === Fast ASCII Lookup Table === --
+
+-- | The size of `symmap` - Vector-based map from head Char to related parser.
+lookupTableSize :: Int
+lookupTableSize = 200
+{-# INLINE lookupTableSize #-}
+
 exprLookupTable :: Vector (Parser ())
 exprLookupTable = Vector.generate lookupTableSize $ exprByChar . Char.chr
 
 exprByChar :: Char -> Parser ()
 exprByChar = \c -> if
-    | isOperatorBeginChar c -> operatorExpr
-    | isEolBeginChar      c -> newLineExpr
+    | isOperatorBeginChar c -> operator
+    | isEolBeginChar      c -> lineBreak
     | isOpenCloseChar     c -> unsafeAnyTokenOperator
-    | isVarHead           c -> varExpr <|> wildcardExpr
-    | isConsHead          c -> consExpr
+    | isVarHead           c -> var <|> wildcard
+    | isConsHead          c -> cons
     | isCommentStartChar  c -> comment
     | isMarkerBeginChar   c -> marker
 
@@ -678,41 +395,13 @@ fastExprByChar = \c -> let ord = Char.ord c in if
 {-# INLINE fastExprByChar #-}
 
 
-commentStartChar :: Char
-commentStartChar = '#'
-{-# INLINE commentStartChar #-}
-
-isCommentStartChar :: Char -> Bool
-isCommentStartChar = (== commentStartChar)
-{-# INLINE isCommentStartChar #-}
-
-comment :: Parser ()
-comment = commentChar >> parser where
-    commentChar = token commentStartChar
-    body        = trimIndent <$> (multiLine <|> singleLine)
-    multiLine   = commentChar *> flexBlock rawLine
-    singleLine  = pure <$> rawLine
-    rawLine     = takeWhile (not . isEolBeginChar)
-    parser      = Ast.register =<< Ast.computeSpan (Ast.comment' <$> body)
-{-# INLINE comment #-}
 
 
-isMarkerBeginChar :: Char -> Bool
-isMarkerBeginChar = (== markerBegin)
-{-# INLINE isMarkerBeginChar #-}
 
-markerBegin, markerEnd :: Char
-markerBegin = '«'
-markerEnd   = '»'
-{-# INLINE markerBegin #-}
-{-# INLINE markerEnd   #-}
 
-marker :: Parser ()
-marker = Ast.register =<< Ast.computeSpan parser where
-    correct   = Ast.marker' <$> decimal
-    incorrect = Ast.invalid' Invalid.InvalidMarker <$ takeTill (== markerEnd)
-    parser    = token markerBegin *> (correct <|> incorrect) <* token markerEnd
-{-# INLINE marker #-}
+
+
+
 
 digitChar :: Parser Int
 digitChar = do
@@ -735,6 +424,34 @@ digitsToDec = \(i :| is) -> case is of
 
 
 
+--------------------
+-- === Layout === --
+--------------------
+
+flexBlock1 :: Parser a -> Parser (NonEmpty a)
+flexBlock1 = \p -> let
+    line = some Ast.newline >> Indent.indented >> p
+    in some line
+{-# INLINE flexBlock1 #-}
+
+flexBlock :: Parser a -> Parser [a]
+flexBlock = \p -> option mempty $ convert <$> flexBlock1 p
+{-# INLINE flexBlock #-}
+
+-- discoverBlock1 :: Parser a -> Parser (NonEmpty a)
+-- discoverBlock1 = \p -> let
+--     line   = some Ast.newline >> Indent.indentedEq >> p
+--     block  = (:|) <$> p <*> many line
+--     header = some Ast.newline >> Indent.indented
+--     in header >> Indent.withCurrent block
+
+-- multiLineBlock1 :: Parser a -> Parser (NonEmpty a)
+-- multiLineBlock1 = \p -> let
+--     line = some Ast.newline >> Indent.indented >> p
+--     in (:|) <$> p <*> many line
+-- {-# INLINE multiLineBlock1 #-}
+
+
 
 
 
@@ -747,48 +464,32 @@ digitsToDec = \(i :| is) -> case is of
 -- === Parsers === --
 
 
-varExpr :: Parser ()
-varExpr = Ast.register =<< var
-{-# INLINE varExpr #-}
+-- varExpr :: Parser ()
+-- varExpr = Ast.register =<< var
+-- {-# INLINE varExpr #-}
 
-consExpr :: Parser ()
-consExpr = Ast.register =<< cons
-{-# INLINE consExpr #-}
+-- consExpr :: Parser ()
+-- consExpr = Ast.register =<< cons
+-- {-# INLINE consExpr #-}
 
-wildcardExpr :: Parser ()
-wildcardExpr = Ast.register =<< wildcard
-{-# INLINE wildcardExpr #-}
+-- wildcardExpr :: Parser ()
+-- wildcardExpr = Ast.register =<< wildcard
+-- {-# INLINE wildcardExpr #-}
 
-operatorExpr :: Parser ()
-operatorExpr = Ast.register =<< operator
-{-# INLINE operatorExpr #-}
+-- operatorExpr :: Parser ()
+-- operatorExpr = Ast.register =<< operator
+-- {-# INLINE operatorExpr #-}
 
-lamExpr :: Parser ()
-lamExpr = arrow >> body where
-    arrow = Ast.register =<< Ast.computeSpan (Ast.operator' . convert <$> tokP)
-    body  = void $ discoverBlock1 expr
-    tokP  = State.get @Ast.SyntaxVersion >>= \case
-        Ast.Syntax1 -> tokens ":"
-        Ast.Syntax2 -> tokens "->"
-{-# INLINE lamExpr #-}
+-- lamExpr :: Parser ()
+-- lamExpr = arrow >> body where
+--     arrow = Ast.register =<< Ast.computeSpan (Ast.operator' . convert <$> tokP)
+--     body  = void $ discoverBlock1 expr
+--     tokP  = State.get @Ast.SyntaxVersion >>= \case
+--         Ast.Syntax1 -> tokens ":"
+--         Ast.Syntax2 -> tokens "->"
+-- {-# INLINE lamExpr #-}
 
-unknownExpr :: Parser ()
-unknownExpr = Ast.register =<< unknown
-{-# INLINE unknownExpr #-}
 
-newLineExpr :: Parser ()
-newLineExpr = Ast.register =<< ast where
-    ast = Ast.computeSpan $ do
-        some Ast.newline -- >> Indent.indented
-        Ast.nl' <$> Position.getColumn
-{-# INLINE newLineExpr #-}
-
-expr :: Parser ()
-expr = fastExprByChar =<< peekToken
-{-# INLINE expr #-}
-
-exprs :: Parser ()
-exprs = void $ many expr >> token '\ETX'
 
 -- groupExpr :: Parser ()
 -- groupExpr = Ast.computeSpan $ Ast.grouped' <$> parensed expr where
@@ -807,7 +508,7 @@ exprs = void $ many expr >> token '\ETX'
 
 --     -- Name
 --     name       = var <|> opName <|> invName
---     opName     = operatorBy (\c -> isOperatorChar c && c /= blockChar)
+--     opName     = operatorBy (\c -> isOperatorBodyChar c && c /= blockChar)
 --     invName    = invalid $ Invalid.InvalidFunctionName <$ chunk
 
 --     -- Args
@@ -871,33 +572,10 @@ exprs = void $ many expr >> token '\ETX'
 
 
 
---------------------
--- === Layout === --
---------------------
-
-discoverBlock1 :: Parser a -> Parser (NonEmpty a)
-discoverBlock1 = \p -> let
-    line   = some Ast.newline >> Indent.indentedEq >> p
-    block  = (:|) <$> p <*> many line
-    header = some Ast.newline >> Indent.indented
-    in header >> Indent.withCurrent block
-
-multiLineBlock1 :: Parser a -> Parser (NonEmpty a)
-multiLineBlock1 = \p -> let
-    line = some Ast.newline >> Indent.indented >> p
-    in (:|) <$> p <*> many line
-{-# INLINE multiLineBlock1 #-}
 
 
-flexBlock1 :: Parser a -> Parser (NonEmpty a)
-flexBlock1 = \p -> let
-    line = some Ast.newline >> Indent.indented >> p
-    in some line
-{-# INLINE flexBlock1 #-}
 
-flexBlock :: Parser a -> Parser [a]
-flexBlock = \p -> option mempty $ convert <$> flexBlock1 p
-{-# INLINE flexBlock #-}
+
 
 
 
@@ -1838,3 +1516,283 @@ flexBlock = \p -> option mempty $ convert <$> flexBlock1 p
 --     Just oldExpr -> checkIsoExpr (unsafeGeneralize oldExpr) (unsafeGeneralize newExpr) <&> \case -- FIXME [WD]: remove unsafeGeneralize, we should use SomeTerm / SomeTerm everywhere
 --         False -> ChangedExpr   oldExpr newExpr
 --         True  -> UnchangedExpr oldExpr newExpr
+
+
+
+
+
+
+
+
+
+
+
+
+
+--------------------
+
+
+-- ---------------------
+-- -- === Satisfy === --
+-- ---------------------
+
+-- satisfy    :: (Lexer.Symbol -> Bool)    -> Parser Lexer.Symbol
+-- satisfy_   :: (Lexer.Symbol -> Bool)    -> Parser ()
+-- satisfTest :: (Lexer.Symbol -> Maybe a) -> Parser a
+-- satisfy_   f = void $ satisfy f
+-- satisfy    f = satisfTest $ \s -> justIf (f s) s
+-- satisfTest f = token' test where
+--     test r t = if Reserved.lookup r (t ^. Lexer.symbol)
+--         then Left (Just $ Tokens (pure t), Set.empty)
+--         else satisfyTestSymbol f t
+-- {-# INLINE satisfy_   #-}
+-- {-# INLINE satisfy    #-}
+-- {-# INLINE satisfTest #-}
+
+-- satisfyUnchecked     :: (Lexer.Symbol -> Bool)    -> Parser Lexer.Symbol
+-- satisfyUnchecked_    :: (Lexer.Symbol -> Bool)    -> Parser ()
+-- satisfyUncheckedTest :: (Lexer.Symbol -> Maybe a) -> Parser a
+-- satisfyUnchecked_    f = void $ satisfyUnchecked f
+-- satisfyUnchecked     f = satisfyUncheckedTest $ \s -> justIf (f s) s
+-- satisfyUncheckedTest f = token' (const $ satisfyTestSymbol f)
+-- {-# INLINE satisfyUnchecked_    #-}
+-- {-# INLINE satisfyUnchecked     #-}
+-- {-# INLINE satisfyUncheckedTest #-}
+
+-- satisfyTestSymbol :: (Lexer.Symbol -> Maybe b) -> Lexer.Token
+--                   -> Either (Maybe (ErrorItem Lexer.Token), Set a) b
+-- satisfyTestSymbol f t = note (Just $ Tokens (pure t), Set.empty)
+--                       $ f (t ^. Lexer.symbol)
+-- {-# INLINE satisfyTestSymbol #-}
+
+-- symbol :: Lexer.Symbol -> Parser ()
+-- symbol = satisfy_ . (==)
+-- {-# INLINE symbol #-}
+
+-- anySymbol  :: Parser Lexer.Symbol
+-- anySymbol_ :: Parser ()
+-- anySymbol  = satisfyUnchecked $ const True
+-- anySymbol_ = void anySymbol
+-- {-# INLINE anySymbol #-}
+-- {-# INLINE anySymbol_ #-}
+
+
+
+-- checkLastOffset :: State.Getter LastOffset m => m Bool
+-- checkLastOffset = (>0)   <$> getLastOffset
+-- {-# INLINE getLastOffset   #-}
+-- {-# INLINE checkLastOffset #-}
+
+-- checkOffsets :: (MonadParsec e Stream m, State.Getter LastOffset m)
+--              => m (Bool, Bool)
+-- checkOffsets = (,) <$> checkLastOffset <*> checkNextOffset
+-- {-# INLINE checkOffsets #-}
+
+
+
+----------------------------------
+-- -- === Code span management === --
+-- ----------------------------------
+
+-- attachCodeSpanLayer :: CodeSpan -> IRB (Term a) -> IRB (Term a)
+-- attachCodeSpanLayer s = withIRB (>>~ flip (Layer.write @CodeSpan) s) ; {-# INLINE attachCodeSpanLayer #-}
+
+-- computeSpan :: Parser a -> Parser (CodeSpan, a)
+-- computeSpan p = do
+--     lastCodeSpan <- unwrap <$> State.get @CodeSpanRange
+--     fileOffStart <- unwrap <$> State.get @FileOffset
+--     marker       <- Marker.getLast
+--     State.put @CodeSpanRange $ wrap fileOffStart
+--     out          <- p
+--     fileOffEnd   <- unwrap <$> State.get @FileOffset
+--     lastOffset   <- getLastOffset
+--     let end       = fileOffEnd   - lastOffset
+--         off       = fileOffStart - lastCodeSpan
+--         emptySpan = Span.leftSpacedSpan mempty mempty
+--         realLen   = max 0 (end - fileOffStart)
+--         newRange  = max end fileOffStart
+--         realSpan  = Span.leftSpacedSpan off realLen
+--         viewSpan  = case marker of
+--             Nothing -> realSpan
+--             Just m  -> Span.leftSpacedSpan
+--                        (off - m ^. Lexer.span - m ^. Lexer.offset) realLen
+--     State.put @CodeSpanRange $ convert newRange
+--     pure (CodeSpan realSpan viewSpan, out)
+-- {-# INLINE computeSpan #-}
+
+-- spanOf :: Parser a -> Parser a
+-- spanOf = fmap snd . computeSpan ; {-# INLINE spanOf #-}
+
+-- inheritCodeSpan1 :: (     SomeTerm -> IRB  SomeTerm)
+--                  -> (IRBS SomeTerm -> IRBS SomeTerm)
+-- inheritCodeSpan1 = inheritCodeSpan1With id ; {-# INLINE inheritCodeSpan1 #-}
+
+-- inheritCodeSpan2 :: (     SomeTerm ->      SomeTerm -> IRB  SomeTerm)
+--                  -> (IRBS SomeTerm -> IRBS SomeTerm -> IRBS SomeTerm)
+-- inheritCodeSpan2 = inheritCodeSpan2With (CodeSpan.concat) ; {-# INLINE inheritCodeSpan2 #-} -- FIXME Is CodeSpan.concat deprecated?
+
+-- inheritCodeSpan1With :: (CodeSpan -> CodeSpan)
+--                      -> (     SomeTerm -> IRB  SomeTerm)
+--                      -> (IRBS SomeTerm -> IRBS SomeTerm)
+-- inheritCodeSpan1With sf f (IRBS (IRB irb1)) = wrap $ IRB $ do
+--     t1 <- irb1
+--     s1 <- Layer.read @CodeSpan t1
+--     let s1' = CodeSpan.dropOffset s1
+--     -- The new IR becomes a new parent, so it handles the left offset.
+--     Layer.write @CodeSpan t1 s1'
+--     fromIRB $ unwrap $ irbsFromSpan (sf s1) $ f t1
+-- {-# INLINE inheritCodeSpan1With #-}
+
+-- inheritCodeSpan2With :: (CodeSpan -> CodeSpan -> CodeSpan)
+--                      -> (     SomeTerm ->      SomeTerm -> IRB  SomeTerm)
+--                      -> (IRBS SomeTerm -> IRBS SomeTerm -> IRBS SomeTerm)
+-- inheritCodeSpan2With sf f (IRBS (IRB irb1)) (IRBS (IRB irb2)) = wrap $ IRB $ do
+--     t1 <- irb1
+--     s1 <- Layer.read @CodeSpan t1
+--     -- The new IR becomes a new parent, so it handles the left offset.
+--     let s1' = CodeSpan.dropOffset s1
+--     Layer.write @CodeSpan t1 s1'
+--     t2 <- irb2
+--     s2 <- Layer.read @CodeSpan t2
+--     fromIRB $ unwrap $ irbsFromSpan (sf s1 s2) $ f t1 t2
+-- {-# INLINE inheritCodeSpan2With #-}
+
+-- -- | Magic helper. Use with care only if you really know what you do.
+-- unsafeModifyCodeSpan :: (CodeSpan -> CodeSpan) -> IRBS SomeTerm -> IRBS SomeTerm
+-- unsafeModifyCodeSpan f (IRBS (IRB irb1)) = wrap $ IRB $ do
+--     t1 <- irb1
+--     s1 <- Layer.read @CodeSpan t1
+--     Layer.write @CodeSpan t1 (f s1)
+--     pure t1
+-- {-# INLINE unsafeModifyCodeSpan #-}
+
+
+-- -- === IRBS construction === --
+
+-- irbsFromSpan :: CodeSpan -> IRB (Term a) -> IRBS (Term a)
+-- irbsFromSpan = IRBS .: attachCodeSpanLayer ; {-# INLINE irbsFromSpan #-}
+
+-- irbs   ::                    Parser       (IRB (Term a))   -> Parser       (IRBS (Term a))
+-- irbsF  :: Functor f       => Parser (f    (IRB (Term a)))  -> Parser (f    (IRBS (Term a)))
+-- irbsF2 :: Functors '[f,g] => Parser (f (g (IRB (Term a)))) -> Parser (f (g (IRBS (Term a))))
+-- irbs   p = uncurry          irbsFromSpan  <$> computeSpan p ; {-# INLINE irbs   #-}
+-- irbsF  p = uncurry (fmap  . irbsFromSpan) <$> computeSpan p ; {-# INLINE irbsF  #-}
+-- irbsF2 p = uncurry (fmap2 . irbsFromSpan) <$> computeSpan p ; {-# INLINE irbsF2 #-}
+
+
+-- -- irbsFromSpan :: CodeSpan -> IRB (Term a) -> IRBS (Term a)
+-- -- irbsFromSpan = IRBS .: attachCodeSpanLayer ; {-# INLINE irbsFromSpan #-}
+
+-- spanned :: Parser UnspannedAst -> Parser Ast.Spanned
+-- spanned = \p -> uncurry Ast.Spanned <$> computeSpan p
+-- {-# INLINE spanned #-}
+
+
+
+--------------------
+-- === Errors === --
+--------------------
+
+-- invalid :: Invalid.Symbol -> IRB SomeTerm
+-- invalid t = IRB $ do
+--     inv <- IR.invalid' t
+--     Attr.registerInvalid inv
+--     pure $ Layout.relayout inv
+-- {-# INLINE invalid #-}
+
+-- invalidToken :: Parser (IRBS SomeTerm)
+-- invalidToken = irbs $ invalid <$> satisfTest Lexer.matchInvalid
+-- {-# INLINE invalidToken #-}
+
+-- -- invalidSymbol :: (Lexer.Symbol -> Text32) -> Parser (IRBS SomeTerm)
+-- -- invalidSymbol f = irbs $ invalid . f <$> anySymbol
+
+-- -- catchParseErrors :: Parser a -> Parser (Either String a)
+-- -- catchParseErrors p = withRecovery2 (pure . Left . parseErrorTextPretty)
+-- --                                    (Right <$> p)
+
+-- -- catchInvalidWith :: HasCallStack => (Span.LeftSpacedSpan -> Span.LeftSpacedSpan)
+-- --                  -> (IRBS SomeTerm -> a) -> Parser a -> Parser a
+-- -- catchInvalidWith spanf f p = undefined -- do
+-- --     -- (span, result) <- computeSpan $ catchParseErrors p
+-- --     -- pure $ flip fromRight result $ f . irbsFromSpan (spanf span) . invalid . convert
+
+
+
+-- ---------------------
+-- -- === Markers === --
+-- ---------------------
+
+-- markerIRB :: Parser (Marker.ID, IRBS SomeTerm)
+-- markerIRB = Marker.getAndClearLast >>= \case
+--     Nothing -> expected "marker"
+--     Just t  -> do
+--         crange <- unwrap <$> State.get @CodeSpanRange
+--         foEnd  <- unwrap <$> State.get @FileOffset
+--         let markerLen  = t ^. Lexer.span
+--             markerOffR = t ^. Lexer.offset
+--             markerOffL = foEnd - crange - markerLen - markerOffR
+--             markerSpan = Span.leftSpacedSpan markerOffL markerLen
+--         State.modify_ @CodeSpanRange $ wrapped .~ foEnd
+--         pure $ ( t ^. Marker.markerID
+--                , irbsFromSpan (CodeSpan.mkPhantomSpan markerSpan)
+--                                   (id $ irb1 IR.marker' $ t ^. Marker.markerID)
+--                )
+
+-- marked :: Parser (IRBS SomeTerm -> IRBS SomeTerm)
+-- marked = option registerUnmarkedExpr $ uncurry markedExpr <$> markerIRB where
+--     markedExpr mid expr = registerMarkedExpr mid
+--                         . inheritCodeSpan2 (irb2 IR.marked') expr
+
+-- registerUnmarkedExpr ::              IRBS SomeTerm -> IRBS SomeTerm
+-- registerMarkedExpr   :: Marker.ID -> IRBS SomeTerm -> IRBS SomeTerm
+-- registerUnmarkedExpr = wrapped %~ withIRB (>>~ Marker.registerOrphan)
+-- registerMarkedExpr m = wrapped %~ withIRB (>>~ Marker.register m)
+-- {-# INLINE registerUnmarkedExpr #-}
+-- {-# INLINE registerMarkedExpr   #-}
+
+
+
+-- ---------------------
+-- -- === Symbols === --
+-- ---------------------
+
+-- stx, etx, eol :: Parser ()
+-- stx = symbol Lexer.STX ; {-# INLINE stx #-}
+-- etx = symbol Lexer.ETX ; {-# INLINE etx #-}
+-- eol = symbol Lexer.EOL ; {-# INLINE eol #-}
+
+-- braceBegin, braceEnd :: Parser ()
+-- braceBegin = symbol $ Lexer.List Lexer.Begin ; {-# INLINE braceBegin #-}
+-- braceEnd   = symbol $ Lexer.List Lexer.End   ; {-# INLINE braceEnd   #-}
+
+-- groupBegin, groupEnd :: Parser ()
+-- groupBegin = symbol $ Lexer.Group Lexer.Begin ; {-# INLINE groupBegin #-}
+-- groupEnd   = symbol $ Lexer.Group Lexer.End   ; {-# INLINE groupEnd   #-}
+
+-- parensed :: Parser a -> Parser a
+-- parensed p = groupBegin *> p <* groupEnd ; {-# INLINE parensed #-}
+
+
+
+
+-- var :: Parser (IRBS SomeTerm)
+-- cons, var, op, wildcard :: Parser (IRBS SomeTerm)
+-- cons     = snd <$> namedCons                             ; {-# INLINE cons     #-}
+-- var      = snd <$> namedVar                              ; {-# INLINE var      #-}
+-- op       = snd <$> namedOp                               ; {-# INLINE op       #-}
+-- wildcard = irbs $ irb0 IR.blank' <$ symbol Lexer.Wildcard ; {-# INLINE wildcard #-}
+
+-- namedVar :: Parser (Name, IRBS SomeTerm)
+-- namedCons, namedVar, namedOp, namedIdent :: Parser (Name, IRBS SomeTerm)
+-- namedCons  = irbsNamed (flip (irb2 IR.cons') []) consName ; {-# INLINE namedCons  #-}
+-- namedVar   = undefined -- irbsNamed (irb1 IR.var')            varName  ; {-# INLINE namedVar   #-}
+-- namedOp    = irbsNamed (irb1 IR.var')            opName   ; {-# INLINE namedOp    #-}
+-- namedIdent = namedVar <|> namedCons <|> namedOp    ; {-# INLINE namedIdent #-}
+
+
+-- === Helpers === --
+
+-- irbsNamed :: (Name -> IRB (Term a)) -> Parser Name -> Parser (Name, IRBS (Term a))
+-- irbsNamed cons = irbsF . fmap (\name -> (name, cons name)) ; {-# INLINE irbsNamed #-}
+
