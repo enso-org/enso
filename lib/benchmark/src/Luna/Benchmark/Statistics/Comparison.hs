@@ -220,7 +220,7 @@ compareField :: (Num a, Ord a) => Statistics -> Lens' Statistics a -> Statistics
 compareField current accessor old = let
     currVal = current ^. accessor
     histVal = old     ^. accessor
-    delta   = histVal - currVal
+    delta   = currVal - histVal
     in Comparison delta
 
 
