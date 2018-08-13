@@ -96,8 +96,8 @@ shouldParseItself sv parser input = shouldParseAs sv parser input input
 -- unit       = shouldParseItself Parsing.unit'
 -- unit_n   s = unitAs_n s s
 -- unitAs_n s = unitAs s . ("\n" <>)
-exprAs     = shouldParseAs     Parsing.Syntax1 Parsing.expr
-expr       = shouldParseItself Parsing.Syntax1 Parsing.expr
+-- exprAs     = shouldParseAs     Parsing.Syntax1 Parsing.expr
+-- expr       = shouldParseItself Parsing.Syntax1 Parsing.expr
 
 
 
@@ -105,39 +105,39 @@ expr       = shouldParseItself Parsing.Syntax1 Parsing.expr
 -- === Literals === --
 ----------------------
 
-identSpec :: Spec
-identSpec = describe "identifier" $ do
-    it "var"               $ expr   "var"
-    it "_var"              $ expr   "_var"
-    it "var'"              $ expr   "var'"
-    it "var''"             $ expr   "var''"
-    it "unicode"           $ expr   "фываΧξωβ김동욱"
-    it "invalid var: a⸗"   $ exprAs "a⸗"    "(UnexpectedVarNameSuffix 1)"
-    it "invalid var: f'o"  $ exprAs "f'o"  "(UnexpectedVarNameSuffix 1)"
-    it "invalid var: f_a"  $ exprAs "f_a"  "(UnexpectedVarNameSuffix 2)"
-    it "Cons"              $ expr   "Cons"
-    it "Cons'"             $ expr   "Cons'"
-    it "Cons''"            $ expr   "Cons''"
-    it "invalid cons: C⸗"  $ exprAs "C⸗"    "(UnexpectedTypeNameSuffix 1)"
-    it "invalid cons: C'o" $ exprAs "C'o"  "(UnexpectedTypeNameSuffix 1)"
-    it "invalid cons: C_a" $ exprAs "C_a"  "(UnexpectedTypeNameSuffix 2)"
+-- identSpec :: Spec
+-- identSpec = describe "identifier" $ do
+--     it "var"               $ expr   "var"
+--     it "_var"              $ expr   "_var"
+--     it "var'"              $ expr   "var'"
+--     it "var''"             $ expr   "var''"
+--     it "unicode"           $ expr   "фываΧξωβ김동욱"
+--     it "invalid var: a⸗"   $ exprAs "a⸗"    "(UnexpectedVarNameSuffix 1)"
+--     it "invalid var: f'o"  $ exprAs "f'o"  "(UnexpectedVarNameSuffix 1)"
+--     it "invalid var: f_a"  $ exprAs "f_a"  "(UnexpectedVarNameSuffix 2)"
+--     it "Cons"              $ expr   "Cons"
+--     it "Cons'"             $ expr   "Cons'"
+--     it "Cons''"            $ expr   "Cons''"
+--     it "invalid cons: C⸗"  $ exprAs "C⸗"    "(UnexpectedTypeNameSuffix 1)"
+--     it "invalid cons: C'o" $ exprAs "C'o"  "(UnexpectedTypeNameSuffix 1)"
+--     it "invalid cons: C_a" $ exprAs "C_a"  "(UnexpectedTypeNameSuffix 2)"
 
-exprSpec :: Spec
-exprSpec = describe "expression" $ do
-    it "app"        $ expr   "a b"
-    it "operator"   $ expr   "a + b"
-    it "group"      $ expr   "(a b)"
-    it "multiline"  $ exprAs "foo\n bar baz" "foo \n bar baz"
-    it "a)"         $ exprAs "a)" "a (Unknown)"
+-- exprSpec :: Spec
+-- exprSpec = describe "expression" $ do
+--     it "app"        $ expr   "a b"
+--     it "operator"   $ expr   "a + b"
+--     it "group"      $ expr   "(a b)"
+--     it "multiline"  $ exprAs "foo\n bar baz" "foo \n bar baz"
+--     it "a)"         $ exprAs "a)" "a (Unknown)"
 
-funcDefSpec :: Spec
-funcDefSpec = describe "function" $ do
-    it "def"        $ exprAs "def" "(InvalidFunctionDefinition)"
-    it "def _"      $ exprAs "def _" "def (InvalidFunctionName): (MissingColonBlock)"
-    it "def f"      $ exprAs "def f" "def f: (MissingColonBlock)"
-    it "def f +: a" $ exprAs "def f +: a" "def f (InvalidFunctionArg): a"
-    it "def f a:"   $ expr   "def f a:"
-    it "def f a: a" $ expr   "def f a: a"
+-- funcDefSpec :: Spec
+-- funcDefSpec = describe "function" $ do
+--     it "def"        $ exprAs "def" "(InvalidFunctionDefinition)"
+--     it "def _"      $ exprAs "def _" "def (InvalidFunctionName): (MissingColonBlock)"
+--     it "def f"      $ exprAs "def f" "def f: (MissingColonBlock)"
+--     it "def f +: a" $ exprAs "def f +: a" "def f (InvalidFunctionArg): a"
+--     it "def f a:"   $ expr   "def f a:"
+--     it "def f a: a" $ expr   "def f a: a"
 
 -- literalNumberSpec :: Spec
 -- literalNumberSpec = describe "number" $ do
@@ -435,15 +435,36 @@ fixSpec = describe "error" $ it "x" $ do
     -- pprint $ Parser.runParserxx__ Parsing.expr "a -> b -> a + b"
     -- pprint $ Parser.runParserxx__ Parsing.Syntax1 Parsing.expr "def foo a:\n a"
     -- pprint $ Parser.runParserxx__ Parsing.Syntax2 Parsing.expr "foo (bar baz"
-    pprint $ Parser.runParserxx__ Parsing.Syntax2 Parsing.expr "foo\n bar baz"
+    pprint $ Parser.run Parsing.Syntax2 [s|
+
+type Main
+
+    test : Int -> Int -> [Char]
+    test = a -> b -> a + b . show . convert # interesting
+
+type Internal
+    «57»foo _bar_baz __ + += >= = == ===
+
+|]
+
+
+-- type Main
+
+--     test : Int -> Int -> [Char]
+--     test = a -> b -> a + b . show . convert
+
+-- type Internal
+--     foo
+
+-- |]
     True `shouldBe` False
     -- it "error" $ expr "def foo:\n x = 1\n def"
 
 spec :: Spec
 spec = do
-    identSpec
-    exprSpec
-    funcDefSpec
+    -- identSpec
+    -- exprSpec
+    -- funcDefSpec
     fixSpec
     -- literalSpec
     -- termSpec

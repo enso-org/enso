@@ -32,7 +32,7 @@ import qualified Luna.Syntax.Text.Lexer.Symbol        as Lexer
 import qualified Luna.Syntax.Text.Parser.State.Marker as Marker
 import qualified Luna.Syntax.Text.Scope               as Scope
 
-import Control.Monad.State.Layered              (StatesT)
+import Control.Monad.State.Layered              (StateT, StatesT)
 import Data.Set                                 (Set)
 import Data.Text.Position                       (FileOffset (..))
 import Data.Text.Position                       (Delta, Position)
@@ -46,6 +46,15 @@ import Text.Parser.Combinators (some)
 
 type Text = Text.Text32
 data SyntaxVersion = Syntax1 | Syntax2 deriving (Show)
+
+
+
+
+data Spanned a = Spanned
+    { _span :: CodeSpan
+    , _ast  :: a
+    } deriving (Functor, Show)
+makeLenses ''Spanned
 
 
 
@@ -119,7 +128,7 @@ instance Default Blacklist where
 --     {-# INLINE def #-}
 
 
-type Parser = StatesT '[SyntaxVersion, Blacklist, Indent, Position, LastOffset, CodeSpanRange, Marker.State, FileOffset, Scope.Scope] Parsec.Parser
+type Parser = StatesT '[Result, SyntaxVersion, Blacklist, Indent, Position, LastOffset, CodeSpanRange, Marker.State, FileOffset, Scope.Scope] Parsec.Parser
 
 
 
@@ -139,7 +148,15 @@ instance (MonadTrans t, Monad (t m), KnownParserOffset m)
 
 
 
+newtype Result = Result [Spanned Ast] deriving (Default, Mempty, Show)
 
+register :: State.Monad Result m => Spanned Ast -> m ()
+register = \a -> State.modify_ @Result $ wrapped %~ (a:)
+{-# INLINE register #-}
+
+evalResult :: Monad m => StateT Result m a -> m [Spanned Ast]
+evalResult = fmap (reverse . unwrap) . State.execDefT
+{-# INLINE evalResult #-}
 
 
 
@@ -200,11 +217,7 @@ instance (MonadTrans t, Monad (t m), KnownParserOffset m)
 
 
 -- type Unspanned = Ast Spanned
-data Spanned a = Spanned
-    { _span :: CodeSpan
-    , _ast  :: a
-    } deriving (Functor, Show)
-makeLenses ''Spanned
+
 
 type family ExpandField t a
 data Simple
@@ -220,9 +233,11 @@ type instance ExpandField Simple a = ExpandFieldSimple a
 type family ExpandFieldSimple a where
     ExpandFieldSimple (NonEmpty a)   = NonEmpty (ExpandFieldSimple a)
     ExpandFieldSimple [a]            = [ExpandFieldSimple a]
+    ExpandFieldSimple Delta          = Delta
     ExpandFieldSimple Int            = Int
     ExpandFieldSimple Bool           = Bool
     ExpandFieldSimple Name           = Name
+    ExpandFieldSimple Text           = Text
     ExpandFieldSimple Invalid.Symbol = Invalid.Symbol
 
     ExpandFieldSimple Ast            = Spanned Ast
@@ -236,7 +251,6 @@ data Expr     = Expr     { line  :: S (NonEmpty Ast)            } deriving (Show
 data Grouped  = Grouped  { body  :: S Ast                       } deriving (Show)
 data Invalid  = Invalid  { desc  :: S Invalid.Symbol            } deriving (Show)
 data List     = List     { elems :: S [Ast]                     } deriving (Show)
-data Marker   = Marker   { mid   :: S Int                       } deriving (Show)
 data Modifier = Modifier { name  :: S Name                      } deriving (Show)
 data Operator = Operator { name  :: S Name                      } deriving (Show)
 data Unify    = Unify    { left  :: S Ast, right :: S Ast       } deriving (Show)
@@ -246,6 +260,11 @@ data Missing  = Missing                                           deriving (Show
 data Record   = Record   { isNative :: S Bool , name  :: S Name
                          , params   :: S [Ast], conss :: S [Ast]
                          , decls    :: S [Ast]                  } deriving (Show)
+
+data NewLine  = NewLine  { indent   :: S Delta                  } deriving (Show)
+data Comment  = Comment  { text     :: S Text                   } deriving (Show)
+data Marker   = Marker   { markerID :: S Int                    } deriving (Show)
+
 
 -- OLD
 data Function = Function { nm   :: S Ast, args :: S [Ast], body :: S Ast } deriving (Show)
@@ -258,7 +277,6 @@ data Ast
     | AstGrouped  Grouped
     | AstInvalid  Invalid
     | AstList     List
-    | AstMarker   Marker
     | AstModifier Modifier
     | AstOperator Operator
     | AstUnify    Unify
@@ -266,10 +284,17 @@ data Ast
     | AstWildcard Wildcard
     | AstMissing  Missing
 
+    | AstNewLine  NewLine
+    | AstComment  Comment
+    | AstMarker   Marker
+
     -- OLD
     | AstFunction Function
     deriving (Show)
 
+
+------ FIXME vvv
+makeLenses ''Result
 
 
 
@@ -359,15 +384,20 @@ computeSpan = \p -> uncurry Spanned <$> spanned p
 {-# INLINE computeSpan #-}
 
 eol :: Parser Delta
-eol = (1 <$ n) <|> (2 <$ rn) where
+eol = (1 <$ n) <|> (2 <$ rn) <|> (1 <$ r) where
     n  = token '\n'
     r  = token '\r'
     rn = r >> n
 {-# INLINE eol #-}
 
+isEolBeginChar :: Char -> Bool
+isEolBeginChar = (`elem` eolStartChars)
+{-# INLINE isEolBeginChar #-}
+
 eolStartChars :: [Char]
 eolStartChars = ['\n', '\r', '\ETX']
 {-# INLINE eolStartChars #-}
+
 
 
 -- === Smart constructors === --
@@ -376,29 +406,29 @@ app :: Spanned Ast -> Spanned Ast -> Spanned Ast
 app = inheritCodeSpan2 $ \base arg -> AstApp $ App base arg
 {-# INLINE app #-}
 
-block :: NonEmpty (Spanned Ast) -> Spanned Ast
-block = inheritCodeSpanList $ \lines -> AstBlock $ Block lines
-{-# INLINE block #-}
+-- block :: NonEmpty (Spanned Ast) -> Spanned Ast
+-- block = inheritCodeSpanList $ \lines -> AstBlock $ Block lines
+-- {-# INLINE block #-}
 
 cons' :: Name -> Ast
 cons' = \name -> AstCons $ Cons name
 {-# INLINE cons' #-}
 
-expr :: NonEmpty (Spanned Ast) -> Spanned Ast
-expr = inheritCodeSpanList $ \toks -> AstExpr $ Expr toks
-{-# INLINE expr #-}
+-- expr :: NonEmpty (Spanned Ast) -> Spanned Ast
+-- expr = inheritCodeSpanList $ \toks -> AstExpr $ Expr toks
+-- {-# INLINE expr #-}
 
-grouped' :: Spanned Ast -> Ast
-grouped' = \body -> AstGrouped $ Grouped body
-{-# INLINE grouped' #-}
+-- grouped' :: Spanned Ast -> Ast
+-- grouped' = \body -> AstGrouped $ Grouped body
+-- {-# INLINE grouped' #-}
 
 invalid' :: Invalid.Symbol -> Ast
 invalid' = \desc -> AstInvalid $ Invalid desc
 {-# INLINE invalid' #-}
 
-list' :: [Spanned Ast] -> Ast
-list' = \elems -> AstList $ List elems
-{-# INLINE list' #-}
+-- list' :: [Spanned Ast] -> Ast
+-- list' = \elems -> AstList $ List elems
+-- {-# INLINE list' #-}
 
 marker' :: Int -> Ast
 marker' = \id -> AstMarker $ Marker id
@@ -412,31 +442,31 @@ operator' :: Name -> Ast
 operator' = \name -> AstOperator $ Operator name
 {-# INLINE operator' #-}
 
-unify :: Spanned Ast -> Spanned Ast -> Spanned Ast
-unify = inheritCodeSpan2 $ \left right -> AstUnify $ Unify left right
-{-# INLINE unify #-}
+-- unify :: Spanned Ast -> Spanned Ast -> Spanned Ast
+-- unify = inheritCodeSpan2 $ \left right -> AstUnify $ Unify left right
+-- {-# INLINE unify #-}
 
 var' :: Name -> Ast
 var' = \name -> AstVar $ Var name
 {-# INLINE var' #-}
 
 
+nl' :: Delta -> Ast
+nl' = \indent -> AstNewLine $ NewLine indent
+{-# INLINE nl' #-}
 
--- function :: Name -> [Spanned Ast] -> Spanned Ast -> Spanned Ast
--- function = \name args block -> let
+comment' :: Text -> Ast
+comment' = \txt -> AstComment $ Comment txt
+{-# INLINE comment' #-}
+
+
+-- function' :: Spanned Ast -> [Spanned Ast] -> Spanned Ast -> Ast
+-- function' = \name args block -> let
 --     lst = case args of
 --         []       -> block :| []
 --         (a : as) -> a :| (as <> [block])
---     in inheritCodeSpanList' lst $ AstFunction $ Function name args block
--- {-# INLINE function #-}
-
-function' :: Spanned Ast -> [Spanned Ast] -> Spanned Ast -> Ast
-function' = \name args block -> let
-    lst = case args of
-        []       -> block :| []
-        (a : as) -> a :| (as <> [block])
-    in AstFunction $ Function name args block
-{-# INLINE function' #-}
+--     in AstFunction $ Function name args block
+-- {-# INLINE function' #-}
 
 
 
@@ -444,14 +474,13 @@ wildcard' :: Ast
 wildcard' = AstWildcard Wildcard
 {-# INLINE wildcard' #-}
 
-missing' :: Ast
-missing' = AstMissing Missing
-{-# INLINE missing' #-}
+-- missing' :: Ast
+-- missing' = AstMissing Missing
+-- {-# INLINE missing' #-}
 
-missing :: Spanned Ast
-missing = Spanned mempty $ AstMissing Missing
-{-# INLINE missing #-}
-
+-- missing :: Spanned Ast
+-- missing = Spanned mempty $ AstMissing Missing
+-- {-# INLINE missing #-}
 
 
 
@@ -485,42 +514,6 @@ buildIR = \(Spanned cs ast)  -> case ast of
 
 
 
--- === Markers === --
-
-markerBegin, markerEnd :: Char
-markerBegin = '«'
-markerEnd   = '»'
-{-# INLINE markerBegin #-}
-{-# INLINE markerEnd   #-}
-
-parseMarker :: Parser (Spanned Ast)
-parseMarker = computeSpan parser where
-    correct   = AstMarker . Marker <$> decimal
-    incorrect = invalid' Invalid.InvalidMarker <$ takeTill (== markerEnd)
-    parser    = token markerBegin *> (correct <|> incorrect) <* token markerEnd
-{-# INLINE parseMarker #-}
-
-
-
-digitChar :: Parser Int
-digitChar = do
-    char <- anyToken
-    let n = Char.ord char
-    if n >= 48 && n <= 57 then pure (n - 48) else fail "not digit"
-{-# INLINE digitChar #-}
-
-decimal :: Parser Int
-decimal = digitsToDec <$> some digitChar
-{-# INLINE decimal #-}
-
-digitsToDec :: NonEmpty Int -> Int
-digitsToDec = \(s :| ss) -> digitsToDec' s ss
-{-# INLINE digitsToDec #-}
-
-digitsToDec' :: Int -> [Int] -> Int
-digitsToDec' = \i -> \case
-    []     -> i
-    (s:ss) -> digitsToDec' (i * 10 + s) ss
 
 
 -- isDigitCharAtBase :: Word8 -> Char -> Bool

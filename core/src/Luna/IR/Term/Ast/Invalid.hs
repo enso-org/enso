@@ -27,6 +27,7 @@ data Symbol
     | UnexpectedVarNameSuffix  {- len -} Int
     | UnexpectedTypeNameSuffix {- len -} Int
     | UnexpectedOperatorSuffix {- len -} Int
+    | UnexpectedWildcardSuffix {- len -} Int
     | InvalidMarker
     | InvalidFunctionName
     | InvalidFunctionArg

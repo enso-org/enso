@@ -25,6 +25,7 @@ import qualified Luna.IR       as IR
 import qualified Luna.IR.Layer as Layer
 -- import qualified Luna.IR.Term.Ast                          as Import
 import qualified Data.Char                             as Char
+import qualified Data.Text.Position                    as Position
 import qualified Luna.IR.Term.Ast.Invalid              as Invalid
 import qualified Luna.Syntax.Text.Lexer                as Lexer
 import qualified Luna.Syntax.Text.Lexer.Symbol         as Lexer
@@ -36,7 +37,9 @@ import qualified Luna.Syntax.Text.Parser.Data.Invalid  as Attr
 -- import qualified Luna.Syntax.Text.Parser.Loc               as Loc
 import qualified Luna.Syntax.Text.Parser.State.Marker as Marker
 -- import qualified Luna.Syntax.Text.Parser.State.Reserved    as Reserved
-import qualified Luna.Syntax.Text.Scope   as Scope
+import qualified Data.Vector            as Vector
+import qualified Luna.Syntax.Text.Scope as Scope
+
 import qualified Text.Parser.State.Indent as Indent
 
 
@@ -57,6 +60,7 @@ import Luna.Syntax.Text.Parser.Data.CodeSpan (CodeSpan (CodeSpan),
 -- import Luna.Syntax.Text.Parser.Loc              (checkNextOffset,
 --                                                  previewNextSymbol, token')
 
+import Data.Vector                              (Vector)
 import Luna.Syntax.Text.Parser.State.LastOffset (LastOffset (LastOffset))
 import OCI.Data.Name                            (Name)
 -- import Text.Megaparsec                          (ErrorItem (Tokens),
@@ -78,6 +82,7 @@ import qualified Luna.Syntax.Text.Parser.IR.Ast as Ast
 
 import Control.Monad.State.Layered        (StatesT)
 import Data.Text.Position                 (Delta)
+import Luna.Syntax.Text.Parser.IR.Ast     (isEolBeginChar)
 import Luna.Syntax.Text.Parser.IR.Ast     (Parser)
 import Luna.Syntax.Text.Parser.Pass.Class (IRB (IRB, fromIRB), IRBS (IRBS),
                                            fromIRBS, irb0, irb1, irb2, irb3,
@@ -152,6 +157,15 @@ instance Convertible Text.Text32 Name where
 
 
 
+
+
+trimIndent :: [Text] -> Text
+trimIndent = \texts -> let
+    indents = Text.length . Text.takeWhile (== ' ') <$> texts
+    indent  = if null indents then 0 else unsafeMinimum indents
+    texts'  = Text.drop indent <$> texts
+    in intercalate "\n" texts'
+{-# NOINLINE trimIndent #-}
 
 
 
@@ -465,7 +479,7 @@ gatherMany1 = gatherWith1 convert
 {-# INLINE gatherMany1 #-}
 
 anyLine :: Parser Text
-anyLine = takeWhile $ not . (`elem` Ast.eolStartChars)
+anyLine = takeWhile $ not . isEolBeginChar
 {-# INLINE anyLine #-}
 
 chunk :: Parser Text
@@ -497,7 +511,9 @@ cons = Ast.computeSpan $ either err Ast.cons' <$> consName where
 {-# INLINE cons #-}
 
 wildcard :: Parser Ast
-wildcard = Ast.computeSpan $ Ast.wildcard' <$ token '_'
+wildcard = Ast.computeSpan $ either err (const Ast.wildcard') <$> parser where
+    err    = Ast.invalid' . Invalid.UnexpectedWildcardSuffix
+    parser = checkIndentInvalidSuffix (token '_')
 {-# INLINE wildcard #-}
 
 ident :: Parser Ast
@@ -520,19 +536,24 @@ consName = (fmap convert . fmap . (<>) <$> header) <*> identBody where
 {-# INLINE consName #-}
 
 identBody :: Parser (Either Int Text)
-identBody = check name where
-    check = (<**> option id (const . Left <$> invalidIdentSuffix)) . fmap Right
+identBody = checkIndentInvalidSuffix name where
     body  = takeWhile isIdentBodyChar
     sfx   = option id (flip (<>) <$> takeMany1 '\'')
     name  = body <**> sfx
 {-# INLINE identBody #-}
 
+checkIndentInvalidSuffix :: Parser a -> Parser (Either Int a)
+checkIndentInvalidSuffix = (<**> option id inv) . fmap Right where
+    inv = const . Left <$> invalidIdentSuffix
+{-# INLINE checkIndentInvalidSuffix #-}
+
+
 
 -- === Lexing === --
 
 isIdentBodyChar, isVarHead, isConsHead :: Char -> Bool
-isIdentBodyChar = Char.isAlphaNum
-isVarHead       = Char.isLower
+isIdentBodyChar = \c -> Char.isAlphaNum c || c == '_'
+isVarHead       = \c -> Char.isLower c || c == '_'
 isConsHead      = Char.isUpper
 {-# INLINE isIdentBodyChar  #-}
 {-# INLINE isVarHead        #-}
@@ -569,8 +590,13 @@ operatorBy f = Ast.computeSpan result where
             ""  -> Right $ Ast.operator' (convert p)
             _   -> Left  $ Text.length s
     normalOp = handleOp <$> takeWhile1 f <*> takeMany eqChar
-    eqOp     = Right . Ast.operator' . convert <$> takeMany1 eqChar
-    result = do
+    eqOp     = do
+        chars <- takeWhile1 (== eqChar)
+        let clen = Text.length chars - 2
+        pure $ if clen > 0
+            then Left clen
+            else Right . Ast.operator' $ convert chars
+    result   = do
         base <- normalOp <|> eqOp
         sfx  <- takeWhile f
         let sfxLen = Text.length sfx
@@ -580,7 +606,7 @@ operatorBy f = Ast.computeSpan result where
         pure $ case base' of
             Right a -> a
             Left  i -> Ast.invalid' $ Invalid.UnexpectedOperatorSuffix i
-{-# INLINE operatorBy #-}
+{-# NOINLINE operatorBy #-}
 
 eqChar :: Char
 eqChar = '='
@@ -589,19 +615,127 @@ eqChar = '='
 isOperatorChar :: Char -> Bool
 isOperatorChar = \c -> let
     ord   = Char.ord c
-    check = (ord == 33)              -- !
-         || (ord >= 36 && ord <= 38) -- $%&
-         || (ord >= 42 && ord <= 47) -- *+,-./
-         || (ord == 58)              -- :
-         || (ord == 60)              -- <
-         || (ord == 62)              -- >
-         || (ord == 63)              -- ?
-         || (ord == 92)              -- \
-         || (ord == 94)              -- ^
-         || (ord == 126)             -- ~
-         || (c /= '=' && Char.generalCategory c == Char.MathSymbol)
+    check = c /= eqChar
+          && ( (ord == 33)              -- !
+            || (ord >= 36 && ord <= 38) -- $%&
+            || (ord >= 42 && ord <= 47) -- *+,-./
+            || (ord >= 58 && ord <= 63) -- :;<>=?
+            || (ord == 92)              -- \
+            || (ord == 94)              -- ^
+            || (ord == 126)             -- ~
+            || Char.generalCategory c == Char.MathSymbol
+             )
     in check
 {-# INLINE isOperatorChar #-}
+
+isOperatorBeginChar :: Char -> Bool
+isOperatorBeginChar = \c -> c == eqChar || isOperatorChar c
+{-# INLINE isOperatorBeginChar #-}
+
+
+-- | The size of `symmap` - Vector-based map from head Char to related parser.
+lookupTableSize :: Int
+lookupTableSize = 200
+{-# INLINE lookupTableSize #-}
+
+
+isOpenCloseChar :: Char -> Bool
+isOpenCloseChar = (`elem` ("(){}[]" :: [Char]))
+
+unsafeAnyTokenOperator :: Parser ()
+unsafeAnyTokenOperator = Ast.register
+    =<< Ast.computeSpan (Ast.operator' . convert <$> anyToken)
+{-# INLINE unsafeAnyTokenOperator #-}
+
+exprLookupTable :: Vector (Parser ())
+exprLookupTable = Vector.generate lookupTableSize $ exprByChar . Char.chr
+
+exprByChar :: Char -> Parser ()
+exprByChar = \c -> if
+    | isOperatorBeginChar c -> operatorExpr
+    | isEolBeginChar      c -> newLineExpr
+    | isOpenCloseChar     c -> unsafeAnyTokenOperator
+    | isVarHead           c -> varExpr <|> wildcardExpr
+    | isConsHead          c -> consExpr
+    | isCommentStartChar  c -> comment
+    | isMarkerBeginChar   c -> marker
+
+    -- -- Literals
+    -- | c == rawStrQuote  -> rawStr
+    -- | c == fmtStrQuote  -> fmtStr
+    -- | isDecDigitChar c  -> lexNumber
+
+    -- Utils
+    | otherwise         -> unknownExpr
+
+
+-- | (1): fetch  parser for ASCII from precomputed cache
+--   (2): choose parser for unicode characters on the fly
+fastExprByChar :: Char -> Parser ()
+fastExprByChar = \c -> let ord = Char.ord c in if
+    | ord < lookupTableSize -> Vector.unsafeIndex exprLookupTable ord -- (1)
+    | otherwise             -> exprByChar c                           -- (2)
+{-# INLINE fastExprByChar #-}
+
+
+commentStartChar :: Char
+commentStartChar = '#'
+{-# INLINE commentStartChar #-}
+
+isCommentStartChar :: Char -> Bool
+isCommentStartChar = (== commentStartChar)
+{-# INLINE isCommentStartChar #-}
+
+comment :: Parser ()
+comment = commentChar >> parser where
+    commentChar = token commentStartChar
+    body        = trimIndent <$> (multiLine <|> singleLine)
+    multiLine   = commentChar *> flexBlock rawLine
+    singleLine  = pure <$> rawLine
+    rawLine     = takeWhile (not . isEolBeginChar)
+    parser      = Ast.register =<< Ast.computeSpan (Ast.comment' <$> body)
+{-# INLINE comment #-}
+
+
+isMarkerBeginChar :: Char -> Bool
+isMarkerBeginChar = (== markerBegin)
+{-# INLINE isMarkerBeginChar #-}
+
+markerBegin, markerEnd :: Char
+markerBegin = '«'
+markerEnd   = '»'
+{-# INLINE markerBegin #-}
+{-# INLINE markerEnd   #-}
+
+marker :: Parser ()
+marker = Ast.register =<< Ast.computeSpan parser where
+    correct   = Ast.marker' <$> decimal
+    incorrect = Ast.invalid' Invalid.InvalidMarker <$ takeTill (== markerEnd)
+    parser    = token markerBegin *> (correct <|> incorrect) <* token markerEnd
+{-# INLINE marker #-}
+
+digitChar :: Parser Int
+digitChar = do
+    char <- anyToken
+    let n = Char.ord char
+    if n >= 48 && n <= 57 then pure (n - 48) else fail "not digit"
+{-# INLINE digitChar #-}
+
+decimal :: Parser Int
+decimal = digitsToDec <$> some digitChar
+{-# INLINE decimal #-}
+
+digitsToDec :: NonEmpty Int -> Int
+digitsToDec = \(i :| is) -> case is of
+    []     -> i
+    (s:ss) -> digitsToDec $ (i * 10 + s) :| ss
+{-# NOINLINE digitsToDec #-} -- recursive
+
+
+
+
+
+
 
 
 
@@ -612,83 +746,89 @@ isOperatorChar = \c -> let
 
 -- === Parsers === --
 
-expr :: Parser Ast
-expr = lineExpr -- <**> assignment where
-    -- assignment = option id (flip Ast.unify <$ Ast.lexeme (token '=') <*> lineExpr)
 
-lineExpr :: Parser Ast
-lineExpr = lineExprBldr isOperatorChar
-{-# INLINE lineExpr #-}
+varExpr :: Parser ()
+varExpr = Ast.register =<< var
+{-# INLINE varExpr #-}
 
-lineExprBldr :: (Char -> Bool) -> Parser Ast
-lineExprBldr = \opFilter -> let
-    -- line   = Ast.exprLine <$> gatherMany1 elems
-    single = ((:|) <$>)
-    nlOp   = Ast.computeSpan $ Ast.operator' "#linebreak#" <$ some Ast.newline <* Indent.indented
-    elems  = choice
-        [ single old_funcDef
-        , single var
-        , single cons
-        , lamBlock
-        , single (operatorBy opFilter)
-        , single group
-        , single unknown
-        , single nlOp
-        ]
-    in Ast.expr <$> gatherMany1 elems
-{-# INLINE lineExprBldr #-}
+consExpr :: Parser ()
+consExpr = Ast.register =<< cons
+{-# INLINE consExpr #-}
 
--- multiLineBlock1x :: Parser Ast -> Parser (NonEmpty Ast)
--- multiLineBlock1x = \p -> let
---     line = (:) <$> nlOp <* Indent.indented <*> p
---     nlOp = Ast.computeSpan $ Ast.operator' "#linebreak#" <$ some Ast.newline
---     in (:|) <$> p <*> many line
--- {-# INLINE multiLineBlock1x #-}
+wildcardExpr :: Parser ()
+wildcardExpr = Ast.register =<< wildcard
+{-# INLINE wildcardExpr #-}
+
+operatorExpr :: Parser ()
+operatorExpr = Ast.register =<< operator
+{-# INLINE operatorExpr #-}
+
+lamExpr :: Parser ()
+lamExpr = arrow >> body where
+    arrow = Ast.register =<< Ast.computeSpan (Ast.operator' . convert <$> tokP)
+    body  = void $ discoverBlock1 expr
+    tokP  = State.get @Ast.SyntaxVersion >>= \case
+        Ast.Syntax1 -> tokens ":"
+        Ast.Syntax2 -> tokens "->"
+{-# INLINE lamExpr #-}
+
+unknownExpr :: Parser ()
+unknownExpr = Ast.register =<< unknown
+{-# INLINE unknownExpr #-}
+
+newLineExpr :: Parser ()
+newLineExpr = Ast.register =<< ast where
+    ast = Ast.computeSpan $ do
+        some Ast.newline -- >> Indent.indented
+        Ast.nl' <$> Position.getColumn
+{-# INLINE newLineExpr #-}
+
+expr :: Parser ()
+expr = fastExprByChar =<< peekToken
+{-# INLINE expr #-}
+
+exprs :: Parser ()
+exprs = void $ many expr >> token '\ETX'
+
+-- groupExpr :: Parser ()
+-- groupExpr = Ast.computeSpan $ Ast.grouped' <$> parensed expr where
+-- {-# INLINE group2 #-}
+
 
 
 -- === Elements === --
 
-lamBlock :: Parser ([Ast] -> NonEmpty Ast)
-lamBlock = (\a b c -> a :| b : c) <$> arrow <*> body where
-    arrow = Ast.computeSpan $ Ast.operator' . convert <$> tokP
-    body  = Ast.block <$> discoverBlock1 lineExpr
-    tokP  = State.get @Ast.SyntaxVersion >>= \case
-        Ast.Syntax1 -> tokens ":"
-        Ast.Syntax2 -> tokens "->"
-{-# INLINE lamBlock #-}
+-- old_funcDef :: Parser Ast
+-- old_funcDef = syntax1Only parser where
 
+--     -- Utils
+--     blockChar  = ':'
+--     header     = symbol "def"
 
-old_funcDef :: Parser Ast
-old_funcDef = syntax1Only parser where
+--     -- Name
+--     name       = var <|> opName <|> invName
+--     opName     = operatorBy (\c -> isOperatorChar c && c /= blockChar)
+--     invName    = invalid $ Invalid.InvalidFunctionName <$ chunk
 
-    -- Utils
-    blockChar  = ':'
-    header     = symbol "def"
+--     -- Args
+--     invArg     = invalid $ Invalid.InvalidFunctionArg <$ chunkOfNot [blockChar]
+--     args       = many (old_nonSpacedExpr <|> invArg)
 
-    -- Name
-    name       = var <|> opName <|> invName
-    opName     = operatorBy (\c -> isOperatorChar c && c /= blockChar)
-    invName    = invalid $ Invalid.InvalidFunctionName <$ chunk
+--     blockStart = Ast.lexeme $ token blockChar
 
-    -- Args
-    invArg     = invalid $ Invalid.InvalidFunctionArg <$ chunkOfNot [blockChar]
-    args       = many (old_nonSpacedExpr <|> invArg)
+--     -- Body
+--     body       = multiLine <|> lineExpr <|> pure Ast.missing
+--     multiLine  = (Ast.block <$> discoverBlock1 lineExpr)
+--     singleLine = lineExpr
+--     impl       = (blockStart *> body) <|> invBody
+--     invBody    = Ast.computeSpan $ Ast.invalid' Invalid.MissingColonBlock
+--               <$ anyLine <* flexBlock anyLine
 
-    blockStart = Ast.lexeme $ token blockChar
-
-    -- Body
-    body       = multiLine <|> lineExpr <|> pure Ast.missing
-    multiLine  = (Ast.block <$> discoverBlock1 lineExpr)
-    singleLine = lineExpr
-    impl       = (blockStart *> body) <|> invBody
-    invBody    = Ast.computeSpan $ Ast.invalid' Invalid.MissingColonBlock
-              <$ anyLine <* flexBlock anyLine
-
-    -- Def
-    invDef     = invalid' $ Invalid.InvalidFunctionDefinition
-              <$ anyLine <* flexBlock anyLine
-    valDef     = Ast.function' <$> name <*> args <*> impl
-    parser     = Ast.computeSpan $ header >> (valDef <|> invDef)
+--     -- Def
+--     invDef     = invalid' $ Invalid.InvalidFunctionDefinition
+--               <$ anyLine <* flexBlock anyLine
+--     valDef     = Ast.function' <$> name <*> args <*> impl
+--     parser     = Ast.computeSpan $ header >> (valDef <|> invDef)
 
 
 -- a co jesli [a,b,c] potraktujemy jako mixfix?
@@ -705,26 +845,26 @@ old_funcDef = syntax1Only parser where
 --     separator = symbol ","
 
 
-old_nonSpacedExpr :: Parser Ast
-old_nonSpacedExpr = choice
-    [ var
-    , cons
-    , group
-    ]
-{-# INLINE old_nonSpacedExpr #-}
+-- old_nonSpacedExpr :: Parser Ast
+-- old_nonSpacedExpr = choice
+--     [ var
+--     , cons
+--     , group
+--     ]
+-- {-# INLINE old_nonSpacedExpr #-}
 
 
-group :: Parser Ast
-group = Ast.computeSpan $ Ast.grouped' <$> parensed expr where
-{-# INLINE group #-}
+-- group :: Parser Ast
+-- group = Ast.computeSpan $ Ast.grouped' <$> parensed expr where
+-- {-# INLINE group #-}
 
-parensed :: Parser a -> Parser a
-parensed = \p -> symbol "(" *> Ast.withBlacklistedUnknown ')' p <* symbol ")"
-{-# INLINE parensed #-}
+-- parensed :: Parser a -> Parser a
+-- parensed = \p -> symbol "(" *> Ast.withBlacklistedUnknown ')' p <* symbol ")"
+-- {-# INLINE parensed #-}
 
-braced :: Parser a -> Parser a
-braced = \p -> symbol "[" *> Ast.withBlacklistedUnknown ']' p <* symbol "]"
-{-# INLINE braced #-}
+-- braced :: Parser a -> Parser a
+-- braced = \p -> symbol "[" *> Ast.withBlacklistedUnknown ']' p <* symbol "]"
+-- {-# INLINE braced #-}
 
 
 

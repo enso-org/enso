@@ -4,24 +4,24 @@
 
 module Data.Parser where
 
-import Prelude hiding (takeWhile, (.))
 import Control.Applicative
 import Control.Monad
-import Control.Monad.Trans
 import Control.Monad.Identity
-import Data.Foldable hiding (toList)
-import GHC.Exts (IsList, Item, toList, fromList)
+import Control.Monad.Trans
 import Data.Convert
+import Data.Foldable          hiding (toList)
 import Data.Functor.Utils
+import GHC.Exts               (IsList, Item, fromList, toList)
+import Prelude                hiding (takeWhile, (.))
 
 -- General utils -- to refactor
-import qualified Control.Monad.State.Layered as Layered
+import qualified Control.Monad.State.Layered as State
 
 type family Token  (m :: * -> *)
 type family Tokens (m :: * -> *)
 
-type instance Token  (Layered.StateT s m) = Token  m
-type instance Tokens (Layered.StateT s m) = Tokens m
+type instance Token  (State.StateT s m) = Token  m
+type instance Tokens (State.StateT s m) = Tokens m
 
 type TokenInvariants m   = (Item (Tokens m) ~ Token m, IsList (Tokens m))
 type TokenTrans      t m = (Token (t m) ~ Token m, Tokens (t m) ~ Tokens m)

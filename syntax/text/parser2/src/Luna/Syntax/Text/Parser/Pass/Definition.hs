@@ -174,13 +174,46 @@ runner__ = \sv p txt
      $ State.Indent.eval
      $ State.evalDefT @Parsing.Blacklist
      $ flip (State.evalT @Parsing.SyntaxVersion) sv
+     $ State.evalDefT @Parsing.Result
      $ (p <* token '\ETX')
 {-# INLINE runner__ #-}
 
 
+runStack :: Parsing.SyntaxVersion -> Parsing.Parser a -> Text32 -> IResult Text32 [Ast]
+runStack = \sv p txt
+    -> flip parsePartial txt -- (txt <> "\ETX")
+     $ State.evalDefT @Scope
+     $ State.evalDefT @FileOffset
+     $ State.evalDefT @Marker.State
+     $ State.evalDefT @CodeSpanRange
+     $ State.evalDefT @LastOffset
+     $ State.evalDefT @Position
+     $ State.Indent.eval
+     $ State.evalDefT @Parsing.Blacklist
+     $ flip (State.evalT @Parsing.SyntaxVersion) sv
+     $ Parsing.evalResult p
+{-# INLINE runStack #-}
 
 
+evalTotal :: Parsing.SyntaxVersion -> Parsing.Parser a -> Text32 -> [Ast]
+evalTotal = \sv p txt -> case runStack sv p txt of
+    Parser.Done !(txt') !r -> if (Text32.length txt' /= 0)
+        then error $ "Panic. Not all input consumed by lexer: " <> show txt'
+        else r
+    Parser.Partial g -> case g mempty of
+        Parser.Done !(txt') !r -> if (Text32.length txt' /= 0)
+            then error $ "Panic. Not all input consumed by lexer: " <> show txt'
+            else r
+        Parser.Fail !_ !_ !e   -> error e
+        Parser.Partial {} -> impossible
 
+    Parser.Fail !_ !_ !e   -> error e
+{-# INLINE evalTotal #-}
+
+
+run :: Parsing.SyntaxVersion -> Text32 -> [Ast]
+run = \sv txt -> evalTotal sv Parsing.exprs (txt <> "\ETX")
+{-# INLINE run #-}
 
 -- type Parser = StatesT '[Result, Indent, Location] Parsec.Parser
 -- type Parser = StatesT '[Indent, Location, LastOffset, CodeSpanRange, Marker.State, FileOffset] Parsec.Parser
