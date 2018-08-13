@@ -196,4 +196,3 @@ mem label !f !b = do
 
     pure . List.head $ fst <$> result
 {-# NOINLINE mem #-}
-
