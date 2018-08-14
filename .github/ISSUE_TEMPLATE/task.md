@@ -1,7 +1,7 @@
-
 ---
 name: Task
 about: Create a new development task for Luna.
+
 ---
 
 ### Summary
@@ -21,5 +21,5 @@ about: Create a new development task for Luna.
 ### Acceptance Criteria & Test Cases
 
 - Any criteria that must be satisfied for the task to be accepted.
-- The test plan for the feature, related to the acceptance criteria. 
+- The test plan for the feature, related to the acceptance criteria.
 

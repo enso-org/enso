@@ -1,7 +1,7 @@
-
 ---
 name: Feature Request
 about: Request a new feature in Luna.
+
 ---
 
 Please ensure that you check the latest version of Luna to see if your feature has been implemented.

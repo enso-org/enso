@@ -1,7 +1,7 @@
-
 ---
 name: Epic
 about: Create a new epic for Luna development.
+
 ---
 
 ### Summary
@@ -22,3 +22,4 @@ about: Create a new epic for Luna development.
 
 - The high-level acceptance criteria for the epic. 
 - The test plan for the epic.
+
