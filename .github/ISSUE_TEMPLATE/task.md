@@ -22,3 +22,4 @@ about: Create a new development task for Luna.
 
 - Any criteria that must be satisfied for the task to be accepted.
 - The test plan for the feature, related to the acceptance criteria.
+
