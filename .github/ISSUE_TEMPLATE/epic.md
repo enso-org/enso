@@ -17,5 +17,8 @@ about: Create a new epic for Luna development.
 
 - The high-level requirements of the epic.
 - Any performance requirements for the epic.
-- The test plan for the epic.
 
+### Acceptance Criteria & Test Cases
+
+- The high-level acceptance criteria for the epic. 
+- The test plan for the epic.
