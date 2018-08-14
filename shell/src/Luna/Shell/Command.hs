@@ -6,6 +6,7 @@ import qualified Control.Exception                  as Exception
 import qualified Control.Monad.Exception            as MException
 import qualified Control.Monad.State.Layered        as State
 import qualified Data.Yaml                          as Yaml
+import qualified GitHash                            as GitHash
 import qualified Luna.Package                       as Package
 import qualified Luna.Package.Configuration.Global  as Global
 import qualified Luna.Package.Configuration.License as License
@@ -132,6 +133,12 @@ data Command
     | Test TestOpts
     | Unfreeze FreezeOpts
     | Update UpdateOpts
+    | None
+    deriving (Eq, Generic, Ord, Show)
+
+data CommandOpts
+    = ShowVersion
+    | Exec Command
     deriving (Eq, Generic, Ord, Show)
 
 
@@ -194,6 +201,20 @@ init opts = do
         Right projectPath -> putStrLn
             $ "Initialised package at " <> projectPath
 
+version :: (MonadIO m) => m ()
+version = putStrLn versionMsg where
+    gitInfo    = $$(GitHash.tGitInfoCwd)
+    versionMsg = "Luna Version = "
+        <> GitHash.giBranch gitInfo
+        <> "@"
+        <> GitHash.giHash gitInfo
+        <> " ["
+        <> isDirty <> ", "
+        <> show (GitHash.giCommitCount gitInfo) <> " commits, "
+        <> "latest on " <> GitHash.giCommitDate gitInfo
+        <> "]"
+    isDirty = if GitHash.giDirty gitInfo then "Dirty" else "Clean"
+
 
 
 -------------------------
@@ -202,47 +223,51 @@ init opts = do
 
 -- === API === --
 
-runLuna :: (MonadIO m) => Command -> m ()
-runLuna command = do
-    globalConfig <- acquireGlobalConfig >>= \case
-        Left errText -> do
-            putStrLn $ convert errText
-            pure $ def @Global.Config
-        Right config -> pure config
+runLuna :: (MonadIO m) => CommandOpts -> m ()
+runLuna input = case input of
+    Exec command -> do
+        globalConfig <- acquireGlobalConfig >>= \case
+            Left errText -> do
+                putStrLn $ convert errText
+                pure $ def @Global.Config
+            Right config -> pure config
 
-    -- Defaulting to be filled later where relevant.
-    let localConfig = def @Local.Config
+        -- Defaulting to be filled later where relevant.
+        let localConfig = def @Local.Config
 
-    (flip State.evalT) localConfig $ (flip State.evalT) globalConfig $
-        case command of
-            Build    _ -> putStrLn
-                "Building of executables is not yet implemented."
-            Clean    _ -> putStrLn
-                "Cleaning build artefacts is not yet implemented."
-            Doc        -> putStrLn
-                "Building documentation is not yet implemented."
-            Download _ -> putStrLn
-                "Downloading of packages is not yet implemented."
-            Freeze   _ -> putStrLn
-                "Freezing package dependencies is not yet implemented."
-            Init opts  -> MException.catch (\(e :: Path.PathException) ->
-                liftIO . hPutStrLn stderr $ displayException e) (init opts)
-            Install  _ -> putStrLn
-                "Installing dependencies is not yet implemented."
-            Options  _ -> putStrLn
-                "Setting compiler options is not yet implemented."
-            Publish  _ -> putStrLn "Publishing packages is not yet implemented."
-            Retract  _ -> putStrLn
-                "Retraction of package versions is not yet implemented."
-            Rollback _ -> putStrLn
-                "Rolling back dependencies is not yet implemented."
-            Run opts   -> run opts
-            Test     _ -> putStrLn
-                "Executing test suites is not yet implemented."
-            Unfreeze _ -> putStrLn
-                "Unfreezing package dependencies is not yet implemented."
-            Update   _ -> putStrLn
-                "Updating package dependencies is not yet implemented."
+        (flip State.evalT) localConfig $ (flip State.evalT) globalConfig $
+            case command of
+                Build    _ -> putStrLn
+                    "Building of executables is not yet implemented."
+                Clean    _ -> putStrLn
+                    "Cleaning build artefacts is not yet implemented."
+                Doc        -> putStrLn
+                    "Building documentation is not yet implemented."
+                Download _ -> putStrLn
+                    "Downloading of packages is not yet implemented."
+                Freeze   _ -> putStrLn
+                    "Freezing package dependencies is not yet implemented."
+                Init opts  -> MException.catch (\(e :: Path.PathException) ->
+                    liftIO . hPutStrLn stderr $ displayException e) (init opts)
+                Install  _ -> putStrLn
+                    "Installing dependencies is not yet implemented."
+                Options  _ -> putStrLn
+                    "Setting compiler options is not yet implemented."
+                Publish  _ -> putStrLn
+                    "Publishing packages is not yet implemented."
+                Retract  _ -> putStrLn
+                    "Retraction of package versions is not yet implemented."
+                Rollback _ -> putStrLn
+                    "Rolling back dependencies is not yet implemented."
+                Run opts   -> run opts
+                Test     _ -> putStrLn
+                    "Executing test suites is not yet implemented."
+                Unfreeze _ -> putStrLn
+                    "Unfreezing package dependencies is not yet implemented."
+                Update   _ -> putStrLn
+                    "Updating package dependencies is not yet implemented."
+                None       -> putStrLn "Command None. Should never happen."
+    ShowVersion -> version
 
 acquireGlobalConfig :: forall m . MonadIO m => m (Either Text Global.Config)
 acquireGlobalConfig = liftIO $ Exception.catch acquire recovery where

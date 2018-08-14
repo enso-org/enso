@@ -13,7 +13,7 @@ import qualified Luna.Shell.Option                 as Option
 
 main :: IO ()
 main = Command.runLuna =<< Option.execParser commandParser where
-    commandParser = Option.info (Option.parseLunaCommand <**> Option.helper)
+    commandParser = Option.info (Option.topLevel <**> Option.helper)
         (Option.fullDesc <> Option.progDesc
                             "The Luna Compiler command-line interface."
                          <> Option.header

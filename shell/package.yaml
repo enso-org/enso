@@ -12,6 +12,7 @@ library:
         - containers
         - directory
         - filepath
+        - githash
         - layered-state
         - lens
         - luna-core
