@@ -39,7 +39,7 @@ import Data.Text.Position                       (Delta, Position)
 import Luna.Syntax.Text.Parser.State.LastOffset (LastOffset (LastOffset))
 import Text.Parser.State.Indent                 (Indent)
 
-import Data.Parser             hiding (Result, Token, endOfInput)
+import Data.Parser             hiding (Result, Token, Tokens, endOfInput)
 import Text.Parser.Combinators (some)
 
 
@@ -268,6 +268,7 @@ data Number    = Number    { digits   :: NonEmpty Word8   } deriving (Show)
 data Str       = Str       { chunks   :: [S StrChunk]     } deriving (Show)
 
 data Block     = Block     { lines    :: S (NonEmpty Ast) } deriving (Show)
+data Tokens    = Tokens    { lines    :: S [Ast]          } deriving (Show)
 data Marker    = Marker    { markerID :: S Int            } deriving (Show)
 data LineBreak = LineBreak { indent   :: S Delta          } deriving (Show)
 
@@ -297,6 +298,7 @@ data Ast
 
     -- Layouting
     | AstBlock     Block
+    | AstTokens    Tokens
     | AstMarker    Marker
     | AstLineBreak LineBreak
 
@@ -456,6 +458,9 @@ str' :: [Spanned StrChunk] -> Ast
 str' = \chunks -> AstStr $ Str chunks
 {-# INLINE str' #-}
 
+tokens' :: [Spanned Ast] -> Ast
+tokens' = \toks -> AstTokens $ Tokens toks
+{-# INLINE tokens' #-}
 
 
 buildIR :: forall m. Parser.IRBMonad m => Spanned Ast -> m SomeTerm

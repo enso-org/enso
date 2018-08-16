@@ -381,7 +381,16 @@ expr = fastExprByChar =<< peekToken
 {-# INLINE expr #-}
 
 exprs :: Parser ()
-exprs = void $ many expr >> token '\ETX'
+exprs = let
+    parser = do
+        many expr
+        token '\ETX'
+        pure ()
+        -- Ast.tokens' . unwrap <$> State.get @Ast.Result
+    -- in State.put @Ast.Result . wrap . pure =<< Ast.computeSpan parser
+    in parser
+{-# NOINLINE exprs #-}
+
 
 unknownExpr :: Parser ()
 unknownExpr = Ast.register =<< unknown
