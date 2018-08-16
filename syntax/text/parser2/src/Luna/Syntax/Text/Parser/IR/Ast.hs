@@ -253,67 +253,59 @@ type family ExpandFieldSimple a where
     ExpandFieldSimple Invalid.Symbol = Invalid.Symbol
 
     ExpandFieldSimple Ast            = Spanned Ast
-    ExpandFieldSimple Expr           = Spanned Expr
     ExpandFieldSimple Block          = Spanned Block
-    ExpandFieldSimple NewLine        = Spanned NewLine
+    ExpandFieldSimple LineBreak      = Spanned LineBreak
     ExpandFieldSimple StrChunk       = Spanned StrChunk
 
 
-data App      = App      { base  :: S Ast, arg :: S Ast        } deriving (Show)
-data Block    = Block    { lines :: S (NonEmpty Ast)           } deriving (Show)
-data Cons     = Cons     { name  :: S Name                     } deriving (Show)
-data Expr     = Expr     { line  :: S (NonEmpty Ast)           } deriving (Show)
-data Grouped  = Grouped  { body  :: S Ast                      } deriving (Show)
-data Invalid  = Invalid  { desc  :: S Invalid.Symbol           } deriving (Show)
-data List     = List     { elems :: S [Ast]                    } deriving (Show)
-data Modifier = Modifier { name  :: S Name                     } deriving (Show)
-data Operator = Operator { name  :: S Name                     } deriving (Show)
-data Unify    = Unify    { left  :: S Ast, right :: S Ast      } deriving (Show)
-data Var      = Var      { name  :: S Name                     } deriving (Show)
-data Wildcard = Wildcard                                         deriving (Show)
-data Missing  = Missing                                          deriving (Show)
-data Record   = Record   { isNative :: S Bool , name  :: S Name
-                         , params   :: S [Ast], conss :: S [Ast]
-                         , decls    :: S [Ast]                 } deriving (Show)
+data Var       = Var       { name     :: S Name           } deriving (Show)
+data Cons      = Cons      { name     :: S Name           } deriving (Show)
+data Operator  = Operator  { name     :: S Name           } deriving (Show)
+data Modifier  = Modifier  { name     :: S Name           } deriving (Show)
+data Wildcard  = Wildcard                                   deriving (Show)
 
-data NewLine  = NewLine  { indent   :: S Delta                 } deriving (Show)
-data Comment  = Comment  { text     :: S Text                  } deriving (Show)
-data Marker   = Marker   { markerID :: S Int                   } deriving (Show)
-data Number   = Number   { digits   :: NonEmpty Word8          } deriving (Show)
-data Str      = Str      { chunks   :: [S StrChunk]            } deriving (Show)
+data Number    = Number    { digits   :: NonEmpty Word8   } deriving (Show)
+data Str       = Str       { chunks   :: [S StrChunk]     } deriving (Show)
+
+data Block     = Block     { lines    :: S (NonEmpty Ast) } deriving (Show)
+data Marker    = Marker    { markerID :: S Int            } deriving (Show)
+data LineBreak = LineBreak { indent   :: S Delta          } deriving (Show)
+
+data Comment   = Comment   { text     :: S Text           } deriving (Show)
+
+data Invalid   = Invalid   { desc     :: S Invalid.Symbol } deriving (Show)
+
 
 data StrChunk
     = StrPlain   Text
-    | StrNewLine NewLine
+    | StrNewLine LineBreak
     | StrExpr    Block
     deriving (Show)
 
--- OLD
-data Function = Function { nm   :: S Ast, args :: S [Ast], body :: S Ast } deriving (Show)
 
 data Ast
-    = AstApp      App
-    | AstBlock    Block
-    | AstCons     Cons
-    | AstExpr     Expr
-    | AstGrouped  Grouped
-    | AstInvalid  Invalid
-    | AstList     List
-    | AstModifier Modifier
-    | AstOperator Operator
-    | AstUnify    Unify
-    | AstVar      Var
-    | AstWildcard Wildcard
-    | AstMissing  Missing
-    | AstNumber   Number
+    -- Identifiers
+    = AstVar       Var
+    | AstCons      Cons
+    | AstOperator  Operator
+    | AstModifier  Modifier
+    | AstWildcard  Wildcard
 
-    | AstNewLine  NewLine
-    | AstComment  Comment
-    | AstMarker   Marker
-    | AstStr      Str
+    -- Literals
+    | AstNumber    Number
+    | AstStr       Str
 
-    -- OLD
-    | AstFunction Function
+    -- Layouting
+    | AstBlock     Block
+    | AstMarker    Marker
+    | AstLineBreak LineBreak
+
+    -- Docs
+    | AstComment   Comment
+
+    -- Errors
+    | AstInvalid   Invalid
+
     deriving (Show)
 
 
@@ -345,16 +337,6 @@ inheritCodeSpanList' = \ts -> let
     in Spanned (foldl' (<>) s ss)
 {-# INLINE inheritCodeSpanList' #-}
 
-
-neLast :: NonEmpty a -> a
-neLast = \case
-    (a :| []) -> a
-    (_ :| (a : as)) -> neLast $ a :| as
-{-# INLINE neLast #-}
-
-neHead :: NonEmpty a -> a
-neHead = \(a :| _) -> a
-{-# INLINE neHead #-}
 
 
 -------------------
@@ -426,33 +408,17 @@ eolStartChars = ['\n', '\r', '\ETX']
 
 -- === Smart constructors === --
 
-app :: Spanned Ast -> Spanned Ast -> Spanned Ast
-app = inheritCodeSpan2 $ \base arg -> AstApp $ App base arg
-{-# INLINE app #-}
-
--- block :: NonEmpty (Spanned Ast) -> Spanned Ast
--- block = inheritCodeSpanList $ \lines -> AstBlock $ Block lines
--- {-# INLINE block #-}
+-- app :: Spanned Ast -> Spanned Ast -> Spanned Ast
+-- app = inheritCodeSpan2 $ \base arg -> AstApp $ App base arg
+-- {-# INLINE app #-}
 
 cons' :: Name -> Ast
 cons' = \name -> AstCons $ Cons name
 {-# INLINE cons' #-}
 
--- expr :: NonEmpty (Spanned Ast) -> Spanned Ast
--- expr = inheritCodeSpanList $ \toks -> AstExpr $ Expr toks
--- {-# INLINE expr #-}
-
--- grouped' :: Spanned Ast -> Ast
--- grouped' = \body -> AstGrouped $ Grouped body
--- {-# INLINE grouped' #-}
-
 invalid' :: Invalid.Symbol -> Ast
 invalid' = \desc -> AstInvalid $ Invalid desc
 {-# INLINE invalid' #-}
-
--- list' :: [Spanned Ast] -> Ast
--- list' = \elems -> AstList $ List elems
--- {-# INLINE list' #-}
 
 marker' :: Int -> Ast
 marker' = \id -> AstMarker $ Marker id
@@ -466,33 +432,17 @@ operator' :: Name -> Ast
 operator' = \name -> AstOperator $ Operator name
 {-# INLINE operator' #-}
 
--- unify :: Spanned Ast -> Spanned Ast -> Spanned Ast
--- unify = inheritCodeSpan2 $ \left right -> AstUnify $ Unify left right
--- {-# INLINE unify #-}
-
 var' :: Name -> Ast
 var' = \name -> AstVar $ Var name
 {-# INLINE var' #-}
 
-
-nl' :: Delta -> Ast
-nl' = \indent -> AstNewLine $ NewLine indent
-{-# INLINE nl' #-}
+lineBreak' :: Delta -> Ast
+lineBreak' = \indent -> AstLineBreak $ LineBreak indent
+{-# INLINE lineBreak' #-}
 
 comment' :: Text -> Ast
 comment' = \txt -> AstComment $ Comment txt
 {-# INLINE comment' #-}
-
-
--- function' :: Spanned Ast -> [Spanned Ast] -> Spanned Ast -> Ast
--- function' = \name args block -> let
---     lst = case args of
---         []       -> block :| []
---         (a : as) -> a :| (as <> [block])
---     in AstFunction $ Function name args block
--- {-# INLINE function' #-}
-
-
 
 wildcard' :: Ast
 wildcard' = AstWildcard Wildcard
@@ -507,42 +457,33 @@ str' = \chunks -> AstStr $ Str chunks
 {-# INLINE str' #-}
 
 
--- missing' :: Ast
--- missing' = AstMissing Missing
--- {-# INLINE missing' #-}
-
--- missing :: Spanned Ast
--- missing = Spanned mempty $ AstMissing Missing
--- {-# INLINE missing #-}
-
-
 
 buildIR :: forall m. Parser.IRBMonad m => Spanned Ast -> m SomeTerm
 buildIR = \(Spanned cs ast)  -> case ast of
     AstVar  (Var  name)      -> IR.var'  name
     AstCons (Cons name)      -> IR.cons' name []
     AstWildcard {}           -> IR.blank'
-    AstInvalid (Invalid a)   -> IR.invalid' a
-    AstExpr    (Expr a)      -> IR.exprList' =<< mapM buildIR (convert a)
+    -- AstInvalid (Invalid a)   -> IR.invalid' a
+    -- AstExpr    (Expr a)      -> IR.exprList' =<< mapM buildIR (convert a)
     --     (els :: [SomeTerm]) <- ((:) <$> run s <*> mapM runX ss)
     --     IR.exprList' els
     --     where
     --     run  (Spanned _ (Expr     a)) =                 IR.exprList' =<< mapM buildIR (convert a)
     --     runX (Spanned _ (Expr     a)) = IR.grouped' =<< IR.exprList  =<< mapM buildIR (convert a)
-    AstApp  (App  base arg) -> do
-        base' <- buildIR base
-        arg'  <- buildIR arg
-        IR.app' base' arg'
-    AstFunction (Function name args body) -> do
-        name' <- buildIR name
-        args' <- mapM buildIR args
-        body' <- buildIR body
-        IR.function' name' args' body'
-    AstMissing _ -> IR.missing'
-    AstGrouped (Grouped a) -> IR.grouped' =<< buildIR a
+    -- AstApp  (App  base arg) -> do
+    --     base' <- buildIR base
+    --     arg'  <- buildIR arg
+    --     IR.app' base' arg'
+    -- AstFunction (Function name args body) -> do
+    --     name' <- buildIR name
+    --     args' <- mapM buildIR args
+    --     body' <- buildIR body
+    --     IR.function' name' args' body'
+    -- AstMissing _ -> IR.missing'
+    -- AstGrouped (Grouped a)   -> IR.grouped' =<< buildIR a
     AstOperator (Operator a) -> IR.var' a
 
-    x -> error $ "TODO: " <> show x
+    x                        -> error $ "TODO: " <> show x
 {-# INLINE buildIR #-}
 
 

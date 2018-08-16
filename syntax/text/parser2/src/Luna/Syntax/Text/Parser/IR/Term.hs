@@ -391,7 +391,7 @@ lineBreak :: Parser ()
 lineBreak = Ast.register =<< ast where
     ast = Ast.computeSpan $ do
         some Ast.newline
-        Ast.nl' <$> Position.getColumn
+        Ast.lineBreak' <$> Position.getColumn
 {-# INLINE lineBreak #-}
 
 
