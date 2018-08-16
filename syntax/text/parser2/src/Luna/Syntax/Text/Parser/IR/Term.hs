@@ -119,7 +119,7 @@ invalid' = fmap Ast.invalid'
 
 unknown :: Parser Ast
 unknown = invalid $ do
-    txt <- chunk
+    txt <- unknownChunk
     Ast.checkBlacklistedUnknown $ Text.head txt
     pure $ Invalid.Unknown
 {-# INLINE unknown #-}
@@ -136,15 +136,18 @@ anyLine :: Parser Text
 anyLine = takeWhile $ not . isEolBeginChar
 {-# INLINE anyLine #-}
 
+unknownChunk :: Parser Text
+unknownChunk = Text.cons <$> anyToken <*> takeWhile (not . isSeparatorChar)
+{-# INLINE unknownChunk #-}
+
 chunk :: Parser Text
-chunk = takeWhile1 (not . (`elem` break)) where
-    break = ' ' : Ast.eolStartChars
+chunk = takeWhile1 (not . isSeparatorChar)
 {-# INLINE chunk #-}
 
-chunkOfNot :: [Char] -> Parser Int
-chunkOfNot s = Text.length <$> takeWhile1 (not . (`elem` break)) where
-    break = ' ' : (s <> Ast.eolStartChars)
-{-# INLINE chunkOfNot #-}
+-- chunkOfNot :: [Char] -> Parser Int
+-- chunkOfNot s = Text.length <$> takeWhile1 (not . (`elem` break)) where
+--     break = ' ' : (s <> Ast.eolStartChars)
+-- {-# INLINE chunkOfNot #-}
 
 
 
@@ -152,19 +155,28 @@ chunkOfNot s = Text.length <$> takeWhile1 (not . (`elem` break)) where
 -- === Identifiers === --
 -------------------------
 
--- === API === --
+-- === Getting values === --
 
-var :: Parser ()
-var = Ast.register =<< checkInvalidIndentSuffix (Ast.var' <$> varName)
-{-# INLINE var #-}
-
-cons :: Parser ()
-cons = Ast.register =<< checkInvalidIndentSuffix (Ast.cons' <$> consName)
+var, cons :: Parser ()
+var  = Ast.register =<< Ast.computeSpan var'
+cons = Ast.register =<< Ast.computeSpan cons'
+{-# INLINE var  #-}
 {-# INLINE cons #-}
 
 wildcard :: Parser ()
-wildcard = Ast.register =<< checkInvalidIndentSuffix (Ast.wildcard' <$ token '_')
+wildcard = Ast.register =<< Ast.computeSpan wildcard'
 {-# INLINE wildcard #-}
+
+var', cons' :: Parser UnspannedAst
+var'  = (Ast.var'  <$> varName)  <**> option id (const <$> invalidIdentSuffix)
+cons' = (Ast.cons' <$> consName) <**> option id (const <$> invalidIdentSuffix)
+{-# INLINE var'  #-}
+{-# INLINE cons' #-}
+
+wildcard' :: Parser UnspannedAst
+wildcard' = correct <**> option id (const <$> invalidIdentSuffix) where
+    correct = Ast.wildcard' <$ token '_'
+{-# INLINE wildcard' #-}
 
 isIdentBodyChar, isVarHead, isConsHead :: Char -> Bool
 isIdentBodyChar = \c -> Char.isAlphaNum c || c == '_'
@@ -173,6 +185,27 @@ isConsHead      = Char.isUpper
 {-# INLINE isIdentBodyChar  #-}
 {-# INLINE isVarHead        #-}
 {-# INLINE isConsHead       #-}
+
+
+-- === Expecting values === --
+
+expectVar :: Name -> Parser ()
+expectVar = \name -> let err = fail "no match" in var' >>= \case
+    Ast.AstVar (Ast.Var name') -> when_ (name /= name') err
+    _                          -> err
+{-# INLINE expectVar #-}
+
+expectCons :: Name -> Parser ()
+expectCons = \name -> let err = fail "no match" in cons' >>= \case
+    Ast.AstCons (Ast.Cons name') -> when_ (name /= name') err
+    _                            -> err
+{-# INLINE expectCons #-}
+
+expectOperator :: Name -> Parser ()
+expectOperator = \name -> let err = fail "no match" in operator' >>= \case
+    Ast.AstOperator (Ast.Operator name') -> when_ (name /= name') err
+    _                                    -> err
+{-# INLINE expectOperator #-}
 
 
 -- === Names === --
@@ -198,27 +231,28 @@ identBody = body <**> sfx where
 
 -- === Validation === --
 
-checkInvalidIndentSuffix :: Parser UnspannedAst -> Parser Ast
-checkInvalidIndentSuffix = \parser -> let
-    inv     = Ast.invalid' . Invalid.UnexpectedSuffix <$> invalidIdentSuffix
-    result  = parser <**> option id (const <$> inv)
-    in Ast.computeSpan result
-{-# INLINE checkInvalidIndentSuffix #-}
-
 -- | We are not using full (33-126 / ['"`]) range here, because we need to check
 --   such invalid suffixes as `foo'a`.
-invalidIdentSuffix :: Parser Int
-invalidIdentSuffix = Text.length <$> takeWhile1 (not . checkChar) where
-    checkChar c       = checkSeparator c
-                     || (Char.generalCategory c `elem` okCategories)
-    okCategories      = [Char.Space, Char.Control, Char.MathSymbol]
-    checkSeparator c  = check where
-        ord   = Char.ord c
-        check = (ord == 33)                -- !
-             || (ord >= 35  && ord <= 38)  -- #$%&
-             || (ord >= 40  && ord <= 94)  -- ()*+,-./:;<=>?@[\]^`
-             || (ord >= 123 && ord <= 126) -- {|}~
+invalidIdentSuffix :: Parser UnspannedAst
+invalidIdentSuffix = Ast.invalid' . Invalid.UnexpectedSuffix <$> base where
+    base = Text.length <$> takeWhile1 (not . isSeparatorChar)
 {-# INLINE invalidIdentSuffix #-}
+
+isSeparatorChar :: Char -> Bool
+isSeparatorChar = \c ->
+    let ord = Char.ord c
+        cat = Char.generalCategory c
+    in (ord >= 7 && ord <= 47 && ord /= 34 && ord /= 39) -- !\#$%&()*+,-./
+                                                         -- 0 - 9
+    || (ord >= 58 && ord <= 64)                          -- :;<=>?@
+                                                         -- A - Z
+    || (ord >= 91 && ord <= 94)                          -- [\\]^
+                                                         -- _`a-z
+    || (ord >= 123 && ord <= 126)                        -- {|}~
+    || (cat == Char.Space)
+    || (cat == Char.Control)
+    || (cat == Char.MathSymbol)
+{-# INLINE isSeparatorChar #-}
 
 
 
@@ -229,13 +263,18 @@ invalidIdentSuffix = Text.length <$> takeWhile1 (not . checkChar) where
 -- === API === --
 
 operator :: Parser ()
-operator = let
+operator = Ast.register =<< Ast.computeSpan operator'
+{-# NOINLINE operator #-}
+
+operator' :: Parser UnspannedAst
+operator' = let
     base       = convert <$> takeWhile1 isOperatorBodyChar
     specialOps = tokens <$> ["<=", ">=", "==", "="]
     special    = Ast.operator' . convert <$> choice specialOps
     normal     = base <**> option Ast.operator' (Ast.modifier' <$ token eqChar)
-    in Ast.register =<< checkInvalidOperatorSuffix (special <|> normal)
-{-# NOINLINE operator #-}
+    correct    = special <|> normal
+    in correct <**> option id (const <$> invalidOperatorSuffix)
+{-# NOINLINE operator' #-}
 
 unsafeAnyTokenOperator :: Parser ()
 unsafeAnyTokenOperator = Ast.register
@@ -273,13 +312,12 @@ isOperatorBodyChar = \c -> c /= eqChar && isOperatorBeginChar c
 
 -- === Validation === --
 
-checkInvalidOperatorSuffix :: Parser UnspannedAst -> Parser Ast
-checkInvalidOperatorSuffix = \parser -> let
-    inv     = Ast.invalid' . Invalid.UnexpectedSuffix <$> invalidOperatorSuffix
-    result  = parser <**> option id (const <$> inv)
-    invalidOperatorSuffix = Text.length <$> takeWhile1 isOperatorBeginChar
-    in Ast.computeSpan result
-{-# INLINE checkInvalidOperatorSuffix #-}
+invalidOperatorSuffix :: Parser UnspannedAst
+invalidOperatorSuffix = let
+    inv = Ast.invalid' . Invalid.UnexpectedSuffix <$> sfx
+    sfx = Text.length <$> takeWhile1 isOperatorBeginChar
+    in inv
+{-# INLINE invalidOperatorSuffix #-}
 
 
 
@@ -377,10 +415,10 @@ exprByChar = \c -> if
     | isCommentStartChar  c -> comment
     | isMarkerBeginChar   c -> marker
 
-    -- -- Literals
-    -- | c == rawStrQuote  -> rawStr
-    -- | c == fmtStrQuote  -> fmtStr
-    -- | isDecDigitChar c  -> lexNumber
+    -- Literals
+    | isRawStrQuote       c -> strBuilder '"'
+    | isFmtStrQuote       c -> strBuilder '\''
+    | isDigitChar         c -> number
 
     -- Utils
     | otherwise         -> unknownExpr
@@ -396,30 +434,65 @@ fastExprByChar = \c -> let ord = Char.ord c in if
 
 
 
+number :: Parser ()
+number = Ast.register =<< Ast.computeSpan (Ast.number' <$> digits)
+{-# INLINE number #-}
 
+isDigitChar :: Char -> Bool
+isDigitChar = \c -> c >= '0' && c <= '9'
+{-# INLINE isDigitChar #-}
 
+digitChars :: Parser (NonEmpty Char)
+digitChars = unsafeConv <$> takeWhile1 isDigitChar where
+    unsafeConv :: Text -> NonEmpty Char
+    unsafeConv = \txt -> case convertTo @[Char] txt of
+        []     -> impossible
+        (a:as) -> a :| as
+{-# INLINE digitChars #-}
 
+intDigits :: Parser (NonEmpty Int)
+intDigits = toDigit <<$>> digitChars where
+    toDigit = subtract 48 . Char.ord
+{-# INLINE intDigits #-}
 
-
-
-
-digitChar :: Parser Int
-digitChar = do
-    char <- anyToken
-    let n = Char.ord char
-    if n >= 48 && n <= 57 then pure (n - 48) else fail "not digit"
-{-# INLINE digitChar #-}
+digits :: Parser (NonEmpty Word8)
+digits = fromIntegral <<$>> intDigits
+{-# INLINE digits #-}
 
 decimal :: Parser Int
-decimal = digitsToDec <$> some digitChar
+decimal = unsafeRead . convert <$> digitChars
 {-# INLINE decimal #-}
 
-digitsToDec :: NonEmpty Int -> Int
-digitsToDec = \(i :| is) -> case is of
-    []     -> i
-    (s:ss) -> digitsToDec $ (i * 10 + s) :| ss
-{-# NOINLINE digitsToDec #-} -- recursive
 
+isRawStrQuote :: Char -> Bool
+isRawStrQuote = (== '"')
+{-# INLINE isRawStrQuote #-}
+
+isFmtStrQuote :: Char -> Bool
+isFmtStrQuote = (== '\'')
+{-# INLINE isFmtStrQuote #-}
+
+
+failIf :: Bool -> Parser ()
+failIf = \b -> if b then fail "Failed check" else pure ()
+{-# INLINE failIf #-}
+
+strBuilder :: Char -> Parser ()
+strBuilder quote = Ast.register =<< Ast.computeSpan parser where
+    parser = do
+        let isQuote      = (== quote)
+            isBodyChar c = c == quote || isEolBeginChar c
+
+        quoteLen <- Text.length <$> takeWhile1 isRawStrQuote
+
+        let mkChunk       = \p -> Ast.register =<< Ast.computeSpan p
+            chunkPlain    = Ast.StrPlain <$> takeWhile1 (not . isBodyChar)
+            chunkQuote    = bodyQuotes =<< takeWhile1 isQuote
+            bodyQuotes qs = Ast.StrPlain qs <$ failIf (Text.length qs == quoteLen)
+            chunk         = Ast.computeSpan $ choice [chunkPlain, chunkQuote] -- lineBreak
+            ending        = Text.length <$> takeWhile1 isRawStrQuote
+            body          = Ast.str' <$> many chunk
+        body <* ending
 
 
 

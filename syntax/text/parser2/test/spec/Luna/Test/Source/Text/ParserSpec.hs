@@ -445,6 +445,8 @@ type Main
 type Internal
     «57»foo _bar_baz __ + += >= = == ===
 
+    """foo "b"ar"""
+
 |]
 
 

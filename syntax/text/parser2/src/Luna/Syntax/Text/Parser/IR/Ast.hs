@@ -158,6 +158,14 @@ register :: State.Monad Result m => Spanned Ast -> m ()
 register = \a -> State.modify_ @Result $ wrapped %~ (a:)
 {-# INLINE register #-}
 
+lookupLastToken :: State.Getter Result m => m (Maybe (Spanned Ast))
+lookupLastToken = head . unwrap <$> State.get @Result
+{-# INLINE lookupLastToken #-}
+
+lookupLastSymbol :: State.Getter Result m => m (Maybe Ast)
+lookupLastSymbol = unspan <<$>> lookupLastToken
+{-# INLINE lookupLastSymbol #-}
+
 evalResult :: Monad m => StateT Result m a -> m [Spanned Ast]
 evalResult = fmap (reverse . unwrap) . State.execDefT
 {-# INLINE evalResult #-}
@@ -246,29 +254,39 @@ type family ExpandFieldSimple a where
 
     ExpandFieldSimple Ast            = Spanned Ast
     ExpandFieldSimple Expr           = Spanned Expr
+    ExpandFieldSimple Block          = Spanned Block
+    ExpandFieldSimple NewLine        = Spanned NewLine
+    ExpandFieldSimple StrChunk       = Spanned StrChunk
 
 
-data App      = App      { base  :: S Ast, arg :: S Ast         } deriving (Show)
-data Block    = Block    { lines :: S (NonEmpty Ast)            } deriving (Show)
-data Cons     = Cons     { name  :: S Name                      } deriving (Show)
-data Expr     = Expr     { line  :: S (NonEmpty Ast)            } deriving (Show)
-data Grouped  = Grouped  { body  :: S Ast                       } deriving (Show)
-data Invalid  = Invalid  { desc  :: S Invalid.Symbol            } deriving (Show)
-data List     = List     { elems :: S [Ast]                     } deriving (Show)
-data Modifier = Modifier { name  :: S Name                      } deriving (Show)
-data Operator = Operator { name  :: S Name                      } deriving (Show)
-data Unify    = Unify    { left  :: S Ast, right :: S Ast       } deriving (Show)
-data Var      = Var      { name  :: S Name                      } deriving (Show)
-data Wildcard = Wildcard                                          deriving (Show)
-data Missing  = Missing                                           deriving (Show)
+data App      = App      { base  :: S Ast, arg :: S Ast        } deriving (Show)
+data Block    = Block    { lines :: S (NonEmpty Ast)           } deriving (Show)
+data Cons     = Cons     { name  :: S Name                     } deriving (Show)
+data Expr     = Expr     { line  :: S (NonEmpty Ast)           } deriving (Show)
+data Grouped  = Grouped  { body  :: S Ast                      } deriving (Show)
+data Invalid  = Invalid  { desc  :: S Invalid.Symbol           } deriving (Show)
+data List     = List     { elems :: S [Ast]                    } deriving (Show)
+data Modifier = Modifier { name  :: S Name                     } deriving (Show)
+data Operator = Operator { name  :: S Name                     } deriving (Show)
+data Unify    = Unify    { left  :: S Ast, right :: S Ast      } deriving (Show)
+data Var      = Var      { name  :: S Name                     } deriving (Show)
+data Wildcard = Wildcard                                         deriving (Show)
+data Missing  = Missing                                          deriving (Show)
 data Record   = Record   { isNative :: S Bool , name  :: S Name
                          , params   :: S [Ast], conss :: S [Ast]
-                         , decls    :: S [Ast]                  } deriving (Show)
+                         , decls    :: S [Ast]                 } deriving (Show)
 
-data NewLine  = NewLine  { indent   :: S Delta                  } deriving (Show)
-data Comment  = Comment  { text     :: S Text                   } deriving (Show)
-data Marker   = Marker   { markerID :: S Int                    } deriving (Show)
+data NewLine  = NewLine  { indent   :: S Delta                 } deriving (Show)
+data Comment  = Comment  { text     :: S Text                  } deriving (Show)
+data Marker   = Marker   { markerID :: S Int                   } deriving (Show)
+data Number   = Number   { digits   :: NonEmpty Word8          } deriving (Show)
+data Str      = Str      { chunks   :: [S StrChunk]            } deriving (Show)
 
+data StrChunk
+    = StrPlain   Text
+    | StrNewLine NewLine
+    | StrExpr    Block
+    deriving (Show)
 
 -- OLD
 data Function = Function { nm   :: S Ast, args :: S [Ast], body :: S Ast } deriving (Show)
@@ -287,10 +305,12 @@ data Ast
     | AstVar      Var
     | AstWildcard Wildcard
     | AstMissing  Missing
+    | AstNumber   Number
 
     | AstNewLine  NewLine
     | AstComment  Comment
     | AstMarker   Marker
+    | AstStr      Str
 
     -- OLD
     | AstFunction Function
@@ -383,7 +403,7 @@ whiteSpace :: Parser Delta
 whiteSpace = convert . Text.length <$> takeMany ' '
 {-# INLINE whiteSpace #-}
 
-computeSpan :: Parser Ast -> Parser (Spanned Ast)
+computeSpan :: Parser a -> Parser (Spanned a)
 computeSpan = \p -> uncurry Spanned <$> spanned p
 {-# INLINE computeSpan #-}
 
@@ -477,6 +497,15 @@ comment' = \txt -> AstComment $ Comment txt
 wildcard' :: Ast
 wildcard' = AstWildcard Wildcard
 {-# INLINE wildcard' #-}
+
+number' :: NonEmpty Word8 -> Ast
+number' = \digits -> AstNumber $ Number digits
+{-# INLINE number' #-}
+
+str' :: [Spanned StrChunk] -> Ast
+str' = \chunks -> AstStr $ Str chunks
+{-# INLINE str' #-}
+
 
 -- missing' :: Ast
 -- missing' = AstMissing Missing

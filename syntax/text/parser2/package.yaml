@@ -26,6 +26,23 @@ tests:
             - open-browser
             - template-haskell
 
+benchmarks:
+    array-benchmark:
+        main: Main.hs
+        source-dirs:
+            - test/bench
+        ghc-options:
+            - -rtsopts
+            - -threaded
+            - -with-rtsopts=-N
+            - -with-rtsopts=-T
+        dependencies:
+            - attoparsec
+            - base
+            - criterion
+            - frisby
+            - text
+
 dependencies:
     - attoparsec
     - base
