@@ -1447,7 +1447,7 @@ class LQueryValue:
     def / that: Operation "divide" [self, that.toLQueryValue]
     def negate: Operation "negate" [self]
 
-    def toLQueryValue self: self
+    def toLQueryValue: self
 
 class Predicate:
     Predicate Text (List LQueryValue)
