@@ -2,24 +2,67 @@ module Luna.Package where
 
 import Prologue
 
-import qualified Control.Exception.Safe      as SafeException
-import qualified Control.Monad.Exception     as Exception
-import qualified Control.Monad.Exception.IO  as Exception
-import qualified Data.Bimap                  as Bimap
-import qualified Data.Map                    as Map
-import qualified Luna.Package.Structure.Name as Name
-import qualified OCI.Data.Name               as Name
-import qualified Path                        as Path
-import qualified System.Directory            as Directory
-import qualified System.Environment          as Environment
-import qualified System.FilePath             as FilePath
-import qualified System.FilePath.Find        as Find
+import qualified Control.Exception.Safe           as SafeException
+import qualified Control.Monad.Exception          as Exception
+import qualified Control.Monad.Exception.IO       as Exception
+import qualified Data.Bimap                       as Bimap
+import qualified Data.Map                         as Map
+import qualified Luna.Package.Structure.Name      as Name
+import qualified Luna.Package.Structure.Utilities as Structure
+import qualified OCI.Data.Name                    as Name
+import qualified Path                             as Path
+import qualified System.Directory                 as Directory
+import qualified System.Environment               as Environment
+import qualified System.FilePath                  as FilePath
+import qualified System.FilePath.Find             as Find
 
 import Control.Arrow           ((&&&))
 import Control.Monad.Exception (MonadExceptions, MonadException)
 import Data.Bimap              (Bimap)
 import Data.Map                (Map)
 import Path                    (Path, Abs, Rel, File, Dir, (</>))
+
+
+
+--------------------------------------
+-- === PackageNotFoundException === --
+--------------------------------------
+
+-- === Definition === --
+
+data PackageNotFoundException
+    = PackageNotFound (Path Abs File)
+    | FSError String
+    deriving Show
+
+
+-- === Instances === --
+
+instance Exception PackageNotFoundException where
+    displayException (PackageNotFound file) =
+        "File \"" <> Path.toFilePath file <> "\" is not a part of any package."
+    displayException (FSError str) = "FSError: " <> str
+
+
+
+---------------------------
+-- === NameException === --
+---------------------------
+
+-- === Definition === --
+
+data NameException
+    = InvalidName Text
+    | InaccessiblePath (Path Abs File)
+    deriving (Eq, Generic, Ord, Show)
+
+
+-- === Instances === --
+
+instance Exception NameException where
+    displayException (InvalidName text) = convert text
+        <> " is not a valid package name."
+    displayException (InaccessiblePath path) = show path <> " is inaccessible."
 
 
 
@@ -36,16 +79,6 @@ packageSourcesForFile file = do
 findPackageRootForFile :: (MonadIO m, MonadException Path.PathException m)
     => Path Abs File -> m (Maybe (Path Abs Dir))
 findPackageRootForFile = findPackageRoot . Path.parent
-
-data PackageNotFoundException
-    = PackageNotFound (Path Abs File)
-    | FSError String
-    deriving Show
-
-instance Exception PackageNotFoundException where
-    displayException (PackageNotFound file) =
-        "File \"" <> Path.toFilePath file <> "\" is not a part of any package."
-    displayException (FSError str) = "FSError: " <> str
 
 packageRootForFile :: ( MonadIO m, MonadExceptions '[ PackageNotFoundException
                                                     , Path.PathException ] m )
@@ -200,4 +233,27 @@ fileSourcePaths lunaFile = Exception.rethrowFromIO @Path.PathException $ do
 isLunaPackage :: (MonadIO m, MonadException Path.PathException m)
     => Path Abs Dir -> m Bool
 isLunaPackage path = isJust <$> findPackageRoot path
+
+-- TODO [AA] Check that src exists
+-- TODO [AA] Check that src is a luna package
+-- TODO [AA] Check that target does not exist
+-- TODO [AA] Check that the target is a valid name
+-- TODO [AA] Move Target location
+-- TODO [AA] Change the name in the .lunaproject file
+-- TODO [AA] Change the name in the config.yaml file
+-- TODO [AA] On success return the new path
+renamePackage :: ( MonadIO m
+                 , MonadExceptions '[ PackageNotFoundException
+                                    , NameException
+                                    , Path.PathException] m )
+    => Path Abs Dir -> Path Abs Dir -> m (Path Abs Dir)
+renamePackage src target = do
+    let srcPath  = Path.fromAbsDir src
+        destPath = Path.fromAbsDir target
+
+    srcExists    <- liftIO $ Directory.doesDirectoryExist srcPath
+    srcIsPackage <- isLunaPackage src
+    destExists   <- liftIO $ Directory.doesDirectoryExist destPath
+
+    pure $ $(Path.mkAbsDir "/")
 
