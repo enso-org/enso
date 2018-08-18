@@ -251,10 +251,6 @@ name path = findPackageRoot path >>= \case
     Just root -> pure . convert . unsafeLast . FilePath.splitDirectories
         $ Path.fromAbsDir root
 
--- TODO [AA] Change the name of the MATCHING .lunaproject file
--- TODO [AA] Change the name in the config.yaml file
--- TODO [AA] Clean this up (all the pures)
--- TODO [AA] Test this
 rename :: ( MonadIO m
           , MonadExceptions '[ PackageNotFoundException
                              , RenameException
