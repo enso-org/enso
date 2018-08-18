@@ -32,6 +32,7 @@ dependencies:
     - bytestring
     - conduit
     - conduit-combinators
+    - container
     - containers
     - convert
     - fingertree

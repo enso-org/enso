@@ -8,7 +8,6 @@ import qualified Prelude  as P
 import           Prologue hiding (Text, imp, seq, some, span, takeWhile)
 
 import qualified Data.Text32                        as Text
-import qualified Luna.IR                            as IR
 import qualified Luna.IR.Term.Ast.Invalid           as Invalid
 import qualified Luna.Syntax.Text.Parser.Pass.Class as Parser
 
@@ -463,33 +462,34 @@ tokens' = \toks -> AstTokens $ Tokens toks
 {-# INLINE tokens' #-}
 
 
-buildIR :: forall m. Parser.IRBMonad m => Spanned Ast -> m SomeTerm
-buildIR = \(Spanned cs ast)  -> case ast of
-    AstVar  (Var  name)      -> IR.var'  name
-    AstCons (Cons name)      -> IR.cons' name []
-    AstWildcard {}           -> IR.blank'
-    -- AstInvalid (Invalid a)   -> IR.invalid' a
-    -- AstExpr    (Expr a)      -> IR.exprList' =<< mapM buildIR (convert a)
-    --     (els :: [SomeTerm]) <- ((:) <$> run s <*> mapM runX ss)
-    --     IR.exprList' els
-    --     where
-    --     run  (Spanned _ (Expr     a)) =                 IR.exprList' =<< mapM buildIR (convert a)
-    --     runX (Spanned _ (Expr     a)) = IR.grouped' =<< IR.exprList  =<< mapM buildIR (convert a)
-    -- AstApp  (App  base arg) -> do
-    --     base' <- buildIR base
-    --     arg'  <- buildIR arg
-    --     IR.app' base' arg'
-    -- AstFunction (Function name args body) -> do
-    --     name' <- buildIR name
-    --     args' <- mapM buildIR args
-    --     body' <- buildIR body
-    --     IR.function' name' args' body'
-    -- AstMissing _ -> IR.missing'
-    -- AstGrouped (Grouped a)   -> IR.grouped' =<< buildIR a
-    AstOperator (Operator a) -> IR.var' a
 
-    x                        -> error $ "TODO: " <> show x
-{-# INLINE buildIR #-}
+
+
+-- data Ast
+--     -- Identifiers
+--     = AstVar       Var
+--     | AstCons      Cons
+--     | AstOperator  Operator
+--     | AstModifier  Modifier
+--     | AstWildcard  Wildcard
+
+--     -- Literals
+--     | AstNumber    Number
+--     | AstStr       Str
+
+--     -- Layouting
+--     | AstBlock     Block
+--     | AstTokens    Tokens
+--     | AstMarker    Marker
+--     | AstLineBreak LineBreak
+
+--     -- Docs
+--     | AstComment   Comment
+
+--     -- Errors
+--     | AstInvalid   Invalid
+
+--     deriving (Show)
 
 
 

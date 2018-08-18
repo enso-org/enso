@@ -13,6 +13,7 @@ import qualified Data.Text32                            as Text32
 import qualified Luna.IR                                as IR
 import qualified Luna.Pass                              as Pass
 import qualified Luna.Pass.Attr                         as Attr
+import qualified Luna.Pass.Parsing.ExprBuilder          as ExprBuilder
 import qualified Luna.Pass.Scheduler                    as Scheduler
 import qualified Luna.Syntax.Text.Lexer                 as Lexer
 import qualified Luna.Syntax.Text.Lexer.Symbol          as Symbol
@@ -31,6 +32,8 @@ import Data.Text.Position                          (FileOffset, Position)
 import Data.Text32                                 (Text32)
 import Luna.IR                                     (SomeTerm)
 import Luna.Pass                                   (Pass)
+import Luna.Pass.Parsing.ExprBuilder               (ExprBuilder,
+                                                    ExprBuilderPass)
 import Luna.Syntax.Text.Parser.Data.CodeSpan       (CodeSpan, CodeSpanRange)
 import Luna.Syntax.Text.Parser.Data.Invalid        (Invalids)
 import Luna.Syntax.Text.Parser.Data.Name.Hardcoded (hardcode)
@@ -38,15 +41,15 @@ import Luna.Syntax.Text.Parser.Data.Result         (Result (Result))
 import Luna.Syntax.Text.Parser.IR.Class            (Error, ParserBase, Stream,
                                                     Token)
 import Luna.Syntax.Text.Parser.IR.Term             (Ast)
-import Luna.Syntax.Text.Parser.Pass.Class          (IRB (fromIRB), IRBS, Parser,
-                                                    ParserPass, fromIRBS)
-import Luna.Syntax.Text.Parser.State.LastOffset    (LastOffset)
-import Luna.Syntax.Text.Parser.State.Reserved      (Reserved)
-import Luna.Syntax.Text.Scope                      (Scope)
-import Luna.Syntax.Text.Source                     (Source)
-import Text.Megaparsec                             (ParseError, ParsecT)
-import Text.Megaparsec.Error                       (parseErrorPretty)
-import Text.Parser.State.Indent                    (Indent)
+-- import Luna.Syntax.Text.Parser.Pass.Class          (IRB (fromIRB), IRBS,
+--                                                     ParserPass, fromIRBS)
+import Luna.Syntax.Text.Parser.State.LastOffset (LastOffset)
+import Luna.Syntax.Text.Parser.State.Reserved   (Reserved)
+import Luna.Syntax.Text.Scope                   (Scope)
+import Luna.Syntax.Text.Source                  (Source)
+import Text.Megaparsec                          (ParseError, ParsecT)
+import Text.Megaparsec.Error                    (parseErrorPretty)
+import Text.Parser.State.Indent                 (Indent)
 
 
 
@@ -56,7 +59,7 @@ import Text.Parser.State.Indent                    (Indent)
 
 -- -- === Definition === --
 
-instance ParserPass (Pass stage Parser) => Pass.Definition stage Parser where
+instance ExprBuilderPass (Pass stage ExprBuilder) => Pass.Definition stage ExprBuilder where
     definition = do
         src             <- Attr.get @Source
         print "!!!!!"
@@ -73,8 +76,8 @@ instance ParserPass (Pass stage Parser) => Pass.Definition stage Parser where
 -- --     Registry.registerPrimLayer @IR.Terms @CodeSpan
 
 registerDynamic :: ∀ stage m.
-    ( ParserPass (Pass stage Parser)
-    , Scheduler.PassRegister stage Parser m
+    ( ExprBuilderPass (Pass stage ExprBuilder)
+    , Scheduler.PassRegister stage ExprBuilder m
     , Scheduler.Monad m
     ) => m ()
 registerDynamic = do
@@ -84,7 +87,7 @@ registerDynamic = do
     Scheduler.enableAttrByType @Source
     Scheduler.registerAttr     @Result
     Scheduler.enableAttrByType @Result
-    Scheduler.registerPass     @stage @Parser
+    Scheduler.registerPass     @stage @ExprBuilder
 
 
 -- -- === Internal === --
@@ -108,7 +111,7 @@ registerDynamic = do
 --     $ hardcode >> p
 -- {-# INLINE runParserContext__ #-}
 
--- runParser__ :: ParserPass (Pass stage Parser)
+-- runParser__ :: ExprBuilderPass (Pass stage Parser)
 --     => Parsing.Parser (IRBS a) -> Text32 -> Pass stage Parser (a, Marker.TermMap)
 -- runParser__ p src = do
 --     let irbs = runParserxx__ p src
@@ -117,14 +120,14 @@ registerDynamic = do
 --                                $ fromIRB $ fromIRBS irbs
 --     pure (ref, gidMap)
 
-runParser__ :: ParserPass (Pass stage Parser)
-    => Parsing.SyntaxVersion -> Parsing.Parser Ast -> Text32 -> Pass stage Parser (SomeTerm, Marker.TermMap)
-runParser__ sv p src = do
-    let ast = runParserxx__ sv p src
-    ((ref, unmarked), gidMap) <- State.runDefT @Marker.TermMap
-                               $ State.runDefT @Marker.TermOrphanList
-                               $ Ast.buildIR ast
-    pure (ref, gidMap)
+-- runParser__ :: ExprBuilderPass (Pass stage ExprBuilder)
+--     => Parsing.SyntaxVersion -> Parsing.Parser Ast -> Text32 -> Pass stage ExprBuilder (SomeTerm, Marker.TermMap)
+-- runParser__ sv p src = do
+--     let ast = runParserxx__ sv p src
+--     ((ref, unmarked), gidMap) <- State.runDefT @Marker.TermMap
+--                                $ State.runDefT @Marker.TermOrphanList
+--                                $ ExprBuilder.buildGraph ast
+--     pure (ref, gidMap)
 
     -- let tokens = Lexer.evalDefLexer src
         -- parser = Parsing.stx *> p <* Parsing.etx
@@ -214,6 +217,14 @@ evalTotal = \sv p txt -> case runStack sv p txt of
 run :: Parsing.SyntaxVersion -> Text32 -> [Ast]
 run = \sv txt -> evalTotal sv Parsing.exprs (txt <> "\ETX")
 {-# INLINE run #-}
+
+run2 :: ExprBuilderPass (Pass stage ExprBuilder)
+    => Parsing.SyntaxVersion -> Text32 -> Pass stage ExprBuilder [IR.SomeTerm]
+run2 = \sv txt -> do
+    let pAsts = run sv txt
+    asts <- mapM ExprBuilder.buildGraph pAsts
+    pure asts
+
 
 -- type Parser = StatesT '[Result, Indent, Location] Parsec.Parser
 -- type Parser = StatesT '[Indent, Location, LastOffset, CodeSpanRange, Marker.State, FileOffset] Parsec.Parser

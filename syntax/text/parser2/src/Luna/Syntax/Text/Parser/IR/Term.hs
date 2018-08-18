@@ -29,22 +29,21 @@ import qualified Luna.Syntax.Text.Scope                as Scope
 import qualified Text.Parser.State.Indent              as Indent
 
 
-import Control.Monad.State.Layered              (StatesT)
-import Data.Parser                              hiding (Result, Token,
-                                                 endOfInput)
-import Data.Text.Position                       (FileOffset (..))
-import Data.Text.Position                       (Delta)
-import Data.Vector                              (Vector)
-import Luna.IR                                  (SomeTerm, Term)
-import Luna.Syntax.Text.Parser.Data.CodeSpan    (CodeSpan (CodeSpan),
-                                                 CodeSpanRange (..))
-import Luna.Syntax.Text.Parser.IR.Ast           (isEolBeginChar)
-import Luna.Syntax.Text.Parser.IR.Ast           (Parser)
-import Luna.Syntax.Text.Parser.Pass.Class       (IRB (IRB, fromIRB),
-                                                 IRBS (IRBS), fromIRBS, irb0,
-                                                 irb1, irb2, irb3, irb4, irb5,
-                                                 liftIRBS1, liftIRBS2,
-                                                 liftIRBS3, withIRB)
+import Control.Monad.State.Layered           (StatesT)
+import Data.Parser                           hiding (Result, Token, endOfInput)
+import Data.Text.Position                    (FileOffset (..))
+import Data.Text.Position                    (Delta)
+import Data.Vector                           (Vector)
+import Luna.IR                               (SomeTerm, Term)
+import Luna.Syntax.Text.Parser.Data.CodeSpan (CodeSpan (CodeSpan),
+                                              CodeSpanRange (..))
+import Luna.Syntax.Text.Parser.IR.Ast        (isEolBeginChar)
+import Luna.Syntax.Text.Parser.IR.Ast        (Parser)
+-- import Luna.Syntax.Text.Parser.Pass.Class       (IRB (IRB, fromIRB),
+--                                                  IRBS (IRBS), fromIRBS, irb0,
+--                                                  irb1, irb2, irb3, irb4, irb5,
+--                                                  liftIRBS1, liftIRBS2,
+--                                                  liftIRBS3, withIRB)
 import Luna.Syntax.Text.Parser.State.LastOffset (LastOffset (LastOffset))
 import OCI.Data.Name                            (Name)
 import Text.Parser.Combinators                  (some)

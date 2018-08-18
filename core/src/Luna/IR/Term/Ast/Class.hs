@@ -111,6 +111,8 @@ Term.define [d|
     | Typed        { base     :: LinkTo Terms , tp     :: LinkTo Terms         }
     | Unit         { imps     :: LinkTo Terms , units  :: LinksTo Terms
                    , cls      :: LinkTo Terms                                  }
+    | LineBreak    { indent   :: Int                                           }
+    | Tokens       { toks     :: LinksTo Terms                                 }
     -- DEPRECATED:
     | FunctionSig  { name     :: LinkTo Terms , sig    :: LinkTo Terms         }
  |]
