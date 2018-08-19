@@ -26,33 +26,38 @@ import System.FilePath                          (FilePath)
 
 genPackageStructure :: MonadIO m => FilePath -> Maybe License -> Global.Config
                     -> m (Either GeneratorError FilePath)
-genPackageStructure name mLicense globalConf = do
-    let pkgName = snd $ FilePath.splitFileName name
+genPackageStructure name mLicense gblConf =
+    if length name < 1 then
+        pure . Left . InvalidPackageName $ "Invalid package name: "
+            <> convert name
+    else do
+        -- This is safe as it has at least one component if `name` is nonemtpy
+        -- `name` is nonempty due to the guard above.
+        let pkgName = unsafeLast $ FilePath.splitDirectories name
 
-    canonicalName <- liftIO $ Directory.canonicalizePath name
-    insidePkg     <- Utilities.findParentPackageIfInside canonicalName
+        canonicalName <- liftIO $ Directory.canonicalizePath name
+        insidePkg     <- Utilities.findParentPackageIfInside canonicalName
 
-    let isInsidePkg = isJust insidePkg
+        let isInsidePkg = isJust insidePkg
 
-    if  | Utilities.isValidPkgName pkgName && not isInsidePkg ->
-            liftIO $ Exception.catch create (recovery canonicalName)
-        | isInsidePkg -> pure . Left . InvalidPackageLocation
-            $ "Cannot create package inside package at: "
-            <> (convert $ fromJust "" insidePkg)
-        | otherwise -> pure . Left . InvalidPackageName
-            $ "Invalid package name: " <> convert canonicalName
-    where
-        create :: IO (Either GeneratorError FilePath)
-        create = do
-            canonicalPath <- Directory.canonicalizePath name
-            Directory.createDirectoryIfMissing True canonicalPath
+        if  | Utilities.isValidPkgName pkgName && not isInsidePkg ->
+                liftIO $ Exception.catch create (recovery canonicalName)
+            | isInsidePkg -> pure . Left . InvalidPackageLocation
+                $ fromJust "" insidePkg
+            | otherwise -> pure . Left . InvalidPackageName
+                $ convert canonicalName
+        where
+            create :: IO (Either GeneratorError FilePath)
+            create = do
+                canonicalPath <- Directory.canonicalizePath name
+                Directory.createDirectoryIfMissing True canonicalPath
 
-            Internal.generateConfigDir       canonicalPath mLicense globalConf
-            Internal.generateDistributionDir canonicalPath
-            Internal.generateSourceDir       canonicalPath
-            Internal.generateLicense         canonicalPath mLicense
-            Internal.generateReadme          canonicalPath
-            Internal.generateGitignore       canonicalPath
+                Internal.generateConfigDir       canonicalPath mLicense gblConf
+                Internal.generateDistributionDir canonicalPath
+                Internal.generateSourceDir       canonicalPath
+                Internal.generateLicense         canonicalPath mLicense
+                Internal.generateReadme          canonicalPath
+                Internal.generateGitignore       canonicalPath
 
-            pure $ Right canonicalPath
+                pure $ Right canonicalPath
 
