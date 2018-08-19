@@ -193,7 +193,7 @@ init opts = do
 
     Generate.genPackageStructure (view name opts) mLicense globalCfg >>= \case
         Left err -> case err of
-            Generate.InvalidPackageLocation msg -> putStrLn $ convert msg
+            Generate.InvalidPackageLocation msg -> putStrLn msg
             Generate.InvalidPackageName _       -> putStrLn
                 $ view name opts <> " is not a valid package name."
             Generate.SystemError msg -> putStrLn
