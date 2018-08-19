@@ -1,5 +1,3 @@
-{-# LANGUAGE Strict #-}
-
 module Luna.Syntax.Text.Lexer.Token where
 
 import Prologue hiding (Symbol, element, span)

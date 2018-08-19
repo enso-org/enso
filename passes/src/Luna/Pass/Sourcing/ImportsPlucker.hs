@@ -1,3 +1,4 @@
+{-# LANGUAGE NoStrict #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Luna.Pass.Sourcing.ImportsPlucker where
@@ -53,3 +54,4 @@ run root = do
     Scheduler.runPassByType @ImportsPlucker
 
     unwrap <$> Scheduler.getAttr @Imports
+

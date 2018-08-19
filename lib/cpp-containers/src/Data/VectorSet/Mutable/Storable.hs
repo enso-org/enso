@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict #-}
+
 module Data.VectorSet.Mutable.Storable
     (module Data.VectorSet.Mutable.Storable, module X) where
 import Data.Mutable.Class as X
@@ -219,3 +221,4 @@ import Data.Mutable.Class as X
 -- --         unsafeWrite a len v
 -- --         Struct.writeField _length a (len + 1)
 -- --     {-# INLINE pushBack #-}
+

@@ -1,3 +1,4 @@
+{-# LANGUAGE NoStrict #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Luna.Pass.Data.Layer.SpanOffset where
@@ -30,3 +31,4 @@ instance Monad m => FoldClass.Builder (Fold.Scoped (Fold.Deep (Fold.Discovery a)
 instance Monad m => FoldClass.Builder Buffer.CopyInitialization2 m Delta
 instance Monad m => FoldClass.Builder Buffer.CopyInitialization  m Delta
 instance Monad m => FoldClass.Builder Buffer.Discovery  m Delta
+

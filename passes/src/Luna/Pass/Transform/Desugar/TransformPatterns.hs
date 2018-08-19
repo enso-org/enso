@@ -1,3 +1,4 @@
+{-# LANGUAGE NoStrict #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Luna.Pass.Transform.Desugar.TransformPatterns where
@@ -78,3 +79,4 @@ transformPatterns expr = Layer.read @IR.Model expr >>= \case
     _ -> do
         inps <- IR.inputs expr
         ComponentList.mapM_ (transformPatterns <=< IR.source) inps
+

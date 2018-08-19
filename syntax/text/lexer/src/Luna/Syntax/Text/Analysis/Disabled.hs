@@ -1,5 +1,3 @@
-{-# LANGUAGE Strict #-}
-
 module Luna.Syntax.Text.Analysis.Disabled where
 
 import Prologue                      hiding (span)
@@ -48,3 +46,4 @@ columnToDisabledTag' disabledStack = \case
                   go = \case []     -> []
                              (i:is) -> if d > i then (i:is) else go is
 {-# INLINE columnToDisabledTag' #-}
+

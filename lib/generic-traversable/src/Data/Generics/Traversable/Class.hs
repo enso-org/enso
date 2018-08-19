@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict #-}
+
 module Data.Generics.Traversable.Class where
 
 import Prelude

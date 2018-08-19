@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict #-}
+
 module Data.IntMap.Cpp where
 
 import Prelude

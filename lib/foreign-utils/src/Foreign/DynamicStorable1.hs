@@ -1,3 +1,4 @@
+{-# LANGUAGE NoStrict #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Foreign.DynamicStorable1 where
@@ -31,3 +32,4 @@ instance {-# OVERLAPPABLE #-} Storable1 t
     sizeOf = pure . Storable1.sizeOf ; {-# INLINE sizeOf #-}
     peek   = Storable1.peek          ; {-# INLINE peek   #-}
     poke   = Storable1.poke          ; {-# INLINE poke   #-}
+

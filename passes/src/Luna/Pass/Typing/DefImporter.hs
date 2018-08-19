@@ -1,3 +1,4 @@
+{-# LANGUAGE NoStrict #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Luna.Pass.Typing.DefImporter where
@@ -73,5 +74,4 @@ importDefs expr = Layer.read @IR.Model expr >>= \case
     _ -> do
         inps <- IR.inputs expr
         ComponentList.mapM_ (importDefs <=< IR.source) inps
-
 

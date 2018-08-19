@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict #-}
+
 module Luna.Syntax.Text.Parser.State.Indent where
 
 import Prologue hiding (guard)
@@ -85,3 +87,4 @@ indentedEq   = guard (== EQ) "Indentation does not match the previous one"
 
 indentation :: State.Getters '[Indent, Position] m => m Delta
 indentation = (-) <$> Position.getColumn <*> get
+

@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict #-}
+
 module Luna.YamlUtils.Test where
 
 import Prologue

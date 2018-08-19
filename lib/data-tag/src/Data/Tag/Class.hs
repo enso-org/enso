@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict #-}
+
 module Data.Tag.Class where
 
 import Data.Kind
@@ -8,3 +10,4 @@ import Prologue
 
 data Tag (tagType :: *) (tagInstance :: *) deriving (Generic)
 type family TagOf a :: Type
+

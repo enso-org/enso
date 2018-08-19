@@ -1,3 +1,4 @@
+{-# LANGUAGE NoStrict #-}
 {-# LANGUAGE TypeInType #-}
 
 module Foreign.Info.ByteSize where
@@ -29,3 +30,4 @@ get = unwrap <$> State.get @(ByteSize a) ; {-# INLINE get #-}
 -- === Instances === --
 
 instance Mempty (ByteSize a) where mempty = wrap 0 ; {-# INLINE mempty #-}
+

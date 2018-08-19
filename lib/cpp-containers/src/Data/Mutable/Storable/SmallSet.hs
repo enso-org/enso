@@ -1,3 +1,4 @@
+{-# LANGUAGE NoStrict #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Data.Mutable.Storable.SmallSet
@@ -167,3 +168,4 @@ instance (Data.Destructor1 m (SmallSet__ alloc n), Monad m)
       => Data.Destructor1 m (SmallSetA alloc n) where
     destruct1 = Data.destruct1 . unwrap
     {-# INLINE destruct1 #-}
+

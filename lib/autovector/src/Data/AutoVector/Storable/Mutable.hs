@@ -1,5 +1,3 @@
-{-# LANGUAGE Strict #-}
-
 module Data.AutoVector.Storable.Mutable where
 
 -- import Prologue hiding (length)

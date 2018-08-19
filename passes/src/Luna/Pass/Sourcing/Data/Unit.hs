@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict #-}
+
 module Luna.Pass.Sourcing.Data.Unit where
 
 import Prologue
@@ -37,8 +39,9 @@ instance Default UnitRefsMap where
 newtype Name = Name IR.Qualified
 type instance Attr.Type Name = Attr.Atomic
 instance Default Name where
-    def = Name $ convert ""
+    def = Name ""
 
 makeLenses ''UnitRef
 makeLenses ''UnitRefsMap
 makeLenses ''Imports
+

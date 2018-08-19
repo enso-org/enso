@@ -1,3 +1,4 @@
+{-# LANGUAGE NoStrict #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Data.TypeMap.Strict where
@@ -120,3 +121,4 @@ instance (Applicative m, Encoder ts a m, FieldEncoder t a m, Prependable t ts)
 instance {-# OVERLAPPABLE #-} Applicative m
       => FieldEncoder a a m where
     encodeField = pure ; {-# INLINE encodeField #-}
+

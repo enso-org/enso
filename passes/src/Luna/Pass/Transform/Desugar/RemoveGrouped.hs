@@ -1,4 +1,6 @@
+{-# LANGUAGE NoStrict #-}
 {-# LANGUAGE UndecidableInstances #-}
+
 module Luna.Pass.Transform.Desugar.RemoveGrouped where
 
 import Prologue
@@ -46,3 +48,4 @@ runRemoveGrouped root = do
             IR.deleteSubtreeWithWhitelist (Set.singleton g') root
             return g'
         _ -> return root
+

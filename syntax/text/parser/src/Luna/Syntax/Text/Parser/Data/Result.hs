@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict #-}
+
 module Luna.Syntax.Text.Parser.Data.Result where
 
 import Prologue
@@ -18,3 +20,4 @@ makeLenses ''Result
 
 instance Default Result where
     def = Result Component.unsafeNull ; {-# INLINE def #-}
+

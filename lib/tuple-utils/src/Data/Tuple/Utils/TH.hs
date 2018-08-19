@@ -1,4 +1,5 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
+{-# LANGUAGE NoStrict #-}
 {-# LANGUAGE OverloadedStrings         #-}
 
 module Data.Tuple.Utils.TH where

@@ -24,7 +24,3 @@ library:
         - hspec >= 2.5
         - prologue
 
-default-extensions:
-    - NoImplicitPrelude
-    - OverloadedStrings
-

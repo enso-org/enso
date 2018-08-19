@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict #-}
+
 module Luna.Syntax.Text.Lexer.Stream where
 
 import Prologue hiding (unless, span)
@@ -92,3 +94,4 @@ sinkPosParser !pos0 p = sink mempty pos0 (parsePartial p) where
     updateOffset s x = s + getLength x ; {-# INLINE updateOffset #-}
 {-# INLINE sinkPosParser #-}
 -- {-# SPECIALIZE sinkPosParser :: Monad m => Delta -> Parser T.Text (b, Int) -> ConduitM T.Text any m (Either ParseError (Delta, Delta, b)) #-}
+

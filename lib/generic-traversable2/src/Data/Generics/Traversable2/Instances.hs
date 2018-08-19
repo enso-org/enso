@@ -1,3 +1,4 @@
+{-# LANGUAGE NoStrict #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
@@ -46,3 +47,4 @@ Generic.Traversable.derive ''(,,,,,,,,,)
 instance TraverseElem t a => Traversable t [a] where
     traverse = P.traverse (traverseElem @t)
     {-# INLINE traverse #-}
+

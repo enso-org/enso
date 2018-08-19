@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict #-}
+
 module Data.Tuple.Strict.IntTuple (module Data.Tuple.Strict.IntTuple) where
 
 import Data.Tuple.Utils.TH

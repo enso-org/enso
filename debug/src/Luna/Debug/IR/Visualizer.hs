@@ -1,5 +1,5 @@
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE NoStrict #-}
 
 module Luna.Debug.IR.Visualizer where
 

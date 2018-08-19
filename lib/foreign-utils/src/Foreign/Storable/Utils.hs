@@ -1,3 +1,4 @@
+{-# LANGUAGE NoStrict #-}
 {-# LANGUAGE PolyKinds #-}
 
 module Foreign.Storable.Utils (module Foreign.Storable.Utils, module X) where
@@ -48,3 +49,4 @@ pokeAndOffset :: ∀ a b m. (MonadIO m, Storable a) => Ptr a -> a -> m (Ptr b)
 pokeAndOffset = castPokeAndOffset ; {-# INLINE pokeAndOffset #-}
 
 Storable.derive ''Maybe
+

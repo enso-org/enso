@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict #-}
+
 module Luna.Pass.Sourcing.Data.SourcesMap where
 
 import Prologue
@@ -14,3 +16,4 @@ instance Default SourcesMap where
     def = SourcesMap def
 
 makeLenses ''SourcesMap
+

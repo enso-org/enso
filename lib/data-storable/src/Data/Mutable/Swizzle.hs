@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict #-}
+
 module Data.Mutable.Swizzle where
 
 import Prologue
@@ -15,3 +17,4 @@ class Swizzling a m where
 
     unswizzle :: a -> m (Unswizzled a)
     swizzle   :: Unswizzled a -> m a
+
