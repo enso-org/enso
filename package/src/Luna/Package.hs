@@ -261,26 +261,18 @@ rename src target = Exception.rethrowFromIO @Path.PathException $ do
         destPath = Path.fromAbsDir target
 
     srcExists <- liftIO $ Directory.doesDirectoryExist srcPath
-    unless srcExists $ do
-        Exception.throw $ InaccessiblePath src
-        pure ()
+    unless_ srcExists . Exception.throw $ InaccessiblePath src
 
     srcIsPackage <- isLunaPackage src
-    unless srcIsPackage $ do
-        Exception.throw $ PackageRootNotFound src
-        pure ()
+    unless_ srcIsPackage . Exception.throw $ PackageRootNotFound src
 
     destExists <- liftIO $ Directory.doesDirectoryExist destPath
-    when destExists $ do
-        Exception.throw $ DestinationExists target
-        pure ()
+    when_ destExists . Exception.throw $ DestinationExists target
 
     -- Safe as a `Path Abs Dir` cannot be empty
     let newName        = unsafeLast $ FilePath.splitDirectories destPath
         isValidPkgName = Structure.isValidPkgName newName
-    unless isValidPkgName $ do
-        Exception.throw . InvalidName $ convert newName
-        pure ()
+    unless_ isValidPkgName . Exception.throw . InvalidName $ convert newName
 
     -- Guaranteed to be in a package by now so default value is nonsensical
     srcPackageRoot <- fromJust $(Path.mkAbsDir "/") <$> findPackageRoot src

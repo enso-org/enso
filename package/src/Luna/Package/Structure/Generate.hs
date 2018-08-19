@@ -43,10 +43,9 @@ genPackageStructure name mLicense gblConf =
         if  | Utilities.isValidPkgName pkgName && not isInsidePkg ->
                 liftIO $ Exception.catch create (recovery canonicalName)
             | isInsidePkg -> pure . Left . InvalidPackageLocation
-                $ "Cannot create package inside package at: "
-                <> (convert $ fromJust "" insidePkg)
+                $ fromJust "" insidePkg
             | otherwise -> pure . Left . InvalidPackageName
-                $ "Invalid package name: " <> convert canonicalName
+                $ convert canonicalName
         where
             create :: IO (Either GeneratorError FilePath)
             create = do
