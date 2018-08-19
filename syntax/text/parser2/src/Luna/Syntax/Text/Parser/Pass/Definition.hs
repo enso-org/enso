@@ -120,14 +120,17 @@ registerDynamic = do
 --                                $ fromIRB $ fromIRBS irbs
 --     pure (ref, gidMap)
 
--- runParser__ :: ExprBuilderPass (Pass stage ExprBuilder)
---     => Parsing.SyntaxVersion -> Parsing.Parser Ast -> Text32 -> Pass stage ExprBuilder (SomeTerm, Marker.TermMap)
--- runParser__ sv p src = do
---     let ast = runParserxx__ sv p src
---     ((ref, unmarked), gidMap) <- State.runDefT @Marker.TermMap
---                                $ State.runDefT @Marker.TermOrphanList
---                                $ ExprBuilder.buildGraph ast
---     pure (ref, gidMap)
+runParser__ :: ExprBuilderPass (Pass stage ExprBuilder)
+    => Parsing.SyntaxVersion -> Parsing.Parser Ast -> Text32 -> Pass stage ExprBuilder (SomeTerm, Marker.TermMap)
+runParser__ sv p src = runMeDebug $ runParserxx__ sv p src
+
+runMeDebug :: ExprBuilderPass (Pass stage ExprBuilder)
+    => Ast -> Pass stage ExprBuilder (SomeTerm, Marker.TermMap)
+runMeDebug ast = do
+    ((ref, unmarked), gidMap) <- State.runDefT @Marker.TermMap
+                               $ State.runDefT @Marker.TermOrphanList
+                               $ ExprBuilder.buildGraph ast
+    pure (ref, gidMap)
 
     -- let tokens = Lexer.evalDefLexer src
         -- parser = Parsing.stx *> p <* Parsing.etx
@@ -182,7 +185,7 @@ runner__ = \sv p txt
 {-# INLINE runner__ #-}
 
 
-runStack :: Parsing.SyntaxVersion -> Parsing.Parser a -> Text32 -> IResult Text32 [Ast]
+runStack :: Parsing.SyntaxVersion -> Parsing.Parser a -> Text32 -> IResult Text32 a
 runStack = \sv p txt
     -> flip parsePartial txt -- (txt <> "\ETX")
      $ State.evalDefT @Scope
@@ -194,11 +197,12 @@ runStack = \sv p txt
      $ State.Indent.eval
      $ State.evalDefT @Parsing.Blacklist
      $ flip (State.evalT @Parsing.SyntaxVersion) sv
-     $ Parsing.evalResult p
+     $ State.evalDefT @Parsing.Result
+     $ p
 {-# INLINE runStack #-}
 
 
-evalTotal :: Parsing.SyntaxVersion -> Parsing.Parser a -> Text32 -> [Ast]
+evalTotal :: Parsing.SyntaxVersion -> Parsing.Parser a -> Text32 -> a
 evalTotal = \sv p txt -> case runStack sv p txt of
     Parser.Done !(txt') !r -> if (Text32.length txt' /= 0)
         then error $ "Panic. Not all input consumed by lexer: " <> show txt'
@@ -214,16 +218,16 @@ evalTotal = \sv p txt -> case runStack sv p txt of
 {-# INLINE evalTotal #-}
 
 
-run :: Parsing.SyntaxVersion -> Text32 -> [Ast]
-run = \sv txt -> evalTotal sv Parsing.exprs (txt <> "\ETX")
+run :: Parsing.SyntaxVersion -> Parsing.Parser a -> Text32 -> a
+run = \sv p txt -> evalTotal sv p (txt <> "\ETX")
 {-# INLINE run #-}
 
-run2 :: ExprBuilderPass (Pass stage ExprBuilder)
-    => Parsing.SyntaxVersion -> Text32 -> Pass stage ExprBuilder [IR.SomeTerm]
-run2 = \sv txt -> do
-    let pAsts = run sv txt
-    asts <- mapM ExprBuilder.buildGraph pAsts
-    pure asts
+-- run2 :: ExprBuilderPass (Pass stage ExprBuilder)
+--     => Parsing.SyntaxVersion -> Text32 -> Pass stage ExprBuilder [IR.SomeTerm]
+-- run2 = \sv txt -> do
+--     let pAsts = run sv txt
+--     asts <- mapM ExprBuilder.buildGraph pAsts
+--     pure asts
 
 
 -- type Parser = StatesT '[Result, Indent, Location] Parsec.Parser

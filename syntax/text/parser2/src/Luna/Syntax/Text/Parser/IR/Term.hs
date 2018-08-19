@@ -156,14 +156,14 @@ chunk = takeWhile1 (not . isSeparatorChar)
 
 -- === Getting values === --
 
-var, cons :: Parser ()
-var  = Ast.register =<< Ast.computeSpan var'
-cons = Ast.register =<< Ast.computeSpan cons'
+var, cons :: Parser Ast
+var  = Ast.computeSpan var'
+cons = Ast.computeSpan cons'
 {-# INLINE var  #-}
 {-# INLINE cons #-}
 
-wildcard :: Parser ()
-wildcard = Ast.register =<< Ast.computeSpan wildcard'
+wildcard :: Parser Ast
+wildcard = Ast.computeSpan wildcard'
 {-# INLINE wildcard #-}
 
 var', cons' :: Parser UnspannedAst
@@ -178,7 +178,7 @@ wildcard' = correct <**> option id (const <$> invalidIdentSuffix) where
 {-# INLINE wildcard' #-}
 
 isIdentBodyChar, isVarHead, isConsHead :: Char -> Bool
-isIdentBodyChar = \c -> Char.isAlphaNum c || c == '_'
+isIdentBodyChar = \c -> Char.isAlphaNum c
 isVarHead       = \c -> Char.isLower    c || c == '_'
 isConsHead      = Char.isUpper
 {-# INLINE isIdentBodyChar  #-}
@@ -261,8 +261,8 @@ isSeparatorChar = \c ->
 
 -- === API === --
 
-operator :: Parser ()
-operator = Ast.register =<< Ast.computeSpan operator'
+operator :: Parser Ast
+operator = Ast.computeSpan operator'
 {-# NOINLINE operator #-}
 
 operator' :: Parser UnspannedAst
@@ -275,9 +275,8 @@ operator' = let
     in correct <**> option id (const <$> invalidOperatorSuffix)
 {-# NOINLINE operator' #-}
 
-unsafeAnyTokenOperator :: Parser ()
-unsafeAnyTokenOperator = Ast.register
-    =<< Ast.computeSpan (Ast.operator' . convert <$> anyToken)
+unsafeAnyTokenOperator :: Parser Ast
+unsafeAnyTokenOperator = Ast.computeSpan (Ast.operator' . convert <$> anyToken)
 {-# INLINE unsafeAnyTokenOperator #-}
 
 eqChar :: Char
@@ -326,14 +325,14 @@ invalidOperatorSuffix = let
 
 -- === API === --
 
-comment :: Parser ()
+comment :: Parser Ast
 comment = commentChar >> parser where
     commentChar = token commentStartChar
     body        = trimIndent <$> (multiLine <|> singleLine)
     multiLine   = commentChar *> flexBlock rawLine
     singleLine  = pure <$> rawLine
     rawLine     = takeWhile (not . isEolBeginChar)
-    parser      = Ast.register =<< Ast.computeSpan (Ast.comment' <$> body)
+    parser      = Ast.computeSpan (Ast.comment' <$> body)
 {-# INLINE comment #-}
 
 commentStartChar :: Char
@@ -360,8 +359,8 @@ isMarkerBeginChar :: Char -> Bool
 isMarkerBeginChar = (== markerBegin)
 {-# INLINE isMarkerBeginChar #-}
 
-marker :: Parser ()
-marker = Ast.register =<< Ast.computeSpan parser where
+marker :: Parser Ast
+marker = Ast.computeSpan parser where
     correct   = Ast.marker' <$> decimal
     incorrect = Ast.invalid' Invalid.InvalidMarker <$ takeTill (== markerEnd)
     parser    = token markerBegin *> (correct <|> incorrect) <* token markerEnd
@@ -375,28 +374,36 @@ marker = Ast.register =<< Ast.computeSpan parser where
 
 -- === API === --
 
-expr :: Parser ()
-expr = fastExprByChar =<< peekToken
+expr :: Parser Ast
+expr = exprLine
 {-# INLINE expr #-}
 
-exprs :: Parser ()
-exprs = let
-    parser = do
-        many expr
-        token '\ETX'
-        pure ()
-        -- Ast.tokens' . unwrap <$> State.get @Ast.Result
-    -- in State.put @Ast.Result . wrap . pure =<< Ast.computeSpan parser
-    in parser
-{-# NOINLINE exprs #-}
+exprLine :: Parser Ast
+exprLine = Ast.computeSpan $ Ast.tokens' <$> many1 singleExpr
+{-# INLINE exprLine #-}
+
+singleExpr :: Parser Ast
+singleExpr = fastExprByChar =<< peekToken
+{-# INLINE singleExpr #-}
+
+-- exprs :: Parser ()
+-- exprs = let
+--     parser = do
+--         many expr
+--         token '\ETX'
+--         pure ()
+--         -- Ast.tokens' . unwrap <$> State.get @Ast.Result
+--     -- in State.put @Ast.Result . wrap . pure =<< Ast.computeSpan parser
+--     in parser
+-- {-# NOINLINE exprs #-}
 
 
-unknownExpr :: Parser ()
-unknownExpr = Ast.register =<< unknown
+unknownExpr :: Parser Ast
+unknownExpr = unknown
 {-# INLINE unknownExpr #-}
 
-lineBreak :: Parser ()
-lineBreak = Ast.register =<< ast where
+lineBreak :: Parser Ast
+lineBreak = ast where
     ast = Ast.computeSpan $ do
         some Ast.newline
         Ast.lineBreak' <$> Position.getColumn
@@ -410,10 +417,10 @@ lookupTableSize :: Int
 lookupTableSize = 200
 {-# INLINE lookupTableSize #-}
 
-exprLookupTable :: Vector (Parser ())
+exprLookupTable :: Vector (Parser Ast)
 exprLookupTable = Vector.generate lookupTableSize $ exprByChar . Char.chr
 
-exprByChar :: Char -> Parser ()
+exprByChar :: Char -> Parser Ast
 exprByChar = \c -> if
     | isOperatorBeginChar c -> operator
     | isEolBeginChar      c -> lineBreak
@@ -434,7 +441,7 @@ exprByChar = \c -> if
 
 -- | (1): fetch  parser for ASCII from precomputed cache
 --   (2): choose parser for unicode characters on the fly
-fastExprByChar :: Char -> Parser ()
+fastExprByChar :: Char -> Parser Ast
 fastExprByChar = \c -> let ord = Char.ord c in if
     | ord < lookupTableSize -> Vector.unsafeIndex exprLookupTable ord -- (1)
     | otherwise             -> exprByChar c                           -- (2)
@@ -442,8 +449,8 @@ fastExprByChar = \c -> let ord = Char.ord c in if
 
 
 
-number :: Parser ()
-number = Ast.register =<< Ast.computeSpan (Ast.number' <$> digits)
+number :: Parser Ast
+number = Ast.computeSpan (Ast.number' <$> digits)
 {-# INLINE number #-}
 
 isDigitChar :: Char -> Bool
@@ -485,8 +492,8 @@ failIf :: Bool -> Parser ()
 failIf = \b -> if b then fail "Failed check" else pure ()
 {-# INLINE failIf #-}
 
-strBuilder :: Char -> Parser ()
-strBuilder quote = Ast.register =<< Ast.computeSpan parser where
+strBuilder :: Char -> Parser Ast
+strBuilder quote = Ast.computeSpan parser where
     parser = do
         let isQuote      = (== quote)
             isBodyChar c = c == quote || isEolBeginChar c

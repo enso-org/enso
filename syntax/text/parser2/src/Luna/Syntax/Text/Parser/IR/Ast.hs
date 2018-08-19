@@ -275,6 +275,8 @@ data Comment   = Comment   { text     :: S Text           } deriving (Show)
 
 data Invalid   = Invalid   { desc     :: S Invalid.Symbol } deriving (Show)
 
+data App       = App       { func     :: S Ast, arg :: S Ast } deriving (Show)
+data Missing   = Missing                                       deriving (Show)
 
 data StrChunk
     = StrPlain   Text
@@ -306,6 +308,9 @@ data Ast
 
     -- Errors
     | AstInvalid   Invalid
+
+    | AstApp       App
+    | AstMissing   Missing
 
     deriving (Show)
 
@@ -462,7 +467,23 @@ tokens' = \toks -> AstTokens $ Tokens toks
 {-# INLINE tokens' #-}
 
 
+--
 
+app :: Spanned Ast -> Spanned Ast -> Spanned Ast
+app = inheritCodeSpan2 $ \func arg -> AstApp $ App func arg
+{-# INLINE app #-}
+
+app2 :: Spanned Ast -> Spanned Ast -> Spanned Ast -> Spanned Ast
+app2 = \f a b -> app (app f a) b
+{-# INLINE app2 #-}
+
+missing' :: Ast
+missing' = AstMissing Missing
+{-# INLINE missing' #-}
+
+missing :: Spanned Ast
+missing = Spanned mempty missing'
+{-# INLINE missing #-}
 
 
 -- data Ast

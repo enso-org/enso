@@ -7,29 +7,32 @@ module Luna.Test.Source.Text.ParserSpec where
 import Prologue
 import Test.Hspec.Expectations.Lifted
 
-import qualified Control.Monad.State.Layered            as State
-import qualified Data.Graph.Component.Edge              as Link
-import qualified Data.Graph.Component.Node.Construction as Term
-import qualified Data.Graph.Data                        as Component
-import qualified Data.Graph.Data.Graph.Class            as Graph
-import qualified Data.Graph.Data.Layer.Layout           as Layout
-import qualified Foreign.Marshal.Alloc                  as Mem
-import qualified Foreign.Storable                       as Storable
-import qualified Luna.IR                                as IR
-import qualified Luna.IR.Layer                          as Layer
-import qualified Luna.Pass                              as Pass
-import qualified Luna.Pass.Attr                         as Attr
-import qualified Luna.Pass.Parsing.ExprBuilder          as ExprBuilder
-import qualified Luna.Pass.Scheduler                    as Scheduler
-import qualified Luna.Syntax.Prettyprint                as Prettyprint
-import qualified Luna.Syntax.Text.Parser.Data.CodeSpan  as CodeSpan
-import qualified Luna.Syntax.Text.Parser.IR.Ast         as Ast
-import qualified Luna.Syntax.Text.Parser.IR.Ast         as Parsing (Parser, SyntaxVersion (..))
-import qualified Luna.Syntax.Text.Parser.IR.Class       as Token
-import qualified Luna.Syntax.Text.Parser.IR.Term        as Parsing
-import qualified Luna.Syntax.Text.Parser.Pass           as Parser
-import qualified Luna.Syntax.Text.Parser.Pass.Class     as Parser
-import qualified OCI.Data.Name                          as Name
+import qualified Control.Monad.State.Layered                 as State
+import qualified Data.Graph.Component.Edge                   as Link
+import qualified Data.Graph.Component.Node.Construction      as Term
+import qualified Data.Graph.Data                             as Component
+import qualified Data.Graph.Data.Graph.Class                 as Graph
+import qualified Data.Graph.Data.Layer.Layout                as Layout
+import qualified Foreign.Marshal.Alloc                       as Mem
+import qualified Foreign.Storable                            as Storable
+import qualified Language.Symbol.Operator.Prec               as Prec
+import qualified Luna.IR                                     as IR
+import qualified Luna.IR.Layer                               as Layer
+import qualified Luna.Pass                                   as Pass
+import qualified Luna.Pass.Attr                              as Attr
+import qualified Luna.Pass.Parsing.ExprBuilder               as ExprBuilder
+import qualified Luna.Pass.Scheduler                         as Scheduler
+import qualified Luna.Syntax.Prettyprint                     as Prettyprint
+import qualified Luna.Syntax.Text.Parser.Data.CodeSpan       as CodeSpan
+import qualified Luna.Syntax.Text.Parser.Data.Name.Hardcoded as Hardcoded
+import qualified Luna.Syntax.Text.Parser.IR.Ast              as Ast
+import qualified Luna.Syntax.Text.Parser.IR.Ast              as Parsing (Parser, SyntaxVersion (..))
+import qualified Luna.Syntax.Text.Parser.IR.Class            as Token
+import qualified Luna.Syntax.Text.Parser.IR.Term             as Parsing
+import qualified Luna.Syntax.Text.Parser.Pass                as Parser
+import qualified Luna.Syntax.Text.Parser.Pass.Class          as Parser
+import qualified Luna.Syntax.Text.Scope                      as Scope
+import qualified OCI.Data.Name                               as Name
 
 import Data.Graph.Data.Graph.Class           (Graph)
 import Data.Text.Position                    (Delta)
@@ -70,41 +73,60 @@ runPasses passes = Graph.encodeAndEval @Parser.Parsing $ Scheduler.evalT $ do
         -- runParser__ :: ParserPass (Pass stage Parser)
         -- => Parsing.Parser Ast -> Text32 -> Pass stage Parser (SomeTerm, Marker.TermMap)
 
--- shouldParseAs :: Parsing.SyntaxVersion -> Parsing.Parser Ast -> Text -> Text
---               {- -> (Delta, Delta)-} -> IO ()
--- shouldParseAs sv parser input output {-desiredSpan-} = runPass $ do
---     (ir,cs) <- Parser.runParser__ sv parser (convert input)
---         -- irb   <- parser
---         -- scope <- State.get @Scope
---         -- let Parser.IRBS (Parser.IRB irx) = irb
---         --     irb' = Parser.IRBS $ Parser.IRB $ do
---         --         ir <- irx
---         --         cs <- Layer.read @CodeSpan ir
---         --         pure (ir,cs)
---         -- pure $ (,scope) <$> irb'
---         -- pure $ (,scope) <$> irb
---     let scope = def
---     genCode <- Prettyprint.run @Prettyprint.Simple scope ir
+shouldParseAs :: Parsing.SyntaxVersion -> Parsing.Parser Ast -> Text -> Text
+              {- -> (Delta, Delta)-} -> IO ()
+shouldParseAs sv parser input output {-desiredSpan-} = runPass $ do
+    (ir,cs) <- Parser.runParser__ sv parser (convert input)
+        -- irb   <- parser
+        -- scope <- State.get @Scope
+        -- let Parser.IRBS (Parser.IRB irx) = irb
+        --     irb' = Parser.IRBS $ Parser.IRB $ do
+        --         ir <- irx
+        --         cs <- Layer.read @CodeSpan ir
+        --         pure (ir,cs)
+        -- pure $ (,scope) <$> irb'
+        -- pure $ (,scope) <$> irb
+    let scope = def
+    genCode <- Prettyprint.run @Prettyprint.Simple scope ir
 
---     -- let span = convert $ view CodeSpan.realSpan cs :: (Delta,Delta)
---     genCode `shouldBe` output
---     -- span `shouldBe` desiredSpan
+    -- let span = convert $ view CodeSpan.realSpan cs :: (Delta,Delta)
+    genCode `shouldBe` output
+    -- span `shouldBe` desiredSpan
 
-runParser :: Parsing.SyntaxVersion -> Text -> IO ()
-runParser sv input = runPass $ do
-    exprs <- Parser.run2 sv (convert input)
-    ExprBuilder.run exprs
-    pure ()
+printCodePure :: Ast -> IO ()
+printCodePure ast {-desiredSpan-} = runPass $ do
+    (ir,cs) <- Parser.runMeDebug ast
+        -- irb   <- parser
+        -- scope <- State.get @Scope
+        -- let Parser.IRBS (Parser.IRB irx) = irb
+        --     irb' = Parser.IRBS $ Parser.IRB $ do
+        --         ir <- irx
+        --         cs <- Layer.read @CodeSpan ir
+        --         pure (ir,cs)
+        -- pure $ (,scope) <$> irb'
+        -- pure $ (,scope) <$> irb
+    let scope = def
+    genCode <- Prettyprint.run @Prettyprint.Simple scope ir
 
--- shouldParseItself :: Parsing.SyntaxVersion -> Parsing.Parser Ast -> Text {- -> (Delta, Delta)-} -> IO ()
--- shouldParseItself sv parser input = shouldParseAs sv parser input input
+    -- let span = convert $ view CodeSpan.realSpan cs :: (Delta,Delta)
+    print genCode
+    -- span `shouldBe` desiredSpan
+
+-- runParser :: Parsing.SyntaxVersion -> Text -> IO ()
+-- runParser sv input = runPass $ do
+--     exprs <- Parser.run2 sv (convert input)
+--     ExprBuilder.run exprs
+--     pure ()
+
+shouldParseItself :: Parsing.SyntaxVersion -> Parsing.Parser Ast -> Text {- -> (Delta, Delta)-} -> IO ()
+shouldParseItself sv parser input = shouldParseAs sv parser input input
 
 -- unitAs     = shouldParseAs     Parsing.unit'
 -- unit       = shouldParseItself Parsing.unit'
 -- unit_n   s = unitAs_n s s
 -- unitAs_n s = unitAs s . ("\n" <>)
--- exprAs     = shouldParseAs     Parsing.Syntax1 Parsing.expr
--- expr       = shouldParseItself Parsing.Syntax1 Parsing.expr
+exprAs     = shouldParseAs     Parsing.Syntax1 Parsing.expr
+expr       = shouldParseItself Parsing.Syntax1 Parsing.expr
 
 
 
@@ -112,30 +134,30 @@ runParser sv input = runPass $ do
 -- === Literals === --
 ----------------------
 
--- identSpec :: Spec
--- identSpec = describe "identifier" $ do
---     it "var"               $ expr   "var"
---     it "_var"              $ expr   "_var"
---     it "var'"              $ expr   "var'"
---     it "var''"             $ expr   "var''"
---     it "unicode"           $ expr   "фываΧξωβ김동욱"
---     it "invalid var: a⸗"   $ exprAs "a⸗"    "(UnexpectedVarNameSuffix 1)"
---     it "invalid var: f'o"  $ exprAs "f'o"  "(UnexpectedVarNameSuffix 1)"
---     it "invalid var: f_a"  $ exprAs "f_a"  "(UnexpectedVarNameSuffix 2)"
---     it "Cons"              $ expr   "Cons"
---     it "Cons'"             $ expr   "Cons'"
---     it "Cons''"            $ expr   "Cons''"
---     it "invalid cons: C⸗"  $ exprAs "C⸗"    "(UnexpectedTypeNameSuffix 1)"
---     it "invalid cons: C'o" $ exprAs "C'o"  "(UnexpectedTypeNameSuffix 1)"
---     it "invalid cons: C_a" $ exprAs "C_a"  "(UnexpectedTypeNameSuffix 2)"
+identSpec :: Spec
+identSpec = describe "identifier" $ do
+    it "var"               $ expr   "var"
+    it "_var"              $ expr   "_var"
+    it "var'"              $ expr   "var'"
+    it "var''"             $ expr   "var''"
+    it "unicode"           $ expr   "фываΧξωβ김동욱"
+    it "invalid var: a⸗"   $ exprAs "a⸗"    "(UnexpectedSuffix 1)"
+    it "invalid var: f'o"  $ exprAs "f'o"  "(UnexpectedSuffix 1)"
+    it "invalid var: f_a"  $ exprAs "f_a"  "(UnexpectedSuffix 2)"
+    it "Cons"              $ expr   "Cons"
+    it "Cons'"             $ expr   "Cons'"
+    it "Cons''"            $ expr   "Cons''"
+    it "invalid cons: C⸗"  $ exprAs "C⸗"    "(UnexpectedSuffix 1)"
+    it "invalid cons: C'o" $ exprAs "C'o"  "(UnexpectedSuffix 1)"
+    it "invalid cons: C_a" $ exprAs "C_a"  "(UnexpectedSuffix 2)"
 
--- exprSpec :: Spec
--- exprSpec = describe "expression" $ do
---     it "app"        $ expr   "a b"
---     it "operator"   $ expr   "a + b"
---     it "group"      $ expr   "(a b)"
---     it "multiline"  $ exprAs "foo\n bar baz" "foo \n bar baz"
---     it "a)"         $ exprAs "a)" "a (Unknown)"
+exprSpec :: Spec
+exprSpec = describe "expression" $ do
+    it "app"        $ expr   "a b"
+    -- it "operator"   $ expr   "a + b"
+    -- it "group"      $ expr   "(a b)"
+    -- it "multiline"  $ exprAs "foo\n bar baz" "foo \n bar baz"
+    -- it "a)"         $ exprAs "a)" "a (Unknown)"
 
 -- funcDefSpec :: Spec
 -- funcDefSpec = describe "function" $ do
@@ -433,6 +455,20 @@ runParser sv input = runPass $ do
 
 
 
+-- fixSpec :: Spec
+-- fixSpec = describe "error" $ it "x" $ do
+--     pure () :: IO ()
+--     putStrLn "\n"
+
+--     -- pprint $ Parser.runParserxx__ Parsing.expr "a . b -> c -= d >= f "
+--     -- pprint $ Parser.runParserxx__ Parsing.expr "a -> b -> a + b"
+--     -- pprint $ Parser.runParserxx__ Parsing.Syntax1 Parsing.expr "def foo a:\n a"
+--     -- pprint $ Parser.runParserxx__ Parsing.Syntax2 Parsing.expr "foo (bar baz"
+--     pprint $ Parser.run Parsing.Syntax2 [s|
+-- foo = a + b
+
+-- |]
+
 fixSpec :: Spec
 fixSpec = describe "error" $ it "x" $ do
     pure () :: IO ()
@@ -442,11 +478,21 @@ fixSpec = describe "error" $ it "x" $ do
     -- pprint $ Parser.runParserxx__ Parsing.expr "a -> b -> a + b"
     -- pprint $ Parser.runParserxx__ Parsing.Syntax1 Parsing.expr "def foo a:\n a"
     -- pprint $ Parser.runParserxx__ Parsing.Syntax2 Parsing.expr "foo (bar baz"
-    pprint $ Parser.run Parsing.Syntax2 [s|
-foo = a + b
+    let Ast.Spanned _ (Ast.AstTokens (Ast.Tokens toks)) =
+            Parser.runParserxx__ Parsing.Syntax2 Parsing.expr [s|a + + b|]
+    pprint toks
+    putStrLn "\n=========\n"
 
-|]
+    -- pprint $ ExprBuilder.subStreams toks
 
+    expr' <- State.evalDefT @Scope.Scope $ do
+        Hardcoded.hardcodePrecRelMap
+        ExprBuilder.buildExpr toks
+
+    pprint expr'
+    putStrLn "\n=========\n"
+    printCodePure expr'
+    True `shouldBe` False
 
 -- type Main
 
@@ -457,14 +503,14 @@ foo = a + b
 --     foo
 
 -- |]
-    runParser Parsing.Syntax1 "foo = \n a + b\nbar = c + d"
-    True `shouldBe` False
+    -- runParser Parsing.Syntax1 "foo = \n a + b\nbar = c + d"
+    -- True `shouldBe` False
     -- it "error" $ expr "def foo:\n x = 1\n def"
 
 spec :: Spec
 spec = do
-    -- identSpec
-    -- exprSpec
+    identSpec
+    exprSpec
     -- funcDefSpec
     fixSpec
     -- literalSpec
