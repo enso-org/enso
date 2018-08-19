@@ -343,6 +343,15 @@ inheritCodeSpanList' = \ts -> let
     in Spanned (foldl' (<>) s ss)
 {-# INLINE inheritCodeSpanList' #-}
 
+inheritCodeSpanList''
+    :: [Spanned Ast] -> Ast -> (Spanned Ast)
+inheritCodeSpanList'' = \case
+    [] -> Spanned mempty
+    (a:as) -> inheritCodeSpanList' (a:|as)
+{-# INLINE inheritCodeSpanList'' #-}
+
+
+
 
 
 -------------------

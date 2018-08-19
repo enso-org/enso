@@ -29,6 +29,7 @@ data Symbol
     | InvalidFunctionArg
     | MissingColonBlock
     | InvalidFunctionDefinition
+    | AdjacentOperators
     | Unknown
     deriving (Eq, Ord, Generic, Show)
 -- instance ExternalStorable Symbol
