@@ -1,3 +1,4 @@
+{-# LANGUAGE NoStrict #-}
 {-# LANGUAGE TypeInType           #-}
 {-# LANGUAGE UndecidableInstances #-}
 
@@ -42,6 +43,4 @@ class Traversable1 (t :: Type) a where
 
 class TraverseElem1 t a where
     traverseElem1 :: ∀ t1. Applicative (Result t) => a t1 -> Result t (a t1)
-
-
 

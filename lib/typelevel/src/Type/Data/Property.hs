@@ -1,3 +1,4 @@
+{-# LANGUAGE NoStrict #-}
 {-# LANGUAGE TypeInType           #-}
 {-# LANGUAGE UndecidableInstances #-}
 
@@ -30,12 +31,11 @@ import Type.Data.Maybe
 --   'KeyKind' and 'ValKind' respectively. See Type.Data.Map as usage reference.
 type family (obj :: a) !? (key :: Type) :: Maybe Type
 
-
 -- | The '!!' query operator is exactly like '!?' but returns the result
 --   directly instead of encoding it in Maybe. It raises compilation error
 --   if the key is missing.
 type family (obj :: a) !! (key :: Type) :: Type where
     obj !! key = FromJust (obj !? key)
 
-
 type family Set (obj :: a) (key :: Type) (val :: Type) :: a
+

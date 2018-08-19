@@ -20,6 +20,53 @@ ghc-options:
         -fstatic-argument-transformation
         -funbox-strict-fields
         -threaded
+        -XAllowAmbiguousTypes
+        -XApplicativeDo
+        -XBangPatterns
+        -XBinaryLiterals
+        -XConstraintKinds
+        -XDataKinds
+        -XDefaultSignatures
+        -XDeriveDataTypeable
+        -XDeriveFoldable
+        -XDeriveFunctor
+        -XDeriveGeneric
+        -XDeriveTraversable
+        -XDoAndIfThenElse
+        -XDuplicateRecordFields
+        -XEmptyDataDecls
+        -XFlexibleContexts
+        -XFlexibleInstances
+        -XFunctionalDependencies
+        -XGeneralizedNewtypeDeriving
+        -XInstanceSigs
+        -XLambdaCase
+        -XLiberalTypeSynonyms
+        -XMonadComprehensions
+        -XMultiWayIf
+        -XNamedWildCards
+        -XNegativeLiterals
+        -XNoImplicitPrelude
+        -XNumDecimals
+        -XOverloadedLabels
+        -XOverloadedStrings
+        -XPackageImports
+        -XPatternSynonyms
+        -XQuasiQuotes
+        -XRankNTypes
+        -XRecursiveDo
+        -XRelaxedPolyRec
+        -XScopedTypeVariables
+        -XStandaloneDeriving
+        -XStrict
+        -XTemplateHaskell
+        -XTupleSections
+        -XTypeApplications
+        -XTypeFamilies
+        -XTypeFamilyDependencies
+        -XTypeOperators
+        -XUnicodeSyntax
+        -XViewPatterns
     $everything:
         -fconstraint-solver-iterations=100
 

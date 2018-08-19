@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict #-}
+
 module Luna.Pass.Preprocess.PreprocessDef where
 
 import Prologue
@@ -52,3 +54,4 @@ preprocessDef resolver root = do
     Scheduler.runPassByType @AliasAnalysis
     Scheduler.runPassByType @DefResolution
     Scheduler.runPassByType @ConsResolution
+

@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE NoStrict #-}
 
 module Luna.Syntax.Text.Parser.Data.Name.Hardcoded where
 
@@ -52,5 +52,4 @@ hardcode :: (Prec.RelWriter Name m, State.Monad Scope m) => m ()
 hardcode = do
     hardcodePrecRelMap
     hardcodeMultiNames
-
 

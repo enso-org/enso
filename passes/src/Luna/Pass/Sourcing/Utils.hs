@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict #-}
+
 module Luna.Pass.Sourcing.Utils where
 
 import Prologue
@@ -21,3 +23,4 @@ cutDoc t = Layer.read @IR.Model t >>= \case
     Uni.Marked m term -> cutDoc =<< IR.source term
     _ -> return (Nothing, t)
 {-# INLINE cutDoc #-}
+

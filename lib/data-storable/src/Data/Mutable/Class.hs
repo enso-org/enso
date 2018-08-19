@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict #-}
+
 module Data.Mutable.Class where
 
 import Prologue hiding (Read, unsafeRead)

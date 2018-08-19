@@ -1,3 +1,6 @@
+{-# LANGUAGE NoStrict #-}
+{-# LANGUAGE PolyKinds #-}
+
 module Control.Monad.Exception.IO where
 
 import Prologue

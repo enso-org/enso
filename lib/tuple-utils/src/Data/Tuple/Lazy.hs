@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict #-}
+
 module Data.Tuple.Lazy (module Data.Tuple.Lazy, module X) where
 
 import Data.Tuple.Utils.Class as X

@@ -1,5 +1,3 @@
-{-# LANGUAGE Strict #-}
-
 module Luna.Runtime.Eff where
 
 import Prologue hiding (Exception)
@@ -55,3 +53,4 @@ runError (Monadic a) = liftIO $ Exception.try a
 
 throw :: Text -> Eff a
 throw = unsafeLiftIO . Exception.throwIO . Exception
+

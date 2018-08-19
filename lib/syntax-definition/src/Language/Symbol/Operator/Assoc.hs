@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict #-}
+
 module Language.Symbol.Operator.Assoc where
 
 import Prologue hiding (read)

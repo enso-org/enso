@@ -1,3 +1,4 @@
+{-# LANGUAGE NoStrict #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Luna.Pass.Typing.AppSolver where
@@ -71,3 +72,4 @@ trySimplify app = do
                                     & Error.arisingFrom .~ arising
             return True
         _ -> return False
+

@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict #-}
+
 module Luna.Pass.Typing.Data.Typed where
 
 import Prologue
@@ -17,7 +19,7 @@ makeLenses ''DefHeader
 
 type instance Attr.Type DefHeader = Attr.Atomic
 instance Default DefHeader where
-    def = wrap $ Left $ Error.placeholderError
+    def = wrap . Left $ Error.placeholderError
 
 newtype Def = Def (Future.Future DefHeader)
 makeLenses ''Def
@@ -46,7 +48,7 @@ getDef mod n m = do
     let fut = m ^? wrapped . ix mod . definitions . ix n . wrapped
     case fut of
         Just fut -> Future.get fut
-        Nothing  -> return $ wrap $ Left $ Error.unexpectedFunctionNotFound mod n
+        Nothing  -> return . wrap . Left $ Error.unexpectedFunctionNotFound mod n
 
 requestDef :: (MonadIO m, Attr.Getter Units m)
            => IR.Qualified -> IR.Name
@@ -69,8 +71,9 @@ getMethod mod cls n m = do
     let fut = m ^? wrapped . ix mod . classes . ix cls . methods . ix n . wrapped
     case fut of
         Just fut -> Future.get fut
-        Nothing  -> return $ wrap $ Left $ Error.methodNotFound mod cls n
+        Nothing  -> return . wrap . Left $ Error.methodNotFound mod cls n
 
 requestMethod :: (MonadIO m, Attr.Getter Units m)
               => IR.Qualified -> IR.Name -> IR.Name -> m DefHeader
 requestMethod mod cls n = getMethod mod cls n =<< Attr.get
+

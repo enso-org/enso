@@ -1,5 +1,5 @@
+{-# LANGUAGE NoStrict #-}
 {-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 module Luna.Pass.Evaluation.Interpreter where
 

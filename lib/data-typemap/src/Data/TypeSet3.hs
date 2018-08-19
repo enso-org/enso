@@ -1,4 +1,3 @@
-{-# LANGUAGE Strict               #-}
 {-# LANGUAGE TypeInType           #-}
 {-# LANGUAGE UndecidableInstances #-}
 
@@ -224,3 +223,4 @@ pureLoop_Z i = do
 -- -- --     print a3
 -- -- --     print a4
 -- -- --     print "test"
+

@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict #-}
+
 module Luna.Syntax.Text.Parser.State.LastOffset where
 
 import Data.Text.Position (Delta)
@@ -13,3 +15,4 @@ newtype LastOffset = LastOffset Delta deriving (Show)
 makeLenses ''LastOffset
 
 instance Default LastOffset where def = LastOffset mempty
+

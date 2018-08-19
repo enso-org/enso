@@ -1,4 +1,5 @@
 {-# LANGUAGE CPP                  #-}
+{-# LANGUAGE NoStrict #-}
 {-# LANGUAGE TypeInType           #-}
 {-# LANGUAGE UndecidableInstances #-}
 
@@ -272,3 +273,4 @@ data Copy
 --   should not modify it, because it may affect the original data source.
 
 data View
+

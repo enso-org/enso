@@ -47,7 +47,7 @@ instance Convertible Qualified Name.Name where
     {-# INLINE convert #-}
 
 instance Convertible [Name.Name] Qualified where
-    convert = convert . Name.concat . intersperse (convert ".")
+    convert = convert . Name.concat . intersperse "."
     {-# INLINE convert #-}
 
 instance Convertible Qualified String where
@@ -60,3 +60,4 @@ instance Convertible String Qualified where
 
 qualFromSymbol :: forall s. Symbol.KnownSymbol s => Qualified
 qualFromSymbol = convert $ Symbol.symbolVal $ Proxy @s
+

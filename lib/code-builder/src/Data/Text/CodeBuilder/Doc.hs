@@ -1,5 +1,5 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
-{-# LANGUAGE OverloadedStrings         #-}
+{-# LANGUAGE NoStrict #-}
 {-# LANGUAGE TemplateHaskell           #-}
 
 
@@ -103,3 +103,4 @@ instance Convertible Text Doc where
 
 instance IsString Doc where
     fromString = fromLazyText . fromString
+

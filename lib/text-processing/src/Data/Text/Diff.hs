@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict #-}
+
 module Data.Text.Diff where
 
 

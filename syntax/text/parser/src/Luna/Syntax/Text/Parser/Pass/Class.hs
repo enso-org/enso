@@ -1,3 +1,4 @@
+{-# LANGUAGE NoStrict #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Luna.Syntax.Text.Parser.Pass.Class where
@@ -161,11 +162,4 @@ liftIRBS3 f t1 t2 t3 = bind3 f (fromIRBS t1) (fromIRBS t2) (fromIRBS t3) ; {-# I
 
 instance Show (IRBS a) where
     show _ = "IRBS"
-
-
-
-
-
-
-
 

@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict #-}
+
 module Luna.ParserUtils.Test where
 
 import Prologue

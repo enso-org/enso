@@ -61,6 +61,7 @@
 --
 -- So, unlike in @syz@, all of the list elements are siblings.
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE NoStrict #-}
 
 module Data.Generics.Traversable.Zipper where
 
@@ -249,3 +250,4 @@ leftmost z = leftQ z leftmost z
 -- | Move to the rightmost sibling.
 rightmost :: Zipper c a -> Zipper c a
 rightmost z = rightQ z rightmost z
+

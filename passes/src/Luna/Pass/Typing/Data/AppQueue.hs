@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict #-}
+
 module Luna.Pass.Typing.Data.AppQueue where
 
 import Prologue
@@ -19,3 +21,4 @@ register = Attr.modify_ @AppQueue . over wrapped . (:)
 registers :: Attr.Editor AppQueue m => [IR.Term IR.App] -> m ()
 registers = Attr.modify_ @AppQueue . over wrapped . (<>)
 {-# INLINE registers #-}
+

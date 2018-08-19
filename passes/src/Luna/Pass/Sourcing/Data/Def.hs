@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict #-}
+
 module Luna.Pass.Sourcing.Data.Def where
 
 import Prologue
@@ -29,3 +31,4 @@ makePrisms ''Def
 
 newtype DefsMap = DefsMap (Map.Map IR.Name (Documented Def)) deriving (Show, Default)
 makeLenses ''DefsMap
+

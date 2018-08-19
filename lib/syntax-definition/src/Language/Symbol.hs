@@ -1,4 +1,5 @@
 {-# LANGUAGE CPP                  #-}
+{-# LANGUAGE NoStrict             #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Language.Symbol (module Language.Symbol, module X) where
@@ -156,3 +157,4 @@ instance ( body ~ BodyOf (Symbol t Atom   a)
             Infix  t -> Infix  $ t & body .~ s
             Suffix t -> Suffix $ t & body .~ s
             Mixfix t -> Mixfix $ t & body .~ s
+

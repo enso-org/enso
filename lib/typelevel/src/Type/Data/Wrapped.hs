@@ -1,3 +1,4 @@
+{-# LANGUAGE NoStrict #-}
 {-# LANGUAGE TypeFamilies  #-}
 {-# LANGUAGE TypeInType    #-}
 {-# LANGUAGE TypeOperators #-}
@@ -16,3 +17,4 @@ import Prelude
 --        It just cannot be used outside of this module
 type family UnwrapKind (a :: Type) :: Type
 type family Unwrap (a :: ka) :: UnwrapKind ka
+
