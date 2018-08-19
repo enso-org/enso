@@ -1,3 +1,4 @@
+{-# LANGUAGE NoStrict #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Luna.Pass.Data.Layer.Requester where

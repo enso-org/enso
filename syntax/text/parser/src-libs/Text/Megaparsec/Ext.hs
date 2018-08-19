@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict #-}
+
 module Text.Megaparsec.Ext where
 
 import Prelude

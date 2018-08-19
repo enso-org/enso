@@ -1,4 +1,4 @@
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE NoStrict #-}
 
 module Luna.Syntax.Text.Lexer.Runner where
 

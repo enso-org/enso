@@ -1,3 +1,4 @@
+{-# LANGUAGE NoStrict #-}
 
 module Foreign.Memory.Pool2 where
 

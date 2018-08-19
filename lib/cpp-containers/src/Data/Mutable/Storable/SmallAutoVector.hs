@@ -1,3 +1,4 @@
+{-# LANGUAGE NoStrict #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Data.Mutable.Storable.SmallAutoVector
@@ -372,3 +373,4 @@ instance MonadIO m
       => Data.ShallowDestructor1 m (SmallVectorA 'Memory.Unmanaged alloc n) where
     destructShallow1 = const $ pure () -- free
     {-# INLINE destructShallow1 #-}
+

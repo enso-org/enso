@@ -1,3 +1,4 @@
+{-# LANGUAGE NoStrict #-}
 {-# LANGUAGE TypeInType           #-}
 {-# LANGUAGE UndecidableInstances #-}
 

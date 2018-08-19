@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict #-}
+
 module Luna.Pass.Resolve.Data.Resolution where
 
 import Prologue
@@ -127,7 +129,7 @@ resolverFromUnit unitName (Unit.Unit defs clss) = result where
     consRes  = mconcat consRess
     consRess = Map.elems $ Map.mapWithKey (consResolverFromClass unitName) classes
     classes  = view Def.documented <$> clss
-    clsRes   = ClassResolver $ Resolver $ Resolved (ClassRef unitName) <$ clss
+    clsRes   = ClassResolver . Resolver $ Resolved (ClassRef unitName) <$ clss
 
 consResolverFromClass ::
     IR.Qualified -> IR.Name -> Class.Class -> ConsResolver
@@ -140,5 +142,6 @@ resolverForUnit :: Map IR.Qualified UnitResolver
                 -> Unit.Imports
                 -> UnitResolver
 resolverForUnit units unitName (Unit.Imports imps) = resolver where
-    resolver          = mconcat $ Map.elems $ relevantResolvers
+    resolver          = mconcat . Map.elems $ relevantResolvers
     relevantResolvers = Map.restrictKeys units (Set.fromList $ unitName : imps)
+

@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE NoStrict #-}
 
 module Luna.Syntax.Text.Parser.Data.Name.Spaced where
 
@@ -86,3 +86,4 @@ instance Monad m => Prec.RelReader SpacedName (StateT Scope m) where
 -- Association
 instance Monad m => Assoc.Reader SpacedName (StateT Scope m) where
     readLabel (SpacedName _ n) = Assoc.readLabel n ; {-# INLINE readLabel #-}
+

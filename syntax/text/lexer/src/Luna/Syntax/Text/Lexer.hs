@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict #-}
+
 module Luna.Syntax.Text.Lexer (module X) where
 
 import Luna.Syntax.Text.Lexer.Grammar as X

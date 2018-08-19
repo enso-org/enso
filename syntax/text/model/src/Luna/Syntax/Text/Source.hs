@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict #-}
+
 module Luna.Syntax.Text.Source where
 
 import Prologue
@@ -6,6 +8,7 @@ import qualified Luna.Pass.Attr as Attr
 
 import Data.Text.Position (Delta)
 import Data.Text32        (Text32)
+
 
 
 --------------------
@@ -26,5 +29,4 @@ instance Convertible String Source where convert    = convertVia @Text32 ; {-# I
 instance Convertible Text32 Source where convert    = coerce             ; {-# INLINE convert    #-}
 instance Convertible Source Text32 where convert    = coerce             ; {-# INLINE convert    #-}
 instance Convertible Source String where convert    = convertVia @Text32 ; {-# INLINE convert    #-}
-
 

@@ -1,3 +1,4 @@
+{-# LANGUAGE NoStrict #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Luna.Pass.Resolve.ConsFieldResolution where
@@ -59,3 +60,4 @@ resolve r = Layer.read @IR.Model r >>= \case
     _ -> do
         inps <- IR.inputs r
         ComponentList.mapM_ (resolve <=< IR.source) inps
+

@@ -1,3 +1,4 @@
+{-# LANGUAGE NoStrict #-}
 {-# LANGUAGE TypeInType           #-}
 {-# LANGUAGE UndecidableInstances #-}
 
@@ -118,3 +119,4 @@ type family FromAssocListRaw (lst :: [Assoc k v]) :: [Assoc k v] where
 -- === Instances === --
 
 type instance (m :: Map Type Type) !? k = Lookup k m
+

@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict #-}
+
 module Text.Parser.Combinators where
 
 -- import qualified Text.Megaparsec as Parsec

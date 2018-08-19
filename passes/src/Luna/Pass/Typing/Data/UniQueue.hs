@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict #-}
+
 module Luna.Pass.Typing.Data.UniQueue where
 
 import Prologue
@@ -19,3 +21,4 @@ register = Attr.modify_ @UniQueue . over wrapped . (:)
 registers :: Attr.Editor UniQueue m => [IR.Term IR.Unify] -> m ()
 registers = Attr.modify_ @UniQueue . over wrapped . (<>)
 {-# INLINE registers #-}
+

@@ -1,5 +1,5 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
-{-# LANGUAGE OverloadedStrings         #-}
+{-# LANGUAGE NoStrict #-}
 {-# LANGUAGE TemplateHaskell           #-}
 {-# LANGUAGE UndecidableInstances      #-}
 
@@ -78,3 +78,4 @@ instance Ord Prec where
             Top    -> LT
             Bottom -> GT
             Lvl l' -> l `compare` l'
+

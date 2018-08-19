@@ -1,3 +1,4 @@
+{-# LANGUAGE NoStrict #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE UndecidableInstances      #-}
 
@@ -225,3 +226,4 @@ newtype CodeSpanRange = CodeSpanRange Delta deriving (Show, Default, Mempty)
 makeLenses ''CodeSpanRange
 
 instance Convertible Delta CodeSpanRange where convert = wrap ; {-# INLINE convert #-}
+

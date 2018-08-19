@@ -1,3 +1,4 @@
+{-# LANGUAGE NoStrict #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Data.AutoVector.Mutable.Storable

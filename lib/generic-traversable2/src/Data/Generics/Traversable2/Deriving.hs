@@ -1,4 +1,5 @@
 {-# LANGUAGE CPP             #-}
+{-# LANGUAGE NoStrict #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 module Data.Generics.Traversable2.Deriving where
@@ -120,3 +121,4 @@ conA _                = err "GADTs are not supported yet"
 varName :: TyVarBndr -> Name
 varName (PlainTV n)    = n
 varName (KindedTV n _) = n
+

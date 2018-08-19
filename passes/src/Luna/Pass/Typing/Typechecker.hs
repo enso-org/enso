@@ -1,5 +1,6 @@
-module Luna.Pass.Typing.Typechecker where
+{-# LANGUAGE NoStrict #-}
 
+module Luna.Pass.Typing.Typechecker where
 
 import Prologue
 

@@ -1,3 +1,4 @@
+{-# LANGUAGE NoStrict #-}
 {-# LANGUAGE OverloadedLists      #-}
 {-# LANGUAGE UndecidableInstances #-}
 
