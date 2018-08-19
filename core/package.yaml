@@ -164,6 +164,7 @@ default-extensions:
     - NoImplicitPrelude
     - NumDecimals
     - OverloadedLabels
+    - OverloadedStrings
     - PackageImports
     - PatternSynonyms
     - QuasiQuotes
