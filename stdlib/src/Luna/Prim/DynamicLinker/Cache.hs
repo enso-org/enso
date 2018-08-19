@@ -6,7 +6,8 @@ import Prologue
 
 import qualified Data.HashMap.Strict as HashMap
 
-import Control.Concurrent      (MVar, newMVar, modifyMVar, readMVar, takeMVar)
+import Control.Concurrent      (MVar, newMVar, modifyMVar, readMVar,
+                                takeMVar, swapMVar)
 import Data.Hashable           (Hashable)
 import Data.HashMap.Strict     (HashMap)
 import Foreign.Ptr             (FunPtr, Ptr, castFunPtr)
@@ -39,6 +40,9 @@ makeLenses ''Cache
 
 newtype CacheCtx = CacheCtx (MVar Cache)
     deriving (Eq, Generic)
+
+instance Default Cache where
+    def = Cache HashMap.empty HashMap.empty
 
 create :: IO CacheCtx
 create = CacheCtx <$> newMVar (Cache HashMap.empty HashMap.empty)
@@ -84,7 +88,7 @@ lookupSymbolCached (CacheCtx cacheCtx) (handle, symbol) = do
 -- The cache context is not usable anymore.
 finalize :: CacheCtx -> IO ()
 finalize (CacheCtx ctxInside) = do
-    Cache cache _ <- takeMVar ctxInside
+    Cache cache _ <- swapMVar ctxInside def
     let handles = HashMap.elems cache
     sequence_ (closeLibrary <$> handles)
 
