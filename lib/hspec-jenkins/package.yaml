@@ -1,14 +1,14 @@
-name : hspec-jenkins
-version : 0.1.2
-synopsis : Jenkins-friendly XML formatter for Hspec
-category: Testing
-license: MIT
-stability: experimental
-homepage : https://github.com/luna/luna
+name        : hspec-jenkins
+version     : 0.1.2
+synopsis    : Jenkins-friendly XML formatter for Hspec
+category    : Testing
+license     : MIT
+stability   : experimental
+homepage    : https://github.com/luna/luna
 bug-reports : https://github.com/luna/luna/issues
-author: Kohei Suzuki, Ara Adkins
-copyright: Copyright (C) 2013-2018 Kohei Suzuki, 2018 Ara Adkins
-maintainer: Luna Team
+author      : Kohei Suzuki, Ara Adkins
+copyright   : Copyright (C) 2013-2018 Kohei Suzuki, 2018 Ara Adkins
+maintainer  : Luna Team
 
 ghc-options:
     - -O2
@@ -23,4 +23,53 @@ library:
         - blaze-markup
         - hspec >= 2.5
         - prologue
+
+default-extensions:
+    - AllowAmbiguousTypes
+    - ApplicativeDo
+    - BangPatterns
+    - BinaryLiterals
+    - ConstraintKinds
+    - DataKinds
+    - DefaultSignatures
+    - DeriveDataTypeable
+    - DeriveFoldable
+    - DeriveFunctor
+    - DeriveGeneric
+    - DeriveTraversable
+    - DoAndIfThenElse
+    - DuplicateRecordFields
+    - EmptyDataDecls
+    - FlexibleContexts
+    - FlexibleInstances
+    - FunctionalDependencies
+    - GeneralizedNewtypeDeriving
+    - InstanceSigs
+    - LambdaCase
+    - LiberalTypeSynonyms
+    - MonadComprehensions
+    - MultiWayIf
+    - NamedWildCards
+    - NegativeLiterals
+    - NoImplicitPrelude
+    - NumDecimals
+    - OverloadedLabels
+    - OverloadedStrings
+    - PackageImports
+    - PatternSynonyms
+    - QuasiQuotes
+    - RankNTypes
+    - RecursiveDo
+    - RelaxedPolyRec
+    - ScopedTypeVariables
+    - StandaloneDeriving
+    - Strict
+    - TemplateHaskell
+    - TupleSections
+    - TypeApplications
+    - TypeFamilies
+    - TypeFamilyDependencies
+    - TypeOperators
+    - UnicodeSyntax
+    - ViewPatterns
 

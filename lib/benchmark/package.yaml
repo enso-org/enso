@@ -94,6 +94,7 @@ default-extensions:
     - RelaxedPolyRec
     - ScopedTypeVariables
     - StandaloneDeriving
+    - Strict
     - TemplateHaskell
     - TupleSections
     - TypeApplications
@@ -102,5 +103,4 @@ default-extensions:
     - TypeOperators
     - UnicodeSyntax
     - ViewPatterns
-    - Strict
 
