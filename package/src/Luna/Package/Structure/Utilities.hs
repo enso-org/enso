@@ -1,3 +1,5 @@
+{-# LANGUAGE Strict #-}
+
 module Luna.Package.Structure.Utilities where
 
 import Prologue
@@ -37,5 +39,4 @@ findParentPackageIfInside path = do
     else if not $ FilePath.isDrive parentPath then
         findParentPackageIfInside parentPath
     else pure Nothing
-
 

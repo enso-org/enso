@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict #-}
+
 module Luna.Benchmark.Statistics.Comparison where
 
 import Prologue

@@ -1,3 +1,5 @@
+{-# LANGUAGE Strict #-}
+
 module Luna.Package.Configuration.Global where
 
 import Prologue

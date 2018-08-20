@@ -1,3 +1,5 @@
+{-# LANGUAGE Strict #-}
+
 module Luna.Package.Configuration.License.Data where
 
 import Prologue
