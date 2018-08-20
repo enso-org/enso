@@ -1,4 +1,5 @@
 {-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE Strict #-}
 
 module Luna.IR.Aliases where
 

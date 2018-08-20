@@ -1,3 +1,4 @@
+{-# LANGUAGE Strict #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module OCI.Pass.State.Cache where

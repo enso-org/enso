@@ -1,3 +1,5 @@
+{-# LANGUAGE Strict #-}
+
 module Data.Graph.Component.Edge.Construction where
 
 import Prologue
@@ -35,3 +37,4 @@ new src tgt = do
     Layer.write @Target link tgt
     pure link
 {-# INLINE new #-}
+

@@ -1,4 +1,4 @@
--- {-# LANGUAGE Strict               #-}
+{-# LANGUAGE Strict               #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Data.Graph.Fold.Scoped where

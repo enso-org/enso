@@ -1,3 +1,4 @@
+{-# LANGUAGE Strict #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Luna.IR.Term.Ast.Invalid where
@@ -45,3 +46,4 @@ GTraversable.derive ''InvalidString
 instance NFData Symbol
 instance NFData InvalidLiteral
 instance NFData InvalidString
+
