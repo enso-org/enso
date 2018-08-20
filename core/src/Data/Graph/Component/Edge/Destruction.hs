@@ -1,3 +1,5 @@
+{-# LANGUAGE Strict #-}
+
 module Data.Graph.Component.Edge.Destruction where
 
 import Prologue
@@ -24,3 +26,4 @@ delete = \edge -> do
     Mutable.remove srcUsers $! Layout.unsafeRelayout edge
     Component.destruct1 edge
 {-# INLINE delete #-}
+

@@ -1,3 +1,4 @@
+{-# LANGUAGE Strict #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -Wno-missing-signatures #-}
 
@@ -36,5 +37,4 @@ type family   BasicPassSpec t where
     BasicPassSpec (Pass.In IR.Links)   = '[IR.Source, IR.Target]
     BasicPassSpec (Pass.In Pass.Attrs) = '[]
     BasicPassSpec (Pass.Out a)         = BasicPassSpec (Pass.In a)
-
 

@@ -1,3 +1,4 @@
+{-# LANGUAGE Strict #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module OCI.IR.Term.Layout where

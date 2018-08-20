@@ -1,3 +1,5 @@
+{-# LANGUAGE Strict #-}
+
 module Foreign.ForeignPtr.Utils (module Foreign.ForeignPtr.Utils, module X) where
 
 import Foreign.ForeignPtr as X

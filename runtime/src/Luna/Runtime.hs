@@ -1,4 +1,6 @@
-{-# LANGUAGE NoStrict #-}
+-- {-# LANGUAGE NoStrict #-}
+
+{-# OPTIONS_GHC -XNoStrict #-}
 
 module Luna.Runtime (module X) where
 

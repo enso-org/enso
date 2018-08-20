@@ -1,3 +1,5 @@
+{-# LANGUAGE Strict #-}
+
 module Data.Graph.Store where
 
 import Prologue hiding (pprint, print, putStrLn)
@@ -212,3 +214,4 @@ deserialize :: ∀ comp layout m. Deserializer m
     => Rooted (Component comp layout)
     -> m (Component comp layout)
 deserialize = fmap fst . deserializeWithRedirects
+

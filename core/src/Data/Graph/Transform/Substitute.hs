@@ -1,3 +1,5 @@
+{-# LANGUAGE Strict #-}
+
 module Data.Graph.Transform.Substitute where
 
 import Prologue

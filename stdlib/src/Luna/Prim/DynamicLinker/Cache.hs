@@ -1,4 +1,5 @@
-{-# LANGUAGE CPP               #-}
+{-# LANGUAGE CPP    #-}
+{-# LANGUAGE Strict #-}
 
 module Luna.Prim.DynamicLinker.Cache where
 
@@ -16,7 +17,7 @@ import Luna.Prim.DynamicLinker (Handle, loadLibrary, closeLibrary, loadSymbol)
 #if ! mingw32_HOST_OS
 import qualified System.Posix.DynamicLinker as Unix
 #endif
-    
+
 newtype HandleKey = HandleKey (Ptr ())
     deriving (Eq, Generic, Ord, Show)
 makeLenses ''HandleKey
@@ -29,7 +30,7 @@ toKey = HandleKey
 #else
 toKey :: Handle -> HandleKey
 toKey = HandleKey . Unix.packDL
-#endif    
+#endif
 
 data Cache = Cache
     { _moduleMap :: HashMap Text Handle
@@ -57,8 +58,8 @@ loadLibraryCached (CacheCtx cacheCtx) moduleName = do
             -- Note: loadLibrary can be really slow,
             -- we don't want to run it within MVar
             newHandle <- loadLibrary $ convert moduleName
-            -- In the meantime module could have been added to cache by 
-            -- other thread. We do not want to leak handles - get rid of 
+            -- In the meantime module could have been added to cache by
+            -- other thread. We do not want to leak handles - get rid of
             -- our (now duplicate) one.
             modifyMVar cacheCtx $ \cache ->
                 case lookupModule cache of
@@ -68,7 +69,7 @@ loadLibraryCached (CacheCtx cacheCtx) moduleName = do
                     Nothing -> do
                         let updateMap = HashMap.insert moduleName newHandle
                         pure (over moduleMap updateMap cache, newHandle)
-    
+
 
 lookupSymbolCached :: CacheCtx -> (Handle, Text) -> IO (FunPtr a)
 lookupSymbolCached (CacheCtx cacheCtx) (handle, symbol) = do

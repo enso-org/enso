@@ -1,3 +1,4 @@
+{-# LANGUAGE Strict #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 module OCI.Data.Name.Instances where

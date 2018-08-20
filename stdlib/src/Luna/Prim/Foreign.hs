@@ -1,5 +1,5 @@
 {-# LANGUAGE MagicHash         #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE Strict #-}
 
 module Luna.Prim.Foreign where
 

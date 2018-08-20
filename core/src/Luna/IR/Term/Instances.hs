@@ -1,3 +1,4 @@
+{-# LANGUAGE Strict #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
@@ -18,3 +19,4 @@ import Luna.IR.Term.Core (Top, top)
 --   constructing a new term and we break with it circular dependencies.
 instance Term.Creator Top m => Term.DefaultType m where
     defaultType = coerce <$> top ; {-# INLINE defaultType #-}
+

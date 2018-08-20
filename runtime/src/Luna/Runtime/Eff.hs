@@ -1,3 +1,5 @@
+ {-# LANGUAGE Strict #-}
+
 module Luna.Runtime.Eff where
 
 import Prologue hiding (Exception)

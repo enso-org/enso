@@ -1,4 +1,5 @@
 {-# LANGUAGE NoMonoLocalBinds        #-}
+{-# LANGUAGE Strict #-}
 {-# LANGUAGE UndecidableInstances    #-}
 {-# LANGUAGE UndecidableSuperClasses #-}
 

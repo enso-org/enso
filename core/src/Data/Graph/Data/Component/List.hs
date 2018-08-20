@@ -1,3 +1,5 @@
+{-# LANGUAGE Strict #-}
+
 module Data.Graph.Data.Component.List where
 
 import Prologue hiding (foldr, mapM)

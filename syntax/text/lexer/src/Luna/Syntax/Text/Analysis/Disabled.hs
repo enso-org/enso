@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict #-}
+
 module Luna.Syntax.Text.Analysis.Disabled where
 
 import Prologue                      hiding (span)
