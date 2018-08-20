@@ -15,6 +15,7 @@ import qualified Data.Graph.Data.Graph.Class                 as Graph
 import qualified Data.Graph.Data.Layer.Layout                as Layout
 import qualified Foreign.Marshal.Alloc                       as Mem
 import qualified Foreign.Storable                            as Storable
+import qualified Language.Symbol.Operator.Assoc              as Assoc
 import qualified Language.Symbol.Operator.Prec               as Prec
 import qualified Luna.IR                                     as IR
 import qualified Luna.IR.Layer                               as Layer
@@ -40,6 +41,7 @@ import Luna.Pass                             (Pass)
 import Luna.Syntax.Text.Parser.Data.CodeSpan (CodeSpan)
 import Luna.Syntax.Text.Parser.Data.Invalid  (Invalids)
 import Luna.Syntax.Text.Parser.IR.Term       (Ast)
+import OCI.Data.Name                         (Name)
 -- import Luna.Syntax.Text.Parser.Pass.Class    (IRBS, Parser)
 import Luna.Syntax.Text.Scope      (Scope)
 import Luna.Syntax.Text.Source     (Source)
@@ -480,7 +482,7 @@ fixSpec = describe "error" $ it "x" $ do
     -- pprint $ Parser.runParserxx__ Parsing.Syntax2 Parsing.expr "foo (bar baz"
     let Ast.Spanned _ (Ast.AstTokens (Ast.Tokens toks)) =
             -- Parser.runParserxx__ Parsing.Syntax2 Parsing.expr [s|a * b + c|]
-            Parser.runParserxx__ Parsing.Syntax2 Parsing.expr [s|a + b + c|]
+            Parser.runParserxx__ Parsing.Syntax2 Parsing.expr [s|a + b - c * d|]
 
     putStrLn "\nTOKS:\n"
     pprint toks
@@ -493,6 +495,8 @@ fixSpec = describe "error" $ it "x" $ do
 
     expr' <- State.evalDefT @Scope.Scope $ do
         Hardcoded.hardcodePrecRelMap
+        Assoc.write Assoc.Right ("-" :: Name)
+
         ExprBuilder.buildExpr stream
 
     putStrLn "\nEXPR:\n"

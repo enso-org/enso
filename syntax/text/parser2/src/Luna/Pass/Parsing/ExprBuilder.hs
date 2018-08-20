@@ -180,8 +180,8 @@ data ElStream     = ElStream Ast ElStreamType
 data ElStreamType = InfixEl  OpStream
                   | EndEl
 
-pattern InfixElStream name stream = ElStream name (InfixEl stream)
-pattern EndElStream   name        = ElStream name EndEl
+pattern InfixElStream ast  stream = ElStream ast (InfixEl stream)
+pattern EndElStream   ast         = ElStream ast EndEl
 pattern InfixEl_      name stream = InfixEl (OpStream name stream)
 
 deriving instance Show Stream
@@ -266,10 +266,10 @@ takeOperators__ = \result stream -> case stream of
 -- === Expression builder === --
 --------------------------------
 
--- | The following code is an implementation of the Shunting-yard algorithm
---   based on a type secure token stream implementation. For more information
---   please refer to the Wikipedia entry:
---   https://en.wikipedia.org/wiki/Shunting-yard_algorithm
+-- | The following code is a Shunting-yard algorithm modified to support
+--   operator sectioning and automatic error recovery based on a type secure
+--   token stream implementation. For more information please refer to the
+--   Wikipedia entry: https://en.wikipedia.org/wiki/Shunting-yard_algorithm
 
 
 -- === API === --
@@ -296,8 +296,8 @@ buildExprOp__ = \stream stack -> let
 
     go :: ElStreamType -> ElStream -> m Ast
     go streamTp newStack = case streamTp of
-        EndEl             -> pure $ finishExprEl__ newStack
-        InfixEl newStream -> buildExprOp__ newStream newStack
+        EndEl           -> pure $ finishExprEl__ newStack
+        InfixEl stream' -> buildExprOp__ stream' newStack
 
     submitToStack :: m Ast
     submitToStack = case streamTp of
@@ -317,26 +317,36 @@ buildExprOp__ = \stream stack -> let
 
     in case stackTp of
         EndEl -> submitToStack
-        InfixEl (OpStream stackOp stack') -> do
+        InfixEl_ stackOp stack' ->
             Prec.readRel stackOp streamOp >>= \case
                 LT -> submitToStack
                 GT -> reduceStack stack'
                 EQ -> do
                     assoc  <- Assoc.read stackOp
                     assoc' <- Assoc.read streamOp
-                    if | assoc /= assoc' -> undefined
+                    if | assoc /= assoc'      -> submitToStack -- case streamTp of
+                            -- InfixOp streamOpFunc (InfixElStream streamEl newStream) -> case stack' of
+                            --     InfixOp_ stackOpFunc stackEl2 s -> let
+                            --         elems = stackEl2 :| [stackOpFunc Ast.missing Ast.missing, stackEl, streamOpFunc Ast.missing Ast.missing, streamEl]
+                            --         inv = Ast.inheritCodeSpanList' elems $ Ast.invalid' Invalid.AssocConflict
+                            --         newStack = ElStream inv s
+                            --         in buildExprOp__ newStream newStack
+                            -- x -> error $ ppShow x
+
                        | assoc == Assoc.Left  -> reduceStack stack'
                        | assoc == Assoc.Right -> submitToStack
                        | assoc == Assoc.None  -> undefined
 
 finishExprEl__ :: ElStream -> Ast
-finishExprEl__ = \(ElStream a stp) -> case stp of
-    EndEl -> a
-    InfixEl (OpStream name stp') -> case stp' of
-        EndOp f -> f a
-        InfixOp_ f b stp'' -> case stp'' of
-            EndEl     -> f b a
-            InfixEl s -> finishExprEl__ $ InfixElStream (f b a) s
+finishExprEl__ = \(ElStream el stp) -> case stp of
+    EndEl -> el
+    InfixEl_ op stp2 -> case stp2 of
+        EndOp f -> f el
+        InfixOp_ f el2 stp3 -> case stp3 of
+            EndEl     -> f el2 el
+            InfixEl s@(OpStream op2 stp4) ->
+
+                finishExprEl__ $ InfixElStream (f el2 el) s
 {-# NOINLINE finishExprEl__ #-}
 
 
