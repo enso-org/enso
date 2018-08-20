@@ -17,6 +17,8 @@ dependencies:
     - mtl
     - prologue
 
+
+
 default-extensions:
     - AllowAmbiguousTypes
     - ApplicativeDo
@@ -56,6 +58,7 @@ default-extensions:
     - RelaxedPolyRec
     - ScopedTypeVariables
     - StandaloneDeriving
+
     - TemplateHaskell
     - TupleSections
     - TypeApplications
