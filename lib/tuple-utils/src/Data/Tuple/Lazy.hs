@@ -1,4 +1,6 @@
 {-# LANGUAGE NoStrict #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
+{-# OPTIONS_GHC -Wno-unused-matches #-}
 
 module Data.Tuple.Lazy (module Data.Tuple.Lazy, module X) where
 
