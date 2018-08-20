@@ -1,0 +1,25 @@
+
+import Std.Base
+import Std.Test
+
+def infiniteDef: Prepend 2 infiniteDef
+
+class ListTest:
+
+    def takeFromInfiniteDef:
+        value    = infiniteDef.take 5
+        expected = [2, 2, 2, 2, 2]
+
+        TestSubject value . should (be expected)
+
+    def takeFromInfiniteVar:
+        a        = Prepend 1 a
+        value    = a.take 4
+        expected = [1, 1, 1, 1]
+
+        TestSubject value . should (be expected)
+
+    def run:
+        Test.specify "can take from an infinite list" self.takeFromInfiniteVar
+        Test.specify "can take from infinite def" self.takeFromInfiniteDef
+

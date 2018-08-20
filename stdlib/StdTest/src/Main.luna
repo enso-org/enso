@@ -1,18 +1,24 @@
 import Std.Base
 import Std.Test
-import StdTest.Lang.PatternMatch
 import StdTest.Lang.Errors
 import StdTest.Lang.FieldModifications
+import StdTest.Lang.PatternMatch
+import StdTest.Lang.Recursion
+import StdTest.Lang.SideEffects
 
+import StdTest.Data.List
 import StdTest.Data.Map
 
 import StdTest.Lib.Basic
 
 def main:
-    PatternMatchTest.run
     ErrorsTest.run
     FieldModificationsTest.run
+    PatternMatchTest.run
+    RecursionTest.run
+    SideEffectsTest.run
 
+    ListTest.run
     MapTest.run
 
     BasicTest.run
