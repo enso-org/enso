@@ -3,9 +3,11 @@ import Std.Base
 import Std.Primitive
 
 def recurse a:
-    if a < 1 then 0 else foo (a - 1)
+    if a < 1 then 0 else recurse (a - 1)
 
 def main:
-    count = 1000
+    count = 1
     recurse count
+    print "Exit!"
+    None
 
