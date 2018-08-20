@@ -1,4 +1,4 @@
-{-# LANGUAGE NoStrict #-}
+ {-# LANGUAGE Strict #-}
 
 module Luna.Runtime.Eff where
 

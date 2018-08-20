@@ -1,5 +1,6 @@
-{-# LANGUAGE NoStrict #-}
-{-# LANGUAGE UndecidableInstances #-}
+-- {-# LANGUAGE NoStrict #-}
+
+{-# OPTIONS_GHC -XNoStrict #-}
 
 module Luna.Runtime.Data where
 
