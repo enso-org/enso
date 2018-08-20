@@ -1,3 +1,5 @@
+{-# LANGUAGE Strict #-}
+
 module Luna.Shell.Interpret where
 
 import Prologue
