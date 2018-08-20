@@ -153,81 +153,84 @@ subNonSpacedStream = go where
 
 -- === Definition === --
 
-data Stream       = StreamOpStart Name (Ast -> Ast) StreamEl
-                  | StreamElStart StreamEl
+data Stream       = StreamOpStart Name (Ast -> Ast) ElStream
+                  | StreamElStart ElStream
                   | NullStream
 
-data StreamOp     = StreamOp      Name StreamOpType
-data StreamOpType = InfixStreamOp (Ast -> Ast -> Ast) StreamEl
-                  | EndStreamOp   (Ast -> Ast)
+data OpStream     = OpStream      Name OpStreamType
+data OpStreamType = InfixOpStream (Ast -> Ast -> Ast) ElStream
+                  | EndOpStream   (Ast -> Ast)
 
-data StreamEl     = StreamEl      Ast StreamElType
-data StreamElType = InfixStreamEl StreamOp
-                  | EndStreamEl
+data ElStream     = ElStream      Ast ElStreamType
+data ElStreamType = InfixElStream OpStream
+                  | EndElStream
 
 deriving instance Show Stream
-deriving instance Show StreamOp
-deriving instance Show StreamOpType
-deriving instance Show StreamEl
-deriving instance Show StreamElType
+deriving instance Show OpStream
+deriving instance Show OpStreamType
+deriving instance Show ElStream
+deriving instance Show ElStreamType
 
 
 -- === Smart constructors === --
 
-infixStreamOp :: Name -> (Ast -> Ast -> Ast) -> StreamEl -> StreamOp
-infixStreamOp = \name f stream -> StreamOp name $ InfixStreamOp f stream
-{-# INLINE infixStreamOp #-}
+infixOpStream :: Name -> (Ast -> Ast -> Ast) -> ElStream -> OpStream
+infixOpStream = \name f stream -> OpStream name $ InfixOpStream f stream
+{-# INLINE infixOpStream #-}
 
-endStreamOp :: Name -> (Ast -> Ast) -> StreamOp
-endStreamOp = \name f -> StreamOp name $ EndStreamOp f
-{-# INLINE endStreamOp #-}
+endOpStream :: Name -> (Ast -> Ast) -> OpStream
+endOpStream = \name f -> OpStream name $ EndOpStream f
+{-# INLINE endOpStream #-}
 
-infixStreamEl :: Ast -> StreamOp -> StreamEl
-infixStreamEl = \ast stream -> StreamEl ast $ InfixStreamEl stream
-{-# INLINE infixStreamEl #-}
+infixElStream :: Ast -> OpStream -> ElStream
+infixElStream = \ast stream -> ElStream ast $ InfixElStream stream
+{-# INLINE infixElStream #-}
 
-endStreamEl :: Ast -> StreamEl
-endStreamEl = \ast -> StreamEl ast EndStreamEl
-{-# INLINE endStreamEl #-}
+endElStream :: Ast -> ElStream
+endElStream = \ast -> ElStream ast EndElStream
+{-# INLINE endElStream #-}
 
 singularElStream :: Ast -> Stream
-singularElStream = StreamElStart . endStreamEl
+singularElStream = StreamElStart . endElStream
 {-# INLINE singularElStream #-}
 
 
 -- === Construction === --
 
+-- | Stream builder. Note that the stream builder works on reversed token
+--   stream in order to get tail-recursive utils here.
+
 buildStream :: [Ast] -> Stream
-buildStream = \stream -> case reverse stream of
+buildStream = \(reverse -> stream) -> case stream of
     []         -> NullStream
     (tok:toks) -> case Ast.unspan tok of
         Ast.AstOperator (Ast.Operator name)
-          -> buildStreamEl (endStreamOp name (rightSection tok)) stream
-        _ -> buildStreamOp (endStreamEl tok) stream
+          -> buildStreamEl (endOpStream name (rightSection tok)) toks
+        _ -> buildStreamOp (endElStream tok) toks
 {-# INLINE buildStream #-}
 
-buildStreamOp :: StreamEl -> [Ast] -> Stream
+buildStreamOp :: ElStream -> [Ast] -> Stream
 buildStreamOp = \result stream -> case stream of
     [] -> StreamElStart result
     _  -> case takeOperators stream of
-        ([(name,op)], []  ) -> StreamOpStart name (rightSection op) result
+        ([(name,op)], []  ) -> StreamOpStart name (leftSection op) result
         ([]         , _   ) -> go Name.app     (Ast.app)      result stream
         ([(name,op)], toks) -> go name         (Ast.app2 op)  result toks
         ((p:ps)     , toks) -> go Name.invalid (Ast.app2 inv) result toks
             where inv = Ast.inheritCodeSpanList' (snd <$> (p :| ps))
                       $ Ast.invalid' Invalid.AdjacentOperators
                       -- FIXME: register ops in invalid
-    where go name f stream = buildStreamEl (infixStreamOp name f stream)
+    where go name f stream = buildStreamEl (infixOpStream name f stream)
 {-# NOINLINE buildStreamOp #-}
 
-buildStreamEl :: StreamOp -> [Ast] -> Stream
-buildStreamEl = \(result@(StreamOp name stp)) -> \case
+buildStreamEl :: OpStream -> [Ast] -> Stream
+buildStreamEl = \(result@(OpStream name stp)) -> \case
     [] -> case stp of
-        EndStreamOp   f   -> singularElStream $ f Ast.missing
-        InfixStreamOp f s -> StreamOpStart name (f Ast.missing) s
+        EndOpStream   f   -> singularElStream $ f Ast.missing
+        InfixOpStream f s -> StreamOpStart name (f Ast.missing) s
     (tok:toks) -> case Ast.unspan tok of
         Ast.AstOperator {} -> undefined
-        _                  -> buildStreamOp (infixStreamEl tok result) toks
+        _                  -> buildStreamOp (infixElStream tok result) toks
 {-# NOINLINE buildStreamEl #-}
 
 
@@ -297,25 +300,58 @@ buildExpr' = \isFirst lastWasEl tokStream opStack elStack -> let
 
 
 
+buildExpr2 :: (Monad m, Assoc.Reader Name m, Prec.RelReader Name m)
+    => Stream -> m Ast
+buildExpr2 = \case
+    NullStream -> error "TODO"
+    StreamOpStart opName opFunc (ElStream el stp) -> case stp of
+        EndElStream     -> error "TODO"
+        InfixElStream s -> buildExprOp s (infixElStream el (endOpStream opName opFunc))
+    x -> error $ ppShow x
+
 
 buildExprOp :: (Monad m, Assoc.Reader Name m, Prec.RelReader Name m)
-    => StreamOp -> StreamEl -> m Ast
-buildExprOp = \tokStream tokStack -> let
-    StreamOp name sopTp = tokStream
-    StreamEl el   selTp = tokStack
+    => OpStream -> ElStream -> m Ast
+buildExprOp = \stream stack -> let
+    OpStream streamOp streamTp = stream
+    ElStream stackEl  stackTp  = stack
+
+    in case stackTp of
+        EndElStream     -> error "TODO"
+        InfixElStream (OpStream stackOp stackTp') -> do
+            comparePrec2 stackOp streamOp >>= \case
+                LT -> case streamTp of
+                    InfixOpStream f (ElStream streamEl streamTp') -> case streamTp' of
+                        EndElStream -> let
+                            stack' = infixElStream streamEl
+                                   $ infixOpStream streamOp f stack
+                            in pure $ finishExprEl stack'
+                        x -> error $ ppShow x
+                    x -> error $ ppShow x
+                x -> error $ ppShow x
+
+        x -> error $ ppShow x
 
     -- go        = buildExpr' False
     -- goAfterEl = go True
     -- goAfterOp = go False
     -- lastWasOp = not lastWasEl
-    -- StreamOp op tokStream' = tokStream
-    in case sopTp of
-        InfixStreamOp f (StreamEl el' (InfixStreamEl tokStream')) -> do
-            case selTp of
-                EndStreamEl -> let
-                    tokStack' = infixStreamEl el' (infixStreamOp name f tokStack)
-                    in buildExprOp tokStream' tokStack'
-        -- EndStreamOp ->
+    -- OpStream op stream' = stream
+    -- in case streamTp of
+    --     InfixOpStream f (ElStream el' streamTp') -> case stackTp of
+    --         InfixElStream (OpStream name stream') -> case stream' of
+    --             EndOpStream f -> do
+
+    --             x -> error $ ppShow x
+    --                     -- stack' = infixElStream el' (infixOpStream name f stack)
+    --                     -- in pure $ finishExprEl stack'
+    --         -- InfixElStream stream' -> case stackTp of
+    --         --     EndElStream -> let
+    --         --         stack' = infixElStream el' (infixOpStream name f stack)
+    --         --         in buildExprOp stream' stack'
+    --         x -> error $ ppShow x
+    --     x -> error $ ppShow x
+    --     -- EndOpStream ->
 
     --     [] -> pure $ finishExpr opStack elStack
     --     (tok:toks) -> case Ast.unspan tok of
@@ -344,27 +380,27 @@ buildExprOp = \tokStream tokStack -> let
     --             in goAfterEl toks (opStackMod opStack) (tok:elStack)
 
 
--- data Stream       = StreamOpStart Name (Ast -> Ast) StreamEl
---                   | StreamElStart StreamEl
+-- data Stream       = StreamOpStart Name (Ast -> Ast) ElStream
+--                   | StreamElStart ElStream
 --                   | NullStream
 
--- data StreamOp     = StreamOp      Name StreamOpType
--- data StreamOpType = InfixStreamOp (Ast -> Ast -> Ast) StreamEl
---                   | EndStreamOp   (Ast -> Ast)
+-- data OpStream     = OpStream      Name OpStreamType
+-- data OpStreamType = InfixOpStream (Ast -> Ast -> Ast) ElStream
+--                   | EndOpStream   (Ast -> Ast)
 
--- data StreamEl     = StreamEl      Ast StreamElType
--- data StreamElType = InfixStreamEl StreamOp
---                   | EndStreamEl
+-- data ElStream     = ElStream      Ast ElStreamType
+-- data ElStreamType = InfixElStream OpStream
+--                   | EndElStream
 
 
-finishExprEl :: StreamEl -> Ast
-finishExprEl = \(StreamEl a stp) -> case stp of
-    EndStreamEl -> a
-    InfixStreamEl (StreamOp name stp) -> case stp of
-        EndStreamOp   f                   -> f a
-        InfixStreamOp f (StreamEl b stp') -> case stp' of
-            EndStreamEl     -> f a b
-            InfixStreamEl s -> finishExprEl $ infixStreamEl (f a b) s
+finishExprEl :: ElStream -> Ast
+finishExprEl = \(ElStream a stp) -> case stp of
+    EndElStream -> a
+    InfixElStream (OpStream name stp) -> case stp of
+        EndOpStream   f                   -> f a
+        InfixOpStream f (ElStream b stp') -> case stp' of
+            EndElStream     -> f b a
+            InfixElStream s -> finishExprEl $ infixElStream (f b a) s
 {-# NOINLINE finishExprEl #-}
 
 
@@ -387,6 +423,10 @@ applyOpToStack = \op elStack -> case op ^. func of
         (a:elStack') -> f a : elStack'
         -- FIXME
 {-# INLINE applyOpToStack #-}
+
+comparePrec2 :: (Monad m, Prec.RelReader Name m)
+    => Name -> Name -> m Ordering
+comparePrec2 = Prec.readRel
 
 
 infixl 2 **<
