@@ -1,0 +1,11 @@
+
+import Std.Base
+import Std.Primitive
+
+def recurse a:
+    if a < 1 then 0 else foo (a - 1)
+
+def main:
+    count = 1000
+    recurse count
+
