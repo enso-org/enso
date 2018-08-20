@@ -56,7 +56,6 @@ default-extensions:
     - RelaxedPolyRec
     - ScopedTypeVariables
     - StandaloneDeriving
-    - Strict
     - TemplateHaskell
     - TupleSections
     - TypeApplications
