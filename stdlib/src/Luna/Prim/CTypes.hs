@@ -1,3 +1,5 @@
+{-# LANGUAGE Strict #-}
+
 module Luna.Prim.CTypes where
 
 import Prologue

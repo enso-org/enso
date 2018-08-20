@@ -1,5 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE OverloadedLists   #-}
+{-# LANGUAGE Strict #-}
 
 module Luna.Std where
 

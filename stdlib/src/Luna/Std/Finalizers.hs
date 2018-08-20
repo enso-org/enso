@@ -1,3 +1,5 @@
+{-# LANGUAGE Strict #-}
+
 module Luna.Std.Finalizers where
 
 import Prologue
