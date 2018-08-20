@@ -2,6 +2,7 @@
 {-# LANGUAGE GADTs                     #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE OverloadedStrings         #-}
+{-# LANGUAGE Strict #-}
 
 
 module Data.Text.CodeBuilder.Builder where

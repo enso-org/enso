@@ -1,4 +1,5 @@
 {-# LANGUAGE MagicHash            #-}
+{-# LANGUAGE Strict #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Memory.Data.Ptr where
