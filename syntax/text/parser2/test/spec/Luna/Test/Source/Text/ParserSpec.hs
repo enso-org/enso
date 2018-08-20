@@ -482,7 +482,7 @@ fixSpec = describe "error" $ it "x" $ do
     -- pprint $ Parser.runParserxx__ Parsing.Syntax2 Parsing.expr "foo (bar baz"
     let Ast.Spanned _ (Ast.AstTokens (Ast.Tokens toks)) =
             -- Parser.runParserxx__ Parsing.Syntax2 Parsing.expr [s|a * b + c|]
-            Parser.runParserxx__ Parsing.Syntax2 Parsing.expr [s|a + b - c * d|]
+            Parser.runParserxx__ Parsing.Syntax2 Parsing.expr [s|x - a - b +|]
 
     putStrLn "\nTOKS:\n"
     pprint toks

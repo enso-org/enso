@@ -296,13 +296,12 @@ buildExprOp__ = \stream stack -> let
 
     go :: ElStreamType -> ElStream -> m Ast
     go streamTp newStack = case streamTp of
-        EndEl           -> pure $ finishExprEl__ newStack
+        EndEl           -> foldExprStack__ newStack
         InfixEl stream' -> buildExprOp__ stream' newStack
 
     submitToStack :: m Ast
     submitToStack = case streamTp of
-        EndOp f -> pure $ finishExprEl__ newStack where
-            newStack = ElStream (f stackEl) stackTp
+        EndOp opF -> foldExprStackWithOp__ streamOp opF stackEl stackTp
         InfixOp_ f streamEl streamTp' -> go streamTp' newStack where
             newStack = InfixElStream streamEl (InfixOpStream streamOp f stack)
     {-# INLINE submitToStack #-}
@@ -324,34 +323,50 @@ buildExprOp__ = \stream stack -> let
                 EQ -> do
                     assoc  <- Assoc.read stackOp
                     assoc' <- Assoc.read streamOp
-                    if | assoc /= assoc'      -> submitToStack -- case streamTp of
-                            -- InfixOp streamOpFunc (InfixElStream streamEl newStream) -> case stack' of
-                            --     InfixOp_ stackOpFunc stackEl2 s -> let
-                            --         elems = stackEl2 :| [stackOpFunc Ast.missing Ast.missing, stackEl, streamOpFunc Ast.missing Ast.missing, streamEl]
-                            --         inv = Ast.inheritCodeSpanList' elems $ Ast.invalid' Invalid.AssocConflict
-                            --         newStack = ElStream inv s
-                            --         in buildExprOp__ newStream newStack
-                            -- x -> error $ ppShow x
+                    if (assoc == assoc' && assoc == Assoc.Left)
+                        then reduceStack stack'
+                        else submitToStack
+{-# NOINLINE buildExprOp__ #-}
 
-                       | assoc == Assoc.Left  -> reduceStack stack'
-                       | assoc == Assoc.Right -> submitToStack
-                       | assoc == Assoc.None  -> undefined
-
-finishExprEl__ :: ElStream -> Ast
-finishExprEl__ = \(ElStream el stp) -> case stp of
-    EndEl -> el
+foldExprStack__ :: ExprBuilderMonad m => ElStream -> m Ast
+foldExprStack__ = \(ElStream el stp) -> case stp of
+    EndEl -> pure el
     InfixEl_ op stp2 -> case stp2 of
-        EndOp f -> f el
-        InfixOp_ f el2 stp3 -> case stp3 of
-            EndEl     -> f el2 el
-            InfixEl s@(OpStream op2 stp4) ->
-
-                finishExprEl__ $ InfixElStream (f el2 el) s
-{-# NOINLINE finishExprEl__ #-}
+        EndOp opF             -> pure $ opF el
+        InfixOp_ opF el2 stp3 -> foldExprStackWithOp__ op (flip opF el) el2 stp3
+{-# NOINLINE foldExprStack__ #-}
 
 
+foldExprStackWithOp__ :: ExprBuilderMonad m
+    => Name -> (Ast -> Ast) -> Ast -> ElStreamType -> m Ast
+foldExprStackWithOp__ = \op opF el stream -> case stream of
+    EndEl -> pure $ opF el
+    InfixEl s@(OpStream op2 stream2) -> checkCorrectOpRel op op2 >>= \case
+        True  -> foldExprStack__ $ InfixElStream (opF el) s
+        False -> let tailOps = [el, opF Ast.missing] in case stream2 of
+            EndOp op2F -> pure . assocConflict $ op2F Ast.missing :| tailOps
+            InfixOp_ op2F el2 stream3 -> case stream3 of
+                EndEl     -> pure inv
+                InfixEl s -> foldExprStack__ (InfixElStream inv s)
+                where inv = assocConflict $ el2 :| (fillMissing op2F : tailOps)
+{-# NOINLINE foldExprStackWithOp__ #-}
 
+checkCorrectOpRel :: ExprBuilderMonad m => Name -> Name -> m Bool
+checkCorrectOpRel = \op1 op2 -> do
+    prec   <- Prec.readRel op1 op2
+    assoc  <- Assoc.read op1
+    assoc' <- Assoc.read op2
+    pure . not $ (prec == EQ) && (assoc /= assoc' || assoc == Assoc.None)
+{-# INLINE checkCorrectOpRel #-}
 
+assocConflict :: NonEmpty Ast -> Ast
+assocConflict = \elems
+    -> Ast.inheritCodeSpanList' elems $ Ast.invalid' Invalid.AssocConflict
+{-# INLINE assocConflict #-}
+
+fillMissing :: (Ast -> Ast -> Ast) -> Ast
+fillMissing = \f -> f Ast.missing Ast.missing
+{-# INLINE fillMissing #-}
 
 -- data Stream       = OpStreamStart Name (Ast -> Ast) ElStream
 --                   | ElStreamStart ElStream
