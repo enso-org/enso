@@ -1,3 +1,4 @@
+{-# LANGUAGE NoStrict #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Data.Attoparsec.Text32 where

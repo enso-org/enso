@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict #-}
+
 module Data.Conduit.Utils where
 
 import Prelude
