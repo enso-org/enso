@@ -479,18 +479,23 @@ fixSpec = describe "error" $ it "x" $ do
     -- pprint $ Parser.runParserxx__ Parsing.Syntax1 Parsing.expr "def foo a:\n a"
     -- pprint $ Parser.runParserxx__ Parsing.Syntax2 Parsing.expr "foo (bar baz"
     let Ast.Spanned _ (Ast.AstTokens (Ast.Tokens toks)) =
-            Parser.runParserxx__ Parsing.Syntax2 Parsing.expr [s|+ a * b|]
+            -- Parser.runParserxx__ Parsing.Syntax2 Parsing.expr [s|a * b + c|]
+            Parser.runParserxx__ Parsing.Syntax2 Parsing.expr [s|a + b + c|]
+
+    putStrLn "\nTOKS:\n"
     pprint toks
     putStrLn "\n=========\n"
 
     let stream = ExprBuilder.buildStream toks
+    putStrLn "\nSTREAM:\n"
     pprint stream
     -- pprint $ ExprBuilder.subStreams toks
 
     expr' <- State.evalDefT @Scope.Scope $ do
         Hardcoded.hardcodePrecRelMap
-        ExprBuilder.buildExpr2 stream
+        ExprBuilder.buildExpr stream
 
+    putStrLn "\nEXPR:\n"
     pprint expr'
     putStrLn "\n=========\n"
     printCodePure expr'

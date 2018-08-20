@@ -435,6 +435,10 @@ invalid' :: Invalid.Symbol -> Ast
 invalid' = \desc -> AstInvalid $ Invalid desc
 {-# INLINE invalid' #-}
 
+invalid :: Invalid.Symbol -> Spanned Ast
+invalid = Spanned mempty . invalid'
+{-# INLINE invalid #-}
+
 marker' :: Int -> Ast
 marker' = \id -> AstMarker $ Marker id
 {-# INLINE marker' #-}
