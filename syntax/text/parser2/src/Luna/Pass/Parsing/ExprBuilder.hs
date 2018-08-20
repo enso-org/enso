@@ -138,6 +138,59 @@ checkLeftSpacing = (> 0) . view (Ast.span . CodeSpan.viewSpan . Span.offset)
 
 
 
+----------------------------------
+-- === Assignment partition === --
+----------------------------------
+
+-- | Divide token stream into Pattern and Expr
+
+-- === Definition === --
+
+data ExpressionStream
+    = ExpressionStream [SpaceStream]
+    | AssignmentStream [SpaceStream] [SpaceStream]
+    deriving (Show)
+
+
+-- === API === --
+
+expressionStream :: [SpaceStream] -> ExpressionStream
+expressionStream = expressionStream__ id
+{-# INLINE expressionStream #-}
+
+expressionStream__ ::
+    ([SpaceStream] -> [SpaceStream]) -> [SpaceStream] -> ExpressionStream
+expressionStream__ = \f stream -> case stream of
+    []         -> ExpressionStream $! f mempty
+    (tok:toks) -> let
+        continue = expressionStream__ (f . (tok:)) toks
+        in case tok of
+            UnspacedStream {} -> continue
+            SpacedStream   ss -> case breakOnEq ss of
+                (l, []) -> continue
+                (l, r)  -> let
+                    mod a = if null a then id else (SpacedStream a :)
+                    in AssignmentStream (mod l $ f mempty) (mod r toks)
+{-# NOINLINE expressionStream__ #-}
+
+breakOnEq :: [Ast] -> ([Ast], [Ast])
+breakOnEq = breakOnEq__ id
+{-# INLINE breakOnEq #-}
+
+breakOnEq__ :: ([Ast] -> [Ast]) -> [Ast] -> ([Ast], [Ast])
+breakOnEq__ = \f stream -> case stream of
+    []         -> (f stream, mempty)
+    (tok:toks) -> let
+        continue = breakOnEq__ (f . (tok:)) toks
+        in case Ast.unspan tok of
+            Ast.AstOperator (Ast.Operator name) ->
+                if name == Name.unify
+                    then (f mempty, toks)
+                    else continue
+            _ -> continue
+{-# NOINLINE breakOnEq__ #-}
+
+
 -------------------------------
 -- === Expr token stream === --
 -------------------------------

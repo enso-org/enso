@@ -482,13 +482,22 @@ fixSpec = describe "error" $ it "x" $ do
     -- pprint $ Parser.runParserxx__ Parsing.Syntax2 Parsing.expr "foo (bar baz"
     let Ast.Spanned _ (Ast.AstTokens (Ast.Tokens toks)) =
             -- Parser.runParserxx__ Parsing.Syntax2 Parsing.expr [s|a * b + c|]
-            Parser.runParserxx__ Parsing.Syntax2 Parsing.expr [s|- a + b -|]
+            Parser.runParserxx__ Parsing.Syntax2 Parsing.expr [s|foo a+b = bar = baz|]
 
     putStrLn "\nTOKS:\n"
     pprint toks
     putStrLn "\n=========\n"
 
-    let stream = ExprBuilder.buildStream toks
+    let stream  = ExprBuilder.buildStream toks
+        sstream = ExprBuilder.subStreams toks
+        estream = ExprBuilder.expressionStream sstream
+
+    putStrLn "\nSUB STREAMS:\n"
+    pprint sstream
+
+    putStrLn "\nEXPR STREAM:\n"
+    pprint estream
+
     putStrLn "\nSTREAM:\n"
     pprint stream
     -- pprint $ ExprBuilder.subStreams toks
