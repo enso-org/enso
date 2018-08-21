@@ -29,7 +29,6 @@ packages:
     - core
     - debug
     - passes
-    - playground
     - package
     - runtime
     - stdlib

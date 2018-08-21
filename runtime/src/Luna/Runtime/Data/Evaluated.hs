@@ -1,6 +1,4 @@
--- {-# LANGUAGE NoStrict #-}
-
-{-# OPTIONS_GHC -XNoStrict #-}
+{-# LANGUAGE NoStrict #-}
 
 module Luna.Runtime.Data.Evaluated where
 

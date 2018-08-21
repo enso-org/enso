@@ -7,7 +7,7 @@ package-indices:
 
 ghc-options:
     $locals:
-        -O2
+        -O1
         -Wall
         -Wno-name-shadowing
         -fexcess-precision
@@ -29,7 +29,6 @@ packages:
     - core
     - debug
     - passes
-    - playground
     - package
     - runtime
     - stdlib
@@ -50,18 +49,21 @@ packages:
     - lib/data-typemap
     - lib/exception
     - lib/foreign-utils
+    - lib/future
     - lib/generic-traversable
     - lib/generic-traversable2
     - lib/hspec-jenkins
     - lib/memory-manager
     - lib/memory-pool
     - lib/nested-containers
+    - lib/parser-utils
     - lib/syntax-definition
     - lib/text-processing
     - lib/th-builder
     - lib/tuple-utils
     - lib/type-cache
     - lib/typelevel
+    - lib/yaml-utils
 
     - ../lib/container
     - ../lib/convert
