@@ -7,7 +7,7 @@ package-indices:
 
 ghc-options:
     $locals:
-        -O2
+        -O1
         -Wall
         -Wno-name-shadowing
         -fexcess-precision
