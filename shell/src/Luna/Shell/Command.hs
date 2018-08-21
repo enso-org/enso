@@ -7,6 +7,7 @@ import Prologue hiding (init)
 import qualified Control.Exception                  as Exception
 import qualified Control.Monad.Exception            as MException
 import qualified Control.Monad.State.Layered        as State
+import qualified Data.Version                       as Version
 import qualified Data.Yaml                          as Yaml
 import qualified GitHash                            as GitHash
 import qualified Luna.Package                       as Package
@@ -19,6 +20,7 @@ import qualified Luna.Shell.CWD                     as CWD
 import qualified Luna.Shell.Interpret               as Interpret
 import qualified Path                               as Path
 import qualified System.Directory                   as Directory
+import qualified System.Info                        as Info
 import qualified Text.Megaparsec                    as Megaparsec
 
 import Control.Lens.Prism      (_Just)
@@ -206,11 +208,14 @@ init opts = do
 version :: (MonadIO m) => m ()
 version = putStrLn versionMsg where
     gitInfo    = $$(GitHash.tGitInfoCwd)
-    versionMsg = "Luna Version = "
+    versionMsg = "luna "
+        <> "(" <> Info.os <> "-" <> Info.arch <> ") "
+        <> "(" <> Info.compilerName <> "-"
+        <> Version.showVersion Info.compilerVersion <> ") "
+        <> "["
         <> GitHash.giBranch gitInfo
         <> "@"
-        <> GitHash.giHash gitInfo
-        <> " ["
+        <> GitHash.giHash gitInfo <> ", "
         <> isDirty <> ", "
         <> show (GitHash.giCommitCount gitInfo) <> " commits, "
         <> "latest on " <> GitHash.giCommitDate gitInfo
