@@ -7,9 +7,10 @@ module Luna.Syntax.Text.Parser.IR.Ast where
 import qualified Prelude  as P
 import           Prologue hiding (Text, imp, seq, some, span, takeWhile)
 
-import qualified Data.Text32                        as Text
-import qualified Luna.IR.Term.Ast.Invalid           as Invalid
-import qualified Luna.Syntax.Text.Parser.Pass.Class as Parser
+import qualified Data.Text32                           as Text
+import qualified Luna.IR.Term.Ast.Invalid              as Invalid
+import qualified Luna.Syntax.Text.Parser.Data.CodeSpan as CodeSpan
+import qualified Luna.Syntax.Text.Parser.Pass.Class    as Parser
 
 import Luna.IR                               (SomeTerm, Term)
 import Luna.Syntax.Text.Parser.Data.CodeSpan (CodeSpan (CodeSpan),
@@ -321,38 +322,50 @@ data Ast
 makeLenses ''Result
 
 
+dropOffset :: Spanned a -> Spanned a
+dropOffset = span %~ CodeSpan.dropOffset
+{-# INLINE dropOffset #-}
 
 
 inheritCodeSpan2
-    :: (Spanned Ast -> Spanned Ast -> Ast) -> (Spanned Ast -> Spanned Ast -> Spanned Ast)
+    :: (Spanned Ast -> Spanned Ast -> Ast)
+    -> (Spanned Ast -> Spanned Ast -> Spanned Ast)
 inheritCodeSpan2 = \f t1 t2 -> let
     s1 = t1 ^. span
     s2 = t2 ^. span
-    in Spanned (s1 <> s2) $ f t1 t2
+    in Spanned (s1 <> s2) $! f (dropOffset t1) t2
 {-# INLINE inheritCodeSpan2 #-}
 
+inheritCodeSpanList1
+    :: (NonEmpty (Spanned a) -> b) -> (NonEmpty (Spanned a) -> Spanned b)
+inheritCodeSpanList1 = \f (a :| as) -> let
+    s  = view span a
+    ss = view span <$> as
+    in Spanned (foldl' (<>) s ss) $! f (dropOffset a :| as)
+{-# INLINE inheritCodeSpanList1 #-}
+
 inheritCodeSpanList
-    :: (NonEmpty (Spanned a) -> b) -> (NonEmpty (Spanned a) -> (Spanned b))
-inheritCodeSpanList = \f ts -> let
-    (s :| ss) = view span <$> ts
-    in Spanned (foldl' (<>) s ss) $ f ts
+    :: ([Spanned a] -> b) -> ([Spanned a] -> Spanned b)
+inheritCodeSpanList = \f args -> case args of
+    []     -> Spanned mempty $! f args
+    (a:as) -> let
+        s  = view span a
+        ss = view span <$> as
+        in Spanned (foldl' (<>) s ss) $! f (dropOffset a : as)
 {-# INLINE inheritCodeSpanList #-}
 
-inheritCodeSpanList'
+-- Warning.
+-- When using this function you need to handle all child-component spans
+-- correctly. Consider three components 'a b c'. If you want to convert them
+-- to list of components, you have to remove the offset span from the 'a' child
+-- and put it to the newly created parent instead. Use this function only when
+-- you create non-hierarchical components and use the public utils otherwise.
+computeCodeSpanList1__
     :: NonEmpty (Spanned Ast) -> Ast -> (Spanned Ast)
-inheritCodeSpanList' = \ts -> let
+computeCodeSpanList1__ = \ts -> let
     (s :| ss) = view span <$> ts
     in Spanned (foldl' (<>) s ss)
-{-# INLINE inheritCodeSpanList' #-}
-
-inheritCodeSpanList''
-    :: [Spanned Ast] -> Ast -> (Spanned Ast)
-inheritCodeSpanList'' = \case
-    [] -> Spanned mempty
-    (a:as) -> inheritCodeSpanList' (a:|as)
-{-# INLINE inheritCodeSpanList'' #-}
-
-
+{-# INLINE computeCodeSpanList1__ #-}
 
 
 
@@ -492,6 +505,10 @@ app2 :: Spanned Ast -> Spanned Ast -> Spanned Ast -> Spanned Ast
 app2 = \f a b -> app (app f a) b
 {-# INLINE app2 #-}
 
+apps :: Spanned Ast -> [Spanned Ast] -> Spanned Ast
+apps = foldl' app
+{-# INLINE apps #-}
+
 missing' :: Ast
 missing' = AstMissing Missing
 {-# INLINE missing' #-}
@@ -505,9 +522,7 @@ list' = \items -> AstList $ List items
 {-# INLINE list' #-}
 
 list :: [Spanned Ast] -> Spanned Ast
-list = \items -> case items of
-    []     -> Spanned mempty $ list' items
-    (a:as) -> inheritCodeSpanList' (a:|as) $ list' items
+list = inheritCodeSpanList $ \items -> AstList $ List items
 {-# INLINE list #-}
 
 -- data Ast

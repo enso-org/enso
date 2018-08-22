@@ -10,7 +10,7 @@ import Prologue
 ---------------------------
 
 acc, app, arrow, lam, minus, typed, uminus, unify, update,
-    wildcard, invalid :: IsString s => s
+    wildcard, invalid, assign :: IsString s => s
 acc      = "."         ; {-# INLINE acc      #-}
 app      = "#app#"     ; {-# INLINE app      #-}
 arrow    = "->"        ; {-# INLINE arrow    #-}
@@ -22,3 +22,4 @@ unify    = "="         ; {-# INLINE unify    #-}
 update   = "="         ; {-# INLINE update   #-} -- #update# ?
 wildcard = "_"         ; {-# INLINE wildcard #-}
 invalid  = "#invalid#" ; {-# INLINE invalid  #-}
+assign   = "#=#"       ; {-# INLINE assign   #-}

@@ -482,8 +482,9 @@ fixSpec = describe "error" $ it "x" $ do
     -- pprint $ Parser.runParserxx__ Parsing.Syntax2 Parsing.expr "foo (bar baz"
     let toks =
             -- Parser.runParserxx__ Parsing.Syntax2 Parsing.expr [s|a * b + c|]
-            Parser.run Parsing.Syntax2 [s|test then ok else fail
-|]
+            Parser.run Parsing.Syntax2 [s|a * b+ c|]
+            -- Parser.run Parsing.Syntax2 [s|if test then ok else fail|]
+            -- Parser.run Parsing.Syntax2 [s|if test then if test2 then ok2 else fail2 else fail
 
     putStrLn "\nTOKS:\n"
     pprint toks
@@ -494,7 +495,9 @@ fixSpec = describe "error" $ it "x" $ do
         estream = ExprBuilder.expressionStream sstream
 
     putStrLn "\nSECTION:\n"
-    let sect = ExprBuilder.parseSection ExprBuilder.if_then_else toks
+    let sect = State.evalDef @Scope.Scope $ do
+            Hardcoded.hardcodePrecRelMap
+            ExprBuilder.runSegmentBuilderT toks $ ExprBuilder.parseExpr
     pprint sect
 
     -- putStrLn "\nSUB STREAMS:\n"
