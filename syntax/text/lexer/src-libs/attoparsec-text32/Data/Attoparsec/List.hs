@@ -8,16 +8,20 @@ import qualified Prelude as P
 
 import qualified Data.Attoparsec.Internal       as Parsec
 import qualified Data.Attoparsec.Internal.Types as Parsec
+import qualified Data.Parser                    as Parser
 import qualified Data.Vector                    as Vector
 
 import Control.Applicative ((<$>))
 import Control.Monad       (when)
+import Control.Monad       (void)
 import Data.Coerce         (coerce)
 import Data.Item           (Item)
 import Data.List           (intercalate)
 import Data.Vector         (Vector)
 
 import Data.Convert
+
+import Data.Parser.Instances.Attoparsec ()
 
 
 class MayBeNull a where
@@ -66,7 +70,7 @@ instance UnsafeSlice (Vector a) where
 -- === Config === --
 
 type (Tokens a) = Vector a
-type (Token a)      = Item (Tokens a)
+type (Token a)  = Item (Tokens a)
 
 
 -- === Definitions === --
@@ -83,7 +87,7 @@ instance Parsec.Chunk (Tokens a) where
     nullChunk             = null
     pappendChunk          = (<>)
     atBufferEnd     (~_)  = toPos . length
-    -- bufferElemAt    _ i b = (,1) <$> Text32.index b (fromPos i)
+    -- bufferElemAt    _ i b = (,1) <$> Vector.index b (fromPos i)
     -- chunkElemToChar _     = id
     {-# INLINE nullChunk       #-}
     {-# INLINE pappendChunk    #-}
@@ -107,12 +111,12 @@ toPos = coerce
 
 -- tryPeekToken :: Parser (Maybe (Token a))
 -- tryPeekToken = Parsec.Parser $ \t pos more _lose succ -> if
---      | pos < lengthOf t -> let !c = Text32.unsafeIndex t (fromPos pos)
+--      | pos < lengthOf t -> let !c = Vector.unsafeIndex t (fromPos pos)
 --                             in succ t pos more (Just c)
 --      | more == Parsec.Complete -> succ t pos more Nothing
 --      | otherwise        ->
 --        let succ' t' pos' more' =
---              let !c = Text32.unsafeIndex t' (fromPos pos')
+--              let !c = Vector.unsafeIndex t' (fromPos pos')
 --              in succ t' pos' more' (Just c)
 --            lose' t' pos' more' = succ t' pos' more' Nothing
 --        in Parsec.prompt t pos more lose' succ'
@@ -175,16 +179,16 @@ take = \n -> takeWith (max n 0) (const True)
 --     -> (Tokens a) -> Parser (Tokens a)
 -- tokens_ suspended f s0 = Parsec.Parser $ \t pos more lose succ ->
 --   let s  = f s0
---       ft = f (Text32.unsafeDrop (fromPos pos) t)
---   in case Text32.commonPrefixes s ft of
+--       ft = f (Vector.unsafeDrop (fromPos pos) t)
+--   in case Vector.commonPrefixes s ft of
 --        Nothing
---          | Text32.null s  -> succ t pos more mempty
---          | Text32.null ft -> suspended s s t pos more lose succ
+--          | Vector.null s  -> succ t pos more mempty
+--          | Vector.null ft -> suspended s s t pos more lose succ
 --          | otherwise      -> lose t pos more [] "string"
 --        Just (pfx,ssfx,tsfx)
---          | Text32.null ssfx   -> let l = toPos (Text32.length pfx)
+--          | Vector.null ssfx   -> let l = toPos (Vector.length pfx)
 --                                  in succ t (pos + l) more (substring pos l t)
---          | not (Text32.null tsfx) -> lose t pos more [] "string"
+--          | not (Vector.null tsfx) -> lose t pos more [] "string"
 --          | otherwise              -> suspended s ssfx t pos more lose succ
 -- {-# INLINE tokens_ #-}
 
@@ -198,13 +202,13 @@ take = \n -> takeWith (max n 0) (const True)
 --     = Parsec.runParser (Parsec.demandInput_ >>= go) t0 pos0 more0 lose0 succ0 where
 --         go s' = Parsec.Parser $ \t pos more lose succ ->
 --             let s = f s'
---             in case Text32.commonPrefixes s0 s of
+--             in case Vector.commonPrefixes s0 s of
 --                 Nothing              -> lose t pos more [] "string"
 --                 Just (_pfx,ssfx,tsfx)
---                   | Text32.null ssfx -> let l = toPos (Text32.length s000)
+--                   | Vector.null ssfx -> let l = toPos (Vector.length s000)
 --                                         in succ t (pos + l) more
 --                                            (substring pos l t)
---                   | Text32.null tsfx -> tokensSuspended f s000 ssfx t pos more
+--                   | Vector.null tsfx -> tokensSuspended f s000 ssfx t pos more
 --                                                         lose succ
 --                   | otherwise        -> lose t pos more [] "string"
 -- {-# INLINE tokensSuspended #-}
@@ -212,7 +216,7 @@ take = \n -> takeWith (max n 0) (const True)
 -- skipWhile :: ((Token a) -> Bool) -> Parser ()
 -- skipWhile = \p -> let
 --     go = do
---         t <- Text32.takeWhile p <$> get
+--         t <- Vector.takeWhile p <$> get
 --         continue <- inputSpansChunks (size t)
 --         when continue go
 --     in go
@@ -222,23 +226,23 @@ take = \n -> takeWith (max n 0) (const True)
 -- takeTill = \p -> takeWhile (not . p)
 -- {-# INLINE takeTill #-}
 
--- takeWhile :: ((Token a) -> Bool) -> Parser (Tokens a)
--- takeWhile = \p -> do
---     h        <- Text32.takeWhile p <$> get
---     continue <- inputSpansChunks (size h)
---     if continue then takeWhileAcc p [h]
---                 else return h
--- {-# INLINE takeWhile #-}
+takeWhile :: (a -> Bool) -> Parser a (Tokens a)
+takeWhile = \p -> do
+    h        <- Vector.takeWhile p <$> get
+    continue <- inputSpansChunks (size h)
+    if continue then takeWhileAcc p [h]
+                else return h
+{-# INLINE takeWhile #-}
 
--- takeWhileAcc :: ((Token a) -> Bool) -> [(Tokens a)] -> Parser (Tokens a)
--- takeWhileAcc = \p -> let
---     go acc = do
---         h        <- Text32.takeWhile p <$> get
---         continue <- inputSpansChunks (size h)
---         if continue then go (h:acc)
---                     else return $ Parsec.concatReverse (h:acc)
---     in go
--- {-# INLINE takeWhileAcc #-}
+takeWhileAcc :: (a -> Bool) -> [Tokens a] -> Parser a (Tokens a)
+takeWhileAcc = \p -> let
+    go acc = do
+        h        <- Vector.takeWhile p <$> get
+        continue <- inputSpansChunks (size h)
+        if continue then go (h:acc)
+                    else return $ Parsec.concatReverse (h:acc)
+    in go
+{-# INLINE takeWhileAcc #-}
 
 -- takeRest :: Parser [(Tokens a)]
 -- takeRest = go [] where
@@ -251,37 +255,37 @@ take = \n -> takeWith (max n 0) (const True)
 -- {-# INLINE takeRest #-}
 
 -- takeText :: Parser (Tokens a)
--- takeText = Text32.concat <$> takeRest
+-- takeText = Vector.concat <$> takeRest
 -- {-# INLINE takeText #-}
 
--- takeWhile1 :: ((Token a) -> Bool) -> Parser (Tokens a)
--- takeWhile1 = \p -> do
---     (`when` Parsec.demandInput) =<< endOfChunk
---     h <- Text32.takeWhile p <$> get
---     let size' = size h
---     when (size' == 0) $ fail "takeWhile1"
---     advance size'
---     endOfChunk >>= \case
---         True  -> takeWhileAcc p [h]
---         False -> return h
--- {-# INLINE takeWhile1 #-}
+takeWhile1 :: ((Token a) -> Bool) -> Parser a (Tokens a)
+takeWhile1 = \p -> do
+    (`when` Parsec.demandInput) =<< endOfChunk
+    h <- Vector.takeWhile p <$> get
+    let size' = size h
+    when (size' == 0) $ fail "takeWhile1"
+    advance size'
+    endOfChunk >>= \case
+        True  -> takeWhileAcc p [h]
+        False -> return h
+{-# INLINE takeWhile1 #-}
 
--- anyToken :: Parser (Token a)
--- anyToken = satisfy $ const True
--- {-# INLINE anyToken #-}
+anyToken :: Parser a (Token a)
+anyToken = satisfy $ const True
+{-# INLINE anyToken #-}
 
--- token :: (Token a) -> Parser (Token a)
--- token = satisfy . (==)
--- {-# INLINE token #-}
+token :: Eq a => (Token a) -> Parser a (Token a)
+token = satisfy . (==)
+{-# INLINE token #-}
 
--- notToken :: (Token a) -> Parser (Token a)
--- notToken = satisfy . (/=)
--- {-# INLINE notToken #-}
+notToken :: Eq a => (Token a) -> Parser a (Token a)
+notToken = satisfy . (/=)
+{-# INLINE notToken #-}
 
 -- failK    :: Failure a
 -- successK :: Success a a
--- failK    = \t p _more -> Parsec.Fail (Text32.unsafeDrop (fromPos p) t)
--- successK = \t p _more -> Parsec.Done (Text32.unsafeDrop (fromPos p) t)
+-- failK    = \t p _more -> Parsec.Fail (Vector.unsafeDrop (fromPos p) t)
+-- successK = \t p _more -> Parsec.Done (Vector.unsafeDrop (fromPos p) t)
 -- {-# INLINE failK    #-}
 -- {-# INLINE successK #-}
 
@@ -296,25 +300,25 @@ take = \n -> takeWith (max n 0) (const True)
 -- {-# INLINE parse #-}
 -- {-# INLINE parseOnly #-}
 
--- get :: Parser (Tokens a)
--- get = Parsec.Parser $ \t pos more _lose succ
---     -> succ t pos more (Text32.unsafeDrop (fromPos pos) t)
--- {-# INLINE get #-}
+get :: Parser a (Tokens a)
+get = Parsec.Parser $ \t pos more _lose succ
+    -> succ t pos more (Vector.unsafeDrop (fromPos pos) t)
+{-# INLINE get #-}
 
--- endOfChunk :: Parser Bool
--- endOfChunk = Parsec.Parser $ \t pos more _lose succ
---     -> succ t pos more (pos == lengthOf t)
--- {-# INLINE endOfChunk #-}
+endOfChunk :: Parser a Bool
+endOfChunk = Parsec.Parser $ \t pos more _lose succ
+    -> succ t pos more (pos == lengthOf t)
+{-# INLINE endOfChunk #-}
 
--- inputSpansChunks :: Parsec.Pos -> Parser Bool
--- inputSpansChunks i = Parsec.Parser $ \t pos_ more _lose succ ->
---   let pos = pos_ + i
---   in if pos < lengthOf t || more == Parsec.Complete
---      then succ t pos more False
---      else let lose' t' pos' more' = succ t' pos' more' False
---               succ' t' pos' more' = succ t' pos' more' True
---           in Parsec.prompt t pos more lose' succ'
--- {-# INLINE inputSpansChunks #-}
+inputSpansChunks :: Parsec.Pos -> Parser a Bool
+inputSpansChunks i = Parsec.Parser $ \t pos_ more _lose succ ->
+  let pos = pos_ + i
+  in if pos < lengthOf t || more == Parsec.Complete
+     then succ t pos more False
+     else let lose' t' pos' more' = succ t' pos' more' False
+              succ' t' pos' more' = succ t' pos' more' True
+          in Parsec.prompt t pos more lose' succ'
+{-# INLINE inputSpansChunks #-}
 
 advance :: Parsec.Pos -> Parser a ()
 advance = \n -> Parsec.Parser $ \t pos more _ succ -> succ t (pos + n) more ()
@@ -353,10 +357,30 @@ substring :: Parsec.Pos -> Parsec.Pos -> (Tokens a) -> (Tokens a)
 substring = \p n b -> unsafeSlice (fromPos p) (fromPos n) b
 {-# INLINE substring #-}
 
--- lengthOf :: (Tokens a) -> Parsec.Pos
--- lengthOf = \t -> toPos $ Text32.length t
--- {-# INLINE lengthOf #-}
+lengthOf :: (Tokens a) -> Parsec.Pos
+lengthOf = \t -> toPos $ Vector.length t
+{-# INLINE lengthOf #-}
 
--- size :: (Tokens a) -> Parsec.Pos
--- size = \t -> toPos $ Text32.length t
--- {-# INLINE size #-}
+size :: (Tokens a) -> Parsec.Pos
+size = \t -> toPos $ Vector.length t
+{-# INLINE size #-}
+
+
+
+type instance Parser.Token (Parser a) = a
+
+instance Eq a
+      => Parser.TokenParser (Parser a) where
+    satisfy    = satisfy       ; {-# INLINE satisfy    #-}
+    takeWhile  = takeWhile     ; {-# INLINE takeWhile  #-}
+    takeWhile1 = takeWhile1    ; {-# INLINE takeWhile1 #-}
+    anyToken   = anyToken      ; {-# INLINE anyToken   #-}
+    token_     = void . token  ; {-# INLINE token_     #-}
+    -- tokens_    = void . SText.string ; {-# INLINE tokens_    #-}
+    peekToken  = peekToken     ; {-# INLINE peekToken  #-}
+    -- peekToken' = SText.peekChar      ; {-# INLINE peekToken' #-}
+
+-- instance Parser.PartialParser (Parser a) where
+--     -- parsePartialT = pure .: SText.parse      ; {-# INLINE parsePartialT #-}
+--     feedPartialT  = pure .: Parsec.feed             ; {-# INLINE feedPartialT  #-}
+--     closePartialT = flip Parser.feedPartialT mempty ; {-# INLINE closePartialT #-}

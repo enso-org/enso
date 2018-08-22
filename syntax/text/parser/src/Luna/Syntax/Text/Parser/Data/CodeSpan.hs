@@ -7,16 +7,16 @@ import Prologue hiding (Span, String, Type, length, span)
 
 import qualified Control.Monad.State.Layered        as State
 import qualified Data.Generics.Traversable.Deriving as GTraversable
+import qualified Data.Graph.Fold.Class              as FoldClass
+import qualified Data.Graph.Fold.Deep               as Fold
+import qualified Data.Graph.Fold.Partition          as Fold
+import qualified Data.Graph.Fold.Scoped             as Fold
+import qualified Data.Graph.Store.Buffer            as Buffer
+import qualified Data.Graph.Store.Size.Discovery    as Buffer
 import qualified Data.Text.Span                     as Span
 import qualified Foreign.Storable.Deriving          as Storable
 import qualified Luna.IR                            as IR
 import qualified Luna.IR.Layer                      as Layer
-import qualified Data.Graph.Fold.Class              as FoldClass
-import qualified Data.Graph.Fold.Scoped             as Fold
-import qualified Data.Graph.Fold.Deep               as Fold
-import qualified Data.Graph.Fold.Partition          as Fold
-import qualified Data.Graph.Store.Buffer            as Buffer
-import qualified Data.Graph.Store.Size.Discovery    as Buffer
 
 
 import Data.Text.Position (Delta)
@@ -35,7 +35,7 @@ import Type.Any           (AnyType)
 data CodeOffset = CodeOffset
     { _realOffset :: Delta
     , _viewOffset :: Delta
-    } deriving (Show)
+    } deriving (Eq, Show)
 makeLenses ''CodeOffset
 
 

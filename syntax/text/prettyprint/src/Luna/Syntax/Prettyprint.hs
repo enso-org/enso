@@ -102,9 +102,9 @@ notSpaced = SpacedName False
 
 instance Monad m => Prec.RelReader SpacedName (StateT Scope m) where
     readRelLabel (SpacedName sa a) (SpacedName sb b) = if
-        | a == "."     -> pure GT
-        | sa && not sb -> pure LT
-        | sb && not sa -> pure GT
+        | a == "."     -> pure (Just GT)
+        | sa && not sb -> pure (Just LT)
+        | sb && not sa -> pure (Just GT)
         | otherwise    -> Prec.readRel a b
 
 instance Monad m => Assoc.Reader (Maybe SpacedName) (StateT Scope m) where
@@ -203,8 +203,9 @@ appSymbols' sf@(Labeled flab fsym) sa = do
     argParen <- case (sf^.label, sa^.label) of
         (Just flab, Just alab) -> do
             prec <- case fsym of
-                Infix _ -> compare EQ <$> Prec.readRelLabel alab flab
-                _       -> Prec.readRelLabel flab alab
+                -- FIXME unsafeFromJust
+                Infix _ -> compare EQ . unsafeFromJust <$> Prec.readRelLabel alab flab
+                _       -> unsafeFromJust <$> Prec.readRelLabel flab alab
             pure $ \asc -> case prec of
                 LT -> False
                 GT -> True

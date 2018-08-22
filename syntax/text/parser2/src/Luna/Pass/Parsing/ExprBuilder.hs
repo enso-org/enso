@@ -4,9 +4,11 @@
 
 module Luna.Pass.Parsing.ExprBuilder where
 
-import Prologue
+import Prologue hiding (optional)
 
+import qualified Control.Monad.State.Layered               as State
 import qualified Data.Graph.Component.Node.Destruction     as Component
+import qualified Data.Set                                  as Set
 import qualified Data.Text.Span                            as Span
 import qualified Language.Symbol.Operator.Assoc            as Assoc
 import qualified Language.Symbol.Operator.Prec             as Prec
@@ -18,6 +20,7 @@ import qualified Luna.Syntax.Text.Parser.Data.CodeSpan     as CodeSpan
 import qualified Luna.Syntax.Text.Parser.Data.Name.Special as Name
 import qualified Luna.Syntax.Text.Parser.IR.Ast            as Ast
 
+import Data.Set                              (Set)
 import Data.Text.Position                    (Delta (Delta))
 import Luna.Syntax.Text.Parser.Data.CodeSpan (CodeSpan)
 import Luna.Syntax.Text.Parser.Data.Invalid  (Invalids)
@@ -83,6 +86,242 @@ buildGraph = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
 
 
 
+-- data Token
+--     = Known Ast
+--     | List  Token
+--     | Block Token
+
+-- data Syntax = Syntax Ast [Token]
+
+
+-- Syntax [Var "class", List ]
+
+-- Syntax "def"
+--     [ Part "def" [Var, List Expr]
+--     , Part ":"   [Block Expr]
+--     ]
+
+
+-- data Syntax
+
+
+-- Syntax "if_then_else"
+--     []
+--     ( Segment "if"   $ Expr
+--    :+ Segment "then" $ ExprBlock
+--    +? Segment "else" $ ExprBlock
+--     ]
+
+
+-----------------------------
+-- === Section patterns === --
+-----------------------------
+
+-- | Section patterns are used to define non-standard syntax structures like
+--   'if ... then ... else ...' or 'def foo a b: ...'. They work in a similar
+--   fashion to Lisp macros.
+
+
+data Chunk
+    = Expr
+    | ManyExpr
+    | ExprBlock
+    deriving (Show)
+
+
+-- === Definition === --
+
+data Section = Section Segment SegmentList
+    deriving (Show)
+
+data SegmentList
+    = Required Segment SegmentList
+    | Optional Segment SegmentList
+    | SectionListNull
+    deriving (Show)
+
+data Segment = Segment
+    { _name   :: Ast.Ast
+    , _chunks :: [Chunk]
+    } deriving (Show)
+makeLenses ''Segment
+
+
+
+
+-- === Smart constructors === --
+
+syntax :: Ast.Ast -> [Chunk] -> Section
+syntax = \name pat -> Section (Segment name pat) SectionListNull
+{-# INLINE syntax #-}
+
+segment :: Ast.Ast -> [Chunk] -> Segment
+segment = Segment
+{-# INLINE segment #-}
+
+optional :: Segment -> SegmentList
+optional = \s -> Optional s SectionListNull
+{-# INLINE optional #-}
+
+required :: Segment -> SegmentList
+required = \s -> Required s SectionListNull
+{-# INLINE required #-}
+
+infixl 6 +?
+infixl 6 +!
+(+?), (+!) :: Section -> Segment -> Section
+(+?) = \l r -> appendSegment l (optional r)
+(+!) = \l r -> appendSegment l (required r)
+{-# INLINE (+?) #-}
+{-# INLINE (+!) #-}
+
+
+-- === Utils === --
+
+concatSegmentList :: SegmentList -> SegmentList -> SegmentList
+concatSegmentList = \l r -> case l of
+    Required sect t -> Required sect (concatSegmentList t r)
+    Optional sect t -> Optional sect (concatSegmentList t r)
+    SectionListNull -> r
+
+appendSegment :: Section -> SegmentList -> Section
+appendSegment = \(Section s l) r -> Section s $ concatSegmentList l r
+{-# INLINE appendSegment #-}
+
+
+
+------------------------
+
+-- data SegmentList1 = SegmentList1 Segment SegmentList
+--     deriving (Show)
+
+-- data SectionBuilder = SectionBuilder
+--     { _consumed :: [Ast]
+--     , _left     :: SegmentList1
+--     } deriving (Show)
+
+-- makeLenses ''SectionBuilder
+
+
+newtype PossibleSections = PossibleSections [Section]
+    deriving (Default, Show)
+makeLenses ''PossibleSections
+
+newtype Reserved = Reserved (Set Ast.Ast)
+    deriving (Default, Show)
+makeLenses ''Reserved
+
+type SegmentBuilder m = State.Monad Reserved m
+
+
+withReserved :: State.Monad Reserved m => Ast.Ast -> m a -> m a
+withReserved = \a -> State.withModified @Reserved $ wrapped %~ Set.insert a
+{-# INLINE withReserved #-}
+
+withReservedMany :: State.Monad Reserved m => [Ast.Ast] -> m a -> m a
+withReservedMany = \a -> State.withModified @Reserved
+                       $ wrapped %~ (Set.fromList a <>)
+{-# INLINE withReservedMany #-}
+
+checkReserved :: State.Getter Reserved m => Ast.Ast -> m Bool
+checkReserved = \a -> Set.member a . unwrap <$> State.get @Reserved
+{-# INLINE checkReserved #-}
+
+-- buildSegments :: [Ast] -> [Ast]
+-- buildSegments = State.evalDef @ReservedStack . buildSegments__
+-- {-# INLINE buildSegments #-}
+
+-- buildSegments__ :: State.Monad ReservedStack m => [Ast] -> m [Ast]
+-- buildSegments__ = \case
+--     [] -> pure []
+--     (tok:toks) ->
+
+
+
+if_then_else
+    = syntax  (Ast.AstVar $ Ast.Var "if")   [Expr]
+   +! segment (Ast.AstVar $ Ast.Var "then") [Expr]
+   +! segment (Ast.AstVar $ Ast.Var "else") [Expr]
+
+funcDed
+    = syntax  (Ast.AstVar      $ Ast.Var      "def") [Expr, ManyExpr]
+   +! segment (Ast.AstOperator $ Ast.Operator ":")   [ExprBlock]
+
+
+parseChunk :: SegmentBuilder m => Chunk -> [Ast] -> m ([Ast], Ast)
+parseChunk = \chunk stream -> case chunk of
+    Expr -> parseExpr stream
+
+parseExpr :: SegmentBuilder m => [Ast] -> m ([Ast], Ast)
+parseExpr = \stream -> Ast.list <<$>> takeNotReserved stream
+
+takeNotReserved :: SegmentBuilder m => [Ast] -> m ([Ast], [Ast])
+takeNotReserved = \stream -> case stream of
+    [] -> pure (stream, mempty)
+    (tok:toks) -> checkReserved (Ast.unspan tok) >>= \case
+        True  -> pure (stream, mempty)
+        False -> (tok:) <<$>> takeNotReserved toks
+
+parseChunks :: SegmentBuilder m => [Chunk] -> [Ast] -> m ([Ast], [Ast])
+parseChunks = \case
+    []     -> pure . (,[])
+    (c:cs) -> \stream -> do
+        (stream', a) <- parseChunk c stream
+        (a:) <<$>> parseChunks cs stream'
+{-# NOINLINE parseChunks #-}
+
+parseSegment :: SegmentBuilder m => Segment -> [Ast] -> m ([Ast], [Ast])
+parseSegment = parseChunks . view chunks
+{-# INLINE parseSegment #-}
+
+
+parseSegmentList :: SegmentBuilder m => SegmentList -> [Ast] -> m ([Ast], [Ast])
+parseSegmentList = \lst stream -> case stream of
+    []         -> pure (stream, mempty)
+    (tok:toks) -> case lst of
+        SectionListNull -> pure (stream, mempty)
+        Required (Segment seg chunks) lst' -> if Ast.unspan tok == seg
+            then do
+                (stream', outs) <- withNextSegmentReserved lst'
+                                 $ parseChunks chunks toks
+                (outs <>) <<$>> parseSegmentList lst' stream'
+            else undefined
+
+        x -> error $ ppShow x
+
+withNextSegmentReserved :: SegmentBuilder m => SegmentList -> m a -> m a
+withNextSegmentReserved = \case
+    Required (Segment seg _) _ -> withReserved seg
+    Optional (Segment seg _) _ -> withReserved seg
+    SectionListNull            -> id
+
+
+parseSection :: Section -> [Ast] -> ([Ast], [Ast])
+parseSection = \(Section seg lst) stream
+    -> State.evalDef @Reserved $ do
+        (stream', outs) <- withNextSegmentReserved lst
+                         $ parseSegment seg stream
+        (outs <>) <<$>> parseSegmentList lst stream'
+
+-- data Section = Section Segment SegmentList
+--     deriving (Show)
+
+-- data SegmentList
+--     = Required Segment SegmentList
+--     | Optional Segment SegmentList
+--     | SectionListNull
+--     deriving (Show)
+
+-- data Segment = Segment
+--     { _name   :: Ast.Ast
+--     , _chunks :: [Chunk]
+--     } deriving (Show)
+-- makeLenses ''Segment
+
+
+-- importDef
+--     = syntax "import" [Expr]
+
 ------------------------------------------------
 -- === Spaced / Unspaced stream partition === --
 ------------------------------------------------
@@ -142,7 +381,7 @@ checkLeftSpacing = (> 0) . view (Ast.span . CodeSpan.viewSpan . Span.offset)
 -- === Assignment partition === --
 ----------------------------------
 
--- | Divide token stream into Pattern and Expr
+-- | Divide token stream into Chunk and Expr
 
 -- === Definition === --
 
@@ -371,9 +610,10 @@ buildExprOp__ = \stream stack -> let
         EndEl -> submitToStack
         InfixEl_ stackOp stack' ->
             Prec.readRel stackOp streamOp >>= \case
-                LT -> submitToStack
-                GT -> reduceStack stack'
-                EQ -> do
+                -- FIXME Just
+                Just LT -> submitToStack
+                Just GT -> reduceStack stack'
+                Just EQ -> do
                     assoc  <- Assoc.read stackOp
                     assoc' <- Assoc.read streamOp
                     if (assoc == assoc' && assoc == Assoc.Left)
@@ -406,7 +646,8 @@ foldExprStackWithOp__ = \op opF el stream -> case stream of
 
 checkCorrectOpRel :: ExprBuilderMonad m => Name -> Name -> m Bool
 checkCorrectOpRel = \op1 op2 -> do
-    prec   <- Prec.readRel op1 op2
+    -- FIXME Just
+    Just prec   <- Prec.readRel op1 op2
     assoc  <- Assoc.read op1
     assoc' <- Assoc.read op2
     pure . not $ (prec == EQ) && (assoc /= assoc' || assoc == Assoc.None)

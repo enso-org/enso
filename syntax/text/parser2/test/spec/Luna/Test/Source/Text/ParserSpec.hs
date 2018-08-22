@@ -127,8 +127,8 @@ shouldParseItself sv parser input = shouldParseAs sv parser input input
 -- unit       = shouldParseItself Parsing.unit'
 -- unit_n   s = unitAs_n s s
 -- unitAs_n s = unitAs s . ("\n" <>)
-exprAs     = shouldParseAs     Parsing.Syntax1 Parsing.expr
-expr       = shouldParseItself Parsing.Syntax1 Parsing.expr
+-- exprAs     = shouldParseAs     Parsing.Syntax1 Parsing.expr
+-- expr       = shouldParseItself Parsing.Syntax1 Parsing.expr
 
 
 
@@ -136,26 +136,26 @@ expr       = shouldParseItself Parsing.Syntax1 Parsing.expr
 -- === Literals === --
 ----------------------
 
-identSpec :: Spec
-identSpec = describe "identifier" $ do
-    it "var"               $ expr   "var"
-    it "_var"              $ expr   "_var"
-    it "var'"              $ expr   "var'"
-    it "var''"             $ expr   "var''"
-    it "unicode"           $ expr   "фываΧξωβ김동욱"
-    it "invalid var: a⸗"   $ exprAs "a⸗"    "(UnexpectedSuffix 1)"
-    it "invalid var: f'o"  $ exprAs "f'o"  "(UnexpectedSuffix 1)"
-    it "invalid var: f_a"  $ exprAs "f_a"  "(UnexpectedSuffix 2)"
-    it "Cons"              $ expr   "Cons"
-    it "Cons'"             $ expr   "Cons'"
-    it "Cons''"            $ expr   "Cons''"
-    it "invalid cons: C⸗"  $ exprAs "C⸗"    "(UnexpectedSuffix 1)"
-    it "invalid cons: C'o" $ exprAs "C'o"  "(UnexpectedSuffix 1)"
-    it "invalid cons: C_a" $ exprAs "C_a"  "(UnexpectedSuffix 2)"
+-- identSpec :: Spec
+-- identSpec = describe "identifier" $ do
+--     it "var"               $ expr   "var"
+--     it "_var"              $ expr   "_var"
+--     it "var'"              $ expr   "var'"
+--     it "var''"             $ expr   "var''"
+--     it "unicode"           $ expr   "фываΧξωβ김동욱"
+--     it "invalid var: a⸗"   $ exprAs "a⸗"    "(UnexpectedSuffix 1)"
+--     it "invalid var: f'o"  $ exprAs "f'o"  "(UnexpectedSuffix 1)"
+--     it "invalid var: f_a"  $ exprAs "f_a"  "(UnexpectedSuffix 2)"
+--     it "Cons"              $ expr   "Cons"
+--     it "Cons'"             $ expr   "Cons'"
+--     it "Cons''"            $ expr   "Cons''"
+--     it "invalid cons: C⸗"  $ exprAs "C⸗"    "(UnexpectedSuffix 1)"
+--     it "invalid cons: C'o" $ exprAs "C'o"  "(UnexpectedSuffix 1)"
+--     it "invalid cons: C_a" $ exprAs "C_a"  "(UnexpectedSuffix 2)"
 
-exprSpec :: Spec
-exprSpec = describe "expression" $ do
-    it "app"        $ expr   "a b"
+-- exprSpec :: Spec
+-- exprSpec = describe "expression" $ do
+--     it "app"        $ expr   "a b"
     -- it "operator"   $ expr   "a + b"
     -- it "group"      $ expr   "(a b)"
     -- it "multiline"  $ exprAs "foo\n bar baz" "foo \n bar baz"
@@ -480,9 +480,10 @@ fixSpec = describe "error" $ it "x" $ do
     -- pprint $ Parser.runParserxx__ Parsing.expr "a -> b -> a + b"
     -- pprint $ Parser.runParserxx__ Parsing.Syntax1 Parsing.expr "def foo a:\n a"
     -- pprint $ Parser.runParserxx__ Parsing.Syntax2 Parsing.expr "foo (bar baz"
-    let Ast.Spanned _ (Ast.AstTokens (Ast.Tokens toks)) =
+    let toks =
             -- Parser.runParserxx__ Parsing.Syntax2 Parsing.expr [s|a * b + c|]
-            Parser.runParserxx__ Parsing.Syntax2 Parsing.expr [s|foo a+b = bar = baz|]
+            Parser.run Parsing.Syntax2 [s|test then ok else fail
+|]
 
     putStrLn "\nTOKS:\n"
     pprint toks
@@ -492,26 +493,30 @@ fixSpec = describe "error" $ it "x" $ do
         sstream = ExprBuilder.subStreams toks
         estream = ExprBuilder.expressionStream sstream
 
-    putStrLn "\nSUB STREAMS:\n"
-    pprint sstream
+    putStrLn "\nSECTION:\n"
+    let sect = ExprBuilder.parseSection ExprBuilder.if_then_else toks
+    pprint sect
 
-    putStrLn "\nEXPR STREAM:\n"
-    pprint estream
+    -- putStrLn "\nSUB STREAMS:\n"
+    -- pprint sstream
 
-    putStrLn "\nSTREAM:\n"
-    pprint stream
-    -- pprint $ ExprBuilder.subStreams toks
+    -- putStrLn "\nEXPR STREAM:\n"
+    -- pprint estream
 
-    expr' <- State.evalDefT @Scope.Scope $ do
-        Hardcoded.hardcodePrecRelMap
-        Assoc.write Assoc.Right ("-" :: Name)
+    -- putStrLn "\nSTREAM:\n"
+    -- pprint stream
+    -- -- pprint $ ExprBuilder.subStreams toks
 
-        ExprBuilder.buildExpr stream
+    -- expr' <- State.evalDefT @Scope.Scope $ do
+    --     Hardcoded.hardcodePrecRelMap
+    --     Assoc.write Assoc.Right ("-" :: Name)
 
-    putStrLn "\nEXPR:\n"
-    pprint expr'
-    putStrLn "\n=========\n"
-    printCodePure expr'
+    --     ExprBuilder.buildExpr stream
+
+    -- putStrLn "\nEXPR:\n"
+    -- pprint expr'
+    -- putStrLn "\n=========\n"
+    -- printCodePure expr'
 
     True `shouldBe` False
 
@@ -530,8 +535,8 @@ fixSpec = describe "error" $ it "x" $ do
 
 spec :: Spec
 spec = do
-    identSpec
-    exprSpec
+    -- identSpec
+    -- exprSpec
     -- funcDefSpec
     fixSpec
     -- literalSpec

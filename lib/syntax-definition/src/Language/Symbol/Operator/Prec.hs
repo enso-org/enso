@@ -16,8 +16,8 @@ import Language.Symbol.Label       (HasLabel, LabelOf, label)
 type RelManager label m = (RelReader label m, RelWriter label m)
 
 class Monad m => RelReader label m where
-    readRelLabel :: label -> label -> m Ordering
-    default readRelLabel :: (m ~ t n, RelReader label n, MonadTrans t) => label -> label -> m Ordering
+    readRelLabel :: label -> label -> m (Maybe Ordering)
+    default readRelLabel :: (m ~ t n, RelReader label n, MonadTrans t) => label -> label -> m (Maybe Ordering)
     readRelLabel = lift .: readRelLabel
 
 class Monad m => RelWriter label m where
@@ -28,10 +28,12 @@ class Monad m => RelWriter label m where
 
 -- === Utils === --
 
-readRel :: (RelReader (LabelOf a) m, HasLabel a, HasLabel b, LabelOf a ~ LabelOf b) => a -> b -> m Ordering
+readRel :: (RelReader (LabelOf a) m, HasLabel a, HasLabel b, LabelOf a ~ LabelOf b)
+    => a -> b -> m (Maybe Ordering)
 readRel a b = readRelLabel (a ^. label) (b ^. label)
 
-writeRel :: (RelWriter (LabelOf a) m, HasLabel a, HasLabel b, LabelOf a ~ LabelOf b) => Ordering -> a -> b -> m ()
+writeRel :: (RelWriter (LabelOf a) m, HasLabel a, HasLabel b, LabelOf a ~ LabelOf b)
+    => Ordering -> a -> b -> m ()
 writeRel ord a b = writeRelLabel ord (a ^. label) (b ^. label)
 
 

@@ -52,7 +52,7 @@ data SyntaxVersion = Syntax1 | Syntax2 deriving (Show)
 data Spanned a = Spanned
     { _span :: CodeSpan
     , _ast  :: a
-    } deriving (Functor, Show)
+    } deriving (Eq, Functor, Ord, Show)
 makeLenses ''Spanned
 
 
@@ -257,32 +257,33 @@ type family ExpandFieldSimple a where
     ExpandFieldSimple StrChunk       = Spanned StrChunk
 
 
-data Var       = Var       { name     :: S Name           } deriving (Show)
-data Cons      = Cons      { name     :: S Name           } deriving (Show)
-data Operator  = Operator  { name     :: S Name           } deriving (Show)
-data Modifier  = Modifier  { name     :: S Name           } deriving (Show)
-data Wildcard  = Wildcard                                   deriving (Show)
+data Var       = Var       { name     :: S Name           } deriving (Eq, Ord, Show)
+data Cons      = Cons      { name     :: S Name           } deriving (Eq, Ord, Show)
+data Operator  = Operator  { name     :: S Name           } deriving (Eq, Ord, Show)
+data Modifier  = Modifier  { name     :: S Name           } deriving (Eq, Ord, Show)
+data Wildcard  = Wildcard                                   deriving (Eq, Ord, Show)
 
-data Number    = Number    { digits   :: NonEmpty Word8   } deriving (Show)
-data Str       = Str       { chunks   :: [S StrChunk]     } deriving (Show)
+data Number    = Number    { digits   :: NonEmpty Word8   } deriving (Eq, Ord, Show)
+data Str       = Str       { chunks   :: [S StrChunk]     } deriving (Eq, Ord, Show)
 
-data Block     = Block     { lines    :: S (NonEmpty Ast) } deriving (Show)
-data Tokens    = Tokens    { lines    :: S [Ast]          } deriving (Show)
-data Marker    = Marker    { markerID :: S Int            } deriving (Show)
-data LineBreak = LineBreak { indent   :: S Delta          } deriving (Show)
+data Block     = Block     { lines    :: S (NonEmpty Ast) } deriving (Eq, Ord, Show)
+data Tokens    = Tokens    { lines    :: S [Ast]          } deriving (Eq, Ord, Show)
+data Marker    = Marker    { markerID :: S Int            } deriving (Eq, Ord, Show)
+data LineBreak = LineBreak { indent   :: S Delta          } deriving (Eq, Ord, Show)
 
-data Comment   = Comment   { text     :: S Text           } deriving (Show)
+data Comment   = Comment   { text     :: S Text           } deriving (Eq, Ord, Show)
 
-data Invalid   = Invalid   { desc     :: S Invalid.Symbol } deriving (Show)
+data Invalid   = Invalid   { desc     :: S Invalid.Symbol } deriving (Eq, Ord, Show)
 
-data App       = App       { func     :: S Ast, arg :: S Ast } deriving (Show)
-data Missing   = Missing                                       deriving (Show)
+data App       = App       { func     :: S Ast, arg :: S Ast } deriving (Eq, Ord, Show)
+data Missing   = Missing                                       deriving (Eq, Ord, Show)
+data List      = List      { items    :: S [Ast]             } deriving (Eq, Ord, Show)
 
 data StrChunk
     = StrPlain   Text
     | StrNewLine LineBreak
     | StrExpr    Block
-    deriving (Show)
+    deriving (Eq, Ord, Show)
 
 
 data Ast
@@ -311,8 +312,9 @@ data Ast
 
     | AstApp       App
     | AstMissing   Missing
+    | AstList      List
 
-    deriving (Show)
+    deriving (Eq, Ord, Show)
 
 
 ------ FIXME vvv
@@ -498,6 +500,15 @@ missing :: Spanned Ast
 missing = Spanned mempty missing'
 {-# INLINE missing #-}
 
+list' :: [Spanned Ast] -> Ast
+list' = \items -> AstList $ List items
+{-# INLINE list' #-}
+
+list :: [Spanned Ast] -> Spanned Ast
+list = \items -> case items of
+    []     -> Spanned mempty $ list' items
+    (a:as) -> inheritCodeSpanList' (a:|as) $ list' items
+{-# INLINE list #-}
 
 -- data Ast
 --     -- Identifiers

@@ -185,7 +185,8 @@ runner__ = \sv p txt
 {-# INLINE runner__ #-}
 
 
-runStack :: Parsing.SyntaxVersion -> Parsing.Parser a -> Text32 -> IResult Text32 a
+
+runStack :: Parsing.SyntaxVersion -> Parsing.Parser a -> Text32 -> IResult Text32 [Ast]
 runStack = \sv p txt
     -> flip parsePartial txt -- (txt <> "\ETX")
      $ State.evalDefT @Scope
@@ -197,12 +198,11 @@ runStack = \sv p txt
      $ State.Indent.eval
      $ State.evalDefT @Parsing.Blacklist
      $ flip (State.evalT @Parsing.SyntaxVersion) sv
-     $ State.evalDefT @Parsing.Result
-     $ p
+     $ Parsing.evalResult p
 {-# INLINE runStack #-}
 
 
-evalTotal :: Parsing.SyntaxVersion -> Parsing.Parser a -> Text32 -> a
+evalTotal :: Parsing.SyntaxVersion -> Parsing.Parser a -> Text32 -> [Ast]
 evalTotal = \sv p txt -> case runStack sv p txt of
     Parser.Done !(txt') !r -> if (Text32.length txt' /= 0)
         then error $ "Panic. Not all input consumed by lexer: " <> show txt'
@@ -218,10 +218,9 @@ evalTotal = \sv p txt -> case runStack sv p txt of
 {-# INLINE evalTotal #-}
 
 
-run :: Parsing.SyntaxVersion -> Parsing.Parser a -> Text32 -> a
-run = \sv p txt -> evalTotal sv p (txt <> "\ETX")
+run :: Parsing.SyntaxVersion -> Text32 -> [Ast]
+run = \sv txt -> evalTotal sv Parsing.exprs (txt <> "\ETX")
 {-# INLINE run #-}
-
 -- run2 :: ExprBuilderPass (Pass stage ExprBuilder)
 --     => Parsing.SyntaxVersion -> Text32 -> Pass stage ExprBuilder [IR.SomeTerm]
 -- run2 = \sv txt -> do
