@@ -651,6 +651,10 @@ syntax_list = syntax "[_]"
               (Ast.AstOperator $ Ast.Operator "[") [Expr]
    +! segment (Ast.AstOperator $ Ast.Operator "]") []
 
+-- funcDed = syntax "def"
+--               (Ast.AstVar      $ Ast.Var      "def") [Expr, ManyExpr]
+--    +! segment (Ast.AstOperator $ Ast.Operator ":")   [ExprBlock]
+
 runSegmentBuilderT :: Monad m => [Ast] -> State.StatesT '[Streamx, PossibleSections, Reserved] m a -> m (a, Streamx)
 runSegmentBuilderT = \stream p
     -> State.evalDefT  @Reserved
@@ -703,9 +707,7 @@ dropToken = State.modify_ @Streamx $ \s -> case unwrap s of
 
 
 
-funcDed = syntax "def"
-              (Ast.AstVar      $ Ast.Var      "def") [Expr, ManyExpr]
-   +! segment (Ast.AstOperator $ Ast.Operator ":")   [ExprBlock]
+
 
 
 parseChunk :: SegmentBuilder m => Chunk -> m Ast

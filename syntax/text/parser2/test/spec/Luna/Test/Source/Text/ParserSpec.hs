@@ -482,7 +482,7 @@ fixSpec = describe "error" $ it "x" $ do
     -- pprint $ Parser.runParserxx__ Parsing.Syntax2 Parsing.expr "foo (bar baz"
     let toks =
             -- Parser.runParserxx__ Parsing.Syntax2 Parsing.expr [s|a * b + c|]
-            Parser.run Parsing.Syntax2 [s|a * b+ c|]
+            Parser.run Parsing.Syntax2 [s|(a *) b+ c|]
             -- Parser.run Parsing.Syntax2 [s|if test then ok else fail|]
             -- Parser.run Parsing.Syntax2 [s|if test then if test2 then ok2 else fail2 else fail
 
@@ -490,9 +490,9 @@ fixSpec = describe "error" $ it "x" $ do
     pprint toks
     putStrLn "\n=========\n"
 
-    let stream  = ExprBuilder.buildStream toks
-        sstream = ExprBuilder.subStreams toks
-        estream = ExprBuilder.expressionStream sstream
+    -- let stream  = ExprBuilder.buildStream toks
+    --     sstream = ExprBuilder.subStreams toks
+    --     estream = ExprBuilder.expressionStream sstream
 
     putStrLn "\nSECTION:\n"
     let sect = State.evalDef @Scope.Scope $ do
