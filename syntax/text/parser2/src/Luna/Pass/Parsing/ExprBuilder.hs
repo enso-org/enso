@@ -85,51 +85,57 @@ buildGraph = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
 
 
 
-------------------------------------------------
--- === Spaced / Unspaced stream partition === --
-------------------------------------------------
+--------------------------------
+-- === TokenStream Layout === --
+--------------------------------
 
 -- | Divide token stream to spaced and unspaced substreams.
 
 -- === Definition === --
 
-data SpaceStream
-    = SpacedStream   [Ast]
-    | UnspacedStream [Ast]
+data Layout
+    = SpacedLayout
+    | UnspacedLayout
     deriving (Show)
+
+data Layouted = Layouted
+    { _layout :: Layout
+    , _stream :: [Ast]
+    } deriving (Show)
+makeLenses ''Layouted
 
 
 -- === API === --
 
-subStreams :: [Ast] -> [SpaceStream]
-subStreams = \case
+discoverLayouts :: [Ast] -> [Layouted]
+discoverLayouts = \case
     []     -> []
-    (a:as) -> subStreams__ [a] as []
-{-# INLINE subStreams #-}
+    (a:as) -> discoverLayouts__ [a] as []
+{-# INLINE discoverLayouts #-}
 
-subStreams__ :: [Ast] -> [Ast] -> [SpaceStream] -> [SpaceStream]
-subStreams__ = \buff stream out -> case stream of
+discoverLayouts__ :: [Ast] -> [Ast] -> [Layouted] -> [Layouted]
+discoverLayouts__ = \buff stream out -> case stream of
     [] -> reverse $ spaced buff out
     (tok:toks) -> if checkLeftSpacing tok
-        then subStreams__ (tok:buff) toks out
-        else subStreams__ [] rest out' where
-            (rest,nonSpaced) = (tok:) <$> subNonSpacedStream toks
+        then discoverLayouts__ (tok:buff) toks out
+        else discoverLayouts__ mempty rest out' where
+            (rest,nonSpaced) = (tok:) <$> takeWhileUnspaced toks
             out' = case buff of
                 (firstNonSpaced:buff')
                    -> unspaced (firstNonSpaced : nonSpaced) (spaced buff' out)
                 [] -> unspaced nonSpaced out
     where submitIfNotNull f s = if null s then id else ((:) . f) s
-          spaced   = submitIfNotNull (SpacedStream . reverse)
-          unspaced = submitIfNotNull (UnspacedStream)
+          spaced   = submitIfNotNull (Layouted SpacedLayout . reverse)
+          unspaced = submitIfNotNull (Layouted UnspacedLayout)
 
-subNonSpacedStream :: [Ast] -> ([Ast], [Ast])
-subNonSpacedStream = go where
+takeWhileUnspaced :: [Ast] -> ([Ast], [Ast])
+takeWhileUnspaced = go where
     go = \stream -> case stream of
         [] -> (mempty, mempty)
         (a:as) -> if checkLeftSpacing a
             then (stream, mempty)
             else (a:) <$> go as
-{-# INLINE subNonSpacedStream #-}
+{-# INLINE takeWhileUnspaced #-}
 
 
 -- === Utils === --
@@ -144,71 +150,79 @@ checkLeftSpacing = (> 0) . view (Ast.span . CodeSpan.viewSpan . Span.offset)
 -- === Assignment partition === --
 ----------------------------------
 
--- | Divide token stream into Chunk and Expr.
+-- | Divide token stream into MacroParser and Expr.
 --
---   For the first sight it could seem strange that we convert '[SpaceStream]'
---   to 'ExpressionStream' just to convert it back to '[SpaceStream]' using the
---   'flattenExpressionStream' in the very next step, however the design is
+--   For the first sight it could seem strange that we convert '[Layouted]'
+--   to 'Statement' just to convert it back to '[Layouted]' using the
+--   'flattenStatement' in the very next step, however the design is
 --   future proof. We would like to first parse some section of the file, then
 --   discover all new mixfix declarations, update scope information and then
 --   parse their bodies, so in the future tere should be some more steps between
---   the conversion 'ExpressionStream' to '[SpaceStream]'.
+--   the conversion 'Statement' to '[Layouted]'.
 
 -- === Definition === --
 
-data ExpressionStream
-    = ExpressionStream [SpaceStream]
-    | AssignmentStream [SpaceStream] Ast [SpaceStream]
+data Statement
+    = ExpressionStatement [Layouted]
+    | AssignmentStatement [Layouted] Ast [Layouted]
     deriving (Show)
 
 
 -- === API === --
 
-expressionStream :: [SpaceStream] -> ExpressionStream
-expressionStream = expressionStream__ id
-{-# INLINE expressionStream #-}
+buildStatement :: [Layouted] -> Statement
+buildStatement = buildStatement__ id
+{-# INLINE buildStatement #-}
 
-expressionStream__ ::
-    ([SpaceStream] -> [SpaceStream]) -> [SpaceStream] -> ExpressionStream
-expressionStream__ = \f stream -> case stream of
-    []         -> ExpressionStream $! f mempty
+-- | Note: see description above to learn more why it's useful.
+buildFlatStatement :: [Layouted] -> [Layouted]
+buildFlatStatement = flattenStatement . buildStatement
+{-# INLINE buildFlatStatement #-}
+
+buildStatement__ ::
+    ([Layouted] -> [Layouted]) -> [Layouted] -> Statement
+buildStatement__ = \f stream -> case stream of
+    []         -> ExpressionStatement $! f mempty
     (tok:toks) -> let
-        continue = expressionStream__ (f . (tok:)) toks
-        in case tok of
-            UnspacedStream {} -> continue
-            SpacedStream   ss -> case breakOnEq ss of
+        Layouted layout ss = tok
+        continue = buildStatement__ (f . (tok:)) toks
+        in case layout of
+            UnspacedLayout -> continue
+            SpacedLayout   -> case breakOnAssignment ss of
                 Left {} -> continue
                 Right (l, x, r)  -> let
-                    mod a = if null a then id else (SpacedStream a :)
-                    in AssignmentStream (mod l $ f mempty) x (mod r toks)
-{-# NOINLINE expressionStream__ #-}
+                    mod a = if null a then id else (Layouted SpacedLayout a :)
+                    in AssignmentStatement (mod l $ f mempty) x (mod r toks)
+{-# NOINLINE buildStatement__ #-}
 
-breakOnEq :: [Ast] -> Either [Ast] ([Ast], Ast, [Ast])
-breakOnEq = breakOnEq__ id
-{-# INLINE breakOnEq #-}
+breakOnAssignment :: [Ast] -> Either [Ast] ([Ast], Ast, [Ast])
+breakOnAssignment = breakOnAssignment__ id
+{-# INLINE breakOnAssignment #-}
 
-breakOnEq__ :: ([Ast] -> [Ast]) -> [Ast] -> Either [Ast] ([Ast], Ast, [Ast])
-breakOnEq__ = \f stream -> case stream of
+breakOnAssignment__
+    :: ([Ast] -> [Ast]) -> [Ast] -> Either [Ast] ([Ast], Ast, [Ast])
+breakOnAssignment__ = \f stream -> case stream of
     []         -> Left (f stream)
     (tok:toks) -> let
-        continue = breakOnEq__ (f . (tok:)) toks
+        continue = breakOnAssignment__ (f . (tok:)) toks
         in case Ast.unspan tok of
             Ast.AstOperator (Ast.Operator name) ->
                 if name == Name.unify
                     then Right (f mempty, tok, toks)
                     else continue
             _ -> continue
-{-# NOINLINE breakOnEq__ #-}
+{-# NOINLINE breakOnAssignment__ #-}
 
-flattenExpressionStream :: ExpressionStream -> [SpaceStream]
-flattenExpressionStream = \case
-    ExpressionStream s     -> s
-    AssignmentStream p x s -> let
+flattenStatement :: Statement -> [Layouted]
+flattenStatement = \case
+    ExpressionStatement  s -> s
+    AssignmentStatement p x s -> let
         op' = Ast.AstOperator $ Ast.Operator Name.assign
         op  = x & Ast.ast .~ op'
-        sop = SpacedStream [op]
+        sop = Layouted SpacedLayout [op]
         in p <> (sop : s)
-{-# INLINE flattenExpressionStream #-}
+{-# INLINE flattenStatement #-}
+
 
 
 -------------------------------
@@ -281,12 +295,12 @@ buildStream = \(reverse -> stream) -> case stream of
     []         -> NullStream
     (tok:toks) -> case Ast.unspan tok of
         Ast.AstOperator (Ast.Operator name)
-          -> buildStreamEl (EndOpStream name (rightSection tok)) toks
-        _ -> buildStreamOp (EndElStream tok) toks
+          -> buildElStream (EndOpStream name (rightSection tok)) toks
+        _ -> buildOpStream (EndElStream tok) toks
 {-# INLINE buildStream #-}
 
-buildStreamOp :: ElStream -> [Ast] -> Stream
-buildStreamOp = \result stream -> case stream of
+buildOpStream :: ElStream -> [Ast] -> Stream
+buildOpStream = \result stream -> case stream of
     [] -> ElStreamStart result
     _  -> case takeOperators stream of
         ([(name,op)], []  ) -> OpStreamStart name (leftSection op) result
@@ -296,18 +310,18 @@ buildStreamOp = \result stream -> case stream of
             where inv = Ast.computeCodeSpanList1__ (snd <$> (p :| ps))
                       $ Ast.invalid' Invalid.AdjacentOperators
                       -- FIXME: register ops in invalid
-    where go name f stream = buildStreamEl (InfixOpStream name f stream)
-{-# NOINLINE buildStreamOp #-}
+    where go name f stream = buildElStream (InfixOpStream name f stream)
+{-# NOINLINE buildOpStream #-}
 
-buildStreamEl :: OpStream -> [Ast] -> Stream
-buildStreamEl = \(result@(OpStream name stp)) -> \case
+buildElStream :: OpStream -> [Ast] -> Stream
+buildElStream = \(result@(OpStream name stp)) -> \case
     [] -> case stp of
         EndOp   f   -> singularElStream $ f Ast.missing
         InfixOp f s -> OpStreamStart name (f Ast.missing) s
     (tok:toks) -> case Ast.unspan tok of
         Ast.AstOperator {} -> undefined
-        _                  -> buildStreamOp (InfixElStream tok result) toks
-{-# NOINLINE buildStreamEl #-}
+        _                  -> buildOpStream (InfixElStream tok result) toks
+{-# NOINLINE buildElStream #-}
 
 
 -- === Utils === --
@@ -335,18 +349,6 @@ takeOperators__ = \result stream -> case stream of
 
 
 
--- data ExpressionStream
---     = ExpressionStream [SpaceStream]
---     | AssignmentStream [SpaceStream] [SpaceStream]
---     deriving (Show)
-
--- data SpaceStream
---     = SpacedStream   [Ast]
---     | UnspacedStream [Ast]
---     deriving (Show)
-
-
-
 --------------------------------
 -- === Expression builder === --
 --------------------------------
@@ -361,36 +363,31 @@ takeOperators__ = \result stream -> case stream of
 
 type ExprBuilderMonad m = (Assoc.Reader Name m, Prec.RelReader Name m)
 
+buildExpr :: ExprBuilderMonad m => [Ast] -> m Ast
+buildExpr = \stream -> do
+    let layouted  = discoverLayouts stream
+        statement = buildFlatStatement layouted
+    stream' <- buildUnspacedExprs statement
+    buildExprList stream'
+{-# INLINE buildExpr #-}
 
-buildExprx :: ExprBuilderMonad m => [Ast] -> m Ast
-buildExprx = \stream -> do
-    let sstream = buildExpry stream
-    stream' <- buildExprSS sstream
-    buildExpr_tt stream'
-{-# INLINE buildExprx #-}
 
-buildExpry :: [Ast] -> [SpaceStream]
-buildExpry = \ast -> let
-    stream1 = subStreams ast
-    stream2 = expressionStream stream1
-    stream3 = flattenExpressionStream stream2
-    in stream3
-{-# INLINE buildExpry #-}
+-- === Utils === --
 
-buildExprSS :: ExprBuilderMonad m => [SpaceStream] -> m [Ast]
-buildExprSS = \stream -> let
-    go = \case
-        SpacedStream   s -> pure s
-        UnspacedStream s -> pure <$> buildExpr_tt s
+buildUnspacedExprs :: ExprBuilderMonad m => [Layouted] -> m [Ast]
+buildUnspacedExprs = \stream -> let
+    go = \(Layouted layout s) -> case layout of
+        SpacedLayout   -> pure s
+        UnspacedLayout -> pure <$> buildExprList s
     in concat <$> mapM go stream
-{-# INLINE buildExprSS #-}
+{-# INLINE buildUnspacedExprs #-}
 
-buildExpr_tt :: ExprBuilderMonad m => [Ast] -> m Ast
-buildExpr_tt = buildExpr . buildStream
-{-# INLINE buildExpr_tt #-}
+buildExprList :: ExprBuilderMonad m => [Ast] -> m Ast
+buildExprList = buildExprStream . buildStream
+{-# INLINE buildExprList #-}
 
-buildExpr :: ExprBuilderMonad m => Stream -> m Ast
-buildExpr = \case
+buildExprStream :: ExprBuilderMonad m => Stream -> m Ast
+buildExprStream = \case
     NullStream -> pure $ Ast.invalid Invalid.EmptyExpression
     OpStreamStart opName opFunc (ElStream el stp) -> case stp of
         EndEl     -> pure (opFunc el)
@@ -399,8 +396,7 @@ buildExpr = \case
     ElStreamStart (ElStream el stp) -> case stp of
         EndEl     -> pure el
         InfixEl s -> buildExprOp__ s (EndElStream el)
-{-# INLINE buildExpr #-}
-
+{-# INLINE buildExprStream #-}
 
 buildExprOp__ :: ∀ m. ExprBuilderMonad m => OpStream -> ElStream -> m Ast
 buildExprOp__ = \stream stack -> let
@@ -450,7 +446,6 @@ foldExprStack__ = \(ElStream el stp) -> case stp of
         InfixOp_ opF el2 stp3 -> foldExprStackWithOp__ op (flip opF el) el2 stp3
 {-# NOINLINE foldExprStack__ #-}
 
-
 foldExprStackWithOp__ :: ExprBuilderMonad m
     => Name -> (Ast -> Ast) -> Ast -> ElStreamType -> m Ast
 foldExprStackWithOp__ = \op opF el stream -> case stream of
@@ -486,311 +481,18 @@ fillMissing = \f -> f Ast.missing Ast.missing
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
------------------------------
--- === Section patterns === --
------------------------------
-
--- | Section patterns are used to define non-standard syntax structures like
---   'if ... then ... else ...' or 'def foo a b: ...'. They work in a similar
---   fashion to Lisp macros.
-
-
-data Chunk
-    = Expr
-    | ManyExpr
-    | ExprBlock
-    deriving (Show)
-
-
--- === Definition === --
-
-data SegmentList
-    = Required Segment SegmentList
-    | Optional Segment SegmentList
-    | SectionListNull
-    deriving (Show)
-
-data Segment = Segment
-    { _ast    :: Ast.Ast
-    , _chunks :: [Chunk]
-    } deriving (Show)
-makeLenses ''Segment
-
-data Section = Section
-    { _name         :: Name
-    , _headSegment  :: Segment
-    , _tailSegments :: SegmentList
-    }
-    deriving (Show)
-makeLenses ''Section
-
-
-
--- === Smart constructors === --
-
-syntax :: Name -> Ast.Ast -> [Chunk] -> Section
-syntax = \name ast pat -> Section name (Segment ast pat) SectionListNull
-{-# INLINE syntax #-}
-
-segment :: Ast.Ast -> [Chunk] -> Segment
-segment = Segment
-{-# INLINE segment #-}
-
-optional :: Segment -> SegmentList
-optional = \s -> Optional s SectionListNull
-{-# INLINE optional #-}
-
-required :: Segment -> SegmentList
-required = \s -> Required s SectionListNull
-{-# INLINE required #-}
-
-infixl 6 +?
-infixl 6 +!
-(+?), (+!) :: Section -> Segment -> Section
-(+?) = \l r -> appendSegment l (optional r)
-(+!) = \l r -> appendSegment l (required r)
-{-# INLINE (+?) #-}
-{-# INLINE (+!) #-}
-
-
--- === Utils === --
-
-concatSegmentList :: SegmentList -> SegmentList -> SegmentList
-concatSegmentList = \l r -> case l of
-    Required sect t -> Required sect (concatSegmentList t r)
-    Optional sect t -> Optional sect (concatSegmentList t r)
-    SectionListNull -> r
-
-appendSegment :: Section -> SegmentList -> Section
-appendSegment = \sect r -> sect & tailSegments %~ flip concatSegmentList r
-{-# INLINE appendSegment #-}
-
-
-
-------------------------
-
--- data SegmentList1 = SegmentList1 Segment SegmentList
+-- data Section = Section Segment MacroSegments
 --     deriving (Show)
 
--- data SectionBuilder = SectionBuilder
---     { _consumed :: [Ast]
---     , _left     :: SegmentList1
---     } deriving (Show)
-
--- makeLenses ''SectionBuilder
-
-
-newtype PossibleSections = PossibleSections (Map Ast.Ast Section)
-    deriving (Default, Show)
-makeLenses ''PossibleSections
-
-registerSection :: State.Monad PossibleSections m => Section -> m ()
-registerSection = \section -> State.modify_ @PossibleSections
-    $ wrapped %~ Map.insert (section ^. headSegment . ast) section
-{-# INLINE registerSection #-}
-
-lookupSection :: State.Getter PossibleSections m => Ast.Ast -> m (Maybe Section)
-lookupSection = \ast -> Map.lookup ast . unwrap <$> State.get @PossibleSections
-{-# INLINE lookupSection #-}
-
-
-newtype Reserved = Reserved (Set Ast.Ast)
-    deriving (Default, Show)
-makeLenses ''Reserved
-
-
-
-
-withReserved :: State.Monad Reserved m => Ast.Ast -> m a -> m a
-withReserved = \a -> State.withModified @Reserved $ wrapped %~ Set.insert a
-{-# INLINE withReserved #-}
-
-withReservedMany :: State.Monad Reserved m => [Ast.Ast] -> m a -> m a
-withReservedMany = \a -> State.withModified @Reserved
-                       $ wrapped %~ (Set.fromList a <>)
-{-# INLINE withReservedMany #-}
-
-checkReserved :: State.Getter Reserved m => Ast.Ast -> m Bool
-checkReserved = \a -> Set.member a . unwrap <$> State.get @Reserved
-{-# INLINE checkReserved #-}
-
-
-newtype Streamx = Streamx [Ast] deriving (Show)
-makeLenses ''Streamx
-
-type SegmentBuilder m =
-    ( State.Monad Streamx m
-    , State.Monad Reserved m
-    , State.Monad PossibleSections m
-    , ExprBuilderMonad m
-    )
-
-
-syntax_if_then_else = syntax "if_then_else"
-              (Ast.AstVar $ Ast.Var "if")   [Expr]
-   +! segment (Ast.AstVar $ Ast.Var "then") [Expr]
-   +! segment (Ast.AstVar $ Ast.Var "else") [Expr]
-
-syntax_group = syntax "(_)"
-              (Ast.AstOperator $ Ast.Operator "(") [Expr]
-   +! segment (Ast.AstOperator $ Ast.Operator ")") []
-
-syntax_list = syntax "[_]"
-              (Ast.AstOperator $ Ast.Operator "[") [Expr]
-   +! segment (Ast.AstOperator $ Ast.Operator "]") []
-
--- funcDed = syntax "def"
---               (Ast.AstVar      $ Ast.Var      "def") [Expr, ManyExpr]
---    +! segment (Ast.AstOperator $ Ast.Operator ":")   [ExprBlock]
-
-runSegmentBuilderT :: Monad m => [Ast] -> State.StatesT '[Streamx, PossibleSections, Reserved] m a -> m (a, Streamx)
-runSegmentBuilderT = \stream p
-    -> State.evalDefT  @Reserved
-     $ State.evalDefT @PossibleSections
-     $ flip (State.runT @Streamx) (wrap stream)
-     $ do
-        mapM_ registerSection
-            [ syntax_if_then_else
-            , syntax_group
-            , syntax_list
-            ]
-        p
--- buildSegments :: [Ast] -> [Ast]
--- buildSegments = State.evalDef @ReservedStack . buildSegments__
--- {-# INLINE buildSegments #-}
-
--- buildSegments__ :: State.Monad ReservedStack m => [Ast] -> m [Ast]
--- buildSegments__ = \case
---     [] -> pure []
---     (tok:toks) ->
-
-
-token :: State.Monad Streamx m => m (Maybe Ast)
-token = peekToken <* dropToken
-{-# INLINE token #-}
-
-tokenNotReserved :: (State.Monad Streamx m, State.Getter Reserved m)
-    => m (Maybe Ast)
-tokenNotReserved = mapM (<$ dropToken) =<< peekTokenNotReserved
-{-# INLINE tokenNotReserved #-}
-
-peekToken :: State.Getter Streamx m => m (Maybe Ast)
-peekToken = head . unwrap <$> State.get @Streamx
-{-# INLINE peekToken #-}
-
-peekTokenNotReserved :: (State.Getter Streamx m, State.Getter Reserved m)
-    => m (Maybe Ast)
-peekTokenNotReserved = peekToken >>= \case
-    Just tok -> checkReserved (Ast.unspan tok) >>= \case
-        True  -> pure Nothing
-        False -> pure $ Just tok
-    Nothing -> pure Nothing
-{-# INLINE peekTokenNotReserved #-}
-
-dropToken :: State.Monad Streamx m => m ()
-dropToken = State.modify_ @Streamx $ \s -> case unwrap s of
-    []     -> s
-    (_:as) -> wrap as
-{-# INLINE dropToken #-}
-
-
-
-
-
-
-parseChunk :: SegmentBuilder m => Chunk -> m Ast
-parseChunk = \chunk -> case chunk of
-    Expr -> parseExpr
-
-parseExpr :: SegmentBuilder m => m Ast
-parseExpr = buildExprx =<< go where
-    go = tokenNotReserved >>= \case
-        Nothing  -> pure mempty
-        Just tok -> do
-            head <- lookupSection (Ast.unspan tok) >>= \case
-                Nothing   -> pure tok
-                Just sect -> parseSection tok sect
-            (head:) <$> go
-{-# INLINE parseExpr #-}
-
-parseChunks :: SegmentBuilder m => [Chunk] -> m [Ast]
-parseChunks = go where
-    go = \case
-        []     -> pure mempty
-        (c:cs) -> (:) <$> parseChunk c <*> go cs
-{-# NOINLINE parseChunks #-}
-
-parseSegment :: SegmentBuilder m => Segment -> m [Ast]
-parseSegment = parseChunks . view chunks
-{-# INLINE parseSegment #-}
-
-parseSegmentList :: SegmentBuilder m => SegmentList -> m [Spanned [Ast]]
-parseSegmentList = \lst -> peekToken >>= \case
-    Nothing  -> pure mempty
-    Just tok -> case lst of
-        SectionListNull -> pure mempty
-        Required (Segment seg chunks) lst' -> if Ast.unspan tok == seg
-            then do
-                dropToken
-                outs <- withNextSegmentReserved lst'
-                      $ parseChunks chunks
-                (Ast.Spanned (tok ^. Ast.span) outs:) <$> parseSegmentList lst'
-            else undefined
-        x -> error $ ppShow x
-
-mergeSpannedLists :: [Spanned [Ast]] -> (CodeSpan, [Ast])
-mergeSpannedLists = \lst -> let
-    prependSpan span = Ast.span %~ (CodeSpan.asOffsetSpan span <>)
-    in case lst of
-        [] -> (mempty, mempty)
-        (Ast.Spanned span a : as) -> case a of
-            (t:ts) -> ((prependSpan span t : ts) <>) <$> mergeSpannedLists as
-            []     -> let
-                (tailSpan, lst) = mergeSpannedLists as
-                in case lst of
-                    []     -> (span <> tailSpan, lst)
-                    (t:ts) -> (tailSpan, (prependSpan span t : ts))
-{-# INLINE mergeSpannedLists #-}
-
-withNextSegmentReserved :: SegmentBuilder m => SegmentList -> m a -> m a
-withNextSegmentReserved = \case
-    Required (Segment seg _) _ -> withReserved seg
-    Optional (Segment seg _) _ -> withReserved seg
-    SectionListNull            -> id
-
-parseSection :: SegmentBuilder m => Ast -> Section -> m Ast
-parseSection = \(Ast.Spanned span _) (Section name seg lst) -> do
-    psegs            <- withNextSegmentReserved lst $ parseSegment seg
-    (tailSpan, slst) <- mergeSpannedLists <$> parseSegmentList lst
-    let header = Ast.Spanned span $ Ast.var' name
-        group  = Ast.apps header  $ psegs <> slst
-        out    = group & Ast.span %~ (<> tailSpan)
-    pure out
-
--- data Section = Section Segment SegmentList
---     deriving (Show)
-
--- data SegmentList
---     = Required Segment SegmentList
---     | Optional Segment SegmentList
+-- data MacroSegments
+--     = Required Segment MacroSegments
+--     | Optional Segment MacroSegments
 --     | SectionListNull
 --     deriving (Show)
 
 -- data Segment = Segment
 --     { _name   :: Ast.Ast
---     , _chunks :: [Chunk]
+--     , _chunks :: [MacroParser]
 --     } deriving (Show)
 -- makeLenses ''Segment
 

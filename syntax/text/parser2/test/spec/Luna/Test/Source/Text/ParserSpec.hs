@@ -22,6 +22,7 @@ import qualified Luna.IR.Layer                               as Layer
 import qualified Luna.Pass                                   as Pass
 import qualified Luna.Pass.Attr                              as Attr
 import qualified Luna.Pass.Parsing.ExprBuilder               as ExprBuilder
+import qualified Luna.Pass.Parsing.Macro                     as Macro
 import qualified Luna.Pass.Scheduler                         as Scheduler
 import qualified Luna.Syntax.Prettyprint                     as Prettyprint
 import qualified Luna.Syntax.Text.Parser.Data.CodeSpan       as CodeSpan
@@ -497,7 +498,7 @@ fixSpec = describe "error" $ it "x" $ do
     putStrLn "\nSECTION:\n"
     let sect = State.evalDef @Scope.Scope $ do
             Hardcoded.hardcodePrecRelMap
-            ExprBuilder.runSegmentBuilderT toks $ ExprBuilder.parseExpr
+            Macro.runSegmentBuilderT toks $ Macro.parseExpr
     pprint sect
 
     -- putStrLn "\nSUB STREAMS:\n"
