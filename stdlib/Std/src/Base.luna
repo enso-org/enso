@@ -1426,6 +1426,7 @@ class LQueryValue:
     ValInt    Int
     ValReal   Real
     Operation Text (List LQueryValue)
+    Condition Predicate LQueryValue LQueryValue
     
     def toJSON: case self of
         ColumnRef n: JSON.empty . insert "column" n
@@ -1433,6 +1434,7 @@ class LQueryValue:
         ValInt    i: i.toJSON
         ValReal   r: r.toJSON
         Operation n args: JSON.empty.insert "operation" n . insert "arguments" args
+        Condition pred a b: JSON.empty.insert "condition" pred . insert "onTrue" a . insert "onFalse" b
 
     def startsWith t:  Predicate "startsWith" [self, t.toLQueryValue]
     def matches regex: Predicate "matches"    [self, regex.toLQueryValue]
@@ -1445,17 +1447,19 @@ class LQueryValue:
     def - that: Operation "minus"  [self, that.toLQueryValue]
     def * that: Operation "times"  [self, that.toLQueryValue]
     def / that: Operation "divide" [self, that.toLQueryValue]
+    def % that: Operation "mod"    [self, that.toLQueryValue]
     def negate: Operation "negate" [self]
 
     def toLQueryValue: self
 
-class Predicate:
-    Predicate Text (List LQueryValue)
+class Predicate a:
+    Predicate Text (List a)
     Boolean   Text (List Predicate)
 
     def and that: Boolean "and" [self, that]
     def or  that: Boolean "or"  [self, that]
     def not:      Boolean "not" [self]
+    def switch a b: Condition self a b
     
     def toJSON: case self of
         Predicate t args: JSON.empty.insert "predicate" t . insert "arguments" args
