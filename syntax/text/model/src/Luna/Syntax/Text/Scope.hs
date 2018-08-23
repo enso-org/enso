@@ -1,4 +1,4 @@
-{-# LANGUAGE NoStrict #-}
+{-# LANGUAGE NoStrict             #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Luna.Syntax.Text.Scope where
@@ -40,7 +40,7 @@ data Scope = Scope
     , _assocMap   :: Map Name Assoc
     , _nameTree   :: SparseTreeSet Name
     , _multiNames :: Map Name (NonEmpty Name)
-    }
+    } deriving (Show)
 makeLenses ''Scope
 
 

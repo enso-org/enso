@@ -282,21 +282,21 @@ notToken :: Eq a => (Token a) -> Parser a (Token a)
 notToken = satisfy . (/=)
 {-# INLINE notToken #-}
 
--- failK    :: Failure a
--- successK :: Success a a
--- failK    = \t p _more -> Parsec.Fail (Vector.unsafeDrop (fromPos p) t)
--- successK = \t p _more -> Parsec.Done (Vector.unsafeDrop (fromPos p) t)
--- {-# INLINE failK    #-}
--- {-# INLINE successK #-}
+failK    :: Failure a t
+successK :: Success a t t
+failK    = \t p _more -> Parsec.Fail (Vector.unsafeDrop (fromPos p) t)
+successK = \t p _more -> Parsec.Done (Vector.unsafeDrop (fromPos p) t)
+{-# INLINE failK    #-}
+{-# INLINE successK #-}
 
--- parse     :: Parser a -> (Tokens a) -> Result a
--- parseOnly :: Parser a -> (Tokens a) -> Either String a
--- parse     m s =      Parsec.runParser m s 0 Parsec.Incomplete failK successK
--- parseOnly m s = case Parsec.runParser m s 0 Parsec.Complete   failK successK of
---     Parsec.Fail _ [] err   -> Left err
---     Parsec.Fail _ ctxs err -> Left (intercalate " > " ctxs ++ ": " ++ err)
---     Parsec.Done _ a        -> Right a
---     _                      -> error "parseOnly: impossible error!"
+parse     :: Parser a t -> (Tokens a) -> Result a t
+parseOnly :: Parser a t -> (Tokens a) -> Either String t
+parse     m s =      Parsec.runParser m s 0 Parsec.Incomplete failK successK
+parseOnly m s = case Parsec.runParser m s 0 Parsec.Complete   failK successK of
+    Parsec.Fail _ [] err   -> Left err
+    Parsec.Fail _ ctxs err -> Left (intercalate " > " ctxs ++ ": " ++ err)
+    Parsec.Done _ a        -> Right a
+    _                      -> error "parseOnly: impossible error!"
 -- {-# INLINE parse #-}
 -- {-# INLINE parseOnly #-}
 

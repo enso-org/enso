@@ -484,6 +484,7 @@ fixSpec = describe "error" $ it "x" $ do
     let toks =
             -- Parser.runParserxx__ Parsing.Syntax2 Parsing.expr [s|a * b + c|]
             Parser.run Parsing.Syntax1 "def foo a b c: x"
+            -- Parser.run Parsing.Syntax1 "a + b - c"
             -- Parser.run Parsing.Syntax2 [s|if test then ok else fail|]
             -- Parser.run Parsing.Syntax2 [s|if test then if test2 then ok2 else fail2 else fail
 
@@ -496,11 +497,14 @@ fixSpec = describe "error" $ it "x" $ do
     --     estream = ExprBuilder.expressionStream sstream
 
     putStrLn "\nSECTION:\n"
-    let sect = State.evalDef @Scope.Scope $ do
-            Hardcoded.hardcodePrecRelMap
-            Macro.runSegmentBuilderT toks $ Macro.parseExpr
-    pprint sect
+    -- let sect = State.evalDef @Scope.Scope $ do
+    --         Hardcoded.hardcodePrecRelMap
+    --         Macro.runSegmentBuilderT toks $ Macro.parseExpr
 
+    let sect = Macro.runP toks $ do
+            Hardcoded.hardcodePrecRelMap
+            Macro.parseExpr
+    pprint sect
     -- putStrLn "\nSUB STREAMS:\n"
     -- pprint sstream
 

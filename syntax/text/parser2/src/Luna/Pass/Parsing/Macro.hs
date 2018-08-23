@@ -11,6 +11,7 @@ import qualified Data.Graph.Component.Node.Destruction     as Component
 import qualified Data.Map                                  as Map
 import qualified Data.Set                                  as Set
 import qualified Data.Text.Span                            as Span
+import qualified Data.Vector                               as Vector
 import qualified Language.Symbol.Operator.Assoc            as Assoc
 import qualified Language.Symbol.Operator.Prec             as Prec
 import qualified Luna.IR                                   as IR
@@ -20,11 +21,13 @@ import qualified Luna.Pass                                 as Pass
 import qualified Luna.Syntax.Text.Parser.Data.CodeSpan     as CodeSpan
 import qualified Luna.Syntax.Text.Parser.Data.Name.Special as Name
 import qualified Luna.Syntax.Text.Parser.IR.Ast            as Ast
+import qualified Luna.Syntax.Text.Scope                    as Scope
 import qualified Text.Parser.State.Indent                  as Indent
 
 import Data.Map                              (Map)
 import Data.Set                              (Set)
 import Data.Text.Position                    (Delta (Delta))
+import Data.Vector                           (Vector)
 import Luna.Syntax.Text.Parser.Data.CodeSpan (CodeSpan)
 import Luna.Syntax.Text.Parser.Data.Invalid  (Invalids)
 import Luna.Syntax.Text.Parser.Data.Result   (Result)
@@ -37,14 +40,79 @@ import OCI.Data.Name                         (Name)
 import Luna.Pass.Parsing.ExprBuilder (ExprBuilderMonad, buildExpr,
                                       checkLeftSpacing)
 
+import qualified Data.Attoparsec.Internal       as AParsec
+import qualified Data.Attoparsec.Internal.Types as AParsec
+import qualified Data.Attoparsec.List           as Parsec
+
+import Data.Parser
+
+
+
+----------------------
+-- === Reserved === --
+----------------------
+
+-- === Definition === --
+
+newtype Reserved a = Reserved (Set a)
+    deriving (Default, Show)
+makeLenses ''Reserved
+
+type family ReservedType m where
+    ReservedType (State.StateT (Reserved a) _) = a
+    ReservedType (t m)                         = ReservedType m
+
+type ReservedM       m = Reserved (ReservedType m)
+type MonadReserved'  m = MonadReserved (Token m) m
+type MonadReserved a m =
+    ( State.Monad (ReservedM m) m
+    , MonadFail m
+    , Ord (ReservedType m)
+    , Convertible' a (ReservedType m)
+    )
+
+
+-- === API === --
+
+withReserved :: ∀ a t m. MonadReserved a m => a -> m t -> m t
+withReserved = \a -> State.withModified @(ReservedM m)
+                   $ wrapped %~ Set.insert (convert' a)
+{-# INLINE withReserved #-}
+
+withManyReserved :: ∀ a t m. MonadReserved a m => [a] -> m t -> m t
+withManyReserved = \a -> State.withModified @(ReservedM m)
+                       $ wrapped %~ (Set.fromList (convert' <$> a) <>)
+{-# INLINE withManyReserved #-}
+
+checkReserved :: ∀ a m. MonadReserved a m => a -> m Bool
+checkReserved = \a -> Set.member (convert' a) . unwrap
+                  <$> State.get @(ReservedM m)
+{-# INLINE checkReserved #-}
+
+failIfReserved :: MonadReserved a m => a -> m ()
+failIfReserved = \a -> checkReserved a >>= \case
+    True  -> fail "reserved"
+    False -> pure ()
+{-# INLINE failIfReserved #-}
+
+notReserved :: MonadReserved a m => m a -> m a
+notReserved = \ma -> ma >>= \a -> a <$ failIfReserved a
+{-# INLINE notReserved #-}
+
+anyTokenNotReserved :: (MonadReserved' m, TokenParser m) => m (Token m)
+anyTokenNotReserved = notReserved anyToken
+{-# INLINE anyTokenNotReserved #-}
+
+peekTokenNotReserved :: (MonadReserved' m, TokenParser m) => m (Token m)
+peekTokenNotReserved = notReserved peekToken
+{-# INLINE peekTokenNotReserved #-}
 
 
 
 
-
----------------------------
--- === Syntax macros === --
----------------------------
+-------------------
+-- === Macro === --
+-------------------
 
 -- | Macro patterns are used to define non-standard macro structures like
 --   'if ... then ... else ...' or 'def foo a b: ...'. They work in a similar
@@ -132,11 +200,18 @@ appendSegment = \sect r -> sect & tailSegments %~ flip concatSegmentList r
 
 
 
+----------------------------
+-- === Macro Registry === --
+----------------------------
 
+-- === Definition === --
 
 newtype Registry = Registry (Map Ast.Ast Macro)
     deriving (Default, Show)
 makeLenses ''Registry
+
+
+-- === API === --
 
 registerSection :: State.Monad Registry m => Macro -> m ()
 registerSection = \section -> State.modify_ @Registry
@@ -148,36 +223,15 @@ lookupSection = \ast -> Map.lookup ast . unwrap <$> State.get @Registry
 {-# INLINE lookupSection #-}
 
 
-newtype Reserved = Reserved (Set Ast.Ast)
-    deriving (Default, Show)
-makeLenses ''Reserved
 
 
 
 
-withReserved :: State.Monad Reserved m => Ast.Ast -> m a -> m a
-withReserved = \a -> State.withModified @Reserved $ wrapped %~ Set.insert a
-{-# INLINE withReserved #-}
-
-withReservedMany :: State.Monad Reserved m => [Ast.Ast] -> m a -> m a
-withReservedMany = \a -> State.withModified @Reserved
-                       $ wrapped %~ (Set.fromList a <>)
-{-# INLINE withReservedMany #-}
-
-checkReserved :: State.Getter Reserved m => Ast.Ast -> m Bool
-checkReserved = \a -> Set.member a . unwrap <$> State.get @Reserved
-{-# INLINE checkReserved #-}
 
 
-newtype Stream = Stream [Ast] deriving (Show)
-makeLenses ''Stream
 
-type SegmentBuilder m =
-    ( State.Monad Stream m
-    , State.Monad Reserved m
-    , State.Monad Registry m
-    , ExprBuilderMonad m
-    )
+
+
 
 
 syntax_if_then_else = macro
@@ -197,106 +251,59 @@ syntax_funcDed = macro
               (Ast.AstVar      $ Ast.Var      "def") [NonSpacedExpr, ManyNonSpacedExpr]
    +! segment (Ast.AstOperator $ Ast.Operator ":")   [Expr]
 
-runSegmentBuilderT :: Monad m => [Ast] -> State.StatesT '[Stream, Registry, Reserved] m a -> m (a, Stream)
-runSegmentBuilderT = \stream p
-    -> State.evalDefT  @Reserved
-     $ State.evalDefT  @Registry
-     $ flip (State.runT @Stream) (wrap stream)
-     $ do
-        mapM_ registerSection
-            [ syntax_if_then_else
-            , syntax_group
-            , syntax_list
-            , syntax_funcDed
-            ]
-        p
 
 
-token :: State.Monad Stream m => m (Maybe Ast)
-token = peekToken <* dropToken
-{-# INLINE token #-}
-
-tokenNotReserved :: (State.Monad Stream m, State.Getter Reserved m)
-    => m (Maybe Ast)
-tokenNotReserved = mapM (<$ dropToken) =<< peekTokenNotReserved
-{-# INLINE tokenNotReserved #-}
-
-peekToken :: State.Getter Stream m => m (Maybe Ast)
-peekToken = head . unwrap <$> State.get @Stream
-{-# INLINE peekToken #-}
-
-peekTokenNotReserved :: (State.Getter Stream m, State.Getter Reserved m)
-    => m (Maybe Ast)
-peekTokenNotReserved = peekToken >>= \case
-    Just tok -> checkReserved (Ast.unspan tok) >>= \case
-        True  -> pure Nothing
-        False -> pure $ Just tok
-    Nothing -> pure Nothing
-{-# INLINE peekTokenNotReserved #-}
-
-dropToken :: State.Monad Stream m => m ()
-dropToken = State.modify_ @Stream $ \s -> case unwrap s of
-    []     -> s
-    (_:as) -> wrap as
-{-# INLINE dropToken #-}
 
 
-parseChunk :: SegmentBuilder m => ChunkParser -> m Ast
+parseChunk :: ChunkParser -> Parser Ast
 parseChunk = \chunk -> case chunk of
-    Expr              -> parseExpr'
+    Expr              -> parseExpr
     NonSpacedExpr     -> parseNonSpacedExpr
     ManyNonSpacedExpr -> parseManyNonSpacedExpr
 
-parseExpr' :: SegmentBuilder m => m Ast
-parseExpr' = buildExpr =<< go where
-    go = tokenNotReserved >>= \case
-        Nothing  -> pure mempty
-        Just tok -> do
-            head <- lookupSection (Ast.unspan tok) >>= \case
-                Nothing   -> pure tok
-                Just sect -> parseSection tok sect
-            (head:) <$> go
-{-# INLINE parseExpr' #-}
-
-parseManyNonSpacedExpr :: SegmentBuilder m => m Ast
-parseManyNonSpacedExpr = Ast.list <$> go where
-    go = peekTokenNotReserved >>= \case
-        Just _  -> (:) <$> parseNonSpacedExpr <*> go
-        Nothing -> pure []
-{-# INLINE parseManyNonSpacedExpr #-}
-
-parseNonSpacedExpr :: SegmentBuilder m => m Ast
-parseNonSpacedExpr = buildExpr =<< go1 where
-    go1 = tokenNotReserved >>= \case
-        Nothing  -> pure mempty
-        Just tok -> do
-            head <- lookupSection (Ast.unspan tok) >>= \case
-                Nothing   -> pure tok
-                Just sect -> parseSection tok sect
-            (head:) <$> go2
-    go2 = peekToken >>= \case
-        Nothing  -> pure mempty
-        Just tok -> if checkLeftSpacing tok
-            then pure mempty
-            else go1
-{-# INLINE parseNonSpacedExpr #-}
-
-parseChunks :: SegmentBuilder m => [ChunkParser] -> m [Ast]
-parseChunks = go where
-    go = \case
-        []     -> pure mempty
-        (c:cs) -> (:) <$> parseChunk c <*> go cs
+parseChunks :: [ChunkParser] -> Parser [Ast]
+parseChunks = mapM parseChunk
 {-# NOINLINE parseChunks #-}
 
-parseSegment :: SegmentBuilder m => Segment -> m [Ast]
+parseSegment :: Segment -> Parser [Ast]
 parseSegment = parseChunks . view chunks
 {-# INLINE parseSegment #-}
 
-parseSegmentList :: SegmentBuilder m => Name -> SegmentList -> m (Name, [Spanned [Ast]])
+parseExpr :: Parser Ast
+parseExpr = buildExpr =<< many1 go where
+    go = do
+        tok <- anyTokenNotReserved
+        lookupSection (Ast.unspan tok) >>= \case
+            Nothing   -> pure tok
+            Just sect -> parseSection tok sect
+{-# INLINE parseExpr #-}
+
+
+parseManyNonSpacedExpr :: Parser Ast
+parseManyNonSpacedExpr = Ast.list <$> many parseNonSpacedExpr
+{-# INLINE parseManyNonSpacedExpr #-}
+
+parseNonSpacedExpr :: Parser Ast
+parseNonSpacedExpr = buildExpr =<< go where
+    go = do
+        tok  <- anyTokenNotReserved
+        head <- lookupSection (Ast.unspan tok) >>= \case
+            Nothing   -> pure tok
+            Just sect -> parseSection tok sect
+        let loop = nextTokenNotLeftSpaced >> go
+        (head:) <$> (loop <|> pure [])
+{-# INLINE parseNonSpacedExpr #-}
+
+nextTokenNotLeftSpaced :: Parser ()
+nextTokenNotLeftSpaced = do
+    tok <- peekToken
+    when_ (checkLeftSpacing tok) $ fail "spaced"
+{-# INLINE nextTokenNotLeftSpaced #-}
+
+
+parseSegmentList :: Name -> SegmentList -> Parser (Name, [Spanned [Ast]])
 parseSegmentList = go where
-    go name lst = peekToken >>= \case
-        Nothing  -> pure (name, mempty)
-        Just tok -> goTok name lst tok
+    go name lst = (goTok name lst =<< peekToken) <|> pure (name, mempty)
     goTok name lst = \tok -> case lst of
         SegmentListNull -> pure (name, mempty)
         SegmentListCons tp (Segment seg chunks) lst' ->
@@ -329,13 +336,12 @@ mergeSpannedLists = \lst -> let
                     (t:ts) -> (tailSpan, (prependSpan span t : ts))
 {-# INLINE mergeSpannedLists #-}
 
-withNextSegmentReserved :: SegmentBuilder m => SegmentList -> m a -> m a
+withNextSegmentReserved :: SegmentList -> Parser a -> Parser a
 withNextSegmentReserved = \case
-    SegmentListCons Required (Segment seg _) _ -> withReserved seg
-    SegmentListCons Optional (Segment seg _) _ -> withReserved seg
-    SegmentListNull            -> id
+    SegmentListCons _ (Segment seg _) _ -> withReserved seg
+    SegmentListNull -> id
 
-parseSection :: SegmentBuilder m => Ast -> Macro -> m Ast
+parseSection :: Ast -> Macro -> Parser Ast
 parseSection = \(Ast.Spanned span tok) (Macro seg lst) -> do
     psegs            <- withNextSegmentReserved lst $ parseSegment seg
     (name, spanLst)  <- parseSegmentList (showSection tok) lst
@@ -344,6 +350,7 @@ parseSection = \(Ast.Spanned span tok) (Macro seg lst) -> do
         group  = Ast.apps header  $ psegs <> slst
         out    = group & Ast.span %~ (<> tailSpan)
     pure out
+
 
 
 showSection :: Ast.Ast -> Name
@@ -355,11 +362,6 @@ showSection = \case
 
 
 
----
-
-
-parseExpr :: SegmentBuilder m => m Ast
-parseExpr = parseExpr'
 
 
 
@@ -372,10 +374,66 @@ parseExpr = parseExpr'
 
 
 
+type Parser = State.StatesT '[Registry, Reserved Ast.Ast, Scope.Scope] (Parsec.Parser Ast)
 
 
 
 
+runP :: [Ast] -> Parser a -> Either String a
+runP = \stream p
+    -> flip Parsec.parseOnly (Vector.fromList stream)
+     $ State.evalDefT  @Scope.Scope
+     $ State.evalDefT  @(Reserved Ast.Ast)
+     $ State.evalDefT  @Registry
+     $ do
+        mapM_ registerSection
+            [ syntax_if_then_else
+            , syntax_group
+            , syntax_list
+            , syntax_funcDed
+            ]
+        p
+
+
+
+
+
+
+-- dropToken :: State.Monad Stream m => m ()
+-- dropToken = State.modify_ @Stream $ \s -> case unwrap s of
+--     []     -> s
+--     (_:as) -> wrap as
+-- {-# INLINE dropToken #-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- parseNonSpacedExpr :: SegmentBuilder m => m Ast
+-- parseNonSpacedExpr = buildExpr =<< go1 where
+--     go1 = tokenNotReserved >>= \case
+--         Nothing  -> pure mempty
+--         Just tok -> do
+--             head <- lookupSection (Ast.unspan tok) >>= \case
+--                 Nothing   -> pure tok
+--                 Just sect -> parseSection tok sect
+--             (head:) <$> go2
+--     go2 = peekToken >>= \case
+--         Nothing  -> pure mempty
+--         Just tok -> if checkLeftSpacing tok
+--             then pure mempty
+--             else go1
+-- {-# INLINE parseNonSpacedExpr #-}
 
 -- data Macro = Macro Segment SegmentList
 --     deriving (Show)

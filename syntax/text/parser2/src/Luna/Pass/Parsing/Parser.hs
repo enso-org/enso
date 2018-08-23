@@ -28,13 +28,15 @@ import Luna.Syntax.Text.Source             (Source (Source))
 
 
 
+
 run :: ExprBuilder.BuilderMonad m => Text32 -> m IR.SomeTerm
 run = \s -> do
     let toks = Parser.run Parsing.Syntax1 s
-        --FIXME: handle rest of the stream
-        (sect,_) = State.evalDef @Scope.Scope $ do
+        --FIXME: handle rest of the stream + Right pattern
+        Right sect = Macro.runP toks $ do
             Hardcoded.hardcodePrecRelMap
-            Macro.runSegmentBuilderT toks Macro.parseExpr
+            Macro.parseExpr
+
     ExprBuilder.buildGraph sect
 
 

@@ -436,6 +436,7 @@ buildExprOp__ = \stream stack -> let
                     if (assoc == assoc' && assoc == Assoc.Left)
                         then reduceStack stack'
                         else submitToStack
+                x -> error $ ppShow (stackOp, streamOp, x)
 {-# NOINLINE buildExprOp__ #-}
 
 foldExprStack__ :: ExprBuilderMonad m => ElStream -> m Ast

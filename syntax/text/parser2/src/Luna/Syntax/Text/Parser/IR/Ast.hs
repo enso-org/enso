@@ -56,6 +56,10 @@ data Spanned a = Spanned
     } deriving (Eq, Functor, Ord, Show)
 makeLenses ''Spanned
 
+instance Convertible (Spanned a) a where
+    convert = view ast
+    {-# INLINE convert #-}
+
 
 unspan :: Spanned a -> a
 unspan = \(Spanned _ a) -> a
