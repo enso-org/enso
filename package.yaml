@@ -1,5 +1,5 @@
 name: vector-text
-version: 1.1.3
+version: 1.1.4
 synopsis: Text implementation based on unboxed char vector.
 category: Data
 license: Apache-2.0
