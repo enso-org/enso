@@ -33,6 +33,7 @@ data Symbol
     | Unknown
     | EmptyExpression
     | AssocConflict
+    | MissingSection
     deriving (Eq, Ord, Generic, Show)
 -- instance ExternalStorable Symbol
 -- instance ExternalFieldStorable Symbol

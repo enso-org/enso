@@ -20,6 +20,7 @@ import qualified Luna.Pass                                 as Pass
 import qualified Luna.Syntax.Text.Parser.Data.CodeSpan     as CodeSpan
 import qualified Luna.Syntax.Text.Parser.Data.Name.Special as Name
 import qualified Luna.Syntax.Text.Parser.IR.Ast            as Ast
+import qualified Text.Parser.State.Indent                  as Indent
 
 import Data.Map                              (Map)
 import Data.Set                              (Set)
@@ -69,7 +70,7 @@ data SegmentList
 data SegmentType
     = Required
     | Optional
-    deriving (Show)
+    deriving (Eq, Show)
 
 data Segment = Segment
     { _ast    :: Ast.Ast
@@ -78,8 +79,7 @@ data Segment = Segment
 makeLenses ''Segment
 
 data Macro = Macro
-    { _name         :: Name
-    , _headSegment  :: Segment
+    { _headSegment  :: Segment
     , _tailSegments :: SegmentList
     }
     deriving (Show)
@@ -89,8 +89,8 @@ makeLenses ''Macro
 
 -- === Smart constructors === --
 
-macro :: Name -> Ast.Ast -> [ChunkParser] -> Macro
-macro = \name ast pat -> Macro name (Segment ast pat) SegmentListNull
+macro :: Ast.Ast -> [ChunkParser] -> Macro
+macro = \ast pat -> Macro (Segment ast pat) SegmentListNull
 {-# INLINE macro #-}
 
 segment :: Ast.Ast -> [ChunkParser] -> Segment
@@ -178,16 +178,16 @@ type SegmentBuilder m =
     )
 
 
-syntax_if_then_else = macro "if_then_else"
+syntax_if_then_else = macro
               (Ast.AstVar $ Ast.Var "if")   [Expr]
    +! segment (Ast.AstVar $ Ast.Var "then") [Expr]
-   +! segment (Ast.AstVar $ Ast.Var "else") [Expr]
+   +? segment (Ast.AstVar $ Ast.Var "else") [Expr]
 
-syntax_group = macro "(_)"
+syntax_group = macro
               (Ast.AstOperator $ Ast.Operator "(") [Expr]
    +! segment (Ast.AstOperator $ Ast.Operator ")") []
 
-syntax_list = macro "[_]"
+syntax_list = macro
               (Ast.AstOperator $ Ast.Operator "[") [Expr]
    +! segment (Ast.AstOperator $ Ast.Operator "]") []
 
@@ -238,16 +238,12 @@ dropToken = State.modify_ @Stream $ \s -> case unwrap s of
 {-# INLINE dropToken #-}
 
 
-
-
-
-
 parseChunk :: SegmentBuilder m => ChunkParser -> m Ast
 parseChunk = \chunk -> case chunk of
-    Expr -> parseExpr
+    Expr -> parseExpr'
 
-parseExpr :: SegmentBuilder m => m Ast
-parseExpr = buildExpr =<< go where
+parseExpr' :: SegmentBuilder m => m Ast
+parseExpr' = buildExpr =<< go where
     go = tokenNotReserved >>= \case
         Nothing  -> pure mempty
         Just tok -> do
@@ -255,7 +251,7 @@ parseExpr = buildExpr =<< go where
                 Nothing   -> pure tok
                 Just sect -> parseSection tok sect
             (head:) <$> go
-{-# INLINE parseExpr #-}
+{-# INLINE parseExpr' #-}
 
 parseChunks :: SegmentBuilder m => [ChunkParser] -> m [Ast]
 parseChunks = go where
@@ -268,19 +264,27 @@ parseSegment :: SegmentBuilder m => Segment -> m [Ast]
 parseSegment = parseChunks . view chunks
 {-# INLINE parseSegment #-}
 
-parseSegmentList :: SegmentBuilder m => SegmentList -> m [Spanned [Ast]]
-parseSegmentList = \lst -> peekToken >>= \case
-    Nothing  -> pure mempty
-    Just tok -> case lst of
-        SegmentListNull -> pure mempty
-        SegmentListCons Required (Segment seg chunks) lst' -> if Ast.unspan tok == seg
-            then do
-                dropToken
-                outs <- withNextSegmentReserved lst'
-                      $ parseChunks chunks
-                (Ast.Spanned (tok ^. Ast.span) outs:) <$> parseSegmentList lst'
-            else undefined
-        x -> error $ ppShow x
+parseSegmentList :: SegmentBuilder m => Name -> SegmentList -> m (Name, [Spanned [Ast]])
+parseSegmentList = go where
+    go name lst = peekToken >>= \case
+        Nothing  -> pure (name, mempty)
+        Just tok -> goTok name lst tok
+    goTok name lst = \tok -> case lst of
+        SegmentListNull -> pure (name, mempty)
+        SegmentListCons tp (Segment seg chunks) lst' ->
+            if Ast.unspan tok == seg
+                then acceptSegment  name lst' tok chunks
+                else discardSegment name lst' tp
+
+    acceptSegment name lst tok chunks = do
+        dropToken
+        outs <- withNextSegmentReserved lst (parseChunks chunks)
+        (Ast.Spanned (tok ^. Ast.span) outs:) <<$>> parseSegmentList (name <> "_" <> showSection (tok ^. Ast.ast)) lst
+
+    discardSegment name lst = \case
+        Optional -> pure (name, mempty)
+        Required -> (Ast.Spanned mempty [Ast.invalid Invalid.MissingSection]:)
+              <<$>> parseSegmentList name lst
 
 mergeSpannedLists :: [Spanned [Ast]] -> (CodeSpan, [Ast])
 mergeSpannedLists = \lst -> let
@@ -303,13 +307,46 @@ withNextSegmentReserved = \case
     SegmentListNull            -> id
 
 parseSection :: SegmentBuilder m => Ast -> Macro -> m Ast
-parseSection = \(Ast.Spanned span _) (Macro name seg lst) -> do
+parseSection = \(Ast.Spanned span tok) (Macro seg lst) -> do
     psegs            <- withNextSegmentReserved lst $ parseSegment seg
-    (tailSpan, slst) <- mergeSpannedLists <$> parseSegmentList lst
+    (name, spanLst)  <- parseSegmentList (showSection tok) lst
+    let (tailSpan, slst) = mergeSpannedLists spanLst
     let header = Ast.Spanned span $ Ast.var' name
         group  = Ast.apps header  $ psegs <> slst
         out    = group & Ast.span %~ (<> tailSpan)
     pure out
+
+
+showSection :: Ast.Ast -> Name
+showSection = \case
+    Ast.AstVar      (Ast.Var      n) -> n
+    Ast.AstCons     (Ast.Cons     n) -> n
+    Ast.AstOperator (Ast.Operator n) -> n
+    x -> error $ ppShow x
+
+
+
+---
+
+
+parseExpr :: SegmentBuilder m => m Ast
+parseExpr = parseExpr'
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 -- data Macro = Macro Segment SegmentList
 --     deriving (Show)
