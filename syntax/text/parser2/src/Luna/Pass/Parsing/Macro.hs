@@ -258,9 +258,15 @@ parseExpr' = buildExpr =<< go where
             (head:) <$> go
 {-# INLINE parseExpr' #-}
 
--- FIXME: broken logic
 parseManyNonSpacedExpr :: SegmentBuilder m => m Ast
-parseManyNonSpacedExpr = buildExpr . pure . Ast.list =<< go1 where
+parseManyNonSpacedExpr = Ast.list <$> go where
+    go = peekTokenNotReserved >>= \case
+        Just _  -> (:) <$> parseNonSpacedExpr <*> go
+        Nothing -> pure []
+{-# INLINE parseManyNonSpacedExpr #-}
+
+parseNonSpacedExpr :: SegmentBuilder m => m Ast
+parseNonSpacedExpr = buildExpr =<< go1 where
     go1 = tokenNotReserved >>= \case
         Nothing  -> pure mempty
         Just tok -> do
@@ -273,17 +279,6 @@ parseManyNonSpacedExpr = buildExpr . pure . Ast.list =<< go1 where
         Just tok -> if checkLeftSpacing tok
             then pure mempty
             else go1
-{-# INLINE parseManyNonSpacedExpr #-}
-
-parseNonSpacedExpr :: SegmentBuilder m => m Ast
-parseNonSpacedExpr = buildExpr =<< go where
-    go = tokenNotReserved >>= \case
-        Nothing  -> pure mempty
-        Just tok -> do
-            head <- lookupSection (Ast.unspan tok) >>= \case
-                Nothing   -> pure tok
-                Just sect -> parseSection tok sect
-            pure [head]
 {-# INLINE parseNonSpacedExpr #-}
 
 parseChunks :: SegmentBuilder m => [ChunkParser] -> m [Ast]
