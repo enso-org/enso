@@ -49,9 +49,9 @@ insertSegment seg tree = case seg of
     InfixSegment op stree -> case tree of
         AtomNode  _       -> return $ InfixNode op tree stree
         InfixNode op' l r -> Prec.readRel op' op >>= \case
-            LT -> rightApp
-            GT -> leftApp
-            EQ -> ((,) <$> Assoc.read op <*> Assoc.read op') >>= \case
+            Just LT -> rightApp
+            Just GT -> leftApp
+            Just EQ -> ((,) <$> Assoc.read op <*> Assoc.read op') >>= \case
                 (Assoc.Left , Assoc.Left ) -> leftApp
                 (Assoc.Right, Assoc.Right) -> rightApp
                 _                          -> M.fail "oh no!" -- TODO: err message
@@ -59,9 +59,9 @@ insertSegment seg tree = case seg of
                   leftApp  = return $ InfixNode op tree stree
 
         PrefixNode op' r -> Prec.readRel op' op >>= \case
-            LT -> rightApp
-            GT -> leftApp
-            EQ -> ((,) <$> Assoc.read op <*> Assoc.read op') >>= \case
+            Just LT -> rightApp
+            Just GT -> leftApp
+            Just EQ -> ((,) <$> Assoc.read op <*> Assoc.read op') >>= \case
                 (Assoc.Left , Assoc.Left ) -> leftApp
                 (Assoc.Right, Assoc.Right) -> rightApp
                 _                          -> M.fail "oh no!" -- TODO: err message
@@ -72,11 +72,11 @@ insertSegment seg tree = case seg of
     SuffixSegment op -> case tree of
         AtomNode  _       -> return $ SuffixNode op tree
         InfixNode op' l r -> Prec.readRel op' op >>= \case
-            LT -> InfixNode op' l <$> insertSegment seg r
-            _  -> return $ SuffixNode op tree
+            Just LT -> InfixNode op' l <$> insertSegment seg r
+            Just _  -> return $ SuffixNode op tree
         PrefixNode op' r -> Prec.readRel op' op >>= \case
-            LT -> PrefixNode op' <$> insertSegment seg r
-            _  -> return $ SuffixNode op tree
+            Just LT -> PrefixNode op' <$> insertSegment seg r
+            Just _  -> return $ SuffixNode op tree
         SuffixNode {} -> return $ SuffixNode op tree
 
 

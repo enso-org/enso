@@ -78,8 +78,8 @@ instance Monad m => Prec.RelReader SpacedName (StateT Scope m) where
     readRelLabel (SpacedName sa a) (SpacedName sb b) = case (sa, sb) of
          (Spaced  , Spaced  ) -> Prec.readRel a b
          (Unspaced, Unspaced) -> Prec.readRel a b
-         (_       , Spaced  ) -> pure GT
-         (Spaced, _         ) -> pure LT
+         (_       , Spaced  ) -> pure (Just GT)
+         (Spaced, _         ) -> pure (Just LT)
          _                    -> Prec.readRel a b
     {-# INLINE readRelLabel #-}
 

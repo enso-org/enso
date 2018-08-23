@@ -1,18 +1,18 @@
-{-# LANGUAGE NoStrict #-}
+{-# LANGUAGE NoStrict             #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Luna.Pass.Resolve.DefResolution where
 
 import Prologue
 
-import qualified Luna.IR                             as IR
-import qualified Luna.Pass                           as Pass
-import qualified Luna.Pass.Attr                      as Attr
-import qualified Luna.Pass.Data.Error                as Error
-import qualified Luna.Pass.Data.Stage                as TC
+import qualified Luna.IR              as IR
+import qualified Luna.Pass            as Pass
+import qualified Luna.Pass.Attr       as Attr
+import qualified Luna.Pass.Data.Error as Error
+import qualified Luna.Pass.Data.Stage as TC
 
-import Luna.Pass.Resolve.Data.UnresolvedVariables
 import Luna.Pass.Resolve.Data.Resolution
+import Luna.Pass.Resolve.Data.UnresolvedVariables
 
 data DefResolution
 
@@ -30,7 +30,7 @@ instance Pass.Definition TC.Stage DefResolution where
 
 resolveDef :: IR.Term IR.Var -> TC.Pass DefResolution ()
 resolveDef v = do
-    IR.Var n   <- IR.model v
+    IR.Var n   <- IR.modelView v
     resolver   <- Attr.get @DefResolver
     let resolution = resolve n resolver
     case resolution of

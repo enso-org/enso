@@ -1,4 +1,4 @@
-{-# LANGUAGE NoStrict #-}
+{-# LANGUAGE NoStrict             #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Luna.Pass.Sourcing.ClassProcessor where
@@ -18,17 +18,17 @@ import qualified Luna.Pass                             as Pass
 import qualified Luna.Pass.Attr                        as Attr
 import qualified Luna.Pass.Basic                       as Pass
 import qualified Luna.Pass.Data.Stage                  as TC
-import qualified Luna.Pass.Sourcing.Data.Def           as Def
 import qualified Luna.Pass.Sourcing.Data.Class         as Class
+import qualified Luna.Pass.Sourcing.Data.Def           as Def
 import qualified Luna.Pass.Sourcing.Data.Unit          as Unit
 import qualified Luna.Pass.Sourcing.Utils              as Sourcing
 import qualified Luna.Syntax.Text.Lexer.Symbol         as Syntax
 
-import Control.Lens ((^..), _Just)
-import Data.Map     (Map)
+import Control.Lens                  ((^..), _Just)
+import Data.Map                      (Map)
 import Luna.Pass.Data.Root
 import Luna.Pass.Sourcing.Data.Class hiding (root)
-import Luna.Pass.Sourcing.Data.Def hiding (documented)
+import Luna.Pass.Sourcing.Data.Def   hiding (documented)
 
 data ClassProcessor
 
@@ -49,7 +49,7 @@ instance Pass.Definition TC.Stage ClassProcessor where
 
 prepareClass :: IR.Qualified -> IR.Term IR.Record -> TC.Pass ClassProcessor (IR.SomeTerm, Class)
 prepareClass = \modName klass -> do
-    IR.Record native name params conses defs <- IR.model klass
+    IR.Record native name params conses defs <- IR.modelView klass
     parameters      <- traverse IR.source =<< ComponentVector.toList params
     paramNames      <- getParamNames parameters
     constructors    <- traverse IR.source =<< ComponentVector.toList conses
@@ -178,7 +178,7 @@ mkFieldTp root = Layer.read @IR.Model root >>= \case
             Uni.Var "->" -> do
                 case args of
                     [a1, a2] -> IR.lam' a1 a2
-                    _ -> return root
+                    _        -> return root
             _ -> return root
 
 processFieldTp :: IR.SomeTerm -> TC.Pass ClassProcessor IR.SomeTerm
@@ -229,7 +229,7 @@ registerMethod = \modName clsName paramNames map t -> do
 addSelf :: IR.Qualified -> IR.Name -> [IR.Name]
         -> IR.Term IR.Function -> TC.Pass ClassProcessor (IR.Term IR.Function)
 addSelf = \modName clsName paramNames fun -> do
-    IR.Function n as b <- IR.model fun
+    IR.Function n as b <- IR.modelView fun
     tvars <- traverse IR.var paramNames
     tp    <- IR.resolvedCons modName clsName clsName tvars
     name  <- IR.source n

@@ -40,6 +40,7 @@ dependencies:
     - filepath
     - hspec
     - hspec-megaparsec
+    - lens
     - lens-utils
     - luna-core
     - luna-exception

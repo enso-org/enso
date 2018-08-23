@@ -1,31 +1,31 @@
-{-# LANGUAGE NoStrict #-}
+{-# LANGUAGE NoStrict             #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Luna.Pass.Typing.MethodImporter where
 
 import Prologue
 
-import qualified Data.Graph.Data.Component.List        as ComponentList
-import qualified Data.Graph.Data.Component.Vector      as ComponentVector
-import qualified Data.Graph.Data.Layer.Layout          as Layout
-import qualified Data.Graph.Store                      as Store
-import qualified Data.Set                              as Set
-import qualified Luna.IR                               as IR
-import qualified Luna.IR.Aliases                       as Uni
-import qualified Luna.IR.Layer                         as Layer
-import qualified Luna.Pass                             as Pass
-import qualified Luna.Pass.Attr                        as Attr
-import qualified Luna.Pass.Data.Layer.Requester        as Requester
-import qualified Luna.Pass.Data.Stage                  as TC
-import qualified Luna.Pass.Data.Error                  as Error
-import qualified Luna.Pass.Data.UniqueNameGen          as NameGen
-import qualified Luna.Pass.Typing.Base                 as TC
-import qualified Luna.Pass.Typing.Data.Target          as Target
-import qualified Luna.Pass.Typing.Data.AccQueue        as AccQueue
-import qualified Luna.Pass.Typing.Data.AppQueue        as AppQueue
-import qualified Luna.Pass.Typing.Data.UniQueue        as UniQueue
-import qualified Luna.Pass.Typing.Data.Typed           as Typed
-import qualified Luna.Pass.Typing.Data.Progress        as Progress
+import qualified Data.Graph.Data.Component.List   as ComponentList
+import qualified Data.Graph.Data.Component.Vector as ComponentVector
+import qualified Data.Graph.Data.Layer.Layout     as Layout
+import qualified Data.Graph.Store                 as Store
+import qualified Data.Set                         as Set
+import qualified Luna.IR                          as IR
+import qualified Luna.IR.Aliases                  as Uni
+import qualified Luna.IR.Layer                    as Layer
+import qualified Luna.Pass                        as Pass
+import qualified Luna.Pass.Attr                   as Attr
+import qualified Luna.Pass.Data.Error             as Error
+import qualified Luna.Pass.Data.Layer.Requester   as Requester
+import qualified Luna.Pass.Data.Stage             as TC
+import qualified Luna.Pass.Data.UniqueNameGen     as NameGen
+import qualified Luna.Pass.Typing.Base            as TC
+import qualified Luna.Pass.Typing.Data.AccQueue   as AccQueue
+import qualified Luna.Pass.Typing.Data.AppQueue   as AppQueue
+import qualified Luna.Pass.Typing.Data.Progress   as Progress
+import qualified Luna.Pass.Typing.Data.Target     as Target
+import qualified Luna.Pass.Typing.Data.Typed      as Typed
+import qualified Luna.Pass.Typing.Data.UniQueue   as UniQueue
 
 import Data.Either         (lefts, rights)
 import Luna.Pass.Data.Root (Root (..))
@@ -72,7 +72,7 @@ deepSolve root = do
 solve :: IR.Term IR.Acc
       -> TC.Pass MethodImporter (Either (IR.Term IR.Acc) [IR.Term IR.Acc])
 solve expr = do
-    IR.Acc t n <- IR.model expr
+    IR.Acc t n <- IR.modelView expr
     target     <- IR.source t
     req        <- Requester.getRequester expr
     arising    <- Requester.getArising expr
@@ -115,7 +115,7 @@ importMethodDef req arising mod cls n = do
         Left e -> return $ Left $ e & Error.arisingFrom .~ arising
         Right rooted -> do
             hdr <- Store.deserialize rooted
-            IR.DefHeader tp' unis' accs' apps' <- IR.model hdr
+            IR.DefHeader tp' unis' accs' apps' <- IR.modelView hdr
             tp <- IR.source tp'
             unis <- traverse IR.source =<< ComponentVector.toList unis'
             accs <- traverse IR.source =<< ComponentVector.toList accs'

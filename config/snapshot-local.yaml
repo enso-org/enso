@@ -4,4 +4,4 @@ packages:
     - hspec-expectations-lifted-0.10.0
     - megaparsec-6.5.0
     - placeholders-0.1
-
+    - githash-0.1.0.1

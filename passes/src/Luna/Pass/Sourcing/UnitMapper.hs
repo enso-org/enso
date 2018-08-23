@@ -1,29 +1,29 @@
-{-# LANGUAGE NoStrict #-}
+{-# LANGUAGE NoStrict             #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Luna.Pass.Sourcing.UnitMapper where
 
 import Prologue
 
-import qualified Data.Graph.Data.Component.Vector    as ComponentVector
-import qualified Data.Graph.Data.Layer.Layout        as Layout
-import qualified Luna.IR                             as IR
-import qualified Luna.IR.Aliases                     as Uni
-import qualified Luna.IR.Layer                       as Layer
-import qualified Luna.Pass                           as Pass
-import qualified Luna.Pass.Attr                      as Attr
-import qualified Luna.Pass.Data.Stage                as TC
-import qualified Luna.Pass.Scheduler                 as Scheduler
-import qualified Luna.Pass.Sourcing.Data.Def         as Def
-import qualified Luna.Pass.Sourcing.Data.Unit        as Unit
-import qualified Luna.Pass.Sourcing.Utils            as Sourcing
+import qualified Data.Graph.Data.Component.Vector as ComponentVector
+import qualified Data.Graph.Data.Layer.Layout     as Layout
+import qualified Luna.IR                          as IR
+import qualified Luna.IR.Aliases                  as Uni
+import qualified Luna.IR.Layer                    as Layer
+import qualified Luna.Pass                        as Pass
+import qualified Luna.Pass.Attr                   as Attr
+import qualified Luna.Pass.Data.Stage             as TC
+import qualified Luna.Pass.Scheduler              as Scheduler
+import qualified Luna.Pass.Sourcing.Data.Def      as Def
+import qualified Luna.Pass.Sourcing.Data.Unit     as Unit
+import qualified Luna.Pass.Sourcing.Utils         as Sourcing
 
-import Data.Map (Map)
+import Data.Map                          (Map)
 import Luna.Pass.Data.Root
-import Luna.Pass.Sourcing.Data.Unit  hiding (root)
-import Luna.Pass.Sourcing.Data.Class hiding (root)
-import Luna.Pass.Sourcing.Data.Def   hiding (documented)
 import Luna.Pass.Sourcing.ClassProcessor
+import Luna.Pass.Sourcing.Data.Class     hiding (root)
+import Luna.Pass.Sourcing.Data.Def       hiding (documented)
+import Luna.Pass.Sourcing.Data.Unit      hiding (root)
 
 data UnitMapper
 
@@ -51,7 +51,7 @@ instance Pass.Definition TC.Stage UnitMapper where
 
 partiallyMapUnit :: IR.Term IR.Unit -> TC.Pass UnitMapper PartiallyMappedUnit
 partiallyMapUnit root = do
-    IR.Unit _ _ cls <- IR.model root
+    IR.Unit _ _ cls <- IR.modelView root
     klass <- IR.source cls
     Layer.read @IR.Model klass >>= \case
         Uni.Record _ _ _ _ decls' -> do

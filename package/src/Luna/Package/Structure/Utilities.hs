@@ -11,7 +11,8 @@ import qualified Path                          as Path
 import qualified System.Directory              as Directory
 import qualified System.FilePath               as FilePath
 
-import System.FilePath                          (FilePath, (</>))
+import Control.Lens    (element)
+import System.FilePath (FilePath, (</>))
 
 import Luna.Syntax.Text.Lexer.Token as Token
 
@@ -23,8 +24,8 @@ import Luna.Syntax.Text.Lexer.Token as Token
 
 isValidPkgName :: String -> Bool
 isValidPkgName name = length validTokens == 1
-    where validTokens = catMaybes $ Symbol.matchCons . view element
-                                 <$> Lexer.evalDefLexer (convert name)
+    where validTokens = catMaybes $ Symbol.matchCons . view token_symbol
+                                <$> Lexer.evalDefLexer (convert name)
 
 findParentPackageIfInside :: MonadIO m => FilePath -> m (Maybe FilePath)
 findParentPackageIfInside path = do
