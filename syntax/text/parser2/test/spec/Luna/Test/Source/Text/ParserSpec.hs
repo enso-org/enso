@@ -51,7 +51,7 @@ import OCI.IR.Link.Class           (type (*-*), Link)
 import Test.Hspec                  (Expectation, Spec, describe, it)
 
 
-
+import qualified Luna.Pass.Parsing.Parser as P
 
 
 -----------------------
@@ -60,69 +60,69 @@ import Test.Hspec                  (Expectation, Spec, describe, it)
 
 -- === API === --
 
-type OnDemandPass pass = (Typeable pass, Pass.Compile Parser.Parsing pass (Graph Parser.Parsing))
+-- type OnDemandPass pass = (Typeable pass, Pass.Compile Parser.Parsing pass (Graph Parser.Parsing))
 
-runPass :: ∀ pass. OnDemandPass pass => Pass Parser.Parsing pass () -> IO ()
-runPass = runPasses . pure
+-- runPass :: ∀ pass. OnDemandPass pass => Pass Parser.Parsing pass () -> IO ()
+-- runPass = runPasses . pure
 
-runPasses :: ∀ pass. OnDemandPass pass => [Pass Parser.Parsing pass ()] -> IO ()
-runPasses passes = Graph.encodeAndEval @Parser.Parsing $ Scheduler.evalT $ do
-    Parser.registerDynamic @Parser.Parsing
-    for_ passes $ \pass -> do
-        Scheduler.registerPassFromFunction__ pass -- ONLY FOR TEST SPEC
-        Scheduler.runPassByType @pass
+-- runPasses :: ∀ pass. OnDemandPass pass => [Pass Parser.Parsing pass ()] -> IO ()
+-- runPasses passes = Graph.encodeAndEval @Parser.Parsing $ Scheduler.evalT $ do
+--     Parser.registerDynamic @Parser.Parsing
+--     for_ passes $ \pass -> do
+--         Scheduler.registerPassFromFunction__ pass -- ONLY FOR TEST SPEC
+--         Scheduler.runPassByType @pass
 
 
-        -- runParser__ :: ParserPass (Pass stage Parser)
-        -- => Parsing.Parser Ast -> Text32 -> Pass stage Parser (SomeTerm, Marker.TermMap)
+--         -- runParser__ :: ParserPass (Pass stage Parser)
+--         -- => Parsing.Parser Ast -> Text32 -> Pass stage Parser (SomeTerm, Marker.TermMap)
 
-shouldParseAs :: Parsing.SyntaxVersion -> Parsing.Parser Ast -> Text -> Text
-              {- -> (Delta, Delta)-} -> IO ()
-shouldParseAs sv parser input output {-desiredSpan-} = runPass $ do
-    (ir,cs) <- Parser.runParser__ sv parser (convert input)
-        -- irb   <- parser
-        -- scope <- State.get @Scope
-        -- let Parser.IRBS (Parser.IRB irx) = irb
-        --     irb' = Parser.IRBS $ Parser.IRB $ do
-        --         ir <- irx
-        --         cs <- Layer.read @CodeSpan ir
-        --         pure (ir,cs)
-        -- pure $ (,scope) <$> irb'
-        -- pure $ (,scope) <$> irb
-    let scope = def
-    genCode <- Prettyprint.run @Prettyprint.Simple scope ir
+-- shouldParseAs :: Parsing.SyntaxVersion -> Parsing.Parser Ast -> Text -> Text
+--               {- -> (Delta, Delta)-} -> IO ()
+-- shouldParseAs sv parser input output {-desiredSpan-} = runPass $ do
+--     (ir,cs) <- Parser.runParser__ sv parser (convert input)
+--         -- irb   <- parser
+--         -- scope <- State.get @Scope
+--         -- let Parser.IRBS (Parser.IRB irx) = irb
+--         --     irb' = Parser.IRBS $ Parser.IRB $ do
+--         --         ir <- irx
+--         --         cs <- Layer.read @CodeSpan ir
+--         --         pure (ir,cs)
+--         -- pure $ (,scope) <$> irb'
+--         -- pure $ (,scope) <$> irb
+--     let scope = def
+--     genCode <- Prettyprint.run @Prettyprint.Simple scope ir
 
-    -- let span = convert $ view CodeSpan.realSpan cs :: (Delta,Delta)
-    genCode `shouldBe` output
-    -- span `shouldBe` desiredSpan
+--     -- let span = convert $ view CodeSpan.realSpan cs :: (Delta,Delta)
+--     genCode `shouldBe` output
+--     -- span `shouldBe` desiredSpan
 
-printCodePure :: Ast -> IO ()
-printCodePure ast {-desiredSpan-} = runPass $ do
-    (ir,cs) <- Parser.runMeDebug ast
-        -- irb   <- parser
-        -- scope <- State.get @Scope
-        -- let Parser.IRBS (Parser.IRB irx) = irb
-        --     irb' = Parser.IRBS $ Parser.IRB $ do
-        --         ir <- irx
-        --         cs <- Layer.read @CodeSpan ir
-        --         pure (ir,cs)
-        -- pure $ (,scope) <$> irb'
-        -- pure $ (,scope) <$> irb
-    let scope = def
-    genCode <- Prettyprint.run @Prettyprint.Simple scope ir
+-- printCodePure :: Ast -> IO ()
+-- printCodePure ast {-desiredSpan-} = runPass $ do
+--     (ir,cs) <- Parser.runMeDebug ast
+--         -- irb   <- parser
+--         -- scope <- State.get @Scope
+--         -- let Parser.IRBS (Parser.IRB irx) = irb
+--         --     irb' = Parser.IRBS $ Parser.IRB $ do
+--         --         ir <- irx
+--         --         cs <- Layer.read @CodeSpan ir
+--         --         pure (ir,cs)
+--         -- pure $ (,scope) <$> irb'
+--         -- pure $ (,scope) <$> irb
+--     let scope = def
+--     genCode <- Prettyprint.run @Prettyprint.Simple scope ir
 
-    -- let span = convert $ view CodeSpan.realSpan cs :: (Delta,Delta)
-    print genCode
-    -- span `shouldBe` desiredSpan
+--     -- let span = convert $ view CodeSpan.realSpan cs :: (Delta,Delta)
+--     print genCode
+--     -- span `shouldBe` desiredSpan
 
--- runParser :: Parsing.SyntaxVersion -> Text -> IO ()
--- runParser sv input = runPass $ do
---     exprs <- Parser.run2 sv (convert input)
---     ExprBuilder.run exprs
---     pure ()
+-- -- runParser :: Parsing.SyntaxVersion -> Text -> IO ()
+-- -- runParser sv input = runPass $ do
+-- --     exprs <- Parser.run2 sv (convert input)
+-- --     ExprBuilder.run exprs
+-- --     pure ()
 
-shouldParseItself :: Parsing.SyntaxVersion -> Parsing.Parser Ast -> Text {- -> (Delta, Delta)-} -> IO ()
-shouldParseItself sv parser input = shouldParseAs sv parser input input
+-- shouldParseItself :: Parsing.SyntaxVersion -> Parsing.Parser Ast -> Text {- -> (Delta, Delta)-} -> IO ()
+-- shouldParseItself sv parser input = shouldParseAs sv parser input input
 
 -- unitAs     = shouldParseAs     Parsing.unit'
 -- unit       = shouldParseItself Parsing.unit'
@@ -483,7 +483,7 @@ fixSpec = describe "error" $ it "x" $ do
     -- pprint $ Parser.runParserxx__ Parsing.Syntax2 Parsing.expr "foo (bar baz"
     let toks =
             -- Parser.runParserxx__ Parsing.Syntax2 Parsing.expr [s|a * b + c|]
-            Parser.run Parsing.Syntax2 "def foo a: x"
+            Parser.run Parsing.Syntax1 "def foo a : x"
             -- Parser.run Parsing.Syntax2 [s|if test then ok else fail|]
             -- Parser.run Parsing.Syntax2 [s|if test then if test2 then ok2 else fail2 else fail
 

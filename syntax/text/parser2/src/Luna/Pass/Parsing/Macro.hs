@@ -60,6 +60,7 @@ import Luna.Pass.Parsing.ExprBuilder (ExprBuilderMonad, buildExpr,
 data ChunkParser
     = Expr
     | ManyNonSpacedExpr
+    | NonSpacedExpr
     | ExprBlock
     deriving (Show)
 
@@ -193,7 +194,7 @@ syntax_list = macro
    +! segment (Ast.AstOperator $ Ast.Operator "]") []
 
 syntax_funcDed = macro
-              (Ast.AstVar      $ Ast.Var      "def") [ManyNonSpacedExpr, ManyNonSpacedExpr]
+              (Ast.AstVar      $ Ast.Var      "def") [NonSpacedExpr, ManyNonSpacedExpr]
    +! segment (Ast.AstOperator $ Ast.Operator ":")   [Expr]
 
 runSegmentBuilderT :: Monad m => [Ast] -> State.StatesT '[Stream, Registry, Reserved] m a -> m (a, Stream)
@@ -243,7 +244,8 @@ dropToken = State.modify_ @Stream $ \s -> case unwrap s of
 parseChunk :: SegmentBuilder m => ChunkParser -> m Ast
 parseChunk = \chunk -> case chunk of
     Expr              -> parseExpr'
-    ManyNonSpacedExpr -> parseNonEmptyExpr
+    NonSpacedExpr     -> parseNonSpacedExpr
+    ManyNonSpacedExpr -> parseManyNonSpacedExpr
 
 parseExpr' :: SegmentBuilder m => m Ast
 parseExpr' = buildExpr =<< go where
@@ -256,8 +258,9 @@ parseExpr' = buildExpr =<< go where
             (head:) <$> go
 {-# INLINE parseExpr' #-}
 
-parseNonEmptyExpr :: SegmentBuilder m => m Ast
-parseNonEmptyExpr = buildExpr =<< go1 where
+-- FIXME: broken logic
+parseManyNonSpacedExpr :: SegmentBuilder m => m Ast
+parseManyNonSpacedExpr = buildExpr . pure . Ast.list =<< go1 where
     go1 = tokenNotReserved >>= \case
         Nothing  -> pure mempty
         Just tok -> do
@@ -270,7 +273,18 @@ parseNonEmptyExpr = buildExpr =<< go1 where
         Just tok -> if checkLeftSpacing tok
             then pure mempty
             else go1
-{-# INLINE parseNonEmptyExpr #-}
+{-# INLINE parseManyNonSpacedExpr #-}
+
+parseNonSpacedExpr :: SegmentBuilder m => m Ast
+parseNonSpacedExpr = buildExpr =<< go where
+    go = tokenNotReserved >>= \case
+        Nothing  -> pure mempty
+        Just tok -> do
+            head <- lookupSection (Ast.unspan tok) >>= \case
+                Nothing   -> pure tok
+                Just sect -> parseSection tok sect
+            pure [head]
+{-# INLINE parseNonSpacedExpr #-}
 
 parseChunks :: SegmentBuilder m => [ChunkParser] -> m [Ast]
 parseChunks = go where
@@ -293,17 +307,18 @@ parseSegmentList = go where
         SegmentListCons tp (Segment seg chunks) lst' ->
             if Ast.unspan tok == seg
                 then acceptSegment  name lst' tok chunks
-                else discardSegment name lst' tp
+                else discardSegment name lst' seg tp
 
     acceptSegment name lst tok chunks = do
         dropToken
         outs <- withNextSegmentReserved lst (parseChunks chunks)
         (Ast.Spanned (tok ^. Ast.span) outs:) <<$>> parseSegmentList (name <> "_" <> showSection (tok ^. Ast.ast)) lst
 
-    discardSegment name lst = \case
+    -- FIXME: Should discardSegment call parseSegmentList ?
+    discardSegment name lst seg = \case
         Optional -> pure (name, mempty)
         Required -> (Ast.Spanned mempty [Ast.invalid Invalid.MissingSection]:)
-              <<$>> parseSegmentList name lst
+              <<$>> parseSegmentList (name <> "_" <> showSection seg) lst
 
 mergeSpannedLists :: [Spanned [Ast]] -> (CodeSpan, [Ast])
 mergeSpannedLists = \lst -> let

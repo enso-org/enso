@@ -48,7 +48,7 @@ data ExprBuilder
 type ExprBuilderPass m = (Pass.Interface ExprBuilder m, Component.Delete m)
 type instance Pass.Spec ExprBuilder t = Spec t
 type family   Spec  t where
-    Spec (Pass.In  Pass.Attrs) = '[Source, Result, Invalids]
+    Spec (Pass.In  Pass.Attrs) = '[Source, Result]
     Spec (Pass.In  IR.Terms)   = CodeSpan
                               ': Pass.BasicPassSpec (Pass.In IR.Terms)
     Spec (Pass.Out t)          = Spec (Pass.In t)

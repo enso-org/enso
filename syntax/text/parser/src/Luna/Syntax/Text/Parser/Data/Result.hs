@@ -4,9 +4,9 @@ module Luna.Syntax.Text.Parser.Data.Result where
 
 import Prologue
 
-import qualified Luna.IR                as IR
-import qualified Luna.Pass.Attr         as Attr
 import qualified Data.Graph.Data.Component.Class as Component
+import qualified Luna.IR                         as IR
+import qualified Luna.Pass.Attr                  as Attr
 
 
 

@@ -59,14 +59,14 @@ import Text.Parser.State.Indent                 (Indent)
 
 -- -- === Definition === --
 
-instance ExprBuilderPass (Pass stage ExprBuilder) => Pass.Definition stage ExprBuilder where
-    definition = do
-        src             <- Attr.get @Source
-        print "!!!!!"
-        print src
-        undefined
-        -- (unit, markers) <- runParser__ Parsing.unit (convert src)
-        -- Attr.put $ Result unit
+-- instance ExprBuilderPass (Pass stage ExprBuilder) => Pass.Definition stage ExprBuilder where
+--     definition = do
+--         src             <- Attr.get @Source
+--         print "!!!!!"
+--         print src
+--         undefined
+--         -- (unit, markers) <- runParser__ Parsing.unit (convert src)
+--         -- Attr.put $ Result unit
 
 
 -- -- === API === --
@@ -75,19 +75,19 @@ instance ExprBuilderPass (Pass stage ExprBuilder) => Pass.Definition stage ExprB
 -- -- registerStatic = do
 -- --     Registry.registerPrimLayer @IR.Terms @CodeSpan
 
-registerDynamic :: ∀ stage m.
-    ( ExprBuilderPass (Pass stage ExprBuilder)
-    , Scheduler.PassRegister stage ExprBuilder m
-    , Scheduler.Monad m
-    ) => m ()
-registerDynamic = do
-    Scheduler.registerAttr     @Invalids
-    Scheduler.enableAttrByType @Invalids
-    Scheduler.registerAttr     @Source
-    Scheduler.enableAttrByType @Source
-    Scheduler.registerAttr     @Result
-    Scheduler.enableAttrByType @Result
-    Scheduler.registerPass     @stage @ExprBuilder
+-- registerDynamic :: ∀ stage m.
+--     ( ExprBuilderPass (Pass stage ExprBuilder)
+--     , Scheduler.PassRegister stage ExprBuilder m
+--     , Scheduler.Monad m
+--     ) => m ()
+-- registerDynamic = do
+--     Scheduler.registerAttr     @Invalids
+--     Scheduler.enableAttrByType @Invalids
+--     Scheduler.registerAttr     @Source
+--     Scheduler.enableAttrByType @Source
+--     Scheduler.registerAttr     @Result
+--     Scheduler.enableAttrByType @Result
+--     Scheduler.registerPass     @stage @ExprBuilder
 
 
 -- -- === Internal === --
