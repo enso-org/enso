@@ -13,10 +13,12 @@ import qualified Luna.Pass                              as Pass
 import qualified Luna.Pass.Attr                         as Attr
 import qualified Luna.Pass.Scheduler                    as Scheduler
 import qualified Luna.Syntax.Text.Lexer                 as Lexer
+import qualified Luna.Syntax.Text.Lexer.Symbol          as Symbol
 import qualified Luna.Syntax.Text.Parser.IR.Class       as Token
 import qualified Luna.Syntax.Text.Parser.IR.Term        as Parsing
 import qualified Luna.Syntax.Text.Parser.State.Marker   as Marker
 import qualified Text.Megaparsec                        as Parser
+import qualified Text.Parser.State.Indent               as State.Indent
 
 import Data.Text.Position                          (FileOffset)
 import Data.Text32                                 (Text32)
@@ -29,13 +31,13 @@ import Luna.Syntax.Text.Parser.IR.Class            (Error, ParserBase, Stream,
                                                     Token)
 import Luna.Syntax.Text.Parser.Pass.Class          (IRB (fromIRB), IRBS, Parser,
                                                     ParserPass, fromIRBS)
-import Luna.Syntax.Text.Parser.State.Indent        (Indent)
 import Luna.Syntax.Text.Parser.State.LastOffset    (LastOffset)
 import Luna.Syntax.Text.Parser.State.Reserved      (Reserved)
 import Luna.Syntax.Text.Scope                      (Scope)
 import Luna.Syntax.Text.Source                     (Source)
 import Text.Megaparsec                             (ParseError, ParsecT)
 import Text.Megaparsec.Error                       (parseErrorPretty)
+import Text.Parser.State.Indent                    (Indent)
 
 
 
@@ -90,7 +92,7 @@ runParserContext__ p s
     $ State.evalDefT @Marker.State
     -- $ State.evalDefT @Position
     $ State.evalDefT @FileOffset
-    $ State.evalDefT @Indent
+    $ State.Indent.eval
     $ hardcode >> p
 {-# INLINE runParserContext__ #-}
 
@@ -100,7 +102,8 @@ runParser__ p src = do
     let tokens = Lexer.evalDefLexer src
         parser = Parsing.stx *> p <* Parsing.etx
     runParserContext__ parser tokens >>= \case
-        Left e -> error ("Parser error: " <> parseErrorPretty e <> "\ntokens:\n" <> show tokens)
+        Left e -> error ("Parser error: " <> parseErrorPretty e <> "\ntokens:\n"
+               <> show (view Symbol.symbol <$> tokens))
         Right irbs -> do
             ((ref, unmarked), gidMap) <- State.runDefT @Marker.TermMap
                                        $ State.runDefT @Marker.TermOrphanList

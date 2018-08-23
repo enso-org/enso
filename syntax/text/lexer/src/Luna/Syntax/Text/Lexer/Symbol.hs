@@ -150,6 +150,7 @@ checkSpecialVar = \case
     "import"  -> KwImport
     "native"  -> KwNative
     "of"      -> KwOf
+    "_"       -> Wildcard
     s         -> Var s
 {-# INLINE checkSpecialVar #-}
 

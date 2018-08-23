@@ -80,10 +80,11 @@ GTraversable.derive ''ForeignImportType
 
 Term.define [d|
  data Ast
-    = AccSection   { path     :: Vec16 Name                                   }
+    = AccSection   { path     :: Vec16 Name                                    }
     | Cons         { name     :: Name         , args  :: LinksTo Terms         }
     | Disabled     { body     :: LinkTo Terms                                  }
     | Documented   { doc      :: Vec16  Char  , base   :: LinkTo  Terms        }
+    | ExprList     { exprs    :: LinksTo Terms                                 }
     | Function     { name     :: LinkTo Terms , args   :: LinksTo Terms
                    , body     :: LinkTo Terms                                  }
     | DefHeader    { tp       :: LinkTo Terms  , unis   :: LinksTo Terms
@@ -111,6 +112,8 @@ Term.define [d|
     | Typed        { base     :: LinkTo Terms , tp     :: LinkTo Terms         }
     | Unit         { imps     :: LinkTo Terms , units  :: LinksTo Terms
                    , cls      :: LinkTo Terms                                  }
+    | LineBreak    { indent   :: Int                                           }
+    | Tokens       { toks     :: LinksTo Terms                                 }
     -- DEPRECATED:
     | FunctionSig  { name     :: LinkTo Terms , sig    :: LinkTo Terms         }
  |]

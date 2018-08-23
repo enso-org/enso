@@ -73,9 +73,8 @@ instance Mempty  Scope where mempty = Scope mempty mempty mempty mempty
 instance Default Scope where def    = mempty
 
 instance Monad m => Prec.RelReader Name (StateT Scope m) where
-    readRelLabel a b = fromMaybe (error $ "FIXME: prec not found between " <> show a <> " and " <> show b)
-                     . view (Prec.inferred . at a . at' b)
-                   <$> getPrecRelMap
+    readRelLabel = \a b -> view (Prec.inferred . at a . at' b) <$> getPrecRelMap
+    {-# INLINE readRelLabel #-}
 
 instance Monad m => Prec.RelWriter Name (StateT Scope m) where
     writeRelLabel t a b = State.modify_ @Scope $ precRelMap %~ Prec.insertRel t a b

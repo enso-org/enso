@@ -3,9 +3,11 @@
 module Main where
 
 import Criterion.Main
-import Luna.Syntax.Text.Lexer
-import Prologue               as P hiding (Symbol)
-import System.IO              (BufferMode (NoBuffering), hSetBuffering, stdout)
+
+import qualified Luna.Syntax.Text.Lexer as Lexer
+import           Prologue               as P hiding (Symbol)
+import           System.IO              (BufferMode (NoBuffering),
+                                         hSetBuffering, stdout)
 
 import           Data.Attoparsec.Text               as Parser
 import qualified Data.Attoparsec.Text32             as T32
@@ -49,6 +51,7 @@ mkVariablesL1  i = fromString . mconcat $ replicate i "a "          ; {-# INLINE
 mkVariablesL5  i = fromString . mconcat $ replicate i "abcde "      ; {-# INLINE mkVariablesL5  #-}
 mkVariablesL10 i = fromString . mconcat $ replicate i "abcdefghij " ; {-# INLINE mkVariablesL10 #-}
 
+-- parse2 :: Parser (a, Int) -> EntryStack -> Text32   -> IResult Text32 ((a, Int), EntryStack)
 
 main :: IO ()
 main = do
@@ -58,20 +61,20 @@ main = do
     -- putStrLn $ "'" <> convert code <> "'"
     -- pprint $ evalDefLexer $ code
     -- pprint $ evalDefLexer $ "a = 'foo'"
-    -- pprint $ evalDefLexer $ "a = a.x += 5"
+    pprint $ Lexer.evalDefLexer $ "_"
 
     -- pprint $ tagColumn mempty $ evalDefLexer " ff #def foo:\n      bar\n    def baz: pass"
     -- pprint $ tagDisabled' [0] $ evalDefLexer " ff #def foo:\n      bar\n    def baz: pass"
-    defaultMain
-        [ bgroup "big variable"                $ expCodeGenBenchs evalDefLexer           mkBigVariable
-        , bgroup "random code"                 $ expCodeGenBenchs evalDefLexer           mkRandomCode
-        , bgroup "variables L1"                $ expCodeGenBenchs evalDefLexer           mkVariablesL1
-        , bgroup "variables L5"                $ expCodeGenBenchs evalDefLexer           mkVariablesL5
-        , bgroup "variables L10"               $ expCodeGenBenchs evalDefLexer           mkVariablesL10
-        , bgroup "terminators"                 $ expCodeGenBenchs evalDefLexer           mkCodeTerminators
-        , bgroup "manual terminator parser 16" $ expCodeGenBenchs manualTerminatorParser16 mkCodeTerminators
-        , bgroup "manual terminator parser 32" $ expCodeGenBenchs manualTerminatorParser32 mkCodeTerminators
-        ]
+    -- defaultMain
+    --     [ bgroup "big variable"                $ expCodeGenBenchs Lexer.evalDefLexer           mkBigVariable
+    --     , bgroup "random code"                 $ expCodeGenBenchs Lexer.evalDefLexer           mkRandomCode
+    --     , bgroup "variables L1"                $ expCodeGenBenchs Lexer.evalDefLexer           mkVariablesL1
+    --     , bgroup "variables L5"                $ expCodeGenBenchs Lexer.evalDefLexer           mkVariablesL5
+    --     , bgroup "variables L10"               $ expCodeGenBenchs Lexer.evalDefLexer           mkVariablesL10
+    --     , bgroup "terminators"                 $ expCodeGenBenchs Lexer.evalDefLexer           mkCodeTerminators
+    --     , bgroup "manual terminator parser 16" $ expCodeGenBenchs manualTerminatorParser16 mkCodeTerminators
+    --     , bgroup "manual terminator parser 32" $ expCodeGenBenchs manualTerminatorParser32 mkCodeTerminators
+    --     ]
 
 manualTerminatorParser16 :: Text   -> Either String [Char]
 manualTerminatorParser32 :: Text32 -> Either String [Char]

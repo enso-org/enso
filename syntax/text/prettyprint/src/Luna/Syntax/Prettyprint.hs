@@ -7,37 +7,42 @@ module Luna.Syntax.Prettyprint where
 import qualified Prelude  as P
 import           Prologue hiding (Symbol)
 
-import qualified Control.Monad.State.Layered      as State
-import qualified Data.Char                        as Char
-import qualified Data.Graph.Component.Edge.Class  as Link
-import qualified Data.Graph.Data.Component.Vector as ComponentVector
-import qualified Data.Graph.Data.Layer.Layout     as Layout
-import qualified Data.Layout                      as Layout
-import qualified Data.Layout                      as Doc
-import qualified Data.Mutable.Class               as Mutable
-import qualified Data.Text                        as Text
-import qualified Data.Vector.Storable.Foreign     as Vector
-import qualified Language.Symbol.Operator.Assoc   as Assoc
-import qualified Language.Symbol.Operator.Prec    as Prec
-import qualified Luna.IR                          as IR
-import qualified Luna.IR.Aliases                  as Uni
-import qualified Luna.IR.Layer                    as Layer
-import qualified Luna.IR.Link                     as Link
-import qualified Luna.IR.Term.Literal             as Literal
-import qualified Luna.Pass                        as Pass
-import qualified Luna.Syntax.Text.Lexer.Grammar   as Grammar
-import qualified Luna.Syntax.Text.Scope           as Scope
-import qualified OCI.Data.Name                    as Name
-import Control.Monad.State.Layered  (StateT)
-import Data.Layout                  (backticked, quoted, singleQuoted, space,
-                                     (</>))
-import Data.Layout                  (block, indented, parensed, (<+>))
-import Data.Vector.Storable.Foreign (Vector)
-import Language.Symbol.Label        (Labeled (Labeled), label, labeled, unlabel)
-import Luna.IR                      (Name)
-import Luna.Pass                    (Pass)
-import Luna.Syntax.Text.Parser.Data.Name.Hardcoded (hardcode)
-import Luna.Syntax.Text.Scope       (Scope)
+import           Control.Monad.State.Layered                 (StateT)
+import qualified Control.Monad.State.Layered                 as State
+import qualified Data.Char                                   as Char
+import qualified Data.Graph.Component.Edge.Class             as Link
+import qualified Data.Graph.Data.Component.Vector            as ComponentVector
+import qualified Data.Graph.Data.Layer.Layout                as Layout
+import           Data.Layout                                 (backticked,
+                                                              quoted,
+                                                              singleQuoted,
+                                                              space, (</>))
+import           Data.Layout                                 (block, indented,
+                                                              parensed, (<+>))
+import qualified Data.Layout                                 as Layout
+import qualified Data.Layout                                 as Doc
+import qualified Data.Mutable.Class                          as Mutable
+import qualified Data.Text                                   as Text
+import           Data.Vector.Storable.Foreign                (Vector)
+import qualified Data.Vector.Storable.Foreign                as Vector
+import           Language.Symbol.Label                       (Labeled (Labeled),
+                                                              label, labeled,
+                                                              unlabel)
+import qualified Language.Symbol.Operator.Assoc              as Assoc
+import qualified Language.Symbol.Operator.Prec               as Prec
+import           Luna.IR                                     (Name)
+import qualified Luna.IR                                     as IR
+import qualified Luna.IR.Aliases                             as Uni
+import qualified Luna.IR.Layer                               as Layer
+import qualified Luna.IR.Link                                as Link
+import qualified Luna.IR.Term.Literal                        as Literal
+import           Luna.Pass                                   (Pass)
+import qualified Luna.Pass                                   as Pass
+import qualified Luna.Syntax.Text.Lexer.Grammar              as Grammar
+import           Luna.Syntax.Text.Parser.Data.Name.Hardcoded (hardcode)
+import           Luna.Syntax.Text.Scope                      (Scope)
+import qualified Luna.Syntax.Text.Scope                      as Scope
+import qualified OCI.Data.Name                               as Name
 
 
 
@@ -46,6 +51,7 @@ import Luna.Syntax.Text.Scope       (Scope)
 -- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 minusName       = "-"
 uminusName      = "#uminus#"
+lineBreakName   = "#linebreak#"
 appName         = "#app#"
 accName         = "."
 lamName         = ":"
@@ -96,9 +102,9 @@ notSpaced = SpacedName False
 
 instance Monad m => Prec.RelReader SpacedName (StateT Scope m) where
     readRelLabel (SpacedName sa a) (SpacedName sb b) = if
-        | a == "."     -> pure GT
-        | sa && not sb -> pure LT
-        | sb && not sa -> pure GT
+        | a == "."     -> pure (Just GT)
+        | sa && not sb -> pure (Just LT)
+        | sb && not sa -> pure (Just GT)
         | otherwise    -> Prec.readRel a b
 
 instance Monad m => Assoc.Reader (Maybe SpacedName) (StateT Scope m) where
@@ -197,8 +203,9 @@ appSymbols' sf@(Labeled flab fsym) sa = do
     argParen <- case (sf^.label, sa^.label) of
         (Just flab, Just alab) -> do
             prec <- case fsym of
-                Infix _ -> compare EQ <$> Prec.readRelLabel alab flab
-                _       -> Prec.readRelLabel flab alab
+                -- FIXME unsafeFromJust
+                Infix _ -> compare EQ . unsafeFromJust <$> Prec.readRelLabel alab flab
+                _       -> unsafeFromJust <$> Prec.readRelLabel flab alab
             pure $ \asc -> case prec of
                 LT -> False
                 GT -> True
@@ -271,7 +278,7 @@ instance ( MonadIO m -- DEBUG ONLY
         IR.UniTermImportHub (IR.ImportHub is)
             -> simple . foldl (</>) mempty <$> (mapM subgenBody =<< ComponentVector.toList is)
         IR.UniTermInvalid (IR.Invalid t)
-            -> pure . named (spaced appName) . Atom $ "Invalid" <+> convert (show t)
+            -> pure . named (spaced appName) . Atom $ parensed <$> convert (show t)
         IR.UniTermLam (IR.Lam arg body)
             -> named (notSpaced lamName) . Atom
             .: (<>) <$> subgenBody arg <*> smartBlock body
@@ -331,14 +338,26 @@ instance ( MonadIO m -- DEBUG ONLY
         IR.UniTermVar (IR.Var name) -> Scope.lookupMultipartName name <&> \case
             Just (n:|ns) -> labeled Nothing $ Mixfix (convert n) ns
             Nothing -> if | Grammar.isOperator name -> named (spaced    name) $ Infix (convert name)
-                          | name == appName    -> named (notSpaced name) $ Infix (convert name)
-                          | name == uminusName -> named (notSpaced name) $ Prefix minusName
-                          | otherwise          -> unnamed                $ Atom   (convert name)
+                          | name == appName         -> named (notSpaced name) $ Infix (convert name)
+                          | name == uminusName      -> named (notSpaced name) $ Prefix minusName
+                          | name == lineBreakName   -> unnamed                $ Atom   "\n"
+                          | otherwise               -> unnamed                $ Atom   (convert name)
         IR.UniTermResolvedCons (IR.ResolvedCons m c cons args) -> do
             args' <- mapM subgen =<< ComponentVector.toList args
             foldM appSymbols (simple $ convert (Name.concat [convert m, ".", c, ".", cons])) args'
         IR.UniTermResolvedDef (IR.ResolvedDef m n) -> pure . unnamed $ Atom (convert $ Name.concat [convert m, ".", n])
 
+        IR.UniTermUpdate (IR.Update a ns v) -> named (spaced updateName) . Atom .:.
+            (\a' v' ns' -> convert a' <> "." <> intercalate "." (convert <$> ns')
+            <+> "=" <+> convert v') <$> subgen a <*> subgen v <*> Mutable.toList ns
+
+        IR.UniTermModify (IR.Modify a ns n v) -> named (spaced updateName) . Atom .:.
+            (\a' v' ns' -> convert a' <> "." <> intercalate "." (convert <$> ns')
+                <+> convert n <> "=" <+> convert v')
+            <$> subgen a <*> subgen v <*> Mutable.toList ns
+        IR.UniTermImp {} -> pure $ simple "imports ..."
+        IR.UniTermExprList (IR.ExprList elems) -> simple . intercalate " "
+            <$> (mapM subgenBody =<< ComponentVector.toList elems)
         t -> error $ "NO PRETTYPRINT FOR: " <> show t
 
 --     prettyprint style subStyle root = matchExpr root $ \case

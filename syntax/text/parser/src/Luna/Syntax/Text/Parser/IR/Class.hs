@@ -14,13 +14,13 @@ import qualified Text.Megaparsec                      as Parsec
 import Control.Monad.State.Layered              (StatesT)
 import Data.Text.Position                       (FileOffset)
 import Luna.Syntax.Text.Parser.Data.CodeSpan    (CodeSpanRange)
-import Luna.Syntax.Text.Parser.State.Indent     (Indent)
 import Luna.Syntax.Text.Parser.State.LastOffset (LastOffset)
 import Luna.Syntax.Text.Parser.State.Reserved   (Reserved)
 import Luna.Syntax.Text.Scope                   (Scope)
 import Text.Megaparsec                          (ParsecT)
 import Text.Megaparsec                          (MonadParsec)
 import Text.Parser.Backend.Megaparsec           ()
+import Text.Parser.State.Indent                 (Indent)
 
 
 
@@ -30,7 +30,7 @@ import Text.Parser.Backend.Megaparsec           ()
 
 -- === Definition === --
 
-type Token       = Lexer.Token Lexer.Symbol
+type Token       = Lexer.Token
 type Stream      = [Token]
 type Error       = Void
 type MonadParser = MonadParsec Error Stream

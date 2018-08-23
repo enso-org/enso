@@ -106,8 +106,9 @@ identSpec = describe "identifier" $ do
     it "constructor 2"     $ expr "Vector x 1 z"
     it "unicode name"      $ expr "Κοηστρυκτορ"
     it "wildcard"          $ expr "_"
+    it "underscored var"   $ expr "_foo"
+    it "underscored var2"  $ expr "__foo"
     it "caseless header"   $ exprAs "מfoo" "Invalid CaselessNameHead"
-    it "double underscore" $ exprAs "__"   "Invalid UnexpectedSuffix 1"
     it "invalid var 1"     $ exprAs "f'o"  "Invalid UnexpectedSuffix 1"
     it "invalid var 2"     $ exprAs "f?o"  "Invalid UnexpectedSuffix 1"
     it "invalid var 3"     $ exprAs "f'?"  "Invalid UnexpectedSuffix 1"
@@ -142,12 +143,6 @@ literalStringSpec = describe "string" $ do
         it "escape escape"     $ expr   [s|"foo\\"|]
         it "implicite escape"  $ exprAs [s|"foo\bar"|] [s|"foo\\bar"|]
 
-        -- it "integer escape"    $ exprAs [s|"foo\100ar"|]  [s|"foo\\100ar"|]
-        -- it "escape e-1"        $ exprAs [s|"foo\nbar"|]   [s|"foo\\nbar"|]
-        -- it "escape e-2"        $ exprAs [s|"foo\BSbar"|]  [s|"foo\\BSbar"|]
-        -- it "escape e-3"        $ exprAs [s|"foo\NULbar"|] [s|"foo\\NULbar"|]
-        -- it "wrong escape e-1"  $ exprAs [s|"foo\Nbar"|]   [s|"dasd"|]
-
     describe "interpolated" $ do
         it "empty"            $ expr [s|''|]
         it "simple"           $ expr [s|'Test'|]
@@ -159,7 +154,8 @@ literalStringSpec = describe "string" $ do
         it "escape e-2"       $ exprAs [s|'foo\BSbar'|]  [s|'foo\bbar'|]
         it "escape e-3"       $ exprAs [s|'foo\NULbar'|] [s|'foo\NULbar'|]
         it "wrong escape e-1" $ exprAs [s|'foo\Nbar'|]   [s|Invalid Literal (String EscapeCode)|]
-        -- TODO: it "not closed"       $ exprAs [s|'foo|]         [s|Invalid Literal (String EscapeCode)|]
+        -- it "not closed"       $ exprAs [s|'foo|]         [s|Invalid Literal (String EscapeCode)|]
+        -- it "multiline"        $ exprAs "a = 'foo\nbar'"         [s|Invalid Literal (String EscapeCode)|]
         -- it "escaping newline"  $ exprAs [s|'\n'|] "\"\n\""              -- [(0,4)]
         --     it "tripple single-quoted oneliner"             $ do shouldParseAs expr     "'''The quick brown fox jumps over the lazy dog'''"    "'The quick brown fox jumps over the lazy dog'"
         --     it "multiline string with inline start"         $ do shouldParseAs expr     "'The quick \n brown fox jumps over the lazy dog'"     "'The quick \nbrown fox jumps over the lazy dog'"
@@ -302,10 +298,10 @@ termPatternSpec = describe "pattern" $ do
 -- FIXME: Hack, for details see Parsing.hs
 termModifierSpec :: Spec
 termModifierSpec = describe "modifiers" $ do
-    it "field update"            $ exprAs "a = a.x = v"  "a = a . x= v"  -- [(0,1),(0,1),(0,3),(3,1),(3,7),(0,11)]
-    it "field drop update"       $ exprAs "a.x = v"      "a . x= v"      -- [(0,1),(0,3),(3,1),(0,7)]
-    it "field modification"      $ exprAs "a = a.x += v" "a = a . x+= v" -- [(0,1),(0,1),(0,3),(4,1),(3,8),(0,12)]
-    it "field drop modification" $ exprAs "a.x += v"     "a . x+= v"     -- [(0,1),(0,3),(4,1),(0,8)]
+    it "field update"            $ expr "a = a.x = v"  -- [(0,1),(0,1),(0,3),(3,1),(3,7),(0,11)]
+    it "field drop update"       $ expr "a.x = v"      -- [(0,1),(0,3),(3,1),(0,7)]
+    it "field modification"      $ expr "a = a.x += v" -- [(0,1),(0,1),(0,3),(4,1),(3,8),(0,12)]
+    it "field drop modification" $ expr "a.x += v"     -- [(0,1),(0,3),(4,1),(0,8)]
     -- FIXME: Correct implementation (vvv). Uncomment when above hack will be invalid.
         -- it "variable's field update"                    $ shouldParseItself' expr "a = a.x = v"                               [(0,1),(0,1),(5,1),(3,7),(0,11)]
         -- it "variable's field drop update"               $ shouldParseItself' expr "a.x = v"                                   [(0,1),(5,1),(0,7)]
@@ -363,7 +359,7 @@ invalidUnitSpec = describe "invalid unit definitions" $ do
     it "def without body 1"
         $ unitAs_n "def foo" "def foo: Invalid FunctionBlock"
     it "def without body 2"
-        $ unitAs_n "def foo:" "def foo: Invalid FunctionBlock"
+        $ unitAs_n "def foo:" "def foo:"
 
 
 caseSpec :: Spec
@@ -382,6 +378,20 @@ layoutSpec = describe "layout" $ do
                                   </> "        a - b"
                                   </> "    c"
                                   )
+
+    it "nested lambda layout" $ unitAs   ("import Std.Base"
+                                      </> "def foo:"
+                                      </> "«0»def main:"
+                                      </> "    «1»4"
+                                      )  ("imports ..."
+                                      </> "def foo:"
+                                      </> "«0»def main: «1»4"
+                                      )
+
+-- import Std.Base
+-- def foof:
+-- «0»def main:
+--     «1»4
 
 definitionSpec :: Spec
 definitionSpec = do

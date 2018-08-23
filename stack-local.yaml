@@ -32,9 +32,11 @@ packages:
     - package
     - runtime
     - stdlib
+    - shell
     - syntax/text/lexer
     - syntax/text/model
     - syntax/text/parser
+    - syntax/text/parser2
     - syntax/text/prettyprint
 
     - lib/autovector

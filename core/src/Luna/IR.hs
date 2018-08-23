@@ -1,6 +1,6 @@
 {-# LANGUAGE Strict #-}
 
-module Luna.IR (module X) where
+module Luna.IR (module Luna.IR, module X) where
 
 import Data.Graph.Component.Node.Destruction as X
 import Data.Graph.Data                       as X (destruct, destruct1,
@@ -13,3 +13,11 @@ import OCI.IR.Link.Class                     as X (Link, Links, SomeLink,
                                                    target)
 import OCI.IR.Term                           as X
 
+import qualified Luna.IR.Layer as Layer
+
+readLayer  :: ∀ layer t lyt m. Layer.Reader t layer m => t lyt -> m (Layer.Data layer lyt)
+writeLayer :: ∀ layer t lyt m. Layer.Writer t layer m => t lyt -> Layer.Data layer lyt -> m ()
+readLayer  = Layer.read  @layer
+writeLayer = Layer.write @layer
+{-# INLINE readLayer  #-}
+{-# INLINE writeLayer #-}

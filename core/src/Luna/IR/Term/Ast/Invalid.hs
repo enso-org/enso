@@ -25,6 +25,16 @@ data Symbol
     | UnexpectedSuffix {- len -} !Int
     | CaselessNameHead
     | Literal InvalidLiteral
+    | InvalidMarker
+    | InvalidFunctionName
+    | InvalidFunctionArg
+    | MissingColonBlock
+    | InvalidFunctionDefinition
+    | AdjacentOperators
+    | Unknown
+    | EmptyExpression
+    | AssocConflict
+    | MissingSection
     deriving (Eq, Ord, Generic, Show)
 -- instance ExternalStorable Symbol
 -- instance ExternalFieldStorable Symbol
@@ -35,6 +45,7 @@ data InvalidLiteral
 
 data InvalidString
     = EscapeCode
+    | NoClosingMark
     deriving (Eq, Ord, Generic, Show)
 
 Storable.derive     ''Symbol
