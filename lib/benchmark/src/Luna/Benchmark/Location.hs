@@ -16,7 +16,7 @@ import qualified GHC.Stack          as Stack
 
 
 --------------------
--- === SrcLoc === --
+-- === Location === --
 --------------------
 
 -- === API === --

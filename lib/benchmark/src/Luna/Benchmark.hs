@@ -112,13 +112,11 @@ benchWith cfg comp = do
 {-# NOINLINE benchWith #-}
 
 
--- test :: Location.HasCallStack => IO Int
 test :: IO Int
 test = fst <$> bench tester where
     tester :: Bench Int
     tester = do
-        void $ tick "label" id (1 :: Int)
-        time "label" id (1 :: Int)
+        tick "label" id (1 :: Int)
 
 
 -----------------
@@ -214,4 +212,13 @@ mem label !f !b = do
 
     pure . List.head $ fst <$> result
 {-# NOINLINE mem #-}
+
+measure :: forall a b m . (NFData a, MonadBench m, Location.HasCallStack)
+    => Text -> (b -> a) -> b -> m a
+measure label !f !b = do
+    void $ mem  label f b
+    void $ time label f b
+
+    tick label f b
+{-# NOINLINE measure #-}
 

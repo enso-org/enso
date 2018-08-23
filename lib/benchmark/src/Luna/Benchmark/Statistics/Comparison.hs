@@ -324,5 +324,5 @@ instance StyledShow Pretty ComparisonResult where
             <> renderComparisons (compResult ^. avgNumGCsComp . _2) <> "\n"
         <> ind <> "Standard Deviation GCs: "
             <> convert (show (compResult ^. stdNumGCsComp . _1)) <> delta
-            <> renderComparisons (compResult ^. stdNumGCsComp . _2) <> "\n"
+            <> renderComparisons (compResult ^. stdNumGCsComp . _2)
 
