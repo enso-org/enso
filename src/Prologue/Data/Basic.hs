@@ -19,6 +19,8 @@ import Prelude as X ( Bool(True,False), (&&), (||), not, otherwise
                     , Ord (compare, (<), (<=), (>), (>=), max, min)
                     , fst, snd
                     )
+import Control.Monad
+
 
 -- === Utils === --
 
@@ -68,12 +70,24 @@ deriving instance Functor ((,,,,,,,,,) t1 t2 t3 t4 t5 t6 t7 t8 t9)
 ifThenElse   ::               Bool -> a -> a -> a
 ifThenElseId ::               Bool -> (a -> a) -> (a -> a)
 ifThenMempty :: (Mempty a) => Bool -> a -> a
-ifThenElse   cond ok fl = if cond then ok else fl     ; {-# INLINE ifThenElse   #-}
-ifThenElseId cond f     = if cond then f  else id     ; {-# INLINE ifThenElseId #-}
-ifThenMempty cond ok    = if cond then ok else mempty ; {-# INLINE ifThenMempty #-}
+ifThenElse   cond ok fl = if cond then ok else fl     
+ifThenElseId cond f     = if cond then f  else id     
+ifThenMempty cond ok    = if cond then ok else mempty 
+{-# INLINE ifThenElse   #-}
+{-# INLINE ifThenElseId #-}
+{-# INLINE ifThenMempty #-}
+
+ifM :: Monad m => m Bool -> m a -> m a -> m a
+ifM = \mcond ok fail -> mcond >>= (\cond -> if cond then ok else fail)
+{-# INLINE ifM #-}
 
 switch :: a -> a -> Bool -> a
-switch ok fail cond = if cond then ok else fail ; {-# INLINE switch #-}
+switch = \ok fail cond -> ifThenElse cond ok fail
+{-# INLINE switch #-}
+
+switchM :: Monad m => m a -> m a -> m Bool -> m a
+switchM = \ok fail mcond -> ifM mcond ok fail 
+{-# INLINE switchM #-}
 
 
 -- === List-like manipulation === --
