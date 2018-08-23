@@ -5,10 +5,14 @@ module Luna.Benchmark.Statistics where
 import Prologue
 
 import qualified Control.Lens.Aeson                 as Lens
+import qualified Data.Set                           as Set
 import qualified Data.Yaml                          as Yaml
+import qualified Luna.Benchmark.Location            as Location
 import qualified Luna.Benchmark.Statistics.Internal as Internal
 
-import Perf                  (Cycle)
+import Data.Set                (Set)
+import Luna.Benchmark.Location (SrcLoc)
+import Perf                    (Cycle)
 
 
 
@@ -202,10 +206,11 @@ instance StyledShow Pretty MemStats where
 -- === Definition === --
 
 data Statistics = Statistics
-    { _locationName :: !Text
-    , _timeInfo     :: !TimeStats
-    , _tickInfo     :: !TickStats
-    , _memInfo      :: !MemStats
+    { _locationName    :: !Text
+    , _sourceLocations :: !(Set SrcLoc)
+    , _timeInfo        :: !TimeStats
+    , _tickInfo        :: !TickStats
+    , _memInfo         :: !MemStats
     } deriving (Eq, Generic, Ord, Show)
 makeLenses ''Statistics
 
@@ -213,7 +218,7 @@ makeLenses ''Statistics
 -- === Instances === --
 
 instance Default Statistics where
-    def = Statistics def def def def
+    def = Statistics def Set.empty def def def
 
 instance Yaml.FromJSON Statistics where
     parseJSON = Lens.parseYamlStyle
@@ -223,7 +228,8 @@ instance Yaml.ToJSON Statistics where
     toEncoding = Lens.toEncodingYamlStyle
 
 instance Semigroup Statistics where
-    (Statistics l1 time1 tick1 mem1) <> (Statistics _ time2 tick2 mem2)
-        = Statistics l1 (time1 <> time2) (tick1 <> tick2) (mem1 <> mem2)
+    (Statistics l1 locs1 time1 tick1 mem1) <> (Statistics _ locs2 time2 tick2 mem2)
+        = Statistics l1 (locs1 `Set.union` locs2) (time1 <> time2)
+            (tick1 <> tick2) (mem1 <> mem2)
     {-# INLINE (<>) #-}
 

@@ -5,9 +5,11 @@ module Luna.Benchmark.Statistics.Comparison where
 import Prologue
 
 import qualified Data.Map                  as Map
+import qualified Data.Set                  as Set
 import qualified Luna.Benchmark.Statistics as Statistics
 
 import Data.Map                                     (Map)
+import Luna.Benchmark.Location                      (SrcLoc)
 import Luna.Benchmark.Statistics                    (Statistics)
 import Luna.Benchmark.Statistics.Comparison.Orphans ()
 import Perf                                         (Cycle)
@@ -50,6 +52,7 @@ instance (Show a) => StyledShow Pretty (Comparison a) where
 
 data ComparisonResult = ComparisonResult
     { _locName            :: !Text
+    , _sourceLocs         :: ![SrcLoc]
     , _maxTimeComp        :: !(Double, [Comparison Double])
     , _minTimeComp        :: !(Double, [Comparison Double])
     , _avgTimeComp        :: !(Double, [Comparison Double])
@@ -87,6 +90,7 @@ compare current history = for (Map.elems current) $ \loc -> do
         histResults = catMaybes $ (Map.lookup key) <$> history
         result      = def @ComparisonResult
             & locName     .~ (loc ^. Statistics.locationName)
+            & sourceLocs  .~ (Set.toList $ loc ^. Statistics.sourceLocations )
             & maxTimeComp .~
                 ( loc ^. Statistics.timeInfo . Statistics.maxTime
                 , compareField loc (Statistics.timeInfo . Statistics.maxTime)
@@ -225,6 +229,9 @@ compareField current accessor old = let
     delta   = currVal - histVal
     in Comparison delta
 
+renderLocations :: [SrcLoc] -> Text
+renderLocations locs = intercalate ("\n" <> ind) $ prettyShow <$> locs
+
 
 -- === Instances === --
 
@@ -239,6 +246,7 @@ delta = " delta "
 instance StyledShow Pretty ComparisonResult where
     styledShow _ compResult
         =  "== Location: " <> compResult ^. locName <> "\n"
+        <> ind <> renderLocations (compResult ^. sourceLocs) <> "\n\n"
         <> ind <> "-- Time:\n"
         <> ind <> "Max Time: "
             <> convert (show (compResult ^. maxTimeComp . _1)) <> delta
