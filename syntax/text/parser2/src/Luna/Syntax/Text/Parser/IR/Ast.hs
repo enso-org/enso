@@ -303,6 +303,24 @@ data StrChunk t
     | StrNewLine (LineBreak t)
     | StrExpr    (Block t)
 
+instance Show (Link' t) => Show (Var       t) where show  (Atom_Var       t1   ) = "Var"       <> " (" <> show t1 <> ")"
+instance Show (Link' t) => Show (Cons      t) where show  (Atom_Cons      t1   ) = "Cons"      <> " (" <> show t1 <> ")"
+instance Show (Link' t) => Show (Operator  t) where show  (Atom_Operator  t1   ) = "Operator"  <> " (" <> show t1 <> ")"
+instance Show (Link' t) => Show (Modifier  t) where show  (Atom_Modifier  t1   ) = "Modifier"  <> " (" <> show t1 <> ")"
+instance Show (Link' t) => Show (Wildcard  t) where show  (Atom_Wildcard       ) = "Wildcard"
+instance Show (Link' t) => Show (Number    t) where show  (Atom_Number    t1   ) = "Number"    <> " (" <> show t1 <> ")"
+instance Show (Link' t) => Show (Block     t) where show  (Atom_Block     t1   ) = "Block"     <> " (" <> show t1 <> ")"
+instance Show (Link' t) => Show (Tokens    t) where show  (Atom_Tokens    t1   ) = "Tokens"    <> " (" <> show t1 <> ")"
+instance Show (Link' t) => Show (Marker    t) where show  (Atom_Marker    t1   ) = "Marker"    <> " (" <> show t1 <> ")"
+instance Show (Link' t) => Show (LineBreak t) where show  (Atom_LineBreak t1   ) = "LineBreak" <> " (" <> show t1 <> ")"
+instance Show (Link' t) => Show (Comment   t) where show  (Atom_Comment   t1   ) = "Comment"   <> " (" <> show t1 <> ")"
+instance Show (Link' t) => Show (Invalid   t) where show  (Atom_Invalid   t1   ) = "Invalid"   <> " (" <> show t1 <> ")"
+instance Show (Link' t) => Show (App       t) where show  (Atom_App       t1 t2) = "App"       <> " (" <> show t1 <> ") (" <> show t2 <> ")"
+instance Show (Link' t) => Show (Missing   t) where show  (Atom_Missing        ) = "Missing"
+instance Show (Link' t) => Show (List      t) where show  (Atom_List      t1   ) = "List"      <> " (" <> show t1 <> ")"
+instance (Show (Link' t), Show (Link t (StrChunk t))) => Show (Str       t) where show  (Atom_Str       t1   ) = "Str"       <> " (" <> show t1 <> ")"
+
+
 pattern Var       t1    = AstVar       (Atom_Var       t1)
 pattern Cons      t1    = AstCons      (Atom_Cons      t1)
 pattern Operator  t1    = AstOperator  (Atom_Operator  t1)
@@ -337,23 +355,23 @@ pattern SApp       t1 t2 = SimpleAstApp       (Atom_App       t1 t2)
 pattern SMissing         = SimpleAstMissing   (Atom_Missing)
 pattern SList      t1    = SimpleAstList      (Atom_List      t1)
 
-deriving instance Show (Link' t) => Show (Var       t)
-deriving instance Show (Link' t) => Show (Cons      t)
-deriving instance Show (Link' t) => Show (Operator  t)
-deriving instance Show (Link' t) => Show (Modifier  t)
-deriving instance Show (Link' t) => Show (Wildcard  t)
-deriving instance Show (Link' t) => Show (Number    t)
-deriving instance Show (Link' t) => Show (Block     t)
-deriving instance Show (Link' t) => Show (Tokens    t)
-deriving instance Show (Link' t) => Show (Marker    t)
-deriving instance Show (Link' t) => Show (LineBreak t)
-deriving instance Show (Link' t) => Show (Comment   t)
-deriving instance Show (Link' t) => Show (Invalid   t)
-deriving instance Show (Link' t) => Show (App       t)
-deriving instance Show (Link' t) => Show (Missing   t)
-deriving instance Show (Link' t) => Show (List      t)
+-- deriving instance Show (Link' t) => Show (Var       t)
+-- deriving instance Show (Link' t) => Show (Cons      t)
+-- deriving instance Show (Link' t) => Show (Operator  t)
+-- deriving instance Show (Link' t) => Show (Modifier  t)
+-- deriving instance Show (Link' t) => Show (Wildcard  t)
+-- deriving instance Show (Link' t) => Show (Number    t)
+-- deriving instance Show (Link' t) => Show (Block     t)
+-- deriving instance Show (Link' t) => Show (Tokens    t)
+-- deriving instance Show (Link' t) => Show (Marker    t)
+-- deriving instance Show (Link' t) => Show (LineBreak t)
+-- deriving instance Show (Link' t) => Show (Comment   t)
+-- deriving instance Show (Link' t) => Show (Invalid   t)
+-- deriving instance Show (Link' t) => Show (App       t)
+-- deriving instance Show (Link' t) => Show (Missing   t)
+-- deriving instance Show (Link' t) => Show (List      t)
 deriving instance Show (Link' t) => Show (StrChunk  t)
-deriving instance (Show (Link' t), Show (Link t (StrChunk t))) => Show (Str t)
+-- deriving instance (Show (Link' t), Show (Link t (StrChunk t))) => Show (Str t)
 
 deriving instance Eq (Link' t) => Eq (Var       t)
 deriving instance Eq (Link' t) => Eq (Cons      t)
@@ -479,30 +497,66 @@ instance Show SimpleAst where
         SimpleAstList      t -> show t
 
 
-simplify :: Ast -> SimpleAst
-simplify = \case
-    Var       t1    -> SVar       t1
-    Cons      t1    -> SCons      t1
-    Operator  t1    -> SOperator  t1
-    Modifier  t1    -> SModifier  t1
-    Wildcard        -> SWildcard
-    Number    t1    -> SNumber    t1
-    Str       t1    -> SStr       (simplifyStrChunk . unspan <$> t1)
-    Block     t1    -> SBlock     (simplify . unspan <$> t1)
-    Tokens    t1    -> STokens    (simplify . unspan <$> t1)
-    Marker    t1    -> SMarker    t1
-    LineBreak t1    -> SLineBreak t1
-    Comment   t1    -> SComment   t1
-    Invalid   t1    -> SInvalid   t1
-    App       t1 t2 -> SApp       (simplify . unspan $ t1) (simplify . unspan $ t2)
-    Missing         -> SMissing
-    List      t1    -> SList      (simplify . unspan <$> t1)
+class Simplify a where
+    type family Simplified a
+    simplify :: a -> Simplified a
 
-simplifyStrChunk :: StrChunk Ast -> StrChunk SimpleAst
-simplifyStrChunk = \case
-    StrPlain   t                  -> StrPlain   t
-    StrNewLine (Atom_LineBreak t) -> StrNewLine (Atom_LineBreak t)
-    StrExpr    (Atom_Block t)     -> StrExpr    (Atom_Block (simplify . unspan <$> t))
+    type Simplified a = a
+    default simplify :: Simplified a ~ a => a -> Simplified a
+    simplify = id
+
+instance Simplify Int
+instance Simplify Word8
+instance Simplify Word16
+instance Simplify Word32
+instance Simplify Word64
+instance Simplify Invalid.Symbol
+instance Simplify Text
+instance Simplify Name
+instance Simplify Delta
+
+instance Simplify a
+      => Simplify   (NonEmpty a) where
+    type Simplified (NonEmpty a) = NonEmpty (Simplified a)
+    simplify = fmap simplify
+
+instance Simplify a
+      => Simplify   (Spanned a) where
+    type Simplified (Spanned a) = Simplified a
+    simplify = simplify . unspan
+
+instance Simplify a
+      => Simplify   [a] where
+    type Simplified [a] = [Simplified a]
+    simplify = fmap simplify
+
+instance Simplify (StrChunk Ast) where
+    type Simplified (StrChunk Ast) = StrChunk SimpleAst
+    simplify = \case
+        StrPlain   t                  -> StrPlain   t
+        StrNewLine (Atom_LineBreak t) -> StrNewLine (Atom_LineBreak t)
+        StrExpr    (Atom_Block t)     -> StrExpr    (Atom_Block (simplify t))
+
+instance Simplify   Ast where
+    type Simplified Ast = SimpleAst
+    simplify = \case
+        Var       t1    -> SVar       (simplify t1)
+        Cons      t1    -> SCons      (simplify t1)
+        Operator  t1    -> SOperator  (simplify t1)
+        Modifier  t1    -> SModifier  (simplify t1)
+        Wildcard        -> SWildcard
+        Number    t1    -> SNumber    (simplify t1)
+        Str       t1    -> SStr       (simplify t1)
+        Block     t1    -> SBlock     (simplify t1)
+        Tokens    t1    -> STokens    (simplify t1)
+        Marker    t1    -> SMarker    (simplify t1)
+        LineBreak t1    -> SLineBreak (simplify t1)
+        Comment   t1    -> SComment   (simplify t1)
+        Invalid   t1    -> SInvalid   (simplify t1)
+        App       t1 t2 -> SApp       (simplify t1) (simplify t2)
+        Missing         -> SMissing
+        List      t1    -> SList      (simplify t1)
+
 
 
 ------ FIXME vvv
