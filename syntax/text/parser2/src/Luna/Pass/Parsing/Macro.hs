@@ -10,6 +10,7 @@ import qualified Control.Monad.State.Layered               as State
 import qualified Data.Graph.Component.Node.Destruction     as Component
 import qualified Data.Map                                  as Map
 import qualified Data.Set                                  as Set
+import qualified Data.Text.Position                        as Position
 import qualified Data.Text.Span                            as Span
 import qualified Data.Vector                               as Vector
 import qualified Language.Symbol.Operator.Assoc            as Assoc
@@ -23,10 +24,11 @@ import qualified Luna.Syntax.Text.Parser.Data.Name.Special as Name
 import qualified Luna.Syntax.Text.Parser.IR.Ast            as Ast
 import qualified Luna.Syntax.Text.Scope                    as Scope
 import qualified Text.Parser.State.Indent                  as Indent
+import qualified Text.Parser.State.Indent                  as Indent
 
 import Data.Map                              (Map)
 import Data.Set                              (Set)
-import Data.Text.Position                    (Delta (Delta))
+import Data.Text.Position                    (Delta (Delta), Position)
 import Data.Vector                           (Vector)
 import Luna.Syntax.Text.Parser.Data.CodeSpan (CodeSpan)
 import Luna.Syntax.Text.Parser.Data.Invalid  (Invalids)
@@ -35,6 +37,7 @@ import Luna.Syntax.Text.Parser.IR.Ast        (Spanned (Spanned))
 import Luna.Syntax.Text.Parser.IR.Term       (Ast)
 import Luna.Syntax.Text.Source               (Source)
 import OCI.Data.Name                         (Name)
+import Text.Parser.State.Indent              (Indent)
 
 
 import Luna.Pass.Parsing.ExprBuilder (ExprBuilderMonad, buildExpr,
@@ -45,6 +48,8 @@ import qualified Data.Attoparsec.Internal.Types as AParsec
 import qualified Data.Attoparsec.List           as Parsec
 
 import Data.Parser
+
+import Data.Parser.Instances.Attoparsec ()
 
 
 
@@ -142,7 +147,7 @@ data SegmentType
     deriving (Eq, Show)
 
 data Segment = Segment
-    { _ast           :: Ast.Ast
+    { _segmentBase   :: Ast.Ast
     , _segmentChunks :: [Chunk]
     } deriving (Show)
 makeLenses ''Segment
@@ -213,7 +218,7 @@ makeLenses ''Registry
 
 registerSection :: State.Monad Registry m => Macro -> m ()
 registerSection = \section -> State.modify_ @Registry
-    $ wrapped %~ Map.insert (section ^. headSegment . ast) section
+    $ wrapped %~ Map.insert (section ^. headSegment . segmentBase) section
 {-# INLINE registerSection #-}
 
 lookupSection :: State.Getter Registry m => Ast.Ast -> m (Maybe Macro)
@@ -238,6 +243,90 @@ nextTokenNotLeftSpaced = do
     when_ (checkLeftSpacing tok) $ fail "spaced"
 {-# INLINE nextTokenNotLeftSpaced #-}
 
+nextTokenLeftSpaced :: Parser ()
+nextTokenLeftSpaced = do
+    tok <- peekToken
+    when_ (not $ checkLeftSpacing tok) $ fail "not spaced"
+{-# INLINE nextTokenLeftSpaced #-}
+
+leftSpaced :: Parser Ast -> Parser Ast
+leftSpaced = \mtok -> do
+    tok <- mtok
+    if checkLeftSpacing tok
+        then pure tok
+        else fail "not spaced"
+{-# INLINE leftSpaced #-}
+
+anySymbol :: Parser Ast
+anySymbol = peekSymbol <* dropToken
+{-# INLINE anySymbol #-}
+
+peekSymbol :: Parser Ast
+peekSymbol = do
+    tok <- peekToken
+    case Ast.unspan tok of
+        Ast.AstLineBreak {} -> fail "not a symbol"
+        _                   -> pure tok
+{-# INLINE peekSymbol #-}
+
+anySymbolNotReserved :: Parser Ast
+anySymbolNotReserved = notReserved anySymbol
+{-# INLINE anySymbolNotReserved #-}
+
+peekSymbolNotReserved :: Parser Ast
+peekSymbolNotReserved = notReserved peekSymbol
+{-# INLINE peekSymbolNotReserved #-}
+
+satisfyAst :: (Ast.Ast -> Bool) -> Parser Ast
+satisfyAst = \f -> peekSatisfyAst f <* dropToken
+{-# INLINE satisfyAst #-}
+
+peekSatisfyAst :: (Ast.Ast -> Bool) -> Parser Ast
+peekSatisfyAst = \f -> do
+    tok <- peekToken
+    if f (Ast.unspan tok)
+        then pure tok
+        else fail "satisfy"
+{-# INLINE peekSatisfyAst #-}
+
+ast :: Ast.Ast -> Parser Ast
+ast = satisfyAst . (==)
+{-# INLINE ast #-}
+
+unsafeLineBreak :: Parser Ast
+unsafeLineBreak = do
+    tok <- anyToken
+    case Ast.unspan tok of
+        Ast.AstLineBreak (Ast.LineBreak off) -> do
+            Position.succLine
+            Position.incColumn off
+            pure tok
+        _ -> fail "not line break"
+{-# INLINE unsafeLineBreak #-}
+
+unsafeLineBreaks :: Parser [Ast]
+unsafeLineBreaks = many1 unsafeLineBreak
+{-# INLINE unsafeLineBreaks #-}
+
+-- | The current implementation wokrs on token stream where some tokens are
+--   line break indicators. After consuming such tokens we need to register them
+--   as offset in the following token.
+broken :: Parser (NonEmpty Ast) -> Parser (NonEmpty Ast)
+broken = \f -> do
+    spans     <- toksSpanAsSpace <$> unsafeLineBreaks
+    (a :| as) <- f
+    let a' = a & Ast.span %~ (spans <>)
+    pure (a' :| as)
+{-# INLINE broken #-}
+
+broken' :: Parser (NonEmpty Ast) -> Parser [Ast]
+broken' = fmap convert . broken
+{-# INLINE broken' #-}
+
+toksSpanAsSpace :: [Ast] -> CodeSpan
+toksSpanAsSpace = CodeSpan.asOffsetSpan . mconcat . fmap (view Ast.span)
+{-# INLINE toksSpanAsSpace #-}
+
 
 
 ---------------------
@@ -247,17 +336,21 @@ nextTokenNotLeftSpaced = do
 -- === Definition === --
 
 type Parser = State.StatesT
-   '[ Registry
+   '[ Scope.Scope
     , Reserved Ast.Ast
-    , Scope.Scope
+    , Position
+    , Indent
+    , Registry
     ] (Parsec.Parser Ast)
 
 run :: [Ast] -> Parser a -> Either String a
 run = \stream
-    -> flip Parsec.parseOnly (Vector.fromList stream)
-     . State.evalDefT  @Scope.Scope
-     . State.evalDefT  @(Reserved Ast.Ast)
-     . State.evalDefT  @Registry
+  -> flip Parsec.parseOnly (Vector.fromList stream)
+    . State.evalDefT  @Registry
+    . Indent.eval
+    . State.evalDefT  @Position
+    . State.evalDefT  @(Reserved Ast.Ast)
+    . State.evalDefT  @Scope.Scope
 {-# INLINE run #-}
 
 
@@ -343,9 +436,16 @@ showSection = \case
 -- === API === --
 
 expr :: Parser Ast
-expr = buildExpr =<< many1 go where
-    go = do
-        tok <- anyTokenNotReserved
+expr = Indent.withCurrent $ buildExpr . convert =<< lines where
+    line          = buildExpr =<< multiLineToks
+    lines         = (:|) <$> line <*> nextLines
+    nextLines     = option mempty (broken' $ Indent.indented *> lines)
+    lineJoin      = satisfyAst Ast.isOperator <* leftSpaced peekSymbol
+    multiLineToks = lineToks <**> lineTailToks
+    lineTailToks  = option id $ flip (<>) <$> broken' lineContToks
+    lineContToks  = Indent.indented *> ((:|) <$> lineJoin <*> multiLineToks)
+    lineToks      = many1 $ do
+        tok <- anySymbolNotReserved
         lookupSection (Ast.unspan tok) >>= \case
             Nothing   -> pure tok
             Just sect -> macro tok sect
@@ -358,12 +458,12 @@ manyNonSpacedExpr = Ast.list <$> many nonSpacedExpr
 nonSpacedExpr :: Parser Ast
 nonSpacedExpr = buildExpr =<< go where
     go = do
-        tok  <- anyTokenNotReserved
+        tok  <- anySymbolNotReserved
         head <- lookupSection (Ast.unspan tok) >>= \case
-            Nothing   -> pure tok
+            Nothing   -> pure  tok
             Just sect -> macro tok sect
         let loop = nextTokenNotLeftSpaced >> go
-        (head:) <$> (loop <|> pure [])
+        (head:) <$> option mempty loop
 {-# INLINE nonSpacedExpr #-}
 
 

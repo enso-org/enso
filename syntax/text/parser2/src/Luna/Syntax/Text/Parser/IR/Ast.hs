@@ -136,7 +136,17 @@ unspan = \(Spanned _ a) -> a
 --     {-# INLINE def #-}
 
 
-type Parser = StatesT '[Result, SyntaxVersion, Indent, Position, LastOffset, CodeSpanRange, Marker.State, FileOffset, Scope.Scope] Parsec.Parser
+type Parser = StatesT
+   '[ Result
+    , SyntaxVersion
+    , Indent
+    , Position
+    , LastOffset
+    , CodeSpanRange
+    , Marker.State
+    , FileOffset
+    , Scope.Scope
+    ] Parsec.Parser
 
 
 
@@ -528,6 +538,12 @@ list' = \items -> AstList $ List items
 list :: [Spanned Ast] -> Spanned Ast
 list = inheritCodeSpanList $ \items -> AstList $ List items
 {-# INLINE list #-}
+
+isOperator :: Ast -> Bool
+isOperator = \case
+    AstOperator {} -> True
+    _ -> False
+{-# INLINE isOperator #-}
 
 -- data Ast
 --     -- Identifiers
