@@ -1,4 +1,5 @@
-{-# LANGUAGE NoStrict #-}
+{-# LANGUAGE NoStrict     #-}
+{-# LANGUAGE NoStrictData #-}
 {-# LANGUAGE ViewPatterns #-}
 
 module Type.Data.Ord.TH where

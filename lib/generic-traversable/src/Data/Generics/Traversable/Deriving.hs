@@ -1,5 +1,6 @@
 {-# LANGUAGE CPP             #-}
 {-# LANGUAGE NoStrict #-}
+{-# LANGUAGE NoStrictData #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 module Data.Generics.Traversable.Deriving where

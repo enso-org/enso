@@ -1,4 +1,5 @@
 {-# LANGUAGE NoStrict #-}
+{-# LANGUAGE NoStrictData #-}
 
 module Data.Tag.TH where
 

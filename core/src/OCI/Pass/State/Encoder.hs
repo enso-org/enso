@@ -1,4 +1,3 @@
-{-# LANGUAGE Strict #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module OCI.Pass.State.Encoder where

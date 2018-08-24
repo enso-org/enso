@@ -1,4 +1,5 @@
-{-# LANGUAGE NoStrict #-}
+{-# LANGUAGE NoStrict             #-}
+{-# LANGUAGE NoStrictData         #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Luna.Pass.Transform.Desugar.DesugarPartialApplications where

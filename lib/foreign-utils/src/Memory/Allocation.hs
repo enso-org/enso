@@ -1,4 +1,3 @@
-{-# LANGUAGE Strict #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Memory.Allocation where

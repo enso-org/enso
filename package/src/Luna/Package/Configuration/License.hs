@@ -1,5 +1,3 @@
-{-# LANGUAGE Strict #-}
-
 module Luna.Package.Configuration.License where
 
 import Prologue

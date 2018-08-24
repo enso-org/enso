@@ -1,4 +1,3 @@
-{-# LANGUAGE Strict #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module OCI.IR.Term.Layout where
@@ -17,3 +16,4 @@ type instance Layout.ToLayout (Node.NodeTag a) = Layout '[Model := (Node.NodeTag
 
 type layout -* term = Layout.Set Nodes term (Layout.ToLayout layout)
 type layout -# name = Layout.Set Names name (Layout.ToLayout layout)
+

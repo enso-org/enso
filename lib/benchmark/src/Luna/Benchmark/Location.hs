@@ -1,4 +1,5 @@
-{-# LANGUAGE NoStrict #-}
+{-# LANGUAGE NoStrict             #-}
+{-# LANGUAGE NoStrictData         #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Luna.Benchmark.Location

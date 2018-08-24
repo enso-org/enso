@@ -40,6 +40,8 @@ _default-language-extensions: &luna-extensions
     - RelaxedPolyRec
     - ScopedTypeVariables
     - StandaloneDeriving
+    - Strict
+    - StrictData
     - TemplateHaskell
     - TupleSections
     - TypeApplications

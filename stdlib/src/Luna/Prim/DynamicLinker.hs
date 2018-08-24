@@ -1,6 +1,5 @@
 {-# LANGUAGE CPP               #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE Strict            #-}
 
 module Luna.Prim.DynamicLinker (
       loadLibrary

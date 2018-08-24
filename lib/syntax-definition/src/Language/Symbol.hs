@@ -1,5 +1,6 @@
 {-# LANGUAGE CPP                  #-}
 {-# LANGUAGE NoStrict             #-}
+{-# LANGUAGE NoStrictData         #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Language.Symbol (module Language.Symbol, module X) where

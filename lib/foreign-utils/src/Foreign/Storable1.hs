@@ -1,4 +1,5 @@
 {-# LANGUAGE NoStrict #-}
+{-# LANGUAGE NoStrictData #-}
 
 module Foreign.Storable1 where
 

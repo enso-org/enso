@@ -1,5 +1,3 @@
-{-# LANGUAGE Strict #-}
-
 module Luna.Shell.Command where
 
 import Prologue hiding (init)

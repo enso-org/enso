@@ -1,5 +1,5 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE Strict            #-}
+{-# LANGUAGE Strict       #-}
+{-# LANGUAGE NoStrictData #-}
 
 module Luna.Syntax.Text.Lexer.Symbol where
 

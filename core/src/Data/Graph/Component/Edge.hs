@@ -1,5 +1,3 @@
-{-# LANGUAGE Strict #-}
-
 module Data.Graph.Component.Edge (module X) where
 
 import Data.Graph.Component.Edge.Class        as X

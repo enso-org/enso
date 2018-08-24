@@ -1,5 +1,3 @@
-{-# LANGUAGE Strict #-}
-
 module Luna.Prim.Time where
 
 import Prologue

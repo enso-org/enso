@@ -1,4 +1,5 @@
-{-# LANGUAGE NoStrict #-}
+{-# LANGUAGE NoStrict             #-}
+{-# LANGUAGE NoStrictData         #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Text.Parser.Backend.Megaparsec where
