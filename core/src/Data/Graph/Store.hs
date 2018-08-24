@@ -1,5 +1,3 @@
-{-# LANGUAGE Strict #-}
-
 module Data.Graph.Store where
 
 import Prologue hiding (pprint, print, putStrLn)

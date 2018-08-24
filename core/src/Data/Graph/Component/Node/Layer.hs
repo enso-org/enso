@@ -1,5 +1,3 @@
-{-# LANGUAGE Strict #-}
-
 module Data.Graph.Component.Node.Layer (module X) where
 
 import Data.Graph.Component.Node.Layer.Model as X

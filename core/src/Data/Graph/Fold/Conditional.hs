@@ -1,4 +1,3 @@
-{-# LANGUAGE Strict #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Data.Graph.Fold.Conditional where
@@ -28,3 +27,4 @@ instance Fold.Builder t m a => Fold.Builder (If 'True  t) m a where
 instance Monad m             => Fold.Builder1 (If 'False t) m a
 instance Fold.Builder1 t m a => Fold.Builder1 (If 'True  t) m a where
     build1 = Fold.build1 @t ; {-# INLINE build1 #-}
+
