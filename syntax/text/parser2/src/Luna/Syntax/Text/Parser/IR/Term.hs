@@ -113,7 +113,7 @@ invalid = Ast.computeSpan . invalid'
 {-# INLINE invalid #-}
 
 invalid' :: Parser Invalid.Symbol -> Parser UnspannedAst
-invalid' = fmap Ast.invalid'
+invalid' = fmap Ast.Invalid
 {-# INLINE invalid' #-}
 
 unknown :: Parser Ast
@@ -167,14 +167,14 @@ wildcard = Ast.register =<< Ast.computeSpan wildcard'
 {-# INLINE wildcard #-}
 
 var', cons' :: Parser UnspannedAst
-var'  = (Ast.var'  <$> varName)  <**> option id (const <$> invalidIdentSuffix)
-cons' = (Ast.cons' <$> consName) <**> option id (const <$> invalidIdentSuffix)
+var'  = (Ast.Var  <$> varName)  <**> option id (const <$> invalidIdentSuffix)
+cons' = (Ast.Cons <$> consName) <**> option id (const <$> invalidIdentSuffix)
 {-# INLINE var'  #-}
 {-# INLINE cons' #-}
 
 wildcard' :: Parser UnspannedAst
 wildcard' = correct <**> option id (const <$> invalidIdentSuffix) where
-    correct = Ast.wildcard' <$ token '_'
+    correct = Ast.Wildcard <$ token '_'
 {-# INLINE wildcard' #-}
 
 isIdentBodyChar, isVarHead, isConsHead :: Char -> Bool
@@ -190,20 +190,20 @@ isConsHead      = Char.isUpper
 
 expectVar :: Name -> Parser ()
 expectVar = \name -> let err = fail "no match" in var' >>= \case
-    Ast.AstVar (Ast.Var name') -> when_ (name /= name') err
-    _                          -> err
+    Ast.Var name' -> when_ (name /= name') err
+    _             -> err
 {-# INLINE expectVar #-}
 
 expectCons :: Name -> Parser ()
 expectCons = \name -> let err = fail "no match" in cons' >>= \case
-    Ast.AstCons (Ast.Cons name') -> when_ (name /= name') err
-    _                            -> err
+    Ast.Cons name' -> when_ (name /= name') err
+    _              -> err
 {-# INLINE expectCons #-}
 
 expectOperator :: Name -> Parser ()
 expectOperator = \name -> let err = fail "no match" in operator' >>= \case
-    Ast.AstOperator (Ast.Operator name') -> when_ (name /= name') err
-    _                                    -> err
+    Ast.Operator name' -> when_ (name /= name') err
+    _                  -> err
 {-# INLINE expectOperator #-}
 
 
@@ -233,7 +233,7 @@ identBody = body <**> sfx where
 -- | We are not using full (33-126 / ['"`]) range here, because we need to check
 --   such invalid suffixes as `foo'a`.
 invalidIdentSuffix :: Parser UnspannedAst
-invalidIdentSuffix = Ast.invalid' . Invalid.UnexpectedSuffix <$> base where
+invalidIdentSuffix = Ast.Invalid . Invalid.UnexpectedSuffix <$> base where
     base = Text.length <$> takeWhile1 (not . isSeparatorChar)
 {-# INLINE invalidIdentSuffix #-}
 
@@ -269,15 +269,15 @@ operator' :: Parser UnspannedAst
 operator' = let
     base       = convert <$> takeWhile1 isOperatorBodyChar
     specialOps = tokens <$> ["<=", ">=", "==", "="]
-    special    = Ast.operator' . convert <$> choice specialOps
-    normal     = base <**> option Ast.operator' (Ast.modifier' <$ token eqChar)
+    special    = Ast.Operator . convert <$> choice specialOps
+    normal     = base <**> option Ast.Operator (Ast.Modifier <$ token eqChar)
     correct    = special <|> normal
     in correct <**> option id (const <$> invalidOperatorSuffix)
 {-# NOINLINE operator' #-}
 
 unsafeAnyTokenOperator :: Parser ()
 unsafeAnyTokenOperator = Ast.register
-    =<< Ast.computeSpan (Ast.operator' . convert <$> anyToken)
+    =<< Ast.computeSpan (Ast.Operator . convert <$> anyToken)
 {-# INLINE unsafeAnyTokenOperator #-}
 
 eqChar :: Char
@@ -313,7 +313,7 @@ isOperatorBodyChar = \c -> c /= eqChar && isOperatorBeginChar c
 
 invalidOperatorSuffix :: Parser UnspannedAst
 invalidOperatorSuffix = let
-    inv = Ast.invalid' . Invalid.UnexpectedSuffix <$> sfx
+    inv = Ast.Invalid . Invalid.UnexpectedSuffix <$> sfx
     sfx = Text.length <$> takeWhile1 isOperatorBeginChar
     in inv
 {-# INLINE invalidOperatorSuffix #-}
@@ -333,7 +333,7 @@ comment = commentChar >> parser where
     multiLine   = commentChar *> flexBlock rawLine
     singleLine  = pure <$> rawLine
     rawLine     = takeWhile (not . isEolBeginChar)
-    parser      = Ast.register =<< Ast.computeSpan (Ast.comment' <$> body)
+    parser      = Ast.register =<< Ast.computeSpan (Ast.Comment <$> body)
 {-# INLINE comment #-}
 
 commentStartChar :: Char
@@ -362,8 +362,8 @@ isMarkerBeginChar = (== markerBegin)
 
 marker :: Parser ()
 marker = Ast.register =<< Ast.computeSpan parser where
-    correct   = Ast.marker' <$> decimal
-    incorrect = Ast.invalid' Invalid.InvalidMarker <$ takeTill (== markerEnd)
+    correct   = Ast.Marker <$> decimal
+    incorrect = Ast.Invalid Invalid.InvalidMarker <$ takeTill (== markerEnd)
     parser    = token markerBegin *> (correct <|> incorrect) <* token markerEnd
 {-# INLINE marker #-}
 
@@ -399,7 +399,7 @@ lineBreak :: Parser ()
 lineBreak = Ast.register =<< ast where
     ast = Ast.computeSpan $ do
         some Ast.newline
-        Ast.lineBreak' <$> Position.getColumn
+        Ast.LineBreak <$> Position.getColumn
 {-# INLINE lineBreak #-}
 
 
@@ -443,7 +443,7 @@ fastExprByChar = \c -> let ord = Char.ord c in if
 
 
 number :: Parser ()
-number = Ast.register =<< Ast.computeSpan (Ast.number' <$> digits)
+number = Ast.register =<< Ast.computeSpan (Ast.Number <$> digits)
 {-# INLINE number #-}
 
 isDigitChar :: Char -> Bool
@@ -499,7 +499,7 @@ strBuilder quote = Ast.register =<< Ast.computeSpan parser where
             bodyQuotes qs = Ast.StrPlain qs <$ failIf (Text.length qs == quoteLen)
             chunk         = Ast.computeSpan $ choice [chunkPlain, chunkQuote] -- lineBreak
             ending        = Text.length <$> takeWhile1 isRawStrQuote
-            body          = Ast.str' <$> many chunk
+            body          = Ast.Str <$> many chunk
         body <* ending
 
 
@@ -563,7 +563,7 @@ flexBlock = \p -> option mempty $ convert <$> flexBlock1 p
 
 -- lamExpr :: Parser ()
 -- lamExpr = arrow >> body where
---     arrow = Ast.register =<< Ast.computeSpan (Ast.operator' . convert <$> tokP)
+--     arrow = Ast.register =<< Ast.computeSpan (Ast.Operator . convert <$> tokP)
 --     body  = void $ discoverBlock1 expr
 --     tokP  = State.get @Ast.SyntaxVersion >>= \case
 --         Ast.Syntax1 -> tokens ":"
@@ -603,7 +603,7 @@ flexBlock = \p -> option mempty $ convert <$> flexBlock1 p
 --     multiLine  = (Ast.block <$> discoverBlock1 lineExpr)
 --     singleLine = lineExpr
 --     impl       = (blockStart *> body) <|> invBody
---     invBody    = Ast.computeSpan $ Ast.invalid' Invalid.MissingColonBlock
+--     invBody    = Ast.computeSpan $ Ast.Invalid Invalid.MissingColonBlock
 --               <$ anyLine <* flexBlock anyLine
 
 --     -- Def

@@ -66,19 +66,19 @@ type BuilderMonad m =
 
 buildGraph :: forall m. BuilderMonad m => Ast -> m IR.SomeTerm
 buildGraph = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
-    Ast.AstCons      (Ast.Cons      name) -> IR.cons'  name []
-    Ast.AstVar       (Ast.Var       name) -> IR.var'   name
-    Ast.AstOperator  (Ast.Operator  name) -> IR.var'   name
-    Ast.AstWildcard  {}                   -> IR.blank'
-    Ast.AstLineBreak (Ast.LineBreak ind)  -> IR.lineBreak' (unwrap ind)
-    Ast.AstInvalid   (Ast.Invalid   inv)  -> IR.invalid' inv
-    Ast.AstTokens    (Ast.Tokens (t:ts))  -> buildGraph t -- FIXME
-    Ast.AstMissing   (Ast.Missing)        -> IR.missing'
-    Ast.AstApp       (Ast.App f a)        -> do
+    Ast.Cons      name -> IR.cons'  name []
+    Ast.Var       name -> IR.var'   name
+    Ast.Operator  name -> IR.var'   name
+    Ast.Wildcard       -> IR.blank'
+    Ast.LineBreak ind  -> IR.lineBreak' (unwrap ind)
+    Ast.Invalid   inv  -> IR.invalid' inv
+    Ast.Tokens (t:ts)  -> buildGraph t -- FIXME
+    Ast.Missing        -> IR.missing'
+    Ast.App f a        -> do
         f' <- buildGraph f
         a' <- buildGraph a
         IR.app' f' a'
-    x                                     -> error $ "TODO: " <> show x
+    x -> error $ "TODO: " <> show x
     where addCodeSpan cs ir = ir <$ IR.writeLayer @CodeSpan ir cs
 {-# INLINE buildGraph #-}
 
@@ -206,7 +206,7 @@ breakOnAssignment__ = \f stream -> case stream of
     (tok:toks) -> let
         continue = breakOnAssignment__ (f . (tok:)) toks
         in case Ast.unspan tok of
-            Ast.AstOperator (Ast.Operator name) ->
+            Ast.Operator name ->
                 if name == Name.unify
                     then Right (f mempty, tok, toks)
                     else continue
@@ -217,7 +217,7 @@ flattenStatement :: Statement -> [Layouted]
 flattenStatement = \case
     ExpressionStatement  s -> s
     AssignmentStatement p x s -> let
-        op' = Ast.AstOperator $ Ast.Operator Name.assign
+        op' = Ast.Operator Name.assign
         op  = x & Ast.ast .~ op'
         sop = Layouted SpacedLayout [op]
         in p <> (sop : s)
@@ -294,7 +294,7 @@ buildStream :: [Ast] -> Stream
 buildStream = \(reverse -> stream) -> case stream of
     []         -> NullStream
     (tok:toks) -> case Ast.unspan tok of
-        Ast.AstOperator (Ast.Operator name)
+        Ast.Operator name
           -> buildElStream (EndOpStream name (rightSection tok)) toks
         _ -> buildOpStream (EndElStream tok) toks
 {-# INLINE buildStream #-}
@@ -308,7 +308,7 @@ buildOpStream = \result stream -> case stream of
         ([(name,op)], toks) -> go name         (Ast.app2 op)  result toks
         ((p:ps)     , toks) -> go Name.invalid (Ast.app2 inv) result toks
             where inv = Ast.computeCodeSpanList1__ (snd <$> (p :| ps))
-                      $ Ast.invalid' Invalid.AdjacentOperators
+                      $ Ast.Invalid Invalid.AdjacentOperators
                       -- FIXME: register ops in invalid
     where go name f stream = buildElStream (InfixOpStream name f stream)
 {-# NOINLINE buildOpStream #-}
@@ -342,7 +342,7 @@ takeOperators__ :: [(Name,Ast)] -> [Ast] -> ([(Name,Ast)], [Ast])
 takeOperators__ = \result stream -> case stream of
     [] -> (result,[])
     (tok:toks) -> case Ast.unspan tok of
-        Ast.AstOperator (Ast.Operator name)
+        Ast.Operator name
           -> takeOperators__ ((name,tok) : result) toks
         _ -> (result, stream)
 {-# NOINLINE takeOperators__ #-}
@@ -472,7 +472,7 @@ checkCorrectOpRel = \op1 op2 -> do
 
 assocConflict :: NonEmpty Ast -> Ast
 assocConflict = \elems
-    -> Ast.computeCodeSpanList1__ elems $ Ast.invalid' Invalid.AssocConflict
+    -> Ast.computeCodeSpanList1__ elems $ Ast.Invalid Invalid.AssocConflict
 {-# INLINE assocConflict #-}
 
 fillMissing :: (Ast -> Ast -> Ast) -> Ast

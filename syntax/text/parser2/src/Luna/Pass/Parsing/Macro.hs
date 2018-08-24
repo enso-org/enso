@@ -297,7 +297,7 @@ unsafeLineBreak :: Parser Ast
 unsafeLineBreak = do
     tok <- anyToken
     case Ast.unspan tok of
-        Ast.AstLineBreak (Ast.LineBreak off) -> do
+        Ast.LineBreak off -> do
             Position.succLine
             Position.incColumn off
             pure tok
@@ -404,7 +404,7 @@ macro = \(Ast.Spanned span tok) (Macro seg lst) -> do
     psegs            <- withNextSegmentReserved lst $ segment seg
     (name, spanLst)  <- segmentList (showSection tok) lst
     let (tailSpan, slst) = mergeSpannedLists spanLst
-    let header = Ast.Spanned span $ Ast.var' name
+    let header = Ast.Spanned span $ Ast.Var name
         group  = Ast.apps header  $ psegs <> slst
         out    = group & Ast.span %~ (<> tailSpan)
     pure out
@@ -426,9 +426,9 @@ mergeSpannedLists = \lst -> let
 
 showSection :: Ast.Ast -> Name
 showSection = \case
-    Ast.AstVar      (Ast.Var      n) -> n
-    Ast.AstCons     (Ast.Cons     n) -> n
-    Ast.AstOperator (Ast.Operator n) -> n
+    Ast.Var      n -> n
+    Ast.Cons     n -> n
+    Ast.Operator n -> n
     x -> error $ ppShow x
 {-# INLINE showSection #-}
 
@@ -478,25 +478,24 @@ nonSpacedExpr = buildExpr =<< go where
 
 syntax_if_then_else :: Macro
 syntax_if_then_else = mkMacro
-                 (Ast.AstVar $ Ast.Var "if")   [Expr]
-    +! mkSegment (Ast.AstVar $ Ast.Var "then") [Expr]
-    +? mkSegment (Ast.AstVar $ Ast.Var "else") [Expr]
+                 (Ast.Var "if")   [Expr]
+    +! mkSegment (Ast.Var "then") [Expr]
+    +? mkSegment (Ast.Var "else") [Expr]
 
 syntax_group :: Macro
 syntax_group = mkMacro
-                 (Ast.AstOperator $ Ast.Operator "(") [Expr]
-    +! mkSegment (Ast.AstOperator $ Ast.Operator ")") []
+                 (Ast.Operator "(") [Expr]
+    +! mkSegment (Ast.Operator ")") []
 
 syntax_list :: Macro
 syntax_list = mkMacro
-                 (Ast.AstOperator $ Ast.Operator "[") [Expr]
-    +! mkSegment (Ast.AstOperator $ Ast.Operator "]") []
+                 (Ast.Operator "[") [Expr]
+    +! mkSegment (Ast.Operator "]") []
 
 syntax_funcDed :: Macro
 syntax_funcDed = mkMacro
-                 (Ast.AstVar      $ Ast.Var      "def") [ NonSpacedExpr
-                                                        , ManyNonSpacedExpr]
-    +! mkSegment (Ast.AstOperator $ Ast.Operator ":")   [Expr]
+                 (Ast.Var      "def") [ NonSpacedExpr, ManyNonSpacedExpr]
+    +! mkSegment (Ast.Operator ":")   [Expr]
 
 
 
