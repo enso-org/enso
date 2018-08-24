@@ -1,4 +1,4 @@
-{-# LANGUAGE NoStrict #-}
+{-# LANGUAGE NoStrict     #-}
 {-# LANGUAGE NoStrictData #-}
 
 module Luna.Runtime (module X) where

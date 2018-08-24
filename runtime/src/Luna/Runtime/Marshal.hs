@@ -1,5 +1,5 @@
-{-# LANGUAGE NoStrict #-}
-{-# LANGUAGE NoStrictData #-}
+{-# LANGUAGE NoStrict             #-}
+{-# LANGUAGE NoStrictData         #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Luna.Runtime.Marshal where
