@@ -1,5 +1,6 @@
-{-# LANGUAGE NoStrict #-}
-{-# LANGUAGE TypeInType #-}
+{-# LANGUAGE NoStrict     #-}
+{-# LANGUAGE NoStrictData #-}
+{-# LANGUAGE TypeInType   #-}
 
 module Type.Data.Semigroup where
 

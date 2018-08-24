@@ -1,6 +1,7 @@
 {-# LANGUAGE DeriveGeneric            #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE NoStrict                 #-}
+{-# LANGUAGE NoStrictData             #-}
 {-# LANGUAGE ScopedTypeVariables      #-}
 {-# LANGUAGE UnliftedFFITypes         #-}
 {-# LANGUAGE ViewPatterns             #-}

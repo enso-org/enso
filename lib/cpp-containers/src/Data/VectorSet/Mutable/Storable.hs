@@ -1,4 +1,5 @@
 {-# LANGUAGE NoStrict #-}
+{-# LANGUAGE NoStrictData #-}
 
 module Data.VectorSet.Mutable.Storable
     (module Data.VectorSet.Mutable.Storable, module X) where
