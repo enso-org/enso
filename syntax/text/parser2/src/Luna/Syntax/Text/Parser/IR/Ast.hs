@@ -72,49 +72,49 @@ unspan = \(Spanned _ a) -> a
 
 -- === Definition === --
 
-data Blacklist = Blacklist
-    { _unknownBlacklist :: Set Char
-    , _operators        :: Set Name
-    }
-makeLenses ''Blacklist
+-- data Blacklist = Blacklist
+--     { _unknownBlacklist :: Set Char
+--     , _operators        :: Set Name
+--     }
+-- makeLenses ''Blacklist
 
 
--- === API === --
+-- -- === API === --
 
-withBlacklistedUnknown :: State.Monad Blacklist m => Char -> m a -> m a
-withBlacklistedUnknown = \a
-     -> State.withModified @Blacklist (unknownBlacklist %~ Set.insert a)
-{-# INLINE withBlacklistedUnknown #-}
-
-
-withBlacklistedOperator :: State.Monad Blacklist m => Name -> m a -> m a
-withBlacklistedOperator = \a -> State.withModified @Blacklist (operators %~ Set.insert a)
-{-# INLINE withBlacklistedOperator #-}
+-- withBlacklistedUnknown :: State.Monad Blacklist m => Char -> m a -> m a
+-- withBlacklistedUnknown = \a
+--      -> State.withModified @Blacklist (unknownBlacklist %~ Set.insert a)
+-- {-# INLINE withBlacklistedUnknown #-}
 
 
-checkBlacklistedUnknown :: Char -> Parser ()
-checkBlacklistedUnknown = \a -> do
-    blacklisted <- Set.member a . view unknownBlacklist <$> State.get @Blacklist
-    when_ blacklisted $ fail "Blacklisted"
-{-# INLINE checkBlacklistedUnknown #-}
-
-checkBlacklistedOperator :: Name -> Parser ()
-checkBlacklistedOperator = \a -> do
-    blacklisted <- Set.member a . view operators <$> State.get @Blacklist
-    when_ blacklisted $ fail "Blacklisted"
-{-# INLINE checkBlacklistedOperator #-}
+-- withBlacklistedOperator :: State.Monad Blacklist m => Name -> m a -> m a
+-- withBlacklistedOperator = \a -> State.withModified @Blacklist (operators %~ Set.insert a)
+-- {-# INLINE withBlacklistedOperator #-}
 
 
+-- checkBlacklistedUnknown :: Char -> Parser ()
+-- checkBlacklistedUnknown = \a -> do
+--     blacklisted <- Set.member a . view unknownBlacklist <$> State.get @Blacklist
+--     when_ blacklisted $ fail "Blacklisted"
+-- {-# INLINE checkBlacklistedUnknown #-}
 
--- === Instances === --
+-- checkBlacklistedOperator :: Name -> Parser ()
+-- checkBlacklistedOperator = \a -> do
+--     blacklisted <- Set.member a . view operators <$> State.get @Blacklist
+--     when_ blacklisted $ fail "Blacklisted"
+-- {-# INLINE checkBlacklistedOperator #-}
 
-instance Mempty Blacklist where
-    mempty = Blacklist mempty mempty
-    {-# INLINE mempty #-}
 
-instance Default Blacklist where
-    def = mempty
-    {-# INLINE def #-}
+
+-- -- === Instances === --
+
+-- instance Mempty Blacklist where
+--     mempty = Blacklist mempty mempty
+--     {-# INLINE mempty #-}
+
+-- instance Default Blacklist where
+--     def = mempty
+--     {-# INLINE def #-}
 
 
 
@@ -136,7 +136,7 @@ instance Default Blacklist where
 --     {-# INLINE def #-}
 
 
-type Parser = StatesT '[Result, SyntaxVersion, Blacklist, Indent, Position, LastOffset, CodeSpanRange, Marker.State, FileOffset, Scope.Scope] Parsec.Parser
+type Parser = StatesT '[Result, SyntaxVersion, Indent, Position, LastOffset, CodeSpanRange, Marker.State, FileOffset, Scope.Scope] Parsec.Parser
 
 
 

@@ -501,9 +501,10 @@ fixSpec = describe "error" $ it "x" $ do
     --         Hardcoded.hardcodePrecRelMap
     --         Macro.runSegmentBuilderT toks $ Macro.parseExpr
 
-    let sect = Macro.runP toks $ do
+    let sect = Macro.run toks $ do
             Hardcoded.hardcodePrecRelMap
-            Macro.parseExpr
+            Macro.hardcodePredefinedMacros
+            Macro.expr
     pprint sect
     -- putStrLn "\nSUB STREAMS:\n"
     -- pprint sstream

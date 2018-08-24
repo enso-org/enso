@@ -33,9 +33,10 @@ run :: ExprBuilder.BuilderMonad m => Text32 -> m IR.SomeTerm
 run = \s -> do
     let toks = Parser.run Parsing.Syntax1 s
         --FIXME: handle rest of the stream + Right pattern
-        Right sect = Macro.runP toks $ do
+        Right sect = Macro.run toks $ do
             Hardcoded.hardcodePrecRelMap
-            Macro.parseExpr
+            Macro.hardcodePredefinedMacros
+            Macro.expr
 
     ExprBuilder.buildGraph sect
 

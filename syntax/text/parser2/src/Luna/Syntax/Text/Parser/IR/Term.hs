@@ -119,7 +119,7 @@ invalid' = fmap Ast.invalid'
 unknown :: Parser Ast
 unknown = invalid $ do
     txt <- unknownChunk
-    Ast.checkBlacklistedUnknown $ Text.head txt
+    -- Ast.checkBlacklistedUnknown $ Text.head txt
     pure $ Invalid.Unknown
 {-# INLINE unknown #-}
 

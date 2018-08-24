@@ -178,7 +178,6 @@ runner__ = \sv p txt
      $ State.evalDefT @LastOffset
      $ State.evalDefT @Position
      $ State.Indent.eval
-     $ State.evalDefT @Parsing.Blacklist
      $ flip (State.evalT @Parsing.SyntaxVersion) sv
      $ State.evalDefT @Parsing.Result
      $ (p <* token '\ETX')
@@ -196,7 +195,6 @@ runStack = \sv p txt
      $ State.evalDefT @LastOffset
      $ State.evalDefT @Position
      $ State.Indent.eval
-     $ State.evalDefT @Parsing.Blacklist
      $ flip (State.evalT @Parsing.SyntaxVersion) sv
      $ Parsing.evalResult p
 {-# INLINE runStack #-}
