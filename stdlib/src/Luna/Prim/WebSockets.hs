@@ -1,5 +1,3 @@
-{-# LANGUAGE Strict #-}
-
 module Luna.Prim.WebSockets where
 
 import           Prologue

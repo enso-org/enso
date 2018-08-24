@@ -1,4 +1,5 @@
 {-# LANGUAGE NoStrict #-}
+{-# LANGUAGE NoStrictData #-}
 
 module Language.Symbol.Operator.Prec where
 
@@ -63,3 +64,4 @@ data Bound a
 
 instance {-# OVERLAPPABLE #-} RelReader label m => RelReader label (StateT s m)
 instance {-# OVERLAPPABLE #-} RelWriter label m => RelWriter label (StateT s m)
+

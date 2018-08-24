@@ -62,6 +62,7 @@
 -- So, unlike in @syz@, all of the list elements are siblings.
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE NoStrict #-}
+{-# LANGUAGE NoStrictData #-}
 
 module Data.Generics.Traversable.Zipper where
 

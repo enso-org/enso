@@ -1,4 +1,3 @@
-{-# LANGUAGE Strict               #-}
 {-# LANGUAGE TypeInType           #-}
 {-# LANGUAGE UndecidableInstances #-}
 
@@ -27,3 +26,4 @@ instance Layer  Users where
     type Cons   Users = Link.Set
     type Layout Users layout = layout *-* Layout.Set Model () layout
     manager = Layer.Manager (Just Mutable.new) (Just Data.destructShallow1)
+

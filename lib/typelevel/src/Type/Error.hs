@@ -1,4 +1,5 @@
-{-# LANGUAGE NoStrict #-}
+{-# LANGUAGE NoStrict             #-}
+{-# LANGUAGE NoStrictData         #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Type.Error (module Type.Error, module X) where

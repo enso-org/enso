@@ -1,4 +1,5 @@
 {-# LANGUAGE NoStrict #-}
+{-# LANGUAGE NoStrictData #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 module Foreign.Storable1.Deriving (derive, derive') where

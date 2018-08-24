@@ -1,4 +1,5 @@
-{-# LANGUAGE Strict #-}
+{-# LANGUAGE Strict       #-}
+{-# LANGUAGE NoStrictData #-}
 
 module Luna.Syntax.Text.Lexer.Token where
 

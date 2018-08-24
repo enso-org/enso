@@ -1,5 +1,6 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
-{-# LANGUAGE NoStrict #-}
+{-# LANGUAGE NoStrict                  #-}
+{-# LANGUAGE NoStrictData              #-}
 {-# LANGUAGE OverloadedStrings         #-}
 
 module Data.Tuple.Utils.TH where

@@ -1,5 +1,3 @@
-{-# LANGUAGE Strict #-}
-
 module Data.Graph.Component.Edge.Destruction where
 
 import Prologue

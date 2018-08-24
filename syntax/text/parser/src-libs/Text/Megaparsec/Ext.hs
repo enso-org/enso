@@ -1,4 +1,5 @@
-{-# LANGUAGE NoStrict #-}
+{-# LANGUAGE NoStrict     #-}
+{-# LANGUAGE NoStrictData #-}
 
 module Text.Megaparsec.Ext where
 

@@ -1,4 +1,5 @@
 {-# LANGUAGE NoStrict #-}
+{-# LANGUAGE NoStrictData #-}
 {-# LANGUAGE PolyKinds #-}
 
 module Foreign.Storable.Utils (module Foreign.Storable.Utils, module X) where
