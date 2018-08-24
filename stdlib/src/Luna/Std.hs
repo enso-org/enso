@@ -1,5 +1,3 @@
-{-# LANGUAGE Strict #-}
-
 module Luna.Std where
 
 import Prologue
