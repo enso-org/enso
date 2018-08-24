@@ -1,13 +1,9 @@
-{-# LANGUAGE Strict #-}
-
 module Main where
 
 import Prologue
 
 import qualified Luna.Shell.Command                as Command
 import qualified Luna.Shell.Option                 as Option
-
--- TODO [Ara] Gracefully display errors (once TC integrated).
 
 ------------------
 -- === Main === --
