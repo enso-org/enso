@@ -1,5 +1,6 @@
-{-# LANGUAGE NoStrict #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
+{-# LANGUAGE NoStrict                  #-}
+{-# LANGUAGE NoStrictData              #-}
 {-# LANGUAGE UndecidableInstances      #-}
 
 module Luna.Syntax.Text.Parser.Data.CodeSpan where

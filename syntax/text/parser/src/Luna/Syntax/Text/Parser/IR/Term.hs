@@ -1,5 +1,6 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
-{-# LANGUAGE NoStrict #-}
+{-# LANGUAGE NoStrict                  #-}
+{-# LANGUAGE NoStrictData              #-}
 {-# LANGUAGE UndecidableInstances      #-}
 
 module Luna.Syntax.Text.Parser.IR.Term where
