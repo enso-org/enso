@@ -22,7 +22,6 @@ import qualified Luna.IR.Term.Ast.Invalid              as Invalid
 import qualified Luna.Syntax.Text.Lexer                as Lexer
 import qualified Luna.Syntax.Text.Lexer.Symbol         as Lexer
 import qualified Luna.Syntax.Text.Parser.Data.CodeSpan as CodeSpan
-import qualified Luna.Syntax.Text.Parser.Data.Invalid  as Attr
 import qualified Luna.Syntax.Text.Parser.IR.Ast        as Ast
 import qualified Luna.Syntax.Text.Parser.State.Marker  as Marker
 import qualified Luna.Syntax.Text.Scope                as Scope

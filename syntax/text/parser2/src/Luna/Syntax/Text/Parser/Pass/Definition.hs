@@ -19,7 +19,6 @@ import qualified Luna.Syntax.Text.Lexer                 as Lexer
 import qualified Luna.Syntax.Text.Lexer.Symbol          as Symbol
 import qualified Luna.Syntax.Text.Parser.IR.Ast         as Ast
 import qualified Luna.Syntax.Text.Parser.IR.Ast         as Parsing
-import qualified Luna.Syntax.Text.Parser.IR.Class       as Token
 import qualified Luna.Syntax.Text.Parser.IR.Term        as Parsing
 import qualified Luna.Syntax.Text.Parser.State.Marker   as Marker
 import qualified Text.Megaparsec                        as Parser
@@ -35,12 +34,11 @@ import Luna.Pass                                   (Pass)
 import Luna.Pass.Parsing.ExprBuilder               (ExprBuilder,
                                                     ExprBuilderPass)
 import Luna.Syntax.Text.Parser.Data.CodeSpan       (CodeSpan, CodeSpanRange)
-import Luna.Syntax.Text.Parser.Data.Invalid        (Invalids)
 import Luna.Syntax.Text.Parser.Data.Name.Hardcoded (hardcode)
 import Luna.Syntax.Text.Parser.Data.Result         (Result (Result))
-import Luna.Syntax.Text.Parser.IR.Class            (Error, ParserBase, Stream,
-                                                    Token)
-import Luna.Syntax.Text.Parser.IR.Term             (Ast)
+-- import Luna.Syntax.Text.Parser.IR.Class            (Error, ParserBase, Stream,
+                                                    -- Token)
+import Luna.Syntax.Text.Parser.IR.Term (Ast)
 -- import Luna.Syntax.Text.Parser.Pass.Class          (IRB (fromIRB), IRBS,
 --                                                     ParserPass, fromIRBS)
 import Luna.Syntax.Text.Parser.State.LastOffset (LastOffset)

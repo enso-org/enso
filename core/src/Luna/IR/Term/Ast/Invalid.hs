@@ -1,4 +1,4 @@
-{-# LANGUAGE Strict #-}
+{-# LANGUAGE Strict               #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Luna.IR.Term.Ast.Invalid where
@@ -58,3 +58,8 @@ instance NFData Symbol
 instance NFData InvalidLiteral
 instance NFData InvalidString
 
+
+
+unexpectedSuffix :: Convertible' Symbol a => Int -> a
+unexpectedSuffix = convert' . UnexpectedSuffix
+{-# INLINE unexpectedSuffix #-}

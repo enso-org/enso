@@ -11,7 +11,6 @@ import           Prologue hiding (Text, imp, seq, some, span, takeWhile)
 import qualified Data.Text32                           as Text
 import qualified Luna.IR.Term.Ast.Invalid              as Invalid
 import qualified Luna.Syntax.Text.Parser.Data.CodeSpan as CodeSpan
-import qualified Luna.Syntax.Text.Parser.Pass.Class    as Parser
 
 import Luna.IR                               (SomeTerm, Term)
 import Luna.Syntax.Text.Parser.Data.CodeSpan (CodeSpan (CodeSpan),
@@ -495,6 +494,27 @@ instance Show SimpleAst where
         SimpleAstApp       t -> show t
         SimpleAstMissing   t -> show t
         SimpleAstList      t -> show t
+
+
+instance IsString SimpleAst where
+    fromString = convert
+
+instance Convertible String SimpleAst where
+    convert = \case
+        ""  -> SMissing
+        "_" -> SWildcard
+        x@(s:ss) -> if
+            | s == '_'       -> SVar (convert x)
+            | Char.isLower s -> SVar (convert x)
+            | Char.isUpper s -> SCons (convert x)
+            | otherwise      -> error "wrong char"
+
+instance Convertible Invalid.Symbol SimpleAst where
+    convert = SInvalid
+
+instance Num SimpleAst where
+    (*) = \a b -> SApp (SApp (SOperator "*") a) b
+
 
 
 class Simplify a where

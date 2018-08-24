@@ -16,8 +16,7 @@ import qualified Luna.Pass.Scheduler                         as Scheduler
 import qualified Luna.Syntax.Text.Parser.Data.Name.Hardcoded as Hardcoded
 import qualified Luna.Syntax.Text.Parser.IR.Ast              as Parsing (Parser, SyntaxVersion (..))
 import qualified Luna.Syntax.Text.Parser.IR.Term             as Parsing
-import qualified Luna.Syntax.Text.Parser.Pass                as Parser
-import qualified Luna.Syntax.Text.Parser.Pass.Class          as Parser
+import qualified Luna.Syntax.Text.Parser.Pass.Definition     as Parser
 import qualified Luna.Syntax.Text.Scope                      as Scope
 
 import Data.Text32                         (Text32)
@@ -41,6 +40,14 @@ run = \s -> do
     ExprBuilder.buildGraph sect
 
 
+run2 :: Text32 -> Parsing.Ast
+run2 = \src -> let
+    toks = Parser.run Parsing.Syntax1 src
+    Right out = Macro.run toks $ do
+        Hardcoded.hardcodePrecRelMap
+        Macro.hardcodePredefinedMacros
+        Macro.expr
+    in out
 
 instance ExprBuilderPass (Pass stage ExprBuilder) => Pass.Definition stage ExprBuilder where
     definition = do

@@ -23,35 +23,36 @@ import qualified Luna.Pass                                   as Pass
 import qualified Luna.Pass.Attr                              as Attr
 import qualified Luna.Pass.Parsing.ExprBuilder               as ExprBuilder
 import qualified Luna.Pass.Parsing.Macro                     as Macro
+import qualified Luna.Pass.Parsing.Parser                    as PP
 import qualified Luna.Pass.Scheduler                         as Scheduler
-import qualified Luna.Syntax.Prettyprint                     as Prettyprint
 import qualified Luna.Syntax.Text.Parser.Data.CodeSpan       as CodeSpan
 import qualified Luna.Syntax.Text.Parser.Data.Name.Hardcoded as Hardcoded
 import qualified Luna.Syntax.Text.Parser.IR.Ast              as Ast
 import qualified Luna.Syntax.Text.Parser.IR.Ast              as Parsing (Parser, SyntaxVersion (..))
-import qualified Luna.Syntax.Text.Parser.IR.Class            as Token
 import qualified Luna.Syntax.Text.Parser.IR.Term             as Parsing
-import qualified Luna.Syntax.Text.Parser.Pass                as Parser
-import qualified Luna.Syntax.Text.Parser.Pass.Class          as Parser
+import qualified Luna.Syntax.Text.Parser.Pass.Definition     as Parser
 import qualified Luna.Syntax.Text.Scope                      as Scope
 import qualified OCI.Data.Name                               as Name
 
 import Data.Graph.Data.Graph.Class           (Graph)
 import Data.Text.Position                    (Delta)
+import Data.Text32                           (Text32)
 import Luna.Pass                             (Pass)
 import Luna.Syntax.Text.Parser.Data.CodeSpan (CodeSpan)
-import Luna.Syntax.Text.Parser.Data.Invalid  (Invalids)
 import Luna.Syntax.Text.Parser.IR.Term       (Ast)
 import OCI.Data.Name                         (Name)
 -- import Luna.Syntax.Text.Parser.Pass.Class    (IRBS, Parser)
-import Luna.Syntax.Text.Scope      (Scope)
-import Luna.Syntax.Text.Source     (Source)
-import Luna.Test.Source.Text.Utils (s)
-import OCI.IR.Link.Class           (type (*-*), Link)
-import Test.Hspec                  (Expectation, Spec, describe, it)
+import Luna.Syntax.Text.Scope  (Scope)
+import Luna.Syntax.Text.Source (Source)
+import OCI.IR.Link.Class       (type (*-*), Link)
+import Test.Hspec              (Expectation, Spec, describe, it)
+
+import Luna.IR.Term.Ast.Invalid (unexpectedSuffix)
 
 
 import qualified Luna.Pass.Parsing.Parser as P
+
+-- import qualified Luna.Syntax.Prettyprint                     as Prettyprint
 
 
 -----------------------
@@ -131,28 +132,35 @@ import qualified Luna.Pass.Parsing.Parser as P
 -- exprAs     = shouldParseAs     Parsing.Syntax1 Parsing.expr
 -- expr       = shouldParseItself Parsing.Syntax1 Parsing.expr
 
+expr :: Text32 -> Ast.SimpleAst -> IO ()
+expr src out = sast `shouldBe` out where
+    ast  = PP.run2 src
+    sast = Ast.simplify ast
+
+expr' :: Text32 -> IO ()
+expr' src = expr src (convertVia @String src)
 
 
 ----------------------
 -- === Literals === --
 ----------------------
 
--- identSpec :: Spec
--- identSpec = describe "identifier" $ do
---     it "var"               $ expr   "var"
---     it "_var"              $ expr   "_var"
---     it "var'"              $ expr   "var'"
---     it "var''"             $ expr   "var''"
---     it "unicode"           $ expr   "фываΧξωβ김동욱"
---     it "invalid var: a⸗"   $ exprAs "a⸗"    "(UnexpectedSuffix 1)"
---     it "invalid var: f'o"  $ exprAs "f'o"  "(UnexpectedSuffix 1)"
---     it "invalid var: f_a"  $ exprAs "f_a"  "(UnexpectedSuffix 2)"
---     it "Cons"              $ expr   "Cons"
---     it "Cons'"             $ expr   "Cons'"
---     it "Cons''"            $ expr   "Cons''"
---     it "invalid cons: C⸗"  $ exprAs "C⸗"    "(UnexpectedSuffix 1)"
---     it "invalid cons: C'o" $ exprAs "C'o"  "(UnexpectedSuffix 1)"
---     it "invalid cons: C_a" $ exprAs "C_a"  "(UnexpectedSuffix 2)"
+identSpec :: Spec
+identSpec = describe "identifier" $ do
+    it "var"               $ expr' "var"
+    it "_var"              $ expr' "_var"
+    it "var'"              $ expr' "var'"
+    it "var''"             $ expr' "var''"
+    it "unicode"           $ expr' "фываΧξωβ김동욱"
+    it "Cons"              $ expr' "Cons"
+    it "Cons'"             $ expr' "Cons'"
+    it "Cons''"            $ expr' "Cons''"
+    it "invalid var: f'o"  $ expr  "f'o"  (unexpectedSuffix 1)
+    it "invalid var: f_a"  $ expr  "f_a"  (unexpectedSuffix 2)
+    it "invalid cons: C'o" $ expr  "C'o"  (unexpectedSuffix 1)
+    it "invalid cons: C_a" $ expr  "C_a"  (unexpectedSuffix 2)
+    it "invalid var: a⸗"   $ expr  "a⸗"   (unexpectedSuffix 1)
+    it "invalid cons: C⸗"  $ expr  "C⸗"   (unexpectedSuffix 1)
 
 -- exprSpec :: Spec
 -- exprSpec = describe "expression" $ do
@@ -501,11 +509,10 @@ fixSpec = describe "error" $ it "x" $ do
     --         Hardcoded.hardcodePrecRelMap
     --         Macro.runSegmentBuilderT toks $ Macro.parseExpr
 
-    let Right (Ast.Spanned _ sect) = Macro.run toks $ do
-            Hardcoded.hardcodePrecRelMap
-            Macro.hardcodePredefinedMacros
-            Macro.expr
-    pprint $ Ast.simplify sect
+    let ast = PP.run2 "bar"
+        -- foo = "a" * "b"
+    pprint $ Ast.simplify ast
+    -- print $ foo == Ast.simplify ast
     -- putStrLn "\nSUB STREAMS:\n"
     -- pprint sstream
 
@@ -544,7 +551,7 @@ fixSpec = describe "error" $ it "x" $ do
 
 spec :: Spec
 spec = do
-    -- identSpec
+    identSpec
     -- exprSpec
     -- funcDefSpec
     fixSpec
