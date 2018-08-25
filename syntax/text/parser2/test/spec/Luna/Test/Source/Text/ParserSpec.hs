@@ -145,6 +145,9 @@ expr' src = expr src (convertVia @String src)
 -- === Literals === --
 ----------------------
 
+__ :: Convertible' Ast.SimpleAst a => a
+__ = convert' Ast.SMissing
+
 identSpec :: Spec
 identSpec = describe "identifier" $ do
     it "var"               $ expr' "var"
@@ -162,13 +165,21 @@ identSpec = describe "identifier" $ do
     it "invalid var: a⸗"   $ expr  "a⸗"   (unexpectedSuffix 1)
     it "invalid cons: C⸗"  $ expr  "C⸗"   (unexpectedSuffix 1)
 
--- exprSpec :: Spec
--- exprSpec = describe "expression" $ do
---     it "app"        $ expr   "a b"
-    -- it "operator"   $ expr   "a + b"
-    -- it "group"      $ expr   "(a b)"
-    -- it "multiline"  $ exprAs "foo\n bar baz" "foo \n bar baz"
-    -- it "a)"         $ exprAs "a)" "a (Unknown)"
+exprSpec :: Spec
+exprSpec = describe "expression" $ do
+    it "application"      $ expr  "a b"        $ "a" "b"
+    it "operator"         $ expr  "a + b"      $ "a" + "b"
+    it "precedence"       $ expr  "a + b * c"  $ "a" + ("b" * "c")
+    it "space precedence" $ expr  "a+b * c"    $ ("a" + "b") * "c"
+    it "section left"     $ expr  "a +b * c"   $ "a" (__ + "b") * "c"
+    it "section right"    $ expr  "a+ b * c"   $ ("a" + __) "b" * "c"
+    it "group"            $ expr  "(a b)"      $ "(_)" ("a" "b")
+    it "line group"       $ expr  "a\n b c"    $ "a" ("b" "c")
+    it "line op break"    $ expr  "a +\n b c"  $ "a" + ("b" "c")
+    it "line op cont"     $ expr  "a \n + b c" $ "a" + "b" "c"
+    it "line section"     $ expr  "a+ \n b c"  $ ("a" + __) ("b" "c")
+    it "line br section"  $ expr  "a \n +b c"  $ "a" ((__ + "b") "c")
+    it "a)"               $ expr  "a)"         $ ")" "a" __
 
 -- funcDefSpec :: Spec
 -- funcDefSpec = describe "function" $ do
@@ -552,7 +563,7 @@ fixSpec = describe "error" $ it "x" $ do
 spec :: Spec
 spec = do
     identSpec
-    -- exprSpec
+    exprSpec
     -- funcDefSpec
     fixSpec
     -- literalSpec

@@ -496,26 +496,74 @@ instance Show SimpleAst where
         SimpleAstList      t -> show t
 
 
+sapp :: SimpleAst -> SimpleAst -> SimpleAst
+sapp = SApp
+{-# INLINE sapp #-}
+
+sapp2 :: SimpleAst -> SimpleAst -> SimpleAst -> SimpleAst
+sapp2 = \f a b -> sapp (sapp f a) b
+{-# INLINE sapp2 #-}
+
+sapps :: SimpleAst -> [SimpleAst] -> SimpleAst
+sapps = foldl' sapp
+{-# INLINE sapps #-}
+
+
 instance IsString SimpleAst where
     fromString = convert
 
+instance Convertible String (t1 -> SimpleAst)
+      => IsString (t1 -> SimpleAst) where
+    fromString = convert
+
+instance Convertible String (t1 -> t2 -> SimpleAst)
+      => IsString (t1 -> t2 -> SimpleAst) where
+    fromString = convert
+
 instance Convertible String SimpleAst where
-    convert = \case
-        ""  -> SMissing
-        "_" -> SWildcard
-        x@(s:ss) -> if
-            | s == '_'       -> SVar (convert x)
-            | Char.isLower s -> SVar (convert x)
-            | Char.isUpper s -> SCons (convert x)
-            | otherwise      -> error "wrong char"
+    convert = let
+        isMixfix = ('_' `elem`)
+        in \case
+            ""  -> SMissing
+            "_" -> SWildcard
+            x@(s:ss) -> let n = convert x in if
+                | s == '_'       -> SVar      n
+                | Char.isLower s -> SVar      n
+                | Char.isUpper s -> SCons     n
+                | isMixfix x     -> SVar      n
+                | otherwise      -> SOperator n
+
+instance t1 ~ SimpleAst
+      => Convertible String (t1 -> SimpleAst) where
+    convert = sapp . convert
+
+instance (t1 ~ SimpleAst, t2 ~ SimpleAst)
+      => Convertible String (t1 -> t2 -> SimpleAst) where
+    convert = sapp2 . convert
+
+instance t1 ~ SimpleAst
+      => Convertible SimpleAst (t1 -> SimpleAst) where
+    convert = sapp
+
+instance (t1 ~ SimpleAst, t2 ~ SimpleAst)
+      => Convertible SimpleAst (t1 -> t2 -> SimpleAst) where
+    convert = sapp2
 
 instance Convertible Invalid.Symbol SimpleAst where
     convert = SInvalid
 
 instance Num SimpleAst where
-    (*) = \a b -> SApp (SApp (SOperator "*") a) b
+    (+) = sapp2 (SOperator "+")
+    (*) = sapp2 (SOperator "*")
 
 
+instance a ~ SimpleAst
+      => Num (a -> SimpleAst) where
+    (+) = extractOp (+)
+    (*) = extractOp (*)
+
+extractOp op a b = sapp $ op (extract a) (extract b) where
+    extract f = let SApp x _ = f SMissing in x
 
 class Simplify a where
     type family Simplified a

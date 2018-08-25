@@ -23,6 +23,7 @@ import qualified Luna.Syntax.Text.Lexer                as Lexer
 import qualified Luna.Syntax.Text.Lexer.Symbol         as Lexer
 import qualified Luna.Syntax.Text.Parser.Data.CodeSpan as CodeSpan
 import qualified Luna.Syntax.Text.Parser.IR.Ast        as Ast
+import qualified Luna.Syntax.Text.Parser.IR.Name       as Name
 import qualified Luna.Syntax.Text.Parser.State.Marker  as Marker
 import qualified Luna.Syntax.Text.Scope                as Scope
 import qualified Text.Parser.State.Indent              as Indent
@@ -177,7 +178,7 @@ wildcard' = correct <**> option id (const <$> invalidIdentSuffix) where
 {-# INLINE wildcard' #-}
 
 isIdentBodyChar, isVarHead, isConsHead :: Char -> Bool
-isIdentBodyChar = \c -> Char.isAlphaNum c || c == '_'
+isIdentBodyChar = \c -> Char.isAlphaNum c
 isVarHead       = \c -> Char.isLower    c || c == '_'
 isConsHead      = Char.isUpper
 {-# INLINE isIdentBodyChar  #-}
@@ -289,22 +290,8 @@ isOpenCloseChar = (`elem` ("(){}[]" :: [Char]))
 
 -- === Helpers === --
 
-isOperatorBeginChar :: Char -> Bool
-isOperatorBeginChar = \c -> let
-    ord   = Char.ord c
-    check = (ord == 33)              -- !
-         || (ord >= 36 && ord <= 38) -- $%&
-         || (ord >= 42 && ord <= 47) -- *+,-./
-         || (ord >= 58 && ord <= 63) -- :;<>=?
-         || (ord == 92)              -- \
-         || (ord == 94)              -- ^
-         || (ord == 126)             -- ~
-         || Char.generalCategory c == Char.MathSymbol
-    in check
-{-# INLINE isOperatorBeginChar #-}
-
 isOperatorBodyChar :: Char -> Bool
-isOperatorBodyChar = \c -> c /= eqChar && isOperatorBeginChar c
+isOperatorBodyChar = \c -> c /= eqChar && Name.isOperatorBeginChar c
 {-# INLINE isOperatorBodyChar #-}
 
 
@@ -313,7 +300,7 @@ isOperatorBodyChar = \c -> c /= eqChar && isOperatorBeginChar c
 invalidOperatorSuffix :: Parser UnspannedAst
 invalidOperatorSuffix = let
     inv = Ast.Invalid . Invalid.UnexpectedSuffix <$> sfx
-    sfx = Text.length <$> takeWhile1 isOperatorBeginChar
+    sfx = Text.length <$> takeWhile1 Name.isOperatorBeginChar
     in inv
 {-# INLINE invalidOperatorSuffix #-}
 
@@ -414,7 +401,7 @@ exprLookupTable = Vector.generate lookupTableSize $ exprByChar . Char.chr
 
 exprByChar :: Char -> Parser ()
 exprByChar = \c -> if
-    | isOperatorBeginChar c -> operator
+    | Name.isOperatorBeginChar c -> operator
     | isEolBeginChar      c -> lineBreak
     | isOpenCloseChar     c -> unsafeAnyTokenOperator
     | isVarHead           c -> var <|> wildcard
