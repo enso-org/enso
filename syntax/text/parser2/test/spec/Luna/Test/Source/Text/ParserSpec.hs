@@ -16,6 +16,7 @@ import qualified Data.Graph.Data.Layer.Layout                as Layout
 import qualified Foreign.Marshal.Alloc                       as Mem
 import qualified Foreign.Storable                            as Storable
 import qualified Language.Symbol.Operator.Assoc              as Assoc
+import qualified Language.Symbol.Operator.Assoc              as Assoc
 import qualified Language.Symbol.Operator.Prec               as Prec
 import qualified Luna.IR                                     as IR
 import qualified Luna.IR.Layer                               as Layer
@@ -47,7 +48,8 @@ import Luna.Syntax.Text.Source (Source)
 import OCI.IR.Link.Class       (type (*-*), Link)
 import Test.Hspec              (Expectation, Spec, describe, it)
 
-import Luna.IR.Term.Ast.Invalid (unexpectedSuffix)
+import Luna.IR.Term.Ast.Invalid (adjacentOperators, assocConflict,
+                                 unexpectedSuffix)
 
 
 import qualified Luna.Pass.Parsing.Parser as P
@@ -134,8 +136,12 @@ import qualified Luna.Pass.Parsing.Parser as P
 
 expr :: Text32 -> Ast.SimpleAst -> IO ()
 expr src out = sast `shouldBe` out where
-    ast  = PP.run2 src
     sast = Ast.simplify ast
+    ast  = flip PP.runWith src $ do
+        let rplus = ">>+" :: Name
+        Assoc.write Assoc.Right rplus
+        Prec.writeRel EQ ("+" :: Name) rplus
+        Macro.expr
 
 expr' :: Text32 -> IO ()
 expr' src = expr src (convertVia @String src)
@@ -150,6 +156,8 @@ __ = convert' Ast.SMissing
 
 identSpec :: Spec
 identSpec = describe "identifier" $ do
+
+  describe "valid" $ do
     it "var"               $ expr' "var"
     it "_var"              $ expr' "_var"
     it "var'"              $ expr' "var'"
@@ -158,28 +166,56 @@ identSpec = describe "identifier" $ do
     it "Cons"              $ expr' "Cons"
     it "Cons'"             $ expr' "Cons'"
     it "Cons''"            $ expr' "Cons''"
-    it "invalid var: f'o"  $ expr  "f'o"  (unexpectedSuffix 1)
-    it "invalid var: f_a"  $ expr  "f_a"  (unexpectedSuffix 2)
-    it "invalid cons: C'o" $ expr  "C'o"  (unexpectedSuffix 1)
-    it "invalid cons: C_a" $ expr  "C_a"  (unexpectedSuffix 2)
-    it "invalid var: a⸗"   $ expr  "a⸗"   (unexpectedSuffix 1)
-    it "invalid cons: C⸗"  $ expr  "C⸗"   (unexpectedSuffix 1)
 
-exprSpec :: Spec
-exprSpec = describe "expression" $ do
-    it "application"      $ expr  "a b"        $ "a" "b"
-    it "operator"         $ expr  "a + b"      $ "a" + "b"
-    it "precedence"       $ expr  "a + b * c"  $ "a" + ("b" * "c")
-    it "space precedence" $ expr  "a+b * c"    $ ("a" + "b") * "c"
-    it "section left"     $ expr  "a +b * c"   $ "a" (__ + "b") * "c"
-    it "section right"    $ expr  "a+ b * c"   $ ("a" + __) "b" * "c"
-    it "group"            $ expr  "(a b)"      $ "(_)" ("a" "b")
-    it "line group"       $ expr  "a\n b c"    $ "a" ("b" "c")
-    it "line op break"    $ expr  "a +\n b c"  $ "a" + ("b" "c")
-    it "line op cont"     $ expr  "a \n + b c" $ "a" + "b" "c"
-    it "line section"     $ expr  "a+ \n b c"  $ ("a" + __) ("b" "c")
-    it "line br section"  $ expr  "a \n +b c"  $ "a" ((__ + "b") "c")
-    it "a)"               $ expr  "a)"         $ ")" "a" __
+  describe "invalid" $ do
+    it "var'o"             $ expr  "var'o"   $ unexpectedSuffix 1
+    it "var_a"             $ expr  "var_a"   $ unexpectedSuffix 2
+    it "Cons'o"            $ expr  "Cons'o"  $ unexpectedSuffix 1
+    it "Cons_a"            $ expr  "Cons_a"  $ unexpectedSuffix 2
+    it "var⸗"              $ expr  "var⸗"    $ unexpectedSuffix 1
+    it "Cons⸗"             $ expr  "Cons⸗"   $ unexpectedSuffix 1
+
+operatorSpec :: Spec
+operatorSpec = describe "operator" $ do
+
+  describe "simple" $ do
+    it "single"            $ expr  "a + b"       $ "a" + "b"
+    it "modifier"          $ expr  "a += 1"      $ "+=" "a" 1
+    it "application"       $ expr  "a b"         $ "a" "b"
+
+  describe "section" $ do
+    it "left 1"            $ expr  "+ a"         $ __ + "a"
+    it "left 2"            $ expr  "+a"          $ __ + "a"
+    it "right 1"           $ expr  "a +"         $ "a" + __
+    it "right 2"           $ expr  "a+"          $ "a" + __
+    it "left section app"  $ expr  "a +b * c"    $ "a" (__ + "b") * "c"
+    it "right section app" $ expr  "a b+ * c"    $ "a" ("b" + __) * "c"
+
+  describe "precedence" $ do
+    it "simple"            $ expr  "a + b * c"   $ "a" + ("b" * "c")
+    it "spaced"            $ expr  "a+b * c"     $ ("a" + "b") * "c"
+
+  describe "multiline" $ do
+    it "grouping"          $ expr  "a\n b c"     $ "a" ("b" "c")
+    it "section 1"         $ expr  "a +\n b c"   $ ("a" + __) ("b" "c")
+    it "section 2"         $ expr  "a+ \n b c"   $ ("a" + __) ("b" "c")
+    it "section 3"         $ expr  "a \n +b c"   $ "a" ((__ + "b") "c")
+    it "continuation"      $ expr  "a \n + b c"  $ "a" + "b" "c"
+
+  describe "invalid" $ do
+    it "adjacent infix"    $ expr  "a + + b"     $ adjacentOperators "a" "b"
+    it "adjacent infix 2"  $ expr  "a + + + b"   $ adjacentOperators "a" "b"
+    it "adjacent postfix"  $ expr  "a + +"       $ adjacentOperators "a" __
+    it "adjacent prefix"   $ expr  "+ + a"       $ adjacentOperators __ "a"
+    it "assoc conflict"    $ expr  "a + b >>+ c" $ assocConflict
+    it "assoc conflict"    $ expr  "a + b +++ c" $ assocConflict
+
+
+
+    it "a)"                    $ expr  "a)"         $ ")" "a" __
+    it "group"                 $ expr  "(a b)"      $ "(_)" ("a" "b")
+
+    -- TODO: assoc conflicts
 
 -- funcDefSpec :: Spec
 -- funcDefSpec = describe "function" $ do
@@ -190,20 +226,17 @@ exprSpec = describe "expression" $ do
 --     it "def f a:"   $ expr   "def f a:"
 --     it "def f a: a" $ expr   "def f a: a"
 
--- literalNumberSpec :: Spec
--- literalNumberSpec = describe "number" $ do
---     let biggerThanInt64   = convert (show (maxBound :: Int64)) <> "0"
---         biggerThanInt64f  = biggerThanInt64  <> "." <> biggerThanInt64
---     it "int positive"      $ expr "7"
---     it "zero prefixed int" $ expr "007"
---     it "frac positive"     $ expr "7.11"
---     it "base 2  int (b)"   $ expr "0b101010101"
---     it "base 8  int (o)"   $ expr "0o01234567"
---     it "base 16 int (x)"   $ exprAs "0x0123456789abcdefABCDEF"
---                                     "0x0123456789abcdefabcdef"
---     it "int > 64b"         $ expr biggerThanInt64
---     it "frac > 64b"        $ expr biggerThanInt64f
---     it "invalid number 1"  $ exprAs "117a" "Invalid UnexpectedSuffix 1"
+literalNumberSpec :: Spec
+literalNumberSpec = describe "number" $ do
+    let biggerThanInt64   = convert (show (maxBound :: Int64)) <> "0"
+    it "positive"          $ expr' "1"
+    it "zero prefixed"     $ expr' "01"
+    it "real numbers"      $ expr  "1.23"          $ "." 1 23
+    it "spaced numbers"    $ expr  "123 456"       $ 123 456
+    it "spaced reals"      $ expr  "123 456 . 789" $ "." (123 456) 789
+    it "int > 64 bit"      $ expr' biggerThanInt64
+    it "invalid suffix"    $ expr "1a"             $ unexpectedSuffix 1
+    -- TODO: negative numbers
 
 -- literalStringSpec :: Spec
 -- literalStringSpec = describe "string" $ do
@@ -253,9 +286,9 @@ exprSpec = describe "expression" $ do
 --     it "3 elems tuple" $ expr "(a, 30, \"ala\")" -- [(1,1),(2,2),(2,5),(0,14)]
 --     it "section tuple" $ expr "(, 30)"           -- [(1,0),(2,2),(0,6)]
 
--- literalSpec :: Spec
--- literalSpec = describe "literal" $ do
---     literalNumberSpec
+literalSpec :: Spec
+literalSpec = describe "literal" $ do
+    literalNumberSpec
 --     literalStringSpec
 --     literalListSpec
 --     literalTupleSpec
@@ -491,6 +524,8 @@ exprSpec = describe "expression" $ do
 
 -- |]
 
+
+
 fixSpec :: Spec
 fixSpec = describe "error" $ it "x" $ do
     pure () :: IO ()
@@ -502,7 +537,7 @@ fixSpec = describe "error" $ it "x" $ do
     -- pprint $ Parser.runParserxx__ Parsing.Syntax2 Parsing.expr "foo (bar baz"
     let toks =
             -- Parser.runParserxx__ Parsing.Syntax2 Parsing.expr [s|a * b + c|]
-            Parser.run Parsing.Syntax1 "a \n * b"
+            Parser.run Parsing.Syntax1 "a + +"
             -- Parser.run Parsing.Syntax1 "a + b - c"
             -- Parser.run Parsing.Syntax2 [s|if test then ok else fail|]
             -- Parser.run Parsing.Syntax2 [s|if test then if test2 then ok2 else fail2 else fail
@@ -511,18 +546,18 @@ fixSpec = describe "error" $ it "x" $ do
     pprint toks
     putStrLn "\n=========\n"
 
-    -- let stream  = ExprBuilder.buildStream toks
-    --     sstream = ExprBuilder.subStreams toks
-    --     estream = ExprBuilder.expressionStream sstream
+    let stream  = ExprBuilder.buildStream toks
+        -- sstream = ExprBuilder.subStreams toks
+        -- estream = ExprBuilder.expressionStream sstream
 
-    putStrLn "\nSECTION:\n"
+    -- putStrLn "\nSECTION:\n"
     -- let sect = State.evalDef @Scope.Scope $ do
     --         Hardcoded.hardcodePrecRelMap
     --         Macro.runSegmentBuilderT toks $ Macro.parseExpr
 
-    let ast = PP.run2 "bar"
+    -- let ast = PP.run2 "bar"
         -- foo = "a" * "b"
-    pprint $ Ast.simplify ast
+    -- pprint $ Ast.simplify ast
     -- print $ foo == Ast.simplify ast
     -- putStrLn "\nSUB STREAMS:\n"
     -- pprint sstream
@@ -530,8 +565,8 @@ fixSpec = describe "error" $ it "x" $ do
     -- putStrLn "\nEXPR STREAM:\n"
     -- pprint estream
 
-    -- putStrLn "\nSTREAM:\n"
-    -- pprint stream
+    putStrLn "\nSTREAM:\n"
+    pprint stream
     -- -- pprint $ ExprBuilder.subStreams toks
 
     -- expr' <- State.evalDefT @Scope.Scope $ do
@@ -544,6 +579,7 @@ fixSpec = describe "error" $ it "x" $ do
     -- pprint expr'
     -- putStrLn "\n=========\n"
     -- printCodePure expr'
+
 
     True `shouldBe` False
 
@@ -563,10 +599,10 @@ fixSpec = describe "error" $ it "x" $ do
 spec :: Spec
 spec = do
     identSpec
-    exprSpec
+    literalSpec
+    operatorSpec
     -- funcDefSpec
     fixSpec
-    -- literalSpec
     -- termSpec
     -- definitionSpec
     -- fixSpec

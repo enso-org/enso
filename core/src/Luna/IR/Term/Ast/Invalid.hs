@@ -63,3 +63,11 @@ instance NFData InvalidString
 unexpectedSuffix :: Convertible' Symbol a => Int -> a
 unexpectedSuffix = convert' . UnexpectedSuffix
 {-# INLINE unexpectedSuffix #-}
+
+adjacentOperators :: Convertible' Symbol a => a
+adjacentOperators = convert' AdjacentOperators
+{-# INLINE adjacentOperators #-}
+
+assocConflict :: Convertible' Symbol a => a
+assocConflict = convert' AssocConflict
+{-# INLINE assocConflict #-}

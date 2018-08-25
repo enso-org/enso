@@ -41,13 +41,18 @@ run = \s -> do
 
 
 run2 :: Text32 -> Parsing.Ast
-run2 = \src -> let
+run2 = runWith Macro.expr
+{-# NOINLINE run2 #-}
+
+runWith :: Macro.Parser a -> Text32 -> a
+runWith = \p src -> let
     toks = Parser.run Parsing.Syntax1 src
     Right out = Macro.run toks $ do
         Hardcoded.hardcodePrecRelMap
         Macro.hardcodePredefinedMacros
-        Macro.expr
+        p
     in out
+{-# INLINE runWith #-}
 
 instance ExprBuilderPass (Pass stage ExprBuilder) => Pass.Definition stage ExprBuilder where
     definition = do

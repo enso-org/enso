@@ -292,24 +292,22 @@ singularElStream = ElStreamStart . EndElStream
 buildStream :: [Ast] -> Stream
 buildStream = \(reverse -> stream) -> case stream of
     []         -> NullStream
-    (tok:toks) -> case Ast.unspan tok of
-        Ast.Operator name
-          -> buildElStream (EndOpStream name (rightSection tok)) toks
-        _ -> buildOpStream (EndElStream tok) toks
+    (tok:toks) -> case discoverOps stream of
+        Single name op    -> goEl name op toks
+        NotFound          -> goOp tok toks
+        Invalid inv toks' -> goEl Name.invalid inv toks'
+    where goOp      = buildOpStream . EndElStream
+          goEl name = buildElStream . EndOpStream name . rightSection
 {-# INLINE buildStream #-}
 
 buildOpStream :: ElStream -> [Ast] -> Stream
 buildOpStream = \result stream -> case stream of
     [] -> ElStreamStart result
-    _  -> case takeOperators stream of
-        ([(name,op)], []  ) -> OpStreamStart name (leftSection op) result
-        ([]         , _   ) -> go Name.app     (Ast.app)      result stream
-        ([(name,op)], toks) -> go name         (Ast.app2 op)  result toks
-        ((p:ps)     , toks) -> go Name.invalid (Ast.app2 inv) result toks
-            where inv = Ast.computeCodeSpanList1__ (snd <$> (p :| ps))
-                      $ Ast.Invalid Invalid.AdjacentOperators
-                      -- FIXME: register ops in invalid
-    where go name f stream = buildElStream (InfixOpStream name f stream)
+    (tok:toks) -> case discoverOps stream of
+        NotFound          -> go Name.app     (Ast.app)      result stream
+        Invalid inv toks' -> go Name.invalid (Ast.app2 inv) result toks'
+        Single name op    -> go name (Ast.app2 op)  result toks
+    where go = buildElStream .:. InfixOpStream
 {-# NOINLINE buildOpStream #-}
 
 buildElStream :: OpStream -> [Ast] -> Stream
@@ -317,9 +315,7 @@ buildElStream = \(result@(OpStream name stp)) -> \case
     [] -> case stp of
         EndOp   f   -> singularElStream $ f Ast.missing
         InfixOp f s -> OpStreamStart name (f Ast.missing) s
-    (tok:toks) -> case Ast.unspan tok of
-        Ast.AstOperator {} -> undefined
-        _                  -> buildOpStream (InfixElStream tok result) toks
+    (tok:toks) -> buildOpStream (InfixElStream tok result) toks
 {-# NOINLINE buildElStream #-}
 
 
@@ -333,6 +329,24 @@ rightSection :: Ast -> Ast -> Ast
 rightSection = \a -> flip (Ast.app2 a) Ast.missing
 {-# INLINE rightSection #-}
 
+
+-- === Operator discovery === --
+
+data OperatorDiscovery
+    = Single Name Ast
+    | Invalid Ast [Ast]
+    | NotFound
+    deriving (Show)
+
+discoverOps :: [Ast] -> OperatorDiscovery
+discoverOps stream = case takeOperators stream of
+    ([(name,op)], _)     -> Single name op
+    ([]         , _)     -> NotFound
+    ((p:ps)     , toks') -> Invalid inv toks'
+        where inv = Ast.computeCodeSpanList1__ (snd <$> (p :| ps))
+                  $ Ast.Invalid Invalid.AdjacentOperators
+{-# INLINE discoverOps #-}
+
 takeOperators :: [Ast] -> ([(Name,Ast)], [Ast])
 takeOperators = takeOperators__ mempty
 {-# INLINE takeOperators #-}
@@ -340,10 +354,12 @@ takeOperators = takeOperators__ mempty
 takeOperators__ :: [(Name,Ast)] -> [Ast] -> ([(Name,Ast)], [Ast])
 takeOperators__ = \result stream -> case stream of
     [] -> (result,[])
-    (tok:toks) -> case Ast.unspan tok of
-        Ast.Operator name
-          -> takeOperators__ ((name,tok) : result) toks
-        _ -> (result, stream)
+    (tok:toks) -> let
+        go name = takeOperators__ ((name,tok) : result) toks
+        in case Ast.unspan tok of
+            Ast.Operator name -> go name
+            Ast.Modifier name -> go name
+            _                 -> (result, stream)
 {-# NOINLINE takeOperators__ #-}
 
 

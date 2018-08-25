@@ -530,8 +530,15 @@ instance Convertible String SimpleAst where
                 | s == '_'       -> SVar      n
                 | Char.isLower s -> SVar      n
                 | Char.isUpper s -> SCons     n
+                | Char.isDigit s -> SNumber $ charsToDigits (s :| ss)
                 | isMixfix x     -> SVar      n
-                | otherwise      -> SOperator n
+                | otherwise      -> case last ss of
+                    Just '=' -> SModifier $ convert (s : unsafeInit ss)
+                    _        -> SOperator n
+
+charsToDigits :: NonEmpty Char -> NonEmpty Word8
+charsToDigits (c :| cs) = go c :| (go <$> cs) where
+    go c = fromIntegral $ Char.ord c - 48
 
 instance t1 ~ SimpleAst
       => Convertible String (t1 -> SimpleAst) where
@@ -549,16 +556,39 @@ instance (t1 ~ SimpleAst, t2 ~ SimpleAst)
       => Convertible SimpleAst (t1 -> t2 -> SimpleAst) where
     convert = sapp2
 
+instance t1 ~ SimpleAst
+      => Convertible Invalid.Symbol (t1 -> SimpleAst) where
+    convert = convert . convertTo @SimpleAst
+
+instance (t1 ~ SimpleAst, t2 ~ SimpleAst)
+      => Convertible Invalid.Symbol (t1 -> t2 -> SimpleAst) where
+    convert = convert . convertTo @SimpleAst
+
 instance Convertible Invalid.Symbol SimpleAst where
     convert = SInvalid
 
 instance Num SimpleAst where
+    fromInteger = intToSimpleAst
     (+) = sapp2 (SOperator "+")
     (*) = sapp2 (SOperator "*")
 
+intToSimpleAst :: Integral a => a -> SimpleAst
+intToSimpleAst a = if a < 0
+    then undefined
+    else SNumber $ intToDigits a
+
+intToDigits :: Integral a => a -> NonEmpty Word8
+intToDigits = go [] where
+    go s x = loop (head :| s) tail where
+        head = fromIntegral (x`mod` 10)
+        tail = x `div` 10
+    loop s@(r :| rs) = \case
+        0 -> s
+        x -> go (r : rs) x
 
 instance a ~ SimpleAst
       => Num (a -> SimpleAst) where
+    fromInteger i = SApp (fromInteger i)
     (+) = extractOp (+)
     (*) = extractOp (*)
 

@@ -429,7 +429,9 @@ fastExprByChar = \c -> let ord = Char.ord c in if
 
 
 number :: Parser ()
-number = Ast.register =<< Ast.computeSpan (Ast.Number <$> digits)
+number = Ast.register =<< Ast.computeSpan parser where
+    parser  = correct <**> option id (const <$> invalidIdentSuffix)
+    correct = Ast.Number <$> digits
 {-# INLINE number #-}
 
 isDigitChar :: Char -> Bool
