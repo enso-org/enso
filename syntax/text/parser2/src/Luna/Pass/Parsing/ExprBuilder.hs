@@ -442,7 +442,6 @@ buildExprOp__ = \stream stack -> let
         EndEl -> submitToStack
         InfixEl_ stackOp stack' ->
             Prec.readRel stackOp streamOp >>= \case
-                -- FIXME Just
                 Just LT -> submitToStack
                 Just GT -> reduceStack stack'
                 Just EQ -> do
@@ -451,7 +450,13 @@ buildExprOp__ = \stream stack -> let
                     if (assoc == assoc' && assoc == Assoc.Left)
                         then reduceStack stack'
                         else submitToStack
-                x -> error $ ppShow (stackOp, streamOp, x)
+                Nothing -> let
+                    inv f     = Ast.Spanned (fillMissing f ^. Ast.span)
+                              $ Ast.Invalid Invalid.MissingRelation
+                    newStream = OpStream Name.invalid $ case streamTp of
+                        EndOp   f         -> EndOp   (rightSection (inv f))
+                        InfixOp f stream2 -> InfixOp (Ast.app2 (inv f)) stream2
+                    in buildExprOp__ newStream stack
 {-# NOINLINE buildExprOp__ #-}
 
 foldExprStack__ :: ExprBuilderMonad m => ElStream -> m Ast
@@ -490,11 +495,20 @@ assocConflict = \elems
     -> Ast.computeCodeSpanList1__ elems $ Ast.Invalid Invalid.AssocConflict
 {-# INLINE assocConflict #-}
 
-fillMissing :: (Ast -> Ast -> Ast) -> Ast
-fillMissing = \f -> f Ast.missing Ast.missing
-{-# INLINE fillMissing #-}
+-- fillMissing :: (Ast -> Ast -> Ast) -> Ast
+-- fillMissing = \f -> f Ast.missing Ast.missing
+-- {-# INLINE fillMissing #-}
 
+class FillMissing a where
+    fillMissing :: a -> Ast
 
+instance FillMissing (Ast -> Ast) where
+    fillMissing = \f -> f Ast.missing
+    {-# INLINE fillMissing #-}
+
+instance FillMissing (Ast -> Ast -> Ast) where
+    fillMissing = \f -> f Ast.missing Ast.missing
+    {-# INLINE fillMissing #-}
 
 
 -- data Section = Section Segment MacroSegments

@@ -49,7 +49,7 @@ import OCI.IR.Link.Class       (type (*-*), Link)
 import Test.Hspec              (Expectation, Spec, describe, it)
 
 import Luna.IR.Term.Ast.Invalid (adjacentOperators, assocConflict,
-                                 unexpectedSuffix)
+                                 missingRelation, unexpectedSuffix)
 
 
 import qualified Luna.Pass.Parsing.Parser as P
@@ -208,7 +208,7 @@ operatorSpec = describe "operator" $ do
     it "adjacent postfix"  $ expr  "a + +"       $ adjacentOperators "a" __
     it "adjacent prefix"   $ expr  "+ + a"       $ adjacentOperators __ "a"
     it "assoc conflict"    $ expr  "a + b >>+ c" $ assocConflict
-    it "assoc conflict"    $ expr  "a + b +++ c" $ assocConflict
+    it "no prec relation"  $ expr  "a + b +++ c" $ missingRelation ("a" + "b") "c"
 
 
 
@@ -537,7 +537,7 @@ fixSpec = describe "error" $ it "x" $ do
     -- pprint $ Parser.runParserxx__ Parsing.Syntax2 Parsing.expr "foo (bar baz"
     let toks =
             -- Parser.runParserxx__ Parsing.Syntax2 Parsing.expr [s|a * b + c|]
-            Parser.run Parsing.Syntax1 "a + +"
+            Parser.run Parsing.Syntax1 "a + b * c"
             -- Parser.run Parsing.Syntax1 "a + b - c"
             -- Parser.run Parsing.Syntax2 [s|if test then ok else fail|]
             -- Parser.run Parsing.Syntax2 [s|if test then if test2 then ok2 else fail2 else fail
@@ -555,9 +555,8 @@ fixSpec = describe "error" $ it "x" $ do
     --         Hardcoded.hardcodePrecRelMap
     --         Macro.runSegmentBuilderT toks $ Macro.parseExpr
 
-    -- let ast = PP.run2 "bar"
-        -- foo = "a" * "b"
-    -- pprint $ Ast.simplify ast
+    let ast = PP.run2 "a + b * c"
+    pprint $ Ast.simplify ast
     -- print $ foo == Ast.simplify ast
     -- putStrLn "\nSUB STREAMS:\n"
     -- pprint sstream
@@ -565,8 +564,8 @@ fixSpec = describe "error" $ it "x" $ do
     -- putStrLn "\nEXPR STREAM:\n"
     -- pprint estream
 
-    putStrLn "\nSTREAM:\n"
-    pprint stream
+    -- putStrLn "\nSTREAM:\n"
+    -- pprint stream
     -- -- pprint $ ExprBuilder.subStreams toks
 
     -- expr' <- State.evalDefT @Scope.Scope $ do
@@ -598,9 +597,9 @@ fixSpec = describe "error" $ it "x" $ do
 
 spec :: Spec
 spec = do
-    identSpec
-    literalSpec
-    operatorSpec
+    -- identSpec
+    -- literalSpec
+    -- operatorSpec
     -- funcDefSpec
     fixSpec
     -- termSpec

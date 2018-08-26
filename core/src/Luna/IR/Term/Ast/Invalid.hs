@@ -34,6 +34,7 @@ data Symbol
     | Unknown
     | EmptyExpression
     | AssocConflict
+    | MissingRelation
     | MissingSection
     deriving (Eq, Ord, Generic, Show)
 -- instance ExternalStorable Symbol
@@ -71,3 +72,7 @@ adjacentOperators = convert' AdjacentOperators
 assocConflict :: Convertible' Symbol a => a
 assocConflict = convert' AssocConflict
 {-# INLINE assocConflict #-}
+
+missingRelation :: Convertible' Symbol a => a
+missingRelation = convert' MissingRelation
+{-# INLINE missingRelation #-}

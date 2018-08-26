@@ -4,10 +4,10 @@ module Luna.Syntax.Text.Parser.Data.Name.Hardcoded where
 
 import Prologue
 
-import qualified Control.Monad.State.Layered          as State
-import qualified Language.Symbol.Operator.Prec        as Prec
+import qualified Control.Monad.State.Layered               as State
+import qualified Language.Symbol.Operator.Prec             as Prec
 import qualified Luna.Syntax.Text.Parser.Data.Name.Special as Name
-import qualified Luna.Syntax.Text.Scope               as Scope
+import qualified Luna.Syntax.Text.Scope                    as Scope
 
 import Luna.IR                (Name)
 import Luna.Syntax.Text.Scope (Scope)
@@ -52,4 +52,6 @@ hardcode :: (Prec.RelWriter Name m, State.Monad Scope m) => m ()
 hardcode = do
     hardcodePrecRelMap
     hardcodeMultiNames
+
+
 
