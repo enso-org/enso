@@ -72,8 +72,12 @@ lookupMultipartName n = view (multiNames . at n) <$> State.get @Scope
 instance Mempty  Scope where mempty = Scope mempty mempty mempty mempty
 instance Default Scope where def    = mempty
 
+-- TODO:
+-- Maybe the check if names are eq should be refactored to the Prec manager?
 instance Monad m => Prec.RelReader Name (StateT Scope m) where
-    readRelLabel = \a b -> view (Prec.inferred . at a . at' b) <$> getPrecRelMap
+    readRelLabel = \a b -> if a == b
+        then pure $ Just EQ
+        else view (Prec.inferred . at a . at' b) <$> getPrecRelMap
     {-# INLINE readRelLabel #-}
 
 instance Monad m => Prec.RelWriter Name (StateT Scope m) where

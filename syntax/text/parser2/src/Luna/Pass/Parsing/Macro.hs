@@ -333,8 +333,12 @@ broken = \f -> do
     pure $ tok & Ast.span %~ (spans <>)
 {-# INLINE broken #-}
 
+possiblyBroken :: Parser Ast -> Parser Ast
+possiblyBroken = \p -> broken (Indent.indented *> p) <|> p
+{-# INLINE possiblyBroken #-}
+
 anyExprToken :: Parser Ast
-anyExprToken = broken (Indent.indented *> anyToken) <|> anyToken
+anyExprToken = possiblyBroken anyToken
 {-# INLINE anyExprToken #-}
 
 toksSpanAsSpace :: [Ast] -> CodeSpan
@@ -372,7 +376,7 @@ run = \stream
 
 chunk :: Chunk -> Parser Ast
 chunk = \case
-    Expr              -> expr
+    Expr              -> possiblyBroken expr
     NonSpacedExpr     -> nonSpacedExpr
     ManyNonSpacedExpr -> manyNonSpacedExpr
 {-# INLINE chunk #-}

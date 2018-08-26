@@ -145,10 +145,10 @@ instance (t ~ Arg a, Example a, x ~ ())
 -- exprAs     = shouldParseAs     Parsing.Syntax1 Parsing.expr
 -- expr       = shouldParseItself Parsing.Syntax1 Parsing.expr
 
-e :: Text32 -> Ast.SimpleAst -> IO ()
+e :: String -> Ast.SimpleAst -> IO ()
 e src out = sast `shouldBe` out where
     sast = Ast.simplify ast
-    ast  = flip PP.runWith src $ do
+    ast  = flip PP.runWith (convert src) $ do
         let rplus  = ">>+" :: Name
             noplus = ">+<" :: Name
         Assoc.write Assoc.Right rplus
@@ -158,8 +158,15 @@ e src out = sast `shouldBe` out where
 
         Macro.expr
 
-e' :: Text32 -> IO ()
-e' src = e src (convertVia @String src)
+e' :: String -> IO ()
+e' src = e src (convert src)
+
+it_e :: String -> Ast.SimpleAst -> SpecM () ()
+it_e s t = it s (e s t)
+
+it_e' :: String -> SpecM () ()
+it_e' s = it_e s (convert s)
+
 
 
 ----------------------
@@ -173,26 +180,26 @@ identSpec :: Spec
 identSpec = describe "identifier" $ do
 
   describe "valid" $ do
-    "var"             $ e' "var"
-    "_var"            $ e' "_var"
-    "var'"            $ e' "var'"
-    "var''"           $ e' "var''"
-    "unicode"         $ e' "фываΧξωβ김동욱"
-    "Cons"            $ e' "Cons"
-    "Cons'"           $ e' "Cons'"
-    "Cons''"          $ e' "Cons''"
+    it_e' "var"
+    it_e' "_var"
+    it_e' "var'"
+    it_e' "var''"
+    it_e' "Cons"
+    it_e' "Cons'"
+    it_e' "Cons''"
+    "unicode var" $ e' "фываΧξωβ김동욱"
 
   describe "invalid" $ do
-    "var'o"           $ e "var'o"         $ unexpectedSuffix 1
-    "var_a"           $ e "var_a"         $ unexpectedSuffix 2
-    "Cons'o"          $ e "Cons'o"        $ unexpectedSuffix 1
-    "Cons_a"          $ e "Cons_a"        $ unexpectedSuffix 2
-    "var⸗"            $ e "var⸗"          $ unexpectedSuffix 1
-    "Cons⸗"           $ e "Cons⸗"         $ unexpectedSuffix 1
+    it_e "var'o"  $ unexpectedSuffix 1
+    it_e "var_a"  $ unexpectedSuffix 2
+    it_e "Cons'o" $ unexpectedSuffix 1
+    it_e "Cons_a" $ unexpectedSuffix 2
+    it_e "var⸗"   $ unexpectedSuffix 1
+    it_e "Cons⸗"  $ unexpectedSuffix 1
 
 literalNumberSpec :: Spec
 literalNumberSpec = describe "number" $ do
-    let biggerThanInt64   = convert (show (maxBound :: Int64)) <> "0"
+    let biggerThanInt64   = (show (maxBound :: Int64)) <> "0"
     it "positive"     $ e' "1"
     it "negative"     $ e  "a -1"          $ "a" (Name.uminus __ 1)
     it "zero pxd"     $ e' "01"
@@ -210,6 +217,8 @@ operatorSpec = describe "operator" $ do
     "single"          $ e "a - b"         $ "a" - "b"
     "modifier"        $ e "a += 1"        $ "+=" "a" 1
     "application"     $ e "a b"           $ "a" "b"
+    "comma"           $ e "a,b,c"         $ "," ("," "a" "b") "c"
+    "typed"           $ e "a :: b"        $ "::" "a" "b"
 
   describe "section" $ do
     "line left"       $ e "+ a"           $ __ + "a"
@@ -218,6 +227,8 @@ operatorSpec = describe "operator" $ do
     "glued right"     $ e "a+"            $ "a" + __
     "glued left app"  $ e "a +b * c"      $ "a" (__ + "b") * "c"
     "glued right app" $ e "a b+ * c"      $ "a" ("b" + __) * "c"
+    "glued lr app"    $ e "a *b+ c"       $ "a" ((__ * "b") + __) "c"
+    "lens app"        $ e "a .b.c"        $ "a" ("." ("." __ "b") "c")
 
   describe "precedence" $ do
     "simple"          $ e "a + b * c"     $ "a" + ("b" * "c")
@@ -240,14 +251,23 @@ operatorSpec = describe "operator" $ do
     "no assoc"        $ e "a >+< b >+< c" $ noAssoc (">+<" "a" "b") "c"
 
 
+mixfixSpec :: Spec
+mixfixSpec = describe "groups" $ do
+    "empty group"  $ e "()"                 $ "(_)" emptyExpression
+    "group"        $ e "(a b)"              $ "(_)" ("a" "b")
+    "list"         $ e "[a b]"              $ "[_]" ("a" "b")
+    "a)"           $ e "a)"                 $ ")" "a" __
+    "nested rules" $ e "(if a then b) else" $ "(_)" ("if_then" "a" "b") "else"
 
-    "a)"                    $ e "a)"         $ ")" "a" __
-    "group"                 $ e "(a b)"      $ "(_)" ("a" "b")
 
-
-shuffle :: [a] -> [a] -> [a]
-shuffle (a:as) (b:bs) = a:b:shuffle as bs
-shuffle _ _           = []
+layoutSpec :: Spec
+layoutSpec = describe "layout" $ do
+    "single line" $ e "if a then b else c"     $ "if_then_else" "a" "b" "c"
+    "single line" $ e "if a\n then b else c"   $ "if_then_else" "a" "b" "c"
+    "single line" $ e "if a\n then b\n else c" $ "if_then_else" "a" "b" "c"
+    "single line" $ e "if a then\n b else c"   $ "if_then_else" "a" "b" "c"
+    "single line" $ e "if a then b else\n c"   $ "if_then_else" "a" "b" "c"
+    "single line" $ e "if a then\n b else\n c" $ "if_then_else" "a" "b" "c"
 
 
 -- | Testing all possible missing sections scenarios. We've got in scope
@@ -267,6 +287,10 @@ missingSectionsSpec = describe "mixfix" $ let
     pat   = either (const " ") (\t -> " " <> t <> " ")
     exp   = either id convert
 
+    shuffle :: [a] -> [a] -> [a]
+    shuffle (a:as) (b:bs) = a:b:shuffle as bs
+    shuffle _ _           = []
+
     _ite a b c = tst "if_then_else" ["if", "then", "else"] [a,b,c]
     _it  a b   = tst "if_then"      ["if", "then"        ] [a,b]
     _ie  a   c = tst "if_then_else" ["if", "", "else"    ] [a, noSec, c]
@@ -280,8 +304,8 @@ missingSectionsSpec = describe "mixfix" $ let
 
 
 
-it_e :: String -> Ast.SimpleAst -> SpecM () ()
-it_e s t = it s (e (convert s) t)
+
+
 
 funcDefSpec :: Spec
 funcDefSpec = describe "function" $ do
@@ -332,21 +356,6 @@ funcDefSpec = describe "function" $ do
 --         --     it "simple interpolated strings"                $ do shouldParseItself expr "'The quick brown fox jumps over {2 + 2} lazy dogs'"
 
 
--- literalListSpec :: Spec
--- literalListSpec = describe "list" $ do
---     it "empty list"              $ expr "[]"           -- [(0,2)]
---     it "singleton list"          $ expr "[a]"          -- [(1,1),(0,3)]
---     it "few elems list"          $ expr "[a, b, c]"    -- [(1,1),(2,1),(2,1),(0,9)]
---     it "list section"            $ expr "[, ]"         -- [(1,0),(1,0),(0,3)]
---     -- it "list with tuple section" $ expr "[(, )]"    -- [(1,4),(0,6)]
---     it "nested lists"            $ expr "[a, [b, c]]"  -- [(1,1),(1,1),(2,1),(2,6),(0,11)]
---     it "list sections"           $ expr "[, a, , b, ]" -- [(1,0),(2,1),(2,0),(2,1),(2,0),(0,12)]
---     it "nested section list"     $ expr "[[, ]]"       -- [(1,4),(0,6)]
-
--- literalTupleSpec :: Spec
--- literalTupleSpec = describe "tuple" $ do
---     it "3 elems tuple" $ expr "(a, 30, \"ala\")" -- [(1,1),(2,2),(2,5),(0,14)]
---     it "section tuple" $ expr "(, 30)"           -- [(1,0),(2,2),(0,6)]
 
 literalSpec :: Spec
 literalSpec = describe "literal" $ do
@@ -663,7 +672,9 @@ spec = do
     identSpec
     literalSpec
     operatorSpec
+    mixfixSpec
     missingSectionsSpec
+    layoutSpec
     -- funcDefSpec
     -- fixSpec
     -- termSpec

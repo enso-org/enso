@@ -456,7 +456,7 @@ buildExprOp__ = \stream stack -> let
 
     in case stackTp of
         EndEl                   -> submitToStack
-        InfixEl_ stackOp stack' -> Prec.readRel stackOp streamOp >>= \case
+        InfixEl_ stackOp stack' -> readRel stackOp streamOp >>= \case
             Nothing -> markStreamOpInvalid Invalid.MissingRelation
             Just LT -> submitToStack
             Just GT -> reduceStack stack'
@@ -470,6 +470,15 @@ buildExprOp__ = \stream stack -> let
                         Assoc.None  -> markStreamOpInvalid Invalid.NoAssoc
                     else markStreamOpInvalid Invalid.AssocConflict
 {-# NOINLINE buildExprOp__ #-}
+
+-- | Relation checking. All operators already discovered to be invalid has
+--   special precedence rules.
+readRel :: Prec.RelReader Name m => Name -> Name -> m (Maybe Ordering)
+readRel = \l r -> if
+    | l == Name.invalid -> pure $ Just LT
+    | r == Name.invalid -> pure $ Just GT
+    | otherwise         -> Prec.readRel l r
+{-# INLINE readRel #-}
 
 foldExprStack__ :: ExprBuilderMonad m => Ast -> OpStream -> m Ast
 foldExprStack__ = \el (OpStream op stp2) -> case stp2 of
