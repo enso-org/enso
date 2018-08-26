@@ -27,6 +27,7 @@ import qualified Data.Char                            as Char
 import qualified Data.Set                             as Set
 import qualified Data.Text.Position                   as Position
 import qualified Data.Text.Span                       as Span
+import qualified GHC.Exts                             as GHC
 import qualified Luna.Syntax.Text.Lexer               as Lexer
 import qualified Luna.Syntax.Text.Lexer.Symbol        as Lexer
 import qualified Luna.Syntax.Text.Parser.State.Marker as Marker
@@ -501,8 +502,17 @@ sapp = SApp
 {-# INLINE sapp #-}
 
 sapp2 :: SimpleAst -> SimpleAst -> SimpleAst -> SimpleAst
-sapp2 = \f a b -> sapp (sapp f a) b
+sapp2 = \f -> sapp . sapp f
 {-# INLINE sapp2 #-}
+
+sapp3 :: SimpleAst -> SimpleAst -> SimpleAst -> SimpleAst -> SimpleAst
+sapp3 = \f -> sapp .: sapp2 f
+{-# INLINE sapp3 #-}
+
+sapp4 :: SimpleAst -> SimpleAst -> SimpleAst -> SimpleAst -> SimpleAst
+      -> SimpleAst
+sapp4 = \f -> sapp .:. sapp3 f
+{-# INLINE sapp4 #-}
 
 sapps :: SimpleAst -> [SimpleAst] -> SimpleAst
 sapps = foldl' sapp
@@ -519,6 +529,21 @@ instance Convertible String (t1 -> SimpleAst)
 instance Convertible String (t1 -> t2 -> SimpleAst)
       => IsString (t1 -> t2 -> SimpleAst) where
     fromString = convert
+
+instance Convertible String (t1 -> t2 -> t3 -> SimpleAst)
+      => IsString (t1 -> t2 -> t3 -> SimpleAst) where
+    fromString = convert
+
+-- instance Convertible String (t1 -> t2 -> t3 -> t4 -> SimpleAst)
+--       => IsString (t1 -> t2 -> t3 -> t4 -> SimpleAst) where
+--     fromString = convert
+
+
+appMany :: SimpleAst -> [SimpleAst] -> SimpleAst
+appMany = \a -> \case
+    []     -> a
+    (t:ts) -> appMany (sapp a t) ts
+{-# appMany #-}
 
 instance Convertible String SimpleAst where
     convert = let
@@ -540,13 +565,23 @@ charsToDigits :: NonEmpty Char -> NonEmpty Word8
 charsToDigits (c :| cs) = go c :| (go <$> cs) where
     go c = fromIntegral $ Char.ord c - 48
 
-instance t1 ~ SimpleAst
+instance Convertible SimpleAst (t1 -> SimpleAst)
       => Convertible String (t1 -> SimpleAst) where
-    convert = sapp . convert
+    convert = convert . convertTo @SimpleAst
 
-instance (t1 ~ SimpleAst, t2 ~ SimpleAst)
+instance Convertible SimpleAst (t1 -> t2 -> SimpleAst)
       => Convertible String (t1 -> t2 -> SimpleAst) where
-    convert = sapp2 . convert
+    convert = convert . convertTo @SimpleAst
+
+instance Convertible SimpleAst (t1 -> t2 -> t3 -> SimpleAst)
+      => Convertible String (t1 -> t2 -> t3 -> SimpleAst) where
+    convert = convert . convertTo @SimpleAst
+
+instance Convertible SimpleAst (t1 -> t2 -> t3 -> t4 -> SimpleAst)
+      => Convertible String (t1 -> t2 -> t3 -> t4 -> SimpleAst) where
+    convert = convert . convertTo @SimpleAst
+
+
 
 instance t1 ~ SimpleAst
       => Convertible SimpleAst (t1 -> SimpleAst) where
@@ -555,6 +590,14 @@ instance t1 ~ SimpleAst
 instance (t1 ~ SimpleAst, t2 ~ SimpleAst)
       => Convertible SimpleAst (t1 -> t2 -> SimpleAst) where
     convert = sapp2
+
+instance (t1 ~ SimpleAst, t2 ~ SimpleAst, t3 ~ SimpleAst)
+      => Convertible SimpleAst (t1 -> t2 -> t3 -> SimpleAst) where
+    convert = sapp3
+
+instance (t1 ~ SimpleAst, t2 ~ SimpleAst, t3 ~ SimpleAst, t4 ~ SimpleAst)
+      => Convertible SimpleAst (t1 -> t2 -> t3 -> t4 ->SimpleAst) where
+    convert = sapp4
 
 instance t1 ~ SimpleAst
       => Convertible Invalid.Symbol (t1 -> SimpleAst) where
@@ -566,6 +609,14 @@ instance (t1 ~ SimpleAst, t2 ~ SimpleAst)
 
 instance Convertible Invalid.Symbol SimpleAst where
     convert = SInvalid
+
+instance {-# OVERLAPPABLE #-} Convertible' a SimpleAst
+      => Convertible [a] SimpleAst where
+    convert = SList . fmap convert'
+
+instance GHC.IsList SimpleAst where
+    type Item SimpleAst = SimpleAst
+    fromList = convert
 
 instance Num SimpleAst where
     fromInteger = intToSimpleAst

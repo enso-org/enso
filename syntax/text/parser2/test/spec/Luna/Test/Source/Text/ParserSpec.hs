@@ -1,4 +1,6 @@
+{-# LANGUAGE OverloadedStrings    #-}
 
+{-# LANGUAGE OverloadedLists      #-}
 {-# LANGUAGE OverloadedStrings    #-}
 {-# LANGUAGE UndecidableInstances #-}
 
@@ -51,7 +53,8 @@ import Test.Hspec              (Arg, Example, Expectation, Spec, describe, it)
 import Test.Hspec.Core         (SpecM)
 
 import Luna.IR.Term.Ast.Invalid (adjacentOperators, assocConflict,
-                                 missingRelation, noAssoc, unexpectedSuffix)
+                                 emptyExpression, missingRelation,
+                                 missingSection, noAssoc, unexpectedSuffix)
 
 
 import qualified Luna.Pass.Parsing.Parser as P
@@ -199,6 +202,7 @@ literalNumberSpec = describe "number" $ do
     it "int > 64 bit" $ e' biggerThanInt64
     it "invalid sfx"  $ e "1a"             $ unexpectedSuffix 1
 
+
 operatorSpec :: Spec
 operatorSpec = describe "operator" $ do
 
@@ -240,16 +244,54 @@ operatorSpec = describe "operator" $ do
     "a)"                    $ e "a)"         $ ")" "a" __
     "group"                 $ e "(a b)"      $ "(_)" ("a" "b")
 
-    -- TODO: assoc conflicts
 
--- funcDefSpec :: Spec
--- funcDefSpec = describe "function" $ do
+shuffle :: [a] -> [a] -> [a]
+shuffle (a:as) (b:bs) = a:b:shuffle as bs
+shuffle _ _           = []
+
+
+-- | Testing all possible missing sections scenarios. We've got in scope
+--   definitions of both `if_then_else` as well as `if_then`. We try here all
+--   possible combinations of correct and incorrect applications, like
+--   `if a then else c` or `if then else c`.
+missingSectionsSpec :: Spec
+missingSectionsSpec = describe "mixfix" $ let
+
+    tst :: String -> [String] -> [Either Ast.SimpleAst String] -> SpecM () ()
+    tst n ns as = it_e (mconcat $ shuffle ns (pat <$> as))
+                $ Ast.appMany (convert n) (exp <$> as)
+
+    opt   :: String -> [Either Ast.SimpleAst String]
+    opt   = \a -> [Right a, Left emptyExpression]
+    noSec = Left missingSection
+    pat   = either (const " ") (\t -> " " <> t <> " ")
+    exp   = either id convert
+
+    _ite a b c = tst "if_then_else" ["if", "then", "else"] [a,b,c]
+    _it  a b   = tst "if_then"      ["if", "then"        ] [a,b]
+    _ie  a   c = tst "if_then_else" ["if", "", "else"    ] [a, noSec, c]
+    _i   a     = tst "if_then"      ["if", ""            ] [a, noSec]
+
+    in do
+        sequence_ $ _ite <$> opt "a" <*> opt "b" <*> opt "c"
+        sequence_ $ _it  <$> opt "a" <*> opt "b"
+        sequence_ $ _ie  <$> opt "a" <*> opt "c"
+        sequence_ $ _i   <$> opt "a"
+
+
+
+it_e :: String -> Ast.SimpleAst -> SpecM () ()
+it_e s t = it s (e (convert s) t)
+
+funcDefSpec :: Spec
+funcDefSpec = describe "function" $ do
 --     it "def"        $ exprAs "def" "(InvalidFunctionDefinition)"
 --     it "def _"      $ exprAs "def _" "def (InvalidFunctionName): (MissingColonBlock)"
 --     it "def f"      $ exprAs "def f" "def f: (MissingColonBlock)"
 --     it "def f +: a" $ exprAs "def f +: a" "def f (InvalidFunctionArg): a"
 --     it "def f a:"   $ expr   "def f a:"
---     it "def f a: a" $ expr   "def f a: a"
+    it "def f a: a" $ e   "def f a b c: a" $ "def_:" "f" ["a", "b", "c"] "a"
+    it "def f a: a" $ e   "def f a" $ "def_:"
 
 
 -- it :: (HasCallStack, Example a) => String -> a -> SpecWith (Arg a)
@@ -555,7 +597,8 @@ fixSpec = describe "error" $ it "x" $ do
     -- pprint $ Parser.runParserxx__ Parsing.expr "a -> b -> a + b"
     -- pprint $ Parser.runParserxx__ Parsing.Syntax1 Parsing.expr "def foo a:\n a"
     -- pprint $ Parser.runParserxx__ Parsing.Syntax2 Parsing.expr "foo (bar baz"
-    let toks      = Parser.run Parsing.Syntax1 "- a -b"
+    let input     = "if else"
+        toks      = Parser.run Parsing.Syntax1 input
         layouted  = ExprBuilder.discoverLayouts toks
         statement = ExprBuilder.buildFlatStatement layouted
         stream    = ExprBuilder.buildStream toks
@@ -571,6 +614,10 @@ fixSpec = describe "error" $ it "x" $ do
 
     putStrLn "\nSTREAM:\n"
     pprint stream
+
+
+    putStrLn "\nRESULT:\n"
+    pprint $ Ast.simplify $ PP.run2 input
 
 
     -- print $ foo == Ast.simplify ast
@@ -616,8 +663,9 @@ spec = do
     identSpec
     literalSpec
     operatorSpec
+    missingSectionsSpec
     -- funcDefSpec
-    fixSpec
+    -- fixSpec
     -- termSpec
     -- definitionSpec
     -- fixSpec

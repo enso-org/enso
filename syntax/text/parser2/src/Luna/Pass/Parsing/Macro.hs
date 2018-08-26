@@ -230,11 +230,15 @@ lookupSection = \ast -> Map.lookup ast . unwrap <$> State.get @Registry
 -- === Utils === --
 -------------------
 
-withNextSegmentReserved :: SegmentList -> Parser a -> Parser a
-withNextSegmentReserved = \case
-    SegmentListCons _ (Segment seg _) _ -> withReserved seg
-    SegmentListNull -> id
-{-# INLINE withNextSegmentReserved #-}
+segmentsToks :: SegmentList -> [Ast.Ast]
+segmentsToks = \case
+    SegmentListNull -> mempty
+    SegmentListCons _ (Segment seg _) lst -> seg : segmentsToks lst
+{-# INLINE segmentsToks #-}
+
+withNextSegmentsReserved :: SegmentList -> Parser a -> Parser a
+withNextSegmentsReserved = withManyReserved . segmentsToks
+{-# INLINE withNextSegmentsReserved #-}
 
 nextTokenNotLeftSpaced :: Parser ()
 nextTokenNotLeftSpaced = do
@@ -307,20 +311,31 @@ unsafeLineBreaks :: Parser [Ast]
 unsafeLineBreaks = many1 unsafeLineBreak
 {-# INLINE unsafeLineBreaks #-}
 
--- | The current implementation wokrs on token stream where some tokens are
+-- | The current implementation worss on token stream where some tokens are
 --   line break indicators. After consuming such tokens we need to register them
 --   as offset in the following token.
-broken :: Parser (NonEmpty Ast) -> Parser (NonEmpty Ast)
-broken = \f -> do
+brokenLst :: Parser (NonEmpty Ast) -> Parser (NonEmpty Ast)
+brokenLst = \f -> do
     spans     <- toksSpanAsSpace <$> unsafeLineBreaks
     (a :| as) <- f
     let a' = a & Ast.span %~ (spans <>)
     pure (a' :| as)
+{-# INLINE brokenLst #-}
+
+brokenLst' :: Parser (NonEmpty Ast) -> Parser [Ast]
+brokenLst' = fmap convert . brokenLst
+{-# INLINE brokenLst' #-}
+
+broken :: Parser Ast -> Parser Ast
+broken = \f -> do
+    spans <- toksSpanAsSpace <$> unsafeLineBreaks
+    tok   <- f
+    pure $ tok & Ast.span %~ (spans <>)
 {-# INLINE broken #-}
 
-broken' :: Parser (NonEmpty Ast) -> Parser [Ast]
-broken' = fmap convert . broken
-{-# INLINE broken' #-}
+anyExprToken :: Parser Ast
+anyExprToken = broken (Indent.indented *> anyToken) <|> anyToken
+{-# INLINE anyExprToken #-}
 
 toksSpanAsSpace :: [Ast] -> CodeSpan
 toksSpanAsSpace = CodeSpan.asOffsetSpan . mconcat . fmap (view Ast.span)
@@ -375,33 +390,38 @@ segment = chunks . view segmentChunks
 
 segmentList :: Name -> SegmentList -> Parser (Name, [Spanned [Ast]])
 segmentList = go where
-    go name lst = (goTok name lst =<< peekToken) <|> pure (name, mempty)
-    goTok name lst = \tok -> case lst of
+    go = \name -> \case
         SegmentListNull -> pure (name, mempty)
-        SegmentListCons tp (Segment seg chunkDefs) lst' ->
-            if Ast.unspan tok == seg
-                then acceptSegment  name lst' tok chunkDefs
-                else discardSegment name lst' seg tp
+        SegmentListCons tp seg lst' -> do
+            let name' = name <> "_" <> showSection (seg ^. segmentBase)
+            acceptSegment name' seg lst' <|> discardSegment name name' lst' tp
 
-    acceptSegment name lst tok chunkDefs = do
-        dropToken
-        outs <- withNextSegmentReserved lst (chunks chunkDefs)
-        let name' = name <> "_" <> showSection (tok ^. Ast.ast)
-        (Ast.Spanned (tok ^. Ast.span) outs:) <<$>> segmentList name' lst
+    acceptSegment name seg lst = do
+        tok <- anyExprToken
+        when_ (Ast.unspan tok /= (seg ^. segmentBase)) $ fail "not a segment"
+        outs <- withNextSegmentsReserved lst (segment seg)
+        (Ast.Spanned (tok ^. Ast.span) outs:) <<$>> segmentList name lst
 
-    -- FIXME: Should discardSegment call segmentList ?
-    discardSegment name lst seg = \case
+    discardSegment name name' lst = \case
         Optional -> pure (name, mempty)
         Required -> (Ast.Spanned mempty [Ast.invalid Invalid.MissingSection]:)
-              <<$>> segmentList (name <> "_" <> showSection seg) lst
+              <<$>> segmentList name' lst
+
+-- minimalMacroMatchName :: Name -> SegmentList -> Name
+-- minimalMacroMatchName = \r -> \case
+--     SegmentListNull -> r
+--     SegmentListCons tp seg lst' -> case tp of
+--         Optional -> r
+--         Required -> minimalMacroMatchName (r <> "_" <> (showSection $ seg ^. segmentBase)) lst'
 
 
 -- === Section parsers === --
 
 macro :: Ast -> Macro -> Parser Ast
 macro = \(Ast.Spanned span tok) (Macro seg lst) -> do
-    psegs            <- withNextSegmentReserved lst $ segment seg
+    psegs            <- withNextSegmentsReserved lst $ segment seg
     (name, spanLst)  <- segmentList (showSection tok) lst
+    -- error $ "afterMacro\n" <> ppShow (name, spanLst, psegs)
     let (tailSpan, slst) = mergeSpannedLists spanLst
     let header = Ast.Spanned span $ Ast.Var name
         group  = Ast.apps header  $ psegs <> slst
@@ -435,20 +455,24 @@ showSection = \case
 -- === API === --
 
 expr :: Parser Ast
-expr = Indent.withCurrent $ buildExpr . convert =<< lines where
+expr = option (Ast.invalid Invalid.EmptyExpression) expr'
+{-# INLINE expr #-}
+
+expr' :: Parser Ast
+expr' = Indent.withCurrent $ buildExpr . convert =<< lines where
     line          = buildExpr =<< multiLineToks
     lines         = (:|) <$> line <*> nextLines
-    nextLines     = option mempty (broken' $ Indent.indented *> lines)
+    nextLines     = option mempty (brokenLst' $ Indent.indented *> lines)
     lineJoin      = satisfyAst Ast.isOperator <* leftSpaced peekSymbol
     multiLineToks = lineToks <**> lineTailToks
-    lineTailToks  = option id $ flip (<>) <$> broken' lineContToks
+    lineTailToks  = option id $ flip (<>) <$> brokenLst' lineContToks
     lineContToks  = Indent.indented *> ((:|) <$> lineJoin <*> multiLineToks)
     lineToks      = many1 $ do
         tok <- anySymbolNotReserved
         lookupSection (Ast.unspan tok) >>= \case
             Nothing   -> pure tok
             Just sect -> macro tok sect
-{-# INLINE expr #-}
+{-# INLINE expr' #-}
 
 manyNonSpacedExpr :: Parser Ast
 manyNonSpacedExpr = Ast.list <$> many nonSpacedExpr

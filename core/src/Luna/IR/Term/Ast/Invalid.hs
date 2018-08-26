@@ -81,3 +81,11 @@ noAssoc = convert' NoAssoc
 missingRelation :: Convertible' Symbol a => a
 missingRelation = convert' MissingRelation
 {-# INLINE missingRelation #-}
+
+emptyExpression :: Convertible' Symbol a => a
+emptyExpression = convert' EmptyExpression
+{-# INLINE emptyExpression #-}
+
+missingSection :: Convertible' Symbol a => a
+missingSection = convert' MissingSection
+{-# INLINE missingSection #-}
