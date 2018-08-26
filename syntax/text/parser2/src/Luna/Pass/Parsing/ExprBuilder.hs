@@ -125,7 +125,7 @@ discoverLayouts__ = \buff stream out -> case stream of
                 [] -> unspaced nonSpaced out
     where submitIfNotNull f s = if null s then id else ((:) . f) s
           spaced   = submitIfNotNull (Layouted SpacedLayout . reverse)
-          unspaced = submitIfNotNull (Layouted UnspacedLayout)
+          unspaced = submitIfNotNull (Layouted UnspacedLayout) . handleUnaryOps
 
 takeWhileUnspaced :: [Ast] -> ([Ast], [Ast])
 takeWhileUnspaced = go where
@@ -135,6 +135,15 @@ takeWhileUnspaced = go where
             then (stream, mempty)
             else (a:) <$> go as
 {-# INLINE takeWhileUnspaced #-}
+
+handleUnaryOps :: [Ast] -> [Ast]
+handleUnaryOps = \case
+    []     -> mempty
+    (a:as) -> a' : as where
+        a' = case Ast.unspan a of
+            Ast.Operator "-" -> a & Ast.ast .~ Ast.Operator Name.uminus
+            _                -> a
+{-# INLINE handleUnaryOps #-}
 
 
 -- === Utils === --
@@ -418,16 +427,15 @@ buildExprOp__ = \stream stack -> let
     OpStream streamOp streamTp = stream
     ElStream stackEl  stackTp  = stack
 
-    go :: ElStreamType -> ElStream -> m Ast
-    go streamTp newStack = case streamTp of
-        EndEl           -> foldExprStack__ newStack
-        InfixEl stream' -> buildExprOp__ stream' newStack
-
     submitToStack :: m Ast
     submitToStack = case streamTp of
-        EndOp opF -> foldExprStackWithOp__ streamOp opF stackEl stackTp
-        InfixOp_ f streamEl streamTp' -> go streamTp' newStack where
-            newStack = InfixElStream streamEl (InfixOpStream streamOp f stack)
+        EndOp opF -> foldExprStackStep__ (opF stackEl) stackTp
+        InfixOp_ f streamEl streamTp' -> let
+            newOpStream = InfixOpStream streamOp f stack
+            newStack    = InfixElStream streamEl newOpStream
+            in case streamTp' of
+                EndEl           -> foldExprStack__ streamEl newOpStream
+                InfixEl stream' -> buildExprOp__ stream' newStack
     {-# INLINE submitToStack #-}
 
     reduceStack :: OpStreamType -> m Ast
@@ -438,66 +446,42 @@ buildExprOp__ = \stream stack -> let
             newStack = ElStream (f stackEl2 stackEl) s
     {-# INLINE reduceStack #-}
 
+    markStreamOpInvalid :: Invalid.Symbol -> m Ast
+    markStreamOpInvalid invSym = let
+        inv f     = Ast.Spanned (f ^. Ast.span) (Ast.Invalid invSym)
+        newStream = OpStream Name.invalid $ case streamTp of
+            EndOp   f   -> EndOp   (rightSection (inv $ fillMissing f))
+            InfixOp f s -> InfixOp (Ast.app2 (inv $ fillMissing f)) s
+        in buildExprOp__ newStream stack
+
     in case stackTp of
-        EndEl -> submitToStack
-        InfixEl_ stackOp stack' ->
-            Prec.readRel stackOp streamOp >>= \case
-                Just LT -> submitToStack
-                Just GT -> reduceStack stack'
-                Just EQ -> do
-                    assoc  <- Assoc.read stackOp
-                    assoc' <- Assoc.read streamOp
-                    if (assoc == assoc' && assoc == Assoc.Left)
-                        then reduceStack stack'
-                        else submitToStack
-                Nothing -> let
-                    inv f     = Ast.Spanned (fillMissing f ^. Ast.span)
-                              $ Ast.Invalid Invalid.MissingRelation
-                    newStream = OpStream Name.invalid $ case streamTp of
-                        EndOp   f         -> EndOp   (rightSection (inv f))
-                        InfixOp f stream2 -> InfixOp (Ast.app2 (inv f)) stream2
-                    in buildExprOp__ newStream stack
+        EndEl                   -> submitToStack
+        InfixEl_ stackOp stack' -> Prec.readRel stackOp streamOp >>= \case
+            Nothing -> markStreamOpInvalid Invalid.MissingRelation
+            Just LT -> submitToStack
+            Just GT -> reduceStack stack'
+            Just EQ -> do
+                assoc  <- Assoc.read stackOp
+                assoc' <- Assoc.read streamOp
+                if assoc == assoc'
+                    then case assoc of
+                        Assoc.Left  -> reduceStack stack'
+                        Assoc.Right -> submitToStack
+                        Assoc.None  -> markStreamOpInvalid Invalid.NoAssoc
+                    else markStreamOpInvalid Invalid.AssocConflict
 {-# NOINLINE buildExprOp__ #-}
 
-foldExprStack__ :: ExprBuilderMonad m => ElStream -> m Ast
-foldExprStack__ = \(ElStream el stp) -> case stp of
-    EndEl -> pure el
-    InfixEl_ op stp2 -> case stp2 of
-        EndOp opF             -> pure $ opF el
-        InfixOp_ opF el2 stp3 -> foldExprStackWithOp__ op (flip opF el) el2 stp3
+foldExprStack__ :: ExprBuilderMonad m => Ast -> OpStream -> m Ast
+foldExprStack__ = \el (OpStream op stp2) -> case stp2 of
+        EndOp    opF          -> pure $ opF el
+        InfixOp_ opF el2 stp3 -> foldExprStackStep__ (opF el2 el) stp3
 {-# NOINLINE foldExprStack__ #-}
 
-foldExprStackWithOp__ :: ExprBuilderMonad m
-    => Name -> (Ast -> Ast) -> Ast -> ElStreamType -> m Ast
-foldExprStackWithOp__ = \op opF el stream -> case stream of
-    EndEl -> pure $ opF el
-    InfixEl s@(OpStream op2 stream2) -> checkCorrectOpRel op op2 >>= \case
-        True  -> foldExprStack__ $ InfixElStream (opF el) s
-        False -> let tailOps = [el, opF Ast.missing] in case stream2 of
-            EndOp op2F -> pure . assocConflict $ op2F Ast.missing :| tailOps
-            InfixOp_ op2F el2 stream3 -> case stream3 of
-                EndEl     -> pure inv
-                InfixEl s -> foldExprStack__ (InfixElStream inv s)
-                where inv = assocConflict $ el2 :| (fillMissing op2F : tailOps)
-{-# NOINLINE foldExprStackWithOp__ #-}
-
-checkCorrectOpRel :: ExprBuilderMonad m => Name -> Name -> m Bool
-checkCorrectOpRel = \op1 op2 -> do
-    -- FIXME Just
-    Just prec   <- Prec.readRel op1 op2
-    assoc  <- Assoc.read op1
-    assoc' <- Assoc.read op2
-    pure . not $ (prec == EQ) && (assoc /= assoc' || assoc == Assoc.None)
-{-# INLINE checkCorrectOpRel #-}
-
-assocConflict :: NonEmpty Ast -> Ast
-assocConflict = \elems
-    -> Ast.computeCodeSpanList1__ elems $ Ast.Invalid Invalid.AssocConflict
-{-# INLINE assocConflict #-}
-
--- fillMissing :: (Ast -> Ast -> Ast) -> Ast
--- fillMissing = \f -> f Ast.missing Ast.missing
--- {-# INLINE fillMissing #-}
+foldExprStackStep__ :: ExprBuilderMonad m => Ast -> ElStreamType -> m Ast
+foldExprStackStep__ = \a -> \case
+    EndEl     -> pure a
+    InfixEl s -> foldExprStack__ a s
+{-# NOINLINE foldExprStackStep__ #-}
 
 class FillMissing a where
     fillMissing :: a -> Ast
@@ -511,24 +495,6 @@ instance FillMissing (Ast -> Ast -> Ast) where
     {-# INLINE fillMissing #-}
 
 
--- data Section = Section Segment MacroSegments
---     deriving (Show)
-
--- data MacroSegments
---     = Required Segment MacroSegments
---     | Optional Segment MacroSegments
---     | SectionListNull
---     deriving (Show)
-
--- data Segment = Segment
---     { _name   :: Ast.Ast
---     , _chunks :: [MacroParser]
---     } deriving (Show)
--- makeLenses ''Segment
-
-
--- importDef
---     = syntax "import" [Expr]
 
 
 

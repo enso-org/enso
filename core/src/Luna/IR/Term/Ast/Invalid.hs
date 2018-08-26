@@ -34,6 +34,7 @@ data Symbol
     | Unknown
     | EmptyExpression
     | AssocConflict
+    | NoAssoc
     | MissingRelation
     | MissingSection
     deriving (Eq, Ord, Generic, Show)
@@ -72,6 +73,10 @@ adjacentOperators = convert' AdjacentOperators
 assocConflict :: Convertible' Symbol a => a
 assocConflict = convert' AssocConflict
 {-# INLINE assocConflict #-}
+
+noAssoc :: Convertible' Symbol a => a
+noAssoc = convert' NoAssoc
+{-# INLINE noAssoc #-}
 
 missingRelation :: Convertible' Symbol a => a
 missingRelation = convert' MissingRelation

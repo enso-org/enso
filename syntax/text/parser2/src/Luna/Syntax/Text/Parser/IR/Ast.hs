@@ -569,6 +569,7 @@ instance Convertible Invalid.Symbol SimpleAst where
 
 instance Num SimpleAst where
     fromInteger = intToSimpleAst
+    (-) = sapp2 (SOperator "-")
     (+) = sapp2 (SOperator "+")
     (*) = sapp2 (SOperator "*")
 
@@ -589,6 +590,7 @@ intToDigits = go [] where
 instance a ~ SimpleAst
       => Num (a -> SimpleAst) where
     fromInteger i = SApp (fromInteger i)
+    (-) = extractOp (-)
     (+) = extractOp (+)
     (*) = extractOp (*)
 
