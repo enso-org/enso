@@ -304,7 +304,7 @@ unsafeLineBreak = do
             Position.succLine
             Position.incColumn off
             pure tok
-        _ -> fail "not line break"
+        _ -> fail "not a line break"
 {-# INLINE unsafeLineBreak #-}
 
 unsafeLineBreaks :: Parser [Ast]
@@ -363,7 +363,7 @@ type Parser = State.StatesT
 
 run :: [Ast] -> Parser a -> Either String a
 run = \stream
-  -> flip Parsec.parseOnly (Vector.fromList stream)
+   -> flip Parsec.parseOnly (Vector.fromList stream)
     . State.evalDefT  @Registry
     . Indent.eval
     . State.evalDefT  @Position
@@ -410,16 +410,15 @@ segmentList = go where
     discardSegment name name' lst = \case
         Optional -> pure (name, mempty)
         Required -> (Ast.Spanned mempty [Ast.invalid Invalid.MissingSection]:)
-              <<$>> segmentList name' lst
+            <<$>> segmentList name' lst
 
 
 -- === Section parsers === --
 
 macro :: Ast -> Macro -> Parser Ast
 macro = \(Ast.Spanned span tok) (Macro seg lst) -> do
-    psegs            <- withNextSegmentsReserved lst $ segment seg
-    (name, spanLst)  <- segmentList (showSection tok) lst
-    -- error $ "afterMacro\n" <> ppShow (name, spanLst, psegs)
+    psegs           <- withNextSegmentsReserved lst $ segment seg
+    (name, spanLst) <- segmentList (showSection tok) lst
     let (tailSpan, slst) = mergeSpannedLists spanLst
     let header = Ast.Spanned span $ Ast.Var name
         group  = Ast.apps header  $ psegs <> slst
@@ -473,19 +472,26 @@ exprPart' = buildExpr . convert =<< lines where
     multiLineToks = lineToks <**> lineTailToks
     lineTailToks  = option id $ flip (<>) <$> brokenLst' lineContToks
     lineContToks  = Indent.indented *> ((:|) <$> lineJoin <*> multiLineToks)
-    lineToks      = many1 $ do
+    lineToks      = fmap concat . many1 $ do
         tok <- anySymbolNotReserved
-        lookupSection (Ast.unspan tok) >>= \case
-            Nothing   -> pure tok
-            Just sect -> macro tok sect
+        let sym = Ast.unspan tok
+        lookupSection sym >>= \case
+            Just sect -> pure <$> macro tok sect
+            Nothing   -> case sym of
+                Ast.Operator _ -> (tok:) <$> option [] (pure <$> multiLineExprBlock)
+                _              -> pure [tok]
 {-# INLINE exprPart' #-}
 
 manyNonSpacedExpr :: Parser Ast
-manyNonSpacedExpr = Ast.list <$> many nonSpacedExpr
+manyNonSpacedExpr = Ast.list <$> many nonSpacedExpr'
 {-# INLINE manyNonSpacedExpr #-}
 
 nonSpacedExpr :: Parser Ast
-nonSpacedExpr = buildExpr =<< go where
+nonSpacedExpr = option (Ast.invalid Invalid.EmptyExpression) nonSpacedExpr'
+{-# INLINE nonSpacedExpr #-}
+
+nonSpacedExpr' :: Parser Ast
+nonSpacedExpr' = buildExpr =<< go where
     go = do
         tok  <- anySymbolNotReserved
         head <- lookupSection (Ast.unspan tok) >>= \case
@@ -493,16 +499,19 @@ nonSpacedExpr = buildExpr =<< go where
             Just sect -> macro tok sect
         let loop = nextTokenNotLeftSpaced >> go
         (head:) <$> option mempty loop
-{-# INLINE nonSpacedExpr #-}
+{-# INLINE nonSpacedExpr' #-}
 
 exprBlock :: Parser Ast
-exprBlock = multiLine <|> singleLine where
-    singleLine = expr
+exprBlock = multiLineExprBlock <|> expr where
+{-# INLINE exprBlock #-}
+
+multiLineExprBlock :: Parser Ast
+multiLineExprBlock = multiLine where
     multiLine  = broken $ Indent.indented *> Indent.withCurrent body
     bodyLines  = (:|) <$> expr <*> many (broken $ Indent.indentedEq *> expr)
     body       = mkBlock <$> bodyLines
     mkBlock (s :| ss) = if null ss then s else Ast.block (s :| ss)
-{-# INLINE exprBlock #-}
+{-# INLINE multiLineExprBlock #-}
 
 
 -------------------------------
@@ -519,6 +528,11 @@ syntax_if_then_else = mkMacro
     +! mkSegment (Ast.Var "then") [ExprBlock]
     +? mkSegment (Ast.Var "else") [ExprBlock]
 
+syntax_case :: Macro
+syntax_case = mkMacro
+                 (Ast.Var "case") [Expr]
+    +! mkSegment (Ast.Var "of")   [ExprBlock]
+
 syntax_group :: Macro
 syntax_group = mkMacro
                  (Ast.Operator "(") [Expr]
@@ -529,15 +543,22 @@ syntax_list = mkMacro
                  (Ast.Operator "[") [Expr]
     +! mkSegment (Ast.Operator "]") []
 
-syntax_funcDed :: Macro
-syntax_funcDed = mkMacro
+syntax_funcDef :: Macro
+syntax_funcDef = mkMacro
                  (Ast.Var      "def") [NonSpacedExpr, ManyNonSpacedExpr]
     +! mkSegment (Ast.Operator ":")   [ExprBlock]
+
+syntax_classDef :: Macro
+syntax_classDef = mkMacro
+                 (Ast.Var      "class") [NonSpacedExpr, ManyNonSpacedExpr]
+    +! mkSegment (Ast.Operator ":")     [ExprBlock]
 
 hardcodePredefinedMacros :: State.Monad Registry m => m ()
 hardcodePredefinedMacros = mapM_ registerSection
     [ syntax_if_then_else
+    , syntax_case
     , syntax_group
     , syntax_list
-    , syntax_funcDed
+    , syntax_funcDef
+    , syntax_classDef
     ]

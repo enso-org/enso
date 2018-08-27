@@ -167,8 +167,15 @@ discoverOpAccessors = \p -> case p of
 
 -- === Utils === --
 
+-- FIXME
+-- This is a hack. We assume that ':' is always left-spaced so it will not
+-- create a section in expressions like `foo = a: b: a + b`. The problem is
+-- that this makes this operator a very special one. There is no such problem
+-- in the new syntax so as soon as we switch to it, we should remove this hack.
 checkLeftSpacing :: Ast -> Bool
-checkLeftSpacing = (> 0) . view (Ast.span . CodeSpan.viewSpan . Span.offset)
+checkLeftSpacing = \a -> normal a || special a where
+    normal  = (> 0) . view (Ast.span . CodeSpan.viewSpan . Span.offset)
+    special = (== Ast.Operator ":") . view Ast.ast
 {-# INLINE checkLeftSpacing #-}
 
 

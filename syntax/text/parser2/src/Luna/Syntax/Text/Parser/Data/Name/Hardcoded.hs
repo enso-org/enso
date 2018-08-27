@@ -5,6 +5,7 @@ module Luna.Syntax.Text.Parser.Data.Name.Hardcoded where
 import Prologue
 
 import qualified Control.Monad.State.Layered               as State
+import qualified Language.Symbol.Operator.Assoc            as Assoc
 import qualified Language.Symbol.Operator.Prec             as Prec
 import qualified Luna.Syntax.Text.Parser.Data.Name.Special as Name
 import qualified Luna.Syntax.Text.Scope                    as Scope
@@ -19,7 +20,7 @@ import Luna.Syntax.Text.Scope (Scope)
 -- === Hardcoded names === --
 -----------------------------
 
-hardcodePrecRelMap :: Prec.RelWriter Name m => m ()
+hardcodePrecRelMap :: (Prec.RelWriter Name m, Assoc.Writer Name m) => m ()
 hardcodePrecRelMap = do
     Prec.writeRel LT (Name.arrow :: Name) (Name.typed :: Name)
     Prec.writeRel LT (Name.typed :: Name) ("$"        :: Name)
@@ -42,13 +43,17 @@ hardcodePrecRelMap = do
     Prec.writeRel EQ ("%"     :: Name) ("*"         :: Name)
     Prec.writeRel EQ ("/"     :: Name) ("*"         :: Name)
 
+    Assoc.write Assoc.Right (Name.lam :: Name)
+
+
 hardcodeMultiNames :: State.Monad Scope m => m ()
 hardcodeMultiNames = do
     Scope.addMultipartName $ "if" :| ["then", "else"]
     Scope.addMultipartName $ "if" :| ["then"]
     -- addNameDesc (NameDesc False "if"  ["then"])
 
-hardcode :: (Prec.RelWriter Name m, State.Monad Scope m) => m ()
+hardcode :: (Prec.RelWriter Name m, State.Monad Scope m, Assoc.Writer Name m)
+         => m ()
 hardcode = do
     hardcodePrecRelMap
     hardcodeMultiNames

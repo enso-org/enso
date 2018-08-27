@@ -18,7 +18,6 @@ import qualified Data.Graph.Data.Layer.Layout                as Layout
 import qualified Foreign.Marshal.Alloc                       as Mem
 import qualified Foreign.Storable                            as Storable
 import qualified Language.Symbol.Operator.Assoc              as Assoc
-import qualified Language.Symbol.Operator.Assoc              as Assoc
 import qualified Language.Symbol.Operator.Prec               as Prec
 import qualified Luna.IR                                     as IR
 import qualified Luna.IR.Layer                               as Layer
@@ -213,6 +212,9 @@ identSpec = describe "identifier" $ do
     it_e  "+."  $ unexpectedSuffix 1
     it_e  ".+"  $ "." __ (Ast.SVar "+")
 
+  describe "other" $ do
+    "wildcard" $ e "_" $ Ast.SWildcard
+
 
 literalNumberSpec :: Spec
 literalNumberSpec = describe "number" $ do
@@ -225,6 +227,46 @@ literalNumberSpec = describe "number" $ do
     it "spaced reals" $ e  "123 456 . 789" $ "." (123 456) 789
     it "int > 64 bit" $ e' biggerThanInt64
     it "invalid sfx"  $ e "1a"             $ unexpectedSuffix 1
+
+literalStringSpec :: Spec
+literalStringSpec = describe "string" $ do
+  describe "raw" $ do
+    -- "empty"              $ e "''"  $ Ast.SStr [Ast.StrPlain "a"]
+    "simple"             $ e "'a'" $ Ast.SStr [Ast.StrPlain "a"]
+    -- "simple"            $ e [s|"test sentence"|]
+    -- "tripple d-quoted"  $ e [s|"""Test"""|] [s|"Test"|]
+    -- "escape quote"      $ e [s|"foo\""|]
+    -- "escape escape"     $ e [s|"foo\\"|]
+    -- "implicite escape"  $ e [s|"foo\bar"|] [s|"foo\\bar"|]
+
+--     describe "interpolated" $ do
+--         it "empty"            $ expr [s|''|]
+--         it "simple"           $ expr [s|'Test'|]
+--         it "simple term 1"    $ expr [s|'foo `2`'|]
+--         it "simple term 2"    $ expr [s|'foo `2 + 2`'|]
+--         it "escape quote"     $ expr [s|'foo\''|]
+--         it "integer escape"   $ exprAs [s|'foo\100ar'|]  [s|'foodar'|]
+--         it "escape e-1"       $ exprAs [s|'foo\nbar'|]   [s|'foo\nbar'|]
+--         it "escape e-2"       $ exprAs [s|'foo\BSbar'|]  [s|'foo\bbar'|]
+--         it "escape e-3"       $ exprAs [s|'foo\NULbar'|] [s|'foo\NULbar'|]
+--         it "wrong escape e-1" $ exprAs [s|'foo\Nbar'|]   [s|Invalid Literal (String EscapeCode)|]
+--         -- it "not closed"       $ exprAs [s|'foo|]         [s|Invalid Literal (String EscapeCode)|]
+--         -- it "multiline"        $ exprAs "a = 'foo\nbar'"         [s|Invalid Literal (String EscapeCode)|]
+--         -- it "escaping newline"  $ exprAs [s|'\n'|] "\"\n\""              -- [(0,4)]
+--         --     it "tripple single-quoted oneliner"             $ do shouldParseAs expr     "'''The quick brown fox jumps over the lazy dog'''"    "'The quick brown fox jumps over the lazy dog'"
+--         --     it "multiline string with inline start"         $ do shouldParseAs expr     "'The quick \n brown fox jumps over the lazy dog'"     "'The quick \nbrown fox jumps over the lazy dog'"
+--         --     it "multiline string with non-indented newline" $ do shouldParseAs expr     "'The quick \n\n brown fox jumps over the lazy dog'"   "'The quick \n\nbrown fox jumps over the lazy dog'"
+--         --     it "multiline string with space-only line"      $ do shouldParseAs expr     "'The quick \n  \n brown fox jumps over the lazy dog'" "'The quick \n \nbrown fox jumps over the lazy dog'"
+--         --     it "multiline string with newline start"        $ do shouldParseAs expr     "'\nThe quick\nbrown fox jumps over the lazy dog\n'"   "'The quick\nbrown fox jumps over the lazy dog'"
+--         --     it "simple interpolated strings"                $ do shouldParseItself expr "'The quick brown fox jumps over {2 + 2} lazy dogs'"
+
+
+literalSpec :: Spec
+literalSpec = describe "literal" $ do
+    literalNumberSpec
+    literalStringSpec
+--     literalListSpec
+--     literalTupleSpec
 
 
 operatorSpec :: Spec
@@ -254,10 +296,11 @@ operatorSpec = describe "operator" $ do
   describe "assignment" $ do
     "simple"          $ e "a = b"         $ "a" `eq` "b"
     "named args"      $ e "a = b x=1"     $ "a" `eq` ("b" ("=" "x" 1))
+    "pattern"         $ e "V x y z = v"   $ "V" "x" "y" "z" `eq` "v"
 
   describe "multiline" $ do
     "grouping"        $ e "a\n b c"       $ "a" ("b" "c")
-    "section 1"       $ e "a +\n b c"     $ ("a" + __) ("b" "c")
+    "section 1"       $ e "a +\n b c"     $ "a" + ("b" "c")
     "section 2"       $ e "a+ \n b c"     $ ("a" + __) ("b" "c")
     "section 3"       $ e "a \n +b c"     $ "a" ((__ + "b") "c")
     "continuation"    $ e "a \n + b c"    $ "a" + "b" "c"
@@ -284,16 +327,15 @@ mixfixSpec = describe "groups" $ do
 
 layoutSpec :: Spec
 layoutSpec = describe "layout" $ do
-    "broken expr 1" $ e "if a then b else c"     $ "if_then_else" "a" "b" "c"
-    "broken expr 2" $ e "if a\n then b else c"   $ "if_then_else" "a" "b" "c"
-    "broken expr 3" $ e "if a\n then b\n else c" $ "if_then_else" "a" "b" "c"
-    "broken expr 4" $ e "if a then\n b else c"   $ "if_then_else" "a" "b" "c"
-    "broken expr 5" $ e "if a then b else\n c"   $ "if_then_else" "a" "b" "c"
-    "broken expr 6" $ e "if a then\n b else\n c" $ "if_then_else" "a" "b" "c"
-    "broken expr 7" $ e "if a then\n b else\n c" $ "if_then_else" "a" "b" "c"
-    "broken expr 8" $ e "if a then\n b\n c"      $ "if_then" "a" (block ["b", "x"])
-
-    "broken expr 9" $ e "def f a:\n x\n y"      $ "if_then" "a" "b" "x"
+    "broken expr 1"  $ e "if a then b else c"     $ "if_then_else" "a" "b" "c"
+    "broken expr 2"  $ e "if a\n then b else c"   $ "if_then_else" "a" "b" "c"
+    "broken expr 3"  $ e "if a\n then b\n else c" $ "if_then_else" "a" "b" "c"
+    "broken expr 4"  $ e "if a then\n b else c"   $ "if_then_else" "a" "b" "c"
+    "broken expr 5"  $ e "if a then b else\n c"   $ "if_then_else" "a" "b" "c"
+    "broken expr 6"  $ e "if a then\n b else\n c" $ "if_then_else" "a" "b" "c"
+    "broken expr 7"  $ e "if a then\n b else\n c" $ "if_then_else" "a" "b" "c"
+    "broken expr 8"  $ e "if a then\n b\n c" $ "if_then" "a" (block ["b", "c"])
+    "after operator" $ e "a: b:\n c\n d"  $ ":" "a" (":" "b" (block ["c", "d"]))
 
 
 -- | Testing all possible missing sections scenarios. We've got in scope
@@ -335,260 +377,43 @@ missingSectionsSpec = describe "mixfix" $ let
 
 funcDefSpec :: Spec
 funcDefSpec = describe "function" $ do
---     it "def"        $ exprAs "def" "(InvalidFunctionDefinition)"
---     it "def _"      $ exprAs "def _" "def (InvalidFunctionName): (MissingColonBlock)"
---     it "def f"      $ exprAs "def f" "def f: (MissingColonBlock)"
---     it "def f +: a" $ exprAs "def f +: a" "def f (InvalidFunctionArg): a"
---     it "def f a:"   $ expr   "def f a:"
-    it "def f a: a" $ e   "def f a b c: a" $ "def_:" "f" ["a", "b", "c"] "a"
-    it "def f a: a" $ e   "def f a" $ "def_:"
+    it_e "def f a: a" $ "def_:" "f" ["a"] "a"
+    it_e "def + a: a" $ "def_:" ("+" __ __) ["a"] "a"
+    it_e "def f a:"   $ "def_:" "f" ["a"] emptyExpression
+    it_e "def f a"    $ "def_:" "f" ["a"] missingSection
+    it_e "def f"      $ "def_:" "f" [] missingSection
+    it_e "def"        $ "def_:" emptyExpression [] missingSection
 
 
--- it :: (HasCallStack, Example a) => String -> a -> SpecWith (Arg a)
+classDefSpec :: Spec
+classDefSpec = describe "class" $ do
+    it_e "class Foo:" $ "class_:" "Foo" [] emptyExpression
+
+caseSpec :: Spec
+caseSpec = describe "case" $ do
+    "simple" $ e "case foo x of\n a: b" $ "case_of" ("foo" "x") (":" "a" "b")
 
 
+importSpec :: Spec
+importSpec = describe "import" $ do
+    "x" $ e "import Std.Math" $ "import" ("." "Std" "Math")
+    -- "x" $ e "import Std.Math: Vector Scalar"          $ "x"
+    -- "x" $ e "import .Local"                           $ "x"
+    -- "x" $ e "import World: Std"                       $ "x"
+
+unitSpec :: Spec
+unitSpec = describe "unit" $ do
+    "empty" $ e "" "a"
+
+commentSpec :: Spec
+commentSpec = describe "comment" $ do
+    "single line" $ e "# comment" $ Ast.SComment "comment"
 
 
-
--- literalStringSpec :: Spec
--- literalStringSpec = describe "string" $ do
---     describe "raw" $ do
---         it "empty"             $ expr   [s|""|]
---         it "simple"            $ expr   [s|"test sentence"|]
---         it "tripple d-quoted"  $ exprAs [s|"""Test"""|] [s|"Test"|]
---         it "escape quote"      $ expr   [s|"foo\""|]
---         it "escape escape"     $ expr   [s|"foo\\"|]
---         it "implicite escape"  $ exprAs [s|"foo\bar"|] [s|"foo\\bar"|]
-
---     describe "interpolated" $ do
---         it "empty"            $ expr [s|''|]
---         it "simple"           $ expr [s|'Test'|]
---         it "simple term 1"    $ expr [s|'foo `2`'|]
---         it "simple term 2"    $ expr [s|'foo `2 + 2`'|]
---         it "escape quote"     $ expr [s|'foo\''|]
---         it "integer escape"   $ exprAs [s|'foo\100ar'|]  [s|'foodar'|]
---         it "escape e-1"       $ exprAs [s|'foo\nbar'|]   [s|'foo\nbar'|]
---         it "escape e-2"       $ exprAs [s|'foo\BSbar'|]  [s|'foo\bbar'|]
---         it "escape e-3"       $ exprAs [s|'foo\NULbar'|] [s|'foo\NULbar'|]
---         it "wrong escape e-1" $ exprAs [s|'foo\Nbar'|]   [s|Invalid Literal (String EscapeCode)|]
---         -- it "not closed"       $ exprAs [s|'foo|]         [s|Invalid Literal (String EscapeCode)|]
---         -- it "multiline"        $ exprAs "a = 'foo\nbar'"         [s|Invalid Literal (String EscapeCode)|]
---         -- it "escaping newline"  $ exprAs [s|'\n'|] "\"\n\""              -- [(0,4)]
---         --     it "tripple single-quoted oneliner"             $ do shouldParseAs expr     "'''The quick brown fox jumps over the lazy dog'''"    "'The quick brown fox jumps over the lazy dog'"
---         --     it "multiline string with inline start"         $ do shouldParseAs expr     "'The quick \n brown fox jumps over the lazy dog'"     "'The quick \nbrown fox jumps over the lazy dog'"
---         --     it "multiline string with non-indented newline" $ do shouldParseAs expr     "'The quick \n\n brown fox jumps over the lazy dog'"   "'The quick \n\nbrown fox jumps over the lazy dog'"
---         --     it "multiline string with space-only line"      $ do shouldParseAs expr     "'The quick \n  \n brown fox jumps over the lazy dog'" "'The quick \n \nbrown fox jumps over the lazy dog'"
---         --     it "multiline string with newline start"        $ do shouldParseAs expr     "'\nThe quick\nbrown fox jumps over the lazy dog\n'"   "'The quick\nbrown fox jumps over the lazy dog'"
---         --     it "simple interpolated strings"                $ do shouldParseItself expr "'The quick brown fox jumps over {2 + 2} lazy dogs'"
-
-
-
-literalSpec :: Spec
-literalSpec = describe "literal" $ do
-    literalNumberSpec
---     literalStringSpec
---     literalListSpec
---     literalTupleSpec
-
-
--- -------------------
--- -- === Terms === --
--- -------------------
-
--- termInfixSpec :: Spec
--- termInfixSpec = describe "infixe" $ do
---     it "infix operator on variables"         $ expr   "a + b"                   -- [(0,1),(1,1),(0,3),(1,1),(0,5)]
---     it "infix operator on applications"      $ expr   "a b + c d"               -- [(0,1),(1,1),(0,3),(1,1),(0,5),(0,1),(1,1),(1,3),(0,9)]
---     it "infixl operators"                    $ expr   "a - b - c"               -- [(0,1),(1,1),(0,3),(1,1),(0,5),(1,1),(0,7),(1,1),(0,9)]
---     it "infixl operators with spaced prec 1" $ exprAs "a - b-c" "a - (b - c)"   -- [(0,1),(1,1),(0,3),(0,1),(0,1),(0,2),(0,1),(1,3),(0,7)]
---     it "infixl operators with spaced prec 2" $ exprAs "a-b - c" "a - b - c"     -- [(0,1),(0,1),(0,2),(0,1),(0,3),(1,1),(0,5),(1,1),(0,7)]
---     it "infixl operators with mixed prec 1"  $ expr   "a + b * c"               -- [(0,1),(1,1),(0,3),(0,1),(1,1),(0,3),(1,1),(1,5),(0,9)]
---     it "infixl operators with mixed prec 2"  $ expr   "a * b + c"               -- [(0,1),(1,1),(0,3),(1,1),(0,5),(1,1),(0,7),(1,1),(0,9)]
---     it "infixl operators with mixed prec 3"  $ exprAs "a * b+c" "a * (b + c)"   -- [(0,1),(1,1),(0,3),(0,1),(0,1),(0,2),(0,1),(1,3),(0,7)]
---     it "infixl operators with mixed prec 4"  $ exprAs "a*b + c" "a * b + c"     -- [(0,1),(0,1),(0,2),(0,1),(0,3),(1,1),(0,5),(1,1),(0,7)]
---     it "space-based precedence"              $ exprAs "a - b-c" "a - (b - c)"   -- [(0,1),(1,1),(0,3),(0,1),(0,1),(0,2),(0,1),(1,3),(0,7)]
---     it "$-separated sub-expressions"         $ expr   "foo $ bar baz"           -- [(0,3),(1,1),(0,5),(0,3),(1,3),(1,7),(0,13)]
-
--- termUnarySpec :: Spec
--- termUnarySpec = describe "unary minus" $ do
---     it "unary minus as expression"       $ expr   "-a"          --[(0,1),(0,1),(0,2)]
---     it "unary minus in application"      $ expr   "foo -a"      --[(0,3),(0,1),(0,1),(1,2),(0,6)]
---     it "app with multiple unary minuses" $ expr   "foo -a 4 -5" --[(0,3),(0,1),(0,1),(1,2),(0,6),(1,1),(0,8),(0,1),(0,1),(1,2),(0,11)]
---     it "binary minus expression"         $ expr   "foo - a"     --[(0,3),(1,1),(0,5),(1,1),(0,7)]
---     it "right minus section"             $ exprAs "a-" "(a -)"  --[(0,1),(0,1),(0,2)]
-
--- termSectionSpec :: Spec
--- termSectionSpec = describe "section" $ do
---     it "operator as expression"           $ expr   "+"                                      -- [(0,1)]
---     it "border unspaced section (l)"      $ exprAs "+a"            "(+ a)"                  -- [(0,1),(0,1),(0,2)]
---     it "border unspaced section (r)"      $ exprAs "a+"            "(a +)"                  -- [(0,1),(0,1),(0,2)]
---     it "border unspaced section (l/r)"    $ exprAs "+a+"           "((+ a) +)"              -- [(0,1),(0,1),(0,2),(0,1),(0,3)]
---     it "border spaced section (l)"        $ exprAs "+ a"           "(+ a)"                  -- [(0,1),(1,1),(0,3)]
---     it "border spaced section (r)"        $ exprAs "a +"           "(a +)"                  -- [(0,1),(1,1),(0,3)]
---     it "border spaced section (l/r)"      $ exprAs "+ a +"         "((+ a) +)"              -- [(0,1),(1,1),(0,3),(1,1),(0,5)]
---     it "border section application (l)"   $ exprAs "+ foo a"       "(+ foo a)"              -- [(0,1),(0,3),(1,1),(1,5),(0,7)]
---     it "border section application (r)"   $ exprAs "foo a +"       "(foo a +)"              -- [(0,3),(1,1),(0,5),(1,1),(0,7)]
---     it "border section application (l/r)" $ exprAs "+ foo a +"     "((+ foo a) +)"          -- [(0,1),(0,3),(1,1),(1,5),(0,7),(1,1),(0,9)]
---     it "section l application (l)"        $ exprAs "foo +a*2"      "foo (+ a * 2)"          -- [(0,3),(0,1),(0,1),(0,1),(0,2),(0,1),(0,3),(1,4),(0,8)]
---     it "section l application (r)"        $ exprAs "foo a*2+"      "foo (a * 2 +)"          -- [(0,3),(0,1),(0,1),(0,2),(0,1),(0,3),(0,1),(1,4),(0,8)]
---     it "section l application (l/r)"      $ exprAs "foo +a*2+"     "foo ((+ a * 2) +)"      -- [(0,3),(0,1),(0,1),(0,1),(0,2),(0,1),(0,3),(0,4),(0,1),(1,5),(0,9)]
---     it "section r application (l)"        $ exprAs "+a*2 foo"      "(+ a * 2) foo"          -- [(0,1),(0,1),(0,1),(0,2),(0,1),(0,3),(0,4),(1,3),(0,8)]
---     it "section r application (r)"        $ exprAs "a*2+ foo"      "(a * 2 +) foo"          -- [(0,1),(0,1),(0,2),(0,1),(0,3),(0,1),(0,4),(1,3),(0,8)]
---     it "section r application (l/r)"      $ exprAs "+a*2+ foo"     "((+ a * 2) +) foo"      -- [(0,1),(0,1),(0,1),(0,2),(0,1),(0,3),(0,4),(0,1),(0,5),(1,3),(0,9)]
---     it "section l/r application (l)"      $ exprAs "foo +a*2 bar"  "foo (+ a * 2) bar"      -- [(0,3),(0,1),(0,1),(0,1),(0,2),(0,1),(0,3),(1,4),(0,8),(1,3),(0,12)]
---     it "section l/r application (r)"      $ exprAs "foo a*2+ bar"  "foo (a * 2 +) bar"      -- [(0,3),(0,1),(0,1),(0,2),(0,1),(0,3),(0,1),(1,4),(0,8),(1,3),(0,12)]
---     it "section l/r application (l/r)"    $ exprAs "foo +a*2+ bar" "foo ((+ a * 2) +) bar"  -- [(0,3),(0,1),(0,1),(0,1),(0,2),(0,1),(0,3),(0,4),(0,1),(1,5),(0,9),(1,3),(0,13)]
-
--- termGroupSpec :: Spec
--- termGroupSpec = describe "group" $ do
---     it "group as expression"             $ expr   "(foo)"                                -- [(1,3),(0,5)]
---     it "group as unspaced left section"  $ exprAs "(+a)"               "((+ a))"         -- [(0,1),(0,1),(1,2),(0,4)]
---     it "group as unspaced right section" $ exprAs "(a+)"               "((a +))"         -- [(0,1),(0,1),(1,2),(0,4)]
---     it "group as unspaced l/r section"   $ exprAs "(+a+)"              "(((+ a) +))"     -- [(0,1),(0,1),(0,2),(0,1),(1,3),(0,5)]
---     it "group as spaced left section"    $ exprAs "(+ a)"              "((+ a))"         -- [(0,1),(1,1),(1,3),(0,5)]
---     it "group as spaced right section"   $ exprAs "(a +)"              "((a +))"         -- [(0,1),(1,1),(1,3),(0,5)]
---     it "group as spaced l/r section"     $ exprAs "(+ a +)"            "(((+ a) +))"     -- [(0,1),(1,1),(0,3),(1,1),(1,5),(0,7)]
---     it "group with left section"         $ exprAs "(+ foo a)"          "((+ foo a))"     -- [(0,1),(0,3),(1,1),(1,5),(1,7),(0,9)]
---     it "group with right section"        $ exprAs "(foo a +)"          "((foo a +))"     -- [(0,3),(1,1),(0,5),(1,1),(1,7),(0,9)]
---     it "group with l/r section"          $ exprAs "(+ foo a +)"        "(((+ foo a) +))" -- [(0,1),(0,3),(1,1),(1,5),(0,7),(1,1),(1,9),(0,11)]
---     it "group with complex expression"   $ expr   "(foo . bar 2 + 11)"                   -- [(0,3),(0,9),(1,1),(0,11),(1,1),(0,13),(1,2),(1,16),(0,18)]
---     it "group application 1"             $ exprAs "(foo a)(b)"         "(foo a) (b)"     -- [(0,3),(1,1),(1,5),(0,7),(1,1),(0,3),(0,10)]
---     it "group application 2"             $ expr   "(foo a) b (c)"                        -- [(0,3),(1,1),(1,5),(0,7),(1,1),(0,9),(1,1),(1,3),(0,13)]
---     it "group application 3"             $ expr   "test (foo a) b (c)"                   -- [(0,4),(0,3),(1,1),(1,5),(1,7),(0,12),(1,1),(0,14),(1,1),(1,3),(0,18)]
---     it "wildcard group application"      $ expr   "(foo _) a"                            -- [(0,3),(1,1),(1,5),(0,7),(1,1),(0,9)]
-
--- termPatternSpec :: Spec
--- termPatternSpec = describe "pattern" $ do
---     it "variable"                  $ expr   "a = val"                                   -- [(0,1),(3,3),(0,7)]
---     it "wildcard"                  $ expr   "_ = val"                                   -- [(0,1),(3,3),(0,7)]
---     it "deconstructor (no args)"   $ expr   "Vector = val"                              -- [(0,6),(3,3),(0,12)]
---     it "deconstructor (with args)" $ expr   "Vector x y z = val"                        -- [(0,6),(1,1),(0,8),(1,1),(0,10),(1,1),(0,12),(3,3),(0,18)]
---     it "grouped"                   $ expr   "(Vector x y z) = val"                      -- [(0,6),(1,1),(0,8),(1,1),(0,10),(1,1),(1,12),(0,14),(3,3),(0,20)]
---     it "module-qualified"          $ exprAs "A.B.C x y z = val" "A . B . C x y z = val" -- [(0,1),(0,3),(0,5),(1,1),(0,7),(1,1),(0,9),(1,1),(0,11),(3,3),(0,17)]
-
--- -- FIXME: Hack, for details see Parsing.hs
--- termModifierSpec :: Spec
--- termModifierSpec = describe "modifiers" $ do
---     it "field update"            $ expr "a = a.x = v"  -- [(0,1),(0,1),(0,3),(3,1),(3,7),(0,11)]
---     it "field drop update"       $ expr "a.x = v"      -- [(0,1),(0,3),(3,1),(0,7)]
---     it "field modification"      $ expr "a = a.x += v" -- [(0,1),(0,1),(0,3),(4,1),(3,8),(0,12)]
---     it "field drop modification" $ expr "a.x += v"     -- [(0,1),(0,3),(4,1),(0,8)]
---     -- FIXME: Correct implementation (vvv). Uncomment when above hack will be invalid.
---         -- it "variable's field update"                    $ shouldParseItself' expr "a = a.x = v"                               [(0,1),(0,1),(5,1),(3,7),(0,11)]
---         -- it "variable's field drop update"               $ shouldParseItself' expr "a.x = v"                                   [(0,1),(5,1),(0,7)]
---         -- it "variable's field modification"              $ shouldParseItself' expr "a = a.x += v"                              [(0,1),(0,1),(6,1),(3,8),(0,12)]
---         -- it "variable's field drop modification"         $ shouldParseItself' expr "a.x += v"                                  [(0,1),(6,1),(0,8)]
-
--- termLambdaSpec :: Spec
--- termLambdaSpec = describe "lambdas" $ do
---     it "identity (not spaced)"       $ exprAs "x:x"  "x: x"               -- [(0,1),(1,1),(0,3)]
---     it "identity (l   spaced)"       $ exprAs "x :x" "x: x"               -- [(0,1),(2,1),(0,4)]
---     it "identity (r   spaced)"       $ expr   "x: x"                      -- [(0,1),(2,1),(0,4)]
---     it "identity (l/r spaced)"       $ exprAs "x : x" "x: x"              -- [(0,1),(3,1),(0,5)]
---     it "double lambda"               $ expr   "a: b: a + b"               -- [(0,1),(0,1),(0,1),(1,1),(0,3),(1,1),(2,5),(2,8),(0,11)]
---     it "complex pattern lambda"      $ expr   "(Vector x y z): x + y + z" -- [(0,6),(1,1),(0,8),(1,1),(0,10),(1,1),(1,12),(0,14),(0,1),(1,1),(0,3),(1,1),(0,5),(1,1),(0,7),(1,1),(2,9),(0,25)]
---     it "wildcard arg lambda"         $ expr   "_: 1"                      -- [(0,1),(2,1),(0,4)]
---     it "double wildcard lambda"      $ expr   "_: _"                      -- [(0,1),(2,1),(0,4)]
---     it "lambda as parensed argument" $ expr   "foo (x: x + 1)"            -- [(0,3),(0,1),(0,1),(1,1),(0,3),(1,1),(2,5),(1,8),(1,10),(0,14)]
---     it "lambda as $-argument"        $ expr   "foo $ x: x + 1"            -- [(0,3),(1,1),(0,5),(0,1),(0,1),(1,1),(0,3),(1,1),(2,5),(1,8),(0,14)]
-
--- termSpec :: Spec
--- termSpec = describe "term" $ do
---     termApplicationSpec
---     termTypeSpec
---     termAccessorSpec
---     termInfixSpec
---     termUnarySpec
---     termSectionSpec
---     termGroupSpec
---     termPatternSpec
---     termModifierSpec
---     termLambdaSpec
-
-
--- ------------------
--- -- === Unit === --
--- ------------------
-
--- definitionFunctionSpec :: Spec
--- definitionFunctionSpec = describe "function" $ do
---     it "no argument function definition" $ expr "def foo: bar"       -- [(4,3),(2,3),(0,12)]
---     it "simple function definition"      $ expr "def foo a b: a + b" -- [(4,3),(1,1),(1,1),(0,1),(1,1),(0,3),(1,1),(2,5),(0,18)]
-
--- unitSpec :: Spec
--- unitSpec = describe "unit definitions" $ do
---     it "value definition"               $ unit_n "def pi: 3.14"       -- [(4,2),(0,12),(0,12),(0,12)]
---     it "expression definition"          $ unit_n "def foo: a + b"     -- [(4,3),(0,14),(0,14),(0,14)]
---     it "function definition"            $ unit_n "def foo a b: a + b" -- [(4,3),(0,18),(0,18),(0,18)]
---     it "operator definition"            $ unit_n "def + a b: a . + b" -- [(4,1),(0,16),(0,16),(0,16)]
---     it "function signature definition"  $ unit_n "def foo :: a -> Vector a"              -- [(4,3),(0,1),(1,2),(0,4),(0,6),(1,1),(1,8),(4,13),(0,24),(0,24),(0,24)]
-
--- invalidUnitSpec :: Spec
--- invalidUnitSpec = describe "invalid unit definitions" $ do
---     it "orphan def"
---         $ unitAs_n "def" "def Invalid FunctionHeader: Invalid FunctionBlock"
---     it "def without body 1"
---         $ unitAs_n "def foo" "def foo: Invalid FunctionBlock"
---     it "def without body 2"
---         $ unitAs_n "def foo:" "def foo:"
-
-
--- caseSpec :: Spec
--- caseSpec = describe "case expression" $ do
---     it "simple case expression"    $ expr "case v of\n    A a: b" -- [(5,1),(0,1),(1,1),(0,3),(2,1),(8,6),(0,20)]
---     it "multiline case expression" $ expr ("case v of"
---                                        </> "    A: a"
---                                        </> "    B: b"
---                                           ) -- [(5,1),(0,1),(2,1),(8,4),(0,1),(2,1),(5,4),(0,27)]
-
--- layoutSpec :: Spec
--- layoutSpec = describe "layout" $ do
---     it "nested lambda layout" $ expr ("def main:"
---                                   </> "    x = a: b:"
---                                   </> "        a + b"
---                                   </> "        a - b"
---                                   </> "    c"
---                                   )
-
---     it "nested lambda layout" $ unitAs   ("import Std.Base"
---                                       </> "def foo:"
---                                       </> "«0»def main:"
---                                       </> "    «1»4"
---                                       )  ("imports ..."
---                                       </> "def foo:"
---                                       </> "«0»def main: «1»4"
---                                       )
-
--- -- import Std.Base
--- -- def foof:
--- -- «0»def main:
--- --     «1»4
-
--- definitionSpec :: Spec
--- definitionSpec = do
---     definitionFunctionSpec
---     unitSpec
---     invalidUnitSpec
---     caseSpec
-
--- «12»
-
-
-
-
--- fixSpec :: Spec
--- fixSpec = describe "error" $ it "x" $ do
---     pure () :: IO ()
---     putStrLn "\n"
-
---     -- pprint $ Parser.runParserxx__ Parsing.expr "a . b -> c -= d >= f "
---     -- pprint $ Parser.runParserxx__ Parsing.expr "a -> b -> a + b"
---     -- pprint $ Parser.runParserxx__ Parsing.Syntax1 Parsing.expr "def foo a:\n a"
---     -- pprint $ Parser.runParserxx__ Parsing.Syntax2 Parsing.expr "foo (bar baz"
---     pprint $ Parser.run Parsing.Syntax2 [s|
--- foo = a + b
-
--- |]
+-- TODO:
+-- - Lists
+-- - Tuples
+-- - Markers
 
 
 
@@ -597,11 +422,7 @@ debugSpec = describe "error" $ it "x" $ do
     pure () :: IO ()
     putStrLn "\n"
 
-    -- pprint $ Parser.runParserxx__ Parsing.expr "a . b -> c -= d >= f "
-    -- pprint $ Parser.runParserxx__ Parsing.expr "a -> b -> a + b"
-    -- pprint $ Parser.runParserxx__ Parsing.Syntax1 Parsing.expr "def foo a:\n a"
-    -- pprint $ Parser.runParserxx__ Parsing.Syntax2 Parsing.expr "foo (bar baz"
-    let input     = "a . + "
+    let input     = "'dsad \nsada'"
         toks      = Parser.run Parsing.Syntax1 input
         layouted  = ExprBuilder.discoverLayouts toks
         statement = ExprBuilder.buildFlatStatement layouted
@@ -623,44 +444,9 @@ debugSpec = describe "error" $ it "x" $ do
     putStrLn "\nRESULT:\n"
     pprint $ Ast.simplify $ PP.run2 input
 
-
-    -- print $ foo == Ast.simplify ast
-    -- putStrLn "\nSUB STREAMS:\n"
-    -- pprint sstream
-
-    -- putStrLn "\nEXPR STREAM:\n"
-    -- pprint estream
-
-    -- putStrLn "\nSTREAM:\n"
-    -- pprint stream
-    -- -- pprint $ ExprBuilder.subStreams toks
-
-    -- e' <- State.evalDefT @Scope.Scope $ do
-    --     Hardcoded.hardcodePrecRelMap
-    --     Assoc.write Assoc.Right ("-" :: Name)
-
-    --     ExprBuilder.buildExpr stream
-
-    -- putStrLn "\nEXPR:\n"
-    -- pprint e'
-    -- putStrLn "\n=========\n"
-    -- printCodePure e'
-
-
     True `shouldBe` False
 
--- type Main
 
---     test : Int -> Int -> [Char]
---     test = a -> b -> a + b . show . convert
-
--- type Internal
---     foo
-
--- |]
-    -- runParser Parsing.Syntax1 "foo = \n a + b\nbar = c + d"
-    -- True `shouldBe` False
-    -- it "error" $ expr "def foo:\n x = 1\n def"
 
 spec :: Spec
 spec = do
@@ -670,144 +456,13 @@ spec = do
     mixfixSpec
     missingSectionsSpec
     layoutSpec
-    -- funcDefSpec
-    -- debugSpec
-    -- termSpec
-    -- definitionSpec
-    -- fixSpec
-    -- layoutSpec
-    -- pure (s)
+    funcDefSpec
+    classDefSpec
+    caseSpec
+    importSpec
+    commentSpec
 
 
--- module Luna.Test.Source.Text.ParserSpec where
-
--- import           Luna.Prelude        hiding (String)
--- import qualified Luna.Prelude        as P
-
--- import           Control.Exception   (PatternMatchFail)
--- import           Data.Maybe          (isJust)
--- import qualified OCI.Pass           as Pass
--- import           OCI.Pass.Definition.Declaration
--- import           OCI.Pass           (Pass, SubPass)
--- import           OCI.Pass.Manager   (MonadPassManager)
--- import           Luna.IR           hiding (IRBuilder, expr, unit')
--- import qualified OCI.IR.Repr.Vis    as Vis
--- import Data.Int (Int64)
-
--- import Test.Hspec.Megaparsec hiding (shouldParse)
--- import Test.Hspec
-
--- import Luna.Syntax.Text.Parser.IR.Term
--- import Text.Megaparsec (eof, ParseError)
--- import qualified Luna.Syntax.Text.Pretty.Pretty as CodeGen
--- import Luna.Syntax.Text.Parser.IR.Class (Error, IRB(IRB), Parsing)
-
--- import System.Log (Logging, dropLogs)
--- import qualified Luna.Syntax.Text.Layer.Loc as Loc
--- import qualified Luna.Syntax.Text.Parser.IR.Class   as Parser
--- import qualified Luna.Syntax.Text.Parser.IR.Term  as Parsing
--- import           Luna.Syntax.Text.Parser.IR.Class   (IRParser, ParsedExpr, IRBSParser)
--- import qualified Luna.Syntax.Text.Parser.Data.CodeSpan as CodeSpan
--- import           Luna.Syntax.Text.Parser.Data.CodeSpan (CodeSpan)
--- import           Luna.Syntax.Text.Parser.Errors   (Invalids)
--- import           Control.Monad.Raise (Throws, tryAll)
--- import           Data.TypeDesc (getTypeDesc)
--- import Data.Text.Position
--- import Control.Monad.State.Dependent
--- import Luna.Syntax.Text.Parser.State.Marker (MarkedExprMap)
--- import Luna.Syntax.Text.Source
-
--- import qualified Luna.Syntax.Text.Lexer as Lexer
--- import Data.Text32
-
--- --
-
--- data ParsingTest
--- type instance Abstract ParsingTest = ParsingTest
--- type instance Inputs  Net   ParsingTest = '[AnyExpr, AnyExprLink]
--- type instance Outputs Net   ParsingTest = '[AnyExpr, AnyExprLink]
--- type instance Inputs  Layer ParsingTest = '[AnyExpr // Model, AnyExpr // UID, Link' AnyExpr // UID, Link' AnyExpr // Model, AnyExpr // Succs, AnyExpr // CodeSpan]
--- type instance Outputs Layer ParsingTest = '[AnyExpr // CodeSpan]
--- type instance Inputs  Attr  ParsingTest = '[Source, ParsedExpr]
--- type instance Outputs Attr  ParsingTest = '[ParsedExpr, MarkedExprMap]
--- type instance Inputs  Event ParsingTest = '[] -- will never be used
--- type instance Outputs Event ParsingTest = '[New // AnyExpr, New // AnyExprLink]
--- type instance Preserves     ParsingTest = '[]
-
--- testParsing_raw :: (MonadIO m, MonadFix m, PrimMonad m) => IRBSParser SomeExpr -> P.String -> m (Either SomeException (P.String, [(Int, Int)]))
--- testParsing_raw p str = tryAll $ dropLogs $ evalDefStateT @Cache $ evalIRBuilder' $ evalPassManager' $ do
---     runRegs' False
-
---     Loc.init
---     attachLayer 5 (getTypeDesc @Range) (getTypeDesc @AnyExpr)
-
---     CodeSpan.init
---     attachLayer 5 (getTypeDesc @CodeSpan) (getTypeDesc @AnyExpr)
-
---     setAttr (getTypeDesc @MarkedExprMap) $ (mempty :: MarkedExprMap)
---     setAttr (getTypeDesc @ParsedExpr)    $ (error "Data not provided: ParsedExpr")
---     setAttr (getTypeDesc @Invalids)      $ (mempty :: Invalids)
-
---     setAttr (getTypeDesc @Source) $ (convert str :: Source)
---     Pass.eval' @Parsing     $ Parsing.parsingPassM p
---     spans  <- Pass.eval' @ParsingTest $ do
---         es <- exprs
---         ls <- getLayer @CodeSpan <$>= es
---         return $ (convert . view CodeSpan.realSpan) <$> ls
---     code <- Pass.eval' @ParsingTest $ CodeGen.subpass CodeGen.SimpleStyle . unsafeGeneralize . unwrap =<< getAttr @ParsedExpr
---     return (convert code, convert (spans :: [(Delta, Delta)]))
-
--- testParsing :: (MonadIO m, MonadFix m, PrimMonad m) => IRBSParser SomeExpr -> P.String -> m (Either SomeException (P.String, [(Int, Int)]))
--- testParsing = fmap3 dropNulls .: testParsing_raw
-
--- dropNulls :: [(Int,Int)] -> [(Int,Int)]
--- dropNulls = filter (/= (0,0))
-
--- shouldParseAs p s out = do
---     r <- mapLeft displayException . fmap fst <$> testParsing p s
---     shouldBe r (Right out)
-
--- shouldParseItself p s = shouldParseAs p s s
-
-
--- shouldParseAs' p s out spans = do
---     r <- mapLeft displayException <$> testParsing p s
---     shouldBe r (Right (out, spans))
-
--- shouldParseAs_raw' p s out spans = do
---     r <- mapLeft displayException <$> testParsing_raw p s
---     shouldBe r (Right (out, spans))
-
--- shouldParseAsx p s spans = do
---     r <- mapLeft displayException . fmap snd <$> testParsing p s
---     shouldBe r (Right spans)
-
--- shouldParseItself' p s = shouldParseAs' p s s
--- shouldParseItself_raw' p s = shouldParseAs_raw' p s s
--- shouldParseItself'' p s = shouldParseAs' p s ('\n':s)
--- shouldParseAs''     p s s' = shouldParseAs' p s ('\n':s')
--- shouldParse          p s = shouldParseAsx p s
-
-l </> r = l <> "\n" <> r
-
--- spec :: Spec
--- spec = do
-
-
-
-
-
-
-
-
-
-
-
---         describe "imports" $ do
---             it "import everything"                          $ shouldParseItself' unit' "import Std.Math"                         [(7,8),(0,15),(0,15),(0,15)]
---             it "import selected"                            $ shouldParseItself' unit' "import Std.Math: Vector Scalar"          [(7,8),(0,30),(0,30),(0,30)]
---             it "import relative"                            $ shouldParseItself' unit' "import .Local"                           [(7,6),(0,13),(0,13),(0,13)]
---             it "import from World"                          $ shouldParseAs'     unit' "import World: Std" "import #World#: Std" [(7,5),(0,17),(0,17),(0,17)]
 
 --         describe "units" $ do
 --             it "empty unit"                                 $ shouldParseItself' unit' ""                                        []
@@ -831,62 +486,11 @@ l </> r = l <> "\n" <> r
 --                                                                                         </> "    V a a a"
 --                                                                                         </> "    X: fld :: a"
 --                                                                                         </> "    def foo: 0"
---                                                                                         ) [(13,1),(0,1),(2,1),(0,1),(1,1),(0,1),(1,1),(6,7),(7,1),(3,8),(5,11),(4,3),(5,10),(0,58),(0,58),(0,58)]
---         describe "block layout" $ do
---             -- TODO: prawdziwe bloki
---             let lam1  = "lam: foo"
---                     </> "     bar"
---                 lam1' = "lam:"
---                     </> "    foo"
---                     </> "    bar"
---             it "inline block"                               $ shouldParseAs' expr lam1 lam1' [(0,3),(0,3),(6,3),(2,12),(0,17)]
---             it "newline block"                              $ shouldParseItself' expr lam1'  [(0,3),(0,3),(5,3),(6,11),(0,20)]
---             it "nested blocks"                              $ shouldParseItself' expr ( "a:"
---                                                                                     </> "    foo"
---                                                                                     </> "    bar b:"
---                                                                                     </> "        baz"
---                                                                                     </> "        bax"
---                                                                                     </> "    bam"
---                                                                                         ) [(0,1),(0,3),(0,3),(0,1),(0,3),(9,3),(10,15),(1,26),(5,30),(0,38),(5,3),(6,46),(0,53)]
-
---             -- TODO: structure updates
---             -- describe "structure updates" $ do
---             --     it "field setting"                 $ shouldParseItself expr "foo.x = 5"
---             --     it "field modification (unspaced)" $ shouldParseItself expr "foo.x += 5"
---             --     it "field modification (spaced)"   $ shouldParseItself expr "foo . x += 5"
---             --     it "field modification (lens)"     $ shouldParseItself expr "vec . at pos += 5"
-
 
 --         describe "markers" $ do
 --             it "marked expression"                       $ shouldParseItself' expr "«0»foo bar" [(0,3),(0,3),(1,3),(0,7),(0,10)]
 --             it "marked assignment expression"            $ shouldParseItself' expr "«0»a = foo" [(0,3),(0,1),(3,3),(0,7),(0,10)]
 
---         describe "mixfixes" $ do
---             it "mixfix (if .. then .. else)"             $ shouldParseItself' expr "if a b then c d else e f" [(0,2),(0,1),(1,1),(1,3),(0,6),(0,1),(1,1),(6,3),(0,15),(0,1),(1,1),(6,3),(0,24)]
-
---         describe "disabled" $ do
---             it "disabled var expression"                 $ shouldParseItself' expr "##foo"                   [(2,3),(0,5)]
---             it "disabled app expression"                 $ shouldParseItself' expr "##foo bar"               [(0,3),(1,3),(2,7),(0,9)]
---             it "disabled expression with space"          $ shouldParseAs'     expr "## foo bar"
---                                                                                     "##foo bar"
---                                                                                     [(0,3),(1,3),(3,7),(0,10)]
---             it "disabled multiline lambda"               $ shouldParseItself' expr "##a:\n    foo\n    bar" [(0,1),(0,3),(5,3),(6,11),(2,18),(0,20)]
-
---         describe "documentation" $ do
---             it "single line doc comment"                 $ shouldParseItself' expr ("# doc comment stuff"
---                                                                                     </> "def foo a: a"
---                                                                                     ) [(4,3),(1,1),(2,1),(20,12),(0,32)]
---             it "multi-line doc comment"                  $ shouldParseItself' expr ("# Foo bar baz"
---                                                                                     </> "# quux bam"
---                                                                                     </> "def foo a: a"
---                                                                                     ) [(4,3),(1,1),(2,1),(25,12),(0,37)]
---             it "single-line doc comment above expr"      $ shouldParseItself' expr ("# Doc comment _stuff_"
---                                                                                     </> "a = b + c"
---                                                                                     ) [(0,1),(0,1),(1,1),(0,3),(1,1),(3,5),(22,9),(0,31)]
---             it "multi-line doc comment above expr"       $ shouldParseItself' expr ("# Doc line one"
---                                                                                     </> "# doc line two"
---                                                                                     </> "foo = a . b bar"
---                                                                                     ) [(0,3),(0,1),(0,5),(1,3),(3,9),(30,15),(0,45)]
 
 --         describe "metadata" $ do
 --             it "metadata line"                           $ shouldParseItself'' unit' "### META {\"0\": {\"studio\": ...}}" [(0,31),(0,31),(0,31)]

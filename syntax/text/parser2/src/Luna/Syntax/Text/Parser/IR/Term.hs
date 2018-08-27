@@ -480,14 +480,14 @@ strBuilder quote = Ast.register =<< Ast.computeSpan parser where
         let isQuote      = (== quote)
             isBodyChar c = c == quote || isEolBeginChar c
 
-        quoteLen <- Text.length <$> takeWhile1 isRawStrQuote
+        quoteLen <- Text.length <$> takeWhile1 isQuote
 
         let mkChunk       = \p -> Ast.register =<< Ast.computeSpan p
             chunkPlain    = Ast.StrPlain <$> takeWhile1 (not . isBodyChar)
             chunkQuote    = bodyQuotes =<< takeWhile1 isQuote
             bodyQuotes qs = Ast.StrPlain qs <$ failIf (Text.length qs == quoteLen)
             chunk         = Ast.computeSpan $ choice [chunkPlain, chunkQuote] -- lineBreak
-            ending        = Text.length <$> takeWhile1 isRawStrQuote
+            ending        = Text.length <$> takeWhile1 isQuote
             body          = Ast.Str <$> many chunk
         body <* ending
 
