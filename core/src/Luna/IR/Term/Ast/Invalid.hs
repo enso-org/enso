@@ -37,6 +37,7 @@ data Symbol
     | NoAssoc
     | MissingRelation
     | MissingSection
+    | ParserError
     deriving (Eq, Ord, Generic, Show)
 -- instance ExternalStorable Symbol
 -- instance ExternalFieldStorable Symbol

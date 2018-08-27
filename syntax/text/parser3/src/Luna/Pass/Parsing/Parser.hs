@@ -129,26 +129,30 @@ runMeDebug ast = do
 
 
 buildGraph :: forall m. BuilderMonad m => Ast -> m IR.SomeTerm
-buildGraph = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
+buildGraph = go
+{-# INLINE buildGraph #-}
+
+go :: forall m. BuilderMonad m => Ast -> m IR.SomeTerm
+go = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
     Ast.Cons      name -> IR.cons'  name []
     Ast.Var       name -> IR.var'   name
     Ast.Operator  name -> IR.var'   name
     Ast.Wildcard       -> IR.blank'
     Ast.LineBreak ind  -> IR.lineBreak' (unwrap ind)
     Ast.Invalid   inv  -> IR.invalid' inv
-    Ast.Tokens (t:ts)  -> buildGraph t -- FIXME
+    Ast.Tokens (t:ts)  -> go t -- FIXME
     Ast.Missing        -> IR.missing'
     Ast.App f a        -> do
         let (baseTok, argToks) = collectApps (pure a) f
             tok                = Ast.unspan baseTok
             handleOp t = do
-                a :| as <- buildGraph <$$> argToks
+                a :| as <- go <$$> argToks
                 case as of
                     [a2] -> t a a2
-                    _    -> error "TODO: to many params"
+                    _    -> parseError
             continue = do
-                base <- buildGraph baseTok
-                args <- buildGraph <$$> argToks
+                base <- go baseTok
+                args <- go <$$> argToks
                 foldM IR.app' base args
 
         case tok of
@@ -161,15 +165,16 @@ buildGraph = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
                 | var == "def_:" -> case argToks of
                     (name :| [params, body]) -> do
                         let Ast.List params_ = Ast.unspan params
-                        name'   <- buildGraph name
-                        params' <- buildGraph <$$> params_
-                        body'   <- buildGraph body
+                        name'   <- go name
+                        params' <- go <$$> params_
+                        body'   <- go body
                         IR.function' name' params' body'
-                    _ -> error "wrong function definition"
+                    _ -> parseError
                 | otherwise      -> continue
     x -> error $ "TODO: " <> show x
     where addCodeSpan cs ir = ir <$ IR.writeLayer @CodeSpan ir cs
-{-# INLINE buildGraph #-}
+          parseError        = IR.invalid' Invalid.ParserError
+{-# NOINLINE go #-}
 
 -- foldM :: Monad m => (a -> b -> m a) -> a -> [b] -> m a
 
