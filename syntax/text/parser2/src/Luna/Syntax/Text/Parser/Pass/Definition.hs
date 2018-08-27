@@ -118,68 +118,68 @@ import Text.Parser.State.Indent                 (Indent)
 --                                $ fromIRB $ fromIRBS irbs
 --     pure (ref, gidMap)
 
-runParser__ :: ExprBuilderPass (Pass stage ExprBuilder)
-    => Parsing.SyntaxVersion -> Parsing.Parser Ast -> Text32 -> Pass stage ExprBuilder (SomeTerm, Marker.TermMap)
-runParser__ sv p src = runMeDebug $ runParserxx__ sv p src
+-- runParser__ :: ExprBuilderPass (Pass stage ExprBuilder)
+--     => Parsing.SyntaxVersion -> Parsing.Parser Ast -> Text32 -> Pass stage ExprBuilder (SomeTerm, Marker.TermMap)
+-- runParser__ sv p src = runMeDebug $ runParserxx__ sv p src
 
-runMeDebug :: ExprBuilderPass (Pass stage ExprBuilder)
-    => Ast -> Pass stage ExprBuilder (SomeTerm, Marker.TermMap)
-runMeDebug ast = do
-    ((ref, unmarked), gidMap) <- State.runDefT @Marker.TermMap
-                               $ State.runDefT @Marker.TermOrphanList
-                               $ ExprBuilder.buildGraph ast
-    pure (ref, gidMap)
+-- runMeDebug :: ExprBuilderPass (Pass stage ExprBuilder)
+--     => Ast -> Pass stage ExprBuilder (SomeTerm, Marker.TermMap)
+-- runMeDebug ast = do
+--     ((ref, unmarked), gidMap) <- State.runDefT @Marker.TermMap
+--                                $ State.runDefT @Marker.TermOrphanList
+--                                $ ExprBuilder.buildGraph ast
+--     pure (ref, gidMap)
 
-    -- let tokens = Lexer.evalDefLexer src
-        -- parser = Parsing.stx *> p <* Parsing.etx
-    -- runParserContext__ parser tokens >>= \case
-    --     Left e -> error ("Parser error: " <> parseErrorPretty e <> "\ntokens:\n"
-    --            <> show (view Symbol.symbol <$> tokens))
-    --     Right irbs -> do
-    --         ((ref, unmarked), gidMap) <- State.runDefT @Marker.TermMap
-    --                                    $ State.runDefT @Marker.TermOrphanList
-    --                                    $ fromIRB $ fromIRBS irbs
-    --         pure (ref, gidMap)
+--     -- let tokens = Lexer.evalDefLexer src
+--         -- parser = Parsing.stx *> p <* Parsing.etx
+--     -- runParserContext__ parser tokens >>= \case
+--     --     Left e -> error ("Parser error: " <> parseErrorPretty e <> "\ntokens:\n"
+--     --            <> show (view Symbol.symbol <$> tokens))
+--     --     Right irbs -> do
+--     --         ((ref, unmarked), gidMap) <- State.runDefT @Marker.TermMap
+--     --                                    $ State.runDefT @Marker.TermOrphanList
+--     --                                    $ fromIRB $ fromIRBS irbs
+--     --         pure (ref, gidMap)
 
 
 
-runParserxx__ :: Parsing.SyntaxVersion -> Parsing.Parser a -> Text32 -> a
-runParserxx__ = \sv p s ->
-    let s'  = Text32.dropWhile (== ' ') s
-        off = Text32.length s - Text32.length s'
-        go  = evalLexer__ sv p
-    in  {- stx off : -} go s'
-{-# INLINE runParserxx__ #-}
+-- runParserxx__ :: Parsing.SyntaxVersion -> Parsing.Parser a -> Text32 -> a
+-- runParserxx__ = \sv p s ->
+--     let s'  = Text32.dropWhile (== ' ') s
+--         off = Text32.length s - Text32.length s'
+--         go  = evalLexer__ sv p
+--     in  {- stx off : -} go s'
+-- {-# INLINE runParserxx__ #-}
 
-evalLexer__ :: Parsing.SyntaxVersion -> Parsing.Parser a -> Text32 -> a
-evalLexer__ = \sv p txt -> case runner__ sv p txt of
-    Parser.Done !(txt') !r -> if (Text32.length txt' /= 0)
-        then error $ "Panic. Not all input consumed by lexer: " <> show txt'
-        else r
-    Parser.Partial g -> case g mempty of
-        Parser.Done !(txt') !r -> if (Text32.length txt' /= 0)
-            then error $ "Panic. Not all input consumed by lexer: " <> show txt'
-            else r
-        Parser.Fail !_ !_ !e   -> error e
-        Parser.Partial {} -> impossible
+-- evalLexer__ :: Parsing.SyntaxVersion -> Parsing.Parser a -> Text32 -> a
+-- evalLexer__ = \sv p txt -> case runner__ sv p txt of
+--     Parser.Done !(txt') !r -> if (Text32.length txt' /= 0)
+--         then error $ "Panic. Not all input consumed by lexer: " <> show txt'
+--         else r
+--     Parser.Partial g -> case g mempty of
+--         Parser.Done !(txt') !r -> if (Text32.length txt' /= 0)
+--             then error $ "Panic. Not all input consumed by lexer: " <> show txt'
+--             else r
+--         Parser.Fail !_ !_ !e   -> error e
+--         Parser.Partial {} -> impossible
 
-    Parser.Fail !_ !_ !e   -> error e
-{-# INLINE evalLexer__ #-}
+--     Parser.Fail !_ !_ !e   -> error e
+-- {-# INLINE evalLexer__ #-}
 
-runner__ :: Parsing.SyntaxVersion -> Parsing.Parser a -> Text32 -> IResult Text32 a
-runner__ = \sv p txt
-    -> flip parsePartial (txt <> "\ETX")
-     $ State.evalDefT @Scope
-     $ State.evalDefT @FileOffset
-     $ State.evalDefT @Marker.State
-     $ State.evalDefT @CodeSpanRange
-     $ State.evalDefT @LastOffset
-     $ State.evalDefT @Position
-     $ State.Indent.eval
-     $ flip (State.evalT @Parsing.SyntaxVersion) sv
-     $ State.evalDefT @Parsing.Result
-     $ (p <* token '\ETX')
-{-# INLINE runner__ #-}
+-- runner__ :: Parsing.SyntaxVersion -> Parsing.Parser a -> Text32 -> IResult Text32 a
+-- runner__ = \sv p txt
+--     -> flip parsePartial (txt <> "\ETX")
+--      $ State.evalDefT @Scope
+--      $ State.evalDefT @FileOffset
+--      $ State.evalDefT @Marker.State
+--      $ State.evalDefT @CodeSpanRange
+--      $ State.evalDefT @LastOffset
+--      $ State.evalDefT @Position
+--      $ State.Indent.eval
+--      $ flip (State.evalT @Parsing.SyntaxVersion) sv
+--      $ State.evalDefT @Parsing.Result
+--      $ (p <* token '\ETX')
+-- {-# INLINE runner__ #-}
 
 
 

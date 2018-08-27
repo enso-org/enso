@@ -1,0 +1,104 @@
+name       : luna-syntax-text-parser3
+version    : "0.2"
+author     : Luna Team <contact@luna-lang.org>
+maintainer : Luna Team <contact@luna-lang.org>
+
+library:
+    source-dirs:
+        - src
+
+tests:
+    spec:
+        main: Main.hs
+        source-dirs: test/spec
+        dependencies:
+            - container
+            - directory
+            - filepath
+            - hspec
+            - hspec-expectations-lifted
+            - hspec-megaparsec
+            - luna-core
+            - luna-syntax-text-lexer
+            - luna-syntax-text-parser2
+            - luna-syntax-text-parser3
+            - open-browser
+            - template-haskell
+
+
+dependencies:
+    - attoparsec
+    - base
+    - containers
+    - layered-state
+    - layouting
+    - lens
+    - lens-utils
+    - luna-core
+    - luna-cpp-containers
+    - luna-data-storable
+    - luna-foreign-utils
+    - luna-generic-traversable    
+    - luna-nested-containers
+    - luna-parser-utils
+    - luna-syntax-definition
+    - luna-syntax-text-lexer
+    - luna-syntax-text-parser2
+    - luna-syntax-text-model
+    - luna-text-processing
+    - megaparsec == 6.5.0
+    - mtl
+    - prologue
+    - text
+    - typelevel
+    - vector
+    - vector-text
+
+default-extensions:
+    - AllowAmbiguousTypes
+    - ApplicativeDo
+    - Arrows
+    - BangPatterns
+    - BinaryLiterals
+    - ConstraintKinds
+    - DataKinds
+    - DefaultSignatures
+    - DeriveDataTypeable
+    - DeriveFoldable
+    - DeriveFunctor
+    - DeriveGeneric
+    - DeriveTraversable
+    - DoAndIfThenElse
+    - DuplicateRecordFields
+    - EmptyDataDecls
+    - FlexibleContexts
+    - FlexibleInstances
+    - FunctionalDependencies
+    - GeneralizedNewtypeDeriving
+    - InstanceSigs
+    - LambdaCase
+    - LiberalTypeSynonyms
+    - MonadComprehensions
+    - MultiWayIf
+    - NamedWildCards
+    - NegativeLiterals
+    - NoImplicitPrelude
+    - NumDecimals
+    - OverloadedLabels
+    - PackageImports
+    - QuasiQuotes
+    - RankNTypes
+    - RecursiveDo
+    - RelaxedPolyRec
+    - ScopedTypeVariables
+    - StandaloneDeriving
+    - TemplateHaskell
+    - TupleSections
+    - TypeApplications
+    - TypeFamilies
+    - TypeFamilyDependencies
+    - TypeOperators
+    - UnicodeSyntax
+    - ViewPatterns
+#    - MonadFailDesugaring
+

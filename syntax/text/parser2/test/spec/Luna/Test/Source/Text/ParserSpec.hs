@@ -25,7 +25,7 @@ import qualified Luna.Pass                                   as Pass
 import qualified Luna.Pass.Attr                              as Attr
 import qualified Luna.Pass.Parsing.ExprBuilder               as ExprBuilder
 import qualified Luna.Pass.Parsing.Macro                     as Macro
-import qualified Luna.Pass.Parsing.Parser                    as PP
+import qualified Luna.Pass.Parsing.Parserx                   as PP
 import qualified Luna.Pass.Scheduler                         as Scheduler
 import qualified Luna.Syntax.Text.Parser.Data.CodeSpan       as CodeSpan
 import qualified Luna.Syntax.Text.Parser.Data.Name.Hardcoded as Hardcoded
@@ -56,7 +56,7 @@ import Luna.IR.Term.Ast.Invalid (adjacentOperators, assocConflict,
                                  missingSection, noAssoc, unexpectedSuffix)
 
 
-import qualified Luna.Pass.Parsing.Parser as P
+import qualified Luna.Pass.Parsing.Parserx as P
 
 -- import qualified Luna.Syntax.Prettyprint                     as Prettyprint
 

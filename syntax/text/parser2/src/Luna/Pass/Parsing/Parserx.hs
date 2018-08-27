@@ -2,7 +2,7 @@
 {-# LANGUAGE PatternSynonyms      #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Luna.Pass.Parsing.Parser where
+module Luna.Pass.Parsing.Parserx where
 
 import Prologue hiding (Text)
 
@@ -28,16 +28,16 @@ import Luna.Syntax.Text.Source             (Source (Source))
 
 
 
-run :: ExprBuilder.BuilderMonad m => Text32 -> m IR.SomeTerm
-run = \s -> do
-    let toks = Parser.run Parsing.Syntax1 s
-        --FIXME: handle rest of the stream + Right pattern
-        Right sect = Macro.run toks $ do
-            Hardcoded.hardcodePrecRelMap
-            Macro.hardcodePredefinedMacros
-            Macro.expr
+-- run :: ExprBuilder.BuilderMonad m => Text32 -> m IR.SomeTerm
+-- run = \s -> do
+--     let toks = Parser.run Parsing.Syntax1 s
+--         --FIXME: handle rest of the stream + Right pattern
+--         Right sect = Macro.run toks $ do
+--             Hardcoded.hardcodePrecRelMap
+--             Macro.hardcodePredefinedMacros
+--             Macro.expr
 
-    ExprBuilder.buildGraph sect
+--     ExprBuilder.buildGraph sect
 
 
 run2 :: Text32 -> Parsing.Ast
@@ -54,23 +54,23 @@ runWith = \p src -> let
     in out
 {-# INLINE runWith #-}
 
-instance ExprBuilderPass (Pass stage ExprBuilder) => Pass.Definition stage ExprBuilder where
-    definition = do
-        src  <- unwrap <$> Attr.get @Source
-        unit <- run src
-        Attr.put $ Result unit
+-- instance ExprBuilderPass (Pass stage ExprBuilder) => Pass.Definition stage ExprBuilder where
+--     definition = do
+--         src  <- unwrap <$> Attr.get @Source
+--         unit <- run src
+--         Attr.put $ Result unit
 
 
-registerDynamic :: ∀ stage m.
-    ( ExprBuilderPass (Pass stage ExprBuilder)
-    , Scheduler.PassRegister stage ExprBuilder m
-    , Scheduler.Monad m
-    ) => m ()
-registerDynamic = do
-    -- Scheduler.registerAttr     @Invalids
-    -- Scheduler.enableAttrByType @Invalids
-    Scheduler.registerAttr     @Source
-    Scheduler.enableAttrByType @Source
-    Scheduler.registerAttr     @Result
-    Scheduler.enableAttrByType @Result
-    Scheduler.registerPass     @stage @ExprBuilder
+-- registerDynamic :: ∀ stage m.
+--     ( ExprBuilderPass (Pass stage ExprBuilder)
+--     , Scheduler.PassRegister stage ExprBuilder m
+--     , Scheduler.Monad m
+--     ) => m ()
+-- registerDynamic = do
+--     -- Scheduler.registerAttr     @Invalids
+--     -- Scheduler.enableAttrByType @Invalids
+--     Scheduler.registerAttr     @Source
+--     Scheduler.enableAttrByType @Source
+--     Scheduler.registerAttr     @Result
+--     Scheduler.enableAttrByType @Result
+--     Scheduler.registerPass     @stage @ExprBuilder
