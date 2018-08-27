@@ -917,6 +917,10 @@ list :: [Spanned Ast] -> Spanned Ast
 list = inheritCodeSpanList $ \items -> List items
 {-# INLINE list #-}
 
+block :: NonEmpty (Spanned Ast) -> Spanned Ast
+block = inheritCodeSpanList1 $ \items -> Block items
+{-# INLINE block #-}
+
 isOperator :: Ast -> Bool
 isOperator = \case
     AstOperator {} -> True

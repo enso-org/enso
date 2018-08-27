@@ -491,9 +491,16 @@ buildExprOp__ = \stream stack -> let
 {-# NOINLINE buildExprOp__ #-}
 
 -- | Relation checking. All operators already discovered to be invalid has
---   special precedence rules.
+--   special precedence rules like 'lowest'. In such case. however, there will
+--   be few operators of lowest precedence and they need to be comparable.
+--   Possible solution involves declaring many groups of operators like the
+--   'standard' group and lower and higher groups, so the 'invalid' operator
+--   would be in a group between standard operators and a group containing
+--   'assignment' one.
 readRel :: Prec.RelReader Name m => Name -> Name -> m (Maybe Ordering)
 readRel = \l r -> if
+    | l == Name.assign  -> pure $ Just LT
+    | r == Name.assign  -> pure $ Just GT
     | l == Name.invalid -> pure $ Just LT
     | r == Name.invalid -> pure $ Just GT
     | otherwise         -> Prec.readRel l r

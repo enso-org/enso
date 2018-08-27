@@ -376,9 +376,10 @@ run = \stream
 
 chunk :: Chunk -> Parser Ast
 chunk = \case
-    Expr              -> possiblyBroken expr
+    Expr              -> possiblyBroken exprPart
     NonSpacedExpr     -> nonSpacedExpr
     ManyNonSpacedExpr -> manyNonSpacedExpr
+    ExprBlock         -> exprBlock
 {-# INLINE chunk #-}
 
 chunks :: [Chunk] -> Parser [Ast]
@@ -410,13 +411,6 @@ segmentList = go where
         Optional -> pure (name, mempty)
         Required -> (Ast.Spanned mempty [Ast.invalid Invalid.MissingSection]:)
               <<$>> segmentList name' lst
-
--- minimalMacroMatchName :: Name -> SegmentList -> Name
--- minimalMacroMatchName = \r -> \case
---     SegmentListNull -> r
---     SegmentListCons tp seg lst' -> case tp of
---         Optional -> r
---         Required -> minimalMacroMatchName (r <> "_" <> (showSection $ seg ^. segmentBase)) lst'
 
 
 -- === Section parsers === --
@@ -459,11 +453,19 @@ showSection = \case
 -- === API === --
 
 expr :: Parser Ast
-expr = option (Ast.invalid Invalid.EmptyExpression) expr'
+expr = Indent.withCurrent exprPart
 {-# INLINE expr #-}
 
 expr' :: Parser Ast
-expr' = Indent.withCurrent $ buildExpr . convert =<< lines where
+expr' = Indent.withCurrent exprPart'
+{-# INLINE expr' #-}
+
+exprPart :: Parser Ast
+exprPart = option (Ast.invalid Invalid.EmptyExpression) exprPart'
+{-# INLINE exprPart #-}
+
+exprPart' :: Parser Ast
+exprPart' = buildExpr . convert =<< lines where
     line          = buildExpr =<< multiLineToks
     lines         = (:|) <$> line <*> nextLines
     nextLines     = option mempty (brokenLst' $ Indent.indented *> lines)
@@ -476,7 +478,7 @@ expr' = Indent.withCurrent $ buildExpr . convert =<< lines where
         lookupSection (Ast.unspan tok) >>= \case
             Nothing   -> pure tok
             Just sect -> macro tok sect
-{-# INLINE expr' #-}
+{-# INLINE exprPart' #-}
 
 manyNonSpacedExpr :: Parser Ast
 manyNonSpacedExpr = Ast.list <$> many nonSpacedExpr
@@ -493,6 +495,14 @@ nonSpacedExpr = buildExpr =<< go where
         (head:) <$> option mempty loop
 {-# INLINE nonSpacedExpr #-}
 
+exprBlock :: Parser Ast
+exprBlock = multiLine <|> singleLine where
+    singleLine = expr
+    multiLine  = broken $ Indent.indented *> Indent.withCurrent body
+    bodyLines  = (:|) <$> expr <*> many (broken $ Indent.indentedEq *> expr)
+    body       = mkBlock <$> bodyLines
+    mkBlock (s :| ss) = if null ss then s else Ast.block (s :| ss)
+{-# INLINE exprBlock #-}
 
 
 -------------------------------
@@ -506,8 +516,8 @@ nonSpacedExpr = buildExpr =<< go where
 syntax_if_then_else :: Macro
 syntax_if_then_else = mkMacro
                  (Ast.Var "if")   [Expr]
-    +! mkSegment (Ast.Var "then") [Expr]
-    +? mkSegment (Ast.Var "else") [Expr]
+    +! mkSegment (Ast.Var "then") [ExprBlock]
+    +? mkSegment (Ast.Var "else") [ExprBlock]
 
 syntax_group :: Macro
 syntax_group = mkMacro
@@ -521,8 +531,8 @@ syntax_list = mkMacro
 
 syntax_funcDed :: Macro
 syntax_funcDed = mkMacro
-                 (Ast.Var      "def") [ NonSpacedExpr, ManyNonSpacedExpr]
-    +! mkSegment (Ast.Operator ":")   [Expr]
+                 (Ast.Var      "def") [NonSpacedExpr, ManyNonSpacedExpr]
+    +! mkSegment (Ast.Operator ":")   [ExprBlock]
 
 hardcodePredefinedMacros :: State.Monad Registry m => m ()
 hardcodePredefinedMacros = mapM_ registerSection

@@ -162,7 +162,7 @@ e' :: String -> IO ()
 e' src = e src (convert src)
 
 it_e :: String -> Ast.SimpleAst -> SpecM () ()
-it_e s t = it s (e s t)
+it_e s t = it (show s) (e s t)
 
 it_e' :: String -> SpecM () ()
 it_e' s = it_e s (convert s)
@@ -175,6 +175,11 @@ it_e' s = it_e s (convert s)
 
 __ :: Convertible' Ast.SimpleAst a => a
 __ = convert' Ast.SMissing
+
+block = Ast.SBlock
+
+eq :: IsString s => s
+eq = "#=#"
 
 identSpec :: Spec
 identSpec = describe "identifier" $ do
@@ -246,6 +251,10 @@ operatorSpec = describe "operator" $ do
     "simple"          $ e "a + b * c"     $ "a" + ("b" * "c")
     "spaced"          $ e "a+b * c"       $ ("a" + "b") * "c"
 
+  describe "assignment" $ do
+    "simple"          $ e "a = b"         $ "a" `eq` "b"
+    "named args"      $ e "a = b x=1"     $ "a" `eq` ("b" ("=" "x" 1))
+
   describe "multiline" $ do
     "grouping"        $ e "a\n b c"       $ "a" ("b" "c")
     "section 1"       $ e "a +\n b c"     $ ("a" + __) ("b" "c")
@@ -275,14 +284,16 @@ mixfixSpec = describe "groups" $ do
 
 layoutSpec :: Spec
 layoutSpec = describe "layout" $ do
-    "single line" $ e "if a then b else c"     $ "if_then_else" "a" "b" "c"
-    "single line" $ e "if a\n then b else c"   $ "if_then_else" "a" "b" "c"
-    "single line" $ e "if a\n then b\n else c" $ "if_then_else" "a" "b" "c"
-    "single line" $ e "if a then\n b else c"   $ "if_then_else" "a" "b" "c"
-    "single line" $ e "if a then b else\n c"   $ "if_then_else" "a" "b" "c"
-    "single line" $ e "if a then\n b else\n c" $ "if_then_else" "a" "b" "c"
-    "single line" $ e "if a then\n b else\n c" $ "if_then_else" "a" "b" "c"
-    "single line" $ e "if a then\n b\n c"      $ "if_then" "a" "b" "x"
+    "broken expr 1" $ e "if a then b else c"     $ "if_then_else" "a" "b" "c"
+    "broken expr 2" $ e "if a\n then b else c"   $ "if_then_else" "a" "b" "c"
+    "broken expr 3" $ e "if a\n then b\n else c" $ "if_then_else" "a" "b" "c"
+    "broken expr 4" $ e "if a then\n b else c"   $ "if_then_else" "a" "b" "c"
+    "broken expr 5" $ e "if a then b else\n c"   $ "if_then_else" "a" "b" "c"
+    "broken expr 6" $ e "if a then\n b else\n c" $ "if_then_else" "a" "b" "c"
+    "broken expr 7" $ e "if a then\n b else\n c" $ "if_then_else" "a" "b" "c"
+    "broken expr 8" $ e "if a then\n b\n c"      $ "if_then" "a" (block ["b", "x"])
+
+    "broken expr 9" $ e "def f a:\n x\n y"      $ "if_then" "a" "b" "x"
 
 
 -- | Testing all possible missing sections scenarios. We've got in scope
