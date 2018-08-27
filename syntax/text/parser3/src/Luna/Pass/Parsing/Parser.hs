@@ -78,7 +78,7 @@ instance ParserPass (Pass stage Parser)
       => Pass.Definition stage Parser where
     definition = do
         src             <- Attr.get @Source
-        (unit, markers) <- runParser__ (convert src)
+        (unit, markers) <- run (convert src)
         Attr.put $ Result unit
 
 
@@ -103,9 +103,9 @@ registerDynamic = do
     Scheduler.registerPass     @stage @Parser
 
 
-runParser__ :: ParserPass (Pass stage Parser)
+run :: ParserPass (Pass stage Parser)
     => Text32 -> Pass stage Parser (IR.SomeTerm, Marker.TermMap)
-runParser__ src = runMeDebug $ Stage1.run2 src
+run src = runMeDebug $ Stage1.run2 src
 
 runMeDebug :: ParserPass (Pass stage Parser)
     => Ast -> Pass stage Parser (IR.SomeTerm, Marker.TermMap)

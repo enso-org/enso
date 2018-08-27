@@ -40,7 +40,7 @@ runPasses passes = Graph.encodeAndEval @Parser.Parser $ Scheduler.evalT $ do
 
 shouldParseAs :: Text -> Text -> IO ()
 shouldParseAs input output = runPass $ do
-    (ir,cs) <- Parser.runParser__ (convert input)
+    (ir,cs) <- Parser.run (convert input)
     let scope = def
     genCode <- Prettyprint.run @Prettyprint.Simple scope ir
     genCode `shouldBe` output
