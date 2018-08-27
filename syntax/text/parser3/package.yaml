@@ -22,6 +22,7 @@ tests:
             - luna-syntax-text-lexer
             - luna-syntax-text-parser2
             - luna-syntax-text-parser3
+            - luna-syntax-text-prettyprint
             - open-browser
             - template-haskell
 

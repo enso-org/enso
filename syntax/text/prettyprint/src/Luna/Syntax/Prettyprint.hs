@@ -1,5 +1,5 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
-{-# LANGUAGE NoStrict #-}
+{-# LANGUAGE NoStrict                  #-}
 {-# LANGUAGE UndecidableInstances      #-}
 
 module Luna.Syntax.Prettyprint where
@@ -254,8 +254,8 @@ instance ( MonadIO m -- DEBUG ONLY
     chainedPrettyPrint = \ir -> Layer.read @IR.Model ir >>= \case
         IR.UniTermAcc  (IR.Acc a name)
             -> named (spaced accName) . Atom
-             . (\an -> convert an <+> accName <+> convert name)
-           <$> subgen a -- FIXME[WD]: check if left arg need to be parensed
+             . ((\an nn -> convert an <+> accName <+> convert nn)
+           <$> subgen a <*> subgen name)-- FIXME[WD]: check if left arg need to be parensed
 
         IR.UniTermAccSection (IR.AccSection path)
             -> named (notSpaced accName) . Atom
@@ -480,7 +480,8 @@ printType = go False False where
             pure $ parenIf (parenApps && not (null args)) out
         Uni.Acc t n -> do
             tRep <- go True True =<< IR.source t
-            pure $ tRep <> "." <> convert n
+            nRep <- go True True =<< IR.source n
+            pure $ tRep <> "." <> nRep
         Uni.App f a -> do
             fRep <- go False True =<< IR.source f
             aRep <- go True  True =<< IR.source a
