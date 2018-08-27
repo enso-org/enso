@@ -123,9 +123,9 @@ discoverLayouts__ = \buff stream out -> case stream of
                 (firstNonSpaced:buff')
                    -> unspaced (firstNonSpaced : nonSpaced) (spaced buff' out)
                 [] -> unspaced nonSpaced out
-    where submitIfNotNull f s = if null s then id else ((:) . f) s
-          spaced   = submitIfNotNull (Layouted SpacedLayout . reverse)
-          unspaced = submitIfNotNull (Layouted UnspacedLayout) . handleUnaryOps
+    where make f s = if null s then id else ((:) . f . discoverOpAccessors) s
+          spaced   = make (Layouted SpacedLayout)   . reverse
+          unspaced = make (Layouted UnspacedLayout) . discoverUMinus
 
 takeWhileUnspaced :: [Ast] -> ([Ast], [Ast])
 takeWhileUnspaced = go where
@@ -136,14 +136,33 @@ takeWhileUnspaced = go where
             else (a:) <$> go as
 {-# INLINE takeWhileUnspaced #-}
 
-handleUnaryOps :: [Ast] -> [Ast]
-handleUnaryOps = \case
+
+-- | Unary minus is the only prefix operator and needs to be handled correctly.
+--   We scan heads of all unspaced layouts to discover it.
+discoverUMinus :: [Ast] -> [Ast]
+discoverUMinus = \case
     []     -> mempty
     (a:as) -> a' : as where
         a' = case Ast.unspan a of
             Ast.Operator "-" -> a & Ast.ast .~ Ast.Operator Name.uminus
             _                -> a
-{-# INLINE handleUnaryOps #-}
+{-# INLINE discoverUMinus #-}
+
+-- | Any operator following the accessor operator should be treated as var. We
+--   can discover such cases only after layouts are build in order to properly
+--   handle all sections.
+discoverOpAccessors :: [Ast] -> [Ast]
+discoverOpAccessors = \p -> case p of
+    []     -> []
+    (a:as) -> case Ast.unspan a of
+        Ast.Operator "." -> case as of
+            []     -> p
+            (t:ts) -> case Ast.unspan t of
+                Ast.Operator op -> a : (t & Ast.ast .~ Ast.Var op)
+                                     : discoverOpAccessors ts
+                _               -> a : t : discoverOpAccessors ts
+        _ -> a : discoverOpAccessors as
+
 
 
 -- === Utils === --

@@ -524,8 +524,6 @@ syntax_funcDed = mkMacro
                  (Ast.Var      "def") [ NonSpacedExpr, ManyNonSpacedExpr]
     +! mkSegment (Ast.Operator ":")   [Expr]
 
-
-
 hardcodePredefinedMacros :: State.Monad Registry m => m ()
 hardcodePredefinedMacros = mapM_ registerSection
     [ syntax_if_then_else

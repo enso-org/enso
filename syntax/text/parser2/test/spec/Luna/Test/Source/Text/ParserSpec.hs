@@ -179,23 +179,35 @@ __ = convert' Ast.SMissing
 identSpec :: Spec
 identSpec = describe "identifier" $ do
 
-  describe "valid" $ do
+  describe "variable" $ do
     it_e' "var"
     it_e' "_var"
     it_e' "var'"
     it_e' "var''"
+    it_e "var'o"  $ unexpectedSuffix 1
+    it_e "var_a"  $ unexpectedSuffix 2
+    it_e "var⸗"   $ unexpectedSuffix 1
+
+  describe "constructor" $ do
     it_e' "Cons"
     it_e' "Cons'"
     it_e' "Cons''"
     "unicode var" $ e' "фываΧξωβ김동욱"
-
-  describe "invalid" $ do
-    it_e "var'o"  $ unexpectedSuffix 1
-    it_e "var_a"  $ unexpectedSuffix 2
     it_e "Cons'o" $ unexpectedSuffix 1
     it_e "Cons_a" $ unexpectedSuffix 2
-    it_e "var⸗"   $ unexpectedSuffix 1
     it_e "Cons⸗"  $ unexpectedSuffix 1
+
+  describe "operator" $ do
+    let it_op s = it_e s (convert s __ __)
+    it_op "+"
+    it_op "++"
+    it_op "."
+    it_op ".."
+    it_e  "..." $ unexpectedSuffix 1
+    it_e  "..+" $ unexpectedSuffix 1
+    it_e  "+."  $ unexpectedSuffix 1
+    it_e  ".+"  $ "." __ (Ast.SVar "+")
+
 
 literalNumberSpec :: Spec
 literalNumberSpec = describe "number" $ do
@@ -258,6 +270,7 @@ mixfixSpec = describe "groups" $ do
     "list"         $ e "[a b]"              $ "[_]" ("a" "b")
     "a)"           $ e "a)"                 $ ")" "a" __
     "nested rules" $ e "(if a then b) else" $ "(_)" ("if_then" "a" "b") "else"
+    "dd"           $ e "if a b then c d"    $ "if_then" ("a" "b") ("c" "d")
 
 
 layoutSpec :: Spec
@@ -268,6 +281,8 @@ layoutSpec = describe "layout" $ do
     "single line" $ e "if a then\n b else c"   $ "if_then_else" "a" "b" "c"
     "single line" $ e "if a then b else\n c"   $ "if_then_else" "a" "b" "c"
     "single line" $ e "if a then\n b else\n c" $ "if_then_else" "a" "b" "c"
+    "single line" $ e "if a then\n b else\n c" $ "if_then_else" "a" "b" "c"
+    "single line" $ e "if a then\n b\n c"      $ "if_then" "a" "b" "x"
 
 
 -- | Testing all possible missing sections scenarios. We've got in scope
@@ -369,37 +384,6 @@ literalSpec = describe "literal" $ do
 -- -- === Terms === --
 -- -------------------
 
--- termApplicationSpec :: Spec
--- termApplicationSpec = describe "applications" $ do
---     it "single arg application"   $ expr "foo a"      --[(0,3),(1,1),(0,5)]
---     it "multiple arg application" $ expr "foo a b c"  --[(0,3),(1,1),(0,5),(1,1),(0,7),(1,1),(0,9)]
---     it "applicated parensed expr" $ expr "foo (a b)"  --[(0,3),(0,1),(1,1),(1,3),(1,5),(0,9)]
-
--- termTypeSpec :: Spec
--- termTypeSpec = describe "type" $ do
---     it "simple var type"       $ expr   "a :: t"                                -- [(0,1),(4,1),(0,6)]
---     it "typed Vector cons"     $ expr   "Vector 1 2 3 :: Vector Int"            -- [(0,6),(1,1),(0,8),(1,1),(0,10),(1,1),(0,12),(0,6),(1,3),(4,10),(0,26)]
---     it "typed local variables" $ exprAs "foo a::A b::B" "foo (a :: A) (b :: B)" -- [(0,3),(0,1),(2,1),(1,4),(0,8),(0,1),(2,1),(1,4),(0,13)]
---     it "kind typed expression" $ expr   "pi :: Real :: Type"                    -- [(0,2),(0,4),(4,4),(4,12),(0,18)]
---     -- TODO: op prec
-
--- termAccessorSpec :: Spec
--- termAccessorSpec = describe "accessor" $ do
---     it "single accessors"                      $ expr   "foo . bar"                       -- [(0,3),(0,9)]
---     it "chained accessors"                     $ expr   "foo . bar . baz"                 -- [(0,3),(0,9),(0,15)]
---     it "delayed accessor (single)"             $ expr   ".foo"                            -- [(0,4)]
---     it "delayed accessor (double)"             $ expr   ".foo.bar"                        -- [(0,8)]
---     it "delayed accessor (tripple)"            $ expr   ".foo.bar.baz"                    -- [(0,12)]
---     it "delayed accessor (operator)"           $ expr   ".+"                              -- [(0,2)]
---     it "delayed accessor (nested op)"          $ expr   ".foo.+"                          -- [(0,6)]
---     it "delayed accessor as argument"          $ expr   "foo .pos"                        -- [(0,3),(1,4),(0,8)]
---     it "running method of delayed accessor"    $ expr   ".foo . bar"                      -- [(0,4),(0,10)]
---     it "parensed delayed accessor"             $ expr   "(.foo)"                          -- [(1,4),(0,6)]
---     it "parensed delayed accessor as argument" $ expr   "test (.foo)"                     -- [(0,4),(1,4),(1,6),(0,11)]
---     it "operator unspaced accessors"           $ exprAs "2.+ 1" "2 . + 1"                 -- [(0,1),(0,3),(1,1),(0,5)]
---     it "complex spaced accessors 1"            $ expr   "foo 1 . bar 2 3 . baz 4 5"       -- [(0,3),(1,1),(0,5),(0,11),(1,1),(0,13),(1,1),(0,15),(0,21),(1,1),(0,23),(1,1),(0,25)]
---     it "complex spaced accessors 2"            $ exprAs "foo 1 . bar 2.baz 3.ban"
---                                                         "foo 1 . bar (2 . baz) (3 . ban)" -- [(0,3),(1,1),(0,5),(0,11),(0,1),(1,5),(0,17),(0,1),(1,5),(0,23)]
 -- termInfixSpec :: Spec
 -- termInfixSpec = describe "infixe" $ do
 --     it "infix operator on variables"         $ expr   "a + b"                   -- [(0,1),(1,1),(0,3),(1,1),(0,5)]
@@ -597,8 +581,8 @@ literalSpec = describe "literal" $ do
 
 
 
-fixSpec :: Spec
-fixSpec = describe "error" $ it "x" $ do
+debugSpec :: Spec
+debugSpec = describe "error" $ it "x" $ do
     pure () :: IO ()
     putStrLn "\n"
 
@@ -606,7 +590,7 @@ fixSpec = describe "error" $ it "x" $ do
     -- pprint $ Parser.runParserxx__ Parsing.expr "a -> b -> a + b"
     -- pprint $ Parser.runParserxx__ Parsing.Syntax1 Parsing.expr "def foo a:\n a"
     -- pprint $ Parser.runParserxx__ Parsing.Syntax2 Parsing.expr "foo (bar baz"
-    let input     = "if else"
+    let input     = "a . + "
         toks      = Parser.run Parsing.Syntax1 input
         layouted  = ExprBuilder.discoverLayouts toks
         statement = ExprBuilder.buildFlatStatement layouted
@@ -676,7 +660,7 @@ spec = do
     missingSectionsSpec
     layoutSpec
     -- funcDefSpec
-    -- fixSpec
+    -- debugSpec
     -- termSpec
     -- definitionSpec
     -- fixSpec
