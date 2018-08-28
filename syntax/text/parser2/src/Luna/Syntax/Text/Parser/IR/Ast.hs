@@ -297,6 +297,7 @@ data Invalid   t = Atom_Invalid   { desc     :: Invalid.Symbol          }
 data App       t = Atom_App       { func     :: Link' t, arg :: Link' t }
 data Missing   t = Atom_Missing
 data List      t = Atom_List      { items    :: [Link' t]               }
+data Unit      t = Atom_Unit      { items    :: [Link' t]               }
 
 data StrChunk t
     = StrPlain   Text
@@ -318,6 +319,7 @@ instance Show (Link' t) => Show (Invalid   t) where show  (Atom_Invalid   t1   )
 instance Show (Link' t) => Show (App       t) where show  (Atom_App       t1 t2) = "App"       <> " (" <> show t1 <> ") (" <> show t2 <> ")"
 instance Show (Link' t) => Show (Missing   t) where show  (Atom_Missing        ) = "Missing"
 instance Show (Link' t) => Show (List      t) where show  (Atom_List      t1   ) = "List"      <> " (" <> show t1 <> ")"
+instance Show (Link' t) => Show (Unit      t) where show  (Atom_Unit      t1   ) = "Unit"      <> " (" <> show t1 <> ")"
 instance (Show (Link' t), Show (Link t (StrChunk t))) => Show (Str       t) where show  (Atom_Str       t1   ) = "Str"       <> " (" <> show t1 <> ")"
 
 
@@ -337,6 +339,7 @@ pattern Invalid   t1    = AstInvalid   (Atom_Invalid   t1)
 pattern App       t1 t2 = AstApp       (Atom_App       t1 t2)
 pattern Missing         = AstMissing   (Atom_Missing)
 pattern List      t1    = AstList      (Atom_List      t1)
+pattern Unit      t1    = AstUnit      (Atom_Unit      t1)
 
 pattern SVar       t1    = SimpleAstVar       (Atom_Var       t1)
 pattern SCons      t1    = SimpleAstCons      (Atom_Cons      t1)
@@ -354,6 +357,7 @@ pattern SInvalid   t1    = SimpleAstInvalid   (Atom_Invalid   t1)
 pattern SApp       t1 t2 = SimpleAstApp       (Atom_App       t1 t2)
 pattern SMissing         = SimpleAstMissing   (Atom_Missing)
 pattern SList      t1    = SimpleAstList      (Atom_List      t1)
+pattern SUnit      t1    = SimpleAstUnit      (Atom_Unit      t1)
 
 -- deriving instance Show (Link' t) => Show (Var       t)
 -- deriving instance Show (Link' t) => Show (Cons      t)
@@ -388,6 +392,7 @@ deriving instance Eq (Link' t) => Eq (Invalid   t)
 deriving instance Eq (Link' t) => Eq (App       t)
 deriving instance Eq (Link' t) => Eq (Missing   t)
 deriving instance Eq (Link' t) => Eq (List      t)
+deriving instance Eq (Link' t) => Eq (Unit      t)
 deriving instance Eq (Link' t) => Eq (StrChunk  t)
 deriving instance (Eq (Link' t), Eq (Link t (StrChunk t))) => Eq (Str t)
 
@@ -406,6 +411,7 @@ deriving instance Ord (Link' t) => Ord (Invalid   t)
 deriving instance Ord (Link' t) => Ord (App       t)
 deriving instance Ord (Link' t) => Ord (Missing   t)
 deriving instance Ord (Link' t) => Ord (List      t)
+deriving instance Ord (Link' t) => Ord (Unit      t)
 deriving instance Ord (Link' t) => Ord (StrChunk  t)
 deriving instance (Ord (Link' t), Ord (Link t (StrChunk t))) => Ord (Str t)
 
@@ -440,6 +446,7 @@ data Ast
     | AstApp       (App Ast)
     | AstMissing   (Missing Ast)
     | AstList      (List Ast)
+    | AstUnit      (Unit Ast)
     deriving (Eq, Ord, Show)
 
 
@@ -475,6 +482,7 @@ data SimpleAst
     | SimpleAstApp       (App SimpleAst)
     | SimpleAstMissing   (Missing SimpleAst)
     | SimpleAstList      (List SimpleAst)
+    | SimpleAstUnit      (Unit SimpleAst)
     deriving (Eq, Ord)
 
 instance Show SimpleAst where
@@ -495,6 +503,7 @@ instance Show SimpleAst where
         SimpleAstApp       t -> show t
         SimpleAstMissing   t -> show t
         SimpleAstList      t -> show t
+        SimpleAstUnit      t -> show t
 
 
 sapp :: SimpleAst -> SimpleAst -> SimpleAst
@@ -707,6 +716,7 @@ instance Simplify   Ast where
         App       t1 t2 -> SApp       (simplify t1) (simplify t2)
         Missing         -> SMissing
         List      t1    -> SList      (simplify t1)
+        Unit      t1    -> SUnit      (simplify t1)
 
 
 
@@ -916,6 +926,10 @@ missing = Spanned mempty Missing
 list :: [Spanned Ast] -> Spanned Ast
 list = inheritCodeSpanList $ \items -> List items
 {-# INLINE list #-}
+
+unit :: [Spanned Ast] -> Spanned Ast
+unit = inheritCodeSpanList $ \items -> Unit items
+{-# INLINE unit #-}
 
 block :: NonEmpty (Spanned Ast) -> Spanned Ast
 block = inheritCodeSpanList1 $ \items -> Block items

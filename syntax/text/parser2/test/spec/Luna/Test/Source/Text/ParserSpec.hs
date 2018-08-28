@@ -154,7 +154,6 @@ e src out = sast `shouldBe` out where
         Assoc.write Assoc.None  noplus
         Prec.writeRel EQ ("+" :: Name) rplus
         Prec.writeRel EQ ("+" :: Name) noplus
-
         Macro.expr
 
 e' :: String -> IO ()
@@ -422,7 +421,7 @@ debugSpec = describe "error" $ it "x" $ do
     pure () :: IO ()
     putStrLn "\n"
 
-    let input     = "'dsad \nsada'"
+    let input     = "if cond then a\ndef foo a: a"
         toks      = Parser.run Parsing.Syntax1 input
         layouted  = ExprBuilder.discoverLayouts toks
         statement = ExprBuilder.buildFlatStatement layouted
@@ -442,7 +441,7 @@ debugSpec = describe "error" $ it "x" $ do
 
 
     putStrLn "\nRESULT:\n"
-    pprint $ Ast.simplify $ PP.run2 input
+    pprint $ Ast.simplify $ PP.run input
 
     True `shouldBe` False
 
@@ -461,6 +460,8 @@ spec = do
     caseSpec
     importSpec
     commentSpec
+
+    debugSpec
 
 
 

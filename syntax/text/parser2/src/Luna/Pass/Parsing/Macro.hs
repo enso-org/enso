@@ -455,6 +455,11 @@ expr :: Parser Ast
 expr = Indent.withCurrent exprPart
 {-# INLINE expr #-}
 
+unit :: Parser Ast
+unit = Ast.unit <$> option mempty bodyLines where
+    bodyLines = (:) <$> expr <*> many (broken $ Indent.indentedEq *> expr)
+{-# INLINE unit #-}
+
 expr' :: Parser Ast
 expr' = Indent.withCurrent exprPart'
 {-# INLINE expr' #-}

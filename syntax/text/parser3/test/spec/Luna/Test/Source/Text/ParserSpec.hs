@@ -50,7 +50,7 @@ debugSpec :: Spec
 debugSpec = describe "error" $ it "x" $ do
     pure () :: IO ()
 
-    shouldParseAs "def" "b"
+    shouldParseAs "def foo a: a\ndef bar b:b" "b"
 
     True `shouldBe` False
 

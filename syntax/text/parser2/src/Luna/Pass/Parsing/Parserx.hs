@@ -40,9 +40,9 @@ import Luna.Syntax.Text.Source             (Source (Source))
 --     ExprBuilder.buildGraph sect
 
 
-run2 :: Text32 -> Parsing.Ast
-run2 = runWith Macro.expr
-{-# NOINLINE run2 #-}
+run :: Text32 -> Parsing.Ast
+run = runWith Macro.unit
+{-# NOINLINE run #-}
 
 runWith :: Macro.Parser a -> Text32 -> a
 runWith = \p src -> let

@@ -19,6 +19,7 @@ import qualified Luna.IR.Aliases                           as Uni
 import qualified Luna.IR.Term.Ast.Invalid                  as Invalid
 import qualified Luna.Pass                                 as Pass
 import qualified Luna.Pass.Attr                            as Attr
+import qualified Luna.Pass.Parsing.Macro                   as Macro
 import qualified Luna.Pass.Parsing.Parserx                 as Stage1
 import qualified Luna.Pass.Scheduler                       as Scheduler
 import qualified Luna.Syntax.Text.Parser.Data.CodeSpan     as CodeSpan
@@ -102,10 +103,14 @@ registerDynamic = do
     Scheduler.enableAttrByType @Result
     Scheduler.registerPass     @stage @Parser
 
-
 run :: ParserPass (Pass stage Parser)
     => Text32 -> Pass stage Parser (IR.SomeTerm, Marker.TermMap)
-run src = runMeDebug $ Stage1.run2 src
+run = runWith Macro.unit
+
+runWith :: ParserPass (Pass stage Parser)
+    => Macro.Parser Ast -> Text32 -> Pass stage Parser (IR.SomeTerm, Marker.TermMap)
+runWith p src = runMeDebug $ Stage1.runWith p src
+{-# INLINE runWith #-}
 
 runMeDebug :: ParserPass (Pass stage Parser)
     => Ast -> Pass stage Parser (IR.SomeTerm, Marker.TermMap)
@@ -114,6 +119,7 @@ runMeDebug ast = do
                                $ State.runDefT @Marker.TermOrphanList
                                $ buildGraph ast
     pure (ref, gidMap)
+{-# INLINE runMeDebug #-}
 
     -- let tokens = Lexer.evalDefLexer src
         -- parser = Parsing.stx *> p <* Parsing.etx
@@ -142,6 +148,10 @@ go = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
     Ast.Invalid   inv  -> IR.invalid' inv
     Ast.Tokens (t:ts)  -> go t -- FIXME
     Ast.Missing        -> IR.missing'
+    Ast.Unit      ls   -> do
+        (ih      :: IR.SomeTerm) <- IR.importHub' []
+        (unitCls :: IR.SomeTerm) <- IR.record' False "" [] [] =<< (go <$$> ls)
+        IR.unit' ih [] unitCls
     Ast.App f a        -> do
         let (baseTok, argToks) = collectApps (pure a) f
             tok                = Ast.unspan baseTok
