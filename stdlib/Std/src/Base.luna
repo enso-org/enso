@@ -1452,6 +1452,9 @@ class LQueryValue:
 
     def toLQueryValue: self
 
+# NOTE: the `a` type parameter is a workaround for typechecker limitation
+# (LQueryValue.toJSON and Predicate.toJSON are xplicitly corecursive)
+# In future `a` should be just replaced with LQueryValue.
 class Predicate a:
     Predicate Text (List a)
     Boolean   Text (List Predicate)
@@ -1459,7 +1462,7 @@ class Predicate a:
     def and that: Boolean "and" [self, that]
     def or  that: Boolean "or"  [self, that]
     def not:      Boolean "not" [self]
-    def switch a b: Condition self a b
+    def switch a b: Condition self a.toLQueryValue b.toLQueryValue
     
     def toJSON: case self of
         Predicate t args: JSON.empty.insert "predicate" t . insert "arguments" args
