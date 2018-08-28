@@ -1088,7 +1088,7 @@ class JSON:
             (JSONBool   b, JSONBool   thatB): b.== thatB
             (JSONNull    , JSONNull        ): True
             (JSONObject m, JSONObject thatM): m.== thatM
-            _: False    
+            _: False
     
     # Inserts a value for a given key into the `JSON` object.
     # Throws an exception when the `JSON` does not represent an object.
