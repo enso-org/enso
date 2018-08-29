@@ -181,6 +181,7 @@ go = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
                         IR.function' name' params' body'
                     _ -> parseError
                 | otherwise      -> continue
+            _ -> continue
     x -> error $ "TODO: " <> show x
     where addCodeSpan cs ir = ir <$ IR.writeLayer @CodeSpan ir cs
           parseError        = IR.invalid' Invalid.ParserError

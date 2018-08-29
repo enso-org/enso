@@ -421,7 +421,7 @@ debugSpec = describe "error" $ it "x" $ do
     pure () :: IO ()
     putStrLn "\n"
 
-    let input     = "if cond then a\ndef foo a: a"
+    let input     = "«0»def main:\n    None"
         toks      = Parser.run Parsing.Syntax1 input
         layouted  = ExprBuilder.discoverLayouts toks
         statement = ExprBuilder.buildFlatStatement layouted
