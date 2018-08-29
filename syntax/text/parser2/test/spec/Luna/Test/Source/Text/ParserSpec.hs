@@ -432,16 +432,13 @@ debugSpec = describe "error" $ it "x" $ do
         layouted  = ExprBuilder.discoverLayouts toks
         statement = ExprBuilder.buildFlatStatement layouted
         stream    = ExprBuilder.buildStream toks
-        input = [qqStr| def getCurrentPrices crypto fiat:
-    «0»baseUri = "https://min-api.cryptocompare.com/data/price?"
-    «3»withFsym = baseUri + "fsym=" + crypto
-    «4»withTsym = withFsym + "&tsyms=" + fiat
-    «5»result = Http.getJSON withTsym . lookupReal fiat
-    result
+        input = [qqStr|def foo:
+        «1»pi = 3.14
 
-def main:
-    «2»node1 = every 500.miliseconds (getCurrentPrices "BTC" "USD")
-        |]
+    def main:
+        «0»c = 4.0
+
+    ## META {"metas":[{"marker":0,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":33,"_vector2_x":66}}}},{"marker":1,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":-33,"_vector2_x":-66}}}}]} |]
 
     putStrLn "\nTOKS:\n"
     pprint toks

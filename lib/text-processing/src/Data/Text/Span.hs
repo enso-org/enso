@@ -1,4 +1,4 @@
-{-# LANGUAGE NoStrict #-}
+{-# LANGUAGE NoStrict             #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Data.Text.Span where
@@ -61,6 +61,11 @@ asOffsetSpan :: IsSpacedSpan t => t -> t
 asOffsetSpan s = s & offset %~ (+ s ^. length)
                    & length .~ 0
 {-# INLINE asOffsetSpan #-}
+
+asSolid :: IsSpacedSpan t => t -> t
+asSolid s = s & length %~ (+ s ^. offset)
+              & offset .~ 0
+{-# INLINE asSolid #-}
 
 measure :: IsSpacedSpan t => t -> Delta
 measure t = t ^. offset + t ^. length ; {-# INLINE measure #-}

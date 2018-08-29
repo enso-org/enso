@@ -101,6 +101,11 @@ asPhantom :: CodeSpan -> CodeSpan
 asPhantom = \cs -> cs & viewSpan . Span.length .~ mempty
 {-# INLINE asPhantom #-}
 
+asSolid :: CodeSpan -> CodeSpan
+asSolid = \cs -> cs & realSpan %~ Span.asSolid
+                    & viewSpan %~ Span.asSolid
+{-# INLINE asSolid #-}
+
 
 -- === Instances === --
 

@@ -186,18 +186,35 @@ go = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
         (unitCls :: IR.SomeTerm) <- IR.record' False "" [] [] =<< (go <$$> ls)
         IR.unit' ih [] unitCls
     Ast.InfixApp l f r -> do
-        f' <- go f
-        l' <- go l
-        r' <- go r
         let tok = Ast.unspan f
-            continue = do
+            prependOffsetSpan t = let
+                span = CodeSpan.asOffsetSpan $ t ^. Ast.span
+                in \s -> s & Ast.span . CodeSpan.realSpan . Span.offset %~ (+ (span ^. CodeSpan.realSpan . Span.offset))
+                           & Ast.span . CodeSpan.viewSpan . Span.offset %~ (+ (span ^. CodeSpan.viewSpan . Span.offset))
+            rx = prependOffsetSpan f r
+
+
+        let continue = do
+                f' <- go f
+                l' <- go l
+                r' <- go r
                 (lf :: IR.SomeTerm) <- IR.app' f' l'
                 IR.app' lf r'
+
         case tok of
             Ast.Operator op -> if
-                | op == Name.assign -> IR.unify' l' r'
-                | op == Name.lam    -> IR.lam'   l' r'
-                | op == Name.acc    -> IR.acc'   l' r'
+                | op == Name.assign -> do
+                    l' <- go l
+                    r' <- go rx
+                    IR.unify' l' r'
+                | op == Name.lam    -> do
+                    l' <- go l
+                    r' <- go rx
+                    IR.lam'   l' r'
+                | op == Name.acc    -> do
+                    l' <- go l
+                    r' <- go rx
+                    IR.acc'   l' r'
                 | otherwise         -> continue
             _ -> continue
     Ast.SectionRight f r -> do
