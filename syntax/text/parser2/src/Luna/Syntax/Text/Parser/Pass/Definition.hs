@@ -31,8 +31,6 @@ import Data.Text.Position                          (FileOffset, Position)
 import Data.Text32                                 (Text32)
 import Luna.IR                                     (SomeTerm)
 import Luna.Pass                                   (Pass)
-import Luna.Pass.Parsing.ExprBuilder               (ExprBuilder,
-                                                    ExprBuilderPass)
 import Luna.Syntax.Text.Parser.Data.CodeSpan       (CodeSpan, CodeSpanRange)
 import Luna.Syntax.Text.Parser.Data.Name.Hardcoded (hardcode)
 import Luna.Syntax.Text.Parser.Data.Result         (Result (Result))

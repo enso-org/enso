@@ -41,49 +41,6 @@ import Data.Attoparsec.List ()
 
 
 
-
-data ExprBuilder
--- FIXME: Contraints like `Component.Delete` should not be so explicit
-type ExprBuilderPass m = (Pass.Interface ExprBuilder m, Component.Delete m)
-type instance Pass.Spec ExprBuilder t = Spec t
-type family   Spec  t where
-    Spec (Pass.In  Pass.Attrs) = '[Source, Result]
-    Spec (Pass.In  IR.Terms)   = CodeSpan
-                              ': Pass.BasicPassSpec (Pass.In IR.Terms)
-    Spec (Pass.Out t)          = Spec (Pass.In t)
-    Spec t                     = Pass.BasicPassSpec t
-
-
-
-type BuilderMonad m =
-    ( MonadIO m
-    , Pass.Interface ExprBuilder m
-    -- , Component.Delete m
-    )
-
-
-
-buildGraph :: forall m. BuilderMonad m => Ast -> m IR.SomeTerm
-buildGraph = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
-    Ast.Cons      name -> IR.cons'  name []
-    Ast.Var       name -> IR.var'   name
-    Ast.Operator  name -> IR.var'   name
-    Ast.Wildcard       -> IR.blank'
-    Ast.LineBreak ind  -> IR.lineBreak' (unwrap ind)
-    Ast.Invalid   inv  -> IR.invalid' inv
-    Ast.Tokens (t:ts)  -> buildGraph t -- FIXME
-    Ast.Missing        -> IR.missing'
-    Ast.App f a        -> do
-        f' <- buildGraph f
-        a' <- buildGraph a
-        IR.app' f' a'
-    x -> error $ "TODO: " <> show x
-    where addCodeSpan cs ir = ir <$ IR.writeLayer @CodeSpan ir cs
-{-# INLINE buildGraph #-}
-
-
-
-
 --------------------------------
 -- === TokenStream Layout === --
 --------------------------------
@@ -115,7 +72,7 @@ discoverLayouts = \case
 discoverLayouts__ :: [Ast] -> [Ast] -> [Layouted] -> [Layouted]
 discoverLayouts__ = \buff stream out -> case stream of
     [] -> reverse $ spaced buff out
-    (tok:toks) -> if checkLeftSpacing tok
+    (tok:toks) -> if checkLeftSpacing' tok buff
         then discoverLayouts__ (tok:buff) toks out
         else discoverLayouts__ mempty rest out' where
             (rest,nonSpaced) = (tok:) <$> takeWhileUnspaced toks
@@ -177,6 +134,13 @@ checkLeftSpacing = \a -> normal a || special a where
     normal  = (> 0) . view (Ast.span . CodeSpan.viewSpan . Span.offset)
     special = (== Ast.Operator ":") . view Ast.ast
 {-# INLINE checkLeftSpacing #-}
+
+checkLeftSpacing' :: Ast -> [Ast] -> Bool
+checkLeftSpacing' = \a buff -> checkLeftSpacing a || checkLamBuff buff where
+    checkLamBuff = \case
+        (tok:toks) -> Ast.unspan tok == Ast.Operator ":"
+        _ -> False
+{-# INLINE checkLeftSpacing' #-}
 
 
 
@@ -285,17 +249,17 @@ flattenStatement = \case
 --   >     | EndOpStream   Name (Ast -> Ast)
 --
 
-data Stream       = OpStreamStart Name (Ast -> Ast) ElStream
+data Stream       = OpStreamStart Name Ast ElStream
                   | ElStreamStart ElStream
                   | NullStream
 
 data OpStream     = OpStream Name OpStreamType
-data OpStreamType = InfixOp  (Ast -> Ast -> Ast) ElStream
-                  | EndOp    (Ast -> Ast)
+data OpStreamType = InfixOp  (Maybe Ast) ElStream
+                  | EndOp    Ast
 
-pattern InfixOpStream name f stream = OpStream name (InfixOp f stream)
-pattern EndOpStream   name f        = OpStream name (EndOp f)
-pattern InfixOp_      f ast stream  = InfixOp f (ElStream ast stream)
+pattern InfixOpStream name mop stream = OpStream name (InfixOp mop stream)
+pattern EndOpStream   name op         = OpStream name (EndOp op)
+pattern InfixOp_      mop ast stream  = InfixOp  mop  (ElStream ast stream)
 
 data ElStream     = ElStream Ast ElStreamType
 data ElStreamType = InfixEl  OpStream
@@ -332,26 +296,29 @@ buildStream = \(reverse -> stream) -> case stream of
         NotFound          -> goOp tok toks
         Invalid inv toks' -> goEl Name.invalid inv toks'
     where goOp      = buildOpStream . EndElStream
-          goEl name = buildElStream . EndOpStream name . Ast.sectionLeft
+          goEl name = buildElStream . EndOpStream name
 {-# INLINE buildStream #-}
 
 buildOpStream :: ElStream -> [Ast] -> Stream
 buildOpStream = \result stream -> case stream of
     [] -> ElStreamStart result
     (tok:toks) -> case discoverOps stream of
-        NotFound          -> go Name.app     (Ast.app)      result stream
-        Invalid inv toks' -> go Name.invalid (Ast.app2 inv) result toks'
-        Single name op    -> go name (Ast.app2 op)  result toks
+        NotFound          -> go Name.app     Nothing    result stream
+        Invalid inv toks' -> go Name.invalid (Just inv) result toks'
+        Single name op    -> go name         (Just op)  result toks
     where go = buildElStream .:. InfixOpStream
 {-# NOINLINE buildOpStream #-}
 
 buildElStream :: OpStream -> [Ast] -> Stream
 buildElStream = \(result@(OpStream name stp)) -> \case
     [] -> case stp of
-        EndOp   f   -> singularElStream $ f Ast.missing
-        InfixOp f s -> OpStreamStart name (f Ast.missing) s
+        EndOp   op    -> singularElStream op
+        InfixOp mop s -> let
+            Just op = mop -- FIXME: this is impossible, but how to prove it?
+            in OpStreamStart name op s
     (tok:toks) -> buildOpStream (InfixElStream tok result) toks
 {-# NOINLINE buildElStream #-}
+
 
 
 -- === Operator discovery === --
@@ -404,12 +371,12 @@ type ExprBuilderMonad m = (Assoc.Reader Name m, Prec.RelReader Name m)
 
 buildExpr :: ExprBuilderMonad m => [Ast] -> m Ast
 buildExpr = \stream -> do
-    trace ("\n\n>>>\n" <> ppShow stream) $ pure ()
+    -- trace ("\n\n>>>\n" <> ppShow stream) $ pure ()
     let layouted  = discoverLayouts stream
         statement = buildFlatStatement layouted
     stream' <- buildUnspacedExprs statement
     out <- buildExprList stream'
-    trace ("\n\n<<<\n" <> ppShow out) $ pure ()
+    -- trace ("\n\n<<<\n" <> ppShow out) $ pure ()
 
     pure out
 {-# INLINE buildExpr #-}
@@ -432,10 +399,10 @@ buildExprList = buildExprStream . buildStream
 buildExprStream :: ExprBuilderMonad m => Stream -> m Ast
 buildExprStream = \case
     NullStream -> pure $ Ast.invalid Invalid.EmptyExpression
-    OpStreamStart opName opFunc (ElStream el stp) -> case stp of
-        EndEl     -> pure (opFunc el)
+    OpStreamStart opName op (ElStream el stp) -> case stp of
+        EndEl     -> pure (Ast.sectionRight op el)
         InfixEl s -> buildExprOp__ s
-                   $ InfixElStream el (EndOpStream opName opFunc)
+                   $ InfixElStream el (EndOpStream opName op)
     ElStreamStart (ElStream el stp) -> case stp of
         EndEl     -> pure el
         InfixEl s -> buildExprOp__ s (EndElStream el)
@@ -448,9 +415,9 @@ buildExprOp__ = \stream stack -> let
 
     submitToStack :: m Ast
     submitToStack = case streamTp of
-        EndOp opF -> foldExprStackStep__ (opF stackEl) stackTp
-        InfixOp_ f streamEl streamTp' -> let
-            newOpStream = InfixOpStream streamOp f stack
+        EndOp op -> foldExprStackStep__ (Ast.sectionLeft stackEl op) stackTp
+        InfixOp_ op streamEl streamTp' -> let
+            newOpStream = InfixOpStream streamOp op stack
             newStack    = InfixElStream streamEl newOpStream
             in case streamTp' of
                 EndEl           -> foldExprStack__ streamEl newOpStream
@@ -459,18 +426,18 @@ buildExprOp__ = \stream stack -> let
 
     reduceStack :: OpStreamType -> m Ast
     reduceStack = \case
-        EndOp f -> buildExprOp__ stream newStack where
-            newStack = EndElStream (f stackEl)
-        InfixOp_ f stackEl2 s -> buildExprOp__ stream newStack where
-            newStack = ElStream (f stackEl2 stackEl) s
+        EndOp op -> buildExprOp__ stream newStack where
+            newStack = EndElStream (Ast.sectionRight op stackEl)
+        InfixOp_ mop stackEl2 s -> buildExprOp__ stream newStack where
+            newStack = ElStream (appInfix mop stackEl2 stackEl) s
     {-# INLINE reduceStack #-}
 
     markStreamOpInvalid :: Invalid.Symbol -> m Ast
     markStreamOpInvalid invSym = let
-        inv f     = Ast.Spanned (f ^. Ast.span) (Ast.Invalid invSym)
+        inv op    = Ast.Spanned (op ^. Ast.span) (Ast.Invalid invSym)
         newStream = OpStream Name.invalid $ case streamTp of
-            EndOp   f   -> EndOp   (Ast.sectionLeft (inv $ fillMissing f))
-            InfixOp f s -> InfixOp (Ast.app2 (inv $ fillMissing f)) s
+            EndOp   op          -> EndOp   (inv op)
+            InfixOp (Just op) s -> InfixOp (Just (inv op)) s
         in buildExprOp__ newStream stack
 
     in case stackTp of
@@ -508,28 +475,19 @@ readRel = \l r -> if
 
 foldExprStack__ :: ExprBuilderMonad m => Ast -> OpStream -> m Ast
 foldExprStack__ = \el (OpStream op stp2) -> case stp2 of
-        EndOp    opF          -> pure $ opF el
-        InfixOp_ opF el2 stp3 -> foldExprStackStep__ (opF el2 el) stp3
+        EndOp    op           -> pure $ Ast.sectionRight el op
+        InfixOp_ mop el2 stp3 -> foldExprStackStep__ (appInfix mop el2 el) stp3
 {-# NOINLINE foldExprStack__ #-}
+
+appInfix :: Maybe Ast -> (Ast -> Ast -> Ast)
+appInfix = maybe Ast.app (flip Ast.infixApp)
+{-# INLINE appInfix #-}
 
 foldExprStackStep__ :: ExprBuilderMonad m => Ast -> ElStreamType -> m Ast
 foldExprStackStep__ = \a -> \case
     EndEl     -> pure a
     InfixEl s -> foldExprStack__ a s
 {-# NOINLINE foldExprStackStep__ #-}
-
-class FillMissing a where
-    fillMissing :: a -> Ast
-
-instance FillMissing (Ast -> Ast) where
-    fillMissing = \f -> f Ast.missing
-    {-# INLINE fillMissing #-}
-
-instance FillMissing (Ast -> Ast -> Ast) where
-    fillMissing = \f -> f Ast.missing Ast.missing
-    {-# INLINE fillMissing #-}
-
-
 
 
 

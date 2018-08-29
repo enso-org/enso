@@ -176,8 +176,8 @@ __ = convert' Ast.SMissing
 
 block = Ast.SBlock
 
-eq :: IsString s => s
-eq = "#=#"
+eq :: Ast.SimpleAst -> Ast.SimpleAst -> Ast.SimpleAst
+eq = flip Ast.SInfixApp "#=#"
 
 identSpec :: Spec
 identSpec = describe "identifier" $ do
@@ -201,29 +201,29 @@ identSpec = describe "identifier" $ do
     it_e "Cons⸗"  $ unexpectedSuffix 1
 
   describe "operator" $ do
-    let it_op s = it_e s (convert s __ __)
-    it_op "+"
-    it_op "++"
-    it_op "."
-    it_op ".."
-    it_e  "..." $ unexpectedSuffix 1
-    it_e  "..+" $ unexpectedSuffix 1
-    it_e  "+."  $ unexpectedSuffix 1
-    it_e  ".+"  $ "." __ (Ast.SVar "+")
+    it_e' "+"
+    it_e' "++"
+    it_e' "."
+    it_e' ".."
+    it_e "..." $ unexpectedSuffix 1
+    it_e "..+" $ unexpectedSuffix 1
+    it_e "+."  $ unexpectedSuffix 1
+    it_e ".+"  $ Ast.SSectionRight "." (Ast.SVar "+")
 
   describe "other" $ do
     "wildcard" $ e "_" $ Ast.SWildcard
 
+_x = Ast.SInfixApp
 
 literalNumberSpec :: Spec
 literalNumberSpec = describe "number" $ do
     let biggerThanInt64   = (show (maxBound :: Int64)) <> "0"
     it "positive"     $ e' "1"
-    it "negative"     $ e  "a -1"          $ "a" (Name.uminus __ 1)
+    it "negative"     $ e  "a -1"          $ "a" (Ast.SSectionRight Name.uminus 1)
     it "zero pxd"     $ e' "01"
-    it "real"         $ e  "1.23"          $ "." 1 23
+    it "real"         $ e  "1.23"          $ _x 1 "." 23
     it "spaced"       $ e  "123 456"       $ 123 456
-    it "spaced reals" $ e  "123 456 . 789" $ "." (123 456) 789
+    it "spaced reals" $ e  "123 456 . 789" $ _x (123 456) "." 789
     it "int > 64 bit" $ e' biggerThanInt64
     it "invalid sfx"  $ e "1a"             $ unexpectedSuffix 1
 
@@ -273,20 +273,20 @@ operatorSpec = describe "operator" $ do
 
   describe "simple" $ do
     "single"          $ e "a - b"         $ "a" - "b"
-    "modifier"        $ e "a += 1"        $ "+=" "a" 1
+    "modifier"        $ e "a += 1"        $ _x "a" "+=" 1
     "application"     $ e "a b"           $ "a" "b"
-    "comma"           $ e "a,b,c"         $ "," ("," "a" "b") "c"
-    "typed"           $ e "a :: b"        $ "::" "a" "b"
+    "comma"           $ e "a,b,c"         $ _x (_x "a" "," "b") "," "c"
+    "typed"           $ e "a :: b"        $ _x "a" "::" "b"
 
   describe "section" $ do
-    "line left"       $ e "+ a"           $ __ + "a"
-    "line right"      $ e "a +"           $ "a" + __
-    "glued left"      $ e "+a"            $ __ + "a"
-    "glued right"     $ e "a+"            $ "a" + __
-    "glued left app"  $ e "a +b * c"      $ "a" (__ + "b") * "c"
-    "glued right app" $ e "a b+ * c"      $ "a" ("b" + __) * "c"
-    "glued lr app"    $ e "a *b+ c"       $ "a" ((__ * "b") + __) "c"
-    "lens app"        $ e "a .b.c"        $ "a" ("." ("." __ "b") "c")
+    "line right"      $ e "+ a"           $ Ast.SSectionRight "+" "a"
+    "line left"       $ e "a +"           $ Ast.SSectionLeft "a" "+"
+    "glued right"     $ e "+a"            $ Ast.SSectionRight "+" "a"
+    "glued left"      $ e "a+"            $ Ast.SSectionLeft "a" "+"
+    "glued right app" $ e "a +b * c"      $ "a" (Ast.SSectionRight "+" "b") * "c"
+    "glued left app"  $ e "a b+ * c"      $ "a" (Ast.SSectionLeft "b" "+") * "c"
+    "glued lr app"    $ e "a *b+ c"       $ "a" (Ast.SSectionLeft (Ast.SSectionRight "*" "b") "+") "c"
+    "lens app"        $ e "a .b.c"        $ "a" (_x (Ast.SSectionRight "." "b") "." "c")
 
   describe "precedence" $ do
     "simple"          $ e "a + b * c"     $ "a" + ("b" * "c")
@@ -294,24 +294,24 @@ operatorSpec = describe "operator" $ do
 
   describe "assignment" $ do
     "simple"          $ e "a = b"         $ "a" `eq` "b"
-    "named args"      $ e "a = b x=1"     $ "a" `eq` ("b" ("=" "x" 1))
+    "named args"      $ e "a = b x=1"     $ "a" `eq` ("b" (_x "x" "=" 1))
     "pattern"         $ e "V x y z = v"   $ "V" "x" "y" "z" `eq` "v"
 
   describe "multiline" $ do
     "grouping"        $ e "a\n b c"       $ "a" ("b" "c")
     "section 1"       $ e "a +\n b c"     $ "a" + ("b" "c")
-    "section 2"       $ e "a+ \n b c"     $ ("a" + __) ("b" "c")
-    "section 3"       $ e "a \n +b c"     $ "a" ((__ + "b") "c")
+    "section 2"       $ e "a+ \n b c"     $ Ast.SApp (Ast.SSectionLeft "a" "+") ("b" "c")
+    "section 3"       $ e "a \n +b c"     $ "a" (Ast.SApp (Ast.SSectionRight "+" "b") "c")
     "continuation"    $ e "a \n + b c"    $ "a" + "b" "c"
 
   describe "invalid" $ do
-    "adj infix"       $ e "a + + b"       $ adjacentOperators "a" "b"
-    "adj infix 2"     $ e "a + + + b"     $ adjacentOperators "a" "b"
-    "adj postfix"     $ e "a + +"         $ adjacentOperators "a" __
-    "adj prefix"      $ e "+ + a"         $ adjacentOperators __ "a"
-    "wrong assoc"     $ e "a + b >>+ c"   $ assocConflict   ("a" + "b") "c"
-    "no prec"         $ e "a + b +++ c"   $ missingRelation ("a" + "b") "c"
-    "no assoc"        $ e "a >+< b >+< c" $ noAssoc (">+<" "a" "b") "c"
+    "adj infix"       $ e "a + + b"       $ _x "a" adjacentOperators "b"
+    "adj infix 2"     $ e "a + + + b"     $ _x "a" adjacentOperators "b"
+    "adj postfix"     $ e "a + +"         $ Ast.SSectionLeft "a" adjacentOperators
+    "adj prefix"      $ e "+ + a"         $ Ast.SSectionRight adjacentOperators "a"
+    "wrong assoc"     $ e "a + b >>+ c"   $ _x ("a" + "b") assocConflict "c"
+    "no prec"         $ e "a + b +++ c"   $ _x ("a" + "b") missingRelation "c"
+    "no assoc"        $ e "a >+< b >+< c" $ _x (_x "a" ">+<" "b") noAssoc "c"
 
 
 mixfixSpec :: Spec
@@ -319,7 +319,7 @@ mixfixSpec = describe "groups" $ do
     "empty group"  $ e "()"                 $ "(_)" emptyExpression
     "group"        $ e "(a b)"              $ "(_)" ("a" "b")
     "list"         $ e "[a b]"              $ "[_]" ("a" "b")
-    "a)"           $ e "a)"                 $ ")" "a" __
+    "a)"           $ e "a)"                 $ Ast.SSectionLeft "a" ")"
     "nested rules" $ e "(if a then b) else" $ "(_)" ("if_then" "a" "b") "else"
     "dd"           $ e "if a b then c d"    $ "if_then" ("a" "b") ("c" "d")
 
@@ -334,7 +334,7 @@ layoutSpec = describe "layout" $ do
     "broken expr 6"  $ e "if a then\n b else\n c" $ "if_then_else" "a" "b" "c"
     "broken expr 7"  $ e "if a then\n b else\n c" $ "if_then_else" "a" "b" "c"
     "broken expr 8"  $ e "if a then\n b\n c" $ "if_then" "a" (block ["b", "c"])
-    "after operator" $ e "a: b:\n c\n d"  $ ":" "a" (":" "b" (block ["c", "d"]))
+    "after operator" $ e "a: b:\n c\n d"  $ _x "a" ":" (_x "b" ":" (block ["c", "d"]))
 
 
 -- | Testing all possible missing sections scenarios. We've got in scope
@@ -377,7 +377,7 @@ missingSectionsSpec = describe "mixfix" $ let
 funcDefSpec :: Spec
 funcDefSpec = describe "function" $ do
     it_e "def f a: a" $ "def_:" "f" ["a"] "a"
-    it_e "def + a: a" $ "def_:" ("+" __ __) ["a"] "a"
+    it_e "def + a: a" $ "def_:" "+" ["a"] "a"
     it_e "def f a:"   $ "def_:" "f" ["a"] emptyExpression
     it_e "def f a"    $ "def_:" "f" ["a"] missingSection
     it_e "def f"      $ "def_:" "f" [] missingSection
@@ -390,12 +390,12 @@ classDefSpec = describe "class" $ do
 
 caseSpec :: Spec
 caseSpec = describe "case" $ do
-    "simple" $ e "case foo x of\n a: b" $ "case_of" ("foo" "x") (":" "a" "b")
+    "simple" $ e "case foo x of\n a: b" $ "case_of" ("foo" "x") (_x "a" ":" "b")
 
 
 importSpec :: Spec
 importSpec = describe "import" $ do
-    "x" $ e "import Std.Math" $ "import" ("." "Std" "Math")
+    "x" $ e "import Std.Math" $ "import" (_x "Std" "." "Math")
     -- "x" $ e "import Std.Math: Vector Scalar"          $ "x"
     -- "x" $ e "import .Local"                           $ "x"
     -- "x" $ e "import World: Std"                       $ "x"
@@ -423,8 +423,8 @@ debugSpec = describe "error" $ it "x" $ do
 
     -- let input     = "a: b: c + d"
     -- let input     = "a: b: c"
-    -- let input     = "a = x:«0» foo b"
-    let input     = " +a"
+    let input     = "a = x: «0» foo b"
+    -- let input     = "a = b"
         toks      = Parser.run Parsing.Syntax1 input
         layouted  = ExprBuilder.discoverLayouts toks
         statement = ExprBuilder.buildFlatStatement layouted
@@ -452,19 +452,19 @@ debugSpec = describe "error" $ it "x" $ do
 
 spec :: Spec
 spec = do
-    -- identSpec
-    -- literalSpec
-    -- operatorSpec
-    -- mixfixSpec
-    -- missingSectionsSpec
-    -- layoutSpec
-    -- funcDefSpec
-    -- classDefSpec
-    -- caseSpec
-    -- importSpec
-    -- commentSpec
+    identSpec
+    literalSpec
+    operatorSpec
+    mixfixSpec
+    missingSectionsSpec
+    layoutSpec
+    funcDefSpec
+    classDefSpec
+    caseSpec
+    importSpec
+    commentSpec
 
-    debugSpec
+    -- debugSpec
 
 
 

@@ -295,6 +295,7 @@ data Comment   t = Atom_Comment   { text     :: Text                    }
 data Invalid   t = Atom_Invalid   { desc     :: Invalid.Symbol          }
 
 data App       t = Atom_App       { func     :: Link' t, arg :: Link' t }
+data InfixApp  t = Atom_InfixApp  { argl :: Link' t, func :: Link' t, argr :: Link' t }
 data SectionLeft  t = Atom_SectionLeft  { arg      :: Link' t, func :: Link' t }
 data SectionRight t = Atom_SectionRight { func     :: Link' t, arg :: Link' t }
 data Missing   t = Atom_Missing
@@ -319,6 +320,7 @@ instance Show (Link' t) => Show (LineBreak t) where show  (Atom_LineBreak t1   )
 instance Show (Link' t) => Show (Comment   t) where show  (Atom_Comment   t1   ) = "Comment"   <> " (" <> show t1 <> ")"
 instance Show (Link' t) => Show (Invalid   t) where show  (Atom_Invalid   t1   ) = "Invalid"   <> " (" <> show t1 <> ")"
 instance Show (Link' t) => Show (App       t) where show  (Atom_App       t1 t2) = "App"       <> " (" <> show t1 <> ") (" <> show t2 <> ")"
+instance Show (Link' t) => Show (InfixApp  t) where show  (Atom_InfixApp  t1 t2 t3) = "InfixApp"       <> " (" <> show t1 <> ") (" <> show t2 <> ") (" <> show t3 <> ")"
 instance Show (Link' t) => Show (Missing   t) where show  (Atom_Missing        ) = "Missing"
 instance Show (Link' t) => Show (List      t) where show  (Atom_List      t1   ) = "List"      <> " (" <> show t1 <> ")"
 instance Show (Link' t) => Show (Unit      t) where show  (Atom_Unit      t1   ) = "Unit"      <> " (" <> show t1 <> ")"
@@ -341,6 +343,7 @@ pattern LineBreak t1    = AstLineBreak (Atom_LineBreak t1)
 pattern Comment   t1    = AstComment   (Atom_Comment   t1)
 pattern Invalid   t1    = AstInvalid   (Atom_Invalid   t1)
 pattern App       t1 t2 = AstApp       (Atom_App       t1 t2)
+pattern InfixApp  t1 t2 t3 = AstInfixApp       (Atom_InfixApp       t1 t2 t3)
 pattern Missing         = AstMissing   (Atom_Missing)
 pattern List      t1    = AstList      (Atom_List      t1)
 pattern Unit      t1    = AstUnit      (Atom_Unit      t1)
@@ -361,6 +364,7 @@ pattern SLineBreak t1    = SimpleAstLineBreak (Atom_LineBreak t1)
 pattern SComment   t1    = SimpleAstComment   (Atom_Comment   t1)
 pattern SInvalid   t1    = SimpleAstInvalid   (Atom_Invalid   t1)
 pattern SApp       t1 t2 = SimpleAstApp       (Atom_App       t1 t2)
+pattern SInfixApp       t1 t2 t3 = SimpleAstInfixApp       (Atom_InfixApp       t1 t2 t3)
 pattern SMissing         = SimpleAstMissing   (Atom_Missing)
 pattern SList      t1    = SimpleAstList      (Atom_List      t1)
 pattern SUnit      t1    = SimpleAstUnit      (Atom_Unit      t1)
@@ -398,6 +402,7 @@ deriving instance Eq (Link' t) => Eq (LineBreak t)
 deriving instance Eq (Link' t) => Eq (Comment   t)
 deriving instance Eq (Link' t) => Eq (Invalid   t)
 deriving instance Eq (Link' t) => Eq (App       t)
+deriving instance Eq (Link' t) => Eq (InfixApp  t)
 deriving instance Eq (Link' t) => Eq (Missing   t)
 deriving instance Eq (Link' t) => Eq (List      t)
 deriving instance Eq (Link' t) => Eq (Unit      t)
@@ -419,6 +424,7 @@ deriving instance Ord (Link' t) => Ord (LineBreak t)
 deriving instance Ord (Link' t) => Ord (Comment   t)
 deriving instance Ord (Link' t) => Ord (Invalid   t)
 deriving instance Ord (Link' t) => Ord (App       t)
+deriving instance Ord (Link' t) => Ord (InfixApp  t)
 deriving instance Ord (Link' t) => Ord (Missing   t)
 deriving instance Ord (Link' t) => Ord (List      t)
 deriving instance Ord (Link' t) => Ord (Unit      t)
@@ -456,6 +462,7 @@ data Ast
     | AstInvalid   (Invalid Ast)
 
     | AstApp       (App Ast)
+    | AstInfixApp  (InfixApp Ast)
     | AstMissing   (Missing Ast)
     | AstList      (List Ast)
     | AstUnit      (Unit Ast)
@@ -494,6 +501,7 @@ data SimpleAst
     | SimpleAstInvalid   (Invalid SimpleAst)
 
     | SimpleAstApp       (App SimpleAst)
+    | SimpleAstInfixApp  (InfixApp SimpleAst)
     | SimpleAstMissing   (Missing SimpleAst)
     | SimpleAstList      (List SimpleAst)
     | SimpleAstUnit      (Unit SimpleAst)
@@ -517,6 +525,7 @@ instance Show SimpleAst where
         SimpleAstComment   t -> show t
         SimpleAstInvalid   t -> show t
         SimpleAstApp       t -> show t
+        SimpleAstInfixApp  t -> show t
         SimpleAstMissing   t -> show t
         SimpleAstList      t -> show t
         SimpleAstUnit      t -> show t
@@ -623,7 +632,7 @@ instance (t1 ~ SimpleAst, t2 ~ SimpleAst, t3 ~ SimpleAst)
     convert = sapp3
 
 instance (t1 ~ SimpleAst, t2 ~ SimpleAst, t3 ~ SimpleAst, t4 ~ SimpleAst)
-      => Convertible SimpleAst (t1 -> t2 -> t3 -> t4 ->SimpleAst) where
+      => Convertible SimpleAst (t1 -> t2 -> t3 -> t4 -> SimpleAst) where
     convert = sapp4
 
 instance t1 ~ SimpleAst
@@ -647,9 +656,9 @@ instance GHC.IsList SimpleAst where
 
 instance Num SimpleAst where
     fromInteger = intToSimpleAst
-    (-) = sapp2 (SOperator "-")
-    (+) = sapp2 (SOperator "+")
-    (*) = sapp2 (SOperator "*")
+    (-) = flip SInfixApp (SOperator "-")
+    (+) = flip SInfixApp (SOperator "+")
+    (*) = flip SInfixApp (SOperator "*")
 
 intToSimpleAst :: Integral a => a -> SimpleAst
 intToSimpleAst a = if a < 0
@@ -668,12 +677,12 @@ intToDigits = go [] where
 instance a ~ SimpleAst
       => Num (a -> SimpleAst) where
     fromInteger i = SApp (fromInteger i)
-    (-) = extractOp (-)
-    (+) = extractOp (+)
-    (*) = extractOp (*)
+--     (-) = extractOp (-)
+--     (+) = extractOp (+)
+--     (*) = extractOp (*)
 
-extractOp op a b = sapp $ op (extract a) (extract b) where
-    extract f = let SApp x _ = f SMissing in x
+-- extractOp op a b = sapp $ op (extract a) (extract b) where
+--     extract f = let SApp x _ = f SMissing in x
 
 class Simplify a where
     type family Simplified a
@@ -732,9 +741,12 @@ instance Simplify   Ast where
         Comment   t1    -> SComment   (simplify t1)
         Invalid   t1    -> SInvalid   (simplify t1)
         App       t1 t2 -> SApp       (simplify t1) (simplify t2)
+        InfixApp  t1 t2 t3 -> SInfixApp  (simplify t1) (simplify t2) (simplify t3)
         Missing         -> SMissing
         List      t1    -> SList      (simplify t1)
         Unit      t1    -> SUnit      (simplify t1)
+        SectionLeft  t1 t2 -> SSectionLeft  (simplify t1) (simplify t2)
+        SectionRight t1 t2 -> SSectionRight (simplify t1) (simplify t2)
 
 
 
@@ -760,6 +772,16 @@ inheritCodeSpan2 = \f t1 t2 -> let
     s2 = t2 ^. span
     in Spanned (s1 <> s2) $! f (dropOffset t1) t2
 {-# INLINE inheritCodeSpan2 #-}
+
+inheritCodeSpan3
+    :: (Spanned Ast -> Spanned Ast -> Spanned Ast -> Ast)
+    -> (Spanned Ast -> Spanned Ast -> Spanned Ast -> Spanned Ast)
+inheritCodeSpan3 = \f t1 t2 t3 -> let
+    s1 = t1 ^. span
+    s2 = t2 ^. span
+    s3 = t3 ^. span
+    in Spanned (s1 <> s2 <> s3) $! f (dropOffset t1) t2 t3
+{-# INLINE inheritCodeSpan3 #-}
 
 inheritCodeSpanList1
     :: (NonEmpty (Spanned a) -> b) -> (NonEmpty (Spanned a) -> Spanned b)
@@ -937,6 +959,10 @@ app = inheritCodeSpan2 $ \func arg -> App func arg
 app2 :: Spanned Ast -> Spanned Ast -> Spanned Ast -> Spanned Ast
 app2 = \f a b -> app (app f a) b
 {-# INLINE app2 #-}
+
+infixApp :: Spanned Ast -> Spanned Ast -> Spanned Ast -> Spanned Ast
+infixApp = inheritCodeSpan3 $ \l f r -> InfixApp l f r
+{-# INLINE infixApp #-}
 
 apps :: Spanned Ast -> [Spanned Ast] -> Spanned Ast
 apps = foldl' app

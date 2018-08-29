@@ -21,7 +21,6 @@ import qualified Luna.Syntax.Text.Scope                      as Scope
 
 import Data.Text32                         (Text32)
 import Luna.Pass                           (Pass)
-import Luna.Pass.Parsing.ExprBuilder       (ExprBuilder, ExprBuilderPass)
 import Luna.Syntax.Text.Parser.Data.Result (Result (Result))
 import Luna.Syntax.Text.Source             (Source (Source))
 

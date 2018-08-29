@@ -348,7 +348,7 @@ isMarkerBeginChar = (== markerBegin)
 {-# INLINE isMarkerBeginChar #-}
 
 marker :: Parser ()
-marker = Ast.register =<< Ast.computeSpan parser where
+marker = Ast.register . (Ast.span %~ CodeSpan.asPhantom) =<< Ast.computeSpan parser where
     correct   = Ast.Marker <$> decimal
     incorrect = Ast.Invalid Invalid.InvalidMarker <$ takeTill (== markerEnd)
     parser    = token markerBegin *> (correct <|> incorrect) <* token markerEnd

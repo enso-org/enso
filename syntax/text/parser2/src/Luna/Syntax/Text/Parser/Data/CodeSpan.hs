@@ -97,6 +97,10 @@ concat :: CodeSpan -> CodeSpan -> CodeSpan
 concat (CodeSpan r v) (CodeSpan r' v') = CodeSpan (Span.concat r r') (Span.concat v v')
 -- {-# INLINE concat #-}
 
+asPhantom :: CodeSpan -> CodeSpan
+asPhantom = \cs -> cs & viewSpan . Span.length .~ mempty
+{-# INLINE asPhantom #-}
+
 
 -- === Instances === --
 

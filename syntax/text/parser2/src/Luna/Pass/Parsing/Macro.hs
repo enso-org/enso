@@ -477,7 +477,7 @@ exprPart = option (Ast.invalid Invalid.EmptyExpression) exprPart'
 
 exprPart' :: Parser Ast
 exprPart' = buildExpr . convert =<< lines where
-    line          = (\x -> buildExpr $ trace ("\n\n+++\n" <> ppShow x) x) =<< multiLineToks
+    line          = (\x -> buildExpr $ {- trace ("\n\n+++\n" <> ppShow x) -} x) =<< multiLineToks
     lines         = (:|) <$> line <*> nextLines
     nextLines     = option mempty (brokenLst' $ Indent.indented *> lines)
     lineJoin      = satisfyAst Ast.isOperator <* leftSpaced peekSymbol
