@@ -171,8 +171,8 @@ it_e' s = it_e s (convert s)
 -- === Literals === --
 ----------------------
 
-__ :: Convertible' Ast.SimpleAst a => a
-__ = convert' Ast.SMissing
+-- __ :: Convertible' Ast.SimpleAst a => a
+-- __ = convert' Ast.SMissing
 
 block = Ast.SBlock
 
@@ -423,7 +423,10 @@ debugSpec = describe "error" $ it "x" $ do
 
     -- let input     = "a: b: c + d"
     -- let input     = "a: b: c"
-    let input     = "a = x: «0» foo b"
+    -- let input     = "a = x: «0» foo b"
+    -- let input     = "\171\&0\187def main:\n    None"
+    -- let input     = "«0»def main:\n    None"
+    let input     = "a = 1"
     -- let input     = "a = b"
         toks      = Parser.run Parsing.Syntax1 input
         layouted  = ExprBuilder.discoverLayouts toks
@@ -444,7 +447,8 @@ debugSpec = describe "error" $ it "x" $ do
 
 
     putStrLn "\nRESULT:\n"
-    pprint $ Ast.simplify $ PP.runWith Macro.expr input
+    pprint $ PP.runWith Macro.expr input
+    -- pprint $ Ast.simplify $ PP.runWith Macro.expr input
 
     True `shouldBe` False
 
@@ -464,7 +468,7 @@ spec = do
     importSpec
     commentSpec
 
-    -- debugSpec
+    debugSpec
 
 
 

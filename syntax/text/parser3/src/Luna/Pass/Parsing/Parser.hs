@@ -187,8 +187,17 @@ go = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
         f' <- go f
         l' <- go l
         r' <- go r
-        (lf :: IR.SomeTerm) <- IR.app' f' l'
-        IR.app' lf r'
+        let tok = Ast.unspan f
+            continue = do
+                (lf :: IR.SomeTerm) <- IR.app' f' l'
+                IR.app' lf r'
+        case tok of
+            Ast.Operator op -> if
+                | op == Name.assign -> IR.unify' l' r'
+                | op == Name.lam    -> IR.lam'   l' r'
+                | op == Name.acc    -> IR.acc'   l' r'
+                | otherwise         -> continue
+            _ -> continue
     Ast.SectionRight f r -> do
         f' <- go f
         r' <- go r
