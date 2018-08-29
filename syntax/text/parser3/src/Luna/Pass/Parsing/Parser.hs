@@ -147,25 +147,62 @@ strGo = \(Spanned cs a) -> addCodeSpan cs =<< case a of
 
 go :: forall m. BuilderMonad m => Ast -> m IR.SomeTerm
 go = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
+
+    -- Literals
     Ast.Number     num -> do
         intPart <- Mutable.fromList (toList num)
         empty   <- Mutable.new
         IR.number' 10 intPart empty
     Ast.Str       strs -> do
         [str] <- strGo <$$> strs
-        return str
-    Ast.Cons      name -> IR.cons'  name []
+        pure str
+
+    -- Identifiers
     Ast.Var       name -> IR.var'   name
+    Ast.Cons      name -> IR.cons'  name []
     Ast.Operator  name -> IR.var'   name
+    Ast.Modifier  name -> error "TODO" -- we need to discuss handling it in IR
     Ast.Wildcard       -> IR.blank'
-    Ast.LineBreak ind  -> IR.lineBreak' (unwrap ind)
+
+    -- Layouting
+    Ast.Block b -> do
+        foo :| foos <- go <$$> b
+        a <- foldlM IR.seq' foo foos
+        pure a
+    Ast.Marker m -> IR.marker' $ fromIntegral m
+    Ast.LineBreak ind  -> impossible -- All line breaks handled in parser
+
+    -- Docs
+    Ast.Comment a -> error "TODO" -- we need to handle non attached comments
+
+    -- Errors
     Ast.Invalid   inv  -> IR.invalid' inv
-    Ast.Tokens (t:ts)  -> go t -- FIXME
+
+    -- Expressions
     Ast.Missing        -> IR.missing'
     Ast.Unit      ls   -> do
         (ih      :: IR.SomeTerm) <- IR.importHub' []
         (unitCls :: IR.SomeTerm) <- IR.record' False "" [] [] =<< (go <$$> ls)
         IR.unit' ih [] unitCls
+    Ast.InfixApp l f r -> do
+        f' <- go f
+        l' <- go l
+        r' <- go r
+        (lf :: IR.SomeTerm) <- IR.app' f' l'
+        IR.app' lf r'
+    Ast.SectionRight f r -> do
+        f' <- go f
+        r' <- go r
+        -- TODO
+        -- The naming IR.sectionLeft and IR.sectionRight need to be swapped!
+        IR.sectionLeft' f' r'
+    Ast.SectionLeft l f -> do
+        l' <- go l
+        f' <- go f
+        -- TODO
+        -- We should change the ordering in IR to reflect real code placement.
+        -- Right now both sections have function link on the left side in IR.
+        IR.sectionRight' f' l'
     Ast.App f a        -> do
         let (baseTok, argToks) = collectApps (pure a) f
             tok                = Ast.unspan baseTok
@@ -219,11 +256,7 @@ go = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
             Ast.Cons name -> handleListOp (IR.cons' name)
             _ -> error (show tok)
     Ast.Comment c -> parseError
-    Ast.Block b -> do
-        foo :| foos <- go <$$> b
-        a <- foldlM IR.seq' foo foos
-        return a
-    Ast.Marker m -> IR.marker' $ fromIntegral m
+
     x -> error $ "TODO: " <> show x
     where addCodeSpan cs ir = ir <$ IR.writeLayer @CodeSpan ir cs
           parseError        = IR.invalid' Invalid.ParserError

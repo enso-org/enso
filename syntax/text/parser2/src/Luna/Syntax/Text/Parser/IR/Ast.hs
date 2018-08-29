@@ -337,7 +337,7 @@ pattern Wildcard        = AstWildcard  (Atom_Wildcard)
 pattern Number    t1    = AstNumber    (Atom_Number    t1)
 pattern Str       t1    = AstStr       (Atom_Str       t1)
 pattern Block     t1    = AstBlock     (Atom_Block     t1)
-pattern Tokens    t1    = AstTokens    (Atom_Tokens    t1)
+-- -- -- pattern Tokens    t1    = AstTokens    (Atom_Tokens    t1)
 pattern Marker    t1    = AstMarker    (Atom_Marker    t1)
 pattern LineBreak t1    = AstLineBreak (Atom_LineBreak t1)
 pattern Comment   t1    = AstComment   (Atom_Comment   t1)
@@ -358,7 +358,7 @@ pattern SWildcard        = SimpleAstWildcard  (Atom_Wildcard)
 pattern SNumber    t1    = SimpleAstNumber    (Atom_Number    t1)
 pattern SStr       t1    = SimpleAstStr       (Atom_Str       t1)
 pattern SBlock     t1    = SimpleAstBlock     (Atom_Block     t1)
-pattern STokens    t1    = SimpleAstTokens    (Atom_Tokens    t1)
+-- -- pattern STokens    t1    = SimpleAstTokens    (Atom_Tokens    t1)
 pattern SMarker    t1    = SimpleAstMarker    (Atom_Marker    t1)
 pattern SLineBreak t1    = SimpleAstLineBreak (Atom_LineBreak t1)
 pattern SComment   t1    = SimpleAstComment   (Atom_Comment   t1)
@@ -451,7 +451,6 @@ data Ast
 
     -- Layouting
     | AstBlock     (Block Ast)
-    | AstTokens    (Tokens Ast)
     | AstMarker    (Marker Ast)
     | AstLineBreak (LineBreak Ast)
 
@@ -490,7 +489,7 @@ data SimpleAst
 
     -- Layouting
     | SimpleAstBlock     (Block SimpleAst)
-    | SimpleAstTokens    (Tokens SimpleAst)
+    -- | SimpleAstTokens    (Tokens SimpleAst)
     | SimpleAstMarker    (Marker SimpleAst)
     | SimpleAstLineBreak (LineBreak SimpleAst)
 
@@ -519,7 +518,7 @@ instance Show SimpleAst where
         SimpleAstNumber    t -> show t
         SimpleAstStr       t -> show t
         SimpleAstBlock     t -> show t
-        SimpleAstTokens    t -> show t
+        -- SimpleAstTokens    t -> show t
         SimpleAstMarker    t -> show t
         SimpleAstLineBreak t -> show t
         SimpleAstComment   t -> show t
@@ -735,7 +734,7 @@ instance Simplify   Ast where
         Number    t1    -> SNumber    (simplify t1)
         Str       t1    -> SStr       (simplify t1)
         Block     t1    -> SBlock     (simplify t1)
-        Tokens    t1    -> STokens    (simplify t1)
+        -- Tokens    t1    -> STokens    (simplify t1)
         Marker    t1    -> SMarker    (simplify t1)
         LineBreak t1    -> SLineBreak (simplify t1)
         Comment   t1    -> SComment   (simplify t1)

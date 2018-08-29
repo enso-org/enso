@@ -1,5 +1,5 @@
 {-# LANGUAGE CPP                  #-}
-{-# LANGUAGE Strict #-}
+{-# LANGUAGE Strict               #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -Wno-unused-foralls #-}
 
@@ -112,8 +112,7 @@ Term.define [d|
     | Typed        { base     :: LinkTo Terms , tp     :: LinkTo Terms         }
     | Unit         { imps     :: LinkTo Terms , units  :: LinksTo Terms
                    , cls      :: LinkTo Terms                                  }
-    | LineBreak    { indent   :: Int                                           }
-    | Tokens       { toks     :: LinksTo Terms                                 }
+    -- | LineBreak    { indent   :: Int                                           }
     -- DEPRECATED:
     | FunctionSig  { name     :: LinkTo Terms , sig    :: LinkTo Terms         }
  |]

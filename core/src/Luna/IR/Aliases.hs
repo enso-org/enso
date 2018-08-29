@@ -1,5 +1,5 @@
 {-# LANGUAGE PatternSynonyms #-}
-{-# LANGUAGE Strict #-}
+{-# LANGUAGE Strict          #-}
 
 module Luna.IR.Aliases where
 
@@ -18,7 +18,6 @@ pattern Imp doc e            = IR.UniTermImp (IR.Imp doc e)
 pattern ImportHub a          = IR.UniTermImportHub (IR.ImportHub a)
 pattern ImportSource a       = IR.UniTermImportSource (IR.ImportSource a)
 pattern Lam i o              = IR.UniTermLam (IR.Lam i o)
-pattern LineBreak a          = IR.UniTermLineBreak (IR.LineBreak a)
 pattern List  l              = IR.UniTermList (IR.List l)
 pattern Marked m n           = IR.UniTermMarked (IR.Marked m n)
 pattern Marker  l            = IR.UniTermMarker (IR.Marker l)
