@@ -9,6 +9,7 @@ import Prologue
 import qualified Control.Monad.State.Layered               as State
 import qualified Data.Graph.Component.Node.Destruction     as Component
 import qualified Data.Graph.Data.Graph.Class               as Graph
+import qualified Data.Graph.Data.Layer.Class               as Layer
 import qualified Data.Map                                  as Map
 import qualified Data.Mutable.Class                        as Mutable
 import qualified Data.Set                                  as Set
@@ -257,16 +258,21 @@ go = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
             Ast.Marker c -> do
                 a :| as <- go <$$> argToks
                 case as of
-                    [a2] -> do
+                    [] -> do
                         marker <- IR.marker $ fromIntegral c
-                        IR.marked' marker a2
+                        addCodeSpan (baseTok ^. Ast.span) marker
+                        IR.marked' marker a
                     _    -> parseError
             Ast.Cons name -> handleListOp (IR.cons' name)
             _ -> error (show tok)
     Ast.Comment c -> parseError
 
     x -> error $ "TODO: " <> show x
-    where addCodeSpan cs ir = ir <$ IR.writeLayer @CodeSpan ir cs
+    where addCodeSpan cs ir = do
+              putStrLn "\n\n"
+              print . IR.showTag =<< Layer.read @IR.Model ir
+              print cs
+              ir <$ IR.writeLayer @CodeSpan ir cs
           parseError        = IR.invalid' Invalid.ParserError
 {-# NOINLINE go #-}
 
