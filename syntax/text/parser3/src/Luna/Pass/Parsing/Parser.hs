@@ -269,9 +269,9 @@ go = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
 
     x -> error $ "TODO: " <> show x
     where addCodeSpan cs ir = do
-              putStrLn "\n\n"
-              print . IR.showTag =<< Layer.read @IR.Model ir
-              print cs
+            --   putStrLn "\n\n"
+            --   print . IR.showTag =<< Layer.read @IR.Model ir
+            --   print cs
               ir <$ IR.writeLayer @CodeSpan ir cs
           parseError        = IR.invalid' Invalid.ParserError
 {-# NOINLINE go #-}
