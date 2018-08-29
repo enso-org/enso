@@ -1,5 +1,6 @@
+{-# LANGUAGE NoStrict             #-}
+{-# LANGUAGE NoStrictData         #-}
 {-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 module Luna.Pass.Typing.Structural where
 
@@ -134,14 +135,4 @@ attachStructuralType expr = do
     IR.reconnectLayer @IR.Type tp expr
     IR.deleteSubtree oldTp
     return tp
-
-
-
-
-
-
-
-
-
-
 

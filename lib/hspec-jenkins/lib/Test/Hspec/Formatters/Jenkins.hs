@@ -20,6 +20,9 @@
   An example project is located in @example@ directory.
 -}
 
+{-# LANGUAGE NoStrict #-}
+{-# LANGUAGE NoStrictData #-}
+
 module Test.Hspec.Formatters.Jenkins (xmlFormatter) where
 
 import Prologue

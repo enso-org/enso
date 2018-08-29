@@ -38,4 +38,3 @@ findParentPackageIfInside path = do
         findParentPackageIfInside parentPath
     else pure Nothing
 
-

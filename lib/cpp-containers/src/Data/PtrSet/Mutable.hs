@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict #-}
+{-# LANGUAGE NoStrictData #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Data.PtrSet.Mutable where
@@ -199,3 +201,4 @@ instance (Storable a, IsPtr a) => DynamicStorable (UnmanagedPtrSet a) where
 
 instance NFData (UnmanagedPtrSet a) where
     rnf _ = ()
+

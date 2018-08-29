@@ -3,7 +3,6 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE OverloadedStrings         #-}
 
-
 module Data.Text.CodeBuilder.Builder where
 
 import Prologue

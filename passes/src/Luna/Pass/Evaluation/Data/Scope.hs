@@ -1,3 +1,6 @@
+{-# LANGUAGE NoStrict     #-}
+{-# LANGUAGE NoStrictData #-}
+
 module Luna.Pass.Evaluation.Data.Scope where
 
 import Prologue
@@ -59,3 +62,4 @@ evalWithRef = State.evalT . unMutableScopeT
 --------------------
 
 type ScopeT m a = State.StateT LocalScope m a
+

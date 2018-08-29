@@ -1,3 +1,6 @@
+{-# LANGUAGE NoStrict #-}
+{-# LANGUAGE NoStrictData #-}
+
 module Language.Symbol.Label where
 
 -- import OCI.Data.Name as Name

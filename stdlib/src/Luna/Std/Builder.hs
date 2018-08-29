@@ -1,4 +1,5 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE NoStrict             #-}
+{-# LANGUAGE NoStrictData         #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Luna.Std.Builder where
@@ -167,6 +168,9 @@ jsonLT = LCons Base.baseModule "JSON" []
 
 listLT :: LTp -> LTp
 listLT t  = LCons Base.baseModule "List"  [t]
+
+vectorLT :: LTp -> LTp
+vectorLT t  = LCons Base.baseModule "Vector"  [t]
 
 maybeLT :: LTp -> LTp
 maybeLT t = LCons Base.baseModule "Maybe" [t]

@@ -1,4 +1,5 @@
--- {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE NoStrict     #-}
+{-# LANGUAGE NoStrictData #-}
 
 module Luna.Syntax.Text.Parser.Loc where
 

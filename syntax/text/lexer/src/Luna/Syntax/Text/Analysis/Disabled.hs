@@ -1,4 +1,5 @@
-{-# LANGUAGE Strict #-}
+{-# LANGUAGE NoStrict     #-}
+{-# LANGUAGE NoStrictData #-}
 
 module Luna.Syntax.Text.Analysis.Disabled where
 
@@ -48,3 +49,4 @@ columnToDisabledTag' disabledStack = \case
                   go = \case []     -> []
                              (i:is) -> if d > i then (i:is) else go is
 {-# INLINE columnToDisabledTag' #-}
+

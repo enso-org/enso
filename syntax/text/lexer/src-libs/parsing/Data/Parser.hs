@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict             #-}
+{-# LANGUAGE NoStrictData         #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 -- | Monadic / applicative parser abstractions.

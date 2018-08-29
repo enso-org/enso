@@ -1,5 +1,6 @@
+{-# LANGUAGE NoStrict             #-}
+{-# LANGUAGE NoStrictData         #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 module Luna.Syntax.Text.Analysis.SpanTree where
 

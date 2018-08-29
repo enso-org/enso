@@ -1,4 +1,5 @@
-{-# LANGUAGE OverloadedStrings    #-}
+{-# LANGUAGE NoStrict             #-}
+{-# LANGUAGE NoStrictData         #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Luna.Pass.Transform.Desugar.DesugarListLiterals where
@@ -112,3 +113,4 @@ makeLams []     o = return o
 makeLams (a:as) o = do
     newO <- makeLams as o
     IR.lam' a newO
+

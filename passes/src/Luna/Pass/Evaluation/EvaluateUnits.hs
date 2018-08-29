@@ -1,3 +1,6 @@
+{-# LANGUAGE NoStrict     #-}
+{-# LANGUAGE NoStrictData #-}
+
 module Luna.Pass.Evaluation.EvaluateUnits where
 
 import Prologue

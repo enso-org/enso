@@ -1,3 +1,6 @@
+{-# LANGUAGE NoStrict #-}
+{-# LANGUAGE NoStrictData #-}
+
 module Foreign.Ptr.Utils where
 
 import Prologue
@@ -13,3 +16,4 @@ type SomePtr = Ptr ()
 fromCBool :: MonadIO m => Int -> m Bool
 fromCBool = pure . (/= 0)
 {-# INLINE fromCBool #-}
+

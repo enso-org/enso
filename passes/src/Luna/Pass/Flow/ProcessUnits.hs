@@ -1,3 +1,6 @@
+{-# LANGUAGE NoStrict     #-}
+{-# LANGUAGE NoStrictData #-}
+
 module Luna.Pass.Flow.ProcessUnits where
 
 import Prologue
@@ -113,3 +116,4 @@ processUnits initialTyped initialEvaluated units = mfix $ \us -> do
     let typed = Map.union (fst <$> processedUnits) (unwrap initialTyped)
         evald = Map.union (snd <$> processedUnits) (unwrap initialEvaluated)
     pure (wrap typed, wrap evald)
+

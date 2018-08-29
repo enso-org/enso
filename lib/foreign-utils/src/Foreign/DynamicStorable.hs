@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict #-}
+{-# LANGUAGE NoStrictData #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Foreign.DynamicStorable where
@@ -31,3 +33,4 @@ class DynamicStorable a where
 --     sizeOf = pure . Storable.sizeOf ; {-# INLINE sizeOf #-}
 --     peek   = Storable.peek          ; {-# INLINE peek   #-}
 --     poke   = Storable.poke          ; {-# INLINE poke   #-}
+

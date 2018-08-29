@@ -1,5 +1,3 @@
-{-# LANGUAGE Strict #-}
-
 module Foreign.ForeignPtr.Utils (module Foreign.ForeignPtr.Utils, module X) where
 
 import Foreign.ForeignPtr as X
@@ -39,3 +37,4 @@ getAndMapandGetForeignPtr fptr f = liftIO $ withForeignPtr fptr $ \ptr -> do
 
 mapForeignPtr :: (Storable a, MonadIO m) => ForeignPtr a -> (a -> a) -> m ()
 mapForeignPtr fptr f = () <$ getAndMapForeignPtr fptr f ; {-# INLINE mapForeignPtr #-}
+

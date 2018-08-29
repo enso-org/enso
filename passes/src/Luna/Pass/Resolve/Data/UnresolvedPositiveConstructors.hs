@@ -1,3 +1,6 @@
+{-# LANGUAGE NoStrict     #-}
+{-# LANGUAGE NoStrictData #-}
+
 module Luna.Pass.Resolve.Data.UnresolvedPositiveConstructors where
 
 import Prologue

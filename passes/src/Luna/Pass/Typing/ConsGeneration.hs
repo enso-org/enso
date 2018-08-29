@@ -1,4 +1,5 @@
-
+{-# LANGUAGE NoStrict             #-}
+{-# LANGUAGE NoStrictData         #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Luna.Pass.Typing.ConsGeneration where
@@ -135,3 +136,4 @@ reconnectVars varMap root = Layer.read @IR.Model root >>= \case
         inps <- IR.inputs root
         ComponentList.mapM_ (reconnectVars varMap <=< IR.source) inps
         return root
+

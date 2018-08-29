@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict             #-}
+{-# LANGUAGE NoStrictData         #-}
 {-# LANGUAGE TypeInType           #-}
 {-# LANGUAGE UndecidableInstances #-}
 
@@ -42,3 +44,4 @@ setByKind = unsafeCoerce
 replaceByKind :: ∀ k v a. a -> ReplaceByKind k v a
 replaceByKind = unsafeCoerce
 {-# INLINE replaceByKind #-}
+

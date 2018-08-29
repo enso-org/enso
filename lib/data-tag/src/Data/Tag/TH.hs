@@ -1,5 +1,7 @@
-module Data.Tag.TH where
+{-# LANGUAGE NoStrict #-}
+{-# LANGUAGE NoStrictData #-}
 
+module Data.Tag.TH where
 
 import Prologue
 
@@ -69,3 +71,4 @@ familyWithInstances famNameStr subTypeNamesStr = mainDecls <> subDecls
 class Family a where family :: String -> a
 instance t ~ [String] => Family (t -> Q [TH.Dec]) where family = return .: familyWithInstances
 instance                 Family      (Q [TH.Dec]) where family = return .  familyHeader
+

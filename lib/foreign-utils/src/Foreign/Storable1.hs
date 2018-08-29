@@ -1,3 +1,6 @@
+{-# LANGUAGE NoStrict #-}
+{-# LANGUAGE NoStrictData #-}
+
 module Foreign.Storable1 where
 
 import Data.Kind
@@ -35,3 +38,4 @@ sizeOf' = sizeOf (undefined :: t a) ; {-# INLINE sizeOf' #-}
 
 alignment' :: ∀ t a. Storable1 t => Int
 alignment' = alignment (undefined :: t a) ; {-# INLINE alignment' #-}
+

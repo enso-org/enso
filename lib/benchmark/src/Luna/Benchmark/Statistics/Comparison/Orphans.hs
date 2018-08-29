@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict #-}
+{-# LANGUAGE NoStrictData #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Luna.Benchmark.Statistics.Comparison.Orphans where

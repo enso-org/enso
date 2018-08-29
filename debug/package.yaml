@@ -49,6 +49,7 @@ default-extensions:
     - NoImplicitPrelude
     - NumDecimals
     - OverloadedLabels
+    - OverloadedStrings
     - PackageImports
     - PatternSynonyms
     - QuasiQuotes
@@ -57,6 +58,7 @@ default-extensions:
     - RelaxedPolyRec
     - ScopedTypeVariables
     - StandaloneDeriving
+    - Strict
     - TemplateHaskell
     - TupleSections
     - TypeApplications
@@ -65,5 +67,4 @@ default-extensions:
     - TypeOperators
     - UnicodeSyntax
     - ViewPatterns
-
 

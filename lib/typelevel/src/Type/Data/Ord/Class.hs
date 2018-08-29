@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict             #-}
+{-# LANGUAGE NoStrictData         #-}
 {-# LANGUAGE TypeInType           #-}
 {-# LANGUAGE UndecidableInstances #-}
 
@@ -12,3 +14,4 @@ type family a >  b where a >  b = Cmp a b == 'GT
 type family a >= b where a >= b = Cmp a b != 'LT
 type family a <  b where a <  b = Cmp a b == 'LT
 type family a <= b where a <= b = Cmp a b != 'GT
+

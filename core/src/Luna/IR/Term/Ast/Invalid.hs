@@ -45,3 +45,4 @@ GTraversable.derive ''InvalidString
 instance NFData Symbol
 instance NFData InvalidLiteral
 instance NFData InvalidString
+

@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict             #-}
+{-# LANGUAGE NoStrictData         #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Luna.Pass.Typing.Base where
@@ -16,3 +18,4 @@ type family   BasePassSpec t where
     BasePassSpec (Pass.In  IR.Terms) = '[IR.Model, IR.Type, IR.Users, Requester]
     BasePassSpec (Pass.Out IR.Terms) = '[IR.Model, IR.Type, IR.Users, Requester]
     BasePassSpec a                   = Pass.BasicPassSpec a
+

@@ -1,4 +1,5 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE NoStrict #-}
+{-# LANGUAGE NoStrictData #-}
 
 module Type.Cache where
 
@@ -35,3 +36,4 @@ cache_phase2 name = do
         _ -> internalError
 
     where internalError = fail "Internal error. Please report it as a bug."
+

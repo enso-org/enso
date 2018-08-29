@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict             #-}
+{-# LANGUAGE NoStrictData         #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Luna.Pass.Typing.UniSolver where
@@ -159,3 +161,4 @@ deepSolve uni = do
     case res of
         Left new -> concat <$> traverse deepSolve new
         Right _  -> return [uni]
+

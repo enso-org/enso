@@ -1,5 +1,7 @@
+{-# LANGUAGE Strict               #-}
+{-# LANGUAGE NoStrictData         #-}
 {-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings    #-}
 
 module Luna.Pass.Data.Error where
 

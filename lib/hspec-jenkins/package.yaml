@@ -1,14 +1,16 @@
-name : hspec-jenkins
-version : 0.1.2
-synopsis : Jenkins-friendly XML formatter for Hspec
-category: Testing
-license: MIT
-stability: experimental
-homepage : https://github.com/luna/luna
+_config/lib: !include "../../config/hpack-common.yaml"
+
+name        : hspec-jenkins
+version     : 0.1.2
+synopsis    : Jenkins-friendly XML formatter for Hspec
+category    : Testing
+license     : MIT
+stability   : experimental
+homepage    : https://github.com/luna/luna
 bug-reports : https://github.com/luna/luna/issues
-author: Kohei Suzuki, Ara Adkins
-copyright: Copyright (C) 2013-2018 Kohei Suzuki, 2018 Ara Adkins
-maintainer: Luna Team
+author      : Kohei Suzuki, Ara Adkins
+copyright   : Copyright (C) 2013-2018 Kohei Suzuki, 2018 Ara Adkins
+maintainer  : Luna Team
 
 ghc-options:
     - -O2
@@ -24,7 +26,5 @@ library:
         - hspec >= 2.5
         - prologue
 
-default-extensions:
-    - NoImplicitPrelude
-    - OverloadedStrings
+default-extensions: *luna-extensions
 

@@ -1,4 +1,7 @@
+{-# LANGUAGE NoStrict #-}
+{-# LANGUAGE NoStrictData #-}
 {-# LANGUAGE TemplateHaskell #-}
+
 module Foreign.Storable.Deriving (derive, derive', deriveNoContext) where
 
 import Prologue
@@ -329,3 +332,4 @@ genPokeClauseMulti idx con = do
         idxAsInt       = convert idx -:: cons' ''Int
         body           = genPokeExpr ptr offNames patVarNames idxAsInt
     pure $ clause pat body (NonEmpty.toList whereCs)
+

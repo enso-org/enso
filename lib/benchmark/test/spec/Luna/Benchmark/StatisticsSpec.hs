@@ -55,6 +55,7 @@ mem-info:
     max-bytes: 0
     actual-bytes: 0
     num-g-cs: 0
+source-locations: []
 |]
 
 statsList :: [Statistics]
@@ -98,6 +99,7 @@ statsListYaml = [qqStr|
       max-bytes: 0
       actual-bytes: 0
       num-g-cs: 0
+  source-locations: []
 |]
 
 

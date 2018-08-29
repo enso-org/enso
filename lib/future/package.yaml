@@ -1,3 +1,5 @@
+_config/lib: !include "../../config/hpack-common.yaml"
+
 name        : luna-future
 version     : 1.0.0
 category    : Data
@@ -21,50 +23,5 @@ library:
         - base
         - prologue
 
-default-extensions:
-    - AllowAmbiguousTypes
-    - ApplicativeDo
-    - BangPatterns
-    - BinaryLiterals
-    - ConstraintKinds
-    - DataKinds
-    - DefaultSignatures
-    - DeriveDataTypeable
-    - DeriveFoldable
-    - DeriveFunctor
-    - DeriveGeneric
-    - DeriveTraversable
-    - DoAndIfThenElse
-    - DuplicateRecordFields
-    - EmptyDataDecls
-    - FlexibleContexts
-    - FlexibleInstances
-    - FunctionalDependencies
-    - GeneralizedNewtypeDeriving
-    - InstanceSigs
-    - LambdaCase
-    - LiberalTypeSynonyms
-    - MonadComprehensions
-    - MultiWayIf
-    - NamedWildCards
-    - NegativeLiterals
-    - NoImplicitPrelude
-    - NumDecimals
-    - OverloadedLabels
-    - PackageImports
-    - PatternSynonyms
-    - QuasiQuotes
-    - RankNTypes
-    - RecursiveDo
-    - RelaxedPolyRec
-    - ScopedTypeVariables
-    - StandaloneDeriving
-    - TemplateHaskell
-    - TupleSections
-    - TypeApplications
-    - TypeFamilies
-    - TypeFamilyDependencies
-    - TypeOperators
-    - UnicodeSyntax
-    - ViewPatterns
+default-extensions: *luna-extensions
 

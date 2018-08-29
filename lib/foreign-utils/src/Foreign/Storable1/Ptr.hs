@@ -1,3 +1,6 @@
+{-# LANGUAGE NoStrict #-}
+{-# LANGUAGE NoStrictData #-}
+
 module Foreign.Storable1.Ptr where
 
 import Control.Monad.IO.Class
@@ -19,3 +22,4 @@ new val = liftIO $ do
     Storable1.poke ptr val
     return ptr
 {-# INLINE new #-}
+

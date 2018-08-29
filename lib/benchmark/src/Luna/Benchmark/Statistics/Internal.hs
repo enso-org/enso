@@ -1,3 +1,6 @@
+{-# LANGUAGE NoStrict #-}
+{-# LANGUAGE NoStrictData #-}
+
 module Luna.Benchmark.Statistics.Internal where
 
 import Prologue

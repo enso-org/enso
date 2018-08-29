@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict             #-}
+{-# LANGUAGE NoStrictData         #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Luna.Pass.Resolve.AliasAnalysis where
@@ -84,3 +86,4 @@ resolveAliases expr = Layer.read @IR.Model expr >>= \case
     _ -> do
         inps <- ComponentList.mapM IR.source =<< IR.inputs expr
         mapM_ resolveAliases inps
+

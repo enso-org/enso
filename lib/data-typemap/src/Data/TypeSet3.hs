@@ -1,5 +1,5 @@
-{-# LANGUAGE Strict               #-}
 {-# LANGUAGE TypeInType           #-}
+{-# LANGUAGE NoStrictData #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Data.TypeSet3 where
@@ -224,3 +224,4 @@ pureLoop_Z i = do
 -- -- --     print a3
 -- -- --     print a4
 -- -- --     print "test"
+

@@ -1,3 +1,5 @@
+_config/lib: !include "../../config/hpack-common.yaml"
+
 name:       luna-yaml-utils
 version:    "0.1"
 author:     Luna Team <contact@luna-lang.org>
@@ -16,51 +18,5 @@ library:
         - hspec
         - hspec-megaparsec
 
-default-extensions:
-    - AllowAmbiguousTypes
-    - ApplicativeDo
-    - Arrows
-    - BangPatterns
-    - BinaryLiterals
-    - ConstraintKinds
-    - DataKinds
-    - DefaultSignatures
-    - DeriveDataTypeable
-    - DeriveFoldable
-    - DeriveFunctor
-    - DeriveGeneric
-    - DeriveTraversable
-    - DoAndIfThenElse
-    - DuplicateRecordFields
-    - EmptyDataDecls
-    - FlexibleContexts
-    - FlexibleInstances
-    - FunctionalDependencies
-    - GeneralizedNewtypeDeriving
-    - InstanceSigs
-    - LambdaCase
-    - MonadComprehensions
-#    - MonadFailDesugaring
-    - MultiWayIf
-    - NamedWildCards
-    - NegativeLiterals
-    - NoImplicitPrelude
-    - NumDecimals
-    - OverloadedLabels
-    - OverloadedStrings
-    - PackageImports
-    - QuasiQuotes
-    - RankNTypes
-    - RecursiveDo
-    - ScopedTypeVariables
-    - StandaloneDeriving
-    - TemplateHaskell
-    - TupleSections
-    - TypeApplications
-    - TypeFamilies
-    - TypeFamilyDependencies
-    - TypeOperators
-    - ViewPatterns
+default-extensions: *luna-extensions
 
-    - LiberalTypeSynonyms
-    - RelaxedPolyRec

@@ -1,5 +1,5 @@
-{-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE NoStrict     #-}
+{-# LANGUAGE NoStrictData #-}
 
 module Luna.Runtime.Data where
 
@@ -121,3 +121,4 @@ forceThunks = (>>= forceThunks')
 forceThunks' :: Data -> Value
 forceThunks' (Thunk a) = forceThunks a
 forceThunks' x = pure x
+

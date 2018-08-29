@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict             #-}
+{-# LANGUAGE NoStrictData         #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Luna.Pass.Typing.ConsImporter where
@@ -75,5 +77,4 @@ importConses expr = Layer.read @IR.Model expr >>= \case
     _ -> do
         inps <- IR.inputs expr
         ComponentList.mapM_ (importConses <=< IR.source) inps
-
 

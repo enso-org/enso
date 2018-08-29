@@ -1,4 +1,3 @@
--- {-# LANGUAGE Strict               #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Data.Graph.Fold.ScopedMap (module Data.Graph.Fold.ScopedMap, module X) where

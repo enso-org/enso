@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict             #-}
+{-# LANGUAGE NoStrictData         #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Luna.Syntax.Text.Parser.State.Marker where
@@ -76,3 +78,4 @@ getAndClearLast = getLast <* clearLast ; {-# INLINE getAndClearLast #-}
 -- === Instances === --
 
 instance Default State where def = State def def ; {-# INLINE def #-}
+

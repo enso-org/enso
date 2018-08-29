@@ -1,5 +1,6 @@
+{-# LANGUAGE NoStrict             #-}
+{-# LANGUAGE NoStrictData         #-}
 {-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 module Luna.Pass.Transform.Desugar.DesugarFieldModifiers where
 
@@ -129,3 +130,4 @@ desugarModifiers e = Layer.read @IR.Model e >>= \case
         inps <- IR.inputs e
         ComponentList.mapM_ (desugarModifiers <=< IR.source) inps
         pure e
+

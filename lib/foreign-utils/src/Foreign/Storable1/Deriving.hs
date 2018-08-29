@@ -1,4 +1,7 @@
+{-# LANGUAGE NoStrict #-}
+{-# LANGUAGE NoStrictData #-}
 {-# LANGUAGE TemplateHaskell #-}
+
 module Foreign.Storable1.Deriving (derive, derive') where
 
 import Prologue
@@ -66,3 +69,4 @@ genAlignment = genLazyFun 'Storable1.alignment 'Storable.alignment
 genPoke, genPeek :: [TH.Dec]
 genPeek = genFun 'Storable1.peek 'Storable.peek
 genPoke = genFun 'Storable1.poke 'Storable.poke
+

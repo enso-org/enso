@@ -664,6 +664,9 @@ native class CDouble:
 native class RetType:
     def retType: self
 
+native class Arg:
+    def toCArg: self
+
 native class Ptr a:
     def toCArg: primPtrToCArg self
     def cast: primPtrCast self

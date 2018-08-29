@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict             #-}
+{-# LANGUAGE NoStrictData         #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Luna.Pass.Data.Layer.SpanLength where
@@ -25,3 +27,4 @@ instance Layer SpanLength where
     type Cons SpanLength = Layer.Simple Delta
     type Layout SpanLength layout = Layout.Get SpanLength layout
     manager = Layer.staticManager
+

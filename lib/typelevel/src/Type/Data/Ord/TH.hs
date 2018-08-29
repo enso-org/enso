@@ -1,4 +1,7 @@
+{-# LANGUAGE NoStrict     #-}
+{-# LANGUAGE NoStrictData #-}
 {-# LANGUAGE ViewPatterns #-}
+
 module Type.Data.Ord.TH where
 
 
@@ -43,3 +46,4 @@ defOrder :: [Name] -> Q [TH.Dec]
 defOrder ns = return $ ltgts <> eqs
     where ltgts = concatMap (uncurry defOrderedPair) $ pairs ns
           eqs   = defEQ <$> ns
+

@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module Luna.Prim.WebSockets where
 
 import           Prologue

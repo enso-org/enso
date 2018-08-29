@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict             #-}
+{-# LANGUAGE NoStrictData         #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Data.Parser.Instances.Attoparsec where

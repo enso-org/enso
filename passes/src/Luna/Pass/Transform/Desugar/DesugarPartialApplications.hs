@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict             #-}
+{-# LANGUAGE NoStrictData         #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Luna.Pass.Transform.Desugar.DesugarPartialApplications where
@@ -118,6 +120,4 @@ partialDesugarBlanks e = Layer.read @IR.Model e >>= \case
         inps <- IR.inputs e
         ComponentList.mapM_ (desugarBlanks_ <=< IR.source) inps
         return []
-
-
 

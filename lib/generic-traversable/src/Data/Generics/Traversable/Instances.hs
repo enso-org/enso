@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict #-}
+{-# LANGUAGE NoStrictData #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
@@ -47,3 +49,4 @@ instance c a => GTraversable c [a] where
         go []     = pure []
         go (x:xs) = (:) <$> f x <*> go xs
     {-# INLINE gtraverse #-}
+

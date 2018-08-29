@@ -1,4 +1,5 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE NoStrict     #-}
+{-# LANGUAGE NoStrictData #-}
 
 module Luna.Runtime.Data.Evaluated where
 
@@ -45,3 +46,4 @@ lookupSymbol units mod name = do
                                        <> "."
                                        <> convert name
         Just fut -> Future.get fut
+

@@ -1,0 +1,16 @@
+
+import Std.Base
+import Std.Test
+
+def recurse a:
+    if a < 1 then 0 else recurse (a - 1)
+
+class RecursionTest:
+
+    def tailRecursion:
+        output = recurse 1000
+        be 0 output
+
+    def run:
+        Test.specify "recursion executes correctly" self.tailRecursion
+

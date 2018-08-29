@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict #-}
+{-# LANGUAGE NoStrictData #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Data.Mutable.Storable.Array
@@ -286,3 +288,4 @@ instance
 --         whenM (usesDynamicMemory a)
 --             $ Mem.free =<< Struct.readField _externalMem a
 --     {-# INLINE destruct1 #-}
+

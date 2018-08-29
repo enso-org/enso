@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict             #-}
+{-# LANGUAGE NoStrictData         #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Luna.Pass.Typing.ErrorPropagation where
@@ -71,3 +73,4 @@ getErrors expr = do
         Nothing -> do
             inputs <- ComponentList.mapM IR.source =<< IR.inputs expr
             head . catMaybes <$> traverse getErrors inputs
+

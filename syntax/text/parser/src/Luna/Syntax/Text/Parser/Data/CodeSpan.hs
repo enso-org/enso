@@ -1,4 +1,6 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
+{-# LANGUAGE NoStrict                  #-}
+{-# LANGUAGE NoStrictData              #-}
 {-# LANGUAGE UndecidableInstances      #-}
 
 module Luna.Syntax.Text.Parser.Data.CodeSpan where
@@ -225,3 +227,4 @@ newtype CodeSpanRange = CodeSpanRange Delta deriving (Show, Default, Mempty)
 makeLenses ''CodeSpanRange
 
 instance Convertible Delta CodeSpanRange where convert = wrap ; {-# INLINE convert #-}
+

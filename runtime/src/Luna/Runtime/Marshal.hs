@@ -1,5 +1,6 @@
+{-# LANGUAGE NoStrict             #-}
+{-# LANGUAGE NoStrictData         #-}
 {-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE OverloadedStrings    #-}
 
 module Luna.Runtime.Marshal where
 
@@ -217,3 +218,4 @@ instance ToObject () where
     toConstructor = const $ const $ Luna.Constructor "None" []
     {-# INLINE toConstructor #-}
 type instance RuntimeRepOf () = AsClass () ('ClassRep "Std.Base" "None")
+

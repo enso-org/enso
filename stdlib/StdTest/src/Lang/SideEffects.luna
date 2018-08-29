@@ -1,0 +1,31 @@
+
+import Std.Base
+import Std.Test
+
+class SideEffectsTest:
+
+    def incrementMVar mv:
+        a = 20
+        mv.put 30
+        b = 30
+        a + b
+
+    def testIncrementMVar:
+        v = newMVar
+        self.incrementMVar v
+        result = v.take
+        TestSubject result . should (be 30)
+
+    def testMVarLocal:
+        v = newMVar
+        def test:
+            v.put 40
+        test
+
+        result = v.take
+        TestSubject result . should (be 40)
+
+    def run:
+        Test.specify "Side-effects work in an MVar" self.testIncrementMVar
+        Test.specify "Side-effects work with local def" self.testMVarLocal
+

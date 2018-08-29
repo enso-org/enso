@@ -1,6 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE OverloadedLists   #-}
-
 module Luna.Std where
 
 import Prologue

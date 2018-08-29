@@ -1,3 +1,6 @@
+{-# LANGUAGE NoStrict     #-}
+{-# LANGUAGE NoStrictData #-}
+
 module Luna.Pass.Typing.Data.AccQueue where
 
 import Prologue
@@ -19,3 +22,4 @@ register = Attr.modify_ @AccQueue . over wrapped . (:)
 registers :: Attr.Editor AccQueue m => [IR.Term IR.Acc] -> m ()
 registers = Attr.modify_ @AccQueue . over wrapped . (<>)
 {-# INLINE registers #-}
+

@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict             #-}
+{-# LANGUAGE NoStrictData         #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Luna.Pass.Resolve.DefResolution where
@@ -38,3 +40,4 @@ resolveDef v = do
             IR.replace resolved v
         _ -> do
             Error.setError (Just $ Error.varNotFound n) v
+

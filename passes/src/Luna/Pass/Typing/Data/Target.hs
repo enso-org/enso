@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict             #-}
+{-# LANGUAGE NoStrictData         #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Luna.Pass.Typing.Data.Target where
@@ -25,7 +27,7 @@ instance Storable.KnownConstantSize Target where
 instance MonadIO m => Storable.Peek t m Target
 instance MonadIO m => Storable.Poke t m Target
 
-
 type instance Attr.Type Target = Attr.Atomic
 instance Default Target where
     def = Unknown
+

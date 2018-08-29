@@ -1,4 +1,6 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
+{-# LANGUAGE NoStrict                  #-}
+{-# LANGUAGE NoStrictData              #-}
 {-# LANGUAGE UndecidableInstances      #-}
 
 module Luna.Syntax.Text.Parser.IR.Class where
@@ -83,8 +85,4 @@ instance Parsec.Stream Stream where
 
 instance Parsec.ShowToken Token where
     showTokens = show
-
-
-
-
 

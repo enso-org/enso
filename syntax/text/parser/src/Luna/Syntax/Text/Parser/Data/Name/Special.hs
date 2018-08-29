@@ -1,4 +1,5 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE NoStrict     #-}
+{-# LANGUAGE NoStrictData #-}
 
 module Luna.Syntax.Text.Parser.Data.Name.Special where
 
@@ -21,3 +22,4 @@ uminus   = "#uminus#" ; {-# INLINE uminus   #-}
 unify    = "="        ; {-# INLINE unify    #-}
 update   = "="        ; {-# INLINE update   #-} -- #update# ?
 wildcard = "_"        ; {-# INLINE wildcard #-}
+

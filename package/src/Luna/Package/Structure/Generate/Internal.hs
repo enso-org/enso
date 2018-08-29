@@ -29,7 +29,7 @@ import System.FilePath                    (FilePath, (</>))
 -- === Definition === --
 
 data GeneratorError
-    = InvalidPackageLocation Text
+    = InvalidPackageLocation FilePath
     | InvalidPackageName Text
     | SystemError Text
     deriving (Eq, Generic, Ord, Show)
@@ -74,6 +74,15 @@ recovery canonicalName ex = do
                 _ -> convert $ show ex
 
         pure . Left $ SystemError errMsg
+
+
+-- === Instances === --
+
+instance StyledShow Pretty GeneratorError where
+    styledShow _ (InvalidPackageLocation loc) =
+        "Cannot create package inside another package at " <> convert loc
+    styledShow _ (InvalidPackageName name) = "Invalid name: " <> name
+    styledShow _ (SystemError tx) = "System Error: " <> tx
 
 
 

@@ -1,4 +1,6 @@
 {-# LANGUAGE AllowAmbiguousTypes  #-}
+{-# LANGUAGE NoStrict             #-}
+{-# LANGUAGE NoStrictData         #-}
 {-# LANGUAGE ScopedTypeVariables  #-}
 {-# LANGUAGE TypeApplications     #-}
 {-# LANGUAGE TypeInType           #-}

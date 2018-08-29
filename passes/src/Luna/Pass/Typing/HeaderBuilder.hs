@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict             #-}
+{-# LANGUAGE NoStrictData         #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Luna.Pass.Typing.HeaderBuilder where
@@ -98,7 +100,7 @@ newtype GraphCopy = GraphCopy (Store.Rooted IR.SomeTerm)
 makeLenses ''GraphCopy
 type instance Attr.Type GraphCopy = Attr.Atomic
 instance Default GraphCopy where
-    def = wrap $ wrap $ convert ""
+    def = wrap $ wrap ""
 
 data Serializer
 
@@ -150,3 +152,4 @@ deserialize r = do
     Scheduler.registerPass @TC.Stage @Deserializer
     Scheduler.runPassByType @Deserializer
     unwrap <$> Scheduler.getAttr @Root
+

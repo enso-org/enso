@@ -1,3 +1,6 @@
+{-# LANGUAGE NoStrict #-}
+{-# LANGUAGE NoStrictData #-}
+
 module Language.Symbol.Operator.Assoc where
 
 import Prologue hiding (read)
@@ -39,3 +42,4 @@ write asc = writeLabel asc . view label
 
 instance {-# OVERLAPPABLE #-} Reader label m => Reader label (StateT s m)
 instance {-# OVERLAPPABLE #-} Writer label m => Writer label (StateT s m)
+

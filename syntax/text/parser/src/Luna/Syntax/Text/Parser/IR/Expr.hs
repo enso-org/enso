@@ -1,4 +1,5 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE NoStrict     #-}
+{-# LANGUAGE NoStrictData #-}
 
 module Luna.Syntax.Text.Parser.IR.Expr where
 
@@ -290,3 +291,4 @@ buildExpr_termApp ::
       -> m a
 buildExpr_termApp app = fmap assembleExpr
                       . evalTokenStreamT (buildExprTree_termApp app)
+

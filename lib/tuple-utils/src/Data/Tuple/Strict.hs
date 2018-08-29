@@ -1,3 +1,8 @@
+{-# LANGUAGE NoStrict #-}
+{-# LANGUAGE NoStrictData #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
+{-# OPTIONS_GHC -Wno-unused-matches #-}
+
 module Data.Tuple.Strict (module Data.Tuple.Strict, module X) where
 
 import Data.Tuple.Utils.Class as X

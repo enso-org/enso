@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict             #-}
+{-# LANGUAGE NoStrictData         #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Luna.Pass.Resolve.ConsResolution where
@@ -74,3 +76,4 @@ buildResolvedCons positive term (ConsRef unit cls cons) = do
     else do
         args <- traverse IR.source =<< ComponentVector.toList as
         IR.resolvedCons' unit cls n args
+

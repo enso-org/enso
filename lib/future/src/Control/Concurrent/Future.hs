@@ -1,3 +1,6 @@
+{-# LANGUAGE NoStrict #-}
+{-# LANGUAGE NoStrictData #-}
+
 module Control.Concurrent.Future where
 
 import Prologue
@@ -64,3 +67,4 @@ getMv mv = do
     case res of
         Right a -> return a
         Left  a -> liftIO $ Async.wait a
+

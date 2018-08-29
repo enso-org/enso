@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict             #-}
+{-# LANGUAGE NoStrictData         #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Luna.Pass.Sourcing.UnitMapper where
@@ -103,3 +105,4 @@ mapClass root = do
     Scheduler.setAttr $ Root $ Layout.relayout root
     Scheduler.runPassByType @ClassProcessor
     Scheduler.getAttr @Class
+

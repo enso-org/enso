@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict      #-}
+{-# LANGUAGE NoStrictData  #-}
 {-# LANGUAGE PolyKinds     #-}
 {-# LANGUAGE TypeFamilies  #-}
 {-# LANGUAGE TypeOperators #-}

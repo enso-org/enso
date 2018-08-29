@@ -1,5 +1,7 @@
-module Luna.Pass.Sourcing.Data.Class where
+{-# LANGUAGE NoStrict     #-}
+{-# LANGUAGE NoStrictData #-}
 
+module Luna.Pass.Sourcing.Data.Class where
 
 import Prologue
 
@@ -10,6 +12,8 @@ import qualified Data.Graph.Store as Store
 
 import Data.Graph.Data.Component.Class (unsafeNull)
 import Luna.Pass.Sourcing.Data.Def
+
+
 
 newtype Constructor = Constructor { _arity :: Int }
 instance Show Constructor where
@@ -26,3 +30,4 @@ instance Default Class where
 
 makeLenses ''Constructor
 makeLenses ''Class
+

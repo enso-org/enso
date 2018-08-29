@@ -1,3 +1,6 @@
+{-# LANGUAGE NoStrict     #-}
+{-# LANGUAGE NoStrictData #-}
+
 module Luna.Pass.Preprocess.PreprocessUnit where
 
 import Prologue
@@ -42,3 +45,4 @@ preprocessUnit resolver (Unit.Unit (Def.DefsMap defs) classes) = do
             view Def.documented <$> Map.elems meths
         ConsFieldResolution.run resolver $ cls ^. Class.root
     return ()
+

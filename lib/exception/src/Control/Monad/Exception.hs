@@ -1,3 +1,6 @@
+{-# LANGUAGE NoStrict #-}
+{-# LANGUAGE NoStrictData #-}
+{-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE TypeInType #-}
 
 module Control.Monad.Exception where

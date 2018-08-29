@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict #-}
+{-# LANGUAGE NoStrictData #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Data.Mutable.Class2 where
@@ -53,3 +55,4 @@ class SwizzleP1 m a where
 
 class UnswizzleP1 m a where
     unswizzleP1 :: a t1 -> m (a t1)
+

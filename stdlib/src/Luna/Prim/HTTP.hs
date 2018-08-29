@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module Luna.Prim.HTTP where
 
 import           Prologue

@@ -1,3 +1,6 @@
+{-# LANGUAGE NoStrict #-}
+{-# LANGUAGE NoStrictData #-}
+
 module Luna.Benchmark where
 
 import Prologue
@@ -7,6 +10,7 @@ import qualified Criterion.Measurement                as Criterion
 import qualified Data.Either                          as Either
 import qualified Data.List                            as List
 import qualified Data.Map                             as Map
+import qualified Data.Set                             as Set
 import qualified Data.Time.Clock                      as Clock
 import qualified Data.Time.Format                     as Format
 import qualified Data.Yaml                            as Yaml
@@ -14,6 +18,7 @@ import qualified Luna.Benchmark.State                 as Benchmark
 import qualified Luna.Benchmark.Config                as Config
 import qualified Luna.Benchmark.Internal              as Internal
 import qualified Luna.Benchmark.Output                as Output
+import qualified Luna.Benchmark.Location              as Location
 import qualified Luna.Benchmark.Statistics            as Statistics
 import qualified Luna.Benchmark.Statistics.Comparison as Statistics
 import qualified Luna.Benchmark.Statistics.Internal   as Statistics
@@ -108,12 +113,19 @@ benchWith cfg comp = do
 {-# NOINLINE benchWith #-}
 
 
+test :: IO Int
+test = fst <$> bench tester where
+    tester :: Bench Int
+    tester = do
+        tick "label" id (1 :: Int)
+
 
 -----------------
 -- === API === --
 -----------------
 
-tick :: forall a b m . (NFData a, MonadBench m) => Text -> (b -> a) -> b -> m a
+tick :: forall a b m . (NFData a, MonadBench m, Location.HasCallStack)
+    => Text -> (b -> a) -> b -> m a
 tick label !f !b = do
     numTests <- (^. (Benchmark.config . Config.numRuns))
         <$> State.get @Benchmark.State
@@ -124,6 +136,7 @@ tick label !f !b = do
     state <- State.get @Benchmark.State
     let newStat = (def @Statistics)
             & Statistics.locationName .~ label
+            & Statistics.sourceLocations %~ Set.insert Location.get
             & Statistics.tickInfo . Statistics.tickCounts .~ cycles
             & Statistics.tickInfo . Statistics.maxTicks   .~ List.maximum cycles
             & Statistics.tickInfo . Statistics.minTicks   .~ List.minimum cycles
@@ -138,7 +151,8 @@ tick label !f !b = do
     pure result
 {-# NOINLINE tick #-}
 
-time :: forall a b m . (NFData a, MonadBench m) => Text -> (b -> a) -> b -> m a
+time :: forall a b m . (NFData a, MonadBench m, Location.HasCallStack)
+    => Text -> (b -> a) -> b -> m a
 time label !f !b = do
     numTests <- (^. (Benchmark.config . Config.numRuns))
         <$> State.get @Benchmark.State
@@ -154,6 +168,7 @@ time label !f !b = do
     state <- State.get @Benchmark.State
     let newStat = (def @Statistics)
             & Statistics.locationName .~ label
+            & Statistics.sourceLocations %~ Set.insert Location.get
             & Statistics.timeInfo . Statistics.times .~ timeResults
             & Statistics.timeInfo . Statistics.maxTime
                 .~ List.maximum timeResults
@@ -170,7 +185,8 @@ time label !f !b = do
     pure . List.head $ fst <$> results
 {-# NOINLINE time #-}
 
-mem :: forall a b m . (NFData a, MonadBench m) => Text -> (b -> a) -> b -> m a
+mem :: forall a b m . (NFData a, MonadBench m, Location.HasCallStack)
+    => Text -> (b -> a) -> b -> m a
 mem label !f !b = do
     numTests <- (^. (Benchmark.config . Config.numRuns))
         <$> State.get @Benchmark.State
@@ -181,6 +197,7 @@ mem label !f !b = do
     state <- State.get @Benchmark.State
     let newStat = (def @Statistics)
             & Statistics.locationName .~ label
+            & Statistics.sourceLocations %~ Set.insert Location.get
             & Statistics.memInfo . Statistics.memVals .~ memResults
             & Statistics.memInfo . Statistics.maxMem
                 .~ Statistics.maximumMemVal memResults
@@ -196,3 +213,13 @@ mem label !f !b = do
 
     pure . List.head $ fst <$> result
 {-# NOINLINE mem #-}
+
+measure :: forall a b m . (NFData a, MonadBench m, Location.HasCallStack)
+    => Text -> (b -> a) -> b -> m a
+measure label !f !b = do
+    void $ mem  label f b
+    void $ time label f b
+
+    tick label f b
+{-# NOINLINE measure #-}
+

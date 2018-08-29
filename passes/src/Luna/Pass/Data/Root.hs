@@ -1,3 +1,6 @@
+{-# LANGUAGE NoStrict     #-}
+{-# LANGUAGE NoStrictData #-}
+
 module Luna.Pass.Data.Root where
 
 import Prologue
@@ -15,7 +18,7 @@ import Data.Graph.Data.Component.Class (unsafeNull)
 
 -- === Definition === --
 
-newtype Root = Root (IR.SomeTerm)
+newtype Root = Root IR.SomeTerm
 makeLenses ''Root
 
 

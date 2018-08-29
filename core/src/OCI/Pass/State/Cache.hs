@@ -27,3 +27,4 @@ import Prologue
 --     layoutCache = Type.mkCacheName layoutName
 --     passInst    = TySynInstD ''Pass.StateLayout
 --                 $ TySynEqn [ConT name] (ConT layoutCache)
+

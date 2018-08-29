@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict             #-}
+{-# LANGUAGE NoStrictData         #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Luna.Syntax.Text.Scope where
@@ -84,3 +86,4 @@ instance Monad m => Assoc.Reader Name (StateT Scope m) where
 
 instance Monad m => Assoc.Writer Name (StateT Scope m) where
     writeLabel a n = State.modify_ @Scope $ assocMap %~ Map.insert n a
+

@@ -43,3 +43,4 @@ instance Fold.Builder t m a
       => Fold.Builder (Struct t) m (Maybe a) where
     build = maybe id (Fold.build @t)
     {-# INLINE build #-}
+

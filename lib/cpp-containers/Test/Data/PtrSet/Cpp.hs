@@ -1,4 +1,7 @@
+{-# LANGUAGE NoStrict #-}
+{-# LANGUAGE NoStrictData #-}
 {-# LANGUAGE BangPatterns #-}
+
 module Test.Data.PtrSet.Cpp where
 
 -- import Prologue

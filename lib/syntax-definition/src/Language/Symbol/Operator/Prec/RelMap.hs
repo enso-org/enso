@@ -1,3 +1,6 @@
+{-# LANGUAGE NoStrict #-}
+{-# LANGUAGE NoStrictData #-}
+
 module Language.Symbol.Operator.Prec.RelMap where
 
 import Prologue

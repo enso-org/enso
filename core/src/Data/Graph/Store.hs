@@ -212,3 +212,4 @@ deserialize :: ∀ comp layout m. Deserializer m
     => Rooted (Component comp layout)
     -> m (Component comp layout)
 deserialize = fmap fst . deserializeWithRedirects
+

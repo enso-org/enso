@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP               #-}
+{-# LANGUAGE CPP #-}
 
 module Luna.Prim.DynamicLinker.Cache where
 
@@ -6,7 +6,8 @@ import Prologue
 
 import qualified Data.HashMap.Strict as HashMap
 
-import Control.Concurrent      (MVar, newMVar, modifyMVar, readMVar, takeMVar)
+import Control.Concurrent      (MVar, newMVar, modifyMVar, readMVar,
+                                takeMVar, swapMVar)
 import Data.Hashable           (Hashable)
 import Data.HashMap.Strict     (HashMap)
 import Foreign.Ptr             (FunPtr, Ptr, castFunPtr)
@@ -15,7 +16,7 @@ import Luna.Prim.DynamicLinker (Handle, loadLibrary, closeLibrary, loadSymbol)
 #if ! mingw32_HOST_OS
 import qualified System.Posix.DynamicLinker as Unix
 #endif
-    
+
 newtype HandleKey = HandleKey (Ptr ())
     deriving (Eq, Generic, Ord, Show)
 makeLenses ''HandleKey
@@ -28,7 +29,7 @@ toKey = HandleKey
 #else
 toKey :: Handle -> HandleKey
 toKey = HandleKey . Unix.packDL
-#endif    
+#endif
 
 data Cache = Cache
     { _moduleMap :: HashMap Text Handle
@@ -39,6 +40,9 @@ makeLenses ''Cache
 
 newtype CacheCtx = CacheCtx (MVar Cache)
     deriving (Eq, Generic)
+
+instance Default Cache where
+    def = Cache HashMap.empty HashMap.empty
 
 create :: IO CacheCtx
 create = CacheCtx <$> newMVar (Cache HashMap.empty HashMap.empty)
@@ -53,8 +57,8 @@ loadLibraryCached (CacheCtx cacheCtx) moduleName = do
             -- Note: loadLibrary can be really slow,
             -- we don't want to run it within MVar
             newHandle <- loadLibrary $ convert moduleName
-            -- In the meantime module could have been added to cache by 
-            -- other thread. We do not want to leak handles - get rid of 
+            -- In the meantime module could have been added to cache by
+            -- other thread. We do not want to leak handles - get rid of
             -- our (now duplicate) one.
             modifyMVar cacheCtx $ \cache ->
                 case lookupModule cache of
@@ -64,7 +68,7 @@ loadLibraryCached (CacheCtx cacheCtx) moduleName = do
                     Nothing -> do
                         let updateMap = HashMap.insert moduleName newHandle
                         pure (over moduleMap updateMap cache, newHandle)
-    
+
 
 lookupSymbolCached :: CacheCtx -> (Handle, Text) -> IO (FunPtr a)
 lookupSymbolCached (CacheCtx cacheCtx) (handle, symbol) = do
@@ -84,7 +88,7 @@ lookupSymbolCached (CacheCtx cacheCtx) (handle, symbol) = do
 -- The cache context is not usable anymore.
 finalize :: CacheCtx -> IO ()
 finalize (CacheCtx ctxInside) = do
-    Cache cache _ <- takeMVar ctxInside
+    Cache cache _ <- swapMVar ctxInside def
     let handles = HashMap.elems cache
     sequence_ (closeLibrary <$> handles)
 

@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict #-}
+{-# LANGUAGE NoStrictData #-}
 {-# LANGUAGE TypeInType #-}
 
 module Data.Property where
@@ -25,3 +27,4 @@ type obj # key = Get key obj
 -- === Invariants === --
 
 type GetSetInvariant key obj = Set key (Get key obj) obj ~ obj
+

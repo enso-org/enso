@@ -1,4 +1,6 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
+{-# LANGUAGE NoStrict                  #-}
+{-# LANGUAGE NoStrictData              #-}
 {-# LANGUAGE UndecidableInstances      #-}
 
 module Luna.Syntax.Text.Parser.Pass.Definition where
@@ -105,3 +107,4 @@ runParser__ p src = do
                                        $ State.runDefT @Marker.TermOrphanList
                                        $ fromIRB $ fromIRBS irbs
             pure (ref, gidMap)
+

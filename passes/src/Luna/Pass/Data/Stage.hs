@@ -1,3 +1,6 @@
+{-# LANGUAGE NoStrict     #-}
+{-# LANGUAGE NoStrictData #-}
+
 module Luna.Pass.Data.Stage where
 
 import Prologue
@@ -25,3 +28,4 @@ type instance Graph.ComponentLayers Stage IR.Terms
 
 type Monad = Scheduler.SchedulerT (Graph.GraphT Stage IO)
 type Pass  = Pass.Pass Stage
+

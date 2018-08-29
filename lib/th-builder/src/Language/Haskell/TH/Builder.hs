@@ -1,5 +1,4 @@
 {-# LANGUAGE ExistentialQuantification #-}
-{-# LANGUAGE OverloadedStrings         #-}
 {-# LANGUAGE UndecidableInstances      #-}
 
 module Language.Haskell.TH.Builder (module Language.Haskell.TH.Builder, module X) where

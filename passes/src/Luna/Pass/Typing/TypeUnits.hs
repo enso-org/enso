@@ -1,3 +1,6 @@
+{-# LANGUAGE NoStrict     #-}
+{-# LANGUAGE NoStrictData #-}
+
 module Luna.Pass.Typing.TypeUnits where
 
 import Prologue
@@ -52,3 +55,4 @@ typeUnits units = mfix $ \typedUnits -> do
             return $ Typed.Class processedMeths conses
         return $ Typed.Unit processedDefs processedClasses
     return $ Typed.Units processedUnits
+

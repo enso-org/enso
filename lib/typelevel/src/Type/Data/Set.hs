@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict             #-}
+{-# LANGUAGE NoStrictData         #-}
 {-# LANGUAGE TypeInType           #-}
 {-# LANGUAGE UndecidableInstances #-}
 
@@ -49,3 +51,4 @@ type family RawMember k s where
     RawMember k '[]     = 'False
     RawMember k (k ': _) = 'True
     RawMember k (_ ': s) = RawMember k s
+

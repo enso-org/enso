@@ -37,4 +37,3 @@ type family   BasicPassSpec t where
     BasicPassSpec (Pass.In Pass.Attrs) = '[]
     BasicPassSpec (Pass.Out a)         = BasicPassSpec (Pass.In a)
 
-

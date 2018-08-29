@@ -1,3 +1,5 @@
+{-# LANGUAGE NoStrict             #-}
+{-# LANGUAGE NoStrictData         #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Luna.Pass.Typing.MethodImporter where
@@ -126,3 +128,4 @@ importMethodDef req arising mod cls n = do
             traverse_ (Requester.setRequester req) apps
             IR.deleteSubtreeWithWhitelist (Set.fromList $ [tp] <> unis <> accs <> apps) hdr
             return $ Right (tp, Layout.unsafeRelayout <$> accs)
+
