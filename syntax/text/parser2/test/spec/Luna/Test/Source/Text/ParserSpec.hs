@@ -426,12 +426,22 @@ debugSpec = describe "error" $ it "x" $ do
     -- let input     = "a = x: «0» foo b"
     -- let input     = "\171\&0\187def main:\n    None"
     -- let input     = "«0»def main:\n    None"
-    let input     = "a = 1"
     -- let input     = "a = b"
+    let
         toks      = Parser.run Parsing.Syntax1 input
         layouted  = ExprBuilder.discoverLayouts toks
         statement = ExprBuilder.buildFlatStatement layouted
         stream    = ExprBuilder.buildStream toks
+        input = [qqStr| def getCurrentPrices crypto fiat:
+    «0»baseUri = "https://min-api.cryptocompare.com/data/price?"
+    «3»withFsym = baseUri + "fsym=" + crypto
+    «4»withTsym = withFsym + "&tsyms=" + fiat
+    «5»result = Http.getJSON withTsym . lookupReal fiat
+    result
+
+def main:
+    «2»node1 = every 500.miliseconds (getCurrentPrices "BTC" "USD")
+        |]
 
     putStrLn "\nTOKS:\n"
     pprint toks

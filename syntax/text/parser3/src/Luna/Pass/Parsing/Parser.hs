@@ -264,14 +264,14 @@ go = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
                     [] -> flip IR.marked' a =<< go baseTok
                     _  -> parseError
             Ast.Cons name -> handleListOp (IR.cons' name)
-            _ -> error (show tok)
+            _ -> continue
     Ast.Comment c -> parseError
 
     x -> error $ "TODO: " <> show x
     where addCodeSpan cs ir = do
-              putStrLn "\n\n"
-              print . IR.showTag =<< Layer.read @IR.Model ir
-              print cs
+            --   putStrLn "\n\n"
+            --   print . IR.showTag =<< Layer.read @IR.Model ir
+            --   print cs
               ir <$ IR.writeLayer @CodeSpan ir cs
           parseError        = IR.invalid' Invalid.ParserError
 {-# NOINLINE go #-}
