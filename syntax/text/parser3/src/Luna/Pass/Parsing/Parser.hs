@@ -25,6 +25,7 @@ import qualified Luna.Pass.Parsing.Macro                   as Macro
 import qualified Luna.Pass.Parsing.Parserx                 as Stage1
 import qualified Luna.Pass.Scheduler                       as Scheduler
 import qualified Luna.Syntax.Text.Parser.Data.CodeSpan     as CodeSpan
+import qualified Luna.Syntax.Text.Parser.Data.CodeSpan     as CodeSpan
 import qualified Luna.Syntax.Text.Parser.Data.Name.Special as Name
 import qualified Luna.Syntax.Text.Parser.IR.Ast            as Ast
 import qualified Luna.Syntax.Text.Parser.State.Marker      as Marker
@@ -242,7 +243,9 @@ go = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
                 | var == "def_:" -> case argToks of
                     (name :| [params, body]) -> do
                         let Ast.List params_ = Ast.unspan params
-                        name'   <- go name
+                            xname = name & Ast.span . CodeSpan.realSpan . Span.offset %~ (+3)
+                                         & Ast.span . CodeSpan.viewSpan . Span.offset %~ (+3)
+                        name'   <- go xname
                         params' <- go <$$> params_
                         body'   <- go body
                         IR.function' name' params' body'
@@ -258,20 +261,17 @@ go = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
             Ast.Marker c -> do
                 a :| as <- go <$$> argToks
                 case as of
-                    [] -> do
-                        marker <- IR.marker $ fromIntegral c
-                        addCodeSpan (baseTok ^. Ast.span) marker
-                        IR.marked' marker a
-                    _    -> parseError
+                    [] -> flip IR.marked' a =<< go baseTok
+                    _  -> parseError
             Ast.Cons name -> handleListOp (IR.cons' name)
             _ -> error (show tok)
     Ast.Comment c -> parseError
 
     x -> error $ "TODO: " <> show x
     where addCodeSpan cs ir = do
-            --   putStrLn "\n\n"
-            --   print . IR.showTag =<< Layer.read @IR.Model ir
-            --   print cs
+              putStrLn "\n\n"
+              print . IR.showTag =<< Layer.read @IR.Model ir
+              print cs
               ir <$ IR.writeLayer @CodeSpan ir cs
           parseError        = IR.invalid' Invalid.ParserError
 {-# NOINLINE go #-}
