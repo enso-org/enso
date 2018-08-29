@@ -179,7 +179,6 @@ go = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
     Ast.Invalid   inv  -> IR.invalid' inv
 
     -- Expressions
-    Ast.Missing        -> IR.missing'
     Ast.Unit      ls   -> do
         (ih      :: IR.SomeTerm) <- IR.importHub' []
         (unitCls :: IR.SomeTerm) <- IR.record' False "" [] [] =<< (go <$$> ls)
