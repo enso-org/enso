@@ -133,12 +133,12 @@ data Chunk
     | ManyNonSpacedExpr
     | NonSpacedExpr
     | ExprBlock
-    deriving (Show)
+    deriving (Eq, Show)
 
 data SegmentList
     = SegmentListCons SegmentType Segment SegmentList
     | SegmentListNull
-    deriving (Show)
+    deriving (Eq, Show)
 
 data SegmentType
     = Required
@@ -148,14 +148,14 @@ data SegmentType
 data Segment = Segment
     { _segmentBase   :: Ast.Ast
     , _segmentChunks :: [Chunk]
-    } deriving (Show)
+    } deriving (Eq, Show)
 makeLenses ''Segment
 
 data Macro = Macro
     { _headSegment  :: Segment
     , _tailSegments :: SegmentList
     }
-    deriving (Show)
+    deriving (Eq, Show)
 makeLenses ''Macro
 
 
@@ -311,7 +311,7 @@ unsafeLineBreaks :: Parser [Ast]
 unsafeLineBreaks = many1 unsafeLineBreak
 {-# INLINE unsafeLineBreaks #-}
 
--- | The current implementation worss on token stream where some tokens are
+-- | The current implementation works on token stream where some tokens are
 --   line break indicators. After consuming such tokens we need to register them
 --   as offset in the following token.
 brokenLst :: Parser (NonEmpty Ast) -> Parser (NonEmpty Ast)
@@ -415,15 +415,22 @@ segmentList = go where
 
 -- === Section parsers === --
 
-macro :: Ast -> Macro -> Parser Ast
-macro = \(Ast.Spanned span tok) (Macro seg lst) -> do
-    psegs           <- withNextSegmentsReserved lst $ segment seg
-    (name, spanLst) <- segmentList (showSection tok) lst
-    let (tailSpan, slst) = mergeSpannedLists spanLst
-    let header = Ast.Spanned span $ Ast.Var name
-        group  = Ast.apps header  $ psegs <> slst
-        out    = group & Ast.span %~ (<> tailSpan)
-    pure out
+macro :: Ast -> Macro -> Parser [Ast]
+macro = \t@(Ast.Spanned span tok) (Macro seg lst) -> do
+    psegs <- withNextSegmentsReserved lst $ segment seg
+
+    let simpleOp = pure $ t : psegs
+        standard = do
+            (name, spanLst) <- segmentList (showSection tok) lst
+            let (tailSpan, slst) = mergeSpannedLists spanLst
+            let header = Ast.Spanned span $ Ast.Var name
+                group  = Ast.apps header  $ psegs <> slst
+                out    = group & Ast.span %~ (<> tailSpan)
+            pure [out]
+
+    case seg ^. segmentBase of
+        Ast.Operator {} -> if lst == SegmentListNull then simpleOp else standard
+        _ -> standard
 {-# INLINE macro #-}
 
 mergeSpannedLists :: [Spanned [Ast]] -> (CodeSpan, [Ast])
@@ -470,7 +477,7 @@ exprPart = option (Ast.invalid Invalid.EmptyExpression) exprPart'
 
 exprPart' :: Parser Ast
 exprPart' = buildExpr . convert =<< lines where
-    line          = buildExpr =<< multiLineToks
+    line          = (\x -> buildExpr $ trace ("\n\n+++\n" <> ppShow x) x) =<< multiLineToks
     lines         = (:|) <$> line <*> nextLines
     nextLines     = option mempty (brokenLst' $ Indent.indented *> lines)
     lineJoin      = satisfyAst Ast.isOperator <* leftSpaced peekSymbol
@@ -481,7 +488,7 @@ exprPart' = buildExpr . convert =<< lines where
         tok <- anySymbolNotReserved
         let sym = Ast.unspan tok
         lookupSection sym >>= \case
-            Just sect -> pure <$> macro tok sect
+            Just sect -> macro tok sect
             Nothing   -> case sym of
                 Ast.Operator _ -> (tok:) <$> option [] (pure <$> multiLineExprBlock)
                 _              -> pure [tok]
@@ -500,10 +507,10 @@ nonSpacedExpr' = buildExpr =<< go where
     go = do
         tok  <- anySymbolNotReserved
         head <- lookupSection (Ast.unspan tok) >>= \case
-            Nothing   -> pure  tok
+            Nothing   -> pure  [tok]
             Just sect -> macro tok sect
         let loop = nextTokenNotLeftSpaced >> go
-        (head:) <$> option mempty loop
+        (head <>) <$> option mempty loop
 {-# INLINE nonSpacedExpr' #-}
 
 exprBlock :: Parser Ast
@@ -558,6 +565,9 @@ syntax_classDef = mkMacro
                  (Ast.Var      "class") [NonSpacedExpr, ManyNonSpacedExpr]
     +! mkSegment (Ast.Operator ":")     [ExprBlock]
 
+syntax_lambda :: Macro
+syntax_lambda = mkMacro (Ast.Operator ":") [ExprBlock]
+
 hardcodePredefinedMacros :: State.Monad Registry m => m ()
 hardcodePredefinedMacros = mapM_ registerSection
     [ syntax_if_then_else
@@ -565,5 +575,6 @@ hardcodePredefinedMacros = mapM_ registerSection
     , syntax_group
     , syntax_list
     , syntax_funcDef
+    , syntax_lambda
     , syntax_classDef
     ]

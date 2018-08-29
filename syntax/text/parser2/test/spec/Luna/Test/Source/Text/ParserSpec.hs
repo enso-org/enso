@@ -421,7 +421,10 @@ debugSpec = describe "error" $ it "x" $ do
     pure () :: IO ()
     putStrLn "\n"
 
-    let input     = "«0»def main:\n    None"
+    -- let input     = "a: b: c + d"
+    -- let input     = "a: b: c"
+    -- let input     = "a = x:«0» foo b"
+    let input     = " +a"
         toks      = Parser.run Parsing.Syntax1 input
         layouted  = ExprBuilder.discoverLayouts toks
         statement = ExprBuilder.buildFlatStatement layouted
@@ -441,7 +444,7 @@ debugSpec = describe "error" $ it "x" $ do
 
 
     putStrLn "\nRESULT:\n"
-    pprint $ Ast.simplify $ PP.run input
+    pprint $ Ast.simplify $ PP.runWith Macro.expr input
 
     True `shouldBe` False
 
@@ -449,17 +452,17 @@ debugSpec = describe "error" $ it "x" $ do
 
 spec :: Spec
 spec = do
-    identSpec
-    literalSpec
-    operatorSpec
-    mixfixSpec
-    missingSectionsSpec
-    layoutSpec
-    funcDefSpec
-    classDefSpec
-    caseSpec
-    importSpec
-    commentSpec
+    -- identSpec
+    -- literalSpec
+    -- operatorSpec
+    -- mixfixSpec
+    -- missingSectionsSpec
+    -- layoutSpec
+    -- funcDefSpec
+    -- classDefSpec
+    -- caseSpec
+    -- importSpec
+    -- commentSpec
 
     debugSpec
 

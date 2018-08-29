@@ -10,6 +10,7 @@ import qualified Control.Monad.State.Layered               as State
 import qualified Data.Graph.Component.Node.Destruction     as Component
 import qualified Data.Graph.Data.Graph.Class               as Graph
 import qualified Data.Map                                  as Map
+import qualified Data.Mutable.Class                        as Mutable
 import qualified Data.Set                                  as Set
 import qualified Data.Text.Span                            as Span
 import qualified Language.Symbol.Operator.Assoc            as Assoc
@@ -132,14 +133,27 @@ runMeDebug ast = do
     --                                    $ fromIRB $ fromIRBS irbs
     --         pure (ref, gidMap)
 
-
+type instance Item (NonEmpty a) = a
 
 buildGraph :: forall m. BuilderMonad m => Ast -> m IR.SomeTerm
 buildGraph = go
 {-# INLINE buildGraph #-}
 
+strGo :: forall m. BuilderMonad m => Ast.Spanned (Ast.StrChunk Ast.Ast) -> m IR.SomeTerm
+strGo = \(Spanned cs a) -> addCodeSpan cs =<< case a of
+    Ast.StrPlain t -> IR.rawString' =<< Mutable.fromList (toString t)
+    _              -> IR.invalid' Invalid.ParserError
+    where addCodeSpan cs ir = ir <$ IR.writeLayer @CodeSpan ir cs
+
 go :: forall m. BuilderMonad m => Ast -> m IR.SomeTerm
 go = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
+    Ast.Number     num -> do
+        intPart <- Mutable.fromList (toList num)
+        empty   <- Mutable.new
+        IR.number' 10 intPart empty
+    Ast.Str       strs -> do
+        [str] <- strGo <$$> strs
+        return str
     Ast.Cons      name -> IR.cons'  name []
     Ast.Var       name -> IR.var'   name
     Ast.Operator  name -> IR.var'   name
@@ -160,6 +174,11 @@ go = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
                 case as of
                     [a2] -> t a a2
                     _    -> parseError
+            handleListOp t = do
+                args <- go <$$> argToks
+                case toList args of
+                    [] -> parseError
+                    a  -> t a
             continue = do
                 base <- go baseTok
                 args <- go <$$> argToks
@@ -170,6 +189,8 @@ go = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
                 | op == Name.assign -> handleOp IR.unify'
                 | op == Name.lam    -> handleOp IR.lam'
                 | op == Name.acc    -> handleOp IR.acc'
+                | op == "(,)"       -> handleListOp IR.tuple'
+                | op == "(_)"       -> handleListOp IR.list'
                 | otherwise         -> continue
             Ast.Var var -> if
                 | var == "def_:" -> case argToks of
@@ -181,7 +202,28 @@ go = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
                         IR.function' name' params' body'
                     _ -> parseError
                 | otherwise      -> continue
-            _ -> continue
+            -- Ast.Comment c -> do
+            --     a :| as <- go <$$> argToks
+            --     case as of
+            --         [a2] -> do
+            --             doc <- Mutable.fromList (toString c)
+            --             IR.documented' doc a2
+            --         _    -> parseError
+            Ast.Marker c -> do
+                a :| as <- go <$$> argToks
+                case as of
+                    [a2] -> do
+                        marker <- IR.marker $ fromIntegral c
+                        IR.marked' marker a2
+                    _    -> parseError
+            Ast.Cons name -> handleListOp (IR.cons' name)
+            _ -> error (show tok)
+    Ast.Comment c -> parseError
+    Ast.Block b -> do
+        foo :| foos <- go <$$> b
+        a <- foldlM IR.seq' foo foos
+        return a
+    Ast.Marker m -> IR.marker' $ fromIntegral m
     x -> error $ "TODO: " <> show x
     where addCodeSpan cs ir = ir <$ IR.writeLayer @CodeSpan ir cs
           parseError        = IR.invalid' Invalid.ParserError

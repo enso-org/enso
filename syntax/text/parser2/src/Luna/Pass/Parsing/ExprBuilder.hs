@@ -332,7 +332,7 @@ buildStream = \(reverse -> stream) -> case stream of
         NotFound          -> goOp tok toks
         Invalid inv toks' -> goEl Name.invalid inv toks'
     where goOp      = buildOpStream . EndElStream
-          goEl name = buildElStream . EndOpStream name . rightSection
+          goEl name = buildElStream . EndOpStream name . Ast.sectionLeft
 {-# INLINE buildStream #-}
 
 buildOpStream :: ElStream -> [Ast] -> Stream
@@ -352,17 +352,6 @@ buildElStream = \(result@(OpStream name stp)) -> \case
         InfixOp f s -> OpStreamStart name (f Ast.missing) s
     (tok:toks) -> buildOpStream (InfixElStream tok result) toks
 {-# NOINLINE buildElStream #-}
-
-
--- === Utils === --
-
-leftSection :: Ast -> Ast -> Ast
-leftSection = \a -> Ast.app2 a Ast.missing
-{-# INLINE leftSection #-}
-
-rightSection :: Ast -> Ast -> Ast
-rightSection = \a -> flip (Ast.app2 a) Ast.missing
-{-# INLINE rightSection #-}
 
 
 -- === Operator discovery === --
@@ -415,10 +404,14 @@ type ExprBuilderMonad m = (Assoc.Reader Name m, Prec.RelReader Name m)
 
 buildExpr :: ExprBuilderMonad m => [Ast] -> m Ast
 buildExpr = \stream -> do
+    trace ("\n\n>>>\n" <> ppShow stream) $ pure ()
     let layouted  = discoverLayouts stream
         statement = buildFlatStatement layouted
     stream' <- buildUnspacedExprs statement
-    buildExprList stream'
+    out <- buildExprList stream'
+    trace ("\n\n<<<\n" <> ppShow out) $ pure ()
+
+    pure out
 {-# INLINE buildExpr #-}
 
 
@@ -476,7 +469,7 @@ buildExprOp__ = \stream stack -> let
     markStreamOpInvalid invSym = let
         inv f     = Ast.Spanned (f ^. Ast.span) (Ast.Invalid invSym)
         newStream = OpStream Name.invalid $ case streamTp of
-            EndOp   f   -> EndOp   (rightSection (inv $ fillMissing f))
+            EndOp   f   -> EndOp   (Ast.sectionLeft (inv $ fillMissing f))
             InfixOp f s -> InfixOp (Ast.app2 (inv $ fillMissing f)) s
         in buildExprOp__ newStream stack
 

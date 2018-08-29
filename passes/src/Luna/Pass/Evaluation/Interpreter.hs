@@ -173,6 +173,7 @@ interpret' glob expr = Layer.read @IR.Model expr >>= \case
             lift $ Runtime.force $ Runtime.applyFun fun' arg'
     Uni.Acc a' name -> do
         a <- interpret glob =<< IR.source a'
+        let name = "Interpreter.interpret': FIXME method name"
         return $ do
             arg <- a
             lift $ Runtime.force $ Runtime.dispatchMethod name arg

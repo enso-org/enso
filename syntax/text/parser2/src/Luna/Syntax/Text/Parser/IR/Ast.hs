@@ -295,6 +295,8 @@ data Comment   t = Atom_Comment   { text     :: Text                    }
 data Invalid   t = Atom_Invalid   { desc     :: Invalid.Symbol          }
 
 data App       t = Atom_App       { func     :: Link' t, arg :: Link' t }
+data SectionLeft  t = Atom_SectionLeft  { arg      :: Link' t, func :: Link' t }
+data SectionRight t = Atom_SectionRight { func     :: Link' t, arg :: Link' t }
 data Missing   t = Atom_Missing
 data List      t = Atom_List      { items    :: [Link' t]               }
 data Unit      t = Atom_Unit      { items    :: [Link' t]               }
@@ -320,6 +322,8 @@ instance Show (Link' t) => Show (App       t) where show  (Atom_App       t1 t2)
 instance Show (Link' t) => Show (Missing   t) where show  (Atom_Missing        ) = "Missing"
 instance Show (Link' t) => Show (List      t) where show  (Atom_List      t1   ) = "List"      <> " (" <> show t1 <> ")"
 instance Show (Link' t) => Show (Unit      t) where show  (Atom_Unit      t1   ) = "Unit"      <> " (" <> show t1 <> ")"
+instance Show (Link' t) => Show (SectionLeft      t) where show  (Atom_SectionLeft  t1 t2) = "SectionLeft"  <> " (" <> show t1 <> ") (" <> show t2 <> ")"
+instance Show (Link' t) => Show (SectionRight     t) where show  (Atom_SectionRight t1 t2) = "SectionRight" <> " (" <> show t1 <> ") (" <> show t2 <> ")"
 instance (Show (Link' t), Show (Link t (StrChunk t))) => Show (Str       t) where show  (Atom_Str       t1   ) = "Str"       <> " (" <> show t1 <> ")"
 
 
@@ -340,6 +344,8 @@ pattern App       t1 t2 = AstApp       (Atom_App       t1 t2)
 pattern Missing         = AstMissing   (Atom_Missing)
 pattern List      t1    = AstList      (Atom_List      t1)
 pattern Unit      t1    = AstUnit      (Atom_Unit      t1)
+pattern SectionLeft  t1 t2 = AstSectionLeft  (Atom_SectionLeft  t1 t2)
+pattern SectionRight t1 t2 = AstSectionRight (Atom_SectionRight t1 t2)
 
 pattern SVar       t1    = SimpleAstVar       (Atom_Var       t1)
 pattern SCons      t1    = SimpleAstCons      (Atom_Cons      t1)
@@ -358,6 +364,8 @@ pattern SApp       t1 t2 = SimpleAstApp       (Atom_App       t1 t2)
 pattern SMissing         = SimpleAstMissing   (Atom_Missing)
 pattern SList      t1    = SimpleAstList      (Atom_List      t1)
 pattern SUnit      t1    = SimpleAstUnit      (Atom_Unit      t1)
+pattern SSectionLeft  t1 t2 = SimpleAstSectionLeft  (Atom_SectionLeft  t1 t2)
+pattern SSectionRight t1 t2 = SimpleAstSectionRight (Atom_SectionRight t1 t2)
 
 -- deriving instance Show (Link' t) => Show (Var       t)
 -- deriving instance Show (Link' t) => Show (Cons      t)
@@ -393,6 +401,8 @@ deriving instance Eq (Link' t) => Eq (App       t)
 deriving instance Eq (Link' t) => Eq (Missing   t)
 deriving instance Eq (Link' t) => Eq (List      t)
 deriving instance Eq (Link' t) => Eq (Unit      t)
+deriving instance Eq (Link' t) => Eq (SectionLeft      t)
+deriving instance Eq (Link' t) => Eq (SectionRight      t)
 deriving instance Eq (Link' t) => Eq (StrChunk  t)
 deriving instance (Eq (Link' t), Eq (Link t (StrChunk t))) => Eq (Str t)
 
@@ -412,6 +422,8 @@ deriving instance Ord (Link' t) => Ord (App       t)
 deriving instance Ord (Link' t) => Ord (Missing   t)
 deriving instance Ord (Link' t) => Ord (List      t)
 deriving instance Ord (Link' t) => Ord (Unit      t)
+deriving instance Ord (Link' t) => Ord (SectionLeft      t)
+deriving instance Ord (Link' t) => Ord (SectionRight t)
 deriving instance Ord (Link' t) => Ord (StrChunk  t)
 deriving instance (Ord (Link' t), Ord (Link t (StrChunk t))) => Ord (Str t)
 
@@ -447,6 +459,8 @@ data Ast
     | AstMissing   (Missing Ast)
     | AstList      (List Ast)
     | AstUnit      (Unit Ast)
+    | AstSectionLeft (SectionLeft Ast)
+    | AstSectionRight (SectionRight Ast)
     deriving (Eq, Ord, Show)
 
 
@@ -483,6 +497,8 @@ data SimpleAst
     | SimpleAstMissing   (Missing SimpleAst)
     | SimpleAstList      (List SimpleAst)
     | SimpleAstUnit      (Unit SimpleAst)
+    | SimpleAstSectionLeft      (SectionLeft SimpleAst)
+    | SimpleAstSectionRight      (SectionRight SimpleAst)
     deriving (Eq, Ord)
 
 instance Show SimpleAst where
@@ -504,6 +520,8 @@ instance Show SimpleAst where
         SimpleAstMissing   t -> show t
         SimpleAstList      t -> show t
         SimpleAstUnit      t -> show t
+        SimpleAstSectionLeft      t -> show t
+        SimpleAstSectionRight      t -> show t
 
 
 sapp :: SimpleAst -> SimpleAst -> SimpleAst
@@ -728,6 +746,11 @@ dropOffset :: Spanned a -> Spanned a
 dropOffset = span %~ CodeSpan.dropOffset
 {-# INLINE dropOffset #-}
 
+inheritCodeSpan1 :: (Spanned Ast -> Ast) -> Spanned Ast -> Spanned Ast
+inheritCodeSpan1 = \f t1 -> let
+    s1 = t1 ^. span
+    in Spanned s1 $! f (dropOffset t1)
+{-# INLINE inheritCodeSpan1 #-}
 
 inheritCodeSpan2
     :: (Spanned Ast -> Spanned Ast -> Ast)
@@ -898,6 +921,14 @@ invalid = Spanned mempty . Invalid
 
 
 --
+
+sectionLeft :: Spanned Ast -> Spanned Ast -> Spanned Ast
+sectionLeft = inheritCodeSpan2 $ \arg func -> SectionLeft arg func
+{-# INLINE sectionLeft #-}
+
+sectionRight :: Spanned Ast -> Spanned Ast -> Spanned Ast
+sectionRight = inheritCodeSpan2 $ \func arg -> SectionRight func arg
+{-# INLINE sectionRight #-}
 
 app :: Spanned Ast -> Spanned Ast -> Spanned Ast
 app = inheritCodeSpan2 $ \func arg -> App func arg

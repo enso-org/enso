@@ -369,6 +369,7 @@ expr = fastExprByChar =<< peekToken
 exprs :: Parser ()
 exprs = let
     parser = do
+        Ast.whiteSpace
         many expr
         token '\ETX'
         pure ()

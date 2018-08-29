@@ -72,7 +72,10 @@ deepSolve root = do
 solve :: IR.Term IR.Acc
       -> TC.Pass MethodImporter (Either (IR.Term IR.Acc) [IR.Term IR.Acc])
 solve expr = do
-    IR.Acc t n <- IR.modelView expr
+    IR.Acc t n' <- IR.modelView expr
+    n <- IR.source n' >>= \a -> Layer.read @IR.Model a >>= \case
+        Uni.Var name -> return name
+        _            -> error "MethodImporter.solve: unknown name"
     target     <- IR.source t
     req        <- Requester.getRequester expr
     arising    <- Requester.getArising expr
