@@ -68,6 +68,8 @@ type family   Spec  t where
 type BuilderMonad m =
     ( MonadIO m
     , Pass.Interface Parser m
+    , State.Getter Marker.TermMap m
+    , State.Setter Marker.TermMap m
     )
 
 
@@ -149,28 +151,60 @@ strGo = \(Spanned cs a) -> addCodeSpan cs =<< case a of
 
 
 discoverImports :: [Ast] -> ([Ast], [Ast])
-discoverImports = discoverImports__ mempty
+discoverImports = discoverImports__ mempty mempty
 {-# INLINE discoverImports #-}
 
-discoverImports__ :: [Ast] -> [Ast] -> ([Ast], [Ast])
-discoverImports__ = \results stream -> case stream of
-    []           -> (mempty, mempty)
+discoverImports__ :: [Ast] -> [Ast] -> [Ast] -> ([Ast], [Ast])
+discoverImports__ = \results others stream -> case stream of
+    []           -> (reverse others, reverse results)
     (line:lines) -> let
         break = (stream, results)
         in case Ast.unspan line of
-            Ast.App f a -> do
-                let (tok, arg :| args) = collectApps (pure a) f
-                case Ast.unspan tok of
+            Ast.App f a -> let (tok, arg :| args) = collectApps (pure a) f
+                in case Ast.unspan tok of
                     Ast.Var "import" -> let
-                        results' = results -- FIXME
-                        in discoverImports__ results' lines
-                    _ -> break
-            _ -> break
+                        results' = line : results -- FIXME
+                        in discoverImports__ results' others lines
+                    _ -> discoverImports__ results (line:others) lines
+            _ -> discoverImports__ results (line:others) lines
 
 -- splitOnAccessors__ :: [Ast] -> Ast -> [Ast]
 -- splitOnAccessors__ = \results tok -> case Ast.unspan tok of
 --     Ast.App f a -> case Ast.unspan f of
 --         Ast.Operator "." -> splitOnAccessors__ (a:)
+
+infixImportName :: Ast -> Maybe IR.Qualified
+infixImportName = \(Spanned cs ast) -> case ast of
+    Ast.InfixApp l f r -> case Ast.unspan f of
+        Ast.Operator op -> if
+            | op == Name.acc -> do
+                l' <- infixImportName l
+                r' <- infixImportName r
+                return $ l' <> "." <> r'
+            | otherwise      -> Nothing
+        _ -> Nothing
+    Ast.Cons v -> return $ convert v
+
+importGo :: forall m. BuilderMonad m => Ast -> m IR.SomeTerm
+importGo = \a@(Spanned cs ast) -> addCodeSpan cs =<< case ast of
+    Ast.Cons v -> do
+        isrc <- IR.importSource $ IR.Absolute (convert v)
+        IR.imp' isrc IR.Everything
+    Ast.InfixApp l f r -> do
+        let name = infixImportName a
+        case name of
+            Just n -> do
+                isrc <- IR.importSource $ IR.Absolute n
+                IR.imp' isrc IR.Everything
+            _ -> parseError
+    _ -> parseError
+    where addCodeSpan cs ir = do
+              -- putStrLn "\n\n"
+              -- print . IR.showTag =<< Layer.read @IR.Model ir
+              -- print cs
+              ir <$ IR.writeLayer @CodeSpan ir cs
+
+          parseError = IR.invalid' Invalid.ParserError
 
 go :: forall m. BuilderMonad m => Ast -> m IR.SomeTerm
 go = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
@@ -188,28 +222,35 @@ go = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
     Ast.Var       name -> IR.var'   name
     Ast.Cons      name -> IR.cons'  name []
     Ast.Operator  name -> IR.var'   name
-    Ast.Modifier  name -> error "TODO" -- we need to discuss handling it in IR
+    -- Ast.Modifier  name -> error "TODO" -- we need to discuss handling it in IR
     Ast.Wildcard       -> IR.blank'
 
     -- Layouting
     Ast.Block b -> do
         foo :| foos <- go <$$> b
-        foldlM IR.seq' foo foos
+        let f acc new = do
+                csAcc <- IR.readLayer @CodeSpan acc
+                csNew <- IR.readLayer @CodeSpan new
+                ir <- IR.seq' acc new
+                IR.writeLayer @CodeSpan ir (csAcc <> csNew)
+                return ir
+        foldlM f foo foos
     Ast.Marker m -> IR.marker' $ fromIntegral m
     Ast.LineBreak ind  -> impossible -- All line breaks handled in parser
 
     -- Docs
-    Ast.Comment a -> error "TODO" -- we need to handle non attached comments
+    -- Ast.Comment a -> error "TODO" -- we need to handle non attached comments
 
     -- Errors
     Ast.Invalid   inv  -> IR.invalid' inv
 
     -- Expressions
     Ast.Unit      ls   -> do
-        -- let (ls', imps) = discoverImports ls
-        -- error $ ppShow imps
-        (ih      :: IR.SomeTerm) <- IR.importHub' []
-        (unitCls :: IR.SomeTerm) <- IR.record' False "" [] [] =<< (go <$$> ls)
+        let (ls', imps) = discoverImports ls
+        let impsSpan = collectSpan imps
+        (ih      :: IR.SomeTerm) <- IR.importHub' =<< (go <$$> imps)
+        IR.writeLayer @CodeSpan ih impsSpan
+        (unitCls :: IR.SomeTerm) <- IR.record' False "" [] [] =<< (go <$$> ls')
         IR.unit' ih [] unitCls
     Ast.InfixApp l f r -> do
         let tok = Ast.unspan f
@@ -280,27 +321,26 @@ go = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
                                 IR.function' name' params' body'
                             _ -> parseError
                     _ -> parseError
+                | var == "import" -> importGo $ Ast.prependAsOffset tok arg
+
                 | otherwise -> continue
-            -- Ast.Comment c -> do
-            --     a :| as <- go <$$> arg :| args
-            --     case as of
-            --         [a2] -> do
-            --             doc <- Mutable.fromList (toString c)
-            --             IR.documented' doc a2
-            --         _    -> parseError
             Ast.Marker c -> do
                 a :| as <- go <$$> (arg :| args)
                 case as of
-                    [] -> flip IR.marked' a =<< go tok
+                    [] -> do
+                        marked <- flip IR.marked' a =<< go tok
+                        State.modify_ @Marker.TermMap $ wrapped %~ Map.insert (fromIntegral c) marked
+                        return marked
                     _  -> parseError
+            Ast.Comment c -> continue
             _ -> continue
     Ast.Comment c -> parseError
 
     x -> error $ "TODO: " <> show x
     where addCodeSpan cs ir = do
-            --   putStrLn "\n\n"
-            --   print . IR.showTag =<< Layer.read @IR.Model ir
-            --   print cs
+              -- putStrLn "\n\n"
+              -- print . IR.showTag =<< Layer.read @IR.Model ir
+              -- print cs
               ir <$ IR.writeLayer @CodeSpan ir cs
           parseError = IR.invalid' Invalid.ParserError
 {-# NOINLINE go #-}
@@ -318,10 +358,10 @@ collectApps = \apps tok -> case Ast.unspan tok of
     Ast.App f a -> collectApps (a <| apps) f
     _           -> (tok, apps)
 
-collectSpan :: NonEmpty Ast -> CodeSpan
-collectSpan = \lst -> let
-    s :| ss = view Ast.span <$> lst
-    in foldl' (<>) s ss
+collectSpan :: [Ast] -> CodeSpan
+collectSpan = \lst -> case lst of
+    []       -> mempty
+    (s : ss) -> view Ast.span s <> collectSpan ss
 {-# INLINE collectSpan #-}
 
 t <| (a :| as) = t :| (a : as)
