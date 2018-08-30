@@ -339,6 +339,14 @@ instance ( MonadIO m -- DEBUG ONLY
             args' <- mapM subgen =<< ComponentVector.toList args
             foldM appSymbols (simple $ convert (Name.concat [convert m, ".", c, ".", cons])) args'
         IR.UniTermResolvedDef (IR.ResolvedDef m n) -> pure . unnamed $ Atom (convert $ Name.concat [convert m, ".", n])
+        IR.UniTermModify (IR.Modify a ns n v) -> named (spaced updateName) . Atom .:.
+            (\a' v' ns' -> convert a' <> "." <> intercalate "." (convert <$> ns')
+                <+> convert n <> "=" <+> convert v')
+            <$> subgen a <*> subgen v <*> Mutable.toList ns
+
+        IR.UniTermUpdate (IR.Update a ns v) -> named (spaced updateName) . Atom .:.
+            (\a' v' ns' -> convert a' <> "." <> intercalate "." (convert <$> ns')
+            <+> "=" <+> convert v') <$> subgen a <*> subgen v <*> Mutable.toList ns
 
         t -> error $ "NO PRETTYPRINT FOR: " <> show t
 
