@@ -460,8 +460,18 @@ showSection = \case
 
 -- === API === --
 
+-- TODO: refactor marker handling in expr and expr'
 expr :: Parser Ast
-expr = Indent.withCurrent exprPart
+expr = do
+    let isMarker = \case
+            Ast.Marker {} -> True
+            _ -> False
+        marked = do
+            marker <- satisfyAst isMarker
+            expr   <- exprPart
+            pure $ Ast.app marker expr
+
+    Indent.withCurrent $ marked <|> exprPart
 {-# INLINE expr #-}
 
 unit :: Parser Ast
@@ -470,7 +480,16 @@ unit = Ast.unit <$> option mempty bodyLines where
 {-# INLINE unit #-}
 
 expr' :: Parser Ast
-expr' = Indent.withCurrent exprPart'
+expr' = do
+    let isMarker = \case
+            Ast.Marker {} -> True
+            _ -> False
+        marked = do
+            marker <- satisfyAst isMarker
+            expr   <- exprPart'
+            pure $ Ast.app marker expr
+
+    Indent.withCurrent $ marked <|> exprPart'
 {-# INLINE expr' #-}
 
 exprPart :: Parser Ast
