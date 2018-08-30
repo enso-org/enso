@@ -133,6 +133,7 @@ data Chunk
     | ManyNonSpacedExpr
     | NonSpacedExpr
     | ExprBlock
+    | ExprList
     deriving (Eq, Show)
 
 data SegmentList
@@ -285,7 +286,7 @@ satisfyAst = \f -> peekSatisfyAst f <* dropToken
 {-# INLINE satisfyAst #-}
 
 peekSatisfyAst :: (Ast.Ast -> Bool) -> Parser Ast
-peekSatisfyAst = \f -> do
+peekSatisfyAst = \f -> notReserved $ do
     tok <- peekToken
     if f (Ast.unspan tok)
         then pure tok
@@ -380,6 +381,7 @@ chunk = \case
     NonSpacedExpr     -> nonSpacedExpr
     ManyNonSpacedExpr -> manyNonSpacedExpr
     ExprBlock         -> exprBlock
+    ExprList          -> exprList
 {-# INLINE chunk #-}
 
 chunks :: [Chunk] -> Parser [Ast]
@@ -514,8 +516,19 @@ nonSpacedExpr' = buildExpr =<< go where
 {-# INLINE nonSpacedExpr' #-}
 
 exprBlock :: Parser Ast
-exprBlock = multiLineExprBlock <|> expr where
+exprBlock = multiLineExprBlock <|> expr
 {-# INLINE exprBlock #-}
+
+exprList :: Parser Ast
+exprList = Ast.list <$> lst where
+    lst     = option mempty $ (:) <$> seg1 <*> segs
+    seg1    = possiblyBroken $ withReserved sepOp exprPart'
+    seg2    = possiblyBroken $ withReserved sepOp exprPart
+    segs    = many nextSeg
+    sep     = possiblyBroken $ ast sepOp
+    sepOp   = Ast.Operator ","
+    nextSeg = Ast.prependAsOffset <$> sep <*> seg2
+{-# INLINE exprList #-}
 
 multiLineExprBlock :: Parser Ast
 multiLineExprBlock = multiLine where
@@ -547,12 +560,12 @@ syntax_case = mkMacro
 
 syntax_group :: Macro
 syntax_group = mkMacro
-                 (Ast.Operator "(") [Expr]
+                 (Ast.Operator "(") [ExprList]
     +! mkSegment (Ast.Operator ")") []
 
 syntax_list :: Macro
 syntax_list = mkMacro
-                 (Ast.Operator "[") [Expr]
+                 (Ast.Operator "[") [ExprList]
     +! mkSegment (Ast.Operator "]") []
 
 syntax_funcDef :: Macro

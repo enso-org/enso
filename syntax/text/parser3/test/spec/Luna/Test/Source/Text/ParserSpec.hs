@@ -50,16 +50,7 @@ debugSpec :: Spec
 debugSpec = describe "error" $ it "x" $ do
     pure () :: IO ()
 
-    shouldParseAs [qqStr| def getCurrentPrices crypto fiat:
-    «0»baseUri = "https://min-api.cryptocompare.com/data/price?"
-    «3»withFsym = baseUri + "fsym=" + crypto
-    «4»withTsym = withFsym + "&tsyms=" + fiat
-    «5»result = Http.getJSON withTsym . lookupReal fiat
-    result
-
-def main:
-    «2»node1 = every 500.miliseconds (getCurrentPrices "BTC" "USD")
-        |] "B"
+    shouldParseAs "(1\n ,2)" "B"
 
 
 

@@ -169,8 +169,7 @@ go = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
     -- Layouting
     Ast.Block b -> do
         foo :| foos <- go <$$> b
-        a <- foldlM IR.seq' foo foos
-        pure a
+        foldlM IR.seq' foo foos
     Ast.Marker m -> IR.marker' $ fromIntegral m
     Ast.LineBreak ind  -> impossible -- All line breaks handled in parser
 
@@ -187,36 +186,26 @@ go = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
         IR.unit' ih [] unitCls
     Ast.InfixApp l f r -> do
         let tok = Ast.unspan f
-            prependOffsetSpan t = let
-                span = CodeSpan.asOffsetSpan $ t ^. Ast.span
-                in \s -> s & Ast.span . CodeSpan.realSpan . Span.offset %~ (+ (span ^. CodeSpan.realSpan . Span.offset))
-                           & Ast.span . CodeSpan.viewSpan . Span.offset %~ (+ (span ^. CodeSpan.viewSpan . Span.offset))
-            rx = prependOffsetSpan f r
+            specialOp = case tok of
+                Ast.Operator op -> if
+                    | op == Name.assign -> Just IR.unify'
+                    | op == Name.lam    -> Just IR.lam'
+                    | op == Name.acc    -> Just IR.acc'
+                    | otherwise         -> Nothing
+                _ -> Nothing
 
-
-        let continue = do
+        case specialOp of
+            Just op -> do
+                l' <- go l
+                r' <- go $! Ast.prependAsOffset f r
+                op l' r'
+            Nothing -> do
                 f' <- go f
                 l' <- go l
                 r' <- go r
                 (lf :: IR.SomeTerm) <- IR.app' f' l'
                 IR.app' lf r'
 
-        case tok of
-            Ast.Operator op -> if
-                | op == Name.assign -> do
-                    l' <- go l
-                    r' <- go rx
-                    IR.unify' l' r'
-                | op == Name.lam    -> do
-                    l' <- go l
-                    r' <- go rx
-                    IR.lam'   l' r'
-                | op == Name.acc    -> do
-                    l' <- go l
-                    r' <- go rx
-                    IR.acc'   l' r'
-                | otherwise         -> continue
-            _ -> continue
     Ast.SectionRight f r -> do
         f' <- go f
         r' <- go r
@@ -231,56 +220,52 @@ go = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
         -- Right now both sections have function link on the left side in IR.
         IR.sectionRight' f' l'
     Ast.App f a        -> do
-        let (baseTok, argToks) = collectApps (pure a) f
-            tok                = Ast.unspan baseTok
-            handleOp t = do
-                a :| as <- go <$$> argToks
-                case as of
-                    [a2] -> t a a2
-                    _    -> parseError
-            handleListOp t = do
-                args <- go <$$> argToks
-                case toList args of
-                    [] -> parseError
-                    a  -> t a
-            continue = do
-                base <- go baseTok
-                args <- go <$$> argToks
-                foldM IR.app' base args
+        let (tok, arg :| args) = collectApps (pure a) f
+            continue = appTailArgs =<< appHeadArg =<< go tok
 
-        case tok of
-            Ast.Operator op -> if
-                | op == Name.assign -> handleOp IR.unify'
-                | op == Name.lam    -> handleOp IR.lam'
-                | op == Name.acc    -> handleOp IR.acc'
-                | op == "(,)"       -> handleListOp IR.tuple'
-                | op == "(_)"       -> handleListOp IR.list'
-                | otherwise         -> continue
+            appHeadArg :: IR.SomeTerm -> m IR.SomeTerm
+            appHeadArg = \t -> do
+                arg' <- go arg
+                IR.app' t arg'
+
+            appTailArgs :: IR.SomeTerm -> m IR.SomeTerm
+            appTailArgs = \t -> do
+                args' <- go <$$> args
+                foldlM IR.app' t args'
+
+        case Ast.unspan tok of
             Ast.Var var -> if
-                | var == "def_:" -> case argToks of
-                    (name :| [params, body]) -> do
-                        let Ast.List params_ = Ast.unspan params
-                            xname = name & Ast.span . CodeSpan.realSpan . Span.offset %~ (+3)
-                                         & Ast.span . CodeSpan.viewSpan . Span.offset %~ (+3)
-                        name'   <- go xname
-                        params' <- go <$$> params_
-                        body'   <- go body
-                        IR.function' name' params' body'
+                | var == "(_)" -> appTailArgs =<< case Ast.unspan arg of
+                    Ast.List []  -> IR.tuple' []
+                    Ast.List [a] -> IR.grouped' =<< go a
+                    Ast.List as  -> IR.tuple'   =<< (go <$$> as)
+                    _            -> parseError
+                | var == "[_]"   -> appTailArgs =<< case Ast.unspan arg of
+                    Ast.List as -> IR.list' =<< (go <$$> as)
+                    _           -> parseError
+                | var == "def_:" -> case args of
+                    [paramLst, body] -> do
+                        case Ast.unspan paramLst of
+                            Ast.List params -> do
+                                name'   <- go $ Ast.prependAsOffset tok arg
+                                params' <- go <$$> params
+                                body'   <- go body
+                                IR.function' name' params' body'
+                            _ -> parseError
                     _ -> parseError
-                | otherwise      -> continue
+                | otherwise -> continue
             -- Ast.Comment c -> do
-            --     a :| as <- go <$$> argToks
+            --     a :| as <- go <$$> arg :| args
             --     case as of
             --         [a2] -> do
             --             doc <- Mutable.fromList (toString c)
             --             IR.documented' doc a2
             --         _    -> parseError
             Ast.Marker c -> do
-                a :| as <- go <$$> argToks
+                a :| as <- go <$$> (arg :| args)
                 case as of
-                    [] -> flip IR.marked' a =<< go baseTok
+                    [] -> flip IR.marked' a =<< go tok
                     _  -> parseError
-            Ast.Cons name -> handleListOp (IR.cons' name)
             _ -> continue
     Ast.Comment c -> parseError
 
@@ -290,7 +275,7 @@ go = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
             --   print . IR.showTag =<< Layer.read @IR.Model ir
             --   print cs
               ir <$ IR.writeLayer @CodeSpan ir cs
-          parseError        = IR.invalid' Invalid.ParserError
+          parseError = IR.invalid' Invalid.ParserError
 {-# NOINLINE go #-}
 
 -- foldM :: Monad m => (a -> b -> m a) -> a -> [b] -> m a

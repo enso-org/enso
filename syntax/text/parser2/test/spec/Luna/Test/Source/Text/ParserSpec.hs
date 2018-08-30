@@ -316,11 +316,13 @@ operatorSpec = describe "operator" $ do
 
 mixfixSpec :: Spec
 mixfixSpec = describe "groups" $ do
-    "empty group"  $ e "()"                 $ "(_)" emptyExpression
-    "group"        $ e "(a b)"              $ "(_)" ("a" "b")
-    "list"         $ e "[a b]"              $ "[_]" ("a" "b")
+    "empty group"  $ e "()"                 $ "(_)" []
+    "group"        $ e "(a b)"              $ "(_)" ["a" "b"]
+    "list"         $ e "[a b, c]"           $ "[_]" ["a" "b", "c"]
+    -- "section list" $ e "[, a]"              $ "[_]" [emptyExpression, "a"] -- FIXME
+    "section list" $ e "[a, , b]"           $ "[_]" ["a", emptyExpression, "b"]
     "a)"           $ e "a)"                 $ Ast.SSectionLeft "a" ")"
-    "nested rules" $ e "(if a then b) else" $ "(_)" ("if_then" "a" "b") "else"
+    "nested rules" $ e "(if a then b) else" $ "(_)" ["if_then" "a" "b"] "else"
     "dd"           $ e "if a b then c d"    $ "if_then" ("a" "b") ("c" "d")
 
 
@@ -432,13 +434,7 @@ debugSpec = describe "error" $ it "x" $ do
         layouted  = ExprBuilder.discoverLayouts toks
         statement = ExprBuilder.buildFlatStatement layouted
         stream    = ExprBuilder.buildStream toks
-        input = [qqStr|def foo:
-        «1»pi = 3.14
-
-    def main:
-        «0»c = 4.0
-
-    ## META {"metas":[{"marker":0,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":33,"_vector2_x":66}}}},{"marker":1,"meta":{"_displayResult":false,"_selectedVisualizer":null,"_position":{"fromPosition":{"_vector2_y":-33,"_vector2_x":-66}}}}]} |]
+        input = "[a, ,b]"
 
     putStrLn "\nTOKS:\n"
     pprint toks
@@ -455,10 +451,9 @@ debugSpec = describe "error" $ it "x" $ do
 
     putStrLn "\nRESULT:\n"
     pprint $ PP.runWith Macro.expr input
-    -- pprint $ Ast.simplify $ PP.runWith Macro.expr input
+    pprint $ Ast.simplify $ PP.runWith Macro.expr input
 
     True `shouldBe` False
-
 
 
 spec :: Spec
