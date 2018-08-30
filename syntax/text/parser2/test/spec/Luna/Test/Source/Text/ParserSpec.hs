@@ -434,7 +434,7 @@ debugSpec = describe "error" $ it "x" $ do
         layouted  = ExprBuilder.discoverLayouts toks
         statement = ExprBuilder.buildFlatStatement layouted
         stream    = ExprBuilder.buildStream toks
-        input = "\171\&1\187number1 = 456"
+        input = "import Std.Math"
 
     putStrLn "\nTOKS:\n"
     pprint toks

@@ -147,6 +147,31 @@ strGo = \(Spanned cs a) -> addCodeSpan cs =<< case a of
     _              -> IR.invalid' Invalid.ParserError
     where addCodeSpan cs ir = ir <$ IR.writeLayer @CodeSpan ir cs
 
+
+discoverImports :: [Ast] -> ([Ast], [Ast])
+discoverImports = discoverImports__ mempty
+{-# INLINE discoverImports #-}
+
+discoverImports__ :: [Ast] -> [Ast] -> ([Ast], [Ast])
+discoverImports__ = \results stream -> case stream of
+    []           -> (mempty, mempty)
+    (line:lines) -> let
+        break = (stream, results)
+        in case Ast.unspan line of
+            Ast.App f a -> do
+                let (tok, arg :| args) = collectApps (pure a) f
+                case Ast.unspan tok of
+                    Ast.Var "import" -> let
+                        results' = results -- FIXME
+                        in discoverImports__ results' lines
+                    _ -> break
+            _ -> break
+
+-- splitOnAccessors__ :: [Ast] -> Ast -> [Ast]
+-- splitOnAccessors__ = \results tok -> case Ast.unspan tok of
+--     Ast.App f a -> case Ast.unspan f of
+--         Ast.Operator "." -> splitOnAccessors__ (a:)
+
 go :: forall m. BuilderMonad m => Ast -> m IR.SomeTerm
 go = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
 
@@ -181,6 +206,8 @@ go = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
 
     -- Expressions
     Ast.Unit      ls   -> do
+        -- let (ls', imps) = discoverImports ls
+        -- error $ ppShow imps
         (ih      :: IR.SomeTerm) <- IR.importHub' []
         (unitCls :: IR.SomeTerm) <- IR.record' False "" [] [] =<< (go <$$> ls)
         IR.unit' ih [] unitCls

@@ -50,7 +50,7 @@ debugSpec :: Spec
 debugSpec = describe "error" $ it "x" $ do
     pure () :: IO ()
 
-    shouldParseAs "(1\n ,2)" "B"
+    shouldParseAs "import Std.Math" "B"
 
 
 
