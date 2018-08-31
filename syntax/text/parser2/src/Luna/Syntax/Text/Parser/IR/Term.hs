@@ -319,13 +319,13 @@ invalidOperatorSuffix = let
 -- === API === --
 
 comment :: Parser ()
-comment = commentChar >> parser where
+comment = Ast.register =<< Ast.computeSpan (commentChar >> parser) where
     commentChar = token commentStartChar
     body        = trimIndent <$> (multiLine <|> singleLine)
     multiLine   = commentChar *> flexBlock rawLine
     singleLine  = pure <$> rawLine
     rawLine     = takeWhile (not . isEolBeginChar)
-    parser      = Ast.register =<< Ast.computeSpan (Ast.Comment <$> body)
+    parser      = (Ast.Comment <$> body)
 {-# INLINE comment #-}
 
 -- comment :: Parser ()
