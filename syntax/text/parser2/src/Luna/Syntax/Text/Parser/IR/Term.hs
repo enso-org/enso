@@ -270,10 +270,12 @@ operator' = let
     base       = convert <$> takeWhile1 isOperatorBodyChar
     specialOps = tokens <$> ["<=", ">=", "==", "=", ".."]
     dots       = Ast.Operator . convert <$> choice (tokens <$> ["."])
+    comma      = Ast.Operator . convert <$> token ','
     special    = Ast.Operator . convert <$> choice specialOps
     normal     = base <**> option Ast.Operator (Ast.Modifier <$ token eqChar)
     correct    = special <|> normal
-    in (correct <**> option id (const <$> invalidOperatorSuffix)) <|> dots
+    in (correct <**> option id (const <$> invalidOperatorSuffix))
+       <|> dots <|> comma
 {-# NOINLINE operator' #-}
 
 unsafeAnyTokenOperator :: Parser ()
@@ -292,7 +294,10 @@ isOpenCloseChar = (`elem` ("(){}[]" :: [Char]))
 -- === Helpers === --
 
 isOperatorBodyChar :: Char -> Bool
-isOperatorBodyChar = \c -> c /= eqChar && c /= '.' && Name.isOperatorBeginChar c
+isOperatorBodyChar = \c -> c /= eqChar
+                        && c /= '.'
+                        && c /= ','
+                        && Name.isOperatorBeginChar c
 {-# INLINE isOperatorBodyChar #-}
 
 

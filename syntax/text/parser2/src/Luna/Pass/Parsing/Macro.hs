@@ -540,9 +540,11 @@ exprBlock = multiLineExprBlock <|> expr
 
 exprList :: Parser Ast
 exprList = Ast.list <$> lst where
-    lst     = option mempty $ (:) <$> seg1 <*> segs
+    lst     = option mempty $ nonEmptyHead <|> emptyHead
+    nonEmptyHead = (:) <$> seg1 <*> many nextSeg
+    emptyHead    = (Ast.missing:) <$> many1 nextSeg
     seg1    = possiblyBroken $ withReserved sepOp exprPart'
-    seg2    = possiblyBroken $ withReserved sepOp exprPart
+    seg2    = possiblyBroken $ withReserved sepOp (exprPart' <|> pure Ast.missing)
     segs    = many nextSeg
     sep     = possiblyBroken $ ast sepOp
     sepOp   = Ast.Operator ","

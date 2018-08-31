@@ -167,17 +167,23 @@ it_e' s = it_e s (convert s)
 
 
 
-----------------------
--- === Literals === --
-----------------------
+-----------------------
+-- === Ast utils === --
+-----------------------
 
--- __ :: Convertible' Ast.SimpleAst a => a
--- __ = convert' Ast.SMissing
+__ :: Convertible' Ast.SimpleAst a => a
+__ = convert' Ast.SMissing
 
 block = Ast.SBlock
 
 eq :: Ast.SimpleAst -> Ast.SimpleAst -> Ast.SimpleAst
 eq = flip Ast.SInfixApp "#=#"
+
+
+
+----------------------
+-- === Literals === --
+----------------------
 
 identSpec :: Spec
 identSpec = describe "identifier" $ do
@@ -238,6 +244,28 @@ literalStringSpec = describe "string" $ do
     -- "escape escape"     $ e [s|"foo\\"|]
     -- "implicite escape"  $ e [s|"foo\bar"|] [s|"foo\\bar"|]
 
+
+listLikeSpec :: String -> String -> Spec
+listLikeSpec open close = describe "list" $ do
+    let ee s r = e (open <> s <> close) $ convert (open <> "_" <> close) r
+    "empty"          $ ee ""       $ []
+    "singular"       $ ee "a"      $ ["a"]
+    "double"         $ ee "a b, c" $ ["a" "b", "c"]
+    "head section"   $ ee ",a"     $ [__, "a"]
+    "tail section"   $ ee "a,"     $ ["a", __]
+    "double section" $ ee ","      $ [__, __]
+    "triple section" $ ee ",,"     $ [__, __, __]
+    "side section"   $ ee ",a,"    $ [__, "a", __]
+
+literalListSpec :: Spec
+literalListSpec = listLikeSpec "[" "]"
+
+literalTupleSpec :: Spec
+literalTupleSpec = listLikeSpec "(" ")"
+
+    -- "section list" $ e "[, a]"              $ "[_]" [emptyExpression, "a"] -- FIXME
+    -- "section list" $ e "[a, , b]"           $ "[_]" ["a", emptyExpression, "b"]
+
 --     describe "interpolated" $ do
 --         it "empty"            $ expr [s|''|]
 --         it "simple"           $ expr [s|'Test'|]
@@ -264,9 +292,14 @@ literalSpec :: Spec
 literalSpec = describe "literal" $ do
     literalNumberSpec
     literalStringSpec
---     literalListSpec
---     literalTupleSpec
+    literalListSpec
+    literalTupleSpec
 
+
+
+-----------------------
+-- === Operators === --
+-----------------------
 
 operatorSpec :: Spec
 operatorSpec = describe "operator" $ do
@@ -318,9 +351,6 @@ mixfixSpec :: Spec
 mixfixSpec = describe "groups" $ do
     "empty group"  $ e "()"                 $ "(_)" []
     "group"        $ e "(a b)"              $ "(_)" ["a" "b"]
-    "list"         $ e "[a b, c]"           $ "[_]" ["a" "b", "c"]
-    -- "section list" $ e "[, a]"              $ "[_]" [emptyExpression, "a"] -- FIXME
-    "section list" $ e "[a, , b]"           $ "[_]" ["a", emptyExpression, "b"]
     "a)"           $ e "a)"                 $ Ast.SSectionLeft "a" ")"
     "nested rules" $ e "(if a then b) else" $ "(_)" ["if_then" "a" "b"] "else"
     "dd"           $ e "if a b then c d"    $ "if_then" ("a" "b") ("c" "d")
@@ -338,6 +368,11 @@ layoutSpec = describe "layout" $ do
     "broken expr 8"  $ e "if a then\n b\n c" $ "if_then" "a" (block ["b", "c"])
     "after operator" $ e "a: b:\n c\n d"  $ _x "a" ":" (_x "b" ":" (block ["c", "d"]))
 
+
+
+----------------------
+-- === Mixfixes === --
+----------------------
 
 -- | Testing all possible missing sections scenarios. We've got in scope
 --   definitions of both `if_then_else` as well as `if_then`. We try here all
@@ -373,8 +408,9 @@ missingSectionsSpec = describe "mixfix" $ let
 
 
 
-
-
+-------------------------
+-- === Definitions === --
+-------------------------
 
 funcDefSpec :: Spec
 funcDefSpec = describe "function" $ do
@@ -434,7 +470,7 @@ debugSpec = describe "error" $ it "x" $ do
         layouted  = ExprBuilder.discoverLayouts toks
         statement = ExprBuilder.buildFlatStatement layouted
         stream    = ExprBuilder.buildStream toks
-        input = "import Std.Math"
+        input = "[ 1,, 2]"
 
     putStrLn "\nTOKS:\n"
     pprint toks
