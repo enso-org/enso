@@ -78,7 +78,7 @@ unitSpec = describe "unit" $ do
 debugSpec :: Spec
 debugSpec = describe "error" $ it "debug" $ do
 
-    e "x" "x"
+    e "class Foox:\n Vector:\n  x y z :: Int\n  r t y :: String" "x"
 
 
 

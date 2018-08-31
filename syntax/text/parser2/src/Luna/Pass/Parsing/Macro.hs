@@ -134,6 +134,9 @@ data Chunk
     | NonSpacedExpr
     | ExprBlock
     | ExprList
+
+    -- To be removed in new syntax
+    | ClassBlock
     deriving (Eq, Show)
 
 data SegmentList
@@ -327,6 +330,14 @@ brokenLst' :: Parser (NonEmpty Ast) -> Parser [Ast]
 brokenLst' = fmap convert . brokenLst
 {-# INLINE brokenLst' #-}
 
+unsafeBrokenLst :: Parser [Ast] -> Parser [Ast]
+unsafeBrokenLst = \f -> do
+    spans    <- toksSpanAsSpace <$> unsafeLineBreaks
+    (a : as) <- f
+    let a' = a & Ast.span %~ (spans <>)
+    pure (a' : as)
+{-# INLINE unsafeBrokenLst #-}
+
 broken :: Parser Ast -> Parser Ast
 broken = \f -> do
     spans <- toksSpanAsSpace <$> unsafeLineBreaks
@@ -382,6 +393,7 @@ chunk = \case
     ManyNonSpacedExpr -> manyNonSpacedExpr
     ExprBlock         -> exprBlock
     ExprList          -> exprList
+    ClassBlock        -> classBlock
 {-# INLINE chunk #-}
 
 chunks :: [Chunk] -> Parser [Ast]
@@ -561,6 +573,73 @@ multiLineExprBlock = multiLine where
 {-# INLINE multiLineExprBlock #-}
 
 
+classBlock :: Parser Ast
+classBlock = broken $ do
+    let conses = many classCons
+    Ast.list <$> conses
+
+classCons :: Parser Ast
+classCons = Ast.app <$> withReserved blockStartOp base <*> (blockDecl <|> inlineDecl) where
+    base       = satisfyAst isCons
+    inlineDecl = Ast.list <$> many unnamedField
+    blockDecl   = ast blockStartOp *> blockDecl'
+    blockStartOp = Ast.Operator ":"
+    blockDecl'  = Ast.list <$> (unsafeBrokenLst $ Indent.indented *> Indent.withCurrent blockDeclLines)
+    blockDeclLines :: Parser [Ast]
+    blockDeclLines  = (:) <$> namedFields <*> blockDeclLines'
+    blockDeclLines' = option mempty $ unsafeBrokenLst (Indent.indentedEq *> blockDeclLines)
+
+
+unnamedField :: Parser Ast
+unnamedField = do
+    tp <- nonSpacedExpr'
+    let f  = Ast.Spanned mempty $ Ast.Var "#fields#"
+        ns = Ast.Spanned mempty $ Ast.List []
+    pure $ Ast.apps f [ns, tp]
+
+namedFields :: Parser Ast
+namedFields = do
+    let tpOp = Ast.Operator "::"
+    ns <- Ast.list <$> withReserved tpOp (many1 nonSpacedExpr')
+    op <- ast tpOp
+    tp <- nonSpacedExpr'
+    let f  = Ast.Spanned mempty $ Ast.Var "#fields#"
+    pure $ Ast.apps f [ns, tp]
+
+isCons :: Ast.Ast -> Bool
+isCons = \case
+    Ast.Cons {} -> True
+    _ -> False
+{-# INLINE isCons #-}
+
+
+-- record :: Parser (IRBS SomeTerm)
+-- record = irbs $ (\nat n args (cs,ds) -> liftIRBS3 (irb5 IR.record' nat n) (sequence args) (sequence cs) (sequence ds))
+--    <$> try (option False (True <$ symbol Lexer.KwNative) <* symbol Lexer.KwClass) <*> consName <*> many var <*> body
+--     where body      = option mempty $ symbol Lexer.BlockStart *> bodyBlock
+--           funcBlock = optionalBlockBody (possiblyDocumented func)
+--           consBlock = breakableNonEmptyBlockBody' recordCons <|> breakableOptionalBlockBody recordNamedFields
+--           bodyBlock = discoverIndent ((,) <$> consBlock <*> funcBlock)
+
+-- recordCons :: Parser (IRBS SomeTerm)
+-- recordCons = ... <$> consName <*> (blockDecl <|> inlineDecl) where
+--     blockDecl  = symbol Lexer.BlockStart *> possibleNonEmptyBlock' recordNamedFields
+--     inlineDecl = many unnamedField
+
+-- recordNamedFields :: Parser (IRBS SomeTerm)
+-- recordNamedFields = irbs $ do
+--     varNames <- Mutable.fromList =<< many varName
+--     liftIRBS1 (irb2 IR.recordFields' varNames) <$ symbol Lexer.Typed <*> valExpr
+
+-- unnamedField :: Parser (IRBS SomeTerm)
+-- unnamedField = do
+--     m <- Mutable.new
+--     irbs $ liftIRBS1 (irb2 IR.recordFields' m)
+--                       <$> nonSpacedValExpr
+
+
+
+
 -------------------------------
 -- === Predefined Macros === --
 -------------------------------
@@ -598,7 +677,7 @@ syntax_funcDef = mkMacro
 syntax_classDef :: Macro
 syntax_classDef = mkMacro
                  (Ast.Var      "class") [NonSpacedExpr, ManyNonSpacedExpr]
-    +! mkSegment (Ast.Operator ":")     [ExprBlock]
+    +! mkSegment (Ast.Operator ":")     [ClassBlock]
 
 syntax_lambda :: Macro
 syntax_lambda = mkMacro (Ast.Operator ":") [ExprBlock]

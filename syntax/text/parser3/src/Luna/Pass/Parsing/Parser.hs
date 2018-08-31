@@ -299,6 +299,7 @@ buildIR = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
                 | var == "[_]"     -> buildListIR     arg     args
                 | var == "case_of" -> buildCaseOfIR   mfixArg args
                 | var == "def_:"   -> buildFunctionIR mfixArg args
+                | var == "class_:" -> buildClassIR    mfixArg args
                 | var == "import"  -> buildImportIR   mfixArg args
                 | otherwise        -> continue
 
@@ -341,6 +342,64 @@ builAppsIR = \args t -> do
     foldlM IR.app' t args'
 
 type MixFixBuilder = forall m. BuilderMonad m => Ast -> [Ast] -> m IR.SomeTerm
+
+buildClassIR :: MixFixBuilder
+buildClassIR arg args = case Ast.unspan arg of
+    Ast.Cons n -> case args of
+        [ps, clss] -> case Ast.unspan ps of
+            Ast.List params -> case Ast.unspan clss of
+                Ast.List recs -> do
+                    conss <- mapM buildClassConsIR recs
+                    params' <- buildIR <$$> params
+                    IR.record' False n params' conss []
+                _ -> parseError
+            _ -> parseError
+        _ -> parseError
+    _ -> parseError
+
+buildClassConsIR :: BuilderMonad m => Ast -> m IR.SomeTerm
+buildClassConsIR = \tok -> case Ast.unspan tok of
+    Ast.App nameTok fieldToks -> case Ast.unspan nameTok of
+        Ast.Cons name -> case Ast.unspan fieldToks of
+            Ast.List fields -> IR.recordCons' name =<< mapM buildClassField fields
+            _ -> parseError
+        _ -> parseError
+    _ -> parseError
+
+buildClassField :: BuilderMonad m => Ast -> m IR.SomeTerm
+buildClassField = \tok -> case Ast.unspan tok of
+    Ast.App t tp -> case Ast.unspan t of
+        Ast.App ff ns -> case Ast.unspan ff of
+            Ast.Var "#fields#" -> case Ast.unspan ns of
+                Ast.List names -> do
+                    names' <- Mutable.fromList (getFieldName <$> names)
+                    IR.recordFields' names' =<< buildIR tp
+                _ -> parseError
+            _ -> parseError
+        _ -> parseError
+    _ -> parseError
+
+getFieldName :: Ast -> Name
+getFieldName = \tok -> case Ast.unspan tok of
+    Ast.Var n -> n
+    _         -> error "FIXME"
+
+
+
+-- App
+--   (App (App (Var "class_:") (Cons "Foox")) (List []))
+--   (List
+--      [ App
+--          (Cons "Vector")
+--          (List
+--             [ App
+--                 (App (Var "#fields#") (List [ Var "x" , Var "y" , Var "z" ]))
+--                 (Cons "Int")
+--             , App
+--                 (App (Var "#fields#") (List [ Var "r" , Var "t" , Var "y" ]))
+--                 (Cons "String")
+--             ])
+--      ])
 
 buildCaseOfIR :: MixFixBuilder
 buildCaseOfIR arg args = assertSingleArg args $ \a -> let

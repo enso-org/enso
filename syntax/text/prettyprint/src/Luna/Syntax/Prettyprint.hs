@@ -358,6 +358,7 @@ instance ( MonadIO m -- DEBUG ONLY
         IR.UniTermImp {} -> pure $ simple "imports ..."
         IR.UniTermExprList (IR.ExprList elems) -> simple . intercalate " "
             <$> (mapM subgenBody =<< ComponentVector.toList elems)
+        IR.UniTermRecord (IR.Record isNat name params conss decls) -> pure $ simple "class ..."
         t -> error $ "NO PRETTYPRINT FOR: " <> show t
 
 --     prettyprint style subStyle root = matchExpr root $ \case
