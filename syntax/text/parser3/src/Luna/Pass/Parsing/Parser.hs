@@ -434,8 +434,11 @@ buildFunctionIR arg args = case args of
         case Ast.unspan paramLst of
             Ast.List params -> do
                 let name = checkFunctionName arg
+                    params2 = case params of
+                        []     -> []
+                        (p:ps) -> Ast.prependOffset paramLst p : ps
                 name'   <- buildIR name
-                params' <- buildIR <$$> params
+                params' <- buildIR <$$> params2
                 body'   <- buildIR body
                 IR.function' name' params' body'
             _ -> parseError

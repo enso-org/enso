@@ -480,7 +480,7 @@ debugSpec = describe "error" $ it "x" $ do
         layouted  = ExprBuilder.discoverLayouts toks
         statement = ExprBuilder.buildFlatStatement layouted
         stream    = ExprBuilder.buildStream toks
-        input = "class Foox:\nVector:\n  x y z :: Int\n  r t y :: String"
+        input = "def foo a: b"
         -- input = "class Foox:\n Vector x y z"
 
     putStrLn "\nTOKS:\n"
@@ -512,7 +512,7 @@ spec = do
     missingSectionsSpec
     layoutSpec
     funcDefSpec
-    -- classDefSpec
+    -- classDefSpecz
     caseSpec
     importSpec
     commentSpec

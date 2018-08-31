@@ -67,9 +67,14 @@ unspan = \(Spanned _ a) -> a
 {-# INLINE unspan #-}
 
 
-prependAsOffset :: Spanned a -> (Spanned a -> Spanned a)
+prependAsOffset :: Spanned a -> (Spanned b -> Spanned b)
 prependAsOffset = \t -> span %~ (CodeSpan.asOffsetSpan (t ^. span) <>)
 {-# INLINE prependAsOffset #-}
+
+prependOffset :: Spanned a -> (Spanned b -> Spanned b)
+prependOffset = \t -> span %~ (CodeSpan.dropLength (t ^. span) <>)
+{-# INLINE prependOffset #-}
+
 
 -----------------------
 -- === Blacklist === --
