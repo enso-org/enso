@@ -336,7 +336,10 @@ operatorSpec = describe "operator" $ do
     "spaced"          $ e "a+b * c"       $ ("a" + "b") * "c"
 
   describe "assignment" $ do
-    "simple"          $ e "a = b"         $ "a" `eq` "b"
+    "not spaced"      $ e "a=b + c"       $ "a" `eq` ("b" + "c")
+    "left spaced"     $ e "a =b + c"      $ "a" `eq` ("b" + "c")
+    "right spaced"    $ e "a= b + c"      $ "a" `eq` ("b" + "c")
+    "spaced"          $ e "a = b + c"     $ "a" `eq` ("b" + "c")
     "named args"      $ e "a = b x=1"     $ "a" `eq` ("b" (_x "x" "=" 1))
     "pattern"         $ e "V x y z = v"   $ "V" "x" "y" "z" `eq` "v"
 
@@ -480,7 +483,7 @@ debugSpec = describe "error" $ it "x" $ do
         -- layouted  = ExprBuilder.discoverLayouts toks
         statement = ExprBuilder.buildFlatStatement toks
         stream    = ExprBuilder.buildStream toks
-        input = "a=b + c"
+        input = "a + # foo"
         -- input = "class Foox:\n Vector x y z"
 
     putStrLn "\nTOKS:\n"
