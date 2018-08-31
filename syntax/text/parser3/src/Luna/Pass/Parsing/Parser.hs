@@ -441,7 +441,7 @@ buildTupleIR = \arg args -> builAppsIR args =<< case Ast.unspan arg of
 
 buildRealIR :: BuilderMonad m => Ast -> Ast -> m IR.SomeTerm
 buildRealIR (Spanned _ (Ast.Number integral)) (Spanned _ (Ast.Number fractional)) = do
-    intPart <- Mutable.fromList (toList integral)
+    intPart  <- Mutable.fromList (toList integral)
     fracPart <- Mutable.fromList (toList fractional)
     IR.number' 10 intPart fracPart
 
@@ -451,6 +451,8 @@ buildFunctionIR arg args = case args of
         case Ast.unspan paramLst of
             Ast.List params -> do
                 let name = checkFunctionName arg
+                    -- TODO we should handle this in a more automatic way.
+                    --      pattern synonyms here?
                     params2 = case params of
                         []     -> []
                         (p:ps) -> Ast.prependOffset paramLst p : ps

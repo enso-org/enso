@@ -76,6 +76,7 @@ prependOffset = \t -> span %~ (CodeSpan.dropLength (t ^. span) <>)
 {-# INLINE prependOffset #-}
 
 
+
 -----------------------
 -- === Blacklist === --
 -----------------------

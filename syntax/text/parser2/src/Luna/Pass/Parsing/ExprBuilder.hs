@@ -161,37 +161,21 @@ checkLeftSpacing' = \a buff -> checkLeftSpacing a || checkLamBuff buff where
 -- === Definition === --
 
 data Statement
-    = ExpressionStatement [Layouted]
-    | AssignmentStatement [Layouted] Ast [Layouted]
+    = ExpressionStatement [Ast]
+    | AssignmentStatement [Ast] Ast [Ast]
     deriving (Show)
 
 
 -- === API === --
 
-buildStatement :: [Layouted] -> Statement
-buildStatement = buildStatement__ id
+buildStatement :: [Ast] -> Statement
+buildStatement = either ExpressionStatement (uncurry AssignmentStatement) . breakOnAssignment
 {-# INLINE buildStatement #-}
 
 -- | Note: see description above to learn more why it's useful.
-buildFlatStatement :: [Layouted] -> [Layouted]
+buildFlatStatement :: [Ast] -> [Layouted]
 buildFlatStatement = flattenStatement . buildStatement
 {-# INLINE buildFlatStatement #-}
-
-buildStatement__ ::
-    ([Layouted] -> [Layouted]) -> [Layouted] -> Statement
-buildStatement__ = \f stream -> case stream of
-    []         -> ExpressionStatement $! f mempty
-    (tok:toks) -> let
-        Layouted layout ss = tok
-        continue = buildStatement__ (f . (tok:)) toks
-        in case layout of
-            UnspacedLayout -> continue
-            SpacedLayout   -> case breakOnAssignment ss of
-                Left {} -> continue
-                Right (l, x, r)  -> let
-                    mod a = if null a then id else (Layouted SpacedLayout a :)
-                    in AssignmentStatement (mod l $ f mempty) x (mod r toks)
-{-# NOINLINE buildStatement__ #-}
 
 breakOnAssignment :: [Ast] -> Either [Ast] ([Ast], Ast, [Ast])
 breakOnAssignment = breakOnAssignment__ id
@@ -213,12 +197,12 @@ breakOnAssignment__ = \f stream -> case stream of
 
 flattenStatement :: Statement -> [Layouted]
 flattenStatement = \case
-    ExpressionStatement  s -> s
+    ExpressionStatement s -> discoverLayouts s
     AssignmentStatement p x s -> let
         op' = Ast.Operator Name.assign
         op  = x & Ast.ast .~ op'
         sop = Layouted SpacedLayout [op]
-        in p <> (sop : s)
+        in discoverLayouts p <> (sop : discoverLayouts s)
 {-# INLINE flattenStatement #-}
 
 
@@ -372,8 +356,7 @@ type ExprBuilderMonad m = (Assoc.Reader Name m, Prec.RelReader Name m)
 buildExpr :: ExprBuilderMonad m => [Ast] -> m Ast
 buildExpr = \stream -> do
     -- trace ("\n\n>>>\n" <> ppShow stream) $ pure ()
-    let layouted  = discoverLayouts stream
-        statement = buildFlatStatement layouted
+    let statement = buildFlatStatement stream
     stream' <- buildUnspacedExprs statement
     out <- buildExprList stream'
     -- trace ("\n\n<<<\n" <> ppShow out) $ pure ()

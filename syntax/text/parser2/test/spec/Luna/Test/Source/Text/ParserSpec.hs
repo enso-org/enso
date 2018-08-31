@@ -477,17 +477,17 @@ debugSpec = describe "error" $ it "x" $ do
     -- let input     = "a = b"
     let
         toks      = Parser.run Parsing.Syntax1 input
-        layouted  = ExprBuilder.discoverLayouts toks
-        statement = ExprBuilder.buildFlatStatement layouted
+        -- layouted  = ExprBuilder.discoverLayouts toks
+        statement = ExprBuilder.buildFlatStatement toks
         stream    = ExprBuilder.buildStream toks
-        input = "def foo a: b"
+        input = "a=b + c"
         -- input = "class Foox:\n Vector x y z"
 
     putStrLn "\nTOKS:\n"
     pprint toks
 
-    putStrLn "\nLAYOUTED:\n"
-    pprint layouted
+    -- putStrLn "\nLAYOUTED:\n"
+    -- pprint layouted
 
     putStrLn "\nSTATEMENT:\n"
     pprint statement
