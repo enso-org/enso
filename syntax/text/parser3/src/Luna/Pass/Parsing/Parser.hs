@@ -185,17 +185,19 @@ getImportName = \(Spanned cs ast) -> case ast of
         _ -> Nothing
     Ast.Cons v -> pure $ convert v
 
-buildImportIR :: forall m. BuilderMonad m => Ast -> m IR.SomeTerm
-buildImportIR = \a@(Spanned cs ast) -> addCodeSpan cs =<< case ast of
-    Ast.Cons v -> do
-        isrc <- IR.importSource $ IR.Absolute (convert v)
-        IR.imp' isrc IR.Everything
-    Ast.InfixApp l f r -> case getImportName a of
-        Just name -> do
-            isrc <- IR.importSource $ IR.Absolute name
+buildImportIR :: forall m. BuilderMonad m => Ast -> [Ast] -> m IR.SomeTerm
+buildImportIR = \a@(Spanned cs ast) args -> if not (null args)
+    then parseError
+    else addCodeSpan cs =<< case ast of
+        Ast.Cons v -> do
+            isrc <- IR.importSource $ IR.Absolute (convert v)
             IR.imp' isrc IR.Everything
+        Ast.InfixApp l f r -> case getImportName a of
+            Just name -> do
+                isrc <- IR.importSource $ IR.Absolute name
+                IR.imp' isrc IR.Everything
+            _ -> parseError
         _ -> parseError
-    _ -> parseError
 
 
 -- === IR === --
@@ -285,51 +287,31 @@ buildIR = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
         -- Right now both sections have function link on the left side in IR.
         IR.sectionRight' f' l'
 
-    Ast.App f a        -> do
+    Ast.App f a -> do
         let (tok, arg :| args) = collectApps (pure a) f
-            continue = appTailArgs =<< appHeadArg =<< buildIR tok
-
-            appHeadArg :: IR.SomeTerm -> m IR.SomeTerm
-            appHeadArg = \t -> do
-                arg' <- buildIR arg
-                IR.app' t arg'
-
-            appTailArgs :: IR.SomeTerm -> m IR.SomeTerm
-            appTailArgs = \t -> do
-                args' <- buildIR <$$> args
-                foldlM IR.app' t args'
+            continue       = builAppsIR args =<< builAppIR arg =<< buildIR tok
+            assertNoArgs f = if not (null args) then parseError else f
+            mfixArg        = Ast.prependAsOffset tok arg
 
         case Ast.unspan tok of
             Ast.Var var -> if
-                | var == "(_)" -> appTailArgs =<< case Ast.unspan arg of
-                    Ast.List []  -> IR.tuple' []
-                    Ast.List [a] -> IR.grouped' =<< buildIR a
-                    Ast.List as  -> IR.tuple'   =<< buildIR <$$> as
-                    _            -> parseError
-                | var == "[_]"   -> appTailArgs =<< case Ast.unspan arg of
-                    Ast.List as -> IR.list' =<< buildIR <$$> as
-                    _           -> parseError
-                | var == "def_:" -> case args of
-                    [paramLst, body] -> do
-                        case Ast.unspan paramLst of
-                            Ast.List params -> do
-                                name'   <- buildIR $ Ast.prependAsOffset tok arg
-                                params' <- buildIR <$$> params
-                                body'   <- buildIR body
-                                IR.function' name' params' body'
-                            _ -> parseError
-                    _ -> parseError
-                | var == "import" -> buildImportIR $ Ast.prependAsOffset tok arg
+                | var == "(_)"     -> buildTupleIR    arg     args
+                | var == "[_]"     -> buildListIR     arg     args
+                | var == "case_of" -> buildCaseOfIR   mfixArg args
+                | var == "def_:"   -> buildFunctionIR mfixArg args
+                | var == "import"  -> buildImportIR   mfixArg args
+                | otherwise        -> continue
 
-                | otherwise -> continue
-            Ast.Marker c -> if not (null args) then parseError else do
-                a <- buildIR arg
-                marked <- flip IR.marked' a =<< buildIR tok
-                State.modify_ @Marker.TermMap
-                    $ wrapped %~ Map.insert (fromIntegral c) marked
+            Ast.Marker c -> assertNoArgs $ do
+                expr   <- buildIR arg
+                marker <- buildIR tok
+                marked <- flip IR.marked' expr marker
+                let mid = fromIntegral c
+                State.modify_ @Marker.TermMap $ wrapped %~ Map.insert mid marked
                 pure marked
-            Ast.Comment c -> continue
+
             _ -> continue
+
     Ast.Comment c -> parseError
 
     x -> error $ "TODO: " <> show x
@@ -337,6 +319,84 @@ buildIR = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
 
 -- foldM :: Monad m => (a -> b -> m a) -> a -> [b] -> m a
 
+(<?>) :: Ast -> Invalid.Symbol -> Ast
+(<?>) = flip specInvalid
+{-# INLINE (<?>) #-}
+
+
+assertSingleArg args f = case args of
+    [a] -> f a
+    _   -> parseError
+
+
+
+builAppIR :: BuilderMonad m => Ast -> IR.SomeTerm -> m IR.SomeTerm
+builAppIR = \arg t -> do
+    arg' <- buildIR arg
+    IR.app' t arg'
+
+builAppsIR :: BuilderMonad m => [Ast] -> IR.SomeTerm -> m IR.SomeTerm
+builAppsIR = \args t -> do
+    args' <- buildIR <$$> args
+    foldlM IR.app' t args'
+
+type MixFixBuilder = forall m. BuilderMonad m => Ast -> [Ast] -> m IR.SomeTerm
+
+buildCaseOfIR :: MixFixBuilder
+buildCaseOfIR arg args = assertSingleArg args $ \a -> let
+    match t = let
+        notFunc = t & Ast.ast .~ Ast.Invalid Invalid.CaseWayNotFunction
+        in buildIR $ case Ast.unspan t of
+            Ast.InfixApp l op r
+              -> if Ast.unspan op == Ast.Operator ":" then t else notFunc
+            Ast.Invalid {} -> t
+            _              -> notFunc
+    in do
+        base <- buildIR arg
+        case Ast.unspan a of
+            Ast.Block lines -> IR.match' base . convert1' =<< match <$$> lines
+            _               -> IR.match' base . pure      =<< match a
+
+buildListIR :: MixFixBuilder
+buildListIR arg args = builAppsIR args =<< case Ast.unspan arg of
+    Ast.List as -> IR.list' =<< buildIR <$$> as
+    _           -> parseError
+
+buildTupleIR :: MixFixBuilder
+buildTupleIR = \arg args -> builAppsIR args =<< case Ast.unspan arg of
+    Ast.List []  -> IR.tuple' []
+    Ast.List [a] -> IR.grouped' =<< buildIR a
+    Ast.List as  -> IR.tuple'   =<< buildIR <$$> as
+    _            -> parseError
+
+buildFunctionIR :: MixFixBuilder
+buildFunctionIR arg args = case args of
+    [paramLst, body] -> do
+        case Ast.unspan paramLst of
+            Ast.List params -> do
+                let name = checkFunctionName arg
+                name'   <- buildIR name
+                params' <- buildIR <$$> params
+                body'   <- buildIR body
+                IR.function' name' params' body'
+            _ -> parseError
+
+checkFunctionName :: Ast -> Ast
+checkFunctionName = fmap handle where
+    handle = \case
+        Ast.Var      a -> Ast.Var      a
+        Ast.Operator a -> Ast.Operator a
+        Ast.Invalid Invalid.EmptyExpression
+           -> Ast.Invalid Invalid.MissingFunctionName
+        _  -> Ast.Invalid Invalid.InvalidFunctionName
+{-# INLINE checkFunctionName #-}
+
+specInvalid :: Invalid.Symbol -> Ast -> Ast
+specInvalid inv = fmap handle where
+    handle = \case
+        Ast.Invalid {} -> Ast.Invalid inv
+        x -> x
+{-# INLINE specInvalid #-}
 
 
 
@@ -362,3 +422,12 @@ t <| (a :| as) = t :| (a : as)
 
 
 -- App (App : a) b
+
+
+
+
+
+-- TODO: refactor
+instance Convertible1 NonEmpty [] where
+    convert1 = \(a:|as) -> a:as
+    {-# INLINE convert1 #-}

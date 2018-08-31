@@ -38,19 +38,47 @@ runPasses passes = Graph.encodeAndEval @Parser.Parser $ Scheduler.evalT $ do
         Scheduler.runPassByType @pass
 
 
-shouldParseAs :: Text -> Text -> IO ()
-shouldParseAs input output = runPass $ do
+e_x :: Text -> Text -> IO ()
+e_x input output = runPass $ do
     (ir,cs) <- Parser.run (convert input)
     let scope = def
     genCode <- Prettyprint.run @Prettyprint.Simple scope ir
     genCode `shouldBe` output
 
+e :: Text -> Text -> IO ()
+e input output = e_x input ("\n" <> output)
+
+e' :: Text -> IO ()
+e' input = e input input
+
+ite :: String -> String -> SpecM () ()
+ite s out = it s $ e (convert s) (convert out)
+
+functionDefSpec :: Spec
+functionDefSpec = describe "function" $ do
+    ite "def foo a: b" "def foo a: b"
+    ite "def foo a:"   "def foo a: (EmptyExpression)"
+    ite "def foo a"    "def foo a: (MissingSection)"
+    ite "def foo"      "def foo: (MissingSection)"
+    ite "def"          "def (MissingFunctionName): (MissingSection)"
+    ite "def Foo a: b" "def (InvalidFunctionName) a: b"
+    ite "def + a: b"   "def + a: b"
+
+caseSpec :: Spec
+caseSpec = describe "case" $ do
+    it "empty"     $ e  "case a of" "case a of\n    (EmptyExpression)"
+    it "single"    $ e' "case a of\n    a: b"
+    it "multiline" $ e' "case a of\n    a: b\n    c: d"
+    it "wrong way" $ e  "case a of\n a b" "case a of\n    (CaseWayNotFunction)"
+
+unitSpec :: Spec
+unitSpec = describe "unit" $ do
+    it "empty" $ e_x "" ""
 
 debugSpec :: Spec
-debugSpec = describe "error" $ it "x" $ do
-    pure () :: IO ()
+debugSpec = describe "error" $ it "debug" $ do
 
-    shouldParseAs "import Std.Math" "B"
+    e "x" "x"
 
 
 
@@ -60,4 +88,7 @@ debugSpec = describe "error" $ it "x" $ do
 
 spec :: Spec
 spec = do
+    functionDefSpec
+    caseSpec
+    unitSpec
     debugSpec

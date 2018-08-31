@@ -26,10 +26,13 @@ data Symbol
     | CaselessNameHead
     | Literal InvalidLiteral
     | InvalidMarker
+    | MissingFunctionName
     | InvalidFunctionName
     | InvalidFunctionArg
     | MissingColonBlock
     | InvalidFunctionDefinition
+    | CaseWayNotFunction
+    | EmptyCase
     | AdjacentOperators
     | Unknown
     | EmptyExpression

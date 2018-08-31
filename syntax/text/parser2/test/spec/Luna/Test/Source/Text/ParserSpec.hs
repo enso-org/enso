@@ -144,8 +144,8 @@ instance (t ~ Arg a, Example a, x ~ ())
 -- exprAs     = shouldParseAs     Parsing.Syntax1 Parsing.expr
 -- expr       = shouldParseItself Parsing.Syntax1 Parsing.expr
 
-e :: String -> Ast.SimpleAst -> IO ()
-e src out = sast `shouldBe` out where
+testCase :: Macro.Parser Ast -> String -> Ast.SimpleAst -> IO ()
+testCase p src out = sast `shouldBe` out where
     sast = Ast.simplify ast
     ast  = flip PP.runWith (convert src) $ do
         let rplus  = ">>+" :: Name
@@ -154,7 +154,11 @@ e src out = sast `shouldBe` out where
         Assoc.write Assoc.None  noplus
         Prec.writeRel EQ ("+" :: Name) rplus
         Prec.writeRel EQ ("+" :: Name) noplus
-        Macro.expr
+        p
+
+e, u :: String -> Ast.SimpleAst -> IO ()
+e = testCase Macro.expr
+u = testCase Macro.unit
 
 e' :: String -> IO ()
 e' src = e src (convert src)
@@ -178,6 +182,17 @@ block = Ast.SBlock
 
 eq :: Ast.SimpleAst -> Ast.SimpleAst -> Ast.SimpleAst
 eq = flip Ast.SInfixApp "#=#"
+
+secR :: Convertible' Ast.SimpleAst a => Ast.SimpleAst -> Ast.SimpleAst -> a
+secR = convert' .: Ast.SSectionRight
+
+secL :: Convertible' Ast.SimpleAst a => Ast.SimpleAst -> Ast.SimpleAst -> a
+secL = convert' .: Ast.SSectionLeft
+
+_x :: Convertible' Ast.SimpleAst a
+    => Ast.SimpleAst -> Ast.SimpleAst -> Ast.SimpleAst -> a
+_x = convert' .:. Ast.SInfixApp
+
 
 
 
@@ -214,18 +229,17 @@ identSpec = describe "identifier" $ do
     it_e "..." $ unexpectedSuffix 1
     it_e "..+" $ unexpectedSuffix 1
     it_e "+."  $ unexpectedSuffix 1
-    it_e ".+"  $ Ast.SSectionRight "." (Ast.SVar "+")
+    it_e ".+"  $ secR "." (Ast.SVar "+")
 
   describe "other" $ do
     "wildcard" $ e "_" $ Ast.SWildcard
 
-_x = Ast.SInfixApp
 
 literalNumberSpec :: Spec
 literalNumberSpec = describe "number" $ do
     let biggerThanInt64   = (show (maxBound :: Int64)) <> "0"
     it "positive"     $ e' "1"
-    it "negative"     $ e  "a -1"          $ "a" (Ast.SSectionRight Name.uminus 1)
+    it "negative"     $ e  "a -1"          $ "a" (secR Name.uminus 1)
     it "zero pxd"     $ e' "01"
     it "real"         $ e  "1.23"          $ _x 1 "." 23
     it "spaced"       $ e  "123 456"       $ 123 456
@@ -243,28 +257,6 @@ literalStringSpec = describe "string" $ do
     -- "escape quote"      $ e [s|"foo\""|]
     -- "escape escape"     $ e [s|"foo\\"|]
     -- "implicite escape"  $ e [s|"foo\bar"|] [s|"foo\\bar"|]
-
-
-listLikeSpec :: String -> String -> Spec
-listLikeSpec open close = describe "list" $ do
-    let ee s r = e (open <> s <> close) $ convert (open <> "_" <> close) r
-    "empty"          $ ee ""       $ []
-    "singular"       $ ee "a"      $ ["a"]
-    "double"         $ ee "a b, c" $ ["a" "b", "c"]
-    "head section"   $ ee ",a"     $ [__, "a"]
-    "tail section"   $ ee "a,"     $ ["a", __]
-    "double section" $ ee ","      $ [__, __]
-    "triple section" $ ee ",,"     $ [__, __, __]
-    "side section"   $ ee ",a,"    $ [__, "a", __]
-
-literalListSpec :: Spec
-literalListSpec = listLikeSpec "[" "]"
-
-literalTupleSpec :: Spec
-literalTupleSpec = listLikeSpec "(" ")"
-
-    -- "section list" $ e "[, a]"              $ "[_]" [emptyExpression, "a"] -- FIXME
-    -- "section list" $ e "[a, , b]"           $ "[_]" ["a", emptyExpression, "b"]
 
 --     describe "interpolated" $ do
 --         it "empty"            $ expr [s|''|]
@@ -287,6 +279,24 @@ literalTupleSpec = listLikeSpec "(" ")"
 --         --     it "multiline string with newline start"        $ do shouldParseAs expr     "'\nThe quick\nbrown fox jumps over the lazy dog\n'"   "'The quick\nbrown fox jumps over the lazy dog'"
 --         --     it "simple interpolated strings"                $ do shouldParseItself expr "'The quick brown fox jumps over {2 + 2} lazy dogs'"
 
+
+listLikeSpec :: String -> String -> Spec
+listLikeSpec open close = describe "list" $ do
+    let ee s r = e (open <> s <> close) $ convert (open <> "_" <> close) r
+    "empty"          $ ee ""       $ []
+    "singular"       $ ee "a"      $ ["a"]
+    "double"         $ ee "a b, c" $ ["a" "b", "c"]
+    "head section"   $ ee ",a"     $ [__, "a"]
+    "tail section"   $ ee "a,"     $ ["a", __]
+    "double section" $ ee ","      $ [__, __]
+    "triple section" $ ee ",,"     $ [__, __, __]
+    "side section"   $ ee ",a,"    $ [__, "a", __]
+
+literalListSpec :: Spec
+literalListSpec = listLikeSpec "[" "]"
+
+literalTupleSpec :: Spec
+literalTupleSpec = listLikeSpec "(" ")"
 
 literalSpec :: Spec
 literalSpec = describe "literal" $ do
@@ -312,14 +322,14 @@ operatorSpec = describe "operator" $ do
     "typed"           $ e "a :: b"        $ _x "a" "::" "b"
 
   describe "section" $ do
-    "line right"      $ e "+ a"           $ Ast.SSectionRight "+" "a"
-    "line left"       $ e "a +"           $ Ast.SSectionLeft "a" "+"
-    "glued right"     $ e "+a"            $ Ast.SSectionRight "+" "a"
-    "glued left"      $ e "a+"            $ Ast.SSectionLeft "a" "+"
-    "glued right app" $ e "a +b * c"      $ "a" (Ast.SSectionRight "+" "b") * "c"
-    "glued left app"  $ e "a b+ * c"      $ "a" (Ast.SSectionLeft "b" "+") * "c"
-    "glued lr app"    $ e "a *b+ c"       $ "a" (Ast.SSectionLeft (Ast.SSectionRight "*" "b") "+") "c"
-    "lens app"        $ e "a .b.c"        $ "a" (_x (Ast.SSectionRight "." "b") "." "c")
+    "line right"      $ e "+ a"           $ secR "+" "a"
+    "line left"       $ e "a +"           $ secL "a" "+"
+    "glued right"     $ e "+a"            $ secR "+" "a"
+    "glued left"      $ e "a+"            $ secL "a" "+"
+    "glued right app" $ e "a +b * c"      $ "a" (secR "+" "b") * "c"
+    "glued left app"  $ e "a b+ * c"      $ "a" (secL "b" "+") * "c"
+    "glued lr app"    $ e "a *b+ c"       $ "a" (secL (secR "*" "b") "+") "c"
+    "lens app"        $ e "a .b.c"        $ "a" (_x (secR "." "b") "." "c")
 
   describe "precedence" $ do
     "simple"          $ e "a + b * c"     $ "a" + ("b" * "c")
@@ -333,15 +343,15 @@ operatorSpec = describe "operator" $ do
   describe "multiline" $ do
     "grouping"        $ e "a\n b c"       $ "a" ("b" "c")
     "section 1"       $ e "a +\n b c"     $ "a" + ("b" "c")
-    "section 2"       $ e "a+ \n b c"     $ Ast.SApp (Ast.SSectionLeft "a" "+") ("b" "c")
-    "section 3"       $ e "a \n +b c"     $ "a" (Ast.SApp (Ast.SSectionRight "+" "b") "c")
+    "section 2"       $ e "a+ \n b c"     $ Ast.SApp (secL "a" "+") ("b" "c")
+    "section 3"       $ e "a \n +b c"     $ "a" ((secR "+" "b") "c")
     "continuation"    $ e "a \n + b c"    $ "a" + "b" "c"
 
   describe "invalid" $ do
     "adj infix"       $ e "a + + b"       $ _x "a" adjacentOperators "b"
     "adj infix 2"     $ e "a + + + b"     $ _x "a" adjacentOperators "b"
-    "adj postfix"     $ e "a + +"         $ Ast.SSectionLeft "a" adjacentOperators
-    "adj prefix"      $ e "+ + a"         $ Ast.SSectionRight adjacentOperators "a"
+    "adj postfix"     $ e "a + +"         $ secL "a" adjacentOperators
+    "adj prefix"      $ e "+ + a"         $ secR adjacentOperators "a"
     "wrong assoc"     $ e "a + b >>+ c"   $ _x ("a" + "b") assocConflict "c"
     "no prec"         $ e "a + b +++ c"   $ _x ("a" + "b") missingRelation "c"
     "no assoc"        $ e "a >+< b >+< c" $ _x (_x "a" ">+<" "b") noAssoc "c"
@@ -351,7 +361,7 @@ mixfixSpec :: Spec
 mixfixSpec = describe "groups" $ do
     "empty group"  $ e "()"                 $ "(_)" []
     "group"        $ e "(a b)"              $ "(_)" ["a" "b"]
-    "a)"           $ e "a)"                 $ Ast.SSectionLeft "a" ")"
+    "a)"           $ e "a)"                 $ secL "a" ")"
     "nested rules" $ e "(if a then b) else" $ "(_)" ["if_then" "a" "b"] "else"
     "dd"           $ e "if a b then c d"    $ "if_then" ("a" "b") ("c" "d")
 
@@ -440,7 +450,7 @@ importSpec = describe "import" $ do
 
 unitSpec :: Spec
 unitSpec = describe "unit" $ do
-    "empty" $ e "" "a"
+    "empty" $ u "" (Ast.SUnit [])
 
 commentSpec :: Spec
 commentSpec = describe "comment" $ do
@@ -470,7 +480,7 @@ debugSpec = describe "error" $ it "x" $ do
         layouted  = ExprBuilder.discoverLayouts toks
         statement = ExprBuilder.buildFlatStatement layouted
         stream    = ExprBuilder.buildStream toks
-        input = "[ 1,, 2]"
+        input = "case a of"
 
     putStrLn "\nTOKS:\n"
     pprint toks
@@ -505,6 +515,7 @@ spec = do
     caseSpec
     importSpec
     commentSpec
+    unitSpec
 
     debugSpec
 

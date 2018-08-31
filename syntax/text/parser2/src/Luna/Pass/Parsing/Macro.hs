@@ -475,8 +475,9 @@ expr = do
 {-# INLINE expr #-}
 
 unit :: Parser Ast
-unit = Ast.unit <$> option mempty bodyLines where
-    bodyLines = (:) <$> expr <*> many (broken $ Indent.indentedEq *> expr)
+unit = Ast.unit <$> body where
+    body  = option mempty lines
+    lines = (:) <$> expr' <*> many (broken $ Indent.indentedEq *> expr)
 {-# INLINE unit #-}
 
 expr' :: Parser Ast
