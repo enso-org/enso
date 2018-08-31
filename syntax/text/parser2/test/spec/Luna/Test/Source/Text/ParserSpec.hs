@@ -483,7 +483,7 @@ debugSpec = describe "error" $ it "x" $ do
         -- layouted  = ExprBuilder.discoverLayouts toks
         statement = ExprBuilder.buildFlatStatement toks
         stream    = ExprBuilder.buildStream toks
-        input = "a + # foo"
+        input = "# doc\n\ndef foo: a"
         -- input = "class Foox:\n Vector x y z"
 
     putStrLn "\nTOKS:\n"
@@ -500,8 +500,8 @@ debugSpec = describe "error" $ it "x" $ do
 
 
     putStrLn "\nRESULT:\n"
-    pprint $ PP.runWith Macro.expr input
-    pprint $ Ast.simplify $ PP.runWith Macro.expr input
+    pprint $ PP.runWith Macro.unit input
+    pprint $ Ast.simplify $ PP.runWith Macro.unit input
 
     True `shouldBe` False
 

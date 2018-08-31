@@ -202,6 +202,22 @@ buildImportIR = \a@(Spanned cs ast) args -> if not (null args)
 
 -- === IR === --
 
+buildUnit :: BuilderMonad m => [Ast] -> m [IR.SomeTerm]
+buildUnit = \case
+    [] -> pure []
+    (a:as) -> do
+        a' <- buildIR a
+        case Ast.unspan a of
+            Ast.Comment c -> case as of
+                (aa:aas) -> do
+                    txt <- Mutable.fromList $ convertTo @[Char] c
+                    aa' <- buildIR aa
+                    dd  <- IR.documented' txt aa'
+                    addCodeSpan (view Ast.span a <> view Ast.span aa) dd
+                    (dd:) <$> buildUnit aas
+                _ -> (a':) <$> buildUnit as
+            _ -> (a':) <$> buildUnit as
+
 buildIR :: forall m. BuilderMonad m => Ast -> m IR.SomeTerm
 buildIR = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
 
@@ -210,6 +226,7 @@ buildIR = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
         intPart <- Mutable.fromList (toList num)
         empty   <- Mutable.new
         IR.number' 10 intPart empty
+
     Ast.Str       strs -> do
         [str] <- strGo <$$> strs
         pure str
@@ -245,7 +262,7 @@ buildIR = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
         let (ls', imps) = discoverImportLines ls
             impsSpan    = collectSpan imps
             record'     = IR.record' False "" [] []
-        (unitCls :: IR.SomeTerm) <- record'       =<< buildIR <$$> ls'
+        (unitCls :: IR.SomeTerm) <- record'       =<< buildUnit ls'
         (ih      :: IR.SomeTerm) <- IR.importHub' =<< buildIR <$$> imps
         IR.writeLayer @CodeSpan ih impsSpan
         IR.unit' ih [] unitCls

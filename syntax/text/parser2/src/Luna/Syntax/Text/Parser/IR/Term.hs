@@ -328,6 +328,25 @@ comment = commentChar >> parser where
     parser      = Ast.register =<< Ast.computeSpan (Ast.Comment <$> body)
 {-# INLINE comment #-}
 
+-- comment :: Parser ()
+-- comment = parser where
+--     commentChar    = token commentStartChar
+
+--     multilineChars = (\c1 c2 -> [c1,c2]) <$> commentChar <*> commentChar
+--     multiLineOp    = Ast.computeSpan (Ast.Operator . convert <$> multilineChars)
+--     multiLineStart = Ast.register =<< multiLineOp
+
+--     singleLineChars = (:[]) <$> commentChar
+--     singleLineOp    = Ast.computeSpan (Ast.Operator . convert <$> singleLineChars)
+--     singleLineStart = Ast.register =<< singleLineOp
+
+--     rawLine     = takeWhile (not . isEolBeginChar)
+--     multiLine   = multiLineStart *> flexBlock rawLine
+--     singleLine  = singleLineStart *> (pure <$> rawLine)
+--     body        = trimIndent <$> (multiLine <|> singleLine)
+--     parser      = Ast.register =<< Ast.computeSpan (Ast.Comment <$> body)
+-- {-# INLINE comment #-}
+
 commentStartChar :: Char
 commentStartChar = '#'
 {-# INLINE commentStartChar #-}
