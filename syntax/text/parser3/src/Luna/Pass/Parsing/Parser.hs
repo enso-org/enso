@@ -259,12 +259,23 @@ buildIR = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
                     | op == Name.acc    -> Just IR.acc'
                     | otherwise         -> Nothing
                 _ -> Nothing
+            realNumber =
+                let dot = tok == Ast.Operator Name.acc
+                    isNumber ast = case Ast.unspan ast of
+                        Ast.Number _ -> True
+                        _            -> False
+                    lIsNum = isNumber l
+                    rIsNum = isNumber r
+                in dot && lIsNum && rIsNum
 
         case specialOp of
             Just op -> do
-                l' <- buildIR l
-                r' <- buildIR $! Ast.prependAsOffset f r
-                op l' r'
+                if realNumber then do
+                    buildRealIR l r
+                else do
+                    l' <- buildIR l
+                    r' <- buildIR $! Ast.prependAsOffset f r
+                    op l' r'
             Nothing -> do
                 f' <- buildIR f
                 l' <- buildIR l
@@ -427,6 +438,12 @@ buildTupleIR = \arg args -> builAppsIR args =<< case Ast.unspan arg of
     Ast.List [a] -> IR.grouped' =<< buildIR a
     Ast.List as  -> IR.tuple'   =<< buildIR <$$> as
     _            -> parseError
+
+buildRealIR :: BuilderMonad m => Ast -> Ast -> m IR.SomeTerm
+buildRealIR (Spanned _ (Ast.Number integral)) (Spanned _ (Ast.Number fractional)) = do
+    intPart <- Mutable.fromList (toList integral)
+    fracPart <- Mutable.fromList (toList fractional)
+    IR.number' 10 intPart fracPart
 
 buildFunctionIR :: MixFixBuilder
 buildFunctionIR arg args = case args of
