@@ -75,6 +75,10 @@ prependOffset :: Spanned a -> (Spanned b -> Spanned b)
 prependOffset = \t -> span %~ (CodeSpan.dropLength (t ^. span) <>)
 {-# INLINE prependOffset #-}
 
+prependOffset' :: CodeSpan -> (Spanned b -> Spanned b)
+prependOffset' = \t -> span %~ (CodeSpan.dropLength t <>)
+{-# INLINE prependOffset' #-}
+
 
 
 -----------------------
@@ -381,6 +385,12 @@ pattern SUnit      t1    = SimpleAstUnit      (Atom_Unit      t1)
 pattern SSectionLeft  t1 t2 = SimpleAstSectionLeft  (Atom_SectionLeft  t1 t2)
 pattern SSectionRight t1 t2 = SimpleAstSectionRight (Atom_SectionRight t1 t2)
 
+
+pattern XList t <- Spanned s (AstList      (Atom_List      (prependOffsetToHead s -> t)))
+
+prependOffsetToHead t = \case
+    []     -> []
+    (p:ps) -> prependOffset' t p : ps
 -- deriving instance Show (Link' t) => Show (Var       t)
 -- deriving instance Show (Link' t) => Show (Cons      t)
 -- deriving instance Show (Link' t) => Show (Operator  t)

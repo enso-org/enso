@@ -483,7 +483,7 @@ debugSpec = describe "error" $ it "x" $ do
         -- layouted  = ExprBuilder.discoverLayouts toks
         statement = ExprBuilder.buildFlatStatement toks
         stream    = ExprBuilder.buildStream toks
-        input = "#foo"
+        input = "a [1]"
         -- input = "class Foox:\n Vector x y z"
 
     putStrLn "\nTOKS:\n"

@@ -145,7 +145,11 @@ strGo = \(Spanned cs a) -> addCodeSpan cs =<< case a of
 -- === Utils === --
 
 addCodeSpan :: BuilderMonad m => CodeSpan -> IR.SomeTerm -> m IR.SomeTerm
-addCodeSpan = \cs ir -> ir <$ IR.writeLayer @CodeSpan ir cs
+addCodeSpan = \cs ir -> do
+    -- putStrLn "\n\n"
+    print . IR.showTag =<< Layer.read @IR.Model ir
+    print cs
+    ir <$ IR.writeLayer @CodeSpan ir cs
 {-# INLINE addCodeSpan #-}
 
 parseError :: BuilderMonad m => m IR.SomeTerm
@@ -219,7 +223,7 @@ buildUnit = \case
             _ -> (a':) <$> buildUnit as
 
 buildIR :: forall m. BuilderMonad m => Ast -> m IR.SomeTerm
-buildIR = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
+buildIR = \(Spanned cs ast) -> putStrLn "\n" >> (addCodeSpan cs =<< case ast of
 
     -- Literals
     Ast.Number     num -> do
@@ -232,9 +236,9 @@ buildIR = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
         pure str
 
     -- Identifiers
-    Ast.Var       name -> IR.var'   name
+    Ast.Var       name -> print ("var " <> show name) >> IR.var'   name
     Ast.Cons      name -> IR.cons'  name []
-    Ast.Operator  name -> IR.var'   name
+    Ast.Operator  name -> print ("op " <> show name) >> IR.var'   name
     -- Ast.Modifier  name -> error "TODO" -- we need to discuss handling it in IR
     Ast.Wildcard       -> IR.blank'
 
@@ -323,8 +327,8 @@ buildIR = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
 
         case Ast.unspan tok of
             Ast.Var var -> if
-                | var == "(_)"     -> buildTupleIR    arg     args
-                | var == "[_]"     -> buildListIR     arg     args
+                | var == "(_)"     -> buildTupleIR    mfixArg args
+                | var == "[_]"     -> buildListIR     mfixArg args
                 | var == "case_of" -> buildCaseOfIR   mfixArg args
                 | var == "def_:"   -> buildFunctionIR mfixArg args
                 | var == "class_:" -> buildClassIR    mfixArg args
@@ -344,6 +348,7 @@ buildIR = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
     Ast.Comment c -> parseError
 
     x -> error $ "TODO: " <> show x
+    )
 {-# NOINLINE buildIR #-}
 
 -- foldM :: Monad m => (a -> b -> m a) -> a -> [b] -> m a

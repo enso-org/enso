@@ -6,11 +6,14 @@ module Luna.Test.Source.Text.ParserSpec where
 import Prologue
 import Test.Hspec.Expectations.Lifted
 
-import qualified Data.Graph.Data.Graph.Class as Graph
-import qualified Luna.Pass                   as Pass
-import qualified Luna.Pass.Parsing.Parser    as Parser
-import qualified Luna.Pass.Scheduler         as Scheduler
-import qualified Luna.Syntax.Prettyprint     as Prettyprint
+import qualified Data.Graph.Data.Graph.Class    as Graph
+import qualified Luna.Pass                      as Pass
+import qualified Luna.Pass.Parsing.Macro        as Macro
+import qualified Luna.Pass.Parsing.Parser       as Parser
+import qualified Luna.Pass.Parsing.Parserx      as PP
+import qualified Luna.Pass.Scheduler            as Scheduler
+import qualified Luna.Syntax.Prettyprint        as Prettyprint
+import qualified Luna.Syntax.Text.Parser.IR.Ast as Ast
 
 import Data.Graph.Data.Graph.Class (Graph)
 import Data.Text32                 (Text32)
@@ -78,7 +81,12 @@ unitSpec = describe "unit" $ do
 debugSpec :: Spec
 debugSpec = describe "error" $ it "debug" $ do
 
-    e "# doc\ndef foo: a" "x"
+    let input = "a + b  c"
+
+    putStrLn "\n\n"
+    pprint $ PP.runWith Macro.unit (convert input)
+    pprint $ Ast.simplify $ PP.runWith Macro.unit (convert input)
+    e input "x"
 
 
 
@@ -88,7 +96,8 @@ debugSpec = describe "error" $ it "debug" $ do
 
 spec :: Spec
 spec = do
-    functionDefSpec
-    caseSpec
-    unitSpec
+    -- functionDefSpec
+    -- caseSpec
+    -- unitSpec
+
     debugSpec
