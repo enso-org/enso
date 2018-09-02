@@ -241,23 +241,23 @@ segmentsToks = \case
     SegmentListCons _ (Segment seg _) lst -> seg : segmentsToks lst
 {-# INLINE segmentsToks #-}
 
-withNextSegmentsReserved :: SegmentList -> Parser a -> Parser a
+withNextSegmentsReserved :: SegmentList -> Parser' a -> Parser' a
 withNextSegmentsReserved = withManyReserved . segmentsToks
 {-# INLINE withNextSegmentsReserved #-}
 
-nextTokenNotLeftSpaced :: Parser ()
+nextTokenNotLeftSpaced :: Parser' ()
 nextTokenNotLeftSpaced = do
     tok <- peekToken
     when_ (checkLeftSpacing tok) $ fail "spaced"
 {-# INLINE nextTokenNotLeftSpaced #-}
 
-nextTokenLeftSpaced :: Parser ()
+nextTokenLeftSpaced :: Parser' ()
 nextTokenLeftSpaced = do
     tok <- peekToken
     when_ (not $ checkLeftSpacing tok) $ fail "not spaced"
 {-# INLINE nextTokenLeftSpaced #-}
 
-leftSpaced :: Parser Ast -> Parser Ast
+leftSpaced :: Parser' Ast -> Parser' Ast
 leftSpaced = \mtok -> do
     tok <- mtok
     if checkLeftSpacing tok
@@ -265,7 +265,7 @@ leftSpaced = \mtok -> do
         else fail "not spaced"
 {-# INLINE leftSpaced #-}
 
-anySymbol :: Parser Ast
+anySymbol :: Parser' Ast
 anySymbol = do
     s <- peekSymbol <* dropToken
     case Ast.unspan s of
@@ -273,7 +273,7 @@ anySymbol = do
         _              -> pure s
 {-# INLINE anySymbol #-}
 
-peekSymbol :: Parser Ast
+peekSymbol :: Parser' Ast
 peekSymbol = do
     tok <- peekToken
     case Ast.unspan tok of
@@ -281,19 +281,19 @@ peekSymbol = do
         _                   -> pure tok
 {-# INLINE peekSymbol #-}
 
-anySymbolNotReserved :: Parser Ast
+anySymbolNotReserved :: Parser' Ast
 anySymbolNotReserved = notReserved anySymbol
 {-# INLINE anySymbolNotReserved #-}
 
--- peekSymbolNotReserved :: Parser Ast
+-- peekSymbolNotReserved :: Parser' Ast
 -- peekSymbolNotReserved = notReserved peekSymbol
 -- {-# INLINE peekSymbolNotReserved #-}
 
-satisfyAst :: (Ast.Ast -> Bool) -> Parser Ast
+satisfyAst :: (Ast.Ast -> Bool) -> Parser' Ast
 satisfyAst = \f -> peekSatisfyAst f <* dropToken
 {-# INLINE satisfyAst #-}
 
-peekSatisfyAst :: (Ast.Ast -> Bool) -> Parser Ast
+peekSatisfyAst :: (Ast.Ast -> Bool) -> Parser' Ast
 peekSatisfyAst = \f -> notReserved $ do
     tok <- peekToken
     if f (Ast.unspan tok)
@@ -301,11 +301,11 @@ peekSatisfyAst = \f -> notReserved $ do
         else fail "satisfy"
 {-# INLINE peekSatisfyAst #-}
 
-ast :: Ast.Ast -> Parser Ast
+ast :: Ast.Ast -> Parser' Ast
 ast = satisfyAst . (==)
 {-# INLINE ast #-}
 
-unsafeLineBreak :: Parser Ast
+unsafeLineBreak :: Parser' Ast
 unsafeLineBreak = do
     tok <- anyToken
     case Ast.unspan tok of
@@ -316,14 +316,14 @@ unsafeLineBreak = do
         _ -> fail "not a line break"
 {-# INLINE unsafeLineBreak #-}
 
-unsafeLineBreaks :: Parser [Ast]
+unsafeLineBreaks :: Parser' [Ast]
 unsafeLineBreaks = many1 unsafeLineBreak
 {-# INLINE unsafeLineBreaks #-}
 
 -- | The current implementation works on token stream where some tokens are
 --   line break indicators. After consuming such tokens we need to register them
 --   as offset in the following token.
-brokenLst1 :: Parser (NonEmpty Ast) -> Parser (NonEmpty Ast)
+brokenLst1 :: Parser' (NonEmpty Ast) -> Parser' (NonEmpty Ast)
 brokenLst1 = \f -> do
     spans     <- toksSpanAsSpace <$> unsafeLineBreaks
     (a :| as) <- f
@@ -331,11 +331,11 @@ brokenLst1 = \f -> do
     pure (a' :| as)
 {-# INLINE brokenLst1 #-}
 
-brokenLst1' :: Parser (NonEmpty Ast) -> Parser [Ast]
+brokenLst1' :: Parser' (NonEmpty Ast) -> Parser' [Ast]
 brokenLst1' = fmap convert . brokenLst1
 {-# INLINE brokenLst1' #-}
 
-unsafeBrokenLst :: Parser [Ast] -> Parser [Ast]
+unsafeBrokenLst :: Parser' [Ast] -> Parser' [Ast]
 unsafeBrokenLst = \f -> do
     spans    <- toksSpanAsSpace <$> unsafeLineBreaks
     (a : as) <- f
@@ -343,18 +343,18 @@ unsafeBrokenLst = \f -> do
     pure (a' : as)
 {-# INLINE unsafeBrokenLst #-}
 
-broken :: Parser Ast -> Parser Ast
+broken :: ParserT t Ast -> Parser' Ast
 broken = \f -> do
     spans <- toksSpanAsSpace <$> unsafeLineBreaks
-    tok   <- f
+    tok   <- partial f
     pure $ tok & Ast.span %~ (spans <>)
 {-# INLINE broken #-}
 
-possiblyBroken :: Parser Ast -> Parser Ast
-possiblyBroken = \p -> broken (Indent.indented *> p) <|> p
+possiblyBroken :: ParserT t Ast -> ParserT t Ast
+possiblyBroken = \p -> broken (Indent.indented *> p) <||> p
 {-# INLINE possiblyBroken #-}
 
-anyExprToken :: Parser Ast
+anyExprToken :: Parser' Ast
 anyExprToken = possiblyBroken anyToken
 {-# INLINE anyExprToken #-}
 
@@ -378,12 +378,29 @@ newtype ParserBase (t :: ParserType) m a = ParserBase (IdentityT m a) deriving
     ( Alternative, Applicative, Assoc.Reader name, Assoc.Writer name, Functor
     , Monad, MonadFail, MonadTrans, Prec.RelReader name, Prec.RelWriter name)
 
-type Parser  = ParserBase 'Partial ParserStack
-type Parser' = ParserBase 'Total   ParserStack
+type ParserT t = ParserBase t ParserStack
+type Parser'   = ParserT 'Partial
+type Parser    = ParserT 'Total
 
 runParserBase :: ParserBase t m a -> m a
 runParserBase = runIdentityT . unwrap
 {-# INLINE runParserBase #-}
+
+unsafeCoerceParser :: ParserBase t m a -> ParserBase t' m a
+unsafeCoerceParser = coerce
+{-# INLINE unsafeCoerceParser #-}
+
+total :: a -> ParserT t a -> Parser a
+total = unsafeCoerceParser .: option
+{-# INLINE total #-}
+
+partial :: ParserT t a -> Parser' a
+partial = unsafeCoerceParser
+{-# INLINE partial #-}
+
+(<||>) :: ParserT t a -> ParserT s a -> ParserT s a
+(<||>) = \l r -> unsafeCoerceParser l <|> r
+{-# INLINE (<||>) #-}
 
 type ParserStack = State.StatesT
    '[ Scope.Scope
@@ -395,7 +412,7 @@ type ParserStack = State.StatesT
 
 makeLenses ''ParserBase
 
-run :: [Ast] -> Parser' a -> Either String a
+run :: [Ast] -> Parser a -> Either String a
 run = \stream
    -> flip Parsec.parseOnly (Vector.fromList stream)
     . State.evalDefT  @Registry
@@ -409,24 +426,14 @@ run = \stream
 type instance Token  (ParserBase t m) = Token  m
 type instance Tokens (ParserBase t m) = Tokens m
 
-unsafeCoerceParser :: ParserBase t m a -> ParserBase t' m a
-unsafeCoerceParser = coerce
-{-# INLINE unsafeCoerceParser #-}
 
-total :: a -> Parser a -> Parser' a
-total = unsafeCoerceParser .: option
-{-# INLINE total #-}
-
-partial :: Parser' a -> Parser a
-partial = unsafeCoerceParser
-{-# INLINE partial #-}
 
 
 -- === Macro building block parsers === --
 
-chunk :: Chunk -> Parser Ast
+chunk :: Chunk -> Parser' Ast
 chunk = \case
-    Expr              -> possiblyBroken nonBlockExprBody
+    Expr              -> partial $ possiblyBroken nonBlockExprBody
     NonSpacedExpr     -> nonSpacedExpr
     ManyNonSpacedExpr -> manyNonSpacedExpr
     ExprBlock         -> partial expr -- FIXME
@@ -434,18 +441,18 @@ chunk = \case
     ClassBlock        -> classBlock
 {-# INLINE chunk #-}
 
-chunks :: [Chunk] -> Parser [Ast]
+chunks :: [Chunk] -> Parser' [Ast]
 chunks = mapM chunk
 {-# NOINLINE chunks #-}
 
 
 -- === Degment parsers === --
 
-segment :: Segment -> Parser [Ast]
+segment :: Segment -> Parser' [Ast]
 segment = chunks . view segmentChunks
 {-# INLINE segment #-}
 
-segmentList :: Name -> SegmentList -> Parser (Name, [Spanned [Ast]])
+segmentList :: Name -> SegmentList -> Parser' (Name, [Spanned [Ast]])
 segmentList = go where
     go = \name -> \case
         SegmentListNull -> pure (name, mempty)
@@ -467,7 +474,7 @@ segmentList = go where
 
 -- === Section parsers === --
 
-macro :: Ast -> Macro -> Parser [Ast]
+macro :: Ast -> Macro -> Parser' [Ast]
 macro = \t@(Ast.Spanned span tok) (Macro seg lst) -> do
     psegs <- withNextSegmentsReserved lst $ segment seg
 
@@ -522,15 +529,15 @@ emptyExpression = Ast.invalid Invalid.EmptyExpression
 
 -- === API === --
 
-expr :: Parser' Ast
+expr :: Parser Ast
 expr = total emptyExpression expr'
 {-# INLINE expr #-}
 
-expr' :: Parser Ast
+expr' :: Parser' Ast
 expr' = blockExpr' <|> nonBlockExpr'
 {-# INLINE expr' #-}
 
-blockExpr' :: Parser Ast
+blockExpr' :: Parser' Ast
 blockExpr' = discoverBlock1 nonBlockExpr' <&> \case
     (a :| []) -> a
     as -> Ast.block as
@@ -545,20 +552,20 @@ nonBlockExpr :: Parser Ast
 nonBlockExpr = do
     let marked = do
             marker <- satisfyAst isMarker
-            nonBlockExpr   <- nonBlockExprBody
+            nonBlockExpr <- partial nonBlockExprBody
             pure $ Ast.app marker nonBlockExpr
 
-    Indent.withCurrent $ marked <|> nonBlockExprBody
+    Indent.withCurrent $ marked <||> nonBlockExprBody
 {-# INLINE nonBlockExpr #-}
 
-unit :: Parser' Ast
+unit :: Parser Ast
 unit = total emptyExpression $ Ast.unit <$> body where
     body     = nonEmpty <|> empty
     nonEmpty = Ast.block <$> block1 nonBlockExpr'
     empty    = pure Ast.missing
 {-# INLINE unit #-}
 
-nonBlockExpr' :: Parser Ast
+nonBlockExpr' :: Parser' Ast
 nonBlockExpr' = do
     let marked = do
             marker <- satisfyAst isMarker
@@ -569,7 +576,7 @@ nonBlockExpr' = do
 {-# INLINE nonBlockExpr' #-}
 
 nonBlockExprBody :: Parser Ast
-nonBlockExprBody = option emptyExpression nonBlockExprBody'
+nonBlockExprBody = total emptyExpression nonBlockExprBody'
 {-# INLINE nonBlockExprBody #-}
 
 isComment :: Ast.Ast -> Bool
@@ -577,12 +584,12 @@ isComment = \case
     Ast.Comment {} -> True
     _ -> False
 
-assertNotComment :: Ast -> Parser ()
+assertNotComment :: Ast -> Parser' ()
 assertNotComment = \tok -> when_ (isComment $ Ast.unspan tok)
     $ fail "Assertion failed: got a comment."
 {-# INLINE assertNotComment #-}
 
-nonBlockExprBody' :: Parser Ast
+nonBlockExprBody' :: Parser' Ast
 nonBlockExprBody' = documented <|> unusedComment <|> body where
     documented    = Ast.documented <$> satisfyAst isComment <*> docBase
     unusedComment = satisfyAst isComment
@@ -608,15 +615,15 @@ nonBlockExprBody' = documented <|> unusedComment <|> body where
                 _              -> pure [tok]
 {-# INLINE nonBlockExprBody' #-}
 
-manyNonSpacedExpr :: Parser Ast
+manyNonSpacedExpr :: Parser' Ast
 manyNonSpacedExpr = Ast.list <$> many nonSpacedExpr'
 {-# INLINE manyNonSpacedExpr #-}
 
-nonSpacedExpr :: Parser Ast
+nonSpacedExpr :: Parser' Ast
 nonSpacedExpr = option emptyExpression nonSpacedExpr'
 {-# INLINE nonSpacedExpr #-}
 
-nonSpacedExpr' :: Parser Ast
+nonSpacedExpr' :: Parser' Ast
 nonSpacedExpr' = buildExpr =<< go where
     go = do
         tok  <- anySymbolNotReserved
@@ -631,7 +638,7 @@ nonSpacedExpr' = buildExpr =<< go where
 
 
 
-exprList :: Parser Ast
+exprList :: Parser' Ast
 exprList = Ast.list <$> lst where
     lst      = option mempty $ nonEmpty <|> empty
     nonEmpty = (:) <$> seg segBody <*> many nextSeg
@@ -651,63 +658,63 @@ exprList = Ast.list <$> lst where
 -- === Layout === --
 --------------------
 
-discoverBlock1 :: Parser Ast -> Parser (NonEmpty Ast)
+discoverBlock1 :: Parser' Ast -> Parser' (NonEmpty Ast)
 discoverBlock1 = \p -> brokenLst1 $ Indent.indented *> block1 p
 {-# INLINE discoverBlock1 #-}
 
-block1 :: Parser Ast -> Parser (NonEmpty Ast)
+block1 :: Parser' Ast -> Parser' (NonEmpty Ast)
 block1 = Indent.withCurrent . blockBody1
 {-# INLINE block1 #-}
 
-blockBody1 :: Parser Ast -> Parser (NonEmpty Ast)
+blockBody1 :: Parser' Ast -> Parser' (NonEmpty Ast)
 blockBody1 = \p -> (:|) <$> p <*> many (broken $ Indent.indentedEq *> p)
 {-# INLINE blockBody1 #-}
 
-block :: Parser Ast -> Parser [Ast]
+block :: Parser' Ast -> Parser [Ast]
 block = optionBlock . block1
 {-# INLINE block #-}
 
-blockBody :: Parser Ast -> Parser [Ast]
+blockBody :: Parser' Ast -> Parser [Ast]
 blockBody = optionBlock . blockBody1
 {-# INLINE blockBody #-}
 
-optionBlock :: Parser (NonEmpty Ast) -> Parser [Ast]
-optionBlock = option mempty . fmap convert
+optionBlock :: Parser' (NonEmpty Ast) -> Parser [Ast]
+optionBlock = total mempty . fmap convert
 {-# INLINE optionBlock #-}
 
 
 
 
-optional :: Parser Ast -> Parser Ast
+optional :: Parser' Ast -> Parser' Ast
 optional = option Ast.missing
 {-# INLINE optional #-}
 
 
-classBlock :: Parser Ast
+classBlock :: Parser' Ast
 classBlock = broken $ do
     let conses = many classCons
     Ast.list <$> conses
 
-classCons :: Parser Ast
+classCons :: Parser' Ast
 classCons = Ast.app <$> withReserved blockStartOp base <*> (blockDecl <|> inlineDecl) where
     base       = satisfyAst isCons
     inlineDecl = Ast.list <$> many unnamedField
     blockDecl   = ast blockStartOp *> blockDecl'
     blockStartOp = Ast.Operator ":"
     blockDecl'  = Ast.list <$> (unsafeBrokenLst $ Indent.indented *> Indent.withCurrent blockDeclLines)
-    blockDeclLines :: Parser [Ast]
+    blockDeclLines :: Parser' [Ast]
     blockDeclLines  = (:) <$> namedFields <*> blockDeclLines'
     blockDeclLines' = option mempty $ unsafeBrokenLst (Indent.indentedEq *> blockDeclLines)
 
 
-unnamedField :: Parser Ast
+unnamedField :: Parser' Ast
 unnamedField = do
     tp <- nonSpacedExpr'
     let f  = Ast.Spanned mempty $ Ast.Var "#fields#"
         ns = Ast.Spanned mempty $ Ast.List []
     pure $ Ast.apps f [ns, tp]
 
-namedFields :: Parser Ast
+namedFields :: Parser' Ast
 namedFields = do
     let tpOp = Ast.Operator "::"
     ns <- Ast.list <$> withReserved tpOp (many1 nonSpacedExpr')
@@ -728,7 +735,7 @@ isMarker = \case
     _ -> False
 {-# INLINE isMarker #-}
 
--- record :: Parser (IRBS SomeTerm)
+-- record :: Parser' (IRBS SomeTerm)
 -- record = irbs $ (\nat n args (cs,ds) -> liftIRBS3 (irb5 IR.record' nat n) (sequence args) (sequence cs) (sequence ds))
 --    <$> try (option False (True <$ symbol Lexer.KwNative) <* symbol Lexer.KwClass) <*> consName <*> many var <*> body
 --     where body      = option mempty $ symbol Lexer.BlockStart *> bodyBlock
@@ -736,17 +743,17 @@ isMarker = \case
 --           consBlock = breakableNonEmptyBlockBody' recordCons <|> breakableOptionalBlockBody recordNamedFields
 --           bodyBlock = discoverIndent ((,) <$> consBlock <*> funcBlock)
 
--- recordCons :: Parser (IRBS SomeTerm)
+-- recordCons :: Parser' (IRBS SomeTerm)
 -- recordCons = ... <$> consName <*> (blockDecl <|> inlineDecl) where
 --     blockDecl  = symbol Lexer.BlockStart *> possibleNonEmptyBlock' recordNamedFields
 --     inlineDecl = many unnamedField
 
--- recordNamedFields :: Parser (IRBS SomeTerm)
+-- recordNamedFields :: Parser' (IRBS SomeTerm)
 -- recordNamedFields = irbs $ do
 --     varNames <- Mutable.fromList =<< many varName
 --     liftIRBS1 (irb2 IR.recordFields' varNames) <$ symbol Lexer.Typed <*> valExpr
 
--- unnamedField :: Parser (IRBS SomeTerm)
+-- unnamedField :: Parser' (IRBS SomeTerm)
 -- unnamedField = do
 --     m <- Mutable.new
 --     irbs $ liftIRBS1 (irb2 IR.recordFields' m)
