@@ -27,7 +27,8 @@ import qualified Luna.Pass.Parsing.ExprBuilder               as ExprBuilder
 import qualified Luna.Pass.Parsing.Macro                     as Macro
 import qualified Luna.Pass.Parsing.Parserx                   as PP
 import qualified Luna.Pass.Scheduler                         as Scheduler
-import qualified Luna.Syntax.Text.Parser.Data.Ast.Atom       as Ast
+import qualified Luna.Syntax.Text.Parser.Data.Ast.Class      as Ast
+import qualified Luna.Syntax.Text.Parser.Data.Ast.Simple     as Simple
 import qualified Luna.Syntax.Text.Parser.Data.CodeSpan       as CodeSpan
 import qualified Luna.Syntax.Text.Parser.Data.Name.Hardcoded as Hardcoded
 import qualified Luna.Syntax.Text.Parser.Data.Name.Special   as Name
@@ -145,9 +146,9 @@ instance (t ~ Arg a, Example a, x ~ ())
 -- exprAs     = shouldParseAs     Parsing.Syntax1 Parsing.expr
 -- expr       = shouldParseItself Parsing.Syntax1 Parsing.expr
 
-testCase :: Macro.Parser Ast -> String -> Ast.SimpleAst -> IO ()
+testCase :: Macro.Parser Ast -> String -> Simple.Ast -> IO ()
 testCase p src out = sast `shouldBe` out where
-    sast = Ast.simplify ast
+    sast = Simple.simplify ast
     ast  = flip PP.runWith (convert src) $ do
         let rplus  = ">>+" :: Name
             noplus = ">+<" :: Name
@@ -157,14 +158,14 @@ testCase p src out = sast `shouldBe` out where
         Prec.writeRel EQ ("+" :: Name) noplus
         p
 
-e, u :: String -> Ast.SimpleAst -> IO ()
+e, u :: String -> Simple.Ast -> IO ()
 e = testCase Macro.expr
 u = testCase Macro.unit
 
 e' :: String -> IO ()
 e' src = e src (convert src)
 
-it_e :: String -> Ast.SimpleAst -> SpecM () ()
+it_e :: String -> Simple.Ast -> SpecM () ()
 it_e s t = it (show s) (e s t)
 
 it_e' :: String -> SpecM () ()
@@ -176,23 +177,23 @@ it_e' s = it_e s (convert s)
 -- === Ast utils === --
 -----------------------
 
-__ :: Convertible' Ast.SimpleAst a => a
-__ = convert' Ast.SMissing
+__ :: Convertible' Simple.Ast a => a
+__ = convert' Simple.Missing
 
-block (a:as) = Ast.SBlock (a :| as)
+block (a:as) = Simple.Block (a :| as)
 
-eq :: Ast.SimpleAst -> Ast.SimpleAst -> Ast.SimpleAst
-eq = flip Ast.SInfixApp "#=#"
+eq :: Simple.Ast -> Simple.Ast -> Simple.Ast
+eq = flip Simple.InfixApp "#=#"
 
-secR :: Convertible' Ast.SimpleAst a => Ast.SimpleAst -> Ast.SimpleAst -> a
-secR = convert' .: Ast.SSectionRight
+secR :: Convertible' Simple.Ast a => Simple.Ast -> Simple.Ast -> a
+secR = convert' .: Simple.SectionRight
 
-secL :: Convertible' Ast.SimpleAst a => Ast.SimpleAst -> Ast.SimpleAst -> a
-secL = convert' .: Ast.SSectionLeft
+secL :: Convertible' Simple.Ast a => Simple.Ast -> Simple.Ast -> a
+secL = convert' .: Simple.SectionLeft
 
-_x :: Convertible' Ast.SimpleAst a
-    => Ast.SimpleAst -> Ast.SimpleAst -> Ast.SimpleAst -> a
-_x = convert' .:. Ast.SInfixApp
+_x :: Convertible' Simple.Ast a
+    => Simple.Ast -> Simple.Ast -> Simple.Ast -> a
+_x = convert' .:. Simple.InfixApp
 
 
 
@@ -230,10 +231,10 @@ identSpec = describe "identifier" $ do
     it_e "..." $ unexpectedSuffix 1
     it_e "..+" $ unexpectedSuffix 1
     it_e "+."  $ unexpectedSuffix 1
-    it_e ".+"  $ secR "." (Ast.SVar "+")
+    it_e ".+"  $ secR "." (Simple.Var "+")
 
   describe "other" $ do
-    "wildcard" $ e "_" $ Ast.SWildcard
+    "wildcard" $ e "_" $ Simple.Wildcard
 
 
 literalNumberSpec :: Spec
@@ -251,8 +252,8 @@ literalNumberSpec = describe "number" $ do
 literalStringSpec :: Spec
 literalStringSpec = describe "string" $ do
   describe "raw" $ do
-    -- "empty"              $ e "''"  $ Ast.SStr [Ast.StrPlain "a"]
-    "simple"             $ e "'a'" $ Ast.SStr [Ast.StrPlain "a"]
+    -- "empty"              $ e "''"  $ Simple.SStr [Simple.StrPlain "a"]
+    "simple"             $ e "'a'" $ Simple.Str [Ast.StrPlain "a"]
     -- "simple"            $ e [s|"test sentence"|]
     -- "tripple d-quoted"  $ e [s|"""Test"""|] [s|"Test"|]
     -- "escape quote"      $ e [s|"foo\""|]
@@ -347,7 +348,7 @@ operatorSpec = describe "operator" $ do
   describe "multiline" $ do
     "grouping"        $ e "a\n b c"       $ "a" ("b" "c")
     "section 1"       $ e "a +\n b c"     $ "a" + ("b" "c")
-    "section 2"       $ e "a+ \n b c"     $ Ast.SApp (secL "a" "+") ("b" "c")
+    "section 2"       $ e "a+ \n b c"     $ Simple.App (secL "a" "+") ("b" "c")
     "section 3"       $ e "a \n +b c"     $ "a" ((secR "+" "b") "c")
     "continuation"    $ e "a \n + b c"    $ "a" + "b" "c"
 
@@ -395,11 +396,11 @@ layoutSpec = describe "layout" $ do
 missingSectionsSpec :: Spec
 missingSectionsSpec = describe "mixfix" $ let
 
-    tst :: String -> [String] -> [Either Ast.SimpleAst String] -> SpecM () ()
+    tst :: String -> [String] -> [Either Simple.Ast String] -> SpecM () ()
     tst n ns as = it_e (mconcat $ shuffle ns (pat <$> as))
-                $ Ast.appMany (convert n) (exp <$> as)
+                $ Simple.apps (convert n) (exp <$> as)
 
-    opt   :: String -> [Either Ast.SimpleAst String]
+    opt   :: String -> [Either Simple.Ast String]
     opt   = \a -> [Right a, Left emptyExpression]
     noSec = Left missingSection
     pat   = either (const " ") (\t -> " " <> t <> " ")
@@ -454,11 +455,11 @@ importSpec = describe "import" $ do
 
 unitSpec :: Spec
 unitSpec = describe "unit" $ do
-    "empty" $ u "" (Ast.SMissing)
+    "empty" $ u "" (Simple.Missing)
 
 commentSpec :: Spec
 commentSpec = describe "comment" $ do
-    "single line" $ e "# comment" $ Ast.SComment "comment"
+    "single line" $ e "# comment" $ Simple.Comment "comment"
 
 
 -- TODO:
@@ -502,7 +503,7 @@ debugSpec = describe "error" $ it "x" $ do
 
     putStrLn "\nRESULT:\n"
     pprint $ PP.runWith Macro.unit input
-    pprint $ Ast.simplify $ PP.runWith Macro.unit input
+    pprint $ Simple.simplify $ PP.runWith Macro.unit input
 
     True `shouldBe` False
 

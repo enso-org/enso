@@ -20,19 +20,19 @@ import OCI.Data.Name                         (Name)
 
 --
 
-import qualified Control.Monad.State.Layered           as State
-import qualified Data.Attoparsec.Internal.Types        as AttoParsec
-import qualified Data.Attoparsec.Text32                as Parsec
-import qualified Data.Char                             as Char
-import qualified Data.Set                              as Set
-import qualified Data.Text.Position                    as Position
-import qualified Data.Text.Span                        as Span
-import qualified GHC.Exts                              as GHC
-import qualified Luna.Syntax.Text.Lexer                as Lexer
-import qualified Luna.Syntax.Text.Lexer.Symbol         as Lexer
-import qualified Luna.Syntax.Text.Parser.Data.Ast.Atom as Atom
-import qualified Luna.Syntax.Text.Parser.State.Marker  as Marker
-import qualified Luna.Syntax.Text.Scope                as Scope
+import qualified Control.Monad.State.Layered            as State
+import qualified Data.Attoparsec.Internal.Types         as AttoParsec
+import qualified Data.Attoparsec.Text32                 as Parsec
+import qualified Data.Char                              as Char
+import qualified Data.Set                               as Set
+import qualified Data.Text.Position                     as Position
+import qualified Data.Text.Span                         as Span
+import qualified GHC.Exts                               as GHC
+import qualified Luna.Syntax.Text.Lexer                 as Lexer
+import qualified Luna.Syntax.Text.Lexer.Symbol          as Lexer
+import qualified Luna.Syntax.Text.Parser.Data.Ast.Class as Atom
+import qualified Luna.Syntax.Text.Parser.State.Marker   as Marker
+import qualified Luna.Syntax.Text.Scope                 as Scope
 
 import Control.Monad.State.Layered              (StateT, StatesT)
 import Data.Set                                 (Set)
@@ -44,8 +44,8 @@ import Text.Parser.State.Indent                 (Indent)
 import Data.Parser             hiding (Result, Token, Tokens, endOfInput)
 import Text.Parser.Combinators (some)
 
-import Luna.Syntax.Text.Parser.Data.Ast.Class as X
-
+import qualified Luna.Syntax.Text.Parser.Data.Ast.Simple  as Simple
+import           Luna.Syntax.Text.Parser.Data.Ast.Spanned as X
 
 
 -- type Text = Text.Text32
@@ -109,35 +109,35 @@ evalResult = fmap (reverse . unwrap) . State.execDefT
 
 
 type family ExpandField t a
-data Simple
+-- data Simple
 
 
 
 
-pattern SVar       t1    = SimpleAstVar       (Atom.Var       t1)
-pattern SCons      t1    = SimpleAstCons      (Atom.Cons      t1)
-pattern SOperator  t1    = SimpleAstOperator  (Atom.Operator  t1)
-pattern SModifier  t1    = SimpleAstModifier  (Atom.Modifier  t1)
-pattern SWildcard        = SimpleAstWildcard  (Atom.Wildcard)
-pattern SNumber    t1    = SimpleAstNumber    (Atom.Number    t1)
-pattern SStr       t1    = SimpleAstStr       (Atom.Str       t1)
-pattern SBlock    t1    = SimpleAstBlock    (Atom.Block    t1)
--- -- pattern STokens    t1    = SimpleAstTokens    (Atom.Tokens    t1)
-pattern SMarker    t1    = SimpleAstMarker    (Atom.Marker    t1)
-pattern SLineBreak t1    = SimpleAstLineBreak (Atom.LineBreak t1)
-pattern SComment   t1    = SimpleAstComment   (Atom.Comment   t1)
-pattern SDocumented   t1 t2    = SimpleAstDocumented   (Atom.Documented   t1 t2)
-pattern SInvalid   t1    = SimpleAstInvalid   (Atom.Invalid   t1)
-pattern SApp       t1 t2 = SimpleAstApp       (Atom.App       t1 t2)
-pattern SInfixApp       t1 t2 t3 = SimpleAstInfixApp       (Atom.InfixApp       t1 t2 t3)
-pattern SMissing         = SimpleAstMissing   (Atom.Missing)
-pattern SList      t1    = SimpleAstList      (Atom.List      t1)
-pattern SUnit      t1    = SimpleAstUnit      (Atom.Unit      t1)
-pattern SSectionLeft  t1 t2 = SimpleAstSectionLeft  (Atom.SectionLeft  t1 t2)
-pattern SSectionRight t1 t2 = SimpleAstSectionRight (Atom.SectionRight t1 t2)
+-- pattern SVar       t1    = SimpleAstVar       (Atom.Var       t1)
+-- pattern SCons      t1    = SimpleAstCons      (Atom.Cons      t1)
+-- pattern SOperator  t1    = SimpleAstOperator  (Atom.Operator  t1)
+-- pattern SModifier  t1    = SimpleAstModifier  (Atom.Modifier  t1)
+-- pattern SWildcard        = SimpleAstWildcard  (Atom.Wildcard)
+-- pattern SNumber    t1    = SimpleAstNumber    (Atom.Number    t1)
+-- pattern SStr       t1    = SimpleAstStr       (Atom.Str       t1)
+-- pattern SBlock    t1    = SimpleAstBlock    (Atom.Block    t1)
+-- -- -- pattern STokens    t1    = SimpleAstTokens    (Atom.Tokens    t1)
+-- pattern SMarker    t1    = SimpleAstMarker    (Atom.Marker    t1)
+-- pattern SLineBreak t1    = SimpleAstLineBreak (Atom.LineBreak t1)
+-- pattern SComment   t1    = SimpleAstComment   (Atom.Comment   t1)
+-- pattern SDocumented   t1 t2    = SimpleAstDocumented   (Atom.Documented   t1 t2)
+-- pattern SInvalid   t1    = SimpleAstInvalid   (Atom.Invalid   t1)
+-- pattern SApp       t1 t2 = SimpleAstApp       (Atom.App       t1 t2)
+-- pattern SInfixApp       t1 t2 t3 = SimpleAstInfixApp       (Atom.InfixApp       t1 t2 t3)
+-- pattern SMissing         = SimpleAstMissing   (Atom.Missing)
+-- pattern SList      t1    = SimpleAstList      (Atom.List      t1)
+-- pattern SUnit      t1    = SimpleAstUnit      (Atom.Unit      t1)
+-- pattern SSectionLeft  t1 t2 = SimpleAstSectionLeft  (Atom.SectionLeft  t1 t2)
+-- pattern SSectionRight t1 t2 = SimpleAstSectionRight (Atom.SectionRight t1 t2)
 
 
-pattern XList t <- Spanned s (AstList      (Atom.List      (prependOffsetToHead s -> t)))
+-- pattern XList t <- Spanned s (AstList      (Atom.List      (prependOffsetToHead s -> t)))
 
 prependOffsetToHead t = \case
     []     -> []
@@ -243,270 +243,270 @@ unspan = \(Spanned cs a) ->
 {-# INLINE unspan #-}
 
 
-type instance Atom.Link SimpleAst (Atom.StrChunk s) = Atom.StrChunk s
-type instance Atom.Link SimpleAst Atom.Struct = SimpleAst
+-- type instance Atom.Link SimpleAst (Atom.StrChunk s) = Atom.StrChunk s
+-- type instance Atom.Link SimpleAst Atom.Struct = SimpleAst
 
-data SimpleAst
-    = SimpleAstVar          (Atom.Var          SimpleAst)
-    | SimpleAstCons         (Atom.Cons         SimpleAst)
-    | SimpleAstOperator     (Atom.Operator     SimpleAst)
-    | SimpleAstModifier     (Atom.Modifier     SimpleAst)
-    | SimpleAstWildcard     (Atom.Wildcard     SimpleAst)
-    | SimpleAstNumber       (Atom.Number       SimpleAst)
-    | SimpleAstStr          (Atom.Str          SimpleAst)
-    | SimpleAstBlock        (Atom.Block        SimpleAst)
-    | SimpleAstMarker       (Atom.Marker       SimpleAst)
-    | SimpleAstLineBreak    (Atom.LineBreak    SimpleAst)
-    | SimpleAstComment      (Atom.Comment      SimpleAst)
-    | SimpleAstDocumented   (Atom.Documented   SimpleAst)
-    | SimpleAstInvalid      (Atom.Invalid      SimpleAst)
-    | SimpleAstApp          (Atom.App          SimpleAst)
-    | SimpleAstInfixApp     (Atom.InfixApp     SimpleAst)
-    | SimpleAstMissing      (Atom.Missing      SimpleAst)
-    | SimpleAstList         (Atom.List         SimpleAst)
-    | SimpleAstUnit         (Atom.Unit         SimpleAst)
-    | SimpleAstSectionLeft  (Atom.SectionLeft  SimpleAst)
-    | SimpleAstSectionRight (Atom.SectionRight SimpleAst)
-    deriving (Eq, Ord)
+-- data SimpleAst
+--     = SimpleAstVar          (Atom.Var          SimpleAst)
+--     | SimpleAstCons         (Atom.Cons         SimpleAst)
+--     | SimpleAstOperator     (Atom.Operator     SimpleAst)
+--     | SimpleAstModifier     (Atom.Modifier     SimpleAst)
+--     | SimpleAstWildcard     (Atom.Wildcard     SimpleAst)
+--     | SimpleAstNumber       (Atom.Number       SimpleAst)
+--     | SimpleAstStr          (Atom.Str          SimpleAst)
+--     | SimpleAstBlock        (Atom.Block        SimpleAst)
+--     | SimpleAstMarker       (Atom.Marker       SimpleAst)
+--     | SimpleAstLineBreak    (Atom.LineBreak    SimpleAst)
+--     | SimpleAstComment      (Atom.Comment      SimpleAst)
+--     | SimpleAstDocumented   (Atom.Documented   SimpleAst)
+--     | SimpleAstInvalid      (Atom.Invalid      SimpleAst)
+--     | SimpleAstApp          (Atom.App          SimpleAst)
+--     | SimpleAstInfixApp     (Atom.InfixApp     SimpleAst)
+--     | SimpleAstMissing      (Atom.Missing      SimpleAst)
+--     | SimpleAstList         (Atom.List         SimpleAst)
+--     | SimpleAstUnit         (Atom.Unit         SimpleAst)
+--     | SimpleAstSectionLeft  (Atom.SectionLeft  SimpleAst)
+--     | SimpleAstSectionRight (Atom.SectionRight SimpleAst)
+--     deriving (Eq, Ord)
 
-instance Show SimpleAst where
-    show = \case
-        SimpleAstVar          t -> show t
-        SimpleAstCons         t -> show t
-        SimpleAstOperator     t -> show t
-        SimpleAstModifier     t -> show t
-        SimpleAstWildcard     t -> show t
-        SimpleAstNumber       t -> show t
-        SimpleAstStr          t -> show t
-        SimpleAstBlock        t -> show t
-        SimpleAstMarker       t -> show t
-        SimpleAstLineBreak    t -> show t
-        SimpleAstComment      t -> show t
-        SimpleAstDocumented   t -> show t
-        SimpleAstInvalid      t -> show t
-        SimpleAstApp          t -> show t
-        SimpleAstInfixApp     t -> show t
-        SimpleAstMissing      t -> show t
-        SimpleAstList         t -> show t
-        SimpleAstUnit         t -> show t
-        SimpleAstSectionLeft  t -> show t
-        SimpleAstSectionRight t -> show t
-
-
-sapp :: SimpleAst -> SimpleAst -> SimpleAst
-sapp = SApp
-{-# INLINE sapp #-}
-
-sapp2 :: SimpleAst -> SimpleAst -> SimpleAst -> SimpleAst
-sapp2 = \f -> sapp . sapp f
-{-# INLINE sapp2 #-}
-
-sapp3 :: SimpleAst -> SimpleAst -> SimpleAst -> SimpleAst -> SimpleAst
-sapp3 = \f -> sapp .: sapp2 f
-{-# INLINE sapp3 #-}
-
-sapp4 :: SimpleAst -> SimpleAst -> SimpleAst -> SimpleAst -> SimpleAst
-      -> SimpleAst
-sapp4 = \f -> sapp .:. sapp3 f
-{-# INLINE sapp4 #-}
-
-sapps :: SimpleAst -> [SimpleAst] -> SimpleAst
-sapps = foldl' sapp
-{-# INLINE sapps #-}
+-- instance Show SimpleAst where
+--     show = \case
+--         SimpleAstVar          t -> show t
+--         SimpleAstCons         t -> show t
+--         SimpleAstOperator     t -> show t
+--         SimpleAstModifier     t -> show t
+--         SimpleAstWildcard     t -> show t
+--         SimpleAstNumber       t -> show t
+--         SimpleAstStr          t -> show t
+--         SimpleAstBlock        t -> show t
+--         SimpleAstMarker       t -> show t
+--         SimpleAstLineBreak    t -> show t
+--         SimpleAstComment      t -> show t
+--         SimpleAstDocumented   t -> show t
+--         SimpleAstInvalid      t -> show t
+--         SimpleAstApp          t -> show t
+--         SimpleAstInfixApp     t -> show t
+--         SimpleAstMissing      t -> show t
+--         SimpleAstList         t -> show t
+--         SimpleAstUnit         t -> show t
+--         SimpleAstSectionLeft  t -> show t
+--         SimpleAstSectionRight t -> show t
 
 
-instance IsString SimpleAst where
-    fromString = convert
+-- sapp :: SimpleAst -> SimpleAst -> SimpleAst
+-- sapp = SApp
+-- {-# INLINE sapp #-}
 
-instance Convertible String (t1 -> SimpleAst)
-      => IsString (t1 -> SimpleAst) where
-    fromString = convert
+-- sapp2 :: SimpleAst -> SimpleAst -> SimpleAst -> SimpleAst
+-- sapp2 = \f -> sapp . sapp f
+-- {-# INLINE sapp2 #-}
 
-instance Convertible String (t1 -> t2 -> SimpleAst)
-      => IsString (t1 -> t2 -> SimpleAst) where
-    fromString = convert
+-- sapp3 :: SimpleAst -> SimpleAst -> SimpleAst -> SimpleAst -> SimpleAst
+-- sapp3 = \f -> sapp .: sapp2 f
+-- {-# INLINE sapp3 #-}
 
-instance Convertible String (t1 -> t2 -> t3 -> SimpleAst)
-      => IsString (t1 -> t2 -> t3 -> SimpleAst) where
-    fromString = convert
+-- sapp4 :: SimpleAst -> SimpleAst -> SimpleAst -> SimpleAst -> SimpleAst
+--       -> SimpleAst
+-- sapp4 = \f -> sapp .:. sapp3 f
+-- {-# INLINE sapp4 #-}
 
--- instance Convertible String (t1 -> t2 -> t3 -> t4 -> SimpleAst)
---       => IsString (t1 -> t2 -> t3 -> t4 -> SimpleAst) where
+-- sapps :: SimpleAst -> [SimpleAst] -> SimpleAst
+-- sapps = foldl' sapp
+-- {-# INLINE sapps #-}
+
+
+-- instance IsString SimpleAst where
 --     fromString = convert
 
+-- instance Convertible String (t1 -> SimpleAst)
+--       => IsString (t1 -> SimpleAst) where
+--     fromString = convert
 
-appMany :: SimpleAst -> [SimpleAst] -> SimpleAst
-appMany = \a -> \case
-    []     -> a
-    (t:ts) -> appMany (sapp a t) ts
-{-# appMany #-}
+-- instance Convertible String (t1 -> t2 -> SimpleAst)
+--       => IsString (t1 -> t2 -> SimpleAst) where
+--     fromString = convert
 
-instance Convertible String SimpleAst where
-    convert = let
-        isMixfix = ('_' `elem`)
-        in \case
-            ""  -> SMissing
-            "_" -> SWildcard
-            x@(s:ss) -> let n = convert x in if
-                | s == '_'       -> SVar      n
-                | Char.isLower s -> SVar      n
-                | Char.isUpper s -> SCons     n
-                | Char.isDigit s -> SNumber $ charsToDigits (s :| ss)
-                | isMixfix x     -> SVar      n
-                | otherwise      -> case last ss of
-                    Just '=' -> SModifier $ convert (s : unsafeInit ss)
-                    _        -> SOperator n
+-- instance Convertible String (t1 -> t2 -> t3 -> SimpleAst)
+--       => IsString (t1 -> t2 -> t3 -> SimpleAst) where
+--     fromString = convert
 
-charsToDigits :: NonEmpty Char -> NonEmpty Word8
-charsToDigits (c :| cs) = go c :| (go <$> cs) where
-    go c = fromIntegral $ Char.ord c - 48
-
-instance Convertible SimpleAst (t1 -> SimpleAst)
-      => Convertible String (t1 -> SimpleAst) where
-    convert = convert . convertTo @SimpleAst
-
-instance Convertible SimpleAst (t1 -> t2 -> SimpleAst)
-      => Convertible String (t1 -> t2 -> SimpleAst) where
-    convert = convert . convertTo @SimpleAst
-
-instance Convertible SimpleAst (t1 -> t2 -> t3 -> SimpleAst)
-      => Convertible String (t1 -> t2 -> t3 -> SimpleAst) where
-    convert = convert . convertTo @SimpleAst
-
-instance Convertible SimpleAst (t1 -> t2 -> t3 -> t4 -> SimpleAst)
-      => Convertible String (t1 -> t2 -> t3 -> t4 -> SimpleAst) where
-    convert = convert . convertTo @SimpleAst
+-- -- instance Convertible String (t1 -> t2 -> t3 -> t4 -> SimpleAst)
+-- --       => IsString (t1 -> t2 -> t3 -> t4 -> SimpleAst) where
+-- --     fromString = convert
 
 
+-- appMany :: SimpleAst -> [SimpleAst] -> SimpleAst
+-- appMany = \a -> \case
+--     []     -> a
+--     (t:ts) -> appMany (sapp a t) ts
+-- {-# appMany #-}
 
-instance t1 ~ SimpleAst
-      => Convertible SimpleAst (t1 -> SimpleAst) where
-    convert = sapp
+-- instance Convertible String SimpleAst where
+--     convert = let
+--         isMixfix = ('_' `elem`)
+--         in \case
+--             ""  -> SMissing
+--             "_" -> SWildcard
+--             x@(s:ss) -> let n = convert x in if
+--                 | s == '_'       -> SVar      n
+--                 | Char.isLower s -> SVar      n
+--                 | Char.isUpper s -> SCons     n
+--                 | Char.isDigit s -> SNumber $ charsToDigits (s :| ss)
+--                 | isMixfix x     -> SVar      n
+--                 | otherwise      -> case last ss of
+--                     Just '=' -> SModifier $ convert (s : unsafeInit ss)
+--                     _        -> SOperator n
 
-instance (t1 ~ SimpleAst, t2 ~ SimpleAst)
-      => Convertible SimpleAst (t1 -> t2 -> SimpleAst) where
-    convert = sapp2
+-- charsToDigits :: NonEmpty Char -> NonEmpty Word8
+-- charsToDigits (c :| cs) = go c :| (go <$> cs) where
+--     go c = fromIntegral $ Char.ord c - 48
 
-instance (t1 ~ SimpleAst, t2 ~ SimpleAst, t3 ~ SimpleAst)
-      => Convertible SimpleAst (t1 -> t2 -> t3 -> SimpleAst) where
-    convert = sapp3
+-- instance Convertible SimpleAst (t1 -> SimpleAst)
+--       => Convertible String (t1 -> SimpleAst) where
+--     convert = convert . convertTo @SimpleAst
 
-instance (t1 ~ SimpleAst, t2 ~ SimpleAst, t3 ~ SimpleAst, t4 ~ SimpleAst)
-      => Convertible SimpleAst (t1 -> t2 -> t3 -> t4 -> SimpleAst) where
-    convert = sapp4
+-- instance Convertible SimpleAst (t1 -> t2 -> SimpleAst)
+--       => Convertible String (t1 -> t2 -> SimpleAst) where
+--     convert = convert . convertTo @SimpleAst
 
-instance t1 ~ SimpleAst
-      => Convertible Invalid.Symbol (t1 -> SimpleAst) where
-    convert = convert . convertTo @SimpleAst
+-- instance Convertible SimpleAst (t1 -> t2 -> t3 -> SimpleAst)
+--       => Convertible String (t1 -> t2 -> t3 -> SimpleAst) where
+--     convert = convert . convertTo @SimpleAst
 
-instance (t1 ~ SimpleAst, t2 ~ SimpleAst)
-      => Convertible Invalid.Symbol (t1 -> t2 -> SimpleAst) where
-    convert = convert . convertTo @SimpleAst
+-- instance Convertible SimpleAst (t1 -> t2 -> t3 -> t4 -> SimpleAst)
+--       => Convertible String (t1 -> t2 -> t3 -> t4 -> SimpleAst) where
+--     convert = convert . convertTo @SimpleAst
 
-instance Convertible Invalid.Symbol SimpleAst where
-    convert = SInvalid
 
-instance {-# OVERLAPPABLE #-} Convertible' a SimpleAst
-      => Convertible [a] SimpleAst where
-    convert = SList . fmap convert'
 
-instance GHC.IsList SimpleAst where
-    type Item SimpleAst = SimpleAst
-    fromList = convert
+-- instance t1 ~ SimpleAst
+--       => Convertible SimpleAst (t1 -> SimpleAst) where
+--     convert = sapp
 
-instance Num SimpleAst where
-    fromInteger = intToSimpleAst
-    (-) = flip SInfixApp (SOperator "-")
-    (+) = flip SInfixApp (SOperator "+")
-    (*) = flip SInfixApp (SOperator "*")
+-- instance (t1 ~ SimpleAst, t2 ~ SimpleAst)
+--       => Convertible SimpleAst (t1 -> t2 -> SimpleAst) where
+--     convert = sapp2
 
-intToSimpleAst :: Integral a => a -> SimpleAst
-intToSimpleAst a = if a < 0
-    then undefined
-    else SNumber $ intToDigits a
+-- instance (t1 ~ SimpleAst, t2 ~ SimpleAst, t3 ~ SimpleAst)
+--       => Convertible SimpleAst (t1 -> t2 -> t3 -> SimpleAst) where
+--     convert = sapp3
 
-intToDigits :: Integral a => a -> NonEmpty Word8
-intToDigits = go [] where
-    go s x = loop (head :| s) tail where
-        head = fromIntegral (x`mod` 10)
-        tail = x `div` 10
-    loop s@(r :| rs) = \case
-        0 -> s
-        x -> go (r : rs) x
+-- instance (t1 ~ SimpleAst, t2 ~ SimpleAst, t3 ~ SimpleAst, t4 ~ SimpleAst)
+--       => Convertible SimpleAst (t1 -> t2 -> t3 -> t4 -> SimpleAst) where
+--     convert = sapp4
 
-instance a ~ SimpleAst
-      => Num (a -> SimpleAst) where
-    fromInteger i = SApp (fromInteger i)
---     (-) = extractOp (-)
---     (+) = extractOp (+)
---     (*) = extractOp (*)
+-- instance t1 ~ SimpleAst
+--       => Convertible Invalid.Symbol (t1 -> SimpleAst) where
+--     convert = convert . convertTo @SimpleAst
 
--- extractOp op a b = sapp $ op (extract a) (extract b) where
---     extract f = let SApp x _ = f SMissing in x
+-- instance (t1 ~ SimpleAst, t2 ~ SimpleAst)
+--       => Convertible Invalid.Symbol (t1 -> t2 -> SimpleAst) where
+--     convert = convert . convertTo @SimpleAst
 
-class Simplify a where
-    type family Simplified a
-    simplify :: a -> Simplified a
+-- instance Convertible Invalid.Symbol SimpleAst where
+--     convert = SInvalid
 
-    type Simplified a = a
-    default simplify :: Simplified a ~ a => a -> Simplified a
-    simplify = id
+-- instance {-# OVERLAPPABLE #-} Convertible' a SimpleAst
+--       => Convertible [a] SimpleAst where
+--     convert = SList . fmap convert'
 
-instance Simplify Int
-instance Simplify Word8
-instance Simplify Word16
-instance Simplify Word32
-instance Simplify Word64
-instance Simplify Invalid.Symbol
-instance Simplify Text
-instance Simplify Name
-instance Simplify Delta
+-- instance GHC.IsList SimpleAst where
+--     type Item SimpleAst = SimpleAst
+--     fromList = convert
 
-instance Simplify a
-      => Simplify   (NonEmpty a) where
-    type Simplified (NonEmpty a) = NonEmpty (Simplified a)
-    simplify = fmap simplify
+-- instance Num SimpleAst where
+--     fromInteger = intToSimpleAst
+--     (-) = flip SInfixApp (SOperator "-")
+--     (+) = flip SInfixApp (SOperator "+")
+--     (*) = flip SInfixApp (SOperator "*")
 
-instance Simplify a
-      => Simplify   (Spanned a) where
-    type Simplified (Spanned a) = Simplified a
-    simplify = simplify . unsafeUnspan
+-- intToSimpleAst :: Integral a => a -> SimpleAst
+-- intToSimpleAst a = if a < 0
+--     then undefined
+--     else SNumber $ intToDigits a
 
-instance Simplify a
-      => Simplify   [a] where
-    type Simplified [a] = [Simplified a]
-    simplify = fmap simplify
+-- intToDigits :: Integral a => a -> NonEmpty Word8
+-- intToDigits = go [] where
+--     go s x = loop (head :| s) tail where
+--         head = fromIntegral (x`mod` 10)
+--         tail = x `div` 10
+--     loop s@(r :| rs) = \case
+--         0 -> s
+--         x -> go (r : rs) x
 
-instance Simplify (Atom.StrChunk Ast) where
-    type Simplified (Atom.StrChunk Ast) = Atom.StrChunk SimpleAst
-    simplify = \case
-        Atom.StrPlain   t                  -> Atom.StrPlain   t
-        Atom.StrNewLine (Atom.LineBreak t) -> Atom.StrNewLine (Atom.LineBreak t)
+-- instance a ~ SimpleAst
+--       => Num (a -> SimpleAst) where
+--     fromInteger i = SApp (fromInteger i)
+-- --     (-) = extractOp (-)
+-- --     (+) = extractOp (+)
+-- --     (*) = extractOp (*)
 
-instance Simplify   Ast where
-    type Simplified Ast = SimpleAst
-    simplify = \case
-        Var       t1    -> SVar       (simplify t1)
-        Cons      t1    -> SCons      (simplify t1)
-        Operator  t1    -> SOperator  (simplify t1)
-        Modifier  t1    -> SModifier  (simplify t1)
-        Wildcard        -> SWildcard
-        Number    t1    -> SNumber    (simplify t1)
-        Str       t1    -> SStr       (simplify t1)
-        Block    t1    -> SBlock    (simplify t1)
-        -- Tokens    t1    -> STokens    (simplify t1)
-        Marker    t1    -> SMarker    (simplify t1)
-        LineBreak t1    -> SLineBreak (simplify t1)
-        Comment   t1    -> SComment   (simplify t1)
-        Documented   t1 t2   -> SDocumented   (simplify t1) (simplify t2)
-        Invalid   t1    -> SInvalid   (simplify t1)
-        App       t1 t2 -> SApp       (simplify t1) (simplify t2)
-        InfixApp  t1 t2 t3 -> SInfixApp  (simplify t1) (simplify t2) (simplify t3)
-        Missing         -> SMissing
-        List      t1    -> SList      (simplify t1)
-        Unit      t1    -> SUnit      (simplify t1)
-        SectionLeft  t1 t2 -> SSectionLeft  (simplify t1) (simplify t2)
-        SectionRight t1 t2 -> SSectionRight (simplify t1) (simplify t2)
+-- -- extractOp op a b = sapp $ op (extract a) (extract b) where
+-- --     extract f = let SApp x _ = f SMissing in x
+
+-- class Simplify a where
+--     type family Simplified a
+--     simplify :: a -> Simplified a
+
+--     type Simplified a = a
+--     default simplify :: Simplified a ~ a => a -> Simplified a
+--     simplify = id
+
+-- instance Simplify Int
+-- instance Simplify Word8
+-- instance Simplify Word16
+-- instance Simplify Word32
+-- instance Simplify Word64
+-- instance Simplify Invalid.Symbol
+-- instance Simplify Text
+-- instance Simplify Name
+-- instance Simplify Delta
+
+-- instance Simplify a
+--       => Simplify   (NonEmpty a) where
+--     type Simplified (NonEmpty a) = NonEmpty (Simplified a)
+--     simplify = fmap simplify
+
+-- instance Simplify a
+--       => Simplify   (Spanned a) where
+--     type Simplified (Spanned a) = Simplified a
+--     simplify = simplify . unsafeUnspan
+
+-- instance Simplify a
+--       => Simplify   [a] where
+--     type Simplified [a] = [Simplified a]
+--     simplify = fmap simplify
+
+-- instance Simplify (Atom.StrChunk Ast) where
+--     type Simplified (Atom.StrChunk Ast) = Atom.StrChunk SimpleAst
+--     simplify = \case
+--         Atom.StrPlain   t                  -> Atom.StrPlain   t
+--         Atom.StrNewLine (Atom.LineBreak t) -> Atom.StrNewLine (Atom.LineBreak t)
+
+-- instance Simplify   Ast where
+--     type Simplified Ast = SimpleAst
+--     simplify = \case
+--         Var       t1    -> SVar       (simplify t1)
+--         Cons      t1    -> SCons      (simplify t1)
+--         Operator  t1    -> SOperator  (simplify t1)
+--         Modifier  t1    -> SModifier  (simplify t1)
+--         Wildcard        -> SWildcard
+--         Number    t1    -> SNumber    (simplify t1)
+--         Str       t1    -> SStr       (simplify t1)
+--         Block    t1    -> SBlock    (simplify t1)
+--         -- Tokens    t1    -> STokens    (simplify t1)
+--         Marker    t1    -> SMarker    (simplify t1)
+--         LineBreak t1    -> SLineBreak (simplify t1)
+--         Comment   t1    -> SComment   (simplify t1)
+--         Documented   t1 t2   -> SDocumented   (simplify t1) (simplify t2)
+--         Invalid   t1    -> SInvalid   (simplify t1)
+--         App       t1 t2 -> SApp       (simplify t1) (simplify t2)
+--         InfixApp  t1 t2 t3 -> SInfixApp  (simplify t1) (simplify t2) (simplify t3)
+--         Missing         -> SMissing
+--         List      t1    -> SList      (simplify t1)
+--         Unit      t1    -> SUnit      (simplify t1)
+--         SectionLeft  t1 t2 -> SSectionLeft  (simplify t1) (simplify t2)
+--         SectionRight t1 t2 -> SSectionRight (simplify t1) (simplify t2)
 
 
 

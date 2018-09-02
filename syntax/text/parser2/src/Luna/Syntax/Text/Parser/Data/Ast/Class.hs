@@ -7,7 +7,6 @@ import Prologue hiding (Text, span)
 
 import qualified Data.Text32                           as Text
 import qualified Luna.IR.Term.Ast.Invalid              as Invalid
-import qualified Luna.Syntax.Text.Parser.Data.Ast.Atom as Atom
 import qualified Luna.Syntax.Text.Parser.Data.CodeSpan as CodeSpan
 
 import Data.Text.Position                    (Delta)
@@ -18,87 +17,121 @@ import OCI.Data.Name                         (Name)
 type Text = Text.Text32
 
 
+data Struct
+type family Link t a
+type Ln t = Link t Struct
 
-data Spanned a = Spanned
-    { _span :: CodeSpan
-    , _ast  :: a
-    } deriving (Eq, Functor, Ord, Show)
-makeLenses ''Spanned
+-- Identifiers
+data Var          t = Var          { name   :: Name                            }
+data Cons         t = Cons         { name   :: Name                            }
+data Operator     t = Operator     { name   :: Name                            }
+data Modifier     t = Modifier     { name   :: Name                            }
+data Wildcard     t = Wildcard
 
-instance Convertible (Spanned a) a where
-    convert = view ast
-    {-# INLINE convert #-}
+-- Literals
+data Number       t = Number       { digits :: NonEmpty Word8                  }
+data Str          t = Str          { chunks :: [Link t (StrChunk t)]           }
 
+-- Layouting
+data Block        t = Block        { lines1 :: NonEmpty (Ln t)                 }
+data Tokens       t = Tokens       { lines  :: [Ln t]                          }
+data Marker       t = Marker       { mID    :: Int                             }
+data LineBreak    t = LineBreak    { indent :: Delta                           }
 
-unsafeUnspan :: Spanned a -> a
-unsafeUnspan = \(Spanned _ a) -> a
-{-# INLINE unsafeUnspan #-}
+-- Docs
+data Comment      t = Comment      { text   :: Text                            }
+data Documented   t = Documented   { doc    :: Ln t, base :: Ln t              }
 
+-- Errors
+data Invalid      t = Invalid      { desc   :: Invalid.Symbol                  }
 
-prependAsOffset :: Spanned a -> (Spanned b -> Spanned b)
-prependAsOffset = \t -> span %~ (CodeSpan.prependAsOffset (t ^. span))
-{-# INLINE prependAsOffset #-}
+-- Exprs
+data App          t = App          { fn     :: Ln t, arg :: Ln t               }
+data InfixApp     t = InfixApp     { argl   :: Ln t, fn  :: Ln t, argr :: Ln t }
+data SectionLeft  t = SectionLeft  { arg    :: Ln t, fn  :: Ln t               }
+data SectionRight t = SectionRight { fn     :: Ln t, arg :: Ln t               }
+data Missing      t = Missing
+data List         t = List         { items  :: [Ln t]                          }
+data Unit         t = Unit         { body   :: Ln t                            }
 
-prependOffset :: Spanned a -> (Spanned b -> Spanned b)
-prependOffset = \t -> span %~ (CodeSpan.prependAsOffset $ CodeSpan.dropLength (t ^. span))
-{-# INLINE prependOffset #-}
-
-prependOffset' :: CodeSpan -> (Spanned b -> Spanned b)
-prependOffset' = \t -> span %~ (CodeSpan.prependAsOffset $ CodeSpan.dropLength t)
-{-# INLINE prependOffset' #-}
-
-
--- TODO
--- Generate with TH
-data Ast
-    = AstVar          (Atom.Var          Ast)
-    | AstCons         (Atom.Cons         Ast)
-    | AstOperator     (Atom.Operator     Ast)
-    | AstModifier     (Atom.Modifier     Ast)
-    | AstWildcard     (Atom.Wildcard     Ast)
-    | AstNumber       (Atom.Number       Ast)
-    | AstStr          (Atom.Str          Ast)
-    | AstBlock        (Atom.Block        Ast)
-    | AstMarker       (Atom.Marker       Ast)
-    | AstLineBreak    (Atom.LineBreak    Ast)
-    | AstComment      (Atom.Comment      Ast)
-    | AstDocumented   (Atom.Documented   Ast)
-    | AstInvalid      (Atom.Invalid      Ast)
-    | AstApp          (Atom.App          Ast)
-    | AstInfixApp     (Atom.InfixApp     Ast)
-    | AstMissing      (Atom.Missing      Ast)
-    | AstList         (Atom.List         Ast)
-    | AstUnit         (Atom.Unit         Ast)
-    | AstSectionLeft  (Atom.SectionLeft  Ast)
-    | AstSectionRight (Atom.SectionRight Ast)
-    deriving (Eq, Ord, Show)
+data StrChunk t
+    = StrPlain   Text
+    | StrNewLine (LineBreak t)
 
 
 -- TODO
 -- Generate with TH
-pattern Var          t1       = AstVar          (Atom.Var          t1      )
-pattern Cons         t1       = AstCons         (Atom.Cons         t1      )
-pattern Operator     t1       = AstOperator     (Atom.Operator     t1      )
-pattern Modifier     t1       = AstModifier     (Atom.Modifier     t1      )
-pattern Wildcard              = AstWildcard     (Atom.Wildcard             )
-pattern Number       t1       = AstNumber       (Atom.Number       t1      )
-pattern Str          t1       = AstStr          (Atom.Str          t1      )
-pattern Block        t1       = AstBlock        (Atom.Block        t1      )
-pattern Marker       t1       = AstMarker       (Atom.Marker       t1      )
-pattern LineBreak    t1       = AstLineBreak    (Atom.LineBreak    t1      )
-pattern Comment      t1       = AstComment      (Atom.Comment      t1      )
-pattern Documented   t1 t2    = AstDocumented   (Atom.Documented   t1 t2   )
-pattern Invalid      t1       = AstInvalid      (Atom.Invalid      t1      )
-pattern App          t1 t2    = AstApp          (Atom.App          t1 t2   )
-pattern InfixApp     t1 t2 t3 = AstInfixApp     (Atom.InfixApp     t1 t2 t3)
-pattern Missing               = AstMissing      (Atom.Missing              )
-pattern List         t1       = AstList         (Atom.List         t1      )
-pattern Unit         t1       = AstUnit         (Atom.Unit         t1      )
-pattern SectionLeft  t1 t2    = AstSectionLeft  (Atom.SectionLeft  t1 t2   )
-pattern SectionRight t1 t2    = AstSectionRight (Atom.SectionRight t1 t2   )
+instance Show (Ln t) => Show (Var          t) where show  (Var          t1      ) = "Var"          <> " (" <> show t1 <> ")"
+instance Show (Ln t) => Show (Cons         t) where show  (Cons         t1      ) = "Cons"         <> " (" <> show t1 <> ")"
+instance Show (Ln t) => Show (Operator     t) where show  (Operator     t1      ) = "Operator"     <> " (" <> show t1 <> ")"
+instance Show (Ln t) => Show (Modifier     t) where show  (Modifier     t1      ) = "Modifier"     <> " (" <> show t1 <> ")"
+instance Show (Ln t) => Show (Wildcard     t) where show  (Wildcard             ) = "Wildcard"
+instance Show (Ln t) => Show (Number       t) where show  (Number       t1      ) = "Number"       <> " (" <> show t1 <> ")"
+instance Show (Ln t) => Show (Block        t) where show  (Block        t1      ) = "Block"        <> " (" <> show t1 <> ")"
+instance Show (Ln t) => Show (Tokens       t) where show  (Tokens       t1      ) = "Tokens"       <> " (" <> show t1 <> ")"
+instance Show (Ln t) => Show (Marker       t) where show  (Marker       t1      ) = "Marker"       <> " (" <> show t1 <> ")"
+instance Show (Ln t) => Show (LineBreak    t) where show  (LineBreak    t1      ) = "LineBreak"    <> " (" <> show t1 <> ")"
+instance Show (Ln t) => Show (Comment      t) where show  (Comment      t1      ) = "Comment"      <> " (" <> show t1 <> ")"
+instance Show (Ln t) => Show (Documented   t) where show  (Documented   t1 t2   ) = "Documented"   <> " (" <> show t1 <> ") (" <> show t2 <> ")"
+instance Show (Ln t) => Show (Invalid      t) where show  (Invalid      t1      ) = "Invalid"      <> " (" <> show t1 <> ")"
+instance Show (Ln t) => Show (App          t) where show  (App          t1 t2   ) = "App"          <> " (" <> show t1 <> ") (" <> show t2 <> ")"
+instance Show (Ln t) => Show (InfixApp     t) where show  (InfixApp     t1 t2 t3) = "InfixApp"     <> " (" <> show t1 <> ") (" <> show t2 <> ") (" <> show t3 <> ")"
+instance Show (Ln t) => Show (Missing      t) where show  (Missing              ) = "Missing"
+instance Show (Ln t) => Show (List         t) where show  (List         t1      ) = "List"         <> " (" <> show t1 <> ")"
+instance Show (Ln t) => Show (Unit         t) where show  (Unit         t1      ) = "Unit"         <> " (" <> show t1 <> ")"
+instance Show (Ln t) => Show (SectionLeft  t) where show  (SectionLeft  t1 t2   ) = "SectionLeft"  <> " (" <> show t1 <> ") (" <> show t2 <> ")"
+instance Show (Ln t) => Show (SectionRight t) where show  (SectionRight t1 t2   ) = "SectionRight" <> " (" <> show t1 <> ") (" <> show t2 <> ")"
+instance (Show (Ln t), Show (Link t (StrChunk t))) => Show (Str t) where show (Str t1) = "Str"     <> " (" <> show t1 <> ")"
 
 
 
+-- TODO
+-- Generate with TH
+deriving instance Eq (Ln t) => Eq (Var          t)
+deriving instance Eq (Ln t) => Eq (Cons         t)
+deriving instance Eq (Ln t) => Eq (Operator     t)
+deriving instance Eq (Ln t) => Eq (Modifier     t)
+deriving instance Eq (Ln t) => Eq (Wildcard     t)
+deriving instance Eq (Ln t) => Eq (Number       t)
+deriving instance Eq (Ln t) => Eq (Block        t)
+deriving instance Eq (Ln t) => Eq (Tokens       t)
+deriving instance Eq (Ln t) => Eq (Marker       t)
+deriving instance Eq (Ln t) => Eq (LineBreak    t)
+deriving instance Eq (Ln t) => Eq (Comment      t)
+deriving instance Eq (Ln t) => Eq (Documented   t)
+deriving instance Eq (Ln t) => Eq (Invalid      t)
+deriving instance Eq (Ln t) => Eq (App          t)
+deriving instance Eq (Ln t) => Eq (InfixApp     t)
+deriving instance Eq (Ln t) => Eq (Missing      t)
+deriving instance Eq (Ln t) => Eq (List         t)
+deriving instance Eq (Ln t) => Eq (Unit         t)
+deriving instance Eq (Ln t) => Eq (SectionLeft  t)
+deriving instance Eq (Ln t) => Eq (SectionRight t)
+deriving instance Eq (Ln t) => Eq (StrChunk     t)
+deriving instance (Eq (Ln t), Eq (Link t (StrChunk t))) => Eq (Str t)
+deriving instance Show (Ln t) => Show (StrChunk  t)
 
-type instance Atom.Link Ast (Atom.StrChunk s) = Spanned (Atom.StrChunk s)
-type instance Atom.Link Ast Atom.Struct = Spanned Ast
+deriving instance Ord (Ln t) => Ord (Var          t)
+deriving instance Ord (Ln t) => Ord (Cons         t)
+deriving instance Ord (Ln t) => Ord (Operator     t)
+deriving instance Ord (Ln t) => Ord (Modifier     t)
+deriving instance Ord (Ln t) => Ord (Wildcard     t)
+deriving instance Ord (Ln t) => Ord (Number       t)
+deriving instance Ord (Ln t) => Ord (Block        t)
+deriving instance Ord (Ln t) => Ord (Tokens       t)
+deriving instance Ord (Ln t) => Ord (Marker       t)
+deriving instance Ord (Ln t) => Ord (LineBreak    t)
+deriving instance Ord (Ln t) => Ord (Comment      t)
+deriving instance Ord (Ln t) => Ord (Documented   t)
+deriving instance Ord (Ln t) => Ord (Invalid      t)
+deriving instance Ord (Ln t) => Ord (App          t)
+deriving instance Ord (Ln t) => Ord (InfixApp     t)
+deriving instance Ord (Ln t) => Ord (Missing      t)
+deriving instance Ord (Ln t) => Ord (List         t)
+deriving instance Ord (Ln t) => Ord (Unit         t)
+deriving instance Ord (Ln t) => Ord (SectionLeft  t)
+deriving instance Ord (Ln t) => Ord (SectionRight t)
+deriving instance Ord (Ln t) => Ord (StrChunk     t)
+deriving instance (Ord (Ln t), Ord (Link t (StrChunk t))) => Ord (Str t)
+
+

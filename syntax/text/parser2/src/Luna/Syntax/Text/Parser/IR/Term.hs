@@ -8,26 +8,26 @@ import qualified Prelude  as P
 import           Prologue hiding (Text, imp, seq, some, takeWhile)
 import qualified Prologue
 
-import qualified Control.Monad.State.Layered           as State
-import qualified Data.Attoparsec.Text32                as Parsec
-import qualified Data.Char                             as Char
-import qualified Data.Graph.Data.Layer.Layout          as Layout
-import qualified Data.Text.Position                    as Position
-import qualified Data.Text.Span                        as Span
-import qualified Data.Text32                           as Text
-import qualified Data.Vector                           as Vector
-import qualified Luna.IR                               as IR
-import qualified Luna.IR.Layer                         as Layer
-import qualified Luna.IR.Term.Ast.Invalid              as Invalid
-import qualified Luna.Syntax.Text.Lexer                as Lexer
-import qualified Luna.Syntax.Text.Lexer.Symbol         as Lexer
-import qualified Luna.Syntax.Text.Parser.Data.Ast.Atom as Atom
-import qualified Luna.Syntax.Text.Parser.Data.CodeSpan as CodeSpan
-import qualified Luna.Syntax.Text.Parser.IR.Ast        as Ast
-import qualified Luna.Syntax.Text.Parser.IR.Name       as Name
-import qualified Luna.Syntax.Text.Parser.State.Marker  as Marker
-import qualified Luna.Syntax.Text.Scope                as Scope
-import qualified Text.Parser.State.Indent              as Indent
+import qualified Control.Monad.State.Layered            as State
+import qualified Data.Attoparsec.Text32                 as Parsec
+import qualified Data.Char                              as Char
+import qualified Data.Graph.Data.Layer.Layout           as Layout
+import qualified Data.Text.Position                     as Position
+import qualified Data.Text.Span                         as Span
+import qualified Data.Text32                            as Text
+import qualified Data.Vector                            as Vector
+import qualified Luna.IR                                as IR
+import qualified Luna.IR.Layer                          as Layer
+import qualified Luna.IR.Term.Ast.Invalid               as Invalid
+import qualified Luna.Syntax.Text.Lexer                 as Lexer
+import qualified Luna.Syntax.Text.Lexer.Symbol          as Lexer
+import qualified Luna.Syntax.Text.Parser.Data.Ast.Class as Atom
+import qualified Luna.Syntax.Text.Parser.Data.CodeSpan  as CodeSpan
+import qualified Luna.Syntax.Text.Parser.IR.Ast         as Ast
+import qualified Luna.Syntax.Text.Parser.IR.Name        as Name
+import qualified Luna.Syntax.Text.Parser.State.Marker   as Marker
+import qualified Luna.Syntax.Text.Scope                 as Scope
+import qualified Text.Parser.State.Indent               as Indent
 
 
 import Control.Monad.State.Layered           (StatesT)
