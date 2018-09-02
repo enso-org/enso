@@ -4,7 +4,8 @@
 
 module Luna.Pass.Parsing.Macro where
 
-import Prologue hiding (optional)
+import           Prologue hiding (fail, optional)
+import qualified Prologue
 
 import qualified Control.Monad.State.Layered               as State
 import qualified Data.Graph.Component.Node.Destruction     as Component
@@ -47,7 +48,8 @@ import qualified Data.Attoparsec.Internal.Types as AParsec
 import qualified Data.Attoparsec.List           as Parsec
 import qualified GHC.Exts                       as GHC
 
-import Data.Parser
+import           Data.Parser hiding (anyToken, peekToken)
+import qualified Data.Parser as Parser
 
 import Data.Parser.Instances.Attoparsec ()
 
@@ -96,7 +98,7 @@ checkReserved = \a -> Set.member (convert' a) . unwrap
 
 failIfReserved :: MonadReserved a m => a -> m ()
 failIfReserved = \a -> checkReserved a >>= \case
-    True  -> fail "reserved"
+    True  -> Prologue.fail "reserved"
     False -> pure ()
 {-# INLINE failIfReserved #-}
 
@@ -105,11 +107,11 @@ notReserved = (>>= (\a -> a <$ failIfReserved a))
 {-# INLINE notReserved #-}
 
 anyTokenNotReserved :: (MonadReserved' m, TokenParser m) => m (Token m)
-anyTokenNotReserved = notReserved anyToken
+anyTokenNotReserved = notReserved Parser.anyToken
 {-# INLINE anyTokenNotReserved #-}
 
 peekTokenNotReserved :: (MonadReserved' m, TokenParser m) => m (Token m)
-peekTokenNotReserved = notReserved peekToken
+peekTokenNotReserved = notReserved Parser.peekToken
 {-# INLINE peekTokenNotReserved #-}
 
 
@@ -231,9 +233,85 @@ lookupSection = \ast -> Map.lookup ast . unwrap <$> State.get @Registry
 
 
 
--------------------
--- === Utils === --
--------------------
+
+--------------------
+-- === Parser === --
+--------------------
+
+-- === Definition === --
+
+-- | Parser is just a monad transformer over Attoparsec tagged with a label
+--   "total" or "partial". Total parsers are those who never fail and always
+--   consume the input, while partial parsers could fail. We use the information
+--   while constructing the parsers to make sure we handle unexpected code in
+--   the best possible way.
+
+type Parser      = ParserT 'Total
+type Parser'     = ParserT 'Partial
+type ParserT t   = ParserBase t ParserStack
+type ParserStack = State.StatesT
+   '[ Scope.Scope
+    , Reserved Ast.Ast
+    , Position
+    , Indent
+    , Registry
+    ] (Parsec.Parser Ast)
+
+data ParserType
+    = Total
+    | Partial
+
+newtype ParserBase (t :: ParserType) m a = ParserBase (IdentityT m a) deriving
+    ( Alternative, Applicative, Assoc.Reader name, Assoc.Writer name, Functor
+    , Monad, MonadFail, MonadTrans, Prec.RelReader name, Prec.RelWriter name)
+makeLenses ''ParserBase
+
+type instance Token  (ParserBase t m) = Token  m
+type instance Tokens (ParserBase t m) = Tokens m
+
+
+-- === Running === --
+
+run :: [Ast] -> Parser a -> Either String a
+run = \stream
+   -> flip Parsec.parseOnly (Vector.fromList stream)
+    . State.evalDefT @Registry
+    . Indent.eval
+    . State.evalDefT @Position
+    . State.evalDefT @(Reserved Ast.Ast)
+    . State.evalDefT @Scope.Scope
+    . runParserBase
+{-# INLINE run #-}
+
+runParserBase :: ParserBase t m a -> m a
+runParserBase = runIdentityT . unwrap
+{-# INLINE runParserBase #-}
+
+
+-- === Total / Partial management === --
+
+total :: a -> ParserT t a -> Parser a
+total = unsafeCoerceParser .: option
+{-# INLINE total #-}
+
+partial :: ParserT t a -> Parser' a
+partial = unsafeCoerceParser
+{-# INLINE partial #-}
+
+(<||>) :: ParserT t a -> ParserT s a -> ParserT s a
+(<||>) = \l r -> unsafeCoerceParser l <|> r
+{-# INLINE (<||>) #-}
+
+unsafeCoerceParser :: ParserBase t m a -> ParserBase t' m a
+unsafeCoerceParser = coerce
+{-# INLINE unsafeCoerceParser #-}
+
+
+
+
+-------------------------
+-- === Macro utils === --
+-------------------------
 
 segmentsToks :: SegmentList -> [Ast.Ast]
 segmentsToks = \case
@@ -245,37 +323,56 @@ withNextSegmentsReserved :: SegmentList -> Parser' a -> Parser' a
 withNextSegmentsReserved = withManyReserved . segmentsToks
 {-# INLINE withNextSegmentsReserved #-}
 
+
+
+---------------------
+-- === Parsers === --
+---------------------
+
+-- === Primitive === --
+
+peekToken :: Parser Ast
+peekToken = Parser.peekToken
+{-# INLINE peekToken #-}
+
+anyToken :: Parser Ast
+anyToken = Parser.anyToken
+{-# INLINE anyToken #-}
+
+fail :: String -> Parser' a
+fail = Prologue.fail
+{-# INLINE fail #-}
+
+
+-- === Assertions === --
+
 nextTokenNotLeftSpaced :: Parser' ()
 nextTokenNotLeftSpaced = do
-    tok <- peekToken
+    tok <- partial peekToken
     when_ (checkLeftSpacing tok) $ fail "spaced"
 {-# INLINE nextTokenNotLeftSpaced #-}
 
 nextTokenLeftSpaced :: Parser' ()
 nextTokenLeftSpaced = do
-    tok <- peekToken
+    tok <- partial peekToken
     when_ (not $ checkLeftSpacing tok) $ fail "not spaced"
 {-# INLINE nextTokenLeftSpaced #-}
 
-leftSpaced :: Parser' Ast -> Parser' Ast
+leftSpaced :: ParserT t Ast -> Parser' Ast
 leftSpaced = \mtok -> do
-    tok <- mtok
+    tok <- partial mtok
     if checkLeftSpacing tok
         then pure tok
         else fail "not spaced"
 {-# INLINE leftSpaced #-}
 
 anySymbol :: Parser' Ast
-anySymbol = do
-    s <- peekSymbol <* dropToken
-    case Ast.unspan s of
-        Ast.Comment {} -> Ast.prependAsOffset s <$> anySymbol
-        _              -> pure s
+anySymbol = peekSymbol <* dropToken
 {-# INLINE anySymbol #-}
 
 peekSymbol :: Parser' Ast
 peekSymbol = do
-    tok <- peekToken
+    tok <- partial peekToken
     case Ast.unspan tok of
         Ast.AstLineBreak {} -> fail "not a symbol"
         _                   -> pure tok
@@ -295,7 +392,7 @@ satisfyAst = \f -> peekSatisfyAst f <* dropToken
 
 peekSatisfyAst :: (Ast.Ast -> Bool) -> Parser' Ast
 peekSatisfyAst = \f -> notReserved $ do
-    tok <- peekToken
+    tok <- partial peekToken
     if f (Ast.unspan tok)
         then pure tok
         else fail "satisfy"
@@ -307,7 +404,7 @@ ast = satisfyAst . (==)
 
 unsafeLineBreak :: Parser' Ast
 unsafeLineBreak = do
-    tok <- anyToken
+    tok <- partial anyToken
     case Ast.unspan tok of
         Ast.LineBreak off -> do
             Position.succLine
@@ -354,7 +451,7 @@ possiblyBroken :: ParserT t Ast -> ParserT t Ast
 possiblyBroken = \p -> broken (Indent.indented *> p) <||> p
 {-# INLINE possiblyBroken #-}
 
-anyExprToken :: Parser' Ast
+anyExprToken :: Parser Ast
 anyExprToken = possiblyBroken anyToken
 {-# INLINE anyExprToken #-}
 
@@ -362,69 +459,6 @@ toksSpanAsSpace :: [Ast] -> CodeSpan
 toksSpanAsSpace = CodeSpan.asOffsetSpan . mconcat . fmap (view Ast.span)
 {-# INLINE toksSpanAsSpace #-}
 
-
-
----------------------
--- === Parsers === --
----------------------
-
--- === Definition === --
-
-data ParserType
-    = Total
-    | Partial
-
-newtype ParserBase (t :: ParserType) m a = ParserBase (IdentityT m a) deriving
-    ( Alternative, Applicative, Assoc.Reader name, Assoc.Writer name, Functor
-    , Monad, MonadFail, MonadTrans, Prec.RelReader name, Prec.RelWriter name)
-
-type ParserT t = ParserBase t ParserStack
-type Parser'   = ParserT 'Partial
-type Parser    = ParserT 'Total
-
-runParserBase :: ParserBase t m a -> m a
-runParserBase = runIdentityT . unwrap
-{-# INLINE runParserBase #-}
-
-unsafeCoerceParser :: ParserBase t m a -> ParserBase t' m a
-unsafeCoerceParser = coerce
-{-# INLINE unsafeCoerceParser #-}
-
-total :: a -> ParserT t a -> Parser a
-total = unsafeCoerceParser .: option
-{-# INLINE total #-}
-
-partial :: ParserT t a -> Parser' a
-partial = unsafeCoerceParser
-{-# INLINE partial #-}
-
-(<||>) :: ParserT t a -> ParserT s a -> ParserT s a
-(<||>) = \l r -> unsafeCoerceParser l <|> r
-{-# INLINE (<||>) #-}
-
-type ParserStack = State.StatesT
-   '[ Scope.Scope
-    , Reserved Ast.Ast
-    , Position
-    , Indent
-    , Registry
-    ] (Parsec.Parser Ast)
-
-makeLenses ''ParserBase
-
-run :: [Ast] -> Parser a -> Either String a
-run = \stream
-   -> flip Parsec.parseOnly (Vector.fromList stream)
-    . State.evalDefT  @Registry
-    . Indent.eval
-    . State.evalDefT  @Position
-    . State.evalDefT  @(Reserved Ast.Ast)
-    . State.evalDefT  @Scope.Scope
-    . runParserBase
-{-# INLINE run #-}
-
-type instance Token  (ParserBase t m) = Token  m
-type instance Tokens (ParserBase t m) = Tokens m
 
 
 
@@ -461,7 +495,7 @@ segmentList = go where
             acceptSegment name' seg lst' <|> discardSegment name name' lst' tp
 
     acceptSegment name seg lst = do
-        tok <- anyExprToken
+        tok <- partial anyExprToken
         when_ (Ast.unspan tok /= (seg ^. segmentBase)) $ fail "not a segment"
         outs <- withNextSegmentsReserved lst (segment seg)
         (Ast.Spanned (tok ^. Ast.span) outs:) <<$>> segmentList name lst

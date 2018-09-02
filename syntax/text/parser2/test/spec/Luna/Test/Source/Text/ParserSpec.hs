@@ -27,6 +27,7 @@ import qualified Luna.Pass.Parsing.ExprBuilder               as ExprBuilder
 import qualified Luna.Pass.Parsing.Macro                     as Macro
 import qualified Luna.Pass.Parsing.Parserx                   as PP
 import qualified Luna.Pass.Scheduler                         as Scheduler
+import qualified Luna.Syntax.Text.Parser.Data.Ast.Atom       as Ast
 import qualified Luna.Syntax.Text.Parser.Data.CodeSpan       as CodeSpan
 import qualified Luna.Syntax.Text.Parser.Data.Name.Hardcoded as Hardcoded
 import qualified Luna.Syntax.Text.Parser.Data.Name.Special   as Name

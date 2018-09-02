@@ -3,7 +3,7 @@
 {-# LANGUAGE PatternSynonyms           #-}
 {-# LANGUAGE UndecidableInstances      #-}
 
-module Luna.Syntax.Text.Parser.IR.Ast where
+module Luna.Syntax.Text.Parser.IR.Ast (module Luna.Syntax.Text.Parser.IR.Ast, module X) where
 
 import qualified Prelude  as P
 import           Prologue hiding (Text, imp, seq, some, span, takeWhile)
@@ -20,18 +20,19 @@ import OCI.Data.Name                         (Name)
 
 --
 
-import qualified Control.Monad.State.Layered          as State
-import qualified Data.Attoparsec.Internal.Types       as AttoParsec
-import qualified Data.Attoparsec.Text32               as Parsec
-import qualified Data.Char                            as Char
-import qualified Data.Set                             as Set
-import qualified Data.Text.Position                   as Position
-import qualified Data.Text.Span                       as Span
-import qualified GHC.Exts                             as GHC
-import qualified Luna.Syntax.Text.Lexer               as Lexer
-import qualified Luna.Syntax.Text.Lexer.Symbol        as Lexer
-import qualified Luna.Syntax.Text.Parser.State.Marker as Marker
-import qualified Luna.Syntax.Text.Scope               as Scope
+import qualified Control.Monad.State.Layered           as State
+import qualified Data.Attoparsec.Internal.Types        as AttoParsec
+import qualified Data.Attoparsec.Text32                as Parsec
+import qualified Data.Char                             as Char
+import qualified Data.Set                              as Set
+import qualified Data.Text.Position                    as Position
+import qualified Data.Text.Span                        as Span
+import qualified GHC.Exts                              as GHC
+import qualified Luna.Syntax.Text.Lexer                as Lexer
+import qualified Luna.Syntax.Text.Lexer.Symbol         as Lexer
+import qualified Luna.Syntax.Text.Parser.Data.Ast.Atom as Atom
+import qualified Luna.Syntax.Text.Parser.State.Marker  as Marker
+import qualified Luna.Syntax.Text.Scope                as Scope
 
 import Control.Monad.State.Layered              (StateT, StatesT)
 import Data.Set                                 (Set)
@@ -43,115 +44,16 @@ import Text.Parser.State.Indent                 (Indent)
 import Data.Parser             hiding (Result, Token, Tokens, endOfInput)
 import Text.Parser.Combinators (some)
 
+import Luna.Syntax.Text.Parser.Data.Ast.Class as X
 
 
-type Text = Text.Text32
+
+-- type Text = Text.Text32
 data SyntaxVersion = Syntax1 | Syntax2 deriving (Show)
 
 
 
 
-data Spanned a = Spanned
-    { _span :: CodeSpan
-    , _ast  :: a
-    } deriving (Eq, Functor, Ord, Show)
-makeLenses ''Spanned
-
-instance Convertible (Spanned a) a where
-    convert = view ast
-    {-# INLINE convert #-}
-
-
-unsafeUnspan :: Spanned a -> a
-unsafeUnspan = \(Spanned _ a) -> a
-{-# INLINE unsafeUnspan #-}
-
-
-prependAsOffset :: Spanned a -> (Spanned b -> Spanned b)
-prependAsOffset = \t -> span %~ (CodeSpan.prependAsOffset (t ^. span))
-{-# INLINE prependAsOffset #-}
-
-prependOffset :: Spanned a -> (Spanned b -> Spanned b)
-prependOffset = \t -> span %~ (CodeSpan.prependAsOffset $ CodeSpan.dropLength (t ^. span))
-{-# INLINE prependOffset #-}
-
-prependOffset' :: CodeSpan -> (Spanned b -> Spanned b)
-prependOffset' = \t -> span %~ (CodeSpan.prependAsOffset $ CodeSpan.dropLength t)
-{-# INLINE prependOffset' #-}
-
-
-
-
-
-
------------------------
--- === Blacklist === --
------------------------
-
--- === Definition === --
-
--- data Blacklist = Blacklist
---     { _unknownBlacklist :: Set Char
---     , _operators        :: Set Name
---     }
--- makeLenses ''Blacklist
-
-
--- -- === API === --
-
--- withBlacklistedUnknown :: State.Monad Blacklist m => Char -> m a -> m a
--- withBlacklistedUnknown = \a
---      -> State.withModified @Blacklist (unknownBlacklist %~ Set.insert a)
--- {-# INLINE withBlacklistedUnknown #-}
-
-
--- withBlacklistedOperator :: State.Monad Blacklist m => Name -> m a -> m a
--- withBlacklistedOperator = \a -> State.withModified @Blacklist (operators %~ Set.insert a)
--- {-# INLINE withBlacklistedOperator #-}
-
-
--- checkBlacklistedUnknown :: Char -> Parser ()
--- checkBlacklistedUnknown = \a -> do
---     blacklisted <- Set.member a . view unknownBlacklist <$> State.get @Blacklist
---     when_ blacklisted $ fail "Blacklisted"
--- {-# INLINE checkBlacklistedUnknown #-}
-
--- checkBlacklistedOperator :: Name -> Parser ()
--- checkBlacklistedOperator = \a -> do
---     blacklisted <- Set.member a . view operators <$> State.get @Blacklist
---     when_ blacklisted $ fail "Blacklisted"
--- {-# INLINE checkBlacklistedOperator #-}
-
-
-
--- -- === Instances === --
-
--- instance Mempty Blacklist where
---     mempty = Blacklist mempty mempty
---     {-# INLINE mempty #-}
-
--- instance Default Blacklist where
---     def = mempty
---     {-# INLINE def #-}
-
-
-
-
-
-    -- data Location = Location
---     { _offset :: Delta
---     , _column :: Delta
---     , _row    :: Delta
---     } deriving (Eq, Generic, Ord, Show)
--- makeLenses ''Location
-
-
--- === Instances === --
-
--- instance NFData Location
--- instance Default Location where
---     def = Location 0 0 0
---     {-# INLINE def #-}
 
 
 type Parser = StatesT
@@ -204,296 +106,44 @@ evalResult = fmap (reverse . unwrap) . State.execDefT
 
 
 
------------------
--- === AST === --
------------------
-
--- data Ast a
---     = Var { name :: Name }
-    -- = AccSection   { path     :: [Name]                               }
-    -- | Cons         { name     :: Name    , args  :: [Ast]             }
-    -- | Disabled     { body     :: Ast                                  }
-    -- | Documented   { doc      :: Txt     , base   :: Ast              }
-    -- | Function     { name     :: Ast     , args   :: [Ast]
-    --                , body     :: Ast                                  }
-    -- | DefHeader    { tp       :: Ast     , unis   :: [Ast]
-    --                , accs     :: [Ast]   , apps   :: [Ast]            }
-    -- | Grouped      { body     :: Ast                                  }
-    -- | Imp          { source   :: Ast     , target :: ImportTargetData }
-    -- | ImportHub    { imps     :: [Ast]                                }
-    -- | ImportSource { body     :: ImportSourceData                     }
-    -- | Invalid      { desc     :: Invalid.Symbol                       }
-    -- | List         { items    :: [Ast]                                }
-    -- | Marked       { marker   :: Ast     , body   :: Ast              }
-    -- | Marker       { id       :: Word64                               }
-    -- | SectionLeft  { operator :: Ast     , body   :: Ast              }
-    -- | SectionRight { operator :: Ast     , body   :: Ast              }
-    -- | Modify       { base     :: Ast     , path   :: [Name]
-    --                , operator :: Name    , value  :: Ast              }
-    -- | Metadata     { content  :: Txt                                  }
-    -- | Record       { isNative :: Bool    , name   :: Name
-    --                , params   :: [Ast]   , conss  :: [Ast]
-    --                , decls    :: [Ast]                                }
-    -- | RecordCons   { name     :: Name    , fields :: [Ast]            }
-    -- | RecordFields { names    :: [Name]  , tp     :: Ast              }
-    -- | Seq          { former   :: Ast     , later  :: Ast              }
-    -- | Tuple        { items    :: [Ast]                                }
-    -- | Typed        { base     :: Ast     , tp     :: Ast              }
-    -- | Unit         { imps     :: Ast     , units  :: [Ast]
-    --                , cls      :: Ast                                  }
-    -- DEPRECATED:
-    -- | FunctionSig  { name     :: Ast     , sig    :: Ast         }
-
--- data Foo a = Foo {-# UNPACK #-} !a
--- data Spanned2 a = Spanned2
---     { _span2 :: CodeSpan
---     , _ast2  :: a
---     } deriving (Show)
-
--- type family Link t a
-
-
--- data Ast2 t
---     = AstTypeDef (TypeDef t)
-
-
--- type Unspanned = Ast Spanned
 
 
 type family ExpandField t a
 data Simple
 
--- type instance Link Parsed a = Spanned2 (LinkParsed a)
--- type family LinkParsed a where
---     LinkParsed (Maybe a) = Maybe (LinkParsed a)
-
--- type S a = ExpandField Simple a
-
--- type instance ExpandField Simple a = ExpandFieldSimple a
-
--- type family ExpandFieldSimple a where
---     ExpandFieldSimple (NonEmpty a)   = NonEmpty (ExpandFieldSimple a)
---     ExpandFieldSimple [a]            = [ExpandFieldSimple a]
---     ExpandFieldSimple Delta          = Delta
---     ExpandFieldSimple Int            = Int
---     ExpandFieldSimple Bool           = Bool
---     ExpandFieldSimple Name           = Name
---     ExpandFieldSimple Text           = Text
---     ExpandFieldSimple Invalid.Symbol = Invalid.Symbol
-
---     ExpandFieldSimple Ast            = Spanned Ast
---     ExpandFieldSimple LineBreak      = Spanned LineBreak
---     ExpandFieldSimple StrChunk       = Spanned StrChunk
-
-data Struct
-type family Link t a
-type Link' t = Link t Struct
-
-data Var       t = Atom_Var       { name     :: Name                    }
-data Cons      t = Atom_Cons      { name     :: Name                    }
-data Operator  t = Atom_Operator  { name     :: Name                    }
-data Modifier  t = Atom_Modifier  { name     :: Name                    }
-data Wildcard  t = Atom_Wildcard
-
-data Number    t = Atom_Number    { digits   :: NonEmpty Word8          }
-data Str       t = Atom_Str       { chunks   :: [Link t (StrChunk t)]   }
-
-data Block    t = Atom_Block    { lines1   :: NonEmpty (Link' t)      }
-data Tokens    t = Atom_Tokens    { lines    :: [Link' t]               }
-data Marker    t = Atom_Marker    { markerID :: Int                     }
-data LineBreak t = Atom_LineBreak { indent   :: Delta                   }
-
-data Comment   t = Atom_Comment   { text     :: Text                    }
-data Documented t = Atom_Documented { doc :: Link' t, base :: Link' t }
-
-data Invalid   t = Atom_Invalid   { desc     :: Invalid.Symbol          }
-
-data App       t = Atom_App       { func     :: Link' t, arg :: Link' t }
-data InfixApp  t = Atom_InfixApp  { argl :: Link' t, func :: Link' t, argr :: Link' t }
-data SectionLeft  t = Atom_SectionLeft  { arg      :: Link' t, func :: Link' t }
-data SectionRight t = Atom_SectionRight { func     :: Link' t, arg :: Link' t }
-data Missing   t = Atom_Missing
-data List      t = Atom_List      { items    :: [Link' t]               }
-data Unit      t = Atom_Unit      { body     :: Link' t                 }
-
-data StrChunk t
-    = StrPlain   Text
-    | StrNewLine (LineBreak t)
 
 
 
-instance Show (Link' t) => Show (Var       t) where show  (Atom_Var       t1   ) = "Var"       <> " (" <> show t1 <> ")"
-instance Show (Link' t) => Show (Cons      t) where show  (Atom_Cons      t1   ) = "Cons"      <> " (" <> show t1 <> ")"
-instance Show (Link' t) => Show (Operator  t) where show  (Atom_Operator  t1   ) = "Operator"  <> " (" <> show t1 <> ")"
-instance Show (Link' t) => Show (Modifier  t) where show  (Atom_Modifier  t1   ) = "Modifier"  <> " (" <> show t1 <> ")"
-instance Show (Link' t) => Show (Wildcard  t) where show  (Atom_Wildcard       ) = "Wildcard"
-instance Show (Link' t) => Show (Number    t) where show  (Atom_Number    t1   ) = "Number"    <> " (" <> show t1 <> ")"
-instance Show (Link' t) => Show (Block    t) where show  (Atom_Block    t1   ) = "Block"    <> " (" <> show t1 <> ")"
-instance Show (Link' t) => Show (Tokens    t) where show  (Atom_Tokens    t1   ) = "Tokens"    <> " (" <> show t1 <> ")"
-instance Show (Link' t) => Show (Marker    t) where show  (Atom_Marker    t1   ) = "Marker"    <> " (" <> show t1 <> ")"
-instance Show (Link' t) => Show (LineBreak t) where show  (Atom_LineBreak t1   ) = "LineBreak" <> " (" <> show t1 <> ")"
-instance Show (Link' t) => Show (Comment   t) where show  (Atom_Comment   t1   ) = "Comment"   <> " (" <> show t1 <> ")"
-instance Show (Link' t) => Show (Documented t) where show  (Atom_Documented   t1 t2) = "Documented"   <> " (" <> show t1 <> ") (" <> show t2 <> ")"
-instance Show (Link' t) => Show (Invalid   t) where show  (Atom_Invalid   t1   ) = "Invalid"   <> " (" <> show t1 <> ")"
-instance Show (Link' t) => Show (App       t) where show  (Atom_App       t1 t2) = "App"       <> " (" <> show t1 <> ") (" <> show t2 <> ")"
-instance Show (Link' t) => Show (InfixApp  t) where show  (Atom_InfixApp  t1 t2 t3) = "InfixApp"       <> " (" <> show t1 <> ") (" <> show t2 <> ") (" <> show t3 <> ")"
-instance Show (Link' t) => Show (Missing   t) where show  (Atom_Missing        ) = "Missing"
-instance Show (Link' t) => Show (List      t) where show  (Atom_List      t1   ) = "List"      <> " (" <> show t1 <> ")"
-instance Show (Link' t) => Show (Unit      t) where show  (Atom_Unit      t1   ) = "Unit"      <> " (" <> show t1 <> ")"
-instance Show (Link' t) => Show (SectionLeft      t) where show  (Atom_SectionLeft  t1 t2) = "SectionLeft"  <> " (" <> show t1 <> ") (" <> show t2 <> ")"
-instance Show (Link' t) => Show (SectionRight     t) where show  (Atom_SectionRight t1 t2) = "SectionRight" <> " (" <> show t1 <> ") (" <> show t2 <> ")"
-instance (Show (Link' t), Show (Link t (StrChunk t))) => Show (Str       t) where show  (Atom_Str       t1   ) = "Str"       <> " (" <> show t1 <> ")"
+pattern SVar       t1    = SimpleAstVar       (Atom.Atom_Var       t1)
+pattern SCons      t1    = SimpleAstCons      (Atom.Atom_Cons      t1)
+pattern SOperator  t1    = SimpleAstOperator  (Atom.Atom_Operator  t1)
+pattern SModifier  t1    = SimpleAstModifier  (Atom.Atom_Modifier  t1)
+pattern SWildcard        = SimpleAstWildcard  (Atom.Atom_Wildcard)
+pattern SNumber    t1    = SimpleAstNumber    (Atom.Atom_Number    t1)
+pattern SStr       t1    = SimpleAstStr       (Atom.Atom_Str       t1)
+pattern SBlock    t1    = SimpleAstBlock    (Atom.Atom_Block    t1)
+-- -- pattern STokens    t1    = SimpleAstTokens    (Atom.Atom_Tokens    t1)
+pattern SMarker    t1    = SimpleAstMarker    (Atom.Atom_Marker    t1)
+pattern SLineBreak t1    = SimpleAstLineBreak (Atom.Atom_LineBreak t1)
+pattern SComment   t1    = SimpleAstComment   (Atom.Atom_Comment   t1)
+pattern SDocumented   t1 t2    = SimpleAstDocumented   (Atom.Atom_Documented   t1 t2)
+pattern SInvalid   t1    = SimpleAstInvalid   (Atom.Atom_Invalid   t1)
+pattern SApp       t1 t2 = SimpleAstApp       (Atom.Atom_App       t1 t2)
+pattern SInfixApp       t1 t2 t3 = SimpleAstInfixApp       (Atom.Atom_InfixApp       t1 t2 t3)
+pattern SMissing         = SimpleAstMissing   (Atom.Atom_Missing)
+pattern SList      t1    = SimpleAstList      (Atom.Atom_List      t1)
+pattern SUnit      t1    = SimpleAstUnit      (Atom.Atom_Unit      t1)
+pattern SSectionLeft  t1 t2 = SimpleAstSectionLeft  (Atom.Atom_SectionLeft  t1 t2)
+pattern SSectionRight t1 t2 = SimpleAstSectionRight (Atom.Atom_SectionRight t1 t2)
 
 
-pattern Var       t1    = AstVar       (Atom_Var       t1)
-pattern Cons      t1    = AstCons      (Atom_Cons      t1)
-pattern Operator  t1    = AstOperator  (Atom_Operator  t1)
-pattern Modifier  t1    = AstModifier  (Atom_Modifier  t1)
-pattern Wildcard        = AstWildcard  (Atom_Wildcard)
-pattern Number    t1    = AstNumber    (Atom_Number    t1)
-pattern Str       t1    = AstStr       (Atom_Str       t1)
-pattern Block    t1    = AstBlock    (Atom_Block    t1)
--- -- -- pattern Tokens    t1    = AstTokens    (Atom_Tokens    t1)
-pattern Marker    t1    = AstMarker    (Atom_Marker    t1)
-pattern LineBreak t1    = AstLineBreak (Atom_LineBreak t1)
-pattern Comment   t1    = AstComment   (Atom_Comment   t1)
-pattern Documented   t1 t2 = AstDocumented   (Atom_Documented   t1 t2)
-pattern Invalid   t1    = AstInvalid   (Atom_Invalid   t1)
-pattern App       t1 t2 = AstApp       (Atom_App       t1 t2)
-pattern InfixApp  t1 t2 t3 = AstInfixApp       (Atom_InfixApp       t1 t2 t3)
-pattern Missing         = AstMissing   (Atom_Missing)
-pattern List      t1    = AstList      (Atom_List      t1)
-pattern Unit      t1    = AstUnit      (Atom_Unit      t1)
-pattern SectionLeft  t1 t2 = AstSectionLeft  (Atom_SectionLeft  t1 t2)
-pattern SectionRight t1 t2 = AstSectionRight (Atom_SectionRight t1 t2)
-
-pattern SVar       t1    = SimpleAstVar       (Atom_Var       t1)
-pattern SCons      t1    = SimpleAstCons      (Atom_Cons      t1)
-pattern SOperator  t1    = SimpleAstOperator  (Atom_Operator  t1)
-pattern SModifier  t1    = SimpleAstModifier  (Atom_Modifier  t1)
-pattern SWildcard        = SimpleAstWildcard  (Atom_Wildcard)
-pattern SNumber    t1    = SimpleAstNumber    (Atom_Number    t1)
-pattern SStr       t1    = SimpleAstStr       (Atom_Str       t1)
-pattern SBlock    t1    = SimpleAstBlock    (Atom_Block    t1)
--- -- pattern STokens    t1    = SimpleAstTokens    (Atom_Tokens    t1)
-pattern SMarker    t1    = SimpleAstMarker    (Atom_Marker    t1)
-pattern SLineBreak t1    = SimpleAstLineBreak (Atom_LineBreak t1)
-pattern SComment   t1    = SimpleAstComment   (Atom_Comment   t1)
-pattern SDocumented   t1 t2    = SimpleAstDocumented   (Atom_Documented   t1 t2)
-pattern SInvalid   t1    = SimpleAstInvalid   (Atom_Invalid   t1)
-pattern SApp       t1 t2 = SimpleAstApp       (Atom_App       t1 t2)
-pattern SInfixApp       t1 t2 t3 = SimpleAstInfixApp       (Atom_InfixApp       t1 t2 t3)
-pattern SMissing         = SimpleAstMissing   (Atom_Missing)
-pattern SList      t1    = SimpleAstList      (Atom_List      t1)
-pattern SUnit      t1    = SimpleAstUnit      (Atom_Unit      t1)
-pattern SSectionLeft  t1 t2 = SimpleAstSectionLeft  (Atom_SectionLeft  t1 t2)
-pattern SSectionRight t1 t2 = SimpleAstSectionRight (Atom_SectionRight t1 t2)
-
-
-pattern XList t <- Spanned s (AstList      (Atom_List      (prependOffsetToHead s -> t)))
+pattern XList t <- Spanned s (AstList      (Atom.Atom_List      (prependOffsetToHead s -> t)))
 
 prependOffsetToHead t = \case
     []     -> []
     (p:ps) -> prependOffset' t p : ps
--- deriving instance Show (Link' t) => Show (Var       t)
--- deriving instance Show (Link' t) => Show (Cons      t)
--- deriving instance Show (Link' t) => Show (Operator  t)
--- deriving instance Show (Link' t) => Show (Modifier  t)
--- deriving instance Show (Link' t) => Show (Wildcard  t)
--- deriving instance Show (Link' t) => Show (Number    t)
--- deriving instance Show (Link' t) => Show (Tokens    t)
--- deriving instance Show (Link' t) => Show (Marker    t)
--- deriving instance Show (Link' t) => Show (LineBreak t)
--- deriving instance Show (Link' t) => Show (Comment   t)
--- deriving instance Show (Link' t) => Show (Invalid   t)
--- deriving instance Show (Link' t) => Show (App       t)
--- deriving instance Show (Link' t) => Show (Missing   t)
--- deriving instance Show (Link' t) => Show (List      t)
-deriving instance Show (Link' t) => Show (StrChunk  t)
--- deriving instance (Show (Link' t), Show (Link t (StrChunk t))) => Show (Str t)
-
-deriving instance Eq (Link' t) => Eq (Var       t)
-deriving instance Eq (Link' t) => Eq (Cons      t)
-deriving instance Eq (Link' t) => Eq (Operator  t)
-deriving instance Eq (Link' t) => Eq (Modifier  t)
-deriving instance Eq (Link' t) => Eq (Wildcard  t)
-deriving instance Eq (Link' t) => Eq (Number    t)
-deriving instance Eq (Link' t) => Eq (Block    t)
-deriving instance Eq (Link' t) => Eq (Tokens    t)
-deriving instance Eq (Link' t) => Eq (Marker    t)
-deriving instance Eq (Link' t) => Eq (LineBreak t)
-deriving instance Eq (Link' t) => Eq (Comment   t)
-deriving instance Eq (Link' t) => Eq (Documented   t)
-deriving instance Eq (Link' t) => Eq (Invalid   t)
-deriving instance Eq (Link' t) => Eq (App       t)
-deriving instance Eq (Link' t) => Eq (InfixApp  t)
-deriving instance Eq (Link' t) => Eq (Missing   t)
-deriving instance Eq (Link' t) => Eq (List      t)
-deriving instance Eq (Link' t) => Eq (Unit      t)
-deriving instance Eq (Link' t) => Eq (SectionLeft      t)
-deriving instance Eq (Link' t) => Eq (SectionRight      t)
-deriving instance Eq (Link' t) => Eq (StrChunk  t)
-deriving instance (Eq (Link' t), Eq (Link t (StrChunk t))) => Eq (Str t)
-
-deriving instance Ord (Link' t) => Ord (Var       t)
-deriving instance Ord (Link' t) => Ord (Cons      t)
-deriving instance Ord (Link' t) => Ord (Operator  t)
-deriving instance Ord (Link' t) => Ord (Modifier  t)
-deriving instance Ord (Link' t) => Ord (Wildcard  t)
-deriving instance Ord (Link' t) => Ord (Number    t)
-deriving instance Ord (Link' t) => Ord (Block    t)
-deriving instance Ord (Link' t) => Ord (Tokens    t)
-deriving instance Ord (Link' t) => Ord (Marker    t)
-deriving instance Ord (Link' t) => Ord (LineBreak t)
-deriving instance Ord (Link' t) => Ord (Comment   t)
-deriving instance Ord (Link' t) => Ord (Documented   t)
-deriving instance Ord (Link' t) => Ord (Invalid   t)
-deriving instance Ord (Link' t) => Ord (App       t)
-deriving instance Ord (Link' t) => Ord (InfixApp  t)
-deriving instance Ord (Link' t) => Ord (Missing   t)
-deriving instance Ord (Link' t) => Ord (List      t)
-deriving instance Ord (Link' t) => Ord (Unit      t)
-deriving instance Ord (Link' t) => Ord (SectionLeft      t)
-deriving instance Ord (Link' t) => Ord (SectionRight t)
-deriving instance Ord (Link' t) => Ord (StrChunk  t)
-deriving instance (Ord (Link' t), Ord (Link t (StrChunk t))) => Ord (Str t)
 
 
-type instance Link Ast (StrChunk s) = Spanned (StrChunk s)
-type instance Link Ast Struct = Spanned Ast
-
-data Ast
-    -- Identifiers
-    = AstVar       (Var Ast)
-    | AstCons      (Cons Ast)
-    | AstOperator  (Operator Ast)
-    | AstModifier  (Modifier Ast)
-    | AstWildcard  (Wildcard Ast)
-
-    -- Literals
-    | AstNumber    (Number Ast)
-    | AstStr       (Str Ast)
-
-    -- Layouting
-    | AstBlock    (Block Ast)
-    | AstMarker    (Marker Ast)
-    | AstLineBreak (LineBreak Ast)
-
-    -- Docs
-    | AstComment   (Comment Ast)
-    | AstDocumented   (Documented Ast)
-
-    -- Errors
-    | AstInvalid   (Invalid Ast)
-
-    | AstApp       (App Ast)
-    | AstInfixApp  (InfixApp Ast)
-    | AstMissing   (Missing Ast)
-    | AstList      (List Ast)
-    | AstUnit      (Unit Ast)
-    | AstSectionLeft (SectionLeft Ast)
-    | AstSectionRight (SectionRight Ast)
-    deriving (Eq, Ord, Show)
 
 class PrependSpan a where
     prependSpan :: CodeSpan -> a -> a
@@ -515,54 +165,54 @@ prepSpanToList = \t -> \case
     (a:as) -> (a & span %~ (CodeSpan.prependAsOffset t)) : as
 {-# INLINE prepSpanToList #-}
 
-instance PrependSpan (Var Ast)
-instance PrependSpan (Cons Ast)
-instance PrependSpan (Operator Ast)
-instance PrependSpan (Modifier Ast)
-instance PrependSpan (Wildcard Ast)
-instance PrependSpan (Number Ast)
-instance PrependSpan (Str Ast)
-instance PrependSpan (Marker Ast)
-instance PrependSpan (LineBreak Ast)
-instance PrependSpan (Comment Ast)
-instance PrependSpan (Invalid Ast)
-instance PrependSpan (Missing Ast)
+instance PrependSpan (Atom.Var Ast)
+instance PrependSpan (Atom.Cons Ast)
+instance PrependSpan (Atom.Operator Ast)
+instance PrependSpan (Atom.Modifier Ast)
+instance PrependSpan (Atom.Wildcard Ast)
+instance PrependSpan (Atom.Number Ast)
+instance PrependSpan (Atom.Str Ast)
+instance PrependSpan (Atom.Marker Ast)
+instance PrependSpan (Atom.LineBreak Ast)
+instance PrependSpan (Atom.Comment Ast)
+instance PrependSpan (Atom.Invalid Ast)
+instance PrependSpan (Atom.Missing Ast)
 
 
-instance PrependSpan (Block Ast) where
-    prependSpan = \span (Atom_Block a) -> Atom_Block $ prepSpanToNonEmpty span a
+instance PrependSpan (Atom.Block Ast) where
+    prependSpan = \span (Atom.Atom_Block a) -> Atom.Atom_Block $ prepSpanToNonEmpty span a
     {-# INLINE prependSpan #-}
 
-instance PrependSpan (Tokens Ast) where
-    prependSpan = \span (Atom_Tokens a) -> Atom_Tokens $ prepSpanToList span a
+instance PrependSpan (Atom.Tokens Ast) where
+    prependSpan = \span (Atom.Atom_Tokens a) -> Atom.Atom_Tokens $ prepSpanToList span a
     {-# INLINE prependSpan #-}
 
-instance PrependSpan (App Ast) where
-    prependSpan = \span (Atom_App a b) -> Atom_App (prepSpan span a) b
+instance PrependSpan (Atom.App Ast) where
+    prependSpan = \span (Atom.Atom_App a b) -> Atom.Atom_App (prepSpan span a) b
     {-# INLINE prependSpan #-}
 
-instance PrependSpan (InfixApp Ast) where
-    prependSpan = \span (Atom_InfixApp a b c) -> Atom_InfixApp (prepSpan span a) b c
+instance PrependSpan (Atom.InfixApp Ast) where
+    prependSpan = \span (Atom.Atom_InfixApp a b c) -> Atom.Atom_InfixApp (prepSpan span a) b c
     {-# INLINE prependSpan #-}
 
-instance PrependSpan (SectionLeft Ast) where
-    prependSpan = \span (Atom_SectionLeft a b) -> Atom_SectionLeft (prepSpan span a) b
+instance PrependSpan (Atom.SectionLeft Ast) where
+    prependSpan = \span (Atom.Atom_SectionLeft a b) -> Atom.Atom_SectionLeft (prepSpan span a) b
     {-# INLINE prependSpan #-}
 
-instance PrependSpan (SectionRight Ast) where
-    prependSpan = \span (Atom_SectionRight a b) -> Atom_SectionRight (prepSpan span a) b
+instance PrependSpan (Atom.SectionRight Ast) where
+    prependSpan = \span (Atom.Atom_SectionRight a b) -> Atom.Atom_SectionRight (prepSpan span a) b
     {-# INLINE prependSpan #-}
 
-instance PrependSpan (List Ast) where
-    prependSpan = \span (Atom_List a) -> Atom_List (prepSpanToList span a)
+instance PrependSpan (Atom.List Ast) where
+    prependSpan = \span (Atom.Atom_List a) -> Atom.Atom_List (prepSpanToList span a)
     {-# INLINE prependSpan #-}
 
-instance PrependSpan (Unit Ast) where
-    prependSpan = \span (Atom_Unit a) -> Atom_Unit (prepSpan span a)
+instance PrependSpan (Atom.Unit Ast) where
+    prependSpan = \span (Atom.Atom_Unit a) -> Atom.Atom_Unit (prepSpan span a)
     {-# INLINE prependSpan #-}
 
-instance PrependSpan (Documented Ast) where
-    prependSpan = \span (Atom_Documented a b) -> Atom_Documented (prepSpan span a) b
+instance PrependSpan (Atom.Documented Ast) where
+    prependSpan = \span (Atom.Atom_Documented a b) -> Atom.Atom_Documented (prepSpan span a) b
     {-# INLINE prependSpan #-}
 
 
@@ -577,7 +227,7 @@ unspan = \(Spanned cs a) ->
         AstWildcard     a -> AstWildcard    $ prependSpan span a
         AstNumber       a -> AstNumber      $ prependSpan span a
         AstStr          a -> AstStr         $ prependSpan span a
-        AstBlock       a  -> AstBlock      $ prependSpan span a
+        AstBlock        a -> AstBlock      $ prependSpan span a
         AstMarker       a -> AstMarker      $ prependSpan span a
         AstLineBreak    a -> AstLineBreak   $ prependSpan span a
         AstComment      a -> AstComment     $ prependSpan span a
@@ -593,66 +243,54 @@ unspan = \(Spanned cs a) ->
 {-# INLINE unspan #-}
 
 
-type instance Link SimpleAst (StrChunk s) = StrChunk s
-type instance Link SimpleAst Struct = SimpleAst
+type instance Atom.Link SimpleAst (Atom.StrChunk s) = Atom.StrChunk s
+type instance Atom.Link SimpleAst Atom.Struct = SimpleAst
 
 data SimpleAst
-    -- Identifiers
-    = SimpleAstVar       (Var SimpleAst)
-    | SimpleAstCons      (Cons SimpleAst)
-    | SimpleAstOperator  (Operator SimpleAst)
-    | SimpleAstModifier  (Modifier SimpleAst)
-    | SimpleAstWildcard  (Wildcard SimpleAst)
-
-    -- Literals
-    | SimpleAstNumber    (Number SimpleAst)
-    | SimpleAstStr       (Str SimpleAst)
-
-    -- Layouting
-    | SimpleAstBlock    (Block SimpleAst)
-    -- | SimpleAstTokens    (Tokens SimpleAst)
-    | SimpleAstMarker    (Marker SimpleAst)
-    | SimpleAstLineBreak (LineBreak SimpleAst)
-
-    -- Docs
-    | SimpleAstComment   (Comment SimpleAst)
-    | SimpleAstDocumented   (Documented SimpleAst)
-
-    -- Errors
-    | SimpleAstInvalid   (Invalid SimpleAst)
-
-    | SimpleAstApp       (App SimpleAst)
-    | SimpleAstInfixApp  (InfixApp SimpleAst)
-    | SimpleAstMissing   (Missing SimpleAst)
-    | SimpleAstList      (List SimpleAst)
-    | SimpleAstUnit      (Unit SimpleAst)
-    | SimpleAstSectionLeft      (SectionLeft SimpleAst)
-    | SimpleAstSectionRight      (SectionRight SimpleAst)
+    = SimpleAstVar          (Atom.Var          SimpleAst)
+    | SimpleAstCons         (Atom.Cons         SimpleAst)
+    | SimpleAstOperator     (Atom.Operator     SimpleAst)
+    | SimpleAstModifier     (Atom.Modifier     SimpleAst)
+    | SimpleAstWildcard     (Atom.Wildcard     SimpleAst)
+    | SimpleAstNumber       (Atom.Number       SimpleAst)
+    | SimpleAstStr          (Atom.Str          SimpleAst)
+    | SimpleAstBlock        (Atom.Block        SimpleAst)
+    | SimpleAstMarker       (Atom.Marker       SimpleAst)
+    | SimpleAstLineBreak    (Atom.LineBreak    SimpleAst)
+    | SimpleAstComment      (Atom.Comment      SimpleAst)
+    | SimpleAstDocumented   (Atom.Documented   SimpleAst)
+    | SimpleAstInvalid      (Atom.Invalid      SimpleAst)
+    | SimpleAstApp          (Atom.App          SimpleAst)
+    | SimpleAstInfixApp     (Atom.InfixApp     SimpleAst)
+    | SimpleAstMissing      (Atom.Missing      SimpleAst)
+    | SimpleAstList         (Atom.List         SimpleAst)
+    | SimpleAstUnit         (Atom.Unit         SimpleAst)
+    | SimpleAstSectionLeft  (Atom.SectionLeft  SimpleAst)
+    | SimpleAstSectionRight (Atom.SectionRight SimpleAst)
     deriving (Eq, Ord)
 
 instance Show SimpleAst where
     show = \case
-        SimpleAstVar       t -> show t
-        SimpleAstCons      t -> show t
-        SimpleAstOperator  t -> show t
-        SimpleAstModifier  t -> show t
-        SimpleAstWildcard  t -> show t
-        SimpleAstNumber    t -> show t
-        SimpleAstStr       t -> show t
-        SimpleAstBlock    t -> show t
-        -- SimpleAstTokens    t -> show t
-        SimpleAstMarker    t -> show t
-        SimpleAstLineBreak t -> show t
-        SimpleAstComment   t -> show t
+        SimpleAstVar          t -> show t
+        SimpleAstCons         t -> show t
+        SimpleAstOperator     t -> show t
+        SimpleAstModifier     t -> show t
+        SimpleAstWildcard     t -> show t
+        SimpleAstNumber       t -> show t
+        SimpleAstStr          t -> show t
+        SimpleAstBlock        t -> show t
+        SimpleAstMarker       t -> show t
+        SimpleAstLineBreak    t -> show t
+        SimpleAstComment      t -> show t
         SimpleAstDocumented   t -> show t
-        SimpleAstInvalid   t -> show t
-        SimpleAstApp       t -> show t
-        SimpleAstInfixApp  t -> show t
-        SimpleAstMissing   t -> show t
-        SimpleAstList      t -> show t
-        SimpleAstUnit      t -> show t
-        SimpleAstSectionLeft      t -> show t
-        SimpleAstSectionRight      t -> show t
+        SimpleAstInvalid      t -> show t
+        SimpleAstApp          t -> show t
+        SimpleAstInfixApp     t -> show t
+        SimpleAstMissing      t -> show t
+        SimpleAstList         t -> show t
+        SimpleAstUnit         t -> show t
+        SimpleAstSectionLeft  t -> show t
+        SimpleAstSectionRight t -> show t
 
 
 sapp :: SimpleAst -> SimpleAst -> SimpleAst
@@ -839,11 +477,11 @@ instance Simplify a
     type Simplified [a] = [Simplified a]
     simplify = fmap simplify
 
-instance Simplify (StrChunk Ast) where
-    type Simplified (StrChunk Ast) = StrChunk SimpleAst
+instance Simplify (Atom.StrChunk Ast) where
+    type Simplified (Atom.StrChunk Ast) = Atom.StrChunk SimpleAst
     simplify = \case
-        StrPlain   t                  -> StrPlain   t
-        StrNewLine (Atom_LineBreak t) -> StrNewLine (Atom_LineBreak t)
+        Atom.StrPlain   t                  -> Atom.StrPlain   t
+        Atom.StrNewLine (Atom.Atom_LineBreak t) -> Atom.StrNewLine (Atom.Atom_LineBreak t)
 
 instance Simplify   Ast where
     type Simplified Ast = SimpleAst
