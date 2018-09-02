@@ -178,7 +178,7 @@ it_e' s = it_e s (convert s)
 __ :: Convertible' Ast.SimpleAst a => a
 __ = convert' Ast.SMissing
 
-block = Ast.SBlock
+block (a:as) = Ast.SBlock1 (a :| as)
 
 eq :: Ast.SimpleAst -> Ast.SimpleAst -> Ast.SimpleAst
 eq = flip Ast.SInfixApp "#=#"
@@ -483,7 +483,7 @@ debugSpec = describe "error" $ it "x" $ do
         -- layouted  = ExprBuilder.discoverLayouts toks
         statement = ExprBuilder.buildFlatStatement toks
         stream    = ExprBuilder.buildStream toks
-        input = "a [1]"
+        input = "if a then\n b\n c"
         -- input = "class Foox:\n Vector x y z"
 
     putStrLn "\nTOKS:\n"

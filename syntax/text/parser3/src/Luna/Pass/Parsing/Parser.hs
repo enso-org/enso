@@ -178,7 +178,7 @@ discoverImportLines__ = \results others stream -> case stream of
             _ -> discoverImportLines__ results (line:others) lines
 
 getImportName :: Ast -> Maybe IR.Qualified
-getImportName = \(Spanned cs ast) -> case ast of
+getImportName = \t -> case Ast.unspan t of
     Ast.InfixApp l f r -> case Ast.unspan f of
         Ast.Operator op -> if
             | op == Name.acc -> do
@@ -190,9 +190,9 @@ getImportName = \(Spanned cs ast) -> case ast of
     Ast.Cons v -> pure $ convert v
 
 buildImportIR :: forall m. BuilderMonad m => Ast -> [Ast] -> m IR.SomeTerm
-buildImportIR = \a@(Spanned cs ast) args -> if not (null args)
+buildImportIR = \a@(Spanned cs ast) args -> addCodeSpan cs =<< if not (null args)
     then parseError
-    else addCodeSpan cs =<< case ast of
+    else case ast of
         Ast.Cons v -> do
             isrc <- IR.importSource $ IR.Absolute (convert v)
             IR.imp' isrc IR.Everything
@@ -206,8 +206,8 @@ buildImportIR = \a@(Spanned cs ast) args -> if not (null args)
 
 -- === IR === --
 
-buildUnit :: BuilderMonad m => [Ast] -> m [IR.SomeTerm]
-buildUnit = \case
+buildLines :: BuilderMonad m => [Ast] -> m [IR.SomeTerm]
+buildLines = \case
     [] -> pure []
     (a:as) -> do
         a' <- buildIR a
@@ -218,12 +218,12 @@ buildUnit = \case
                     aa' <- buildIR aa
                     dd  <- IR.documented' txt aa'
                     addCodeSpan (view Ast.span a <> view Ast.span aa) dd
-                    (dd:) <$> buildUnit aas
-                _ -> (a':) <$> buildUnit as
-            _ -> (a':) <$> buildUnit as
+                    (dd:) <$> buildLines aas
+                _ -> (a':) <$> buildLines as
+            _ -> (a':) <$> buildLines as
 
 buildIR :: forall m. BuilderMonad m => Ast -> m IR.SomeTerm
-buildIR = \(Spanned cs ast) -> putStrLn "\n" >> (addCodeSpan cs =<< case ast of
+buildIR = \(Spanned cs ast) -> putStrLn "\n---" {- >> print cs -} >> (addCodeSpan cs =<< case ast of
 
     -- Literals
     Ast.Number     num -> do
@@ -244,14 +244,16 @@ buildIR = \(Spanned cs ast) -> putStrLn "\n" >> (addCodeSpan cs =<< case ast of
 
     -- Layouting
     Ast.Block b -> do
-        foo :| foos <- buildIR <$$> b
+        lines <- buildIR <$$> b
         let f acc new = do
                 csAcc <- IR.readLayer @CodeSpan acc
                 csNew <- IR.readLayer @CodeSpan new
                 ir <- IR.seq' acc new
                 IR.writeLayer @CodeSpan ir (csAcc <> csNew)
                 pure ir
-        foldlM f foo foos
+        case lines of
+            []     -> IR.invalid' Invalid.EmptyExpression
+            (l:ls) -> foldlM f l ls
     Ast.Marker m -> IR.marker' $ fromIntegral m
     Ast.LineBreak ind  -> impossible -- All line breaks handled in parser
 
@@ -262,14 +264,16 @@ buildIR = \(Spanned cs ast) -> putStrLn "\n" >> (addCodeSpan cs =<< case ast of
     Ast.Invalid inv  -> IR.invalid' inv
 
     -- Expressions
-    Ast.Unit ls -> do
-        let (ls', imps) = discoverImportLines ls
-            impsSpan    = collectSpan imps
-            record'     = IR.record' False "" [] []
-        (unitCls :: IR.SomeTerm) <- record'       =<< buildUnit ls'
-        (ih      :: IR.SomeTerm) <- IR.importHub' =<< buildIR <$$> imps
-        IR.writeLayer @CodeSpan ih impsSpan
-        IR.unit' ih [] unitCls
+    Ast.Unit block -> case Ast.unspan block of
+        Ast.Block ls -> do
+            let (ls', imps) = discoverImportLines ls
+                impsSpan    = collectSpan imps
+                record'     = IR.record' False "" [] []
+            (unitCls :: IR.SomeTerm) <- record'       =<< buildLines ls'
+            (ih      :: IR.SomeTerm) <- IR.importHub' =<< buildIR <$$> imps
+            IR.writeLayer @CodeSpan ih impsSpan
+            IR.unit' ih [] unitCls
+        _ -> parseError
 
     Ast.InfixApp l f r -> do
         let tok = Ast.unspan f
@@ -346,6 +350,10 @@ buildIR = \(Spanned cs ast) -> putStrLn "\n" >> (addCodeSpan cs =<< case ast of
             _ -> continue
 
     Ast.Comment c -> parseError
+    Ast.Missing   -> do
+        print ">> missing"
+        print cs
+        IR.missing'
 
     x -> error $ "TODO: " <> show x
     )
@@ -455,11 +463,14 @@ buildListIR arg args = builAppsIR args =<< case Ast.unspan arg of
     _           -> parseError
 
 buildTupleIR :: MixFixBuilder
-buildTupleIR = \arg args -> builAppsIR args =<< case Ast.unspan arg of
-    Ast.List []  -> IR.tuple' []
-    Ast.List [a] -> IR.grouped' =<< buildIR a
-    Ast.List as  -> IR.tuple'   =<< buildIR <$$> as
-    _            -> parseError
+buildTupleIR = \arg args -> do
+    print "TUPLE"
+    pprint arg
+    builAppsIR args =<< case Ast.unspan arg of
+        Ast.List []  -> IR.tuple' []
+        Ast.List [a] -> IR.grouped' =<< buildIR a
+        Ast.List as  -> IR.tuple'   =<< buildIR <$$> as
+        _            -> parseError
 
 buildRealIR :: BuilderMonad m => Ast -> Ast -> m IR.SomeTerm
 buildRealIR (Spanned _ (Ast.Number integral)) (Spanned _ (Ast.Number fractional)) = do
@@ -473,13 +484,8 @@ buildFunctionIR arg args = case args of
         case Ast.unspan paramLst of
             Ast.List params -> do
                 let name = checkFunctionName arg
-                    -- TODO we should handle this in a more automatic way.
-                    --      pattern synonyms here?
-                    params2 = case params of
-                        []     -> []
-                        (p:ps) -> Ast.prependOffset paramLst p : ps
                 name'   <- buildIR name
-                params' <- buildIR <$$> params2
+                params' <- buildIR <$$> params
                 body'   <- buildIR body
                 IR.function' name' params' body'
             _ -> parseError

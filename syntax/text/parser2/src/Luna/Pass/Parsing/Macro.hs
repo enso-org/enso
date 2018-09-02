@@ -4,7 +4,7 @@
 
 module Luna.Pass.Parsing.Macro where
 
-import Prologue
+import Prologue hiding (optional)
 
 import qualified Control.Monad.State.Layered               as State
 import qualified Data.Graph.Component.Node.Destruction     as Component
@@ -318,17 +318,17 @@ unsafeLineBreaks = many1 unsafeLineBreak
 -- | The current implementation works on token stream where some tokens are
 --   line break indicators. After consuming such tokens we need to register them
 --   as offset in the following token.
-brokenLst :: Parser (NonEmpty Ast) -> Parser (NonEmpty Ast)
-brokenLst = \f -> do
+brokenLst1 :: Parser (NonEmpty Ast) -> Parser (NonEmpty Ast)
+brokenLst1 = \f -> do
     spans     <- toksSpanAsSpace <$> unsafeLineBreaks
     (a :| as) <- f
     let a' = a & Ast.span %~ (spans <>)
     pure (a' :| as)
-{-# INLINE brokenLst #-}
+{-# INLINE brokenLst1 #-}
 
-brokenLst' :: Parser (NonEmpty Ast) -> Parser [Ast]
-brokenLst' = fmap convert . brokenLst
-{-# INLINE brokenLst' #-}
+brokenLst1' :: Parser (NonEmpty Ast) -> Parser [Ast]
+brokenLst1' = fmap convert . brokenLst1
+{-# INLINE brokenLst1' #-}
 
 unsafeBrokenLst :: Parser [Ast] -> Parser [Ast]
 unsafeBrokenLst = \f -> do
@@ -449,7 +449,7 @@ macro = \t@(Ast.Spanned span tok) (Macro seg lst) -> do
 
 mergeSpannedLists :: [Spanned [Ast]] -> (CodeSpan, [Ast])
 mergeSpannedLists = \lst -> let
-    prependSpan span = Ast.span %~ (CodeSpan.asOffsetSpan span <>)
+    prependSpan span = Ast.span %~ (CodeSpan.prependAsOffset span)
     in case lst of
         [] -> (mempty, mempty)
         (Ast.Spanned span a : as) -> case a of
@@ -488,8 +488,9 @@ expr = do
 
 unit :: Parser Ast
 unit = Ast.unit <$> body where
-    body  = option mempty lines
-    lines = (:) <$> expr' <*> many (broken $ Indent.indentedEq *> expr)
+    body     = nonEmpty <|> empty
+    nonEmpty = Ast.block1 <$> block1 expr'
+    empty    = pure Ast.missing
 {-# INLINE unit #-}
 
 expr' :: Parser Ast
@@ -513,10 +514,10 @@ exprPart' :: Parser Ast
 exprPart' = buildExpr . convert =<< lines where
     line          = (\x -> buildExpr $ {- trace ("\n\n+++\n" <> ppShow x) -} x) =<< multiLineToks
     lines         = (:|) <$> line <*> nextLines
-    nextLines     = option mempty (brokenLst' $ Indent.indented *> lines)
+    nextLines     = option mempty (brokenLst1' $ Indent.indented *> lines)
     lineJoin      = satisfyAst Ast.isOperator <* leftSpaced peekSymbol
     multiLineToks = lineToks <**> lineTailToks
-    lineTailToks  = option id $ flip (<>) <$> brokenLst' lineContToks
+    lineTailToks  = option id $ flip (<>) <$> brokenLst1' lineContToks
     lineContToks  = Indent.indented *> ((:|) <$> lineJoin <*> multiLineToks)
     lineToks      = fmap concat . many1 $ do
         tok <- anySymbolNotReserved
@@ -524,7 +525,7 @@ exprPart' = buildExpr . convert =<< lines where
         lookupSection sym >>= \case
             Just sect -> macro tok sect
             Nothing   -> case sym of
-                Ast.Operator _ -> (tok:) <$> option [] (pure <$> multiLineExprBlock)
+                Ast.Operator _ -> (tok:) <$> option [] (pure <$> newExprBlock1')
                 _              -> pure [tok]
 {-# INLINE exprPart' #-}
 
@@ -548,30 +549,67 @@ nonSpacedExpr' = buildExpr =<< go where
 {-# INLINE nonSpacedExpr' #-}
 
 exprBlock :: Parser Ast
-exprBlock = multiLineExprBlock <|> expr
+exprBlock = option emptyExpression (multiLine <|> singleLine) where
+    multiLine  = newExprBlock1'
+    singleLine = expr'
 {-# INLINE exprBlock #-}
+
+newExprBlock1' :: Parser Ast
+newExprBlock1' = discoverBlock1 expr' <&> \case
+    (a :| []) -> a
+    as -> Ast.block1 as
+{-# INLINE newExprBlock1' #-}
 
 exprList :: Parser Ast
 exprList = Ast.list <$> lst where
-    lst     = option mempty $ nonEmptyHead <|> emptyHead
-    nonEmptyHead = (:) <$> seg1 <*> many nextSeg
-    emptyHead    = (Ast.missing:) <$> many1 nextSeg
-    seg1    = possiblyBroken $ withReserved sepOp exprPart'
-    seg2    = possiblyBroken $ withReserved sepOp (exprPart' <|> pure Ast.missing)
-    segs    = many nextSeg
-    sep     = possiblyBroken $ ast sepOp
-    sepOp   = Ast.Operator ","
-    nextSeg = Ast.prependAsOffset <$> sep <*> seg2
+    lst      = option mempty $ nonEmpty <|> empty
+    nonEmpty = (:) <$> seg segBody <*> many nextSeg
+    empty    = (Ast.missing:) <$> many1 nextSeg
+    nextSeg  = Ast.prependAsOffset <$> sep <*> seg (optional segBody)
+    segs     = many nextSeg
+    seg p    = possiblyBroken $ withReserved sepOp p
+    sep      = possiblyBroken $ ast sepOp
+    segBody  = exprPart'
+    sepOp    = Ast.Operator ","
 {-# INLINE exprList #-}
 
-multiLineExprBlock :: Parser Ast
-multiLineExprBlock = multiLine where
-    multiLine  = broken $ Indent.indented *> Indent.withCurrent body
-    bodyLines  = (:|) <$> expr <*> many (broken $ Indent.indentedEq *> expr)
-    body       = mkBlock <$> bodyLines
-    mkBlock (s :| ss) = if null ss then s else Ast.block (s :| ss)
-{-# INLINE multiLineExprBlock #-}
 
+-- === Layouts === --
+
+discoverBlock1 :: Parser Ast -> Parser (NonEmpty Ast)
+discoverBlock1 = \p -> brokenLst1 $ Indent.indented *> block1 p
+{-# INLINE discoverBlock1 #-}
+
+block1 :: Parser Ast -> Parser (NonEmpty Ast)
+block1 = Indent.withCurrent . blockBody1
+{-# INLINE block1 #-}
+
+blockBody1 :: Parser Ast -> Parser (NonEmpty Ast)
+blockBody1 = \p -> (:|) <$> p <*> many (broken $ Indent.indentedEq *> p)
+{-# INLINE blockBody1 #-}
+
+block :: Parser Ast -> Parser [Ast]
+block = optionBlock . block1
+{-# INLINE block #-}
+
+blockBody :: Parser Ast -> Parser [Ast]
+blockBody = optionBlock . blockBody1
+{-# INLINE blockBody #-}
+
+optionBlock :: Parser (NonEmpty Ast) -> Parser [Ast]
+optionBlock = option mempty . fmap convert
+{-# INLINE optionBlock #-}
+
+
+
+
+optional :: Parser Ast -> Parser Ast
+optional = option Ast.missing
+{-# INLINE optional #-}
+
+emptyExpression :: Ast
+emptyExpression = Ast.invalid Invalid.EmptyExpression
+{-# INLINE emptyExpression #-}
 
 classBlock :: Parser Ast
 classBlock = broken $ do

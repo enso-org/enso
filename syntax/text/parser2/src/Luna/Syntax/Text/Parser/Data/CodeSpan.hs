@@ -92,10 +92,16 @@ extractCodeOffset :: CodeSpan -> CodeOffset
 extractCodeOffset cs = CodeOffset (cs ^. realSpan . Span.offset) (cs ^. viewSpan . Span.offset)
 {-# INLINE extractCodeOffset #-}
 
--- TODO: remove ? use <> instead?
-concat :: CodeSpan -> CodeSpan -> CodeSpan
-concat (CodeSpan r v) (CodeSpan r' v') = CodeSpan (Span.concat r r') (Span.concat v v')
+-- -- | Concat does not checks the length of left span. Please see a note in the
+-- --   Span implementation for details and use case examples.
+-- concat :: CodeSpan -> CodeSpan -> CodeSpan
+-- concat (CodeSpan r v) (CodeSpan r' v') = CodeSpan (Span.concat r r') (Span.concat v v')
 -- {-# INLINE concat #-}
+
+prependAsOffset :: CodeSpan -> CodeSpan -> CodeSpan
+prependAsOffset (CodeSpan r v) (CodeSpan r' v')
+    = CodeSpan (Span.prependAsOffset r r') (Span.prependAsOffset v v')
+{-# INLINE prependAsOffset #-}
 
 asPhantom :: CodeSpan -> CodeSpan
 asPhantom = \cs -> cs & viewSpan . Span.length .~ mempty
@@ -114,7 +120,7 @@ instance Mempty CodeSpan where
 
 instance Semigroup CodeSpan where
     CodeSpan r v <> CodeSpan r' v' = CodeSpan (r <> r') (v <> v')
-
+    {-# INLINE (<>) #-}
 
 
 ----------------------------

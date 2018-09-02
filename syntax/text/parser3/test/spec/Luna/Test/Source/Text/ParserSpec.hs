@@ -43,7 +43,7 @@ runPasses passes = Graph.encodeAndEval @Parser.Parser $ Scheduler.evalT $ do
 
 e_x :: Text -> Text -> IO ()
 e_x input output = runPass $ do
-    (ir,cs) <- Parser.run (convert input)
+    (ir,cs) <- Parser.runWith Macro.unit (convert input)
     let scope = def
     genCode <- Prettyprint.run @Prettyprint.Simple scope ir
     genCode `shouldBe` output
@@ -69,10 +69,10 @@ functionDefSpec = describe "function" $ do
 
 caseSpec :: Spec
 caseSpec = describe "case" $ do
-    it "empty"     $ e  "case a of" "case a of\n    (EmptyExpression)"
+    it "empty"     $ e  "case a of" $ "case a of\n    (EmptyExpression)"
     it "single"    $ e' "case a of\n    a: b"
     it "multiline" $ e' "case a of\n    a: b\n    c: d"
-    it "wrong way" $ e  "case a of\n a b" "case a of\n    (CaseWayNotFunction)"
+    it "wrong way" $ e  "case a of\n a b" $ "case a of\n    (CaseWayNotFunction)"
 
 unitSpec :: Spec
 unitSpec = describe "unit" $ do
@@ -81,7 +81,7 @@ unitSpec = describe "unit" $ do
 debugSpec :: Spec
 debugSpec = describe "error" $ it "debug" $ do
 
-    let input = "a + b  c"
+    let input = "def foo a:\n x\n y"
 
     putStrLn "\n\n"
     pprint $ PP.runWith Macro.unit (convert input)

@@ -62,22 +62,25 @@ instance Convertible (Spanned a) a where
     {-# INLINE convert #-}
 
 
-unspan :: Spanned a -> a
-unspan = \(Spanned _ a) -> a
-{-# INLINE unspan #-}
+unsafeUnspan :: Spanned a -> a
+unsafeUnspan = \(Spanned _ a) -> a
+{-# INLINE unsafeUnspan #-}
 
 
 prependAsOffset :: Spanned a -> (Spanned b -> Spanned b)
-prependAsOffset = \t -> span %~ (CodeSpan.asOffsetSpan (t ^. span) <>)
+prependAsOffset = \t -> span %~ (CodeSpan.prependAsOffset (t ^. span))
 {-# INLINE prependAsOffset #-}
 
 prependOffset :: Spanned a -> (Spanned b -> Spanned b)
-prependOffset = \t -> span %~ (CodeSpan.dropLength (t ^. span) <>)
+prependOffset = \t -> span %~ (CodeSpan.prependAsOffset $ CodeSpan.dropLength (t ^. span))
 {-# INLINE prependOffset #-}
 
 prependOffset' :: CodeSpan -> (Spanned b -> Spanned b)
-prependOffset' = \t -> span %~ (CodeSpan.dropLength t <>)
+prependOffset' = \t -> span %~ (CodeSpan.prependAsOffset $ CodeSpan.dropLength t)
 {-# INLINE prependOffset' #-}
+
+
+
 
 
 
@@ -299,7 +302,8 @@ data Wildcard  t = Atom_Wildcard
 data Number    t = Atom_Number    { digits   :: NonEmpty Word8          }
 data Str       t = Atom_Str       { chunks   :: [Link t (StrChunk t)]   }
 
-data Block     t = Atom_Block     { lines    :: (NonEmpty (Link' t))    }
+data Block     t = Atom_Block     { lines    :: [Link' t]               }
+data Block1    t = Atom_Block1    { lines1   :: NonEmpty (Link' t)      }
 data Tokens    t = Atom_Tokens    { lines    :: [Link' t]               }
 data Marker    t = Atom_Marker    { markerID :: Int                     }
 data LineBreak t = Atom_LineBreak { indent   :: Delta                   }
@@ -314,12 +318,14 @@ data SectionLeft  t = Atom_SectionLeft  { arg      :: Link' t, func :: Link' t }
 data SectionRight t = Atom_SectionRight { func     :: Link' t, arg :: Link' t }
 data Missing   t = Atom_Missing
 data List      t = Atom_List      { items    :: [Link' t]               }
-data Unit      t = Atom_Unit      { items    :: [Link' t]               }
+data Unit      t = Atom_Unit      { body     :: Link' t                 }
 
 data StrChunk t
     = StrPlain   Text
     | StrNewLine (LineBreak t)
     | StrExpr    (Block t)
+
+
 
 instance Show (Link' t) => Show (Var       t) where show  (Atom_Var       t1   ) = "Var"       <> " (" <> show t1 <> ")"
 instance Show (Link' t) => Show (Cons      t) where show  (Atom_Cons      t1   ) = "Cons"      <> " (" <> show t1 <> ")"
@@ -328,6 +334,7 @@ instance Show (Link' t) => Show (Modifier  t) where show  (Atom_Modifier  t1   )
 instance Show (Link' t) => Show (Wildcard  t) where show  (Atom_Wildcard       ) = "Wildcard"
 instance Show (Link' t) => Show (Number    t) where show  (Atom_Number    t1   ) = "Number"    <> " (" <> show t1 <> ")"
 instance Show (Link' t) => Show (Block     t) where show  (Atom_Block     t1   ) = "Block"     <> " (" <> show t1 <> ")"
+instance Show (Link' t) => Show (Block1    t) where show  (Atom_Block1    t1   ) = "Block1"    <> " (" <> show t1 <> ")"
 instance Show (Link' t) => Show (Tokens    t) where show  (Atom_Tokens    t1   ) = "Tokens"    <> " (" <> show t1 <> ")"
 instance Show (Link' t) => Show (Marker    t) where show  (Atom_Marker    t1   ) = "Marker"    <> " (" <> show t1 <> ")"
 instance Show (Link' t) => Show (LineBreak t) where show  (Atom_LineBreak t1   ) = "LineBreak" <> " (" <> show t1 <> ")"
@@ -351,6 +358,7 @@ pattern Wildcard        = AstWildcard  (Atom_Wildcard)
 pattern Number    t1    = AstNumber    (Atom_Number    t1)
 pattern Str       t1    = AstStr       (Atom_Str       t1)
 pattern Block     t1    = AstBlock     (Atom_Block     t1)
+pattern Block1    t1    = AstBlock1    (Atom_Block1    t1)
 -- -- -- pattern Tokens    t1    = AstTokens    (Atom_Tokens    t1)
 pattern Marker    t1    = AstMarker    (Atom_Marker    t1)
 pattern LineBreak t1    = AstLineBreak (Atom_LineBreak t1)
@@ -372,6 +380,7 @@ pattern SWildcard        = SimpleAstWildcard  (Atom_Wildcard)
 pattern SNumber    t1    = SimpleAstNumber    (Atom_Number    t1)
 pattern SStr       t1    = SimpleAstStr       (Atom_Str       t1)
 pattern SBlock     t1    = SimpleAstBlock     (Atom_Block     t1)
+pattern SBlock1    t1    = SimpleAstBlock1    (Atom_Block1    t1)
 -- -- pattern STokens    t1    = SimpleAstTokens    (Atom_Tokens    t1)
 pattern SMarker    t1    = SimpleAstMarker    (Atom_Marker    t1)
 pattern SLineBreak t1    = SimpleAstLineBreak (Atom_LineBreak t1)
@@ -416,6 +425,7 @@ deriving instance Eq (Link' t) => Eq (Modifier  t)
 deriving instance Eq (Link' t) => Eq (Wildcard  t)
 deriving instance Eq (Link' t) => Eq (Number    t)
 deriving instance Eq (Link' t) => Eq (Block     t)
+deriving instance Eq (Link' t) => Eq (Block1    t)
 deriving instance Eq (Link' t) => Eq (Tokens    t)
 deriving instance Eq (Link' t) => Eq (Marker    t)
 deriving instance Eq (Link' t) => Eq (LineBreak t)
@@ -438,6 +448,7 @@ deriving instance Ord (Link' t) => Ord (Modifier  t)
 deriving instance Ord (Link' t) => Ord (Wildcard  t)
 deriving instance Ord (Link' t) => Ord (Number    t)
 deriving instance Ord (Link' t) => Ord (Block     t)
+deriving instance Ord (Link' t) => Ord (Block1    t)
 deriving instance Ord (Link' t) => Ord (Tokens    t)
 deriving instance Ord (Link' t) => Ord (Marker    t)
 deriving instance Ord (Link' t) => Ord (LineBreak t)
@@ -470,7 +481,8 @@ data Ast
     | AstStr       (Str Ast)
 
     -- Layouting
-    | AstBlock     (Block Ast)
+    | AstBlock     (Block  Ast)
+    | AstBlock1    (Block1 Ast)
     | AstMarker    (Marker Ast)
     | AstLineBreak (LineBreak Ast)
 
@@ -489,7 +501,101 @@ data Ast
     | AstSectionRight (SectionRight Ast)
     deriving (Eq, Ord, Show)
 
+class PrependSpan a where
+    prependSpan :: CodeSpan -> a -> a
+    prependSpan = \_ -> id
 
+
+
+prepSpan :: CodeSpan -> (Spanned b -> Spanned b)
+prepSpan = \t -> span %~ (CodeSpan.prependAsOffset t)
+{-# INLINE prepSpan #-}
+
+prepSpanToNonEmpty :: CodeSpan -> (NonEmpty (Spanned b) -> NonEmpty (Spanned b))
+prepSpanToNonEmpty = \t (a :| as) -> (a & span %~ (CodeSpan.prependAsOffset t)) :| as
+{-# INLINE prepSpanToNonEmpty #-}
+
+prepSpanToList :: CodeSpan -> ([Spanned b] -> [Spanned b])
+prepSpanToList = \t -> \case
+    [] -> []
+    (a:as) -> (a & span %~ (CodeSpan.prependAsOffset t)) : as
+{-# INLINE prepSpanToList #-}
+
+instance PrependSpan (Var Ast)
+instance PrependSpan (Cons Ast)
+instance PrependSpan (Operator Ast)
+instance PrependSpan (Modifier Ast)
+instance PrependSpan (Wildcard Ast)
+instance PrependSpan (Number Ast)
+instance PrependSpan (Str Ast)
+instance PrependSpan (Marker Ast)
+instance PrependSpan (LineBreak Ast)
+instance PrependSpan (Comment Ast)
+instance PrependSpan (Invalid Ast)
+instance PrependSpan (Missing Ast)
+
+instance PrependSpan (Block Ast) where
+    prependSpan = \span (Atom_Block a) -> Atom_Block $ prepSpanToList span a
+    {-# INLINE prependSpan #-}
+
+instance PrependSpan (Block1 Ast) where
+    prependSpan = \span (Atom_Block1 a) -> Atom_Block1 $ prepSpanToNonEmpty span a
+    {-# INLINE prependSpan #-}
+
+instance PrependSpan (Tokens Ast) where
+    prependSpan = \span (Atom_Tokens a) -> Atom_Tokens $ prepSpanToList span a
+    {-# INLINE prependSpan #-}
+
+instance PrependSpan (App Ast) where
+    prependSpan = \span (Atom_App a b) -> Atom_App (prepSpan span a) b
+    {-# INLINE prependSpan #-}
+
+instance PrependSpan (InfixApp Ast) where
+    prependSpan = \span (Atom_InfixApp a b c) -> Atom_InfixApp (prepSpan span a) b c
+    {-# INLINE prependSpan #-}
+
+instance PrependSpan (SectionLeft Ast) where
+    prependSpan = \span (Atom_SectionLeft a b) -> Atom_SectionLeft (prepSpan span a) b
+    {-# INLINE prependSpan #-}
+
+instance PrependSpan (SectionRight Ast) where
+    prependSpan = \span (Atom_SectionRight a b) -> Atom_SectionRight (prepSpan span a) b
+    {-# INLINE prependSpan #-}
+
+instance PrependSpan (List Ast) where
+    prependSpan = \span (Atom_List a) -> Atom_List (prepSpanToList span a)
+    {-# INLINE prependSpan #-}
+
+instance PrependSpan (Unit Ast) where
+    prependSpan = \span (Atom_Unit a) -> Atom_Unit (prepSpan span a)
+    {-# INLINE prependSpan #-}
+
+
+unspan :: Spanned Ast -> Ast
+unspan = \(Spanned cs a) ->
+    let span = CodeSpan.dropLength cs
+    in case a of
+        AstVar          a -> AstVar         $ prependSpan span a
+        AstCons         a -> AstCons        $ prependSpan span a
+        AstOperator     a -> AstOperator    $ prependSpan span a
+        AstModifier     a -> AstModifier    $ prependSpan span a
+        AstWildcard     a -> AstWildcard    $ prependSpan span a
+        AstNumber       a -> AstNumber      $ prependSpan span a
+        AstStr          a -> AstStr         $ prependSpan span a
+        AstBlock        a -> AstBlock       $ prependSpan span a
+        AstBlock1       a -> AstBlock1      $ prependSpan span a
+        AstMarker       a -> AstMarker      $ prependSpan span a
+        AstLineBreak    a -> AstLineBreak   $ prependSpan span a
+        AstComment      a -> AstComment     $ prependSpan span a
+        AstInvalid      a -> AstInvalid     $ prependSpan span a
+        AstApp          a -> AstApp         $ prependSpan span a
+        AstInfixApp     a -> AstInfixApp    $ prependSpan span a
+        AstMissing      a -> AstMissing     $ prependSpan span a
+        AstList         a -> AstList        $ prependSpan span a
+        AstUnit         a -> AstUnit        $ prependSpan span a
+        AstSectionLeft  a -> AstSectionLeft $ prependSpan span a
+        AstSectionRight a -> AstSectionRight$ prependSpan span a
+{-# INLINE unspan #-}
 
 
 type instance Link SimpleAst (StrChunk s) = StrChunk s
@@ -497,7 +603,7 @@ type instance Link SimpleAst Struct = SimpleAst
 
 data SimpleAst
     -- Identifiers
-    = SimpleAstVar      (Var SimpleAst)
+    = SimpleAstVar       (Var SimpleAst)
     | SimpleAstCons      (Cons SimpleAst)
     | SimpleAstOperator  (Operator SimpleAst)
     | SimpleAstModifier  (Modifier SimpleAst)
@@ -508,7 +614,8 @@ data SimpleAst
     | SimpleAstStr       (Str SimpleAst)
 
     -- Layouting
-    | SimpleAstBlock     (Block SimpleAst)
+    | SimpleAstBlock     (Block  SimpleAst)
+    | SimpleAstBlock1    (Block1 SimpleAst)
     -- | SimpleAstTokens    (Tokens SimpleAst)
     | SimpleAstMarker    (Marker SimpleAst)
     | SimpleAstLineBreak (LineBreak SimpleAst)
@@ -538,6 +645,7 @@ instance Show SimpleAst where
         SimpleAstNumber    t -> show t
         SimpleAstStr       t -> show t
         SimpleAstBlock     t -> show t
+        SimpleAstBlock1    t -> show t
         -- SimpleAstTokens    t -> show t
         SimpleAstMarker    t -> show t
         SimpleAstLineBreak t -> show t
@@ -729,7 +837,7 @@ instance Simplify a
 instance Simplify a
       => Simplify   (Spanned a) where
     type Simplified (Spanned a) = Simplified a
-    simplify = simplify . unspan
+    simplify = simplify . unsafeUnspan
 
 instance Simplify a
       => Simplify   [a] where
@@ -754,6 +862,7 @@ instance Simplify   Ast where
         Number    t1    -> SNumber    (simplify t1)
         Str       t1    -> SStr       (simplify t1)
         Block     t1    -> SBlock     (simplify t1)
+        Block1    t1    -> SBlock1    (simplify t1)
         -- Tokens    t1    -> STokens    (simplify t1)
         Marker    t1    -> SMarker    (simplify t1)
         LineBreak t1    -> SLineBreak (simplify t1)
@@ -1003,13 +1112,17 @@ list :: [Spanned Ast] -> Spanned Ast
 list = inheritCodeSpanList $ \items -> List items
 {-# INLINE list #-}
 
-unit :: [Spanned Ast] -> Spanned Ast
-unit = inheritCodeSpanList $ \items -> Unit items
+unit :: Spanned Ast -> Spanned Ast
+unit = inheritCodeSpan1 $ \items -> Unit items
 {-# INLINE unit #-}
 
-block :: NonEmpty (Spanned Ast) -> Spanned Ast
-block = inheritCodeSpanList1 $ \items -> Block items
+block :: [Spanned Ast] -> Spanned Ast
+block = inheritCodeSpanList $ \items -> Block items
 {-# INLINE block #-}
+
+block1 :: NonEmpty (Spanned Ast) -> Spanned Ast
+block1 = inheritCodeSpanList1 $ \items -> Block1 items
+{-# INLINE block1 #-}
 
 isOperator :: Ast -> Bool
 isOperator = \case
