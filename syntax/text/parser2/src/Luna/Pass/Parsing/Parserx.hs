@@ -43,7 +43,7 @@ run :: Text32 -> Parsing.Ast
 run = runWith Macro.unit
 {-# NOINLINE run #-}
 
-runWith :: Macro.Parser a -> Text32 -> a
+runWith :: Macro.Parser' a -> Text32 -> a
 runWith = \p src -> let
     toks = Parser.run Parsing.Syntax1 src
     Right out = Macro.run toks $ do

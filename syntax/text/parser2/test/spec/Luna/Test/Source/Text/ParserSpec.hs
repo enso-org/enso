@@ -144,7 +144,7 @@ instance (t ~ Arg a, Example a, x ~ ())
 -- exprAs     = shouldParseAs     Parsing.Syntax1 Parsing.expr
 -- expr       = shouldParseItself Parsing.Syntax1 Parsing.expr
 
-testCase :: Macro.Parser Ast -> String -> Ast.SimpleAst -> IO ()
+testCase :: Macro.Parser' Ast -> String -> Ast.SimpleAst -> IO ()
 testCase p src out = sast `shouldBe` out where
     sast = Ast.simplify ast
     ast  = flip PP.runWith (convert src) $ do

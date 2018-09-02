@@ -65,3 +65,5 @@ data Bound a
 
 instance {-# OVERLAPPABLE #-} RelReader label m => RelReader label (StateT s m)
 instance {-# OVERLAPPABLE #-} RelWriter label m => RelWriter label (StateT s m)
+instance {-# OVERLAPPABLE #-} RelReader label m => RelReader label (IdentityT m)
+instance {-# OVERLAPPABLE #-} RelWriter label m => RelWriter label (IdentityT m)

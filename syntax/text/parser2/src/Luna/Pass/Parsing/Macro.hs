@@ -45,6 +45,7 @@ import Luna.Pass.Parsing.ExprBuilder (ExprBuilderMonad, buildExpr,
 import qualified Data.Attoparsec.Internal       as AParsec
 import qualified Data.Attoparsec.Internal.Types as AParsec
 import qualified Data.Attoparsec.List           as Parsec
+import qualified GHC.Exts                       as GHC
 
 import Data.Parser
 
@@ -369,7 +370,22 @@ toksSpanAsSpace = CodeSpan.asOffsetSpan . mconcat . fmap (view Ast.span)
 
 -- === Definition === --
 
-type Parser = State.StatesT
+data ParserType
+    = Total
+    | Partial
+
+newtype ParserBase (t :: ParserType) m a = ParserBase (IdentityT m a) deriving
+    ( Alternative, Applicative, Assoc.Reader name, Assoc.Writer name, Functor
+    , Monad, MonadFail, MonadTrans, Prec.RelReader name, Prec.RelWriter name)
+
+type Parser  = ParserBase 'Partial ParserStack
+type Parser' = ParserBase 'Total   ParserStack
+
+runParserBase :: ParserBase t m a -> m a
+runParserBase = runIdentityT . unwrap
+{-# INLINE runParserBase #-}
+
+type ParserStack = State.StatesT
    '[ Scope.Scope
     , Reserved Ast.Ast
     , Position
@@ -377,7 +393,9 @@ type Parser = State.StatesT
     , Registry
     ] (Parsec.Parser Ast)
 
-run :: [Ast] -> Parser a -> Either String a
+makeLenses ''ParserBase
+
+run :: [Ast] -> Parser' a -> Either String a
 run = \stream
    -> flip Parsec.parseOnly (Vector.fromList stream)
     . State.evalDefT  @Registry
@@ -385,10 +403,23 @@ run = \stream
     . State.evalDefT  @Position
     . State.evalDefT  @(Reserved Ast.Ast)
     . State.evalDefT  @Scope.Scope
+    . runParserBase
 {-# INLINE run #-}
 
-newtype P a = P (Parser a)
-    deriving (Applicative, Functor, Monad)
+type instance Token  (ParserBase t m) = Token  m
+type instance Tokens (ParserBase t m) = Tokens m
+
+unsafeCoerceParser :: ParserBase t m a -> ParserBase t' m a
+unsafeCoerceParser = coerce
+{-# INLINE unsafeCoerceParser #-}
+
+total :: a -> Parser a -> Parser' a
+total = unsafeCoerceParser .: option
+{-# INLINE total #-}
+
+partial :: Parser' a -> Parser a
+partial = unsafeCoerceParser
+{-# INLINE partial #-}
 
 
 -- === Macro building block parsers === --
@@ -398,7 +429,7 @@ chunk = \case
     Expr              -> possiblyBroken nonBlockExprBody
     NonSpacedExpr     -> nonSpacedExpr
     ManyNonSpacedExpr -> manyNonSpacedExpr
-    ExprBlock         -> expr
+    ExprBlock         -> partial expr -- FIXME
     ExprList          -> exprList
     ClassBlock        -> classBlock
 {-# INLINE chunk #-}
@@ -491,8 +522,8 @@ emptyExpression = Ast.invalid Invalid.EmptyExpression
 
 -- === API === --
 
-expr :: Parser Ast
-expr = option emptyExpression expr'
+expr :: Parser' Ast
+expr = total emptyExpression expr'
 {-# INLINE expr #-}
 
 expr' :: Parser Ast
@@ -520,8 +551,8 @@ nonBlockExpr = do
     Indent.withCurrent $ marked <|> nonBlockExprBody
 {-# INLINE nonBlockExpr #-}
 
-unit :: Parser Ast
-unit = Ast.unit <$> body where
+unit :: Parser' Ast
+unit = total emptyExpression $ Ast.unit <$> body where
     body     = nonEmpty <|> empty
     nonEmpty = Ast.block <$> block1 nonBlockExpr'
     empty    = pure Ast.missing
