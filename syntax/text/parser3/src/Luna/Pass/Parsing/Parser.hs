@@ -206,8 +206,8 @@ buildImportIR = \a@(Spanned cs ast) args -> addCodeSpan cs =<< if not (null args
 
 -- === IR === --
 
-buildLines :: BuilderMonad m => [Ast] -> m [IR.SomeTerm]
-buildLines = \case
+buildUnit :: BuilderMonad m => [Ast] -> m [IR.SomeTerm]
+buildUnit = \case
     [] -> pure []
     (a:as) -> do
         a' <- buildIR a
@@ -218,9 +218,9 @@ buildLines = \case
                     aa' <- buildIR aa
                     dd  <- IR.documented' txt aa'
                     addCodeSpan (view Ast.span a <> view Ast.span aa) dd
-                    (dd:) <$> buildLines aas
-                _ -> (a':) <$> buildLines as
-            _ -> (a':) <$> buildLines as
+                    (dd:) <$> buildUnit aas
+                _ -> (a':) <$> buildUnit as
+            _ -> (a':) <$> buildUnit as
 
 buildIR :: forall m. BuilderMonad m => Ast -> m IR.SomeTerm
 buildIR = \(Spanned cs ast) -> putStrLn "\n---" {- >> print cs -} >> (addCodeSpan cs =<< case ast of
@@ -244,16 +244,14 @@ buildIR = \(Spanned cs ast) -> putStrLn "\n---" {- >> print cs -} >> (addCodeSpa
 
     -- Layouting
     Ast.Block b -> do
-        lines <- buildIR <$$> b
+        foo :| foos <- buildIR <$$> b
         let f acc new = do
                 csAcc <- IR.readLayer @CodeSpan acc
                 csNew <- IR.readLayer @CodeSpan new
                 ir <- IR.seq' acc new
                 IR.writeLayer @CodeSpan ir (csAcc <> csNew)
                 pure ir
-        case lines of
-            []     -> IR.invalid' Invalid.EmptyExpression
-            (l:ls) -> foldlM f l ls
+        foldlM f foo foos
     Ast.Marker m -> IR.marker' $ fromIntegral m
     Ast.LineBreak ind  -> impossible -- All line breaks handled in parser
 
@@ -265,11 +263,11 @@ buildIR = \(Spanned cs ast) -> putStrLn "\n---" {- >> print cs -} >> (addCodeSpa
 
     -- Expressions
     Ast.Unit block -> case Ast.unspan block of
-        Ast.Block ls -> do
-            let (ls', imps) = discoverImportLines ls
+        Ast.Block (l:|ls) -> do
+            let (ls', imps) = discoverImportLines (l:ls)
                 impsSpan    = collectSpan imps
                 record'     = IR.record' False "" [] []
-            (unitCls :: IR.SomeTerm) <- record'       =<< buildLines ls'
+            (unitCls :: IR.SomeTerm) <- record'       =<< buildUnit ls'
             (ih      :: IR.SomeTerm) <- IR.importHub' =<< buildIR <$$> imps
             IR.writeLayer @CodeSpan ih impsSpan
             IR.unit' ih [] unitCls
