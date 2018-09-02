@@ -304,6 +304,7 @@ data Marker    t = Atom_Marker    { markerID :: Int                     }
 data LineBreak t = Atom_LineBreak { indent   :: Delta                   }
 
 data Comment   t = Atom_Comment   { text     :: Text                    }
+data Documented t = Atom_Documented { doc :: Link' t, base :: Link' t }
 
 data Invalid   t = Atom_Invalid   { desc     :: Invalid.Symbol          }
 
@@ -332,6 +333,7 @@ instance Show (Link' t) => Show (Tokens    t) where show  (Atom_Tokens    t1   )
 instance Show (Link' t) => Show (Marker    t) where show  (Atom_Marker    t1   ) = "Marker"    <> " (" <> show t1 <> ")"
 instance Show (Link' t) => Show (LineBreak t) where show  (Atom_LineBreak t1   ) = "LineBreak" <> " (" <> show t1 <> ")"
 instance Show (Link' t) => Show (Comment   t) where show  (Atom_Comment   t1   ) = "Comment"   <> " (" <> show t1 <> ")"
+instance Show (Link' t) => Show (Documented t) where show  (Atom_Documented   t1 t2) = "Documented"   <> " (" <> show t1 <> ") (" <> show t2 <> ")"
 instance Show (Link' t) => Show (Invalid   t) where show  (Atom_Invalid   t1   ) = "Invalid"   <> " (" <> show t1 <> ")"
 instance Show (Link' t) => Show (App       t) where show  (Atom_App       t1 t2) = "App"       <> " (" <> show t1 <> ") (" <> show t2 <> ")"
 instance Show (Link' t) => Show (InfixApp  t) where show  (Atom_InfixApp  t1 t2 t3) = "InfixApp"       <> " (" <> show t1 <> ") (" <> show t2 <> ") (" <> show t3 <> ")"
@@ -355,6 +357,7 @@ pattern Block    t1    = AstBlock    (Atom_Block    t1)
 pattern Marker    t1    = AstMarker    (Atom_Marker    t1)
 pattern LineBreak t1    = AstLineBreak (Atom_LineBreak t1)
 pattern Comment   t1    = AstComment   (Atom_Comment   t1)
+pattern Documented   t1 t2 = AstDocumented   (Atom_Documented   t1 t2)
 pattern Invalid   t1    = AstInvalid   (Atom_Invalid   t1)
 pattern App       t1 t2 = AstApp       (Atom_App       t1 t2)
 pattern InfixApp  t1 t2 t3 = AstInfixApp       (Atom_InfixApp       t1 t2 t3)
@@ -376,6 +379,7 @@ pattern SBlock    t1    = SimpleAstBlock    (Atom_Block    t1)
 pattern SMarker    t1    = SimpleAstMarker    (Atom_Marker    t1)
 pattern SLineBreak t1    = SimpleAstLineBreak (Atom_LineBreak t1)
 pattern SComment   t1    = SimpleAstComment   (Atom_Comment   t1)
+pattern SDocumented   t1 t2    = SimpleAstDocumented   (Atom_Documented   t1 t2)
 pattern SInvalid   t1    = SimpleAstInvalid   (Atom_Invalid   t1)
 pattern SApp       t1 t2 = SimpleAstApp       (Atom_App       t1 t2)
 pattern SInfixApp       t1 t2 t3 = SimpleAstInfixApp       (Atom_InfixApp       t1 t2 t3)
@@ -419,6 +423,7 @@ deriving instance Eq (Link' t) => Eq (Tokens    t)
 deriving instance Eq (Link' t) => Eq (Marker    t)
 deriving instance Eq (Link' t) => Eq (LineBreak t)
 deriving instance Eq (Link' t) => Eq (Comment   t)
+deriving instance Eq (Link' t) => Eq (Documented   t)
 deriving instance Eq (Link' t) => Eq (Invalid   t)
 deriving instance Eq (Link' t) => Eq (App       t)
 deriving instance Eq (Link' t) => Eq (InfixApp  t)
@@ -441,6 +446,7 @@ deriving instance Ord (Link' t) => Ord (Tokens    t)
 deriving instance Ord (Link' t) => Ord (Marker    t)
 deriving instance Ord (Link' t) => Ord (LineBreak t)
 deriving instance Ord (Link' t) => Ord (Comment   t)
+deriving instance Ord (Link' t) => Ord (Documented   t)
 deriving instance Ord (Link' t) => Ord (Invalid   t)
 deriving instance Ord (Link' t) => Ord (App       t)
 deriving instance Ord (Link' t) => Ord (InfixApp  t)
@@ -475,6 +481,7 @@ data Ast
 
     -- Docs
     | AstComment   (Comment Ast)
+    | AstDocumented   (Documented Ast)
 
     -- Errors
     | AstInvalid   (Invalid Ast)
@@ -554,6 +561,10 @@ instance PrependSpan (Unit Ast) where
     prependSpan = \span (Atom_Unit a) -> Atom_Unit (prepSpan span a)
     {-# INLINE prependSpan #-}
 
+instance PrependSpan (Documented Ast) where
+    prependSpan = \span (Atom_Documented a b) -> Atom_Documented (prepSpan span a) b
+    {-# INLINE prependSpan #-}
+
 
 unspan :: Spanned Ast -> Ast
 unspan = \(Spanned cs a) ->
@@ -570,6 +581,7 @@ unspan = \(Spanned cs a) ->
         AstMarker       a -> AstMarker      $ prependSpan span a
         AstLineBreak    a -> AstLineBreak   $ prependSpan span a
         AstComment      a -> AstComment     $ prependSpan span a
+        AstDocumented   a -> AstDocumented  $ prependSpan span a
         AstInvalid      a -> AstInvalid     $ prependSpan span a
         AstApp          a -> AstApp         $ prependSpan span a
         AstInfixApp     a -> AstInfixApp    $ prependSpan span a
@@ -604,6 +616,7 @@ data SimpleAst
 
     -- Docs
     | SimpleAstComment   (Comment SimpleAst)
+    | SimpleAstDocumented   (Documented SimpleAst)
 
     -- Errors
     | SimpleAstInvalid   (Invalid SimpleAst)
@@ -631,6 +644,7 @@ instance Show SimpleAst where
         SimpleAstMarker    t -> show t
         SimpleAstLineBreak t -> show t
         SimpleAstComment   t -> show t
+        SimpleAstDocumented   t -> show t
         SimpleAstInvalid   t -> show t
         SimpleAstApp       t -> show t
         SimpleAstInfixApp  t -> show t
@@ -846,6 +860,7 @@ instance Simplify   Ast where
         Marker    t1    -> SMarker    (simplify t1)
         LineBreak t1    -> SLineBreak (simplify t1)
         Comment   t1    -> SComment   (simplify t1)
+        Documented   t1 t2   -> SDocumented   (simplify t1) (simplify t2)
         Invalid   t1    -> SInvalid   (simplify t1)
         App       t1 t2 -> SApp       (simplify t1) (simplify t2)
         InfixApp  t1 t2 t3 -> SInfixApp  (simplify t1) (simplify t2) (simplify t3)
@@ -1104,6 +1119,10 @@ isOperator = \case
     AstOperator {} -> True
     _ -> False
 {-# INLINE isOperator #-}
+
+documented :: Spanned Ast -> Spanned Ast -> Spanned Ast
+documented = inheritCodeSpan2 $ \doc base -> Documented doc base
+{-# INLINE documented #-}
 
 -- data Ast
 --     -- Identifiers

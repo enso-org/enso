@@ -265,7 +265,11 @@ leftSpaced = \mtok -> do
 {-# INLINE leftSpaced #-}
 
 anySymbol :: Parser Ast
-anySymbol = peekSymbol <* dropToken
+anySymbol = do
+    s <- peekSymbol <* dropToken
+    case Ast.unspan s of
+        Ast.Comment {} -> Ast.prependAsOffset s <$> anySymbol
+        _              -> pure s
 {-# INLINE anySymbol #-}
 
 peekSymbol :: Parser Ast
@@ -280,9 +284,9 @@ anySymbolNotReserved :: Parser Ast
 anySymbolNotReserved = notReserved anySymbol
 {-# INLINE anySymbolNotReserved #-}
 
-peekSymbolNotReserved :: Parser Ast
-peekSymbolNotReserved = notReserved peekSymbol
-{-# INLINE peekSymbolNotReserved #-}
+-- peekSymbolNotReserved :: Parser Ast
+-- peekSymbolNotReserved = notReserved peekSymbol
+-- {-# INLINE peekSymbolNotReserved #-}
 
 satisfyAst :: (Ast.Ast -> Bool) -> Parser Ast
 satisfyAst = \f -> peekSatisfyAst f <* dropToken
@@ -382,6 +386,9 @@ run = \stream
     . State.evalDefT  @(Reserved Ast.Ast)
     . State.evalDefT  @Scope.Scope
 {-# INLINE run #-}
+
+newtype P a = P (Parser a)
+    deriving (Applicative, Functor, Monad)
 
 
 -- === Macro building block parsers === --
@@ -534,17 +541,34 @@ nonBlockExprBody :: Parser Ast
 nonBlockExprBody = option emptyExpression nonBlockExprBody'
 {-# INLINE nonBlockExprBody #-}
 
+isComment :: Ast.Ast -> Bool
+isComment = \case
+    Ast.Comment {} -> True
+    _ -> False
+
+assertNotComment :: Ast -> Parser ()
+assertNotComment = \tok -> when_ (isComment $ Ast.unspan tok)
+    $ fail "Assertion failed: got a comment."
+{-# INLINE assertNotComment #-}
+
 nonBlockExprBody' :: Parser Ast
-nonBlockExprBody' = buildExpr . convert =<< lines where
+nonBlockExprBody' = documented <|> unusedComment <|> body where
+    documented    = Ast.documented <$> satisfyAst isComment <*> docBase
+    unusedComment = satisfyAst isComment
+    docBase       = broken (Indent.indentedEq *> body)
+
+    body          = buildExpr . convert =<< lines
     line          = (\x -> buildExpr $ {- trace ("\n\n+++\n" <> ppShow x) -} x) =<< multiLineToks
     lines         = (:|) <$> line <*> nextLines
     nextLines     = option mempty (brokenLst1' $ Indent.indented *> lines)
     lineJoin      = satisfyAst Ast.isOperator <* leftSpaced peekSymbol
-    multiLineToks = lineToks <**> lineTailToks
+    multiLineToks = (lineToks <* dropComment) <**> lineTailToks
+    dropComment   = option () (() <$ satisfyAst isComment)
     lineTailToks  = option id $ flip (<>) <$> brokenLst1' lineContToks
     lineContToks  = Indent.indented *> ((:|) <$> lineJoin <*> multiLineToks)
     lineToks      = fmap concat . many1 $ do
         tok <- anySymbolNotReserved
+        assertNotComment tok
         let sym = Ast.unspan tok
         lookupSection sym >>= \case
             Just sect -> macro tok sect
