@@ -178,7 +178,7 @@ it_e' s = it_e s (convert s)
 __ :: Convertible' Ast.SimpleAst a => a
 __ = convert' Ast.SMissing
 
-block (a:as) = Ast.SBlock1 (a :| as)
+block (a:as) = Ast.SBlock (a :| as)
 
 eq :: Ast.SimpleAst -> Ast.SimpleAst -> Ast.SimpleAst
 eq = flip Ast.SInfixApp "#=#"

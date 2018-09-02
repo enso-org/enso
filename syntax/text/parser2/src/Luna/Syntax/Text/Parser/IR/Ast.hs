@@ -252,12 +252,9 @@ evalResult = fmap (reverse . unwrap) . State.execDefT
 
 -- type family Link t a
 
--- data TypeDef t = TypeDef { name2 :: {-# Unpack #-} !(Maybe Int) , body :: {-# UNPACK #-} !(Link t (Maybe (Block2 t))) }
--- data Block2  t = Block2  { lines2 :: Link t (NonEmpty (Ast2 t)) }
 
 -- data Ast2 t
 --     = AstTypeDef (TypeDef t)
---     | AstBlock2  (Block2 t)
 
 
 -- type Unspanned = Ast Spanned
@@ -285,7 +282,6 @@ data Simple
 --     ExpandFieldSimple Invalid.Symbol = Invalid.Symbol
 
 --     ExpandFieldSimple Ast            = Spanned Ast
---     ExpandFieldSimple Block          = Spanned Block
 --     ExpandFieldSimple LineBreak      = Spanned LineBreak
 --     ExpandFieldSimple StrChunk       = Spanned StrChunk
 
@@ -302,8 +298,7 @@ data Wildcard  t = Atom_Wildcard
 data Number    t = Atom_Number    { digits   :: NonEmpty Word8          }
 data Str       t = Atom_Str       { chunks   :: [Link t (StrChunk t)]   }
 
-data Block     t = Atom_Block     { lines    :: [Link' t]               }
-data Block1    t = Atom_Block1    { lines1   :: NonEmpty (Link' t)      }
+data Block    t = Atom_Block    { lines1   :: NonEmpty (Link' t)      }
 data Tokens    t = Atom_Tokens    { lines    :: [Link' t]               }
 data Marker    t = Atom_Marker    { markerID :: Int                     }
 data LineBreak t = Atom_LineBreak { indent   :: Delta                   }
@@ -323,7 +318,6 @@ data Unit      t = Atom_Unit      { body     :: Link' t                 }
 data StrChunk t
     = StrPlain   Text
     | StrNewLine (LineBreak t)
-    | StrExpr    (Block t)
 
 
 
@@ -333,8 +327,7 @@ instance Show (Link' t) => Show (Operator  t) where show  (Atom_Operator  t1   )
 instance Show (Link' t) => Show (Modifier  t) where show  (Atom_Modifier  t1   ) = "Modifier"  <> " (" <> show t1 <> ")"
 instance Show (Link' t) => Show (Wildcard  t) where show  (Atom_Wildcard       ) = "Wildcard"
 instance Show (Link' t) => Show (Number    t) where show  (Atom_Number    t1   ) = "Number"    <> " (" <> show t1 <> ")"
-instance Show (Link' t) => Show (Block     t) where show  (Atom_Block     t1   ) = "Block"     <> " (" <> show t1 <> ")"
-instance Show (Link' t) => Show (Block1    t) where show  (Atom_Block1    t1   ) = "Block1"    <> " (" <> show t1 <> ")"
+instance Show (Link' t) => Show (Block    t) where show  (Atom_Block    t1   ) = "Block"    <> " (" <> show t1 <> ")"
 instance Show (Link' t) => Show (Tokens    t) where show  (Atom_Tokens    t1   ) = "Tokens"    <> " (" <> show t1 <> ")"
 instance Show (Link' t) => Show (Marker    t) where show  (Atom_Marker    t1   ) = "Marker"    <> " (" <> show t1 <> ")"
 instance Show (Link' t) => Show (LineBreak t) where show  (Atom_LineBreak t1   ) = "LineBreak" <> " (" <> show t1 <> ")"
@@ -357,8 +350,7 @@ pattern Modifier  t1    = AstModifier  (Atom_Modifier  t1)
 pattern Wildcard        = AstWildcard  (Atom_Wildcard)
 pattern Number    t1    = AstNumber    (Atom_Number    t1)
 pattern Str       t1    = AstStr       (Atom_Str       t1)
-pattern Block     t1    = AstBlock     (Atom_Block     t1)
-pattern Block1    t1    = AstBlock1    (Atom_Block1    t1)
+pattern Block    t1    = AstBlock    (Atom_Block    t1)
 -- -- -- pattern Tokens    t1    = AstTokens    (Atom_Tokens    t1)
 pattern Marker    t1    = AstMarker    (Atom_Marker    t1)
 pattern LineBreak t1    = AstLineBreak (Atom_LineBreak t1)
@@ -379,8 +371,7 @@ pattern SModifier  t1    = SimpleAstModifier  (Atom_Modifier  t1)
 pattern SWildcard        = SimpleAstWildcard  (Atom_Wildcard)
 pattern SNumber    t1    = SimpleAstNumber    (Atom_Number    t1)
 pattern SStr       t1    = SimpleAstStr       (Atom_Str       t1)
-pattern SBlock     t1    = SimpleAstBlock     (Atom_Block     t1)
-pattern SBlock1    t1    = SimpleAstBlock1    (Atom_Block1    t1)
+pattern SBlock    t1    = SimpleAstBlock    (Atom_Block    t1)
 -- -- pattern STokens    t1    = SimpleAstTokens    (Atom_Tokens    t1)
 pattern SMarker    t1    = SimpleAstMarker    (Atom_Marker    t1)
 pattern SLineBreak t1    = SimpleAstLineBreak (Atom_LineBreak t1)
@@ -406,7 +397,6 @@ prependOffsetToHead t = \case
 -- deriving instance Show (Link' t) => Show (Modifier  t)
 -- deriving instance Show (Link' t) => Show (Wildcard  t)
 -- deriving instance Show (Link' t) => Show (Number    t)
--- deriving instance Show (Link' t) => Show (Block     t)
 -- deriving instance Show (Link' t) => Show (Tokens    t)
 -- deriving instance Show (Link' t) => Show (Marker    t)
 -- deriving instance Show (Link' t) => Show (LineBreak t)
@@ -424,8 +414,7 @@ deriving instance Eq (Link' t) => Eq (Operator  t)
 deriving instance Eq (Link' t) => Eq (Modifier  t)
 deriving instance Eq (Link' t) => Eq (Wildcard  t)
 deriving instance Eq (Link' t) => Eq (Number    t)
-deriving instance Eq (Link' t) => Eq (Block     t)
-deriving instance Eq (Link' t) => Eq (Block1    t)
+deriving instance Eq (Link' t) => Eq (Block    t)
 deriving instance Eq (Link' t) => Eq (Tokens    t)
 deriving instance Eq (Link' t) => Eq (Marker    t)
 deriving instance Eq (Link' t) => Eq (LineBreak t)
@@ -447,8 +436,7 @@ deriving instance Ord (Link' t) => Ord (Operator  t)
 deriving instance Ord (Link' t) => Ord (Modifier  t)
 deriving instance Ord (Link' t) => Ord (Wildcard  t)
 deriving instance Ord (Link' t) => Ord (Number    t)
-deriving instance Ord (Link' t) => Ord (Block     t)
-deriving instance Ord (Link' t) => Ord (Block1    t)
+deriving instance Ord (Link' t) => Ord (Block    t)
 deriving instance Ord (Link' t) => Ord (Tokens    t)
 deriving instance Ord (Link' t) => Ord (Marker    t)
 deriving instance Ord (Link' t) => Ord (LineBreak t)
@@ -481,8 +469,7 @@ data Ast
     | AstStr       (Str Ast)
 
     -- Layouting
-    | AstBlock     (Block  Ast)
-    | AstBlock1    (Block1 Ast)
+    | AstBlock    (Block Ast)
     | AstMarker    (Marker Ast)
     | AstLineBreak (LineBreak Ast)
 
@@ -534,12 +521,9 @@ instance PrependSpan (Comment Ast)
 instance PrependSpan (Invalid Ast)
 instance PrependSpan (Missing Ast)
 
-instance PrependSpan (Block Ast) where
-    prependSpan = \span (Atom_Block a) -> Atom_Block $ prepSpanToList span a
-    {-# INLINE prependSpan #-}
 
-instance PrependSpan (Block1 Ast) where
-    prependSpan = \span (Atom_Block1 a) -> Atom_Block1 $ prepSpanToNonEmpty span a
+instance PrependSpan (Block Ast) where
+    prependSpan = \span (Atom_Block a) -> Atom_Block $ prepSpanToNonEmpty span a
     {-# INLINE prependSpan #-}
 
 instance PrependSpan (Tokens Ast) where
@@ -582,8 +566,7 @@ unspan = \(Spanned cs a) ->
         AstWildcard     a -> AstWildcard    $ prependSpan span a
         AstNumber       a -> AstNumber      $ prependSpan span a
         AstStr          a -> AstStr         $ prependSpan span a
-        AstBlock        a -> AstBlock       $ prependSpan span a
-        AstBlock1       a -> AstBlock1      $ prependSpan span a
+        AstBlock       a  -> AstBlock      $ prependSpan span a
         AstMarker       a -> AstMarker      $ prependSpan span a
         AstLineBreak    a -> AstLineBreak   $ prependSpan span a
         AstComment      a -> AstComment     $ prependSpan span a
@@ -614,8 +597,7 @@ data SimpleAst
     | SimpleAstStr       (Str SimpleAst)
 
     -- Layouting
-    | SimpleAstBlock     (Block  SimpleAst)
-    | SimpleAstBlock1    (Block1 SimpleAst)
+    | SimpleAstBlock    (Block SimpleAst)
     -- | SimpleAstTokens    (Tokens SimpleAst)
     | SimpleAstMarker    (Marker SimpleAst)
     | SimpleAstLineBreak (LineBreak SimpleAst)
@@ -644,8 +626,7 @@ instance Show SimpleAst where
         SimpleAstWildcard  t -> show t
         SimpleAstNumber    t -> show t
         SimpleAstStr       t -> show t
-        SimpleAstBlock     t -> show t
-        SimpleAstBlock1    t -> show t
+        SimpleAstBlock    t -> show t
         -- SimpleAstTokens    t -> show t
         SimpleAstMarker    t -> show t
         SimpleAstLineBreak t -> show t
@@ -849,7 +830,6 @@ instance Simplify (StrChunk Ast) where
     simplify = \case
         StrPlain   t                  -> StrPlain   t
         StrNewLine (Atom_LineBreak t) -> StrNewLine (Atom_LineBreak t)
-        StrExpr    (Atom_Block t)     -> StrExpr    (Atom_Block (simplify t))
 
 instance Simplify   Ast where
     type Simplified Ast = SimpleAst
@@ -861,8 +841,7 @@ instance Simplify   Ast where
         Wildcard        -> SWildcard
         Number    t1    -> SNumber    (simplify t1)
         Str       t1    -> SStr       (simplify t1)
-        Block     t1    -> SBlock     (simplify t1)
-        Block1    t1    -> SBlock1    (simplify t1)
+        Block    t1    -> SBlock    (simplify t1)
         -- Tokens    t1    -> STokens    (simplify t1)
         Marker    t1    -> SMarker    (simplify t1)
         LineBreak t1    -> SLineBreak (simplify t1)
@@ -1116,13 +1095,9 @@ unit :: Spanned Ast -> Spanned Ast
 unit = inheritCodeSpan1 $ \items -> Unit items
 {-# INLINE unit #-}
 
-block :: [Spanned Ast] -> Spanned Ast
-block = inheritCodeSpanList $ \items -> Block items
+block :: NonEmpty (Spanned Ast) -> Spanned Ast
+block = inheritCodeSpanList1 $ \items -> Block items
 {-# INLINE block #-}
-
-block1 :: NonEmpty (Spanned Ast) -> Spanned Ast
-block1 = inheritCodeSpanList1 $ \items -> Block1 items
-{-# INLINE block1 #-}
 
 isOperator :: Ast -> Bool
 isOperator = \case
@@ -1143,7 +1118,6 @@ isOperator = \case
 --     | AstStr       Str
 
 --     -- Layouting
---     | AstBlock     Block
 --     | AstTokens    Tokens
 --     | AstMarker    Marker
 --     | AstLineBreak LineBreak

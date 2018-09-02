@@ -388,10 +388,10 @@ run = \stream
 
 chunk :: Chunk -> Parser Ast
 chunk = \case
-    Expr              -> possiblyBroken exprPart
+    Expr              -> possiblyBroken nonBlockExprBody
     NonSpacedExpr     -> nonSpacedExpr
     ManyNonSpacedExpr -> manyNonSpacedExpr
-    ExprBlock         -> exprBlock
+    ExprBlock         -> expr
     ExprList          -> exprList
     ClassBlock        -> classBlock
 {-# INLINE chunk #-}
@@ -470,48 +470,72 @@ showSection = \case
 {-# INLINE showSection #-}
 
 
+-------------------------
+-- === Expressions === --
+-------------------------
+
+-- === Utils === --
+
+emptyExpression :: Ast
+emptyExpression = Ast.invalid Invalid.EmptyExpression
+{-# INLINE emptyExpression #-}
+
+
+
 -- === API === --
 
--- TODO: refactor marker handling in expr and expr'
 expr :: Parser Ast
-expr = do
-    let isMarker = \case
-            Ast.Marker {} -> True
-            _ -> False
-        marked = do
-            marker <- satisfyAst isMarker
-            expr   <- exprPart
-            pure $ Ast.app marker expr
-
-    Indent.withCurrent $ marked <|> exprPart
+expr = option emptyExpression expr'
 {-# INLINE expr #-}
+
+expr' :: Parser Ast
+expr' = blockExpr' <|> nonBlockExpr'
+{-# INLINE expr' #-}
+
+blockExpr' :: Parser Ast
+blockExpr' = discoverBlock1 nonBlockExpr' <&> \case
+    (a :| []) -> a
+    as -> Ast.block as
+{-# INLINE blockExpr' #-}
+
+
+
+
+
+-- TODO: refactor marker handling in nonBlockExpr and nonBlockExpr'
+nonBlockExpr :: Parser Ast
+nonBlockExpr = do
+    let marked = do
+            marker <- satisfyAst isMarker
+            nonBlockExpr   <- nonBlockExprBody
+            pure $ Ast.app marker nonBlockExpr
+
+    Indent.withCurrent $ marked <|> nonBlockExprBody
+{-# INLINE nonBlockExpr #-}
 
 unit :: Parser Ast
 unit = Ast.unit <$> body where
     body     = nonEmpty <|> empty
-    nonEmpty = Ast.block1 <$> block1 expr'
+    nonEmpty = Ast.block <$> block1 nonBlockExpr'
     empty    = pure Ast.missing
 {-# INLINE unit #-}
 
-expr' :: Parser Ast
-expr' = do
-    let isMarker = \case
-            Ast.Marker {} -> True
-            _ -> False
-        marked = do
+nonBlockExpr' :: Parser Ast
+nonBlockExpr' = do
+    let marked = do
             marker <- satisfyAst isMarker
-            expr   <- exprPart'
+            expr   <- nonBlockExprBody'
             pure $ Ast.app marker expr
 
-    Indent.withCurrent $ marked <|> exprPart'
-{-# INLINE expr' #-}
+    Indent.withCurrent $ marked <|> nonBlockExprBody'
+{-# INLINE nonBlockExpr' #-}
 
-exprPart :: Parser Ast
-exprPart = option (Ast.invalid Invalid.EmptyExpression) exprPart'
-{-# INLINE exprPart #-}
+nonBlockExprBody :: Parser Ast
+nonBlockExprBody = option emptyExpression nonBlockExprBody'
+{-# INLINE nonBlockExprBody #-}
 
-exprPart' :: Parser Ast
-exprPart' = buildExpr . convert =<< lines where
+nonBlockExprBody' :: Parser Ast
+nonBlockExprBody' = buildExpr . convert =<< lines where
     line          = (\x -> buildExpr $ {- trace ("\n\n+++\n" <> ppShow x) -} x) =<< multiLineToks
     lines         = (:|) <$> line <*> nextLines
     nextLines     = option mempty (brokenLst1' $ Indent.indented *> lines)
@@ -525,16 +549,16 @@ exprPart' = buildExpr . convert =<< lines where
         lookupSection sym >>= \case
             Just sect -> macro tok sect
             Nothing   -> case sym of
-                Ast.Operator _ -> (tok:) <$> option [] (pure <$> newExprBlock1')
+                Ast.Operator _ -> (tok:) <$> option [] (pure <$> blockExpr')
                 _              -> pure [tok]
-{-# INLINE exprPart' #-}
+{-# INLINE nonBlockExprBody' #-}
 
 manyNonSpacedExpr :: Parser Ast
 manyNonSpacedExpr = Ast.list <$> many nonSpacedExpr'
 {-# INLINE manyNonSpacedExpr #-}
 
 nonSpacedExpr :: Parser Ast
-nonSpacedExpr = option (Ast.invalid Invalid.EmptyExpression) nonSpacedExpr'
+nonSpacedExpr = option emptyExpression nonSpacedExpr'
 {-# INLINE nonSpacedExpr #-}
 
 nonSpacedExpr' :: Parser Ast
@@ -548,17 +572,9 @@ nonSpacedExpr' = buildExpr =<< go where
         (head <>) <$> option mempty loop
 {-# INLINE nonSpacedExpr' #-}
 
-exprBlock :: Parser Ast
-exprBlock = option emptyExpression (multiLine <|> singleLine) where
-    multiLine  = newExprBlock1'
-    singleLine = expr'
-{-# INLINE exprBlock #-}
 
-newExprBlock1' :: Parser Ast
-newExprBlock1' = discoverBlock1 expr' <&> \case
-    (a :| []) -> a
-    as -> Ast.block1 as
-{-# INLINE newExprBlock1' #-}
+
+
 
 exprList :: Parser Ast
 exprList = Ast.list <$> lst where
@@ -569,12 +585,16 @@ exprList = Ast.list <$> lst where
     segs     = many nextSeg
     seg p    = possiblyBroken $ withReserved sepOp p
     sep      = possiblyBroken $ ast sepOp
-    segBody  = exprPart'
+    segBody  = nonBlockExprBody'
     sepOp    = Ast.Operator ","
 {-# INLINE exprList #-}
 
 
--- === Layouts === --
+
+
+--------------------
+-- === Layout === --
+--------------------
 
 discoverBlock1 :: Parser Ast -> Parser (NonEmpty Ast)
 discoverBlock1 = \p -> brokenLst1 $ Indent.indented *> block1 p
@@ -607,9 +627,6 @@ optional :: Parser Ast -> Parser Ast
 optional = option Ast.missing
 {-# INLINE optional #-}
 
-emptyExpression :: Ast
-emptyExpression = Ast.invalid Invalid.EmptyExpression
-{-# INLINE emptyExpression #-}
 
 classBlock :: Parser Ast
 classBlock = broken $ do
@@ -650,6 +667,11 @@ isCons = \case
     _ -> False
 {-# INLINE isCons #-}
 
+isMarker :: Ast.Ast -> Bool
+isMarker = \case
+    Ast.Marker {} -> True
+    _ -> False
+{-# INLINE isMarker #-}
 
 -- record :: Parser (IRBS SomeTerm)
 -- record = irbs $ (\nat n args (cs,ds) -> liftIRBS3 (irb5 IR.record' nat n) (sequence args) (sequence cs) (sequence ds))
