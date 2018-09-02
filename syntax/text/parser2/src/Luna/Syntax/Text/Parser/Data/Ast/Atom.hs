@@ -22,37 +22,37 @@ type family Link t a
 type Ln t = Link t Struct
 
 -- Identifiers
-data Var          t = Atom_Var          { name   :: Name                       }
-data Cons         t = Atom_Cons         { name   :: Name                       }
-data Operator     t = Atom_Operator     { name   :: Name                       }
-data Modifier     t = Atom_Modifier     { name   :: Name                       }
-data Wildcard     t = Atom_Wildcard
+data Var          t = Var          { name   :: Name                            }
+data Cons         t = Cons         { name   :: Name                            }
+data Operator     t = Operator     { name   :: Name                            }
+data Modifier     t = Modifier     { name   :: Name                            }
+data Wildcard     t = Wildcard
 
 -- Literals
-data Number       t = Atom_Number       { digits :: NonEmpty Word8             }
-data Str          t = Atom_Str          { chunks :: [Link t (StrChunk t)]      }
+data Number       t = Number       { digits :: NonEmpty Word8                  }
+data Str          t = Str          { chunks :: [Link t (StrChunk t)]           }
 
 -- Layouting
-data Block        t = Atom_Block        { lines1 :: NonEmpty (Ln t)            }
-data Tokens       t = Atom_Tokens       { lines  :: [Ln t]                     }
-data Marker       t = Atom_Marker       { mID    :: Int                        }
-data LineBreak    t = Atom_LineBreak    { indent :: Delta                      }
+data Block        t = Block        { lines1 :: NonEmpty (Ln t)                 }
+data Tokens       t = Tokens       { lines  :: [Ln t]                          }
+data Marker       t = Marker       { mID    :: Int                             }
+data LineBreak    t = LineBreak    { indent :: Delta                           }
 
 -- Docs
-data Comment      t = Atom_Comment      { text   :: Text                       }
-data Documented   t = Atom_Documented   { doc    :: Ln t, base :: Ln t         }
+data Comment      t = Comment      { text   :: Text                            }
+data Documented   t = Documented   { doc    :: Ln t, base :: Ln t              }
 
 -- Errors
-data Invalid      t = Atom_Invalid      { desc   :: Invalid.Symbol             }
+data Invalid      t = Invalid      { desc   :: Invalid.Symbol                  }
 
 -- Exprs
-data App          t = Atom_App          { fn  :: Ln t, ar :: Ln t              }
-data InfixApp     t = Atom_InfixApp     { arl :: Ln t, fn :: Ln t, arr :: Ln t }
-data SectionLeft  t = Atom_SectionLeft  { ar  :: Ln t, fn :: Ln t              }
-data SectionRight t = Atom_SectionRight { fn  :: Ln t, ar :: Ln t              }
-data Missing      t = Atom_Missing
-data List         t = Atom_List         { items :: [Ln t]                      }
-data Unit         t = Atom_Unit         { body  :: Ln t                        }
+data App          t = App          { fn     :: Ln t, arg :: Ln t               }
+data InfixApp     t = InfixApp     { argl   :: Ln t, fn  :: Ln t, argr :: Ln t }
+data SectionLeft  t = SectionLeft  { arg    :: Ln t, fn  :: Ln t               }
+data SectionRight t = SectionRight { fn     :: Ln t, arg :: Ln t               }
+data Missing      t = Missing
+data List         t = List         { items  :: [Ln t]                          }
+data Unit         t = Unit         { body   :: Ln t                            }
 
 data StrChunk t
     = StrPlain   Text
@@ -61,27 +61,27 @@ data StrChunk t
 
 -- TODO
 -- Generate with TH
-instance Show (Ln t) => Show (Var          t) where show  (Atom_Var          t1      ) = "Var"          <> " (" <> show t1 <> ")"
-instance Show (Ln t) => Show (Cons         t) where show  (Atom_Cons         t1      ) = "Cons"         <> " (" <> show t1 <> ")"
-instance Show (Ln t) => Show (Operator     t) where show  (Atom_Operator     t1      ) = "Operator"     <> " (" <> show t1 <> ")"
-instance Show (Ln t) => Show (Modifier     t) where show  (Atom_Modifier     t1      ) = "Modifier"     <> " (" <> show t1 <> ")"
-instance Show (Ln t) => Show (Wildcard     t) where show  (Atom_Wildcard             ) = "Wildcard"
-instance Show (Ln t) => Show (Number       t) where show  (Atom_Number       t1      ) = "Number"       <> " (" <> show t1 <> ")"
-instance Show (Ln t) => Show (Block        t) where show  (Atom_Block        t1      ) = "Block"        <> " (" <> show t1 <> ")"
-instance Show (Ln t) => Show (Tokens       t) where show  (Atom_Tokens       t1      ) = "Tokens"       <> " (" <> show t1 <> ")"
-instance Show (Ln t) => Show (Marker       t) where show  (Atom_Marker       t1      ) = "Marker"       <> " (" <> show t1 <> ")"
-instance Show (Ln t) => Show (LineBreak    t) where show  (Atom_LineBreak    t1      ) = "LineBreak"    <> " (" <> show t1 <> ")"
-instance Show (Ln t) => Show (Comment      t) where show  (Atom_Comment      t1      ) = "Comment"      <> " (" <> show t1 <> ")"
-instance Show (Ln t) => Show (Documented   t) where show  (Atom_Documented   t1 t2   ) = "Documented"   <> " (" <> show t1 <> ") (" <> show t2 <> ")"
-instance Show (Ln t) => Show (Invalid      t) where show  (Atom_Invalid      t1      ) = "Invalid"      <> " (" <> show t1 <> ")"
-instance Show (Ln t) => Show (App          t) where show  (Atom_App          t1 t2   ) = "App"          <> " (" <> show t1 <> ") (" <> show t2 <> ")"
-instance Show (Ln t) => Show (InfixApp     t) where show  (Atom_InfixApp     t1 t2 t3) = "InfixApp"     <> " (" <> show t1 <> ") (" <> show t2 <> ") (" <> show t3 <> ")"
-instance Show (Ln t) => Show (Missing      t) where show  (Atom_Missing              ) = "Missing"
-instance Show (Ln t) => Show (List         t) where show  (Atom_List         t1      ) = "List"         <> " (" <> show t1 <> ")"
-instance Show (Ln t) => Show (Unit         t) where show  (Atom_Unit         t1      ) = "Unit"         <> " (" <> show t1 <> ")"
-instance Show (Ln t) => Show (SectionLeft  t) where show  (Atom_SectionLeft  t1 t2   ) = "SectionLeft"  <> " (" <> show t1 <> ") (" <> show t2 <> ")"
-instance Show (Ln t) => Show (SectionRight t) where show  (Atom_SectionRight t1 t2   ) = "SectionRight" <> " (" <> show t1 <> ") (" <> show t2 <> ")"
-instance (Show (Ln t), Show (Link t (StrChunk t))) => Show (Str t) where show (Atom_Str t1) = "Str"     <> " (" <> show t1 <> ")"
+instance Show (Ln t) => Show (Var          t) where show  (Var          t1      ) = "Var"          <> " (" <> show t1 <> ")"
+instance Show (Ln t) => Show (Cons         t) where show  (Cons         t1      ) = "Cons"         <> " (" <> show t1 <> ")"
+instance Show (Ln t) => Show (Operator     t) where show  (Operator     t1      ) = "Operator"     <> " (" <> show t1 <> ")"
+instance Show (Ln t) => Show (Modifier     t) where show  (Modifier     t1      ) = "Modifier"     <> " (" <> show t1 <> ")"
+instance Show (Ln t) => Show (Wildcard     t) where show  (Wildcard             ) = "Wildcard"
+instance Show (Ln t) => Show (Number       t) where show  (Number       t1      ) = "Number"       <> " (" <> show t1 <> ")"
+instance Show (Ln t) => Show (Block        t) where show  (Block        t1      ) = "Block"        <> " (" <> show t1 <> ")"
+instance Show (Ln t) => Show (Tokens       t) where show  (Tokens       t1      ) = "Tokens"       <> " (" <> show t1 <> ")"
+instance Show (Ln t) => Show (Marker       t) where show  (Marker       t1      ) = "Marker"       <> " (" <> show t1 <> ")"
+instance Show (Ln t) => Show (LineBreak    t) where show  (LineBreak    t1      ) = "LineBreak"    <> " (" <> show t1 <> ")"
+instance Show (Ln t) => Show (Comment      t) where show  (Comment      t1      ) = "Comment"      <> " (" <> show t1 <> ")"
+instance Show (Ln t) => Show (Documented   t) where show  (Documented   t1 t2   ) = "Documented"   <> " (" <> show t1 <> ") (" <> show t2 <> ")"
+instance Show (Ln t) => Show (Invalid      t) where show  (Invalid      t1      ) = "Invalid"      <> " (" <> show t1 <> ")"
+instance Show (Ln t) => Show (App          t) where show  (App          t1 t2   ) = "App"          <> " (" <> show t1 <> ") (" <> show t2 <> ")"
+instance Show (Ln t) => Show (InfixApp     t) where show  (InfixApp     t1 t2 t3) = "InfixApp"     <> " (" <> show t1 <> ") (" <> show t2 <> ") (" <> show t3 <> ")"
+instance Show (Ln t) => Show (Missing      t) where show  (Missing              ) = "Missing"
+instance Show (Ln t) => Show (List         t) where show  (List         t1      ) = "List"         <> " (" <> show t1 <> ")"
+instance Show (Ln t) => Show (Unit         t) where show  (Unit         t1      ) = "Unit"         <> " (" <> show t1 <> ")"
+instance Show (Ln t) => Show (SectionLeft  t) where show  (SectionLeft  t1 t2   ) = "SectionLeft"  <> " (" <> show t1 <> ") (" <> show t2 <> ")"
+instance Show (Ln t) => Show (SectionRight t) where show  (SectionRight t1 t2   ) = "SectionRight" <> " (" <> show t1 <> ") (" <> show t2 <> ")"
+instance (Show (Ln t), Show (Link t (StrChunk t))) => Show (Str t) where show (Str t1) = "Str"     <> " (" <> show t1 <> ")"
 
 
 

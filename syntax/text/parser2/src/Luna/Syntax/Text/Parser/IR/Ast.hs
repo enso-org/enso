@@ -114,30 +114,30 @@ data Simple
 
 
 
-pattern SVar       t1    = SimpleAstVar       (Atom.Atom_Var       t1)
-pattern SCons      t1    = SimpleAstCons      (Atom.Atom_Cons      t1)
-pattern SOperator  t1    = SimpleAstOperator  (Atom.Atom_Operator  t1)
-pattern SModifier  t1    = SimpleAstModifier  (Atom.Atom_Modifier  t1)
-pattern SWildcard        = SimpleAstWildcard  (Atom.Atom_Wildcard)
-pattern SNumber    t1    = SimpleAstNumber    (Atom.Atom_Number    t1)
-pattern SStr       t1    = SimpleAstStr       (Atom.Atom_Str       t1)
-pattern SBlock    t1    = SimpleAstBlock    (Atom.Atom_Block    t1)
--- -- pattern STokens    t1    = SimpleAstTokens    (Atom.Atom_Tokens    t1)
-pattern SMarker    t1    = SimpleAstMarker    (Atom.Atom_Marker    t1)
-pattern SLineBreak t1    = SimpleAstLineBreak (Atom.Atom_LineBreak t1)
-pattern SComment   t1    = SimpleAstComment   (Atom.Atom_Comment   t1)
-pattern SDocumented   t1 t2    = SimpleAstDocumented   (Atom.Atom_Documented   t1 t2)
-pattern SInvalid   t1    = SimpleAstInvalid   (Atom.Atom_Invalid   t1)
-pattern SApp       t1 t2 = SimpleAstApp       (Atom.Atom_App       t1 t2)
-pattern SInfixApp       t1 t2 t3 = SimpleAstInfixApp       (Atom.Atom_InfixApp       t1 t2 t3)
-pattern SMissing         = SimpleAstMissing   (Atom.Atom_Missing)
-pattern SList      t1    = SimpleAstList      (Atom.Atom_List      t1)
-pattern SUnit      t1    = SimpleAstUnit      (Atom.Atom_Unit      t1)
-pattern SSectionLeft  t1 t2 = SimpleAstSectionLeft  (Atom.Atom_SectionLeft  t1 t2)
-pattern SSectionRight t1 t2 = SimpleAstSectionRight (Atom.Atom_SectionRight t1 t2)
+pattern SVar       t1    = SimpleAstVar       (Atom.Var       t1)
+pattern SCons      t1    = SimpleAstCons      (Atom.Cons      t1)
+pattern SOperator  t1    = SimpleAstOperator  (Atom.Operator  t1)
+pattern SModifier  t1    = SimpleAstModifier  (Atom.Modifier  t1)
+pattern SWildcard        = SimpleAstWildcard  (Atom.Wildcard)
+pattern SNumber    t1    = SimpleAstNumber    (Atom.Number    t1)
+pattern SStr       t1    = SimpleAstStr       (Atom.Str       t1)
+pattern SBlock    t1    = SimpleAstBlock    (Atom.Block    t1)
+-- -- pattern STokens    t1    = SimpleAstTokens    (Atom.Tokens    t1)
+pattern SMarker    t1    = SimpleAstMarker    (Atom.Marker    t1)
+pattern SLineBreak t1    = SimpleAstLineBreak (Atom.LineBreak t1)
+pattern SComment   t1    = SimpleAstComment   (Atom.Comment   t1)
+pattern SDocumented   t1 t2    = SimpleAstDocumented   (Atom.Documented   t1 t2)
+pattern SInvalid   t1    = SimpleAstInvalid   (Atom.Invalid   t1)
+pattern SApp       t1 t2 = SimpleAstApp       (Atom.App       t1 t2)
+pattern SInfixApp       t1 t2 t3 = SimpleAstInfixApp       (Atom.InfixApp       t1 t2 t3)
+pattern SMissing         = SimpleAstMissing   (Atom.Missing)
+pattern SList      t1    = SimpleAstList      (Atom.List      t1)
+pattern SUnit      t1    = SimpleAstUnit      (Atom.Unit      t1)
+pattern SSectionLeft  t1 t2 = SimpleAstSectionLeft  (Atom.SectionLeft  t1 t2)
+pattern SSectionRight t1 t2 = SimpleAstSectionRight (Atom.SectionRight t1 t2)
 
 
-pattern XList t <- Spanned s (AstList      (Atom.Atom_List      (prependOffsetToHead s -> t)))
+pattern XList t <- Spanned s (AstList      (Atom.List      (prependOffsetToHead s -> t)))
 
 prependOffsetToHead t = \case
     []     -> []
@@ -180,39 +180,39 @@ instance PrependSpan (Atom.Missing Ast)
 
 
 instance PrependSpan (Atom.Block Ast) where
-    prependSpan = \span (Atom.Atom_Block a) -> Atom.Atom_Block $ prepSpanToNonEmpty span a
+    prependSpan = \span (Atom.Block a) -> Atom.Block $ prepSpanToNonEmpty span a
     {-# INLINE prependSpan #-}
 
 instance PrependSpan (Atom.Tokens Ast) where
-    prependSpan = \span (Atom.Atom_Tokens a) -> Atom.Atom_Tokens $ prepSpanToList span a
+    prependSpan = \span (Atom.Tokens a) -> Atom.Tokens $ prepSpanToList span a
     {-# INLINE prependSpan #-}
 
 instance PrependSpan (Atom.App Ast) where
-    prependSpan = \span (Atom.Atom_App a b) -> Atom.Atom_App (prepSpan span a) b
+    prependSpan = \span (Atom.App a b) -> Atom.App (prepSpan span a) b
     {-# INLINE prependSpan #-}
 
 instance PrependSpan (Atom.InfixApp Ast) where
-    prependSpan = \span (Atom.Atom_InfixApp a b c) -> Atom.Atom_InfixApp (prepSpan span a) b c
+    prependSpan = \span (Atom.InfixApp a b c) -> Atom.InfixApp (prepSpan span a) b c
     {-# INLINE prependSpan #-}
 
 instance PrependSpan (Atom.SectionLeft Ast) where
-    prependSpan = \span (Atom.Atom_SectionLeft a b) -> Atom.Atom_SectionLeft (prepSpan span a) b
+    prependSpan = \span (Atom.SectionLeft a b) -> Atom.SectionLeft (prepSpan span a) b
     {-# INLINE prependSpan #-}
 
 instance PrependSpan (Atom.SectionRight Ast) where
-    prependSpan = \span (Atom.Atom_SectionRight a b) -> Atom.Atom_SectionRight (prepSpan span a) b
+    prependSpan = \span (Atom.SectionRight a b) -> Atom.SectionRight (prepSpan span a) b
     {-# INLINE prependSpan #-}
 
 instance PrependSpan (Atom.List Ast) where
-    prependSpan = \span (Atom.Atom_List a) -> Atom.Atom_List (prepSpanToList span a)
+    prependSpan = \span (Atom.List a) -> Atom.List (prepSpanToList span a)
     {-# INLINE prependSpan #-}
 
 instance PrependSpan (Atom.Unit Ast) where
-    prependSpan = \span (Atom.Atom_Unit a) -> Atom.Atom_Unit (prepSpan span a)
+    prependSpan = \span (Atom.Unit a) -> Atom.Unit (prepSpan span a)
     {-# INLINE prependSpan #-}
 
 instance PrependSpan (Atom.Documented Ast) where
-    prependSpan = \span (Atom.Atom_Documented a b) -> Atom.Atom_Documented (prepSpan span a) b
+    prependSpan = \span (Atom.Documented a b) -> Atom.Documented (prepSpan span a) b
     {-# INLINE prependSpan #-}
 
 
@@ -481,7 +481,7 @@ instance Simplify (Atom.StrChunk Ast) where
     type Simplified (Atom.StrChunk Ast) = Atom.StrChunk SimpleAst
     simplify = \case
         Atom.StrPlain   t                  -> Atom.StrPlain   t
-        Atom.StrNewLine (Atom.Atom_LineBreak t) -> Atom.StrNewLine (Atom.Atom_LineBreak t)
+        Atom.StrNewLine (Atom.LineBreak t) -> Atom.StrNewLine (Atom.LineBreak t)
 
 instance Simplify   Ast where
     type Simplified Ast = SimpleAst

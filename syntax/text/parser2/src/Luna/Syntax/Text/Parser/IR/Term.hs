@@ -21,7 +21,7 @@ import qualified Luna.IR.Layer                         as Layer
 import qualified Luna.IR.Term.Ast.Invalid              as Invalid
 import qualified Luna.Syntax.Text.Lexer                as Lexer
 import qualified Luna.Syntax.Text.Lexer.Symbol         as Lexer
-import qualified Luna.Syntax.Text.Parser.Data.Ast.Atom as Ast
+import qualified Luna.Syntax.Text.Parser.Data.Ast.Atom as Atom
 import qualified Luna.Syntax.Text.Parser.Data.CodeSpan as CodeSpan
 import qualified Luna.Syntax.Text.Parser.IR.Ast        as Ast
 import qualified Luna.Syntax.Text.Parser.IR.Name       as Name
@@ -509,9 +509,9 @@ strBuilder quote = Ast.register =<< Ast.computeSpan parser where
         quoteLen <- Text.length <$> takeWhile1 isQuote
 
         let mkChunk       = \p -> Ast.register =<< Ast.computeSpan p
-            chunkPlain    = Ast.StrPlain <$> takeWhile1 (not . isBodyChar)
+            chunkPlain    = Atom.StrPlain <$> takeWhile1 (not . isBodyChar)
             chunkQuote    = bodyQuotes =<< takeWhile1 isQuote
-            bodyQuotes qs = Ast.StrPlain qs <$ failIf (Text.length qs == quoteLen)
+            bodyQuotes qs = Atom.StrPlain qs <$ failIf (Text.length qs == quoteLen)
             chunk         = Ast.computeSpan $ choice [chunkPlain, chunkQuote] -- lineBreak
             ending        = Text.length <$> takeWhile1 isQuote
             body          = Ast.Str <$> many chunk
