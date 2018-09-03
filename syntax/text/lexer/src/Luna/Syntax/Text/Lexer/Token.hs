@@ -1,4 +1,5 @@
-{-# LANGUAGE Strict #-}
+{-# LANGUAGE Strict       #-}
+{-# LANGUAGE NoStrictData #-}
 
 module Luna.Syntax.Text.Lexer.Token where
 
@@ -17,70 +18,33 @@ import Luna.Syntax.Text.Lexer.Symbol (Symbol)
 
 -- === Definition === --
 
-data TokenInfo = TokenInfo
-    { __span     :: Delta
-    , __offset   :: Delta
-    , __column   :: Delta
-    , __row      :: Delta
-    , __topLevel :: Bool
-    } deriving (Eq, Generic, Ord, Show)
-makeLenses ''TokenInfo
-
-data Token = Token
-    { __info   :: TokenInfo
-    , __symbol :: Symbol
-    } deriving (Eq, Generic, Ord, Show)
+data Token a = Token
+    { _span    :: !Delta
+    , _offset  :: !Delta
+    , _element :: !a
+    } deriving (Eq, Generic, Ord)
 makeLenses ''Token
-
-
--- === API === --
-
-token :: Delta -> Delta -> Delta -> Delta -> Bool -> Symbol -> Token
-token = \span offset column row topLevel
-      -> Token (TokenInfo span offset column row topLevel)
-{-# INLINE token #-}
-
-etx :: Token
-etx = Token mempty Symbol.ETX
-{-# INLINE etx #-}
-
-
--- === IsToken === --
-
-class IsToken t where
-    info :: Lens' t TokenInfo
-
-span     :: IsToken t => Lens' t Delta
-offset   :: IsToken t => Lens' t Delta
-column   :: IsToken t => Lens' t Delta
-row      :: IsToken t => Lens' t Delta
-topLevel :: IsToken t => Lens' t Bool
-span     = info . tokenInfo_span
-offset   = info . tokenInfo_offset
-column   = info . tokenInfo_column
-row      = info . tokenInfo_row
-topLevel = info . tokenInfo_topLevel
-{-# INLINE span     #-}
-{-# INLINE offset   #-}
-{-# INLINE column   #-}
-{-# INLINE row      #-}
-{-# INLINE topLevel #-}
 
 
 -- === Instances === --
 
-instance NFData TokenInfo
-instance NFData Token
+instance NFData a => NFData (Token a)
+instance Show a => Show (Token a) where
+    showsPrec d t = showParen' d
+        $ showString "Token "
+        . showsPrec' (t ^. span)
+        . showString " "
+        . showsPrec' (t ^. offset)
+        . showString " "
+        . showsPrec' (t ^. element)
+    {-# INLINE showsPrec #-}
 
-instance Symbol.HasSymbol Token where
-    symbol = token_symbol
-    {-# INLINE symbol #-}
+instance Symbol.HasSymbol a => Symbol.HasSymbol (Token a) where
+    symbol = element . Symbol.symbol ; {-# INLINE symbol #-}
 
-instance Mempty TokenInfo where
-    mempty = TokenInfo 0 0 0 0 True
-    {-# INLINE mempty #-}
 
-instance IsToken Token where
-    info = token_info
-    {-# INLINE info #-}
+-- === Special tokens === --
+
+etx :: Token Symbol
+etx = Token 0 0 Symbol.ETX ; {-# INLINE etx #-}
 

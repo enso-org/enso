@@ -1,14 +1,15 @@
-{-# LANGUAGE NoStrict #-}
+{-# LANGUAGE NoStrict             #-}
+{-# LANGUAGE NoStrictData         #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Data.Parser.Instances.Attoparsec where
 
 import Prelude hiding ((.))
 
-import           Control.Monad                  (void)
+import           Control.Monad (void)
 import           Control.Monad.Identity
 import qualified Data.Attoparsec.Combinator     as Atto
-import           Data.Attoparsec.Internal.Types (Chunk, IResult, Parser)
+import           Data.Attoparsec.Internal.Types (Parser, IResult, Chunk)
 import qualified Data.Attoparsec.Text           as SText
 import qualified Data.Attoparsec.Text32         as T32
 import           Data.Functor.Utils
@@ -59,11 +60,11 @@ instance TokenParser (Parser Text32) where
     satisfy    = T32.satisfy       ; {-# INLINE satisfy    #-}
     takeWhile  = T32.takeWhile     ; {-# INLINE takeWhile  #-}
     takeWhile1 = T32.takeWhile1    ; {-# INLINE takeWhile1 #-}
-    anyToken   = T32.anyToken      ; {-# INLINE anyToken   #-}
-    token_     = void . T32.token  ; {-# INLINE token_     #-}
-    tokens_    = void . T32.tokens ; {-# INLINE tokens_    #-}
-    peekToken  = T32.peekToken     ; {-# INLINE peekToken  #-}
-    peekToken' = T32.tryPeekToken  ; {-# INLINE peekToken' #-}
+    anyToken   = T32.anyChar       ; {-# INLINE anyToken   #-}
+    token_     = void . T32.char   ; {-# INLINE token_     #-}
+    tokens_    = void . T32.string ; {-# INLINE tokens_    #-}
+    peekToken  = T32.peekChar'     ; {-# INLINE peekToken  #-}
+    peekToken' = T32.peekChar      ; {-# INLINE peekToken' #-}
 
 instance PartialParser (Parser Text32) where
     parsePartialT = pure .: T32.parse        ; {-# INLINE parsePartialT #-}

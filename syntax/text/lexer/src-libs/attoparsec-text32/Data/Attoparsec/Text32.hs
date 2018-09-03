@@ -1,134 +1,99 @@
-{-# LANGUAGE NoStrict #-}
+{-# LANGUAGE NoStrict             #-}
+{-# LANGUAGE NoStrictData         #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Data.Attoparsec.Text32 where
 
-import Prelude hiding (getChar, succ, take, takeWhile)
+import Prelude                        hiding (getChar, succ, take, takeWhile)
+import Control.Applicative            ((<$>))
+import Control.Monad                  (when)
+import Data.Attoparsec.Internal
+import Data.Attoparsec.Internal.Types hiding (Parser, Failure, Success, fromPos)
+import Data.List                      (intercalate)
 
-import qualified Data.Attoparsec.Internal       as Parsec
-import qualified Data.Attoparsec.Internal.Types as Parsec
-import qualified Data.Text32                    as Text32
+import           Data.Text32 (Text32)
+import qualified Data.Text32 as Text32
+import           Data.Coerce
 
-import Control.Applicative ((<$>))
-import Control.Monad       (when)
-import Data.Coerce         (coerce)
-import Data.List           (intercalate)
-import Data.Text32         (Text32)
-
-import Data.Convert
+import qualified Data.Attoparsec.Internal.Types as T
 
 
--- === Config === --
 
-type Tokens = Text32
-type Token  = Char
 
 
 -- === Definitions === --
 
-type Parser      = Parsec.Parser  Tokens
-type Result      = Parsec.IResult Tokens
-type Failure   r = Parsec.Failure Tokens Tokens   r
-type Success a r = Parsec.Success Tokens Tokens a r
+type Parser      = T.Parser Text32
+type Result      = IResult Text32
+type Failure   r = T.Failure Text32 Text32   r
+type Success a r = T.Success Text32 Text32 a r
 
-type instance Parsec.State Tokens = Tokens
+type instance State Text32 = Text32
 
-instance Parsec.Chunk Text32 where
-    type ChunkElem Tokens = Token
-    nullChunk             = Text32.null
-    pappendChunk          = (<>)
-    atBufferEnd     (~_)  = toPos . Text32.length
-    bufferElemAt    _ i b = (,1) <$> Text32.index b (fromPos i)
-    chunkElemToChar _     = id
-    {-# INLINE nullChunk       #-}
-    {-# INLINE pappendChunk    #-}
-    {-# INLINE atBufferEnd     #-}
-    {-# INLINE bufferElemAt    #-}
-    {-# INLINE chunkElemToChar #-}
+instance Chunk Text32 where
+    type ChunkElem Text32 = Char
+    nullChunk             = Text32.null                         ; {-# INLINE nullChunk       #-}
+    pappendChunk          = (<>)                                ; {-# INLINE pappendChunk    #-}
+    atBufferEnd     _     = toPos . Text32.length               ; {-# INLINE atBufferEnd     #-}
+    bufferElemAt    _ i b = (,1) <$> Text32.index b (fromPos i) ; {-# INLINE bufferElemAt    #-}
+    chunkElemToChar _     = id                                  ; {-# INLINE chunkElemToChar #-}
 
 
--- === Parsec.Pos coertions === --
+-- === Pos coertions === --
 
-fromPos :: Parsec.Pos -> Int
-fromPos = coerce
-{-# INLINE fromPos #-}
-
-toPos :: Int -> Parsec.Pos
-toPos = coerce
-{-# INLINE toPos   #-}
-
-
--- === Lookahead === --
-
-tryPeekToken :: Parser (Maybe Token)
-tryPeekToken = Parsec.Parser $ \t pos more _lose succ -> if
-     | pos < lengthOf t -> let !c = Text32.unsafeIndex t (fromPos pos)
-                            in succ t pos more (Just c)
-     | more == Parsec.Complete -> succ t pos more Nothing
-     | otherwise        ->
-       let succ' t' pos' more' =
-             let !c = Text32.unsafeIndex t' (fromPos pos')
-             in succ t' pos' more' (Just c)
-           lose' t' pos' more' = succ t' pos' more' Nothing
-       in Parsec.prompt t pos more lose' succ'
-{-# INLINE tryPeekToken #-}
-
-peekToken :: Parser Token
-peekToken = do
-    (!_, !t) <- ensure 1
-    pure $! Text32.unsafeHead t
-{-# INLINE peekToken #-}
+fromPos :: Pos -> Int
+toPos   :: Int -> Pos
+fromPos = coerce ; {-# INLINE fromPos #-}
+toPos   = coerce ; {-# INLINE toPos   #-}
 
 
 -- === Primitive parsers === --
 
-satisfy :: (Token -> Bool) -> Parser Token
-satisfy = \p -> do
-  h <- peekToken
-  if p h then h <$ advance 1
+satisfy :: (Char -> Bool) -> Parser Char
+satisfy p = do
+  c <- ensure 1
+  let !h = Text32.unsafeHead c
+  if p h then advance 1 >> return h
          else fail "satisfy"
 {-# INLINE satisfy #-}
 
-skip :: (Token -> Bool) -> Parser ()
-skip = \p -> do
-  h <- peekToken
+skip :: (Char -> Bool) -> Parser ()
+skip p = do
+  c <- ensure 1
+  let !h = Text32.unsafeHead c
   if p h then advance 1
          else fail "skip"
 {-# INLINE skip #-}
 
-satisfyWith :: (Token -> a) -> (a -> Bool) -> Parser a
-satisfyWith = \f p -> do
-  h <- peekToken
-  let c = f h
-  if p c then c <$ advance 1
+satisfyWith :: (Char -> a) -> (a -> Bool) -> Parser a
+satisfyWith f p = do
+  s <- ensure 1
+  let c = f $! Text32.unsafeHead s
+  if p c then advance 1 >> return c
          else fail "satisfyWith"
 {-# INLINE satisfyWith #-}
 
-takeWith :: Int -> (Tokens -> Bool) -> Parser Tokens
-takeWith = \n p -> do
-  (k, s) <- ensure n
-  if p s then advance k >> return s
+takeWith :: Int -> (Text32 -> Bool) -> Parser Text32
+takeWith n p = do
+  s <- ensure n
+  if p s then advance 1 >> return s
          else fail "takeWith"
 {-# INLINE takeWith #-}
 
--- | Consume exactly @n@ tokens of input.
-take :: Int -> Parser Tokens
-take = \n -> takeWith (max n 0) (const True)
-{-# INLINE take #-}
+-- | Consume exactly @n@ characters of input.
+take :: Int -> Parser Text32
+take n = takeWith (max n 0) (const True) ; {-# INLINE take #-}
 
--- -- | @string s@ parses a sequence of tokens that identically match
+-- -- | @string s@ parses a sequence of characters that identically match
 -- -- @s@. Returns the parsed string (i.e. @s@).  This parser consumes no
 -- -- input if it fails (even if a partial match).
-tokens :: Tokens -> Parser Tokens
-tokens = \s -> tokens_ (tokensSuspended id) id s
-{-# INLINE tokens #-}
+string :: Text32 -> Parser Text32
+string s = string_ (stringSuspended id) id s ; {-# INLINE string #-}
 
-tokens_ ::
-    (forall r. Tokens -> Tokens -> Tokens -> Parsec.Pos -> Parsec.More
-                      -> Failure r -> Success Tokens r -> Result r)
-    -> (Tokens -> Tokens)
-    -> Tokens -> Parser Tokens
-tokens_ suspended f s0 = Parsec.Parser $ \t pos more lose succ ->
+string_ :: (forall r. Text32 -> Text32 -> Text32 -> Pos -> More
+            -> Failure r -> Success Text32 r -> Result r)
+        -> (Text32 -> Text32) -> Text32 -> Parser Text32
+string_ suspended f s0 = T.Parser $ \t pos more lose succ ->
   let s  = f s0
       ft = f (Text32.unsafeDrop (fromPos pos) t)
   in case Text32.commonPrefixes s ft of
@@ -137,67 +102,58 @@ tokens_ suspended f s0 = Parsec.Parser $ \t pos more lose succ ->
          | Text32.null ft -> suspended s s t pos more lose succ
          | otherwise      -> lose t pos more [] "string"
        Just (pfx,ssfx,tsfx)
-         | Text32.null ssfx   -> let l = toPos (Text32.length pfx)
-                                 in succ t (pos + l) more (substring pos l t)
+         | Text32.null ssfx       -> let l = toPos (Text32.length pfx)
+                                     in succ t (pos + l) more (substring pos l t)
          | not (Text32.null tsfx) -> lose t pos more [] "string"
          | otherwise              -> suspended s ssfx t pos more lose succ
-{-# INLINE tokens_ #-}
+{-# INLINE string_ #-}
 
-tokensSuspended ::
-    (Tokens -> Tokens)
-    -> Tokens -> Tokens -> Tokens -> Parsec.Pos -> Parsec.More
-    -> Failure r
-    -> Success Tokens r
-    -> Result r
-tokensSuspended f s000 s0 t0 pos0 more0 lose0 succ0
-    = Parsec.runParser (Parsec.demandInput_ >>= go) t0 pos0 more0 lose0 succ0 where
-        go s' = Parsec.Parser $ \t pos more lose succ ->
-            let s = f s'
-            in case Text32.commonPrefixes s0 s of
-                Nothing              -> lose t pos more [] "string"
-                Just (_pfx,ssfx,tsfx)
-                  | Text32.null ssfx -> let l = toPos (Text32.length s000)
-                                        in succ t (pos + l) more
-                                           (substring pos l t)
-                  | Text32.null tsfx -> tokensSuspended f s000 ssfx t pos more
-                                                        lose succ
-                  | otherwise        -> lose t pos more [] "string"
-{-# INLINE tokensSuspended #-}
+stringSuspended :: (Text32 -> Text32)
+                -> Text32 -> Text32 -> Text32 -> Pos -> More
+                -> Failure r
+                -> Success Text32 r
+                -> Result r
+stringSuspended f s000 s0 t0 pos0 more0 lose0 succ0 = runParser (demandInput_ >>= go) t0 pos0 more0 lose0 succ0 where
+    go s' = T.Parser $ \t pos more lose succ -> let s = f s' in case Text32.commonPrefixes s0 s of
+        Nothing              -> lose t pos more [] "string"
+        Just (_pfx,ssfx,tsfx)
+          | Text32.null ssfx -> let l = toPos (Text32.length s000)
+                                in succ t (pos + l) more (substring pos l t)
+          | Text32.null tsfx -> stringSuspended f s000 ssfx t pos more lose succ
+          | otherwise        -> lose t pos more [] "string"
+{-# INLINE stringSuspended #-}
 
-skipWhile :: (Token -> Bool) -> Parser ()
-skipWhile = \p -> let
+skipWhile :: (Char -> Bool) -> Parser ()
+skipWhile p = go where
     go = do
         t <- Text32.takeWhile p <$> get
         continue <- inputSpansChunks (size t)
         when continue go
-    in go
 {-# INLINE skipWhile #-}
 
-takeTill :: (Token -> Bool) -> Parser Tokens
-takeTill = \p -> takeWhile (not . p)
-{-# INLINE takeTill #-}
+takeTill :: (Char -> Bool) -> Parser Text32
+takeTill p = takeWhile (not . p) ; {-# INLINE takeTill #-}
 
-takeWhile :: (Token -> Bool) -> Parser Tokens
-takeWhile = \p -> do
+takeWhile :: (Char -> Bool) -> Parser Text32
+takeWhile p = do
     h        <- Text32.takeWhile p <$> get
     continue <- inputSpansChunks (size h)
     if continue then takeWhileAcc p [h]
                 else return h
 {-# INLINE takeWhile #-}
 
-takeWhileAcc :: (Token -> Bool) -> [Tokens] -> Parser Tokens
-takeWhileAcc = \p -> let
+takeWhileAcc :: (Char -> Bool) -> [Text32] -> Parser Text32
+takeWhileAcc p = go where
     go acc = do
         h        <- Text32.takeWhile p <$> get
         continue <- inputSpansChunks (size h)
         if continue then go (h:acc)
-                    else return $ Parsec.concatReverse (h:acc)
-    in go
+                    else return $ concatReverse (h:acc)
 {-# INLINE takeWhileAcc #-}
 
-takeRest :: Parser [Tokens]
+takeRest :: Parser [Text32]
 takeRest = go [] where
-    go acc = Parsec.wantInput >>= \case
+    go acc = wantInput >>= \case
         False -> return (reverse acc)
         True  -> do
             s <- get
@@ -205,13 +161,12 @@ takeRest = go [] where
             go (s:acc)
 {-# INLINE takeRest #-}
 
-takeText :: Parser Tokens
-takeText = Text32.concat <$> takeRest
-{-# INLINE takeText #-}
+takeText :: Parser Text32
+takeText = Text32.concat `fmap` takeRest ; {-# INLINE takeText #-}
 
-takeWhile1 :: (Token -> Bool) -> Parser Tokens
-takeWhile1 = \p -> do
-    (`when` Parsec.demandInput) =<< endOfChunk
+takeWhile1 :: (Char -> Bool) -> Parser Text32
+takeWhile1 p = do
+    (`when` demandInput) =<< endOfChunk
     h <- Text32.takeWhile p <$> get
     let size' = size h
     when (size' == 0) $ fail "takeWhile1"
@@ -221,97 +176,95 @@ takeWhile1 = \p -> do
         False -> return h
 {-# INLINE takeWhile1 #-}
 
-anyToken :: Parser Token
-anyToken = satisfy $ const True
-{-# INLINE anyToken #-}
+anyChar :: Parser Char
+anyChar = satisfy $ const True ; {-# INLINE anyChar #-}
 
-token :: Token -> Parser Token
-token = satisfy . (==)
-{-# INLINE token #-}
+char :: Char -> Parser Char
+char c = satisfy (== c) ; {-# INLINE char #-}
 
-notToken :: Token -> Parser Token
-notToken = satisfy . (/=)
-{-# INLINE notToken #-}
+notChar :: Char -> Parser Char
+notChar c = satisfy (/= c) ; {-# INLINE notChar #-}
+
+peekChar :: Parser (Maybe Char)
+peekChar = T.Parser $ \t pos more _lose succ -> if
+     | pos < lengthOf t -> let !c = Text32.unsafeIndex t (fromPos pos) in succ t pos more (Just c)
+     | more == Complete -> succ t pos more Nothing
+     | otherwise        ->
+       let succ' t' pos' more' =
+             let !c = Text32.unsafeIndex t' (fromPos pos')
+             in succ t' pos' more' (Just c)
+           lose' t' pos' more' = succ t' pos' more' Nothing
+       in prompt t pos more lose' succ'
+{-# INLINE peekChar #-}
+
+peekChar' :: Parser Char
+peekChar' = do
+  s <- ensure 1
+  return $! Text32.unsafeHead s
+{-# INLINE peekChar' #-}
 
 failK    :: Failure a
 successK :: Success a a
-failK    = \t p _more -> Parsec.Fail (Text32.unsafeDrop (fromPos p) t)
-successK = \t p _more -> Parsec.Done (Text32.unsafeDrop (fromPos p) t)
-{-# INLINE failK    #-}
-{-# INLINE successK #-}
+failK    t p _more stack msg = Fail (Text32.unsafeDrop (fromPos p) t) stack msg ; {-# INLINE failK    #-}
+successK t p _more stack     = Done (Text32.unsafeDrop (fromPos p) t) stack     ; {-# INLINE successK #-}
 
-parse     :: Parser a -> Tokens -> Result a
-parseOnly :: Parser a -> Tokens -> Either String a
-parse     m s =      Parsec.runParser m s 0 Parsec.Incomplete failK successK
-parseOnly m s = case Parsec.runParser m s 0 Parsec.Complete   failK successK of
-    Parsec.Fail _ [] err   -> Left err
-    Parsec.Fail _ ctxs err -> Left (intercalate " > " ctxs ++ ": " ++ err)
-    Parsec.Done _ a        -> Right a
-    _                      -> error "parseOnly: impossible error!"
-{-# INLINE parse #-}
+parse :: Parser a -> Text32 -> Result a
+parseOnly :: Parser a -> Text32 -> Either String a
+parse     m s =      runParser m s 0 Incomplete failK successK ; {-# INLINE parse #-}
+parseOnly m s = case runParser m s 0 Complete   failK successK of
+    Fail _ [] err   -> Left err
+    Fail _ ctxs err -> Left (intercalate " > " ctxs ++ ": " ++ err)
+    Done _ a        -> Right a
+    _               -> error "parseOnly: impossible error!"
 {-# INLINE parseOnly #-}
 
-get :: Parser Tokens
-get = Parsec.Parser $ \t pos more _lose succ
-    -> succ t pos more (Text32.unsafeDrop (fromPos pos) t)
-{-# INLINE get #-}
+get :: Parser Text32
+get = T.Parser $ \t pos more _lose succ -> succ t pos more (Text32.unsafeDrop (fromPos pos) t) ; {-# INLINE get #-}
 
 endOfChunk :: Parser Bool
-endOfChunk = Parsec.Parser $ \t pos more _lose succ
-    -> succ t pos more (pos == lengthOf t)
-{-# INLINE endOfChunk #-}
+endOfChunk = T.Parser $ \t pos more _lose succ -> succ t pos more (pos == lengthOf t) ; {-# INLINE endOfChunk #-}
 
-inputSpansChunks :: Parsec.Pos -> Parser Bool
-inputSpansChunks i = Parsec.Parser $ \t pos_ more _lose succ ->
+inputSpansChunks :: Pos -> Parser Bool
+inputSpansChunks i = T.Parser $ \t pos_ more _lose succ ->
   let pos = pos_ + i
-  in if pos < lengthOf t || more == Parsec.Complete
+  in if pos < lengthOf t || more == Complete
      then succ t pos more False
      else let lose' t' pos' more' = succ t' pos' more' False
               succ' t' pos' more' = succ t' pos' more' True
-          in Parsec.prompt t pos more lose' succ'
+          in prompt t pos more lose' succ'
 {-# INLINE inputSpansChunks #-}
 
-advance :: Parsec.Pos -> Parser ()
-advance n = Parsec.Parser $ \t pos more _ succ -> succ t (pos+n) more ()
-{-# INLINE advance #-}
+
+advance :: Pos -> Parser ()
+advance n = T.Parser $ \t pos more _ succ -> succ t (pos+n) more () ; {-# INLINE advance #-}
 
 
 -- === Ensure === -
 
-ensure :: Int -> Parser (Parsec.Pos, Tokens)
-ensure n = Parsec.Parser $ \t pos more lose succ ->
-    case lengthAtLeast pos n t of
-        Just n' -> succ t pos more (n', substring pos n' t)
-        Nothing -> ensureSuspended n t pos more lose succ
+ensure :: Int -> Parser Text32
+ensure n = T.Parser $ \t pos more lose succ -> case lengthAtLeast pos n t of
+      Just n' -> succ t pos more (substring pos n' t)
+      Nothing -> ensureSuspended n t pos more lose succ
 {-# INLINE ensure #-}
 
-ensureSuspended :: Int -> Tokens -> Parsec.Pos -> Parsec.More
-                -> Failure r -> Success (Parsec.Pos, Tokens) r -> Result r
-ensureSuspended n t pos more lose succ
-    = Parsec.runParser (Parsec.demandInput >> go) t pos more lose succ
-  where go = Parsec.Parser $ \t' pos' more' lose' succ' ->
-            case lengthAtLeast pos' n t' of
-                Just n' -> succ' t' pos' more' (n', substring pos n' t')
-                Nothing -> Parsec.runParser (Parsec.demandInput >> go)
-                                            t' pos' more' lose' succ'
+ensureSuspended :: Int -> Text32 -> Pos -> More
+                -> Failure r -> Success Text32 r -> Result r
+ensureSuspended n t pos more lose succ = runParser (demandInput >> go) t pos more lose succ
+  where go = T.Parser $ \t' pos' more' lose' succ' -> case lengthAtLeast pos' n t' of
+            Just n' -> succ' t' pos' more' (substring pos n' t')
+            Nothing -> runParser (demandInput >> go) t' pos' more' lose' succ'
 {-# INLINE ensureSuspended #-}
 
-lengthAtLeast :: Parsec.Pos -> Int -> Tokens -> Maybe Parsec.Pos
-lengthAtLeast = \pos n t -> let
+lengthAtLeast :: Pos -> Int -> Text32 -> Maybe Pos
+lengthAtLeast pos n t = if p' <= Text32.length t then Just (toPos p') else Nothing where
     !p' = fromPos pos + n
-    in if p' <= Text32.length t
-        then Just (toPos p')
-        else Nothing where
 {-# INLINE lengthAtLeast #-}
 
-substring :: Parsec.Pos -> Parsec.Pos -> Tokens -> Tokens
-substring = \p n b -> Text32.unsafeSlice (fromPos p) (fromPos n) b
-{-# INLINE substring #-}
+substring :: Pos -> Pos -> Text32 -> Text32
+substring p n b = Text32.unsafeSlice (fromPos p) (fromPos n) b ; {-# INLINE substring #-}
 
-lengthOf :: Tokens -> Parsec.Pos
-lengthOf = \t -> toPos $ Text32.length t
-{-# INLINE lengthOf #-}
+lengthOf :: Text32 -> Pos
+lengthOf t = toPos $ Text32.length t ; {-# INLINE lengthOf #-}
 
-size :: Tokens -> Parsec.Pos
-size = \t -> toPos $ Text32.length t
-{-# INLINE size #-}
+size :: Text32 -> Pos
+size t = toPos $ Text32.length t ; {-# INLINE size #-}

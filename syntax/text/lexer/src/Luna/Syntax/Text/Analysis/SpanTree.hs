@@ -1,5 +1,5 @@
-{-# LANGUAGE NoStrict #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE NoStrict             #-}
+{-# LANGUAGE NoStrictData         #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Luna.Syntax.Text.Analysis.SpanTree where
@@ -203,7 +203,11 @@ instance Semigroup (Spantree a) where a <> b = wrap $ unwrap a <> unwrap b ; {-#
 
 -- === Spantree construction === --
 
-buildSpanTree :: Text32 -> [Lexer.Token] -> Spantree Text32
+-- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+-- !!! FIXME[WD]: GHC PANIC HERE !!!
+-- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+buildSpanTree :: Text32 -> [Lexer.Token Lexer.Symbol] -> Spantree Text32
 buildSpanTree src = \case
     []     -> empty
     (t:ts) -> tailTree & case t ^. Lexer.symbol of

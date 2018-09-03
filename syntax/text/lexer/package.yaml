@@ -33,7 +33,6 @@ dependencies:
     - bytestring
     - conduit
     - conduit-combinators
-    - container
     - containers
     - convert
     - fingertree
@@ -42,7 +41,6 @@ dependencies:
     - lens
     - luna-core
     - luna-syntax-text-model
-    - luna-parser-utils
     - luna-text-processing
     - mtl
     - prologue

@@ -1,5 +1,5 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE Strict            #-}
+{-# LANGUAGE Strict       #-}
+{-# LANGUAGE NoStrictData #-}
 
 module Luna.Syntax.Text.Lexer.Symbol where
 
@@ -150,7 +150,6 @@ checkSpecialVar = \case
     "import"  -> KwImport
     "native"  -> KwNative
     "of"      -> KwOf
-    "_"       -> Wildcard
     s         -> Var s
 {-# INLINE checkSpecialVar #-}
 
