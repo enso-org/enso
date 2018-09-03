@@ -2,7 +2,7 @@
 {-# LANGUAGE PatternSynonyms      #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Luna.Pass.Parsing.Macro where
+module Luna.Syntax.Text.Parser.Parser.Class where
 
 import           Prologue hiding (fail, optional)
 import qualified Prologue
@@ -40,7 +40,7 @@ import Text.Parser.State.Indent              (Indent)
 -- import Luna.Syntax.Text.Parser.Data.Result   (Result)
 
 
-import Luna.Pass.Parsing.ExprBuilder (ExprBuilderMonad, buildExpr,
+import Luna.Syntax.Text.Parser.Parser.ExprBuilder (ExprBuilderMonad, buildExpr,
                                       checkLeftSpacing)
 
 import qualified Data.Attoparsec.Internal       as AParsec
@@ -286,6 +286,7 @@ run = \stream
 runParserBase :: ParserBase t m a -> m a
 runParserBase = runIdentityT . unwrap
 {-# INLINE runParserBase #-}
+
 
 
 -- === Total / Partial management === --

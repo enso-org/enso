@@ -2,7 +2,7 @@
 {-# LANGUAGE PatternSynonyms      #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Luna.Pass.Parsing.ExprBuilder where
+module Luna.Syntax.Text.Parser.Parser.ExprBuilder where
 
 import Prologue hiding (optional)
 

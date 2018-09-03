@@ -13,7 +13,7 @@ import qualified Data.Text32                               as Text32
 import qualified Luna.IR                                   as IR
 import qualified Luna.Pass                                 as Pass
 import qualified Luna.Pass.Attr                            as Attr
-import qualified Luna.Pass.Parsing.ExprBuilder             as ExprBuilder
+import qualified Luna.Syntax.Text.Parser.Parser.ExprBuilder             as ExprBuilder
 import qualified Luna.Pass.Scheduler                       as Scheduler
 import qualified Luna.Syntax.Text.Lexer                    as Lexer
 import qualified Luna.Syntax.Text.Lexer.Symbol             as Symbol

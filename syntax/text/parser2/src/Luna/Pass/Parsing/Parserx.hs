@@ -10,8 +10,8 @@ import qualified Control.Monad.State.Layered                 as State
 import qualified Luna.IR                                     as IR
 import qualified Luna.Pass                                   as Pass
 import qualified Luna.Pass.Attr                              as Attr
-import qualified Luna.Pass.Parsing.ExprBuilder               as ExprBuilder
-import qualified Luna.Pass.Parsing.Macro                     as Macro
+import qualified Luna.Syntax.Text.Parser.Parser.ExprBuilder               as ExprBuilder
+import qualified Luna.Syntax.Text.Parser.Parser                     as Macro
 import qualified Luna.Pass.Scheduler                         as Scheduler
 import qualified Luna.Syntax.Text.Parser.Data.Name.Hardcoded as Hardcoded
 import qualified Luna.Syntax.Text.Parser.Lexer               as Parsing (Parser, SyntaxVersion (..))

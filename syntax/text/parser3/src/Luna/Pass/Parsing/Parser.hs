@@ -21,7 +21,7 @@ import qualified Luna.IR.Aliases                           as Uni
 import qualified Luna.IR.Term.Ast.Invalid                  as Invalid
 import qualified Luna.Pass                                 as Pass
 import qualified Luna.Pass.Attr                            as Attr
-import qualified Luna.Pass.Parsing.Macro                   as Macro
+import qualified Luna.Syntax.Text.Parser.Parser                   as Macro
 import qualified Luna.Pass.Parsing.Parserx                 as Stage1
 import qualified Luna.Pass.Scheduler                       as Scheduler
 import qualified Luna.Syntax.Text.Parser.Data.Ast          as Ast

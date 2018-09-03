@@ -8,7 +8,7 @@ import Test.Hspec.Expectations.Lifted
 
 import qualified Data.Graph.Data.Graph.Class             as Graph
 import qualified Luna.Pass                               as Pass
-import qualified Luna.Pass.Parsing.Macro                 as Macro
+import qualified Luna.Syntax.Text.Parser.Parser                 as Macro
 import qualified Luna.Pass.Parsing.Parser                as Parser
 import qualified Luna.Pass.Parsing.Parserx               as PP
 import qualified Luna.Pass.Scheduler                     as Scheduler
