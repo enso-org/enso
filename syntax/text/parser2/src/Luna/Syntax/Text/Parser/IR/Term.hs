@@ -24,7 +24,6 @@ import qualified Luna.Syntax.Text.Lexer.Symbol          as Lexer
 import qualified Luna.Syntax.Text.Parser.Data.Ast.Class as Atom
 import qualified Luna.Syntax.Text.Parser.Data.CodeSpan  as CodeSpan
 import qualified Luna.Syntax.Text.Parser.IR.Ast         as Ast
-import qualified Luna.Syntax.Text.Parser.IR.Name        as Name
 import qualified Luna.Syntax.Text.Parser.State.Marker   as Marker
 import qualified Luna.Syntax.Text.Scope                 as Scope
 import qualified Text.Parser.State.Indent               as Indent
@@ -298,8 +297,22 @@ isOperatorBodyChar :: Char -> Bool
 isOperatorBodyChar = \c -> c /= eqChar
                         && c /= '.'
                         && c /= ','
-                        && Name.isOperatorBeginChar c
+                        && isOperatorBeginChar c
 {-# INLINE isOperatorBodyChar #-}
+
+isOperatorBeginChar :: Char -> Bool
+isOperatorBeginChar = \c -> let
+    ord   = Char.ord c
+    check = (ord == 33)              -- !
+         || (ord >= 36 && ord <= 38) -- $%&
+         || (ord >= 42 && ord <= 47) -- *+,-./
+         || (ord >= 58 && ord <= 63) -- :;<>=?
+         || (ord == 92)              -- \
+         || (ord == 94)              -- ^
+         || (ord == 126)             -- ~
+         || Char.generalCategory c == Char.MathSymbol
+    in check
+{-# INLINE isOperatorBeginChar #-}
 
 
 -- === Validation === --
@@ -307,7 +320,7 @@ isOperatorBodyChar = \c -> c /= eqChar
 invalidOperatorSuffix :: Parser UnspannedAst
 invalidOperatorSuffix = let
     inv = Ast.Invalid . Invalid.UnexpectedSuffix <$> sfx
-    sfx = Text.length <$> takeWhile1 Name.isOperatorBeginChar
+    sfx = Text.length <$> takeWhile1 isOperatorBeginChar
     in inv
 {-# INLINE invalidOperatorSuffix #-}
 
@@ -428,7 +441,7 @@ exprLookupTable = Vector.generate lookupTableSize $ exprByChar . Char.chr
 
 exprByChar :: Char -> Parser ()
 exprByChar = \c -> if
-    | Name.isOperatorBeginChar c -> operator
+    | isOperatorBeginChar c -> operator
     | isEolBeginChar      c -> lineBreak
     | isOpenCloseChar     c -> unsafeAnyTokenOperator
     | isVarHead           c -> var <|> wildcard
