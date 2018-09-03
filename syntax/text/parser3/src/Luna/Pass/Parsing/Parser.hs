@@ -305,7 +305,10 @@ buildIR = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
                 f' <- buildIR f
                 l' <- buildIR l
                 r' <- buildIR r
+                let lfcs = CodeSpan.dropOffset
+                         $ (l ^. Ast.span) <> (f ^. Ast.span)
                 (lf :: IR.SomeTerm) <- IR.app' f' l'
+                addCodeSpan lfcs lf
                 IR.app' lf r'
 
     Ast.SectionRight f r -> do

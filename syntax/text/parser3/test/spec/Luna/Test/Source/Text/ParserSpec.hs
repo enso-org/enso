@@ -84,10 +84,7 @@ unitSpec = describe "unit" $ do
 debugSpec :: Spec
 debugSpec = describe "error" $ it "debug" $ do
 
-    let input = [qqStr|# Docs
-def foo:
-    5
-|]
+    let input = [qqStr|a + 2|]
 
     putStrLn "\n\n"
     pprint $ PP.evalVersion1With Macro.unit (convert input)
