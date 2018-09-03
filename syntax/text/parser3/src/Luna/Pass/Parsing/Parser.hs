@@ -24,6 +24,7 @@ import qualified Luna.Pass.Attr                            as Attr
 import qualified Luna.Pass.Parsing.Macro                   as Macro
 import qualified Luna.Pass.Parsing.Parserx                 as Stage1
 import qualified Luna.Pass.Scheduler                       as Scheduler
+import qualified Luna.Syntax.Text.Parser.Data.Ast.Class    as Atom
 import qualified Luna.Syntax.Text.Parser.Data.CodeSpan     as CodeSpan
 import qualified Luna.Syntax.Text.Parser.Data.CodeSpan     as CodeSpan
 import qualified Luna.Syntax.Text.Parser.Data.Name.Special as Name
@@ -37,10 +38,10 @@ import Data.Text32                           (Text32)
 import Luna.Pass                             (Pass)
 import Luna.Syntax.Text.Parser.Data.CodeSpan (CodeSpan)
 import Luna.Syntax.Text.Parser.Data.Invalid  (Invalids)
-import Luna.Syntax.Text.Parser.Data.Result   (Result)
-import Luna.Syntax.Text.Parser.Data.Result   (Result (Result))
 import Luna.Syntax.Text.Parser.IR.Ast        (Spanned (Spanned))
 import Luna.Syntax.Text.Parser.IR.Term       (Ast)
+import Luna.Syntax.Text.Parser.State.Result  (Result)
+import Luna.Syntax.Text.Parser.State.Result  (Result (Result))
 import Luna.Syntax.Text.Source               (Source)
 import OCI.Data.Name                         (Name)
 
@@ -133,10 +134,10 @@ buildGraph :: forall m. BuilderMonad m => Ast -> m IR.SomeTerm
 buildGraph = buildIR
 {-# INLINE buildGraph #-}
 
-strGo :: forall m. BuilderMonad m => Ast.Spanned (Ast.StrChunk Ast.Ast) -> m IR.SomeTerm
+strGo :: forall m. BuilderMonad m => Ast.Spanned (Atom.StrChunk Ast.Ast) -> m IR.SomeTerm
 strGo = \(Spanned cs a) -> addCodeSpan cs =<< case a of
-    Ast.StrPlain t -> IR.rawString' =<< Mutable.fromList (toString t)
-    _              -> IR.invalid' Invalid.ParserError
+    Atom.StrPlain t -> IR.rawString' =<< Mutable.fromList (toString t)
+    _               -> IR.invalid' Invalid.ParserError
     where addCodeSpan cs ir = ir <$ IR.writeLayer @CodeSpan ir cs
 
 

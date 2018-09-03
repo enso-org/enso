@@ -44,9 +44,9 @@ import Text.Parser.State.Indent                 (Indent)
 import Data.Parser             hiding (Result, Token, Tokens, endOfInput)
 import Text.Parser.Combinators (some)
 
-import qualified Luna.Syntax.Text.Parser.Data.Ast.Simple  as Simple
-import           Luna.Syntax.Text.Parser.Data.Ast.Spanned as X
-
+import qualified Luna.Syntax.Text.Parser.Data.Ast.Simple   as Simple
+import           Luna.Syntax.Text.Parser.Data.Ast.Spanned  as X
+import           Luna.Syntax.Text.Parser.State.TokenStream (TokenStream)
 
 -- type Text = Text.Text32
 data SyntaxVersion = Syntax1 | Syntax2 deriving (Show)
@@ -57,7 +57,7 @@ data SyntaxVersion = Syntax1 | Syntax2 deriving (Show)
 
 
 type Parser = StatesT
-   '[ Result
+   '[ TokenStream
     , SyntaxVersion
     , Indent
     , Position
@@ -86,38 +86,6 @@ instance (MonadTrans t, Monad (t m), KnownParserOffset m)
 
 
 
-newtype Result = Result [Spanned Ast] deriving (Default, Mempty, Show)
-
-register :: State.Monad Result m => Spanned Ast -> m ()
-register = \a -> State.modify_ @Result $ wrapped %~ (a:)
-{-# INLINE register #-}
-
-lookupLastToken :: State.Getter Result m => m (Maybe (Spanned Ast))
-lookupLastToken = head . unwrap <$> State.get @Result
-{-# INLINE lookupLastToken #-}
-
-lookupLastSymbol :: State.Getter Result m => m (Maybe Ast)
-lookupLastSymbol = unspan <<$>> lookupLastToken
-{-# INLINE lookupLastSymbol #-}
-
-evalResult :: Monad m => StateT Result m a -> m [Spanned Ast]
-evalResult = fmap (reverse . unwrap) . State.execDefT
-{-# INLINE evalResult #-}
-
-
-
-
-
-
-
-
-
-
-
-
-
------- FIXME vvv
-makeLenses ''Result
 
 
 

@@ -19,10 +19,10 @@ import qualified Luna.Syntax.Text.Parser.IR.Term             as Parsing
 import qualified Luna.Syntax.Text.Parser.Pass.Definition     as Parser
 import qualified Luna.Syntax.Text.Scope                      as Scope
 
-import Data.Text32                         (Text32)
-import Luna.Pass                           (Pass)
-import Luna.Syntax.Text.Parser.Data.Result (Result (Result))
-import Luna.Syntax.Text.Source             (Source (Source))
+import Data.Text32 (Text32)
+import Luna.Pass   (Pass)
+-- import Luna.Syntax.Text.Parser.Data.Result (Result (Result))
+import Luna.Syntax.Text.Source (Source (Source))
 
 
 

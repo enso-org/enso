@@ -8,26 +8,26 @@ import qualified Prelude  as P
 import           Prologue hiding (Text, imp, seq, some, takeWhile)
 import qualified Prologue
 
-import qualified Control.Monad.State.Layered            as State
-import qualified Data.Attoparsec.Text32                 as Parsec
-import qualified Data.Char                              as Char
-import qualified Data.Graph.Data.Layer.Layout           as Layout
-import qualified Data.Text.Position                     as Position
-import qualified Data.Text.Span                         as Span
-import qualified Data.Text32                            as Text
-import qualified Data.Vector                            as Vector
-import qualified Luna.IR                                as IR
-import qualified Luna.IR.Layer                          as Layer
-import qualified Luna.IR.Term.Ast.Invalid               as Invalid
-import qualified Luna.Syntax.Text.Lexer                 as Lexer
-import qualified Luna.Syntax.Text.Lexer.Symbol          as Lexer
-import qualified Luna.Syntax.Text.Parser.Data.Ast.Class as Atom
-import qualified Luna.Syntax.Text.Parser.Data.CodeSpan  as CodeSpan
-import qualified Luna.Syntax.Text.Parser.IR.Ast         as Ast
-import qualified Luna.Syntax.Text.Parser.State.Marker   as Marker
-import qualified Luna.Syntax.Text.Scope                 as Scope
-import qualified Text.Parser.State.Indent               as Indent
-
+import qualified Control.Monad.State.Layered               as State
+import qualified Data.Attoparsec.Text32                    as Parsec
+import qualified Data.Char                                 as Char
+import qualified Data.Graph.Data.Layer.Layout              as Layout
+import qualified Data.Text.Position                        as Position
+import qualified Data.Text.Span                            as Span
+import qualified Data.Text32                               as Text
+import qualified Data.Vector                               as Vector
+import qualified Luna.IR                                   as IR
+import qualified Luna.IR.Layer                             as Layer
+import qualified Luna.IR.Term.Ast.Invalid                  as Invalid
+import qualified Luna.Syntax.Text.Lexer                    as Lexer
+import qualified Luna.Syntax.Text.Lexer.Symbol             as Lexer
+import qualified Luna.Syntax.Text.Parser.Data.Ast.Class    as Atom
+import qualified Luna.Syntax.Text.Parser.Data.CodeSpan     as CodeSpan
+import qualified Luna.Syntax.Text.Parser.IR.Ast            as Ast
+import qualified Luna.Syntax.Text.Parser.State.Marker      as Marker
+import qualified Luna.Syntax.Text.Parser.State.TokenStream as TokenStream
+import qualified Luna.Syntax.Text.Scope                    as Scope
+import qualified Text.Parser.State.Indent                  as Indent
 
 import Control.Monad.State.Layered           (StatesT)
 import Data.Parser                           hiding (Result, Token, endOfInput)
@@ -157,13 +157,13 @@ chunk = takeWhile1 (not . isSeparatorChar)
 -- === Getting values === --
 
 var, cons :: Parser ()
-var  = Ast.register =<< Ast.computeSpan var'
-cons = Ast.register =<< Ast.computeSpan cons'
+var  = TokenStream.add =<< Ast.computeSpan var'
+cons = TokenStream.add =<< Ast.computeSpan cons'
 {-# INLINE var  #-}
 {-# INLINE cons #-}
 
 wildcard :: Parser ()
-wildcard = Ast.register =<< Ast.computeSpan wildcard'
+wildcard = TokenStream.add =<< Ast.computeSpan wildcard'
 {-# INLINE wildcard #-}
 
 var', cons' :: Parser UnspannedAst
@@ -262,7 +262,7 @@ isSeparatorChar = \c ->
 -- === API === --
 
 operator :: Parser ()
-operator = Ast.register =<< Ast.computeSpan operator'
+operator = TokenStream.add =<< Ast.computeSpan operator'
 {-# NOINLINE operator #-}
 
 operator' :: Parser UnspannedAst
@@ -279,7 +279,7 @@ operator' = let
 {-# NOINLINE operator' #-}
 
 unsafeAnyTokenOperator :: Parser ()
-unsafeAnyTokenOperator = Ast.register
+unsafeAnyTokenOperator = TokenStream.add
     =<< Ast.computeSpan (Ast.Operator . convert <$> anyToken)
 {-# INLINE unsafeAnyTokenOperator #-}
 
@@ -294,10 +294,11 @@ isOpenCloseChar = (`elem` ("(){}[]" :: [Char]))
 -- === Helpers === --
 
 isOperatorBodyChar :: Char -> Bool
-isOperatorBodyChar = \c -> c /= eqChar
-                        && c /= '.'
-                        && c /= ','
-                        && isOperatorBeginChar c
+isOperatorBodyChar = \c
+    -> c /= eqChar
+    && c /= '.'
+    && c /= ','
+    && isOperatorBeginChar c
 {-# INLINE isOperatorBodyChar #-}
 
 isOperatorBeginChar :: Char -> Bool
@@ -333,7 +334,7 @@ invalidOperatorSuffix = let
 -- === API === --
 
 comment :: Parser ()
-comment = Ast.register =<< Ast.computeSpan (commentChar >> parser) where
+comment = TokenStream.add =<< Ast.computeSpan (commentChar >> parser) where
     commentChar = token commentStartChar
     body        = trimIndent <$> (multiLine <|> singleLine)
     multiLine   = commentChar *> flexBlock rawLine
@@ -348,17 +349,17 @@ comment = Ast.register =<< Ast.computeSpan (commentChar >> parser) where
 
 --     multilineChars = (\c1 c2 -> [c1,c2]) <$> commentChar <*> commentChar
 --     multiLineOp    = Ast.computeSpan (Ast.Operator . convert <$> multilineChars)
---     multiLineStart = Ast.register =<< multiLineOp
+--     multiLineStart = TokenStream.add =<< multiLineOp
 
 --     singleLineChars = (:[]) <$> commentChar
 --     singleLineOp    = Ast.computeSpan (Ast.Operator . convert <$> singleLineChars)
---     singleLineStart = Ast.register =<< singleLineOp
+--     singleLineStart = TokenStream.add =<< singleLineOp
 
 --     rawLine     = takeWhile (not . isEolBeginChar)
 --     multiLine   = multiLineStart *> flexBlock rawLine
 --     singleLine  = singleLineStart *> (pure <$> rawLine)
 --     body        = trimIndent <$> (multiLine <|> singleLine)
---     parser      = Ast.register =<< Ast.computeSpan (Ast.Comment <$> body)
+--     parser      = TokenStream.add =<< Ast.computeSpan (Ast.Comment <$> body)
 -- {-# INLINE comment #-}
 
 commentStartChar :: Char
@@ -386,7 +387,7 @@ isMarkerBeginChar = (== markerBegin)
 {-# INLINE isMarkerBeginChar #-}
 
 marker :: Parser ()
-marker = Ast.register . (Ast.span %~ CodeSpan.asPhantom) =<< Ast.computeSpan parser where
+marker = TokenStream.add . (Ast.span %~ CodeSpan.asPhantom) =<< Ast.computeSpan parser where
     correct   = Ast.Marker <$> decimal
     incorrect = Ast.Invalid Invalid.InvalidMarker <$ takeTill (== markerEnd)
     parser    = token markerBegin *> (correct <|> incorrect) <* token markerEnd
@@ -418,11 +419,11 @@ exprs = let
 
 
 unknownExpr :: Parser ()
-unknownExpr = Ast.register =<< unknown
+unknownExpr = TokenStream.add =<< unknown
 {-# INLINE unknownExpr #-}
 
 lineBreak :: Parser ()
-lineBreak = Ast.register =<< ast where
+lineBreak = TokenStream.add =<< ast where
     ast = Ast.computeSpan $ do
         some Ast.newline
         Ast.LineBreak <$> Position.getColumn
@@ -469,7 +470,7 @@ fastExprByChar = \c -> let ord = Char.ord c in if
 
 
 number :: Parser ()
-number = Ast.register =<< Ast.computeSpan parser where
+number = TokenStream.add =<< Ast.computeSpan parser where
     parser  = correct <**> option id (const <$> invalidIdentSuffix)
     correct = Ast.Number <$> digits
 {-# INLINE number #-}
@@ -514,14 +515,14 @@ failIf = \b -> if b then fail "Failed check" else pure ()
 {-# INLINE failIf #-}
 
 strBuilder :: Char -> Parser ()
-strBuilder quote = Ast.register =<< Ast.computeSpan parser where
+strBuilder quote = TokenStream.add =<< Ast.computeSpan parser where
     parser = do
         let isQuote      = (== quote)
             isBodyChar c = c == quote || isEolBeginChar c
 
         quoteLen <- Text.length <$> takeWhile1 isQuote
 
-        let mkChunk       = \p -> Ast.register =<< Ast.computeSpan p
+        let mkChunk       = \p -> TokenStream.add =<< Ast.computeSpan p
             chunkPlain    = Atom.StrPlain <$> takeWhile1 (not . isBodyChar)
             chunkQuote    = bodyQuotes =<< takeWhile1 isQuote
             bodyQuotes qs = Atom.StrPlain qs <$ failIf (Text.length qs == quoteLen)
@@ -574,24 +575,24 @@ flexBlock = \p -> option mempty $ convert <$> flexBlock1 p
 
 
 -- varExpr :: Parser ()
--- varExpr = Ast.register =<< var
+-- varExpr = TokenStream.add =<< var
 -- {-# INLINE varExpr #-}
 
 -- consExpr :: Parser ()
--- consExpr = Ast.register =<< cons
+-- consExpr = TokenStream.add =<< cons
 -- {-# INLINE consExpr #-}
 
 -- wildcardExpr :: Parser ()
--- wildcardExpr = Ast.register =<< wildcard
+-- wildcardExpr = TokenStream.add =<< wildcard
 -- {-# INLINE wildcardExpr #-}
 
 -- operatorExpr :: Parser ()
--- operatorExpr = Ast.register =<< operator
+-- operatorExpr = TokenStream.add =<< operator
 -- {-# INLINE operatorExpr #-}
 
 -- lamExpr :: Parser ()
 -- lamExpr = arrow >> body where
---     arrow = Ast.register =<< Ast.computeSpan (Ast.Operator . convert <$> tokP)
+--     arrow = TokenStream.add =<< Ast.computeSpan (Ast.Operator . convert <$> tokP)
 --     body  = void $ discoverBlock1 expr
 --     tokP  = State.get @Ast.SyntaxVersion >>= \case
 --         Ast.Syntax1 -> tokens ":"

@@ -32,12 +32,12 @@ import Data.Set                              (Set)
 import Data.Text.Position                    (Delta (Delta), Position)
 import Data.Vector                           (Vector)
 import Luna.Syntax.Text.Parser.Data.CodeSpan (CodeSpan)
-import Luna.Syntax.Text.Parser.Data.Result   (Result)
 import Luna.Syntax.Text.Parser.IR.Ast        (Spanned (Spanned))
 import Luna.Syntax.Text.Parser.IR.Term       (Ast)
 import Luna.Syntax.Text.Source               (Source)
 import OCI.Data.Name                         (Name)
 import Text.Parser.State.Indent              (Indent)
+-- import Luna.Syntax.Text.Parser.Data.Result   (Result)
 
 
 import Luna.Pass.Parsing.ExprBuilder (ExprBuilderMonad, buildExpr,

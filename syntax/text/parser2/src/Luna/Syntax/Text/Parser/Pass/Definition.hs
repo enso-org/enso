@@ -6,23 +6,24 @@ module Luna.Syntax.Text.Parser.Pass.Definition where
 
 import Prologue
 
-import qualified Control.Monad.State.Layered            as State
-import qualified Data.Attoparsec.Internal.Types         as Parser
-import qualified Data.Graph.Component.Node.Construction as Term
-import qualified Data.Text32                            as Text32
-import qualified Luna.IR                                as IR
-import qualified Luna.Pass                              as Pass
-import qualified Luna.Pass.Attr                         as Attr
-import qualified Luna.Pass.Parsing.ExprBuilder          as ExprBuilder
-import qualified Luna.Pass.Scheduler                    as Scheduler
-import qualified Luna.Syntax.Text.Lexer                 as Lexer
-import qualified Luna.Syntax.Text.Lexer.Symbol          as Symbol
-import qualified Luna.Syntax.Text.Parser.IR.Ast         as Ast
-import qualified Luna.Syntax.Text.Parser.IR.Ast         as Parsing
-import qualified Luna.Syntax.Text.Parser.IR.Term        as Parsing
-import qualified Luna.Syntax.Text.Parser.State.Marker   as Marker
-import qualified Text.Megaparsec                        as Parser
-import qualified Text.Parser.State.Indent               as State.Indent
+import qualified Control.Monad.State.Layered               as State
+import qualified Data.Attoparsec.Internal.Types            as Parser
+import qualified Data.Graph.Component.Node.Construction    as Term
+import qualified Data.Text32                               as Text32
+import qualified Luna.IR                                   as IR
+import qualified Luna.Pass                                 as Pass
+import qualified Luna.Pass.Attr                            as Attr
+import qualified Luna.Pass.Parsing.ExprBuilder             as ExprBuilder
+import qualified Luna.Pass.Scheduler                       as Scheduler
+import qualified Luna.Syntax.Text.Lexer                    as Lexer
+import qualified Luna.Syntax.Text.Lexer.Symbol             as Symbol
+import qualified Luna.Syntax.Text.Parser.IR.Ast            as Ast
+import qualified Luna.Syntax.Text.Parser.IR.Ast            as Parsing
+import qualified Luna.Syntax.Text.Parser.IR.Term           as Parsing
+import qualified Luna.Syntax.Text.Parser.State.Marker      as Marker
+import qualified Luna.Syntax.Text.Parser.State.TokenStream as TokenStream
+import qualified Text.Megaparsec                           as Parser
+import qualified Text.Parser.State.Indent                  as State.Indent
 
 import Data.Attoparsec.Internal.Types              (IResult)
 import Data.Parser                                 (PartialParser, closePartial,
@@ -33,7 +34,7 @@ import Luna.IR                                     (SomeTerm)
 import Luna.Pass                                   (Pass)
 import Luna.Syntax.Text.Parser.Data.CodeSpan       (CodeSpan, CodeSpanRange)
 import Luna.Syntax.Text.Parser.Data.Name.Hardcoded (hardcode)
-import Luna.Syntax.Text.Parser.Data.Result         (Result (Result))
+-- import Luna.Syntax.Text.Parser.Data.Result         (Result (Result))
 -- import Luna.Syntax.Text.Parser.IR.Class            (Error, ParserBase, Stream,
                                                     -- Token)
 import Luna.Syntax.Text.Parser.IR.Term (Ast)
@@ -192,7 +193,7 @@ runStack = \sv p txt
      $ State.evalDefT @Position
      $ State.Indent.eval
      $ flip (State.evalT @Parsing.SyntaxVersion) sv
-     $ Parsing.evalResult p
+     $ TokenStream.eval p
 {-# INLINE runStack #-}
 
 

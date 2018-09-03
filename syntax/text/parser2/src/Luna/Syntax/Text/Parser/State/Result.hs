@@ -1,4 +1,4 @@
-module Luna.Syntax.Text.Parser.Data.Result where
+module Luna.Syntax.Text.Parser.State.Result where
 
 import Prologue
 
@@ -12,9 +12,15 @@ import qualified Luna.Pass.Attr                  as Attr
 -- === Result === --
 --------------------
 
+-- === Definition === --
+
 newtype Result = Result IR.SomeTerm deriving (Show, Eq)
 type instance Attr.Type Result = Attr.Atomic
 makeLenses ''Result
 
+
+-- === Instances === --
+
 instance Default Result where
-    def = Result Component.unsafeNull ; {-# INLINE def #-}
+    def = Result Component.unsafeNull
+    {-# INLINE def #-}
