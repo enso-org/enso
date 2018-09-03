@@ -328,7 +328,7 @@ buildIR = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
 
     Ast.App f a -> do
         let (tok, arg :| args) = collectApps (pure a) f
-            continue       = builAppsIR args =<< builAppIR arg =<< buildIR tok
+            continue       = buildAppsIR args =<< buildAppIR arg =<< buildIR tok
             assertNoArgs f = if not (null args) then parseError else f
             mfixArg        = Ast.prependAsOffset tok arg
 
@@ -375,15 +375,31 @@ assertSingleArg args f = case args of
 
 
 
-builAppIR :: BuilderMonad m => Lexer.Token -> IR.SomeTerm -> m IR.SomeTerm
-builAppIR = \arg t -> do
+buildAppIR :: BuilderMonad m => Lexer.Token -> IR.SomeTerm -> m IR.SomeTerm
+buildAppIR = \arg t -> do
     arg' <- buildIR arg
-    IR.app' t arg'
+    inheritCodeSpan2 IR.app' t arg'
 
-builAppsIR :: BuilderMonad m => [Lexer.Token] -> IR.SomeTerm -> m IR.SomeTerm
-builAppsIR = \args t -> do
+buildAppsIR :: BuilderMonad m => [Lexer.Token] -> IR.SomeTerm -> m IR.SomeTerm
+buildAppsIR = \args t -> do
     args' <- buildIR <$$> args
-    foldlM IR.app' t args'
+    foldlM (inheritCodeSpan2 IR.app') t args'
+
+
+inheritCodeSpan2 :: BuilderMonad m
+    => (IR.SomeTerm -> IR.SomeTerm -> m IR.SomeTerm)
+    -> (IR.SomeTerm -> IR.SomeTerm -> m IR.SomeTerm)
+inheritCodeSpan2 f t1 t2 = do
+    s1 <- Layer.read @CodeSpan t1
+    -- The new IR becomes a new parent, so it handles the left offset.
+    let s1' = CodeSpan.dropOffset s1
+    Layer.write @CodeSpan t1 s1'
+    s2 <- Layer.read @CodeSpan t2
+    out <- f t1 t2
+    addCodeSpan (s1 <> s2) out
+    pure out
+{-# INLINE inheritCodeSpan2 #-}
+
 
 type MixFixBuilder = forall m. BuilderMonad m
     => Lexer.Token -> [Lexer.Token] -> m IR.SomeTerm
@@ -462,7 +478,7 @@ buildCaseOfIR arg args = assertSingleArg args $ \a -> let
             _               -> IR.match' base . pure      =<< match a
 
 buildListIR :: MixFixBuilder
-buildListIR arg args = builAppsIR args =<< case Ast.unspan arg of
+buildListIR arg args = buildAppsIR args =<< case Ast.unspan arg of
     Ast.List as -> IR.list' =<< buildIR <$$> as
     _           -> parseError
 
@@ -470,7 +486,7 @@ buildTupleIR :: MixFixBuilder
 buildTupleIR = \arg args -> do
     -- print "TUPLE"
     -- pprint arg
-    builAppsIR args =<< case Ast.unspan arg of
+    buildAppsIR args =<< case Ast.unspan arg of
         Ast.List []  -> IR.tuple' []
         Ast.List [a] -> IR.grouped' =<< buildIR a
         Ast.List as  -> IR.tuple'   =<< buildIR <$$> as
