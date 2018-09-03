@@ -26,26 +26,6 @@ import Type.Any           (AnyType)
 
 
 
-------------------------
--- === CodeOffset === --
-------------------------
-
--- === Definition === --
-
-data CodeOffset = CodeOffset
-    { _realOffset :: Delta
-    , _viewOffset :: Delta
-    } deriving (Eq, Ord, Show)
-makeLenses ''CodeOffset
-
-
--- === Instances === --
-
-instance Mempty    CodeOffset where mempty = CodeOffset mempty mempty
-instance Semigroup CodeOffset where CodeOffset r v <> CodeOffset r' v' = CodeOffset (r <> r') (v <> v')
-
-
-
 ----------------------
 -- === CodeSpan === --
 ----------------------
@@ -64,39 +44,27 @@ GTraversable.derive ''CodeSpan
 -- === Utils === --
 
 mkRealSpan :: LeftSpacedSpan -> CodeSpan
-mkRealSpan s = CodeSpan s s ; {-# INLINE mkRealSpan #-}
+mkRealSpan = \s -> CodeSpan s s
+{-# INLINE mkRealSpan #-}
 
 mkPhantomSpan :: LeftSpacedSpan -> CodeSpan
-mkPhantomSpan s = CodeSpan s (s & Span.length .~ mempty) ; {-# INLINE mkPhantomSpan #-}
+mkPhantomSpan = \s -> CodeSpan s (s & Span.length .~ mempty)
+{-# INLINE mkPhantomSpan #-}
 
 dropOffset :: CodeSpan -> CodeSpan
-dropOffset cs = cs & realSpan . offset .~ mempty
-                   & viewSpan . offset .~ mempty
+dropOffset = (realSpan . offset .~ mempty)
+           . (viewSpan . offset .~ mempty)
 {-# INLINE dropOffset #-}
 
 dropLength :: CodeSpan -> CodeSpan
-dropLength cs = cs & realSpan . length .~ mempty
-                   & viewSpan . length .~ mempty
+dropLength = (realSpan . length .~ mempty)
+           . (viewSpan . length .~ mempty)
 {-# INLINE dropLength #-}
 
 asOffsetSpan :: CodeSpan -> CodeSpan
-asOffsetSpan cs = cs & realSpan %~ Span.asOffsetSpan
-                     & viewSpan %~ Span.asOffsetSpan
+asOffsetSpan = (realSpan %~ Span.asOffsetSpan)
+             . (viewSpan %~ Span.asOffsetSpan)
 {-# INLINE asOffsetSpan #-}
-
-asCodeOffset :: CodeSpan -> CodeOffset
-asCodeOffset = extractCodeOffset . asOffsetSpan
-{-# INLINE asCodeOffset #-}
-
-extractCodeOffset :: CodeSpan -> CodeOffset
-extractCodeOffset cs = CodeOffset (cs ^. realSpan . Span.offset) (cs ^. viewSpan . Span.offset)
-{-# INLINE extractCodeOffset #-}
-
--- -- | Concat does not checks the length of left span. Please see a note in the
--- --   Span implementation for details and use case examples.
--- concat :: CodeSpan -> CodeSpan -> CodeSpan
--- concat (CodeSpan r v) (CodeSpan r' v') = CodeSpan (Span.concat r r') (Span.concat v v')
--- {-# INLINE concat #-}
 
 prependAsOffset :: CodeSpan -> CodeSpan -> CodeSpan
 prependAsOffset (CodeSpan r v) (CodeSpan r' v')
@@ -108,8 +76,8 @@ asPhantom = \cs -> cs & viewSpan . Span.length .~ mempty
 {-# INLINE asPhantom #-}
 
 asSolid :: CodeSpan -> CodeSpan
-asSolid = \cs -> cs & realSpan %~ Span.asSolid
-                    & viewSpan %~ Span.asSolid
+asSolid = (realSpan %~ Span.asSolid)
+        . (viewSpan %~ Span.asSolid)
 {-# INLINE asSolid #-}
 
 
@@ -117,10 +85,12 @@ asSolid = \cs -> cs & realSpan %~ Span.asSolid
 
 instance Mempty CodeSpan where
     mempty = CodeSpan mempty mempty
+    {-# INLINE mempty #-}
 
 instance Semigroup CodeSpan where
     CodeSpan r v <> CodeSpan r' v' = CodeSpan (r <> r') (v <> v')
     {-# INLINE (<>) #-}
+
 
 
 ----------------------------
@@ -135,6 +105,42 @@ instance Monad m => FoldClass.Builder (Fold.Scoped (Fold.Deep (Fold.Discovery a)
 instance Monad m => FoldClass.Builder Buffer.CopyInitialization2 m CodeSpan
 instance Monad m => FoldClass.Builder Buffer.CopyInitialization  m CodeSpan
 instance Monad m => FoldClass.Builder Buffer.Discovery  m CodeSpan
+
+
+
+
+
+
+-- ------------------------
+-- -- === CodeOffset === --
+-- ------------------------
+
+-- -- === Definition === --
+
+-- data CodeOffset = CodeOffset
+--     { _realOffset :: Delta
+--     , _viewOffset :: Delta
+--     } deriving (Eq, Ord, Show)
+-- makeLenses ''CodeOffset
+
+
+-- -- === Instances === --
+
+-- instance Mempty    CodeOffset where mempty = CodeOffset mempty mempty
+-- instance Semigroup CodeOffset where CodeOffset r v <> CodeOffset r' v' = CodeOffset (r <> r') (v <> v')
+
+
+
+-- asCodeOffset :: CodeSpan -> CodeOffset
+-- asCodeOffset = extractCodeOffset . asOffsetSpan
+-- {-# INLINE asCodeOffset #-}
+
+-- extractCodeOffset :: CodeSpan -> CodeOffset
+-- extractCodeOffset cs = CodeOffset (cs ^. realSpan . Span.offset) (cs ^. viewSpan . Span.offset)
+-- {-# INLINE extractCodeOffset #-}
+
+
+
 
 
 -- initCodeSpan :: Req m '[Writer // Layer // Abstract (Elem t) // CodeSpan] => Listener (New // Elem t) m
@@ -231,12 +237,12 @@ instance Monad m => FoldClass.Builder Buffer.Discovery  m CodeSpan
 
 
 
----------------------------
--- === CodeSpanRange === --
----------------------------
+-- ---------------------------
+-- -- === CodeSpanRange === --
+-- ---------------------------
 
--- | Parser state used to keep the current source range covered by code spans.
-newtype CodeSpanRange = CodeSpanRange Delta deriving (Show, Default, Mempty)
-makeLenses ''CodeSpanRange
+-- -- | Parser state used to keep the current source range covered by code spans.
+-- newtype CodeSpanRange = CodeSpanRange Delta deriving (Show, Default, Mempty)
+-- makeLenses ''CodeSpanRange
 
-instance Convertible Delta CodeSpanRange where convert = wrap ; {-# INLINE convert #-}
+-- instance Convertible Delta CodeSpanRange where convert = wrap ; {-# INLINE convert #-}

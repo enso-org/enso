@@ -17,16 +17,16 @@ import qualified Luna.IR                                   as IR
 import qualified Luna.IR.Aliases                           as Uni
 import qualified Luna.IR.Term.Ast.Invalid                  as Invalid
 import qualified Luna.Pass                                 as Pass
+import qualified Luna.Syntax.Text.Parser.Data.Ast          as Ast
 import qualified Luna.Syntax.Text.Parser.Data.CodeSpan     as CodeSpan
 import qualified Luna.Syntax.Text.Parser.Data.Name.Special as Name
-import qualified Luna.Syntax.Text.Parser.IR.Ast            as Ast
 
 import Data.Map                              (Map)
 import Data.Set                              (Set)
 import Data.Text.Position                    (Delta (Delta))
+import Luna.Syntax.Text.Parser.Data.Ast      (Spanned (Spanned))
 import Luna.Syntax.Text.Parser.Data.CodeSpan (CodeSpan)
-import Luna.Syntax.Text.Parser.IR.Ast        (Spanned (Spanned))
-import Luna.Syntax.Text.Parser.IR.Term       (Ast)
+import Luna.Syntax.Text.Parser.Lexer         (Ast)
 import Luna.Syntax.Text.Source               (Source)
 import OCI.Data.Name                         (Name)
 

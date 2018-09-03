@@ -1,6 +1,4 @@
-{-# LANGUAGE NoStrict #-}
-
-module Luna.Syntax.Text.Parser.Data.Invalid where
+module Luna.Syntax.Text.Parser.State.Invalid where
 
 import Prologue
 
@@ -23,7 +21,8 @@ makeLenses ''Invalids
 
 -- -- === Utils === --
 
-registerInvalid :: Attr.Editor Invalids m => IR.SomeTerm -> m ()
-registerInvalid t = Attr.modify_ @Invalids $ wrapped %~ (t:) ; {-# INLINE registerInvalid #-}
+register :: Attr.Editor Invalids m => IR.SomeTerm -> m ()
+register t = Attr.modify_ @Invalids $ wrapped %~ (t:)
+{-# INLINE register #-}
 
 

@@ -2,7 +2,7 @@
 {-# LANGUAGE NoStrict #-}
 {-# LANGUAGE UndecidableInstances      #-}
 
-module Luna.Syntax.Text.Parser.IR.Term where
+module Luna.Syntax.Text.Parser.Lexer where
 
 import qualified Prelude                 as P
 import           Prologue                hiding (imp, seq, some)
@@ -27,7 +27,7 @@ import qualified Luna.IR.Term.Ast.Invalid                  as Invalid
 import qualified Luna.Syntax.Text.Lexer                    as Lexer
 import qualified Luna.Syntax.Text.Lexer.Symbol             as Lexer
 import qualified Luna.Syntax.Text.Parser.Data.CodeSpan     as CodeSpan
-import qualified Luna.Syntax.Text.Parser.Data.Invalid      as Attr
+import qualified Luna.Syntax.Text.Parser.State.Invalid      as Attr
 import qualified Luna.Syntax.Text.Parser.Data.Name.Spaced  as Name
 import qualified Luna.Syntax.Text.Parser.Data.Name.Special as SpecialName
 import qualified Luna.Syntax.Text.Parser.IR.Expr           as Expr

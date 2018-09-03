@@ -1,6 +1,6 @@
 {-# LANGUAGE NoStrict #-}
 
-module Luna.Syntax.Text.Parser.Data.Invalid where
+module Luna.Syntax.Text.Parser.State.Invalid where
 
 import Prologue
 

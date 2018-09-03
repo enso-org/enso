@@ -32,7 +32,7 @@ import Data.Set                              (Set)
 import Data.Text.Position                    (Delta)
 import Luna.Pass                             (Pass)
 import Luna.Syntax.Text.Parser.Data.CodeSpan (CodeSpan)
-import Luna.Syntax.Text.Parser.Data.Invalid  (Invalids)
+import Luna.Syntax.Text.Parser.State.Invalid  (Invalids)
 import Luna.Syntax.Text.Parser.Data.Result   (Result)
 import Luna.Syntax.Text.Source               (Source)
 

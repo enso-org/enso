@@ -13,8 +13,8 @@ import qualified Luna.Pass.Parsing.Parser                as Parser
 import qualified Luna.Pass.Parsing.Parserx               as PP
 import qualified Luna.Pass.Scheduler                     as Scheduler
 import qualified Luna.Syntax.Prettyprint                 as Prettyprint
+import qualified Luna.Syntax.Text.Parser.Data.Ast        as Ast
 import qualified Luna.Syntax.Text.Parser.Data.Ast.Simple as Simple
-import qualified Luna.Syntax.Text.Parser.IR.Ast          as Ast
 
 import Data.Graph.Data.Graph.Class (Graph)
 import Data.Text32                 (Text32)

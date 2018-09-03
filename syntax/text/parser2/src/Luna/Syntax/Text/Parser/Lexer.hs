@@ -2,13 +2,14 @@
 {-# LANGUAGE OverloadedStrings         #-}
 {-# LANGUAGE UndecidableInstances      #-}
 
-module Luna.Syntax.Text.Parser.IR.Term where
+module Luna.Syntax.Text.Parser.Lexer where
 
 import qualified Prelude  as P
 import           Prologue hiding (Text, imp, seq, some, takeWhile)
 import qualified Prologue
 
 import qualified Control.Monad.State.Layered               as State
+import qualified Data.Attoparsec.Internal.Types            as AttoParsec
 import qualified Data.Attoparsec.Text32                    as Parsec
 import qualified Data.Char                                 as Char
 import qualified Data.Graph.Data.Layer.Layout              as Layout
@@ -16,38 +17,32 @@ import qualified Data.Text.Position                        as Position
 import qualified Data.Text.Span                            as Span
 import qualified Data.Text32                               as Text
 import qualified Data.Vector                               as Vector
-import qualified Luna.IR                                   as IR
 import qualified Luna.IR.Layer                             as Layer
 import qualified Luna.IR.Term.Ast.Invalid                  as Invalid
 import qualified Luna.Syntax.Text.Lexer                    as Lexer
 import qualified Luna.Syntax.Text.Lexer.Symbol             as Lexer
+import qualified Luna.Syntax.Text.Parser.Data.Ast          as Ast
 import qualified Luna.Syntax.Text.Parser.Data.Ast.Class    as Atom
 import qualified Luna.Syntax.Text.Parser.Data.CodeSpan     as CodeSpan
-import qualified Luna.Syntax.Text.Parser.IR.Ast            as Ast
 import qualified Luna.Syntax.Text.Parser.State.Marker      as Marker
 import qualified Luna.Syntax.Text.Parser.State.TokenStream as TokenStream
 import qualified Luna.Syntax.Text.Scope                    as Scope
 import qualified Text.Parser.State.Indent                  as Indent
 
-import Control.Monad.State.Layered           (StatesT)
-import Data.Parser                           hiding (Result, Token, endOfInput)
-import Data.Text.Position                    (FileOffset (..))
-import Data.Text.Position                    (Delta)
-import Data.Vector                           (Vector)
-import Luna.IR                               (SomeTerm, Term)
-import Luna.Syntax.Text.Parser.Data.CodeSpan (CodeSpan (CodeSpan),
-                                              CodeSpanRange (..))
-import Luna.Syntax.Text.Parser.IR.Ast        (isEolBeginChar)
-import Luna.Syntax.Text.Parser.IR.Ast        (Parser)
--- import Luna.Syntax.Text.Parser.Pass.Class       (IRB (IRB, fromIRB),
---                                                  IRBS (IRBS), fromIRBS, irb0,
---                                                  irb1, irb2, irb3, irb4, irb5,
---                                                  liftIRBS1, liftIRBS2,
---                                                  liftIRBS3, withIRB)
-import Luna.Syntax.Text.Parser.State.LastOffset (LastOffset (LastOffset))
-import OCI.Data.Name                            (Name)
-import Text.Parser.Combinators                  (some)
-import Text.Parser.State.Indent                 (Indent)
+import Control.Monad.State.Layered               (StatesT)
+import Data.Parser                               hiding (Result, Token,
+                                                  endOfInput, newline)
+import Data.Text.Position                        (FileOffset (..))
+import Data.Text.Position                        (Delta)
+import Data.Text.Position                        (Position)
+import Data.Vector                               (Vector)
+import Luna.Syntax.Text.Parser.Data.Ast.Spanned  (Spanned (Spanned))
+import Luna.Syntax.Text.Parser.Data.CodeSpan     (CodeSpan (CodeSpan))
+import Luna.Syntax.Text.Parser.State.LastOffset  (LastOffset (LastOffset))
+import Luna.Syntax.Text.Parser.State.TokenStream (TokenStream)
+import OCI.Data.Name                             (Name)
+import Text.Parser.Combinators                   (some)
+import Text.Parser.State.Indent                  (Indent)
 
 import Data.Parser.Instances.Attoparsec ()
 
@@ -59,6 +54,121 @@ type Text = Text.Text32
 
 type Ast = Ast.Spanned Ast.Ast
 type UnspannedAst = Ast.Ast
+
+
+
+
+
+-- type Text = Text.Text32
+data SyntaxVersion = Syntax1 | Syntax2 deriving (Show)
+
+
+
+
+
+
+type Parser = StatesT
+   '[ TokenStream
+    , SyntaxVersion
+    , Indent
+    , Position
+    , LastOffset
+    , Marker.State
+    , FileOffset
+    , Scope.Scope
+    ] Parsec.Parser
+
+
+
+class Monad m => KnownParserOffset m where
+    getParserOffset :: m Delta
+
+instance KnownParserOffset Parsec.Parser where
+    getParserOffset = AttoParsec.Parser $ \t pos more _ succ ->
+        succ t pos more (convert $! AttoParsec.fromPos pos)
+    {-# INLINE getParserOffset #-}
+
+instance (MonadTrans t, Monad (t m), KnownParserOffset m)
+      => KnownParserOffset (t m) where
+    getParserOffset = lift getParserOffset
+    {-# INLINE getParserOffset #-}
+
+
+
+
+
+
+
+
+
+
+-------------------
+-- === Spans === --
+-------------------
+
+getLastOffset :: State.Getter LastOffset m => m Delta
+getLastOffset = unwrap <$> State.get @LastOffset
+{-# INLINE getLastOffset #-}
+
+putLastOffset :: State.Setter LastOffset m => Delta -> m ()
+putLastOffset = State.put @LastOffset . wrap
+{-# INLINE putLastOffset #-}
+
+spanned :: Parser a -> Parser (CodeSpan, a)
+spanned = \parser -> do
+    lastEndOff <- getLastOffset
+    startOff   <- getParserOffset
+    out        <- parser
+    endOff     <- getParserOffset
+    nextOff    <- whiteSpace
+    putLastOffset endOff
+
+    let spacing   = startOff - lastEndOff
+        bodyLen   = endOff - startOff
+        totalSpan = bodyLen + nextOff
+        realSpan  = Span.leftSpacedSpan spacing bodyLen
+
+    Position.incColumn totalSpan
+    pure (CodeSpan realSpan realSpan, out)
+{-# INLINE spanned #-}
+
+newline :: Parser ()
+newline = do
+    len <- eol
+    off <- whiteSpace
+    Position.succLine
+    Position.incColumn off
+{-# INLINE newline #-}
+
+lexeme :: Parser a -> Parser a
+lexeme = \p -> p <* whiteSpace
+{-# INLINE lexeme #-}
+
+whiteSpace :: Parser Delta
+whiteSpace = convert . Text.length <$> takeMany ' '
+{-# INLINE whiteSpace #-}
+
+computeSpan :: Parser a -> Parser (Spanned a)
+computeSpan = \p -> uncurry Spanned <$> spanned p
+{-# INLINE computeSpan #-}
+
+eol :: Parser Delta
+eol = (1 <$ n) <|> (2 <$ rn) <|> (1 <$ r) where
+    n  = token '\n'
+    r  = token '\r'
+    rn = r >> n
+{-# INLINE eol #-}
+
+isEolBeginChar :: Char -> Bool
+isEolBeginChar = (`elem` eolStartChars)
+{-# INLINE isEolBeginChar #-}
+
+eolStartChars :: [Char]
+eolStartChars = ['\n', '\r', '\ETX']
+{-# INLINE eolStartChars #-}
+
+
+
 
 
 
@@ -82,9 +192,6 @@ trimIndent = \texts -> let
 
 
 
-getLastOffset   :: State.Getter LastOffset m => m Delta
-getLastOffset   = unwrap <$> State.get @LastOffset
-
 
 
 
@@ -93,9 +200,9 @@ getLastOffset   = unwrap <$> State.get @LastOffset
 -------------------------------
 
 syntax1Only :: Parser a -> Parser a
-syntax1Only = \p -> State.get @Ast.SyntaxVersion >>= \case
-    Ast.Syntax1 -> p
-    Ast.Syntax2 -> fail "syntax 1 only"
+syntax1Only = \p -> State.get @SyntaxVersion >>= \case
+    Syntax1 -> p
+    Syntax2 -> fail "syntax 1 only"
 {-# INLINE syntax1Only #-}
 
 
@@ -105,11 +212,11 @@ syntax1Only = \p -> State.get @Ast.SyntaxVersion >>= \case
 ---------------------
 
 symbol :: Text -> Parser Text
-symbol = Ast.lexeme . tokens
+symbol = lexeme . tokens
 {-# INLINE symbol #-}
 
 invalid :: Parser Invalid.Symbol -> Parser Ast
-invalid = Ast.computeSpan . invalid'
+invalid = computeSpan . invalid'
 {-# INLINE invalid #-}
 
 invalid' :: Parser Invalid.Symbol -> Parser UnspannedAst
@@ -157,13 +264,13 @@ chunk = takeWhile1 (not . isSeparatorChar)
 -- === Getting values === --
 
 var, cons :: Parser ()
-var  = TokenStream.add =<< Ast.computeSpan var'
-cons = TokenStream.add =<< Ast.computeSpan cons'
+var  = TokenStream.add =<< computeSpan var'
+cons = TokenStream.add =<< computeSpan cons'
 {-# INLINE var  #-}
 {-# INLINE cons #-}
 
 wildcard :: Parser ()
-wildcard = TokenStream.add =<< Ast.computeSpan wildcard'
+wildcard = TokenStream.add =<< computeSpan wildcard'
 {-# INLINE wildcard #-}
 
 var', cons' :: Parser UnspannedAst
@@ -262,7 +369,7 @@ isSeparatorChar = \c ->
 -- === API === --
 
 operator :: Parser ()
-operator = TokenStream.add =<< Ast.computeSpan operator'
+operator = TokenStream.add =<< computeSpan operator'
 {-# NOINLINE operator #-}
 
 operator' :: Parser UnspannedAst
@@ -280,7 +387,7 @@ operator' = let
 
 unsafeAnyTokenOperator :: Parser ()
 unsafeAnyTokenOperator = TokenStream.add
-    =<< Ast.computeSpan (Ast.Operator . convert <$> anyToken)
+    =<< computeSpan (Ast.Operator . convert <$> anyToken)
 {-# INLINE unsafeAnyTokenOperator #-}
 
 eqChar :: Char
@@ -334,7 +441,7 @@ invalidOperatorSuffix = let
 -- === API === --
 
 comment :: Parser ()
-comment = TokenStream.add =<< Ast.computeSpan (commentChar >> parser) where
+comment = TokenStream.add =<< computeSpan (commentChar >> parser) where
     commentChar = token commentStartChar
     body        = trimIndent <$> (multiLine <|> singleLine)
     multiLine   = commentChar *> flexBlock rawLine
@@ -348,18 +455,18 @@ comment = TokenStream.add =<< Ast.computeSpan (commentChar >> parser) where
 --     commentChar    = token commentStartChar
 
 --     multilineChars = (\c1 c2 -> [c1,c2]) <$> commentChar <*> commentChar
---     multiLineOp    = Ast.computeSpan (Ast.Operator . convert <$> multilineChars)
+--     multiLineOp    = computeSpan (Ast.Operator . convert <$> multilineChars)
 --     multiLineStart = TokenStream.add =<< multiLineOp
 
 --     singleLineChars = (:[]) <$> commentChar
---     singleLineOp    = Ast.computeSpan (Ast.Operator . convert <$> singleLineChars)
+--     singleLineOp    = computeSpan (Ast.Operator . convert <$> singleLineChars)
 --     singleLineStart = TokenStream.add =<< singleLineOp
 
 --     rawLine     = takeWhile (not . isEolBeginChar)
 --     multiLine   = multiLineStart *> flexBlock rawLine
 --     singleLine  = singleLineStart *> (pure <$> rawLine)
 --     body        = trimIndent <$> (multiLine <|> singleLine)
---     parser      = TokenStream.add =<< Ast.computeSpan (Ast.Comment <$> body)
+--     parser      = TokenStream.add =<< computeSpan (Ast.Comment <$> body)
 -- {-# INLINE comment #-}
 
 commentStartChar :: Char
@@ -387,7 +494,7 @@ isMarkerBeginChar = (== markerBegin)
 {-# INLINE isMarkerBeginChar #-}
 
 marker :: Parser ()
-marker = TokenStream.add . (Ast.span %~ CodeSpan.asPhantom) =<< Ast.computeSpan parser where
+marker = TokenStream.add . (Ast.span %~ CodeSpan.asPhantom) =<< computeSpan parser where
     correct   = Ast.Marker <$> decimal
     incorrect = Ast.Invalid Invalid.InvalidMarker <$ takeTill (== markerEnd)
     parser    = token markerBegin *> (correct <|> incorrect) <* token markerEnd
@@ -408,12 +515,12 @@ expr = fastExprByChar =<< peekToken
 exprs :: Parser ()
 exprs = let
     parser = do
-        Ast.whiteSpace
+        whiteSpace
         many expr
         token '\ETX'
         pure ()
         -- Ast.tokens' . unwrap <$> State.get @Ast.Result
-    -- in State.put @Ast.Result . wrap . pure =<< Ast.computeSpan parser
+    -- in State.put @Ast.Result . wrap . pure =<< computeSpan parser
     in parser
 {-# NOINLINE exprs #-}
 
@@ -424,8 +531,8 @@ unknownExpr = TokenStream.add =<< unknown
 
 lineBreak :: Parser ()
 lineBreak = TokenStream.add =<< ast where
-    ast = Ast.computeSpan $ do
-        some Ast.newline
+    ast = computeSpan $ do
+        some newline
         Ast.LineBreak <$> Position.getColumn
 {-# INLINE lineBreak #-}
 
@@ -470,7 +577,7 @@ fastExprByChar = \c -> let ord = Char.ord c in if
 
 
 number :: Parser ()
-number = TokenStream.add =<< Ast.computeSpan parser where
+number = TokenStream.add =<< computeSpan parser where
     parser  = correct <**> option id (const <$> invalidIdentSuffix)
     correct = Ast.Number <$> digits
 {-# INLINE number #-}
@@ -515,18 +622,18 @@ failIf = \b -> if b then fail "Failed check" else pure ()
 {-# INLINE failIf #-}
 
 strBuilder :: Char -> Parser ()
-strBuilder quote = TokenStream.add =<< Ast.computeSpan parser where
+strBuilder quote = TokenStream.add =<< computeSpan parser where
     parser = do
         let isQuote      = (== quote)
             isBodyChar c = c == quote || isEolBeginChar c
 
         quoteLen <- Text.length <$> takeWhile1 isQuote
 
-        let mkChunk       = \p -> TokenStream.add =<< Ast.computeSpan p
+        let mkChunk       = \p -> TokenStream.add =<< computeSpan p
             chunkPlain    = Atom.StrPlain <$> takeWhile1 (not . isBodyChar)
             chunkQuote    = bodyQuotes =<< takeWhile1 isQuote
             bodyQuotes qs = Atom.StrPlain qs <$ failIf (Text.length qs == quoteLen)
-            chunk         = Ast.computeSpan $ choice [chunkPlain, chunkQuote] -- lineBreak
+            chunk         = computeSpan $ choice [chunkPlain, chunkQuote] -- lineBreak
             ending        = Text.length <$> takeWhile1 isQuote
             body          = Ast.Str <$> many chunk
         body <* ending
@@ -540,7 +647,7 @@ strBuilder quote = TokenStream.add =<< Ast.computeSpan parser where
 
 flexBlock1 :: Parser a -> Parser (NonEmpty a)
 flexBlock1 = \p -> let
-    line = some Ast.newline >> Indent.indented >> p
+    line = some newline >> Indent.indented >> p
     in some line
 {-# INLINE flexBlock1 #-}
 
@@ -550,14 +657,14 @@ flexBlock = \p -> option mempty $ convert <$> flexBlock1 p
 
 -- discoverBlock1 :: Parser a -> Parser (NonEmpty a)
 -- discoverBlock1 = \p -> let
---     line   = some Ast.newline >> Indent.indentedEq >> p
+--     line   = some newline >> Indent.indentedEq >> p
 --     block  = (:|) <$> p <*> many line
---     header = some Ast.newline >> Indent.indented
+--     header = some newline >> Indent.indented
 --     in header >> Indent.withCurrent block
 
 -- multiLineBlock1 :: Parser a -> Parser (NonEmpty a)
 -- multiLineBlock1 = \p -> let
---     line = some Ast.newline >> Indent.indented >> p
+--     line = some newline >> Indent.indented >> p
 --     in (:|) <$> p <*> many line
 -- {-# INLINE multiLineBlock1 #-}
 
@@ -592,17 +699,17 @@ flexBlock = \p -> option mempty $ convert <$> flexBlock1 p
 
 -- lamExpr :: Parser ()
 -- lamExpr = arrow >> body where
---     arrow = TokenStream.add =<< Ast.computeSpan (Ast.Operator . convert <$> tokP)
+--     arrow = TokenStream.add =<< computeSpan (Ast.Operator . convert <$> tokP)
 --     body  = void $ discoverBlock1 expr
---     tokP  = State.get @Ast.SyntaxVersion >>= \case
---         Ast.Syntax1 -> tokens ":"
---         Ast.Syntax2 -> tokens "->"
+--     tokP  = State.get @SyntaxVersion >>= \case
+--         Syntax1 -> tokens ":"
+--         Syntax2 -> tokens "->"
 -- {-# INLINE lamExpr #-}
 
 
 
 -- groupExpr :: Parser ()
--- groupExpr = Ast.computeSpan $ Ast.grouped' <$> parensed expr where
+-- groupExpr = computeSpan $ Ast.grouped' <$> parensed expr where
 -- {-# INLINE group2 #-}
 
 
@@ -625,27 +732,27 @@ flexBlock = \p -> option mempty $ convert <$> flexBlock1 p
 --     invArg     = invalid $ Invalid.InvalidFunctionArg <$ chunkOfNot [blockChar]
 --     args       = many (old_nonSpacedExpr <|> invArg)
 
---     blockStart = Ast.lexeme $ token blockChar
+--     blockStart = lexeme $ token blockChar
 
 --     -- Body
 --     body       = multiLine <|> lineExpr <|> pure Ast.missing
 --     multiLine  = (Ast.block <$> discoverBlock1 lineExpr)
 --     singleLine = lineExpr
 --     impl       = (blockStart *> body) <|> invBody
---     invBody    = Ast.computeSpan $ Ast.Invalid Invalid.MissingColonBlock
+--     invBody    = computeSpan $ Ast.Invalid Invalid.MissingColonBlock
 --               <$ anyLine <* flexBlock anyLine
 
 --     -- Def
 --     invDef     = invalid' $ Invalid.InvalidFunctionDefinition
 --               <$ anyLine <* flexBlock anyLine
 --     valDef     = Ast.function' <$> name <*> args <*> impl
---     parser     = Ast.computeSpan $ header >> (valDef <|> invDef)
+--     parser     = computeSpan $ header >> (valDef <|> invDef)
 
 
 -- a co jesli [a,b,c] potraktujemy jako mixfix?
 
 -- list :: Parser Ast
--- list = Ast.computeSpan $ braced $ Ast.list' <$> elems where
+-- list = computeSpan $ braced $ Ast.list' <$> elems where
 --     missing :: Parser (IRBS SomeTerm)
 --     missing   = irbs . pure $ irb0 IR.missing'
 --     elem      = Reserved.withLocal sep p
@@ -666,7 +773,7 @@ flexBlock = \p -> option mempty $ convert <$> flexBlock1 p
 
 
 -- group :: Parser Ast
--- group = Ast.computeSpan $ Ast.grouped' <$> parensed expr where
+-- group = computeSpan $ Ast.grouped' <$> parensed expr where
 -- {-# INLINE group #-}
 
 -- parensed :: Parser a -> Parser a

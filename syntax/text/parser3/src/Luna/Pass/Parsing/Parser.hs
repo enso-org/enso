@@ -24,11 +24,11 @@ import qualified Luna.Pass.Attr                            as Attr
 import qualified Luna.Pass.Parsing.Macro                   as Macro
 import qualified Luna.Pass.Parsing.Parserx                 as Stage1
 import qualified Luna.Pass.Scheduler                       as Scheduler
+import qualified Luna.Syntax.Text.Parser.Data.Ast          as Ast
 import qualified Luna.Syntax.Text.Parser.Data.Ast.Class    as Atom
 import qualified Luna.Syntax.Text.Parser.Data.CodeSpan     as CodeSpan
 import qualified Luna.Syntax.Text.Parser.Data.CodeSpan     as CodeSpan
 import qualified Luna.Syntax.Text.Parser.Data.Name.Special as Name
-import qualified Luna.Syntax.Text.Parser.IR.Ast            as Ast
 import qualified Luna.Syntax.Text.Parser.State.Marker      as Marker
 
 import Data.Map                              (Map)
@@ -36,10 +36,10 @@ import Data.Set                              (Set)
 import Data.Text.Position                    (Delta (Delta))
 import Data.Text32                           (Text32)
 import Luna.Pass                             (Pass)
+import Luna.Syntax.Text.Parser.Data.Ast      (Spanned (Spanned))
 import Luna.Syntax.Text.Parser.Data.CodeSpan (CodeSpan)
-import Luna.Syntax.Text.Parser.Data.Invalid  (Invalids)
-import Luna.Syntax.Text.Parser.IR.Ast        (Spanned (Spanned))
-import Luna.Syntax.Text.Parser.IR.Term       (Ast)
+import Luna.Syntax.Text.Parser.Lexer         (Ast)
+import Luna.Syntax.Text.Parser.State.Invalid (Invalids)
 import Luna.Syntax.Text.Parser.State.Result  (Result)
 import Luna.Syntax.Text.Parser.State.Result  (Result (Result))
 import Luna.Syntax.Text.Source               (Source)

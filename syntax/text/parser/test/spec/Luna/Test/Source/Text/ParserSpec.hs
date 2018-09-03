@@ -22,7 +22,7 @@ import qualified Luna.Pass.Scheduler                    as Scheduler
 import qualified Luna.Syntax.Prettyprint                as Prettyprint
 import qualified Luna.Syntax.Text.Parser.Data.CodeSpan  as CodeSpan
 import qualified Luna.Syntax.Text.Parser.IR.Class       as Token
-import qualified Luna.Syntax.Text.Parser.IR.Term        as Parsing
+import qualified Luna.Syntax.Text.Parser.Lexer        as Parsing
 import qualified Luna.Syntax.Text.Parser.Pass           as Parser
 import qualified Luna.Syntax.Text.Parser.Pass.Class     as Parser
 import qualified OCI.Data.Name                          as Name
@@ -31,7 +31,7 @@ import Data.Graph.Data.Graph.Class           (Graph)
 import Data.Text.Position                    (Delta)
 import Luna.Pass                             (Pass)
 import Luna.Syntax.Text.Parser.Data.CodeSpan (CodeSpan)
-import Luna.Syntax.Text.Parser.Data.Invalid  (Invalids)
+import Luna.Syntax.Text.Parser.State.Invalid  (Invalids)
 import Luna.Syntax.Text.Parser.Pass.Class    (IRBS, Parser)
 import Luna.Syntax.Text.Scope                (Scope)
 import Luna.Syntax.Text.Source               (Source)
@@ -434,7 +434,7 @@ spec = do
 -- import Test.Hspec.Megaparsec hiding (shouldParse)
 -- import Test.Hspec
 
--- import Luna.Syntax.Text.Parser.IR.Term
+-- import Luna.Syntax.Text.Parser.Lexer
 -- import Text.Megaparsec (eof, ParseError)
 -- import qualified Luna.Syntax.Text.Pretty.Pretty as CodeGen
 -- import Luna.Syntax.Text.Parser.IR.Class (Error, IRB(IRB), Parsing)
@@ -442,7 +442,7 @@ spec = do
 -- import System.Log (Logging, dropLogs)
 -- import qualified Luna.Syntax.Text.Layer.Loc as Loc
 -- import qualified Luna.Syntax.Text.Parser.IR.Class   as Parser
--- import qualified Luna.Syntax.Text.Parser.IR.Term  as Parsing
+-- import qualified Luna.Syntax.Text.Parser.Lexer  as Parsing
 -- import           Luna.Syntax.Text.Parser.IR.Class   (IRParser, ParsedExpr, IRBSParser)
 -- import qualified Luna.Syntax.Text.Parser.Data.CodeSpan as CodeSpan
 -- import           Luna.Syntax.Text.Parser.Data.CodeSpan (CodeSpan)

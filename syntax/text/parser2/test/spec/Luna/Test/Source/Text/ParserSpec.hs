@@ -27,14 +27,14 @@ import qualified Luna.Pass.Parsing.ExprBuilder               as ExprBuilder
 import qualified Luna.Pass.Parsing.Macro                     as Macro
 import qualified Luna.Pass.Parsing.Parserx                   as PP
 import qualified Luna.Pass.Scheduler                         as Scheduler
+import qualified Luna.Syntax.Text.Parser.Data.Ast            as Ast
 import qualified Luna.Syntax.Text.Parser.Data.Ast.Class      as Ast
 import qualified Luna.Syntax.Text.Parser.Data.Ast.Simple     as Simple
 import qualified Luna.Syntax.Text.Parser.Data.CodeSpan       as CodeSpan
 import qualified Luna.Syntax.Text.Parser.Data.Name.Hardcoded as Hardcoded
 import qualified Luna.Syntax.Text.Parser.Data.Name.Special   as Name
-import qualified Luna.Syntax.Text.Parser.IR.Ast              as Ast
-import qualified Luna.Syntax.Text.Parser.IR.Ast              as Parsing (Parser, SyntaxVersion (..))
-import qualified Luna.Syntax.Text.Parser.IR.Term             as Parsing
+import qualified Luna.Syntax.Text.Parser.Lexer               as Parsing (Parser, SyntaxVersion (..))
+import qualified Luna.Syntax.Text.Parser.Lexer               as Parsing
 import qualified Luna.Syntax.Text.Parser.Pass.Definition     as Parser
 import qualified Luna.Syntax.Text.Scope                      as Scope
 import qualified OCI.Data.Name                               as Name
@@ -44,7 +44,7 @@ import Data.Text.Position                    (Delta)
 import Data.Text32                           (Text32)
 import Luna.Pass                             (Pass)
 import Luna.Syntax.Text.Parser.Data.CodeSpan (CodeSpan)
-import Luna.Syntax.Text.Parser.IR.Term       (Ast)
+import Luna.Syntax.Text.Parser.Lexer         (Ast)
 import OCI.Data.Name                         (Name)
 -- import Luna.Syntax.Text.Parser.Pass.Class    (IRBS, Parser)
 import Luna.Syntax.Text.Scope  (Scope)
