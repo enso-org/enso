@@ -2,19 +2,19 @@
 {-# LANGUAGE PatternSynonyms      #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Luna.Syntax.Text.Parser.Data.Ast.Simple where
+module Luna.Syntax.Text.Parser.Ast.Simple where
 
 import Prologue hiding (Text, imp, seq, some, span, takeWhile)
 
 import qualified Data.Char                                as Char
 import qualified GHC.Exts                                 as GHC
 import qualified Luna.IR.Term.Ast.Invalid                 as Invalid
-import qualified Luna.Syntax.Text.Parser.Data.Ast.Class   as Ast
-import qualified Luna.Syntax.Text.Parser.Data.Ast.Spanned as Spanned
+import qualified Luna.Syntax.Text.Parser.Ast.Class   as Ast
+import qualified Luna.Syntax.Text.Parser.Ast.Spanned as Spanned
 
 import Data.Text.Position                       (Delta)
-import Luna.Syntax.Text.Parser.Data.Ast.Class   (Text)
-import Luna.Syntax.Text.Parser.Data.Ast.Spanned (Spanned)
+import Luna.Syntax.Text.Parser.Ast.Class   (Text)
+import Luna.Syntax.Text.Parser.Ast.Spanned (Spanned)
 import OCI.Data.Name                            (Name)
 
 

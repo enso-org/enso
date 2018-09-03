@@ -6,39 +6,38 @@ module Luna.Pass.Parsing.Parser where
 import Prologue
 
 
-import qualified Control.Monad.State.Layered               as State
-import qualified Data.Graph.Component.Node.Destruction     as Component
-import qualified Data.Graph.Data.Graph.Class               as Graph
-import qualified Data.Graph.Data.Layer.Class               as Layer
-import qualified Data.Map                                  as Map
-import qualified Data.Mutable.Class                        as Mutable
-import qualified Data.Set                                  as Set
-import qualified Data.Text.Span                            as Span
-import qualified Language.Symbol.Operator.Assoc            as Assoc
-import qualified Language.Symbol.Operator.Prec             as Prec
-import qualified Luna.IR                                   as IR
-import qualified Luna.IR.Aliases                           as Uni
-import qualified Luna.IR.Term.Ast.Invalid                  as Invalid
-import qualified Luna.Pass                                 as Pass
-import qualified Luna.Pass.Attr                            as Attr
-import qualified Luna.Pass.Parsing.Parserx                 as Stage1
-import qualified Luna.Pass.Scheduler                       as Scheduler
-import qualified Luna.Syntax.Text.Parser.Data.Ast          as Ast
-import qualified Luna.Syntax.Text.Parser.Data.Ast.Class    as Atom
-import qualified Luna.Syntax.Text.Parser.Data.CodeSpan     as CodeSpan
-import qualified Luna.Syntax.Text.Parser.Data.CodeSpan     as CodeSpan
-import qualified Luna.Syntax.Text.Parser.Data.Name.Special as Name
-import qualified Luna.Syntax.Text.Parser.Lexer             as Lexer
-import qualified Luna.Syntax.Text.Parser.Parser            as Macro
-import qualified Luna.Syntax.Text.Parser.State.Marker      as Marker
+import qualified Control.Monad.State.Layered           as State
+import qualified Data.Graph.Component.Node.Destruction as Component
+import qualified Data.Graph.Data.Graph.Class           as Graph
+import qualified Data.Graph.Data.Layer.Class           as Layer
+import qualified Data.Map                              as Map
+import qualified Data.Mutable.Class                    as Mutable
+import qualified Data.Set                              as Set
+import qualified Data.Text.Span                        as Span
+import qualified Language.Symbol.Operator.Assoc        as Assoc
+import qualified Language.Symbol.Operator.Prec         as Prec
+import qualified Luna.IR                               as IR
+import qualified Luna.IR.Aliases                       as Uni
+import qualified Luna.IR.Term.Ast.Invalid              as Invalid
+import qualified Luna.Pass                             as Pass
+import qualified Luna.Pass.Attr                        as Attr
+import qualified Luna.Pass.Scheduler                   as Scheduler
+import qualified Luna.Syntax.Text.Parser.Ast           as Ast
+import qualified Luna.Syntax.Text.Parser.Ast.Class     as Atom
+import qualified Luna.Syntax.Text.Parser.Ast.CodeSpan  as CodeSpan
+import qualified Luna.Syntax.Text.Parser.Ast.CodeSpan  as CodeSpan
+import qualified Luna.Syntax.Text.Parser.Lexer         as Lexer
+import qualified Luna.Syntax.Text.Parser.Lexer.Names   as Name
+import qualified Luna.Syntax.Text.Parser.Parser        as Parser
+import qualified Luna.Syntax.Text.Parser.State.Marker  as Marker
 
 import Data.Map                              (Map)
 import Data.Set                              (Set)
 import Data.Text.Position                    (Delta (Delta))
 import Data.Text32                           (Text32)
 import Luna.Pass                             (Pass)
-import Luna.Syntax.Text.Parser.Data.Ast      (Spanned (Spanned))
-import Luna.Syntax.Text.Parser.Data.CodeSpan (CodeSpan)
+import Luna.Syntax.Text.Parser.Ast           (Spanned (Spanned))
+import Luna.Syntax.Text.Parser.Ast.CodeSpan  (CodeSpan)
 import Luna.Syntax.Text.Parser.State.Invalid (Invalids)
 import Luna.Syntax.Text.Parser.State.Result  (Result)
 import Luna.Syntax.Text.Parser.State.Result  (Result (Result))
@@ -111,11 +110,11 @@ registerDynamic = do
 
 run :: ParserPass (Pass stage Parser)
     => Text32 -> Pass stage Parser (IR.SomeTerm, Marker.TermMap)
-run = runWith Macro.unit
+run = runWith Parser.unit
 
 runWith :: ParserPass (Pass stage Parser)
-    => Macro.Parser Lexer.Token -> Text32 -> Pass stage Parser (IR.SomeTerm, Marker.TermMap)
-runWith p src = runMeDebug $ Stage1.runWith p src
+    => Parser.Parser Lexer.Token -> Text32 -> Pass stage Parser (IR.SomeTerm, Marker.TermMap)
+runWith p src = runMeDebug $ Parser.evalWith p src
 {-# INLINE runWith #-}
 
 runMeDebug :: ParserPass (Pass stage Parser)

@@ -1,16 +1,16 @@
 {-# LANGUAGE PatternSynonyms      #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Luna.Syntax.Text.Parser.Data.Ast.Class where
+module Luna.Syntax.Text.Parser.Ast.Class where
 
 import Prologue hiding (Text, span)
 
 import qualified Data.Text32                           as Text
 import qualified Luna.IR.Term.Ast.Invalid              as Invalid
-import qualified Luna.Syntax.Text.Parser.Data.CodeSpan as CodeSpan
+import qualified Luna.Syntax.Text.Parser.Ast.CodeSpan as CodeSpan
 
 import Data.Text.Position                    (Delta)
-import Luna.Syntax.Text.Parser.Data.CodeSpan (CodeSpan (CodeSpan))
+import Luna.Syntax.Text.Parser.Ast.CodeSpan (CodeSpan (CodeSpan))
 import OCI.Data.Name                         (Name)
 
 

@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Luna.Syntax.Text.Parser.Data.Name.Special where
+module Luna.Syntax.Text.Parser.Lexer.Names where
 
 import Prologue
 
@@ -9,17 +9,19 @@ import Prologue
 -- === Special names === --
 ---------------------------
 
-acc, app, arrow, lam, minus, typed, uminus, unify, update,
-    wildcard, invalid, assign :: IsString s => s
+acc, app, arrow, assign, invalid, lam, minus, typed, uminus, update, wildcard
+    :: IsString s => s
 acc      = "."         ; {-# INLINE acc      #-}
 app      = "#app#"     ; {-# INLINE app      #-}
 arrow    = "->"        ; {-# INLINE arrow    #-}
+assign   = "#=#"       ; {-# INLINE assign   #-}
+invalid  = "#invalid#" ; {-# INLINE invalid  #-}
 lam      = ":"         ; {-# INLINE lam      #-}
 minus    = "-"         ; {-# INLINE minus    #-}
 typed    = "::"        ; {-# INLINE typed    #-}
 uminus   = "#uminus#"  ; {-# INLINE uminus   #-}
-unify    = "="         ; {-# INLINE unify    #-}
-update   = "="         ; {-# INLINE update   #-} -- #update# ?
+update   = "="         ; {-# INLINE update   #-}
 wildcard = "_"         ; {-# INLINE wildcard #-}
-invalid  = "#invalid#" ; {-# INLINE invalid  #-}
-assign   = "#=#"       ; {-# INLINE assign   #-}
+
+rawAssign :: IsString s => s
+rawAssign = "=" ; {-# INLINE rawAssign #-}

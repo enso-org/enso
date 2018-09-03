@@ -6,15 +6,15 @@ module Luna.Test.Source.Text.ParserSpec where
 import Prologue
 import Test.Hspec.Expectations.Lifted
 
-import qualified Data.Graph.Data.Graph.Class             as Graph
-import qualified Luna.Pass                               as Pass
-import qualified Luna.Syntax.Text.Parser.Parser                 as Macro
-import qualified Luna.Pass.Parsing.Parser                as Parser
-import qualified Luna.Pass.Parsing.Parserx               as PP
-import qualified Luna.Pass.Scheduler                     as Scheduler
-import qualified Luna.Syntax.Prettyprint                 as Prettyprint
-import qualified Luna.Syntax.Text.Parser.Data.Ast        as Ast
-import qualified Luna.Syntax.Text.Parser.Data.Ast.Simple as Simple
+import qualified Data.Graph.Data.Graph.Class        as Graph
+import qualified Luna.Pass                          as Pass
+import qualified Luna.Pass.Parsing.Parser           as Parser
+import qualified Luna.Pass.Scheduler                as Scheduler
+import qualified Luna.Syntax.Prettyprint            as Prettyprint
+import qualified Luna.Syntax.Text.Parser.Ast        as Ast
+import qualified Luna.Syntax.Text.Parser.Ast.Simple as Simple
+import qualified Luna.Syntax.Text.Parser.Parser     as Macro
+import qualified Luna.Syntax.Text.Parser.Parser     as PP
 
 import Data.Graph.Data.Graph.Class (Graph)
 import Data.Text32                 (Text32)
@@ -85,8 +85,8 @@ debugSpec = describe "error" $ it "debug" $ do
     let input = "def foo a:\n x\n y"
 
     putStrLn "\n\n"
-    pprint $ PP.runWith Macro.unit (convert input)
-    pprint $ Simple.simplify $ PP.runWith Macro.unit (convert input)
+    pprint $ PP.evalWith Macro.unit (convert input)
+    pprint $ Simple.simplify $ PP.evalWith Macro.unit (convert input)
     e input "x"
 
 

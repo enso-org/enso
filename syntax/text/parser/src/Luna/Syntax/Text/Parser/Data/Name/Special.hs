@@ -1,6 +1,6 @@
 {-# LANGUAGE NoStrict #-}
 
-module Luna.Syntax.Text.Parser.Data.Name.Special where
+module Luna.Syntax.Text.Parser.Lexer.Names where
 
 import Prologue
 

@@ -23,9 +23,9 @@ import qualified Text.Parser.State.Indent               as State.Indent
 import Data.Text.Position                          (FileOffset)
 import Data.Text32                                 (Text32)
 import Luna.Pass                                   (Pass)
-import Luna.Syntax.Text.Parser.Data.CodeSpan       (CodeSpan, CodeSpanRange)
+import Luna.Syntax.Text.Parser.Ast.CodeSpan       (CodeSpan, CodeSpanRange)
 import Luna.Syntax.Text.Parser.State.Invalid        (Invalids)
-import Luna.Syntax.Text.Parser.Data.Name.Hardcoded (hardcode)
+import Luna.Syntax.Text.Parser.Hardcoded (hardcode)
 import Luna.Syntax.Text.Parser.Data.Result         (Result (Result))
 import Luna.Syntax.Text.Parser.IR.Class            (Error, ParserBase, Stream,
                                                     Token)

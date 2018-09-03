@@ -6,26 +6,26 @@ module Luna.Syntax.Text.Parser.Parser.ExprBuilder where
 
 import Prologue hiding (optional)
 
-import qualified Control.Monad.State.Layered               as State
-import qualified Data.Graph.Component.Node.Destruction     as Component
-import qualified Data.Map                                  as Map
-import qualified Data.Set                                  as Set
-import qualified Data.Text.Span                            as Span
-import qualified Language.Symbol.Operator.Assoc            as Assoc
-import qualified Language.Symbol.Operator.Prec             as Prec
-import qualified Luna.IR                                   as IR
-import qualified Luna.IR.Aliases                           as Uni
-import qualified Luna.IR.Term.Ast.Invalid                  as Invalid
-import qualified Luna.Pass                                 as Pass
-import qualified Luna.Syntax.Text.Parser.Data.Ast          as Ast
-import qualified Luna.Syntax.Text.Parser.Data.CodeSpan     as CodeSpan
-import qualified Luna.Syntax.Text.Parser.Data.Name.Special as Name
+import qualified Control.Monad.State.Layered           as State
+import qualified Data.Graph.Component.Node.Destruction as Component
+import qualified Data.Map                              as Map
+import qualified Data.Set                              as Set
+import qualified Data.Text.Span                        as Span
+import qualified Language.Symbol.Operator.Assoc        as Assoc
+import qualified Language.Symbol.Operator.Prec         as Prec
+import qualified Luna.IR                               as IR
+import qualified Luna.IR.Aliases                       as Uni
+import qualified Luna.IR.Term.Ast.Invalid              as Invalid
+import qualified Luna.Pass                             as Pass
+import qualified Luna.Syntax.Text.Parser.Ast      as Ast
+import qualified Luna.Syntax.Text.Parser.Ast.CodeSpan as CodeSpan
+import qualified Luna.Syntax.Text.Parser.Lexer.Names   as Name
 
 import Data.Map                              (Map)
 import Data.Set                              (Set)
 import Data.Text.Position                    (Delta (Delta))
-import Luna.Syntax.Text.Parser.Data.Ast      (Spanned (Spanned))
-import Luna.Syntax.Text.Parser.Data.CodeSpan (CodeSpan)
+import Luna.Syntax.Text.Parser.Ast      (Spanned (Spanned))
+import Luna.Syntax.Text.Parser.Ast.CodeSpan (CodeSpan)
 import Luna.Syntax.Text.Parser.Lexer         (Token)
 import Luna.Syntax.Text.Source               (Source)
 import OCI.Data.Name                         (Name)
@@ -188,7 +188,7 @@ breakOnAssignment__ = \f stream -> case stream of
         continue = breakOnAssignment__ (f . (tok:)) toks
         in case Ast.unspan tok of
             Ast.Operator name ->
-                if name == Name.unify
+                if name == Name.rawAssign
                     then Right (f mempty, tok, toks)
                     else continue
             _ -> continue

@@ -13,7 +13,7 @@ import qualified Text.Megaparsec                      as Parsec
 
 import Control.Monad.State.Layered              (StatesT)
 import Data.Text.Position                       (FileOffset)
-import Luna.Syntax.Text.Parser.Data.CodeSpan    (CodeSpanRange)
+import Luna.Syntax.Text.Parser.Ast.CodeSpan    (CodeSpanRange)
 import Luna.Syntax.Text.Parser.State.LastOffset (LastOffset)
 import Luna.Syntax.Text.Parser.State.Reserved   (Reserved)
 import Luna.Syntax.Text.Scope                   (Scope)

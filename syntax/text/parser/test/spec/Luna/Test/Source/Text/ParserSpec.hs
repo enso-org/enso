@@ -20,7 +20,7 @@ import qualified Luna.Pass                              as Pass
 import qualified Luna.Pass.Attr                         as Attr
 import qualified Luna.Pass.Scheduler                    as Scheduler
 import qualified Luna.Syntax.Prettyprint                as Prettyprint
-import qualified Luna.Syntax.Text.Parser.Data.CodeSpan  as CodeSpan
+import qualified Luna.Syntax.Text.Parser.Ast.CodeSpan  as CodeSpan
 import qualified Luna.Syntax.Text.Parser.IR.Class       as Token
 import qualified Luna.Syntax.Text.Parser.Lexer        as Parsing
 import qualified Luna.Syntax.Text.Parser.Pass           as Parser
@@ -30,7 +30,7 @@ import qualified OCI.Data.Name                          as Name
 import Data.Graph.Data.Graph.Class           (Graph)
 import Data.Text.Position                    (Delta)
 import Luna.Pass                             (Pass)
-import Luna.Syntax.Text.Parser.Data.CodeSpan (CodeSpan)
+import Luna.Syntax.Text.Parser.Ast.CodeSpan (CodeSpan)
 import Luna.Syntax.Text.Parser.State.Invalid  (Invalids)
 import Luna.Syntax.Text.Parser.Pass.Class    (IRBS, Parser)
 import Luna.Syntax.Text.Scope                (Scope)
@@ -444,8 +444,8 @@ spec = do
 -- import qualified Luna.Syntax.Text.Parser.IR.Class   as Parser
 -- import qualified Luna.Syntax.Text.Parser.Lexer  as Parsing
 -- import           Luna.Syntax.Text.Parser.IR.Class   (IRParser, ParsedExpr, IRBSParser)
--- import qualified Luna.Syntax.Text.Parser.Data.CodeSpan as CodeSpan
--- import           Luna.Syntax.Text.Parser.Data.CodeSpan (CodeSpan)
+-- import qualified Luna.Syntax.Text.Parser.Ast.CodeSpan as CodeSpan
+-- import           Luna.Syntax.Text.Parser.Ast.CodeSpan (CodeSpan)
 -- import           Luna.Syntax.Text.Parser.Errors   (Invalids)
 -- import           Control.Monad.Raise (Throws, tryAll)
 -- import           Data.TypeDesc (getTypeDesc)

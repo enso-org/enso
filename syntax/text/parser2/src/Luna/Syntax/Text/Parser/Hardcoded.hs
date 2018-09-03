@@ -1,14 +1,14 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Luna.Syntax.Text.Parser.Data.Name.Hardcoded where
+module Luna.Syntax.Text.Parser.Hardcoded where
 
 import Prologue
 
-import qualified Control.Monad.State.Layered               as State
-import qualified Language.Symbol.Operator.Assoc            as Assoc
-import qualified Language.Symbol.Operator.Prec             as Prec
-import qualified Luna.Syntax.Text.Parser.Data.Name.Special as Name
-import qualified Luna.Syntax.Text.Scope                    as Scope
+import qualified Control.Monad.State.Layered         as State
+import qualified Language.Symbol.Operator.Assoc      as Assoc
+import qualified Language.Symbol.Operator.Prec       as Prec
+import qualified Luna.Syntax.Text.Parser.Lexer.Names as Name
+import qualified Luna.Syntax.Text.Scope              as Scope
 
 import Luna.IR                (Name)
 import Luna.Syntax.Text.Scope (Scope)

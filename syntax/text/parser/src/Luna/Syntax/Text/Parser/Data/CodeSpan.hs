@@ -2,7 +2,7 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE UndecidableInstances      #-}
 
-module Luna.Syntax.Text.Parser.Data.CodeSpan where
+module Luna.Syntax.Text.Parser.Ast.CodeSpan where
 
 import Prologue hiding (Span, String, Type, length, span)
 

@@ -39,7 +39,7 @@ import qualified Luna.IR.Term.Literal                        as Literal
 import           Luna.Pass                                   (Pass)
 import qualified Luna.Pass                                   as Pass
 import qualified Luna.Syntax.Text.Lexer.Grammar              as Grammar
-import           Luna.Syntax.Text.Parser.Data.Name.Hardcoded (hardcode)
+import           Luna.Syntax.Text.Parser.Hardcoded (hardcode)
 import           Luna.Syntax.Text.Scope                      (Scope)
 import qualified Luna.Syntax.Text.Scope                      as Scope
 import qualified OCI.Data.Name                               as Name

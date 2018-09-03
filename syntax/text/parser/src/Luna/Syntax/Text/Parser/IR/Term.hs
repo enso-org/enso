@@ -26,10 +26,10 @@ import qualified Luna.IR.Term.Ast                          as Import
 import qualified Luna.IR.Term.Ast.Invalid                  as Invalid
 import qualified Luna.Syntax.Text.Lexer                    as Lexer
 import qualified Luna.Syntax.Text.Lexer.Symbol             as Lexer
-import qualified Luna.Syntax.Text.Parser.Data.CodeSpan     as CodeSpan
+import qualified Luna.Syntax.Text.Parser.Ast.CodeSpan     as CodeSpan
 import qualified Luna.Syntax.Text.Parser.State.Invalid      as Attr
 import qualified Luna.Syntax.Text.Parser.Data.Name.Spaced  as Name
-import qualified Luna.Syntax.Text.Parser.Data.Name.Special as SpecialName
+import qualified Luna.Syntax.Text.Parser.Lexer.Names as SpecialName
 import qualified Luna.Syntax.Text.Parser.IR.Expr           as Expr
 import qualified Luna.Syntax.Text.Parser.Loc               as Loc
 import qualified Luna.Syntax.Text.Parser.State.Marker      as Marker
@@ -48,7 +48,7 @@ import Language.Symbol                          (Labeled (Labeled), SomeSymbol,
                                                  labeled)
 import Luna.IR                                  (SomeTerm, Term)
 import Luna.Pass                                (Pass)
-import Luna.Syntax.Text.Parser.Data.CodeSpan    (CodeSpan (CodeSpan),
+import Luna.Syntax.Text.Parser.Ast.CodeSpan    (CodeSpan (CodeSpan),
                                                  CodeSpanRange (..))
 import Luna.Syntax.Text.Parser.Data.Name.Spaced (SpacedName)
 import Luna.Syntax.Text.Parser.IR.Class         (Parser, Stream, Token)

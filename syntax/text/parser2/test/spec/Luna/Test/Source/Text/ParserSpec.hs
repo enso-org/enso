@@ -23,17 +23,16 @@ import qualified Luna.IR                                     as IR
 import qualified Luna.IR.Layer                               as Layer
 import qualified Luna.Pass                                   as Pass
 import qualified Luna.Pass.Attr                              as Attr
-import qualified Luna.Pass.Parsing.Parserx                   as PP
 import qualified Luna.Pass.Scheduler                         as Scheduler
-import qualified Luna.Syntax.Text.Parser.Data.Ast            as Ast
-import qualified Luna.Syntax.Text.Parser.Data.Ast.Class      as Ast
-import qualified Luna.Syntax.Text.Parser.Data.Ast.Simple     as Simple
-import qualified Luna.Syntax.Text.Parser.Data.CodeSpan       as CodeSpan
-import qualified Luna.Syntax.Text.Parser.Data.Name.Hardcoded as Hardcoded
-import qualified Luna.Syntax.Text.Parser.Data.Name.Special   as Name
+import qualified Luna.Syntax.Text.Parser.Ast            as Ast
+import qualified Luna.Syntax.Text.Parser.Ast.Class      as Ast
+import qualified Luna.Syntax.Text.Parser.Ast.Simple     as Simple
+import qualified Luna.Syntax.Text.Parser.Ast.CodeSpan       as CodeSpan
+import qualified Luna.Syntax.Text.Parser.Hardcoded as Hardcoded
+import qualified Luna.Syntax.Text.Parser.Lexer.Names   as Name
 import qualified Luna.Syntax.Text.Parser.Lexer               as Parsing
 import qualified Luna.Syntax.Text.Parser.Lexer               as Lexer
-import qualified Luna.Syntax.Text.Parser.Parser              as Macro
+import qualified Luna.Syntax.Text.Parser.Parser              as Parser
 import qualified Luna.Syntax.Text.Parser.Parser.ExprBuilder  as ExprBuilder
 import qualified Luna.Syntax.Text.Scope                      as Scope
 import qualified OCI.Data.Name                               as Name
@@ -42,7 +41,7 @@ import Data.Graph.Data.Graph.Class           (Graph)
 import Data.Text.Position                    (Delta)
 import Data.Text32                           (Text32)
 import Luna.Pass                             (Pass)
-import Luna.Syntax.Text.Parser.Data.CodeSpan (CodeSpan)
+import Luna.Syntax.Text.Parser.Ast.CodeSpan (CodeSpan)
 import OCI.Data.Name                         (Name)
 -- import Luna.Syntax.Text.Parser.Pass.Class    (IRBS, Parser)
 import Luna.Syntax.Text.Scope  (Scope)
@@ -56,7 +55,6 @@ import Luna.IR.Term.Ast.Invalid (adjacentOperators, assocConflict,
                                  missingSection, noAssoc, unexpectedSuffix)
 
 
-import qualified Luna.Pass.Parsing.Parserx as P
 
 -- import qualified Luna.Syntax.Prettyprint                     as Prettyprint
 
@@ -145,10 +143,10 @@ instance (t ~ Arg a, Example a, x ~ ())
 -- expr       = shouldParseItself Parsing.Syntax1 Parsing.expr
 
 -- TODO: rename Lexer.Token -> Spanned Ast !
-testCase :: Macro.Parser Lexer.Token -> String -> Simple.Ast -> IO ()
+testCase :: Parser.Parser Lexer.Token -> String -> Simple.Ast -> IO ()
 testCase p src out = sast `shouldBe` out where
     sast = Simple.simplify ast
-    ast  = flip PP.runWith (convert src) $ do
+    ast  = flip Parser.evalWith (convert src) $ do
         let rplus  = ">>+" :: Name
             noplus = ">+<" :: Name
         Assoc.write Assoc.Right rplus
@@ -158,8 +156,8 @@ testCase p src out = sast `shouldBe` out where
         p
 
 e, u :: String -> Simple.Ast -> IO ()
-e = testCase Macro.expr
-u = testCase Macro.unit
+e = testCase Parser.expr
+u = testCase Parser.unit
 
 e' :: String -> IO ()
 e' src = e src (convert src)
@@ -501,8 +499,8 @@ debugSpec = describe "error" $ it "x" $ do
 
 
     putStrLn "\nRESULT:\n"
-    pprint $ PP.runWith Macro.unit input
-    pprint $ Simple.simplify $ PP.runWith Macro.unit input
+    pprint $ Parser.evalWith Parser.unit input
+    pprint $ Simple.simplify $ Parser.evalWith Parser.unit input
 
     True `shouldBe` False
 

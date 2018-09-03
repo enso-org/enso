@@ -4,10 +4,10 @@ module Luna.Syntax.Text.Parser.State.TokenStream where
 import Prologue
 
 import qualified Control.Monad.State.Layered              as State
-import qualified Luna.Syntax.Text.Parser.Data.Ast.Spanned as Spanned
+import qualified Luna.Syntax.Text.Parser.Ast.Spanned as Spanned
 
 import Control.Monad.State.Layered              (StateT)
-import Luna.Syntax.Text.Parser.Data.Ast.Spanned (Ast, Spanned)
+import Luna.Syntax.Text.Parser.Ast.Spanned (Ast, Spanned)
 
 
 
