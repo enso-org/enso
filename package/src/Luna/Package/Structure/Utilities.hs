@@ -24,7 +24,7 @@ import Luna.Syntax.Text.Lexer.Token as Token
 
 isValidPkgName :: String -> Bool
 isValidPkgName name = length validTokens == 1
-    where validTokens = catMaybes $ Symbol.matchCons . view token_symbol
+    where validTokens = catMaybes $ Symbol.matchCons . view Token.element
                                 <$> Lexer.evalDefLexer (convert name)
 
 findParentPackageIfInside :: MonadIO m => FilePath -> m (Maybe FilePath)
