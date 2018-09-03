@@ -356,7 +356,7 @@ instance ( MonadIO m -- DEBUG ONLY
         IR.UniTermExprList (IR.ExprList elems) -> simple . intercalate " "
             <$> (mapM subgenBody =<< ComponentVector.toList elems)
         IR.UniTermRecord (IR.Record isNat name params conss decls) -> pure $ simple "class ..."
-        IR.UniTermDocumented (IR.Documented doc base) -> subgen base
+        IR.UniTermDocumented (IR.Documented doc base) -> unnamed . Atom . ("# " <>) <$> subgenBody base
         t -> error $ "NO PRETTYPRINT FOR: " <> show t
 
 --     prettyprint style subStyle root = matchExpr root $ \case

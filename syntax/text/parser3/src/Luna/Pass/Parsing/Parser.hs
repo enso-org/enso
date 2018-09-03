@@ -253,7 +253,7 @@ buildIR = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
     Ast.Documented doc base -> case Ast.unspan doc of
         Ast.Comment txt -> do
             txt'  <- Mutable.fromList $ convertTo @[Char] txt
-            base' <- buildIR base
+            base' <- buildIR (Ast.prependAsOffset doc base)
             IR.documented' txt' base'
 
     Ast.Metadata txt -> do

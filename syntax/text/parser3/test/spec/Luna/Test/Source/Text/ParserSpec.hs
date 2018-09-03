@@ -47,6 +47,8 @@ e_x input output = runPass $ do
     (ir,cs) <- Parser.runWith Macro.unit (convert input)
     let scope = def
     genCode <- Prettyprint.run @Prettyprint.Simple scope ir
+    -- putStrLn "!!!!"
+    -- putStrLn (convert genCode)
     genCode `shouldBe` output
 
 e :: Text -> Text -> IO ()
@@ -82,7 +84,10 @@ unitSpec = describe "unit" $ do
 debugSpec :: Spec
 debugSpec = describe "error" $ it "debug" $ do
 
-    let input = "#doc\ndef foo a:\n x\n # y"
+    let input = [qqStr|# Docs
+def foo:
+    5
+|]
 
     putStrLn "\n\n"
     pprint $ PP.evalVersion1With Macro.unit (convert input)
