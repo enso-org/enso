@@ -56,6 +56,7 @@ data LineBreak    t = LineBreak    { indent :: Delta                           }
 -- Docs
 data Comment      t = Comment      { text   :: Text                            }
 data Documented   t = Documented   { doc    :: Ln t, base :: Ln t              }
+data Metadata     t = Metadata     { text   :: Text                            }
 
 -- Errors
 data Invalid      t = Invalid      { desc   :: Invalid.Symbol                  }
@@ -90,6 +91,7 @@ instance Show (Ln t) => Show (Marker       t) where show  (Marker       t1      
 instance Show (Ln t) => Show (LineBreak    t) where show  (LineBreak    t1      ) = "LineBreak"    <> " (" <> show t1 <> ")"
 instance Show (Ln t) => Show (Comment      t) where show  (Comment      t1      ) = "Comment"      <> " (" <> show t1 <> ")"
 instance Show (Ln t) => Show (Documented   t) where show  (Documented   t1 t2   ) = "Documented"   <> " (" <> show t1 <> ") (" <> show t2 <> ")"
+instance Show (Ln t) => Show (Metadata     t) where show  (Metadata     t1      ) = "Metadata"     <> " (" <> show t1 <> ")"
 instance Show (Ln t) => Show (Invalid      t) where show  (Invalid      t1      ) = "Invalid"      <> " (" <> show t1 <> ")"
 instance Show (Ln t) => Show (App          t) where show  (App          t1 t2   ) = "App"          <> " (" <> show t1 <> ") (" <> show t2 <> ")"
 instance Show (Ln t) => Show (InfixApp     t) where show  (InfixApp     t1 t2 t3) = "InfixApp"     <> " (" <> show t1 <> ") (" <> show t2 <> ") (" <> show t3 <> ")"
@@ -114,6 +116,7 @@ deriving instance Eq (Ln t) => Eq (Marker       t)
 deriving instance Eq (Ln t) => Eq (LineBreak    t)
 deriving instance Eq (Ln t) => Eq (Comment      t)
 deriving instance Eq (Ln t) => Eq (Documented   t)
+deriving instance Eq (Ln t) => Eq (Metadata     t)
 deriving instance Eq (Ln t) => Eq (Invalid      t)
 deriving instance Eq (Ln t) => Eq (App          t)
 deriving instance Eq (Ln t) => Eq (InfixApp     t)
@@ -138,6 +141,7 @@ deriving instance Ord (Ln t) => Ord (Marker       t)
 deriving instance Ord (Ln t) => Ord (LineBreak    t)
 deriving instance Ord (Ln t) => Ord (Comment      t)
 deriving instance Ord (Ln t) => Ord (Documented   t)
+deriving instance Ord (Ln t) => Ord (Metadata     t)
 deriving instance Ord (Ln t) => Ord (Invalid      t)
 deriving instance Ord (Ln t) => Ord (App          t)
 deriving instance Ord (Ln t) => Ord (InfixApp     t)

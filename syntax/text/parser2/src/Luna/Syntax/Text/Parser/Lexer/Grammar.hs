@@ -460,6 +460,13 @@ comment = TokenStream.add =<< spanned (commentChar >> parser) where
     parser      = (Ast.Comment <$> body)
 {-# INLINE comment #-}
 
+metadata :: Lexer_
+metadata = TokenStream.add =<< spanned parser where
+    parser = Ast.Metadata <$ header <*> body
+    header = Parsec.tokens "### " *> Parsec.tokens "META"
+    body   = takeWhile (not . isEolBeginChar)
+{-# INLINE metadata #-}
+
 -- comment :: Lexer_
 -- comment = parser where
 --     commentChar    = Parsec.token commentStartChar
@@ -559,7 +566,7 @@ exprByChar = \c -> if
     | isOpenCloseChar      c -> unsafeAnyTokenOperator
     | Names.isVarHeadChar  c -> var <|> wildcard
     | Names.isConsHeadChar c -> cons
-    | isCommentStartChar   c -> comment
+    | isCommentStartChar   c -> metadata <|> comment
     | isMarkerBeginChar    c -> marker
 
     -- Literals

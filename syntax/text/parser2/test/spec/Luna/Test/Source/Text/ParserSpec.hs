@@ -9,34 +9,34 @@ module Luna.Test.Source.Text.ParserSpec where
 import Prologue
 import Test.Hspec.Expectations.Lifted
 
-import qualified Control.Monad.State.Layered                 as State
-import qualified Data.Graph.Component.Edge                   as Link
-import qualified Data.Graph.Component.Node.Construction      as Term
-import qualified Data.Graph.Data                             as Component
-import qualified Data.Graph.Data.Graph.Class                 as Graph
-import qualified Data.Graph.Data.Layer.Layout                as Layout
-import qualified Foreign.Marshal.Alloc                       as Mem
-import qualified Foreign.Storable                            as Storable
-import qualified Language.Symbol.Operator.Assoc              as Assoc
-import qualified Language.Symbol.Operator.Prec               as Prec
-import qualified Luna.IR                                     as IR
-import qualified Luna.IR.Layer                               as Layer
-import qualified Luna.Pass                                   as Pass
-import qualified Luna.Pass.Attr                              as Attr
-import qualified Luna.Pass.Scheduler                         as Scheduler
-import qualified Luna.Syntax.Text.Parser.Ast                 as Ast
-import qualified Luna.Syntax.Text.Parser.Ast.Class           as Ast
-import qualified Luna.Syntax.Text.Parser.Ast.CodeSpan        as CodeSpan
-import qualified Luna.Syntax.Text.Parser.Ast.Simple          as Simple
-import qualified Luna.Syntax.Text.Parser.Hardcoded           as Hardcoded
-import qualified Luna.Syntax.Text.Parser.Lexer               as Parsing
-import qualified Luna.Syntax.Text.Parser.Lexer               as Lexer
-import qualified Luna.Syntax.Text.Parser.Lexer.Names         as Name
-import qualified Luna.Syntax.Text.Parser.Parser              as Parser
-import qualified Luna.Syntax.Text.Parser.Parser.ExprBuilder  as ExprBuilder
-import qualified Luna.Syntax.Text.Parser.State.Version as Syntax
-import qualified Luna.Syntax.Text.Scope                      as Scope
-import qualified OCI.Data.Name                               as Name
+import qualified Control.Monad.State.Layered                as State
+import qualified Data.Graph.Component.Edge                  as Link
+import qualified Data.Graph.Component.Node.Construction     as Term
+import qualified Data.Graph.Data                            as Component
+import qualified Data.Graph.Data.Graph.Class                as Graph
+import qualified Data.Graph.Data.Layer.Layout               as Layout
+import qualified Foreign.Marshal.Alloc                      as Mem
+import qualified Foreign.Storable                           as Storable
+import qualified Language.Symbol.Operator.Assoc             as Assoc
+import qualified Language.Symbol.Operator.Prec              as Prec
+import qualified Luna.IR                                    as IR
+import qualified Luna.IR.Layer                              as Layer
+import qualified Luna.Pass                                  as Pass
+import qualified Luna.Pass.Attr                             as Attr
+import qualified Luna.Pass.Scheduler                        as Scheduler
+import qualified Luna.Syntax.Text.Parser.Ast                as Ast
+import qualified Luna.Syntax.Text.Parser.Ast.Class          as Ast
+import qualified Luna.Syntax.Text.Parser.Ast.CodeSpan       as CodeSpan
+import qualified Luna.Syntax.Text.Parser.Ast.Simple         as Simple
+import qualified Luna.Syntax.Text.Parser.Hardcoded          as Hardcoded
+import qualified Luna.Syntax.Text.Parser.Lexer              as Parsing
+import qualified Luna.Syntax.Text.Parser.Lexer              as Lexer
+import qualified Luna.Syntax.Text.Parser.Lexer.Names        as Name
+import qualified Luna.Syntax.Text.Parser.Parser             as Parser
+import qualified Luna.Syntax.Text.Parser.Parser.ExprBuilder as ExprBuilder
+import qualified Luna.Syntax.Text.Parser.State.Version      as Syntax
+import qualified Luna.Syntax.Text.Scope                     as Scope
+import qualified OCI.Data.Name                              as Name
 
 import Data.Graph.Data.Graph.Class          (Graph)
 import Data.Text.Position                   (Delta)
@@ -483,7 +483,7 @@ debugSpec = describe "error" $ it "x" $ do
         -- layouted  = ExprBuilder.discoverLayouts toks
         statement = ExprBuilder.buildFlatStatement toks
         stream    = ExprBuilder.buildStream toks
-        input = "#foo\n#bar\na = 11"
+        input = "#foo\n#bar\na = 11\n### META foo"
         -- input = "class Foox:\n Vector x y z"
 
     putStrLn "\nTOKS:\n"

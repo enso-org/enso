@@ -138,6 +138,7 @@ data Ast
     | AstLineBreak    (Ast.LineBreak    Ast)
     | AstComment      (Ast.Comment      Ast)
     | AstDocumented   (Ast.Documented   Ast)
+    | AstMetadata     (Ast.Metadata     Ast)
     | AstInvalid      (Ast.Invalid      Ast)
     | AstApp          (Ast.App          Ast)
     | AstInfixApp     (Ast.InfixApp     Ast)
@@ -166,6 +167,7 @@ pattern Marker       t1       = AstMarker       (Ast.Marker       t1      )
 pattern LineBreak    t1       = AstLineBreak    (Ast.LineBreak    t1      )
 pattern Comment      t1       = AstComment      (Ast.Comment      t1      )
 pattern Documented   t1 t2    = AstDocumented   (Ast.Documented   t1 t2   )
+pattern Metadata     t1       = AstMetadata     (Ast.Metadata     t1      )
 pattern Invalid      t1       = AstInvalid      (Ast.Invalid      t1      )
 pattern App          t1 t2    = AstApp          (Ast.App          t1 t2   )
 pattern InfixApp     t1 t2 t3 = AstInfixApp     (Ast.InfixApp     t1 t2 t3)
@@ -263,6 +265,7 @@ unspan = \(Spanned cs a) ->
         AstLineBreak    a -> AstLineBreak   $ prependSpan span a
         AstComment      a -> AstComment     $ prependSpan span a
         AstDocumented   a -> AstDocumented  $ prependSpan span a
+        AstMetadata     a -> AstMetadata    $ prependSpan span a
         AstInvalid      a -> AstInvalid     $ prependSpan span a
         AstApp          a -> AstApp         $ prependSpan span a
         AstInfixApp     a -> AstInfixApp    $ prependSpan span a
@@ -316,6 +319,7 @@ instance PrependSpan (Ast.Str       Ast)
 instance PrependSpan (Ast.Marker    Ast)
 instance PrependSpan (Ast.LineBreak Ast)
 instance PrependSpan (Ast.Comment   Ast)
+instance PrependSpan (Ast.Metadata  Ast)
 instance PrependSpan (Ast.Invalid   Ast)
 instance PrependSpan (Ast.Missing   Ast)
 

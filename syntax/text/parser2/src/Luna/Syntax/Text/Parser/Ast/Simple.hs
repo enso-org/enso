@@ -48,6 +48,7 @@ data Ast
     | AstLineBreak    (Ast.LineBreak    Ast)
     | AstComment      (Ast.Comment      Ast)
     | AstDocumented   (Ast.Documented   Ast)
+    | AstMetadata     (Ast.Metadata     Ast)
     | AstInvalid      (Ast.Invalid      Ast)
     | AstApp          (Ast.App          Ast)
     | AstInfixApp     (Ast.InfixApp     Ast)
@@ -73,6 +74,7 @@ pattern Marker       t1       = AstMarker       (Ast.Marker       t1      )
 pattern LineBreak    t1       = AstLineBreak    (Ast.LineBreak    t1      )
 pattern Comment      t1       = AstComment      (Ast.Comment      t1      )
 pattern Documented   t1 t2    = AstDocumented   (Ast.Documented   t1 t2   )
+pattern Metadata     t1       = AstMetadata     (Ast.Metadata     t1      )
 pattern Invalid      t1       = AstInvalid      (Ast.Invalid      t1      )
 pattern App          t1 t2    = AstApp          (Ast.App          t1 t2   )
 pattern InfixApp     t1 t2 t3 = AstInfixApp     (Ast.InfixApp     t1 t2 t3)
@@ -99,6 +101,7 @@ instance Show Ast where
         AstLineBreak    t -> show t
         AstComment      t -> show t
         AstDocumented   t -> show t
+        AstMetadata     t -> show t
         AstInvalid      t -> show t
         AstApp          t -> show t
         AstInfixApp     t -> show t
@@ -322,6 +325,7 @@ instance Simplify   Spanned.Ast where
         Spanned.LineBreak    t1       -> LineBreak    (simplify t1)
         Spanned.Comment      t1       -> Comment      (simplify t1)
         Spanned.Documented   t1 t2    -> Documented   (simplify t1) (simplify t2)
+        Spanned.Metadata     t1       -> Metadata     (simplify t1)
         Spanned.Invalid      t1       -> Invalid      (simplify t1)
         Spanned.App          t1 t2    -> App          (simplify t1) (simplify t2)
         Spanned.InfixApp     t1 t2 t3 -> InfixApp     (simplify t1) (simplify t2) (simplify t3)

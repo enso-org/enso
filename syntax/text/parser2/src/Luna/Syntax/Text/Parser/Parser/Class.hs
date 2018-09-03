@@ -7,33 +7,33 @@ module Luna.Syntax.Text.Parser.Parser.Class where
 import           Prologue hiding (fail, optional)
 import qualified Prologue
 
-import qualified Control.Monad.State.Layered                 as State
-import qualified Data.Attoparsec.Internal                    as AParsec
-import qualified Data.Attoparsec.Internal.Types              as AParsec
-import qualified Data.Attoparsec.List                        as Parsec
-import qualified Data.Graph.Component.Node.Destruction       as Component
-import qualified Data.Map                                    as Map
-import qualified Data.Parser                                 as Parser
-import qualified Data.Set                                    as Set
-import qualified Data.Text.Position                          as Position
-import qualified Data.Text.Span                              as Span
-import qualified Data.Vector                                 as Vector
-import qualified GHC.Exts                                    as GHC
-import qualified Language.Symbol.Operator.Assoc              as Assoc
-import qualified Language.Symbol.Operator.Prec               as Prec
-import qualified Luna.IR                                     as IR
-import qualified Luna.IR.Aliases                             as Uni
-import qualified Luna.IR.Term.Ast.Invalid                    as Invalid
-import qualified Luna.Pass                                   as Pass
-import qualified Luna.Syntax.Text.Parser.Ast                 as Ast
-import qualified Luna.Syntax.Text.Parser.Ast.CodeSpan        as CodeSpan
-import qualified Luna.Syntax.Text.Parser.Hardcoded           as Hardcoded
-import qualified Luna.Syntax.Text.Parser.Lexer               as Lexer
-import qualified Luna.Syntax.Text.Parser.Lexer.Names         as Name
+import qualified Control.Monad.State.Layered           as State
+import qualified Data.Attoparsec.Internal              as AParsec
+import qualified Data.Attoparsec.Internal.Types        as AParsec
+import qualified Data.Attoparsec.List                  as Parsec
+import qualified Data.Graph.Component.Node.Destruction as Component
+import qualified Data.Map                              as Map
+import qualified Data.Parser                           as Parser
+import qualified Data.Set                              as Set
+import qualified Data.Text.Position                    as Position
+import qualified Data.Text.Span                        as Span
+import qualified Data.Vector                           as Vector
+import qualified GHC.Exts                              as GHC
+import qualified Language.Symbol.Operator.Assoc        as Assoc
+import qualified Language.Symbol.Operator.Prec         as Prec
+import qualified Luna.IR                               as IR
+import qualified Luna.IR.Aliases                       as Uni
+import qualified Luna.IR.Term.Ast.Invalid              as Invalid
+import qualified Luna.Pass                             as Pass
+import qualified Luna.Syntax.Text.Parser.Ast           as Ast
+import qualified Luna.Syntax.Text.Parser.Ast.CodeSpan  as CodeSpan
+import qualified Luna.Syntax.Text.Parser.Hardcoded     as Hardcoded
+import qualified Luna.Syntax.Text.Parser.Lexer         as Lexer
+import qualified Luna.Syntax.Text.Parser.Lexer.Names   as Name
 import qualified Luna.Syntax.Text.Parser.State.Version as Syntax
-import qualified Luna.Syntax.Text.Scope                      as Scope
-import qualified Text.Parser.State.Indent                    as Indent
-import qualified Text.Parser.State.Indent                    as Indent
+import qualified Luna.Syntax.Text.Scope                as Scope
+import qualified Text.Parser.State.Indent              as Indent
+import qualified Text.Parser.State.Indent              as Indent
 
 import Data.Map                                   (Map)
 import Data.Set                                   (Set)
@@ -406,10 +406,6 @@ anySymbolNotReserved :: Parser' Lexer.Token
 anySymbolNotReserved = notReserved anySymbol
 {-# INLINE anySymbolNotReserved #-}
 
--- peekSymbolNotReserved :: Parser' Lexer.Token
--- peekSymbolNotReserved = notReserved peekSymbol
--- {-# INLINE peekSymbolNotReserved #-}
-
 satisfyAst :: (Ast.Ast -> Bool) -> Parser' Lexer.Token
 satisfyAst = \f -> peekSatisfyAst f <* dropToken
 {-# INLINE satisfyAst #-}
@@ -482,9 +478,6 @@ anyExprToken = possiblyBroken anyToken
 toksSpanAsSpace :: [Lexer.Token] -> CodeSpan
 toksSpanAsSpace = CodeSpan.asOffsetSpan . mconcat . fmap (view Ast.span)
 {-# INLINE toksSpanAsSpace #-}
-
-
-
 
 
 -- === Macro building block parsers === --
@@ -573,6 +566,7 @@ showSection = \case
 {-# INLINE showSection #-}
 
 
+
 -------------------------
 -- === Expressions === --
 -------------------------
@@ -582,7 +576,6 @@ showSection = \case
 emptyExpression :: Lexer.Token
 emptyExpression = Ast.invalid Invalid.EmptyExpression
 {-# INLINE emptyExpression #-}
-
 
 
 -- === API === --
@@ -600,9 +593,6 @@ blockExpr' = discoverBlock1 nonBlockExpr' <&> \case
     (a :| []) -> a
     as -> Ast.block as
 {-# INLINE blockExpr' #-}
-
-
-
 
 
 -- TODO: refactor marker handling in nonBlockExpr and nonBlockExpr'
@@ -693,9 +683,6 @@ nonSpacedExpr' = buildExpr =<< go where
 {-# INLINE nonSpacedExpr' #-}
 
 
-
-
-
 exprList :: Parser' Lexer.Token
 exprList = Ast.list <$> lst where
     lst      = option mempty $ nonEmpty <|> empty
@@ -740,13 +727,9 @@ optionBlock :: Parser' (NonEmpty Lexer.Token) -> Parser [Lexer.Token]
 optionBlock = total mempty . fmap convert
 {-# INLINE optionBlock #-}
 
-
-
-
 optional :: Parser' Lexer.Token -> Parser' Lexer.Token
 optional = option Ast.missing
 {-# INLINE optional #-}
-
 
 classBlock :: Parser' Lexer.Token
 classBlock = broken $ do
@@ -763,7 +746,6 @@ classCons = Ast.app <$> withReserved blockStartOp base <*> (blockDecl <|> inline
     blockDeclLines :: Parser' [Lexer.Token]
     blockDeclLines  = (:) <$> namedFields <*> blockDeclLines'
     blockDeclLines' = option mempty $ unsafeBrokenLst (Indent.indentedEq *> blockDeclLines)
-
 
 unnamedField :: Parser' Lexer.Token
 unnamedField = do

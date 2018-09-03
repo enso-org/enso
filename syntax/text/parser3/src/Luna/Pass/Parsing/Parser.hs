@@ -256,6 +256,9 @@ buildIR = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
             base' <- buildIR base
             IR.documented' txt' base'
 
+    Ast.Metadata txt -> do
+        txt' <- Mutable.fromList $ convertTo @[Char] txt
+        IR.metadata' txt'
 
     -- Errors
     Ast.Invalid inv  -> IR.invalid' inv
