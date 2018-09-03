@@ -27,6 +27,7 @@ import qualified Luna.Syntax.Text.Parser.Data.CodeSpan     as CodeSpan
 import qualified Luna.Syntax.Text.Parser.State.Marker      as Marker
 import qualified Luna.Syntax.Text.Parser.State.TokenStream as TokenStream
 import qualified Luna.Syntax.Text.Scope                    as Scope
+import qualified Text.Parser.State.Indent                  as State.Indent
 import qualified Text.Parser.State.Indent                  as Indent
 
 import Control.Monad.State.Layered               (StatesT)
@@ -40,6 +41,7 @@ import Luna.Syntax.Text.Parser.Data.Ast.Spanned  (Spanned (Spanned))
 import Luna.Syntax.Text.Parser.Data.CodeSpan     (CodeSpan (CodeSpan))
 import Luna.Syntax.Text.Parser.State.LastOffset  (LastOffset (LastOffset))
 import Luna.Syntax.Text.Parser.State.TokenStream (TokenStream)
+import Luna.Syntax.Text.Scope                    (Scope)
 import OCI.Data.Name                             (Name)
 import Text.Parser.Combinators                   (some)
 import Text.Parser.State.Indent                  (Indent)
@@ -77,6 +79,38 @@ type Lexer = StatesT
     , FileOffset
     , Scope.Scope
     ] Parsec.Parser
+
+evalStepWith :: SyntaxVersion -> Lexer a -> Text -> AttoParsec.IResult Text [Token]
+evalStepWith = \sv p txt
+   -> flip parsePartial txt
+    $ State.evalDefT @Scope
+    $ State.evalDefT @FileOffset
+    $ State.evalDefT @Marker.State
+    $ State.evalDefT @LastOffset
+    $ State.evalDefT @Position
+    $ State.Indent.eval
+    $ flip (State.evalT @SyntaxVersion) sv
+    $ TokenStream.eval p
+{-# INLINE evalStepWith #-}
+
+evalWith :: SyntaxVersion -> Lexer a -> Text -> [Token]
+evalWith = \sv p src_ -> let src = (src_ <> "\ETX") in
+    case evalStepWith sv p src of
+        AttoParsec.Done !(src') !r -> if (Text.length src' /= 0)
+            then error $ "Panic. Not all input consumed by lexer: " <> show src'
+            else r
+        AttoParsec.Partial g -> case g mempty of
+            AttoParsec.Done !(src') !r -> if (Text.length src' /= 0)
+                then error $ "Panic. Not all input consumed by lexer: " <> show src'
+                else r
+            AttoParsec.Fail !_ !_ !e   -> error e
+            AttoParsec.Partial {} -> impossible
+        AttoParsec.Fail !_ !_ !e   -> error e
+{-# INLINE evalWith #-}
+
+eval :: SyntaxVersion -> Text -> [Token]
+eval = flip evalWith exprs
+{-# INLINE eval #-}
 
 
 

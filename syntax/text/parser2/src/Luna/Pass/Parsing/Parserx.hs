@@ -15,7 +15,6 @@ import qualified Luna.Syntax.Text.Parser.Data.Name.Hardcoded as Hardcoded
 import qualified Luna.Syntax.Text.Parser.Lexer               as Lexer
 import qualified Luna.Syntax.Text.Parser.Parser              as Macro
 import qualified Luna.Syntax.Text.Parser.Parser.ExprBuilder  as ExprBuilder
-import qualified Luna.Syntax.Text.Parser.Pass.Definition     as Parser
 import qualified Luna.Syntax.Text.Scope                      as Scope
 
 import Data.Text32 (Text32)
@@ -33,7 +32,7 @@ run = runWith Macro.unit
 
 runWith :: Macro.Parser a -> Text32 -> a
 runWith = \p src -> let
-    toks = Parser.run Lexer.Syntax1 src
+    toks = Lexer.eval Lexer.Syntax1 src
     Right out = Macro.run toks $ do
         Hardcoded.hardcodePrecRelMap
         Macro.hardcodePredefinedMacros

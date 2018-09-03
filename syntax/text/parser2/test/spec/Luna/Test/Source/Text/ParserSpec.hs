@@ -35,7 +35,6 @@ import qualified Luna.Syntax.Text.Parser.Lexer               as Parsing
 import qualified Luna.Syntax.Text.Parser.Lexer               as Lexer
 import qualified Luna.Syntax.Text.Parser.Parser              as Macro
 import qualified Luna.Syntax.Text.Parser.Parser.ExprBuilder  as ExprBuilder
-import qualified Luna.Syntax.Text.Parser.Pass.Definition     as Parser
 import qualified Luna.Syntax.Text.Scope                      as Scope
 import qualified OCI.Data.Name                               as Name
 
@@ -481,7 +480,7 @@ debugSpec = describe "error" $ it "x" $ do
     -- let input     = "«0»def main:\n    None"
     -- let input     = "a = b"
     let
-        toks      = Parser.run Parsing.Syntax1 input
+        toks      = Lexer.eval Lexer.Syntax1 input
         -- layouted  = ExprBuilder.discoverLayouts toks
         statement = ExprBuilder.buildFlatStatement toks
         stream    = ExprBuilder.buildStream toks
