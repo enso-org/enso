@@ -33,7 +33,6 @@ import Data.Text.Position                    (Delta (Delta), Position)
 import Data.Vector                           (Vector)
 import Luna.Syntax.Text.Parser.Data.Ast      (Spanned (Spanned))
 import Luna.Syntax.Text.Parser.Data.CodeSpan (CodeSpan)
-import Luna.Syntax.Text.Parser.Lexer         (Ast)
 import Luna.Syntax.Text.Source               (Source)
 import OCI.Data.Name                         (Name)
 import Text.Parser.State.Indent              (Indent)
@@ -41,12 +40,13 @@ import Text.Parser.State.Indent              (Indent)
 
 
 import Luna.Syntax.Text.Parser.Parser.ExprBuilder (ExprBuilderMonad, buildExpr,
-                                      checkLeftSpacing)
+                                                   checkLeftSpacing)
 
 import qualified Data.Attoparsec.Internal       as AParsec
 import qualified Data.Attoparsec.Internal.Types as AParsec
 import qualified Data.Attoparsec.List           as Parsec
 import qualified GHC.Exts                       as GHC
+import qualified Luna.Syntax.Text.Parser.Lexer  as Lexer
 
 import           Data.Parser hiding (anyToken, peekToken)
 import qualified Data.Parser as Parser
@@ -255,7 +255,7 @@ type ParserStack = State.StatesT
     , Position
     , Indent
     , Registry
-    ] (Parsec.Parser Ast)
+    ] (Parsec.Parser Lexer.Token)
 
 data ParserType
     = Total
@@ -272,7 +272,7 @@ type instance Tokens (ParserBase t m) = Tokens m
 
 -- === Running === --
 
-run :: [Ast] -> Parser a -> Either String a
+run :: [Lexer.Token] -> Parser a -> Either String a
 run = \stream
    -> flip Parsec.parseOnly (Vector.fromList stream)
     . State.evalDefT @Registry
@@ -332,11 +332,11 @@ withNextSegmentsReserved = withManyReserved . segmentsToks
 
 -- === Primitive === --
 
-peekToken :: Parser Ast
+peekToken :: Parser Lexer.Token
 peekToken = Parser.peekToken
 {-# INLINE peekToken #-}
 
-anyToken :: Parser Ast
+anyToken :: Parser Lexer.Token
 anyToken = Parser.anyToken
 {-# INLINE anyToken #-}
 
@@ -359,7 +359,7 @@ nextTokenLeftSpaced = do
     when_ (not $ checkLeftSpacing tok) $ fail "not spaced"
 {-# INLINE nextTokenLeftSpaced #-}
 
-leftSpaced :: ParserT t Ast -> Parser' Ast
+leftSpaced :: ParserT t Lexer.Token -> Parser' Lexer.Token
 leftSpaced = \mtok -> do
     tok <- partial mtok
     if checkLeftSpacing tok
@@ -367,11 +367,11 @@ leftSpaced = \mtok -> do
         else fail "not spaced"
 {-# INLINE leftSpaced #-}
 
-anySymbol :: Parser' Ast
+anySymbol :: Parser' Lexer.Token
 anySymbol = peekSymbol <* dropToken
 {-# INLINE anySymbol #-}
 
-peekSymbol :: Parser' Ast
+peekSymbol :: Parser' Lexer.Token
 peekSymbol = do
     tok <- partial peekToken
     case Ast.unspan tok of
@@ -379,19 +379,19 @@ peekSymbol = do
         _                   -> pure tok
 {-# INLINE peekSymbol #-}
 
-anySymbolNotReserved :: Parser' Ast
+anySymbolNotReserved :: Parser' Lexer.Token
 anySymbolNotReserved = notReserved anySymbol
 {-# INLINE anySymbolNotReserved #-}
 
--- peekSymbolNotReserved :: Parser' Ast
+-- peekSymbolNotReserved :: Parser' Lexer.Token
 -- peekSymbolNotReserved = notReserved peekSymbol
 -- {-# INLINE peekSymbolNotReserved #-}
 
-satisfyAst :: (Ast.Ast -> Bool) -> Parser' Ast
+satisfyAst :: (Ast.Ast -> Bool) -> Parser' Lexer.Token
 satisfyAst = \f -> peekSatisfyAst f <* dropToken
 {-# INLINE satisfyAst #-}
 
-peekSatisfyAst :: (Ast.Ast -> Bool) -> Parser' Ast
+peekSatisfyAst :: (Ast.Ast -> Bool) -> Parser' Lexer.Token
 peekSatisfyAst = \f -> notReserved $ do
     tok <- partial peekToken
     if f (Ast.unspan tok)
@@ -399,11 +399,11 @@ peekSatisfyAst = \f -> notReserved $ do
         else fail "satisfy"
 {-# INLINE peekSatisfyAst #-}
 
-ast :: Ast.Ast -> Parser' Ast
+ast :: Ast.Ast -> Parser' Lexer.Token
 ast = satisfyAst . (==)
 {-# INLINE ast #-}
 
-unsafeLineBreak :: Parser' Ast
+unsafeLineBreak :: Parser' Lexer.Token
 unsafeLineBreak = do
     tok <- partial anyToken
     case Ast.unspan tok of
@@ -414,14 +414,14 @@ unsafeLineBreak = do
         _ -> fail "not a line break"
 {-# INLINE unsafeLineBreak #-}
 
-unsafeLineBreaks :: Parser' [Ast]
+unsafeLineBreaks :: Parser' [Lexer.Token]
 unsafeLineBreaks = many1 unsafeLineBreak
 {-# INLINE unsafeLineBreaks #-}
 
 -- | The current implementation works on token stream where some tokens are
 --   line break indicators. After consuming such tokens we need to register them
 --   as offset in the following token.
-brokenLst1 :: Parser' (NonEmpty Ast) -> Parser' (NonEmpty Ast)
+brokenLst1 :: Parser' (NonEmpty Lexer.Token) -> Parser' (NonEmpty Lexer.Token)
 brokenLst1 = \f -> do
     spans     <- toksSpanAsSpace <$> unsafeLineBreaks
     (a :| as) <- f
@@ -429,11 +429,11 @@ brokenLst1 = \f -> do
     pure (a' :| as)
 {-# INLINE brokenLst1 #-}
 
-brokenLst1' :: Parser' (NonEmpty Ast) -> Parser' [Ast]
+brokenLst1' :: Parser' (NonEmpty Lexer.Token) -> Parser' [Lexer.Token]
 brokenLst1' = fmap convert . brokenLst1
 {-# INLINE brokenLst1' #-}
 
-unsafeBrokenLst :: Parser' [Ast] -> Parser' [Ast]
+unsafeBrokenLst :: Parser' [Lexer.Token] -> Parser' [Lexer.Token]
 unsafeBrokenLst = \f -> do
     spans    <- toksSpanAsSpace <$> unsafeLineBreaks
     (a : as) <- f
@@ -441,22 +441,22 @@ unsafeBrokenLst = \f -> do
     pure (a' : as)
 {-# INLINE unsafeBrokenLst #-}
 
-broken :: ParserT t Ast -> Parser' Ast
+broken :: ParserT t Lexer.Token -> Parser' Lexer.Token
 broken = \f -> do
     spans <- toksSpanAsSpace <$> unsafeLineBreaks
     tok   <- partial f
     pure $ tok & Ast.span %~ (spans <>)
 {-# INLINE broken #-}
 
-possiblyBroken :: ParserT t Ast -> ParserT t Ast
+possiblyBroken :: ParserT t Lexer.Token -> ParserT t Lexer.Token
 possiblyBroken = \p -> broken (Indent.indented *> p) <||> p
 {-# INLINE possiblyBroken #-}
 
-anyExprToken :: Parser Ast
+anyExprToken :: Parser Lexer.Token
 anyExprToken = possiblyBroken anyToken
 {-# INLINE anyExprToken #-}
 
-toksSpanAsSpace :: [Ast] -> CodeSpan
+toksSpanAsSpace :: [Lexer.Token] -> CodeSpan
 toksSpanAsSpace = CodeSpan.asOffsetSpan . mconcat . fmap (view Ast.span)
 {-# INLINE toksSpanAsSpace #-}
 
@@ -466,7 +466,7 @@ toksSpanAsSpace = CodeSpan.asOffsetSpan . mconcat . fmap (view Ast.span)
 
 -- === Macro building block parsers === --
 
-chunk :: Chunk -> Parser' Ast
+chunk :: Chunk -> Parser' Lexer.Token
 chunk = \case
     Expr              -> partial $ possiblyBroken nonBlockExprBody
     NonSpacedExpr     -> nonSpacedExpr
@@ -476,18 +476,18 @@ chunk = \case
     ClassBlock        -> classBlock
 {-# INLINE chunk #-}
 
-chunks :: [Chunk] -> Parser' [Ast]
+chunks :: [Chunk] -> Parser' [Lexer.Token]
 chunks = mapM chunk
 {-# NOINLINE chunks #-}
 
 
 -- === Degment parsers === --
 
-segment :: Segment -> Parser' [Ast]
+segment :: Segment -> Parser' [Lexer.Token]
 segment = chunks . view segmentChunks
 {-# INLINE segment #-}
 
-segmentList :: Name -> SegmentList -> Parser' (Name, [Spanned [Ast]])
+segmentList :: Name -> SegmentList -> Parser' (Name, [Spanned [Lexer.Token]])
 segmentList = go where
     go = \name -> \case
         SegmentListNull -> pure (name, mempty)
@@ -509,7 +509,7 @@ segmentList = go where
 
 -- === Section parsers === --
 
-macro :: Ast -> Macro -> Parser' [Ast]
+macro :: Lexer.Token -> Macro -> Parser' [Lexer.Token]
 macro = \t@(Ast.Spanned span tok) (Macro seg lst) -> do
     psegs <- withNextSegmentsReserved lst $ segment seg
 
@@ -527,7 +527,7 @@ macro = \t@(Ast.Spanned span tok) (Macro seg lst) -> do
         _ -> standard
 {-# INLINE macro #-}
 
-mergeSpannedLists :: [Spanned [Ast]] -> (CodeSpan, [Ast])
+mergeSpannedLists :: [Spanned [Lexer.Token]] -> (CodeSpan, [Lexer.Token])
 mergeSpannedLists = \lst -> let
     prependSpan span = Ast.span %~ (CodeSpan.prependAsOffset span)
     in case lst of
@@ -556,7 +556,7 @@ showSection = \case
 
 -- === Utils === --
 
-emptyExpression :: Ast
+emptyExpression :: Lexer.Token
 emptyExpression = Ast.invalid Invalid.EmptyExpression
 {-# INLINE emptyExpression #-}
 
@@ -564,15 +564,15 @@ emptyExpression = Ast.invalid Invalid.EmptyExpression
 
 -- === API === --
 
-expr :: Parser Ast
+expr :: Parser Lexer.Token
 expr = total emptyExpression expr'
 {-# INLINE expr #-}
 
-expr' :: Parser' Ast
+expr' :: Parser' Lexer.Token
 expr' = blockExpr' <|> nonBlockExpr'
 {-# INLINE expr' #-}
 
-blockExpr' :: Parser' Ast
+blockExpr' :: Parser' Lexer.Token
 blockExpr' = discoverBlock1 nonBlockExpr' <&> \case
     (a :| []) -> a
     as -> Ast.block as
@@ -583,7 +583,7 @@ blockExpr' = discoverBlock1 nonBlockExpr' <&> \case
 
 
 -- TODO: refactor marker handling in nonBlockExpr and nonBlockExpr'
-nonBlockExpr :: Parser Ast
+nonBlockExpr :: Parser Lexer.Token
 nonBlockExpr = do
     let marked = do
             marker <- satisfyAst isMarker
@@ -593,14 +593,14 @@ nonBlockExpr = do
     Indent.withCurrent $ marked <||> nonBlockExprBody
 {-# INLINE nonBlockExpr #-}
 
-unit :: Parser Ast
+unit :: Parser Lexer.Token
 unit = total emptyExpression $ Ast.unit <$> body where
     body     = nonEmpty <|> empty
     nonEmpty = Ast.block <$> block1 nonBlockExpr'
     empty    = pure Ast.missing
 {-# INLINE unit #-}
 
-nonBlockExpr' :: Parser' Ast
+nonBlockExpr' :: Parser' Lexer.Token
 nonBlockExpr' = do
     let marked = do
             marker <- satisfyAst isMarker
@@ -610,7 +610,7 @@ nonBlockExpr' = do
     Indent.withCurrent $ marked <|> nonBlockExprBody'
 {-# INLINE nonBlockExpr' #-}
 
-nonBlockExprBody :: Parser Ast
+nonBlockExprBody :: Parser Lexer.Token
 nonBlockExprBody = total emptyExpression nonBlockExprBody'
 {-# INLINE nonBlockExprBody #-}
 
@@ -619,12 +619,12 @@ isComment = \case
     Ast.Comment {} -> True
     _ -> False
 
-assertNotComment :: Ast -> Parser' ()
+assertNotComment :: Lexer.Token -> Parser' ()
 assertNotComment = \tok -> when_ (isComment $ Ast.unspan tok)
     $ fail "Assertion failed: got a comment."
 {-# INLINE assertNotComment #-}
 
-nonBlockExprBody' :: Parser' Ast
+nonBlockExprBody' :: Parser' Lexer.Token
 nonBlockExprBody' = documented <|> unusedComment <|> body where
     documented    = Ast.documented <$> satisfyAst isComment <*> docBase
     unusedComment = satisfyAst isComment
@@ -650,15 +650,15 @@ nonBlockExprBody' = documented <|> unusedComment <|> body where
                 _              -> pure [tok]
 {-# INLINE nonBlockExprBody' #-}
 
-manyNonSpacedExpr :: Parser' Ast
+manyNonSpacedExpr :: Parser' Lexer.Token
 manyNonSpacedExpr = Ast.list <$> many nonSpacedExpr'
 {-# INLINE manyNonSpacedExpr #-}
 
-nonSpacedExpr :: Parser' Ast
+nonSpacedExpr :: Parser' Lexer.Token
 nonSpacedExpr = option emptyExpression nonSpacedExpr'
 {-# INLINE nonSpacedExpr #-}
 
-nonSpacedExpr' :: Parser' Ast
+nonSpacedExpr' :: Parser' Lexer.Token
 nonSpacedExpr' = buildExpr =<< go where
     go = do
         tok  <- anySymbolNotReserved
@@ -673,7 +673,7 @@ nonSpacedExpr' = buildExpr =<< go where
 
 
 
-exprList :: Parser' Ast
+exprList :: Parser' Lexer.Token
 exprList = Ast.list <$> lst where
     lst      = option mempty $ nonEmpty <|> empty
     nonEmpty = (:) <$> seg segBody <*> many nextSeg
@@ -693,63 +693,63 @@ exprList = Ast.list <$> lst where
 -- === Layout === --
 --------------------
 
-discoverBlock1 :: Parser' Ast -> Parser' (NonEmpty Ast)
+discoverBlock1 :: Parser' Lexer.Token -> Parser' (NonEmpty Lexer.Token)
 discoverBlock1 = \p -> brokenLst1 $ Indent.indented *> block1 p
 {-# INLINE discoverBlock1 #-}
 
-block1 :: Parser' Ast -> Parser' (NonEmpty Ast)
+block1 :: Parser' Lexer.Token -> Parser' (NonEmpty Lexer.Token)
 block1 = Indent.withCurrent . blockBody1
 {-# INLINE block1 #-}
 
-blockBody1 :: Parser' Ast -> Parser' (NonEmpty Ast)
+blockBody1 :: Parser' Lexer.Token -> Parser' (NonEmpty Lexer.Token)
 blockBody1 = \p -> (:|) <$> p <*> many (broken $ Indent.indentedEq *> p)
 {-# INLINE blockBody1 #-}
 
-block :: Parser' Ast -> Parser [Ast]
+block :: Parser' Lexer.Token -> Parser [Lexer.Token]
 block = optionBlock . block1
 {-# INLINE block #-}
 
-blockBody :: Parser' Ast -> Parser [Ast]
+blockBody :: Parser' Lexer.Token -> Parser [Lexer.Token]
 blockBody = optionBlock . blockBody1
 {-# INLINE blockBody #-}
 
-optionBlock :: Parser' (NonEmpty Ast) -> Parser [Ast]
+optionBlock :: Parser' (NonEmpty Lexer.Token) -> Parser [Lexer.Token]
 optionBlock = total mempty . fmap convert
 {-# INLINE optionBlock #-}
 
 
 
 
-optional :: Parser' Ast -> Parser' Ast
+optional :: Parser' Lexer.Token -> Parser' Lexer.Token
 optional = option Ast.missing
 {-# INLINE optional #-}
 
 
-classBlock :: Parser' Ast
+classBlock :: Parser' Lexer.Token
 classBlock = broken $ do
     let conses = many classCons
     Ast.list <$> conses
 
-classCons :: Parser' Ast
+classCons :: Parser' Lexer.Token
 classCons = Ast.app <$> withReserved blockStartOp base <*> (blockDecl <|> inlineDecl) where
     base       = satisfyAst isCons
     inlineDecl = Ast.list <$> many unnamedField
     blockDecl   = ast blockStartOp *> blockDecl'
     blockStartOp = Ast.Operator ":"
     blockDecl'  = Ast.list <$> (unsafeBrokenLst $ Indent.indented *> Indent.withCurrent blockDeclLines)
-    blockDeclLines :: Parser' [Ast]
+    blockDeclLines :: Parser' [Lexer.Token]
     blockDeclLines  = (:) <$> namedFields <*> blockDeclLines'
     blockDeclLines' = option mempty $ unsafeBrokenLst (Indent.indentedEq *> blockDeclLines)
 
 
-unnamedField :: Parser' Ast
+unnamedField :: Parser' Lexer.Token
 unnamedField = do
     tp <- nonSpacedExpr'
     let f  = Ast.Spanned mempty $ Ast.Var "#fields#"
         ns = Ast.Spanned mempty $ Ast.List []
     pure $ Ast.apps f [ns, tp]
 
-namedFields :: Parser' Ast
+namedFields :: Parser' Lexer.Token
 namedFields = do
     let tpOp = Ast.Operator "::"
     ns <- Ast.list <$> withReserved tpOp (many1 nonSpacedExpr')

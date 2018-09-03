@@ -21,7 +21,6 @@ import qualified Luna.IR.Aliases                           as Uni
 import qualified Luna.IR.Term.Ast.Invalid                  as Invalid
 import qualified Luna.Pass                                 as Pass
 import qualified Luna.Pass.Attr                            as Attr
-import qualified Luna.Syntax.Text.Parser.Parser                   as Macro
 import qualified Luna.Pass.Parsing.Parserx                 as Stage1
 import qualified Luna.Pass.Scheduler                       as Scheduler
 import qualified Luna.Syntax.Text.Parser.Data.Ast          as Ast
@@ -29,6 +28,8 @@ import qualified Luna.Syntax.Text.Parser.Data.Ast.Class    as Atom
 import qualified Luna.Syntax.Text.Parser.Data.CodeSpan     as CodeSpan
 import qualified Luna.Syntax.Text.Parser.Data.CodeSpan     as CodeSpan
 import qualified Luna.Syntax.Text.Parser.Data.Name.Special as Name
+import qualified Luna.Syntax.Text.Parser.Lexer             as Lexer
+import qualified Luna.Syntax.Text.Parser.Parser            as Macro
 import qualified Luna.Syntax.Text.Parser.State.Marker      as Marker
 
 import Data.Map                              (Map)
@@ -38,7 +39,6 @@ import Data.Text32                           (Text32)
 import Luna.Pass                             (Pass)
 import Luna.Syntax.Text.Parser.Data.Ast      (Spanned (Spanned))
 import Luna.Syntax.Text.Parser.Data.CodeSpan (CodeSpan)
-import Luna.Syntax.Text.Parser.Lexer         (Ast)
 import Luna.Syntax.Text.Parser.State.Invalid (Invalids)
 import Luna.Syntax.Text.Parser.State.Result  (Result)
 import Luna.Syntax.Text.Parser.State.Result  (Result (Result))
@@ -114,12 +114,12 @@ run :: ParserPass (Pass stage Parser)
 run = runWith Macro.unit
 
 runWith :: ParserPass (Pass stage Parser)
-    => Macro.Parser Ast -> Text32 -> Pass stage Parser (IR.SomeTerm, Marker.TermMap)
+    => Macro.Parser Lexer.Token -> Text32 -> Pass stage Parser (IR.SomeTerm, Marker.TermMap)
 runWith p src = runMeDebug $ Stage1.runWith p src
 {-# INLINE runWith #-}
 
 runMeDebug :: ParserPass (Pass stage Parser)
-    => Ast -> Pass stage Parser (IR.SomeTerm, Marker.TermMap)
+    => Lexer.Token -> Pass stage Parser (IR.SomeTerm, Marker.TermMap)
 runMeDebug ast = do
     ((ref, unmarked), gidMap) <- State.runDefT @Marker.TermMap
                                $ State.runDefT @Marker.TermOrphanList
@@ -130,7 +130,7 @@ runMeDebug ast = do
 
 type instance Item (NonEmpty a) = a
 
-buildGraph :: forall m. BuilderMonad m => Ast -> m IR.SomeTerm
+buildGraph :: forall m. BuilderMonad m => Lexer.Token -> m IR.SomeTerm
 buildGraph = buildIR
 {-# INLINE buildGraph #-}
 
@@ -160,11 +160,11 @@ parseError = IR.invalid' Invalid.ParserError
 
 -- === Imports === --
 
-discoverImportLines :: [Ast] -> ([Ast], [Ast])
+discoverImportLines :: [Lexer.Token] -> ([Lexer.Token], [Lexer.Token])
 discoverImportLines = discoverImportLines__ mempty mempty
 {-# INLINE discoverImportLines #-}
 
-discoverImportLines__ :: [Ast] -> [Ast] -> [Ast] -> ([Ast], [Ast])
+discoverImportLines__ :: [Lexer.Token] -> [Lexer.Token] -> [Lexer.Token] -> ([Lexer.Token], [Lexer.Token])
 discoverImportLines__ = \results others stream -> case stream of
     []           -> (reverse others, reverse results)
     (line:lines) -> let
@@ -178,7 +178,7 @@ discoverImportLines__ = \results others stream -> case stream of
                     _ -> discoverImportLines__ results (line:others) lines
             _ -> discoverImportLines__ results (line:others) lines
 
-getImportName :: Ast -> Maybe IR.Qualified
+getImportName :: Lexer.Token -> Maybe IR.Qualified
 getImportName = \t -> case Ast.unspan t of
     Ast.InfixApp l f r -> case Ast.unspan f of
         Ast.Operator op -> if
@@ -190,7 +190,7 @@ getImportName = \t -> case Ast.unspan t of
         _ -> Nothing
     Ast.Cons v -> pure $ convert v
 
-buildImportIR :: forall m. BuilderMonad m => Ast -> [Ast] -> m IR.SomeTerm
+buildImportIR :: forall m. BuilderMonad m => Lexer.Token -> [Lexer.Token] -> m IR.SomeTerm
 buildImportIR = \a@(Spanned cs ast) args -> addCodeSpan cs =<< if not (null args)
     then parseError
     else case ast of
@@ -207,7 +207,7 @@ buildImportIR = \a@(Spanned cs ast) args -> addCodeSpan cs =<< if not (null args
 
 -- === IR === --
 
-buildUnit :: BuilderMonad m => [Ast] -> m [IR.SomeTerm]
+buildUnit :: BuilderMonad m => [Lexer.Token] -> m [IR.SomeTerm]
 buildUnit = \case
     [] -> pure []
     (a:as) -> do
@@ -223,7 +223,7 @@ buildUnit = \case
                 _ -> (a':) <$> buildUnit as
             _ -> (a':) <$> buildUnit as
 
-buildIR :: forall m. BuilderMonad m => Ast -> m IR.SomeTerm
+buildIR :: forall m. BuilderMonad m => Lexer.Token -> m IR.SomeTerm
 buildIR = \(Spanned cs ast) -> putStrLn "\n---" {- >> print cs -} >> (addCodeSpan cs =<< case ast of
 
     -- Literals
@@ -360,7 +360,7 @@ buildIR = \(Spanned cs ast) -> putStrLn "\n---" {- >> print cs -} >> (addCodeSpa
 
 -- foldM :: Monad m => (a -> b -> m a) -> a -> [b] -> m a
 
-(<?>) :: Ast -> Invalid.Symbol -> Ast
+(<?>) :: Lexer.Token -> Invalid.Symbol -> Lexer.Token
 (<?>) = flip specInvalid
 {-# INLINE (<?>) #-}
 
@@ -371,17 +371,17 @@ assertSingleArg args f = case args of
 
 
 
-builAppIR :: BuilderMonad m => Ast -> IR.SomeTerm -> m IR.SomeTerm
+builAppIR :: BuilderMonad m => Lexer.Token -> IR.SomeTerm -> m IR.SomeTerm
 builAppIR = \arg t -> do
     arg' <- buildIR arg
     IR.app' t arg'
 
-builAppsIR :: BuilderMonad m => [Ast] -> IR.SomeTerm -> m IR.SomeTerm
+builAppsIR :: BuilderMonad m => [Lexer.Token] -> IR.SomeTerm -> m IR.SomeTerm
 builAppsIR = \args t -> do
     args' <- buildIR <$$> args
     foldlM IR.app' t args'
 
-type MixFixBuilder = forall m. BuilderMonad m => Ast -> [Ast] -> m IR.SomeTerm
+type MixFixBuilder = forall m. BuilderMonad m => Lexer.Token -> [Lexer.Token] -> m IR.SomeTerm
 
 buildClassIR :: MixFixBuilder
 buildClassIR arg args = case Ast.unspan arg of
@@ -397,7 +397,7 @@ buildClassIR arg args = case Ast.unspan arg of
         _ -> parseError
     _ -> parseError
 
-buildClassConsIR :: BuilderMonad m => Ast -> m IR.SomeTerm
+buildClassConsIR :: BuilderMonad m => Lexer.Token -> m IR.SomeTerm
 buildClassConsIR = \tok -> case Ast.unspan tok of
     Ast.App nameTok fieldToks -> case Ast.unspan nameTok of
         Ast.Cons name -> case Ast.unspan fieldToks of
@@ -406,7 +406,7 @@ buildClassConsIR = \tok -> case Ast.unspan tok of
         _ -> parseError
     _ -> parseError
 
-buildClassField :: BuilderMonad m => Ast -> m IR.SomeTerm
+buildClassField :: BuilderMonad m => Lexer.Token -> m IR.SomeTerm
 buildClassField = \tok -> case Ast.unspan tok of
     Ast.App t tp -> case Ast.unspan t of
         Ast.App ff ns -> case Ast.unspan ff of
@@ -419,7 +419,7 @@ buildClassField = \tok -> case Ast.unspan tok of
         _ -> parseError
     _ -> parseError
 
-getFieldName :: Ast -> Name
+getFieldName :: Lexer.Token -> Name
 getFieldName = \tok -> case Ast.unspan tok of
     Ast.Var n -> n
     _         -> error "FIXME"
@@ -471,7 +471,7 @@ buildTupleIR = \arg args -> do
         Ast.List as  -> IR.tuple'   =<< buildIR <$$> as
         _            -> parseError
 
-buildRealIR :: BuilderMonad m => Ast -> Ast -> m IR.SomeTerm
+buildRealIR :: BuilderMonad m => Lexer.Token -> Lexer.Token -> m IR.SomeTerm
 buildRealIR (Spanned _ (Ast.Number integral)) (Spanned _ (Ast.Number fractional)) = do
     intPart  <- Mutable.fromList (toList integral)
     fracPart <- Mutable.fromList (toList fractional)
@@ -489,7 +489,7 @@ buildFunctionIR arg args = case args of
                 IR.function' name' params' body'
             _ -> parseError
 
-checkFunctionName :: Ast -> Ast
+checkFunctionName :: Lexer.Token -> Lexer.Token
 checkFunctionName = fmap handle where
     handle = \case
         Ast.Var      a -> Ast.Var      a
@@ -499,7 +499,7 @@ checkFunctionName = fmap handle where
         _  -> Ast.Invalid Invalid.InvalidFunctionName
 {-# INLINE checkFunctionName #-}
 
-specInvalid :: Invalid.Symbol -> Ast -> Ast
+specInvalid :: Invalid.Symbol -> Lexer.Token -> Lexer.Token
 specInvalid inv = fmap handle where
     handle = \case
         Ast.Invalid {} -> Ast.Invalid inv
@@ -515,12 +515,12 @@ infixl 4 <$$>
 (<$$>) = mapM
 {-# INLINE (<$$>) #-}
 
-collectApps :: NonEmpty Ast -> Ast -> (Ast, NonEmpty Ast)
+collectApps :: NonEmpty Lexer.Token -> Lexer.Token -> (Lexer.Token, NonEmpty Lexer.Token)
 collectApps = \apps tok -> case Ast.unspan tok of
     Ast.App f a -> collectApps (a <| apps) f
     _           -> (tok, apps)
 
-collectSpan :: [Ast] -> CodeSpan
+collectSpan :: [Lexer.Token] -> CodeSpan
 collectSpan = \lst -> case lst of
     []       -> mempty
     (s : ss) -> view Ast.span s <> collectSpan ss

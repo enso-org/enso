@@ -23,8 +23,6 @@ import qualified Luna.IR                                     as IR
 import qualified Luna.IR.Layer                               as Layer
 import qualified Luna.Pass                                   as Pass
 import qualified Luna.Pass.Attr                              as Attr
-import qualified Luna.Syntax.Text.Parser.Parser.ExprBuilder               as ExprBuilder
-import qualified Luna.Syntax.Text.Parser.Parser                     as Macro
 import qualified Luna.Pass.Parsing.Parserx                   as PP
 import qualified Luna.Pass.Scheduler                         as Scheduler
 import qualified Luna.Syntax.Text.Parser.Data.Ast            as Ast
@@ -33,8 +31,10 @@ import qualified Luna.Syntax.Text.Parser.Data.Ast.Simple     as Simple
 import qualified Luna.Syntax.Text.Parser.Data.CodeSpan       as CodeSpan
 import qualified Luna.Syntax.Text.Parser.Data.Name.Hardcoded as Hardcoded
 import qualified Luna.Syntax.Text.Parser.Data.Name.Special   as Name
-import qualified Luna.Syntax.Text.Parser.Lexer               as Parsing (Parser, SyntaxVersion (..))
 import qualified Luna.Syntax.Text.Parser.Lexer               as Parsing
+import qualified Luna.Syntax.Text.Parser.Lexer               as Lexer
+import qualified Luna.Syntax.Text.Parser.Parser              as Macro
+import qualified Luna.Syntax.Text.Parser.Parser.ExprBuilder  as ExprBuilder
 import qualified Luna.Syntax.Text.Parser.Pass.Definition     as Parser
 import qualified Luna.Syntax.Text.Scope                      as Scope
 import qualified OCI.Data.Name                               as Name
@@ -44,7 +44,6 @@ import Data.Text.Position                    (Delta)
 import Data.Text32                           (Text32)
 import Luna.Pass                             (Pass)
 import Luna.Syntax.Text.Parser.Data.CodeSpan (CodeSpan)
-import Luna.Syntax.Text.Parser.Lexer         (Ast)
 import OCI.Data.Name                         (Name)
 -- import Luna.Syntax.Text.Parser.Pass.Class    (IRBS, Parser)
 import Luna.Syntax.Text.Scope  (Scope)
@@ -146,7 +145,8 @@ instance (t ~ Arg a, Example a, x ~ ())
 -- exprAs     = shouldParseAs     Parsing.Syntax1 Parsing.expr
 -- expr       = shouldParseItself Parsing.Syntax1 Parsing.expr
 
-testCase :: Macro.Parser Ast -> String -> Simple.Ast -> IO ()
+-- TODO: rename Lexer.Token -> Spanned Ast !
+testCase :: Macro.Parser Lexer.Token -> String -> Simple.Ast -> IO ()
 testCase p src out = sast `shouldBe` out where
     sast = Simple.simplify ast
     ast  = flip PP.runWith (convert src) $ do

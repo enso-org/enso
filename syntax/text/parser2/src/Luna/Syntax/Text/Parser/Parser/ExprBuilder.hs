@@ -26,7 +26,7 @@ import Data.Set                              (Set)
 import Data.Text.Position                    (Delta (Delta))
 import Luna.Syntax.Text.Parser.Data.Ast      (Spanned (Spanned))
 import Luna.Syntax.Text.Parser.Data.CodeSpan (CodeSpan)
-import Luna.Syntax.Text.Parser.Lexer         (Ast)
+import Luna.Syntax.Text.Parser.Lexer         (Token)
 import Luna.Syntax.Text.Source               (Source)
 import OCI.Data.Name                         (Name)
 
@@ -55,20 +55,20 @@ data Layout
 
 data Layouted = Layouted
     { _layout :: Layout
-    , _stream :: [Ast]
+    , _stream :: [Token]
     } deriving (Show)
 makeLenses ''Layouted
 
 
 -- === API === --
 
-discoverLayouts :: [Ast] -> [Layouted]
+discoverLayouts :: [Token] -> [Layouted]
 discoverLayouts = \case
     []     -> []
     (a:as) -> discoverLayouts__ [a] as []
 {-# INLINE discoverLayouts #-}
 
-discoverLayouts__ :: [Ast] -> [Ast] -> [Layouted] -> [Layouted]
+discoverLayouts__ :: [Token] -> [Token] -> [Layouted] -> [Layouted]
 discoverLayouts__ = \buff stream out -> case stream of
     [] -> reverse $ spaced buff out
     (tok:toks) -> if checkLeftSpacing' tok buff
@@ -83,7 +83,7 @@ discoverLayouts__ = \buff stream out -> case stream of
           spaced   = make (Layouted SpacedLayout)   . reverse
           unspaced = make (Layouted UnspacedLayout) . discoverUMinus
 
-takeWhileUnspaced :: [Ast] -> ([Ast], [Ast])
+takeWhileUnspaced :: [Token] -> ([Token], [Token])
 takeWhileUnspaced = go where
     go = \stream -> case stream of
         [] -> (mempty, mempty)
@@ -95,7 +95,7 @@ takeWhileUnspaced = go where
 
 -- | Unary minus is the only prefix operator and needs to be handled correctly.
 --   We scan heads of all unspaced layouts to discover it.
-discoverUMinus :: [Ast] -> [Ast]
+discoverUMinus :: [Token] -> [Token]
 discoverUMinus = \case
     []     -> mempty
     (a:as) -> a' : as where
@@ -107,7 +107,7 @@ discoverUMinus = \case
 -- | Any operator following the accessor operator should be treated as var. We
 --   can discover such cases only after layouts are build in order to properly
 --   handle all sections.
-discoverOpAccessors :: [Ast] -> [Ast]
+discoverOpAccessors :: [Token] -> [Token]
 discoverOpAccessors = \p -> case p of
     []     -> []
     (a:as) -> case Ast.unspan a of
@@ -128,13 +128,13 @@ discoverOpAccessors = \p -> case p of
 -- create a section in expressions like `foo = a: b: a + b`. The problem is
 -- that this makes this operator a very special one. There is no such problem
 -- in the new syntax so as soon as we switch to it, we should remove this hack.
-checkLeftSpacing :: Ast -> Bool
+checkLeftSpacing :: Token -> Bool
 checkLeftSpacing = \a -> normal a || special a where
     normal  = (> 0) . view (Ast.span . CodeSpan.viewSpan . Span.offset)
     special = (== Ast.Operator ":") . view Ast.ast
 {-# INLINE checkLeftSpacing #-}
 
-checkLeftSpacing' :: Ast -> [Ast] -> Bool
+checkLeftSpacing' :: Token -> [Token] -> Bool
 checkLeftSpacing' = \a buff -> checkLeftSpacing a || checkLamBuff buff where
     checkLamBuff = \case
         (tok:toks) -> Ast.unspan tok == Ast.Operator ":"
@@ -160,28 +160,28 @@ checkLeftSpacing' = \a buff -> checkLeftSpacing a || checkLamBuff buff where
 -- === Definition === --
 
 data Statement
-    = ExpressionStatement [Ast]
-    | AssignmentStatement [Ast] Ast [Ast]
+    = ExpressionStatement [Token]
+    | AssignmentStatement [Token] Token [Token]
     deriving (Show)
 
 
 -- === API === --
 
-buildStatement :: [Ast] -> Statement
+buildStatement :: [Token] -> Statement
 buildStatement = either ExpressionStatement (uncurry AssignmentStatement) . breakOnAssignment
 {-# INLINE buildStatement #-}
 
 -- | Note: see description above to learn more why it's useful.
-buildFlatStatement :: [Ast] -> [Layouted]
+buildFlatStatement :: [Token] -> [Layouted]
 buildFlatStatement = flattenStatement . buildStatement
 {-# INLINE buildFlatStatement #-}
 
-breakOnAssignment :: [Ast] -> Either [Ast] ([Ast], Ast, [Ast])
+breakOnAssignment :: [Token] -> Either [Token] ([Token], Token, [Token])
 breakOnAssignment = breakOnAssignment__ id
 {-# INLINE breakOnAssignment #-}
 
 breakOnAssignment__
-    :: ([Ast] -> [Ast]) -> [Ast] -> Either [Ast] ([Ast], Ast, [Ast])
+    :: ([Token] -> [Token]) -> [Token] -> Either [Token] ([Token], Token, [Token])
 breakOnAssignment__ = \f stream -> case stream of
     []         -> Left (f stream)
     (tok:toks) -> let
@@ -228,23 +228,23 @@ flattenStatement = \case
 --   >     | EndElStream   Name
 --   >
 --   > data OpStream
---   >     = InfixOpStream Name (Ast -> Ast -> Ast) ElStream
---   >     | EndOpStream   Name (Ast -> Ast)
+--   >     = InfixOpStream Name (Token -> Token -> Token) ElStream
+--   >     | EndOpStream   Name (Token -> Token)
 --
 
-data Stream       = OpStreamStart Name Ast ElStream
+data Stream       = OpStreamStart Name Token ElStream
                   | ElStreamStart ElStream
                   | NullStream
 
 data OpStream     = OpStream Name OpStreamType
-data OpStreamType = InfixOp  (Maybe Ast) ElStream
-                  | EndOp    Ast
+data OpStreamType = InfixOp  (Maybe Token) ElStream
+                  | EndOp    Token
 
 pattern InfixOpStream name mop stream = OpStream name (InfixOp mop stream)
 pattern EndOpStream   name op         = OpStream name (EndOp op)
 pattern InfixOp_      mop ast stream  = InfixOp  mop  (ElStream ast stream)
 
-data ElStream     = ElStream Ast ElStreamType
+data ElStream     = ElStream Token ElStreamType
 data ElStreamType = InfixEl  OpStream
                   | EndEl
 
@@ -261,7 +261,7 @@ deriving instance Show ElStreamType
 
 -- === Smart constructors === --
 
-singularElStream :: Ast -> Stream
+singularElStream :: Token -> Stream
 singularElStream = ElStreamStart . EndElStream
 {-# INLINE singularElStream #-}
 
@@ -271,7 +271,7 @@ singularElStream = ElStreamStart . EndElStream
 -- | Stream builder. Note that its implementation works on reversed token
 --   stream in order to get tail-recursive optimization here.
 
-buildStream :: [Ast] -> Stream
+buildStream :: [Token] -> Stream
 buildStream = \(reverse -> stream) -> case stream of
     []         -> NullStream
     (tok:toks) -> case discoverOps stream of
@@ -282,7 +282,7 @@ buildStream = \(reverse -> stream) -> case stream of
           goEl name = buildElStream . EndOpStream name
 {-# INLINE buildStream #-}
 
-buildOpStream :: ElStream -> [Ast] -> Stream
+buildOpStream :: ElStream -> [Token] -> Stream
 buildOpStream = \result stream -> case stream of
     [] -> ElStreamStart result
     (tok:toks) -> case discoverOps stream of
@@ -292,7 +292,7 @@ buildOpStream = \result stream -> case stream of
     where go = buildElStream .:. InfixOpStream
 {-# NOINLINE buildOpStream #-}
 
-buildElStream :: OpStream -> [Ast] -> Stream
+buildElStream :: OpStream -> [Token] -> Stream
 buildElStream = \(result@(OpStream name stp)) -> \case
     [] -> case stp of
         EndOp   op    -> singularElStream op
@@ -307,12 +307,12 @@ buildElStream = \(result@(OpStream name stp)) -> \case
 -- === Operator discovery === --
 
 data OperatorDiscovery
-    = Single Name Ast
-    | Invalid Ast [Ast]
+    = Single Name Token
+    | Invalid Token [Token]
     | NotFound
     deriving (Show)
 
-discoverOps :: [Ast] -> OperatorDiscovery
+discoverOps :: [Token] -> OperatorDiscovery
 discoverOps stream = case takeOperators stream of
     ([(name,op)], _)     -> Single name op
     ([]         , _)     -> NotFound
@@ -321,11 +321,11 @@ discoverOps stream = case takeOperators stream of
                   $ Ast.Invalid Invalid.AdjacentOperators
 {-# INLINE discoverOps #-}
 
-takeOperators :: [Ast] -> ([(Name,Ast)], [Ast])
+takeOperators :: [Token] -> ([(Name,Token)], [Token])
 takeOperators = takeOperators__ mempty
 {-# INLINE takeOperators #-}
 
-takeOperators__ :: [(Name,Ast)] -> [Ast] -> ([(Name,Ast)], [Ast])
+takeOperators__ :: [(Name,Token)] -> [Token] -> ([(Name,Token)], [Token])
 takeOperators__ = \result stream -> case stream of
     [] -> (result,[])
     (tok:toks) -> let
@@ -352,7 +352,7 @@ takeOperators__ = \result stream -> case stream of
 
 type ExprBuilderMonad m = (Assoc.Reader Name m, Prec.RelReader Name m)
 
-buildExpr :: ExprBuilderMonad m => [Ast] -> m Ast
+buildExpr :: ExprBuilderMonad m => [Token] -> m Token
 buildExpr = \stream -> do
     -- trace ("\n\n>>>\n" <> ppShow stream) $ pure ()
     let statement = buildFlatStatement stream
@@ -366,7 +366,7 @@ buildExpr = \stream -> do
 
 -- === Utils === --
 
-buildUnspacedExprs :: ExprBuilderMonad m => [Layouted] -> m [Ast]
+buildUnspacedExprs :: ExprBuilderMonad m => [Layouted] -> m [Token]
 buildUnspacedExprs = \stream -> let
     go = \(Layouted layout s) -> case layout of
         SpacedLayout   -> pure s
@@ -374,11 +374,11 @@ buildUnspacedExprs = \stream -> let
     in concat <$> mapM go stream
 {-# INLINE buildUnspacedExprs #-}
 
-buildExprList :: ExprBuilderMonad m => [Ast] -> m Ast
+buildExprList :: ExprBuilderMonad m => [Token] -> m Token
 buildExprList = buildExprStream . buildStream
 {-# INLINE buildExprList #-}
 
-buildExprStream :: ExprBuilderMonad m => Stream -> m Ast
+buildExprStream :: ExprBuilderMonad m => Stream -> m Token
 buildExprStream = \case
     NullStream -> pure $ Ast.invalid Invalid.EmptyExpression
     OpStreamStart opName op (ElStream el stp) -> case stp of
@@ -390,12 +390,12 @@ buildExprStream = \case
         InfixEl s -> buildExprOp__ s (EndElStream el)
 {-# INLINE buildExprStream #-}
 
-buildExprOp__ :: ∀ m. ExprBuilderMonad m => OpStream -> ElStream -> m Ast
+buildExprOp__ :: ∀ m. ExprBuilderMonad m => OpStream -> ElStream -> m Token
 buildExprOp__ = \stream stack -> let
     OpStream streamOp streamTp = stream
     ElStream stackEl  stackTp  = stack
 
-    submitToStack :: m Ast
+    submitToStack :: m Token
     submitToStack = case streamTp of
         EndOp op -> foldExprStackStep__ (Ast.sectionLeft stackEl op) stackTp
         InfixOp_ op streamEl streamTp' -> let
@@ -406,7 +406,7 @@ buildExprOp__ = \stream stack -> let
                 InfixEl stream' -> buildExprOp__ stream' newStack
     {-# INLINE submitToStack #-}
 
-    reduceStack :: OpStreamType -> m Ast
+    reduceStack :: OpStreamType -> m Token
     reduceStack = \case
         EndOp op -> buildExprOp__ stream newStack where
             newStack = EndElStream (Ast.sectionRight op stackEl)
@@ -414,7 +414,7 @@ buildExprOp__ = \stream stack -> let
             newStack = ElStream (appInfix mop stackEl2 stackEl) s
     {-# INLINE reduceStack #-}
 
-    markStreamOpInvalid :: Invalid.Symbol -> m Ast
+    markStreamOpInvalid :: Invalid.Symbol -> m Token
     markStreamOpInvalid invSym = let
         inv op    = Ast.Spanned (op ^. Ast.span) (Ast.Invalid invSym)
         newStream = OpStream Name.invalid $ case streamTp of
@@ -455,17 +455,17 @@ readRel = \l r -> if
     | otherwise         -> Prec.readRel l r
 {-# INLINE readRel #-}
 
-foldExprStack__ :: ExprBuilderMonad m => Ast -> OpStream -> m Ast
+foldExprStack__ :: ExprBuilderMonad m => Token -> OpStream -> m Token
 foldExprStack__ = \el (OpStream op stp2) -> case stp2 of
         EndOp    op           -> pure $ Ast.sectionRight el op
         InfixOp_ mop el2 stp3 -> foldExprStackStep__ (appInfix mop el2 el) stp3
 {-# NOINLINE foldExprStack__ #-}
 
-appInfix :: Maybe Ast -> (Ast -> Ast -> Ast)
+appInfix :: Maybe Token -> (Token -> Token -> Token)
 appInfix = maybe Ast.app (flip Ast.infixApp)
 {-# INLINE appInfix #-}
 
-foldExprStackStep__ :: ExprBuilderMonad m => Ast -> ElStreamType -> m Ast
+foldExprStackStep__ :: ExprBuilderMonad m => Token -> ElStreamType -> m Token
 foldExprStackStep__ = \a -> \case
     EndEl     -> pure a
     InfixEl s -> foldExprStack__ a s
@@ -485,15 +485,15 @@ foldExprStackStep__ = \a -> \case
 
 
 
--- data Stream       = OpStreamStart Name (Ast -> Ast) ElStream
+-- data Stream       = OpStreamStart Name (Token -> Token) ElStream
 --                   | ElStreamStart ElStream
 --                   | NullStream
 
 -- data OpStream     = OpStream      Name OpStreamType
--- data OpStreamType = InfixOp (Ast -> Ast -> Ast) ElStream
---                   | EndOp   (Ast -> Ast)
+-- data OpStreamType = InfixOp (Token -> Token -> Token) ElStream
+--                   | EndOp   (Token -> Token)
 
--- data ElStream     = ElStream      Ast ElStreamType
+-- data ElStream     = ElStream      Token ElStreamType
 -- data ElStreamType = InfixEl OpStream
 --                   | EndEl
 

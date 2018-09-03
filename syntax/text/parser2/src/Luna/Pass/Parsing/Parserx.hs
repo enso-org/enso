@@ -10,12 +10,11 @@ import qualified Control.Monad.State.Layered                 as State
 import qualified Luna.IR                                     as IR
 import qualified Luna.Pass                                   as Pass
 import qualified Luna.Pass.Attr                              as Attr
-import qualified Luna.Syntax.Text.Parser.Parser.ExprBuilder               as ExprBuilder
-import qualified Luna.Syntax.Text.Parser.Parser                     as Macro
 import qualified Luna.Pass.Scheduler                         as Scheduler
 import qualified Luna.Syntax.Text.Parser.Data.Name.Hardcoded as Hardcoded
-import qualified Luna.Syntax.Text.Parser.Lexer               as Parsing (Parser, SyntaxVersion (..))
-import qualified Luna.Syntax.Text.Parser.Lexer               as Parsing
+import qualified Luna.Syntax.Text.Parser.Lexer               as Lexer
+import qualified Luna.Syntax.Text.Parser.Parser              as Macro
+import qualified Luna.Syntax.Text.Parser.Parser.ExprBuilder  as ExprBuilder
 import qualified Luna.Syntax.Text.Parser.Pass.Definition     as Parser
 import qualified Luna.Syntax.Text.Scope                      as Scope
 
@@ -28,13 +27,13 @@ import Luna.Syntax.Text.Source (Source (Source))
 
 
 
-run :: Text32 -> Parsing.Ast
+run :: Text32 -> Lexer.Token
 run = runWith Macro.unit
 {-# NOINLINE run #-}
 
 runWith :: Macro.Parser a -> Text32 -> a
 runWith = \p src -> let
-    toks = Parser.run Parsing.Syntax1 src
+    toks = Parser.run Lexer.Syntax1 src
     Right out = Macro.run toks $ do
         Hardcoded.hardcodePrecRelMap
         Macro.hardcodePredefinedMacros
