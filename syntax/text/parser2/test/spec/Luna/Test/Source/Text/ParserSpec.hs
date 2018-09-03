@@ -24,25 +24,26 @@ import qualified Luna.IR.Layer                               as Layer
 import qualified Luna.Pass                                   as Pass
 import qualified Luna.Pass.Attr                              as Attr
 import qualified Luna.Pass.Scheduler                         as Scheduler
-import qualified Luna.Syntax.Text.Parser.Ast            as Ast
-import qualified Luna.Syntax.Text.Parser.Ast.Class      as Ast
-import qualified Luna.Syntax.Text.Parser.Ast.Simple     as Simple
-import qualified Luna.Syntax.Text.Parser.Ast.CodeSpan       as CodeSpan
-import qualified Luna.Syntax.Text.Parser.Hardcoded as Hardcoded
-import qualified Luna.Syntax.Text.Parser.Lexer.Names   as Name
+import qualified Luna.Syntax.Text.Parser.Ast                 as Ast
+import qualified Luna.Syntax.Text.Parser.Ast.Class           as Ast
+import qualified Luna.Syntax.Text.Parser.Ast.CodeSpan        as CodeSpan
+import qualified Luna.Syntax.Text.Parser.Ast.Simple          as Simple
+import qualified Luna.Syntax.Text.Parser.Hardcoded           as Hardcoded
 import qualified Luna.Syntax.Text.Parser.Lexer               as Parsing
 import qualified Luna.Syntax.Text.Parser.Lexer               as Lexer
+import qualified Luna.Syntax.Text.Parser.Lexer.Names         as Name
 import qualified Luna.Syntax.Text.Parser.Parser              as Parser
 import qualified Luna.Syntax.Text.Parser.Parser.ExprBuilder  as ExprBuilder
+import qualified Luna.Syntax.Text.Parser.State.Version as Syntax
 import qualified Luna.Syntax.Text.Scope                      as Scope
 import qualified OCI.Data.Name                               as Name
 
-import Data.Graph.Data.Graph.Class           (Graph)
-import Data.Text.Position                    (Delta)
-import Data.Text32                           (Text32)
-import Luna.Pass                             (Pass)
+import Data.Graph.Data.Graph.Class          (Graph)
+import Data.Text.Position                   (Delta)
+import Data.Text32                          (Text32)
+import Luna.Pass                            (Pass)
 import Luna.Syntax.Text.Parser.Ast.CodeSpan (CodeSpan)
-import OCI.Data.Name                         (Name)
+import OCI.Data.Name                        (Name)
 -- import Luna.Syntax.Text.Parser.Pass.Class    (IRBS, Parser)
 import Luna.Syntax.Text.Scope  (Scope)
 import Luna.Syntax.Text.Source (Source)
@@ -146,7 +147,7 @@ instance (t ~ Arg a, Example a, x ~ ())
 testCase :: Parser.Parser Lexer.Token -> String -> Simple.Ast -> IO ()
 testCase p src out = sast `shouldBe` out where
     sast = Simple.simplify ast
-    ast  = flip Parser.evalWith (convert src) $ do
+    ast  = flip Parser.evalVersion1With (convert src) $ do
         let rplus  = ">>+" :: Name
             noplus = ">+<" :: Name
         Assoc.write Assoc.Right rplus
@@ -478,7 +479,7 @@ debugSpec = describe "error" $ it "x" $ do
     -- let input     = "«0»def main:\n    None"
     -- let input     = "a = b"
     let
-        toks      = Lexer.eval Lexer.Syntax1 input
+        toks      = Lexer.eval Syntax.Version1 input
         -- layouted  = ExprBuilder.discoverLayouts toks
         statement = ExprBuilder.buildFlatStatement toks
         stream    = ExprBuilder.buildStream toks
@@ -499,8 +500,8 @@ debugSpec = describe "error" $ it "x" $ do
 
 
     putStrLn "\nRESULT:\n"
-    pprint $ Parser.evalWith Parser.unit input
-    pprint $ Simple.simplify $ Parser.evalWith Parser.unit input
+    pprint $ Parser.evalVersion1With Parser.unit input
+    pprint $ Simple.simplify $ Parser.evalVersion1With Parser.unit input
 
     True `shouldBe` False
 

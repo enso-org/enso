@@ -82,11 +82,11 @@ unitSpec = describe "unit" $ do
 debugSpec :: Spec
 debugSpec = describe "error" $ it "debug" $ do
 
-    let input = "def foo a:\n x\n y"
+    let input = "#doc\ndef foo a:\n x\n # y"
 
     putStrLn "\n\n"
-    pprint $ PP.evalWith Macro.unit (convert input)
-    pprint $ Simple.simplify $ PP.evalWith Macro.unit (convert input)
+    pprint $ PP.evalVersion1With Macro.unit (convert input)
+    pprint $ Simple.simplify $ PP.evalVersion1With Macro.unit (convert input)
     e input "x"
 
 

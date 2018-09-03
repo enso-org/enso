@@ -6,16 +6,16 @@ module Luna.Syntax.Text.Parser.Ast.Simple where
 
 import Prologue hiding (Text, imp, seq, some, span, takeWhile)
 
-import qualified Data.Char                                as Char
-import qualified GHC.Exts                                 as GHC
-import qualified Luna.IR.Term.Ast.Invalid                 as Invalid
+import qualified Data.Char                           as Char
+import qualified GHC.Exts                            as GHC
+import qualified Luna.IR.Term.Ast.Invalid            as Invalid
 import qualified Luna.Syntax.Text.Parser.Ast.Class   as Ast
 import qualified Luna.Syntax.Text.Parser.Ast.Spanned as Spanned
 
-import Data.Text.Position                       (Delta)
+import Data.Text.Position                  (Delta)
 import Luna.Syntax.Text.Parser.Ast.Class   (Text)
 import Luna.Syntax.Text.Parser.Ast.Spanned (Spanned)
-import OCI.Data.Name                            (Name)
+import OCI.Data.Name                       (Name)
 
 
 
@@ -253,9 +253,9 @@ intToDigits = go [] where
 instance a ~ Ast
       => Num (a -> Ast) where
     fromInteger i = App (fromInteger i)
---     (-) = extractOp (-)
---     (+) = extractOp (+)
---     (*) = extractOp (*)
+--     (-) = extractOp (-) -- todo when needed
+--     (+) = extractOp (+) -- todo when needed
+--     (*) = extractOp (*) -- todo when needed
 
 
 

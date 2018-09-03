@@ -5,21 +5,36 @@ module Luna.Syntax.Text.Parser.Ast.Class where
 
 import Prologue hiding (Text, span)
 
-import qualified Data.Text32                           as Text
-import qualified Luna.IR.Term.Ast.Invalid              as Invalid
+import qualified Data.Text32                          as Text
+import qualified Luna.IR.Term.Ast.Invalid             as Invalid
 import qualified Luna.Syntax.Text.Parser.Ast.CodeSpan as CodeSpan
 
-import Data.Text.Position                    (Delta)
+import Data.Text.Position                   (Delta)
 import Luna.Syntax.Text.Parser.Ast.CodeSpan (CodeSpan (CodeSpan))
-import OCI.Data.Name                         (Name)
+import OCI.Data.Name                        (Name)
 
+
+
+-------------------
+-- === Types === --
+-------------------
 
 type Text = Text.Text32
 
 
+
+----------------------------
+-- === Ast components === --
+----------------------------
+
+-- === Links === --
+
 data Struct
 type family Link t a
 type Ln t = Link t Struct
+
+
+-- === Definition === --
 
 -- Identifiers
 data Var          t = Var          { name   :: Name                            }
@@ -59,6 +74,8 @@ data StrChunk t
     | StrNewLine (LineBreak t)
 
 
+-- === Instances === --
+
 -- TODO
 -- Generate with TH
 instance Show (Ln t) => Show (Var          t) where show  (Var          t1      ) = "Var"          <> " (" <> show t1 <> ")"
@@ -82,8 +99,6 @@ instance Show (Ln t) => Show (Unit         t) where show  (Unit         t1      
 instance Show (Ln t) => Show (SectionLeft  t) where show  (SectionLeft  t1 t2   ) = "SectionLeft"  <> " (" <> show t1 <> ") (" <> show t2 <> ")"
 instance Show (Ln t) => Show (SectionRight t) where show  (SectionRight t1 t2   ) = "SectionRight" <> " (" <> show t1 <> ") (" <> show t2 <> ")"
 instance (Show (Ln t), Show (Link t (StrChunk t))) => Show (Str t) where show (Str t1) = "Str"     <> " (" <> show t1 <> ")"
-
-
 
 -- TODO
 -- Generate with TH

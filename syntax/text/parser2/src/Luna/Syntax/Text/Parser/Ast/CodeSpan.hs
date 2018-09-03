@@ -101,6 +101,8 @@ instance Layer CodeSpan where
     type Cons  CodeSpan = Layer.Simple CodeSpan
     manager = Layer.customStaticManager (pure $ Layer.Simple mempty)
 
+-- TODO: These should be removed. We need to re-design how graph handles such
+--       traversals.
 instance Monad m => FoldClass.Builder (Fold.Scoped (Fold.Deep (Fold.Discovery a))) m CodeSpan
 instance Monad m => FoldClass.Builder Buffer.CopyInitialization2 m CodeSpan
 instance Monad m => FoldClass.Builder Buffer.CopyInitialization  m CodeSpan

@@ -5,14 +5,14 @@ module Luna.Syntax.Text.Parser.Ast.Spanned where
 
 import Prologue hiding (Text, span)
 
-import qualified Data.Text32                            as Text
-import qualified Luna.IR.Term.Ast.Invalid               as Invalid
-import qualified Luna.Syntax.Text.Parser.Ast.Class as Ast
-import qualified Luna.Syntax.Text.Parser.Ast.CodeSpan  as CodeSpan
+import qualified Data.Text32                          as Text
+import qualified Luna.IR.Term.Ast.Invalid             as Invalid
+import qualified Luna.Syntax.Text.Parser.Ast.Class    as Ast
+import qualified Luna.Syntax.Text.Parser.Ast.CodeSpan as CodeSpan
 
-import Data.Text.Position                    (Delta)
+import Data.Text.Position                   (Delta)
 import Luna.Syntax.Text.Parser.Ast.CodeSpan (CodeSpan (CodeSpan))
-import OCI.Data.Name                         (Name)
+import OCI.Data.Name                        (Name)
 
 
 type Text = Text.Text32
@@ -106,11 +106,13 @@ prependAsOffset = \t -> span %~ (CodeSpan.prependAsOffset (t ^. span))
 {-# INLINE prependAsOffset #-}
 
 prependOffset :: Spanned a -> (Spanned b -> Spanned b)
-prependOffset = \t -> span %~ (CodeSpan.prependAsOffset $ CodeSpan.dropLength (t ^. span))
+prependOffset = \t -> span %~
+    (CodeSpan.prependAsOffset $ CodeSpan.dropLength (t ^. span))
 {-# INLINE prependOffset #-}
 
 prependOffset' :: CodeSpan -> (Spanned b -> Spanned b)
-prependOffset' = \t -> span %~ (CodeSpan.prependAsOffset $ CodeSpan.dropLength t)
+prependOffset' = \t -> span %~
+    (CodeSpan.prependAsOffset $ CodeSpan.dropLength t)
 {-# INLINE prependOffset' #-}
 
 
@@ -291,7 +293,8 @@ prepSpan = \t -> span %~ (CodeSpan.prependAsOffset t)
 {-# INLINE prepSpan #-}
 
 prepSpanToNonEmpty :: CodeSpan -> (NonEmpty (Spanned b) -> NonEmpty (Spanned b))
-prepSpanToNonEmpty = \t (a :| as) -> (a & span %~ (CodeSpan.prependAsOffset t)) :| as
+prepSpanToNonEmpty = \t (a :| as)
+    -> (a & span %~ (CodeSpan.prependAsOffset t)) :| as
 {-# INLINE prepSpanToNonEmpty #-}
 
 prepSpanToList :: CodeSpan -> ([Spanned b] -> [Spanned b])

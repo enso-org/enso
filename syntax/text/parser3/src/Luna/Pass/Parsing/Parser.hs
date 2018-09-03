@@ -46,6 +46,12 @@ import OCI.Data.Name                         (Name)
 
 
 
+-------------------------
+-- === Parser Pass === --
+-------------------------
+
+-- === Definition === --
+
 data Parser
 
 type instance Graph.Components      Parser          = '[IR.Terms, IR.Links]
@@ -63,20 +69,6 @@ type family   Spec  t where
     Spec (Pass.Out t)          = Spec (Pass.In t)
     Spec t                     = Pass.BasicPassSpec t
 
-
-
-type BuilderMonad m =
-    ( MonadIO m
-    , Pass.Interface Parser m
-    , State.Getter Marker.TermMap m
-    , State.Setter Marker.TermMap m
-    )
-
-
-
--- -------------------------
--- -- === Parser pass === --
--- -------------------------
 
 -- -- === Definition === --
 
@@ -114,7 +106,7 @@ run = runWith Parser.unit
 
 runWith :: ParserPass (Pass stage Parser)
     => Parser.Parser Lexer.Token -> Text32 -> Pass stage Parser (IR.SomeTerm, Marker.TermMap)
-runWith p src = runMeDebug $ Parser.evalWith p src
+runWith p src = runMeDebug $ Parser.evalVersion1With p src
 {-# INLINE runWith #-}
 
 runMeDebug :: ParserPass (Pass stage Parser)
@@ -122,16 +114,48 @@ runMeDebug :: ParserPass (Pass stage Parser)
 runMeDebug ast = do
     ((ref, unmarked), gidMap) <- State.runDefT @Marker.TermMap
                                $ State.runDefT @Marker.TermOrphanList
-                               $ buildGraph ast
+                               $ buildIR ast
     pure (ref, gidMap)
 {-# INLINE runMeDebug #-}
 
 
-type instance Item (NonEmpty a) = a
 
-buildGraph :: forall m. BuilderMonad m => Lexer.Token -> m IR.SomeTerm
-buildGraph = buildIR
-{-# INLINE buildGraph #-}
+------------------------
+-- === IR Builder === --
+------------------------
+
+-- The following functionality (almost the whole file) should be removed when
+-- we allow for Luna macros. Then we will be able to evaluate the macros
+-- instead of hardcoding the evaluation here. See roadmap docs for more info.
+
+
+-- === Definition === --
+
+type BuilderMonad m =
+    ( MonadIO m
+    , Pass.Interface Parser m
+    , State.Getter Marker.TermMap m
+    , State.Setter Marker.TermMap m
+    )
+
+
+-- === Utils === --
+
+addCodeSpan :: BuilderMonad m => CodeSpan -> IR.SomeTerm -> m IR.SomeTerm
+addCodeSpan = \cs ir -> do
+    -- putStrLn "\n\n"
+    -- print . IR.showTag =<< Layer.read @IR.Model ir
+    -- print cs
+    ir <$ IR.writeLayer @CodeSpan ir cs
+{-# INLINE addCodeSpan #-}
+
+parseError :: BuilderMonad m => m IR.SomeTerm
+parseError = IR.invalid' Invalid.ParserError
+{-# INLINE parseError #-}
+
+
+
+-- === Strings === --
 
 strGo :: forall m. BuilderMonad m => Ast.Spanned (Atom.StrChunk Ast.Ast) -> m IR.SomeTerm
 strGo = \(Spanned cs a) -> addCodeSpan cs =<< case a of
@@ -141,29 +165,14 @@ strGo = \(Spanned cs a) -> addCodeSpan cs =<< case a of
 
 
 
-
--- === Utils === --
-
-addCodeSpan :: BuilderMonad m => CodeSpan -> IR.SomeTerm -> m IR.SomeTerm
-addCodeSpan = \cs ir -> do
-    -- putStrLn "\n\n"
-    print . IR.showTag =<< Layer.read @IR.Model ir
-    print cs
-    ir <$ IR.writeLayer @CodeSpan ir cs
-{-# INLINE addCodeSpan #-}
-
-parseError :: BuilderMonad m => m IR.SomeTerm
-parseError = IR.invalid' Invalid.ParserError
-{-# INLINE parseError #-}
-
-
 -- === Imports === --
 
 discoverImportLines :: [Lexer.Token] -> ([Lexer.Token], [Lexer.Token])
 discoverImportLines = discoverImportLines__ mempty mempty
 {-# INLINE discoverImportLines #-}
 
-discoverImportLines__ :: [Lexer.Token] -> [Lexer.Token] -> [Lexer.Token] -> ([Lexer.Token], [Lexer.Token])
+discoverImportLines__ :: [Lexer.Token] -> [Lexer.Token] -> [Lexer.Token]
+                      -> ([Lexer.Token], [Lexer.Token])
 discoverImportLines__ = \results others stream -> case stream of
     []           -> (reverse others, reverse results)
     (line:lines) -> let
@@ -206,24 +215,8 @@ buildImportIR = \a@(Spanned cs ast) args -> addCodeSpan cs =<< if not (null args
 
 -- === IR === --
 
-buildUnit :: BuilderMonad m => [Lexer.Token] -> m [IR.SomeTerm]
-buildUnit = \case
-    [] -> pure []
-    (a:as) -> do
-        a' <- buildIR a
-        case Ast.unspan a of
-            Ast.Comment c -> case as of
-                (aa:aas) -> do
-                    txt <- Mutable.fromList $ convertTo @[Char] c
-                    aa' <- buildIR aa
-                    dd  <- IR.documented' txt aa'
-                    addCodeSpan (view Ast.span a <> view Ast.span aa) dd
-                    (dd:) <$> buildUnit aas
-                _ -> (a':) <$> buildUnit as
-            _ -> (a':) <$> buildUnit as
-
 buildIR :: forall m. BuilderMonad m => Lexer.Token -> m IR.SomeTerm
-buildIR = \(Spanned cs ast) -> putStrLn "\n---" {- >> print cs -} >> (addCodeSpan cs =<< case ast of
+buildIR = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
 
     -- Literals
     Ast.Number     num -> do
@@ -236,9 +229,9 @@ buildIR = \(Spanned cs ast) -> putStrLn "\n---" {- >> print cs -} >> (addCodeSpa
         pure str
 
     -- Identifiers
-    Ast.Var       name -> print ("var " <> show name) >> IR.var'   name
+    Ast.Var       name -> {- print ("var " <> show name) >> -} IR.var'   name
     Ast.Cons      name -> IR.cons'  name []
-    Ast.Operator  name -> print ("op " <> show name) >> IR.var'   name
+    Ast.Operator  name -> {- print ("op " <> show name) >> -} IR.var'   name
     -- Ast.Modifier  name -> error "TODO" -- we need to discuss handling it in IR
     Ast.Wildcard       -> IR.blank'
 
@@ -257,6 +250,12 @@ buildIR = \(Spanned cs ast) -> putStrLn "\n---" {- >> print cs -} >> (addCodeSpa
 
     -- Docs
     -- Ast.Comment a -> error "TODO" -- we need to handle non attached comments
+    Ast.Documented doc base -> case Ast.unspan doc of
+        Ast.Comment txt -> do
+            txt'  <- Mutable.fromList $ convertTo @[Char] txt
+            base' <- buildIR base
+            IR.documented' txt' base'
+
 
     -- Errors
     Ast.Invalid inv  -> IR.invalid' inv
@@ -267,7 +266,7 @@ buildIR = \(Spanned cs ast) -> putStrLn "\n---" {- >> print cs -} >> (addCodeSpa
             let (ls', imps) = discoverImportLines (l:ls)
                 impsSpan    = collectSpan imps
                 record'     = IR.record' False "" [] []
-            (unitCls :: IR.SomeTerm) <- record'       =<< buildUnit ls'
+            (unitCls :: IR.SomeTerm) <- record'       =<< buildIR <$$> ls'
             (ih      :: IR.SomeTerm) <- IR.importHub' =<< buildIR <$$> imps
             IR.writeLayer @CodeSpan ih impsSpan
             IR.unit' ih [] unitCls
@@ -349,12 +348,12 @@ buildIR = \(Spanned cs ast) -> putStrLn "\n---" {- >> print cs -} >> (addCodeSpa
 
     Ast.Comment c -> parseError
     Ast.Missing   -> do
-        print ">> missing"
-        print cs
+        -- print ">> missing"
+        -- print cs
         IR.missing'
 
     x -> error $ "TODO: " <> show x
-    )
+
 {-# NOINLINE buildIR #-}
 
 -- foldM :: Monad m => (a -> b -> m a) -> a -> [b] -> m a
@@ -380,7 +379,8 @@ builAppsIR = \args t -> do
     args' <- buildIR <$$> args
     foldlM IR.app' t args'
 
-type MixFixBuilder = forall m. BuilderMonad m => Lexer.Token -> [Lexer.Token] -> m IR.SomeTerm
+type MixFixBuilder = forall m. BuilderMonad m
+    => Lexer.Token -> [Lexer.Token] -> m IR.SomeTerm
 
 buildClassIR :: MixFixBuilder
 buildClassIR arg args = case Ast.unspan arg of
@@ -462,8 +462,8 @@ buildListIR arg args = builAppsIR args =<< case Ast.unspan arg of
 
 buildTupleIR :: MixFixBuilder
 buildTupleIR = \arg args -> do
-    print "TUPLE"
-    pprint arg
+    -- print "TUPLE"
+    -- pprint arg
     builAppsIR args =<< case Ast.unspan arg of
         Ast.List []  -> IR.tuple' []
         Ast.List [a] -> IR.grouped' =<< buildIR a

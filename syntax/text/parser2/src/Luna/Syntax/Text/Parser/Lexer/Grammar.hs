@@ -9,10 +9,11 @@ import           Prologue hiding (Text, imp, seq, takeWhile)
 import qualified Prologue
 
 import qualified Control.Monad.State.Layered               as State
-import qualified Data.Attoparsec.Internal.Types            as AttoParsec
-import qualified Data.Attoparsec.Text32                    as Parsec
+import qualified Data.Attoparsec.Internal.Types            as Parsec
+import qualified Data.Attoparsec.Text32                    as Parsec32
 import qualified Data.Char                                 as Char
 import qualified Data.Graph.Data.Layer.Layout              as Layout
+import qualified Data.Parser                               as Parsec
 import qualified Data.Text.Position                        as Position
 import qualified Data.Text.Span                            as Span
 import qualified Data.Text32                               as Source
@@ -21,25 +22,28 @@ import qualified Luna.IR.Layer                             as Layer
 import qualified Luna.IR.Term.Ast.Invalid                  as Invalid
 import qualified Luna.Syntax.Text.Lexer                    as Lexer
 import qualified Luna.Syntax.Text.Lexer.Symbol             as Lexer
-import qualified Luna.Syntax.Text.Parser.Ast          as Ast
-import qualified Luna.Syntax.Text.Parser.Ast.Class    as Atom
-import qualified Luna.Syntax.Text.Parser.Ast.CodeSpan     as CodeSpan
+import qualified Luna.Syntax.Text.Parser.Ast               as Ast
+import qualified Luna.Syntax.Text.Parser.Ast.Class         as Atom
+import qualified Luna.Syntax.Text.Parser.Ast.CodeSpan      as CodeSpan
+import qualified Luna.Syntax.Text.Parser.Lexer.Names       as Names
 import qualified Luna.Syntax.Text.Parser.State.Marker      as Marker
 import qualified Luna.Syntax.Text.Parser.State.TokenStream as TokenStream
+import qualified Luna.Syntax.Text.Parser.State.Version     as Syntax
 import qualified Luna.Syntax.Text.Scope                    as Scope
 import qualified Text.Parser.State.Indent                  as State.Indent
 import qualified Text.Parser.State.Indent                  as Indent
 
 import Control.Monad.State.Layered               (StatesT)
-import Data.Parser                               hiding (Result, Token,
-                                                  endOfInput, many1, newline)
+import Data.Parser                               (choice, option, takeMany,
+                                                  takeMany1, takeTill,
+                                                  takeWhile, takeWhile1)
 import Data.Text.Position                        (FileOffset (..))
 import Data.Text.Position                        (Delta)
 import Data.Text.Position                        (Position)
 import Data.Text32                               (Text32)
 import Data.Vector                               (Vector)
-import Luna.Syntax.Text.Parser.Ast.Spanned  (Ast, Spanned (Spanned))
-import Luna.Syntax.Text.Parser.Ast.CodeSpan     (CodeSpan (CodeSpan))
+import Luna.Syntax.Text.Parser.Ast.CodeSpan      (CodeSpan (CodeSpan))
+import Luna.Syntax.Text.Parser.Ast.Spanned       (Ast, Spanned (Spanned))
 import Luna.Syntax.Text.Parser.State.LastOffset  (LastOffset (LastOffset))
 import Luna.Syntax.Text.Parser.State.TokenStream (TokenStream)
 import Luna.Syntax.Text.Scope                    (Scope)
@@ -62,68 +66,18 @@ type Token  = Ast.Spanned Ast
 
 
 
+-----------------------------
+-- === Attoparsec hack === --
+-----------------------------
 
-
-
--- type Text = Text.Text32
-data SyntaxVersion = Syntax1 | Syntax2 deriving (Show)
-
-
-
-
-
-
-type Lexer = StatesT
-   '[ TokenStream
-    , SyntaxVersion
-    , Indent
-    , Position
-    , LastOffset
-    , Marker.State
-    , FileOffset
-    , Scope.Scope
-    ] Parsec.Parser
-
-evalStepWith :: SyntaxVersion -> Lexer a -> Source -> AttoParsec.IResult Source [Token]
-evalStepWith = \sv p txt
-   -> flip parsePartial txt
-    $ State.evalDefT @Scope
-    $ State.evalDefT @FileOffset
-    $ State.evalDefT @Marker.State
-    $ State.evalDefT @LastOffset
-    $ State.evalDefT @Position
-    $ State.Indent.eval
-    $ flip (State.evalT @SyntaxVersion) sv
-    $ TokenStream.eval p
-{-# INLINE evalStepWith #-}
-
-evalWith :: SyntaxVersion -> Lexer a -> Source -> [Token]
-evalWith = \sv p src_ -> let src = (src_ <> "\ETX") in
-    case evalStepWith sv p src of
-        AttoParsec.Done !(src') !r -> if (Source.length src' /= 0)
-            then error $ "Panic. Not all input consumed by lexer: " <> show src'
-            else r
-        AttoParsec.Partial g -> case g mempty of
-            AttoParsec.Done !(src') !r -> if (Source.length src' /= 0)
-                then error $ "Panic. Not all input consumed by lexer: " <> show src'
-                else r
-            AttoParsec.Fail !_ !_ !e   -> error e
-            AttoParsec.Partial {} -> impossible
-        AttoParsec.Fail !_ !_ !e   -> error e
-{-# INLINE evalWith #-}
-
-eval :: SyntaxVersion -> Source -> [Token]
-eval = flip evalWith exprs
-{-# INLINE eval #-}
-
-
+-- | For more info see: https://github.com/bos/attoparsec/issues/101
 
 class Monad m => KnownParserOffset m where
     getParserOffset :: m Delta
 
-instance KnownParserOffset Parsec.Parser where
-    getParserOffset = AttoParsec.Parser $ \t pos more _ succ ->
-        succ t pos more (convert $! AttoParsec.fromPos pos)
+instance KnownParserOffset Parsec32.Parser where
+    getParserOffset = Parsec.Parser $ \t pos more _ succ ->
+        succ t pos more (convert $! Parsec.fromPos pos)
     {-# INLINE getParserOffset #-}
 
 instance (MonadTrans t, Monad (t m), KnownParserOffset m)
@@ -133,27 +87,101 @@ instance (MonadTrans t, Monad (t m), KnownParserOffset m)
 
 
 
+-------------------
+-- === Utils === --
+-------------------
 
+-- TODO: Can we do better?
+instance Convertible Source.Text32 Name where
+    convert = convertVia @String
+    {-# INLINE convert #-}
 
-
-
+trimLinesLeft :: [Source] -> Source
+trimLinesLeft = \texts -> let
+    indents = Source.length . Source.takeWhile (== ' ') <$> texts
+    indent  = if null indents then 0 else unsafeMinimum indents
+    texts'  = Source.drop indent <$> texts
+    in intercalate "\n" texts'
+{-# NOINLINE trimLinesLeft #-}
 
 
 
 -------------------
+-- === Lexer === --
+-------------------
+
+-- === Definition === --
+
+type Lexer_ = Lexer ()
+type Lexer  = StatesT
+   '[ TokenStream
+    , Syntax.Version
+    , Indent
+    , Position
+    , LastOffset
+    , Marker.State
+    , FileOffset
+    , Scope.Scope
+    ] Parsec32.Parser
+
+
+-- === Evaluation === --
+
+eval :: Syntax.Version -> Source -> [Token]
+eval = flip evalWith exprs
+{-# INLINE eval #-}
+
+evalWith :: Syntax.Version -> Lexer a -> Source -> [Token]
+evalWith = \sv p src_ -> let
+    src        = (src_ <> "\ETX")
+    panic  s   = error $ "Panic. Not all input consumed by lexer: " <> show s
+    finish s r = if (Source.length s /= 0) then panic s else r
+    in case evalStepWith sv p src of
+        Parsec.Fail _ _ e  -> error e
+        Parsec.Done src' r -> finish src' r
+        Parsec.Partial g   -> case g mempty of
+            Parsec.Done src' r -> finish src' r
+            Parsec.Fail _ _ e  -> error e
+            Parsec.Partial {}  -> impossible
+{-# INLINE evalWith #-}
+
+evalStepWith
+    :: Syntax.Version -> Lexer a -> Source -> Parsec.IResult Source [Token]
+evalStepWith = \sv p txt
+   -> flip Parsec.parsePartial txt
+    . State.evalDefT @Scope
+    . State.evalDefT @FileOffset
+    . State.evalDefT @Marker.State
+    . State.evalDefT @LastOffset
+    . State.evalDefT @Position
+    . State.Indent.eval
+    . flip (State.evalT @Syntax.Version) sv
+    . TokenStream.eval
+    $ p
+{-# INLINE evalStepWith #-}
+
+-- === Syntax management === --
+
+syntax1Only :: Lexer a -> Lexer a
+syntax1Only = \p -> State.get @Syntax.Version >>= \case
+    Syntax.Version1 -> p
+    Syntax.Version2 -> fail "syntax 1 only"
+{-# INLINE syntax1Only #-}
+
+
+
+-------------------------------
+-- === Primitive parsers === --
+-------------------------------
+
 -- === Spans === --
--------------------
 
-getLastOffset :: State.Getter LastOffset m => m Delta
-getLastOffset = unwrap <$> State.get @LastOffset
-{-# INLINE getLastOffset #-}
+spanned :: Lexer a -> Lexer (Spanned a)
+spanned = \p -> uncurry Spanned <$> computeSpan p
+{-# INLINE spanned #-}
 
-putLastOffset :: State.Setter LastOffset m => Delta -> m ()
-putLastOffset = State.put @LastOffset . wrap
-{-# INLINE putLastOffset #-}
-
-spanned :: Lexer a -> Lexer (CodeSpan, a)
-spanned = \parser -> do
+computeSpan :: Lexer a -> Lexer (CodeSpan, a)
+computeSpan = \parser -> do
     lastEndOff <- getLastOffset
     startOff   <- getParserOffset
     out        <- parser
@@ -168,9 +196,20 @@ spanned = \parser -> do
 
     Position.incColumn totalSpan
     pure (CodeSpan realSpan realSpan, out)
-{-# INLINE spanned #-}
+{-# INLINE computeSpan #-}
 
-newline :: Lexer ()
+getLastOffset :: State.Getter LastOffset m => m Delta
+getLastOffset = unwrap <$> State.get @LastOffset
+{-# INLINE getLastOffset #-}
+
+putLastOffset :: State.Setter LastOffset m => Delta -> m ()
+putLastOffset = State.put @LastOffset . wrap
+{-# INLINE putLastOffset #-}
+
+
+-- === Layouting === --
+
+newline :: Lexer_
 newline = do
     len <- eol
     off <- whiteSpace
@@ -186,14 +225,10 @@ whiteSpace :: Lexer Delta
 whiteSpace = convert . Source.length <$> takeMany ' '
 {-# INLINE whiteSpace #-}
 
-computeSpan :: Lexer a -> Lexer (Spanned a)
-computeSpan = \p -> uncurry Spanned <$> spanned p
-{-# INLINE computeSpan #-}
-
 eol :: Lexer Delta
 eol = (1 <$ n) <|> (2 <$ rn) <|> (1 <$ r) where
-    n  = token '\n'
-    r  = token '\r'
+    n  = Parsec.token '\n'
+    r  = Parsec.token '\r'
     rn = r >> n
 {-# INLINE eol #-}
 
@@ -207,54 +242,12 @@ eolStartChars = ['\n', '\r', '\ETX']
 
 
 
-
-
-
--- TODO: Can we do better?
-instance Convertible Source.Text32 Name where
-    convert = convertVia @String ; {-# INLINE convert #-}
-
-
-
-
-
-trimIndent :: [Source] -> Source
-trimIndent = \texts -> let
-    indents = Source.length . Source.takeWhile (== ' ') <$> texts
-    indent  = if null indents then 0 else unsafeMinimum indents
-    texts'  = Source.drop indent <$> texts
-    in intercalate "\n" texts'
-{-# NOINLINE trimIndent #-}
-
-
-
-
-
-
-
-
--------------------------------
--- === Syntax management === --
--------------------------------
-
-syntax1Only :: Lexer a -> Lexer a
-syntax1Only = \p -> State.get @SyntaxVersion >>= \case
-    Syntax1 -> p
-    Syntax2 -> fail "syntax 1 only"
-{-# INLINE syntax1Only #-}
-
-
-
 ---------------------
 -- === Helpers === --
 ---------------------
 
-symbol :: Source -> Lexer Source
-symbol = lexeme . tokens
-{-# INLINE symbol #-}
-
 invalid :: Lexer Invalid.Symbol -> Lexer Token
-invalid = computeSpan . invalid'
+invalid = spanned . invalid'
 {-# INLINE invalid #-}
 
 invalid' :: Lexer Invalid.Symbol -> Lexer Ast
@@ -262,36 +255,17 @@ invalid' = fmap Ast.Invalid
 {-# INLINE invalid' #-}
 
 unknown :: Lexer Token
-unknown = invalid $ do
-    txt <- unknownChunk
-    -- Ast.checkBlacklistedUnknown $ Source.head txt
-    pure $ Invalid.Unknown
+unknown = invalid $ Invalid.Unknown <$ unknownChunk
 {-# INLINE unknown #-}
 
-gatherWith1 :: (Alternative m, Mempty a) => (b -> a) -> m (a -> b) -> m b
-gatherWith1 = \f p -> let go = p <*> option mempty (f <$> go) in go
-{-# INLINE gatherWith1 #-}
-
-gatherMany1 :: (Alternative m) => m ([a] -> NonEmpty a) -> m (NonEmpty a)
-gatherMany1 = gatherWith1 convert
-{-# INLINE gatherMany1 #-}
-
-anyLine :: Lexer Source
-anyLine = takeWhile $ not . isEolBeginChar
-{-# INLINE anyLine #-}
-
 unknownChunk :: Lexer Source
-unknownChunk = Source.cons <$> anyToken <*> takeWhile (not . isSeparatorChar)
+unknownChunk
+    = Source.cons <$> Parsec.anyToken <*> takeWhile (not . isSeparatorChar)
 {-# INLINE unknownChunk #-}
 
 chunk :: Lexer Source
 chunk = takeWhile1 (not . isSeparatorChar)
 {-# INLINE chunk #-}
-
--- chunkOfNot :: [Char] -> Lexer Int
--- chunkOfNot s = Source.length <$> takeWhile1 (not . (`elem` break)) where
---     break = ' ' : (s <> Ast.eolStartChars)
--- {-# INLINE chunkOfNot #-}
 
 
 
@@ -299,16 +273,16 @@ chunk = takeWhile1 (not . isSeparatorChar)
 -- === Identifiers === --
 -------------------------
 
--- === Getting values === --
+-- === API === --
 
-var, cons :: Lexer ()
-var  = TokenStream.add =<< computeSpan var'
-cons = TokenStream.add =<< computeSpan cons'
+var, cons :: Lexer_
+var  = TokenStream.add =<< spanned var'
+cons = TokenStream.add =<< spanned cons'
 {-# INLINE var  #-}
 {-# INLINE cons #-}
 
-wildcard :: Lexer ()
-wildcard = TokenStream.add =<< computeSpan wildcard'
+wildcard :: Lexer_
+wildcard = TokenStream.add =<< spanned wildcard'
 {-# INLINE wildcard #-}
 
 var', cons' :: Lexer Ast
@@ -319,34 +293,31 @@ cons' = (Ast.Cons <$> consName) <**> option id (const <$> invalidIdentSuffix)
 
 wildcard' :: Lexer Ast
 wildcard' = correct <**> option id (const <$> invalidIdentSuffix) where
-    correct = Ast.Wildcard <$ token '_'
+    correct = Ast.Wildcard <$ Parsec.token Names.wildcard
 {-# INLINE wildcard' #-}
 
-isIdentBodyChar, isVarHead, isConsHead :: Char -> Bool
-isIdentBodyChar = \c -> Char.isAlphaNum c
-isVarHead       = \c -> Char.isLower    c || c == '_'
-isConsHead      = Char.isUpper
-{-# INLINE isIdentBodyChar  #-}
-{-# INLINE isVarHead        #-}
-{-# INLINE isConsHead       #-}
 
 
 -- === Expecting values === --
 
-expectVar :: Name -> Lexer ()
-expectVar = \name -> let err = fail "no match" in var' >>= \case
+noMatchFail :: Lexer_
+noMatchFail = fail "no match"
+{-# INLINE noMatchFail #-}
+
+expectVar :: Name -> Lexer_
+expectVar = \name -> let err = noMatchFail in var' >>= \case
     Ast.Var name' -> when_ (name /= name') err
     _             -> err
 {-# INLINE expectVar #-}
 
-expectCons :: Name -> Lexer ()
-expectCons = \name -> let err = fail "no match" in cons' >>= \case
+expectCons :: Name -> Lexer_
+expectCons = \name -> let err = noMatchFail in cons' >>= \case
     Ast.Cons name' -> when_ (name /= name') err
     _              -> err
 {-# INLINE expectCons #-}
 
-expectOperator :: Name -> Lexer ()
-expectOperator = \name -> let err = fail "no match" in operator' >>= \case
+expectOperator :: Name -> Lexer_
+expectOperator = \name -> let err = noMatchFail in operator' >>= \case
     Ast.Operator name' -> when_ (name /= name') err
     _                  -> err
 {-# INLINE expectOperator #-}
@@ -357,19 +328,19 @@ expectOperator = \name -> let err = fail "no match" in operator' >>= \case
 varName :: Lexer Name
 varName = convert . (<>) <$> header <*> identBody where
     header = Source.snoc <$> pfx <*> head
-    pfx    = takeMany '_'
-    head   = satisfy Char.isLower
+    pfx    = takeMany Names.varNamePfxChar
+    head   = Parsec.satisfy Char.isLower
 {-# INLINE varName #-}
 
 consName :: Lexer Name
 consName = convert . Source.cons <$> header <*> identBody where
-    header = satisfy Char.isUpper
+    header = Parsec.satisfy Char.isUpper
 {-# INLINE consName #-}
 
 identBody :: Lexer Source
 identBody = body <**> sfx where
-    body  = takeWhile isIdentBodyChar
-    sfx   = option id (flip (<>) <$> takeMany1 '\'')
+    body  = takeWhile Names.isIdentBodyChar
+    sfx   = option id (flip (<>) <$> takeMany1 Names.identBodySfxChar)
 {-# INLINE identBody #-}
 
 
@@ -386,13 +357,13 @@ isSeparatorChar :: Char -> Bool
 isSeparatorChar = \c ->
     let ord = Char.ord c
         cat = Char.generalCategory c
-    in (ord >= 7 && ord <= 47 && ord /= 34 && ord /= 39) -- !\#$%&()*+,-./
-                                                         -- 0 - 9
-    || (ord >= 58 && ord <= 64)                          -- :;<=>?@
-                                                         -- A - Z
-    || (ord >= 91 && ord <= 94)                          -- [\\]^
-                                                         -- _`a-z
-    || (ord >= 123 && ord <= 126)                        -- {|}~
+    in (ord >= 7 && ord <= 47 && ord /= 34 && ord /= 39) -- (+) !\#$%&()*+,-./
+                                                         -- (-) 0 - 9
+    || (ord >= 58 && ord <= 64)                          -- (+) :;<=>?@
+                                                         -- (-) A - Z
+    || (ord >= 91 && ord <= 94)                          -- (+) [\\]^
+                                                         -- (-) _`a-z
+    || (ord >= 123 && ord <= 126)                        -- (+) {|}~
     || (cat == Char.Space)
     || (cat == Char.Control)
     || (cat == Char.MathSymbol)
@@ -406,26 +377,27 @@ isSeparatorChar = \c ->
 
 -- === API === --
 
-operator :: Lexer ()
-operator = TokenStream.add =<< computeSpan operator'
+operator :: Lexer_
+operator = TokenStream.add =<< spanned operator'
 {-# NOINLINE operator #-}
 
 operator' :: Lexer Ast
 operator' = let
     base       = convert <$> takeWhile1 isOperatorBodyChar
-    specialOps = tokens <$> ["<=", ">=", "==", "=", ".."]
-    dots       = Ast.Operator . convert <$> choice (tokens <$> ["."])
-    comma      = Ast.Operator . convert <$> token ','
+    specialOps = Parsec.tokens <$> ["<=", ">=", "==", "=", ".."]
+    dots       = Ast.Operator . convert <$> choice (Parsec.tokens <$> ["."])
+    comma      = Ast.Operator . convert <$> Parsec.token ','
     special    = Ast.Operator . convert <$> choice specialOps
-    normal     = base <**> option Ast.Operator (Ast.Modifier <$ token eqChar)
     correct    = special <|> normal
+    normal     = base <**> option Ast.Operator
+                 (Ast.Modifier <$ Parsec.token eqChar)
     in (correct <**> option id (const <$> invalidOperatorSuffix))
        <|> dots <|> comma
 {-# NOINLINE operator' #-}
 
-unsafeAnyTokenOperator :: Lexer ()
+unsafeAnyTokenOperator :: Lexer_
 unsafeAnyTokenOperator = TokenStream.add
-    =<< computeSpan (Ast.Operator . convert <$> anyToken)
+    =<< spanned (Ast.Operator . convert <$> Parsec.anyToken)
 {-# INLINE unsafeAnyTokenOperator #-}
 
 eqChar :: Char
@@ -478,33 +450,33 @@ invalidOperatorSuffix = let
 
 -- === API === --
 
-comment :: Lexer ()
-comment = TokenStream.add =<< computeSpan (commentChar >> parser) where
-    commentChar = token commentStartChar
-    body        = trimIndent <$> (multiLine <|> singleLine)
+comment :: Lexer_
+comment = TokenStream.add =<< spanned (commentChar >> parser) where
+    commentChar = Parsec.token commentStartChar
+    body        = trimLinesLeft <$> (multiLine <|> singleLine)
     multiLine   = commentChar *> flexBlock rawLine
     singleLine  = pure <$> rawLine
     rawLine     = takeWhile (not . isEolBeginChar)
     parser      = (Ast.Comment <$> body)
 {-# INLINE comment #-}
 
--- comment :: Lexer ()
+-- comment :: Lexer_
 -- comment = parser where
---     commentChar    = token commentStartChar
+--     commentChar    = Parsec.token commentStartChar
 
 --     multilineChars = (\c1 c2 -> [c1,c2]) <$> commentChar <*> commentChar
---     multiLineOp    = computeSpan (Ast.Operator . convert <$> multilineChars)
+--     multiLineOp    = spanned (Ast.Operator . convert <$> multilineChars)
 --     multiLineStart = TokenStream.add =<< multiLineOp
 
 --     singleLineChars = (:[]) <$> commentChar
---     singleLineOp    = computeSpan (Ast.Operator . convert <$> singleLineChars)
+--     singleLineOp    = spanned (Ast.Operator . convert <$> singleLineChars)
 --     singleLineStart = TokenStream.add =<< singleLineOp
 
 --     rawLine     = takeWhile (not . isEolBeginChar)
 --     multiLine   = multiLineStart *> flexBlock rawLine
 --     singleLine  = singleLineStart *> (pure <$> rawLine)
---     body        = trimIndent <$> (multiLine <|> singleLine)
---     parser      = TokenStream.add =<< computeSpan (Ast.Comment <$> body)
+--     body        = trimLinesLeft <$> (multiLine <|> singleLine)
+--     parser      = TokenStream.add =<< spanned (Ast.Comment <$> body)
 -- {-# INLINE comment #-}
 
 commentStartChar :: Char
@@ -521,21 +493,16 @@ isCommentStartChar = (== commentStartChar)
 -- === Markers === --
 ---------------------
 
-markerBegin, markerEnd :: Char
-markerBegin = '«'
-markerEnd   = '»'
-{-# INLINE markerBegin #-}
-{-# INLINE markerEnd   #-}
-
 isMarkerBeginChar :: Char -> Bool
-isMarkerBeginChar = (== markerBegin)
+isMarkerBeginChar = (== Names.markerBegin)
 {-# INLINE isMarkerBeginChar #-}
 
-marker :: Lexer ()
-marker = TokenStream.add . (Ast.span %~ CodeSpan.asPhantom) =<< computeSpan parser where
+marker :: Lexer_
+marker = TokenStream.add . (Ast.span %~ CodeSpan.asPhantom) =<< spanned parser where
     correct   = Ast.Marker <$> decimal
-    incorrect = Ast.Invalid Invalid.InvalidMarker <$ takeTill (== markerEnd)
-    parser    = token markerBegin *> (correct <|> incorrect) <* token markerEnd
+    incorrect = Ast.Invalid Invalid.InvalidMarker <$ takeTill (== Names.markerEnd)
+    parser    = Parsec.token Names.markerBegin
+             *> (correct <|> incorrect) <* Parsec.token Names.markerEnd
 {-# INLINE marker #-}
 
 
@@ -546,30 +513,30 @@ marker = TokenStream.add . (Ast.span %~ CodeSpan.asPhantom) =<< computeSpan pars
 
 -- === API === --
 
-expr :: Lexer ()
-expr = fastExprByChar =<< peekToken
+expr :: Lexer_
+expr = fastExprByChar =<< Parsec.peekToken
 {-# INLINE expr #-}
 
-exprs :: Lexer ()
+exprs :: Lexer_
 exprs = let
     parser = do
         whiteSpace
         many expr
-        token '\ETX'
+        Parsec.token '\ETX'
         pure ()
-        -- Ast.tokens' . unwrap <$> State.get @Ast.Result
-    -- in State.put @Ast.Result . wrap . pure =<< computeSpan parser
+        -- Ast.Parsec.tokens' . unwrap <$> State.get @Ast.Result
+    -- in State.put @Ast.Result . wrap . pure =<< spanned parser
     in parser
 {-# NOINLINE exprs #-}
 
 
-unknownExpr :: Lexer ()
+unknownExpr :: Lexer_
 unknownExpr = TokenStream.add =<< unknown
 {-# INLINE unknownExpr #-}
 
-lineBreak :: Lexer ()
+lineBreak :: Lexer_
 lineBreak = TokenStream.add =<< ast where
-    ast = computeSpan $ do
+    ast = spanned $ do
         many1 newline
         Ast.LineBreak <$> Position.getColumn
 {-# INLINE lineBreak #-}
@@ -582,18 +549,18 @@ lookupTableSize :: Int
 lookupTableSize = 200
 {-# INLINE lookupTableSize #-}
 
-exprLookupTable :: Vector (Lexer ())
+exprLookupTable :: Vector (Lexer_)
 exprLookupTable = Vector.generate lookupTableSize $ exprByChar . Char.chr
 
-exprByChar :: Char -> Lexer ()
+exprByChar :: Char -> Lexer_
 exprByChar = \c -> if
-    | isOperatorBeginChar c -> operator
-    | isEolBeginChar      c -> lineBreak
-    | isOpenCloseChar     c -> unsafeAnyTokenOperator
-    | isVarHead           c -> var <|> wildcard
-    | isConsHead          c -> cons
-    | isCommentStartChar  c -> comment
-    | isMarkerBeginChar   c -> marker
+    | isOperatorBeginChar  c -> operator
+    | isEolBeginChar       c -> lineBreak
+    | isOpenCloseChar      c -> unsafeAnyTokenOperator
+    | Names.isVarHeadChar  c -> var <|> wildcard
+    | Names.isConsHeadChar c -> cons
+    | isCommentStartChar   c -> comment
+    | isMarkerBeginChar    c -> marker
 
     -- Literals
     | isRawStrQuote       c -> strBuilder '"'
@@ -606,7 +573,7 @@ exprByChar = \c -> if
 
 -- | (1): fetch  parser for ASCII from precomputed cache
 --   (2): choose parser for unicode characters on the fly
-fastExprByChar :: Char -> Lexer ()
+fastExprByChar :: Char -> Lexer_
 fastExprByChar = \c -> let ord = Char.ord c in if
     | ord < lookupTableSize -> Vector.unsafeIndex exprLookupTable ord -- (1)
     | otherwise             -> exprByChar c                           -- (2)
@@ -614,8 +581,8 @@ fastExprByChar = \c -> let ord = Char.ord c in if
 
 
 
-number :: Lexer ()
-number = TokenStream.add =<< computeSpan parser where
+number :: Lexer_
+number = TokenStream.add =<< spanned parser where
     parser  = correct <**> option id (const <$> invalidIdentSuffix)
     correct = Ast.Number <$> digits
 {-# INLINE number #-}
@@ -655,28 +622,26 @@ isFmtStrQuote = (== '\'')
 {-# INLINE isFmtStrQuote #-}
 
 
-failIf :: Bool -> Lexer ()
+failIf :: Bool -> Lexer_
 failIf = \b -> if b then fail "Failed check" else pure ()
 {-# INLINE failIf #-}
 
-strBuilder :: Char -> Lexer ()
-strBuilder quote = TokenStream.add =<< computeSpan parser where
+strBuilder :: Char -> Lexer_
+strBuilder quote = TokenStream.add =<< spanned parser where
     parser = do
         let isQuote      = (== quote)
             isBodyChar c = c == quote || isEolBeginChar c
 
         quoteLen <- Source.length <$> takeWhile1 isQuote
 
-        let mkChunk       = \p -> TokenStream.add =<< computeSpan p
+        let mkChunk       = \p -> TokenStream.add =<< spanned p
             chunkPlain    = Atom.StrPlain <$> takeWhile1 (not . isBodyChar)
             chunkQuote    = bodyQuotes =<< takeWhile1 isQuote
             bodyQuotes qs = Atom.StrPlain qs <$ failIf (Source.length qs == quoteLen)
-            chunk         = computeSpan $ choice [chunkPlain, chunkQuote] -- lineBreak
+            chunk         = spanned $ choice [chunkPlain, chunkQuote] -- lineBreak
             ending        = Source.length <$> takeWhile1 isQuote
             body          = Ast.Str <$> many chunk
         body <* ending
-
-
 
 
 --------------------

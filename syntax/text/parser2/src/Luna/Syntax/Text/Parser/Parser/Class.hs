@@ -8,51 +8,49 @@ import           Prologue hiding (fail, optional)
 import qualified Prologue
 
 import qualified Control.Monad.State.Layered                 as State
+import qualified Data.Attoparsec.Internal                    as AParsec
+import qualified Data.Attoparsec.Internal.Types              as AParsec
+import qualified Data.Attoparsec.List                        as Parsec
 import qualified Data.Graph.Component.Node.Destruction       as Component
 import qualified Data.Map                                    as Map
+import qualified Data.Parser                                 as Parser
 import qualified Data.Set                                    as Set
 import qualified Data.Text.Position                          as Position
 import qualified Data.Text.Span                              as Span
 import qualified Data.Vector                                 as Vector
+import qualified GHC.Exts                                    as GHC
 import qualified Language.Symbol.Operator.Assoc              as Assoc
 import qualified Language.Symbol.Operator.Prec               as Prec
 import qualified Luna.IR                                     as IR
 import qualified Luna.IR.Aliases                             as Uni
 import qualified Luna.IR.Term.Ast.Invalid                    as Invalid
 import qualified Luna.Pass                                   as Pass
-import qualified Luna.Syntax.Text.Parser.Ast            as Ast
-import qualified Luna.Syntax.Text.Parser.Ast.CodeSpan       as CodeSpan
-import qualified Luna.Syntax.Text.Parser.Hardcoded as Hardcoded
-import qualified Luna.Syntax.Text.Parser.Lexer.Names   as Name
+import qualified Luna.Syntax.Text.Parser.Ast                 as Ast
+import qualified Luna.Syntax.Text.Parser.Ast.CodeSpan        as CodeSpan
+import qualified Luna.Syntax.Text.Parser.Hardcoded           as Hardcoded
+import qualified Luna.Syntax.Text.Parser.Lexer               as Lexer
+import qualified Luna.Syntax.Text.Parser.Lexer.Names         as Name
+import qualified Luna.Syntax.Text.Parser.State.Version as Syntax
 import qualified Luna.Syntax.Text.Scope                      as Scope
 import qualified Text.Parser.State.Indent                    as Indent
 import qualified Text.Parser.State.Indent                    as Indent
 
-import Data.Map                              (Map)
-import Data.Set                              (Set)
-import Data.Text.Position                    (Delta (Delta), Position)
-import Data.Vector                           (Vector)
-import Luna.Syntax.Text.Parser.Ast      (Spanned (Spanned))
-import Luna.Syntax.Text.Parser.Ast.CodeSpan (CodeSpan)
-import Luna.Syntax.Text.Source               (Source)
-import OCI.Data.Name                         (Name)
-import Text.Parser.State.Indent              (Indent)
--- import Luna.Syntax.Text.Parser.Data.Result   (Result)
-
-
+import Data.Map                                   (Map)
+import Data.Set                                   (Set)
+import Data.Text.Position                         (Delta (Delta), Position)
+import Data.Vector                                (Vector)
+import Luna.Syntax.Text.Parser.Ast                (Spanned (Spanned))
+import Luna.Syntax.Text.Parser.Ast.CodeSpan       (CodeSpan)
 import Luna.Syntax.Text.Parser.Parser.ExprBuilder (ExprBuilderMonad, buildExpr,
                                                    checkLeftSpacing)
+import Luna.Syntax.Text.Source                    (Source)
+import OCI.Data.Name                              (Name)
+import Text.Parser.State.Indent                   (Indent)
 
-import qualified Data.Attoparsec.Internal       as AParsec
-import qualified Data.Attoparsec.Internal.Types as AParsec
-import qualified Data.Attoparsec.List           as Parsec
-import qualified GHC.Exts                       as GHC
-import qualified Luna.Syntax.Text.Parser.Lexer  as Lexer
-
-import           Data.Parser hiding (anyToken, peekToken)
-import qualified Data.Parser as Parser
+import Data.Parser hiding (anyToken, peekToken)
 
 import Data.Parser.Instances.Attoparsec ()
+
 
 
 
@@ -289,14 +287,21 @@ runParserBase = runIdentityT . unwrap
 {-# INLINE runParserBase #-}
 
 
+evalVersion1 :: Lexer.Source -> Lexer.Token
+evalVersion1 = eval Syntax.Version1
+{-# NOINLINE evalVersion1 #-}
 
-eval :: Lexer.Source -> Lexer.Token
-eval = evalWith unit
+evalVersion1With :: Parser a -> Lexer.Source -> a
+evalVersion1With = evalWith Syntax.Version1
+{-# NOINLINE evalVersion1With #-}
+
+eval :: Syntax.Version -> Lexer.Source -> Lexer.Token
+eval = flip evalWith unit
 {-# NOINLINE eval #-}
 
-evalWith :: Parser a -> Lexer.Source -> a
-evalWith = \p src -> let
-    toks = Lexer.eval Lexer.Syntax1 src
+evalWith :: Syntax.Version -> Parser a -> Lexer.Source -> a
+evalWith = \sv p src -> let
+    toks = Lexer.eval sv src
     Right out = evalStack toks $ do
         Hardcoded.hardcodePrecRelMap
         hardcodePredefinedMacros
