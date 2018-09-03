@@ -43,52 +43,52 @@ registerOrphan expr = State.modify_ @TermOrphanList $ wrapped %~ (expr :)
 
 
 
--- -------------------------
--- -- === TokenMarker === --
--- -------------------------
+-- -- -------------------------
+-- -- -- === TokenMarker === --
+-- -- -------------------------
 
--- -- === Definition === --
+-- -- -- === Definition === --
 
-data Token = Token
-    { __info    :: Lexer.TokenInfo
-    , _markerID :: ID
-    } deriving (Show)
-makeLenses ''Token
+-- data Token = Token
+--     { __info    :: Lexer.TokenInfo
+--     , _markerID :: ID
+--     } deriving (Show)
+-- makeLenses ''Token
 
-data State = State
-    { _lastTokenMarker :: !(Maybe Token)
-    , _allMarkers      :: ![ID]
-    } deriving (Show)
-makeLenses ''State
-
-
--- -- === Utils === --
-
-clearLast :: State.Monad State m => m ()
-clearLast = State.modify_ @State $ lastTokenMarker .~ Nothing
-{-# INLINE clearLast #-}
-
-setLast :: State.Monad State m => Token -> m ()
-setLast m = State.modify_ @State
-          $ \s -> s & lastTokenMarker .~ Just m
-                    & allMarkers      %~ (m ^. markerID :)
-{-# INLINE setLast #-}
-
-getLast :: State.Monad State m => m (Maybe Token)
-getLast = view lastTokenMarker <$> State.get @State
-{-# INLINE getLast #-}
-
-getAndClearLast :: State.Monad State m => m (Maybe Token)
-getAndClearLast = getLast <* clearLast
-{-# INLINE getAndClearLast #-}
+-- data State = State
+--     { _lastTokenMarker :: !(Maybe Token)
+--     , _allMarkers      :: ![ID]
+--     } deriving (Show)
+-- makeLenses ''State
 
 
--- === Instances === --
+-- -- -- === Utils === --
 
-instance Lexer.IsToken Token where
-    info = token_info
-    {-# INLINE info #-}
+-- clearLast :: State.Monad State m => m ()
+-- clearLast = State.modify_ @State $ lastTokenMarker .~ Nothing
+-- {-# INLINE clearLast #-}
 
-instance Default State where
-    def = State def def
-    {-# INLINE def #-}
+-- setLast :: State.Monad State m => Token -> m ()
+-- setLast m = State.modify_ @State
+--           $ \s -> s & lastTokenMarker .~ Just m
+--                     & allMarkers      %~ (m ^. markerID :)
+-- {-# INLINE setLast #-}
+
+-- getLast :: State.Monad State m => m (Maybe Token)
+-- getLast = view lastTokenMarker <$> State.get @State
+-- {-# INLINE getLast #-}
+
+-- getAndClearLast :: State.Monad State m => m (Maybe Token)
+-- getAndClearLast = getLast <* clearLast
+-- {-# INLINE getAndClearLast #-}
+
+
+-- -- === Instances === --
+
+-- instance Lexer.IsToken Token where
+--     info = token_info
+--     {-# INLINE info #-}
+
+-- instance Default State where
+--     def = State def def
+--     {-# INLINE def #-}

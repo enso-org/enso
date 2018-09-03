@@ -45,7 +45,9 @@ benchmarks:
 dependencies:
     - attoparsec
     - base
+    - container
     - containers
+    - convert
     - layered-state
     - layouting
     - lens

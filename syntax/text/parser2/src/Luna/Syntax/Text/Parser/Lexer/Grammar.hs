@@ -119,7 +119,7 @@ type Lexer  = StatesT
     , Indent
     , Position
     , LastOffset
-    , Marker.State
+    -- , Marker.State
     , FileOffset
     , Scope.Scope
     ] Parsec32.Parser
@@ -151,7 +151,7 @@ evalStepWith = \sv p txt
    -> flip Parsec.parsePartial txt
     . State.evalDefT @Scope
     . State.evalDefT @FileOffset
-    . State.evalDefT @Marker.State
+    -- . State.evalDefT @Marker.State
     . State.evalDefT @LastOffset
     . State.evalDefT @Position
     . State.Indent.eval
