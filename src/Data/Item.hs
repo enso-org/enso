@@ -8,12 +8,14 @@ import qualified Data.Text       as Strict
 import qualified Data.Text.Lazy  as Lazy
 import qualified Data.Vector     as Vector
 
+import Data.List.NonEmpty (NonEmpty)
 import Data.Set (Set)
 
 
 type family Item a
 
-type instance Item [a] = a
+type instance Item [a]                 = a
+type instance Item (NonEmpty a)        = a
 type instance Item (MapLazy.Map   k v) = (k,v)
 type instance Item (MapStrict.Map k v) = (k,v)
 type instance Item Strict.Text         = Char
