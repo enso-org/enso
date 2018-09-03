@@ -153,6 +153,19 @@ parseError :: BuilderMonad m => m IR.SomeTerm
 parseError = IR.invalid' Invalid.ParserError
 {-# INLINE parseError #-}
 
+inheritCodeSpan2 :: BuilderMonad m
+    => (IR.SomeTerm -> IR.SomeTerm -> m IR.SomeTerm)
+    -> (IR.SomeTerm -> IR.SomeTerm -> m IR.SomeTerm)
+inheritCodeSpan2 f t1 t2 = do
+    s1  <- Layer.read @CodeSpan t1
+    s2  <- Layer.read @CodeSpan t2
+    out <- f t1 t2
+    -- The new IR becomes a new parent, so it handles the left offset.
+    let s1' = CodeSpan.dropOffset s1
+    Layer.write @CodeSpan t1 s1'
+    addCodeSpan (s1 <> s2) out
+    pure out
+{-# INLINE inheritCodeSpan2 #-}
 
 
 -- === Strings === --
@@ -384,21 +397,6 @@ buildAppsIR :: BuilderMonad m => [Lexer.Token] -> IR.SomeTerm -> m IR.SomeTerm
 buildAppsIR = \args t -> do
     args' <- buildIR <$$> args
     foldlM (inheritCodeSpan2 IR.app') t args'
-
-
-inheritCodeSpan2 :: BuilderMonad m
-    => (IR.SomeTerm -> IR.SomeTerm -> m IR.SomeTerm)
-    -> (IR.SomeTerm -> IR.SomeTerm -> m IR.SomeTerm)
-inheritCodeSpan2 f t1 t2 = do
-    s1 <- Layer.read @CodeSpan t1
-    -- The new IR becomes a new parent, so it handles the left offset.
-    let s1' = CodeSpan.dropOffset s1
-    Layer.write @CodeSpan t1 s1'
-    s2 <- Layer.read @CodeSpan t2
-    out <- f t1 t2
-    addCodeSpan (s1 <> s2) out
-    pure out
-{-# INLINE inheritCodeSpan2 #-}
 
 
 type MixFixBuilder = forall m. BuilderMonad m
