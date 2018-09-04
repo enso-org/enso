@@ -17,18 +17,18 @@ import qualified Luna.IR                               as IR
 import qualified Luna.IR.Aliases                       as Uni
 import qualified Luna.IR.Term.Ast.Invalid              as Invalid
 import qualified Luna.Pass                             as Pass
-import qualified Luna.Syntax.Text.Parser.Ast      as Ast
-import qualified Luna.Syntax.Text.Parser.Ast.CodeSpan as CodeSpan
+import qualified Luna.Syntax.Text.Parser.Ast           as Ast
+import qualified Luna.Syntax.Text.Parser.Ast.CodeSpan  as CodeSpan
 import qualified Luna.Syntax.Text.Parser.Lexer.Names   as Name
 
-import Data.Map                              (Map)
-import Data.Set                              (Set)
-import Data.Text.Position                    (Delta (Delta))
-import Luna.Syntax.Text.Parser.Ast      (Spanned (Spanned))
+import Data.Map                             (Map)
+import Data.Set                             (Set)
+import Data.Text.Position                   (Delta (Delta))
+import Luna.Syntax.Text.Parser.Ast          (Spanned (Spanned))
 import Luna.Syntax.Text.Parser.Ast.CodeSpan (CodeSpan)
-import Luna.Syntax.Text.Parser.Lexer         (Token)
-import Luna.Syntax.Text.Source               (Source)
-import OCI.Data.Name                         (Name)
+import Luna.Syntax.Text.Parser.Lexer        (Token)
+import Luna.Syntax.Text.Source              (Source)
+import OCI.Data.Name                        (Name)
 
 -- import Data.Parser hiding (Result)
 
@@ -171,11 +171,6 @@ buildStatement :: [Token] -> Statement
 buildStatement = either ExpressionStatement (uncurry AssignmentStatement) . breakOnAssignment
 {-# INLINE buildStatement #-}
 
--- | Note: see description above to learn more why it's useful.
-buildFlatStatement :: [Token] -> [Layouted]
-buildFlatStatement = flattenStatement . buildStatement
-{-# INLINE buildFlatStatement #-}
-
 breakOnAssignment :: [Token] -> Either [Token] ([Token], Token, [Token])
 breakOnAssignment = breakOnAssignment__ id
 {-# INLINE breakOnAssignment #-}
@@ -189,20 +184,12 @@ breakOnAssignment__ = \f stream -> case stream of
         in case Ast.unspan tok of
             Ast.Operator name ->
                 if name == Name.rawAssign
-                    then Right (f mempty, tok, toks)
+                    then let
+                        op = tok & Ast.ast .~ Ast.Operator Name.assign
+                        in Right (f mempty, op, toks)
                     else continue
             _ -> continue
 {-# NOINLINE breakOnAssignment__ #-}
-
-flattenStatement :: Statement -> [Layouted]
-flattenStatement = \case
-    ExpressionStatement s -> discoverLayouts s
-    AssignmentStatement p x s -> let
-        op' = Ast.Operator Name.assign
-        op  = x & Ast.ast .~ op'
-        sop = Layouted SpacedLayout [op]
-        in discoverLayouts p <> (sop : discoverLayouts s)
-{-# INLINE flattenStatement #-}
 
 
 
@@ -353,26 +340,32 @@ takeOperators__ = \result stream -> case stream of
 type ExprBuilderMonad m = (Assoc.Reader Name m, Prec.RelReader Name m)
 
 buildExpr :: ExprBuilderMonad m => [Token] -> m Token
-buildExpr = \stream -> do
-    -- trace ("\n\n>>>\n" <> ppShow stream) $ pure ()
-    let statement = buildFlatStatement stream
-    stream' <- buildUnspacedExprs statement
-    out <- buildExprList stream'
-    -- trace ("\n\n<<<\n" <> ppShow out) $ pure ()
-
-    pure out
+buildExpr = \toks -> case buildStatement toks of
+    ExpressionStatement expr -> buildExprSegment expr
+    AssignmentStatement pat eq expr -> do
+        pat'  <- buildExprSegment pat
+        expr' <- buildExprSegment expr
+        pure $ Ast.infixApp pat' eq expr'
 {-# INLINE buildExpr #-}
 
 
 -- === Utils === --
 
-buildUnspacedExprs :: ExprBuilderMonad m => [Layouted] -> m [Token]
-buildUnspacedExprs = \stream -> let
+buildExprSegment :: ExprBuilderMonad m => [Token] -> m Token
+buildExprSegment = buildExprList <=< buildUnspacedExprs
+{-# INLINE buildExprSegment #-}
+
+buildUnspacedExprs :: ExprBuilderMonad m => [Token] -> m [Token]
+buildUnspacedExprs = buildUnspacedLayouts . discoverLayouts
+{-# INLINE buildUnspacedExprs #-}
+
+buildUnspacedLayouts :: ExprBuilderMonad m => [Layouted] -> m [Token]
+buildUnspacedLayouts = \stream -> let
     go = \(Layouted layout s) -> case layout of
         SpacedLayout   -> pure s
         UnspacedLayout -> pure <$> buildExprList s
     in concat <$> mapM go stream
-{-# INLINE buildUnspacedExprs #-}
+{-# INLINE buildUnspacedLayouts #-}
 
 buildExprList :: ExprBuilderMonad m => [Token] -> m Token
 buildExprList = buildExprStream . buildStream

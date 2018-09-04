@@ -42,6 +42,7 @@ import Data.Vector                                (Vector)
 import Luna.Syntax.Text.Parser.Ast                (Spanned (Spanned))
 import Luna.Syntax.Text.Parser.Ast.CodeSpan       (CodeSpan)
 import Luna.Syntax.Text.Parser.Parser.ExprBuilder (ExprBuilderMonad, buildExpr,
+                                                   buildExprSegment,
                                                    checkLeftSpacing)
 import Luna.Syntax.Text.Source                    (Source)
 import OCI.Data.Name                              (Name)

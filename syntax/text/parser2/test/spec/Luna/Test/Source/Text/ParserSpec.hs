@@ -336,12 +336,27 @@ operatorSpec = describe "operator" $ do
     "spaced"          $ e "a+b * c"       $ ("a" + "b") * "c"
 
   describe "assignment" $ do
-    "not spaced"      $ e "a=b + c"       $ "a" `eq` ("b" + "c")
-    "left spaced"     $ e "a =b + c"      $ "a" `eq` ("b" + "c")
-    "right spaced"    $ e "a= b + c"      $ "a" `eq` ("b" + "c")
-    "spaced"          $ e "a = b + c"     $ "a" `eq` ("b" + "c")
-    "named args"      $ e "a = b x=1"     $ "a" `eq` ("b" (_x "x" "=" 1))
-    "pattern"         $ e "V x y z = v"   $ "V" "x" "y" "z" `eq` "v"
+    "empty"             $ e "a ="           $ "a" `eq` emptyExpression
+    "simple"            $ e "a = b"         $ "a" `eq` "b"
+    "operator"          $ e "a = +"         $ "a" `eq` "+"
+    "left section"      $ e "a = b +"       $ "a" `eq` secL "b" "+"
+    "right section"     $ e "a = + b"       $ "a" `eq` secR "+" "b"
+    "eq operator"       $ e "a = ="         $ "a" `eq` "="
+    "eq left section"   $ e "a = b ="       $ "a" `eq` secL "b" "="
+    "eq right section"  $ e "a = = b"       $ "a" `eq` secR "=" "b"
+    -- "grouped eq lsec"   $ e "(a =)"         $ "(_)" [secL "a" "="]
+    -- "grouped eq rsec"   $ e "(= a)"         $ "(_)" [secR "=" "a"]
+    "not spaced"        $ e "a=b + c"       $ "a" `eq` ("b" + "c")
+    "left spaced"       $ e "a =b + c"      $ "a" `eq` ("b" + "c")
+    "right spaced"      $ e "a= b + c"      $ "a" `eq` ("b" + "c")
+    "spaced"            $ e "a = b + c"     $ "a" `eq` ("b" + "c")
+    "named args"        $ e "a = b x=1"     $ "a" `eq` ("b" (_x "x" "=" 1))
+    "pattern"           $ e "V x y z = v"   $ "V" "x" "y" "z" `eq` "v"
+    -- "multiline"         $ e "a =\n b"       $ "c"
+    -- "multiline eq lsec" $ e "a =\n b ="     $ "c"
+    -- "multiline eq rsec" $ e "a =\n = b"     $ "c"
+    -- "multiline argval"  $ e "a =\n b = 1"   $ "c"
+    -- "multiline argvals" $ e "a =\n b = 1\n c = 2" $ "c"
 
   describe "multiline" $ do
     "grouping"        $ e "a\n b c"       $ "a" ("b" "c")
@@ -480,33 +495,16 @@ debugSpec = describe "error" $ it "x" $ do
     -- let input     = "a = b"
     let
         toks      = Lexer.eval Syntax.Version1 input
-        -- layouted  = ExprBuilder.discoverLayouts toks
-        statement = ExprBuilder.buildFlatStatement toks
-        stream    = ExprBuilder.buildStream toks
-        input = [qqStr|# Docs
-def foo:
-    5
-
-# Docs
-«0»def bar:
-    "bar"
-
-# Docs
-def main:
-    print bar|]
+        -- stream    = ExprBuilder.buildExprSegment toks
+        input = [qqStr|a = b
+c = d|]
         -- input = "class Foox:\n Vector x y z"
 
     putStrLn "\nTOKS:\n"
     pprint toks
 
-    -- putStrLn "\nLAYOUTED:\n"
-    -- pprint layouted
-
-    putStrLn "\nSTATEMENT:\n"
-    pprint statement
-
-    putStrLn "\nSTREAM:\n"
-    pprint stream
+    -- putStrLn "\nSTREAM:\n"
+    -- pprint stream
 
 
     putStrLn "\nRESULT:\n"
