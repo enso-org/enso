@@ -475,13 +475,6 @@ commentSpec = describe "comment" $ do
     "single line" $ e "# comment" $ Simple.Comment "comment"
 
 
--- TODO:
--- - Lists
--- - Tuples
--- - Markers
-
-
-
 debugSpec :: Spec
 debugSpec = describe "error" $ it "x" $ do
     pure () :: IO ()
