@@ -127,6 +127,10 @@ type Lexer  = StatesT
 
 -- === Evaluation === --
 
+evalVersion1 :: Source -> [Token]
+evalVersion1 = eval Syntax.Version1
+{-# INLINE evalVersion1 #-}
+
 eval :: Syntax.Version -> Source -> [Token]
 eval = flip evalWith exprs
 {-# INLINE eval #-}
@@ -159,6 +163,7 @@ evalStepWith = \sv p txt
     . TokenStream.eval
     $ p
 {-# INLINE evalStepWith #-}
+
 
 -- === Syntax management === --
 
