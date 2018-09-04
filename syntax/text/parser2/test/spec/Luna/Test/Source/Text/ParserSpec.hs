@@ -504,6 +504,10 @@ debugSpec = describe "error" $ it "x" $ do
     pprint $ Parser.evalVersion1With Parser.unit input
     pprint $ Simple.simplify $ Parser.evalVersion1With Parser.unit input
 
+
+    print "!!!!"
+    print $ Lexer.evalVersion1With Lexer.var ")"
+
     True `shouldBe` False
 
 

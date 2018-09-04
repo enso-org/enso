@@ -193,6 +193,10 @@ isCorrectPattern toks = all (== True) $ checkToken <$> toks where
         Ast.Operator "=" -> False
         _                -> True
 
+isSingleVar :: [Token] -> Bool
+isSingleVar ts = case Ast.unspan <$> ts of
+    [Ast.Var {}] -> True
+    _            -> False
 
 
 
