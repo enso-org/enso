@@ -199,10 +199,11 @@ appSymbols' sf@(Labeled flab fsym) sa = do
     asca     <- Assoc.read sa
     argParen <- case (sf^.label, sa^.label) of
         (Just flab, Just alab) -> do
+            let hackFix = fromJust EQ
             prec <- case fsym of
                 -- FIXME unsafeFromJust
-                Infix _ -> compare EQ . unsafeFromJust <$> Prec.readRelLabel alab flab
-                _       -> unsafeFromJust <$> Prec.readRelLabel flab alab
+                Infix _ -> compare EQ . hackFix <$> Prec.readRelLabel alab flab
+                _       -> hackFix <$> Prec.readRelLabel flab alab
             pure $ \asc -> case prec of
                 LT -> False
                 GT -> True
