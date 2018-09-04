@@ -99,8 +99,8 @@ debugSpec = describe "error" $ it "debug" $ do
 
 spec :: Spec
 spec = do
-    -- functionDefSpec
-    -- caseSpec
-    -- unitSpec
+    functionDefSpec
+    caseSpec
+    unitSpec
 
     debugSpec

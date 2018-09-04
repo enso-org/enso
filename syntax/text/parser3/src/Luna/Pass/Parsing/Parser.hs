@@ -277,16 +277,20 @@ buildIR = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
     Ast.Invalid inv  -> IR.invalid' inv
 
     -- Expressions
-    Ast.Unit block -> case Ast.unspan block of
-        Ast.Block (l:|ls) -> do
-            let (ls', imps) = discoverImportLines (l:ls)
+    Ast.Unit block -> let
+        mkUnit ls = do
+            let (ls', imps) = discoverImportLines ls
                 impsSpan    = collectSpan imps
                 record'     = IR.record' False "" [] []
             (unitCls :: IR.SomeTerm) <- record'       =<< buildIR <$$> ls'
             (ih      :: IR.SomeTerm) <- IR.importHub' =<< buildIR <$$> imps
             IR.writeLayer @CodeSpan ih impsSpan
             IR.unit' ih [] unitCls
-        _ -> parseError
+
+        in case Ast.unspan block of
+            Ast.Block (l:|ls) -> mkUnit (l:ls)
+            Ast.Missing       -> mkUnit []
+            _                 -> parseError
 
     Ast.InfixApp l f r -> do
         let tok = Ast.unspan f
