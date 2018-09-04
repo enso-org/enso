@@ -182,8 +182,8 @@ syntax1Only = \p -> State.get @Syntax.Version >>= \case
 
 -- | Luna Backend uses this functionality
 
-isCorrectOuput :: [Token] -> Bool
-isCorrectOuput toks = all (== True) $ checkToken <$> toks where
+isCorrectOutput :: [Token] -> Bool
+isCorrectOutput toks = all (== True) $ checkToken <$> toks where
     checkToken t = case Ast.unspan t of
         Ast.Invalid {} -> False
         _              -> True
