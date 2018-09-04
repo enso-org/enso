@@ -331,9 +331,13 @@ buildIR = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
     Ast.SectionRight f r -> do
         f' <- buildIR f
         r' <- buildIR r
+        case Ast.unspan f of
+            Ast.Operator op | op == Name.uminus -> IR.app' f' r'
+                            | otherwise -> IR.sectionLeft' f' r'
+            _ -> IR.sectionLeft' f' r'
         -- TODO
         -- The naming IR.sectionLeft and IR.sectionRight need to be swapped!
-        IR.sectionLeft' f' r'
+        -- IR.sectionLeft' f' r'
 
     Ast.SectionLeft l f -> do
         l' <- buildIR l

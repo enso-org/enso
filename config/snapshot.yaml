@@ -1,7 +1,7 @@
 resolver: nightly-2018-05-30
 name: luna
 packages:
-- container-1.1.2
+- container-1.1.5
 - convert-1.5
 - functor-utils-1.17.1
 - githash-0.1.0.1
