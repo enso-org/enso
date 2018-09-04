@@ -411,17 +411,31 @@ satisfyAst :: (Ast.Ast -> Bool) -> Parser' (Spanned Ast)
 satisfyAst = \f -> peekSatisfyAst f <* dropToken
 {-# INLINE satisfyAst #-}
 
+satisfyAst' :: (Ast.Ast -> Bool) -> Parser' (Spanned Ast)
+satisfyAst' = \f -> peekSatisfyAst' f <* dropToken
+{-# INLINE satisfyAst' #-}
+
 peekSatisfyAst :: (Ast.Ast -> Bool) -> Parser' (Spanned Ast)
-peekSatisfyAst = \f -> notReserved $ do
+peekSatisfyAst = notReserved . peekSatisfyAst'
+{-# INLINE peekSatisfyAst #-}
+
+peekSatisfyAst' :: (Ast.Ast -> Bool) -> Parser' (Spanned Ast)
+peekSatisfyAst' = \f -> do
     tok <- partial peekToken
     if f (Ast.unspan tok)
         then pure tok
         else fail "satisfy"
-{-# INLINE peekSatisfyAst #-}
+{-# INLINE peekSatisfyAst' #-}
+
 
 ast :: Ast.Ast -> Parser' (Spanned Ast)
 ast = satisfyAst . (==)
 {-# INLINE ast #-}
+
+-- TODO: renaming - this one does not checked if ast is reserved
+ast_x :: Ast.Ast -> Parser' (Spanned Ast)
+ast_x = satisfyAst' . (==)
+{-# INLINE ast_x #-}
 
 unsafeLineBreak :: Parser' (Spanned Ast)
 unsafeLineBreak = do
@@ -692,7 +706,7 @@ exprList = Ast.list <$> lst where
     nextSeg  = Ast.prependAsOffset <$> sep <*> seg (optional segBody)
     segs     = many nextSeg
     seg p    = possiblyBroken $ withReserved sepOp p
-    sep      = possiblyBroken $ ast sepOp
+    sep      = possiblyBroken $ ast_x sepOp
     segBody  = nonBlockExprBody'
     sepOp    = Ast.Operator ","
 {-# INLINE exprList #-}

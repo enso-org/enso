@@ -382,6 +382,7 @@ mixfixSpec = describe "groups" $ do
     "a)"           $ e "a)"                 $ secL "a" ")"
     "nested rules" $ e "(if a then b) else" $ "(_)" ["if_then" "a" "b"] "else"
     "dd"           $ e "if a b then c d"    $ "if_then" ("a" "b") ("c" "d")
+    "nested grps"  $ e "[(a,b)]"            $ "[_]" ["(_)" ["a", "b"]]
 
 
 layoutSpec :: Spec
@@ -489,8 +490,7 @@ debugSpec = describe "error" $ it "x" $ do
     let
         toks      = Lexer.eval Syntax.Version1 input
         -- stream    = ExprBuilder.buildExprSegment toks
-        input = [qqStr|a = b
-c = d|]
+        input = [qqStr|[(a,b)]|]
         -- input = "class Foox:\n Vector x y z"
 
     putStrLn "\nTOKS:\n"
