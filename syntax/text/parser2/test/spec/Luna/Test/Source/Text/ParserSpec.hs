@@ -468,7 +468,7 @@ importSpec = describe "import" $ do
 
 unitSpec :: Spec
 unitSpec = describe "unit" $ do
-    "empty" $ u "" (Simple.Missing)
+    "empty" $ u "" (Simple.Unit Simple.Missing)
 
 commentSpec :: Spec
 commentSpec = describe "comment" $ do
