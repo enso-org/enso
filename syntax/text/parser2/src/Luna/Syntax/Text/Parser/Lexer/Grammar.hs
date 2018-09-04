@@ -178,6 +178,24 @@ syntax1Only = \p -> State.get @Syntax.Version >>= \case
 {-# INLINE syntax1Only #-}
 
 
+-- === Sanity checking === --
+
+-- | Luna Backend uses this functionality
+
+isCorrectOuput :: [Token] -> Bool
+isCorrectOuput toks = all (== True) $ checkToken <$> toks where
+    checkToken t = case Ast.unspan t of
+        Ast.Invalid {} -> False
+        _              -> True
+
+isCorrectPattern :: [Token] -> Bool
+isCorrectPattern toks = all (== True) $ checkToken <$> toks where
+    checkToken t = case Ast.unspan t of
+        Ast.Operator "=" -> False
+        _                -> True
+
+
+
 
 -------------------------------
 -- === Primitive parsers === --
