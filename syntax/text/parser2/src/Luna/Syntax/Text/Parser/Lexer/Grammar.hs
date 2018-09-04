@@ -135,6 +135,10 @@ eval :: Syntax.Version -> Source -> [Token]
 eval = flip evalWith exprs
 {-# INLINE eval #-}
 
+evalVersion1With :: Lexer a -> Source -> [Token]
+evalVersion1With = evalWith Syntax.Version1
+{-# INLINE evalVersion1With #-}
+
 evalWith :: Syntax.Version -> Lexer a -> Source -> [Token]
 evalWith = \sv p src_ -> let
     src        = (src_ <> "\ETX")
