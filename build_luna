@@ -5,8 +5,7 @@ import subprocess
 import sys
 import traceback
 
-from build_config import stack_build
-
+from config.build import stack_build
 
 def main ():
     try:
@@ -18,6 +17,6 @@ def main ():
     else:
         print('Status: DONE')
 
-
 if __name__ == '__main__':
-main()
+    main()
+
