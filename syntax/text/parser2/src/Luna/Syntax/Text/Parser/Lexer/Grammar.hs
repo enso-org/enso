@@ -119,7 +119,6 @@ type Lexer  = StatesT
     , Indent
     , Position
     , LastOffset
-    -- , Marker.State
     , FileOffset
     , Scope.Scope
     ] Parsec32.Parser
@@ -144,7 +143,8 @@ evalWith = \sv p src_ -> let
     src        = (src_ <> "\ETX")
     panic  s   = error $ "Panic. Not all input consumed by lexer: " <> show s
     finish s r = if (Source.length s /= 0) then panic s else r
-    in case evalStepWith sv p src of
+    parser     = p <* Parsec.token '\ETX'
+    in case evalStepWith sv parser src of
         Parsec.Fail _ _ e  -> error e
         Parsec.Done src' r -> finish src' r
         Parsec.Partial g   -> case g mempty of
@@ -159,7 +159,6 @@ evalStepWith = \sv p txt
    -> flip Parsec.parsePartial txt
     . State.evalDefT @Scope
     . State.evalDefT @FileOffset
-    -- . State.evalDefT @Marker.State
     . State.evalDefT @LastOffset
     . State.evalDefT @Position
     . State.Indent.eval
@@ -552,16 +551,12 @@ expr = fastExprByChar =<< Parsec.peekToken
 {-# INLINE expr #-}
 
 exprs :: Lexer_
-exprs = let
-    parser = do
-        whiteSpace
-        many expr
-        Parsec.token '\ETX'
-        pure ()
-        -- Ast.Parsec.tokens' . unwrap <$> State.get @Ast.Result
-    -- in State.put @Ast.Result . wrap . pure =<< spanned parser
-    in parser
+exprs = do
+    whiteSpace
+    many expr
+    pure ()
 {-# NOINLINE exprs #-}
+
 
 
 unknownExpr :: Lexer_
