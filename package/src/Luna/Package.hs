@@ -275,7 +275,9 @@ rename src target = Exception.rethrowFromIO @Path.PathException $ do
     unless_ isValidPkgName . Exception.throw . InvalidName $ convert newName
 
     -- Guaranteed to be in a package by now so default value is nonsensical
-    srcPackageRoot <- fromJust $(Path.mkAbsDir "/") <$> findPackageRoot src
+    defaultDir     <- Directory.getCurrentDirectory
+    defaultDirPath <- Path.parseAbsDir defaultDir
+    srcPackageRoot <- fromJust defaultDirPath <$> findPackageRoot src
     originalName   <- name srcPackageRoot
 
     liftIO $ Directory.renameDirectory (Path.fromAbsDir srcPackageRoot) destPath
