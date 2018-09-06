@@ -487,13 +487,13 @@ debugSpec = describe "error" $ it "x" $ do
     -- let input     = "\171\&0\187def main:\n    None"
     -- let input     = "«0»def main:\n    None"
     -- let input     = "a = b"
-    src <- readFile "/home/wdanilo/dev/luna3/stdlib/Std/src/Base.luna"
+    -- src <- readFile "/home/wdanilo/dev/luna3/stdlib/Std/src/Base.luna"
 
     let
         toks      = Lexer.eval Syntax.Version1 input
         -- stream    = ExprBuilder.buildExprSegment toks
         -- input = convert src -- [qqStr|'x'|]
-        input = "class Foox:\n Vector x y z"
+        input = "def + a b: a.+ b"
 
     putStrLn "\nTOKS:\n"
     pprint toks

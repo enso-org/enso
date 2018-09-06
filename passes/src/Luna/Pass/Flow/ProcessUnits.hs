@@ -27,6 +27,7 @@ import qualified Luna.Runtime                          as Runtime
 
 import Data.Map (Map)
 import Luna.Pass.Resolve.Data.Resolution (UnitResolver)
+import qualified System.IO as IO
 
 processFunBody
     :: Target.Target
@@ -38,8 +39,14 @@ processFunBody
 processFunBody tgt resolver typedUnits evaluatedUnits copy = do
     fun <- Serializer.deserialize copy
     PreprocessDef.preprocessDef resolver  fun
+    print $ "running typechecker on " <> show tgt
+    liftIO $ IO.hFlush IO.stdout
     hdr <- Typechecker.runTypechecker tgt fun typedUnits
+    print $ "running interpreter on " <> show tgt
+    liftIO $ IO.hFlush IO.stdout
     val <- Interpreter.runInterpreter     fun evaluatedUnits
+    print $ "done " <> show tgt
+    liftIO $ IO.hFlush IO.stdout
     return (hdr, val)
 
 
