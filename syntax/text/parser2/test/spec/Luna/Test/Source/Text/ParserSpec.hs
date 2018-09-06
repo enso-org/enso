@@ -457,7 +457,7 @@ classDefSpec = describe "class" $ do
 
 caseSpec :: Spec
 caseSpec = describe "case" $ do
-    "simple" $ e "case foo x of\n a: b" $ "case_of" ("foo" "x") (_x "a" ":" "b")
+    "simple" $ e "case foo x of\n a: b" $ "case_of" ("foo" "x") (block $ _x "a" ":" "b")
 
 
 importSpec :: Spec
@@ -492,8 +492,8 @@ debugSpec = describe "error" $ it "x" $ do
     let
         toks      = Lexer.eval Syntax.Version1 input
         -- stream    = ExprBuilder.buildExprSegment toks
-        input = convert src -- [qqStr|'x'|]
-        -- input = "class Foox:\n Vector x y z"
+        -- input = convert src -- [qqStr|'x'|]
+        input = "class Foox:\n Vector x y z"
 
     putStrLn "\nTOKS:\n"
     pprint toks
