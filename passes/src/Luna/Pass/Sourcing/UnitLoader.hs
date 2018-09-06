@@ -19,7 +19,7 @@ import qualified Luna.Pass.Attr                       as Attr
 import qualified Luna.Pass.Basic                      as Pass
 import qualified Luna.Pass.Data.Stage                 as TC
 import qualified Luna.Pass.Scheduler                  as Scheduler
-import qualified Luna.Syntax.Text.Parser.Data.Result  as Parser
+import qualified Luna.Syntax.Text.Parser.State.Result  as Parser
 import qualified Luna.Syntax.Text.Parser.State.Invalid as Parser
 import qualified Luna.Pass.Parsing.Parser             as Parser
 import qualified Luna.Syntax.Text.Source              as Parser
