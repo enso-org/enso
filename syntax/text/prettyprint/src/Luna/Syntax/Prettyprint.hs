@@ -356,7 +356,19 @@ instance ( MonadIO m -- DEBUG ONLY
         IR.UniTermImp {} -> pure $ simple "imports ..."
         IR.UniTermExprList (IR.ExprList elems) -> simple . intercalate " "
             <$> (mapM subgenBody =<< ComponentVector.toList elems)
-        IR.UniTermRecord (IR.Record isNat name params conss decls) -> pure $ simple "class ..."
+        IR.UniTermRecord (IR.Record isNat name params conss decls)
+            -> unnamed . Atom .:. go <$> (mapM subgenBody =<< ComponentVector.toList params)
+                                     <*> (mapM subgenBody =<< ComponentVector.toList conss)
+                                     <*> (mapM subgenBody =<< ComponentVector.toList decls) where
+                go args conss decls = "class" <+> convert name <> arglist args <> body where
+                    body      = if (not . null $ conss <> decls) then ":" </> bodyBlock else mempty
+                    bodyBlock = indented (block $ foldl (</>) mempty $ conss <> decls)
+        IR.UniTermRecordCons (IR.RecordCons name args)
+            -> unnamed . Atom . (convert name <>)
+             . (\x -> if null x then mempty else space <> intercalate space x)
+             <$> (mapM subgenBody =<< ComponentVector.toList args)
+
+        IR.UniTermRecordFields (IR.RecordFields names tp) -> unnamed . Atom <$> (convert . show <$> Mutable.toList names) -- <$> subgenBody tp
         IR.UniTermDocumented (IR.Documented doc base) -> unnamed . Atom . ("# " <>) <$> subgenBody base
         t -> error $ "NO PRETTYPRINT FOR: " <> show t
 
@@ -373,10 +385,10 @@ instance ( MonadIO m -- DEBUG ONLY
 --         Marked       m a            -> unnamed . Atom .: (<>) <$> subgenBody m   <*> subgenBody a
 --         Marker         a            -> pure . unnamed . Atom $ convert markerBeginChar <> convert (show a) <> convert markerEndChar
 --         ASGRootedFunction  n _      -> unnamed . Atom . (\n' -> "<function '" <> n' <> "'>") <$> subgenBody n
---         ClsASG _ n as cs ds         -> unnamed . Atom .:. go <$> mapM subgenBody as <*> mapM subgenBody cs <*> mapM subgenBody ds where
---                                            go args conss decls = "class" <+> convert n <> arglist args <> body where
---                                                body      = if_ (not . null $ cs <> ds) $ ":" </> bodyBlock
---                                                bodyBlock = indented (block $ foldl (</>) mempty $ conss <> decls)
+        -- ClsASG _ n params conss decls         -> unnamed . Atom .:. go <$> mapM subgenBody params <*> mapM subgenBody conss <*> mapM subgenBody decls where
+        --                                    go args conss decls = "class" <+> convert name <> arglist args <> body where
+        --                                        body      = if_ (not . null $ conss <> decls) $ ":" </> bodyBlock
+        --                                        bodyBlock = indented (block $ foldl (</>) mempty $ conss <> decls)
 
 --         FieldASG mn a               -> unnamed . Atom . (\tp -> if null mn then tp else intercalate space (convert <$> mn) <> Doc.spaced typedName <> tp) <$> subgenBody a
 --         UnresolvedImport i t        -> unnamed . Atom . (\src -> "import " <> src <> tgts) <$> subgenBody i where

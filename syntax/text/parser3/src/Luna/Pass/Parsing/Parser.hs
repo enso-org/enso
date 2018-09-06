@@ -416,22 +416,23 @@ buildClassIR arg args = case Ast.unspan arg of
         [ps, clss] -> case Ast.unspan ps of
             Ast.List params -> case Ast.unspan clss of
                 Ast.List recs -> do
-                    conss <- mapM buildClassConsIR recs
-                    params' <- buildIR <$$> params
-                    IR.record' False n params' conss []
+                    (es, conss) <- partitionEithers <$> mapM buildClassConsIR recs
+                    es'         <- buildIR <$$> es
+                    params'     <- buildIR <$$> params
+                    IR.record' False n params' conss es'
                 _ -> parseError
             _ -> parseError
         _ -> parseError
     _ -> parseError
 
-buildClassConsIR :: BuilderMonad m => Lexer.Token -> m IR.SomeTerm
+buildClassConsIR :: BuilderMonad m => Lexer.Token -> m (Either Lexer.Token IR.SomeTerm)
 buildClassConsIR = \tok -> case Ast.unspan tok of
     Ast.App nameTok fieldToks -> case Ast.unspan nameTok of
         Ast.Cons name -> case Ast.unspan fieldToks of
-            Ast.List fields -> IR.recordCons' name =<< mapM buildClassField fields
-            _ -> parseError
-        _ -> parseError
-    _ -> parseError
+            Ast.List fields -> fmap Right . IR.recordCons' name =<< mapM buildClassField fields
+            _ -> pure $ Left tok
+        _ -> pure $ Left tok
+    _ -> pure $ Left tok
 
 buildClassField :: BuilderMonad m => Lexer.Token -> m IR.SomeTerm
 buildClassField = \tok -> case Ast.unspan tok of

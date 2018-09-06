@@ -84,8 +84,11 @@ unitSpec = describe "unit" $ do
 debugSpec :: Spec
 debugSpec = describe "error" $ it "debug" $ do
 
-    let input = [qqStr|def main:
-    f = "d"|]
+    let input = [qqStr|class Foo:
+    Foo1:
+        x :: Int
+        y :: Char
+    def foo: bar|]
 
     putStrLn "\n\n"
     pprint $ PP.evalVersion1With Macro.unit (convert input)
