@@ -1,4 +1,4 @@
-{-# LANGUAGE Strict #-}
+{-# LANGUAGE Strict               #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Data.Graph.Fold.Partition where
@@ -102,12 +102,12 @@ partition = Deep.run1 @(DiscoveryM m)
 
 instance (Monad m, ClusterEditor comp comps)
     => Fold.ComponentBuilder (Discovery comps) m comp where
-    componentBuild = \comp acc
-       -> wrap
+    componentBuild = \comp acc -> putStrLn ("partition: " <> show comp) >> (
+          wrap
         . TypeMap.modifyElem_ @(ComponentSet comp)
           (Set.insert $ Layout.relayout comp)
         . unwrap
-      <$> acc
+      <$> acc)
     {-# INLINE componentBuild #-}
 
 
