@@ -171,9 +171,11 @@ interpret' glob expr = Layer.read @IR.Model expr >>= \case
             let fun' = State.evalT fun env
                 arg' = State.evalT arg env
             lift $ Runtime.force $ Runtime.applyFun fun' arg'
-    Uni.Acc a' name -> do
+    Uni.Acc a' n' -> do
         a <- interpret glob =<< IR.source a'
-        let name = "Interpreter.interpret': FIXME method name"
+        name <- IR.source n' >>= Layer.read @IR.Model >>= \case
+            Uni.Var n -> return n
+            _         -> error "interpret: method name is not Var"
         return $ do
             arg <- a
             lift $ Runtime.force $ Runtime.dispatchMethod name arg

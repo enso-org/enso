@@ -240,8 +240,11 @@ buildIR = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
         IR.number' 10 intPart empty
 
     Ast.Str       strs -> do
-        [str] <- strGo <$$> strs
-        pure str
+        strs' <- strGo <$$> strs
+        case strs' of
+            []    -> IR.rawString' =<< Mutable.new
+            [str] -> pure str
+            a     -> IR.invalid' Invalid.ParserError
 
     -- Identifiers
     Ast.Var       name -> {- print ("var " <> show name) >> -} IR.var'   name
@@ -519,6 +522,7 @@ buildFunctionIR arg args = case args of
                 body'   <- buildIR body
                 IR.function' name' params' body'
             _ -> parseError
+    _ -> parseError
 
 checkFunctionName :: Lexer.Token -> Lexer.Token
 checkFunctionName = fmap handle where
