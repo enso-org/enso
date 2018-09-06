@@ -487,10 +487,12 @@ debugSpec = describe "error" $ it "x" $ do
     -- let input     = "\171\&0\187def main:\n    None"
     -- let input     = "«0»def main:\n    None"
     -- let input     = "a = b"
+    src <- readFile "/home/wdanilo/dev/luna3/stdlib/Std/src/Base.luna"
+
     let
         toks      = Lexer.eval Syntax.Version1 input
         -- stream    = ExprBuilder.buildExprSegment toks
-        input = [qqStr|[(a,b)]|]
+        input = convert src -- [qqStr|'x'|]
         -- input = "class Foox:\n Vector x y z"
 
     putStrLn "\nTOKS:\n"
@@ -505,9 +507,7 @@ debugSpec = describe "error" $ it "x" $ do
     pprint $ Simple.simplify $ Parser.evalVersion1With Parser.unit input
 
 
-    print "!!!!"
-    print $ Lexer.evalVersion1With Lexer.var ")"
-
+    -- pprint $ Simple.simplify $ Parser.evalVersion1With Parser.unit (convert src)
     True `shouldBe` False
 
 

@@ -718,6 +718,10 @@ exprList = Ast.list <$> lst where
 -- === Layout === --
 --------------------
 
+discoverBlock :: Parser' (Spanned Ast) -> Parser [Spanned Ast]
+discoverBlock = optionBlock . discoverBlock1
+{-# INLINE discoverBlock #-}
+
 discoverBlock1 :: Parser' (Spanned Ast) -> Parser' (NonEmpty (Spanned Ast))
 discoverBlock1 = \p -> brokenLst1 $ Indent.indented *> block1 p
 {-# INLINE discoverBlock1 #-}
@@ -746,18 +750,18 @@ optional :: Parser' (Spanned Ast) -> Parser' (Spanned Ast)
 optional = option Ast.missing
 {-# INLINE optional #-}
 
+-- fixme partial
 classBlock :: Parser' (Spanned Ast)
-classBlock = broken $ do
-    let conses = many classCons
-    Ast.list <$> conses
+classBlock = partial $ Ast.list <$> discoverBlock body where
+    body   = classCons <|> partial nonBlockExpr'
 
 classCons :: Parser' (Spanned Ast)
 classCons = Ast.app <$> withReserved blockStartOp base <*> (blockDecl <|> inlineDecl) where
-    base       = satisfyAst isCons
-    inlineDecl = Ast.list <$> many unnamedField
-    blockDecl   = ast blockStartOp *> blockDecl'
+    base         = satisfyAst isCons
+    inlineDecl   = Ast.list <$> many unnamedField
+    blockDecl    = ast blockStartOp *> blockDecl'
     blockStartOp = Ast.Operator ":"
-    blockDecl'  = Ast.list <$> (unsafeBrokenLst $ Indent.indented *> Indent.withCurrent blockDeclLines)
+    blockDecl'   = Ast.list <$> (unsafeBrokenLst $ Indent.indented *> Indent.withCurrent blockDeclLines)
     blockDeclLines :: Parser' [Spanned Ast]
     blockDeclLines  = (:) <$> namedFields <*> blockDeclLines'
     blockDeclLines' = option mempty $ unsafeBrokenLst (Indent.indentedEq *> blockDeclLines)

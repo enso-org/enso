@@ -40,6 +40,12 @@ many1 :: (Applicative m, Alternative m) => m a -> m (NonEmpty a)
 many1 = \p -> (:|) <$> p <*> many p
 {-# INLINE many1 #-}
 
+
+many1' :: (Applicative m, Alternative m) => m a -> m [a]
+many1' = \p -> convert <$> many1 p where
+    convert (a :| as) = a : as
+{-# INLINE many1' #-}
+
 -- someAsList :: (Applicative m, Alternative m) => m a -> m [a]
 -- someAsList = Applicative.some ; {-# INLINE someAsList #-}
 

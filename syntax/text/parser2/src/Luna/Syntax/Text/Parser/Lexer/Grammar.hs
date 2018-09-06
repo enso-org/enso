@@ -48,7 +48,7 @@ import Luna.Syntax.Text.Parser.State.LastOffset  (LastOffset (LastOffset))
 import Luna.Syntax.Text.Parser.State.TokenStream (TokenStream)
 import Luna.Syntax.Text.Scope                    (Scope)
 import OCI.Data.Name                             (Name)
-import Text.Parser.Combinators                   (many1)
+import Text.Parser.Combinators                   (many1, many1')
 import Text.Parser.State.Indent                  (Indent)
 
 import Data.Parser.Instances.Attoparsec ()
@@ -672,9 +672,12 @@ strBuilder quote = TokenStream.add =<< spanned parser where
             chunkQuote    = bodyQuotes =<< takeWhile1 isQuote
             bodyQuotes qs = Atom.StrPlain qs <$ failIf (Source.length qs == quoteLen)
             chunk         = spanned $ choice [chunkPlain, chunkQuote] -- lineBreak
-            ending        = Source.length <$> takeWhile1 isQuote
-            body          = Ast.Str <$> many chunk
-        body <* ending
+            ending        = void $ takeWhile1 isQuote
+            end           = ending <|> (TokenStream.add =<< invalid (pure $ Invalid.Literal $ Invalid.String Invalid.NoClosingMark))
+            -- body          = Ast.Str . concat <$> flexBlock (many1' chunk)
+            chunks        = (<>) <$> many1' chunk <*> (concat <$> flexBlock (many1' chunk))
+            body          = Ast.Str <$> chunks
+        if quoteLen == 2 then pure (Ast.Str mempty) else body <* end
 
 
 --------------------
