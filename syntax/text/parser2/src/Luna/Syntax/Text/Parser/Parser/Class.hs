@@ -136,6 +136,7 @@ data Chunk
     | ManyNonSpacedExpr
     | NonSpacedExpr
     | ExprBlock
+    | PatternBlock
     | ExprList
 
     -- To be removed in new syntax
@@ -503,6 +504,7 @@ chunk = \case
     NonSpacedExpr     -> nonSpacedExpr
     ManyNonSpacedExpr -> manyNonSpacedExpr
     ExprBlock         -> partial expr -- FIXME
+    PatternBlock      -> partial patternBlock
     ExprList          -> exprList
     ClassBlock        -> classBlock
 {-# INLINE chunk #-}
@@ -697,6 +699,14 @@ nonSpacedExpr' = buildExpr =<< go where
         (head <>) <$> option mempty loop
 {-# INLINE nonSpacedExpr' #-}
 
+patternBlock :: Parser (Spanned Ast)
+patternBlock = total emptyExpression patternBlock'
+
+patternBlock' :: Parser' (Spanned Ast)
+patternBlock' = Ast.block <$> discoverBlock1 line where
+    pat  = withReserved op expr'
+    op   = Ast.Operator ":"
+    line = Ast.infixApp <$> pat <*> ast_x op <*> expr'
 
 exprList :: Parser' (Spanned Ast)
 exprList = Ast.list <$> lst where
@@ -838,7 +848,7 @@ syntax_if_then_else = mkMacro
 syntax_case :: Macro
 syntax_case = mkMacro
                  (Ast.Var "case") [Expr]
-    +! mkSegment (Ast.Var "of")   [ExprBlock]
+    +! mkSegment (Ast.Var "of")   [PatternBlock]
 
 syntax_group :: Macro
 syntax_group = mkMacro
