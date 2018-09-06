@@ -860,6 +860,13 @@ syntax_classDef = mkMacro
                  (Ast.Var      "class") [NonSpacedExpr, ManyNonSpacedExpr]
     +! mkSegment (Ast.Operator ":")     [ClassBlock]
 
+syntax_nativeClassDef :: Macro
+syntax_nativeClassDef = mkMacro
+                 (Ast.Var      "native") []
+    +! mkSegment (Ast.Var      "class")  [NonSpacedExpr, ManyNonSpacedExpr]
+    +! mkSegment (Ast.Operator ":")      [ClassBlock]
+
+
 syntax_lambda :: Macro
 syntax_lambda = mkMacro (Ast.Operator ":") [ExprBlock]
 
@@ -872,4 +879,5 @@ hardcodePredefinedMacros = mapM_ registerSection
     , syntax_funcDef
     , syntax_lambda
     , syntax_classDef
+    , syntax_nativeClassDef
     ]

@@ -355,13 +355,14 @@ buildIR = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
 
         case Ast.unspan tok of
             Ast.Var var -> if
-                | var == "(_)"     -> buildTupleIR    mfixArg args
-                | var == "[_]"     -> buildListIR     mfixArg args
-                | var == "case_of" -> buildCaseOfIR   mfixArg args
-                | var == "def_:"   -> buildFunctionIR mfixArg args
-                | var == "class_:" -> buildClassIR    mfixArg args
-                | var == "import"  -> buildImportIR   mfixArg args
-                | otherwise        -> continue
+                | var == "(_)"            -> buildTupleIR    mfixArg args
+                | var == "[_]"            -> buildListIR     mfixArg args
+                | var == "case_of"        -> buildCaseOfIR   mfixArg args
+                | var == "def_:"          -> buildFunctionIR mfixArg args
+                | var == "import"         -> buildImportIR   mfixArg args
+                | var == "class_:"        -> buildClassIR False mfixArg args
+                | var == "native_class_:" -> buildClassIR True  mfixArg args
+                | otherwise               -> continue
 
             Ast.Marker c -> assertNoArgs $ do
                 expr   <- buildIR arg
@@ -410,8 +411,8 @@ buildAppsIR = \args t -> do
 type MixFixBuilder = forall m. BuilderMonad m
     => Lexer.Token -> [Lexer.Token] -> m IR.SomeTerm
 
-buildClassIR :: MixFixBuilder
-buildClassIR arg args = case Ast.unspan arg of
+buildClassIR :: Bool -> MixFixBuilder
+buildClassIR isNative arg args = case Ast.unspan arg of
     Ast.Cons n -> case args of
         [ps, clss] -> case Ast.unspan ps of
             Ast.List params -> case Ast.unspan clss of
@@ -419,7 +420,7 @@ buildClassIR arg args = case Ast.unspan arg of
                     (es, conss) <- partitionEithers <$> mapM buildClassConsIR recs
                     es'         <- buildIR <$$> es
                     params'     <- buildIR <$$> params
-                    IR.record' False n params' conss es'
+                    IR.record' isNative n params' conss es'
                 _ -> parseError
             _ -> parseError
         _ -> parseError

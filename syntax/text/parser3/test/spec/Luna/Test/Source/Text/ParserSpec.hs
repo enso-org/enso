@@ -84,7 +84,7 @@ unitSpec = describe "unit" $ do
 debugSpec :: Spec
 debugSpec = describe "error" $ it "debug" $ do
 
-    let input = [qqStr|class Foo:
+    let input = [qqStr|native class Foo:
     Foo1:
         x :: Int
         y :: Char
