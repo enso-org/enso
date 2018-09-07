@@ -174,7 +174,7 @@ inheritCodeSpan2 f t1 t2 = do
 
 strGo :: forall m. BuilderMonad m => Ast.Spanned (Atom.StrChunk Ast.Ast) -> m IR.SomeTerm
 strGo = \(Spanned cs a) -> addCodeSpan cs =<< case a of
-    Atom.StrPlain t -> IR.rawString' =<< Mutable.fromList (toString t)
+    Atom.StrPlain t -> IR.rawString' =<< Mutable.fromList (convert t)
     _               -> IR.invalid' Invalid.ParserError
     where addCodeSpan cs ir = ir <$ IR.writeLayer @CodeSpan ir cs
 

@@ -84,10 +84,7 @@ unitSpec = describe "unit" $ do
 debugSpec :: Spec
 debugSpec = describe "error" $ it "debug" $ do
 
-    let input = [qqStr|case self of
-    XText t: t
-    XTag name attrs children:
-       x|]
+    let input = [qqStr|"a"|]
 
     putStrLn "\n\n"
     pprint $ PP.evalVersion1With Macro.unit (convert input)
