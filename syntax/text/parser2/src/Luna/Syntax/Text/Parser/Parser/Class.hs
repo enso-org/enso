@@ -656,7 +656,7 @@ assertNotComment = \tok -> when_ (isComment $ Ast.unspan tok)
 
 nonBlockExprBody' :: Parser' (Spanned Ast)
 nonBlockExprBody' = documented <|> unusedComment <|> body where
-    documented    = Ast.documented <$> satisfyAst isComment <*> docBase
+    documented    = Ast.documented <$> ((\(a:|as) -> a) <$> blockBody1 (satisfyAst isComment)) <*> docBase
     unusedComment = satisfyAst isComment
     docBase       = broken (Indent.indentedEq *> body)
 
@@ -763,7 +763,7 @@ optional = option Ast.missing
 -- fixme partial
 classBlock :: Parser' (Spanned Ast)
 classBlock = partial $ Ast.list <$> discoverBlock body where
-    body   = classCons <|> partial nonBlockExpr'
+    body   = classCons <|> namedFields <|> partial nonBlockExpr'
 
 classCons :: Parser' (Spanned Ast)
 classCons = Ast.app <$> withReserved blockStartOp base <*> (blockDecl <|> inlineDecl) where

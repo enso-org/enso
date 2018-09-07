@@ -436,9 +436,18 @@ buildClassConsIR = \tok -> case Ast.unspan tok of
     Ast.App nameTok fieldToks -> case Ast.unspan nameTok of
         Ast.Cons name -> case Ast.unspan fieldToks of
             Ast.List fields -> fmap Right . IR.recordCons' name =<< mapM buildClassField fields
-            _ -> pure $ Left tok
-        _ -> pure $ Left tok
-    _ -> pure $ Left tok
+            a -> error $ ppShow a
+        Ast.App field fieldsList -> case Ast.unspan field of
+            Ast.Var "#fields#" -> case Ast.unspan fieldsList of
+                Ast.List names -> do
+                    names' <- Mutable.fromList (getFieldName <$> names)
+                    fmap Right . IR.recordFields' names' =<< buildIR fieldToks
+                a -> error $ ppShow a
+            a -> pure $ Left tok
+        a -> error $ ppShow a
+        -- _ -> pure $ Left tok
+    a -> pure $ Left tok
+    -- _ -> pure $ Left tok
 
 buildClassField :: BuilderMonad m => Lexer.Token -> m IR.SomeTerm
 buildClassField = \tok -> case Ast.unspan tok of
@@ -456,7 +465,10 @@ buildClassField = \tok -> case Ast.unspan tok of
 getFieldName :: Lexer.Token -> Name
 getFieldName = \tok -> case Ast.unspan tok of
     Ast.Var n -> n
-    _         -> error "FIXME"
+    Ast.SectionLeft name op -> case Ast.unspan op of
+        Ast.Operator "," -> getFieldName name
+        a                -> error $ "getFieldName " <> ppShow a
+    a         -> error $ "getFieldName " <> ppShow a
 
 
 
