@@ -189,10 +189,23 @@ secR = convert' .: Simple.SectionRight
 secL :: Convertible' Simple.Ast a => Simple.Ast -> Simple.Ast -> a
 secL = convert' .: Simple.SectionLeft
 
+(<|) :: Convertible' Simple.Ast a => Simple.Ast -> Simple.Ast -> a
+(|>) :: Convertible' Simple.Ast a => Simple.Ast -> Simple.Ast -> a
+(<|) = secL
+(|>) = secR
+
+
 _x :: Convertible' Simple.Ast a
     => Simple.Ast -> Simple.Ast -> Simple.Ast -> a
 _x = convert' .:. Simple.InfixApp
 
+(@.), (@|), (@::), (@:), (@=) :: Convertible' Simple.Ast a
+    => Simple.Ast -> Simple.Ast -> a
+(@.)  = flip _x "." 
+(@|)  = flip _x "," 
+(@::) = flip _x "::"
+(@:)  = flip _x ":"
+(@=)  = flip _x "=" 
 
 
 
@@ -307,8 +320,6 @@ literalSpec = describe "literal" $ do
 
 
 
-a .! b = _x a "." b
-
 -----------------------
 -- === Operators === --
 -----------------------
@@ -320,47 +331,54 @@ operatorSpec = describe "operator" $ do
     "single"          $ e "a - b"         $ "a" - "b"
     "modifier"        $ e "a += 1"        $ _x "a" "+=" 1
     "application"     $ e "a b"           $ "a" "b"
-    "comma"           $ e "a,b,c"         $ _x (_x "a" "," "b") "," "c"
-    "typed"           $ e "a :: b"        $ _x "a" "::" "b"
+    "comma"           $ e "a,b,c"         $ ("a" @| "b") @| "c"
+    "typed"           $ e "a :: b"        $ "a" @:: "b"
 
   describe "section" $ do
-    "line right"      $ e "+ a"           $ secR "+" "a"
-    "line left"       $ e "a +"           $ secL "a" "+"
-    "glued right"     $ e "+a"            $ secR "+" "a"
-    "glued left"      $ e "a+"            $ secL "a" "+"
-    "glued right app" $ e "a +b * c"      $ "a" (secR "+" "b") * "c"
-    "glued left app"  $ e "a b+ * c"      $ "a" (secL "b" "+") * "c"
-    "glued lr app"    $ e "a *b+ c"       $ "a" (secL (secR "*" "b") "+") "c"
-    "lens app"        $ e "a .b.c"        $ "a" (_x (secR "." "b") "." "c")
+    "line right"      $ e "+ a"           $ "+" |> "a"
+    "line left"       $ e "a +"           $ "a" <| "+"
+    "glued right"     $ e "+a"            $ "+" |> "a"
+    "glued left"      $ e "a+"            $ "a" <| "+"
+    "glued right app" $ e "a +b * c"      $ "a" ("+" |> "b") * "c"
+    "glued left app"  $ e "a b+ * c"      $ "a" ("b" <| "+") * "c"
+    "glued lr app"    $ e "a *b+ c"       $ "a" (("*" |> "b") <| "+") "c"
+    "lens app"        $ e "a .b.c"        $ "a" (("." |> "b") @. "c")
 
   describe "accessors" $ do
-    "non spaced simple" $ e "a.b"           $ "a" .! "b"
-    "spaced simple"     $ e "a . b"         $ "a" .! "b"
-    "spaced arg"        $ e "a . b c"       $ ("a" .! "b") "c"
-    "spaced args"       $ e "a . b c d"     $ ("a" .! "b") "c" "d"
-    "spaced nested"     $ e "a . b c . d e" $ ((("a" .! "b") "c") .! "d") "e"
+    "non spaced"      $ e "a.b"           $ "a" @. "b"
+    "spaced"          $ e "a . b"         $ "a" @. "b"
+    "spaced arg"      $ e "a . b c"       $ ("a" @. "b") "c"
+    "spaced args"     $ e "a . b c d"     $ ("a" @. "b") "c" "d"
+    "spaced nested"   $ e "a . b c . d e" $ ((("a" @. "b") "c") @. "d") "e"
+    "spaced nested 2" $ e "a b . c . d e" $ (("a" "b" @. "c") @. "d") "e"
+    "complex 1"       $ e "a b.c . d e"   $ (("a" ("b" @. "c")) @. "d") "e"
+    "complex 2"       $ e "a b. c . d e"  $ (("a" ("b" <| ".") "c") @. "d") "e"
+    "complex 3"       $ e "a b .c . d e"  $ ("a" "b" ("." |> "c") @. "d") "e"
+    "complex 4"       $ e "a b .c d . e"  $ "a" "b" ("." |> "c") "d" @. "e"
+    "complex 5"       $ e "a b .c d. e"   $ "a" "b" ("." |> "c") ("d" <| ".") "e"
+    "complex 6"       $ e "a b .c. d"     $ "a" "b" (("." |> "c") <| ".") "d"
 
   describe "precedence" $ do
     "simple"          $ e "a + b * c"     $ "a" + ("b" * "c")
     "spaced"          $ e "a+b * c"       $ ("a" + "b") * "c"
 
   describe "assignment" $ do
-    "empty"             $ e "a ="           $ "a" `eq` emptyExpression
-    "simple"            $ e "a = b"         $ "a" `eq` "b"
-    "operator"          $ e "a = +"         $ "a" `eq` "+"
-    "left section"      $ e "a = b +"       $ "a" `eq` secL "b" "+"
-    "right section"     $ e "a = + b"       $ "a" `eq` secR "+" "b"
-    "eq operator"       $ e "a = ="         $ "a" `eq` "="
-    "eq left section"   $ e "a = b ="       $ "a" `eq` secL "b" "="
-    "eq right section"  $ e "a = = b"       $ "a" `eq` secR "=" "b"
+    "empty"           $ e "a ="           $ "a" `eq` emptyExpression
+    "simple"          $ e "a = b"         $ "a" `eq` "b"
+    "operator"        $ e "a = +"         $ "a" `eq` "+"
+    "left section"    $ e "a = b +"       $ "a" `eq` ("b" <| "+")
+    "right section"   $ e "a = + b"       $ "a" `eq` ("+" |> "b")
+    "eq operator"     $ e "a = ="         $ "a" `eq` "="
+    "eq left sec"     $ e "a = b ="       $ "a" `eq` ("b" <| "=")
+    "eq right sec"    $ e "a = = b"       $ "a" `eq` ("=" |> "b")
     -- "grouped eq lsec"   $ e "(a =)"         $ "(_)" [secL "a" "="]
     -- "grouped eq rsec"   $ e "(= a)"         $ "(_)" [secR "=" "a"]
-    "not spaced"        $ e "a=b + c"       $ "a" `eq` ("b" + "c")
-    "left spaced"       $ e "a =b + c"      $ "a" `eq` ("b" + "c")
-    "right spaced"      $ e "a= b + c"      $ "a" `eq` ("b" + "c")
-    "spaced"            $ e "a = b + c"     $ "a" `eq` ("b" + "c")
-    "named args"        $ e "a = b x=1"     $ "a" `eq` ("b" (_x "x" "=" 1))
-    "pattern"           $ e "V x y z = v"   $ "V" "x" "y" "z" `eq` "v"
+    "not spaced"      $ e "a=b + c"       $ "a" `eq` ("b" + "c")
+    "left spaced"     $ e "a =b + c"      $ "a" `eq` ("b" + "c")
+    "right spaced"    $ e "a= b + c"      $ "a" `eq` ("b" + "c")
+    "spaced"          $ e "a = b + c"     $ "a" `eq` ("b" + "c")
+    "named args"      $ e "a = b x=1"     $ "a" `eq` ("b" (_x "x" "=" 1))
+    "pattern"         $ e "V x y z = v"   $ "V" "x" "y" "z" `eq` "v"
     -- "multiline"         $ e "a =\n b"       $ "c"
     -- "multiline eq lsec" $ e "a =\n b ="     $ "c"
     -- "multiline eq rsec" $ e "a =\n = b"     $ "c"
@@ -370,15 +388,15 @@ operatorSpec = describe "operator" $ do
   describe "multiline" $ do
     "grouping"        $ e "a\n b c"       $ "a" ("b" "c")
     "section 1"       $ e "a +\n b c"     $ "a" + ("b" "c")
-    "section 2"       $ e "a+ \n b c"     $ Simple.App (secL "a" "+") ("b" "c")
-    "section 3"       $ e "a \n +b c"     $ "a" ((secR "+" "b") "c")
+    "section 2"       $ e "a+ \n b c"     $ Simple.App ("a" <| "+") ("b" "c")
+    "section 3"       $ e "a \n +b c"     $ "a" (("+" |> "b") "c")
     "continuation"    $ e "a \n + b c"    $ "a" + "b" "c"
 
   describe "invalid" $ do
     "adj infix"       $ e "a + + b"       $ _x "a" adjacentOperators "b"
     "adj infix 2"     $ e "a + + + b"     $ _x "a" adjacentOperators "b"
-    "adj postfix"     $ e "a + +"         $ secL "a" adjacentOperators
-    "adj prefix"      $ e "+ + a"         $ secR adjacentOperators "a"
+    "adj postfix"     $ e "a + +"         $ "a" <| adjacentOperators
+    "adj prefix"      $ e "+ + a"         $ adjacentOperators |> "a"
     "wrong assoc"     $ e "a + b >>+ c"   $ _x ("a" + "b") assocConflict "c"
     "no prec"         $ e "a + b +++ c"   $ _x ("a" + "b") missingRelation "c"
     "no assoc"        $ e "a >+< b >+< c" $ _x (_x "a" ">+<" "b") noAssoc "c"
@@ -388,7 +406,7 @@ mixfixSpec :: Spec
 mixfixSpec = describe "groups" $ do
     "empty group"  $ e "()"                 $ "(_)" []
     "group"        $ e "(a b)"              $ "(_)" ["a" "b"]
-    "a)"           $ e "a)"                 $ secL "a" ")"
+    "a)"           $ e "a)"                 $ "a" <| ")"
     "nested rules" $ e "(if a then b) else" $ "(_)" ["if_then" "a" "b"] "else"
     "dd"           $ e "if a b then c d"    $ "if_then" ("a" "b") ("c" "d")
     "nested grps"  $ e "[(a,b)]"            $ "[_]" ["(_)" ["a", "b"]]
@@ -404,7 +422,7 @@ layoutSpec = describe "layout" $ do
     "broken expr 6"  $ e "if a then\n b else\n c" $ "if_then_else" "a" "b" "c"
     "broken expr 7"  $ e "if a then\n b else\n c" $ "if_then_else" "a" "b" "c"
     "broken expr 8"  $ e "if a then\n b\n c" $ "if_then" "a" (block ["b", "c"])
-    "after operator" $ e "a: b:\n c\n d"  $ _x "a" ":" (_x "b" ":" (block ["c", "d"]))
+    "after operator" $ e "a: b:\n c\n d"  $ "a" @: ("b" @: (block ["c", "d"]))
 
 
 

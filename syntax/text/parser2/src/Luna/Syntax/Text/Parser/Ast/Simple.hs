@@ -166,6 +166,10 @@ instance Convertible String (t1 -> t2 -> t3 -> Ast)
       => IsString (t1 -> t2 -> t3 -> Ast) where
     fromString = convert
 
+instance Convertible String (t1 -> t2 -> t3 -> t4 -> Ast)
+      => IsString (t1 -> t2 -> t3 -> t4 -> Ast) where
+    fromString = convert
+
 charsToDigits :: NonEmpty Char -> NonEmpty Word8
 charsToDigits (c :| cs) = go c :| (go <$> cs) where
     go c = fromIntegral $ Char.ord c - 48
