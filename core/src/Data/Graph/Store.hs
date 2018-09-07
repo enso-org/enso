@@ -3,6 +3,7 @@
 module Data.Graph.Store where
 
 import Prologue hiding (pprint, print, putStrLn)
+import qualified Prologue as P
 
 import qualified Data.Graph.Component.Node.Class as Component
 import qualified Data.Graph.Data.Component.Class as Component
@@ -21,11 +22,12 @@ import Data.Graph.Data.Component.Class (Component)
 import Data.Graph.Data.Component.Set   (ComponentSet, ComponentSetA)
 import Data.Map.Strict                 (Map)
 import Foreign.Ptr.Utils               (SomePtr)
+import qualified System.IO as IO
 
 -- import Data.Graph.Store.MemoryRegion   (MemoryRegion)
 
-putStrLn :: Applicative m => String -> m ()
-putStrLn = const $ pure ()
+putStrLn :: MonadIO m => String -> m ()
+putStrLn a = P.putStrLn a >> liftIO (IO.hFlush IO.stdout)
 
 print :: Applicative m => a -> m ()
 print = const $ pure ()
@@ -118,18 +120,19 @@ serializeWithRedirectMap comp = do
     putStrLn $ "root = " <> show comp
 
     clusters  <- Partition.partition comp
+    putStrLn "\n=== clusters ===" >> pprint clusters
     size      <- Size.clusterSize clusters
+    putStrLn $ "\nsize = " <> show size
     ccount    <- Size.componentCount clusters
+    putStrLn $ "\nccount = " <> show ccount
     buffer    <- Buffer.alloc ccount size
+    putStrLn "buffer"
 
     let dataRegion    = Buffer.dataRegion buffer
     let dataRegionPtr = unwrap dataRegion
     dynDataRegion <- Buffer.dynDataRegion buffer
 
-    putStrLn "\n=== clusters ===" >> pprint clusters
 
-    putStrLn $ "\nsize = " <> show size
-    putStrLn $ "\nccount = " <> show ccount
 
     putStrLn "\n=== encodeStaticRegion ==="
     redirectMap <- Memory.withUnmanagedPtr dataRegionPtr $ Buffer.encodeStaticRegion comp clusters
