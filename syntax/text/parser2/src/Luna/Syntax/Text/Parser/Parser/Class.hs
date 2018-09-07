@@ -788,7 +788,7 @@ namedFields = do
     let tpOp = Ast.Operator "::"
     ns <- Ast.list <$> withReserved tpOp (many1 nonSpacedExpr')
     op <- ast tpOp
-    tp <- nonSpacedExpr'
+    tp <- expr'
     let f  = Ast.Spanned mempty $ Ast.Var "#fields#"
     pure $ Ast.apps f [ns, tp]
 
