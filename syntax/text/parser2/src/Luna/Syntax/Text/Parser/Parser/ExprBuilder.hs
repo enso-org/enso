@@ -455,8 +455,18 @@ foldExprStack__ = \el (OpStream op stp2) -> case stp2 of
 {-# NOINLINE foldExprStack__ #-}
 
 appInfix :: Maybe Token -> (Token -> Token -> Token)
-appInfix = maybe Ast.app (flip Ast.infixApp)
+appInfix top ta tb = case top of
+    Nothing -> Ast.app ta tb
+    Just op -> case Ast.unspan op of
+        Ast.Operator "." -> injectApp (flip Ast.infixApp op ta) tb
+        _                -> flip Ast.infixApp op ta tb
 {-# INLINE appInfix #-}
+
+injectApp :: (Token -> Token) -> Token -> Token
+injectApp f t@(Ast.Spanned span s) = case s of
+    Ast.App base arg -> Ast.Spanned span $ Ast.App (injectApp f base) arg
+    _                -> f t
+
 
 foldExprStackStep__ :: ExprBuilderMonad m => Token -> ElStreamType -> m Token
 foldExprStackStep__ = \a -> \case

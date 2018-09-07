@@ -307,6 +307,8 @@ literalSpec = describe "literal" $ do
 
 
 
+a .! b = _x a "." b
+
 -----------------------
 -- === Operators === --
 -----------------------
@@ -330,6 +332,13 @@ operatorSpec = describe "operator" $ do
     "glued left app"  $ e "a b+ * c"      $ "a" (secL "b" "+") * "c"
     "glued lr app"    $ e "a *b+ c"       $ "a" (secL (secR "*" "b") "+") "c"
     "lens app"        $ e "a .b.c"        $ "a" (_x (secR "." "b") "." "c")
+
+  describe "accessors" $ do
+    "non spaced simple" $ e "a.b"           $ "a" .! "b"
+    "spaced simple"     $ e "a . b"         $ "a" .! "b"
+    "spaced arg"        $ e "a . b c"       $ ("a" .! "b") "c"
+    "spaced args"       $ e "a . b c d"     $ ("a" .! "b") "c" "d"
+    "spaced nested"     $ e "a . b c . d e" $ ((("a" .! "b") "c") .! "d") "e"
 
   describe "precedence" $ do
     "simple"          $ e "a + b * c"     $ "a" + ("b" * "c")
@@ -493,7 +502,7 @@ debugSpec = describe "error" $ it "x" $ do
         toks      = Lexer.eval Syntax.Version1 input
         -- stream    = ExprBuilder.buildExprSegment toks
         -- input = convert src -- [qqStr|'x'|]
-        input = "class Foox:\n Vector x y z"
+        input = "a . foo b c"
 
     putStrLn "\nTOKS:\n"
     pprint toks
