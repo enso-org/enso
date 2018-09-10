@@ -31,13 +31,24 @@ lunaCommand = Command.Exec <$> Options.hsubparser
     (  Options.command "run" (Options.info run
         (Options.progDesc "Execute a luna package, or standalone file."))
     <> Options.command "init" (Options.info init
-        (Options.progDesc "Initialise a new luna package.")))
+        (Options.progDesc "Initialise a new luna package."))
+    <> Options.command "document" (Options.info document
+        (Options.progDesc "Print documentation in JSON format.")))
 
 run :: Parser Command
 run = Command.Run <$> (Command.RunOpts
     <$> Options.strOption (Options.long "target"
         <> Options.metavar "FILE/FOLDER" <> Options.value ""
         <> Options.help "Execute FILE/FOLDER in interpreted mode."))
+
+document :: Parser Command
+document = Command.Document <$> (Command.DocumentOpts
+    <$> Options.strOption (Options.long "target"
+        <> Options.metavar "FOLDER" <> Options.value ""
+        <> Options.help "Execute FOLDER in interpreted mode.")
+    <*> Options.strOption (Options.long "out"
+        <> Options.metavar "FILE" <> Options.value ""
+        <> Options.help "Specify the output file"))
 
 init :: Parser Command
 init = Command.Init <$> ( Command.InitOpts
