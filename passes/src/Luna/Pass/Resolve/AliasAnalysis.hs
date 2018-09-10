@@ -82,6 +82,8 @@ resolveAliases expr = Layer.read @IR.Model expr >>= \case
         State.put @AliasMap localAliases
         resolveAliases out
         State.put @AliasMap baseAliases
+    Uni.Acc e n -> do
+        resolveAliases =<< IR.source e
     _ -> do
         inps <- ComponentList.mapM IR.source =<< IR.inputs expr
         mapM_ resolveAliases inps

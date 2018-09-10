@@ -53,7 +53,7 @@ instance Pass.Definition TC.Stage HeaderBuilder where
     definition = do
         Root root <- Attr.get
         tgt       <- Attr.get @Target.Target
-        print $ "running HeaderBuilder on " <> show tgt
+        -- print $ "running HeaderBuilder on " <> show tgt
         liftIO $ IO.hFlush IO.stdout
         AppQueue.AppQueue apps <- Attr.get
         AccQueue.AccQueue accs <- Attr.get
@@ -64,32 +64,32 @@ instance Pass.Definition TC.Stage HeaderBuilder where
         traverse_ (Requester.pushArising tgt) apps
         traverse_ (Requester.pushArising tgt) accs
         traverse_ (Requester.pushArising tgt) unis
-        print $ "running HeaderBuilder1 on " <> show tgt
+        -- print $ "running HeaderBuilder1 on " <> show tgt
         liftIO $ IO.hFlush IO.stdout
         tmpBlank <- IR.blank
         IR.substitute tmpBlank root
         hdr <- IR.defHeader root unis accs apps
         err <- Error.getError root
-        print $ "running HeaderBuilder2 on " <> show tgt
+        -- print $ "running HeaderBuilder2 on " <> show tgt
         liftIO $ IO.hFlush IO.stdout
         r <- case err of
             Just e -> do
                 IR.replace root tmpBlank
                 IR.deleteSubtreeWithWhitelist (Set.singleton root) hdr
-                print $ "running HeaderBuilder3 on " <> show tgt
+                -- print $ "running HeaderBuilder3 on " <> show tgt
                 liftIO $ IO.hFlush IO.stdout
                 pure $ Typed.DefHeader $ Left $ e & Error.failedAt %~ (tgt :)
             Nothing -> do
-                print $ "running HeaderBuilder4 on " <> show tgt
+                -- print $ "running HeaderBuilder4 on " <> show tgt
                 liftIO $ IO.hFlush IO.stdout
-                Prettyprint.run @Prettyprint.Simple def (Layout.unsafeRelayout hdr :: IR.Term IR.DefHeader)
+                -- Prettyprint.run @Prettyprint.Simple def (Layout.unsafeRelayout hdr :: IR.Term IR.DefHeader)
                 when_ (tgt == Target.Function "Std.Base" "+") $ Debug.visualizeSubtree "dupa" (Layout.unsafeRelayout hdr :: IR.Term IR.DefHeader)
                 prerooted  <- Store.serialize
                     (Layout.unsafeRelayout hdr :: IR.Term IR.DefHeader)
-                print $ "running HeaderBuilder4.5 on " <> show tgt
+                -- print $ "running HeaderBuilder4.5 on " <> show tgt
                 liftIO $ IO.hFlush IO.stdout
                 IR.replace root tmpBlank
-                print $ "running HeaderBuilder5 on " <> show tgt
+                -- print $ "running HeaderBuilder5 on " <> show tgt
                 liftIO $ IO.hFlush IO.stdout
                 let hdrInps = Set.fromList $ concat [ [root]
                                                     , Layout.relayout <$> apps
@@ -97,7 +97,7 @@ instance Pass.Definition TC.Stage HeaderBuilder where
                                                     , Layout.relayout <$> unis
                                                     ]
                 IR.deleteSubtreeWithWhitelist hdrInps hdr
-                print $ "running HeaderBuilder6 on " <> show tgt
+                -- print $ "running HeaderBuilder6 on " <> show tgt
                 liftIO $ IO.hFlush IO.stdout
                 copyHdr <- Store.deserialize prerooted
                 IR.DefHeader croot' cunis' caccs' capps' <- IR.modelView copyHdr
@@ -106,13 +106,13 @@ instance Pass.Definition TC.Stage HeaderBuilder where
                 caccs <- traverse IR.source =<< ComponentVector.toList caccs'
                 capps <- traverse IR.source =<< ComponentVector.toList capps'
                 ctype <- IR.source =<< Layer.read @IR.Type croot
-                print $ "running HeaderBuilder7 on " <> show tgt
+                -- print $ "running HeaderBuilder7 on " <> show tgt
                 liftIO $ IO.hFlush IO.stdout
                 chdr  <- IR.defHeader ctype cunis caccs capps
                 IR.deleteSubtree copyHdr
                 rooted <- Store.serialize $ Layout.unsafeRelayout chdr
                 IR.deleteSubtree chdr
-                print $ "running HeaderBuilder8 on " <> show tgt
+                -- print $ "running HeaderBuilder8 on " <> show tgt
                 liftIO $ IO.hFlush IO.stdout
                 pure $ Typed.DefHeader $ Right rooted
 

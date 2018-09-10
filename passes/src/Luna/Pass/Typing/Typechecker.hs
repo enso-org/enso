@@ -29,7 +29,7 @@ import qualified System.IO as IO
 runTypechecker :: Target.Target -> IR.SomeTerm
                -> Typed.Units -> TC.Monad Typed.DefHeader
 runTypechecker tgt root units = do
-    print $ "TC on " <> show tgt
+    -- print $ "TC on " <> show tgt
     liftIO $ IO.hFlush IO.stdout
     Scheduler.registerAttr @Typed.Units
     Scheduler.registerAttr @Typed.DefHeader
@@ -65,19 +65,19 @@ runTypechecker tgt root units = do
     Scheduler.runPassByType @ConsImporter
 
     loopWhileProgress $ do
-        print $ "TC progress " <> show tgt
+        -- print $ "TC progress " <> show tgt
         liftIO $ IO.hFlush IO.stdout
-    print $ "progress done " <> show tgt
+    -- print $ "progress done " <> show tgt
     liftIO $ IO.hFlush IO.stdout
 
     Scheduler.runPassByType @ErrorPropagation
-    print $ "ErrorPropagation done " <> show tgt
+    -- print $ "ErrorPropagation done " <> show tgt
     liftIO $ IO.hFlush IO.stdout
     Scheduler.runPassByType @HeaderBuilder
-    print $ "HeaderBuilder done " <> show tgt
+    -- print $ "HeaderBuilder done " <> show tgt
     liftIO $ IO.hFlush IO.stdout
 
-    print $ "TC done " <> show tgt
+    -- print $ "TC done " <> show tgt
     liftIO $ IO.hFlush IO.stdout
     Scheduler.getAttr @Typed.DefHeader
 
@@ -86,18 +86,18 @@ loopWhileProgress progress = do
     liftIO $ progress
     Scheduler.runPassByType @AppSolver
     Progress.Progress !appp <- Scheduler.getAttr
-    print $ "AppSolver done "
+    -- print $ "AppSolver done "
     liftIO $ IO.hFlush IO.stdout
     Scheduler.runPassByType @MethodImporter
     Progress.Progress !accp <- Scheduler.getAttr
-    print $ "MethodImporter done "
+    -- print $ "MethodImporter done "
     liftIO $ IO.hFlush IO.stdout
     Scheduler.runPassByType @UniSolver
     Progress.Progress !unip <- Scheduler.getAttr
-    print $ "UniSolver done "
+    -- print $ "UniSolver done "
     liftIO $ IO.hFlush IO.stdout
     let !prog = unip || appp || accp
-    print $ "prog " <> show prog
+    -- print $ "prog " <> show prog
     liftIO $ IO.hFlush IO.stdout
     when prog $ loopWhileProgress progress
 

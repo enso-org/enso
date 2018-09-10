@@ -26,6 +26,7 @@ import qualified Luna.Pass.Typing.Data.Progress   as Progress
 import qualified Luna.Pass.Typing.Data.Target     as Target
 import qualified Luna.Pass.Typing.Data.Typed      as Typed
 import qualified Luna.Pass.Typing.Data.UniQueue   as UniQueue
+import qualified Luna.Syntax.Prettyprint as Prettyprint
 
 import Data.Either         (lefts, rights)
 import Luna.Pass.Data.Root (Root (..))
@@ -75,7 +76,10 @@ solve expr = do
     IR.Acc t n' <- IR.modelView expr
     n <- IR.source n' >>= \a -> Layer.read @IR.Model a >>= \case
         Uni.Var name -> return name
-        _            -> error "MethodImporter.solve: unknown name"
+        b            -> do
+            foo  <- Prettyprint.run @Prettyprint.Simple def expr
+            expr <- Prettyprint.run @Prettyprint.Simple def a
+            error $ "MethodImporter.solve: unknown name " <> convert expr <> " on " <> convert foo
     target     <- IR.source t
     req        <- Requester.getRequester expr
     arising    <- Requester.getArising expr

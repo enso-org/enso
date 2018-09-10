@@ -27,7 +27,7 @@ import qualified System.IO as IO
 -- import Data.Graph.Store.MemoryRegion   (MemoryRegion)
 
 putStrLn :: MonadIO m => String -> m ()
-putStrLn a = P.putStrLn a >> liftIO (IO.hFlush IO.stdout)
+putStrLn = const $ pure ()
 
 print :: Applicative m => a -> m ()
 print = const $ pure ()
