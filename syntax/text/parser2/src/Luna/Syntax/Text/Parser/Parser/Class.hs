@@ -487,6 +487,10 @@ possiblyBroken :: ParserT t (Spanned Ast) -> ParserT t (Spanned Ast)
 possiblyBroken = \p -> broken (Indent.indented *> p) <||> p
 {-# INLINE possiblyBroken #-}
 
+possiblyBrokenNoIndCheck :: ParserT t (Spanned Ast) -> ParserT t (Spanned Ast)
+possiblyBrokenNoIndCheck = \p -> broken p <||> p
+{-# INLINE possiblyBrokenNoIndCheck #-}
+
 anyExprToken :: Parser (Spanned Ast)
 anyExprToken = possiblyBroken anyToken
 {-# INLINE anyExprToken #-}
@@ -624,7 +628,7 @@ nonBlockExpr = do
 {-# INLINE nonBlockExpr #-}
 
 unit :: Parser (Spanned Ast)
-unit = total emptyExpression $ Ast.unit <$> body where
+unit = total emptyExpression $ possiblyBrokenNoIndCheck $ Ast.unit <$> body where
     body     = nonEmpty <|> empty
     nonEmpty = Ast.block <$> block1 nonBlockExpr'
     empty    = pure Ast.missing
