@@ -337,7 +337,9 @@ buildIR = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
         f' <- buildIR f
         r' <- buildIR r
         case Ast.unspan f of
-            Ast.Operator op | op == Name.uminus -> IR.app' f' r'
+            Ast.Operator op | op == Name.acc    -> case Ast.unspan r of
+                    Ast.Var v -> IR.accSection' =<< Mutable.fromList (convert v)
+                            | op == Name.uminus -> IR.app' f' r'
                             | otherwise -> IR.sectionLeft' f' r'
             _ -> IR.sectionLeft' f' r'
         -- TODO
