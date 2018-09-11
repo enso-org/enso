@@ -37,7 +37,7 @@ import Luna.Syntax.Text.Scope                (Scope)
 import Luna.Syntax.Text.Source               (Source)
 import Luna.Test.Source.Text.Utils           (s)
 import OCI.IR.Link.Class                     (type (*-*), Link)
-import Test.Hspec                            (Expectation, Spec, describe, it)
+import Test.Hspec                            (Expectation, Spec, describe, it, xit)
 
 
 
@@ -302,10 +302,10 @@ termPatternSpec = describe "pattern" $ do
 -- FIXME: Hack, for details see Parsing.hs
 termModifierSpec :: Spec
 termModifierSpec = describe "modifiers" $ do
-    it "field update"            $ exprAs "a = a.x = v"  "a = a . x= v"  -- [(0,1),(0,1),(0,3),(3,1),(3,7),(0,11)]
-    it "field drop update"       $ exprAs "a.x = v"      "a . x= v"      -- [(0,1),(0,3),(3,1),(0,7)]
-    it "field modification"      $ exprAs "a = a.x += v" "a = a . x+= v" -- [(0,1),(0,1),(0,3),(4,1),(3,8),(0,12)]
-    it "field drop modification" $ exprAs "a.x += v"     "a . x+= v"     -- [(0,1),(0,3),(4,1),(0,8)]
+    xit "field update"            $ exprAs "a = a.x = v"  "a = a . x= v"  -- [(0,1),(0,1),(0,3),(3,1),(3,7),(0,11)]
+    xit "field drop update"       $ exprAs "a.x = v"      "a . x= v"      -- [(0,1),(0,3),(3,1),(0,7)]
+    xit "field modification"      $ exprAs "a = a.x += v" "a = a . x+= v" -- [(0,1),(0,1),(0,3),(4,1),(3,8),(0,12)]
+    xit "field drop modification" $ exprAs "a.x += v"     "a . x+= v"     -- [(0,1),(0,3),(4,1),(0,8)]
     -- FIXME: Correct implementation (vvv). Uncomment when above hack will be invalid.
         -- it "variable's field update"                    $ shouldParseItself' expr "a = a.x = v"                               [(0,1),(0,1),(5,1),(3,7),(0,11)]
         -- it "variable's field drop update"               $ shouldParseItself' expr "a.x = v"                                   [(0,1),(5,1),(0,7)]
