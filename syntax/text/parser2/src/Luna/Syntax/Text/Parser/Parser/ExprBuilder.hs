@@ -463,8 +463,8 @@ appInfix top ta tb = case top of
 {-# INLINE appInfix #-}
 
 injectApp :: (Token -> Token) -> Token -> Token
-injectApp f t@(Ast.Spanned span s) = case s of
-    Ast.App base arg -> Ast.Spanned span $ Ast.App (injectApp f base) arg
+injectApp f t = case Ast.unspan t of
+    Ast.App base arg -> Ast.app (injectApp f base) arg
     _                -> f t
 
 
