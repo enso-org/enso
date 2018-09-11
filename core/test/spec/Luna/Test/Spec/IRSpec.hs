@@ -106,7 +106,7 @@ nameSpec :: Spec
 nameSpec = describe "names" $ do
     it "encoding" $ runPass' $ do
         v        <- IR.var "a"
-        IR.Var n <- IR.model v
+        IR.Var n <- IR.modelView v
         n `shouldBe`    "a"
         n `shouldNotBe` "b"
 
@@ -123,7 +123,7 @@ irCreationSpec = describe "ir creation" $ do
         v1           <- IR.var "a"
         v2           <- IR.var "b"
         u1           <- IR.unify v1 v2
-        IR.Unify l r <- IR.model u1
+        IR.Unify l r <- IR.modelView u1
         lsrc         <- Layer.read @IR.Source l
         rsrc         <- Layer.read @IR.Source r
         ltgt         <- Layer.read @IR.Target l
@@ -152,7 +152,7 @@ irCreationSpec = describe "ir creation" $ do
         v1           <- IR.var "a"
         v2           <- IR.var "b"
         u1           <- IR.unify v1 v2
-        IR.Unify l r <- IR.model u1
+        IR.Unify l r <- IR.modelView u1
         v1_users     <- Mutable.toList =<< Layer.read @IR.Users v1
         v2_users     <- Mutable.toList =<< Layer.read @IR.Users v2
         v1_users `shouldBe` [Layout.relayout l]
@@ -318,7 +318,7 @@ test = describe "test" $ it "test" $ runPass' $ do
 
     vn <- Mutable.fromList ["foo", "bar", "baz"]
     u <- IR.update v vn v
-    IR.Update vu1 _ vu2 <- IR.model u
+    IR.Update vu1 _ vu2 <- IR.modelView u
 
 
 
@@ -429,21 +429,21 @@ subIRTest2 =  describe "subir" $ it "test2" $ runPass' $ do
     v3_users  <- Mutable.toList =<< Layer.read @IR.Users v3
     v3_tp_users  <- Mutable.toList =<< Layer.read @IR.Users v3_tp
 
-    IR.Lam l1_A l1_B <- IR.model l1
+    IR.Lam l1_A l1_B <- IR.modelView l1
     l1_tpl    <- Layer.read @IR.Type l1
     l1_tp     <- Layer.read @IR.Source l1_tpl
     l1_ttpl   <- Layer.read @IR.Type l1_tp
     l1_users  <- Mutable.toList =<< Layer.read @IR.Users l1
     l1_tp_users  <- Mutable.toList =<< Layer.read @IR.Users l1_tp
 
-    IR.Lam l2_A l2_B <- IR.model l2
+    IR.Lam l2_A l2_B <- IR.modelView l2
     l2_tpl    <- Layer.read @IR.Type l2
     l2_tp     <- Layer.read @IR.Source l2_tpl
     l2_ttpl   <- Layer.read @IR.Type l2_tp
     l2_users  <- Mutable.toList =<< Layer.read @IR.Users l2
     l2_tp_users  <- Mutable.toList =<< Layer.read @IR.Users l2_tp
 
-    IR.Grouped g_A <- IR.model g
+    IR.Grouped g_A <- IR.modelView g
     g_tpl    <- Layer.read @IR.Type g
     g_tp     <- Layer.read @IR.Source g_tpl
     g_ttpl   <- Layer.read @IR.Type g_tp

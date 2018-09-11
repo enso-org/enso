@@ -20,7 +20,7 @@ import Data.Graph.Data.Graph.Class (Graph)
 import Data.Text32                 (Text32)
 import Luna.Pass                   (Pass)
 import Test.Hspec                  (Arg, Example, Expectation, Spec, describe,
-                                    it)
+                                    xdescribe, it)
 import Test.Hspec.Core             (SpecM)
 
 
@@ -82,9 +82,9 @@ unitSpec = describe "unit" $ do
     it "empty" $ e_x "" ""
 
 debugSpec :: Spec
-debugSpec = describe "error" $ it "debug" $ do
+debugSpec = xdescribe "error" $ it "debug" $ do
 
-    let input = [qqStr|"a"|]
+    let input = [qqStr|.asText|]
 
     putStrLn "\n\n"
     pprint $ PP.evalVersion1With Macro.unit (convert input)

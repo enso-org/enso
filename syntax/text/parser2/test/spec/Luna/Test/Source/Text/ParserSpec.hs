@@ -48,7 +48,8 @@ import OCI.Data.Name                        (Name)
 import Luna.Syntax.Text.Scope  (Scope)
 import Luna.Syntax.Text.Source (Source)
 import OCI.IR.Link.Class       (type (*-*), Link)
-import Test.Hspec              (Arg, Example, Expectation, Spec, describe, it)
+import Test.Hspec              (Arg, Example, Expectation, Spec, describe,
+                                xdescribe, it)
 import Test.Hspec.Core         (SpecM)
 
 import Luna.IR.Term.Ast.Invalid (adjacentOperators, assocConflict,
@@ -504,7 +505,7 @@ commentSpec = describe "comment" $ do
 
 
 debugSpec :: Spec
-debugSpec = describe "error" $ it "x" $ do
+debugSpec = xdescribe "error" $ it "x" $ do
     pure () :: IO ()
     putStrLn "\n"
 

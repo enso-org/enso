@@ -112,11 +112,9 @@ runWith p src = runMeDebug $ Parser.evalVersion1With p src
 runMeDebug :: ParserPass (Pass stage Parser)
     => Lexer.Token -> Pass stage Parser (IR.SomeTerm, Marker.TermMap)
 runMeDebug ast = do
-    print "PARSING START"
     ((ref, unmarked), gidMap) <- State.runDefT @Marker.TermMap
                                $ State.runDefT @Marker.TermOrphanList
                                $ buildIR ast
-    print $ "PARSING END " <> show ref
     pure (ref, gidMap)
 {-# INLINE runMeDebug #-}
 
@@ -337,7 +335,9 @@ buildIR = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
         f' <- buildIR f
         r' <- buildIR r
         case Ast.unspan f of
-            Ast.Operator op | op == Name.uminus -> IR.app' f' r'
+            Ast.Operator op | op == Name.acc    -> case Ast.unspan r of
+                    Ast.Var v -> IR.accSection' =<< Mutable.fromList (convert v)
+                            | op == Name.uminus -> IR.app' f' r'
                             | otherwise -> IR.sectionLeft' f' r'
             _ -> IR.sectionLeft' f' r'
         -- TODO
