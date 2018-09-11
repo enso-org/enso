@@ -444,7 +444,7 @@ buildClassConsIR = \tok -> case Ast.unspan tok of
                     fmap Right . IR.recordFields' names' =<< buildIR fieldToks
                 a -> error $ ppShow a
             a -> pure $ Left tok
-        a -> error $ ppShow a
+        a -> pure $ Left tok
         -- _ -> pure $ Left tok
     a -> pure $ Left tok
     -- _ -> pure $ Left tok
