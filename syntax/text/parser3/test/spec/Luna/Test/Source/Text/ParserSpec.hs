@@ -20,7 +20,7 @@ import Data.Graph.Data.Graph.Class (Graph)
 import Data.Text32                 (Text32)
 import Luna.Pass                   (Pass)
 import Test.Hspec                  (Arg, Example, Expectation, Spec, describe,
-                                    xdescribe, it)
+                                    xdescribe, it, xit)
 import Test.Hspec.Core             (SpecM)
 
 
@@ -75,7 +75,7 @@ caseSpec = describe "case" $ do
     it "empty"     $ e  "case a of" $ "case a of\n    (EmptyExpression)"
     it "single"    $ e' "case a of\n    a: b"
     it "multiline" $ e' "case a of\n    a: b\n    c: d"
-    it "wrong way" $ e  "case a of\n a b" $ "case a of\n    (CaseWayNotFunction)"
+    xit "wrong way" $ e  "case a of\n a b" $ "case a of\n    (CaseWayNotFunction)"
 
 unitSpec :: Spec
 unitSpec = describe "unit" $ do
