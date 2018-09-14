@@ -134,6 +134,7 @@ import Std.Base
 
 def main:
     test = "Test me!"
+    None
 |]
 
 generateTestDir :: FilePath -> IO ()
@@ -146,6 +147,7 @@ import Std.Base
 
 def main:
     hello = "Hello, world!"
+    None
 |]
 
 generateReadme :: FilePath -> IO ()
