@@ -25,12 +25,10 @@ import Luna.Pass.Typing.UniSolver        (UniSolver)
 import Luna.Pass.Typing.AppSolver        (AppSolver)
 import Luna.Pass.Typing.HeaderBuilder    (HeaderBuilder)
 import Luna.Pass.Typing.ErrorPropagation (ErrorPropagation)
-import qualified System.IO as IO
+
 runTypechecker :: Target.Target -> IR.SomeTerm
                -> Typed.Units -> TC.Monad Typed.DefHeader
 runTypechecker tgt root units = do
-    -- print $ "TC on " <> show tgt
-    liftIO $ IO.hFlush IO.stdout
     Scheduler.registerAttr @Typed.Units
     Scheduler.registerAttr @Typed.DefHeader
     Scheduler.registerAttr @Progress.Progress
@@ -64,40 +62,20 @@ runTypechecker tgt root units = do
     Scheduler.runPassByType @StructuralTyping
     Scheduler.runPassByType @ConsImporter
 
-    loopWhileProgress $ do
-        -- print $ "TC progress " <> show tgt
-        liftIO $ IO.hFlush IO.stdout
-    -- print $ "progress done " <> show tgt
-    liftIO $ IO.hFlush IO.stdout
+    loopWhileProgress
 
     Scheduler.runPassByType @ErrorPropagation
-    -- print $ "ErrorPropagation done " <> show tgt
-    liftIO $ IO.hFlush IO.stdout
     Scheduler.runPassByType @HeaderBuilder
-    -- print $ "HeaderBuilder done " <> show tgt
-    liftIO $ IO.hFlush IO.stdout
 
-    -- print $ "TC done " <> show tgt
-    liftIO $ IO.hFlush IO.stdout
     Scheduler.getAttr @Typed.DefHeader
 
-loopWhileProgress :: IO () -> TC.Monad ()
-loopWhileProgress progress = do
-    liftIO $ progress
+loopWhileProgress :: TC.Monad ()
+loopWhileProgress = do
     Scheduler.runPassByType @AppSolver
-    Progress.Progress !appp <- Scheduler.getAttr
-    -- print $ "AppSolver done "
-    liftIO $ IO.hFlush IO.stdout
+    Progress.Progress appp <- Scheduler.getAttr
     Scheduler.runPassByType @MethodImporter
-    Progress.Progress !accp <- Scheduler.getAttr
-    -- print $ "MethodImporter done "
-    liftIO $ IO.hFlush IO.stdout
+    Progress.Progress accp <- Scheduler.getAttr
     Scheduler.runPassByType @UniSolver
-    Progress.Progress !unip <- Scheduler.getAttr
-    -- print $ "UniSolver done "
-    liftIO $ IO.hFlush IO.stdout
-    let !prog = unip || appp || accp
-    -- print $ "prog " <> show prog
-    liftIO $ IO.hFlush IO.stdout
-    when prog $ loopWhileProgress progress
+    Progress.Progress unip <- Scheduler.getAttr
+    when (unip || appp || accp) loopWhileProgress
 
