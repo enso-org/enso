@@ -294,6 +294,9 @@ class Time:
     # Converts a `Time` to an epoch.
     def toEpoch: self.format "%s"
 
+    # Internal: converts a `Time` to `LQueryValue`.
+    def toLQueryValue: ValTimestampNs $ self.toEpoch.toInt * 1000000000
+
 # A class representing time intervals, that is: a difference between two times.
 # Can be converted to different time resolutions like seconds, miliseconds and microseconds.
 # Internally the time interval is stored with picosecond resolution.

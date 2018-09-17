@@ -1413,19 +1413,21 @@ def bracket before after thing:
         Right value: value
 
 class LQueryValue:
-    ColumnRef Text
-    ValText   Text
-    ValInt    Int
-    ValReal   Real
+    ColumnRef      Text
+    ValText        Text
+    ValInt         Int
+    ValReal        Real
+    ValTimestampNs Int
     Operation Text (List LQueryValue)
     Condition Predicate LQueryValue LQueryValue
     
     def toJSON: case self of
-        ColumnRef n: JSON.empty . insert "column" n
-        ValText   t: t.toJSON
-        ValInt    i: i.toJSON
-        ValReal   r: r.toJSON
-        Operation n args: JSON.empty.insert "operation" n . insert "arguments" args
+        ColumnRef        n: JSON.empty . insert "column" n
+        ValText          t: t.toJSON
+        ValInt           i: i.toJSON
+        ValReal          r: r.toJSON
+        ValTimestampNs   t: JSON.empty.insert "timestampNs" t
+        Operation   n args: JSON.empty.insert "operation" n . insert "arguments" args
         Condition pred a b: JSON.empty.insert "condition" pred . insert "onTrue" a . insert "onFalse" b
 
     def startsWith t:  Predicate "startsWith" [self, t.toLQueryValue]
@@ -1441,6 +1443,10 @@ class LQueryValue:
     def / that: Operation "divide" [self, that.toLQueryValue]
     def % that: Operation "mod"    [self, that.toLQueryValue]
     def negate: Operation "negate" [self]
+
+    def day:   Operation "day"   [self]
+    def month: Operation "month" [self]
+    def year:  Operation "year"  [self]
 
     def toLQueryValue: self
 
