@@ -522,7 +522,7 @@ debugSpec = xdescribe "error" $ it "x" $ do
         toks      = Lexer.eval Syntax.Version1 input
         -- stream    = ExprBuilder.buildExprSegment toks
         -- input = convert src -- [qqStr|'x'|]
-        input = "\nimport Std.Base\ndef main"
+        input = "class Foo:\n    x :: Int"
 
     putStrLn "\nTOKS:\n"
     pprint toks

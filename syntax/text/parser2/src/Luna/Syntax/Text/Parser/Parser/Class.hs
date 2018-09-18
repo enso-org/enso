@@ -793,8 +793,9 @@ namedFields = do
     ns <- Ast.list <$> withReserved tpOp (many1 nonSpacedExpr')
     op <- ast tpOp
     tp <- expr'
-    let f  = Ast.Spanned mempty $ Ast.Var "#fields#"
-    pure $ Ast.apps f [ns, tp]
+    let f   = Ast.Spanned mempty $ Ast.Var "#fields#"
+        tp' = Ast.prependAsOffset op tp
+    pure $ Ast.apps f [ns, tp']
 
 isCons :: Ast.Ast -> Bool
 isCons = \case
