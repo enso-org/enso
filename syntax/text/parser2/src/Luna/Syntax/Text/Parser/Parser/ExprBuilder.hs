@@ -458,7 +458,7 @@ appInfix :: Maybe Token -> (Token -> Token -> Token)
 appInfix top ta tb = case top of
     Nothing -> Ast.app ta tb
     Just op -> case Ast.unspan op of
-        Ast.Operator "." -> injectApp (flip Ast.infixApp op ta) tb
+        Ast.Operator "." -> injectApp (hackApp $ flip Ast.infixApp op ta) tb
         _                -> flip Ast.infixApp op ta tb
 {-# INLINE appInfix #-}
 
@@ -466,6 +466,35 @@ injectApp :: (Token -> Token) -> Token -> Token
 injectApp f t = case Ast.unspan t of
     Ast.App base arg -> Ast.app (injectApp f base) arg
     _                -> f t
+
+-- | TODO: TO BE DELETED!
+--
+--   This function introduces purposely an incorret behavior that was present
+--   in old parser implementation. Unfortunately fixing the old codebase and
+--   the GUI is not very easy so we needed to introduce the bug in the new
+--   parser as well. Consider the following code:
+--
+--   > var = foo . bar.baz 4
+--
+--   According to our operator rules this code should not work, because the
+--   accessor operator without spaces has higher precedence than spaced one and
+--   thus the code should be parsed as
+--
+--   > var = foo . (bar.baz 4)
+--
+--   The problem with fixing it can be seen in GUI when user creates two nodes
+--   `foo` and `bar.baz 4` and connects them together. Without proper
+--   reformatting or adding parentheses this will result in improper code.
+--
+--   This behavior is still questionable. We should re-visit this topic as soon
+--   as the new parser is shipped.
+--
+hackApp :: (Token -> Token) -> (Token -> Token)
+hackApp f t = case Ast.unspan t of
+    Ast.InfixApp l op r -> case Ast.unspan op of
+        Ast.Operator "." -> Ast.infixApp (f l) op r
+        _                -> f t
+    _ -> f t
 
 
 foldExprStackStep__ :: ExprBuilderMonad m => Token -> ElStreamType -> m Token

@@ -344,6 +344,7 @@ operatorSpec = describe "operator" $ do
     "glued left app"  $ e "a b+ * c"      $ "a" ("b" <| "+") * "c"
     "glued lr app"    $ e "a *b+ c"       $ "a" (("*" |> "b") <| "+") "c"
     "lens app"        $ e "a .b.c"        $ "a" (("." |> "b") @. "c")
+    "hack app"        $ e "a . b.c 4"     $ ("a" @. "b" @. "c") 4 -- see Luna.Syntax.Text.Parser.Parser.ExprBuilder.hackApp
 
   describe "accessors" $ do
     "non spaced"      $ e "a.b"           $ "a" @. "b"
@@ -522,7 +523,7 @@ debugSpec = xdescribe "error" $ it "x" $ do
         toks      = Lexer.eval Syntax.Version1 input
         -- stream    = ExprBuilder.buildExprSegment toks
         -- input = convert src -- [qqStr|'x'|]
-        input = "class Foo:\n    x :: Int"
+        input = "foo . bar.baz 4"
 
     putStrLn "\nTOKS:\n"
     pprint toks
