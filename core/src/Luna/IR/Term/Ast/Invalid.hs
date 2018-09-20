@@ -1,4 +1,3 @@
-{-# LANGUAGE Strict               #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Luna.IR.Term.Ast.Invalid where

@@ -1,4 +1,5 @@
 {-# LANGUAGE TypeInType           #-}
+{-# LANGUAGE NoStrictData #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Data.TypeSet3 where

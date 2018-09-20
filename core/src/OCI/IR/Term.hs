@@ -1,5 +1,3 @@
-{-# LANGUAGE Strict #-}
-
 module OCI.IR.Term (module X) where
 
 import Data.Graph.Component.Node.Layer as X (Model, Type, Users, inputs, model,

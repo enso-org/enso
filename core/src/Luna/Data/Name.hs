@@ -1,5 +1,3 @@
-{-# LANGUAGE Strict #-}
-
 module Luna.Data.Name (module Luna.Data.Name, module X) where
 import OCI.Data.Name as X
 

@@ -1,5 +1,3 @@
-{-# LANGUAGE Strict #-}
-
 module Luna.Pass (module X) where
 
 import Luna.Pass.Basic                 as X

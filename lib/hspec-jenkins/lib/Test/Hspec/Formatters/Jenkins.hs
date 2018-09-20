@@ -21,6 +21,7 @@
 -}
 
 {-# LANGUAGE NoStrict #-}
+{-# LANGUAGE NoStrictData #-}
 
 module Test.Hspec.Formatters.Jenkins (xmlFormatter) where
 

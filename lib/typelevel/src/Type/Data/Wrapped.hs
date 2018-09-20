@@ -1,4 +1,5 @@
-{-# LANGUAGE NoStrict #-}
+{-# LANGUAGE NoStrict      #-}
+{-# LANGUAGE NoStrictData  #-}
 {-# LANGUAGE TypeFamilies  #-}
 {-# LANGUAGE TypeInType    #-}
 {-# LANGUAGE TypeOperators #-}

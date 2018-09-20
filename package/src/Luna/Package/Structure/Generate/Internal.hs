@@ -1,5 +1,3 @@
-{-# LANGUAGE Strict #-}
-
 module Luna.Package.Structure.Generate.Internal where
 
 import Prologue

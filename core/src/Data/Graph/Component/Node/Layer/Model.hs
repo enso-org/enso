@@ -1,4 +1,3 @@
-{-# LANGUAGE Strict               #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Data.Graph.Component.Node.Layer.Model where

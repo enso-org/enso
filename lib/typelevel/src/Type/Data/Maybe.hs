@@ -1,5 +1,6 @@
-{-# LANGUAGE NoStrict #-}
-{-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE NoStrict     #-}
+{-# LANGUAGE NoStrictData #-}
+{-# LANGUAGE PolyKinds    #-}
 
 module Type.Data.Maybe where
 

@@ -1,3 +1,6 @@
+{-# LANGUAGE NoStrict     #-}
+{-# LANGUAGE NoStrictData #-}
+
 module Luna.Syntax.Text.Parser.State.LastOffset where
 
 import Data.Text.Position (Delta)

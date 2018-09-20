@@ -1,5 +1,4 @@
 {-# LANGUAGE ExistentialQuantification #-}
-{-# LANGUAGE Strict #-}
 {-# LANGUAGE UndecidableInstances      #-}
 
 module OCI.Pass.Definition.Declaration where

@@ -1,5 +1,3 @@
-{-# LANGUAGE Strict #-}
-
 module Luna.Package.Structure.Generate
     ( module Luna.Package.Structure.Generate
     , module X ) where

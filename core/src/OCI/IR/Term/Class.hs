@@ -1,5 +1,3 @@
-{-# LANGUAGE Strict #-}
-
 module OCI.IR.Term.Class (module OCI.IR.Term.Class, module X) where
 
 import Data.Graph.Component.Node.Class as X (showTag)

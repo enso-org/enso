@@ -1,4 +1,3 @@
-{-# LANGUAGE Strict #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Data.Graph.Fold.Class where
@@ -38,3 +37,4 @@ gbuild :: ∀ t a m. (GTraversable (Builder t m) a, Applicative m)
       => a -> Transformation m t
 gbuild = GTraversable.gfoldl' @(Builder t m) (\r d -> r . build @t d) id
 {-# INLINE gbuild #-}
+
