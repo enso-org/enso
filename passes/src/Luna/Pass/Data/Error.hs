@@ -21,6 +21,7 @@ import qualified Foreign.Storable.Deriving             as Storable
 import qualified Luna.Pass.Typing.Data.Target          as Target
 import qualified Luna.IR                               as IR
 import qualified Luna.IR.Layer                         as Layer
+import qualified Luna.IR.Term.Ast.Invalid              as Invalid
 
 import Data.Graph.Data.Layer.Class           (Layer)
 import Data.Mutable.Storable.SmallAutoVector (UnmanagedSmallVector)
@@ -163,3 +164,8 @@ consNotFound n = CompileError msg mempty mempty where
 
 placeholderError :: CompileError
 placeholderError = unexpected $ CompileError "placeholder" mempty mempty
+
+syntaxError :: Invalid.Symbol -> Maybe Text -> CompileError
+syntaxError inv expr = CompileError msg mempty mempty where
+    msg = "Syntax error: " <> convert (show inv)
+        <> maybe "" (\e -> " in expression `" <> e <> "`") expr

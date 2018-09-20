@@ -33,10 +33,15 @@ instance Data.ShallowDestructor1 IO Node.Uni => Layer Model where
 
 -- === Utils === --
 
-model :: Layer.ViewReader Node Model layout m
-      => Node layout -> m (Layer.ViewData Model layout)
-model = Layer.readView @Model
+model :: Layer.Reader Node Model m
+      => Node layout -> m (Layer.Data Model layout)
+model = Layer.read @Model
 {-# INLINE model #-}
+
+modelView :: Layer.ViewReader Node Model layout m
+      => Node layout -> m (Layer.ViewData Model layout)
+modelView = Layer.readView @Model
+{-# INLINE modelView #-}
 
 inputs :: ( Layer.Reader Node Model m
           , Layer.IsUnwrapped Node.Uni

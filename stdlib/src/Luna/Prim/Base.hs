@@ -320,7 +320,7 @@ operators = do
     uminusHdr <- Builder.makeUnaryMinusType @graph
     let uminus = Def.Precompiled $ Def.PrecompiledDef uminusVal uminusHdr
 
-    return $ Map.fromList [ ("if.then.else", iff)
+    return $ Map.fromList [ ("if_then_else", iff)
                           , (Builder.uminusFunName, uminus)
                           ]
 

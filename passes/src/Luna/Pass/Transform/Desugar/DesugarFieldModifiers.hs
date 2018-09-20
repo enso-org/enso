@@ -15,6 +15,7 @@ import qualified Data.Vector.Storable.Foreign     as Vector
 import qualified Luna.IR                          as IR
 import qualified Luna.IR.Aliases                  as Uni
 import qualified Luna.IR.Layer                    as Layer
+import qualified Luna.IR.Term.Ast.Invalid         as Invalid
 import qualified Luna.Pass                        as Pass
 import qualified Luna.Pass.Attr                   as Attr
 import qualified Luna.Pass.Basic                  as Pass
@@ -85,10 +86,12 @@ buildUpdateStack tgt path mod = case path of
         binder   <- IR.var =<< NameGen.generateName
         cacheVar <- IR.var =<< NameGen.generateName
         cache    <- IR.unify cacheVar binder
-        nextTgt  <- IR.acc' cacheVar n
+        v        <- IR.var n
+        nextTgt  <- IR.acc' cacheVar v
         nextRes  <- buildUpdateStack nextTgt ns mod
-        setter   <- IR.acc cacheVar $ convert
+        vSetter  <- IR.var $ convert
                         $ Syntax.fieldSetterName $ convert n
+        setter   <- IR.acc cacheVar vSetter
         modded   <- IR.app setter nextRes
         body     <- IR.seq cache modded
         lam      <- IR.lam binder body

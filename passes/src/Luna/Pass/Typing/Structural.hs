@@ -74,8 +74,9 @@ attachStructuralType expr = do
             traverse_ (Requester.setRequester $ Just expr) unis
             UniQueue.registers $ Layout.unsafeRelayout <$> unis
             return txt
-        Uni.Acc a n -> do
+        Uni.Acc a n' -> do
             at <- getStructuralType =<< IR.source a
+            n <- IR.source n'
             acc <- IR.acc' at n
             Requester.setRequester (Just expr) acc
             AccQueue.register $ Layout.unsafeRelayout acc

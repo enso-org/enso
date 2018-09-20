@@ -6,25 +6,25 @@ module Luna.Pass.Typing.ConsImporter where
 
 import Prologue
 
-import qualified Data.Graph.Data.Component.List        as ComponentList
-import qualified Data.Graph.Data.Component.Vector      as ComponentVector
-import qualified Data.Graph.Data.Layer.Layout          as Layout
-import qualified Data.Graph.Store                      as Store
-import qualified Data.Set                              as Set
-import qualified Luna.IR                               as IR
-import qualified Luna.IR.Aliases                       as Uni
-import qualified Luna.IR.Layer                         as Layer
-import qualified Luna.Pass                             as Pass
-import qualified Luna.Pass.Attr                        as Attr
-import qualified Luna.Pass.Data.Error                  as Error
-import qualified Luna.Pass.Data.Layer.Requester        as Requester
-import qualified Luna.Pass.Data.Stage                  as TC
-import qualified Luna.Pass.Data.UniqueNameGen          as NameGen
-import qualified Luna.Pass.Typing.Base                 as TC
-import qualified Luna.Pass.Typing.Data.AccQueue        as AccQueue
-import qualified Luna.Pass.Typing.Data.AppQueue        as AppQueue
-import qualified Luna.Pass.Typing.Data.UniQueue        as UniQueue
-import qualified Luna.Pass.Typing.Data.Typed           as Typed
+import qualified Data.Graph.Data.Component.List   as ComponentList
+import qualified Data.Graph.Data.Component.Vector as ComponentVector
+import qualified Data.Graph.Data.Layer.Layout     as Layout
+import qualified Data.Graph.Store                 as Store
+import qualified Data.Set                         as Set
+import qualified Luna.IR                          as IR
+import qualified Luna.IR.Aliases                  as Uni
+import qualified Luna.IR.Layer                    as Layer
+import qualified Luna.Pass                        as Pass
+import qualified Luna.Pass.Attr                   as Attr
+import qualified Luna.Pass.Data.Error             as Error
+import qualified Luna.Pass.Data.Layer.Requester   as Requester
+import qualified Luna.Pass.Data.Stage             as TC
+import qualified Luna.Pass.Data.UniqueNameGen     as NameGen
+import qualified Luna.Pass.Typing.Base            as TC
+import qualified Luna.Pass.Typing.Data.AccQueue   as AccQueue
+import qualified Luna.Pass.Typing.Data.AppQueue   as AppQueue
+import qualified Luna.Pass.Typing.Data.Typed      as Typed
+import qualified Luna.Pass.Typing.Data.UniQueue   as UniQueue
 
 import Luna.Pass.Data.Root (Root (..))
 
@@ -56,7 +56,7 @@ importConses expr = Layer.read @IR.Model expr >>= \case
                     expr
             Just rooted -> do
                 cs <- Store.deserialize rooted
-                IR.ResolvedCons _ _ _ typedAs <- IR.model cs
+                IR.ResolvedCons _ _ _ typedAs <- IR.modelView cs
 
                 tp    <- IR.source =<< Layer.read @IR.Type cs
                 oldTp <- IR.source =<< Layer.read @IR.Type expr

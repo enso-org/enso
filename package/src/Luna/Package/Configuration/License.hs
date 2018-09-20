@@ -46,7 +46,7 @@ data License
 
 -- === Instances === --
 
-instance StyledShow Pretty License where
+instance StyledShow PrettyShowStyle License where
     styledShow _ = \case
         AFL_3_0            -> "afl-3.0"
         AGPL_3_0           -> "agpl-3.0"

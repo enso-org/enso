@@ -63,13 +63,40 @@ asOffsetSpan s = s & offset %~ (+ s ^. length)
                    & length .~ 0
 {-# INLINE asOffsetSpan #-}
 
+asSolid :: IsSpacedSpan t => t -> t
+asSolid s = s & length %~ (+ s ^. offset)
+              & offset .~ 0
+{-# INLINE asSolid #-}
+
 measure :: IsSpacedSpan t => t -> Delta
 measure t = t ^. offset + t ^. length ; {-# INLINE measure #-}
 
--- remove? use <> instead?
-concat :: Num s => LeftSpacedSpan -> LeftSpacedSpan -> LeftSpacedSpan
-concat (unwrap -> SpacedSpan off s) (unwrap -> SpacedSpan off' s')
-    = wrap $ SpacedSpan off (s + off' + s')
+prependAsOffset :: LeftSpacedSpan -> LeftSpacedSpan -> LeftSpacedSpan
+prependAsOffset (unwrap -> SpacedSpan off s) (unwrap -> SpacedSpan off' s')
+    = wrap $ SpacedSpan (off + s + off') s'
+
+
+-- === Appendable === --
+
+-- | Append is like Semigroup, but it's "smart". When concatenating left spaced
+--   offsets it takes into account if the left argument has any length and if
+--   not it only increases the offset of the right argument. Apparently, you
+--   don't need this automation often. Consider a list `[,1]` - we've got here 2
+--   elements: `Span 1 0 Missing` and `Span 1 1 Number`. We want the body to
+--   have `Span 1 2`, but using append we'll get `Span 2 1`.
+
+class Appendable t where
+    append :: t -> t -> t
+
+instance (Num s, Ord s) => Appendable LeftSpacedSpan where
+    append (unwrap -> SpacedSpan off s) (unwrap -> SpacedSpan off' s')
+        = if s > 0 then leftSpacedSpan off (s + off' + s')
+                   else leftSpacedSpan (off + off') s'
+
+instance (Num s, Ord s) => Appendable RightSpacedSpan where
+    append (unwrap -> SpacedSpan s off) (unwrap -> SpacedSpan s' off')
+        = if s' > 0 then rightSpacedSpan (s + off + s') off'
+                    else rightSpacedSpan s (off + off')
 
 
 -- === Instances === --
@@ -84,13 +111,13 @@ deriving instance Num s => Mempty  RightSpacedSpan
 
 instance (Num s, Ord s) => Semigroup LeftSpacedSpan where
     (unwrap -> SpacedSpan off s) <> (unwrap -> SpacedSpan off' s')
-        = if s > 0 then leftSpacedSpan off (s + off' + s')
-                   else leftSpacedSpan (off + off') s'
+        = wrap $ SpacedSpan off (s + off' + s')
+    {-# INLINE (<>) #-}
 
 instance (Num s, Ord s) => Semigroup RightSpacedSpan where
     (unwrap -> SpacedSpan s off) <> (unwrap -> SpacedSpan s' off')
-        = if s' > 0 then rightSpacedSpan (s + off + s') off'
-                    else rightSpacedSpan s (off + off')
+        = wrap $ SpacedSpan (s + off + s') off'
+    {-# INLINE (<>) #-}
 
 -- Conversions
 instance Convertible SpacedSpan      (Delta,Delta)   where convert (SpacedSpan o l) = (o,l)

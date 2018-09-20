@@ -19,6 +19,8 @@ import Data.Text32        (Text32)
 -- === Definition === --
 
 newtype Source = Source Text32 deriving (Show, Eq, Mempty)
+makeLenses ''Source
+
 type instance Attr.Type Source = Attr.Atomic
 
 

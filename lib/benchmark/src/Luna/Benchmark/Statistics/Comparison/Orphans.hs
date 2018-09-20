@@ -14,12 +14,12 @@ import Perf (Cycle)
 -- === Orphan Instances === --
 ------------------------------
 
-instance StyledShow Pretty Double where
+instance StyledShow PrettyShowStyle Double where
     styledShow _ a = convert $ show a
 
-instance StyledShow Pretty Int64 where
+instance StyledShow PrettyShowStyle Int64 where
     styledShow _ a = convert $ show a
 
-instance StyledShow Pretty Cycle where
+instance StyledShow PrettyShowStyle Cycle where
     styledShow _ a = convert $ show a
 

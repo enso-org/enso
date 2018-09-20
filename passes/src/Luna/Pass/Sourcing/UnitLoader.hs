@@ -20,10 +20,9 @@ import qualified Luna.Pass.Attr                       as Attr
 import qualified Luna.Pass.Basic                      as Pass
 import qualified Luna.Pass.Data.Stage                 as TC
 import qualified Luna.Pass.Scheduler                  as Scheduler
-import qualified Luna.Syntax.Text.Parser.Data.Result  as Parser
-import qualified Luna.Syntax.Text.Parser.Data.Invalid as Parser
-import qualified Luna.Syntax.Text.Parser.Pass         as Parser
-import qualified Luna.Syntax.Text.Parser.Pass         as Parser
+import qualified Luna.Syntax.Text.Parser.State.Result  as Parser
+import qualified Luna.Syntax.Text.Parser.State.Invalid as Parser
+import qualified Luna.Pass.Parsing.Parser             as Parser
 import qualified Luna.Syntax.Text.Source              as Parser
 import qualified System.IO                            as IO
 
@@ -93,7 +92,7 @@ loadUnit knownModules sourcesMap stack modName = do
     Scheduler.setAttr @Parser.Source $ convert src
     Scheduler.runPassByType @Parser.Parser
 
-    root <- unwrap <$> Scheduler.getAttr @Parser.Result
+    Parser.Result root <- Scheduler.getAttr @Parser.Result
 
     Scheduler.setAttr $ Root $ Layout.relayout root
 
@@ -101,7 +100,7 @@ loadUnit knownModules sourcesMap stack modName = do
 
     imports <- Scheduler.getAttr @Imports
 
-    let unitRef = UnitRef (Unit.Graph root) imports
+    let unitRef = UnitRef (Unit.Graph $ Layout.unsafeRelayout root) imports
     Scheduler.modifyAttr_ @UnitRefsMap $ wrapped . at modName .~ Just unitRef
 
     traverse_ (loadUnitIfMissing knownModules sourcesMap (modName : stack)) (unwrap imports)

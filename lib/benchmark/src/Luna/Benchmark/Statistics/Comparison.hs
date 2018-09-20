@@ -31,7 +31,7 @@ makeLenses ''Comparison
 
 -- === API === --
 
-renderComparisons :: (StyledShow Pretty a, Show a) => [Comparison a] -> Text
+renderComparisons :: (StyledShow PrettyShowStyle a, Show a) => [Comparison a] -> Text
 renderComparisons comps = intercalate ", " $ prettyShow <$> comps
 
 
@@ -40,7 +40,7 @@ renderComparisons comps = intercalate ", " $ prettyShow <$> comps
 instance (Default a) => Default (Comparison a) where
     def = Comparison def
 
-instance (Show a) => StyledShow Pretty (Comparison a) where
+instance (Show a) => StyledShow PrettyShowStyle (Comparison a) where
     styledShow _ (Comparison val) = "(" <> convert (show val) <> ")"
 
 
@@ -244,7 +244,7 @@ ind = convert $ replicate (4 :: Int) ' '
 delta :: Text
 delta = " delta "
 
-instance StyledShow Pretty ComparisonResult where
+instance StyledShow PrettyShowStyle ComparisonResult where
     styledShow _ compResult
         =  "== Location: " <> compResult ^. locName <> "\n"
         <> ind <> renderLocations (compResult ^. sourceLocs) <> "\n\n"

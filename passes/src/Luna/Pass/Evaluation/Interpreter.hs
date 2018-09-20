@@ -172,8 +172,11 @@ interpret' glob expr = Layer.read @IR.Model expr >>= \case
             let fun' = State.evalT fun env
                 arg' = State.evalT arg env
             lift $ Runtime.force $ Runtime.applyFun fun' arg'
-    Uni.Acc a' name -> do
+    Uni.Acc a' n' -> do
         a <- interpret glob =<< IR.source a'
+        name <- IR.source n' >>= Layer.read @IR.Model >>= \case
+            Uni.Var n -> return n
+            _         -> error "interpret: method name is not Var"
         return $ do
             arg <- a
             lift $ Runtime.force $ Runtime.dispatchMethod name arg
@@ -236,7 +239,13 @@ interpret' glob expr = Layer.read @IR.Model expr >>= \case
             tgt <- lift $ Runtime.force tgt'
             (scope, cl) <- lift $ runMatch clauses tgt
             lift $ State.evalT cl (Scope.merge scope env)
-    Uni.Marked _ b -> interpret glob =<< IR.source b
+    Uni.Marked _ b' -> do
+        b <- IR.source b'
+        e <- interpret glob b
+        return $ do
+            e' <- e
+            State.modify_ @LocalScope $ Scope.localInsert b e'
+            e
     s -> return $ lift $ Runtime.throw
              $ "Unexpected (report this as a bug): " <> convert (show s)
 

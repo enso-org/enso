@@ -23,21 +23,23 @@ instance Default DefHeader where
     def = wrap . Left $ Error.placeholderError
 
 newtype Def = Def (Future.Future DefHeader)
+instance Show Def where show _ = "<def>"
 makeLenses ''Def
 
 data Class = Class
     { _methods :: Map IR.Name Def
     , _conses  :: Map IR.Name (Rooted (IR.Term IR.ResolvedCons))
-    }
+    } deriving Show
+instance Show (Rooted a) where show _ = "<rooted>"
 makeLenses ''Class
 
 data Unit = Unit
     { _definitions :: Map IR.Name Def
     , _classes     :: Map IR.Name Class
-    }
+    } deriving Show
 makeLenses ''Unit
 
-newtype Units = Units (Map IR.Qualified Unit)
+newtype Units = Units (Map IR.Qualified Unit) deriving Show
 makeLenses ''Units
 type instance Attr.Type Units = Attr.Atomic
 instance Default Units where

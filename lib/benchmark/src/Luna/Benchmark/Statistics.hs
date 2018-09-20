@@ -52,7 +52,7 @@ instance Semigroup TimeStats where
                 (Internal.stddevF times) where times = t1 <> t2
     {-# INLINE (<>) #-}
 
-instance StyledShow Pretty TimeStats where
+instance StyledShow PrettyShowStyle TimeStats where
     styledShow _ (TimeStats times max min avg stddev)
         =  "Recorded Times: "     <> convert (show times)
         <> "Max Time: "           <> convert (show max)
@@ -95,7 +95,7 @@ instance Semigroup TickStats where
             (Internal.stddevI ticks) where ticks = t1 <> t2
     {-# INLINE (<>) #-}
 
-instance StyledShow Pretty TickStats where
+instance StyledShow PrettyShowStyle TickStats where
     styledShow _ (TickStats times max min avg stddev)
         =  "Recorded Ticks: "     <> convert (show times)
         <> "Max Ticks: "          <> convert (show max)
@@ -190,7 +190,7 @@ instance Semigroup MemStats where
             (meanMemVal mem) (stdMemVal mem) where mem = m1 <> m2
     {-# INLINE (<>) #-}
 
-instance StyledShow Pretty MemStats where
+instance StyledShow PrettyShowStyle MemStats where
     styledShow _ (MemStats times max min avg stddev)
         =  "Recorded Allocations: " <> convert (show times)
         <> "Max Bytes: "            <> convert (show max)

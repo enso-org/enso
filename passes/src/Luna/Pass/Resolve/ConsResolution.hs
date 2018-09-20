@@ -6,21 +6,21 @@ module Luna.Pass.Resolve.ConsResolution where
 
 import Prologue
 
-import qualified Data.Graph.Data.Component.List      as ComponentList
-import qualified Data.Graph.Data.Component.Vector    as ComponentVector
-import qualified Data.Graph.Data.Layer.Layout        as Layout
-import qualified Luna.IR                             as IR
-import qualified Luna.IR.Aliases                     as Uni
-import qualified Luna.IR.Layer                       as Layer
-import qualified Luna.Pass                           as Pass
-import qualified Luna.Pass.Attr                      as Attr
-import qualified Luna.Pass.Data.Error                as Error
-import qualified Luna.Pass.Data.Stage                as TC
-import qualified Luna.Pass.Sourcing.Data.Class       as Class
+import qualified Data.Graph.Data.Component.List   as ComponentList
+import qualified Data.Graph.Data.Component.Vector as ComponentVector
+import qualified Data.Graph.Data.Layer.Layout     as Layout
+import qualified Luna.IR                          as IR
+import qualified Luna.IR.Aliases                  as Uni
+import qualified Luna.IR.Layer                    as Layer
+import qualified Luna.Pass                        as Pass
+import qualified Luna.Pass.Attr                   as Attr
+import qualified Luna.Pass.Data.Error             as Error
+import qualified Luna.Pass.Data.Stage             as TC
+import qualified Luna.Pass.Sourcing.Data.Class    as Class
 
 import Luna.Pass.Data.Root
+import Luna.Pass.Data.UniqueNameGen      as NameGen
 import Luna.Pass.Resolve.Data.Resolution hiding (cons)
-import Luna.Pass.Data.UniqueNameGen as NameGen
 
 
 data ConsResolution
@@ -67,7 +67,7 @@ resolveConstructors positive root = Layer.read @IR.Model root >>= \case
 buildResolvedCons :: Pass.Interface ConsResolution m
                   => Bool -> IR.Term IR.Cons -> ConsRef -> m IR.SomeTerm
 buildResolvedCons positive term (ConsRef unit cls cons) = do
-    IR.Cons n as <- IR.model term
+    IR.Cons n as <- IR.modelView term
     if positive then do
         let arity = cons ^. Class.arity
         args <- sequence $ take arity $ repeat (IR.var =<< NameGen.generateName)

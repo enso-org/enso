@@ -78,5 +78,5 @@ loopWhileProgress = do
     Progress.Progress accp <- Scheduler.getAttr
     Scheduler.runPassByType @UniSolver
     Progress.Progress unip <- Scheduler.getAttr
-    when (unip || appp || accp) $ loopWhileProgress
+    when (unip || appp || accp) loopWhileProgress
 

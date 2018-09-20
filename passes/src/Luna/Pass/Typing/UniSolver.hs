@@ -6,24 +6,24 @@ module Luna.Pass.Typing.UniSolver where
 
 import Prologue
 
-import qualified Control.Monad.State.Layered           as State
-import qualified Control.Monad.Trans.Except            as Except
-import qualified Data.Graph.Data.Component.Vector      as ComponentVector
-import qualified Data.Graph.Data.Graph.Class           as Graph
-import qualified Data.Graph.Data.Layer.Layout          as Layout
-import qualified Data.Set                              as Set
-import qualified Luna.IR                               as IR
-import qualified Luna.IR.Aliases                       as Uni
-import qualified Luna.IR.Layer                         as Layer
-import qualified Luna.Pass                             as Pass
-import qualified Luna.Pass.Attr                        as Attr
-import qualified Luna.Pass.Data.Error                  as Error
-import qualified Luna.Pass.Data.Layer.Requester        as Requester
-import qualified Luna.Pass.Data.Stage                  as TC
-import qualified Luna.Pass.Typing.Base                 as TC
-import qualified Luna.Pass.Typing.Data.UniQueue        as UniQueue
-import qualified Luna.Pass.Typing.Data.Progress        as Progress
-import qualified Luna.Syntax.Prettyprint               as Pretty
+import qualified Control.Monad.State.Layered      as State
+import qualified Control.Monad.Trans.Except       as Except
+import qualified Data.Graph.Data.Component.Vector as ComponentVector
+import qualified Data.Graph.Data.Graph.Class      as Graph
+import qualified Data.Graph.Data.Layer.Layout     as Layout
+import qualified Data.Set                         as Set
+import qualified Luna.IR                          as IR
+import qualified Luna.IR.Aliases                  as Uni
+import qualified Luna.IR.Layer                    as Layer
+import qualified Luna.Pass                        as Pass
+import qualified Luna.Pass.Attr                   as Attr
+import qualified Luna.Pass.Data.Error             as Error
+import qualified Luna.Pass.Data.Layer.Requester   as Requester
+import qualified Luna.Pass.Data.Stage             as TC
+import qualified Luna.Pass.Typing.Base            as TC
+import qualified Luna.Pass.Typing.Data.Progress   as Progress
+import qualified Luna.Pass.Typing.Data.UniQueue   as UniQueue
+import qualified Luna.Syntax.Prettyprint          as Pretty
 
 symmetrical :: Applicative f => (a -> a -> f b) -> a -> a -> f b
 symmetrical f a b = f a b *> f b a
@@ -144,7 +144,7 @@ solveUnification :: IR.Term IR.Unify -> TC.Pass UniSolver (Either [IR.Term IR.Un
 solveUnification uni = do
     req     <- Requester.getRequester uni
     arising <- Requester.getArising   uni
-    IR.Unify l' r' <- IR.model uni
+    IR.Unify l' r' <- IR.modelView uni
     l <- IR.source l'
     r <- IR.source r'
     solution <- runResolutionT $ allRules uni l r

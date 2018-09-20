@@ -1,7 +1,7 @@
 resolver: nightly-2018-05-30
 name: luna
 packages:
-- container-1.1.1
+- container-1.1.5
 - convert-1.5
 - functor-utils-1.17.1
 - githash-0.1.0.1
@@ -14,10 +14,10 @@ packages:
 - monad-branch-1.0.3
 - monoid-0.1.8
 - placeholders-0.1
-- prologue-3.2.3
+- prologue-3.2.4
 - terminal-text-1.1.1
 - typelevel-1.2.2
-- vector-text-1.1.3
+- vector-text-1.1.5
 - git: "git@github.com:fpco/weigh.git"
   commit: aabc37b4a4d9cc2fed236714e345394a60a18310
 

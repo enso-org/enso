@@ -17,6 +17,8 @@ library:
         - yaml
         - hspec
         - hspec-megaparsec
+        - layered-state
+        - luna-text-processing
 
 default-extensions: *luna-extensions
 
