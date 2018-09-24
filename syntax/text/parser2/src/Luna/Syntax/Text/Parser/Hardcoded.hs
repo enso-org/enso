@@ -1,6 +1,6 @@
+{-# LANGUAGE NoStrict          #-}
+{-# LANGUAGE NoStrictData      #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE NoStrict     #-}
-{-# LANGUAGE NoStrictData #-}
 
 module Luna.Syntax.Text.Parser.Hardcoded where
 
@@ -24,8 +24,8 @@ import Luna.Syntax.Text.Scope (Scope)
 
 hardcodePrecRelMap :: (Prec.RelWriter Name m, Assoc.Writer Name m) => m ()
 hardcodePrecRelMap = do
-    Prec.writeRel LT (Name.arrow :: Name) (Name.typed :: Name)
-    Prec.writeRel LT (Name.typed :: Name) ("$"        :: Name)
+    Prec.writeRel LT (Name.typed :: Name) (Name.arrow :: Name)
+    Prec.writeRel LT (Name.arrow :: Name) ("$"        :: Name)
     Prec.writeRel LT ("$"        :: Name) ("<"        :: Name)
     Prec.writeRel LT ("<"        :: Name) ("+"        :: Name)
     Prec.writeRel LT ("+"        :: Name) ("*"        :: Name)
