@@ -1,4 +1,5 @@
-{-# LANGUAGE NoStrict #-}
+{-# LANGUAGE NoStrict     #-}
+{-# LANGUAGE NoStrictData #-}
 
 module Luna.Pass.Typing.Data.AppQueue where
 

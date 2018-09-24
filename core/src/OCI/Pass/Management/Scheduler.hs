@@ -1,5 +1,3 @@
-{-# LANGUAGE Strict #-}
-
 module OCI.Pass.Management.Scheduler where
 
 import Prologue as Std

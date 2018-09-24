@@ -1,3 +1,6 @@
+{-# LANGUAGE NoStrict     #-}
+{-# LANGUAGE NoStrictData #-}
+
 module Luna.Syntax.Text.Parser.State.Reserved where
 
 import Prologue hiding (SomeSymbol, Symbol, lookup)

@@ -1,5 +1,3 @@
-{-# LANGUAGE Strict #-}
-
 module OCI.IR.Link.Class (module OCI.IR.Link.Class, module X) where
 
 import Data.Graph.Component.Edge as X (type (*-*), Source, Target, source,

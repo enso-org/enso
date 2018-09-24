@@ -1,5 +1,3 @@
-{-# LANGUAGE Strict #-}
-
 module Luna.Shell.Option (module Luna.Shell.Option, module X) where
 
 import Options.Applicative as X ( execParser, info, fullDesc, progDesc, header

@@ -1,4 +1,3 @@
-{-# LANGUAGE Strict #-}
 {-# LANGUAGE TypeInType #-}
 
 module Memory.Management where

@@ -1,5 +1,3 @@
-{-# LANGUAGE Strict #-}
-
 module Luna.Package.Version where
 
 import Prologue hiding (fromString, min)

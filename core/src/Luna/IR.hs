@@ -1,5 +1,3 @@
-{-# LANGUAGE Strict #-}
-
 module Luna.IR (module Luna.IR, module X) where
 
 import Data.Graph.Component.Node.Destruction as X

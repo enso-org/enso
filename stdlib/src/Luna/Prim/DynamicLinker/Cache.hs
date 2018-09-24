@@ -1,5 +1,4 @@
-{-# LANGUAGE CPP    #-}
-{-# LANGUAGE Strict #-}
+{-# LANGUAGE CPP #-}
 
 module Luna.Prim.DynamicLinker.Cache where
 

@@ -1,4 +1,3 @@
-{-# LANGUAGE Strict #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module OCI.Pass.State.Cache where
@@ -28,3 +27,4 @@ import Prologue
 --     layoutCache = Type.mkCacheName layoutName
 --     passInst    = TySynInstD ''Pass.StateLayout
 --                 $ TySynEqn [ConT name] (ConT layoutCache)
+

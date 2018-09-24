@@ -1,4 +1,5 @@
-{-# LANGUAGE NoStrict #-}
+{-# LANGUAGE NoStrict             #-}
+{-# LANGUAGE NoStrictData         #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Luna.Pass.Data.Layer.PortMarker where
@@ -63,3 +64,4 @@ instance Monad m => FoldClass.Builder (Fold.Scoped (Fold.Deep
                                           (Fold.Discovery
                                               '[IR.Terms, IR.Links])))
                         m (Maybe OutPortRefLike)
+

@@ -1,5 +1,3 @@
-{-# LANGUAGE Strict #-}
-
 module Luna.Prim.Base where
 
 import           Prologue

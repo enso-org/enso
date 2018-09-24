@@ -1,3 +1,6 @@
+{-# LANGUAGE NoStrict     #-}
+{-# LANGUAGE NoStrictData #-}
+
 module Text.Parser.Combinators where
 
 import Control.Applicative as Applicative

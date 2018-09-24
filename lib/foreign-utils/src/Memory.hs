@@ -1,5 +1,3 @@
-{-# LANGUAGE Strict #-}
-
 module Memory (module Memory, module X) where
 
 import Memory.Allocation  as X

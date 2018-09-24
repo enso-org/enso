@@ -1,4 +1,5 @@
 {-# LANGUAGE NoStrict             #-}
+{-# LANGUAGE NoStrictData         #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Luna.Pass.Resolve.DefResolution where

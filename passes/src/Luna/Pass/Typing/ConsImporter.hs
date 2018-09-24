@@ -1,4 +1,5 @@
 {-# LANGUAGE NoStrict             #-}
+{-# LANGUAGE NoStrictData         #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Luna.Pass.Typing.ConsImporter where

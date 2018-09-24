@@ -1,4 +1,5 @@
-{-# LANGUAGE NoStrict #-}
+{-# LANGUAGE NoStrict             #-}
+{-# LANGUAGE NoStrictData         #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Luna.Pass.Evaluation.Interpreter where
@@ -238,7 +239,13 @@ interpret' glob expr = Layer.read @IR.Model expr >>= \case
             tgt <- lift $ Runtime.force tgt'
             (scope, cl) <- lift $ runMatch clauses tgt
             lift $ State.evalT cl (Scope.merge scope env)
-    Uni.Marked _ b -> interpret glob =<< IR.source b
+    Uni.Marked _ b' -> do
+        b <- IR.source b'
+        e <- interpret glob b
+        return $ do
+            e' <- e
+            State.modify_ @LocalScope $ Scope.localInsert b e'
+            e
     s -> return $ lift $ Runtime.throw
              $ "Unexpected (report this as a bug): " <> convert (show s)
 

@@ -1,5 +1,3 @@
-{-# LANGUAGE Strict #-}
-
 module Data.Graph.Transform.Substitute where
 
 import Prologue
@@ -69,3 +67,4 @@ reconnectLayer = \src tgt -> do
     link <- Construction.new src tgt
     Layer.write @l tgt link
 {-# INLINE reconnectLayer #-}
+
