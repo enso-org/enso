@@ -773,7 +773,10 @@ classCons :: Parser' (Spanned Ast)
 classCons = Ast.app <$> withReserved blockStartOp base <*> (blockDecl <|> inlineDecl) where
     base         = satisfyAst isCons
     inlineDecl   = Ast.list <$> many unnamedField
-    blockDecl    = ast blockStartOp *> blockDecl'
+    blockDecl    = do
+        op   <- ast blockStartOp
+        decl <- blockDecl'
+        pure $ Ast.prependAsOffset op decl
     blockStartOp = Ast.Operator ":"
     blockDecl'   = Ast.list <$> (unsafeBrokenLst $ Indent.indented *> Indent.withCurrent blockDeclLines)
     blockDeclLines :: Parser' [Spanned Ast]
