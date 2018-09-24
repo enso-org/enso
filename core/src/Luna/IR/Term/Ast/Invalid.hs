@@ -93,3 +93,7 @@ emptyExpression = convert' EmptyExpression
 missingSection :: Convertible' Symbol a => a
 missingSection = convert' MissingSection
 {-# INLINE missingSection #-}
+
+stringNoClosingMark :: Convertible' Symbol a => a
+stringNoClosingMark = convert' (Literal $ String NoClosingMark)
+{-# INLINE stringNoClosingMark #-}

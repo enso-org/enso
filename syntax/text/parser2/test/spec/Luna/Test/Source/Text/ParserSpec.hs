@@ -54,7 +54,8 @@ import Test.Hspec.Core         (SpecM)
 
 import Luna.IR.Term.Ast.Invalid (adjacentOperators, assocConflict,
                                  emptyExpression, missingRelation,
-                                 missingSection, noAssoc, unexpectedSuffix)
+                                 missingSection, noAssoc, unexpectedSuffix, 
+                                 stringNoClosingMark)
 
 
 
@@ -264,8 +265,17 @@ literalNumberSpec = describe "number" $ do
 literalStringSpec :: Spec
 literalStringSpec = describe "string" $ do
   describe "raw" $ do
-    -- "empty"              $ e "''"  $ Simple.SStr [Simple.StrPlain "a"]
-    "simple"             $ e "'a'" $ Simple.Str [Ast.StrPlain "a"]
+    "empty"               $ e "''"         $ Simple.Str []
+    "simple"              $ e "'a'"        $ Simple.Str ["a"]
+    "simple spaced"       $ e "' a '"      $ Simple.Str [" a "]
+    "3-quoted"            $ e "'''a'''"    $ Simple.Str ["a"]
+    "quote in 3-quoted"   $ e "''' ' '''"  $ Simple.Str [" ' "]
+    "empty not closed"    $ e "'"          $ stringNoClosingMark (Simple.Str [])
+    "not closed"          $ e "'a"         $ stringNoClosingMark (Simple.Str ["a"])
+    "invalid multiline 1" $ e "'a\n b'"    $ stringNoClosingMark (Simple.Str ["a"]) "b'"
+    "invalid multiline 2" $ e "'a\nb'"     $ stringNoClosingMark (Simple.Str ["a"])
+    "multiline 1"         $ e "'\n a'"     $ Simple.Str ["a"]
+    "multiline 2"         $ e "'\n a\n  b'" $ Simple.Str ["a\n b"]
     -- "simple"            $ e [s|"test sentence"|]
     -- "tripple d-quoted"  $ e [s|"""Test"""|] [s|"Test"|]
     -- "escape quote"      $ e [s|"foo\""|]
@@ -523,7 +533,7 @@ debugSpec = xdescribe "error" $ it "x" $ do
         toks      = Lexer.eval Syntax.Version1 input
         -- stream    = ExprBuilder.buildExprSegment toks
         -- input = convert src -- [qqStr|'x'|]
-        input = "foo . bar.baz 4"
+        input = "def foo :: a -> b"
 
     putStrLn "\nTOKS:\n"
     pprint toks
