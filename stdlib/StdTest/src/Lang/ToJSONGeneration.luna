@@ -15,6 +15,8 @@ class C:
     g :: Text
     def toJSON: "C".toJSON
 
+class D:
+
 class ToJSONGenerationTest:
     def oneConsToJSON:
         init     = A 1 2
@@ -40,8 +42,15 @@ class ToJSONGenerationTest:
         expected = JSONString "C"
         TestSubject actual . should (be expected)
 
+    def emptyClass:
+        init     = D
+        actual   = init.toJSON
+        expected = JSON.empty
+        TestSubject actual . should (be expected)
+
     def run:
         Test.specify "One constructor class gets default toJSON implementation"           self.oneConsToJSON
         Test.specify "Multi constructor class has tag in default toJSON implementation"   self.firstConsToJSON
         Test.specify "Multi constructor class has tag in default toJSON implementation 2" self.secondConsToJSON
         Test.specify "Explicit toJSON implementation is not replaced with default"        self.explicitToJSON
+        Test.specify "Empty class"                                                        self.emptyClass
