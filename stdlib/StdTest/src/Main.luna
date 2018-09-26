@@ -5,6 +5,7 @@ import StdTest.Lang.FieldModifications
 import StdTest.Lang.PatternMatch
 import StdTest.Lang.Recursion
 import StdTest.Lang.SideEffects
+import StdTest.Lang.ToJSONGeneration
 
 import StdTest.Data.List
 import StdTest.Data.Map
@@ -17,6 +18,7 @@ def main:
     PatternMatchTest.run
     RecursionTest.run
     SideEffectsTest.run
+    ToJSONGenerationTest.run
 
     ListTest.run
     MapTest.run
