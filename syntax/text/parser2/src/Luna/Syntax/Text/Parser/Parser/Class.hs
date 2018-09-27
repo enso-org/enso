@@ -660,7 +660,9 @@ assertNotComment = \tok -> when_ (isComment $ Ast.unspan tok)
 
 nonBlockExprBody' :: Parser' (Spanned Ast)
 nonBlockExprBody' = documented <|> unusedComment <|> body where
-    documented    = Ast.documented <$> ((\(a:|as) -> a) <$> blockBody1 (satisfyAst isComment)) <*> docBase
+    documented    = Ast.documented
+                <$> (Ast.concatComments <$> blockBody1 (satisfyAst isComment))
+                <*> docBase
     unusedComment = satisfyAst isComment
     docBase       = broken (Indent.indentedEq *> body)
 
