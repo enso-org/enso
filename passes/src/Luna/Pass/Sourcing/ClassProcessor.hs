@@ -18,6 +18,7 @@ import qualified Luna.IR.Layer                         as Layer
 import qualified Luna.Pass                             as Pass
 import qualified Luna.Pass.Attr                        as Attr
 import qualified Luna.Pass.Basic                       as Pass
+import qualified Luna.Pass.Data.Error                  as Error
 import qualified Luna.Pass.Data.Stage                  as TC
 import qualified Luna.Pass.Sourcing.Data.Class         as Class
 import qualified Luna.Pass.Sourcing.Data.Def           as Def
@@ -300,6 +301,10 @@ registerMethod = \modName clsName paramNames map t -> do
                                    $ Layout.unsafeRelayout root
                     IR.replace newRoot root
                     let documented = Documented doc (Def.Body newRoot)
+                    when_ (isJust $ map ^. wrapped . at name) $ do
+                        let error = Error.duplicateMethodDefinition
+                                modName clsName name
+                        Error.setError (Just error) newRoot
                     return $ map & wrapped . at name .~ Just documented
                 _ -> return map
         _ -> return map

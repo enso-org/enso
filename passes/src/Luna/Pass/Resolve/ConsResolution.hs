@@ -49,6 +49,8 @@ resolveConstructors positive root = Layer.read @IR.Model root >>= \case
                                          (Layout.unsafeRelayout root)
                                          consRef
                 IR.replace new root
+            Ambiguous conses ->
+                Error.setError (Just $ Error.consAmbiguous n conses) root
             _ -> Error.setError (Just $ Error.consNotFound n) root
     Uni.Unify l r -> do
         resolveConstructors False =<< IR.source l

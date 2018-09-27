@@ -13,6 +13,7 @@ import qualified Luna.IR.Aliases                  as Uni
 import qualified Luna.IR.Layer                    as Layer
 import qualified Luna.Pass                        as Pass
 import qualified Luna.Pass.Attr                   as Attr
+import qualified Luna.Pass.Data.Error             as Error
 import qualified Luna.Pass.Data.Stage             as TC
 import qualified Luna.Pass.Scheduler              as Scheduler
 import qualified Luna.Pass.Sourcing.Data.Def      as Def
@@ -30,7 +31,7 @@ data UnitMapper
 
 type instance Pass.Spec UnitMapper t = UnitMapperSpec t
 type family UnitMapperSpec t where
-    UnitMapperSpec (Pass.In  Pass.Attrs) = '[Root]
+    UnitMapperSpec (Pass.In  Pass.Attrs) = '[Root, Unit.Name]
     UnitMapperSpec (Pass.Out Pass.Attrs) = '[PartiallyMappedUnit]
     UnitMapperSpec t = Pass.BasicPassSpec t
 
@@ -47,21 +48,22 @@ makeLenses ''PartiallyMappedUnit
 instance Pass.Definition TC.Stage UnitMapper where
     definition = do
         Root root <- Attr.get
-        unitMap   <- partiallyMapUnit $ Layout.unsafeRelayout root
+        Unit.Name unitName <- Attr.get
+        unitMap   <- partiallyMapUnit unitName $ Layout.unsafeRelayout root
         Attr.put unitMap
 
-partiallyMapUnit :: IR.Term IR.Unit -> TC.Pass UnitMapper PartiallyMappedUnit
-partiallyMapUnit root = do
+partiallyMapUnit :: IR.Qualified -> IR.Term IR.Unit -> TC.Pass UnitMapper PartiallyMappedUnit
+partiallyMapUnit unitName root = do
     IR.Unit _ _ cls <- IR.modelView root
     klass <- IR.source cls
     Layer.read @IR.Model klass >>= \case
         Uni.Record _ _ _ _ decls' -> do
             decls <- traverse IR.source =<< ComponentVector.toList decls'
-            foldM registerDecl def decls
+            foldM (registerDecl unitName) def decls
         _ -> return def
 
-registerDecl :: PartiallyMappedUnit -> IR.SomeTerm -> TC.Pass UnitMapper PartiallyMappedUnit
-registerDecl map t = do
+registerDecl :: IR.Qualified -> PartiallyMappedUnit -> IR.SomeTerm -> TC.Pass UnitMapper PartiallyMappedUnit
+registerDecl unitName map t = do
     (doc, root) <- Sourcing.cutDoc t
     Layer.read @IR.Model root >>= \case
         Uni.Function n _ _ -> do
@@ -69,6 +71,10 @@ registerDecl map t = do
                 Uni.Var name -> do
                     let documented =
                           Documented doc (Def.Body $ Layout.unsafeRelayout root)
+                    when_ (isJust $ map ^. defs . wrapped . at name) $ do
+                        let error = Error.duplicateFunctionDefinition
+                                unitName name
+                        Error.setError (Just error) root
                     return $ map & defs . wrapped . at name .~ Just documented
                 _ -> return map
         Uni.Record _ n _ _ _ -> do
