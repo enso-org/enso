@@ -1,0 +1,56 @@
+import Std.Base
+import Std.Test
+
+class A:
+    a, b :: Int
+
+
+class B:
+    B1:
+        c, d :: Int
+    B2:
+        e, f :: Real
+
+class C:
+    g :: Text
+    def toJSON: "C".toJSON
+
+class D:
+
+class ToJSONGenerationTest:
+    def oneConsToJSON:
+        init     = A 1 2
+        actual   = init.toJSON
+        expected = JSON . empty . insert "a" 1 . insert "b" 2
+        TestSubject actual . should (be expected)
+
+    def firstConsToJSON:
+        init     = B1 1 2
+        actual   = init.toJSON
+        expected = JSON . empty . insert "c" 1 . insert "d" 2 . insert "tag" "B1"
+        TestSubject actual . should (be expected)
+
+    def secondConsToJSON:
+        init     = B2 1.0 2.0
+        actual   = init.toJSON
+        expected = JSON . empty . insert "e" 1 . insert "f" 2 . insert "tag" "B2"
+        TestSubject actual . should (be expected)
+
+    def explicitToJSON:
+        init     = C "foo"
+        actual   = init.toJSON
+        expected = JSONString "C"
+        TestSubject actual . should (be expected)
+
+    def emptyClass:
+        init     = D
+        actual   = init.toJSON
+        expected = JSON.empty
+        TestSubject actual . should (be expected)
+
+    def run:
+        Test.specify "One constructor class gets default toJSON implementation"           self.oneConsToJSON
+        Test.specify "Multi constructor class has tag in default toJSON implementation"   self.firstConsToJSON
+        Test.specify "Multi constructor class has tag in default toJSON implementation 2" self.secondConsToJSON
+        Test.specify "Explicit toJSON implementation is not replaced with default"        self.explicitToJSON
+        Test.specify "Empty class"                                                        self.emptyClass
