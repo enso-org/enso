@@ -3,6 +3,7 @@ jobs:
   luna-compiler:
     environment:
       GHC_RTS: -M3G
+      LUNA_LIBS_PATH: /root/project/stdlib
     docker:
       - image: lunalang/luna-core-ci:1.0
     steps:
@@ -17,6 +18,7 @@ jobs:
           paths:
               - "~/.stack"
               - ".stack-work"
+      - run: /root/project/dist/bin/public/luna/luna run --target=/root/project/stdlib/StdTest
 
 workflows:
   version: 2
