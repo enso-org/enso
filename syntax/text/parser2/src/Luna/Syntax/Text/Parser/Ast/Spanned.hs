@@ -234,6 +234,11 @@ documented :: Spanned Ast -> Spanned Ast -> Spanned Ast
 documented = inheritSpan2 $ \doc base -> Documented doc base
 {-# INLINE documented #-}
 
+concatComments :: NonEmpty (Spanned Ast) -> Spanned Ast
+concatComments = inheritSpanList1 $ \docs ->
+    Comment $ unlines $ fmap (\(unspan -> Comment t) -> t) docs
+{-# INLINE concatComments #-}
+
 
 
 -----------------------------
