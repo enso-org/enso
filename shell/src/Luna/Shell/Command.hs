@@ -24,6 +24,7 @@ import qualified Text.Megaparsec                    as Megaparsec
 
 import Control.Lens.Prism      (_Just)
 import Control.Monad.Exception (MonadException)
+import System.Exit             (die)
 import System.FilePath         ((</>))
 import System.IO               (hPutStrLn, stderr)
 
@@ -178,7 +179,7 @@ run (RunOpts target) = liftIO $ catch compute recover where
             runPackage cwd
 
     -- FIXME This can be done much better.
-    recover (e :: SomeException) = hPutStrLn stderr $ displayException e
+    recover (e :: SomeException) = die (displayException e)
 
     runPackage path = do
         packagePath   <- Path.parseAbsDir path
