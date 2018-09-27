@@ -18,7 +18,7 @@ jobs:
           paths:
               - "~/.stack"
               - ".stack-work"
-      - run: LD_PRELOAD=/root/.stack/programs/x86_64-linux/ghc-tinfo6-8.4.3/lib/ghc-8.4.3/rts/libffi.so.7 /root/project/dist/bin/public/luna/luna run --target=/root/project/stdlib/StdTest
+      - run: LD_PRELOAD=/root/.stack/programs/x86_64-linux/ghc-tinfo6-8.4.2/lib/ghc-8.4.2/rts/libffi.so.7 /root/project/dist/bin/public/luna/luna run --target=/root/project/stdlib/StdTest
 
 workflows:
   version: 2
