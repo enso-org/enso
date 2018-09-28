@@ -1413,20 +1413,12 @@ def bracket before after thing:
         Right value: value
 
 class LQueryValue:
-    # Reference a column by its name.
-    ColumnRef      Text
-    # Text literal.
+    ColumnRef      Texts
     ValText        Text
-    # Integer litaral.
     ValInt         Int
-    # Real literal.
     ValReal        Real
-    # Timestamp literal (nanosecond ticks since the beginning of Unix epoch).
     ValTimestampNs Int
-    # Operation: name of an LQuery function to call and the list of arguments.
     Operation Text (List LQueryValue)
-    # Construction representing if-then-else: depending on predicate either
-    # first or second value shall be returned as the value.
     Condition Predicate LQueryValue LQueryValue
 
     # Serializes an LQuery value to its JSON representation.
