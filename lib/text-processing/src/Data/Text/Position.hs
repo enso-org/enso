@@ -14,7 +14,7 @@ import Foreign.Storable
 import Text.Printf
 
 
--- FIXME[WD]: We should remove Delta and rename Offset -> Offset Linear or something like that
+
 -------------------
 -- === Delta === --
 -------------------
@@ -23,19 +23,21 @@ import Text.Printf
 
 -- === Definition === --
 
-newtype Delta = Delta Int deriving (Bits, Bounded, Data, Enum, Eq, FiniteBits, Generic, Integral, Ix, NFData, Num, Ord, PrintfArg, Read, Real, Storable)
+newtype Delta = Delta Int
+    deriving ( Bits, Bounded, Data, Enum, Eq, FiniteBits, Generic, Integral, Ix
+             , NFData, Num, Ord, PrintfArg, Read, Real, Storable)
 makeLenses          ''Delta
 GTraversable.derive ''Delta
 
 
 -- === Instances === --
 
-instance Convertible Int   Delta where convert = coerce
-instance Convertible Delta Int   where convert = coerce
+instance Convertible Int   Delta where convert = coerce ; {-# INLINE convert #-}
+instance Convertible Delta Int   where convert = coerce ; {-# INLINE convert #-}
 
-instance Default   Delta where def    = 0
-instance Mempty    Delta where mempty = 0
-instance Semigroup Delta where (<>)   = (+)
+instance Default   Delta where def    = 0   ; {-# INLINE def    #-}
+instance Mempty    Delta where mempty = 0   ; {-# INLINE mempty #-}
+instance Semigroup Delta where (<>)   = (+) ; {-# INLINE (<>)   #-}
 
 instance Show Delta where show = show . unwrap ; {-# INLINE show #-}
 
@@ -49,7 +51,10 @@ instance Show Delta where show = show . unwrap ; {-# INLINE show #-}
 
 -- === Definition === --
 
-newtype Offset = Offset Delta deriving (Bits, Bounded, Data, Default, Enum, Eq, FiniteBits, Integral, Ix, Mempty, Num, Ord, PrintfArg, Read, Real, Semigroup, Show, Storable)
+newtype Offset = Offset Delta
+    deriving ( Bits, Bounded, Data, Default, Enum, Eq, FiniteBits, Integral, Ix
+             , Mempty, NFData, Num, Ord, PrintfArg, Read, Real, Semigroup, Show
+             , Storable)
 makeLenses ''Offset
 
 
@@ -64,11 +69,21 @@ incOffset i = State.modify_ @Offset (+i)
 
 -- === Instances === --
 
-instance Convertible Delta  Offset where convert = coerce
-instance Convertible Offset Delta  where convert = coerce
-instance Convertible Int    Offset where convert = convertVia @Delta
-instance Convertible Offset Int    where convert = convertVia @Delta
+instance Convertible Delta Offset where
+    convert = coerce
+    {-# INLINE convert #-}
 
+instance Convertible Offset Delta where
+    convert = coerce
+    {-# INLINE convert #-}
+
+instance Convertible Int Offset where
+    convert = convertVia @Delta
+    {-# INLINE convert #-}
+
+instance Convertible Offset Int where
+    convert = convertVia @Delta
+    {-# INLINE convert #-}
 
 
 ---------------------
@@ -115,7 +130,7 @@ succColumn :: State.Monad Position m => m ()
 succColumn = modColumn succ
 
 succLine :: State.Monad Position m => m ()
-succLine = State.modify_ @Position $ (column .~ 1) . (line %~ succ)
+succLine = State.modify_ @Position $ (column .~ mempty) . (line %~ succ)
 
 
 -- === Instances === --

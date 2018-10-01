@@ -99,14 +99,14 @@ partition = Deep.run1 @(DiscoveryM m)
 
 -- === Instances === --
 
-instance (Monad m, ClusterEditor comp comps)
+instance (MonadIO m, ClusterEditor comp comps)
     => Fold.ComponentBuilder (Discovery comps) m comp where
-    componentBuild = \comp acc
-       -> wrap
+    componentBuild = \comp acc -> (
+          wrap
         . TypeMap.modifyElem_ @(ComponentSet comp)
           (Set.insert $ Layout.relayout comp)
         . unwrap
-      <$> acc
+      <$> acc)
     {-# INLINE componentBuild #-}
 
 

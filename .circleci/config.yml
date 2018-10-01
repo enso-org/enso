@@ -8,11 +8,12 @@ jobs:
     steps:
       - checkout
       - restore-cache:
-          keys: stack-v1
+          key: stack-v1-{{ checksum "config/snapshot.yaml" }}
       - run: stack setup
       - run: stack build -j1 --fast --ghc-options="-pgmc gcc-7" --test
       - save-cache:
-          key: stack-v1
+          key: stack-v1-{{ checksum "config/snapshot.yaml" }}
+          when: always
           paths:
               - "~/.stack"
               - ".stack-work"

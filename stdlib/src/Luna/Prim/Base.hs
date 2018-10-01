@@ -228,8 +228,8 @@ primBinary = do
     eq <- makeFunctionPure @graph eqVal [Builder.binaryLT, Builder.binaryLT] Builder.boolLT
     plus <- makeFunctionPure @graph plusVal [Builder.binaryLT, Builder.binaryLT] Builder.binaryLT
     len <- makeFunctionPure @graph lenVal [Builder.binaryLT] Builder.intLT
-    take <- makeFunctionPure @graph takeVal [Builder.binaryLT] Builder.binaryLT
-    drop <- makeFunctionPure @graph dropVal [Builder.binaryLT] Builder.binaryLT
+    take <- makeFunctionPure @graph takeVal [Builder.binaryLT, Builder.intLT] Builder.binaryLT
+    drop <- makeFunctionPure @graph dropVal [Builder.binaryLT, Builder.intLT] Builder.binaryLT
     concat <- makeFunctionPure @graph concatVal [Builder.listLT Builder.binaryLT] Builder.binaryLT
     return $ Map.fromList [ ("primBinaryToText",   toText)
                           , ("primBinaryEquals",   eq)
@@ -320,7 +320,7 @@ operators = do
     uminusHdr <- Builder.makeUnaryMinusType @graph
     let uminus = Def.Precompiled $ Def.PrecompiledDef uminusVal uminusHdr
 
-    return $ Map.fromList [ ("if.then.else", iff)
+    return $ Map.fromList [ ("if_then_else", iff)
                           , (Builder.uminusFunName, uminus)
                           ]
 

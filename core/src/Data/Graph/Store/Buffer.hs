@@ -45,9 +45,9 @@ import qualified Data.Graph.Fold.Struct    as Fold
 
 import Data.ByteString                       (ByteString)
 import Data.Graph.Data.Component.Class       (Component)
+import Data.Graph.Data.Component.Maybe       (MaybeComponent)
 import Data.Graph.Data.Component.Set         (ComponentSet, ComponentSetA)
 import Data.Graph.Data.Component.Vector      (ComponentVector, ComponentVectorA)
-import Data.Graph.Data.Component.Maybe       (MaybeComponent)
 import Data.Graph.Store.Size.Class           (Size)
 import Data.Map.Strict                       (Map)
 import Data.Mutable.Storable.Array           (ManagedArray)
@@ -58,7 +58,7 @@ import Foreign.ForeignPtr                    (touchForeignPtr)
 import Foreign.ForeignPtr.Unsafe             (unsafeForeignPtrToPtr)
 import Foreign.ForeignPtr.Utils              (SomeForeignPtr)
 import Foreign.Memory.Pool                   (MemPool)
-import Foreign.Ptr                           (Ptr, minusPtr, plusPtr, castPtr)
+import Foreign.Ptr                           (Ptr, castPtr, minusPtr, plusPtr)
 import Foreign.Ptr.Utils                     (SomePtr)
 import Type.Data.Semigroup                   (type (<>))
 
@@ -484,6 +484,7 @@ instance MonadIO m => PointerRedirection m (ComponentVectorA alloc tag layout) w
 instance Applicative m => PointerRedirection m (Component comp layout) where
     redirectPointers = redirectPointers1
 
+instance Applicative m => PointerRedirection m Int
 instance Applicative m => PointerRedirection m Word8
 instance Applicative m => PointerRedirection m Word16
 instance Applicative m => PointerRedirection m Word32
@@ -1275,6 +1276,7 @@ instance (Applicative m, PointerRedirection1_2 m (Component comp))
 
 instance Applicative m => PointerRedirection1_2 m (Layer.Simple a)
 
+instance Applicative m => PointerRedirection_2 m Int
 instance Applicative m => PointerRedirection_2 m Word8
 instance Applicative m => PointerRedirection_2 m Word16
 instance Applicative m => PointerRedirection_2 m Word32

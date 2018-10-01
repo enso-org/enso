@@ -78,7 +78,7 @@ recovery canonicalName ex = do
 
 -- === Instances === --
 
-instance StyledShow Pretty GeneratorError where
+instance StyledShow PrettyShowStyle GeneratorError where
     styledShow _ (InvalidPackageLocation loc) =
         "Cannot create package inside another package at " <> convert loc
     styledShow _ (InvalidPackageName name) = "Invalid name: " <> name
@@ -132,6 +132,7 @@ import Std.Base
 
 def main:
     test = "Test me!"
+    None
 |]
 
 generateTestDir :: FilePath -> IO ()
@@ -144,6 +145,7 @@ import Std.Base
 
 def main:
     hello = "Hello, world!"
+    None
 |]
 
 generateReadme :: FilePath -> IO ()

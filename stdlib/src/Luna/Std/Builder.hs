@@ -138,7 +138,8 @@ makeUnaryMinusType = Graph.encodeAndEval @graph $ Scheduler.evalT $ do
     Scheduler.registerPassFromFunction__ @graph @PrimTypeBuilder $ do
         typeVar <- IR.var "#a"
         lam     <- IR.lam typeVar typeVar
-        acc     <- IR.acc typeVar uminusMethodName
+        minVar  <- IR.var uminusMethodName
+        acc     <- IR.acc typeVar minVar
         uni     <- IR.unify typeVar acc
         hdr     <- IR.defHeader lam [uni] [acc] ([] :: [IR.SomeTerm])
         rooted  <- Store.serialize (Layout.unsafeRelayout hdr)

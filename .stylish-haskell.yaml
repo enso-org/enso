@@ -11,8 +11,6 @@ steps:
       align: true
       remove_redundant: true
 
-  - records: {}
-
   - simple_align:
       cases              : true
       top_level_patterns : true

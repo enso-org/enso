@@ -18,18 +18,19 @@ import qualified Luna.IR.Layer                         as Layer
 import qualified Luna.Pass                             as Pass
 import qualified Luna.Pass.Attr                        as Attr
 import qualified Luna.Pass.Basic                       as Pass
+import qualified Luna.Pass.Data.Error                  as Error
 import qualified Luna.Pass.Data.Stage                  as TC
-import qualified Luna.Pass.Sourcing.Data.Def           as Def
 import qualified Luna.Pass.Sourcing.Data.Class         as Class
+import qualified Luna.Pass.Sourcing.Data.Def           as Def
 import qualified Luna.Pass.Sourcing.Data.Unit          as Unit
 import qualified Luna.Pass.Sourcing.Utils              as Sourcing
 import qualified Luna.Syntax.Text.Lexer.Symbol         as Syntax
 
-import Control.Lens ((^..), _Just)
-import Data.Map     (Map)
+import Control.Lens                  ((^..), _Just)
+import Data.Map                      (Map)
 import Luna.Pass.Data.Root
 import Luna.Pass.Sourcing.Data.Class hiding (root)
-import Luna.Pass.Sourcing.Data.Def hiding (documented)
+import Luna.Pass.Sourcing.Data.Def   hiding (documented)
 
 data ClassProcessor
 
@@ -50,26 +51,42 @@ instance Pass.Definition TC.Stage ClassProcessor where
 
 prepareClass :: IR.Qualified -> IR.Term IR.Record -> TC.Pass ClassProcessor (IR.SomeTerm, Class)
 prepareClass = \modName klass -> do
-    IR.Record native name params conses defs <- IR.model klass
+    IR.Record native name params conses defs <- IR.modelView klass
     parameters      <- traverse IR.source =<< ComponentVector.toList params
     paramNames      <- getParamNames parameters
     constructors    <- traverse IR.source =<< ComponentVector.toList conses
     (newConses, constructorsMap) <- processConses native name constructors
     accs            <- generateFieldAccessors constructorsMap
     methods         <- traverse IR.source =<< ComponentVector.toList defs
+    hasToJSONImpl   <- hasMethod methods "toJSON"
+    toJSON          <- if hasToJSONImpl || native then return [] else do
+        defaultToJSON <- generateToJSON constructorsMap
+        return [defaultToJSON]
+    let allMethods = accs <> methods <> toJSON
     newKlass <- IR.record' native
                            name
                            parameters
                            newConses
-                           (accs <> methods)
+                           allMethods
     IR.replace newKlass klass
-    defsMap <- foldM (registerMethod modName name paramNames) def (accs <> methods)
+    defsMap <- foldM (registerMethod modName name paramNames) def allMethods
     return (newKlass, Class (Constructor . length <$> constructorsMap)
                             defsMap
                             (Layout.unsafeRelayout newKlass))
 
 type Fields = [([IR.Name], IR.SomeTerm)]
 type ConsMap = Map IR.Name [Maybe IR.Name]
+
+hasMethod :: [IR.SomeTerm] -> IR.Name -> TC.Pass ClassProcessor Bool
+hasMethod methods methodName = fmap or $ for methods $ \a -> do
+    (doc, root) <- Sourcing.cutDoc a
+    Layer.read @IR.Model root >>= \case
+        Uni.Function n _ _ -> do
+            name <- IR.source n
+            Layer.read @IR.Model name >>= \case
+                Uni.Var v -> return $ v == methodName
+                _         -> return False
+        _                  -> return False
 
 fieldNames :: Fields -> [Maybe IR.Name]
 fieldNames fs = concatMap flattenField fs where
@@ -149,6 +166,67 @@ generateSetter consName fieldsCount fieldPos fieldName = do
     doc    <- SmallVector.fromList "Field setter"
     IR.documented' doc setter
 
+-- | generateToJSON ConsMap generates a method of the following shape:
+--     def toJSON:
+--         case self of
+--             Cons1 a_1 ... a_i ... a_n:
+--                 JSON . empty . insert "a_1" a_1.toJSON
+--                              . ...
+--                              . insert "a_i" a_i.toJSON
+--                              . ...
+--                              . insert "a_n" a_n.toJSON
+--                              . insert "tag" "Cons1"
+--             Cons2 a_1 ... a_i ... a_n:
+--                 JSON . empty . insert "a_1" a_1.toJSON
+--                              . ...
+--                              . insert "a_i" a_i.toJSON
+--                              . ...
+--                              . insert "a_n" a_n.toJSON
+--                              . insert "tag" "Cons2"
+--
+--   Field names will be consistent with names of constructor fields
+--   when possible, "a_i" will be used if name couldn't be determined.
+--
+--   When class has one constructor, field "tag" will be omitted.
+generateToJSON :: ConsMap -> TC.Pass ClassProcessor IR.SomeTerm
+generateToJSON = \consMap -> do
+    let conses = Map.toList consMap
+    consClauses <- for conses $ \(consName, fieldsNames) -> do
+        let fallbackNames = Just . ("a" <>) . convert . show <$> [1..]
+            fields        = catMaybes $ zipWith (<|>) fieldsNames fallbackNames
+        fieldsVars     <- mapM IR.var fields
+        consPattern    <- IR.cons consName fieldsVars
+        jsonCons       <- IR.cons "JSON" []
+        empty          <- IR.var "empty"
+        jsonEmpty :: IR.SomeTerm <- IR.acc' jsonCons empty
+        insertVar      <- IR.var "insert"
+        let insertField expr (fieldName, fieldVar) = do
+                insert       <- IR.acc expr insertVar
+                fieldNameVec <- SmallVector.fromList $ convert fieldName
+                nameApplied  <- IR.app insert =<< IR.rawString fieldNameVec
+                fieldJSON    <- IR.acc fieldVar =<< IR.var "toJSON"
+                valueApplied <- IR.app' nameApplied fieldJSON
+                return valueApplied
+        jsonImpl       <- foldM insertField jsonEmpty $ zip fields fieldsVars
+        let includeTag  = length conses > 1
+        consToJSONImpl <- if includeTag then do
+                insert          <- IR.acc jsonImpl insertVar
+                tagVec          <- SmallVector.fromList "tag"
+                tagApplied      <- IR.app insert =<< IR.rawString tagVec
+                consNameVec     <- SmallVector.fromList $ convert consName
+                consNameApplied <- IR.app' tagApplied =<< IR.rawString consNameVec
+                return consNameApplied
+            else
+                return jsonImpl
+        IR.lam consPattern consToJSONImpl
+    selfVar    <- IR.var $ convert Syntax.selfName
+    match      <- IR.match selfVar consClauses
+    toJSONVar  <- IR.var "toJSON"
+    toJSONDef  <- IR.function toJSONVar [] match
+    doc        <- SmallVector.fromList "Default toJSON implementation"
+    IR.documented' doc toJSONDef
+
+
 registerCons :: ([IR.SomeTerm], ConsMap) -> IR.SomeTerm -> TC.Pass ClassProcessor ([IR.SomeTerm], ConsMap)
 registerCons = \(cs, map) root -> Layer.read @IR.Model root >>= \case
     Uni.RecordCons n fs -> do
@@ -179,7 +257,7 @@ mkFieldTp root = Layer.read @IR.Model root >>= \case
             Uni.Var "->" -> do
                 case args of
                     [a1, a2] -> IR.lam' a1 a2
-                    _ -> return root
+                    _        -> return root
             _ -> return root
 
 processFieldTp :: IR.SomeTerm -> TC.Pass ClassProcessor IR.SomeTerm
@@ -223,6 +301,10 @@ registerMethod = \modName clsName paramNames map t -> do
                                    $ Layout.unsafeRelayout root
                     IR.replace newRoot root
                     let documented = Documented doc (Def.Body newRoot)
+                    when_ (isJust $ map ^. wrapped . at name) $ do
+                        let error = Error.duplicateMethodDefinition
+                                modName clsName name
+                        Error.setError (Just error) newRoot
                     return $ map & wrapped . at name .~ Just documented
                 _ -> return map
         _ -> return map
@@ -230,7 +312,7 @@ registerMethod = \modName clsName paramNames map t -> do
 addSelf :: IR.Qualified -> IR.Name -> [IR.Name]
         -> IR.Term IR.Function -> TC.Pass ClassProcessor (IR.Term IR.Function)
 addSelf = \modName clsName paramNames fun -> do
-    IR.Function n as b <- IR.model fun
+    IR.Function n as b <- IR.modelView fun
     tvars <- traverse IR.var paramNames
     tp    <- IR.resolvedCons modName clsName clsName tvars
     name  <- IR.source n

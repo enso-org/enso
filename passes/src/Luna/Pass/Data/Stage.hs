@@ -16,7 +16,7 @@ import Luna.Pass.Data.Layer.NodeMeta         (Meta)
 import Luna.Pass.Data.Layer.PortMarker       (PortMarker)
 import Luna.Pass.Data.Layer.SpanLength       (SpanLength)
 import Luna.Pass.Data.Layer.SpanOffset       (SpanOffset)
-import Luna.Syntax.Text.Parser.Data.CodeSpan (CodeSpan)
+import Luna.Syntax.Text.Parser.Ast.CodeSpan (CodeSpan)
 
 data Stage
 

@@ -24,7 +24,6 @@ library:
         - luna-passes
         - luna-runtime
         - luna-stdlib
-        - luna-syntax-text-parser
         - megaparsec
         - mtl
         - optparse-applicative

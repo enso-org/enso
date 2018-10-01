@@ -13,10 +13,10 @@ import qualified Data.Graph.Data.Layer.Layout           as Layout
 import qualified Luna.IR.Term.Format                    as Format
 import qualified OCI.IR.Term.Definition                 as Term
 
-import OCI.Data.Name                (Name, Qualified)
-import OCI.IR.Term.Class            (Term, Terms)
-import OCI.IR.Term.Definition       (LinkTo, LinksTo, List)
-import OCI.IR.Term.Layout           ()
+import OCI.Data.Name          (Name, Qualified)
+import OCI.IR.Term.Class      (Term, Terms)
+import OCI.IR.Term.Definition (LinkTo, LinksTo, List)
+import OCI.IR.Term.Layout     ()
 
 
 
@@ -38,7 +38,7 @@ Term.define [d|
     | Top_
 
  data Thunk
-    = Acc     { base :: LinkTo Terms, name  :: Name                            }
+    = Acc     { base :: LinkTo Terms, name  :: LinkTo Terms                    }
     | Lam     { arg  :: LinkTo Terms, body  :: LinkTo Terms                    }
     | Match   { arg  :: LinkTo Terms, ways  :: LinksTo Terms                   }
     | Update  { base :: LinkTo Terms, path  :: List Name, val :: LinkTo Terms  }

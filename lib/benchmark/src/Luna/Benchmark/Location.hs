@@ -46,7 +46,7 @@ instance Yaml.ToJSON Stack.SrcLoc where
     toJSON     = Lens.toJSONYamlStyle
     toEncoding = Lens.toEncodingYamlStyle
 
-instance StyledShow Pretty Stack.SrcLoc where
+instance StyledShow PrettyShowStyle Stack.SrcLoc where
     styledShow _ (Stack.SrcLoc pkg mod file lineS colS _ _) = convert pkg
         <> ":" <> convert mod <> " " <> convert file <> ":"
         <> convert (show lineS) <> ":" <> convert (show colS)

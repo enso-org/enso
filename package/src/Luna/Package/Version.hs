@@ -1,6 +1,6 @@
 module Luna.Package.Version where
 
-import Prologue hiding (min, fromString)
+import Prologue hiding (fromString, min)
 
 import qualified Control.Lens.Aeson as Lens
 import qualified Data.Yaml          as Yaml
@@ -8,7 +8,7 @@ import qualified Data.Yaml          as Yaml
 import Data.Word            (Word64)
 import Luna.ParserUtils     (Parser, dot, natural)
 import Text.Megaparsec      (option, optional)
-import Text.Megaparsec.Char (string, char)
+import Text.Megaparsec.Char (char, string)
 
 -- | Versioning in Luna follows the following convention:
 -- |      major.minor.patch-prerelease.version
@@ -42,7 +42,7 @@ numToPrereleaseTy = toEnum . fromIntegral
 
 -- === Instances === --
 
-instance StyledShow Pretty PrereleaseType where
+instance StyledShow PrettyShowStyle PrereleaseType where
     styledShow _ Alpha = "alpha"
     styledShow _ Beta  = "beta"
     styledShow _ RC    = "rc"
@@ -71,7 +71,7 @@ makeLenses ''Prerelease
 
 -- === Instances === --
 
-instance StyledShow Pretty Prerelease where
+instance StyledShow PrettyShowStyle Prerelease where
     styledShow tx (Prerelease ty ver) = styledShow tx ty <> "."
         <> convert (show ver)
 
@@ -130,7 +130,7 @@ instance Ord Version where
 
     v1 <= v2 = (v1 < v2) || (v1 == v2)
 
-instance StyledShow Pretty Version where
+instance StyledShow PrettyShowStyle Version where
     styledShow tx (Version maj min patch pr) = nums <> showPre pr
         where nums    = cShow maj <> "." <> cShow min <> "."
                       <> cShow patch

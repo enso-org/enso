@@ -57,7 +57,8 @@ desugarSections root = do
         Uni.AccSection ns -> do
             x     <- IR.var' =<< NameGen.generateName
             names <- Mutable.toList ns
-            accs  <- foldM IR.acc' (x :: IR.SomeTerm) names
+            namesVars <- mapM IR.var names
+            accs  <- foldM IR.acc' (x :: IR.SomeTerm) namesVars
             l     <- IR.lam' x accs
             IR.replace l root
             return l

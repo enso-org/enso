@@ -5,7 +5,7 @@
 
 module Luna.Pass.Data.Error where
 
-import Prologue
+import Prologue hiding (intercalate)
 
 import qualified Control.Monad.State.Layered           as State
 import qualified Data.Construction                     as Data
@@ -19,11 +19,14 @@ import qualified Data.Graph.Store.Size.Discovery       as Buffer
 import qualified Data.Mutable.Class                    as Mutable
 import qualified Foreign.Storable.Deriving             as Storable
 import qualified Luna.Pass.Typing.Data.Target          as Target
+import qualified Luna.Pass.Resolve.Data.Resolution     as Resolution
 import qualified Luna.IR                               as IR
 import qualified Luna.IR.Layer                         as Layer
+import qualified Luna.IR.Term.Ast.Invalid              as Invalid
 
 import Data.Graph.Data.Layer.Class           (Layer)
 import Data.Mutable.Storable.SmallAutoVector (UnmanagedSmallVector)
+import Data.Text                             (intercalate)
 import Luna.Pass.Typing.Data.Target          (Target)
 
 data CompileError = CompileError
@@ -120,6 +123,22 @@ functionNotFound mod n = CompileError msg mempty mempty where
     msg =  "Function not found: "
         <> convertVia @String mod <> "." <> convert n
 
+duplicateFunctionDefinition :: IR.Qualified -> IR.Name -> CompileError
+duplicateFunctionDefinition mod n = CompileError msg mempty mempty where
+    msg =  "Duplicate function definition: "
+        <> convert n <> " in module " <> convertVia @String mod
+
+duplicateClassDefinition :: IR.Qualified -> IR.Name -> CompileError
+duplicateClassDefinition mod cls = CompileError msg mempty mempty where
+    msg =  "Duplicate class definition: "
+        <> convert cls <> " in module " <> convertVia @String mod
+
+duplicateMethodDefinition :: IR.Qualified -> IR.Name -> IR.Name -> CompileError
+duplicateMethodDefinition mod cls n = CompileError msg mempty mempty where
+    msg =  "Duplicate method definition: "
+        <> convert n <> " in class " <> convert cls
+        <> " in module " <> convertVia @String mod
+
 unexpectedFunctionNotFound :: IR.Qualified -> IR.Name -> CompileError
 unexpectedFunctionNotFound = unexpected .: functionNotFound
 
@@ -161,5 +180,18 @@ consNotFound :: IR.Name -> CompileError
 consNotFound n = CompileError msg mempty mempty where
     msg = "Constructor " <> convert n <> " is not in scope."
 
+consAmbiguous :: IR.Name -> [Resolution.ConsRef] -> CompileError
+consAmbiguous n consRefs = CompileError msg mempty mempty where
+    msg = "Constructor " <> convert n <> " is ambiguous. "
+       <> "It is defined in classes: "
+       <> intercalate ", " (map showRef consRefs)
+    showRef (Resolution.ConsRef unitName className _) =
+        convertVia @String unitName <> "." <> convert className
+
 placeholderError :: CompileError
 placeholderError = unexpected $ CompileError "placeholder" mempty mempty
+
+syntaxError :: Invalid.Symbol -> Maybe Text -> CompileError
+syntaxError inv expr = CompileError msg mempty mempty where
+    msg = "Syntax error: " <> convert (show inv)
+        <> maybe "" (\e -> " in expression `" <> e <> "`") expr
