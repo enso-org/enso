@@ -244,7 +244,7 @@ interpret' glob expr = Layer.read @IR.Model expr >>= \case
         interpretHere <- Layer.read @IR.Model b >>= \case
             Uni.Unify{}    -> return False
             Uni.Function{} -> return False
-            a              -> return True
+            _              -> return True
         e <- interpret glob b
         return $ if not interpretHere then e else do
             e' <- e
