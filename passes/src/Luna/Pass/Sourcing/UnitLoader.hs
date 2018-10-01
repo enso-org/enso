@@ -72,19 +72,12 @@ loadUnitIfMissing = \knownModules sourcesMap stack modName -> do
     when (Map.notMember modName m && Set.notMember modName knownModules)
         $ loadUnit knownModules sourcesMap stack modName
 
-loadUnit :: Set IR.Qualified
-         -> Map.Map IR.Qualified FilePath
-         -> [IR.Qualified]
-         -> IR.Qualified
-         -> TC.Monad ()
-loadUnit knownModules sourcesMap stack modName = do
-
-    when (modName `elem` stack) $
-        Exception.throw $ ImportsCycleError $ modName : stack :: TC.Monad ()
+readUnit
+    :: FilePath
+    -> IR.Qualified
+    -> TC.Monad UnitRef
+readUnit srcPath name = do
     resetParserState
-    srcPath <- Exception.fromJust (UnitSourcesNotFound stack modName)
-                                  (Map.lookup modName sourcesMap)
-
     fileHandle <- liftIO $ IO.openFile srcPath IO.ReadMode
     liftIO $ IO.hSetEncoding fileHandle IO.utf8
     src <- liftIO $ IO.hGetContents fileHandle
@@ -100,8 +93,26 @@ loadUnit knownModules sourcesMap stack modName = do
 
     imports <- Scheduler.getAttr @Imports
 
-    let unitRef = UnitRef (Unit.Graph $ Layout.unsafeRelayout root) imports
+    pure $ UnitRef (Unit.Graph $ Layout.unsafeRelayout root) imports
+
+
+loadUnit :: Set IR.Qualified
+         -> Map.Map IR.Qualified FilePath
+         -> [IR.Qualified]
+         -> IR.Qualified
+         -> TC.Monad ()
+loadUnit knownModules sourcesMap stack modName = do
+    when (modName `elem` stack) $
+        Exception.throw $ ImportsCycleError $ modName : stack :: TC.Monad ()
+
+    srcPath <- Exception.fromJust
+        (UnitSourcesNotFound stack modName)
+        (Map.lookup modName sourcesMap)
+
+    unitRef <- readUnit srcPath modName
     Scheduler.modifyAttr_ @UnitRefsMap $ wrapped . at modName .~ Just unitRef
 
-    traverse_ (loadUnitIfMissing knownModules sourcesMap (modName : stack)) (unwrap imports)
+    traverse_
+        (loadUnitIfMissing knownModules sourcesMap (modName : stack))
+        (unwrap $ unitRef ^. Unit.imports)
 

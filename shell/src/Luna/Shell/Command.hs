@@ -16,6 +16,7 @@ import qualified Luna.Package.Structure.Generate    as Generate
 import qualified Luna.Package.Structure.Name        as Package
 import qualified Luna.Shell.CWD                     as CWD
 import qualified Luna.Shell.Interpret               as Interpret
+import qualified Luna.Shell.GenerateDocumentation   as GenerateDocumentation
 import qualified Path                               as Path
 import qualified System.Directory                   as Directory
 import qualified System.Info                        as Info
@@ -48,6 +49,12 @@ newtype RunOpts = RunOpts
     { _target :: FilePath
     } deriving (Eq, Generic, Ord, Show)
 makeLenses ''RunOpts
+
+data DocumentOpts = DocumentOpts
+    { __target :: FilePath
+    , __out    :: FilePath
+    } deriving (Eq, Generic, Ord, Show)
+makeLenses ''DocumentOpts
 
 data InitOpts = InitOpts
     { _name            :: String
@@ -122,7 +129,7 @@ makeLenses ''DownloadOpts
 data Command
     = Build BuildOpts
     | Clean CleanOpts
-    | Doc
+    | Document DocumentOpts
     | Download DownloadOpts
     | Freeze FreezeOpts
     | Init InitOpts
@@ -242,36 +249,37 @@ runLuna input = case input of
 
         (flip State.evalT) localConfig $ (flip State.evalT) globalConfig $
             case command of
-                Build    _ -> putStrLn
+                Build    _    -> putStrLn
                     "Building of executables is not yet implemented."
-                Clean    _ -> putStrLn
+                Clean    _    -> putStrLn
                     "Cleaning build artefacts is not yet implemented."
-                Doc        -> putStrLn
-                    "Building documentation is not yet implemented."
-                Download _ -> putStrLn
+                Document opts -> do
+                    let DocumentOpts tgt out = opts
+                    liftIO $ GenerateDocumentation.generateDocumentation out tgt
+                Download _    -> putStrLn
                     "Downloading of packages is not yet implemented."
-                Freeze   _ -> putStrLn
+                Freeze   _    -> putStrLn
                     "Freezing package dependencies is not yet implemented."
-                Init opts  -> MException.catch (\(e :: Path.PathException) ->
+                Init opts     -> MException.catch (\(e :: Path.PathException) ->
                     liftIO . hPutStrLn stderr $ displayException e) (init opts)
-                Install  _ -> putStrLn
+                Install  _    -> putStrLn
                     "Installing dependencies is not yet implemented."
-                Options  _ -> putStrLn
+                Options  _    -> putStrLn
                     "Setting compiler options is not yet implemented."
-                Publish  _ -> putStrLn
+                Publish  _    -> putStrLn
                     "Publishing packages is not yet implemented."
-                Retract  _ -> putStrLn
+                Retract  _    -> putStrLn
                     "Retraction of package versions is not yet implemented."
-                Rollback _ -> putStrLn
+                Rollback _    -> putStrLn
                     "Rolling back dependencies is not yet implemented."
-                Run opts   -> run opts
-                Test     _ -> putStrLn
+                Run opts      -> run opts
+                Test     _    -> putStrLn
                     "Executing test suites is not yet implemented."
-                Unfreeze _ -> putStrLn
+                Unfreeze _    -> putStrLn
                     "Unfreezing package dependencies is not yet implemented."
-                Update   _ -> putStrLn
+                Update   _    -> putStrLn
                     "Updating package dependencies is not yet implemented."
-                None       -> putStrLn "Command None. Should never happen."
+                None          -> putStrLn "Command None. Should never happen."
     ShowVersion -> version
 
 acquireGlobalConfig :: forall m . MonadIO m => m (Either Text Global.Config)

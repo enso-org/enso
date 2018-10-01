@@ -9,6 +9,7 @@ library:
     source-dirs:
         - src
     dependencies:
+        - aeson
         - base
         - bimap
         - containers

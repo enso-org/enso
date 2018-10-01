@@ -43,6 +43,7 @@ instance Default Name where
     def = Name ""
 
 makeLenses ''UnitRef
+makeLenses ''Unit
 makeLenses ''UnitRefsMap
 makeLenses ''Imports
 
