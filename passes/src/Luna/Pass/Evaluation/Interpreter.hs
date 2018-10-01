@@ -241,11 +241,15 @@ interpret' glob expr = Layer.read @IR.Model expr >>= \case
             lift $ State.evalT cl (Scope.merge scope env)
     Uni.Marked _ b' -> do
         b <- IR.source b'
+        interpretHere <- Layer.read @IR.Model b >>= \case
+            Uni.Unify{}    -> return False
+            Uni.Function{} -> return False
+            _              -> return True
         e <- interpret glob b
-        return $ do
+        return $ if not interpretHere then e else do
             e' <- e
             State.modify_ @LocalScope $ Scope.localInsert b e'
-            e
+            return e'
     s -> return $ lift $ Runtime.throw
              $ "Unexpected (report this as a bug): " <> convert (show s)
 
