@@ -21,7 +21,6 @@ import qualified Path
 import qualified System.Directory              as Directory
 
 import Data.Aeson                    (ToJSON)
-import Data.Map                      (Map)
 import Luna.Pass.Sourcing.Data.Class (Class)
 import Luna.Pass.Sourcing.Data.Unit  (Unit)
 import Luna.Pass.Sourcing.Data.Def   (Def, Documented (..))
@@ -56,12 +55,14 @@ instance ToJSON UnitDocumentation
 instance ToJSON ProjectDocumentation
 
 documentDef :: IR.Name -> Documented Def -> DefDocumentation
-documentDef name (Documented doc _) = DefDocumentation (convert name) doc
+documentDef name doc
+    = DefDocumentation (convert name) $ doc ^. Def.documentation
 
 documentClass :: IR.Name -> Documented Class -> ClassDocumentation
-documentClass name (Documented doc cls)
-    = ClassDocumentation (convert name) doc methodDocs where
-        methods    = Map.toList $ unwrap $ cls ^. Class.methods
+documentClass name doc
+    = ClassDocumentation (convert name) docs methodDocs where
+        docs       = doc ^. Def.documentation
+        methods    = Map.toList $ unwrap $ doc ^. Def.documented . Class.methods
         methodDocs = uncurry documentDef <$> methods
 
 documentUnit :: Text -> Unit -> UnitDocumentation
@@ -81,19 +82,19 @@ generateDocumentation outFile' modPath' = do
     canonModPath <- Directory.canonicalizePath modPath
     path         <- Path.parseAbsDir canonModPath
     sourcesMap   <- fmap Path.toFilePath . Bimap.toMapR
-                        <$> Package.findPackageSources path
+        <$> Package.findPackageSources path
     let projectName = convert $ Package.getPackageName path
     Graph.encodeAndEval @TC.Stage $ Scheduler.evalT $ do
         ModLoader.init
         Scheduler.registerAttr @Unit.UnitRefsMap
         Scheduler.enableAttrByType @Unit.UnitRefsMap
         refs <- traverse (\(n, p) -> (n,) <$> ModLoader.readUnit p n)
-                    $ Map.toList sourcesMap
-        units <- for refs $ \(n, ref) -> case ref ^. Unit.root of
-            Unit.Graph r       -> (n,) <$> UnitMap.mapUnit n r
-            Unit.Precompiled u -> pure (n, u)
+            $ Map.toList sourcesMap
+        units <- for refs $ \(n, ref) -> (n,) <$> case ref ^. Unit.root of
+            Unit.Graph r       -> UnitMap.mapUnit n r
+            Unit.Precompiled u -> pure u
 
         let unitDocs = (\(n, u) -> documentUnit (convertVia @IR.Name n) u)
-                          <$> units
+                <$> units
             projectDoc = ProjectDocumentation projectName Nothing unitDocs
         liftIO $ Aeson.encodeFile outFile projectDoc

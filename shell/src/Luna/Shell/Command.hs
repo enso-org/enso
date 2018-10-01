@@ -253,7 +253,7 @@ runLuna input = case input of
                     "Building of executables is not yet implemented."
                 Clean    _    -> putStrLn
                     "Cleaning build artefacts is not yet implemented."
-                Document opts ->
+                Document opts -> do
                     let DocumentOpts tgt out = opts
                     liftIO $ GenerateDocumentation.generateDocumentation out tgt
                 Download _    -> putStrLn

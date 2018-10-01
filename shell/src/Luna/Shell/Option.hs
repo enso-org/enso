@@ -44,8 +44,8 @@ run = Command.Run <$> (Command.RunOpts
 document :: Parser Command
 document = Command.Document <$> (Command.DocumentOpts
     <$> Options.strOption (Options.long "target"
-        <> Options.metavar "FOLDER" <> Options.value ""
-        <> Options.help "Execute FOLDER in interpreted mode.")
+        <> Options.metavar "PROJECT" <> Options.value ""
+        <> Options.help "Create documentation for PROJECT.")
     <*> Options.strOption (Options.long "out"
         <> Options.metavar "FILE" <> Options.value ""
         <> Options.help "Specify the output file"))

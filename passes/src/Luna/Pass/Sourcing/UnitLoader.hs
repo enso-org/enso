@@ -106,12 +106,14 @@ loadUnit knownModules sourcesMap stack modName = do
     when (modName `elem` stack) $
         Exception.throw $ ImportsCycleError $ modName : stack :: TC.Monad ()
 
-    srcPath <- Exception.fromJust (UnitSourcesNotFound stack modName)
-                                  (Map.lookup modName sourcesMap)
+    srcPath <- Exception.fromJust
+        (UnitSourcesNotFound stack modName)
+        (Map.lookup modName sourcesMap)
 
     unitRef <- readUnit srcPath modName
     Scheduler.modifyAttr_ @UnitRefsMap $ wrapped . at modName .~ Just unitRef
 
-    traverse_ (loadUnitIfMissing knownModules sourcesMap (modName : stack))
-              (unwrap $ unitRef ^. Unit.imports)
+    traverse_
+        (loadUnitIfMissing knownModules sourcesMap (modName : stack))
+        (unwrap $ unitRef ^. Unit.imports)
 
