@@ -40,6 +40,7 @@ dependencies:
     - libffi
     - luna-core
     - luna-passes
+    - luna-package
     - luna-runtime
     - luna-syntax-text-prettyprint
     - mtl
