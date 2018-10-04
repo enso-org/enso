@@ -77,11 +77,18 @@ guard = \test err -> do
           else Monad.fail err
 {-# INLINE guard #-}
 
+expectedInentationError  :: String
+indentationMismatchError :: String
+expectedInentationError  = "Expected indentation"
+indentationMismatchError = "Indentation does not match the previous one"
+{-# INLINE expectedInentationError  #-}
+{-# INLINE indentationMismatchError #-}
+
 indented, indentedOrEq, indentedEq
     :: State.Getters '[Indent, Position] m => m Delta
-indented     = guard (>  0) "Expected indentation"
-indentedOrEq = guard (>= 0) "Expected indentation"
-indentedEq   = guard (== 0) "Indentation does not match the previous one"
+indented     = guard (>  0) expectedInentationError
+indentedOrEq = guard (>= 0) expectedInentationError
+indentedEq   = guard (== 0) indentationMismatchError
 {-# INLINE indented     #-}
 {-# INLINE indentedOrEq #-}
 {-# INLINE indentedEq   #-}

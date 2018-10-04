@@ -94,5 +94,5 @@ missingSection = convert' MissingSection
 {-# INLINE missingSection #-}
 
 stringNoClosingMark :: Convertible' Symbol a => a
-stringNoClosingMark = convert' (Literal $ String NoClosingMark)
+stringNoClosingMark = convert' . Literal $ String NoClosingMark
 {-# INLINE stringNoClosingMark #-}

@@ -664,7 +664,7 @@ strBuilder :: Char -> Lexer_
 strBuilder quote = TokenStream.add =<< spanned parser where
     parser = do
         let isQuote      = (== quote)
-            isBodyChar c = not $ c == quote || isEolBeginChar c
+            isBodyChar c = not $ isQuote c || isEolBeginChar c
 
         quoteLen <- Source.length <$> takeWhile1 isQuote
 
@@ -687,13 +687,13 @@ strBuilder quote = TokenStream.add =<< spanned parser where
 
 strBlock1 :: forall t. Lexer (Spanned (Atom.StrChunk t)) -> Lexer [Spanned (Atom.StrChunk t)]
 strBlock1 = \p -> let
-    line :: Bool -> Lexer (Spanned Delta, [Spanned (Atom.StrChunk t)])
-    line isFirst = do
+    line :: Lexer (Spanned Delta, [Spanned (Atom.StrChunk t)])
+    line = do
         off <- spanned $ newline *> Indent.indented
         (off,) <$> many p
 
     lines = do
-        ls <- (:) <$> line True <*> many (line False)
+        ls <- many1' line
         let sinds  = fst <$> ls
             conts  = snd <$> ls
             spans  = view Ast.span    <$> sinds
@@ -717,11 +717,12 @@ mergeStrChunks :: [Spanned (Atom.StrChunk t)] -> [Spanned (Atom.StrChunk t)]
 mergeStrChunks = \case
     []     -> []
     (a:as) -> let
-        span   = view Ast.span a
-        spans  = view Ast.span <$> as
-        getTxt = \(Atom.StrPlain t) -> t
-        txt    = getTxt . Ast.unsafeUnspan  $  a
-        txts   = getTxt . Ast.unsafeUnspan <$> as
+        span       = view Ast.span a
+        spans      = view Ast.span <$> as
+        getTxt     = \(Atom.StrPlain t) -> t
+        getSpanTxt = getTxt . Ast.unsafeUnspan
+        txt        = getSpanTxt  $  a
+        txts       = getSpanTxt <$> as
         in [Ast.Spanned (foldl (<>) span spans) (Atom.StrPlain $ foldl (<>) txt txts)]
 
 

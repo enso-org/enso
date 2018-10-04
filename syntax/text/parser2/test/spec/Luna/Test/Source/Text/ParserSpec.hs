@@ -516,7 +516,7 @@ commentSpec = describe "comment" $ do
 
 
 debugSpec :: Spec
-debugSpec = describe "error" $ it "x" $ do
+debugSpec = xdescribe "error" $ it "x" $ do
     pure () :: IO ()
     putStrLn "\n"
 
