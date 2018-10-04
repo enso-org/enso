@@ -214,6 +214,7 @@ computeSpan :: Lexer a -> Lexer (CodeSpan, a)
 computeSpan = \parser -> do
     lastEndOff <- getLastOffset
     startOff   <- getParserOffset
+    putLastOffset startOff -- | For nested span computations
     out        <- parser
     endOff     <- getParserOffset
     nextOff    <- whiteSpace
@@ -255,11 +256,11 @@ whiteSpace :: Lexer Delta
 whiteSpace = convert . Source.length <$> takeMany ' '
 {-# INLINE whiteSpace #-}
 
-eol :: Lexer Delta
-eol = (1 <$ n) <|> (2 <$ rn) <|> (1 <$ r) where
-    n  = Parsec.token '\n'
-    r  = Parsec.token '\r'
-    rn = r >> n
+eol :: Lexer_
+eol = n <|> rn where
+    n  = void $ Parsec.token '\n'
+    r  = void $ Parsec.token '\r'
+    rn = r <* option () n
 {-# INLINE eol #-}
 
 isEolBeginChar :: Char -> Bool
@@ -663,33 +664,78 @@ strBuilder :: Char -> Lexer_
 strBuilder quote = TokenStream.add =<< spanned parser where
     parser = do
         let isQuote      = (== quote)
-            isBodyChar c = c == quote || isEolBeginChar c
+            isBodyChar c = not $ isQuote c || isEolBeginChar c
 
         quoteLen <- Source.length <$> takeWhile1 isQuote
 
-        let mkChunk       = \p -> TokenStream.add =<< spanned p
-            chunkPlain    = Atom.StrPlain <$> takeWhile1 (not . isBodyChar)
-            chunkQuote    = bodyQuotes =<< takeWhile1 isQuote
-            bodyQuotes qs = Atom.StrPlain qs <$ failIf (Source.length qs == quoteLen)
-            chunk         = spanned $ choice [chunkPlain, chunkQuote] -- lineBreak
-            ending        = void $ takeWhile1 isQuote
-            end           = ending <|> (TokenStream.add =<< invalid (pure $ Invalid.Literal $ Invalid.String Invalid.NoClosingMark))
-            -- body          = Ast.Str . concat <$> flexBlock (many1' chunk)
-            chunks        = (<>) <$> many1' chunk <*> (concat <$> flexBlock (many1' chunk))
-            body          = Ast.Str <$> chunks
-        if quoteLen == 2 then pure (Ast.Str mempty) else body <* end
+        let chunkBody    = takeWhile1 isBodyChar
+            chunkQuote   = bodyQuotes =<< takeWhile1 isQuote
+            bodyQuotes a = a <$ failIf (quoteLen == Source.length a)
+            chunkPlain   = spanned $ Atom.StrPlain . mconcat <$> many1' (choice [chunkBody, chunkQuote])
+
+            quotes       = void $ takeWhile1 isQuote
+            end          = quotes <|> noEnd
+            chunks       = many1' chunkPlain <|> (mergeStrChunks <$> strBlock chunkPlain)
+            noEnd        = (TokenStream.add =<< invalid (pure $ Invalid.Literal $ Invalid.String Invalid.NoClosingMark))
+            body         = Ast.Str <$> chunks
+        if quoteLen == 2 then pure (Ast.Str mempty) else (body <* end) <|> (Ast.Str mempty <$ noEnd)
 
 
 --------------------
 -- === Layout === --
 --------------------
 
-flexBlock1 :: Lexer a -> Lexer (NonEmpty a)
+strBlock1 :: forall t. Lexer (Spanned (Atom.StrChunk t)) -> Lexer [Spanned (Atom.StrChunk t)]
+strBlock1 = \p -> let
+    line :: Lexer (Spanned Delta, [Spanned (Atom.StrChunk t)])
+    line = do
+        off <- spanned $ newline *> Indent.indented
+        (off,) <$> many p
+
+    lines = do
+        ls <- many1' line
+        let sinds  = fst <$> ls
+            conts  = snd <$> ls
+            spans  = view Ast.span    <$> sinds
+            inds   = Ast.unsafeUnspan <$> sinds
+            (is' : inds')  = subtract minInd  <$> inds
+            minInd = unsafeMinimum inds
+            astLs  = (Atom.StrPlain . convert .            flip replicate ' ' $   is')
+                   : (Atom.StrPlain . convert . ('\n' :) . flip replicate ' ' <$> inds')
+            astLs' = zipWith Ast.Spanned spans astLs
+            conts' = zipWith (:) astLs' conts
+        pure $ concat conts'
+    in lines
+{-# INLINE strBlock1 #-}
+
+strBlock :: Lexer (Spanned (Atom.StrChunk t)) -> Lexer [Spanned (Atom.StrChunk t)]
+strBlock = option mempty . strBlock1
+{-# INLINE strBlock #-}
+
+
+mergeStrChunks :: [Spanned (Atom.StrChunk t)] -> [Spanned (Atom.StrChunk t)]
+mergeStrChunks = \case
+    []     -> []
+    (a:as) -> let
+        span       = view Ast.span a
+        spans      = view Ast.span <$> as
+        getTxt     = \(Atom.StrPlain t) -> t
+        getSpanTxt = getTxt . Ast.unsafeUnspan
+        txt        = getSpanTxt  $  a
+        txts       = getSpanTxt <$> as
+        in [Ast.Spanned (foldl (<>) span spans) (Atom.StrPlain $ foldl (<>) txt txts)]
+
+
+
+flexBlock1 :: Lexer a -> Lexer [a]
 flexBlock1 = \p -> let
-    line = many1 newline >> Indent.indented >> p
-    in many1 line
+    line = do
+        many1' newline
+        Indent.indented
+        pure <$> p
+    in concat <$> many1' line
 {-# INLINE flexBlock1 #-}
 
 flexBlock :: Lexer a -> Lexer [a]
-flexBlock = \p -> option mempty $ convert <$> flexBlock1 p
+flexBlock = option mempty . flexBlock1
 {-# INLINE flexBlock #-}

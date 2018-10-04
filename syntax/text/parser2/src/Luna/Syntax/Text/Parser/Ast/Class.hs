@@ -153,4 +153,10 @@ deriving instance Ord (Ln t) => Ord (SectionRight t)
 deriving instance Ord (Ln t) => Ord (StrChunk     t)
 deriving instance (Ord (Ln t), Ord (Link t (StrChunk t))) => Ord (Str t)
 
+instance Convertible String (StrChunk t) where
+    convert = StrPlain . convert
+    {-# INLINE convert #-}
 
+instance IsString (StrChunk t) where
+    fromString = convert
+    {-# INLINE fromString #-}

@@ -66,29 +66,29 @@ withRoot :: State.Monad Indent m => m a -> m a
 withRoot = with $ mempty ^. level
 {-# INLINE withRoot #-}
 
-checkIndentRef :: State.Getters '[Indent, Position] m
-    => (Delta -> Delta -> a) -> m a
-checkIndentRef = \f -> f <$> Position.getColumn <*> get
-{-# INLINE checkIndentRef #-}
-
-checkIndent :: State.Getters '[Indent, Position] m => (Delta -> a) -> m a
-checkIndent = \f -> checkIndentRef $ f .: (-)
-{-# INLINE checkIndent #-}
-
-checkIndented :: State.Getters '[Indent, Position] m => (Ordering -> a) -> m a
-checkIndented = \f -> checkIndentRef $ f .: compare
-{-# INLINE checkIndented #-}
-
 guard :: State.Getters '[Indent, Position] m
-    => (Ordering -> Bool) -> String -> m ()
-guard = \ord err -> flip when (Monad.fail err) . not =<< checkIndented ord
+    => (Delta -> Bool) -> String -> m Delta
+guard = \test err -> do
+    ref <- get
+    col <- Position.getColumn
+    let diff = col - ref
+        ok   = test diff
+    if ok then pure diff
+          else Monad.fail err
 {-# INLINE guard #-}
 
+expectedInentationError  :: String
+indentationMismatchError :: String
+expectedInentationError  = "Expected indentation"
+indentationMismatchError = "Indentation does not match the previous one"
+{-# INLINE expectedInentationError  #-}
+{-# INLINE indentationMismatchError #-}
+
 indented, indentedOrEq, indentedEq
-    :: State.Getters '[Indent, Position] m => m ()
-indented     = guard (== GT) "Expected indentation"
-indentedOrEq = guard (/= LT) "Expected indentation"
-indentedEq   = guard (== EQ) "Indentation does not match the previous one"
+    :: State.Getters '[Indent, Position] m => m Delta
+indented     = guard (>  0) expectedInentationError
+indentedOrEq = guard (>= 0) expectedInentationError
+indentedEq   = guard (== 0) indentationMismatchError
 {-# INLINE indented     #-}
 {-# INLINE indentedOrEq #-}
 {-# INLINE indentedEq   #-}
