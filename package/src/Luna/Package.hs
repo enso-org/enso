@@ -221,10 +221,11 @@ includedLibs = do
                 (\a -> (isUpper <$> head a) == Just True) dirs
         return projects
     for projectNames $ \projectName ->
-        pure (convert projectName, lunaroot
-                                    <> FilePath.pathSeparator
+        let separator = [FilePath.pathSeparator]
+        in pure (convert projectName, lunaroot
+                                    <> separator
                                     <> projectName
-                                    <> FilePath.pathSeparator)
+                                    <> separator)
 
 packageImportPaths :: (MonadIO m, MonadException Path.PathException m)
     => Path Abs Dir -> m [(Name.Name, FilePath.FilePath)]
