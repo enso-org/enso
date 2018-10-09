@@ -131,7 +131,6 @@ generateSourceDir pkgPath = do
 import Std.Base
 
 def main:
-    test = "Test me!"
     None
 |]
 
