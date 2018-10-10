@@ -82,6 +82,8 @@ native class Real:
     def <  that: primRealLt       self that
     # Tests whether `self` is equal to the argument.
     def == that: primRealEquals   self that
+    
+    def toReal: self
 
     # Negation. `a.negate == -1.0 * a`
     def negate:     primRealNegate self
