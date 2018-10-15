@@ -313,7 +313,15 @@ buildIR = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
                     rIsNum = isNumber r
                 in dot && lIsNum && rIsNum
 
-            -- luna/luna#301
+            -- The old parser translates a .foo.bar to application
+            -- between Var "a" and AccSection ["foo", "bar"], a core
+            -- constructor of form AccSection { path :: Vec16 Name }.
+            -- The constructor is deprecated, as it supports only named
+            -- sections and discards information about code spans.
+            -- The real solution should be implemented in passes,
+            -- probably in desugaring, as this situation is very similar
+            -- to wildcard handling.
+            -- See luna/luna#301 for more info
             hackAccSection left op = do
                 let noHack = do
                         r' <- buildIR $! Ast.prependAsOffset f r
