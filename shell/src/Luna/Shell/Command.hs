@@ -252,11 +252,15 @@ rename opts = MException.rethrowFromIO @Path.PathException
         putStrLn $ "Package renamed to " <> Path.fromAbsDir resultPath
 
     where printErr :: Package.RenameException -> IO ()
-          printErr e = case e of
-              Package.InvalidName       tx   -> undefined
-              Package.InaccessiblePath  path -> undefined
-              Package.InaccessibleFile  path -> undefined
-              Package.DestinationExists path -> undefined
+          printErr e = hPutStrLn stderr $ case e of
+              Package.InvalidName       tx   -> convert tx
+                  <> " is not a valid package name."
+              Package.InaccessiblePath  path -> Path.fromAbsDir path
+                  <> " is not accessible."
+              Package.InaccessibleFile  path -> Path.fromAbsFile path
+                  <> " can't be found."
+              Package.DestinationExists path -> "Destination "
+                  <> Path.fromAbsDir path <> " already exists."
 
           getPath :: FilePath -> IO (Path Abs Dir)
           getPath fp = MException.rethrowFromIO @Path.PathException $ do
