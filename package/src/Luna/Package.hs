@@ -219,7 +219,7 @@ includedLibs = do
             (\a -> Directory.doesDirectoryExist $ lunaroot FilePath.</> a) contents
         let projects = filter
                 (\a -> (isUpper <$> head a) == Just True) dirs
-        return projects
+        pure projects
     for projectNames $ \projectName ->
         let separator = [FilePath.pathSeparator]
         in pure (convert projectName, lunaroot

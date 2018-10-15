@@ -4,6 +4,7 @@ import Prologue hiding (init)
 
 import qualified Control.Exception                  as Exception
 import qualified Control.Monad.Exception            as MException
+import qualified Control.Monad.Exception.IO         as MException
 import qualified Control.Monad.State.Layered        as State
 import qualified Data.Version                       as Version
 import qualified Data.Yaml                          as Yaml
@@ -64,12 +65,11 @@ data InitOpts = InitOpts
     } deriving (Eq, Generic, Ord, Show)
 makeLenses ''InitOpts
 
--- TODO [Ara] Add a rename command (with optional --source parameter)
-
 data RenameOpts = RenameOpts
     { _destName :: String
     , _srcName  :: String
     } deriving (Eq, Generic, Ord, Show)
+makeLenses ''RenameOpts
 
 data BuildOpts = BuildOpts
     { __acquireDeps        :: Bool
@@ -236,8 +236,28 @@ version = putStrLn versionMsg where
         <> "]"
     isDirty = if GitHash.giDirty gitInfo then "Dirty" else "Clean"
 
-rename :: (MonadIO m) => RenameOpts -> m ()
-rename _ = putStrLn "Renaming package"
+rename :: (ConfigStateIO m, MonadException Path.PathException m)
+    => RenameOpts -> m ()
+rename opts = MException.rethrowFromIO @Path.PathException $ do
+    let targetDir = opts ^. destName
+        sourceDir = opts ^. srcName -- empty string if option unset
+
+    -- Validate and check type of target directory.
+
+    if null sourceDir then do
+        currentDir     <- liftIO Directory.getCurrentDirectory
+        currentDirPath <- Path.parseAbsDir currentDir
+
+        isPackage <- Package.isLunaPackage currentDirPath
+
+        putStrLn "Rename not implemented yet."
+    else do
+        putStrLn "No support for --source yet."
+
+    -- TODO [Ara] When using source dir need to find project root from it.
+    -- Also need to present error to user if not a package.
+
+    pure ()
 
 
 
@@ -280,7 +300,9 @@ runLuna input = case input of
                     "Setting compiler options is not yet implemented."
                 Publish  _    -> putStrLn
                     "Publishing packages is not yet implemented."
-                Rename opts   -> rename opts
+                Rename opts   -> MException.catch (\(e:: Path.PathException) ->
+                    liftIO . hPutStrLn stderr $ displayException e)
+                    (rename opts)
                 Retract  _    -> putStrLn
                     "Retraction of package versions is not yet implemented."
                 Rollback _    -> putStrLn
