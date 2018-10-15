@@ -65,10 +65,8 @@ init = Command.Init <$> (Command.InitOpts
 
 rename :: Parser Command
 rename = Command.Rename <$> ( Command.RenameOpts
-    <$> Options.argument Options.str (Options.metavar "PACKAGE-NAME")
-    <*> Options.strOption (Options.long "source"
-        <> Options.metavar "PATH" <> Options.value ""
-        <> Options.help "Move the source package instead of the current one."))
+    <$> Options.argument Options.str (Options.metavar "SOURCE-NAME")
+    <*> Options.argument Options.str (Options.metavar "DEST-NAME"))
 
 build :: Parser Command
 build = Command.Build <$> (Command.BuildOpts

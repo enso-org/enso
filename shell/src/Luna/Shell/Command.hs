@@ -25,6 +25,7 @@ import qualified Text.Megaparsec                    as Megaparsec
 
 import Control.Lens.Prism      (_Just)
 import Control.Monad.Exception (MonadException)
+import Path                    (Path, Abs, Dir)
 import System.Exit             (die)
 import System.FilePath         ((</>))
 import System.IO               (hPutStrLn, stderr)
@@ -66,8 +67,8 @@ data InitOpts = InitOpts
 makeLenses ''InitOpts
 
 data RenameOpts = RenameOpts
-    { _destName :: String
-    , _srcName  :: String
+    { _srcName  :: String
+    , _destName :: String
     } deriving (Eq, Generic, Ord, Show)
 makeLenses ''RenameOpts
 
@@ -236,28 +237,31 @@ version = putStrLn versionMsg where
         <> "]"
     isDirty = if GitHash.giDirty gitInfo then "Dirty" else "Clean"
 
-rename :: (ConfigStateIO m, MonadException Path.PathException m)
+rename :: forall m . (ConfigStateIO m, MonadException Path.PathException m)
     => RenameOpts -> m ()
-rename opts = MException.rethrowFromIO @Path.PathException $ do
-    let targetDir = opts ^. destName
-        sourceDir = opts ^. srcName -- empty string if option unset
+rename opts = MException.rethrowFromIO @Path.PathException
+    . MException.catch printErr $ do
+        let sourceDir = opts ^. srcName
+            targetDir = opts ^. destName
 
-    -- Validate and check type of target directory.
+        canonicalSource <- liftIO $ getPath sourceDir
+        canonicalTarget <- liftIO $ getPath targetDir
 
-    if null sourceDir then do
-        currentDir     <- liftIO Directory.getCurrentDirectory
-        currentDirPath <- Path.parseAbsDir currentDir
+        resultPath <- Package.rename canonicalSource canonicalTarget
 
-        isPackage <- Package.isLunaPackage currentDirPath
+        putStrLn $ "Package renamed to " <> Path.fromAbsDir resultPath
 
-        putStrLn "Rename not implemented yet."
-    else do
-        putStrLn "No support for --source yet."
+    where printErr :: Package.RenameException -> IO ()
+          printErr e = case e of
+              Package.InvalidName       tx   -> undefined
+              Package.InaccessiblePath  path -> undefined
+              Package.InaccessibleFile  path -> undefined
+              Package.DestinationExists path -> undefined
 
-    -- TODO [Ara] When using source dir need to find project root from it.
-    -- Also need to present error to user if not a package.
-
-    pure ()
+          getPath :: FilePath -> IO (Path Abs Dir)
+          getPath fp = MException.rethrowFromIO @Path.PathException $ do
+              canonicalPath <- liftIO $ Directory.canonicalizePath fp
+              Path.parseAbsDir canonicalPath
 
 
 
