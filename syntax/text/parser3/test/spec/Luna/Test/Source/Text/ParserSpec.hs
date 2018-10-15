@@ -81,10 +81,16 @@ unitSpec :: Spec
 unitSpec = describe "unit" $ do
     it "empty" $ e_x "" ""
 
+accSectionSpec :: Spec
+accSectionSpec = describe "acc section" $ do
+    ite "[1,2,3].each .succ.pred"         "[1, 2, 3] . each .succ.pred"
+    ite "[1,2,3].each .succ.pred.foo"     "[1, 2, 3] . each .succ.pred.foo"
+    ite "[1,2,3].each .succ.pred.foo.bar" "[1, 2, 3] . each .succ.pred.foo.bar"
+
 debugSpec :: Spec
 debugSpec = xdescribe "error" $ it "debug" $ do
 
-    let input = [qqStr|.asText|]
+    let input = [qqStr|a .succ.pred.foo|]
 
     putStrLn "\n\n"
     pprint $ PP.evalVersion1With Macro.unit (convert input)
@@ -102,5 +108,6 @@ spec = do
     functionDefSpec
     caseSpec
     unitSpec
+    accSectionSpec
 
     debugSpec

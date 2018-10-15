@@ -297,6 +297,7 @@ buildIR = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
 
     Ast.InfixApp l f r -> do
         let tok = Ast.unspan f
+            dot = tok == Ast.Operator Name.acc
             specialOp = case tok of
                 Ast.Operator op -> if
                     | op == Name.assign -> Just IR.unify'
@@ -305,13 +306,38 @@ buildIR = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
                     | otherwise         -> Nothing
                 _ -> Nothing
             realNumber =
-                let dot = tok == Ast.Operator Name.acc
-                    isNumber ast = case Ast.unspan ast of
+                let isNumber ast = case Ast.unspan ast of
                         Ast.Number _ -> True
                         _            -> False
                     lIsNum = isNumber l
                     rIsNum = isNumber r
                 in dot && lIsNum && rIsNum
+
+            -- The old parser translates a .foo.bar to application
+            -- between Var "a" and AccSection ["foo", "bar"], a core
+            -- constructor of form AccSection { path :: Vec16 Name }.
+            -- The constructor is deprecated, as it supports only named
+            -- sections and discards information about code spans.
+            -- The real solution should be implemented in passes,
+            -- probably in desugaring, as this situation is very similar
+            -- to wildcard handling.
+            -- See luna/luna#301 for more info
+            hackAccSection left op = do
+                let noHack = do
+                        r' <- buildIR $! Ast.prependAsOffset f r
+                        op left r'
+                if dot then do
+                    Layer.read @IR.Model left >>= \case
+                        Uni.AccSection accSec' -> do
+                            case Ast.unspan r of
+                                Ast.Var r' -> do
+                                    oldSection <- Mutable.toList accSec'
+                                    newSection <- Mutable.fromList
+                                        (oldSection <> [r'])
+                                    IR.accSection' newSection
+                                _ -> noHack
+                        _ -> noHack
+                else noHack
 
         case specialOp of
             Just op -> do
@@ -319,8 +345,7 @@ buildIR = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
                     buildRealIR l r
                 else do
                     l' <- buildIR l
-                    r' <- buildIR $! Ast.prependAsOffset f r
-                    op l' r'
+                    hackAccSection l' op
             Nothing -> do
                 f' <- buildIR f
                 l' <- buildIR l
