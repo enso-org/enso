@@ -64,6 +64,13 @@ data InitOpts = InitOpts
     } deriving (Eq, Generic, Ord, Show)
 makeLenses ''InitOpts
 
+-- TODO [Ara] Add a rename command (with optional --source parameter)
+
+data RenameOpts = RenameOpts
+    { _destName :: String
+    , _srcName  :: String
+    } deriving (Eq, Generic, Ord, Show)
+
 data BuildOpts = BuildOpts
     { __acquireDeps        :: Bool
     , __cleanBuild         :: Bool
@@ -137,6 +144,7 @@ data Command
     | Install InstallOpts
     | Options OptionOpts
     | Publish PublishOpts
+    | Rename RenameOpts
     | Retract RetractOpts
     | Rollback RollbackOpts
     | Run RunOpts
@@ -228,6 +236,9 @@ version = putStrLn versionMsg where
         <> "]"
     isDirty = if GitHash.giDirty gitInfo then "Dirty" else "Clean"
 
+rename :: (MonadIO m) => RenameOpts -> m ()
+rename _ = putStrLn "Renaming package"
+
 
 
 -------------------------
@@ -269,6 +280,7 @@ runLuna input = case input of
                     "Setting compiler options is not yet implemented."
                 Publish  _    -> putStrLn
                     "Publishing packages is not yet implemented."
+                Rename opts   -> rename opts
                 Retract  _    -> putStrLn
                     "Retraction of package versions is not yet implemented."
                 Rollback _    -> putStrLn

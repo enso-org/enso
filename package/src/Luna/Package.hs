@@ -305,6 +305,8 @@ rename src target = Exception.rethrowFromIO @Path.PathException $ do
     let origProjPath = target </> Name.configDirectory </> origProjFile
         newProjPath  = target </> Name.configDirectory </> newProjFile
 
+    -- TODO [Ara] Use Directory.copyFile
+
     liftIO $ Directory.renameFile (Path.fromAbsFile origProjPath)
         (Path.fromAbsFile newProjPath)
 
