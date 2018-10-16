@@ -263,6 +263,7 @@ rename opts = MException.catch printRenameEx . MException.catch printPNFEx $ do
                 <> Path.fromAbsDir path <> " already exists."
             Package.CannotDelete      path -> "Unable to delete "
                 <> Path.fromAbsDir path
+            Package.CannotRenameFile file -> "Cannot rename " <> show file
 
         printPNFEx :: (MonadIO n, MonadException Package.RenameException n)
             => Package.PackageNotFoundException -> n ()

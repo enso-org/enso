@@ -11,6 +11,7 @@ import qualified Data.Yaml                        as Yaml
 import qualified Luna.Package.Configuration.Local as Local
 import qualified Luna.Package.Structure.Name      as Name
 import qualified Luna.Package.Structure.Utilities as Structure
+import qualified Luna.Package.Utilities           as Utilities
 import qualified OCI.Data.Name                    as Name
 import qualified Path                             as Path
 import qualified System.Directory                 as Directory
@@ -64,6 +65,7 @@ data RenameException
     | InaccessibleFile  (Path Abs File)
     | DestinationExists (Path Abs Dir)
     | CannotDelete      (Path Abs Dir)
+    | CannotRenameFile  (Path Abs File)
     deriving (Eq, Generic, Ord, Show)
 
 
@@ -76,6 +78,7 @@ instance Exception RenameException where
     displayException (InaccessibleFile file) = show file <> " is inaccessible."
     displayException (DestinationExists path) = show path <> " already exists."
     displayException (CannotDelete path) = show path <> " already exists."
+    displayException (CannotRenameFile file) = "Cannot rename " <> show file
 
 
 
@@ -283,9 +286,6 @@ rename src target = do
     let srcPath  = Path.fromAbsDir src
         destPath = Path.fromAbsDir target
 
-    print srcPath
-    print destPath
-
     srcExists <- liftIO $ Directory.doesDirectoryExist srcPath
     unless_ srcExists . Exception.throw $ InaccessiblePath src
 
@@ -307,32 +307,56 @@ rename src target = do
     srcPackageRoot <- fromJust defaultDirPath <$> findPackageRoot src
     originalName   <- name srcPackageRoot
 
-    print srcPackageRoot
-    print originalName
+    -- Determine things to copy and copy/create them
+    let recursiveListDir dir = do
+            contents <- map (dir `FilePath.combine`)
+                <$> (liftIO $ Directory.listDirectory dir)
+            (files, dirs) <- Utilities.partitionM
+                (liftIO . Directory.doesFileExist) contents
+            (recFiles, recDirs) <- fmap unzip $ mapM recursiveListDir dirs
+            pure (files <> concat recFiles, dirs <> concat recDirs)
 
-    -- liftIO $ Directory.renameDirectory (Path.fromAbsDir srcPackageRoot) destPath
+    (filesToCopy, dirsToCreate) <- recursiveListDir srcPath
 
-    -- -- Rename the `*.lunaproject` file
-    -- origProjFile <- Path.parseRelFile $ convert originalName <> Name.packageExt
-    -- newName      <- name target
-    -- newProjFile  <- Path.parseRelFile $ convert newName <> Name.packageExt
+    for_ dirsToCreate $ \dir -> do
+        let relPath = FilePath.makeRelative srcPath dir
+        liftIO . Directory.createDirectoryIfMissing True
+            $ destPath `FilePath.combine` relPath
 
-    -- let origProjPath = target </> Name.configDirectory </> origProjFile
-        -- newProjPath  = target </> Name.configDirectory </> newProjFile
+    for_ filesToCopy $ \file -> do
+        let relPath = FilePath.makeRelative srcPath file
+        liftIO . Directory.copyFile file $ destPath `FilePath.combine` relPath
 
-    -- -- TODO [Ara] Use Directory.copyFile
+    Exception.catchAll (\(_ :: SomeException) ->
+            Exception.throw $ CannotDelete src)
+        . liftIO $ Directory.removeDirectoryRecursive srcPath
 
-    -- liftIO $ Directory.renameFile (Path.fromAbsFile origProjPath)
-        -- (Path.fromAbsFile newProjPath)
+    -- Rename the `*.lunaproject` file
+    origProjFile <- Exception.rethrowFromIO @Path.PathException
+        . Path.parseRelFile $ convert originalName <> Name.packageExt
+    newName      <- name target
+    newProjFile  <- Exception.rethrowFromIO @Path.PathException
+        . Path.parseRelFile $ convert newName <> Name.packageExt
 
-    -- -- Change the name in the `config.yaml` file
-    -- configName <- Path.parseRelFile Name.configFile
-    -- let configPath = target </> Name.configDirectory </> configName
+    let origProjPath = target </> Name.configDirectory </> origProjFile
+        newProjPath  = target </> Name.configDirectory </> newProjFile
 
-    -- Yaml.decodeFileEither (Path.fromAbsFile configPath) >>= \case
-        -- Left _    -> Exception.throw $ InaccessibleFile configPath
-        -- Right cfg -> Yaml.encodeFile (Path.fromAbsFile configPath) $
-            -- cfg & Local.projectName .~ newName
+    Exception.catchAll (\(_ :: SomeException) ->
+            Exception.throw $ CannotRenameFile newProjPath)
+        . liftIO $ Directory.renameFile (Path.fromAbsFile origProjPath)
+        (Path.fromAbsFile newProjPath)
+
+    -- Change the name in the `config.yaml` file
+    configName <- Exception.rethrowFromIO @Path.PathException
+        $ Path.parseRelFile Name.configFile
+    let configPath = target </> Name.configDirectory </> configName
+
+    decoded <- liftIO $ Yaml.decodeFileEither (Path.fromAbsFile configPath)
+
+    case decoded of
+        Left _    -> Exception.throw $ InaccessibleFile configPath
+        Right cfg -> liftIO . Yaml.encodeFile (Path.fromAbsFile configPath) $
+            cfg & Local.projectName .~ newName
 
     pure target
 
