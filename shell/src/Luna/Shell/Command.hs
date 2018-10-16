@@ -239,33 +239,45 @@ version = putStrLn versionMsg where
 
 rename :: forall m . (ConfigStateIO m, MonadException Path.PathException m)
     => RenameOpts -> m ()
-rename opts = MException.rethrowFromIO @Path.PathException
-    . MException.catch printErr $ do
-        let sourceDir = opts ^. srcName
-            targetDir = opts ^. destName
+rename opts = MException.catch printRenameEx . MException.catch printPNFEx $ do
+    let sourceDir = opts ^. srcName
+        targetDir = opts ^. destName
 
-        canonicalSource <- liftIO $ getPath sourceDir
-        canonicalTarget <- liftIO $ getPath targetDir
+    canonicalSource <- getPath sourceDir
+    canonicalTarget <- getPath targetDir
 
-        resultPath <- Package.rename canonicalSource canonicalTarget
+    resultPath <- Package.rename canonicalSource canonicalTarget
 
-        putStrLn $ "Package renamed to " <> Path.fromAbsDir resultPath
+    putStrLn $ "Package renamed to " <> Path.fromAbsDir resultPath
 
-    where printErr :: Package.RenameException -> IO ()
-          printErr e = hPutStrLn stderr $ case e of
-              Package.InvalidName       tx   -> convert tx
-                  <> " is not a valid package name."
-              Package.InaccessiblePath  path -> Path.fromAbsDir path
-                  <> " is not accessible."
-              Package.InaccessibleFile  path -> Path.fromAbsFile path
-                  <> " can't be found."
-              Package.DestinationExists path -> "Destination "
-                  <> Path.fromAbsDir path <> " already exists."
+    where
+        printRenameEx :: Package.RenameException -> m ()
+        printRenameEx e = liftIO . hPutStrLn stderr $ case e of
+            Package.InvalidName       tx   -> convert tx
+                <> " is not a valid package name."
+            Package.InaccessiblePath  path -> Path.fromAbsDir path
+                <> " is not accessible."
+            Package.InaccessibleFile  path -> Path.fromAbsFile path
+                <> " can't be found."
+            Package.DestinationExists path -> "Destination "
+                <> Path.fromAbsDir path <> " already exists."
+            Package.CannotDelete      path -> "Unable to delete "
+                <> Path.fromAbsDir path
 
-          getPath :: FilePath -> IO (Path Abs Dir)
-          getPath fp = MException.rethrowFromIO @Path.PathException $ do
-              canonicalPath <- liftIO $ Directory.canonicalizePath fp
-              Path.parseAbsDir canonicalPath
+        printPNFEx :: (MonadIO n, MonadException Package.RenameException n)
+            => Package.PackageNotFoundException -> n ()
+        printPNFEx e = liftIO . hPutStrLn stderr $ case e of
+            Package.PackageNotFound path -> "Package file "
+                <> Path.fromAbsFile path <> " not found."
+            Package.PackageRootNotFound path -> "Package root "
+                <> Path.fromAbsDir path <> " not found."
+            Package.FSError msg -> "Filesystem Error: " <> msg
+
+        getPath :: (MonadIO n, MonadException Path.PathException n)
+            => FilePath -> n (Path Abs Dir)
+        getPath fp = MException.rethrowFromIO @Path.PathException $ do
+            canonicalPath <- liftIO $ Directory.canonicalizePath fp
+            Path.parseAbsDir canonicalPath
 
 
 

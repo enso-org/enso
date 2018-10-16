@@ -59,10 +59,11 @@ instance Exception PackageNotFoundException where
 -- === Definition === --
 
 data RenameException
-    = InvalidName Text
-    | InaccessiblePath (Path Abs Dir)
-    | InaccessibleFile (Path Abs File)
+    = InvalidName       Text
+    | InaccessiblePath  (Path Abs Dir)
+    | InaccessibleFile  (Path Abs File)
     | DestinationExists (Path Abs Dir)
+    | CannotDelete      (Path Abs Dir)
     deriving (Eq, Generic, Ord, Show)
 
 
@@ -74,6 +75,8 @@ instance Exception RenameException where
     displayException (InaccessiblePath path) = show path <> " is inaccessible."
     displayException (InaccessibleFile file) = show file <> " is inaccessible."
     displayException (DestinationExists path) = show path <> " already exists."
+    displayException (CannotDelete path) = show path <> " already exists."
+
 
 
 -----------------
@@ -266,14 +269,18 @@ name path = findPackageRoot path >>= \case
     Just root -> pure . convert . unsafeLast . FilePath.splitDirectories
         $ Path.fromAbsDir root
 
+-- TODO [Ara] Add tests for all possible exceptions.
 rename :: ( MonadIO m
           , MonadExceptions '[ PackageNotFoundException
                              , RenameException
                              , Path.PathException] m )
     => Path Abs Dir -> Path Abs Dir -> m (Path Abs Dir)
-rename src target = Exception.rethrowFromIO @Path.PathException $ do
+rename src target = do
     let srcPath  = Path.fromAbsDir src
         destPath = Path.fromAbsDir target
+
+    print srcPath
+    print destPath
 
     srcExists <- liftIO $ Directory.doesDirectoryExist srcPath
     unless_ srcExists . Exception.throw $ InaccessiblePath src
@@ -284,40 +291,40 @@ rename src target = Exception.rethrowFromIO @Path.PathException $ do
     destExists <- liftIO $ Directory.doesDirectoryExist destPath
     when_ destExists . Exception.throw $ DestinationExists target
 
-    -- Safe as a `Path Abs Dir` cannot be empty
-    let newName        = unsafeLast $ FilePath.splitDirectories destPath
-        isValidPkgName = Structure.isValidPkgName newName
-    unless_ isValidPkgName . Exception.throw . InvalidName $ convert newName
+    -- -- Safe as a `Path Abs Dir` cannot be empty
+    -- let newName        = unsafeLast $ FilePath.splitDirectories destPath
+        -- isValidPkgName = Structure.isValidPkgName newName
+    -- unless_ isValidPkgName . Exception.throw . InvalidName $ convert newName
 
-    -- Guaranteed to be in a package by now so default value is nonsensical
-    defaultDir     <- Directory.getCurrentDirectory
-    defaultDirPath <- Path.parseAbsDir defaultDir
-    srcPackageRoot <- fromJust defaultDirPath <$> findPackageRoot src
-    originalName   <- name srcPackageRoot
+    -- -- Guaranteed to be in a package by now so default value is nonsensical
+    -- defaultDir     <- Directory.getCurrentDirectory
+    -- defaultDirPath <- Path.parseAbsDir defaultDir
+    -- srcPackageRoot <- fromJust defaultDirPath <$> findPackageRoot src
+    -- originalName   <- name srcPackageRoot
 
-    liftIO $ Directory.renameDirectory (Path.fromAbsDir srcPackageRoot) destPath
+    -- liftIO $ Directory.renameDirectory (Path.fromAbsDir srcPackageRoot) destPath
 
-    -- Rename the `*.lunaproject` file
-    origProjFile <- Path.parseRelFile $ convert originalName <> Name.packageExt
-    newName      <- name target
-    newProjFile  <- Path.parseRelFile $ convert newName <> Name.packageExt
+    -- -- Rename the `*.lunaproject` file
+    -- origProjFile <- Path.parseRelFile $ convert originalName <> Name.packageExt
+    -- newName      <- name target
+    -- newProjFile  <- Path.parseRelFile $ convert newName <> Name.packageExt
 
-    let origProjPath = target </> Name.configDirectory </> origProjFile
-        newProjPath  = target </> Name.configDirectory </> newProjFile
+    -- let origProjPath = target </> Name.configDirectory </> origProjFile
+        -- newProjPath  = target </> Name.configDirectory </> newProjFile
 
-    -- TODO [Ara] Use Directory.copyFile
+    -- -- TODO [Ara] Use Directory.copyFile
 
-    liftIO $ Directory.renameFile (Path.fromAbsFile origProjPath)
-        (Path.fromAbsFile newProjPath)
+    -- liftIO $ Directory.renameFile (Path.fromAbsFile origProjPath)
+        -- (Path.fromAbsFile newProjPath)
 
-    -- Change the name in the `config.yaml` file
-    configName <- Path.parseRelFile Name.configFile
-    let configPath = target </> Name.configDirectory </> configName
+    -- -- Change the name in the `config.yaml` file
+    -- configName <- Path.parseRelFile Name.configFile
+    -- let configPath = target </> Name.configDirectory </> configName
 
-    Yaml.decodeFileEither (Path.fromAbsFile configPath) >>= \case
-        Left _    -> Exception.throw $ InaccessibleFile configPath
-        Right cfg -> Yaml.encodeFile (Path.fromAbsFile configPath) $
-            cfg & Local.projectName .~ newName
+    -- Yaml.decodeFileEither (Path.fromAbsFile configPath) >>= \case
+        -- Left _    -> Exception.throw $ InaccessibleFile configPath
+        -- Right cfg -> Yaml.encodeFile (Path.fromAbsFile configPath) $
+            -- cfg & Local.projectName .~ newName
 
     pure target
 
