@@ -274,7 +274,6 @@ name path = findPackageRoot path >>= \case
     Just root -> pure . convert . unsafeLast . FilePath.splitDirectories
         $ Path.fromAbsDir root
 
--- TODO [Ara] Add tests for all possible exceptions.
 rename :: ( MonadIO m
           , MonadExceptions '[ PackageNotFoundException
                              , RenameException
@@ -287,25 +286,29 @@ rename src target = do
     print srcPath
     print destPath
 
-    -- srcExists <- liftIO $ Directory.doesDirectoryExist srcPath
-    -- unless_ srcExists . Exception.throw $ InaccessiblePath src
+    srcExists <- liftIO $ Directory.doesDirectoryExist srcPath
+    unless_ srcExists . Exception.throw $ InaccessiblePath src
 
-    -- srcIsPackage <- isLunaPackage src
-    -- unless_ srcIsPackage . Exception.throw $ PackageRootNotFound src
+    srcIsPackage <- isLunaPackage src
+    unless_ srcIsPackage . Exception.throw $ PackageRootNotFound src
 
-    -- destExists <- liftIO $ Directory.doesDirectoryExist destPath
-    -- when_ destExists . Exception.throw $ DestinationExists target
+    destExists <- liftIO $ Directory.doesDirectoryExist destPath
+    when_ destExists . Exception.throw $ DestinationExists target
 
-    -- -- Safe as a `Path Abs Dir` cannot be empty
-    -- let newName        = unsafeLast $ FilePath.splitDirectories destPath
-        -- isValidPkgName = Structure.isValidPkgName newName
-    -- unless_ isValidPkgName . Exception.throw . InvalidName $ convert newName
+    -- Safe as a `Path Abs Dir` cannot be empty
+    let newName        = unsafeLast $ FilePath.splitDirectories destPath
+        isValidPkgName = Structure.isValidPkgName newName
+    unless_ isValidPkgName . Exception.throw . InvalidName $ convert newName
 
-    -- -- Guaranteed to be in a package by now so default value is nonsensical
-    -- defaultDir     <- Directory.getCurrentDirectory
-    -- defaultDirPath <- Path.parseAbsDir defaultDir
-    -- srcPackageRoot <- fromJust defaultDirPath <$> findPackageRoot src
-    -- originalName   <- name srcPackageRoot
+    -- Guaranteed to be in a package by now so default value is nonsensical
+    defaultDir     <- liftIO $ Directory.getCurrentDirectory
+    defaultDirPath <- Exception.rethrowFromIO @Path.PathException
+        $ Path.parseAbsDir defaultDir
+    srcPackageRoot <- fromJust defaultDirPath <$> findPackageRoot src
+    originalName   <- name srcPackageRoot
+
+    print srcPackageRoot
+    print originalName
 
     -- liftIO $ Directory.renameDirectory (Path.fromAbsDir srcPackageRoot) destPath
 

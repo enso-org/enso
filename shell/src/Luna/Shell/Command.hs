@@ -253,7 +253,7 @@ rename opts = MException.catch printRenameEx . MException.catch printPNFEx $ do
     where
         printRenameEx :: Package.RenameException -> m ()
         printRenameEx e = liftIO . hPutStrLn stderr $ case e of
-            Package.InvalidName       tx   -> convert tx
+            Package.InvalidName       tx   -> "\"" <> convert tx <> "\""
                 <> " is not a valid package name."
             Package.InaccessiblePath  path -> Path.fromAbsDir path
                 <> " is not accessible."

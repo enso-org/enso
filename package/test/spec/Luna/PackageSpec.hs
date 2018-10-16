@@ -41,9 +41,6 @@ shouldFailWithName name = Temp.withSystemTempDirectory "pkgTest" $ \dir ->
                 origPath <- Path.parseAbsDir path
                 newPath  <- Path.parseAbsDir (dir </> name)
 
-                let renameException :: Selector Package.RenameException
-                    renameException = const True
-
                 Package.rename origPath newPath `shouldThrow` renameException
 
 hasName :: Local.Config -> Text -> Expectation
@@ -79,6 +76,9 @@ shouldRenameWith name = Temp.withSystemTempDirectory "pkgTest" $ \dir ->
 
                 projExists <- Directory.doesFileExist projPath
                 projExists `shouldBe` True
+
+renameException :: Selector Package.RenameException
+renameException = const True
 
 
 
