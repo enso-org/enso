@@ -64,9 +64,9 @@ data RenameException
     | InaccessiblePath  (Path Abs Dir)
     | InaccessibleFile  (Path Abs File)
     | DestinationExists (Path Abs Dir)
-    | CannotDelete      (Path Abs Dir)
-    | CannotRenameFile  (Path Abs File)
-    deriving (Eq, Generic, Ord, Show)
+    | CannotDelete      (Path Abs Dir)  SomeException
+    | CannotRenameFile  (Path Abs File) SomeException
+    deriving (Generic, Show)
 
 
 -- === Instances === --
@@ -77,8 +77,10 @@ instance Exception RenameException where
     displayException (InaccessiblePath path) = show path <> " is inaccessible."
     displayException (InaccessibleFile file) = show file <> " is inaccessible."
     displayException (DestinationExists path) = show path <> " already exists."
-    displayException (CannotDelete path) = show path <> " already exists."
-    displayException (CannotRenameFile file) = "Cannot rename " <> show file
+    displayException (CannotDelete path ex) = "Cannot delete" <> show path
+        <> ": " <> displayException ex
+    displayException (CannotRenameFile file ex) = "Cannot rename " <> show file
+        <> ": " <> displayException ex
 
 
 
@@ -327,8 +329,8 @@ rename src target = do
         let relPath = FilePath.makeRelative srcPath file
         liftIO . Directory.copyFile file $ destPath `FilePath.combine` relPath
 
-    Exception.catchAll (\(_ :: SomeException) ->
-            Exception.throw $ CannotDelete src)
+    Exception.catchAll (\(e :: SomeException) ->
+            Exception.throw $ CannotDelete src e)
         . liftIO $ Directory.removeDirectoryRecursive srcPath
 
     -- Rename the `*.lunaproject` file
@@ -341,8 +343,8 @@ rename src target = do
     let origProjPath = target </> Name.configDirectory </> origProjFile
         newProjPath  = target </> Name.configDirectory </> newProjFile
 
-    Exception.catchAll (\(_ :: SomeException) ->
-            Exception.throw $ CannotRenameFile newProjPath)
+    Exception.catchAll (\(e :: SomeException) ->
+            Exception.throw $ CannotRenameFile newProjPath e)
         . liftIO $ Directory.renameFile (Path.fromAbsFile origProjPath)
         (Path.fromAbsFile newProjPath)
 

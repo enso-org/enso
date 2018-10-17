@@ -252,27 +252,11 @@ rename opts = MException.catch printRenameEx . MException.catch printPNFEx $ do
 
     where
         printRenameEx :: Package.RenameException -> m ()
-        printRenameEx e = liftIO . hPutStrLn stderr $ case e of
-            Package.InvalidName       tx   -> "\"" <> convert tx <> "\""
-                <> " is not a valid package name."
-            Package.InaccessiblePath  path -> Path.fromAbsDir path
-                <> " is not accessible."
-            Package.InaccessibleFile  path -> Path.fromAbsFile path
-                <> " can't be found."
-            Package.DestinationExists path -> "Destination "
-                <> Path.fromAbsDir path <> " already exists."
-            Package.CannotDelete      path -> "Unable to delete "
-                <> Path.fromAbsDir path
-            Package.CannotRenameFile file -> "Cannot rename " <> show file
+        printRenameEx e = liftIO . hPutStrLn stderr $ displayException e
 
         printPNFEx :: (MonadIO n, MonadException Package.RenameException n)
             => Package.PackageNotFoundException -> n ()
-        printPNFEx e = liftIO . hPutStrLn stderr $ case e of
-            Package.PackageNotFound path -> "Package file "
-                <> Path.fromAbsFile path <> " not found."
-            Package.PackageRootNotFound path -> "Package root "
-                <> Path.fromAbsDir path <> " not found."
-            Package.FSError msg -> "Filesystem Error: " <> msg
+        printPNFEx e = liftIO . hPutStrLn stderr $ displayException e
 
         getPath :: (MonadIO n, MonadException Path.PathException n)
             => FilePath -> n (Path Abs Dir)
