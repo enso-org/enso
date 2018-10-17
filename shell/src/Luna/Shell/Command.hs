@@ -4,6 +4,7 @@ import Prologue hiding (init)
 
 import qualified Control.Exception                  as Exception
 import qualified Control.Monad.Exception            as MException
+import qualified Control.Monad.Exception.IO         as MException
 import qualified Control.Monad.State.Layered        as State
 import qualified Data.Version                       as Version
 import qualified Data.Yaml                          as Yaml
@@ -24,6 +25,7 @@ import qualified Text.Megaparsec                    as Megaparsec
 
 import Control.Lens.Prism      (_Just)
 import Control.Monad.Exception (MonadException)
+import Path                    (Path, Abs, Dir)
 import System.Exit             (die)
 import System.FilePath         ((</>))
 import System.IO               (hPutStrLn, stderr)
@@ -63,6 +65,12 @@ data InitOpts = InitOpts
     , _licenseOverride :: String
     } deriving (Eq, Generic, Ord, Show)
 makeLenses ''InitOpts
+
+data RenameOpts = RenameOpts
+    { _srcName  :: String
+    , _destName :: String
+    } deriving (Eq, Generic, Ord, Show)
+makeLenses ''RenameOpts
 
 data BuildOpts = BuildOpts
     { __acquireDeps        :: Bool
@@ -137,6 +145,7 @@ data Command
     | Install InstallOpts
     | Options OptionOpts
     | Publish PublishOpts
+    | Rename RenameOpts
     | Retract RetractOpts
     | Rollback RollbackOpts
     | Run RunOpts
@@ -228,6 +237,33 @@ version = putStrLn versionMsg where
         <> "]"
     isDirty = if GitHash.giDirty gitInfo then "Dirty" else "Clean"
 
+rename :: forall m . (ConfigStateIO m, MonadException Path.PathException m)
+    => RenameOpts -> m ()
+rename opts = MException.catch printRenameEx . MException.catch printPNFEx $ do
+    let sourceDir = opts ^. srcName
+        targetDir = opts ^. destName
+
+    canonicalSource <- getPath sourceDir
+    canonicalTarget <- getPath targetDir
+
+    resultPath <- Package.rename canonicalSource canonicalTarget
+
+    putStrLn $ "Package renamed to " <> Path.fromAbsDir resultPath
+
+    where
+        printRenameEx :: Package.RenameException -> m ()
+        printRenameEx e = liftIO . hPutStrLn stderr $ displayException e
+
+        printPNFEx :: (MonadIO n, MonadException Package.RenameException n)
+            => Package.PackageNotFoundException -> n ()
+        printPNFEx e = liftIO . hPutStrLn stderr $ displayException e
+
+        getPath :: (MonadIO n, MonadException Path.PathException n)
+            => FilePath -> n (Path Abs Dir)
+        getPath fp = MException.rethrowFromIO @Path.PathException $ do
+            canonicalPath <- liftIO $ Directory.canonicalizePath fp
+            Path.parseAbsDir canonicalPath
+
 
 
 -------------------------
@@ -269,6 +305,9 @@ runLuna input = case input of
                     "Setting compiler options is not yet implemented."
                 Publish  _    -> putStrLn
                     "Publishing packages is not yet implemented."
+                Rename opts   -> MException.catch (\(e:: Path.PathException) ->
+                    liftIO . hPutStrLn stderr $ displayException e)
+                    (rename opts)
                 Retract  _    -> putStrLn
                     "Retraction of package versions is not yet implemented."
                 Rollback _    -> putStrLn

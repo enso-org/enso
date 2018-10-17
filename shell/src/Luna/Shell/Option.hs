@@ -33,7 +33,9 @@ lunaCommand = Command.Exec <$> Options.hsubparser
     <> Options.command "init" (Options.info init
         (Options.progDesc "Initialise a new luna package."))
     <> Options.command "document" (Options.info document
-        (Options.progDesc "Print documentation in JSON format.")))
+        (Options.progDesc "Print documentation in JSON format."))
+    <> Options.command "rename" (Options.info rename
+        (Options.progDesc "Rename a package.")))
 
 run :: Parser Command
 run = Command.Run <$> (Command.RunOpts
@@ -51,7 +53,7 @@ document = Command.Document <$> (Command.DocumentOpts
         <> Options.help "Specify the output file"))
 
 init :: Parser Command
-init = Command.Init <$> ( Command.InitOpts
+init = Command.Init <$> (Command.InitOpts
     <$> Options.argument Options.str (Options.metavar "PACKAGE-NAME")
     <*> Options.strOption (Options.long "luna-version"
         <> Options.metavar "VERSION" <> Options.value ""
@@ -60,6 +62,11 @@ init = Command.Init <$> ( Command.InitOpts
     <*> Options.strOption (Options.long "license"
         <> Options.metavar "LICENSE" <> Options.value ""
         <> Options.help "Initialise the package with the specified license."))
+
+rename :: Parser Command
+rename = Command.Rename <$> ( Command.RenameOpts
+    <$> Options.argument Options.str (Options.metavar "SOURCE-NAME")
+    <*> Options.argument Options.str (Options.metavar "DEST-NAME"))
 
 build :: Parser Command
 build = Command.Build <$> (Command.BuildOpts
