@@ -35,7 +35,7 @@ packages:
     - shell
     - syntax/text/lexer
     - syntax/text/model
-    - syntax/text/parser2
+    - syntax/text/parser
     - syntax/text/parser3
     - syntax/text/prettyprint
 

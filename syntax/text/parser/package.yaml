@@ -1,4 +1,4 @@
-name       : luna-syntax-text-parser2
+name       : luna-syntax-text-parser
 version    : "0.2"
 author     : Luna Team <contact@luna-lang.org>
 maintainer : Luna Team <contact@luna-lang.org>
@@ -21,7 +21,7 @@ tests:
             - hspec-megaparsec
             - luna-core
             - luna-syntax-text-lexer
-            - luna-syntax-text-parser2
+            - luna-syntax-text-parser
             - open-browser
             - template-haskell
 
@@ -56,7 +56,7 @@ dependencies:
     - luna-cpp-containers
     - luna-data-storable
     - luna-foreign-utils
-    - luna-generic-traversable    
+    - luna-generic-traversable
     - luna-nested-containers
     - luna-parser-utils
     - luna-syntax-definition

@@ -20,7 +20,7 @@ tests:
             - hspec-megaparsec
             - luna-core
             - luna-syntax-text-lexer
-            - luna-syntax-text-parser2
+            - luna-syntax-text-parser
             - luna-syntax-text-parser3
             - luna-syntax-text-prettyprint
             - open-browser
@@ -39,12 +39,12 @@ dependencies:
     - luna-cpp-containers
     - luna-data-storable
     - luna-foreign-utils
-    - luna-generic-traversable    
+    - luna-generic-traversable
     - luna-nested-containers
     - luna-parser-utils
     - luna-syntax-definition
     - luna-syntax-text-lexer
-    - luna-syntax-text-parser2
+    - luna-syntax-text-parser
     - luna-syntax-text-model
     - luna-text-processing
     - megaparsec == 6.5.0
