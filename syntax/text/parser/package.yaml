@@ -1,4 +1,6 @@
-name       : luna-syntax-text-parser2
+_config/lib: !include "../../../config/hpack-common.yaml"
+
+name       : luna-syntax-text-parser
 version    : "0.2"
 author     : Luna Team <contact@luna-lang.org>
 maintainer : Luna Team <contact@luna-lang.org>
@@ -21,7 +23,7 @@ tests:
             - hspec-megaparsec
             - luna-core
             - luna-syntax-text-lexer
-            - luna-syntax-text-parser2
+            - luna-syntax-text-parser
             - open-browser
             - template-haskell
 
@@ -56,7 +58,7 @@ dependencies:
     - luna-cpp-containers
     - luna-data-storable
     - luna-foreign-utils
-    - luna-generic-traversable    
+    - luna-generic-traversable
     - luna-nested-containers
     - luna-parser-utils
     - luna-syntax-definition
@@ -71,51 +73,5 @@ dependencies:
     - vector
     - vector-text
 
-default-extensions:
-    - AllowAmbiguousTypes
-    - ApplicativeDo
-    - Arrows
-    - BangPatterns
-    - BinaryLiterals
-    - ConstraintKinds
-    - DataKinds
-    - DefaultSignatures
-    - DeriveDataTypeable
-    - DeriveFoldable
-    - DeriveFunctor
-    - DeriveGeneric
-    - DeriveTraversable
-    - DoAndIfThenElse
-    - DuplicateRecordFields
-    - EmptyDataDecls
-    - FlexibleContexts
-    - FlexibleInstances
-    - FunctionalDependencies
-    - GeneralizedNewtypeDeriving
-    - InstanceSigs
-    - LambdaCase
-    - LiberalTypeSynonyms
-    - MonadComprehensions
-    - MultiWayIf
-    - NamedWildCards
-    - NegativeLiterals
-    - NoImplicitPrelude
-    - NumDecimals
-    - OverloadedLabels
-    - PackageImports
-    - QuasiQuotes
-    - RankNTypes
-    - RecursiveDo
-    - RelaxedPolyRec
-    - ScopedTypeVariables
-    - StandaloneDeriving
-    - TemplateHaskell
-    - TupleSections
-    - TypeApplications
-    - TypeFamilies
-    - TypeFamilyDependencies
-    - TypeOperators
-    - UnicodeSyntax
-    - ViewPatterns
-#    - MonadFailDesugaring
+default-extensions: *luna-extensions
 
