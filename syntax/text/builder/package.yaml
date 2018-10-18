@@ -1,4 +1,4 @@
-name       : luna-syntax-text-parser3
+name       : luna-syntax-text-builder
 version    : "0.2"
 author     : Luna Team <contact@luna-lang.org>
 maintainer : Luna Team <contact@luna-lang.org>
@@ -21,7 +21,7 @@ tests:
             - luna-core
             - luna-syntax-text-lexer
             - luna-syntax-text-parser
-            - luna-syntax-text-parser3
+            - luna-syntax-text-builder
             - luna-syntax-text-prettyprint
             - open-browser
             - template-haskell
