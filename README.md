@@ -132,7 +132,7 @@ directory. Alternatively, you can pass the project directory explicitly as
 follows:
 
 ```
-luna exec --target path/to/MyProject
+luna run --target path/to/MyProject
 ```
 
 #### Executing Luna on Standalone Files
