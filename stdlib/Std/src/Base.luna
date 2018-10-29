@@ -82,7 +82,7 @@ native class Real:
     def <  that: primRealLt       self that
     # Tests whether `self` is equal to the argument.
     def == that: primRealEquals   self that
-    
+
     def toReal: self
 
     # Negation. `a.negate == -1.0 * a`
@@ -1488,3 +1488,19 @@ class Predicate a:
 class TableHandle:
     def at name:
         ColumnRef name
+
+
+def future act:
+    primFuture act
+
+native class Future a:
+    def await: case primAwaitFuture self of
+        Left errString: throw errString
+        Right val: val
+
+    def awaitCatch: primAwaitFuture self
+
+    def flatMap f:
+        primFlatMapFuture self f
+
+    def toText: self.await.toText

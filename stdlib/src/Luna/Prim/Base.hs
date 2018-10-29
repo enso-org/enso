@@ -39,6 +39,9 @@ import System.Directory     (canonicalizePath)
 import System.FilePath      (pathSeparator)
 import Text.Read            (readMaybe)
 
+type Promise = Either Luna.Exception Luna.Data
+type LPromise = Either Text Luna.Data
+type Future = Async.Async Promise
 
 primReal :: forall graph m. Builder.StdBuilder graph m => m (Map IR.Name Def.Def)
 primReal = do
@@ -377,6 +380,38 @@ io finalizersCtx = do
             return ()
     fork <- makeFunctionIO @graph (flip Luna.toValue forkVal) [noneT] noneT
 
+    let futureVal :: Luna.Eff Luna.Data -> IO (Future)
+        futureVal act = mdo
+            uid <- registerFinalizer finalizersCtx $ Async.uninterruptibleCancel a
+            a <- Async.async $ (Luna.runIO $ Luna.runError act) `Exception.finally` cancelFinalizer finalizersCtx uid
+            return a
+
+    future' <- makeFunctionIO @graph (flip Luna.toValue futureVal) ["a"] (Builder.futureLT "a")
+
+    let awaitFutureVal :: Future -> IO (LPromise)
+        awaitFutureVal fut = do
+            res <- Async.wait fut
+            return $ case res of
+                Left (Luna.Exception msg) -> Left msg
+                Right val                 -> Right val
+    awaitFuture' <- makeFunctionIO @graph (flip Luna.toValue awaitFutureVal) [Builder.futureLT "a"]  (Builder.eitherLT Builder.textLT "a")
+
+    let waitAndPerform ::  Future -> (Luna.Value -> Luna.Eff Luna.Data) ->IO (Promise)
+        waitAndPerform fut act = do
+            r <- Async.wait fut
+            case r of
+                Left a    -> return (Left a)
+                Right val -> do
+                    newVal <- Luna.runIO $ Luna.runError $ act $ Luna.fromData val
+                    pure newVal
+
+    let flatMapFutureVal :: Future -> (Luna.Value -> Luna.Value) ->  IO (Future)
+        flatMapFutureVal fut act = mdo
+            uid <- registerFinalizer finalizersCtx $ Async.uninterruptibleCancel a
+            a <- Async.async $ (waitAndPerform fut act) `Exception.finally` cancelFinalizer finalizersCtx uid
+            return a
+    flatMapFuture' <- makeFunctionIO @graph (flip Luna.toValue flatMapFutureVal) [Builder.futureLT "a", Builder.funLT "a" (Builder.futureLT "b")] (Builder.futureLT "b")
+
     let newEmptyMVarVal :: IO (MVar Luna.Data)
         newEmptyMVarVal = newEmptyMVar
     newEmptyMVar' <- makeFunctionIO @graph (flip Luna.toValue newEmptyMVarVal) [] (Builder.mvarLT "a")
@@ -416,6 +451,9 @@ io finalizersCtx = do
                           , ("parseJSON", parseJSON)
                           , ("renderJSON", renderJSON)
                           , ("randomReal", randomReal)
+                          , ("primFuture", future')
+                          , ("primAwaitFuture", awaitFuture')
+                          , ("primFlatMapFuture", flatMapFuture')
                           , ("primFork", fork)
                           , ("sleep", sleep)
                           , ("primNewMVar", newEmptyMVar')

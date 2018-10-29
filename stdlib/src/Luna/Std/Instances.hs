@@ -2,21 +2,24 @@ module Luna.Std.Instances where
 
 import Prologue
 
-import qualified OCI.Data.Name as Name
-import qualified Luna.Runtime  as Luna
+import qualified Control.Concurrent.Async as Async
+import qualified Luna.Runtime             as Luna
+import qualified OCI.Data.Name            as Name
 
 import Control.Concurrent.MVar (MVar)
+import Data.ByteString         (ByteString)
 import Data.Vector             (Vector)
-import Data.ByteString (ByteString)
 
 type BaseModule = "Std.Base"
 
 baseModule :: Name.Qualified
 baseModule = Name.qualFromSymbol @BaseModule
 
-type instance Luna.RuntimeRepOf ByteString       = Luna.AsNative ('Luna.ClassRep BaseModule "Binary")
+type instance Luna.RuntimeRepOf ByteString         = Luna.AsNative ('Luna.ClassRep BaseModule "Binary")
 type instance Luna.RuntimeRepOf (MVar Luna.Data)   = Luna.AsNative ('Luna.ClassRep BaseModule "MVar")
 type instance Luna.RuntimeRepOf (Vector Luna.Data) = Luna.AsNative ('Luna.ClassRep BaseModule "Vector")
+type instance Luna.RuntimeRepOf (Async.Async (Either Luna.Exception Luna.Data)) =
+    Luna.AsNative ('Luna.ClassRep BaseModule "Future")
 
 type instance Luna.RuntimeRepOf Bool = Luna.AsClass Bool ('Luna.ClassRep BaseModule "Bool")
 instance Luna.FromObject Bool where

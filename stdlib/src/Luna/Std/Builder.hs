@@ -27,6 +27,7 @@ import           Data.Graph.Store                             (Rooted (..))
 
 data LTp = LVar IR.Name
          | LCons IR.Qualified IR.Name [LTp]
+         | LLam LTp LTp
          deriving (Show)
 
 instance IsString LTp where
@@ -35,6 +36,7 @@ instance IsString LTp where
 varNamesFromType :: LTp -> Set IR.Name
 varNamesFromType (LVar n)    = Set.singleton n
 varNamesFromType (LCons mod n s) = varNamesFromTypes s
+varNamesFromType (LLam t1 t2)    = Set.union (varNamesFromType t1) (varNamesFromType t2)
 
 varNamesFromTypes :: [LTp] -> Set IR.Name
 varNamesFromTypes = Set.unions . fmap varNamesFromType
@@ -85,6 +87,10 @@ mkType :: (Pass.Interface PrimTypeBuilder m
 mkType vars = \case
     LVar n -> return $ fromJust (error "impossible") $ Map.lookup n vars
     LCons mod n fs -> IR.resolvedCons' mod n "" =<< traverse (mkType vars) fs
+    LLam tp1 tp2 -> do
+        t1 <- mkType vars tp1
+        t2 <- mkType vars tp2
+        IR.lam' t1 t2
 
 type StdBuilder graph m =
     ( MonadIO m
@@ -191,6 +197,9 @@ eitherLT l r = LCons Base.baseModule "Either" [l, r]
 mvarLT :: LTp -> LTp
 mvarLT = LCons Base.baseModule "MVar" . pure
 
+futureLT :: LTp -> LTp
+futureLT = LCons Base.baseModule "Future" . pure
+
 textLT :: LTp
 textLT = LCons Base.baseModule "Text" []
 
@@ -211,4 +220,7 @@ binaryLT = LCons Base.baseModule "Binary" []
 
 noneLT :: LTp
 noneLT = LCons Base.baseModule "None" []
+
+funLT :: LTp -> LTp -> LTp
+funLT = LLam
 
