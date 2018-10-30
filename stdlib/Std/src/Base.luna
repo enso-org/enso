@@ -1459,9 +1459,9 @@ class LQueryValue:
     def * that: Operation "times"  [self, that.toLQueryValue]
     def / that: Operation "divide" [self, that.toLQueryValue]
     def % that: Operation "mod"    [self, that.toLQueryValue]
+    def abs   : Operation "abs"    [self]
     def negate: Operation "negate" [self]
-    def abs:    Operation "abs"    [self]
-
+    
     # Extract day of month (counted from 1) in the Gregorian calendar.
     # Allowed only for Timestamp-yielding values;
     def day:   Operation "day"   [self]
