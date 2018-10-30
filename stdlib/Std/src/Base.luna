@@ -19,6 +19,8 @@ native class Int:
     def <  that: primIntLt       self that
     # Integer equality. `a.== b` returns True when `a` equals `b`.
     def == that: primIntEquals   self that
+    # Absolute value.
+    def abs: if self < 0 then self.negate else self
 
     def toInt: self
 
@@ -82,6 +84,8 @@ native class Real:
     def <  that: primRealLt       self that
     # Tests whether `self` is equal to the argument.
     def == that: primRealEquals   self that
+    # Absolute value.
+    def abs: if self < 0 then self.negate else self
     
     def toReal: self
 
@@ -1455,8 +1459,9 @@ class LQueryValue:
     def * that: Operation "times"  [self, that.toLQueryValue]
     def / that: Operation "divide" [self, that.toLQueryValue]
     def % that: Operation "mod"    [self, that.toLQueryValue]
+    def abs   : Operation "abs"    [self]
     def negate: Operation "negate" [self]
-
+    
     # Extract day of month (counted from 1) in the Gregorian calendar.
     # Allowed only for Timestamp-yielding values;
     def day:   Operation "day"   [self]
