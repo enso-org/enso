@@ -1,4 +1,4 @@
-resolver: nightly-2018-05-30
+resolver: lts-12.16
 name: luna
 packages:
 - container-1.1.5
