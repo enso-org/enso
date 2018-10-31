@@ -1,8 +1,14 @@
 resolver: lts-12.16
 name: luna-local
 packages:
-    - hspec-expectations-lifted-0.10.0
-    - megaparsec-6.5.0
-    - placeholders-0.1
+    - authenticate-oauth-1.6
     - githash-0.1.0.1
+    - hspec-expectations-lifted-0.10.0
+    - hspec-megaparsec-2.0.0
+    - megaparsec-6.5.0
+    - perf-0.4.1.0
+    - placeholders-0.1
+    - rdtsc-1.3.0.1
+    - storable-tuple-0.0.3.3
+    - wuss-1.1.10
 
