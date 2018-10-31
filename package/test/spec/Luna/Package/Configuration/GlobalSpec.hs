@@ -19,7 +19,7 @@ license:
   default-license: mit
   generate-license: true
 compiler:
-  version: '1.3.5'
+  version: 1.3.5
   options:
   - Foo
   - Bar
