@@ -86,7 +86,7 @@ native class Real:
     def == that: primRealEquals   self that
     # Absolute value.
     def abs: if self < 0 then self.negate else self
-    
+
     def toReal: self
 
     # Negation. `a.negate == -1.0 * a`
@@ -1068,7 +1068,6 @@ class JSON:
     # Dumps a `JSON` structure into a `Text` object.
     def render: self.toText
 
-    def toBinary: self.toText.toBinary
     # Short text representation for a `JSON` object.
     def shortRep: self.render
 
@@ -1461,7 +1460,7 @@ class LQueryValue:
     def % that: Operation "mod"    [self, that.toLQueryValue]
     def abs   : Operation "abs"    [self]
     def negate: Operation "negate" [self]
-    
+
     # Extract day of month (counted from 1) in the Gregorian calendar.
     # Allowed only for Timestamp-yielding values;
     def day:   Operation "day"   [self]
