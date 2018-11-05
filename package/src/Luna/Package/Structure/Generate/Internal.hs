@@ -99,11 +99,6 @@ generateConfigDir pkgPath mLicense globalCfg = do
         authorMail = globalCfg ^. Global.user . Global.email
         maintainer = if Text.null authorMail then "" else
             authorName <> " <" <> authorMail <> ">"
-        initConfig = (def @Local.Config)
-            & Local.license     .~ (fromJust License.None mLicense)
-            & Local.projectName .~ (convert pkgName)
-            & Local.author      .~ authorName
-            & Local.maintainer  .~ maintainer
         pkgName    = unsafeLast $ FilePath.splitDirectories pkgPath
         -- By this point it is guaranteed to have a valid name
 
@@ -112,8 +107,18 @@ generateConfigDir pkgPath mLicense globalCfg = do
     IO.appendFile (configPath </> Name.depsFile) ""
     IO.appendFile (configPath </> Name.depsHistFile) ""
 
+    packageConfig mLicense pkgName authorName maintainer configPath
+
+packageConfig :: Maybe License -> FilePath -> Text -> Text -> FilePath -> IO ()
+packageConfig mLicense pkgName authorName maintainer path = do
+    let initConfig = (def @Local.Config)
+            & Local.license     .~ (fromJust License.None mLicense)
+            & Local.projectName .~ (convert pkgName)
+            & Local.author      .~ authorName
+            & Local.maintainer  .~ maintainer
+
     -- Write the project configuration
-    Yaml.encodeFile (configPath </> Name.configFile) initConfig
+    Yaml.encodeFile (path </> Name.configFile) initConfig
 
 generateDistributionDir :: FilePath -> IO ()
 generateDistributionDir pkgPath = do

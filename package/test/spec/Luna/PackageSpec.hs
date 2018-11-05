@@ -94,8 +94,8 @@ movesAcrossDevicesTo newPathPart = Temp.withSystemTempDirectory "test" $ \src ->
 
             renameAndCheck name origPath newPath
 
-renameCreatesConfig :: FilePath -> Expectation
-renameCreatesConfig name = Temp.withSystemTempDirectory "test" $ \src ->
+renameMakesConfigIfMissing :: FilePath -> Expectation
+renameMakesConfigIfMissing name = Temp.withSystemTempDirectory "test" $ \src ->
     genPackageStructure (src </> packageName) (Just License.MIT) def >>= \case
         Left _     -> True `shouldBe` False
         Right path -> do
@@ -127,7 +127,8 @@ spec = do
         it "successfully renames a package" $ shouldRenameWith packageNewName
 
     describe "Backwards compatibility when renaming" $
-        it "creates config.yaml if missing" $ renameCreatesConfig "PkgTest"
+        it "creates config.yaml if missing"
+            $ renameMakesConfigIfMissing "PkgTest"
 
     describe "Renaming across devices" $
         it "moves successfully across filesystems" $ do
