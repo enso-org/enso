@@ -333,6 +333,8 @@ rename src target = do
             Exception.throw $ CannotDelete src e)
         . liftIO $ Directory.removeDirectoryRecursive srcPath
 
+    -- TODO [Ara] Create file if missing.
+
     -- Rename the `*.lunaproject` file
     origProjFile <- Exception.rethrowFromIO @Path.PathException
         . Path.parseRelFile $ convert originalName <> Name.packageExt
@@ -347,6 +349,8 @@ rename src target = do
             Exception.throw $ CannotRenameFile newProjPath e)
         . liftIO $ Directory.renameFile (Path.fromAbsFile origProjPath)
         (Path.fromAbsFile newProjPath)
+
+    -- TODO [Ara] Create file if missing.
 
     -- Change the name in the `config.yaml` file
     configName <- Exception.rethrowFromIO @Path.PathException

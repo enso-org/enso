@@ -13,6 +13,7 @@ import qualified System.Directory                   as Directory
 import qualified System.IO.Temp                     as Temp
 
 import Luna.Package.Structure.Generate ( genPackageStructure )
+import Path                            ( Path, Abs, Dir )
 import System.FilePath                 ( FilePath, (</>) )
 import Test.Hspec                      ( Spec, Expectation, describe, it
                                        , shouldBe, shouldThrow, Selector )
@@ -55,27 +56,60 @@ shouldRenameWith name = Temp.withSystemTempDirectory "pkgTest" $ \dir ->
                 origPath <- Path.parseAbsDir path
                 newPath  <- Path.parseAbsDir (dir </> name)
 
-                -- Check path moved
-                renamedPath <- Package.rename origPath newPath
-                renamedPath `shouldBe` newPath
+                renameAndCheck name origPath newPath
 
-                -- Check `config.yaml` has new name
-                let configPath = Path.fromAbsDir renamedPath
-                        </> Path.fromRelDir Name.configDirectory
-                        </> Name.configFile
+renameAndCheck :: FilePath -> Path Abs Dir -> Path Abs Dir -> Expectation
+renameAndCheck name origPath newPath = do
+    -- Check path moved
+    renamedPath <- Package.rename origPath newPath
+    renamedPath `shouldBe` newPath
 
-                Yaml.decodeFileEither configPath >>= \case
-                    Left _    -> True `shouldBe` False
-                    Right cfg ->
-                        cfg `hasName` convert name
+    -- Check `config.yaml` has new name
+    let configPath = Path.fromAbsDir renamedPath
+            </> Path.fromRelDir Name.configDirectory
+            </> Name.configFile
 
-                -- Check `*.lunaproject` has been renamed
-                let projPath = Path.fromAbsDir renamedPath
-                        </> Path.fromRelDir Name.configDirectory
-                        </> name <> Name.packageExt
+    Yaml.decodeFileEither configPath >>= \case
+        Left _    -> True `shouldBe` False
+        Right cfg ->
+            cfg `hasName` convert name
 
-                projExists <- Directory.doesFileExist projPath
-                projExists `shouldBe` True
+    -- Check `*.lunaproject` has been renamed
+    let projPath = Path.fromAbsDir renamedPath
+            </> Path.fromRelDir Name.configDirectory
+            </> name <> Name.packageExt
+
+    projExists <- Directory.doesFileExist projPath
+    projExists `shouldBe` True
+
+movesAcrossDevicesTo :: FilePath -> Expectation
+movesAcrossDevicesTo newPathPart = Temp.withSystemTempDirectory "test" $ \src ->
+    genPackageStructure (src </> packageName) (Just License.MIT) def >>= \case
+        Left _     -> True `shouldBe` False
+        Right path -> Temp.withTempDirectory newPathPart "test" $ \dest -> do
+            let name = "NewName"
+
+            origPath <- Path.parseAbsDir path
+            newPath  <- Path.parseAbsDir (dest </> name)
+
+            renameAndCheck name origPath newPath
+
+renameCreatesConfig :: FilePath -> Expectation
+renameCreatesConfig name = Temp.withSystemTempDirectory "test" $ \src ->
+    genPackageStructure (src </> packageName) (Just License.MIT) def >>= \case
+        Left _     -> True `shouldBe` False
+        Right path -> do
+            -- Remove the *.lunaproject file
+            let projPath = path </> Path.fromRelDir Name.configDirectory
+                    </> Name.configFile
+
+            Directory.removeFile projPath
+
+            -- Create new paths
+            origPath <- Path.parseAbsDir path
+            newPath  <- Path.parseAbsDir (src </> name)
+
+            renameAndCheck name origPath newPath
 
 renameException :: Selector Package.RenameException
 renameException = const True
@@ -87,8 +121,16 @@ renameException = const True
 -----------------------
 
 spec :: Spec
-spec =
+spec = do
     describe "Renaming of packages" $ do
         it "errors on an invalid name" $ shouldFailWithName packageBadName
         it "successfully renames a package" $ shouldRenameWith packageNewName
+
+    describe "Backwards compatibility when renaming" $
+        it "creates config.yaml if missing" $ renameCreatesConfig "PkgTest"
+
+    describe "Renaming across devices" $
+        it "moves successfully across filesystems" $ do
+            homeDir <- Directory.getHomeDirectory
+            movesAcrossDevicesTo homeDir
 
