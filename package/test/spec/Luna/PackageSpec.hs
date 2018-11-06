@@ -2,6 +2,7 @@ module Luna.PackageSpec where
 
 import Prologue
 
+import qualified Control.Exception                  as Exception
 import qualified Data.Yaml                          as Yaml
 import qualified Luna.Package                       as Package
 import qualified Luna.Package.Configuration.Global  as Global
@@ -37,7 +38,7 @@ shouldFailWithName :: FilePath -> Expectation
 shouldFailWithName name = Temp.withSystemTempDirectory "pkgTest" $ \dir ->
     genPackageStructure (dir </> packageName) (Just License.MIT)
         (def @Global.Config) >>= \case
-            Left _     -> True `shouldBe` False
+            Left ex    -> Exception.throw ex
             Right path -> do
                 origPath <- Path.parseAbsDir path
                 newPath  <- Path.parseAbsDir (dir </> name)
@@ -51,7 +52,7 @@ shouldRenameWith :: FilePath -> Expectation
 shouldRenameWith name = Temp.withSystemTempDirectory "pkgTest" $ \dir ->
     genPackageStructure (dir </> packageName) (Just License.MIT)
         (def @Global.Config) >>= \case
-            Left _ -> True `shouldBe` False
+            Left ex    -> Exception.throw ex
             Right path -> do
                 origPath <- Path.parseAbsDir path
                 newPath  <- Path.parseAbsDir (dir </> name)
@@ -85,7 +86,7 @@ renameAndCheck name origPath newPath = do
 movesAcrossDevicesTo :: FilePath -> Expectation
 movesAcrossDevicesTo newPathPart = Temp.withSystemTempDirectory "test" $ \src ->
     genPackageStructure (src </> packageName) (Just License.MIT) def >>= \case
-        Left _     -> True `shouldBe` False
+        Left ex    -> Exception.throw ex
         Right path -> Temp.withTempDirectory newPathPart "test" $ \dest -> do
             let name = "NewName"
 
@@ -97,7 +98,7 @@ movesAcrossDevicesTo newPathPart = Temp.withSystemTempDirectory "test" $ \src ->
 renameMakesConfigIfMissing :: FilePath -> Expectation
 renameMakesConfigIfMissing name = Temp.withSystemTempDirectory "test" $ \src ->
     genPackageStructure (src </> packageName) (Just License.MIT) def >>= \case
-        Left _     -> True `shouldBe` False
+        Left ex    -> Exception.throw ex
         Right path -> do
             -- Remove the *.lunaproject file
             let projPath = path </> Path.fromRelDir Name.configDirectory
