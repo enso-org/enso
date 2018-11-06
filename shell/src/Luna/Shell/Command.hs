@@ -211,12 +211,7 @@ init opts = do
             $ view licenseOverride opts
 
     Generate.genPackageStructure (view name opts) mLicense globalCfg >>= \case
-        Left err -> case err of
-            Generate.InvalidPackageLocation msg -> putStrLn msg
-            Generate.InvalidPackageName _       -> putStrLn
-                $ view name opts <> " is not a valid package name."
-            Generate.SystemError msg -> putStrLn
-                $ "System Error: " <> convert msg
+        Left err -> liftIO . hPutStrLn stderr $ displayException err
         Right projectPath -> putStrLn
             $ "Initialised package at " <> projectPath
 

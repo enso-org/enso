@@ -2,22 +2,23 @@ module Luna.Package where
 
 import Prologue
 
-import qualified Control.Exception.Safe           as SafeException
-import qualified Control.Monad.Exception          as Exception
-import qualified Control.Monad.Exception.IO       as Exception
-import qualified Data.Bimap                       as Bimap
-import qualified Data.Map                         as Map
-import qualified Data.Yaml                        as Yaml
-import qualified Luna.Package.Configuration.Local as Local
-import qualified Luna.Package.Structure.Name      as Name
-import qualified Luna.Package.Structure.Utilities as Structure
-import qualified Luna.Package.Utilities           as Utilities
-import qualified OCI.Data.Name                    as Name
-import qualified Path                             as Path
-import qualified System.Directory                 as Directory
-import qualified System.Environment               as Environment
-import qualified System.FilePath                  as FilePath
-import qualified System.FilePath.Find             as Find
+import qualified Control.Exception.Safe                   as SafeException
+import qualified Control.Monad.Exception                  as Exception
+import qualified Control.Monad.Exception.IO               as Exception
+import qualified Data.Bimap                               as Bimap
+import qualified Data.Map                                 as Map
+import qualified Data.Yaml                                as Yaml
+import qualified Luna.Package.Configuration.Local         as Local
+import qualified Luna.Package.Structure.Generate.Internal as Generate
+import qualified Luna.Package.Structure.Name              as Name
+import qualified Luna.Package.Structure.Utilities         as Structure
+import qualified Luna.Package.Utilities                   as Utilities
+import qualified OCI.Data.Name                            as Name
+import qualified Path                                     as Path
+import qualified System.Directory                         as Directory
+import qualified System.Environment                       as Environment
+import qualified System.FilePath                          as FilePath
+import qualified System.FilePath.Find                     as Find
 
 import Control.Arrow           ((&&&))
 import Control.Monad           (filterM)
@@ -351,12 +352,15 @@ rename src target = do
     -- Change the name in the `config.yaml` file
     configName <- Exception.rethrowFromIO @Path.PathException
         $ Path.parseRelFile Name.configFile
-    let configPath = target </> Name.configDirectory </> configName
+    let configDir  = target </> Name.configDirectory
+        configPath = configDir </> configName
 
     decoded <- liftIO $ Yaml.decodeFileEither (Path.fromAbsFile configPath)
 
+    -- Generates a super default config if none exists
     case decoded of
-        Left _    -> Exception.throw $ InaccessibleFile configPath
+        Left _    -> liftIO . Generate.packageConfig Nothing (convert newName)
+            "" "" $ Path.fromAbsDir configDir
         Right cfg -> liftIO . Yaml.encodeFile (Path.fromAbsFile configPath) $
             cfg & Local.projectName .~ newName
 

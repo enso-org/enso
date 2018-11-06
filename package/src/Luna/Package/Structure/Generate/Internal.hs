@@ -17,6 +17,7 @@ import qualified System.FilePath                         as FilePath
 import qualified System.IO                               as IO
 import qualified System.IO.Error                         as Exception
 
+import Control.Exception                  (IOException)
 import Luna.Package.Configuration.License (License)
 import System.FilePath                    (FilePath, (</>))
 
@@ -31,8 +32,15 @@ import System.FilePath                    (FilePath, (</>))
 data GeneratorError
     = InvalidPackageLocation FilePath
     | InvalidPackageName Text
-    | SystemError Text
-    deriving (Eq, Generic, Ord, Show)
+    | SystemError IOException
+    deriving (Eq, Generic, Show)
+
+instance Exception GeneratorError where
+    displayException (InvalidPackageLocation fp) = fp
+        <> " is an invalid location for a package."
+    displayException (InvalidPackageName name) = convert name
+        <> " is not a valid package name."
+    displayException (SystemError ex) = "System Error: " <> displayException ex
 
 
 -- === API === --
@@ -42,38 +50,10 @@ recovery :: FilePath -> Exception.IOException
 recovery canonicalName ex = do
     pkgDirExists <- Directory.doesDirectoryExist canonicalName
 
-    let canonicalText :: Text
-        canonicalText = convert canonicalName
+    unless_ (Exception.ioeGetErrorType ex == Exception.AlreadyExists)
+        . when pkgDirExists $ Directory.removeDirectoryRecursive canonicalName
 
-    if Exception.ioeGetErrorType ex == Exception.AlreadyExists then
-        pure . Left . SystemError
-            $ "The package at " <> canonicalText <> " already exists."
-    else do
-        when pkgDirExists $ Directory.removeDirectoryRecursive canonicalName
-
-        let errMsg :: Text
-            errMsg = case Exception.ioeGetErrorType ex of
-                Exception.NoSuchThing -> "No path to the package directory: "
-                    <> canonicalText
-                Exception.ResourceBusy ->
-                    "Cannot create package on busy media. Please try again."
-                Exception.ResourceExhausted -> "Not enough space to create: "
-                    <> canonicalText
-                Exception.PermissionDenied ->
-                    "You do not have permission to create the package: "
-                    <> canonicalText
-                Exception.HardwareFault -> "Hardware Fault: Please try again."
-                Exception.AlreadyExists ->
-                    "Some portion of the package already exists: "
-                    <> canonicalText
-                Exception.InvalidArgument -> "Internal error"
-                Exception.InappropriateType ->
-                    "Some portion of the package already exists: "
-                    <> canonicalText
-                Exception.UnsatisfiedConstraints -> "Internal error"
-                _ -> convert $ show ex
-
-        pure . Left $ SystemError errMsg
+    pure . Left $ SystemError ex
 
 
 -- === Instances === --
@@ -82,7 +62,8 @@ instance StyledShow PrettyShowStyle GeneratorError where
     styledShow _ (InvalidPackageLocation loc) =
         "Cannot create package inside another package at " <> convert loc
     styledShow _ (InvalidPackageName name) = "Invalid name: " <> name
-    styledShow _ (SystemError tx) = "System Error: " <> tx
+    styledShow _ (SystemError ex) = "System Error: " <> convert
+        (displayException ex)
 
 
 
@@ -99,11 +80,6 @@ generateConfigDir pkgPath mLicense globalCfg = do
         authorMail = globalCfg ^. Global.user . Global.email
         maintainer = if Text.null authorMail then "" else
             authorName <> " <" <> authorMail <> ">"
-        initConfig = (def @Local.Config)
-            & Local.license     .~ (fromJust License.None mLicense)
-            & Local.projectName .~ (convert pkgName)
-            & Local.author      .~ authorName
-            & Local.maintainer  .~ maintainer
         pkgName    = unsafeLast $ FilePath.splitDirectories pkgPath
         -- By this point it is guaranteed to have a valid name
 
@@ -112,8 +88,18 @@ generateConfigDir pkgPath mLicense globalCfg = do
     IO.appendFile (configPath </> Name.depsFile) ""
     IO.appendFile (configPath </> Name.depsHistFile) ""
 
+    packageConfig mLicense pkgName authorName maintainer configPath
+
+packageConfig :: Maybe License -> FilePath -> Text -> Text -> FilePath -> IO ()
+packageConfig mLicense pkgName authorName maintainer path = do
+    let initConfig = (def @Local.Config)
+            & Local.license     .~ (fromJust License.None mLicense)
+            & Local.projectName .~ (convert pkgName)
+            & Local.author      .~ authorName
+            & Local.maintainer  .~ maintainer
+
     -- Write the project configuration
-    Yaml.encodeFile (configPath </> Name.configFile) initConfig
+    Yaml.encodeFile (path </> Name.configFile) initConfig
 
 generateDistributionDir :: FilePath -> IO ()
 generateDistributionDir pkgPath = do
