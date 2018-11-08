@@ -330,11 +330,6 @@ rename src target = do
         let relPath = FilePath.makeRelative srcPath file
         liftIO . Directory.copyFile file $ destPath `FilePath.combine` relPath
 
-    -- TODO [Ara] Make this fail late with Either.
-    Exception.catchAll (\(e :: SomeException) ->
-            Exception.throw $ CannotDelete src e)
-        . liftIO $ Directory.removeDirectoryRecursive srcPath
-
     -- Rename the `*.lunaproject` file
     origProjFile <- Exception.rethrowFromIO @Path.PathException
         . Path.parseRelFile $ convert originalName <> Name.packageExt
@@ -365,5 +360,9 @@ rename src target = do
         Right cfg -> liftIO . Yaml.encodeFile (Path.fromAbsFile configPath) $
             cfg & Local.projectName .~ newName
 
-    pure (target, Nothing)
+    -- Bubble up an error if the original directory can't be removed.
+    Exception.catchAll (\(e :: SomeException) ->
+            pure (target, Just (CannotDelete src e))) $ do
+        liftIO $ Directory.removeDirectoryRecursive srcPath
+        pure (target, Nothing)
 
