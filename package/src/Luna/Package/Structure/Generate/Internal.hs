@@ -59,11 +59,7 @@ recovery canonicalName ex = do
 -- === Instances === --
 
 instance StyledShow PrettyShowStyle GeneratorError where
-    styledShow _ (InvalidPackageLocation loc) =
-        "Cannot create package inside another package at " <> convert loc
-    styledShow _ (InvalidPackageName name) = "Invalid name: " <> name
-    styledShow _ (SystemError ex) = "System Error: " <> convert
-        (displayException ex)
+    styledShow _ ex = convert $ displayException ex
 
 
 
