@@ -241,7 +241,11 @@ rename opts = MException.catch printRenameEx . MException.catch printPNFEx $ do
     canonicalSource <- getPath sourceDir
     canonicalTarget <- getPath targetDir
 
-    resultPath <- Package.rename canonicalSource canonicalTarget
+    (resultPath, err) <- Package.rename canonicalSource canonicalTarget
+
+    case err of
+        Nothing -> pure ()
+        Just ex -> liftIO . hPutStrLn stderr $ displayException ex
 
     putStrLn $ "Package renamed to " <> Path.fromAbsDir resultPath
 

@@ -62,7 +62,7 @@ shouldRenameWith name = Temp.withSystemTempDirectory "pkgTest" $ \dir ->
 renameAndCheck :: FilePath -> Path Abs Dir -> Path Abs Dir -> Expectation
 renameAndCheck name origPath newPath = do
     -- Check path moved
-    renamedPath <- Package.rename origPath newPath
+    (renamedPath, _) <- Package.rename origPath newPath
     renamedPath `shouldBe` newPath
 
     -- Check `config.yaml` has new name
