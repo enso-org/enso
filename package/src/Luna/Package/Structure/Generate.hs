@@ -28,8 +28,7 @@ genPackageStructure :: MonadIO m => FilePath -> Maybe License -> Global.Config
                     -> m (Either GeneratorError FilePath)
 genPackageStructure name mLicense gblConf =
     if length name < 1 then
-        pure . Left . InvalidPackageName $ "Invalid package name: "
-            <> convert name
+        pure . Left . InvalidPackageName $ convert name
     else do
         -- This is safe as it has at least one component if `name` is nonemtpy
         -- `name` is nonempty due to the guard above.
