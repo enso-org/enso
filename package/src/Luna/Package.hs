@@ -344,7 +344,7 @@ rename src target = do
     -- TODO [Ara] Fix MonadException and move back to that Exception.CatchAll
     liftIO . Unsafe.handle (\(e :: SomeException) ->
             Exception.throw $ CannotRenameFile newProjPath e)
-        . liftIO $ Directory.renameFile (Path.fromAbsFile origProjPath)
+        $ Directory.renameFile (Path.fromAbsFile origProjPath)
         (Path.fromAbsFile newProjPath)
 
     -- Change the name in the `config.yaml` file
