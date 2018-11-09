@@ -3,6 +3,7 @@ module Luna.Shell.Command where
 import Prologue hiding (init)
 
 import qualified Control.Exception                  as Exception
+import qualified Control.Exception.Safe             as Safe
 import qualified Control.Monad.Exception            as MException
 import qualified Control.Monad.Exception.IO         as MException
 import qualified Control.Monad.State.Layered        as State
@@ -38,7 +39,7 @@ import System.IO               (hPutStrLn, stderr)
 -- === Definition === --
 type ConfigStateIO m =
     ( MonadIO m
-    , State.MonadStates '[Global.Config, Local.Config] m)
+    , State.MonadStates '[Global.Config, Local.Config] m )
 
 
 
@@ -187,7 +188,7 @@ run (RunOpts target) = liftIO $ catch compute recover where
             cwd <- CWD.get
             runPackage cwd
 
-    -- FIXME This can be done much better.
+    -- FIXME [Ara] This can be done much better.
     recover (e :: SomeException) = die (displayException e)
 
     runPackage path = do
@@ -232,7 +233,8 @@ version = putStrLn versionMsg where
         <> "]"
     isDirty = if GitHash.giDirty gitInfo then "Dirty" else "Clean"
 
-rename :: forall m . (ConfigStateIO m, MonadException Path.PathException m)
+rename :: forall m . ( ConfigStateIO m
+                     , MonadException Path.PathException m )
     => RenameOpts -> m ()
 rename opts = MException.catch printRenameEx . MException.catch printPNFEx $ do
     let sourceDir = opts ^. srcName
@@ -283,8 +285,8 @@ runLuna input = case input of
         -- Defaulting to be filled later where relevant.
         let localConfig = def @Local.Config
 
-        (flip State.evalT) localConfig $ (flip State.evalT) globalConfig $
-            case command of
+        (flip State.evalT) localConfig . (flip State.evalT) globalConfig
+            $ case command of
                 Build    _    -> putStrLn
                     "Building of executables is not yet implemented."
                 Clean    _    -> putStrLn
