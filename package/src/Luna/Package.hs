@@ -2,7 +2,8 @@ module Luna.Package where
 
 import Prologue
 
-import qualified Control.Exception.Safe                   as SafeException
+import qualified Control.Exception                        as Unsafe
+import qualified Control.Exception.Safe                   as Safe
 import qualified Control.Monad.Exception                  as Exception
 import qualified Control.Monad.Exception.IO               as Exception
 import qualified Data.Bimap                               as Bimap
@@ -113,7 +114,7 @@ findPackageFileForFile = findPackageFile . Path.parent
 getRelativePathForModule :: (MonadIO m, MonadCatch m) => Path Abs File
     -> Path Abs File -> m (Maybe (Path Rel File))
 getRelativePathForModule packageFile =
-    fmap eitherToMaybe . SafeException.try . Path.stripProperPrefix
+    fmap eitherToMaybe . Safe.try . Path.stripProperPrefix
         (Path.parent $ Path.parent packageFile)
     where
         eitherToMaybe :: Either Path.PathException (Path Rel File)
@@ -154,7 +155,7 @@ tryConvertPackageFormat dir = do
                 Directory.copyFile
                     (Path.toFilePath $ dir </> file)
                     (Path.toFilePath $ configDirPath </> file)
-                SafeException.tryAny $ Directory.removeFile
+                Safe.tryAny $ Directory.removeFile
                     (Path.toFilePath $ dir </> file)
             pure $ map (configDirPath </>) files
 
@@ -210,7 +211,7 @@ listDependencies :: (MonadIO m, MonadException Path.PathException m)
 listDependencies pkgSrc = do
     let lunaModules     = pkgSrc </> Name.localLibsPath
         lunaModulesPath = Path.toFilePath lunaModules
-    dependencies <- liftIO . SafeException.tryAny
+    dependencies <- liftIO . Safe.tryAny
         $ Directory.listDirectory lunaModulesPath
     case dependencies of
         Left _           -> pure []
@@ -340,7 +341,8 @@ rename src target = do
     let origProjPath = target </> Name.configDirectory </> origProjFile
         newProjPath  = target </> Name.configDirectory </> newProjFile
 
-    Exception.catchAll (\(e :: SomeException) ->
+    -- TODO [Ara] Fix MonadException and move back to that Exception.CatchAll
+    liftIO . Unsafe.handle (\(e :: SomeException) ->
             Exception.throw $ CannotRenameFile newProjPath e)
         . liftIO $ Directory.renameFile (Path.fromAbsFile origProjPath)
         (Path.fromAbsFile newProjPath)
@@ -361,8 +363,10 @@ rename src target = do
             cfg & Local.projectName .~ newName
 
     -- Bubble up an error if the original directory can't be removed.
-    Exception.catchAll (\(e :: SomeException) ->
+    liftIO . Unsafe.handle (\(e :: SomeException) ->
             pure (target, Just (CannotDelete src e))) $ do
         liftIO $ Directory.removeDirectoryRecursive srcPath
         pure (target, Nothing)
+
+    pure (target, Nothing)
 

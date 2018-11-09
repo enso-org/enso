@@ -29,6 +29,7 @@ library:
         - optparse-applicative
         - path
         - prologue
+        - safe-exceptions
         - text
         - unordered-containers
         - yaml
