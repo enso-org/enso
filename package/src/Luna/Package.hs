@@ -365,7 +365,7 @@ rename src target = do
     -- Bubble up an error if the original directory can't be removed.
     liftIO . Unsafe.handle (\(e :: SomeException) ->
             pure (target, Just (CannotDelete src e))) $ do
-        liftIO $ Directory.removeDirectoryRecursive srcPath
+        Directory.removeDirectoryRecursive srcPath
         pure (target, Nothing)
 
     pure (target, Nothing)
