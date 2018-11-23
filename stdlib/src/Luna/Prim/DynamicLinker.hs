@@ -111,7 +111,8 @@ loadLibrary namePattern = do
                <> [ extension | extension <- dynamicLibraryExtensions,
                                 not (null extension)
                   ]
-    linkerCache <- maybeToList <$> nativeLoadFromCache library
+    linkerCache <- maybeToList <$> nativeLoadFromCache library `catchAny`
+        const (return Nothing)
     extendedSearchPaths <- fmap concat . for nativeSearchPaths $ \path -> do
         files <- Dir.listDirectory path `catchAny` \_ -> return []
         let matchingFiles = filter (List.isInfixOf library) files
