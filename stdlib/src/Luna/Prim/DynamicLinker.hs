@@ -92,7 +92,7 @@ loadLibrary :: String -> IO Handle
 loadLibrary namePattern = do
     projectDir   <- Dir.getCurrentDirectory
     includedLibs <- map snd <$> Package.includedLibs
-    nativeDirs   <- fmap concat <$>
+    nativeDirs   <- fmap concat $
         mapM findNativeLibsDirsForProject (projectDir : includedLibs)
     let possibleNames = [ prefix <> namePattern <> extension
                         | prefix    <- ["lib", ""]
