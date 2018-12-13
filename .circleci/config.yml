@@ -5,13 +5,13 @@ jobs:
       GHC_RTS: -M3G
       LUNA_LIBS_PATH: /root/project/stdlib
     docker:
-      - image: fpco/stack-build:lts-12.16
+      - image: lunalang/luna-ci
     steps:
       - checkout
       - restore-cache:
           key: stack-v1-{{ checksum "config/snapshot.yaml" }}
       - run: stack setup
-      - run: stack build -j1 --fast --ghc-options="-pgmc gcc-7" --test --copy-bins
+      - run: stack build -j1 --fast --ghc-options="-pgmc gcc-8" --test --copy-bins
       - save-cache:
           key: stack-v1-{{ checksum "config/snapshot.yaml" }}
           when: always
