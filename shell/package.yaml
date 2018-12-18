@@ -48,6 +48,10 @@ executables:
         dependencies:
             - base
             - vector-text
+            - aeson
+            - luna-text-processing
+            - text
+            - bytestring
             - luna-shell
             - luna-syntax-text-lexer
             - luna-syntax-text-parser
