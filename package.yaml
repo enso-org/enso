@@ -1,5 +1,5 @@
 name: monoid
-version: 0.1.8
+version: 0.1.9
 synopsis: Monoid type classes, designed in modular way, distinguish Monoid from Mempty
   and Semigroup. This design allows mempty operation don't bring Semigroups related
   constraints until (<>) is used.
@@ -20,7 +20,7 @@ library:
   source-dirs:
   - src
   dependencies:
-  - base >= 4.10 && < 4.12
+  - base >= 4.9 && < 4.13
   - lens
   - mtl
   - containers
