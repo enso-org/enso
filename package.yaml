@@ -1,5 +1,5 @@
 name: layered-state
-version: 1.1.4
+version: 1.1.5
 synopsis: Control structure similar to Control.Monad.State, allowing multiple nested
   states, distinguishable by provided phantom types.
 category: Data
@@ -19,7 +19,7 @@ library:
   source-dirs:
   - src
   dependencies:
-  - base >= 4.10 && < 4.12
+  - base >= 4.9 && < 4.13
   - lens
   - mtl
   - primitive
