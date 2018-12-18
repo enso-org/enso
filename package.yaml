@@ -1,5 +1,5 @@
 name: functor-utils
-version: 1.17.1
+version: 1.17.2
 synopsis: Collection of functor utilities, providing handy operators, like generalization
   of (.).
 category: Data
@@ -19,7 +19,7 @@ library:
   source-dirs:
   - src
   dependencies:
-  - base >= 4.10 && < 4.12
+  - base >= 4.9 && < 4.13
   - ghc-prim
   - lens
 
