@@ -1,5 +1,5 @@
 name: layouting
-version: 1.1.3
+version: 1.1.4
 synopsis: General layouting library. Currently supports layouting 2D areas and can
   be used as a backend for text pretty printing or automatic windows layouting managers.
 category: Data
@@ -19,7 +19,7 @@ library:
   source-dirs:
   - src
   dependencies:
-  - base >= 4.10 && < 4.12
+  - base >= 4.9 && < 4.13
   - prologue
   - text
   - terminal-text
