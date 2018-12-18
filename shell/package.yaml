@@ -42,6 +42,16 @@ executables:
             - base
             - luna-shell
             - prologue
+    lunalint:
+        main: src-app/Linter.hs
+        ghc-options: -threaded "-with-rtsopts=-N -T"
+        dependencies:
+            - base
+            - vector-text
+            - luna-shell
+            - luna-syntax-text-lexer
+            - luna-syntax-text-parser
+            - prologue
 
 benchmarks:
     interpreter-benchmark:
