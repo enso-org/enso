@@ -1,5 +1,5 @@
 name: vector-text
-version: 1.1.5
+version: 1.1.6
 synopsis: Text implementation based on unboxed char vector.
 category: Data
 license: Apache-2.0
@@ -18,7 +18,7 @@ library:
   source-dirs:
   - src
   dependencies:
-  - base >= 4.10 && < 4.12
+  - base >= 4.9 && < 4.13
   - vector
   - prologue
   - binary
