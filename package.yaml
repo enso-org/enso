@@ -1,5 +1,5 @@
 name        : lens-utils
-version     : 1.4.5
+version     : 1.4.6
 synopsis    : Collection of missing lens utilities.
 category    : Data
 license     : Apache-2.0
@@ -19,7 +19,7 @@ library:
         - src
     dependencies:
         - aeson
-        - base >= 4.10 && < 4.12
+        - base >= 4.9 && < 4.13
         - containers
         - data-default
         - lens
