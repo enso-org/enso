@@ -1,5 +1,5 @@
 name: convert
-version: '1.5'
+version: '1.5.1'
 synopsis: Safe and unsafe data conversion utilities with strong type-level operation.
   checking.
 category: Data
@@ -20,7 +20,7 @@ library:
   - src
   dependencies:
   - ansi-wl-pprint
-  - base >= 4.10 && < 4.12
+  - base >= 4.9 && < 4.13
   - bytestring
   - containers
   - data-default
