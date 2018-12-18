@@ -8,70 +8,65 @@ module Main where
     import Luna.Syntax.Text.Lexer.Token as T
     import Luna.Syntax.Text.Lexer.Symbol as S
     import Data.Text.Position            (Delta)
-    import Data.Text32 hiding (convert)
+    import Data.Text32 hiding (convert, map)
     import Data.Aeson
     import qualified Data.ByteString.Lazy as B
 
     instance ToJSON Delta where
         toJSON delta = toJSON ((convert delta) :: Int)
 
-    jsonStr :: String -> Value
-    jsonStr = toJSON
+    -- instance ToJSON Text32 where
+    --     toJSON txt = toJSON ((convert txt) :: String)
+    text32ToJSON :: Text32 -> Value
+    text32ToJSON txt = toJSON ((convert txt) ::String)
 
-    jsonT32 :: Text32 -> Value
-    jsonT32 txt = toJSON ((convert txt) ::String)
+    valueForSymbol :: Symbol -> Maybe Value
+    -- TODO Block, Group, Marker
+    valueForSymbol (Var n) = Just $ text32ToJSON n
+    valueForSymbol (Cons v) = Just $ text32ToJSON v
+    
+    valueForSymbol KwCase = Just $ toJSON ("case" :: String)
+    valueForSymbol KwClass = Just $ toJSON ("class" :: String)
+    valueForSymbol KwDef = Just $ toJSON ("def" :: String)
+    valueForSymbol KwForeign = Just $ toJSON ("foreign" :: String)
+    valueForSymbol KwImport = Just $ toJSON ("import" :: String)
+    valueForSymbol KwNative = Just $ toJSON ("native" :: String)
+    valueForSymbol KwOf = Just $ toJSON ("of" :: String)
 
-    symbolWithValue :: String -> Text32 -> Value
-    symbolWithValue name value = object 
-        [ "symbol" .= toJSON name
-        , "value" .= jsonT32 value ]
+    valueForSymbol (Operator v) = Just $ text32ToJSON v
+    valueForSymbol (Modifier v) = Just $ text32ToJSON v
+    valueForSymbol (S.Number num) = Nothing -- TODO
+    valueForSymbol (Quote strtype bound) = Nothing -- TODO
+    valueForSymbol (Str v) = Just $ text32ToJSON v
+    valueForSymbol (StrEsc esctype) = Nothing -- TODO
+    valueForSymbol (List bound) = Nothing -- TODO
+    valueForSymbol (Doc v) = Just $ text32ToJSON v
 
-    symbolKw :: String -> Value
-    symbolKw name = object 
-        [ "symbol" .= jsonStr "Keyword"
-        , "value" .= toJSON name ]
+    valueForSymbol (Metadata v) = Just $ text32ToJSON v
+    valueForSymbol (Unknown v) = Just $ text32ToJSON v -- deprecated
+    valueForSymbol (Incorrect v) = Just $ text32ToJSON v -- deprecated
+    valueForSymbol (Invalid invsymb) = Just $ toJSON ((show invsymb) :: String)
+
+    valueForSymbol _ = Nothing
 
     instance ToJSON Symbol where
         toJSON :: Symbol -> Value
-        -- TODO Block, Group, Marker
-        toJSON (Var n) = symbolWithValue "Var" n
-        toJSON (Cons v) = symbolWithValue "Cons" v
-        toJSON KwCase = symbolKw "case"
-        toJSON KwClass = symbolKw "class"
-        toJSON KwDef = symbolKw "def"
-        toJSON KwForeign = symbolKw "foreign"
-        toJSON KwImport = symbolKw "import"
-        toJSON KwNative = symbolKw "native"
-        toJSON KwOf = symbolKw "of"
-        toJSON (Operator v) = symbolWithValue "Operator" v
-        toJSON (Modifier v) = symbolWithValue "Modifier" v
-        toJSON (S.Number num) = object 
-            [ "symbol" .= jsonStr "Number"
-            , "value" .= jsonStr "TODO" ] -- TODO
-        toJSON (Quote strtype bound) = object 
-            [ "symbol" .= jsonStr "Quote"
-            , "value" .= jsonStr "TODO" ] -- TODO
-        toJSON (Str v) = symbolWithValue "Str" v
-        toJSON (StrEsc esctype) = object 
-            [ "symbol" .= jsonStr "StrEsc"
-            , "value" .= jsonStr "TODO" ] -- TODO
-        toJSON (List bound) = object 
-            [ "symbol" .= jsonStr "List"
-            , "value" .= jsonStr "TODO" ] -- TODO
-        toJSON (Doc v) = symbolWithValue "Doc" v
-        toJSON (Metadata v) = symbolWithValue "Metadata" v
-        toJSON (Unknown v) = symbolWithValue "Unknown@Deprecated" v
-        toJSON (Incorrect v) = symbolWithValue "Incorrect@Deprecated" v
-        toJSON (Invalid invsymb) = object 
-            [ "symbol" .= jsonStr "Invalid"
-            , "value" .= jsonStr (show invsymb) ] -- TODO
-        toJSON sym = object ["symbol" .= jsonStr (show sym)]
-
+        toJSON sym = case valueForSymbol sym of
+            Nothing -> object
+                [ "symbol" .= text32ToJSON (showCons sym)
+                , "tags" .= map text32ToJSON (getTags sym)
+                ]
+            Just v -> object
+                [ "symbol" .= text32ToJSON (showCons sym)
+                , "tags" .= map text32ToJSON (getTags sym)
+                , "value" .= v 
+                ]
+        
     instance ToJSON a => ToJSON (Token a) where
-        toJSON token = object [
-            "span" .= toJSON (token ^. T.span),
-            "offset" .= toJSON (token ^. T.offset),
-            "element" .= toJSON (token ^. T.element)
+        toJSON token = object 
+            [ "span" .= toJSON (token ^. T.span)
+            , "offset" .= toJSON (token ^. T.offset)
+            , "element" .= toJSON (token ^. T.element)
             ]
 
 
