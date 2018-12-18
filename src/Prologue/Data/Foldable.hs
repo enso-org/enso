@@ -5,7 +5,7 @@ import Prologue.Data.Maybe       (fromJust)
 import Prologue.Data.Traversable
 
 import Control.Monad
-import           Data.Kind       (Constraint)
+import           Data.Kind       (Constraint, Type)
 import qualified Data.Foldable      as F
 import qualified Data.Bifoldable    as F
 import qualified Control.Error.Safe as S
@@ -19,7 +19,7 @@ import           Data.Bifoldable    as X (biconcat, biconcatMap, biand, bior, bi
 import Data.Semigroup.Foldable as X (Foldable1, fold1, foldMap1, toNonEmpty)
 
 
-type family Foldables (lst :: [* -> *]) :: Constraint where
+type family Foldables (lst :: [Type -> Type]) :: Constraint where
     Foldables '[]       = ()
     Foldables (t ': ts) = (Foldable t, Foldables ts)
 

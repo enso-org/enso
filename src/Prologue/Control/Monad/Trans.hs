@@ -4,12 +4,12 @@ import Prelude
 import Control.Monad.Trans.Class as X (MonadTrans, lift)
 
 import Control.Monad.Primitive (PrimState)
-import Data.Kind               (Constraint)
+import Data.Kind               (Constraint, Type)
 
 
 -- === Type families === --
 
-type family MonadTranses (ts :: [(* -> *) -> * -> *]) :: Constraint where
+type family MonadTranses (ts :: [(Type -> Type) -> Type -> Type]) :: Constraint where
     MonadTranses '[]       = ()
     MonadTranses (t ': ts) = (MonadTrans t, MonadTranses ts)
 

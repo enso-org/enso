@@ -8,7 +8,7 @@ default-extensions: [ScopedTypeVariables, TypeApplications, ConstraintKinds, Dat
   GeneralizedNewtypeDeriving, InstanceSigs, LambdaCase, MultiParamTypeClasses, NoImplicitPrelude,
   OverloadedStrings, StandaloneDeriving, TemplateHaskell, TupleSections, TypeFamilies,
   TypeOperators, ViewPatterns, MultiWayIf, UnicodeSyntax]
-dependencies: [base >= 4.10 && < 4.12, bifunctors, binary, cond, container, convert,
+dependencies: [base >= 4.9 && < 4.13, bifunctors, binary, cond, container, convert,
   data-default, deepseq, errors, exceptions, functor-utils, ghc-prim, impossible,
   lens, lens-utils, mtl, placeholders, pretty-show, primitive, string-qq, raw-strings-qq,
   template-haskell, text, transformers, transformers-base, typelevel, vector, comonad,
@@ -25,4 +25,4 @@ maintainer: Wojciech Danilo <wojciech.danilo@gmail.com>
 name: prologue
 stability: experimental
 synopsis: Better, more general Prelude exporting common utilities.
-version: 3.2.5
+version: 3.2.6

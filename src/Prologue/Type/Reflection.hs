@@ -30,7 +30,7 @@ type family Typeables ls :: Constraint where
     Typeables '[] = ()
     Typeables (l ': ls) = (Typeable l, Typeables ls)
 
-class TypeableMany (ls :: [*]) where someTypeReps :: [SomeTypeRep]
+class TypeableMany (ls :: [Type]) where someTypeReps :: [SomeTypeRep]
 instance (Typeable l, TypeableMany ls) => TypeableMany (l ': ls) where
     someTypeReps = someTypeRep @l : someTypeReps @ls ; {-# INLINE someTypeReps #-}
 instance TypeableMany '[] where

@@ -1,3 +1,11 @@
+{-# LANGUAGE CPP #-}
+
+#ifdef MIN_VERSION_GLASGOW_HASKELL
+#if MIN_VERSION_GLASGOW_HASKELL(8,6,1,0)
+{-# LANGUAGE NoStarIsType #-}
+#endif
+#endif
+
 module Prologue (module Prologue, module X) where
 
 
@@ -40,7 +48,7 @@ import GHC.Enum                         as X ( Enum (succ, pred, toEnum, fromEnu
                                              )
 import Text.Read                        as X (readPrec) -- new style Read class implementation
 import Prologue.Text.Show               as X
-import Prologue.Text.Show.Styled        as X 
+import Prologue.Text.Show.Styled        as X
 import Text.Show.Functions              as X ()
 import Data.Void                        as X (Void, absurd)
 
