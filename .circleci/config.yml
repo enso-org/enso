@@ -18,6 +18,11 @@ jobs:
           paths:
               - "~/.stack"
               - ".stack-work"
+
+      # TODO: Building optimized luna is too requiring for CircleCI... 
+      # (time and memory limits on containers versus our insane requirements...)
+      # Unfortunately using unoptimized luna to run tests is too slow as well.
+      # Command below is to be restored after this issue is fixed and tests do pass.
       # - run: LD_PRELOAD=/root/.stack/programs/x86_64-linux/ghc-8.4.4/lib/ghc-8.4.4/rts/libffi.so.7 /root/project/dist/bin/public/luna/luna run --target=/root/project/stdlib/StdTest
 
 workflows:
