@@ -20,6 +20,7 @@ ghc-options:
         -fstatic-argument-transformation
         -funbox-strict-fields
         -threaded
+        -fomit-interface-pragmas
     $everything:
         -fconstraint-solver-iterations=100
 
