@@ -116,6 +116,22 @@ version of Luna as follows:
 stack build --stack-yaml build/stack-local.yaml
 ```
 
+#### Building Luna for Release
+In order to keep compile times down for development, we compile Luna with 
+`-fomit-interface-pragmas`. However, this disables cross-module inlining, which
+is an important optimisation for Luna's performance. 
+
+In order to build Luna for maximum performance, you need to override this flag
+when giving the build command. This can be done as follows:
+
+```
+stack build --ghc-options="-fno-omit-interface-pragmas" <...>
+```
+
+It is recommended to always use this when building the benchmarks. You can use
+this additional argument with any of the commands listed above for development
+of individual components.
+
 ### Running Luna
 As a prerequisite, you need to set a `LUNA_LIBS_PATH` variable to point to the
 location of the Luna standard library. Assuming your repo is at
