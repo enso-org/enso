@@ -13,7 +13,7 @@ copyright   : Copyright (C) 2018 Luna Team
 maintainer:
     - Wojciech Danilo  <wojciech.danilo@luna-lang.org>
     - Marcin Kostrzewa <marcin.kostrzewa@luna-lang.org>
-    - Piotr Moczurad   <piotr.moczurad@luna-lang.org>
+    - Ara Adkins       <ara.adkins@luna-lang.org>
 
 ghc-options:
     - -Wall
@@ -137,4 +137,10 @@ tests:
             - random
 
 default-extensions: *luna-extensions
+
+flags:
+    myTestFlag:
+        description: Testing
+        default: False
+        manual: True
 
