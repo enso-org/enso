@@ -138,9 +138,3 @@ tests:
 
 default-extensions: *luna-extensions
 
-flags:
-    myTestFlag:
-        description: Testing
-        default: False
-        manual: True
-

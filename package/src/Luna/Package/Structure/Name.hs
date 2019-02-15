@@ -71,3 +71,4 @@ mainFileName = "Main"
 
 mainFuncName :: Name.Qualified
 mainFuncName = "main"
+
