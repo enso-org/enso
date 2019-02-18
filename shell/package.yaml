@@ -27,6 +27,7 @@ library:
         - luna-passes
         - luna-runtime
         - luna-stdlib
+        - luna-datafile-detect
         - megaparsec
         - mtl
         - optparse-applicative
@@ -45,22 +46,6 @@ executables:
             - base
             - luna-shell
             - prologue
-
-tests:
-    spec:
-        main: Main.hs
-        source-dirs: test/spec
-        dependencies:
-            - base
-            - directory
-            - filepath
-            - hspec
-            - hspec-jenkins
-            - luna-ci
-            - luna-shell
-            - path
-            - prologue
-            - temporary
 
 benchmarks:
     interpreter-benchmark:

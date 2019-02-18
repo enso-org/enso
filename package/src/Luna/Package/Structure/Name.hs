@@ -48,9 +48,6 @@ gitignoreFile = ".gitignore"
 packageExt :: String
 packageExt = ".lunaproject"
 
-lunaRootEnv :: String
-lunaRootEnv = "LUNA_LIBS_PATH"
-
 lunaFileExt :: String
 lunaFileExt = ".luna"
 

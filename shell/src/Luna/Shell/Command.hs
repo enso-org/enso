@@ -18,7 +18,7 @@ import qualified Luna.Package.Structure.Name        as Package
 import qualified Luna.Shell.CWD                     as CWD
 import qualified Luna.Shell.Interpret               as Interpret
 import qualified Luna.Shell.GenerateDocumentation   as GenerateDocumentation
-import qualified Luna.Shell.Location                as Location
+import qualified Luna.Datafile.Location             as Location
 import qualified Path                               as Path
 import qualified System.Directory                   as Directory
 import qualified System.Info                        as Info

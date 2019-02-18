@@ -44,8 +44,9 @@ dependencies:
     - lens
     - libffi
     - luna-core
-    - luna-passes
+    - luna-datafile-detect
     - luna-package
+    - luna-passes
     - luna-runtime
     - luna-syntax-text-prettyprint
     - mtl

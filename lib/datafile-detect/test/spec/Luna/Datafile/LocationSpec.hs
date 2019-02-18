@@ -1,11 +1,11 @@
-module Luna.Shell.LocationSpec where
+module Luna.Datafile.LocationSpec where
 
 import Prologue
 
-import qualified Luna.Shell.Location as Location
-import qualified Path                as Path
-import qualified System.Directory    as Directory
-import qualified System.IO.Temp      as Temp
+import qualified Luna.Datafile.Location as Location
+import qualified Path                   as Path
+import qualified System.Directory       as Directory
+import qualified System.IO.Temp         as Temp
 
 import System.FilePath ((</>))
 import Test.Hspec      ( Spec, Expectation, describe, it, shouldBe, shouldThrow

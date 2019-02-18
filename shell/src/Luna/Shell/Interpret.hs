@@ -99,7 +99,7 @@ file filePath stdlibPath = do
     liftIO . Directory.setCurrentDirectory . Path.fromAbsDir
         $ Path.parent filePath
 
-    fileSources <- Package.fileSourcePaths filePath
+    fileSources <- Package.fileSourcePaths filePath stdlibPath
 
     let fileName = convertVia @Name.Name . FilePath.dropExtension
             . Path.fromRelFile $ Path.filename filePath
@@ -115,7 +115,7 @@ package pkgPath stdlibPath = Exception.rethrowFromIO @Path.PathException $ do
     liftIO . Directory.setCurrentDirectory $ Path.fromAbsDir pkgPath
 
     packageRoot    <- fromJust pkgPath <$> Package.findPackageRoot pkgPath
-    packageImports <- Package.packageImportPaths packageRoot
+    packageImports <- Package.packageImportPaths packageRoot stdlibPath
     importPaths    <- sequence $ Path.parseAbsDir . snd <$> packageImports
     projectSrcs    <- sequence $ Package.findPackageSources <$> importPaths
 

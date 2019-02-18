@@ -1,4 +1,4 @@
-module Luna.Shell.Location where
+module Luna.Datafile.Location where
 
 import Prologue
 
@@ -10,8 +10,6 @@ import qualified System.Environment         as Environment
 
 import Control.Monad.Exception (MonadException, MonadExceptions)
 import Path                    ((</>), Path, Rel, Dir, Abs)
-
--- TODO [Ara] Test this if possible
 
 
 

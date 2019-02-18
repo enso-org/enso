@@ -19,7 +19,6 @@ import           Data.Maybe             (maybeToList)
 import qualified Data.Text              as Text
 import           Foreign                (FunPtr)
 import qualified Foreign
-import qualified Luna.Package           as Package
 import qualified Safe
 import qualified System.Directory       as Dir
 import qualified System.Environment     as Env
@@ -28,6 +27,9 @@ import qualified System.FilePath        as FP
 import qualified System.Info            as Info (os)
 import qualified System.Process         as Process
 import           System.IO.Unsafe       (unsafePerformIO)
+
+import qualified Luna.Datafile.Location as Location
+import qualified Luna.Package as Package
 
 #if mingw32_HOST_OS
 import qualified System.Win32.DLL   as Win32
@@ -90,8 +92,9 @@ parseError e = if ((length $ snd partitioned) == 0) then
 
 loadLibrary :: String -> IO Handle
 loadLibrary namePattern = do
+    stdlibPath   <- Location.getStdlibPath
     projectDir   <- Dir.getCurrentDirectory
-    includedLibs <- map snd <$> Package.includedLibs
+    includedLibs <- map snd <$> Package.includedLibs stdlibPath
     nativeDirs   <- fmap concat $
         mapM findNativeLibsDirsForProject (projectDir : includedLibs)
     let possibleNames = [ prefix <> namePattern <> extension
