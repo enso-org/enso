@@ -92,8 +92,8 @@ interpretWithMain name sourcesMap = Graph.encodeAndEval @TC.Stage
                 putStrLn $ "Running in interpreted mode."
                 void $ liftIO $ Runtime.runIO mainFunc
 
-file :: (InterpreterMonad m) => Path Abs File -> m ()
-file filePath = do
+file :: (InterpreterMonad m) => Path Abs File -> Path Abs Dir -> m ()
+file filePath stdlibPath = do
     -- Swap the working directory
     originalDir <- CWD.get
     liftIO . Directory.setCurrentDirectory . Path.fromAbsDir
@@ -108,8 +108,8 @@ file filePath = do
 
     liftIO $ Directory.setCurrentDirectory originalDir
 
-package :: (InterpreterMonad m) => Path Abs Dir -> m ()
-package pkgPath = Exception.rethrowFromIO @Path.PathException $ do
+package :: (InterpreterMonad m) => Path Abs Dir -> Path Abs Dir -> m ()
+package pkgPath stdlibPath = Exception.rethrowFromIO @Path.PathException $ do
     -- Swap the working directory
     originalDir <- CWD.get
     liftIO . Directory.setCurrentDirectory $ Path.fromAbsDir pkgPath

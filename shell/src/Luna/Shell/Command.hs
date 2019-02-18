@@ -176,30 +176,30 @@ run (RunOpts target) = liftIO $ catch compute recover where
             canonicalPath <- Directory.canonicalizePath target
             fileExists    <- Directory.doesFileExist canonicalPath
             projectExists <- Directory.doesDirectoryExist canonicalPath
+            stdlibPath    <- Location.getStdlibPath
 
             if fileExists then do
                 filePath <- Path.parseAbsFile canonicalPath
                 if Path.fileExtension filePath /= Package.lunaFileExt then
                     hPutStrLn stderr $ canonicalPath <> " is not a Luna file."
-                else Interpret.file filePath
-            else if projectExists then runPackage canonicalPath
+                else Interpret.file filePath stdlibPath
+            else if projectExists then runPackage canonicalPath stdlibPath
             else hPutStrLn stderr $ target <> " not found."
         else do
-            cwd <- CWD.get
-            runPackage cwd
+            cwd        <- CWD.get
+            stdlibPath <- Location.getStdlibPath
+
+            runPackage cwd stdlibPath
 
     -- FIXME [Ara] This can be done much better.
     recover (e :: SomeException) = die (displayException e)
 
-    runPackage path = do
-        packagePath   <- Path.parseAbsDir path
+    runPackage pkgPath stdlibPath = do
+        packagePath   <- Path.parseAbsDir pkgPath
         isLunaPackage <- Package.isLunaPackage packagePath
-        stdlibPath    <- Location.getStdlibPath
 
-        print stdlibPath
-
-        if isLunaPackage then Interpret.package packagePath
-        else hPutStrLn stderr $ path <> " is not a Luna Package."
+        if isLunaPackage then Interpret.package packagePath stdlibPath
+        else hPutStrLn stderr $ pkgPath <> " is not a Luna Package."
 
 init :: (ConfigStateIO m, MonadException Path.PathException m) => InitOpts
     -> m ()
