@@ -76,23 +76,26 @@ testDefaultPath :: DefaultPathType -> Expectation
 testDefaultPath ty = Temp.withSystemTempDirectory "LunaTemp" $ \fp -> do
     fpPath <- Path.parseAbsDir fp
 
-    let dummyDeepDir   = "foo/bar/baz"
-        stdlibPath     = fpPath Path.</> Location.stdlibRelPath
-        stdlibFullPath = stdlibPath Path.</> Location.stdlibContents
-        workingPath    = case ty of
-            DefaultPathExists -> fp
+    let dummyDeepDir      = "foo/bar/baz"
+        stdlibPath        = fpPath Path.</> Location.stdlibRelPath
+        stdlibFullPath    = stdlibPath Path.</> Location.stdlibContents
+        stdlibPkgPath     = fpPath Path.</> Location.stdlibPackageRelPath
+        stdlibPkgFullPath = stdlibPkgPath Path.</> Location.stdlibContents
+        workingPath       = case ty of
+            DefaultPathExists -> fp </> Path.fromRelDir
+                Location.binaryPackageRelPath
             _                 -> fp </> dummyDeepDir
 
-    liftIO . Directory.createDirectoryIfMissing True $ fp </> dummyDeepDir
+    liftIO . Directory.createDirectoryIfMissing True $ workingPath
 
     liftIO . Directory.withCurrentDirectory workingPath $ case ty of
         DefaultPathExists -> do
             liftIO . Directory.createDirectoryIfMissing True
-                $  Path.fromAbsDir stdlibFullPath
+                $  Path.fromAbsDir stdlibPkgFullPath
 
             resultPath <- Location.getStdlibDefaultPath
 
-            resultPath `shouldBe` stdlibPath
+            resultPath `shouldBe` stdlibPkgPath
         LocalRepoPath -> do
             liftIO . Directory.createDirectory
                 $ fp </> Path.fromRelDir Location.gitFolderName

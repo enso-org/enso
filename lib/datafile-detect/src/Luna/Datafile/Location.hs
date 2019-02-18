@@ -17,14 +17,25 @@ import Path                    ((</>), Path, Rel, Dir, Abs)
 -- === Location Constants === --
 --------------------------------
 
+-- What should be found inside the `stdlib` folder in all cases
 stdlibContents :: Path Rel Dir
 stdlibContents = $(Path.mkRelDir "./Std/src/")
 
+-- From the repository root
 stdlibRelPath :: Path Rel Dir
 stdlibRelPath = $(Path.mkRelDir "./stdlib")
 
+-- From the repository root
 gitFolderName :: Path Rel Dir
-gitFolderName = $(Path.mkRelDir "./.git")
+gitFolderName = $(Path.mkRelDir ".git")
+
+-- From the package root
+binaryPackageRelPath :: Path Rel Dir
+binaryPackageRelPath = $(Path.mkRelDir "./bin/public")
+
+-- From the package root
+stdlibPackageRelPath :: Path Rel Dir
+stdlibPackageRelPath = $(Path.mkRelDir "./config/env/stdlib")
 
 -- If this is set, it should point to the root of the stdlib package such that
 -- `dir/Stdlib/src` is a valid path (where `dir` is the value of this
@@ -50,7 +61,14 @@ data LocationException
 -- === Instances === --
 
 instance Exception LocationException where
-    displayException _ = undefined
+    displayException (EnvVarSetButInvalid str _) =
+        "Environment variable set, but contents are not a valid location: "
+        <> show str
+    displayException (RepositoryHeadNotFoundFrom path) =
+        "Repository head not found starting from: " <> show path
+    displayException (RepositoryHeadFoundButInvalid path) =
+        "Repository head found at " <> show path <> " but does not contain the"
+        <> " required files."
 
 
 
@@ -88,8 +106,9 @@ getStdlibDefaultPath = do
     currentDirPath <- Exception.rethrowFromIO @Path.PathException
         $ Path.parseAbsDir currentDir
 
-    let stdlibBasePath = currentDirPath </> stdlibRelPath
-        expectedPath   = stdlibBasePath </> stdlibContents
+    let potentialPackageRoot = Path.parent $ Path.parent currentDirPath
+        stdlibBasePath       = potentialPackageRoot </> stdlibPackageRelPath
+        expectedPath         = stdlibBasePath </> stdlibContents
 
     expectedExists <- liftIO . Directory.doesDirectoryExist
         $ Path.fromAbsDir expectedPath
@@ -102,7 +121,7 @@ getStdlibDefaultPath = do
             . Path.fromAbsDir $ repoHead </> stdlibRelPath </> stdlibContents
 
         if stdlibExistsInRepo then pure $ repoHead </> stdlibRelPath else
-            Exception.throw $ RepositoryHeadFoundButInvalid repoHead
+            Exception.throw $ RepositoryHeadFoundButInvalid currentDirPath
 
 -- Finds the head of the repository based on looking for the `.git` folder using
 -- a directory tree walk.
