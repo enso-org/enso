@@ -14,7 +14,6 @@ data-files:
 library:
     source-dirs:
         - src
-    other-modules: Paths_luna_stdlib
 
 when:
     - condition: os(windows)

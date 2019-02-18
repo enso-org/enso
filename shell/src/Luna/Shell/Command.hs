@@ -3,7 +3,6 @@ module Luna.Shell.Command where
 import Prologue hiding (init)
 
 import qualified Control.Exception                  as Exception
-import qualified Control.Exception.Safe             as Safe
 import qualified Control.Monad.Exception            as MException
 import qualified Control.Monad.Exception.IO         as MException
 import qualified Control.Monad.State.Layered        as State
@@ -19,6 +18,7 @@ import qualified Luna.Package.Structure.Name        as Package
 import qualified Luna.Shell.CWD                     as CWD
 import qualified Luna.Shell.Interpret               as Interpret
 import qualified Luna.Shell.GenerateDocumentation   as GenerateDocumentation
+import qualified Luna.Shell.Location                as Location
 import qualified Path                               as Path
 import qualified System.Directory                   as Directory
 import qualified System.Info                        as Info
@@ -194,6 +194,9 @@ run (RunOpts target) = liftIO $ catch compute recover where
     runPackage path = do
         packagePath   <- Path.parseAbsDir path
         isLunaPackage <- Package.isLunaPackage packagePath
+        stdlibPath    <- Location.getStdlibPath
+
+        print stdlibPath
 
         if isLunaPackage then Interpret.package packagePath
         else hPutStrLn stderr $ path <> " is not a Luna Package."

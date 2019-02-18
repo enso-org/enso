@@ -46,6 +46,22 @@ executables:
             - luna-shell
             - prologue
 
+tests:
+    spec:
+        main: Main.hs
+        source-dirs: test/spec
+        dependencies:
+            - base
+            - directory
+            - filepath
+            - hspec
+            - hspec-jenkins
+            - luna-ci
+            - luna-shell
+            - path
+            - prologue
+            - temporary
+
 benchmarks:
     interpreter-benchmark:
         main: Main.hs
