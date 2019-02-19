@@ -11,7 +11,6 @@ maintainer:
 library:
     source-dirs:
         - src
-    other-modules: Paths_luna_package
 
 data-files:
     - ./data/licenses/*
@@ -45,6 +44,7 @@ dependencies:
     - lens
     - lens-utils
     - luna-core
+    - luna-datafile
     - luna-exception
     - luna-parser-utils
     - luna-syntax-text-lexer

@@ -2,6 +2,7 @@ module Luna.Package.Structure.Generate.Internal where
 
 import Prologue
 
+import qualified Control.Monad.Exception                 as MException
 import qualified Control.Exception                       as Exception
 import qualified Data.Text                               as Text
 import qualified Data.Yaml                               as Yaml
@@ -17,9 +18,11 @@ import qualified System.FilePath                         as FilePath
 import qualified System.IO                               as IO
 import qualified System.IO.Error                         as Exception
 
+import Luna.Datafile                      (DatafileException)
 import Control.Exception                  (IOException)
 import Luna.Package.Configuration.License (License)
 import System.FilePath                    (FilePath, (</>))
+import System.IO                          (hPutStrLn, stderr)
 
 
 
@@ -149,6 +152,8 @@ generateLicense pkgPath mLicense = do
             License.Unknown tx -> IO.appendFile licensePath $ convert tx
             License.None       -> pure ()
             _                  -> do
-                licenseText <- License.getLicenseText key
+                licenseText <- MException.catch @DatafileException
+                    (\e -> hPutStrLn stderr (displayException e) >> pure "")
+                    $ License.getLicenseText key
                 IO.appendFile licensePath licenseText
 
