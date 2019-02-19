@@ -1,6 +1,6 @@
 _config/lib: !include "../../config/hpack-common.yaml"
 
-name        : luna-datafile-detect
+name        : luna-datafile
 version     : 0.0.1
 category    : Data
 license     : Apache-2.0
@@ -35,7 +35,7 @@ tests:
             - hspec
             - hspec-jenkins
             - luna-ci
-            - luna-datafile-detect
+            - luna-datafile
             - path
             - prologue
             - temporary

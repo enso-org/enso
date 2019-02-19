@@ -22,12 +22,12 @@ library:
         - layered-state
         - lens
         - luna-core
+        - luna-datafile
         - luna-exception
         - luna-package
         - luna-passes
         - luna-runtime
         - luna-stdlib
-        - luna-datafile-detect
         - megaparsec
         - mtl
         - optparse-applicative

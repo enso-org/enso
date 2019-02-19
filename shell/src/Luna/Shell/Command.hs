@@ -18,7 +18,7 @@ import qualified Luna.Package.Structure.Name        as Package
 import qualified Luna.Shell.CWD                     as CWD
 import qualified Luna.Shell.Interpret               as Interpret
 import qualified Luna.Shell.GenerateDocumentation   as GenerateDocumentation
-import qualified Luna.Datafile.Location             as Location
+import qualified Luna.Datafile.Stdlib               as Stdlib
 import qualified Path                               as Path
 import qualified System.Directory                   as Directory
 import qualified System.Info                        as Info
@@ -176,7 +176,7 @@ run (RunOpts target) = liftIO $ catch compute recover where
             canonicalPath <- Directory.canonicalizePath target
             fileExists    <- Directory.doesFileExist canonicalPath
             projectExists <- Directory.doesDirectoryExist canonicalPath
-            stdlibPath    <- Location.getStdlibPath
+            stdlibPath    <- Stdlib.findPath
 
             hPutStrLn stdout $ "Using standard library at " <> show stdlibPath
 
@@ -189,7 +189,7 @@ run (RunOpts target) = liftIO $ catch compute recover where
             else hPutStrLn stderr $ target <> " not found."
         else do
             cwd        <- CWD.get
-            stdlibPath <- Location.getStdlibPath
+            stdlibPath <- Stdlib.findPath
 
             hPutStrLn stdout $ "Using standard library at " <> show stdlibPath
 

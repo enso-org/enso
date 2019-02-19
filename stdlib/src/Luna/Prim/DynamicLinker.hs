@@ -28,7 +28,7 @@ import qualified System.Info            as Info (os)
 import qualified System.Process         as Process
 import           System.IO.Unsafe       (unsafePerformIO)
 
-import qualified Luna.Datafile.Location as Location
+import qualified Luna.Datafile.Stdlib as Stdlib
 import qualified Luna.Package as Package
 
 #if mingw32_HOST_OS
@@ -92,7 +92,7 @@ parseError e = if ((length $ snd partitioned) == 0) then
 
 loadLibrary :: String -> IO Handle
 loadLibrary namePattern = do
-    stdlibPath   <- Location.getStdlibPath
+    stdlibPath   <- Stdlib.findPath
     projectDir   <- Dir.getCurrentDirectory
     includedLibs <- map snd <$> Package.includedLibs stdlibPath
     nativeDirs   <- fmap concat $

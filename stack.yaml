@@ -46,7 +46,7 @@ packages:
     - lib/code-builder
     - lib/cpp-containers
     - lib/data-construction
-    - lib/datafile-detect
+    - lib/datafile
     - lib/data-property
     - lib/data-storable
     - lib/data-tag
