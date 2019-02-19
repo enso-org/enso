@@ -185,12 +185,12 @@ class ExitCode:
         ExitSuccess: 0
         ExitFailure e: e
 
-    # Is this code a successful one?
+    # Successful termination.
     def exitSuccess: case self of
         ExitSuccess: True
         ExitFailure e: False
 
-    # Is this code not a successful one?
+    # Program failure with an exit code.
     def exitFailure: case self of
         ExitFailure e: True
         ExitSuccess: False
@@ -214,6 +214,7 @@ class Platform:
         MacOS: "MacOS"
 
 class System:
+    # Return current platform (MacOS, Linux, Windows)
     def currentPlatform: primPlatform
 
     # Lookup an environment variable `v`,
@@ -232,5 +233,6 @@ class System:
         primSetEnv name val
 
 class Directory:
+    # Return current directory.
     def current: primGetCurrentDirectory
 

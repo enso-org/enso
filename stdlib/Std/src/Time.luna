@@ -46,7 +46,7 @@ class TimeZone:
 
     def pst: TimeZoneVal (-8) False "PST"
 
-    # Is the offset of this `TimeZone` the same as of the `other` one?
+    # Check does the offset of this `TimeZone` is the same as the `other` one.
     def == other:
         self.minutes.== other.minutes
 
