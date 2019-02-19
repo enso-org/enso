@@ -11,6 +11,9 @@ import qualified System.Environment         as Environment
 import Control.Monad.Exception (MonadException, MonadExceptions)
 import Path                    ((</>), Path, Rel, Dir, Abs)
 
+-- TODO Redesign this to be an extensible search mechanism to work in LS as well
+-- TODO Should work for other data files
+
 
 
 --------------------------------
@@ -102,13 +105,21 @@ getStdlibDefaultPath :: ( MonadIO m
                                            , LocationException] m )
     => m (Path Abs Dir)
 getStdlibDefaultPath = do
+    -- Mistake, this is not the location of the binary
+    -- TODO [Ara] Fix this to work from the binary location, fix tests
+    binaryPath     <- liftIO $ Environment.getExecutablePath
     currentDir     <- liftIO $ Directory.getCurrentDirectory
     currentDirPath <- Exception.rethrowFromIO @Path.PathException
         $ Path.parseAbsDir currentDir
 
+    putStrLn $ "Exe Dir: " <> show binaryPath
+    putStrLn $ "CWD: " <> show currentDirPath
+
     let potentialPackageRoot = Path.parent $ Path.parent currentDirPath
         stdlibBasePath       = potentialPackageRoot </> stdlibPackageRelPath
         expectedPath         = stdlibBasePath </> stdlibContents
+
+    print potentialPackageRoot
 
     expectedExists <- liftIO . Directory.doesDirectoryExist
         $ Path.fromAbsDir expectedPath

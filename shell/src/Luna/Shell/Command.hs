@@ -29,7 +29,7 @@ import Control.Monad.Exception (MonadException)
 import Path                    (Path, Abs, Dir)
 import System.Exit             (die)
 import System.FilePath         ((</>))
-import System.IO               (hPutStrLn, stderr)
+import System.IO               (hPutStrLn, stderr, stdout)
 
 
 -------------------------------
@@ -178,6 +178,8 @@ run (RunOpts target) = liftIO $ catch compute recover where
             projectExists <- Directory.doesDirectoryExist canonicalPath
             stdlibPath    <- Location.getStdlibPath
 
+            hPutStrLn stdout $ "Using standard library at " <> show stdlibPath
+
             if fileExists then do
                 filePath <- Path.parseAbsFile canonicalPath
                 if Path.fileExtension filePath /= Package.lunaFileExt then
@@ -188,6 +190,8 @@ run (RunOpts target) = liftIO $ catch compute recover where
         else do
             cwd        <- CWD.get
             stdlibPath <- Location.getStdlibPath
+
+            hPutStrLn stdout $ "Using standard library at " <> show stdlibPath
 
             runPackage cwd stdlibPath
 

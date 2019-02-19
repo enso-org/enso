@@ -24,7 +24,7 @@ ghc-options:
     $everything:
         -fconstraint-solver-iterations=100
 
-local-bin-path: dist/bin/public/luna
+local-bin-path: dist/bin/public/
 
 packages:
     - core
