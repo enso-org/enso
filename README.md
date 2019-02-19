@@ -133,12 +133,7 @@ this additional argument with any of the commands listed above for development
 of individual components.
 
 ### Running Luna
-As a prerequisite, you need to set a `LUNA_LIBS_PATH` variable to point to the
-location of the Luna standard library. Assuming your repo is at
-`$LUNA_REPO_PATH`, you will need to set `LUNA_LIBS_PATH` to
-`$LUNA_REPO_PATH/stdlib`.
-
-Next, you need to create the project. This is as simple as executing
+First, you need to create the project. This is as simple as executing
 `luna init <project-path>`, which will create a project in the directory
 specified with the correct structure. It will create a defaulted `Main.luna`
 file for you as well, allowing you to immediately execute this.
@@ -155,6 +150,21 @@ luna run --target path/to/MyProject
 The Luna interpreter is also capable of executing standalone Luna files. This
 can be done by passing a luna source file to the `--target` flag, similarly to
 the above.
+
+#### Overriding the Standard Library Location
+By default, a development build of Luna will look for the standard library in
+`$LUNA_REPO_PATH/stdlib/`, but it is possible to override this. If you would 
+like to do so, you need to define the `LUNA_STDLIB_OVERRIDE` environment 
+variable and set its value to the absolute path to the Luna standard library 
+that you want to use. 
+
+As long as the variable is set, the compiler will use the location you provide,
+so don't forget to unset it if you would like to go back to using the included
+copy. 
+
+This environment variable override will also work for distributed binaries of
+Luna, and so provides a useful way to work on the standard library without 
+needing to download and build Luna in its entirety.
 
 ## Contributing to Luna
 If you are interested in contributing to the development of Luna, please read
