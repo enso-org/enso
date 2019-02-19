@@ -46,7 +46,7 @@ type Verifier = Path Abs Dir -> IO Bool
 -- Environment variables to override locations if needed
 type EnvVar = String
 
-type MonadDatafile m = (MonadIO m, MonadException LocationException m)
+type MonadDatafile m = (MonadIO m, MonadException DatafileException m)
 type DatafileData a = (PackageRootData a, RepoRootData a)
 
 
@@ -116,7 +116,7 @@ getDatafileDefaultPath verify = do
 
 -- Finds the head of the repository based on looking for the `.git` folder using
 -- a directory tree walk.
-findRepoHead :: (MonadIO m, MonadException LocationException m) => Path Abs Dir
+findRepoHead :: (MonadIO m, MonadException DatafileException m) => Path Abs Dir
     -> m (Path Abs Dir)
 findRepoHead cwd = if isRoot cwd then
         Exception.throw $ RepositoryHeadNotFoundFrom cwd
@@ -136,12 +136,12 @@ isRoot path = Path.parent path == path
 
 
 -------------------------------
--- === LocationException === --
+-- === DatafileException === --
 -------------------------------
 
 -- === Definition === --
 
-data LocationException
+data DatafileException
     = EnvVarSetButInvalid EnvVar String (Maybe Path.PathException)
     | RepositoryHeadNotFoundFrom (Path Abs Dir)
     | RepositoryHeadFoundButInvalid (Path Abs Dir)
@@ -151,7 +151,7 @@ data LocationException
 
 -- === Instances === --
 
-instance Exception LocationException where
+instance Exception DatafileException where
     displayException (EnvVarSetButInvalid var str _) =
         "Environment variable " <> var
         <> " set, but contents is not a valid location: " <> show str <> "."
