@@ -9,7 +9,7 @@ import qualified Data.Graph.Fold.Class       as Fold
 import qualified Data.Graph.Fold.Conditional as Fold
 
 import Data.Property (type ( # ))
-import GHC.Exts
+
 
 
 -------------------------

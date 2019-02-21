@@ -73,13 +73,15 @@ braced   = fmap Tok.braced
 sbox     = fmap Tok.sbox
 weak     = fmap Tok.weak
 
-appWith :: Doc -> Assoc -> Prec -> Builder s Tok -> Builder s Tok -> Builder s Tok
+appWith :: Doc -> Assoc -> Prec -> Builder s Tok -> Builder s Tok
+    -> Builder s Tok
 appWith sep assoc aprec mbase marg = do
     base <- mbase
     arg  <- marg
     pure $ case assoc of
         Assoc.Left  -> Tok aprec $ base^.doc <> sep <> precParens aprec arg
         Assoc.Right -> Tok aprec $ precParens aprec base <> sep <> arg^.doc
+        Assoc.None  -> error "Should not happen"
 
 app :: Builder s Tok -> Builder s Tok -> Builder s Tok
 app = appWith " " Assoc.Left 10
@@ -98,6 +100,7 @@ tuple, list :: [Builder s Tok] -> Builder s Tok
 tuple items = parensed $ fmap (intercalate ", ") $ sequence items
 list  items = bracked  $ fmap (intercalate ", ") $ sequence items
 
+(<+>) :: Builder s Tok -> Builder s Tok -> Builder s Tok
 (<+>) = app
 
 ----------------------------------------------------------------------

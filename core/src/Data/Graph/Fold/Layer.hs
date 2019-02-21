@@ -4,35 +4,25 @@ module Data.Graph.Fold.Layer where
 
 import Prologue hiding (Traversable, fold, fold1, traverse)
 
-import qualified Control.Monad.State.Layered      as State
-import qualified Data.Generics.Traversable        as GTraversable
 import qualified Data.Graph.Data.Component.Class  as Component
-import qualified Data.Graph.Data.Component.Set    as ComponentSet
-import qualified Data.Graph.Data.Component.Vector as ComponentVector
 import qualified Data.Graph.Data.Graph.Class      as Graph
 import qualified Data.Graph.Data.Layer.Class      as Layer
-import qualified Data.Graph.Data.Layer.Layout     as Layout
 import qualified Data.Graph.Fold.Class            as Fold
 import qualified Data.Graph.Fold.Struct           as Fold
-import qualified Data.Map.Strict                  as Map
 import qualified Data.Mutable.Class               as Mutable
-import qualified Data.Set                         as Set
 import qualified Foreign.Ptr                      as Ptr
 import qualified Foreign.Storable                 as Storable
 import qualified Type.Data.List                   as List
 
-import Data.Generics.Traversable             (GTraversable)
 import Data.Graph.Data.Component.Class       (Component)
 import Data.Graph.Data.Component.Set         (ComponentSet)
 import Data.Graph.Data.Component.Vector      (ComponentVectorA)
 import Data.Mutable.Storable.SmallAutoVector (SmallVectorA)
-import Data.Set                              (Set)
 import Data.Vector.Storable.Foreign          (Vector)
 import Foreign.Ptr                           (Ptr)
 import Foreign.Ptr.Utils                     (SomePtr)
-import Type.Data.Bool                        (Not, type (||))
+import Type.Data.Bool                        (Not)
 
-import qualified Type.Show as Type
 
 
 newtype LayerPtr layer = LayerPtr (∀ layout. Ptr (Layer.Cons layer layout))

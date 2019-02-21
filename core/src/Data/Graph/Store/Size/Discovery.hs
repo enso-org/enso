@@ -5,37 +5,37 @@ module Data.Graph.Store.Size.Discovery where
 import Prologue
 
 import qualified Data.Graph.Data.Component.Class  as Component
-import qualified Data.Graph.Data.Component.List   as ComponentList
-import qualified Data.Graph.Data.Component.Set    as ComponentSet
-import qualified Data.Graph.Data.Component.Vector as ComponentVector
+-- import qualified Data.Graph.Data.Component.List   as ComponentList
+-- import qualified Data.Graph.Data.Component.Set    as ComponentSet
+-- import qualified Data.Graph.Data.Component.Vector as ComponentVector
 import qualified Data.Graph.Data.Graph.Class      as Graph
 import qualified Data.Graph.Data.Layer.Class      as Layer
 import qualified Data.Graph.Fold.Class            as Fold
-import qualified Data.Graph.Fold.Filter           as Fold
+-- import qualified Data.Graph.Fold.Filter           as Fold
 import qualified Data.Graph.Fold.Partition        as Partition
 import qualified Data.Graph.Fold.Scoped           as Fold
 import qualified Data.Graph.Fold.Struct           as Fold
 import qualified Data.Graph.Store.Size.Class      as Size
 import qualified Data.Set                         as Set
-import qualified Data.TypeMap.Strict              as TypeMap
-import qualified Foreign.DynamicStorable          as DynamicStorable
+-- import qualified Data.TypeMap.Strict              as TypeMap
+-- import qualified Foreign.DynamicStorable          as DynamicStorable
 import qualified Foreign.Storable.Class           as Storable
-import qualified Foreign.Storable.Class           as Storable
-import qualified Type.Show                        as Type
+-- import qualified Foreign.Storable.Class           as Storable
+-- import qualified Type.Show                        as Type
 
 import Data.Graph.Data.Component.Class       (Component)
-import Data.Graph.Data.Component.List        (ComponentList, ComponentLists)
+-- import Data.Graph.Data.Component.List        (ComponentList, ComponentLists)
 import Data.Graph.Data.Component.Set         (ComponentSet)
 import Data.Graph.Data.Component.Vector      (ComponentVector)
 import Data.Graph.Store.Size.Class           (DynamicSize, Size (Size))
 import Data.Mutable.Storable.SmallAutoVector (SmallVectorA)
-import Data.PtrSet.Mutable                   (IsPtr, UnmanagedPtrSet)
+-- import Data.PtrSet.Mutable                   (IsPtr, UnmanagedPtrSet)
 import Data.Set                              (Set)
-import Data.Vector.Storable.Foreign          (Vector)
-import Foreign.DynamicStorable               (DynamicStorable)
-import Foreign.Ptr                           (Ptr, plusPtr)
-import Foreign.Ptr.Utils                     (SomePtr)
-import Foreign.Storable.Utils                (Storable)
+-- import Data.Vector.Storable.Foreign          (Vector)
+-- import Foreign.DynamicStorable               (DynamicStorable)
+-- import Foreign.Ptr                           (Ptr, plusPtr)
+-- import Foreign.Ptr.Utils                     (SomePtr)
+-- import Foreign.Storable.Utils                (Storable)
 
 
 
