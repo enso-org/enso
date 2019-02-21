@@ -2,7 +2,6 @@ module Luna.Package.Configuration.License.Data where
 
 import Prologue
 
-import qualified Control.Monad.Exception            as Exception
 import qualified Data.Map                           as Map
 import qualified Luna.Package.Configuration.License as License
 import qualified Luna.Datafile                      as Datafile

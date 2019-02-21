@@ -7,8 +7,6 @@ module Data.TreeSet where
 
 import Prologue hiding (null)
 
-import           Data.Map (Map)
-import qualified Data.Map as Map
 import qualified GHC.Exts as GHC
 import qualified Prelude  as P
 
@@ -101,7 +99,11 @@ foldReduceBranchesM h f b = TreeMap.foldReduceBranchesM (_ftrans h) (_ftrans f) 
 reduceBranches      h     = TreeMap.reduceBranches      (_ftrans2 h)  . unwrap
 reduceBranchesM     h     = TreeMap.reduceBranchesM     (_ftrans2 h)  . unwrap
 
+_ftrans :: IsValue t1 => (t2 -> t3 -> Bool -> t4) -> t2 -> t3 -> t1 a -> t4
 _ftrans  f a k t = f a k (isJust $ checkVal t)
+
+_ftrans2 :: forall (t1 :: * -> *) t2 t3 a. IsValue t1
+    => (t2 -> Bool -> t3) -> t2 -> t1 a -> t3
 _ftrans2 f   k t = f   k (isJust $ checkVal t)
 
 instance IsValue t => Foldable (TreeSet t) where foldr f b = foldr f b . copyKeysToVals

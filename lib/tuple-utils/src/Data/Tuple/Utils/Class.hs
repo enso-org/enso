@@ -7,8 +7,6 @@ module Data.Tuple.Utils.Class where
 
 import Prologue hiding (head, tail)
 
-import Data.Tuple.Utils.TH
-
 
 
 -------------------
@@ -38,8 +36,8 @@ class TailGetter tup where
 class HeadGetter tup where
     head :: tup -> Head tup
 
-
 splitHead :: (HeadGetter tup, TailGetter tup)
           => tup -> (Head tup, Tail tup)
 splitHead = \tup -> (head tup, tail tup)
 {-# INLINE splitHead #-}
+

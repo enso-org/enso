@@ -8,7 +8,7 @@ module Data.Construction where
 import Prelude
 
 import qualified Data.Generics.Traversable as GTraversable
-import qualified Foreign.Marshal.Alloc     as Mem
+-- import qualified Foreign.Marshal.Alloc     as Mem
 
 import Data.Generics.Traversable (GTraversable)
 import Data.Foldable             (traverse_)

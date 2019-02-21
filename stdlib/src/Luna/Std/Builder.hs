@@ -16,7 +16,6 @@ import qualified Luna.Runtime                          as Luna
 import qualified Luna.Pass.Sourcing.Data.Def           as Def
 import qualified Luna.Pass                             as Pass
 import qualified Luna.Pass.Attr                        as Attr
-import qualified Luna.Pass.Basic                       as Pass
 import qualified Luna.Pass.Scheduler                   as Scheduler
 import qualified Luna.Std.Instances                    as Base
 import qualified Luna.Syntax.Prettyprint               as Syntax
@@ -34,7 +33,7 @@ instance IsString LTp where
 
 varNamesFromType :: LTp -> Set IR.Name
 varNamesFromType (LVar n)    = Set.singleton n
-varNamesFromType (LCons mod n s) = varNamesFromTypes s
+varNamesFromType (LCons _ _ s) = varNamesFromTypes s
 
 varNamesFromTypes :: [LTp] -> Set IR.Name
 varNamesFromTypes = Set.unions . fmap varNamesFromType
@@ -83,7 +82,7 @@ instance ( Pass.Interface PrimTypeBuilder (Pass.Pass stage PrimTypeBuilder)
 mkType :: (Pass.Interface PrimTypeBuilder m
           ) => Map IR.Name IR.SomeTerm -> LTp -> m IR.SomeTerm
 mkType vars = \case
-    LVar n -> return $ fromJust (error "impossible") $ Map.lookup n vars
+    LVar n -> pure $ fromJust (error "impossible") $ Map.lookup n vars
     LCons mod n fs -> IR.resolvedCons' mod n "" =<< traverse (mkType vars) fs
 
 type StdBuilder graph m =
@@ -115,7 +114,7 @@ makeFunction :: forall graph m. StdBuilder graph m
              => (Luna.Units -> Luna.Value) -> [LTp] -> LTp -> m Def.Def
 makeFunction val args out = do
     rooted <- makeType @graph args out
-    return $ Def.Precompiled $ Def.PrecompiledDef val rooted
+    pure $ Def.Precompiled $ Def.PrecompiledDef val rooted
 
 makeFunctionPure :: forall graph m. StdBuilder graph m
                  => (Luna.Units -> Luna.Value) -> [LTp] -> LTp -> m Def.Def

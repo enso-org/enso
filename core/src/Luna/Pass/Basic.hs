@@ -6,9 +6,9 @@ module Luna.Pass.Basic where
 import qualified Data.Graph.Data.Graph.Class     as Graph
 import qualified Luna.IR                         as IR
 import qualified OCI.Pass.Definition.Declaration as Pass
-import qualified OCI.Pass.State.Cache            as Pass
 
 import Luna.IR.Term.Core ()
+
 
 
 -------------------------------

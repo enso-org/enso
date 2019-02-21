@@ -3,7 +3,6 @@
 
 module Data.Mutable.Swizzle where
 
-import Prologue
 
 
 -----------------------

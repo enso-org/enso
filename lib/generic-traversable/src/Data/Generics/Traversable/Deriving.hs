@@ -7,12 +7,11 @@ module Data.Generics.Traversable.Deriving where
 
 import Prelude
 
+import Language.Haskell.TH as TH
+
 import Control.Monad
-import Data.Generics.Traversable.Class (GTraversable, GTraversable1, gtraverse,
-                                        gtraverse1)
+import Data.Generics.Traversable.Class (GTraversable, gtraverse)
 import Data.List
-import Data.Monoid
-import Language.Haskell.TH             as TH
 
 
 err :: String -> a

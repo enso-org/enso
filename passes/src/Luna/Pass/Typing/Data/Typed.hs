@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-orphans #-}
+
 {-# LANGUAGE NoStrict     #-}
 {-# LANGUAGE NoStrictData #-}
 
@@ -6,7 +8,6 @@ module Luna.Pass.Typing.Data.Typed where
 import Prologue
 
 import qualified Control.Concurrent.Future as Future
-import qualified Data.Map                  as Map
 import qualified Luna.IR                   as IR
 import qualified Luna.Pass.Attr            as Attr
 import qualified Luna.Pass.Data.Error      as Error
@@ -51,7 +52,7 @@ getDef mod n m = do
     let fut = m ^? wrapped . ix mod . definitions . ix n . wrapped
     case fut of
         Just fut -> Future.get fut
-        Nothing  -> return . wrap . Left $ Error.unexpectedFunctionNotFound mod n
+        Nothing  -> pure . wrap . Left $ Error.unexpectedFunctionNotFound mod n
 
 requestDef :: (MonadIO m, Attr.Getter Units m)
            => IR.Qualified -> IR.Name
@@ -74,7 +75,7 @@ getMethod mod cls n m = do
     let fut = m ^? wrapped . ix mod . classes . ix cls . methods . ix n . wrapped
     case fut of
         Just fut -> Future.get fut
-        Nothing  -> return . wrap . Left $ Error.methodNotFound mod cls n
+        Nothing  -> pure . wrap . Left $ Error.methodNotFound mod cls n
 
 requestMethod :: (MonadIO m, Attr.Getter Units m)
               => IR.Qualified -> IR.Name -> IR.Name -> m DefHeader

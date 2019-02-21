@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-simplifiable-class-constraints #-}
+
 {-# LANGUAGE NoMonoLocalBinds        #-}
 {-# LANGUAGE UndecidableInstances    #-}
 {-# LANGUAGE UndecidableSuperClasses #-}
@@ -26,7 +28,10 @@
 -- [Generalizing generic fold]
 -- <http://ro-che.info/articles/2013-03-11-generalizing-gfoldl>
 
-module Data.Generics.Traversable (module Data.Generics.Traversable, module X) where
+module Data.Generics.Traversable
+    ( module Data.Generics.Traversable
+    , module X ) where
+
 import Data.Generics.Traversable.Class     as X
 import Data.Generics.Traversable.Instances ()
 

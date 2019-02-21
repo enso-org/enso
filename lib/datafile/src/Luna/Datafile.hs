@@ -9,7 +9,7 @@ import qualified System.Directory           as Directory
 import qualified System.FilePath            as FilePath
 import qualified System.Environment         as Environment
 
-import Control.Monad.Exception (MonadException, MonadExceptions)
+import Control.Monad.Exception (MonadException)
 import Path                    ((</>), Path, Rel, Dir, Abs)
 
 
@@ -65,7 +65,7 @@ locate mEnvVar verifier = case mEnvVar of
 -- === Internal === --
 ----------------------
 
-dataPathFromEnvVar :: forall a m . (MonadDatafile m)
+dataPathFromEnvVar :: forall m . (MonadDatafile m)
     => EnvVar -> String -> Verifier -> m (Path Abs Dir)
 dataPathFromEnvVar var val verify = do
     pathVal <- Exception.catch @Path.PathException

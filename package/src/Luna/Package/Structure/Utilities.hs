@@ -9,7 +9,6 @@ import qualified Path                          as Path
 import qualified System.Directory              as Directory
 import qualified System.FilePath               as FilePath
 
-import Control.Lens    (element)
 import System.FilePath (FilePath, (</>))
 
 import Luna.Syntax.Text.Lexer.Token as Token

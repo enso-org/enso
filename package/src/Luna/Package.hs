@@ -17,7 +17,6 @@ import qualified Luna.Package.Utilities                   as Utilities
 import qualified OCI.Data.Name                            as Name
 import qualified Path                                     as Path
 import qualified System.Directory                         as Directory
-import qualified System.Environment                       as Environment
 import qualified System.FilePath                          as FilePath
 import qualified System.FilePath.Find                     as Find
 

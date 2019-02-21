@@ -6,7 +6,6 @@ module Luna.Pass.Typing.Typechecker where
 import Prologue
 
 import qualified Luna.IR                               as IR
-import qualified Luna.Pass                             as Pass
 import qualified Luna.Pass.Scheduler                   as Scheduler
 import qualified Luna.Pass.Data.Root                   as Root
 import qualified Luna.Pass.Data.Stage                  as TC

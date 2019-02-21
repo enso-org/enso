@@ -23,7 +23,6 @@ import qualified Control.Monad.Exception               as Exception
 import qualified Control.Monad.State.Layered           as State
 import qualified Criterion.Main                        as Criterion
 import qualified Criterion.Measurement                 as Criterion
-import qualified Data.Graph.Component.Node.Destruction as IR
 import qualified Data.Graph.Data.Component.Class       as Component
 import qualified Data.Graph.Data.Graph.Class           as Graph
 import qualified Data.Graph.Data.Layer.Class           as Layer
@@ -31,28 +30,19 @@ import qualified Data.Graph.Data.Layer.Layout          as Layout
 import qualified Data.Graph.Fold.Partition             as Partition
 import qualified Data.Graph.Fold.SubComponents         as Traversal
 import qualified Data.Graph.Fold.SubTree               as Traversal
-import qualified Data.Graph.Store                      as Graph
-import qualified Data.Graph.Store.Alloc                as Graph
-import qualified Data.Graph.Store.Internal             as Graph
-import qualified Data.Graph.Store.Size.Discovery       as Size
 import qualified Data.IORef                            as IORef
-import qualified Data.Set                              as Set
 import qualified Data.Struct                           as Struct
 import qualified Data.Tuple.Strict                     as Tuple
 import qualified Data.TypeMap.MultiState               as MultiState
 import qualified Data.TypeMap.Strict                   as TypeMap
-import qualified Foreign.DynamicStorable               as DynamicStorable
 import qualified Foreign.Marshal.Alloc                 as Ptr
 import qualified Foreign.Marshal.Utils                 as Ptr
 import qualified Foreign.Memory.Pool                   as MemPool
 import qualified Foreign.Storable                      as Storable
 import qualified Luna.IR                               as IR
-import qualified Luna.IR.Term                          as Term
 import qualified Luna.IR.Term.Format                   as Format
 import qualified Luna.Pass                             as Pass
 import qualified Luna.Pass.Scheduler                   as Scheduler
-import qualified OCI.Pass.Definition.Class             as Pass
-import qualified OCI.Pass.State.Encoder                as Encoder
 import qualified System.Console.ANSI                   as ANSI
 
 import Control.Concurrent              (threadDelay)
@@ -60,11 +50,7 @@ import Control.DeepSeq                 (force)
 import Control.Exception               (evaluate)
 import Control.Monad.Primitive         (primitive)
 import Criterion.Main                  (Benchmark)
-import Data.Graph.Component.Edge.Class (Edges)
-import Data.Graph.Component.Node.Class (Nodes)
 import Data.Graph.Data                 (Component (Component))
-import Data.Graph.Data.Graph.Class     (Graph)
-import Data.Set                        (Set)
 import GHC.Exts                        (Any, Int (I#), SmallMutableArray#,
                                         State#, readSmallArray#, unsafeCoerce#,
                                         writeSmallArray#)
@@ -359,7 +345,7 @@ createIR_normal3 = Bench "normal3" $ \i -> runPass' $ do
     let go !0 = pure ()
         go !j = do
             !v <- IR.var 0
-            !tpLink <- Layer.read @IR.Type v
+            !_ <- Layer.read @IR.Type v
             -- Component.destruct tpLink
             Component.destruct v
             go $! j - 1
@@ -389,7 +375,7 @@ create_IORef :: Bench
 create_IORef = Bench "ioref" $ \i -> do
     let go !0 = pure ()
         go !j = do
-            !v <- mockNewVar 0
+            !_ <- mockNewVar 0
             go $! j - 1
     go i
 {-# NOINLINE create_IORef #-}
@@ -433,7 +419,7 @@ subTreeDiscovery_manual = Bench "manual" $ \i -> runPass' $ do
     let go !0 = pure ()
         go !j = do
             let !f = manualDiscoverIRHack (Layout.relayout v)
-            !out <- f empty
+            !_ <- f empty
             go $! j - 1
     go i
 {-# NOINLINE subTreeDiscovery_manual #-}
@@ -459,7 +445,7 @@ manualDiscoverIRHack !term !r = do
     let !r' = case model of
             IR.UniTermVar (IR.Var {}) -> let !o = ACLCons (Layout.relayout term) r in o
             IR.UniTermTop (IR.Top {}) -> let !o = ACLCons (Layout.relayout term) r in o
-            a                         -> error "not supported"
+            _                         -> error "not supported"
     !src <- Layer.read @IR.Source tl
     !tgt <- Layer.read @IR.Target tl
     let !(src' :: IR.SomeTerm) = Layout.relayout src
@@ -484,7 +470,7 @@ linkDiscovery = Bench "link" $ \i -> runPass' $ do
     !v <- IR.var "a"
     let go !0 = let !o = pure () in o
         go !j = do
-            !out <- Traversal.subComponents @IR.Links v
+            !_ <- Traversal.subComponents @IR.Links v
             -- putStrLn ""
             -- print out
             -- !tl  <- Layer.read @IR.Type v
@@ -625,7 +611,7 @@ setField = \x y -> primitive_ (go (Struct.destruct x) y) where
 readWrite_structs_layer :: Bench
 readWrite_structs_layer = Bench "structs" $ \i -> do
     !obj <- Struct.alloc 1 :: IO (Struct.Object (PrimState IO))
-    let f0 = Struct.field 0 :: Struct.Field Struct.Object Int
+    let _ = Struct.field 0 :: Struct.Field Struct.Object Int
     setField obj 0
     let go :: Int -> IO ()
         go 0 = pure ()
@@ -721,6 +707,4 @@ main = do
     test
     invariants
     benchmarks
-
-
 

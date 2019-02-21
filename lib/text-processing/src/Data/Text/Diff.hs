@@ -3,8 +3,7 @@
 
 module Data.Text.Diff where
 
-
-import Data.Text.Position
+-- import Data.Text.Position
 -- import Data.Text.Class
 
 --

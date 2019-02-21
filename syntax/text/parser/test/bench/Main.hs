@@ -10,7 +10,6 @@ import qualified Data.Set             as Set
 import qualified Data.Text            as Text
 import qualified Text.Parsers.Frisby  as Frisby
 
-import Criterion.Measurement (initializeTime)
 import Data.Set              (Set)
 import System.IO             (BufferMode (NoBuffering), hSetBuffering, stdout)
 
@@ -71,6 +70,7 @@ data Grammar a
 
 instance Ord a => Semigroup (Grammar a) where
     Tokens s f <> Tokens s' g = Tokens (s <> s') $ \c -> f c || g c
+    _ <> _ = error "Should not happen"
     {-# INLINE (<>) #-}
 
 token :: Eq a => a -> Grammar a
@@ -108,6 +108,7 @@ runTokenParser = \grammar stream -> case grammar of
         -- Success !stream' !ok -> case runTokenParser grammar2 stream' of
         --     Fail                -> Fail
         --     Success !stream'' !ok' -> Success stream'' $! ok
+    _ -> error "Should not happen"
 
 -- {-# INLINE runTokenParser #-}
 

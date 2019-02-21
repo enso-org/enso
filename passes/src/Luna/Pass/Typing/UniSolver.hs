@@ -6,7 +6,6 @@ module Luna.Pass.Typing.UniSolver where
 
 import Prologue
 
-import qualified Control.Monad.State.Layered      as State
 import qualified Control.Monad.Trans.Except       as Except
 import qualified Data.Graph.Data.Component.Vector as ComponentVector
 import qualified Data.Graph.Data.Graph.Class      as Graph
@@ -93,14 +92,14 @@ variable uni a b = do
     Layer.read @IR.Model a >>= \case
         Uni.Var {} -> do
             let go = do
-                  traverse (IR.replace b) [a, Layout.relayout uni]
+                  void $ traverse (IR.replace b) [a, Layout.relayout uni]
                   resolve_
             Layer.read @IR.Model b >>= \case
                 Uni.Var          {} -> go
                 Uni.ResolvedCons {} -> go
                 Uni.Lam          {} -> go
-                _ -> return ()
-        _ -> return ()
+                _ -> pure ()
+        _ -> pure ()
 
 lambda :: SolverRule m
 lambda uni a b = do
@@ -116,7 +115,7 @@ lambda uni a b = do
                     ]
         (Uni.Lam {}, _) -> resolveError uni a b
         (_, Uni.Lam {}) -> resolveError uni a b
-        _ -> return ()
+        _ -> pure ()
 
 cons :: SolverRule m
 cons uni a b = do
@@ -131,7 +130,7 @@ cons uni a b = do
                 IR.deleteSubtree uni
                 resolve $ Layout.unsafeRelayout <$> unis
             else resolveError uni a b
-        _ -> return ()
+        _ -> pure ()
 
 allRules :: SolverRule m
 allRules uni l r = do
@@ -152,13 +151,13 @@ solveUnification uni = do
         Left new -> do
             traverse_ (Requester.setRequester req)     new
             traverse_ (Requester.setArising   arising) new
-        Right _ -> return ()
-    return solution
+        Right _ -> pure ()
+    pure solution
 
 deepSolve :: IR.Term IR.Unify -> TC.Pass UniSolver [IR.Term IR.Unify]
 deepSolve uni = do
     res <- solveUnification uni
     case res of
         Left new -> concat <$> traverse deepSolve new
-        Right _  -> return [uni]
+        Right _  -> pure [uni]
 

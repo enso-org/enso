@@ -15,7 +15,7 @@ import Control.Exception      (bracket)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Data.Convert           (convert)
 import Foreign                (Ptr, castPtr, nullPtr, plusPtr, peek, peekArray, alloca)
-import Foreign.C              (CDouble (..), CSize (..))
+import Foreign.C              (CSize (..))
 import GHC.Generics           (Generic)
 
 
@@ -83,5 +83,6 @@ allocatedItems mgr = liftIO $ alloca $ \outListSize ->
             if listPtr /= nullPtr then do
                 obtainedSize <- peek outListSize
                 lst <- peekArray (fromInteger $ toInteger obtainedSize) listPtr
-                return $ castPtr <$> lst
-             else return []
+                pure $ castPtr <$> lst
+             else pure []
+

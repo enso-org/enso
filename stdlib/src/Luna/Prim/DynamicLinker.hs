@@ -18,11 +18,10 @@ import qualified Data.List              as List
 import           Data.Maybe             (maybeToList)
 import qualified Data.Text              as Text
 import           Foreign                (FunPtr)
-import qualified Foreign
 import qualified Safe
 import qualified System.Directory       as Dir
 import qualified System.Environment     as Env
-import           System.FilePath        ((</>), pathSeparator)
+import           System.FilePath        ((</>))
 import qualified System.FilePath        as FP
 import qualified System.Info            as Info (os)
 import qualified System.Process         as Process
@@ -63,25 +62,25 @@ findLocalNativeLibsDirs projectDir = do
     let localDepsDir = projectDir </> "local_libs"
     localDeps <- tryAny $ Dir.listDirectory localDepsDir
     case localDeps of
-        Left  exc  -> return []
+        Left  _    -> pure []
         Right dirs -> do
             localNativeDirs <- for dirs $ \dir ->
                 findLocalNativeLibsDirs (localDepsDir </> dir)
-            return $ fmap (\a -> localDepsDir </> a </> nativeLibs) dirs
+            pure $ fmap (\a -> localDepsDir </> a </> nativeLibs) dirs
                   <> concat localNativeDirs
 
 findNativeLibsDirsForProject :: FilePath -> IO [FilePath]
 findNativeLibsDirsForProject projectDir = do
     let projectNativeDirs =  projectDir </> nativeLibs
     projectLocalDirs      <- findLocalNativeLibsDirs projectDir
-    return $ projectNativeDirs : projectLocalDirs
+    pure $ projectNativeDirs : projectLocalDirs
 
 tryLoad :: FilePath -> IO (Either String Handle)
 tryLoad path = do
     loadRes <- tryAny $ nativeLoadLibrary path
     let errorDetails exc =
             "loading \"" <> path <> "\" failed with: " <> displayException exc
-    return $ EitherR.fmapL errorDetails loadRes
+    pure $ EitherR.fmapL errorDetails loadRes
 
 parseError :: [String] -> [String]
 parseError e = if ((length $ snd partitioned) == 0) then
@@ -115,11 +114,11 @@ loadLibrary namePattern = do
                                 not (null extension)
                   ]
     linkerCache <- maybeToList <$> nativeLoadFromCache library `catchAny`
-        const (return Nothing)
+        const (pure Nothing)
     extendedSearchPaths <- fmap concat . for nativeSearchPaths $ \path -> do
-        files <- Dir.listDirectory path `catchAny` \_ -> return []
+        files <- Dir.listDirectory path `catchAny` \_ -> pure []
         let matchingFiles = filter (List.isInfixOf library) files
-        return $ fmap (path </>) matchingFiles
+        pure $ fmap (path </>) matchingFiles
     result <- runExceptT . EitherR.runExceptRT $ do
         let allPaths = possiblePaths <> linkerCache <> extendedSearchPaths
         for allPaths $ \path ->
@@ -127,7 +126,7 @@ loadLibrary namePattern = do
     case result of
         Left  e -> throwM $ NativeLibraryLoadingException namePattern err where
             err = parseError e
-        Right h -> return h
+        Right h -> pure h
 
 loadSymbol :: Handle -> String -> IO (FunPtr a)
 loadSymbol handle symbol = do
@@ -135,23 +134,19 @@ loadSymbol handle symbol = do
     case result of
         Left  e -> throwM $ NativeLibraryLoadingException symbol
                     [displayException e]
-        Right h -> return h
-
+        Right h -> pure h
 
 closeLibrary :: Handle -> IO ()
-closeLibrary handle = return ()
-
+closeLibrary _ = pure ()
 
 #if mingw32_HOST_OS
 nativeLoadLibrary :: String -> IO Handle
 nativeLoadLibrary library = Win32.loadLibraryEx library Foreign.nullPtr
     Win32.lOAD_WITH_ALTERED_SEARCH_PATH
 
-
 nativeLoadSymbol :: Handle -> String -> IO (FunPtr a)
 nativeLoadSymbol handle symbol = Foreign.castPtrToFunPtr
     <$> Win32.getProcAddress handle symbol
-
 
 dynamicLibraryExtensions :: [String]
 dynamicLibraryExtensions = ["", ".dll"]
@@ -183,8 +178,8 @@ nativeLoadFromCache _ = return Nothing
 
 lookupSearchPath :: String -> IO [FilePath]
 lookupSearchPath env = do
-    envValue <- fromMaybe "" <$> Env.lookupEnv env
-    return $ FP.splitSearchPath envValue
+    envValue <- fromJust "" <$> Env.lookupEnv env
+    pure $ FP.splitSearchPath envValue
 
 nativeLoadLibrary :: String -> IO Handle
 nativeLoadLibrary library = Unix.dlopen library [Unix.RTLD_NOW]
@@ -203,7 +198,7 @@ nativeLibraryProjectDir = "linux"
 nativeSearchPaths :: [FilePath]
 nativeSearchPaths = unsafePerformIO $ do
     ldLibraryPathDirectories <- lookupSearchPath "LD_LIBRARY_PATH"
-    return $ ldLibraryPathDirectories
+    pure $ ldLibraryPathDirectories
           <> ["/lib", "/usr/lib", "/lib64", "/usr/lib64"]
 
 findBestSOFile :: String -> String -> Maybe FilePath
@@ -225,7 +220,7 @@ findBestSOFile (Text.pack -> namePattern) (Text.pack -> ldconfig) =
 nativeLoadFromCache :: String -> IO (Maybe FilePath)
 nativeLoadFromCache namePattern = do
     ldconfigCache <- Process.readProcess "ldconfig" ["-p"] ""
-    return $ findBestSOFile namePattern ldconfigCache
+    pure $ findBestSOFile namePattern ldconfigCache
 
 #elif darwin_HOST_OS
 dynamicLibraryExtensions = [".dylib", ""]

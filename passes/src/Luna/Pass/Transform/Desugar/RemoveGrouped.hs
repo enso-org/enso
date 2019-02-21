@@ -12,10 +12,10 @@ import qualified Luna.IR                        as IR
 import qualified Luna.IR.Layer                  as Layer
 import qualified Luna.Pass                      as Pass
 import qualified Luna.Pass.Attr                 as Attr
-import qualified Luna.Pass.Basic                as Pass
 import qualified Luna.Pass.Data.Stage           as TC
 
 import Luna.Pass.Data.Root (Root (Root))
+
 
 
 --------------------------------
@@ -47,6 +47,6 @@ runRemoveGrouped root = do
             g' <- Layer.read @IR.Source g
             IR.substitute g' root
             IR.deleteSubtreeWithWhitelist (Set.singleton g') root
-            return g'
-        _ -> return root
+            pure g'
+        _ -> pure root
 

@@ -6,10 +6,9 @@ import qualified Luna.Datafile    as Datafile
 import qualified Path             as Path
 import qualified System.Directory as Directory
 
-import Path            ( Path, Rel, Dir, Abs, (</>) )
+import Path            ( Path, Dir, Abs, (</>) )
 import Luna.Datafile   ( PackageRootData, RepoRootData, Verifier, EnvVar
                        , MonadDatafile )
-import System.FilePath ( FilePath )
 
 
 

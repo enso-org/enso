@@ -52,7 +52,7 @@ insertRelEQ a b = inferAll . addProvidedRel EQ a b . addUniRelTo inferred EQ a a
     inferRMids   m = foldl' (flip . uncurry $ addInferredRel LT) m $ (,) <$> lefts m <*> rmids  m
     inferMids    m = foldl' (flip . uncurry $ addInferredRel EQ) m $ (,) <$> lmids m <*> rmids  m
     inferAll       = inferMids . inferRMids . inferLMids . inferBorders
-    elems p t m = fmap fst . filter (p . snd) . Map.assocs . fromMaybe mempty $ m ^. inferred . at t
+    elems p t m = fmap fst . filter (p . snd) . Map.assocs . fromJust mempty $ m ^. inferred . at t
     lefts       = elems (== GT) a
     rights      = elems (== LT) b
     lmids       = elems (== EQ) a
@@ -61,7 +61,7 @@ insertRelEQ a b = inferAll . addProvidedRel EQ a b . addUniRelTo inferred EQ a a
 insertRelLT :: Ord n => n -> n -> RelMap n -> RelMap n
 insertRelLT a b = inferAll . addProvidedRel LT a b . addUniRelTo inferred EQ a a . addUniRelTo inferred EQ b b where
     inferAll  m = foldl' (flip . uncurry $ addInferredRel LT) m $ (,) <$> lefts m <*> rights m
-    elems p t m = fmap fst . filter (p . snd) . Map.assocs . fromMaybe mempty $ m ^. inferred . at t
+    elems p t m = fmap fst . filter (p . snd) . Map.assocs . fromJust mempty $ m ^. inferred . at t
     lefts       = elems (/= LT) a
     rights      = elems (/= GT) b
 

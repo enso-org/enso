@@ -7,11 +7,7 @@ module Data.Generics.Traversable2.Class where
 
 import Prelude hiding (Traversable, traverse)
 
-import Control.Monad.Trans (MonadTrans, lift)
 import Data.Kind           (Type)
-import GHC.Exts            (Constraint)
-
-import qualified Control.Monad.State.Strict as State
 
 
 

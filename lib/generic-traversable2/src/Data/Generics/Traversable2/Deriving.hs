@@ -7,11 +7,11 @@ module Data.Generics.Traversable2.Deriving where
 
 import Prologue hiding (Traversable, Type, traverse)
 
-import Data.Generics.Traversable2.Class (Traversable, Traversable1,
-                                         TraverseElem, traverse, traverse1,
-                                         traverseElem)
-import Data.List                        (nub)
 import Language.Haskell.TH              as TH
+
+import Data.Generics.Traversable2.Class ( Traversable, TraverseElem, traverse
+                                        , traverseElem)
+import Data.List                        ( nub )
 
 
 err :: String -> a
@@ -19,7 +19,7 @@ err s = error $ "Data.Generics.Traversable.TH: " <> s
 
 reifyDataInfo :: Name -> Q (Name, [TH.Type], [(Name, Int, [Type])])
 reifyDataInfo name = reify name >>= \case
-    TyConI d -> return $ getDataInfo d
+    TyConI d -> pure $ getDataInfo d
     _        -> err  $ "can't be used on anything but a type constructor "
                     <> "of an algebraic data type"
 

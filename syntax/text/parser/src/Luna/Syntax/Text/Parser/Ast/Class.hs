@@ -7,10 +7,8 @@ import Prologue hiding (Text, span)
 
 import qualified Data.Text32                          as Text
 import qualified Luna.IR.Term.Ast.Invalid             as Invalid
-import qualified Luna.Syntax.Text.Parser.Ast.CodeSpan as CodeSpan
 
 import Data.Text.Position                   (Delta)
-import Luna.Syntax.Text.Parser.Ast.CodeSpan (CodeSpan (CodeSpan))
 import OCI.Data.Name                        (Name)
 
 
@@ -160,3 +158,4 @@ instance Convertible String (StrChunk t) where
 instance IsString (StrChunk t) where
     fromString = convert
     {-# INLINE fromString #-}
+
