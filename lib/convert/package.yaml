@@ -1,0 +1,77 @@
+name: convert
+version: '1.5.1'
+synopsis: Safe and unsafe data conversion utilities with strong type-level operation.
+  checking.
+category: Data
+license: Apache-2.0
+stability: experimental
+homepage: https://github.com/luna/convert
+bug-reports: https://github.com/luna/convert/issues
+author: Luna Team
+copyright: Copyright (C) 2018 Luna Team
+maintainer: Wojciech Danilo <wojciech.danilo@luna-lang.org>
+
+ghc-options:
+- -Wall
+- -O2
+
+library:
+  source-dirs:
+  - src
+  dependencies:
+  - ansi-wl-pprint
+  - base >= 4.9 && < 4.13
+  - bytestring
+  - containers
+  - data-default
+  - impossible
+  - lens
+  - template-haskell
+  - text
+  - utf8-string
+
+default-extensions:
+- AllowAmbiguousTypes
+- ApplicativeDo
+- BangPatterns
+- BinaryLiterals
+- ConstraintKinds
+- DataKinds
+- DefaultSignatures
+- DeriveDataTypeable
+- DeriveFoldable
+- DeriveFunctor
+- DeriveGeneric
+- DeriveTraversable
+- DoAndIfThenElse
+- DuplicateRecordFields
+- EmptyDataDecls
+- FlexibleContexts
+- FlexibleInstances
+- FunctionalDependencies
+- GeneralizedNewtypeDeriving
+- InstanceSigs
+- LambdaCase
+- MonadComprehensions
+- MultiWayIf
+- NamedWildCards
+- NegativeLiterals
+- NumDecimals
+- OverloadedLabels
+- PackageImports
+- QuasiQuotes
+- PatternSynonyms
+- RankNTypes
+- RecursiveDo
+- ScopedTypeVariables
+- StandaloneDeriving
+- TemplateHaskell
+- TupleSections
+- TypeApplications
+- TypeFamilies
+- TypeFamilyDependencies
+- TypeOperators
+- UnicodeSyntax
+- ViewPatterns
+- LiberalTypeSynonyms
+- RelaxedPolyRec
