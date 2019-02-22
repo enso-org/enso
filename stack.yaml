@@ -45,6 +45,7 @@ packages:
     - lib/ci
     - lib/code-builder
     - lib/container
+    - lib/convert
     - lib/cpp-containers
     - lib/data-construction
     - lib/datafile

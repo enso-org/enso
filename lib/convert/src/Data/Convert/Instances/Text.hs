@@ -48,9 +48,9 @@ fromLazyText = convert ; {-# INLINE fromLazyText #-}
 
 -- === Intances === --
 
-instance Default TS.Text     where def = convert "" ; {-# INLINE def #-}
-instance Default TL.Text     where def = convert "" ; {-# INLINE def #-}
-instance Default TLB.Builder where def = convert "" ; {-# INLINE def #-}
+instance Default TS.Text     where def = convert ("" :: String) ; {-# INLINE def #-}
+instance Default TL.Text     where def = convert ("" :: String) ; {-# INLINE def #-}
+instance Default TLB.Builder where def = convert ("" :: String) ; {-# INLINE def #-}
 
 instance Convertible TS.Text String        where convert = TS.unpack                     ; {-# INLINE convert #-}
 instance Convertible TS.Text TL.Text       where convert = TL.fromStrict                 ; {-# INLINE convert #-}
