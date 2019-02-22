@@ -23,8 +23,8 @@ library:
     dependencies:
         - base
         - convert
+        - constraint
         - luna-th-builder
-        - prologue >= 3.0.0
         - template-haskell
 
 default-extensions: *luna-extensions

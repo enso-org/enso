@@ -4,7 +4,7 @@
 
 module OCI.Pass.Definition.Dynamic where
 
-import Prologue
+import Prologue hiding (Known)
 
 import qualified Data.Graph.Data.Graph.Class     as Graph
 import qualified Data.Map.Strict                 as Map

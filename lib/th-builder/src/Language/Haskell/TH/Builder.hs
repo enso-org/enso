@@ -8,15 +8,25 @@ module Language.Haskell.TH.Builder
     , module X ) where
 
 import Language.Haskell.TH as X (Dec, Name, Q, newName, reify, runIO)
-import Prologue hiding (Data, Type, inline)
+
+import Prelude
 
 import qualified Data.Char                  as Char
 import qualified Language.Haskell.TH        as TH
 import qualified Language.Haskell.TH.Syntax as TH
 
-import Control.Lens    (lens, _3)
-import Data.List.Split (splitOn)
+import Control.Lens          (lens, _3, Lens', (^.), view, (&), (.~))
+import Control.Lens.Utils.TH (makeLenses)
+import Data.Functor.Utils    ((.:), (.:.))
+import Data.List             (foldl')
+import Data.List.Split       (splitOn)
+import Data.Maybe            (fromMaybe, catMaybes)
 
+import Control.Lens.Utils.Wrapped
+import Data.Convert
+import Data.Default
+import Data.Item
+import Data.String
 
 
 ---------------------------
@@ -67,11 +77,11 @@ instance HasCons TH.Dec where
             TH.DataD t1 t2 t3 t4 _ t6 ->
                 TH.DataD t1 t2 t3 t4 x t6
             TH.NewtypeD t1 t2 t3 t4 _ t6 ->
-                TH.NewtypeD t1 t2 t3 t4 (unsafeHead x) t6
+                TH.NewtypeD t1 t2 t3 t4 (head x) t6
             TH.DataInstD t1 t2 t3 t4 _ t6 ->
                 TH.DataInstD t1 t2 t3 t4 x t6
             TH.NewtypeInstD t1 t2 t3 t4 _ t6 ->
-                TH.NewtypeInstD t1 t2 t3 t4 (unsafeHead x) t6
+                TH.NewtypeInstD t1 t2 t3 t4 (head x) t6
             a -> a
 
 class HasNamedFields a where
@@ -129,7 +139,7 @@ strNameCycle = (pure <$> ['a' .. 'z']) <> strNameCycle' []
     (show <$> ([0..] :: [Integer]))
     where strNameCycle' []     (_:ns) = strNameCycle' ['a' .. 'z'] ns
           strNameCycle' (b:bs) ns     =
-            (b : unsafeHead ns) : strNameCycle' bs ns
+            (b : head ns) : strNameCycle' bs ns
           strNameCycle' _      _ = error "Should not happen"
 
 unsafeNameCycle  :: Convertible' String a => [a]
@@ -137,7 +147,7 @@ unsafeGenName    :: Convertible' String a => a
 unsafeGenNames   :: Convertible' String a => Int -> [a]
 unsafeGenNamesTN :: Convertible' String a => Int -> [a]
 unsafeNameCycle    = convert' <$> strNameCycle
-unsafeGenName      = unsafeHead unsafeNameCycle
+unsafeGenName      = head unsafeNameCycle
 unsafeGenNames     = flip take unsafeNameCycle
 unsafeGenNamesTN i = convert' . ("t" <>) . show <$> [1..i]
 
@@ -145,7 +155,7 @@ newNames :: Convertible' Name a => Int -> Q [a]
 newNames = mapM (fmap convert' . newName) . flip take strNameCycle
 
 mapName :: (String -> String) -> Name -> Name
-mapName f n = TH.mkName $ (fromJust "" $ TH.nameModule n) <> (f $ TH.nameBase n)
+mapName f n = TH.mkName $ (fromMaybe "" $ TH.nameModule n) <> (f $ TH.nameBase n)
 
 toUpper :: Name -> Name
 toUpper = mapName (map Char.toUpper)
@@ -595,11 +605,11 @@ reifyTypeInfo ty = do
     pure $ getTypeInfo tyCon
 
 getTypeInfo :: Dec -> TypeInfo
-getTypeInfo = uncurry TypeInfo . \case
-    TH.DataD        _ nm vars _ cs _ -> (nm, tv2t <$> vars, cs)
-    TH.NewtypeD     _ nm vars _ c  _ -> (nm, tv2t <$> vars, [c])
-    TH.DataInstD    _ nm vars _ cs _ -> (nm, vars, cs)
-    TH.NewtypeInstD _ nm vars _ c  _ -> (nm, vars, [c])
+getTypeInfo = \case
+    TH.DataD        _ nm vars _ cs _ -> TypeInfo nm (tv2t <$> vars) cs
+    TH.NewtypeD     _ nm vars _ c  _ -> TypeInfo nm (tv2t <$> vars) [c]
+    TH.DataInstD    _ nm vars _ cs _ -> TypeInfo nm vars cs
+    TH.NewtypeInstD _ nm vars _ c  _ -> TypeInfo nm vars [c]
     a -> error $ "Type info: not supported: " <> show a
     where tv2t = \case
               TH.PlainTV  n   -> var n
@@ -703,7 +713,7 @@ fixDuplicateRecordNamesGHCBug :: String -> String
 fixDuplicateRecordNamesGHCBug s = case splitOn ":" s of
     []  -> error "impossible"
     [a] -> a
-    as  -> unsafeLast $ unsafeInit as
+    as  -> last $ init as
 
 op :: Name -> TH.Exp -> TH.Exp -> TH.Exp
 op = app2 . var

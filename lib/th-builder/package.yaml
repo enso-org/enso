@@ -22,8 +22,12 @@ library:
         - src
     dependencies:
         - base
+        - container
+        - convert
         - lens
-        - prologue >= 3.0.0
+        - data-default
+        - lens-utils
+        - functor-utils
         - split
         - template-haskell
 

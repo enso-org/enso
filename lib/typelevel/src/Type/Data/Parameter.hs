@@ -5,7 +5,8 @@
 
 module Type.Data.Parameter where
 
-import Prologue
+import Data.Kind     (Type)
+import Unsafe.Coerce (unsafeCoerce)
 
 
 

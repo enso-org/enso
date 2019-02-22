@@ -113,7 +113,7 @@ import Data.List.Class                  as X
 import GHC.Exts                         as X (lazy, inline, oneShot)
 
 -- === Types === --
-import Data.Constraints                 as X (Constraints)
+import Type.Data.Constraint             as X (Constraints)
 import Data.Type.Equality               as X ((:~:), type(==), TestEquality, testEquality) -- + (~~), (:~~:) after base update
 import Prologue.Type.Reflection         as X
 
@@ -122,7 +122,7 @@ import Debug.Trace                      as X (trace, traceShow)
 import GHC.Exts                         as X (breakpoint, breakpointCond)
 import GHC.Stack                        as X ( CallStack, HasCallStack, callStack, emptyCallStack, freezeCallStack, getCallStack, popCallStack
                                              , prettyCallStack, pushCallStack, withFrozenCallStack, currentCallStack)
-import Type.Error                       as X (TypeError, ErrorMessage(ShowType, (:<>:), (:$$:)), ErrMsg, TypeErrorIf, TypeAssert)
+import Type.Error                       as X (TypeError, ErrorMessage(ShowType, (:<>:), (:$$:)), TypeErrorIf, TypeAssert)
 import Prologue.Debug.Placeholders      as X
 
 -- === Quasi Quoters == --
@@ -131,8 +131,7 @@ import Prologue.Data.String.QQ          as X (qqStr, qqRawStr, qqTxt)
 
 -- === Typelevel === --
 import GHC.TypeLits                     as X (Nat, Symbol, type (-), type (+), type (*), type (^), CmpNat, CmpSymbol) -- someSymbolVal and typelits reify?
-import Type.Known                       as X (KnownType, KnownTypeVal, fromType, fromType', KnownNat, KnownSymbol)
-import Type.Show                        as X
+import Type.Known                       as X (Known, Known', KnownVal, KnownKindVal, Knowns, KnownNat, KnownSymbol)
 import Data.Kind                        as X (Type, Constraint)
 -- import Type.Operators                   as X
 -- import Type.Monoid                      as X (type (<>))

@@ -48,11 +48,11 @@ packages:
     - lib/convert
     - lib/cpp-containers
     - lib/data-construction
-    - lib/datafile
     - lib/data-property
     - lib/data-storable
     - lib/data-tag
     - lib/data-typemap
+    - lib/datafile
     - lib/exception
     - lib/foreign-utils
     - lib/future
@@ -63,6 +63,7 @@ packages:
     - lib/memory-pool
     - lib/nested-containers
     - lib/parser-utils
+    - lib/prologue
     - lib/syntax-definition
     - lib/text-processing
     - lib/th-builder

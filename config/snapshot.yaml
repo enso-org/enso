@@ -18,7 +18,6 @@ packages:
     - lens-utils-1.4.6
     - monad-branch-1.0.4
     - monoid-0.1.9
-    - prologue-3.2.6
     - terminal-text-1.1.2
     - typelevel-1.2.3
     - vector-text-1.1.6
