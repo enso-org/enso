@@ -237,7 +237,6 @@ sub'             m = do s <- get'
 mapT :: (m (a, s) -> n (b, s)) -> StateT s m a -> StateT s n b
 mapT f = _Wrapped %~ S.mapStateT f ; {-# INLINE mapT #-}
 
-
 -- === Instances === --
 
 instance PrimMonad m => PrimMonad (StateT s m) where

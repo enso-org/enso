@@ -62,19 +62,22 @@ packages:
     - lib/hspec-jenkins
     - lib/impossible
     - lib/layered-state
+    - lib/layouting
+    - lib/lens-utils
     - lib/memory-manager
     - lib/memory-pool
+    - lib/monad-branch
+    - lib/monoid
     - lib/nested-containers
     - lib/parser-utils
     - lib/prologue
     - lib/syntax-definition
+    - lib/terminal-text
     - lib/text-processing
     - lib/th-builder
     - lib/tuple-utils
     - lib/type-cache
     - lib/typelevel
+    - lib/vector-text
     - lib/yaml-utils
-    - lib/layouting
-    - lib/lens-utils
-    - lib/monad-branch
 

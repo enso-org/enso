@@ -40,16 +40,18 @@ library:
 
 benchmarks:
     layered-state-benchmark:
-        dependencies:
-            - criterion
-            - layered-state
-            - mtl-c
-            - kan-extensions
-            - deepseq
-            - timeit
-            - either
         main: Main.hs
         source-dirs: test/bench
+        dependencies:
+            - base
+            - criterion
+            - deepseq
+            - either
+            - kan-extensions
+            - layered-state
+            - mtl
+            - mtl-c
+            - timeit
 
 default-extensions: *luna-extensions
 

@@ -1,33 +1,33 @@
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE BangPatterns        #-}
 {-# LANGUAGE ScopedTypeVariables #-}
--- {-# LANGUAGE Strict #-}
 
 module Main where
 
 import Prelude as P
-import Criterion.Main
-import Control.Monad.State.Layered hiding ((.))
-import qualified Control.Monad.State.Strict as S
-import Control.Monad.Codensity
-import qualified Control.Monad.State.CPS as CPS
-import Data.Word
-import Control.Monad.Identity
-import GHC.IO          as X (evaluate)
+
+import GHC.IO as X (evaluate)
+
+import qualified Control.Monad.State.CPS     as CPS
+import qualified Control.Monad.State.Layered as State
+import qualified Control.Monad.State.Strict  as S
+
+import Control.Monad.State.Layered (MonadStates)
+import Foreign.Storable            (peek, poke)
+import System.Environment          (getArgs)
+import System.IO                   (stdout, hSetBuffering, BufferMode(..))
+
 import Control.DeepSeq
-import System.TimeIt
-import System.Environment (getArgs)
-import System.IO (stdout, hSetBuffering, BufferMode(..))
-import Control.Monad.Trans.Either
+import Control.Monad.Codensity
+import Control.Monad.Identity
+import Criterion.Main
 import Data.IORef
+import Data.Word
 import Foreign.ForeignPtr
-import Foreign.Storable (peek, poke)
+import System.TimeIt
 
 eval :: NFData a => a -> IO a
 eval = evaluate . force ; {-# INLINE eval #-}
-
-
-
 
 mtlIncState :: S.MonadState Int m => m ()
 mtlIncState = S.modify (1+) ; {-# INLINE mtlIncState #-}
@@ -35,15 +35,15 @@ mtlIncState = S.modify (1+) ; {-# INLINE mtlIncState #-}
 
 
 -- | incLoop transformation needed because of bug https://ghc.haskell.org/trac/ghc/ticket/14062
-incLoop  :: MonadState  Int          m => Int -> m Int
+incLoop  :: State.Monad  Int          m => Int -> m Int
 incLoop2 :: MonadStates '[Int, Word] m => Int -> m (Int, Word)
-incLoop  n = repeatM incState  n >> get @Int                         ; {-# INLINE incLoop  #-}
-incLoop2 n = repeatM incState2 n >> ((,) <$> get @Int <*> get @Word) ; {-# INLINE incLoop2 #-}
+incLoop  n = repeatM incState  n >> State.get @Int                               ; {-# INLINE incLoop  #-}
+incLoop2 n = repeatM incState2 n >> ((,) <$> State.get @Int <*> State.get @Word) ; {-# INLINE incLoop2 #-}
 
-incState  :: MonadState  Int          m => m ()
+incState  :: State.Monad  Int          m => m ()
 incState2 :: MonadStates '[Int, Word] m => m ()
-incState  = modify_ @Int (1+)                       ; {-# INLINE incState  #-}
-incState2 = modify_ @Int (1+) >> modify_ @Word (1+) ; {-# INLINE incState2 #-}
+incState  = State.modify_ @Int (1+)                             ; {-# INLINE incState  #-}
+incState2 = State.modify_ @Int (1+) >> State.modify_ @Word (1+) ; {-# INLINE incState2 #-}
 
 repeatM :: Monad m => m a -> Int -> m ()
 repeatM f = go where
@@ -65,8 +65,8 @@ iorefInc :: Int -> IO Int
 iorefInc !i = do
     !ref <- newIORef (0 :: Int)
     let go = \case
-            0 -> return ()
-            j -> modifyIORef' ref (+1) >> go (j-1)
+            0 -> pure ()
+            j -> modifyIORef' ref (+1) >> go (j - 1)
     go i
     readIORef ref
 {-# INLINE iorefInc #-}
@@ -85,16 +85,16 @@ fpInc !i = do
 {-# INLINE fpInc #-}
 
 
-sInt :: Functor m => StateT Int    m a -> m a
-sWrd :: Functor m => StateT Word   m a -> m a
-sStr :: Functor m => StateT String m a -> m a
-sChr :: Functor m => StateT Char   m a -> m a
-sTup :: Functor m => StateT ()     m a -> m a
-sInt = flip (evalStateT @Int)    0   ; {-# INLINE sInt #-}
-sWrd = flip (evalStateT @Word)   0   ; {-# INLINE sWrd #-}
-sStr = flip (evalStateT @String) ""  ; {-# INLINE sStr #-}
-sChr = flip (evalStateT @Char)   'x' ; {-# INLINE sChr #-}
-sTup = flip (evalStateT @())     ()  ; {-# INLINE sTup #-}
+sInt :: Monad m => State.StateT Int    m a -> m a
+sWrd :: Monad m => State.StateT Word   m a -> m a
+sStr :: Monad m => State.StateT String m a -> m a
+sChr :: Monad m => State.StateT Char   m a -> m a
+sTup :: Monad m => State.StateT ()     m a -> m a
+sInt = flip (State.evalT @Int)    0   ; {-# INLINE sInt #-}
+sWrd = flip (State.evalT @Word)   0   ; {-# INLINE sWrd #-}
+sStr = flip (State.evalT @String) ""  ; {-# INLINE sStr #-}
+sChr = flip (State.evalT @Char)   'x' ; {-# INLINE sChr #-}
+sTup = flip (State.evalT @())     ()  ; {-# INLINE sTup #-}
 
 t_0 :: Int -> ()
 t_0 = runIdentity . sInt . repeatM incState ; {-# INLINE t_0 #-}
@@ -119,25 +119,25 @@ t_1L2 = runIdentity               . sStr . sInt . sWrd . incLoop2 ; {-# INLINE t
 t_2L2 = runIdentity        . sChr . sStr . sInt . sWrd . incLoop2 ; {-# INLINE t_2L2 #-}
 t_3L2 = runIdentity . sTup . sChr . sStr . sInt . sWrd . incLoop2 ; {-# INLINE t_3L2 #-}
 
-t_1R2E, t_2R2E, t_3R2E :: Int -> Either () (Int,Word)
-t_1R2E = runIdentity . sInt . sWrd . sStr               . runEitherT . incLoop2 ; {-# INLINE t_1R2E #-}
-t_2R2E = runIdentity . sInt . sWrd . sStr . sChr        . runEitherT . incLoop2 ; {-# INLINE t_2R2E #-}
-t_3R2E = runIdentity . sInt . sWrd . sStr . sChr . sTup . runEitherT . incLoop2 ; {-# INLINE t_3R2E #-}
+-- t_1R2E, t_2R2E, t_3R2E :: Int -> Either () (Int,Word)
+-- t_1R2E = runIdentity . sInt . sWrd . sStr               . runEitherT . incLoop2 ; [># INLINE t_1R2E #<]
+-- t_2R2E = runIdentity . sInt . sWrd . sStr . sChr        . runEitherT . incLoop2 ; [># INLINE t_2R2E #<]
+-- t_3R2E = runIdentity . sInt . sWrd . sStr . sChr . sTup . runEitherT . incLoop2 ; [># INLINE t_3R2E #<]
 
-t_1L2E, t_2L2E, t_3L2E :: Int -> Either () (Int, Word)
-t_1L2E = runIdentity . runEitherT               . sStr . sInt . sWrd . incLoop2 ; {-# INLINE t_1L2E #-}
-t_2L2E = runIdentity . runEitherT        . sChr . sStr . sInt . sWrd . incLoop2 ; {-# INLINE t_2L2E #-}
-t_3L2E = runIdentity . runEitherT . sTup . sChr . sStr . sInt . sWrd . incLoop2 ; {-# INLINE t_3L2E #-}
-
-t_1R2Eb, t_2R2Eb, t_3R2Eb :: Int -> Either () (Int,Word)
-t_1R2Eb = runIdentity . sInt . runEitherT . sWrd . sStr               . incLoop2 ; {-# INLINE t_1R2Eb #-}
-t_2R2Eb = runIdentity . sInt . runEitherT . sWrd . sStr . sChr        . incLoop2 ; {-# INLINE t_2R2Eb #-}
-t_3R2Eb = runIdentity . sInt . runEitherT . sWrd . sStr . sChr . sTup . incLoop2 ; {-# INLINE t_3R2Eb #-}
-
-t_1L2Eb, t_2L2Eb, t_3L2Eb :: Int -> Either () (Int, Word)
-t_1L2Eb = runIdentity               . sStr . sInt . runEitherT . sWrd . incLoop2 ; {-# INLINE t_1L2Eb #-}
-t_2L2Eb = runIdentity        . sChr . sStr . sInt . runEitherT . sWrd . incLoop2 ; {-# INLINE t_2L2Eb #-}
-t_3L2Eb = runIdentity . sTup . sChr . sStr . sInt . runEitherT . sWrd . incLoop2 ; {-# INLINE t_3L2Eb #-}
+-- t_1L2E, t_2L2E, t_3L2E :: Int -> Either () (Int, Word)
+-- t_1L2E = runIdentity . runEitherT               . sStr . sInt . sWrd . incLoop2 ; [># INLINE t_1L2E #<]
+-- t_2L2E = runIdentity . runEitherT        . sChr . sStr . sInt . sWrd . incLoop2 ; [># INLINE t_2L2E #<]
+-- t_3L2E = runIdentity . runEitherT . sTup . sChr . sStr . sInt . sWrd . incLoop2 ; [># INLINE t_3L2E #<]
+--
+-- t_1R2Eb, t_2R2Eb, t_3R2Eb :: Int -> Either () (Int,Word)
+-- t_1R2Eb = runIdentity . sInt . runEitherT . sWrd . sStr               . incLoop2 ; [># INLINE t_1R2Eb #<]
+-- t_2R2Eb = runIdentity . sInt . runEitherT . sWrd . sStr . sChr        . incLoop2 ; [># INLINE t_2R2Eb #<]
+-- t_3R2Eb = runIdentity . sInt . runEitherT . sWrd . sStr . sChr . sTup . incLoop2 ; [># INLINE t_3R2Eb #<]
+--
+-- t_1L2Eb, t_2L2Eb, t_3L2Eb :: Int -> Either () (Int, Word)
+-- t_1L2Eb = runIdentity               . sStr . sInt . runEitherT . sWrd . incLoop2 ; [># INLINE t_1L2Eb #<]
+-- t_2L2Eb = runIdentity        . sChr . sStr . sInt . runEitherT . sWrd . incLoop2 ; [># INLINE t_2L2Eb #<]
+-- t_3L2Eb = runIdentity . sTup . sChr . sStr . sInt . runEitherT . sWrd . incLoop2 ; [># INLINE t_3L2Eb #<]
 
 main :: IO ()
 main = do
@@ -182,38 +182,38 @@ main = do
     defaultMain [ bench "IORef    (10e6)" $ nfIO (iorefInc iterCount)
                 , bench "FPtr     (10e6)" $ nfIO (fpInc iterCount)
                 , bench "pure     (10e6)" $ nf (pureInc 0) iterCount
-                , bench "1R trans (10e6)" $ nf t_1R iterCount
-                , bench "2R trans (10e6)" $ nf t_2R iterCount
-                , bench "3R trans (10e6)" $ nf t_3R iterCount
-                , bench "1L trans (10e6)" $ nf t_1L iterCount
-                , bench "2L trans (10e6)" $ nf t_2L iterCount
-                , bench "3L trans (10e6)" $ nf t_3L iterCount
+                -- , bench "1R trans (10e6)" $ nf t_1R iterCount
+                -- , bench "2R trans (10e6)" $ nf t_2R iterCount
+                -- , bench "3R trans (10e6)" $ nf t_3R iterCount
+                -- , bench "1L trans (10e6)" $ nf t_1L iterCount
+                -- , bench "2L trans (10e6)" $ nf t_2L iterCount
+                -- , bench "3L trans (10e6)" $ nf t_3L iterCount
                 ]
 
     putStrLn "\n\n=== Double counter loop ===\n"
     defaultMain [ bench "pure     (10e6)" $ nf (pureInc2 0 0) iterCount
-                , bench "1R trans (10e6)" $ nf t_1R2 iterCount
-                , bench "2R trans (10e6)" $ nf t_2R2 iterCount
-                , bench "3R trans (10e6)" $ nf t_3R2 iterCount
-                , bench "1L trans (10e6)" $ nf t_1L2 iterCount
-                , bench "2L trans (10e6)" $ nf t_2L2 iterCount
-                , bench "3L trans (10e6)" $ nf t_3L2 iterCount
+                -- , bench "1R trans (10e6)" $ nf t_1R2 iterCount
+                -- , bench "2R trans (10e6)" $ nf t_2R2 iterCount
+                -- , bench "3R trans (10e6)" $ nf t_3R2 iterCount
+                -- , bench "1L trans (10e6)" $ nf t_1L2 iterCount
+                -- , bench "2L trans (10e6)" $ nf t_2L2 iterCount
+                -- , bench "3L trans (10e6)" $ nf t_3L2 iterCount
                 ]
 
-    putStrLn "\n\n=== Double counter loop in EitherT ===\n"
-    defaultMain [ bench "1R trans (10e6)" $ nf t_1R2E iterCount
-                , bench "2R trans (10e6)" $ nf t_2R2E iterCount
-                , bench "3R trans (10e6)" $ nf t_3R2E iterCount
-                , bench "1L trans (10e6)" $ nf t_1L2E iterCount
-                , bench "2L trans (10e6)" $ nf t_2L2E iterCount
-                , bench "3L trans (10e6)" $ nf t_3L2E iterCount
-                ]
+    -- putStrLn "\n\n=== Double counter loop in EitherT ===\n"
+    -- defaultMain [ bench "1R trans (10e6)" $ nf t_1R2E iterCount
+                -- , bench "2R trans (10e6)" $ nf t_2R2E iterCount
+                -- , bench "3R trans (10e6)" $ nf t_3R2E iterCount
+                -- , bench "1L trans (10e6)" $ nf t_1L2E iterCount
+                -- , bench "2L trans (10e6)" $ nf t_2L2E iterCount
+                -- , bench "3L trans (10e6)" $ nf t_3L2E iterCount
+                -- ]
 
-    putStrLn "\n\n=== Double counter loop with EitherT in-between ===\n"
-    defaultMain [ bench "1R trans (10e6)" $ nf t_1R2Eb iterCount
-                , bench "2R trans (10e6)" $ nf t_2R2Eb iterCount
-                , bench "3R trans (10e6)" $ nf t_3R2Eb iterCount
-                , bench "1L trans (10e6)" $ nf t_1L2Eb iterCount
-                , bench "2L trans (10e6)" $ nf t_2L2Eb iterCount
-                , bench "3L trans (10e6)" $ nf t_3L2Eb iterCount
-                ]
+    -- putStrLn "\n\n=== Double counter loop with EitherT in-between ===\n"
+    -- defaultMain [ bench "1R trans (10e6)" $ nf t_1R2Eb iterCount
+                -- , bench "2R trans (10e6)" $ nf t_2R2Eb iterCount
+                -- , bench "3R trans (10e6)" $ nf t_3R2Eb iterCount
+                -- , bench "1L trans (10e6)" $ nf t_1L2Eb iterCount
+                -- , bench "2L trans (10e6)" $ nf t_2L2Eb iterCount
+                -- , bench "3L trans (10e6)" $ nf t_3L2Eb iterCount
+                -- ]
