@@ -1,0 +1,95 @@
+name: layered-state
+version: 1.1.5
+synopsis: Control structure similar to Control.Monad.State, allowing multiple nested
+  states, distinguishable by provided phantom types.
+category: Data
+license: Apache-2.0
+stability: experimental
+homepage: https://github.com/luna/layered-state
+bug-reports: https://github.com/luna/layered-state/issues
+author: Luna Team
+copyright: Copyright (C) 2018 Luna Team
+maintainer: Wojciech Danilo <wojciech.danilo@luna-lang.org>
+
+ghc-options:
+- -Wall
+- -O2
+
+library:
+  source-dirs:
+  - src
+  dependencies:
+  - base >= 4.9 && < 4.13
+  - lens
+  - mtl
+  - primitive
+  - exceptions
+  - prologue
+  - constraints
+  - data-default
+  - transformers
+  - typelevel
+  - lens-utils
+  - monad-branch
+  - monoid
+  - profunctors
+
+benchmarks:
+  layered-state-benchmark:
+    dependencies:
+    - criterion
+    - layered-state
+    - mtl-c
+    - kan-extensions
+    - deepseq
+    - timeit
+    - either
+    main: Main.hs
+    source-dirs: test/bench
+
+default-extensions:
+- AllowAmbiguousTypes
+- ApplicativeDo
+- BangPatterns
+- BinaryLiterals
+- ConstraintKinds
+- DataKinds
+- DefaultSignatures
+- DeriveDataTypeable
+- DeriveFoldable
+- DeriveFunctor
+- DeriveGeneric
+- DeriveTraversable
+- DoAndIfThenElse
+- DuplicateRecordFields
+- EmptyDataDecls
+- FlexibleContexts
+- FlexibleInstances
+- FunctionalDependencies
+- GeneralizedNewtypeDeriving
+- InstanceSigs
+- LambdaCase
+- MonadComprehensions
+- MultiWayIf
+- NamedWildCards
+- NegativeLiterals
+- NoImplicitPrelude
+- NumDecimals
+- OverloadedLabels
+- PackageImports
+- QuasiQuotes
+- PatternSynonyms
+- RankNTypes
+- RecursiveDo
+- ScopedTypeVariables
+- StandaloneDeriving
+- TemplateHaskell
+- TupleSections
+- TypeApplications
+- TypeFamilies
+- TypeFamilyDependencies
+- TypeOperators
+- UnicodeSyntax
+- ViewPatterns
+- LiberalTypeSynonyms
+- RelaxedPolyRec
