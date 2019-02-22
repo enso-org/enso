@@ -1,0 +1,28 @@
+author: Wojciech Danilo
+bug-reports: https://github.com/wdanilo/prologue/issues
+category: control
+copyright: Copyright (C) 2016-2018 Wojciech Danilo
+default-extensions: [ScopedTypeVariables, TypeApplications, ConstraintKinds, DataKinds,
+  DefaultSignatures, DeriveDataTypeable, DeriveFoldable, DeriveFunctor, DeriveGeneric,
+  DeriveTraversable, DoAndIfThenElse, EmptyDataDecls, FlexibleContexts, FlexibleInstances,
+  GeneralizedNewtypeDeriving, InstanceSigs, LambdaCase, MultiParamTypeClasses, NoImplicitPrelude,
+  OverloadedStrings, StandaloneDeriving, TemplateHaskell, TupleSections, TypeFamilies,
+  TypeOperators, ViewPatterns, MultiWayIf, UnicodeSyntax]
+dependencies: [base >= 4.9 && < 4.13, bifunctors, binary, cond, container, convert,
+  data-default, deepseq, errors, exceptions, functor-utils, ghc-prim, impossible,
+  lens, lens-utils, mtl, placeholders, pretty-show, primitive, string-qq, raw-strings-qq,
+  template-haskell, text, transformers, transformers-base, typelevel, vector, comonad,
+  either, monoid, pointed, neat-interpolation, recursion-schemes, semigroupoids, deriving-compat,
+  pretty]
+description: Replacement for the Haskell's Prelude, exposing more commonly used functions
+  and patching old GHC ones to behave in the newest GHC's way.
+ghc-options: [-Wall, -O2]
+git: git://github.com/wdanilo/prologue.git
+homepage: https://github.com/wdanilo/prologue
+library: {source-dirs: src}
+license: Apache-2.0
+maintainer: Wojciech Danilo <wojciech.danilo@gmail.com>
+name: prologue
+stability: experimental
+synopsis: Better, more general Prelude exporting common utilities.
+version: 3.2.6
