@@ -51,11 +51,11 @@ dependencies:
     - luna-syntax-text-parser
     - luna-syntax-text-model
     - luna-text-processing
+    - luna-typelevel
     - megaparsec
     - mtl
     - prologue
     - text
-    - typelevel
     - vector
     - vector-text
 

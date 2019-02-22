@@ -72,7 +72,6 @@ dependencies:
     - mtl
     - prologue
     - text
-    - typelevel
     - vector
     - vector-text
 

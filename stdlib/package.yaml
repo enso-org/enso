@@ -49,6 +49,7 @@ dependencies:
     - luna-passes
     - luna-runtime
     - luna-syntax-text-prettyprint
+    - luna-typelevel
     - mtl
     - network
     - process
@@ -60,7 +61,6 @@ dependencies:
     - text
     - time
     - transformers
-    - typelevel
     - unordered-containers
     - uuid
     - vector
