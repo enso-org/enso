@@ -55,16 +55,17 @@ packages:
     - lib/datafile
     - lib/exception
     - lib/foreign-utils
+    - lib/functor-utils
     - lib/future
     - lib/generic-traversable
     - lib/generic-traversable2
     - lib/hspec-jenkins
+    - lib/impossible
     - lib/memory-manager
     - lib/memory-pool
     - lib/nested-containers
     - lib/parser-utils
     - lib/prologue
-    - lib/functor-utils
     - lib/syntax-definition
     - lib/text-processing
     - lib/th-builder
@@ -72,4 +73,5 @@ packages:
     - lib/type-cache
     - lib/typelevel
     - lib/yaml-utils
+    - lib/layered-state
 

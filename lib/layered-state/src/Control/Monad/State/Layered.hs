@@ -28,7 +28,7 @@ import Control.Monad.Trans.Maybe
 import Data.Constraint
 import Data.Default
 import Data.Kind (Type)
-import Type.Bool
+import Type.Data.Bool
 
 import qualified Prelude as P
 import qualified Control.Monad.State.Strict as S
