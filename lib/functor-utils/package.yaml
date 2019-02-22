@@ -1,0 +1,71 @@
+name: functor-utils
+version: 1.17.2
+synopsis: Collection of functor utilities, providing handy operators, like generalization
+  of (.).
+category: Data
+license: Apache-2.0
+stability: experimental
+homepage: https://github.com/luna/functor-utils
+bug-reports: https://github.com/luna/functor-utils/issues
+author: Luna Team
+copyright: Copyright (C) 2018 Luna Team
+maintainer: Wojciech Danilo <wojciech.danilo@luna-lang.org>
+
+ghc-options:
+- -Wall
+- -O2
+
+library:
+  source-dirs:
+  - src
+  dependencies:
+  - base >= 4.9 && < 4.13
+  - ghc-prim
+  - lens
+
+default-extensions:
+- AllowAmbiguousTypes
+- ApplicativeDo
+- BangPatterns
+- BinaryLiterals
+- ConstraintKinds
+- DataKinds
+- DefaultSignatures
+- DeriveDataTypeable
+- DeriveFoldable
+- DeriveFunctor
+- DeriveGeneric
+- DeriveTraversable
+- DoAndIfThenElse
+- DuplicateRecordFields
+- EmptyDataDecls
+- FlexibleContexts
+- FlexibleInstances
+- FunctionalDependencies
+- GeneralizedNewtypeDeriving
+- InstanceSigs
+- LambdaCase
+- MonadComprehensions
+- MultiWayIf
+- NamedWildCards
+- NegativeLiterals
+- NoImplicitPrelude
+- NumDecimals
+- OverloadedLabels
+- PackageImports
+- QuasiQuotes
+- PatternSynonyms
+- RankNTypes
+- RecursiveDo
+- ScopedTypeVariables
+- StandaloneDeriving
+- TemplateHaskell
+- TupleSections
+- TypeApplications
+- TypeFamilies
+- TypeFamilyDependencies
+- TypeOperators
+- UnicodeSyntax
+- ViewPatterns
+- LiberalTypeSynonyms
+- RelaxedPolyRec
