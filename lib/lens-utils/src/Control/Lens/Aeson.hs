@@ -1,5 +1,7 @@
 module Control.Lens.Aeson where
 
+import Prelude
+
 import qualified Data.Aeson          as JSON
 import qualified Data.Aeson.Encoding as JSON
 import qualified Data.Aeson.Types    as JSON

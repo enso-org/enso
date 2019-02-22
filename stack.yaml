@@ -61,6 +61,7 @@ packages:
     - lib/generic-traversable2
     - lib/hspec-jenkins
     - lib/impossible
+    - lib/layered-state
     - lib/memory-manager
     - lib/memory-pool
     - lib/nested-containers
@@ -73,5 +74,7 @@ packages:
     - lib/type-cache
     - lib/typelevel
     - lib/yaml-utils
-    - lib/layered-state
+    - lib/layouting
+    - lib/lens-utils
+    - lib/monad-branch
 
