@@ -1,0 +1,75 @@
+name: terminal-text
+version: 1.1.2
+synopsis: Text data type for styled terminal output, including all standard ANSI effects
+  (bold, italic, blinking) and ANSI / 256 / truecolor colors support for Unix and
+  Windows (whenever possible).
+category: Data
+license: Apache-2.0
+stability: experimental
+homepage: https://github.com/luna/terminal-text
+bug-reports: https://github.com/luna/terminal-text/issues
+author: Luna Team
+copyright: Copyright (C) 2018 Luna Team
+maintainer: Wojciech Danilo <wojciech.danilo@luna-lang.org>
+
+ghc-options:
+- -Wall
+- -O2
+
+library:
+  source-dirs:
+  - src
+  dependencies:
+  - base >= 4.9 && < 4.13
+  - prologue
+  - layered-state
+  - text
+  - ansi-terminal
+  - container
+
+default-extensions:
+- AllowAmbiguousTypes
+- ApplicativeDo
+- BangPatterns
+- BinaryLiterals
+- ConstraintKinds
+- DataKinds
+- DefaultSignatures
+- DeriveDataTypeable
+- DeriveFoldable
+- DeriveFunctor
+- DeriveGeneric
+- DeriveTraversable
+- DoAndIfThenElse
+- DuplicateRecordFields
+- EmptyDataDecls
+- FlexibleContexts
+- FlexibleInstances
+- FunctionalDependencies
+- GeneralizedNewtypeDeriving
+- InstanceSigs
+- LambdaCase
+- MonadComprehensions
+- MultiWayIf
+- NamedWildCards
+- NegativeLiterals
+- NoImplicitPrelude
+- NumDecimals
+- OverloadedLabels
+- PackageImports
+- QuasiQuotes
+- PatternSynonyms
+- RankNTypes
+- RecursiveDo
+- ScopedTypeVariables
+- StandaloneDeriving
+- TemplateHaskell
+- TupleSections
+- TypeApplications
+- TypeFamilies
+- TypeFamilyDependencies
+- TypeOperators
+- UnicodeSyntax
+- ViewPatterns
+- LiberalTypeSynonyms
+- RelaxedPolyRec
