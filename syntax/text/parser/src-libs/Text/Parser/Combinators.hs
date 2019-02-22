@@ -3,16 +3,24 @@
 
 module Text.Parser.Combinators where
 
+import Prelude
+
 import Control.Applicative as Applicative
+
 import Control.Lens
 import Control.Monad
 import Data.List.NonEmpty
-import Prelude
 
 
+
+(<**?>) :: Alternative f => f b -> f (b -> b) -> f b
 a <**?> f = a <**> option id f
+
+(<?*>) :: Alternative f => f (b -> b) -> f b -> f b
 f <?*>  a = option id f <*> a
-f ?$    a = f a <|> pure a
+
+(?$) :: Alternative f => (a -> f a) -> a -> f a
+f ?$ a = f a <|> pure a
 
 
 option :: Alternative m => a -> m a -> m a

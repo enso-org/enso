@@ -5,18 +5,15 @@ import Prologue as Std
 import qualified Control.Concurrent.Async    as Async
 import qualified Control.Monad.Exception     as Exception
 import qualified Control.Monad.State.Layered as State
-import qualified Data.Graph.Data.Graph.Class as Graph
 import qualified Data.List                   as List
 import qualified Data.Map.Strict             as Map
 import qualified OCI.Pass.Definition.Class   as Pass
 import qualified OCI.Pass.Definition.Dynamic as Pass
 import qualified OCI.Pass.State.Attr         as Attr
-import qualified OCI.Pass.State.Encoder      as Encoder
 
 import Control.Concurrent.Async    (Async, async)
 import Control.Monad.Exception     (Throws, throw)
 import Control.Monad.State.Layered (StateT)
-import Data.Graph.Data.Graph.Class (Graph)
 import Data.Map.Strict             (Map)
 import GHC.Exts                    (Any)
 import OCI.Pass.Definition.Class   (Pass)
@@ -156,7 +153,7 @@ getAttr = do
     Exception.fromJust (MissingAttrs [Attr.rep @attr]) attr
 {-# INLINE getAttr #-}
 
-modifyAttr_ :: ∀ attr a m. (MonadScheduler m, Typeable attr)
+modifyAttr_ :: ∀ attr m. (MonadScheduler m, Typeable attr)
            => (attr -> attr) -> m ()
 modifyAttr_ = \f -> setAttr @attr . f =<< getAttr @attr
 {-# INLINE modifyAttr_ #-}

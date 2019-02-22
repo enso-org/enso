@@ -17,16 +17,16 @@ import Data.Text.CodeBuilder.Doc (Doc, between)
 -- Data types
 ----------------------------------------------------------------------
 
-data Prec = Top
-          | Bottom
-          | Lvl Int
-          deriving (Show, Generic, Eq)
+data Prec
+    = Top
+    | Bottom
+    | Lvl Int
+    deriving (Show, Generic, Eq)
 
-
-data Tok = Tok { _prec :: Prec
-               , _doc  :: Doc
-               }
-
+data Tok = Tok
+    { _prec :: Prec
+    , _doc  :: Doc
+    }
 makeLenses ''Tok
 
 ----------------------------------------------------------------------
@@ -42,8 +42,8 @@ bracked  = sbox . (doc %~ between "[" "]")
 braced   = sbox . (doc %~ between "{" "}")
 
 precParens :: Prec -> Tok -> Doc
-precParens tresh t@(Tok prec _bldr) = view doc $ if checkPrec tresh prec then parensed t
-                                                                         else t
+precParens tresh t@(Tok prec _bldr) = view doc
+    $ if checkPrec tresh prec then parensed t else t
 
 checkPrec :: Prec -> Prec -> Bool
 checkPrec p1 p2 = case p2 of
@@ -55,11 +55,29 @@ checkPrec p1 p2 = case p2 of
 -- Instances
 ----------------------------------------------------------------------
 
-instance Mempty    Tok where mempty                        = Tok Top mempty
-instance Semigroup Tok where Tok pri doc <> Tok _pri' doc' = Tok pri (doc <> doc')
+instance Mempty Tok where
+    mempty = Tok Top mempty
+
+instance Semigroup Tok where
+    Tok pri doc <> Tok _pri' doc' = Tok pri (doc <> doc')
 
 instance Num Prec where
     fromInteger = Lvl . fromInteger
+    a + b = case (a, b) of
+        (Lvl x, Lvl y) -> Lvl $ x + y
+        (a, _)         -> a
+    a * b = case (a, b) of
+        (Lvl x, Lvl y) -> Lvl $ x + y
+        (a, _)         -> a
+    abs a = case a of
+        Lvl x -> Lvl $ abs x
+        x     -> abs x
+    signum a = case a of
+        (Lvl x) -> Lvl $ signum x
+        _       -> 1
+    negate a = case a of
+        (Lvl x) -> Lvl $ negate x
+        x       -> x
 
 instance IsString Tok where
     fromString = Tok Top . fromString

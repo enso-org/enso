@@ -7,15 +7,13 @@ module Data.Graph.Data.Layer.Class where
 import Prologue hiding (Data, Wrapped, convert, convert1, read)
 
 import qualified Control.Lens                as Lens
-import qualified Control.Monad.State.Layered as State
 import qualified Data.Construction           as Data
 import qualified Data.Convert2               as Convert
-import qualified Foreign.Ptr                 as Ptr
 import qualified Foreign.Storable            as Storable
 import qualified Foreign.Storable1           as Storable1
 
-import Data.Convert2          (convert, convert1)
-import Foreign.Ptr            (Ptr, plusPtr)
+import Data.Convert2          (convert1)
+import Foreign.Ptr            (plusPtr)
 import Foreign.Ptr.Utils      (SomePtr)
 import Foreign.Storable.Utils (sizeOf')
 import Foreign.Storable1      (Storable1)
@@ -79,7 +77,7 @@ instance Mempty    t => Mempty    (Simple t layout) where mempty = wrap mempty ;
 instance Semigroup t => Semigroup (Simple t layout) where
     a <> b = wrap (unwrap a <> unwrap b) ; {-# INLINE (<>) #-}
 
--- TODO[PM]: Storable1.derive ''Simple
+-- TODO[Ara]: Storable1.derive ''Simple
 instance Storable.Storable t => Storable1.Storable1 (Simple t) where
     sizeOf    = \ ~_ -> Storable.sizeOf    (undefined :: t) ; {-# INLINE sizeOf    #-}
     alignment = \ ~_ -> Storable.alignment (undefined :: t) ; {-# INLINE alignment #-}
@@ -334,13 +332,13 @@ write = write__ @t @layer
 
 modify  :: ∀ layer t lyt m a. (Reader t layer m, Writer t layer m)
         => t lyt -> (Data layer lyt -> (a, Data layer lyt)) -> m a
-modify_ :: ∀ layer t lyt m a. (Reader t layer m, Writer t layer m)
+modify_ :: ∀ layer t lyt m . (Reader t layer m, Writer t layer m)
         => t lyt -> (Data layer lyt ->     Data layer lyt)  -> m ()
 modify comp f = do
     old <- read @layer comp
     let (!res, !new) = f old
     write @layer comp new
-    return res
+    pure res
 modify_ comp f = read @layer comp >>= write @layer comp . f
 {-# INLINE modify  #-}
 {-# INLINE modify_ #-}

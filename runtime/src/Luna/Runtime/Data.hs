@@ -64,26 +64,26 @@ dispatchMethod s = go where
         --   The action inside future is suspended and the result cached
         --   inside an MVar, and the action itself is self–sufficient, not
         --   interacting with any outside resources.
-        Just f  -> applyFun (Future.unsafeGet f) $ return x
+        Just f  -> applyFun (Future.unsafeGet f) $ pure x
 
 tryDispatchMethod :: IR.Name -> Data -> Luna.Eff (Maybe Value)
 tryDispatchMethod s = force' >=> go where
     go (Error e)     = Luna.throw e
-    go x@(Native a)  = return $ tryDispatch x a
-    go x@(Cons   a)  = return $ tryDispatch x a
-    go _             = return Nothing
+    go x@(Native a)  = pure $ tryDispatch x a
+    go x@(Cons   a)  = pure $ tryDispatch x a
+    go _             = pure Nothing
 
     tryDispatch :: Data -> Object a -> Maybe Value
     tryDispatch x (Object _ _ _ ms) = case Map.lookup s ms of
-        Just f -> Just $ Future.get f >>= \fun -> applyFun fun (return x)
+        Just f -> Just $ Future.get f >>= \fun -> applyFun fun (pure x)
         _      -> Nothing
 
 tryDispatchMethods :: [IR.Name] -> Data -> Luna.Eff (Maybe Value)
-tryDispatchMethods [] s = return $ Just $ return s
+tryDispatchMethods [] s = pure $ Just $ pure s
 tryDispatchMethods (m : ms) s = do
     res <- tryDispatchMethod m s
     case res of
-        Nothing -> return Nothing
+        Nothing -> pure Nothing
         Just r  -> r >>= tryDispatchMethods ms
 
 applyFun :: Value -> Value -> Value

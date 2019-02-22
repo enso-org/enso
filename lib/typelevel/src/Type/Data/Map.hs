@@ -7,13 +7,13 @@ module Type.Data.Map (module Type.Data.Map, module X) where
 
 import Type.Data.Property as X
 
+import Data.Proxy (Proxy)
+
 import Data.Kind
-import Data.Proxy        (Proxy)
 import Prelude
 import Type.Data.Bool
 import Type.Data.Maybe
 import Type.Data.Ord
-import Type.Data.Wrapped
 
 
 --------------------------

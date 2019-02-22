@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-missing-pattern-synonym-signatures #-}
+
 {-# LANGUAGE PatternSynonyms #-}
 
 module Luna.IR.Aliases where

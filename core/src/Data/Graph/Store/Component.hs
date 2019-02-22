@@ -2,8 +2,6 @@
 
 module Data.Graph.Store.Component where
 
-import Prologue
-
 -- import qualified Control.Monad.State.Layered     as State
 -- import qualified Data.Graph.Data.Component.Class as Component
 -- import qualified Data.Graph.Data.Component.List  as ComponentList

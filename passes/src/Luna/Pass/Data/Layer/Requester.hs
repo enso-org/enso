@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-orphans #-}
+
 {-# LANGUAGE NoStrict             #-}
 {-# LANGUAGE NoStrictData         #-}
 {-# LANGUAGE UndecidableInstances #-}
@@ -7,7 +9,6 @@ module Luna.Pass.Data.Layer.Requester where
 import Prologue
 
 import qualified Data.Construction                     as Data
-import qualified Data.Generics.Traversable.Deriving    as GTraversable
 import qualified Data.Graph.Fold.Class                 as FoldClass
 import qualified Data.Graph.Fold.Scoped                as Fold
 import qualified Data.Graph.Fold.Deep                  as Fold
@@ -15,19 +16,13 @@ import qualified Data.Graph.Fold.Partition             as Fold
 import qualified Data.Graph.Data.Layer.Layout          as Layout
 import qualified Data.Graph.Component.Edge             as Edge
 import qualified Data.Graph.Component.Edge.Destruction as Edge
-import qualified Data.Graph.Store.Buffer               as Buffer
-import qualified Data.Graph.Store.Size.Discovery       as Buffer
 import qualified Data.Mutable.Storable.SmallAutoVector as SAV
-import qualified Foreign.Storable.Deriving             as Storable
 import qualified Luna.IR                               as IR
 import qualified Luna.IR.Layer                         as Layer
-import qualified Luna.Pass.Data.Error                  as Error
-import qualified Luna.Pass.Typing.Data.Target          as Target
 
 import Data.Graph.Data.Component.Maybe       (MaybeComponent (..))
 import Data.Graph.Data.Layer.Class           (Layer)
 import Data.Graph.Component.Edge.Class       (type (*-*))
-import Data.Graph.Component.Node.Layer.Model (Model)
 import Data.Graph.Component.Edge.Class       (Edges)
 import Luna.Pass.Typing.Data.Target          (Target)
 
@@ -52,7 +47,7 @@ getRequesterEdge :: Layer.Reader IR.Term Requester m
                  => IR.Term a -> m (Maybe IR.SomeLink)
 getRequesterEdge = \t -> do
     link <- unwrap <$> Layer.read @Requester (Layout.relayout t :: IR.SomeTerm)
-    return $ Layout.relayout <$> link
+    pure $ Layout.relayout <$> link
 {-# INLINE getRequesterEdge #-}
 
 getRequester ::
@@ -98,3 +93,4 @@ pushArising ::
 pushArising = \item r -> do
     old <- getArising r
     setArising (item:old) r
+

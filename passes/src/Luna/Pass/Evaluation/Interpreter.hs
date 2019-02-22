@@ -61,7 +61,7 @@ runInterpreter root units = do
     Scheduler.runPassByType @(Interpreter ResultValue)
 
     ResultValue res <- Scheduler.getAttr
-    return res
+    pure res
 
 execInterpreter :: IR.SomeTerm -> Runtime.Units -> TC.Monad (IO LocalScope)
 execInterpreter root units = do
@@ -77,7 +77,7 @@ execInterpreter root units = do
     Scheduler.runPassByType @(Interpreter ResultScope)
 
     ResultScope res <- Scheduler.getAttr
-    return res
+    pure res
 
 ------------------
 -- === Pass === --
@@ -116,7 +116,8 @@ instance Pass.Definition TC.Stage (Interpreter ResultScope) where
         result <- interpret units root
         Attr.put $ ResultScope $ do
             scopeRef <- newIORef def
-            Runtime.runIO $ Runtime.runError $ Scope.evalWithRef result scopeRef
+            void . Runtime.runIO . Runtime.runError
+                $ Scope.evalWithRef result scopeRef
             readIORef scopeRef
 
 interpret :: (m ~ t Runtime.Eff, MonadScope m, MonadTrans t)
@@ -135,23 +136,23 @@ interpret' glob expr = Layer.read @IR.Model expr >>= \case
     Uni.RawString s -> do
         str <- SmallVector.toList s
         let lunaStr = mkString glob (convert str)
-        return $ return lunaStr
+        pure $ pure lunaStr
     Uni.FmtString s -> do
         parts <- ComponentVector.toList s
         case parts of
-            []  -> return $ return $ mkString glob ""
+            []  -> pure $ pure $ mkString glob ""
             [a] -> interpret glob =<< IR.source a
-            _   -> return $ lift $
+            _   -> pure $ lift $
                 Runtime.throw "Interpolated strings not supported yet."
     IR.UniTermNumber n -> do
         isInt <- IR.isInteger n
         num   <- if isInt then mkInt glob    <$> IR.toInteger n
                           else mkDouble glob <$> IR.toDouble n
-        return $ return num
-    Uni.Var name -> return $ do
+        pure $ pure num
+    Uni.Var name -> pure $ do
         val <- State.gets @LocalScope (Scope.localLookup expr)
         case val of
-            Just v  -> return v
+            Just v  -> pure v
             Nothing -> lift $ Runtime.throw $ "Variable not found: "
                                             <> convert name
     Uni.ResolvedDef mod name -> do
@@ -159,15 +160,15 @@ interpret' glob expr = Layer.read @IR.Model expr >>= \case
     Uni.Lam i' o' -> do
         bodyVal <- interpret glob =<< IR.source o'
         inputMatcher <- irrefutableMatcher =<< IR.source i'
-        return $ do
+        pure $ do
             env <- State.get @LocalScope
-            return $ Runtime.Function $ \d -> do
+            pure $ Runtime.Function $ \d -> do
                 newBinds <- inputMatcher $ Runtime.mkThunk d
                 State.evalT bodyVal $ Scope.merge newBinds env
     Uni.App f a -> do
         fun <- interpret glob =<< IR.source f
         arg <- interpret glob =<< IR.source a
-        return $ do
+        pure $ do
             env <- State.get @LocalScope
             let fun' = State.evalT fun env
                 arg' = State.evalT arg env
@@ -175,16 +176,16 @@ interpret' glob expr = Layer.read @IR.Model expr >>= \case
     Uni.Acc a' n' -> do
         a <- interpret glob =<< IR.source a'
         name <- IR.source n' >>= Layer.read @IR.Model >>= \case
-            Uni.Var n -> return n
+            Uni.Var n -> pure n
             _         -> error "interpret: method name is not Var"
-        return $ do
+        pure $ do
             arg <- a
             lift $ Runtime.force $ Runtime.dispatchMethod name arg
     Uni.Unify l' r' -> do
         rhs <- interpret glob =<< IR.source r'
         l   <- IR.source l'
         pat <- irrefutableMatcher l
-        return $ do
+        pure $ do
             env <- State.get @LocalScope
             let rhs' = State.evalT rhs (Scope.localInsert l rhsT env)
                 rhsT = Runtime.mkThunk rhs'
@@ -196,44 +197,45 @@ interpret' glob expr = Layer.read @IR.Model expr >>= \case
                     lift $ Runtime.throw $ unwrap e
                 Right v -> do
                     State.modify_ @LocalScope . Scope.merge =<< lift (pat v)
-                    return v
+                    pure v
     Uni.Function n' as' b' -> do
         n <- IR.source n'
         asList <- ComponentVector.toList as'
         as <- traverse (irrefutableMatcher <=< IR.source) asList
         rhs <- interpret glob =<< IR.source b'
         let makeFuns []       e = State.evalT rhs e
-            makeFuns (m : ms) e = return $ Runtime.Function $ \d -> do
+            makeFuns (m : ms) e = pure $ Runtime.Function $ \d -> do
                 newBinds <- m $ Runtime.mkThunk d
                 makeFuns ms (Scope.merge newBinds e)
-        return $ do
+        pure $ do
             env <- State.get @LocalScope
             let rhs' = makeFuns as (Scope.localInsert n rhst env)
                 rhst = Runtime.mkThunk rhs'
             State.modify_ @LocalScope $ Scope.localInsert n rhst
-            return $ Runtime.mkSusp rhs'
+            pure $ Runtime.mkSusp rhs'
     Uni.Seq l' r' -> do
         lhs <- interpret glob =<< IR.source l'
         rhs <- interpret glob =<< IR.source r'
-        return $ do
+        pure $ do
             lV <- lhs
-            lift $ Runtime.forceThunks' lV
+            void . lift $ Runtime.forceThunks' lV
             rhs
     Uni.ResolvedCons mod cls name fs -> do
         fsList <- ComponentVector.toList fs
         fields <- mapM (interpret glob <=< IR.source) fsList
         let mets = Runtime.getObjectMethodMap glob mod cls
-        return $ do
+        pure $ do
             fs <- sequence fields
             let cons = Runtime.Constructor name fs
-            return $ Runtime.Cons $ Runtime.Object mod cls cons mets
+            pure $ Runtime.Cons $ Runtime.Object mod cls cons mets
     Uni.Match t' cls' -> do
         target <- interpret glob =<< IR.source t'
         cls    <- traverse IR.source =<< ComponentVector.toList cls'
         clauses <- for cls $ \clause -> Layer.read @IR.Model clause >>= \case
             Uni.Lam pat res -> (,) <$> (matcher =<< IR.source pat)
                                <*> (interpret glob =<< IR.source res)
-        return $ do
+            _ -> error "Should not happen."
+        pure $ do
             env <- State.get @LocalScope
             let tgt' = State.evalT target env
             tgt <- lift $ Runtime.force tgt'
@@ -242,15 +244,15 @@ interpret' glob expr = Layer.read @IR.Model expr >>= \case
     Uni.Marked _ b' -> do
         b <- IR.source b'
         interpretHere <- Layer.read @IR.Model b >>= \case
-            Uni.Unify{}    -> return False
-            Uni.Function{} -> return False
-            _              -> return True
+            Uni.Unify{}    -> pure False
+            Uni.Function{} -> pure False
+            _              -> pure True
         e <- interpret glob b
-        return $ if not interpretHere then e else do
+        pure $ if not interpretHere then e else do
             e' <- e
             State.modify_ @LocalScope $ Scope.localInsert b e'
-            return e'
-    s -> return $ lift $ Runtime.throw
+            pure e'
+    s -> pure $ lift $ Runtime.throw
              $ "Unexpected (report this as a bug): " <> convert (show s)
 
 ------------------------------
@@ -268,13 +270,13 @@ runMatch [] _ = Runtime.throw "Inexhaustive pattern match."
 runMatch ((m, p) : ms) d = do
     (res, nextObj) <- m d
     case res of
-        Just newScope -> return (newScope, p)
+        Just newScope -> pure (newScope, p)
         Nothing       -> runMatch ms nextObj
 
 tryConsMatch :: IR.Name -> [Matcher] -> Matcher
 tryConsMatch name fieldMatchers d' = Runtime.force' d' >>= \case
     d@(Runtime.Cons (Runtime.Object mod cls (Runtime.Constructor n fs) ms)) ->
-        if n == name then matchFields else return (Nothing, d) where
+        if n == name then matchFields else pure (Nothing, d) where
             matchFields :: MatchResM
             matchFields = do
                 results <- zipWithM ($) fieldMatchers fs
@@ -282,36 +284,36 @@ tryConsMatch name fieldMatchers d' = Runtime.force' d' >>= \case
                     newObj = Runtime.Cons
                                (Runtime.Object mod cls
                                   (Runtime.Constructor n (snd <$> results)) ms)
-                return (binds, newObj)
-    d -> return (Nothing, d)
+                pure (binds, newObj)
+    d -> pure (Nothing, d)
 
 tryBoxedMatch :: (Eq a, Runtime.IsNative a) => a -> Matcher
 tryBoxedMatch i d' = Runtime.force' d' >>= \case
-    d@(Runtime.Native o) -> return (matchRes, d) where
+    d@(Runtime.Native o) -> pure (matchRes, d) where
         matchRes = if Runtime.fromNative o == i then Just def else Nothing
-    d -> return (Nothing, d)
+    d -> pure (Nothing, d)
 
 matcher :: IR.SomeTerm -> TC.Pass (Interpreter t) Matcher
 matcher expr = Layer.read @IR.Model expr >>= \case
-    Uni.Var _ -> return $ \d -> return (Just $ Map.fromList [(expr, d)], d)
-    Uni.ResolvedCons mod cls n as -> do
+    Uni.Var _ -> pure $ \d -> pure (Just $ Map.fromList [(expr, d)], d)
+    Uni.ResolvedCons _ _ n as -> do
         asList <- ComponentVector.toList as
         argMatchers <- traverse (matcher <=< IR.source) asList
-        return $ tryConsMatch n argMatchers
+        pure $ tryConsMatch n argMatchers
     IR.UniTermNumber n -> do
         isInt <- IR.isInteger n
         case isInt of
             True -> do
                 num <- IR.toInteger n
-                return $ tryBoxedMatch num
+                pure $ tryBoxedMatch num
             _ -> do
                 num <- IR.toDouble n
-                return $ tryBoxedMatch num
+                pure $ tryBoxedMatch num
     Uni.RawString s -> do
         s <- SmallVector.toList s
-        return $ tryBoxedMatch $ (convert s :: Text)
-    Uni.Blank -> return $ \d -> return (Just def, d)
-    s -> return $ const $
+        pure $ tryBoxedMatch $ (convert s :: Text)
+    Uni.Blank -> pure $ \d -> pure (Just def, d)
+    s -> pure $ const $
         Runtime.throw $ convert $ "Unexpected pattern: " <> show s
 
 irrefutableMatcher :: IR.SomeTerm
@@ -319,7 +321,7 @@ irrefutableMatcher :: IR.SomeTerm
                           -> Runtime.Eff (Map IR.SomeTerm Runtime.Data))
 irrefutableMatcher expr = do
     m <- matcher expr
-    return $ \d -> do
+    pure $ \d -> do
         res <- fst <$> m d
-        maybe (Runtime.throw "Irrefutable pattern match failed.") return res
+        maybe (Runtime.throw "Irrefutable pattern match failed.") pure res
 

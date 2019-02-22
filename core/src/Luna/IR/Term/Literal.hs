@@ -64,9 +64,9 @@ toInteger :: MonadIO m => Term.Constructor Number a -> m Integer
 toInteger (Number base' digits' _) = do
     digits <- fromIntegral <<$>> SmallVector.toList digits'
     let base = fromIntegral base'
-    return $ sum $ zipWith (\digit pow -> digit * base ^ pow)
+    pure $ sum $ zipWith (\digit pow -> digit * base ^ pow)
                            (reverse digits)
-                           [0..]
+                           ([0..] :: [Integer])
 
 toDouble :: MonadIO m => Term.Constructor Number a -> m Double
 toDouble (Number base' int' frac') = do
@@ -75,9 +75,10 @@ toDouble (Number base' int' frac') = do
     frac <- fromIntegral <<$>> SmallVector.toList frac'
     let intPart = sum $ zipWith (\digit pow -> digit * base ^^ pow)
                                 (reverse int)
-                                [0..]
-        fracPart = sum $ zipWith (\digit pow -> digit / base ^^ pow) frac [1..]
-    return $ intPart + fracPart
+                                ([0..] :: [Integer])
+        fracPart = sum $ zipWith (\digit pow -> digit / base ^^ pow)
+            frac ([1..] :: [Integer])
+    pure $ intPart + fracPart
 
 
 

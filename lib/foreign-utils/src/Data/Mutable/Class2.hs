@@ -1,14 +1,8 @@
-{-# LANGUAGE NoStrict #-}
-{-# LANGUAGE NoStrictData #-}
+{-# LANGUAGE NoStrict             #-}
+{-# LANGUAGE NoStrictData         #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Data.Mutable.Class2 where
-
-import Prologue
-
-import qualified Foreign.Storable.Class as Storable
-import qualified Memory.Data.Ptr        as Memory
-import qualified Type.Known             as Type
 
 import Foreign.Ptr (Ptr)
 
@@ -41,7 +35,6 @@ class Swizzle1 m a where
 
 class Unswizzle1 m a where
     unswizzle1 :: a t1 -> m ()
-
 
 class SwizzleP m a where
     swizzleP :: a -> m a

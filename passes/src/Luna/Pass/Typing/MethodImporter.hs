@@ -6,7 +6,6 @@ module Luna.Pass.Typing.MethodImporter where
 
 import Prologue
 
-import qualified Data.Graph.Data.Component.List   as ComponentList
 import qualified Data.Graph.Data.Component.Vector as ComponentVector
 import qualified Data.Graph.Data.Layer.Layout     as Layout
 import qualified Data.Graph.Store                 as Store
@@ -19,7 +18,6 @@ import qualified Luna.Pass.Attr                   as Attr
 import qualified Luna.Pass.Data.Error             as Error
 import qualified Luna.Pass.Data.Layer.Requester   as Requester
 import qualified Luna.Pass.Data.Stage             as TC
-import qualified Luna.Pass.Data.UniqueNameGen     as NameGen
 import qualified Luna.Pass.Typing.Base            as TC
 import qualified Luna.Pass.Typing.Data.AccQueue   as AccQueue
 import qualified Luna.Pass.Typing.Data.AppQueue   as AppQueue
@@ -66,18 +64,18 @@ deepSolve :: IR.Term IR.Acc
 deepSolve root = do
     res <- solve root
     case res of
-        Left t   -> return res
+        Left _   -> pure res
         Right ts -> do
             rs <- traverse deepSolve ts
-            return $ Right $ lefts rs <> concat (rights rs)
+            pure $ Right $ lefts rs <> concat (rights rs)
 
 solve :: IR.Term IR.Acc
       -> TC.Pass MethodImporter (Either (IR.Term IR.Acc) [IR.Term IR.Acc])
 solve expr = do
     IR.Acc t n' <- IR.modelView expr
     n <- IR.source n' >>= \a -> Layer.read @IR.Model a >>= \case
-        Uni.Var name -> return name
-        b            -> do
+        Uni.Var name -> pure name
+        _            -> do
             foo  <- Prettyprint.run @Prettyprint.Simple def expr
             expr <- Prettyprint.run @Prettyprint.Simple def a
             error $ "MethodImporter.solve: unknown name " <> convert expr <> " on " <> convert foo
@@ -90,7 +88,7 @@ solve expr = do
             replacement <- if compilationTarget == Target.Method unit cls n then do
                     Root root <- Attr.get
                     rootTp    <- IR.source =<< Layer.read @IR.Type root
-                    return $ Right (rootTp, [])
+                    pure $ Right (rootTp, [])
                 else do
                     importMethodDef req arising unit cls n
             case replacement of
@@ -98,20 +96,20 @@ solve expr = do
                     Requester.setRequester Nothing expr
                     IR.deleteSubtree expr
                     traverse_ (Error.setError $ Just e) req
-                    return $ Right []
+                    pure $ Right []
                 Right (imported, new) -> do
                     ap <- IR.app imported target
                     AppQueue.register $ Layout.unsafeRelayout ap
                     IR.replace ap expr
-                    return $ Right new
+                    pure $ Right new
         Uni.Lam{} -> do
             Requester.setRequester Nothing expr
             IR.deleteSubtree expr
             for_ req $ Error.setError $ Just
                           $ Error.cannotCallMethodOnAFunction n
                               & Error.arisingFrom .~ arising
-            return $ Right []
-        _ -> return $ Left expr
+            pure $ Right []
+        _ -> pure $ Left expr
 
 importMethodDef :: Maybe IR.SomeTerm -> [Target.Target] -> IR.Qualified
                 -> IR.Name -> IR.Name
@@ -120,7 +118,7 @@ importMethodDef :: Maybe IR.SomeTerm -> [Target.Target] -> IR.Qualified
 importMethodDef req arising mod cls n = do
     resolution <- unwrap <$> Typed.requestMethod mod cls n
     case resolution of
-        Left e -> return $ Left $ e & Error.arisingFrom .~ arising
+        Left e -> pure $ Left $ e & Error.arisingFrom .~ arising
         Right rooted -> do
             hdr <- Store.deserialize rooted
             IR.DefHeader tp' unis' accs' apps' <- IR.modelView hdr
@@ -134,5 +132,5 @@ importMethodDef req arising mod cls n = do
             traverse_ (Requester.setRequester req) accs
             traverse_ (Requester.setRequester req) apps
             IR.deleteSubtreeWithWhitelist (Set.fromList $ [tp] <> unis <> accs <> apps) hdr
-            return $ Right (tp, Layout.unsafeRelayout <$> accs)
+            pure $ Right (tp, Layout.unsafeRelayout <$> accs)
 

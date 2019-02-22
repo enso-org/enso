@@ -6,16 +6,13 @@ module Luna.Pass.Transform.Desugar.TransformPatterns where
 
 import Prologue
 
-import qualified Control.Monad.State              as State
 import qualified Data.Graph.Data.Component.List   as ComponentList
 import qualified Data.Graph.Data.Component.Vector as ComponentVector
-import qualified Data.Graph.Data.Layer.Layout     as Layout
 import qualified Luna.IR                          as IR
 import qualified Luna.IR.Aliases                  as Uni
 import qualified Luna.IR.Layer                    as Layer
 import qualified Luna.Pass                        as Pass
 import qualified Luna.Pass.Attr                   as Attr
-import qualified Luna.Pass.Basic                  as Pass
 import qualified Luna.Pass.Data.Stage             as TC
 
 import Luna.Pass.Data.Root (Root (Root))
@@ -38,25 +35,27 @@ instance Pass.Definition TC.Stage TransformPatterns where
         Root root <- Attr.get
         transformPatterns root
 
-dumpConsApplication :: IR.SomeTerm -> TC.Pass TransformPatterns (IR.Name, [IR.SomeTerm])
+dumpConsApplication :: IR.SomeTerm
+    -> TC.Pass TransformPatterns (IR.Name, [IR.SomeTerm])
 dumpConsApplication expr = Layer.read @IR.Model expr >>= \case
     Uni.Grouped g -> dumpConsApplication =<< IR.source g
-    Uni.Cons n _  -> return (n, [])
+    Uni.Cons n _  -> pure (n, [])
     Uni.App f a   -> do
         (n, args) <- dumpConsApplication =<< IR.source f
         arg <- IR.source a
-        return (n, arg : args)
+        pure (n, arg : args)
+    _ -> error "Should not happen."
 
 flattenPattern :: IR.SomeTerm -> TC.Pass TransformPatterns IR.SomeTerm
 flattenPattern expr = Layer.read @IR.Model expr >>= \case
     Uni.Grouped g -> flattenPattern =<< IR.source g
-    Uni.Var{}     -> return expr
-    Uni.Cons{}    -> return expr
+    Uni.Var{}     -> pure expr
+    Uni.Cons{}    -> pure expr
     Uni.App{}     -> do
         (name, children) <- dumpConsApplication expr
         flatChildren     <- mapM flattenPattern $ reverse children
         IR.cons' name flatChildren
-    _ -> return expr
+    _ -> pure expr
 
 transformPatterns :: IR.SomeTerm -> TC.Pass TransformPatterns ()
 transformPatterns expr = Layer.read @IR.Model expr >>= \case
@@ -70,7 +69,7 @@ transformPatterns expr = Layer.read @IR.Model expr >>= \case
         res  <- flattenPattern left
         IR.replace res left
         transformPatterns =<< IR.source r
-    Uni.Function n as b -> do
+    Uni.Function _ as b -> do
         args <- ComponentVector.toList as
         for_ args $ \a -> do
             arg <- IR.source a

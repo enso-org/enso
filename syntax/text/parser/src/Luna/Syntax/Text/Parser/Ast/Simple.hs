@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-missing-pattern-synonym-signatures #-}
+
 {-# LANGUAGE OverloadedStrings    #-}
 {-# LANGUAGE PatternSynonyms      #-}
 {-# LANGUAGE UndecidableInstances #-}
@@ -236,12 +238,15 @@ instance {-# OVERLAPPABLE #-} Convertible' a Ast
 instance GHC.IsList Ast where
     type Item Ast = Ast
     fromList = convert
+    toList = convert
 
 instance Num Ast where
     fromInteger = intToAst
     (-) = flip InfixApp (Operator "-")
     (+) = flip InfixApp (Operator "+")
     (*) = flip InfixApp (Operator "*")
+    abs _ = error "Should not be called"
+    signum _ = error "Should not be called"
 
 intToAst :: Integral a => a -> Ast
 intToAst a = if a < 0
@@ -257,12 +262,13 @@ intToDigits = go [] where
         0 -> s
         x -> go (r : rs) x
 
-instance a ~ Ast
-      => Num (a -> Ast) where
+instance a ~ Ast  => Num (a -> Ast) where
     fromInteger i = App (fromInteger i)
---     (-) = extractOp (-) -- todo when needed
---     (+) = extractOp (+) -- todo when needed
---     (*) = extractOp (*) -- todo when needed
+    (-) = error "Not yet implemented" -- extractOp (-)
+    (+) = error "Not yet implemented" -- extractOp (+)
+    (*) = error "Not yet implemented" -- extractOp )*)
+    abs = error "Not yet implemented"
+    signum = error "Not yet implemented"
 
 
 
@@ -338,3 +344,5 @@ instance Simplify   Spanned.Ast where
         Spanned.Unit         t1       -> Unit         (simplify t1)
         Spanned.SectionLeft  t1 t2    -> SectionLeft  (simplify t1) (simplify t2)
         Spanned.SectionRight t1 t2    -> SectionRight (simplify t1) (simplify t2)
+        a -> error $ "Should not happen" <> show a
+

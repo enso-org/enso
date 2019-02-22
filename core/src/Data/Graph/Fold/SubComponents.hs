@@ -4,39 +4,22 @@ module Data.Graph.Fold.SubComponents where
 
 import Prologue hiding (Traversable, Traversal, fold, fold1, traverse)
 
-import qualified Control.Monad.State.Layered          as State
-import qualified Data.Generics.Traversable            as GTraversable
-import qualified Data.Graph.Component.Node.Class      as Node
-import qualified Data.Graph.Component.Node.Layer.Type as Type
-import qualified Data.Graph.Data.Component.Class      as Component
 import qualified Data.Graph.Data.Component.List       as ComponentList
-import qualified Data.Graph.Data.Component.Set        as ComponentSet
 import qualified Data.Graph.Data.Component.Vector     as ComponentVector
-import qualified Data.Graph.Data.Graph.Class          as Graph
 import qualified Data.Graph.Data.Layer.Class          as Layer
 import qualified Data.Graph.Data.Layer.Layout         as Layout
 import qualified Data.Graph.Fold.Class                as Fold
 import qualified Data.Graph.Fold.Scoped               as Fold
 import qualified Data.Graph.Fold.Struct               as Fold
-import qualified Data.Map.Strict                      as Map
 import qualified Data.Mutable.Class                   as Mutable
-import qualified Data.PtrSet.Mutable                  as PtrSet
-import qualified Data.Set                             as Set
-import qualified Foreign.Ptr                          as Ptr
-import qualified Foreign.Storable                     as Storable
-import qualified Type.Data.List                       as List
 
-import Data.Generics.Traversable             (GTraversable)
-import Data.Graph.Component.Node.Class       (Constructor)
 import Data.Graph.Data.Component.Class       (Component)
 import Data.Graph.Data.Component.List        (ComponentList)
 import Data.Graph.Data.Component.Set         (ComponentSet)
 import Data.Graph.Data.Component.Vector      (ComponentVectorA)
 import Data.Mutable.Storable.SmallAutoVector (SmallVectorA)
-import Data.Set                              (Set)
 import Data.Vector.Storable.Foreign          (Vector)
-import Foreign.Ptr.Utils                     (SomePtr)
-import Type.Data.Bool                        (Not, type (||))
+
 
 
 -----------------------
@@ -154,3 +137,4 @@ instance {-# OVERLAPPABLE #-}
     (Monad m, Fold.Builder1 (Fold.Struct (Discovery comp)) m a)
       => Fold.Builder1 (Discovery comp) m a where
     build1 = Fold.build1 @(Fold.Struct (Discovery comp)) ; {-# INLINE build1 #-}
+

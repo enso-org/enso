@@ -7,8 +7,6 @@ import Prologue hiding (Read, unsafeRead)
 
 import qualified Memory as Memory
 
-import Foreign.Ptr (Ptr)
-
 
 
 -- === Memory management === --
@@ -46,15 +44,11 @@ class ToList       m a where toList      :: a -> m [Item a]
 class FromList     m a where fromList    :: [Item a] -> m a
 
 
-
-
-
 -- === Utils === --
 
 unsafeWriteFromList :: (Write m a, Applicative m) => a -> [Item a] -> m ()
 unsafeWriteFromList = \a -> zipWithM_ (unsafeWrite a) [0..]
 {-# INLINE unsafeWriteFromList #-}
-
 
 type IxMap m a = (Read m a, Write m a, Monad m)
 
@@ -73,8 +67,4 @@ unsafeMapAtM_ = \a ix f -> unsafeWrite a ix =<< f =<< unsafeRead a ix
 unsafeMapAt_ :: IxMap m a => a -> Int -> (Item a -> Item a) -> m ()
 unsafeMapAt_ = \a ix f -> unsafeMapAtM_ a ix (pure . f)
 {-# INLINE unsafeMapAt_ #-}
-
-
-
-
 

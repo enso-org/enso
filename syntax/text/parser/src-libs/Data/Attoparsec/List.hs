@@ -19,8 +19,6 @@ import Data.Item           (Item)
 import Data.List           (intercalate)
 import Data.Vector         (Vector)
 
-import Data.Convert
-
 import Data.Parser.Instances.Attoparsec ()
 
 
@@ -94,6 +92,9 @@ instance Parsec.Chunk (Tokens a) where
     {-# INLINE atBufferEnd     #-}
     -- {-# INLINE bufferElemAt    #-}
     -- {-# INLINE chunkElemToChar #-}
+
+    bufferElemAt = error "Should not be called"
+    chunkElemToChar = error "Should not be called"
 
 
 -- === Parsec.Pos coertions === --

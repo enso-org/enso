@@ -60,7 +60,7 @@ partiallyMapUnit unitName root = do
         Uni.Record _ _ _ _ decls' -> do
             decls <- traverse IR.source =<< ComponentVector.toList decls'
             foldM (registerDecl unitName) def decls
-        _ -> return def
+        _ -> pure def
 
 registerDecl :: IR.Qualified -> PartiallyMappedUnit -> IR.SomeTerm -> TC.Pass UnitMapper PartiallyMappedUnit
 registerDecl unitName map t = do
@@ -75,12 +75,12 @@ registerDecl unitName map t = do
                         let error = Error.duplicateFunctionDefinition
                                 unitName name
                         Error.setError (Just error) root
-                    return $ map & defs . wrapped . at name .~ Just documented
-                _ -> return map
+                    pure $ map & defs . wrapped . at name .~ Just documented
+                _ -> pure map
         Uni.Record _ n _ _ _ -> do
             let documented = Documented doc (Layout.unsafeRelayout root)
-            return $ map & clss . at n .~ Just documented
-        _ -> return map
+            pure $ map & clss . at n .~ Just documented
+        _ -> pure map
 
 mapUnit :: IR.Qualified -> IR.Term IR.Unit -> TC.Monad Unit
 mapUnit unitName root = do
@@ -102,8 +102,7 @@ mapUnit unitName root = do
     PartiallyMappedUnit defs' clss' <- Scheduler.getAttr
 
     classMap <- (traverse.traverse) mapClass clss'
-    return $ Unit defs' classMap
-
+    pure $ Unit defs' classMap
 
 mapClass :: Scheduler.MonadScheduler m
          => IR.Term IR.Record -> m Class

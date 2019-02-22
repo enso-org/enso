@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-unused-imports #-}
+
 module Luna.Pass (module X) where
 
 import Luna.Pass.Basic                 as X

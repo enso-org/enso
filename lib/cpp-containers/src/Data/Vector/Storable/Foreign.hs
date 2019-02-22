@@ -16,10 +16,11 @@ import qualified Foreign.Storable.Deriving as Storable
 import qualified Foreign.Storable.Utils    as Storable
 
 import Foreign.DynamicStorable (DynamicStorable)
-import Foreign.Ptr             (Ptr, nullPtr, plusPtr)
+import Foreign.Ptr             (Ptr, nullPtr)
 import Foreign.Storable        (Storable)
 import Foreign.Storable.Utils  (castPeekAndOffset, castPokeAndOffset)
 import Foreign.Storable.Utils  (Dynamic, Dynamics)
+
 
 
 --------------------

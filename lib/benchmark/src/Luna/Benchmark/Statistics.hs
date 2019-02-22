@@ -8,7 +8,6 @@ import Prologue
 import qualified Control.Lens.Aeson                 as Lens
 import qualified Data.Set                           as Set
 import qualified Data.Yaml                          as Yaml
-import qualified Luna.Benchmark.Location            as Location
 import qualified Luna.Benchmark.Statistics.Internal as Internal
 
 import Data.Set                (Set)

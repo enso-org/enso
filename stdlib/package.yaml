@@ -3,12 +3,17 @@ _config/lib: !include "../config/hpack-common.yaml"
 name:       luna-stdlib
 version:    "0.1"
 author:     Luna Team <contact@luna-lang.org>
-maintainer: Luna Team <contact@luna-lang.org>
+maintainer:
+    - Wojciech Danilo  <wojciech.danilo@luna-lang.org>
+    - Marcin Kostrzewa <marcin.kostrzewa@luna-lang.org>
+    - Ara Adkins       <ara.adkins@luna-lang.org>
+
+data-files:
+    ./Std/src/*
 
 library:
     source-dirs:
         - src
-    other-modules: Paths_luna_stdlib
 
 when:
     - condition: os(windows)
@@ -39,8 +44,9 @@ dependencies:
     - lens
     - libffi
     - luna-core
-    - luna-passes
+    - luna-datafile
     - luna-package
+    - luna-passes
     - luna-runtime
     - luna-syntax-text-prettyprint
     - mtl

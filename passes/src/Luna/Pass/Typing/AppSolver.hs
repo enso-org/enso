@@ -7,7 +7,6 @@ module Luna.Pass.Typing.AppSolver where
 import Prologue
 
 import qualified Data.Graph.Data.Layer.Layout   as Layout
-import qualified Data.Set                       as Set
 import qualified Luna.IR                        as IR
 import qualified Luna.IR.Aliases                as Uni
 import qualified Luna.IR.Layer                  as Layer
@@ -44,7 +43,7 @@ runSimplification nthRun = do
     AppQueue.AppQueue q <- Attr.get
     res <- traverse trySimplify q
     Attr.put $ AppQueue.AppQueue $ fmap snd $ filter (not . fst) $ zip res q
-    if or res then runSimplification True else return nthRun
+    if or res then runSimplification True else pure nthRun
 
 trySimplify :: IR.Term IR.App -> TC.Pass AppSolver Bool
 trySimplify app = do
@@ -64,13 +63,13 @@ trySimplify app = do
             Requester.setArising   arising   uni
             UniQueue.register $ Layout.unsafeRelayout uni
             IR.replace out app
-            return True
+            pure True
         Uni.ResolvedCons m c _ _ -> do
             Requester.setRequester Nothing app
             IR.deleteSubtree app
             for_ requester $ Error.setError $ Just
                                 $ Error.cannotUseObjectAsAFunction m c
                                     & Error.arisingFrom .~ arising
-            return True
-        _ -> return False
+            pure True
+        _ -> pure False
 

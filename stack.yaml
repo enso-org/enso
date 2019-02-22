@@ -24,7 +24,7 @@ ghc-options:
     $everything:
         -fconstraint-solver-iterations=100
 
-local-bin-path: dist/bin/public/luna
+local-bin-path: dist/bin/public/
 
 packages:
     - core
@@ -46,6 +46,7 @@ packages:
     - lib/code-builder
     - lib/cpp-containers
     - lib/data-construction
+    - lib/datafile
     - lib/data-property
     - lib/data-storable
     - lib/data-tag

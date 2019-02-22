@@ -17,11 +17,8 @@ import qualified Data.Storable                         as Struct
 import qualified Foreign.Storable                      as StdStorable
 import qualified Foreign.Storable.Class                as Storable
 import qualified Memory                                as Memory
-import qualified Type.Known                            as Type
 
-import Data.Mutable.Storable.SmallAutoVector (MemChunk, UnmanagedSmallVectorA)
-import Foreign.Storable.Class                (Copy, Storable, View)
-import System.IO.Unsafe                      (unsafeDupablePerformIO)
+import Data.Mutable.Storable.SmallAutoVector (UnmanagedSmallVectorA)
 
 
 

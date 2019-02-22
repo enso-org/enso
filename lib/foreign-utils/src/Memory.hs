@@ -1,4 +1,4 @@
-module Memory (module Memory, module X) where
+module Memory (module X) where
 
 import Memory.Allocation  as X
 import Memory.Data.Ptr    as X

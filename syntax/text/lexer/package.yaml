@@ -3,7 +3,11 @@ _config/lib: !include "../../../config/hpack-common.yaml"
 name       : luna-syntax-text-lexer
 version    : "0.2"
 author     : Luna Team <contact@luna-lang.org>
-maintainer : Luna Team <contact@luna-lang.org>
+maintainer:
+    - Wojciech Danilo  <wojciech.danilo@luna-lang.org>
+    - Marcin Kostrzewa <marcin.kostrzewa@luna-lang.org>
+    - Ara Adkins       <ara.adkins@luna-lang.org>
+
 library:
     source-dirs:
         - src
@@ -25,7 +29,6 @@ benchmarks:
             - luna-syntax-text-lexer
             - random
             - timeit
-
 
 dependencies:
     - attoparsec

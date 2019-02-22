@@ -5,7 +5,6 @@ module Data.Graph.Component.Node.Layer.Model where
 import Prologue
 
 import qualified Data.Construction               as Data
-import qualified Data.Graph.Component.Edge.Class as Edge
 import qualified Data.Graph.Component.Node.Class as Node
 import qualified Data.Graph.Data.Layer.Class     as Layer
 import qualified Data.Graph.Data.Layer.Layout    as Layout

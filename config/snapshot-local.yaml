@@ -1,8 +1,0 @@
-resolver: lts-12.16
-name: luna-local
-packages:
-    - githash-0.1.0.1
-    - hspec-expectations-lifted-0.10.0
-    - megaparsec-6.5.0
-    - placeholders-0.1
-

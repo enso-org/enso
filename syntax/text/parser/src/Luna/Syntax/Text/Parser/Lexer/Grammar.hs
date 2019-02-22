@@ -1,32 +1,27 @@
+{-# OPTIONS_GHC -Wno-orphans #-}
+
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE OverloadedStrings         #-}
 {-# LANGUAGE UndecidableInstances      #-}
 
 module Luna.Syntax.Text.Parser.Lexer.Grammar where
 
-import qualified Prelude  as P
 import           Prologue hiding (Text, imp, seq, takeWhile)
-import qualified Prologue
 
 import qualified Control.Monad.State.Layered               as State
 import qualified Data.Attoparsec.Internal.Types            as Parsec
 import qualified Data.Attoparsec.Text32                    as Parsec32
 import qualified Data.Char                                 as Char
-import qualified Data.Graph.Data.Layer.Layout              as Layout
 import qualified Data.Parser                               as Parsec
 import qualified Data.Text.Position                        as Position
 import qualified Data.Text.Span                            as Span
 import qualified Data.Text32                               as Source
 import qualified Data.Vector                               as Vector
-import qualified Luna.IR.Layer                             as Layer
 import qualified Luna.IR.Term.Ast.Invalid                  as Invalid
-import qualified Luna.Syntax.Text.Lexer                    as Lexer
-import qualified Luna.Syntax.Text.Lexer.Symbol             as Lexer
 import qualified Luna.Syntax.Text.Parser.Ast               as Ast
 import qualified Luna.Syntax.Text.Parser.Ast.Class         as Atom
 import qualified Luna.Syntax.Text.Parser.Ast.CodeSpan      as CodeSpan
 import qualified Luna.Syntax.Text.Parser.Lexer.Names       as Names
-import qualified Luna.Syntax.Text.Parser.State.Marker      as Marker
 import qualified Luna.Syntax.Text.Parser.State.TokenStream as TokenStream
 import qualified Luna.Syntax.Text.Parser.State.Version     as Syntax
 import qualified Luna.Syntax.Text.Scope                    as Scope
@@ -52,8 +47,6 @@ import Text.Parser.Combinators                   (many1, many1')
 import Text.Parser.State.Indent                  (Indent)
 
 import Data.Parser.Instances.Attoparsec ()
-
-
 
 
 
@@ -242,7 +235,7 @@ putLastOffset = State.put @LastOffset . wrap
 
 newline :: Lexer_
 newline = do
-    len <- eol
+    _ <- eol
     off <- whiteSpace
     Position.succLine
     Position.incColumn off
@@ -571,7 +564,7 @@ unknownExpr = TokenStream.add =<< unknown
 lineBreak :: Lexer_
 lineBreak = TokenStream.add =<< ast where
     ast = spanned $ do
-        many1 newline
+        void $ many1 newline
         Ast.LineBreak <$> Position.getColumn
 {-# INLINE lineBreak #-}
 
@@ -739,3 +732,4 @@ flexBlock1 = \p -> let
 flexBlock :: Lexer a -> Lexer [a]
 flexBlock = option mempty . flexBlock1
 {-# INLINE flexBlock #-}
+

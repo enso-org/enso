@@ -48,7 +48,7 @@ reportUnknownVariable v = Attr.modify_ @UnresolvedVariables (wrapped %~ (v :))
 
 discoverVars :: IR.SomeTerm -> State.StateT AliasMap (TC.Pass AliasAnalysis) AliasMap
 discoverVars e = Layer.read @IR.Model e >>= \case
-    Uni.Var n -> return $ Map.singleton n $ Layout.unsafeRelayout e
+    Uni.Var n -> pure $ Map.singleton n $ Layout.unsafeRelayout e
     _ -> do
         inps <- IR.inputs e
         Map.unions <$> ComponentList.mapM (discoverVars <=< IR.source) inps
@@ -83,7 +83,7 @@ resolveAliases expr = Layer.read @IR.Model expr >>= \case
         State.put @AliasMap localAliases
         resolveAliases out
         State.put @AliasMap baseAliases
-    Uni.Acc t n -> do
+    Uni.Acc t _ -> do
         resolveAliases =<< IR.source t
     _ -> do
         inps <- ComponentList.mapM IR.source =<< IR.inputs expr

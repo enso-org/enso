@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-type-defaults #-}
+
 module Luna.Syntax.Text.Parser.Lexer.Names where
 
 import Prologue
@@ -49,3 +51,4 @@ markerBegin = '«'
 markerEnd   = '»'
 {-# INLINE markerBegin #-}
 {-# INLINE markerEnd   #-}
+

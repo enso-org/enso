@@ -2,16 +2,14 @@
 {-# LANGUAGE NoStrictData #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module Foreign.Storable.Deriving (derive, derive', deriveNoContext) where
+module Foreign.Storable.Deriving (derive, derive', deriveNoContext, align) where
 
 import Prologue
 
 import Data.Bifunctor              (first)
 import Foreign.Storable            (Storable)
-import GHC.Num
 import Language.Haskell.TH         hiding (clause)
 import Language.Haskell.TH.Builder
-import Language.Haskell.TH.Lib     hiding (clause)
 
 import qualified Data.List.NonEmpty  as NonEmpty
 import qualified Foreign.Storable    as Storable
@@ -121,12 +119,12 @@ genOffsets isSingleCons con = do
         arity   = length fSizes
         name i  = newName $ "off" <> show i
 
-    name0     <- name 0
-    namesList <- mapM name $ take arity [1..]
+    name0     <- name (0 :: Integer)
+    namesList <- mapM name $ take arity ([1..] :: [Integer])
     let names = name0 :| namesList
     case names of
         n :| [] -> pure (names, whereClause n (intLit 0 -:: cons' ''Int) :| [])
-        names@(n0 :| (n1:ns)) -> do
+        (n0 :| (n1:ns)) -> do
             let off0D   = whereClause n0 $ intLit 0 -:: cons' ''Int
                 off1D   = whereClause n1 $ app (var 'Storable.sizeOf) undefinedAsInt
                 headers = zip3 ns ((if isSingleCons then n0 else n1):ns) fSizes
