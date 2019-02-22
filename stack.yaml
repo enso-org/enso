@@ -64,6 +64,7 @@ packages:
     - lib/nested-containers
     - lib/parser-utils
     - lib/prologue
+    - lib/functor-utils
     - lib/syntax-definition
     - lib/text-processing
     - lib/th-builder
