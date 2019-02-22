@@ -44,6 +44,7 @@ packages:
     - lib/benchmark
     - lib/ci
     - lib/code-builder
+    - lib/container
     - lib/cpp-containers
     - lib/data-construction
     - lib/datafile
