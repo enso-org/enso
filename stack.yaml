@@ -1,4 +1,0 @@
-resolver: lts-11.3
-
-packages:
-- .
