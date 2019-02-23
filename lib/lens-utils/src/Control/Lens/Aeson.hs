@@ -3,11 +3,8 @@ module Control.Lens.Aeson where
 import Prelude
 
 import qualified Data.Aeson          as JSON
-import qualified Data.Aeson.Encoding as JSON
 import qualified Data.Aeson.Types    as JSON
-import qualified Data.Char           as Char
 import qualified Data.List           as List
-import qualified Data.List.Split     as List
 
 import GHC.Generics (Generic, Rep)
 

@@ -2,7 +2,6 @@ module Prologue.Control.Error (module Prologue.Control.Error, module X) where
 
 import Prelude hiding (take, drop)
 import Control.Monad
-import Control.Monad.Identity
 import Control.Error.Safe as X
     ( tryTail, tryInit, tryHead, tryLast, tryMinimum, tryMaximum, tryFoldr1, tryFoldl1, tryFoldl1', tryRead, tryAssert, tryAssert, tryJust, tryRight
     , tailErr, initErr, headErr, lastErr, minimumErr, maximumErr, foldr1Err, foldl1Err, foldl1Err', readErr, assertErr, assertErr, justErr
@@ -66,7 +65,7 @@ dropExactly i a = if
     | i < 0     -> mzero
     | i == 0    -> pure a
     | otherwise -> case a of
-        (l:ls) -> dropExactly (i - 1) ls
+        (_:ls) -> dropExactly (i - 1) ls
         []     -> mzero
 {-# NOINLINE dropExactly #-}
 

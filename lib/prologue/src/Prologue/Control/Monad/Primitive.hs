@@ -1,10 +1,10 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Prologue.Control.Monad.Primitive (module Prologue.Control.Monad.Primitive, module X) where
+module Prologue.Control.Monad.Primitive (module X) where
 
-import qualified Control.Monad.IO.Class  as IOClass
+-- import qualified Control.Monad.IO.Class  as IOClass
 
-import Prelude
+-- import Prelude
 import Prelude                 as X (IO)
 import Control.Monad.IO.Class  as X (MonadIO, liftIO)
 import Control.Monad.Primitive as X (PrimMonad (PrimState, primitive), RealWorld, primitive_, PrimBase, liftPrim)

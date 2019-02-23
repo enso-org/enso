@@ -1,10 +1,11 @@
+{-# OPTIONS_GHC -Wno-missing-signatures #-}
+
 {-# LANGUAGE NoMonomorphismRestriction #-}
 
 module Data.Functor.Utils (module Data.Functor.Utils, module X) where
 
 import Prelude hiding ((.))
 import GHC.Exts (Constraint)
-import Data.Traversable (mapM)
 import Data.Functor.Compose as X (Compose(Compose), getCompose)
 import Control.Lens
 

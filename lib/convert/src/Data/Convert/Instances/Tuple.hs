@@ -1,8 +1,8 @@
+{-# OPTIONS_GHC -Wno-orphans #-}
+
 module Data.Convert.Instances.Tuple where
 
-
 import Data.Convert.Class
-
 
 instance (Convertible a1 b1, Convertible a2 b2) => Convertible (a1,a2) (b1,b2) where convert (a1,a2) = (convert a1, convert a2)
 instance (Convertible a1 b1, Convertible a2 b2, Convertible a3 b3) => Convertible (a1,a2,a3) (b1,b2,b3) where convert (a1,a2,a3) = (convert a1, convert a2, convert a3)

@@ -3,7 +3,6 @@
 module Data.Impossible where
 
 import Prelude
-import Data.Monoid
 import GHC.Stack
 
 

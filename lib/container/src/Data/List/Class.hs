@@ -2,10 +2,9 @@
 
 module Data.List.Class where
 
-import Data.Item
-import Prelude
-import Data.Convert
 import Control.Lens
+import Data.Convert
+import Data.Item
 
 type ToList    a = Convertible  a [Item a]
 type ToList'   a = Convertible' a [Item a]
@@ -26,3 +25,4 @@ fromList  = convert               ; {-# INLINE fromList  #-}
 fromList' = convert'              ; {-# INLINE fromList' #-}
 asList    = iso toList  fromList  ; {-# INLINE asList    #-}
 asList'   = iso toList' fromList' ; {-# INLINE asList'   #-}
+

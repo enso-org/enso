@@ -1,8 +1,8 @@
 module Control.Lens.Utils.TH (makeLenses, makeLenses', makeClassy, makeClassy') where
 
 import Prelude
+
 import Language.Haskell.TH
-import Data.Monoid
 import Control.Lens                  hiding (makeLenses, makeClassy)
 import Control.Lens.Internal.FieldTH (_fieldToDef)
 import Data.Char                     (toLower)
@@ -28,3 +28,4 @@ autoPrefixNamer tn _ n = case nameBase n of
     '_' :  x  : xs -> [TopName . mkName $ toLower x : xs]
     _              -> []
     where (t:ts) = nameBase tn
+

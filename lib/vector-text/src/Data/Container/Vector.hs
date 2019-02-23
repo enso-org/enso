@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-orphans #-}
+
 {-# LANGUAGE OverloadedStrings    #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE Strict               #-}
@@ -7,14 +9,11 @@ module Data.Container.Vector (module Data.Container.Vector, module X) where
 
 import qualified Prelude as P
 import qualified Data.Text as UTF16
-import           Prologue hiding (Text, length, splitHead, concat, take, drop, index)
+import           Prologue hiding (Text, length, splitHead, concat, take, drop)
 
 import           Control.Monad.ST            (runST)
-import           Data.Binary                 (Binary)
 import           Data.Vector.Binary          ()
 import qualified Data.Vector.Unboxed         as Unboxed
-import qualified GHC.Exts                    as Exts
-import           GHC.Exts                    (IsList)
 import Data.Vector.Generic hiding (convert)
 import Data.Vector.Generic as X (
     -- Info

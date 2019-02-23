@@ -8,23 +8,18 @@ import Prelude as P
 
 import GHC.IO as X (evaluate)
 
-import qualified Control.Monad.State.CPS     as CPS
 import qualified Control.Monad.State.Layered as State
 import qualified Control.Monad.State.Strict  as S
 
 import Control.Monad.State.Layered (MonadStates)
 import Foreign.Storable            (peek, poke)
-import System.Environment          (getArgs)
 import System.IO                   (stdout, hSetBuffering, BufferMode(..))
 
 import Control.DeepSeq
-import Control.Monad.Codensity
 import Control.Monad.Identity
 import Criterion.Main
 import Data.IORef
-import Data.Word
 import Foreign.ForeignPtr
-import System.TimeIt
 
 eval :: NFData a => a -> IO a
 eval = evaluate . force ; {-# INLINE eval #-}
@@ -143,40 +138,11 @@ main :: IO ()
 main = do
     hSetBuffering stdout NoBuffering
 
-    -- let s = "1000000000" :: String
-    --     x = read s :: Int
-    --
-    -- putStrLn "Single counter loop"
-    -- putStr "pure  " >> timeIt (eval (pureInc 0 x))
-    -- putStr "t_0   " >> timeIt (eval (t_0  x))
-    -- putStr "t_1R  " >> timeIt (eval (t_1R x))
-    -- putStr "t_2R  " >> timeIt (eval (t_2R x))
-    -- putStr "t_3R  " >> timeIt (eval (t_3R x))
-    -- putStr "t_1L  " >> timeIt (eval (t_1L x))
-    -- putStr "t_2L  " >> timeIt (eval (t_2L x))
-    -- putStr "t_3L  " >> timeIt (eval (t_3L x))
-    --
-    -- putStrLn "\nDouble counter loop"
-    -- putStr "pure  " >> timeIt (eval (pureInc2 0 0 x))
-    -- putStr "t_1R2 " >> timeIt (eval (t_1R2 x))
-    -- putStr "t_2R2 " >> timeIt (eval (t_2R2 x))
-    -- putStr "t_3R2 " >> timeIt (eval (t_3R2 x))
-    -- putStr "t_1L2 " >> timeIt (eval (t_1L2 x))
-    -- putStr "t_2L2 " >> timeIt (eval (t_2L2 x))
-    -- putStr "t_3L2 " >> timeIt (eval (t_3L2 x))
-    --
-    -- putStrLn "\nDouble counter loop n EitherT"
-    -- putStr "t_1R2E " >> timeIt (eval (t_1R2E x))
-    -- putStr "t_2R2E " >> timeIt (eval (t_2R2E x))
-    -- putStr "t_3R2E " >> timeIt (eval (t_3R2E x))
-    -- putStr "t_1L2E " >> timeIt (eval (t_1L2E x))
-    -- putStr "t_2L2E " >> timeIt (eval (t_2L2E x))
-    -- putStr "t_3L2E " >> timeIt (eval (t_3L2E x))
-
     let iterCount = 100000000
 
     putStrLn "\nTesting time overhead of monad transformers"
-    putStrLn "IMPORTANT: These times should be THE SAME. If they are not, you've broken then implementation. Go back and fix it."
+    putStrLn $ "IMPORTANT: These times should be THE SAME. If they are not, "
+        <> "you've broken then implementation. Go back and fix it."
 
     putStrLn "\n\n=== Single counter loop ===\n"
     defaultMain [ bench "IORef    (10e6)" $ nfIO (iorefInc iterCount)

@@ -2,10 +2,9 @@
 
 module Prologue.Data.Basic (module Prologue.Data.Basic, module X) where
 
-import Prelude (Num, Enum, ($), (.), (-), id)
+import Prelude (Num, ($), (-), id)
 
 import Data.Functor
-import Data.Convert
 import Data.Monoids
 import Data.String.Class (IsString)
 import Data.Foldable
@@ -70,9 +69,9 @@ deriving instance Functor ((,,,,,,,,,) t1 t2 t3 t4 t5 t6 t7 t8 t9)
 ifThenElse   ::               Bool -> a -> a -> a
 ifThenElseId ::               Bool -> (a -> a) -> (a -> a)
 ifThenMempty :: (Mempty a) => Bool -> a -> a
-ifThenElse   cond ok fl = if cond then ok else fl     
-ifThenElseId cond f     = if cond then f  else id     
-ifThenMempty cond ok    = if cond then ok else mempty 
+ifThenElse   cond ok fl = if cond then ok else fl
+ifThenElseId cond f     = if cond then f  else id
+ifThenMempty cond ok    = if cond then ok else mempty
 {-# INLINE ifThenElse   #-}
 {-# INLINE ifThenElseId #-}
 {-# INLINE ifThenMempty #-}
@@ -86,7 +85,7 @@ switch = \ok fail cond -> ifThenElse cond ok fail
 {-# INLINE switch #-}
 
 switchM :: Monad m => m a -> m a -> m Bool -> m a
-switchM = \ok fail mcond -> ifM mcond ok fail 
+switchM = \ok fail mcond -> ifM mcond ok fail
 {-# INLINE switchM #-}
 
 

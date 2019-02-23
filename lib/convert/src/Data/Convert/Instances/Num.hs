@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-orphans #-}
+
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -9,14 +11,10 @@ module Data.Convert.Instances.Num where
 import Prelude
 
 import Data.Convert.Class
-import Data.Monoid
-import qualified Data.ByteString as BS
 import GHC.Int
 import Data.Word
 import Data.Bits (shiftR)
 
-import Data.Coerce
-import Unsafe.Coerce
 import Language.Haskell.TH
 import Data.Default
 import Control.Lens

@@ -28,7 +28,7 @@ nestedDefAt def p = case p of
                                     Just _  -> ix t %~ (nestedDefAt def (e :| es) .~ mv)
                                     Nothing -> maybe id (insertNewNested def p) mv
     where insertNewNested :: NestedAtCtx a => IxValue a -> NonEmpty (Index a) -> IxValue a -> (a -> a)
-          insertNewNested def (t :| [])       v = at t .~ Just v
+          insertNewNested _   (t :| [])       v = at t .~ Just v
           insertNewNested def (t :| (e : es)) v = at t .~ Just (insertNewNested def (e :| es) v def)
 
 
@@ -44,8 +44,12 @@ nestedIx = \case
 emptyMap :: Prism' (Map k a) ()
 emptyMap = prism' (\() -> Map.empty) $ guard . Map.null
 
+subMapAt :: (Functor f, Ord p) => p -> (Maybe a -> f (Maybe a))
+    -> Maybe (Map p a) -> f (Maybe (Map p a))
 subMapAt t = non' emptyMap . at t
 
+at' :: (Functor f, Ord p) => p -> (Maybe a -> f (Maybe a)) -> Maybe (Map p a)
+    -> f (Maybe (Map p a))
 at' = subMapAt -- FIXME[WD]: make an abstraction with `Empty` class which do not have to be monoid
 
 -- | Warning! This function does not hold lens laws: deleting and re-adding a key destroys everything appart of `a`,
@@ -55,3 +59,4 @@ unsafeLensedMapAt k l f m = f ma <&> \r -> case r of
     Nothing -> maybe m (const (Map.delete k m)) ma
     Just a' -> Map.alter (Just . set l a' . fromMaybe def) k m
     where ma = view l <$> Map.lookup k m
+

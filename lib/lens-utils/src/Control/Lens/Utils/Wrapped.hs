@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-missing-signatures #-}
+
 {-# LANGUAGE NoMonomorphismRestriction #-}
 
 module Control.Lens.Utils.Wrapped where
@@ -30,3 +32,4 @@ wrap   :: forall a. Coercible (Unwrapped a) a => Unwrapped a -> a
 unwrap :: forall a. Coercible a (Unwrapped a) => a -> Unwrapped a
 wrap   = coerce ; {-# INLINE wrap   #-}
 unwrap = coerce ; {-# INLINE unwrap #-}
+

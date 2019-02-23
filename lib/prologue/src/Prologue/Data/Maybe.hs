@@ -6,10 +6,8 @@ import Data.Maybe                 as X (Maybe(Just, Nothing), maybe, isJust, isN
 import Control.Monad.Trans.Maybe  as X (MaybeT(MaybeT), runMaybeT, mapMaybeT, maybeToExceptT, exceptToMaybeT)
 import Control.Error.Util         as X (maybeT, just, nothing, isJustT, isNothingT)
 
-import Control.Applicative
 import Control.Monad       hiding (fail)
 import Control.Monad.Fail
-import Data.Convert
 import Data.Monoids
 import Data.Functor.Utils
 import Prologue.Data.Basic

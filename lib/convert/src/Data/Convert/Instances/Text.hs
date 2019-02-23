@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-orphans #-}
+
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE UndecidableInstances #-}
@@ -21,7 +23,6 @@ import qualified Data.ByteString         as BS
 import qualified Data.ByteString.Lazy    as BL
 import qualified Data.ByteString.Builder as BB
 import           Data.Word               (Word8)
-import           Data.Foldable
 
 import Data.Convert.Instances.ByteString ()
 

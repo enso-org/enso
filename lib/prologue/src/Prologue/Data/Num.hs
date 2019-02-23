@@ -1,5 +1,8 @@
-module Prologue.Data.Num (module Prologue.Data.Num, module X) where
+{-# OPTIONS_GHC -Wno-unused-imports #-}
 
+{-# OPTIONS_GHC -Wno-type-defaults #-}
+
+module Prologue.Data.Num (module Prologue.Data.Num, module X) where
 
 import Prelude
 import Prelude as X ( Int, Integer, Float, Double, Rational, Word

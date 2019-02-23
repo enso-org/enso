@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-orphans #-}
+
 module Data.Convert.Instances.ByteString where
 
 import Prelude

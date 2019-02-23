@@ -62,5 +62,33 @@ library:
         - deriving-compat
         - pretty
 
-default-extensions: *luna-extensions
+default-extensions:
+    - ConstraintKinds
+    - DataKinds
+    - DefaultSignatures
+    - DeriveDataTypeable
+    - DeriveFoldable
+    - DeriveFunctor
+    - DeriveGeneric
+    - DeriveTraversable
+    - DoAndIfThenElse
+    - EmptyDataDecls
+    - FlexibleContexts
+    - FlexibleInstances,
+    - GeneralizedNewtypeDeriving
+    - InstanceSigs
+    - LambdaCase
+    - MultiParamTypeClasses
+    - MultiWayIf
+    - NoImplicitPrelude
+    - OverloadedStrings
+    - ScopedTypeVariables
+    - StandaloneDeriving
+    - TemplateHaskell
+    - TupleSections
+    - TypeApplications
+    - TypeFamilies
+    - TypeOperators
+    - UnicodeSyntax
+    - ViewPatterns
 

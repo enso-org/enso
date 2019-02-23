@@ -1,8 +1,6 @@
 module Prologue.Data.Default1 where
 
 import GHC.Exts (Constraint)
-import Data.Default as X
-
 
 class Default1 t where
     def1 :: ∀ a. t a

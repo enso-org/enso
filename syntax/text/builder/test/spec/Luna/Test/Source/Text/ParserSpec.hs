@@ -11,17 +11,14 @@ import qualified Luna.Pass                          as Pass
 import qualified Luna.Pass.Parsing.Parser           as Parser
 import qualified Luna.Pass.Scheduler                as Scheduler
 import qualified Luna.Syntax.Prettyprint            as Prettyprint
-import qualified Luna.Syntax.Text.Parser.Ast        as Ast
 import qualified Luna.Syntax.Text.Parser.Ast.Simple as Simple
 import qualified Luna.Syntax.Text.Parser.Parser     as Macro
 import qualified Luna.Syntax.Text.Parser.Parser     as PP
 
 import Data.Graph.Data.Graph.Class (Graph)
-import Data.Text32                 (Text32)
 import Luna.Pass                   (Pass)
-import Test.Hspec                  (Arg, Example, Expectation, Spec, describe,
-                                    xdescribe, it, xit)
-import Test.Hspec.Core             (SpecM)
+import Test.Hspec                  (Spec, describe, xdescribe, it, xit)
+import Test.Hspec.Core.Spec        (SpecM)
 
 
 
@@ -44,7 +41,7 @@ runPasses passes = Graph.encodeAndEval @Parser.Parser $ Scheduler.evalT $ do
 
 e_x :: Text -> Text -> IO ()
 e_x input output = runPass $ do
-    (ir,cs) <- Parser.runWith Macro.unit (convert input)
+    (ir,_) <- Parser.runWith Macro.unit (convert input)
     let scope = def
     genCode <- Prettyprint.run @Prettyprint.Simple scope ir
     -- putStrLn "!!!!"

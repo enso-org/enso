@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-unused-foralls #-}
+
 module Prologue.Text.Show (module Prologue.Text.Show, module X) where
 
 import Prelude (Int, (+), (>), (.))

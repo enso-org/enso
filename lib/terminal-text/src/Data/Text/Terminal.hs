@@ -2,16 +2,14 @@ module Data.Text.Terminal where
 
 
 import qualified Prologue as P
-import Prologue hiding ((:>), Empty, Bounded, div, simple, concat, putStr, swapped, length, putStrLn, take, drop)
+import Prologue hiding (Bounded, div, concat, putStr, length, putStrLn, take, drop)
 
-import qualified Control.Monad.State.Layered as State 
-import qualified Data.Text                 as Text
-import qualified Data.Text.IO              as Text
-import qualified Data.Text.Lazy            as LazyText
-import qualified Data.Text.Lazy.Builder    as Text
-import qualified System.Console.ANSI       as ANSI
-import qualified System.Console.ANSI.Types as ANSI
-import qualified System.IO                 as System
+import qualified Control.Monad.State.Layered as State
+import qualified Data.Text                   as Text
+import qualified Data.Text.IO                as Text
+import qualified Data.Text.Lazy.Builder      as Text
+import qualified System.Console.ANSI         as ANSI
+import qualified System.IO                   as System
 import           System.IO                 (Handle, stdout)
 
 -- import Data.Container.Class hiding (intercalate)
@@ -95,7 +93,7 @@ styleToChanges = diffStyles def
 getReversedStyleChange :: State.Getter Style m => StyleChange -> m StyleChange
 getReversedStyleChange change = do
     s <- State.get @Style
-    return $ case change of
+    pure $ case change of
         WeightChange    _ -> WeightChange    $ s ^. weightStyle
         ItalicChange    _ -> ItalicChange    $ s ^. italicStyle
         UnderlineChange _ -> UnderlineChange $ s ^. underlineStyle
@@ -121,7 +119,7 @@ withStyleChanges h changes m = do
     hSetStyleChanges h changes
     out <- m
     hSetStyleChanges h reverseChanges
-    return out
+    pure out
 
 
 diffStyles :: Style -> Style -> [StyleChange]
@@ -139,16 +137,16 @@ hSetStyleChanges :: (State.Monad Style m, MonadIO m) => Handle -> [StyleChange] 
 hSetStyleChanges h changes = do
     let colorReser = (FgColorChange Nothing `elem` changes) || (BgColorChange Nothing `elem` changes)
     mapM putStyleChange changes
-    newStyle <- State.get @Style
+    _        <- State.get @Style
     changes' <- if colorReser then resetSGR h >> getStyleAsChanges
-                              else return changes
+                              else pure changes
     liftIO $ mapM_ apply changes'
     where setSGR            = ANSI.hSetSGR h . pure
           putCtrl seq       = System.hPutStr h $ "\x1b[" <> intercalate ";" (show <$> seq) <> "m"
           putFgCtrl         = putCtrl . (38:)
           putBgCtrl         = putCtrl . (48:)
           putFg256Ctrl      = putFgCtrl . (5:) . pure
-          putBg256Ctrl      = putBgCtrl . (5:) . pure
+          -- putBg256Ctrl      = putBgCtrl . (5:) . pure
           putFgTCCtrl r g b = putFgCtrl [2,r,g,b]
           putBgTCCtrl r g b = putBgCtrl [2,r,g,b]
           apply             = \case
@@ -241,7 +239,7 @@ putStrLn = hPutStrLn stdout
 
 hRenderStr :: (MonadIO m, State.Monad Style m) => Handle -> TermText -> m ()
 hRenderStr h txt = case txt ^. rootSegment of
-    NullSegment       -> return ()
+    NullSegment       -> pure ()
     PlainSegment  t   -> liftIO $ Text.hPutStr h t
     StyledSegment s t -> withStyleChanges h s $ hRenderStr h t
     CatSegments   l r -> hRenderStr h l >> hRenderStr h r

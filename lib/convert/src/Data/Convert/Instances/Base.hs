@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-orphans #-}
+
 module Data.Convert.Instances.Base where
 
 import Prelude
@@ -40,3 +42,4 @@ fromBool  = convert               ; {-# INLINE fromBool  #-}
 fromBool' = convert'              ; {-# INLINE fromBool' #-}
 asBool    = iso toBool  fromBool  ; {-# INLINE asBool    #-}
 asBool'   = iso toBool' fromBool' ; {-# INLINE asBool'   #-}
+

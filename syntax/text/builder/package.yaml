@@ -21,6 +21,7 @@ tests:
             - directory
             - filepath
             - hspec
+            - hspec-core
             - hspec-expectations-lifted
             - hspec-megaparsec
             - luna-core

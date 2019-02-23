@@ -15,7 +15,6 @@ import qualified Data.Convert2.TH as TH
 
 -- import Control.Lens
 import GHC.TypeLits
-import Data.Default
 import Data.Impossible (impossible)
 
 -- TODO[WD]: file GHC Bug:
@@ -30,10 +29,10 @@ import Data.Impossible (impossible)
 -- test = convert'
 
 
-type IdConversionErr (a :: k) 
+type IdConversionErr (a :: k)
     = 'Text "Conversion of the same type (`" ':<>: 'ShowType a ':<>: 'Text "`)"
- :<>: 'Text " is disabled by default. Please use convert' if you want to enable it."
-    
+ ':<>: 'Text " is disabled by default. Please use convert' if you want to enable it."
+
 
 ------------------------
 -- === Convertibe === --
@@ -102,12 +101,12 @@ unsafeConvert2' = unsafeTo2' ; {-# INLINE unsafeConvert2' #-}
 
 -- === Preventing id-conversions === --
 
--- > instance TypeError (IdConversionErr src) 
+-- > instance TypeError (IdConversionErr src)
 -- >       => To<N> (src t1 t2 ... t<N>) src where
 -- >     to<N> = impossible
 -- >     {-# INLINE to<N> #-}
 --
--- > instance TypeError (IdConversionErr src) 
+-- > instance TypeError (IdConversionErr src)
 -- >       => From<N> (src t1 t2 ... t<N>) src where
 -- >     from<N> = impossible
 -- >     {-# INLINE from<N> #-}
@@ -152,21 +151,21 @@ type Bi4' tgt src = (To4' tgt src, From4' tgt src)
 type Bi5' tgt src = (To5' tgt src, From5' tgt src)
 
 
-instance {-# OVERLAPPABLE #-} To' a a where to' = id ; {-# INLINE to' #-} 
-instance To a b => To' a b where to' = to ; {-# INLINE to' #-} 
+instance {-# OVERLAPPABLE #-} To' a a where to' = id ; {-# INLINE to' #-}
+instance To a b => To' a b where to' = to ; {-# INLINE to' #-}
 
-instance {-# OVERLAPPABLE #-} From' a a where from' = id ; {-# INLINE from' #-} 
-instance From a b => From' a b where from' = from ; {-# INLINE from' #-} 
+instance {-# OVERLAPPABLE #-} From' a a where from' = id ; {-# INLINE from' #-}
+instance From a b => From' a b where from' = from ; {-# INLINE from' #-}
 
 
 -- -- === Utils === --
 
 -- convertTo  :: ∀ a' a. Convertible  a a' =>              a           -> a'
--- convertTo1 :: ∀ a' a. Convertible1 a a' => ∀ b.         a b         -> a' 
--- convertTo2 :: ∀ a' a. Convertible2 a a' => ∀ b c.       a b c       -> a' 
--- convertTo3 :: ∀ a' a. Convertible3 a a' => ∀ b c d.     a b c d     -> a' 
--- convertTo4 :: ∀ a' a. Convertible4 a a' => ∀ b c d e.   a b c d e   -> a' 
--- convertTo5 :: ∀ a' a. Convertible5 a a' => ∀ b c d e f. a b c d e f -> a' 
+-- convertTo1 :: ∀ a' a. Convertible1 a a' => ∀ b.         a b         -> a'
+-- convertTo2 :: ∀ a' a. Convertible2 a a' => ∀ b c.       a b c       -> a'
+-- convertTo3 :: ∀ a' a. Convertible3 a a' => ∀ b c d.     a b c d     -> a'
+-- convertTo4 :: ∀ a' a. Convertible4 a a' => ∀ b c d e.   a b c d e   -> a'
+-- convertTo5 :: ∀ a' a. Convertible5 a a' => ∀ b c d e f. a b c d e f -> a'
 -- convertTo  = convert  ; {-# INLINE convertTo  #-}
 -- convertTo1 = convert1 ; {-# INLINE convertTo1 #-}
 -- convertTo2 = convert2 ; {-# INLINE convertTo2 #-}
@@ -200,10 +199,10 @@ instance From a b => From' a b where from' = from ; {-# INLINE from' #-}
 
 -- convertTo'  :: ∀ a' a. Convertible'  a a' =>              a           -> a'
 -- convertTo1' :: ∀ a' a. Convertible1' a a' => ∀ b.         a b         -> a'
--- convertTo2' :: ∀ a' a. Convertible2' a a' => ∀ b c.       a b c       -> a' 
--- convertTo3' :: ∀ a' a. Convertible3' a a' => ∀ b c d.     a b c d     -> a' 
--- convertTo4' :: ∀ a' a. Convertible4' a a' => ∀ b c d e.   a b c d e   -> a' 
--- convertTo5' :: ∀ a' a. Convertible5' a a' => ∀ b c d e f. a b c d e f -> a' 
+-- convertTo2' :: ∀ a' a. Convertible2' a a' => ∀ b c.       a b c       -> a'
+-- convertTo3' :: ∀ a' a. Convertible3' a a' => ∀ b c d.     a b c d     -> a'
+-- convertTo4' :: ∀ a' a. Convertible4' a a' => ∀ b c d e.   a b c d e   -> a'
+-- convertTo5' :: ∀ a' a. Convertible5' a a' => ∀ b c d e f. a b c d e f -> a'
 -- convertTo'  = convert'  ; {-# INLINE convertTo'  #-}
 -- convertTo1' = convert1' ; {-# INLINE convertTo1' #-}
 -- convertTo2' = convert2' ; {-# INLINE convertTo2' #-}
@@ -254,11 +253,11 @@ instance From a b => From' a b where from' = from ; {-# INLINE from' #-}
 -- -- === Utils === --
 
 -- unsafeConvertTo  :: ∀ a' a. UnsafeConvertible  a a' =>              a           -> a'
--- unsafeConvertTo1 :: ∀ a' a. UnsafeConvertible1 a a' => ∀ b.         a b         -> a' 
--- unsafeConvertTo2 :: ∀ a' a. UnsafeConvertible2 a a' => ∀ b c.       a b c       -> a' 
--- unsafeConvertTo3 :: ∀ a' a. UnsafeConvertible3 a a' => ∀ b c d.     a b c d     -> a' 
--- unsafeConvertTo4 :: ∀ a' a. UnsafeConvertible4 a a' => ∀ b c d e.   a b c d e   -> a' 
--- unsafeConvertTo5 :: ∀ a' a. UnsafeConvertible5 a a' => ∀ b c d e f. a b c d e f -> a' 
+-- unsafeConvertTo1 :: ∀ a' a. UnsafeConvertible1 a a' => ∀ b.         a b         -> a'
+-- unsafeConvertTo2 :: ∀ a' a. UnsafeConvertible2 a a' => ∀ b c.       a b c       -> a'
+-- unsafeConvertTo3 :: ∀ a' a. UnsafeConvertible3 a a' => ∀ b c d.     a b c d     -> a'
+-- unsafeConvertTo4 :: ∀ a' a. UnsafeConvertible4 a a' => ∀ b c d e.   a b c d e   -> a'
+-- unsafeConvertTo5 :: ∀ a' a. UnsafeConvertible5 a a' => ∀ b c d e f. a b c d e f -> a'
 -- unsafeConvertTo  = unsafeConvert  ; {-# INLINE unsafeConvertTo  #-}
 -- unsafeConvertTo1 = unsafeConvert1 ; {-# INLINE unsafeConvertTo1 #-}
 -- unsafeConvertTo2 = unsafeConvert2 ; {-# INLINE unsafeConvertTo2 #-}
@@ -276,9 +275,9 @@ instance From a b => From' a b where from' = from ; {-# INLINE from' #-}
 
 -- class UnsafeConvertible'  a a' where unsafeConvert'  ::              a           -> a'
 -- class UnsafeConvertible1' a a' where unsafeConvert1' :: ∀ b.         a b         -> a'
--- class UnsafeConvertible2' a a' where unsafeConvert2' :: ∀ b c.       a b c       -> a' 
--- class UnsafeConvertible3' a a' where unsafeConvert3' :: ∀ b c d.     a b c d     -> a' 
--- class UnsafeConvertible4' a a' where unsafeConvert4' :: ∀ b c d e.   a b c d e   -> a' 
+-- class UnsafeConvertible2' a a' where unsafeConvert2' :: ∀ b c.       a b c       -> a'
+-- class UnsafeConvertible3' a a' where unsafeConvert3' :: ∀ b c d.     a b c d     -> a'
+-- class UnsafeConvertible4' a a' where unsafeConvert4' :: ∀ b c d e.   a b c d e   -> a'
 -- class UnsafeConvertible5' a a' where unsafeConvert5' :: ∀ b c d e f. a b c d e f -> a'
 
 -- instance {-# OVERLAPPABLE #-} UnsafeConvertible'  a a where unsafeConvert'  = impossible ; {-# INLINE unsafeConvert'  #-}
@@ -297,10 +296,10 @@ instance From a b => From' a b where from' = from ; {-# INLINE from' #-}
 
 -- unsafeConvertTo'  :: ∀ a' a. UnsafeConvertible'  a a' =>              a           -> a'
 -- unsafeConvertTo1' :: ∀ a' a. UnsafeConvertible1' a a' => ∀ b.         a b         -> a'
--- unsafeConvertTo2' :: ∀ a' a. UnsafeConvertible2' a a' => ∀ b c.       a b c       -> a' 
--- unsafeConvertTo3' :: ∀ a' a. UnsafeConvertible3' a a' => ∀ b c d.     a b c d     -> a' 
--- unsafeConvertTo4' :: ∀ a' a. UnsafeConvertible4' a a' => ∀ b c d e.   a b c d e   -> a' 
--- unsafeConvertTo5' :: ∀ a' a. UnsafeConvertible5' a a' => ∀ b c d e f. a b c d e f -> a' 
+-- unsafeConvertTo2' :: ∀ a' a. UnsafeConvertible2' a a' => ∀ b c.       a b c       -> a'
+-- unsafeConvertTo3' :: ∀ a' a. UnsafeConvertible3' a a' => ∀ b c d.     a b c d     -> a'
+-- unsafeConvertTo4' :: ∀ a' a. UnsafeConvertible4' a a' => ∀ b c d e.   a b c d e   -> a'
+-- unsafeConvertTo5' :: ∀ a' a. UnsafeConvertible5' a a' => ∀ b c d e f. a b c d e f -> a'
 -- unsafeConvertTo'  = unsafeConvert'  ; {-# INLINE unsafeConvertTo'  #-}
 -- unsafeConvertTo1' = unsafeConvert1' ; {-# INLINE unsafeConvertTo1' #-}
 -- unsafeConvertTo2' = unsafeConvert2' ; {-# INLINE unsafeConvertTo2' #-}

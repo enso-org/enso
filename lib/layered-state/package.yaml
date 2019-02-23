@@ -24,7 +24,7 @@ library:
         - src
     dependencies:
         - base
-        - constraints
+        - constraint
         - data-default
         - exceptions
         - lens

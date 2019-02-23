@@ -6,11 +6,7 @@ module Prologue.Type.Reflection (module Prologue.Type.Reflection, module X) wher
 import Type.Reflection as X (Typeable, TypeRep, SomeTypeRep, typeOf, typeRep, withTypeable)
 import Data.Typeable   as X (Proxy(Proxy))
 
-import Prelude
 import Data.Kind
-import Control.Lens
-import Control.Lens.Utils
-import Data.Convert
 import qualified Type.Reflection as T
 
 

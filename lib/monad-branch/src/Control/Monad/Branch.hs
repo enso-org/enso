@@ -1,8 +1,8 @@
 module Control.Monad.Branch where
 
 import Prelude
+
 import Control.Monad.Identity
-import Control.Monad.Trans.Identity
 import qualified Control.Monad.Trans.State        as Lazy
 import qualified Control.Monad.Trans.State.Strict as Strict
 
@@ -30,3 +30,4 @@ instance MonadBranch m => MonadBranch (Lazy.StateT s m) where
 
 instance MonadBranch m => MonadBranch (Strict.StateT s m) where
     branched (Strict.StateT m) = Strict.StateT $ \s -> (,s) . fst <$> branched (m s)
+

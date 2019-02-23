@@ -9,7 +9,6 @@ import Prologue.Data.Basic
 import Control.Applicative
 import Control.Monad hiding (fail)
 import Control.Monad.Fail
-import Data.Convert
 import Data.Monoids
 
 

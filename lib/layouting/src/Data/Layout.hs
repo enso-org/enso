@@ -6,14 +6,12 @@
 module Data.Layout where
 
 import qualified Prelude as P
-import Prologue hiding ((:>), Empty, Bounded, div, simple, concat, putStr, swapped, length, putStrLn, take, drop, nested, lines)
 
-import qualified Control.Monad.State.Layered as State
+import Prologue hiding ( Bounded, div, concat, putStr, length, putStrLn, take
+                       , drop, nested, lines )
+
 import qualified Data.Foldable             as Foldable
 import qualified Data.Text                 as Text
-import qualified Data.Text.IO              as Text
-import qualified Data.Text.Lazy            as LazyText
-import qualified Data.Text.Lazy.Builder    as Text
 import           Data.Text.Terminal        hiding (plain) -- FIXME[WD]: TerminalText instances might not suit this module well
 import Data.Sequence.Class
 
@@ -89,7 +87,7 @@ class ElemBuilder    m a where plain  ::   a ->   m a
 
 instance {-# OVERLAPPABLE #-} (ElemBuilder m a, ElemBuilderT t m a)
       => ElemBuilder (t m)    a where plain = plainT . plain
-instance ElemBuilder Identity a where plain = return
+instance ElemBuilder Identity a where plain = pure
 
 
 -- === Rendering === --

@@ -2,7 +2,6 @@ module Prologue.Data.Foldable (module Prologue.Data.Foldable, module X) where
 
 import Prelude                   hiding (minimum, maximum)
 import Prologue.Data.Maybe       (fromJust)
-import Prologue.Data.Traversable
 
 import Control.Monad
 import           Data.Kind       (Constraint, Type)

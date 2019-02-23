@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-unused-foralls #-}
+
 {-# LANGUAGE ExplicitForAll         #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE ScopedTypeVariables    #-}
@@ -7,9 +9,6 @@
 {-# LANGUAGE TypeInType             #-}
 {-# LANGUAGE RankNTypes             #-}
 {-# LANGUAGE BangPatterns #-}
-
-{-# EXT      InlineAll              #-}
--- {-# LANGUAGE Strict #-} -- https://ghc.haskell.org/trac/ghc/ticket/14815#ticket
 
 module Control.Monad.State.Layered where
 
@@ -24,7 +23,6 @@ import Control.Monad.Identity hiding (Monad)
 import Control.Monad.IO.Class
 import Control.Monad.Primitive
 import Control.Monad.Trans
-import Control.Monad.Trans.Maybe
 import Data.Constraint
 import Data.Default
 import Data.Kind (Type)

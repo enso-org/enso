@@ -4,7 +4,7 @@
 
 module Type.Data.Ord.TH where
 
-import Prelude hiding (Type)
+import Prelude
 
 import qualified Language.Haskell.TH as TH
 
