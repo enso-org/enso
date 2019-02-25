@@ -11,7 +11,6 @@ import           Data.Attoparsec.Text               as Parser
 import qualified Data.Attoparsec.Text32             as T32
 import qualified Data.Char                          as Char
 import           Data.Text32                        (Text32)
-import           Luna.Syntax.Text.Analysis.Disabled
 import           System.Random
 
 

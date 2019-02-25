@@ -5,7 +5,6 @@ import           Prologue
 import qualified Luna.IR as IR
 
 import qualified Control.Exception           as Exception
-import qualified Data.ByteString             as ByteString
 import qualified Data.Map                    as Map
 import qualified Data.Text                   as Text
 import qualified Luna.Pass.Sourcing.Data.Def as Def
@@ -76,7 +75,7 @@ exports finalizersCtx = do
             wsConnection <- readMVar connection
             let cleanup = unregisterConnection wsConnection
             registerFinalizer finalizersCtx cleanup
-            return wsConnection
+            pure wsConnection
 
     let wsConnectionT = LCons wsModule "WSConnection" []
 
@@ -95,7 +94,7 @@ exports finalizersCtx = do
 
     let primWebSocketWriteBinVal :: WSConnection -> ByteString -> IO ()
         primWebSocketWriteBinVal (WSConnection conn _) s = WebSocket.sendBinaryData conn s
-    primWebSocketWriteBin <- makeFunctionIO @graph (flip Luna.toValue primWebSocketWriteVal)
+    primWebSocketWriteBin <- makeFunctionIO @graph (flip Luna.toValue primWebSocketWriteBinVal)
                                        [wsConnectionT, binaryT] noneT
 
     let primWebSocketCloseVal :: WSConnection -> IO ()
@@ -106,7 +105,7 @@ exports finalizersCtx = do
     let wsServerT = LCons wsModule "WSServer" []
 
         addWSServerConn :: SockAddr -> WSConnection -> MVar (Map SockAddr WSConnection) -> IO ()
-        addWSServerConn saddr conn conns = modifyMVar_ conns $ return . Map.insert saddr conn
+        addWSServerConn saddr conn conns = modifyMVar_ conns $ pure . Map.insert saddr conn
 
         initServer :: Text -> Integer -> IO WSServer
         initServer host port = do
@@ -116,7 +115,7 @@ exports finalizersCtx = do
             sock       <- WebSocket.makeListenSocket (convert host) (int port)
             let wss = WSServer sock conns msg
             putMVar serverSock sock
-            return wss
+            pure wss
 
         receiveMessage :: WSServer -> WSConnection -> IO ()
         receiveMessage wss connection = do
@@ -124,9 +123,9 @@ exports finalizersCtx = do
             putMVar (wsServerMsg wss) (connection, msg)
 
         awaitConnections :: WSServer -> IO ()
-        awaitConnections wss@(WSServer sock conns msg) = do
+        awaitConnections wss@(WSServer sock conns _) = do
             mvar <- newEmptyMVar :: IO (MVar ())
-            (flip forkFinally) (\_ -> putMVar mvar ()) $ forever $ do
+            void . (flip forkFinally) (\_ -> putMVar mvar ()) $ forever $ do
                 (sc, saddr) <- Socket.accept sock
                 pc          <- WebSocket.makePendingConnection sc WebSocket.defaultConnectionOptions
                 conn        <- WSConnection <$> WebSocket.acceptRequest pc <*> (newEmptyMVar :: IO (MVar ()))
@@ -138,30 +137,30 @@ exports finalizersCtx = do
         disconnectClients wss = do
             let conns = wsServerConns wss
             connMap <- readMVar conns
-            forM_ connMap (\c -> WebSocket.sendClose (wsConn c) ("bye" :: Text))
+            for_ connMap (\c -> WebSocket.sendClose (wsConn c) ("bye" :: Text))
             putMVar conns Map.empty
 
         primCreateWSServerVal :: Text -> Integer -> IO WSServer
         primCreateWSServerVal host port = do
             server <- initServer host port
-            forkIO $ Exception.bracket_ (return ()) (disconnectClients server) (awaitConnections server)
-            return server
+            void . forkIO $ Exception.bracket_ (pure ()) (disconnectClients server) (awaitConnections server)
+            pure server
     primCreateWSServer <- makeFunctionIO @graph (flip Luna.toValue primCreateWSServerVal)
                                        [textT, intT] wsServerT
 
     let primWSSBroadcastTextVal :: WSServer -> Text -> IO WSServer
         primWSSBroadcastTextVal wss msg = do
             connMap <- readMVar $ wsServerConns wss
-            forM_ connMap (\c -> WebSocket.sendTextData (wsConn c) msg)
-            return wss
+            for_ connMap (\c -> WebSocket.sendTextData (wsConn c) msg)
+            pure wss
     primWSSBroadcastText <- makeFunctionIO @graph (flip Luna.toValue primWSSBroadcastTextVal)
                                          [wsServerT, textT] wsServerT
 
     let primWSSBroadcastBinaryVal :: WSServer -> ByteString -> IO WSServer
         primWSSBroadcastBinaryVal wss msg = do
             connMap <- readMVar $ wsServerConns wss
-            forM_ connMap (\c -> WebSocket.sendBinaryData (wsConn c) msg)
-            return wss
+            for_ connMap (\c -> WebSocket.sendBinaryData (wsConn c) msg)
+            pure wss
     primWSSBroadcastBinary <- makeFunctionIO @graph (flip Luna.toValue primWSSBroadcastBinaryVal)
                                            [wsServerT, binaryT] wsServerT
 
@@ -170,17 +169,17 @@ exports finalizersCtx = do
     primWSSGetMessage <- makeFunctionIO @graph (flip Luna.toValue primWSSGetMessageVal)
                                        [wsServerT] (Builder.mvarLT textT)
 
-    return $ Map.fromList [ ("primWebSocketConnect", primWebSocketConnect)
-                          , ("primWebSocketRead", primWebSocketRead)
-                          , ("primWebSocketWrite", primWebSocketWrite)
-                          , ("primWebSocketWriteBin", primWebSocketWriteBin)
-                          , ("primWebSocketClose", primWebSocketClose)
-                          , ("primCreateWSServer", primCreateWSServer)
-                          , ("primWSSBroadcastText", primWSSBroadcastText)
-                          , ("primWSSBroadcastBinary", primWSSBroadcastBinary)
-                          , ("primWSSGetMessage", primWSSGetMessage)
-                          ]
+    pure $ Map.fromList [ ("primWebSocketConnect", primWebSocketConnect)
+                        , ("primWebSocketRead", primWebSocketRead)
+                        , ("primWebSocketWrite", primWebSocketWrite)
+                        , ("primWebSocketWriteBin", primWebSocketWriteBin)
+                        , ("primWebSocketClose", primWebSocketClose)
+                        , ("primCreateWSServer", primCreateWSServer)
+                        , ("primWSSBroadcastText", primWSSBroadcastText)
+                        , ("primWSSBroadcastBinary", primWSSBroadcastBinary)
+                        , ("primWSSGetMessage", primWSSGetMessage)
+                        ]
 
-type instance Luna.RuntimeRepOf WSConnection = Luna.AsNative ('Luna.ClassRep WSModule "WSConnection")
-type instance Luna.RuntimeRepOf WSServer     = Luna.AsNative ('Luna.ClassRep WSModule "WSServer")
+type instance Luna.RuntimeRepOf WSConnection = 'Luna.AsNative ('Luna.ClassRep WSModule "WSConnection")
+type instance Luna.RuntimeRepOf WSServer     = 'Luna.AsNative ('Luna.ClassRep WSModule "WSServer")
 

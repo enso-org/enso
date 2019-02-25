@@ -1,32 +1,35 @@
+{-# OPTIONS_GHC -Wno-missing-methods #-}
+
 {-# LANGUAGE NoStrict #-}
 {-# LANGUAGE NoStrictData #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Data.Mutable.Storable.Array
     (module Data.Mutable.Storable.Array, module X) where
+
 import Data.Mutable.Class as X
 
 import Prologue hiding (FromList, Read, ToList, empty, length, toList,
-                 unsafeRead, w)
+                 unsafeRead)
 
-import qualified Data.AutoVector.Mutable.Storable as Vector
-import qualified Data.Construction                as Data
-import qualified Data.Convert2.Class              as Convert
-import qualified Data.List                        as List
-import qualified Data.Property                    as Property
-import qualified Data.Storable                    as Struct
-import qualified Foreign.Marshal.Alloc            as Mem
-import qualified Foreign.Marshal.Utils            as Mem
-import qualified Foreign.Storable                 as StdStorable
+-- import qualified Data.AutoVector.Mutable.Storable as Vector
+-- import qualified Data.Construction                as Data
+-- import qualified Data.Convert2.Class              as Convert
+-- import qualified Data.List                        as List
+-- import qualified Data.Property                    as Property
+-- import qualified Data.Storable                    as Struct
+-- import qualified Foreign.Marshal.Alloc            as Mem
+-- import qualified Foreign.Marshal.Utils            as Mem
+-- import qualified Foreign.Storable                 as StdStorable
 import qualified Foreign.Storable.Class           as Storable
 import qualified Memory                           as Memory
 import qualified Type.Known                       as Type
 
-import Data.Storable          (type (-::), UnmanagedStruct)
-import Foreign.Ptr            (Ptr, minusPtr, nullPtr, plusPtr)
-import Foreign.Storable.Class (Copy, Storable, View)
-import Foreign.Storable.Utils (Dynamic, Dynamics)
-import Foreign.Storable.Utils (castPeekAndOffset, castPokeAndOffset)
+-- import Data.Storable          (type (-::), UnmanagedStruct)
+-- import Foreign.Ptr            (Ptr, minusPtr, nullPtr, plusPtr)
+import Foreign.Storable.Class (View)
+-- import Foreign.Storable.Utils (Dynamic, Dynamics)
+-- import Foreign.Storable.Utils (castPeekAndOffset, castPokeAndOffset)
 
 
 

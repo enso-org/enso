@@ -76,7 +76,7 @@ mapM = \f ->
 
 mapM_ :: Applicative m
        => (Component.Some comp -> m a) -> ComponentList comp -> m ()
-mapM_ = \f -> foldr ((*>) . f) (return ())
+mapM_ = \f -> foldr ((*>) . f) (pure ())
 {-# INLINE mapM_ #-}
 
 length :: ComponentList comp -> Int

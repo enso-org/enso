@@ -3,7 +3,6 @@ module Luna.Shell.Command where
 import Prologue hiding (init)
 
 import qualified Control.Exception                  as Exception
-import qualified Control.Exception.Safe             as Safe
 import qualified Control.Monad.Exception            as MException
 import qualified Control.Monad.Exception.IO         as MException
 import qualified Control.Monad.State.Layered        as State
@@ -19,6 +18,7 @@ import qualified Luna.Package.Structure.Name        as Package
 import qualified Luna.Shell.CWD                     as CWD
 import qualified Luna.Shell.Interpret               as Interpret
 import qualified Luna.Shell.GenerateDocumentation   as GenerateDocumentation
+import qualified Luna.Datafile.Stdlib               as Stdlib
 import qualified Path                               as Path
 import qualified System.Directory                   as Directory
 import qualified System.Info                        as Info
@@ -29,7 +29,7 @@ import Control.Monad.Exception (MonadException)
 import Path                    (Path, Abs, Dir)
 import System.Exit             (die)
 import System.FilePath         ((</>))
-import System.IO               (hPutStrLn, stderr)
+import System.IO               (hPutStrLn, stderr, stdout)
 
 
 -------------------------------
@@ -176,27 +176,34 @@ run (RunOpts target) = liftIO $ catch compute recover where
             canonicalPath <- Directory.canonicalizePath target
             fileExists    <- Directory.doesFileExist canonicalPath
             projectExists <- Directory.doesDirectoryExist canonicalPath
+            stdlibPath    <- Stdlib.findPath
+
+            hPutStrLn stdout $ "Using standard library at " <> show stdlibPath
 
             if fileExists then do
                 filePath <- Path.parseAbsFile canonicalPath
                 if Path.fileExtension filePath /= Package.lunaFileExt then
                     hPutStrLn stderr $ canonicalPath <> " is not a Luna file."
-                else Interpret.file filePath
-            else if projectExists then runPackage canonicalPath
+                else Interpret.file filePath stdlibPath
+            else if projectExists then runPackage canonicalPath stdlibPath
             else hPutStrLn stderr $ target <> " not found."
         else do
-            cwd <- CWD.get
-            runPackage cwd
+            cwd        <- CWD.get
+            stdlibPath <- Stdlib.findPath
+
+            hPutStrLn stdout $ "Using standard library at " <> show stdlibPath
+
+            runPackage cwd stdlibPath
 
     -- FIXME [Ara] This can be done much better.
     recover (e :: SomeException) = die (displayException e)
 
-    runPackage path = do
-        packagePath   <- Path.parseAbsDir path
+    runPackage pkgPath stdlibPath = do
+        packagePath   <- Path.parseAbsDir pkgPath
         isLunaPackage <- Package.isLunaPackage packagePath
 
-        if isLunaPackage then Interpret.package packagePath
-        else hPutStrLn stderr $ path <> " is not a Luna Package."
+        if isLunaPackage then Interpret.package packagePath stdlibPath
+        else hPutStrLn stderr $ pkgPath <> " is not a Luna Package."
 
 init :: (ConfigStateIO m, MonadException Path.PathException m) => InitOpts
     -> m ()

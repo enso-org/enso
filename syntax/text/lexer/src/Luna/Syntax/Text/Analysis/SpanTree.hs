@@ -5,7 +5,7 @@
 module Luna.Syntax.Text.Analysis.SpanTree where
 
 import qualified Prelude  as P
-import           Prologue hiding (empty, span, (<|), (|>))
+import           Prologue hiding (empty, span)
 
 import qualified Data.FingerTree        as FT
 import qualified Data.Text32            as Text32
@@ -247,7 +247,7 @@ viewToRealCursor             = fst .:. viewToRealCursorSplit ; {-# INLINE viewTo
 
 viewToRealBlock :: Spantree a -> (Delta, Delta) -> (Delta, Delta)
 viewToRealBlock st (left, right) = (len, r' + len - shift) where
-    (len, (shift, pre, post)) = viewToRealCursorSplitAfterMarker st left
+    (len, (shift, _, post)) = viewToRealCursorSplitAfterMarker st left
     r' = viewToRealCursorBeforeMarker post (shift + right - left)
 {-# INLINE viewToRealBlock #-}
 

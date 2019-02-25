@@ -1,0 +1,44 @@
+_config/lib: !include "../../config/hpack-common.yaml"
+
+name        : luna-datafile
+version     : 0.0.1
+category    : Data
+license     : Apache-2.0
+stability   : experimental
+homepage    : https://github.com/luna/luna
+bug-reports : https://github.com/luna/luna/issues
+author      : Luna Team
+copyright   : Copyright (C) 2018 Luna Team
+maintainer:
+    - Wojciech Danilo  <wojciech.danilo@luna-lang.org>
+    - Ara Adkins       <ara.adkins@luna-lang.org>
+
+library:
+    source-dirs:
+        - src
+    dependencies:
+        - base
+        - directory
+        - filepath
+        - luna-exception
+        - path
+        - prologue
+
+tests:
+    spec:
+        main: Main.hs
+        source-dirs: test/spec
+        dependencies:
+            - base
+            - directory
+            - filepath
+            - hspec
+            - hspec-jenkins
+            - luna-ci
+            - luna-datafile
+            - path
+            - prologue
+            - temporary
+
+default-extensions: *luna-extensions
+

@@ -11,7 +11,6 @@ import Prelude
 import qualified Control.Exception as IO
 
 import Control.Exception          (Exception, SomeException, toException)
-import Control.Lens.Utils
 import Control.Monad              (join)
 import Control.Monad.Trans        (MonadTrans, lift)
 import Control.Monad.Trans.Except (ExceptT, runExceptT, throwE)

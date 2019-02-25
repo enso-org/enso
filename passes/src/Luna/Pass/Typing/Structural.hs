@@ -44,15 +44,15 @@ type family StructuralTypingSpec t where
 instance Pass.Definition TC.Stage StructuralTyping where
     definition = do
         Root root <- Attr.get
-        getStructuralType root
-        return ()
+        void $ getStructuralType root
+        pure ()
 
 getStructuralType :: IR.SomeTerm -> TC.Pass StructuralTyping IR.SomeTerm
 getStructuralType expr = do
     tp <- IR.source =<< Layer.read @IR.Type expr
     Layer.read @IR.Model tp >>= \case
         Uni.Top -> attachStructuralType expr
-        _       -> return tp
+        _       -> pure tp
 
 baseMod :: IR.Qualified
 baseMod = "Std.Base"
@@ -64,7 +64,7 @@ attachStructuralType expr = do
             isInt <- IR.isInteger n
             let cName = if isInt then "Int" else "Real"
             IR.resolvedCons' baseMod cName cName ([] :: [IR.SomeTerm])
-        Uni.RawString s -> do
+        Uni.RawString _ -> do
             IR.resolvedCons' baseMod "Text" "Text" ([] :: [IR.SomeTerm])
         Uni.FmtString s -> do
             parts   <- traverse IR.source =<< ComponentVector.toList s
@@ -73,21 +73,21 @@ attachStructuralType expr = do
             unis <- traverse (IR.unify txt) partTps
             traverse_ (Requester.setRequester $ Just expr) unis
             UniQueue.registers $ Layout.unsafeRelayout <$> unis
-            return txt
+            pure txt
         Uni.Acc a n' -> do
             at <- getStructuralType =<< IR.source a
             n <- IR.source n'
             acc <- IR.acc' at n
             Requester.setRequester (Just expr) acc
             AccQueue.register $ Layout.unsafeRelayout acc
-            return acc
+            pure acc
         Uni.App f a -> do
             at <- getStructuralType =<< IR.source a
             ft <- getStructuralType =<< IR.source f
             app <- IR.app' ft at
             Requester.setRequester (Just expr) app
             AppQueue.register $ Layout.unsafeRelayout app
-            return app
+            pure app
         Uni.Lam i o -> do
             ot <- getStructuralType =<< IR.source o
             it <- getStructuralType =<< IR.source i
@@ -98,7 +98,7 @@ attachStructuralType expr = do
             uni <- IR.unify lt rt
             Requester.setRequester (Just expr) uni
             UniQueue.register $ Layout.unsafeRelayout uni
-            return rt
+            pure rt
         Uni.Function n as' o -> do
             as   <- traverse IR.source =<< ComponentVector.toList as'
             args <- traverse getStructuralType as
@@ -108,11 +108,11 @@ attachStructuralType expr = do
             uni  <- IR.unify nt lamt
             Requester.setRequester (Just expr) uni
             UniQueue.register $ Layout.unsafeRelayout uni
-            return lamt
+            pure lamt
         Uni.Grouped g  -> getStructuralType =<< IR.source g
         Uni.Marked _ b -> getStructuralType =<< IR.source b
         Uni.Seq a b -> do
-            getStructuralType =<< IR.source a
+            void $ getStructuralType =<< IR.source a
             getStructuralType =<< IR.source b
         Uni.Match a cls -> do
             at       <- getStructuralType =<< IR.source a
@@ -122,12 +122,12 @@ attachStructuralType expr = do
                 retT <- IR.app ct at
                 Requester.setRequester (Just expr) retT
                 AppQueue.register $ Layout.unsafeRelayout retT
-                return retT
+                pure retT
             outTp <- IR.var' =<< NameGen.generateName
             unis  <- traverse (IR.unify outTp) clauseOuts
             UniQueue.registers $ Layout.unsafeRelayout <$> unis
             traverse_ (Requester.setRequester $ Just expr) unis
-            return outTp
+            pure outTp
         _ -> do
             inps <- IR.inputs expr
             ComponentList.mapM_ (getStructuralType <=< IR.source) inps
@@ -135,5 +135,5 @@ attachStructuralType expr = do
     oldTp <- Layer.read @IR.Type expr >>= IR.source
     IR.reconnectLayer @IR.Type tp expr
     IR.deleteSubtree oldTp
-    return tp
+    pure tp
 

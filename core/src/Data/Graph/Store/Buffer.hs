@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-orphans #-}
+
 {-# LANGUAGE UndecidableInstances #-}
 
 module Data.Graph.Store.Buffer where
@@ -7,19 +9,22 @@ import Prologue hiding (Data, pprint, print, putStrLn)
 import qualified Control.Monad.State.Layered           as State
 import qualified Data.ByteString.Internal              as ByteString
 import qualified Data.Convert2                         as Convert
-import qualified Data.Convert2                         as Convert
 import qualified Data.Generics.Traversable             as GTraversable
 import qualified Data.Graph.Component.Edge.Class       as Edge
 import qualified Data.Graph.Component.Node.Class       as Node
 import qualified Data.Graph.Data.Component.Class       as Component
-import qualified Data.Graph.Data.Component.List        as ComponentList
-import qualified Data.Graph.Data.Component.List        as ComponentList
+-- import qualified Data.Graph.Data.Component.List        as ComponentList
 import qualified Data.Graph.Data.Component.Maybe       as MaybeComponent
 import qualified Data.Graph.Data.Graph.Class           as Graph
 import qualified Data.Graph.Data.Layer.Class           as Layer
 import qualified Data.Graph.Data.Layer.Layout          as Layout
+import qualified Data.Graph.Fold.Class                 as Fold
+-- import qualified Data.Graph.Fold.Filter                as Fold
 import qualified Data.Graph.Fold.LayerMap              as LayerMap
 import qualified Data.Graph.Fold.Partition             as Partition
+import qualified Data.Graph.Fold.Scoped                as Fold
+import qualified Data.Graph.Fold.ScopedMap             as Fold
+import qualified Data.Graph.Fold.Struct                as Fold
 import qualified Data.Graph.Store.Size.Class           as Size
 import qualified Data.Map.Strict                       as Map
 import qualified Data.Mutable.Class                    as Mutable
@@ -29,19 +34,13 @@ import qualified Data.Mutable.Storable.Array           as Array
 import qualified Data.Mutable.Storable.SmallAutoVector as SAV
 import qualified Data.Set                              as Set
 import qualified Data.Storable                         as Struct
-import qualified Foreign.ForeignPtr                    as ForeignPtr
+-- import qualified Foreign.ForeignPtr                    as ForeignPtr
 import qualified Foreign.Memory.Pool                   as MemPool
 import qualified Foreign.Storable                      as StdStorable
 import qualified Foreign.Storable.Class                as Storable
 import qualified Luna.IR                               as IR
 import qualified Memory                                as Memory
 import qualified Type.Data.List                        as List
-
-import qualified Data.Graph.Fold.Class     as Fold
-import qualified Data.Graph.Fold.Filter    as Fold
-import qualified Data.Graph.Fold.Scoped    as Fold
-import qualified Data.Graph.Fold.ScopedMap as Fold
-import qualified Data.Graph.Fold.Struct    as Fold
 
 import Data.ByteString                       (ByteString)
 import Data.Graph.Data.Component.Class       (Component)
@@ -54,15 +53,15 @@ import Data.Mutable.Storable.Array           (ManagedArray)
 import Data.Mutable.Storable.SmallAutoVector (SmallVectorA)
 import Data.Set                              (Set)
 import Data.Storable                         (type (-::), ManagedStruct)
-import Foreign.ForeignPtr                    (touchForeignPtr)
-import Foreign.ForeignPtr.Unsafe             (unsafeForeignPtrToPtr)
-import Foreign.ForeignPtr.Utils              (SomeForeignPtr)
+-- import Foreign.ForeignPtr                    (touchForeignPtr)
+-- import Foreign.ForeignPtr.Unsafe             (unsafeForeignPtrToPtr)
+-- import Foreign.ForeignPtr.Utils              (SomeForeignPtr)
 import Foreign.Memory.Pool                   (MemPool)
-import Foreign.Ptr                           (Ptr, castPtr, minusPtr, plusPtr)
-import Foreign.Ptr.Utils                     (SomePtr)
+import Foreign.Ptr                           (Ptr, castPtr, minusPtr)
+-- import Foreign.Ptr.Utils                     (SomePtr)
 import Type.Data.Semigroup                   (type (<>))
 
-import qualified Luna.IR.Term             as IR
+-- import qualified Luna.IR.Term             as IR
 import qualified Luna.IR.Term.Ast.Invalid as InvalidIR
 import qualified Type.Known               as Type
 import qualified Type.Show                as Type
@@ -178,7 +177,7 @@ instance (MonadIO m, Data.CopyInitializer1 m (ComponentSetA StoreDynAllocator co
       => CopyInitializerP1 m (ComponentSet comp) where
     copyInitializeP1 = \a -> do
         -- a <$ Data.copyInitialize1 (Memory.setAllocator @StoreDynAllocator a)
-        print "!!! CopyInitializer (ComponentSet comp)"
+        print ("!!! CopyInitializer (ComponentSet comp)" :: String)
         a1 <- Mutable.toList a
         print a1
         Data.copyInitialize1 (Memory.setAllocator @StoreDynAllocator a)
@@ -207,7 +206,7 @@ instance ( MonadIO m -- debug
       => Fold.Builder1 CopyInitialization m (ComponentSet comp) where
     build1 = \a x -> do
         -- x <* Data.copyInitialize1 (Memory.setAllocator @StoreDynAllocator a)
-        print "! CopyInitializer (ComponentSet comp)"
+        print ("! CopyInitializer (ComponentSet comp)" :: String)
         print a
         Data.copyInitialize1 (Memory.setAllocator @StoreDynAllocator a)
         print a
@@ -218,7 +217,7 @@ instance (MonadIO m -- debug
     , Data.CopyInitializer1 m (ComponentVectorA StoreDynAllocator comp), Monad m)
       => Fold.Builder1 CopyInitialization m (ComponentVector comp) where
     build1 = \a x -> do
-        print "? CopyInitializer (ComponentVector comp)"
+        print ("? CopyInitializer (ComponentVector comp)" :: String)
         x <* Data.copyInitialize1 (Memory.setAllocator @StoreDynAllocator a)
     {-# INLINE build1 #-}
 
@@ -226,7 +225,7 @@ instance (MonadIO m -- debug
       , Data.CopyInitializer m (SmallVectorA t StoreDynAllocator comp a), Monad m)
       => Fold.Builder CopyInitialization m (SmallVectorA t alloc comp a) where
     build = \a x -> do
-        print "? CopyInitializer (SmallVectorA ...)"
+        print ("? CopyInitializer (SmallVectorA ...)" :: String)
         x <* Data.copyInitialize (Memory.setAllocator @StoreDynAllocator a)
     {-# INLINE build #-}
 
@@ -402,7 +401,7 @@ instance {-# OVERLAPPABLE #-}
                     case mitem of
                         Just x  -> pure x
                         Nothing -> do
-                            lst <- Mutable.toList a
+                            _ <- Mutable.toList a
                             error $ "REDIRECTION LOOKUP ERROR. Layer = "
                                <> Type.show @layer
                                <> ". Key = " <> show ptr
@@ -913,16 +912,9 @@ instance
         putStrLn $ "copyAndOffsetBytes " <> show (tgtPtr, srcPtr, compSize)
         nextSrcPtr <- Memory.copyAndOffsetBytes tgtPtr srcPtr compSize
         State.modify_ @RedirectMap $ Map.insert srcPtr tgtPtr
-        return nextSrcPtr
+        pure nextSrcPtr
     {-# INLINE encodeComponentStatic__ #-}
 
-
-
----------------------------------------------
----------------------------------------------
----------------------------------------------
----------------------------------------------
----------------------------------------------
 
 
 -----------------------------------

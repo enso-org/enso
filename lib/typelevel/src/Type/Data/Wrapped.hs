@@ -7,9 +7,7 @@
 module Type.Data.Wrapped where
 
 import Data.Kind
-import Data.Typeable
-import GHC.Exts      (Constraint)
-import Prelude
+
 
 
 -- === Basic operations ===

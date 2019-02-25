@@ -1,7 +1,9 @@
 {-# LANGUAGE UndecidableInstances #-}
 
 module Data.Graph.Data.Component.Class
-    (module Data.Graph.Data.Component.Class, module X) where
+    ( module Data.Graph.Data.Component.Class
+    , module X ) where
+
 import Data.Construction as X (Constructor, Constructor1, Destructor,
                                Destructor1, construct', construct1', destruct,
                                destruct1)
@@ -21,7 +23,6 @@ import qualified Foreign.Storable.Class      as Storable
 import qualified Foreign.Storable1.Deriving  as Storable1
 import qualified Language.Haskell.TH         as TH
 
-import Data.Generics.Traversable    (GTraversable)
 import Data.Graph.Data.Layer.Layout (Relayout, UnsafeRelayout)
 import Foreign.Memory.Pool          (MemPool)
 import Foreign.Ptr.Utils            (SomePtr)
@@ -204,5 +205,4 @@ layoutRepOf :: ∀ t lyt. Typeable  lyt       => Component t lyt -> LayoutRep
 repOf       _ = rep    @t @lyt ; {-# INLINE repOf       #-}
 tagRepOf    _ = tagRep    @t   ; {-# INLINE tagRepOf    #-}
 layoutRepOf _ = layoutRep @lyt ; {-# INLINE layoutRepOf #-}
-
 

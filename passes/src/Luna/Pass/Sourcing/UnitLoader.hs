@@ -7,17 +7,10 @@ module Luna.Pass.Sourcing.UnitLoader where
 import Prologue hiding (init)
 
 import qualified Control.Monad.Exception              as Exception
-import qualified Data.Graph.Data.Component.List       as ComponentList
-import qualified Data.Graph.Data.Component.Vector     as ComponentVector
 import qualified Data.Graph.Data.Layer.Layout         as Layout
 import qualified Data.Map                             as Map
 import qualified Data.Set                             as Set
 import qualified Luna.IR                              as IR
-import qualified Luna.IR.Aliases                      as Uni
-import qualified Luna.IR.Layer                        as Layer
-import qualified Luna.Pass                            as Pass
-import qualified Luna.Pass.Attr                       as Attr
-import qualified Luna.Pass.Basic                      as Pass
 import qualified Luna.Pass.Data.Stage                 as TC
 import qualified Luna.Pass.Scheduler                  as Scheduler
 import qualified Luna.Syntax.Text.Parser.State.Result  as Parser
@@ -26,7 +19,6 @@ import qualified Luna.Pass.Parsing.Parser             as Parser
 import qualified Luna.Syntax.Text.Source              as Parser
 import qualified System.IO                            as IO
 
-import Control.Monad.Exception              (MonadException)
 import Data.Set                             (Set)
 import Luna.Pass.Data.Root
 import Luna.Pass.Sourcing.Data.Unit as Unit
@@ -76,7 +68,7 @@ readUnit
     :: FilePath
     -> IR.Qualified
     -> TC.Monad UnitRef
-readUnit srcPath name = do
+readUnit srcPath _ = do
     resetParserState
     fileHandle <- liftIO $ IO.openFile srcPath IO.ReadMode
     liftIO $ IO.hSetEncoding fileHandle IO.utf8
@@ -94,7 +86,6 @@ readUnit srcPath name = do
     imports <- Scheduler.getAttr @Imports
 
     pure $ UnitRef (Unit.Graph $ Layout.unsafeRelayout root) imports
-
 
 loadUnit :: Set IR.Qualified
          -> Map.Map IR.Qualified FilePath

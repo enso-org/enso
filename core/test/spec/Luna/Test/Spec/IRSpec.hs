@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-unused-matches -Wno-type-defaults #-}
+
 {-# LANGUAGE OverloadedStrings    #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -Wno-missing-signatures #-}
@@ -8,43 +10,26 @@ import Prologue
 import Test.Hspec.Expectations.Lifted
 
 import qualified Control.Monad.Exception               as Exception
-import qualified Data.Generics.Traversable             as GTraversable
-import qualified Data.Graph.Component.Edge.Class       as Edge
-import qualified Data.Graph.Data.Component.Class       as Component
-import qualified Data.Graph.Data.Component.Set         as PtrSet
 import qualified Data.Graph.Data.Graph.Class           as Graph
 import qualified Data.Graph.Data.Layer.Layout          as Layout
-import qualified Data.Graph.Fold.Class                 as Fold
-import qualified Data.Graph.Fold.Partition             as Partition
 import qualified Data.Graph.Fold.SubComponents         as Traversal
 import qualified Data.Graph.Fold.SubTree               as Traversal
-import qualified Data.Graph.Fold.SubTree               as SubTree
 import qualified Data.Graph.Store                      as Store
-import qualified Data.Graph.Store.Size.Discovery       as Size
 import qualified Data.List                             as List
 import qualified Data.Mutable.Class                    as Mutable
 import qualified Data.Mutable.Storable.SmallAutoVector as SmallVector
 import qualified Data.Mutable.Storable.SmallSet        as SmallSet
 import qualified Data.Set                              as StdSet
-import qualified Data.Vector.Storable.Foreign          as Vector
-import qualified Foreign.Marshal.Alloc                 as Mem
-import qualified Foreign.Storable.Utils                as Storable
 import qualified Luna.IR                               as IR
 import qualified Luna.IR.Layer                         as Layer
 import qualified Luna.Pass                             as Pass
 import qualified Luna.Pass.Attr                        as Attr
-import qualified Luna.Pass.Basic                       as Pass
 import qualified Luna.Pass.Scheduler                   as Scheduler
 import qualified System.Random                         as Random
 
-import qualified Data.Graph.Store.Buffer  as Buffer
-import qualified Luna.IR.Term.Ast.Invalid as InvalidIR
-
-import Data.Graph.Data.Graph.Class           (Graph)
-import Data.Mutable.Storable.SmallAutoVector (SmallVector, UnmanagedSmallVector)
 import Luna.Pass                             (Pass)
-import Luna.Pass.Basic                       (Compilation)
 import Test.Hspec                            (Spec, describe, it)
+import Data.Mutable.Storable.SmallAutoVector (UnmanagedSmallVector)
 
 
 
@@ -503,7 +488,7 @@ subIRTest2 =  describe "subir" $ it "test2" $ runPass' $ do
 
 
     Store.serialize (Layout.relayout g :: IR.SomeTerm)
-    return ()
+    pure ()
 
     True `shouldBe` True
 

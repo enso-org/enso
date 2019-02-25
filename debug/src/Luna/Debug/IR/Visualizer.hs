@@ -13,19 +13,15 @@ import qualified Data.ByteString.Lazy.Char8      as ByteString
 import qualified Data.Graph.Data.Layer.Layout    as IR
 import qualified Data.Graph.Data.Component.Class as Graph
 import qualified Data.Graph.Data.Component.List  as ComponentList
-import qualified Data.Map                        as Map
 import qualified Data.Set                        as Set
-import qualified Data.Tag                        as Tag
 import qualified Luna.IR                         as IR
 import qualified Luna.IR.Layer                   as Layer
 import qualified Luna.Pass                       as Pass
 import qualified Luna.Pass.Attr                  as Attr
-import qualified Luna.Pass.Basic                 as Pass
 import qualified Luna.Pass.Scheduler             as Scheduler
 import qualified System.Environment              as System
 import qualified Web.Browser                     as Browser
 
-import Data.Map (Map)
 import Data.Set (Set)
 
 
@@ -77,9 +73,9 @@ gatherNodesFrom root = State.execStateT (go $ IR.relayout root) def where
     go (root :: IR.SomeTerm) = do
         visited <- State.gets $ Set.member root
         when_ (not visited) $ do
-            model <- Layer.read @IR.Model root
-            inps  <- ComponentList.mapM IR.source =<< IR.inputs root
-            tp    <- IR.source =<< Layer.read @IR.Type root
+            _    <- Layer.read @IR.Model root
+            inps <- ComponentList.mapM IR.source =<< IR.inputs root
+            tp   <- IR.source =<< Layer.read @IR.Type root
             State.modify $ Set.insert root
             traverse_ (go . IR.relayout) inps
             go $ IR.relayout tp

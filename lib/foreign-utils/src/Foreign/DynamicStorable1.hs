@@ -6,7 +6,6 @@ module Foreign.DynamicStorable1 where
 
 import Prologue
 
-import qualified Foreign.Storable.Utils as Storable
 import qualified Foreign.Storable1      as Storable1
 
 import Foreign.Ptr       (Ptr)

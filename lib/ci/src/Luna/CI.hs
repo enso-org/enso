@@ -7,7 +7,7 @@ import Prelude
 
 import System.Environment as Environment
 
-import Data.Maybe         (fromMaybe, fromJust, isJust)
+import Data.Maybe         (fromMaybe, isJust)
 import System.Directory   (createDirectoryIfMissing)
 import System.FilePath    ((</>))
 

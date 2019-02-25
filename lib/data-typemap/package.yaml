@@ -9,11 +9,9 @@ homepage    : https://github.com/luna/luna-core
 bug-reports : https://github.com/luna/luna-core/issues
 author      : Luna Team
 copyright   : Copyright (C) 2018 Luna Team
-maintainer  : Luna Team
-
-ghc-options:
-    - -O2
-    - -Wall
+maintainer:
+    - Wojciech Danilo  <wojciech.danilo@luna-lang.org>
+    - Ara Adkins       <ara.adkins@luna-lang.org>
 
 library:
     source-dirs:
@@ -22,8 +20,8 @@ library:
         - base
         - layered-state
         - luna-tuple-utils
-        - luna-typelevel
-        - prologue >= 3.0.0
+        - prologue
+        - typelevel
 
 default-extensions: *luna-extensions
 

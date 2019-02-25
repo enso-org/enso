@@ -2,12 +2,12 @@
 
 module Luna.Syntax.Text.Parser.State.Marker where
 
-import Prologue hiding (Span, String, Type, span)
+import Prologue hiding (String, Type)
 
 import qualified Control.Monad.State.Layered as State
-import qualified Data.Map.Strict             as Map
+-- import qualified Data.Map.Strict             as Map
 import qualified Luna.IR                     as IR
-import qualified Luna.Syntax.Text.Lexer      as Lexer
+-- import qualified Luna.Syntax.Text.Lexer      as Lexer
 
 import Data.Map.Strict (Map)
 

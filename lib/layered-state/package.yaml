@@ -1,0 +1,53 @@
+_config/lib: !include "../../config/hpack-common.yaml"
+
+name        : layered-state
+version     : 1.1.5
+synopsis    : Control structure similar to Control.Monad.State, allowing
+    multiple nested states, distinguishable by provided phantom types.
+category    : Data
+license     : Apache-2.0
+stability   : experimental
+homepage    : https://github.com/luna/luna
+bug-reports : https://github.com/luna/luna/issues
+author      : Luna Team
+copyright   : Copyright (C) Luna Team
+maintainer:
+    - Wojciech Danilo  <wojciech.danilo@luna-lang.org>
+    - Ara Adkins       <ara.adkins@luna-lang.org>
+
+library:
+    source-dirs:
+        - src
+    dependencies:
+        - base
+        - constraint
+        - data-default
+        - exceptions
+        - lens
+        - lens-utils
+        - monad-branch
+        - monoid
+        - mtl
+        - primitive
+        - profunctors
+        - prologue
+        - transformers
+        - typelevel
+
+benchmarks:
+    layered-state-benchmark:
+        main: Main.hs
+        source-dirs: test/bench
+        dependencies:
+            - base
+            - criterion
+            - deepseq
+            - either
+            - kan-extensions
+            - layered-state
+            - mtl
+            - mtl-c
+            - timeit
+
+default-extensions: *luna-extensions
+

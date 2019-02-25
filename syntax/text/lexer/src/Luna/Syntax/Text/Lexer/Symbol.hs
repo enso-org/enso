@@ -3,9 +3,8 @@
 
 module Luna.Syntax.Text.Lexer.Symbol where
 
-import Prologue hiding (List, Symbol, element)
+import Prologue hiding (Symbol)
 
-import qualified Data.Text32              as Text32
 import qualified Luna.IR.Term.Ast.Invalid as Invalid
 
 import Data.Text32 (Text32)

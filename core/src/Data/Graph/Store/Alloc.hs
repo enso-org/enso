@@ -1,22 +1,23 @@
+{-# LANGUAGE Strict #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Data.Graph.Store.Alloc where
 
-import Prologue
+-- import Prologue
 
-import qualified Data.Graph.Data.Component.Class as Component
-import qualified Data.Graph.Data.Component.List  as ComponentList
-import qualified Data.Graph.Fold.Partition       as Partition
-import qualified Data.Graph.Store.Size.Discovery as Size
-import qualified Data.TypeMap.Strict             as TypeMap
-import qualified Foreign.Storable.Class          as Storable
+-- import qualified Data.Graph.Data.Component.Class as Component
+-- import qualified Data.Graph.Data.Component.List  as ComponentList
+-- import qualified Data.Graph.Fold.Partition       as Partition
+-- import qualified Data.Graph.Store.Size.Discovery as Size
+-- import qualified Data.TypeMap.Strict             as TypeMap
+-- import qualified Foreign.Storable.Class          as Storable
 -- import qualified Data.Graph.Store.External       as External
 -- import qualified Data.Graph.Store.Size           as Size
 -- import qualified Foreign.Info.ByteSize           as ByteSize
 
 -- import Data.Graph.Data.Component.Class (Component)
-import Data.Graph.Data.Component.List (ComponentList, ComponentLists)
-import Data.Graph.Store.Size.Class    (DynamicSize, Size (Size))
+-- import Data.Graph.Data.Component.List (ComponentList, ComponentLists)
+-- import Data.Graph.Store.Size.Class    (DynamicSize, Size (Size))
 -- import Data.Graph.Store.MemoryRegion   (MemoryRegion (MemoryRegion))
 -- import Data.Graph.Store.Size           (Size)
 -- import Foreign.ForeignPtr.Utils        (mallocForeignPtrBytes, plusForeignPtr)

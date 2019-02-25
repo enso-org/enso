@@ -5,7 +5,6 @@ module Luna.Prim.Foreign where
 import Prologue
 
 import qualified Data.Map                      as Map
-import qualified Data.Text                     as Text
 import qualified Foreign.ForeignPtr            as ForeignPtr
 import qualified Foreign.LibFFI                as LibFFI
 import qualified Luna.IR                       as IR
@@ -16,23 +15,21 @@ import qualified Luna.Std.Builder              as Builder
 import qualified OCI.Data.Name                 as Name
 import qualified System.Mem.Weak               as Weak
 
-import Control.Exception.Safe    (handleAny, throwString)
 import Data.Map                  (Map)
-import Foreign.C.String          (CString, newCString, peekCString)
+import Foreign.C.String          (newCString, peekCString)
 import Foreign.C.Types           (CChar, CDouble, CFloat, CInt, CLong, CSize,
                                   CTime, CUChar, CUInt, CULong, CWchar)
 import Foreign.ForeignPtr.Unsafe (unsafeForeignPtrToPtr)
 import Foreign.Marshal.Alloc     (finalizerFree, free, mallocBytes)
 import Foreign.Ptr               (FunPtr, Ptr, castFunPtr, castPtr,
-                                  castPtrToFunPtr, nullPtr, plusPtr)
+                                  nullPtr, plusPtr)
 import Foreign.Storable          (Storable (..))
 import GHC.Exts                  (Int (..), plusAddr#)
 import GHC.ForeignPtr            (ForeignPtr (..))
 import Luna.Prim.CTypes          (CInt16 (..), CInt32 (..), CInt64 (..),
                                   CInt8 (..), CUInt16 (..), CUInt32 (..),
                                   CUInt64 (..), CUInt8 (..))
-import Luna.Std.Builder          (LTp (..), int, integer, makeFunctionIO,
-                                  makeFunctionPure, maybeLT, real)
+import Luna.Std.Builder          (LTp (..), makeFunctionIO, makeFunctionPure)
 import Luna.Std.Finalizers       (FinalizersCtx, registerFinalizer)
 
 type ForeignValModule = "Std.Foreign.C.Value"
@@ -44,7 +41,6 @@ type ForeignModule = "Std.Foreign"
 
 foreignModule :: Name.Qualified
 foreignModule = Name.qualFromSymbol @ForeignModule
-
 
 ptrT :: LTp -> LTp
 ptrT = LCons foreignValModule "Ptr" . pure
@@ -102,7 +98,7 @@ exports finalizersCtx linkerCacheCtx = do
         primLookupSymbolVal dll symbol = do
             dl       <- Linker.loadLibraryCached  linkerCacheCtx dll
             sym      <- Linker.lookupSymbolCached linkerCacheCtx (dl, symbol)
-            return sym
+            pure sym
     primLookupSymbol <- makeFunctionIO @graph (flip Luna.toValue primLookupSymbolVal)
                             [Builder.textLT, Builder.textLT] funPtrT
 
@@ -147,7 +143,7 @@ exports finalizersCtx linkerCacheCtx = do
     cdouble <- Map.unions <$> sequence (primFracSeq @graph @CDouble)
     cfloat  <- Map.unions <$> sequence (primFracSeq @graph @CFloat)
 
-    return $ Map.unions
+    pure $ Map.unions
         [ local, ptr, fptr, cstring, cchar, cuchar, cwchar, cint, cuint, clong
         , culong, cint8, cint16, cint32, cint64, cuint8, cuint16, cuint32
         , cuint64, csize, ctime, cdouble, cfloat
@@ -209,7 +205,7 @@ primPtr = do
         primFreeVal = free
     primFree <- makeFunctionIO @graph (flip Luna.toValue primFreeVal) [ptrT "a"] Builder.noneLT
 
-    return $ Map.fromList [ ("primNullPtr", primNullPtr)
+    pure $ Map.fromList [ ("primNullPtr", primNullPtr)
                           , ("primPtrToCArg", primPtrToCArg)
                           , ("primPtrRetType", primPtrRetType)
                           , ("primPtrByteSize", primPtrByteSize)
@@ -238,7 +234,7 @@ primCString = do
     primCStringToText <- makeFunctionIO @graph (flip Luna.toValue primCStringToTextVal)
                              [ptrT ccharT] Builder.textLT
 
-    return $ Map.fromList [ ("primCStringFromText", primCStringFromText)
+    pure $ Map.fromList [ ("primCStringFromText", primCStringFromText)
                           , ("primCStringToText", primCStringToText)
                           ]
 
@@ -289,7 +285,7 @@ primStorable = do
 
     let mkName = makePrimFunName typeName
 
-    return $! Map.fromList [ (mkName "ToArg",    primToArg)
+    pure $! Map.fromList [ (mkName "ToArg",    primToArg)
                            , (mkName "RetType",  primRetType)
                            , (mkName "WritePtr", primWritePtr)
                            , (mkName "ReadPtr",  primReadPtr)
@@ -342,7 +338,7 @@ primNum = do
 
     let mkName = makePrimFunName typeName
 
-    return $ Map.fromList [ (mkName "Plus", primPlus)
+    pure $ Map.fromList [ (mkName "Plus", primPlus)
                           , (mkName "Mul", primMul)
                           , (mkName "Sub", primSub)
                           , (mkName "ToText", primToText)
@@ -387,7 +383,7 @@ primIntegral = do
 
     let mkName = makePrimFunName typeName
 
-    return $ Map.fromList [ (mkName "ToInt", primToInt)
+    pure $ Map.fromList [ (mkName "ToInt", primToInt)
                           , (mkName "FromInt", primFromInt)
                           , (mkName "Div", primDiv)
                           , (mkName "Mod", primMod)
@@ -422,7 +418,7 @@ primFrac = do
 
     let mkName = makePrimFunName typeName
 
-    return $ Map.fromList [ (mkName "Div", primDiv)
+    pure $ Map.fromList [ (mkName "Div", primDiv)
                           , (mkName "FromReal", primFromReal)
                           ]
 
@@ -453,10 +449,10 @@ primReal = do
 
     let mkName = makePrimFunName typeName
 
-    return $ Map.fromList [ (mkName "ToReal", primToReal)
+    pure $ Map.fromList [ (mkName "ToReal", primToReal)
                           , (mkName "FromInt", primFromInt)]
 
--- FIXME[MM]: remove when GHC 8.2
+-- FIXME[WD]: remove when GHC 8.2
 plusForeignPtr :: ForeignPtr a -> Int -> ForeignPtr b
 plusForeignPtr (ForeignPtr addr c) (I# d) = ForeignPtr (plusAddr# addr d) c
 
@@ -508,12 +504,12 @@ primForeignPtr finalizersCtx = do
     let attachFinalizer :: ForeignPtr a -> IO ()
         attachFinalizer fptr = do
             weak <- Weak.mkWeakPtr fptr Nothing
-            registerFinalizer finalizersCtx $ do
+            void . registerFinalizer finalizersCtx $ do
                 fptrAlive <- Weak.deRefWeak weak
                 case fptrAlive of
                     Just f -> ForeignPtr.finalizeForeignPtr f
-                    _      -> return ()
-            return ()
+                    _      -> pure ()
+            pure ()
 
     let primNewForeignPtrVal :: FunPtr Luna.Data
                              -> Ptr Luna.Data
@@ -521,7 +517,7 @@ primForeignPtr finalizersCtx = do
         primNewForeignPtrVal finalizer ptr = do
             fptr <- ForeignPtr.newForeignPtr (castFunPtr finalizer) ptr
             attachFinalizer fptr
-            return fptr
+            pure fptr
 
     primNewForeignPtr <- makeFunctionIO @graph (flip Luna.toValue primNewForeignPtrVal)
                              [funPtrT, ptrT "a"] (fPtrT "a")
@@ -531,7 +527,7 @@ primForeignPtr finalizersCtx = do
             ptr  <- mallocBytes (fromIntegral bytes)
             fptr <- ForeignPtr.newForeignPtr finalizerFree ptr
             attachFinalizer fptr
-            return fptr
+            pure fptr
 
     primMallocForeignPtrBytes <- makeFunctionIO @graph
         (flip Luna.toValue primMallocForeignPtrBytesVal) [Builder.intLT] (fPtrT "a")
@@ -543,7 +539,7 @@ primForeignPtr finalizersCtx = do
                                [fPtrT "a"]
                                (ptrT "a")
 
-    return $ Map.fromList
+    pure $ Map.fromList
         [ ("primForeignPtrToCArg", primForeignPtrToCArg)
         , ("primForeignPtrCast", primForeignPtrCast)
         , ("primForeignPtrEq", primForeignPtrEq)
@@ -556,104 +552,104 @@ primForeignPtr finalizersCtx = do
         ]
 
 
-type instance Luna.RuntimeRepOf CChar = Luna.AsNative ('Luna.ClassRep ForeignValModule "CChar")
+type instance Luna.RuntimeRepOf CChar = 'Luna.AsNative ('Luna.ClassRep ForeignValModule "CChar")
 instance PrimCFFI CChar where
     retType = LibFFI.retCChar ; {-# INLINE retType #-}
     toArg   = LibFFI.argCChar ; {-# INLINE toArg   #-}
 
-type instance Luna.RuntimeRepOf CUChar = Luna.AsNative ('Luna.ClassRep ForeignValModule "CUChar")
+type instance Luna.RuntimeRepOf CUChar = 'Luna.AsNative ('Luna.ClassRep ForeignValModule "CUChar")
 instance PrimCFFI CUChar where
     retType = LibFFI.retCUChar ; {-# INLINE retType #-}
     toArg   = LibFFI.argCUChar ; {-# INLINE toArg   #-}
 
-type instance Luna.RuntimeRepOf CWchar = Luna.AsNative ('Luna.ClassRep ForeignValModule "CWChar")
+type instance Luna.RuntimeRepOf CWchar = 'Luna.AsNative ('Luna.ClassRep ForeignValModule "CWChar")
 instance PrimCFFI CWchar where
     retType = LibFFI.retCWchar ; {-# INLINE retType #-}
     toArg   = LibFFI.argCWchar ; {-# INLINE toArg   #-}
 
-type instance Luna.RuntimeRepOf CInt = Luna.AsNative ('Luna.ClassRep ForeignValModule "CInt")
+type instance Luna.RuntimeRepOf CInt = 'Luna.AsNative ('Luna.ClassRep ForeignValModule "CInt")
 instance PrimCFFI CInt where
     retType = LibFFI.retCInt ; {-# INLINE retType #-}
     toArg   = LibFFI.argCInt ; {-# INLINE toArg   #-}
 
-type instance Luna.RuntimeRepOf CInt8 = Luna.AsNative ('Luna.ClassRep ForeignValModule "CInt8")
+type instance Luna.RuntimeRepOf CInt8 = 'Luna.AsNative ('Luna.ClassRep ForeignValModule "CInt8")
 instance PrimCFFI CInt8 where
     retType = fmap coerce LibFFI.retInt8 ; {-# INLINE retType #-}
     toArg   = LibFFI.argInt8 . coerce    ; {-# INLINE toArg   #-}
 
-type instance Luna.RuntimeRepOf CInt16 = Luna.AsNative ('Luna.ClassRep ForeignValModule "CInt16")
+type instance Luna.RuntimeRepOf CInt16 = 'Luna.AsNative ('Luna.ClassRep ForeignValModule "CInt16")
 instance PrimCFFI CInt16 where
     retType = fmap coerce LibFFI.retInt16 ; {-# INLINE retType #-}
     toArg   = LibFFI.argInt16 . coerce    ; {-# INLINE toArg   #-}
 
-type instance Luna.RuntimeRepOf CInt32 = Luna.AsNative ('Luna.ClassRep ForeignValModule "CInt32")
+type instance Luna.RuntimeRepOf CInt32 = 'Luna.AsNative ('Luna.ClassRep ForeignValModule "CInt32")
 instance PrimCFFI CInt32 where
     retType = fmap coerce LibFFI.retInt32 ; {-# INLINE retType #-}
     toArg   = LibFFI.argInt32 . coerce    ; {-# INLINE toArg   #-}
 
-type instance Luna.RuntimeRepOf CInt64 = Luna.AsNative ('Luna.ClassRep ForeignValModule "CInt64")
+type instance Luna.RuntimeRepOf CInt64 = 'Luna.AsNative ('Luna.ClassRep ForeignValModule "CInt64")
 instance PrimCFFI CInt64 where
     retType = fmap coerce LibFFI.retInt64 ; {-# INLINE retType #-}
     toArg   = LibFFI.argInt64 . coerce    ; {-# INLINE toArg   #-}
 
-type instance Luna.RuntimeRepOf CUInt = Luna.AsNative ('Luna.ClassRep ForeignValModule "CUInt")
+type instance Luna.RuntimeRepOf CUInt = 'Luna.AsNative ('Luna.ClassRep ForeignValModule "CUInt")
 instance PrimCFFI CUInt where
     retType = LibFFI.retCUInt ; {-# INLINE retType #-}
     toArg   = LibFFI.argCUInt ; {-# INLINE toArg   #-}
 
-type instance Luna.RuntimeRepOf CUInt8 = Luna.AsNative ('Luna.ClassRep ForeignValModule "CUInt8")
+type instance Luna.RuntimeRepOf CUInt8 = 'Luna.AsNative ('Luna.ClassRep ForeignValModule "CUInt8")
 instance PrimCFFI CUInt8 where
     retType = fmap coerce LibFFI.retWord8 ; {-# INLINE retType #-}
     toArg   = LibFFI.argWord8  . coerce   ; {-# INLINE toArg   #-}
 
-type instance Luna.RuntimeRepOf CUInt16 = Luna.AsNative ('Luna.ClassRep ForeignValModule "CUInt16")
+type instance Luna.RuntimeRepOf CUInt16 = 'Luna.AsNative ('Luna.ClassRep ForeignValModule "CUInt16")
 instance PrimCFFI CUInt16 where
     retType = fmap coerce LibFFI.retWord16 ; {-# INLINE retType #-}
     toArg   = LibFFI.argWord16 . coerce    ; {-# INLINE toArg   #-}
 
-type instance Luna.RuntimeRepOf CUInt32 = Luna.AsNative ('Luna.ClassRep ForeignValModule "CUInt32")
+type instance Luna.RuntimeRepOf CUInt32 = 'Luna.AsNative ('Luna.ClassRep ForeignValModule "CUInt32")
 instance PrimCFFI CUInt32 where
     retType = fmap coerce LibFFI.retWord32 ; {-# INLINE retType #-}
     toArg   = LibFFI.argWord32 . coerce    ; {-# INLINE toArg   #-}
 
-type instance Luna.RuntimeRepOf CUInt64 = Luna.AsNative ('Luna.ClassRep ForeignValModule "CUInt64")
+type instance Luna.RuntimeRepOf CUInt64 = 'Luna.AsNative ('Luna.ClassRep ForeignValModule "CUInt64")
 instance PrimCFFI CUInt64 where
     retType = fmap coerce LibFFI.retWord64 ; {-# INLINE retType #-}
     toArg   = LibFFI.argWord64 . coerce    ; {-# INLINE toArg   #-}
 
-type instance Luna.RuntimeRepOf CLong = Luna.AsNative ('Luna.ClassRep ForeignValModule "CLong")
+type instance Luna.RuntimeRepOf CLong = 'Luna.AsNative ('Luna.ClassRep ForeignValModule "CLong")
 instance PrimCFFI CLong where
     retType = LibFFI.retCLong ; {-# INLINE retType #-}
     toArg   = LibFFI.argCLong ; {-# INLINE toArg   #-}
 
-type instance Luna.RuntimeRepOf CULong = Luna.AsNative ('Luna.ClassRep ForeignValModule "CULong")
+type instance Luna.RuntimeRepOf CULong = 'Luna.AsNative ('Luna.ClassRep ForeignValModule "CULong")
 instance PrimCFFI CULong where
     retType = LibFFI.retCULong ; {-# INLINE retType #-}
     toArg   = LibFFI.argCULong ; {-# INLINE toArg   #-}
 
-type instance Luna.RuntimeRepOf CSize = Luna.AsNative ('Luna.ClassRep ForeignValModule "CSize")
+type instance Luna.RuntimeRepOf CSize = 'Luna.AsNative ('Luna.ClassRep ForeignValModule "CSize")
 instance PrimCFFI CSize where
     retType = LibFFI.retCSize ; {-# INLINE retType #-}
     toArg   = LibFFI.argCSize ; {-# INLINE toArg   #-}
 
-type instance Luna.RuntimeRepOf CTime = Luna.AsNative ('Luna.ClassRep ForeignValModule "CTime")
+type instance Luna.RuntimeRepOf CTime = 'Luna.AsNative ('Luna.ClassRep ForeignValModule "CTime")
 instance PrimCFFI CTime where
     retType = LibFFI.retCTime ; {-# INLINE retType #-}
     toArg   = LibFFI.argCTime ; {-# INLINE toArg   #-}
 
-type instance Luna.RuntimeRepOf CFloat = Luna.AsNative ('Luna.ClassRep ForeignValModule "CFloat")
+type instance Luna.RuntimeRepOf CFloat = 'Luna.AsNative ('Luna.ClassRep ForeignValModule "CFloat")
 instance PrimCFFI CFloat where
     retType = LibFFI.retCFloat ; {-# INLINE retType #-}
     toArg   = LibFFI.argCFloat ; {-# INLINE toArg   #-}
 
-type instance Luna.RuntimeRepOf CDouble = Luna.AsNative ('Luna.ClassRep ForeignValModule "CDouble")
+type instance Luna.RuntimeRepOf CDouble = 'Luna.AsNative ('Luna.ClassRep ForeignValModule "CDouble")
 instance PrimCFFI CDouble where
     retType = LibFFI.retCDouble ; {-# INLINE retType #-}
     toArg   = LibFFI.argCDouble ; {-# INLINE toArg   #-}
 
-type instance Luna.RuntimeRepOf LibFFI.Arg                 = Luna.AsNative ('Luna.ClassRep ForeignValModule "Arg")
-type instance Luna.RuntimeRepOf (LibFFI.RetType Luna.Data) = Luna.AsNative ('Luna.ClassRep ForeignValModule "RetType")
-type instance Luna.RuntimeRepOf (FunPtr         Luna.Data) = Luna.AsNative ('Luna.ClassRep ForeignModule    "FunPtr")
-type instance Luna.RuntimeRepOf (Ptr            Luna.Data) = Luna.AsNative ('Luna.ClassRep ForeignValModule "Ptr")
-type instance Luna.RuntimeRepOf (ForeignPtr     Luna.Data) = Luna.AsNative ('Luna.ClassRep ForeignValModule "ForeignPtr")
+type instance Luna.RuntimeRepOf LibFFI.Arg                 = 'Luna.AsNative ('Luna.ClassRep ForeignValModule "Arg")
+type instance Luna.RuntimeRepOf (LibFFI.RetType Luna.Data) = 'Luna.AsNative ('Luna.ClassRep ForeignValModule "RetType")
+type instance Luna.RuntimeRepOf (FunPtr         Luna.Data) = 'Luna.AsNative ('Luna.ClassRep ForeignModule    "FunPtr")
+type instance Luna.RuntimeRepOf (Ptr            Luna.Data) = 'Luna.AsNative ('Luna.ClassRep ForeignValModule "Ptr")
+type instance Luna.RuntimeRepOf (ForeignPtr     Luna.Data) = 'Luna.AsNative ('Luna.ClassRep ForeignValModule "ForeignPtr")
 

@@ -3,12 +3,58 @@ _config/lib: !include "../config/hpack-common.yaml"
 name:       luna-stdlib
 version:    "0.1"
 author:     Luna Team <contact@luna-lang.org>
-maintainer: Luna Team <contact@luna-lang.org>
+maintainer:
+    - Wojciech Danilo  <wojciech.danilo@luna-lang.org>
+    - Marcin Kostrzewa <marcin.kostrzewa@luna-lang.org>
+    - Ara Adkins       <ara.adkins@luna-lang.org>
 
 library:
     source-dirs:
         - src
-    other-modules: Paths_luna_stdlib
+    dependencies:
+        - aeson
+        - async
+        - authenticate-oauth
+        - base
+        - bytestring
+        - case-insensitive
+        - containers
+        - data-msgpack
+        - deepseq
+        - directory
+        - errors
+        - exceptions
+        - filepath
+        - hashable
+        - http-client
+        - http-client-tls
+        - http-conduit
+        - http-types
+        - lens
+        - libffi
+        - luna-core
+        - luna-datafile
+        - luna-package
+        - luna-passes
+        - luna-runtime
+        - luna-syntax-text-prettyprint
+        - mtl
+        - network
+        - process
+        - prologue
+        - random
+        - safe
+        - safe-exceptions
+        - scientific
+        - text
+        - time
+        - transformers
+        - typelevel
+        - unordered-containers
+        - uuid
+        - vector
+        - websockets
+        - wuss
 
 when:
     - condition: os(windows)
@@ -16,50 +62,6 @@ when:
           dependencies: Win32
       else:
           dependencies: unix
-
-dependencies:
-    - aeson
-    - async
-    - authenticate-oauth
-    - base
-    - bytestring
-    - case-insensitive
-    - containers
-    - data-msgpack
-    - deepseq
-    - directory
-    - errors
-    - exceptions
-    - filepath
-    - hashable
-    - http-client
-    - http-client-tls
-    - http-conduit
-    - http-types
-    - lens
-    - libffi
-    - luna-core
-    - luna-passes
-    - luna-package
-    - luna-runtime
-    - luna-syntax-text-prettyprint
-    - mtl
-    - network
-    - process
-    - prologue
-    - random
-    - safe
-    - safe-exceptions
-    - scientific
-    - text
-    - time
-    - transformers
-    - typelevel
-    - unordered-containers
-    - uuid
-    - vector
-    - websockets
-    - wuss
 
 default-extensions: *luna-extensions
 

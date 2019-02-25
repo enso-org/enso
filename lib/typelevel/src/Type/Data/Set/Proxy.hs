@@ -5,9 +5,10 @@
 
 module Type.Data.Set.Proxy where
 
-import           Data.Proxy
-import           Prelude
 import qualified Type.Data.Set as Set
+
+import           Data.Proxy
+
 
 
 -----------------

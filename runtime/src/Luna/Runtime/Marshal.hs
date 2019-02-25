@@ -21,18 +21,18 @@ data RuntimeRep = AsNative ClassRep
                 | AsClass  Type ClassRep
 
 type family GetRepClassName (a :: RuntimeRep) :: Symbol where
-    GetRepClassName (AsNative   ('ClassRep _ s)) = s
-    GetRepClassName (AsClass  _ ('ClassRep _ s)) = s
+    GetRepClassName ('AsNative   ('ClassRep _ s)) = s
+    GetRepClassName ('AsClass  _ ('ClassRep _ s)) = s
 
 type family GetRepModuleName (a :: RuntimeRep) :: Symbol where
-    GetRepModuleName (AsNative   ('ClassRep s _)) = s
-    GetRepModuleName (AsClass  _ ('ClassRep s _)) = s
+    GetRepModuleName ('AsNative   ('ClassRep s _)) = s
+    GetRepModuleName ('AsClass  _ ('ClassRep s _)) = s
 
 type family IsNativeRep (a :: RuntimeRep) where
-    IsNativeRep (AsNative _) = True
+    IsNativeRep ('AsNative _) = 'True
 
 type family IsClass (a :: RuntimeRep) where
-    IsClass (AsClass _ _) = True
+    IsClass ('AsClass _ _) = 'True
 
 type family RuntimeRepOf a = (k :: RuntimeRep) | k -> a
 
@@ -40,7 +40,7 @@ type family RuntimeRepOf a = (k :: RuntimeRep) | k -> a
 -- === Native objects === --
 ----------------------------
 
-type IsNative a = ( IsNativeRep (RuntimeRepOf a) ~ True
+type IsNative a = ( IsNativeRep (RuntimeRepOf a) ~ 'True
                   , KnownSymbol (GetRepClassName  (RuntimeRepOf a))
                   , KnownSymbol (GetRepModuleName (RuntimeRepOf a))
                   )
@@ -77,11 +77,11 @@ fromNative = \(Luna.Object _ _ s _) -> unsafeCoerce s
 
 class ( KnownSymbol (GetRepClassName (RuntimeRepOf a))
       , KnownSymbol (GetRepModuleName (RuntimeRepOf a))
-      , IsClass (RuntimeRepOf a) ~ True
+      , IsClass (RuntimeRepOf a) ~ 'True
       ) => ToObject a where
     toConstructor   :: Luna.Units -> a -> Luna.Constructor
 
-class (IsClass (RuntimeRepOf a) ~ True) => FromObject a where
+class (IsClass (RuntimeRepOf a) ~ 'True) => FromObject a where
     fromConstructor :: Luna.Constructor -> Luna.Eff a
 
 fromObject :: FromObject a => Luna.Object Luna.Constructor -> Luna.Eff a
@@ -105,22 +105,22 @@ toObject = \imps a -> Luna.Object (moduleNameOf @a)
 class FromData__ (k :: RuntimeRep) a where
     fromData__ :: Luna.Data -> Luna.Eff a
 
-instance (IsNative a, RuntimeRepOf a ~ AsNative n)
-      => FromData__ (AsNative n) a where
+instance (IsNative a, RuntimeRepOf a ~ 'AsNative n)
+      => FromData__ ('AsNative n) a where
     fromData__ = \case
-        Luna.Native   a -> return $ fromNative a
-        Luna.Susp     a -> a >>= fromData__ @(AsNative n)
-        Luna.Thunk    a -> a >>= fromData__ @(AsNative n)
+        Luna.Native   a -> pure $ fromNative a
+        Luna.Susp     a -> a >>= fromData__ @('AsNative n)
+        Luna.Thunk    a -> a >>= fromData__ @('AsNative n)
         Luna.Cons     _ -> Luna.throw "Expected a Native value, got an Object"
         Luna.Function _ -> Luna.throw "Expected a Native value, got a Function"
         Luna.Error    e -> Luna.throw e
     {-# INLINE fromData__ #-}
 
-instance (RuntimeRepOf a ~ AsClass a n, FromObject a)
-      => FromData__ (AsClass a n) a where
+instance (RuntimeRepOf a ~ 'AsClass a n, FromObject a)
+      => FromData__ ('AsClass a n) a where
     fromData__ = \case
-        Luna.Susp     a -> a >>= fromData__ @(AsClass a n)
-        Luna.Thunk    a -> a >>= fromData__ @(AsClass a n)
+        Luna.Susp     a -> a >>= fromData__ @('AsClass a n)
+        Luna.Thunk    a -> a >>= fromData__ @('AsClass a n)
         Luna.Cons     a -> fromObject a
         Luna.Native   _ -> Luna.throw "Expected an Object, got a native value"
         Luna.Function _ -> Luna.throw "Expected an Object, got a Function"
@@ -137,19 +137,19 @@ instance {-# OVERLAPPABLE #-} FromData__ (RuntimeRepOf a) a => FromData a where
     {-# INLINE fromData #-}
 
 instance FromData Luna.Data where
-    fromData = return
+    fromData = pure
     {-# INLINE fromData #-}
 
 class ToData__ (k :: RuntimeRep) a where
     toData__ :: Luna.Units -> a -> Luna.Data
 
-instance (RuntimeRepOf a ~ AsNative n, IsNative a)
-      => ToData__ (AsNative n) a where
+instance (RuntimeRepOf a ~ 'AsNative n, IsNative a)
+      => ToData__ ('AsNative n) a where
     toData__ = Luna.Native .: toNative
     {-# INLINE toData__ #-}
 
-instance (RuntimeRepOf a ~ AsClass a n, ToObject a)
-      => ToData__ (AsClass a n) a where
+instance (RuntimeRepOf a ~ 'AsClass a n, ToObject a)
+      => ToData__ ('AsClass a n) a where
     toData__ = Luna.Cons .: toObject
     {-# INLINE toData__ #-}
 
@@ -207,15 +207,15 @@ instance ToData a => ToValue (Luna.Eff a) where
     toValue = \imps a -> toData imps <$> a
     {-# INLINE toValue #-}
 
-type instance RuntimeRepOf Integer = AsNative ('ClassRep "Std.Base" "Int")
-type instance RuntimeRepOf Double  = AsNative ('ClassRep "Std.Base" "Real")
-type instance RuntimeRepOf Text    = AsNative ('ClassRep "Std.Base" "Text")
+type instance RuntimeRepOf Integer = 'AsNative ('ClassRep "Std.Base" "Int")
+type instance RuntimeRepOf Double  = 'AsNative ('ClassRep "Std.Base" "Real")
+type instance RuntimeRepOf Text    = 'AsNative ('ClassRep "Std.Base" "Text")
 
 instance FromObject () where
-    fromConstructor = const $ return ()
+    fromConstructor = const $ pure ()
     {-# INLINE fromConstructor #-}
 instance ToObject () where
     toConstructor = const $ const $ Luna.Constructor "None" []
     {-# INLINE toConstructor #-}
-type instance RuntimeRepOf () = AsClass () ('ClassRep "Std.Base" "None")
+type instance RuntimeRepOf () = 'AsClass () ('ClassRep "Std.Base" "None")
 

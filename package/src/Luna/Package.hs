@@ -17,7 +17,6 @@ import qualified Luna.Package.Utilities                   as Utilities
 import qualified OCI.Data.Name                            as Name
 import qualified Path                                     as Path
 import qualified System.Directory                         as Directory
-import qualified System.Environment                       as Environment
 import qualified System.FilePath                          as FilePath
 import qualified System.FilePath.Find                     as Find
 
@@ -223,14 +222,15 @@ listDependencies pkgSrc = do
             pure $ fmap (convert &&& (lunaModulesPath FilePath.</>)) directDeps
                   <> concat indirectDeps
 
-includedLibs :: MonadIO m => m [(Name.Name, FilePath.FilePath)]
-includedLibs = do
-    lunaroot     <- liftIO $ Directory.canonicalizePath
-        =<< Environment.getEnv Name.lunaRootEnv
+includedLibs :: MonadIO m => Path Abs Dir -> m [(Name.Name, FilePath.FilePath)]
+includedLibs stdlibPath = do
+    lunaroot     <- liftIO . Directory.canonicalizePath
+        $ Path.fromAbsDir stdlibPath
     projectNames <- liftIO $ do
         contents <- Directory.listDirectory lunaroot
         dirs     <- filterM
-            (\a -> Directory.doesDirectoryExist $ lunaroot FilePath.</> a) contents
+            (\a -> Directory.doesDirectoryExist $ lunaroot FilePath.</> a)
+            contents
         let projects = filter
                 (\a -> (isUpper <$> head a) == Just True) dirs
         pure projects
@@ -242,20 +242,20 @@ includedLibs = do
                                     <> separator)
 
 packageImportPaths :: (MonadIO m, MonadException Path.PathException m)
-    => Path Abs Dir -> m [(Name.Name, FilePath.FilePath)]
-packageImportPaths pkgRoot = do
+    => Path Abs Dir -> Path Abs Dir -> m [(Name.Name, FilePath.FilePath)]
+packageImportPaths pkgRoot stdlibPath = do
     dependencies    <- listDependencies pkgRoot
-    includedImports <- includedLibs
+    includedImports <- includedLibs stdlibPath
     let importPaths = (getPackageName &&& Path.toFilePath) pkgRoot
                     : dependencies
     pure $ includedImports <> importPaths
 
 fileSourcePaths :: (MonadIO m, MonadException Path.PathException m)
-    => Path Abs File -> m (Map Name.Qualified FilePath.FilePath)
-fileSourcePaths lunaFile = do
+    => Path Abs File -> Path Abs Dir -> m (Map Name.Qualified FilePath.FilePath)
+fileSourcePaths lunaFile stdlibPath = do
     let fileName    = FilePath.dropExtension . Path.fromRelFile
             $ Path.filename lunaFile
-    fileImports <- includedLibs
+    fileImports <- includedLibs stdlibPath
 
     importPaths   <- Exception.rethrowFromIO @Path.PathException . sequence
         $ Path.parseAbsDir . snd <$> fileImports

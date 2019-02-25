@@ -12,7 +12,6 @@ import qualified Luna.IR.Aliases                     as Uni
 import qualified Luna.IR.Layer                       as Layer
 import qualified Luna.Pass                           as Pass
 import qualified Luna.Pass.Attr                      as Attr
-import qualified Luna.Pass.Basic                     as Pass
 import qualified Luna.Pass.Data.Stage                as TC
 import qualified Luna.Pass.Scheduler                 as Scheduler
 
@@ -41,8 +40,8 @@ getImports root = Layer.read @IR.Model root >>= \case
         imports <- ComponentVector.toList imps
         concat <$> traverse (getImports <=< IR.source) imports
     Uni.Imp src _ -> getImports =<< IR.source src
-    Uni.ImportSource (IR.Absolute name) -> return [name]
-    _ -> return []
+    Uni.ImportSource (IR.Absolute name) -> pure [name]
+    _ -> pure []
 
 run :: IR.SomeTerm -> TC.Monad [IR.Qualified]
 run root = do

@@ -1,0 +1,74 @@
+_config/lib: !include "../../config/hpack-common.yaml"
+
+name        : vector-text
+version     : 1.1.6
+synopsis    : Text implementation based on unboxed char vector.
+category    : Data
+license     : Apache-2.0
+stability   : experimental
+homepage    : https://github.com/luna/luna
+bug-reports : https://github.com/luna/luna/issues
+author      : Luna Team
+copyright   : Copyright (C) Luna Team
+maintainer:
+    - Wojciech Danilo  <wojciech.danilo@luna-lang.org>
+    - Ara Adkins       <ara.adkins@luna-lang.org>
+
+library:
+    source-dirs:
+        - src
+    dependencies:
+        - base
+        - vector
+        - prologue
+        - binary
+        - vector-binary-instances
+        - text
+
+default-extensions:
+    - AllowAmbiguousTypes
+    - ApplicativeDo
+    - BangPatterns
+    - BinaryLiterals
+    - ConstraintKinds
+    - DataKinds
+    - DefaultSignatures
+    - DeriveDataTypeable
+    - DeriveFoldable
+    - DeriveFunctor
+    - DeriveGeneric
+    - DeriveTraversable
+    - DoAndIfThenElse
+    - DuplicateRecordFields
+    - EmptyDataDecls
+    - FlexibleContexts
+    - FlexibleInstances
+    - FunctionalDependencies
+    - GeneralizedNewtypeDeriving
+    - InstanceSigs
+    - LambdaCase
+    - LiberalTypeSynonyms
+    - MonadComprehensions
+    - MultiWayIf
+    - NamedWildCards
+    - NegativeLiterals
+    - NoImplicitPrelude
+    - NumDecimals
+    - OverloadedLabels
+    - PackageImports
+    - PatternSynonyms
+    - QuasiQuotes
+    - RankNTypes
+    - RecursiveDo
+    - RelaxedPolyRec
+    - ScopedTypeVariables
+    - StandaloneDeriving
+    - TemplateHaskell
+    - TupleSections
+    - TypeApplications
+    - TypeFamilies
+    - TypeFamilyDependencies
+    - TypeOperators
+    - UnicodeSyntax
+    - ViewPatterns
+

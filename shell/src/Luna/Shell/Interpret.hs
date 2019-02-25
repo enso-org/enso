@@ -60,6 +60,7 @@ interpretWithMain name sourcesMap = Graph.encodeAndEval @TC.Stage
         Scheduler.registerAttr @Unit.UnitRefsMap
         Scheduler.setAttr $ Unit.UnitRefsMap
             $ Map.singleton "Std.Primitive" stdUnitRef
+
         ModLoader.loadUnit def sourcesMap [] name
         for Std.stdlibImports $ ModLoader.loadUnit def sourcesMap []
         Unit.UnitRefsMap mods <- Scheduler.getAttr
@@ -83,40 +84,34 @@ interpretWithMain name sourcesMap = Graph.encodeAndEval @TC.Stage
                             <> convert unitName
 
         (tUnits, cUnits) <- ProcessUnits.processUnits def def unitsWithResolvers
+
         tFunc <- Typed.getDef name (convert Package.mainFuncName) tUnits
         mainFunc <- Runtime.lookupSymbol cUnits name
             $ convert Package.mainFuncName
+
         case unwrap tFunc of
             Left e  -> print e
             Right _ -> do
                 putStrLn $ "Running in interpreted mode."
                 void $ liftIO $ Runtime.runIO mainFunc
 
-file :: (InterpreterMonad m) => Path Abs File -> m ()
-file filePath = do
-    -- Swap the working directory
-    originalDir <- CWD.get
-    liftIO . Directory.setCurrentDirectory . Path.fromAbsDir
-        $ Path.parent filePath
-
-    fileSources <- Package.fileSourcePaths filePath
+file :: (InterpreterMonad m) => Path Abs File -> Path Abs Dir -> m ()
+file filePath stdlibPath = liftIO $ Directory.withCurrentDirectory fileFP $ do
+    fileSources <- Package.fileSourcePaths filePath stdlibPath
 
     let fileName = convertVia @Name.Name . FilePath.dropExtension
             . Path.fromRelFile $ Path.filename filePath
 
     liftIO $ interpretWithMain fileName fileSources
 
-    liftIO $ Directory.setCurrentDirectory originalDir
+    where fileFP = Path.fromAbsDir $ Path.parent filePath
 
-package :: (InterpreterMonad m) => Path Abs Dir -> m ()
-package pkgPath = Exception.rethrowFromIO @Path.PathException $ do
-    -- Swap the working directory
-    originalDir <- CWD.get
-    liftIO . Directory.setCurrentDirectory $ Path.fromAbsDir pkgPath
-
+package :: (InterpreterMonad m) => Path Abs Dir -> Path Abs Dir -> m ()
+package pkgPath stdlibPath = liftIO . Directory.withCurrentDirectory pkgDir $ do
     packageRoot    <- fromJust pkgPath <$> Package.findPackageRoot pkgPath
-    packageImports <- Package.packageImportPaths packageRoot
-    importPaths    <- sequence $ Path.parseAbsDir . snd <$> packageImports
+    packageImports <- Package.packageImportPaths packageRoot stdlibPath
+    importPaths    <- Exception.rethrowFromIO @Path.PathException .
+        sequence $ Path.parseAbsDir . snd <$> packageImports
     projectSrcs    <- sequence $ Package.findPackageSources <$> importPaths
 
     let pkgSrcMap    = Map.map Path.toFilePath . foldl' Map.union Map.empty
@@ -126,6 +121,5 @@ package pkgPath = Exception.rethrowFromIO @Path.PathException $ do
 
     liftIO $ interpretWithMain mainFileName pkgSrcMap
 
-    -- Swap the working directory back
-    liftIO $ Directory.setCurrentDirectory originalDir
+    where pkgDir = Path.fromAbsDir pkgPath
 

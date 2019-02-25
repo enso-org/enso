@@ -1,6 +1,6 @@
 {-# LANGUAGE CPP                  #-}
-{-# LANGUAGE NoStrict #-}
-{-# LANGUAGE NoStrictData #-}
+{-# LANGUAGE NoStrict             #-}
+{-# LANGUAGE NoStrictData         #-}
 {-# LANGUAGE TypeInType           #-}
 {-# LANGUAGE UndecidableInstances #-}
 
@@ -13,9 +13,8 @@ import Prologue
 
 import qualified Foreign.Storable as Storable
 import qualified Memory.Data.Ptr  as Memory
-import qualified Type.Known       as Type
 
-import Foreign.Ptr       (FunPtr, Ptr, plusPtr)
+import Foreign.Ptr       (FunPtr, Ptr)
 import Foreign.StablePtr (StablePtr)
 
 

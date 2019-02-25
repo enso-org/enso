@@ -1,8 +1,9 @@
+{-# OPTIONS_GHC -Wno-orphans #-}
+
 module Luna.Prim.HTTP where
 
 import           Prologue
 
-import qualified Data.ByteString             as ByteString hiding (pack)
 import qualified Data.ByteString.Char8       as ByteString
 import qualified Data.CaseInsensitive        as CI
 import qualified Data.Map                    as Map
@@ -14,7 +15,6 @@ import qualified Network.HTTP.Client         as HTTP
 import qualified Network.HTTP.Client.TLS     as HTTP
 import qualified Network.HTTP.Simple         as HTTP
 import qualified Network.HTTP.Types          as HTTP
-import qualified Network.HTTP.Types.Header   as HTTP
 import qualified Web.Authenticate.OAuth      as OAuth
 
 import           Control.Arrow               ((***))
@@ -66,7 +66,7 @@ exports = do
                         Nothing     -> id
                     & case oauth of
                         Just oauthData -> signOAuth1 oauthData
-                        Nothing        -> return
+                        Nothing        -> pure
             let managerSettings = if HTTP.secure req then HTTP.tlsManagerSettings else HTTP.defaultManagerSettings
             manager <- HTTP.newManager managerSettings
             HTTP.responseOpen req manager
@@ -79,11 +79,11 @@ exports = do
         primUrlEncodeVal = convert . HTTP.urlEncode False . convert
     primUrlEncode <- makeFunctionPure @graph (flip Luna.toValue primUrlEncodeVal) [textT] textT
 
-    return $ Map.fromList [ ("primPerformHttp", primPerformHttp)
+    pure $ Map.fromList [ ("primPerformHttp", primPerformHttp)
                           , ("primUrlEncode", primUrlEncode)
                           ]
 
-type instance Luna.RuntimeRepOf (HTTP.Response b) = Luna.AsClass (HTTP.Response b) ('Luna.ClassRep "Std.HTTP" "HttpResponse")
+type instance Luna.RuntimeRepOf (HTTP.Response b) = 'Luna.AsClass (HTTP.Response b) ('Luna.ClassRep "Std.HTTP" "HttpResponse")
 instance Luna.ToValue b => Luna.ToObject (HTTP.Response b) where
     toConstructor imps v = Luna.Constructor "HttpResponse"
         [ Luna.toData imps . integer   $ HTTP.getResponseStatusCode v

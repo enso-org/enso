@@ -4,14 +4,15 @@
 {-# LANGUAGE UndecidableInstances #-}
 
 module Type.Data.List (module Type.Data.List, module X) where
-import Type.Data.Semigroup as X (type (<>))
 
 import Prelude
 
+import Type.Data.Semigroup as X (type (<>))
+
 import Data.Kind
 import GHC.TypeLits
-import Type.Data.Bool
 import Type.Data.Maybe
+
 
 
 -- === Info === --
@@ -23,7 +24,6 @@ type family Null lst where
 type family Length lst where
     Length '[]       = 0
     Length (_ ': ls) = 1 + Length ls
-
 
 
 -- === Construciton === --
@@ -46,7 +46,6 @@ type family Append (lst :: [k]) (lst' :: [k]) :: [k] where
 type family ConsAll (el :: k) (lst :: [[k]]) :: [[k]] where
     ConsAll _ '[] = '[]
     ConsAll a (l ': ls) = (a ': l) ': ConsAll a ls
-
 
 
 -- === Basic operations === --
@@ -79,7 +78,6 @@ type family DropInit (lst :: [k]) :: [k] where
     DropInit (a ': as) = DropInit as
 
 
-
 -- === Transformations === --
 
 type family Map (f :: a -> b) (lst :: [a]) :: [b] where
@@ -90,7 +88,6 @@ type Reverse lst = Reverse__ lst '[]
 type family Reverse__ lst lst' where
     Reverse__ '[]       lst = lst
     Reverse__ (l ': ls) lst = Reverse__ ls (l ': lst)
-
 
 
 -- === Sublists === --
@@ -107,7 +104,6 @@ type family TakeUntil (a :: k) (ls :: [k]) :: [k] where
     TakeUntil a '[]       = '[]
     TakeUntil a (a ': ls) = '[a]
     TakeUntil a (l ': ls) = l ': TakeUntil a ls
-
 
 
 -- === Indexing === --
@@ -137,13 +133,11 @@ type family Update (n :: Nat) (a :: k) (lst :: [k]) :: [k] where
     Update n a (l ': ls) = l ': Update (n - 1) a ls
 
 
-
 -- === Folds === --
 
 type family Concat (lst :: [[k]]) :: [k] where
     Concat '[]           = '[]
     Concat (lst ': lsts) = Append lst (Concat lsts)
-
 
 
 -- === Set like operations === --
@@ -163,7 +157,6 @@ type family Unique lst where
     Unique (a ': as) = UniqueInsert a (Unique as)
 
 
-
 -- === Repeat lists === --
 
 type family Replicate (n :: Nat) a where
@@ -181,8 +174,6 @@ type family CartesianWith (f :: k -> l -> m) (a :: [k]) (b :: [l]) :: [m] where
 type family CartesianWith__ (f :: k -> l -> m) (a :: k) (b :: [l]) :: [m] where
     CartesianWith__ _ _ '[]       = '[]
     CartesianWith__ f a (t ': ts) = f a t ': CartesianWith__ f a ts
-
-
 
 
 -- === Zipping === --
@@ -235,3 +226,4 @@ type family FlattenDynTreeList (lst :: Type) :: [Type] where
     FlattenDynTreeList (DynTreeList l r) =
         Append (FlattenDynTreeList l) (FlattenDynTreeList r)
     FlattenDynTreeList a = '[a]
+

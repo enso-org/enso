@@ -5,7 +5,6 @@ module Type.Cache where
 
 import Prologue
 
-import Data.Proxy
 import Language.Haskell.TH
 import Language.Haskell.TH.Builder
 
@@ -16,7 +15,7 @@ mkCacheName :: Name -> Name
 mkCacheName = (<> "_CACHE")
 
 cache_phase1 :: Name -> Q [Dec]
-cache_phase1 name = return [decl] where
+cache_phase1 name = pure [decl] where
     helperName = var $ mkHelperName name
     decl = ValD helperName
          (NormalB (cons' 'Proxy -:: app (cons' ''Proxy) (cons' name))) []
@@ -31,7 +30,7 @@ cache_phase2 name = do
     case info of
         VarI vname (AppT (ConT p) t) _ ->
             if (nameBase vname == nameBase helperName)
-            && (p == ''Proxy) then return [TySynD cacheName [] t]
+            && (p == ''Proxy) then pure [TySynD cacheName [] t]
             else internalError
         _ -> internalError
 

@@ -7,10 +7,10 @@ module Type.Show where
 
 import Prelude hiding (Show)
 
-import Data.Kind
 import Data.Proxy
 import GHC.Generics
 import GHC.TypeLits
+
 
 
 ----------------------

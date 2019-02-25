@@ -7,6 +7,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 
 module Type.Known (module Type.Known, module X) where
+
 import GHC.TypeLits as X (KnownNat, KnownSymbol)
 
 import Prelude

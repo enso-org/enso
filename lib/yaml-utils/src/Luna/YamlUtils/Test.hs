@@ -17,11 +17,11 @@ import Test.Hspec      (Expectation, shouldBe)
 
 shouldDecodeAs :: forall a . (Eq a, Show a, Yaml.FromJSON a) => ByteString
                -> Maybe a -> Expectation
-shouldDecodeAs bStr mConfig = Yaml.decode bStr `shouldBe` mConfig
+shouldDecodeAs bStr mConfig = Yaml.decodeThrow bStr `shouldBe` mConfig
 
 shouldNotDecode :: forall a . (Eq a, Show a, Yaml.FromJSON a) => ByteString
                 -> Expectation
-shouldNotDecode bStr = Yaml.decode bStr `shouldBe` (Nothing :: Maybe a)
+shouldNotDecode bStr = Yaml.decodeThrow bStr `shouldBe` (Nothing :: Maybe a)
 
 shouldGenerate :: forall a . (Eq a, Show a, Yaml.ToJSON a) => a -> ByteString
                -> Expectation

@@ -4,19 +4,16 @@
 
 module OCI.Pass.Definition.Dynamic where
 
-import Prologue
+import Prologue hiding (Known)
 
 import qualified Data.Graph.Data.Graph.Class     as Graph
 import qualified Data.Map.Strict                 as Map
 import qualified Data.Set                        as Set
-import qualified Data.TypeMap.Strict             as TypeMap
 import qualified OCI.Pass.Definition.Class       as Pass
 import qualified OCI.Pass.Definition.Declaration as Pass
 import qualified OCI.Pass.State.Attr             as Attr
 import qualified OCI.Pass.State.Encoder          as Encoder
 
-import Control.Monad.Exception     (Throws)
-import Data.Graph.Data.Graph.Class (Graph)
 import Data.Map.Strict             (Map)
 import Data.Set                    (Set)
 import GHC.Exts                    (Any)

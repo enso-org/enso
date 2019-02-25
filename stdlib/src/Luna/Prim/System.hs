@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-orphans #-}
+
 {-# LANGUAGE CPP #-}
 
 module Luna.Prim.System where
@@ -94,7 +96,7 @@ exports = do
         ignoreSigPipe = Exception.handle $ \e -> case e of
             IOError { ioe_type  = ResourceVanished
                     , ioe_errno = Just ioe }
-                | Errno ioe == ePIPE -> return ()
+                | Errno ioe == ePIPE -> pure ()
             _ -> Exception.throwIO e
         hCloseVal :: Handle -> IO ()
         hCloseVal = ignoreSigPipe . Handle.hClose
@@ -141,7 +143,7 @@ exports = do
         hGetCurrentDirectory = convert <$> Dir.getCurrentDirectory
     hGetCurrentDirectory' <- makeFunctionIO @graph (flip Luna.toValue hGetCurrentDirectory) [] textT
 
-    return $ Map.fromList [ ("primRunProcess", runProcess')
+    pure $ Map.fromList [ ("primRunProcess", runProcess')
                           , ("primHIsOpen", hIsOpen')
                           , ("primHIsClosed", hIsClosed')
                           , ("primHClose", hClose')
@@ -157,7 +159,7 @@ exports = do
                           , ("primGetCurrentDirectory", hGetCurrentDirectory')
                           ]
 
-type instance Luna.RuntimeRepOf CreateProcess = Luna.AsClass CreateProcess ('Luna.ClassRep SystemModule "ProcessDescription")
+type instance Luna.RuntimeRepOf CreateProcess = 'Luna.AsClass CreateProcess ('Luna.ClassRep SystemModule "ProcessDescription")
 instance Luna.FromObject CreateProcess where
     fromConstructor c = let errorMsg = "Expected a ProcessDescription luna object, got unexpected constructor" in
         case c of
@@ -166,32 +168,32 @@ instance Luna.FromObject CreateProcess where
                 stdin'  <- Luna.fromData stdin
                 stdout' <- Luna.fromData stdout
                 stderr' <- Luna.fromData stderr
-                return $ p { Process.std_in = stdin', Process.std_out = stdout', Process.std_err = stderr' }
+                pure $ p { Process.std_in = stdin', Process.std_out = stdout', Process.std_err = stderr' }
             _ -> Luna.throw errorMsg
 
-type instance Luna.RuntimeRepOf StdStream = Luna.AsClass StdStream ('Luna.ClassRep SystemModule "PipeRequest")
+type instance Luna.RuntimeRepOf StdStream = 'Luna.AsClass StdStream ('Luna.ClassRep SystemModule "PipeRequest")
 instance Luna.FromObject StdStream where
     fromConstructor c = let errorMsg = "Expected a PipeRequest luna object, got unexpected constructor: " in
         case c of
-            Luna.Constructor "Inherit"    _   -> return Inherit
+            Luna.Constructor "Inherit"    _   -> pure Inherit
             Luna.Constructor "UseHandle"  [f] -> UseHandle <$> (Luna.fromData f)
-            Luna.Constructor "CreatePipe" _   -> return CreatePipe
-            Luna.Constructor "NoStream"   _   -> return NoStream
+            Luna.Constructor "CreatePipe" _   -> pure CreatePipe
+            Luna.Constructor "NoStream"   _   -> pure NoStream
             Luna.Constructor r            _   -> Luna.throw (errorMsg <> convert r)
 
-type instance Luna.RuntimeRepOf BufferMode = Luna.AsClass BufferMode ('Luna.ClassRep SystemModule "BufferMode")
+type instance Luna.RuntimeRepOf BufferMode = 'Luna.AsClass BufferMode ('Luna.ClassRep SystemModule "BufferMode")
 instance Luna.FromObject BufferMode where
     fromConstructor c = let errorMsg = "Expected a BufferMode luna object, got unexpected constructor: " in
         case c of
-            Luna.Constructor "NoBuffering"    _   -> return NoBuffering
-            Luna.Constructor "LineBuffering"  _   -> return LineBuffering
+            Luna.Constructor "NoBuffering"    _   -> pure NoBuffering
+            Luna.Constructor "LineBuffering"  _   -> pure LineBuffering
             Luna.Constructor "BlockBuffering" [f] -> fmap (BlockBuffering . fmap int) . Luna.fromData $ f
             Luna.Constructor r                _   -> Luna.throw (errorMsg <> convert r)
 
-type instance Luna.RuntimeRepOf ExitCode = Luna.AsClass ExitCode ('Luna.ClassRep SystemModule "ExitCode")
+type instance Luna.RuntimeRepOf ExitCode = 'Luna.AsClass ExitCode ('Luna.ClassRep SystemModule "ExitCode")
 instance Luna.FromObject ExitCode where
     fromConstructor c = case c of
-        Luna.Constructor "ExitSuccess" _   -> return ExitSuccess
+        Luna.Constructor "ExitSuccess" _   -> pure ExitSuccess
         Luna.Constructor "ExitFailure" [f] -> fmap (ExitFailure . int) . Luna.fromData $ f
         _ -> Luna.throw "Expected a ExitCode luna object, got unexpected constructor"
 
@@ -201,10 +203,10 @@ instance Luna.ToObject ExitCode where
             makeConstructor (ExitFailure c) = Luna.Constructor "ExitFailure" [Luna.toData imps $ integer c] in
         makeConstructor ec
 
-type instance Luna.RuntimeRepOf Handle        = Luna.AsNative ('Luna.ClassRep SystemModule "FileHandle")
-type instance Luna.RuntimeRepOf ProcessHandle = Luna.AsNative ('Luna.ClassRep SystemModule "ProcessHandle")
-type instance Luna.RuntimeRepOf Process = Luna.AsClass Process ('Luna.ClassRep SystemModule "Process")
-type instance Luna.RuntimeRepOf System = Luna.AsClass System ('Luna.ClassRep SystemModule "Platform")
+type instance Luna.RuntimeRepOf Handle        = 'Luna.AsNative ('Luna.ClassRep SystemModule "FileHandle")
+type instance Luna.RuntimeRepOf ProcessHandle = 'Luna.AsNative ('Luna.ClassRep SystemModule "ProcessHandle")
+type instance Luna.RuntimeRepOf Process = 'Luna.AsClass Process ('Luna.ClassRep SystemModule "Process")
+type instance Luna.RuntimeRepOf System = 'Luna.AsClass System ('Luna.ClassRep SystemModule "Platform")
 
 instance Luna.ToObject Process where
     toConstructor imps (Process hin hout herr ph) =
@@ -215,7 +217,7 @@ instance Luna.ToObject Process where
                          , Luna.toData imps ph ]
 
 instance Luna.ToObject System where
-    toConstructor imps Windows = Luna.Constructor "Windows" []
-    toConstructor imps Linux   = Luna.Constructor "Linux"   []
-    toConstructor imps MacOS   = Luna.Constructor "MacOS"   []
+    toConstructor _ Windows = Luna.Constructor "Windows" []
+    toConstructor _ Linux   = Luna.Constructor "Linux"   []
+    toConstructor _ MacOS   = Luna.Constructor "MacOS"   []
 

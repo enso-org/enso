@@ -4,11 +4,14 @@ import Prologue
 
 import qualified Data.Map                           as Map
 import qualified Luna.Package.Configuration.License as License
-import qualified Paths_luna_package                 as Paths
+import qualified Luna.Datafile                      as Datafile
+import qualified Luna.Datafile.Licenses             as Licenses
+import qualified Path                               as Path
 import qualified System.Directory                   as Directory
 
-import Data.Map        (Map)
-import System.FilePath ((</>))
+import Control.Monad.Exception (MonadException)
+import Data.Map                (Map)
+import System.FilePath         ((</>))
 
 
 -----------------
@@ -44,14 +47,15 @@ licenseMap = Map.fromList
 
 -- === API === --
 
-getLicenseText :: MonadIO m => License.License -> m String
+getLicenseText :: (MonadIO m, MonadException Datafile.DatafileException m)
+    => License.License -> m String
 getLicenseText license = do
-    let fileName = fromJust "" $ Map.lookup license licenseMap
+    licenseDir <- Licenses.findPath
 
-    filePath    <- liftIO . Paths.getDataFileName $ licenseFolder </> fileName
+    let fileName = fromJust "" $ Map.lookup license licenseMap
+        filePath = Path.fromAbsDir licenseDir </> fileName
+
     fileExists  <- liftIO $ Directory.doesFileExist filePath
 
     if not fileExists then pure "" else liftIO $ readFile filePath
-
-    where licenseFolder = "./data/licenses"
 

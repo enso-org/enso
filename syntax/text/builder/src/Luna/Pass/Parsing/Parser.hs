@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-orphans -Wno-missing-signatures #-}
+
 {-# LANGUAGE OverloadedStrings    #-}
 {-# LANGUAGE UndecidableInstances #-}
 
@@ -5,17 +7,11 @@ module Luna.Pass.Parsing.Parser where
 
 import Prologue
 
-
 import qualified Control.Monad.State.Layered           as State
-import qualified Data.Graph.Component.Node.Destruction as Component
 import qualified Data.Graph.Data.Graph.Class           as Graph
 import qualified Data.Graph.Data.Layer.Class           as Layer
 import qualified Data.Map                              as Map
 import qualified Data.Mutable.Class                    as Mutable
-import qualified Data.Set                              as Set
-import qualified Data.Text.Span                        as Span
-import qualified Language.Symbol.Operator.Assoc        as Assoc
-import qualified Language.Symbol.Operator.Prec         as Prec
 import qualified Luna.IR                               as IR
 import qualified Luna.IR.Aliases                       as Uni
 import qualified Luna.IR.Term.Ast.Invalid              as Invalid
@@ -25,15 +21,11 @@ import qualified Luna.Pass.Scheduler                   as Scheduler
 import qualified Luna.Syntax.Text.Parser.Ast           as Ast
 import qualified Luna.Syntax.Text.Parser.Ast.Class     as Atom
 import qualified Luna.Syntax.Text.Parser.Ast.CodeSpan  as CodeSpan
-import qualified Luna.Syntax.Text.Parser.Ast.CodeSpan  as CodeSpan
 import qualified Luna.Syntax.Text.Parser.Lexer         as Lexer
 import qualified Luna.Syntax.Text.Parser.Lexer.Names   as Name
 import qualified Luna.Syntax.Text.Parser.Parser        as Parser
 import qualified Luna.Syntax.Text.Parser.State.Marker  as Marker
 
-import Data.Map                              (Map)
-import Data.Set                              (Set)
-import Data.Text.Position                    (Delta (Delta))
 import Data.Text32                           (Text32)
 import Luna.Pass                             (Pass)
 import Luna.Syntax.Text.Parser.Ast           (Spanned (Spanned))
@@ -76,7 +68,7 @@ instance ParserPass (Pass stage Parser)
       => Pass.Definition stage Parser where
     definition = do
         src             <- Attr.get @Source
-        (unit, markers) <- run (convert src)
+        (unit, _) <- run (convert src)
         Attr.put $ Result unit
 
 
@@ -112,7 +104,7 @@ runWith p src = runMeDebug $ Parser.evalVersion1With p src
 runMeDebug :: ParserPass (Pass stage Parser)
     => Lexer.Token -> Pass stage Parser (IR.SomeTerm, Marker.TermMap)
 runMeDebug ast = do
-    ((ref, unmarked), gidMap) <- State.runDefT @Marker.TermMap
+    ((ref, _), gidMap) <- State.runDefT @Marker.TermMap
                                $ State.runDefT @Marker.TermOrphanList
                                $ buildIR ast
     pure (ref, gidMap)
@@ -189,9 +181,9 @@ discoverImportLines__ :: [Lexer.Token] -> [Lexer.Token] -> [Lexer.Token]
 discoverImportLines__ = \results others stream -> case stream of
     []           -> (reverse others, reverse results)
     (line:lines) -> let
-        break = (stream, results)
+        _ = (stream, results)
         in case Ast.unspan line of
-            Ast.App f a -> let (tok, arg :| args) = collectApps (pure a) f
+            Ast.App f a -> let (tok, _) = collectApps (pure a) f
                 in case Ast.unspan tok of
                     Ast.Var "import" -> let
                         results' = line : results
@@ -210,6 +202,7 @@ getImportName = \t -> case Ast.unspan t of
             | otherwise -> Nothing
         _ -> Nothing
     Ast.Cons v -> pure $ convert v
+    _ -> error "Should not happen"
 
 buildImportIR :: forall m. BuilderMonad m => Lexer.Token -> [Lexer.Token] -> m IR.SomeTerm
 buildImportIR = \a@(Spanned cs ast) args -> addCodeSpan cs =<< if not (null args)
@@ -218,7 +211,7 @@ buildImportIR = \a@(Spanned cs ast) args -> addCodeSpan cs =<< if not (null args
         Ast.Cons v -> do
             isrc <- IR.importSource $ IR.Absolute (convert v)
             IR.imp' isrc IR.Everything
-        Ast.InfixApp l f r -> case getImportName a of
+        Ast.InfixApp _ _ _ -> case getImportName a of
             Just name -> do
                 isrc <- IR.importSource $ IR.Absolute name
                 IR.imp' isrc IR.Everything
@@ -242,7 +235,7 @@ buildIR = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
         case strs' of
             []    -> IR.rawString' =<< Mutable.new
             [str] -> pure str
-            a     -> IR.invalid' Invalid.ParserError
+            _     -> IR.invalid' Invalid.ParserError
 
     -- Identifiers
     Ast.Var       name -> {- print ("var " <> show name) >> -} IR.var'   name
@@ -262,7 +255,7 @@ buildIR = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
                 pure ir
         foldlM f foo foos
     Ast.Marker m -> IR.marker' $ fromIntegral m
-    Ast.LineBreak ind  -> impossible -- All line breaks handled in parser
+    Ast.LineBreak _  -> impossible -- All line breaks handled in parser
 
     -- Docs
     -- Ast.Comment a -> error "TODO" -- we need to handle non attached comments
@@ -271,6 +264,7 @@ buildIR = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
             txt'  <- Mutable.fromList $ convertTo @[Char] txt
             base' <- buildIR (Ast.prependAsOffset doc base)
             IR.documented' txt' base'
+        _ -> error "Should not happen"
 
     Ast.Metadata txt -> do
         txt' <- Mutable.fromList $ convertTo @[Char] txt
@@ -353,15 +347,16 @@ buildIR = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
                 let lfcs = CodeSpan.dropOffset
                          $ (l ^. Ast.span) <> (f ^. Ast.span)
                 (lf :: IR.SomeTerm) <- IR.app' f' l'
-                addCodeSpan lfcs lf
+                void $ addCodeSpan lfcs lf
                 IR.app' lf r'
 
     Ast.SectionRight f r -> do
         f' <- buildIR f
         r' <- buildIR r
         case Ast.unspan f of
-            Ast.Operator op | op == Name.acc    -> case Ast.unspan r of
+            Ast.Operator op | op == Name.acc -> case Ast.unspan r of
                     Ast.Var v -> IR.accSection' =<< Mutable.fromList (convert v)
+                    _         -> error "Should not happen"
                             | op == Name.uminus -> IR.app' f' r'
                             | otherwise -> IR.sectionLeft' f' r'
             _ -> IR.sectionLeft' f' r'
@@ -404,7 +399,7 @@ buildIR = \(Spanned cs ast) -> addCodeSpan cs =<< case ast of
 
             _ -> continue
 
-    Ast.Comment c -> parseError
+    Ast.Comment _ -> parseError
     Ast.Missing   -> do
         -- print ">> missing"
         -- print cs
@@ -465,13 +460,15 @@ buildClassConsIR :: BuilderMonad m => Lexer.Token -> m (Either Lexer.Token IR.So
 buildClassConsIR = \tok -> case Ast.unspan tok of
     Ast.App nameTok fieldToks -> case nameTok of
         (Spanned cs (Ast.Cons name)) -> case Ast.unspan fieldToks of
-            Ast.List fields -> fmap Right . addCodeSpan cs =<< IR.recordCons' name =<< mapM buildClassField fields
+            Ast.List fields -> fmap Right . addCodeSpan cs
+                =<< IR.recordCons' name =<< mapM buildClassField fields
             a               -> pure $ Left tok
         (Spanned cs (Ast.App field fieldsList)) -> case Ast.unspan field of
             Ast.Var "#fields#" -> case Ast.unspan fieldsList of
                 Ast.List names -> do
                     names' <- Mutable.fromList (getFieldName <$> names)
-                    fmap Right . addCodeSpan cs =<< IR.recordFields' names' =<< buildIR fieldToks
+                    fmap Right . addCodeSpan cs =<< IR.recordFields' names'
+                        =<< buildIR fieldToks
                 a -> pure $ Left tok
             a -> pure $ Left tok
         a -> pure $ Left tok
@@ -520,7 +517,7 @@ buildCaseOfIR arg args = assertSingleArg args $ \a -> let
     match t = let
         notFunc = t & Ast.ast .~ Ast.Invalid Invalid.CaseWayNotFunction
         in buildIR $ case Ast.unspan t of
-            Ast.InfixApp l op r
+            Ast.InfixApp _ op _
               -> if Ast.unspan op == Ast.Operator ":" then t else notFunc
             Ast.Invalid {} -> t
             _              -> notFunc
@@ -550,6 +547,7 @@ buildRealIR (Spanned _ (Ast.Number integral)) (Spanned _ (Ast.Number fractional)
     intPart  <- Mutable.fromList (toList integral)
     fracPart <- Mutable.fromList (toList fractional)
     IR.number' 10 intPart fracPart
+buildRealIR _ _ = error "Should not happen."
 
 buildFunctionIR :: MixFixBuilder
 buildFunctionIR arg args = case args of
@@ -583,6 +581,7 @@ specInvalid inv = fmap handle where
 
 
 
+isOperator :: Name -> Ast.Ast -> Bool
 isOperator n = (== Ast.Operator n)
 
 infixl 4 <$$>
@@ -601,6 +600,7 @@ collectSpan = \lst -> case lst of
     (s : ss) -> view Ast.span s <> collectSpan ss
 {-# INLINE collectSpan #-}
 
+(<|) :: a -> NonEmpty a -> NonEmpty a
 t <| (a :| as) = t :| (a : as)
 
 

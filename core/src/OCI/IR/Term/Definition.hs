@@ -14,7 +14,6 @@ import qualified Data.Graph.Data.Component.Vector       as ComponentVector
 import qualified Data.Graph.Data.Layer.Layout           as Layout
 import qualified Data.Tag                               as Tag
 import qualified Data.Vector.Storable.Foreign           as Vector
-import qualified Data.Vector.Storable.Foreign           as Vector
 import qualified Foreign.Storable.Deriving              as Storable
 import qualified Foreign.Storable1.Deriving             as Storable1
 import qualified Language.Haskell.TH                    as TH
@@ -63,7 +62,7 @@ instance Edge.Creator m => Field t [Term a] m (ComponentVector Edges b) where
     consField = \self -> ComponentVector.fromList <=< mapM (consField self) ; {-# INLINE consField #-}
 
 instance (Storable a, MonadIO m) => Field t [a] m (Vector a) where
-    consField = \self -> Vector.fromList ; {-# INLINE consField #-}
+    consField = \_ -> Vector.fromList ; {-# INLINE consField #-}
 
 type family ExpandField self layout a where
     ExpandField self layout (LinkTo t)  = Edge

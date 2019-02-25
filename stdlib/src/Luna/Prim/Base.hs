@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-orphans #-}
+
 module Luna.Prim.Base where
 
 import           Prologue
@@ -13,7 +15,6 @@ import qualified Data.Bits                   as Bits
 import           Data.ByteString             (ByteString)
 import qualified Data.ByteString             as ByteString
 import qualified Data.ByteString.Lazy        as LazyByteString
-import           Data.Foldable               as Foldable (toList)
 import qualified Data.HashMap.Lazy           as HM
 import           Data.Map                    (Map)
 import qualified Data.Map                    as Map
@@ -27,8 +28,8 @@ import qualified Luna.Runtime as Luna
 import qualified Luna.Pass.Sourcing.Data.Def as Def
 
 import Control.Concurrent   ( MVar, newEmptyMVar, takeMVar, readMVar, putMVar
-                            , forkFinally, killThread, threadDelay)
-import Data.Scientific      ( toRealFloat, scientific, Scientific, coefficient
+                            , threadDelay)
+import Data.Scientific      ( scientific, Scientific, coefficient
                             , base10Exponent, fromFloatDigits)
 import Data.Vector          (Vector)
 import Luna.Std.Builder     ( makeFunctionPure, makeFunctionIO, maybeLT, listLT
@@ -51,7 +52,11 @@ primReal = do
         eqVal       = flip Luna.toValue ((==)         :: Double -> Double -> Bool)
         ltVal       = flip Luna.toValue ((<)          :: Double -> Double -> Bool)
         gtVal       = flip Luna.toValue ((>)          :: Double -> Double -> Bool)
-        roundVal    = flip Luna.toValue ((\r prec -> (fromIntegral $ round (r * (10 ^ prec))) / (10 ^ prec :: Double)) :: Double -> Integer -> Double)
+        roundVal    = flip Luna.toValue
+            ((\(r) prec ->
+                (fromIntegral @Integer $ round (r * (10 ^ prec)))
+                / (10 ^ prec :: Double))
+                :: Double -> Integer -> Double)
         showVal     = flip Luna.toValue (convert . show :: Double -> Text)
         floorVal    = flip Luna.toValue (floor   :: Double -> Integer)
         ceilingVal  = flip Luna.toValue (ceiling :: Double -> Integer)
@@ -118,7 +123,7 @@ primReal = do
 
     toScientific <- makeFunctionPure @graph toScientificVal [Builder.realLT] Builder.scientificLT
 
-    return $ Map.fromList [ ("primRealAdd",      plus)
+    pure $ Map.fromList [ ("primRealAdd",      plus)
                           , ("primRealMultiply", times)
                           , ("primRealSubtract", minus)
                           , ("primRealDivide",   div)
@@ -198,7 +203,7 @@ primInt = do
     shift <- makeFunctionPure @graph shiftVal [Builder.intLT, Builder.intLT] Builder.intLT
 
 
-    return $ Map.fromList [ ("primIntAdd",         plus)
+    pure $ Map.fromList [ ("primIntAdd",         plus)
                           , ("primIntMultiply",    times)
                           , ("primIntSubtract",    minus)
                           , ("primIntDivide",      div)
@@ -231,7 +236,7 @@ primBinary = do
     take <- makeFunctionPure @graph takeVal [Builder.binaryLT, Builder.intLT] Builder.binaryLT
     drop <- makeFunctionPure @graph dropVal [Builder.binaryLT, Builder.intLT] Builder.binaryLT
     concat <- makeFunctionPure @graph concatVal [Builder.listLT Builder.binaryLT] Builder.binaryLT
-    return $ Map.fromList [ ("primBinaryToText",   toText)
+    pure $ Map.fromList [ ("primBinaryToText",   toText)
                           , ("primBinaryEquals",   eq)
                           , ("primBinaryConcat",   plus)
                           , ("primBinaryLength",   len)
@@ -247,7 +252,7 @@ primVector = do
 
     toList <- makeFunctionPure @graph toListVal [Builder.vectorLT "a"] (Builder.listLT "a")
     fromList <- makeFunctionPure @graph fromListVal [Builder.listLT "a"] (Builder.vectorLT "a")
-    return $ Map.fromList [ ("primVectorToList",   toList)
+    pure $ Map.fromList [ ("primVectorToList",   toList)
                           , ("primVectorFromList", fromList)
                           ]
 
@@ -292,7 +297,7 @@ primText = do
     toReal <- makeFunctionPure @graph toRealVal [Builder.textLT] (maybeLT Builder.realLT)
 
 
-    return $ Map.fromList [ ("primTextConcat",     plus)
+    pure $ Map.fromList [ ("primTextConcat",     plus)
                           , ("primTextEquals",     eq)
                           , ("primTextIsEmpty",    isEmpty)
                           , ("primTextLength",     length)
@@ -320,7 +325,7 @@ operators = do
     uminusHdr <- Builder.makeUnaryMinusType @graph
     let uminus = Def.Precompiled $ Def.PrecompiledDef uminusVal uminusHdr
 
-    return $ Map.fromList [ ("if_then_else", iff)
+    pure $ Map.fromList [ ("if_then_else", iff)
                           , (Builder.uminusFunName, uminus)
                           ]
 
@@ -374,7 +379,7 @@ io finalizersCtx = do
         forkVal act = mdo
             uid <- registerFinalizer finalizersCtx $ Async.uninterruptibleCancel a
             a   <- Async.async $ void (Luna.runIO $ Luna.runError act) `Exception.finally` cancelFinalizer finalizersCtx uid
-            return ()
+            pure ()
     fork <- makeFunctionIO @graph (flip Luna.toValue forkVal) [noneT] noneT
 
     let newEmptyMVarVal :: IO (MVar Luna.Data)
@@ -398,14 +403,14 @@ io finalizersCtx = do
     let evaluateVal :: Text -> IO Text
         evaluateVal t = do
             Exception.evaluate $ rnf t
-            return t
+            pure t
     evaluate' <- makeFunctionIO @graph (flip Luna.toValue evaluateVal) [textT] textT
 
     let pathSepVal :: Text
         pathSepVal = convert pathSeparator
     pathSep <- makeFunctionPure @graph (flip Luna.toValue pathSepVal) [] textT
 
-    return $ Map.fromList [ ("putStr", printLn)
+    pure $ Map.fromList [ ("putStr", printLn)
                           , ("errorStr", err)
                           , ("runError", runErr)
                           , ("primReadFile", readFileF)
@@ -435,11 +440,11 @@ exports finalizersCtx = do
     vecFuns  <- primVector @graph
     opFuns   <- operators  @graph
     ioFuns   <- io @graph finalizersCtx
-    return $ Map.unions [realFuns, intFuns, textFuns, binFuns, vecFuns, opFuns, ioFuns]
+    pure $ Map.unions [realFuns, intFuns, textFuns, binFuns, vecFuns, opFuns, ioFuns]
 
-type instance Luna.RuntimeRepOf (IMap.Map a b) = Luna.AsClass (IMap.Map a b) ('Luna.ClassRep "Std.Base" "Map")
+type instance Luna.RuntimeRepOf (IMap.Map a b) = 'Luna.AsClass (IMap.Map a b) ('Luna.ClassRep "Std.Base" "Map")
 instance (Luna.ToData a, Luna.ToData b) => Luna.ToObject (IMap.Map a b) where
-    toConstructor imps IMap.Tip             = Luna.Constructor "Tip" []
+    toConstructor _ IMap.Tip             = Luna.Constructor "Tip" []
     toConstructor imps (IMap.Bin s k v l r) = Luna.Constructor "Bin" [Luna.toData imps $ integer s, Luna.toData imps k, Luna.toData imps v, Luna.toData imps l, Luna.toData imps r]
 instance (Luna.FromData a, Luna.FromData b) => Luna.FromObject (IMap.Map a b) where
     fromConstructor (Luna.Constructor "Tip" []) = pure IMap.Tip
@@ -448,21 +453,23 @@ instance (Luna.FromData a, Luna.FromData b) => Luna.FromObject (IMap.Map a b) wh
                                                                         <*> Luna.fromData v
                                                                         <*> Luna.fromData l
                                                                         <*> Luna.fromData r
+    fromConstructor _ = error "Should not happen"
 
-type instance Luna.RuntimeRepOf Scientific = Luna.AsClass Scientific ('Luna.ClassRep "Std.Base" "Scientific")
+type instance Luna.RuntimeRepOf Scientific = 'Luna.AsClass Scientific ('Luna.ClassRep "Std.Base" "Scientific")
 instance Luna.ToObject Scientific where
     toConstructor imps s = Luna.Constructor "Scientific" [Luna.toData imps $ coefficient s, Luna.toData imps $ integer $ base10Exponent s]
 instance Luna.FromObject Scientific where
     fromConstructor (Luna.Constructor "Scientific" [coeff, exp]) = scientific <$> Luna.fromData coeff
                                                                               <*> (fromIntegral <$> Luna.fromData @Integer exp)
+    fromConstructor _ = error "Should not happen"
 
-type instance Luna.RuntimeRepOf Aeson.Value = Luna.AsClass Aeson.Value ('Luna.ClassRep "Std.Base" "JSON")
+type instance Luna.RuntimeRepOf Aeson.Value = 'Luna.AsClass Aeson.Value ('Luna.ClassRep "Std.Base" "JSON")
 instance Luna.ToObject Aeson.Value where
     toConstructor imps (Aeson.Array  a) = Luna.Constructor "JSONArray"  [Luna.toData imps . fmap (Luna.toData imps) $ Vector.toList a]
     toConstructor imps (Aeson.String a) = Luna.Constructor "JSONString" [Luna.toData imps a]
     toConstructor imps (Aeson.Number a) = Luna.Constructor "JSONNumber" [Luna.toData imps a]
     toConstructor imps (Aeson.Bool   a) = Luna.Constructor "JSONBool"   [Luna.toData imps a]
-    toConstructor imps  Aeson.Null      = Luna.Constructor "JSONNull"   []
+    toConstructor _  Aeson.Null      = Luna.Constructor "JSONNull"   []
     toConstructor imps (Aeson.Object a) = Luna.Constructor "JSONObject" [Luna.toData imps $ Map.fromList $ HM.toList a]
 
 instance Luna.FromObject Aeson.Value where
@@ -472,4 +479,5 @@ instance Luna.FromObject Aeson.Value where
     fromConstructor (Luna.Constructor "JSONBool"   [a]) = Aeson.Bool   <$> Luna.fromData a
     fromConstructor (Luna.Constructor "JSONNull"   [] ) = pure $ Aeson.Null
     fromConstructor (Luna.Constructor "JSONObject" [a]) = Aeson.Object . HM.fromList . Map.toList <$> Luna.fromData a
+    fromConstructor _ = error "Should not happen"
 
