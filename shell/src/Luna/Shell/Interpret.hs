@@ -55,27 +55,15 @@ type InterpreterMonad m = ( MonadIO m
 interpretWithMain :: IR.Qualified -> Map IR.Qualified FilePath -> IO ()
 interpretWithMain name sourcesMap = Graph.encodeAndEval @TC.Stage
     $ Scheduler.evalT $ do
-        print "Initialising the module loader"
-
         ModLoader.init
-
-        print "Typechecking the stdlib"
-
         (_, stdUnitRef) <- Std.stdlib @TC.Stage
-
-        print "Preparing the scheduler"
-
         Scheduler.registerAttr @Unit.UnitRefsMap
         Scheduler.setAttr $ Unit.UnitRefsMap
             $ Map.singleton "Std.Primitive" stdUnitRef
 
-        print "Loading modules"
-
         ModLoader.loadUnit def sourcesMap [] name
         for Std.stdlibImports $ ModLoader.loadUnit def sourcesMap []
         Unit.UnitRefsMap mods <- Scheduler.getAttr
-
-        print "Preparing source units"
 
         units <- flip Map.traverseWithKey mods $ \n u -> case u ^. Unit.root of
             Unit.Graph r       -> UnitMap.mapUnit n r
@@ -88,8 +76,6 @@ interpretWithMain name sourcesMap = Graph.encodeAndEval @TC.Stage
             unitsWithResolvers = flip Map.mapWithKey units $ \n u ->
                 (importResolvers Map.! n, u)
 
-        print "Looking up source units"
-
         for (Map.toList importResolvers) $ \(unitName, resolver) -> do
             case Map.lookup unitName units of
                 Just uni -> PreprocessUnit.preprocessUnit resolver uni
@@ -97,17 +83,11 @@ interpretWithMain name sourcesMap = Graph.encodeAndEval @TC.Stage
                             "Unable to resolve compilation unit "
                             <> convert unitName
 
-        print "Processing source units"
-
         (tUnits, cUnits) <- ProcessUnits.processUnits def def unitsWithResolvers
-
-        print "Looking up main"
 
         tFunc <- Typed.getDef name (convert Package.mainFuncName) tUnits
         mainFunc <- Runtime.lookupSymbol cUnits name
             $ convert Package.mainFuncName
-
-        print "Executing main"
 
         case unwrap tFunc of
             Left e  -> print e
@@ -128,25 +108,16 @@ file filePath stdlibPath = liftIO $ Directory.withCurrentDirectory fileFP $ do
 
 package :: (InterpreterMonad m) => Path Abs Dir -> Path Abs Dir -> m ()
 package pkgPath stdlibPath = liftIO . Directory.withCurrentDirectory pkgDir $ do
-    print "Changed directory"
-
     packageRoot    <- fromJust pkgPath <$> Package.findPackageRoot pkgPath
-
-    print "Found package root"
-
     packageImports <- Package.packageImportPaths packageRoot stdlibPath
     importPaths    <- Exception.rethrowFromIO @Path.PathException .
         sequence $ Path.parseAbsDir . snd <$> packageImports
     projectSrcs    <- sequence $ Package.findPackageSources <$> importPaths
 
-    print "Established package sources"
-
     let pkgSrcMap    = Map.map Path.toFilePath . foldl' Map.union Map.empty
             $ Bimap.toMapR <$> projectSrcs
         mainFileName = (convert $ Package.getPackageName packageRoot) <> "."
             <> Package.mainFileName
-
-    print "Starting interpreter"
 
     liftIO $ interpretWithMain mainFileName pkgSrcMap
 

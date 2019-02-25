@@ -8,9 +8,6 @@ maintainer:
     - Marcin Kostrzewa <marcin.kostrzewa@luna-lang.org>
     - Ara Adkins       <ara.adkins@luna-lang.org>
 
-data-files:
-    ./Std/src/*
-
 library:
     source-dirs:
         - src
