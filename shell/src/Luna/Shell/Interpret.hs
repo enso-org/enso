@@ -93,12 +93,7 @@ interpretWithMain name sourcesMap = Graph.encodeAndEval @TC.Stage
                 void $ liftIO $ Runtime.runIO mainFunc
 
 file :: (InterpreterMonad m) => Path Abs File -> Path Abs Dir -> m ()
-file filePath stdlibPath = do
-    -- Swap the working directory
-    originalDir <- CWD.get
-    liftIO . Directory.setCurrentDirectory . Path.fromAbsDir
-        $ Path.parent filePath
-
+file filePath stdlibPath = liftIO $ Directory.withCurrentDirectory fileFP $ do
     fileSources <- Package.fileSourcePaths filePath stdlibPath
 
     let fileName = convertVia @Name.Name . FilePath.dropExtension
@@ -106,17 +101,14 @@ file filePath stdlibPath = do
 
     liftIO $ interpretWithMain fileName fileSources
 
-    liftIO $ Directory.setCurrentDirectory originalDir
+    where fileFP = Path.fromAbsDir $ Path.parent filePath
 
 package :: (InterpreterMonad m) => Path Abs Dir -> Path Abs Dir -> m ()
-package pkgPath stdlibPath = Exception.rethrowFromIO @Path.PathException $ do
-    -- Swap the working directory
-    originalDir <- CWD.get
-    liftIO . Directory.setCurrentDirectory $ Path.fromAbsDir pkgPath
-
+package pkgPath stdlibPath = liftIO . Directory.withCurrentDirectory pkgDir $ do
     packageRoot    <- fromJust pkgPath <$> Package.findPackageRoot pkgPath
     packageImports <- Package.packageImportPaths packageRoot stdlibPath
-    importPaths    <- sequence $ Path.parseAbsDir . snd <$> packageImports
+    importPaths    <- Exception.rethrowFromIO @Path.PathException .
+        sequence $ Path.parseAbsDir . snd <$> packageImports
     projectSrcs    <- sequence $ Package.findPackageSources <$> importPaths
 
     let pkgSrcMap    = Map.map Path.toFilePath . foldl' Map.union Map.empty
@@ -126,6 +118,5 @@ package pkgPath stdlibPath = Exception.rethrowFromIO @Path.PathException $ do
 
     liftIO $ interpretWithMain mainFileName pkgSrcMap
 
-    -- Swap the working directory back
-    liftIO $ Directory.setCurrentDirectory originalDir
+    where pkgDir = Path.fromAbsDir pkgPath
 
