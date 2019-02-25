@@ -10,7 +10,7 @@ jobs:
       - restore-cache:
           key: stack-v1-{{ checksum "config/snapshot.yaml" }}
       - run: stack setup
-      - run: stack build --interleaved-output --ghc-options="-pgmc gcc-8" --test --copy-bins
+      - run: stack build -j1 --interleaved-output --ghc-options="-pgmc gcc-8" --test --copy-bins
       - save-cache:
           key: stack-v1-{{ checksum "config/snapshot.yaml" }}
           when: always
