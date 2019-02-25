@@ -11,16 +11,45 @@ maintainer:
 library:
     source-dirs:
         - src
+    dependencies:
+        - attoparsec
+        - base
+        - containers
+        - layered-state
+        - layouting
+        - lens
+        - lens-utils
+        - luna-core
+        - luna-cpp-containers
+        - luna-data-storable
+        - luna-foreign-utils
+        - luna-generic-traversable
+        - luna-nested-containers
+        - luna-parser-utils
+        - luna-syntax-definition
+        - luna-syntax-text-lexer
+        - luna-syntax-text-model
+        - luna-syntax-text-parser
+        - luna-text-processing
+        - megaparsec
+        - mtl
+        - prologue
+        - text
+        - typelevel
+        - vector
+        - vector-text
 
 tests:
     spec:
         main: Main.hs
         source-dirs: test/spec
         dependencies:
+            - base
             - container
             - directory
             - filepath
             - hspec
+            - hspec-core
             - hspec-expectations-lifted
             - hspec-megaparsec
             - luna-core
@@ -29,35 +58,8 @@ tests:
             - luna-syntax-text-parser
             - luna-syntax-text-prettyprint
             - open-browser
+            - prologue
             - template-haskell
-
-dependencies:
-    - attoparsec
-    - base
-    - containers
-    - layered-state
-    - layouting
-    - lens
-    - lens-utils
-    - luna-core
-    - luna-cpp-containers
-    - luna-data-storable
-    - luna-foreign-utils
-    - luna-generic-traversable
-    - luna-nested-containers
-    - luna-parser-utils
-    - luna-syntax-definition
-    - luna-syntax-text-lexer
-    - luna-syntax-text-parser
-    - luna-syntax-text-model
-    - luna-text-processing
-    - megaparsec
-    - mtl
-    - prologue
-    - text
-    - typelevel
-    - vector
-    - vector-text
 
 default-extensions: *luna-extensions
 

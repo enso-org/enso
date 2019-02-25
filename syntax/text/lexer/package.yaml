@@ -52,14 +52,5 @@ dependencies:
     - vector
     - vector-text
 
-    # remove:
-    - constraints
-    - data-default
-    - exceptions
-    - lens-utils
-    - primitive
-    - transformers
-    - typelevel
-
 default-extensions: *luna-extensions
 

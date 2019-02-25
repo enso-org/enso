@@ -4,7 +4,7 @@
 
 module Foreign.Info.ByteSize where
 
-import Prologue
+import Prologue hiding (Known)
 
 import qualified Control.Monad.State.Layered as State
 

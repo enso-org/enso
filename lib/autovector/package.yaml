@@ -13,10 +13,6 @@ maintainer:
     - Wojciech Danilo  <wojciech.danilo@luna-lang.org>
     - Ara Adkins       <ara.adkins@luna-lang.org>
 
-ghc-options:
-    - -Wall
-    - -O2
-
 library:
     source-dirs:
         - src
