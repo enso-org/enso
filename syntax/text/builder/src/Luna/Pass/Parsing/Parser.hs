@@ -437,14 +437,19 @@ type MixFixBuilder = forall m. BuilderMonad m
     => Lexer.Token -> [Lexer.Token] -> m IR.SomeTerm
 
 buildClassIR :: Bool -> MixFixBuilder
-buildClassIR isNative arg args = case Ast.unspan arg of
-    Ast.Cons n -> case args of
+buildClassIR isNative arg args = case arg of
+    (Spanned cs (Ast.Cons n)) -> case args of
         [ps, clss] -> case Ast.unspan ps of
             Ast.List params -> case Ast.unspan clss of
                 Ast.List recs -> do
                     (es, conss) <- partitionEithers <$> mapM buildClassConsIR recs
                     es'         <- buildIR <$$> es
                     params'     <- buildIR <$$> params
+                    let firstExpr = asum [head params', head conss, head es'] :: Maybe IR.SomeTerm
+                    for firstExpr $ \fe -> do
+                        oldSpan <- IR.readLayer @CodeSpan fe
+                        let newSpan = CodeSpan.prependAsOffset cs oldSpan
+                        IR.writeLayer @CodeSpan fe newSpan
                     IR.record' isNative n params' conss es'
                 _ -> parseError
             _ -> parseError
@@ -453,19 +458,21 @@ buildClassIR isNative arg args = case Ast.unspan arg of
 
 buildClassConsIR :: BuilderMonad m => Lexer.Token -> m (Either Lexer.Token IR.SomeTerm)
 buildClassConsIR = \tok -> case Ast.unspan tok of
-    Ast.App nameTok fieldToks -> case Ast.unspan nameTok of
-        Ast.Cons name -> case Ast.unspan fieldToks of
-            Ast.List fields -> fmap Right . IR.recordCons' name =<< mapM buildClassField fields
-            _               -> pure $ Left tok
-        Ast.App field fieldsList -> case Ast.unspan field of
+    Ast.App nameTok fieldToks -> case nameTok of
+        (Spanned cs (Ast.Cons name)) -> case Ast.unspan fieldToks of
+            Ast.List fields -> fmap Right . addCodeSpan cs
+                =<< IR.recordCons' name =<< mapM buildClassField fields
+            a               -> pure $ Left tok
+        (Spanned cs (Ast.App field fieldsList)) -> case Ast.unspan field of
             Ast.Var "#fields#" -> case Ast.unspan fieldsList of
                 Ast.List names -> do
                     names' <- Mutable.fromList (getFieldName <$> names)
-                    fmap Right . IR.recordFields' names' =<< buildIR fieldToks
-                _ -> pure $ Left tok
-            _ -> pure $ Left tok
-        _ -> pure $ Left tok
-    _ -> pure $ Left tok
+                    fmap Right . addCodeSpan cs =<< IR.recordFields' names'
+                        =<< buildIR fieldToks
+                a -> pure $ Left tok
+            a -> pure $ Left tok
+        a -> pure $ Left tok
+    a -> pure $ Left tok
 
 buildClassField :: BuilderMonad m => Lexer.Token -> m IR.SomeTerm
 buildClassField = \tok -> case Ast.unspan tok of
