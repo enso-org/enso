@@ -1,6 +1,6 @@
 _config/lib: !include "../../config/hpack-common.yaml"
 
-name        : luna-typelevel
+name        : typelevel
 version     : 1.2.3
 category    : Data
 license     : Apache-2.0
@@ -12,10 +12,6 @@ copyright   : Copyright (C) 2018 Luna Team
 maintainer:
     - Wojciech Danilo  <wojciech.danilo@luna-lang.org>
     - Ara Adkins       <ara.adkins@luna-lang.org>
-
-ghc-options:
-    - -O2
-    - -Wall
 
 library:
     source-dirs:

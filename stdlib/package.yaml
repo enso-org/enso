@@ -11,6 +11,50 @@ maintainer:
 library:
     source-dirs:
         - src
+    dependencies:
+        - aeson
+        - async
+        - authenticate-oauth
+        - base
+        - bytestring
+        - case-insensitive
+        - containers
+        - data-msgpack
+        - deepseq
+        - directory
+        - errors
+        - exceptions
+        - filepath
+        - hashable
+        - http-client
+        - http-client-tls
+        - http-conduit
+        - http-types
+        - lens
+        - libffi
+        - luna-core
+        - luna-datafile
+        - luna-package
+        - luna-passes
+        - luna-runtime
+        - luna-syntax-text-prettyprint
+        - mtl
+        - network
+        - process
+        - prologue
+        - random
+        - safe
+        - safe-exceptions
+        - scientific
+        - text
+        - time
+        - transformers
+        - typelevel
+        - unordered-containers
+        - uuid
+        - vector
+        - websockets
+        - wuss
 
 when:
     - condition: os(windows)
@@ -18,51 +62,6 @@ when:
           dependencies: Win32
       else:
           dependencies: unix
-
-dependencies:
-    - aeson
-    - async
-    - authenticate-oauth
-    - base
-    - bytestring
-    - case-insensitive
-    - containers
-    - data-msgpack
-    - deepseq
-    - directory
-    - errors
-    - exceptions
-    - filepath
-    - hashable
-    - http-client
-    - http-client-tls
-    - http-conduit
-    - http-types
-    - lens
-    - libffi
-    - luna-core
-    - luna-datafile
-    - luna-package
-    - luna-passes
-    - luna-runtime
-    - luna-syntax-text-prettyprint
-    - luna-typelevel
-    - mtl
-    - network
-    - process
-    - prologue
-    - random
-    - safe
-    - safe-exceptions
-    - scientific
-    - text
-    - time
-    - transformers
-    - unordered-containers
-    - uuid
-    - vector
-    - websockets
-    - wuss
 
 default-extensions: *luna-extensions
 

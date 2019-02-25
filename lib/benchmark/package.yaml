@@ -10,10 +10,6 @@ copyright   : Copyright (C) 2018 Luna Team
 maintainer:
     - Ara Adkins <ara.adkins@luna-lang.org>
 
-ghc-options:
-    - -Wall
-    - -O2
-
 library:
     source-dirs:
         - src

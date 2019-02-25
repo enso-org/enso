@@ -13,10 +13,6 @@ maintainer:
     - Wojciech Danilo  <wojciech.danilo@luna-lang.org>
     - Ara Adkins       <ara.adkins@luna-lang.org>
 
-ghc-options:
-    - -O2
-    - -Wall
-
 extra-source-files:
     - src/cbits/*
 
@@ -37,8 +33,8 @@ library:
         - luna-data-property
         - luna-data-storable
         - luna-foreign-utils
-        - luna-typelevel
-        - prologue >= 3.0.0
+        - prologue
+        - typelevel
 
 default-extensions: *luna-extensions
 

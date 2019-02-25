@@ -15,10 +15,6 @@ maintainer:
     - Marcin Kostrzewa <marcin.kostrzewa@luna-lang.org>
     - Ara Adkins       <ara.adkins@luna-lang.org>
 
-ghc-options:
-    - -Wall
-    - -O2
-
 library:
     source-dirs:
         - src
@@ -53,17 +49,17 @@ library:
         - luna-th-builder
         - luna-tuple-utils
         - luna-type-cache
-        - luna-typelevel
         - monad-branch
         - monoid
         - mtl
         - primitive
-        - prologue >= 3.0.0
+        - prologue
         - random
         - split
         - storable-tuple
         - template-haskell
         - transformers
+        - typelevel
         - vector
 
 benchmarks:
@@ -132,9 +128,9 @@ tests:
             - luna-exception
             - luna-foreign-utils
             - luna-generic-traversable
-            - luna-typelevel
             - prologue
             - random
+            - typelevel
 
 default-extensions: *luna-extensions
 

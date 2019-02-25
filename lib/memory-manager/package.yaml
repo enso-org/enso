@@ -13,9 +13,6 @@ maintainer:
     - Wojciech Danilo  <wojciech.danilo@luna-lang.org>
     - Ara Adkins       <ara.adkins@luna-lang.org>
 
-ghc-options:
-    - -O2
-    - -Wall
 extra-source-files:
     - src/cbits/*
 

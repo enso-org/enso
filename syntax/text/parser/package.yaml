@@ -29,6 +29,7 @@ tests:
             - luna-syntax-text-lexer
             - luna-syntax-text-parser
             - open-browser
+            - prologue
             - template-haskell
 
 benchmarks:

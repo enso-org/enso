@@ -17,10 +17,6 @@ maintainer:
     - Wojciech Danilo  <wojciech.danilo@luna-lang.org>
     - Ara Adkins       <ara.adkins@luna-lang.org>
 
-ghc-options:
-    - -O2
-    - -Wall
-
 library:
     source-dirs:
         - src
@@ -28,11 +24,14 @@ library:
         - base
         - bifunctors
         - binary
+        - comonad
         - cond
         - container
         - convert
         - data-default
         - deepseq
+        - deriving-compat
+        - either
         - errors
         - exceptions
         - functor-utils
@@ -40,27 +39,24 @@ library:
         - impossible
         - lens
         - lens-utils
+        - monoid
         - mtl
+        - neat-interpolation
         - placeholders
+        - pointed
+        - pretty
         - pretty-show
         - primitive
-        - string-qq
         - raw-strings-qq
+        - recursion-schemes
+        - semigroupoids
+        - string-qq
         - template-haskell
         - text
         - transformers
         - transformers-base
-        - luna-typelevel
+        - typelevel
         - vector
-        - comonad
-        - either
-        - monoid
-        - pointed
-        - neat-interpolation
-        - recursion-schemes
-        - semigroupoids
-        - deriving-compat
-        - pretty
 
 default-extensions:
     - ConstraintKinds

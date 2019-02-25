@@ -13,22 +13,18 @@ maintainer:
     - Wojciech Danilo  <wojciech.danilo@luna-lang.org>
     - Ara Adkins       <ara.adkins@luna-lang.org>
 
-ghc-options:
-    - -O2
-    - -Wall
-
 library:
     source-dirs:
         - src
     dependencies:
         - base
         - convert
-        - lens
         - layered-state
+        - lens
         - luna-th-builder
-        - luna-typelevel
-        - prologue >= 3.0.0
+        - prologue
         - template-haskell
+        - typelevel
 
 default-extensions: *luna-extensions
 
