@@ -10,41 +10,53 @@ module Luna.Prim.DynamicLinker (
 
 import           Prologue hiding (throwM)
 
-import           Control.Exception.Safe (catchAny, throwM, tryAny)
-import           Control.Monad.Except   (ExceptT(..), runExceptT)
-import           Data.Char              (isSpace)
-import qualified Data.EitherR           as EitherR
-import qualified Data.List              as List
-import           Data.Maybe             (maybeToList)
-import qualified Data.Text              as Text
-import           Foreign                (FunPtr)
-import qualified Safe
-import qualified System.Directory       as Dir
-import qualified System.Environment     as Env
-import           System.FilePath        ((</>))
-import qualified System.FilePath        as FP
-import qualified System.Info            as Info (os)
-import qualified System.Process         as Process
-import           System.IO.Unsafe       (unsafePerformIO)
-
+import qualified Data.EitherR         as EitherR
+import qualified Data.List            as List
+import qualified Data.Text            as Text
 import qualified Luna.Datafile.Stdlib as Stdlib
-import qualified Luna.Package as Package
+import qualified Luna.Package         as Package
+import qualified Safe                 as Safe
+import qualified System.Directory     as Dir
+import qualified System.Environment   as Env
+import qualified System.FilePath      as FP
+import qualified System.Info          as Info (os)
+import qualified System.Process       as Process
+
+import Control.Exception.Safe (catchAny, throwM, tryAny)
+import Control.Monad.Except   (ExceptT(..), runExceptT)
+import Data.Char              (isSpace)
+import Data.Maybe             (maybeToList)
+import System.FilePath        ((</>))
+import Foreign                (FunPtr)
+import System.IO.Unsafe       (unsafePerformIO)
 
 #if mingw32_HOST_OS
 import qualified System.Win32.DLL   as Win32
 import qualified System.Win32.Info  as Win32
 import qualified System.Win32.Types as Win32 (HINSTANCE)
+
+import Foreign (nullPtr, castPtrToFunPtr)
 #else
 import qualified System.Posix.DynamicLinker as Unix
 #endif
 
 
 
+--------------------
+-- === Handle === --
+--------------------
+
 #if mingw32_HOST_OS
 type Handle = Win32.HINSTANCE
 #else
 type Handle = Unix.DL
 #endif
+
+
+
+-----------------
+-- === API === --
+-----------------
 
 nativeLibs :: FilePath
 nativeLibs = "native_libs"
