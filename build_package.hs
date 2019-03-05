@@ -5,6 +5,7 @@
     --package lens
     --package optparse-applicative
     --package path
+    --package text
     --package turtle
 -}
 
@@ -25,15 +26,18 @@
 
 module Main where
 
-import Prelude
+import Prelude hiding (FilePath)
 
+import qualified Data.Text           as Text
 import qualified Options.Applicative as Options
 import qualified Path                as Path
+import qualified Turtle              as Turtle
 
-import Options.Applicative    ((<**>))
-import Path                   (Path, Rel, File)
 import Control.Lens           (makeLenses, (^.))
 import Control.Monad.IO.Class (MonadIO, liftIO)
+import Data.Text              (Text)
+import Options.Applicative    ((<**>))
+import Path                   (Path, Rel, File, Abs)
 
 
 
@@ -53,9 +57,16 @@ releaseOpts = ["-fno-omit-interface-pragmas"]
 -- === Main API === --
 ----------------------
 
-runBuilder :: (MonadIO m) => CommandOpts -> m ()
-runBuilder opts = liftIO $ print opts
+-- TODO use Turtle.inProcWithErr
+runBuilder :: CommandOpts -> Turtle.Shell ()
+runBuilder opts = do
+    liftIO $ print opts
+    pure ()
 
+getDistFolder :: Path Rel File -> Path Abs File
+getDistFolder = undefined
+
+-- genGHCOptions :: Text
 
 
 -------------------------
@@ -82,11 +93,13 @@ optionsParser = CommandOpts
 ------------------
 
 main :: IO ()
-main = runBuilder =<< Options.execParser buildOptsParser where
+main = do
+    opts <- Options.execParser buildOptsParser where
     buildOptsParser = Options.info (optionsParser <**> Options.helper)
         (Options.fullDesc
             <> Options.progDesc "The package build script for Luna."
             <> Options.header "Visual and textual functional prorgamming.")
+
 
 -- 1. Use utils to get at dist folder name w/ default (turtle + regexp for
 --    practicality)
