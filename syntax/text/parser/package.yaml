@@ -70,7 +70,7 @@ dependencies:
     - luna-syntax-text-lexer
     - luna-syntax-text-model
     - luna-text-processing
-    - megaparsec == 6.5.0
+    - megaparsec
     - mtl
     - prologue
     - text
