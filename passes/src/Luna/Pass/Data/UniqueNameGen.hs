@@ -25,10 +25,11 @@ allNames :: [String]
 allNames = ('a' :) . show <$> ([0..] :: [Integer])
 
 generateName :: Attr.Editor UniqueNameGen m => m IR.Name
-generateName = do
-    UniqueNameGen (n : ns) <- Attr.get
-    Attr.put (UniqueNameGen ns)
-    pure $ convert n
+generateName = Attr.get >>= \case
+    UniqueNameGen (n : ns) -> do
+        Attr.put (UniqueNameGen ns)
+        pure $ convert n
+    UniqueNameGen _ -> error "Should never happen."
 
 
 -- === Instances === --

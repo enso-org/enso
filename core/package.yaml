@@ -83,6 +83,7 @@ benchmarks:
             - base
             - convert
             - criterion >= 1.3.0.0
+            - criterion-measurement
             - deepseq
             - ghc
             - layered-state
