@@ -45,6 +45,10 @@ rethrowFromIO_ = \f -> liftIO (catchEitherIO @e f) >>= \case
     Right a -> pure a
 {-# INLINE rethrowFromIO_ #-}
 
+rethrowAllFromIO :: forall a m . (MonadIO m, MonadException SomeException m)
+    => IO a -> m a
+rethrowAllFromIO = rethrowFromIO @SomeException
+
 catchEitherIO :: Exception e => IO a -> IO (Either e a)
 catchEitherIO = \f -> catch (Right <$> f) (pure . Left)
 {-# INLINE catchEitherIO #-}
