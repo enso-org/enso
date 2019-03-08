@@ -27,13 +27,20 @@ jobs:
   steps:
   - script: >
       curl -sSL https://get.haskellstack.org/ | sh
-      && brew update
+    displayName: Install stack
+  - script: >
+      brew update
       && brew install pkg-config libffi zmq
-      && eval $(brew shellenv)
+    displayName: Install brew libraries
+  - script: >
+      eval $(brew shellenv)
       && export LDFLAGS="-L/usr/local/opt/libffi/lib"
       && export PKG_CONFIG_PATH="/usr/local/opt/libffi/lib/pkgconfig"
       && stack build
-      && stack run -- run --target=$(Build.SourcesDirectory)/stdlib/StdTest
+    displayName: Build
+  - script: stack run -- run --target=$(Build.SourcesDirectory)/stdlib/StdTest
+    displayName: Run tests
+      
 - job: Windows
   pool:
     vmImage: vs2017-win2016
@@ -41,7 +48,11 @@ jobs:
   - script: |
       curl -sS -o stack.zip -L --insecure https://get.haskellstack.org/stable/windows-x86_64.zip
       7z x stack.zip -y -oC:\stack stack.exe
-      set PATH=%PATH%;C:\stack
-      stack exec -- pacman --noconfirm -S mingw-w64-x86_64-pkg-config mingw-w64-x86_64-libffi
-      stack build
-      stack run -- run --target=$(Build.SourcesDirectory)/stdlib/StdTest
+      setx PATH %PATH%;C:\stack
+    displayName: Install stack
+  - script: stack exec -- pacman --noconfirm -S mingw-w64-x86_64-pkg-config mingw-w64-x86_64-libffi
+    displayName:  Install MSYS2 dependencies
+  - script: stack build
+    displayName: Build
+  - script: stack run -- run --target=$(Build.SourcesDirectory)/stdlib/StdTest
+    displayName: Run tests
