@@ -49,8 +49,12 @@ jobs:
       curl -sS -o stack.zip -L --insecure https://get.haskellstack.org/stable/windows-x86_64.zip
       7z x stack.zip -y -oC:\stack stack.exe
       echo PATH=%PATH%
-      setx PATH "%PATH%;C:\stack"
-    displayName: Install stack
+  - powershell: |
+      $new_entry = 'c:\stack'
+      $old_path = [Environment]::GetEnvironmentVariable('PATH', 'machine');
+      $new_path = $old_path + ';' + $new_entry
+      [Environment]::SetEnvironmentVariable('PATH', $new_path,'Machine');
+    displayName: Update PATH
   - script: stack exec -- pacman --noconfirm -S mingw-w64-x86_64-pkg-config mingw-w64-x86_64-libffi
     displayName:  Install MSYS2 dependencies
   - script: stack build
