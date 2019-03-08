@@ -1,0 +1,47 @@
+# https://aka.ms/yaml
+
+
+trigger:
+  batch: true
+  branches:
+    include: [ "*" ]
+
+jobs:
+- job: Ubuntu
+  timeoutInMinutes: 0
+  pool:
+    vmImage: 'Ubuntu-16.04'
+  container:
+    image: lunalang/luna-ci
+  steps:
+  - script: stack build --only-snapshot
+    displayName: Setup GHC & snapshot deps
+  - script: stack build --ghc-options="-pgmc gcc-8" --test --copy-bins
+    displayName: Build
+  - script: LD_PRELOAD=~/.stack/programs/x86_64-linux/ghc-8.4.4/lib/ghc-8.4.4/rts/libffi.so.7 stack run -- run --target=$(Build.SourcesDirectory)/stdlib/StdTest
+    displayName: Run tests
+- job: macOS
+  timeoutInMinutes: 0
+  pool:
+    vmImage: 'macOS-10.13'
+  steps:
+  - script: >
+      curl -sSL https://get.haskellstack.org/ | sh
+      && brew update
+      && brew install pkg-config libffi zmq
+      && eval $(brew shellenv)
+      && export LDFLAGS="-L/usr/local/opt/libffi/lib"
+      && export PKG_CONFIG_PATH="/usr/local/opt/libffi/lib/pkgconfig"
+      && stack build
+      && stack run -- run --target=$(Build.SourcesDirectory)/stdlib/StdTest
+- job: Windows
+  pool:
+    vmImage: vs2017-win2016
+  steps:
+  - script: |
+      curl -sS -o stack.zip -L --insecure https://get.haskellstack.org/stable/windows-x86_64.zip
+      7z x stack.zip -y -oC:\stack stack.exe
+      set PATH=%PATH%;C:\stack
+      stack exec -- pacman --noconfirm -S mingw-w64-x86_64-pkg-config mingw-w64-x86_64-libffi
+      stack build
+      stack run -- run --target=$(Build.SourcesDirectory)/stdlib/StdTest
