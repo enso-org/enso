@@ -48,7 +48,7 @@ jobs:
   - script: |
       curl -sS -o stack.zip -L --insecure https://get.haskellstack.org/stable/windows-x86_64.zip
       7z x stack.zip -y -oC:\stack stack.exe
-      setx PATH %PATH%;C:\stack
+      setx PATH "%PATH%;C:\stack"
     displayName: Install stack
   - script: stack exec -- pacman --noconfirm -S mingw-w64-x86_64-pkg-config mingw-w64-x86_64-libffi
     displayName:  Install MSYS2 dependencies
