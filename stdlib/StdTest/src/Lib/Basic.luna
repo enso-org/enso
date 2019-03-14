@@ -4,6 +4,21 @@ import Std.Test
 class BasicTest:
     def testUnaryMinus:
         TestSubject (-5) . should (be 5.negate)
+    def intAbs:
+        TestSubject (5 . abs)          . should (be 5)
+        TestSubject (5 . negate . abs) . should (be 5)
+    def realAbs:
+        TestSubject (5.0 . abs)          . should (be 5.0)
+        TestSubject (5.0 . negate . abs) . should (be 5.0)
+    def complexModulus:
+        TestSubject (Complex 5.0 4.0 . modulusSquared) . should (be 41.0)
+        TestSubject (Complex 5.0 0.0 . modulusSquared) . should (be 25.0)
+        TestSubject (Complex 0.0 5.0 . modulusSquared) . should (be 25.0)
+        TestSubject (Complex 5.0 0.0 . modulus) . should (be 5.0)
+        TestSubject (Complex 0.0 5.0 . modulus) . should (be 5.0)
 
     def run:
         Test.specify "unary negation delegates to `negate` method" self.testUnaryMinus
+        Test.specify "Int.abs" self.intAbs
+        Test.specify "Real.abs" self.realAbs
+        Test.specify "Complex.modulus" self.complexModulus
