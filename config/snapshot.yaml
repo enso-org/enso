@@ -3,7 +3,7 @@ name: luna
 
 packages:
     - githash-0.1.3.0
-    - containers-0.5.11.0
+    - containers-0.5.11.0 # Fixed by dependencies for hspec-megaparsec
     - hspec-expectations-lifted-0.10.0
     - hspec-megaparsec-1.1.0
     - megaparsec-6.5.0
