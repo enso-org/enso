@@ -17,7 +17,7 @@ jobs:
     displayName: Setup GHC & snapshot deps
   - script: stack build --ghc-options="-pgmc gcc-8" --test --copy-bins
     displayName: Build
-  - script: stack run -- run --target=$(Build.SourcesDirectory)/stdlib/StdTest
+  - script: LD_PRELOAD=~/.stack/programs/x86_64-linux/ghc-8.6.4/lib/ghc-8.6.4/rts/libffi.so.7 stack run -- run --target=$(Build.SourcesDirectory)/stdlib/StdTest
     displayName: Run tests
 - job: macOS
   timeoutInMinutes: 0
