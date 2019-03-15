@@ -1,7 +1,7 @@
 <p align="center">
 <img src="https://github.com/luna/luna-studio/raw/master/resources/logo.ico" style="margin: 0 auto;">
 </p>
-<h1 align="center">Luna programming language</h1>
+<h1 align="center">Luna Programming Language</h1>
 <h3 align="center">
 Visual and textual functional programming language with a focus on productivity, collaboration and development ergonomics.
 </h3>
@@ -99,22 +99,18 @@ Where `<component>` is one of the following:
 - `luna-syntax-text-lexer` (found in `$LUNA_REPO_PATH/syntax/text/lexer`)
 - `luna-syntax-text-parser` (found in `$LUNA_REPO_PATH/syntax/text/parser`)
 
-#### Developing with Local Libraries
-If you are hacking on the libraries that Luna uses, you'll want to be building
-Luna using your local copies of these libraries. These libraries should have
-their standard names and be located in the following path:
+#### Developing Luna's Libraries
+Currently, all of the libraries owned by us that Luna depends on are in-tree,
+and can be found in the 'libs' folder. This is motivated by how often were 
+were changing them purely to support Luna's development, and then having to go
+through the hackage release song and dance. 
 
-```
-$LUNA_REPO_PATH/../libs/
-```
+Instead, while these libraries are so actively developed. we've decided that
+they should live in Luna's tree, where they can be depended on by Luna and
+Luna Studio directly. 
 
-If your libraries are located in this path, you can use the local development
-stack `.yaml` file located in `build/stack-local.yaml` to build and test your
-version of Luna as follows:
-
-```
-stack build --stack-yaml build/stack-local.yaml
-```
+Working with these libraries is a breeze. If you want to make some changes, it's
+as simple as making them, and rebuilding to test them. 
 
 #### Building Luna for Release
 In order to keep compile times down for development, we compile Luna with 

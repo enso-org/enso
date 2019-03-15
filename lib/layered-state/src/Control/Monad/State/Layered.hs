@@ -240,3 +240,6 @@ mapT f = _Wrapped %~ S.mapStateT f ; {-# INLINE mapT #-}
 instance PrimMonad m => PrimMonad (StateT s m) where
   type PrimState (StateT s m) = PrimState m
   primitive = lift . primitive ; {-# INLINE primitive #-}
+
+deriving newtype instance MonadCatch m => MonadCatch (StateT s m)
+

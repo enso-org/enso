@@ -80,3 +80,11 @@ fromJust e = \case
     Nothing -> throw e
     Just a  -> return a
 {-# INLINE fromJust #-}
+
+fromRight :: MonadException e m => (l -> e) -> Either l r -> m r
+fromRight f = \case
+    Right r -> pure r
+    Left  l -> throw $ f l
+    
+fromRight' :: forall l m r. (MonadException SomeException m, Exception l) => Either l r -> m r
+fromRight' = fromRight toException
