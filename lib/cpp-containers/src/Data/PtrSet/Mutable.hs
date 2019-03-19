@@ -12,10 +12,8 @@ import qualified Foreign.DynamicStorable    as DynamicStorable
 import qualified Foreign.Storable.Utils     as Storable
 import qualified Foreign.Storable1.Deriving as Storable1
 
-import Control.Monad.IO.Class
-import Data.Convert2           (convert, convert')
+import Data.Convert2           (convert')
 import Foreign.DynamicStorable (DynamicStorable)
-import Foreign.ForeignPtr
 import Foreign.Marshal.Array
 import Foreign.Ptr
 import Foreign.Ptr.Utils       (SomePtr, fromCBool)
@@ -23,7 +21,9 @@ import Foreign.Storable        (Storable)
 import Foreign.Storable.Utils  (castPeekAndOffset, castPokeAndOffset)
 
 
+
 type IsPtr a = Convert.Bi' SomePtr a
+
 
 
 --------------------
@@ -98,7 +98,7 @@ singleton :: (IsPtr a, IsPtrSet s, MonadIO m) => a -> m (s a)
 singleton e = do
     s <- new
     insert s e
-    return s
+    pure s
 {-# INLINE singleton #-}
 
 -- | Insert a single element into the set.
@@ -148,7 +148,7 @@ fromList :: (IsPtr a, IsPtrSet s, MonadIO m) => [a] -> m (s a)
 fromList es = do
     s <- new
     insertMany s es
-    return s
+    pure s
 {-# INLINE fromList #-}
 
 
@@ -194,7 +194,7 @@ instance (Storable a, IsPtr a) => DynamicStorable (UnmanagedPtrSet a) where
 
     poke = \ptr a -> do
         elems <- size a
-        let bodyByteSize = elems * Storable.sizeOf' @a
+        let _ = elems * Storable.sizeOf' @a
         tgtBodyPtr <- castPokeAndOffset @Int ptr elems
         fillList a tgtBodyPtr
     {-# INLINE poke #-}

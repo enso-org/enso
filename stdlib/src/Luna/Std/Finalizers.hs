@@ -2,31 +2,57 @@ module Luna.Std.Finalizers where
 
 import Prologue
 import Data.Map                (Map)
-import Control.Concurrent      (MVar, newMVar, modifyMVar_, putMVar, swapMVar)
+import Control.Concurrent      (MVar, newMVar, modifyMVar_, swapMVar)
 
 import           Data.UUID     (UUID)
 import qualified Data.UUID.V4  as UUID
 
+
+
+------------------------
+-- === Finalizers === --
+------------------------
+
+-- === Definition === --
+
 newtype Finalizers = Finalizers (Map UUID (IO ()))
 makeLenses ''Finalizers
+
+
+-- === API === --
+
+runFinalizers :: Finalizers -> IO Finalizers
+runFinalizers st = sequence (unwrap st) >> pure def
+
+
+-- === Instances === --
 
 instance Default Finalizers where
     def = Finalizers def
 
-runFinalizers :: Finalizers -> IO Finalizers
-runFinalizers st = sequence (unwrap st) >> return def
+
+
+---------------------------
+-- === FinalizersCtx === --
+---------------------------
+
+-- === Definition === --
 
 newtype FinalizersCtx = FinalizersCtx (MVar Finalizers)
 makeLenses ''FinalizersCtx
 
+
+-- === API === --
+
 registerFinalizer :: FinalizersCtx -> IO () -> IO UUID
 registerFinalizer ctx finalizer = do
     uuid <- UUID.nextRandom
-    modifyMVar_ (unwrap ctx) $ return . (wrapped . at uuid .~ Just finalizer)
-    return uuid
+    modifyMVar_ (unwrap ctx) $ pure . (wrapped . at uuid .~ Just finalizer)
+    pure uuid
 
 cancelFinalizer :: FinalizersCtx -> UUID -> IO ()
-cancelFinalizer ctx uuid = modifyMVar_ (unwrap ctx) $ return . (wrapped . at uuid .~ Nothing)
+cancelFinalizer ctx uuid = modifyMVar_ (unwrap ctx)
+    $ pure . (wrapped . at uuid .~ Nothing)
 
 finalize :: FinalizersCtx -> IO ()
 finalize ctx = do

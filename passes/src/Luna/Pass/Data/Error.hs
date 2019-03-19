@@ -18,7 +18,6 @@ import qualified Data.Graph.Store.Buffer               as Buffer
 import qualified Data.Graph.Store.Size.Discovery       as Buffer
 import qualified Data.Mutable.Class                    as Mutable
 import qualified Foreign.Storable.Deriving             as Storable
-import qualified Luna.Pass.Typing.Data.Target          as Target
 import qualified Luna.Pass.Resolve.Data.Resolution     as Resolution
 import qualified Luna.IR                               as IR
 import qualified Luna.IR.Layer                         as Layer

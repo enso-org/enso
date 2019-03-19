@@ -4,14 +4,14 @@
 
 module Type.Data.Ord.TH where
 
+import Prelude
 
-import Prologue hiding (Type)
+import qualified Language.Haskell.TH as TH
 
-import           Data.List                   (subsequences)
-import           Language.Haskell.TH         (Name, Q, Type)
-import qualified Language.Haskell.TH         as TH
-import           Language.Haskell.TH.Builder
+import Data.List                   (subsequences)
+import Language.Haskell.TH         (Name, Q)
 
+import Language.Haskell.TH.Builder
 import Type.Data.Ord.Class
 
 
@@ -43,7 +43,7 @@ defOrderedPair tlt tgt = [defLT tlt tgt, defGT tlt tgt]
 -- | Define a total ordering on the list of types.
 --   [T1, T2, ..., Tn] => T1 < T2 < ... < Tn
 defOrder :: [Name] -> Q [TH.Dec]
-defOrder ns = return $ ltgts <> eqs
+defOrder ns = pure $ ltgts <> eqs
     where ltgts = concatMap (uncurry defOrderedPair) $ pairs ns
           eqs   = defEQ <$> ns
 

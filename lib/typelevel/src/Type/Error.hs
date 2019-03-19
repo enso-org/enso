@@ -25,11 +25,11 @@ type TypeAssert ok = TypeErrorIf ok (Str "Assertion failed.")
 
 -- === Formatters === --
 
-type Sentence a     = a :<>: Str "."
+type Sentence a     = a ':<>: Str "."
 type Ticked   a     = Between' "`" a
 type Parensed a     = Between "(" ")" a
-type Between  l r a = Str l :<>: a :<>: Str r
+type Between  l r a = Str l ':<>: a ':<>: Str r
 type Between' s   a = Between s s a
-type a :<+>: b      = a :<>: Str " " :<>: b
-type Type     a     = Ticked (ShowType a)
+type a :<+>: b      = a ':<>: Str " " ':<>: b
+type Type     a     = Ticked ('ShowType a)
 

@@ -1,7 +1,7 @@
 <p align="center">
 <img src="https://github.com/luna/luna-studio/raw/master/resources/logo.ico" style="margin: 0 auto;">
 </p>
-<h1 align="center">Luna programming language</h1>
+<h1 align="center">Luna Programming Language</h1>
 <h3 align="center">
 Visual and textual functional programming language with a focus on productivity, collaboration and development ergonomics.
 </h3>
@@ -99,22 +99,18 @@ Where `<component>` is one of the following:
 - `luna-syntax-text-lexer` (found in `$LUNA_REPO_PATH/syntax/text/lexer`)
 - `luna-syntax-text-parser` (found in `$LUNA_REPO_PATH/syntax/text/parser`)
 
-#### Developing with Local Libraries
-If you are hacking on the libraries that Luna uses, you'll want to be building
-Luna using your local copies of these libraries. These libraries should have
-their standard names and be located in the following path:
+#### Developing Luna's Libraries
+Currently, all of the libraries owned by us that Luna depends on are in-tree,
+and can be found in the 'libs' folder. This is motivated by how often were 
+were changing them purely to support Luna's development, and then having to go
+through the hackage release song and dance. 
 
-```
-$LUNA_REPO_PATH/../libs/
-```
+Instead, while these libraries are so actively developed. we've decided that
+they should live in Luna's tree, where they can be depended on by Luna and
+Luna Studio directly. 
 
-If your libraries are located in this path, you can use the local development
-stack `.yaml` file located in `build/stack-local.yaml` to build and test your
-version of Luna as follows:
-
-```
-stack build --stack-yaml build/stack-local.yaml
-```
+Working with these libraries is a breeze. If you want to make some changes, it's
+as simple as making them, and rebuilding to test them. 
 
 #### Building Luna for Release
 In order to keep compile times down for development, we compile Luna with 
@@ -133,12 +129,7 @@ this additional argument with any of the commands listed above for development
 of individual components.
 
 ### Running Luna
-As a prerequisite, you need to set a `LUNA_LIBS_PATH` variable to point to the
-location of the Luna standard library. Assuming your repo is at
-`$LUNA_REPO_PATH`, you will need to set `LUNA_LIBS_PATH` to
-`$LUNA_REPO_PATH/stdlib`.
-
-Next, you need to create the project. This is as simple as executing
+First, you need to create the project. This is as simple as executing
 `luna init <project-path>`, which will create a project in the directory
 specified with the correct structure. It will create a defaulted `Main.luna`
 file for you as well, allowing you to immediately execute this.
@@ -155,6 +146,21 @@ luna run --target path/to/MyProject
 The Luna interpreter is also capable of executing standalone Luna files. This
 can be done by passing a luna source file to the `--target` flag, similarly to
 the above.
+
+#### Overriding the Standard Library Location
+By default, a development build of Luna will look for the standard library in
+`$LUNA_REPO_PATH/stdlib/`, but it is possible to override this. If you would 
+like to do so, you need to define the `LUNA_STDLIB_OVERRIDE` environment 
+variable and set its value to the absolute path to the Luna standard library 
+that you want to use. 
+
+As long as the variable is set, the compiler will use the location you provide,
+so don't forget to unset it if you would like to go back to using the included
+copy. 
+
+This environment variable override will also work for distributed binaries of
+Luna, and so provides a useful way to work on the standard library without 
+needing to download and build Luna in its entirety.
 
 ## Contributing to Luna
 If you are interested in contributing to the development of Luna, please read

@@ -1,26 +1,25 @@
 module Data.Graph.Store where
 
 import Prologue hiding (pprint, print, putStrLn)
-import qualified Prologue as P
 
 import qualified Data.Graph.Component.Node.Class as Component
 import qualified Data.Graph.Data.Component.Class as Component
 import qualified Data.Graph.Data.Graph.Class     as Graph
 import qualified Data.Graph.Fold.Partition       as Partition
-import qualified Data.Graph.Store.Alloc          as Alloc
+-- import qualified Data.Graph.Store.Alloc          as Alloc
 import qualified Data.Graph.Store.Buffer         as Buffer
-import qualified Data.Graph.Store.Internal       as Serialize
+-- import qualified Data.Graph.Store.Internal       as Serialize
 import qualified Data.Graph.Store.Size.Discovery as Size
 import qualified Data.Map.Strict                 as Map
-import qualified Data.Mutable.Class              as Mutable
+-- import qualified Data.Mutable.Class              as Mutable
 import qualified Memory                          as Memory
 
 import Data.ByteString                 (ByteString)
 import Data.Graph.Data.Component.Class (Component)
-import Data.Graph.Data.Component.Set   (ComponentSet, ComponentSetA)
+-- import Data.Graph.Data.Component.Set   (ComponentSet, ComponentSetA)
 import Data.Map.Strict                 (Map)
-import Foreign.Ptr.Utils               (SomePtr)
-import qualified System.IO as IO
+-- import Foreign.Ptr.Utils               (SomePtr)
+-- import qualified System.IO as IO
 
 -- import Data.Graph.Store.MemoryRegion   (MemoryRegion)
 
@@ -128,7 +127,7 @@ serializeWithRedirectMap comp = do
 
     let dataRegion    = Buffer.dataRegion buffer
     let dataRegionPtr = unwrap dataRegion
-    dynDataRegion <- Buffer.dynDataRegion buffer
+    _ <- Buffer.dynDataRegion buffer
 
 
 
@@ -152,7 +151,7 @@ serializeWithRedirectMap comp = do
     -- Buffer.unswizzleComponents__ @(Graph.ComponentsM m) ccount dataRegion
 
     rooted <- wrap <$> Buffer.unsafeFreeze buffer
-    return $ RootedWithRedirects rooted redirectMap
+    pure $ RootedWithRedirects rooted redirectMap
 {-# INLINE serializeWithRedirectMap #-}
 
 serialize :: ∀ comp m layout. Serializer Component.Nodes m
@@ -170,6 +169,7 @@ instance (Typeable c, ComponentOffsetDecoder cs)
       => ComponentOffsetDecoder (c ': cs) where
     decodeComponentOffsets (o:offs) =
         Map.insert (someTypeRep @c) o $ decodeComponentOffsets @cs offs
+    decodeComponentOffsets [] = error "Should not happen."
 
 
 type Deserializer m =

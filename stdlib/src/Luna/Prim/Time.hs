@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-orphans #-}
+
 module Luna.Prim.Time where
 
 import Prologue
@@ -6,8 +8,6 @@ import qualified Luna.IR as IR
 
 import qualified Data.Map                    as Map
 import qualified Data.Time                   as Time
-import qualified Data.Time.Calendar          as Time
-import qualified Data.Time.Format            as Time
 import qualified Luna.Pass.Sourcing.Data.Def as Def
 import qualified Luna.Runtime                as Luna
 import qualified Luna.Std.Builder            as Builder
@@ -15,7 +15,6 @@ import qualified OCI.Data.Name               as Name
 
 import           Data.Fixed                  ( Pico )
 import           Data.Map                    ( Map )
-import           Data.Time                   ( DiffTime )
 import           Luna.Std.Builder            ( makeFunctionIO
                                              , makeFunctionPure
                                              , LTp (..), int, integer, real )
@@ -98,7 +97,7 @@ exports = do
         primIntMilisecondsVal = (/ 1000) . realToFrac
     primIntMiliseconds <- makeFunctionPure @graph (flip Luna.toValue primIntMilisecondsVal) [Builder.intLT] timeIntervalLT
 
-    return $ Map.fromList [ ("primGetCurrentTime", primGetCurrentTime)
+    pure $ Map.fromList [ ("primGetCurrentTime", primGetCurrentTime)
                           , ("primGetCurrentTimeZone", primGetCurrentTimeZone)
                           , ("primTimeToUTC", primTimeToUTC)
                           , ("primTimeFromUTC", primTimeFromUTC)
@@ -117,15 +116,15 @@ exports = do
                           ]
 
 type instance Luna.RuntimeRepOf Time.DiffTime =
-    Luna.AsClass Time.DiffTime ('Luna.ClassRep TimeModule "TimeInterval")
+    'Luna.AsClass Time.DiffTime ('Luna.ClassRep TimeModule "TimeInterval")
 type instance Luna.RuntimeRepOf Time.UTCTime =
-    Luna.AsClass Time.UTCTime ('Luna.ClassRep TimeModule "UTCTime")
+    'Luna.AsClass Time.UTCTime ('Luna.ClassRep TimeModule "UTCTime")
 type instance Luna.RuntimeRepOf Time.TimeOfDay =
-    Luna.AsClass Time.TimeOfDay ('Luna.ClassRep TimeModule "TimeOfDay")
+    'Luna.AsClass Time.TimeOfDay ('Luna.ClassRep TimeModule "TimeOfDay")
 type instance Luna.RuntimeRepOf Time.TimeZone =
-    Luna.AsClass Time.TimeZone ('Luna.ClassRep TimeModule "TimeZone")
+    'Luna.AsClass Time.TimeZone ('Luna.ClassRep TimeModule "TimeZone")
 type instance Luna.RuntimeRepOf Time.ZonedTime =
-    Luna.AsClass Time.ZonedTime ('Luna.ClassRep TimeModule "Time")
+    'Luna.AsClass Time.ZonedTime ('Luna.ClassRep TimeModule "Time")
 
 instance Luna.FromData Time.NominalDiffTime where
     fromData dt = realToFrac <$> (Luna.fromData dt :: Luna.Eff Time.DiffTime)

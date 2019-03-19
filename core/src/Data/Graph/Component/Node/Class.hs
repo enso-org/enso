@@ -10,7 +10,6 @@ import qualified Data.Graph.Data.Layer.Layout as Layout
 import qualified Data.Tag                     as Tag
 import qualified Type.Show                    as Type
 
-import Data.Generics.Traversable (GTraversable)
 
 
 ------------------

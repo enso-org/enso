@@ -10,9 +10,9 @@ import Prologue
 
 -- === API === --
 
--- from package `extra` with BSD3 licence
+-- from package `extra` with BSD3 licence, slightly altered
 partitionM :: Monad m => (a -> m Bool) -> [a] -> m ([a],[a])
-partitionM f [] = pure ([],[])
+partitionM _ [] = pure ([],[])
 partitionM f (x:xs) = do
     res <- f x
     (as, bs) <- partitionM f xs

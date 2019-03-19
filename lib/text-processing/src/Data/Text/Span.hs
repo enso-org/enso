@@ -1,14 +1,14 @@
+{-# OPTIONS_GHC -Wno-type-defaults #-}
+
 {-# LANGUAGE NoStrict #-}
 {-# LANGUAGE NoStrictData #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Data.Text.Span where
 
-import qualified Control.Monad.State.Layered        as State
 import qualified Data.Generics.Traversable.Deriving as GTraversable
 import qualified Foreign.Storable.Deriving          as Storable
 
-import Data.Maybe         (isJust)
 import Data.Text.Position (Delta)
 import Foreign.Storable   (Storable)
 import Prologue           hiding (length)
@@ -130,3 +130,4 @@ instance Convertible LeftSpacedSpan  (Delta,Delta)   where convert = convertVia 
 instance Convertible RightSpacedSpan (Delta,Delta)   where convert = convertVia @SpacedSpan
 instance Convertible (Delta,Delta)   LeftSpacedSpan  where convert = convertVia @SpacedSpan
 instance Convertible (Delta,Delta)   RightSpacedSpan where convert = convertVia @SpacedSpan
+

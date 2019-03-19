@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-orphans #-}
+
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE NoStrict                  #-}
 {-# LANGUAGE NoStrictData              #-}
@@ -8,56 +10,73 @@ module Luna.Syntax.Prettyprint where
 import qualified Prelude  as P
 import           Prologue hiding (Symbol)
 
-import           Control.Monad.State.Layered       (StateT)
-import qualified Control.Monad.State.Layered       as State
-import qualified Data.Char                         as Char
-import qualified Data.Graph.Component.Edge.Class   as Link
-import qualified Data.Graph.Data.Component.Vector  as ComponentVector
-import qualified Data.Graph.Data.Layer.Layout      as Layout
-import           Data.Layout                       (backticked, quoted,
-                                                    singleQuoted, space, (</>))
-import           Data.Layout                       (block, indented, parensed,
-                                                    (<+>))
-import qualified Data.Layout                       as Layout
-import qualified Data.Layout                       as Doc
-import qualified Data.Mutable.Class                as Mutable
-import qualified Data.Text                         as Text
-import           Data.Vector.Storable.Foreign      (Vector)
-import qualified Data.Vector.Storable.Foreign      as Vector
-import           Language.Symbol.Label             (Labeled (Labeled), label,
-                                                    labeled, unlabel)
-import qualified Language.Symbol.Operator.Assoc    as Assoc
-import qualified Language.Symbol.Operator.Prec     as Prec
-import           Luna.IR                           (Name)
-import qualified Luna.IR                           as IR
-import qualified Luna.IR.Aliases                   as Uni
-import qualified Luna.IR.Layer                     as Layer
-import qualified Luna.IR.Link                      as Link
-import qualified Luna.IR.Term.Literal              as Literal
-import           Luna.Pass                         (Pass)
-import qualified Luna.Pass                         as Pass
-import qualified Luna.Syntax.Text.Lexer.Grammar    as Grammar
-import           Luna.Syntax.Text.Parser.Hardcoded (hardcode)
-import           Luna.Syntax.Text.Scope            (Scope)
-import qualified Luna.Syntax.Text.Scope            as Scope
-import qualified OCI.Data.Name                     as Name
+import qualified Control.Monad.State.Layered      as State
+import qualified Data.Char                        as Char
+import qualified Data.Graph.Component.Edge.Class  as Link
+import qualified Data.Graph.Data.Component.Vector as ComponentVector
+import qualified Data.Graph.Data.Layer.Layout     as Layout
+import qualified Data.Layout                      as Doc
+import qualified Data.Layout                      as Layout
+import qualified Data.Mutable.Class               as Mutable
+import qualified Data.Text                        as Text
+import qualified Language.Symbol.Operator.Assoc   as Assoc
+import qualified Language.Symbol.Operator.Prec    as Prec
+import qualified Luna.IR                          as IR
+import qualified Luna.IR.Aliases                  as Uni
+import qualified Luna.IR.Layer                    as Layer
+import qualified Luna.IR.Term.Literal             as Literal
+import qualified Luna.Pass                        as Pass
+import qualified Luna.Syntax.Text.Lexer.Grammar   as Grammar
+import qualified Luna.Syntax.Text.Scope           as Scope
+import qualified OCI.Data.Name                    as Name
+
+import Control.Monad.State.Layered       ( StateT )
+import Data.Layout                       ( backticked, quoted, singleQuoted
+                                         , space, (</>) )
+import Data.Layout                       ( block, indented, parensed, (<+>) )
+import Language.Symbol.Label             ( Labeled (Labeled), label, labeled
+                                         , unlabel )
+import Luna.IR                           ( Name )
+import Luna.Syntax.Text.Parser.Hardcoded ( hardcode )
+import Luna.Syntax.Text.Scope            ( Scope )
 
 
 
 -- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 -- FIXME -> take it from Builtin
 -- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-minusName       = "-"
-uminusName      = "#uminus#"
-lineBreakName   = "#linebreak#"
-appName         = "#app#"
-accName         = "."
-lamName         = ":"
-typedName       = "::"
-wildcardName    = "_"
-unifyName       = "="
-updateName      = "=" -- #update# ?
-arrowName       = "->"
+minusName :: forall p. IsString p => p
+minusName = "-"
+
+uminusName :: forall p. IsString p => p
+uminusName = "#uminus#"
+
+lineBreakName :: forall p. IsString p => p
+lineBreakName = "#linebreak#"
+
+appName :: forall p. IsString p => p
+appName = "#app#"
+
+accName :: forall p. IsString p => p
+accName = "."
+
+lamName :: forall p. IsString p => p
+lamName = ":"
+
+typedName :: forall p. IsString p => p
+typedName = "::"
+
+wildcardName :: forall p. IsString p => p
+wildcardName = "_"
+
+unifyName :: forall p. IsString p => p
+unifyName = "="
+
+updateName :: forall p. IsString p => p
+updateName = "=" -- #update# ?
+
+arrowName :: forall p. IsString p => p
+arrowName = "->"
 
 markerBeginChar, markerEndChar :: String
 markerBeginChar = "«"
@@ -228,6 +247,7 @@ appSymbols' sf@(Labeled flab fsym) sa = do
         Mixfix b s -> pure . (mempty,) $ case s of
             []       -> labeled flab $ Atom   (b <+> sa')
             (n : ns) -> labeled flab $ Mixfix (b <+> sa' <+> convert n) ns
+        _ -> error "Should not happen"
     pure out
 
 
@@ -236,6 +256,7 @@ appSymbols' sf@(Labeled flab fsym) sa = do
 -- -- === Simple pretty printer === --
 -- -----------------------------------
 
+simple :: forall a. a -> Labeled (Maybe SpacedName) (Symbol a)
 simple = unnamed . Atom
 
 -- -- === Definition === --
@@ -254,131 +275,177 @@ instance ( MonadIO m -- DEBUG ONLY
         IR.UniTermAcc  (IR.Acc a name)
             -> named (spaced accName) . Atom
              . ((\an nn -> convert an <+> accName <+> convert nn)
-           <$> subgen a <*> subgen name)-- FIXME[WD]: check if left arg need to be parensed
+            <$> subgen a <*> subgen name)
+            -- FIXME[WD]: check if left arg need to be parensed
 
         IR.UniTermAccSection (IR.AccSection path)
             -> named (notSpaced accName) . Atom
              . ("." <>) . intercalate "." . fmap convert
            <$> Mutable.toList path
-        IR.UniTermApp  (IR.App f a)         -> join $ appSymbols <$> subgen f <*> subgen a
-        IR.UniTermBlank IR.Blank            -> pure $ simple wildcardName
+
+        IR.UniTermApp  (IR.App f a) ->
+            join $ appSymbols <$> subgen f <*> subgen a
+
+        IR.UniTermBlank IR.Blank -> pure $ simple wildcardName
+
         IR.UniTermCons (IR.Cons name args)  -> do
             args' <- mapM subgen =<< ComponentVector.toList args
             foldM appSymbols (simple $ convert name) args'
-        IR.UniTermFunction (IR.Function n as body)
-            -> simple .:. (\n' as' body' -> "def" <+> n' <> arglist as' <> body')
-           <$> subgenBody n <*> (mapM subgenBody =<< ComponentVector.toList as) <*> smartBlock body
+
+        IR.UniTermFunction (IR.Function n as body) ->
+            simple .:. (\n' as' body' -> "def" <+> n' <> arglist as' <> body')
+            <$> subgenBody n <*> (mapM subgenBody =<< ComponentVector.toList as)
+            <*> smartBlock body
+
         IR.UniTermFunctionSig (IR.FunctionSig n tp)
             -> simple .: (\n' tp' -> "def" <+> n' <+> typedName <+> tp')
            <$> subgenBody n
            <*> subgenBody tp
-        IR.UniTermGrouped (IR.Grouped expr) -> simple . parensed <$> subgenBody expr
-        IR.UniTermNumber num                -> simple . convert <$> Literal.prettyShow num
-        IR.UniTermImportHub (IR.ImportHub is)
-            -> simple . foldl (</>) mempty <$> (mapM subgenBody =<< ComponentVector.toList is)
-        IR.UniTermInvalid (IR.Invalid t)
-            -> pure . named (spaced appName) . Atom $ parensed <$> convert (show t)
-        IR.UniTermLam (IR.Lam arg body)
-            -> named (notSpaced lamName) . Atom
+
+        IR.UniTermGrouped (IR.Grouped expr) ->
+            simple . parensed <$> subgenBody expr
+
+        IR.UniTermNumber num -> simple . convert <$> Literal.prettyShow num
+
+        IR.UniTermImportHub (IR.ImportHub is) -> simple . foldl (</>) mempty
+            <$> (mapM subgenBody =<< ComponentVector.toList is)
+
+        IR.UniTermInvalid (IR.Invalid t) -> pure . named (spaced appName) . Atom
+            $ parensed <$> convert (show t)
+
+        IR.UniTermLam (IR.Lam arg body) -> named (notSpaced lamName) . Atom
             .: (<>) <$> subgenBody arg <*> smartBlock body
-        IR.UniTermList (IR.List elems)
-            -> simple . Doc.bracked . intercalate ", "
+
+        IR.UniTermList (IR.List elems) ->
+            simple . Doc.bracked . intercalate ", "
            <$> (mapM subgenBody =<< ComponentVector.toList elems)
+
         IR.UniTermMatch (IR.Match a cs) -> simple
-            .: (\expr body -> "case" <+> expr <+> "of" </> indented (block $ foldl (</>) mempty body))
+            .: (\expr body -> "case" <+> expr <+> "of"
+                </> indented (block $ foldl (</>) mempty body))
             <$> subgenBody a <*> (mapM subgenBody =<< ComponentVector.toList cs)
 
         IR.UniTermMissing IR.Missing -> pure $ simple mempty
-        IR.UniTermSectionLeft  (IR.SectionLeft  op a)
-            -> simple . parensed .: (<+>) <$> subgenBody op <*> subgenBody a
-        IR.UniTermSectionRight (IR.SectionRight op a)
-            -> simple . parensed .: flip (<+>) <$> subgenBody op <*> subgenBody a
-        IR.UniTermSeq (IR.Seq a b) -> simple .: (</>) <$> subgenBody a <*> subgenBody b
-        IR.UniTermRawString (IR.RawString s)
-            -> simple . quoted . convert . concat . fmap escape <$> Mutable.toList s where -- FIXME [WD]: add proper multi-line strings indentation
-            escape = \case
-                '"'  -> "\\\""
-                '\\' -> "\\\\"
-                c    -> [c]
-        IR.UniTermFmtString (IR.FmtString elems)
-            -> simple . singleQuoted . mconcat <$> (mapM subgen =<< ComponentVector.toList elems) where
-                   subgen a = (Layer.read @IR.Model <=< Link.source) a >>= \case
-                       IR.UniTermRawString (IR.RawString s) -> convert . concat . fmap escape <$> Mutable.toList s
-                       _ -> backticked <$> subgenBody a
-                   escape = \case
-                        '\'' -> "\\'"
-                        '\\' -> "\\\\"
-                        c    -> Char.showLitChar c ""
-        IR.UniTermTuple (IR.Tuple elems)
-            -> simple . parensed . (intercalate ", ")
-           <$> (mapM subgenBody =<< ComponentVector.toList elems)
-        IR.UniTermTyped (IR.Typed expr tp)
-            -> named (spaced typedName) . Atom
+
+        IR.UniTermSectionLeft  (IR.SectionLeft  op a) ->
+            simple . parensed .: (<+>) <$> subgenBody op <*> subgenBody a
+
+        IR.UniTermSectionRight (IR.SectionRight op a) ->
+            simple . parensed .: flip (<+>) <$> subgenBody op <*> subgenBody a
+
+        IR.UniTermSeq (IR.Seq a b) -> simple .: (</>) <$> subgenBody a
+            <*> subgenBody b
+
+        IR.UniTermRawString (IR.RawString s) ->
+            simple . quoted . convert . concat . fmap escape
+                <$> Mutable.toList s where -- FIXME [WD]: add proper multi-line strings indentation
+                escape = \case
+                    '"'  -> "\\\""
+                    '\\' -> "\\\\"
+                    c    -> [c]
+
+        IR.UniTermFmtString (IR.FmtString elems) ->
+            simple . singleQuoted . mconcat
+                <$> (mapM subgen =<< ComponentVector.toList elems) where
+                subgen a = (Layer.read @IR.Model <=< Link.source) a >>= \case
+                    IR.UniTermRawString (IR.RawString s) ->
+                        convert . concat . fmap escape <$> Mutable.toList s
+                    _ -> backticked <$> subgenBody a
+                escape = \case
+                     '\'' -> "\\'"
+                     '\\' -> "\\\\"
+                     c    -> Char.showLitChar c ""
+
+        IR.UniTermTuple (IR.Tuple elems) -> simple . parensed
+            . (intercalate ", ")
+            <$> (mapM subgenBody =<< ComponentVector.toList elems)
+
+        IR.UniTermTyped (IR.Typed expr tp) -> named (spaced typedName) . Atom
             .: mappendWith (Doc.spaced typedName)
-           <$> subgenBody expr
-           <*> subgenBody tp
-        IR.UniTermUnify (IR.Unify l r)
-            -> named (spaced unifyName) . Atom
+            <$> subgenBody expr
+            <*> subgenBody tp
+
+        IR.UniTermUnify (IR.Unify l r) -> named (spaced unifyName) . Atom
             .: mappendWith (Doc.spaced unifyName)
-           <$> subgenBody l
-           <*> subgenBody r
+            <$> subgenBody l
+            <*> subgenBody r
+
         IR.UniTermUnit (IR.Unit im _ b) -> do
             cls <- Link.source b
             Layer.read @IR.Model cls >>= \case
-                IR.UniTermRecord (IR.Record _ _ _ _ ds)
-                    -> unnamed . Atom .: go <$> subgenBody im
-                                            <*> (mapM subgenBody =<< ComponentVector.toList ds)
+                IR.UniTermRecord (IR.Record _ _ _ _ ds) ->
+                    unnamed . Atom .: go <$> subgenBody im
+                        <*> (mapM subgenBody =<< ComponentVector.toList ds)
                     where go imps defs = let glue = ""
                             in  imps <> glue <> foldl (</>) mempty defs
-        IR.UniTermMarked (IR.Marked m a) -> unnamed . Atom .: (<>) <$> subgenBody m <*> subgenBody a
-        IR.UniTermMarker (IR.Marker a) -> pure . unnamed . Atom $ convert markerBeginChar <> convert (show a) <> convert markerEndChar
+                _ -> error "Should not happen"
 
+        IR.UniTermMarked (IR.Marked m a) -> unnamed . Atom .: (<>)
+            <$> subgenBody m <*> subgenBody a
+
+        IR.UniTermMarker (IR.Marker a) -> pure . unnamed . Atom
+            $ convert markerBeginChar <> convert (show a)
+            <> convert markerEndChar
 
         IR.UniTermVar (IR.Var name) -> Scope.lookupMultipartName name <&> \case
             Just (n:|ns) -> labeled Nothing $ Mixfix (convert n) ns
-            Nothing -> if | Grammar.isOperator name -> named (spaced    name) $ Infix (convert name)
-                          | name == appName         -> named (notSpaced name) $ Infix (convert name)
-                          | name == uminusName      -> named (notSpaced name) $ Prefix minusName
-                          | name == lineBreakName   -> unnamed                $ Atom   "\n"
-                          | otherwise               -> unnamed                $ Atom   (convert name)
+            Nothing -> if | Grammar.isOperator name -> named (spaced    name)
+                                $ Infix (convert name)
+                          | name == appName -> named (notSpaced name)
+                                $ Infix (convert name)
+                          | name == uminusName -> named (notSpaced name)
+                                $ Prefix minusName
+                          | name == lineBreakName -> unnamed $ Atom "\n"
+                          | otherwise -> unnamed $ Atom (convert name)
+
         IR.UniTermResolvedCons (IR.ResolvedCons m c cons args) -> do
             args' <- mapM subgen =<< ComponentVector.toList args
-            foldM appSymbols (simple $ convert (Name.concat [convert m, ".", c, ".", cons])) args'
-        IR.UniTermResolvedDef (IR.ResolvedDef m n) -> pure . unnamed $ Atom (convert $ Name.concat [convert m, ".", n])
-        IR.UniTermModify (IR.Modify a ns n v) -> named (spaced updateName) . Atom .:.
-            (\a' v' ns' -> convert a' <> "." <> intercalate "." (convert <$> ns')
-                <+> convert n <> "=" <+> convert v')
+            foldM appSymbols
+                (simple $ convert (Name.concat [convert m, ".", c, ".", cons]))
+                args'
+
+        IR.UniTermResolvedDef (IR.ResolvedDef m n) -> pure . unnamed
+            $ Atom (convert $ Name.concat [convert m, ".", n])
+
+        IR.UniTermModify (IR.Modify a ns n v) -> named (spaced updateName)
+            . Atom
+            .:. (\a' v' ns' -> convert a' <> "." <> intercalate "."
+                    (convert <$> ns') <+> convert n <> "=" <+> convert v')
             <$> subgen a <*> subgen v <*> Mutable.toList ns
 
-        IR.UniTermUpdate (IR.Update a ns v) -> named (spaced updateName) . Atom .:.
-            (\a' v' ns' -> convert a' <> "." <> intercalate "." (convert <$> ns')
-            <+> "=" <+> convert v') <$> subgen a <*> subgen v <*> Mutable.toList ns
-
-        IR.UniTermUpdate (IR.Update a ns v) -> named (spaced updateName) . Atom .:.
-            (\a' v' ns' -> convert a' <> "." <> intercalate "." (convert <$> ns')
-            <+> "=" <+> convert v') <$> subgen a <*> subgen v <*> Mutable.toList ns
-
-        IR.UniTermModify (IR.Modify a ns n v) -> named (spaced updateName) . Atom .:.
-            (\a' v' ns' -> convert a' <> "." <> intercalate "." (convert <$> ns')
-                <+> convert n <> "=" <+> convert v')
+        IR.UniTermUpdate (IR.Update a ns v) -> named (spaced updateName) . Atom
+            .:. (\a' v' ns' -> convert a' <> "." <> intercalate "."
+                    (convert <$> ns') <+> "=" <+> convert v')
             <$> subgen a <*> subgen v <*> Mutable.toList ns
+
         IR.UniTermImp {} -> pure $ simple "imports ..."
+
         IR.UniTermExprList (IR.ExprList elems) -> simple . intercalate " "
             <$> (mapM subgenBody =<< ComponentVector.toList elems)
-        IR.UniTermRecord (IR.Record isNat name params conss decls)
-            -> unnamed . Atom .:. go <$> (mapM subgenBody =<< ComponentVector.toList params)
-                                     <*> (mapM subgenBody =<< ComponentVector.toList conss)
-                                     <*> (mapM subgenBody =<< ComponentVector.toList decls) where
-                go args conss decls = "class" <+> convert name <> arglist args <> body where
-                    body      = if (not . null $ conss <> decls) then ":" </> bodyBlock else mempty
-                    bodyBlock = indented (block $ foldl (</>) mempty $ conss <> decls)
+
+        IR.UniTermRecord (IR.Record _ name params conss decls) -> unnamed
+            . Atom .:. go
+            <$> (mapM subgenBody =<< ComponentVector.toList params)
+                    <*> (mapM subgenBody =<< ComponentVector.toList conss)
+                    <*> (mapM subgenBody =<< ComponentVector.toList decls) where
+                go args conss decls = "class" <+> convert name <> arglist args
+                    <> body where
+                    body = if (not . null $ conss <> decls) then ":"
+                        </> bodyBlock else mempty
+                    bodyBlock = indented
+                        (block $ foldl (</>) mempty $ conss <> decls)
+
         IR.UniTermRecordCons (IR.RecordCons name args)
             -> unnamed . Atom . (convert name <>)
              . (\x -> if null x then mempty else space <> intercalate space x)
              <$> (mapM subgenBody =<< ComponentVector.toList args)
 
-        IR.UniTermRecordFields (IR.RecordFields names tp) -> unnamed . Atom <$> (convert . show <$> Mutable.toList names) -- <$> subgenBody tp
-        IR.UniTermDocumented (IR.Documented doc base) -> unnamed . Atom . ("# " <>) <$> subgenBody base
+        IR.UniTermRecordFields (IR.RecordFields names _) -> unnamed . Atom
+            <$> (convert . show <$> Mutable.toList names) -- <$> subgenBody tp
+
+        IR.UniTermDocumented (IR.Documented _ base) -> unnamed . Atom
+            . ("# " <>) <$> subgenBody base
+
         t -> error $ "NO PRETTYPRINT FOR: " <> show t
 
 --     prettyprint style subStyle root = matchExpr root $ \case
@@ -452,14 +519,16 @@ instance ( MonadIO m -- DEBUG ONLY
 --                   body'     <- subgenBody body
 --                   pure $ if multiline then lamName </> indented (block body')
 --                                         else lamName <> space <> body'
+
         where subgen     = chainedPrettyPrint @subStyle @subStyle <=< src
               src        = fmap Layout.relayout . Link.source
               subgenBody = fmap getBody . subgen
               smartBlock body = do
                 multiline <- isMultilineBlock body
                 body'     <- subgenBody body
-                pure $ if multiline then lamName </> Doc.indented (Doc.block body')
-                                    else lamName <> space <> body'
+                pure $ if multiline then
+                    lamName </> Doc.indented (Doc.block body')
+                    else lamName <> space <> body'
               arglist as = if not $ null as then space <> intercalate space as
                                             else mempty
 
@@ -543,11 +612,13 @@ instance ( MonadIO m -- DEBUG ONLY
         IR.UniTermRawString (IR.RawString str') -> do
             str <- Mutable.toList str'
             pure . unnamed . Atom . convert . quoted $ if length str > succ maxLen then take maxLen str <> "…" else str where maxLen = 3
-        IR.UniTermVar (IR.Var name)   -> shouldBeCompact @CompactStyle root >>= switch (pure . unnamed $ Atom "•") defGen
-        IR.UniTermLam (IR.Lam{})         -> pure . unnamed $ Atom "Ⓕ"
+        IR.UniTermVar (IR.Var _) -> shouldBeCompact @CompactStyle root >>=
+            switch (pure . unnamed $ Atom "•") defGen
+        IR.UniTermLam (IR.Lam{}) -> pure . unnamed $ Atom "Ⓕ"
         IR.UniTermFunction (IR.Function{}) -> pure . unnamed $ Atom "Ⓕ"
-        IR.UniTermMarked (IR.Marked m b)    -> chainedPrettyPrint @CompactStyle @subStyle =<< Link.source b
-        IR.UniTermGrouped (IR.Grouped g)     -> do
+        IR.UniTermMarked (IR.Marked _ b) ->
+            chainedPrettyPrint @CompactStyle @subStyle =<< Link.source b
+        IR.UniTermGrouped (IR.Grouped g) -> do
             body <- chainedPrettyPrint @CompactStyle @subStyle =<< Link.source g
             pure $ case unlabel body of
                 Atom{} -> body

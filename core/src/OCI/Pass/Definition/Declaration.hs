@@ -5,20 +5,20 @@ module OCI.Pass.Definition.Declaration where
 
 import Prologue hiding (FromList)
 
-import qualified Control.Monad.State.Layered as State
-import qualified Data.Graph.Data             as Component
-import qualified Data.Graph.Data.Graph.Class as Graph
-import qualified Data.Graph.Data.Layer.Class as Layer
-import qualified Data.TypeMap.Strict         as TypeMap
+-- import qualified Control.Monad.State.Layered as State
+-- import qualified Data.Graph.Data             as Component
+-- import qualified Data.Graph.Data.Graph.Class as Graph
+-- import qualified Data.Graph.Data.Layer.Class as Layer
+-- import qualified Data.TypeMap.Strict         as TypeMap
 import qualified Type.Data.List              as List
 
-import Control.Monad.State.Layered     (StateT)
-import Data.Graph.Data.Component.Class (Component)
-import Data.TypeMap.Strict             (TypeMap)
-import Foreign.Info.ByteSize           (ByteSize)
-import Foreign.Memory.Pool             (MemPool)
-import Foreign.Ptr.Utils               (SomePtr)
-import OCI.Pass.State.Attr             (Attr)
+-- import Control.Monad.State.Layered     (StateT)
+-- import Data.Graph.Data.Component.Class (Component)
+-- import Data.TypeMap.Strict             (TypeMap)
+-- import Foreign.Info.ByteSize           (ByteSize)
+-- import Foreign.Memory.Pool             (MemPool)
+-- import Foreign.Ptr.Utils               (SomePtr)
+-- import OCI.Pass.State.Attr             (Attr)
 import Type.Data.List                  (type (<>))
 
 

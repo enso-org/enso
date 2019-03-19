@@ -10,9 +10,10 @@ import qualified Luna.IR.Term.Ast.Invalid             as Invalid
 import qualified Luna.Syntax.Text.Parser.Ast.Class    as Ast
 import qualified Luna.Syntax.Text.Parser.Ast.CodeSpan as CodeSpan
 
-import Data.Text.Position                   (Delta)
-import Luna.Syntax.Text.Parser.Ast.CodeSpan (CodeSpan (CodeSpan))
-import OCI.Data.Name                        (Name)
+import Luna.Syntax.Text.Parser.Ast.CodeSpan (CodeSpan)
+import OCI.Data.Name.Class (Name)
+import Data.Text.Position (Delta)
+
 
 
 type Text = Text.Text32
@@ -153,29 +154,69 @@ type instance Ast.Link Ast (Ast.StrChunk s) = Spanned (Ast.StrChunk s)
 type instance Ast.Link Ast Ast.Struct = Spanned Ast
 
 
--- TODO
--- Generate with TH
-pattern Var          t1       = AstVar          (Ast.Var          t1      )
-pattern Cons         t1       = AstCons         (Ast.Cons         t1      )
-pattern Operator     t1       = AstOperator     (Ast.Operator     t1      )
-pattern Modifier     t1       = AstModifier     (Ast.Modifier     t1      )
-pattern Wildcard              = AstWildcard     (Ast.Wildcard             )
-pattern Number       t1       = AstNumber       (Ast.Number       t1      )
-pattern Str          t1       = AstStr          (Ast.Str          t1      )
-pattern Block        t1       = AstBlock        (Ast.Block        t1      )
-pattern Marker       t1       = AstMarker       (Ast.Marker       t1      )
-pattern LineBreak    t1       = AstLineBreak    (Ast.LineBreak    t1      )
-pattern Comment      t1       = AstComment      (Ast.Comment      t1      )
-pattern Documented   t1 t2    = AstDocumented   (Ast.Documented   t1 t2   )
-pattern Metadata     t1       = AstMetadata     (Ast.Metadata     t1      )
-pattern Invalid      t1       = AstInvalid      (Ast.Invalid      t1      )
-pattern App          t1 t2    = AstApp          (Ast.App          t1 t2   )
-pattern InfixApp     t1 t2 t3 = AstInfixApp     (Ast.InfixApp     t1 t2 t3)
-pattern Missing               = AstMissing      (Ast.Missing              )
-pattern List         t1       = AstList         (Ast.List         t1      )
-pattern Unit         t1       = AstUnit         (Ast.Unit         t1      )
-pattern SectionLeft  t1 t2    = AstSectionLeft  (Ast.SectionLeft  t1 t2   )
-pattern SectionRight t1 t2    = AstSectionRight (Ast.SectionRight t1 t2   )
+-- TODO [WD, Ara] Generate with TH
+pattern Var :: Name -> Ast
+pattern Var t1 = AstVar (Ast.Var t1)
+
+pattern Cons :: Name -> Ast
+pattern Cons t1 = AstCons (Ast.Cons t1)
+
+pattern Operator :: Name -> Ast
+pattern Operator t1 = AstOperator (Ast.Operator t1)
+
+pattern Modifier :: Name -> Ast
+pattern Modifier t1 = AstModifier (Ast.Modifier t1)
+
+pattern Wildcard :: Ast
+pattern Wildcard = AstWildcard (Ast.Wildcard)
+
+pattern Number :: NonEmpty Word8 -> Ast
+pattern Number t1 = AstNumber (Ast.Number t1)
+
+pattern Str :: [Spanned (Ast.StrChunk Ast)] -> Ast
+pattern Str t1 = AstStr (Ast.Str t1)
+
+pattern Block :: NonEmpty (Spanned Ast) -> Ast
+pattern Block t1 = AstBlock (Ast.Block t1)
+
+pattern Marker :: Int -> Ast
+pattern Marker t1 = AstMarker (Ast.Marker t1)
+
+pattern LineBreak :: Delta -> Ast
+pattern LineBreak t1 = AstLineBreak (Ast.LineBreak t1)
+
+pattern Comment :: Ast.Text -> Ast
+pattern Comment t1 = AstComment (Ast.Comment t1)
+
+pattern Documented :: Spanned Ast -> Spanned Ast -> Ast
+pattern Documented t1 t2 = AstDocumented (Ast.Documented t1 t2)
+
+pattern Metadata :: Ast.Text -> Ast
+pattern Metadata t1 = AstMetadata (Ast.Metadata t1)
+
+pattern Invalid :: Invalid.Symbol -> Ast
+pattern Invalid t1 = AstInvalid (Ast.Invalid t1)
+
+pattern App :: Spanned Ast -> Spanned Ast -> Ast
+pattern App t1 t2 = AstApp (Ast.App t1 t2)
+
+pattern InfixApp :: Spanned Ast -> Spanned Ast -> Spanned Ast -> Ast
+pattern InfixApp t1 t2 t3 = AstInfixApp (Ast.InfixApp t1 t2 t3)
+
+pattern Missing :: Ast
+pattern Missing = AstMissing (Ast.Missing)
+
+pattern List :: [Spanned Ast] -> Ast
+pattern List t1 = AstList (Ast.List t1)
+
+pattern Unit :: Spanned Ast -> Ast
+pattern Unit t1 = AstUnit (Ast.Unit t1)
+
+pattern SectionLeft :: Spanned Ast -> Spanned Ast -> Ast
+pattern SectionLeft t1 t2 = AstSectionLeft (Ast.SectionLeft t1 t2)
+
+pattern SectionRight :: Spanned Ast -> Spanned Ast -> Ast
+pattern SectionRight t1 t2 = AstSectionRight (Ast.SectionRight t1 t2)
 
 
 -- === Smart Constructors === --

@@ -4,11 +4,9 @@
 
 module Luna.Pass.Typing.Base where
 
-import Prologue
 
 import qualified Luna.IR         as IR
 import qualified Luna.Pass       as Pass
-import qualified Luna.Pass.Basic as Pass
 
 import Luna.Pass.Data.Layer.Requester (Requester)
 

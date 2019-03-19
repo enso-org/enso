@@ -2,8 +2,6 @@
 
 module Data.Graph.Store.Internal where
 
-import Prologue
-
 -- import qualified Control.Monad.State.Layered    as State
 -- import qualified Data.Graph.Data.Component.List as Component
 -- import qualified Data.Graph.Fold.Partition      as Partition

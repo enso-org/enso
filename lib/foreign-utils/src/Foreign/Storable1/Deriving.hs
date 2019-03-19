@@ -6,11 +6,9 @@ module Foreign.Storable1.Deriving (derive, derive') where
 
 import Prologue
 
-import Foreign.Storable            (Storable)
 import Foreign.Storable1           (Storable1)
 import Language.Haskell.TH         hiding (clause)
 import Language.Haskell.TH.Builder
-import Language.Haskell.TH.Lib     hiding (clause)
 
 import qualified Foreign.Storable    as Storable
 import qualified Foreign.Storable1   as Storable1
@@ -50,7 +48,7 @@ genFun :: Name -> Name -> [TH.Dec]
 genFun n1 n2 = [FunD n1 [genClause n2], inlineF n1]
 
 genLazyClause :: Name -> Q TH.Clause
-genLazyClause funName = do
+genLazyClause _ = do
     a <- newName "a"
     let pat  = TH.TildeP $ TH.VarP a
         exp  = app (var 'Storable.sizeOf) (var a)

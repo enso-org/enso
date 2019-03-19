@@ -3,7 +3,7 @@
 
 module Luna.Syntax.Text.Parser.State.Reserved where
 
-import Prologue hiding (SomeSymbol, Symbol, lookup)
+import Prologue hiding (Symbol, lookup)
 
 import qualified Control.Monad.State.Layered as State
 import qualified Data.Set                    as Set

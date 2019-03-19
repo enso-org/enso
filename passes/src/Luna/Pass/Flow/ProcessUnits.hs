@@ -10,7 +10,6 @@ import qualified Data.Graph.Data.Graph.Class           as Graph
 import qualified Data.Graph.Data.Layer.Layout          as Layout
 import qualified Data.Map                              as Map
 import qualified Luna.IR                               as IR
-import qualified Luna.Pass.Data.Error                  as Error
 import qualified Luna.Pass.Data.Stage                  as TC
 import qualified Luna.Pass.Evaluation.Interpreter      as Interpreter
 import qualified Luna.Pass.Typing.HeaderBuilder        as Serializer
@@ -29,6 +28,12 @@ import qualified Luna.Runtime                          as Runtime
 import Data.Map (Map)
 import Luna.Pass.Resolve.Data.Resolution (UnitResolver)
 
+
+
+-----------------
+-- === API === --
+-----------------
+
 processFunBody
     :: Target.Target
     -> UnitResolver
@@ -41,8 +46,7 @@ processFunBody tgt resolver typedUnits evaluatedUnits copy = do
     PreprocessDef.preprocessDef resolver  fun
     hdr <- Typechecker.runTypechecker tgt fun typedUnits
     val <- Interpreter.runInterpreter     fun evaluatedUnits
-    return (hdr, val)
-
+    pure (hdr, val)
 
 processFun :: Target.Target
            -> UnitResolver

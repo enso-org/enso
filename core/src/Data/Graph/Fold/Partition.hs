@@ -5,7 +5,6 @@ module Data.Graph.Fold.Partition where
 import Prologue
 
 import qualified Data.Graph.Data.Component.Class as Component
-import qualified Data.Graph.Data.Component.List  as ComponentList
 import qualified Data.Graph.Data.Graph.Class     as Graph
 import qualified Data.Graph.Data.Layer.Layout    as Layout
 import qualified Data.Graph.Fold.Class           as Fold
@@ -16,7 +15,6 @@ import qualified Data.TypeMap.Strict             as TypeMap
 import Data.Graph.Component.Edge       (Target)
 import Data.Graph.Component.Node.Layer (Users)
 import Data.Graph.Data.Component.Class (Component)
-import Data.Graph.Data.Component.List  (ComponentList, ComponentLists)
 import Data.TypeMap.Strict             (TypeMap)
 
 import           Data.Set (Set)

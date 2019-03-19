@@ -6,37 +6,17 @@ module Luna.Syntax.Text.Parser.Parser.ExprBuilder where
 
 import Prologue hiding (optional)
 
-import qualified Control.Monad.State.Layered           as State
-import qualified Data.Graph.Component.Node.Destruction as Component
-import qualified Data.Map                              as Map
-import qualified Data.Set                              as Set
 import qualified Data.Text.Span                        as Span
 import qualified Language.Symbol.Operator.Assoc        as Assoc
 import qualified Language.Symbol.Operator.Prec         as Prec
-import qualified Luna.IR                               as IR
-import qualified Luna.IR.Aliases                       as Uni
 import qualified Luna.IR.Term.Ast.Invalid              as Invalid
-import qualified Luna.Pass                             as Pass
 import qualified Luna.Syntax.Text.Parser.Ast           as Ast
 import qualified Luna.Syntax.Text.Parser.Ast.CodeSpan  as CodeSpan
 import qualified Luna.Syntax.Text.Parser.Lexer.Names   as Name
 
-import Data.Map                             (Map)
-import Data.Set                             (Set)
-import Data.Text.Position                   (Delta (Delta))
-import Luna.Syntax.Text.Parser.Ast          (Spanned (Spanned))
-import Luna.Syntax.Text.Parser.Ast.CodeSpan (CodeSpan)
-import Luna.Syntax.Text.Parser.Lexer        (Token)
-import Luna.Syntax.Text.Source              (Source)
-import OCI.Data.Name                        (Name)
-
--- import Data.Parser hiding (Result)
-
-
-import Data.Attoparsec.List ()
-
-
-
+import Data.Attoparsec.List          ()
+import Luna.Syntax.Text.Parser.Lexer (Token)
+import OCI.Data.Name                 (Name)
 
 
 
@@ -137,7 +117,7 @@ checkLeftSpacing = \a -> normal a || special a where
 checkLeftSpacing' :: Token -> [Token] -> Bool
 checkLeftSpacing' = \a buff -> checkLeftSpacing a || checkLamBuff buff where
     checkLamBuff = \case
-        (tok:toks) -> Ast.unspan tok == Ast.Operator ":"
+        (tok:_) -> Ast.unspan tok == Ast.Operator ":"
         _ -> False
 {-# INLINE checkLeftSpacing' #-}
 
@@ -227,17 +207,27 @@ data OpStream     = OpStream Name OpStreamType
 data OpStreamType = InfixOp  (Maybe Token) ElStream
                   | EndOp    Token
 
+pattern InfixOpStream :: Name -> Maybe Token -> ElStream -> OpStream
 pattern InfixOpStream name mop stream = OpStream name (InfixOp mop stream)
-pattern EndOpStream   name op         = OpStream name (EndOp op)
-pattern InfixOp_      mop ast stream  = InfixOp  mop  (ElStream ast stream)
+
+pattern EndOpStream :: Name -> Token -> OpStream
+pattern EndOpStream name op = OpStream name (EndOp op)
+
+pattern InfixOp_ :: Maybe Token -> Token -> ElStreamType -> OpStreamType
+pattern InfixOp_ mop ast stream = InfixOp mop (ElStream ast stream)
 
 data ElStream     = ElStream Token ElStreamType
 data ElStreamType = InfixEl  OpStream
                   | EndEl
 
-pattern InfixElStream ast  stream = ElStream ast (InfixEl stream)
-pattern EndElStream   ast         = ElStream ast EndEl
-pattern InfixEl_      name stream = InfixEl (OpStream name stream)
+pattern InfixElStream :: Token -> OpStream -> ElStream
+pattern InfixElStream ast stream = ElStream ast (InfixEl stream)
+
+pattern EndElStream :: Token -> ElStream
+pattern EndElStream ast = ElStream ast EndEl
+
+pattern InfixEl_ :: Name -> OpStreamType -> ElStreamType
+pattern InfixEl_ name stream = InfixEl (OpStream name stream)
 
 deriving instance Show Stream
 deriving instance Show OpStream
@@ -272,7 +262,7 @@ buildStream = \(reverse -> stream) -> case stream of
 buildOpStream :: ElStream -> [Token] -> Stream
 buildOpStream = \result stream -> case stream of
     [] -> ElStreamStart result
-    (tok:toks) -> case discoverOps stream of
+    (_:toks) -> case discoverOps stream of
         NotFound          -> go Name.app     Nothing    result stream
         Invalid inv toks' -> go Name.invalid (Just inv) result toks'
         Single name op    -> go name         (Just op)  result toks
@@ -397,6 +387,7 @@ buildExprOp__ = \stream stack -> let
             in case streamTp' of
                 EndEl           -> foldExprStack__ streamEl newOpStream
                 InfixEl stream' -> buildExprOp__ stream' newStack
+        _ -> error "Should not happen"
     {-# INLINE submitToStack #-}
 
     reduceStack :: OpStreamType -> m Token
@@ -405,6 +396,7 @@ buildExprOp__ = \stream stack -> let
             newStack = EndElStream (Ast.sectionRight op stackEl)
         InfixOp_ mop stackEl2 s -> buildExprOp__ stream newStack where
             newStack = ElStream (appInfix mop stackEl2 stackEl) s
+        _ -> error "Should not happen"
     {-# INLINE reduceStack #-}
 
     markStreamOpInvalid :: Invalid.Symbol -> m Token
@@ -413,6 +405,7 @@ buildExprOp__ = \stream stack -> let
         newStream = OpStream Name.invalid $ case streamTp of
             EndOp   op          -> EndOp   (inv op)
             InfixOp (Just op) s -> InfixOp (Just (inv op)) s
+            _ -> error "Should not happen"
         in buildExprOp__ newStream stack
 
     in case stackTp of
@@ -430,6 +423,7 @@ buildExprOp__ = \stream stack -> let
                         Assoc.Right -> submitToStack
                         Assoc.None  -> markStreamOpInvalid Invalid.NoAssoc
                     else markStreamOpInvalid Invalid.AssocConflict
+        _ -> error "Should not happen"
 {-# NOINLINE buildExprOp__ #-}
 
 -- | Relation checking. All operators already discovered to be invalid has
@@ -449,9 +443,10 @@ readRel = \l r -> if
 {-# INLINE readRel #-}
 
 foldExprStack__ :: ExprBuilderMonad m => Token -> OpStream -> m Token
-foldExprStack__ = \el (OpStream op stp2) -> case stp2 of
+foldExprStack__ = \el (OpStream _ stp2) -> case stp2 of
         EndOp    op           -> pure $ Ast.sectionRight el op
         InfixOp_ mop el2 stp3 -> foldExprStackStep__ (appInfix mop el2 el) stp3
+        _ -> error "Should not happen"
 {-# NOINLINE foldExprStack__ #-}
 
 appInfix :: Maybe Token -> (Token -> Token -> Token)
@@ -694,3 +689,4 @@ foldExprStackStep__ = \a -> \case
 --     pure ()
 
 --     -- putLnFmtd =<< showM out
+

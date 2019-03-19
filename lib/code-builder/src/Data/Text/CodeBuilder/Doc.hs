@@ -1,12 +1,12 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
-{-# LANGUAGE NoStrict #-}
-{-# LANGUAGE NoStrictData #-}
+{-# LANGUAGE NoStrict                  #-}
+{-# LANGUAGE NoStrictData              #-}
 {-# LANGUAGE TemplateHaskell           #-}
 
 
 module Data.Text.CodeBuilder.Doc where
 
-import Prologue hiding (Empty, Text)
+import Prologue hiding (Text)
 
 import           Control.Monad.State
 import           Data.Text.Lazy         (Text)
@@ -19,15 +19,16 @@ import           GHC.Int                (Int64)
 -- Indentation handling
 ------------------------------------------------------------------------
 
-data IndentState = IndentState { _indent :: !Int64
-                               , _col    :: !Int64
-                               } deriving (Show)
-
+data IndentState = IndentState
+    { _indent :: !Int64
+    , _col    :: !Int64
+    } deriving (Show)
 makeLenses ''IndentState
 
 
 -- === Utils ===
 
+indented :: MonadState IndentState m => (Int64 -> Int64) -> m a -> m a
 indented f p = do
     s <- get
     put $ s & indent %~ f
@@ -35,10 +36,15 @@ indented f p = do
     put s
     pure ret
 
+getIndent :: MonadState IndentState m => m Int64
 getIndent = view indent <$> get
 
-getIndentTxt = (\i -> fromString $ replicate (4 * fromIntegral i) ' ') <$> getIndent
+getIndentTxt :: (IsString a, MonadState IndentState m) => m a
+getIndentTxt =
+    (\i -> fromString $ replicate ((4 :: Integer) * fromIntegral i) ' ')
+    <$> getIndent
 
+modCol :: MonadState IndentState m => (Int64 -> Int64) -> m ()
 modCol f = do
     s <- get
     put $ s & col %~ f
@@ -61,10 +67,19 @@ data Doc = Empty
 
 -- === Utils ===
 
+between :: Semigroup a => a -> a -> a -> a
 between l r a = l <> a <> r
+
+parensed :: (Semigroup a, IsString a) => a -> a
 parensed = between "(" ")"
+
+line :: Doc
 line = Line
+
+(</>) :: Doc -> Doc -> Doc
 a </> b = a <> Line <> b
+
+nested :: Doc -> Doc
 nested = Nest (+1)
 
 render :: Doc -> Text.Builder
@@ -75,7 +90,8 @@ render = flip evalState (def :: IndentState) . go where
         Line     -> do
             ind <- view indent <$> get
             modCol (const ind)
-            pure $ fromString $ "\n" <> concat (replicate (fromInteger . toInteger $ ind) "    ")
+            pure $ fromString $ "\n" <> concat
+                (replicate ((fromInteger . toInteger $ ind) :: Integer) "    ")
         Cat  a b -> (<>) <$> go a <*> go b
         Nest f d -> indented f $ go d
 
@@ -87,6 +103,7 @@ instance Show Doc where
         Line     -> "Line"
         Nest _ d -> "Nest " <> show d
         Cat  a b -> "Cat (" <> show a <> ") (" <> show b <> ")"
+        Empty    -> ""
 
 instance Mempty Doc where
     mempty = Empty

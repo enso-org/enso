@@ -5,7 +5,6 @@ module Data.IntMap.Cpp where
 
 import Prelude
 
-import Control.Monad          ((<=<))
 import Control.Monad.IO.Class
 import Foreign.ForeignPtr
 import Foreign.Marshal.Alloc

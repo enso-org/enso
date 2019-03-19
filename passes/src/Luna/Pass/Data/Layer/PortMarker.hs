@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-orphans #-}
+
 {-# LANGUAGE NoStrict             #-}
 {-# LANGUAGE NoStrictData         #-}
 {-# LANGUAGE UndecidableInstances #-}

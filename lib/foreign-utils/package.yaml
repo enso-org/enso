@@ -9,11 +9,9 @@ homepage    : https://github.com/luna/luna
 bug-reports : https://github.com/luna/luna/issues
 author      : Luna Team
 copyright   : Copyright (C) 2018 Luna Team
-maintainer  : Luna Team
-
-ghc-options:
-    - -O2
-    - -Wall
+maintainer:
+    - Wojciech Danilo  <wojciech.danilo@luna-lang.org>
+    - Ara Adkins       <ara.adkins@luna-lang.org>
 
 library:
     source-dirs:
@@ -21,12 +19,12 @@ library:
     dependencies:
         - base
         - convert
-        - lens
         - layered-state
+        - lens
         - luna-th-builder
-        - luna-typelevel
-        - prologue >= 3.0.0
+        - prologue
         - template-haskell
+        - typelevel
 
 default-extensions: *luna-extensions
 

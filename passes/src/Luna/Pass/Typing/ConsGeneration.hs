@@ -12,22 +12,15 @@ import qualified Data.Graph.Data.Layer.Layout          as Layout
 import qualified Data.Graph.Store                      as Store
 import qualified Data.Map                              as Map
 import qualified Data.Mutable.Storable.SmallAutoVector as SmallVector
-import qualified Data.Set                              as Set
 import qualified Luna.IR                               as IR
 import qualified Luna.IR.Aliases                       as Uni
 import qualified Luna.IR.Layer                         as Layer
 import qualified Luna.Pass                             as Pass
 import qualified Luna.Pass.Attr                        as Attr
-import qualified Luna.Pass.Data.Layer.Requester        as Requester
 import qualified Luna.Pass.Data.Stage                  as TC
-import qualified Luna.Pass.Data.UniqueNameGen          as NameGen
 import qualified Luna.Pass.Scheduler                   as Scheduler
 import qualified Luna.Pass.Sourcing.Data.Unit          as Unit
 import qualified Luna.Pass.Typing.Base                 as TC
-import qualified Luna.Pass.Typing.Data.AccQueue        as AccQueue
-import qualified Luna.Pass.Typing.Data.AppQueue        as AppQueue
-import qualified Luna.Pass.Typing.Data.UniQueue        as UniQueue
-import qualified Luna.Pass.Typing.Data.Typed           as Typed
 
 import Data.Graph.Store    (Rooted)
 import Data.Map            (Map)
@@ -73,8 +66,8 @@ instance Pass.Definition TC.Stage ConsGeneration where
 
 getParamNames :: [IR.SomeTerm] -> TC.Pass ConsGeneration [IR.Name]
 getParamNames ts = fmap catMaybes $ for ts $ Layer.read @IR.Model >=> \case
-    Uni.Var n -> return $ Just n
-    _         -> return Nothing
+    Uni.Var n -> pure $ Just n
+    _         -> pure Nothing
 
 genClassConses :: IR.Qualified -> IR.SomeTerm
                -> TC.Pass ConsGeneration [(IR.Name, Rooted (IR.Term IR.ResolvedCons))]
@@ -84,7 +77,7 @@ genClassConses uname cls = Layer.read @IR.Model cls >>= \case
         paramNames <- getParamNames pars
         cs <- traverse IR.source =<< ComponentVector.toList conses
         traverse (genCons uname cname paramNames) cs
-    _ -> return []
+    _ -> pure []
 
 genCons :: IR.Qualified -> IR.Name -> [IR.Name] -> IR.SomeTerm
         -> TC.Pass ConsGeneration (IR.Name, Rooted (IR.Term IR.ResolvedCons))
@@ -100,13 +93,14 @@ genCons unitName clsName paramNames root = Layer.read @IR.Model root >>= \case
             for_ blanks $ \b -> do
                 oldTp <- IR.source =<< Layer.read @IR.Type b
                 IR.replace tp oldTp
-            return blanks
+            pure blanks
         retCons <- Layout.unsafeRelayout <$> IR.resolvedCons unitName clsName n consFields
         oldTp <- IR.source =<< Layer.read @IR.Type retCons
         IR.replace retTp oldTp
         rooted  <- Store.serialize retCons
         IR.deleteSubtree retCons
-        return (n, rooted)
+        pure (n, rooted)
+    _ -> error "Should not happen."
 
 processField :: Map IR.Name IR.SomeTerm -> IR.SomeTerm
              -> TC.Pass ConsGeneration (Maybe (Int, IR.SomeTerm))
@@ -120,8 +114,8 @@ processField varMap root = Layer.read @IR.Model root >>= \case
         tpCopy  <- Store.deserialize rooted
         fixedVars <- reconnectVars varMap tpCopy
         count <- length <$> SmallVector.toList ns
-        return $ Just (if count == 0 then 1 else count, fixedVars)
-    _ -> return Nothing
+        pure $ Just (if count == 0 then 1 else count, fixedVars)
+    _ -> pure Nothing
 
 reconnectVars :: Map IR.Name IR.SomeTerm -> IR.SomeTerm
               -> TC.Pass ConsGeneration IR.SomeTerm
@@ -130,10 +124,10 @@ reconnectVars varMap root = Layer.read @IR.Model root >>= \case
         case Map.lookup n varMap of
             Just t -> do
                 IR.replace t root
-                return t
-            Nothing -> return root
+                pure t
+            Nothing -> pure root
     _ -> do
         inps <- IR.inputs root
         ComponentList.mapM_ (reconnectVars varMap <=< IR.source) inps
-        return root
+        pure root
 

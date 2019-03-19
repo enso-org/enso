@@ -57,7 +57,7 @@ resolve r = Layer.read @IR.Model r >>= \case
                 c  <- IR.resolvedCons' m n n as
                 IR.replace c r
                 resolve c
-            _ -> return ()
+            _ -> pure ()
     _ -> do
         inps <- IR.inputs r
         ComponentList.mapM_ (resolve <=< IR.source) inps

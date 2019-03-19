@@ -12,15 +12,10 @@ import Prologue                        hiding (FromList, ToList, fromList,
 import qualified Data.Construction            as Data
 import qualified Data.Mutable.Class2          as Mutable
 import qualified Data.Mutable.Plain           as Data
-import qualified Data.Property                as Property
-import qualified Data.Vector.Storable.Foreign as Vector
 import qualified Foreign.Storable.Class       as Storable
-import qualified Foreign.Storable1.Deriving   as Storable1
 import qualified Memory                       as Memory
 
-import Data.Mutable.Storable.SmallAutoVector (SmallVector,
-                                              UnmanagedSmallVectorA)
-import Foreign.DynamicStorable               (DynamicStorable)
+import Data.Mutable.Storable.SmallAutoVector (UnmanagedSmallVectorA)
 import Foreign.Storable                      (Storable)
 
 

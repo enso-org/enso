@@ -5,13 +5,16 @@
 
 module Data.Tuple.Utils.TH where
 
-import Language.Haskell.TH         as TH
+import Prologue
+
+import Language.Haskell.TH as TH
+
 import Language.Haskell.TH.Builder
-import Prologue                    hiding (cons)
 
 _MAX_TUPLE_SIZE :: Int
 _MAX_TUPLE_SIZE = 30
 
+tup :: Convertible (Cons a) a => [a] -> a
 tup els = cons (convert $ "T" <> show (length els)) $ field' <$> els
 
 
@@ -19,7 +22,7 @@ tup els = cons (convert $ "T" <> show (length els)) $ field' <$> els
 -- >> pattern T2 :: t1 -> t2 -> (t1,t2)
 -- >> pattern T2 {t1,t2} = (t1,t2)
 genTupleSyn :: Q [Dec]
-genTupleSyn = return decs where
+genTupleSyn = pure decs where
     genDec i = [tpSyn, sig, syn] where
         synNameS = "T" <> show i
         synName  = convert synNameS
@@ -40,7 +43,7 @@ genTupleSyn = return decs where
 
 
 genStrictTupDecls :: Q [Dec]
-genStrictTupDecls = return decs where
+genStrictTupDecls = pure decs where
     genDec i = [decl] where
         con     = NormalC name
                 $ (Bang NoSourceUnpackedness SourceStrict,) <$> tvs
@@ -55,7 +58,7 @@ genStrictTupDecls = return decs where
 
 -- >> data T2 = T2 {-# UNPACK #-} !Int {-# UNPACK #-} !Int deriving (Show)
 genStrictIntTupDecls :: Q [Dec]
-genStrictIntTupDecls = return decs where
+genStrictIntTupDecls = pure decs where
     genDec i = [decl] where
         con     = NormalC name
                 $ replicate i (Bang SourceUnpack SourceStrict, cons' ''Int)
@@ -67,7 +70,7 @@ genStrictIntTupDecls = return decs where
 
 -- >> FromNat 3 = T3
 genIntTupleFromNat :: Q [Dec]
-genIntTupleFromNat = return [fam] where
+genIntTupleFromNat = pure [fam] where
     name   = mkName "FromNat"
     header = TypeFamilyHead name ["n"] NoSig Nothing
     line i = TySynEqn [convert i] (cons' . convert $ "T" <> show i)
@@ -76,7 +79,7 @@ genIntTupleFromNat = return [fam] where
 
 -- >> FromList '[t1, t2] = T2 t1 t2
 genFromList :: Q [Dec]
-genFromList = return [fam] where
+genFromList = pure [fam] where
     name   = mkName "FromList"
     header = TypeFamilyHead name ["t"] NoSig Nothing
     line i = TySynEqn [foldr app PromotedNilT (app PromotedConsT <$> vs)]
@@ -86,7 +89,7 @@ genFromList = return [fam] where
 
 -- >> ToList T2 t1 t2 = '[t1, t2]
 genToList :: Q [Dec]
-genToList = return [fam] where
+genToList = pure [fam] where
     name   = mkName "ToList"
     header = TypeFamilyHead name ["t"] NoSig Nothing
     line i = TySynEqn [tup vs]
@@ -96,7 +99,7 @@ genToList = return [fam] where
 
 -- >> type instance GetElemAt 0 (T2 t1 t2) = t1
 genGetElemAt :: Q [Dec]
-genGetElemAt = return decls where
+genGetElemAt = pure decls where
     genDecl elIdx tupLen = TySynInstD "GetElemAt"
         (TySynEqn [convert elIdx, tup vs] (vs !! elIdx)) where
             vs = var <$> unsafeGenNamesTN tupLen
@@ -105,7 +108,7 @@ genGetElemAt = return decls where
 
 -- >> type instance Head (T3 t1 t2 t3) = t1
 genHead :: Q [Dec]
-genHead = return decls where
+genHead = pure decls where
     genDecl tupLen = TySynInstD "Head"
         (TySynEqn [tup vs] (vs !! 0)) where
             vs = var <$> unsafeGenNamesTN tupLen
@@ -113,7 +116,7 @@ genHead = return decls where
 
 -- >> type instance Tail (T3 t1 t2 t3) = T2 t2 t3
 genTail :: Q [Dec]
-genTail = return decls where
+genTail = pure decls where
     genDecl tupLen = TySynInstD "Tail"
         (TySynEqn [tup vs] (tup $ unsafeTail vs)) where
             vs = var <$> unsafeGenNamesTN tupLen
@@ -122,7 +125,7 @@ genTail = return decls where
 -- >> instance HeadGetter (T3 t1 t2 t3) where
 -- >>     head (T3 !t1 !t2 !t3) = t1 ; {-# INLINE head #-}
 genHeadGetter :: Q [Dec]
-genHeadGetter = return decls where
+genHeadGetter = pure decls where
     genDecl tupLen = decl where
         ns     = unsafeGenNamesTN tupLen
         tvs    = var <$> ns
@@ -138,7 +141,7 @@ genHeadGetter = return decls where
 -- >> instance TailGetter (T3 t1 t2 t3) where
 -- >>     tail (T3 !t1 !t2 !t3) = T2 t2 t3 ; {-# INLINE tail #-}
 genTailGetter :: Q [Dec]
-genTailGetter = return decls where
+genTailGetter = pure decls where
     genDecl tupLen = decl where
         ns     = unsafeGenNamesTN tupLen
         tvs    = var <$> ns
@@ -151,10 +154,9 @@ genTailGetter = return decls where
         decl   = InstanceD Nothing [] header [fun, prag]
     decls = genDecl <$> [1.._MAX_TUPLE_SIZE]
 
-
 -- >> type instance SetElemAt 0 v (T2 t1 t2) = T2 v t2
 genSetElemAt :: Q [Dec]
-genSetElemAt = return decls where
+genSetElemAt = pure decls where
     genDecl elIdx tupLen = TySynInstD "SetElemAt"
         (TySynEqn [convert elIdx, "v", tup vs] (tup $ replaceLst elIdx "v" vs))
         where vs = var <$> unsafeGenNamesTN tupLen
@@ -164,7 +166,7 @@ genSetElemAt = return decls where
 -- >> instance IxElemGetter 0 (T3 t1 t2 t3) where
 -- >>     getElemAt (T3 !t1 !t2 !t3) = t1 ; {-# INLINE getElemAt #-}
 genIxElemGetters :: Q [Dec]
-genIxElemGetters = return decls where
+genIxElemGetters = pure decls where
     genDecl elIdx tupLen = decl where
         ns     = unsafeGenNamesTN tupLen
         tvs    = var <$> ns
@@ -179,7 +181,7 @@ genIxElemGetters = return decls where
     decls = concat $ genDeclsForTup <$> [0.._MAX_TUPLE_SIZE]
 
 genIxElemSetters :: Q [Dec]
-genIxElemSetters = return decls where
+genIxElemSetters = pure decls where
     genDecl elIdx tupLen = decl where
         ns     = unsafeGenNamesTN tupLen
         tvs    = var <$> ns
@@ -194,7 +196,7 @@ genIxElemSetters = return decls where
     decls = concat $ genDeclsForTup <$> [0.._MAX_TUPLE_SIZE]
 
 genDefaultInstances :: Q [Dec]
-genDefaultInstances = return decls where
+genDefaultInstances = pure decls where
     genDecl tupLen = decl where
         ns     = unsafeGenNamesTN tupLen
         tvs    = var <$> ns
@@ -207,7 +209,7 @@ genDefaultInstances = return decls where
     decls = genDecl <$> [0.._MAX_TUPLE_SIZE]
 
 genMemptyInstances :: Q [Dec]
-genMemptyInstances = return decls where
+genMemptyInstances = pure decls where
     genDecl tupLen = decl where
         ns     = unsafeGenNamesTN tupLen
         tvs    = var <$> ns
@@ -223,7 +225,7 @@ genMemptyInstances = return decls where
 -- >>     setElemAt v (T3 !t1 !t2 !t3) = T3 v t2 t3 ; {-# INLINE setElemAt #-}
 
 genIntTupleIxElemGetters :: Q [Dec]
-genIntTupleIxElemGetters = return decls where
+genIntTupleIxElemGetters = pure decls where
     genDecl elIdx tupLen = decl where
         name   = convert $ "T" <> show tupLen
         ns     = unsafeGenNamesTN tupLen
@@ -239,7 +241,7 @@ genIntTupleIxElemGetters = return decls where
 
 
 genIntTupleIxElemSetters :: Q [Dec]
-genIntTupleIxElemSetters = return decls where
+genIntTupleIxElemSetters = pure decls where
     genDecl elIdx tupLen = decl where
         name   = convert $ "T" <> show tupLen
         ns     = unsafeGenNamesTN tupLen
@@ -256,7 +258,7 @@ genIntTupleIxElemSetters = return decls where
 
 -- >> type instance Prepended t (T2 t1 t2) = T3 t t1 t2
 genPrepended :: Q [Dec]
-genPrepended = return decls where
+genPrepended = pure decls where
     genDecl tupLen = TySynInstD "Prepended"
         (TySynEqn ["t", tup vs] (tup $ "t" : vs)) where
             vs = var <$> unsafeGenNamesTN tupLen
@@ -265,7 +267,7 @@ genPrepended = return decls where
 -- >> instance Prependable t (T3 t1 t2 t3) where
 -- >>     prepend t (T3 !t1 !t2 !t3) = T4 t t1 t2 t3 ; {-# INLINE prepend #-}
 genPrependable :: Q [Dec]
-genPrependable = return decls where
+genPrependable = pure decls where
     genDecl tupLen = decl where
         ns     = unsafeGenNamesTN tupLen
         tvs    = var <$> ns
@@ -278,4 +280,6 @@ genPrependable = return decls where
         decl   = InstanceD Nothing [] header [fun, prag]
     decls = genDecl <$> [0.. (_MAX_TUPLE_SIZE - 1)]
 
+replaceLst :: Int -> a -> [a] -> [a]
 replaceLst i v lst = take i lst <> [v] <> drop (i+1) lst
+

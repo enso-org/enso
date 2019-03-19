@@ -3,7 +3,8 @@ _config/lib: !include "../../config/hpack-common.yaml"
 name:       luna-ci
 version:    "0.1"
 author:     Luna Team <contact@luna-lang.org>
-maintainer: Luna Team <contact@luna-lang.org>
+maintainer:
+    - Ara Adkins       <ara.adkins@luna-lang.org>
 
 library:
     source-dirs:

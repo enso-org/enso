@@ -7,7 +7,7 @@ import qualified Data.Graph.Data.Layer.Class     as Layer
 import qualified Data.Graph.Data.Layer.Layout    as Layout
 import qualified Data.Mutable.Class              as Mutable
 
-import Data.Graph.Component.Edge.Class       (Edge, Edges, Source)
+import Data.Graph.Component.Edge.Class       (Edge, Source)
 import Data.Graph.Component.Node.Class       (Node)
 import Data.Graph.Component.Node.Layer.Users (Users)
 

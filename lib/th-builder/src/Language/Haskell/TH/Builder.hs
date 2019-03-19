@@ -1,19 +1,32 @@
+{-# OPTIONS_GHC -Wno-orphans #-}
+
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE UndecidableInstances      #-}
 
-module Language.Haskell.TH.Builder (module Language.Haskell.TH.Builder, module X) where
+module Language.Haskell.TH.Builder
+    ( module Language.Haskell.TH.Builder
+    , module X ) where
 
-import Prologue hiding (Cons, Data, Type, cons, inline)
+import Language.Haskell.TH as X (Dec, Name, Q, newName, reify, runIO)
 
-import           Control.Lens (lens, makePrisms, _3)
-import qualified Data.Char    as Char
+import Prelude
 
-import           Data.List.Split            (splitOn)
-import           Language.Haskell.TH        as X (Dec, Name, Q, newName, reify,
-                                                  runIO)
+import qualified Data.Char                  as Char
 import qualified Language.Haskell.TH        as TH
 import qualified Language.Haskell.TH.Syntax as TH
 
+import Control.Lens          (lens, _3, Lens', (^.), view, (&), (.~))
+import Control.Lens.Utils.TH (makeLenses)
+import Data.Functor.Utils    ((.:), (.:.))
+import Data.List             (foldl')
+import Data.List.Split       (splitOn)
+import Data.Maybe            (fromMaybe, catMaybes)
+
+import Control.Lens.Utils.Wrapped
+import Data.Convert
+import Data.Default
+import Data.Item
+import Data.String
 
 
 ---------------------------
@@ -22,7 +35,6 @@ import qualified Language.Haskell.TH.Syntax as TH
 
 class HasExpr t where
     expr :: forall a. Lens' (t a) a
-
 
 class HasName a where
     type family   NameOf a
@@ -62,12 +74,15 @@ instance HasCons TH.Dec where
             TH.NewtypeInstD _ _ _ _ c _ -> [c]
             _                           -> []
         setter x = \case
-            TH.DataD        t1 t2 t3 t4 _ t6 -> TH.DataD        t1 t2 t3 t4 x t6
-            TH.NewtypeD     t1 t2 t3 t4 _ t6 -> TH.NewtypeD     t1 t2 t3 t4 (unsafeHead x) t6
-            TH.DataInstD    t1 t2 t3 t4 _ t6 -> TH.DataInstD    t1 t2 t3 t4 x t6
-            TH.NewtypeInstD t1 t2 t3 t4 _ t6 -> TH.NewtypeInstD t1 t2 t3 t4 (unsafeHead x) t6
-            a                                -> a
-
+            TH.DataD t1 t2 t3 t4 _ t6 ->
+                TH.DataD t1 t2 t3 t4 x t6
+            TH.NewtypeD t1 t2 t3 t4 _ t6 ->
+                TH.NewtypeD t1 t2 t3 t4 (head x) t6
+            TH.DataInstD t1 t2 t3 t4 _ t6 ->
+                TH.DataInstD t1 t2 t3 t4 x t6
+            TH.NewtypeInstD t1 t2 t3 t4 _ t6 ->
+                TH.NewtypeInstD t1 t2 t3 t4 (head x) t6
+            a -> a
 
 class HasNamedFields a where
     namedFields :: Lens' a [TH.VarBangType]
@@ -120,16 +135,19 @@ instance Convertible [TH.Type] TH.Type where
 -- === Generation === --
 
 strNameCycle :: [String]
-strNameCycle = (return <$> ['a' .. 'z']) <> strNameCycle' [] (show <$> [0..]) where
-    strNameCycle' []     (n:ns) = strNameCycle' ['a' .. 'z'] ns
-    strNameCycle' (b:bs) ns     = (b : unsafeHead ns) : strNameCycle' bs ns
+strNameCycle = (pure <$> ['a' .. 'z']) <> strNameCycle' []
+    (show <$> ([0..] :: [Integer]))
+    where strNameCycle' []     (_:ns) = strNameCycle' ['a' .. 'z'] ns
+          strNameCycle' (b:bs) ns     =
+            (b : head ns) : strNameCycle' bs ns
+          strNameCycle' _      _ = error "Should not happen"
 
 unsafeNameCycle  :: Convertible' String a => [a]
 unsafeGenName    :: Convertible' String a => a
 unsafeGenNames   :: Convertible' String a => Int -> [a]
 unsafeGenNamesTN :: Convertible' String a => Int -> [a]
 unsafeNameCycle    = convert' <$> strNameCycle
-unsafeGenName      = unsafeHead unsafeNameCycle
+unsafeGenName      = head unsafeNameCycle
 unsafeGenNames     = flip take unsafeNameCycle
 unsafeGenNamesTN i = convert' . ("t" <>) . show <$> [1..i]
 
@@ -474,7 +492,8 @@ phantom5 = phantomN 5
 -- === TH Conversions === --
 
 instance Convertible Data TH.Dec where
-    convert (Data ctx name params kind cons derivs) = TH.DataD ctx name params kind cons derivs
+    convert (Data ctx name params kind cons derivs) =
+        TH.DataD ctx name params kind cons derivs
 
 
 
@@ -527,12 +546,14 @@ typeInstance1 :: Convertible TypeInstance t => Name -> TH.Type -> TH.Type -> t
 typeInstance1 n t = typeInstance n [t]
 {-# INLINE typeInstance1 #-}
 
-typeInstance2 :: Convertible TypeInstance t => Name -> TH.Type -> TH.Type -> TH.Type -> t
+typeInstance2 :: Convertible TypeInstance t => Name -> TH.Type -> TH.Type
+    -> TH.Type -> t
 typeInstance2 n t1 t2 = typeInstance n [t1, t2]
 {-# INLINE typeInstance2 #-}
 
 instance Convertible TypeInstance TH.Dec where
-    convert (TypeInstance n as r) = TH.TySynInstD n (TH.TySynEqn as r) ; {-# INLINE convert #-}
+    convert (TypeInstance n as r) = TH.TySynInstD n (TH.TySynEqn as r)
+    {-# INLINE convert #-}
 
 
 
@@ -553,9 +574,17 @@ tupleCons = convert .: Tuple
 
 -- === Instances === --
 
-instance a ~ TH.Type => Convertible (Tuple a) TH.Type where convert (Tuple len els) = if len == 1 then apps (cons' "OneTuple") els else apps (TH.TupleT len) els
-instance a ~ TH.Pat  => Convertible (Tuple a) TH.Pat  where convert (Tuple len els) = if len == 1 then cons "OneTuple" (field' <$> els) else TH.TupP els
-instance a ~ TH.Exp  => Convertible (Tuple a) TH.Exp  where convert (Tuple len els) = if len == 1 then cons "OneTuple" (field' <$> els) else TH.TupE els
+instance a ~ TH.Type => Convertible (Tuple a) TH.Type where
+    convert (Tuple len els) = if len == 1 then apps (cons' "OneTuple") els else
+        apps (TH.TupleT len) els
+
+instance a ~ TH.Pat => Convertible (Tuple a) TH.Pat where
+    convert (Tuple len els) = if len == 1 then cons "OneTuple" (field' <$> els)
+        else TH.TupP els
+
+instance a ~ TH.Exp => Convertible (Tuple a) TH.Exp where
+    convert (Tuple len els) = if len == 1 then cons "OneTuple" (field' <$> els)
+        else TH.TupE els
 
 
 -- FIXME[WD->PM]: TypeInfo does not make a sense. This type consist of some
@@ -573,14 +602,14 @@ instance HasName TypeInfo where name = typeInfo_name
 reifyTypeInfo :: Name -> TH.Q TypeInfo
 reifyTypeInfo ty = do
     TH.TyConI tyCon <- TH.reify ty
-    return $ getTypeInfo tyCon
+    pure $ getTypeInfo tyCon
 
 getTypeInfo :: Dec -> TypeInfo
-getTypeInfo = uncurry TypeInfo . \case
-    TH.DataD        _ nm vars _ cs _ -> (nm, tv2t <$> vars, cs)
-    TH.NewtypeD     _ nm vars _ c  _ -> (nm, tv2t <$> vars, [c])
-    TH.DataInstD    _ nm vars _ cs _ -> (nm, vars, cs)
-    TH.NewtypeInstD _ nm vars _ c  _ -> (nm, vars, [c])
+getTypeInfo = \case
+    TH.DataD        _ nm vars _ cs _ -> TypeInfo nm (tv2t <$> vars) cs
+    TH.NewtypeD     _ nm vars _ c  _ -> TypeInfo nm (tv2t <$> vars) [c]
+    TH.DataInstD    _ nm vars _ cs _ -> TypeInfo nm vars cs
+    TH.NewtypeInstD _ nm vars _ c  _ -> TypeInfo nm vars [c]
     a -> error $ "Type info: not supported: " <> show a
     where tv2t = \case
               TH.PlainTV  n   -> var n
@@ -637,6 +666,7 @@ getBangTypes = \case
     TH.InfixC   bt1 _ bt2 -> [bt1, bt2]
     TH.ForallC  _ _ c     -> getBangTypes c
     TH.RecGadtC _ vbt _   -> vbt2bt <$> vbt
+    _                     -> error "Should not happen"
     where vbt2bt (_,b,t) = (b,t)
 
 -- | Extract the name and number of params from the consturctor
@@ -683,7 +713,7 @@ fixDuplicateRecordNamesGHCBug :: String -> String
 fixDuplicateRecordNamesGHCBug s = case splitOn ":" s of
     []  -> error "impossible"
     [a] -> a
-    as  -> unsafeLast $ unsafeInit as
+    as  -> last $ init as
 
 op :: Name -> TH.Exp -> TH.Exp -> TH.Exp
 op = app2 . var

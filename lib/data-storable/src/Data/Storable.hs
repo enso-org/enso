@@ -1,5 +1,5 @@
-{-# LANGUAGE NoStrict #-}
-{-# LANGUAGE NoStrictData #-}
+{-# LANGUAGE NoStrict             #-}
+{-# LANGUAGE NoStrictData         #-}
 {-# LANGUAGE TypeInType           #-}
 {-# LANGUAGE UndecidableInstances #-}
 
@@ -7,29 +7,16 @@ module Data.Storable where
 
 import Prologue hiding (Lens, lens, read)
 
-import qualified Data.Convert2.Class    as Convert
-import qualified Foreign.ForeignPtr     as ForeignPtr
 import qualified Foreign.Marshal.Alloc  as Mem
-import qualified Foreign.Marshal.Utils  as Mem
-import qualified Foreign.Ptr            as Ptr
 import qualified Foreign.Storable.Class as Storable
 import qualified Memory                 as Memory
 import qualified Type.Data.List         as List
-import qualified Type.Known             as Type
 
-import Foreign.ForeignPtr        (ForeignPtr, plusForeignPtr, touchForeignPtr)
-import Foreign.ForeignPtr.Unsafe (unsafeForeignPtrToPtr)
-import Foreign.Ptr               (plusPtr)
-import Foreign.Storable.Class    (Storable)
 import Type.Data.List            (type (<>))
 
 
 
-
 data Fieldx
-
-
-
 
 ----------------------
 -- === FieldRef === --
@@ -353,7 +340,7 @@ free :: ∀ a m. (IsStruct a, MonadIO m, Memory.AssertUnmanaged a) => a -> m ()
 free = liftIO . Mem.free . unwrap . unwrap . view struct
 {-# INLINE free #-}
 
-unsafeCastFromPtr :: ∀ a p. IsStruct a
+unsafeCastFromPtr :: ∀ a. IsStruct a
     => Memory.Ptr (Memory.Management a) a -> a
 unsafeCastFromPtr = view (from struct)
     . Struct @(Memory.Management a) @(Fields a) . Memory.coercePtr
@@ -454,5 +441,5 @@ main = do
     write foo a 10
     print =<< read foo a
 
-    print "end"
+    print ("end" :: String)
 

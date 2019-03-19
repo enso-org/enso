@@ -1,8 +1,8 @@
 {-# LANGUAGE NoStrict #-}
 {-# LANGUAGE NoStrictData #-}
 
-module Data.VectorSet.Mutable.Storable
-    (module Data.VectorSet.Mutable.Storable, module X) where
+module Data.VectorSet.Mutable.Storable (module X) where
+
 import Data.Mutable.Class as X
 
 -- import Prologue hiding (FromList, Read, ToList, empty, fromList, length, toList,

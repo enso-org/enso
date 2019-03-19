@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-unused-matches #-}
+
 {-# LANGUAGE UndecidableInstances #-}
 
 module Luna.IR.Term.Ast.Invalid where
@@ -96,3 +98,4 @@ missingSection = convert' MissingSection
 stringNoClosingMark :: Convertible' Symbol a => a
 stringNoClosingMark = convert' . Literal $ String NoClosingMark
 {-# INLINE stringNoClosingMark #-}
+

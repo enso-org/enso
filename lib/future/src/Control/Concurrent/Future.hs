@@ -40,7 +40,7 @@ fromAsync = make . Async.wait
 make :: MonadIO m => IO a -> m (Future a)
 make a = liftIO $ do
     mv <- MVar.newMVar $ Suspended a
-    return $ Future (getMv mv) (void $ requestMv mv)
+    pure $ Future (getMv mv) (void $ requestMv mv)
 
 requestMv :: MonadIO m => MVar (FutureState a) -> m (Either (Async a) a)
 requestMv mv = liftIO $ do
@@ -51,20 +51,20 @@ requestMv mv = liftIO $ do
                 res <- a
                 MVar.takeMVar mv
                 MVar.putMVar mv $ Computed res
-                return res
+                pure res
             MVar.putMVar mv $ Computing async
-            return $ Left async
+            pure $ Left async
         Computing async -> do
             MVar.putMVar mv state
-            return $ Left async
+            pure $ Left async
         Computed a -> do
             MVar.putMVar mv state
-            return $ Right a
+            pure $ Right a
 
 getMv :: MonadIO m => MVar (FutureState a) -> m a
 getMv mv = do
     res <- requestMv mv
     case res of
-        Right a -> return a
+        Right a -> pure a
         Left  a -> liftIO $ Async.wait a
 

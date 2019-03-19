@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-unused-matches #-}
+
 {-# LANGUAGE CPP                  #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -Wno-unused-foralls #-}
@@ -14,7 +16,6 @@ import qualified Luna.IR.Term.Format                   as Format
 import qualified OCI.Data.Name                         as Name
 import qualified OCI.IR.Term.Definition                as Term
 
-import Data.Vector.Storable.Foreign (Vector)
 import OCI.Data.Name                (Name)
 import OCI.IR.Term.Class            (Terms)
 import OCI.IR.Term.Definition       (LinkTo, LinksTo)

@@ -11,40 +11,27 @@ import Luna.IR.Term.Format    as X (Ast, Draft, Literal, Phrase, Thunk, Value)
 import Luna.IR.Term.Instances as X ()
 import Luna.IR.Term.Literal   as X
 
-import qualified Control.Monad.State.Layered      as State
-import qualified Data.Construction                as Data
-import qualified Data.Generics.Traversable        as GTraversable
-import qualified Data.Graph.Component.Edge        as Link
-import qualified Data.Graph.Component.Node.Class  as Term
-import qualified Data.Graph.Data.Component.Set    as ComponentSet
-import qualified Data.Graph.Data.Component.Vector as ComponentVector
-import qualified Data.Graph.Data.Graph.Class      as Graph
-import qualified Data.Graph.Data.Layer.Class      as Layer
-import qualified Data.Graph.Fold.Class            as Fold
-import qualified Data.Graph.Fold.Scoped           as Fold
-import qualified Data.Graph.Fold.Struct           as Fold
-import qualified Data.Graph.Fold.SubComponents    as Component
-import qualified Data.Graph.Fold.SubTree          as SubTree
+import qualified Data.Construction               as Data
+import qualified Data.Generics.Traversable       as GTraversable
+import qualified Data.Graph.Component.Edge       as Link
+import qualified Data.Graph.Component.Node.Class as Term
+import qualified Data.Graph.Fold.Class           as Fold
+import qualified Data.Graph.Fold.Struct          as Fold
+import qualified Data.Property                   as Property
+import qualified Foreign.Storable.Utils          as Storable
+import qualified OCI.IR.Term.Definition          as Term
 -- import qualified Data.Graph.Store.External        as External
 -- import qualified Data.Graph.Store.MemoryRegion as MemoryRegion
-import qualified Data.Property           as Property
-import qualified Foreign.DynamicStorable as Dynamic
-import qualified Foreign.Storable        as Storable
-import qualified Foreign.Storable.Utils  as Storable
-import qualified OCI.IR.Term.Definition  as Term
 
-import Control.Monad.State.Layered           (State)
 import Data.Generics.Traversable             (GTraversable)
 import Data.Graph.Data.Component.Class       (Component)
 import Data.Graph.Data.Component.Set         (ComponentSet)
 import Data.Graph.Data.Component.Vector      (ComponentVector)
+import Data.Vector.Storable.Foreign          (Vector)
+import OCI.Data.Name                         (Name)
 import Data.Mutable.Storable.SmallAutoVector (UnmanagedSmallVector)
 -- import Data.Graph.Store.External        (ExternalFieldStorable,
 --                                          ExternalStorable)
-import Data.Vector.Storable.Foreign (Vector)
-import Foreign.Ptr.Utils            (SomePtr)
-import OCI.Data.Name                (Name)
-import OCI.IR.Link.Class            (Link)
 
 
 

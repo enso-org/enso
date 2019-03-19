@@ -7,28 +7,21 @@ module Data.Mutable.Storable.SmallAutoVector
 import Data.Mutable.Class as X
 
 import Prologue hiding (FromList, Read, ToList, empty, length, toList,
-                 unsafeRead, w)
+                 unsafeRead)
 
-import qualified Data.AutoVector.Mutable.Storable as Vector
 import qualified Data.Construction                as Data
-import qualified Data.Convert2.Class              as Convert
-import qualified Data.List                        as List
 import qualified Data.Mutable.Class2              as Mutable
 import qualified Data.Mutable.Plain               as Data
 import qualified Data.Property                    as Property
 import qualified Data.Storable                    as Struct
-import qualified Foreign.Marshal.Alloc            as Mem
-import qualified Foreign.Marshal.Utils            as Mem
 import qualified Foreign.Storable                 as StdStorable
 import qualified Foreign.Storable.Class           as Storable
 import qualified Memory                           as Memory
 import qualified Type.Known                       as Type
 
 import Data.Storable          (type (-::), Struct)
-import Foreign.Ptr            (Ptr, minusPtr, nullPtr, plusPtr)
-import Foreign.Storable.Class (Copy, Storable, View)
+import Foreign.Storable.Class (Storable, View)
 import Foreign.Storable.Utils (Dynamic, Dynamics)
-import Foreign.Storable.Utils (castPeekAndOffset, castPokeAndOffset)
 
 
 
@@ -324,7 +317,7 @@ instance
     , Memory.UnmanagedAllocation alloc a m
     ) => Data.CopyInitializer m (SmallVectorA t alloc n a) where
     copyInitialize = \a -> whenM_ (usesDynamicMemory a) $ do
-        cap       <- capacity a
+        _         <- capacity a
         elemCount <- size     a
         ptr       <- elemsPtr a
         let elemByteSize  = Storable.constantSize @a

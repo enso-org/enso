@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-unused-foralls #-}
+
 {-# LANGUAGE NoStrict #-}
 {-# LANGUAGE NoStrictData #-}
 
@@ -6,7 +8,7 @@ module Foreign.Storable1 where
 import Data.Kind
 import Prelude
 
-import Foreign.Ptr (Ptr, castPtr, plusPtr)
+import Foreign.Ptr (Ptr, plusPtr)
 
 
 class Storable1 (t :: Type -> Type) where

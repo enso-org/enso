@@ -19,7 +19,6 @@ import qualified Luna.Pass.Attr                   as Attr
 import qualified Luna.Pass.Data.Error             as Error
 import qualified Luna.Pass.Data.Layer.Requester   as Requester
 import qualified Luna.Pass.Data.Stage             as TC
-import qualified Luna.Pass.Data.UniqueNameGen     as NameGen
 import qualified Luna.Pass.Typing.Base            as TC
 import qualified Luna.Pass.Typing.Data.AccQueue   as AccQueue
 import qualified Luna.Pass.Typing.Data.AppQueue   as AppQueue
