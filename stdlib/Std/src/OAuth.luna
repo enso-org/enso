@@ -6,11 +6,15 @@ import Std.HTTP
 # That means: a `clientKey`, a `clientSecret`, an `oauthToken` and `oauthTokenSecret`.
 # It can be passed directly to `HttpResponse.setOAuth1` method, resulting in
 # the following usage:
-# ```
-# oauthData = OAuth1Data someClientKey someClientSecret someOAuthToken someOAuthTokenSecret
-# resp = Http.get "http://someurl.com/" . setOAuth1 oauthData . perform
-# # process the response...
-# ```
+#
+# > import Std.OAuth
+# >
+# > def main:
+# >     oauthData = OAuth1Data someClientKey someClientSecret someOAuthToken someOAuthTokenSecret
+# >     resp = Http.get "http://someurl.com/" . setOAuth1 oauthData . perform
+# >     # process the response...
+# >     None
+# 
 class OAuth1Data:
     clientKey        :: Text
     clientSecret     :: Text
@@ -54,13 +58,16 @@ class OAuth2Data:
 # token is no longer needed it can be invalidated with a call
 # to `invalidateToken`.
 # An example flow is the following:
-# ```
-# oauthData = OAuth1Data someClientId someClientSecret someOAuthToken someOAuthTokenSecret
-# token = OAuth2.fetchAccessToken oauthData
-# resp = Http.get "http://someurl.com/" . setOAuth2 token . perform
-# ## process the response...
-# OAuth2.invalidateToken oauthData token
-# ```
+# 
+# > import Std.OAuth
+# >
+# > def main:
+# >     oauthData = OAuth1Data someClientId someClientSecret someOAuthToken someOAuthTokenSecret
+# >     token = OAuth2.fetchAccessToken oauthData
+# >     resp = Http.get "http://someurl.com/" . setOAuth2 token . perform
+# >     # process the response...
+# >     OAuth2.invalidateToken oauthData token
+# 
 # For a more in-depth description of the OAuth2 flow, please see
 # https://www.digitalocean.com/community/tutorials/an-introduction-to-oauth-2
 class OAuth2:
