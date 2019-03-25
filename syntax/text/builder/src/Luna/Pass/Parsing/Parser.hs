@@ -446,7 +446,7 @@ buildClassIR isNative arg args = case arg of
                     es'         <- buildIR <$$> es
                     params'     <- buildIR <$$> params
                     let firstExpr = asum [head params', head conss, head es'] :: Maybe IR.SomeTerm
-                    for firstExpr $ \fe -> do
+                    for_ firstExpr $ \fe -> do
                         oldSpan <- IR.readLayer @CodeSpan fe
                         let newSpan = CodeSpan.prependAsOffset cs oldSpan
                         IR.writeLayer @CodeSpan fe newSpan
@@ -462,17 +462,17 @@ buildClassConsIR = \tok -> case Ast.unspan tok of
         (Spanned cs (Ast.Cons name)) -> case Ast.unspan fieldToks of
             Ast.List fields -> fmap Right . addCodeSpan cs
                 =<< IR.recordCons' name =<< mapM buildClassField fields
-            a               -> pure $ Left tok
+            _               -> pure $ Left tok
         (Spanned cs (Ast.App field fieldsList)) -> case Ast.unspan field of
             Ast.Var "#fields#" -> case Ast.unspan fieldsList of
                 Ast.List names -> do
                     names' <- Mutable.fromList (getFieldName <$> names)
                     fmap Right . addCodeSpan cs =<< IR.recordFields' names'
                         =<< buildIR fieldToks
-                a -> pure $ Left tok
-            a -> pure $ Left tok
-        a -> pure $ Left tok
-    a -> pure $ Left tok
+                _ -> pure $ Left tok
+            _ -> pure $ Left tok
+        _ -> pure $ Left tok
+    _ -> pure $ Left tok
 
 buildClassField :: BuilderMonad m => Lexer.Token -> m IR.SomeTerm
 buildClassField = \tok -> case Ast.unspan tok of

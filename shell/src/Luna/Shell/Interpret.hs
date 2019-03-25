@@ -19,7 +19,6 @@ import qualified Luna.Pass.Sourcing.UnitLoader       as ModLoader
 import qualified Luna.Pass.Sourcing.UnitMapper       as UnitMap
 import qualified Luna.Pass.Typing.Data.Typed         as Typed
 import qualified Luna.Runtime                        as Runtime
-import qualified Luna.Shell.CWD                      as CWD
 import qualified Luna.Std                            as Std
 import qualified OCI.Data.Name                       as Name
 import qualified Path                                as Path

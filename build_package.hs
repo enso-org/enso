@@ -134,9 +134,8 @@ runBuilder opts = when (not $ opts ^. check) $ do
 
     -- Clean Stack Build State (in Subshell)
     when (opts ^. cleanStack) . Turtle.sh $ do
-        logMessage "Cleaning stack build artefacts."
-        cleanResult <- Turtle.inprocWithErr "stack" ["clean"] Turtle.empty
-        when (Either.isLeft cleanResult) $ error "Could not clean build."
+        logMessage "Cleaning stack build artefacts"
+        Turtle.void $ Turtle.inprocWithErr "stack" ["clean"] Turtle.empty
 
     -- Clean Package Build State
     logMessage "Cleaning package dist"
@@ -148,13 +147,18 @@ runBuilder opts = when (not $ opts ^. check) $ do
     when pkgRootExists $ Turtle.rmtree pkgRootPath
 
     -- Build and Copy Luna (in Subshell)
-    logMessage "Building Luna"
+    let buildMsg = "Building Luna in " <> if opts ^. releaseMode
+            then "release mode"
+            else "develop mode"
+    logMessage buildMsg
+
     let ghcOpts   = if opts ^. releaseMode then releaseOpts else []
         buildOpts = genBuildOpts ghcOpts
 
-    Turtle.sh $ do
-        buildResults <- Turtle.inprocWithErr "stack" buildOpts Turtle.empty
-        when (opts ^. verbose) . liftIO . putStrLn $ show buildResults
+    Turtle.sh $ Turtle.inprocWithErr "stack" buildOpts Turtle.empty >>= \out ->
+        when (opts ^. verbose) . liftIO $ case out of
+            Left err -> Text.putStrLn $ Turtle.lineToText err
+            Right ln -> Text.putStrLn $ Turtle.lineToText ln
 
     -- Create the `config/env` folder
     logMessage "Creating the data folder"
