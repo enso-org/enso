@@ -14,11 +14,14 @@ jobs:
     image: lunalang/luna-ci
   steps:
   - script: stack build --only-snapshot
-    displayName: Setup GHC & snapshot deps
+    displayName: Setup GHC & Snapshot Deps
   - script: stack build --ghc-options="-pgmc gcc-8" --test --copy-bins
-    displayName: Build
+    displayName: Build Luna
   - script: LD_PRELOAD=~/.stack/programs/x86_64-linux/ghc-8.4.4/lib/ghc-8.4.4/rts/libffi.so.7 stack run -- run --target=$(Build.SourcesDirectory)/stdlib/StdTest
-    displayName: Run tests
+    displayName: Run Tests
+  - script: stack build_package.hs --check
+    displayName: Check Package Script
+
 - job: macOS
   timeoutInMinutes: 0
   pool:
@@ -26,20 +29,22 @@ jobs:
   steps:
   - script: >
       curl -sSL https://get.haskellstack.org/ | sh
-    displayName: Install stack
+    displayName: Install Stack
   - script: >
       brew update
       && brew install pkg-config libffi zmq
-    displayName: Install brew libraries
+    displayName: Install Brew Libraries
   - script: >
       eval $(brew shellenv)
       && export LDFLAGS="-L/usr/local/opt/libffi/lib"
       && export PKG_CONFIG_PATH="/usr/local/opt/libffi/lib/pkgconfig"
       && stack build
-    displayName: Build
+    displayName: Build Luna
   - script: stack run -- run --target=$(Build.SourcesDirectory)/stdlib/StdTest
-    displayName: Run tests
-      
+    displayName: Run Tests
+  - script: stack build_package.hs --check
+    displayName: Check Package Script
+
 - job: Windows
   pool:
     vmImage: vs2017-win2016
@@ -47,10 +52,13 @@ jobs:
   - script: |
       curl -sS -o stack.zip -L --insecure https://get.haskellstack.org/stable/windows-x86_64.zip
       7z x stack.zip -y -oC:\stack stack.exe
-    displayName: Install stack
+    displayName: Install Stack
   - script: C:\stack\stack exec -- pacman --noconfirm -S mingw-w64-x86_64-pkg-config mingw-w64-x86_64-libffi
-    displayName:  Install MSYS2 dependencies
+    displayName:  Install MSYS2 Dependencies
   - script: C:\stack\stack build
-    displayName: Build
+    displayName: Build Luna
   - script: C:\stack\stack run -- run --target=$(Build.SourcesDirectory)/stdlib/StdTest
-    displayName: Run tests
+    displayName: Run Tests
+  - script: C:\stack\stack build_package.hs --check
+    displayName: Check Package Script
+
