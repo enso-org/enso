@@ -11,6 +11,22 @@
     --package turtle
 -}
 
+-- | Luna Packaging Script
+--
+-- This script exists to create distributable packages for Luna, including the
+-- datafiles that a `luna` executable needs to function. It generates a package
+-- as follows in the package root:
+--
+-- dist/
+--  |- bin/public/luna
+--  |- config/env/
+--      |- stdlib/
+--      |- licenses/
+--
+-- This script must be run from its containing directory.
+--
+-- TODO Make it robust against when running from other directories.
+
 {-# LANGUAGE BangPatterns           #-}
 {-# LANGUAGE ConstraintKinds        #-}
 {-# LANGUAGE DataKinds              #-}
@@ -37,6 +53,7 @@ import qualified Data.Text.IO        as Text
 import qualified Options.Applicative as Options
 import qualified Path                as Path
 import qualified System.Directory    as Directory
+import qualified System.Environment  as Environment
 import qualified System.FilePath     as FilePath
 import qualified Turtle              as Turtle
 import qualified Turtle.Pattern      as Turtle
@@ -59,11 +76,20 @@ import Turtle                 ((<|>))
 projectYaml :: Path Rel File
 projectYaml = $(Path.mkRelFile "./stack.yaml")
 
-releaseOpts :: [String]
+releaseOpts :: [Text]
 releaseOpts = ["-fno-omit-interface-pragmas"]
 
 pkgBaseDirFromLocalBin :: FilePath
 pkgBaseDirFromLocalBin = "../../"
+
+stdlibSrcFolderLoc :: Turtle.FilePath
+stdlibSrcFolderLoc = "stdlib/Std/"
+
+licenseSrcFolderLoc :: Turtle.FilePath
+licenseSrcFolderLoc = "package/data/licenses"
+
+dataDistLoc :: Turtle.FilePath
+dataDistLoc = "config/env/"
 
 
 
@@ -103,17 +129,17 @@ optionsParser = CommandOpts
 
 runBuilder :: CommandOpts -> Turtle.Shell ()
 runBuilder opts = when (not $ opts ^. check) $ do
-    liftIO $ print opts
-
     -- Find the dist folder location
     distributionFolder <- getDistFolder projectYaml
 
-    -- Clean Stack Build State
-    when (opts ^. cleanStack) $ do
+    -- Clean Stack Build State (in Subshell)
+    when (opts ^. cleanStack) . Turtle.sh $ do
+        logMessage "Cleaning stack build artefacts."
         cleanResult <- Turtle.inprocWithErr "stack" ["clean"] Turtle.empty
         when (Either.isLeft cleanResult) $ error "Could not clean build."
 
     -- Clean Package Build State
+    logMessage "Cleaning package dist"
     pkgRootPath <- getPkgRoot distributionFolder pkgBaseDirFromLocalBin
 
     pkgRootExists <- liftIO . Directory.doesDirectoryExist
@@ -121,12 +147,32 @@ runBuilder opts = when (not $ opts ^. check) $ do
 
     when pkgRootExists $ Turtle.rmtree pkgRootPath
 
-    -- Build and Copy Luna
+    -- Build and Copy Luna (in Subshell)
+    logMessage "Building Luna"
+    let ghcOpts   = if opts ^. releaseMode then releaseOpts else []
+        buildOpts = genBuildOpts ghcOpts
 
+    Turtle.sh $ do
+        buildResults <- Turtle.inprocWithErr "stack" buildOpts Turtle.empty
+        when (opts ^. verbose) . liftIO . putStrLn $ show buildResults
 
-    -- Copy Licenses and Stdlib
+    -- Create the `config/env` folder
+    logMessage "Creating the data folder"
+    let dataRootPath = pkgRootPath <> dataDistLoc
+    Turtle.mktree dataRootPath
 
-    pure ()
+    -- Copy Stdlib
+    logMessage "Copying the standard library"
+    Turtle.cptree stdlibSrcFolderLoc $ dataRootPath <> "stdlib/Std"
+
+    -- Copy Licenses
+    logMessage "Copying the licenses"
+    Turtle.cptree licenseSrcFolderLoc $ dataRootPath <> "licenses"
+
+    logMessage "Package built"
+
+logMessage :: String -> Turtle.Shell ()
+logMessage msg = liftIO . putStrLn $ ">>> " <> msg
 
 getPkgRoot :: Path Abs Dir -> FilePath -> Turtle.Shell Turtle.FilePath
 getPkgRoot binPath relRoot = do
@@ -165,7 +211,7 @@ genGHCOptions inputOpts = ghcOptsKey <> quote <> optsFold <> quote
           optsFold = Text.unwords inputOpts
 
 genBuildOpts :: [Text] -> [Text]
-genBuildOpts ghcOpts = ["build", "--copy-bins"] <> genGHCOptions
+genBuildOpts ghcOpts = ["build", "--copy-bins"] <> [genGHCOptions ghcOpts]
 
 ------------------
 -- === Main === --
@@ -179,11 +225,4 @@ main = do
             (Options.fullDesc
                 <> Options.progDesc "The package build script for Luna."
                 <> Options.header "Visual and textual functional prorgamming.")
-
-
--- 1. Use utils to get at dist folder name w/ default (turtle + regexp for
---    practicality)
--- 2. Run build and copy
--- 3. Get data into correct place
--- 4. Check everything is in place for a successful build
 
