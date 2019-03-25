@@ -18,6 +18,11 @@ TODO List:
   + An explanation of the caching mechanism
   + An architectural description of the cache
   + A description of eviction strategies
+- Code Compilation:
+  + Compilation of Luna Code to GHC Core
+  + An exploration of what from Luna will be encoded in core, and what is erased
+  + An overview of the compilation strategy, eager + demand loading to ensure
+    the fastest time to execution possible. 
 - Layers:
   + Descriptions of each layer of the JIT
 - Introspection and API:
