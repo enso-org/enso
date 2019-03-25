@@ -4,6 +4,9 @@
 trigger:
   branches:
     include: [ "*" ]
+  paths:
+    exclude:
+      - doc/*
 
 jobs:
 - job: Ubuntu
