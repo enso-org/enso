@@ -8,6 +8,24 @@ ___
 - **Implemented:** Leave blank, this will be filled with the first version of
   the relevant tool where it is implemented.
 
+<!--
+TODO List:
+
+- Architectural Overview:
+  + Explanation of the different components of the runtime.
+  + Diagrammatic architecture overview
+- Cache Overview:
+  + An explanation of the caching mechanism
+  + An architectural description of the cache
+  + A description of eviction strategies
+- Layers:
+  + Descriptions of each layer of the JIT
+- Introspection and API:
+  + Broad designs for how the API supports external control
+  + Runtime support for an IDE protocol
+  + Runtime support for alternate front-ends (e.g. REPL)
+-->
+
 # Summary
 A one-paragraph, high-level summary of the proposal.
 

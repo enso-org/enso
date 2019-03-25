@@ -285,7 +285,8 @@ found at the end of the section.
    can then be used (if it has a default implementation), or the implementation
    can be provided in the type body. 
 2. **Standalone Implementation:** Interfaces can be implemented for types in a
-   standalone implementation block. These take the form of `instance Interface for Type`, with any type parameters filled appropriately. 
+   standalone implementation block. These take the form of `instance Interface 
+   for Type`, with any type parameters filled appropriately. 
 
 Both of these methods will support extension to automatic deriving strategies in
 future iterations of the Luna compiler. 
@@ -381,7 +382,8 @@ case conDecl of
 This is not entirely elegant, even though it is consistent, and is open to 
 improvement. The rationale behind the renaming of constructors is to make it
 much simpler to work with types where constructor names are the same as the
-type name. If this change wasn't made, you would be forced to pattern match on, and construct with, `Type.Type` as the constructor, which is _very_ inelegant. 
+type name. If this change wasn't made, you would be forced to pattern match on, 
+and construct with, `Type.Type` as the constructor, which is _very_ inelegant. 
 
 ## Importing Types
 To go along with the new system proposed in this RFC around code modularity, 
@@ -424,7 +426,8 @@ way of handling re-exports.
 
 Consider the following file `Test.luna`. In this file, the imports of `Thing`
 and `PrettyPrint` are not visible when `Test.luna` is imported. However, 
-`PrettyPrint` and `printer` are made visible from within the scope of `Test`. This means that a user can write `import Test: printer` and have it work. 
+`PrettyPrint` and `printer` are made visible from within the scope of `Test`. 
+This means that a user can write `import Test: printer` and have it work. 
 
 ```
 import Experiment.Thing
@@ -457,7 +460,44 @@ and row-extension is a primitive operation with this new module system. Luna
 would not be the first to embrace row extension, lacks constraints, and truly
 polymorphic records as a primitive (e.g. [Expresso](https://github.com/willtim/Expresso))
 but would likely be the first to combine it with a unified module and type 
-system.
+system. A few thoughts:
+
+- Most languages with polymorphic extensible rows default to making those 
+  records _closed_, while providing a construct to make them open.
+
+    ```
+    foo : (r\x, r\y) => {x : a, y : b | r} -> a
+    ```
+
+- Such a construct is the wrong default for Luna, where records should be open
+  by default. As a result, we default to open rows:
+
+    ```
+    foo : {x : a, y : b} -> a
+    ```
+  In Luna, a type signature as above actually has an internal meaning that is
+  identical to the previous type signature. 
+- Given that we want to default to open records, we should provide some 
+  syntactic nicety for defining closed records in a function type, even though
+  the internal type-inference will default to open in the absence of a type
+  signature. 
+- With rows as the primitive, we can use them to back other interfaces, such as
+  tuples, heterogeneous lists, classes, interfaces, and modules.
+- A record type signature is effectively an interface, and with first-class
+  functions existing in Luna, a type's interface can succinctly be described by
+  a record type. 
+- This ties straight back in to the categorical typing nature of Luna, with a
+  record type trivially defining a category of values. 
+
+Luna, however, is planned to be a dependently-typed language. This means that 
+the underlying type theory will need support for dependent records. This is not
+a particular point of difficulty in itself, with multiple dependent type 
+theories having support (e.g. [Quantitative Type Theory](https://bentnib.org/quantitative-type-theory.html)),
+but must be accounted for. 
+
+Support is generally fairly simple in dependent type theory, as polymorphic
+records translate to product types, on which dependent constraints are trivially
+encoded. 
 
 ### Anonymous Types as Types
 When used in a type context, an anonymous type acts as a specification for an
@@ -483,7 +523,8 @@ Consider the following examples:
 their own type without knowing its name.
 
 ### Anonymous Types as Values
-Anonymous types can also be constructed as values using similar syntax. You can provide values directly, which will work in a context where names are not 
+Anonymous types can also be constructed as values using similar syntax. You can 
+provide values directly, which will work in a context where names are not 
 required, or you can provide named values as in the following examples:
 
 - `{0, 0}`: This anonymous value will work anywhere a type with two numbers and 
