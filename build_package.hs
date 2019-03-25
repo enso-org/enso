@@ -1,6 +1,6 @@
 {-
     stack script
-    --resolver lts-12.26
+    --resolver lts-11.22
     --package base
     --package directory
     --package filepath
@@ -61,6 +61,7 @@ import qualified Turtle.Pattern      as Turtle
 import Control.Lens           (makeLenses, (^.))
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad          (when, unless)
+import Data.Monoid            ((<>))
 import Data.Text              (Text)
 import Options.Applicative    ((<**>))
 import Path                   (Path, Rel, File, Abs, Dir)
