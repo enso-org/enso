@@ -64,7 +64,8 @@ class TimeZone:
     # >    timeZoneName = pacificStandardTime.name
     # >    None
     #
-    # `return`: Text value contains the three letter shortcut name for this timezone, can be blank.
+    # `return`: Text value containing the three letter short name for this 
+    #           timezone, can be blank.
     def name: case self of
         TimeZoneVal _ _ n: n
 
