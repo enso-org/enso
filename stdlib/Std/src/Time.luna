@@ -92,7 +92,7 @@ class TimeZone:
     #
     # `h`: The offset for new timezone in hours.
     #
-    # `return`: New nameless timezone instance with the offset `h` in hours.
+    # `return`: New unnamed timezone instance with the offset `h` in hours.
     def fromHours h: TimeZoneVal (h * 60) False ""
 
     # Returns the `TimeZone` object representing the current timezone.
