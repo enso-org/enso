@@ -79,7 +79,7 @@ class TimeZone:
     #
     # `m`: The offset for new timezone in minutes.
     #
-    # `return`: New nameless timezone instance with the offset `m` in minutes.
+    # `return`: New unnamed timezone instance with the offset `m` in minutes.
     def fromMinutes m: TimeZoneVal m False ""
 
     # Creates a nameless timezone with a given offset (in hours).
