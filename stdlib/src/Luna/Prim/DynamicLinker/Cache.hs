@@ -7,7 +7,7 @@ import Prologue
 import qualified Data.HashMap.Strict as HashMap
 
 import Control.Concurrent      (MVar, newMVar, modifyMVar, readMVar,
-                                takeMVar, swapMVar)
+                                swapMVar)
 import Data.Hashable           (Hashable)
 import Data.HashMap.Strict     (HashMap)
 import Foreign.Ptr             (FunPtr, Ptr, castFunPtr)

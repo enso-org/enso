@@ -20,10 +20,11 @@ ghc-options:
         -fstatic-argument-transformation
         -funbox-strict-fields
         -threaded
+        -fomit-interface-pragmas
     $everything:
         -fconstraint-solver-iterations=100
 
-local-bin-path: dist/bin/public/luna
+local-bin-path: dist/bin/public/
 
 packages:
     - core
@@ -40,30 +41,42 @@ packages:
     - syntax/text/prettyprint
 
     - lib/autovector
-    - lib/benchmark
     - lib/ci
     - lib/code-builder
+    - lib/container
+    - lib/convert
     - lib/cpp-containers
     - lib/data-construction
     - lib/data-property
     - lib/data-storable
     - lib/data-tag
     - lib/data-typemap
+    - lib/datafile
     - lib/exception
     - lib/foreign-utils
+    - lib/functor-utils
     - lib/future
     - lib/generic-traversable
     - lib/generic-traversable2
     - lib/hspec-jenkins
+    - lib/impossible
+    - lib/layered-state
+    - lib/layouting
+    - lib/lens-utils
     - lib/memory-manager
     - lib/memory-pool
+    - lib/monad-branch
+    - lib/monoid
     - lib/nested-containers
     - lib/parser-utils
+    - lib/prologue
     - lib/syntax-definition
+    - lib/terminal-text
     - lib/text-processing
     - lib/th-builder
     - lib/tuple-utils
     - lib/type-cache
     - lib/typelevel
+    - lib/vector-text
     - lib/yaml-utils
 

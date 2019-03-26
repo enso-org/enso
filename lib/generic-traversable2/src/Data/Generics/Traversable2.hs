@@ -3,7 +3,9 @@
 {-# LANGUAGE UndecidableSuperClasses #-}
 
 module Data.Generics.Traversable2
-    (module Data.Generics.Traversable2, module X) where
+    ( module Data.Generics.Traversable2
+    , module X ) where
+
 import Data.Generics.Traversable2.Class     as X
 import Data.Generics.Traversable2.Instances ()
 
@@ -12,10 +14,7 @@ import           Prologue hiding (Foldable, Traversable, foldr, mapM, traverse)
 
 import qualified Control.Monad.State.Strict as State
 
-import Control.Applicative        (WrappedMonad (WrapMonad), unwrapMonad)
 import Control.Monad.State.Strict (StateT)
-import Data.Functor.Identity      (Identity (Identity), runIdentity)
-import GHC.Exts                   (Constraint)
 
 
 

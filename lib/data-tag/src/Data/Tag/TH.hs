@@ -14,7 +14,8 @@ import qualified Data.Char as Char
 
 dataWithAlias :: Name -> Name -> Name -> [TH.Dec]
 dataWithAlias dataName aliasName aliasCons = [dataDecl, aliasDecl]
-    where dataDecl  = convert $ data'' dataName & derivs .~ [TH.DerivClause Nothing [cons' ''Generic]]
+    where dataDecl  = convert $ data'' dataName
+            & derivs .~ [TH.DerivClause Nothing [cons' ''Generic]]
           aliasDecl = alias aliasName $ app (cons' aliasCons) (cons' dataName)
 
 
@@ -23,7 +24,7 @@ dataWithAlias dataName aliasName aliasCons = [dataDecl, aliasDecl]
 --   > data FOO; type Foo = Fam FOO
 familyInstance  :: Name -> String -> Q [TH.Dec]
 familyInstance' :: Name -> String ->   [TH.Dec]
-familyInstance = return .: familyInstance'
+familyInstance = pure .: familyInstance'
 familyInstance' fam el = nonStandardFamilyInstance' fam el (Char.toUpper <$> el)
 
 -- | Define a custom-named tag family instance.
@@ -31,7 +32,7 @@ familyInstance' fam el = nonStandardFamilyInstance' fam el (Char.toUpper <$> el)
 --   > data AnyFoo; type Foo = Fam AnyFoo
 nonStandardFamilyInstance  :: (Convertible' fam Name, Convertible' el Name)
                            => fam -> el -> String -> Q [TH.Dec]
-nonStandardFamilyInstance = return .:. nonStandardFamilyInstance'
+nonStandardFamilyInstance = pure .:. nonStandardFamilyInstance'
 
 nonStandardFamilyInstance' :: (Convertible' fam Name, Convertible' el Name)
                            => fam -> el -> String ->   [TH.Dec]
@@ -69,6 +70,9 @@ familyWithInstances famNameStr subTypeNamesStr = mainDecls <> subDecls
 --   `Tag.family "Fam" ["Foo", "Bar"]` will generate closed family.
 --   `Tag.family "Fam"                 will generate open   family.
 class Family a where family :: String -> a
-instance t ~ [String] => Family (t -> Q [TH.Dec]) where family = return .: familyWithInstances
-instance                 Family      (Q [TH.Dec]) where family = return .  familyHeader
+
+instance t ~ [String] => Family (t -> Q [TH.Dec]) where
+    family = pure .: familyWithInstances
+instance Family (Q [TH.Dec]) where
+    family = pure .  familyHeader
 

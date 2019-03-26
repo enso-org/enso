@@ -9,18 +9,73 @@ class GeoPoint:
     def shortRep: "(" + self.latitude.toText + ", " + self.longitude.toText + ")"
     def toFeature: GeoJSONFeature JSON.empty self.toJSON
 
+# GeoJSON is a format for encoding a variety of geographic data structures. 
+# GeoJSONFeatures contain a geometry and additional properties
+# GeoJSON supports the following geometry types: Point, LineString, Polygon, 
+# MultiPoint, MultiLineString, and MultiPolygon.
+#
+# > import Std.Base
+# > import Std.Base
+# > 
+# > def main:
+# >     latitude = 19.9449799
+# >     longitude = 50.0646501
+# >     coordinates = (latitude, longitude)
+# >     geometry = JSON.empty . insert "type" "Point" 
+# >                           . insert "coordinates" coordinates
+# >     property = JSON.empty . insert "name" "Cracow"
+# >     feature = GeoJSONFeature property geometry
+# >     None
+
 class GeoJSONFeature:
     properties :: JSON
     geometry   :: JSON
+
+    # Adds a property to existing GeoJSONFeature.
+    #
+    # > import Std.Base
+    # > import Std.Base
+    # > 
+    # > def main:
+    # >     longitude = 19.9449799
+    # >     latitude = 50.0646501
+    # >     coordinates = (longitude, latitude)
+    # >     geometry = JSON.empty . insert "type" "Point" 
+    # >                           . insert "coordinates" coordinates
+    # >     property = JSON.empty . insert "name" "Cracow"
+    # >     feature = GeoJSONFeature property geometry
+    # >     featureWithPopup = feature . addProperty "popupContent" "home"
+    # >     None
 
     def addProperty k v:
         self.properties = self.properties.insert k v
 
     def toJSON: JSON . empty . insert "type" "Feature" . insert "properties" self.properties . insert "geometry" self.geometry
 
+# A list of GeoJSONFeatures.
+#
+# > import Std.Base
+# > import Std.Base
+# > 
+# > def main:
+# >     latitude1 = 19.9449799
+# >     longitude1 = 50.0646501
+# >     coordinates1 = (latitude1, longitude1)
+# >     latitude2 = 21.017532
+# >     longitude2 = 52.237049
+# >     coordinates2 = (latitude2, longitude2)
+# >     geometry1 = JSON.empty . insert "type" "Point" 
+# >                            . insert "coordinates" coordinates1
+# >     property1 = JSON.empty . insert "name" "Cracow"
+# >     feature1 = GeoJSONFeature property1 geometry1
+# >     geometry2 = JSON.empty . insert "type" "Point" 
+# >                            . insert "coordinates" coordinates2
+# >     property2 = JSON.empty . insert "name" "Warsaw"
+# >     feature2 = GeoJSONFeature property2 geometry2
+# >     featuresCollection = GeoJSONFeatureCollection [feature1, feature2]
+# >     None
 class GeoJSONFeatureCollection:
 
     features :: List GeoJSONFeature
 
     def toJSON: JSON . empty . insert "type" "FeatureCollection" . insert "features" self.features
-

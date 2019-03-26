@@ -1,0 +1,75 @@
+_config/lib: !include "../../config/hpack-common.yaml"
+
+name        : lens-utils
+version     : 1.4.6
+synopsis    : Collection of missing lens utilities.
+category    : Data
+license     : Apache-2.0
+stability   : experimental
+homepage    : https://github.com/luna/lens-utils
+bug-reports : https://github.com/luna/lens-utils/issues
+author      : Luna Team
+copyright   : Copyright (C) 2018 Luna Team
+maintainer:
+    - Wojciech Danilo <wojciech.danilo@luna-lang.org>
+    - Ara Adkins <ara.adkins@luna-lang.org>
+
+library:
+    source-dirs:
+        - src
+    dependencies:
+        - aeson
+        - base
+        - containers
+        - data-default
+        - lens
+        - monoid
+        - split
+        - template-haskell
+
+default-extensions:
+    - AllowAmbiguousTypes
+    - ApplicativeDo
+    - BangPatterns
+    - BinaryLiterals
+    - ConstraintKinds
+    - DataKinds
+    - DefaultSignatures
+    - DeriveDataTypeable
+    - DeriveFoldable
+    - DeriveFunctor
+    - DeriveGeneric
+    - DeriveTraversable
+    - DoAndIfThenElse
+    - DuplicateRecordFields
+    - EmptyDataDecls
+    - FlexibleContexts
+    - FlexibleInstances
+    - FunctionalDependencies
+    - GeneralizedNewtypeDeriving
+    - InstanceSigs
+    - LambdaCase
+    - LiberalTypeSynonyms
+    - MonadComprehensions
+    - MultiWayIf
+    - NamedWildCards
+    - NegativeLiterals
+    - NumDecimals
+    - OverloadedLabels
+    - PackageImports
+    - PatternSynonyms
+    - QuasiQuotes
+    - RankNTypes
+    - RecursiveDo
+    - RelaxedPolyRec
+    - ScopedTypeVariables
+    - StandaloneDeriving
+    - TemplateHaskell
+    - TupleSections
+    - TypeApplications
+    - TypeFamilies
+    - TypeFamilyDependencies
+    - TypeOperators
+    - UnicodeSyntax
+    - ViewPatterns
+

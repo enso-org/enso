@@ -1,25 +1,23 @@
 module Data.Graph.Component.Node.Destruction where
 
 import           Prologue hiding (Type)
-import qualified Prologue as P
 
 import qualified Data.Graph.Component.Edge.Class       as Edge
 import qualified Data.Graph.Component.Edge.Destruction as Edge
 import qualified Data.Graph.Component.Node.Class       as Node
 import qualified Data.Graph.Component.Node.Layer       as Node
 import qualified Data.Graph.Data.Component.Class       as Component
-import qualified Data.Graph.Data.Component.List        as ComponentList
 import qualified Data.Graph.Data.Layer.Class           as Layer
 import qualified Data.Graph.Data.Layer.Layout          as Layout
 import qualified Data.Mutable.Class                    as Mutable
 import qualified Data.Set                              as Set
 
-import Control.Monad                   (filterM)
-import Data.Graph.Component.Edge.Class (Edge, Edges, Source, Target)
-import Data.Graph.Component.Node.Class (Node, Nodes)
-import Data.Graph.Component.Node.Layer (Model, Type, Users)
-import Data.Graph.Fold.SubComponents   (SubComponents, SubComponents1,
-                                        subComponents, subComponents1)
+import Control.Monad                   ( filterM)
+import Data.Graph.Component.Edge.Class ( Edge, Edges, Source, Target)
+import Data.Graph.Component.Node.Class ( Node, Nodes)
+import Data.Graph.Component.Node.Layer ( Model, Type, Users)
+import Data.Graph.Fold.SubComponents   ( SubComponents, SubComponents1
+                                       , subComponents1)
 
 
 -------------------------
@@ -41,7 +39,7 @@ delete = \node -> do
     let es = Set.toList $ Set.fromList $ (convert edges :: [Edge.SomeEdge])
     traverse Edge.delete es
     Component.destruct1 node
-    return ()
+    pure ()
 {-# INLINE delete #-}
 
 type DeleteSubtree m =
@@ -63,7 +61,7 @@ safeToDelete whitelist root = do
     loops <- traverse Edge.cyclic succs
     let allLoops    = and loops
         whitelisted = Set.member root whitelist
-    return $ allLoops && not whitelisted
+    pure $ allLoops && not whitelisted
 {-# INLINE safeToDelete #-}
 
 deleteSubtreeWithWhitelist :: ∀ layout m. DeleteSubtree m
@@ -84,3 +82,4 @@ deleteSubtreeWithWhitelist whitelist (Layout.relayout -> root) = whenM (safeToDe
 deleteSubtree :: DeleteSubtree m => Node layout -> m ()
 deleteSubtree = deleteSubtreeWithWhitelist mempty
 {-# INLINE deleteSubtree #-}
+

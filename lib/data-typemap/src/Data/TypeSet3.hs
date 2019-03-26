@@ -8,9 +8,7 @@ import Prologue hiding (set)
 
 import qualified Data.Tuple.Strict.IntTuple as Tuple
 import qualified Type.Data.List             as List
-import qualified Type.Data.Set              as Type
 
-import Type.Data.Ord
 
 
 ------------------------
@@ -85,7 +83,7 @@ data Z
 
 test :: IO ()
 test = do
-    return ()
+    pure ()
     -- let lst = setAt @0 11
     --         $ zeroIntTypeMap :: IntTypeMap '[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]
     --
@@ -100,24 +98,24 @@ myLst = setAt @0 11
 pureLoop_X :: Int -> IO ()
 pureLoop_X i = do
     let go :: IntTypeMap '[1,2,3,4,5] -> Int -> IO ()
-        go !l 0 = return()
+        go _  0 = pure ()
         go !l j = do
             let !x' = getAt @0 l + 1
                 !l' = setAt @0 x' l
             go l' $! j - 1
     go myLst i
-    return ()
+    pure ()
 
 pureLoop_Z :: Int -> IO ()
 pureLoop_Z i = do
     let go :: IntTypeMap '[1,2,3,4,5] -> Int -> IO ()
-        go !l 0 = return()
+        go _  0 = pure ()
         go !l j = do
             let !x' = getAt @4 l + 1
                 !l' = setAt @4 x' l
             go l' $! j - 1
     go myLst i
-    return ()
+    pure ()
 
 
 

@@ -7,14 +7,14 @@ module Type.Data.Map.Generic (module Type.Data.Map.Generic, module X) where
 
 import Type.Data.Property as X
 
+import Data.Proxy (Proxy)
+
 import Data.Kind
-import Data.Proxy        (Proxy)
 import Prelude
 import Type.Data.Bool
 import Type.Data.Maybe
-import Type.Data.Wrapped
-
 import Type.Data.Ord.Generic
+
 
 
 --------------------------
@@ -30,6 +30,7 @@ type family FromMap m where FromMap ('Map m) = m
 data Assoc a b = Assoc a b
 type (:=) = 'Assoc
 type AssocP = 'Assoc
+
 
 
 ----------------------

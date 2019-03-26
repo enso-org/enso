@@ -4,7 +4,6 @@ import Prologue
 
 import qualified Data.Map                      as Map
 import qualified Luna.IR                       as IR
-import qualified Luna.Runtime                  as Luna
 import qualified Luna.Pass.Sourcing.Data.Def   as Def
 import qualified Luna.Pass.Sourcing.Data.Unit  as Unit
 import qualified Luna.Prim.Base                as Base
@@ -16,7 +15,6 @@ import qualified Luna.Prim.System              as System
 import qualified Luna.Prim.HTTP                as HTTP
 import qualified Luna.Std.Builder              as Builder
 
-import Data.Map            (Map)
 import Luna.Std.Finalizers (finalize, initFinalizersCtx)
 
 stdlibImports :: [IR.Qualified]
@@ -52,5 +50,5 @@ stdlib = do
             DynamicLinkerCache.finalize linkerCacheCtx
             finalize finalizersCtx
 
-    return (finalizeAction, unitRef)
+    pure (finalizeAction, unitRef)
 

@@ -20,20 +20,20 @@ import qualified Luna.Pass.Data.Stage                  as TC
 import Luna.Pass.Resolve.Data.Resolution (UnitResolver)
 
 waitAll :: MonadIO m => [Async.Async ()] -> m ()
-waitAll = liftIO . foldl (\r async -> Async.wait async >> r) (return ())
+waitAll = liftIO . foldl (\r async -> Async.wait async >> r) (pure ())
 
 preprocessDef :: UnitResolver -> Def.Def -> TC.Monad ()
 preprocessDef resolver def = case def of
     Def.Body fun -> do
         let prep = PreprocessDef.preprocessDef resolver $ Layout.relayout fun
-        res <- Graph.local @TC.Stage $ void $ Scheduler.evalT $ prep
-        return ()
-    _ -> return ()
+        _ <- Graph.local @TC.Stage $ void $ Scheduler.evalT $ prep
+        pure ()
+    _ -> pure ()
 
 preprocessDefs :: UnitResolver -> [Def.Def] -> TC.Monad ()
 preprocessDefs resolver defs = do
     for_ defs $ preprocessDef resolver
-    return ()
+    pure ()
 
 preprocessUnit :: UnitResolver -> Unit.Unit -> TC.Monad ()
 preprocessUnit resolver (Unit.Unit (Def.DefsMap defs) classes) = do
@@ -44,5 +44,5 @@ preprocessUnit resolver (Unit.Unit (Def.DefsMap defs) classes) = do
         preprocessDefs resolver $
             view Def.documented <$> Map.elems meths
         ConsFieldResolution.run resolver $ cls ^. Class.root
-    return ()
+    pure ()
 

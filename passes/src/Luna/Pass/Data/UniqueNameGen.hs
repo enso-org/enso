@@ -22,13 +22,13 @@ newtype UniqueNameGen = UniqueNameGen [String]
 -- === API === --
 
 allNames :: [String]
-allNames = ('a' :) . show <$> [0..]
+allNames = ('a' :) . show <$> ([0..] :: [Integer])
 
 generateName :: Attr.Editor UniqueNameGen m => m IR.Name
 generateName = do
     UniqueNameGen (n : ns) <- Attr.get
     Attr.put (UniqueNameGen ns)
-    return $ convert n
+    pure $ convert n
 
 
 -- === Instances === --

@@ -5,13 +5,10 @@
 
 module Type.Data.Set where
 
-import Data.Kind
-import Data.Proxy          (Proxy)
 import Prelude
+
 import Type.Data.Bool
-import Type.Data.Maybe     (FromJust)
 import Type.Data.Ord
-import Type.Data.Ord.Class
 
 
 -----------------

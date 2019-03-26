@@ -7,13 +7,11 @@ license     : Apache-2.0
 stability   : experimental
 homepage    : https://github.com/luna/luna
 bug-reports : https://github.com/luna/luna/issues
-author      : Luna Team
+author      : Luna Team <contact@luna-lang.org>
 copyright   : Copyright (C) 2018 Luna Team
-maintainer  : Luna Team
-
-ghc-options:
-    - -Wall
-    - -O2
+maintainer:
+    - Wojciech Danilo  <wojciech.danilo@luna-lang.org>
+    - Ara Adkins       <ara.adkins@luna-lang.org>
 
 library:
     source-dirs:

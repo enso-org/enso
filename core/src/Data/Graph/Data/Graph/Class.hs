@@ -23,7 +23,6 @@ import Data.TypeMap.MultiState         (MultiStateT)
 import Foreign.Info.ByteSize           (ByteSize (ByteSize))
 import Foreign.Memory.Pool             (MemPool)
 import Foreign.Ptr.Utils               (SomePtr)
-import Foreign.Storable1               (Storable1)
 import Type.Data.List                  (type (<>))
 
 

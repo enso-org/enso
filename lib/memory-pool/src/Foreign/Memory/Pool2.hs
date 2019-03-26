@@ -9,16 +9,16 @@ import qualified Control.Concurrent.MVar   as MVar
 import qualified Foreign
 import qualified Foreign.ForeignPtr        as ForeignPtr
 import qualified Foreign.ForeignPtr.Unsafe as ForeignPtr
-import qualified Foreign.Marshal.Utils     as Ptr
-import qualified Foreign.Memory.Manager    as Mgr
+-- import qualified Foreign.Marshal.Utils     as Ptr
+-- import qualified Foreign.Memory.Manager    as Mgr
 import qualified Foreign.Ptr               as Ptr
 
 import Control.Concurrent.MVar (MVar)
-import Data.Default
-import Foreign                 (Ptr, Storable, peek, poke)
+-- import Data.Default
+import Foreign                 (Ptr, Storable)
 import Foreign.ForeignPtr      (ForeignPtr)
 import Foreign.Ptr.Utils       (SomePtr)
-import Foreign.Storable.Utils  (sizeOf')
+-- import Foreign.Storable.Utils  (sizeOf')
 
 
 
@@ -82,7 +82,7 @@ alloc (MemPool !mvar) = liftIO $ do
 
 -- | Free the memory obtained by using `alloc`.
 free :: MonadIO m => MemPool a -> SomePtr -> m ()
-free (MemPool !mvar) !ptr = pure () -- liftIO $ do
+free (MemPool !_) !_ = pure () -- liftIO $ do
     -- !state <- MVar.takeMVar mvar
     -- MVar.putMVar mvar $! state & freePtrs %~ (ptr:)
 {-# INLINE free #-}

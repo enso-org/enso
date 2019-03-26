@@ -3,7 +3,7 @@ import Std.Base
 import Std.System
 
 
-# A class representing the time zone.
+# A class representing the timezone.
 # Please keep in mind that the offset is in minutes, as some timezones
 # use the multiple of 15 minutes as the offset.
 class TimeZone:
@@ -11,6 +11,18 @@ class TimeZone:
     TimeZoneVal Int Bool Text
 
     # Creates a new `TimeZoneInstance`.
+    #
+    # > import Std.Time 
+    # >
+    # > def main:
+    # >    newTimezone = TimeZone.create 60 False "CET"
+    # >    None
+    #
+    # `offsetMins`: Amount of time subtracted from or added to Coordinated Universal Time (UTC) in minutes.
+    # `summerOnly`: Boolean value describing if the timezone has daylight saving time or not.
+    # `name`: Text value contains the three letter shortcut name for this timezone, can be blank.
+    # 
+    # `return`: new timezone instance with given name and offset.
     def create offsetMins summerOnly name:
         TimeZoneVal offsetMins summerOnly name
 
@@ -18,35 +30,139 @@ class TimeZone:
         TimeZoneVal m s n: "TimeZone { minutes = " + m.toText + ", summerOnly = " + s.toText + ", name = " + n + "}"
 
     # The offset (in minutes) from the UTC timezone.
+    #
+    # > import Std.Time 
+    # >
+    # > def main:
+    # >    pacificStandardTime = TimeZone.pst
+    # >    min = pacificStandardTime.minutes
+    # >    None
+    #
+    # `return`: Numerical value for the offset in minutes for `self` timezone.
     def minutes: case self of
         TimeZoneVal m _ _: m
 
     # Is this timezone valid only throughout the summertime?
+    #
+    # > import Std.Time 
+    # >
+    # > def main:
+    # >    pacificStandardTime = TimeZone.pst
+    # >    justSummer = pacificStandardTime.summerOnly
+    # >    None
+    #
+    # `return`: `True` if the timezone can be in daylight saving time or `False` otherwise.
     def summerOnly: case self of
         TimeZoneVal _ s _: s
 
     # The three letter shortcut name for this timezone, can be blank.
+    #
+    # > import Std.Time 
+    # >
+    # > def main:
+    # >    pacificStandardTime = TimeZone.pst
+    # >    timeZoneName = pacificStandardTime.name
+    # >    None
+    #
+    # `return`: Text value containing the three letter short name for this 
+    #           timezone, can be blank.
     def name: case self of
         TimeZoneVal _ _ n: n
 
     # Creates a nameless timezone with a given offset (in minutes).
+    #
+    # > import Std.Time 
+    # >
+    # > def main:
+    # >    newTimeZone = TimeZone.fromMinutes 360
+    # >    None
+    #
+    # `m`: The offset for new timezone in minutes.
+    #
+    # `return`: New unnamed timezone instance with the offset `m` in minutes.
     def fromMinutes m: TimeZoneVal m False ""
 
     # Creates a nameless timezone with a given offset (in hours).
+    #
+    # > import Std.Time 
+    # >
+    # > def main:
+    # >    newTimeZone = TimeZone.fromHours 4
+    # >    None
+    #
+    # `h`: The offset for new timezone in hours.
+    #
+    # `return`: New unnamed timezone instance with the offset `h` in hours.
     def fromHours h: TimeZoneVal (h * 60) False ""
 
     # Returns the `TimeZone` object representing the current timezone.
+    #
+    # > import Std.Time 
+    # >
+    # > def main:
+    # >    currentTimeZone = TimeZone.current
+    # >    None
+    #
+    # `return`: The `TimeZone` object representing the current timezone.
     def current: primGetCurrentTimeZone
 
+    # Returns the `TimeZone` object representing the UTC timezone.
+    #
+    # > import Std.Time 
+    # >
+    # > def main:
+    # >    utcTimeZone = TimeZone.utc
+    # >    None
+    #
+    # `return`: The `TimeZone` object representing the UTC timezone.
     def utc: TimeZoneVal 0 False "UTC"
 
+    # Returns the `TimeZone` object representing the GMT timezone.
+    #
+    # > import Std.Time 
+    # >
+    # > def main:
+    # >    gmtTimeZone = TimeZone.gmt
+    # >    None
+    #
+    # `return`: The `TimeZone` object representing the GMT timezone.
     def gmt: TimeZoneVal 0 False "GMT"
 
+    # Returns the `TimeZone` object representing the CST timezone.
+    #
+    # > import Std.Time 
+    # >
+    # > def main:
+    # >    cstTimeZone = TimeZone.cst
+    # >    None
+    #
+    # `return`: The `TimeZone` object representing the CTS timezone.
     def cst: TimeZoneVal (-6) False "CST"
 
+    # Returns the `TimeZone` object representing the PST timezone.
+    #
+    # > import Std.Time 
+    # >
+    # > def main:
+    # >    pstTimeZone = TimeZone.pst
+    # >    None
+    #
+    # `return`: The `TimeZone` object representing the PST timezone.
     def pst: TimeZoneVal (-8) False "PST"
 
-    # Is the offset of this `TimeZone` the same as of the `other` one?
+    # Check does the offset of this `TimeZone` is the same as the `other` one.
+    #
+    # > import Std.Time 
+    # >
+    # > def main:
+    # >    pstTimeZone = TimeZone.pst
+    # >    utcTimeZone = TimeZone.utc
+    # >    areEqual = pstTimeZone.== utcTimeZone
+    # >    None
+    #
+    # `other`: `TimeZone` object to compare with `self`.
+    #
+    # `return`: `True` if the timezonses have the same offset and `False` otherwise.
     def == other:
         self.minutes.== other.minutes
 
@@ -55,28 +171,112 @@ class TimeOfDay:
     TimeOfDay
     TimeOfDayVal Int Int Real
 
+    # Returns hour from `TimeOfDay` object.
+    #
+    # > import Std.Time 
+    # >
+    # > def main:
+    # >    midnightTime = TimeOfDay.midnight
+    # >    midnightHour = midnightTime.hour
+    # >    None
+    #
+    # `return`: Hour value from `self`.
     def hour: case self of
         TimeOfDayVal h _ _: h
 
+    # Returns hour from `TimeOfDay` object.
+    #
+    # > import Std.Time 
+    # >
+    # > def main:
+    # >    midnightTime = TimeOfDay.midnight
+    # >    midnightMinute = midnightTime.minute
+    # >    None
+    #
+    # `return`: Minute value from `self`.
     def minute: case self of
         TimeOfDayVal _ m _: m
 
+    # Returns hour from `TimeOfDay` object.
+    #
+    # > import Std.Time 
+    # >
+    # > def main:
+    # >    midnightTime = TimeOfDay.midnight
+    # >    midnightSecond = midnightTime.second
+    # >    None
+    #
+    # `return`: Second value from `self`.
     def second: case self of
         TimeOfDayVal _ _ s: s
 
+    # Returns time for midnight. 
+    #
+    # > import Std.Time 
+    # >
+    # > def main:
+    # >    midnightTime = TimeOfDay.midnight
+    # >    None
+    #
+    # `return`: `TimeOfDay` object for midnight.
     def midnight: TimeOfDayVal 0 0 0.0
 
+    # Returns time for noon. 
+    #
+    # > import Std.Time 
+    # >
+    # > def main:
+    # >    noonTime = TimeOfDay.noon
+    # >    None
+    #
+    # `return`: `TimeOfDay` object for noon.
     def noon: TimeOfDayVal 12 0 0.0
 
     # Does this `TimeOfDay` point to an earlier time during the day than the `other`?
+    #
+    # > import Std.Time 
+    # >
+    # > def main:
+    # >    noonTime = TimeOfDay.noon
+    # >    currentTime = TimeOfDay.current 
+    # >    isBeforeNoon = currentTime.< noonTime
+    # >    None
+    #
+    # `other`: `TimeOfDay` object to compare with `self`
+    #
+    # `return`: `True` if the `other` time is earlier then `self`, `False` otherwise.
     def < other:
         if self.hour.< other.hour then True else if self.minute.< other.minute then True else if self.second.< other.second then True else False
 
     # Is this `TimeOfDay` equal to the other? (Up to one second resolution).
+    #
+    # > import Std.Time 
+    # >
+    # > def main:
+    # >    noonTime = TimeOfDay.noon
+    # >    currentTime = TimeOfDay.current 
+    # >    isNoon = currentTime.== noonTime
+    # >    None
+    #
+    # `other`: `TimeOfDay` object to compare with `self`
+    #
+    # `return`: `True` if the `other` time is the same as `self`, `False` otherwise.
     def == other:
         (self.hour.== other.hour) . and (self.minute.== other.minute) . and (self.second.== other.second)
 
     # Does this `TimeOfDay` point to a later time during the day than the `other`?
+    #
+    # > import Std.Time 
+    # >
+    # > def main:
+    # >    noonTime = TimeOfDay.noon
+    # >    currentTime = TimeOfDay.current 
+    # >    isAfterNoon = currentTime.> noonTime
+    # >    None
+    #
+    # `other`: `TimeOfDay` object to compare with `self`
+    #
+    # `return`: `True` if the `other` time is later then `self`, `False` otherwise.
     def > other: (self.< other . or self.== other) . not
 
 # A class representing the UTC time (mostly to facilitate other computations).
@@ -131,9 +331,13 @@ class UTCTime:
 # By default it will use the current timezone as set on the user's machine.
 # If you wish to override that behaviour, you can explicitly set the timezone
 # with `setTimeZone`, like:
-# ```
-# Time.now . setTimeZone TimeZone.cst
-# ```
+# 
+# > import Std.Time 
+# >
+# > def main:
+# >     timezone = Time.now . setTimeZone TimeZone.cst
+# >     None
+# 
 #
 # `Time` supports various formatting and parsing methods, including the
 # default `toText` method, `format` (accepting a format string), `toEpoch`,
@@ -141,13 +345,21 @@ class UTCTime:
 #
 # `Time` instances can be compared and you can add and subtract `TimeIntervals`,
 # like:
-# ```
-# Time.now . add 2.minutes
-# ```
+# 
+# > import Std.Time 
+# >
+# > def main: 
+# >     newTime = Time.now . add 2.minutes
+# >     None
+# 
 # The above can also be expressed in a more natural syntax with:
-# ```
-# 2.minutes.fromNow
-# ```
+# 
+# > import Std.Time 
+# >
+# > def main: 
+# >     newTime = 2.minutes.fromNow
+# >     None 
+# 
 #
 # Additional helper methods exist to make working with `Time` easier, please
 # consult the docstring for each method for further information.
@@ -155,93 +367,315 @@ class Time:
     Time
     TimeVal Int TimeOfDay TimeZone
 
-    # Gets the current time in the users timezone. Usage: `Time.now`.
+    # Gets the current time in the users timezone. 
+    #
+    # > import Std.Time 
+    # >
+    # > def main:
+    # >     nowTime = Time.now
+    # >     None
+    # 
+    # `return`: `Time` object for current time.
     def now: primGetCurrentTime
 
     # Gets time of day (hours, minutes, seconds) as a `TimeOfDay` instance.
+    #
+    # > import Std.Time 
+    # >
+    # > def main:
+    # >     nowTime = Time.now . timeOfDay
+    # >     None
+    # 
+    # `return`: `TimeOfDay` object for `self` time.
     def timeOfDay: case self of
         TimeVal _ tod _: tod
 
     # Sets the time-of-day part of this `Time` to a given `TimeOfDay` instance.
+    #
+    # > import Std.Time
+    # > 
+    # > def main:
+    # >     noonTime = Time.now . setTimeOfDay TimeOfDay.noon
+    # >     None
+    # 
+    # `tod`: `TimeOfDay` instance to set for `self` time.
+    # 
+    # `return`: `Time` object with given `TimeOfDay`.
     def setTimeOfDay tod: case self of
         TimeVal days _ tz: TimeVal days tod tz
 
     # Returns the timezone associated with this `Time`.
+    #
+    # > import Std.Time
+    # > 
+    # > def main:
+    # >     timezone = Time.now . timeZone
+    # >     None
+    # 
+    # `return`: Timezone value for `self` time.
     def timeZone: case self of
         TimeVal _ _ tz: tz
 
     # Sets the timezone of this time to a given `TimeZone` instance.
+    #
+    # > import Std.Time
+    # > 
+    # > def main:
+    # >     newTimezone = Time.now . setTimeZone TimeZone.utc
+    # >     None
+    # 
+    # `tz`: `TimeZone` instance to set for `self` time.
+    # 
+    # `return`: `Time` object with given `TimeZone`.
     def setTimeZone tz: case self of
         TimeVal days tod _: TimeVal days tod tz
 
+    # Returns the days number associated with this `Time`.
+    #
+    # > import Std.Time
+    # > 
+    # > def main:
+    # >     daysValue = Time.now . days
+    # >     None
+    # 
+    # `return`: Days value for `self` time.
     def days: case self of
         TimeVal days _ _: days
 
-    # Advances the date by a given number of days.
+    # Adds a given number of days to the date.
+    #
+    # > import Std.Time
+    # > 
+    # > def main:
+    # >     updatedDays = Time.now . addDays 13
+    # >     None
+    # 
+    # `d`: Number of days to add to `self` time.
+    # 
+    # `return`: `Time` object with updated days value.
     def addDays d: case self of
         TimeVal days tod tz: TimeVal (days + d) tod tz
 
     # Subtracts a given number of days from the date.
+    #
+    # > import Std.Time
+    # > 
+    # > def main:
+    # >     updatedDays = Time.now . subDays 13
+    # >     None
+    # 
+    # `d`: Numebr of days to substract from `self` time.
+    # 
+    # `return`: `Time` object with updated days value.
     def subDays d: case self of
         TimeVal days tod tz: TimeVal (days - d) tod tz
 
     # Gets the beginning of the current day.
     # If called on February 14th at 4:00, it will return February 14th 0:00
+    #
+    # > import Std.Time
+    # > 
+    # > def main:
+    # >     begin = Time.beginningOfDay
+    # >     None
+    # 
+    # `return`: `Time` value for the beginning of the day.
     def beginningOfDay: Time.now.setTimeOfDay TimeOfDay.midnight
 
     # Gets the end of the current day.
     # If called on February 14th at 4:00, it will return February 15th 0:00
+    #
+    # > import Std.Time
+    # > 
+    # > def main:
+    # >     end = Time.endOfDay
+    # >     None
+    # 
+    # `return`: `Time` value for the end of the day.
     def endOfDay: Time.beginningOfDay . addDays 1
 
     # Gets the time of year in form of a tuple: (year, month, day)
+    #
+    # > import Std.Time
+    # > 
+    # > def main:
+    # >     date = Time.now . timeOfYear
+    # >     None
+    # 
+    # `return`: (year, month, day) tuple for `self` time.
     def timeOfYear: primTimeOfYear self.days
 
-    # Creates a `Time` object from its parameters: the year, month and day and an optional `TimeZone`..
+    # Creates a `Time` object from its parameters: the year, month and day and an optional `TimeZone`.
+    #
+    # > import Std.Time
+    # > 
+    # > def main:
+    # >     newTime = Time.fromTimeOfYear  2020 12 15 (Just TimeZone.utc)
+    # >     None
+    # 
+    # `y`: Year parameter to create `Time` object.
+    # `m`: Month parameter to create `Time` object.
+    # `d`: Day parameter to create `Time` object.
+    # `tz`: Optional `TimeZone` parameter to create `Time` object. Current timezone is a default one. 
+    #       To set default timezone use `Nothing`.
+    #
+    # `return`: `Time` object created from year, month, day and optionally timezone.
     def fromTimeOfYear y m d tz:
         timeZone = tz.withDefault TimeZone.current
         TimeVal (primFromTimeOfYear y m d) TimeOfDay.midnight timeZone
 
     # Gets the `Time` representing the first day of the current month.
+    #
+    # > import Std.Time
+    # > 
+    # > def main:
+    # >     firstDay = Time.beginningOfMonth
+    # >     None
+    #
+    # `return`: `Time` object for the first day of current month.
     def beginningOfMonth: case Time.now of
         TimeVal days _ tz: case primTimeOfYear days of
             (y, m, d): Time.fromTimeOfYear y m 1 (Just tz)
 
     # Gets the `Time` representing the last day of the current month.
+    #
+    # > import Std.Time
+    # > 
+    # > def main:
+    # >     lasttDay = Time.endOfMonth
+    # >     None
+    #
+    # `return`: `Time` object for the last day of current month.
     def endOfMonth: case Time.now of
         TimeVal days _ tz: case primTimeOfYear days of
             (y, m, d): Time.fromTimeOfYear y m (primMonthLength y m) (Just tz)
 
     # Gets the `Time` representing the first day (January 1st) of the current year.
+    #
+    # > import Std.Time
+    # > 
+    # > def main:
+    # >     firstDay = Time.beginningOfYear
+    # >     None
+    #
+    # `return`: `Time` object for the first day of current year.
     def beginningOfYear: case Time.now of
         TimeVal days _ tz: case primTimeOfYear days of
             (y, m, d): Time.fromTimeOfYear y 1 1 (Just tz)
 
     # Gets the `Time` representing the last day (December 31st) of the current year.
+    #
+    # > import Std.Time
+    # > 
+    # > def main:
+    # >     lasttDay = Time.endOfYear
+    # >     None
+    #
+    # `return`: `Time` object for the last day of current year.
     def endOfYear: case Time.now of
         TimeVal days _ tz: case primTimeOfYear days of
             (y, m, d): Time.fromTimeOfYear y 12 31 (Just tz)
 
     # Converts this `Time` instance to a `UTCTime`.
+    #
+    # > import Std.Time
+    # > 
+    # > def main:
+    # >     today = Time.now
+    # >     todayUTC = today.toUTC
+    # >     None
+    #
+    # `return`: `UTCTime` object for `self` `Time` value.
     def toUTC: primTimeToUTC self
 
-    # Calculate difference between to time values.
+    # Calculate difference between two time values.
+    #
+    # > import Std.Time
+    # > 
+    # > def main:
+    # >     today = Time.now
+    # >     montsStart = Time.beginningOfMonth
+    # >     difference = today.diff otherDay
+    # >     None
+    #
+    # `other`: The `Time` value to calculate difference with `self`.
+    #
+    # `return`: The difference between `self` and `other` time in miliseconds.
     def diff other: primDiffTimes self.toUTC other.toUTC
 
     # Add a `TimeInterval` to this `Time`.
+    #
+    # > import Std.Time
+    # > 
+    # > def main:
+    # >     today = Time.now
+    # >     withInterval = today.add 20.minutes
+    # >     None
+    #
+    # `interval`: Time interval to add to `self` time ie. `20.minytes` or `10.seconds`.
+    #
+    # `return`: Updated time.
     def add interval: self.toUTC.add interval . toZonedTime
 
     # Subtract a `TimeInterval` from this `Time`.
+    #
+    # > import Std.Time
+    # > 
+    # > def main:
+    # >     today = Time.now
+    # >     withInterval = today.sub 20.minutes
+    # >     None
+    #
+    # `interval`: Time interval to substract from `self` time ie. `20.minytes` or `10.seconds`.
+    #
+    # `return`: Updated time.
     def sub interval: self.toUTC.sub interval . toZonedTime
 
     # Does this and the `other` `Time` point to the same time?
+    #
+    # > import Std.Time
+    # > 
+    # > def main:
+    # >     today = Time.now
+    # >     withInterval = today.add 20.minutes
+    # >     isEqual = today.== withInterval
+    # >     None
+    #
+    # `other`: `Time` object to compare with `self`.
+    #
+    # `return`: `True` if both `Time` objects are equal, `False` otherwise.
     def == other: primTimesEq self.toUTC other.toUTC
 
     # Is this `Time` earlier than the `other`?
+    #
+    # > import Std.Time
+    # > 
+    # > def main:
+    # >     today = Time.now
+    # >     withInterval = today.add 20.minutes
+    # >     isGreater = today.< withInterval
+    # >     None
+    #
+    # `other`: `Time` object to compare with `self`.
+    #
+    # `return`: `True` if `other` is after `self` time, `False` otherwise.
     def < other:
         d = self.diff other
         d.toInt.< 0
 
     # Is this `Time` later than the `other`?
+    #
+    # > import Std.Time
+    # > 
+    # > def main:
+    # >     today = Time.now
+    # >     withInterval = today.add 20.minutes
+    # >     isGreater = today.> withInterval
+    # >     None
+    #
+    # `other`: `Time` object to compare with `self`.
+    #
+    # `return`: `True` if `other` is before `self` time, `False` otherwise.
     def > other:
         d = self.diff other
         d.toInt.> 0

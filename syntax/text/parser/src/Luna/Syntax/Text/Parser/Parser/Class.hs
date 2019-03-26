@@ -8,43 +8,29 @@ import           Prologue hiding (fail, optional)
 import qualified Prologue
 
 import qualified Control.Monad.State.Layered           as State
-import qualified Data.Attoparsec.Internal              as AParsec
-import qualified Data.Attoparsec.Internal.Types        as AParsec
 import qualified Data.Attoparsec.List                  as Parsec
-import qualified Data.Graph.Component.Node.Destruction as Component
 import qualified Data.Map                              as Map
 import qualified Data.Parser                           as Parser
 import qualified Data.Set                              as Set
 import qualified Data.Text.Position                    as Position
-import qualified Data.Text.Span                        as Span
 import qualified Data.Vector                           as Vector
-import qualified GHC.Exts                              as GHC
 import qualified Language.Symbol.Operator.Assoc        as Assoc
 import qualified Language.Symbol.Operator.Prec         as Prec
-import qualified Luna.IR                               as IR
-import qualified Luna.IR.Aliases                       as Uni
 import qualified Luna.IR.Term.Ast.Invalid              as Invalid
-import qualified Luna.Pass                             as Pass
 import qualified Luna.Syntax.Text.Parser.Ast           as Ast
 import qualified Luna.Syntax.Text.Parser.Ast.CodeSpan  as CodeSpan
 import qualified Luna.Syntax.Text.Parser.Hardcoded     as Hardcoded
 import qualified Luna.Syntax.Text.Parser.Lexer         as Lexer
-import qualified Luna.Syntax.Text.Parser.Lexer.Names   as Name
 import qualified Luna.Syntax.Text.Parser.State.Version as Syntax
 import qualified Luna.Syntax.Text.Scope                as Scope
-import qualified Text.Parser.State.Indent              as Indent
 import qualified Text.Parser.State.Indent              as Indent
 
 import Data.Map                                   (Map)
 import Data.Set                                   (Set)
-import Data.Text.Position                         (Delta (Delta), Position)
-import Data.Vector                                (Vector)
-import Luna.Syntax.Text.Parser.Ast                (Ast, Spanned (Spanned))
+import Data.Text.Position                         (Position)
+import Luna.Syntax.Text.Parser.Ast                (Ast, Spanned)
 import Luna.Syntax.Text.Parser.Ast.CodeSpan       (CodeSpan)
-import Luna.Syntax.Text.Parser.Parser.ExprBuilder (ExprBuilderMonad, buildExpr,
-                                                   buildExprSegment,
-                                                   checkLeftSpacing)
-import Luna.Syntax.Text.Source                    (Source)
+import Luna.Syntax.Text.Parser.Parser.ExprBuilder (buildExpr, checkLeftSpacing)
 import OCI.Data.Name                              (Name)
 import Text.Parser.State.Indent                   (Indent)
 
@@ -720,7 +706,7 @@ exprList = Ast.list <$> lst where
     nonEmpty = (:) <$> seg segBody <*> many nextSeg
     empty    = (Ast.missing:) <$> many1 nextSeg
     nextSeg  = Ast.prependAsOffset <$> sep <*> seg (optional segBody)
-    segs     = many nextSeg
+    _        = many nextSeg
     seg p    = possiblyBroken $ withReserved sepOp p
     sep      = possiblyBroken $ ast_x sepOp
     segBody  = nonBlockExprBody'
@@ -901,3 +887,4 @@ hardcodePredefinedMacros = mapM_ registerSection
     , syntax_classDef
     , syntax_nativeClassDef
     ]
+

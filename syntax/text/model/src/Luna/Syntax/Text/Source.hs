@@ -7,7 +7,6 @@ import Prologue
 
 import qualified Luna.Pass.Attr as Attr
 
-import Data.Text.Position (Delta)
 import Data.Text32        (Text32)
 
 

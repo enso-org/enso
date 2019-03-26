@@ -5,7 +5,6 @@ module Luna.Pass.Evaluation.EvaluateUnits where
 
 import Prologue
 
-import qualified Data.Map                           as Map
 import qualified Luna.IR                            as IR
 import qualified Luna.Pass.Data.Stage               as TC
 import qualified Luna.Pass.Evaluation.Interpreter   as Interpreter
@@ -40,7 +39,7 @@ evaluateUnits units = mfix $ \compiledUnits -> do
             let meths = cls ^. Def.documented . Class.methods . wrapped
             evaluatedMeths <- for meths $ \(Def.Documented _ def) ->
                 evaluateFun compiledUnits def
-            return $ Runtime.Class evaluatedMeths
-        return $ Runtime.Unit evaluatedDefs evaluatedClasses
-    return $ Runtime.Units evaluatedUnits
+            pure $ Runtime.Class evaluatedMeths
+        pure $ Runtime.Unit evaluatedDefs evaluatedClasses
+    pure $ Runtime.Units evaluatedUnits
 

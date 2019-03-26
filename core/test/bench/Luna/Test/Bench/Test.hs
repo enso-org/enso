@@ -32,4 +32,5 @@ main = do
     -- print =<< Vector.unsafeRead v 3
     -- Vector.free v
     -- print "^^^^^^"
-    return ()
+    pure ()
+

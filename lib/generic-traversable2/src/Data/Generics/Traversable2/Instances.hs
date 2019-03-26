@@ -12,7 +12,7 @@ import qualified Data.Generics.Traversable2.Deriving as Generic.Traversable
 
 import Data.Generics.Traversable2.Class
 import Data.Ratio
-import Data.Word
+
 
 
 -------------------------------

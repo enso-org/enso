@@ -85,7 +85,7 @@ native class Real:
     # Tests whether `self` is equal to the argument.
     def == that: primRealEquals   self that
     # Absolute value.
-    def abs: if self < 0 then self.negate else self
+    def abs: if self < 0.0 then self.negate else self
 
     def toReal: self
 
@@ -259,7 +259,10 @@ class Complex:
         Complex r i
 
     # Complex number modulus.
-    def modulus: self.real*self.real + self.imaginary*self.imaginary
+    def modulus: self.modulusSquared.sqrt
+
+    # Complex number squared modulus.
+    def modulusSquared: self.real*self.real + self.imaginary*self.imaginary
 
 # Class representing boolean values
 class Bool:
@@ -617,6 +620,7 @@ class List a:
         Empty: Nothing
         Prepend x xs: Just x
 
+    # Returns `Just` the last element when the list is not empty, `Nothing` otherwise.
     def last: case self of
         Prepend a Empty: Just a
         Prepend _ rest: rest.last

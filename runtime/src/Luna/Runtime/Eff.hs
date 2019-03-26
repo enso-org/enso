@@ -41,7 +41,7 @@ instance MonadIO Eff where
         res <- unsafeLiftIO $ Exception.catch (Right <$> a) handle
         case res of
             Left a  -> throw a
-            Right r -> return r
+            Right r -> pure r
 
 runIO :: Eff a -> IO a
 runIO (Pure a)    = pure a

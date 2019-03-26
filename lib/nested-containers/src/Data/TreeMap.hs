@@ -1,5 +1,5 @@
-{-# LANGUAGE NoStrict #-}
-{-# LANGUAGE NoStrictData #-}
+{-# LANGUAGE NoStrict             #-}
+{-# LANGUAGE NoStrictData         #-}
 {-# LANGUAGE OverloadedLists      #-}
 {-# LANGUAGE UndecidableInstances #-}
 
@@ -44,7 +44,7 @@ fromValWith = \b f -> fromJust b . fmap f . checkVal
 {-# INLINE fromValWith #-}
 
 fromVal :: IsValue t => a -> t a -> a
-fromVal = \a -> fromMaybe a . checkVal
+fromVal = \a -> fromJust a . checkVal
 {-# INLINE fromVal #-}
 
 
@@ -168,7 +168,7 @@ insertDef :: (IsValue t, Ord k)
 insertDef = \d ks a t -> let
     emptyBranch = TreeBranch d mempty
     in t & branches . nestedDefAt emptyBranch ks
-         %~ (Just . set value (mkVal a) . fromMaybe emptyBranch)
+         %~ (Just . set value (mkVal a) . fromJust emptyBranch)
 {-# INLINE insertDef #-}
 
 insert :: (IsSparseValue t, Ord k)

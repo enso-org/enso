@@ -11,7 +11,6 @@ import Prelude
 import qualified Control.Exception as IO
 
 import Control.Exception          (Exception, SomeException, toException)
-import Control.Lens.Utils
 import Control.Monad              (join)
 import Control.Monad.Trans        (MonadTrans, lift)
 import Control.Monad.Trans.Except (ExceptT, runExceptT, throwE)
@@ -81,3 +80,11 @@ fromJust e = \case
     Nothing -> throw e
     Just a  -> return a
 {-# INLINE fromJust #-}
+
+fromRight :: MonadException e m => (l -> e) -> Either l r -> m r
+fromRight f = \case
+    Right r -> pure r
+    Left  l -> throw $ f l
+    
+fromRight' :: forall l m r. (MonadException SomeException m, Exception l) => Either l r -> m r
+fromRight' = fromRight toException

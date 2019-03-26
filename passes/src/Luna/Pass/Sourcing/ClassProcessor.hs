@@ -8,19 +8,15 @@ import Prologue
 
 import qualified Data.Graph.Data.Component.Vector      as ComponentVector
 import qualified Data.Graph.Data.Layer.Layout          as Layout
-import qualified Data.Graph.Store                      as Store
 import qualified Data.Map                              as Map
 import qualified Data.Mutable.Storable.SmallAutoVector as SmallVector
-import qualified Data.Vector.Storable.Foreign          as Vector
 import qualified Luna.IR                               as IR
 import qualified Luna.IR.Aliases                       as Uni
 import qualified Luna.IR.Layer                         as Layer
 import qualified Luna.Pass                             as Pass
 import qualified Luna.Pass.Attr                        as Attr
-import qualified Luna.Pass.Basic                       as Pass
 import qualified Luna.Pass.Data.Error                  as Error
 import qualified Luna.Pass.Data.Stage                  as TC
-import qualified Luna.Pass.Sourcing.Data.Class         as Class
 import qualified Luna.Pass.Sourcing.Data.Def           as Def
 import qualified Luna.Pass.Sourcing.Data.Unit          as Unit
 import qualified Luna.Pass.Sourcing.Utils              as Sourcing
@@ -49,7 +45,8 @@ instance Pass.Definition TC.Stage ClassProcessor where
         Attr.put $ Root r
         Attr.put cls
 
-prepareClass :: IR.Qualified -> IR.Term IR.Record -> TC.Pass ClassProcessor (IR.SomeTerm, Class)
+prepareClass :: IR.Qualified -> IR.Term IR.Record
+    -> TC.Pass ClassProcessor (IR.SomeTerm, Class)
 prepareClass = \modName klass -> do
     IR.Record native name params conses defs <- IR.modelView klass
     parameters      <- traverse IR.source =<< ComponentVector.toList params
@@ -59,9 +56,9 @@ prepareClass = \modName klass -> do
     accs            <- generateFieldAccessors constructorsMap
     methods         <- traverse IR.source =<< ComponentVector.toList defs
     hasToJSONImpl   <- hasMethod methods "toJSON"
-    toJSON          <- if hasToJSONImpl || native then return [] else do
+    toJSON          <- if hasToJSONImpl || native then pure [] else do
         defaultToJSON <- generateToJSON constructorsMap
-        return [defaultToJSON]
+        pure [defaultToJSON]
     let allMethods = accs <> methods <> toJSON
     newKlass <- IR.record' native
                            name
@@ -70,7 +67,7 @@ prepareClass = \modName klass -> do
                            allMethods
     IR.replace newKlass klass
     defsMap <- foldM (registerMethod modName name paramNames) def allMethods
-    return (newKlass, Class (Constructor . length <$> constructorsMap)
+    pure (newKlass, Class (Constructor . length <$> constructorsMap)
                             defsMap
                             (Layout.unsafeRelayout newKlass))
 
@@ -79,14 +76,14 @@ type ConsMap = Map IR.Name [Maybe IR.Name]
 
 hasMethod :: [IR.SomeTerm] -> IR.Name -> TC.Pass ClassProcessor Bool
 hasMethod methods methodName = fmap or $ for methods $ \a -> do
-    (doc, root) <- Sourcing.cutDoc a
+    (_, root) <- Sourcing.cutDoc a
     Layer.read @IR.Model root >>= \case
         Uni.Function n _ _ -> do
             name <- IR.source n
             Layer.read @IR.Model name >>= \case
-                Uni.Var v -> return $ v == methodName
-                _         -> return False
-        _                  -> return False
+                Uni.Var v -> pure $ v == methodName
+                _         -> pure False
+        _                  -> pure False
 
 fieldNames :: Fields -> [Maybe IR.Name]
 fieldNames fs = concatMap flattenField fs where
@@ -95,8 +92,8 @@ fieldNames fs = concatMap flattenField fs where
 
 getParamNames :: [IR.SomeTerm] -> TC.Pass ClassProcessor [IR.Name]
 getParamNames ts = fmap catMaybes $ for ts $ Layer.read @IR.Model >=> \case
-    Uni.Var n -> return $ Just n
-    _         -> return Nothing
+    Uni.Var n -> pure $ Just n
+    _         -> pure Nothing
 
 generateFieldAccessors :: ConsMap ->  TC.Pass ClassProcessor [IR.SomeTerm]
 generateFieldAccessors = \consMap -> case Map.toList consMap of
@@ -108,7 +105,7 @@ generateFieldAccessors = \consMap -> case Map.toList consMap of
                 set <- generateSetter consName fieldsCount ix fname
                 pure (get, set)
         pure $ accs ^.. traverse . _Just . both
-    _ -> return []
+    _ -> pure []
 
 -- | generateGetter Cons n i field generates a method of the following shape:
 --     def field:
@@ -133,7 +130,7 @@ generateGetter = \consName fieldsCount fieldPos fieldName -> do
     getter     <- IR.function funName [] match
     doc        <- SmallVector.fromList "Field getter"
     documented <- IR.documented doc getter
-    return $ Layout.relayout documented
+    pure $ Layout.relayout documented
 
 -- | generateSetter Cons n i field generates a method of the following shape:
 --     def field= v:
@@ -149,7 +146,7 @@ generateSetter consName fieldsCount fieldPos fieldName = do
     argVarIn  <- IR.var  "v"
     argVarOut <- IR.var' "v"
     funName   <- IR.var $ convert $ Syntax.fieldSetterName $ convert fieldName
-    let manyNames = ("a" <>) . convert . show <$> [1..]
+    let manyNames = ("a" <>) . convert . show <$> ([1..] :: [Integer])
     matchVars <- sequence $ take fieldsCount $ IR.var  <$> manyNames
     retVars   <- sequence $ take fieldsCount $ IR.var' <$> manyNames
     let argsBeforeMatched = take fieldPos       retVars
@@ -192,7 +189,8 @@ generateToJSON :: ConsMap -> TC.Pass ClassProcessor IR.SomeTerm
 generateToJSON = \consMap -> do
     let conses = Map.toList consMap
     consClauses <- for conses $ \(consName, fieldsNames) -> do
-        let fallbackNames = Just . ("a" <>) . convert . show <$> [1..]
+        let fallbackNames = Just . ("a" <>) . convert . show
+                <$> ([1..] :: [Integer])
             fields        = catMaybes $ zipWith (<|>) fieldsNames fallbackNames
         fieldsVars     <- mapM IR.var fields
         consPattern    <- IR.cons consName fieldsVars
@@ -206,7 +204,7 @@ generateToJSON = \consMap -> do
                 nameApplied  <- IR.app insert =<< IR.rawString fieldNameVec
                 fieldJSON    <- IR.acc fieldVar =<< IR.var "toJSON"
                 valueApplied <- IR.app' nameApplied fieldJSON
-                return valueApplied
+                pure valueApplied
         jsonImpl       <- foldM insertField jsonEmpty $ zip fields fieldsVars
         let includeTag  = length conses > 1
         consToJSONImpl <- if includeTag then do
@@ -215,9 +213,9 @@ generateToJSON = \consMap -> do
                 tagApplied      <- IR.app insert =<< IR.rawString tagVec
                 consNameVec     <- SmallVector.fromList $ convert consName
                 consNameApplied <- IR.app' tagApplied =<< IR.rawString consNameVec
-                return consNameApplied
+                pure consNameApplied
             else
-                return jsonImpl
+                pure jsonImpl
         IR.lam consPattern consToJSONImpl
     selfVar    <- IR.var $ convert Syntax.selfName
     match      <- IR.match selfVar consClauses
@@ -227,26 +225,28 @@ generateToJSON = \consMap -> do
     IR.documented' doc toJSONDef
 
 
-registerCons :: ([IR.SomeTerm], ConsMap) -> IR.SomeTerm -> TC.Pass ClassProcessor ([IR.SomeTerm], ConsMap)
+registerCons :: ([IR.SomeTerm], ConsMap) -> IR.SomeTerm
+    -> TC.Pass ClassProcessor ([IR.SomeTerm], ConsMap)
 registerCons = \(cs, map) root -> Layer.read @IR.Model root >>= \case
     Uni.RecordCons n fs -> do
         fields <- traverse IR.source =<< ComponentVector.toList fs
         fs <- foldM registerFields def fields
-        return $ (root : cs, Map.insert n (fieldNames fs) map)
-    _ -> return (cs, map)
+        pure $ (root : cs, Map.insert n (fieldNames fs) map)
+    _ -> pure (cs, map)
 
-flattenApps :: IR.SomeTerm -> TC.Pass ClassProcessor (IR.SomeTerm, [IR.SomeTerm])
+flattenApps :: IR.SomeTerm
+    -> TC.Pass ClassProcessor (IR.SomeTerm, [IR.SomeTerm])
 flattenApps r = Layer.read @IR.Model r >>= \case
     Uni.Grouped g -> flattenApps =<< IR.source g
     Uni.App f a -> do
         (fun, args) <- flattenApps =<< IR.source f
         arg         <- IR.source a
-        return (fun, arg : args)
-    _ -> return (r, [])
+        pure (fun, arg : args)
+    _ -> pure (r, [])
 
 mkFieldTp :: IR.SomeTerm -> TC.Pass ClassProcessor IR.SomeTerm
 mkFieldTp root = Layer.read @IR.Model root >>= \case
-    Uni.Var{} -> return root
+    Uni.Var{} -> pure root
     _ -> do
         (r, reversedArgs) <- flattenApps root
         let args = reverse reversedArgs
@@ -257,22 +257,22 @@ mkFieldTp root = Layer.read @IR.Model root >>= \case
             Uni.Var "->" -> do
                 case args of
                     [a1, a2] -> IR.lam' a1 a2
-                    _        -> return root
-            _ -> return root
+                    _        -> pure root
+            _ -> pure root
 
 processFieldTp :: IR.SomeTerm -> TC.Pass ClassProcessor IR.SomeTerm
 processFieldTp term = do
     flattened <- mkFieldTp term
     IR.replace flattened term
-    return flattened
+    pure flattened
 
 registerFields :: Fields -> IR.SomeTerm -> TC.Pass ClassProcessor Fields
 registerFields = \fs root -> Layer.read @IR.Model root >>= \case
     Uni.RecordFields ns tp' -> do
         tp    <- processFieldTp =<< IR.source tp'
         names <- SmallVector.toList ns
-        return $ fs <> [(names, tp)]
-    _ -> return fs
+        pure $ fs <> [(names, tp)]
+    _ -> pure fs
 
 processConses ::  Bool -> IR.Name -> [IR.SomeTerm]
               -> TC.Pass ClassProcessor ([IR.SomeTerm], ConsMap)
@@ -287,10 +287,12 @@ processConses isNative className conses = do
             namesVec <- SmallVector.fromList names
             IR.recordFields namesVec tp
         cons  <- IR.recordCons' className topFs
-        return (cons : realConses, Map.insert className (fieldNames topFields) consMap)
-    else return (realConses, consMap)
+        pure ( cons : realConses
+             , Map.insert className (fieldNames topFields) consMap )
+    else pure (realConses, consMap)
 
-registerMethod :: IR.Qualified -> IR.Name -> [IR.Name] -> DefsMap -> IR.SomeTerm -> TC.Pass ClassProcessor DefsMap
+registerMethod :: IR.Qualified -> IR.Name -> [IR.Name] -> DefsMap -> IR.SomeTerm
+    -> TC.Pass ClassProcessor DefsMap
 registerMethod = \modName clsName paramNames map t -> do
     (doc, root) <- Sourcing.cutDoc t
     Layer.read @IR.Model root >>= \case
@@ -305,9 +307,9 @@ registerMethod = \modName clsName paramNames map t -> do
                         let error = Error.duplicateMethodDefinition
                                 modName clsName name
                         Error.setError (Just error) newRoot
-                    return $ map & wrapped . at name .~ Just documented
-                _ -> return map
-        _ -> return map
+                    pure $ map & wrapped . at name .~ Just documented
+                _ -> pure map
+        _ -> pure map
 
 addSelf :: IR.Qualified -> IR.Name -> [IR.Name]
         -> IR.Term IR.Function -> TC.Pass ClassProcessor (IR.Term IR.Function)

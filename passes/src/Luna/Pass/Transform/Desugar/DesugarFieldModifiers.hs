@@ -7,23 +7,16 @@ module Luna.Pass.Transform.Desugar.DesugarFieldModifiers where
 import Prologue
 
 import qualified Data.Graph.Data.Component.List   as ComponentList
-import qualified Data.Graph.Data.Component.Vector as ComponentVector
-import qualified Data.Graph.Data.Layer.Layout     as Layout
-import qualified Data.Map                         as Map
 import qualified Data.Mutable.Class               as Mutable
-import qualified Data.Vector.Storable.Foreign     as Vector
 import qualified Luna.IR                          as IR
 import qualified Luna.IR.Aliases                  as Uni
 import qualified Luna.IR.Layer                    as Layer
-import qualified Luna.IR.Term.Ast.Invalid         as Invalid
 import qualified Luna.Pass                        as Pass
 import qualified Luna.Pass.Attr                   as Attr
-import qualified Luna.Pass.Basic                  as Pass
 import qualified Luna.Pass.Data.Stage             as TC
 import qualified Luna.Pass.Data.UniqueNameGen     as NameGen
 import qualified Luna.Syntax.Text.Lexer.Symbol    as Syntax
 
-import Data.Map            (Map)
 import Luna.Pass.Data.Root (Root (Root))
 
 

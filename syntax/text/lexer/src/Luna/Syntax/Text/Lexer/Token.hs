@@ -3,7 +3,7 @@
 
 module Luna.Syntax.Text.Lexer.Token where
 
-import Prologue hiding (Symbol, element, span)
+import Prologue hiding (Symbol, span)
 
 import qualified Luna.Syntax.Text.Lexer.Symbol as Symbol
 

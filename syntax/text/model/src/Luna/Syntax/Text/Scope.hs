@@ -7,22 +7,16 @@ module Luna.Syntax.Text.Scope where
 import Prologue
 
 import qualified Control.Monad.State.Layered          as State
-import qualified Control.Monad.State.Layered          as State
 import qualified Data.Map.Strict                      as Map
-import qualified Data.Set                             as Set
 import qualified Data.TreeSet                         as TreeSet
 import qualified Language.Symbol.Operator.Assoc       as Assoc
 import qualified Language.Symbol.Operator.Prec        as Prec
 import qualified Language.Symbol.Operator.Prec.RelMap as Prec
 import qualified Luna.Data.Name                       as Name
 
--- import Data.Container.Map
--- -- import Data.Container.Map.IntMap      (IntMap)
--- import Data.Container.Mono
 import Control.Lens.Utils             (at')
 import Control.Monad.State.Layered    (StateT)
 import Data.Map.Strict                (Map)
-import Data.Set                       (Set)
 import Data.TreeSet                   (SparseTreeSet)
 import Language.Symbol.Operator.Assoc (Assoc)
 import Luna.IR                        (Name)
@@ -85,7 +79,7 @@ instance Monad m => Prec.RelWriter Name (StateT Scope m) where
     writeRelLabel t a b = State.modify_ @Scope $ precRelMap %~ Prec.insertRel t a b
 
 instance Monad m => Assoc.Reader Name (StateT Scope m) where
-    readLabel n = fromMaybe Assoc.Left . Map.lookup n . view assocMap <$> State.get @Scope
+    readLabel n = fromJust Assoc.Left . Map.lookup n . view assocMap <$> State.get @Scope
 
 instance Monad m => Assoc.Writer Name (StateT Scope m) where
     writeLabel a n = State.modify_ @Scope $ assocMap %~ Map.insert n a

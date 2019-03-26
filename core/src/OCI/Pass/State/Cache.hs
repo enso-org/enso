@@ -2,7 +2,7 @@
 
 module OCI.Pass.State.Cache where
 
-import Prologue
+-- import Prologue
 
 -- import qualified OCI.Pass.State.Runtime as Pass
 -- import qualified Type.Cache             as Type

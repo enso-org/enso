@@ -10,12 +10,9 @@ homepage    : https://github.com/luna/luna
 bug-reports : https://github.com/luna/luna/issues
 author      : Kohei Suzuki, Ara Adkins
 copyright   : Copyright (C) 2013-2018 Kohei Suzuki, 2018 Ara Adkins
-maintainer  : Luna Team
-
-ghc-options:
-    - -O2
-    - -W
-    - -Wall
+maintainer:
+    - Wojciech Danilo  <wojciech.danilo@luna-lang.org>
+    - Ara Adkins       <ara.adkins@luna-lang.org>
 
 library:
     source-dirs:

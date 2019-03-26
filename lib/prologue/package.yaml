@@ -1,0 +1,90 @@
+
+_config/lib: !include "../../config/hpack-common.yaml"
+
+name        : prologue
+version     : 3.2.6
+category    : Control
+license     : Apache-2.0
+synopsis    : Better, more general Prelude exporting common utilities.
+description : Replacement for the Haskell's Prelude, exposing more commonly used
+    functions and patching old GHC ones to behave in the newest GHC's way.
+stability   : experimental
+homepage    : https://github.com/luna/luna
+bug-reports : https://github.com/luna/luna/issues
+author      : Luna Team
+copyright   : Copyright (C) Luna Team
+maintainer:
+    - Wojciech Danilo  <wojciech.danilo@luna-lang.org>
+    - Ara Adkins       <ara.adkins@luna-lang.org>
+
+library:
+    source-dirs:
+        - src
+    dependencies:
+        - base
+        - bifunctors
+        - binary
+        - comonad
+        - cond
+        - container
+        - convert
+        - data-default
+        - deepseq
+        - deriving-compat
+        - either
+        - errors
+        - exceptions
+        - functor-utils
+        - ghc-prim
+        - impossible
+        - lens
+        - lens-utils
+        - monoid
+        - mtl
+        - neat-interpolation
+        - placeholders
+        - pointed
+        - pretty
+        - pretty-show
+        - primitive
+        - raw-strings-qq
+        - recursion-schemes
+        - semigroupoids
+        - string-qq
+        - template-haskell
+        - text
+        - transformers
+        - transformers-base
+        - typelevel
+        - vector
+
+default-extensions:
+    - ConstraintKinds
+    - DataKinds
+    - DefaultSignatures
+    - DeriveDataTypeable
+    - DeriveFoldable
+    - DeriveFunctor
+    - DeriveGeneric
+    - DeriveTraversable
+    - DoAndIfThenElse
+    - EmptyDataDecls
+    - FlexibleContexts
+    - FlexibleInstances,
+    - GeneralizedNewtypeDeriving
+    - InstanceSigs
+    - LambdaCase
+    - MultiParamTypeClasses
+    - MultiWayIf
+    - NoImplicitPrelude
+    - OverloadedStrings
+    - ScopedTypeVariables
+    - StandaloneDeriving
+    - TemplateHaskell
+    - TupleSections
+    - TypeApplications
+    - TypeFamilies
+    - TypeOperators
+    - UnicodeSyntax
+    - ViewPatterns
+

@@ -7,12 +7,12 @@ import Prologue
 
 import qualified Foreign
 
-import           Data.Default
-import           Foreign                (Ptr, Storable, peek, poke)
-import qualified Foreign.Marshal.Utils  as Ptr
-import qualified Foreign.Ptr            as Ptr
+-- import           Data.Default
+import           Foreign                (Ptr, Storable)
+-- import qualified Foreign.Marshal.Utils  as Ptr
+-- import qualified Foreign.Ptr            as Ptr
 import           Foreign.Ptr.Utils      (SomePtr)
-import           Foreign.Storable.Utils (sizeOf')
+-- import           Foreign.Storable.Utils (sizeOf')
 
 import qualified Foreign.Memory.Manager as Mgr
 

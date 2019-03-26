@@ -57,6 +57,14 @@ instance Convertible Qualified String where
 instance Convertible String Qualified where
     convert = convertVia @Name.Name
     {-# INLINE convert #-}
+    
+instance Convertible Qualified Text where
+    convert = convertVia @Name.Name
+    {-# INLINE convert #-}
+
+instance Convertible Text Qualified where
+    convert = convertVia @Name.Name
+    {-# INLINE convert #-}
 
 qualFromSymbol :: forall s. Symbol.KnownSymbol s => Qualified
 qualFromSymbol = convert $ Symbol.symbolVal $ Proxy @s
