@@ -155,10 +155,13 @@ class ProcessDescription:
 # Once you call `Command.create <cmd> <args>`, you can modify it using the `ProcessDescription`
 # methods like `setStdin`. Then, you need to call `run` (or one of its variants) to actually
 # execute the process. Example of redirecting the output of `ls -al` to a file:
-# ```
-# cmd = Command.create "ls" ["-al"] . setStdout (UseHandle somefile)
-# cmd.run
-# ```
+# 
+# > import Std.System
+# > 
+# > def main:
+# >     cmd = Command.create "ls" ["-al"] . setStdout (UseHandle somefile)
+# >     cmd.run
+# 
 class Command:
     # Create the command to be run.
     def create command args:
@@ -185,12 +188,12 @@ class ExitCode:
         ExitSuccess: 0
         ExitFailure e: e
 
-    # Is this code a successful one?
+    # Successful termination.
     def exitSuccess: case self of
         ExitSuccess: True
         ExitFailure e: False
 
-    # Is this code not a successful one?
+    # Program failure with an exit code.
     def exitFailure: case self of
         ExitFailure e: True
         ExitSuccess: False
@@ -214,6 +217,7 @@ class Platform:
         MacOS: "MacOS"
 
 class System:
+    # Return current platform (MacOS, Linux, Windows)
     def currentPlatform: primPlatform
 
     # Lookup an environment variable `v`,
@@ -232,5 +236,6 @@ class System:
         primSetEnv name val
 
 class Directory:
+    # Return current directory.
     def current: primGetCurrentDirectory
 

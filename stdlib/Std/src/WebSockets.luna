@@ -111,13 +111,21 @@ class WebSocket:
     # and the port will be set to 443. For `ws` connections the default port
     # is 80. If you wish to create a secure connection but leave out the
     # `wss` part of the url, you must explicitly call `setSecure` to override
-    # the defaults. Example usage:
-    # ```
-    # conn = WebSocket.connection "ws://somehost.com" "/sockets" . setPort 12345 . create
-    # stream = conn.stream
-    # # process the incoming stream...
-    # conn.close
-    # ```
+    # the defaults.
+    # 
+    # > import Std.WebSockets
+    # > 
+    # > def main:
+    # >     conn = WebSocket.connection "ws://somehost.com" "/sockets" 
+    # >                     . setPort 12345 . create
+    # >     stream = conn.stream
+    # >     # process the incoming stream...
+    # >     conn.close
+    # 
+    # `host`: Address of the server.
+    # `port`: Port to accept the connections.
+    #
+    # `return`: The connection to the WebSocket.
     def connection host path:
         secure = host.startsWith "wss"
         port   = if secure then 443 else 80
@@ -128,12 +136,19 @@ class WebSocket:
     # you need to specify what will be the address (`host`) of the server and
     # on which port it will be accepting the connections (`port`). Once you create it,
     # you can call all of the `WSServer` methods on the returned server instance.
-    # Example usage:
-    # ```
-    # server = WebSocket.server "somehost" 55555
-    # server.sendToAll "hello, clients"
-    # responseStream = server.messageStream
-    # ```
+    # 
+    # > import Std.WebSockets
+    # > 
+    # > def main:
+    # >     server = WebSocket.server "somehost" 55555
+    # >     server.sendToAll "hello, clients"
+    # >     responseStream = server.messageStream
+    # >     None
+    # 
+    # `host`: Address of the server.
+    # `port`: Port to accept the connections.
+    #
+    # `return`: Server instance.
     def server host port:
         primCreateWSServer host port
 
