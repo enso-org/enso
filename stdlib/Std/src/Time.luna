@@ -51,7 +51,7 @@ class TimeZone:
     # >    justSummer = pacificStandardTime.summerOnly
     # >    None
     #
-    # `return`: Boolean value describing if the timezone has daylight saving time or not.
+    # `return`: `True` if the timezone can be in daylight saving time or `False` otherwise.
     def summerOnly: case self of
         TimeZoneVal _ s _: s
 

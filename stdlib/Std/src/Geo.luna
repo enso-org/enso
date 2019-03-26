@@ -11,7 +11,8 @@ class GeoPoint:
 
 # GeoJSON is a format for encoding a variety of geographic data structures. 
 # GeoJSONFeatures contain a geometry and additional properties
-# GeoJSON supports the following geometry types: Point, LineString, Polygon, MultiPoint, MultiLineString, and MultiPolygon.
+# GeoJSON supports the following geometry types: Point, LineString, Polygon, 
+# MultiPoint, MultiLineString, and MultiPolygon.
 #
 # > import Std.Base
 # > import Std.Base
@@ -20,7 +21,8 @@ class GeoPoint:
 # >     latitude = 19.9449799
 # >     longitude = 50.0646501
 # >     coordinates = (latitude, longitude)
-# >     geometry = JSON.empty . insert "type" "Point" . insert "coordinates" coordinates
+# >     geometry = JSON.empty . insert "type" "Point" 
+# >                           . insert "coordinates" coordinates
 # >     property = JSON.empty . insert "name" "Cracow"
 # >     feature = GeoJSONFeature property geometry
 # >     None
@@ -38,7 +40,8 @@ class GeoJSONFeature:
     # >     longitude = 19.9449799
     # >     latitude = 50.0646501
     # >     coordinates = (longitude, latitude)
-    # >     geometry = JSON.empty . insert "type" "Point" . insert "coordinates" coordinates
+    # >     geometry = JSON.empty . insert "type" "Point" 
+    # >                           . insert "coordinates" coordinates
     # >     property = JSON.empty . insert "name" "Cracow"
     # >     feature = GeoJSONFeature property geometry
     # >     featureWithPopup = feature . addProperty "popupContent" "home"
@@ -61,10 +64,12 @@ class GeoJSONFeature:
 # >     latitude2 = 21.017532
 # >     longitude2 = 52.237049
 # >     coordinates2 = (latitude2, longitude2)
-# >     geometry1 = JSON.empty . insert "type" "Point" . insert "coordinates" coordinates1
+# >     geometry1 = JSON.empty . insert "type" "Point" 
+# >                            . insert "coordinates" coordinates1
 # >     property1 = JSON.empty . insert "name" "Cracow"
 # >     feature1 = GeoJSONFeature property1 geometry1
-# >     geometry2 = JSON.empty . insert "type" "Point" . insert "coordinates" coordinates2
+# >     geometry2 = JSON.empty . insert "type" "Point" 
+# >                            . insert "coordinates" coordinates2
 # >     property2 = JSON.empty . insert "name" "Warsaw"
 # >     feature2 = GeoJSONFeature property2 geometry2
 # >     featuresCollection = GeoJSONFeatureCollection [feature1, feature2]

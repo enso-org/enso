@@ -116,7 +116,8 @@ class WebSocket:
     # > import Std.WebSockets
     # > 
     # > def main:
-    # >     conn = WebSocket.connection "ws://somehost.com" "/sockets" . setPort 12345 . create
+    # >     conn = WebSocket.connection "ws://somehost.com" "/sockets" 
+    # >                     . setPort 12345 . create
     # >     stream = conn.stream
     # >     # process the incoming stream...
     # >     conn.close
