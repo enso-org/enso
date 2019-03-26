@@ -175,15 +175,25 @@ def defaultHttpRequest uri:
 # The main class for issuing Http requests.
 # Provides methods for the most common request methods.
 # The basic usage is the following:
-# `resp = Http.get "http://someurl.com/" . perform`
+# 
+# > import Std.HTTP
+# >
+# > def main:
+# >     resp = Http.get "http://someurl.com/" . perform
+# >     None
+#
 # When you want to customize the way the requests are made, you can use the setters
 # provided by the `HttpRequest` class in the following way:
-# ```
-# resp = Http.post "http://someurl.com/" . setHeader "Accept" "*"
-#                                        . setBasicAuth "user" "pass"
-#                                        . setParam "someParam" "someValue"
-#                                        . perform
-# ```
+#
+# > import Std.HTTP
+# >
+# > def main:
+# >     resp = Http.post "http://someurl.com/" . setHeader "Accept" "*"
+# >                                            . setBasicAuth "user" "pass"
+# >                                            . setParam "someParam" "someValue"
+# >                                            . perform
+# >     None
+# 
 # Note: the `get`, `post`, `put` and `delete` methods need to be followed
 # by a `perform` invocation to actually make the request.
 # Once we obtain the response object (`resp` in the examples above), we

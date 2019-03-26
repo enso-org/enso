@@ -620,6 +620,7 @@ class List a:
         Empty: Nothing
         Prepend x xs: Just x
 
+    # Returns `Just` the last element when the list is not empty, `Nothing` otherwise.
     def last: case self of
         Prepend a Empty: Just a
         Prepend _ rest: rest.last
