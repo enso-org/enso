@@ -14,7 +14,19 @@ TODO List:
 - Architectural Overview:
   + Explanation of the different components of the runtime.
   + Diagrammatic architecture overview
+- Optimisations:
+  + What functionality is required from the Luna Core optimiser to produce
+    proper GHC core?
+  + What optimisations are we guaranteed at each level of the JIT? 
+  + What do we need to do to get proper FP opts like Tail-call optimisation?
+- Strictness:
+  + The runtime needs to explicitly support strict and lazy evaluation, and the
+    cache-graph needs to track this explicitly. 
+  + Optional laziness is useful but potentially annoying for the runtime, even
+    with pervasive support in GHC. 
 - Cache Overview:
+  + Diagram
+  + What is the 'unit of caching' going to be? Probably a function.
   + An explanation of the caching mechanism
   + An architectural description of the cache
   + A description of eviction strategies
@@ -23,25 +35,36 @@ TODO List:
   + How do we ensure predictable performance? What is the impact of the cache on
     this?
   + Needs to provide the ability to _freeze_ results or inputs. 
+  + Look in detail into Skiplang
 - Code Compilation:
+  + Diagram
   + Compilation of Luna Code to GHC Core
   + An exploration of what from Luna will be encoded in core, and what is erased
   + An overview of the compilation strategy, eager + demand loading to ensure
     the fastest time to execution possible.  
+  + How does the type system impact our translation to core?
 - FFI:
+  + Diagram
   + How is the new runtime going to handle FFI? 
   + What do we need from user-code to give us enough information to properly
     encode FFI calls.
   + Need to ensure that FFI calls are as low-overhead as possible.
 - Layers:
+  + Diagram (sub-part of overview)
   + Edge Layer: Watching of files or inputs. How to determine when to reload? 
     How does Luna interact with files hosted in the IDE?
+  + Interoperation between the layers
   + Descriptions of each layer of the JIT
   + What portions of the JIT tracking machinery need to be implemented for phase
     one.
   + How does this machinery work and what does it need to track? 
   + The bytecode interpreter is always linked with the threaded RTS, so we have
     native multithreading. 
+- The JIT:
+  + A tracing JIT
+  + Compilation of traces through functions with heavy inlining to force GHC to
+    optimise. 
+  + Support for static traces and on-demand optimisation. 
 - Introspection and API:
   + Broad designs for how the API supports external control
   + Runtime support for an IDE protocol
@@ -65,12 +88,14 @@ TODO List:
   + This is in addition to the IDE protocol.
   + Should use the _same_ communication mechanism.
   + Describe the set of messages and the protocol.
-- Acceptance Criteria:
-  + Functionality
-  + Startup Time
-  + Performance
-  + Future-Proofing
+  + Changeset Definition
+  + "Evaluate This" unified reduction framework for the type-checker and compile
+    time evaluation (graph reduction). 
+- A Static Compilation Future:
+  + How does the work on the runtime and JIT get us closer to this? What 
+    remains to be done to get this working after the above?
 - Detailed Design Section (TBC)
+
 -->
 
 # Summary
@@ -81,6 +106,67 @@ Why should we make this change? What use-cases does it support? What benefits
 does it bring to the ecosystem? Explain why the status quo is insufficient or
 not ideal.
 
+# Architectural Overview
+<!--
+- A diagram of the overall architecture for the runtime.
+- 
+-->
+
+## Runtime Layers
+<!--
+- Brief descriptions of each of the layers.
+- A diagram that shows how they interact.
+-->
+
+### 1 - The Edge Layer
+
+### 2 - The Runtime Protocol
+
+### 3 - The Compilation Layer and Type-Checker
+
+### 4 - The Cache Layer
+
+### 5 - The Byte-Code Interpreter
+
+### 6 - JIT Tier 1
+
+### 7 - JIT Tier 2
+
+# Detailed Design
+Where the above sections look at the layers of the runtime from a high-level and
+user-facing perspective, the below sections provide the detailed technical 
+designs for these systems. 
+
+# The Edge Layer
+
+# The Runtime Protocol
+
+# The Compilation Layer and Type-Checker
+
+# The Cache Layer
+
+# The Byte-Code Interpreter
+
+# JIT Tier 1
+
+# JIT Tier 2
+
+# AOT Compilation
+While Luna's runtime is not intended for the production of AOT-compiled binaries
+for Luna programs, it just so happens that 
+
+# Acceptance Criteria
+This new runtime for Luna is a gargantuan effort, but that means that we need to
+be all the more rigorous 
+
+<!--
+- Go into detail about the acceptance criteria for the new runtime, particularly
+  around functionality, start-up time, performance, and future-proofing.
+-->
+
+
+
+<!--
 # Guide-Level Explanation
 Explain the proposal as if teaching the feature(s) to a newcomer to Luna. This
 should usually include:
@@ -118,14 +204,6 @@ include where relevant:
 
 - The grammar and semantics of any new constructs.
 - The types and semantics of any new library interfaces.
-
-## Textual Syntax Explanation
-This should explain how the new feature interacts with the textual syntax
-representation of Luna. It should touch on the same categories as above.
-
-## Graph Syntax Explanation
-This should explain how the new feature interacts with the graphical syntax for
-Luna. It should also touch on the same categories as above.
 
 # Drawbacks
 A description of why we _should not_ do this. Write this section as if you are
@@ -1261,3 +1339,4 @@ The following are useful resources when thinking about building JIT compilers.
 - [LuaJIT Source Code](https://github.com/LuaDist/luajit)
 - [Are JITs Winning?](http://lambda-the-ultimate.org/node/3851)
 
+-->
