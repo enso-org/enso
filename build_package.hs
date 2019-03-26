@@ -46,6 +46,7 @@ module Main where
 
 import Prelude hiding (FilePath)
 
+import qualified Control.Exception   as Exception
 import qualified Data.Either         as Either
 import qualified Data.List           as List
 import qualified Data.Text           as Text
@@ -55,6 +56,7 @@ import qualified Path                as Path
 import qualified System.Directory    as Directory
 import qualified System.Environment  as Environment
 import qualified System.FilePath     as FilePath
+import qualified System.IO.Error     as IOError
 import qualified Turtle              as Turtle
 import qualified Turtle.Pattern      as Turtle
 
@@ -64,8 +66,8 @@ import Control.Monad          (when, unless)
 import Data.Monoid            ((<>))
 import Data.Text              (Text)
 import Options.Applicative    ((<**>))
-import Path                   (Path, Rel, File, Abs, Dir)
-import System.FilePath        (FilePath, (</>))
+import Path                   (Path, Rel, File, Abs, Dir, (</>))
+import System.FilePath        (FilePath)
 import Turtle                 ((<|>))
 
 
@@ -74,14 +76,18 @@ import Turtle                 ((<|>))
 -- === Constants === --
 -----------------------
 
+defaultDistFolder :: Path Rel Dir
+defaultDistFolder = $(Path.mkRelDir "dist/")
+
+-- Relative to package root
+relativeBinFolder :: Path Rel Dir
+relativeBinFolder = $(Path.mkRelDir "bin/public/")
+
 projectYaml :: Path Rel File
-projectYaml = $(Path.mkRelFile "./stack.yaml")
+projectYaml = $(Path.mkRelFile "stack.yaml")
 
 releaseOpts :: [Text]
 releaseOpts = ["-fno-omit-interface-pragmas"]
-
-pkgBaseDirFromLocalBin :: FilePath
-pkgBaseDirFromLocalBin = "../../"
 
 stdlibSrcFolderLoc :: Turtle.FilePath
 stdlibSrcFolderLoc = "stdlib/Std/"
@@ -103,9 +109,10 @@ dataDistLoc = "config/env/"
 data CommandOpts = CommandOpts
     { _releaseMode :: Bool
     , _verbose     :: Bool
-    , _check       :: Bool
+    , _checkScript :: Bool
     , _cleanStack  :: Bool
-    } deriving (Eq, Show)
+    , _packageDir  :: String
+    } deriving (Eq, Ord, Show)
 makeLenses ''CommandOpts
 
 
@@ -114,13 +121,23 @@ makeLenses ''CommandOpts
 optionsParser :: Options.Parser CommandOpts
 optionsParser = CommandOpts
     <$> Options.switch (Options.long "release"
-        <> Options.help "Build the Luna package in release mode")
+        <> (Options.help $ "Build the Luna package in release mode. This will "
+            <> "take significantly longer (~1 hour vs. ~5 mins), but will "
+            <> "result in significantly increased binary performance."))
     <*> Options.switch (Options.long "verbose"
-        <> Options.help "Enable verbose mode while building.")
-    <*> Options.switch (Options.long "check"
-        <> Options.help "Check that the build script itself builds.")
+        <> (Options.help $ "Enable verbose mode while building. This will "
+            <> "print all output from stack instead of only printing on a "
+            <> "failure."))
+    <*> Options.switch (Options.long "check-script"
+        <> (Options.help $ "Check that the build script itself builds. This is "
+            <> "primarily for usage on CI."))
     <*> Options.switch (Options.long "clean-stack"
-        <> Options.help "Clean stack build artefacts before build.")
+        <> (Options.help $ "Clean stack build artefacts before build. This is "
+            <> "equivalent to calling `stack clean`."))
+    <*> Options.strOption (Options.long "package-dir" <> Options.metavar "DIR"
+        <> Options.value (Path.fromRelDir defaultDistFolder)
+        <> (Options.help $ "The directory to build the package in. The default "
+            <> "value is `" <> Path.fromRelDir defaultDistFolder <> "`."))
 
 
 
@@ -129,9 +146,11 @@ optionsParser = CommandOpts
 ----------------------
 
 runBuilder :: CommandOpts -> Turtle.Shell ()
-runBuilder opts = when (not $ opts ^. check) $ do
+runBuilder opts = when (not $ opts ^. checkScript) $ do
     -- Find the dist folder location
-    distributionFolder <- getDistFolder projectYaml
+    distFP   <- liftIO . Directory.canonicalizePath $ opts ^. packageDir
+    distPath <- Path.parseAbsDir distFP
+    let binPath = distPath </> relativeBinFolder
 
     -- Clean Stack Build State (in Subshell)
     when (opts ^. cleanStack) . Turtle.sh $ do
@@ -140,12 +159,12 @@ runBuilder opts = when (not $ opts ^. check) $ do
 
     -- Clean Package Build State
     logMessage "Cleaning package dist"
-    pkgRootPath <- getPkgRoot distributionFolder pkgBaseDirFromLocalBin
+    let packageRootFP = Turtle.decodeString $ Path.fromAbsDir distPath
 
-    pkgRootExists <- liftIO . Directory.doesDirectoryExist
-        $ Turtle.encodeString pkgRootPath
-
-    when pkgRootExists $ Turtle.rmtree pkgRootPath
+    liftIO $ Exception.catchJust
+        (\e -> if IOError.isDoesNotExistError e then Just () else Nothing)
+        (Turtle.rmtree packageRootFP)
+        (const $ pure ())
 
     -- Build and Copy Luna (in Subshell)
     let buildMsg = "Building Luna in " <> if opts ^. releaseMode
@@ -154,16 +173,20 @@ runBuilder opts = when (not $ opts ^. check) $ do
     logMessage buildMsg
 
     let ghcOpts   = if opts ^. releaseMode then releaseOpts else []
-        buildOpts = genBuildOpts ghcOpts
+        buildOpts = genBuildOpts ghcOpts . Text.pack $ Path.fromAbsDir binPath
 
-    Turtle.sh $ Turtle.inprocWithErr "stack" buildOpts Turtle.empty >>= \out ->
-        when (opts ^. verbose) . liftIO $ case out of
-            Left err -> Text.putStrLn $ Turtle.lineToText err
-            Right ln -> Text.putStrLn $ Turtle.lineToText ln
+    -- TODO Want to barf the actual build error if possible.
+    liftIO $ Exception.handle
+        (\(e :: Turtle.ExitCode) ->
+            error "Stack build failed. Please rerun with `--verbose` for info.")
+        $ Turtle.sh $ Turtle.inprocWithErr "stack" buildOpts Turtle.empty >>=
+            \out -> when (opts ^. verbose) . liftIO $ case out of
+                Left err -> Text.putStrLn $ Turtle.lineToText err
+                Right ln -> Text.putStrLn $ Turtle.lineToText ln
 
     -- Create the `config/env` folder
     logMessage "Creating the data folder"
-    let dataRootPath = pkgRootPath <> dataDistLoc
+    let dataRootPath = packageRootFP <> dataDistLoc
     Turtle.mktree dataRootPath
 
     -- Copy Stdlib
@@ -174,40 +197,10 @@ runBuilder opts = when (not $ opts ^. check) $ do
     logMessage "Copying the licenses"
     Turtle.cptree licenseSrcFolderLoc $ dataRootPath <> "licenses"
 
-    logMessage "Package built"
+    logMessage $ "Package built in " <> show distPath
 
 logMessage :: String -> Turtle.Shell ()
 logMessage msg = liftIO . putStrLn $ ">>> " <> msg
-
-getPkgRoot :: Path Abs Dir -> FilePath -> Turtle.Shell Turtle.FilePath
-getPkgRoot binPath relRoot = do
-    let fileBinPath = Path.fromAbsDir binPath
-        pkgRoot = fileBinPath </> relRoot
-
-    canonicalPkgRoot <- liftIO $ Directory.canonicalizePath pkgRoot
-
-    when (canonicalPkgRoot == "/") $ error "Invalid root \"/\""
-
-    pure $ Turtle.decodeString canonicalPkgRoot
-
-getDistFolder :: Path Rel File -> Turtle.Shell (Path Abs Dir)
-getDistFolder inputFile = do
-    stackYaml <- liftIO . Text.readFile $ Path.fromRelFile inputFile
-
-    let distLocMatch = Turtle.between
-            "local-bin-path: "
-            (Turtle.once Turtle.newline)
-            (Turtle.star Turtle.anyChar)
-        yamlLines = flip Text.append "\n" <$> Text.lines stackYaml
-        pathMatch = concat $ Turtle.match distLocMatch <$> yamlLines
-
-    when (length pathMatch /= 1) . error
-        $ "Found " <> (show $ length pathMatch) <> " dist folder matches."
-
-    canonicalDistPath <- liftIO . Directory.canonicalizePath . Text.unpack
-        $ head pathMatch
-
-    pure =<< Path.parseAbsDir canonicalDistPath
 
 genGHCOptions :: [Text] -> Text
 genGHCOptions inputOpts = ghcOptsKey <> quote <> optsFold <> quote
@@ -215,8 +208,9 @@ genGHCOptions inputOpts = ghcOptsKey <> quote <> optsFold <> quote
           quote = "\""
           optsFold = Text.unwords inputOpts
 
-genBuildOpts :: [Text] -> [Text]
-genBuildOpts ghcOpts = ["build", "--copy-bins"] <> [genGHCOptions ghcOpts]
+genBuildOpts :: [Text] -> Text -> [Text]
+genBuildOpts ghcOpts pkgPath =
+    ["--local-bin-path", pkgPath, "install"] <> [genGHCOptions ghcOpts]
 
 ------------------
 -- === Main === --

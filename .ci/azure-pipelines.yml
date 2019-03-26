@@ -19,7 +19,7 @@ jobs:
     displayName: Build Luna
   - script: LD_PRELOAD=~/.stack/programs/x86_64-linux/ghc-8.4.4/lib/ghc-8.4.4/rts/libffi.so.7 stack run -- run --target=$(Build.SourcesDirectory)/stdlib/StdTest
     displayName: Run Tests
-  - script: stack build_package.hs --check
+  - script: stack build_package.hs --check-script
     displayName: Check Package Script
 
 - job: macOS
@@ -42,7 +42,7 @@ jobs:
     displayName: Build Luna
   - script: stack run -- run --target=$(Build.SourcesDirectory)/stdlib/StdTest
     displayName: Run Tests
-  - script: stack build_package.hs --check
+  - script: stack build_package.hs --check-script
     displayName: Check Package Script
 
 - job: Windows
@@ -59,6 +59,6 @@ jobs:
     displayName: Build Luna
   - script: C:\stack\stack run -- run --target=$(Build.SourcesDirectory)/stdlib/StdTest
     displayName: Run Tests
-  - script: C:\stack\stack build_package.hs --check
+  - script: C:\stack\stack build_package.hs --check-script
     displayName: Check Package Script
 
