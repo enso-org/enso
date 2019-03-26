@@ -1,8 +1,8 @@
 ___
-- **Feature Name:** Futureproof Runtime
-- **Start Date:** 2018-08-24
+- **Feature Name:** Runtime 2.0
+- **Start Date:** 2019-03-26
 - **Change Type:** Breaking
-- **RFC Dependencies:**
+- **RFC Dependencies:** Syntax Overhaul, Modules
 - **RFC PR:** Leave Empty
 - **Luna Issue:** Leave Empty
 - **Implemented:** Leave blank, this will be filled with the first version of
@@ -18,17 +18,59 @@ TODO List:
   + An explanation of the caching mechanism
   + An architectural description of the cache
   + A description of eviction strategies
+  + We need mechanisms to retain state in the presence of code changes (and hot
+    reloading)
+  + How do we ensure predictable performance? What is the impact of the cache on
+    this?
+  + Needs to provide the ability to _freeze_ results or inputs. 
 - Code Compilation:
   + Compilation of Luna Code to GHC Core
   + An exploration of what from Luna will be encoded in core, and what is erased
   + An overview of the compilation strategy, eager + demand loading to ensure
-    the fastest time to execution possible. 
+    the fastest time to execution possible.  
+- FFI:
+  + How is the new runtime going to handle FFI? 
+  + What do we need from user-code to give us enough information to properly
+    encode FFI calls.
+  + Need to ensure that FFI calls are as low-overhead as possible.
 - Layers:
+  + Edge Layer: Watching of files or inputs. How to determine when to reload? 
+    How does Luna interact with files hosted in the IDE?
   + Descriptions of each layer of the JIT
+  + What portions of the JIT tracking machinery need to be implemented for phase
+    one.
+  + How does this machinery work and what does it need to track? 
+  + The bytecode interpreter is always linked with the threaded RTS, so we have
+    native multithreading. 
 - Introspection and API:
   + Broad designs for how the API supports external control
   + Runtime support for an IDE protocol
   + Runtime support for alternate front-ends (e.g. REPL)
+  + Functionality for performance introspection
+- IDE Protocol and Debugging:
+  + Inbuilt debugger support
+  + Inbuilt performance tracking (can piggyback on the JIT machinery)
+  + Luna process as the host of the files when operating in this mode, but needs
+    to work with a standard cmd-line repl (what's this interaction like?)
+  + Describe the protocol and the messages.
+  + https://github.com/luna/luna/issues/365
+- Performance Tracking and Benchmarking:
+  + How the design will support both micro- and macro-benchmarks
+  + The runtime needs to be extensively benchmarked such that performance
+    regressions can be caught. 
+  + We potentially need additional infrastructure to support automating this ->
+    Can criterion be used for benchmark diffing? Support both dev and release
+    checks?
+- The Runtime Protocol:
+  + This is in addition to the IDE protocol.
+  + Should use the _same_ communication mechanism.
+  + Describe the set of messages and the protocol.
+- Acceptance Criteria:
+  + Functionality
+  + Startup Time
+  + Performance
+  + Future-Proofing
+- Detailed Design Section (TBC)
 -->
 
 # Summary
