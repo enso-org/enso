@@ -60,19 +60,19 @@ of the same architectural component (e.g. the JIT layers).
   runtime's operation, as well as the features required by an IDE-protocol.
 - The IDE-protocol portion should reflect discussions with David (held on email
   and recorded here: https://github.com/luna/luna/issues/365)
-- A list of the protocol messages with informal descriptions (spec to come 
+- A list of the protocol messages with informal descriptions (spec to come
   later).
-- A description of protocol support for performance data collection (potentially 
-  integrated with the IDE protocol). 
-- A description of protocol support for debugging (integrated with the IDE 
+- A description of protocol support for performance data collection (potentially
+  integrated with the IDE protocol).
+- A description of protocol support for debugging (integrated with the IDE
   protocol).
 - A description of how to design the protocol to admit extensions.
 - An examination of how this supports building a rich REPL interface, and how it
   supports Luna Studio.
 - A description of how files are controlled based on the protocol impl, and how
-  they should be hosted by the Luna process. 
+  they should be hosted by the Luna process.
 - A description of the interaction between the protocol and the typechecker.
-- A description of how changesets for open files should be handled. 
+- A description of how changesets for open files should be handled.
 - A mechanism for handling the notion of active and passive 'layers', as well as
   on-demand optimisation.
 -->
@@ -84,15 +84,29 @@ of the same architectural component (e.g. the JIT layers).
 - A list of requirements placed on the Luna Core optimiser to allow for
   generation of proper GHC core (e.g. generating core for TCO).
 - The code-generator will have to handle explicit strictness annotations.
-- A list of things to encode in GHC Core and things that get erased. Particular 
+- A list of things to encode in GHC Core and things that get erased. Particular
   focus on our type-system and whether we should (or how we can) encode rows.
 - A description of the compilation strategy: eager + on-demand loading to ensure
   that as little time as possible is spent waiting.
-- An analysis of how on-demand evaluation for type-checking should work. A 
+- An analysis of how on-demand evaluation for type-checking should work. A
   restriction on what can be encoded (can only evaluate known-typed exprs).
 - A design for handling optimisation passes with a hierarchical structure (e.g.
   `+Pass.Optimisation.TCO`).
-- An analysis of Luna-side optimisations required for the new runtime. 
+- An analysis of Luna-side optimisations required for the new runtime.
+- An analysis of what type-erasure (if any) we can get away with at the Luna
+  level (in the end GHC will type-erase our core). Any retained type info should
+  be contained in-line in the Luna IR.
+- An analysis of how to avoid explicitly encoding any types in the assumptions
+  of the rest of the runtime (allowing for later addition of dependent and
+  linear types).
+- While Luna is statically typed, the runtime manipulation of types provides
+  less opportunities for usage-analysis based erasure than languages like Idris
+  or Agda. However, it is likely still possible that we can apply a
+  usage-analysis pass to the Luna Core graph.
+- The analysis of _relevance_ of type information is interesting, and
+  potentially we can learn some lessons from the progress of
+  [Dependent Haskell](https://ghc.haskell.org/trac/ghc/wiki/DependentHaskell)
+  in GHC.
 -->
 
 ### 4 - The Cache Layer
@@ -102,7 +116,8 @@ of the same architectural component (e.g. the JIT layers).
   + A description of the dependency-tracking strategy.
   + A description of the eviction strategies in use, especially concerning type
     alterations and specialisation. It needs to account for changes in (inputs,
-    outputs, type, code, and code that it depends on or depends on it). 
+    outputs, type (incl. Monad, Exception), code, and code that it depends on or
+    depends on it, strictness).
   + The mechanisms by which it allows for hot-reloading (keeping data around
     where possible)
   + The LRU mechanism that maintains some N sets of in/out for each code block.
@@ -112,6 +127,9 @@ of the same architectural component (e.g. the JIT layers).
 - A discussion of how we compensate for the magic of the cache in predictable
   performance: some portions of the caching should be _optional_ to aid in this.
 - An accounting for how strictness and laziness interact with the cache.
+- A description of how the cache interacts with layer 1, making it IO-aware.
+- An analysis of _what_ to cache, and how it can be tuned for memory (and disk)
+  usage (e.g. caching of infinite structures).
 - This should be informed by Skip, a programming language that caches results
   where possible.
 -->
@@ -122,6 +140,10 @@ of the same architectural component (e.g. the JIT layers).
   Luna programs.
 - A description of how the JIT'ed code is going to be linked back into the
   interpreter process and the JIT hot-swap mechanism.
+- An analysis of the interpreter's role in type-checking, allowing for
+  evaluation of programs to compute types, and then graph reduction by the Luna
+  TC and optimiser. Graph reduction as an optimisation strategy.
+- An analysis of how best to combine strict evaluation with optional laziness.
 -->
 
 ### 6 - JIT Tier 1
@@ -130,6 +152,7 @@ of the same architectural component (e.g. the JIT layers).
   tier (the specifics can come later).
 - A description of the trade-off this JIT layer makes.
 - An analysis of how we can use the W^X mitigation.
+- An examination of the JIT as a solution to non-type-erased code.
 -->
 
 ### 7 - JIT Tier 2
@@ -161,7 +184,7 @@ multiple (if not all) of the above layers.
 <!--
 - A description of the mechanisms by which execution is traced.
 - A description of _what_ data is tracked and how it is used to make decisions
-  about the JIT.
+  about the JIT. Time and memory.
 - An examination of which portions of this are required for phase one of the
   implementation.
 - A description of how this functionality can be used for inbuilt performance
@@ -170,9 +193,9 @@ multiple (if not all) of the above layers.
   + Forced inlining of traces to ensure optimisation of the whole trace.
   + Performance annotation.
 - An exploration of how we trace enough data without slowing down the bytecode
-  interpreter stage too much. Tracing calls will be eliminated in the JIT'ed 
+  interpreter stage too much. Tracing calls will be eliminated in the JIT'ed
   code.
-- An exploration of what mechanisms we can apply to get faster warm-up times 
+- An exploration of what mechanisms we can apply to get faster warm-up times
   (e.g. static tracing, on-demand optimisation).
 -->
 
@@ -182,6 +205,12 @@ multiple (if not all) of the above layers.
 - A description of which GHC primitives and RTS operations we can rely on.
 - A description of how the bytecode interpreter helps achieve concurrency in the
   new runtime.
+- An analysis of techniques for automatic parallelism that defer to manual
+  parallelism where necessary. How do these interact with stateful and IO-based
+  computation?
+- An analysis of how GHC's concurrency primitives can be used to retain as much
+  concurrency performance as possible.
+- An exploration of techniques to avoid async/await 'colour'.
 -->
 
 ### 4 - Debugging and Performance Tracing
@@ -217,12 +246,22 @@ multiple (if not all) of the above layers.
 
 # Debugging and Performance Tracing
 
+# Language Embedding
+It is an eventual goal for Luna, and hence this runtime design, to be able to
+embed other languages (e.g. Python and R) for seamless interoperability.
+
+<!--
+- An analysis of whether this is possible with the GHC-based runtime without
+  significant overhead.
+- An analysis of how this might be accomplished.
+-->
+
 # Benchmarking the Runtime
 <!--
-- A description of how the runtime will be benchmarked. 
+- A description of how the runtime will be benchmarked.
 - A description of how regressions will be caught.
 - An analysis of any external infrastructure to allow for automated regression
-  discovery. 
+  discovery.
 -->
 
 # AOT Compilation
@@ -265,246 +304,9 @@ the current time. Some examples include:
 
 # Notes
 
-## TCO
-The current interpreter/runtime performs no tail-call optimisation (TCO),
-allocating a new stack frame for each recursive call where the recursive call is
-in tail position. The new runtime should definitely support TCO, though the
-exact details of this is unknown.
-
-- Should TCO be an optimisation pass enabled with `-O` flags (or equivalent,
-  e.g. `+Pass.Optimisation.TCO`)? This is more likely to be useful when we have
-  a native target.
-- It should likely be enabled by default for the interpreter, especially while
-  we aren't doing many other optimisations.
-- Needs to allow for _guarded recursion_ (tail recursion modulo constructors)
-  to maintain lazy semantics.
-- Any such optimisation should not interfere with the semantics of thunk
-  evaluation.
-
-#### Caching
-
-- Lazy eviction of layers from cache, but connected to the interactive layer.
-- Needs to cache the results of computations on the graph. The only things that
-  should be recomputed are those _downstream_ from the change.
-- However, this cache must also be type-aware.
-- The type must also be effect-aware (e.g. IO - watching files on disk, or
-  MVars), but default to active evaluation.
-- Freeze caching: prevents recomputation of nodes even when not up to date.
-- Frozen values should save with the project.
-- Frozen values have the ability to reload.
-- Multi-layer caches (memory, disk, cache eviction) to control memory usage.
-  Size control set in project `config.yaml`.
-- Eviction strategies by age, computation time, usage, etc.
-- Caching of lazy / infinite structures.
-- Dirty flag propagation and invalidation, but with saving of parameters.
-- It is possible that the method cache and the value cache can be one and the
-  same.
-- The ideas presented by [skip](http://skiplang.com/) may have some very useful
-  implications for the runtime caching mechanism.
-
-#### Graph Reduction
-
-- The interpreter is the major part of the typechecker, allowing for the
-  evaluation of type level expressions.
-- Structural pattern matching for optimisation (e.g. a pure function with
-  literal arguments).
-- Such graph reductions are optimisation passes.
-- How these reductions are propagated through the graph (as they may introduce
-  new patterns) is an important point of this design.
-- Reduction may elide useful things (e.g. sliders), so could be disabled or
-  (hot-pathed).
-
-#### Separate Compilation
-
-- It should be possible to compile separate parts of the IR to separate
-  languages as part of the JIT architecture.
-- This would allow hybrid compilation to support web use-cases. An example of
-  this is that the currently editable view could compile to JavaScript to be
-  executed live on the client, with compiled code executing on the server.
-- This has some complex interactions around data transfer and an object model,
-  however.
-
-#### Measurement
-
-- Luna, as a language, should be trivially easy to profile, both when it comes
-  to memory and runtime (clock and CPU time).
-- Easy inbuilt profiling will both allow visual profiling in Luna Studio, and
-  the command-line generation of reports (or live files).
-- The new runtime must incorporate hooks for gathering this profiling info, so
-  it can easily be displayed to users.
-- This profiling support should _not_ instroduce a negative performance impact.
-- It is likely, if based on a JIT, that the PGO infrastructure should be able
-  to be utilised for this profiling information.
-
-#### Static Analysis and Graph Compilation
-
-- To increase the 'warm up' speed of a JIT, it is possible that static tracing
-  through the Luna graph can be used to augment dynamic JIT tracing.
-- Such static tracing would give _some_ idea of what code paths to optimise in
-  absence of dynamic tracing information, potentially reducing JIT warm-up.
-
-## Parallelism
-As part of its usage in Luna Studio, Luna wants to offer the ability for
-automatic parallelism of certain function calls. Furthermore, its use as a
-programming language will provide explicit programmer control over parallelism.
-The runtime needs to support both of these use-cases.
-
-#### Runtime Parallelism
-
-- The runtime needs to be thread-safe and support both OS-threads and
-  lightweight green threading that multiplexes onto OS threads. For now this can
-  be provided by the GHC RTS, but the need for this should inform any future
-  designs.
-- Some functions should be able to be automatically parallelised based on the
-  size of their inputs (or other measures).
-- This automatic parallelism should be able to be controlled by the user,
-  whether through a configuration option or configuration parameter passed to
-  the runtime (e.g. `+Runtime.Parallelism.Automatic`).
-- Automated parallelism, however, should defer to manually-controlled
-  parallelism where relevant (e.g. any situation where the two may conflict).
-- Manual parallelism should provide access to OS-threads (e.g. POSIX threads),
-  as well as a lightweight green-threading solution.
-- Automatic splitting at branches in pure cases or cases with provably separate
-  evaluations. This should be a graph-level annotation set by a pass.
-- This parallelism should automatically extend to execution on non SMP systems.
-  That means both NUMA systems and GPU-based compute. This is not a suggestion
-  that Luna itself can execute on GPUs, but there should be native support in
-  the RTS for efficiency in Data Science analysis use-cases.
-- The runtime should be based on a green-threads model for handling execution of
-  asynchronous code. This should work regardless of whether it is executing on
-  a SMP system or not.
-
-#### Design Considerations for Dealing with Parallelism
-
-- Any stateful and side-effecting operations in the runtime need to be carefully
-  managed so as not to introduce race conditions.
-- Synchronisation for MVars so we can allow for some cross-thread communication.
-- Even if they aren't exposed to the users, standard synchronisation primitives
-  must _work_ in the new runtime (barrier, mutex, spinlock), as they allow for
-  fine-grained concurrency control. Such control would be important for big-data
-  applications where parallel data structures can be implemented using them
-  (e.g. persistent tries).
-- The concurrency should be implemented at as low a level as possible,
-  potentially using the GHC RTS directly. The more layers we pile up, the more
-  performance we lose.
-- The concurrency needs to work with _both_ interpreted code and compiled code
-  so as to provide a seamless experience. This means the runtime has to have
-  direct access to ABI hooks in compiled code where necessary.
-- Whatever is done, it mustn't cripple performance like the Python GIL does.
-- Needs to have support for asynchronous computations, but avoid the problems
-  that naturally arrise from an `async/await`-based [approach](http://journal.stuffwithstuff.com/2015/02/01/what-color-is-your-function/).
-
-## RTTI
-While Luna is currently simply typed (no pi-types), we fully intend for it to
-evolve into a truly dependently-typed language over time as we upgrade the type
-system. While we already have plans for this, the runtime needs to support it
-too.
-
-#### Types at Runtime
-
-- The issue with dependent-types is that you can't erase _all_ type information
-  at runtime. Unless this is designed sensibly, it is very possible that keeping
-  extraneous type information around could bloat the runtime.
-- If we can afford the memory cost, it may be better to retain _all_ type
-  information at runtime, even in the compiled code. This would speed up the
-  flow for optimisation and deoptimisation (and potentially yield improvements
-  for the typechecker).
-- If we do this, type information should be retained inline in the expression
-  context as much as possible. The more indirections done to look up type info,
-  the slower it is to work with type-level computations (bearing in mind that
-  type and value-level computations are executed by the same interpreter).
-- Any runtime type support shouldn't make any assumptions regarding the type
-  universe of the types on which it is operating. Doing so would preclude future
-  introductions of additional type universes such as
-  [Affine Types](http://asaj.org/talks/lola16/?full#cover),
-  [Linear Types](https://ghc.haskell.org/trac/ghc/wiki/LinearTypes) or
-  [Uniqueness Types](http://docs.idris-lang.org/en/latest/reference/uniqueness-types.html)
-  ([Substructural Types](https://en.wikipedia.org/wiki/Substructural_type_system)
-  in general).
-- While Luna is statically typed, the runtime manipulation of types provides
-  less opportunities for usage-analysis based erasure than languages like Idris
-  or Agda. However, it is likely still possible that we can apply a
-  usage-analysis pass to the Luna Core graph.
-- The analysis of _relevance_ of type information is interesting, and
-  potentially we can learn some lessons from the progress of
-  [Dependent Haskell](https://ghc.haskell.org/trac/ghc/wiki/DependentHaskell)
-  in GHC.
-
-#### Type Erasure
-
-- While execution of type-erased code at runtime is often seen as necessary for
-  the execution performance of code, this often brings limitations in situations
-  where RTTI would be useful.
-- Luna, with such a rich type language, has the capacity to benefit in a
-  significant way from the availability of RTTI, so we don't want to erase Luna
-  fully.
-- A JIT, however, would provide a solution to this: as it optimises functions it
-  can specialise and type-erase them for performance. The un- or less-optimised
-  versions of these functions are still available in cases where the optimised
-  code needs to be invalidated.
-
-## ESA
-Future plans for Luna also include embedding other languages within Luna code to
-allow for seamless interoperability with said languages. Designing this
-properly, and making it easy to write new bindings, will require some level of
-support in the runtime. This system is known as the Embedded Syntax Architecture
-(ESA).
-
-#### Runtime Design for ESA
-
-- Ideally, we want zero-cost data access between the languages participating in
-  ESA linkages.
-- This means that the runtime's data model needs to be low-level enough that any
-  language can reasonably interact with it.
-- It also needs to interact with ESA in a thread-safe manner.
-
 ## Evaluation Strategies
 While Luna is currently a lazy language, we have plans to make it strict (with
 optional laziness) in the future.
-
-#### Laziness and Strictness
-
-- Should be able to handle a mixture of lazy and strict data, with support for
-  'viral' laziness annotations.
-- Should be able to handle functions with a mixture of lazy and strict
-  arguments.
-- It should have well-defined evaluation strategies for both lazy and strict
-  code (e.g. call-by-need for lazy code, call-by-name for strict code).
-- The interpreter's design needs to be agnostic to the evaluation strategy.
-- Strict by default with rich support for laziness.
-- Data should be able to be 'switched' into a lazy mode, with support for both
-  deep and shallow laziness.
-- Shallow is lazy fields.
-- Deep is lazy type, lazy fields / methods
-- Types can be lazy by default.
-- Every piece of data needs strictness annotations in its metadata (in addition
-  to Monad, Error, Type, etc).
-- Having flexible support for laziness and strictness means it is triviail to
-  implement short-circuiting operations _inside_ Luna.
-- For optimisation's sake, we may actually be able to generate call-by-need
-  based strict evaluation, eagerly replacing thunks at evaluation time.
-
-#### A Skeleton Design for Runtime Laziness Handling
-
-- Every runtime value will be tagged (as part of its metadata blob, along with
-  type, monad, error, etc).
-- This acts as a key to tell the evaluator how to execute the code in question,
-  and whether code generation needs to generate code for thunks.
-
-## FFI
-Luna's FFI currently only supports calling C ABI functions via the use of
-libffi. The runtime can likely support dynamic function calls in a slightly
-better fashion, and potentially extend this to different languages.
-
-#### FFI in the Luna Runtime
-
-- The FFI should be tied to the current back-end. As we want to support multiple
-  backends, the JS backend should allow for JavaScript FFI, while the ASM
-  backend should allow for C FFI.
-- This means that there should be a `Native` FFI tag for multi-target projects.
-- This flexibility should extend to the interpreted runtime.
-- FFI calls should be as close to zero-overhead in the dynamic runtime as
-  possible, while in compiled code they should be zero-cost.
 
 ## A JIT-Based Luna Runtime
 The following section aims to explain why integration of a JIT Compiler into the
