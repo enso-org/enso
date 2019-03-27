@@ -8,96 +8,6 @@ ___
 - **Implemented:** Leave blank, this will be filled with the first version of
   the relevant tool where it is implemented.
 
-<!--
-TODO List:
-
-- Architectural Overview:
-  + Explanation of the different components of the runtime.
-  + Diagrammatic architecture overview
-- Optimisations:
-  + What functionality is required from the Luna Core optimiser to produce
-    proper GHC core?
-  + What optimisations are we guaranteed at each level of the JIT? 
-  + What do we need to do to get proper FP opts like Tail-call optimisation?
-- Strictness:
-  + The runtime needs to explicitly support strict and lazy evaluation, and the
-    cache-graph needs to track this explicitly. 
-  + Optional laziness is useful but potentially annoying for the runtime, even
-    with pervasive support in GHC. 
-- Cache Overview:
-  + Diagram
-  + What is the 'unit of caching' going to be? Probably a function.
-  + An explanation of the caching mechanism
-  + An architectural description of the cache
-  + A description of eviction strategies
-  + We need mechanisms to retain state in the presence of code changes (and hot
-    reloading)
-  + How do we ensure predictable performance? What is the impact of the cache on
-    this?
-  + Needs to provide the ability to _freeze_ results or inputs. 
-  + Look in detail into Skiplang
-- Code Compilation:
-  + Diagram
-  + Compilation of Luna Code to GHC Core
-  + An exploration of what from Luna will be encoded in core, and what is erased
-  + An overview of the compilation strategy, eager + demand loading to ensure
-    the fastest time to execution possible.  
-  + How does the type system impact our translation to core?
-- FFI:
-  + Diagram
-  + How is the new runtime going to handle FFI? 
-  + What do we need from user-code to give us enough information to properly
-    encode FFI calls.
-  + Need to ensure that FFI calls are as low-overhead as possible.
-- Layers:
-  + Diagram (sub-part of overview)
-  + Edge Layer: Watching of files or inputs. How to determine when to reload? 
-    How does Luna interact with files hosted in the IDE?
-  + Interoperation between the layers
-  + Descriptions of each layer of the JIT
-  + What portions of the JIT tracking machinery need to be implemented for phase
-    one.
-  + How does this machinery work and what does it need to track? 
-  + The bytecode interpreter is always linked with the threaded RTS, so we have
-    native multithreading. 
-- The JIT:
-  + A tracing JIT
-  + Compilation of traces through functions with heavy inlining to force GHC to
-    optimise. 
-  + Support for static traces and on-demand optimisation. 
-- Introspection and API:
-  + Broad designs for how the API supports external control
-  + Runtime support for an IDE protocol
-  + Runtime support for alternate front-ends (e.g. REPL)
-  + Functionality for performance introspection
-- IDE Protocol and Debugging:
-  + Inbuilt debugger support
-  + Inbuilt performance tracking (can piggyback on the JIT machinery)
-  + Luna process as the host of the files when operating in this mode, but needs
-    to work with a standard cmd-line repl (what's this interaction like?)
-  + Describe the protocol and the messages.
-  + https://github.com/luna/luna/issues/365
-- Performance Tracking and Benchmarking:
-  + How the design will support both micro- and macro-benchmarks
-  + The runtime needs to be extensively benchmarked such that performance
-    regressions can be caught. 
-  + We potentially need additional infrastructure to support automating this ->
-    Can criterion be used for benchmark diffing? Support both dev and release
-    checks?
-- The Runtime Protocol:
-  + This is in addition to the IDE protocol.
-  + Should use the _same_ communication mechanism.
-  + Describe the set of messages and the protocol.
-  + Changeset Definition
-  + "Evaluate This" unified reduction framework for the type-checker and compile
-    time evaluation (graph reduction). 
-- A Static Compilation Future:
-  + How does the work on the runtime and JIT get us closer to this? What 
-    remains to be done to get this working after the above?
-- Detailed Design Section (TBC)
-
--->
-
 # Summary
 A one-paragraph, high-level summary of the proposal.
 
@@ -109,33 +19,181 @@ not ideal.
 # Architectural Overview
 <!--
 - A diagram of the overall architecture for the runtime.
-- 
+- An illustration of how the runtime fits into the broader Luna system.
+- A brief bullet-pointed list of the layers and their key features.
 -->
 
 ## Runtime Layers
+The Luna runtime consists of a number of discrete layers from a design
+standpoint, each of which handles a separate part of the runtime's function.
+While the responsibilities of these layers are usually well-defined, they will
+need to be fairly tightly integrated, primarily for performance.
+
+Please note that these layers aren't intended to relate directly to
+architectural components at the code level. There will likely be the need for
+additional components, and some of these layers may actually be different uses
+of the same architectural component (e.g. the JIT layers).
+
 <!--
-- Brief descriptions of each of the layers.
-- A diagram that shows how they interact.
+- A set of brief descriptions of each of the layers.
+- A diagram that shows how they interact, and the approximate communication flow
+  between them.
 -->
 
 ### 1 - The Edge Layer
+<!--
+- A diagram of the interactive file-system watching.
+- A diagram of the protocol interactions.
+- This layer handles:
+  + Managing code files.
+  + Managing and watching data on disk.
+  + Communication between the runtime and the protocol client.
+- A description of the strategy to determine when to reload data based on disk
+  changes.
+-->
 
 ### 2 - The Runtime Protocol
+<!--
+- An analysis of what is required to efficiently parse and respond to protocol
+  messages.
+- A description of the unified protocol that handles explicit control over the
+  runtime's operation, as well as the features required by an IDE-protocol.
+- The IDE-protocol portion should reflect discussions with David (held on email
+  and recorded here: https://github.com/luna/luna/issues/365)
+- A list of the protocol messages with informal descriptions (spec to come 
+  later).
+- A description of protocol support for performance data collection (potentially 
+  integrated with the IDE protocol). 
+- A description of protocol support for debugging (integrated with the IDE 
+  protocol).
+- A description of how to design the protocol to admit extensions.
+- An examination of how this supports building a rich REPL interface, and how it
+  supports Luna Studio.
+- A description of how files are controlled based on the protocol impl, and how
+  they should be hosted by the Luna process. 
+- A description of the interaction between the protocol and the typechecker.
+- A description of how changesets for open files should be handled. 
+- A mechanism for handling the notion of active and passive 'layers', as well as
+  on-demand optimisation.
+-->
 
 ### 3 - The Compilation Layer and Type-Checker
+<!--
+- A diagram of the compilation process.
+- A description of the interaction between this and Luna-native passes.
+- A list of requirements placed on the Luna Core optimiser to allow for
+  generation of proper GHC core (e.g. generating core for TCO).
+- The code-generator will have to handle explicit strictness annotations.
+- A list of things to encode in GHC Core and things that get erased. Particular 
+  focus on our type-system and whether we should (or how we can) encode rows.
+- A description of the compilation strategy: eager + on-demand loading to ensure
+  that as little time as possible is spent waiting.
+- An analysis of how on-demand evaluation for type-checking should work. A 
+  restriction on what can be encoded (can only evaluate known-typed exprs).
+- A design for handling optimisation passes with a hierarchical structure (e.g.
+  `+Pass.Optimisation.TCO`).
+- An analysis of Luna-side optimisations required for the new runtime. 
+-->
 
 ### 4 - The Cache Layer
+<!--
+- The actual architecture of the runtime cache:
+  + A description of the keying strategy.
+  + A description of the dependency-tracking strategy.
+  + A description of the eviction strategies in use, especially concerning type
+    alterations and specialisation. It needs to account for changes in (inputs,
+    outputs, type, code, and code that it depends on or depends on it). 
+  + The mechanisms by which it allows for hot-reloading (keeping data around
+    where possible)
+  + The LRU mechanism that maintains some N sets of in/out for each code block.
+  + The unit of program functionality that the cache works with: what the level
+    of granularity and whether it should be tunable
+- A diagram of the cache architecture and sharding approach
+- A discussion of how we compensate for the magic of the cache in predictable
+  performance: some portions of the caching should be _optional_ to aid in this.
+- An accounting for how strictness and laziness interact with the cache.
+- This should be informed by Skip, a programming language that caches results
+  where possible.
+-->
 
 ### 5 - The Byte-Code Interpreter
+<!--
+- A description of how the GHC bytecode interpreter will be used to evaluate
+  Luna programs.
+- A description of how the JIT'ed code is going to be linked back into the
+  interpreter process and the JIT hot-swap mechanism.
+-->
 
 ### 6 - JIT Tier 1
+<!--
+- An examination of the kind of optimisations would be performed by this JIT
+  tier (the specifics can come later).
+- A description of the trade-off this JIT layer makes.
+- An analysis of how we can use the W^X mitigation.
+-->
 
 ### 7 - JIT Tier 2
+<!--
+- An examination of the kind of optimisations would be performed by this JIT
+  tier (the specifics can come later).
+- A description of why we want a second JIT stage, and the anticipated
+  performance benefits.
+- A discussion of the drawbacks of this layer (primarily compilation cost).
+-->
 
-# Detailed Design
-Where the above sections look at the layers of the runtime from a high-level and
-user-facing perspective, the below sections provide the detailed technical 
-designs for these systems. 
+## Cross-Cutting Concerns
+There are a number of elements of the design for the new runtime that cannot be
+easily partitioned into the above layers. These are explored below from the
+standpoint of requirements and high-level design, and will be integrated into
+multiple (if not all) of the above layers.
+
+### 1 - FFI
+<!--
+- A diagram of how FFI calls work, and the support libraries needed.
+- A description of how we want FFI to work, and its performance characteristics.
+- A list of what we need from user code to provide enough information to the
+  backend to properly encode the FFI calls.
+- A description of how we will ensure that FFI calls remain as low-overhead as
+  possible.
+-->
+
+### 2 - JIT Tracing
+<!--
+- A description of the mechanisms by which execution is traced.
+- A description of _what_ data is tracked and how it is used to make decisions
+  about the JIT.
+- An examination of which portions of this are required for phase one of the
+  implementation.
+- A description of how this functionality can be used for inbuilt performance
+  tracking.
+- An examination of what traces are used for:
+  + Forced inlining of traces to ensure optimisation of the whole trace.
+  + Performance annotation.
+- An exploration of how we trace enough data without slowing down the bytecode
+  interpreter stage too much. Tracing calls will be eliminated in the JIT'ed 
+  code.
+- An exploration of what mechanisms we can apply to get faster warm-up times 
+  (e.g. static tracing, on-demand optimisation).
+-->
+
+### 3 - Concurrency
+<!--
+- An exploration of how the runtime will need to handle concurrency.
+- A description of which GHC primitives and RTS operations we can rely on.
+- A description of how the bytecode interpreter helps achieve concurrency in the
+  new runtime.
+-->
+
+### 4 - Debugging and Performance Tracing
+<!--
+- An examination of how performance tracing can be achieved based on the JIT's
+  trace.
+- A description of what features we want out of the debugger.
+- An examination of what kind of debugging support we can get for free from the
+  bytecode interpreter, and what we would need to build on top.
+-->
+
+<!-- !!!! DETAILED DESIGN SECTIONS BELOW !!!! -->
 
 # The Edge Layer
 
@@ -151,73 +209,44 @@ designs for these systems.
 
 # JIT Tier 2
 
+# FFI
+
+# JIT Tracing
+
+# Concurrency
+
+# Debugging and Performance Tracing
+
+# Benchmarking the Runtime
+<!--
+- A description of how the runtime will be benchmarked. 
+- A description of how regressions will be caught.
+- An analysis of any external infrastructure to allow for automated regression
+  discovery. 
+-->
+
 # AOT Compilation
 While Luna's runtime is not intended for the production of AOT-compiled binaries
-for Luna programs, it just so happens that 
+for Luna programs, it just so happens that much of the work on the runtime is
+also applicable to this scenario.
+
+<!--
+- An analysis of what portions of the runtime work can be used to allow AOT
+  compilation.
+- A brief elucidation of the _additional_ functionality needed to enable the
+  AOT compilation workflow for Luna.
+-->
 
 # Acceptance Criteria
 This new runtime for Luna is a gargantuan effort, but that means that we need to
-be all the more rigorous 
+be all the more rigorous when it comes to defining what 'success' means for this
+addition to the project.
 
 <!--
+- What is the scope of the first deliverable?
 - Go into detail about the acceptance criteria for the new runtime, particularly
   around functionality, start-up time, performance, and future-proofing.
 -->
-
-
-
-<!--
-# Guide-Level Explanation
-Explain the proposal as if teaching the feature(s) to a newcomer to Luna. This
-should usually include:
-
-- Introduction of any new named concepts.
-- Explaining the feature using motivating examples.
-- Explaining how Luna programmers should _think_ about the feature, and how it
-  should impact the way they use the language. This should aim to make the
-  impact of the feature as concrete as possible.
-- If applicable, provide sample error messages, deprecation warnings, migration
-  guidance, etc.
-- If applicable, describe the differences in teaching this to new Luna
-  programmers and experienced Luna programmers.
-
-For implementation-oriented RFCs (e.g. compiler internals or luna-studio
-internals), this section should focus on how contributors to the project should
-think about the change, and give examples of its concrete impact. For
-policy-level RFCs, this section should provide an example-driven introduction to
-the policy, and explain its impact in concrete terms.
-
-# Reference-Level Explanation
-This is the technical portion of the RFC and should be written as a
-specification of the new feature(s). It should provide a syntax-agnostic
-description of the planned feature, and include sufficient detail to address the
-following points:
-
-- Impact on existing feature(s) or functions.
-- Interactions with other features.
-- A clear description of how it should be implemented, though this need not
-  contain precise references to internals where relevant.
-- An explanation of all corner cases for the feature, with examples.
-
-This section should be written in comprehensive and concise language, and may
-include where relevant:
-
-- The grammar and semantics of any new constructs.
-- The types and semantics of any new library interfaces.
-
-# Drawbacks
-A description of why we _should not_ do this. Write this section as if you are
-picking apart your proposal.
-
-# Rationale and Alternatives
-A few paragraphs addressing the rationale for why this design is the best
-possible design for this feature in its design space. It should address how the
-proposed design resolves the motivating factors.
-
-A few paragraphs addressing alternative designs for the feature, and the reasons
-for not choosing them.
-
-A paragraph or two addressing the impact of not including this feature.
 
 # Unresolved Questions
 This section should address any unresolved questions you have with the RFC at
@@ -229,6 +258,10 @@ the current time. Some examples include:
   process before the feature is made stable.
 - Are there any issues related to this RFC but outside its scope that could be
   addressed in future independently of this RFC? If so, what are they?
+
+<!-- END OF WIP PROPOSAL -->
+
+<!--
 
 # Notes
 
@@ -247,41 +280,6 @@ exact details of this is unknown.
   to maintain lazy semantics.
 - Any such optimisation should not interfere with the semantics of thunk
   evaluation.
-
-## Runtime Design
-The following designs should account for both interactive use in Luna Studio, as
-well as interactive use in a future Luna REPL.
-
-#### Runtime Design
-
-- Luna's future as a compiled and interpreted language, with the need to support
-  multiple backends.
-- An effective division of the user experience into two groups of 'layers'. The
-  first layer is the portion of the graph being actively manipulated by the
-  user, and this should be interpreted. The second layer is the 'rest' of the
-  graph, which can be compiled so as to offer the best performance.
-- This needs to be more sophisticated than a traditional JIT-style method cache,
-  as the nature of Luna's type-system means that we can dynamically compute
-  types (dependent typing).
-- This native compilation can take time, so need the ability to hot-swap code.
-- Need to provide the ability for callers to control opt and deoptimisation
-  levels as they see fit.
-- The difficulty is what cache-invalidation strategy to use, as types can change
-  dynamically in a way not possible with traditional languages (e.g. a change to
-  a number can alter types).
-- This interacts poorly with specialisation-based optimisation strategies.
-- Need to think about how this plugs into the NCG, and think of the interpreter
-  as just _one_ level of the compilation stack.
-- One of the current issues with the runtime is doing (slow) lookups during
-  execution. We want to avoid this as much as possible.
-- The machinery around `GHC.Exts.Any` may not be the best way to implement the
-  runtime data. There is some overhead associated with it, as well as
-  complexity. It may be sensible to use a C-level data model, as this would
-  potentially provide better interop with other languages and compilation
-  stages.
-- The runtime should support both PGO and manual optimisation. It should also be
-  possible to mark a function as `NeverOptimise` such that PGO does not kick in
-  if the function is in a live layer.
 
 #### Caching
 
