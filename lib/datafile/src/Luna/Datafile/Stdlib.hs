@@ -6,9 +6,9 @@ import qualified Luna.Datafile    as Datafile
 import qualified Path             as Path
 import qualified System.Directory as Directory
 
-import Path            ( Path, Dir, Abs, (</>) )
-import Luna.Datafile   ( PackageRootData, RepoRootData, Verifier, EnvVar
-                       , MonadDatafile )
+import Path          ( Path, Dir, Abs, (</>) )
+import Luna.Datafile ( PackageRootData, RepoRootData, Verifier, EnvVar
+                     , MonadDatafile )
 
 
 
@@ -18,7 +18,7 @@ import Luna.Datafile   ( PackageRootData, RepoRootData, Verifier, EnvVar
 
 -- === Definition === --
 
-data Stdlib = Stdlib deriving (Eq, Ord, Show)
+data Stdlib
 
 -- If this is set, it should point to the root of the stdlib package such that
 -- `dir/Stdlib/src` is a valid path (where `dir` is the value of this

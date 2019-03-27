@@ -7,9 +7,9 @@ import qualified Path             as Path
 import qualified System.Directory as Directory
 import qualified System.FilePath  as FilePath
 
-import Path            ( Path, Dir, Abs )
-import Luna.Datafile   ( PackageRootData, RepoRootData, Verifier, EnvVar
-                       , MonadDatafile )
+import Path          ( Path, Dir, Abs )
+import Luna.Datafile ( PackageRootData, RepoRootData, Verifier, EnvVar
+                     , MonadDatafile )
 
 
 
@@ -19,7 +19,7 @@ import Luna.Datafile   ( PackageRootData, RepoRootData, Verifier, EnvVar
 
 -- === Definition === --
 
-data Licenses = Licenses deriving (Eq, Ord, Show)
+data Licenses
 
 -- If this is set, it should point to the root of the licenses folder such that
 -- `dir` contains the *.license files (where `dir` is the value of this

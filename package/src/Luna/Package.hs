@@ -110,11 +110,11 @@ findPackageFileForFile :: (MonadIO m, MonadException Path.PathException m)
     => Path Abs File -> m (Maybe (Path Abs File))
 findPackageFileForFile = findPackageFile . Path.parent
 
-getRelativePathForModule :: (MonadIO m, MonadCatch m) => Path Abs File
-    -> Path Abs File -> m (Maybe (Path Rel File))
-getRelativePathForModule packageFile =
+getRelativePathForModule :: (MonadIO m, MonadException Path.PathException m)
+    => Path Abs File -> Path Abs File -> m (Maybe (Path Rel File))
+getRelativePathForModule pkgFile = Exception.rethrowFromIO @Path.PathException .
     fmap eitherToMaybe . Safe.try . Path.stripProperPrefix
-        (Path.parent $ Path.parent packageFile)
+        (Path.parent $ Path.parent pkgFile)
     where
         eitherToMaybe :: Either Path.PathException (Path Rel File)
                       -> Maybe (Path Rel File)
