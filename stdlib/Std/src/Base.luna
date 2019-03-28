@@ -4,31 +4,167 @@ import Std.Primitive
 # Class representing integer numbers of arbitrary size.
 native class Int:
     # Integer addition.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 5
+    # >     b = 10
+    # >     c = a.+ b
+    # >     None
+    # 
+    # `that`: Integer to add to `self` value.
+    # `returns`: Sum of `self` and `that` values.
     def +  that: primIntAdd      self that
+
     # Integer multiplication.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 5
+    # >     b = 10
+    # >     c = a.* b
+    # >     None
+    # 
+    # `that`: Integer to multiply by `self` value.
+    # `returns`: Multiplication result for `self` and `that` values.
     def *  that: primIntMultiply self that
+
     # Integer subtraction.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10
+    # >     b = 5
+    # >     c = a.- b
+    # >     None
+    # 
+    # `that`: Integer to substract from `self` value.
+    # `returns`: The result of substraction for `self` and `that` values.
     def -  that: primIntSubtract self that
-    # Integral division – `a./ b` returns the largest integer `c` such that `c * b <= a`.
+
+    # Integral division.
+    # `a./ b` returns the largest integer `c` such that `c * b <= a`.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10
+    # >     b = 3
+    # >     c = a./ b
+    # >     None
+    # 
+    # `that`: Integer value to divide `self` value by it.
+    # `returns`: The result of division for `self` and `that` values.
     def /  that: primIntDivide   self that
+
     # Division remainder `a.% b == a - (a / b) * b`
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10
+    # >     b = 3
+    # >     c = a.% b
+    # >     None
+    # 
+    # `that`: Integer value to divide `self` value by it.
+    # `returns`: The value "left over" after dividing `self` by `that` value.
+
     def %  that: primIntModulo   self that
     # `a.> b` returns True when `a` is greater than `b`.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10
+    # >     b = 3
+    # >     c = a.> b
+    # >     None
+    # 
+    # `that`: Integer value to compare with `self` value.
+    # `returns`: `True` if `self` value is greater than `that`, `False` otherwise.
     def >  that: primIntGt       self that
+
     # `a.< b` returns True when `a` is lesser than `b`.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10
+    # >     b = 3
+    # >     c = a.< b
+    # >     None
+    # 
+    # `that`: Integer value to compare with `self` value.
+    # `returns`: `True` if `self` value is lower than `that`, `False` otherwise.
     def <  that: primIntLt       self that
+
     # Integer equality. `a.== b` returns True when `a` equals `b`.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10
+    # >     b = 3
+    # >     c = a.== b
+    # >     None
+    # 
+    # `that`: Integer value to compare with `self` value.
+    # `returns`: `True` if `self` value is equal to `that`, `False` otherwise.
     def == that: primIntEquals   self that
+
     # Absolute value.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = - 10
+    # >     b = a.abs 
+    # >     None
+    # 
+    # `returns`: Absolute value for `self`.
     def abs: if self < 0 then self.negate else self
 
     def toInt: self
 
-    # Integer negation. `a.negate == -1 * a`.
+    # Integer negation.
+    # `a.negate == -1 * a`.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10
+    # >     b = a.negate
+    # >     None
+    # 
+    # `returns`: Negation of `self` value.
     def negate: primIntNegate self
+
     # Promote an integer to a real number.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10
+    # >     b = a.toReal
+    # >     None
+    # 
+    # `returns`: `self` as Real value.
     def toReal: primIntToReal self
+
     # Display an integer as text.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10
+    # >     b = a.toText
+    # >     None
+    #  
+    # `returns`: `self` as Text value.
     def toText: primIntToText self
 
     # Alias for `toText`, for the purpose of pretty printing the number.
@@ -49,12 +185,43 @@ native class Int:
     # Returns a TimeInterval with the length of `self` weeks.
     def weeks: self*7 . days
 
-    # Predecessor. `a.pred == a - 1`
+    # Predecessor. 
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 5
+    # >     b = a.pred 
+    # >     None
+    #  
+    # `returns`: Predecessor of `self` value: `a.pred == a - 1`.
     def pred: self - 1
-    # Successor. `a.succ == a + 1`
+
+    # Successor.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 5
+    # >     b = a.succ 
+    # >     None
+    #  
+    # `returns`: Successor of `self` value: `a.succ == a + 1`.
     def succ: self + 1
 
-    # Generates a list representing a range. `a.upto b == [a, a + 1, a + 2, ..., b - 1, b]`
+    # Generates a list representing a range. 
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 3
+    # >     b = 10
+    # >     c = a.upto b
+    # >     None
+    # 
+    # > `i`: Stop value for the sequence of numbers.
+    # > `returns`: List of values from `self` to `i`. 
+    # >            For example above it will be `[3,4,5,6,7,8,9,10]`.
     def upto i:
         ss = self.succ
         if self <= i then Prepend self (ss . upto i) else []
@@ -67,82 +234,417 @@ native class Int:
 # Class representing floating point numbers.
 native class Real:
     # Floating point addition.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 5.0
+    # >     b = 10.5
+    # >     c = a.+ b
+    # >     None
+    # 
+    # `that`: Floating point number to add to `self` value.
+    # `returns`: Sum of `self` and `that` values.
     def +  that: primRealAdd      self that
+
     # Floating point multiplication.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 5.5
+    # >     b = 10.0
+    # >     c = a.* b
+    # >     None
+    # 
+    # `that`: Floating point number to multiply by `self` value.
+    # `returns`: Multiplication result for `self` and `that` values.
     def *  that: primRealMultiply self that
+
     # Floating point subtraction.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10.3
+    # >     b = 5.0
+    # >     c = a.- b
+    # >     None
+    # 
+    # `that`: Floating point number to substract from `self` value.
+    # `returns`: The result of substraction for `self` and `that` values.
     def -  that: primRealSubtract self that
+
     # Floating point division.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10.4
+    # >     b = 2.0
+    # >     c = a./ b
+    # >     None
+    # 
+    # `that`: Floating point number value to divide `self` value by it.
+    # `returns`: The result of division for `self` and `that` values.
     def /  that: primRealDivide   self that
+
     # Floating point exponentiation.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10.4
+    # >     b = 2.0
+    # >     c = a.^ b
+    # >     None
+    # 
+    # `that`: Exponent (floating point number).
+    # `returns`: Floating point number value, which is a result of
+    #            exponentiation of `self` value to `that` power.
     def ^ that: primRealPow self that
+    
     # Floating point logarithm with given basis.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10.4
+    # >     b = 2.0
+    # >     c = a.log b
+    # >     None
+    # 
+    # `base`: Logarithm base (floating point number).
+    # `returns`: Floating point number value, result for logarithm 
+    #            calculation of `self` value to `base`.
     def log base: primRealLog self base
+
     # Tests whether `self` is greater than the argument.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10.4
+    # >     b = 3.76
+    # >     c = a.> b
+    # >     None
+    # 
+    # `that`: Floating point number value to compare with `self` value.
+    # `returns`: `True` if `self` value is greater than `that`, `False` otherwise.
     def >  that: primRealGt       self that
+
     # Tests whether `self` is lesser than the argument.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10.7
+    # >     b = 3.45
+    # >     c = a.< b
+    # >     None
+    # 
+    # `that`: Floating point number value to compare with `self` value.
+    # `returns`: `True` if `self` value is smaller than `that`, `False` otherwise.
     def <  that: primRealLt       self that
+
     # Tests whether `self` is equal to the argument.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 3.45
+    # >     b = 3.45
+    # >     c = a.== b
+    # >     None
+    # 
+    # `that`: Floating point number value to compare with `self` value.
+    # `returns`: `True` if `self` value is equal to `that`, `False` otherwise.
     def == that: primRealEquals   self that
+
     # Absolute value.
     def abs: if self < 0.0 then self.negate else self
 
     def toReal: self
 
-    # Negation. `a.negate == -1.0 * a`
+    # Negation. 
+    #`a.negate == -1.0 * a`
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10.0
+    # >     b = a.negate
+    # >     None
+    # 
+    # `returns`: Negation of `self` value.
     def negate:     primRealNegate self
+
     # Display a real number as text.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10.0
+    # >     b = a.toText
+    # >     None
+    #  
+    # `returns`: `self` as Text value.
     def toText:     primRealToText self
-    # Round a number with given precision – the result is a real number with the number of digits after the decimal dot equal to the argument.
+
+    # Round a number with given precision – the result is a real number
+    # with the number of digits after the decimal dot equal to the argument.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10.75876
+    # >     b = a.round 2
+    # >     None
+    #
+    # `prec`: Integer value describing the operation presicion.
+    # `returns`: Floating point number value which is a `self` value rounded
+    #            with number of digits after decimal dot equal with `prec` value.
     def round prec: primRealRound  self prec
+
     # Round a number down to the closest `Int`
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10.75876
+    # >     b = a.floor
+    # >     None
+    #
+    # `returns`: The largest integer value less than or equal to `self` value.
     def floor: primRealFloor self
+
     # Round a number up to the closest `Int`
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10.75876
+    # >     b = a.ceiling
+    # >     None
+    #
+    # `returns`: The smallest integer value greater than or equal to `self` value.
     def ceiling: primRealCeiling self
 
     # Sine function.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10.75876
+    # >     b = a.sin
+    # >     None
+    #
+    # `returns`: The sine of `self` in radians.
     def sin: primRealSin self
+
     # Cosine function.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10.75876
+    # >     b = a.cos
+    # >     None
+    #
+    # `returns`: The cosine of `self` in radians.
     def cos: primRealCos self
+
     # Tangent function.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10.75876
+    # >     b = a.tan
+    # >     None
+    #
+    # `returns`: The tangent of `self` in radians.
     def tan: primRealTan self
 
     # Hyperbolic sine function.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10.75876
+    # >     b = a.sinh
+    # >     None
+    #
+    # `returns`: The hyperbolic sine of `self` in radians.
     def sinh: primRealSinh self
+
     # Hyperbolic cosine function.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10.75876
+    # >     b = a.cosh
+    # >     None
+    #
+    # `returns`: The hyperbolic cosine of `self` in radians.
     def cosh: primRealCosh self
+
     # Hyperbolic tangent function.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10.75876
+    # >     b = a.tanh
+    # >     None
+    #
+    # `returns`: The hyperbolic tangent of `self` in radians.
     def tanh: primRealTanh self
 
     # Inverse sine function.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10.75876
+    # >     b = a.asin
+    # >     None
+    #
+    # `returns`: The arc sine of `self` in radians.
     def asin: primRealAsin self
+
     # Inverse cosine function.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10.75876
+    # >     b = a.acos
+    # >     None
+    #
+    # `returns`: The arc cosine of `self` in radians.
     def acos: primRealAcos self
+
     # Inverse tangent function.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10.75876
+    # >     b = a.atan
+    # >     None
+    #
+    # `returns`: The arc tangent of `self` in radians.
     def atan: primRealAtan self
 
     # Inverse hyperbolic sine function.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10.75876
+    # >     b = a.asinh
+    # >     None
+    #
+    # `returns`: The inverse hyperbolic sine of `self` in radians.
     def asinh: primRealAsinh self
+
     # Inverse hyperbolic cosine function.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10.75876
+    # >     b = a.acosh
+    # >     None
+    #
+    # `returns`: The inverse hyperbolic cosine of `self` in radians.
     def acosh: primRealAcosh self
+
     # Inverse hyperbolic tangent function.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10.75876
+    # >     b = a.atanh
+    # >     None
+    #
+    # `returns`: The inverse hyperbolic tangent of `self` in radians.
     def atanh: primRealAtanh self
 
     # Natural exponential function.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 100.0
+    # >     b = a.exp
+    # >     None
+    #
+    # `returns`: The constant e = 2.71828... to the power of `self`.
     def exp: primRealExp self
+
     # Natural logarithm function.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 100.0
+    # >     b = a.ln
+    # >     None
+    #
+    # `returns`: `self` value logarithm  to the base of the mathematical constant e = 2.71828... .
     def ln: primRealLn self
+
     # Square root.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 100.0
+    # >     b = a.sqrt
+    # >     None
+    #
+    # `returns`: Square root of `self` value.
     def sqrt: primRealSqrt self
 
     # Displays a number as text.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 100.0
+    # >     b = a.toText
+    # >     None
+    #
+    # `returns`: `self` as Text value.
     def shortRep: self.toText
+
     # Converts a number to `JSON`.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 100.0
+    # >     b = a.toJSON
+    # >     None
+    #
+    # `returns`: `self` JSON value.
     def toJSON: JSONNumber (primRealToScientific self)
 
     def toLQueryValue: ValReal self
 
 # The mathematical constant π = 3.14159265359.
+#
+# > import Std.Base 
+# > 
+# > def main:
+# >     a = pi
+# >     None
+#
+# `returns`: The mathematical constant π = 3.14159265359.
 def pi: 3.14159265359
 
 # The basic class for representing Texts.
