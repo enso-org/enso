@@ -75,6 +75,8 @@ of the same architectural component (e.g. the JIT layers).
 - A description of how changesets for open files should be handled.
 - A mechanism for handling the notion of active and passive 'layers', as well as
   on-demand optimisation.
+- An analysis of how the graph layout and metadata is handled. This should not
+  longer be associated with explicit metadata in the source. 
 -->
 
 ### 3 - The Compilation Layer and Type-Checker
