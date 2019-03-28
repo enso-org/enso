@@ -208,6 +208,11 @@ multiple (if not all) of the above layers.
   backend to properly encode the FFI calls.
 - A description of how we will ensure that FFI calls remain as low-overhead as
   possible.
+- An analysis of what types can be used across the C-FFI boundary. Support for
+  value structs where possible (using compiler layout assumptions). 
+- An analysis of the potential to support callbacks to Luna from C, and the
+  support for running Luna programs from C.
+- An analysis of how best to translate Haskell's FFI semantics into Luna. 
 -->
 
 ### 2 - JIT Tracing
