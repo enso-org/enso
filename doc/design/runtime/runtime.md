@@ -104,9 +104,30 @@ of the same architectural component (e.g. the JIT layers).
   or Agda. However, it is likely still possible that we can apply a
   usage-analysis pass to the Luna Core graph.
 - The analysis of _relevance_ of type information is interesting, and
-  potentially we can learn some lessons from the progress of
-  [Dependent Haskell](https://ghc.haskell.org/trac/ghc/wiki/DependentHaskell)
-  in GHC.
+  potentially we can learn some lessons from the progress of Dependent Haskell.
+- A list of things that we need to avoid in the generated core (e.g. an
+  excessive number of coercions).
+- An analysis of the potential implementation burden from additions to GHC core.
+- An analysis of techniques that this layer can employ to minimise the runtime
+  start-up time:
+  + **Dynamic Layering:** Precompilation of portions of code not in the active
+    layer could be performed. This would provide increased performance, but
+    there must be significant care taken to ensure that appropriate code is
+    deoptimised when necessary (de-specialisation).
+  - **Optimisation without Tracing:** Code that is compiled in the background
+    can have general optimisations done to it that can then be improved upon using the input from the tracing process later on.
+  - **Static Tracing:** The decisions on the order for background optimisation
+    can be made via static analysis on the Luna IR graph. The code that is used
+    'soonest' from the `main` function should be compiled and optimised first.
+  - **Library Precompilation:** There is some potential to ship our compiler
+    with (platform-specific) precompiled-to-bytecode libraries.
+  - **Parallelism:** The listed startup tasks should happen in parallel as much
+    as possible. The biggest opportunity for this is likely the generation of
+    GHC Core from the Luna IR, but parsing can also potentially be parallelised
+    (but requires discovery to be done properly).
+  - **Tailored Passes:** Based on the kinds of execution that functions are
+    seeing it is possible to select sets of Luna IR and GHC Core optimisation
+    passes to best improve that function's performance.
 -->
 
 ### 4 - The Cache Layer
@@ -130,6 +151,9 @@ of the same architectural component (e.g. the JIT layers).
 - A description of how the cache interacts with layer 1, making it IO-aware.
 - An analysis of _what_ to cache, and how it can be tuned for memory (and disk)
   usage (e.g. caching of infinite structures).
+- An examination of how cache state can potentially be serialised to disk to
+  load projects more quickly (needs to handle external changes to the code and
+  invalidate the loaded cache based on this).
 - This should be informed by Skip, a programming language that caches results
   where possible.
 -->
@@ -139,7 +163,8 @@ of the same architectural component (e.g. the JIT layers).
 - A description of how the GHC bytecode interpreter will be used to evaluate
   Luna programs.
 - A description of how the JIT'ed code is going to be linked back into the
-  interpreter process and the JIT hot-swap mechanism.
+  interpreter process and the JIT hot-swap mechanism (e.g. the 'plugins')
+  mechanism.
 - An analysis of the interpreter's role in type-checking, allowing for
   evaluation of programs to compute types, and then graph reduction by the Luna
   TC and optimiser. Graph reduction as an optimisation strategy.
@@ -153,6 +178,8 @@ of the same architectural component (e.g. the JIT layers).
 - A description of the trade-off this JIT layer makes.
 - An analysis of how we can use the W^X mitigation.
 - An examination of the JIT as a solution to non-type-erased code.
+- An analysis of the approximate optimisation pipeline (e.g. Luna IR -> GHC Core
+  -> Core2Core -> STD -> Native Code -> Load into JIT)
 -->
 
 ### 7 - JIT Tier 2
@@ -162,6 +189,7 @@ of the same architectural component (e.g. the JIT layers).
 - A description of why we want a second JIT stage, and the anticipated
   performance benefits.
 - A discussion of the drawbacks of this layer (primarily compilation cost).
+- An analysis of how the optimisation pipeline would differ in this tier.
 -->
 
 ## Cross-Cutting Concerns
@@ -196,7 +224,29 @@ multiple (if not all) of the above layers.
   interpreter stage too much. Tracing calls will be eliminated in the JIT'ed
   code.
 - An exploration of what mechanisms we can apply to get faster warm-up times
-  (e.g. static tracing, on-demand optimisation).
+  (e.g. static tracing, on-demand optimisation). Minimisation of the necessary
+  initial tasks:
+  1. Lexing and Parsing of Luna source code, coupled with generation of the Luna
+     IR graph.
+  2. Type-checking of Luna IR and any reduction that may take place (see later).
+  3. Generation of GHC Core from Luna IR.
+  4. Translation of Core to Bytecode for initial interpretation.
+- An examination of how the JIT's automatic optimisation should interact with
+  the on-demand optimisation available to Luna Studio.
+- An analysis of the stages of trace information:
+  1. Profiling information is collected during execution. This is traditionally
+     for loops (or recursive calls), but can be augmented to compute hot paths
+     and other useful information.
+  2. Once a code path is considered 'hot', the JIT records an execution trace of
+     the exact instructions executed, including functions for inlining. This
+     trace is often stored as IR, but Luna can do better by annotating the IR
+     graph.
+  3. The resultant trace consists of one execution path, which can be optimised
+     easily. Guard instructions are inserted as appropriate into the trace to
+     ensure that the assumptions made during collection still hold.
+  4. The trace is optimised, including CSE, dead-code elimination, escape
+     analysis, heavy inlining and constant folding.
+  5. The compiled trace is executed until a guard fails, forcing deoptimisation.
 -->
 
 ### 3 - Concurrency
@@ -291,310 +341,21 @@ addition to the project.
 This section should address any unresolved questions you have with the RFC at
 the current time. Some examples include:
 
-- What parts of the design will require further elaboration before the RFC is
-  complete?
-- Which portions of the design will need resolution during the implementation
-  process before the feature is made stable.
-- Are there any issues related to this RFC but outside its scope that could be
-  addressed in future independently of this RFC? If so, what are they?
+- Is there potential to upstream portions of the JIT into GHC itself? This could
+  bring a whole new execution paradigm to the Haskell ecosystem if so.
+- What kind of maintenance burden can we expect when changing to new GHC
+  versions? The GHC API tends to change fairly often, so we have to account for
+  that in the design.
+- Is it worth creating our own wrapper around the necessary parts of the GHC API
+  to allow the change surface on version bumps to be minimised? Some use of
+  type-level programming could likely help with correctness around strictness
+  and laziness, as well as boxed and unboxed types.
+- What are the security implications for the language while building a JIT
+  compiler?
 
 <!-- END OF WIP PROPOSAL -->
 
 <!--
-
-# Notes
-
-## Evaluation Strategies
-While Luna is currently a lazy language, we have plans to make it strict (with
-optional laziness) in the future.
-
-## A JIT-Based Luna Runtime
-The following section aims to explain why integration of a JIT Compiler into the
-Luna runtime helps to accommodate many of the features described in the notes
-above. It also aims to explain why using a JIT is not _just_ a benefit for the
-Runtime and its featureset, but also for the Luna ecosystem as a whole.
-
-### Why a JIT?
-Luna fills a truly unique niche when it comes to programming languages, and in
-order to ensure it provides the best user experience there are a significant
-number of performance requirements placed on the Luna Runtime.
-
-Meeting these requirements is no small task, especially once we begin to account
-for the highly-dynamic nature of Luna's computational graphs, and the way that
-types can change with expressions. As a result, the dynamism offered by a JIT,
-combined with the high performance that one can bring, makes it the perfect
-choice for the implementation of Luna's runtime.
-
-### How a JIT Solves Specific Issues
-As part of the Luna Runtime, use of a JIT solves many specific issues that we
-are faced with for the new runtime. These include:
-
-- **Caching for Performance:** In order to improve Luna's performance, we want
-  to add support for dynamic caching of values that don't change. However, as
-  types and values are both first-class in Luna, the deoptimisation strategies
-  designed for use by the JIT compiler are identical to the cache eviction
-  strategies for the value cache. Furthermore, building them into the same
-  system means that far more sophisticated caching can be implemented, including
-  caching of file-system values.
-- **Dynamic Compilation:** Luna, for the most part, only needs to be interactive
-  at the layer that the user is editing. As a result, we can dynamically compile
-  the rest of the codebase with optimisations in order to gain performance. This
-  would allow the runtime to swap in optimised functions during execution to
-  provide significant performance increases. This is not true in _all_ cases,
-  however, as changes to the active layer may invalidate some optimisations made
-  by the JIT compiler.
-- **Profiling Information:** As part of the implementation of a standard tracing
-  JIT, the compiler and runtime are required to measure usage statistics
-  (including memory and CPU) for pieces of code in order to determine what to
-  optimise. Along the same lines, this tracing must have a very low performance
-  impact. As a result, it becomes trivial to implement high-performance
-  profiling of Luna code on top of the JIT tracing information.
-- **Runtime Parallelism:** A properly-designed JIT is able to not only optimise
-  functions dynamically, but trace execution paths such that opportunities for
-  automated parallelism can be exploited.
-
-This makes it clear that a JIT is likely to be an instrumental part of Luna's
-new runtime, and that a JIT tailored especially for Luna is likely to bring
-huge gains for the language.
-
-### Additional Benefits of a JIT
-While building the Luna Runtime on top of a JIT helps to implement many of the
-requirements, it also brings with it some additional benefits.
-
-- By its very nature, a JIT has to generate assembly in memory, whether that be
-  optimised or not. This means that there is at least a partial implementation
-  of many of the features needed for the creation of full AOT compilation. As we
-  definitely want to be able to AOT compile Luna in the future, this is very
-  helpful.
-- A JIT is very appropriate for handling the interactivity of Luna. Functions
-  that are not directly editable can be dynamically compiled for higher
-  performance, while code can easily be deoptimised when it changes. This makes
-  it easier to support the type-changes as well, relying just on a correctly
-  implemented function-cache eviction strategy.
-
-## An Analysis of JIT Architecture Options
-There are multiple options that are worth exploring when it comes to the
-integration of a JIT compiler into Luna's runtime. This section aims to record
-the detailed research performed into each of these options such that a concrete
-recommendation for moving forward can be made.
-
-### GHC
-GHC is not only the most sophisticated Haskell compiler in existence today, but
-it is also a test-bed for ideas that explore the evolution of functional
-languages. It would be brilliant to leverage the years of accrued knowledge in
-the optimisation of functional language that GHC embodies.
-
-The majority of GHC's optimisations are contained within the Core-to-core
-pipeline, that uses self-contained transformations that transform expressions
-within the core language. Luna would be able to utilise this pipeline by
-treating GHC Core as a compilation target, and running the resultant code
-through the rest of the GHC code-generation pipeline.
-
-#### Feasibility
-As a platform, GHC has seen over twenty years of continuous improvement and is
-at the forefront of functional language research in both performance and
-type-systems. As a potential compilation target for the Luna Runtime JIT, it is
-able to provide a rich featureset that would ease the implementation burden
-significantly.
-
-The key element of this featureset is GHC's Core language. Core is a rich but
-highly explicit language that has support for explicit coercions and type/kind
-equalities, a must for a dependently-typed language. The ability to express much
-of Luna's type-level machinery in GHC core is a huge boon, removing the need to
-explicitly implement significant portions of Luna's types for compilation.
-
-However, all is not sunshine and roses, with a choice for GHC meaning that Luna
-is forever tied to it. This includes not just the positives, but also the
-negative aspects of GHC such as its poor garbage collection.
-
-Nevertheless, GHC is a compelling option for incorporation into Luna's runtime
-JIT, providing an excellent compilation target. In addition, the benefits of GHC
-being an open system means that Luna can improve the platform that it compiles
-to, and hence bring benefits to the entire Haskell ecosystem.
-
-#### GHC as a JIT
-While GHC's core language has always been intended as a feasible compilation
-target for other functional programming languages, there is currently no support
-for use of GHC in a JIT-based architecture.
-
-However, this does not mean that it is not feasible, as the compiler provides a
-featured API for controlling its behaviour (see [The GHC API](#the-ghc-api)).
-This means that Luna would be able to hook into the functionality of GHC that it
-requires, up to and including explicit control over all the details of
-compilation.
-
-Initial research into using GHC in this way indicates that the JIT phases would
-likely operate approximately as follows:
-
-- **Tier 1:** Direct interpretation of Luna IR
-- **Tier 2:** Luna IR -> GHC Core -> STG -> Native Code -> Load into JIT
-- **Tier 3:** Luna IR -> IR Opt (Fast) -> GHC Core -> Core Opt (Fast) -> STG
-  Native Code -> Load into JIT
-- **Additional Tiers:** These would operate as for Tier 3, but would apply
-  successively more expensive optimisations as they become worthwhile.
-
-It should be noted however that, unlike both LLVM (with ORC) and GraalVM, GHC
-has no native support for operation as a JIT. This means that much of the work
-for this approach would revolve around building a JIT around GHC. This would
-require (but isn't limited to):
-
-- Tools for tracing analysis to know what to optimise.
-- Tools for manual optimisation and deoptimisation of code.
-- Tools for static tracing of Luna's IR graphcs.
-- Tools for dynamic hot-swapping of compiled and interpreted code.
-
-Furthermore, such an approach would require the availability of GHC as part of
-the Luna binary distribution. This would lead to a not-insignificant increase in
-the size of the Luna binary.
-
-##### Compiler Performance
-GHC is known for suboptimal compilation times for Haskell programs that utilise
-sophisticated pieces of the typelevel machinery. Howver, most of this slowdown
-is attributed to the renamer and typechecker, rather than the core pipeline.
-
-Core's type language is significantly simpler, with far more left explicit. This
-means that as long as Luna generates sensible core (e.g. not generating an
-obscene number of [coercions](https://ghc.haskell.org/trac/ghc/ticket/8095)), it
-is likely to be feasible to use GHC as part of a JIT pipeline.
-
-It is somewhat complicated to measure, and more time needs to be spent on it,
-but initial tests show that much of the time is spent in both typechecking and
-the optimisation of highly suboptimal core expressions.
-
-##### The Optimisation Pipeline (Core2Core)
-The majority of GHC's optimisation work takes place in the Core2Core pipeline.
-This is a set of fully independent passes that transform core expressions to
-other core expressions, very similarly to how Luna's graph transformation passes
-operate.
-
-The main benefits of using GHC are thus twofold:
-
-1. We can trivially build new optimisations for core that work as part of the
-   existing optimisation pipeline.
-2. Standard optimisations for imperative programs (such as those employed by
-   LLVM or GraalVM) are often significantly less effective when applied to
-   functional code, as discussed in the [GRIN paper](https://github.com/sdiehl/papers/blob/master/Grin.pdf).
-   Functional languages rely more on whole-program optimisation for their
-   performance, and so compilers built with imperative languages in mind may not
-   be a good fit. GHC gives us suitable optimisations for free, where using
-   LLVM or GraalVM would require us to desugar Luna to an imperative form (such
-   as Cmm that GHC uses) ourselves.
-
-This does not mean that we get _everything_ for free from GHC, however. Certain
-optimisations are still made on the source language, which we would be free to
-experiment with in the Luna frontend IR -> IR transformation pipeline before
-generation of core.
-
-##### GHC Core as a Compilation Target
-Core is an explicitly-typed but simple language that serves as a real-world
-implementation of [System-FC](https://ghc.haskell.org/trac/ghc/wiki/Commentary/Compiler/FC)
-(more info [here](|https://www.seas.upenn.edu/~sweirich/papers/fckinds.pdf)). It
-comes with a rich specification of both its syntax and informal semantics, and
-this is kept up to date in the [Core Spec](https://git.haskell.org/ghc.git/blob/HEAD:/docs/core-spec/core-spec.pdf).
-
-This language, as currently implemented in GHC, supports many useful features
-such as:
-
-- Explicit type and kind equalities (necessary for efficient implementation of
-  dependent types).
-- A simple expression format that can be machine-generated using the GHC API (as
-  a [`CoreSynType`](https://ghc.haskell.org/trac/ghc/wiki/Commentary/Compiler/CoreSynType)
-  representation of the Luna IR).
-- Rich support for modelling types and coercions, meaning that 95% of Luna's
-  metatheory can be supported in it. That which cannot be can likely be
-  implemented as direct logic, much as Idris does.
-- Rich support for both strictness and laziness, as well as boxed and unboxed
-  types. Care needs to be taken to generate the correct core from Luna IR in
-  order to ensure semantic correctness around this.
-
-While Core is a rich target language, however, the documentation on using GHC in
-such a way is lacking compared to both GraalVM and LLVM. This may increase the
-rate of mistakes in implementation, and hence the work required, but this
-research makes evident that using GHC would be worthwhile if this route is the
-one taken.
-
-Core is translated to STG (Spineless Tagless G-Machine), which is an efficient
-model of functional language execution. This means that Luna can build on the
-work done on this, utilising an eval/apply style of evaluation model, as
-described in [Making a Fast Curry](https://github.com/sdiehl/papers/blob/master/Making_A_Fast_Curry.pdf).
-
-As for the ability to target core, Stephen Diehl has a fantastic post that is
-about [targeting core](http://www.stephendiehl.com/posts/ghc_03.html), and this
-is likely to be a useful resource.
-
-Furthermore, using GHC Core as a compilation target means that we have the
-option of going via Cmm, GHC's enhanced version of the C-- portable assembly
-language. As mentioned [here](https://lhc-compiler.blogspot.com/2009/01/why-llvm-probably-wont-replace-c.html),
-and expanded upon in [this SO question's answers](https://stackoverflow.com/questions/815998/llvm-vs-c-how-can-llvm-fundamentally-not-be-better-for-haskell-than-c),
-C-- has robust support for zero-cost garbage collection, a must for Luna.
-Furthermore, as Edward Z. Yang states in his answer to the above question, Cmm's
-model is both higher- and lower-level than LLVM IR, with support for more
-natural optimisations than LLVM's SSA style (requirements for `phi` expressions
-everywhere).
-
-##### The GHC Runtime System
-In addition to being a fantastic compilation target for functional languages,
-GHC is accompanied by a rich runtime system (RTS). This RTS has support for both
-native concurrency and multithreaded IO, making it a brilliant potential target
-for Luna.
-
-Using GHC as a compilation target would allow us to make use of the GHC RTS for
-Luna's execution. As a result, a significant featureset is acquired for 'free',
-instead of requiring implementation by us. Furthermore, building on top of GHC
-would give us great usability features such as DWARF information, and the whole
-suite of GHC's profiling tools.
-
-Furthermore, Luna is built in Haskell, meaning that loading GHC-generated code
-for use by the JIT is able to be trivially handled in this case via
-[`System.Plugins.Load`](https://hackage.haskell.org/package/plugins-1.5.5.0/docs/System-Plugins-Load.html)
-in conjunction with `loadFunction`.
-As long as we are content that Luna will always be built in Haskell, then the
-ability to trivially share code between JIT'ed and interpreted components all in
-the same runtime is a huge boon.
-
-While the GHC RTS is inherently garbage collected, it has facilities for direct
-allocation and deallocation. This means that in the future it is likely possible
-to implement optimisations around evaluation and memory usage predicated on the
-availability of unique, linear or affine types in Luna.
-
-#### The GHC API
-GHC provides a rich programmatic interface to GHC itself, allowing Luna to have
-detailed control over the compilation process. The [GHC API](https://hackage.haskell.org/package/ghc)
-provides the facilities for comprehensive control over GHC, as well as analysis
-based on what GHC is capable of.
-
-#### Interaction with the FFI
-In interpreted code, Luna is forced to dynamically load libraries and symbols
-for executing FFI calls using the system dynamic linker (and libffi). Using a
-JIT, however, means that this can be greatly improved.
-
-GHC's Runtime System has rich support for making FFI calls, so Luna's call speed
-could be dramatically improved in JIT-compiled code by generating static native
-calls where possible.
-
-#### Negatives to Using GHC
-While the above constitutes a very good set of reasons to take this approach to
-building a JIT for Luna's runtime, it is not without downsides. The ones that I
-see as most important when making this decision are as follows:
-
-- It would perenially tie the implementation of Luna to Haskell and, morover, to
-  GHC itself. This would preclude making Luna a self-hosting language in future,
-  or at least preclude doing it without significant rewrites.
-- GHC's native targets are limited when compared to something like LLVM.
-- GHC's support for platform-specific extensions is limited compared to the rich
-  featureset that LLVM offers in this area.
-- GHC's garbage collector is not really at the forefront of garbage collectors.
-  There are other, more sophisticated, approaches to garbage collection that may
-  have benefits for the kinds of workloads that Luna aims to tackle going
-  forward.
-- While Core is intended as as platform for functional languages, certain of the
-  in-development initiatives are explicitly targeted at Haskell. An example of
-  this is the [Lightweight Concurrency](https://ghc.haskell.org/trac/ghc/wiki/LightweightConcurrency)
-  project, which would remove features from the RTS and move them into the
-  source language (Haskell) instead. Such initiatives would add work for us as
-  Luna's implementors.
-- There is no simple way that we can efficiently pass debugging symbols through
-  the compilation/JIT pipeline.
 
 #### Resources
 For more information about GHC and how it could be used as part of a JIT
@@ -610,533 +371,5 @@ compiler pipeline, please see the links below:
 - [GHC IR Forms](http://www.stephendiehl.com/posts/ghc_02.html)
 - [Targeting Core](http://www.stephendiehl.com/posts/ghc_03.html)
 - [Grin](https://github.com/grin-tech/grin)
-
-### GraalVM
-GraalVM is a new initiative developed by Oracle Labs that aims to provide a
-high-performance polyglot language runtime. It consists of a universal virtual
-machine and toolkit for seamless interoperability between programming languages.
-
-Basing Luna's runtime and execution on GraalVM would reduce implementation
-burden through use of the Truffle toolkit. This allows a single implementation
-of language semantics and the language runtime, from which a high-performance
-JIT and interpreter can be derived using partial-evaluation optimisation
-strategies.
-
-#### Feasibility
-GraalVM is an innovative piece of software, allowing for easy language
-development and interoperability between languages. However, for our use-case,
-it is stymied by a lack of control over the JIT itself, and lack of true support
-for functional paradigms that make it not an amazing fit for the development of
-Luna's runtime.
-
-#### Building a Runtime JIT using GraalVM
-Rather than building GraalVM _into_ a JIT as part of Luna's runtime, use of the
-Graal platform would instead constitute the entire Luna RTS.
-
-The Truffle language development framework, included as part of Graal provides
-the implementor with tools for creating a language interpreter and matching
-runtime. The Graal compiler is then able to use a partial-evaluation approach
-to derivie [high-performance code](https://chrisseaton.com/rubytruffle/pldi17-truffle/pldi17-truffle.pdf)
-from the simple interpreter. In doing so, the language implementor is able to
-provide only a _single_ implementation of the language's semantics and runtime,
-rather than a traditional approach where interpreter and compiler are forced to
-both implement the semantics themselves. These Truffle interpreters are aware of
-the partial-evaluation optimisations that can be made, and hence make this
-optimisation problem tractable.
-
-In addition, GraalVM has rich support for both debugging and profiling. Users
-are able to build their own introspection tools for the platform, and this
-functionality would be a boon when it comes to the profiling requirements placed
-on the Luna runtime.
-
-However, Truffle (and hence Graal) are targeted primarily at imperative
-languages, providing a less-than-ideal set of tools for the implementation of
-functional languages. This includes a lack of support for both functional
-paradigms and sophisticated type-system features, and so it may be difficult to
-shoehorn Luna's semantics into it.
-
-In addition, Luna's JIT has some specific requirements placed on it, especially
-around both manual control over optimisation and value caching. These are,
-unfortunately, not supported by Graal:
-
-- Caching of values and traces is not something built into the Graal JIT. It is
-  very likely that attempting to retrofit this would take significant work, and
-  require the team to maintain a fork of Graal itself.
-- While there is functionality for manually triggering deoptimisation of Graal
-  code (`CompilerDirectives.transferToInterpreterAndInvalidate()`), there is no
-  functionality for the converse. This means that if Graal is used there will be
-  no way to manually trigger optimisation of a specific piece of Luna code.
-
-#### GraalVM and Language Interop
-Probably the _key_ advantage to using Graal would be the Polyglot features that
-it provides. The [Polyglot SDK](http://www.graalvm.org/sdk/javadoc/org/graalvm/polyglot/package-summary.html)
-provides functionality for zero-copy sharing of data between languages executing
-on the same GraalVM instance. These languages include JavaScript, R and LLVM
-bitcode, as well as an experimental implementation of Python 3.7. This Polyglot
-API allows for native evaluation of foreign language code via the
-`Polyglot.eval` command.
-
-Polyglot Graal uses a Java-style datamodel and standardised interoperability
-protocol that describes the functionality that each language needs to provide to
-operate on common data. More details can be found in this [paper](https://chrisseaton.com/truffleruby/dls15-interop/dls15-interop.pdf).
-
-#### GraalVM and Performance
-Unlike standard tracing-based JITs or language compilers (see [PyPy](https://pypy.org/)),
-GraalVM uses a partial-evaluation based approach to performance. This means that
-it relies less on traditional imperative-language optimisations that would not
-apply to Luna as a functional language. Some notes:
-
-- Graal's optimisations are applicable to both dynamic and static languages.
-  However, the latter will suffer from longer warmup times as there is less
-  'semantic cruft' to prune through partial evaluation.
-- Graal's startup time is guaranteed to be slower than a hand-tooled runtime for
-  a language, but can offer comparable speed once warmed up.
-- Graal has a well-specified machine and memory model, with support for
-  automatic memory management, concurrency and synchronisation primitives.
-- It is able to perform the following optimisations on high-level languages:
-  - Complex cross-module inlining.
-  - Aggressive speculative optimisation.
-  - Escape analysis for elimintation of spurious object allocations.
-
-The optimisation process for languages implemented using Truffle and running on
-the Graal platform is as follows:
-
-1. The interpreter collects information on the subset of the implemented
-   language semantics that are _actually_ being used at runtime. This includes
-   both profiling and type information, and is used to perform specialisation.
-2. Partial evaluation is applied to this specialised interpreter to derive
-   compiled code that is faster.
-3. If speculation is too specific, it fails back to the interpreter and this
-   information is used to alter the specialisation (usually by generalising it).
-4. This process repeats until a threshold of sufficient generality is reached.
-
-#### Negatives to using GraalVM
-Much like GHC, GraalVM offers a compelling solution for implementation of Luna's
-RTS. However, it is not without its negatives:
-
-- GraalVM is currently only in preview release for Windows platforms, one of the
-  core platforms for Luna. There is no timeframe for Windows stabilistation.
-- While Graal has had its 1.0 release, it is still under heavy development and
-  is resultantly quite buggy. Along the same lines, the Polyglot interop
-  protocol is somewhat limited, and may not support all of the functionality
-  required to operate seamlessly with Luna at a high level.
-- GraalVM operates under two licenses. The community edition is free for use in
-  production, but misses out on some of the performance of the enterprise
-  edition.
-- Working with Graal requires writing Java and the team has limited experience
-  with the language.
-- Unlike both LLVM and GHC-based approaches, using GraalVM offers no pathway to
-  a native compilation target for Luna. While the platform includes SubstrateVM,
-  a sophisticated static-tracing compiler that does code reachability analysis,
-  this only works on _Java_ code. While we could thus provide a statically
-  compiled binary of the Luna Runtime, there is no path to static Luna binaries
-  themselves.
-
-#### Resources
-For more information about GraalVM and how it could be used for implementing the
-RTS for Luna, see the following links:
-
-- [GraalVM Website](https://www.graalvm.org/)
-- [GraalVM Documentation](https://www.graalvm.org/docs/)
-- [GraalVM API Documentation](http://www.graalvm.org/sdk/javadoc/)
-- [Partial Evaluation and Truffle](https://chrisseaton.com/rubytruffle/pldi17-truffle/pldi17-truffle.pdf)
-- [Language Interoperability](https://chrisseaton.com/truffleruby/dls15-interop/dls15-interop.pdf)
-
-### LLVM
-LLVM is a well-known and oft-used open-source compiler toolkit. It includes a
-huge set of analysis and optimisation passes, as well as flexible tools for
-building compilers. It supports JIT Compilation, accurate Garbage Collection,
-and additional features for building a runtime such as coroutines.
-
-While not specifically intended for functional language development, LLVM
-provides a paradigm-agnostic intermediate representation (LLVM IR), which can
-act as a target for any kind of language. There is significant tooling for
-working with this representation, and in addition there are Haskell bindings to
-the LLVM API for easy integration with existing Luna infrastructure.
-
-#### Feasibility
-The top-level summary of this analysis of LLVM is that, while it would involve
-_more_ work to create Luna's JIT and Runtime based on LLVM, the end result will
-allow us far more control and robustness than a solution built on top of GHC.
-
-That doesn't, however, mean that it is the best solution. In comparison to LLVM,
-using GHC would mean that there is a significant amount less that requires
-implementation. This includes the runtime itself, with all the features that
-entails, but also a whole host of functional optimisations based on types.
-
-LLVM is provided a rich interface to Haskell via the [`llvm-hs`](https://github.com/llvm-hs/llvm-hs/)
-bindings. These are a faithful representation of the LLVM API, with some Haskell
-flavour for it to feel seamless. This is likely to result in a
-highly-maintainable runtime that is easy to imrpove with time (e.g. the
-[sixten backend sources](https://github.com/ollef/sixten/tree/master/src/Backend)
-are a good example of this). This Haskell API is also designed to eliminate as
-much of the LLVM boilerplate as possible.
-
-Furthermore, LLVM is a widely-used and highly supported toolchain. This means
-that there is significant assistance available should it be required, but also
-that bugs are likely to be fixed rapidly. It also means that LLVM is likely to
-implement rapid mitigations for security vulnerabilities such as [Spectre v1](https://llvm.org/docs/SpeculativeLoadHardening.html).
-Even more useful, however, is the suite of sophisticated tooling that comes with
-LLVM, much of which has no GHC equivalent.
-
-#### An LLVM-Based JIT
-LLVM has provided multiple APIs for just-in-time compilation during the course
-of its development. While MCJIT was, until recently, the API du-jour, the new
-ORC JIT API brings many improvements to how it can be used, including support
-for true interactive JIT applications.
-
-The big benefit of this is that we would only require a _single_ implementation
-of Luna's semantics, not the dual implementations that using GHC would require.
-For linking LLVM into the Luna binary, we get a seamless JIT experience as
-follows:
-
-1. Generate LLVM IR in memory.
-2. Pass this LLVM IR to the ORC API.
-3. Recieve back a function pointer which can be directly called.
-
-This supports true on-request compilation, tracing dependencies and automatic
-compilation of functions as needed.
-
-The ORC API offers a flexible set of controls for JIT implementation. The user
-is able to pass both functions and entire modules, and has fine-grained control
-over the optimisation pass layers executed before the dynamic compilation step.
-This means that Luna would be able to use both LLVM-standard optimisations and
-custom-written passes.
-
-Use of the LLVM API would provide support for many features required of the Luna
-runtime, including support for [zero-cost exceptions](https://llvm.org/docs/ExceptionHandling.html),
-[coroutines](https://llvm.org/docs/Coroutines.html), [DWARF debugging symbols](https://llvm.org/docs/SourceLevelDebugging.html),
-and [garbage collector integration](https://llvm.org/docs/GarbageCollection.html).
-While these aren't included with a runtime, they would likely ease the
-implementation burden of Luna's runtime significantly should the LLVM route be
-chosen.
-
-#### LLVM and Optimisation
-As an industrial-strength compiler toolchain, LLVM has significant support for
-controlling performance. The toolchain provides extensive control over memory
-layout, copying and stack usage; all things which the higher-level GHC core does
-not. This means that LLVM IR is likely to provide a better route for giving our
-users controlled performance.
-
-This performance, however, would likely initially be lower than that provided by
-GHC. This is by virtue of GHC core supporting a significant number of functional
-language optimisations that LLVM does not. These optimisations would instead
-need to be written as LLVM passes or performed directly as passes on the Luna
-IR. Nevertheless, LLVM provides robust support for optimising IR:
-
-- The LLVM toolchain builds optimisations as [IR Passes](https://llvm.org/docs/WritingAnLLVMPass.html),
-  which are IR to IR transformations. This means that user-written passes are
-  just as powerful as included passes; there is significant scope for improving
-  code performance using these passes.
-- LLVM has support for a huge number of existing [optimisation passes](https://llvm.org/docs/Passes.html).
-
-These passes, however, can only do so much in cases where the generated IR is
-pathologically bad. This means that Luna would have to take care to generate
-[sensible IR](https://llvm.org/docs/Frontend/PerformanceTips.html) for the JIT,
-especially as the initial JIT passes would be run without any except the most
-basic optimisations (e.g. constant folding).
-
-#### Foreign Languages and FFI
-LLVM is a platform used by many modern programming languages, including the
-`clang` C and C++ compiler, `rustc` the Rust compiler, and `julia` the Julia
-compiler and interpreter. All of these languages compile to LLVM IR, which opens
-up an opportunity for langauge interoperability.
-
-The IR could be used for language interoperability, with the ability to mix
-calling conventions seamlessly for IR-level FFI. The downside of this, however,
-is that exposing a high-level interface between the languages, much like GraalVM
-is able to, becomes a much more challenging task.
-
-While it operates at a lower level, FFI calls to these languages would be
-_extremely_ performant.
-
-#### Native Compilation
-Much like GHC, using LLVM as part of the Luna runtime would provide a simple
-path to native compilation of Luna binaries. LLVM started development as a
-framework for the creation of native compilers, providing LLVM IR as a
-target-agnostic representation of language semantics.
-
-As use ofthe LLVM ORC JIT involves the generation of LLVM IR from Luna code, the
-same IR can be compiled AOT to native binaries instead of on-demand by the JIT.
-Both paths are trivially supported by the LLVM API, and this could be a boon for
-Luna.
-
-#### Negatives to using LLVM
-Much like all options in this comparison, using LLVM is not without its
-downsides.
-
-- LLVM does not come with its own native runtime, though it does have support
-  for many features that the runtime would require. This results in a
-  significantly increased implementation burden for Luna's maintainers as there
-  is less existing functionality to piggyback on.
-- Writing custom passes for LLVM must be done in C++ as it is not exposed by any
-  bindings to the toolchain. They must be directly compiled into the binary, so
-  if Luna chooses to implement custom passes we would be requried to maintain
-  our own fork of LLVM.
-- While LLVM IR is, like GHC Core, a statically- and explicitly-typed language
-  representation, they operate at separate levels of sopistication. Core is much
-  higher-level than LLVM IR, and thus provides a far more sophisticated type
-  language. LLVM IR, however, is higher level than Cmm as it abstracts away
-  details around hardware (e.g. register allocations).
-- The limited type-language of LLVM IR is likely to limit many optimisations to
-  Luna IR itself, while GHC core would be able to cope with these.
-- LLVM's optimisations are targeted at imperative languages. While it would be
-  possible to duplicate many of GHC's optimisations as LLVM passes, this would
-  be a significant amount of work.
-- Using LLVM would require re-implementation of the runtime support for Luna's
-  standard library in C++ rather than Haskell.
-
-#### Resources
-For more information about LLVM and the ways it supports the design of Luna's
-runtime, please see the following links:
-
-- [LLVM Reference Manual](https://llvm.org/docs/index.html).
-- [LLVM IR Reference](https://llvm.org/docs/LangRef.html)
-- [Kaleidoscope Language Tutorial](https://llvm.org/docs/tutorial/LangImpl01.html)
-- [Kaleidoscope JIT](https://llvm.org/docs/tutorial/BuildingAJIT1.html)
-- [Sixten Backend](https://github.com/ollef/sixten/tree/master/src/Backend)
-- [Haskell LLVM Library](https://github.com/llvm-hs/llvm-hs/)
-- [Kaleidoscope Language in Haskell](http://www.stephendiehl.com/llvm/)
-- [Packaging LLVM](https://llvm.org/docs/Packaging.html)
-
-## Thinking about JITs
-To get the kind of performance we need, and to support some of the more advanced
-features of the Luna Runtime, the new design will be based around a JIT compiler
-at its core. This section aims to elucidate and clarify some thoughts on the
-design and development of an appropriate JIT compiler.
-
-#### An Overview of JIT Architecture
-The design of a JIT compiler is fundamentally based on the ability to hot-swap
-compiled code for interpreted code in a seamless fashion. This can be performed
-in many ways, but for Luna it will require compilation of IR to binary code in
-memory, then prepared for direct execution _in process_.
-
-The benefit of doing so is that the resultant execution is much faster than any
-direct-interpretation based approach, but suffers the pentalty of a small lag
-at startup.
-
-A JIT takes arbitrary portions of code (e.g. functions, traces, modules), and
-translates them to machine code to aid in performance. These artifacts are then
-cached for later reuse. The choice of exactly _what_ gets optimised is one of
-the key design decisions for a JIT. In Luna's case, it is likely that a hybrid
-approach will be required, combining tracing, speculative compilation, method
-JITing and sophisticated dependency analysis.
-
-All JITs rely on deep knowledge of their target language's execution model and
-the underlying language design. It is only through exploiting this that the best
-performance can be obtained.
-
-#### JIT Startup Performance
-The main downside of a JIT compiler-based runtime is that you have to make a
-careful tradeoff between startup time and initial performance. The more time
-taken to optimise and precompute portions of the program, the longer it will
-take for the runtime to start up.
-
-A similar problem is the issue of warm-up time. This refers to how long the JIT
-takes to achieve optimal performance for a given piece of code. In essence, the
-more precomputation done, the shorter the warm-up time, but the longer the start
-up time.
-
-There is a minimal set of tasks that would need to take place before Luna's JIT
-would be able to start:
-
-1. Lexing and Parsing of Luna source code, coupled with generation of the Luna
-   IR graph.
-2. Typechecking of Luna IR and any reduction that may take place (see later).
-3. Generation of GHC Core from Luna IR.
-4. Translation of Core to GHCi Bytecode for initial interpretation.
-
-While none of these steps are _inherently_ slow, as demonstrated by the JVM,
-which can start up relatively quickly, these are still enough to create some
-kind of a delay. The problem therefore becomes one of ensuring the above
-processes take as little time as possible in order to ensure that Luna's runtime
-is responsive.
-
-##### Techniques for Minimising Startup Time
-As mentioned above, there is a set of tasks that _must_ take place for the JIT
-to startup. However, there are a number of techniques that can be utilised to
-reduce this as much as possible:
-
-- **Precompilation:** It is possible to precompile commonly-used functionality
-  to an appropriate stage. The standard library, for example, could be
-  distributed as bytecode so that it doesn't require compilation each time.
-- **Parallelism:** The listed startup tasks should happen in parallel as much
-  as possible. The biggest opportunity for this is likely the generation of GHC
-  Core from the Luna IR, but parsing can also potentially be parallelised (but
-  requires discovery to be done properly).
-
-##### Techniques for Minimising Warm-Up Time
-As a tradeoff with startup time, warm-up time can be decreased by performing
-more work ahead of time. Luna has a unique advantage over a standard tracing
-JIT in that the interactivity can provide hints as to what needs to be compiled
-and optimised.
-
-- **Dynamic Layering:** Precompilation of portions of code not in the active
-  layer could be performed. This would provide increased performance, but there
-  must be significant care taken to ensure that appropriate code is deoptimised
-  when necessary (de-specialisation).
-- **Optimisation without Tracing:** Code that is compiled in the background can
-  have general optimisations done to it that can then be improved upon using the
-  input from the tracing process later on.
-- **Static Tracing:** The decisions on the order for background optimisation can
-  be made via static analysis on the Luna IR graph. The code that is used
-  'soonest' from the `main` function should be compiled and optimised first.
-
-One of the primary issues with long warm-up times in JIT compilers is that they
-become inappropriate for short-term execution, providing less-than-ideal
-performance under such circumstances. There are, however, a few techniques that
-can be employed to reduce the problem:
-
-- **Project Caching:** As much of the work as possible done by the JIT should be
-  cached in a `Package/.cache/IR` directory that should be default excluded from
-  version control. This is separate from any precompiled IR that _should_ be
-  distributed. Keeping these artifacts (e.g. Core, bytecode) ensures that, where
-  things have not changed, the work does not need to be done again.
-- **Precompilation:** Commonly used functionality (e.g. the stdlib) should be
-  precompiled on the first execution, and even distributed as core or bytecode.
-
-It should be noted that tracing becomes less useful in such a setting, but as
-many Luna sessions take place in an interactive environment (e.g. Luna Studio or
-the forthcoming REPL), the ability to generate and optimise traces will be very
-important.
-
-#### Optimisation Opportunities in JITs
-The key idea behind JIT optimisations is that runtime profiling information can
-be taken advantage of to provide performance beyond that of a standard AOT
-compilation strategy. The optimisations can rely on information about the exact
-architecture on which the code is executing, and can exploit this for better
-performance. This permits optimisations such as:
-
-- **Full-System Optimisations:** The JIT is capable of performing system-level
-  optimisations (e.g. aggressive inlining) without needing to do so
-  speculatively. This allows elision of the runtime checks that an AOT compiler
-  would have to insert, thereby increasing performance.
-- JITs are also able to rearrange code for better cache behaviour. This should
-  be possible even in Luna's case, using tracing to optimise the code to be
-  executed in memory.
-
-All JITs are capable of performing a fairly standard set of optimisations, but
-these (inlining, constant folding, CSE, escape analysis) can be improved upon by
-exploiting language-specific information.
-
-##### Tracing for Luna
-The functional nature of Luna, enhanced by the visual syntax, results in a
-language that is highly amenable to a tracing-based optimisation approach. The
-way that tracing would likely operate for Luna is as follows:
-
-1. Profiling information is collected during execution. This is traditionally
-   for loops (or recursive calls), but can be augmented to compute hot paths and
-   other useful information.
-2. Once a code path is considered 'hot', the JIT records an execution trace of
-   the exact instructions executed, incvluding functions for inlining. This
-   trace is often stored as IR, but Luna can do better by annotating the IR
-   graph.
-3. The resultant trace consists of one execution path, which can be optimised
-   easily. Guard instructions are inserted as appropriate into the trace to
-   ensure that the assumptions made during collection still hold.
-4. The trace is optimised, including CSE, dead-code elimination, escape
-   analysis, heavy inlining and constant folding.
-5. The compiled trace is executed until a guard fails, forcing deoptimisation.
-
-This process can be improved upon by exploitation of language specifics. Luna's
-advanced structural type system is capable of encoding many guarantees in the
-types. As a result, a significant number of guards may be able to be elided.
-Furthermore, alterations to type information are already intended to trigger
-both deoptimisation and cache eviction, furtehr eliminating the need for many
-guard instructions.
-
-As a functional language, Luna's JIT would be able to start execution traces at
-function calls, recursive loops and FFI boundaries, exploiting the Luna IR graph
-to collect and store hyperblock identification information. The region selection
-algorithm for this is always very language specific, and while hints can be
-obtained from codebases such as LuaJIT, it will inherently be highly coupled to
-Luna's execution semantics.
-
-Effective tracing inherently requires the collection of profiling information in
-order to decide when to collect a trace. Furthermore, Luna's forthcoming ability
-to provide visual performance analysis of code requires the same. This means
-that the profiling information collection should introduce as little overhead
-as possible.
-
-It is likely that augmenting the Luna IR graph with trace information will be
-the most effective and performant way to do this. Nevertheless, the collection
-of statistics needs to be minimally intrusive, so it is suggested that using
-CPU performance counters can be sensible.
-
-##### Adaptive Optimisations in Luna
-The dynamic nature of Luna means that tracing is not the _only_ technique that
-should be employed in the Luna JIT. Adaptive optimisation is the process of
-using runtime information to dynamically recompile code with appropriate
-optimisations. This is not the same technique as tracing, as it does not collect
-execution traces, instead relying on call counts (and similar) for functions.
-
-Luna could potentially exploit this using the following techniques:
-
-- **Optimisation Layers:** Where code is executed frequently, it could be run
-  through increasingly aggressive optimisation layers to provide better
-  performance.
-- **Tailored Passes:** Based on the kinds of execution that functions are seeing
-  it is possible to select sets of Luna IR and GHC Core optimisation passes to
-  best improve that function's performance.
-
-##### Manual Optimisation Control in JITs
-There is very little literature available that deals with exposing manual
-controls for function optimisation and deoptimisation in JITs. Most JIT
-architectures are based on automated processes, so the interaction between the
-manual and automatic is not very well covered.
-
-Luna's usage model means that there is information not encoded by the types or
-runtime about which functions can be optimised heavily. It is those not being
-directly edited by the user that become candidates for increased optimisation,
-and hence the compiler needs to expose calls to hint (on the IR graph) about
-such usage to the JIT.
-
-#### Building the Luna JIT
-The _exact_ architecture for Luna's JIT compiler is still somewhat up in the
-air, even though it seems fairly certain that it will be based on GHC. The main
-question that is still open is whether building a JIT will require just one
-(core generation) or two (core generation and direct interpretation)
-implementations of the language semantics.
-
-The main sticking point in discussions so far is that typechecking and
-optimising the Luna IR requires compile-time code execution. The simplest way
-to do this woul dbe to create an interpreter that directly executes Luna IR, but
-this is inherently going to be the slowest possible design. While it is likely
-that gains over the existing interpreter can be realised, direcct operation on
-a rich format like the graph will never be as quick as operating on bytecode.
-
-The second, and more attractive option is to perform code generation and
-compilation to bytecode during typechecking and optimisation. This would require
-just _one_ implementation of the language semantics, increasing maintainability.
-The typechecker and optimiser would be given access to the JIT, allowing them to
-execute Luna code where necessary. The result could then be used to update the
-IR graph directly.
-
-#### Security with JIT Compilers
-While JIT compilers can provide excellent performance without the overhead of
-precompilation, they are not a panacea and come with their own issues.
-
-The predominant issue is a _security_ one, as JIT compilers are those that
-fundamentally rely on executable data. Any vulnerability in the JIT can hence
-have the potential for a heap-pollution attack. Furthermore, dynamic reflection
-capabilities that are often used to support runtime inspection and debugging,
-such functionality can further increase the attack surface if not designed in a
-sensible fashion.
-
-In order to help reduce this attack surface, care must be taken to implement the
-W/X mitigation where code is only executable using the following process:
-
-1. Code is written to memory.
-2. It is marked as read-only.
-3. It is marked executable.
-
-These must be atomic and discrete steps in order to ensure that the attack
-surface is reduced.
-
-#### Resources
-The following are useful resources when thinking about building JIT compilers.
-
-- [LuaJIT Source Code](https://github.com/LuaDist/luajit)
-- [Are JITs Winning?](http://lambda-the-ultimate.org/node/3851)
 
 -->
