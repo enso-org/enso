@@ -378,5 +378,6 @@ compiler pipeline, please see the links below:
 - [GHC IR Forms](http://www.stephendiehl.com/posts/ghc_02.html)
 - [Targeting Core](http://www.stephendiehl.com/posts/ghc_03.html)
 - [Grin](https://github.com/grin-tech/grin)
+- [Example Pipeline](https://github.com/chrisdone/prana/blob/0cbb7b4b96bbfdb4f0d6a60e08f4b1f53abdfb15/prana-ghc/src/Prana/Ghc.hs#L106-L154)
 
 -->
