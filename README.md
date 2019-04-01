@@ -18,20 +18,13 @@ Visit [The Luna Website](http://www.luna-lang.org) to learn more!
 This repository contains the Luna compiler core and its command line version.
 For the full (visual) Luna Studio, please take a look at the
 [Luna Studio](https://github.com/luna/luna-studio) repository. For installation
-and management tools, there is
-[Luna Manager](https://github.com/luna/luna-manager).
+and management tools, there is [Luna Manager](https://github.com/luna/luna-manager).
 
 ## Getting Started
 This will get you up and running for Luna development, with only a minimal
-amount of setup required.
-
-Luna's build system is nice and simple, allowing you to bootstrap the compiler
-as long as you have an installation of
-[The Haskell Stack](https://docs.haskellstack.org/en/stable/README/) and the
-Haskell parser generator `happy`.
-
-You can install the latter just by running `stack install happy`, which should
-build the tool for your system and put it in your `stack` binary folder.
+amount of setup required. Luna's build system is nice and simple, allowing you 
+to bootstrap the compiler as long as you have an installation of 
+[The Haskell Stack](https://docs.haskellstack.org/en/stable/README/).
 
 ### System Requirements
 Luna runs on all reasonably new Linuxes, MacOS, and Windows. Luna was mostly
