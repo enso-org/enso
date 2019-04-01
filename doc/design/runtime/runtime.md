@@ -92,7 +92,7 @@ of the same architectural component (e.g. the JIT layers).
   that as little time as possible is spent waiting.
 - An analysis of how on-demand evaluation for type-checking should work. A
   restriction on what can be encoded (can only evaluate known-typed exprs).
-- A design for handling optimisation passes with a hierarchical structure (e.g.
+- A design for exposing a hierarchical structure for optimisation passes (e.g.
   `+Pass.Optimisation.TCO`).
 - An analysis of Luna-side optimisations required for the new runtime.
 - An analysis of what type-erasure (if any) we can get away with at the Luna
@@ -104,7 +104,7 @@ of the same architectural component (e.g. the JIT layers).
 - While Luna is statically typed, the runtime manipulation of types provides
   less opportunities for usage-analysis based erasure than languages like Idris
   or Agda. However, it is likely still possible that we can apply a
-  usage-analysis pass to the Luna Core graph.
+  usage-analysis pass to the Luna Core graph. Think about the `Dynamic` type.
 - The analysis of _relevance_ of type information is interesting, and
   potentially we can learn some lessons from the progress of Dependent Haskell.
 - A list of things that we need to avoid in the generated core (e.g. an
@@ -117,7 +117,8 @@ of the same architectural component (e.g. the JIT layers).
     there must be significant care taken to ensure that appropriate code is
     deoptimised when necessary (de-specialisation).
   - **Optimisation without Tracing:** Code that is compiled in the background
-    can have general optimisations done to it that can then be improved upon using the input from the tracing process later on.
+    can have general optimisations done to it that can then be improved upon 
+    using the input from the tracing process later on.
   - **Static Tracing:** The decisions on the order for background optimisation
     can be made via static analysis on the Luna IR graph. The code that is used
     'soonest' from the `main` function should be compiled and optimised first.
@@ -311,6 +312,8 @@ embed other languages (e.g. Python and R) for seamless interoperability.
 - An analysis of whether this is possible with the GHC-based runtime without
   significant overhead.
 - An analysis of how this might be accomplished.
+- ESA Plugins as Optimiser Plugins
+- No-overhead with multiple language nodes connected together. 
 -->
 
 # Benchmarking the Runtime
@@ -339,6 +342,7 @@ be all the more rigorous when it comes to defining what 'success' means for this
 addition to the project.
 
 <!--
+- The scope of the whole project. 
 - What is the scope of the first deliverable?
 - Go into detail about the acceptance criteria for the new runtime, particularly
   around functionality, start-up time, performance, and future-proofing.
@@ -359,6 +363,14 @@ the current time. Some examples include:
   and laziness, as well as boxed and unboxed types.
 - What are the security implications for the language while building a JIT
   compiler?
+
+# Glossary
+This section is designed to define terms that may be unfamiliar to some users:
+
+- AOT - Ahead of Time: The opposite of JIT compilation, where code is compiled 
+  to binaries ahead of being executed. 
+- JIT - Just in Time: Where compilation to binary or bytecode takes place as 
+  needed for the execution of the program. 
 
 <!-- END OF WIP PROPOSAL -->
 
