@@ -57,10 +57,10 @@ project. This is because we want to take advantage of the incredibly
 sophisticated GHC RTS, as it provides facilities for concurrency, parallelism,
 FFI, and garbage collection, alongside others. GHC will be used to provide the
 GHC Core IR, from which we will be able to generate STG for use with the GHC
-bytecode interpreter (used in GHCi), and for native compilation and dynamic 
-loading as part of the JIT. 
+bytecode interpreter (used in GHCi), and for native compilation and dynamic
+loading as part of the JIT.
 
-The Luna Runtime integrates across most of the current design for the Luna 
+The Luna Runtime integrates across most of the current design for the Luna
 compiler, so it's easier instead to diagram the whole compiler, as below.
 
 <!--
@@ -69,7 +69,22 @@ compiler, so it's easier instead to diagram the whole compiler, as below.
 - A brief bullet-pointed list of the layers and their key features.
 -->
 
-While the diagram above 
+While the diagram above encompasses all of the components of the eventual Luna
+compiler architecture, the following components are those that are described
+within this design:
+
+- **Edge Layer:**
+- **Protocol Layer:**
+- **Typechecker:**
+- **Compilation Layer:**
+- **Cache Layer:**
+- **Bytecode Interpreter:**
+- **JIT Tier 1:**
+- **JIT Tier 2:**
+- **FFI Support:**
+- **Tracing Engine:**
+- **Debugging Engine:**
+- **GHC RTS:**
 
 ## Runtime Layers
 The Luna runtime consists of a number of discrete layers from a design
@@ -100,7 +115,7 @@ of the same architectural component (e.g. the JIT layers).
   changes.
 -->
 
-### 2 - The Runtime Protocol
+### 2 - The Protocol Layer
 <!--
 - An analysis of what is required to efficiently parse and respond to protocol
   messages.
@@ -249,7 +264,7 @@ easily partitioned into the above layers. These are explored below from the
 standpoint of requirements and high-level design, and will be integrated into
 multiple (if not all) of the above layers.
 
-### 1 - FFI
+### 1 - FFI Support
 <!--
 - A diagram of how FFI calls work, and the support libraries needed.
 - A description of how we want FFI to work, and its performance characteristics.
@@ -264,7 +279,7 @@ multiple (if not all) of the above layers.
 - An analysis of how best to translate Haskell's FFI semantics into Luna.
 -->
 
-### 2 - JIT Tracing
+### 2 - Tracing Engine
 <!--
 - A description of the mechanisms by which execution is traced.
 - A description of _what_ data is tracked and how it is used to make decisions
@@ -279,6 +294,8 @@ multiple (if not all) of the above layers.
 - An exploration of how we trace enough data without slowing down the bytecode
   interpreter stage too much. Tracing calls will be eliminated in the JIT'ed
   code.
+- An examination of how performance tracing can be achieved based on the JIT's
+  trace.
 - An exploration of what mechanisms we can apply to get faster warm-up times
   (e.g. static tracing, on-demand optimisation). Minimisation of the necessary
   initial tasks:
@@ -319,10 +336,8 @@ multiple (if not all) of the above layers.
 - An exploration of techniques to avoid async/await 'colour'.
 -->
 
-### 4 - Debugging and Performance Tracing
+### 4 - Debugging Engine
 <!--
-- An examination of how performance tracing can be achieved based on the JIT's
-  trace.
 - A description of what features we want out of the debugger.
 - An examination of what kind of debugging support we can get for free from the
   bytecode interpreter, and what we would need to build on top.
@@ -332,7 +347,7 @@ multiple (if not all) of the above layers.
 
 # The Edge Layer
 
-# The Runtime Protocol
+# The Protocol Layer
 
 # The Compilation Layer and Type-Checker
 
@@ -344,13 +359,13 @@ multiple (if not all) of the above layers.
 
 # JIT Tier 2
 
-# FFI
+# FFI Support
 
-# JIT Tracing
+# Tracing Engine
 
 # Concurrency
 
-# Debugging and Performance Tracing
+# Debugging Engine
 
 # Language Embedding
 It is an eventual goal for Luna, and hence this runtime design, to be able to
