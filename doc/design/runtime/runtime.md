@@ -16,15 +16,38 @@ It includes the runtime itself, as well as support machinery such as the IDE
 protocol, FFI, and JIT. 
 
 # Motivation
-Why should we make this change? What use-cases does it support? What benefits
-does it bring to the ecosystem? Explain why the status quo is insufficient or
-not ideal.
-
 For Luna to reach its full potential as a general-purpose programming language
 and data-processing environment, it needs one major thing: speed. With the goal
-for the language to 
+for the language to become _the_ platform for end-to-end development and 
+communication, spanning from engineers all the way to executives, it needs to be
+able to get out of the user's way and work in the background. In other words,
+and to take a leaf from Apple's book: it should Just Work. 
+
+The current Luna runtime was never intended for long-term or production use, and
+has been relied upon far longer than it should. During that period of time, the
+design goals for Luna and its platform have solidified, making this the perfect
+opportunity to deliver a new runtime that accommodates those goals while 
+delivering increased performance, and future-proof capabilities. 
+
+In doing so, Luna's performance will be dramatically increased, but that is only
+one of the major benefits. Alongside this, the new runtime will allow Luna to be
+decoupled from Luna Studio via the IDE protocol. It will let Luna interact with
+C libraries with negligible overhead. It will, in essence, let Luna achieve its
+full potential. 
+
+This design document sets out both the high-level architecture of the new 
+runtime, including detailed explorations of its features and concerns, but it 
+also contains the detailed designs and implementation plans for each portion of
+the new Luna platform. It is intended to both serve as a design plan for the
+implementation and, once that is all complete, as documentation for Luna's 
+design as it evolves. 
 
 # Architectural Overview
+It is perhaps a touch rich to call this design the 'runtime', as it actually
+encompasses a broader portion of the compiler than what would traditionally be
+considered a runtime. Due to some of the design goals for Luna, this design also
+encompasses 
+
 <!--
 - A diagram of the overall architecture for the runtime.
 - An illustration of how the runtime fits into the broader Luna system.
