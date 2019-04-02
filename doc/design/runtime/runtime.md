@@ -8,51 +8,68 @@ ___
 - **Implemented:** Leave blank, this will be filled with the first version of
   the relevant tool where it is implemented.
 
+<!-- All ASCII Diagrams Created with [AsciiFlow](http://asciiflow.com/) -->
+
 # Summary
 This proposal sets out the architecture and detailed design for the new Luna
 runtime. This runtime aims to bring both increased performance to Luna, and to
 provide a consistent and powerful base for the future evolution of the language.
 It includes the runtime itself, as well as support machinery such as the IDE
-protocol, FFI, and JIT. 
+protocol, FFI, and JIT.
 
 # Motivation
 For Luna to reach its full potential as a general-purpose programming language
 and data-processing environment, it needs one major thing: speed. With the goal
-for the language to become _the_ platform for end-to-end development and 
+for the language to become _the_ platform for end-to-end development and
 communication, spanning from engineers all the way to executives, it needs to be
 able to get out of the user's way and work in the background. In other words,
-and to take a leaf from Apple's book: it should Just Work. 
+and to take a leaf from Apple's book: it should Just Work.
 
 The current Luna runtime was never intended for long-term or production use, and
 has been relied upon far longer than it should. During that period of time, the
 design goals for Luna and its platform have solidified, making this the perfect
-opportunity to deliver a new runtime that accommodates those goals while 
-delivering increased performance, and future-proof capabilities. 
+opportunity to deliver a new runtime that accommodates those goals while
+delivering increased performance, and future-proof capabilities.
 
 In doing so, Luna's performance will be dramatically increased, but that is only
 one of the major benefits. Alongside this, the new runtime will allow Luna to be
 decoupled from Luna Studio via the IDE protocol. It will let Luna interact with
 C libraries with negligible overhead. It will, in essence, let Luna achieve its
-full potential. 
+full potential.
 
-This design document sets out both the high-level architecture of the new 
-runtime, including detailed explorations of its features and concerns, but it 
+This design document sets out both the high-level architecture of the new
+runtime, including detailed explorations of its features and concerns, but it
 also contains the detailed designs and implementation plans for each portion of
 the new Luna platform. It is intended to both serve as a design plan for the
-implementation and, once that is all complete, as documentation for Luna's 
-design as it evolves. 
+implementation and, once that is all complete, as documentation for Luna's
+design as it evolves.
 
 # Architectural Overview
 It is perhaps a touch rich to call this design the 'runtime', as it actually
 encompasses a broader portion of the compiler than what would traditionally be
 considered a runtime. Due to some of the design goals for Luna, this design also
-encompasses 
+encompasses changes to the type-checker, the IDE protocol, a JIT, and various
+other things necessary for making this all work.
+
+The Luna runtime is based on heavy usage of the Haskell-independent
+infrastructure provided by the [GHC (Glasgow Haskell Compiler)](https://gitlab.haskell.org/ghc/ghc)
+project. This is because we want to take advantage of the incredibly
+sophisticated GHC RTS, as it provides facilities for concurrency, parallelism,
+FFI, and garbage collection, alongside others. GHC will be used to provide the
+GHC Core IR, from which we will be able to generate STG for use with the GHC
+bytecode interpreter (used in GHCi), and for native compilation and dynamic 
+loading as part of the JIT. 
+
+The Luna Runtime integrates across most of the current design for the Luna 
+compiler, so it's easier instead to diagram the whole compiler, as below.
 
 <!--
 - A diagram of the overall architecture for the runtime.
 - An illustration of how the runtime fits into the broader Luna system.
 - A brief bullet-pointed list of the layers and their key features.
 -->
+
+While the diagram above 
 
 ## Runtime Layers
 The Luna runtime consists of a number of discrete layers from a design
@@ -107,7 +124,7 @@ of the same architectural component (e.g. the JIT layers).
 - A mechanism for handling the notion of active and passive 'layers', as well as
   on-demand optimisation.
 - An analysis of how the graph layout and metadata is handled. This should not
-  longer be associated with explicit metadata in the source. 
+  longer be associated with explicit metadata in the source.
 -->
 
 ### 3 - The Compilation Layer and Type-Checker
@@ -148,7 +165,7 @@ of the same architectural component (e.g. the JIT layers).
     there must be significant care taken to ensure that appropriate code is
     deoptimised when necessary (de-specialisation).
   - **Optimisation without Tracing:** Code that is compiled in the background
-    can have general optimisations done to it that can then be improved upon 
+    can have general optimisations done to it that can then be improved upon
     using the input from the tracing process later on.
   - **Static Tracing:** The decisions on the order for background optimisation
     can be made via static analysis on the Luna IR graph. The code that is used
@@ -241,10 +258,10 @@ multiple (if not all) of the above layers.
 - A description of how we will ensure that FFI calls remain as low-overhead as
   possible.
 - An analysis of what types can be used across the C-FFI boundary. Support for
-  value structs where possible (using compiler layout assumptions). 
+  value structs where possible (using compiler layout assumptions).
 - An analysis of the potential to support callbacks to Luna from C, and the
   support for running Luna programs from C.
-- An analysis of how best to translate Haskell's FFI semantics into Luna. 
+- An analysis of how best to translate Haskell's FFI semantics into Luna.
 -->
 
 ### 2 - JIT Tracing
@@ -344,7 +361,7 @@ embed other languages (e.g. Python and R) for seamless interoperability.
   significant overhead.
 - An analysis of how this might be accomplished.
 - ESA Plugins as Optimiser Plugins
-- No-overhead with multiple language nodes connected together. 
+- No-overhead with multiple language nodes connected together.
 -->
 
 # Benchmarking the Runtime
@@ -373,7 +390,7 @@ be all the more rigorous when it comes to defining what 'success' means for this
 addition to the project.
 
 <!--
-- The scope of the whole project. 
+- The scope of the whole project.
 - What is the scope of the first deliverable?
 - Go into detail about the acceptance criteria for the new runtime, particularly
   around functionality, start-up time, performance, and future-proofing.
@@ -398,10 +415,19 @@ the current time. Some examples include:
 # Glossary
 This section is designed to define terms that may be unfamiliar to some users:
 
-- AOT - Ahead of Time: The opposite of JIT compilation, where code is compiled 
-  to binaries ahead of being executed. 
-- JIT - Just in Time: Where compilation to binary or bytecode takes place as 
-  needed for the execution of the program. 
+- **ABI** - Application Binary Interface: A well-specified and defined interface
+  between multiple binary program components (as opposed to an API, which
+  operates at the level of program code).
+- **AOT** - Ahead of Time: The opposite of JIT compilation, where code is
+  compiled to binaries ahead of being executed.
+- **FFI** - Foreign Function Interface: A mechanism by which functions written
+  in another language can be called, usually operating via the C ABI.
+- **IR** - Intermediate Representation:
+- **JIT** - Just in Time: Where compilation to binary or bytecode takes place as
+  needed for the execution of the program.
+- **RTS** - Runtime System: A program that provides the underlying primitives
+  and functionality for a programming language to execute. When used in this
+  document, it exclusively refers to the GHC Runtime System.
 
 <!-- END OF WIP PROPOSAL -->
 

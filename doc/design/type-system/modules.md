@@ -638,3 +638,6 @@ the current time. Some examples include:
   pattern matching.
 - We definitely need further discussion on nested types.
 - Some syntax can likely be cleaned up.
+- Do we want to call the monadic parts of our signatures 'monads' or 'effects'?
+  `foo : a -> a in [IO, State]`. How in these cases do we express the effects as
+  arguments, or are they _purely_ effects? 
