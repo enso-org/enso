@@ -9,12 +9,20 @@ ___
   the relevant tool where it is implemented.
 
 # Summary
-A one-paragraph, high-level summary of the proposal.
+This proposal sets out the architecture and detailed design for the new Luna
+runtime. This runtime aims to bring both increased performance to Luna, and to
+provide a consistent and powerful base for the future evolution of the language.
+It includes the runtime itself, as well as support machinery such as the IDE
+protocol, FFI, and JIT. 
 
 # Motivation
 Why should we make this change? What use-cases does it support? What benefits
 does it bring to the ecosystem? Explain why the status quo is insufficient or
 not ideal.
+
+For Luna to reach its full potential as a general-purpose programming language
+and data-processing environment, it needs one major thing: speed. With the goal
+for the language to 
 
 # Architectural Overview
 <!--
