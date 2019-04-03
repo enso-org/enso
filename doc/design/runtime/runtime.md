@@ -61,13 +61,57 @@ bytecode interpreter (used in GHCi), and for native compilation and dynamic
 loading as part of the JIT.
 
 The Luna Runtime integrates across most of the current design for the Luna
-compiler, so it's easier instead to diagram the whole compiler, as below.
+compiler, so it's easier instead to diagram the whole compiler, as below. In 
+this diagram, the direction of arrows represents the flow of information. 
 
-<!--
-- A diagram of the overall architecture for the runtime.
-- An illustration of how the runtime fits into the broader Luna system.
-- A brief bullet-pointed list of the layers and their key features.
--->
+```
+
++---------------------------------------------------------+
+| Edge Layer                                              |
++---------------------------------------------------------+
+
++---------------------------------------------------------+
+| Protocol Layer                                          |
++---------------------------------------------------------+
+
++------------------------------+
+| Parser                       |
++------------------------------+
+
++------------------------------+               +----------+
+| Desugarer                    |               | Debugger |
++------------------------------+               | Engine   |
+                                               |          |
++------------------------------+  +---------+  |          |
+| Typechecker                  |  | Tracing |  |          |
++------------------------------+  | Engine  |  |          |
+                                  |         |  |          |
++------------------------------+  |         |  |          |
+| Compilation Layer            |  |         |  |          |
++------------------------------+  |         |  |          |
+                                  |         |  |          |
++------------------------------+  |         |  |          |
+| Cache Layer                  |  |         |  |          |
++------------------------------+  |         |  |          |
+                                  |         |  |          |
++----------------------+          |         |  |          |
+| Bytecode Interpreter |          |         |  |          |
++----------------------+          |         |  |          |
+                                  |         |  |          |
+                         +-----+  |         |  |          |
+                         | JIT |  |         |  |          |
+                         +-----+  |         |  |          |
+                                  |         |  |          |
++------------------------------+  |         |  |          |
+| GHC RTS                      |  |         |  |          |
++------------------------------+  +---------+  +----------+
+
++------------------------------+
+| FFI                          |
++------------------------------+
+
+
+```
 
 While the diagram above encompasses all of the components of the eventual Luna
 compiler architecture, the following components are those that are described
@@ -80,8 +124,7 @@ within this design:
 - **Cache Layer:**
 - **Bytecode Interpreter:**
 - **JIT Tier 1:**
-- **JIT Tier 2:**
-- **FFI Support:**
+- **FFI:**
 - **Tracing Engine:**
 - **Debugging Engine:**
 - **GHC RTS:**
@@ -140,7 +183,8 @@ of the same architectural component (e.g. the JIT layers).
   on-demand optimisation.
 - An analysis of how the graph layout and metadata is handled. This should not
   longer be associated with explicit metadata in the source.
--->
+- An analysis of how to handle the necessary callbacks to this layer
+.-->
 
 ### 3 - The Compilation Layer and Type-Checker
 <!--
@@ -237,7 +281,7 @@ of the same architectural component (e.g. the JIT layers).
 - An analysis of how best to combine strict evaluation with optional laziness.
 -->
 
-### 6 - JIT Tier 1
+### 6 - JIT
 <!--
 - An examination of the kind of optimisations would be performed by this JIT
   tier (the specifics can come later).
@@ -246,16 +290,13 @@ of the same architectural component (e.g. the JIT layers).
 - An examination of the JIT as a solution to non-type-erased code.
 - An analysis of the approximate optimisation pipeline (e.g. Luna IR -> GHC Core
   -> Core2Core -> STD -> Native Code -> Load into JIT)
--->
-
-### 7 - JIT Tier 2
-<!--
-- An examination of the kind of optimisations would be performed by this JIT
-  tier (the specifics can come later).
+- An examination of the kind of optimisations would be performed by subsequent
+  JTI tiers.
 - A description of why we want a second JIT stage, and the anticipated
   performance benefits.
-- A discussion of the drawbacks of this layer (primarily compilation cost).
-- An analysis of how the optimisation pipeline would differ in this tier.
+- A discussion of the drawbacks of subsequent JIT stages (primarily compilation
+  cost).
+- An analysis of how the optimisation pipeline would differ across JIT tiers.
 -->
 
 ## Cross-Cutting Concerns
@@ -355,9 +396,7 @@ multiple (if not all) of the above layers.
 
 # The Byte-Code Interpreter
 
-# JIT Tier 1
-
-# JIT Tier 2
+# JIT
 
 # FFI Support
 

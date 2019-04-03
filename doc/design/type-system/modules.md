@@ -641,3 +641,18 @@ the current time. Some examples include:
 - Do we want to call the monadic parts of our signatures 'monads' or 'effects'?
   `foo : a -> a in [IO, State]`. How in these cases do we express the effects as
   arguments, or are they _purely_ effects? 
+- Quantification of variables (pi, forall) -> explicit, or implicit
+- Desugaring rules 
+
+Axioms of Luna:
+
+- Types in Luna are functions on sets.
+- All non-binding position tyvars (the `t` in `t a`) must be functions.
+- All non-binding tyvars must be in scope (where the scope includes the body),
+  modulo type inference. 
+- All interface definitions must resolve to a 1:1 mapping between resolution 
+  type (e.g. `Text`) and result type (e.g. `Functor Char Char`), modulo type
+  annotations.
+- Scope lookup proceeds from function scope outwards.
+
+- Users should not have to care about what they're naming to name it. 

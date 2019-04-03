@@ -1,6 +1,12 @@
 NOT WORKING!!!
 
 How do we want to represent visible and dependent quantification?
+
+```hs
+
+```
+
+
 How do we do named arguments and defaulting (at both the 'type' and 'value' levels)? 
 
 In Haskell we've got positional type variables and thus we can traverse
