@@ -61,8 +61,8 @@ bytecode interpreter (used in GHCi), and for native compilation and dynamic
 loading as part of the JIT.
 
 The Luna Runtime integrates across most of the current design for the Luna
-compiler, so it's easier instead to diagram the whole compiler, as below. In 
-this diagram, the direction of arrows represents the flow of information. 
+compiler, so it's easier instead to diagram the whole compiler, as below. In
+this diagram, the direction of arrows represents the flow of information.
 
 ```
 
@@ -184,7 +184,7 @@ of the same architectural component (e.g. the JIT layers).
 - An analysis of how the graph layout and metadata is handled. This should not
   longer be associated with explicit metadata in the source.
 - An analysis of how to handle the necessary callbacks to this layer
-.-->
+-->
 
 ### 3 - The Compilation Layer and Type-Checker
 <!--
@@ -299,13 +299,24 @@ of the same architectural component (e.g. the JIT layers).
 - An analysis of how the optimisation pipeline would differ across JIT tiers.
 -->
 
+### 7 - JIT Tier 2
+<!--
+- An examination of the kind of optimisations would be performed by this JIT
+  tier (the specifics can come later).
+- A description of why we want a second JIT stage, and the anticipated
+  performance benefits.
+- A discussion of the drawbacks of this layer (primarily compilation cost).
+- An analysis of how the optimisation pipeline would differ in this tier.
+>>>>>>> origin/master
+-->
+
 ## Cross-Cutting Concerns
 There are a number of elements of the design for the new runtime that cannot be
 easily partitioned into the above layers. These are explored below from the
 standpoint of requirements and high-level design, and will be integrated into
 multiple (if not all) of the above layers.
 
-### 1 - FFI Support
+### 1 - FFI
 <!--
 - A diagram of how FFI calls work, and the support libraries needed.
 - A description of how we want FFI to work, and its performance characteristics.
@@ -318,9 +329,9 @@ multiple (if not all) of the above layers.
 - An analysis of the potential to support callbacks to Luna from C, and the
   support for running Luna programs from C.
 - An analysis of how best to translate Haskell's FFI semantics into Luna.
-- The interpreter itself currently doesn't support `foreign export`, so these 
+- The interpreter itself currently doesn't support `foreign export`, so these
   will need to be compiled by the first JIT tier separately and then dynamically
-  loaded. 
+  loaded.
 -->
 
 ### 2 - Tracing Engine
@@ -382,6 +393,8 @@ multiple (if not all) of the above layers.
 
 ### 4 - Debugging Engine
 <!--
+- An examination of how performance tracing can be achieved based on the JIT's
+  trace.
 - A description of what features we want out of the debugger.
 - An examination of what kind of debugging support we can get for free from the
   bytecode interpreter, and what we would need to build on top.
