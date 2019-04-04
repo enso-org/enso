@@ -318,6 +318,9 @@ multiple (if not all) of the above layers.
 - An analysis of the potential to support callbacks to Luna from C, and the
   support for running Luna programs from C.
 - An analysis of how best to translate Haskell's FFI semantics into Luna.
+- The interpreter itself currently doesn't support `foreign export`, so these 
+  will need to be compiled by the first JIT tier separately and then dynamically
+  loaded. 
 -->
 
 ### 2 - Tracing Engine
@@ -465,6 +468,9 @@ the current time. Some examples include:
   and laziness, as well as boxed and unboxed types.
 - What are the security implications for the language while building a JIT
   compiler?
+- What is the exact boundary of stage 1. It looks like the JIT tier may be
+  needed after all (for FFI). It may, in the end, actually be simpler to add
+  this to GHC and use a fork until it hits stable.
 
 # Glossary
 This section is designed to define terms that may be unfamiliar to some users:
