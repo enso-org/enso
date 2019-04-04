@@ -61,7 +61,6 @@ benchmarks:
             - base
             - directory
             - filepath
-            - luna-benchmark
             - luna-datafile
             - luna-exception
             - luna-package

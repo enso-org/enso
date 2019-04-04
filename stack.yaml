@@ -19,8 +19,6 @@ ghc-options:
     $everything:
         -fconstraint-solver-iterations=100
 
-local-bin-path: dist/bin/public/
-
 packages:
     - core
     - debug
@@ -36,7 +34,6 @@ packages:
     - syntax/text/prettyprint
 
     - lib/autovector
-    - lib/benchmark
     - lib/ci
     - lib/code-builder
     - lib/container
