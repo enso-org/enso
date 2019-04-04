@@ -1,9 +1,11 @@
 # https://aka.ms/yaml
 
-
 trigger:
   branches:
     include: [ "*" ]
+  paths:
+    exclude:
+      - doc/*
 
 jobs:
 - job: Ubuntu
@@ -61,4 +63,3 @@ jobs:
     displayName: Run Tests
   - script: C:\stack\stack build_package.hs --check-script
     displayName: Check Package Script
-
