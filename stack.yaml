@@ -1,10 +1,5 @@
 resolver: ./config/snapshot.yaml
 
-package-indices:
-    - name:            standard-hackage
-      download-prefix: https://hackage.haskell.org/package/
-      http:            https://hackage.haskell.org/01-index.tar.gz
-
 ghc-options:
     $locals:
         -O1
