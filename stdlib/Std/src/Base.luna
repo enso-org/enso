@@ -2397,6 +2397,17 @@ class List a:
     def contains elem: self.any (x: x == elem)
 
     # Returns the longest prefix of the list for which a given predicate is satisfied.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = [49,23,6,12,4,6,1,9]
+    # >     f = > 10
+    # >     b = a.takeWhile f
+    # >     None
+    # 
+    # `pred`: Boolean-valued function to check.
+    # `returns`: The longest prefix of the `self` list for which a given predicate `pred` is satisfied.
     def takeWhile pred: case self of
         Empty: Empty
         Prepend a as:
@@ -2410,22 +2421,62 @@ class Map k v:
     Bin Int k v (Map k v) (Map k v)
 
     # Returns an empty map.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = Map.empty
+    # >     None
+    # 
+    # `returns`: The empty map.
     def empty: Tip
 
     # Returns a map with a single element.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = Map.singleton "foo" 10
+    # >     None
+    # 
+    # `returns`: The map with single element.
     def singleton k v: Bin 1 k v Tip Tip
 
     # Tests whether the map is empty.
+    # > def main:
+    # >     a = Map.empty
+    # >     b = a.isEmpty
+    # >     None
+    # 
+    # `returns`: `True` if `self` is the empty map, `False` otherwise.
     def isEmpty: case self of
         Tip: True
         Bin s k v l r: False
 
     # Returns the number of values stored in the map.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = Map.singleton "foo" 10
+    # >     b = a.size
+    # >     None
+    # 
+    # `returns`: Int value, number of values stored in the `self` map.
     def size: case self of
         Tip: 0
         Bin s k v l r: s
 
     # Converts the map into a list of `(key, value)` pairs.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = Map.singleton "foo" 10
+    # >     b = a.toList
+    # >     None
+    # 
+    # `returns`: A list of (key, value) pairs from the `self` map.
     def toList: case self of
         Tip: Empty
         Bin s k v l r:
@@ -2434,6 +2485,17 @@ class Map k v:
             left + ([(k, v)] + right)
 
     # Applies a function to each value in the map.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = Map.singleton "foo" 10
+    # >     f = * 10
+    # >     b = a.map f
+    # >     None
+    # 
+    # `f`: Function to map over all elements of the `self` map.
+    # `returns`: Map object with elements being result of applying `f` function over `self` map.
     def map f: case self of
         Tip: Tip
         Bin s k v l r: Bin s k (f v) (l . map f) (r . map f)
@@ -2444,6 +2506,17 @@ class Map k v:
     def toText: self . toList . toText
 
     # Looks up an element for a given key.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = Map.singleton "foo" 10
+    # >     b = a.lookup "foo"
+    # >     None
+    # 
+    # `k`: Key in `self` map to lookup for.
+    # `returns`: `Just` value for the key `k` from `self` map if the key exist.
+                 `Nothing` if the `k` key is not present in the `self` map.
     def lookup k:
         case self of
             Tip: Nothing
@@ -2451,11 +2524,35 @@ class Map k v:
                 if kx.== k then Just x else (if kx > k then l.lookup k else r.lookup k)
 
     # Gets an element for a given key. Throws an exception when the key is not present in the Map.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = Map.singleton "foo" 10
+    # >     b = a.get "foo"
+    # >     None
+    # 
+    # `k`: Key in `self` map to lookup for.
+    # `returns`: Value for the key `k` from `self` map if the `k` exist.
+    #            Throws an exception when the `k` key is not present in the `self` Map.
     def get k: case self . lookup k of
         Just v: v
         Nothing: throw "Map.get: key not found"
 
     # Inserts an element at a given key.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = Map.singleton "foo" 10
+    # >     k = "bar"
+    # >     v = 23
+    # >     b = a.insert k v
+    # >     None
+    # 
+    # `k`: Key for a new element to insert to `self` map.
+    # `v`: Value for a new element to insert to `self` map.
+    # `returns`: Map containing elements of the `self` map and a newly inserted element.
     def insert k v: case self of
         Tip: Bin 1 k v Tip Tip
         Bin s ky y l r: case (ky == k) of
@@ -2469,6 +2566,17 @@ class Map k v:
                     Map.bin ky y l newR
 
     # Map equality. Two maps are equal when they contain the same keys and the elements associated with each key are equal.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = Map.singleton "foo" 10
+    # >     b = Map.singleton "bar" 10
+    # >     c = a.== b
+    # >     None
+    # 
+    # `b`: Map to compare with `self` map.
+    # `returns`: `True` if two maps are equal, `False` otherwise.
     def == that:
         s = self.toList
         t = that.toList
@@ -2573,6 +2681,17 @@ class Map k v:
                 Map.bin km vm self r' . balanceR
 
     # Deletes a key from the given map. If the the key is missing, it returns the original map.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = Map.singleton "foo" 10
+    # >     b = a.delete "foo"
+    # >     None
+    # 
+    # `key`: Key to delete from `self` map.
+    # `returns`: Map containing elements of the `self` map without `key`.
+                 If the the key is missing, it returns the `self` map.
     def delete key: case self of
         Tip: Tip
         Bin _ k v l r: case key == k of
