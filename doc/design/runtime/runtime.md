@@ -502,6 +502,15 @@ This section is designed to define terms that may be unfamiliar to some users:
   and functionality for a programming language to execute. When used in this
   document, it exclusively refers to the GHC Runtime System.
 
+# References
+The design of the runtime described in this document is carefully informed by
+previous work on other functional languages. Any papers that were used to inform
+this design are listed below:
+
+- [GHC Core Spec](https://gitlab.haskell.org/ghc/ghc/blob/master/docs/core-spec/core-spec.pdf)
+- [GHC STG Spec](https://gitlab.haskell.org/ghc/ghc/blob/master/docs/stg-spec/stg-spec.mng)
+- [GHCi Spec](https://gitlab.haskell.org/ghc/ghc/blob/master/docs/ghci/ghci.tex)
+
 <!-- END OF WIP PROPOSAL -->
 
 <!--
@@ -521,5 +530,11 @@ compiler pipeline, please see the links below:
 - [Targeting Core](http://www.stephendiehl.com/posts/ghc_03.html)
 - [Grin](https://github.com/grin-tech/grin)
 - [Example Pipeline](https://github.com/chrisdone/prana/blob/0cbb7b4b96bbfdb4f0d6a60e08f4b1f53abdfb15/prana-ghc/src/Prana/Ghc.hs#L106-L154)
+
+have you looked at matthew hammer's work on adapton (in particular, after reading the original paper, nominal adapton)?
+i mention it mostly because you seem to be spending a ton of time on compute performance for a pipeline that is almost entirely 'build it over from scratch on information changes'
+whereas an incremental computation story would drastically reduce the pressure on your computing platform
+his isn't the only work in this space. umut acar has another in his incremental framework he built for jane street
+and there is a more microsofty take in the old 'naiad' system by thekkath -- which is less relevant to the FP bits more to the "big data" bits
 
 -->
