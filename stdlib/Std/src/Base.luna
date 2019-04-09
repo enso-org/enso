@@ -10,7 +10,7 @@ native class Int:
     # > def main:
     # >     a = 5
     # >     b = 10
-    # >     c = a.+ b
+    # >     sum = a.+ b
     # >     None
     # 
     # `that`: Integer to add to `self` value.
@@ -24,7 +24,7 @@ native class Int:
     # > def main:
     # >     a = 5
     # >     b = 10
-    # >     c = a.* b
+    # >     multiplication = a.* b
     # >     None
     # 
     # `that`: Integer to multiply by `self` value.
@@ -38,7 +38,7 @@ native class Int:
     # > def main:
     # >     a = 10
     # >     b = 5
-    # >     c = a.- b
+    # >     substraction = a.- b
     # >     None
     # 
     # `that`: Integer to substract from `self` value.
@@ -53,7 +53,7 @@ native class Int:
     # > def main:
     # >     a = 10
     # >     b = 3
-    # >     c = a./ b
+    # >     division = a./ b
     # >     None
     # 
     # `that`: Integer value to divide `self` value by it.
@@ -67,7 +67,7 @@ native class Int:
     # > def main:
     # >     a = 10
     # >     b = 3
-    # >     c = a.% b
+    # >     remainder = a.% b
     # >     None
     # 
     # `that`: Integer value to divide `self` value by it.
@@ -81,7 +81,7 @@ native class Int:
     # > def main:
     # >     a = 10
     # >     b = 3
-    # >     c = a.> b
+    # >     isGreater = a.> b
     # >     None
     # 
     # `that`: Integer value to compare with `self` value.
@@ -95,7 +95,7 @@ native class Int:
     # > def main:
     # >     a = 10
     # >     b = 3
-    # >     c = a.< b
+    # >     isLesser = a.< b
     # >     None
     # 
     # `that`: Integer value to compare with `self` value.
@@ -109,7 +109,7 @@ native class Int:
     # > def main:
     # >     a = 10
     # >     b = 3
-    # >     c = a.== b
+    # >     isEqual = a.== b
     # >     None
     # 
     # `that`: Integer value to compare with `self` value.
@@ -137,7 +137,7 @@ native class Int:
     # > 
     # > def main:
     # >     a = 10
-    # >     b = a.negate
+    # >     negation = a.negate
     # >     None
     # 
     # `returns`: Negation of `self` value.
@@ -161,7 +161,7 @@ native class Int:
     # > 
     # > def main:
     # >     a = 10
-    # >     b = a.toText
+    # >     txt = a.toText
     # >     None
     #  
     # `returns`: `self` as Text value.
@@ -178,7 +178,7 @@ native class Int:
     # > 
     # > def main:
     # >     a = 10
-    # >     b = a.miliseconds
+    # >     ms = a.miliseconds
     # >     None
     #  
     # `returns`: `self` as TimeInterval value in miliseconds.
@@ -189,7 +189,7 @@ native class Int:
     # > 
     # > def main:
     # >     a = 10
-    # >     b = a.seconds
+    # >     s = a.seconds
     # >     None
     #  
     # `returns`: `self` as TimeInterval value in seconds.
@@ -201,7 +201,7 @@ native class Int:
     # > 
     # > def main:
     # >     a = 10
-    # >     b = a.minutes
+    # >     min = a.minutes
     # >     None
     #  
     # `returns`: `self` as TimeInterval value in minutes.
@@ -213,7 +213,7 @@ native class Int:
     # > 
     # > def main:
     # >     a = 10
-    # >     b = a.hours
+    # >     h = a.hours
     # >     None
     #  
     # `returns`: `self` as TimeInterval value in hours.
@@ -225,7 +225,7 @@ native class Int:
     # > 
     # > def main:
     # >     a = 10
-    # >     b = a.days
+    # >     d = a.days
     # >     None
     #  
     # `returns`: `self` as TimeInterval value in days.
@@ -237,7 +237,7 @@ native class Int:
     # > 
     # > def main:
     # >     a = 10
-    # >     b = a.weeks
+    # >     w = a.weeks
     # >     None
     #  
     # `returns`: `self` as TimeInterval value in weeks.
@@ -274,7 +274,7 @@ native class Int:
     # > def main:
     # >     a = 3
     # >     b = 10
-    # >     c = a.upto b
+    # >     list = a.upto b
     # >     None
     # 
     # > `i`: Stop value for the sequence of numbers.
@@ -298,7 +298,7 @@ native class Real:
     # > def main:
     # >     a = 5.0
     # >     b = 10.5
-    # >     c = a.+ b
+    # >     sum = a.+ b
     # >     None
     # 
     # `that`: Floating point number to add to `self` value.
@@ -312,7 +312,7 @@ native class Real:
     # > def main:
     # >     a = 5.5
     # >     b = 10.0
-    # >     c = a.* b
+    # >     multiplication = a.* b
     # >     None
     # 
     # `that`: Floating point number to multiply by `self` value.
@@ -326,7 +326,7 @@ native class Real:
     # > def main:
     # >     a = 10.3
     # >     b = 5.0
-    # >     c = a.- b
+    # >     substraction = a.- b
     # >     None
     # 
     # `that`: Floating point number to substract from `self` value.
@@ -340,7 +340,7 @@ native class Real:
     # > def main:
     # >     a = 10.4
     # >     b = 2.0
-    # >     c = a./ b
+    # >     division = a./ b
     # >     None
     # 
     # `that`: Floating point number value to divide `self` value by it.
@@ -354,7 +354,7 @@ native class Real:
     # > def main:
     # >     a = 10.4
     # >     b = 2.0
-    # >     c = a.^ b
+    # >     exp = a.^ b
     # >     None
     # 
     # `that`: Exponent (floating point number).
@@ -369,7 +369,7 @@ native class Real:
     # > def main:
     # >     a = 10.4
     # >     b = 2.0
-    # >     c = a.log b
+    # >     logarithm = a.log b
     # >     None
     # 
     # `base`: Logarithm base (floating point number).
@@ -384,7 +384,7 @@ native class Real:
     # > def main:
     # >     a = 10.4
     # >     b = 3.76
-    # >     c = a.> b
+    # >     isGreater = a.> b
     # >     None
     # 
     # `that`: Floating point number value to compare with `self` value.
@@ -398,7 +398,7 @@ native class Real:
     # > def main:
     # >     a = 10.7
     # >     b = 3.45
-    # >     c = a.< b
+    # >     isLesser = a.< b
     # >     None
     # 
     # `that`: Floating point number value to compare with `self` value.
@@ -412,7 +412,7 @@ native class Real:
     # > def main:
     # >     a = 3.45
     # >     b = 3.45
-    # >     c = a.== b
+    # >     isEqual = a.== b
     # >     None
     # 
     # `that`: Floating point number value to compare with `self` value.
@@ -452,7 +452,7 @@ native class Real:
     # > 
     # > def main:
     # >     a = 10.0
-    # >     b = a.toText
+    # >     txt = a.toText
     # >     None
     #  
     # `returns`: `self` as Text value.
@@ -503,7 +503,7 @@ native class Real:
     # > 
     # > def main:
     # >     a = 10.75876
-    # >     b = a.sin
+    # >     sine = a.sin
     # >     None
     #
     # `returns`: The sine of `self` in radians.
@@ -515,7 +515,7 @@ native class Real:
     # > 
     # > def main:
     # >     a = 10.75876
-    # >     b = a.cos
+    # >     cosine = a.cos
     # >     None
     #
     # `returns`: The cosine of `self` in radians.
@@ -527,7 +527,7 @@ native class Real:
     # > 
     # > def main:
     # >     a = 10.75876
-    # >     b = a.tan
+    # >     tangent = a.tan
     # >     None
     #
     # `returns`: The tangent of `self` in radians.
@@ -539,7 +539,7 @@ native class Real:
     # > 
     # > def main:
     # >     a = 10.75876
-    # >     b = a.sinh
+    # >     hyperbolicSine = a.sinh
     # >     None
     #
     # `returns`: The hyperbolic sine of `self` in radians.
@@ -551,7 +551,7 @@ native class Real:
     # > 
     # > def main:
     # >     a = 10.75876
-    # >     b = a.cosh
+    # >     hyperbolicCosine = a.cosh
     # >     None
     #
     # `returns`: The hyperbolic cosine of `self` in radians.
@@ -563,7 +563,7 @@ native class Real:
     # > 
     # > def main:
     # >     a = 10.75876
-    # >     b = a.tanh
+    # >     hyperbolicTangent = a.tanh
     # >     None
     #
     # `returns`: The hyperbolic tangent of `self` in radians.
@@ -575,7 +575,7 @@ native class Real:
     # > 
     # > def main:
     # >     a = 10.75876
-    # >     b = a.asin
+    # >     arcSine = a.asin
     # >     None
     #
     # `returns`: The arc sine of `self` in radians.
@@ -587,7 +587,7 @@ native class Real:
     # > 
     # > def main:
     # >     a = 10.75876
-    # >     b = a.acos
+    # >     arcCosine = a.acos
     # >     None
     #
     # `returns`: The arc cosine of `self` in radians.
@@ -599,7 +599,7 @@ native class Real:
     # > 
     # > def main:
     # >     a = 10.75876
-    # >     b = a.atan
+    # >     arcTangent = a.atan
     # >     None
     #
     # `returns`: The arc tangent of `self` in radians.
@@ -611,7 +611,7 @@ native class Real:
     # > 
     # > def main:
     # >     a = 10.75876
-    # >     b = a.asinh
+    # >     arcHyperbolicSine = a.asinh
     # >     None
     #
     # `returns`: The inverse hyperbolic sine of `self` in radians.
@@ -623,7 +623,7 @@ native class Real:
     # > 
     # > def main:
     # >     a = 10.75876
-    # >     b = a.acosh
+    # >     arcHyperbolicCosine = a.acosh
     # >     None
     #
     # `returns`: The inverse hyperbolic cosine of `self` in radians.
@@ -635,7 +635,7 @@ native class Real:
     # > 
     # > def main:
     # >     a = 10.75876
-    # >     b = a.atanh
+    # >     arcHyperbolicTangent = a.atanh
     # >     None
     #
     # `returns`: The inverse hyperbolic tangent of `self` in radians.
@@ -683,7 +683,7 @@ native class Real:
     # > 
     # > def main:
     # >     a = 100.0
-    # >     b = a.toText
+    # >     txt = a.toText
     # >     None
     #
     # `returns`: `self` as Text value.
@@ -695,7 +695,7 @@ native class Real:
     # > 
     # > def main:
     # >     a = 100.0
-    # >     b = a.toJSON
+    # >     json = a.toJSON
     # >     None
     #
     # `returns`: `self` JSON value.
@@ -723,7 +723,7 @@ native class Text:
     # > def main:
     # >     a = "foo"
     # >     b = "bar"
-    # >     c = a.+ b
+    # >     sum = a.+ b
     # >     None
     #
     # `that`: Text value to concatenate with `self`.
@@ -736,7 +736,7 @@ native class Text:
     # > def main:
     # >     a = "foo"
     # >     b = "bar"
-    # >     c = a.> b
+    # >     isGreater = a.> b
     # >     None
     #
     # `that`: Text value to compare with `self`.
@@ -750,7 +750,7 @@ native class Text:
     # > def main:
     # >     a = "foo"
     # >     b = "bar"
-    # >     c = a.< b
+    # >     isLesser = a.< b
     # >     None
     #
     # `that`: Text value to compare with `self`.
@@ -764,7 +764,7 @@ native class Text:
     # > def main:
     # >     a = "foo"
     # >     b = "bar"
-    # >     c = a.== b
+    # >     isEqual = a.== b
     # >     None
     #
     # `that`: Text value to compare with `self`.
@@ -777,7 +777,7 @@ native class Text:
     # > 
     # > def main:
     # >     a = "foo"
-    # >     b = a.isEmpty
+    # >     empty = a.isEmpty
     # >     None
     #
      # `returns`: `True` if `self` is empty, `False` otherwise.
@@ -789,7 +789,7 @@ native class Text:
     # > 
     # > def main:
     # >     a = "foo"
-    # >     b = a.length
+    # >     len = a.length
     # >     None
     #
     # `returns`: Integer value with text length.
@@ -917,7 +917,7 @@ native class Text:
     # > 
     # > def main:
     # >     a = "FooBarBaz"
-    # >     b = a.reverse
+    # >     rev = a.reverse
     # >     None
     #
     # `returns`: Reversed `self` text.
@@ -944,7 +944,7 @@ native class Text:
     # > 
     # > def main:
     # >     a = "10"
-    # >     b = a.safeToInt
+    # >     maybeInt = a.safeToInt
     # >     None
     #
     # `returns`: Maybe Integer value.
@@ -957,7 +957,7 @@ native class Text:
     # > 
     # > def main:
     # >     a = "10.0"
-    # >     b = a.safeToReal
+    # >     maybeReal = a.safeToReal
     # >     None
     #
     # `returns`: Maybe floating point number value.
@@ -970,7 +970,7 @@ native class Text:
     # > 
     # > def main:
     # >     a = "10"
-    # >     b = a.toInt
+    # >     int = a.toInt
     # >     None
     #
     # `returns`: Integer value or error.
@@ -985,7 +985,7 @@ native class Text:
     # > 
     # > def main:
     # >     a = "10.0"
-    # >     b = a.toReal
+    # >     real = a.toReal
     # >     None
     #
     # `returns`: Floating point number value or error.
@@ -1041,7 +1041,7 @@ class Complex:
     # > 
     # > def main:
     # >     a = Complex 10.0 3.25
-    # >     b = a.toText
+    # >     txt = a.toText
     # >     None
     #
     # `returns`: Text value for `self` complex number.
@@ -1054,7 +1054,7 @@ class Complex:
     # > def main:
     # >     a = Complex 10.0 3.25
     # >     b = Complex 5.0 2.25
-    # >     c = a.+ b
+    # >     sum = a.+ b
     # >     None
     #
     # `that`: Complex number value to add to `self`.
@@ -1071,7 +1071,7 @@ class Complex:
     # > def main:
     # >     a = Complex 10.0 3.25
     # >     b = Complex 5.0 2.25
-    # >     c = a.* b
+    # >     multiplication = a.* b
     # >     None
     #
     # `that`: Complex number value to multiply by `self`.
@@ -1191,7 +1191,7 @@ class Bool:
     # > def main:
     # >     a = True
     # >     b = False
-    # >     c = a.== b
+    # >     isEqual = a.== b
     # >     None
     #  
     # `that`: Boolean value.
@@ -1352,7 +1352,7 @@ class Tuple2 a b:
     # > def main:
     # >     a = (1, 2)
     # >     b = (2,2)
-    # >     c = a.== b
+    # >     isEqual = a.== b
     # >     None
     # 
     # `that`: Tuple to compare with `self`.
@@ -1368,7 +1368,7 @@ class Tuple2 a b:
     # > def main:
     # >     a = (1, 2)
     # >     b = (2, 2)
-    # >     c = a.< b
+    # >     isLesser = a.< b
     # >     None
     # 
     # `that`: Tuple to compare with `self`.
@@ -1471,7 +1471,7 @@ class Tuple3 a b c:
     # > def main:
     # >     a = (1, 2, 3)
     # >     b = (2, 2, 3)
-    # >     c = a.== b
+    # >     isEqual = a.== b
     # >     None
     # 
     # `that`: Tuple to compare with `self`.
@@ -1586,7 +1586,7 @@ class Tuple4 a b c d:
     # > def main:
     # >     a = (1, 2, 3, 4)
     # >     b = (2, 2, 3, 4)
-    # >     c = a.== b
+    # >     isEqual = a.== b
     # >     None
     # 
     # `that`: Tuple to compare with `self`.
@@ -1614,7 +1614,7 @@ class Maybe a:
     # > 
     # > def main:
     # >     a = Just "foo"
-    # >     b = a.toList
+    # >     list = a.toList
     # >     None
     # 
     # `returns`: An empty list when the value is missing and a singleton list otherwise.
@@ -1777,7 +1777,7 @@ class Maybe a:
     # > def main:
     # >     a = Just "foo"
     # >     b = Just "bar"
-    # >     c = a.== b
+    # >     isEqual = a.== b
     # >     None
     # 
     # `that`: `Maybe` value to compare with `self`.
@@ -2102,7 +2102,7 @@ class List a:
     # > 
     # > def main:
     # >     a = [1,2,3,4]
-    # >     b = a.length 
+    # >     len = a.length 
     # >     None
     # 
     # `returns`: Length of the `self` list.
@@ -2128,7 +2128,7 @@ class List a:
     # > 
     # > def main:
     # >     a = [1,2,3,4]
-    # >     b = a.toText 
+    # >     txt = a.toText 
     # >     None
     # 
     # `returns`: Text representation of the `self` list.
@@ -2735,10 +2735,30 @@ class JSON:
 
     # Parses a `Text` into a `JSON` object. Returns `Left` containing error
     # message when the `Text` does not contain a valid `JSON` object.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = '{"foo":10, "bar":20}'
+    # >     b = JSON.safeParse a
+    # >     None
+    # 
+    # `data`: Text to parse as `JSON` object.
+    # `returns`: `Either` `JSON` object or an error.
     def safeParse data: parseJSON (data.toText)
 
     # Parses a `Text` into a `JSON` object. Throws an error when the `Text`
     # does not contain a valid `JSON` object.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     txt = '{"foo":10, "bar":20}'
+    # >     json = JSON.parse txt
+    # >     None
+    # 
+    # `data`: Text to parse as `JSON` object.
+    # `returns`: `JSON` object or an error.
     def parse data: case JSON.safeParse data of
        Right json: json
        Left err:   errorStr err
@@ -2747,24 +2767,85 @@ class JSON:
     def toJSON: self
 
     # Dumps a `JSON` structure into a `Text` object.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = JSON.empty
+    # >     b = a.insert "foo" 10
+    # >     txt = b.toText
+    # >     None
+    # 
+    # `returns`: Text representation of `self` `JSON` object.
     def toText: renderJSON self
 
     # Dumps a `JSON` structure into a `Binary` object, by rendering it
     # into `Text` and converting it to `Binary`.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = JSON.empty
+    # >     b = a.insert "foo" 10
+    # >     binary = b.toBinary
+    # >     None
+    # 
+    # `returns`: Binary representation of `self` `JSON` object.
     def toBinary: self.toText.toBinary
 
     # Dumps a `JSON` structure into a `Text` object.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = JSON.empty
+    # >     b = a.insert "foo" 10
+    # >     txt = b.render
+    # >     None
+    # 
+    # `returns`: Text representation of `self` `JSON` object.
     def render: self.toText
 
     # Short text representation for a `JSON` object.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = JSON.empty
+    # >     b = a.insert "foo" 10
+    # >     c = b.shortRep
+    # >     None
+    # 
+    # `returns`: Short text representation of `self` `JSON` object.
     def shortRep: self.render
 
-    # Returns an empty `JSON` object
+    # Returns an empty `JSON` object.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = JSON.empty
+    # >     None
+    # 
+    # `returns`: An empty `JSON` object.
     def empty: JSONObject Tip
 
     # Tests two `JSON` objects for equality.
     # JSON objects are considered equal if they represent the same kind of data
     # and if stored data (when present) in both objects compares equal.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     txt1 = '{"bar":20}'
+    # >     json1 = JSON.parse txt1
+    # >     txt2 = '{"bar":20}'
+    # >     json2 = JSON.parse txt2
+    # >     isEqual = json1.== json2
+    # >     None
+    # 
+    # `that`: `JSON` object to compare with `self`.
+    # `returns`: `True` if `that` is equal with `self`, `False` otherwise.
     def == that:
         case (self, that) of
             (JSONNumber d, JSONNumber thatD): d.== thatD
@@ -2777,27 +2858,90 @@ class JSON:
 
     # Inserts a value for a given key into the `JSON` object.
     # Throws an exception when the `JSON` does not represent an object.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = JSON.empty
+    # >     k = "foo"
+    # >     v = 10
+    # >     b = a.insert k v
+    # >     None
+    # 
+    # `k`: A key for a value to insert to `self` JSON object.
+    # `v`: A value to insert to `self` JSON object.
+    # `returns`: A `JSON` object containing elements from `self` object and newly inserted element.
     def insert k v: case self of
         JSONObject m: JSONObject (m . insert k v.toJSON)
         _: throw "JSON.insert: not an object."
 
     # Deletes a value for a given key from the `JSON` object. Does nothing when
     # the `JSON` does not represent an object or does not contain the key.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     txt1 = '{"bar":20, "foo": 10}'
+    # >     json1 = JSON.parse txt1
+    # >     k = "bar"
+    # >     json2 = json1.delete k
+    # >     None
+    # 
+    # `k`: Key for value to delete from `self`.
+    # `returns`: `JSON` object with `self` object elements despite the value with the key `k`.
     def delete k: case self of
         JSONObject m: JSONObject (m.delete k)
         _: self
 
     # Returns `Just` the value associated with a given key. Returns `Nothing`
     # when the `JSON` is not an object or when the key is missing.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     txt = '{"bar":20, "foo": 10}'
+    # >     json = JSON.parse txt
+    # >     k = "bar"
+    # >     maybeValue = json.lookup k
+    # >     None
+    # 
+    # `key`: Key to lookup in `self`.
+    # `returns`: `Just` the value  associated with the `key`, 
+    #            `Nothing` if the `JSON` is not an object or when the `key` is missing.
     def lookup key: case self of
         JSONObject m: m.lookup key
         other: Nothing
 
     # Checks if given key is present in the structure.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     txt = '{"bar":20, "foo": 10}'
+    # >     json = JSON.parse txt
+    # >     k = "bar"
+    # >     hasKey = json.has k
+    # >     None
+    # 
+    # `key`: Key to check in `self`.
+    # `returns`: `True` if the `key` is present in `self` structure, `False` otherwise.
     def has key: self . lookup key . isJust
 
     # Returns the value associated with a given key. Throws an error when
     # the `JSON` is not an object or the key is missing.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     txt = '{"bar":20, "foo": 10}'
+    # >     json = JSON.parse txt
+    # >     k = "bar"
+    # >     value = json.get k
+    # >     None
+    # 
+    # `key`: Key to lookup in `self`.
+    # `returns`: The value associated with the `key`, 
+    #            an error if the `JSON` is not an object or when the `key` is missing.
     def get key: case self of
         JSONObject m: case m.lookup key of
             Just v: v
@@ -2806,72 +2950,198 @@ class JSON:
 
     # Returns a `Map` from `Text` to `JSON`, assuming the `JSON` represents
     # an object. Throws an error otherwise.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     txt = '{"bar":20, "foo": 10}'
+    # >     json = JSON.parse txt
+    # >     object = json.asObject
+    # >     None
+    # 
+    # `returns`: A `Map` from `Text` to `JSON`, assuming the `self` represents
+    #            an object. Throws an error otherwise.
     def asObject: case self of
         JSONObject m: m
         other: throw "JSON.asObject: not an object."
 
     # Returns a `Text` assuming the `JSON` represents text.
     # Throws an error otherwise.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     json = JSONString "foo"
+    # >     txt = json.asText
+    # >     None
+    # 
+    # `returns`: A `Text` assuming the `JSON` represents text.
+    #            Throws an error otherwise.
     def asText: case self of
         JSONString t: t
         other: throw "JSON.asText: not a text."
 
     # Returns a `Real` assuming the `JSON` represents a number.
     # Throws an error otherwise.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     scientificNumber = Scientific 10 0
+    # >     json = JSONNumber scientificNumber
+    # >     number = json.asReal
+    # >     None
+    # 
+    # `returns`: A `Real` assuming the `JSON` represents number.
+    #            Throws an error otherwise.
     def asReal: case self of
         JSONNumber a: a.toReal
         other: throw "JSON.asReal: not a number."
 
     # Returns an `Int` assuming the `JSON` represents a number and it
     # didn't contain a decimal point. Throws an error otherwise.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     scientificNumber = Scientific 10 0
+    # >     json = JSONNumber scientificNumber
+    # >     int = json.asInt
+    # >     None
+    # 
+    # `returns`: A `Int` assuming the `JSON` represents number and it
+    #            didn't contain a decimal point. Throws an error otherwise.
     def asInt: case self of
         JSONNumber a: a.toInt
         other: throw "JSON.asInt: not a number"
 
     # Returns a `Bool` assuming the `JSON` represents a boolean.
     # Throws an error otherwise.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     json = JSONBool False
+    # >     bool = json.asBool
+    # >     None
+    # 
+    # `returns`: A `Bool` assuming the `JSON` represents a boolean.
+    #            Throws an error otherwise.
     def asBool: case self of
         JSONBool a: a
         other: throw "JSON.asBool: not a boolean."
 
     # Returns a list of `JSON` object assuming the `JSON` represents an array.
     # Throws an error otherwise.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     json = JSONArray [JSONString "a", JSONString "b"]
+    # >     list = json.asList
+    # >     None
+    # 
+    # `returns`: A list of `JSON` object assuming the `JSON` represents an array.
+    #            Throws an error otherwise.
     def asList: case self of
         JSONArray a: a
         other: throw "JSON.asList: not a list."
 
     # Returns `Just` a `Map` from `Text` to `JSON`, assuming the `JSON`
     # represents an object. Returns `Nothing` otherwise.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     txt = '{"bar":20, "foo": 10}'
+    # >     json = JSON.parse txt
+    # >     object = json.safeAsObject
+    # >     None
+    # 
+    # `returns`: `Just` a `Map` from `Text` to `JSON`, assuming the `JSON`
+    #            represents an object. `Nothing` otherwise.
     def safeAsObject: case self of
         JSONObject m: Just m
         other: Nothing
 
     # Returns `Just` a `Text` assuming the `JSON` represents text.
     # Returns `Nothing` otherwise.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     json = JSONString "foo"
+    # >     txt = json.safeAsText
+    # >     None
+    # 
+    # `returns`: `Just` a `Text` assuming the `JSON` represents text.
+    #            `Nothing` otherwise.
     def safeAsText: case self of
         JSONString t: Just t
         other: Nothing
 
     # Returns `Just` a `Real` assuming the `JSON` represents a number.
     # Returns `Nothing` otherwise.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     scientificNumber = Scientific 10 0
+    # >     json = JSONNumber scientificNumber
+    # >     number = json.safeAsReal
+    # >     None
+    # 
+    # `returns`: `Just` a `Real` assuming the `JSON` represents a number.
+    #            `Nothing` otherwise.
     def safeAsReal: case self of
         JSONNumber a: Just a.toReal
         other: Nothing
 
     # Returns `Just` an `Int` assuming the `JSON` represents a number and it
     # didn't contain a decimal point. Returns `Nothing` otherwise.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     scientificNumber = Scientific 10 0
+    # >     json = JSONNumber scientificNumber
+    # >     number = json.safeAsInt
+    # >     None
+    # 
+    # `returns`: `Just` an `Int` assuming the `JSON` represents a number and it
+    #            didn't contain a decimal point. `Nothing` otherwise.
     def safeAsInt: case self of
         JSONNumber a: Just a.toInt
         other: Nothing
 
     # Returns `Just` a `Bool` assuming the `JSON` represents a boolean.
     # Returns `Nothing` otherwise.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     json = JSONBool False
+    # >     bool = json.safeAsBool
+    # >     None
+    # 
+    # `returns`: `Just` a `Bool` assuming the `JSON` represents a boolean.
+    #            `Nothing` otherwise.
     def safeAsBool: case self of
         JSONBool a: Just a
         other: Nothing
 
     # Returns `Just` a list of `JSON` object assuming the `JSON` represents
     # an array. Returns `Nothing` otherwise.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     json = JSONArray [JSONString "a", JSONString "b"]
+    # >     list = json.safeAsList
+    # >     None
+    # 
+    # `returns`: `Just` a list of `JSON` object assuming the `JSON` represents
+    #            an array. `Nothing` otherwise.
     def safeAsList: case self of
         JSONArray a: Just a
         other: Nothing
@@ -2879,69 +3149,222 @@ class JSON:
     # Gets a `Map` from `Text` to `JSON` associated with a given key.
     # Throws an error when the `JSON` is not an object, the key is not present
     # or the associated value is not an object.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     txt = '{"a": {"bar":20, "foo": 10}, "b": {"bar":220, "foo": 110}}'
+    # >     json = JSON.parse txt
+    # >     object = json.getObject "a"
+    # >     None
+    # 
+    # `k`: Key to lookup in `self`.
+    # `returns`: A `Map` from `Text` to `JSON` associated with a given key.
     def getObject k: self . get k . asObject
 
     # Gets a `Text` associated with a given key.
     # Throws an error when the `JSON` is not an object, the key is not present
     # or the associated value is not a text.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     txt = '{"bar":"a", "foo": "b"}'
+    # >     json = JSON.parse txt
+    # >     txt = json.getText "foo"
+    # >     None
+    # 
+    # `k`: Key to lookup in `self`.
+    # `returns`: A `Text` associated with a given key.
     def getText k: self . get k . asText
 
     # Gets a `Real` associated with a given key. Throws an error when
     # the `JSON` is not an object, the key is not present
     # or the associated value is not a number.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     txt = '{"bar": 20.0, "foo": 10.5}'
+    # >     json = JSON.parse txt
+    # >     number = json.getReal "bar"
+    # >     None
+    # 
+    # `k`: Key to lookup in `self`.
+    # `returns`: A`Real` associated with a given key.
     def getReal k: self . get k . asReal
 
     # Gets an `Int` associated with a given key. Throws an error when the
     # `JSON` is not an object, the key is not present or the associated value
     # is not an integer.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     txt = '{"bar": 20, "foo": 10}'
+    # >     json = JSON.parse txt
+    # >     number = json.getInt "bar"
+    # >     None
+    # 
+    # `k`: Key to lookup in `self`.
+    # `returns`: An `Int` associated with a given key.
     def getInt k: self . get k . asInt
 
     # Gets a `Bool` associated with a given key. Throws an error when the
     # `JSON` is not an object, the key is not present or the associated value
     # is not a boolean.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     txt = '{"bar": True, "foo": 10}'
+    # >     json = JSON.parse txt
+    # >     bool = json.getBool "bar"
+    # >     None
+    # 
+    # `k`: Key to lookup in `self`.
+    # `returns`: A `Bool` associated with a given key.
     def getBool k: self . get k . asBool
 
     # Gets a `List` of `JSON` values associated with a given key. Throws
     # an error when the `JSON` is not an object, the key is not present
     # or the associated value is not an array.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     txt = '{"foo": [1, 2, 2]}'
+    # >     json = JSON.parse txt
+    # >     list = json.getList "foo"
+    # >     None
+    # 
+    # `k`: Key to lookup in `self`.
+    # `returns`: A `List` of `JSON` values associated with a given key.
     def getList k: self . get k . asList
 
     # Looks up a `Map` from `Text` to `JSON` associated with a given key.
     # Returns `Nothing` when the `JSON` is not an object, the key is not
     # present or the associated value is not an object.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     txt = '{"a": {"bar":20, "foo": 10}, "b": {"bar":220, "foo": 110}}'
+    # >     json = JSON.parse txt
+    # >     object = json.lookupObject "a"
+    # >     None
+    # 
+    # `k`: Key to lookup in `self`.
+    # `returns`: `Just` `Map` from `Text` to `JSON` associated with a given key.
     def lookupObject k: self . lookup k . flatMap .safeAsObject
 
     # Looks up a `Text` associated with a given key. Returns `Nothing` when
     # the `JSON` is not an object, the key is not present or the associated
     # value is not a text.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     txt = '{"bar":"a", "foo": "b"}'
+    # >     json = JSON.parse txt
+    # >     txt = json.lookupText "foo"
+    # >     None
+    # 
+    # `k`: Key to lookup in `self`.
+    # `returns`: `Just` `Text` associated with a given key.
     def lookupText k: self . lookup k . flatMap .safeAsText
 
     # Looks up a `Real` associated with a given key. Returns `Nothing` when
     # the `JSON` is not an object, the key is not present or the associated
     # value is not a number.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     txt = '{"bar": 20.0, "foo": 10.5}'
+    # >     json = JSON.parse txt
+    # >     number = json.lookupReal "bar"
+    # >     None
+    # 
+    # `k`: Key to lookup in `self`.
+    # `returns`: `Just` `Real` associated with a given key.
     def lookupReal k: self . lookup k . flatMap .safeAsReal
 
     # Looks up an `Int` associated with a given key. Returns `Nothing` when
     # the `JSON` is not an object, the key is not present or the associated
     # value is not an integer.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     txt = '{"bar": 20, "foo": 10}'
+    # >     json = JSON.parse txt
+    # >     number = json.lookupInt "bar"
+    # >     None
+    # 
+    # `k`: Key to lookup in `self`.
+    # `returns`: `Just` `Int` associated with a given key.
     def lookupInt k: self . lookup k . flatMap .safeAsInt
 
     # Looks up a `Bool` associated with a given key. Returns `Nothing` when
     # the `JSON` is not an object, the key is not present or the associated
     # value is not a boolean.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     txt = '{"bar": True, "foo": 10}'
+    # >     json = JSON.parse txt
+    # >     bool = json.lookupBool "bar"
+    # >     None
+    # 
+    # `k`: Key to lookup in `self`.
+    # `returns`: `Just` `Bool` associated with a given key.
     def lookupBool k: self . lookup k . flatMap .safeAsBool
 
     # Looks up a `List` of `JSON` values associated with a given key.
     # Returns `Nothing` when the `JSON` is not an object, the key is not
     # present or the associated value is not an array.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     txt = '{"foo": [1, 2, 2]}'
+    # >     json = JSON.parse txt
+    # >     list = json.lookupList "foo"
+    # >     None
+    # 
+    # `returns`: `Just` `List` of `JSON` values associated with a given key.
     def lookupList k: self . lookup k . flatMap .safeAsList
 
     # Returns `Just` the element with a given index assuming the `JSON`
     # represents an array and the index is in range. Returns `Nothing` otherwise.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     json = JSONArray [JSONString "a", JSONString "b"]
+    # >     list = json.at 1
+    # >     None
+    # 
+    # `n`: Index of element to get.
+    # `returns`: `Just` the element with a given index assuming the `JSON`
+    #            represents an array and the index is in range, `Nothing` otherwise.
     def at n: self . safeAsList . flatMap (_.at n)
 
     # Returns the element with a given index assuming the `JSON` represents
     # an array and the index is in range. Throws an error otherwise.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     json = JSONArray [JSONString "a", JSONString "b"]
+    # >     list = json.at 1
+    # >     None
+    # 
+    # `n`: Index of element to get.
+    # `returns`: The element with a given index assuming the `JSON`
+    #            represents an array and the index is in range, throws an error otherwise.
     def getAt n: self . asList . getAt n
 
 # Creates an empty MVar object.
@@ -2970,7 +3393,8 @@ native class MVar a:
     # Calling this on an empty `MVar` suspends the thread until the value is put in it.
     def read:  primReadMVar self
 
-    # Puts a value inside the `MVar`. Calling this method on a non-empty `MVar` suspends the thread until the old value is taken out.
+    # Puts a value inside the `MVar`. Calling this method on a non-empty `MVar`
+    # suspends the thread until the old value is taken out.
     def put v: primPutMVar  self v
 
 # `Stream` represents an infinite data source, with a list-like API.
@@ -2980,19 +3404,23 @@ class Stream a:
 
     def isStream: True
 
-    # Runs a function on each element of the stream, immediately executing all side effects. Due to the stream being infinite, this function never terminates.
+    # Runs a function on each element of the stream, immediately executing all side effects.
+    # Due to the stream being infinite, this function never terminates.
     def each f: case self of
         Stream elt s:
             f elt
             s.each f
 
-    # Takes an initial value and function. Returns a stream resulting from calling the function repeatedly on the next element of the stream and the previously accumulated value.
+    # Takes an initial value and function. Returns a stream resulting from calling the function repeatedly
+    # on the next element of the stream and the previously accumulated value.
     def foldFrom a f: case self of
         Stream elt s:
             new = f elt a
             Stream new (s.foldFrom new f)
 
-    # Takes a function and returns a stream resulting from calling the function repeatedly on the next element of the stream and the previously accumulated value, where the first accumulated value is the first element in the stream.
+    # Takes a function and returns a stream resulting from calling the function repeatedly 
+    # on the next element of the stream and the previously accumulated value, where the first accumulated value
+    # is the first element in the stream.
     def fold f: case self of
         Stream elt s: s.foldFrom elt f
 
