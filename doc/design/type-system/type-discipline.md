@@ -15,7 +15,34 @@ Luna, with its unique category-based type system, is in a position to provide
 the most flexible implementation of modules yet, unifying the concepts of
 modules, classes and interfaces.
 
+<!-- MarkdownTOC levels="1,2,3" autolink="true" -->
 
+- [Motivation](#motivation)
+  - [\(Brief\) Type-System Primer](#brief-type-system-primer)
+  - [A Note on Syntax](#a-note-on-syntax)
+- [Reference-Level Explanation](#reference-level-explanation)
+  - [Declaring Types](#declaring-types)
+    - [Why a New Keyword?](#why-a-new-keyword)
+  - [Unifying Types, Modules and Interfaces](#unifying-types-modules-and-interfaces)
+    - [Types as Generics](#types-as-generics)
+    - [Types As Modules](#types-as-modules)
+    - [Types As Interfaces](#types-as-interfaces)
+    - [Constructor Naming](#constructor-naming)
+  - [Importing Types](#importing-types)
+    - [Scoping Rules and Code Modularity](#scoping-rules-and-code-modularity)
+  - [Anonymous Types](#anonymous-types)
+    - [Anonymous Types as Types](#anonymous-types-as-types)
+    - [Anonymous Types as Values](#anonymous-types-as-values)
+  - [Constructors and Primitive Typing](#constructors-and-primitive-typing)
+    - [The Reasoning for This](#the-reasoning-for-this)
+  - [Nested Types](#nested-types)
+  - [Example - Dependent Vector](#example---dependent-vector)
+  - [Example - Linked List](#example---linked-list)
+- [Principles for Luna's Type System](#principles-for-lunas-type-system)
+- [Unresolved Questions](#unresolved-questions)
+- [References](#references)
+
+<!-- /MarkdownTOC -->
 
 # Motivation
 At present, Luna has nothing but a rudimentary module system to aid in the
@@ -634,7 +661,8 @@ type List a =
 
 # Principles for Luna's Type System
 
-- Types in Luna are functions on sets (constructors included).
+- Types in Luna are functions on sets (constructors included), and are based on
+  the theory of rows described in the "Abstracting Extensible Data Types" paper.
 - All interface definitions must resolve to a 1:1 mapping between resolution
   type (e.g. `Text`) and result type (e.g. `Functor Char Char`), modulo type
   annotations.
@@ -695,20 +723,27 @@ type List a =
   write, FFI, print, etc).
 - The base theory of rows that underlies the typechecker must support projection
   of values based on arbitrary types.
+- All of the above concepts are represented as operations over row types. 
+- Row projections are first-class citizens in the language. They are based on 
+  the projection mechanism described in "Abstracting Extensible Data Types". 
 
 # Unresolved Questions
+<!-- WD -->
 
-- Do we want the ability to support duplicate row labels? Some interesting
-  discussion on the topic from Nick Frisby: https://github.com/ghc-proposals/ghc-proposals/pull/180#issuecomment-439017117
-  Doing so would require support for _scoped_ labels, but I personally can't yet
-  see the utility.
+- Do we want the ability to support duplicate row labels? 
+- Handling of async exceptions like OTP. What is the impact on inference? 
+
+<!-- Ara -->
+
 - Can we use RAE's 'BAKE' encoding of dependent types with our structural type
   inference mechanism in Luna? 
-- What is the tension between QTT and RAE's thesis in terms of performance? 
-- Handling of async exceptions like OTP. What is the impact on inference? 
-- How does a foundation on polymorphic rows allow for first-class compositional
-  prisms/lenses/etc.
 - Do we _have_ to have ordering constraints on definitions? 
+- What is the tension between QTT and RAE's thesis in terms of performance? 
+
+<!-- Discussion --> 
+
+- What are the semantics of an associated type? Purely a nested type definition,
+  with an instance in an instance. Type definition has constrained scope. 
 
 # References
 The design of the type-system described in this document is based on prior work
@@ -716,15 +751,11 @@ by others in the PL design community. The (probably) complete list of references
 is as below.
 
 - [Abstracting Extensible Data Types](http://ittc.ku.edu/~garrett/pubs/morris-popl2019-rows.pdf)
+- [Boxy Type-Inference for Higher-Rank Types and Impredicativity](https://www.microsoft.com/en-us/research/publication/boxy-type-inference-for-higher-rank-types-and-impredicativity/)
 - [Dependent Types in Haskell: Theory and Practice](https://cs.brynmawr.edu/~rae/papers/2016/thesis/eisenberg-thesis.pdf)
-- [Syntax and Semantics of Quantitative Type Theory](https://bentnib.org/quantitative-type-theory.pdf)
-- [Algebraic Effects for Functional Programming](https://www.microsoft.com/en-us/research/publication/algebraic-effects-for-functional-programming/)
-- [Algebraic Subtyping](https://www.cl.cam.ac.uk/~sd601/thesis.pdf)
 - [Extensible Records with Scoped Labels](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/scopedlabels.pdf)
-- [Backpack: Retrofitting Haskell with Interfaces](https://www.microsoft.com/en-us/research/publication/backpack-retrofitting-haskell-with-interfaces/)
-- [Backpack: Towards Practical Mix-In Linking for Haskell](https://www.microsoft.com/en-us/research/publication/backpack-to-work-towards-practical-mixin-linking-for-haskell/)
 - [Higher-Order Type-Level Programming in Haskell](https://www.microsoft.com/en-us/research/uploads/prod/2019/03/ho-haskell-5c8bb4918a4de.pdf)
 - [Levity Polymorphism](https://www.microsoft.com/en-us/research/publication/levity-polymorphism/)
 - [Partial Type-Constructors](https://cs.brynmawr.edu/~rae/papers/2019/partialdata/partialdata.pdf)
-- [Boxy Type-Inference for Higher-Rank Types and Impredicativity](https://www.microsoft.com/en-us/research/publication/boxy-type-inference-for-higher-rank-types-and-impredicativity/)
 - [Supermonads](http://eprints.nottingham.ac.uk/36156/1/paper.pdf)
+- [Syntax and Semantics of Quantitative Type Theory](https://bentnib.org/quantitative-type-theory.pdf)

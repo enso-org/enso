@@ -44,6 +44,43 @@ the new Luna platform. It is intended to both serve as a design plan for the
 implementation and, once that is all complete, as documentation for Luna's
 design as it evolves.
 
+<!-- MarkdownTOC levels="1,2,3" autolink="true" -->
+
+- [Architectural Overview](#architectural-overview)
+  - [Runtime Layers](#runtime-layers)
+    - [1 - The Edge Layer](#1---the-edge-layer)
+    - [2 - The Protocol Layer](#2---the-protocol-layer)
+    - [3 - The Compilation Layer and Type-Checker](#3---the-compilation-layer-and-type-checker)
+    - [4 - The Cache Layer](#4---the-cache-layer)
+    - [5 - The Byte-Code Interpreter](#5---the-byte-code-interpreter)
+    - [6 - JIT](#6---jit)
+    - [7 - JIT Tier 2](#7---jit-tier-2)
+  - [Cross-Cutting Concerns](#cross-cutting-concerns)
+    - [1 - FFI](#1---ffi)
+    - [2 - Tracing Engine](#2---tracing-engine)
+    - [3 - Concurrency](#3---concurrency)
+    - [4 - Debugging Engine](#4---debugging-engine)
+- [The Edge Layer](#the-edge-layer)
+- [The Protocol Layer](#the-protocol-layer)
+- [The Compilation Layer and Type-Checker](#the-compilation-layer-and-type-checker)
+- [The Cache Layer](#the-cache-layer)
+- [The Byte-Code Interpreter](#the-byte-code-interpreter)
+- [JIT](#jit)
+- [FFI Support](#ffi-support)
+- [Tracing Engine](#tracing-engine)
+- [Concurrency](#concurrency)
+- [Debugging Engine](#debugging-engine)
+- [Language Embedding](#language-embedding)
+- [Benchmarking the Runtime](#benchmarking-the-runtime)
+- [AOT Compilation](#aot-compilation)
+- [Acceptance Criteria](#acceptance-criteria)
+- [Unresolved Questions](#unresolved-questions)
+- [Glossary](#glossary)
+- [References](#references)
+
+<!-- /MarkdownTOC -->
+
+
 # Architectural Overview
 It is perhaps a touch rich to call this design the 'runtime', as it actually
 encompasses a broader portion of the compiler than what would traditionally be
