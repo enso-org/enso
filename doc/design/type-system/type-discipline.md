@@ -15,6 +15,8 @@ Luna, with its unique category-based type system, is in a position to provide
 the most flexible implementation of modules yet, unifying the concepts of
 modules, classes and interfaces.
 
+
+
 # Motivation
 At present, Luna has nothing but a rudimentary module system to aid in the
 complexity management and scoping of code. For a sophisticated language this is
