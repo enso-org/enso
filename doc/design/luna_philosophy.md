@@ -3,8 +3,8 @@
 
 > "The compiler is your assistant, and you interact with it to arrive at a 
 > working program via a conversation, with information going both ways."
-
-– [Edwin Brady](https://twitter.com/edwinbrady/status/1115361451005423617)
+> 
+> – [Edwin Brady](https://twitter.com/edwinbrady/status/1115361451005423617)
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
