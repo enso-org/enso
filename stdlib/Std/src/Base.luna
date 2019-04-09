@@ -3437,7 +3437,8 @@ class Stream a:
                     (elems, stream) = s.consume (n - 1)
                     (Prepend elt elems, stream)
 
-    # Returns the longest prefix in which all elements satisfy the given predicate, and the result of dropping this prefix from the original stream.
+    # Returns the longest prefix in which all elements satisfy the given predicate, 
+    # and the result of dropping this prefix from the original stream.
     def consumeWhile f: case self of
         Stream elt s:
             case (f elt) of
@@ -3458,10 +3459,12 @@ class Stream a:
     # Drops the longest prefix of stream in which all elements satisfy the given predicate.
     def dropWhile f: self.consumeWhile f . second
 
-    # Evaluates all actions associated with stream elements sequentially. Due to the stream being infinite, this function never terminates.
+    # Evaluates all actions associated with stream elements sequentially. 
+    # Due to the stream being infinite, this function never terminates.
     def eval: self.each id
 
-    # Returns a stream containing the same values as the original stream, but produces them no more often than the given time interval.
+    # Returns a stream containing the same values as the original stream, 
+    # but produces them no more often than the given time interval.
     def rateLimit timeInterval:
         everyWithState timeInterval (s: (s.head, s.tail)) self
 
