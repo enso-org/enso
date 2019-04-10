@@ -28,7 +28,7 @@ native class Int:
     # >     None
     # 
     # `that`: Integer to multiply by `self` value.
-    # `returns`: Multiplication result for `self` and `that` values.
+    # `returns`: The product of the `self` and `that` values.
     def *  that: primIntMultiply self that
 
     # Integer subtraction.
