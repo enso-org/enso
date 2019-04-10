@@ -1000,6 +1000,7 @@ native class Text:
         Nothing:  errorStr ("Could not convert " + self + " to a Real")
 
     def addPathSegment segment: self + pathSeparator + segment
+    def / segment: self.addPathSegment segment
 
     def toLQueryValue: ValText self
 
@@ -3667,3 +3668,14 @@ class Predicate a:
 class TableHandle:
     def at name:
         ColumnRef name
+
+class Package:
+    def _envVarName: primPackageNameToEnvVarName
+
+    def root name:
+        mayPath = primLookupEnv $ self._envVarName name
+        mayPath.withDefault $ throw $ 'Package ' + name + ' not found.'
+
+    def samples name:
+        self.root name / 'samples'
+
