@@ -71,7 +71,7 @@ native class Int:
     # >     None
     # 
     # `that`: Integer value to divide `self` value by it.
-    # `returns`: The value "left over" after dividing `self` by `that` value.
+    # `returns`: The value 'left over' after dividing `self` by `that` value.
     def %  that: primIntModulo   self that
 
     # `a.> b` returns True when `a` is greater than `b`.
