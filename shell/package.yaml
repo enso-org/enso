@@ -41,7 +41,12 @@ library:
 executables:
     luna:
         main: src-app/Main.hs
-        ghc-options: -threaded "-with-rtsopts=-N -T"
+        when:
+            - condition: os(darwin)
+              then:
+                  ghc-options: -threaded "-with-rtsopts=-N -T" "-optP-Wno-nonportable-include-path"
+              else:
+                  ghc-options: -threaded "-with-rtsopts=-N -T"
         dependencies:
             - base
             - luna-shell
