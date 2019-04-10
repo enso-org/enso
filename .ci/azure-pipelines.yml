@@ -5,6 +5,8 @@ trigger:
     include: [ "*" ]
   paths:
     exclude:
+      - .github/*
+      - README.md
       - doc/*
 
 jobs:
