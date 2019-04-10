@@ -57,7 +57,7 @@ native class Int:
     # >     None
     # 
     # `that`: Integer value to divide `self` value by it.
-    # `returns`: The result of division for `self` and `that` values.
+    # `returns`: The result of dividing the value of `self` by `that`.
     def /  that: primIntDivide   self that
 
     # Division remainder `a.% b == a - (a / b) * b`
