@@ -15,7 +15,7 @@ native class Int:
     # 
     # `that`: Integer to add to `self` value.
     # `returns`: Sum of `self` and `that` values.
-    def +  that: primIntAdd      self that
+    def +  that: primIntAdd self that
 
     # Integer multiplication.
     #
