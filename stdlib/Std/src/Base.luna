@@ -164,7 +164,7 @@ native class Int:
     # >     txt = a.toText
     # >     None
     #  
-    # `returns`: `self` as Text value.
+    # `returns`: `self` as a Text value.
     def toText: primIntToText self
 
     # Alias for `toText`, for the purpose of pretty printing the number.
