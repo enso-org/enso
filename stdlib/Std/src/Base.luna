@@ -302,7 +302,7 @@ native class Real:
     # >     None
     # 
     # `that`: Floating point number to add to `self` value.
-    # `returns`: Sum of `self` and `that` values.
+    # `returns`: Sum of the `self` and `that` values.
     def +  that: primRealAdd      self that
 
     # Floating point multiplication.
