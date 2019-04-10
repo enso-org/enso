@@ -3,6 +3,7 @@
 trigger:
   branches:
     include: [ "*" ]
+  pr: none
   paths:
     exclude:
       - .github/*
