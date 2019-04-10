@@ -18,4 +18,5 @@ exports = do
         (flip Runtime.toValue PackageEnv.packageNameToEnvVarName)
         [Builder.textLT]
         Builder.textLT
-    pure $ Map.fromList [("primPackageNameToEnvVarName", primPackageNameToEnvVarName)]
+    pure $ Map.fromList
+        [("primPackageNameToEnvVarName", primPackageNameToEnvVarName)]
