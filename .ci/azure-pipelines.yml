@@ -3,12 +3,13 @@
 trigger:
   branches:
     include: [ "*" ]
-  pr: none
   paths:
     exclude:
       - .github/*
       - README.md
       - doc/*
+
+pr: none
 
 jobs:
 - job: Ubuntu
