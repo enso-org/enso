@@ -42,7 +42,7 @@ native class Int:
     # >     None
     # 
     # `that`: Integer to substract from `self` value.
-    # `returns`: The result of substraction for `self` and `that` values.
+    # `returns`: The result of subtracting the value of `that` from the value of `self`.
     def -  that: primIntSubtract self that
 
     # Integral division.
