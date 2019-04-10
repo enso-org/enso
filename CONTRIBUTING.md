@@ -203,6 +203,16 @@ can be done by passing a luna source file to the `--target` flag, similarly to
 the above. This source file must contain a `main` function to be used as the
 entry point.
 
+#### Failed Execution
+If you get an error when executing Luna that states `Repository head not found`,
+this means that you are attempting to run Luna in an unsupported way. Either you
+need to call `luna`, where the `luna` on your `PATH` is part of a relocatable
+package (as described in [Packging Luna](#packaging-luna)), or using it via a
+call to `stack exec luna`.
+
+If you are using either of these methods and are still seeing the error, please
+[report a bug](https://github.com/luna/luna/issues/new?template=bug-report.md).
+
 #### Overriding the Standard Library Location
 By default, a development build of Luna will look for the standard library in
 `$LUNA_REPO_PATH/stdlib/`, but it is possible to override this. If you would
