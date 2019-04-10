@@ -60,12 +60,12 @@ your `luna` repo is already cloned and we will refer to its location as
 
 ```
 cd $LUNA_REPO_PATH
-stack install
+stack build
 ```
 
-Note that the executable for the compiler will be located in
-`$LUNA_REPO_PATH/dist/bin/public/luna` folder. You may wish to add it to your
-`$PATH`.
+The resultant binary will be deep in the `stack` working tree, and to run it,
+you will need to use `stack exec luna`. If you have arguements to pass to luna,
+you should pass them after a `--` as follows: `stack exec luna -- <args>`.
 
 Additionally, if you intend to simply use the Luna compiler (as opposed to
 tinkering with it, which requires frequent rebuilds), you may consider adding
