@@ -275,6 +275,8 @@ of the same architectural component (e.g. the JIT layers).
   - **Tailored Passes:** Based on the kinds of execution that functions are
     seeing it is possible to select sets of Luna IR and GHC Core optimisation
     passes to best improve that function's performance.
+- An examination of how we deal with 'wired-in' functionality (e.g. relying on
+  Haskell libraries for the stdlib for now). 
 -->
 
 ### 4 - The Cache Layer
