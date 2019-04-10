@@ -1000,6 +1000,10 @@ native class Text:
         Nothing:  errorStr ("Could not convert " + self + " to a Real")
 
     def addPathSegment segment: self + pathSeparator + segment
+
+    # Append a path segment to the given `Text`. The new segment will use
+    # a path separator specific for current platform, making it the safest
+    # way of consturcting paths.
     def / segment: self.addPathSegment segment
 
     def toLQueryValue: ValText self
@@ -3669,13 +3673,27 @@ class TableHandle:
     def at name:
         ColumnRef name
 
+# This class provides a way of accessing files inside available packages.
+# It's particularly useful for internal data, data samples etc.
 class Package:
     def _envVarName: primPackageNameToEnvVarName
 
+    # Get the root path for a given package.
+    # E.g. `Package.root 'Std'` will point to the location
+    # of the standard library inside a Luna distribution.
     def root name:
         mayPath = primLookupEnv $ self._envVarName name
         mayPath.withDefault $ throw $ 'Package ' + name + ' not found.'
 
+    # Get the sample data directory for a given package.
+    # Samples are, by convention, data files that can be used to demonstrate
+    # capabilities of the library.
+    # They are located in the `LIBRARY_ROOT/samples` directory.
+    # For example, the path to `iris.csv` sample dataset from the
+    # `Dataframes` package can be accessed as:
+    # ```
+    # Package.samples 'Dataframes' / 'iris.csv'
+    # ```
     def samples name:
         self.root name / 'samples'
 
