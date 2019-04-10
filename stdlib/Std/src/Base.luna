@@ -125,7 +125,7 @@ native class Int:
     # >     b = a.abs 
     # >     None
     # 
-    # `returns`: Absolute value for `self`.
+    # `returns`: The absolute value of `self`.
     def abs: if self < 0 then self.negate else self
 
     def toInt: self
