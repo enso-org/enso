@@ -22,8 +22,8 @@ and management tools, there is [Luna Manager](https://github.com/luna/luna-manag
 
 ## Getting Started
 This will get you up and running for Luna development, with only a minimal
-amount of setup required. Luna's build system is nice and simple, allowing you 
-to bootstrap the compiler as long as you have an installation of 
+amount of setup required. Luna's build system is nice and simple, allowing you
+to bootstrap the compiler as long as you have an installation of
 [The Haskell Stack](https://docs.haskellstack.org/en/stable/README/).
 
 ### System Requirements
@@ -67,11 +67,10 @@ The resultant binary will be deep in the `stack` working tree, and to run it,
 you will need to use `stack exec luna`. If you have arguements to pass to luna,
 you should pass them after a `--` as follows: `stack exec luna -- <args>`.
 
-Additionally, if you intend to simply use the Luna compiler (as opposed to
-tinkering with it, which requires frequent rebuilds), you may consider adding
-`--ghc-options="-O2 -j4"` to the stack install command. This should make the
-Luna compiler run considerably faster, at the cost of longer build times for
-building it.
+If, instead, you intend to simply _use_ the Luna compiler (as opposed to
+tinkering) with it, which requires frequent rebuilds, you can improve its
+performance by using either of the options in the [Building Luna for Release](#building-luna-for-release)
+section below.
 
 #### Building Luna Components
 It is also possible to build and test each component of Luna (e.g. core, parser)
@@ -96,24 +95,28 @@ Where `<component>` is one of the following:
 
 #### Developing Luna's Libraries
 Currently, all of the libraries owned by us that Luna depends on are in-tree,
-and can be found in the 'libs' folder. This is motivated by how often were 
-were changing them purely to support Luna's development, and then having to go
-through the hackage release song and dance. 
+and can be found in the `lib` folder. This is motivated by how often we were
+changing them purely to support Luna's development, and then having to go
+through the hackage release song and dance.
 
 Instead, while these libraries are so actively developed. we've decided that
 they should live in Luna's tree, where they can be depended on by Luna and
-Luna Studio directly. 
+Luna Studio directly. Working with these libraries is a breeze. If you want to
+make some changes, it's as simple as making them, and rebuilding to test them.
 
-Working with these libraries is a breeze. If you want to make some changes, it's
-as simple as making them, and rebuilding to test them. 
+Similarly to the key components of the compiler listed above, all of these
+libraries can be built individually. As there are so many, their build names
+can't be listed here, but most of them will match their containing folders. If
+one doesn't it will usually be `luna-<foldername>` instead.
 
 #### Building Luna for Release
-In order to keep compile times down for development, we compile Luna with 
+In order to keep compile times down for development, we compile Luna with
 `-fomit-interface-pragmas`. However, this disables cross-module inlining, which
-is an important optimisation for Luna's performance. 
+is an important optimisation for ensuring that Luna is performant.
 
 In order to build Luna for maximum performance, you need to override this flag
-when giving the build command. This can be done as follows:
+when giving the build command. This will significantly increase compile times
+and can be done as follows:
 
 ```
 stack build --ghc-options="-fno-omit-interface-pragmas" <...>
@@ -123,8 +126,30 @@ It is recommended to always use this when building the benchmarks. You can use
 this additional argument with any of the commands listed above for development
 of individual components.
 
+#### Packaging Luna
+While we currently do not distribute packaged binary releases of Luna, this repo
+contains a rudimentary packaging script that builds a Luna package that can be
+freely relocated on the system that builds it. To build this rudimentary package
+you can use the following invocation.
+
+```
+stack build_package.hs
+```
+
+It has a variety of options that you can discover by passing it the `--help`
+command-line flag, but the main options are:
+
+- `--release`: Build the Luna package in release mode. As discussed above, this
+  will result in the compilation of Luna taking significantly longer.
+- `--verbose`: Full logging of the output of the build process. Useful if you
+  are trying to debug a build error, but it is usually recommended to go back to
+  a plain `stack build` in those cases.
+- `--package-dir DIR`: This lets you specify the directory in which you want the
+  Luna package to be built. It defaults to `./dist/`, but if you have a specific
+  location on your `PATH`, you can use this option to change the default.
+
 ### Running Luna
-First, you need to create the project. This is as simple as executing
+First, you need to create a project. This is as simple as executing
 `luna init <project-path>`, which will create a project in the directory
 specified with the correct structure. It will create a defaulted `Main.luna`
 file for you as well, allowing you to immediately execute this.
@@ -134,27 +159,34 @@ directory. Alternatively, you can pass the project directory explicitly as
 follows:
 
 ```
-luna run --target path/to/MyProject
+luna run --target <project-path>
 ```
+
+The above instructions assume that you have the relocatable package described in
+[Packaging Luna](#packaging-luna) in your `PATH`. If you don't and would just
+like to run these commands from the Luna repository, please ensure that you
+instead call `stack exec luna -- <args>`, where `<args>` are the arguments that
+you would like to pass to Luna.
 
 #### Executing Luna on Standalone Files
 The Luna interpreter is also capable of executing standalone Luna files. This
 can be done by passing a luna source file to the `--target` flag, similarly to
-the above.
+the above. This source file must contain a `main` function to be used as the
+entry point.
 
 #### Overriding the Standard Library Location
 By default, a development build of Luna will look for the standard library in
-`$LUNA_REPO_PATH/stdlib/`, but it is possible to override this. If you would 
-like to do so, you need to define the `LUNA_STDLIB_OVERRIDE` environment 
-variable and set its value to the absolute path to the Luna standard library 
-that you want to use. 
+`$LUNA_REPO_PATH/stdlib/`, but it is possible to override this. If you would
+like to do so, you need to define the `LUNA_STDLIB_OVERRIDE` environment
+variable and set its value to the absolute path to the Luna standard library
+that you want to use.
 
 As long as the variable is set, the compiler will use the location you provide,
 so don't forget to unset it if you would like to go back to using the included
-copy. 
+copy.
 
 This environment variable override will also work for distributed binaries of
-Luna, and so provides a useful way to work on the standard library without 
+Luna, and so provides a useful way to work on the standard library without
 needing to download and build Luna in its entirety.
 
 ## Contributing to Luna
