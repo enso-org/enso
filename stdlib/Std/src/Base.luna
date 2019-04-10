@@ -181,7 +181,7 @@ native class Int:
     # >     ms = a.miliseconds
     # >     None
     #  
-    # `returns`: `self` as TimeInterval value in miliseconds.
+    # `returns`: `self` as a TimeInterval value in miliseconds.
     def miliseconds: primIntMiliseconds self
     # Returns a TimeInterval with the length of `self` seconds.
     #
