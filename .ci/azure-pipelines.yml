@@ -9,6 +9,8 @@ trigger:
       - README.md
       - doc/*
 
+pr: none
+
 jobs:
 - job: Ubuntu
   timeoutInMinutes: 0
