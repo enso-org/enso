@@ -316,7 +316,7 @@ native class Real:
     # >     None
     # 
     # `that`: Floating point number to multiply by `self` value.
-    # `returns`: Multiplication result for `self` and `that` values.
+    # `returns`: The product of the `self` and `that` values.
     def *  that: primRealMultiply self that
 
     # Floating point subtraction.
@@ -330,7 +330,7 @@ native class Real:
     # >     None
     # 
     # `that`: Floating point number to substract from `self` value.
-    # `returns`: The result of substraction for `self` and `that` values.
+    # `returns`: The result of subtracting the value of `that` from the value of `self`.
     def -  that: primRealSubtract self that
 
     # Floating point division.
@@ -344,7 +344,7 @@ native class Real:
     # >     None
     # 
     # `that`: Floating point number value to divide `self` value by it.
-    # `returns`: The result of division for `self` and `that` values.
+    # `returns`: The result of dividing the value of `self` by `that`.
     def /  that: primRealDivide   self that
 
     # Floating point exponentiation.
@@ -428,7 +428,7 @@ native class Real:
     # >     b = a.abs
     # >     None
     # 
-    # `returns`: Absolute value of `self` number.
+    # `returns`: The absolute value of `self`.
     def abs: if self < 0.0 then self.negate else self
 
     def toReal: self
@@ -455,11 +455,11 @@ native class Real:
     # >     txt = a.toText
     # >     None
     #  
-    # `returns`: `self` as Text value.
+    # `returns`: `self` as a Text value.
     def toText:     primRealToText self
 
-    # Round a number with given precision – the result is a real number
-    # with the number of digits after the decimal dot equal to the argument.
+    # Round a number to the given precision – the result is a real number
+    # with a number of digits after the decimal dot equal to the argument.
     #
     # > import Std.Base 
     # > 
@@ -662,7 +662,8 @@ native class Real:
     # >     b = a.ln
     # >     None
     #
-    # `returns`: `self` value logarithm  to the base of the mathematical constant e = 2.71828... .
+    # `returns`: `self` value logarithm  to the base of the mathematical constant
+    #            e = 2.71828... .
     def ln: primRealLn self
 
     # Square root.
@@ -740,7 +741,8 @@ native class Text:
     # >     None
     #
     # `that`: Text value to compare with `self`.
-    # `returns`: `True` if `self` is greater than `that` in lexicographical order, `False` otherwise.
+    # `returns`: `True` if `self` is greater than `that` in lexicographical order,
+    #            `False` otherwise.
     def >  that: primTextGt     self that
 
     # Tests whether `self` is lesser than the argument in lexicographical order.
@@ -754,7 +756,8 @@ native class Text:
     # >     None
     #
     # `that`: Text value to compare with `self`.
-    # `returns`: `True` if `self` is lesser than `that` in lexicographical order, `False` otherwise.
+    # `returns`: `True` if `self` is lesser than `that` in lexicographical order,
+    #            `False` otherwise.
     def <  that: primTextLt     self that
 
     # Tests wheter two texts are equal.
@@ -768,7 +771,8 @@ native class Text:
     # >     None
     #
     # `that`: Text value to compare with `self`.
-    # `returns`: `True` if `self` is equal to `that` in lexicographical order, `False` otherwise.
+    # `returns`: `True` if `self` is equal to `that` in lexicographical order,
+    #            `False` otherwise.
     def == that: primTextEquals self that
 
     # Tests whether the text is empty (equal to `""`).
@@ -997,7 +1001,8 @@ native class Text:
 
     def toLQueryValue: ValText self
 
-# Class for representing arbitrary binary data. Does not attempt to interpret the data in any way.
+# Class for representing arbitrary binary data. Does not attempt to interpret
+# the data in any way.
 native class Binary:
     # Concatenates two pieces of binary data together.
     def +  that: primBinaryConcat self that
@@ -1058,7 +1063,8 @@ class Complex:
     # >     None
     #
     # `that`: Complex number value to add to `self`.
-    # `returns`: Complex number value resulting from the addition `that` to `self` number.
+    # `returns`: Complex number value resulting from the addition `that`
+    #            to `self` number.
     def + that:
         r = self.real.+ that.real
         i = self.imaginary.+ that.imaginary
@@ -1075,7 +1081,8 @@ class Complex:
     # >     None
     #
     # `that`: Complex number value to multiply by `self`.
-    # `returns`: Complex number value resulting from the multiplication `self` by `that` number.
+    # `returns`: Complex number value resulting from the multiplication `self`
+    #            by `that` number.
     def * that:
         r = self.real.* that.real      - self.imaginary.* that.imaginary
         i = self.real.* that.imaginary + self.imaginary.* that.real
@@ -1090,7 +1097,8 @@ class Complex:
     # >     b = a.modulus
     # >     None
     # 
-    # `returns`: Floating point number representing the absolute value of the `self` complex number.
+    # `returns`: Floating point number representing the absolute value of
+    #            the `self` complex number.
     def modulus: self.modulusSquared.sqrt
 
     # Complex number squared modulus.
@@ -1102,7 +1110,8 @@ class Complex:
     # >     b = a.modulusSquared
     # >     None
     # 
-    # `returns`: Floating point number representing the square absolute value of the `self` complex number.
+    # `returns`: Floating point number representing the square absolute value of
+    #            the `self` complex number.
     def modulusSquared: self.real*self.real + self.imaginary*self.imaginary
 
 # Class representing boolean values
@@ -1255,7 +1264,8 @@ def seq a b:
     a
     b
 
-# Class representing the lack of interesting value. Mostly used for actions executed solely for their side effects, without any interesting return value.
+# Class representing the lack of interesting value.
+# Mostly used for actions executed solely for their side effects, without any interesting return value.
 class None:
     None
 
@@ -1329,7 +1339,8 @@ class Tuple2 a b:
     # >     None
     # 
     # `f`: Function to map over each alement of a tuple.
-    # `returns`: Tuple with values being a result of mapping function `f` over all elements of `self` value.
+    # `returns`: Tuple with values being a result of mapping function `f` over all elements
+    #            of `self` value.
     def map f: Tuple2 (f self.first) (f self.second)
 
     # Text representation of a tuple.
@@ -1435,7 +1446,8 @@ class Tuple3 a b c:
     # >     None
     # 
     # `f`: Function to map over each alement of a tuple.
-    # `returns`: Tuple with values being a result of mapping function `f` over all elements of `self` value.
+    # `returns`: Tuple with values being a result of mapping function `f` over all elements
+    #            of `self` value.
     def map f: Tuple3 (f self.first) (f self.second) (f self.third)
 
     # Text representation of a triple.
@@ -1595,8 +1607,8 @@ class Tuple4 a b c d:
         Tuple4 a b c d: self.first.== a . and (self.second.== b) . and (self.third.== c) . and (self.fourth.== d)
         other:        False
 
-# The basic optional type in Luna. The value of this class can either be a `Nothing` (representing the lack of value) 
-# or a `Just value` (in the case value is present).
+# The basic optional type in Luna. The value of this class can either be a `Nothing` 
+# (representing the lack of value) or a `Just value` (in the case value is present).
 # This is a type-safe substitute for nullable values known from other languages.
 class Maybe a:
     Nothing
@@ -1636,7 +1648,8 @@ class Maybe a:
         Just a:  a
         Nothing: errorStr "Maybe.get: Nothing"
 
-    # Returns the value when called on `Just` or the provided default value when called on a `Nothing`.
+    # Returns the value when called on `Just` or the provided default value 
+    # when called on a `Nothing`.
     #
     # > import Std.Base 
     # > 
@@ -1679,7 +1692,8 @@ class Maybe a:
         Nothing: True
         Just a: False
 
-    # Takes a function `f` and returns `Just (f a)` when called on `Just a` and `Nothing` otherwise.
+    # Takes a function `f` and returns `Just (f a)` when called on `Just a`
+    # and `Nothing` otherwise.
     #
     # > import Std.Base 
     # > 
@@ -1728,7 +1742,8 @@ class Maybe a:
             x = f a
             Just x
 
-    # Flattens nested `Maybe` values. Returns `Just a` when called on `Just (Just a)` and `Nothing` otherwise.
+    # Flattens nested `Maybe` values. Returns `Just a` when called on `Just (Just a)`
+    # and `Nothing` otherwise.
     #
     # > import Std.Base 
     # > 
@@ -1781,7 +1796,8 @@ class Maybe a:
     # >     None
     # 
     # `that`: `Maybe` value to compare with `self`.
-    # `returns`: `True` when both values are `Nothing` or when they are `Just` and the values inside are equal.
+    # `returns`: `True` when both values are `Nothing` or when they are `Just`
+    #            and the values inside are equal.
     def == that: case (self, that) of
         (Just a, Just b): a.== b
         (Nothing, Nothing): True
@@ -1797,7 +1813,8 @@ class Either a b:
         Left  a: a.toJSON
         Right b: b.toJSON
 
-    # Takes two functions returning the same type, calls the first when called on `Left` and the second for `Right`.
+    # Takes two functions returning the same type, calls the first when called
+    # on `Left` and the second for `Right`.
     def either lf rf: case self of
         Left  a: lf a
         Right b: rf b
@@ -1947,7 +1964,8 @@ class List a:
         Empty: None
         Prepend x xs: seq x xs.sequence
 
-    # Maps a function over each element of the list, immediately executing all side effects and returning a list of results.
+    # Maps a function over each element of the list, immediately executing
+    # all side effects and returning a list of results.
     #
     # > import Std.Base 
     # > 
@@ -3523,7 +3541,8 @@ def writeFile f c: primWriteFile (expandPath f) c
 # Takes a Text and throws it as an error.
 def throw e: errorStr e
 
-# Takes a value and a function from Text to value. Returns the value if it was correct or calls the function if the value was erroneous.
+# Takes a value and a function from Text to value.
+# Returns the value if it was correct or calls the function if the value was erroneous.
 def catch v f: case runError v of
     Left e:  f e
     Right d: d
