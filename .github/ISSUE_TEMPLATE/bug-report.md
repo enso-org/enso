@@ -4,7 +4,8 @@ about: Report a bug in Luna.
 
 ---
 <!--
-Please ensure that you are running the latest version of Luna before reporting the bug! It may have been fixed since.
+Please ensure that you are running the latest version of Luna before reporting 
+the bug! It may have been fixed since.
 -->
 
 ### General Summary
