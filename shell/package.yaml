@@ -41,7 +41,14 @@ library:
 executables:
     luna:
         main: src-app/Main.hs
-        ghc-options: -threaded "-with-rtsopts=-N -T"
+        when:
+            - condition: os(darwin)
+              then:
+                  # We need the no-nonportable-include-path on MacOS because of an issue
+                  # in cabal: https://github.com/haskell/cabal/issues/4739.
+                  ghc-options: -threaded "-with-rtsopts=-N -T" "-optP-Wno-nonportable-include-path"
+              else:
+                  ghc-options: -threaded "-with-rtsopts=-N -T"
         dependencies:
             - base
             - luna-shell
