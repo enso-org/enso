@@ -730,7 +730,7 @@ type List a =
 - When a function has defaulted arguments, these arguments should be treated as
   filled for the purposes of matching types. This point is somewhat subsumed by
   ones above, but bears making explicit. `f : A -> B` should match any function
-  of that type.
+  of that type (accounting for defaulted arguments). 
 - The type-system will support wired in `Convertible` and `Coercible` instances.
   The former deals with runtime conversions between types, while the latter 
   deals with zero-cost conversions between types of the same runtime 
