@@ -10,7 +10,7 @@ blend of code and visual communication that can span organisations.
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
 - [Tenets of Luna](#tenets-of-luna)
-    - [Explicit Overrides Implicit](#explicit-overrides-implicit)
+  - [Explicit Overrides Implicit](#explicit-overrides-implicit)
 - [Designing Luna](#designing-luna)
 
 <!-- /MarkdownTOC -->
@@ -48,6 +48,10 @@ two main principles for designing Luna's APIs:
 2. Use the inbuilt capabilities for named and default arguments to provide 
    _sensible defaults_, for an API, without hiding behaviour.
 
+<!-- 
+
+Change this example. No longer relevant in the case of `convert`   
+
 A canonical example of this trade-off, based on a real discussion within the 
 team, is the behaviour of the `readFile` function when passed a `File.Path` that
 contains an environment variable: "$FOO/data/". 
@@ -72,6 +76,8 @@ As a result, this design allows for _explicit_ communication of the behaviour of
 the function, both under default, and non-default circumstances. Hence, the 
 user would be able to do `openFile myPath False`, or even 
 `openFile myPath (expandEnvironmentVariables = False)`.
+
+-->
 
 ## Designing Luna
 As Luna's design and functionality evolves, we have to take the utmost care to

@@ -39,6 +39,7 @@ modules, classes and interfaces.
   - [Example - Dependent Vector](#example---dependent-vector)
   - [Example - Linked List](#example---linked-list)
 - [Principles for Luna's Type System](#principles-for-lunas-type-system)
+- [Implicit Conversions in the Type System](#implicit-conversions-in-the-type-system)
 - [Unresolved Questions](#unresolved-questions)
 - [References](#references)
 
@@ -726,6 +727,29 @@ type List a =
 - All of the above concepts are represented as operations over row types.
 - Row projections are first-class citizens in the language. They are based on
   the projection mechanism described in "Abstracting Extensible Data Types".
+- When a function has defaulted arguments, these arguments should be treated as
+  filled for the purposes of matching types. This point is somewhat subsumed by
+  ones above, but bears making explicit. `f : A -> B` should match any function
+  of that type.
+- The type-system will support wired in `Convertible` and `Coercible` instances.
+  The former deals with runtime conversions between types, while the latter 
+  deals with zero-cost conversions between types of the same runtime 
+  representation.
+
+# Implicit Conversions in the Type System
+To support 
+
+- Wired-in interface.
+- Explicit calls allowed.
+- Types must be explicit.
+- Reserved word(?) for the purpose of good error messages in the un-knowable 
+  cases.
+- Should have a warning `-Wimplicit-conversions` that is off by default.
+
+```
+type Convertible a b :
+    convert : a -> b
+```
 
 # Unresolved Questions
 <!-- WD -->
