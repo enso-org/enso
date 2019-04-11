@@ -15,7 +15,7 @@ native class Int:
     # 
     # `that`: Integer to add to `self` value.
     # `returns`: Sum of `self` and `that` values.
-    def +  that: primIntAdd self that
+    def + that: primIntAdd self that
 
     # Integer multiplication.
     #
@@ -29,7 +29,7 @@ native class Int:
     # 
     # `that`: Integer to multiply by `self` value.
     # `returns`: The product of the `self` and `that` values.
-    def *  that: primIntMultiply self that
+    def * that: primIntMultiply self that
 
     # Integer subtraction.
     #
@@ -43,7 +43,7 @@ native class Int:
     # 
     # `that`: Integer to substract from `self` value.
     # `returns`: The result of subtracting the value of `that` from the value of `self`.
-    def -  that: primIntSubtract self that
+    def - that: primIntSubtract self that
 
     # Integral division.
     # `a./ b` returns the largest integer `c` such that `c * b <= a`.
@@ -58,7 +58,7 @@ native class Int:
     # 
     # `that`: Integer value to divide `self` value by it.
     # `returns`: The result of dividing the value of `self` by `that`.
-    def /  that: primIntDivide   self that
+    def / that: primIntDivide self that
 
     # Division remainder `a.% b == a - (a / b) * b`
     #
@@ -72,7 +72,7 @@ native class Int:
     # 
     # `that`: Integer value to divide `self` value by it.
     # `returns`: The value 'left over' after dividing `self` by `that` value.
-    def %  that: primIntModulo   self that
+    def % that: primIntModulo self that
 
     # `a.> b` returns True when `a` is greater than `b`.
     #
@@ -86,7 +86,7 @@ native class Int:
     # 
     # `that`: Integer value to compare with `self` value.
     # `returns`: `True` if `self` value is greater than `that`, `False` otherwise.
-    def >  that: primIntGt       self that
+    def > that: primIntGt self that
 
     # `a.< b` returns True when `a` is lesser than `b`.
     #
@@ -100,7 +100,7 @@ native class Int:
     # 
     # `that`: Integer value to compare with `self` value.
     # `returns`: `True` if `self` value is lower than `that`, `False` otherwise.
-    def <  that: primIntLt       self that
+    def < that: primIntLt self that
 
     # Integer equality. `a.== b` returns True when `a` equals `b`.
     #
@@ -114,7 +114,7 @@ native class Int:
     # 
     # `that`: Integer value to compare with `self` value.
     # `returns`: `True` if `self` value is equal to `that`, `False` otherwise.
-    def == that: primIntEquals   self that
+    def == that: primIntEquals self that
 
     # Absolute value.
     #
@@ -163,7 +163,7 @@ native class Int:
     # >     a = 10
     # >     txt = a.toText
     # >     None
-    #  
+    #
     # `returns`: `self` as a Text value.
     def toText: primIntToText self
 
@@ -180,9 +180,10 @@ native class Int:
     # >     a = 10
     # >     ms = a.miliseconds
     # >     None
-    #  
+    #
     # `returns`: `self` as a TimeInterval value in miliseconds.
     def miliseconds: primIntMiliseconds self
+
     # Returns a TimeInterval with the length of `self` seconds.
     #
     # > import Std.Base 
@@ -191,7 +192,7 @@ native class Int:
     # >     a = 10
     # >     s = a.seconds
     # >     None
-    #  
+    #
     # `returns`: `self` as TimeInterval value in seconds.
     def seconds: self*1000 . miliseconds
 
@@ -203,7 +204,7 @@ native class Int:
     # >     a = 10
     # >     min = a.minutes
     # >     None
-    #  
+    #
     # `returns`: `self` as TimeInterval value in minutes.
     def minutes: self*60 . seconds
 
@@ -215,7 +216,7 @@ native class Int:
     # >     a = 10
     # >     h = a.hours
     # >     None
-    #  
+    #
     # `returns`: `self` as TimeInterval value in hours.
     def hours: self*60 . minutes
 
@@ -227,7 +228,7 @@ native class Int:
     # >     a = 10
     # >     d = a.days
     # >     None
-    #  
+    #
     # `returns`: `self` as TimeInterval value in days.
     def days: self*24 . hours
 
@@ -239,7 +240,7 @@ native class Int:
     # >     a = 10
     # >     w = a.weeks
     # >     None
-    #  
+    #
     # `returns`: `self` as TimeInterval value in weeks.
     def weeks: self*7 . days
 
@@ -251,7 +252,7 @@ native class Int:
     # >     a = 5
     # >     b = a.pred 
     # >     None
-    #  
+    #
     # `returns`: Predecessor of `self` value: `a.pred == a - 1`.
     def pred: self - 1
 
@@ -263,7 +264,7 @@ native class Int:
     # >     a = 5
     # >     b = a.succ 
     # >     None
-    #  
+    #
     # `returns`: Successor of `self` value: `a.succ == a + 1`.
     def succ: self + 1
 
@@ -303,7 +304,7 @@ native class Real:
     # 
     # `that`: Floating point number to add to `self` value.
     # `returns`: Sum of the `self` and `that` values.
-    def +  that: primRealAdd      self that
+    def + that: primRealAdd self that
 
     # Floating point multiplication.
     #
@@ -317,7 +318,7 @@ native class Real:
     # 
     # `that`: Floating point number to multiply by `self` value.
     # `returns`: The product of the `self` and `that` values.
-    def *  that: primRealMultiply self that
+    def * that: primRealMultiply self that
 
     # Floating point subtraction.
     #
@@ -331,7 +332,7 @@ native class Real:
     # 
     # `that`: Floating point number to substract from `self` value.
     # `returns`: The result of subtracting the value of `that` from the value of `self`.
-    def -  that: primRealSubtract self that
+    def - that: primRealSubtract self that
 
     # Floating point division.
     #
@@ -345,7 +346,7 @@ native class Real:
     # 
     # `that`: Floating point number value to divide `self` value by it.
     # `returns`: The result of dividing the value of `self` by `that`.
-    def /  that: primRealDivide   self that
+    def / that: primRealDivide self that
 
     # Floating point exponentiation.
     #
@@ -389,7 +390,7 @@ native class Real:
     # 
     # `that`: Floating point number value to compare with `self` value.
     # `returns`: `True` if `self` value is greater than `that`, `False` otherwise.
-    def >  that: primRealGt       self that
+    def > that: primRealGt self that
 
     # Tests whether `self` is lesser than the argument.
     #
@@ -403,7 +404,7 @@ native class Real:
     # 
     # `that`: Floating point number value to compare with `self` value.
     # `returns`: `True` if `self` value is smaller than `that`, `False` otherwise.
-    def <  that: primRealLt       self that
+    def < that: primRealLt self that
 
     # Tests whether `self` is equal to the argument.
     #
@@ -417,7 +418,7 @@ native class Real:
     # 
     # `that`: Floating point number value to compare with `self` value.
     # `returns`: `True` if `self` value is equal to `that`, `False` otherwise.
-    def == that: primRealEquals   self that
+    def == that: primRealEquals self that
 
     # Absolute value.
     #
@@ -444,7 +445,7 @@ native class Real:
     # >     None
     # 
     # `returns`: Negation of `self` value.
-    def negate:     primRealNegate self
+    def negate: primRealNegate self
 
     # Display a real number as text.
     #
@@ -454,9 +455,9 @@ native class Real:
     # >     a = 10.0
     # >     txt = a.toText
     # >     None
-    #  
+    #
     # `returns`: `self` as a Text value.
-    def toText:     primRealToText self
+    def toText: primRealToText self
 
     # Round a number to the given precision – the result is a real number
     # with a number of digits after the decimal dot equal to the argument.
@@ -471,7 +472,7 @@ native class Real:
     # `prec`: Integer value describing the operation presicion.
     # `returns`: Floating point number value which is a `self` value rounded
     #            with number of digits after decimal dot equal with `prec` value.
-    def round prec: primRealRound  self prec
+    def round prec: primRealRound self prec
 
     # Round a number down to the closest `Int`
     #
@@ -729,7 +730,7 @@ native class Text:
     #
     # `that`: Text value to concatenate with `self`.
     # `returns`: The result of concatenation `self` with `that` value.
-    def +  that: primTextConcat self that
+    def + that: primTextConcat self that
     # Tests whether `self` is greater than the argument in lexicographical order.
     #
     # > import Std.Base
@@ -743,7 +744,7 @@ native class Text:
     # `that`: Text value to compare with `self`.
     # `returns`: `True` if `self` is greater than `that` in lexicographical order,
     #            `False` otherwise.
-    def >  that: primTextGt     self that
+    def > that: primTextGt self that
 
     # Tests whether `self` is lesser than the argument in lexicographical order.
     #
@@ -758,7 +759,7 @@ native class Text:
     # `that`: Text value to compare with `self`.
     # `returns`: `True` if `self` is lesser than `that` in lexicographical order,
     #            `False` otherwise.
-    def <  that: primTextLt     self that
+    def < that: primTextLt self that
 
     # Tests wheter two texts are equal.
     #
@@ -797,7 +798,7 @@ native class Text:
     # >     None
     #
     # `returns`: Integer value with text length.
-    def length:  primTextLength self
+    def length: primTextLength self
 
     # Tests whether the argument is a prefix of `self`.
     #
@@ -811,7 +812,7 @@ native class Text:
     #
     # `p`: Prefix to check.
     # `returns`: `True` if `self` is starting with `p`, `False` otherwise.
-    def startsWith  p: primTextHasPrefix self p
+    def startsWith p: primTextHasPrefix self p
 
     # Tests whether `self` is a prefix of the argument.
     #
@@ -877,7 +878,7 @@ native class Text:
     # >     None
     #
     # `returns`: List of all words in the text.
-    def words:      primTextWords      self
+    def words: primTextWords self
 
     # Returns a list of all lines (newline delimited) in the text.
     #
@@ -889,7 +890,7 @@ native class Text:
     # >     None
     #
     # `returns`: List of all words in the text.
-    def lines:      primTextLines      self
+    def lines: primTextLines self
 
     # Changes all characters to lowercase.
     #
@@ -925,21 +926,21 @@ native class Text:
     # >     None
     #
     # `returns`: Reversed `self` text.
-    def reverse:   primTextReverse   self
+    def reverse: primTextReverse self
 
     def escapeJSON: primTextEscapeJSON self
 
     # Truncates the text for optimal display in interactive mode.
-    def shortRep:   primTextShortRep   self
+    def shortRep: primTextShortRep self
 
     # Convert the text to bare binary data.
-    def toBinary:   primTextToBinary   self
+    def toBinary: primTextToBinary self
 
     # Identity function, included for consistency with other types.
-    def toText:     self
+    def toText: self
 
     # Converts the text to `JSON`.
-    def toJSON:     JSONString self
+    def toJSON: JSONString self
 
     # Tries to reinterpret the string as an integer in decimal system.
     # Returns `Nothing` when the text does not represent a valid integer.
@@ -952,7 +953,7 @@ native class Text:
     # >     None
     #
     # `returns`: Maybe Integer value.
-    def safeToInt:   primTextToInt  self
+    def safeToInt: primTextToInt self
 
     # Tries to reinterpret the string as a real number in decimal system.
     # Returns `Nothing` when the text does not represent a valid real number.
@@ -965,7 +966,7 @@ native class Text:
     # >     None
     #
     # `returns`: Maybe floating point number value.
-    def safeToReal:  primTextToReal self
+    def safeToReal: primTextToReal self
 
     # Reinterprets the string as an integer in decimal system.
     # Throws an error when the text does not represent a valid integer.
@@ -1005,7 +1006,7 @@ native class Text:
 # the data in any way.
 native class Binary:
     # Concatenates two pieces of binary data together.
-    def +  that: primBinaryConcat self that
+    def + that: primBinaryConcat self that
     # Checks whether two pieces of data are equal.
     def == that: primBinaryEquals self that
 
@@ -1127,7 +1128,7 @@ class Bool:
     # >     a = True
     # >     b = a.toText
     # >     None
-    #  
+    #
     # `returns`: `self` as `Text` value.
     def toText: case self of
         True:  "True"
@@ -1141,7 +1142,7 @@ class Bool:
     # >     a = True
     # >     b = a.toJSON
     # >     None
-    #  
+    #
     # `returns`: `self` as `JSON` value.
     def toJSON: JSONBool self
 
@@ -1153,7 +1154,7 @@ class Bool:
     # >     a = True
     # >     b = a.shortRep
     # >     None
-    #  
+    #
     # `returns`: `self` as Text value.
     def shortRep: self . toText
 
@@ -1166,7 +1167,7 @@ class Bool:
     # >     b = False
     # >     c = a.and b
     # >     None
-    #  
+    #
     # `that`: Boolean value.
     # `returns`: `True` if both operands are `True`, `False` in any other case.
     def and that: case self of
@@ -1184,7 +1185,7 @@ class Bool:
     # >     b = False
     # >     c = a.or b
     # >     None
-    #  
+    #
     # `that`: Boolean value.
     # `returns`: `False` if both operands are `False`, `True` in any other case.
     def or that: case self of
@@ -1202,7 +1203,7 @@ class Bool:
     # >     b = False
     # >     isEqual = a.== b
     # >     None
-    #  
+    #
     # `that`: Boolean value.
     # `returns`: `True` if both operands are equal, `False` otherwise.
     def == that: case self of
@@ -2924,7 +2925,7 @@ class JSON:
     # >     None
     # 
     # `key`: Key to lookup in `self`.
-    # `returns`: `Just` the value  associated with the `key`, 
+    # `returns`: `Just` the value associated with the `key`, 
     #            `Nothing` if the `JSON` is not an object or when the `key` is missing.
     def lookup key: case self of
         JSONObject m: m.lookup key
