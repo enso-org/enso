@@ -4,31 +4,167 @@ import Std.Primitive
 # Class representing integer numbers of arbitrary size.
 native class Int:
     # Integer addition.
-    def +  that: primIntAdd      self that
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 5
+    # >     b = 10
+    # >     sum = a.+ b
+    # >     None
+    # 
+    # `that`: Integer to add to `self` value.
+    # `returns`: Sum of `self` and `that` values.
+    def + that: primIntAdd self that
+
     # Integer multiplication.
-    def *  that: primIntMultiply self that
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 5
+    # >     b = 10
+    # >     multiplication = a.* b
+    # >     None
+    # 
+    # `that`: Integer to multiply by `self` value.
+    # `returns`: The product of the `self` and `that` values.
+    def * that: primIntMultiply self that
+
     # Integer subtraction.
-    def -  that: primIntSubtract self that
-    # Integral division – `a./ b` returns the largest integer `c` such that `c * b <= a`.
-    def /  that: primIntDivide   self that
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10
+    # >     b = 5
+    # >     substraction = a.- b
+    # >     None
+    # 
+    # `that`: Integer to substract from `self` value.
+    # `returns`: The result of subtracting the value of `that` from the value of `self`.
+    def - that: primIntSubtract self that
+
+    # Integral division.
+    # `a./ b` returns the largest integer `c` such that `c * b <= a`.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10
+    # >     b = 3
+    # >     division = a./ b
+    # >     None
+    # 
+    # `that`: Integer value to divide `self` value by it.
+    # `returns`: The result of dividing the value of `self` by `that`.
+    def / that: primIntDivide self that
+
     # Division remainder `a.% b == a - (a / b) * b`
-    def %  that: primIntModulo   self that
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10
+    # >     b = 3
+    # >     remainder = a.% b
+    # >     None
+    # 
+    # `that`: Integer value to divide `self` value by it.
+    # `returns`: The value 'left over' after dividing `self` by `that` value.
+    def % that: primIntModulo self that
+
     # `a.> b` returns True when `a` is greater than `b`.
-    def >  that: primIntGt       self that
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10
+    # >     b = 3
+    # >     isGreater = a.> b
+    # >     None
+    # 
+    # `that`: Integer value to compare with `self` value.
+    # `returns`: `True` if `self` value is greater than `that`, `False` otherwise.
+    def > that: primIntGt self that
+
     # `a.< b` returns True when `a` is lesser than `b`.
-    def <  that: primIntLt       self that
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10
+    # >     b = 3
+    # >     isLesser = a.< b
+    # >     None
+    # 
+    # `that`: Integer value to compare with `self` value.
+    # `returns`: `True` if `self` value is lower than `that`, `False` otherwise.
+    def < that: primIntLt self that
+
     # Integer equality. `a.== b` returns True when `a` equals `b`.
-    def == that: primIntEquals   self that
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10
+    # >     b = 3
+    # >     isEqual = a.== b
+    # >     None
+    # 
+    # `that`: Integer value to compare with `self` value.
+    # `returns`: `True` if `self` value is equal to `that`, `False` otherwise.
+    def == that: primIntEquals self that
+
     # Absolute value.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = - 10
+    # >     b = a.abs 
+    # >     None
+    # 
+    # `returns`: The absolute value of `self`.
     def abs: if self < 0 then self.negate else self
 
     def toInt: self
 
-    # Integer negation. `a.negate == -1 * a`.
+    # Integer negation.
+    # `a.negate == -1 * a`.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10
+    # >     negation = a.negate
+    # >     None
+    # 
+    # `returns`: Negation of `self` value.
     def negate: primIntNegate self
+
     # Promote an integer to a real number.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10
+    # >     b = a.toReal
+    # >     None
+    # 
+    # `returns`: `self` as Real value.
     def toReal: primIntToReal self
+
     # Display an integer as text.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10
+    # >     txt = a.toText
+    # >     None
+    #
+    # `returns`: `self` as a Text value.
     def toText: primIntToText self
 
     # Alias for `toText`, for the purpose of pretty printing the number.
@@ -37,24 +173,114 @@ native class Int:
     def toJSON: JSONNumber (Scientific self 0)
 
     # Returns a TimeInterval with the length of `self` miliseconds.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10
+    # >     ms = a.miliseconds
+    # >     None
+    #
+    # `returns`: `self` as a TimeInterval value in miliseconds.
     def miliseconds: primIntMiliseconds self
+
     # Returns a TimeInterval with the length of `self` seconds.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10
+    # >     s = a.seconds
+    # >     None
+    #
+    # `returns`: `self` as TimeInterval value in seconds.
     def seconds: self*1000 . miliseconds
+
     # Returns a TimeInterval with the length of `self` minutes.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10
+    # >     min = a.minutes
+    # >     None
+    #
+    # `returns`: `self` as TimeInterval value in minutes.
     def minutes: self*60 . seconds
+
     # Returns a TimeInterval with the length of `self` hours.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10
+    # >     h = a.hours
+    # >     None
+    #
+    # `returns`: `self` as TimeInterval value in hours.
     def hours: self*60 . minutes
+
     # Returns a TimeInterval with the length of `self` days.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10
+    # >     d = a.days
+    # >     None
+    #
+    # `returns`: `self` as TimeInterval value in days.
     def days: self*24 . hours
+
     # Returns a TimeInterval with the length of `self` weeks.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10
+    # >     w = a.weeks
+    # >     None
+    #
+    # `returns`: `self` as TimeInterval value in weeks.
     def weeks: self*7 . days
 
-    # Predecessor. `a.pred == a - 1`
+    # Predecessor. 
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 5
+    # >     b = a.pred 
+    # >     None
+    #
+    # `returns`: Predecessor of `self` value: `a.pred == a - 1`.
     def pred: self - 1
-    # Successor. `a.succ == a + 1`
+
+    # Successor.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 5
+    # >     b = a.succ 
+    # >     None
+    #
+    # `returns`: Successor of `self` value: `a.succ == a + 1`.
     def succ: self + 1
 
-    # Generates a list representing a range. `a.upto b == [a, a + 1, a + 2, ..., b - 1, b]`
+    # Generates a list representing a range. 
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 3
+    # >     b = 10
+    # >     list = a.upto b
+    # >     None
+    # 
+    # > `i`: Stop value for the sequence of numbers.
+    # > `returns`: List of values from `self` to `i`. 
+    # >            For example above it will be `[3,4,5,6,7,8,9,10]`.
     def upto i:
         ss = self.succ
         if self <= i then Prepend self (ss . upto i) else []
@@ -67,145 +293,707 @@ native class Int:
 # Class representing floating point numbers.
 native class Real:
     # Floating point addition.
-    def +  that: primRealAdd      self that
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 5.0
+    # >     b = 10.5
+    # >     sum = a.+ b
+    # >     None
+    # 
+    # `that`: Floating point number to add to `self` value.
+    # `returns`: Sum of the `self` and `that` values.
+    def + that: primRealAdd self that
+
     # Floating point multiplication.
-    def *  that: primRealMultiply self that
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 5.5
+    # >     b = 10.0
+    # >     multiplication = a.* b
+    # >     None
+    # 
+    # `that`: Floating point number to multiply by `self` value.
+    # `returns`: The product of the `self` and `that` values.
+    def * that: primRealMultiply self that
+
     # Floating point subtraction.
-    def -  that: primRealSubtract self that
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10.3
+    # >     b = 5.0
+    # >     substraction = a.- b
+    # >     None
+    # 
+    # `that`: Floating point number to substract from `self` value.
+    # `returns`: The result of subtracting the value of `that` from the value of `self`.
+    def - that: primRealSubtract self that
+
     # Floating point division.
-    def /  that: primRealDivide   self that
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10.4
+    # >     b = 2.0
+    # >     division = a./ b
+    # >     None
+    # 
+    # `that`: Floating point number value to divide `self` value by it.
+    # `returns`: The result of dividing the value of `self` by `that`.
+    def / that: primRealDivide self that
+
     # Floating point exponentiation.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10.4
+    # >     b = 2.0
+    # >     exp = a.^ b
+    # >     None
+    # 
+    # `that`: Exponent (floating point number).
+    # `returns`: Floating point number value, which is a result of
+    #            exponentiation of `self` value to `that` power.
     def ^ that: primRealPow self that
+    
     # Floating point logarithm with given basis.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10.4
+    # >     b = 2.0
+    # >     logarithm = a.log b
+    # >     None
+    # 
+    # `base`: Logarithm base (floating point number).
+    # `returns`: Floating point number value, result for logarithm 
+    #            calculation of `self` value to `base`.
     def log base: primRealLog self base
+
     # Tests whether `self` is greater than the argument.
-    def >  that: primRealGt       self that
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10.4
+    # >     b = 3.76
+    # >     isGreater = a.> b
+    # >     None
+    # 
+    # `that`: Floating point number value to compare with `self` value.
+    # `returns`: `True` if `self` value is greater than `that`, `False` otherwise.
+    def > that: primRealGt self that
+
     # Tests whether `self` is lesser than the argument.
-    def <  that: primRealLt       self that
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10.7
+    # >     b = 3.45
+    # >     isLesser = a.< b
+    # >     None
+    # 
+    # `that`: Floating point number value to compare with `self` value.
+    # `returns`: `True` if `self` value is smaller than `that`, `False` otherwise.
+    def < that: primRealLt self that
+
     # Tests whether `self` is equal to the argument.
-    def == that: primRealEquals   self that
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 3.45
+    # >     b = 3.45
+    # >     isEqual = a.== b
+    # >     None
+    # 
+    # `that`: Floating point number value to compare with `self` value.
+    # `returns`: `True` if `self` value is equal to `that`, `False` otherwise.
+    def == that: primRealEquals self that
+
     # Absolute value.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = - 3.45
+    # >     b = a.abs
+    # >     None
+    # 
+    # `returns`: The absolute value of `self`.
     def abs: if self < 0.0 then self.negate else self
 
     def toReal: self
 
-    # Negation. `a.negate == -1.0 * a`
-    def negate:     primRealNegate self
+    # Negation. 
+    #`a.negate == -1.0 * a`
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10.0
+    # >     b = a.negate
+    # >     None
+    # 
+    # `returns`: Negation of `self` value.
+    def negate: primRealNegate self
+
     # Display a real number as text.
-    def toText:     primRealToText self
-    # Round a number with given precision – the result is a real number with the number of digits after the decimal dot equal to the argument.
-    def round prec: primRealRound  self prec
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10.0
+    # >     txt = a.toText
+    # >     None
+    #
+    # `returns`: `self` as a Text value.
+    def toText: primRealToText self
+
+    # Round a number to the given precision – the result is a real number
+    # with a number of digits after the decimal dot equal to the argument.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10.75876
+    # >     b = a.round 2
+    # >     None
+    #
+    # `prec`: Integer value describing the operation presicion.
+    # `returns`: Floating point number value which is a `self` value rounded
+    #            with number of digits after decimal dot equal with `prec` value.
+    def round prec: primRealRound self prec
+
     # Round a number down to the closest `Int`
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10.75876
+    # >     b = a.floor
+    # >     None
+    #
+    # `returns`: The largest integer value less than or equal to `self` value.
     def floor: primRealFloor self
+
     # Round a number up to the closest `Int`
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10.75876
+    # >     b = a.ceiling
+    # >     None
+    #
+    # `returns`: The smallest integer value greater than or equal to `self` value.
     def ceiling: primRealCeiling self
 
     # Sine function.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10.75876
+    # >     sine = a.sin
+    # >     None
+    #
+    # `returns`: The sine of `self` in radians.
     def sin: primRealSin self
+
     # Cosine function.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10.75876
+    # >     cosine = a.cos
+    # >     None
+    #
+    # `returns`: The cosine of `self` in radians.
     def cos: primRealCos self
+
     # Tangent function.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10.75876
+    # >     tangent = a.tan
+    # >     None
+    #
+    # `returns`: The tangent of `self` in radians.
     def tan: primRealTan self
 
     # Hyperbolic sine function.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10.75876
+    # >     hyperbolicSine = a.sinh
+    # >     None
+    #
+    # `returns`: The hyperbolic sine of `self` in radians.
     def sinh: primRealSinh self
+
     # Hyperbolic cosine function.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10.75876
+    # >     hyperbolicCosine = a.cosh
+    # >     None
+    #
+    # `returns`: The hyperbolic cosine of `self` in radians.
     def cosh: primRealCosh self
+
     # Hyperbolic tangent function.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10.75876
+    # >     hyperbolicTangent = a.tanh
+    # >     None
+    #
+    # `returns`: The hyperbolic tangent of `self` in radians.
     def tanh: primRealTanh self
 
     # Inverse sine function.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10.75876
+    # >     arcSine = a.asin
+    # >     None
+    #
+    # `returns`: The arc sine of `self` in radians.
     def asin: primRealAsin self
+
     # Inverse cosine function.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10.75876
+    # >     arcCosine = a.acos
+    # >     None
+    #
+    # `returns`: The arc cosine of `self` in radians.
     def acos: primRealAcos self
+
     # Inverse tangent function.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10.75876
+    # >     arcTangent = a.atan
+    # >     None
+    #
+    # `returns`: The arc tangent of `self` in radians.
     def atan: primRealAtan self
 
     # Inverse hyperbolic sine function.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10.75876
+    # >     arcHyperbolicSine = a.asinh
+    # >     None
+    #
+    # `returns`: The inverse hyperbolic sine of `self` in radians.
     def asinh: primRealAsinh self
+
     # Inverse hyperbolic cosine function.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10.75876
+    # >     arcHyperbolicCosine = a.acosh
+    # >     None
+    #
+    # `returns`: The inverse hyperbolic cosine of `self` in radians.
     def acosh: primRealAcosh self
+
     # Inverse hyperbolic tangent function.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 10.75876
+    # >     arcHyperbolicTangent = a.atanh
+    # >     None
+    #
+    # `returns`: The inverse hyperbolic tangent of `self` in radians.
     def atanh: primRealAtanh self
 
     # Natural exponential function.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 100.0
+    # >     b = a.exp
+    # >     None
+    #
+    # `returns`: The constant e = 2.71828... to the power of `self`.
     def exp: primRealExp self
+
     # Natural logarithm function.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 100.0
+    # >     b = a.ln
+    # >     None
+    #
+    # `returns`: `self` value logarithm  to the base of the mathematical constant
+    #            e = 2.71828... .
     def ln: primRealLn self
+
     # Square root.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 100.0
+    # >     b = a.sqrt
+    # >     None
+    #
+    # `returns`: Square root of `self` value.
     def sqrt: primRealSqrt self
 
     # Displays a number as text.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 100.0
+    # >     txt = a.toText
+    # >     None
+    #
+    # `returns`: `self` as Text value.
     def shortRep: self.toText
+
     # Converts a number to `JSON`.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = 100.0
+    # >     json = a.toJSON
+    # >     None
+    #
+    # `returns`: `self` JSON value.
     def toJSON: JSONNumber (primRealToScientific self)
 
     def toLQueryValue: ValReal self
 
 # The mathematical constant π = 3.14159265359.
+#
+# > import Std.Base 
+# > 
+# > def main:
+# >     a = pi
+# >     None
+#
+# `returns`: The mathematical constant π = 3.14159265359.
 def pi: 3.14159265359
 
 # The basic class for representing Texts.
 native class Text:
     # Concatenates two texts together.
-    def +  that: primTextConcat self that
+    #
+    # > import Std.Base
+    # > 
+    # > def main:
+    # >     a = "foo"
+    # >     b = "bar"
+    # >     sum = a.+ b
+    # >     None
+    #
+    # `that`: Text value to concatenate with `self`.
+    # `returns`: The result of concatenation `self` with `that` value.
+    def + that: primTextConcat self that
     # Tests whether `self` is greater than the argument in lexicographical order.
-    def >  that: primTextGt     self that
+    #
+    # > import Std.Base
+    # > 
+    # > def main:
+    # >     a = "foo"
+    # >     b = "bar"
+    # >     isGreater = a.> b
+    # >     None
+    #
+    # `that`: Text value to compare with `self`.
+    # `returns`: `True` if `self` is greater than `that` in lexicographical order,
+    #            `False` otherwise.
+    def > that: primTextGt self that
+
     # Tests whether `self` is lesser than the argument in lexicographical order.
-    def <  that: primTextLt     self that
+    #
+    # > import Std.Base
+    # > 
+    # > def main:
+    # >     a = "foo"
+    # >     b = "bar"
+    # >     isLesser = a.< b
+    # >     None
+    #
+    # `that`: Text value to compare with `self`.
+    # `returns`: `True` if `self` is lesser than `that` in lexicographical order,
+    #            `False` otherwise.
+    def < that: primTextLt self that
+
     # Tests wheter two texts are equal.
+    #
+    # > import Std.Base
+    # > 
+    # > def main:
+    # >     a = "foo"
+    # >     b = "bar"
+    # >     isEqual = a.== b
+    # >     None
+    #
+    # `that`: Text value to compare with `self`.
+    # `returns`: `True` if `self` is equal to `that` in lexicographical order,
+    #            `False` otherwise.
     def == that: primTextEquals self that
 
     # Tests whether the text is empty (equal to `""`).
+    #
+    # > import Std.Base
+    # > 
+    # > def main:
+    # >     a = "foo"
+    # >     empty = a.isEmpty
+    # >     None
+    #
+     # `returns`: `True` if `self` is empty, `False` otherwise.
     def isEmpty: primTextIsEmpty self
+
     # Measures the text length.
-    def length:  primTextLength self
+    #
+    # > import Std.Base
+    # > 
+    # > def main:
+    # >     a = "foo"
+    # >     len = a.length
+    # >     None
+    #
+    # `returns`: Integer value with text length.
+    def length: primTextLength self
 
     # Tests whether the argument is a prefix of `self`.
-    def startsWith  p: primTextHasPrefix self p
+    #
+    # > import Std.Base
+    # > 
+    # > def main:
+    # >     a = "foo"
+    # >     b = "fo"
+    # >     c = a.startsWith b
+    # >     None
+    #
+    # `p`: Prefix to check.
+    # `returns`: `True` if `self` is starting with `p`, `False` otherwise.
+    def startsWith p: primTextHasPrefix self p
+
     # Tests whether `self` is a prefix of the argument.
+    #
+    # > import Std.Base
+    # > 
+    # > def main:
+    # >     a = "f"
+    # >     b = "foo"
+    # >     c = a.isPrefixOf b
+    # >     None
+    #
+    # `t`: Text value to check.
+    # `returns`: `True` if `t` is starting with `self`, `False` otherwise.
     def isPrefixOf t: t.startsWith self
 
     # Tests whether the argument is a suffix of `self`.
+    #
+    # > import Std.Base
+    # > 
+    # > def main:
+    # >     a = "foo"
+    # >     b = "o"
+    # >     c = a.endsWith b
+    # >     None
+    #
+    # `p`: Text value to check.
+    # `returns`: `True` if `self` is ending with `p`, `False` otherwise.
     def endsWith p: self.reverse.startsWith p.reverse
+
     # Tests whether `self` is a suffix of the argument.
+    #
+    # > import Std.Base
+    # > 
+    # > def main:
+    # >     a = "a"
+    # >     b = "foo"
+    # >     c = a.isSuffixOf b
+    # >     None
+    #
+    # `t`: Text value to check.
+    # `returns`: `True` if `t` is ending with `self`, `False` otherwise.
     def isSuffixOf t: t.endsWith self
 
     # Returns a list of all characters in the text.
+    #
+    # > import Std.Base
+    # > 
+    # > def main:
+    # >     a = "Lorem ipsum dolor sit amet, consectetur adipiscing elit."
+    # >     b = a.characters
+    # >     None
+    #
+    # `returns`: List of all characters in the text.
     def characters: primTextCharacters self
+
     # Returns a list of all words (white-space delimited) in the text.
-    def words:      primTextWords      self
+    #
+    # > import Std.Base
+    # > 
+    # > def main:
+    # >     a = "Lorem ipsum dolor sit amet, consectetur adipiscing elit."
+    # >     b = a.words
+    # >     None
+    #
+    # `returns`: List of all words in the text.
+    def words: primTextWords self
+
     # Returns a list of all lines (newline delimited) in the text.
-    def lines:      primTextLines      self
+    #
+    # > import Std.Base
+    # > 
+    # > def main:
+    # >     a = "Lorem ipsum dolor sit amet, consectetur adipiscing elit."
+    # >     b = a.lines
+    # >     None
+    #
+    # `returns`: List of all words in the text.
+    def lines: primTextLines self
 
     # Changes all characters to lowercase.
+    #
+    # > import Std.Base
+    # > 
+    # > def main:
+    # >     a = "FooBarBaz"
+    # >     b = a.lowercase
+    # >     None
+    #
+    # `returns`: `self` text written with lowercase.
     def lowercase: primTextLowercase self
+
     # Changes all characters to uppercase.
+    #
+    # > import Std.Base
+    # > 
+    # > def main:
+    # >     a = "FooBarBaz"
+    # >     b = a.uppercase
+    # >     None
+    #
+    # `returns`: `self` text written with uppercase.
     def uppercase: primTextUppercase self
+    
     # Reverses the text.
-    def reverse:   primTextReverse   self
+    #
+    # > import Std.Base
+    # > 
+    # > def main:
+    # >     a = "FooBarBaz"
+    # >     rev = a.reverse
+    # >     None
+    #
+    # `returns`: Reversed `self` text.
+    def reverse: primTextReverse self
 
     def escapeJSON: primTextEscapeJSON self
+
     # Truncates the text for optimal display in interactive mode.
-    def shortRep:   primTextShortRep   self
+    def shortRep: primTextShortRep self
+
     # Convert the text to bare binary data.
-    def toBinary:   primTextToBinary   self
+    def toBinary: primTextToBinary self
+
     # Identity function, included for consistency with other types.
-    def toText:     self
+    def toText: self
+
     # Converts the text to `JSON`.
-    def toJSON:     JSONString self
+    def toJSON: JSONString self
 
-    # Tries to reinterpret the string as an integer in decimal system. Returns `Nothing` when the text does not represent a valid integer.
-    def safeToInt:   primTextToInt  self
-    # Tries to reinterpret the string as a real number in decimal system. Returns `Nothing` when the text does not represent a valid real number.
-    def safeToReal:  primTextToReal self
+    # Tries to reinterpret the string as an integer in decimal system.
+    # Returns `Nothing` when the text does not represent a valid integer.
+    #
+    # > import Std.Base
+    # > 
+    # > def main:
+    # >     a = "10"
+    # >     maybeInt = a.safeToInt
+    # >     None
+    #
+    # `returns`: Maybe Integer value.
+    def safeToInt: primTextToInt self
 
-    # Reinterprets the string as an integer in decimal system. Throws an error when the text does not represent a valid integer.
+    # Tries to reinterpret the string as a real number in decimal system.
+    # Returns `Nothing` when the text does not represent a valid real number.
+    #
+    # > import Std.Base
+    # > 
+    # > def main:
+    # >     a = "10.0"
+    # >     maybeReal = a.safeToReal
+    # >     None
+    #
+    # `returns`: Maybe floating point number value.
+    def safeToReal: primTextToReal self
+
+    # Reinterprets the string as an integer in decimal system.
+    # Throws an error when the text does not represent a valid integer.
+    #
+    # > import Std.Base
+    # > 
+    # > def main:
+    # >     a = "10"
+    # >     int = a.toInt
+    # >     None
+    #
+    # `returns`: Integer value or error.
     def toInt: case self.safeToInt of
         Just val: val
         Nothing:  errorStr ("Could not convert " + self + " to an Int")
 
-    # Reinterprets the string as a real number in decimal system. Throws an error when the text does not represent a valid real number.
+    # Reinterprets the string as a real number in decimal system.
+    # Throws an error when the text does not represent a valid real number.
+    #
+    # > import Std.Base
+    # > 
+    # > def main:
+    # >     a = "10.0"
+    # >     real = a.toReal
+    # >     None
+    #
+    # `returns`: Floating point number value or error.
     def toReal: case self.safeToReal of
         Just val: val
         Nothing:  errorStr ("Could not convert " + self + " to a Real")
@@ -214,10 +1002,11 @@ native class Text:
 
     def toLQueryValue: ValText self
 
-# Class for representing arbitrary binary data. Does not attempt to interpret the data in any way.
+# Class for representing arbitrary binary data. Does not attempt to interpret
+# the data in any way.
 native class Binary:
     # Concatenates two pieces of binary data together.
-    def +  that: primBinaryConcat self that
+    def + that: primBinaryConcat self that
     # Checks whether two pieces of data are equal.
     def == that: primBinaryEquals self that
 
@@ -242,26 +1031,88 @@ class Complex:
     imaginary :: Real
 
     # Displays a complex number as text.
+    #
+    # > import Std.Base
+    # > 
+    # > def main:
+    # >     a = Complex 10.0 3.25
+    # >     b = a.shortRep
+    # >     None
+    #
+    # `returns`: Text value for `self` complex number.
     def shortRep: self.real.shortRep + " + " + self.imaginary.shortRep + "i"
     # Displays a complex number as text.
+    #
+    # > import Std.Base
+    # > 
+    # > def main:
+    # >     a = Complex 10.0 3.25
+    # >     txt = a.toText
+    # >     None
+    #
+    # `returns`: Text value for `self` complex number.
     def toText: self.real.shortRep + " + " + self.imaginary.shortRep + "i"
 
     # Complex number addition.
+    #
+    # > import Std.Base
+    # > 
+    # > def main:
+    # >     a = Complex 10.0 3.25
+    # >     b = Complex 5.0 2.25
+    # >     sum = a.+ b
+    # >     None
+    #
+    # `that`: Complex number value to add to `self`.
+    # `returns`: Complex number value resulting from the addition `that`
+    #            to `self` number.
     def + that:
         r = self.real.+ that.real
         i = self.imaginary.+ that.imaginary
         Complex r i
 
     # Complex number multiplication.
+    #
+    # > import Std.Base
+    # > 
+    # > def main:
+    # >     a = Complex 10.0 3.25
+    # >     b = Complex 5.0 2.25
+    # >     multiplication = a.* b
+    # >     None
+    #
+    # `that`: Complex number value to multiply by `self`.
+    # `returns`: Complex number value resulting from the multiplication `self`
+    #            by `that` number.
     def * that:
         r = self.real.* that.real      - self.imaginary.* that.imaginary
         i = self.real.* that.imaginary + self.imaginary.* that.real
         Complex r i
 
     # Complex number modulus.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = Complex 10.0 3.25
+    # >     b = a.modulus
+    # >     None
+    # 
+    # `returns`: Floating point number representing the absolute value of
+    #            the `self` complex number.
     def modulus: self.modulusSquared.sqrt
 
     # Complex number squared modulus.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = Complex 10.0 3.25
+    # >     b = a.modulusSquared
+    # >     None
+    # 
+    # `returns`: Floating point number representing the square absolute value of
+    #            the `self` complex number.
     def modulusSquared: self.real*self.real + self.imaginary*self.imaginary
 
 # Class representing boolean values
@@ -270,17 +1121,55 @@ class Bool:
     False
 
     # Represents logical values as `Text`.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = True
+    # >     b = a.toText
+    # >     None
+    #
+    # `returns`: `self` as `Text` value.
     def toText: case self of
         True:  "True"
         False: "False"
 
     # Converts a boolean value to `JSON`.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = True
+    # >     b = a.toJSON
+    # >     None
+    #
+    # `returns`: `self` as `JSON` value.
     def toJSON: JSONBool self
 
     # Represents logical values as `Text`.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = True
+    # >     b = a.shortRep
+    # >     None
+    #
+    # `returns`: `self` as Text value.
     def shortRep: self . toText
 
     # Boolean and.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = True
+    # >     b = False
+    # >     c = a.and b
+    # >     None
+    #
+    # `that`: Boolean value.
+    # `returns`: `True` if both operands are `True`, `False` in any other case.
     def and that: case self of
         True: case that of
             True: True
@@ -288,6 +1177,17 @@ class Bool:
         False: False
 
     # Boolean or.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = True
+    # >     b = False
+    # >     c = a.or b
+    # >     None
+    #
+    # `that`: Boolean value.
+    # `returns`: `False` if both operands are `False`, `True` in any other case.
     def or that: case self of
         True: True
         False: case that of
@@ -295,6 +1195,17 @@ class Bool:
             False: False
 
     # Equality of booleans, semantically the same as logical equivalence.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = True
+    # >     b = False
+    # >     isEqual = a.== b
+    # >     None
+    #
+    # `that`: Boolean value.
+    # `returns`: `True` if both operands are equal, `False` otherwise.
     def == that: case self of
         True: case that of
             True:  True
@@ -304,6 +1215,15 @@ class Bool:
             False: True
 
     # Logical negation.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = True
+    # >     b = a.negate
+    # >     None
+    # 
+    # `returns`: Negation of `self` value.
     def not: case self of
         True:  False
         False: True
@@ -345,7 +1265,8 @@ def seq a b:
     a
     b
 
-# Class representing the lack of interesting value. Mostly used for actions executed solely for their side effects, without any interesting return value.
+# Class representing the lack of interesting value.
+# Mostly used for actions executed solely for their side effects, without any interesting return value.
 class None:
     None
 
@@ -366,6 +1287,15 @@ class Tuple2 a b:
     Tuple2 a b
 
     # Short Text representation of a pair.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = (1, 2)
+    # >     b = a.shortRep
+    # >     None
+    # 
+    # `returns`: Text representation of `self` value.
     def shortRep: case self of
         Tuple2 a b: "(" + a.shortRep + ", " + b.shortRep + ")"
 
@@ -374,26 +1304,87 @@ class Tuple2 a b:
         Tuple2 a b: JSONArray [a.toJSON, b.toJSON]
 
     # Plucks the first element of a tuple.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = (1, 2)
+    # >     b = a.first
+    # >     None
+    # 
+    # `returns`: First element of a tuple.
     def first: case self of
         Tuple2 a b: a
 
     # Plucks the second element of a tuple.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = (1, 2)
+    # >     b = a.second
+    # >     None
+    # 
+    # `returns`: second element of a tuple.
     def second: case self of
         Tuple2 a b: b
 
     # Maps a function over both elements of a tuple.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = (1, 2)
+    # >     f = + 3
+    # >     b = a.map f
+    # >     None
+    # 
+    # `f`: Function to map over each alement of a tuple.
+    # `returns`: Tuple with values being a result of mapping function `f` over all elements
+    #            of `self` value.
     def map f: Tuple2 (f self.first) (f self.second)
 
     # Text representation of a tuple.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = (1, 2)
+    # >     b = a.toText
+    # >     None
+    # 
+    # `returns`: Text representation of `self` value.
     def toText: case self of
         Tuple2 a b: "(" + a.toText + ", " + b.toText + ")"
 
     # Tuple equality. Two tuples are equal when their respective elements are equal.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = (1, 2)
+    # >     b = (2,2)
+    # >     isEqual = a.== b
+    # >     None
+    # 
+    # `that`: Tuple to compare with `self`.
+    # `returns`: `True` if `self` and `that` are equal, `False` otherwise.
     def == that:
         self.first.== that.first . and (self.second.== that.second)
 
     # Lexicographic comparison. `(a1, a2) < (b1, b2)` if a1 < b1
     # or a1 == b1 and a2 < b2.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = (1, 2)
+    # >     b = (2, 2)
+    # >     isLesser = a.< b
+    # >     None
+    # 
+    # `that`: Tuple to compare with `self`.
+    # `returns`: `True` if `self` is lesser than `that`, `False` otherwise.
     def < that:
         self.first.< that.first . or (self.first.== that.first . and (self.second.< that.second))
 
@@ -407,29 +1398,97 @@ class Tuple3 a b c:
         Tuple3 a b c: JSONArray (Prepend a.toJSON (Prepend b.toJSON (Prepend c.toJSON Empty)))
 
     # Plucks the first element of a triple.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = (1, 2, 3)
+    # >     b = a.first
+    # >     None
+    # 
+    # `returns`: First element of a tuple.
     def first: case self of
         Tuple3 a b c: a
 
     # Plucks the second element of a triple.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = (1, 2, 3)
+    # >     b = a.second
+    # >     None
+    # 
+    # `returns`: Second element of a tuple.
     def second: case self of
         Tuple3 a b c: b
 
     # Plucks the third element of a triple.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = (1, 2, 3)
+    # >     b = a.third
+    # >     None
+    # 
+    # `returns`: Third element of a tuple.
     def third: case self of
         Tuple3 a b c: c
 
     # Maps a function over all elements of a triple.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = (1, 2, 3)
+    # >     f = + 3
+    # >     b = a.map f
+    # >     None
+    # 
+    # `f`: Function to map over each alement of a tuple.
+    # `returns`: Tuple with values being a result of mapping function `f` over all elements
+    #            of `self` value.
     def map f: Tuple3 (f self.first) (f self.second) (f self.third)
 
     # Text representation of a triple.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = (1, 2, 3)
+    # >     b = a.toText
+    # >     None
+    # 
+    # `returns`: Text representation of `self` value.
     def toText: case self of
         Tuple3 a b c: "(" + a.toText + ", " + b.toText + ", " + c.toText + ")"
 
     # Short Text representation of a triple.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = (1, 2, 3)
+    # >     b = a.shortRep
+    # >     None
+    # 
+    # `returns`: Text representation of `self` value.
     def shortRep: case self of
         Tuple3 a b c: "(" + a.shortRep + ", " + b.shortRep + ", " + c.shortRep + ")"
 
     # Triple equality. Two triples are equal when their respective elements are equal.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = (1, 2, 3)
+    # >     b = (2, 2, 3)
+    # >     isEqual = a.== b
+    # >     None
+    # 
+    # `that`: Tuple to compare with `self`.
+    # `returns`: `True` if `self` and `that` are equal, `False` otherwise.
     def == that: case that of
         Tuple3 a b c: self.first.== a . and (self.second.== b) . and (self.third.== c)
 
@@ -442,38 +1501,117 @@ class Tuple4 a b c d:
         Tuple4 a b c d: JSONArray (Prepend a.toJSON (Prepend b.toJSON (Prepend c.toJSON (Prepend d.toJSON Empty))))
 
     # Plucks the first element of a 4-tuple.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = (1, 2, 3, 4)
+    # >     b = a.first
+    # >     None
+    # 
+    # `returns`: First element of a tuple.
     def first: case self of
         Tuple4 a b c d: a
 
     # Plucks the second element of a 4-tuple.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = (1, 2, 3, 4)
+    # >     b = a.second
+    # >     None
+    # 
+    # `returns`: Second element of a tuple.
     def second: case self of
         Tuple4 a b c d: b
 
     # Plucks the third element of a 4-tuple.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = (1, 2, 3, 4)
+    # >     b = a.third
+    # >     None
+    # 
+    # `returns`: Third element of a tuple.
     def third: case self of
         Tuple4 a b c d: c
 
     # Plucks the fourth element of a 4-tuple.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = (1, 2, 3, 4)
+    # >     b = a.fourth
+    # >     None
+    # 
+    # `returns`: Fourth element of a tuple.
     def fourth: case self of
         Tuple4 a b c d: d
 
     # Maps a function over all elements of a 4-tuple.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = (1, 2, 3, 4)
+    # >     f = + 3
+    # >     b = a.map f
+    # >     None
+    # 
+    # `f`: Function to map over each alement of a tuple.
+    # `returns`: Tuple with values being a result of mapping function `f` over all elements of `self` value.
     def map f: Tuple4 (f self.first) (f self.second) (f self.third) (f self.fourth)
 
     # Text representation of a 4-tuple.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = (1, 2, 3, 4)
+    # >     b = a.toText
+    # >     None
+    # 
+    # `returns`: Text representation of `self` value.
     def toText: case self of
         Tuple4 a b c d: "(" + a.toText + ", " + b.toText + ", " + c.toText + ", " + d.toText + ")"
 
     # Short text representation of a 4-tuple.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = (1, 2, 3, 4)
+    # >     b = a.shortRep
+    # >     None
+    # 
+    # `returns`: Text representation of `self` value.
     def shortRep: case self of
         Tuple4 a b c d: "(" + a.shortRep + ", " + b.shortRep + ", " + c.shortRep + ", " + d.shortRep + ")"
 
     # 4-tuple equality. Two 4-tuples are equal when their respective elements are equal.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = (1, 2, 3, 4)
+    # >     b = (2, 2, 3, 4)
+    # >     isEqual = a.== b
+    # >     None
+    # 
+    # `that`: Tuple to compare with `self`.
+    # `returns`: `True` if `self` and `that` are equal, `False` otherwise.
     def == that: case that of
-        Tuple4 a b c d: self.first.== a . and (self.second.== b) . and (self.third.== c) . and (self.fourth.== d)
+        Tuple4 a b c d: self.first.== a . and (self.second.== b) 
+                                        . and (self.third.== c) 
+                                        . and (self.fourth.== d)
         other:        False
 
-# The basic optional type in Luna. The value of this class can either be a `Nothing` (representing the lack of value) or a `Just value` (in the case value is present).
+# The basic optional type in Luna. The value of this class can either be a `Nothing` 
+# (representing the lack of value) or a `Just value` (in the case value is present).
 # This is a type-safe substitute for nullable values known from other languages.
 class Maybe a:
     Nothing
@@ -484,64 +1622,185 @@ class Maybe a:
         Just a: a.toJSON
         Nothing: JSONNull
 
-    # Cast a `Maybe` value into a `List`. Returns an empty list when the value is missing and a singleton list otherwise.
+    # Cast a `Maybe` value into a `List`. 
+    # Returns an empty list when the value is missing and a singleton list otherwise.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = Just "foo"
+    # >     list = a.toList
+    # >     None
+    # 
+    # `returns`: An empty list when the value is missing and a singleton list otherwise.
     def toList: case (self) of
         Just a: Prepend a Empty
         Nothing: Empty
 
     # Returns the value when called on `Just`, throws an error otherwise.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = Just "foo"
+    # >     b = a.get
+    # >     None
+    # 
+    # `returns`: The value when called on `Just`, an error otherwise.
     def get: case self of
         Just a:  a
         Nothing: errorStr "Maybe.get: Nothing"
 
-    # Returns the value when called on `Just` or the provided default value when called on a `Nothing`.
+    # Returns the value when called on `Just` or the provided default value 
+    # when called on a `Nothing`.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = Nothing
+    # >     b = a.withDefault "bar"
+    # >     None
+    # 
+    # `defVal`: Default value to return when `self` is `Nothing`.
+    # `returns`: The value when called on `Just` or `defVal` otherwise.
     def withDefault defVal: case self of
         Just a: a
         Nothing: defVal
 
     # Returns `True` when called on a `Just` and `False` otherwise.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = Nothing
+    # >     b = a.isJust
+    # >     None
+    # 
+    # `returns`: `True` if `self` is `Just`, `False` otherwise.
     def isJust: case self of
         Just a: True
         Nothing: False
 
     # Returns `True` when called on a `Nothing` and `False` otherwise.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = Nothing
+    # >     b = a.isNothing
+    # >     None
+    # 
+    # `returns`: `True` if `self` is `Nothing`, `False` otherwise.
     def isNothing: case self of
         Nothing: True
         Just a: False
 
-    # Takes a function `f` and returns `Just (f a)` when called on `Just a` and `Nothing` otherwise.
+    # Takes a function `f` and returns `Just (f a)` when called on `Just a`
+    # and `Nothing` otherwise.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = Just 8
+    # >     f = + 3
+    # >     b = a.map f
+    # >     None
+    # 
+    # `f`: Function to map.
+    # `returns`: `Just (f a)` when `self` is `Just a` and `Nothing` otherwise.
     def map f: case self of
         Nothing: Nothing
         Just a: Just (f a)
 
     # Takes a function returning `Maybe`, maps it over `self` and flattens the result.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = Just [8, 10, 12]
+    # >     b = a.flatMap head
+    # >     None
+    # 
+    # `f`: Function to map.
+    # `returns`: `f a` when `self` is `Just a` and `Nothing` otherwise.
     def flatMap f: case self of
         Nothing: Nothing
         Just a: f a
 
     # A variant of `map` that executes any effects performed by the function.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = Just [8, 10, 12]
+    # >     f = + 3 
+    # >     b = a.each f
+    # >     None
+    # 
+    # `f`: Function to map.
+    # `returns`: `Just (f a)` when `self` is `Just a` and `Nothing` otherwise.
     def each f: case self of
         Nothing: Nothing
         Just a:
             x = f a
             Just x
 
-    # Flattens nested `Maybe` values. Returns `Just a` when called on `Just (Just a)` and `Nothing` otherwise.
+    # Flattens nested `Maybe` values. Returns `Just a` when called on `Just (Just a)`
+    # and `Nothing` otherwise.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = Just (Just "foo")
+    # >     b = a.flatten
+    # >     None
+    # 
+    # `returns`: `Just a` when `self` is `Just (Just a)` and `Nothing` otherwise.
     def flatten: case self of
         Nothing: Nothing
         Just a: a
 
     # Text representation of a `Maybe` object.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = Just "foo"
+    # >     b = a.toText
+    # >     None
+    # 
+    # `returns`: Text representation of `self` value.
     def toText: case self of
         Just a: "Just " + a.toText
         Nothing: "Nothing"
 
     # Short text representation of a `Maybe` object.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = Just "foo"
+    # >     b = a.shortRep
+    # >     None
+    # 
+    # `returns`: Text representation of `self` value.
     def shortRep: case self of
         Just a: "Just " + a.shortRep
         Nothing: "Nothing"
 
-    # Checks the equality of two `Maybe` values. Returns `True` when both values are `Nothing` or when they are `Just` and the values inside are equal.
+    # Checks the equality of two `Maybe` values. 
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = Just "foo"
+    # >     b = Just "bar"
+    # >     isEqual = a.== b
+    # >     None
+    # 
+    # `that`: `Maybe` value to compare with `self`.
+    # `returns`: `True` when both values are `Nothing` or when they are `Just`
+    #            and the values inside are equal.
     def == that: case (self, that) of
         (Just a, Just b): a.== b
         (Nothing, Nothing): True
@@ -557,7 +1816,8 @@ class Either a b:
         Left  a: a.toJSON
         Right b: b.toJSON
 
-    # Takes two functions returning the same type, calls the first when called on `Left` and the second for `Right`.
+    # Takes two functions returning the same type, calls the first when called
+    # on `Left` and the second for `Right`.
     def either lf rf: case self of
         Left  a: lf a
         Right b: rf b
@@ -595,17 +1855,21 @@ class Either a b:
         Left  a: "Left " + a.shortRep
         Right b: "Right " + b.shortRep
 
-    # Checks whether two `Either` values are equal. Returns `True` when both values are `Left` or both are `Right` and when the contained values are equal.
+    # Checks whether two `Either` values are equal.
+    # Returns `True` when both values are `Left` or both are `Right`
+    # and when the contained values are equal.
     def == that: case self of
         Left  a: if that.isLeft  then a.== that.left  else False
         Right b: if that.isRight then b.== that.right else False
 
-    # Runs the provided function on a `Right` value and returns `Left` values unchanged. `a.map f` is the same as `a.either id f`.
+    # Runs the provided function on a `Right` value and returns `Left` values unchanged.
+    # `a.map f` is the same as `a.either id f`.
     def map f: case self of
         Left  a: Left a
         Right b: Right (f b)
 
-    # Takes a function returning an `Either` and runs it when run on a `Right`. Returns the `Left` value unchangeds.
+    # Takes a function returning an `Either` and runs it when run on a `Right`.
+    # Returns the `Left` value unchangeds.
     def flatMap f: case self of
         Left  a: Left a
         Right b: f b
@@ -616,30 +1880,92 @@ class List a:
     Prepend a (List a)
 
     # Returns `Just` the first element when the list is not empty, `Nothing` otherwise.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = [1,2,3,4]
+    # >     b = a.head
+    # >     None
+    # 
+    # `returns`: `Just` the first element when the list is not empty,
+    #            `Nothing` otherwise.
     def head: case (self) of
         Empty: Nothing
         Prepend x xs: Just x
 
     # Returns `Just` the last element when the list is not empty, `Nothing` otherwise.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = [1,2,3,4]
+    # >     b = a.last
+    # >     None
+    # 
+    # `returns`: `Just` the last element when the list is not empty, `Nothing` otherwise.
     def last: case self of
         Prepend a Empty: Just a
         Prepend _ rest: rest.last
         Empty: Nothing
 
-    # Returns `Just` the list without the first element when the list is not empty, `Nothing` otherwise.
+    # Returns `Just` the list without the first element when the list is not empty,
+    # `Nothing` otherwise.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = [1,2,3,4]
+    # >     b = a.tail
+    # >     None
+    # 
+    # `returns`: `Just` the list without the first element when the list is not empty,
+    #            `Nothing` otherwise.
     def tail: case self of
         Empty: Nothing
         Prepend x xs: Just xs
 
     # Prepends an element to the list.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = [1,2,3,4]
+    # >     b = 11
+    # >     c = a.prepend b
+    # >     None
+    # 
+    # `a`: Element to prepend to `self` list.
+    # `returns`: `self` list prepended with `a` element.
     def prepend a: Prepend a self
 
     # Tests whether the list is empty.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = [1,2,3,4]
+    # >     b = a.isEmpty
+    # >     None
+    # 
+    # `returns`: `True` if list is empty, `False` otherwise.
     def isEmpty: case self of
         Empty: True
         Prepend x xs: False
 
     # Maps a function over each element of the list.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = [1,2,3,4]
+    # >     f = + 3
+    # >     b = a.map f
+    # >     None
+    # 
+    # `f`: Function to map over all elements of the `self` list.
+    # `returns`: List object with elements being result of applying `f` function
+    #            over `self` list.
     def map f: case (self) of
         Empty: Empty
         Prepend x xs: Prepend (f x) (xs.map f)
@@ -649,7 +1975,19 @@ class List a:
         Empty: None
         Prepend x xs: seq x xs.sequence
 
-    # Maps a function over each element of the list, immediately executing all side effects and returning a list of results.
+    # Maps a function over each element of the list, immediately executing
+    # all side effects and returning a list of results.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = [1, 2, 3, 4]
+    # >     f = + 3
+    # >     b = a.each f
+    # >     None
+    # 
+    # `f`: Function to map over all elements of the `self` list.
+    # `returns`: List object with elements being result of applying `f` function over `self` list.
     def each f: case (self) of
         Empty: Empty
         Prepend x xs:
@@ -657,32 +1995,107 @@ class List a:
             rest = xs . each f
             Prepend fst rest
 
-    # Returns the list prefix of a given length or the whole list, when the requested prefix is longer than the list.
+    # Returns the list prefix of a given length or the whole list,
+    # when the requested prefix is longer than the list.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = [1, 2, 3, 4]
+    # >     b = a.take 2
+    # >     None
+    # 
+    # `i`: Int value describing number of elements to take from `self` list.
+    # `returns`: List object containing first `i` elements from `self` list.
     def take i: case (self) of
         Empty: Empty
         Prepend x xs: switch (0 == i) Empty (Prepend x (xs.take i.pred))
 
-    # Returns the list without the prefix of a requested length, or an empty list if the number of dropped elements is larger than the list length.
+    # Returns the list without the prefix of a requested length, or an empty list
+    # if the number of dropped elements is larger than the list length.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = [1, 2, 3, 4]
+    # >     b = a.drop 2
+    # >     None
+    # 
+    # `i`: Int value describing number of elements to remove from `self` list.
+    # `returns`: New list object created by deleting first `i` elements from `self` list.
     def drop i: case (self) of
         Empty: Empty
         Prepend x xs: if 0.== i then self else xs . drop i.pred
 
-    # Returns `Just` the element at a given position in the list. Returns `Nothing` when the index does not exist.
+    # Returns `Just` the element at a given position in the list.
+    # Returns `Nothing` when the index does not exist.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = [1, 2, 3, 4]
+    # >     b = a.at 2
+    # >     None
+    # 
+    # `n`: Int value, index of value to return from `self` list.
+    # `returns`: `Just` the element at a given position in the `self` list,
+    #            `Nothing` when index does not exist.
     def at n: case (self) of
         Empty: Nothing
         Prepend x xs: if 0.== n then Just x else xs . at n.pred
 
-    # Returns the element at a given position in the list. Throws an error when the index does not exist.
+    # Returns the element at a given position in the list.
+    # Throws an error when the index does not exist.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = [1, 2, 3, 4]
+    # >     b = a.getAt 2
+    # >     None
+    # 
+    # `n`: Int value, index of value to return from `self` list.
+    # `returns`: The element at a given position in the `self` list.
     def getAt n: case self . at n of
         Just v: v
         Nothing: throw "List.getAt: Index out of range."
 
-    # Takes an initial value and a function. Returns the result of repeatedly calling the function on the next list element and the current accumulator.
+    # Takes an initial value and a function. Returns the result of repeatedly 
+    # calling the function on the next list element and the current accumulator.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = [1, 2, 3, 4]
+    # >     b = 10
+    # >     f = +
+    # >     c = a.fold b f
+    # >     None
+    # 
+    # `a`: Initial value.
+    # `f`: Function to call on `self` list.
+    # `returns`: The result of repeatedly calling the function on the next 
+    #            list element and the current accumulator.
     def fold a f: case (self) of
         Empty: a
         Prepend x xs: f x (xs.fold a f)
 
-    # Takes an initial value and a function. Returns the result of repeatedly calling the function on the next list element and the current accumulator.
+    # Takes an initial value and a function. Returns the result of repeatedly 
+    # calling the function on the next list element and the current accumulator.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = ["a", "b", "c", "d"]
+    # >     b = "foo"
+    # >     f = +
+    # >     c = a.foldLeft b f
+    # >     None
+    # 
+    # `a`: Initial value.
+    # `f`: Function to call on `self` list.
+    # `returns`: The result of repeatedly calling the function on the next list
+    #            element and the current accumulator.
     def foldLeft a f: case self of
         Empty: a
         Prepend x xs:
@@ -690,22 +2103,74 @@ class List a:
             xs . foldLeft na f
 
     # Reverses the list.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = ["a", "b", "c", "d"]
+    # >     b = "foo"
+    # >     f = +
+    # >     c = a.fold b f
+    # >     None
+    # 
+    # `a`: Initial value.
+    # `f`: Function to call on `self` list.
+    # `returns`: The result of repeatedly calling the function on the next list
+    #            element and the current accumulator.
     def reverse: self . foldLeft [] Prepend
 
     # List concatenation.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = [1,2,3,4]
+    # >     b = [10,11,12,13]
+    # >     c = a.+ b 
+    # >     None
+    # 
+    # `that`: List to concatenate with `self`.
+    # `returns`: List object, the result of concatenation `self` with `that` value.
     def + that: case (self) of
         Empty: that
         Prepend x xs: Prepend x (xs.+ that)
 
     # Computes the length of a list.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = [1,2,3,4]
+    # >     len = a.length 
+    # >     None
+    # 
+    # `returns`: Length of the `self` list.
     def length: case (self) of
         Empty: 0
         Prepend x xs: xs.length.succ
 
     # Short text representation of a list.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = [1,2,3,4]
+    # >     b = a.shortRep 
+    # >     None
+    # 
+    # `returns`: Short text representation of the `self` list.
     def shortRep: "List<" + self.length.shortRep + ">"
 
     # Text represenation of a list.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = [1,2,3,4]
+    # >     txt = a.toText 
+    # >     None
+    # 
+    # `returns`: Text representation of the `self` list.
     def toText: "[" + (self . makeText ", ") + "]"
 
     # Private.
@@ -714,6 +2179,17 @@ class List a:
         Prepend x xs: xs . prependAll it . prepend x . prepend it
 
     # Inserts an element between every two elements of a list.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = [1,2,3,4]
+    # >     b = "foo" 
+    # >     c = a.intersperse b
+    # >     None
+    # 
+    # `sep`: An element to insert.
+    # `returns`: The `self` list with `sep` between every two elements.
     def intersperse sep: case (self) of
         Empty: Empty
         Prepend x xs: xs . prependAll sep . prepend x
@@ -722,13 +2198,27 @@ class List a:
     def toJSON: JSONArray (self . map (x: x.toJSON))
 
     # Returns a list of all the elements for which the given predicate returns `True`.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = [1,2,3,4]
+    # >     f = < 3
+    # >     c = a.filter f
+    # >     None
+    # 
+    # `f`: Filtering function, should return Boolean value.
+    # `returns`: List object with elements of `self` fulfilling the `f` predicate.
     def filter f: case (self) of
          Empty: Empty
          Prepend x xs: switch (f x) (Prepend x (xs.filter f)) (xs.filter f)
 
     # Private.
     def merge cmp that: case Tuple2 self that of
-        Tuple2 (Prepend x xs) (Prepend y ys): if cmp y x then self . merge cmp ys . prepend y else xs . merge cmp that . prepend x
+        Tuple2 (Prepend x xs) (Prepend y ys): if cmp y x then self . merge cmp ys 
+                                                                   . prepend y else xs 
+                                                                   . merge cmp that 
+                                                                   . prepend x
         Tuple2 x Empty: x
         Tuple2 Empty y: y
 
@@ -768,7 +2258,8 @@ class List a:
     # ```
     def chunkBy f: self.privChunkBy Nothing f
 
-    # Groups the list into lists of values returning the same value of a given function. Requires the return value of the function to be ordered.
+    # Groups the list into lists of values returning the same value of a given function.
+    # Requires the return value of the function to be ordered.
     # For example:
     # ```
     # [1, 2, 3, 4, 2, 2].chunkBy (> 2)    # => [(False, [1, 2, 2, 2]), (True, [3, 4])]
@@ -777,6 +2268,15 @@ class List a:
         self . sortBy f . chunkBy f
 
     # Sorts the list in an increasing order.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = [7,1,4,3]
+    # >     b = a.sort
+    # >     None
+    # 
+    # `returns`: List object with elements of `self` in increasing order.
     def sort: self . sortBy id
 
     # Private.
@@ -785,82 +2285,250 @@ class List a:
     # Returns a list of all prefixes of the given list.
     def prefixes: self.privPrefixes 1
 
-    # Returns a list resulting from combining respective elements of two lists with the provided function. The length of the result is the length of the shorter of the lists.
+    # Returns a list resulting from combining respective elements of two lists with the provided function.
+    # The length of the result is the length of the shorter of the lists.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = [1,2,3]
+    # >     b = [10,11,12]
+    # >     c = a.zipWith (*) b
+    # >     None
+    # 
+    # `f`: Function to combine elements of `self` and `that` list.
+    # `that`: List object to combine with `self`.
+    # `returns`: List object with elements being a result of combining elements
+    #            from `self` and `that` list using function `f`.
     def zipWith f that: case Tuple2 self that of
         Tuple2 (Prepend x xs) (Prepend y ys): Prepend (f x y) (xs.zipWith f ys)
         Tuple2 x y: Empty
 
-    # Returns a list of pairs of respective elements of two lists. The length of the result is the length of the shorter of the lists.
+    # Returns a list of pairs of respective elements of two lists.
+    # The length of the result is the length of the shorter of the lists.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = [1,2,3]
+    # >     b = [10,11,12]
+    # >     c = a.zip b
+    # >     None
+    # 
+    # `l`: List object to combine with `self`.
+    # `returns`: List of pairs of respective elements of two lists - `self` and `l`.
     def zip l: self . zipWith Tuple2 l
 
     # Checks whether all elements of a list satisfy a provided predicate.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = [11,2,30]
+    # >     f = < 10
+    # >     c = a.all f
+    # >     None
+    # 
+    # `f`: Boolean valued function.
+    # `returns`: `True` if all of the `self` list elements statisfies predicate `f`,
+    #            `False` otherwise.
     def all f: case self of
         Empty: True
         Prepend x xs: if f x then xs . all f else False
 
     # Checks whether any element of a list satisfies a provided predicate.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = [11,2,30]
+    # >     f = < 10
+    # >     c = a.any f
+    # >     None
+    # 
+    # `f`: Boolean valued function.
+    # `returns`: `True` if any of the `self` list elements statisfies predicate `f`,
+    #            `False` otherwise.
     def any f: case self of
         Empty: False
         Prepend x xs: if f x then True else xs . any f
 
-    # List equality. Two lists are equal when they have the same length and their respective elements are equal.
+    # List equality. Two lists are equal when they have the same length 
+    # and their respective elements are equal.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = [11,2,30]
+    # >     b = [11,2,31]
+    # >     c = a.== b
+    # >     None
+    # 
+    # `that`: List to compare with `self`.
+    # `returns`: `True` when `self` and `that` have the same length and their 
+    #            respective elements are equal, `False` in any other case.
     def == that: case Tuple2 self that of
         Tuple2 Empty Empty: True
         Tuple2 (Prepend x xs) (Prepend y ys): if x.== y then xs.== ys else False
         other: False
 
     # Takes a list of `Maybes` and returns a list of all the `Just` elements.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = [Nothing, Just "foo", Just 10, Just "bar"]
+    # >     b = a.collect
+    # >     None
+    # 
+    # `returns`: List of all the `Just` elements from `self`.
     def collect: case self of
         Empty: Empty
         Prepend (Just x) xs: Prepend x xs.collect
         Prepend Nothing xs:  xs.collect
 
-    # Converts a list into text by converting each element to text and concatenating them using the provided separator.
+    # Converts a list into text by converting each element to text
+    # and concatenating them using the provided separator.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = [3, "little", "pigs"]
+    # >     b = " "
+    # >     c = a.makeText b
+    # >     None
+    # 
+    # `sep`: Separator.
+    # `returns`: Text object from `self` elements concatenated with `sep`.
     def makeText sep:
         self . each (_.toText) . intersperse sep . fold "" (+)
 
     # Takes a list of lists and concatenates them into a single list.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = [[1,2], [11,12], [21,22]]
+    # >     b = a.concat
+    # >     None
+    # 
+    # `returns`: Single list from `self`.
     def concat: case self of
         Empty: Empty
         Prepend Empty r: r.concat
         Prepend (Prepend x xs) ys: Prepend x (Prepend xs ys).concat
 
     # Maps a list-returning function over each element and concatenates the results.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = ["foo", "bar"]
+    # >     b = flatMap (_.characters)
+    # >     None
+    # 
+    # `f`: List-returning function.
+    # `returns`: List being a result of applying `f` to each element of 
+    #            `self` and concatenation.
     def flatMap f: self.map f . concat
 
     # Checks whether the list contains a given element.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = ["foo", "bar"]
+    # >     b = "baz"
+    # >     c = a.contais b
+    # >     None
+    # 
+    # `elem`: Element to check.
+    # `returns`: `True` if `self` contains `elem`, `False` otherwise.
     def contains elem: self.any (x: x == elem)
 
     # Returns the longest prefix of the list for which a given predicate is satisfied.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = [49,23,6,12,4,6,1,9]
+    # >     f = > 10
+    # >     b = a.takeWhile f
+    # >     None
+    # 
+    # `pred`: Boolean-valued function to check.
+    # `returns`: The longest prefix of the `self` list for which a given predicate
+    #            `pred` is satisfied.
     def takeWhile pred: case self of
         Empty: Empty
         Prepend a as:
             p = pred a
             if p then Prepend a (as.takeWhile pred) else []
 
-# Represents a dictionary from keys of given type to values of given type. The keys need to have ordering defined.
+# Represents a dictionary from keys of given type to values of given type.
+# The keys need to have ordering defined.
 class Map k v:
     Map
     Tip
     Bin Int k v (Map k v) (Map k v)
 
     # Returns an empty map.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = Map.empty
+    # >     None
+    # 
+    # `returns`: The empty map.
     def empty: Tip
 
     # Returns a map with a single element.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = Map.singleton "foo" 10
+    # >     None
+    # 
+    # `returns`: The map with single element.
     def singleton k v: Bin 1 k v Tip Tip
 
     # Tests whether the map is empty.
+    # > def main:
+    # >     a = Map.empty
+    # >     b = a.isEmpty
+    # >     None
+    # 
+    # `returns`: `True` if `self` is the empty map, `False` otherwise.
     def isEmpty: case self of
         Tip: True
         Bin s k v l r: False
 
     # Returns the number of values stored in the map.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = Map.singleton "foo" 10
+    # >     b = a.size
+    # >     None
+    # 
+    # `returns`: Int value, number of values stored in the `self` map.
     def size: case self of
         Tip: 0
         Bin s k v l r: s
 
     # Converts the map into a list of `(key, value)` pairs.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = Map.singleton "foo" 10
+    # >     b = a.toList
+    # >     None
+    # 
+    # `returns`: A list of (key, value) pairs from the `self` map.
     def toList: case self of
         Tip: Empty
         Bin s k v l r:
@@ -869,6 +2537,17 @@ class Map k v:
             left + ([(k, v)] + right)
 
     # Applies a function to each value in the map.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = Map.singleton "foo" 10
+    # >     f = * 10
+    # >     b = a.map f
+    # >     None
+    # 
+    # `f`: Function to map over all elements of the `self` map.
+    # `returns`: Map object with elements being result of applying `f` function over `self` map.
     def map f: case self of
         Tip: Tip
         Bin s k v l r: Bin s k (f v) (l . map f) (r . map f)
@@ -879,6 +2558,17 @@ class Map k v:
     def toText: self . toList . toText
 
     # Looks up an element for a given key.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = Map.singleton "foo" 10
+    # >     b = a.lookup "foo"
+    # >     None
+    # 
+    # `k`: Key in `self` map to lookup for.
+    # `returns`: `Just` value for the key `k` from `self` map if the key exist.
+                 `Nothing` if the `k` key is not present in the `self` map.
     def lookup k:
         case self of
             Tip: Nothing
@@ -886,11 +2576,35 @@ class Map k v:
                 if kx.== k then Just x else (if kx > k then l.lookup k else r.lookup k)
 
     # Gets an element for a given key. Throws an exception when the key is not present in the Map.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = Map.singleton "foo" 10
+    # >     b = a.get "foo"
+    # >     None
+    # 
+    # `k`: Key in `self` map to lookup for.
+    # `returns`: Value for the key `k` from `self` map if the `k` exist.
+    #            Throws an exception when the `k` key is not present in the `self` Map.
     def get k: case self . lookup k of
         Just v: v
         Nothing: throw "Map.get: key not found"
 
     # Inserts an element at a given key.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = Map.singleton "foo" 10
+    # >     k = "bar"
+    # >     v = 23
+    # >     b = a.insert k v
+    # >     None
+    # 
+    # `k`: Key for a new element to insert to `self` map.
+    # `v`: Value for a new element to insert to `self` map.
+    # `returns`: Map containing elements of the `self` map and a newly inserted element.
     def insert k v: case self of
         Tip: Bin 1 k v Tip Tip
         Bin s ky y l r: case (ky == k) of
@@ -903,7 +2617,19 @@ class Map k v:
                     newR = r.insert k v
                     Map.bin ky y l newR
 
-    # Map equality. Two maps are equal when they contain the same keys and the elements associated with each key are equal.
+    # Map equality. Two maps are equal when they contain the same keys
+    # and the elements associated with each key are equal.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = Map.singleton "foo" 10
+    # >     b = Map.singleton "bar" 10
+    # >     c = a.== b
+    # >     None
+    # 
+    # `b`: Map to compare with `self` map.
+    # `returns`: `True` if two maps are equal, `False` otherwise.
     def == that:
         s = self.toList
         t = that.toList
@@ -1007,7 +2733,19 @@ class Map k v:
                 (km, vm, r') = that . minView
                 Map.bin km vm self r' . balanceR
 
-    # Deletes a key from the given map. If the the key is missing, it returns the original map.
+    # Deletes a key from the given map. If the the key is missing,
+    # it returns the original map.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = Map.singleton "foo" 10
+    # >     b = a.delete "foo"
+    # >     None
+    # 
+    # `key`: Key to delete from `self` map.
+    # `returns`: Map containing elements of the `self` map without `key`.
+                 If the the key is missing, it returns the `self` map.
     def delete key: case self of
         Tip: Tip
         Bin _ k v l r: case key == k of
@@ -1051,10 +2789,30 @@ class JSON:
 
     # Parses a `Text` into a `JSON` object. Returns `Left` containing error
     # message when the `Text` does not contain a valid `JSON` object.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = '{"foo":10, "bar":20}'
+    # >     b = JSON.safeParse a
+    # >     None
+    # 
+    # `data`: Text to parse as `JSON` object.
+    # `returns`: `Either` `JSON` object or an error.
     def safeParse data: parseJSON (data.toText)
 
     # Parses a `Text` into a `JSON` object. Throws an error when the `Text`
     # does not contain a valid `JSON` object.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     txt = '{"foo":10, "bar":20}'
+    # >     json = JSON.parse txt
+    # >     None
+    # 
+    # `data`: Text to parse as `JSON` object.
+    # `returns`: `JSON` object or an error.
     def parse data: case JSON.safeParse data of
        Right json: json
        Left err:   errorStr err
@@ -1063,24 +2821,85 @@ class JSON:
     def toJSON: self
 
     # Dumps a `JSON` structure into a `Text` object.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = JSON.empty
+    # >     b = a.insert "foo" 10
+    # >     txt = b.toText
+    # >     None
+    # 
+    # `returns`: Text representation of `self` `JSON` object.
     def toText: renderJSON self
 
     # Dumps a `JSON` structure into a `Binary` object, by rendering it
     # into `Text` and converting it to `Binary`.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = JSON.empty
+    # >     b = a.insert "foo" 10
+    # >     binary = b.toBinary
+    # >     None
+    # 
+    # `returns`: Binary representation of `self` `JSON` object.
     def toBinary: self.toText.toBinary
 
     # Dumps a `JSON` structure into a `Text` object.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = JSON.empty
+    # >     b = a.insert "foo" 10
+    # >     txt = b.render
+    # >     None
+    # 
+    # `returns`: Text representation of `self` `JSON` object.
     def render: self.toText
 
     # Short text representation for a `JSON` object.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = JSON.empty
+    # >     b = a.insert "foo" 10
+    # >     c = b.shortRep
+    # >     None
+    # 
+    # `returns`: Short text representation of `self` `JSON` object.
     def shortRep: self.render
 
-    # Returns an empty `JSON` object
+    # Returns an empty `JSON` object.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = JSON.empty
+    # >     None
+    # 
+    # `returns`: An empty `JSON` object.
     def empty: JSONObject Tip
 
     # Tests two `JSON` objects for equality.
     # JSON objects are considered equal if they represent the same kind of data
     # and if stored data (when present) in both objects compares equal.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     txt1 = '{"bar":20}'
+    # >     json1 = JSON.parse txt1
+    # >     txt2 = '{"bar":20}'
+    # >     json2 = JSON.parse txt2
+    # >     isEqual = json1.== json2
+    # >     None
+    # 
+    # `that`: `JSON` object to compare with `self`.
+    # `returns`: `True` if `that` is equal with `self`, `False` otherwise.
     def == that:
         case (self, that) of
             (JSONNumber d, JSONNumber thatD): d.== thatD
@@ -1093,27 +2912,90 @@ class JSON:
 
     # Inserts a value for a given key into the `JSON` object.
     # Throws an exception when the `JSON` does not represent an object.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     a = JSON.empty
+    # >     k = "foo"
+    # >     v = 10
+    # >     b = a.insert k v
+    # >     None
+    # 
+    # `k`: A key for a value to insert to `self` JSON object.
+    # `v`: A value to insert to `self` JSON object.
+    # `returns`: A `JSON` object containing elements from `self` object and newly inserted element.
     def insert k v: case self of
         JSONObject m: JSONObject (m . insert k v.toJSON)
         _: throw "JSON.insert: not an object."
 
     # Deletes a value for a given key from the `JSON` object. Does nothing when
     # the `JSON` does not represent an object or does not contain the key.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     txt1 = '{"bar":20, "foo": 10}'
+    # >     json1 = JSON.parse txt1
+    # >     k = "bar"
+    # >     json2 = json1.delete k
+    # >     None
+    # 
+    # `k`: Key for value to delete from `self`.
+    # `returns`: `JSON` object with `self` object elements despite the value with the key `k`.
     def delete k: case self of
         JSONObject m: JSONObject (m.delete k)
         _: self
 
     # Returns `Just` the value associated with a given key. Returns `Nothing`
     # when the `JSON` is not an object or when the key is missing.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     txt = '{"bar":20, "foo": 10}'
+    # >     json = JSON.parse txt
+    # >     k = "bar"
+    # >     maybeValue = json.lookup k
+    # >     None
+    # 
+    # `key`: Key to lookup in `self`.
+    # `returns`: `Just` the value associated with the `key`, 
+    #            `Nothing` if the `JSON` is not an object or when the `key` is missing.
     def lookup key: case self of
         JSONObject m: m.lookup key
         other: Nothing
 
     # Checks if given key is present in the structure.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     txt = '{"bar":20, "foo": 10}'
+    # >     json = JSON.parse txt
+    # >     k = "bar"
+    # >     hasKey = json.has k
+    # >     None
+    # 
+    # `key`: Key to check in `self`.
+    # `returns`: `True` if the `key` is present in `self` structure, `False` otherwise.
     def has key: self . lookup key . isJust
 
     # Returns the value associated with a given key. Throws an error when
     # the `JSON` is not an object or the key is missing.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     txt = '{"bar":20, "foo": 10}'
+    # >     json = JSON.parse txt
+    # >     k = "bar"
+    # >     value = json.get k
+    # >     None
+    # 
+    # `key`: Key to lookup in `self`.
+    # `returns`: The value associated with the `key`, 
+    #            an error if the `JSON` is not an object or when the `key` is missing.
     def get key: case self of
         JSONObject m: case m.lookup key of
             Just v: v
@@ -1122,72 +3004,198 @@ class JSON:
 
     # Returns a `Map` from `Text` to `JSON`, assuming the `JSON` represents
     # an object. Throws an error otherwise.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     txt = '{"bar":20, "foo": 10}'
+    # >     json = JSON.parse txt
+    # >     object = json.asObject
+    # >     None
+    # 
+    # `returns`: A `Map` from `Text` to `JSON`, assuming the `self` represents
+    #            an object. Throws an error otherwise.
     def asObject: case self of
         JSONObject m: m
         other: throw "JSON.asObject: not an object."
 
     # Returns a `Text` assuming the `JSON` represents text.
     # Throws an error otherwise.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     json = JSONString "foo"
+    # >     txt = json.asText
+    # >     None
+    # 
+    # `returns`: A `Text` assuming the `JSON` represents text.
+    #            Throws an error otherwise.
     def asText: case self of
         JSONString t: t
         other: throw "JSON.asText: not a text."
 
     # Returns a `Real` assuming the `JSON` represents a number.
     # Throws an error otherwise.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     scientificNumber = Scientific 10 0
+    # >     json = JSONNumber scientificNumber
+    # >     number = json.asReal
+    # >     None
+    # 
+    # `returns`: A `Real` assuming the `JSON` represents number.
+    #            Throws an error otherwise.
     def asReal: case self of
         JSONNumber a: a.toReal
         other: throw "JSON.asReal: not a number."
 
     # Returns an `Int` assuming the `JSON` represents a number and it
     # didn't contain a decimal point. Throws an error otherwise.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     scientificNumber = Scientific 10 0
+    # >     json = JSONNumber scientificNumber
+    # >     int = json.asInt
+    # >     None
+    # 
+    # `returns`: A `Int` assuming the `JSON` represents number and it
+    #            didn't contain a decimal point. Throws an error otherwise.
     def asInt: case self of
         JSONNumber a: a.toInt
         other: throw "JSON.asInt: not a number"
 
     # Returns a `Bool` assuming the `JSON` represents a boolean.
     # Throws an error otherwise.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     json = JSONBool False
+    # >     bool = json.asBool
+    # >     None
+    # 
+    # `returns`: A `Bool` assuming the `JSON` represents a boolean.
+    #            Throws an error otherwise.
     def asBool: case self of
         JSONBool a: a
         other: throw "JSON.asBool: not a boolean."
 
     # Returns a list of `JSON` object assuming the `JSON` represents an array.
     # Throws an error otherwise.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     json = JSONArray [JSONString "a", JSONString "b"]
+    # >     list = json.asList
+    # >     None
+    # 
+    # `returns`: A list of `JSON` object assuming the `JSON` represents an array.
+    #            Throws an error otherwise.
     def asList: case self of
         JSONArray a: a
         other: throw "JSON.asList: not a list."
 
     # Returns `Just` a `Map` from `Text` to `JSON`, assuming the `JSON`
     # represents an object. Returns `Nothing` otherwise.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     txt = '{"bar":20, "foo": 10}'
+    # >     json = JSON.parse txt
+    # >     object = json.safeAsObject
+    # >     None
+    # 
+    # `returns`: `Just` a `Map` from `Text` to `JSON`, assuming the `JSON`
+    #            represents an object. `Nothing` otherwise.
     def safeAsObject: case self of
         JSONObject m: Just m
         other: Nothing
 
     # Returns `Just` a `Text` assuming the `JSON` represents text.
     # Returns `Nothing` otherwise.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     json = JSONString "foo"
+    # >     txt = json.safeAsText
+    # >     None
+    # 
+    # `returns`: `Just` a `Text` assuming the `JSON` represents text.
+    #            `Nothing` otherwise.
     def safeAsText: case self of
         JSONString t: Just t
         other: Nothing
 
     # Returns `Just` a `Real` assuming the `JSON` represents a number.
     # Returns `Nothing` otherwise.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     scientificNumber = Scientific 10 0
+    # >     json = JSONNumber scientificNumber
+    # >     number = json.safeAsReal
+    # >     None
+    # 
+    # `returns`: `Just` a `Real` assuming the `JSON` represents a number.
+    #            `Nothing` otherwise.
     def safeAsReal: case self of
         JSONNumber a: Just a.toReal
         other: Nothing
 
     # Returns `Just` an `Int` assuming the `JSON` represents a number and it
     # didn't contain a decimal point. Returns `Nothing` otherwise.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     scientificNumber = Scientific 10 0
+    # >     json = JSONNumber scientificNumber
+    # >     number = json.safeAsInt
+    # >     None
+    # 
+    # `returns`: `Just` an `Int` assuming the `JSON` represents a number and it
+    #            didn't contain a decimal point. `Nothing` otherwise.
     def safeAsInt: case self of
         JSONNumber a: Just a.toInt
         other: Nothing
 
     # Returns `Just` a `Bool` assuming the `JSON` represents a boolean.
     # Returns `Nothing` otherwise.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     json = JSONBool False
+    # >     bool = json.safeAsBool
+    # >     None
+    # 
+    # `returns`: `Just` a `Bool` assuming the `JSON` represents a boolean.
+    #            `Nothing` otherwise.
     def safeAsBool: case self of
         JSONBool a: Just a
         other: Nothing
 
     # Returns `Just` a list of `JSON` object assuming the `JSON` represents
     # an array. Returns `Nothing` otherwise.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     json = JSONArray [JSONString "a", JSONString "b"]
+    # >     list = json.safeAsList
+    # >     None
+    # 
+    # `returns`: `Just` a list of `JSON` object assuming the `JSON` represents
+    #            an array. `Nothing` otherwise.
     def safeAsList: case self of
         JSONArray a: Just a
         other: Nothing
@@ -1195,69 +3203,222 @@ class JSON:
     # Gets a `Map` from `Text` to `JSON` associated with a given key.
     # Throws an error when the `JSON` is not an object, the key is not present
     # or the associated value is not an object.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     txt = '{"a": {"bar":20, "foo": 10}, "b": {"bar":220, "foo": 110}}'
+    # >     json = JSON.parse txt
+    # >     object = json.getObject "a"
+    # >     None
+    # 
+    # `k`: Key to lookup in `self`.
+    # `returns`: A `Map` from `Text` to `JSON` associated with a given key.
     def getObject k: self . get k . asObject
 
     # Gets a `Text` associated with a given key.
     # Throws an error when the `JSON` is not an object, the key is not present
     # or the associated value is not a text.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     txt = '{"bar":"a", "foo": "b"}'
+    # >     json = JSON.parse txt
+    # >     txt = json.getText "foo"
+    # >     None
+    # 
+    # `k`: Key to lookup in `self`.
+    # `returns`: A `Text` associated with a given key.
     def getText k: self . get k . asText
 
     # Gets a `Real` associated with a given key. Throws an error when
     # the `JSON` is not an object, the key is not present
     # or the associated value is not a number.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     txt = '{"bar": 20.0, "foo": 10.5}'
+    # >     json = JSON.parse txt
+    # >     number = json.getReal "bar"
+    # >     None
+    # 
+    # `k`: Key to lookup in `self`.
+    # `returns`: A`Real` associated with a given key.
     def getReal k: self . get k . asReal
 
     # Gets an `Int` associated with a given key. Throws an error when the
     # `JSON` is not an object, the key is not present or the associated value
     # is not an integer.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     txt = '{"bar": 20, "foo": 10}'
+    # >     json = JSON.parse txt
+    # >     number = json.getInt "bar"
+    # >     None
+    # 
+    # `k`: Key to lookup in `self`.
+    # `returns`: An `Int` associated with a given key.
     def getInt k: self . get k . asInt
 
     # Gets a `Bool` associated with a given key. Throws an error when the
     # `JSON` is not an object, the key is not present or the associated value
     # is not a boolean.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     txt = '{"bar": True, "foo": 10}'
+    # >     json = JSON.parse txt
+    # >     bool = json.getBool "bar"
+    # >     None
+    # 
+    # `k`: Key to lookup in `self`.
+    # `returns`: A `Bool` associated with a given key.
     def getBool k: self . get k . asBool
 
     # Gets a `List` of `JSON` values associated with a given key. Throws
     # an error when the `JSON` is not an object, the key is not present
     # or the associated value is not an array.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     txt = '{"foo": [1, 2, 2]}'
+    # >     json = JSON.parse txt
+    # >     list = json.getList "foo"
+    # >     None
+    # 
+    # `k`: Key to lookup in `self`.
+    # `returns`: A `List` of `JSON` values associated with a given key.
     def getList k: self . get k . asList
 
     # Looks up a `Map` from `Text` to `JSON` associated with a given key.
     # Returns `Nothing` when the `JSON` is not an object, the key is not
     # present or the associated value is not an object.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     txt = '{"a": {"bar":20, "foo": 10}, "b": {"bar":220, "foo": 110}}'
+    # >     json = JSON.parse txt
+    # >     object = json.lookupObject "a"
+    # >     None
+    # 
+    # `k`: Key to lookup in `self`.
+    # `returns`: `Just` `Map` from `Text` to `JSON` associated with a given key.
     def lookupObject k: self . lookup k . flatMap .safeAsObject
 
     # Looks up a `Text` associated with a given key. Returns `Nothing` when
     # the `JSON` is not an object, the key is not present or the associated
     # value is not a text.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     txt = '{"bar":"a", "foo": "b"}'
+    # >     json = JSON.parse txt
+    # >     txt = json.lookupText "foo"
+    # >     None
+    # 
+    # `k`: Key to lookup in `self`.
+    # `returns`: `Just` `Text` associated with a given key.
     def lookupText k: self . lookup k . flatMap .safeAsText
 
     # Looks up a `Real` associated with a given key. Returns `Nothing` when
     # the `JSON` is not an object, the key is not present or the associated
     # value is not a number.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     txt = '{"bar": 20.0, "foo": 10.5}'
+    # >     json = JSON.parse txt
+    # >     number = json.lookupReal "bar"
+    # >     None
+    # 
+    # `k`: Key to lookup in `self`.
+    # `returns`: `Just` `Real` associated with a given key.
     def lookupReal k: self . lookup k . flatMap .safeAsReal
 
     # Looks up an `Int` associated with a given key. Returns `Nothing` when
     # the `JSON` is not an object, the key is not present or the associated
     # value is not an integer.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     txt = '{"bar": 20, "foo": 10}'
+    # >     json = JSON.parse txt
+    # >     number = json.lookupInt "bar"
+    # >     None
+    # 
+    # `k`: Key to lookup in `self`.
+    # `returns`: `Just` `Int` associated with a given key.
     def lookupInt k: self . lookup k . flatMap .safeAsInt
 
     # Looks up a `Bool` associated with a given key. Returns `Nothing` when
     # the `JSON` is not an object, the key is not present or the associated
     # value is not a boolean.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     txt = '{"bar": True, "foo": 10}'
+    # >     json = JSON.parse txt
+    # >     bool = json.lookupBool "bar"
+    # >     None
+    # 
+    # `k`: Key to lookup in `self`.
+    # `returns`: `Just` `Bool` associated with a given key.
     def lookupBool k: self . lookup k . flatMap .safeAsBool
 
     # Looks up a `List` of `JSON` values associated with a given key.
     # Returns `Nothing` when the `JSON` is not an object, the key is not
     # present or the associated value is not an array.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     txt = '{"foo": [1, 2, 2]}'
+    # >     json = JSON.parse txt
+    # >     list = json.lookupList "foo"
+    # >     None
+    # 
+    # `returns`: `Just` `List` of `JSON` values associated with a given key.
     def lookupList k: self . lookup k . flatMap .safeAsList
 
     # Returns `Just` the element with a given index assuming the `JSON`
     # represents an array and the index is in range. Returns `Nothing` otherwise.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     json = JSONArray [JSONString "a", JSONString "b"]
+    # >     list = json.at 1
+    # >     None
+    # 
+    # `n`: Index of element to get.
+    # `returns`: `Just` the element with a given index assuming the `JSON`
+    #            represents an array and the index is in range, `Nothing` otherwise.
     def at n: self . safeAsList . flatMap (_.at n)
 
     # Returns the element with a given index assuming the `JSON` represents
     # an array and the index is in range. Throws an error otherwise.
+    #
+    # > import Std.Base 
+    # > 
+    # > def main:
+    # >     json = JSONArray [JSONString "a", JSONString "b"]
+    # >     list = json.at 1
+    # >     None
+    # 
+    # `n`: Index of element to get.
+    # `returns`: The element with a given index assuming the `JSON`
+    #            represents an array and the index is in range, throws an error otherwise.
     def getAt n: self . asList . getAt n
 
 # Creates an empty MVar object.
@@ -1286,7 +3447,8 @@ native class MVar a:
     # Calling this on an empty `MVar` suspends the thread until the value is put in it.
     def read:  primReadMVar self
 
-    # Puts a value inside the `MVar`. Calling this method on a non-empty `MVar` suspends the thread until the old value is taken out.
+    # Puts a value inside the `MVar`. Calling this method on a non-empty `MVar`
+    # suspends the thread until the old value is taken out.
     def put v: primPutMVar  self v
 
 # `Stream` represents an infinite data source, with a list-like API.
@@ -1296,19 +3458,23 @@ class Stream a:
 
     def isStream: True
 
-    # Runs a function on each element of the stream, immediately executing all side effects. Due to the stream being infinite, this function never terminates.
+    # Runs a function on each element of the stream, immediately executing all side effects.
+    # Due to the stream being infinite, this function never terminates.
     def each f: case self of
         Stream elt s:
             f elt
             s.each f
 
-    # Takes an initial value and function. Returns a stream resulting from calling the function repeatedly on the next element of the stream and the previously accumulated value.
+    # Takes an initial value and function. Returns a stream resulting from calling the function repeatedly
+    # on the next element of the stream and the previously accumulated value.
     def foldFrom a f: case self of
         Stream elt s:
             new = f elt a
             Stream new (s.foldFrom new f)
 
-    # Takes a function and returns a stream resulting from calling the function repeatedly on the next element of the stream and the previously accumulated value, where the first accumulated value is the first element in the stream.
+    # Takes a function and returns a stream resulting from calling the function repeatedly 
+    # on the next element of the stream and the previously accumulated value, where the first accumulated value
+    # is the first element in the stream.
     def fold f: case self of
         Stream elt s: s.foldFrom elt f
 
@@ -1325,7 +3491,8 @@ class Stream a:
                     (elems, stream) = s.consume (n - 1)
                     (Prepend elt elems, stream)
 
-    # Returns the longest prefix in which all elements satisfy the given predicate, and the result of dropping this prefix from the original stream.
+    # Returns the longest prefix in which all elements satisfy the given predicate, 
+    # and the result of dropping this prefix from the original stream.
     def consumeWhile f: case self of
         Stream elt s:
             case (f elt) of
@@ -1346,10 +3513,12 @@ class Stream a:
     # Drops the longest prefix of stream in which all elements satisfy the given predicate.
     def dropWhile f: self.consumeWhile f . second
 
-    # Evaluates all actions associated with stream elements sequentially. Due to the stream being infinite, this function never terminates.
+    # Evaluates all actions associated with stream elements sequentially. 
+    # Due to the stream being infinite, this function never terminates.
     def eval: self.each id
 
-    # Returns a stream containing the same values as the original stream, but produces them no more often than the given time interval.
+    # Returns a stream containing the same values as the original stream, 
+    # but produces them no more often than the given time interval.
     def rateLimit timeInterval:
         everyWithState timeInterval (s: (s.head, s.tail)) self
 
@@ -1408,7 +3577,8 @@ def writeFile f c: primWriteFile (expandPath f) c
 # Takes a Text and throws it as an error.
 def throw e: errorStr e
 
-# Takes a value and a function from Text to value. Returns the value if it was correct or calls the function if the value was erroneous.
+# Takes a value and a function from Text to value.
+# Returns the value if it was correct or calls the function if the value was erroneous.
 def catch v f: case runError v of
     Left e:  f e
     Right d: d
