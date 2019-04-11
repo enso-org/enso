@@ -1605,7 +1605,9 @@ class Tuple4 a b c d:
     # `that`: Tuple to compare with `self`.
     # `returns`: `True` if `self` and `that` are equal, `False` otherwise.
     def == that: case that of
-        Tuple4 a b c d: self.first.== a . and (self.second.== b) . and (self.third.== c) . and (self.fourth.== d)
+        Tuple4 a b c d: self.first.== a . and (self.second.== b) 
+                                        . and (self.third.== c) 
+                                        . and (self.fourth.== d)
         other:        False
 
 # The basic optional type in Luna. The value of this class can either be a `Nothing` 
@@ -1853,17 +1855,21 @@ class Either a b:
         Left  a: "Left " + a.shortRep
         Right b: "Right " + b.shortRep
 
-    # Checks whether two `Either` values are equal. Returns `True` when both values are `Left` or both are `Right` and when the contained values are equal.
+    # Checks whether two `Either` values are equal.
+    # Returns `True` when both values are `Left` or both are `Right`
+    # and when the contained values are equal.
     def == that: case self of
         Left  a: if that.isLeft  then a.== that.left  else False
         Right b: if that.isRight then b.== that.right else False
 
-    # Runs the provided function on a `Right` value and returns `Left` values unchanged. `a.map f` is the same as `a.either id f`.
+    # Runs the provided function on a `Right` value and returns `Left` values unchanged.
+    # `a.map f` is the same as `a.either id f`.
     def map f: case self of
         Left  a: Left a
         Right b: Right (f b)
 
-    # Takes a function returning an `Either` and runs it when run on a `Right`. Returns the `Left` value unchangeds.
+    # Takes a function returning an `Either` and runs it when run on a `Right`.
+    # Returns the `Left` value unchangeds.
     def flatMap f: case self of
         Left  a: Left a
         Right b: f b
@@ -1882,7 +1888,8 @@ class List a:
     # >     b = a.head
     # >     None
     # 
-    # `returns`: `Just` the first element when the list is not empty, `Nothing` otherwise.
+    # `returns`: `Just` the first element when the list is not empty,
+    #            `Nothing` otherwise.
     def head: case (self) of
         Empty: Nothing
         Prepend x xs: Just x
@@ -1902,7 +1909,8 @@ class List a:
         Prepend _ rest: rest.last
         Empty: Nothing
 
-    # Returns `Just` the list without the first element when the list is not empty, `Nothing` otherwise.
+    # Returns `Just` the list without the first element when the list is not empty,
+    # `Nothing` otherwise.
     #
     # > import Std.Base 
     # > 
@@ -1911,7 +1919,8 @@ class List a:
     # >     b = a.tail
     # >     None
     # 
-    # `returns`: `Just` the list without the first element when the list is not empty, `Nothing` otherwise.
+    # `returns`: `Just` the list without the first element when the list is not empty,
+    #            `Nothing` otherwise.
     def tail: case self of
         Empty: Nothing
         Prepend x xs: Just xs
@@ -1955,7 +1964,8 @@ class List a:
     # >     None
     # 
     # `f`: Function to map over all elements of the `self` list.
-    # `returns`: List object with elements being result of applying `f` function over `self` list.
+    # `returns`: List object with elements being result of applying `f` function
+    #            over `self` list.
     def map f: case (self) of
         Empty: Empty
         Prepend x xs: Prepend (f x) (xs.map f)
@@ -1985,7 +1995,8 @@ class List a:
             rest = xs . each f
             Prepend fst rest
 
-    # Returns the list prefix of a given length or the whole list, when the requested prefix is longer than the list.
+    # Returns the list prefix of a given length or the whole list,
+    # when the requested prefix is longer than the list.
     #
     # > import Std.Base 
     # > 
@@ -2000,7 +2011,8 @@ class List a:
         Empty: Empty
         Prepend x xs: switch (0 == i) Empty (Prepend x (xs.take i.pred))
 
-    # Returns the list without the prefix of a requested length, or an empty list if the number of dropped elements is larger than the list length.
+    # Returns the list without the prefix of a requested length, or an empty list
+    # if the number of dropped elements is larger than the list length.
     #
     # > import Std.Base 
     # > 
@@ -2015,7 +2027,8 @@ class List a:
         Empty: Empty
         Prepend x xs: if 0.== i then self else xs . drop i.pred
 
-    # Returns `Just` the element at a given position in the list. Returns `Nothing` when the index does not exist.
+    # Returns `Just` the element at a given position in the list.
+    # Returns `Nothing` when the index does not exist.
     #
     # > import Std.Base 
     # > 
@@ -2025,12 +2038,14 @@ class List a:
     # >     None
     # 
     # `n`: Int value, index of value to return from `self` list.
-    # `returns`: `Just` the element at a given position in the `self` list, `Nothing` when index does not exist.
+    # `returns`: `Just` the element at a given position in the `self` list,
+    #            `Nothing` when index does not exist.
     def at n: case (self) of
         Empty: Nothing
         Prepend x xs: if 0.== n then Just x else xs . at n.pred
 
-    # Returns the element at a given position in the list. Throws an error when the index does not exist.
+    # Returns the element at a given position in the list.
+    # Throws an error when the index does not exist.
     #
     # > import Std.Base 
     # > 
@@ -2045,7 +2060,8 @@ class List a:
         Just v: v
         Nothing: throw "List.getAt: Index out of range."
 
-    # Takes an initial value and a function. Returns the result of repeatedly calling the function on the next list element and the current accumulator.
+    # Takes an initial value and a function. Returns the result of repeatedly 
+    # calling the function on the next list element and the current accumulator.
     #
     # > import Std.Base 
     # > 
@@ -2058,12 +2074,14 @@ class List a:
     # 
     # `a`: Initial value.
     # `f`: Function to call on `self` list.
-    # `returns`: The result of repeatedly calling the function on the next list element and the current accumulator.
+    # `returns`: The result of repeatedly calling the function on the next 
+    #            list element and the current accumulator.
     def fold a f: case (self) of
         Empty: a
         Prepend x xs: f x (xs.fold a f)
 
-    # Takes an initial value and a function. Returns the result of repeatedly calling the function on the next list element and the current accumulator.
+    # Takes an initial value and a function. Returns the result of repeatedly 
+    # calling the function on the next list element and the current accumulator.
     #
     # > import Std.Base 
     # > 
@@ -2076,7 +2094,8 @@ class List a:
     # 
     # `a`: Initial value.
     # `f`: Function to call on `self` list.
-    # `returns`: The result of repeatedly calling the function on the next list element and the current accumulator.
+    # `returns`: The result of repeatedly calling the function on the next list
+    #            element and the current accumulator.
     def foldLeft a f: case self of
         Empty: a
         Prepend x xs:
@@ -2096,7 +2115,8 @@ class List a:
     # 
     # `a`: Initial value.
     # `f`: Function to call on `self` list.
-    # `returns`: The result of repeatedly calling the function on the next list element and the current accumulator.
+    # `returns`: The result of repeatedly calling the function on the next list
+    #            element and the current accumulator.
     def reverse: self . foldLeft [] Prepend
 
     # List concatenation.
@@ -2195,7 +2215,10 @@ class List a:
 
     # Private.
     def merge cmp that: case Tuple2 self that of
-        Tuple2 (Prepend x xs) (Prepend y ys): if cmp y x then self . merge cmp ys . prepend y else xs . merge cmp that . prepend x
+        Tuple2 (Prepend x xs) (Prepend y ys): if cmp y x then self . merge cmp ys 
+                                                                   . prepend y else xs 
+                                                                   . merge cmp that 
+                                                                   . prepend x
         Tuple2 x Empty: x
         Tuple2 Empty y: y
 
@@ -2235,7 +2258,8 @@ class List a:
     # ```
     def chunkBy f: self.privChunkBy Nothing f
 
-    # Groups the list into lists of values returning the same value of a given function. Requires the return value of the function to be ordered.
+    # Groups the list into lists of values returning the same value of a given function.
+    # Requires the return value of the function to be ordered.
     # For example:
     # ```
     # [1, 2, 3, 4, 2, 2].chunkBy (> 2)    # => [(False, [1, 2, 2, 2]), (True, [3, 4])]
@@ -2261,7 +2285,7 @@ class List a:
     # Returns a list of all prefixes of the given list.
     def prefixes: self.privPrefixes 1
 
-    # Returns a list resulting from combining respective elements of two lists with the provided function. 
+    # Returns a list resulting from combining respective elements of two lists with the provided function.
     # The length of the result is the length of the shorter of the lists.
     #
     # > import Std.Base 
@@ -2274,7 +2298,8 @@ class List a:
     # 
     # `f`: Function to combine elements of `self` and `that` list.
     # `that`: List object to combine with `self`.
-    # `returns`: List object with elements being a result of combining elements from `self` and `that` list using function `f`.
+    # `returns`: List object with elements being a result of combining elements
+    #            from `self` and `that` list using function `f`.
     def zipWith f that: case Tuple2 self that of
         Tuple2 (Prepend x xs) (Prepend y ys): Prepend (f x y) (xs.zipWith f ys)
         Tuple2 x y: Empty
@@ -2305,7 +2330,8 @@ class List a:
     # >     None
     # 
     # `f`: Boolean valued function.
-    # `returns`: `True` if all of the `self` list elements statisfies predicate `f`, `False` otherwise.
+    # `returns`: `True` if all of the `self` list elements statisfies predicate `f`,
+    #            `False` otherwise.
     def all f: case self of
         Empty: True
         Prepend x xs: if f x then xs . all f else False
@@ -2321,12 +2347,14 @@ class List a:
     # >     None
     # 
     # `f`: Boolean valued function.
-    # `returns`: `True` if any of the `self` list elements statisfies predicate `f`, `False` otherwise.
+    # `returns`: `True` if any of the `self` list elements statisfies predicate `f`,
+    #            `False` otherwise.
     def any f: case self of
         Empty: False
         Prepend x xs: if f x then True else xs . any f
 
-    # List equality. Two lists are equal when they have the same length and their respective elements are equal.
+    # List equality. Two lists are equal when they have the same length 
+    # and their respective elements are equal.
     #
     # > import Std.Base 
     # > 
@@ -2337,7 +2365,8 @@ class List a:
     # >     None
     # 
     # `that`: List to compare with `self`.
-    # `returns`: `True` when `self` and `that` have the same length and their respective elements are equal, `False` in any other case.
+    # `returns`: `True` when `self` and `that` have the same length and their 
+    #            respective elements are equal, `False` in any other case.
     def == that: case Tuple2 self that of
         Tuple2 Empty Empty: True
         Tuple2 (Prepend x xs) (Prepend y ys): if x.== y then xs.== ys else False
@@ -2358,7 +2387,8 @@ class List a:
         Prepend (Just x) xs: Prepend x xs.collect
         Prepend Nothing xs:  xs.collect
 
-    # Converts a list into text by converting each element to text and concatenating them using the provided separator.
+    # Converts a list into text by converting each element to text
+    # and concatenating them using the provided separator.
     #
     # > import Std.Base 
     # > 
@@ -2398,7 +2428,8 @@ class List a:
     # >     None
     # 
     # `f`: List-returning function.
-    # `returns`: List being a result of applying `f` to each element of `self` and concatenation.
+    # `returns`: List being a result of applying `f` to each element of 
+    #            `self` and concatenation.
     def flatMap f: self.map f . concat
 
     # Checks whether the list contains a given element.
@@ -2426,14 +2457,16 @@ class List a:
     # >     None
     # 
     # `pred`: Boolean-valued function to check.
-    # `returns`: The longest prefix of the `self` list for which a given predicate `pred` is satisfied.
+    # `returns`: The longest prefix of the `self` list for which a given predicate
+    #            `pred` is satisfied.
     def takeWhile pred: case self of
         Empty: Empty
         Prepend a as:
             p = pred a
             if p then Prepend a (as.takeWhile pred) else []
 
-# Represents a dictionary from keys of given type to values of given type. The keys need to have ordering defined.
+# Represents a dictionary from keys of given type to values of given type.
+# The keys need to have ordering defined.
 class Map k v:
     Map
     Tip
@@ -2584,7 +2617,8 @@ class Map k v:
                     newR = r.insert k v
                     Map.bin ky y l newR
 
-    # Map equality. Two maps are equal when they contain the same keys and the elements associated with each key are equal.
+    # Map equality. Two maps are equal when they contain the same keys
+    # and the elements associated with each key are equal.
     #
     # > import Std.Base 
     # > 
@@ -2699,7 +2733,8 @@ class Map k v:
                 (km, vm, r') = that . minView
                 Map.bin km vm self r' . balanceR
 
-    # Deletes a key from the given map. If the the key is missing, it returns the original map.
+    # Deletes a key from the given map. If the the key is missing,
+    # it returns the original map.
     #
     # > import Std.Base 
     # > 
