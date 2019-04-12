@@ -687,7 +687,7 @@ type Convertible a b:
 The fact that `Convertible` is wired in lets the compiler treat it in a special
 fashion. When it encounters a type mismatch between types `A` and `B`, the
 compiler is able to look up all instances of `Convertible` to see if there is a
-matching conversion. If there is, it will be automatically inserted.
+matching conversion. If there is, it will be automatically (invisibly) inserted.
 
 Now this initially sounds like a recipe for a lack of control, but there are a
 few elements of this design to keep in mind:
