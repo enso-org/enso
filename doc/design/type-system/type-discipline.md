@@ -720,7 +720,14 @@ few elements of this design to keep in mind:
   to constrain the types of their functions based upon the ability to convert
   between two types `a` and `b`. When used in this case, there is of course no
   access to any defaulted arguments without extending the interface (see the
-  discussion on row-extension) above.
+  discussion on row extension above).
+- A call to `convert` will only be implicitly inserted when the two types to be
+  converted between are explicitly known by the type-checker. It will _not_
+  insert speculative calls.
+- All instances of the `Convertible` type must be fully saturated. That is, you
+  can't define `instance Convertible a Text for Text` and expect it to work.
+  This restriction is in aid of both good feedback for users, and type-checking
+  performance, but may be relaxed in future.
 
 Finally, you may be wondering about the quality of error messages that this can
 produce in the case where there is a type mismatch and not enough information to
@@ -845,7 +852,7 @@ explicitly:
 
 - What do we want to do about resource usage and leakage? C++ has `~`, rust has
   `drop`; what does Luna have? The explicit bracket pattern seems to be fairly
-  'not nice' for novice users. 
+  'not nice' for novice users.
 
 <!-- Ara -->
 
