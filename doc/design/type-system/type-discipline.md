@@ -38,8 +38,10 @@ modules, classes and interfaces.
   - [Nested Types](#nested-types)
   - [Example - Dependent Vector](#example---dependent-vector)
   - [Example - Linked List](#example---linked-list)
+- [Type Conversions](#type-conversions)
+  - [Convertible](#convertible)
+  - [Coercible](#coercible)
 - [Principles for Luna's Type System](#principles-for-lunas-type-system)
-- [Implicit Conversions in the Type System](#implicit-conversions-in-the-type-system)
 - [Unresolved Questions](#unresolved-questions)
 - [References](#references)
 
@@ -660,6 +662,105 @@ type List a =
     []  = nil
 ```
 
+# Type Conversions
+Like in any programming language, Luna requires the ability to convert between
+types. Sometimes these conversions have to happen at runtime, incurring a
+computational cost, but sometimes these conversions can be 'free', in cases
+where the compiler can prove that the types have the same representation at
+runtime. Enter the `Coercible` and `Convertible` mechanisms.
+
+## Convertible
+There is a tension in Luna's design around conversions between types. In many
+cases, our users performing data analysis will just 'want it to do the right
+thing', whereas users writing production software will likely want control.
+
+The resolution for this tension comes in the form of `Convertible`, one of the
+wired-in interfaces in the compiler. This type is defined as follows, and
+represents the category of runtime conversions between types. As these
+conversions must take place at runtime, they are able to perform computations.
+
+```
+type Convertible a b:
+    convert : a -> b
+```
+
+The fact that `Convertible` is wired in lets the compiler treat it in a special
+fashion. When it encounters a type mismatch between types `A` and `B`, the
+compiler is able to look up all instances of `Convertible` to see if there is a
+matching conversion. If there is, it will be automatically inserted.
+
+Now this initially sounds like a recipe for a lack of control, but there are a
+few elements of this design to keep in mind:
+
+- Due to the nature of Luna's type system and how default arguments count
+  towards the saturation of a function, an instance of convert can actually be
+  defined to be configurable. Consider the following example, which defines an
+  instance with an alternative signature.
+
+  ```
+  instance Convertible Text File.Path for Text:
+      convert : (a : Text) -> Bool -> (b : File.Path)
+      convert in -> expandEnvVars = True -> ...
+  ```
+
+  Under such a circumstance, the implicit call uses the default, but if a user
+  wants to configure or control elements of the conversion behaviour, then they
+  can be explicit `convert (expandVars = True)`. In cases where the types need
+  to be made explicit to ensure instance resolution, they too can be applied
+  (`convert (a = Text) (b = File.Path)`).
+- This mechanism is unobtrusive in exploratory code, and contributes to the idea
+  that things 'just work'.
+- It is accompanied by an optional warning `-Wimplicit-conversions` that warns
+  when a conversion is made without an explicit call to `convert`. This ensures
+  that users can opt in to having more feedback as their codebase evolves from
+  exploration to development. This warning will be accompanied by an IDE
+  protocol quick-fix that allows local (or global) insertion of explicit
+  conversions.
+- The `Convertible` type is represented as an interface because users may need
+  to constrain the types of their functions based upon the ability to convert
+  between two types `a` and `b`. When used in this case, there is of course no
+  access to any defaulted arguments without extending the interface (see the
+  discussion on row-extension) above.
+
+Finally, you may be wondering about the quality of error messages that this can
+produce in the case where there is a type mismatch and not enough information to
+resolve the type variables. To this end, there has been some discussion about
+making `convert` a reserved name, but this is not certain yet.
+
+## Coercible
+It is often necessary, particularly when working with structs over the C-FFI or
+in the case of embedded syntaxes, to need to be able to convert between types
+with zero runtime cost. The `Coercible` mechanism provides a way to do this that
+is safe and checked by the compiler.
+
+This is a wired-in type in the compiler, and unlike for `Convertible` above, it
+cannot be defined by users. Instead, the compiler will automatically generate
+pairs of coercions between _types that have identical runtime representations_.
+
+```
+type Coercible a b:
+    coerce : a -> b
+```
+
+Much like `Convertible`, a call to `coerce` can be inserted by the compiler when
+necessary. It is not obvious, however, how the compiler would decide between
+`coerce` and `convert` when both are available. Instead, we have one simple
+rule: If a type conversion is required, and there are instances for both
+`Coercible` and `Convertible`, the latter instance will always be chosen unless
+the user explicitly inserts a call to `coerce`.
+
+Much like above, there are some elements of this design that bear stating
+explicitly:
+
+- `Coercible` is represented as an interface to allow users to parametrise their
+  functions on the availability of a coercion between two types.
+- The rule for choosing between `coerce` and `convert` is robust in the face of
+  imports. As long as both types are in scope (which they would have to be for
+  a coercion to be considered), then the instances are automatically in scope as
+  far as the compiler is concerned.
+- Much like `Convertible`, it is covered by a warning `-Wimplicit-coercions`,
+  and appropriate quick-fix actions.
+
 # Principles for Luna's Type System
 
 - Types in Luna are functions on sets (constructors included), and are based on
@@ -730,26 +831,11 @@ type List a =
 - When a function has defaulted arguments, these arguments should be treated as
   filled for the purposes of matching types. This point is somewhat subsumed by
   ones above, but bears making explicit. `f : A -> B` should match any function
-  of that type (accounting for defaulted arguments). 
+  of that type (accounting for defaulted arguments).
 - The type-system will support wired in `Convertible` and `Coercible` instances.
-  The former deals with runtime conversions between types, while the latter 
-  deals with zero-cost conversions between types of the same runtime 
+  The former deals with runtime conversions between types, while the latter
+  deals with zero-cost conversions between types of the same runtime
   representation.
-
-# Implicit Conversions in the Type System
-To support 
-
-- Wired-in interface.
-- Explicit calls allowed.
-- Types must be explicit.
-- Reserved word(?) for the purpose of good error messages in the un-knowable 
-  cases.
-- Should have a warning `-Wimplicit-conversions` that is off by default.
-
-```
-type Convertible a b :
-    convert : a -> b
-```
 
 # Unresolved Questions
 <!-- WD -->
@@ -757,13 +843,17 @@ type Convertible a b :
 - Do we want the ability to support duplicate row labels?
 - Handling of async exceptions like OTP. What is the impact on inference?
 
+- What do we want to do about resource usage and leakage? C++ has `~`, rust has
+  `drop`; what does Luna have? The explicit bracket pattern seems to be fairly
+  'not nice' for novice users. 
+
 <!-- Ara -->
 
 - Can we use RAE's 'PICO' encoding of dependent types with our structural type
   inference mechanism in Luna (i.e. does 'BAKE' support it)?
 - Do we _have_ to have ordering constraints on definitions?
 - What is the tension between QTT and RAE's thesis in terms of performance?
-  + QTT records usage information for every type and term, whereas BAKE 
+  + QTT records usage information for every type and term, whereas BAKE
     currently requires explicit annotation of relevance, though propagated, to
     make erasure decisions.
 - Am I satisfied that our possible choices of dependent type systems are able to

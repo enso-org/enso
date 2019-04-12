@@ -204,7 +204,8 @@ of the same architectural component (e.g. the JIT layers).
 - The IDE-protocol portion should reflect discussions with David (held on email
   and recorded here: https://github.com/luna/luna/issues/365)
 - A list of the protocol messages with informal descriptions (spec to come
-  later).
+  later), for example (`expandOptionalArgs`, which expands all defaulted 
+  arguments in a call with the defaults as the values).
 - A description of protocol support for performance data collection (potentially
   integrated with the IDE protocol).
 - A description of protocol support for debugging (integrated with the IDE
