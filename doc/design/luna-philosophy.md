@@ -94,3 +94,7 @@ As Luna's design and functionality evolves, we have to take the utmost care to
 ensure that it doesn't balloon beyond control. As a result, every new feature
 that we contemplate adding to the language should advance these core tenets, and
 thereby ensure that it matches with the overall vision for Luna.
+
+We stick to the above principles when we're _building_ the compiler as well, 
+with code being liberally commented with need-to-know information, as well as 
+for clean and clear design documents to accompany it. 
