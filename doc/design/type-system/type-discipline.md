@@ -842,7 +842,7 @@ explicitly:
 - The type-system will support wired in `Convertible` and `Coercible` instances.
   The former deals with runtime conversions between types, while the latter
   deals with zero-cost conversions between types of the same runtime
-  representation.
+  representation. Both can be inserted by the compiler where necessary.
 
 # Unresolved Questions
 <!-- WD -->
@@ -853,6 +853,9 @@ explicitly:
 - What do we want to do about resource usage and leakage? C++ has `~`, rust has
   `drop`; what does Luna have? The explicit bracket pattern seems to be fairly
   'not nice' for novice users.
+- Would it be okay if we never inferred a `pi` type? So all dependent functions
+  must be given explicit signatures.
+- Would we actually _want_ the compiler to insert calls to `coerce`?
 
 <!-- Ara -->
 
@@ -871,6 +874,13 @@ explicitly:
 - Based on my reading, I make the assertion that both PICO + BAKE would support
   our foundation on rows.
 - Does type inference still work in the presence of impredicative types?
+- How do we _efficiently_ typecheck `f : a -> [b} -> c` against both
+  `g : a -> b` and `h : a -> b -> c` (where `{b}` is used to represent a
+  defaulted, and hence _optional_ argument)? Can it be done by a purely
+  desugaring-based approach (`f` would desugar internally to both `g` and `h`)?
+  The issue with a desugaring-based approach is memory usage for _all_ the
+  possible desugarings of a function with many optional arguments, but perhaps
+  it could be done lazily on demand.
 
 <!-- Discussion -->
 
