@@ -1,0 +1,13 @@
+import Std.Test
+
+class PackagePathsTest:
+    def stdPackagePath:
+        TestSubject (Package.root "Std") . shouldNot throwError
+
+    def currentPackagePath:
+        TestSubject (Package.root "StdTest") . shouldNot throwError
+
+    def run:
+        Test.specify "Package path for a globally available package is properly returned" self.stdPackagePath
+        Test.specify "Package path for the current package is properly returned" self.currentPackagePath
+

@@ -28,7 +28,7 @@ import Luna.IR                        (Name)
 
 -- === Definition === --
 
-type PrecRelMap = Prec.RelMap Name
+type PrecRelMap = Prec.RelGraph Name
 
 data Scope = Scope
     { _precRelMap :: PrecRelMap
@@ -72,7 +72,7 @@ instance Default Scope where def    = mempty
 instance Monad m => Prec.RelReader Name (StateT Scope m) where
     readRelLabel = \a b -> if a == b
         then pure $ Just EQ
-        else view (Prec.inferred . at a . at' b) <$> getPrecRelMap
+        else Prec.getRelation a b <$> getPrecRelMap
     {-# INLINE readRelLabel #-}
 
 instance Monad m => Prec.RelWriter Name (StateT Scope m) where

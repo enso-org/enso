@@ -20,6 +20,7 @@ library:
         - base
         - containers
         - layered-state
+        - lens
         - lens-utils
         - prologue >= 3.0.0
 
