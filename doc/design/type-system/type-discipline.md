@@ -682,6 +682,7 @@ conversions must take place at runtime, they are able to perform computations.
 ```
 type Convertible a b:
     convert : a -> b
+    convertVia : (t : [Type]) -> a -> b
 ```
 
 The fact that `Convertible` is wired in lets the compiler treat it in a special
@@ -707,7 +708,7 @@ few elements of this design to keep in mind:
   wants to configure or control elements of the conversion behaviour, then they
   can be explicit `convert (expandVars = True)`. In cases where the types need
   to be made explicit to ensure instance resolution, they too can be applied
-  (`convert (a = Text) (b = File.Path)`).
+  (`convert (a = Text) (b = File.Path) foo`).
 - This mechanism is unobtrusive in exploratory code, and contributes to the idea
   that things 'just work'.
 - It is accompanied by an optional warning `-Wimplicit-conversions` that warns
@@ -724,10 +725,14 @@ few elements of this design to keep in mind:
 - A call to `convert` will only be implicitly inserted when the two types to be
   converted between are explicitly known by the type-checker. It will _not_
   insert speculative calls.
-- All instances of the `Convertible` type must be fully saturated. That is, you
-  can't define `instance Convertible a Text for Text` and expect it to work.
-  This restriction is in aid of both good feedback for users, and type-checking
-  performance, but may be relaxed in future.
+- Conversion takes place at runtime at the last possible moment. This means that
+  if `a : Foo` is convertible to `Bar`, with some function `f : Bar -> ...`, the
+  call `f a` is implicitly rewritten `f (convert a)`.
+- A call to `convert` is only inserted implicitly when the type mismatch can be
+  resolved
+- The function `convertVia` lets you give a hint to the compiler as to the type
+  to convert through. This has a default implementation in every instance of
+  the interface. It is _never_ inserted by the compiler.
 
 Finally, you may be wondering about the quality of error messages that this can
 produce in the case where there is a type mismatch and not enough information to
@@ -749,24 +754,15 @@ type Coercible a b:
     coerce : a -> b
 ```
 
-Much like `Convertible`, a call to `coerce` can be inserted by the compiler when
-necessary. It is not obvious, however, how the compiler would decide between
-`coerce` and `convert` when both are available. Instead, we have one simple
-rule: If a type conversion is required, and there are instances for both
-`Coercible` and `Convertible`, the latter instance will always be chosen unless
-the user explicitly inserts a call to `coerce`.
+Unlike calls to `convert`, calls to `coerce` are never inserted by the compiler.
+This is due to the fact that, while two types may have the same runtime
+representation, the semantics of these types can differ wildly.
 
 Much like above, there are some elements of this design that bear stating
 explicitly:
 
 - `Coercible` is represented as an interface to allow users to parametrise their
   functions on the availability of a coercion between two types.
-- The rule for choosing between `coerce` and `convert` is robust in the face of
-  imports. As long as both types are in scope (which they would have to be for
-  a coercion to be considered), then the instances are automatically in scope as
-  far as the compiler is concerned.
-- Much like `Convertible`, it is covered by a warning `-Wimplicit-coercions`,
-  and appropriate quick-fix actions.
 
 # Principles for Luna's Type System
 
@@ -856,6 +852,8 @@ explicitly:
 - Would it be okay if we never inferred a `pi` type? So all dependent functions
   must be given explicit signatures.
 - Would we actually _want_ the compiler to insert calls to `coerce`?
+- How do we deal with the fact that named value arguments are part of the
+  interface to a function now?
 
 <!-- Ara -->
 
