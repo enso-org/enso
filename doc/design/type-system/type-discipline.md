@@ -894,6 +894,14 @@ explicitly:
   Luna will err on the side of inference capability in order to promote ease of
   use. Speed will be increased by performing incremental type-checking where
   possible on subsequent changes.
+- 'Categorical Typing' (e.g. the `1 <: Int`) relationship, is supported by two
+  key realisations:
+  + Atoms can be represented as elements of a row.
+  + Labels can be the atom they project (e.g. `1 : 1`) in the context of
+    polymorphic labels.
+  Thereby, when `Int : (1:1, 2:2, 3:3, ...)`, we trivially have `12:12 <: Int`.
+  We just need to ensure that the 'subtyping' rules for the primitives are
+  wired-in.
 
 # Unresolved Questions
 <!-- WD -->
@@ -904,6 +912,26 @@ explicitly:
   rows?
 
     ```
+    type Foo
+    type Bar
+
+    type Convertible a b :
+        convert : (from : a) -> b
+
+    # Foo implements Convertible Foo Bar
+    instance Convertible Foo Bar where
+        convert = _ -> Bar
+
+    type Functor a b c d :
+        map : (c -> d) -> a -> b
+
+    instance Functor Text Text Char Char where
+        map : (Char -> Char) -> Text -> Text
+        map = fn -> input -> ...
+
+    instance Functor [a] [b] a b where
+        map : (a -> b) -> [a] -> [b]
+
     test : (t : Functor) a -> b
 
     test : t a -> t b
@@ -911,9 +939,13 @@ explicitly:
        t : Functor
        ...
 
+    doFunctorThing : Functor a b c d => (c -> d) -> a -> b
+    doFunctorThing = fn -> input -> ...
+
     test2 : Convertible a b => a -> b
     test2 = ...
     ```
+
 - How exactly do we define generic interfaces (consider both `Convertible` and
   `Functor`).
 - Having merged type and term namespaces doesn't mean that you have to support
@@ -936,6 +968,7 @@ explicitly:
   possible desugarings of a function with many optional arguments, but perhaps
   it could be done lazily on demand.
 - `convert` and floating
+- How do we deal with `Vector3D 1 2 3` as a type?
 
 <!-- Discussion -->
 
