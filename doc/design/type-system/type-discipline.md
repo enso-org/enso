@@ -682,7 +682,8 @@ conversions must take place at runtime, they are able to perform computations.
 ```
 type Convertible a b:
     convert : a -> b
-    convertVia : (t : [Type]) -> a -> b
+
+convertVia : (t : [Type]) -> a -> b
 ```
 
 The fact that `Convertible` is wired in lets the compiler treat it in a special
@@ -811,7 +812,28 @@ explicitly:
   and values.
 - Provide some keyword (`prove`) to tell the compiler that a certain property
   should hold when typechecking. It takes an unrestricted expression on types,
-  and utilises this when typechecking.
+  and utilises this when typechecking. It may also take a string description of
+  the property to prove, allowing for nicer error messages:
+
+    ```
+    append :: (v1 : Vector a) -> (v2 : Vector a) -> (v3 : Vector a)
+    append = vec1 -> vec2 ->
+        prove (v3.size == v1.size + v2.size) "appending augments length"
+        ...
+    ````
+
+    Sample error:
+
+    ```
+    [line, col] Unable to prove that "appending augments length":
+        Required Property: v3.size == v1.size + v2.size
+        Proof State:       <state>
+
+        <caret diagnostics>
+    ```
+
+  This gives rise to the question as to how we determine which properties (or
+  data) are able to be reasoned about statically.
 - Dependent types in Luna will desugar to an application of Quantitative Type
   Theory.
 - Tuples are strictly a less powerful case of rows.
@@ -839,51 +861,92 @@ explicitly:
   The former deals with runtime conversions between types, while the latter
   deals with zero-cost conversions between types of the same runtime
   representation. Both can be inserted by the compiler where necessary.
+- Luna will make use of whatever advanced type-system features are at its
+  disposal to improve safety and performance.
+- Complex errors will be explained simply, even if this requires additional
+  annotation from programmers who use the advanced features.
+- In the context of dependent types, relevance inference will be performed.
+- The Luna typechecker will integrate an aggressive proof rewrite engine to
+  automate as much of the proof burden as possible.
+- Inference is employed heavily, letting types span from invisible to fancy,
+  with each level providing as many guarantees as is practicable.
+- Luna _is not a proof system_, and its implementation of dependent types will
+  reflect said fact, being biased towards more practical usage.
+- The future implementation of dependent types into Luna will be based on RAE's
+  thesis about dependent types in Haskell (particularly PICO and BAKE).
+- Inference will propagate as far as possible, but under some circumstances it
+  will require users to write types.
+- Value-level names become part of the function interface.
+
+    ```
+    replicate : (n : Nat) -> a -> Vector n a
+    replicate = num -> val -> ...
+
+    # Alternatively
+    replicate : Nat -> a -> Vector sz a
+    replicate = sz -> val -> ...
+    ```
+
+  The issue here is that after an `=`, you want a bare name to be a _name_, and
+  after a `:`, you want it to represent a type. In the above example, `a` is a
+  free type variable (`forall a`), while `n` is a name.
+- If it comes to a tension between typechecker speed and inference capability,
+  Luna will err on the side of inference capability in order to promote ease of
+  use. Speed will be increased by performing incremental type-checking where
+  possible on subsequent changes.
 
 # Unresolved Questions
 <!-- WD -->
 
 - Do we want the ability to support duplicate row labels?
 - Handling of async exceptions like OTP. What is the impact on inference?
+- How does the constraint syntax work for convertible? How does it desugar to
+  rows?
+
+    ```
+    test : (t : Functor) a -> b
+
+    test : t a -> t b
+    test = in ->
+       t : Functor
+       ...
+
+    test2 : Convertible a b => a -> b
+    test2 = ...
+    ```
+- How exactly do we define generic interfaces (consider both `Convertible` and
+  `Functor`).
+- Having merged type and term namespaces doesn't mean that you have to support
+  identical syntax on each.
 
 - What do we want to do about resource usage and leakage? C++ has `~`, rust has
   `drop`; what does Luna have? The explicit bracket pattern seems to be fairly
   'not nice' for novice users.
-- Would it be okay if we never inferred a `pi` type? So all dependent functions
-  must be given explicit signatures.
-- Would we actually _want_ the compiler to insert calls to `coerce`?
-- How do we deal with the fact that named value arguments are part of the
-  interface to a function now?
+- What is Luna's story for visible and invisible arguments? (pi a . vs pi a ->).
+  Do we want to force all parameters to be named? (RAE thesis pg. 19 (34)). Do
+  we want to support invisible arguments? They can be usefully inferred.
 
 <!-- Ara -->
 
-- Can we use RAE's 'PICO' encoding of dependent types with our structural type
-  inference mechanism in Luna (i.e. does 'BAKE' support it)?
-- Do we _have_ to have ordering constraints on definitions?
-- What is the tension between QTT and RAE's thesis in terms of performance?
-  + QTT records usage information for every type and term, whereas BAKE
-    currently requires explicit annotation of relevance, though propagated, to
-    make erasure decisions.
-- Am I satisfied that our possible choices of dependent type systems are able to
-  cope with row types? Not yet.
-- I don't really understand the inference implications of using QTT as the
-  treatment is purely theoretical. This may be a question to answer by sending
-  an email to Edwin Brady.
-- Based on my reading, I make the assertion that both PICO + BAKE would support
-  our foundation on rows.
-- Does type inference still work in the presence of impredicative types?
-- How do we _efficiently_ typecheck `f : a -> [b} -> c` against both
+- How do we _efficiently_ typecheck `f : a -> {b} -> c` against both
   `g : a -> b` and `h : a -> b -> c` (where `{b}` is used to represent a
   defaulted, and hence _optional_ argument)? Can it be done by a purely
   desugaring-based approach (`f` would desugar internally to both `g` and `h`)?
   The issue with a desugaring-based approach is memory usage for _all_ the
   possible desugarings of a function with many optional arguments, but perhaps
   it could be done lazily on demand.
+- `convert` and floating
 
 <!-- Discussion -->
 
 - What are the semantics of an associated type? Purely a nested type definition,
   with an instance in an instance. Type definition has constrained scope.
+- Naming.
+
+    ```
+    replicate : (n : Nat) -> a -> Vector n a
+    replicate = num -> val -> ...
+    ```
 
 # References
 The design of the type-system described in this document is based on prior work
@@ -892,11 +955,22 @@ is as below.
 
 - [Abstracting Extensible Data Types](http://ittc.ku.edu/~garrett/pubs/morris-popl2019-rows.pdf)
 - [Boxy Type-Inference for Higher-Rank Types and Impredicativity](https://www.microsoft.com/en-us/research/publication/boxy-type-inference-for-higher-rank-types-and-impredicativity/)
+- [Complete and Easy Bidirectional Typechecking for Higher-Rank Polymorphism](https://www.cl.cam.ac.uk/~nk480/bidir.pdf)
 - [Dependent Types in Haskell: Theory and Practice](https://cs.brynmawr.edu/~rae/papers/2016/thesis/eisenberg-thesis.pdf)
 - [Extensible Records with Scoped Labels](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/scopedlabels.pdf)
+- [FPH: First-Class Polymorphism for Haskell](https://www.microsoft.com/en-us/research/publication/fph-first-class-polymorphism-for-haskell/)
 - [Higher-Order Type-Level Programming in Haskell](https://www.microsoft.com/en-us/research/uploads/prod/2019/03/ho-haskell-5c8bb4918a4de.pdf)
 - [Levity Polymorphism](https://www.microsoft.com/en-us/research/publication/levity-polymorphism/)
+- [MLF: Raising ML to the Power of System-F](http://gallium.inria.fr/~remy/work/mlf/icfp.pdf)
 - [Partial Type-Constructors](https://cs.brynmawr.edu/~rae/papers/2019/partialdata/partialdata.pdf)
+- [Practical Erasure in Dependently-Typed Languages](https://eb.host.cs.st-andrews.ac.uk/drafts/dtp-erasure-draft.pdf)
+- [Practical Type-Inference for Higher-Rank Types](https://www.microsoft.com/en-us/research/publication/practical-type-inference-for-arbitrary-rank-types/)
+- [QML: Explicit, First-Class Polymorphism for ML](https://www.microsoft.com/en-us/research/wp-content/uploads/2009/09/QML-Explicit-First-Class-Polymorphism-for-ML.pdf)
 - [Supermonads](http://eprints.nottingham.ac.uk/36156/1/paper.pdf)
 - [Syntax and Semantics of Quantitative Type Theory](https://bentnib.org/quantitative-type-theory.pdf)
 - [Type Inference, Haskell, and Dependent Types](http://adam.gundry.co.uk/pub/thesis/thesis-2013-12-03.pdf)
+
+<!--
+Welcome to the Lunatic's Asylym, where we thought it would be a good idea to try
+and bring dependent types to the masses.
+-->
