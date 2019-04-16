@@ -11,7 +11,7 @@ import qualified Data.Map.Strict                      as Map
 import qualified Data.TreeSet                         as TreeSet
 import qualified Language.Symbol.Operator.Assoc       as Assoc
 import qualified Language.Symbol.Operator.Prec        as Prec
-import qualified Language.Symbol.Operator.Prec.RelMap as Prec
+import qualified Language.Symbol.Operator.Prec.Poset  as Prec
 import qualified Luna.Data.Name                       as Name
 
 import Control.Lens.Utils             (at')
@@ -28,7 +28,7 @@ import Luna.IR                        (Name)
 
 -- === Definition === --
 
-type PrecRelMap = Prec.RelGraph Name
+type PrecRelMap = Prec.Poset Name
 
 data Scope = Scope
     { _precRelMap :: PrecRelMap
@@ -67,16 +67,13 @@ lookupMultipartName n = view (multiNames . at n) <$> State.get @Scope
 instance Mempty  Scope where mempty = Scope mempty mempty mempty mempty
 instance Default Scope where def    = mempty
 
--- TODO:
--- Maybe the check if names are eq should be refactored to the Prec manager?
 instance Monad m => Prec.RelReader Name (StateT Scope m) where
-    readRelLabel = \a b -> if a == b
-        then pure $ Just EQ
-        else Prec.getRelation a b <$> getPrecRelMap
+    readRelLabel = \a b -> Prec.getRelation a b <$> getPrecRelMap
     {-# INLINE readRelLabel #-}
 
 instance Monad m => Prec.RelWriter Name (StateT Scope m) where
-    writeRelLabel t a b = State.modify_ @Scope $ precRelMap %~ Prec.insertRel t a b
+    writeRelLabel t a b
+        = State.modify_ @Scope $ precRelMap %~ Prec.insertRelation t a b
 
 instance Monad m => Assoc.Reader Name (StateT Scope m) where
     readLabel n = fromJust Assoc.Left . Map.lookup n . view assocMap <$> State.get @Scope

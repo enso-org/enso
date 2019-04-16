@@ -23,6 +23,17 @@ library:
         - lens
         - lens-utils
         - prologue >= 3.0.0
+tests:
+    spec:
+        main: Main.hs
+        source-dirs: test/spec
+        dependencies:
+            - base
+            - hspec
+            - hspec-core
+            - hspec-expectations
+            - luna-syntax-definition
+            - prologue
 
 default-extensions: *luna-extensions
 
