@@ -21,7 +21,7 @@ import Data.Map (Map)
 
 evaluateFun :: Runtime.Units -> Def.Def -> TC.Monad (Future.Future Runtime.Value)
 evaluateFun compiledUnits def = case def of
-    Def.Body fun -> do
+    Def.Sourced (Def.SourcedDef fun _) -> do
         let int = Interpreter.runInterpreter (Layout.relayout fun)
                                              compiledUnits
         async <- Graph.async @TC.Stage $ Scheduler.evalT int

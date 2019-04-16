@@ -52,25 +52,29 @@ instance Pass.Definition TC.Stage UnitMapper where
         unitMap   <- partiallyMapUnit unitName $ Layout.unsafeRelayout root
         Attr.put unitMap
 
-partiallyMapUnit :: IR.Qualified -> IR.Term IR.Unit -> TC.Pass UnitMapper PartiallyMappedUnit
+partiallyMapUnit :: IR.Qualified -> IR.Term IR.Unit
+    -> TC.Pass UnitMapper PartiallyMappedUnit
 partiallyMapUnit unitName root = do
     IR.Unit _ _ cls <- IR.modelView root
     klass <- IR.source cls
     Layer.read @IR.Model klass >>= \case
         Uni.Record _ _ _ _ decls' -> do
             decls <- traverse IR.source =<< ComponentVector.toList decls'
-            foldM (registerDecl unitName) def decls
+            foldM (registerDecl unitName) def (zip [0..] decls)
         _ -> pure def
 
-registerDecl :: IR.Qualified -> PartiallyMappedUnit -> IR.SomeTerm -> TC.Pass UnitMapper PartiallyMappedUnit
-registerDecl unitName map t = do
-    (doc, root) <- Sourcing.cutDoc t
+registerDecl :: IR.Qualified -> PartiallyMappedUnit -> (Int, IR.SomeTerm)
+    -> TC.Pass UnitMapper PartiallyMappedUnit
+registerDecl unitName map (defOrder, term) = do
+    (doc, root) <- Sourcing.cutDoc term
     Layer.read @IR.Model root >>= \case
         Uni.Function n _ _ -> do
             IR.source n >>= Layer.read @IR.Model >>= \case
                 Uni.Var name -> do
                     let documented =
-                          Documented doc (Def.Body $ Layout.unsafeRelayout root)
+                          Documented doc . Def.Sourced $ Def.SourcedDef
+                              (Layout.unsafeRelayout root)
+                              (Just defOrder)
                     when_ (isJust $ map ^. defs . wrapped . at name) $ do
                         let error = Error.duplicateFunctionDefinition
                                 unitName name
