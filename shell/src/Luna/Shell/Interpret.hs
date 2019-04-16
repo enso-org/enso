@@ -2,6 +2,7 @@ module Luna.Shell.Interpret where
 
 import Prologue
 
+import qualified Control.Monad.Exception             as Exception
 import qualified Control.Monad.Exception.IO          as Exception
 import qualified Data.Bimap                          as Bimap
 import qualified Data.Graph.Data.Graph.Class         as Graph
@@ -23,6 +24,7 @@ import qualified Luna.Std                            as Std
 import qualified OCI.Data.Name                       as Name
 import qualified Path                                as Path
 import qualified System.Directory                    as Directory
+import qualified System.Exit                         as Exit
 import qualified System.FilePath                     as FilePath
 import qualified System.IO                           as IO
 
@@ -89,7 +91,9 @@ interpretWithMain name sourcesMap = Graph.encodeAndEval @TC.Stage
             $ convert Package.mainFuncName
 
         case unwrap tFunc of
-            Left e  -> print e
+            Left e  -> do
+                print e
+                liftIO Exit.exitFailure
             Right _ -> do
                 putStrLn $ "Running in interpreted mode."
                 void $ liftIO $ Runtime.runIO mainFunc
