@@ -4,7 +4,7 @@ import Prologue
 
 import qualified Data.Map                    as Map
 import qualified Luna.IR                     as IR
-import qualified Luna.Package.Env            as PackageEnv
+import qualified Luna.Package.Environment    as PackageEnv
 import qualified Luna.Pass.Sourcing.Data.Def as Def
 import qualified Luna.Runtime                as Runtime
 import qualified Luna.Std.Builder            as Builder

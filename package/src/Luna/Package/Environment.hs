@@ -1,4 +1,4 @@
-module Luna.Package.Env where
+module Luna.Package.Environment where
 
 import Prologue
 
