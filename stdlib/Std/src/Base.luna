@@ -1002,8 +1002,11 @@ native class Text:
     def addPathSegment segment: self + pathSeparator + segment
 
     # Append a path segment to the given `Text`. The new segment will use
-    # a path separator specific for current platform, making it the safest
-    # way of consturcting paths.
+    # a path separator specific for current platform.
+    # This is the recommended way of constructing paths.
+    #
+    # `segment`: Path segment to be appended to `self`.
+    # `returns`: Path resulting from appending `segment` to `self`.
     def / segment: self.addPathSegment segment
 
     def toLQueryValue: ValText self
