@@ -10,7 +10,6 @@ import StdTest.Data.List
 import StdTest.Data.Map
 
 import StdTest.Lib.Basic
-import StdTest.Lib.PackagePaths
 
 def main:
     ErrorsTest.run
@@ -23,5 +22,4 @@ def main:
     MapTest.run
 
     BasicTest.run
-    PackagePathsTest.run
 
