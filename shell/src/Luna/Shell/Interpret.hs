@@ -8,6 +8,7 @@ import qualified Data.Graph.Data.Graph.Class         as Graph
 import qualified Data.Map                            as Map
 import qualified Luna.IR                             as IR
 import qualified Luna.Package                        as Package
+import qualified Luna.Package.Environment            as PackageEnv
 import qualified Luna.Package.Structure.Name         as Package
 import qualified Luna.Pass.Data.Stage                as TC
 import qualified Luna.Pass.Flow.ProcessUnits         as ProcessUnits
@@ -97,10 +98,12 @@ interpretWithMain name sourcesMap = Graph.encodeAndEval @TC.Stage
 file :: (InterpreterMonad m) => Path Abs File -> Path Abs Dir -> m ()
 file filePath stdlibPath = liftIO $ Directory.withCurrentDirectory fileFP $ do
     fileSources <- Package.fileSourcePaths filePath stdlibPath
+    includedImports <- Package.includedLibs stdlibPath
 
     let fileName = convertVia @Name.Name . FilePath.dropExtension
             . Path.fromRelFile $ Path.filename filePath
 
+    PackageEnv.setLibraryVars includedImports
     liftIO $ interpretWithMain fileName fileSources
 
     where fileFP = Path.fromAbsDir $ Path.parent filePath
@@ -118,6 +121,7 @@ package pkgPath stdlibPath = liftIO . Directory.withCurrentDirectory pkgDir $ do
         mainFileName = (convert $ Package.getPackageName packageRoot) <> "."
             <> Package.mainFileName
 
+    PackageEnv.setLibraryVars packageImports
     liftIO $ interpretWithMain mainFileName pkgSrcMap
 
     where pkgDir = Path.fromAbsDir pkgPath
