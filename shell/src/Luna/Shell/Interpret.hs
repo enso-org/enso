@@ -2,7 +2,6 @@ module Luna.Shell.Interpret where
 
 import Prologue
 
-import qualified Control.Monad.Exception             as Exception
 import qualified Control.Monad.Exception.IO          as Exception
 import qualified Data.Bimap                          as Bimap
 import qualified Data.Graph.Data.Graph.Class         as Graph
