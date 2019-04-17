@@ -265,7 +265,7 @@ Documentation pull requests are reviewed in exactly the same way as normal pull
 requests.
 
 To find documentation-related issues, sort by the
-[C - Documentation](https://github.com/luna/luna/issues?utf8=%E2%9C%93&q=is%3Aopen+label%3A%22C+-+Documentation%22+)
+[Category: Documentation](hhttps://github.com/luna/luna/labels/Category%3A%20Documentation)
 label.
 
 ## Issue Triage
@@ -282,9 +282,9 @@ Contributors with sufficient permissions can help by adding labels to help with
 issue triage.
 
 If you're looking for somewhere to start, take a look at the
-[D - Beginner](https://github.com/luna/luna/issues?utf8=%E2%9C%93&q=is%3Aopen+label%3A%22D+-+Beginner%22+)
+[Difficulty: Beginner](https://github.com/luna/luna/labels/Difficulty%3A%20Beginner)
 issue label, as well as the
-[S - Help Wanted](https://github.com/luna/luna/issues?utf8=%E2%9C%93&q=is%3Aopen+label%3A%22S+-+Help+Wanted%22+)
+[Status: Help Wanted](https://github.com/luna/luna/labels/Status%3A%20Help%20Wanted)
 label.
 
 ## Out-of-Tree Contributions
