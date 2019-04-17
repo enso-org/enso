@@ -204,7 +204,7 @@ of the same architectural component (e.g. the JIT layers).
 - The IDE-protocol portion should reflect discussions with David (held on email
   and recorded here: https://github.com/luna/luna/issues/365)
 - A list of the protocol messages with informal descriptions (spec to come
-  later), for example (`expandOptionalArgs`, which expands all defaulted 
+  later), for example (`expandOptionalArgs`, which expands all defaulted
   arguments in a call with the defaults as the values).
 - A description of protocol support for performance data collection (potentially
   integrated with the IDE protocol).
@@ -277,7 +277,7 @@ of the same architectural component (e.g. the JIT layers).
     seeing it is possible to select sets of Luna IR and GHC Core optimisation
     passes to best improve that function's performance.
 - An examination of how we deal with 'wired-in' functionality (e.g. relying on
-  Haskell libraries for the stdlib for now). 
+  Haskell libraries for the stdlib for now).
 -->
 
 ### 4 - The Cache Layer
@@ -337,6 +337,8 @@ of the same architectural component (e.g. the JIT layers).
 - A discussion of the drawbacks of subsequent JIT stages (primarily compilation
   cost).
 - An analysis of how the optimisation pipeline would differ across JIT tiers.
+- A description of a mechanism that can be used to track the performance of the
+  JITed code, and deoptimise it if the binary is slower than the bytecode.
 -->
 
 ### 7 - JIT Tier 2

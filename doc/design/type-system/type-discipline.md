@@ -42,6 +42,8 @@ modules, classes and interfaces.
   - [Convertible](#convertible)
   - [Coercible](#coercible)
 - [Principles for Luna's Type System](#principles-for-lunas-type-system)
+- [Structural Type Shorthand](#structural-type-shorthand)
+- [Interfaces](#interfaces)
 - [Unresolved Questions](#unresolved-questions)
 - [References](#references)
 
@@ -683,7 +685,7 @@ conversions must take place at runtime, they are able to perform computations.
 type Convertible a b:
     convert : a -> b
 
-convertVia : (t : [Type]) -> a -> b
+convertVia : <what goes here> => (t : [Type]) -> a -> b
 ```
 
 The fact that `Convertible` is wired in lets the compiler treat it in a special
@@ -901,62 +903,108 @@ explicitly:
     polymorphic labels.
   Thereby, when `Int : (1:1, 2:2, 3:3, ...)`, we trivially have `12:12 <: Int`.
   We just need to ensure that the 'subtyping' rules for the primitives are
-  wired-in.
+  wired-in. This still supports `Vector3D 1 2 3 <: Vector3D Int Int Int`. A
+  close examination of how this works with functions is required.
+- We do not intend to support duplicate row labels.
+- Deallocation of resources will be performed by 'drop', which can be explicitly
+  implemented by users if need be (a wired-in interface).
+- Record syntax is `{}`.
+- We do not want to support invisible arguments.
+- Luna must support nested type definitions. These nested types are
+  automatically labelled with their name (so constructors are `mkFoo`, rather
+  than `Foo`). The nested type is constructed as part of the containing type.
+- When writing a method, the type on which the method is defined must be the
+  first argument.
+- Every name uses the following syntax `name : type = value`, where either
+  `type` or `value` can be omitted. This has additional sugar that allows users
+  to write it as follows:
+
+    ```
+    name : type
+    name = value
+    ```
+
+  This sugar is most likely to be seen for function definitions, but it works in
+  all cases.
+
+# Structural Type Shorthand
+In Luna, we want to be able to write a type-signature that represents types in
+terms of the operations that take place on the input values. A classical example
+is `add`:
+
+```
+add : a -> b -> a + b
+add = a -> b -> a + b
+```
+
+There are a few things to note about this signature from a design standpoint:
+
+- `a` and `b` are not the same type. This may, at first glance, seem like a
+  signature that can't work, but the return type, in combination with our
+  integrated `Convertible` mechanism gives us the tools to make it work.
+- The return type is `a + b`. This is a shorthand expression for a detailed
+  desugaring. The desugaring provided below is what the typechecker would infer
+  based on such a signature.
+
+```
+add : forall a b c d . (Convertible b c, {+ : a -> c -> d} <: a) => a -> b -> d
+```
+
+This may look fairly strange at first, but we can work through the process as
+follows:
+
+1. The expression `a + b` is syntactic sugar for a method call on a: `a.+ b`.
+2. This means that there must be a `+` method on a that takes both an `a` and a
+   `b`, with return-type unspecified as of yet: `+ : a -> b -> ?`
+3. However, as `Convertible` is built into the language, we have to consider
+   that for `a.+ b` to work, the `+` method can actually take any type to which
+   `b` converts. This introduces the constraint `Convertible b c`, and we get
+   `+ : a -> c - ?`
+4. The return type from a function need not be determined by its arguments, so
+   hence in the general case we have to default to an unrestricted type variable
+   giving `+ a -> c -> d`.
+5. This method must exist on the type `a`, resulting in the constraint that the
+   row `{+ : a -> c -> d} <: a` must conform to that interface.
+6. We now know the return type of `a + b`, and can rewrite it in the signature
+   as `d`.
+
+Please note that `a <: b` (which can be flipped as `:>`) means that `a` is a row
+that is a sub-row contained within the row `b`. The containment relation allows
+for the possibility that `a == b`.
+
+# Interfaces
 
 # Unresolved Questions
 <!-- WD -->
 
-- Do we want the ability to support duplicate row labels?
 - Handling of async exceptions like OTP. What is the impact on inference?
+- `convert` and floating diagram from WD.
 - How does the constraint syntax work for convertible? How does it desugar to
-  rows?
+  rows? Types are functions on categories.
 
     ```
-    type Foo
-    type Bar
-
-    type Convertible a b :
+    type Convertible : a -> b =
         convert : (from : a) -> b
 
-    # Foo implements Convertible Foo Bar
-    instance Convertible Foo Bar where
-        convert = _ -> Bar
+    # Functor in the Haskell sense
+    type Functor : f =
+        map : (a -> b) -> f a -> f b
 
-    type Functor a b c d :
-        map : (c -> d) -> a -> b
+    # Functor in the mathematical sense (?)
+    type Functor : f -> g -> a -> b =
+        map : (a -> b) -> f -> g
+    ```
 
-    instance Functor Text Text Char Char where
-        map : (Char -> Char) -> Text -> Text
-        map = fn -> input -> ...
+  To give a possible desugaring of the above definition:
 
-    instance Functor [a] [b] a b where
-        map : (a -> b) -> [a] -> [b]
-
-    test : (t : Functor) a -> b
-
-    test : t a -> t b
-    test = in ->
-       t : Functor
-       ...
-
-    doFunctorThing : Functor a b c d => (c -> d) -> a -> b
-    doFunctorThing = fn -> input -> ...
-
-    test2 : Convertible a b => a -> b
-    test2 = ...
+    ```
+    Functor : f -> g -> a -> b -> { map : ()}
     ```
 
 - How exactly do we define generic interfaces (consider both `Convertible` and
   `Functor`).
 - Having merged type and term namespaces doesn't mean that you have to support
-  identical syntax on each.
-
-- What do we want to do about resource usage and leakage? C++ has `~`, rust has
-  `drop`; what does Luna have? The explicit bracket pattern seems to be fairly
-  'not nice' for novice users.
-- What is Luna's story for visible and invisible arguments? (pi a . vs pi a ->).
-  Do we want to force all parameters to be named? (RAE thesis pg. 19 (34)). Do
-  we want to support invisible arguments? They can be usefully inferred.
+  identical syntax on each, just that the semantics need to be well-defined.
 
 <!-- Ara -->
 
@@ -967,19 +1015,8 @@ explicitly:
   The issue with a desugaring-based approach is memory usage for _all_ the
   possible desugarings of a function with many optional arguments, but perhaps
   it could be done lazily on demand.
-- `convert` and floating
-- How do we deal with `Vector3D 1 2 3` as a type?
-
-<!-- Discussion -->
-
-- What are the semantics of an associated type? Purely a nested type definition,
-  with an instance in an instance. Type definition has constrained scope.
-- Naming.
-
-    ```
-    replicate : (n : Nat) -> a -> Vector n a
-    replicate = num -> val -> ...
-    ```
+- Interfaces (1:1 mapping or rows), can we get back and forth in the row
+  version?
 
 # References
 The design of the type-system described in this document is based on prior work
