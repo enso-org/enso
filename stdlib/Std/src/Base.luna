@@ -2500,6 +2500,8 @@ class Map k v:
     # >     a = Map.singleton "foo" 10
     # >     None
     #
+    # `k`: Element key.
+    # `v`: Element value.
     # `returns`: The map with single element.
     def singleton k v: Bin 1 k v Tip Tip
 
