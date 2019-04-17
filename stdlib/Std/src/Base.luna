@@ -3580,9 +3580,31 @@ def everyWithState timeInterval stateFunc state:
 def print x: putStr x.toText
 
 # Read file from the hard drive, returning a `Text` value.
+#
+# > import Std.Base
+# >
+# > def main:
+# >     filepath = Package.samples "Base" / "exampleFile.txt"
+# >     txt = read filepath
+# >     None
+#
+# `f`: Filepath to a file to read.
+# `returns`: Text value with a file content.
 def readFile f: primReadFile (expandPath f)
 
 # Write a Text object into a file with a given path.
+#
+# > import Std.Base
+# >
+# > def main:
+# >     filepath = "./myFile.txt"
+# >     text = "Lorem ipsum"
+# >     write = write filepath text
+# >     None
+#
+# `f`: Filepath for a file to write.
+# `c`: Text object to write.
+# `returns`: None
 def writeFile f c: primWriteFile (expandPath f) c
 
 # Takes a Text and throws it as an error.
