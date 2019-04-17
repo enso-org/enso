@@ -56,7 +56,7 @@ processFun :: Target.Target
            -> TC.Monad (Future.Future (Typed.DefHeader, Runtime.Value))
 processFun tgt resolver typedUnits evaluatedUnits def = do
     case def of
-        Def.Body fun -> do
+        Def.Sourced (Def.SourcedDef fun _) -> do
             copy <- Serializer.serialize $ Layout.relayout fun
             st  <- Graph.getState @TC.Stage
             Future.make $ flip (Graph.eval @TC.Stage) st
