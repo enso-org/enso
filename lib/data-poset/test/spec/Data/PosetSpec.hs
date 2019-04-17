@@ -1,8 +1,8 @@
-module Language.Symbol.Operator.Prec.PosetSpec where
+module Data.PosetSpec where
 
 import Prologue
 
-import qualified Language.Symbol.Operator.Prec.Poset as Poset
+import qualified Data.Poset as Poset
 
 import Test.Hspec              (Spec, describe, it)
 import Test.Hspec.Expectations (shouldBe)
@@ -59,4 +59,8 @@ spec = describe "Relations Graph" $ do
         for_ allPairs $ \(i, j) ->
             Poset.getRelation i j baseGraph `shouldBe` Just EQ
 
+    it "does not break upon equalizing an element with itself" $ do
+        let baseGraph = fromRels [(LT, 0, 1)]
+            graph = Poset.insertRelation EQ 0 0 baseGraph
+        Poset.getRelation 0 1 graph `shouldBe` Just LT
 

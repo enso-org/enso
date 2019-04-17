@@ -40,6 +40,7 @@ packages:
     - lib/convert
     - lib/cpp-containers
     - lib/data-construction
+    - lib/data-poset
     - lib/data-property
     - lib/data-storable
     - lib/data-tag
