@@ -1,0 +1,276 @@
+Std.Base:
+  $global:
+    - name: pi
+      documentation: The mathematical constant π = 3.14159265359.
+    - name: Map.singleton "foo" 10
+      documentation: Creates a map with a single element with key "foo" and value 10.
+    - name: JSON.empty
+      documentation: Empty JSON object.
+    - name: readFile $ Package.samples "Base" / "exampleFile.txt"
+      documentation: Read file from the hard drive.
+    - name: writeFile "./myFile.txt" "lorem ipsum"
+      documentation: Write a Text object into a file with a given path.
+  $imported:
+    - name: JSON.parse '{"a": 10, "b": 20}'
+      documentation: JSON from a Text.
+  Int:
+    - name: + 3
+      documentation: Add two Integers.
+    - name: * 2
+      documentation: Multiply two Integers.
+    - name: - 1
+      documentation: Substract Integer from value.
+    - name: / 2
+      documentation: Divide by Integer value.
+    - name: % 7
+      documentation: Calculate division remainder.
+    - name: succ
+      documentation: Calculate Integer successor.
+    - name: upto 10
+      documentation: Generate a list reperesenting a range.
+    - name: > 10
+      documentation: Compare two Integers.
+    - name: abs
+      documentation: Calculate absolute value.
+    - name: negate
+      documentation: Calculate Integer negation.
+    - name: pred
+      documentation: Calculate Integer predecessor.
+    - name: < 10
+      documentation: Compare two Integers.
+    - name: == 10
+      documentation: Compare two Integers.
+    - name: miliseconds
+      documentation: TimeInterval in miliseconds.
+    - name: seconds
+      documentation: TimeInterval in seconds.
+    - name: minutes
+      documentation: TimeInterval in minutes.
+    - name: hours
+      documentation: TimeInterval in hours.
+    - name: days
+      documentation: TimeInterval in days.
+    - name: weeks
+      documentation: TimeInterval in weeks.
+  Real:
+    - name: + 3.0
+      documentation: Add two real numbers.
+    - name: * 2.0
+      documentation: Multiply two real numbers.
+    - name: - 1.3
+      documentation: Substract real number from value.
+    - name: / 2.0
+      documentation: Divide by real number value.
+    - name: ^ 2.0
+      documentation: Calculate real number exponentiation.
+    - name: log 10.0
+      documentation: Calculate real number logarithm.
+    - name: > 10.0
+      documentation: Compare two real numbers.
+    - name: abs
+      documentation: Calculate absolute value for real number.
+    - name: negate
+      documentation: Calculate negation.
+    - name: floor
+      documentation: Round a number down to closest Int.
+    - name: ceiling
+      documentation: Round a number up to the closest Int.
+    - name: sin
+      documentation: Calculate sine.
+    - name: cos
+      documentation: Calculate cosine.
+    - name: exp
+      documentation: Calculate natural exponent.
+    - name: ln
+      documentation: Calculate natural logarithm.
+    - name: sqrt
+      documentation: Calculate squre root.
+    - name: < 10.0
+      documentation: Compare two real numbers.
+    - name: == 10.0
+      documentation: Compare two real numbers.
+  Text:
+    - name: + "foo"
+      documentation: Concatenate two texts together.
+    - name: length
+      documentation: Check the text length.
+    - name: startsWith "a"
+      documentation: Check whether the argument is a prefix of given text.
+    - name: endsWith "a"
+      documentation: Check whether the argument is suffix of given text value.
+    - name: characters
+      documentation: Return list of all characters in the text.
+    - name: lowercase
+      documentation: Change all characters to lowercase.
+    - name: reverse
+      documentation: Reverse the text.
+    - name: uppercase
+      documentation: Change all characters to uppercase.
+  Complex:
+    - name: modulus
+      documentation: Calculate complex modulus.
+  Bool:
+    - name: and False
+      documentation: Boolean and.
+    - name: or False
+      documentation: Boolean or.
+    - name: == False
+      documentation: Check if boolean values are equal.
+    - name: negate
+      documentation: Logical negation.
+  Tuple2:
+    - name: first
+      documentation: Get first element of tuple.
+    - name: second
+      documentation: Get second element of tuple.
+    - name: map (x: x.toText)
+      documentation: Map function over both elements of a tuple.
+  Tuple3:
+    - name: first
+      documentation: Get first element of tuple.
+    - name: second
+      documentation: Get second element of tuple.
+    - name: map (x: x.toText)
+      documentation: Map function over all elements of a tuple.
+    - name: third
+      documentation: Get third element of tuple.
+  Tuple4:
+    - name: first
+      documentation: Get first element of tuple.
+    - name: second
+      documentation: Get second element of tuple.
+    - name: map (x: x.toText)
+      documentation: Map function over all elements of a tuple.
+    - name: third
+      documentation: Get third element of tuple.
+    - name: fourth
+      documentation: Get fourth element of tuple.
+  Maybe:
+    - name: isJust
+      documentation: Check if value is Just.
+    - name: map (x: x.toText)
+      documentation: Apply function to Maybe value.
+  List:
+    - name: head
+      documentation: Get `Just` first element of a list or `Nothing` if the list is empty.
+    - name: last
+      documentation: Get `Just` last element of a list or `Nothing` if the list is empty.
+    - name: map (x: x.toText)
+      documentation: Map function over all elements of a list.
+    - name: length
+      documentation: Get list length.
+    - name: take 1
+      documentation: Take first n elements of a list as a new list.
+    - name: drop 1
+      documentation: Remove first n elements from a list.
+    - name: reverse
+      documentation: Reverse the list.
+    - name: prepend "foo"
+      documentation: Prepend an element to the list.
+  Map:
+    - name: size
+      documentation: The number of values stored in the map.
+    - name: toList
+      documentation: Convert the map into a list of (key, value) pairs.
+    - name: map (_.toText)
+      documentation: Apply a function to each value in the map.
+    - name: delete "foo"
+      documentation: Delete key from the map.
+  JSON:
+    - name: insert "foo" 10
+      documentation: Insert new element to JSON.
+    - name: delete "bar"
+      documentation: Remove element with given key from JSON.
+    - name: lookup "foo"
+      documentation: `Maybe` value associated with a given key.
+    - name: has "foo"
+      documentation: Check if the key is present in JSON structure.
+    - name: at 1
+      documentation: Get `Maybe` element with a given index from `JSON`.
+  Stream:
+    - name: drop 1
+      documentation: Drop the given number of elements from the stream.
+    - name: take 1
+      documentation: Return the prefix of the stream of given length.
+    - name: consume 5
+      documentation: List of the first `n` elements of stream and the result of dropping the first `n` values of it.
+
+Std.Geo:
+  GeoJSONFeature:
+    - name: addProperty "popupContent" "home"
+      documentation: Add a property do GeoJSONFeature.
+
+Std.HTTP:
+  $global:
+    - name: Http.getJSON "http://ip.jsontest.com"
+      documentation: Fetch data from a JSON endpoint.
+  $imported:
+    - name: Http.get "http://httpbin.org/get"
+      documentation: Create a basic Http GET request for a given uri.
+    - name: Http.post "http://httpbin.org/post" . addHeader "Accept" "*" . setBasicAuth "user" "pass" . setParam "someParam" "someValue" . perform
+      documentation: Create a basic Http POST request for a given uri.
+    - name: Http.delete "http://httpbin.org/delete"
+      documentation: Create a basic Http DELETE request for a given uri.
+    - name: emptyHttpBody
+      documentation: Create an empty `HttpSimpleBody`.
+  HttpSimpleBody:
+    - name: addValue "foo" "bar"
+      documentation: Add one pair to the body.
+  HttpRequest:
+    - name: addHeader "Accept" "*"
+      documentation: Set the header (key) to a value (val). The header needs to be a valid Http header name, like `Accept-Charset` (but the case does not matter).
+    - name: setBasicAuth "user" "pass"
+      documentation: Use the provided username and password as `HttpBasicAuth`.
+    - name: setParam "someParam" "someValue"
+      documentation:
+    - name: perform
+      documentation: Perform the request.
+    - name: setMethod GET
+      documentation: Set the method of this `HttpReuqest` to a given `HttpMethod`.
+  HTTPResponse:
+    - name: successful
+      documentation: Check whether the response came back yielding a successful result.
+    - name: stream
+      documentation: The body of the response as a stream.
+    - name: body
+      documentation: The body of the response as a `Binary` blob.
+    - name: text
+      documentation: Body of the response as a `Text`.
+    - name: json
+      documentation: Body of the response as a `JSON`.
+
+Std.Time:
+  $global:
+    - name: Time.now
+      documentation: Get current time.
+  $imported:
+    - name: Time.fromTimeOfYear 2019 02 26 Nothing
+      documentation: Construct a Time object by passing respective date fields.
+    - name: Time.beginningOfDay
+      documentation: Get the beginning of the current day.
+    - name: Time.endOfDay
+      documentation: Get the end of the current day.
+    - name: Time.beginningOfMonth
+      documentation: Get the Time representing the first day of current month.
+    - name: Time.endOfMonth
+      documentation: Get the Time representing the last day of current month.
+    - name: Time.beginningOfYear
+      documentation: Get the Time representing the first day of current year.
+    - name: Time.endOfYear
+      documentation: Get the Time representing the last day of current year.
+  Time:
+    - name: format "%m/%d/%y"
+      documentation: Convert Time object to a string with given formatting.
+    - name: days
+      documentation: Return the days number associated with this Time object.
+    - name: addDays 4
+      documentation: Add days to Time object.
+    - name: subDays 4
+      documentation: Substract days from Time object.
+    - name: timeOfYear
+      documentation: Get the time of year in form of a tuple: (year, month, day)
+    - name: timeZone
+      documentation: Return the timezone associated with this Time object.
+    - name: toUTC
+      documentation: Convert Time to UTCTime.
+

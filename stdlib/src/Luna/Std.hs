@@ -9,10 +9,11 @@ import qualified Luna.Pass.Sourcing.Data.Unit  as Unit
 import qualified Luna.Prim.Base                as Base
 import qualified Luna.Prim.DynamicLinker.Cache as DynamicLinkerCache
 import qualified Luna.Prim.Foreign             as Foreign
+import qualified Luna.Prim.HTTP                as HTTP
+import qualified Luna.Prim.Package             as Package
+import qualified Luna.Prim.System              as System
 import qualified Luna.Prim.Time                as Time
 import qualified Luna.Prim.WebSockets          as WebSockets
-import qualified Luna.Prim.System              as System
-import qualified Luna.Prim.HTTP                as HTTP
 import qualified Luna.Std.Builder              as Builder
 
 import Luna.Std.Finalizers (finalize, initFinalizersCtx)
@@ -35,16 +36,26 @@ stdlib = do
     linkerCacheCtx <- liftIO DynamicLinkerCache.create
 
     baseFuncs    <- Base.exports       @graph finalizersCtx
+    foreignFuncs <- Foreign.exports    @graph finalizersCtx linkerCacheCtx
+    httpFuncs    <- HTTP.exports       @graph
+    packageFuncs <- Package.exports    @graph
+    sysFuncs     <- System.exports     @graph
     timeFuncs    <- Time.exports       @graph
     wsFuncs      <- WebSockets.exports @graph finalizersCtx
-    sysFuncs     <- System.exports     @graph
-    httpFuncs    <- HTTP.exports       @graph
-    foreignFuncs <- Foreign.exports    @graph finalizersCtx linkerCacheCtx
 
-    let defs = Map.unions [baseFuncs, timeFuncs, wsFuncs, sysFuncs, httpFuncs, foreignFuncs]
+    let defs = Map.unions
+            [ baseFuncs,
+              foreignFuncs,
+              httpFuncs,
+              packageFuncs,
+              sysFuncs,
+              timeFuncs,
+              wsFuncs ]
         docDefs = Def.Documented def <$> defs
         unit = Unit.Unit (Def.DefsMap docDefs) def
-        unitRef = Unit.UnitRef (Unit.Precompiled unit) (Unit.Imports stdlibImports)
+        unitRef = Unit.UnitRef
+            (Unit.Precompiled unit)
+            (Unit.Imports stdlibImports)
 
     let finalizeAction = do
             DynamicLinkerCache.finalize linkerCacheCtx

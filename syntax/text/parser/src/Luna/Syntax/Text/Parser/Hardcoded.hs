@@ -24,6 +24,16 @@ import Luna.Syntax.Text.Scope (Scope)
 
 hardcodePrecRelMap :: (Prec.RelWriter Name m, Assoc.Writer Name m) => m ()
 hardcodePrecRelMap = do
+    Prec.writeRel EQ ("<" :: Name) (">"  :: Name)
+    Prec.writeRel EQ ("<" :: Name) (">=" :: Name)
+    Prec.writeRel EQ ("<" :: Name) ("<=" :: Name)
+
+    Prec.writeRel EQ ("+" :: Name) ("-"         :: Name)
+    Prec.writeRel EQ ("+" :: Name) (Name.uminus :: Name)
+
+    Prec.writeRel EQ ("*" :: Name) ("/" :: Name)
+    Prec.writeRel EQ ("*" :: Name) ("%" :: Name)
+
     Prec.writeRel LT (Name.typed :: Name) (Name.arrow :: Name)
     Prec.writeRel LT (Name.arrow :: Name) ("$"        :: Name)
     Prec.writeRel LT ("$"        :: Name) ("<"        :: Name)
@@ -35,17 +45,8 @@ hardcodePrecRelMap = do
     Prec.writeRel LT (Name.acc   :: Name) (Name.app   :: Name)
     Prec.writeRel LT (Name.app   :: Name) (Name.lam   :: Name)
 
-    Prec.writeRel EQ (Name.app   :: Name) (Name.app   :: Name)
-
-    Prec.writeRel EQ ("-"     :: Name) ("+"         :: Name)
-    Prec.writeRel EQ (">"     :: Name) ("<"         :: Name)
-    Prec.writeRel EQ (">="    :: Name) (">"         :: Name)
-    Prec.writeRel EQ ("<="    :: Name) ("<"         :: Name)
-    Prec.writeRel EQ ("-"     :: Name) (Name.uminus :: Name)
-    Prec.writeRel EQ ("%"     :: Name) ("*"         :: Name)
-    Prec.writeRel EQ ("/"     :: Name) ("*"         :: Name)
-
     Assoc.write Assoc.Right (Name.lam :: Name)
+    Assoc.write Assoc.Right ("$"      :: Name)
 
 
 hardcodeMultiNames :: State.Monad Scope m => m ()

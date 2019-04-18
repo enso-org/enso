@@ -8,6 +8,7 @@ import qualified Data.Graph.Data.Graph.Class         as Graph
 import qualified Data.Map                            as Map
 import qualified Luna.IR                             as IR
 import qualified Luna.Package                        as Package
+import qualified Luna.Package.Environment            as PackageEnv
 import qualified Luna.Package.Structure.Name         as Package
 import qualified Luna.Pass.Data.Stage                as TC
 import qualified Luna.Pass.Flow.ProcessUnits         as ProcessUnits
@@ -23,6 +24,7 @@ import qualified Luna.Std                            as Std
 import qualified OCI.Data.Name                       as Name
 import qualified Path                                as Path
 import qualified System.Directory                    as Directory
+import qualified System.Exit                         as Exit
 import qualified System.FilePath                     as FilePath
 import qualified System.IO                           as IO
 
@@ -89,7 +91,9 @@ interpretWithMain name sourcesMap = Graph.encodeAndEval @TC.Stage
             $ convert Package.mainFuncName
 
         case unwrap tFunc of
-            Left e  -> print e
+            Left e  -> do
+                print e
+                liftIO Exit.exitFailure
             Right _ -> do
                 putStrLn $ "Running in interpreted mode."
                 void $ liftIO $ Runtime.runIO mainFunc
@@ -97,10 +101,12 @@ interpretWithMain name sourcesMap = Graph.encodeAndEval @TC.Stage
 file :: (InterpreterMonad m) => Path Abs File -> Path Abs Dir -> m ()
 file filePath stdlibPath = liftIO $ Directory.withCurrentDirectory fileFP $ do
     fileSources <- Package.fileSourcePaths filePath stdlibPath
+    includedImports <- Package.includedLibs stdlibPath
 
     let fileName = convertVia @Name.Name . FilePath.dropExtension
             . Path.fromRelFile $ Path.filename filePath
 
+    PackageEnv.setLibraryVars includedImports
     liftIO $ interpretWithMain fileName fileSources
 
     where fileFP = Path.fromAbsDir $ Path.parent filePath
@@ -118,6 +124,7 @@ package pkgPath stdlibPath = liftIO . Directory.withCurrentDirectory pkgDir $ do
         mainFileName = (convert $ Package.getPackageName packageRoot) <> "."
             <> Package.mainFileName
 
+    PackageEnv.setLibraryVars packageImports
     liftIO $ interpretWithMain mainFileName pkgSrcMap
 
     where pkgDir = Path.fromAbsDir pkgPath

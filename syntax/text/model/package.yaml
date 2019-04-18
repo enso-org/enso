@@ -15,6 +15,7 @@ library:
 dependencies:
     - base
     - containers
+    - data-poset
     - layered-state
     - lens-utils
     - luna-core
