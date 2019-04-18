@@ -1,8 +1,12 @@
 ---
 name: Feature Request
 about: Request a new feature in Luna.
+title: ''
+labels: 'Type: Enhancement'
+assignees: ''
 
 ---
+
 <!--
 Please ensure that you check the latest version of Luna to see if your feature 
 has been implemented.
@@ -18,4 +22,3 @@ has been implemented.
 - A description of the motivation for adding this feature to Luna.
 - Ideally this would include use-cases that support the feature.
 -->
-
