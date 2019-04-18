@@ -27,7 +27,16 @@ makeLenses ''PrecompiledDef
 instance Show PrecompiledDef where
     show _ = "Precompiled"
 
-data Def = Body (IR.Term IR.Function) | Precompiled PrecompiledDef deriving (Show)
+data SourcedDef = SourcedDef
+    { _body            :: IR.Term IR.Function
+    , _definitionOrder :: Maybe Int
+    } deriving (Show)
+makeLenses ''SourcedDef
+
+data Def
+    = Sourced SourcedDef
+    | Precompiled PrecompiledDef
+    deriving (Show)
 makePrisms ''Def
 
 newtype DefsMap = DefsMap (Map.Map IR.Name (Documented Def)) deriving (Show, Default)

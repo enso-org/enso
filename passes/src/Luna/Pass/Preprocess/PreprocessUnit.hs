@@ -24,7 +24,7 @@ waitAll = liftIO . foldl (\r async -> Async.wait async >> r) (pure ())
 
 preprocessDef :: UnitResolver -> Def.Def -> TC.Monad ()
 preprocessDef resolver def = case def of
-    Def.Body fun -> do
+    Def.Sourced (Def.SourcedDef fun _) -> do
         let prep = PreprocessDef.preprocessDef resolver $ Layout.relayout fun
         _ <- Graph.local @TC.Stage $ void $ Scheduler.evalT $ prep
         pure ()

@@ -27,7 +27,7 @@ typeUnitsHC = typeUnits
 
 typeFun :: Target.Target -> Typed.Units -> Def.Def -> TC.Monad Typed.Def
 typeFun tgt typedUnits def = case def of
-    Def.Body fun -> do
+    Def.Sourced (Def.SourcedDef fun _) -> do
         st <- Graph.getState @TC.Stage
         fut <- Future.make $ do
             Graph.eval @TC.Stage (Scheduler.evalT $ Typechecker.runTypechecker tgt (Layout.relayout fun) typedUnits) st

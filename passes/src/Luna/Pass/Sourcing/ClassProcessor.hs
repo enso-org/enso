@@ -66,7 +66,8 @@ prepareClass = \modName klass -> do
                            newConses
                            allMethods
     IR.replace newKlass klass
-    defsMap <- foldM (registerMethod modName name paramNames) def allMethods
+    defsMap <- foldM (registerMethod modName name paramNames) def
+        (zip [0..] allMethods)
     pure (newKlass, Class (Constructor . length <$> constructorsMap)
                             defsMap
                             (Layout.unsafeRelayout newKlass))
@@ -291,10 +292,10 @@ processConses isNative className conses = do
              , Map.insert className (fieldNames topFields) consMap )
     else pure (realConses, consMap)
 
-registerMethod :: IR.Qualified -> IR.Name -> [IR.Name] -> DefsMap -> IR.SomeTerm
-    -> TC.Pass ClassProcessor DefsMap
-registerMethod = \modName clsName paramNames map t -> do
-    (doc, root) <- Sourcing.cutDoc t
+registerMethod :: IR.Qualified -> IR.Name -> [IR.Name] -> DefsMap
+    -> (Int, IR.SomeTerm) -> TC.Pass ClassProcessor DefsMap
+registerMethod = \modName clsName paramNames map (defOrder,term) -> do
+    (doc, root) <- Sourcing.cutDoc term
     Layer.read @IR.Model root >>= \case
         Uni.Function n _ _ -> do
             IR.source n >>= Layer.read @IR.Model >>= \case
@@ -302,7 +303,8 @@ registerMethod = \modName clsName paramNames map t -> do
                     newRoot <- addSelf modName clsName paramNames
                                    $ Layout.unsafeRelayout root
                     IR.replace newRoot root
-                    let documented = Documented doc (Def.Body newRoot)
+                    let documented = Documented doc . Def.Sourced
+                            . Def.SourcedDef newRoot $ Just defOrder
                     when_ (isJust $ map ^. wrapped . at name) $ do
                         let error = Error.duplicateMethodDefinition
                                 modName clsName name
