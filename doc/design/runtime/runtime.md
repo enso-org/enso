@@ -222,6 +222,8 @@ of the same architectural component (e.g. the JIT layers).
 - An analysis of how the graph layout and metadata is handled. This should not
   longer be associated with explicit metadata in the source.
 - An analysis of how to handle the necessary callbacks to this layer
+- A design for handling metadata internally while keeping it at the end of the
+  file so as not to interfere with code. 
 -->
 
 ### 3 - The Compilation Layer and Type-Checker
