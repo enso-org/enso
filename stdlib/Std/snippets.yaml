@@ -6,9 +6,9 @@ Std.Base:
       documentation: Creates a map with a single element with key "foo" and value 10.
     - name: JSON.empty
       documentation: Empty JSON object.
-    - name: readFile "/example/path/to/data"
+    - name: readFile $ Package.samples "Base" / "exampleFile.txt"
       documentation: Read file from the hard drive.
-    - name: writeFile "./exampleFile.txt" "lorem ipsum"
+    - name: writeFile "./myFile.txt" "lorem ipsum"
       documentation: Write a Text object into a file with a given path.
   $imported:
     - name: JSON.parse '{"a": 10, "b": 20}'
@@ -29,7 +29,7 @@ Std.Base:
     - name: upto 10
       documentation: Generate a list reperesenting a range.
     - name: > 10
-      documentation: Compare two Integers. 
+      documentation: Compare two Integers.
     - name: abs
       documentation: Calculate absolute value.
     - name: negate
@@ -66,20 +66,20 @@ Std.Base:
     - name: log 10.0
       documentation: Calculate real number logarithm.
     - name: > 10.0
-      documentation: Compare two real numbers. 
+      documentation: Compare two real numbers.
     - name: abs
       documentation: Calculate absolute value for real number.
-    - name: negate 
+    - name: negate
       documentation: Calculate negation.
-    - name: floor 
+    - name: floor
       documentation: Round a number down to closest Int.
     - name: ceiling
       documentation: Round a number up to the closest Int.
-    - name: sin 
+    - name: sin
       documentation: Calculate sine.
     - name: cos
       documentation: Calculate cosine.
-    - name: exp 
+    - name: exp
       documentation: Calculate natural exponent.
     - name: ln
       documentation: Calculate natural logarithm.
@@ -116,7 +116,7 @@ Std.Base:
       documentation: Boolean or.
     - name: == False
       documentation: Check if boolean values are equal.
-    - name: negate 
+    - name: negate
       documentation: Logical negation.
   Tuple2:
     - name: first
@@ -145,14 +145,14 @@ Std.Base:
       documentation: Get third element of tuple.
     - name: fourth
       documentation: Get fourth element of tuple.
-  Maybe: 
+  Maybe:
     - name: isJust
       documentation: Check if value is Just.
     - name: map (x: x.toText)
-      documentation: Apply function to Maybe value. 
+      documentation: Apply function to Maybe value.
   List:
     - name: head
-      documentation: Get `Just` first element of a list or `Nothing` if the list is empty. 
+      documentation: Get `Just` first element of a list or `Nothing` if the list is empty.
     - name: last
       documentation: Get `Just` last element of a list or `Nothing` if the list is empty.
     - name: map (x: x.toText)
@@ -180,7 +180,7 @@ Std.Base:
     - name: insert "foo" 10
       documentation: Insert new element to JSON.
     - name: delete "bar"
-      documentation: Remove element with given key from JSON. 
+      documentation: Remove element with given key from JSON.
     - name: lookup "foo"
       documentation: `Maybe` value associated with a given key.
     - name: has "foo"
@@ -201,7 +201,7 @@ Std.Geo:
       documentation: Add a property do GeoJSONFeature.
 
 Std.HTTP:
-  $global: 
+  $global:
     - name: Http.getJSON "http://ip.jsontest.com"
       documentation: Fetch data from a JSON endpoint.
   $imported:
@@ -250,9 +250,9 @@ Std.Time:
       documentation: Get the beginning of the current day.
     - name: Time.endOfDay
       documentation: Get the end of the current day.
-    - name: Time.beginningOfMonth 
+    - name: Time.beginningOfMonth
       documentation: Get the Time representing the first day of current month.
-    - name: Time.endOfMonth 
+    - name: Time.endOfMonth
       documentation: Get the Time representing the last day of current month.
     - name: Time.beginningOfYear
       documentation: Get the Time representing the first day of current year.
