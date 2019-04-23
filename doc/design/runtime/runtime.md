@@ -280,6 +280,8 @@ of the same architectural component (e.g. the JIT layers).
     passes to best improve that function's performance.
 - An examination of how we deal with 'wired-in' functionality (e.g. relying on
   Haskell libraries for the stdlib for now).
+- An examination of how we can use levity polymorphism internally to improve
+  performance.
 -->
 
 ### 4 - The Cache Layer
@@ -554,6 +556,7 @@ this design are listed below:
 - [GHC Core Spec](https://gitlab.haskell.org/ghc/ghc/blob/master/docs/core-spec/core-spec.pdf)
 - [GHC STG Spec](https://gitlab.haskell.org/ghc/ghc/blob/master/docs/stg-spec/stg-spec.mng)
 - [GHCi Spec](https://gitlab.haskell.org/ghc/ghc/blob/master/docs/ghci/ghci.tex)
+- [Levity Polymorphism](https://www.microsoft.com/en-us/research/publication/levity-polymorphism/)
 
 <!-- END OF WIP PROPOSAL -->
 

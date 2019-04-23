@@ -44,6 +44,7 @@ modules, classes and interfaces.
 - [Principles for Luna's Type System](#principles-for-lunas-type-system)
 - [Structural Type Shorthand](#structural-type-shorthand)
 - [Interfaces](#interfaces)
+- [Desugaring Types to Rows](#desugaring-types-to-rows)
 - [Unresolved Questions](#unresolved-questions)
 - [References](#references)
 
@@ -995,6 +996,8 @@ signature acts to constrain the function type further than would be inferred.
 
 # Interfaces
 
+# Desugaring Types to Rows
+
 # Unresolved Questions
 <!-- WD -->
 
@@ -1038,11 +1041,23 @@ signature acts to constrain the function type further than would be inferred.
   it could be done lazily on demand.
 - Interfaces (1:1 mapping or rows), can we get back and forth in the row
   version?
-- How does pattern matching work on rows?
+- How does pattern matching work on rows? How do we determine what a constructor
+  is?
 - Need to formalise how our type-system typechecks and then lowers its results
   to System-FC.
 - A design for dynamic, Dynamic <<: Type
-- Does `:` == `<:`, in the presence of open rows.
+- Does `:` == `<:`, in the presence of open rows? Need to be able to say
+  + `a` _is_ the set
+  + `a` is a _member_ of the set
+- I am not yet happy that we can infer higher rank / impredicative types with
+  few enough annotations as we desire. 
+- How do we solve these problems and still give informative error messages?
+- Do we want to base on unification?
+
+- I don't know what the way forward is.
+
+- To what extent is it possible to move on from this now and come back to it 
+  later?
 
 # References
 The design of the type-system described in this document is based on prior work
@@ -1051,11 +1066,11 @@ is as below.
 
 - [Abstracting Extensible Data Types](http://ittc.ku.edu/~garrett/pubs/morris-popl2019-rows.pdf)
 - [Boxy Type-Inference for Higher-Rank Types and Impredicativity](https://www.microsoft.com/en-us/research/publication/boxy-type-inference-for-higher-rank-types-and-impredicativity/)
+- [Coloured Local Type Inference](http://lampwww.epfl.ch/~odersky/papers/popl01.pdf)
 - [Complete and Easy Bidirectional Typechecking for Higher-Rank Polymorphism](https://www.cl.cam.ac.uk/~nk480/bidir.pdf)
 - [Dependent Types in Haskell: Theory and Practice](https://cs.brynmawr.edu/~rae/papers/2016/thesis/eisenberg-thesis.pdf)
 - [FPH: First-Class Polymorphism for Haskell](https://www.microsoft.com/en-us/research/publication/fph-first-class-polymorphism-for-haskell/)
 - [Higher-Order Type-Level Programming in Haskell](https://www.microsoft.com/en-us/research/uploads/prod/2019/03/ho-haskell-5c8bb4918a4de.pdf)
-- [Levity Polymorphism](https://www.microsoft.com/en-us/research/publication/levity-polymorphism/)
 - [MLF: Raising ML to the Power of System-F](http://gallium.inria.fr/~remy/work/mlf/icfp.pdf)
 - [Partial Type-Constructors](https://cs.brynmawr.edu/~rae/papers/2019/partialdata/partialdata.pdf)
 - [Practical Erasure in Dependently-Typed Languages](https://eb.host.cs.st-andrews.ac.uk/drafts/dtp-erasure-draft.pdf)
@@ -1063,7 +1078,6 @@ is as below.
 - [QML: Explicit, First-Class Polymorphism for ML](https://www.microsoft.com/en-us/research/wp-content/uploads/2009/09/QML-Explicit-First-Class-Polymorphism-for-ML.pdf)
 - [Supermonads](http://eprints.nottingham.ac.uk/36156/1/paper.pdf)
 - [Syntax and Semantics of Quantitative Type Theory](https://bentnib.org/quantitative-type-theory.pdf)
-- [Type Inference, Haskell, and Dependent Types](http://adam.gundry.co.uk/pub/thesis/thesis-2013-12-03.pdf)
 - [Wobbly Types: Type Inference for GADTs](https://www.microsoft.com/en-us/research/publication/wobbly-types-type-inference-for-generalised-algebraic-data-types/)
 
 <!--
