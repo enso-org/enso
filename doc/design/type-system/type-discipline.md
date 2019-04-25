@@ -46,6 +46,8 @@ modules, classes and interfaces.
 - [Interfaces](#interfaces)
 - [Desugaring Types to Rows](#desugaring-types-to-rows)
 - [Unresolved Questions](#unresolved-questions)
+- [Steps](#steps)
+- [Goals for the Type System](#goals-for-the-type-system)
 - [References](#references)
 
 <!-- /MarkdownTOC -->
@@ -819,7 +821,7 @@ explicitly:
   the property to prove, allowing for nicer error messages:
 
     ```
-    append :: (v1 : Vector a) -> (v2 : Vector a) -> (v3 : Vector a)
+    append : (v1 : Vector a) -> (v2 : Vector a) -> (v3 : Vector a)
     append = vec1 -> vec2 ->
         prove (v3.size == v1.size + v2.size) "appending augments length"
         ...
@@ -942,8 +944,24 @@ explicitly:
 - Bare types, such as `Int` or `a : Int` are assumed to be rows with a single
   member. In the case where no name is given, a it is treated as a 1-tuple.
 - We want the theory to have possible future support for GADTs.
-- The operation `foo a b` desugars to `b.foo a` so as to construct a 
-  transformation applied between two types. 
+- The operation `foo a b` desugars to `b.foo a` so as to construct a
+  transformation applied between two types.
+- We want error messages to be as informative as possible, and are willing to
+  retain significant extra algorithmic state in the typechecker to ensure that
+  they are. This means both _formatting_ and _useful information_.
+- There is a formalisation of how this system lowers to System-FC as implemented
+  in GHC Core.
+- Constructors are treated specially for the purposes of pattern matching.
+- The implementation supports `Dynamic`, a type that allows typechecked
+  interactions with external data. The properties expected of a `Dynamic` value
+  become part of the `Dynamic` type signature, so if you need to access a
+  property `foo` on a value `a` that is dynamic, `a` has type
+  `Dynamic { foo : T }`, and thereby represents a contract expected of the
+  external data. Dynamic is a strict subtype of `Type`.
+- The typechecker will work efficiently in the presence of defaulted arguments
+  by lazily generating the possible permutations of a function's signature at
+  its use sites. This can be made to interact favourably with unification, much
+  like for prolog.
 
 # Structural Type Shorthand
 In Luna, we want to be able to write a type-signature that represents types in
@@ -1002,62 +1020,46 @@ signature acts to constrain the function type further than would be inferred.
 <!-- WD -->
 
 - Handling of async exceptions like OTP. What is the impact on inference?
-- `convert` and floating diagram from WD.
-- How does the constraint syntax work for convertible? How does it desugar to
-  rows? Types are functions on categories.
-
-    ```
-    type Convertible : a -> b =
-        convert : (from : a) -> b
-
-    # Functor in the Haskell sense
-    type Functor : f =
-        map : (a -> b) -> f a -> f b
-
-    # Functor in the mathematical sense (?)
-    type Functor : f -> g -> a -> b =
-        map : (a -> b) -> f -> g
-    ```
-
-  To give a possible desugaring of the above definition:
-
-    ```
-    Functor : f -> g -> a -> b -> { map : () }
-    ```
-
-- How exactly do we define generic interfaces (consider both `Convertible` and
-  `Functor`).
-- Having merged type and term namespaces doesn't mean that you have to support
-  identical syntax on each, just that the semantics need to be well-defined.
 
 <!-- Ara -->
-
-- How do we _efficiently_ typecheck `f : a -> {b} -> c` against both
-  `g : a -> b` and `h : a -> b -> c` (where `{b}` is used to represent a
-  defaulted, and hence _optional_ argument)? Can it be done by a purely
-  desugaring-based approach (`f` would desugar internally to both `g` and `h`)?
-  The issue with a desugaring-based approach is memory usage for _all_ the
-  possible desugarings of a function with many optional arguments, but perhaps
-  it could be done lazily on demand.
+- How exactly do we define generic interfaces (consider both `Convertible` and
+  `Functor`).
+- At what point will we _require_ annotations?
 - Interfaces (1:1 mapping or rows), can we get back and forth in the row
   version?
-- How does pattern matching work on rows? How do we determine what a constructor
-  is?
-- Need to formalise how our type-system typechecks and then lowers its results
-  to System-FC.
-- A design for dynamic, Dynamic <<: Type
+- How do Monadic Contexts work under the hood?
 - Does `:` == `<:`, in the presence of open rows? Need to be able to say
   + `a` _is_ the set
   + `a` is a _member_ of the set
-- I am not yet happy that we can infer higher rank / impredicative types with
-  few enough annotations as we desire. 
-- How do we solve these problems and still give informative error messages?
-- Do we want to base on unification?
 
-- I don't know what the way forward is.
+# Steps
 
-- To what extent is it possible to move on from this now and come back to it 
-  later?
+1. Answer the remaining questions
+2. Write down a high-level design for the system.
+3. Formalise the important parts thereof.
+4. Implementation
+5. Formalise the remaining portions of the system.
+
+# Goals for the Type System
+In our design for Luna, we firmly believe that the type system should be able to
+aid the user in writing correct programs, far and above anything else. However,
+with so much of our targeted user-base being significantly non-technical, it
+needs to be as unobtrusive as possible.
+
+- Inference should have maximal power. We want users to be _forced_ to write
+  type annotations in as few situations as possible. This means that, ideally,
+  we are able to infer higher-rank types and make impredicative instantiations
+  without annotations.
+- Error messages must be informative. This is usually down to the details of the
+  implementation, but we'd rather not employ an algorithm that discards
+  contextual information that would be useful for crafting useful errors.
+- Dependent types are a big boon for safety in programming languages, allowing
+  the users that _want to_ to express additional properties of their programs
+  in their types. We would like to introduce dependent types in future, but
+  would welcome insight on whether it is perhaps easier to do so from the get
+  go. If doing so, we would prefer to go with `Type : Type`.
+- Our aim is to create a powerful type system to support development, rather
+  than turn Luna into a research language.
 
 # References
 The design of the type-system described in this document is based on prior work
