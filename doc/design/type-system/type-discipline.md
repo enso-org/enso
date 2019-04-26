@@ -962,6 +962,7 @@ explicitly:
   by lazily generating the possible permutations of a function's signature at
   its use sites. This can be made to interact favourably with unification, much
   like for prolog.
+- Users need to explicitly run their contexts to provide the lifting.
 
 # Structural Type Shorthand
 In Luna, we want to be able to write a type-signature that represents types in
@@ -1027,7 +1028,6 @@ signature acts to constrain the function type further than would be inferred.
 - At what point will we _require_ annotations?
 - Interfaces (1:1 mapping or rows), can we get back and forth in the row
   version?
-- How do Monadic Contexts work under the hood?
 - Does `:` == `<:`, in the presence of open rows? Need to be able to say
   + `a` _is_ the set
   + `a` is a _member_ of the set
