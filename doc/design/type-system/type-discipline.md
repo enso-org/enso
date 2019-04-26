@@ -918,7 +918,7 @@ explicitly:
   automatically labelled with their name (so constructors are `mkFoo`, rather
   than `Foo`). The nested type is constructed as part of the containing type.
 - When writing a method, the type on which the method is defined must be the
-  first argument.
+  last argument.
 - Every name uses the following syntax `name : type = value`, where either
   `type` or `value` can be omitted. This has additional sugar that allows users
   to write it as follows:
