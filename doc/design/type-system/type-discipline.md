@@ -1031,6 +1031,8 @@ signature acts to constrain the function type further than would be inferred.
 - Does `:` == `<:`, in the presence of open rows? Need to be able to say
   + `a` _is_ the set
   + `a` is a _member_ of the set
+- Monadic Contexts and monad-bind vs. let. How do we determine it? Consider list
+  monad, but also `in`.
 
 # Steps
 
