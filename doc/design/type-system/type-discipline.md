@@ -966,8 +966,77 @@ explicitly:
 - It is going to be important to retain as much information as possible in order
   to provide informative error messages. This means that the eventual algorithm
   is likely to combine techniques from both W and M (context-insensitive and
-  context-sensitive respectively). 
-- Type errors need to track possible fixes in the available context. 
+  context-sensitive respectively).
+- Type errors need to track possible fixes in the available context.
+- Type equality in Luna is represented purely by representational equality.
+  There is no inbuilt notion of nominal equality.
+- The type-system includes a mechanism for reasoning about the runtime
+  representation of types. It will allow the programmer to constrain an API
+  based upon runtime representations. While this is described as a type-level
+  mechanism, it only is insofar as kinds are also types. The kind of a type is
+  an expression that contains the following information:
+  + Levity: Types that are represented by a pointer can be both lifted (those
+    that may contain 'bottom') and unlifted (those that cannot). Thunks are
+    lifted.
+  + Boxiness: Whether the type is boxed (represented by a pointer) or unboxed.
+  + Representation: A description of the machine-level representation of the
+    type.
+
+  This is effectively represented by a set of data declarations as follows:
+
+    ```hs
+    data Levity
+        = Lifted   -- Can contain bottom (is a lazy computation)
+        | Unlifted -- Cannot contain bottom (has been forced or is strict)
+
+    data Size = UInt64
+
+    data MachineRep
+        = FlatRep [MachineRep] -- For unboxed rows
+        | UInt32
+        | UInt64
+        | SInt32
+        | SInt64
+        | Float32
+        | Float64
+        | ...
+
+    data RuntimeRep
+        = Boxed   Levity
+        | Unboxed MachineRep
+
+    data TYPE where TYPE :: RuntimeRep -> ? -- Wired in
+
+    -- Where does `Constraint` come into this?
+    ```
+
+  Doing this allows programs to abstract over the representation of their types,
+  and is very similar to the implementation described in the Levity Polymorphism
+  paper. The one change we make is that `FlatRep` is recursive; with most of
+  Luna's types able to be represented flat in memory. This means that the list
+  `[MachineRep]` is able to account for any row of unboxed types.
+
+  The return type of `TYPE` is still an open question. What does it mean for a
+  dependently typed language to deal in unboxed types at runtime? Reference to
+  the Levity Polymorphism paper will be required. We don't want the usage of
+  this to rely on the JIT for code-generation, as it should operate in a static
+  context as well.
+
+  An example of where this is useful is the implementation of unboxed arrays,
+  for which we want a flat in-memory layout with no indirections. Being able to
+  parametrise the array type over the kind `forall k. RuntimeRep (Unboxed k)`,
+  means that the type will only accept unboxed types.
+- We want to support contexts on types such that instantiation can be guarded.
+  For more information see the Partial Type-Constructors paper. If you have a
+  type `type Num a => Foo a = ...`, then it should be a type error to
+  instantiate `Foo a` where `Num a` doesn't hold. This allows a treatment of
+  partial data. However, this isn't easily extensible across interfaces. Could
+  we propagate the constraint to the constructors in a GADT-alike? Nevertheless,
+  they act as well-formedness constraints on the type definition. This means
+  that the desugaring for type definitions involves GADTs. The construction of
+  a constrained type creates evidence that is discharged at the type's use site
+  (pattern match or similar). This should be based on the reasoning in the
+  Partial Data paper.
 
 # Structural Type Shorthand
 In Luna, we want to be able to write a type-signature that represents types in
@@ -1032,10 +1101,9 @@ signature acts to constrain the function type further than would be inferred.
 - Does `:` == `<:`, in the presence of open rows? Need to be able to say
   + `a` _is_ the set
   + `a` is a _member_ of the set
+
 - Monadic Contexts and monad-bind vs. let. How do we determine it? Consider list
   monad, but also `in`.
-- What are the variance relationships of tyvars in functions and types? This is
-  relevant due to row containment.
 
 # Steps
 
@@ -1064,7 +1132,8 @@ needs to be as unobtrusive as possible.
   would welcome insight on whether it is perhaps easier to do so from the get
   go. If doing so, we would prefer to go with `Type : Type`.
 - Our aim is to create a powerful type system to support development, rather
-  than turn Luna into a research language.
+  than turn Luna into a research language. We want users to be able to add
+  safety gradually.
 
 # References
 The design of the type-system described in this document is based on prior work
@@ -1092,9 +1161,12 @@ is as below.
 #### Monadic Contexts
 - [Supermonads](http://eprints.nottingham.ac.uk/36156/1/paper.pdf)
 
+#### Types and Performance
+- [Levity Polymorphism](https://cs.brynmawr.edu/~rae/papers/2017/levity/levity-extended.pdf)
+- [Partial Type-Constructors](https://cs.brynmawr.edu/~rae/papers/2019/partialdata/partialdata.pdf)
+
 #### Misc
 - [Higher-Order Type-Level Programming in Haskell](https://www.microsoft.com/en-us/research/uploads/prod/2019/03/ho-haskell-5c8bb4918a4de.pdf)
-- [Partial Type-Constructors](https://cs.brynmawr.edu/~rae/papers/2019/partialdata/partialdata.pdf)
 
 
 <!--
