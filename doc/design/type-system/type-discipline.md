@@ -963,6 +963,11 @@ explicitly:
   its use sites. This can be made to interact favourably with unification, much
   like for prolog.
 - Users need to explicitly run their contexts to provide the lifting.
+- It is going to be important to retain as much information as possible in order
+  to provide informative error messages. This means that the eventual algorithm
+  is likely to combine techniques from both W and M (context-insensitive and
+  context-sensitive respectively). 
+- Type errors need to track possible fixes in the available context. 
 
 # Structural Type Shorthand
 In Luna, we want to be able to write a type-signature that represents types in
@@ -1018,14 +1023,10 @@ signature acts to constrain the function type further than would be inferred.
 # Desugaring Types to Rows
 
 # Unresolved Questions
-<!-- WD -->
-
-- Handling of async exceptions like OTP. What is the impact on inference?
-
 <!-- Ara -->
+
 - How exactly do we define generic interfaces (consider both `Convertible` and
   `Functor`).
-- At what point will we _require_ annotations?
 - Interfaces (1:1 mapping or rows), can we get back and forth in the row
   version?
 - Does `:` == `<:`, in the presence of open rows? Need to be able to say
@@ -1033,6 +1034,8 @@ signature acts to constrain the function type further than would be inferred.
   + `a` is a _member_ of the set
 - Monadic Contexts and monad-bind vs. let. How do we determine it? Consider list
   monad, but also `in`.
+- What are the variance relationships of tyvars in functions and types? This is
+  relevant due to row containment.
 
 # Steps
 
@@ -1068,21 +1071,31 @@ The design of the type-system described in this document is based on prior work
 by others in the PL design community. The (probably) complete list of references
 is as below.
 
+#### Rows
 - [Abstracting Extensible Data Types](http://ittc.ku.edu/~garrett/pubs/morris-popl2019-rows.pdf)
+
+#### Maximum Inference Power
 - [Boxy Type-Inference for Higher-Rank Types and Impredicativity](https://www.microsoft.com/en-us/research/publication/boxy-type-inference-for-higher-rank-types-and-impredicativity/)
 - [Coloured Local Type Inference](http://lampwww.epfl.ch/~odersky/papers/popl01.pdf)
 - [Complete and Easy Bidirectional Typechecking for Higher-Rank Polymorphism](https://www.cl.cam.ac.uk/~nk480/bidir.pdf)
-- [Dependent Types in Haskell: Theory and Practice](https://cs.brynmawr.edu/~rae/papers/2016/thesis/eisenberg-thesis.pdf)
 - [FPH: First-Class Polymorphism for Haskell](https://www.microsoft.com/en-us/research/publication/fph-first-class-polymorphism-for-haskell/)
-- [Higher-Order Type-Level Programming in Haskell](https://www.microsoft.com/en-us/research/uploads/prod/2019/03/ho-haskell-5c8bb4918a4de.pdf)
 - [MLF: Raising ML to the Power of System-F](http://gallium.inria.fr/~remy/work/mlf/icfp.pdf)
-- [Partial Type-Constructors](https://cs.brynmawr.edu/~rae/papers/2019/partialdata/partialdata.pdf)
-- [Practical Erasure in Dependently-Typed Languages](https://eb.host.cs.st-andrews.ac.uk/drafts/dtp-erasure-draft.pdf)
 - [Practical Type-Inference for Higher-Rank Types](https://www.microsoft.com/en-us/research/publication/practical-type-inference-for-arbitrary-rank-types/)
 - [QML: Explicit, First-Class Polymorphism for ML](https://www.microsoft.com/en-us/research/wp-content/uploads/2009/09/QML-Explicit-First-Class-Polymorphism-for-ML.pdf)
-- [Supermonads](http://eprints.nottingham.ac.uk/36156/1/paper.pdf)
-- [Syntax and Semantics of Quantitative Type Theory](https://bentnib.org/quantitative-type-theory.pdf)
 - [Wobbly Types: Type Inference for GADTs](https://www.microsoft.com/en-us/research/publication/wobbly-types-type-inference-for-generalised-algebraic-data-types/)
+
+#### Dependent Types
+- [Dependent Types in Haskell: Theory and Practice](https://cs.brynmawr.edu/~rae/papers/2016/thesis/eisenberg-thesis.pdf)
+- [Practical Erasure in Dependently-Typed Languages](https://eb.host.cs.st-andrews.ac.uk/drafts/dtp-erasure-draft.pdf)
+- [Syntax and Semantics of Quantitative Type Theory](https://bentnib.org/quantitative-type-theory.pdf)
+
+#### Monadic Contexts
+- [Supermonads](http://eprints.nottingham.ac.uk/36156/1/paper.pdf)
+
+#### Misc
+- [Higher-Order Type-Level Programming in Haskell](https://www.microsoft.com/en-us/research/uploads/prod/2019/03/ho-haskell-5c8bb4918a4de.pdf)
+- [Partial Type-Constructors](https://cs.brynmawr.edu/~rae/papers/2019/partialdata/partialdata.pdf)
+
 
 <!--
 Welcome to the Lunatic's Asylym, where we thought it would be a good idea to try
