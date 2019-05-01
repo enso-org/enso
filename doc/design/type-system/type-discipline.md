@@ -968,7 +968,7 @@ explicitly:
   is likely to combine techniques from both W and M (context-insensitive and
   context-sensitive respectively).
 - Type errors need to track possible fixes in the available context.
-- Type equality in Luna is represented purely by representational equality.
+- Type equality in Luna is represented by both representational and structural equality. Never nominal equality. 
   There is no inbuilt notion of nominal equality.
 - The type-system includes a mechanism for reasoning about the runtime
   representation of types. It will allow the programmer to constrain an API
