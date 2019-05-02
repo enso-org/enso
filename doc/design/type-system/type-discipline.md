@@ -45,6 +45,7 @@ modules, classes and interfaces.
 - [Structural Type Shorthand](#structural-type-shorthand)
 - [Interfaces](#interfaces)
 - [Desugaring Types to Rows](#desugaring-types-to-rows)
+- [Testing the Type System](#testing-the-type-system)
 - [Unresolved Questions](#unresolved-questions)
 - [Steps](#steps)
 - [Goals for the Type System](#goals-for-the-type-system)
@@ -745,6 +746,8 @@ produce in the case where there is a type mismatch and not enough information to
 resolve the type variables. To this end, there has been some discussion about
 making `convert` a reserved name, but this is not certain yet.
 
+It is an open question as to _where_ we infer convertible.
+
 ## Coercible
 It is often necessary, particularly when working with structs over the C-FFI or
 in the case of embedded syntaxes, to need to be able to convert between types
@@ -801,6 +804,8 @@ explicitly:
 
 - All arguments are named.
 
+- There is inbuilt support for inference of hole-fits.
+
 - Default arguments are always applied when left unfilled. We provide a syntax
   `...` for preventing use of a default.
 
@@ -823,11 +828,6 @@ explicitly:
 - Computation defaults to strict.
 
 - Laziness and Strictness is controlled by the type.
-
-- Representation polymorphism is used under the hood to provide good
-  performance, but is never exposed to the user. The correct representation is
-  picked by default. The selection is between all the levities provided by GHC,
-  including lifted and unlifted as well as boxed and unboxed.
 
 - Type definitions are, by default, desugared to open polymorphic rows.
 
@@ -1037,6 +1037,9 @@ explicitly:
 
 - Type errors need to track possible fixes in the available context.
 
+- There is explicit support for constraints appearing at any point in a
+  polymorphic type.
+
 - Type equality in Luna is represented by both representational and structural
   equality. Never nominal equality. There is no inbuilt notion of nominal
   equality.
@@ -1127,6 +1130,59 @@ explicitly:
   When composing contexts, we have `&` for composing transformers, and `|` for
   alternating them, similarly to the dual with rows.
 
+- To provide more predictable inference in dependent contexts, this system will
+  draw on the notion of _matchability polymorphism_ as outlined in the
+  higher-order type-level programming paper. The key recognition to make,
+  however is that where that paper was required to deal with
+  backwards-compatibility concerns, we are not, and hence can generalise all
+  definitions to be matchability polymorphic where appropriate.
+
+- Implicit parameters (e.g. `{f : Type -> Type} -> f a -> f a` in Idris) are
+  able to be declared as part of the signature context.
+
+- As of yet it is undecided as to what form of type-checking and inference will
+  be used. The idea is to match our goals against existing theory to inform
+  implementation.
+  + Boxy: Provides greater inference power for higher-rank types and
+    impredicative instantiation. Integrates well with wobbly inference for GADTs
+    and has a relatively simple metatheory.
+  + Complete Bidirectional: An interesting theory with particular power to infer
+    higher-rank types, but with no support for impredicative instantiation. Has
+    some additional complexity through use of subtyping relationships. This is
+    fully decidable, and subsumes standard Damas-Milner style inference.
+  + Flexible Types/HML: Provides a translation from MLF to System-F, which may be
+    useful during translation to GHC Core. Requires annotations only on
+    polymorphic function parameters (e.g. `fn f = (f 1, f True)` would require
+    annotation of `f :: forall a . a -> a`). However, in the context of this
+    requirement, all other instantiations (including impredicative and
+    higher-rank) can be inferred automatically. Could this be combined with
+    decidable rank-2 inference to increase expressiveness?
+  + FPH: Lifts restrictions on polymorphic instantiation through use of an
+    internal theory based on MLF. Focuses on impredicativity, but provides some
+    commentary on how to extend the theory with approaches to higher-rank
+    inference. This is based upon the Boxy work, but has trade-offs with regards
+    to typeability in absence of annotations.
+  + MLF: A highly complex type theory with the ability to represent strictly
+    more types than System-F (and its variants). There are various theories that
+    allow for translation of these types to System-F. It has theory supporting
+    qualified types (a separate paper), which are necessary for our type system.
+    I worry that choice of MLF will expose greater complexity to users.
+  + Practical:
+  + QML:
+  + Wobbly:
+
+  It should be noted that none of these theories explicitly address extension to
+  dependent type theories, so doing so would be entirely on our plate.
+  Furthermore any theory chosen must have support for qualified types (e.g.
+  those with constraints, existentials).
+
+  To this end, I don't know if it is possible to always transparently support
+  eta expansion of functions without annotation.
+
+- There is an integration of constraints with interfaces. An implementation of
+  an interface may be _more specific_ than the interface definition itself,
+  through use of GADTs.
+
 # Structural Type Shorthand
 In Luna, we want to be able to write a type-signature that represents types in
 terms of the operations that take place on the input values. A classical example
@@ -1177,8 +1233,12 @@ signature. Cases where this break down should only exist where the type
 signature acts to constrain the function type further than would be inferred.
 
 # Interfaces
+An interface in Luna is a representation of the (partial) structure of a type
+given name.
 
 # Desugaring Types to Rows
+
+# Testing the Type System
 
 # Unresolved Questions
 <!-- Ara -->
@@ -1186,13 +1246,23 @@ signature acts to constrain the function type further than would be inferred.
 - How exactly do we define generic interfaces (consider both `Convertible` and
   `Functor`).
 - Interfaces (1:1 mapping or rows), can we get back and forth in the row
-  version?
+  version? Yes. We can look up types in scope that match the inferred
+  constraints.
 - Does `:` == `<:`, in the presence of open rows? Need to be able to say
   + `a` _is_ the set
   + `a` is a _member_ of the set
 - FTV unification: Are Luna type constructors matchable (injective and
   generative)? Can `Vector : a -> b -> c` be decomposed onto `f a` in all cases?
-  We can likely decompose type constructors but not type functions.
+  We can likely decompose type constructors but not type functions. Idris
+  doesn't do this, nor does Agda, so it is an open question as to whether we
+  want to.
+
+- What would your recommendation be from a usability perspective, internal
+  complexity notwithstanding?
+- What would your recommendation be if you _also_ cared about implementation
+  complexity.
+
+- Talk to Marcin about the Text <-> Functor problem.
 
 # Steps
 
@@ -1233,17 +1303,19 @@ is as below.
 - [Abstracting Extensible Data Types](http://ittc.ku.edu/~garrett/pubs/morris-popl2019-rows.pdf)
 
 #### Maximum Inference Power
+- [A Theory of Qualified Types](https://github.com/sdiehl/papers/blob/master/A_Theory_Of_Qualified_Types.pdf)
 - [Boxy Type-Inference for Higher-Rank Types and Impredicativity](https://www.microsoft.com/en-us/research/publication/boxy-type-inference-for-higher-rank-types-and-impredicativity/)
-- [Coloured Local Type Inference](http://lampwww.epfl.ch/~odersky/papers/popl01.pdf)
 - [Complete and Easy Bidirectional Typechecking for Higher-Rank Polymorphism](https://www.cl.cam.ac.uk/~nk480/bidir.pdf)
+- [Flexible Types: Robust Type Inference for First-class Polymorphism](https://www.microsoft.com/en-us/research/publication/flexible-types-robust-type-inference-for-first-class-polymorphism/)
 - [FPH: First-Class Polymorphism for Haskell](https://www.microsoft.com/en-us/research/publication/fph-first-class-polymorphism-for-haskell/)
 - [MLF: Raising ML to the Power of System-F](http://gallium.inria.fr/~remy/work/mlf/icfp.pdf)
-- [Practical Type-Inference for Higher-Rank Types](https://www.microsoft.com/en-us/research/publication/practical-type-inference-for-arbitrary-rank-types/)
+- [Practical Type Inference for Arbitrary-Rank Types](https://www.microsoft.com/en-us/research/publication/practical-type-inference-for-arbitrary-rank-types/)
 - [QML: Explicit, First-Class Polymorphism for ML](https://www.microsoft.com/en-us/research/wp-content/uploads/2009/09/QML-Explicit-First-Class-Polymorphism-for-ML.pdf)
 - [Wobbly Types: Type Inference for GADTs](https://www.microsoft.com/en-us/research/publication/wobbly-types-type-inference-for-generalised-algebraic-data-types/)
 
 #### Dependent Types
 - [Dependent Types in Haskell: Theory and Practice](https://cs.brynmawr.edu/~rae/papers/2016/thesis/eisenberg-thesis.pdf)
+- [Higher-Order Type-Level Programming in Haskell](https://www.microsoft.com/en-us/research/uploads/prod/2019/03/ho-haskell-5c8bb4918a4de.pdf)
 - [Practical Erasure in Dependently-Typed Languages](https://eb.host.cs.st-andrews.ac.uk/drafts/dtp-erasure-draft.pdf)
 - [Syntax and Semantics of Quantitative Type Theory](https://bentnib.org/quantitative-type-theory.pdf)
 
@@ -1253,10 +1325,6 @@ is as below.
 #### Types and Performance
 - [Levity Polymorphism](https://cs.brynmawr.edu/~rae/papers/2017/levity/levity-extended.pdf)
 - [Partial Type-Constructors](https://cs.brynmawr.edu/~rae/papers/2019/partialdata/partialdata.pdf)
-
-#### Matching and Type Unification
-- [Higher-Order Type-Level Programming in Haskell](https://www.microsoft.com/en-us/research/uploads/prod/2019/03/ho-haskell-5c8bb4918a4de.pdf)
-
 
 <!--
 Welcome to the Lunatic's Asylym, where we thought it would be a good idea to try
