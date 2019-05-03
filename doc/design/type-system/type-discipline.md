@@ -1167,9 +1167,18 @@ explicitly:
     allow for translation of these types to System-F. It has theory supporting
     qualified types (a separate paper), which are necessary for our type system.
     I worry that choice of MLF will expose greater complexity to users.
-  + Practical:
-  + QML:
-  + Wobbly:
+  + Practical: Provides a local inference-based foundation for propagation of
+    higher-rank type annotations at the top level to reduce the annotation
+    burden. We can likely use this to inform our design, but it is somewhat
+    subsumed by the HML approach.
+  + QML: A simple system supporting impredicative instantiation, but with a much
+    higher annotation burden than others. The underlying specification of
+    checking and inference is very clear, however, so there are still potential
+    lessons to be learned.
+  + Wobbly: Provides a unified foundation for treating all types as GADTs, and
+    hence allowing for bounded recursive type definitions. It precisely
+    describes where type-signatures are required in the presence of GADTs. Has
+    some interesting insight with regards to polymorphic recursion.
 
   It should be noted that none of these theories explicitly address extension to
   dependent type theories, so doing so would be entirely on our plate.
@@ -1179,9 +1188,33 @@ explicitly:
   To this end, I don't know if it is possible to always transparently support
   eta expansion of functions without annotation.
 
+  My _current_ recommendation is to base things on HML. This is for the
+  following reasons:
+  + It maximises inference power for both higher-rank and impredicative type
+    instantiations.
+  + It has a simple rule for where annotations are _required_.
+  + While it requires them in more places than MLF, the notion of where to put
+    an annotation is defined by the function's external type, not its body.
+  + The inference mechanism is far simpler than MLF as it only makes use of
+    flexible types rather than constrained types.
+  + There is existing work for adding qualified types to HML.
+
 - There is an integration of constraints with interfaces. An implementation of
   an interface may be _more specific_ than the interface definition itself,
   through use of GADTs.
+
+- Interfaces in Luna are inherently multi-parameter, by virtue of specifying a
+  structure as a row.
+
+- In an ideal world, we would like to only require programmer-provided type
+  annotations in the following circumstances:
+  1. Polymorphic Recursion (technically a case of #2)
+  2. Higher-Rank Function Parameters
+  3. Constrained Data-Types (GADTs)
+
+  In order to achieve this, the final design will employ techniques from both
+  unification-based Damas-Milner inference techniques, and annotation
+  propagation inspired by local type-inference techniques.
 
 # Structural Type Shorthand
 In Luna, we want to be able to write a type-signature that represents types in
