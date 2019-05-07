@@ -241,7 +241,7 @@ flattenApps r = Layer.read @IR.Model r >>= \case
     Uni.Grouped g -> flattenApps =<< IR.source g
     Uni.App f a -> do
         (fun, args) <- flattenApps =<< IR.source f
-        arg         <- IR.source a
+        arg         <- mkFieldTp   =<< IR.source a
         pure (fun, arg : args)
     _ -> pure (r, [])
 
