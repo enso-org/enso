@@ -2309,9 +2309,14 @@ class List a:
     # `that`: List object to combine with `self`.
     # `returns`: List object with elements being a result of combining elements
     #            from `self` and `that` list using function `f`.
-    def zipWith f that: case Tuple2 self that of
-        Tuple2 (Prepend x xs) (Prepend y ys): Prepend (f x y) (xs.zipWith f ys)
-        Tuple2 x y: Empty
+    def zipWith f that: case self of
+        Prepend x xs: case that of
+            Prepend y ys:
+                h = f x y
+                rest = xs.zipWith f ys
+                Prepend h rest
+            _: Empty
+        _: Empty
 
     # Returns a list of pairs of respective elements of two lists.
     # The length of the result is the length of the shorter of the lists.
