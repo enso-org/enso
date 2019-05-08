@@ -1150,8 +1150,8 @@ explicitly:
     higher-rank types, but with no support for impredicative instantiation. Has
     some additional complexity through use of subtyping relationships. This is
     fully decidable, and subsumes standard Damas-Milner style inference.
-  + Flexible Types/HML: Provides a translation from MLF to System-F, which may be
-    useful during translation to GHC Core. Requires annotations only on
+  + Flexible Types/HML: Provides a translation from MLF to System-F, which may 
+    be useful during translation to GHC Core. Requires annotations only on
     polymorphic function parameters (e.g. `fn f = (f 1, f True)` would require
     annotation of `f :: forall a . a -> a`). However, in the context of this
     requirement, all other instantiations (including impredicative and
@@ -1276,30 +1276,40 @@ given name.
 # Unresolved Questions
 <!-- Ara -->
 
-- How exactly do we define generic interfaces (consider both `Convertible` and
-  `Functor`).
-- Interfaces (1:1 mapping or rows), can we get back and forth in the row
-  version? Yes. We can look up types in scope that match the inferred
-  constraints.
-- Does `:` == `<:`, in the presence of open rows? Need to be able to say
-  + `a` _is_ the set
-  + `a` is a _member_ of the set
-- FTV unification: Are Luna type constructors matchable (injective and
-  generative)? Can `Vector : a -> b -> c` be decomposed onto `f a` in all cases?
-  We can likely decompose type constructors but not type functions. Idris
-  doesn't do this, nor does Agda, so it is an open question as to whether we
-  want to.
+1. How to integrate row polymorphism with the inference story?
 
-- What would your recommendation be from a usability perspective, internal
-  complexity notwithstanding?
-- What would your recommendation be if you _also_ cared about implementation
-  complexity.
+2. How to do dependent types?
 
-- Talk to Marcin about the Text <-> Functor problem.
+3. User-facing Complexity – what concepts are we ok to introduce / trade off 
+   with inference power
+
+4. Compiler complexity – how complex a codebase are we ok maintaining?
+
+5. Interfaces and integration into the language:
+    - How are they represented? 
+    - Do we want a separate keyword for their definition?
+
+    ```
+    interface Iterable a:
+        elementType : Type
+        fmap : (a.elementType -> a.elementType) -> a
+    ```
+
+6. Auto-injectivity for Generalised inductive types (GADTS)? Are our type
+   constructors _matchable_ (injective and generative)?
+
+7. `:` vs `<:` in the presence of inductive types and open rows. Think about 
+   covariance and contravariance. 
 
 # Steps
 
-1. Answer the remaining questions
+1. Answer the remaining questions:
+    - Provide a comparison of programs in HML and MLF, answering the following
+      questions:
+      1. What can be inferred (or otherwise) with each system?
+      2. What additional concepts in types (+ proposed syntax), do these systems
+         entail?
+      3. In what cases are the concepts described in 2. exposed to the users?
 2. Write down a high-level design for the system.
 3. Formalise the important parts thereof.
 4. Implementation
