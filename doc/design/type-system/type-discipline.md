@@ -1276,6 +1276,8 @@ given name.
 # Unresolved Questions
 <!-- Ara -->
 
+Should we start doing our own inference from scratch?
+
 1. How to integrate row polymorphism with the inference story?
 
 2. How to do dependent types?
@@ -1300,6 +1302,11 @@ given name.
 
 7. `:` vs `<:` in the presence of inductive types and open rows. Think about 
    covariance and contravariance. 
+
+`f : (True -> a) | (1 -> b)`
+
+The key to it all is covariance and contravariance of polymorphic type 
+variables.
 
 # Steps
 
