@@ -99,6 +99,7 @@ solve expr = do
                     pure $ Right []
                 Right (imported, new) -> do
                     ap <- IR.app imported target
+                    Requester.setRequester req ap
                     AppQueue.register $ Layout.unsafeRelayout ap
                     IR.replace ap expr
                     pure $ Right new

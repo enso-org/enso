@@ -126,6 +126,8 @@ cons uni a b = do
             if n1 == n2 && mod1 == mod2 then do
                 ins1 <- traverse IR.source =<< ComponentVector.toList fs1
                 ins2 <- traverse IR.source =<< ComponentVector.toList fs2
+                when (length ins1 /= length ins2) $
+                    resolveError uni a b
                 unis <- zipWithM IR.unify ins1 ins2
                 IR.deleteSubtree uni
                 resolve $ Layout.unsafeRelayout <$> unis
