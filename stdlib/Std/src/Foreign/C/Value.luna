@@ -758,6 +758,11 @@ class ManagedPointer a:
     def ptr: case self of
         ManagedPointerVal _ p: p.ptr
 
+    def pointer:
+        tp = self.typeRep
+        ptr = self.ptr
+        PointerVal tp ptr
+
     def fptr: case self of
         ManagedPointerVal _ p: p
 
