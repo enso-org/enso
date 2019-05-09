@@ -65,6 +65,8 @@ importConses expr = Layer.read @IR.Model expr >>= \case
                 oldArgTypes <- traverse (IR.source <=< Layer.read @IR.Type) oldArgs
                 newArgTypes <- traverse (IR.source <=< Layer.read @IR.Type) newArgs
 
+                traverse_ importConses oldArgs
+
                 unis <- zipWithM IR.unify oldArgTypes newArgTypes
                 traverse_ (Requester.setRequester $ Just expr) unis
                 UniQueue.registers $ Layout.unsafeRelayout <$> unis

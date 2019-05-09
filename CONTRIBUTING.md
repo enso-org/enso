@@ -55,6 +55,15 @@ amount of setup required. Luna's build system is nice and simple, allowing you
 to bootstrap the compiler as long as you have an installation of
 [The Haskell Stack](https://docs.haskellstack.org/en/stable/README/).
 
+### Design Documentation
+If you're going to start contributing to Luna, it is often a good idea to take a
+look at the design documentation for the language. These files explain provide
+both a rigorous specification of Luna's design, but also insight into the _why_
+behind the decisions that have been made.
+
+These can be found in [`doc/design/`](doc/design/), and are organised by the
+part of the compiler that they relate to.
+
 ### System Requirements
 Luna runs on all reasonably new Linuxes, MacOS, and Windows. Luna was mostly
 tested on Ubuntu >= 14.04, Fedora >= 23, MacOS >= 10.11 (El Capitan) and Windows
