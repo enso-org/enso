@@ -15,7 +15,6 @@ _default-language-extensions: &luna-extensions
     - DeriveGeneric
     - DeriveTraversable
     - DerivingStrategies
-    - DoAndIfThenElse
     - DuplicateRecordFields
     - EmptyDataDecls
     - FlexibleContexts
