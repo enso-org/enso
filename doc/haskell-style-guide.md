@@ -835,7 +835,7 @@ that anything with kind `Constraint` is usable in a class declaration's context.
 | **Flag** | `-XFlexibleInstances`                                                                                                                |
 
 This allows the definition of typeclasses with arbitrarily-nested types in the
-instance head. This, like many of these extensions, is enabled by default to 
+instance head. This, like many of these extensions, is enabled by default to
 support rich type-level programming.
 
 #### Functional Dependencies
@@ -847,11 +847,11 @@ support rich type-level programming.
 
 Despite this extension being on the 'defaults' list, this is only for the very
 rare 1% of cases where Functional Dependencies allow you to express a construct
-that Type Families do not. 
+that Type Families do not.
 
 You should never need to use a Functional Dependency, and if you think you do it
 is likely that your code can be expressed in a far more clean manner by using
-Type Families. 
+Type Families.
 
 #### GeneralizedNewtypeDeriving
 
@@ -882,7 +882,7 @@ the signature provided in the class definition.
 | **Name** | [`LambdaCase`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-LambdaCase) |
 | **Flag** | `-XLambdaCase`                                                                                                         |
 
-Enables `\case` as an alternative to `case <...> of`. This often results in 
+Enables `\case` as an alternative to `case <...> of`. This often results in
 much cleaner code.
 
 #### LiberalTypeSynonyms
@@ -893,7 +893,7 @@ much cleaner code.
 | **Flag** | `-XLiberalTypeSynonyms`                                                                                                                  |
 
 This extension moves the type synonym validity check to _after_ the synonym is
-expanded, rather than before. This makes said synonyms more useful in the 
+expanded, rather than before. This makes said synonyms more useful in the
 context of type-level programming constructs.
 
 #### MonadComprehensions
@@ -924,7 +924,7 @@ typeclasses.
 | **Name** | [`MultiWayIf`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-MultiWayIf) |
 | **Flag** | `-XMultiWayIf`                                                                                                         |
 
-This extension allows GHC to accept conditional expressions with multiple 
+This extension allows GHC to accept conditional expressions with multiple
 branches, using the guard-style notation familiar from function definitions.
 
 #### NamedWildCards
@@ -937,7 +937,7 @@ branches, using the guard-style notation familiar from function definitions.
 | **Flag** | `-XNoImplicitPrelude`                                                                                                                |
 
 Disables the implicit import of the prelude into every module. This enables us
-to use `Prologue`, our own custom prelude (discussed in the section on 
+to use `Prologue`, our own custom prelude (discussed in the section on
 [prologue](#prologue)).
 
 #### NumDecimals
@@ -950,29 +950,148 @@ to use `Prologue`, our own custom prelude (discussed in the section on
 Enables writing integer literals using exponential syntax.
 
 #### OverloadedLabels
+
+|          |                                                                                                                                    |
+|:---------|:-----------------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`OverloadedLabels`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-OverloadedLabels) |
+| **Flag** | `-XOverloadedLabels`                                                                                                               |
+
 #### OverloadedStrings
+
+|          |                                                                                                                                      |
+|:---------|:-------------------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`OverloadedStrings`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-OverloadedStrings) |
+| **Flag** | `-XOverloadedStrings`                                                                                                                |
+
 #### PackageImports
+
+|          |                                                                                                                                |
+|:---------|:-------------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`PackageImports`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-PackageImports) |
+| **Flag** | `-XPackageImports`                                                                                                             |
+
 #### PatternSynonyms
+
+|          |                                                                                                                                  |
+|:---------|:---------------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`PatternSynonyms`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-PatternSynonyms) |
+| **Flag** | `-XPatternSynonyms`                                                                                                              |
+
 #### QuasiQuotes
+
+|          |                                                                                                                          |
+|:---------|:-------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`QuasiQuotes`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-QuasiQuotes) |
+| **Flag** | `-XQuasiQuotes`                                                                                                          |
+
 #### RankNTypes
+
+|          |                                                                                                                        |
+|:---------|:-----------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`RankNTypes`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-RankNTypes) |
+| **Flag** | `-XRankNTypes`                                                                                                         |
+
 #### RecursiveDo
+
+|          |                                                                                                                          |
+|:---------|:-------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`RecursiveDo`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-RecursiveDo) |
+| **Flag** | `-XRecursiveDo`                                                                                                          |
+
 #### RelaxedPolyRec
+
+|          |                                                                                                                                |
+|:---------|:-------------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`RelaxedPolyRec`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-RelaxedPolyRec) |
+| **Flag** | `-XRelaxedPolyRec`                                                                                                             |
+
 #### ScopedTypeVariables
+
+|          |                                                                                                                                          |
+|:---------|:-----------------------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`ScopedTypeVariables`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-ScopedTypeVariables) |
+| **Flag** | `-XScopedTypeVariables`                                                                                                                  |
+
 #### StandaloneDeriving
+
+|          |                                                                                                                                        |
+|:---------|:---------------------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`StandaloneDeriving`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-StandaloneDeriving) |
+| **Flag** | `-XStandaloneDeriving`                                                                                                                 |
+
 #### Strict
+
+|          |                                                                                                                |
+|:---------|:---------------------------------------------------------------------------------------------------------------|
+| **Name** | [`Strict`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-Strict) |
+| **Flag** | `-XStrict`                                                                                                     |
+
 Talk about `NoStrict`, the reasoning behind strict-by-default
 
 #### StrictData
+
+|          |                                                                                                                        |
+|:---------|:-----------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`StrictData`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-StrictData) |
+| **Flag** | `-XStrictData`                                                                                                         |
+
 Talk about `NoStrictData`
 
 #### TemplateHaskell
+
+|          |                                                                                                                                  |
+|:---------|:---------------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`TemplateHaskell`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-TemplateHaskell) |
+| **Flag** | `-XTemplateHaskell`                                                                                                              |
+
 #### TupleSections
+
+|          |                                                                                                                              |
+|:---------|:-----------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`TupleSections`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-TupleSections) |
+| **Flag** | `-XTupleSections`                                                                                                            |
+
 #### TypeApplications
+
+|          |                                                                                                                                    |
+|:---------|:-----------------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`TypeApplications`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-TypeApplications) |
+| **Flag** | `-XTypeApplications`                                                                                                               |
+
 #### TypeFamilies
+
+|          |                                                                                                                            |
+|:---------|:---------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`TypeFamilies`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-TypeFamilies) |
+| **Flag** | `-XTypeFamilies`                                                                                                           |
+
 #### TypeFamilyDependencies
+
+|          |                                                                                                                                                |
+|:---------|:-----------------------------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`TypeFamilyDependencies`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-TypeFamilyDependencies) |
+| **Flag** | `-XTypeFamilyDependencies`                                                                                                                     |
+
 #### TypeOperators
+
+|          |                                                                                                                              |
+|:---------|:-----------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`TypeOperators`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-TypeOperators) |
+| **Flag** | `-XTypeOperators`                                                                                                            |
+
 #### UnicodeSyntax
+
+|          |                                                                                                                              |
+|:---------|:-----------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`UnicodeSyntax`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-UnicodeSyntax) |
+| **Flag** | `-XUnicodeSyntax`                                                                                                            |
+
 #### ViewPatterns
+
+|          |                                                                                                                            |
+|:---------|:---------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`ViewPatterns`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-ViewPatterns) |
+| **Flag** | `-XViewPatterns`                                                                                                           |
 
 ### Allowed Extensions
 These extensions can be used in your code without reservation, but are not
@@ -980,31 +1099,155 @@ enabled by default because they may interact negatively with other parts of the
 codebase.
 
 #### BlockArguments
+
+|          |                                                                                                                                |
+|:---------|:-------------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`BlockArguments`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-BlockArguments) |
+| **Flag** | `-XBlockArguments`                                                                                                             |
+
 #### GADTs
+
+|          |                                                                                                              |
+|:---------|:-------------------------------------------------------------------------------------------------------------|
+| **Name** | [`GADTs`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-GADTs) |
+| **Flag** | `-XGADTs`                                                                                                    |
+
 #### HexFloatLiterals
+
+|          |                                                                                                                                    |
+|:---------|:-----------------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`HexFloatLiterals`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-HexFloatLiterals) |
+| **Flag** | `-XHexFloatLiterals`                                                                                                               |
+
 #### MagicHash
+
+|          |                                                                                                                      |
+|:---------|:---------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`MagicHash`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-MagicHash) |
+| **Flag** | `-XMagicHash`                                                                                                        |
+
 #### NumericUnderscores
+
+|          |                                                                                                                                        |
+|:---------|:---------------------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`NumericUnderscores`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-NumericUnderscores) |
+| **Flag** | `-XNumericUnderscores`                                                                                                                 |
+
 #### PolyKinds
+
+|          |                                                                                                                      |
+|:---------|:---------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`PolyKinds`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-PolyKinds) |
+| **Flag** | `-XPolyKinds`                                                                                                        |
+
 #### Quantified Constraints
+
+|          |                                                                                                                                              |
+|:---------|:---------------------------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`QuantifiedConstraints`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-QuantifiedConstraints) |
+| **Flag** | `-XQuantifiedConstraints`                                                                                                                    |
+
 #### RoleAnnotations
+
+|          |                                                                                                                                  |
+|:---------|:---------------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`RoleAnnotations`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-RoleAnnotations) |
+| **Flag** | `-XRoleAnnotations`                                                                                                              |
+
 #### UnboxedSums
+
+|          |                                                                                                                          |
+|:---------|:-------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`UnboxedSums`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-UnboxedSums) |
+| **Flag** | `-XUnboxedSums`                                                                                                          |
+
 #### UnboxedTuples
+
+|          |                                                                                                                              |
+|:---------|:-----------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`UnboxedTuples`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-UnboxedTuples) |
+| **Flag** | `-XUnboxedTuples`                                                                                                            |
 
 ### Allowed With Care
 If you make use of any of these extensions in your code, you should accompany
 their usage by a source note that explains why they are used.
 
 #### CApiFFI
+
+|          |                                                                                                                  |
+|:---------|:-----------------------------------------------------------------------------------------------------------------|
+| **Name** | [`CApiFFI`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-CApiFFI) |
+| **Flag** | `-XCApiFFI`                                                                                                      |
+
 #### ConstrainedClassMethods
+
+|          |                                                                                                                                                  |
+|:---------|:-------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`ConstrainedClassMethods`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-ConstrainedClassMethods) |
+| **Flag** | `-XConstrainedClassMethods`                                                                                                                      |
+
 #### CPP
+
+|          |                                                                                                          |
+|:---------|:---------------------------------------------------------------------------------------------------------|
+| **Name** | [`CPP`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-CPP) |
+| **Flag** | `-XCPP`                                                                                                  |
+
 #### DisambiguateRecordFields
+
+|          |                                                                                                                                                    |
+|:---------|:---------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`DisambiguateRecordFields`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-DisambiguateRecordFields) |
+| **Flag** | `-XDisambiguateRecordFields`                                                                                                                       |
+
 #### ImplicitParams
+
+|          |                                                                                                                                |
+|:---------|:-------------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`ImplicitParams`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-ImplicitParams) |
+| **Flag** | `-XImplicitParams`                                                                                                             |
+
 #### PostfixOperators
-#### RecursiveDo#
+
+|          |                                                                                                                                    |
+|:---------|:-----------------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`PostfixOperators`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-PostfixOperators) |
+| **Flag** | `-XPostfixOperators`                                                                                                               |
+
+#### RecursiveDo
+
+|          |                                                                                                                          |
+|:---------|:-------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`RecursiveDo`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-RecursiveDo) |
+| **Flag** | `-XRecursiveDo`                                                                                                          |
+
 #### StaticPointers
+
+|          |                                                                                                                                |
+|:---------|:-------------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`StaticPointers`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-StaticPointers) |
+| **Flag** | `-XStaticPointers`                                                                                                             |
+
 #### TypeInType
+
+|          |                                                                                                                        |
+|:---------|:-----------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`TypeInType`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-TypeInType) |
+| **Flag** | `-XTypeInType`                                                                                                         |
+
 #### UndecidableInstances
+
+|          |                                                                                                                                            |
+|:---------|:-------------------------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`UndecidableInstances`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-UndecidableInstances) |
+| **Flag** | `-XUndecidableInstances`                                                                                                                   |
+
 #### UndecidableSuperclasses
+
+|          |                                                                                                                                                  |
+|:---------|:-------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`UndecidableSuperclasses`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-UndecidableSuperclasses) |
+| **Flag** | `-XUndecidableSuperclasses`                                                                                                                      |
 
 ### Disallowed Extensions
 If a language extension hasn't been listed in the above sections, then it is
