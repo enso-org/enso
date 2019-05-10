@@ -1,8 +1,141 @@
 # Haskell Style Guide
-These guidelines aim to achieve a consistent style and a high-level of
-readability across the entirety of the Luna codebase. It focuses on the creation
-of zero-thought rules to ease the programmer burden as there is intended to be
-_one way_ to lay out code correctly.
+Like many style guides, this Haskell style guide exists for two primary reasons.
+The first is to provide guidelines that result in a consistent code style across
+all of the Luna codebases, while the second is to guide people towards a style
+that is expressive while still easy to read and understand.
+
+In general, it aims to create a set of 'zero-thought' rules in order to ease the
+programmer burden; there is usually only _one way_ to lay out code correctly.
+
+<!-- MarkdownTOC levels="2,3" autolink="true" -->
+
+- [Code Formatting](#code-formatting)
+  - [Whitespace](#whitespace)
+  - [Line Wrapping](#line-wrapping)
+  - [Alignment](#alignment)
+  - [Imports](#imports)
+  - [Auto-Formatting](#auto-formatting)
+- [Commenting](#commenting)
+  - [Documentation Comments](#documentation-comments)
+  - [Source Notes](#source-notes)
+  - [Other Comment Usage](#other-comment-usage)
+- [Program Design](#program-design)
+  - [Namespaces](#namespaces)
+  - [Modules](#modules)
+  - [Data Declarations](#data-declarations)
+  - [Testing and Benchmarking](#testing-and-benchmarking)
+  - [Errors, Warnings, and Lints](#errors-warnings-and-lints)
+- [Language Extensions](#language-extensions)
+  - [Default Extensions](#default-extensions)
+  - [Allowed Extensions](#allowed-extensions)
+  - [Allowed With Care](#allowed-with-care)
+  - [Disallowed Extensions](#disallowed-extensions)
+- [Code layout](#code-layout)
+- [Code Alignment](#code-alignment)
+- [Comments in code](#comments-in-code)
+- [Naming](#naming)
+- [Libraries](#libraries)
+- [Extensions](#extensions)
+- [Imports](#imports-1)
+- [Safety](#safety)
+- [Data-Type Definitions](#data-type-definitions)
+- [Lenses](#lenses)
+- [Functional Dependencies vs. Type Families](#functional-dependencies-vs-type-families)
+- [Type Families](#type-families)
+- [Proxy Types](#proxy-types)
+
+<!-- /MarkdownTOC -->
+
+## Code Formatting
+
+### Whitespace
+The rules for whitespace in the Luna codebases are relatively simple:
+
+- 4 spaces are used for indentation, with no tabs.
+- There should not be any trailing whitespace. 
+- There should be no spurious whitespace within the lines, unless it is used for
+  [alignment](#alignment) as discussed below.
+
+### Line Wrapping
+
+Break on operators where possible
+Break at highest precedence
+
+### Alignment
+
+
+### Imports
+Design for qualified imports
+
+### Auto-Formatting
+While we have attempted to use haskell auto-formatters to enforce many of the 
+above stylistic choices in this document, none have been found to be flexible
+enouh
+
+## Commenting
+What and why, not how
+
+### Documentation Comments
+
+### Source Notes
+Sometimes an exception to the 'not how' rule.
+
+### Other Comment Usage
+
+## Program Design
+
+### Namespaces
+
+### Modules
+Design for qualified imports.
+
+### Data Declarations
+
+### Testing and Benchmarking
+
+### Errors, Warnings, and Lints
+Default error config. New code should be warnings free.
+
+## Language Extensions
+
+
+Go through the list
+Note which ones are safe to enable by default
+Not all are available depending on the compiler in use
+
+### Default Extensions
+The following language extensions are considered to be so safe, or to have such
+high utility, that they are considered to be Luna's set of default extensions.
+You can find said set of extensions for the 
+
+#### AllowAmbiguousTypes
+
+|          |                                                                                                                                          |
+|:---------|:-----------------------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`AllowAmbiguousTypes`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-AllowAmbiguousTypes) |
+| **Flag** | `-XAllowAmbiguousTypes`                                                                                                                  |
+
+### Allowed Extensions
+
+### Allowed With Care
+
+### Disallowed Extensions
+If a language extension hasn't been listed in the above sections, then it is
+considered to be disallowed throughout the Luna codebases. If you have a good
+reason to want to use one of these disallowed extensions, please talk to Ara to
+discuss its usage.
+
+
+
+
+
+
+
+
+
+
+
+
 
 ## Code layout
 * Indentations are always 4 spaces, no tabs are allowed.
