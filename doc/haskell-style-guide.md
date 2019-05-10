@@ -34,9 +34,6 @@ programmer burden; there is usually only _one way_ to lay out code correctly.
   - [Allowed Extensions](#allowed-extensions)
   - [Allowed With Care](#allowed-with-care)
   - [Disallowed Extensions](#disallowed-extensions)
-- [Functional Dependencies vs. Type Families](#functional-dependencies-vs-type-families)
-- [Type Families](#type-families)
-- [Proxy Types / Type Applications](#proxy-types--type-applications)
 
 <!-- /MarkdownTOC -->
 
@@ -956,6 +953,9 @@ Enables writing integer literals using exponential syntax.
 | **Name** | [`OverloadedLabels`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-OverloadedLabels) |
 | **Flag** | `-XOverloadedLabels`                                                                                                               |
 
+Enables support for Overloaded Labels, a type of identifier whose type depends
+both on its literal text and its kind. This is similar to `-XOverloadedStrings`.
+
 #### OverloadedStrings
 
 |          |                                                                                                                                      |
@@ -963,12 +963,9 @@ Enables writing integer literals using exponential syntax.
 | **Name** | [`OverloadedStrings`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-OverloadedStrings) |
 | **Flag** | `-XOverloadedStrings`                                                                                                                |
 
-#### PackageImports
-
-|          |                                                                                                                                |
-|:---------|:-------------------------------------------------------------------------------------------------------------------------------|
-| **Name** | [`PackageImports`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-PackageImports) |
-| **Flag** | `-XPackageImports`                                                                                                             |
+Enables overloading of the native `String` type. This means that string literals
+are given their type based on contextual information as, and a string literal
+can be used to represent any type that is an instance of `IsString`.
 
 #### PatternSynonyms
 
@@ -977,12 +974,21 @@ Enables writing integer literals using exponential syntax.
 | **Name** | [`PatternSynonyms`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-PatternSynonyms) |
 | **Flag** | `-XPatternSynonyms`                                                                                                              |
 
+Pattern synonyms enable giving names to parametrized pattern schemes. They can
+also be thought of as abstract constructors that don’t have a bearing on data
+representation. They can be unidirectional or bidirectional, and are incredibly
+useful for defining clean APIs to not-so-clean data.
+
 #### QuasiQuotes
 
 |          |                                                                                                                          |
 |:---------|:-------------------------------------------------------------------------------------------------------------------------|
 | **Name** | [`QuasiQuotes`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-QuasiQuotes) |
 | **Flag** | `-XQuasiQuotes`                                                                                                          |
+
+Quasi-quotation allows patterns and expressions to be written using
+programmer-defined concrete syntax. This extension enables the use of quotations
+in Haskell source files.
 
 #### RankNTypes
 
@@ -991,6 +997,10 @@ Enables writing integer literals using exponential syntax.
 | **Name** | [`RankNTypes`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-RankNTypes) |
 | **Flag** | `-XRankNTypes`                                                                                                         |
 
+Enables the ability to express arbitrary-rank polymorphic types (those with a
+`forall` which is not on the far left of the type). These are incredibly useful
+for defining clean and safe APIs.
+
 #### RecursiveDo
 
 |          |                                                                                                                          |
@@ -998,12 +1008,9 @@ Enables writing integer literals using exponential syntax.
 | **Name** | [`RecursiveDo`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-RecursiveDo) |
 | **Flag** | `-XRecursiveDo`                                                                                                          |
 
-#### RelaxedPolyRec
-
-|          |                                                                                                                                |
-|:---------|:-------------------------------------------------------------------------------------------------------------------------------|
-| **Name** | [`RelaxedPolyRec`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-RelaxedPolyRec) |
-| **Flag** | `-XRelaxedPolyRec`                                                                                                             |
+This extension enables recursive binding in do-notation for any monad which is
+an instance of MonadFix. Bindings introduced in this context are recursively
+defined, much as for an ordinary `let`-expression.
 
 #### ScopedTypeVariables
 
@@ -1012,12 +1019,20 @@ Enables writing integer literals using exponential syntax.
 | **Name** | [`ScopedTypeVariables`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-ScopedTypeVariables) |
 | **Flag** | `-XScopedTypeVariables`                                                                                                                  |
 
+This enables lexical scoping of type variables introduced using an explicit
+`forall` in the type signature of a function. With this extension enabled, the
+scope of this variables is extended to the function body.
+
 #### StandaloneDeriving
 
 |          |                                                                                                                                        |
 |:---------|:---------------------------------------------------------------------------------------------------------------------------------------|
 | **Name** | [`StandaloneDeriving`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-StandaloneDeriving) |
 | **Flag** | `-XStandaloneDeriving`                                                                                                                 |
+
+Allows the creation of `deriving` declarations that are not directly associated
+with the class that is being derived. This is useful in the context where you
+need to create orphan instances, or to derive some non-default classes.
 
 #### Strict
 
@@ -1026,7 +1041,13 @@ Enables writing integer literals using exponential syntax.
 | **Name** | [`Strict`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-Strict) |
 | **Flag** | `-XStrict`                                                                                                     |
 
-Talk about `NoStrict`, the reasoning behind strict-by-default
+We have found that making our code strict-by-default allows us to reason much
+more easily about its performance. When we want lazy evaluation, we use a
+combination of the negation flags and lazy pattern matching to achieve our
+goals.
+
+When disabling strict for a module using `-XNoStrict`, you also need to add
+`-XNoStrictData`.
 
 #### StrictData
 
@@ -1035,7 +1056,8 @@ Talk about `NoStrict`, the reasoning behind strict-by-default
 | **Name** | [`StrictData`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-StrictData) |
 | **Flag** | `-XStrictData`                                                                                                         |
 
-Talk about `NoStrictData`
+Much like the above, this helps with reasoning about performance, but needs to
+be explicitly disabled in contexts where the strictness is undesirable.
 
 #### TemplateHaskell
 
@@ -1044,12 +1066,19 @@ Talk about `NoStrictData`
 | **Name** | [`TemplateHaskell`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-TemplateHaskell) |
 | **Flag** | `-XTemplateHaskell`                                                                                                              |
 
+Enables the usage of Template Haskell, including the syntax for splices and
+quotes. TH is a meta-language that allows for generating Haskell code from
+arbitrary input.
+
 #### TupleSections
 
 |          |                                                                                                                              |
 |:---------|:-----------------------------------------------------------------------------------------------------------------------------|
 | **Name** | [`TupleSections`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-TupleSections) |
 | **Flag** | `-XTupleSections`                                                                                                            |
+
+Much like we can do operator sections to partially apply operators, this
+extension enables partial application of tuple constructors.
 
 #### TypeApplications
 
@@ -1058,12 +1087,41 @@ Talk about `NoStrictData`
 | **Name** | [`TypeApplications`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-TypeApplications) |
 | **Flag** | `-XTypeApplications`                                                                                                               |
 
+This extension allows you to use visible type application in expressions. This
+allows for easily providing types that are ambiguous (or otherwise) to GHC in a
+way that doesn't require writing complete type signatures. We make heavy use of
+type applications in our type-level programming and API.
+
+These should always be used as an alternative to `Proxy`, as they are just as
+useful for passing type information around without provision of data, and lead
+to nice and clean APIs.
+
 #### TypeFamilies
 
 |          |                                                                                                                            |
 |:---------|:---------------------------------------------------------------------------------------------------------------------------|
 | **Name** | [`TypeFamilies`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-TypeFamilies) |
 | **Flag** | `-XTypeFamilies`                                                                                                           |
+
+Type Families can be thought of as type-level functions, or functions on types.
+They are slightly more verbose than functional dependencies, but provide much
+better reusability, clearer contexts, and are far easier to compose. They should
+always be used in preference to functional dependencies.
+
+When using Type Families, please keep the following things in mind:
+
+- Prefer open type families to closed type families.
+- Use closed type families if you want a fall-back when checking types.
+
+  ```hs
+  type family SumOf where
+      SumOf Vector a      = Vector
+      SumOf a      Vector = Vector
+      SumOf a      a      = a
+  ```
+
+- Do not use closed type families unless you are absolutely sure that your type
+  family should not be able to be extended in the future.
 
 #### TypeFamilyDependencies
 
@@ -1072,12 +1130,22 @@ Talk about `NoStrictData`
 | **Name** | [`TypeFamilyDependencies`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-TypeFamilyDependencies) |
 | **Flag** | `-XTypeFamilyDependencies`                                                                                                                     |
 
+This extension allows type families to be annotated with injectivity information
+using syntax similar to that used for functional dependencies. This information
+is used by GHC during type-checking to resolve the types of expressions that
+would otherwise be ambiguous.
+
 #### TypeOperators
 
 |          |                                                                                                                              |
 |:---------|:-----------------------------------------------------------------------------------------------------------------------------|
 | **Name** | [`TypeOperators`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-TypeOperators) |
 | **Flag** | `-XTypeOperators`                                                                                                            |
+
+Type operators is a simple extension that allows for the definition of types
+with operators as their names. Much like you can define term-level operators,
+this lets you define type-level operators. This is a big boon for the
+expressiveness of type-level APIs.
 
 #### UnicodeSyntax
 
@@ -1086,12 +1154,18 @@ Talk about `NoStrictData`
 | **Name** | [`UnicodeSyntax`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-UnicodeSyntax) |
 | **Flag** | `-XUnicodeSyntax`                                                                                                            |
 
+Enables unicode syntax for certain parts of the Haskell language.
+
 #### ViewPatterns
 
 |          |                                                                                                                            |
 |:---------|:---------------------------------------------------------------------------------------------------------------------------|
 | **Name** | [`ViewPatterns`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-ViewPatterns) |
 | **Flag** | `-XViewPatterns`                                                                                                           |
+
+View patterns provide a mechanism for pattern matching against abstract types by
+letting the programmer execute arbitrary logic as part of a pattern match. This
+is very useful for the creation of clean APIs.
 
 ### Allowed Extensions
 These extensions can be used in your code without reservation, but are not
@@ -1259,160 +1333,3 @@ If an extension not listed above is _implied_ by one of the extensions listed
 above (e.g. `-XRankNTypes` implies `-XExplicitForall`), then the implied
 extension is also considered at least as safe as the category the implying
 extension is in.
-
-
-
-
-
-
-## Functional Dependencies vs. Type Families
-Do not use `Functional Dependencies`. Use `Type Families` instead. Type families
-provide greater mechanism then functional dependencies in 99% use cases. If you
-think you are in this 1% you are probably wrong. Type families are a little more
-verbose, however, they provide much better code reusability, composability and
-much clearer contexts.
-
-For example, given
-
-```
-data Vector = Vector { _x :: Double, _y :: Double, _z :: Double } deriving (Show)
-makeLenses ''Vector
-```
-
-instead of
-
-```
-class Sum a b c | a b -> c where
-    add :: a -> b -> c
-
-instance Sum Double Double Double where add = (+)
-instance Sum Double Vector Vector where add n              (Vector x y z)    = Vector (x+n)  (y+n)  (z+n)
-instance Sum Vector Double Vector where add (Vector x y z) n                 = Vector (x+n)  (y+n)  (z+n)
-instance Sum Vector Vector Vector where add (Vector x y z) (Vector x' y' z') = Vector (x+x') (y+y') (z+z')
-```
-
-you should write
-
-```
-type family SumOf a b
-class Sum a b where
-    add :: a -> b -> SumOf a b
-
-type instance SumOf Double Double = Double
-type instance SumOf Vector Double = Vector
-type instance SumOf Double Vector = Vector
-type instance SumOf Vector Vector = Vector
-instance Sum Double Double where add = (+)
-instance Sum Double Vector where add n              (Vector x y z)    = Vector (x+n)  (y+n)  (z+n)
-instance Sum Vector Double where add (Vector x y z) n                 = Vector (x+n)  (y+n)  (z+n)
-instance Sum Vector Vector where add (Vector x y z) (Vector x' y' z') = Vector (x+x') (y+y') (z+z')
-```
-
-In order to make one of the issues with functional dependencies more obvious,
-consider the following function type:
-
-```
-foo :: Sum a b c => a -> b -> Int
-```
-
-It just means that we take two things `a` and `b`, which should be addable, but
-we don't care about the result (for example we are guaranteed it feels some
-constraints - like it could be printable) and we result in an `Int`. We've got
-an unused type variable `c` in the context head, but there is currently no way
-to hide it (unless GHC supports ImpredicatibleContexts, but even then it would
-be an anti-pattern in such cases). So we cannot now define:
-
-```
-type Ctx a b = forall c. Sum a b
-foo :: Ctx a b => a -> b -> Int
-```
-
-It will be rejected by the compiler.
-
-
-## Type Families
-* Prefer using open type families over closed ones, because they implement
-  [Open World Assumption](https://en.wikipedia.org/wiki/Open-world_assumption).
-  Closed type families are useful if you want a "fallback option" when checking
-  types. For example:
-
-```
-type family SumOf where
-    SumOf Vector a      = Vector
-    SumOf a      Vector = Vector
-    SumOf a      a      = a
-```
-is completely valid if you are sure, that `SumOf` should work only for a pair of
-(any type and `Vector`), (`Vector` and any type) or (the same two types). Only
-if you can prove that it should never be extended further, use closed type
-families.
-
-## Proxy Types / Type Applications
-Do not use proxy types, use modern Haskell's type application instead. Proxy
-types are useful for passing type information around, without the need to
-provide data. For example, imagine we want to create a renderer typeclass, which
-would be able to generate images using either SVG or WebGL backends. In the most
-basic way we could implement it as follow:
-
-```
-data SVG   = SVG   deriving (Show)
-data WebGL = WebGL deriving (Show)
-
-class Renderable backend a where
-    render :: backend -> a -> Image
-
-instance Renderable SVG Circle    where render _ (Circle r)      = ...
-instance Renderable SVG Rectangle where render _ (Rectangle w h) = ...
-
-s = render SVG (Circle 10)
-```
-
-There are few ugly design decisions here:
-* We have defined `SVG` and `WebGL` constructors and we will use them only to
-  tell which renderer to use. They are not useful for anything more than that.
-* Every type instance have to discard its first element, it is passed only to
-  choose the right instance.
-
-Better (but still not the best) approach is to use Proxy instead. Proxy is
-defined as `data Proxy a = Proxy`:
-
-```
-data SVG
-data WebGL
-
-class Renderable backend a where
-    render :: Proxy backend -> a -> Image
-
-instance Renderable SVG Circle    where render _ (Circle r)      = ...
-instance Renderable SVG Rectangle where render _ (Rectangle w h) = ...
-
-
-s = render (Proxy :: Proxy SVG) (Circle 10)
-```
-
-Using this approach:
-* We do not define constructors anymore, only types to choose the right
-  instance, which is good
-* We still need to discard the first argument when defining the type class
-  instance
-* The code is much more verbose and hard to read, which is bad.
-
-We can use type applications for the rescue:
-
-```
-data SVG
-data WebGL
-
-class Renderable backend a where
-    render :: a -> Image
-
-instance Renderable SVG Circle    where render (Circle r)      = ...
-instance Renderable SVG Rectangle where render (Rectangle w h) = ...
-
-
-s = render @SVG (Circle 10)
-```
-This approach is clear, concise and in modern Haskell style. In order to define
-the type class, you need the `-XAllowAmbiguousTypes` extension, which basically
-lets you use in instance head type variables that are not deduced if not passed
-explicitly.
