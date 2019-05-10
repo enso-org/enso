@@ -44,6 +44,43 @@ the new Luna platform. It is intended to both serve as a design plan for the
 implementation and, once that is all complete, as documentation for Luna's
 design as it evolves.
 
+<!-- MarkdownTOC levels="1,2,3" autolink="true" -->
+
+- [Architectural Overview](#architectural-overview)
+  - [Runtime Layers](#runtime-layers)
+    - [1 - The Edge Layer](#1---the-edge-layer)
+    - [2 - The Protocol Layer](#2---the-protocol-layer)
+    - [3 - The Compilation Layer and Type-Checker](#3---the-compilation-layer-and-type-checker)
+    - [4 - The Cache Layer](#4---the-cache-layer)
+    - [5 - The Byte-Code Interpreter](#5---the-byte-code-interpreter)
+    - [6 - JIT](#6---jit)
+    - [7 - JIT Tier 2](#7---jit-tier-2)
+  - [Cross-Cutting Concerns](#cross-cutting-concerns)
+    - [1 - FFI](#1---ffi)
+    - [2 - Tracing Engine](#2---tracing-engine)
+    - [3 - Concurrency](#3---concurrency)
+    - [4 - Debugging Engine](#4---debugging-engine)
+- [The Edge Layer](#the-edge-layer)
+- [The Protocol Layer](#the-protocol-layer)
+- [The Compilation Layer and Type-Checker](#the-compilation-layer-and-type-checker)
+- [The Cache Layer](#the-cache-layer)
+- [The Byte-Code Interpreter](#the-byte-code-interpreter)
+- [JIT](#jit)
+- [FFI Support](#ffi-support)
+- [Tracing Engine](#tracing-engine)
+- [Concurrency](#concurrency)
+- [Debugging Engine](#debugging-engine)
+- [Language Embedding](#language-embedding)
+- [Benchmarking the Runtime](#benchmarking-the-runtime)
+- [AOT Compilation](#aot-compilation)
+- [Acceptance Criteria](#acceptance-criteria)
+- [Unresolved Questions](#unresolved-questions)
+- [Glossary](#glossary)
+- [References](#references)
+
+<!-- /MarkdownTOC -->
+
+
 # Architectural Overview
 It is perhaps a touch rich to call this design the 'runtime', as it actually
 encompasses a broader portion of the compiler than what would traditionally be
@@ -167,7 +204,8 @@ of the same architectural component (e.g. the JIT layers).
 - The IDE-protocol portion should reflect discussions with David (held on email
   and recorded here: https://github.com/luna/luna/issues/365)
 - A list of the protocol messages with informal descriptions (spec to come
-  later).
+  later), for example (`expandOptionalArgs`, which expands all defaulted
+  arguments in a call with the defaults as the values).
 - A description of protocol support for performance data collection (potentially
   integrated with the IDE protocol).
 - A description of protocol support for debugging (integrated with the IDE
@@ -184,6 +222,8 @@ of the same architectural component (e.g. the JIT layers).
 - An analysis of how the graph layout and metadata is handled. This should not
   longer be associated with explicit metadata in the source.
 - An analysis of how to handle the necessary callbacks to this layer
+- A design for handling metadata internally while keeping it at the end of the
+  file so as not to interfere with code. 
 -->
 
 ### 3 - The Compilation Layer and Type-Checker
@@ -238,6 +278,10 @@ of the same architectural component (e.g. the JIT layers).
   - **Tailored Passes:** Based on the kinds of execution that functions are
     seeing it is possible to select sets of Luna IR and GHC Core optimisation
     passes to best improve that function's performance.
+- An examination of how we deal with 'wired-in' functionality (e.g. relying on
+  Haskell libraries for the stdlib for now).
+- An examination of how we can use levity polymorphism internally to improve
+  performance.
 -->
 
 ### 4 - The Cache Layer
@@ -297,6 +341,8 @@ of the same architectural component (e.g. the JIT layers).
 - A discussion of the drawbacks of subsequent JIT stages (primarily compilation
   cost).
 - An analysis of how the optimisation pipeline would differ across JIT tiers.
+- A description of a mechanism that can be used to track the performance of the
+  JITed code, and deoptimise it if the binary is slower than the bytecode.
 -->
 
 ### 7 - JIT Tier 2
@@ -502,6 +548,16 @@ This section is designed to define terms that may be unfamiliar to some users:
   and functionality for a programming language to execute. When used in this
   document, it exclusively refers to the GHC Runtime System.
 
+# References
+The design of the runtime described in this document is carefully informed by
+previous work on other functional languages. Any papers that were used to inform
+this design are listed below:
+
+- [GHC Core Spec](https://gitlab.haskell.org/ghc/ghc/blob/master/docs/core-spec/core-spec.pdf)
+- [GHC STG Spec](https://gitlab.haskell.org/ghc/ghc/blob/master/docs/stg-spec/stg-spec.mng)
+- [GHCi Spec](https://gitlab.haskell.org/ghc/ghc/blob/master/docs/ghci/ghci.tex)
+- [Levity Polymorphism](https://www.microsoft.com/en-us/research/publication/levity-polymorphism/)
+
 <!-- END OF WIP PROPOSAL -->
 
 <!--
@@ -521,5 +577,11 @@ compiler pipeline, please see the links below:
 - [Targeting Core](http://www.stephendiehl.com/posts/ghc_03.html)
 - [Grin](https://github.com/grin-tech/grin)
 - [Example Pipeline](https://github.com/chrisdone/prana/blob/0cbb7b4b96bbfdb4f0d6a60e08f4b1f53abdfb15/prana-ghc/src/Prana/Ghc.hs#L106-L154)
+
+have you looked at matthew hammer's work on adapton (in particular, after reading the original paper, nominal adapton)?
+i mention it mostly because you seem to be spending a ton of time on compute performance for a pipeline that is almost entirely 'build it over from scratch on information changes'
+whereas an incremental computation story would drastically reduce the pressure on your computing platform
+his isn't the only work in this space. umut acar has another in his incremental framework he built for jane street
+and there is a more microsofty take in the old 'naiad' system by thekkath -- which is less relevant to the FP bits more to the "big data" bits
 
 -->
