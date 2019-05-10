@@ -25,25 +25,18 @@ programmer burden; there is usually only _one way_ to lay out code correctly.
   - [Other Comment Usage](#other-comment-usage)
 - [Program Design](#program-design)
   - [Libraries](#libraries)
-  - [Namespaces](#namespaces)
   - [Modules](#modules)
   - [Data Declarations](#data-declarations)
   - [Testing and Benchmarking](#testing-and-benchmarking)
-  - [Errors, Warnings, and Lints](#errors-warnings-and-lints)
+  - [Warnings, and Lints](#warnings-and-lints)
 - [Language Extensions](#language-extensions)
   - [Default Extensions](#default-extensions)
   - [Allowed Extensions](#allowed-extensions)
   - [Allowed With Care](#allowed-with-care)
   - [Disallowed Extensions](#disallowed-extensions)
-- [Libraries](#libraries-1)
-- [Extensions](#extensions)
-- [Imports](#imports-1)
-- [Safety](#safety)
-- [Data-Type Definitions](#data-type-definitions)
-- [Lenses](#lenses)
 - [Functional Dependencies vs. Type Families](#functional-dependencies-vs-type-families)
 - [Type Families](#type-families)
-- [Proxy Types](#proxy-types)
+- [Proxy Types / Type Applications](#proxy-types--type-applications)
 
 <!-- /MarkdownTOC -->
 
@@ -186,6 +179,10 @@ in four sections, each of which may be omitted if empty.
 Imports within each section should be listed in alphabetical order, and should
 be vertically aligned.
 
+When we have a module that exports a type the same as its name, we import the
+module qualified as its name, but we _also_ import the primary type from the
+module unqualified. This can be seen with `Map` in the examples below.
+
 This example is for a module that re-exports some names:
 
 ```hs
@@ -198,6 +195,7 @@ import Prologue
 import qualified Control.Monad.State as State
 import qualified Data.Map            as Map
 
+import Data.Map  (Map)
 import Rectangle (Rectangle)
 import Vector    (Vector (Vector), test)
 ```
@@ -213,6 +211,7 @@ import Prologue
 import qualified Control.Monad.State as State
 import qualified Data.Map            as Map
 
+import Data.Map  (Map)
 import Rectangle (Rectangle)
 import Vector    (Vector (Vector), test)
 ```
@@ -262,7 +261,8 @@ of these sections as relevant.
 While we have attempted to use haskell auto-formatters to enforce many of the
 above stylistic choices in this document, none have been found to be flexible
 enough for our needs. However, as tools evolve or new ones emerge, we are open
-to revisiting this decision; if you know of a tool that
+to revisiting this decision; if you know of a tool that would let us automate
+the above stylistic rules, then please speak up.
 
 ## Commenting
 Comments are a tricky area to get right, as we have found that comments often
@@ -391,29 +391,231 @@ There are, of course, a few other situations where commenting is very useful:
   where the bug has been reported.
 
 ## Program Design
+Any good style guide goes beyond purely stylistic rules, and also talks about
+design styles to use in code.
 
 ### Libraries
-Talk about Prologue
+The Luna project has many internal libraries that are useful, but we have found
+that maintaining these on Hackage while they are under such active development
+is counterproductive.
 
-### Namespaces
+Instead, libraries live in the `lib/` folder of the primary project with which
+they are associated (Luna, Luna Studio, or Dataframes). These libraries may be
+freely used by others of our projects by depending on a git commit of the
+project that they live in. All of these are safe to use.
+
+#### Prologue
+`Prologue` is our replacement for Haskell's `Prelude`. For the most part it is
+compatible with the prelude, though it is designed with a safe API as the first
+port of call.
+
+As a rule of thumb, if the prelude exports a partial function, that function has
+been made total in Prologue. This usually takes the form of returning `Maybe`,
+rather than throwing an error (e.g. `head :: [a] -> Maybe a`). In the case where
+a function has been redefined like this, the original version is available using
+an unsafe name (e.g. `unsafeHead` in the case above).
+
+Prologue also exports additional useful functionality from across the Haskell
+ecosystem, such as utilities for working with Lenses and for writing type-level
+computation.
+
+It is highly recommended that you scan the code of Prologue.
+
+#### Safety
+It is incredibly important that we can trust the code that we use, and hence we
+tend to disallow the definition of unsafe functions in our public API. When
+defining an unsafe function, you must account for the following:
+
+- It must be named `unsafeX`.
+- Unsafe functions should only be used in the minimal scope in which it can be
+  shown correct, not in larger pieces of code.
+- Unsafe function definition must be accompanied by a source note explaining why
+  it is not defined safely (e.g. performance).
+- Unsafe function usage must be accompanied by a source note explaining why this
+  usage of it is safe.
+
+Furthermore, we do not allow for code containing pattern matches that can fail.
+
+#### Control.Monad.Exception
+We have our own exception framework based on `ExceptT` that encodes exception
+usage at the type level. This ensures that all synchronous exceptions must be
+dealt with.
+
+It is defined in [`lib/exception/`](https://github.com/luna/luna/tree/master/lib/exception)
+and contains utilities for declaring that a function throws an exception, as
+well as throwing and catching exceptions.
+
+The primary part of this API is the `Throws` constraint, which can be passed
+both a single exception type or a list of exceptions. It is a monadic exception
+framework.
+
+```hs
+myFunction :: Throws '[MyErrorOne, MyErrorTwo] m => ArgType -> m ReturnType
+```
+
+We encourage our programmers to define their own exception types, and when doing
+so they should use the following guidelines:
+
+- We name them using 'Error' rather than 'Exception', so `MyError`, rather than
+  `MyException`.
+- We always provide an instance of `Exception` for our exception type.
+- We avoid encoding error information as strings, instead passing a strongly
+  typed representation of the problem around. This often means that we end up
+  re-wrapping an error thrown inside our function.
 
 ### Modules
-Design for qualified imports. The impacts of this on naming.
+Unlike much of the Haskell ecosystem, we tend to design modules to be imported
+_qualified_ rather than unqualified. This means that we have a few rules to keep
+in mind:
+
+- When designing a module that exports a type, the module should be named after
+  that type. If it exports multiple types, there should be a primary type, or
+  the other types should be factored out into their own modules.
+- We import modules as their name. If you have a module `Luna.Space.MyType`, we
+  import it qualified as `MyType`.
+- Functions should be named with the assumption of being used qualified. This
+  means that we rarely refer to the module name in the function name (e.g.
+  `State.run` rather than `State.runState`).
 
 ### Data Declarations
-Lenses, formatting, rules.
+When declaring data types in the Luna codebases, please make sure to keep the
+following rules of thumb in mind:
+
+- For single-constructor types:
+  + Write the definition across multiple lines. 
+  + Always name your fields.
+  + Always generate lenses. 
+
+  ```hs
+  data Rectangle = MkRectangle
+      { _width  :: Double
+      , _height :: Double
+      } deriving (Eq, Ord, Show)
+  makeLenses ''Rectangle
+  ```
+- For multiple-constructor data-types:
+  + Write the definition across multiple lines.
+  + Never name your fields.
+  + Generate prisms only when necessary.
+
+  ```hs
+  data Shape
+      = ShapeCircle Circle
+      | ShapeRect   Rectangle
+      deriving (Eq, Ord, Show)
+  ```
+
+- Always prefer named fields over unnamed ones. You should only use unnamed
+  fields if one or more of the following hold:
+  + Your data type is one where you are are _sure_ that separate field access 
+    will never be needed.
+  + You are defining a multiple-constructor data type.
+- Sort deriving clauses in alphabetical order, and derive the following for your
+  type if logically correct:
+  + General Types: `Eq`, `Generic`, `NFData`, `Ord`, `Show`.
+  + Parametric 1-Types: `Applicative`, `Alternative`, `Functor`.
+  + Monads: `Monad`, `MonadFix`.
+  + Monad Transformers: `MonadTrans`.
+
+#### Lenses
+The Luna codebases make significant use of Lenses, and so we have some rules for
+their use:
+
+- Always use the `makeLenses` wrapper exported from `Prologue`. 
+- Always generate lenses for single-constructor data types.
+- Never generate lenses for multi-constructor data types (though you may 
+  sometimes want to generate prisms). 
+- Fields in data types should be named with a single underscore. 
+- If you have multiple types where the fields need the same name, the `Prologue`
+  lens wrappers will disambiguate the names for you as follows as long as you
+  use a double underscore in the data declaration (e.g. `__x`).
+
+```hs
+data Vector = Vector 
+    { __x :: Double
+    , __y :: Double
+    , __z :: Double 
+    } deriving (Show)
+makeLenses ''Vector
+
+data Point = Point 
+    { __x :: Double
+    , __y :: Double 
+    } deriving (Show)
+makeLenses ''Point
+```
+
+This will generate lenses with names like `vector_x`, `vector_y`, and `point_x`,
+`point_y`.
 
 ### Testing and Benchmarking
+New code should always be accompanied by tests. These can be unit, integration,
+or some combination of the two, and they should always aim to test the new code
+in a rigorous fashion.
 
-### Errors, Warnings, and Lints
-Default error config. New code should be warnings free.
+- We tend to use `HSpec`, but also make use of QuickCheck for property-based
+  testing.
+- Tests should be declared in the project configuration so they can be trivially
+  run, and should use the mechanisms HSpec provides for automatic test
+  discovery.
+- A test file should be named after the module it tests. If the module is named
+  `Luna.MyModule`, then the test file should be named `Luna.MyModuleSpec`.
+
+Any performance-critical code should also be accompanied by a set of benchmarks.
+These are intended to allow us to catch performance regressions as the code
+evolves, but also ensure that we have some idea of the code's performance in
+general.
+
+- We use `Criterion` for our benchmarks.
+- We measure time, but also memory usage and CPU time where possible.
+- Where relevant, benchmarks may set thresholds which, when surpassed, cause the
+  benchmark to fail. These thresholds should be set for a release build, and not
+  for a development build.
+
+_Do not benchmark a development build_ as the data you get will often be
+entirely useless.
+
+### Warnings, and Lints
+In general, we aim for a codebase that is free of warnings and lints, and we do
+this using the following ideas:
+
+#### Warnings
+New code should introduce no new warnings onto master. You may build with
+warnings on your own branch, but the code that is submitted as part of a PR
+should not introduce new warnings. You should also endeavour to fix any warnings
+that you come across during development.
+
+Sometimes it is impossible to fix a warning (e.g. TemplateHaskell generated code
+often warns about unused pattern matches). In such cases, you are allowed to
+suppress the warning at the module level using an `OPTIONS_GHC` pragma, but this
+must be accompanied by a source note explaining _why_ the warning cannot be
+fixed otherwise.
+
+#### Lints
+We also recommend using HLint on your code as a stylistic guide, as we find that
+its suggestions in general lead to more readable code. If you don't know how to
+set up automatic linting for your editor, somebody will be able to help.
+
+An example of an anti-pattern that HLint will catch is the repeated-`$`. Instead
+of `foo $ bar $ baz $ bam quux`, you should write `foo . bar. baz $ bam quux`
+to use function composition.
 
 ## Language Extensions
+Much like any sophisticated Haskell codebase, Luna makes heavy use of the GHC
+language extensions. We have a broad swath of extensions that are enabled by
+default across our projects, and a further set which are allowed whenever
+necessary. We also have a set of extensions that are allowed with care, which
+must be used sparingly.
 
+When enabling a non-default extension, we never do it at the project or package
+level. Instead, they are enabled on a file-by-file basis using a `LANGUAGE`
+pragma. You may also negate default extensions, if necessary, using this same
+technique.
 
-Go through the list
-Note which ones are safe to enable by default
-Not all are available depending on the compiler in use
+It should be noted that not all of the extensions listed below are available
+across all compiler versions. If you are unsure whether an extension is
+available to you, we recommend checking the GHC Users Guide entry for that
+extension (linked from the extension's table below).
 
 ### Default Extensions
 The following language extensions are considered to be so safe, or to have such
@@ -430,9 +632,20 @@ You can find said set of extensions for Luna itself defined in a
 
 This extension is particularly useful in the context of
 
+#### Strict
+Talk about `NoStrict`, the reasoning behind strict-by-default
+
+#### StrictData
+Talk about `NoStrictData`
+
 ### Allowed Extensions
+These extensions can be used in your code without reservation, but are not
+enabled by default because they may interact negatively with other parts of the
+codebase.
 
 ### Allowed With Care
+If you make use of any of these extensions in your code, you should accompany
+their usage by a source note that explains why they are used.
 
 ### Disallowed Extensions
 If a language extension hasn't been listed in the above sections, then it is
@@ -446,220 +659,6 @@ Wojciech to discuss its usage.
 
 
 
-
-
-
-## Libraries
-* The basic library is `Prologue`, you should always disable `Prelude` auto
-  import and import `Prologue` instead. Please be sure to read the source code
-  of `Prologue`. In most cases it is compatible with `Prelude`, however, it was
-  designed with safety in the first place, so there are some basic differences.
-  For example, the `head` function returns value encoded in `Maybe`. If you want
-  the unsafe behavior, use `unsafeHead` instead.
-- Any uses of unsafe APIs should be accompanied by a comment explaining why it
-  is safe.
-
-## Extensions
-The following extensions are considered safe and you can use them freely. You
-can even enable all of them in your stack config file:
-```
-- AllowAmbiguousTypes
-- ApplicativeDo
-- Arrows
-- BangPatterns
-- BinaryLiterals
-- ConstraintKinds
-- DataKinds
-- DefaultSignatures
-- DeriveDataTypeable
-- DeriveFoldable
-- DeriveFunctor
-- DeriveGeneric
-- DeriveTraversable
-- DoAndIfThenElse
-- DuplicateRecordFields
-- EmptyDataDecls
-- FlexibleContexts
-- FlexibleInstances
-- FunctionalDependencies
-- GeneralizedNewtypeDeriving
-- InstanceSigs
-- LambdaCase
-- LiberalTypeSynonyms
-- MonadComprehensions
-- MonadFailDesugaring
-- MultiWayIf
-- NamedWildCards
-- NegativeLiterals
-- NoImplicitPrelude
-- NumDecimals
-- OverloadedLabels
-- OverloadedStrings
-- PackageImports
-- QuasiQuotes
-- RankNTypes
-- RecursiveDo
-- RelaxedPolyRec
-- ScopedTypeVariables
-- StandaloneDeriving
-- TemplateHaskell
-- TupleSections
-- TypeApplications
-- TypeFamilies
-- TypeFamilyDependencies
-- TypeOperators
-- ViewPatterns
-```
-
-## Imports
-Organizing your imports makes imported functions and modules easier to find in a
-file. They should be organized in four sections, each separated by a single
-empty line:
-
-1. Modules to be re-exported, all imported using `qualified` syntax into `X`
-   scope (see example below).
-2. `Prologue` and all `Prelude` like modules.
-3. Qualified imported modules.
-4. Non-qualified imported modules with explicit function listings, unless you
-   import really well-known module.
-
-There is no need to leave extra space for `qualified` keyword in second and
-fourth section. Each section can be omitted if empty. Additionally, when
-importing type constructors, list them explicitly rather than using `(..)`.
-
-For example, this is correct imports section:
-
-```
-module MyModule (module MyModule, module X) where
-
-import MyModule.Class as X (foo, bar)
-
-import Prologue
-
-import qualified Data.Map            as Map
-import qualified Control.Monad.State as State
-
-import Vector    (Vector (Vector), test)
-import Rectangle (Rectangle)
-```
-
-If the module does not re-export anything, you should use the simplified form
-instead:
-
-```
-module MyModule where
-
-import Prologue
-
-import qualified Data.Map            as Map
-import qualified Control.Monad.State as State
-
-import Vector    (Vector (Vector), test)
-import Rectangle (Rectangle)
-```
-
-## Safety
-Being sure that we can trust the code is very important, thus:
-
-* Every non-total function should be marked unsafe. For example,
-  `unsafeHead (a:_) = a`.
-* You cannot use unsafe functions in any bigger code block - only in very small
-  utilities that obviously prove that the usage of an unsafe function is safe in
-  this context. Such functions should be marked unsafe if they do not guarantee
-  totality. Please use comments to describe why you use unsafe function and why
-  it is safe in a particular context unless it is very obvious.
-* Never use irrefutable patterns. Anything like `Just a = foo` or `a : as = lst`
-  is always wrong code. Always.
-
-## Data-Type Definitions
-  * Always generate Lens instances for single constructor data types.
-  * Never generate Lens instances for multi-constructor data types.
-  * If it is possible and logically correct, always derive following instances
-    for your data types:
-    * general: `Show`, `Eq`, `Ord`, `NFData`, `Generic`
-    * parametric-1 types: `Functor`, `Applicative`, `Alternative`
-    * monads: `Monad`, `MonadFix`
-    * monad transformers: `MonadTrans`
-  * Prefer named fields over unnamed ones. You can use unnamed fields if and
-    only if at least one of those holds true:
-    * Your data type is used locally and you will never need separate field
-      access (preferably only within a single module)
-    * You are sure nobody will ever need a separate field access (only accessing
-      all the fields make sense).
-  * Write single constructor data types with named fields in multiple lines
-
-    ```
-    data Rectangle = Rectangle
-        { _width  :: Double
-        , _height :: Double
-        } deriving (Show)
-    makeLenses ''Rectangle
-    ```
-
-    You can also use more compact form if you declare many connected data types
-
-    ```
-    data Rectangle = Rectangle { _width  :: Double, _height :: Double } deriving (Show)
-    data Circle    = Circle    { _radius :: Double                    } deriving (Show)
-    data Line      = Line      { _begin  :: Point , _end :: Point     } deriving (Show)
-    makeLenses [''Rectangle, ''Circle, ''Line]
-    ```
-
-  * Do not use names when writing multiple constructor data types. If you want
-    to name your fields it is much better to create a bundle of data types like:
-
-    ```
-    data Circle    = Circle    { _radius :: Double                    } deriving (Show)
-    data Rectangle = Rectangle { _width  :: Double, _height :: Double } deriving (Show)
-    data Shape
-        = ShapeCircle    Circle
-        | ShapeRectangle Rectangle
-        deriving (Show)
-    makeLenses ''[Circle, Rectangle]
-    ```
-
-  * :warning: Use rarely! Only when you are sure nobody will ever need to access
-    only one of these fields! Write single constructor data types with unnamed
-    fields within a single line.
-
-
-    ```
-    data Rectangle = Rectangle Double Double deriving (Show)
-    ```
-
-  * :warning: Use rarely! Only when you are sure nobody will ever need to access
-    only one of these fields! Write multiple constructor data types with unnamed
-    fields in multiple lines:
-
-    ```
-    data Shape
-        = Circle Double
-        | Rectangle Double Double
-        deriving (Show)
-    ```
-  * Sort deriving classes in alphabetic order.
-
-## Lenses
-If multiple data types need field of the same name and you want to generate Lens
-instances for it, use Prologue's Lens wrappers as follow:
-
-```
-data Vector = Vector { __x :: Double, __y::Double, __z::Double } deriving (Show)
-data Point  = Point  { __x :: Double, __y::Double              } deriving (Show)
-makeLenses ''Vector
-makeLenses ''Point
-
-class           Dim1 a where x :: Lens' a Double
-class Dim1 a => Dim2 a where y :: Lens' a Double
-
-instance Dim1 Vector where x = vector_x
-instance Dim2 Vector where y = vector_y
-instance Dim1 Point  where x = point_x
-instance Dim2 Point  where y = point_y
-```
-Names like `vector_x`, `vector_y`, `point_x` and `point_y` are automatically
-generated if you use double underscore instead of single in data type
-definition.
 
 ## Functional Dependencies vs. Type Families
 Do not use `Functional Dependencies`. Use `Type Families` instead. Type families
@@ -743,7 +742,7 @@ is completely valid if you are sure, that `SumOf` should work only for a pair of
 if you can prove that it should never be extended further, use closed type
 families.
 
-## Proxy Types
+## Proxy Types / Type Applications
 Do not use proxy types, use modern Haskell's type application instead. Proxy
 types are useful for passing type information around, without the need to
 provide data. For example, imagine we want to create a renderer typeclass, which
