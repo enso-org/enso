@@ -15,6 +15,7 @@ programmer burden; there is usually only _one way_ to lay out code correctly.
   - [Alignment](#alignment)
   - [Naming](#naming)
   - [Imports](#imports)
+  - [Exports](#exports)
   - [Section Headers](#section-headers)
   - [Auto-Formatting](#auto-formatting)
 - [Commenting](#commenting)
@@ -34,8 +35,6 @@ programmer burden; there is usually only _one way_ to lay out code correctly.
   - [Allowed Extensions](#allowed-extensions)
   - [Allowed With Care](#allowed-with-care)
   - [Disallowed Extensions](#disallowed-extensions)
-- [Comments in code](#comments-in-code)
-- [Naming](#naming-1)
 - [Libraries](#libraries-1)
 - [Extensions](#extensions)
 - [Imports](#imports-1)
@@ -156,13 +155,108 @@ multiple lines, it _no longer counts_ as visually similar, and hence subsequent
 lines should not be aligned with it.
 
 ### Naming
-Luna has some fairly simple general naming conventions
+Luna has some fairly simple general naming conventions, though the sections
+below may provide more rules for use in specific cases.
+
+- Types are written using `UpperCamelCase`.
+- Variables and function names are written using `camelCase`.
+- If a name contains an initialism or acronym, all parts of that initialism
+  should be of the same case: `httpRequest` or `makeHTTPRequest`.
+- Short variable names such as `a` and `b` should only be used in contexts where
+  there is no other appropriate name (e.g. `flip (a, b) = (b, a)`). They should
+  _never_ be used to refer to temporary data in a `where` or `let` expression.
 
 ### Imports
-Design for qualified imports
+Organising imports properly means that it's easy to find the provenance of a
+given function even in the absence of IDE-style tooling. We organise our imports
+in four sections, each of which may be omitted if empty.
+
+1. **Re-Exports:** These are the modules that are to be re-exported from the
+   current module. We import these qualified under a name `X` (for export), and
+   then re-export these in the module header (see below for an example).
+2. **Preludes:** As we recommend the use of `-XNoImplicitPrelude`, we then
+   explicitly import the prelude in use. This is almost always going to be
+   `Prologue` as described in the section on [libraries](#libraries) below.
+3. **Qualified Imports:** A list of all modules imported qualified. The `as`
+   portion of the import expressions should be vertically aligned.
+4. **Unqualified Imports:** These must _always_ have an explicit import list.
+   There are _no_ circumstances under which we allow a truly unqualified import.
+   The import lists should be vertically aligned.
+
+Imports within each section should be listed in alphabetical order, and should
+be vertically aligned.
+
+This example is for a module that re-exports some names:
+
+```hs
+module Luna.MyModule (module Luna.MyModule, module X) where
+
+import Luna.MyModule.Class as X (foo, bar)
+
+import Prologue
+
+import qualified Control.Monad.State as State
+import qualified Data.Map            as Map
+
+import Rectangle (Rectangle)
+import Vector    (Vector (Vector), test)
+```
+
+However, in the context where your module doesn't re-export anything, you can
+use the simplified form:
+
+```hs
+module Luna.MyModule where
+
+import Prologue
+
+import qualified Control.Monad.State as State
+import qualified Data.Map            as Map
+
+import Rectangle (Rectangle)
+import Vector    (Vector (Vector), test)
+```
+
+### Exports
+There is nothing more frustrating than having a need to use a function in a
+module that hasn't been exported. To that end, we do not allow for restricted
+export lists in our modules.
+
+Instead, if you want to indicate that something is for internal use, you need to
+define it in an internal module. For a module named `Luna.MyModule`, we can
+define internal functions and data-types in `Luna.MyModule.Internal`. This means
+that these functions can be imported by clients of the API if they need to, but
+that we provide no guarantees about API stability when using those functions.
 
 ### Section Headers
-In order to visually break up the code for easier 'visual grepping'
+In order to visually break up the code for easier 'visual grepping', we organise
+it using section headers. These allow us to easily find the section that we are
+looking for, even in a large file.
+
+For each type defined in a file, it can be broken into sections as follows:
+
+```hs
+--------------------
+-- === MyType === --
+--------------------
+
+-- === Definition === --
+{- The definition of the type goes here -}
+
+
+-- === API === --
+{- The API of the type goes here -}
+
+
+-- === Instances === --
+{- Any instances for the type go here -}
+
+```
+
+The section header must be preceded by three blank lines, while the subsection
+headers (except the first) should be preceded by two blank lines. Any of these
+subsections may be omitted if they don't exist, and a file may contain multiple
+of these sections as relevant.
 
 ### Auto-Formatting
 While we have attempted to use haskell auto-formatters to enforce many of the
@@ -283,7 +377,7 @@ For example:
 
 ```hs
 -- TODO [ARA] This is a bit of a kludge. Instead of X it should to Y, accounting
-   for the fact that Z.
+-- for the fact that Z.
 ```
 
 ### Other Comment Usage
@@ -304,7 +398,7 @@ Talk about Prologue
 ### Namespaces
 
 ### Modules
-Design for qualified imports.
+Design for qualified imports. The impacts of this on naming.
 
 ### Data Declarations
 Lenses, formatting, rules.
@@ -354,30 +448,6 @@ Wojciech to discuss its usage.
 
 
 
-
-## Comments in code
-* Commenting code is a bad practice. Comments expire fast and are not validated.
-  A code should be auto-explanatory. It should be written in such way, that
-  reading it will guide you over what it does. If your code is too long or it is
-  not obvious what it does by fast looking at it, you should split it over
-  well-named functions.
-* Use comments to indicate bugs, todos and third-party bugs (preferably with a
-  link to a bug tracker/discussion)
-* Use comments to explain why your code is safe (as described in a later
-  section).
-* Use comments to disable code while developing it.
-* Always use comments to indicate where a mathematical formula comes from.
-* Do not use comments otherwise.
-
-## Naming
-The following are general naming rules you should follow. There are more
-context-specific rules and you will find them in the following sections.
-
-* Names in general (variables, functions, types) are written using camel case
-  convention and it should be easy to understand what a particular name means.
-  For example, names like `a` or `b` are allowed in very specific use cases like
-  `flip (a,b) = (b,a)`, however, you cannot use them to keep temporary data in a
-  where clause.
 
 ## Libraries
 * The basic library is `Prologue`, you should always disable `Prelude` auto
