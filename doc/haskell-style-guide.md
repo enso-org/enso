@@ -12,65 +12,105 @@ programmer burden; there is usually only _one way_ to lay out code correctly.
 - [Code Formatting](#code-formatting)
   - [Whitespace](#whitespace)
   - [Line Wrapping](#line-wrapping)
-  - [Alignment](#alignment)
-  - [Imports](#imports)
-  - [Auto-Formatting](#auto-formatting)
-- [Commenting](#commenting)
-  - [Documentation Comments](#documentation-comments)
-  - [Source Notes](#source-notes)
-  - [Other Comment Usage](#other-comment-usage)
-- [Program Design](#program-design)
-  - [Namespaces](#namespaces)
-  - [Modules](#modules)
-  - [Data Declarations](#data-declarations)
-  - [Testing and Benchmarking](#testing-and-benchmarking)
-  - [Errors, Warnings, and Lints](#errors-warnings-and-lints)
-- [Language Extensions](#language-extensions)
-  - [Default Extensions](#default-extensions)
-  - [Allowed Extensions](#allowed-extensions)
-  - [Allowed With Care](#allowed-with-care)
-  - [Disallowed Extensions](#disallowed-extensions)
-- [Code layout](#code-layout)
-- [Code Alignment](#code-alignment)
-- [Comments in code](#comments-in-code)
-- [Naming](#naming)
-- [Libraries](#libraries)
-- [Extensions](#extensions)
-- [Imports](#imports-1)
-- [Safety](#safety)
-- [Data-Type Definitions](#data-type-definitions)
-- [Lenses](#lenses)
-- [Functional Dependencies vs. Type Families](#functional-dependencies-vs-type-families)
-- [Type Families](#type-families)
-- [Proxy Types](#proxy-types)
 
 <!-- /MarkdownTOC -->
 
 ## Code Formatting
+This section explains the rules for visually laying out your code. They provide
+a robust set of guidelines for creating a consistent visual to the code.
 
 ### Whitespace
 The rules for whitespace in the Luna codebases are relatively simple:
 
 - 4 spaces are used for indentation, with no tabs.
-- There should not be any trailing whitespace. 
+- There should not be any trailing whitespace.
 - There should be no spurious whitespace within the lines, unless it is used for
   [alignment](#alignment) as discussed below.
 
 ### Line Wrapping
+In order to provide visual consistency across our codebases, and also to
+contribute to making our code easier to scan, we enforce that all code should be
+wrapped to 80 characters width at a maximum.
 
-Break on operators where possible
-Break at highest precedence
+The nature of Haskell, however, means that it can sometimes be unclear where to
+break lines. We use the following guidelines:
+
+- Wrap all lines to a maximum length of 80 characters.
+- Break the lines on operators where possible, rather than wrapping function
+  arguments.
+
+  ```hs
+  -- This
+  foo <- veryLongFunction1 veryLongArgument1
+      $ veryLongFunction2 veryLongArgument2 veryLongArgument3
+
+  -- Not this
+  foo <- veryLongFunction1 veryLongArgument1 $ veryLongFunction2
+      veryLongArgument2 veryLongArgument3
+
+- When you have a choice of operators on which you could break, choose the one
+  with the highest precedence. We find that this makes code significantly more
+  readable.
+
+  ```hs
+  -- This
+  potentialPkgRoot <- liftIO $ Directory.canonicalizePath
+      =<< (canPath </>) <$> pkgRootFromExe @a
+
+  -- Not this
+  potentialPkgRoot <- liftIO $ Directory.canonicalizePath =<< (canPath </>)
+      <$> pkgRootFromExe @a
+  ```
+
+- Wrap operators to the _start_ of the line, rather than leaving them trailing
+  on a line.
+
+  ```hs
+  -- This
+  foo <- veryLongFunction1 veryLongArgument1
+      $ veryLongFunction2 veryLongArgument2 veryLongArgument3
+
+  -- Not this
+  foo <- veryLongFunction1 veryLongArgument1 $
+      veryLongFunction2 veryLongArgument2 veryLongArgument3
+  ```
+
+- If all else fails, wrap the lines using your best effort (usually what you
+  find to be most readable). This may result in discussion during code review,
+  but
 
 ### Alignment
+When there are multiple lines that are visually similar, we try to align the
+similar portions of the lines vertically.
+
+```hs
+people   <- getAllPeople <$> worlds
+names    <- getName      <$> people
+surnames <- getSurnames  <$> names
+```
+
+This should _only_ be done when the lines don't need to be wrapped. If you have
+lines long enough that this visual justification would cause them to wrap, you
+should prefer to _not_ wrap the lines and forego the visual alignment.
+
+Furthermore, if you have to wrap a visually similar line such that it now spans
+multiple lines, it _no longer counts_ as visually similar, and hence subsequent
+lines should not be aligned with it.
+
+### Naming
 
 
 ### Imports
 Design for qualified imports
 
+### Section Headers
+In order to visually break up the code for easier 'visual grepping'
+
 ### Auto-Formatting
-While we have attempted to use haskell auto-formatters to enforce many of the 
+While we have attempted to use haskell auto-formatters to enforce many of the
 above stylistic choices in this document, none have been found to be flexible
-enouh
+enough for our needs. However, as tools evolve or new ones emerge, we are open
+to revisiting this decision; if you know of a tool that
 
 ## Commenting
 What and why, not how
@@ -84,12 +124,16 @@ Sometimes an exception to the 'not how' rule.
 
 ## Program Design
 
+### Libraries
+Talk about Prologue
+
 ### Namespaces
 
 ### Modules
 Design for qualified imports.
 
 ### Data Declarations
+Lenses, formatting, rules.
 
 ### Testing and Benchmarking
 
@@ -106,7 +150,8 @@ Not all are available depending on the compiler in use
 ### Default Extensions
 The following language extensions are considered to be so safe, or to have such
 high utility, that they are considered to be Luna's set of default extensions.
-You can find said set of extensions for the 
+You can find said set of extensions for Luna itself defined in a
+[common configuration file](https://github.com/luna/luna/blob/master/config/hpack-common.yaml).
 
 #### AllowAmbiguousTypes
 
@@ -114,6 +159,8 @@ You can find said set of extensions for the
 |:---------|:-----------------------------------------------------------------------------------------------------------------------------------------|
 | **Name** | [`AllowAmbiguousTypes`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-AllowAmbiguousTypes) |
 | **Flag** | `-XAllowAmbiguousTypes`                                                                                                                  |
+
+This extension is particularly useful in the context of
 
 ### Allowed Extensions
 
@@ -133,25 +180,6 @@ discuss its usage.
 
 
 
-
-
-
-
-## Code layout
-* Indentations are always 4 spaces, no tabs are allowed.
-* Lines of code should not end with any empty spaces (most editors make it
-  automatically for you)
-
-## Code Alignment
-* Try to align parts of expressions, which are vertically similar. This rule is
-  used in all the examples in this document, so you can easily see how it is
-  done in practice. To grasp the idea fast, consider:
-
-  ```
-  people   <- getAllPeople <$> worlds
-  names    <- getName      <$> people
-  surnames <- getSurnames  <$> names
-  ```
 
 ## Comments in code
 * Commenting code is a bad practice. Comments expire fast and are not validated.
