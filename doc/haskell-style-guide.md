@@ -482,9 +482,9 @@ When declaring data types in the Luna codebases, please make sure to keep the
 following rules of thumb in mind:
 
 - For single-constructor types:
-  + Write the definition across multiple lines. 
+  + Write the definition across multiple lines.
   + Always name your fields.
-  + Always generate lenses. 
+  + Always generate lenses.
 
   ```hs
   data Rectangle = MkRectangle
@@ -507,7 +507,7 @@ following rules of thumb in mind:
 
 - Always prefer named fields over unnamed ones. You should only use unnamed
   fields if one or more of the following hold:
-  + Your data type is one where you are are _sure_ that separate field access 
+  + Your data type is one where you are are _sure_ that separate field access
     will never be needed.
   + You are defining a multiple-constructor data type.
 - Sort deriving clauses in alphabetical order, and derive the following for your
@@ -521,26 +521,26 @@ following rules of thumb in mind:
 The Luna codebases make significant use of Lenses, and so we have some rules for
 their use:
 
-- Always use the `makeLenses` wrapper exported from `Prologue`. 
+- Always use the `makeLenses` wrapper exported from `Prologue`.
 - Always generate lenses for single-constructor data types.
-- Never generate lenses for multi-constructor data types (though you may 
-  sometimes want to generate prisms). 
-- Fields in data types should be named with a single underscore. 
+- Never generate lenses for multi-constructor data types (though you may
+  sometimes want to generate prisms).
+- Fields in data types should be named with a single underscore.
 - If you have multiple types where the fields need the same name, the `Prologue`
   lens wrappers will disambiguate the names for you as follows as long as you
   use a double underscore in the data declaration (e.g. `__x`).
 
 ```hs
-data Vector = Vector 
+data Vector = Vector
     { __x :: Double
     , __y :: Double
-    , __z :: Double 
+    , __z :: Double
     } deriving (Show)
 makeLenses ''Vector
 
-data Point = Point 
+data Point = Point
     { __x :: Double
-    , __y :: Double 
+    , __y :: Double
     } deriving (Show)
 makeLenses ''Point
 ```
@@ -630,22 +630,381 @@ You can find said set of extensions for Luna itself defined in a
 | **Name** | [`AllowAmbiguousTypes`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-AllowAmbiguousTypes) |
 | **Flag** | `-XAllowAmbiguousTypes`                                                                                                                  |
 
-This extension is particularly useful in the context of
+This extension is particularly useful in the context of `-XTypeApplications`
+where the use of type applications can disambiguate the call to an ambiguous
+function.
 
+We often use the design pattern where a function has a free type variable not
+used by any of its arguments, which is then applied via type applications. This
+would not be possible without `-XAllowAmbiguousTypes`.
+
+#### ApplicativeDo
+
+|          |                                                                                                                              |
+|:---------|:-----------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`ApplicativeDo`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-ApplicativeDo) |
+| **Flag** | `-XApplicativeDo`                                                                                                            |
+
+This extension allows desugaring of do-notation based on applicative operations
+(`<$>`, `<*>`, and `join`) as far as is possible. This will preserve the
+original semantics as long as the type has an appropriate applicative instance.
+
+Applicative operations are often easier to optimise than monadic ones, so if
+you can write a computation using applicatives please do. This is the same
+reason that we prefer `pure` to `return`.
+
+#### BangPatterns
+
+|          |                                                                                                                            |
+|:---------|:---------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`BangPatterns`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-BangPatterns) |
+| **Flag** | `-XBangPatterns`                                                                                                           |
+
+This extension allows for strict pattern matching, where the type being matched
+against is evaluated to WHNF before the match takes place. This is very useful
+in performance critical code where you want more control over strictness and
+laziness.
+
+#### BinaryLiterals
+
+|          |                                                                                                                                |
+|:---------|:-------------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`BinaryLiterals`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-BinaryLiterals) |
+| **Flag** | `-XBinaryLiterals`                                                                                                             |
+
+This extensions allow for binary literals to be written using the `0b` prefix.
+This can be very useful when writing bit-masks, and other low-level code.
+
+#### ConstraintKinds
+
+|          |                                                                                                                                  |
+|:---------|:---------------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`ConstraintKinds`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-ConstraintKinds) |
+| **Flag** | `-XConstraintKinds`                                                                                                              |
+
+This allows any types which have kind `Constraint` to be used in contexts (in
+functions, type-classes, etc). This works for class constraints, implicit
+parameters, and type quality constraints. It also enables type constraint
+synonyms.
+
+All of these are very useful.
+
+#### DataKinds
+
+|          |                                                                                                                      |
+|:---------|:---------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`DataKinds`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-DataKinds) |
+| **Flag** | `-XDataKinds`                                                                                                        |
+
+This extension enables the promotion of data types to be kinds. All data types
+are promoted to kinds and the value constructors are promoted to type
+constructors.
+
+This is incredibly useful, and used heavily in the type-level programming that
+makes the Luna codebase so expressive and yet so safe.
+
+#### DefaultSignatures
+
+|          |                                                                                                                                      |
+|:---------|:-------------------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`DefaultSignatures`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-DefaultSignatures) |
+| **Flag** | `-XDefaultSignatures`                                                                                                                |
+
+When you declare a default in a typeclass, it conventionally has to have exactly
+the same type signature as the typeclass method. This extension lifts this
+restriction to allow you to specify a more-specific signature for the default
+implementation of a typeclass method.
+
+#### DeriveDataTypeable
+
+|          |                                                                                                                                        |
+|:---------|:---------------------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`DeriveDataTypeable`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-DeriveDataTypeable) |
+| **Flag** | `-XDeriveDataTypeable`                                                                                                                 |
+
+This extension enables deriving of the special kind-polymorphic `Typeable`
+typeclass. Instances of this class cannot be written by hand, and they associate
+type representations with types. This is often useful for low-level programming.
+
+#### DeriveFoldable
+
+|          |                                                                                                                                |
+|:---------|:-------------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`DeriveFoldable`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-DeriveFoldable) |
+| **Flag** | `-XDeriveFoldable`                                                                                                             |
+
+This enables deriving of the `Foldable` typeclass, which represents structures
+that can be folded over. This allows automated deriving for any data type with
+kind `Type -> Type`.
+
+#### DeriveFunctor
+
+|          |                                                                                                                              |
+|:---------|:-----------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`DeriveFunctor`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-DeriveFunctor) |
+| **Flag** | `-XDeriveFunctor`                                                                                                            |
+
+This enables automated deriving of the `Functor` typeclass for any data type
+with kind `Type -> Type`.
+
+#### DeriveGeneric
+
+|          |                                                                                                                              |
+|:---------|:-----------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`DeriveGeneric`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-DeriveGeneric) |
+| **Flag** | `-XDeriveGeneric`                                                                                                            |
+
+Enables automated deriving of the `Generic` typeclass. Generic is a typeclass
+that represents the structure of data types in a generic fashion, allowing for
+generic programming.
+
+#### DeriveTraversable
+
+|          |                                                                                                                                      |
+|:---------|:-------------------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`DeriveTraversable`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-DeriveTraversable) |
+| **Flag** | `-XDeriveTraversable`                                                                                                                |
+
+Enables automated deriving of the `Traversable` typeclass that represents types
+that can be traversed. It is a valid derivation for any data type with kind
+`Type -> Type`.
+
+#### DerivingStrategies
+
+|          |                                                                                                                                        |
+|:---------|:---------------------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`DerivingStrategies`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-DerivingStrategies) |
+| **Flag** | `-XDerivingStrategies`                                                                                                                 |
+
+Under certain circumstances it can be ambiguous as to which method to use to
+derive an instance of a class for a data type. This extension allows users to
+manually supply the strategy by which an instance is derived.
+
+If it is not specified, it uses the defaulting rules as described at the above
+link.
+
+#### DerivingVia
+
+|          |                                                                                                                          |
+|:---------|:-------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`DerivingVia`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-DerivingVia) |
+| **Flag** | `-XDerivingVia`                                                                                                          |
+
+This allows deriving a class instance for a type by specifying another type of
+equal runtime representation (such that there exists a Coercible instance
+between the two). It is indicated by use of the `via` deriving strategy, and
+requires the specification of another type (the via-type) to coerce through.
+
+#### DuplicateRecordFields
+
+|          |                                                                                                                                              |
+|:---------|:---------------------------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`DuplicateRecordFields`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-DuplicateRecordFields) |
+| **Flag** | `-XDuplicateRecordFields`                                                                                                                    |
+
+This extension allows definitions of records with identically named fields. This
+is very useful in the context of Prologue's `makeLenses` wrapper as discussed
+above in the section on [lenses](#lenses).
+
+#### EmptyDataDecls
+
+|          |                                                                                                                                |
+|:---------|:-------------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`EmptyDataDecls`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-EmptyDataDecls) |
+| **Flag** | `-XEmptyDataDecls`                                                                                                             |
+
+Allows the definition of data types with no value constructors. This is very
+useful in conjunction with `-XDataKinds` to allow the creation of more safety
+properties in types through the use of rich kinds.
+
+#### FlexibleContexts
+
+|          |                                                                                                                                    |
+|:---------|:-----------------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`FlexibleContexts`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-FlexibleContexts) |
+| **Flag** | `-XFlexibleContexts`                                                                                                               |
+
+This enables the use of complex constraints in class declarations. This means
+that anything with kind `Constraint` is usable in a class declaration's context.
+
+#### FlexibleInstances
+
+|          |                                                                                                                                      |
+|:---------|:-------------------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`FlexibleInstances`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-FlexibleInstances) |
+| **Flag** | `-XFlexibleInstances`                                                                                                                |
+
+This allows the definition of typeclasses with arbitrarily-nested types in the
+instance head. This, like many of these extensions, is enabled by default to 
+support rich type-level programming.
+
+#### Functional Dependencies
+
+|          |                                                                                                                                                |
+|:---------|:-----------------------------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`FunctionalDependencies`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-FunctionalDependencies) |
+| **Flag** | `-XFunctionalDependencies`                                                                                                                     |
+
+Despite this extension being on the 'defaults' list, this is only for the very
+rare 1% of cases where Functional Dependencies allow you to express a construct
+that Type Families do not. 
+
+You should never need to use a Functional Dependency, and if you think you do it
+is likely that your code can be expressed in a far more clean manner by using
+Type Families. 
+
+#### GeneralizedNewtypeDeriving
+
+|          |                                                                                                                                                        |
+|:---------|:-------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`GeneralizedNewtypeDeriving`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-GeneralizedNewtypeDeriving) |
+| **Flag** | `-XGeneralizedNewtypeDeriving`                                                                                                                         |
+
+This enables the generalised deriving mechanism for `newtype` definitions. This
+means that a newtype can inherit some instances from its representation. This
+has been somewhat superseded by `-XDerivingVia`
+
+#### InstanceSigs
+
+|          |                                                                                                                            |
+|:---------|:---------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`InstanceSigs`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-InstanceSigs) |
+| **Flag** | `-XInstanceSigs`                                                                                                           |
+
+This extension allows you to write type signatures in the instance definitions
+for type classes. This signature must be identical to, or more polymorphic than,
+the signature provided in the class definition.
+
+#### LambdaCase
+
+|          |                                                                                                                        |
+|:---------|:-----------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`LambdaCase`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-LambdaCase) |
+| **Flag** | `-XLambdaCase`                                                                                                         |
+
+Enables `\case` as an alternative to `case <...> of`. This often results in 
+much cleaner code.
+
+#### LiberalTypeSynonyms
+
+|          |                                                                                                                                          |
+|:---------|:-----------------------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`LiberalTypeSynonyms`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-LiberalTypeSynonyms) |
+| **Flag** | `-XLiberalTypeSynonyms`                                                                                                                  |
+
+This extension moves the type synonym validity check to _after_ the synonym is
+expanded, rather than before. This makes said synonyms more useful in the 
+context of type-level programming constructs.
+
+#### MonadComprehensions
+
+|          |                                                                                                                                                        |
+|:---------|:-------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`GeneralizedNewtypeDeriving`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-GeneralizedNewtypeDeriving) |
+| **Flag** | `-XGeneralizedNewtypeDeriving`                                                                                                                         |
+
+Enables a generalisation of the list comprehension notation that works across
+any type that is an instance of `Monad`.
+
+#### MultiParamTypeClasses
+
+|          |                                                                                                                                              |
+|:---------|:---------------------------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`MultiParamTypeClasses`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-MultiParamTypeClasses) |
+| **Flag** | `-XMultiParamTypeClasses`                                                                                                                    |
+
+Enables the ability to write type classes with multiple parameters. This is very
+useful for type-level programming, and to express relationships between types in
+typeclasses.
+
+#### MultiWayIf
+
+|          |                                                                                                                        |
+|:---------|:-----------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`MultiWayIf`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-MultiWayIf) |
+| **Flag** | `-XMultiWayIf`                                                                                                         |
+
+This extension allows GHC to accept conditional expressions with multiple 
+branches, using the guard-style notation familiar from function definitions.
+
+#### NamedWildCards
+#### NegativeLiterals
+#### NoImplicitPrelude
+
+|          |                                                                                                                                      |
+|:---------|:-------------------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`NoImplicitPrelude`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-NoImplicitPrelude) |
+| **Flag** | `-XNoImplicitPrelude`                                                                                                                |
+
+Disables the implicit import of the prelude into every module. This enables us
+to use `Prologue`, our own custom prelude (discussed in the section on 
+[prologue](#prologue)).
+
+#### NumDecimals
+
+|          |                                                                                                                          |
+|:---------|:-------------------------------------------------------------------------------------------------------------------------|
+| **Name** | [`NumDecimals`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-NumDecimals) |
+| **Flag** | `-XNumDecimals`                                                                                                          |
+
+Enables writing integer literals using exponential syntax.
+
+#### OverloadedLabels
+#### OverloadedStrings
+#### PackageImports
+#### PatternSynonyms
+#### QuasiQuotes
+#### RankNTypes
+#### RecursiveDo
+#### RelaxedPolyRec
+#### ScopedTypeVariables
+#### StandaloneDeriving
 #### Strict
 Talk about `NoStrict`, the reasoning behind strict-by-default
 
 #### StrictData
 Talk about `NoStrictData`
 
+#### TemplateHaskell
+#### TupleSections
+#### TypeApplications
+#### TypeFamilies
+#### TypeFamilyDependencies
+#### TypeOperators
+#### UnicodeSyntax
+#### ViewPatterns
+
 ### Allowed Extensions
 These extensions can be used in your code without reservation, but are not
 enabled by default because they may interact negatively with other parts of the
 codebase.
 
+#### BlockArguments
+#### GADTs
+#### HexFloatLiterals
+#### MagicHash
+#### NumericUnderscores
+#### PolyKinds
+#### Quantified Constraints
+#### RoleAnnotations
+#### UnboxedSums
+#### UnboxedTuples
+
 ### Allowed With Care
 If you make use of any of these extensions in your code, you should accompany
 their usage by a source note that explains why they are used.
+
+#### CApiFFI
+#### ConstrainedClassMethods
+#### CPP
+#### DisambiguateRecordFields
+#### ImplicitParams
+#### PostfixOperators
+#### RecursiveDo#
+#### StaticPointers
+#### TypeInType
+#### UndecidableInstances
+#### UndecidableSuperclasses
 
 ### Disallowed Extensions
 If a language extension hasn't been listed in the above sections, then it is
@@ -653,7 +1012,10 @@ considered to be disallowed throughout the Luna codebases. If you have a good
 reason to want to use one of these disallowed extensions, please talk to Ara or
 Wojciech to discuss its usage.
 
-
+If an extension not listed above is _implied_ by one of the extensions listed
+above (e.g. `-XRankNTypes` implies `-XExplicitForall`), then the implied
+extension is also considered at least as safe as the category the implying
+extension is in.
 
 
 
