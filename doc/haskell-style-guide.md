@@ -12,6 +12,39 @@ programmer burden; there is usually only _one way_ to lay out code correctly.
 - [Code Formatting](#code-formatting)
   - [Whitespace](#whitespace)
   - [Line Wrapping](#line-wrapping)
+  - [Alignment](#alignment)
+  - [Naming](#naming)
+  - [Imports](#imports)
+  - [Section Headers](#section-headers)
+  - [Auto-Formatting](#auto-formatting)
+- [Commenting](#commenting)
+  - [Documentation Comments](#documentation-comments)
+  - [Source Notes](#source-notes)
+  - [TODO Comments](#todo-comments)
+  - [Other Comment Usage](#other-comment-usage)
+- [Program Design](#program-design)
+  - [Libraries](#libraries)
+  - [Namespaces](#namespaces)
+  - [Modules](#modules)
+  - [Data Declarations](#data-declarations)
+  - [Testing and Benchmarking](#testing-and-benchmarking)
+  - [Errors, Warnings, and Lints](#errors-warnings-and-lints)
+- [Language Extensions](#language-extensions)
+  - [Default Extensions](#default-extensions)
+  - [Allowed Extensions](#allowed-extensions)
+  - [Allowed With Care](#allowed-with-care)
+  - [Disallowed Extensions](#disallowed-extensions)
+- [Comments in code](#comments-in-code)
+- [Naming](#naming-1)
+- [Libraries](#libraries-1)
+- [Extensions](#extensions)
+- [Imports](#imports-1)
+- [Safety](#safety)
+- [Data-Type Definitions](#data-type-definitions)
+- [Lenses](#lenses)
+- [Functional Dependencies vs. Type Families](#functional-dependencies-vs-type-families)
+- [Type Families](#type-families)
+- [Proxy Types](#proxy-types)
 
 <!-- /MarkdownTOC -->
 
@@ -47,6 +80,7 @@ break lines. We use the following guidelines:
   -- Not this
   foo <- veryLongFunction1 veryLongArgument1 $ veryLongFunction2
       veryLongArgument2 veryLongArgument3
+  ```
 
 - When you have a choice of operators on which you could break, choose the one
   with the highest precedence. We find that this makes code significantly more
@@ -75,9 +109,33 @@ break lines. We use the following guidelines:
       veryLongFunction2 veryLongArgument2 veryLongArgument3
   ```
 
+- Function signatures should wrap on the `=>` and `->`, and in the context of
+  a doc comment should have each argument on a separate line.
+- Lists (and all list-like constructs e.g. constraint tuples, import lists)
+  should be wrapped with a _leading_ comma, aligned with the opening bracket,
+  and a space between the opening bracket and the first item. This is also used
+  in record declarations.
+
+  ```hs
+  -- This
+  myFunctionWithAVeryLongName :: forall a m . ( SomeConstraintOnA a
+                                              , SomeMonadConstraint m )
+      => a -> SomeOtherType -> m a
+
+  -- Not this
+  myFunctionWithAVeryLongName :: forall a m . (SomeConstraintOnA a,
+                                              SomeMonadConstraint m)
+      => a -> SomeOtherType -> m a
+  ```
+
 - If all else fails, wrap the lines using your best effort (usually what you
   find to be most readable). This may result in discussion during code review,
-  but
+  but will provide a learning experience to augment this guide with more
+  examples.
+
+Please _do not_ shorten sensible names in order to make things fit into a single
+line. We would much prefer that the code wraps to two lines and that naming
+remains intelligible than names become so shortened as to be useless.
 
 ### Alignment
 When there are multiple lines that are visually similar, we try to align the
@@ -98,7 +156,7 @@ multiple lines, it _no longer counts_ as visually similar, and hence subsequent
 lines should not be aligned with it.
 
 ### Naming
-
+Luna has some fairly simple general naming conventions
 
 ### Imports
 Design for qualified imports
@@ -113,14 +171,130 @@ enough for our needs. However, as tools evolve or new ones emerge, we are open
 to revisiting this decision; if you know of a tool that
 
 ## Commenting
-What and why, not how
+Comments are a tricky area to get right, as we have found that comments often
+expire quickly and, in absence of a way to validate them, remain incorrect for
+long periods of time. That is not to say, however, that we eschew comments
+entirely. Instead, we make keeping comments up to date an integral part of our
+programming practice, while also limiting the types of comments that we allow.
+
+When we write comments, we try to follow one general guideline. A comment should
+explain _what_ and _why_, without mentioning _how_. The _how_ should be
+self-explanatory from reading the code, and if you find that it is not, that is
+a sign that the code in question needs refactoring.
+
+Code should be written in such a way that it guides you over what it does, and
+comments should not be used as a crutch for badly-designed code.
 
 ### Documentation Comments
+One of the primary forms of comment that we allow across the Luna codebases is
+the doc comment. These are intended to be consumed by users of the API, and use
+the standard Haddock syntax. Doc comments should:
+
+- Provide a short one-line explanation of the object being documented.
+- Provide a longer description of the object, including examples where relevant.
+- Explain the arguments to a function where relevant.
+
+They should not reference internal implementation details, or be used to explain
+choices made in the function's implementation. See [Source Notes](#source-notes)
+below for how to indicate that kind of information.
 
 ### Source Notes
-Sometimes an exception to the 'not how' rule.
+Source Notes is a mechanism for moving detailed design information about a piece
+of code out of the code itself. In doing so, it retains the key information
+about the design while not impeding the flow of the code.
+
+Source notes are detailed comments that, like all comments, explain both the
+_what_ and the _why_ of the code being described. In very rare cases, it may
+include some _how_, but only to refer to why a particular method was chosen to
+achieve the goals in question.
+
+A source note comment is broken into two parts:
+
+1. **Referrer:** This is a small comment left at the point where the explanation
+   is relevant. It takes the following form: `-- Note [Note Name]`, where
+   `Note Name` is a unique identifier across the codebase. These names should be
+   descriptive, and make sure you search for it before using it, in case it is
+   already in use.
+2. **Source Note:** This is the comment itself, which is a large block comment
+   placed after the first function in which it is referred to in the module. It
+   uses the haskell block-comment syntax `{- ... -}`, and the first line names
+   the note using the same referrer as above: `{- Note [Note Name]`. The name(s)
+   in the note are underlined using a string of the `~` (tilde) character.
+
+A source note may contain sections within it where necessary. These are titled
+using the following syntax: `== Note [Note Name (Section Name)]`, and can be
+referred to from a referrer much as the main source note can be.
+
+Sometimes it is necessary to reference a source note in another module, but this
+should never be done in-line. Instead, a piece of code should reference a source
+note in the same module that references the other note while providing
+additional context.
+
+An example, taken from the GHC codebase, can be seen below.
+
+```hs
+prepareRhs :: SimplEnv -> OutExpr -> SimplM (SimplEnv, OutExpr)
+-- Adds new floats to the env iff that allows us to return a good RHS
+prepareRhs env (Cast rhs co)    -- Note [Float Coercions]
+  | (ty1, _ty2) <- coercionKind co      -- Do *not* do this if rhs is unlifted
+  , not (isUnLiftedType ty1)            -- see Note [Float Coercions (Unlifted)]
+  = do  { (env', rhs') <- makeTrivial env rhs
+        ; return (env', Cast rhs' co) }
+
+        ...more equations for prepareRhs....
+
+{- Note [Float Coercions]
+~~~~~~~~~~~~~~~~~~~~~~~~~
+When we find the binding
+        x = e `cast` co
+we'd like to transform it to
+        x' = e
+        x = x `cast` co         -- A trivial binding
+There's a chance that e will be a constructor application or function, or
+something like that, so moving the coercion to the usage site may well cancel
+the coercions and lead to further optimisation.
+        ...more stuff about coercion floating...
+
+== Note [Float Coercions (Unlifted)]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        ...explanations of floating for unlifted types...
+-}
+```
+
+A source note like this is useful whenever you have design decisions to explain,
+but can also be used for:
+
+- **Formulae and Algorithms:** If your code makes use of a mathematical formula,
+  or algorithm, it should note where the design element came from, preferably
+  with a link.
+- **Safety:** Sometimes it is necessary to use an unsafe API in a context where
+  it is trivially made safe. You should always use a source note to explain why
+  its usage is safe in this context.
+
+### TODO Comments
+We follow a simple convention for `TODO` comments in our codebases:
+
+- The line starts with `TODO` or `FIXME`.
+- It is then followed by the author's initials `[ARA]`, or for multiple people
+  `[ARA, WD]`, in square brackets.
+- It is then followed by an explanation of what needs to be done.
+
+For example:
+
+```hs
+-- TODO [ARA] This is a bit of a kludge. Instead of X it should to Y, accounting
+   for the fact that Z.
+```
 
 ### Other Comment Usage
+There are, of course, a few other situations where commenting is very useful:
+
+- **Commenting Out:** You may comment out code while developing it, but if you
+  commit any commented out code, it should be accompanied by an explanation of
+  why said code can't just be deleted.
+- **Bugs:** You can use comments to indicate bugs in our code, as well as
+  third-party bugs. In both cases, the comment should link to the issue tracker
+  where the bug has been reported.
 
 ## Program Design
 
@@ -169,8 +343,8 @@ This extension is particularly useful in the context of
 ### Disallowed Extensions
 If a language extension hasn't been listed in the above sections, then it is
 considered to be disallowed throughout the Luna codebases. If you have a good
-reason to want to use one of these disallowed extensions, please talk to Ara to
-discuss its usage.
+reason to want to use one of these disallowed extensions, please talk to Ara or
+Wojciech to discuss its usage.
 
 
 
