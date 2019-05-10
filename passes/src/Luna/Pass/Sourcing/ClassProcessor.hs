@@ -241,7 +241,7 @@ flattenApps r = Layer.read @IR.Model r >>= \case
     Uni.Grouped g -> flattenApps =<< IR.source g
     Uni.App f a -> do
         (fun, args) <- flattenApps =<< IR.source f
-        arg         <- mkFieldTp   =<< IR.source a
+        arg         <- IR.source a
         pure (fun, arg : args)
     _ -> pure (r, [])
 
@@ -257,8 +257,11 @@ mkFieldTp root = Layer.read @IR.Model root >>= \case
                 IR.cons' n processed
             Uni.Var "->" -> do
                 case args of
-                    [a1, a2] -> IR.lam' a1 a2
-                    _        -> pure root
+                    [a1, a2] -> do
+                        a1Field <- mkFieldTp a1
+                        a2Field <- mkFieldTp a2
+                        IR.lam' a1Field a2Field
+                    _ -> pure root
             _ -> pure root
 
 processFieldTp :: IR.SomeTerm -> TC.Pass ClassProcessor IR.SomeTerm
