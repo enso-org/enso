@@ -1179,12 +1179,21 @@ codebase.
 | **Name** | [`BlockArguments`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-BlockArguments) |
 | **Flag** | `-XBlockArguments`                                                                                                             |
 
+Block arguments allow expressions such as `do`, `\`, `if`, `case`, and `let`,
+to be used as both arguments to operators and to functions. This can often make
+code more readable than it otherwise would be.
+
 #### GADTs
 
 |          |                                                                                                              |
 |:---------|:-------------------------------------------------------------------------------------------------------------|
 | **Name** | [`GADTs`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-GADTs) |
 | **Flag** | `-XGADTs`                                                                                                    |
+
+This enables Generalised Algebraic Data Types, which expand upon normal data
+definitions to allow both contexts for constructors and richer return types.
+When this extension is enabled, there is a new style of data declaration
+available for declaring GADTs.
 
 #### HexFloatLiterals
 
@@ -1193,12 +1202,19 @@ codebase.
 | **Name** | [`HexFloatLiterals`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-HexFloatLiterals) |
 | **Flag** | `-XHexFloatLiterals`                                                                                                               |
 
+Enables the ability to specify floating point literals using hexadecimal to
+ensure that no rounding or truncation takes place.
+
 #### MagicHash
 
 |          |                                                                                                                      |
 |:---------|:---------------------------------------------------------------------------------------------------------------------|
 | **Name** | [`MagicHash`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-MagicHash) |
 | **Flag** | `-XMagicHash`                                                                                                        |
+
+Allows the use of `#` as a postfix modifier to identifiers. This allows the
+programmer to refer to the names of many of GHC's internal unboxed types for use
+in surface Haskell.
 
 #### NumericUnderscores
 
@@ -1207,12 +1223,23 @@ codebase.
 | **Name** | [`NumericUnderscores`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-NumericUnderscores) |
 | **Flag** | `-XNumericUnderscores`                                                                                                                 |
 
+This extension allows breaking up of long numeric literals using underscores
+(e.g `1_000_000_000`), which can often aid readability.
+
 #### PolyKinds
 
 |          |                                                                                                                      |
 |:---------|:---------------------------------------------------------------------------------------------------------------------|
 | **Name** | [`PolyKinds`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-PolyKinds) |
 | **Flag** | `-XPolyKinds`                                                                                                        |
+
+This extension enables users to access the full power of GHC's kind system, and
+allows for programming with kinds as well as types and values. It expands the
+scope of kind inference to bring additional power, but is sometimes unable to
+infer types at the value level as a result.
+
+You should only enable `-XPolyKinds` in contexts where you need the power that
+it brings.
 
 #### Quantified Constraints
 
@@ -1221,12 +1248,20 @@ codebase.
 | **Name** | [`QuantifiedConstraints`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-QuantifiedConstraints) |
 | **Flag** | `-XQuantifiedConstraints`                                                                                                                    |
 
+Quantified constraints bring additional expressiveness to the constraint
+language used in contexts in GHC Haskell. In essence, it allows for contexts to
+contain nested contexts, and hence for users to express more complex constraints
+than they would otherwise be able to.
+
 #### RoleAnnotations
 
 |          |                                                                                                                                  |
 |:---------|:---------------------------------------------------------------------------------------------------------------------------------|
 | **Name** | [`RoleAnnotations`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-RoleAnnotations) |
 | **Flag** | `-XRoleAnnotations`                                                                                                              |
+
+Role annotations allow programmers to constrain the type inference process by
+specifying the roles of the class and type parameters that they declare.
 
 #### UnboxedSums
 
@@ -1235,12 +1270,20 @@ codebase.
 | **Name** | [`UnboxedSums`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-UnboxedSums) |
 | **Flag** | `-XUnboxedSums`                                                                                                          |
 
+Enables the syntax for writing anonymous, unboxed sum types. These can be very
+useful for writing performance critical code, as they can be used as a standard
+anonymous sum type, including in pattern matching and at the type level.
+
 #### UnboxedTuples
 
 |          |                                                                                                                              |
 |:---------|:-----------------------------------------------------------------------------------------------------------------------------|
 | **Name** | [`UnboxedTuples`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-UnboxedTuples) |
 | **Flag** | `-XUnboxedTuples`                                                                                                            |
+
+This extension enables the syntax and use of unboxed tuples. This can be thought
+of as a dual to the above `-XunboxedSums` as it allows for the declaration and
+manipulation of unboxed product types.
 
 ### Allowed With Care
 If you make use of any of these extensions in your code, you should accompany
@@ -1253,12 +1296,11 @@ their usage by a source note that explains why they are used.
 | **Name** | [`CApiFFI`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-CApiFFI) |
 | **Flag** | `-XCApiFFI`                                                                                                      |
 
-#### ConstrainedClassMethods
-
-|          |                                                                                                                                                  |
-|:---------|:-------------------------------------------------------------------------------------------------------------------------------------------------|
-| **Name** | [`ConstrainedClassMethods`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-ConstrainedClassMethods) |
-| **Flag** | `-XConstrainedClassMethods`                                                                                                                      |
+Enables the `capi` calling convention for foreign function declarations. This
+should only be used when you need to call a foreign function using the C-level
+API, rather than across the platform's ABI. This enables the programmer to make
+use of preprocessor macros and the like, as the call is resolved as if it was
+against the C language.
 
 #### CPP
 
@@ -1267,19 +1309,10 @@ their usage by a source note that explains why they are used.
 | **Name** | [`CPP`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-CPP) |
 | **Flag** | `-XCPP`                                                                                                  |
 
-#### DisambiguateRecordFields
-
-|          |                                                                                                                                                    |
-|:---------|:---------------------------------------------------------------------------------------------------------------------------------------------------|
-| **Name** | [`DisambiguateRecordFields`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-DisambiguateRecordFields) |
-| **Flag** | `-XDisambiguateRecordFields`                                                                                                                       |
-
-#### ImplicitParams
-
-|          |                                                                                                                                |
-|:---------|:-------------------------------------------------------------------------------------------------------------------------------|
-| **Name** | [`ImplicitParams`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-ImplicitParams) |
-| **Flag** | `-XImplicitParams`                                                                                                             |
+Enables the C preprocessor. We strongly discourage use of the preprocessor, but
+it is sometimes unavoidable when you need to do purely string-based
+preprocessing of a Haskell source file. It should only be used if you have _no_
+_other_ solution to your problem.
 
 #### PostfixOperators
 
@@ -1288,12 +1321,10 @@ their usage by a source note that explains why they are used.
 | **Name** | [`PostfixOperators`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-PostfixOperators) |
 | **Flag** | `-XPostfixOperators`                                                                                                               |
 
-#### RecursiveDo
-
-|          |                                                                                                                          |
-|:---------|:-------------------------------------------------------------------------------------------------------------------------|
-| **Name** | [`RecursiveDo`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-RecursiveDo) |
-| **Flag** | `-XRecursiveDo`                                                                                                          |
+Enables the definition of left-sections for postfix operators. Please take care
+if you enable this that it does not lead to unclear code. You should not export
+a postfix operator from a module, as we do not condone enabling this throughout
+the entire codebase.
 
 #### StaticPointers
 
@@ -1302,12 +1333,10 @@ their usage by a source note that explains why they are used.
 | **Name** | [`StaticPointers`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-StaticPointers) |
 | **Flag** | `-XStaticPointers`                                                                                                             |
 
-#### TypeInType
-
-|          |                                                                                                                        |
-|:---------|:-----------------------------------------------------------------------------------------------------------------------|
-| **Name** | [`TypeInType`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-TypeInType) |
-| **Flag** | `-XTypeInType`                                                                                                         |
+Allows static resolution of a limited subset of expressions to a value at
+compile time. This allows for some precomputation of values during compilation
+for later lookup at runtime. While this can be useful for some low-level code,
+much care must be taken when it is used.
 
 #### UndecidableInstances
 
@@ -1316,12 +1345,23 @@ their usage by a source note that explains why they are used.
 | **Name** | [`UndecidableInstances`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-UndecidableInstances) |
 | **Flag** | `-XUndecidableInstances`                                                                                                                   |
 
+This extension permits the definition of typeclass instances that could
+potentially lead to non-termination of the type-checker. This is sometimes
+necessary to define the instance you want, but care must be taken to ensure that
+you only enable this extension when you are _sure_ that your instances are
+terminating.
+
 #### UndecidableSuperclasses
 
 |          |                                                                                                                                                  |
 |:---------|:-------------------------------------------------------------------------------------------------------------------------------------------------|
 | **Name** | [`UndecidableSuperclasses`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-UndecidableSuperclasses) |
 | **Flag** | `-XUndecidableSuperclasses`                                                                                                                      |
+
+Permits the definition of superclass constraints which can potentially lead to
+the non-termination of the type-checker. Much like the above, this is sometimes
+necessary but should only be enabled when you are _sure_ that you will not
+cause the typechecker to loop.
 
 ### Disallowed Extensions
 If a language extension hasn't been listed in the above sections, then it is
