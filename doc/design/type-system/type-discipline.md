@@ -1303,6 +1303,17 @@ given name.
 
 8. Re-write and re-section the initial portions of this document.
 
+Points that need to be accounted for in the 'wishlist' design:
+
+- Basic types
+- Constrained types
+- Inference
+- Dependent Types
+- Containment/subtyping
+- Dynamic
+- Exception handling
+- Monadic Contexts
+
 # Steps
 
 1. Wojciech produces examples of program fragments and the types that should be
