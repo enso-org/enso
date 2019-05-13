@@ -1276,8 +1276,6 @@ given name.
 # Unresolved Questions
 <!-- Ara -->
 
-Should we start doing our own inference from scratch?
-
 1. How to integrate row polymorphism with the inference story?
 
 2. How to do dependent types?
@@ -1303,6 +1301,8 @@ Should we start doing our own inference from scratch?
 7. `:` vs `<:` in the presence of inductive types and open rows. Think about
    covariance and contravariance of polymorphic type variables.
 
+8. Re-write and re-section the initial portions of this document.
+
 # Steps
 
 1. Wojciech produces examples of program fragments and the types that should be
@@ -1314,6 +1314,9 @@ Should we start doing our own inference from scratch?
 4. Formalise the necessary parts thereof.
 5. Implement based upon this design + formalisation.
 6. Formalise the remaining parts of the system.
+
+By the end of working day on the 23rd of May, WD and AA need to have a
+comprehensive mutual understanding of what the type system is going to be.
 
 # Goals for the Type System
 In our design for Luna, we firmly believe that the type system should be able to
