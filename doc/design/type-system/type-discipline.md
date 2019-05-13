@@ -1150,7 +1150,7 @@ explicitly:
     higher-rank types, but with no support for impredicative instantiation. Has
     some additional complexity through use of subtyping relationships. This is
     fully decidable, and subsumes standard Damas-Milner style inference.
-  + Flexible Types/HML: Provides a translation from MLF to System-F, which may 
+  + Flexible Types/HML: Provides a translation from MLF to System-F, which may
     be useful during translation to GHC Core. Requires annotations only on
     polymorphic function parameters (e.g. `fn f = (f 1, f True)` would require
     annotation of `f :: forall a . a -> a`). However, in the context of this
@@ -1282,13 +1282,13 @@ Should we start doing our own inference from scratch?
 
 2. How to do dependent types?
 
-3. User-facing Complexity – what concepts are we ok to introduce / trade off 
+3. User-facing Complexity – what concepts are we ok to introduce / trade off
    with inference power
 
 4. Compiler complexity – how complex a codebase are we ok maintaining?
 
 5. Interfaces and integration into the language:
-    - How are they represented? 
+    - How are they represented?
     - Do we want a separate keyword for their definition?
 
     ```
@@ -1300,27 +1300,20 @@ Should we start doing our own inference from scratch?
 6. Auto-injectivity for Generalised inductive types (GADTS)? Are our type
    constructors _matchable_ (injective and generative)?
 
-7. `:` vs `<:` in the presence of inductive types and open rows. Think about 
-   covariance and contravariance. 
-
-`f : (True -> a) | (1 -> b)`
-
-The key to it all is covariance and contravariance of polymorphic type 
-variables.
+7. `:` vs `<:` in the presence of inductive types and open rows. Think about
+   covariance and contravariance of polymorphic type variables.
 
 # Steps
 
-1. Answer the remaining questions:
-    - Provide a comparison of programs in HML and MLF, answering the following
-      questions:
-      1. What can be inferred (or otherwise) with each system?
-      2. What additional concepts in types (+ proposed syntax), do these systems
-         entail?
-      3. In what cases are the concepts described in 2. exposed to the users?
-2. Write down a high-level design for the system.
-3. Formalise the important parts thereof.
-4. Implementation
-5. Formalise the remaining portions of the system.
+1. Wojciech produces examples of program fragments and the types that should be
+   inferred based on the expressions.
+2. Based on these fragments, try and synthesis a theoretical approach to both
+   inference and type-checking based upon this.
+3. Write down a high-level design based on this theory, stating the properties
+   of the system that we want.
+4. Formalise the necessary parts thereof.
+5. Implement based upon this design + formalisation.
+6. Formalise the remaining parts of the system.
 
 # Goals for the Type System
 In our design for Luna, we firmly believe that the type system should be able to

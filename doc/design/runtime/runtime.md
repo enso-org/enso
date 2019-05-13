@@ -223,7 +223,7 @@ of the same architectural component (e.g. the JIT layers).
   longer be associated with explicit metadata in the source.
 - An analysis of how to handle the necessary callbacks to this layer
 - A design for handling metadata internally while keeping it at the end of the
-  file so as not to interfere with code. 
+  file so as not to interfere with code.
 -->
 
 ### 3 - The Compilation Layer and Type-Checker
@@ -421,6 +421,8 @@ multiple (if not all) of the above layers.
   4. The trace is optimised, including CSE, dead-code elimination, escape
      analysis, heavy inlining and constant folding.
   5. The compiled trace is executed until a guard fails, forcing deoptimisation.
+= A description of how this tracing functionality can be used to provide useful
+  compiler-wide logging.
 -->
 
 ### 3 - Concurrency
