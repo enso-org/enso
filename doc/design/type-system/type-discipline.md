@@ -44,8 +44,7 @@ modules, classes and interfaces.
 - [Principles for Luna's Type System](#principles-for-lunas-type-system)
 - [Structural Type Shorthand](#structural-type-shorthand)
 - [Interfaces](#interfaces)
-- [Desugaring Types to Rows](#desugaring-types-to-rows)
-- [Testing the Type System](#testing-the-type-system)
+  - [Interface Generality](#interface-generality)
 - [Unresolved Questions](#unresolved-questions)
 - [Steps](#steps)
 - [Goals for the Type System](#goals-for-the-type-system)
@@ -1267,11 +1266,96 @@ signature acts to constrain the function type further than would be inferred.
 
 # Interfaces
 An interface in Luna is a representation of the (partial) structure of a type
-given name.
+given name. For a type in Luna to conform to an interface, under the hood it is
+one that structurally conforms to the projections and result types provided by
+the interface.
 
-# Desugaring Types to Rows
+There are two possible treatments of interfaces as far as Luna's type system is
+concerned:
 
-# Testing the Type System
+1. **Names Only:** An interface is purely a name given to a type that describes
+   a certain structure.
+2. **Global Mapping:** More akin to how they behave in Haskell, an interface
+   acts as a global mapping between a name and a structure (row) that contains
+   the associated behaviour.
+
+While the first option is nice from a purity perspective (as it means that all
+types can technically be treated as interfaces), it has a few major downsides
+from a usability standpoint that mar that design.
+
+- If there is no global mapping of interface names to contents, then a type that
+  implements an interface can never be associated with the name of the
+  interface. This means we could never infer a name for a set of behaviours.
+- We have to guess when to generate constructors for types. The rule of thumb
+  would essentially be that, if a type has at least one data member, we generate
+  a constructor for it. This would preclude associated types and the like in
+  types that are purely interfaces, as they are technically data members.
+
+All this leads to the most sensible design for interfaces in Luna being as
+follows:
+
+- An interface is declared by an independent keyword, that associates its name
+  (and type constructor signature) with its body.
+- Any names defined in the interface body become globally reserved if that
+  interface is in scope.
+- This means that any type that declares those names with the right types will
+  conform to the interface (with or without an explicit `implements`)
+  declaration. If those names are used with the wrong type, this is an error.
+- Under the hood, an interface still defines a row. It is just that the row will
+  never include a constructor. It is still amenable to standard typechecking of
+  rows under the hood.
+
+It should be noted that interfaces are, in a way, somewhat subsumed by the
+structural typing notion. As long as a type conforms to the projections required
+of it, it can be used by a signature requiring those projections. There is no
+nominal typing in Luna, so giving interfaces a name allows us to map backwards
+and forwards as necessary during inference and checking.
+
+However, it is felt that the usability benefits of being able to infer that some
+type `a` needs to be `Iterable` will outweigh the downsides from separating the
+two concerns rather than treating them in a unified fashion.
+
+## Interface Generality
+One of the larger pain-points in Haskell comes from the fact that typeclass
+structure places restrictions on what types can become an instance of the class.
+Luna, instead, works from a foundation of rows. This means that we can trivially
+make use of associated types in interfaces to compute more general signatures.
+
+Consider the following `Iterable` interface, which expresses a map operation in
+a way that is not easy in Haskell, and that is more general than `Functor`.
+
+```
+# The `=` is used here for consistency with unified definitions of the form
+# (name : type = val).
+
+interface Iterable : (a : Type) -> Type =
+    elemType : Type
+    map : (elemType -> elemType) -> a -> a
+
+instance Iterable Text =
+    elemType = Char
+    map = ...
+```
+
+Checking such a type is still able to be done through standard qualified
+typechecking algorithms. There are, however, a few things to keep in mind:
+
+- For a type to conform to an interface, it is sufficient for its implementation
+  of the interface methods to be _callable_ with the signature given in the
+  interface. This means that an implementation can add additional function
+  parameters as long as they are defaulted.
+- Of course, in the case where these function parameters are _used_, the type is
+  no longer conforming with the interface. This is a bit nasty, but unavoidable.
+
+Even nicer is the fact that such an approach can be combined with partial data
+(restricted instantiation) to allow definition of `Iterable` across sets.
+Consider the following:
+
+```
+instance Iterable (Set a) =
+    elemType = a
+    map = ...
+```
 
 # Unresolved Questions
 <!-- Ara -->
@@ -1284,16 +1368,6 @@ given name.
    with inference power
 
 4. Compiler complexity – how complex a codebase are we ok maintaining?
-
-5. Interfaces and integration into the language:
-    - How are they represented?
-    - Do we want a separate keyword for their definition?
-
-    ```
-    interface Iterable a:
-        elementType : Type
-        fmap : (a.elementType -> a.elementType) -> a
-    ```
 
 6. Auto-injectivity for Generalised inductive types (GADTS)? Are our type
    constructors _matchable_ (injective and generative)?
