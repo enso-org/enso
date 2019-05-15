@@ -15,26 +15,17 @@ Luna, with its unique category-based type system, is in a position to provide
 the most flexible implementation of modules yet, unifying the concepts of
 modules, classes and interfaces.
 
-<!-- MarkdownTOC levels="1,2,3" autolink="true" -->
+<!-- MarkdownTOC levels="1,2" autolink="true" -->
 
 - [Motivation](#motivation)
   - [\(Brief\) Type-System Primer](#brief-type-system-primer)
   - [A Note on Syntax](#a-note-on-syntax)
 - [Reference-Level Explanation](#reference-level-explanation)
   - [Declaring Types](#declaring-types)
-    - [Why a New Keyword?](#why-a-new-keyword)
   - [Unifying Types, Modules and Interfaces](#unifying-types-modules-and-interfaces)
-    - [Types as Generics](#types-as-generics)
-    - [Types As Modules](#types-as-modules)
-    - [Types As Interfaces](#types-as-interfaces)
-    - [Constructor Naming](#constructor-naming)
   - [Importing Types](#importing-types)
-    - [Scoping Rules and Code Modularity](#scoping-rules-and-code-modularity)
   - [Anonymous Types](#anonymous-types)
-    - [Anonymous Types as Types](#anonymous-types-as-types)
-    - [Anonymous Types as Values](#anonymous-types-as-values)
   - [Constructors and Primitive Typing](#constructors-and-primitive-typing)
-    - [The Reasoning for This](#the-reasoning-for-this)
   - [Nested Types](#nested-types)
   - [Example - Dependent Vector](#example---dependent-vector)
   - [Example - Linked List](#example---linked-list)
@@ -44,7 +35,11 @@ modules, classes and interfaces.
 - [Principles for Luna's Type System](#principles-for-lunas-type-system)
 - [Structural Type Shorthand](#structural-type-shorthand)
 - [Interfaces](#interfaces)
+  - [Interfaces as Names for Structures](#interfaces-as-names-for-structures)
+  - [Interfaces as a Global Mapping](#interfaces-as-a-global-mapping)
   - [Interface Generality](#interface-generality)
+- [Subtyping and User-Facing Type Definitions](#subtyping-and-user-facing-type-definitions)
+- [Row Polymorphism and Inference](#row-polymorphism-and-inference)
 - [Unresolved Questions](#unresolved-questions)
 - [Steps](#steps)
 - [Goals for the Type System](#goals-for-the-type-system)
@@ -1119,7 +1114,7 @@ explicitly:
 - The syntax is as follows:
   + Row Alternation: `|`
   + Row Subtraction: `\`
-  + Row Concatenation: `&`
+  + Row Concatenation: `&` or `,`
 
 - We should be able to infer variants and records, but this behaviour can be
   overridden by explicit signatures.
@@ -1279,41 +1274,126 @@ concerned:
    acts as a global mapping between a name and a structure (row) that contains
    the associated behaviour.
 
-While the first option is nice from a purity perspective (as it means that all
-types can technically be treated as interfaces), it has a few major downsides
-from a usability standpoint that mar that design.
+Both have their upsides and trade-offs, and each of which are explored below.
+Each uses a separate keyword `interface` to define the interface, as this allows
+for us to avoid generation of automatic constructors. In the below sections we
+look at the following example.
 
-- If there is no global mapping of interface names to contents, then a type that
-  implements an interface can never be associated with the name of the
-  interface. This means we could never infer a name for a set of behaviours.
-- We have to guess when to generate constructors for types. The rule of thumb
-  would essentially be that, if a type has at least one data member, we generate
-  a constructor for it. This would preclude associated types and the like in
-  types that are purely interfaces, as they are technically data members.
+```
+interface Iterable : (a : Type) -> Type =
+    ElemType : Type
+    map : (a.ElemType -> a.ElemType) -> a -> a
 
-All this leads to the most sensible design for interfaces in Luna being as
-follows:
+    # A default implemented method
+    <$> : (a.ElemType -> a.ElemType -> a -> a)
+    <$> = a.map
+```
 
-- An interface is declared by an independent keyword, that associates its name
-  (and type constructor signature) with its body.
-- Any names defined in the interface body become globally reserved if that
-  interface is in scope.
-- This means that any type that declares those names with the right types will
-  conform to the interface (with or without an explicit `implements`)
-  declaration. If those names are used with the wrong type, this is an error.
-- Under the hood, an interface still defines a row. It is just that the row will
-  never include a constructor. It is still amenable to standard typechecking of
-  rows under the hood.
+We also use the `instance` keyword to denote a standalone implementation of an
+interface.
 
-It should be noted that interfaces are, in a way, somewhat subsumed by the
-structural typing notion. As long as a type conforms to the projections required
-of it, it can be used by a signature requiring those projections. There is no
-nominal typing in Luna, so giving interfaces a name allows us to map backwards
-and forwards as necessary during inference and checking.
+There are a few elements of the design for interfaces that will hold regardless
+of the choice made below.
 
-However, it is felt that the usability benefits of being able to infer that some
-type `a` needs to be `Iterable` will outweigh the downsides from separating the
-two concerns rather than treating them in a unified fashion.
+- Interfaces are inherently type constructors that generate a row. This means
+  that they can use the standard dependency machinery included in Luna to
+  compute some or all of their types.
+- Interfaces, as type constructors, are inherently multi-parameter should they
+  need to be.
+
+## Interfaces as Names for Structures
+This first option is the most 'pure' with regards to the structural nature of
+the type system. It works as follows:
+
+- The `interface` keyword differs from the `type` keyword only in that it will
+  never generate an automatic type constructor for the type.
+- An interface definition creates a row constructor and associated row that can
+  represent the operations required of a type that conforms to the interface.
+  For example, the above definition would desugar as follows:
+
+  ```
+  Iterable : (a : Type) -> Type =
+      { ElemType : Type
+      , map : (a.ElemType -> a.ElemType) -> a -> a
+      , <$> : (a.ElemType -> a.ElemType) -> a -> a = a.map
+      }
+
+  # The following is equivalent, but longer.
+  Iterable : (a : Type) -> Type
+  Iterable = a -> { ElemType : Type
+                  , map : (a.ElemType -> a.ElemType) -> a -> a
+                  , <$> : (a.ElemType -> a.ElemType) -> a -> a = a.map
+                  }
+  ```
+
+- Any type that conforms to this structure is an implementation of this
+  interface, regardless of an explicit definition.
+
+The primary benefits of choosing such a design are as follows:
+
+- Any type that conforms to the row declared by the interface is counted as an
+  implementation of the interface, regardless of any keyword.
+- We do not have to reserve names in scope, meaning that `mplus` could be
+  represented by a `+`, as could numeric addition.
+- It is very pure from a type-system perspective, with interfaces just being a
+  way to declare a row without a constructor.
+- It is trivial to provide default implementations, as you would for any type
+  definition.
+
+However, it is not all rosy. This design has some downsides with regards to
+usability, particularly around the provision of useful diagnostics to users in
+the form of inferred type signatures and type errors.
+
+- Interface names are only useful as shorthand for programmers, as we can never
+  infer a name based on the structure of a type. They can be used for explicit
+  `implements` declarations to ensure that the methods of the interface are
+  implemented, and they can be used in explicit signatures.
+- As we can never infer interface usage, all inferred signatures will need to
+  represent types in terms of their structure. This means that we can never say
+  that `a` needs to be a `Number` for you to use `+`, and instead we can only
+  say `a` needs to have a method `+ : a -> a -> a` in our type errors. While
+  this is not inherently a problem, it does limit our ability to give users
+  _named_ concepts to reason about their code with.
+
+## Interfaces as a Global Mapping
+The alternative design is to use the `interface` keyword to provide the compiler
+(and hence the users) with a global mapping from method names to the names of
+the interfaces. This would work as follows:
+
+- The `interface` keyword generates a global mapping from the interface name to
+  the names of the interface methods and properties. For the above interface, it
+  would be `Iterable <-> (ElemType, map, <$>)`.
+- This definition creates, in addition to the global mapping, a type constructor
+  that produces a row, as for above. The desugaring is identical to the above.
+- Types may still implicitly conform to interfaces.
+
+The primary benefits of this design are as follows:
+
+- Given that there is a global mapping of interface names to method and
+  property names, whenever we see the usage of such a method we can infer that
+  the type(s) in question implement the interface.
+- We can use the interface name to method mapping to infer signatures that
+  explicitly name the interface. This gives programmers the ability to reason
+  about concepts (or structures) with names.
+
+That is not to say that this approach, too, is without its downsides. In fact,
+where the first approach has benefits, this approach tends to miss out on them:
+
+- A name used in an interface is globally reserved, meaning that it can't be
+  used for anything else. This means that numeric addition could be `+`, but
+  monoidal concatenation would have to be named differently (e.g. `<>`).
+- It is far more complex from the perspective of the type system. While, in this
+  case, interfaces do generate rows, they also generate significant amounts of
+  extra baggage to support this global mapping.
+
+A variant on this approach would include the types of the methods and properties
+in the mapping. This allows names to no longer need to be globally reserved, but
+often means that inference still won't be able to match a name (e.g. if we
+define `foo = a -> b -> a + b`, then we still can't guarantee that it belongs to
+the `Num` interface, for example).
+
+As a result, if we want to include types in the mapping, the recommendation is
+for the first option, not this variant of the second.
 
 ## Interface Generality
 One of the larger pain-points in Haskell comes from the fact that typeclass
@@ -1357,8 +1437,36 @@ instance Iterable (Set a) =
     map = ...
 ```
 
+# Subtyping and User-Facing Type Definitions
+7. `:` vs `<:` in the presence of inductive types and open rows. Think about
+   covariance and contravariance of polymorphic type variables. Does this always
+   mean the same thing.
+
+   a ~ b = a <: b && b <: a
+
+   a <: B = a : A && A < B
+
+  Good ol' variance here.
+
+  When you have a variable `a : Foo`, then `a` must take any value that foo can
+  and no more.
+
+  When you have a function parameter `(a : Foo)`, then `a` must have all the
+  behaviour of `Foo`, but may have more.
+
+# Row Polymorphism and Inference
+The foundation of Luna's usability is based on a _structural_ type system. This
+means that there is no concept of nominal equality. In Luna types are equal if
+they have the same structure.
+
 # Unresolved Questions
 <!-- Ara -->
+
+Look at Scala's trait system -> defaulted methods and usability
+  - Would like to be able to say + for monoid and number
+
+Should users refine types or make more general types
+Users should be able to write partially incorrect type signatures.
 
 1. How to integrate row polymorphism with the inference story?
 
@@ -1371,11 +1479,6 @@ instance Iterable (Set a) =
 
 6. Auto-injectivity for Generalised inductive types (GADTS)? Are our type
    constructors _matchable_ (injective and generative)?
-
-7. `:` vs `<:` in the presence of inductive types and open rows. Think about
-   covariance and contravariance of polymorphic type variables.
-
-8. Re-write and re-section the initial portions of this document.
 
 Points that need to be accounted for in the 'wishlist' design:
 
