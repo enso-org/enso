@@ -1438,44 +1438,82 @@ instance Iterable (Set a) =
 ```
 
 # Subtyping and User-Facing Type Definitions
-7. `:` vs `<:` in the presence of inductive types and open rows. Think about
-   covariance and contravariance of polymorphic type variables. Does this always
-   mean the same thing.
+As complex as the internal type language of Luna may need to be, we ideally want
+to only present a limited set of concepts to the user for use in writing their
+own types. Internally, we have the following relations between types:
 
-   a ~ b = a <: b && b <: a
+- `:` - This gives a type to an expression (this expression can be a name, a
+  program fragment, or any valid expression). A program expression `a : b` means
+  that the expression `a` has the type given by `b`.
+- `~` - This relation asserts structural equality between types. If `a ~ b`,
+  then the two types have exactly the same structure. This can be represented by
+  the containment relation: `a ~ b = a <: b && b <: a`.
+- `<:` - This relation asserts that one type is wholly contained in another, and
+  can be thought of as a form of structural subtyping. If `a <: b`, then the
+  type `a` is structurally equal to or a subtype of `b`. In essence, this means
 
-   a <: B = a : A && A < B
+Please note that this may initially be a little confusing. What, then, does it
+mean to have an expression like `(name : type = value)`. Simply enough, this
+universal definition format says that 'the identifier given by `name` has type 
+given by `type`, and has value given by `value`.' This works globally, including
+for functions, and for type definitions.
 
-  Good ol' variance here.
+```
+type MyExample : (a : Type) -> (b : Type) -> Type =
+    # The body of the type goes here, as it is the VALUE of the type constructor
+    # In a truly dependently typed language, a type constructor is just a 
+    # function on types, and the `type` keyword isn't even needed other than to
+    # indicate automatic constructor generation.
+```
 
-  When you have a variable `a : Foo`, then `a` must take any value that foo can
-  and no more.
+Externally, however, it is a different story. We want users to not have to think
+at such depth about their types to express what they want. This means that we do
+not intend to require users to write expressions involving structural equality
+or containment (though we may still expose these relations to allow simpler
+programming with types). 
 
-  When you have a function parameter `(a : Foo)`, then `a` must have all the
-  behaviour of `Foo`, but may have more.
+- In reality, we want users to really only make use of `:` when defining their
+  types. 
+- This means that we need to be very clear about what it means, especially in
+  the face of recursive types. 
+
+Let's examine the major cases:
+
+1. **Polymorphic Function Arguments:**
+2. **Partial Data Types:** 
+3. **Qualified Types in Functions:**
+4. **Variable Definitions:**
+
+Is variance always valid in the ways we need?
 
 # Row Polymorphism and Inference
 The foundation of Luna's usability is based on a _structural_ type system. This
 means that there is no concept of nominal equality. In Luna types are equal if
-they have the same structure.
+they have the same structure. Under such a system, the only reason that users
+should _need_ to write types is to provide a type that the inference engine
+cannot infer (though this may be more general, more specific, or for a case that
+cannot be inferred).
+
+From a philosophical standpoint, we want Luna's type system to infer sensible
+types for 99% of expressions that users write, and allow the users to _refine_
+these inferred types. This refinement process can involve:
+
+- Giving a more general (more permissive) type to an expression.
+- Constrain an expression by giving a less permissive type to it.
+- Add additional safety and checking by introducing more complex type-system
+  usage (e.g. dependency, partial data, etc).
+
+It should be noted that, in this sense, Luna's structural type system has no
+concept of a 'principle' (or most-general) type for an expression, at least not
+in the sense of traditional System-F.
 
 # Unresolved Questions
-<!-- Ara -->
-
-Look at Scala's trait system -> defaulted methods and usability
-  - Would like to be able to say + for monoid and number
-
-Should users refine types or make more general types
-Users should be able to write partially incorrect type signatures.
 
 1. How to integrate row polymorphism with the inference story?
 
 2. How to do dependent types?
 
-3. User-facing Complexity – what concepts are we ok to introduce / trade off
-   with inference power
-
-4. Compiler complexity – how complex a codebase are we ok maintaining?
+5. Representing ADTs as rows (variants and records).
 
 6. Auto-injectivity for Generalised inductive types (GADTS)? Are our type
    constructors _matchable_ (injective and generative)?
@@ -1490,6 +1528,7 @@ Points that need to be accounted for in the 'wishlist' design:
 - Dynamic
 - Exception handling
 - Monadic Contexts
+- Complexity tradeoff between execution and implementation
 
 # Steps
 
