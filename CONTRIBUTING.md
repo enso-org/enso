@@ -4,6 +4,7 @@ through community involvement can Luna be the best it can be! There are a whole
 host of ways to contribute, and every single one is appreciated. The major
 sections of this document are linked below:
 
+- [Issues](#issues)
 - [Feature Enhancements](#feature-enhancements)
 - [Bug Reports](#bug-reports)
 - [Hacking on Luna](#hacking-on-luna)
@@ -14,6 +15,14 @@ sections of this document are linked below:
 
 All contributions to Luna should be in keeping with our
 [Code of Conduct](https://github.com/luna/luna/blob/CODE_OF_CONDUCT.md).
+
+## Issues
+
+If you are looking for somewhere to start, check out the `Help wanted` tags in repositories:
+[Luna](https://github.com/luna/luna/labels/Status%3A%20Help%20Wanted)
+[Luna Studio](https://github.com/luna/luna-studio/labels/Status%3A%20Help%20Wanted)
+[Luna Manager](https://github.com/luna/luna-manager/labels/Status%3A%20Help%20Wanted)
+[Luna Dataframes](https://github.com/luna/dataframes/labels/Status%3A%20Help%20Wanted)
 
 ## Feature Enhancements
 If you feel like you have a suggestion for a change to the way that Luna works
