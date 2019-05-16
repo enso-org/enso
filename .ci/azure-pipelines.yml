@@ -8,6 +8,10 @@ trigger:
       - .github/*
       - README.md
       - doc/*
+      - CODE_OF_CONDUCT.md
+      - CONTRIBUTING.md
+      - LICENSE
+
 
 pr: none
 
