@@ -18,11 +18,12 @@ All contributions to Luna should be in keeping with our
 
 ## Issues
 
-If you are looking for somewhere to start, check out the `Help wanted` tags in repositories:
-[Luna](https://github.com/luna/luna/labels/Status%3A%20Help%20Wanted)
-[Luna Studio](https://github.com/luna/luna-studio/labels/Status%3A%20Help%20Wanted)
-[Luna Manager](https://github.com/luna/luna-manager/labels/Status%3A%20Help%20Wanted)
-[Luna Dataframes](https://github.com/luna/dataframes/labels/Status%3A%20Help%20Wanted)
+If you are looking for somewhere to start, check out the `Help wanted` tags in
+repositories:
+- [Luna](https://github.com/luna/luna/labels/Status%3A%20Help%20Wanted)
+- [Luna Studio](https://github.com/luna/luna-studio/labels/Status%3A%20Help%20Wanted)
+- [Luna Manager](https://github.com/luna/luna-manager/labels/Status%3A%20Help%20Wanted)
+- [Luna Dataframes](https://github.com/luna/dataframes/labels/Status%3A%20Help%20Wanted)
 
 ## Feature Enhancements
 If you feel like you have a suggestion for a change to the way that Luna works
