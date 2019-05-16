@@ -6,12 +6,12 @@ trigger:
   paths:
     exclude:
       - .github/*
-      - README.md
       - doc/*
+      - .gitignore
       - CODE_OF_CONDUCT.md
       - CONTRIBUTING.md
       - LICENSE
-      - .gitignore
+      - README.md
 
 
 pr: none
