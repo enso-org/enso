@@ -37,6 +37,7 @@ tests:
             - luna-ci
             - luna-datafile
             - path
+            - path-io
             - prologue
             - temporary
 

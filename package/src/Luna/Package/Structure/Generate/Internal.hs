@@ -12,17 +12,18 @@ import qualified Luna.Package.Configuration.License      as License
 import qualified Luna.Package.Configuration.License.Data as License
 import qualified Luna.Package.Configuration.Local        as Local
 import qualified Luna.Package.Structure.Name             as Name
+import qualified Luna.Path                               as Path
 import qualified Path                                    as Path
-import qualified System.Directory                        as Directory
-import qualified System.FilePath                         as FilePath
+import qualified Path.IO                                 as Path
 import qualified System.IO                               as IO
 import qualified System.IO.Error                         as Exception
 
 import Luna.Datafile                      (DatafileException)
 import Control.Exception                  (IOException)
 import Luna.Package.Configuration.License (License)
-import System.FilePath                    (FilePath, (</>))
 import System.IO                          (hPutStrLn, stderr)
+
+import Path (Path, Abs, Rel, Dir, (</>), (-<.>))
 
 
 
@@ -33,13 +34,13 @@ import System.IO                          (hPutStrLn, stderr)
 -- === Definition === --
 
 data GeneratorError
-    = InvalidPackageLocation FilePath
+    = InvalidPackageLocation (Path Abs Dir)
     | InvalidPackageName Text
     | SystemError IOException
     deriving (Eq, Generic, Show)
 
 instance Exception GeneratorError where
-    displayException (InvalidPackageLocation fp) = fp
+    displayException (InvalidPackageLocation fp) = Path.fromAbsDir fp
         <> " is an invalid location for a package."
     displayException (InvalidPackageName name) = convert name
         <> " is not a valid package name."
@@ -48,13 +49,13 @@ instance Exception GeneratorError where
 
 -- === API === --
 
-recovery :: FilePath -> Exception.IOException
-         -> IO (Either GeneratorError FilePath)
-recovery canonicalName ex = do
-    pkgDirExists <- Directory.doesDirectoryExist canonicalName
+recovery :: Path Abs Dir -> Exception.IOException
+         -> IO (Either GeneratorError (Path Abs Dir))
+recovery canonicalPath ex = do
+    pkgDirExists <- Path.doesDirExist canonicalPath
 
     unless_ (Exception.ioeGetErrorType ex == Exception.AlreadyExists)
-        . when pkgDirExists $ Directory.removeDirectoryRecursive canonicalName
+        . when pkgDirExists $ Path.removeDirRecur canonicalPath
 
     pure . Left $ SystemError ex
 
@@ -72,88 +73,93 @@ instance StyledShow PrettyShowStyle GeneratorError where
 
 -- === API === --
 
-generateConfigDir :: FilePath -> Maybe License -> Global.Config -> IO ()
-generateConfigDir pkgPath mLicense globalCfg = do
-    let configPath = pkgPath </> Path.fromRelDir Name.configDirectory
+
+generateConfigDir :: Path Abs Dir -> Maybe License -> Global.Config -> IO ()
+generateConfigDir pkgAbsPath mLicense globalCfg = do
+    let configPath = pkgAbsPath </> Name.configDirectory
         authorName = globalCfg ^. Global.user . Global.name
         authorMail = globalCfg ^. Global.user . Global.email
         maintainer = if Text.null authorMail then "" else
             authorName <> " <" <> authorMail <> ">"
-        pkgName    = unsafeLast $ FilePath.splitDirectories pkgPath
+        pkgPath    = unsafeLast $ Path.splitDirectories pkgAbsPath
         -- By this point it is guaranteed to have a valid name
 
-    Directory.createDirectory configPath
-    IO.appendFile (configPath </> pkgName <> Name.packageExt) ""
-    IO.appendFile (configPath </> Name.depsFile) ""
-    IO.appendFile (configPath </> Name.depsHistFile) ""
+    Path.createDir configPath
 
-    packageConfig mLicense pkgName authorName maintainer configPath
+    packageRelFile <- (Path.coerceToFile pkgPath) -<.> Name.packageExt
+    let packageAbsFile = configPath </> packageRelFile
+    IO.appendFile (Path.fromAbsFile packageAbsFile) ""
 
-packageConfig :: Maybe License -> FilePath -> Text -> Text -> FilePath -> IO ()
+    IO.appendFile (Path.fromAbsFile (configPath </> Name.depsFile)) ""
+    IO.appendFile (Path.fromAbsFile (configPath </> Name.depsHistFile)) ""
+
+    packageConfig mLicense pkgPath authorName maintainer configPath
+
+packageConfig :: Maybe License -> Path Rel Dir -> Text -> Text -> Path Abs Dir -> IO ()
 packageConfig mLicense pkgName authorName maintainer path = do
     let initConfig = (def @Local.Config)
             & Local.license     .~ (fromJust License.None mLicense)
-            & Local.projectName .~ (convert pkgName)
+            & Local.projectName .~ (convert $ Path.fromRelDir pkgName)
             & Local.author      .~ authorName
             & Local.maintainer  .~ maintainer
 
     -- Write the project configuration
-    Yaml.encodeFile (path </> Name.configFile) initConfig
+    Yaml.encodeFile (Path.fromAbsFile (path </> Name.configFile)) initConfig
 
-generateDistributionDir :: FilePath -> IO ()
+generateDistributionDir :: Path Abs Dir -> IO ()
 generateDistributionDir pkgPath = do
     let distPath = pkgPath </> Name.distDir
 
-    Directory.createDirectory distPath
-    Directory.createDirectory $ distPath </> Name.lirDir
+    Path.createDir distPath
+    Path.createDir $ distPath </> Name.lirDir
 
-generateSourceDir :: FilePath -> IO ()
+generateSourceDir :: Path Abs Dir -> IO ()
 generateSourceDir pkgPath = do
     let srcPath = pkgPath </> Name.srcDir
 
-    Directory.createDirectory srcPath
-    IO.appendFile (srcPath </> Name.mainFile) [qqStr|
+    liftIO $ Path.createDir srcPath
+    IO.appendFile (Path.fromAbsFile (srcPath </> Name.mainFile)) [qqStr|
 import Std.Base
 
 def main:
     None
 |]
 
-generateTestDir :: FilePath -> IO ()
+generateTestDir :: Path Abs Dir -> IO ()
 generateTestDir pkgPath = do
     let testPath = pkgPath </> Name.testDir
 
-    Directory.createDirectory testPath
-    IO.appendFile (testPath </> Name.mainFile) [qqStr|
+    liftIO $ Path.createDir testPath
+    IO.appendFile (Path.fromAbsFile (testPath </> Name.mainFile)) [qqStr|
 import Std.Base
 
 def main:
     hello = "Hello, world!"
     None
-|]
+ |]
 
-generateReadme :: FilePath -> IO ()
+generateReadme :: Path Abs Dir -> IO ()
 generateReadme pkgPath = do
-    let pkgName    = unsafeLast $ FilePath.splitDirectories pkgPath
+    let pkgName    = unsafeLast $ Path.splitDirectories pkgPath
 
-    IO.appendFile (pkgPath </> Name.readmeFile) $ "# " <> pkgName
+    IO.appendFile (Path.fromAbsFile (pkgPath </> Name.readmeFile)) $ "# " <> (Path.fromRelDir pkgName)
 
-generateGitignore :: FilePath -> IO ()
-generateGitignore pkgPath = IO.appendFile (pkgPath </> Name.gitignoreFile)
+generateGitignore :: Path Abs Dir -> IO ()
+generateGitignore pkgPath = IO.appendFile (Path.fromAbsFile (pkgPath </> Name.gitignoreFile))
     "# Luna Build Artefacts\n"
 
-generateLicense :: FilePath -> Maybe License -> IO ()
+generateLicense :: Path Abs Dir -> Maybe License -> IO ()
 generateLicense pkgPath mLicense = do
     let licensePath = pkgPath </> Name.licenseFile
 
     case mLicense of
         Nothing  -> pure ()
         Just key -> case key of
-            License.Unknown tx -> IO.appendFile licensePath $ convert tx
+            License.Unknown tx -> IO.appendFile (Path.fromAbsFile licensePath) $ convert tx
             License.None       -> pure ()
             _                  -> do
                 licenseText <- MException.catch @DatafileException
                     (\e -> hPutStrLn stderr (displayException e) >> pure "")
                     $ License.getLicenseText key
-                IO.appendFile licensePath licenseText
+                IO.appendFile (Path.fromAbsFile licensePath) licenseText
 

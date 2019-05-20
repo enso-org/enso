@@ -24,6 +24,7 @@ packages:
     - debug
     - passes
     - package
+    - path
     - runtime
     - stdlib
     - shell
@@ -74,3 +75,6 @@ packages:
     - lib/vector-text
     - lib/yaml-utils
 
+extra-deps: [
+    path-io-1.4.2
+]

@@ -16,8 +16,6 @@ library:
         - base
         - bimap
         - containers
-        - directory
-        - filepath
         - githash
         - layered-state
         - lens
@@ -26,12 +24,14 @@ library:
         - luna-exception
         - luna-package
         - luna-passes
+        - luna-path
         - luna-runtime
         - luna-stdlib
         - megaparsec
         - mtl
         - optparse-applicative
         - path
+        - path-io
         - prologue
         - safe-exceptions
         - text

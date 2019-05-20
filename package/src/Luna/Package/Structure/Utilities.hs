@@ -5,11 +5,11 @@ import Prologue
 import qualified Luna.Package.Structure.Name   as Name
 import qualified Luna.Syntax.Text.Lexer.Runner as Lexer
 import qualified Luna.Syntax.Text.Lexer.Symbol as Symbol
+import qualified Luna.Path                     as Path
 import qualified Path                          as Path
-import qualified System.Directory              as Directory
-import qualified System.FilePath               as FilePath
+import qualified Path.IO                       as Path
 
-import System.FilePath (FilePath, (</>))
+import Path      (Path, Abs, Rel, Dir, (</>))
 
 import Luna.Syntax.Text.Lexer.Token as Token
 
@@ -19,22 +19,23 @@ import Luna.Syntax.Text.Lexer.Token as Token
 
 -- === API === --
 
-isValidPkgName :: String -> Bool
-isValidPkgName name = length validTokens == 1
+isValidPkgName :: Path Rel Dir -> Bool
+isValidPkgName path = length validTokens == 1
     where validTokens = catMaybes $ Symbol.matchCons . view Token.element
-                                <$> Lexer.evalDefLexer (convert name)
+                                <$> Lexer.evalDefLexer (convert $ Path.fromRelDir path)
 
-findParentPackageIfInside :: MonadIO m => FilePath -> m (Maybe FilePath)
+findParentPackageIfInside :: MonadIO m => Path Abs Dir -> m (Maybe (Path Abs Dir))
 findParentPackageIfInside path = do
-    let parentPath = FilePath.takeDirectory path
+    let parentPath = Path.parent path
 
-    canonicalPath   <- liftIO . Directory.canonicalizePath
-        $ parentPath </> Path.fromRelDir Name.configDirectory
-    hasPkgConfigDir <- liftIO $ Directory.doesDirectoryExist canonicalPath
+    canonicalPath   <- Path.canonicalizePath
+        $ parentPath </> Name.configDirectory
+    hasPkgConfigDir <- Path.doesDirExist canonicalPath
 
     if hasPkgConfigDir then
         pure $ Just parentPath
-    else if not $ FilePath.isDrive parentPath then
+    else if not $ Path.isDrive parentPath then
         findParentPackageIfInside parentPath
     else pure Nothing
+
 

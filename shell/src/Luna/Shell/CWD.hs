@@ -2,11 +2,10 @@ module Luna.Shell.CWD where
 
 import Prologue
 
-import qualified System.Directory   as Directory
+import Path (Path, Dir, Abs, parseAbsDir)
+import Path.IO (getCurrentDir, canonicalizePath)
+
 import qualified System.Environment as Environment
-
-import System.FilePath (FilePath)
-
 
 
 -----------------------
@@ -22,9 +21,9 @@ appImageEnvVar = "OWD"
 -- === API === --
 -----------------
 
-get :: MonadIO m => m FilePath
+get :: MonadIO m => m (Path Abs Dir)
 get = do
-    cwd <- liftIO . catch (Environment.getEnv appImageEnvVar)
-            $ \(_ :: SomeException) -> liftIO Directory.getCurrentDirectory
-    liftIO $ Directory.canonicalizePath cwd
-
+    cwd <- liftIO . catch (Environment.getEnv appImageEnvVar >>= parseAbsDir)
+            $ \(_ :: SomeException) -> liftIO getCurrentDir
+    path <- liftIO $ canonicalizePath cwd
+    pure path

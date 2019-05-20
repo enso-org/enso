@@ -5,51 +5,56 @@ import Prologue
 import qualified OCI.Data.Name as Name
 import qualified Path          as Path
 
-import Path            (Path, Rel, Dir)
-import System.FilePath (FilePath)
+import Path            (Path, Rel, Dir, File)
 
 -------------------------------------
 -- === Package Component Names === --
 -------------------------------------
 
-distDir :: FilePath
-distDir = "dist"
+distDir :: Path Rel Dir
+distDir = $(Path.mkRelDir "dist")
 
-srcDir :: FilePath
-srcDir = "src"
+srcDir :: Path Rel Dir
+srcDir = $(Path.mkRelDir "src")
 
-testDir :: FilePath
-testDir = "test"
+testDir :: Path Rel Dir
+testDir = $(Path.mkRelDir "test")
 
-configFile :: FilePath
-configFile = "config.yaml"
+configFile :: Path Rel File
+configFile = $(Path.mkRelFile "config.yaml")
 
-depsFile :: FilePath
-depsFile = "deps.yaml"
+depsFile :: Path Rel File
+depsFile = $(Path.mkRelFile "deps.yaml")
 
-depsHistFile :: FilePath
-depsHistFile = "deps-history.yaml"
+depsHistFile :: Path Rel File
+depsHistFile = $(Path.mkRelFile "deps-history.yaml")
 
-lirDir :: FilePath
-lirDir = ".lir"
+lirDir :: Path Rel Dir
+lirDir = $(Path.mkRelDir ".lir")
 
-mainFile :: FilePath
-mainFile = "Main.luna"
+mainFile :: Path Rel File
+mainFile = $(Path.mkRelFile "Main.luna")
 
-licenseFile :: FilePath
-licenseFile = "LICENSE"
+licenseFile :: Path Rel File
+licenseFile = $(Path.mkRelFile "LICENSE")
 
-readmeFile :: FilePath
-readmeFile = "README.md"
+readmeFile :: Path Rel File
+readmeFile = $(Path.mkRelFile "README.md")
 
-gitignoreFile :: FilePath
-gitignoreFile = ".gitignore"
+gitignoreFile :: Path Rel File
+gitignoreFile = $(Path.mkRelFile ".gitignore")
 
 packageExt :: String
-packageExt = ".lunaproject"
+packageExt = "lunaproject"
+
+packageExtWithDot :: String
+packageExtWithDot = ".lunaproject"
 
 lunaFileExt :: String
-lunaFileExt = ".luna"
+lunaFileExt = "luna"
+
+lunaFileExtWithDot :: String
+lunaFileExtWithDot = ".luna"
 
 localLibsPath :: Path Rel Dir
 localLibsPath = $(Path.mkRelDir "local_libs")
