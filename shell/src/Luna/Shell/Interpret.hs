@@ -23,7 +23,7 @@ import qualified Luna.Runtime                        as Runtime
 import qualified Luna.Std                            as Std
 import qualified OCI.Data.Name                       as Name
 import qualified Path                                as Path
-import qualified System.Directory                    as Directory
+import qualified Path.IO                             as Path
 import qualified System.Exit                         as Exit
 import qualified System.FilePath                     as FilePath
 import qualified System.IO                           as IO
@@ -53,7 +53,7 @@ type InterpreterMonad m = ( MonadIO m
 
 -- === API === --
 
-interpretWithMain :: IR.Qualified -> Map IR.Qualified FilePath -> IO ()
+interpretWithMain :: IR.Qualified -> Map IR.Qualified (Path Abs File) -> IO ()
 interpretWithMain name sourcesMap = Graph.encodeAndEval @TC.Stage
     $ Scheduler.evalT $ do
         ModLoader.init
@@ -99,7 +99,7 @@ interpretWithMain name sourcesMap = Graph.encodeAndEval @TC.Stage
                 void $ liftIO $ Runtime.runIO mainFunc
 
 file :: (InterpreterMonad m) => Path Abs File -> Path Abs Dir -> m ()
-file filePath stdlibPath = liftIO $ Directory.withCurrentDirectory fileFP $ do
+file filePath stdlibPath = liftIO $ Path.withCurrentDir fileFP $ do
     fileSources <- Package.fileSourcePaths filePath stdlibPath
     includedImports <- Package.includedLibs stdlibPath
 
@@ -109,23 +109,21 @@ file filePath stdlibPath = liftIO $ Directory.withCurrentDirectory fileFP $ do
     PackageEnv.setLibraryVars includedImports
     liftIO $ interpretWithMain fileName fileSources
 
-    where fileFP = Path.fromAbsDir $ Path.parent filePath
+    where fileFP = Path.parent filePath
 
 package :: (InterpreterMonad m) => Path Abs Dir -> Path Abs Dir -> m ()
-package pkgPath stdlibPath = liftIO . Directory.withCurrentDirectory pkgDir $ do
+package pkgPath stdlibPath = liftIO . Path.withCurrentDir pkgPath $ do
     packageRoot    <- fromJust pkgPath <$> Package.findPackageRoot pkgPath
     packageImports <- Package.packageImportPaths packageRoot stdlibPath
     importPaths    <- Exception.rethrowFromIO @Path.PathException .
         sequence $ Path.parseAbsDir . snd <$> packageImports
     projectSrcs    <- sequence $ Package.findPackageSources <$> importPaths
 
-    let pkgSrcMap    = Map.map Path.toFilePath . foldl' Map.union Map.empty
+    let pkgSrcMap    = foldl' Map.union Map.empty
             $ Bimap.toMapR <$> projectSrcs
         mainFileName = (convert $ Package.getPackageName packageRoot) <> "."
             <> Package.mainFileName
 
     PackageEnv.setLibraryVars packageImports
     liftIO $ interpretWithMain mainFileName pkgSrcMap
-
-    where pkgDir = Path.fromAbsDir pkgPath
 

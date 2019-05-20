@@ -251,7 +251,7 @@ packageImportPaths pkgRoot stdlibPath = do
     pure $ includedImports <> importPaths
 
 fileSourcePaths :: (MonadIO m, MonadException Path.PathException m)
-    => Path Abs File -> Path Abs Dir -> m (Map Name.Qualified FilePath.FilePath)
+    => Path Abs File -> Path Abs Dir -> m (Map Name.Qualified (Path Abs File))
 fileSourcePaths lunaFile stdlibPath = do
     let fileName    = FilePath.dropExtension . Path.fromRelFile
             $ Path.filename lunaFile
@@ -261,10 +261,10 @@ fileSourcePaths lunaFile stdlibPath = do
         $ Path.parseAbsDir . snd <$> fileImports
     importSources <- sequence $ findPackageSources <$> importPaths
 
-    let projSrcMap = Map.map Path.toFilePath $ foldl' Map.union Map.empty
+    let projSrcMap = foldl' Map.union Map.empty
             $ Bimap.toMapR <$> importSources
         allSrcMap  = Map.insert (convertVia @Name.Name fileName)
-            (Path.toFilePath lunaFile) projSrcMap
+            lunaFile projSrcMap
 
     pure allSrcMap
 
