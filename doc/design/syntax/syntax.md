@@ -260,7 +260,7 @@ as the compiler makes no distinction between the two. This means that it is
 perfectly valid to type `7 : 7`. Because we can describe infinite number of sets
 containing a particular value, every value in Enso has infinite number of types.
 Taking in consideration the lucky number `7`, it is a `Natural` number,
-`Integer` number, a `Number`, and also `Any` value at the same time! This
+`Integer` number, a `Number`, and also `Any` value at the same time! This
 relation could be expressed as follow:
 
 ```haskell
@@ -451,8 +451,8 @@ greeter =
     print "It's nice to meet you, #{name}!"
 ```
 
-You may now wonder, what the type of a code block is. The code block
-`getName` returns a `Text`, so your first guess may be that it's type is simply
+You may now wonder, what the type of a code block is. The code block `getName`
+returns a `Text`, so your first guess may be that it's type is simply
 `getName : Text`. Although the compiler is very permissive and will accept this
 type signature, the more detailed one is `getName : Text in IO`, or to be really
 precise `getName : Text in IO.Read ! IO.ReadError`. A detailed description of
@@ -481,8 +481,8 @@ do block = block
 ```
 
 In order to understand it's behavior, think that because we use the `do`
-function above, there is no new line after the `=` operator, the code block i
-passed to the `do` function as an argument, and the `do` function simply
+function above, there is no new line after the `=` operator, the code block i
+passed to the `do` function as an argument, and the `do` function simply
 evaluates it and returns its result. The exact explanation is a bit more complex
 and will be provided in the chapter about contexts later in this book.
 
@@ -680,7 +680,7 @@ if cond _then (ok in m) _else (fail in n) =
         False -> fail
 ```
 
-For now, please ignore the `in m` and `in n` parts, you will learn about them in
+For now, please ignore the `in m` and `in n` parts, you will learn about them in
 the following chapters. When using mixfix functions, all the layout rules apply
 like if every section was a separate operator, so you can write an indented
 block of code after each section. Consider the following example, which asks the
@@ -790,7 +790,7 @@ incorrect, as `1 + 1 /= 1`.
 
 - Do we want to support explicit signatures for the following use case? The
   function `f` is applied with two named arguments, but we do not know their
-  ordering. We only know that the function accepts at least `3` arguments and
+  ordering. We only know that the function accepts at least `3` arguments and
   that the 3rd argument can be `7`.
 
   ```haskell
@@ -1370,7 +1370,7 @@ if cond _then (ok in m) _else (fail in n) =
 If you don't provide the explicit `in m` and `in n`, the args are considered to
 be `in Pure`
 
-# How `=` works
+# How `=` works
 
 Consider:
 
@@ -1395,9 +1395,9 @@ body : _ in BM
 test : out in FM1 & BM
 ```
 
-Basically `=` transforms right side to left side like
-`(right : R in RM2 in RM1) -> (left : R in RM2 in Pure)`, and it merges
-`RM1` with host monad.
+Basically `=` transforms right side to left side like
+`(right : R in RM2 in RM1) -> (left : R in RM2 in Pure)`, and it merges `RM1`
+with host monad.
 
 # Dynamic access
 
@@ -1449,7 +1449,7 @@ values typed as `Dynamic` work just like in Python. You can access their fields
 / methods by string, you can add or remove fields, and you always get the
 `Dynamic` as result. Every operation on `Dynamic` results in `a ! DynamicError`.
 
-Everything that is possible to express on the `Dynamic` type should be possible
+Everything that is possible to express on the `Dynamic` type should be possible
 to be expressed using normal data types (see the "Dynamic access" chapter
 above).
 
@@ -1485,9 +1485,213 @@ lst1 = List.Cons 1 (List.Cons "foo" List.End)
 lst2 = [1,"foo"] : [1,"foo"] : List (Int | String)
 ```
 
-# Dependent List
+# Dependent Types
 
-We do not need anything more than this:
+**Why do dependent types matter?** Dependent types matter for software
+correctness. They limit the possible human errors significantly and can
+drastically improve the quality of the final solution.
+
+**So, what are dependent types?** Dependent types are types expressed in terms
+of data, explicitly relating their inhabitants to that data. As such, they
+enable you to express more of what matters about data. While conventional type
+systems allow us to validate our programs with respect to a fixed set of
+criteria, dependent types are much more flexible, they realize a continuum of
+precision from the basic assertions we are used to expect from types up to a
+complete specification of the program’s behaviour. It is the programmer’s choice
+to what degree he wants to exploit the expressiveness of such a powerful type
+discipline. While the price for formally certified software may be high, it is
+good to know that we can pay it in installments and that we are free to decide
+how far we want to go. Dependent types reduce certification to type checking,
+hence they provide a means to convince others that the assertions we make about
+our programs are correct. Dependently typed programs are, by their nature, proof
+carrying code.
+
+**If dependent types are so great, why they are not used widely?** Basically,
+there are two problems. First, there is a small set of languages allowing for
+dependent types, like Agda or Idris. Second, both writing as well as using
+dependently typed code is significantly harder than a code using conventional
+type system. The second problem is even bigger because it stands in a way to
+easily refactor the code base and keep it in a good shape.
+
+**I've heard that dependent type system in Enso is different, how?** The Enso
+type system provides a novel approach to dependent types. It allows to just
+write simple code and in many cases provides the dependent type system benefits
+for free!
+
+## Power and Simplicity
+
+Consider the following code snippets in Idris. This is a simple, but not very
+robust implementation of List. If you try to get the head element of an empty
+list, you'll get the runtime error and there is no way to prevent the developer
+from using it by mistake:
+
+```Haskell
+-----------------------
+--- LANGUAGE: IDRIS ---
+-----------------------
+
+data List elem
+    = Cons elem (List elem)
+    | Empty
+
+index : Int -> List a -> a
+index 0 (Cons x xs) = x
+index i (Cons x xs) = index (i-1) xs
+
+main : IO ()
+main = do
+    let lst1 : List String = (Cons "Hello!" Nil)
+    let lst2 : List String = Nil
+    print $ index 0 lst1
+    print $ index 0 lst2
+```
+
+```haskell
+--- Runtime Output ---
+Hello!
+*** test.idr:18:23:unmatched case in Main.index ***
+```
+
+The above program crashed in the middle of execution. Such mistakes as the
+possibility of the index to be out of bounds are very hard to catch and most of
+programming languages do not provide a standard, easy mechanism to prevent them
+from happening. Let's improve the situation and use the power of dependent types
+to keep the information about the length of the list visible to the compiler:
+
+```haskell
+-----------------------
+--- LANGUAGE: IDRIS ---
+-----------------------
+
+data List : (len : Nat) -> (elem : Type) -> Type where
+    Cons  : (x : elem) -> (xs : List len elem) -> List (S len) elem
+    Empty : List Z elem
+
+index : Fin len -> Vect len elem -> elem
+index FZ     (Cons x xs) = x
+index (FS k) (Cons x xs) = index k xs
+
+main : IO ()
+main = do
+    let lst1 : List 1 String = Cons "hello" Empty
+    let lst2 : List 0 String = Empty
+    print $ index 0 lst1
+    print $ index 0 lst2
+```
+
+```haskell
+--- Compilation Error ---
+test.idr:18:21:
+When elaborating right hand side of main:
+When elaborating argument prf to function Data.Fin.fromInteger:
+        When using 0 as a literal for a Fin 0
+                0 is not strictly less than 0
+```
+
+This time the error was catched by the compiler, however, both the
+implementation as well as the library interface are much more complex now.
+
+Let's now write the same implementation in Luna:
+
+```haskell
+----------------------
+--- LANGUAGE: ENSO ---
+----------------------
+
+type List a
+    Cons value:a tail:a
+    Empty
+
+index : Natural -> List a -> a
+index = case
+    0 -> value
+    i -> tail >> index (i-1)
+
+main =
+    lst1 = Cons "hello" Empty
+    lst2 = Empty
+    print $ index 0 lst1
+    print $ index 0 lst2
+```
+
+```haskell
+--- Compilation Error ---
+Error in test.enso at line 18:
+    The field Empty.tail is not defined.
+    Arising from ...
+```
+
+Although the Enso implementation is over 15% shorter that the insecure Idris
+implementation and over 50% shorter than the secure implementation, it provides
+the same robustness as the secure Idris implementation. Moreover, the user
+facing interface is kept simple, without information provided explicitly for the
+compiler.
+
+## Dependent Types Resolution
+
+The natural next question is, how it was possible to get such a drastic quality
+improvement? As already mentioned, dependent types are types expressed in terms
+of data, explicitly relating their inhabitants to that data. Enso atom types
+make it possible to expose all data structures to the compiler automatically, so
+they can be statically analyzed. There is no need to explicitly provide some
+selected data to the compiler, as it has access to every structural information
+by design.
+
+Let's describe where the compiler gets the required information from. Please
+note, that the following description is shown for illustration purposes only and
+do not represent the real compilation algorithm. First, lets focus on the
+definition of the `index` function:
+
+```haskell
+index : Natural -> List a -> a
+index = case
+    0 -> value
+    i -> tail >> index (i-1)
+```
+
+Without using currying and after applying the Uniform Syntax Call, we can write
+it's more explicit form:
+
+```haskell
+index : Natural -> List a -> a
+index i lst = case i of
+    0 -> lst.value
+    i -> index (i-1) lst.tail
+```
+
+Let's break the function apart:
+
+```haskell
+index_1 : 0 -> List a -> a
+index_1 0 lst = lst.value
+
+index_2 : ((j:Natural) + 1) -> List a -> a
+index_2 i lst = index (i-1) lst.tail
+
+index : Natural -> List a -> a
+index i = case i of
+    0 -> index_1 i
+    i -> index_2 i
+```
+
+Based on the provided information, including the fact that the `value` and
+`tail` fields are defined only for the `Cons` atom, we can further refine the
+types of `index_1` and `index_2`:
+
+```haskell
+index_1 : 0                 -> Cons t1 (List t2) -> t1
+index_2 : ((j:Natural) + 1) -> Cons t1 (List t2) -> t1
+```
+
+Please note that the type `a` was refined to `t1 | t2`. We can now infer a much
+more precise type of `index`, which makes it obvious why the code was incorrect.
+
+```haskell
+index : Natural -> Cons t1 (List t2) -> t1
+```
+
+A similar, but a little more complex case applies if we try to access a nested
+element. We leave this exercise to the reader.
 
 ```haskell
 type List a
@@ -1506,6 +1710,8 @@ init : Cons a (List a) -> List a
 init = case
     Cons a End           -> End
     Cons a (Cons b tail) -> Cons a $ init (Cons b tail)
+
+index :: Natural.range lst.length -> lst
 ```
 
 TODO: Move the whole examples herel ike that + mail examples
