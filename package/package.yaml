@@ -47,6 +47,7 @@ dependencies:
     - luna-datafile
     - luna-exception
     - luna-parser-utils
+    - luna-path
     - luna-syntax-text-lexer
     - megaparsec
     - mtl

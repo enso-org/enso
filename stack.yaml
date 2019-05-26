@@ -24,6 +24,7 @@ packages:
     - debug
     - passes
     - package
+    - path
     - runtime
     - stdlib
     - shell

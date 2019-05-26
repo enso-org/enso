@@ -14,8 +14,10 @@ import qualified Luna.Package.Structure.Generate.Internal as Generate
 import qualified Luna.Package.Structure.Name              as Name
 import qualified Luna.Package.Structure.Utilities         as Structure
 import qualified Luna.Package.Utilities                   as Utilities
+import qualified Luna.Path.Path                           as Path
 import qualified OCI.Data.Name                            as Name
 import qualified Path                                     as Path
+--import qualified Path.IO                                  as Path
 import qualified System.Directory                         as Directory
 import qualified System.FilePath                          as FilePath
 import qualified System.FilePath.Find                     as Find
@@ -28,6 +30,13 @@ import Data.Bimap              (Bimap)
 import Data.Map                (Map)
 import Path                    (Path, Abs, Rel, File, Dir, (</>))
 
+-----------------------
+-- === Instances === --
+-----------------------
+
+-- TODO JCM : put instances in the right place
+instance Convertible (Path a b) Name.Name where convert = convert . Path.toFilePath ; {-# INLINE convert    #-}
+instance Convertible (Path a b) Text where convert = convert . Path.toFilePath ; {-# INLINE convert    #-}
 
 
 --------------------------------------
@@ -175,16 +184,15 @@ findPackageRoot dir = getLunaPackagesFromDir dir >>= \case
     _             -> pure Nothing
 
 getPackageName :: Path Abs Dir -> Name.Name
-getPackageName =
-    convert . FilePath.takeBaseName . FilePath.takeDirectory . Path.toFilePath
+getPackageName = convert . Path.dirnameNoSlash
 
 mkQualName :: Name.Name -> Path Rel File -> Name.Qualified
 mkQualName pkgName file = qualName where
     qualName        = convert $ concat nameParts
     nameParts       = [ [pkgName], convert <$> path, [convert moduleName] ]
-    path            = filter (/= ".") $ FilePath.splitDirectories dir
-    moduleName      = FilePath.dropExtensions filename
-    (dir, filename) = FilePath.splitFileName (Path.toFilePath file)
+    path            = filter (Path.liftPredicate (/= ".")) $ Path.splitDirectories dir
+    moduleName      = Path.dropExtensions filename
+    (dir, filename) = (Path.parent file, Path.filename file)
 
 assignQualName :: Path Abs Dir -> Path Abs File
     -> (Path Abs File, Name.Qualified)
@@ -272,14 +280,16 @@ isLunaPackage :: (MonadIO m, MonadException Path.PathException m)
     => Path Abs Dir -> m Bool
 isLunaPackage path = isJust <$> findPackageRoot path
 
+
+
 name :: (MonadIO m, MonadExceptions '[ PackageNotFoundException
                                      , Path.PathException ] m)
     => Path Abs Dir -> m Text
 name path = findPackageRoot path >>= \case
     Nothing   -> Exception.throw $ PackageRootNotFound path
     -- Safe because Path.fromAbsDir is guaranteed nonempty
-    Just root -> pure . convert . unsafeLast . FilePath.splitDirectories
-        $ Path.fromAbsDir root
+    Just root -> pure . convert . unsafeLast . Path.splitDirectories $ root
+
 
 rename :: ( MonadIO m
           , MonadExceptions '[ PackageNotFoundException
