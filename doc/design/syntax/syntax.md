@@ -1,71 +1,137 @@
-- **Feature Name:** Enso 2.0 Design
-- **Start Date:** 2018-06-26
-- **Change Type:** Breaking
-- **RFC Dependencies:**
-- **RFC PR:**
-- **Enso Issue:**
-- **Implemented:**
+# Enso. Simplicity and Correctness
 
-# Summary
+Enso is an award winning, general purpose, purely functional programming
+language with a double visual and textual representations. Enso was designed to
+be easy to use and reason about. It was equipped with a novel type system which
+automatically limits the possible human errors significantly and thus
+drastically improves the quality of the final solution. Enso is intended to be a
+production language, not a research one, and so, the design avoids including new
+and untested features in its main development branch.
 
-The importance of a language's syntax cannot be understated. Badly designed
-syntax introduces confusion, leads to unreadable code, and stands in the way of
-the language's evolution. Good syntax is fast to write, easy to understand by a
-whole team of developers and promotes best practices. In addition to being an
-obvious truth to any programmer, it can be seen in real world examples: just
-look at Haskell, whose base syntax is over 20 years old. These days, with
-Haskell entering the world of dependent types, it has become abundantly clear
-that its syntax is not able to cope, leading to confusion even amongst seasoned
-language users.
+From the technical point of view, Enso incorporates many recent innovations in
+programming language design. It provides higher-order functions, strict and
+non-strict semantics, first-class algebraic data types, and a novel type system,
+which merges the worlds of dependent types and refinement types under a single
+umbrella. Enso is both the culmination and solidification of many years of
+research on functional languages and proof assistants, such as Haskell, Idris,
+Agda, or Liquid Haskell.
 
-A language's syntax directly affects how code is structured, and as a result
-affects what is considered to be idiomatic style. Any sensible programming
-language must provide users with the ability to modularise their code and split
-it into well-defined parts. The ML family of languages, in particular 1ML and
-OCaml, take the concept of a module even further. Enso, with its unique system
-for categorical typing, is in a position to provide the most flexible
-implementation of modules yet, unifying the concepts of modules, classes and
-interfaces.
+## Why a New Programming Language?
 
-This proposal introduces a major breaking change for Enso, wholesale replacing
-portions of the Language's syntax and semantics with an entirely new model. As a
-result, this RFC aims to describe the whole new design in a form of a
-documentation with frequent annotations providing rationale for the changes.
+Since the 1980s, the way programmers work and the tools they use have changed
+remarkably little. There is a small but growing chorus that worries the status
+quo is unsustainable. The problem is that programmers are having a hard time
+keeping up with their own creations. “Even very good programmers are struggling
+to make sense of the systems that they are working with,” says Chris Granger, a
+software developer who worked as a lead at Microsoft on Visual Studio.
 
-# Design Principles
+We believe that without a drastic change to how a software is created, the
+humanity is not able to progress to the next level. However, in contrast to many
+approaches to find the next generation human-computer interaction interface, we
+believe that the textual code should not be replaced, it should be enhanced
+instead. The same way as writing co-exists with speaking, there are use cases
+where the code is just more convenient than any other approach. To learn more
+about why we have created Enso, please refer to our
+[blog post about it](https://medium.com/@luna_language/luna-the-visual-way-to-create-software-c4db520d6d1e).
 
-It is impossible to design even a small part of a language without considering
-almost every other design decision. Over the past years we have learned that the
-only way which will brings us a step closer to a design that fits well into all
-requirements is a design that bases on a small set of well defined invariants.
-Invariants derive from a careful analysis of the needs. Their definition should
-always be the first step when searching for a solution to a complex problem.
-They should be used as a very efficient filter to test new ideas and discovering
-bad decisions.
+## Software Correctness Matters
 
-Below we present fundamental assumptions regarding how the Enso language should
-look and feel like:
+In September 2007, Jean Bookout was driving on the highway with her best friend
+in a Toyota Camry when the accelerator seemed to get stuck. When she took her
+foot off the pedal, the car didn't slow down. She tried the brakes but they
+seemed to have lost their power. As she swerved toward an off-ramp going 50
+miles per hour, she pulled the emergency brake. The car left a skid mark 150
+feet long before running into an embankment by the side of the road. The
+passenger was killed. Bookout woke up in a hospital a month later.
 
-1. **The textual syntax must play well with the visual representation.**  
-   Both visual and textual representations are equivalently important. Any rule
-   which does not fit both worlds at the same time will be rejected.
+The incident was one of many in a nearly decade-long investigation into claims
+of so-called unintended acceleration in Toyota cars. Toyota blamed the incidents
+on poorly designed floor mats, “sticky” pedals, and driver error, but outsiders
+suspected that faulty software might be responsible. The National Highway
+Traffic Safety Administration enlisted software experts from NASA to perform an
+intensive review of Toyota’s code. After nearly 10 months, the NASA team hadn't
+found evidence that software was the cause—but said they couldn't prove it
+wasn't.
 
-2. **Easiness in understanding is more important than design minimalism.**  
-   Enso is meant to be production, not a research language. It targets a broad
-   range of developers and domain experts. Thus it should be fast to write,
-   comfortable to read and easy to reason about. In particular, it should
-   provide easy to understand compile time errors, which is why for example
-   monads in Enso are a special entity handled by the compiler.
+It was during litigation of the Bookout accident that someone finally found a
+convincing connection. Michael Barr, an expert witness for the plaintiff, had a
+team of software experts spend 18 months with the Toyota code, picking up where
+NASA left off. Using the same model as the Camry involved in the accident,
+Barr’s team demonstrated that there were more than 10 million ways for key tasks
+on the on-board computer to fail, potentially leading to unintended
+acceleration. They showed that as little as a single bit flip could make a car
+run out of control.
 
-3. **There should be one (and preferably only one) way to achieve a goal.**  
-   One of the greatest power of a good syntax is that it is easy to read by
-   different people from different organizations. The more coding styles or
-   design pattern rules users have to learn, the more codebases with different,
-   often incompatible approaches will appear. In the ideal world, a language
-   would provide one and only one way to write and format code, which would also
-   be fast to write and easy to understand by people. Enso design should be
-   aligned with this vision.
+The above text is part of an amazing article
+[The Coming Software Apocalypse](https://www.theatlantic.com/technology/archive/2017/09/saving-the-world-from-code/540393/)
+by James Somers, we strongly encourage you to read it all in order to understand
+many of Enso design principles.
 
+We believe that everyone should be able to process data and create software.
+Thus, we strongly disagree with the assumption that developers should learn how
+to formally prove properties about their programs, as it requires a very rare
+theoretical background. We believe that it's the responsibility of the language
+and its tooling to prove the correctness of the users' creation. _“Human
+intuition is poor at estimating the true probability of supposedly ‘extremely
+rare’ combinations of events in systems operating at a scale of millions of
+requests per second. That human fallibility means that some of the more subtle,
+dangerous bugs turn out to be errors in design; the code faithfully implements
+the intended design, but the design fails to correctly handle a particular
+‘rare’ scenario.”_, wrote Chris Newcombe, who was a leader on Amazon Web
+Services team and one of Steam creators. Enso was designed to prove the
+correctness and provide as much valuable information to the user as possible in
+a completely automatic and interactive fashion.
+
+## Immediate Connection To Data
+
+Software creation is a very creative process. However, while using conventional
+languages, programmers are like chess players trying to play with a blindfold on
+– so much of their mental energy is spent just trying to picture where the
+pieces are that there’s hardly any left over to think about the game itself.
+
+Enso was designed around the idea that _people need an immediate connection to
+what they are making_, which was introduced by Brett Victor in his amazing talk
+[Inventing on Principle](https://vimeo.com/36579366). Any violation of this
+principle alienates users from the actual problems they are trying to solve,
+which consequently decreases the understanding and increases the number of
+mistakes.
+
+Enso visual representation targets domains where data processing is the primary
+focus, including data science, machine learning, IoT, bioinformatics, predictive
+maintenance, computer vision, computer graphics, sound processing or
+architecture. Each such domain requires a highly tailored data processing
+toolbox and Enso provides both an unified foundation for building such toolboxes
+as well as growing library of existing ones. At its core, Enso delivers a
+powerful data flow modeling environment and an extensive data visualization and
+manipulation framework.
+
+## Simplicity. The Ultimate Sophistication
+
+The language design can drastically affect the required
+[cognitive load](https://en.wikipedia.org/wiki/Cognitive_load), the total amount
+of mental effort being used in the brains' working memory. The easier it is to
+both express thoughts and understand the existing logic, the faster and less
+error prone the whole software creation process is. Enso bases on a set of
+principles designed to keep the required cognitive effort low:
+
+1. **The textual and visual representations must play well with each other.**  
+   Both visual and textual representations are equivalently important, as the
+   user is allowed to switch between them on demand. Moreover, the textual
+   representation is an integral part of the visual one, in the form of
+   expressions above nodes. Any functionality which does not fit both worlds at
+   the same time will be rejected.
+2. **Simplicity and expressiveness are more important than design
+   minimalism.**  
+   Enso targets a broad range of domain experts, not necessarily professional
+   developers. Thus it should be expressive, easy to understand, and reason
+   about, yet it should never stand in a way of power users.
+3. **There should be one (and preferably only one) way to achieve a goal.** One
+   of the greatest power of a good syntax is that it is easy to understand by a
+   wide range of users in the sense of both skill set as well as background
+   (different organizations). The more layout styles or design patterns, the
+   more libraries with different, often incompatible approaches will appear. In
+   the ideal world, a language would provide one and only one way to express
+   intention and format source.
 4. **Type level syntax = value level syntax.**  
    Enso type system is designed to be as expressive and as natural to use as
    rest of the code. We believe that the only true solution for next generation
@@ -78,14 +144,12 @@ look and feel like:
    having special mechanisms to promote values between the namespaces, like
    prefixing value level data with apostrophe to bring it to type level and
    prevent name clash (see `-XDataKinds` in Haskell).
-
 5. **Small number of rules is better than large.**  
    Any special case or syntactic rule has to be remembered by the user and
    consumes important cognitive power. On the other hand, the syntax can easily
    be oversimplified, which usually leads to complex, hard to understand errors.
    Usually it is preferred to choose a solution which does not introduce any new
    special cases.
-
 6. **Predictable performance and behavior.**  
    Predictable performance and behavior is one of the most important principles
    which separates well designed languages from the bad designed ones. A
@@ -98,8 +162,15 @@ look and feel like:
    `func2 a = func1 a` to `func2 = func1`
    [can affect performance](https://gitlab.haskell.org/ghc/ghc/issues/8099)
    which it makes Haskell programs very hard to reason about.
+7. **Guidance is better than on-boarding.**  
+   In particular, it should provide guidance regarding possible next steps and
+   human readable error messages.
 
-# Source Code
+## Immediate Connection To Data
+
+We believe that the creation of software is a very creative process. [...]
+
+# Textual Representation
 
 ## Encoding
 
@@ -950,7 +1021,7 @@ map f = case of
     Nothing -> Nothing
 ```
 
-## Syntax sugar
+### Syntax sugar
 
 Enso provides a syntactic sugar for easy definition of algebraic data types and
 related methods. You are always required to provide explicit name for all the
@@ -984,6 +1055,101 @@ type Foo
 
     method : Int -> self
     method = implementation
+```
+
+## Using functions on type sets
+
+```haskell
+sum : a -> b -> a + b
+sum = a -> b -> a + b
+
+lessThan : a -> b -> a < b
+lessThan = a -> b -> a < b
+
+main =
+    print $ sum 1 2             -- 3
+    print $ sum Int Int         -- Int
+    print $ lessThan 1 2        -- True
+    print $ lessThan Int Int    -- Bool
+    print $ lessThan 0 Int      -- Bool
+    print $ lessThan -1 Natural -- True
+```
+
+Please note, that `lessThan -1 Natural` returns `True`, which is just more
+specific than `Bool` because it holds true for every natural number.
+
+## Refinement Types
+
+```haskell
+upTo max val =
+    if val < max
+        then val
+        else error 'The value #{val} is not smaller than #{max}.'
+
+
+x = read "foo" . to Int
+a = upTo 7 x : upTo 7 x
+
+
+
+data OrderedList elems
+    Empty
+    Cons
+        head : elems
+        tail : OrderedList (t:elems if my.head < t)
+
+
+
+
+isOrdered = case
+    Empty          -> true
+    Cons head tail -> head < tail.elems
+                   && isOrdered tail
+
+isOrdered lst =
+    if lst is Empty
+        then true
+        else lst.head < lst.tail.elems
+          && isOrdered lst.tail
+
+
+t = ...
+t : t if isOrdered t
+
+ordered = & Refinement isOrdered
+
+tst = [1,2,3] : Ordered (List [Int])
+
+
+IncrList a = [a]<{\xi xj -> xi <= xj}
+
+
+upTo max val = val if val < max
+
+x = read "foo" . to Int
+a = upTo 7 x : upTo 7 x
+             : x if x < max
+             : Int if x < max
+
+isPositive : x:Int -> v:Bool if v <=> x > 0
+
+dayNumber = upTo 7
+
+a : Int if a < 7
+
+
+foo = < 7
+foo = < 7
+
+
+foo : a -> a if a < 7
+foo = a -> a if a < 7
+
+
+a = 5 : Int if me < 7
+
+
+bar = Int if me < 7
 ```
 
 ## Interfaces
@@ -1021,39 +1187,29 @@ test :
 test = map show
 ```
 
-```haskell
-type Vector a
-    V3 x:a y:a z:a
+### TODO
 
-interface Functor t
-    map: (a -> b) -> t a -> t b
-
-test :
-    Functor t
-    t a -> t Text
-test = map show
-```
+- Describe interface resolution and type parameters mapping
 
 ## Field Modifiers
 
 You can add the equal sign `=` as an operator suffix to transform it into a
 modifier. Modifiers allow updating nested structures fields.
 
-In general, the following expressions are equivalent. The `%` operator can be
-replaced with any other operator:
+In general, the following expressions are equivalent. The `+` is used as an
+example and can be freely replaced with any other operator:
 
 ```haskell
-foo' = foo.bar %= t
+foo' = foo.bar += t
 -- <=>
 bar'  = foo.bar
-bar'' = t % bar'
+bar'' = t + bar'
 foo'  = foo.bar = bar''
 ```
 
-Please not the inversed order in the `t % bar` application. In most cases it
-does not change anything, however, it's very useful as it allow us use such
-operators as `foo.bar $= f` in order to modify a nested field with an `f`
-function.
+Please note the inversed order in the `t + bar` application. In most cases it
+does not change anything, however, it simplifies the usage of such modifiers as
+`foo.bar $= f` in order to modify a nested field with an `f` function.
 
 Examples:
 
@@ -1485,11 +1641,41 @@ lst1 = List.Cons 1 (List.Cons "foo" List.End)
 lst2 = [1,"foo"] : [1,"foo"] : List (Int | String)
 ```
 
-# Dependent Types
+# Proving the Software Correctness
 
-**Why do dependent types matter?** Dependent types matter for software
-correctness. They limit the possible human errors significantly and can
-drastically improve the quality of the final solution.
+In September 2007, Jean Bookout was driving on the highway with her best friend
+in a Toyota Camry when the accelerator seemed to get stuck. When she took her
+foot off the pedal, the car didn't slow down. She tried the brakes but they
+seemed to have lost their power. As she swerved toward an off-ramp going 50
+miles per hour, she pulled the emergency brake. The car left a skid mark 150
+feet long before running into an embankment by the side of the road. The
+passenger was killed. Bookout woke up in a hospital a month later.
+
+The incident was one of many in a nearly decade-long investigation into claims
+of so-called unintended acceleration in Toyota cars. Toyota blamed the incidents
+on poorly designed floor mats, “sticky” pedals, and driver error, but outsiders
+suspected that faulty software might be responsible. The National Highway
+Traffic Safety Administration enlisted software experts from NASA to perform an
+intensive review of Toyota’s code. After nearly 10 months, the NASA team hadn't
+found evidence that software was the cause—but said they couldn't prove it
+wasn't.
+
+It was during litigation of the Bookout accident that someone finally found a
+convincing connection. Michael Barr, an expert witness for the plaintiff, had a
+team of software experts spend 18 months with the Toyota code, picking up where
+NASA left off. Using the same model as the Camry involved in the accident,
+Barr’s team demonstrated that there were more than 10 million ways for key tasks
+on the on-board computer to fail, potentially leading to unintended
+acceleration. They showed that as little as a single bit flip could make a car
+run out of control.
+
+The above text is part of an amazing article
+[The Coming Software Apocalypse](https://www.theatlantic.com/technology/archive/2017/09/saving-the-world-from-code/540393/) by
+James Somers, we strongly encourage you to read it all.
+
+Dependent types matter for software correctness. They limit the possible human
+errors significantly and can drastically improve the quality of the final
+solution.
 
 **So, what are dependent types?** Dependent types are types expressed in terms
 of data, explicitly relating their inhabitants to that data. As such, they
@@ -1675,15 +1861,15 @@ index i = case i of
 ```
 
 Based on the provided information, including the fact that the `value` and
-`tail` fields are defined only for the `Cons` atom, we can further refine the
-types of `index_1` and `index_2`:
+`tail` fields are defined only for the `Cons` atom, we can further refine the
+types of `index_1` and `index_2`:
 
 ```haskell
 index_1 : 0                 -> Cons t1 (List t2) -> t1
 index_2 : ((j:Natural) + 1) -> Cons t1 (List t2) -> t1
 ```
 
-Please note that the type `a` was refined to `t1 | t2`. We can now infer a much
+Please note that the type `a` was refined to `t1 | t2`. We can now infer a much
 more precise type of `index`, which makes it obvious why the code was incorrect.
 
 ```haskell
@@ -1692,6 +1878,8 @@ index : Natural -> Cons t1 (List t2) -> t1
 
 A similar, but a little more complex case applies if we try to access a nested
 element. We leave this exercise to the reader.
+
+ca
 
 ```haskell
 type List a
@@ -2077,7 +2265,7 @@ typeDef = "type" varName [":" interface] [({consDef} | {consField})] [method]
 ```
 
 The body of a type can contain functions, data, or even _other types_, and _yes_
-because you were wondering, types _can_ be defined inductively or using a GADT
+because ytrou were wondering, types _can_ be defined inductively or using a GADT
 style. We can re-write the earlier provided definitions using this form as
 follow:
 
