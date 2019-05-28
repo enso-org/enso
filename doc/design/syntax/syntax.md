@@ -1080,76 +1080,123 @@ specific than `Bool` because it holds true for every natural number.
 
 ## Refinement Types
 
+### Ordered Lists
+
+Sometimes, it's desired to prove some structure behaviors, like the fact that a
+list contains sorted values. Enso allows expressing such constraints in a simple
+way. They are often called behavioral types, as they describe the behavior to be
+checked. First, let's consider a simple List implementation and see how we can
+create a refined type using the high level interface:
+
 ```haskell
-upTo max val =
-    if val < max
-        then val
-        else error 'The value #{val} is not smaller than #{max}.'
+type List elems
+    Empty
+    Cons
+        head : elems
+        tail : List elems
 
+ordered = refined lst ->
+    if lst is empty
+        then true
+        else lst.head < lst.tail.elems
+          && isOrdered lst.tail
+```
 
-x = read "foo" . to Int
-a = upTo 7 x : upTo 7 x
+That's it! Now we can use it like this:
 
+```haskell
+lst1 = []      : Ordered List Int -- OK
+lst1 = [1,2,3] : Ordered List Int -- OK
+lst1 = [3,2,1] : Ordered List Int -- ERROR
+```
 
+#### Under the Hood
 
+Let's understand how the above example works. First, let's implement it in an
+inextendible way, just as a data type which cannot be used for other purpose:
+
+```haskell
 data OrderedList elems
     Empty
     Cons
         head : elems
-        tail : OrderedList (t:elems if my.head < t)
+        tail : OrderedList (elems & Refinement (> my.head))
+```
 
+The implementation is almost the same, however, the type of the `tail` is much
+more interesting. It's an intersection of `elems` and a `Refinement` type. A
+refinement type defines a set of values matching the provided requirement. Here,
+values in `tail` have to be a subtype of `elems` and also have to be bigger than
+the `head` element. Alternatively, you could express the type as:
 
+```haskell
+data OrderedList elems
+    Empty
+    Cons
+        head : elems
+        tail : OrderedList (t:elems & if t > my.head then t else Void)
+```
 
+In both cases, we are using functions applied with type sets. For example,
+`my.head` may resolve to a specific negative number while `t` may resolve to any
+natural one.
 
-isOrdered = case
-    Empty          -> true
-    Cons head tail -> head < tail.elems
-                   && isOrdered tail
+Let's extract the `isOrdered` function from the original example. The function
+takes a list as an argument and checks if all of its elements are in an
+ascending order. It's worth noting that Enso allows accessing the named type
+variable parameters like `lst.tail.elems`. Moreover, let's define a helper
+function `refine`:
 
+```haskell
+isOrdered : List elems -> Bool
 isOrdered lst =
     if lst is Empty
         then true
         else lst.head < lst.tail.elems
           && isOrdered lst.tail
 
+refine f = $ Refinement f
+```
 
-t = ...
-t : t if isOrdered t
+Having this function, we could now use it like:
 
-ordered = & Refinement isOrdered
+```haskell
+lst1 = []      : Refine IsOrdered (List Int) -- OK
+lst1 = [1,2,3] : Refine IsOrdered (List Int) -- OK
+lst1 = [3,2,1] : Refine IsOrdered (List Int) -- ERROR
+```
 
-tst = [1,2,3] : Ordered (List [Int])
+We can now define an alias `ordered = refine isOrdered`, however it would have
+to be used like `Ordered (List Int)`, but in the first example we've been using
+it like `Ordered List Int`. It was possible because there is a very special
+function defined in the standard library:
 
+```haskell
+applyToResult f tgt = case tgt of
+    (_ -> _) -> applyToResult << tgt
+    _        -> f tgt
 
-IncrList a = [a]<{\xi xj -> xi <= xj}
+refined  = applyToResult << refine
+```
 
+The `applyToResult` function is very simple, although, from the first sight it
+may look strange. It just takes a function `f` and an argument and if the
+argument was not a function, then it applies `f` to it. If the argument was a
+function, it just skips it and does the same to the result of the function. Now,
+we can define the `refined` function which we used on the beginning as:
 
-upTo max val = val if val < max
+```haskell
+refined = applyToResult << refine
+```
 
-x = read "foo" . to Int
-a = upTo 7 x : upTo 7 x
-             : x if x < max
-             : Int if x < max
+It can be used either as shown in the original example or on the result of the
+type expression directly:
 
-isPositive : x:Int -> v:Bool if v <=> x > 0
-
-dayNumber = upTo 7
-
-a : Int if a < 7
-
-
-foo = < 7
-foo = < 7
-
-
-foo : a -> a if a < 7
-foo = a -> a if a < 7
-
-
-a = 5 : Int if me < 7
-
-
-bar = Int if me < 7
+```haskell
+ordered = refined isOrdered
+lst1 = []      : Ordered (List Int) -- OK
+lst1 = [1,2,3] : Ordered (List Int) -- OK
+lst1 = [3,2,1] : Ordered (List Int) -- ERROR
 ```
 
 ## Interfaces
@@ -1643,40 +1690,6 @@ lst2 = [1,"foo"] : [1,"foo"] : List (Int | String)
 
 # Proving the Software Correctness
 
-In September 2007, Jean Bookout was driving on the highway with her best friend
-in a Toyota Camry when the accelerator seemed to get stuck. When she took her
-foot off the pedal, the car didn't slow down. She tried the brakes but they
-seemed to have lost their power. As she swerved toward an off-ramp going 50
-miles per hour, she pulled the emergency brake. The car left a skid mark 150
-feet long before running into an embankment by the side of the road. The
-passenger was killed. Bookout woke up in a hospital a month later.
-
-The incident was one of many in a nearly decade-long investigation into claims
-of so-called unintended acceleration in Toyota cars. Toyota blamed the incidents
-on poorly designed floor mats, “sticky” pedals, and driver error, but outsiders
-suspected that faulty software might be responsible. The National Highway
-Traffic Safety Administration enlisted software experts from NASA to perform an
-intensive review of Toyota’s code. After nearly 10 months, the NASA team hadn't
-found evidence that software was the cause—but said they couldn't prove it
-wasn't.
-
-It was during litigation of the Bookout accident that someone finally found a
-convincing connection. Michael Barr, an expert witness for the plaintiff, had a
-team of software experts spend 18 months with the Toyota code, picking up where
-NASA left off. Using the same model as the Camry involved in the accident,
-Barr’s team demonstrated that there were more than 10 million ways for key tasks
-on the on-board computer to fail, potentially leading to unintended
-acceleration. They showed that as little as a single bit flip could make a car
-run out of control.
-
-The above text is part of an amazing article
-[The Coming Software Apocalypse](https://www.theatlantic.com/technology/archive/2017/09/saving-the-world-from-code/540393/) by
-James Somers, we strongly encourage you to read it all.
-
-Dependent types matter for software correctness. They limit the possible human
-errors significantly and can drastically improve the quality of the final
-solution.
-
 **So, what are dependent types?** Dependent types are types expressed in terms
 of data, explicitly relating their inhabitants to that data. As such, they
 enable you to express more of what matters about data. While conventional type
@@ -1812,6 +1825,61 @@ implementation and over 50% shorter than the secure implementation, it provides
 the same robustness as the secure Idris implementation. Moreover, the user
 facing interface is kept simple, without information provided explicitly for the
 compiler.
+
+## Another Example
+
+```haskell
+-----------------------
+--- LANGUAGE: IDRIS ---
+-----------------------
+
+import Data.So
+
+countOcc : Eq a => a -> List a -> Nat
+countOcc x xs = length (findIndices ((==) x) xs)
+
+validate : String -> Bool
+validate x = let
+        containsOneAt = (countOcc '@' (unpack x)) == 1
+        atNotAtStart  = not (isPrefixOf "@" x)
+        atNotAtEnd    = not (isSuffixOf "@" x)
+    in containsOneAt && atNotAtStart && atNotAtEnd
+
+data Email : Type where
+    MkEmail : (s : String) -> {auto p : So (validate s)} -> Email
+
+implicit emailString : (e : Email) -> String
+emailString (MkEmail s) = s
+
+main : IO ()
+main = do
+    maybeEmail <- getLine
+
+    case choose (validate maybeEmail) of
+        Left _  => putStrLn ("Your email: " ++ (MkEmail maybeEmail))
+        Right _ => putStrLn "No email."
+```
+
+```haskell
+----------------------
+--- LANGUAGE: ENSO ---
+----------------------
+
+isValid : String -> Bool
+isValid address
+     = address.count '@' == 1
+    && not $ address.startWith '@'
+    && not $ address.endsWith  '@'
+
+type Email
+    Data address : Refine IsValid Text
+
+main =
+    mail = Email.Data Console.get
+    if mail.error
+        then 'Not a valid address.'
+        else print mail
+```
 
 ## Dependent Types Resolution
 
