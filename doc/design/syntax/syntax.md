@@ -388,7 +388,18 @@ low precedence and it is defined in the standard library.
 
 # Variables
 
-### To Be Described
+## Bringing Variables to Scope
+
+The only way to bring new variables into scope is by using pattern matching.
+There are two places in the code where pattern matching occurs – on the left
+side of assignment operator and on the left side of lambda operator.
+
+```haskell
+<pattern>  = ...
+<pattern> -> ...
+```
+
+## To Be Described
 
 - creating variables
 - explicit typing
@@ -531,7 +542,7 @@ how code blocks work and what this type means will be provided in the chapter
 about contexts later in this book.
 
 There are rare situations when you want to evaluate the code block in place. You
-can use the `do` function for exactly this purpose. The do function just accepts
+can use the `do` keyword for exactly this purpose. The do function just accepts
 a code block, evaluates it and returns its result. An example usage is shown
 below:
 
@@ -543,19 +554,8 @@ greeter =
     print "It's nice to meet you, #{name}"
 ```
 
-Without the `do` function the code block would not be executed and `name` would
-refer to the code block itself, not its final value. You may be wondering how
-the `do` function is defined in the standard library. You shall be surprised!
-
-```haskell
-do block = block
-```
-
-In order to understand it's behavior, think that because we use the `do`
-function above, there is no new line after the `=` operator, the code block i
-passed to the `do` function as an argument, and the `do` function simply
-evaluates it and returns its result. The exact explanation is a bit more complex
-and will be provided in the chapter about contexts later in this book.
+Without the `do` keyword the code block would not be executed and `name` would
+refer to the code block itself, not its final value.
 
 ## Uniform Calling Syntax (UCS)
 
@@ -576,8 +576,19 @@ The following rules apply:
 
 - Two notations, one semantics. Both notations are equivalent and always resolve
   to the same behavior.
-- The argument on a position of the function arity (informally, the last
-  function argument) is considered to be the self element.
+
+- The expression `base.fn` is a syntactic sugar for `fn (me=base)`. In most
+  cases, the `me` argument is the last argument to a function, however,
+  sometimes the argument name could be omitted. Consider the following example
+  including sample implementation of the concatenation operator:
+
+  ```haskell
+  >> : (a -> b) -> (b -> c) -> a -> c
+  >> f g me = g $ f me
+
+  vecLength = map (^2) >> sum >> sqrt
+  print $ [3,4].vecLength -- Result: 5
+  ```
 
 Function resolution:
 
@@ -965,9 +976,9 @@ argument.
 squareFirstAndAddSecond = _ ^2 + _
 ```
 
-# Types
+# Data Types
 
-## Atomic Types
+## Atomic Data Types
 
 Atomic types are the most primitive structures in Enso. Formally, atomic types
 are [product types](https://en.wikipedia.org/wiki/Product_type). Their fields
@@ -989,7 +1000,7 @@ test v = v.x + v.y + v.z
 test pt1 -- Compile time error. Expected Vec3, got Point3.
 ```
 
-## Algebraic Types
+## Algebraic Data Types
 
 Enso allows you to define new types by combining existing ones, so called
 [algebraic data types](https://en.wikipedia.org/wiki/Algebraic_data_type). Enso
@@ -1032,7 +1043,7 @@ type Maybe a
     Just value:a
     Nothing
 
-    map : (a -> b) -> me b
+    map : (a -> b) -> Maybe b
     map f = case me
         Just a  -> Just (f a)
         Nothing -> Nothing
@@ -1057,7 +1068,7 @@ type Foo
     method = implementation
 ```
 
-## Using functions on type sets
+## Data Types as Values
 
 ```haskell
 sum : a -> b -> a + b
@@ -1075,129 +1086,8 @@ main =
     print $ lessThan -1 Natural -- True
 ```
 
-Please note, that `lessThan -1 Natural` returns `True`, which is just more
-specific than `Bool` because it holds true for every natural number.
-
-## Refinement Types
-
-### Ordered Lists
-
-Sometimes, it's desired to prove some structure behaviors, like the fact that a
-list contains sorted values. Enso allows expressing such constraints in a simple
-way. They are often called behavioral types, as they describe the behavior to be
-checked. First, let's consider a simple List implementation and see how we can
-create a refined type using the high level interface:
-
-```haskell
-type List elems
-    Empty
-    Cons
-        head : elems
-        tail : List elems
-
-ordered = refined lst ->
-    if lst is empty
-        then true
-        else lst.head < lst.tail.elems
-          && isOrdered lst.tail
-```
-
-That's it! Now we can use it like this:
-
-```haskell
-lst1 = []      : Ordered List Int -- OK
-lst1 = [1,2,3] : Ordered List Int -- OK
-lst1 = [3,2,1] : Ordered List Int -- ERROR
-```
-
-#### Under the Hood
-
-Let's understand how the above example works. First, let's implement it in an
-inextendible way, just as a data type which cannot be used for other purpose:
-
-```haskell
-data OrderedList elems
-    Empty
-    Cons
-        head : elems
-        tail : OrderedList (elems & Refinement (> my.head))
-```
-
-The implementation is almost the same, however, the type of the `tail` is much
-more interesting. It's an intersection of `elems` and a `Refinement` type. A
-refinement type defines a set of values matching the provided requirement. Here,
-values in `tail` have to be a subtype of `elems` and also have to be bigger than
-the `head` element. Alternatively, you could express the type as:
-
-```haskell
-data OrderedList elems
-    Empty
-    Cons
-        head : elems
-        tail : OrderedList (t:elems & if t > my.head then t else Void)
-```
-
-In both cases, we are using functions applied with type sets. For example,
-`my.head` may resolve to a specific negative number while `t` may resolve to any
-natural one.
-
-Let's extract the `isOrdered` function from the original example. The function
-takes a list as an argument and checks if all of its elements are in an
-ascending order. It's worth noting that Enso allows accessing the named type
-variable parameters like `lst.tail.elems`. Moreover, let's define a helper
-function `refine`:
-
-```haskell
-isOrdered : List elems -> Bool
-isOrdered lst =
-    if lst is Empty
-        then true
-        else lst.head < lst.tail.elems
-          && isOrdered lst.tail
-
-refine f = $ Refinement f
-```
-
-Having this function, we could now use it like:
-
-```haskell
-lst1 = []      : Refine IsOrdered (List Int) -- OK
-lst1 = [1,2,3] : Refine IsOrdered (List Int) -- OK
-lst1 = [3,2,1] : Refine IsOrdered (List Int) -- ERROR
-```
-
-We can now define an alias `ordered = refine isOrdered`, however it would have
-to be used like `Ordered (List Int)`, but in the first example we've been using
-it like `Ordered List Int`. It was possible because there is a very special
-function defined in the standard library:
-
-```haskell
-applyToResult f tgt = case tgt of
-    (_ -> _) -> applyToResult << tgt
-    _        -> f tgt
-
-refined  = applyToResult << refine
-```
-
-The `applyToResult` function is very simple, although, from the first sight it
-may look strange. It just takes a function `f` and an argument and if the
-argument was not a function, then it applies `f` to it. If the argument was a
-function, it just skips it and does the same to the result of the function. Now,
-we can define the `refined` function which we used on the beginning as:
-
-```haskell
-refined = applyToResult << refine
-```
-
-It can be used either as shown in the original example or on the result of the
-type expression directly:
-
-```haskell
-ordered = refined isOrdered
-lst1 = []      : Ordered (List Int) -- OK
-lst1 = [1,2,3] : Ordered (List Int) -- OK
-lst1 = [3,2,1] : Ordered (List Int) -- ERROR
-```
+Please note, that `lessThan -1 Natural` returns `True`, which is just more
+specific than `Bool` because it holds true for every natural number.
 
 ## Interfaces
 
@@ -1320,6 +1210,127 @@ map4 f self =
         Nothing -> case maybeNewRectangle of
             Just a  -> a
             Nothing -> error "impossible"
+```
+
+# Refinement Types
+
+### Ordered Lists
+
+Sometimes, it's desired to prove some structure behaviors, like the fact that a
+list contains sorted values. Enso allows expressing such constraints in a simple
+way. They are often called behavioral types, as they describe the behavior to be
+checked. First, let's consider a simple List implementation and see how we can
+create a refined type using the high level interface:
+
+```haskell
+type List elems
+    Empty
+    Cons
+        head : elems
+        tail : List elems
+
+ordered = refined lst ->
+    if lst is empty
+        then true
+        else lst.head < lst.tail.elems
+          && isOrdered lst.tail
+```
+
+That's it! Now we can use it like this:
+
+```haskell
+lst1 = []      : Ordered List Int -- OK
+lst1 = [1,2,3] : Ordered List Int -- OK
+lst1 = [3,2,1] : Ordered List Int -- ERROR
+```
+
+#### Under the Hood
+
+Let's understand how the above example works. First, let's implement it in an
+inextendible way, just as a data type which cannot be used for other purpose:
+
+```haskell
+data OrderedList elems
+    Empty
+    Cons
+        head : elems
+        tail : OrderedList (elems & Refinement (> my.head))
+```
+
+The implementation is almost the same, however, the type of the `tail` is much
+more interesting. It's an intersection of `elems` and a `Refinement` type. A
+refinement type defines a set of values matching the provided requirement. Here,
+values in `tail` have to be a subtype of `elems` and also have to be bigger than
+the `head` element. Alternatively, you could express the type as:
+
+```haskell
+data OrderedList elems
+    Empty
+    Cons
+        head : elems
+        tail : OrderedList (t:elems & if t > my.head then t else Void)
+```
+
+In both cases, we are using functions applied with type sets. For example,
+`my.head` may resolve to a specific negative number while `t` may resolve to any
+natural one.
+
+Let's extract the `isOrdered` function from the original example. The function
+takes a list as an argument and checks if all of its elements are in an
+ascending order. It's worth noting that Enso allows accessing the named type
+variable parameters like `lst.tail.elems`. Moreover, let's define a helper
+function `refine`:
+
+```haskell
+isOrdered : List elems -> Bool
+isOrdered lst =
+    if lst is Empty
+        then true
+        else lst.head < lst.tail.elems
+          && isOrdered lst.tail
+
+refine f = $ Refinement f
+```
+
+Having this function, we could now use it like:
+
+```haskell
+lst1 = []      : Refine IsOrdered (List Int) -- OK
+lst1 = [1,2,3] : Refine IsOrdered (List Int) -- OK
+lst1 = [3,2,1] : Refine IsOrdered (List Int) -- ERROR
+```
+
+We can now define an alias `ordered = refine isOrdered`, however it would have
+to be used like `Ordered (List Int)`, but in the first example we've been using
+it like `Ordered List Int`. It was possible because there is a very special
+function defined in the standard library:
+
+```haskell
+applyToResult f tgt = case tgt of
+    (_ -> _) -> applyToResult << tgt
+    _        -> f tgt
+
+refined  = applyToResult << refine
+```
+
+The `applyToResult` function is very simple, although, from the first sight it
+may look strange. It just takes a function `f` and an argument and if the
+argument was not a function, then it applies `f` to it. If the argument was a
+function, it just skips it and does the same to the result of the function. Now,
+we can define the `refined` function which we used on the beginning as:
+
+```haskell
+refined = applyToResult << refine
+```
+
+It can be used either as shown in the original example or on the result of the
+type expression directly:
+
+```haskell
+ordered = refined isOrdered
+lst1 = []      : Ordered (List Int) -- OK
+lst1 = [1,2,3] : Ordered (List Int) -- OK
+lst1 = [3,2,1] : Ordered (List Int) -- ERROR
 ```
 
 # Type Inference
@@ -1667,6 +1678,47 @@ num3 = num2 catch case
 -- num3 : Dynamic
 num4 = num3 - 1 -- : Dynamic ! DynamicError
 
+```
+
+---
+
+```haskell
+type Maybe a
+    Just value:a
+    Nothing
+
+    map : (a -> b) -> Maybe b
+    map f = case me
+        Just a  -> Just (f a)
+        Nothing -> Nothing
+```
+
+```haskell
+type Nothing
+type Just value
+maybe a = just a | nothing
+
+map : (a -> b) -> Maybe a -> Maybe b
+map f me = case me
+    Just a  -> Just (f a)
+    Nothing -> Nothing
+```
+
+```haskell
+obj.__model__ =
+    { atom  : Text
+    , dict  : Map Text Any
+    , info  :
+        { doc  : Text
+        , name : Text
+        , code : Text
+        , loc  : Location
+        }
+    , arg  : -- used only when calling like a function
+        { doc     : Text
+        , default : Maybe Any
+        }
+    }
 ```
 
 # Lists
