@@ -3636,7 +3636,7 @@ class LQueryValue:
     ValReal        Real
     ValTimestampNs Int
     Operation Text (List LQueryValue)
-    Condition Predicate LQueryValue LQueryValue
+    Condition (Predicate LQueryValue) LQueryValue LQueryValue
 
     # Serializes an LQuery value to its JSON representation.
     # Note: the JSON representation is meant to allow passing LQuery values to
@@ -3690,7 +3690,7 @@ class LQueryValue:
 # In future `a` should be just replaced with LQueryValue.
 class Predicate a:
     Predicate Text (List a)
-    Boolean   Text (List Predicate)
+    Boolean   Text (List (Predicate a))
 
     def and that: Boolean "and" [self, that]
     def or  that: Boolean "or"  [self, that]
