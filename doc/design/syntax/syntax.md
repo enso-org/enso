@@ -1,4 +1,4 @@
-# Enso. Simplicity and Correctness
+# Enso: Simplicity and Correctness
 
 Enso is an award winning, general purpose, purely functional programming
 language with a double visual and textual representations. Enso was designed to
