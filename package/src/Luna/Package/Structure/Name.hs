@@ -12,44 +12,47 @@ import System.FilePath (FilePath)
 -- === Package Component Names === --
 -------------------------------------
 
-distDir :: FilePath
-distDir = "dist"
+distDir :: Path.Path Path.Rel Path.Dir
+distDir = $(Path.mkRelDir "dist")
 
-srcDir :: FilePath
-srcDir = "src"
+srcDir :: Path.Path Path.Rel Path.Dir
+srcDir = $(Path.mkRelDir "src")
 
-testDir :: FilePath
-testDir = "test"
+testDir :: Path.Path Path.Rel Path.Dir
+testDir = $(Path.mkRelDir "test")
 
-configFile :: FilePath
-configFile = "config.yaml"
+configFile :: Path.Path Path.Rel Path.File
+configFile = $(Path.mkRelFile "config.yaml")
 
-depsFile :: FilePath
-depsFile = "deps.yaml"
+depsFile :: Path.Path Path.Rel Path.File
+depsFile = $(Path.mkRelFile "deps.yaml")
 
-depsHistFile :: FilePath
-depsHistFile = "deps-history.yaml"
+depsHistFile :: Path.Path Path.Rel Path.File
+depsHistFile = $(Path.mkRelFile "deps-history.yaml")
 
-lirDir :: FilePath
-lirDir = ".lir"
+lirDir :: Path.Path Path.Rel Path.Dir
+lirDir = $(Path.mkRelDir ".lir")
 
-mainFile :: FilePath
-mainFile = "Main.luna"
+mainFile :: Path.Path Path.Rel Path.File
+mainFile = $(Path.mkRelFile "Main.luna")
 
-licenseFile :: FilePath
-licenseFile = "LICENSE"
+licenseFile :: Path.Path Path.Rel Path.File
+licenseFile = $(Path.mkRelFile "LICENSE")
 
-readmeFile :: FilePath
-readmeFile = "README.md"
+readmeFile :: Path.Path Path.Rel Path.File
+readmeFile = $(Path.mkRelFile "README.md")
 
-gitignoreFile :: FilePath
-gitignoreFile = ".gitignore"
+gitignoreFile :: Path.Path Path.Rel Path.File
+gitignoreFile = $(Path.mkRelFile ".gitignore")
 
 packageExt :: String
-packageExt = ".lunaproject"
+packageExt = "lunaproject"
 
 lunaFileExt :: String
-lunaFileExt = ".luna"
+lunaFileExt = "luna"
+
+lunaFileExtWithDot :: String
+lunaFileExtWithDot = ".luna"
 
 localLibsPath :: Path Rel Dir
 localLibsPath = $(Path.mkRelDir "local_libs")

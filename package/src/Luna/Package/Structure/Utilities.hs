@@ -5,7 +5,9 @@ import Prologue
 import qualified Luna.Package.Structure.Name   as Name
 import qualified Luna.Syntax.Text.Lexer.Runner as Lexer
 import qualified Luna.Syntax.Text.Lexer.Symbol as Symbol
+import qualified Luna.Path.Path                as Path
 import qualified Path                          as Path
+import qualified Path.IO                       as Path
 import qualified System.Directory              as Directory
 import qualified System.FilePath               as FilePath
 
@@ -19,14 +21,31 @@ import Luna.Syntax.Text.Lexer.Token as Token
 
 -- === API === --
 
-isValidPkgName :: String -> Bool
-isValidPkgName name = length validTokens == 1
+isValidPkgName :: Path.Path Path.Rel Path.Dir -> Bool
+isValidPkgName path = length validTokens == 1
     where validTokens = catMaybes $ Symbol.matchCons . view Token.element
-                                <$> Lexer.evalDefLexer (convert name)
+                                <$> Lexer.evalDefLexer (convert $ Path.toFilePath path)
 
-findParentPackageIfInside :: MonadIO m => FilePath -> m (Maybe FilePath)
+findParentPackageIfInside :: MonadIO m => Path.Path Path.Abs Path.Dir -> m (Maybe (Path.Path Path.Abs Path.Dir))
 findParentPackageIfInside path = do
-    let parentPath = FilePath.takeDirectory path
+    let parentPath = Path.parent path
+
+    canonicalPath   <- Path.canonicalizePath
+        $ parentPath Path.</> Name.configDirectory
+    hasPkgConfigDir <- Path.doesDirExist canonicalPath
+
+    if hasPkgConfigDir then
+        pure $ Just parentPath
+    else if not $ Path.isDrive parentPath then
+        findParentPackageIfInside parentPath
+    else pure Nothing
+
+
+{-
+
+findParentPackageIfInside :: MonadIO m => Path.Path Path.Abs Path.Dir -> m (Maybe FilePath)
+findParentPackageIfInside path = do
+    let parentPath = Path.parent path
 
     canonicalPath   <- liftIO . Directory.canonicalizePath
         $ parentPath </> Path.fromRelDir Name.configDirectory
@@ -37,4 +56,4 @@ findParentPackageIfInside path = do
     else if not $ FilePath.isDrive parentPath then
         findParentPackageIfInside parentPath
     else pure Nothing
-
+-}

@@ -76,9 +76,10 @@ renameAndCheck name origPath newPath = do
             cfg `hasName` convert name
 
     -- Check `*.lunaproject` has been renamed
+    -- TODO JCM -> Path-isfied
     let projPath = Path.fromAbsDir renamedPath
             </> Path.fromRelDir Name.configDirectory
-            </> name <> Name.packageExt
+            </> name <> Name.packageExtWithDot
 
     projExists <- Directory.doesFileExist projPath
     projExists `shouldBe` True

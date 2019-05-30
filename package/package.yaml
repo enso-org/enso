@@ -52,6 +52,7 @@ dependencies:
     - megaparsec
     - mtl
     - path >= 0.6.0
+    - path-io >= 1.4.0
     - prologue
     - safe-exceptions
     - text

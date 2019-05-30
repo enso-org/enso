@@ -11,9 +11,11 @@ library:
         - src
     dependencies:
         - base
+        - exceptions
         - path
         - path-io
         - filepath
+
 
 
 tests:
