@@ -166,10 +166,6 @@ principles designed to keep the required cognitive effort low:
    In particular, it should provide guidance regarding possible next steps and
    human readable error messages.
 
-## Immediate Connection To Data
-
-We believe that the creation of software is a very creative process. [...]
-
 # Textual Representation
 
 ## Encoding
@@ -211,8 +207,22 @@ want to help us design an Enso Font, don't hesitate to tell us about it!
 
 ## Layout rules
 
-Enso uses indentation to determine the structure of the code. The layout rules
-were designed to be both flexible yet enforce good practices.
+The layout rules were designed to be both flexible yet enforce good practices.
+
+### Maximum Line Length
+
+The maximum line length is 80 characters. If your code exceeds that, the
+compiler will emit warning message about it. There is no way to change this
+setting on purpose. Limiting the required editor window width makes it possible
+to have several files open side-by-side, and works well when using code review
+tools that present the two versions in adjacent columns. The default wrapping in
+most tools disrupts the visual structure of the code, making it more difficult
+to understand. The limits are chosen to avoid wrapping in editors with the
+window width set to 80.
+
+### Indentation Blocks
+
+Enso uses indentation to determine the structure of the code.
 
 In general, every indented line consists a sub-structure of the nearest previous
 line with a smaller indentation. We refer to them as child line and parent line,
@@ -401,7 +411,6 @@ side of assignment operator and on the left side of lambda operator.
 
 ## To Be Described
 
-- creating variables
 - explicit typing
 - immutable memory
 
@@ -577,14 +586,14 @@ The following rules apply:
 - Two notations, one semantics. Both notations are equivalent and always resolve
   to the same behavior.
 
-- The expression `base.fn` is a syntactic sugar for `fn (me=base)`. In most
-  cases, the `me` argument is the last argument to a function, however,
+- The expression `base.fn` is a syntactic sugar for `fn (this=base)`. In most
+  cases, the `this` argument is the last argument to a function, however,
   sometimes the argument name could be omitted. Consider the following example
   including sample implementation of the concatenation operator:
 
   ```haskell
   >> : (a -> b) -> (b -> c) -> a -> c
-  >> f g me = g $ f me
+  >> f g this = g $ f this
 
   vecLength = map (^2) >> sum >> sqrt
   print $ [3,4].vecLength -- Result: 5
@@ -601,7 +610,7 @@ Function resolution:
   2. If not, find all functions with the matching name in the current module and
      all directly imported modules. These functions are the _candidates_.
   3. Eliminate any candidate `X` for which there is another candidate `Y` whose
-     `me` argument type is strictly more specific. That is, `Y` self type is a
+     `this` argument type is strictly more specific. That is, `Y` self type is a
      substitution of `X` self type but not vice versa.
   4. If not all of the remaining candidates have the same self type, the search
      fails.
@@ -789,7 +798,9 @@ main =
                 answerLoop
 ```
 
-## Named Arguments
+## Arguments
+
+### Named Arguments
 
 Unlike the majority of purely functional programming languages, Enso supports
 calling functions by providing arguments by name. Consider a function that
@@ -802,8 +813,6 @@ arguments are named and can be used explicitly when evaluating the function.
 sphere : Number -> Point -> Color -> Geometry.Type
 sphere radius position color type = undefined
 ```
-
-### Usage
 
 Remembering the order of the arguments is cumbersome. Such code is also often
 hard to understand and reason about:
@@ -830,81 +839,7 @@ s1 = sphere
     creator  = geometry.NURBS
 ```
 
-### Type Variables Scoping
-
-The type variable names are also part of the function signature and can be
-assigned with values. To understand better how the mechanism work, let's
-consider a simple code and a few transformations. First, lets define a sum
-function with both its argument and its result of the same type:
-
-```haskell
-sum (a:t) (b:t) = a + b : t
-```
-
-Of course, the function can be provided with an example signature:
-
-```haskell
-sum : (a:t) -> (b:t) -> t
-sum a b = a + b
-```
-
-We can also use currying for the function definition:
-
-```haskell
-sum : (a:t) -> (b:t) -> t
-sum = +
-```
-
-Even when using the last form, we can evaluate the function by providing
-arguments by names:
-
-```haskell
-value = sum
-    a = 1
-    b = 2
-```
-
-However, please note that the expression `value = sum (t = 1)` will fail, as
-both arguments as well as the result will be assigned with `1`, which clearly is
-incorrect, as `1 + 1 /= 1`.
-
-### Open Questions
-
-- Do we want to support explicit signatures for the following use case? The
-  function `f` is applied with two named arguments, but we do not know their
-  ordering. We only know that the function accepts at least `3` arguments and
-  that the 3rd argument can be `7`.
-
-  ```haskell
-  test : a -> b -> (<<a,b>> -> 7 -> x) -> x
-  test a b f = f (x=a) (y=b) 7
-  ```
-
-- Do we want to support type applications?
-
-  ```haskell
-  sum : t -> t -> t
-  sum a b = a + b
-
-  intSum = sum (t := Int)
-  ```
-
-- Should this code work (double `b` name)? If so, what is the type signature
-  containing names?
-
-  ```haskell
-  fn1 c b d = a + 1
-  fn2 a b   = fn1
-
-  value = fn2
-      a = 1
-      b = 2
-      c = 3
-      b = 4
-      d = 5
-  ```
-
-## Default Arguments
+### Default Arguments
 
 Consider the sphere example above again. Providing always all the arguments
 manually is both cumbersome and error prone:
@@ -941,7 +876,7 @@ centeredSphere = sphere
     ...
 ```
 
-## Positional Arguments
+### Positional Arguments
 
 Enso supports so called positional arguments call syntax. Consider the sphere
 example above. How can you define a new function which accepts radius, color and
@@ -976,15 +911,217 @@ argument.
 squareFirstAndAddSecond = _ ^2 + _
 ```
 
+### Optional Arguments
+
+Optional arguments are not a new feature, they are modeled using the default
+arguments mechanism. Consider the following implementation of a `read` function,
+which reads a text and outputs a value of a particular type:
+
+```haskell
+read : Text -> t -> t
+read text this = t.fromText text
+```
+
+You can use this function by explicitly providing the type information in either
+of the following ways:
+
+```haskell
+val1 = read '5' Int
+val2 = Int.read '5'
+```
+
+However, the need to provide the type information manually could be tedious,
+especially in context when such information could be inferred, like when passing
+`val1` to a function accepting argument of the `Int` type. Let's re-write the
+function providing the default value for `this` argument to be ... itself!
+
+```haskell
+read : Text -> (t=t) -> t
+read text (this=this) = t.fromText text
+```
+
+The way it works is really simple. You can provide the argument explicitly,
+however, if you don't provide it, it's just assigned to itself, so no new
+information is provided to the compiler. If the compiler would not be able to
+infer it then, an error would be raised. Now, we are able to use it in all the
+following ways:
+
+```haskell
+fn : Int -> Int
+fn = id
+
+val1 = read '5' Int
+val2 = Int.read '5'
+val3 = read '5'
+fn val3
+```
+
+Enso provides a syntactic sugar for the `t=t` syntax. The above code can be
+written in a much nicer way as:
+
+```haskell
+read : Text -> t? -> t
+read text this? = t.fromText text
+```
+
+### Splats Arguments
+
+Enso provides both args and kwargs splats arguments. You can easily construct
+functions accepting variable number of both positional as well as keyword
+arguments. Splats arguments are an amazing utility mostly for creating very
+expressive EDSLs. Consider the following function which just prints arguments,
+each in a separate line:
+
+```haskell
+multiPring : args... -> Nothing in IO
+multiPrint = args... -> args.each case
+    Simple      val -> print val
+    Keyword key val -> print '#{key} = #{val}'
+
+multiPrint 1 2 (a=3) 4
+```
+
+```haskell
+--- Results ---
+1
+2
+a = 3
+4
+```
+
+## Variable Scoping
+
+Type variables, function variables, and lambda variables live in the same space
+in Enso. Moreover, as there is no distinction between types and values, you can
+use the same names both on type level as well as on value level because they
+refer to the same information in the end:
+
+```haskell
+mergeAndMap : f -> lst1 -> lst2 -> out
+mergeAndMap = f -> lst1 -> lst2 -> (lst1 + lst2) . map f
+```
+
+If different names are used on type level and on a value level to refer a
+variable, it's natural to think that this variable could be pointed just by two
+separate names. The following code is valid as well:
+
+```haskell
+mergeAndMap = (f : a -> b) -> (lst1 : List a) -> (lst2 : List a) -> (lst1 + lst2) . map f
+```
+
+Which, could also be distributed across separate lines as:
+
+```haskell
+mergeAndMap : (a -> b) -> List a -> List a -> List b
+mergeAndMap f lst1 lst2 = (lst1 + lst2) . map f
+```
+
+An interesting pattern can be observed in the code above. Taking in
+consideration that every value and type level expressions have always the same
+syntax, the lambda `(a -> b) -> List a -> List a -> List b` could not have much
+sense at the first glance, as there are three pattern matches shadowing the
+variable `a`. So how does it work? There is an important shadowing rule. **If in
+a chain of lambdas the same name was used in several pattern matches, the names
+are unified and have to be provided with the same value.** The chain of lambdas
+could be broken with any expression or code block.
+
+This rule could not make a lot of sense in the value level, as if you define
+function `add a a = a + a` you will be allowed to evaluate it as `add 2 2`, but
+not as `add 2 3`, however, you should not try to use the same names when
+defining functions on value level nevertheless.
+
+By applying this rule, the type of the above example makes much more sense now.
+Especially, when evaluated as `mergeAndMap show [1,2] ['a','b']`, the variables
+will be consequently instantiated as `a = Number | Text`, and `b = Text`, or to
+be very precise, `a = 1|2|'a'|'b'`, and `b = '1'|'2'|'a'|'b'`.
+
+Because type variables are accessible in the scope of a function, it's
+straightforward to define a polymorphic variable, which value will be an empty
+value for the expected type:
+
+```haskell
+empty : t
+empty = t.empty
+
+print (empty : List Int) -- Result: []
+print (empty : Text)     -- Result: ''
+```
+
+### Type Applications
+
+All libraries that sometimes need passing an explicit type from user should be
+designed as the `read` utility, so you can optionally pass the type if you want
+to, while it defaults to the inference otherwise. However, sometimes it's handy
+to just ad-hoc refine a type of a particular function, often for the debugging
+purposes. Luna allows to both apply values by name as well as refining types by
+name. The syntax is very similar, consider this simple function:
+
+```haskell
+checkLength : this -> Bool
+checkLength this =
+    isZero = this.length == 0
+    if isZero
+        then print "Oh, no!"
+        else print "It's OK!"
+    isZero
+```
+
+This function works on any type which has a method `length` returning a number.
+We can easily create a function with exactly the same functionality but it's
+input type restricted to accept lists only:
+
+```haskell
+checkListLength = checkLength (this := List a)
+```
+
+As stated earlier, in most cases there is a nicer way of expressing such logic.
+In this case, it would be just to create a function with an explicit type. The
+following code is equivalent to the previous one:
+
+```haskell
+checkListLength : List a -> Bool
+checkListLength = checkLength
+```
+
+### Open Questions
+
+- Do we want to support explicit signatures for the following use case? The
+  function `f` is applied with two named arguments, but we do not know their
+  ordering. We only know that the function accepts at least `3` arguments and
+  that the 3rd argument can be `7`.
+
+  ```haskell
+  test : a -> b -> (<<a,b>> -> 7 -> x) -> x
+  test a b f = f (x=a) (y=b) 7
+  ```
+
+- Should this code work (double `b` name)? If so, what is the type signature
+  containing names?
+
+  ```haskell
+  fn1 c b d = a + 1
+  fn2 a b   = fn1
+
+  value = fn2
+      a = 1
+      b = 2
+      c = 3
+      b = 4
+      d = 5
+  ```
+
+##
+
 # Data Types
 
-## Atomic Data Types
+## Constructor Types
 
-Atomic types are the most primitive structures in Enso. Formally, atomic types
-are [product types](https://en.wikipedia.org/wiki/Product_type). Their fields
-are always named and are fully polymorphic (each field has a distinct
-polymorphic type). Atoms are distinguishable. You are not allowed to pass an
-atom to a function accepting other atom, even if their fields are named the same
+Constructors define the most primitive way to construct a type, it's where they
+name comes from. Formally, they are
+[product types](https://en.wikipedia.org/wiki/Product_type). Their fields are
+always named and fully polymorphic (each field has a distinct polymorphic type).
+Constructors are distinguishable. You are not allowed to pass an constructor to
+a function accepting other constructor, even if their fields are named the same
 way.
 
 ```haskell
@@ -1002,21 +1139,21 @@ test pt1 -- Compile time error. Expected Vec3, got Point3.
 
 ## Algebraic Data Types
 
-Enso allows you to define new types by combining existing ones, so called
-[algebraic data types](https://en.wikipedia.org/wiki/Algebraic_data_type). Enso
-provides you with several algebraic operations on types:
+Enso allows you to define new types by combining existing ones into so called
+[algebraic data types](https://en.wikipedia.org/wiki/Algebraic_data_type). There
+are several algebraic operations on types available:
 
-- **Types Intersection**  
+- **Intersection**  
   A type intersection combines multiple types into one type that has all the
   features combined. For example, `Serializable & Showable` describes values
   that provide mechanisms for both serialization and printing.
 
-- **Types Difference**  
+- **Difference**  
   A type difference combines multiple types into one type that has all the
   features of the first type but not the features of the second one. For
   example, `Int \ Negative` describes all positive integer values or zero.
 
-- **Types Union**  
+- **Union**  
   A type union combines multiple types into one type that describes a value
   being of one of the types. For example, `Int | String` describes values that
   are either `Int` or `String`.
@@ -1044,7 +1181,7 @@ type Maybe a
     Nothing
 
     map : (a -> b) -> Maybe b
-    map f = case me
+    map f = case this
         Just a  -> Just (f a)
         Nothing -> Nothing
 ```
@@ -1254,7 +1391,7 @@ data OrderedList elems
     Empty
     Cons
         head : elems
-        tail : OrderedList (elems & Refinement (> my.head))
+        tail : OrderedList (elems & Refinement (> this.head))
 ```
 
 The implementation is almost the same, however, the type of the `tail` is much
@@ -1268,12 +1405,12 @@ data OrderedList elems
     Empty
     Cons
         head : elems
-        tail : OrderedList (t:elems & if t > my.head then t else Void)
+        tail : OrderedList (t:elems & if t > this.head then t else Void)
 ```
 
 In both cases, we are using functions applied with type sets. For example,
-`my.head` may resolve to a specific negative number while `t` may resolve to any
-natural one.
+`this.head` may resolve to a specific negative number while `t` may resolve to
+any natural one.
 
 Let's extract the `isOrdered` function from the original example. The function
 takes a list as an argument and checks if all of its elements are in an
@@ -1627,11 +1764,11 @@ interfaces) should be accessible and extendible in such way.
 ```haskell
 class Point a
     P3 x:a y:a z:a
-        fnfield : me
-        fnfield = P3 my.x my.x my.x
+        fnfield : this
+        fnfield = P3 this.x this.x this.x
 
     length : a
-    length = my.x^2 + my.y^2 + my.z^2 . sqrt
+    length = this.x^2 + this.y^2 + this.z^2 . sqrt
 
 p1 = P3 1 2 3
 print $ p1.fields            -- <Map Text Field>
@@ -1641,7 +1778,7 @@ p2 = p1.fields.set "fnfield" $ p -> V3 p.y 0 p.y
 print $ p2.fnfield           -- V3 2 0 2
 
 p3 = p1.fields.set "tupleFields" $ p -> [p.x, p.y, p.z]
-print $ typeOf p3            -- P3 1 2 3 & {tupleFields: [my.x, my.y, my.z]}
+print $ typeOf p3            -- P3 1 2 3 & {tupleFields: [this.x, this.y, this.z]}
 print p3.tupleFields         -- [1,2,3]
 p4 = p3.tupleFields = [7,8,9]
 print p4                     -- P3 7 8 9
@@ -1688,7 +1825,7 @@ type Maybe a
     Nothing
 
     map : (a -> b) -> Maybe b
-    map f = case me
+    map f = case this
         Just a  -> Just (f a)
         Nothing -> Nothing
 ```
@@ -1699,7 +1836,7 @@ type Just value
 maybe a = just a | nothing
 
 map : (a -> b) -> Maybe a -> Maybe b
-map f me = case me
+map f this = case this
     Just a  -> Just (f a)
     Nothing -> Nothing
 ```
