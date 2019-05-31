@@ -42,6 +42,7 @@ they require.
 - [Subtyping and User-Facing Type Definitions](#subtyping-and-user-facing-type-definitions)
 - [Row Polymorphism and Inference](#row-polymorphism-and-inference)
 - [Unresolved Questions](#unresolved-questions)
+- [Dependency and Luna](#dependency-and-luna)
 - [Steps](#steps)
 - [References](#references)
 
@@ -967,6 +968,15 @@ read : String -> Ty? -> Ty
 - Dependent types as constructing proofs through combining types. Combining
   types provides evidence which can be discharged to create a proof. A value can
   then only be constructed by discharging a proof.
+
+# Dependency and Luna
+The ability to evaluate arbitrary functions on the type level inherently makes
+Luna a dependently typed language, as arbitrary values can appear in types.
+
+- The initial implementation will provide this facilities, but no system for
+  automating the proof steps (c.f. f-star), or interactive theorem proving.
+- While this allows people to express safety guarantees in the type system, it
+  is a natural consequence of Luna's design.
 
 # Steps
 

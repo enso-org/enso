@@ -1075,8 +1075,8 @@ main =
     print $ lessThan -1 Natural -- True
 ```
 
-Please note, that `lessThan -1 Natural` returns `True`, which is just more
-specific than `Bool` because it holds true for every natural number.
+Please note, that `lessThan -1 Natural` returns `True`, which is just more
+specific than `Bool` because it holds true for every natural number.
 
 ## Refinement Types
 
@@ -1138,7 +1138,7 @@ data OrderedList elems
 ```
 
 In both cases, we are using functions applied with type sets. For example,
-`my.head` may resolve to a specific negative number while `t` may resolve to any
+`my.head` may resolve to a specific negative number while `t` may resolve to any
 natural one.
 
 Let's extract the `isOrdered` function from the original example. The function
