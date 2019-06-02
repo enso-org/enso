@@ -1,22 +1,4 @@
-/** The tokens returned by the scanner. */
-
 package org.enso.syntax.text.lexer
-
-// class Token (index:Int, text:String, line:Int, charBegin:Int, charEnd:Int) {
-
-//   override def toString() : String = {
-//     return "Text   : " + text + "\nindex : " + index + "\nline  : " + line + "\ncBeg. : " + charBegin + "\ncEnd. : " + charEnd;
-//   }
-// }
-
-// sealed trait Tree[+A]
-// case object Leaf extends Node[Nothing]
-// case class  Node[A](data: A, left: Tree[A], right: Tree[A]) extends Tree[A]
-
-abstract class Bound
-case object Begin extends Bound
-case object End   extends Bound
-
 
 ///////////
 // Token //
@@ -32,103 +14,121 @@ case class Token (symbol:Symbol, offset:Int, span:Int)
 abstract class Symbol 
 
 // Identifiers
-case class  Var  (name:String) extends Symbol
-case class  Cons (name:String) extends Symbol
-case object Wildcard           extends Symbol
+case class  Var  (name:String)               extends Symbol
+case class  Cons (name:String)               extends Symbol
+case object Wildcard                         extends Symbol
 
 // Operators
-case class  Operator (name:String) extends Symbol
-case class  Modifier (name:String) extends Symbol
+case class  Operator (name:String)           extends Symbol
+case class  Modifier (name:String)           extends Symbol
+
+// Layout
+case object EOL                              extends Symbol
+case object EOF                              extends Symbol
+case object GroupBegin                       extends Symbol
+case object GroupEnd                         extends Symbol
+case object ListBegin                        extends Symbol
+case object ListEnd                          extends Symbol
+case object RecordBegin                      extends Symbol
+case object RecordEnd                        extends Symbol
 
 // Literals
-case object GroupBegin             extends Symbol
-case object GroupEnd               extends Symbol
-case object ListBegin              extends Symbol
-case object ListEnd                extends Symbol
-case object RecordBegin            extends Symbol
-case object RecordEnd              extends Symbol
-
+case object Quote                     extends Symbol
+case object QuoteRaw                         extends Symbol
+case class  Text       (text:String)         extends Symbol
+case class  TextEscape (esc:TextEscapeType)  extends Symbol
+case object TextInterpolateBegin             extends Symbol
+case object TextInterpolateEnd               extends Symbol
+case class  Number     (base:Int
+                       ,intPart:List[Int]
+                       ,fracPart:List[Int])  extends Symbol
 
 // Invalid
-case class  Invalid (reason:InvalidReason) extends Symbol
+case class  Invalid   (reason:InvalidReason) extends Symbol
+case class  Unmatched (char:String)          extends Symbol
 
 
+
+//////////////////
+// Text Escapes //
+//////////////////
+
+abstract class TextEscapeType
+case class  CharEscape     (code:Int)       extends TextEscapeType
+case class  CtrlEscape     (code:Int)       extends TextEscapeType
+case class  IntEscape      (code:Int)       extends TextEscapeType
+case class  Uni16Escape    (code:Int)       extends TextEscapeType
+case class  Uni32Escape    (code:Int)       extends TextEscapeType
+case class  Uni21Escape    (code:Int)       extends TextEscapeType
+case object QuoteEscape                     extends TextEscapeType
+case object RawQuoteEscape                  extends TextEscapeType
+case object SlashEscape                     extends TextEscapeType
+case class  InvalidCharEscape  (char:Char)  extends TextEscapeType
+case class  InvalidUni32Escape (str:String) extends TextEscapeType
+case class  InvalidUni21Escape (str:String) extends TextEscapeType
+
+
+
+/////////////
+// Invalid //
+/////////////
 
 abstract class InvalidReason
 case class UnexpectedSuffix (text:String) extends InvalidReason
 
-case class Unmatched (char:String) extends Symbol
 
-// data Symbol
-// // Layout
-// case class STX
-// case class ETX
-// case class EOL
-// case class Terminator
-// case class BlockStart
-// case class Block       !Bound
-// case class Group       !Bound
-// case class Marker      !Word64
 
-//     -- Ident
-//     | Var          !Text32
-//     | Cons         !Text32
-//     | Wildcard
+////////////////
+// Companions //
+////////////////
 
-//     -- Keyword
-//     | KwCase
-//     | KwClass
-//     | KwDef
-//     | KwForeign
-//     | KwImport
-//     | KwNative
-//     | KwOf
+object Number {
+  def charToDigit (char:Char): Int = {
+    val i = char.toInt
+    if (i >= 48 && i <= 57)  { return i - 48 } // 0 to 9
+    if (i >= 65 && i <= 90)  { return i - 55 } // A to Z
+    if (i >= 97 && i <= 122) { return i - 87 } // a to z
+    return -1
+  }
 
-//     -- Operator
-//     | Operator    !Text32
-//     | Modifier    !Text32
-//     | Accessor
+  def stringToDigits (str:String): List[Int] = {
+    str.toList.map(charToDigit)
+  }
 
-//     -- | Arrow
-//     | Assignment
-//     | Typed
-//     | TypeApp
-//     | Merge
-//     | Range
-//     | Anything
+  def fromString(base:String, intPart:String, fracPart:String): Number = {
+    val base2 = if (base == "") 10 else base.toInt
+    return Number(base2,stringToDigits(intPart), stringToDigits(fracPart))
+  }
+}
 
-//     -- Literal
-//     | Number      !Number
-//     | Quote       !StrType  !Bound
-//     | Str         !Text32
-//     | StrEsc      !StrEscType
-//     | List        !Bound
+object IntEscape {
+  def fromString(code:String): IntEscape = {
+    IntEscape(code.toInt)
+  }
+}
 
-//     -- Comment
-//     | Disable
-//     | Doc         !Text32
+object CharEscape {
+  def fromChar(c:Char): CharEscape = {
+    CharEscape(c.toInt)
+  }
+}
 
-//     -- Config
-//     | Metadata    !Text32
-//     -- | Pragma ...
+object Uni32Escape {
+  def fromString(str:String): TextEscapeType = {
+    try {
+      return Uni32Escape(Integer.parseInt(str,16))
+    } catch {
+      case e:Exception => return InvalidUni32Escape(str)
+    }
+  }
+}
 
-//     -- Other
-//     | Unknown     !Text32 -- DEPRECATED
-//     | Incorrect   !Text32 -- DEPRECATED
-//     | Invalid     !Invalid.Symbol
-//     deriving (Eq, Generic, Ord, Show)
-
-// data StrEscType
-//     = CharStrEsc  !Int
-//     | NumStrEsc   !Int
-//     | QuoteEscape !StrType
-//     | SlashEsc
-//     deriving (Eq, Generic, Ord, Show)
-
-// data Bound   = Begin | End              deriving (Eq, Generic, Ord, Show)
-// data StrType = RawStr | FmtStr | NatStr deriving (Eq, Generic, Ord, Show)
-// data Number  = NumRep
-//     { _base     :: Word8
-//     , _intPart  :: [Word8]
-//     , _fracPart :: [Word8]
-//     } deriving (Eq, Generic, Ord, Show)
+object Uni21Escape {
+  def fromString(str:String): TextEscapeType = {
+    try {
+      return Uni21Escape(Integer.parseInt(str,16))
+    } catch {
+      case e:Exception => return InvalidUni21Escape(str)
+    }
+  }
+}

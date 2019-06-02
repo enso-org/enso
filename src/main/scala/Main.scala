@@ -24,8 +24,8 @@ object Main extends App {
     // // try {
     //   // java.io.FileInputStream stream = new java.io.FileInputStream(argv[i])
     //   // java.io.Reader reader = new java.io.InputStreamReader(stream, encodingName)
-      val reader = new StringReader("a : b")
-      val scanner = new Lexer(reader)
+      val reader = new StringReader("a\nb")
+      val scanner = new Scanner(reader)
       do {
         val token = scanner.lex
         System.out.println(">>", token)
