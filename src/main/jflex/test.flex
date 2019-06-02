@@ -1,93 +1,144 @@
-/* this is the scanner example from the JLex website 
-   (with small modifications to make it more readable) */
-
 package org.enso.syntax.text.lexer;
+import java.util.Stack;
 
+/**
+ * Enso scanner 
+ */
 %%
 
 %{
   private int comment_count = 0;
+  private int lastOffset    = 0;
+
+  private Stack<Integer> zzLexicalStateStack = new Stack<Integer>();
+
+  public final void pushState(int state) {
+    zzLexicalStateStack.push(zzLexicalState);
+    yybegin(state);
+  }
+
+  public final void popState() {
+    yybegin(zzLexicalStateStack.pop());
+  }
 
   public boolean done(){
     return zzAtEOF;
   }
+
+  public Token lex() throws java.io.IOException {
+    return yylex();
+  }
+
+  public Token token(Symbol symbol) {
+    int offset = lastOffset;
+    lastOffset = 0;
+    return new Token(symbol,offset,yylength()); 
+  }
+
+  public Token var()              { return token(new Var  (yytext())); }
+  public Token cons()             { return token(new Cons (yytext())); }
+  public Token wildcard()         { return token(Wildcard$.MODULE$);   }
+  public Token unexpectedSuffix() { return token(invalid(new UnexpectedSuffix (yytext()))); }
+  public Token operator()         { return token(new Operator (yytext())); }
+  public Token modifier()         { return token(new Modifier (yytext())); }
+  public Token groupBegin()       { return token(GroupBegin$.MODULE$); }
+  public Token groupEnd()         { return token(GroupEnd$.MODULE$); }
+  public Token listBegin()        { return token(ListBegin$.MODULE$); }
+  public Token listEnd()          { return token(ListEnd$.MODULE$); }
+  public Token recordBegin()      { return token(RecordBegin$.MODULE$); }
+  public Token recordEnd()        { return token(RecordEnd$.MODULE$); }
+  public Token unmatched()        { return token(new Unmatched(yytext())); }
+  public Symbol invalid(InvalidReason reason) { 
+    return new Invalid (reason); 
+  }
 %} 
 
 %class Lexer
+%type  Token
 %line
 %column
 %char
 %state COMMENT
 %unicode
+// %debug
+%apiprivate
 
-%debug
-
-ALPHA=[A-Za-z]
-DIGIT=[0-9]
+// Prims
+digit           = [0-9]
+alpha_upper     = [A-Z]
+alpha_lower     = [a-z]
+alpha           = {alpha_lower} | {alpha_upper}
+alphanum        = {alpha} | digit
 NONNEWLINE_WHITE_SPACE_CHAR=[\ \t\b\012]
 NEWLINE=\r|\n|\r\n
-WHITE_SPACE_CHAR=[\n\r\ \t\b\012]
-STRING_TEXT=(\\\"|[^\n\r\"]|\\{WHITE_SPACE_CHAR}+\\)*
-COMMENT_TEXT=([^*/\n]|[^*\n]"/"[^*\n]|[^/\n]"*"[^/\n]|"*"[^/\n]|"/"[^*\n])+
-Ident = {ALPHA}({ALPHA}|{DIGIT}|_)*
+
+// Identifiers
+ident_body_char = {alphanum} | _
+ident_body      = {ident_body_char}*(\')*
+ident_var       = {alpha_lower}{ident_body}
+ident_cons      = {alpha_upper}{ident_body}
+wildcard        = _
+ident_unexpected_sfx_char = [^\!\@\#\$\%\^\&\*\(\)\-\=\+\[\]\{\}\|\;\:\<\>\,\.\/\ \t\r\n\\]
+ident_unexpected_sfx      = {ident_unexpected_sfx_char}+
+
+// Operators
+operator_char   = [\!\$\%\&\*\+\-\/\<\>\?\^\~\|\:\\]
+operator        = {operator_char}+
+modifier        = {operator}=
+operator_unexpected_sfx_char = {operator_char} | (\=) | (\,) | (\.)
+operator_unexpected_sfx      = {operator_unexpected_sfx_char}+
+
+
+// States
+%state AFTER_IDENT
+%state AFTER_OPERATOR
 
 %% 
 
 <YYINITIAL> {
-  "," { return (new Yytoken(0,yytext(),yyline,yychar,yychar+1)); }
-  ":" { return (new Yytoken(1,yytext(),yyline,yychar,yychar+1)); }
-  ";" { return (new Yytoken(2,yytext(),yyline,yychar,yychar+1)); }
-  "(" { return (new Yytoken(3,yytext(),yyline,yychar,yychar+1)); }
-  ")" { return (new Yytoken(4,yytext(),yyline,yychar,yychar+1)); }
-  "[" { return (new Yytoken(5,yytext(),yyline,yychar,yychar+1)); }
-  "]" { return (new Yytoken(6,yytext(),yyline,yychar,yychar+1)); }
-  "{" { return (new Yytoken(7,yytext(),yyline,yychar,yychar+1)); }
-  "}" { return (new Yytoken(8,yytext(),yyline,yychar,yychar+1)); }
-  "." { return (new Yytoken(9,yytext(),yyline,yychar,yychar+1)); }
-  "+" { return (new Yytoken(10,yytext(),yyline,yychar,yychar+1)); }
-  "-" { return (new Yytoken(11,yytext(),yyline,yychar,yychar+1)); }
-  "*" { return (new Yytoken(12,yytext(),yyline,yychar,yychar+1)); }
-  "/" { return (new Yytoken(13,yytext(),yyline,yychar,yychar+1)); }
-  "=" { return (new Yytoken(14,yytext(),yyline,yychar,yychar+1)); }
-  "<>" { return (new Yytoken(15,yytext(),yyline,yychar,yychar+2)); }
-  "<"  { return (new Yytoken(16,yytext(),yyline,yychar,yychar+1)); }
-  "<=" { return (new Yytoken(17,yytext(),yyline,yychar,yychar+2)); }
-  ">"  { return (new Yytoken(18,yytext(),yyline,yychar,yychar+1)); }
-  ">=" { return (new Yytoken(19,yytext(),yyline,yychar,yychar+2)); }
-  "&"  { return (new Yytoken(20,yytext(),yyline,yychar,yychar+1)); }
-  "|"  { return (new Yytoken(21,yytext(),yyline,yychar,yychar+1)); }
-  ":=" { return (new Yytoken(22,yytext(),yyline,yychar,yychar+2)); }
 
-  {NONNEWLINE_WHITE_SPACE_CHAR}+ { }
+  {NONNEWLINE_WHITE_SPACE_CHAR}+ { lastOffset = yytext().length(); }
 
-  "/*" { yybegin(COMMENT); comment_count++; }
+  // Identifiers
+  {ident_var}  { pushState(AFTER_IDENT); return var();}  
+  {ident_cons} { pushState(AFTER_IDENT); return cons();}  
+  {wildcard}   { pushState(AFTER_IDENT); return wildcard();}
 
-  \"{STRING_TEXT}\" {
-    String str =  yytext().substring(1,yylength()-1);
-    return (new Yytoken(40,str,yyline,yychar,yychar+yylength()));
-  }
-  
-  \"{STRING_TEXT} {
-    String str =  yytext().substring(1,yytext().length());
-    Utility.error(Utility.E_UNCLOSEDSTR);
-    return (new Yytoken(41,str,yyline,yychar,yychar + str.length()));
-  } 
-  
-  {DIGIT}+ { return (new Yytoken(42,yytext(),yyline,yychar,yychar+yylength())); }  
+  // Operators
+  {operator}   { pushState(AFTER_OPERATOR); return operator(); }
+  (\=)         { pushState(AFTER_OPERATOR); return operator(); }
+  (\=\=)       { pushState(AFTER_OPERATOR); return operator(); }
+  (\>\=)       { pushState(AFTER_OPERATOR); return operator(); }
+  (\<\=)       { pushState(AFTER_OPERATOR); return operator(); }
+  (\/\=)       { pushState(AFTER_OPERATOR); return operator(); }
+  (\,)         { pushState(AFTER_OPERATOR); return operator(); }
+  (\.)         { return operator(); }
+  (\.\.)       { pushState(AFTER_OPERATOR); return operator(); }
+  (\.\.\.)     { pushState(AFTER_OPERATOR); return operator(); }
+  {modifier}   { pushState(AFTER_OPERATOR); return modifier(); }
 
-  {Ident} { return (new Yytoken(43,yytext(),yyline,yychar,yychar+yylength())); }  
+  // Layout
+  (\()         { return groupBegin(); }
+  (\))         { return groupEnd();   }
+  (\[)         { return listBegin();  }
+  (\])         { return listEnd();    }
+  (\{)         { return recordBegin();  }
+  (\})         { return recordEnd();    }
 }
 
-<COMMENT> {
-  "/*" { comment_count++; }
-  "*/" { if (--comment_count == 0) yybegin(YYINITIAL); }
-  {COMMENT_TEXT} { }
+<AFTER_IDENT> {
+  {ident_unexpected_sfx} { return unexpectedSuffix(); }
+  .                      { yypushback(1); popState(); }
+}
+
+<AFTER_OPERATOR> {
+  {operator_unexpected_sfx} { return unexpectedSuffix(); }
+  .                         { yypushback(1); popState(); }
 }
 
 
-{NEWLINE} { }
+{NEWLINE} { lastOffset = yytext().length(); }
 
 . {
-  System.out.println("Illegal character: <" + yytext() + ">");
-	Utility.error(Utility.E_UNMATCHED);
+	return unmatched();
 }

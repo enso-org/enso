@@ -24,10 +24,11 @@ object Main extends App {
     // // try {
     //   // java.io.FileInputStream stream = new java.io.FileInputStream(argv[i])
     //   // java.io.Reader reader = new java.io.InputStreamReader(stream, encodingName)
-      val reader = new StringReader("15 17")
+      val reader = new StringReader("a : b")
       val scanner = new Lexer(reader)
       do {
-        System.out.println(scanner.yylex())
+        val token = scanner.lex
+        System.out.println(">>", token)
       } while (!scanner.done())
 
     // }

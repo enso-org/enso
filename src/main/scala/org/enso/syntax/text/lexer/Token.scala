@@ -17,10 +17,47 @@ abstract class Bound
 case object Begin extends Bound
 case object End   extends Bound
 
-abstract class Token 
-case class  Var  (name:String) extends Token
-case class  Cons (name:String) extends Token
-case object Wildcard           extends Token
+
+///////////
+// Token //
+///////////
+
+case class Token (symbol:Symbol, offset:Int, span:Int)
+
+
+////////////
+// Symbol //
+////////////
+
+abstract class Symbol 
+
+// Identifiers
+case class  Var  (name:String) extends Symbol
+case class  Cons (name:String) extends Symbol
+case object Wildcard           extends Symbol
+
+// Operators
+case class  Operator (name:String) extends Symbol
+case class  Modifier (name:String) extends Symbol
+
+// Literals
+case object GroupBegin             extends Symbol
+case object GroupEnd               extends Symbol
+case object ListBegin              extends Symbol
+case object ListEnd                extends Symbol
+case object RecordBegin            extends Symbol
+case object RecordEnd              extends Symbol
+
+
+// Invalid
+case class  Invalid (reason:InvalidReason) extends Symbol
+
+
+
+abstract class InvalidReason
+case class UnexpectedSuffix (text:String) extends InvalidReason
+
+case class Unmatched (char:String) extends Symbol
 
 // data Symbol
 // // Layout
