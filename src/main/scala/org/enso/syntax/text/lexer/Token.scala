@@ -33,8 +33,10 @@ case object RecordBegin                      extends Symbol
 case object RecordEnd                        extends Symbol
 
 // Literals
-case object Quote                     extends Symbol
-case object QuoteRaw                         extends Symbol
+case object TextBegin                        extends Symbol
+case object TextEnd                          extends Symbol
+case object TextRawBegin                     extends Symbol
+case object TextRawEnd                       extends Symbol
 case class  Text       (text:String)         extends Symbol
 case class  TextEscape (esc:TextEscapeType)  extends Symbol
 case object TextInterpolateBegin             extends Symbol

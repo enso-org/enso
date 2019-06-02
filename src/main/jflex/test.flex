@@ -133,8 +133,12 @@ import java.util.Stack;
   }
 
   // Strings
-  public Token quote()            { return token(Quote$.MODULE$); }
-  public Token quoteRaw()         { return token(QuoteRaw$.MODULE$); }
+  public Token textBegin()        { return token(TextBegin$.MODULE$); }
+  public Token textEnd()          { return token(TextEnd$.MODULE$); }
+  public Token textRawBegin()     { return token(TextRawBegin$.MODULE$); }
+  public Token textRawEnd()       { return token(TextRawEnd$.MODULE$); }
+  // public Token quote()            { return token(Quote$.MODULE$); }
+  // public Token quoteRaw()         { return token(QuoteRaw$.MODULE$); }
   public Token text()             { return token(new Text(yytext())); }
   public Token slashEscape()      { return token(new TextEscape(SlashEscape$.MODULE$)); }
   public Token quoteEscape()      { return token(new TextEscape(QuoteEscape$.MODULE$)); }
@@ -248,16 +252,16 @@ decimal = {digit}+
 }
 
 
-///////////////////
-// String Lexing //
-///////////////////
+//////////
+// Text //
+//////////
 
 <TEXT> {
   (\')+ {
     if (yylength() == quoteSize()) {
       popState();
       popQuoteSize();
-      return quote();
+      return textEnd();
     } else {
       return text();
     }
@@ -336,7 +340,7 @@ decimal = {digit}+
     if (yylength() == quoteSize()) {
       popState();
       popQuoteSize();
-      return quoteRaw();
+      return textRawEnd();
     } else {
       return text();
     }
@@ -353,9 +357,9 @@ decimal = {digit}+
 
 
 
-///////////////////////////////////////
-// Number Lexing (e.g. 16_ff0000.ff) //
-///////////////////////////////////////
+////////////////////////////////
+// Number (e.g. 16_ff0000.ff) //
+////////////////////////////////
 
 <NUMBER_PHASE2> {
   _[a-zA-Z0-9]+ { 
@@ -380,9 +384,9 @@ decimal = {digit}+
 
 
 
-/////////////////////////////
-// Unexpected suffix check //
-/////////////////////////////
+///////////////////////
+// Unexpected Suffix //
+///////////////////////
 
 <CHECK_IDENT_SFX> {
   {ident_unexpected_sfx} { return unexpectedSuffix(); }
@@ -436,7 +440,7 @@ decimal = {digit}+
   }
   pushQuoteSize(size); 
   pushState(TEXT);
-  return quote(); 
+  return textBegin(); 
 }
 
 (\")+        {
@@ -447,7 +451,7 @@ decimal = {digit}+
   }
   pushQuoteSize(size); 
   pushState(TEXT_RAW);
-  return quoteRaw(); 
+  return textRawBegin(); 
 }
 
 {whitespace}+ { lastOffset += yytext().length(); }
