@@ -41,37 +41,6 @@ import java.util.Stack;
     return stringQuoteSizeStack.peek();
   }
   
-
-  /////////////////////////////////////////////
-  // Record / Text Interpolation Managemenet //
-  /////////////////////////////////////////////
-  /**
-   * Handles such cases as `a = '#{{}}'`
-   */
-
-  private Stack<Integer> recordNestStack = new Stack<Integer>();
-  
-  public final void pushRecordNest() {
-    recordNestStack.push(0);
-  }
-  
-  public final void popRecordNest() {
-    recordNestStack.pop();
-  }
-
-  public final Integer recordNest() {
-    return recordNestStack.peek();
-  }
-
-  public final void incrementRecordNest() {
-    Integer i = recordNestStack.pop();
-    recordNestStack.push(i+1);
-  }
-
-  public final void decrementRecordNest() {
-    Integer i = recordNestStack.pop();
-    recordNestStack.push(i-1);
-  }
   
 
   ////////////////////
@@ -165,10 +134,6 @@ import java.util.Stack;
   }
 %} 
 
-%init{
-  recordNestStack.push(0);
-%init}
-
 
 /////////////
 // Options //
@@ -202,7 +167,7 @@ ident_body      = {ident_body_char}*(\')*
 ident_var       = {alpha_lower}{ident_body}
 ident_cons      = {alpha_upper}{ident_body}
 wildcard        = _
-ident_unexpected_sfx_char = [^\!\@\#\$\%\^\&\*\(\)\-\=\+\[\]\{\}\|\;\:\<\>\,\.\/\ \t\r\n\\]
+ident_unexpected_sfx_char = [^\`\!\@\#\$\%\^\&\*\(\)\-\=\+\[\]\{\}\|\;\:\<\>\,\.\/\ \t\r\n\\]
 ident_unexpected_sfx      = {ident_unexpected_sfx_char}+
 
 // Operators
@@ -229,6 +194,7 @@ decimal = {digit}+
 %xstate TEXT
 %xstate TEXT_RAW
 %xstate TEXT_ESCAPE
+%xstate COMMENT
 
 %state  TEXT_INTERPOLATE
 
@@ -239,16 +205,7 @@ decimal = {digit}+
 ///////////
 
 <TEXT_INTERPOLATE> {
-  (\})         { 
-    if(recordNest() == 0) {
-      popState(); 
-      popRecordNest();
-      return textInterpolateEnd(); 
-    } else {
-      decrementRecordNest();
-      return recordEnd();
-    }
-  }
+  (\`) { popState(); return textInterpolateEnd(); }
 }
 
 
@@ -325,12 +282,10 @@ decimal = {digit}+
 
   // Invalid Escapes
   (\\([a-z]|[A-Z])) { return invalidCharEscape(); }
-  (\#)           { return text(); }
   {newline}      { return newline(); }
-  [^\'\#\n\r\\]+ { return text(); }
-  (\#\{)         { 
+  [^\'\`\n\r\\]+ { return text(); }
+  (\`)           { 
     pushState(TEXT_INTERPOLATE); 
-    pushRecordNest();
     return textInterpolateBegin(); 
     }
 }
@@ -427,12 +382,14 @@ decimal = {digit}+
 (\))         { return groupEnd();    }
 (\[)         { return listBegin();   }
 (\])         { return listEnd();     }
-(\{)         { incrementRecordNest(); return recordBegin(); }
-(\})         { decrementRecordNest(); return recordEnd();   }
+(\{)         { return recordBegin(); }
+(\})         { return recordEnd();   }
 
-// Literals
+// Numbers
 {decimal}    { numberPart2=yytext(); pushState(NUMBER_PHASE2); }
-(\')+        {
+
+// Text
+(\')+ {
   int size = yylength(); 
   if(size == 2) {
     size = 1;
@@ -443,7 +400,8 @@ decimal = {digit}+
   return textBegin(); 
 }
 
-(\")+        {
+// Raw Text
+(\")+ {
   int size = yylength(); 
   if(size == 2) {
     size = 1;
@@ -454,9 +412,14 @@ decimal = {digit}+
   return textRawBegin(); 
 }
 
+// Comments
+(\#) { pushState(COMMENT); }
+
+// Layout
 {whitespace}+ { lastOffset += yytext().length(); }
 {newline}     { return newline(); }
 
+// Unknown
 [^] {
 	return unmatched();
 }

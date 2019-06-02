@@ -7,15 +7,22 @@ import org.scalatest._
 class LexerSpec extends FlatSpec with Matchers {
 
   def lex (input:String): List[Token] = {
+    var eofd    = false
     var lst     = List[Token]()
     val reader  = new StringReader(input)
     val scanner = new Scanner(reader)
     do {
       val token = scanner.lex
-      if (token != null) {
+      if (token == null) {
+        eofd = true;
+        lst  = Token(EOF,0,0) +: lst
+      } else {
         lst = token +: lst
       }
     } while (!scanner.done())
+    if (!eofd) {
+      lst = Token(EOF,0,0) +: lst
+    }
     lst.reverse
   }
 
@@ -24,7 +31,7 @@ class LexerSpec extends FlatSpec with Matchers {
   }
 
   def assertLex (input:String, result:List[Symbol]) = {
-    assert(lex_(input) == result)
+    assert(lex_(input) == (result :+ EOF))
   }
 
   def check (input:String, result:List[Symbol]) = {
@@ -55,7 +62,7 @@ class LexerSpec extends FlatSpec with Matchers {
   check("name_"  , Var("name_")  :: Nil)
   check("name_'" , Var("name_'") :: Nil)
   check("name'_" , Var("name'")  :: unexpectedSuffix("_") :: Nil)
-  check("name`"  , Var("name")   :: unexpectedSuffix("`") :: Nil)
+  check("name`"  , Var("name")   :: Unmatched("`") :: Nil)
 
 
 
@@ -85,7 +92,9 @@ class LexerSpec extends FlatSpec with Matchers {
   // Layout //
   ////////////
 
+  check(""     , Nil)
   check("\n"   , EOL         :: Nil)
+  check("\n\n" , EOL :: EOL  :: Nil)
   check("\r"   , EOL         :: Nil)
   check("\r\n" , EOL         :: Nil)
   check("\n\r" , EOL         :: EOL :: Nil)
@@ -197,14 +206,14 @@ class LexerSpec extends FlatSpec with Matchers {
   check("'\\u{}'"         , TextBegin :: TextEscape(InvalidUni21Escape("")) :: TextEnd :: Nil)
 
   // Interpolation
-  check("'#{{ }}'"        , TextBegin :: TextInterpolateBegin :: RecordBegin :: RecordEnd :: TextInterpolateEnd :: TextEnd :: Nil)
-  check("'#{{ }'"         , TextBegin :: TextInterpolateBegin :: RecordBegin :: RecordEnd :: TextBegin :: Nil)
-  check("'#{  }}'"        , TextBegin :: TextInterpolateBegin :: TextInterpolateEnd :: Text("}") :: TextEnd :: Nil)
-  check("'#{a}'"          , TextBegin :: TextInterpolateBegin :: Var("a") :: TextInterpolateEnd :: TextEnd :: Nil)
-  check("'#{'a'}'"        , TextBegin :: TextInterpolateBegin :: TextBegin :: Text("a") :: TextEnd :: TextInterpolateEnd :: TextEnd :: Nil)
-  check("'''#{'a'}'''"    , TextBegin :: TextInterpolateBegin :: TextBegin :: Text("a") :: TextEnd :: TextInterpolateEnd :: TextEnd :: Nil)
-  check("'#{'''a'''}'"    , TextBegin :: TextInterpolateBegin :: TextBegin :: Text("a") :: TextEnd :: TextInterpolateEnd :: TextEnd :: Nil)
-  check("\"#{}\""         , TextRawBegin :: Text("#{}") :: TextRawEnd :: Nil)
-  
+  check("'`{ }`'"        , TextBegin :: TextInterpolateBegin :: RecordBegin :: RecordEnd :: TextInterpolateEnd :: TextEnd :: Nil)
+  check("'`{ }'"         , TextBegin :: TextInterpolateBegin :: RecordBegin :: RecordEnd :: TextBegin :: Nil)
+  check("'`  `}'"        , TextBegin :: TextInterpolateBegin :: TextInterpolateEnd :: Text("}") :: TextEnd :: Nil)
+  check("'`a`'"          , TextBegin :: TextInterpolateBegin :: Var("a") :: TextInterpolateEnd :: TextEnd :: Nil)
+  check("'`'a'`'"        , TextBegin :: TextInterpolateBegin :: TextBegin :: Text("a") :: TextEnd :: TextInterpolateEnd :: TextEnd :: Nil)
+  check("'''`'a'`'''"    , TextBegin :: TextInterpolateBegin :: TextBegin :: Text("a") :: TextEnd :: TextInterpolateEnd :: TextEnd :: Nil)
+  check("'`'''a'''`'"    , TextBegin :: TextInterpolateBegin :: TextBegin :: Text("a") :: TextEnd :: TextInterpolateEnd :: TextEnd :: Nil)
+  check("\"``\""         , TextRawBegin :: Text("``") :: TextRawEnd :: Nil)
+  check("'`'`a`'`'"      , TextBegin :: TextInterpolateBegin :: TextBegin :: TextInterpolateBegin :: Var("a") :: TextInterpolateEnd :: TextEnd :: TextInterpolateEnd :: TextEnd :: Nil)
 
 }
