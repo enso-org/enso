@@ -7,6 +7,10 @@ import java.util.Stack;
 %%
 
 %{
+
+  private int lineIndent = 0;
+
+
   /////////////////////////////
   // Lexing State Management //
   /////////////////////////////
@@ -71,29 +75,50 @@ import java.util.Stack;
     return new Token(symbol,offset,yylength()); 
   }
 
+  private void rewind() {
+    zzMarkedPos -= yylength();
+  }
+
 
   //////////////////
   // Constructors //
   //////////////////
 
-  public Token var()              { return token(new Var  (yytext())); }
-  public Token cons()             { return token(new Cons (yytext())); }
-  public Token wildcard()         { return token(Wildcard$.MODULE$);   }
-  public Token unexpectedSuffix() { return token(invalid(new UnexpectedSuffix (yytext()))); }
-  public Token operator()         { return token(new Operator (yytext())); }
-  public Token modifier()         { return token(new Modifier (yytext())); }
+  // Utils
+  void whitespace()   {lastOffset += yylength();}
+  Symbol invalid(InvalidReason reason) {
+    return new Invalid (reason); 
+  }
 
-  public Token newline()          { return token(EOL$.MODULE$); }
-  public Token groupBegin()       { return token(GroupBegin$.MODULE$); }
-  public Token groupEnd()         { return token(GroupEnd$.MODULE$); }
-  public Token listBegin()        { return token(ListBegin$.MODULE$); }
-  public Token listEnd()          { return token(ListEnd$.MODULE$); }
-  public Token recordBegin()      { return token(RecordBegin$.MODULE$); }
-  public Token recordEnd()        { return token(RecordEnd$.MODULE$); }
-  public Token unmatched()        { return token(new Unmatched(yytext())); }
+  // Identifiers
+  Token var_()        {return token(new Var  (yytext()));}
+  Token cons_()       {return token(new Cons (yytext()));}
+  Token wildcard_()   {return token(Wildcard$.MODULE$);}
+  Token var()         {pushState(CHECK_IDENT_SFX); return var_();}
+  Token cons()        {pushState(CHECK_IDENT_SFX); return cons_();}
+  Token wildcard()    {pushState(CHECK_IDENT_SFX); return wildcard_();}
+  Token errorSfx()    {return token(invalid(new UnexpectedSuffix(yytext())));}
+  
+  // Operators
+  Token operator_()   {return token(new Operator(yytext()));}
+  Token modifier_()   {return token(new Modifier(yytext()));}
+  Token disabled_()   {return token(DisabledAssignment$.MODULE$);}
+  Token operator()    {pushState(CHECK_OP_SFX); return operator_();}
+  Token modifier()    {pushState(CHECK_OP_SFX); return modifier_();}
+  Token disabled()    {pushState(CHECK_OP_SFX); return disabled_();}
+
+  // Layout
+  Token newline()     {return token(EOL$.MODULE$);}
+  Token groupBegin()  {return token(GroupBegin$.MODULE$);}
+  Token groupEnd()    {return token(GroupEnd$.MODULE$);}
+  Token listBegin()   {return token(ListBegin$.MODULE$);}
+  Token listEnd()     {return token(ListEnd$.MODULE$);}
+  Token recordBegin() {return token(RecordBegin$.MODULE$);}
+  Token recordEnd()   {return token(RecordEnd$.MODULE$);}
+  Token unmatched()   {return token(new Unmatched(yytext()));}
 
   // Numbers
-  public Token number() {
+  Token number() {
     Token num = token(Number.fromString(numberPart1,numberPart2,numberPart3));
     numberPart1 = "";
     numberPart2 = "";
@@ -101,38 +126,49 @@ import java.util.Stack;
     return num;
   }
 
-  // Strings
-  public Token textBegin()        { return token(TextBegin$.MODULE$); }
-  public Token textEnd()          { return token(TextEnd$.MODULE$); }
-  public Token textRawBegin()     { return token(TextRawBegin$.MODULE$); }
-  public Token textRawEnd()       { return token(TextRawEnd$.MODULE$); }
-  // public Token quote()            { return token(Quote$.MODULE$); }
-  // public Token quoteRaw()         { return token(QuoteRaw$.MODULE$); }
-  public Token text()             { return token(new Text(yytext())); }
-  public Token slashEscape()      { return token(new TextEscape(SlashEscape$.MODULE$)); }
-  public Token quoteEscape()      { return token(new TextEscape(QuoteEscape$.MODULE$)); }
-  public Token rawQuoteEscape()   { return token(new TextEscape(RawQuoteEscape$.MODULE$)); }
-  public Token intEscape()        { return token(new TextEscape(IntEscape.fromString(yytext().substring(1)))); }
-  public Token charEscape(char c) { return token(new TextEscape(CharEscape.fromChar(c))); }
-  public Token ctrlEscape(int c)  { return token(new TextEscape(new CtrlEscape(c))); }
-  public Token uni16Escape()      { 
+  // Text
+  Token textBegin()     {return token(TextBegin$.MODULE$);}
+  Token textEnd()       {return token(TextEnd$.MODULE$);}
+  Token textRawBegin()  {return token(TextRawBegin$.MODULE$);}
+  Token textRawEnd()    {return token(TextRawEnd$.MODULE$);}
+  Token text()          {return token(new Text(yytext()));}
+  Token textIntBegin()  {return token(TextInterpolateBegin$.MODULE$);}
+  Token textIntEnd()    {return token(TextInterpolateEnd$.MODULE$);}
+
+  // Text Escapes
+  Token slashEsc()      {return token(new TextEscape(SlashEscape$.MODULE$));}
+  Token quoteEsc()      {return token(new TextEscape(QuoteEscape$.MODULE$));}
+  Token rawQuoteEsc()   {return token(new TextEscape(RawQuoteEscape$.MODULE$));}
+  Token charEsc(char c) {return token(new TextEscape(CharEscape.fromChar(c)));}
+  Token ctrlEsc(int c)  {return token(new TextEscape(new CtrlEscape(c)));}
+  Token intEsc() { 
+    return token(new TextEscape(IntEscape.fromString(yytext().substring(1)))); 
+  }
+  Token uni16Esc() { 
     String scode = yytext().substring(2);
     return token(new TextEscape(new Uni16Escape (Integer.parseInt(scode,16)))); 
   }
-  public Token uni32Escape()      { return token(new TextEscape(Uni32Escape.fromString(yytext().substring(2)))); }
-  public Token uni21Escape()      { 
+  Token uni32Esc() { 
+    return token(new TextEscape(Uni32Escape.fromString(yytext().substring(2)))); 
+  }
+  Token uni21Esc() { 
     String scode = yytext();
     scode = scode.substring(3,scode.length()-1);
-    return token(new TextEscape(Uni21Escape.fromString(scode))); }
-  public Token invalidCharEscape(){ return token(new TextEscape(new InvalidCharEscape(yytext().charAt(1)))); }
-
-  public Token textInterpolateBegin() { return token(TextInterpolateBegin$.MODULE$); }
-  public Token textInterpolateEnd()   { return token(TextInterpolateEnd$.MODULE$); }
-
-  public Symbol invalid(InvalidReason reason) { 
-    return new Invalid (reason); 
+    return token(new TextEscape(Uni21Escape.fromString(scode))); 
   }
+  Token invalidCharEsc(){ 
+    return token(new TextEscape(new InvalidCharEscape(yytext().charAt(1)))); 
+  }
+
+  // Comment
+  Token comment()      {return token(Comment$.MODULE$);}
+  Token commentBody()  {return token(new CommentBody(yytext()));}
 %} 
+
+%init{
+  pushState(NEWLINE);
+%init}
+
 
 
 /////////////
@@ -154,28 +190,28 @@ import java.util.Stack;
 /////////////////
 
 // Prims
-alpha_upper     = [A-Z]
-alpha_lower     = [a-z]
-alpha           = {alpha_lower} | {alpha_upper}
-alphanum        = {alpha} | digit
-whitespace      = [\ \t\b]
-newline         = \r|\n|\r\n
+alpha_upper = [A-Z]
+alpha_lower = [a-z]
+alpha       = {alpha_lower} | {alpha_upper}
+alphanum    = {alpha} | digit
+whitespace  = [\ ]
+newline     = \r|\n|\r\n
 
 // Identifiers
 ident_body_char = {alphanum} | _
 ident_body      = {ident_body_char}*(\')*
-ident_var       = {alpha_lower}{ident_body}
-ident_cons      = {alpha_upper}{ident_body}
+var       = {alpha_lower}{ident_body}
+cons      = {alpha_upper}{ident_body}
 wildcard        = _
-ident_unexpected_sfx_char = [^\`\!\@\#\$\%\^\&\*\(\)\-\=\+\[\]\{\}\|\;\:\<\>\,\.\/\ \t\r\n\\]
-ident_unexpected_sfx      = {ident_unexpected_sfx_char}+
+ident_err_sfx_c = [^\`\!\@\#\$\%\^\&\*\(\)\-\=\+\[\]\{\}\|\;\:\<\>\,\.\/\ \t\r\n\\]
+ident_err_sfx   = {ident_err_sfx_c}+
 
 // Operators
-operator_char   = [\!\$\%\&\*\+\-\/\<\>\?\^\~\|\:\\]
-operator        = {operator_char}+
-modifier        = {operator}=
-operator_unexpected_sfx_char = {operator_char} | (\=) | (\,) | (\.)
-operator_unexpected_sfx      = {operator_unexpected_sfx_char}+
+operator_char      = [\!\$\%\&\*\+\-\/\<\>\?\^\~\|\:\\]
+operator           = {operator_char}+
+modifier           = {operator}=
+operator_err_sfx_c = {operator_char} | (\=) | (\,) | (\.)
+operator_err_sfx   = {operator_err_sfx_c}+
 
 // Numbers
 digit   = [0-9]
@@ -195,23 +231,36 @@ decimal = {digit}+
 %xstate TEXT_RAW
 %xstate TEXT_ESCAPE
 %xstate COMMENT
+%xstate COMMENT_LINE
+%xstate NEWLINE
 
-%state  TEXT_INTERPOLATE
+%state TEXT_INTERPOLATE
 
 
 %% 
-///////////
-// Rules //
-///////////
+///////////////////////
+// Unexpected Suffix //
+///////////////////////
 
-<TEXT_INTERPOLATE> {
-  (\`) { popState(); return textInterpolateEnd(); }
+<CHECK_IDENT_SFX> {
+  {ident_err_sfx} {return errorSfx();}
+  [^]             {rewind(); popState();}
 }
+
+<CHECK_OP_SFX> {
+  {operator_err_sfx} {return errorSfx();}
+  [^]                {rewind(); popState();}
+}
+
 
 
 //////////
 // Text //
 //////////
+
+<TEXT_INTERPOLATE> {
+  (\`) {popState(); return textIntEnd();}
+}
 
 <TEXT> {
   (\')+ {
@@ -225,68 +274,68 @@ decimal = {digit}+
   }
 
   // Prim Escapes
-  (\\\\)         { return slashEscape(); }
-  (\\\')         { return quoteEscape(); }
-  (\\\")         { return rawQuoteEscape(); }
-  (\\[0-9]+)     { return intEscape(); }
+  (\\\\)         {return slashEsc();}
+  (\\\')         {return quoteEsc();}
+  (\\\")         {return rawQuoteEsc();}
+  (\\[0-9]+)     {return intEsc();}
 
   // Escape Characters (https://en.wikipedia.org/wiki/String_literal)
-  (\\a)          { return charEscape('\u0007'); } // alert
-  (\\b)          { return charEscape('\u0008'); } // backspace
-  (\\f)          { return charEscape('\u000C'); } // form feed
-  (\\n)          { return charEscape('\n')    ; } // line feed
-  (\\r)          { return charEscape('\r')    ; } // carriage return
-  (\\t)          { return charEscape('\u0009'); } // horizontal tab
-  (\\v)          { return charEscape('\u000B'); } // vertical tab
-  (\\e)          { return charEscape('\u001B'); } // escape character
+  (\\a)          {return charEsc('\u0007');} // alert
+  (\\b)          {return charEsc('\u0008');} // backspace
+  (\\f)          {return charEsc('\u000C');} // form feed
+  (\\n)          {return charEsc('\n')    ;} // line feed
+  (\\r)          {return charEsc('\r')    ;} // carriage return
+  (\\t)          {return charEsc('\u0009');} // horizontal tab
+  (\\v)          {return charEsc('\u000B');} // vertical tab
+  (\\e)          {return charEsc('\u001B');} // escape character
   
   // Unicode Escapes
-  (\\u{hex}{hex}{hex}{hex})                     { return uni16Escape(); }
-  (\\U{hex}{hex}{hex}{hex}{hex}{hex}{hex}{hex}) { return uni32Escape(); }
-  (\\u\{{hex}*\})                               { return uni21Escape(); }
+  (\\u{hex}{hex}{hex}{hex})                     {return uni16Esc();}
+  (\\U{hex}{hex}{hex}{hex}{hex}{hex}{hex}{hex}) {return uni32Esc();}
+  (\\u\{{hex}*\})                               {return uni21Esc();}
 
   // Control Characters (https://en.wikipedia.org/wiki/Control_character)
-  (\\NUL)        { return ctrlEscape(0x00); }
-  (\\SOH)        { return ctrlEscape(0x01); }
-  (\\STX)        { return ctrlEscape(0x02); }
-  (\\ETX)        { return ctrlEscape(0x03); }
-  (\\EOT)        { return ctrlEscape(0x04); }
-  (\\ENQ)        { return ctrlEscape(0x05); }
-  (\\ACK)        { return ctrlEscape(0x06); }
-  (\\BEL)        { return ctrlEscape(0x07); }
-  (\\BS)         { return ctrlEscape(0x08); }
-  (\\TAB)        { return ctrlEscape(0x09); }
-  (\\LF)         { return ctrlEscape(0x0A); }
-  (\\VT)         { return ctrlEscape(0x0B); }
-  (\\FF)         { return ctrlEscape(0x0C); }
-  (\\CR)         { return ctrlEscape(0x0D); }
-  (\\SO)         { return ctrlEscape(0x0E); }
-  (\\SI)         { return ctrlEscape(0x0F); }
-  (\\DLE)        { return ctrlEscape(0x10); }
-  (\\DC1)        { return ctrlEscape(0x11); }
-  (\\DC2)        { return ctrlEscape(0x12); }
-  (\\DC3)        { return ctrlEscape(0x13); }
-  (\\DC4)        { return ctrlEscape(0x14); }
-  (\\NAK)        { return ctrlEscape(0x15); }
-  (\\SYN)        { return ctrlEscape(0x16); }
-  (\\ETB)        { return ctrlEscape(0x17); }
-  (\\CAN)        { return ctrlEscape(0x18); }
-  (\\EM)         { return ctrlEscape(0x19); }
-  (\\SUB)        { return ctrlEscape(0x1A); }
-  (\\ESC)        { return ctrlEscape(0x1B); }
-  (\\FS)         { return ctrlEscape(0x1C); }
-  (\\GS)         { return ctrlEscape(0x1D); }
-  (\\RS)         { return ctrlEscape(0x1E); }
-  (\\US)         { return ctrlEscape(0x1F); }
-  (\\DEL)        { return ctrlEscape(0x7F); }
+  (\\NUL)        {return ctrlEsc(0x00);}
+  (\\SOH)        {return ctrlEsc(0x01);}
+  (\\STX)        {return ctrlEsc(0x02);}
+  (\\ETX)        {return ctrlEsc(0x03);}
+  (\\EOT)        {return ctrlEsc(0x04);}
+  (\\ENQ)        {return ctrlEsc(0x05);}
+  (\\ACK)        {return ctrlEsc(0x06);}
+  (\\BEL)        {return ctrlEsc(0x07);}
+  (\\BS)         {return ctrlEsc(0x08);}
+  (\\TAB)        {return ctrlEsc(0x09);}
+  (\\LF)         {return ctrlEsc(0x0A);}
+  (\\VT)         {return ctrlEsc(0x0B);}
+  (\\FF)         {return ctrlEsc(0x0C);}
+  (\\CR)         {return ctrlEsc(0x0D);}
+  (\\SO)         {return ctrlEsc(0x0E);}
+  (\\SI)         {return ctrlEsc(0x0F);}
+  (\\DLE)        {return ctrlEsc(0x10);}
+  (\\DC1)        {return ctrlEsc(0x11);}
+  (\\DC2)        {return ctrlEsc(0x12);}
+  (\\DC3)        {return ctrlEsc(0x13);}
+  (\\DC4)        {return ctrlEsc(0x14);}
+  (\\NAK)        {return ctrlEsc(0x15);}
+  (\\SYN)        {return ctrlEsc(0x16);}
+  (\\ETB)        {return ctrlEsc(0x17);}
+  (\\CAN)        {return ctrlEsc(0x18);}
+  (\\EM)         {return ctrlEsc(0x19);}
+  (\\SUB)        {return ctrlEsc(0x1A);}
+  (\\ESC)        {return ctrlEsc(0x1B);}
+  (\\FS)         {return ctrlEsc(0x1C);}
+  (\\GS)         {return ctrlEsc(0x1D);}
+  (\\RS)         {return ctrlEsc(0x1E);}
+  (\\US)         {return ctrlEsc(0x1F);}
+  (\\DEL)        {return ctrlEsc(0x7F);}
 
   // Invalid Escapes
-  (\\([a-z]|[A-Z])) { return invalidCharEscape(); }
-  {newline}      { return newline(); }
-  [^\'\`\n\r\\]+ { return text(); }
-  (\`)           { 
+  (\\([a-z]|[A-Z])) {return invalidCharEsc();}
+  {newline}      {return newline();}
+  [^\'\`\n\r\\]+ {return text();}
+  (\`) { 
     pushState(TEXT_INTERPOLATE); 
-    return textInterpolateBegin(); 
+    return textIntBegin(); 
     }
 }
 
@@ -302,11 +351,11 @@ decimal = {digit}+
   }
 
   // Prim Escapes
-  (\\\')         { return quoteEscape();    }
-  (\\\")         { return rawQuoteEscape(); }
-  (\\)           { return text();           }
-  {newline}      { return newline();        }
-  [^\"\n\r\\]+   { return text();           }
+  (\\\')         {return quoteEsc();}
+  (\\\")         {return rawQuoteEsc();}
+  (\\)           {return text();}
+  {newline}      {return newline();}
+  [^\"\n\r\\]+   {return text();}
 
 }
 
@@ -323,8 +372,8 @@ decimal = {digit}+
     popState();
     pushState(NUMBER_PHASE3); 
   }
-  [^]     { yypushback(1); popState(); return number();}
-  <<EOF>> { return number(); }
+  [^]     {rewind(); popState(); return number();}
+  <<EOF>> {return number();}
 }
 
 <NUMBER_PHASE3> {
@@ -333,24 +382,55 @@ decimal = {digit}+
     popState(); 
     return number(); 
   }
-  [^]     { yypushback(1); popState(); return number(); }
-  <<EOF>> { return number(); }
+  [^]     {rewind(); popState(); return number();}
+  <<EOF>> {return number();}
+}
+
+
+
+//////////////
+// Comments //
+//////////////
+
+<COMMENT> {
+  [^\n\r]+  {return commentBody();}
+  {newline} {popState(); pushState(COMMENT_LINE); return newline();}
+}
+
+<COMMENT_LINE> {
+  {whitespace}+ {
+    popState();
+    if(yylength() > lineIndent) {
+      pushState(COMMENT);
+    } else {
+      pushState(NEWLINE);
+    }
+    rewind();
+  }
+  [^] {
+    popState();
+    pushState(NEWLINE);
+    rewind();
+  }
 }
 
 
 
 ///////////////////////
-// Unexpected Suffix //
+// Indent Management //
 ///////////////////////
 
-<CHECK_IDENT_SFX> {
-  {ident_unexpected_sfx} { return unexpectedSuffix(); }
-  [^]                    { yypushback(1); popState(); }
-}
-
-<CHECK_OP_SFX> {
-  {operator_unexpected_sfx} { return unexpectedSuffix(); }
-  [^]                       { yypushback(1); popState(); }
+<NEWLINE> {
+  {whitespace}+ {
+    lineIndent = yylength();
+    whitespace();
+    popState(); 
+  }
+  [^] {
+    lineIndent = 0;
+    popState();
+    rewind();
+  }
 }
 
 
@@ -358,35 +438,37 @@ decimal = {digit}+
 ///////////////////
 // Default Rules //
 ///////////////////
+
   
 // Identifiers
-{ident_var}  { pushState(CHECK_IDENT_SFX); return var();}  
-{ident_cons} { pushState(CHECK_IDENT_SFX); return cons();}  
-{wildcard}   { pushState(CHECK_IDENT_SFX); return wildcard();}
+{var}      {return var();}  
+{cons}     {return cons();}  
+{wildcard} {return wildcard();}
 
 // Operators
-{operator}   { pushState(CHECK_OP_SFX); return operator(); }
-(\=)         { pushState(CHECK_OP_SFX); return operator(); }
-(\=\=)       { pushState(CHECK_OP_SFX); return operator(); }
-(\>\=)       { pushState(CHECK_OP_SFX); return operator(); }
-(\<\=)       { pushState(CHECK_OP_SFX); return operator(); }
-(\/\=)       { pushState(CHECK_OP_SFX); return operator(); }
-(\,)         { pushState(CHECK_OP_SFX); return operator(); }
-(\.)         { return operator(); }
-(\.\.)       { pushState(CHECK_OP_SFX); return operator(); }
-(\.\.\.)     { pushState(CHECK_OP_SFX); return operator(); }
-{modifier}   { pushState(CHECK_OP_SFX); return modifier(); }
+{operator} {return operator();}
+(\=)       {return operator();}
+(\=\=)     {return operator();}
+(\>\=)     {return operator();}
+(\<\=)     {return operator();}
+(\/\=)     {return operator();}
+(\,)       {return operator();}
+(\.)       {return operator_();}
+(\.\.)     {return operator();}
+(\.\.\.)   {return operator();}
+{modifier} {return modifier();}
+(\#\=)     {return disabled();}
 
 // Layout
-(\()         { return groupBegin();  }
-(\))         { return groupEnd();    }
-(\[)         { return listBegin();   }
-(\])         { return listEnd();     }
-(\{)         { return recordBegin(); }
-(\})         { return recordEnd();   }
+(\() {return groupBegin();}
+(\)) {return groupEnd();}
+(\[) {return listBegin();}
+(\]) {return listEnd();}
+(\{) {return recordBegin();}
+(\}) {return recordEnd();}
 
 // Numbers
-{decimal}    { numberPart2=yytext(); pushState(NUMBER_PHASE2); }
+{decimal} {numberPart2=yytext(); pushState(NUMBER_PHASE2);}
 
 // Text
 (\')+ {
@@ -413,11 +495,14 @@ decimal = {digit}+
 }
 
 // Comments
-(\#) { pushState(COMMENT); }
+(\#) { 
+  pushState(COMMENT); 
+  return comment(); 
+}
 
 // Layout
-{whitespace}+ { lastOffset += yytext().length(); }
-{newline}     { return newline(); }
+{whitespace}+ {whitespace();}
+{newline}     {pushState(NEWLINE); return newline();}
 
 // Unknown
 [^] {

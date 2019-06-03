@@ -21,6 +21,7 @@ case object Wildcard                         extends Symbol
 // Operators
 case class  Operator (name:String)           extends Symbol
 case class  Modifier (name:String)           extends Symbol
+case object DisabledAssignment               extends Symbol
 
 // Layout
 case object EOL                              extends Symbol
@@ -48,6 +49,10 @@ case class  Number     (base:Int
 // Invalid
 case class  Invalid   (reason:InvalidReason) extends Symbol
 case class  Unmatched (char:String)          extends Symbol
+
+// Comments
+case object Comment                          extends Symbol
+case class  CommentBody (text:String)        extends Symbol
 
 
 

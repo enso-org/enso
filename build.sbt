@@ -21,10 +21,16 @@ version := "1.0"
 // place like Sonatype or Bintray.
 
 
+resolvers += "Sonatype OSS Snapshots" at
+  "https://oss.sonatype.org/content/repositories/snapshots"
+
+
 // Want to use a published library in your project?
 // You can define other libraries as dependencies in your build like this:
 libraryDependencies += "org.typelevel" %% "cats-core" % "1.6.0"
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.5" % Test
+libraryDependencies += "com.storm-enroute" %% "scalameter" % "0.17"
+
 // Here, `libraryDependencies` is a set of dependencies, and by using `+=`,
 // we're adding the cats dependency to the set of dependencies that sbt will go
 // and fetch when it starts up.
@@ -77,3 +83,6 @@ libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.5" % Test
 SbtJFlexPlugin.jflexSettings
 
 mainClass in (Compile, run) := Some("org.enso.syntax.text.lexer.Main")
+testFrameworks += new TestFramework("org.scalameter.ScalaMeterFramework")  
+logBuffered := false
+parallelExecution in Test := false

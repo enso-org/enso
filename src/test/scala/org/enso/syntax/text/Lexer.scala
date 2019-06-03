@@ -216,4 +216,20 @@ class LexerSpec extends FlatSpec with Matchers {
   check("\"``\""         , TextRawBegin :: Text("``") :: TextRawEnd :: Nil)
   check("'`'`a`'`'"      , TextBegin :: TextInterpolateBegin :: TextBegin :: TextInterpolateBegin :: Var("a") :: TextInterpolateEnd :: TextEnd :: TextInterpolateEnd :: TextEnd :: Nil)
 
+  // Comments
+  check("#"              , Comment :: Nil)
+  check("#c"             , Comment :: CommentBody("c") :: Nil)
+  check("#c\na"          , Comment :: CommentBody("c") :: EOL :: Var("a") :: Nil)
+  check("#c\n a"         , Comment :: CommentBody("c") :: EOL :: CommentBody(" a") :: Nil)
+  check(" #c\n a"        , Comment :: CommentBody("c") :: EOL :: Var("a") :: Nil)
+  check(" #c\n  a"       , Comment :: CommentBody("c") :: EOL :: CommentBody("  a") :: Nil)
+  check("a#c"            , Var("a") :: Comment :: CommentBody("c") :: Nil)
+  check("a # c"          , Var("a") :: Comment :: CommentBody(" c") :: Nil)
+  check("a#"             , Var("a") :: Comment :: Nil)
+  check("a#\nb"          , Var("a") :: Comment :: EOL :: Var("b") :: Nil)
+  check("a#\n b"         , Var("a") :: Comment :: EOL :: CommentBody(" b") :: Nil)
+
+  // Disabled
+  check("a #= b"         , Var("a") :: DisabledAssignment :: Var("b") :: Nil)
+
 }
