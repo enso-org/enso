@@ -1,12 +1,13 @@
 # Enso. Simplicity and Correctness
 
 Enso is an award winning, general purpose, purely functional programming
-language with a double visual and textual representations. Enso was designed to
-be easy to use and reason about. It was equipped with a novel type system which
-automatically limits the possible human errors significantly and thus
-drastically improves the quality of the final solution. Enso is intended to be a
-production language, not a research one, and so, the design avoids including new
-and untested features in its main development branch.
+language with a double visual and textual representations and a very expressive,
+dependent type system. Enso was designed to be easy to use and reason about. It
+was equipped with a novel type system which automatically limits the possible
+human errors significantly and thus drastically improves the quality of the
+final solution. Enso is intended to be a production language, not a research
+one, and so, the design avoids including new and untested features in its main
+development branch.
 
 From the technical point of view, Enso incorporates many recent innovations in
 programming language design. It provides higher-order functions, strict and
@@ -15,6 +16,9 @@ which merges the worlds of dependent types and refinement types under a single
 umbrella. Enso is both the culmination and solidification of many years of
 research on functional languages and proof assistants, such as Haskell, Idris,
 Agda, or Liquid Haskell.
+
+**Note [To be included somewhere]**: Enso is dependently typed because we can
+run arbitrary code on type-level.
 
 ## Why a New Programming Language?
 
@@ -1228,42 +1232,7 @@ specific than `Bool` because it holds true for every natural number.
 
 ## Interfaces
 
-Types which contain only field declarations but does not have restrictions on
-the accepted atoms, behave like interfaces. Any type which conforms to the shape
-of the interface is considered an implementation of the interface, regardless of
-its explicit definition.
-
-```haskell
-type Show
-    show : Text
-    show = 'default'
-
-type Vector a
-    implements Show
-    V3 x:a y:a z:a
-
-    show = 'Vector #{self.x} #{self.y} #{self.z}'
-```
-
-As Luna types are always sets of values, there is no type-level parameters
-ordering like in Haskell. Consider the following code:
-
-```haskell
-type Vector a
-    V3 x:a y:a z:a
-
-type Functor a
-    map: (a -> b) -> self b
-
-test :
-    t : Functor
-    t a -> t Text
-test = map show
-```
-
-### TODO
-
-- Describe interface resolution and type parameters mapping
+- **TO BE DONE [WD - research]**
 
 ## Field Modifiers
 
@@ -1590,95 +1559,10 @@ type Point
 
 ```
 
-```haskell
-type Nothing
-type Just value
-maybe = a -> Just a | Nothing
+Pattern matching works in a structural manner. The same applies to `|`,
+`&`, etc.
 
-
-Point = {x:Number, y:Number, z:Number}
-
-map : (Number -> Number) -> Point -> Point
-map = f ->
-    . x $= f
-    . y $= f
-    . z $= f
-
-p1 = Point 0 1 2 (p -> p.x + p.y + p.z)
-p2 = map +1 point
-p3 = point.map +1
-
--- fn : Point -> (Point -> Number)
-
-
-foo : Int -> Point -> Point
-foo = i -> map +i
-
-foo : Int -> Int
-foo = +1
-
-
-test : foo
-test = foo 1
-
-
-test = map (+1)
-
-```
-
-```haskell
-number = 17
-```
-
-The `number` is a subtype of infinite number of types, where the most specific
-type is `17` and the most general is `Type`. We can express an example relation
-as follow:
-
-```haskell
-number = 17 : 17 : Natural : Integer : Number : Type
-```
-
-By looking at the definition it is not possible to tell which type should be
-inferred by the compiler. We could of course always try to infer the most
-specific type, but then the amount of compile-time operations would completely
-kill the compiler performance. Instead, we can
-
-```haskell
-fn : a -> a < 10
-fn = a -> a < 10
-```
-
-```haskell
-merge = ts -> Type.from $ ts.map .type.values . concat
-```
-
-```haskell
-type Showable
-    show : Text
-
-type Serializable
-    encode : self -> Binary
-    decode : Binary -> self
-
-
-Int implements Serializable
-    encode = ...
-    decode = ...
-
-
-decode : Binary -> Int
-decode = ...
-
-decode : Binary -> String
-decode = ...
-
-
-foo : Serializable -> Binary
-foo = a -> encode a
-
-```
-
-# ==== TO BE DESCRIBED ====
+# ==== TO BE DESCRIBED NICER ====
 
 # Monadic arguments
 
@@ -1750,13 +1634,54 @@ Basically `=` transforms right side to left side like
 `(right : R in RM2 in RM1) -> (left : R in RM2 in Pure)`, and it merges `RM1`
 with host monad.
 
-# Dynamic access
+# The Dynamic Type
 
-Data in Luna behaves like it was fully dynamic. You can access the field
-dictionary of each object and alter it. It's amazing for type level programming,
-as you could be able to generate types by defining their dictionaries during
-"module compilation time". To be described – how to do it – type is just a named
-record, which is like a dictionary.
+When calling a foreign python we get the result typed as `Dynamic`. Basically,
+values typed as `Dynamic` work just like in Python. You can access their fields
+/ methods by string, you can add or remove fields, and you always get the
+`Dynamic` as result. Every operation on `Dynamic` results in `a ! DynamicError`.
+
+Everything that is possible to express on the `Dynamic` type should be possible
+to be expressed using normal data types (see the "Dynamic access" chapter
+above).
+
+There is an important change to how UCS works with dynamic types, namely, the
+dot syntax always means the field access.
+
+```haskell
+num  = untypedNumberFromPythonCode
+num2 = num + 1 -- : Dynamic ! DynamicError
+num3 = num2 catch case
+    DynamicError -> 0
+-- num3 : Dynamic
+num4 = num3 - 1 -- : Dynamic ! DynamicError
+
+```
+
+```haskell
+obj.__model__ =
+    { atom  : Text
+    , dict  : Map Text Any
+    , info  :
+        { doc  : Text
+        , name : Text
+        , code : Text
+        , loc  : Location
+        }
+    , arg  : -- used only when calling like a function
+        { doc     : Text
+        , default : Maybe Any
+        }
+    }
+```
+
+## Dynamic access
+
+Even typed data in Enso behaves like it was fully dynamic. You can access the
+field dictionary of each object and alter it. It's amazing for type level
+programming, as you could be able to generate types by defining their
+dictionaries during "module compilation time". To be described – how to do it –
+type is just a named record, which is like a dictionary.
 
 Basically, every property of object (let them behave like classes, modules or
 interfaces) should be accessible and extendible in such way.
@@ -1788,76 +1713,6 @@ name : Text
 field1 = p1.fields.get name -- field1 : Dynamic
 ```
 
-# The Dynamic Type
-
-Note: we may want to merge `Dynamic` with `Any`, as `Any` is the "set of all
-sets". It just describes a value that has any method, any property etc. From the
-logical perspective its like the planned `Dynamic` and from user perspective
-there may be no sense in distinguishing them.
-
-When calling a foreign python we get the result typed as `Dynamic`. Basically,
-values typed as `Dynamic` work just like in Python. You can access their fields
-/ methods by string, you can add or remove fields, and you always get the
-`Dynamic` as result. Every operation on `Dynamic` results in `a ! DynamicError`.
-
-Everything that is possible to express on the `Dynamic` type should be possible
-to be expressed using normal data types (see the "Dynamic access" chapter
-above).
-
-There is an important change to how UCS works with dynamic types, namely, the
-dot syntax always means the field access.
-
-```haskell
-num  = untypedNumberFromPythonCode
-num2 = num + 1 -- : Dynamic ! DynamicError
-num3 = num2 catch case
-    DynamicError -> 0
--- num3 : Dynamic
-num4 = num3 - 1 -- : Dynamic ! DynamicError
-
-```
-
----
-
-```haskell
-type Maybe a
-    Just value:a
-    Nothing
-
-    map : (a -> b) -> Maybe b
-    map f = case this
-        Just a  -> Just (f a)
-        Nothing -> Nothing
-```
-
-```haskell
-type Nothing
-type Just value
-maybe a = just a | nothing
-
-map : (a -> b) -> Maybe a -> Maybe b
-map f this = case this
-    Just a  -> Just (f a)
-    Nothing -> Nothing
-```
-
-```haskell
-obj.__model__ =
-    { atom  : Text
-    , dict  : Map Text Any
-    , info  :
-        { doc  : Text
-        , name : Text
-        , code : Text
-        , loc  : Location
-        }
-    , arg  : -- used only when calling like a function
-        { doc     : Text
-        , default : Maybe Any
-        }
-    }
-```
-
 # Lists
 
 Lists in Luna are defined as follow:
@@ -1878,6 +1733,9 @@ lst2 = [1,"foo"] : [1,"foo"] : List (Int | String)
 ```
 
 # Proving the Software Correctness
+
+**Note [To be included somewhere]**: Enso is dependently typed because we can
+run arbitrary code on type-level.
 
 **So, what are dependent types?** Dependent types are types expressed in terms
 of data, explicitly relating their inhabitants to that data. As such, they
@@ -2070,7 +1928,7 @@ main =
         else print mail
 ```
 
-## Dependent Types Resolution
+## Types Resolution
 
 The natural next question is, how it was possible to get such a drastic quality
 improvement? As already mentioned, dependent types are types expressed in terms
@@ -2136,7 +1994,7 @@ index : Natural -> Cons t1 (List t2) -> t1
 A similar, but a little more complex case applies if we try to access a nested
 element. We leave this exercise to the reader.
 
-ca
+### Bigger Example (to be finished)
 
 ```haskell
 type List a
@@ -2159,13 +2017,11 @@ init = case
 index :: Natural.range lst.length -> lst
 ```
 
-TODO: Move the whole examples herel ike that + mail examples
-
-# Autolifting functions to types
+## Autolifting functions to types
 
 ```haskell
 -- Consider
-fn : a -> b -> a + b
+fn : Int -> Int -> Int
 fn = a -> b -> a + b
 
 -- If we provide it with 1 and 2 then
@@ -2174,6 +2030,7 @@ fn 1 2 : fn 1 2 : 3
 -- Howevere this is true as well
 fn 1 2 : fn Int Int : Int
 
+-- Please note that 1:Int AND Int:Int
 -- It means that functions can always be provided with type-sets and return type sets, so
 fn Int Int -- returns Int
 ```
@@ -2185,34 +2042,209 @@ sumIncremented1 = map +1 >> fold (+)
 sumIncremented2 = fold (+) << map +1
 ```
 
+However, the following is preferred:
+
+```haskell
+sumIncremented1 = . map +1 . fold (+)
+```
+
+# Lazy / Strict
+
+```haskell
+if_then_else :: Bool -> Lazy a in n -> Lazy a in m -> a in n | m
+if cond _then ok _else fail =
+    case cond of
+        True  -> ok
+        False -> fail
+
+test cond = if_then_else cond -- The arguments are still lazy and accept monads
+test cond ok fail = if_then_else cond ok fail -- The arguments are strict and does not accept monads
+```
+
+**TODO:** ARA + WD - check with bigger examples if this really holds.
+Alternatively we can think of `Lazy a` as a part of the `a` parameter, which
+should not be dropped. WD feels it needs to be re-considered.
+
+# Context Defaults
+
+- Function arguments default to `in Pure` if not provided with an explicit type.
+- Function results and variables default to `in m` if not provided with an
+  explicit type.
+
+For example:
+
+```haskell
+test a b = ...
+```
+
+Has the inferred type of
+
+```haskell
+test : a in Pure -> b in Pure -> out in m
+```
+
+Thus if used like
+
+```haskell
+test (print 1) (print 2)
+```
+
+The prints will be evaluated before their results are passed to `test`. However,
+when provided with explicit signature:
+
+```haskell
+test2 : a in m -> b in n -> out in o
+test2 a b = ...
+```
+
+Then the evaluation
+
+```haskell
+test2 (print 1) (print 2)
+```
+
+Will pass both arguments as "actions" and their evaluation depends on the
+`test2` body definition.
+
+# Type Based Implementations
+
+```haskell
+default : a
+default = a . default
+```
+
+# Explicit Types And Subtyping
+
+When explicit type is provided, the value is checked to be the subtype of the
+provided type, so all the following lines are correct:
+
+```haskell
+a = 1
+a : 1
+a : Natural
+a : Integer
+a : Number
+a : Type
+```
+
+The same applies to functions – the inferred signature needs to be a subtype of
+the provided one. However, the intuiting of what a subtype of a function is
+could not be obvious, so lets describe it better. Consider a function `foo`:
+
+```haskell
+foo : (Natural -> Int) -> String
+```
+
+From definition, we can provide it with any value, which type is the subtype of
+`Natural -> Int`. This argument needs to handle all possible values of `Natural`
+as an input. Moreover, we know that `foo` assumes that the result of the
+argument is any value from the set `Int`, so we cannot provide a function with a
+broader result, cause it may make `foo` ill-working (for example if it pattern
+matches on the result inside). So the following holds:
+
+```haskell
+(Natural -> Natural) : (Natural -> Int)
+```
+
+Please note, that we can provide a function accepting broader set of arguments,
+so this holds as well:
+
+```haskell
+(Int -> Natural) : (Natural -> Natural)
+```
+
+So, this holds as well:
+
+```haskell
+(Int -> Natural) : (Natural -> Int)
+```
+
+(todo: describe variants and contravariants better here).
+
+Consider the following, more complex example:
+
+```haskell
+add a name =
+    b = open name . to Int
+    result = (a + b).show
+    print result
+    result
+```
+
+This function works on any type which implements the `+` method, like `String`,
+however, we can narrow it down by providing explicit type signature:
+
+```haskell
+add : Natural in Pure -> Text in Pure -> String in IO ! IO.ReadError
+add = ...
+
+addAlias = add
+```
+
+Now we can create an alias to this function and provide explicit type signature
+as well. As long as the `add` signature will be the subtype of `addAlias`
+signature, it will be accepted. First, we can skip the explicit error mention:
+
+```haskell
+addAlias : Natural in Pure -> Text in Pure -> String in IO
+```
+
+Next, we can skip the explicit contexts, because the contexts of arguments
+default to `Pure` while the context of the result does not have any restrictions
+by default so will be correctly inferred:
+
+```haskell
+addAlias : Natural -> Text -> String
+```
+
+We can also type the whole function using any broader type. In order to
+understand what a subtype of a function, visualize it's transformation as arrows
+between categories. The above function takes any value from a set `Natural` and
+set `Text` and transforms it to some value in set `String`. We can use any wider
+type instead:
+
+```haskell
+addAlias : Natural -> Text -> Type
+```
+
+However, please note that the following will be not accepted:
+
+```haskell
+addAlias : Int -> Type -> Type -- WRONG!
+```
+
+# Underscore in Pattern Matching
+
+`const a _ = a` behaves differently than underscore in expressions (implicit
+lambda).
+
+# Type Holes
+
+```haskell
+a :: ??
+```
+
+Creates a type hole, which will be reported by the compiler. Describe the
+programming with type holes model. A good reference: http://hazel.org
+
+# Mutable Fields (FIXME)
+
+```haskell
+type Graph a
+    Node
+        inputs : List (Mutable (Graph a))
+        value : a
+
+-- THIS MAY BE WRONG, we need to have semantics how to assign mutable vars to mutable vars to crete mutual refs and also pure vars to create new refs
+n1 = Node [n2] 1
+n2 = Node [n1] 2
+```
+
 # Other Things To Be Described
-
-- ```haskell
-  default : a
-  default = a . default
-  ```
-
-- Subtyping
-
-  ```haskell
-  (nat -> string) : (int -> string)
-  (nat -> nat -> string) : (int -> int -> string)
-  (int -> nat) : (int -> int)
-  ```
-
-- Syntax. Underscore in pattern matching:
-
-  ```haskell
-  const a _ = a
-  ```
-
-- Type holes + programming with type holes (compilers help)
-
-- Laziness / strictness + how to define lazy fields?
 
 - Implicit conversions
 
-- modules (from the deprecated section)
+- modules and imports (from the deprecated section)
 
 - Using and creating Monads, example State implementation (Monad = always
   transformer, on the bottom Pure or IO)
@@ -2228,17 +2260,25 @@ sumIncremented2 = fold (+) << map +1
       DynamicError -> 0
   ```
 
-- Type-level programming – like taking an interface and returning interface with
-  more generic types (move a lot of examples from TypeScript)
+- Catching Errors when not catched explicitly – important for correctness
+
+- Type-level / meta programming – like taking an interface and returning
+  interface with more generic types (move a lot of examples from TypeScript
+  docs)
 
 - Question – should it be accessed like `End` or like `List.End` ? The later is
-  rather better!
+  rather better! If so, we need to make changes across the whole doc!
 
   ```haskell
   type List a
       Cons a (List a)
       End
   ```
+
+- monadfix
+
+- implementing custom contexts (monads). Including example how to implement a
+  "check monad" which have lines checking dataframes for errors.
 
 ###
 
