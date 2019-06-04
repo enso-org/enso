@@ -1,29 +1,11 @@
 package org.enso.syntax.text.lexer
 
-import java.io.{StringReader, StringWriter}
-import collection.mutable.Stack
 import org.scalatest._
 
 class LexerSpec extends FlatSpec with Matchers {
 
   def lex (input:String): List[Token] = {
-    var eofd    = false
-    var lst     = List[Token]()
-    val reader  = new StringReader(input)
-    val scanner = new Scanner(reader)
-    do {
-      val token = scanner.lex
-      if (token == null) {
-        eofd = true;
-        lst  = Token(EOF,0,0) +: lst
-      } else {
-        lst = token +: lst
-      }
-    } while (!scanner.done())
-    if (!eofd) {
-      lst = Token(EOF,0,0) +: lst
-    }
-    lst.reverse
+    new Lexer(input).lexAll()
   }
 
   def lex_ (input:String): List[Symbol] = {

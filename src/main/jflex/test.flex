@@ -200,8 +200,8 @@ newline     = \r|\n|\r\n
 // Identifiers
 ident_body_char = {alphanum} | _
 ident_body      = {ident_body_char}*(\')*
-var       = {alpha_lower}{ident_body}
-cons      = {alpha_upper}{ident_body}
+var             = {alpha_lower}{ident_body}
+cons            = {alpha_upper}{ident_body}
 wildcard        = _
 ident_err_sfx_c = [^\`\!\@\#\$\%\^\&\*\(\)\-\=\+\[\]\{\}\|\;\:\<\>\,\.\/\ \t\r\n\\]
 ident_err_sfx   = {ident_err_sfx_c}+
