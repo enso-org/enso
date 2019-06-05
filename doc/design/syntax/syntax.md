@@ -1,12 +1,13 @@
 # Enso: Simplicity and Correctness
 
 Enso is an award winning, general purpose, purely functional programming
-language with a double visual and textual representations. Enso was designed to
-be easy to use and reason about. It was equipped with a novel type system which
-automatically limits the possible human errors significantly and thus
-drastically improves the quality of the final solution. Enso is intended to be a
-production language, not a research one, and so, the design avoids including new
-and untested features in its main development branch.
+language with a double visual and textual representations and a very expressive,
+dependent type system. Enso was designed to be easy to use and reason about. It
+was equipped with a novel type system which automatically limits the possible
+human errors significantly and thus drastically improves the quality of the
+final solution. Enso is intended to be a production language, not a research
+one, and so, the design avoids including new and untested features in its main
+development branch.
 
 From the technical point of view, Enso incorporates many recent innovations in
 programming language design. It provides higher-order functions, strict and
@@ -15,6 +16,9 @@ which merges the worlds of dependent types and refinement types under a single
 umbrella. Enso is both the culmination and solidification of many years of
 research on functional languages and proof assistants, such as Haskell, Idris,
 Agda, or Liquid Haskell.
+
+**Note [To be included somewhere]**: Enso is dependently typed because we can
+run arbitrary code on type-level.
 
 ## Why a New Programming Language?
 
@@ -166,10 +170,6 @@ principles designed to keep the required cognitive effort low:
    In particular, it should provide guidance regarding possible next steps and
    human readable error messages.
 
-## Immediate Connection To Data
-
-We believe that the creation of software is a very creative process. [...]
-
 # Textual Representation
 
 ## Encoding
@@ -211,8 +211,22 @@ want to help us design an Enso Font, don't hesitate to tell us about it!
 
 ## Layout rules
 
-Enso uses indentation to determine the structure of the code. The layout rules
-were designed to be both flexible yet enforce good practices.
+The layout rules were designed to be both flexible yet enforce good practices.
+
+### Maximum Line Length
+
+The maximum line length is 80 characters. If your code exceeds that, the
+compiler will emit warning message about it. There is no way to change this
+setting on purpose. Limiting the required editor window width makes it possible
+to have several files open side-by-side, and works well when using code review
+tools that present the two versions in adjacent columns. The default wrapping in
+most tools disrupts the visual structure of the code, making it more difficult
+to understand. The limits are chosen to avoid wrapping in editors with the
+window width set to 80.
+
+### Indentation Blocks
+
+Enso uses indentation to determine the structure of the code.
 
 In general, every indented line consists a sub-structure of the nearest previous
 line with a smaller indentation. We refer to them as child line and parent line,
@@ -388,9 +402,19 @@ low precedence and it is defined in the standard library.
 
 # Variables
 
-### To Be Described
+## Bringing Variables to Scope
 
-- creating variables
+The only way to bring new variables into scope is by using pattern matching.
+There are two places in the code where pattern matching occurs – on the left
+side of assignment operator and on the left side of lambda operator.
+
+```haskell
+<pattern>  = ...
+<pattern> -> ...
+```
+
+## To Be Described
+
 - explicit typing
 - immutable memory
 
@@ -531,7 +555,7 @@ how code blocks work and what this type means will be provided in the chapter
 about contexts later in this book.
 
 There are rare situations when you want to evaluate the code block in place. You
-can use the `do` function for exactly this purpose. The do function just accepts
+can use the `do` keyword for exactly this purpose. The do function just accepts
 a code block, evaluates it and returns its result. An example usage is shown
 below:
 
@@ -543,19 +567,8 @@ greeter =
     print "It's nice to meet you, #{name}"
 ```
 
-Without the `do` function the code block would not be executed and `name` would
-refer to the code block itself, not its final value. You may be wondering how
-the `do` function is defined in the standard library. You shall be surprised!
-
-```haskell
-do block = block
-```
-
-In order to understand it's behavior, think that because we use the `do`
-function above, there is no new line after the `=` operator, the code block i
-passed to the `do` function as an argument, and the `do` function simply
-evaluates it and returns its result. The exact explanation is a bit more complex
-and will be provided in the chapter about contexts later in this book.
+Without the `do` keyword the code block would not be executed and `name` would
+refer to the code block itself, not its final value.
 
 ## Uniform Calling Syntax (UCS)
 
@@ -576,8 +589,19 @@ The following rules apply:
 
 - Two notations, one semantics. Both notations are equivalent and always resolve
   to the same behavior.
-- The argument on a position of the function arity (informally, the last
-  function argument) is considered to be the self element.
+
+- The expression `base.fn` is a syntactic sugar for `fn (this=base)`. In most
+  cases, the `this` argument is the last argument to a function, however,
+  sometimes the argument name could be omitted. Consider the following example
+  including sample implementation of the concatenation operator:
+
+  ```haskell
+  >> : (a -> b) -> (b -> c) -> a -> c
+  >> f g this = g $ f this
+
+  vecLength = map (^2) >> sum >> sqrt
+  print $ [3,4].vecLength -- Result: 5
+  ```
 
 Function resolution:
 
@@ -590,7 +614,7 @@ Function resolution:
   2. If not, find all functions with the matching name in the current module and
      all directly imported modules. These functions are the _candidates_.
   3. Eliminate any candidate `X` for which there is another candidate `Y` whose
-     `me` argument type is strictly more specific. That is, `Y` self type is a
+     `this` argument type is strictly more specific. That is, `Y` self type is a
      substitution of `X` self type but not vice versa.
   4. If not all of the remaining candidates have the same self type, the search
      fails.
@@ -778,7 +802,9 @@ main =
                 answerLoop
 ```
 
-## Named Arguments
+## Arguments
+
+### Named Arguments
 
 Unlike the majority of purely functional programming languages, Enso supports
 calling functions by providing arguments by name. Consider a function that
@@ -791,8 +817,6 @@ arguments are named and can be used explicitly when evaluating the function.
 sphere : Number -> Point -> Color -> Geometry.Type
 sphere radius position color type = undefined
 ```
-
-### Usage
 
 Remembering the order of the arguments is cumbersome. Such code is also often
 hard to understand and reason about:
@@ -819,81 +843,7 @@ s1 = sphere
     creator  = geometry.NURBS
 ```
 
-### Type Variables Scoping
-
-The type variable names are also part of the function signature and can be
-assigned with values. To understand better how the mechanism work, let's
-consider a simple code and a few transformations. First, lets define a sum
-function with both its argument and its result of the same type:
-
-```haskell
-sum (a:t) (b:t) = a + b : t
-```
-
-Of course, the function can be provided with an example signature:
-
-```haskell
-sum : (a:t) -> (b:t) -> t
-sum a b = a + b
-```
-
-We can also use currying for the function definition:
-
-```haskell
-sum : (a:t) -> (b:t) -> t
-sum = +
-```
-
-Even when using the last form, we can evaluate the function by providing
-arguments by names:
-
-```haskell
-value = sum
-    a = 1
-    b = 2
-```
-
-However, please note that the expression `value = sum (t = 1)` will fail, as
-both arguments as well as the result will be assigned with `1`, which clearly is
-incorrect, as `1 + 1 /= 1`.
-
-### Open Questions
-
-- Do we want to support explicit signatures for the following use case? The
-  function `f` is applied with two named arguments, but we do not know their
-  ordering. We only know that the function accepts at least `3` arguments and
-  that the 3rd argument can be `7`.
-
-  ```haskell
-  test : a -> b -> (<<a,b>> -> 7 -> x) -> x
-  test a b f = f (x=a) (y=b) 7
-  ```
-
-- Do we want to support type applications?
-
-  ```haskell
-  sum : t -> t -> t
-  sum a b = a + b
-
-  intSum = sum (t := Int)
-  ```
-
-- Should this code work (double `b` name)? If so, what is the type signature
-  containing names?
-
-  ```haskell
-  fn1 c b d = a + 1
-  fn2 a b   = fn1
-
-  value = fn2
-      a = 1
-      b = 2
-      c = 3
-      b = 4
-      d = 5
-  ```
-
-## Default Arguments
+### Default Arguments
 
 Consider the sphere example above again. Providing always all the arguments
 manually is both cumbersome and error prone:
@@ -930,7 +880,7 @@ centeredSphere = sphere
     ...
 ```
 
-## Positional Arguments
+### Positional Arguments
 
 Enso supports so called positional arguments call syntax. Consider the sphere
 example above. How can you define a new function which accepts radius, color and
@@ -965,15 +915,217 @@ argument.
 squareFirstAndAddSecond = _ ^2 + _
 ```
 
-# Types
+### Optional Arguments
 
-## Atomic Types
+Optional arguments are not a new feature, they are modeled using the default
+arguments mechanism. Consider the following implementation of a `read` function,
+which reads a text and outputs a value of a particular type:
 
-Atomic types are the most primitive structures in Enso. Formally, atomic types
-are [product types](https://en.wikipedia.org/wiki/Product_type). Their fields
-are always named and are fully polymorphic (each field has a distinct
-polymorphic type). Atoms are distinguishable. You are not allowed to pass an
-atom to a function accepting other atom, even if their fields are named the same
+```haskell
+read : Text -> t -> t
+read text this = t.fromText text
+```
+
+You can use this function by explicitly providing the type information in either
+of the following ways:
+
+```haskell
+val1 = read '5' Int
+val2 = Int.read '5'
+```
+
+However, the need to provide the type information manually could be tedious,
+especially in context when such information could be inferred, like when passing
+`val1` to a function accepting argument of the `Int` type. Let's re-write the
+function providing the default value for `this` argument to be ... itself!
+
+```haskell
+read : Text -> (t=t) -> t
+read text (this=this) = t.fromText text
+```
+
+The way it works is really simple. You can provide the argument explicitly,
+however, if you don't provide it, it's just assigned to itself, so no new
+information is provided to the compiler. If the compiler would not be able to
+infer it then, an error would be raised. Now, we are able to use it in all the
+following ways:
+
+```haskell
+fn : Int -> Int
+fn = id
+
+val1 = read '5' Int
+val2 = Int.read '5'
+val3 = read '5'
+fn val3
+```
+
+Enso provides a syntactic sugar for the `t=t` syntax. The above code can be
+written in a much nicer way as:
+
+```haskell
+read : Text -> t? -> t
+read text this? = t.fromText text
+```
+
+### Splats Arguments
+
+Enso provides both args and kwargs splats arguments. You can easily construct
+functions accepting variable number of both positional as well as keyword
+arguments. Splats arguments are an amazing utility mostly for creating very
+expressive EDSLs. Consider the following function which just prints arguments,
+each in a separate line:
+
+```haskell
+multiPring : args... -> Nothing in IO
+multiPrint = args... -> args.each case
+    Simple      val -> print val
+    Keyword key val -> print '#{key} = #{val}'
+
+multiPrint 1 2 (a=3) 4
+```
+
+```haskell
+--- Results ---
+1
+2
+a = 3
+4
+```
+
+## Variable Scoping
+
+Type variables, function variables, and lambda variables live in the same space
+in Enso. Moreover, as there is no distinction between types and values, you can
+use the same names both on type level as well as on value level because they
+refer to the same information in the end:
+
+```haskell
+mergeAndMap : f -> lst1 -> lst2 -> out
+mergeAndMap = f -> lst1 -> lst2 -> (lst1 + lst2) . map f
+```
+
+If different names are used on type level and on a value level to refer a
+variable, it's natural to think that this variable could be pointed just by two
+separate names. The following code is valid as well:
+
+```haskell
+mergeAndMap = (f : a -> b) -> (lst1 : List a) -> (lst2 : List a) -> (lst1 + lst2) . map f
+```
+
+Which, could also be distributed across separate lines as:
+
+```haskell
+mergeAndMap : (a -> b) -> List a -> List a -> List b
+mergeAndMap f lst1 lst2 = (lst1 + lst2) . map f
+```
+
+An interesting pattern can be observed in the code above. Taking in
+consideration that every value and type level expressions have always the same
+syntax, the lambda `(a -> b) -> List a -> List a -> List b` could not have much
+sense at the first glance, as there are three pattern matches shadowing the
+variable `a`. So how does it work? There is an important shadowing rule. **If in
+a chain of lambdas the same name was used in several pattern matches, the names
+are unified and have to be provided with the same value.** The chain of lambdas
+could be broken with any expression or code block.
+
+This rule could not make a lot of sense in the value level, as if you define
+function `add a a = a + a` you will be allowed to evaluate it as `add 2 2`, but
+not as `add 2 3`, however, you should not try to use the same names when
+defining functions on value level nevertheless.
+
+By applying this rule, the type of the above example makes much more sense now.
+Especially, when evaluated as `mergeAndMap show [1,2] ['a','b']`, the variables
+will be consequently instantiated as `a = Number | Text`, and `b = Text`, or to
+be very precise, `a = 1|2|'a'|'b'`, and `b = '1'|'2'|'a'|'b'`.
+
+Because type variables are accessible in the scope of a function, it's
+straightforward to define a polymorphic variable, which value will be an empty
+value for the expected type:
+
+```haskell
+empty : t
+empty = t.empty
+
+print (empty : List Int) -- Result: []
+print (empty : Text)     -- Result: ''
+```
+
+### Type Applications
+
+All libraries that sometimes need passing an explicit type from user should be
+designed as the `read` utility, so you can optionally pass the type if you want
+to, while it defaults to the inference otherwise. However, sometimes it's handy
+to just ad-hoc refine a type of a particular function, often for the debugging
+purposes. Luna allows to both apply values by name as well as refining types by
+name. The syntax is very similar, consider this simple function:
+
+```haskell
+checkLength : this -> Bool
+checkLength this =
+    isZero = this.length == 0
+    if isZero
+        then print "Oh, no!"
+        else print "It's OK!"
+    isZero
+```
+
+This function works on any type which has a method `length` returning a number.
+We can easily create a function with exactly the same functionality but it's
+input type restricted to accept lists only:
+
+```haskell
+checkListLength = checkLength (this := List a)
+```
+
+As stated earlier, in most cases there is a nicer way of expressing such logic.
+In this case, it would be just to create a function with an explicit type. The
+following code is equivalent to the previous one:
+
+```haskell
+checkListLength : List a -> Bool
+checkListLength = checkLength
+```
+
+### Open Questions
+
+- Do we want to support explicit signatures for the following use case? The
+  function `f` is applied with two named arguments, but we do not know their
+  ordering. We only know that the function accepts at least `3` arguments and
+  that the 3rd argument can be `7`.
+
+  ```haskell
+  test : a -> b -> (<<a,b>> -> 7 -> x) -> x
+  test a b f = f (x=a) (y=b) 7
+  ```
+
+- Should this code work (double `b` name)? If so, what is the type signature
+  containing names?
+
+  ```haskell
+  fn1 c b d = a + 1
+  fn2 a b   = fn1
+
+  value = fn2
+      a = 1
+      b = 2
+      c = 3
+      b = 4
+      d = 5
+  ```
+
+##
+
+# Data Types
+
+## Constructor Types
+
+Constructors define the most primitive way to construct a type, it's where they
+name comes from. Formally, they are
+[product types](https://en.wikipedia.org/wiki/Product_type). Their fields are
+always named and fully polymorphic (each field has a distinct polymorphic type).
+Constructors are distinguishable. You are not allowed to pass an constructor to
+a function accepting other constructor, even if their fields are named the same
 way.
 
 ```haskell
@@ -989,23 +1141,23 @@ test v = v.x + v.y + v.z
 test pt1 -- Compile time error. Expected Vec3, got Point3.
 ```
 
-## Algebraic Types
+## Algebraic Data Types
 
-Enso allows you to define new types by combining existing ones, so called
-[algebraic data types](https://en.wikipedia.org/wiki/Algebraic_data_type). Enso
-provides you with several algebraic operations on types:
+Enso allows you to define new types by combining existing ones into so called
+[algebraic data types](https://en.wikipedia.org/wiki/Algebraic_data_type). There
+are several algebraic operations on types available:
 
-- **Types Intersection**  
+- **Intersection**  
   A type intersection combines multiple types into one type that has all the
   features combined. For example, `Serializable & Showable` describes values
   that provide mechanisms for both serialization and printing.
 
-- **Types Difference**  
+- **Difference**  
   A type difference combines multiple types into one type that has all the
   features of the first type but not the features of the second one. For
   example, `Int \ Negative` describes all positive integer values or zero.
 
-- **Types Union**  
+- **Union**  
   A type union combines multiple types into one type that describes a value
   being of one of the types. For example, `Int | String` describes values that
   are either `Int` or `String`.
@@ -1032,8 +1184,8 @@ type Maybe a
     Just value:a
     Nothing
 
-    map : (a -> b) -> me b
-    map f = case me
+    map : (a -> b) -> Maybe b
+    map f = case this
         Just a  -> Just (f a)
         Nothing -> Nothing
 ```
@@ -1057,7 +1209,7 @@ type Foo
     method = implementation
 ```
 
-## Using functions on type sets
+## Data Types as Values
 
 ```haskell
 sum : a -> b -> a + b
@@ -1077,166 +1229,12 @@ main =
 
 Please note, that `lessThan -1 Natural` returns `True`, which is just more
 specific than `Bool` because it holds true for every natural number.
-
-## Refinement Types
-
-### Ordered Lists
-
-Sometimes, it's desired to prove some structure behaviors, like the fact that a
-list contains sorted values. Enso allows expressing such constraints in a simple
-way. They are often called behavioral types, as they describe the behavior to be
-checked. First, let's consider a simple List implementation and see how we can
-create a refined type using the high level interface:
-
-```haskell
-type List elems
-    Empty
-    Cons
-        head : elems
-        tail : List elems
-
-ordered = refined lst ->
-    if lst is empty
-        then true
-        else lst.head < lst.tail.elems
-          && isOrdered lst.tail
-```
-
-That's it! Now we can use it like this:
-
-```haskell
-lst1 = []      : Ordered List Int -- OK
-lst1 = [1,2,3] : Ordered List Int -- OK
-lst1 = [3,2,1] : Ordered List Int -- ERROR
-```
-
-#### Under the Hood
-
-Let's understand how the above example works. First, let's implement it in an
-inextendible way, just as a data type which cannot be used for other purpose:
-
-```haskell
-data OrderedList elems
-    Empty
-    Cons
-        head : elems
-        tail : OrderedList (elems & Refinement (> my.head))
-```
-
-The implementation is almost the same, however, the type of the `tail` is much
-more interesting. It's an intersection of `elems` and a `Refinement` type. A
-refinement type defines a set of values matching the provided requirement. Here,
-values in `tail` have to be a subtype of `elems` and also have to be bigger than
-the `head` element. Alternatively, you could express the type as:
-
-```haskell
-data OrderedList elems
-    Empty
-    Cons
-        head : elems
-        tail : OrderedList (t:elems & if t > my.head then t else Void)
-```
-
-In both cases, we are using functions applied with type sets. For example,
-`my.head` may resolve to a specific negative number while `t` may resolve to any
-natural one.
-
-Let's extract the `isOrdered` function from the original example. The function
-takes a list as an argument and checks if all of its elements are in an
-ascending order. It's worth noting that Enso allows accessing the named type
-variable parameters like `lst.tail.elems`. Moreover, let's define a helper
-function `refine`:
-
-```haskell
-isOrdered : List elems -> Bool
-isOrdered lst =
-    if lst is Empty
-        then true
-        else lst.head < lst.tail.elems
-          && isOrdered lst.tail
-
-refine f = $ Refinement f
-```
-
-Having this function, we could now use it like:
-
-```haskell
-lst1 = []      : Refine IsOrdered (List Int) -- OK
-lst1 = [1,2,3] : Refine IsOrdered (List Int) -- OK
-lst1 = [3,2,1] : Refine IsOrdered (List Int) -- ERROR
-```
-
-We can now define an alias `ordered = refine isOrdered`, however it would have
-to be used like `Ordered (List Int)`, but in the first example we've been using
-it like `Ordered List Int`. It was possible because there is a very special
-function defined in the standard library:
-
-```haskell
-applyToResult f tgt = case tgt of
-    (_ -> _) -> applyToResult << tgt
-    _        -> f tgt
-
-refined  = applyToResult << refine
-```
-
-The `applyToResult` function is very simple, although, from the first sight it
-may look strange. It just takes a function `f` and an argument and if the
-argument was not a function, then it applies `f` to it. If the argument was a
-function, it just skips it and does the same to the result of the function. Now,
-we can define the `refined` function which we used on the beginning as:
-
-```haskell
-refined = applyToResult << refine
-```
-
-It can be used either as shown in the original example or on the result of the
-type expression directly:
-
-```haskell
-ordered = refined isOrdered
-lst1 = []      : Ordered (List Int) -- OK
-lst1 = [1,2,3] : Ordered (List Int) -- OK
-lst1 = [3,2,1] : Ordered (List Int) -- ERROR
-```
+<<<<<<< HEAD
+=======
 
 ## Interfaces
 
-Types which contain only field declarations but does not have restrictions on
-the accepted atoms, behave like interfaces. Any type which conforms to the shape
-of the interface is considered an implementation of the interface, regardless of
-its explicit definition.
-
-```haskell
-type Show
-    show : Text
-    show = 'default'
-
-type Vector a
-    implements Show
-    V3 x:a y:a z:a
-
-    show = 'Vector #{self.x} #{self.y} #{self.z}'
-```
-
-As Luna types are always sets of values, there is no type-level parameters
-ordering like in Haskell. Consider the following code:
-
-```haskell
-type Vector a
-    V3 x:a y:a z:a
-
-type Functor a
-    map: (a -> b) -> self b
-
-test :
-    t : Functor
-    t a -> t Text
-test = map show
-```
-
-### TODO
-
-- Describe interface resolution and type parameters mapping
+- **TO BE DONE [WD - research]**
 
 ## Field Modifiers
 
@@ -1320,6 +1318,128 @@ map4 f self =
         Nothing -> case maybeNewRectangle of
             Just a  -> a
             Nothing -> error "impossible"
+```
+>>>>>>> syntax-docs
+
+# Refinement Types
+
+### Ordered Lists
+
+Sometimes, it's desired to prove some structure behaviors, like the fact that a
+list contains sorted values. Enso allows expressing such constraints in a simple
+way. They are often called behavioral types, as they describe the behavior to be
+checked. First, let's consider a simple List implementation and see how we can
+create a refined type using the high level interface:
+
+```haskell
+type List elems
+    Empty
+    Cons
+        head : elems
+        tail : List elems
+
+ordered = refined lst ->
+    if lst is empty
+        then true
+        else lst.head < lst.tail.elems
+          && isOrdered lst.tail
+```
+
+That's it! Now we can use it like this:
+
+```haskell
+lst1 = []      : Ordered List Int -- OK
+lst1 = [1,2,3] : Ordered List Int -- OK
+lst1 = [3,2,1] : Ordered List Int -- ERROR
+```
+
+#### Under the Hood
+
+Let's understand how the above example works. First, let's implement it in an
+inextendible way, just as a data type which cannot be used for other purpose:
+
+```haskell
+data OrderedList elems
+    Empty
+    Cons
+        head : elems
+        tail : OrderedList (elems & Refinement (> this.head))
+```
+
+The implementation is almost the same, however, the type of the `tail` is much
+more interesting. It's an intersection of `elems` and a `Refinement` type. A
+refinement type defines a set of values matching the provided requirement. Here,
+values in `tail` have to be a subtype of `elems` and also have to be bigger than
+the `head` element. Alternatively, you could express the type as:
+
+```haskell
+data OrderedList elems
+    Empty
+    Cons
+        head : elems
+        tail : OrderedList (t:elems & if t > this.head then t else Void)
+```
+
+In both cases, we are using functions applied with type sets. For example,
+`this.head` may resolve to a specific negative number while `t` may resolve to
+any natural one.
+
+Let's extract the `isOrdered` function from the original example. The function
+takes a list as an argument and checks if all of its elements are in an
+ascending order. It's worth noting that Enso allows accessing the named type
+variable parameters like `lst.tail.elems`. Moreover, let's define a helper
+function `refine`:
+
+```haskell
+isOrdered : List elems -> Bool
+isOrdered lst =
+    if lst is Empty
+        then true
+        else lst.head < lst.tail.elems
+          && isOrdered lst.tail
+
+refine f = $ Refinement f
+```
+
+Having this function, we could now use it like:
+
+```haskell
+lst1 = []      : Refine IsOrdered (List Int) -- OK
+lst1 = [1,2,3] : Refine IsOrdered (List Int) -- OK
+lst1 = [3,2,1] : Refine IsOrdered (List Int) -- ERROR
+```
+
+We can now define an alias `ordered = refine isOrdered`, however it would have
+to be used like `Ordered (List Int)`, but in the first example we've been using
+it like `Ordered List Int`. It was possible because there is a very special
+function defined in the standard library:
+
+```haskell
+applyToResult f tgt = case tgt of
+    (_ -> _) -> applyToResult << tgt
+    _        -> f tgt
+
+refined  = applyToResult << refine
+```
+
+The `applyToResult` function is very simple, although, from the first sight it
+may look strange. It just takes a function `f` and an argument and if the
+argument was not a function, then it applies `f` to it. If the argument was a
+function, it just skips it and does the same to the result of the function. Now,
+we can define the `refined` function which we used on the beginning as:
+
+```haskell
+refined = applyToResult << refine
+```
+
+It can be used either as shown in the original example or on the result of the
+type expression directly:
+
+```haskell
+ordered = refined isOrdered
+lst1 = []      : Ordered (List Int) -- OK
+lst1 = [1,2,3] : Ordered (List Int) -- OK
+lst1 = [3,2,1] : Ordered (List Int) -- ERROR
 ```
 
 # Type Inference
@@ -1442,95 +1562,10 @@ type Point
 
 ```
 
-```haskell
-type Nothing
-type Just value
-maybe = a -> Just a | Nothing
+Pattern matching works in a structural manner. The same applies to `|`,
+`&`, etc.
 
-
-Point = {x:Number, y:Number, z:Number}
-
-map : (Number -> Number) -> Point -> Point
-map = f ->
-    . x $= f
-    . y $= f
-    . z $= f
-
-p1 = Point 0 1 2 (p -> p.x + p.y + p.z)
-p2 = map +1 point
-p3 = point.map +1
-
--- fn : Point -> (Point -> Number)
-
-
-foo : Int -> Point -> Point
-foo = i -> map +i
-
-foo : Int -> Int
-foo = +1
-
-
-test : foo
-test = foo 1
-
-
-test = map (+1)
-
-```
-
-```haskell
-number = 17
-```
-
-The `number` is a subtype of infinite number of types, where the most specific
-type is `17` and the most general is `Type`. We can express an example relation
-as follow:
-
-```haskell
-number = 17 : 17 : Natural : Integer : Number : Type
-```
-
-By looking at the definition it is not possible to tell which type should be
-inferred by the compiler. We could of course always try to infer the most
-specific type, but then the amount of compile-time operations would completely
-kill the compiler performance. Instead, we can
-
-```haskell
-fn : a -> a < 10
-fn = a -> a < 10
-```
-
-```haskell
-merge = ts -> Type.from $ ts.map .type.values . concat
-```
-
-```haskell
-type Showable
-    show : Text
-
-type Serializable
-    encode : self -> Binary
-    decode : Binary -> self
-
-
-Int implements Serializable
-    encode = ...
-    decode = ...
-
-
-decode : Binary -> Int
-decode = ...
-
-decode : Binary -> String
-decode = ...
-
-
-foo : Serializable -> Binary
-foo = a -> encode a
-
-```
-
-# ==== TO BE DESCRIBED ====
+# ==== TO BE DESCRIBED NICER ====
 
 # Monadic arguments
 
@@ -1602,50 +1637,7 @@ Basically `=` transforms right side to left side like
 `(right : R in RM2 in RM1) -> (left : R in RM2 in Pure)`, and it merges `RM1`
 with host monad.
 
-# Dynamic access
-
-Data in Luna behaves like it was fully dynamic. You can access the field
-dictionary of each object and alter it. It's amazing for type level programming,
-as you could be able to generate types by defining their dictionaries during
-"module compilation time". To be described – how to do it – type is just a named
-record, which is like a dictionary.
-
-Basically, every property of object (let them behave like classes, modules or
-interfaces) should be accessible and extendible in such way.
-
-```haskell
-class Point a
-    P3 x:a y:a z:a
-        fnfield : me
-        fnfield = P3 my.x my.x my.x
-
-    length : a
-    length = my.x^2 + my.y^2 + my.z^2 . sqrt
-
-p1 = P3 1 2 3
-print $ p1.fields            -- <Map Text Field>
-f1 = p1.fields.get "fnfield" -- V3 a b c -> V3 a a a
-print $ f1 p1                -- V3 1 1 1
-p2 = p1.fields.set "fnfield" $ p -> V3 p.y 0 p.y
-print $ p2.fnfield           -- V3 2 0 2
-
-p3 = p1.fields.set "tupleFields" $ p -> [p.x, p.y, p.z]
-print $ typeOf p3            -- P3 1 2 3 & {tupleFields: [my.x, my.y, my.z]}
-print p3.tupleFields         -- [1,2,3]
-p4 = p3.tupleFields = [7,8,9]
-print p4                     -- P3 7 8 9
-
--- What if the name is not known at compilation time?
-name : Text
-field1 = p1.fields.get name -- field1 : Dynamic
-```
-
 # The Dynamic Type
-
-Note: we may want to merge `Dynamic` with `Any`, as `Any` is the "set of all
-sets". It just describes a value that has any method, any property etc. From the
-logical perspective its like the planned `Dynamic` and from user perspective
-there may be no sense in distinguishing them.
 
 When calling a foreign python we get the result typed as `Dynamic`. Basically,
 values typed as `Dynamic` work just like in Python. You can access their fields
@@ -1669,6 +1661,61 @@ num4 = num3 - 1 -- : Dynamic ! DynamicError
 
 ```
 
+```haskell
+obj.__model__ =
+    { atom  : Text
+    , dict  : Map Text Any
+    , info  :
+        { doc  : Text
+        , name : Text
+        , code : Text
+        , loc  : Location
+        }
+    , arg  : -- used only when calling like a function
+        { doc     : Text
+        , default : Maybe Any
+        }
+    }
+```
+
+## Dynamic access
+
+Even typed data in Enso behaves like it was fully dynamic. You can access the
+field dictionary of each object and alter it. It's amazing for type level
+programming, as you could be able to generate types by defining their
+dictionaries during "module compilation time". To be described – how to do it –
+type is just a named record, which is like a dictionary.
+
+Basically, every property of object (let them behave like classes, modules or
+interfaces) should be accessible and extendible in such way.
+
+```haskell
+class Point a
+    P3 x:a y:a z:a
+        fnfield : this
+        fnfield = P3 this.x this.x this.x
+
+    length : a
+    length = this.x^2 + this.y^2 + this.z^2 . sqrt
+
+p1 = P3 1 2 3
+print $ p1.fields            -- <Map Text Field>
+f1 = p1.fields.get "fnfield" -- V3 a b c -> V3 a a a
+print $ f1 p1                -- V3 1 1 1
+p2 = p1.fields.set "fnfield" $ p -> V3 p.y 0 p.y
+print $ p2.fnfield           -- V3 2 0 2
+
+p3 = p1.fields.set "tupleFields" $ p -> [p.x, p.y, p.z]
+print $ typeOf p3            -- P3 1 2 3 & {tupleFields: [this.x, this.y, this.z]}
+print p3.tupleFields         -- [1,2,3]
+p4 = p3.tupleFields = [7,8,9]
+print p4                     -- P3 7 8 9
+
+-- What if the name is not known at compilation time?
+name : Text
+field1 = p1.fields.get name -- field1 : Dynamic
+```
+
 # Lists
 
 Lists in Luna are defined as follow:
@@ -1689,6 +1736,9 @@ lst2 = [1,"foo"] : [1,"foo"] : List (Int | String)
 ```
 
 # Proving the Software Correctness
+
+**Note [To be included somewhere]**: Enso is dependently typed because we can
+run arbitrary code on type-level.
 
 **So, what are dependent types?** Dependent types are types expressed in terms
 of data, explicitly relating their inhabitants to that data. As such, they
@@ -1881,7 +1931,7 @@ main =
         else print mail
 ```
 
-## Dependent Types Resolution
+## Types Resolution
 
 The natural next question is, how it was possible to get such a drastic quality
 improvement? As already mentioned, dependent types are types expressed in terms
@@ -1947,7 +1997,7 @@ index : Natural -> Cons t1 (List t2) -> t1
 A similar, but a little more complex case applies if we try to access a nested
 element. We leave this exercise to the reader.
 
-ca
+### Bigger Example (to be finished)
 
 ```haskell
 type List a
@@ -1970,13 +2020,11 @@ init = case
 index :: Natural.range lst.length -> lst
 ```
 
-TODO: Move the whole examples herel ike that + mail examples
-
-# Autolifting functions to types
+## Autolifting functions to types
 
 ```haskell
 -- Consider
-fn : a -> b -> a + b
+fn : Int -> Int -> Int
 fn = a -> b -> a + b
 
 -- If we provide it with 1 and 2 then
@@ -1985,6 +2033,7 @@ fn 1 2 : fn 1 2 : 3
 -- Howevere this is true as well
 fn 1 2 : fn Int Int : Int
 
+-- Please note that 1:Int AND Int:Int
 -- It means that functions can always be provided with type-sets and return type sets, so
 fn Int Int -- returns Int
 ```
@@ -1996,34 +2045,209 @@ sumIncremented1 = map +1 >> fold (+)
 sumIncremented2 = fold (+) << map +1
 ```
 
+However, the following is preferred:
+
+```haskell
+sumIncremented1 = . map +1 . fold (+)
+```
+
+# Lazy / Strict
+
+```haskell
+if_then_else :: Bool -> Lazy a in n -> Lazy a in m -> a in n | m
+if cond _then ok _else fail =
+    case cond of
+        True  -> ok
+        False -> fail
+
+test cond = if_then_else cond -- The arguments are still lazy and accept monads
+test cond ok fail = if_then_else cond ok fail -- The arguments are strict and does not accept monads
+```
+
+**TODO:** ARA + WD - check with bigger examples if this really holds.
+Alternatively we can think of `Lazy a` as a part of the `a` parameter, which
+should not be dropped. WD feels it needs to be re-considered.
+
+# Context Defaults
+
+- Function arguments default to `in Pure` if not provided with an explicit type.
+- Function results and variables default to `in m` if not provided with an
+  explicit type.
+
+For example:
+
+```haskell
+test a b = ...
+```
+
+Has the inferred type of
+
+```haskell
+test : a in Pure -> b in Pure -> out in m
+```
+
+Thus if used like
+
+```haskell
+test (print 1) (print 2)
+```
+
+The prints will be evaluated before their results are passed to `test`. However,
+when provided with explicit signature:
+
+```haskell
+test2 : a in m -> b in n -> out in o
+test2 a b = ...
+```
+
+Then the evaluation
+
+```haskell
+test2 (print 1) (print 2)
+```
+
+Will pass both arguments as "actions" and their evaluation depends on the
+`test2` body definition.
+
+# Type Based Implementations
+
+```haskell
+default : a
+default = a . default
+```
+
+# Explicit Types And Subtyping
+
+When explicit type is provided, the value is checked to be the subtype of the
+provided type, so all the following lines are correct:
+
+```haskell
+a = 1
+a : 1
+a : Natural
+a : Integer
+a : Number
+a : Type
+```
+
+The same applies to functions – the inferred signature needs to be a subtype of
+the provided one. However, the intuiting of what a subtype of a function is
+could not be obvious, so lets describe it better. Consider a function `foo`:
+
+```haskell
+foo : (Natural -> Int) -> String
+```
+
+From definition, we can provide it with any value, which type is the subtype of
+`Natural -> Int`. This argument needs to handle all possible values of `Natural`
+as an input. Moreover, we know that `foo` assumes that the result of the
+argument is any value from the set `Int`, so we cannot provide a function with a
+broader result, cause it may make `foo` ill-working (for example if it pattern
+matches on the result inside). So the following holds:
+
+```haskell
+(Natural -> Natural) : (Natural -> Int)
+```
+
+Please note, that we can provide a function accepting broader set of arguments,
+so this holds as well:
+
+```haskell
+(Int -> Natural) : (Natural -> Natural)
+```
+
+So, this holds as well:
+
+```haskell
+(Int -> Natural) : (Natural -> Int)
+```
+
+(todo: describe variants and contravariants better here).
+
+Consider the following, more complex example:
+
+```haskell
+add a name =
+    b = open name . to Int
+    result = (a + b).show
+    print result
+    result
+```
+
+This function works on any type which implements the `+` method, like `String`,
+however, we can narrow it down by providing explicit type signature:
+
+```haskell
+add : Natural in Pure -> Text in Pure -> String in IO ! IO.ReadError
+add = ...
+
+addAlias = add
+```
+
+Now we can create an alias to this function and provide explicit type signature
+as well. As long as the `add` signature will be the subtype of `addAlias`
+signature, it will be accepted. First, we can skip the explicit error mention:
+
+```haskell
+addAlias : Natural in Pure -> Text in Pure -> String in IO
+```
+
+Next, we can skip the explicit contexts, because the contexts of arguments
+default to `Pure` while the context of the result does not have any restrictions
+by default so will be correctly inferred:
+
+```haskell
+addAlias : Natural -> Text -> String
+```
+
+We can also type the whole function using any broader type. In order to
+understand what a subtype of a function, visualize it's transformation as arrows
+between categories. The above function takes any value from a set `Natural` and
+set `Text` and transforms it to some value in set `String`. We can use any wider
+type instead:
+
+```haskell
+addAlias : Natural -> Text -> Type
+```
+
+However, please note that the following will be not accepted:
+
+```haskell
+addAlias : Int -> Type -> Type -- WRONG!
+```
+
+# Underscore in Pattern Matching
+
+`const a _ = a` behaves differently than underscore in expressions (implicit
+lambda).
+
+# Type Holes
+
+```haskell
+a :: ??
+```
+
+Creates a type hole, which will be reported by the compiler. Describe the
+programming with type holes model. A good reference: http://hazel.org
+
+# Mutable Fields (FIXME)
+
+```haskell
+type Graph a
+    Node
+        inputs : List (Mutable (Graph a))
+        value : a
+
+-- THIS MAY BE WRONG, we need to have semantics how to assign mutable vars to mutable vars to crete mutual refs and also pure vars to create new refs
+n1 = Node [n2] 1
+n2 = Node [n1] 2
+```
+
 # Other Things To Be Described
-
-- ```haskell
-  default : a
-  default = a . default
-  ```
-
-- Subtyping
-
-  ```haskell
-  (nat -> string) : (int -> string)
-  (nat -> nat -> string) : (int -> int -> string)
-  (int -> nat) : (int -> int)
-  ```
-
-- Syntax. Underscore in pattern matching:
-
-  ```haskell
-  const a _ = a
-  ```
-
-- Type holes + programming with type holes (compilers help)
-
-- Laziness / strictness + how to define lazy fields?
 
 - Implicit conversions
 
-- modules (from the deprecated section)
+- modules and imports (from the deprecated section)
 
 - Using and creating Monads, example State implementation (Monad = always
   transformer, on the bottom Pure or IO)
@@ -2039,17 +2263,25 @@ sumIncremented2 = fold (+) << map +1
       DynamicError -> 0
   ```
 
-- Type-level programming – like taking an interface and returning interface with
-  more generic types (move a lot of examples from TypeScript)
+- Catching Errors when not catched explicitly – important for correctness
+
+- Type-level / meta programming – like taking an interface and returning
+  interface with more generic types (move a lot of examples from TypeScript
+  docs)
 
 - Question – should it be accessed like `End` or like `List.End` ? The later is
-  rather better!
+  rather better! If so, we need to make changes across the whole doc!
 
   ```haskell
   type List a
       Cons a (List a)
       End
   ```
+
+- monadfix
+
+- implementing custom contexts (monads). Including example how to implement a
+  "check monad" which have lines checking dataframes for errors.
 
 ###
 
