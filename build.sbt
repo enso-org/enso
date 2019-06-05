@@ -16,6 +16,7 @@ lazy val basic = Project(
     ),
     libraryDependencies += "org.typelevel" %% "cats-core" % "1.6.0",
     libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.5" % Test,
+    libraryDependencies += "com.lihaoyi"   %% "pprint"    % "0.5.3",
 
     resolvers ++= Seq(
       "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
@@ -33,4 +34,4 @@ lazy val basic = Project(
 
 SbtJFlexPlugin.jflexSettings
 
-mainClass in (Compile, run) := Some("org.enso.syntax.text.lexer.Main")
+mainClass in (Compile, run) := Some("org.enso.syntax.text.Main")

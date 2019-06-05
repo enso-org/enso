@@ -25,6 +25,7 @@ case object DisabledAssignment               extends Symbol
 
 // Layout
 case object EOL                              extends Symbol
+case object BOF                              extends Symbol
 case object EOF                              extends Symbol
 case object GroupBegin                       extends Symbol
 case object GroupEnd                         extends Symbol

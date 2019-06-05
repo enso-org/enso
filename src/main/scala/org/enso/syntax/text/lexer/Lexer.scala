@@ -1,6 +1,7 @@
 package org.enso.syntax.text.lexer
 
 import java.io.{StringReader, Reader}
+import scala.collection.immutable.Vector
 
 class Lexer (reader:Reader) {
   val scanner       = new Scanner(reader)
@@ -27,12 +28,12 @@ class Lexer (reader:Reader) {
     }
   }
 
-  def lexAll(): List[Token] = {
-    var lst = List[Token]()
+  def lexAll(): Vector[Token] = {
+    var builder = Vector.newBuilder[Token]
     do {
-      lst = lex +: lst
+      builder += lex
     } while (!done)
-    lst.reverse
+    builder.result
   }
 
   def done(): Boolean = {

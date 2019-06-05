@@ -5,7 +5,7 @@ import org.scalatest._
 class LexerSpec extends FlatSpec with Matchers {
 
   def lex (input:String): List[Token] = {
-    new Lexer(input).lexAll()
+    new Lexer(input).lexAll().to[List]
   }
 
   def lex_ (input:String): List[Symbol] = {
