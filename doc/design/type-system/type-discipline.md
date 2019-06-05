@@ -965,6 +965,22 @@ Points that need to be accounted for in the 'wishlist' design:
 read : String -> Ty? -> Ty
 ```
 
+Named state items? Parametrise the state over a type and get via names, which
+are projections.
+
+- State parametrised over a record giving both name and type
+- Do we want to look things up based on type?
+- `State.get name` where `name` is a row projection.
+
+- Monadic contexts desugared as transformers.
+
+
+- Initially treat the value _in_ the state as a dynamic.
+
+- Dependent types at runtime compared with dynamics.
+
+IO, State, Exception (not ! error)
+
 - Dependent types as constructing proofs through combining types. Combining
   types provides evidence which can be discharged to create a proof. A value can
   then only be constructed by discharging a proof.

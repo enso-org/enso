@@ -1,16 +1,10 @@
-___
-- **Feature Name:** Runtime 2.0
-- **Start Date:** 2019-03-26
-- **Change Type:** Breaking
-- **RFC Dependencies:** Syntax Overhaul, Modules
-- **RFC PR:** Leave Empty
-- **Luna Issue:** Leave Empty
-- **Implemented:** Leave blank, this will be filled with the first version of
-  the relevant tool where it is implemented.
+# Luna Runtime
 
-<!-- All ASCII Diagrams Created with [AsciiFlow](http://asciiflow.com/) -->
 
-# Summary
+
+
+
+
 This proposal sets out the architecture and detailed design for the new Luna
 runtime. This runtime aims to bring both increased performance to Luna, and to
 provide a consistent and powerful base for the future evolution of the language.
