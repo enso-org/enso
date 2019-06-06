@@ -48,6 +48,9 @@ gitignoreFile = $(Path.mkRelFile ".gitignore")
 packageExt :: String
 packageExt = "lunaproject"
 
+packageExtWithDot :: String
+packageExtWithDot = ".lunaproject"
+
 lunaFileExt :: String
 lunaFileExt = "luna"
 

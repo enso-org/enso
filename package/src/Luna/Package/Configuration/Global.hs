@@ -5,8 +5,10 @@ import Prologue
 import qualified Control.Lens.Aeson as Lens
 import qualified Data.Aeson.Types   as Aeson
 import qualified Data.Yaml          as Yaml
+import qualified Path               as Path
 
-import System.FilePath (FilePath, (</>))
+import Path (Path, Abs, Rel, Dir, File, (</>))
+
 
 
 
@@ -14,14 +16,14 @@ import System.FilePath (FilePath, (</>))
 -- === Utility Defs === --
 --------------------------
 
-projectName :: FilePath
-projectName = "luna"
+projectName :: Path Rel File
+projectName = $(Path.mkRelFile "luna")
 
-configDir :: FilePath
-configDir = ".config" </> projectName
+configDir :: Path Rel File
+configDir = $(Path.mkRelDir ".config") </> projectName
 
-configName :: FilePath
-configName = "config.yaml"
+configName :: Path Rel File
+configName = $(Path.mkRelFile "config.yaml")
 
 
 

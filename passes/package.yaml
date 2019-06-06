@@ -36,6 +36,7 @@ library:
         - luna-core
         - luna-debug
         - mtl
+        - path
         - prologue >= 3.0.0
         - storable-tuple
         - text

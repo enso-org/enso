@@ -25,7 +25,7 @@ import Control.Exception                  (IOException)
 import Luna.Package.Configuration.License (License)
 import System.FilePath                    (FilePath, (</>))
 import System.IO                          (hPutStrLn, stderr)
-
+import Path (Path, Abs, Dir, fromAbsDir)
 
 
 ----------------------------------------
@@ -35,13 +35,13 @@ import System.IO                          (hPutStrLn, stderr)
 -- === Definition === --
 
 data GeneratorError
-    = InvalidPackageLocation FilePath
+    = InvalidPackageLocation (Path Abs Dir)
     | InvalidPackageName Text
     | SystemError IOException
     deriving (Eq, Generic, Show)
 
 instance Exception GeneratorError where
-    displayException (InvalidPackageLocation fp) = fp
+    displayException (InvalidPackageLocation fp) = fromAbsDir fp
         <> " is an invalid location for a package."
     displayException (InvalidPackageName name) = convert name
         <> " is not a valid package name."

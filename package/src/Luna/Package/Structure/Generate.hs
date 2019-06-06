@@ -15,11 +15,9 @@ import qualified Luna.Path.Path                           as Path
 import qualified Path                                     as Path
 import qualified Path.IO                                  as Path
 import qualified System.Directory                         as Directory
-import qualified System.FilePath                          as FilePath
 
 import Luna.Package.Configuration.License       (License)
 import Luna.Package.Structure.Generate.Internal (recovery)
-import System.FilePath                          (FilePath)
 
 --------------------------------
 -- === Project Generation === --
@@ -42,11 +40,10 @@ genPackageStructure path mLicense gblConf =
 
         let isInsidePkg = isJust insidePkg
 
-        if  | Utilities.isValidPkgName pkgName && not isInsidePkg ->
-                liftIO $ Exception.catch create (recovery canonicalPath)
-            | isInsidePkg -> pure . Left . InvalidPackageLocation
-                $ fromJust "" (Path.toFilePath <$> insidePkg)
-            | otherwise -> pure . Left . InvalidPackageName
+        case (Utilities.isValidPkgName pkgName , insidePkg) of
+            (True, Nothing) -> liftIO $ Exception.catch create (recovery canonicalPath)
+            (_, Just pkg) -> pure . Left . InvalidPackageLocation $ pkg
+            otherwise ->  pure . Left . InvalidPackageName
                 $ convert (Path.fromAbsDir canonicalPath)
         where
             create :: IO (Either GeneratorError (Path.Path Path.Abs Path.Dir))
@@ -62,43 +59,3 @@ genPackageStructure path mLicense gblConf =
                 Internal.generateGitignore       canonicalPath
 
                 pure $ Right canonicalPath
-
-{-
-
-genPackageStructure :: MonadIO m => FilePath -> Maybe License -> Global.Config
-                    -> m (Either GeneratorError FilePath)
-genPackageStructure name mLicense gblConf =
-    if length name < 1 then
-        pure . Left . InvalidPackageName $ convert name
-    else do
-        -- This is safe as it has at least one component if `name` is nonemtpy
-        -- `name` is nonempty due to the guard above.
-        let pkgName = unsafeLast $ Path.splitDirectories name
-
-        canonicalName <- liftIO $ Directory.canonicalizePath name
-        insidePkg     <- Utilities.findParentPackageIfInside canonicalName
-
-        let isInsidePkg = isJust insidePkg
-
-        if  | Utilities.isValidPkgName pkgName && not isInsidePkg ->
-                liftIO $ Exception.catch create (recovery canonicalName)
-            | isInsidePkg -> pure . Left . InvalidPackageLocation
-                $ fromJust "" insidePkg
-            | otherwise -> pure . Left . InvalidPackageName
-                $ convert canonicalName
-        where
-            create :: IO (Either GeneratorError FilePath)
-            create = do
-                canonicalPath <- Directory.canonicalizePath name
-                Directory.createDirectoryIfMissing True canonicalPath
-
-                Internal.generateConfigDir       canonicalPath mLicense gblConf
-                Internal.generateDistributionDir canonicalPath
-                Internal.generateSourceDir       canonicalPath
-                Internal.generateLicense         canonicalPath mLicense
-                Internal.generateReadme          canonicalPath
-                Internal.generateGitignore       canonicalPath
-
-                pure $ Right canonicalPath
-
--}

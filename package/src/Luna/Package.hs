@@ -13,13 +13,11 @@ import qualified Luna.Package.Configuration.Local         as Local
 import qualified Luna.Package.Structure.Generate.Internal as Generate
 import qualified Luna.Package.Structure.Name              as Name
 import qualified Luna.Package.Structure.Utilities         as Structure
-import qualified Luna.Package.Utilities                   as Utilities
 import qualified Luna.Path.Path                           as Path
 import qualified OCI.Data.Name                            as Name
 import qualified Path                                     as Path
 import qualified Path.IO                                  as Path
 import qualified System.Directory                         as Directory
-import qualified System.FilePath                          as FilePath
 import qualified System.FilePath.Find                     as Find
 
 import Control.Arrow           ((&&&))
@@ -57,7 +55,7 @@ data PackageNotFoundException
 
 instance Exception PackageNotFoundException where
     displayException (PackageNotFound file) =
-        "File \"" <> Path.toFilePath file <> "\" is not a part of any package."
+        "File \"" <> Path.fromAbsFile file <> "\" is not a part of any package."
     displayException (PackageRootNotFound dir) =
         show dir <> " is not a Luna Package root."
     displayException (FSError str) = "FSError: " <> str
@@ -85,12 +83,12 @@ data RenameException
 instance Exception RenameException where
     displayException (InvalidName text) = convert text
         <> " is not a valid package name."
-    displayException (InaccessiblePath path) = show path <> " is inaccessible."
-    displayException (InaccessibleFile file) = show file <> " is inaccessible."
-    displayException (DestinationExists path) = show path <> " already exists."
-    displayException (CannotDelete path ex) = "Cannot delete" <> show path
+    displayException (InaccessiblePath path) = Path.fromAbsDir path <> " is inaccessible."
+    displayException (InaccessibleFile file) = Path.fromAbsFile file <> " is inaccessible."
+    displayException (DestinationExists path) = Path.fromAbsDir path <> " already exists."
+    displayException (CannotDelete path ex) = "Cannot delete" <> Path.fromAbsDir path
         <> ": " <> displayException ex
-    displayException (CannotRenameFile file ex) = "Cannot rename " <> show file
+    displayException (CannotRenameFile file ex) = "Cannot rename " <> Path.fromAbsFile file
         <> ": " <> displayException ex
 
 
@@ -280,28 +278,12 @@ name path = findPackageRoot path >>= \case
     Just root -> pure . unsafeLast . Path.splitDirectories $ root
 
 
-{-
-
-name :: (MonadIO m, MonadExceptions '[ PackageNotFoundException
-                                     , Path.PathException ] m)
-    => Path Abs Dir -> m Text
-name path = findPackageRoot path >>= \case
-    Nothing   -> Exception.throw $ PackageRootNotFound path
-    -- Safe because Path.fromAbsDir is guaranteed nonempty
-    Just root -> pure . convert . unsafeLast . Path.splitDirectories $ root
-
-
--}
-
 rename :: ( MonadIO m
           , MonadExceptions '[ PackageNotFoundException
                              , RenameException
                              , Path.PathException] m )
     => Path Abs Dir -> Path Abs Dir -> m (Path Abs Dir, Maybe RenameException)
 rename srcPath destPath = do
-    -- let srcPath  = Path.fromAbsDir src
-    --     destPath = Path.fromAbsDir target
-
     srcExists <- Path.doesDirExist srcPath
     unless_ srcExists . Exception.throw $ InaccessiblePath srcPath
 
@@ -323,20 +305,8 @@ rename srcPath destPath = do
 
     -- Determine things to copy and copy/create them
 
-
-{-
-    let recursiveListDir dir = do
-            contents <- map (dir `FilePath.combine`)
-                <$> (liftIO $ Directory.listDirectory dir)
-            (files, dirs) <- Utilities.partitionM
-                (liftIO . Directory.doesFileExist) contents
-            (recFiles, recDirs) <- fmap unzip $ mapM recursiveListDir dirs
-            pure (files <> concat recFiles, dirs <> concat recDirs)
--}
-
     (dirsToCreate, filesToCopy) <- recursiveListDir srcPath
 
--- stripProperPrefix :: MonadThrow m => Path b Dir -> Path b t -> m (Path Rel t)
 
     for_ dirsToCreate $ \dir -> do
       relPath <- Exception.rethrowFromIO @Path.PathException $ Path.stripProperPrefix srcPath dir
@@ -347,8 +317,6 @@ rename srcPath destPath = do
         Path.copyFile file (destPath Path.</> relPath)
 
     -- Rename the `*.lunaproject` file
---    origProjFile <- Exception.rethrowFromIO @Path.PathException
---        . Path.parseRelFile $ convert (originalName Path.<.> Name.packageExt)
     origProjFile <- Exception.rethrowFromIO @Path.PathException $ do
         file <- Path.relDirToFile originalName
         (file Path.<.> Name.packageExt)
@@ -374,8 +342,6 @@ rename srcPath destPath = do
 
     -- Generates a super default config if none exists
 
--- packageConfig :: Maybe License -> Path.Path Path.Rel Path.Dir -> Text -> Text -> Path.Path Path.Abs Path.Dir -> IO ()
-
     case decoded of
         Left _    -> liftIO $ Generate.packageConfig Nothing newName
             "" "" configDir
@@ -396,98 +362,3 @@ recursiveListDir dir = do
     (recDirs, recFiles) <- fmap unzip $ mapM recursiveListDir dirs
     pure (dirs <> concat recDirs, files <> concat recFiles)
 
-{-
-
-packageConfig :: Maybe License -> Path.Path Path.Rel Path.Dir -> Text -> Text -> Path.Path Path.Abs Path.Dir -> IO ()
-
-
-rename :: ( MonadIO m
-          , MonadExceptions '[ PackageNotFoundException
-                             , RenameException
-                             , Path.PathException] m )
-    => Path Abs Dir -> Path Abs Dir -> m (Path Abs Dir, Maybe RenameException)
-rename src target = do
-    let srcPath  = Path.fromAbsDir src
-        destPath = Path.fromAbsDir target
-
-    srcExists <- liftIO $ Directory.doesDirectoryExist srcPath
-    unless_ srcExists . Exception.throw $ InaccessiblePath src
-
-    srcIsPackage <- isLunaPackage src
-    unless_ srcIsPackage . Exception.throw $ PackageRootNotFound src
-
-    destExists <- liftIO $ Directory.doesDirectoryExist destPath
-    when_ destExists . Exception.throw $ DestinationExists target
-
-    -- Safe as a `Path Abs Dir` cannot be empty
-    let newName        = unsafeLast $ FilePath.splitDirectories destPath
-        isValidPkgName = Structure.isValidPkgName newName
-    unless_ isValidPkgName . Exception.throw . InvalidName $ convert newName
-
-    -- Guaranteed to be in a package by now so default value is nonsensical
-    defaultDir     <- liftIO $ Directory.getCurrentDirectory
-    defaultDirPath <- Exception.rethrowFromIO @Path.PathException
-        $ Path.parseAbsDir defaultDir
-    srcPackageRoot <- fromJust defaultDirPath <$> findPackageRoot src
-    originalName   <- name srcPackageRoot
-
-    -- Determine things to copy and copy/create them
-    let recursiveListDir dir = do
-            contents <- map (dir `FilePath.combine`)
-                <$> (liftIO $ Directory.listDirectory dir)
-            (files, dirs) <- Utilities.partitionM
-                (liftIO . Directory.doesFileExist) contents
-            (recFiles, recDirs) <- fmap unzip $ mapM recursiveListDir dirs
-            pure (files <> concat recFiles, dirs <> concat recDirs)
-
-    (filesToCopy, dirsToCreate) <- recursiveListDir srcPath
-
-    for_ dirsToCreate $ \dir -> do
-        let relPath = FilePath.makeRelative srcPath dir
-        liftIO . Directory.createDirectoryIfMissing True
-            $ destPath `FilePath.combine` relPath
-
-    for_ filesToCopy $ \file -> do
-        let relPath = FilePath.makeRelative srcPath file
-        liftIO . Directory.copyFile file $ destPath `FilePath.combine` relPath
-
-    -- Rename the `*.lunaproject` file
-    origProjFile <- Exception.rethrowFromIO @Path.PathException
-        . Path.parseRelFile $ convert originalName <> Name.packageExt
-    newName      <- name target
-    newProjFile  <- Exception.rethrowFromIO @Path.PathException
-        . Path.parseRelFile $ convert newName <> Name.packageExt
-
-    let origProjPath = target </> Name.configDirectory </> origProjFile
-        newProjPath  = target </> Name.configDirectory </> newProjFile
-
-    -- TODO [Ara] Fix MonadException and move back to that Exception.CatchAll
-    liftIO . Unsafe.handle (\(e :: SomeException) ->
-            Exception.throw $ CannotRenameFile newProjPath e)
-        $ Directory.renameFile (Path.fromAbsFile origProjPath)
-        (Path.fromAbsFile newProjPath)
-
-    -- Change the name in the `config.yaml` file
-    configName <- Exception.rethrowFromIO @Path.PathException
-        $ Path.parseRelFile Name.configFile
-    let configDir  = target </> Name.configDirectory
-        configPath = configDir </> configName
-
-    decoded <- liftIO $ Yaml.decodeFileEither (Path.fromAbsFile configPath)
-
-    -- Generates a super default config if none exists
-    case decoded of
-        Left _    -> liftIO . Generate.packageConfig Nothing (convert newName)
-            "" "" $ Path.fromAbsDir configDir
-        Right cfg -> liftIO . Yaml.encodeFile (Path.fromAbsFile configPath) $
-            cfg & Local.projectName .~ newName
-
-    -- Bubble up an error if the original directory can't be removed.
-    liftIO . Unsafe.handle (\(e :: SomeException) ->
-            pure (target, Just (CannotDelete src e))) $ do
-        Directory.removeDirectoryRecursive srcPath
-        pure (target, Nothing)
-
-    pure (target, Nothing)
-
-    -}
