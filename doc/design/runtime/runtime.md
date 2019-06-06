@@ -1,8 +1,73 @@
-# Luna Runtime
+# Enso Runtime
+This document contains a detailed specification of Enso's runtime. It includes
+a description of the technologies on which it is built, as well as the features
+and functionality that it is required to support. In addition, the document aims
+to explain why _this_ design, rather than one of the many alternatives available
+to the team.
 
+When we refer to the Enso 'runtime' in this document, we are referring to the
+combination of the language communication protocol, typechecker, optimiser, and
+interpreter. Though the interpreter itself has its own runtime, it is these
+components that make up _Enso's_ runtime.
 
+The runtime is built on top of [GraalVM](https://www.graalvm.org/), a universal
+virtual machine on which you can run any language with an appropriate 
+interpreter. In basing Enso's runtime on GraalVM, we not only have access to a
+comprehensive toolkit for building high-performance language interpreters, but
+also to the ecosystems of all the other languages (e.g. C++, Python, R) that can
+run on top of it. GraalVM also brings some additional important tooling, such as
+the JVM ecosystem's performance monitoring, analysis, and debugging toolsets. 
 
+The runtime described below is a complex beast, so this document is broken up
+into a number of sections. These aim to provide an architectural overview, and
+then describe the design of each component in detail.
 
+<!-- MarkdownTOC levels="1,2,3" autolink="true" -->
+
+- [Architectural Overview](#architectural-overview)
+  - [The Broader Enso Ecosystem](#the-broader-enso-ecosystem)
+  - [The Runtime's Architecture](#the-runtimes-architecture)
+
+<!-- /MarkdownTOC -->
+
+# Architectural Overview
+The Enso runtime is just one of the many components of the Enso ecosystem. This
+section provides an overview of how it fits into the broader ecosystem, with a
+particular focus on how it enables workflows for Enso Studio, the Enso CLI, and
+Language Server integration. In addition, this section also explores the 
+architecture of the runtime itself, breaking down the opaque 'runtime' label
+into the 
+
+## The Broader Enso Ecosystem
+While the runtime is arguably the core part of Enso, for the language would not
+be able to exist without it, the language's success is just as dependent on the
+surrounding ecosystem.
+
+## The Runtime's Architecture
+In order to better appreciate how the components specified below interact, it is
+important to have an understanding of the high-level architecture of the runtime
+itself. 
+
+Layers:
+- Communications Layer
+- Typechecker
+- Optimiser (non realtime opt)
+- Interpreter (JIT + Cache)
+
+Cross-Cutting Concerns:
+- Profiling and debugging
+- Concurrency
+- Foreign Language Interoperability
+
+General Concerns:
+- Platform Support
+- Lightweight Threading
+
+Other:
+- Initial Version (Dynamic, hardcoded monad support)
+- Why (not GHC or LLVM - primarily business decisions)
+
+https://drive.google.com/file/d/1ImuEySnsfHeMGD94pBvM2DEYc2iJfNW7/view
 
 
 This proposal sets out the architecture and detailed design for the new Luna
@@ -11,7 +76,7 @@ provide a consistent and powerful base for the future evolution of the language.
 It includes the runtime itself, as well as support machinery such as the IDE
 protocol, FFI, and JIT.
 
-# Motivation
+<!-- # Motivation -->
 For Luna to reach its full potential as a general-purpose programming language
 and data-processing environment, it needs one major thing: speed. With the goal
 for the language to become _the_ platform for end-to-end development and
@@ -38,44 +103,8 @@ the new Luna platform. It is intended to both serve as a design plan for the
 implementation and, once that is all complete, as documentation for Luna's
 design as it evolves.
 
-<!-- MarkdownTOC levels="1,2,3" autolink="true" -->
 
-- [Architectural Overview](#architectural-overview)
-  - [Runtime Layers](#runtime-layers)
-    - [1 - The Edge Layer](#1---the-edge-layer)
-    - [2 - The Protocol Layer](#2---the-protocol-layer)
-    - [3 - The Compilation Layer and Type-Checker](#3---the-compilation-layer-and-type-checker)
-    - [4 - The Cache Layer](#4---the-cache-layer)
-    - [5 - The Byte-Code Interpreter](#5---the-byte-code-interpreter)
-    - [6 - JIT](#6---jit)
-    - [7 - JIT Tier 2](#7---jit-tier-2)
-  - [Cross-Cutting Concerns](#cross-cutting-concerns)
-    - [1 - FFI](#1---ffi)
-    - [2 - Tracing Engine](#2---tracing-engine)
-    - [3 - Concurrency](#3---concurrency)
-    - [4 - Debugging Engine](#4---debugging-engine)
-- [The Edge Layer](#the-edge-layer)
-- [The Protocol Layer](#the-protocol-layer)
-- [The Compilation Layer and Type-Checker](#the-compilation-layer-and-type-checker)
-- [The Cache Layer](#the-cache-layer)
-- [The Byte-Code Interpreter](#the-byte-code-interpreter)
-- [JIT](#jit)
-- [FFI Support](#ffi-support)
-- [Tracing Engine](#tracing-engine)
-- [Concurrency](#concurrency)
-- [Debugging Engine](#debugging-engine)
-- [Language Embedding](#language-embedding)
-- [Benchmarking the Runtime](#benchmarking-the-runtime)
-- [AOT Compilation](#aot-compilation)
-- [Acceptance Criteria](#acceptance-criteria)
-- [Unresolved Questions](#unresolved-questions)
-- [Glossary](#glossary)
-- [References](#references)
-
-<!-- /MarkdownTOC -->
-
-
-# Architectural Overview
+<!-- # Architectural Overview -->
 It is perhaps a touch rich to call this design the 'runtime', as it actually
 encompasses a broader portion of the compiler than what would traditionally be
 considered a runtime. Due to some of the design goals for Luna, this design also
@@ -160,7 +189,7 @@ within this design:
 - **Debugging Engine:**
 - **GHC RTS:**
 
-## Runtime Layers
+<!-- ## Runtime Layers -->
 The Luna runtime consists of a number of discrete layers from a design
 standpoint, each of which handles a separate part of the runtime's function.
 While the responsibilities of these layers are usually well-defined, they will
@@ -177,7 +206,7 @@ of the same architectural component (e.g. the JIT layers).
   between them.
 -->
 
-### 1 - The Edge Layer
+<!-- ### 1 - The Edge Layer -->
 <!--
 - A diagram of the interactive file-system watching.
 - A diagram of the protocol interactions.
@@ -189,7 +218,7 @@ of the same architectural component (e.g. the JIT layers).
   changes.
 -->
 
-### 2 - The Protocol Layer
+<!-- ### 2 - The Protocol Layer -->
 <!--
 - An analysis of what is required to efficiently parse and respond to protocol
   messages.
@@ -220,7 +249,7 @@ of the same architectural component (e.g. the JIT layers).
   file so as not to interfere with code.
 -->
 
-### 3 - The Compilation Layer and Type-Checker
+<!-- ### 3 - The Compilation Layer and Type-Checker -->
 <!--
 - A diagram of the compilation process.
 - A description of the interaction between this and Luna-native passes.
@@ -278,7 +307,7 @@ of the same architectural component (e.g. the JIT layers).
   performance.
 -->
 
-### 4 - The Cache Layer
+<!-- ### 4 - The Cache Layer -->
 <!--
 - The actual architecture of the runtime cache:
   + A description of the keying strategy.
@@ -306,7 +335,7 @@ of the same architectural component (e.g. the JIT layers).
   where possible.
 -->
 
-### 5 - The Byte-Code Interpreter
+<!-- ### 5 - The Byte-Code Interpreter -->
 <!--
 - A description of how the GHC bytecode interpreter will be used to evaluate
   Luna programs.
@@ -319,7 +348,7 @@ of the same architectural component (e.g. the JIT layers).
 - An analysis of how best to combine strict evaluation with optional laziness.
 -->
 
-### 6 - JIT
+<!-- ### 6 - JIT -->
 <!--
 - An examination of the kind of optimisations would be performed by this JIT
   tier (the specifics can come later).
@@ -339,7 +368,7 @@ of the same architectural component (e.g. the JIT layers).
   JITed code, and deoptimise it if the binary is slower than the bytecode.
 -->
 
-### 7 - JIT Tier 2
+<!-- ### 7 - JIT Tier 2 -->
 <!--
 - An examination of the kind of optimisations would be performed by this JIT
   tier (the specifics can come later).
@@ -350,13 +379,13 @@ of the same architectural component (e.g. the JIT layers).
 >>>>>>> origin/master
 -->
 
-## Cross-Cutting Concerns
+<!-- ## Cross-Cutting Concerns -->
 There are a number of elements of the design for the new runtime that cannot be
 easily partitioned into the above layers. These are explored below from the
 standpoint of requirements and high-level design, and will be integrated into
 multiple (if not all) of the above layers.
 
-### 1 - FFI
+<!-- ### 1 - FFI -->
 <!--
 - A diagram of how FFI calls work, and the support libraries needed.
 - A description of how we want FFI to work, and its performance characteristics.
@@ -374,7 +403,7 @@ multiple (if not all) of the above layers.
   loaded.
 -->
 
-### 2 - Tracing Engine
+<!-- ### 2 - Tracing Engine -->
 <!--
 - A description of the mechanisms by which execution is traced.
 - A description of _what_ data is tracked and how it is used to make decisions
@@ -419,7 +448,7 @@ multiple (if not all) of the above layers.
   compiler-wide logging.
 -->
 
-### 3 - Concurrency
+<!-- ### 3 - Concurrency -->
 <!--
 - An exploration of how the runtime will need to handle concurrency.
 - A description of which GHC primitives and RTS operations we can rely on.
@@ -433,7 +462,7 @@ multiple (if not all) of the above layers.
 - An exploration of techniques to avoid async/await 'colour'.
 -->
 
-### 4 - Debugging Engine
+<!-- ### 4 - Debugging Engine -->
 <!--
 - An examination of how performance tracing can be achieved based on the JIT's
   trace.
@@ -444,27 +473,27 @@ multiple (if not all) of the above layers.
 
 <!-- !!!! DETAILED DESIGN SECTIONS BELOW !!!! -->
 
-# The Edge Layer
+<!-- # The Edge Layer -->
 
-# The Protocol Layer
+<!-- # The Protocol Layer -->
 
-# The Compilation Layer and Type-Checker
+<!-- # The Compilation Layer and Type-Checker -->
 
-# The Cache Layer
+<!-- # The Cache Layer -->
 
-# The Byte-Code Interpreter
+<!-- # The Byte-Code Interpreter -->
 
-# JIT
+<!-- # JIT -->
 
-# FFI Support
+<!-- # FFI Support -->
 
-# Tracing Engine
+<!-- # Tracing Engine -->
 
-# Concurrency
+<!-- # Concurrency -->
 
-# Debugging Engine
+<!-- # Debugging Engine -->
 
-# Language Embedding
+<!-- # Language Embedding -->
 It is an eventual goal for Luna, and hence this runtime design, to be able to
 embed other languages (e.g. Python and R) for seamless interoperability.
 
@@ -476,7 +505,7 @@ embed other languages (e.g. Python and R) for seamless interoperability.
 - No-overhead with multiple language nodes connected together.
 -->
 
-# Benchmarking the Runtime
+<!-- # Benchmarking the Runtime -->
 <!--
 - A description of how the runtime will be benchmarked.
 - A description of how regressions will be caught.
@@ -484,7 +513,7 @@ embed other languages (e.g. Python and R) for seamless interoperability.
   discovery.
 -->
 
-# AOT Compilation
+<!-- # AOT Compilation -->
 While Luna's runtime is not intended for the production of AOT-compiled binaries
 for Luna programs, it just so happens that much of the work on the runtime is
 also applicable to this scenario.
@@ -496,7 +525,7 @@ also applicable to this scenario.
   AOT compilation workflow for Luna.
 -->
 
-# Acceptance Criteria
+<!-- # Acceptance Criteria -->
 This new runtime for Luna is a gargantuan effort, but that means that we need to
 be all the more rigorous when it comes to defining what 'success' means for this
 addition to the project.
@@ -508,7 +537,7 @@ addition to the project.
   around functionality, start-up time, performance, and future-proofing.
 -->
 
-# Unresolved Questions
+<!-- # Unresolved Questions -->
 This section should address any unresolved questions you have with the RFC at
 the current time. Some examples include:
 
@@ -527,7 +556,7 @@ the current time. Some examples include:
   needed after all (for FFI). It may, in the end, actually be simpler to add
   this to GHC and use a fork until it hits stable.
 
-# Glossary
+<!-- # Glossary -->
 This section is designed to define terms that may be unfamiliar to some users:
 
 - **ABI** - Application Binary Interface: A well-specified and defined interface
@@ -544,40 +573,4 @@ This section is designed to define terms that may be unfamiliar to some users:
   and functionality for a programming language to execute. When used in this
   document, it exclusively refers to the GHC Runtime System.
 
-# References
-The design of the runtime described in this document is carefully informed by
-previous work on other functional languages. Any papers that were used to inform
-this design are listed below:
-
-- [GHC Core Spec](https://gitlab.haskell.org/ghc/ghc/blob/master/docs/core-spec/core-spec.pdf)
-- [GHC STG Spec](https://gitlab.haskell.org/ghc/ghc/blob/master/docs/stg-spec/stg-spec.mng)
-- [GHCi Spec](https://gitlab.haskell.org/ghc/ghc/blob/master/docs/ghci/ghci.tex)
-- [Levity Polymorphism](https://www.microsoft.com/en-us/research/publication/levity-polymorphism/)
-
 <!-- END OF WIP PROPOSAL -->
-
-<!--
-
-#### Resources
-For more information about GHC and how it could be used as part of a JIT
-compiler pipeline, please see the links below:
-
-- [GHC Manual](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/)
-- [GHC API](https://hackage.haskell.org/package/ghc)
-- [GHC Design Commentary](https://ghc.haskell.org/trac/ghc/wiki/Commentary)
-- [GHC Core-to-Core Passes](https://www.microsoft.com/en-us/research/wp-content/uploads/1998/09/comp-by-trans-scp.pdf)
-- [GHC Reading List](https://ghc.haskell.org/trac/ghc/wiki/ReadingList)
-- [Core Spec](https://git.haskell.org/ghc.git/blob/HEAD:/docs/core-spec/core-spec.pdf)
-- [GHC Architecture Dive](http://www.stephendiehl.com/posts/ghc_01.html)
-- [GHC IR Forms](http://www.stephendiehl.com/posts/ghc_02.html)
-- [Targeting Core](http://www.stephendiehl.com/posts/ghc_03.html)
-- [Grin](https://github.com/grin-tech/grin)
-- [Example Pipeline](https://github.com/chrisdone/prana/blob/0cbb7b4b96bbfdb4f0d6a60e08f4b1f53abdfb15/prana-ghc/src/Prana/Ghc.hs#L106-L154)
-
-have you looked at matthew hammer's work on adapton (in particular, after reading the original paper, nominal adapton)?
-i mention it mostly because you seem to be spending a ton of time on compute performance for a pipeline that is almost entirely 'build it over from scratch on information changes'
-whereas an incremental computation story would drastically reduce the pressure on your computing platform
-his isn't the only work in this space. umut acar has another in his incremental framework he built for jane street
-and there is a more microsofty take in the old 'naiad' system by thekkath -- which is less relevant to the FP bits more to the "big data" bits
-
--->
