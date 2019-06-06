@@ -11,22 +11,33 @@ interpreter. Though the interpreter itself has its own runtime, it is these
 components that make up _Enso's_ runtime.
 
 The runtime is built on top of [GraalVM](https://www.graalvm.org/), a universal
-virtual machine on which you can run any language with an appropriate 
+virtual machine on which you can run any language with an appropriate
 interpreter. In basing Enso's runtime on GraalVM, we not only have access to a
 comprehensive toolkit for building high-performance language interpreters, but
 also to the ecosystems of all the other languages (e.g. C++, Python, R) that can
 run on top of it. GraalVM also brings some additional important tooling, such as
-the JVM ecosystem's performance monitoring, analysis, and debugging toolsets. 
+the JVM ecosystem's performance monitoring, analysis, and debugging toolsets.
 
 The runtime described below is a complex beast, so this document is broken up
 into a number of sections. These aim to provide an architectural overview, and
 then describe the design of each component in detail.
 
-<!-- MarkdownTOC levels="1,2,3" autolink="true" -->
+<!-- MarkdownTOC levels="1,2" autolink="true" -->
 
 - [Architectural Overview](#architectural-overview)
   - [The Broader Enso Ecosystem](#the-broader-enso-ecosystem)
   - [The Runtime's Architecture](#the-runtimes-architecture)
+- [Choosing GraalVM](#choosing-graalvm)
+- [The Runtime Components](#the-runtime-components)
+  - [Language Server](#language-server)
+  - [Typechecker](#typechecker)
+  - [Optimiser](#optimiser)
+  - [Interpreter and JIT](#interpreter-and-jit)
+- [Cross-Cutting Concerns](#cross-cutting-concerns)
+  - [Profiling and Debugging](#profiling-and-debugging)
+  - [Lightweight Concurrency](#lightweight-concurrency)
+  - [Foreign Language Interoperability](#foreign-language-interoperability)
+- [The Initial Version of the Runtime](#the-initial-version-of-the-runtime)
 
 <!-- /MarkdownTOC -->
 
@@ -34,34 +45,177 @@ then describe the design of each component in detail.
 The Enso runtime is just one of the many components of the Enso ecosystem. This
 section provides an overview of how it fits into the broader ecosystem, with a
 particular focus on how it enables workflows for Enso Studio, the Enso CLI, and
-Language Server integration. In addition, this section also explores the 
+Language Server integration. In addition, this section also explores the
 architecture of the runtime itself, breaking down the opaque 'runtime' label
-into the 
+into the
 
 ## The Broader Enso Ecosystem
 While the runtime is arguably the core part of Enso, for the language would not
 be able to exist without it, the language's success is just as dependent on the
 surrounding ecosystem.
 
+TBC...
+
 ## The Runtime's Architecture
 In order to better appreciate how the components specified below interact, it is
 important to have an understanding of the high-level architecture of the runtime
-itself. 
+itself.
 
-Layers:
-- Communications Layer
-- Typechecker
-- Optimiser (non realtime opt)
-- Interpreter (JIT + Cache)
+TBC...
 
-Cross-Cutting Concerns:
-- Profiling and debugging
-- Concurrency
-- Foreign Language Interoperability
+# Choosing GraalVM
+Building the runtime on top of GraalVM was of course not the only choice that
+could've been made, but it was overwhelmingly the most sensible option out of
+those considered.
 
-General Concerns:
-- Platform Support
-- Lightweight Threading
+At the time the runtime was designed, there were three main options that were
+being considered.
+
+- **LLVM:** A battle-tested and comprehensive toolchain for the creation of
+  language compilers, [LLVM](https://llvm.org/) includes facilities for
+  compilation, optimisation, JIT, and linking.
+- **GHC:** The [Glasgow Haskell Compiler](https://gitlab.haskell.org/ghc/) is
+  a sophisticated compiler and runtime for Haskell that provides a
+  language-agnostic set of internal representations that could be leveraged to
+  compile and/or interpret other functional languages.
+- **JVM:** The [JVM](https://openjdk.java.net/) is a high-performance virtual
+  machine that includes sophisticated garbage collection, profiling tools, and
+  a JIT compiler.
+- **GraalVM:** A universal virtual machine and language development toolkit,
+  [GraalVM](https://www.graalvm.org/) provides a framework for building language
+  interpreters, as well as a JIT compiler. Most importantly, it provides tools
+  for seamless interoperability between languages that can run on Graal, which
+  include Python and R.
+
+The decision to build Enso's runtime using GraalVM was primarily motivated by
+business concerns, but these concerns did not override the technical as well.
+Addressing them one by one provides a comprehensive picture of why the decision
+was made.
+
+Overall, it is clear that GraalVM is an optimal choice for Enso at this stage of
+the language's development. While the other potential targets do have their
+upsides (e.g. the JVM's sophisticated garbage collection machinery), they all
+had at least one 'fatal flaw' for Enso's use case.
+
+### Speed of Development
+A language runtime is a complex beast, so any solution that could remove some of
+the implementation burden would be beneficial to Enso as a product.
+
+Where LLVM provides comprehensive tools for compiling languages, it provides no
+actual runtime. This would require significant implementation effort, requiring
+the implementation of facilities for concurrency, as well as garbage collection,
+neither of which are simple tasks.
+
+GHC, on the other hand, provides a comprehensive runtime system that includes
+both a garbage collector and sophisticated concurrency system. However, while it
+does provide language-agnostic intermediate representations, these are tied to
+Haskell from a development perspective. Unlike LLVM, GraalVM, or even the JVM,
+if GHC Haskell requires a change to these representations, that change will be
+made.
+
+With many languages already targeting the JVM it also seemed like an attractive
+option. The stable bytecode target would be useful, but other languages have
+proven the challenges of generating sensible bytecode to provide good language
+performance.
+
+GraalVM manages to provide excellent performance with a sensible, high-level
+interface, thereby enabling rapid development of a performant runtime without
+the need to implement complex components such as a GC and concurrency.
+
+### Language Interoperability Support
+With Enso aiming to be the be-all and end-all for the data-science world, the
+ability to seamlessly interoperate with other programming languages is key. This
+means that a user should be able to paste in some Python or R code and have it
+work properly.
+
+From a simple perspective, there were no other options in this category. While
+the JVM would allow for interoperability with other JVM languages such as Scala,
+Kotlin, and Java itself, the two 'most important' languages for interoperation
+had no support. LLVM's story is similar, allowing users to use LLVM IR as a
+common interoperation format, but this is far less practical than the JVM. With
+GHC, any interoperation would have to be developed from-scratch and by hand,
+essentially ruling it out in this category.
+
+With GraalVM supporting not only our primary interoperability targets, but also
+the whole JVM ecosystem and any language that targets LLVM, it is an absolute
+dream for ensuring that Luna can seamlessly communicate with a whole host of
+other programming languages.
+
+### Implementation Performance
+Data science often involves the manipulation of very large amounts of data, and
+ensuring that an interactive environment like Enso doesn't slow down as it does
+so requires a high level of performance.
+
+GraalVM's partially-evaluated-interpreter based approach allows the developers
+to write a 'naive interpreter' and automatically have the platform provide
+better performance. This is a stark contrast to all of the other listed options,
+each of which would require significant complexity around generating the right
+intermediate representation structures, as well as significant work on front-end
+language optimisations.
+
+In essence, GraalVM provides for the best performance with the smallest amount
+of effort, while still providing comprehensive facilities to improve performance
+further in the future.
+
+### Maintenance Burden
+Just as important as getting a working runtime is the ability for the developers
+to improve and evolve it. This encompasses many factors, but Enso is primarily
+concerned with being able to evolve without having to account for undue changes
+to the runtime.
+
+LLVM provides a relatively stable IR target, so the maintenance burden wouldn't
+have been too onerous. Similarly for the JVM, where the bytecode format has been
+stable for many years. Though both projects add new instructions, they very
+rarely remove them, meaning that Enso's potential code generator would be able
+to work as the underlying platform evolves.
+
+As mentioned before, however, the intermediate representations in GHC that Enso
+would have used as a target are very much changeable. This is due to their
+primary existence being to support GHC's version of Haskell, which means that
+they change often. Furthermore, their generation would require copying of many
+of the idiosyncrasies of GHC's lowering mechanisms, and in all likelihood place
+a significant burden on Enso's developers.
+
+GraalVM, on the other hand, provides a stable interface to writing an
+interpreter that is far higher level than any of the other options. This API is
+very unlikely to change, but even if it does the high-level nature means that
+the maintenance burden of coping with those changes is significantly reduced.
+Furthermore, GraalVM comes with the truffle toolkit for building interpreters,
+and as a result provides many of the facilities required by Enso for free or at
+least for little effort.
+
+# The Runtime Components
+Like any sensible large software project, Enso's runtime is modular and broken
+down into components. These are described in detail below.
+
+## Language Server
+
+## Typechecker
+
+## Optimiser
+
+## Interpreter and JIT
+<!-- Including the cache -->
+
+# Cross-Cutting Concerns
+The runtime also has to deal with a number of concerns that don't fit directly
+into the above components, but are nevertheless important parts of the design.
+
+## Profiling and Debugging
+
+## Lightweight Concurrency
+
+## Foreign Language Interoperability
+
+# The Initial Version of the Runtime
+In order to have a working version of the new runtime as quickly as possible, it
+was decided to design and build an initial, stripped-down version of the final
+design. This design focused on development of a minimal working subset of the
+runtime that would allow Enso to run.
+
+TBC...
+
+<!--
 
 Other:
 - Initial Version (Dynamic, hardcoded monad support)
@@ -69,14 +223,9 @@ Other:
 
 https://drive.google.com/file/d/1ImuEySnsfHeMGD94pBvM2DEYc2iJfNW7/view
 
+-->
 
-This proposal sets out the architecture and detailed design for the new Luna
-runtime. This runtime aims to bring both increased performance to Luna, and to
-provide a consistent and powerful base for the future evolution of the language.
-It includes the runtime itself, as well as support machinery such as the IDE
-protocol, FFI, and JIT.
-
-<!-- # Motivation -->
+<!-- # Motivation
 For Luna to reach its full potential as a general-purpose programming language
 and data-processing environment, it needs one major thing: speed. With the goal
 for the language to become _the_ platform for end-to-end development and
@@ -101,10 +250,10 @@ runtime, including detailed explorations of its features and concerns, but it
 also contains the detailed designs and implementation plans for each portion of
 the new Luna platform. It is intended to both serve as a design plan for the
 implementation and, once that is all complete, as documentation for Luna's
-design as it evolves.
+design as it evolves. -->
 
 
-<!-- # Architectural Overview -->
+<!-- # Architectural Overview
 It is perhaps a touch rich to call this design the 'runtime', as it actually
 encompasses a broader portion of the compiler than what would traditionally be
 considered a runtime. Due to some of the design goals for Luna, this design also
@@ -189,7 +338,9 @@ within this design:
 - **Debugging Engine:**
 - **GHC RTS:**
 
-<!-- ## Runtime Layers -->
+-->
+
+<!-- ## Runtime Layers
 The Luna runtime consists of a number of discrete layers from a design
 standpoint, each of which handles a separate part of the runtime's function.
 While the responsibilities of these layers are usually well-defined, they will
@@ -199,6 +350,8 @@ Please note that these layers aren't intended to relate directly to
 architectural components at the code level. There will likely be the need for
 additional components, and some of these layers may actually be different uses
 of the same architectural component (e.g. the JIT layers).
+
+-->
 
 <!--
 - A set of brief descriptions of each of the layers.
@@ -379,11 +532,13 @@ of the same architectural component (e.g. the JIT layers).
 >>>>>>> origin/master
 -->
 
-<!-- ## Cross-Cutting Concerns -->
+<!-- ## Cross-Cutting Concerns
 There are a number of elements of the design for the new runtime that cannot be
 easily partitioned into the above layers. These are explored below from the
 standpoint of requirements and high-level design, and will be integrated into
 multiple (if not all) of the above layers.
+
+-->
 
 <!-- ### 1 - FFI -->
 <!--
@@ -493,9 +648,11 @@ multiple (if not all) of the above layers.
 
 <!-- # Debugging Engine -->
 
-<!-- # Language Embedding -->
+<!-- # Language Embedding
 It is an eventual goal for Luna, and hence this runtime design, to be able to
 embed other languages (e.g. Python and R) for seamless interoperability.
+
+-->
 
 <!--
 - An analysis of whether this is possible with the GHC-based runtime without
@@ -513,10 +670,12 @@ embed other languages (e.g. Python and R) for seamless interoperability.
   discovery.
 -->
 
-<!-- # AOT Compilation -->
+<!-- # AOT Compilation
 While Luna's runtime is not intended for the production of AOT-compiled binaries
 for Luna programs, it just so happens that much of the work on the runtime is
 also applicable to this scenario.
+
+-->
 
 <!--
 - An analysis of what portions of the runtime work can be used to allow AOT
@@ -525,10 +684,12 @@ also applicable to this scenario.
   AOT compilation workflow for Luna.
 -->
 
-<!-- # Acceptance Criteria -->
+<!-- # Acceptance Criteria
 This new runtime for Luna is a gargantuan effort, but that means that we need to
 be all the more rigorous when it comes to defining what 'success' means for this
 addition to the project.
+
+-->
 
 <!--
 - The scope of the whole project.
@@ -537,7 +698,7 @@ addition to the project.
   around functionality, start-up time, performance, and future-proofing.
 -->
 
-<!-- # Unresolved Questions -->
+<!-- # Unresolved Questions
 This section should address any unresolved questions you have with the RFC at
 the current time. Some examples include:
 
@@ -556,7 +717,9 @@ the current time. Some examples include:
   needed after all (for FFI). It may, in the end, actually be simpler to add
   this to GHC and use a fork until it hits stable.
 
-<!-- # Glossary -->
+-->
+
+<!-- # Glossary
 This section is designed to define terms that may be unfamiliar to some users:
 
 - **ABI** - Application Binary Interface: A well-specified and defined interface
@@ -572,5 +735,7 @@ This section is designed to define terms that may be unfamiliar to some users:
 - **RTS** - Runtime System: A program that provides the underlying primitives
   and functionality for a programming language to execute. When used in this
   document, it exclusively refers to the GHC Runtime System.
+
+-->
 
 <!-- END OF WIP PROPOSAL -->
