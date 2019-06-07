@@ -1,3 +1,11 @@
+version := "1.0"
+organization := "org.enso"
+scalaVersion := "2.12.8"
+
+lazy val Benchmark = config("bench") extend Test
+
+lazy val enso = (project in file(".")).aggregate(syntax)
+
 lazy val syntax = (project in file("enso-lexer"))
   .withId("enso-lexer")
   .configs(Benchmark)
@@ -26,10 +34,3 @@ lazy val syntax = (project in file("enso-lexer"))
   .settings(SbtJFlexPlugin.jflexSettings)
   .settings(mainClass in (Compile,run) := Some("org.enso.main.Main"))
 
-version := "1.0"
-organization := "org.enso"
-scalaVersion := "2.12.8"
-
-lazy val root = (project in file(".")).aggregate(syntax)
-
-lazy val Benchmark = config("bench") extend Test
