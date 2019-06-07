@@ -1,12 +1,12 @@
 
-package org.enso.main
+package org.enso.syntax
 
 // import org.enso.syntax.text.parser.{Parser}
-import java.io.{Reader,StringReader, StringWriter}
-import org.enso.syntax.text.xx.{Parser}
-import org.enso.syntax.text.xx.Parser.{Lexer => Tok}
+import java.io.{Reader, StringReader}
+
+import org.enso.syntax.text.lexer.{Scanner, EOF, Token}
+import org.enso.syntax.text.xx.Parser
 import org.enso.syntax.text.xx.Parser.Lexer._
-import org.enso.syntax.text.lexer.{Scanner,Token,Wildcard,EOF,EOL}
 // import org.enso.syntax.text.{parser => AST}
 import org.enso.syntax.text.parser.AST
 
