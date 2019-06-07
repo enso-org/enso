@@ -1,11 +1,13 @@
 lazy val Benchmark = config("bench") extend Test
 
 version := "1.0"
+organization := "org.enso"
+scalaVersion := "2.12.8"
 
-lazy val basic = Project(
-  "basic-with-separate-config",
-  file("."),
-  settings = Defaults.coreDefaultSettings ++ Seq(
+lazy val root = (project in file("."))
+    .configs(Benchmark)
+    .settings(
+      inConfig(Benchmark)(Defaults.testSettings),
     name := "enso-lexer",
     organization := "org.enso",
     scalaVersion := "2.12.8",
@@ -26,12 +28,6 @@ lazy val basic = Project(
     parallelExecution in Benchmark := false,
     logBuffered := false
   )
-) configs(
-  Benchmark
-) settings(
-  inConfig(Benchmark)(Defaults.testSettings): _*
-)
 
 SbtJFlexPlugin.jflexSettings
-
 mainClass in (Compile, run) := Some("org.enso.main.Main")
