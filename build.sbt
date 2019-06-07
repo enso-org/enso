@@ -1,13 +1,8 @@
-lazy val Benchmark = config("bench") extend Test
-
-version := "1.0"
-organization := "org.enso"
-scalaVersion := "2.12.8"
-
-lazy val root = (project in file("."))
-    .configs(Benchmark)
-    .settings(
-      inConfig(Benchmark)(Defaults.testSettings),
+lazy val syntax = (project in file("enso-lexer"))
+  .withId("enso-lexer")
+  .configs(Benchmark)
+  .settings(
+    inConfig(Benchmark)(Defaults.testSettings),
     name := "enso-lexer",
     organization := "org.enso",
     scalaVersion := "2.12.8",
@@ -28,6 +23,13 @@ lazy val root = (project in file("."))
     parallelExecution in Benchmark := false,
     logBuffered := false
   )
+  .settings(SbtJFlexPlugin.jflexSettings)
+  .settings(mainClass in (Compile,run) := Some("org.enso.main.Main"))
 
-SbtJFlexPlugin.jflexSettings
-mainClass in (Compile, run) := Some("org.enso.main.Main")
+version := "1.0"
+organization := "org.enso"
+scalaVersion := "2.12.8"
+
+lazy val root = (project in file(".")).aggregate(syntax)
+
+lazy val Benchmark = config("bench") extend Test
