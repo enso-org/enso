@@ -3,6 +3,7 @@ organization := "org.enso"
 scalaVersion := "2.12.8"
 
 lazy val Benchmark = config("bench") extend Test
+lazy val bench = taskKey[Unit]("Run Benchmarks")
 
 lazy val enso = (project in file(".")).aggregate(syntax)
 
@@ -31,3 +32,6 @@ lazy val syntax = (project in file("syntax"))
   )
   .settings(SbtJFlexPlugin.jflexSettings)
   .settings(mainClass in (Compile,run) := Some("org.enso.syntax.Main"))
+  .settings(bench := {
+    (test in Benchmark).value
+  })
