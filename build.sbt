@@ -34,4 +34,4 @@ lazy val basic = Project(
 
 SbtJFlexPlugin.jflexSettings
 
-mainClass in (Compile, run) := Some("org.enso.syntax.text.Main")
+mainClass in (Compile, run) := Some("org.enso.main.Main")
