@@ -28,18 +28,26 @@ import org.enso.syntax.text.lexer.Token;
 
 /* Bison Declarations */
 %token <Token> VAR
+%token <Token> CONS
 %token <Token> EOL
+
+%token <Token> GROUP_BEGIN
+%token <Token> GROUP_END
 
 %token <Token> BLOCK_BEGIN
 %token <Token> BLOCK_END
+%token <Token> BLOCK_INVALID
 
-%token <AST> CONS
 %type  <AST> expr
+%type  <AST> exprItem
+%type  <AST> expr_group
 %type  <AST> block
 %type  <AST> blockBody
 %type  <AST> tok
 
 %start program
+
+%right GROUP_BEGIN GROUP_END
 
 /////////////
 // Grammar //
@@ -50,9 +58,20 @@ program:
 | /* empty */
 
 expr:
-  tok        {$$=$1;}
-| expr tok   {$$=AST.app($1,$2);}
-| expr block {$$=AST.app($1,$2);} 
+  exprItem        {$$=$1;}
+| expr exprItem   {$$=AST.app($1,$2);}
+
+exprItem:
+  tok                              {$$=$1;};
+| block                            {$$=$1;};
+| GROUP_BEGIN expr_group GROUP_END {$$=AST.grouped($1,$2,$3);};
+| GROUP_BEGIN expr_group           {$$=$2;};
+
+expr_group:
+  tok            {$$=$1;}
+| expr_group tok {$$=AST.app($1,$2);}
+
+
 
 block:
   BLOCK_BEGIN blockBody {$$=$2;}
@@ -62,7 +81,8 @@ blockBody:
 | expr BLOCK_END     {$$=AST.emptyBlock();}
 
 tok:
-  VAR {$$=AST.fromToken($1);}
+  VAR  {$$=AST.fromToken($1);}
+| CONS {$$=AST.fromToken($1);}
   
 
 

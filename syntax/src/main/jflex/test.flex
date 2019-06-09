@@ -9,7 +9,7 @@ import static org.enso.syntax.text.xx.Parser.Lexer.*;
 
 %{
 
-  private int indent = 0;
+  int currentBlock = 0;
 
   ///////////////////////
   // Indent Management //
@@ -25,7 +25,7 @@ import static org.enso.syntax.text.xx.Parser.Lexer.*;
     return indentStack.pop();
   }
 
-  public final Integer indentx() {
+  public final Integer indent() {
     return indentStack.peek();
   }
 
@@ -108,6 +108,7 @@ import static org.enso.syntax.text.xx.Parser.Lexer.*;
 //////////////////
 
 int var()        {value = token(new Var  (yytext())); return VAR;}
+int cons()       {value = token(new Cons (yytext())); return CONS;}
 
 // Utils
 void whitespace()   {lastOffset += yylength();}
@@ -133,10 +134,13 @@ void whitespace()   {lastOffset += yylength();}
 //   Token disabled()    {pushState(CHECK_OP_SFX); return disabled_();}
 
 // Layout
+int blockBegin(int i)  {pushIndent(i); value = token(BlockBegin$.MODULE$); return BLOCK_BEGIN;}
+int blockEnd()    {popIndent(); value = token(BlockEnd$.MODULE$); return BLOCK_END;}
+int blockInvalid() {value = token(BlockInvalid$.MODULE$); return BLOCK_INVALID;}
+
 int newline()     {value = token(EOL$.MODULE$); return EOL;}
-int blockBegin()  {return BLOCK_BEGIN;}
-int blockEnd()    {return BLOCK_END;}
-//   Token groupBegin()  {return token(GroupBegin$.MODULE$);}
+int groupBegin()  {value = token(GroupBegin$.MODULE$); return GROUP_BEGIN;}
+int groupEnd()    {value = token(GroupEnd$.MODULE$); return GROUP_END;}
 //   Token groupEnd()    {return token(GroupEnd$.MODULE$);}
 //   Token listBegin()   {return token(ListBegin$.MODULE$);}
 //   Token listEnd()     {return token(ListEnd$.MODULE$);}
@@ -223,7 +227,7 @@ int blockEnd()    {return BLOCK_END;}
 alpha_upper = [A-Z]
 alpha_lower = [a-z]
 alpha       = {alpha_lower} | {alpha_upper}
-alphanum    = {alpha} | digit
+alphanum    = {alpha} | {digit}
 whitespace  = [\ ]
 newline     = \r|\n|\r\n
 
@@ -263,6 +267,7 @@ decimal = {digit}+
 %xstate COMMENT
 %xstate COMMENT_LINE
 %xstate NEWLINE
+%xstate BLOCK_ENDING
 
 %state TEXT_INTERPOLATE
 
@@ -454,23 +459,47 @@ decimal = {digit}+
 ///////////////////////
 
 <NEWLINE> {
-  {whitespace}+ {
+  {whitespace}+{newline} {
     whitespace();
-    popState(); 
-    Integer ind = yylength();
-    if (ind > indentx()) {
-      return blockBegin();
-    } else {
-      // TODO
-    }
-    
-  }
-  [^] {
-    indent = 0;
-    popState();
-    rewind();
     return newline();
   }
+  {whitespace}+ {
+    whitespace();
+    popState();
+    currentBlock = yylength();
+    if (currentBlock > indent()) {
+      return blockBegin(currentBlock);
+    } else if (currentBlock < indent()) {
+      pushState(BLOCK_ENDING);
+    }
+  }
+  [^] {
+    rewind();
+    popState();
+    currentBlock = 0;
+    if (indent() > 0) {
+      pushState(BLOCK_ENDING);
+    } else {
+      return newline();
+    }
+  }
+}
+
+<BLOCK_ENDING> {
+
+  [^] {
+    rewind();
+    if(currentBlock == indent()) {
+      popState();
+    } else if(currentBlock < indent()) {
+      return blockEnd();
+    } else {
+      popState();
+      return blockInvalid();
+    }
+
+  }
+
 }
 
 
@@ -482,8 +511,7 @@ decimal = {digit}+
   
 // // Identifiers
 {var}        {return var();}  
-// {var}      {return var();}  
-// {cons}     {return cons();}  
+{cons}     {return cons();}  
 // {wildcard} {return wildcard();}
 
 // // Operators
@@ -500,9 +528,9 @@ decimal = {digit}+
 // {modifier} {return modifier();}
 // (\#\=)     {return disabled();}
 
-// // Layout
-// (\() {return groupBegin();}
-// (\)) {return groupEnd();}
+// Layout
+(\() {return groupBegin();}
+(\)) {return groupEnd();}
 // (\[) {return listBegin();}
 // (\]) {return listEnd();}
 // (\{) {return recordBegin();}
@@ -543,7 +571,7 @@ decimal = {digit}+
 
 // Layout
 {whitespace}+ {whitespace();}
-{newline}     {pushState(NEWLINE);}
+{newline}     {pushState(NEWLINE);return newline();}
 
 // // Unknown
 // [^] {
