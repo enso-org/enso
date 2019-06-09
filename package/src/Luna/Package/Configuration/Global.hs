@@ -16,11 +16,17 @@ import Path (Path, Abs, Rel, Dir, File, (</>))
 -- === Utility Defs === --
 --------------------------
 
-projectName :: Path Rel File
-projectName = $(Path.mkRelFile "luna")
+projectName :: String
+projectName = "luna"
 
-configDir :: Path Rel File
-configDir = $(Path.mkRelDir ".config") </> projectName
+projectNameFile :: Path Rel File
+projectNameFile = $(Path.mkRelFile "luna")
+
+projectNameDir :: Path Rel Dir
+projectNameDir = $(Path.mkRelDir "luna")
+
+configDir :: Path Rel Dir
+configDir = $(Path.mkRelDir ".config") </> projectNameDir
 
 configName :: Path Rel File
 configName = $(Path.mkRelFile "config.yaml")

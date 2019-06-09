@@ -15,7 +15,10 @@ import qualified Data.List            as List
 import qualified Data.Text            as Text
 import qualified Luna.Datafile.Stdlib as Stdlib
 import qualified Luna.Package         as Package
+import qualified Luna.Path.Path       as Path
 import qualified Safe                 as Safe
+import qualified Path                 as Path
+import qualified Path.IO              as Path
 import qualified System.Directory     as Dir
 import qualified System.Environment   as Env
 import qualified System.FilePath      as FP
@@ -58,8 +61,8 @@ type Handle = Unix.DL
 -- === API === --
 -----------------
 
-nativeLibs :: FilePath
-nativeLibs = "native_libs"
+nativeLibs :: Path.Path Path.Rel Path.Dir
+nativeLibs = $(Path.mkRelDir "native_libs")
 
 data NativeLibraryLoadingException =
     NativeLibraryLoadingException String [String] deriving Show
@@ -69,29 +72,29 @@ instance Exception NativeLibraryLoadingException where
         "Native library " <> name <> " could not be loaded. Details:\n\n"
             <> unlines details
 
-findLocalNativeLibsDirs :: FilePath -> IO [FilePath]
+findLocalNativeLibsDirs :: Path.Path Path.Abs Path.Dir -> IO [Path.Path Path.Abs Path.Dir]
 findLocalNativeLibsDirs projectDir = do
-    let localDepsDir = projectDir </> "local_libs"
-    localDeps <- tryAny $ Dir.listDirectory localDepsDir
+    let localDepsDir = projectDir Path.</> $(Path.mkRelDir "local_libs")
+    localDeps <- tryAny $ Path.listDir localDepsDir
     case localDeps of
         Left  _    -> pure []
-        Right dirs -> do
+        Right (dirs, _) -> do
             localNativeDirs <- for dirs $ \dir ->
-                findLocalNativeLibsDirs (localDepsDir </> dir)
-            pure $ fmap (\a -> localDepsDir </> a </> nativeLibs) dirs
+                findLocalNativeLibsDirs dir
+            pure $ fmap (\a -> a Path.</> nativeLibs) dirs
                   <> concat localNativeDirs
 
-findNativeLibsDirsForProject :: FilePath -> IO [FilePath]
+findNativeLibsDirsForProject :: Path.Path Path.Abs Path.Dir -> IO [Path.Path Path.Abs Path.Dir]
 findNativeLibsDirsForProject projectDir = do
-    let projectNativeDirs =  projectDir </> nativeLibs
+    let projectNativeDirs =  projectDir Path.</> nativeLibs
     projectLocalDirs      <- findLocalNativeLibsDirs projectDir
     pure $ projectNativeDirs : projectLocalDirs
 
-tryLoad :: FilePath -> IO (Either String Handle)
+tryLoad :: Path.Path Path.Abs Path.File -> IO (Either String Handle)
 tryLoad path = do
     loadRes <- tryAny $ nativeLoadLibrary path
     let errorDetails exc =
-            "loading \"" <> path <> "\" failed with: " <> displayException exc
+            "loading \"" <> (Path.fromAbsFile path) <> "\" failed with: " <> displayException exc
     pure $ EitherR.fmapL errorDetails loadRes
 
 parseError :: [String] -> [String]
@@ -104,18 +107,22 @@ parseError e = if ((length $ snd partitioned) == 0) then
 loadLibrary :: String -> IO Handle
 loadLibrary namePattern = do
     stdlibPath   <- Stdlib.findPath
-    projectDir   <- Dir.getCurrentDirectory
+    projectDir   <- Path.getCurrentDir
     includedLibs <- map snd <$> Package.includedLibs stdlibPath
     nativeDirs   <- fmap concat $
         mapM findNativeLibsDirsForProject (projectDir : includedLibs)
-    let possibleNames = [ prefix <> namePattern <> extension
-                        | prefix    <- ["lib", ""]
-                        , extension <- dynamicLibraryExtensions
-                        ]
+
+    -- TODO JCM : avoid use of unsafeParseRelDir, improve and manage exceptions
+    let possibleNames = map Path.unsafeParseRelFile
+                            [ prefix <> namePattern <> extension
+                            | prefix    <- ["lib", ""]
+                            , extension <- dynamicLibraryExtensions
+                            ]
         projectNativeDirectories =
-            [ nativeDir </> nativeLibraryProjectDir | nativeDir <- nativeDirs ]
-        possiblePaths = [ dir </> name | dir  <- projectNativeDirectories
-                                       , name <- possibleNames
+            [ nativeDir Path.</> nativeLibraryProjectDir | nativeDir <- nativeDirs ]
+
+        possiblePaths = [ dir Path.</> name | dir  <- projectNativeDirectories
+                                            , name <- possibleNames
                         ]
     let library = concat $
                   [ "lib" | not ("lib" `List.isPrefixOf` namePattern),
@@ -128,9 +135,9 @@ loadLibrary namePattern = do
     linkerCache <- maybeToList <$> nativeLoadFromCache library `catchAny`
         const (pure Nothing)
     extendedSearchPaths <- fmap concat . for nativeSearchPaths $ \path -> do
-        files <- Dir.listDirectory path `catchAny` \_ -> pure []
-        let matchingFiles = filter (List.isInfixOf library) files
-        pure $ fmap (path </>) matchingFiles
+        files <- (Path.listDir path >>= (pure . snd)) `catchAny` \_ -> pure []
+        let matchingFiles = filter (Path.liftPredicate $ List.isInfixOf library) files
+        pure $ matchingFiles
     result <- runExceptT . EitherR.runExceptRT $ do
         let allPaths = possiblePaths <> linkerCache <> extendedSearchPaths
         for allPaths $ \path ->
@@ -152,8 +159,8 @@ closeLibrary :: Handle -> IO ()
 closeLibrary _ = pure ()
 
 #if mingw32_HOST_OS
-nativeLoadLibrary :: String -> IO Handle
-nativeLoadLibrary library = Win32.loadLibraryEx library Foreign.nullPtr
+nativeLoadLibrary :: Path.Path Path.Abs Path.File -> IO Handle
+nativeLoadLibrary library = Win32.loadLibraryEx (Path.fromAbsFile library) Foreign.nullPtr
     Win32.lOAD_WITH_ALTERED_SEARCH_PATH
 
 nativeLoadSymbol :: Handle -> String -> IO (FunPtr a)
@@ -163,11 +170,11 @@ nativeLoadSymbol handle symbol = Foreign.castPtrToFunPtr
 dynamicLibraryExtensions :: [String]
 dynamicLibraryExtensions = ["", ".dll"]
 
-nativeLibraryProjectDir :: String
-nativeLibraryProjectDir = "windows"
+nativeLibraryProjectDir :: Path.Path Path.Rel Path.Dir
+nativeLibraryProjectDir = $(mkRelDir "windows")
 
 -- based on https://msdn.microsoft.com/en-us/library/windows/desktop/ms682586(v=vs.85).aspx
-nativeSearchPaths :: [FilePath]
+nativeSearchPaths :: [Path.Path Path.Abs Path.Dir]
 nativeSearchPaths = unsafePerformIO $ do
     exeDirectory <- do
         handle <- Win32.getModuleHandle Nothing
@@ -177,13 +184,13 @@ nativeSearchPaths = unsafePerformIO $ do
     windowsDirectory <- Win32.getWindowsDirectory
     currentDirectory <- Win32.getCurrentDirectory
     pathDirectories  <- FP.getSearchPath
-    return $ exeDirectory
-           : systemDirectory
-           : windowsDirectory
-           : currentDirectory
-           : pathDirectories
+    return $ map Path.unsafeParseAbsDir $ exeDirectory
+                                        : systemDirectory
+                                        : windowsDirectory
+                                        : currentDirectory
+                                        : pathDirectories
 
-nativeLoadFromCache :: String -> IO (Maybe FilePath)
+nativeLoadFromCache :: String -> IO (Maybe (Path.Path Path.Abs Path.File))
 nativeLoadFromCache _ = return Nothing
 
 #else
@@ -193,27 +200,28 @@ lookupSearchPath env = do
     envValue <- fromJust "" <$> Env.lookupEnv env
     pure $ FP.splitSearchPath envValue
 
-nativeLoadLibrary :: String -> IO Handle
-nativeLoadLibrary library = Unix.dlopen library [Unix.RTLD_NOW]
+nativeLoadLibrary :: Path.Path Path.Abs Path.File -> IO Handle
+nativeLoadLibrary library = Unix.dlopen (Path.fromAbsFile library) [Unix.RTLD_NOW]
 
 nativeLoadSymbol :: Handle -> String -> IO (FunPtr a)
 nativeLoadSymbol = Unix.dlsym
 
 dynamicLibraryExtensions :: [String]
-nativeLibraryProjectDir  :: String
+nativeLibraryProjectDir :: Path.Path Path.Rel Path.Dir
+
 
 #if linux_HOST_OS
 dynamicLibraryExtensions = [".so", ""]
 
-nativeLibraryProjectDir = "linux"
+nativeLibraryProjectDir = $(mkRelDir "linux")
 
-nativeSearchPaths :: [FilePath]
+nativeSearchPaths :: [Path.Path Path.Abs Path.Dir]
 nativeSearchPaths = unsafePerformIO $ do
     ldLibraryPathDirectories <- lookupSearchPath "LD_LIBRARY_PATH"
-    pure $ ldLibraryPathDirectories
-          <> ["/lib", "/usr/lib", "/lib64", "/usr/lib64"]
+    pure $ map Path.unsafeParseAbsDir $ ldLibraryPathDirectories
+                                        <> ["/lib", "/usr/lib", "/lib64", "/usr/lib64"]
 
-findBestSOFile :: String -> String -> Maybe FilePath
+findBestSOFile :: String -> String -> Maybe (Path.Path Path.Abs Path.File)
 findBestSOFile (Text.pack -> namePattern) (Text.pack -> ldconfig) =
     let matchingLines = filter (Text.isInfixOf namePattern)
                       $ Text.lines ldconfig
@@ -225,11 +233,11 @@ findBestSOFile (Text.pack -> namePattern) (Text.pack -> ldconfig) =
         matchingFiles = map extractFileAndPath chunks
         bestMatches   = List.sortOn (Text.length . fst) matchingFiles
         bestMatch     = Safe.headMay bestMatches
-        bestPath      = fmap (Text.unpack . snd) bestMatch
+        bestPath      = fmap (Path.unsafeParseAbsFile . Text.unpack . snd) bestMatch
     in bestPath
 
 -- uses /etc/ld.so.cache
-nativeLoadFromCache :: String -> IO (Maybe FilePath)
+nativeLoadFromCache :: String -> IO (Maybe (Path.Path Path.Abs Path.File))
 nativeLoadFromCache namePattern = do
     ldconfigCache <- Process.readProcess "ldconfig" ["-p"] ""
     pure $ findBestSOFile namePattern ldconfigCache
@@ -237,14 +245,14 @@ nativeLoadFromCache namePattern = do
 #elif darwin_HOST_OS
 dynamicLibraryExtensions = [".dylib", ""]
 
-nativeLibraryProjectDir = "macos"
+nativeLibraryProjectDir = $(Path.mkRelDir "macos")
 
 -- based on https://developer.apple.com/library/content/documentation/DeveloperTools/Conceptual/DynamicLibraries/100-Articles/UsingDynamicLibraries.html
-nativeSearchPaths :: [FilePath]
+nativeSearchPaths :: [Path.Path Path.Abs Path.Dir]
 nativeSearchPaths = unsafePerformIO $ do
     ldLibraryPathDirectories <- lookupSearchPath "LD_LIBRARY_PATH"
     dyLibraryPathDirectories <- lookupSearchPath "DYLD_LIBRARY_PATH"
-    currentDirectory         <- Dir.getCurrentDirectory
+    currentDirectory         <- Path.getCurrentDir
     fallbackPathDirectories  <- do
         fallback <- Env.lookupEnv "DYLD_FALLBACK_LIBRARY_PATH"
         case fallback of
@@ -255,12 +263,12 @@ nativeSearchPaths = unsafePerformIO $ do
                        : "/usr/local/lib"
                        : "/usr/lib"
                        : []
-    return $ ldLibraryPathDirectories
-          <> dyLibraryPathDirectories
+    return $ (fmap Path.unsafeParseAbsDir ldLibraryPathDirectories)
+          <> (fmap Path.unsafeParseAbsDir dyLibraryPathDirectories)
           <> [currentDirectory]
-          <> fallbackPathDirectories
+          <> (fmap Path.unsafeParseAbsDir fallbackPathDirectories)
 
-nativeLoadFromCache :: String -> IO (Maybe FilePath)
+nativeLoadFromCache :: String -> IO (Maybe (Path.Path Path.Abs Path.File))
 nativeLoadFromCache _ = return Nothing
 
 #endif

@@ -6,7 +6,6 @@ import qualified OCI.Data.Name as Name
 import qualified Path          as Path
 
 import Path            (Path, Rel, Dir)
-import System.FilePath (FilePath)
 
 -------------------------------------
 -- === Package Component Names === --

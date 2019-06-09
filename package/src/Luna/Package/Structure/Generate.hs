@@ -14,7 +14,6 @@ import qualified Luna.Package.Structure.Utilities         as Utilities
 import qualified Luna.Path.Path                           as Path
 import qualified Path                                     as Path
 import qualified Path.IO                                  as Path
-import qualified System.Directory                         as Directory
 
 import Luna.Package.Configuration.License       (License)
 import Luna.Package.Structure.Generate.Internal (recovery)
@@ -38,12 +37,10 @@ genPackageStructure path mLicense gblConf =
         canonicalPath <- Path.canonicalizePath path
         insidePkg     <- Utilities.findParentPackageIfInside canonicalPath
 
-        let isInsidePkg = isJust insidePkg
-
         case (Utilities.isValidPkgName pkgName , insidePkg) of
             (True, Nothing) -> liftIO $ Exception.catch create (recovery canonicalPath)
             (_, Just pkg) -> pure . Left . InvalidPackageLocation $ pkg
-            otherwise ->  pure . Left . InvalidPackageName
+            _ ->  pure . Left . InvalidPackageName
                 $ convert (Path.fromAbsDir canonicalPath)
         where
             create :: IO (Either GeneratorError (Path.Path Path.Abs Path.Dir))

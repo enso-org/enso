@@ -26,7 +26,7 @@ import qualified Text.Megaparsec                    as Megaparsec
 
 import Control.Lens.Prism      (_Just)
 import Control.Monad.Exception (MonadException)
-import Path                    (Path, Abs, Dir)
+import Path                    (Path, Abs, Rel, Dir)
 import System.Exit             (die)
 import System.IO               (hPutStrLn, stderr, stdout)
 
@@ -183,7 +183,6 @@ run (RunOpts target') = liftIO $ catch compute recover where
             hPutStrLn stdout $ "Using standard library at " <> show stdlibPath
 
             if fileExists then do
---                filePath <- Path.parseAbsFile canonicalFilePath
                 if Path.fileExtension canonicalFilePath /= Package.lunaFileExt then
                     hPutStrLn stderr $ (Path.toFilePath canonicalFilePath) <> " is not a Luna file."
                 else Interpret.file canonicalFilePath stdlibPath
@@ -207,7 +206,7 @@ run (RunOpts target') = liftIO $ catch compute recover where
         else hPutStrLn stderr $ (Path.toFilePath packagePath) <> " is not a Luna Package."
 
 init :: (ConfigStateIO m, MonadException Path.PathException m) => InitOpts
-    -> m ()
+        -> m ()
 init opts = do
     globalCfg <- State.get @Global.Config
 
@@ -219,10 +218,18 @@ init opts = do
         else hush $ Megaparsec.runParser License.license "" . convert
             $ view licenseOverride opts
 
-    Generate.genPackageStructure (view name opts) mLicense globalCfg >>= \case
+    path <- getRelDir (view name opts)
+
+    Generate.genPackageStructure path mLicense globalCfg >>= \case
         Left err -> liftIO . hPutStrLn stderr $ displayException err
         Right projectPath -> putStrLn
-            $ "Initialised package at " <> projectPath
+            $ "Initialised package at " <> (Path.fromAbsDir projectPath)
+    where
+    getRelDir :: (MonadIO n, MonadException Path.PathException n)
+        => FilePath -> n (Path Rel Dir)
+    getRelDir fp = MException.rethrowFromIO @Path.PathException $
+        Path.parseRelDir fp
+
 
 version :: (MonadIO m) => m ()
 version = putStrLn versionMsg where
@@ -248,8 +255,8 @@ rename opts = MException.catch printRenameEx . MException.catch printPNFEx $ do
     let sourceDir = opts ^. srcName
         targetDir = opts ^. destName
 
-    canonicalSource <- getPath sourceDir
-    canonicalTarget <- getPath targetDir
+    canonicalSource <- getAbsDir sourceDir
+    canonicalTarget <- getAbsDir targetDir
 
     (resultPath, err) <- Package.rename canonicalSource canonicalTarget
 
@@ -267,9 +274,9 @@ rename opts = MException.catch printRenameEx . MException.catch printPNFEx $ do
             => Package.PackageNotFoundException -> n ()
         printPNFEx e = liftIO . hPutStrLn stderr $ displayException e
 
-        getPath :: (MonadIO n, MonadException Path.PathException n)
+        getAbsDir :: (MonadIO n, MonadException Path.PathException n)
             => FilePath -> n (Path Abs Dir)
-        getPath fp = MException.rethrowFromIO @Path.PathException $ do
+        getAbsDir fp = MException.rethrowFromIO @Path.PathException $ do
             path <- Path.parseAbsDir fp
             Path.canonicalizePath path
 
@@ -341,7 +348,7 @@ acquireGlobalConfig = liftIO $ Exception.catch acquire recovery where
     acquire  = do
         (homeDir :: Path.Path Path.Abs Path.Dir) <- Path.getHomeDir
 
-        let (configRelDirPath :: Path.Path Path.Rel Path.Dir) = $(Path.mkRelDir Global.configDir)
+        let (configRelDirPath :: Path.Path Path.Rel Path.Dir) = Global.configDir
 
         let lunaConfigDir :: Path.Path Path.Abs Path.Dir =  homeDir Path.</> configRelDirPath
         configDirExists <- Path.doesDirExist lunaConfigDir
@@ -349,7 +356,7 @@ acquireGlobalConfig = liftIO $ Exception.catch acquire recovery where
         unless configDirExists
             $ Path.createDirIfMissing True lunaConfigDir
 
-        let (configNameRelFilePath :: Path.Path Path.Rel Path.File) = $(Path.mkRelFile Global.configName)
+        let (configNameRelFilePath :: Path.Path Path.Rel Path.File) = Global.configName
 
         let lunaConfigFile = lunaConfigDir Path.</> configNameRelFilePath
         configFileExists <- Path.doesFileExist lunaConfigFile

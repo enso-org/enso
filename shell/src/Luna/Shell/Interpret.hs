@@ -2,7 +2,6 @@ module Luna.Shell.Interpret where
 
 import Prologue
 
-import qualified Control.Monad.Exception.IO          as Exception
 import qualified Data.Bimap                          as Bimap
 import qualified Data.Graph.Data.Graph.Class         as Graph
 import qualified Data.Map                            as Map
@@ -111,13 +110,13 @@ file filePath stdlibPath = liftIO $ Path.withCurrentDir fileFP $ do
 
     where fileFP = Path.parent filePath
 
-package :: (InterpreterMonad m) => Path Abs Dir -> Path Abs Dir -> m ()
-package pkgPath stdlibPath = liftIO . Path.withCurrentDir pkgPath $ do
-    packageRoot    <- fromJust pkgPath <$> Package.findPackageRoot pkgPath
-    packageImports <- Package.packageImportPaths packageRoot stdlibPath
-    importPaths    <- Exception.rethrowFromIO @Path.PathException .
-        sequence $ Path.parseAbsDir . snd <$> packageImports
-    projectSrcs    <- sequence $ Package.findPackageSources <$> importPaths
+
+package :: (InterpreterMonad m, MonadMask m) => Path Abs Dir -> Path Abs Dir -> m ()
+package pkgPath stdlibPath = Path.withCurrentDir pkgPath $ do
+    packageRoot     <- fromJust pkgPath <$> Package.findPackageRoot pkgPath
+    packageImports  <- Package.packageImportPaths packageRoot stdlibPath
+    let importPaths = map snd packageImports
+    projectSrcs     <- sequence $ Package.findPackageSources <$> importPaths
 
     let pkgSrcMap    = foldl' Map.union Map.empty
             $ Bimap.toMapR <$> projectSrcs

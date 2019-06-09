@@ -136,9 +136,8 @@ getLunaPackagesFromDir dir = do
 
     if not hasConfigDir then tryConvertPackageFormat dir else do
         (_, files) <- Path.listDirRel configDirPath
-
         pure . fmap (configDirPath </>) $ filter
-                    (\file -> Path.fileExtension file == Name.packageExt) files
+                    (\file -> Path.fileExtension file == Name.packageExtWithDot) files
 
 tryConvertPackageFormat :: (MonadIO m)
     => Path Abs Dir -> m [Path Abs File]
@@ -166,6 +165,7 @@ findPackageFile dir = getLunaPackagesFromDir dir >>= \case
         if parentDir == dir then pure Nothing else findPackageFile parentDir
     [packageFile] -> pure $ Just packageFile
     _             -> pure Nothing
+
 
 findPackageRoot :: (MonadIO m, MonadException Path.PathException m)
     => Path Abs Dir -> m (Maybe (Path Abs Dir))
@@ -204,7 +204,7 @@ findPackageSources pkg = do
     let modules  = assignQualName pkg <$> lunaFilesAbs
     pure $ Bimap.fromList modules
 
--- ####
+
 listDependencies :: (MonadIO m, MonadException Path.PathException m)
     => Path Abs Dir -> m [(Name.Name, Path Abs Dir)]
 listDependencies pkgSrc = do
@@ -272,10 +272,11 @@ isLunaPackage path = isJust <$> findPackageRoot path
 name :: (MonadIO m, MonadExceptions '[ PackageNotFoundException
                                      , Path.PathException ] m)
     => Path Abs Dir -> m (Path Rel Dir)
-name path = findPackageRoot path >>= \case
-    Nothing   -> Exception.throw $ PackageRootNotFound path
-    -- Safe because Path.fromAbsDir is guaranteed nonempty
-    Just root -> pure . unsafeLast . Path.splitDirectories $ root
+name path = do
+    findPackageRoot path >>= \case
+        Nothing   -> Exception.throw $ PackageRootNotFound path
+        -- Safe because Path.fromAbsDir is guaranteed nonempty
+        Just root -> pure . unsafeLast . Path.splitDirectories $ root
 
 
 rename :: ( MonadIO m

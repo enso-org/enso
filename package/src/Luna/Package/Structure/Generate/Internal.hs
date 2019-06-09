@@ -15,15 +15,12 @@ import qualified Luna.Package.Structure.Name             as Name
 import qualified Luna.Path.Path                          as Path
 import qualified Path                                    as Path
 import qualified Path.IO                                 as Path
-import qualified System.Directory                        as Directory
-import qualified System.FilePath                         as FilePath
 import qualified System.IO                               as IO
 import qualified System.IO.Error                         as Exception
 
 import Luna.Datafile                      (DatafileException)
 import Control.Exception                  (IOException)
 import Luna.Package.Configuration.License (License)
-import System.FilePath                    (FilePath, (</>))
 import System.IO                          (hPutStrLn, stderr)
 import Path (Path, Abs, Dir, fromAbsDir)
 

@@ -9,9 +9,6 @@ import qualified Luna.Path.Path                as Path
 import qualified Path                          as Path
 import qualified Path.IO                       as Path
 import qualified System.Directory              as Directory
-import qualified System.FilePath               as FilePath
-
-import System.FilePath (FilePath, (</>))
 
 import Luna.Syntax.Text.Lexer.Token as Token
 
@@ -41,19 +38,3 @@ findParentPackageIfInside path = do
     else pure Nothing
 
 
-{-
-
-findParentPackageIfInside :: MonadIO m => Path.Path Path.Abs Path.Dir -> m (Maybe FilePath)
-findParentPackageIfInside path = do
-    let parentPath = Path.parent path
-
-    canonicalPath   <- liftIO . Directory.canonicalizePath
-        $ parentPath </> Path.fromRelDir Name.configDirectory
-    hasPkgConfigDir <- liftIO $ Directory.doesDirectoryExist canonicalPath
-
-    if hasPkgConfigDir then
-        pure $ Just parentPath
-    else if not $ FilePath.isDrive parentPath then
-        findParentPackageIfInside parentPath
-    else pure Nothing
--}
