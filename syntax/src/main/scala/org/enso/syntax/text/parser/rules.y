@@ -65,12 +65,12 @@ exprItem:
   tok                              {$$=$1;};
 | block                            {$$=$1;};
 | GROUP_BEGIN expr_group GROUP_END {$$=AST.grouped($1,$2,$3);};
-| GROUP_BEGIN expr_group           {$$=$2;};
+| GROUP_BEGIN expr_group           {$$=AST.grouped($1,$2);};
 
 expr_group:
   tok            {$$=$1;}
 | expr_group tok {$$=AST.app($1,$2);}
-
+| GROUP_BEGIN expr_group GROUP_END {$$=AST.grouped($1,$2,$3);};
 
 
 block:

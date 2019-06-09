@@ -1,5 +1,6 @@
 package org.enso.syntax
 
+import java.io.Reader
 import java.io.StringReader
 
 import org.enso.syntax.text.lexer.Lexer
@@ -7,6 +8,8 @@ import org.enso.syntax.text.parser.Parser
 import org.enso.syntax.text.parser.BParser
 
 import scala.language.implicitConversions
+
+import org.enso.syntax.text.lexer.SParser
 
 object Main extends App {
 
@@ -37,14 +40,14 @@ object Main extends App {
 
 //  val str = "a (b"
   val str =
-    """|a
-       |      
-       |  a
-       |  c""".stripMargin
+    """|t   (a b)""".stripMargin
   println(str)
   val reader = new StringReader(str)
   val ss     = new Lexer(reader)
-  pprint(ss.lexAll.toString())
+  val toks   = ss.lexAll()
+  pprint(toks.toString)
+
+  val sparser = new SParser(new StringReader(str))
 
   val bparser = new BParser(new StringReader(str))
   val parser  = new Parser(new StringReader(str))
@@ -52,4 +55,6 @@ object Main extends App {
   pprint(bparser.parse.toString())
   pprint(parser.parse.toString())
   pprint("!")
+  println(sparser.strInput)
+  pprint(sparser.parse.toString)
 }

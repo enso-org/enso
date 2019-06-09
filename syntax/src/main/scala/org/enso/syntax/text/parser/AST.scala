@@ -20,12 +20,12 @@ trait Symbol
 case object NONE extends Symbol
 
 // Identifiers
-case class Var(name: String) extends Symbol
-case class Cons(name: String) extends Symbol
-case class Operator(name: String) extends Symbol
+case class Var(name: String)        extends Symbol
+case class Cons(name: String)       extends Symbol
+case class Operator(name: String)   extends Symbol
 case class App(func: AST, arg: AST) extends Symbol
 case class Block(body: Vector[AST]) extends Symbol
-case class Grouped(body: AST) extends Symbol
+case class Grouped(body: AST)       extends Symbol
 
 //
 
@@ -55,4 +55,12 @@ object AST {
     val span   = begin.span + body.offset + body.span + end.offset + end.span
     AST(offset, span, Grouped(body))
   }
+
+  // FIXME - should report error about lack of closing paren
+  def grouped(begin: Token, body: AST): AST = {
+    val offset = begin.offset
+    val span   = begin.span + body.offset + body.span // + end.offset + end.span
+    AST(offset, span, Grouped(body))
+  }
+
 }

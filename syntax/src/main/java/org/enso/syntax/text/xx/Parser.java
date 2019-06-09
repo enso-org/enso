@@ -368,7 +368,7 @@ public class Parser
   case 9:
   if (yyn == 9)
     /* "rules.y":68  */ /* lalr1.java:489  */
-    {yyval=((AST)(yystack.valueAt (2-(2))));};
+    {yyval=AST.grouped(((Token)(yystack.valueAt (2-(1)))),((AST)(yystack.valueAt (2-(2)))));};
   break;
     
 
@@ -388,41 +388,48 @@ public class Parser
 
   case 12:
   if (yyn == 12)
-    /* "rules.y":77  */ /* lalr1.java:489  */
-    {yyval=((AST)(yystack.valueAt (2-(2))));};
+    /* "rules.y":73  */ /* lalr1.java:489  */
+    {yyval=AST.grouped(((Token)(yystack.valueAt (3-(1)))),((AST)(yystack.valueAt (3-(2)))),((Token)(yystack.valueAt (3-(3)))));};
   break;
     
 
   case 13:
   if (yyn == 13)
-    /* "rules.y":80  */ /* lalr1.java:489  */
-    {yyval=((AST)(yystack.valueAt (3-(1))));};
+    /* "rules.y":77  */ /* lalr1.java:489  */
+    {yyval=((AST)(yystack.valueAt (2-(2))));};
   break;
     
 
   case 14:
   if (yyn == 14)
-    /* "rules.y":81  */ /* lalr1.java:489  */
-    {yyval=AST.emptyBlock();};
+    /* "rules.y":80  */ /* lalr1.java:489  */
+    {yyval=((AST)(yystack.valueAt (3-(1))));};
   break;
     
 
   case 15:
   if (yyn == 15)
-    /* "rules.y":84  */ /* lalr1.java:489  */
-    {yyval=AST.fromToken(((Token)(yystack.valueAt (1-(1)))));};
+    /* "rules.y":81  */ /* lalr1.java:489  */
+    {yyval=AST.emptyBlock();};
   break;
     
 
   case 16:
   if (yyn == 16)
+    /* "rules.y":84  */ /* lalr1.java:489  */
+    {yyval=AST.fromToken(((Token)(yystack.valueAt (1-(1)))));};
+  break;
+    
+
+  case 17:
+  if (yyn == 17)
     /* "rules.y":85  */ /* lalr1.java:489  */
     {yyval=AST.fromToken(((Token)(yystack.valueAt (1-(1)))));};
   break;
     
 
 
-/* "../../../../../../java/org/enso/syntax/text/xx/Parser.java":426  */ /* lalr1.java:489  */
+/* "../../../../../../java/org/enso/syntax/text/xx/Parser.java":433  */ /* lalr1.java:489  */
         default: break;
       }
 
@@ -729,7 +736,7 @@ public class Parser
     return yyvalue == yytable_ninf_;
   }
 
-  private static final byte yypact_ninf_ = -4;
+  private static final byte yypact_ninf_ = -5;
   private static final byte yytable_ninf_ = -1;
 
   /* YYPACT[STATE-NUM] -- Index in YYTABLE of the portion describing
@@ -739,9 +746,9 @@ public class Parser
   {
     return new byte[]
     {
-       9,    -4,    -4,    -2,     9,    11,     9,    -4,    -4,    -4,
-      15,    -4,     0,    -4,    -4,    -4,    -4,    -4,     9,    -4,
-      -4
+      14,    -5,    -5,     0,    14,     1,    14,    -5,    -5,    -5,
+       0,    20,    -5,     7,    -5,    -5,    -5,    22,    -5,    -5,
+      14,    -5,    -5,    -5
     };
   }
 
@@ -753,9 +760,9 @@ public class Parser
   {
     return new byte[]
     {
-       3,    15,    16,     0,     0,     0,     2,     4,     7,     6,
-       9,    10,     0,    12,     1,     5,     8,    11,     0,    14,
-      13
+       3,    16,    17,     0,     0,     0,     2,     4,     7,     6,
+       0,     9,    10,     0,    13,     1,     5,     0,     8,    11,
+       0,    15,    12,    14
     };
   }
 
@@ -765,7 +772,7 @@ public class Parser
   {
     return new byte[]
     {
-      -4,    -4,    14,     4,    -4,    -4,     2,    -3
+      -5,    -5,     5,    -4,     9,    -5,     8,    -3
     };
   }
 
@@ -775,7 +782,7 @@ public class Parser
   {
     return new byte[]
     {
-      -1,     5,    12,     7,    10,     8,    13,     9
+      -1,     5,    13,     7,    11,     8,    14,     9
     };
   }
 
@@ -787,9 +794,9 @@ public class Parser
   {
     return new byte[]
     {
-      11,     1,     2,     1,     2,    18,     3,    17,     4,    19,
-      15,    14,     1,     2,     6,     3,    15,     4,     1,     2,
-      20,     0,    16
+      12,    15,    16,     1,     2,     6,    10,    12,    19,    16,
+       1,     2,    20,     3,    19,     4,    21,     1,     2,    17,
+       3,     0,     4,     1,     2,     1,     2,    18,    23,    22
     };
   }
 
@@ -798,9 +805,9 @@ private static final byte yycheck_[] = yycheck_init();
   {
     return new byte[]
     {
-       3,     3,     4,     3,     4,     5,     6,    10,     8,     9,
-       6,     0,     3,     4,     0,     6,    12,     8,     3,     4,
-      18,    -1,     7
+       3,     0,     6,     3,     4,     0,     6,    10,    11,    13,
+       3,     4,     5,     6,    17,     8,     9,     3,     4,    10,
+       6,    -1,     8,     3,     4,     3,     4,     7,    20,     7
     };
   }
 
@@ -812,8 +819,8 @@ private static final byte yycheck_[] = yycheck_init();
     return new byte[]
     {
        0,     3,     4,     6,     8,    12,    13,    14,    16,    18,
-      15,    18,    13,    17,     0,    14,     7,    18,     5,     9,
-      17
+       6,    15,    18,    13,    17,     0,    14,    15,     7,    18,
+       5,     9,     7,    17
     };
   }
 
@@ -824,7 +831,7 @@ private static final byte yycheck_[] = yycheck_init();
     return new byte[]
     {
        0,    11,    12,    12,    13,    13,    14,    14,    14,    14,
-      15,    15,    16,    17,    17,    18,    18
+      15,    15,    15,    16,    17,    17,    18,    18
     };
   }
 
@@ -835,7 +842,7 @@ private static final byte yycheck_[] = yycheck_init();
     return new byte[]
     {
        0,     2,     1,     0,     1,     2,     1,     1,     3,     2,
-       1,     2,     2,     3,     2,     1,     1
+       1,     2,     3,     2,     3,     2,     1,     1
     };
   }
 
@@ -871,7 +878,7 @@ private static final byte yycheck_[] = yycheck_init();
     return new byte[]
     {
        0,    57,    57,    58,    61,    62,    65,    66,    67,    68,
-      71,    72,    77,    80,    81,    84,    85
+      71,    72,    73,    77,    80,    81,    84,    85
     };
   }
 
@@ -939,10 +946,10 @@ private static final byte yycheck_[] = yycheck_init();
       return yyundef_token_;
   }
 
-  private static final int yylast_ = 22;
+  private static final int yylast_ = 29;
   private static final int yynnts_ = 8;
   private static final int yyempty_ = -2;
-  private static final int yyfinal_ = 14;
+  private static final int yyfinal_ = 15;
   private static final int yyterror_ = 1;
   private static final int yyerrcode_ = 256;
   private static final int yyntokens_ = 11;
@@ -956,7 +963,7 @@ private static final byte yycheck_[] = yycheck_init();
 
     public AST result;
 
-/* "../../../../../../java/org/enso/syntax/text/xx/Parser.java":960  */ /* lalr1.java:1066  */
+/* "../../../../../../java/org/enso/syntax/text/xx/Parser.java":967  */ /* lalr1.java:1066  */
 
 }
 
