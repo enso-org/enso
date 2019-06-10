@@ -14,6 +14,6 @@
 Please include the following checklist in your PR:
 
 - [ ] The documentation has been updated if necessary.
-- [ ] The code conforms to the [Luna Haskell Style Guide](https://github.com/luna/luna/blob/master/doc/haskell-style-guide.md).
+- [ ] The code conforms to the [Haskell](https://github.com/luna/luna/blob/master/doc/haskell-style-guide.md) or [Scala](https://github.com/luna/luna/blob/master/doc/scala-style-guide.md) style guides as appropriate.
 - [ ] The code has been tested where possible.
 
