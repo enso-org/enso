@@ -11,9 +11,11 @@ import qualified Control.Exception                        as Exception
 import qualified Luna.Package.Configuration.Global        as Global
 import qualified Luna.Package.Structure.Generate.Internal as Internal
 import qualified Luna.Package.Structure.Utilities         as Utilities
-import qualified Luna.Path.Path                           as Path
+import qualified Luna.Path                                as Path
 import qualified Path                                     as Path
 import qualified Path.IO                                  as Path
+
+import Path      (Path, Abs, Dir)
 
 import Luna.Package.Configuration.License       (License)
 import Luna.Package.Structure.Generate.Internal (recovery)
@@ -24,8 +26,8 @@ import Luna.Package.Structure.Generate.Internal (recovery)
 
 -- === API === --
 
-genPackageStructure :: MonadIO m => Path.Path a Path.Dir -> Maybe License -> Global.Config
-                    -> m (Either GeneratorError (Path.Path Path.Abs Path.Dir))
+genPackageStructure :: MonadIO m => Path a Dir -> Maybe License -> Global.Config
+                    -> m (Either GeneratorError (Path Abs Dir))
 genPackageStructure path mLicense gblConf =
     if Path.liftPredicate (\name -> length name < 1) path then
         pure . Left . InvalidPackageName $ convert (Path.toFilePath path)
@@ -43,7 +45,7 @@ genPackageStructure path mLicense gblConf =
             _ ->  pure . Left . InvalidPackageName
                 $ convert (Path.fromAbsDir canonicalPath)
         where
-            create :: IO (Either GeneratorError (Path.Path Path.Abs Path.Dir))
+            create :: IO (Either GeneratorError (Path Abs Dir))
             create = do
                 canonicalPath <- Path.canonicalizePath path
                 Path.createDirIfMissing True canonicalPath

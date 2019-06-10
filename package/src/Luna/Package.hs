@@ -13,11 +13,10 @@ import qualified Luna.Package.Configuration.Local         as Local
 import qualified Luna.Package.Structure.Generate.Internal as Generate
 import qualified Luna.Package.Structure.Name              as Name
 import qualified Luna.Package.Structure.Utilities         as Structure
-import qualified Luna.Path.Path                           as Path
+import qualified Luna.Path                                as Path
 import qualified OCI.Data.Name                            as Name
 import qualified Path                                     as Path
 import qualified Path.IO                                  as Path
-import qualified System.Directory                         as Directory
 import qualified System.FilePath.Find                     as Find
 
 import Control.Arrow           ((&&&))
@@ -197,7 +196,7 @@ assignQualName pkg filePath = (filePath, qualName)
 findPackageSources :: (MonadIO m, MonadException Path.PathException m)
     => Path Abs Dir -> m (Bimap (Path Abs File) Name.Qualified)
 findPackageSources pkg = do
-    let srcDir            = Path.toFilePath $ pkg </> Name.sourceDirectory
+    let srcDir            = Path.fromAbsDir (pkg </> Name.sourceDirectory)
         lunaFilePredicate = Find.extension Find.~~? Name.lunaFileExtWithDot
     lunaFiles    <- liftIO $ Find.find Find.always lunaFilePredicate srcDir
     let lunaFilesAbs = map Path.unsafeParseAbsFile lunaFiles
@@ -216,7 +215,7 @@ listDependencies pkgSrc = do
         Right (directDeps, _) -> do
             indirectDeps <- for directDeps $ \path -> do
                 listDependencies (lunaModules </> path)
-            pure $ fmap (convert &&& (lunaModules Path.</>)) directDeps
+            pure $ fmap (convert &&& (lunaModules </>)) directDeps
                   <> concat indirectDeps
 
 includedLibs :: MonadIO m => Path Abs Dir -> m [(Name.Name, Path Abs Dir)]
@@ -225,7 +224,7 @@ includedLibs stdlibPath = do
     projectNames <- do
         (contents, _) <- Path.listDirRel lunaroot
         dirs          <- filterM
-            (\a -> Path.doesDirExist $ lunaroot Path.</> a)
+            (\a -> Path.doesDirExist $ lunaroot </> a)
             contents
         let projects = filter
                 (Path.liftPredicate (\a -> (isUpper <$> head a) == Just True)) dirs
@@ -245,11 +244,10 @@ packageImportPaths pkgRoot stdlibPath = do
     pure $ includedImports <> importPaths
 
 
---fileSourcePaths :: (MonadIO m, MonadThrow m, MonadException Path.PathException m)
 fileSourcePaths :: (MonadIO m, MonadThrow m, MonadException Path.PathException m)
     => Path Abs File -> Path Abs Dir -> m (Map Name.Qualified (Path Abs File))
 fileSourcePaths lunaFile stdlibPath = do
-    fileName    <- Path.setFileExtension "" $ Path.filename lunaFile
+    fileName    <- liftIO $ Path.setFileExtension "" $ Path.filename lunaFile
     fileImports <- includedLibs stdlibPath
 
     let importPaths = snd <$> fileImports
@@ -311,11 +309,11 @@ rename srcPath destPath = do
 
     for_ dirsToCreate $ \dir -> do
       relPath <- Exception.rethrowFromIO @Path.PathException $ Path.stripProperPrefix srcPath dir
-      Path.createDirIfMissing True (destPath Path.</> relPath)
+      Path.createDirIfMissing True (destPath </> relPath)
 
     for_ filesToCopy $ \file -> do
         relPath <- Exception.rethrowFromIO @Path.PathException $ Path.stripProperPrefix srcPath file
-        Path.copyFile file (destPath Path.</> relPath)
+        Path.copyFile file (destPath </> relPath)
 
     -- Rename the `*.lunaproject` file
     origProjFile <- Exception.rethrowFromIO @Path.PathException $ do
@@ -326,18 +324,17 @@ rename srcPath destPath = do
         file <- Path.relDirToFile newName
         file Path.<.> Name.packageExt
 
-    let origProjPath = destPath Path.</> Name.configDirectory Path.</> origProjFile
-        newProjPath  = destPath Path.</> Name.configDirectory Path.</> newProjFile
+    let origProjPath = destPath </> Name.configDirectory </> origProjFile
+        newProjPath  = destPath </> Name.configDirectory </> newProjFile
 
     -- TODO [Ara] Fix MonadException and move back to that Exception.CatchAll
     liftIO . Unsafe.handle (\(e :: SomeException) ->
             Exception.throw $ CannotRenameFile newProjPath e)
-        $ Directory.renameFile (Path.fromAbsFile origProjPath)
-        (Path.fromAbsFile newProjPath)
+        $ Path.renameFile origProjPath newProjPath
 
     -- Change the name in the `config.yaml` file
-    let configDir  = destPath  Path.</> Name.configDirectory
-        configPath = configDir Path.</> Name.configFile
+    let configDir  = destPath  </> Name.configDirectory
+        configPath = configDir </> Name.configFile
 
     decoded <- liftIO $ Yaml.decodeFileEither (Path.fromAbsFile configPath)
 
@@ -357,7 +354,7 @@ rename srcPath destPath = do
 
     pure (destPath, Nothing)
 
-recursiveListDir :: (MonadIO m) => Path.Path Path.Abs Path.Dir -> m ([Path.Path Path.Abs Path.Dir], [Path.Path Path.Abs Path.File])
+recursiveListDir :: (MonadIO m) => Path Abs Dir -> m ([Path Abs Dir], [Path Abs File])
 recursiveListDir dir = do
     (dirs, files) <- Path.listDir dir
     (recDirs, recFiles) <- fmap unzip $ mapM recursiveListDir dirs

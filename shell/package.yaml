@@ -16,8 +16,6 @@ library:
         - base
         - bimap
         - containers
-        - directory
-        - filepath
         - githash
         - layered-state
         - lens

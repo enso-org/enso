@@ -7,7 +7,7 @@ import qualified Data.Aeson.Types   as Aeson
 import qualified Data.Yaml          as Yaml
 import qualified Path               as Path
 
-import Path (Path, Abs, Rel, Dir, File, (</>))
+import Path (Path, Rel, Dir, File, (</>))
 
 
 

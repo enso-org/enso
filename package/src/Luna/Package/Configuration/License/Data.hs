@@ -8,11 +8,11 @@ import qualified Luna.Datafile                      as Datafile
 import qualified Luna.Datafile.Licenses             as Licenses
 import qualified Path                               as Path
 import qualified Path.IO                            as Path
-import qualified System.Directory                   as Directory
 
 import Control.Monad.Exception (MonadException)
 import Data.Map                (Map)
 
+import Path                    (Path, Rel, File, (</>))
 
 -----------------
 -- === API === --
@@ -20,7 +20,7 @@ import Data.Map                (Map)
 
 -- === Definition === --
 
-licenseMap :: Map License.License (Path.Path Path.Rel Path.File)
+licenseMap :: Map License.License (Path Rel File)
 licenseMap = Map.fromList
     [ (License.AFL_3_0            , $(Path.mkRelFile "afl_3.0.license"))
     , (License.AGPL_3_0           , $(Path.mkRelFile "agpl_3.0.license"))
@@ -53,7 +53,7 @@ getLicenseText license = do
     licenseDir <- Licenses.findPath
     case Map.lookup license licenseMap of
         Just fileName -> do
-            let filePath = licenseDir Path.</> fileName
+            let filePath = licenseDir </> fileName
             fileExists  <- Path.doesFileExist filePath
             if not fileExists then pure "" else liftIO $ readFile (Path.fromAbsFile filePath)
         Nothing -> pure ""

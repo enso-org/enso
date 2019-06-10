@@ -78,10 +78,10 @@ testEnvVal ty = Temp.withSystemTempDirectory "LunaTemp" $ \fp -> do
     envValContentsPath <- Path.parseAbsDir fp
     extraDirPath       <- Path.parseRelDir "Foo"
 
-    let fullPath      = envValContentsPath Path.</> extraDirPath
+    let fullPath      = envValContentsPath </> extraDirPath
         verifier path = do
             Directory.doesDirectoryExist $ Path.fromAbsDir
-                $ path Path.</> extraDirPath
+                $ path </> extraDirPath
 
     case ty of
         ValidEnvVal -> do

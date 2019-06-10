@@ -5,43 +5,43 @@ import Prologue
 import qualified OCI.Data.Name as Name
 import qualified Path          as Path
 
-import Path            (Path, Rel, Dir)
+import Path            (Path, Rel, Dir, File)
 
 -------------------------------------
 -- === Package Component Names === --
 -------------------------------------
 
-distDir :: Path.Path Path.Rel Path.Dir
+distDir :: Path Rel Dir
 distDir = $(Path.mkRelDir "dist")
 
-srcDir :: Path.Path Path.Rel Path.Dir
+srcDir :: Path Rel Dir
 srcDir = $(Path.mkRelDir "src")
 
-testDir :: Path.Path Path.Rel Path.Dir
+testDir :: Path Rel Dir
 testDir = $(Path.mkRelDir "test")
 
-configFile :: Path.Path Path.Rel Path.File
+configFile :: Path Rel File
 configFile = $(Path.mkRelFile "config.yaml")
 
-depsFile :: Path.Path Path.Rel Path.File
+depsFile :: Path Rel File
 depsFile = $(Path.mkRelFile "deps.yaml")
 
-depsHistFile :: Path.Path Path.Rel Path.File
+depsHistFile :: Path Rel File
 depsHistFile = $(Path.mkRelFile "deps-history.yaml")
 
-lirDir :: Path.Path Path.Rel Path.Dir
+lirDir :: Path Rel Dir
 lirDir = $(Path.mkRelDir ".lir")
 
-mainFile :: Path.Path Path.Rel Path.File
+mainFile :: Path Rel File
 mainFile = $(Path.mkRelFile "Main.luna")
 
-licenseFile :: Path.Path Path.Rel Path.File
+licenseFile :: Path Rel File
 licenseFile = $(Path.mkRelFile "LICENSE")
 
-readmeFile :: Path.Path Path.Rel Path.File
+readmeFile :: Path Rel File
 readmeFile = $(Path.mkRelFile "README.md")
 
-gitignoreFile :: Path.Path Path.Rel Path.File
+gitignoreFile :: Path Rel File
 gitignoreFile = $(Path.mkRelFile ".gitignore")
 
 packageExt :: String

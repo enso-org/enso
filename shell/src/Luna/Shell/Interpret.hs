@@ -18,13 +18,13 @@ import qualified Luna.Pass.Sourcing.Data.Unit        as Unit
 import qualified Luna.Pass.Sourcing.UnitLoader       as ModLoader
 import qualified Luna.Pass.Sourcing.UnitMapper       as UnitMap
 import qualified Luna.Pass.Typing.Data.Typed         as Typed
+import qualified Luna.Path                           as Path    (dropExtensions)
 import qualified Luna.Runtime                        as Runtime
 import qualified Luna.Std                            as Std
 import qualified OCI.Data.Name                       as Name
 import qualified Path                                as Path
 import qualified Path.IO                             as Path
 import qualified System.Exit                         as Exit
-import qualified System.FilePath                     as FilePath
 import qualified System.IO                           as IO
 
 import Control.Monad.Exception               (MonadExceptions)
@@ -102,8 +102,8 @@ file filePath stdlibPath = liftIO $ Path.withCurrentDir fileFP $ do
     fileSources <- Package.fileSourcePaths filePath stdlibPath
     includedImports <- Package.includedLibs stdlibPath
 
-    let fileName = convertVia @Name.Name . FilePath.dropExtension
-            . Path.fromRelFile $ Path.filename filePath
+    let fileName = convertVia @Name.Name . Path.fromRelFile . Path.dropExtensions $
+                        Path.filename filePath
 
     PackageEnv.setLibraryVars includedImports
     liftIO $ interpretWithMain fileName fileSources

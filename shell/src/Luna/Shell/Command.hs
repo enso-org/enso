@@ -26,7 +26,7 @@ import qualified Text.Megaparsec                    as Megaparsec
 
 import Control.Lens.Prism      (_Just)
 import Control.Monad.Exception (MonadException)
-import Path                    (Path, Abs, Rel, Dir)
+import Path                    (Path, Abs, Rel, Dir, (</>))
 import System.Exit             (die)
 import System.IO               (hPutStrLn, stderr, stdout)
 
@@ -184,7 +184,7 @@ run (RunOpts target') = liftIO $ catch compute recover where
 
             if fileExists then do
                 if Path.fileExtension canonicalFilePath /= Package.lunaFileExt then
-                    hPutStrLn stderr $ (Path.toFilePath canonicalFilePath) <> " is not a Luna file."
+                    hPutStrLn stderr $ (Path.fromAbsFile canonicalFilePath) <> " is not a Luna file."
                 else Interpret.file canonicalFilePath stdlibPath
             else if projectExists then runPackage canonicalDirPath stdlibPath
             else hPutStrLn stderr $ target' <> " not found."
@@ -203,7 +203,7 @@ run (RunOpts target') = liftIO $ catch compute recover where
         isLunaPackage <- Package.isLunaPackage packagePath
 
         if isLunaPackage then Interpret.package packagePath stdlibPath
-        else hPutStrLn stderr $ (Path.toFilePath packagePath) <> " is not a Luna Package."
+        else hPutStrLn stderr $ (Path.fromAbsDir packagePath) <> " is not a Luna Package."
 
 init :: (ConfigStateIO m, MonadException Path.PathException m) => InitOpts
         -> m ()
@@ -346,29 +346,29 @@ acquireGlobalConfig = liftIO $ Exception.catch acquire recovery where
 
     acquire :: IO (Either Text Global.Config)
     acquire  = do
-        (homeDir :: Path.Path Path.Abs Path.Dir) <- Path.getHomeDir
+        homeDir <- Path.getHomeDir
 
-        let (configRelDirPath :: Path.Path Path.Rel Path.Dir) = Global.configDir
+        let configRelDirPath = Global.configDir
 
-        let lunaConfigDir :: Path.Path Path.Abs Path.Dir =  homeDir Path.</> configRelDirPath
+        let lunaConfigDir =  homeDir </> configRelDirPath
         configDirExists <- Path.doesDirExist lunaConfigDir
 
         unless configDirExists
             $ Path.createDirIfMissing True lunaConfigDir
 
-        let (configNameRelFilePath :: Path.Path Path.Rel Path.File) = Global.configName
+        let configNameRelFilePath = Global.configName
 
-        let lunaConfigFile = lunaConfigDir Path.</> configNameRelFilePath
+        let lunaConfigFile = lunaConfigDir </> configNameRelFilePath
         configFileExists <- Path.doesFileExist lunaConfigFile
 
         unless configFileExists $ do
             putStrLn "Generating Global Config"
-            putStrLn $ "Please fill in your name in " <> (Path.toFilePath lunaConfigFile)
-            putStrLn $ "Please fill in your email in " <> (Path.toFilePath lunaConfigFile)
+            putStrLn $ "Please fill in your name in " <> (Path.fromAbsFile lunaConfigFile)
+            putStrLn $ "Please fill in your email in " <> (Path.fromAbsFile lunaConfigFile)
             let defaultConfig = def @Global.Config
-            Yaml.encodeFile (Path.toFilePath lunaConfigFile) defaultConfig
+            Yaml.encodeFile (Path.fromAbsFile lunaConfigFile) defaultConfig
 
-        globalConfig <- Yaml.decodeFileEither @Global.Config (Path.toFilePath lunaConfigFile)
+        globalConfig <- Yaml.decodeFileEither @Global.Config (Path.fromAbsFile lunaConfigFile)
 
         case globalConfig of
             Left _    -> pure $ Left "Unable to decode global configuration."

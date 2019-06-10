@@ -1,26 +1,14 @@
-
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE DeriveFunctor #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE UndecidableInstances #-}
-
 module Luna.Path.Path
 
 where
+
+import Prologue hiding (last)
 
 import Control.Monad.Catch (MonadThrow(..))
 import Path
 import System.FilePath as FilePath
 import Data.Maybe (fromJust)
+import Data.List (last)
 
 import qualified Path.Internal as IPath
 
@@ -48,20 +36,23 @@ splitDirectories p = map IPath.Path (FilePath.splitDirectories $ toFilePath p)
 isDrive :: Path a Dir -> Bool
 isDrive = liftPredicate (FilePath.isDrive)
 
+coerceToFile :: Path a Dir -> Path a File
+coerceToFile (IPath.Path fp) = IPath.Path fp
+
 liftPredicate :: (String -> Bool) -> (Path a b -> Bool)
 liftPredicate pred = pred . toFilePath
 
 unsafeParseRelFile :: FilePath -> Path Rel File
-unsafeParseRelFile = fromJust . parseRelFile
+unsafeParseRelFile = unsafeFromJust . parseRelFile
 
 unsafeParseAbsFile :: FilePath -> Path Abs File
-unsafeParseAbsFile = fromJust . parseAbsFile
+unsafeParseAbsFile = unsafeFromJust . parseAbsFile
 
 unsafeParseRelDir :: FilePath -> Path Rel Dir
-unsafeParseRelDir = fromJust . parseRelDir
+unsafeParseRelDir = unsafeFromJust . parseRelDir
 
 unsafeParseAbsDir :: FilePath -> Path Abs Dir
-unsafeParseAbsDir = fromJust . parseAbsDir
+unsafeParseAbsDir = unsafeFromJust . parseAbsDir
 
 -- TODO JCM : use Convertible class here?
 relDirToFile ::  (MonadThrow m) => Path Rel Dir -> m (Path Rel File)

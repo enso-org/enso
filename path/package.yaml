@@ -12,26 +12,19 @@ library:
     dependencies:
         - base
         - exceptions
+        - filepath
         - path
         - path-io
-        - filepath
+        - prologue
 
 
+    ghc-options:
+        -Wall
 
-tests:
-    spec:
-        main: Main.hs
-        source-dirs: test/spec
-        dependencies:
-            - bytestring
-            - hspec
-            - hspec-jenkins
-            - luna-ci
-            - luna-package
-            - luna-yaml-utils
-            - megaparsec
-            - open-browser
-            - temporary-rc
+
+default-extensions: *luna-extensions
+
+
 
 
 
