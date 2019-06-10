@@ -30,6 +30,7 @@ then describe the design of each component in detail.
 - [Choosing GraalVM](#choosing-graalvm)
 - [The Runtime Components](#the-runtime-components)
   - [Language Server](#language-server)
+  - [Filesystem Driver](#filesystem-driver)
   - [Typechecker](#typechecker)
   - [Optimiser](#optimiser)
   - [Interpreter and JIT](#interpreter-and-jit)
@@ -56,10 +57,43 @@ surrounding ecosystem.
 
 TBC...
 
+It is worth providing a brief explanation of each of the components to aid in
+understanding how the runtime fits into the ecosystem.
+
+- **Enso Studio GUI:** This is the interface with which most of Enso's users
+  will interact. It handles the drawing of and interaction with the Enso graph
+  for users, as well as the searcher and other user-facing functionality. It
+  also provides a text editor.
+- **Project Manager:** This allows for management of one or more Enso projects,
+  and is primarily responsible for file-system-agnostic interaction with the
+  project structure, and spawning of the Enso runtime.
+- **GUI Backend:** The GUI backend is instantiated for each project, and is
+  responsible for all of the user-facing logic that goes into interaction with
+  the Enso runtime.
+  + **Graph State Manager:** This component handles management of the state
+    required to draw the graph in the GUI.
+  + **Double Representation Manager:** This component handles the encoding and
+    decoding of the Enso program to and from the intermediate representation.
+  + **Undo/Redo Manager:** This component handles undo and redo for the graph, a
+    somewhat novel operation as it does not not always have a 1:1 correspondence
+    with textual editing.
+- **CLI:** This provides a command-line (specifically a terminal) interface to
+  the Enso runtime. This allows both for the CLI invocation of Enso, as well as
+  an interactive REPL. This communicates with the runtime itself via the
+  language server protocol.
+- **Enso Runtime:** This is what is described in this document, and is
+  responsible for the execution of Enso programs. It handles the typechecking,
+  optimisation, and interpretation of Enso code, as well as the provision of
+  interfaces to foreign languages.
+
 ## The Runtime's Architecture
 In order to better appreciate how the components specified below interact, it is
 important to have an understanding of the high-level architecture of the runtime
-itself.
+itself. The design in this document pertains _only_ to the 'Enso Runtime'
+component of the diagram above, and hence makes no mention of the others.
+
+In the diagram below, the direction of arrows is used to represent the 'flow' of
+information between the various components.
 
 TBC...
 
@@ -190,6 +224,9 @@ down into components. These are described in detail below.
 
 ## Language Server
 
+## Filesystem Driver
+This component of the runtime deals with
+
 ## Typechecker
 
 ## Optimiser
@@ -213,132 +250,9 @@ was decided to design and build an initial, stripped-down version of the final
 design. This design focused on development of a minimal working subset of the
 runtime that would allow Enso to run.
 
+<!-- Dynamic + hardcoded monadic support -->
+
 TBC...
-
-<!--
-
-Other:
-- Initial Version (Dynamic, hardcoded monad support)
-- Why (not GHC or LLVM - primarily business decisions)
-
-https://drive.google.com/file/d/1ImuEySnsfHeMGD94pBvM2DEYc2iJfNW7/view
-
--->
-
-<!-- # Motivation
-For Luna to reach its full potential as a general-purpose programming language
-and data-processing environment, it needs one major thing: speed. With the goal
-for the language to become _the_ platform for end-to-end development and
-communication, spanning from engineers all the way to executives, it needs to be
-able to get out of the user's way and work in the background. In other words,
-and to take a leaf from Apple's book: it should Just Work.
-
-The current Luna runtime was never intended for long-term or production use, and
-has been relied upon far longer than it should. During that period of time, the
-design goals for Luna and its platform have solidified, making this the perfect
-opportunity to deliver a new runtime that accommodates those goals while
-delivering increased performance, and future-proof capabilities.
-
-In doing so, Luna's performance will be dramatically increased, but that is only
-one of the major benefits. Alongside this, the new runtime will allow Luna to be
-decoupled from Luna Studio via the IDE protocol. It will let Luna interact with
-C libraries with negligible overhead. It will, in essence, let Luna achieve its
-full potential.
-
-This design document sets out both the high-level architecture of the new
-runtime, including detailed explorations of its features and concerns, but it
-also contains the detailed designs and implementation plans for each portion of
-the new Luna platform. It is intended to both serve as a design plan for the
-implementation and, once that is all complete, as documentation for Luna's
-design as it evolves. -->
-
-
-<!-- # Architectural Overview
-It is perhaps a touch rich to call this design the 'runtime', as it actually
-encompasses a broader portion of the compiler than what would traditionally be
-considered a runtime. Due to some of the design goals for Luna, this design also
-encompasses changes to the type-checker, the IDE protocol, a JIT, and various
-other things necessary for making this all work.
-
-The Luna runtime is based on heavy usage of the Haskell-independent
-infrastructure provided by the [GHC (Glasgow Haskell Compiler)](https://gitlab.haskell.org/ghc/ghc)
-project. This is because we want to take advantage of the incredibly
-sophisticated GHC RTS, as it provides facilities for concurrency, parallelism,
-FFI, and garbage collection, alongside others. GHC will be used to provide the
-GHC Core IR, from which we will be able to generate STG for use with the GHC
-bytecode interpreter (used in GHCi), and for native compilation and dynamic
-loading as part of the JIT.
-
-The Luna Runtime integrates across most of the current design for the Luna
-compiler, so it's easier instead to diagram the whole compiler, as below. In
-this diagram, the direction of arrows represents the flow of information.
-
-```
-
-+---------------------------------------------------------+
-| Edge Layer                                              |
-+---------------------------------------------------------+
-
-+---------------------------------------------------------+
-| Protocol Layer                                          |
-+---------------------------------------------------------+
-
-+------------------------------+
-| Parser                       |
-+------------------------------+
-
-+------------------------------+               +----------+
-| Desugarer                    |               | Debugger |
-+------------------------------+               | Engine   |
-                                               |          |
-+------------------------------+  +---------+  |          |
-| Typechecker                  |  | Tracing |  |          |
-+------------------------------+  | Engine  |  |          |
-                                  |         |  |          |
-+------------------------------+  |         |  |          |
-| Compilation Layer            |  |         |  |          |
-+------------------------------+  |         |  |          |
-                                  |         |  |          |
-+------------------------------+  |         |  |          |
-| Cache Layer                  |  |         |  |          |
-+------------------------------+  |         |  |          |
-                                  |         |  |          |
-+----------------------+          |         |  |          |
-| Bytecode Interpreter |          |         |  |          |
-+----------------------+          |         |  |          |
-                                  |         |  |          |
-                         +-----+  |         |  |          |
-                         | JIT |  |         |  |          |
-                         +-----+  |         |  |          |
-                                  |         |  |          |
-+------------------------------+  |         |  |          |
-| GHC RTS                      |  |         |  |          |
-+------------------------------+  +---------+  +----------+
-
-+------------------------------+
-| FFI                          |
-+------------------------------+
-
-
-```
-
-While the diagram above encompasses all of the components of the eventual Luna
-compiler architecture, the following components are those that are described
-within this design:
-
-- **Edge Layer:**
-- **Protocol Layer:**
-- **Typechecker:**
-- **Compilation Layer:**
-- **Cache Layer:**
-- **Bytecode Interpreter:**
-- **JIT Tier 1:**
-- **FFI:**
-- **Tracing Engine:**
-- **Debugging Engine:**
-- **GHC RTS:**
-
--->
 
 <!-- ## Runtime Layers
 The Luna runtime consists of a number of discrete layers from a design
