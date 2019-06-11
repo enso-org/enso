@@ -4,7 +4,7 @@ ___
 - **Change Type:** Breaking
 - **RFC Dependencies:** Syntax Overhaul
 - **RFC PR:**
-- **Luna Issue:**
+- **Enso Issue:**
 - **Implemented:**
 
 # Summary
@@ -14,7 +14,7 @@ two. A language that _feels_ dynamic, with high levels of type inference, but
 lets the users add more type information as they want more safety and
 compile-time checking.
 
-Luna aims to be that language, providing a statically-typed language with a type
+Enso aims to be that language, providing a statically-typed language with a type
 system that makes it feel dynamic. It will infer sensible types in many cases,
 but as users move from exploratory pipelines to production systems, they are
 able to add more and more type information to their programs, proving more and
@@ -33,7 +33,7 @@ they require.
 - [Type Conversions](#type-conversions)
   - [Convertible](#convertible)
   - [Coercible](#coercible)
-- [Principles for Luna's Type System](#principles-for-lunas-type-system)
+- [Principles for Enso's Type System](#principles-for-ensos-type-system)
 - [Structural Type Shorthand](#structural-type-shorthand)
 - [Interfaces](#interfaces)
   - [Interfaces as Names for Structures](#interfaces-as-names-for-structures)
@@ -42,35 +42,35 @@ they require.
 - [Subtyping and User-Facing Type Definitions](#subtyping-and-user-facing-type-definitions)
 - [Row Polymorphism and Inference](#row-polymorphism-and-inference)
 - [Unresolved Questions](#unresolved-questions)
-- [Dependency and Luna](#dependency-and-luna)
+- [Dependency and Enso](#dependency-and-enso)
 - [Steps](#steps)
 - [References](#references)
 
 <!-- /MarkdownTOC -->
 
 # Motivation
-At present, Luna has nothing but a rudimentary module system to aid in the
+At present, Enso has nothing but a rudimentary module system to aid in the
 complexity management and scoping of code. For a sophisticated language this is
 a bad state of affairs, and so this RFC aims to propose a redesign of certain
-portions of Luna to present a _unified_ design which unifies modules (in both
+portions of Enso to present a _unified_ design which unifies modules (in both
 the conventional and ML senses), classes, and interfaces under a single
 first-class umbrella.
 
 In doing so, the proposal supports a diversity of use-cases, allowing the
 first-class manipulation of types, including the creation of anonymous types. In
 doing so, it provides users with first-class modularity for their code, and
-intuitive mechanisms for working with types in Luna's type system. This concept
-thus brings a massive simplification to the Luna ecosystem, providing one
+intuitive mechanisms for working with types in Enso's type system. This concept
+thus brings a massive simplification to the Enso ecosystem, providing one
 powerful mechanism to accomplish many key language features, without requiring
 the user to understand more than the mechanisms of `type`, and the principle
-behind Luna's type system.
+behind Enso's type system.
 
-In the end, Luna's current module system is insufficient for serious development
+In the end, Enso's current module system is insufficient for serious development
 in the language, and needs to be replaced. In doing so, this RFC proposes to
 take the time to bring a vast simplification to the language in the same swoop.
 
 # Goals for the Type System
-In our design for Luna, we firmly believe that the type system should be able to
+In our design for Enso, we firmly believe that the type system should be able to
 aid the user in writing correct programs, far and above anything else. However,
 with so much of our targeted user-base being significantly non-technical, it
 needs to be as unobtrusive as possible.
@@ -88,18 +88,18 @@ needs to be as unobtrusive as possible.
   would welcome insight on whether it is perhaps easier to do so from the get
   go. If doing so, we would prefer to go with `Type : Type`.
 - Our aim is to create a powerful type system to support development, rather
-  than turn Luna into a research language. We want users to be able to add
+  than turn Enso into a research language. We want users to be able to add
   safety gradually.
 
 # Type Conversions
-Like in any programming language, Luna requires the ability to convert between
+Like in any programming language, Enso requires the ability to convert between
 types. Sometimes these conversions have to happen at runtime, incurring a
 computational cost, but sometimes these conversions can be 'free', in cases
 where the compiler can prove that the types have the same representation at
 runtime. Enter the `Coercible` and `Convertible` mechanisms.
 
 ## Convertible
-There is a tension in Luna's design around conversions between types. In many
+There is a tension in Enso's design around conversions between types. In many
 cases, our users performing data analysis will just 'want it to do the right
 thing', whereas users writing production software will likely want control.
 
@@ -123,7 +123,7 @@ matching conversion. If there is, it will be automatically (invisibly) inserted.
 Now this initially sounds like a recipe for a lack of control, but there are a
 few elements of this design to keep in mind:
 
-- Due to the nature of Luna's type system and how default arguments count
+- Due to the nature of Enso's type system and how default arguments count
   towards the saturation of a function, an instance of convert can actually be
   defined to be configurable. Consider the following example, which defines an
   instance with an alternative signature.
@@ -196,9 +196,9 @@ explicitly:
 - `Coercible` is represented as an interface to allow users to parametrise their
   functions on the availability of a coercion between two types.
 
-# Principles for Luna's Type System
+# Principles for Enso's Type System
 
-- Types in Luna are functions on sets (constructors included), and are based on
+- Types in Enso are functions on sets (constructors included), and are based on
   the theory of rows described in the "Abstracting Extensible Data Types" paper.
 
 - All interface definitions must resolve to a 1:1 mapping between resolution
@@ -217,7 +217,7 @@ explicitly:
 - It should be clear from a signature or pattern match in isolation which
   variables are implicitly quantified.
 
-- Naming in Luna is case-insensitive, so to hoist a bare function to the type
+- Naming in Enso is case-insensitive, so to hoist a bare function to the type
   level, you are required to capitalise it. `foo` and `Foo` are the same thing
   in values, but when used in a type, the former will be inferred as a free var.
 
@@ -288,7 +288,7 @@ explicitly:
   This gives rise to the question as to how we determine which properties (or
   data) are able to be reasoned about statically.
 
-- Dependent types in Luna will desugar to an application of Quantitative Type
+- Dependent types in Enso will desugar to an application of Quantitative Type
   Theory.
 
 - Tuples are strictly a less powerful case of rows.
@@ -304,7 +304,7 @@ explicitly:
 
 - Supermonadic theory, as a strictly more-powerful theory over standard monads,
   allows trivial definitions in terms of standard monads with inferred trivial
-  contexts. Luna's Monadic Contexts are based on this theory.
+  contexts. Enso's Monadic Contexts are based on this theory.
 
 - The context inference algorithm should support a high-granularity (e.g. read,
   write, FFI, print, etc).
@@ -327,7 +327,7 @@ explicitly:
   deals with zero-cost conversions between types of the same runtime
   representation. Both can be inserted by the compiler where necessary.
 
-- Luna will make use of whatever advanced type-system features are at its
+- Enso will make use of whatever advanced type-system features are at its
   disposal to improve safety and performance.
 
 - Complex errors will be explained simply, even if this requires additional
@@ -335,16 +335,16 @@ explicitly:
 
 - In the context of dependent types, relevance inference will be performed.
 
-- The Luna typechecker will integrate an aggressive proof rewrite engine to
+- The Enso typechecker will integrate an aggressive proof rewrite engine to
   automate as much of the proof burden as possible.
 
 - Inference is employed heavily, letting types span from invisible to fancy,
   with each level providing as many guarantees as is practicable.
 
-- Luna _is not a proof system_, and its implementation of dependent types will
+- Enso _is not a proof system_, and its implementation of dependent types will
   reflect said fact, being biased towards more practical usage.
 
-- The future implementation of dependent types into Luna will be based on RAE's
+- The future implementation of dependent types into Enso will be based on RAE's
   thesis about dependent types in Haskell (particularly PICO and BAKE).
 
 - Inference will propagate as far as possible, but under some circumstances it
@@ -366,7 +366,7 @@ explicitly:
   free type variable (`forall a`), while `n` is a name.
 
 - If it comes to a tension between typechecker speed and inference capability,
-  Luna will err on the side of inference capability in order to promote ease of
+  Enso will err on the side of inference capability in order to promote ease of
   use. Speed will be increased by performing incremental type-checking where
   possible on subsequent changes.
 
@@ -390,7 +390,7 @@ explicitly:
 
 - We do not want to support invisible arguments.
 
-- Luna must support nested type definitions. These nested types are
+- Enso must support nested type definitions. These nested types are
   automatically labelled with their name (so constructors are `mkFoo`, rather
   than `Foo`). The nested type is constructed as part of the containing type.
 
@@ -409,12 +409,12 @@ explicitly:
   This sugar is most likely to be seen for function definitions, but it works in
   all cases.
 
-- Rows in Luna are open, and have polymorphic projections. A projection without
+- Rows in Enso are open, and have polymorphic projections. A projection without
   a given type is assumed to be a label, but `{ (Foo : Type) : Int }` lets users
   use other types as projections. A row `{ myLabel : Int }` is syntax sugar for
   an explicit projection based on a label: `{ (myLabel : Label) : Int }`.
 
-- Luna features built-in first-class lenses and prisms based on row projections,
+- Enso features built-in first-class lenses and prisms based on row projections,
   as described in "Abstracting Extensible Datatypes".
 
 - Rows where no explicit labels are given are assumed to be tuples. This means
@@ -463,7 +463,7 @@ explicitly:
 - There is explicit support for constraints appearing at any point in a
   polymorphic type.
 
-- Type equality in Luna is represented by both representational and structural
+- Type equality in Enso is represented by both representational and structural
   equality. Never nominal equality. There is no inbuilt notion of nominal
   equality.
 
@@ -510,7 +510,7 @@ explicitly:
   Doing this allows programs to abstract over the representation of their types,
   and is very similar to the implementation described in the Levity Polymorphism
   paper. The one change we make is that `FlatRep` is recursive; with most of
-  Luna's types able to be represented flat in memory. This means that the list
+  Enso's types able to be represented flat in memory. This means that the list
   `[MachineRep]` is able to account for any row of unboxed types.
 
   The return type of `TYPE` is still an open question. What does it mean for a
@@ -626,7 +626,7 @@ explicitly:
   an interface may be _more specific_ than the interface definition itself,
   through use of GADTs.
 
-- Interfaces in Luna are inherently multi-parameter, by virtue of specifying a
+- Interfaces in Enso are inherently multi-parameter, by virtue of specifying a
   structure as a row.
 
 - In an ideal world, we would like to only require programmer-provided type
@@ -640,7 +640,7 @@ explicitly:
   propagation inspired by local type-inference techniques.
 
 # Structural Type Shorthand
-In Luna, we want to be able to write a type-signature that represents types in
+In Enso, we want to be able to write a type-signature that represents types in
 terms of the operations that take place on the input values. A classical example
 is `add`:
 
@@ -689,12 +689,12 @@ signature. Cases where this break down should only exist where the type
 signature acts to constrain the function type further than would be inferred.
 
 # Interfaces
-An interface in Luna is a representation of the (partial) structure of a type
-given name. For a type in Luna to conform to an interface, under the hood it is
+An interface in Enso is a representation of the (partial) structure of a type
+given name. For a type in Enso to conform to an interface, under the hood it is
 one that structurally conforms to the projections and result types provided by
 the interface.
 
-There are two possible treatments of interfaces as far as Luna's type system is
+There are two possible treatments of interfaces as far as Enso's type system is
 concerned:
 
 1. **Names Only:** An interface is purely a name given to a type that describes
@@ -725,7 +725,7 @@ There are a few elements of the design for interfaces that will hold regardless
 of the choice made below.
 
 - Interfaces are inherently type constructors that generate a row. This means
-  that they can use the standard dependency machinery included in Luna to
+  that they can use the standard dependency machinery included in Enso to
   compute some or all of their types.
 - Interfaces, as type constructors, are inherently multi-parameter should they
   need to be.
@@ -827,7 +827,7 @@ for the first option, not this variant of the second.
 ## Interface Generality
 One of the larger pain-points in Haskell comes from the fact that typeclass
 structure places restrictions on what types can become an instance of the class.
-Luna, instead, works from a foundation of rows. This means that we can trivially
+Enso, instead, works from a foundation of rows. This means that we can trivially
 make use of associated types in interfaces to compute more general signatures.
 
 Consider the following `Iterable` interface, which expresses a map operation in
@@ -869,7 +869,7 @@ instance Iterable (Set a) =
 ```
 
 # Subtyping and User-Facing Type Definitions
-As complex as the internal type language of Luna may need to be, we ideally want
+As complex as the internal type language of Enso may need to be, we ideally want
 to only present a limited set of concepts to the user for use in writing their
 own types. Internally, we have the following relations between types:
 
@@ -918,14 +918,14 @@ Let's examine the major cases:
 Is variance always valid in the ways we need?
 
 # Row Polymorphism and Inference
-The foundation of Luna's usability is based on a _structural_ type system. This
-means that there is no concept of nominal equality. In Luna types are equal if
+The foundation of Enso's usability is based on a _structural_ type system. This
+means that there is no concept of nominal equality. In Enso types are equal if
 they have the same structure. Under such a system, the only reason that users
 should _need_ to write types is to provide a type that the inference engine
 cannot infer (though this may be more general, more specific, or for a case that
 cannot be inferred).
 
-From a philosophical standpoint, we want Luna's type system to infer sensible
+From a philosophical standpoint, we want Enso's type system to infer sensible
 types for 99% of expressions that users write, and allow the users to _refine_
 these inferred types. This refinement process can involve:
 
@@ -934,7 +934,7 @@ these inferred types. This refinement process can involve:
 - Add additional safety and checking by introducing more complex type-system
   usage (e.g. dependency, partial data, etc).
 
-It should be noted that, in this sense, Luna's structural type system has no
+It should be noted that, in this sense, Enso's structural type system has no
 concept of a 'principle' (or most-general) type for an expression, at least not
 in the sense of traditional System-F.
 
@@ -979,20 +979,22 @@ are projections.
 
 - Dependent types at runtime compared with dynamics.
 
+- Encoding of strictness in the type system.
+
 IO, State, Exception (not ! error)
 
 - Dependent types as constructing proofs through combining types. Combining
   types provides evidence which can be discharged to create a proof. A value can
   then only be constructed by discharging a proof.
 
-# Dependency and Luna
+# Dependency and Enso
 The ability to evaluate arbitrary functions on the type level inherently makes
-Luna a dependently typed language, as arbitrary values can appear in types.
+Enso a dependently typed language, as arbitrary values can appear in types.
 
 - The initial implementation will provide this facilities, but no system for
   automating the proof steps (c.f. f-star), or interactive theorem proving.
 - While this allows people to express safety guarantees in the type system, it
-  is a natural consequence of Luna's design.
+  is a natural consequence of Enso's design.
 
 # Steps
 
@@ -1042,6 +1044,6 @@ is as below.
 - [Partial Type-Constructors](https://cs.brynmawr.edu/~rae/papers/2019/partialdata/partialdata.pdf)
 
 <!--
-Welcome to the Lunatic's Asylym, where we thought it would be a good idea to try
+Welcome to the Ensotic's Asylym, where we thought it would be a good idea to try
 and bring dependent types to the masses.
 -->

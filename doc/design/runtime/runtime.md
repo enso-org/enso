@@ -35,10 +35,12 @@ then describe the design of each component in detail.
   - [Optimiser](#optimiser)
   - [Interpreter and JIT](#interpreter-and-jit)
 - [Cross-Cutting Concerns](#cross-cutting-concerns)
+  - [Caching](#caching)
   - [Profiling and Debugging](#profiling-and-debugging)
-  - [Lightweight Concurrency](#lightweight-concurrency)
   - [Foreign Language Interoperability](#foreign-language-interoperability)
+  - [Lightweight Concurrency](#lightweight-concurrency)
 - [The Initial Version of the Runtime](#the-initial-version-of-the-runtime)
+- [Development Considerations](#development-considerations)
 
 <!-- /MarkdownTOC -->
 
@@ -223,26 +225,146 @@ Like any sensible large software project, Enso's runtime is modular and broken
 down into components. These are described in detail below.
 
 ## Language Server
+The language server component is responsible for controlling the runtime itself.
+It communicates with other portions of the ecosystem (such as the REPL and the
+Enso Studio backend) via a protocol. While this protocol is based on the
+[Language Server Protocol](https://microsoft.github.io/language-server-protocol/specification),
+it has been extended significantly to better support Enso's use-cases.
+
+<!-- TODO
+- A description of the protocol format.
+- A description of bidirectional protocol operation. This means that Enso's
+  runtime is not purely a server, but can also push data to the client.
+- A description of how the protocol design admits extensibility.
+- An informal description of each of the protocol messages, for example \
+  (`expandOptionalArgs`, which expands all defaulted arguments in a call with
+  the defaults as the values). Needs to account for on-demand opt, metadata
+  handling.
+- A description of how a Luna process should manage source files in server mode,
+  including a description of changesets (dual payload, text diff or AST diff).
+- https://github.com/luna/luna/issues/365
+-->
 
 ## Filesystem Driver
-This component of the runtime deals with
+This component of the runtime deals with access from the runtime to external
+devices. This includes the Enso code files on disk, but is also responsible for
+watching filesystem resources (such as databases, files, and sockets) that are
+used by Enso programs.
+
+<!-- TODO
+- A diagram of the interactive file-system watching.
+- A description of how this layer words.
+- A design for the strategy for reloading based on source-data changes.
+-->
 
 ## Typechecker
+The typechecker is the portion of the runtime that handles the type-inference
+and type-checking of Enso code. This is a sophisticated piece of machinery, with
+the primary theory under which it operates being described in the specification
+of [the type-system](../type-system/types.md).
+
+<!-- TODO
+- A description of the typechecker's architecture as graph transformations.
+- An analysis of how the typechecking process interacts with the interpreter.
+- An analysis of how we can associate type information with nodes in the Enso
+  graph. A description of what information can be erased.
+- An analysis of how the typechecker will support for runtime metaprogramming
+  and the manipulation of types.
+-->
 
 ## Optimiser
+With much of Enso's performance relying on the JIT optimiser built into Graal,
+the native language optimiser instead relies on handling more front-end specific
+optimisations.
+
+<!-- TODO
+- A diagram of the optimisation process.
+- A description of its architecture.
+- A description of the optimisations that it needs to perform to generate a
+  sensible input to GraalVM.
+- A description of additional transformations it needs to perform (e.g. for
+  the handling of strictness).
+- A design for hierarchical description of optimisation passes.
+- A design for parallel local optimisation.
+-->
 
 ## Interpreter and JIT
-<!-- Including the cache -->
+The interpreter component is responsible for the actual execution of Enso code.
+It is built on top of the Truffle framework provided by GraalVM, and is JIT
+compiled by GraalVM.
+
+<!-- TODO
+- A design for encoding the execution model for Lazy and Strict computations.
+- A design for encoding the evaluation of monadic contexts (how `=` works).
+- A design for the compilation strategy (what is resolved when).
+- A design for how we work with wired-in functionality (e.g. the stdlib).
+- An analysis of techniques that can be used to minimise interpreter startup
+  time.
+- A description of support for library precompilation.
+- An analysis of how the interpreter is involved in the typechecking process.
+-->
 
 # Cross-Cutting Concerns
 The runtime also has to deal with a number of concerns that don't fit directly
 into the above components, but are nevertheless important parts of the design.
 
-## Profiling and Debugging
+## Caching
+The runtime cache for Enso is a key part of how it delivers exceptional
+performance when working on big data sets. The key recognition, as seen in many
+data processing tools, is that changing code or data often doesn't require the
+interpreter to recompute the entire program. Instead, it can only recompute the
+portions that are required of it, while using cached results for the rest.
 
-## Lightweight Concurrency
+<!-- TODO
+- Describe the architecture of the cache.
+- Describe the dependency-tracking, keying, and cache eviction strategies with a
+  focus on granularity, performance, and type information (e.g. strictness).
+- Describe the LRU mechanism that can be used to constrain cache size to under a
+  certain amount of RAM.
+- A description of how the cache is made IO aware and operates in relation to
+  the filesystem layer (see Skip for more ideas).
+- An examination of how cache state can be persisted to disk to enable fast
+  reloading of analysis projects.
+-->
+
+## Profiling and Debugging
+Similarly important to the Enso user experience is the ability to visually
+debug and profile programs. This component deals with the retrieval, storage,
+and manipulation of profiling data, as well as the ability to debug programs in
+Enso using standard and non-standard debugging paradigms.
+
+<!-- TODO
+- An analysis of how breakpoints can be set in the Truffle interpreter.
+- A design for a framework / API for introspection of the interpreter state.
+- An analysis of how the JVM tools can be used to collect Enso-side profiling
+  information.
+- A design for this profiling data collection and a discussion of how to expose
+  it to users.
+-->
 
 ## Foreign Language Interoperability
+This component deals with using the GraalVM language interoperability features
+to provide a seamless interface to foreign code from inside Enso.
+
+<!-- TODO
+- A design for standard, unsafe, C-level FFI using JNI.
+- A design for what types can be exposed across the C-FFI boundary.
+- A design for how to expose foreign languages to Luna in a safe fashion.
+- An analysis of how Luna can minimise the conversions that take place when
+  going between languages.
+-->
+
+## Lightweight Concurrency
+Though not strictly a component, this section deals with how Enso can provide
+its users with lightweight concurrency primitives in the form of green threads.
+
+<!-- TODO
+- Examine how the JVM's basic concurrency primitives can be used in Enso.
+- A design for how these can be used for automatic parallelism.
+- An examination of how Project Loom could be employed to provide users with
+  lightweight concurrency in Enso, thereby avoiding async/await 'colouring' of
+  functions.
+-->
 
 # The Initial Version of the Runtime
 In order to have a working version of the new runtime as quickly as possible, it
@@ -250,406 +372,23 @@ was decided to design and build an initial, stripped-down version of the final
 design. This design focused on development of a minimal working subset of the
 runtime that would allow Enso to run.
 
-<!-- Dynamic + hardcoded monadic support -->
-
-TBC...
-
-<!-- ## Runtime Layers
-The Luna runtime consists of a number of discrete layers from a design
-standpoint, each of which handles a separate part of the runtime's function.
-While the responsibilities of these layers are usually well-defined, they will
-need to be fairly tightly integrated, primarily for performance.
-
-Please note that these layers aren't intended to relate directly to
-architectural components at the code level. There will likely be the need for
-additional components, and some of these layers may actually be different uses
-of the same architectural component (e.g. the JIT layers).
-
+<!-- TODO
+- Describe a design for a dynamic-only runtime
+- Describe hardcoded support for IO, State, Exception (!) monads
 -->
 
-<!--
-- A set of brief descriptions of each of the layers.
-- A diagram that shows how they interact, and the approximate communication flow
-  between them.
--->
+# Development Considerations
+As part of developing the new Enso runtime, the following things need to be
+accounted for. This is to ensure that the eventual quality of the software is
+high, and that we also provide a product that is actually useful to our users.
 
-<!-- ### 1 - The Edge Layer -->
-<!--
-- A diagram of the interactive file-system watching.
-- A diagram of the protocol interactions.
-- This layer handles:
-  + Managing code files.
-  + Managing and watching data on disk.
-  + Communication between the runtime and the protocol client.
-- A description of the strategy to determine when to reload data based on disk
-  changes.
--->
-
-<!-- ### 2 - The Protocol Layer -->
-<!--
-- An analysis of what is required to efficiently parse and respond to protocol
-  messages.
-- A description of the unified protocol that handles explicit control over the
-  runtime's operation, as well as the features required by an IDE-protocol.
-- The IDE-protocol portion should reflect discussions with David (held on email
-  and recorded here: https://github.com/luna/luna/issues/365)
-- A list of the protocol messages with informal descriptions (spec to come
-  later), for example (`expandOptionalArgs`, which expands all defaulted
-  arguments in a call with the defaults as the values).
-- A description of protocol support for performance data collection (potentially
-  integrated with the IDE protocol).
-- A description of protocol support for debugging (integrated with the IDE
-  protocol).
-- A description of how to design the protocol to admit extensions.
-- An examination of how this supports building a rich REPL interface, and how it
-  supports Luna Studio.
-- A description of how files are controlled based on the protocol impl, and how
-  they should be hosted by the Luna process.
-- A description of the interaction between the protocol and the typechecker.
-- A description of how changesets for open files should be handled.
-- A mechanism for handling the notion of active and passive 'layers', as well as
-  on-demand optimisation.
-- An analysis of how the graph layout and metadata is handled. This should not
-  longer be associated with explicit metadata in the source.
-- An analysis of how to handle the necessary callbacks to this layer
-- A design for handling metadata internally while keeping it at the end of the
-  file so as not to interfere with code.
--->
-
-<!-- ### 3 - The Compilation Layer and Type-Checker -->
-<!--
-- A diagram of the compilation process.
-- A description of the interaction between this and Luna-native passes.
-- A list of requirements placed on the Luna Core optimiser to allow for
-  generation of proper GHC core (e.g. generating core for TCO).
-- The code-generator will have to handle explicit strictness annotations.
-- A list of things to encode in GHC Core and things that get erased. Particular
-  focus on our type-system and whether we should (or how we can) encode rows.
-- A description of the compilation strategy: eager + on-demand loading to ensure
-  that as little time as possible is spent waiting.
-- An analysis of how on-demand evaluation for type-checking should work. A
-  restriction on what can be encoded (can only evaluate known-typed exprs).
-- A design for exposing a hierarchical structure for optimisation passes (e.g.
-  `+Pass.Optimisation.TCO`).
-- An analysis of Luna-side optimisations required for the new runtime.
-- An analysis of what type-erasure (if any) we can get away with at the Luna
-  level (in the end GHC will type-erase our core). Any retained type info should
-  be contained in-line in the Luna IR.
-- An analysis of how to avoid explicitly encoding any types in the assumptions
-  of the rest of the runtime (allowing for later addition of dependent and
-  linear types).
-- While Luna is statically typed, the runtime manipulation of types provides
-  less opportunities for usage-analysis based erasure than languages like Idris
-  or Agda. However, it is likely still possible that we can apply a
-  usage-analysis pass to the Luna Core graph. Think about the `Dynamic` type.
-- The analysis of _relevance_ of type information is interesting, and
-  potentially we can learn some lessons from the progress of Dependent Haskell.
-- A list of things that we need to avoid in the generated core (e.g. an
-  excessive number of coercions).
-- An analysis of the potential implementation burden from additions to GHC core.
-- An analysis of techniques that this layer can employ to minimise the runtime
-  start-up time:
-  + **Dynamic Layering:** Precompilation of portions of code not in the active
-    layer could be performed. This would provide increased performance, but
-    there must be significant care taken to ensure that appropriate code is
-    deoptimised when necessary (de-specialisation).
-  - **Optimisation without Tracing:** Code that is compiled in the background
-    can have general optimisations done to it that can then be improved upon
-    using the input from the tracing process later on.
-  - **Static Tracing:** The decisions on the order for background optimisation
-    can be made via static analysis on the Luna IR graph. The code that is used
-    'soonest' from the `main` function should be compiled and optimised first.
-  - **Library Precompilation:** There is some potential to ship our compiler
-    with (platform-specific) precompiled-to-bytecode libraries.
-  - **Parallelism:** The listed startup tasks should happen in parallel as much
-    as possible. The biggest opportunity for this is likely the generation of
-    GHC Core from the Luna IR, but parsing can also potentially be parallelised
-    (but requires discovery to be done properly).
-  - **Tailored Passes:** Based on the kinds of execution that functions are
-    seeing it is possible to select sets of Luna IR and GHC Core optimisation
-    passes to best improve that function's performance.
-- An examination of how we deal with 'wired-in' functionality (e.g. relying on
-  Haskell libraries for the stdlib for now).
-- An examination of how we can use levity polymorphism internally to improve
-  performance.
--->
-
-<!-- ### 4 - The Cache Layer -->
-<!--
-- The actual architecture of the runtime cache:
-  + A description of the keying strategy.
-  + A description of the dependency-tracking strategy.
-  + A description of the eviction strategies in use, especially concerning type
-    alterations and specialisation. It needs to account for changes in (inputs,
-    outputs, type (incl. Monad, Exception), code, and code that it depends on or
-    depends on it, strictness).
-  + The mechanisms by which it allows for hot-reloading (keeping data around
-    where possible)
-  + The LRU mechanism that maintains some N sets of in/out for each code block.
-  + The unit of program functionality that the cache works with: what the level
-    of granularity and whether it should be tunable
-- A diagram of the cache architecture and sharding approach
-- A discussion of how we compensate for the magic of the cache in predictable
-  performance: some portions of the caching should be _optional_ to aid in this.
-- An accounting for how strictness and laziness interact with the cache.
-- A description of how the cache interacts with layer 1, making it IO-aware.
-- An analysis of _what_ to cache, and how it can be tuned for memory (and disk)
-  usage (e.g. caching of infinite structures).
-- An examination of how cache state can potentially be serialised to disk to
-  load projects more quickly (needs to handle external changes to the code and
-  invalidate the loaded cache based on this).
-- This should be informed by Skip, a programming language that caches results
-  where possible.
--->
-
-<!-- ### 5 - The Byte-Code Interpreter -->
-<!--
-- A description of how the GHC bytecode interpreter will be used to evaluate
-  Luna programs.
-- A description of how the JIT'ed code is going to be linked back into the
-  interpreter process and the JIT hot-swap mechanism (e.g. the 'plugins')
-  mechanism.
-- An analysis of the interpreter's role in type-checking, allowing for
-  evaluation of programs to compute types, and then graph reduction by the Luna
-  TC and optimiser. Graph reduction as an optimisation strategy.
-- An analysis of how best to combine strict evaluation with optional laziness.
--->
-
-<!-- ### 6 - JIT -->
-<!--
-- An examination of the kind of optimisations would be performed by this JIT
-  tier (the specifics can come later).
-- A description of the trade-off this JIT layer makes.
-- An analysis of how we can use the W^X mitigation.
-- An examination of the JIT as a solution to non-type-erased code.
-- An analysis of the approximate optimisation pipeline (e.g. Luna IR -> GHC Core
-  -> Core2Core -> STD -> Native Code -> Load into JIT)
-- An examination of the kind of optimisations would be performed by subsequent
-  JTI tiers.
-- A description of why we want a second JIT stage, and the anticipated
-  performance benefits.
-- A discussion of the drawbacks of subsequent JIT stages (primarily compilation
-  cost).
-- An analysis of how the optimisation pipeline would differ across JIT tiers.
-- A description of a mechanism that can be used to track the performance of the
-  JITed code, and deoptimise it if the binary is slower than the bytecode.
--->
-
-<!-- ### 7 - JIT Tier 2 -->
-<!--
-- An examination of the kind of optimisations would be performed by this JIT
-  tier (the specifics can come later).
-- A description of why we want a second JIT stage, and the anticipated
-  performance benefits.
-- A discussion of the drawbacks of this layer (primarily compilation cost).
-- An analysis of how the optimisation pipeline would differ in this tier.
->>>>>>> origin/master
--->
-
-<!-- ## Cross-Cutting Concerns
-There are a number of elements of the design for the new runtime that cannot be
-easily partitioned into the above layers. These are explored below from the
-standpoint of requirements and high-level design, and will be integrated into
-multiple (if not all) of the above layers.
-
--->
-
-<!-- ### 1 - FFI -->
-<!--
-- A diagram of how FFI calls work, and the support libraries needed.
-- A description of how we want FFI to work, and its performance characteristics.
-- A list of what we need from user code to provide enough information to the
-  backend to properly encode the FFI calls.
-- A description of how we will ensure that FFI calls remain as low-overhead as
-  possible.
-- An analysis of what types can be used across the C-FFI boundary. Support for
-  value structs where possible (using compiler layout assumptions).
-- An analysis of the potential to support callbacks to Luna from C, and the
-  support for running Luna programs from C.
-- An analysis of how best to translate Haskell's FFI semantics into Luna.
-- The interpreter itself currently doesn't support `foreign export`, so these
-  will need to be compiled by the first JIT tier separately and then dynamically
-  loaded.
--->
-
-<!-- ### 2 - Tracing Engine -->
-<!--
-- A description of the mechanisms by which execution is traced.
-- A description of _what_ data is tracked and how it is used to make decisions
-  about the JIT. Time and memory.
-- An examination of which portions of this are required for phase one of the
-  implementation.
-- A description of how this functionality can be used for inbuilt performance
-  tracking.
-- An examination of what traces are used for:
-  + Forced inlining of traces to ensure optimisation of the whole trace.
-  + Performance annotation.
-- An exploration of how we trace enough data without slowing down the bytecode
-  interpreter stage too much. Tracing calls will be eliminated in the JIT'ed
-  code.
-- An examination of how performance tracing can be achieved based on the JIT's
-  trace.
-- An exploration of what mechanisms we can apply to get faster warm-up times
-  (e.g. static tracing, on-demand optimisation). Minimisation of the necessary
-  initial tasks:
-  1. Lexing and Parsing of Luna source code, coupled with generation of the Luna
-     IR graph.
-  2. Type-checking of Luna IR and any reduction that may take place (see later).
-  3. Generation of GHC Core from Luna IR.
-  4. Translation of Core to Bytecode for initial interpretation.
-- An examination of how the JIT's automatic optimisation should interact with
-  the on-demand optimisation available to Luna Studio.
-- An analysis of the stages of trace information:
-  1. Profiling information is collected during execution. This is traditionally
-     for loops (or recursive calls), but can be augmented to compute hot paths
-     and other useful information.
-  2. Once a code path is considered 'hot', the JIT records an execution trace of
-     the exact instructions executed, including functions for inlining. This
-     trace is often stored as IR, but Luna can do better by annotating the IR
-     graph.
-  3. The resultant trace consists of one execution path, which can be optimised
-     easily. Guard instructions are inserted as appropriate into the trace to
-     ensure that the assumptions made during collection still hold.
-  4. The trace is optimised, including CSE, dead-code elimination, escape
-     analysis, heavy inlining and constant folding.
-  5. The compiled trace is executed until a guard fails, forcing deoptimisation.
-= A description of how this tracing functionality can be used to provide useful
-  compiler-wide logging.
--->
-
-<!-- ### 3 - Concurrency -->
-<!--
-- An exploration of how the runtime will need to handle concurrency.
-- A description of which GHC primitives and RTS operations we can rely on.
-- A description of how the bytecode interpreter helps achieve concurrency in the
-  new runtime.
-- An analysis of techniques for automatic parallelism that defer to manual
-  parallelism where necessary. How do these interact with stateful and IO-based
-  computation?
-- An analysis of how GHC's concurrency primitives can be used to retain as much
-  concurrency performance as possible.
-- An exploration of techniques to avoid async/await 'colour'.
--->
-
-<!-- ### 4 - Debugging Engine -->
-<!--
-- An examination of how performance tracing can be achieved based on the JIT's
-  trace.
-- A description of what features we want out of the debugger.
-- An examination of what kind of debugging support we can get for free from the
-  bytecode interpreter, and what we would need to build on top.
--->
-
-<!-- !!!! DETAILED DESIGN SECTIONS BELOW !!!! -->
-
-<!-- # The Edge Layer -->
-
-<!-- # The Protocol Layer -->
-
-<!-- # The Compilation Layer and Type-Checker -->
-
-<!-- # The Cache Layer -->
-
-<!-- # The Byte-Code Interpreter -->
-
-<!-- # JIT -->
-
-<!-- # FFI Support -->
-
-<!-- # Tracing Engine -->
-
-<!-- # Concurrency -->
-
-<!-- # Debugging Engine -->
-
-<!-- # Language Embedding
-It is an eventual goal for Luna, and hence this runtime design, to be able to
-embed other languages (e.g. Python and R) for seamless interoperability.
-
--->
-
-<!--
-- An analysis of whether this is possible with the GHC-based runtime without
-  significant overhead.
-- An analysis of how this might be accomplished.
-- ESA Plugins as Optimiser Plugins
-- No-overhead with multiple language nodes connected together.
--->
-
-<!-- # Benchmarking the Runtime -->
-<!--
-- A description of how the runtime will be benchmarked.
-- A description of how regressions will be caught.
-- An analysis of any external infrastructure to allow for automated regression
-  discovery.
--->
-
-<!-- # AOT Compilation
-While Luna's runtime is not intended for the production of AOT-compiled binaries
-for Luna programs, it just so happens that much of the work on the runtime is
-also applicable to this scenario.
-
--->
-
-<!--
-- An analysis of what portions of the runtime work can be used to allow AOT
-  compilation.
-- A brief elucidation of the _additional_ functionality needed to enable the
-  AOT compilation workflow for Luna.
--->
-
-<!-- # Acceptance Criteria
-This new runtime for Luna is a gargantuan effort, but that means that we need to
-be all the more rigorous when it comes to defining what 'success' means for this
-addition to the project.
-
--->
-
-<!--
-- The scope of the whole project.
-- What is the scope of the first deliverable?
-- Go into detail about the acceptance criteria for the new runtime, particularly
-  around functionality, start-up time, performance, and future-proofing.
--->
-
-<!-- # Unresolved Questions
-This section should address any unresolved questions you have with the RFC at
-the current time. Some examples include:
-
-- Is there potential to upstream portions of the JIT into GHC itself? This could
-  bring a whole new execution paradigm to the Haskell ecosystem if so.
-- What kind of maintenance burden can we expect when changing to new GHC
-  versions? The GHC API tends to change fairly often, so we have to account for
-  that in the design.
-- Is it worth creating our own wrapper around the necessary parts of the GHC API
-  to allow the change surface on version bumps to be minimised? Some use of
-  type-level programming could likely help with correctness around strictness
-  and laziness, as well as boxed and unboxed types.
-- What are the security implications for the language while building a JIT
-  compiler?
-- What is the exact boundary of stage 1. It looks like the JIT tier may be
-  needed after all (for FFI). It may, in the end, actually be simpler to add
-  this to GHC and use a fork until it hits stable.
-
--->
-
-<!-- # Glossary
-This section is designed to define terms that may be unfamiliar to some users:
-
-- **ABI** - Application Binary Interface: A well-specified and defined interface
-  between multiple binary program components (as opposed to an API, which
-  operates at the level of program code).
-- **AOT** - Ahead of Time: The opposite of JIT compilation, where code is
-  compiled to binaries ahead of being executed.
-- **FFI** - Foreign Function Interface: A mechanism by which functions written
-  in another language can be called, usually operating via the C ABI.
-- **IR** - Intermediate Representation:
-- **JIT** - Just in Time: Where compilation to binary or bytecode takes place as
-  needed for the execution of the program.
-- **RTS** - Runtime System: A program that provides the underlying primitives
-  and functionality for a programming language to execute. When used in this
-  document, it exclusively refers to the GHC Runtime System.
-
--->
-
-<!-- END OF WIP PROPOSAL -->
+- **Benchmarking:** A comprehensive micro and macro benchmark suite that tests
+  all the components of the runtime. This should be accompanied by a regression
+  suite to catch performance regressions.
+- **Execution Tests:** A test suite that checks that executing Enso programs
+  results in the correct outputs.
+- **Typechecker Tests:** A test suite that ensures that changes made to the
+  typechecker do not result in acceptance of ill-typed programs, or rejection of
+  well-typed programs.
+- **Caching Tests:** A test suite that ensures that data is evicted from the
+  cache when it should be, and retained when it should be.

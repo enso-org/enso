@@ -1,6 +1,6 @@
 # GraalVM
 The following are notes based on questions that we have about using GraalVM to
-provide a backend for Luna.
+provide a backend for Enso.
 
 - C-API is a potentially useful tool for combining the Java/Truffle side and the
   Haskell side.
@@ -14,7 +14,7 @@ provide a backend for Luna.
   image, allowing for standalone executables. Serialisation of heap into the
   image.
 - JavaScript and LLVM are possible backends for SubstrateVM, so we can compile
-  Luna code indirectly to JS. The LLVM backend is on the roadmap, while the
+  Enso code indirectly to JS. The LLVM backend is on the roadmap, while the
   former is possible.
 - No explicit control of memory layout for the hosted language, instead with a
   high level (JS-style) API for working with objects. There is no
@@ -42,7 +42,7 @@ provide a backend for Luna.
   support for an API that allows this control. There is currently only one tier
   of compilation, but it is _possible_ to write additional JIT phases.
 - There is the polyglot REPL, but it is definitely possible to build a proper
-  polyglot repl based around Luna. Take a look at `polyglot - shell`.
+  polyglot repl based around Enso. Take a look at `polyglot - shell`.
 
 Sit down with Chris in London with some concrete code and examples.
 
@@ -70,7 +70,7 @@ Roadmap:
    primary interchange formats (JSON and YAML). 
 5. Design the IDE protocol and implement the necessary introspection 
    functionality. The messages should only be implemented enough to support the
-   Luna Studio use-cases.
+   Enso Studio use-cases.
 6. Implement the caching in earnest.
 7. Implement the typechecker and rework caching as needed. 
 8. Implement the necessary sets of optimisation passes in GraalVM.
