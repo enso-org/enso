@@ -99,6 +99,12 @@ public AST ast;
     popState();
   }
 
+  private void blockBegin() {
+    System.out.println("block begin!");
+    pushAST();
+    pushState(BLOCK);
+  }
+
 
 
 
@@ -146,21 +152,25 @@ IDENT = {VAR} | {CONS}
 // States //
 ////////////
 
+%state BLOCK
 %state GROUPED
 
 
 %%
 
-{IDENT}       {appendExprSegment(ast());}
-{GROUP_BEGIN} {groupBegin();}
-
+{IDENT}             {appendExprSegment(ast());}
+{GROUP_BEGIN}       {groupBegin();}
+{EOL}+{BLOCK_BEGIN} {blockBegin();}
 
 <GROUPED> {
   {GROUP_END} {groupEnd(true);}
   [^]         {rewind(); groupEnd(false);}
 }
 
+<BLOCK> {
+  {EOL}+ {System.out.println("push line!");}
+}
 
 {EOF} {}
 
-// [^] {System.out.println("UNRECOGNIZED"); System.out.println(yytext());}
+[^] {System.out.println("UNRECOGNIZED"); System.out.println(yytext());}

@@ -17,7 +17,7 @@ object Main extends App {
 
   def pprint(s: String) {
     print("  " * indent)
-    val (l, r2) = s.span((x) => (x != '(' && x != ')'))
+    val (l, r2) = s.span(x => x != '(' && x != ')')
     print(l)
     if (r2 == "") {
       println
@@ -39,8 +39,7 @@ object Main extends App {
   }
 
 //  val str = "a (b"
-  val str =
-    """|t   (a b)""".stripMargin
+  val str = "a\n b\n c" // .stripMargin
   println(str)
   val reader = new StringReader(str)
   val ss     = new Lexer(reader)
