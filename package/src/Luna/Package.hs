@@ -31,8 +31,7 @@ import Path                    (Path, Abs, Rel, File, Dir, (</>), (<.>))
 -- === Instances === --
 -----------------------
 
--- TODO JCM : put instances in the right place
--- Do we need these instances ? Maybe not...
+-- TODO [JCM] : Do we need these instances ? Maybe not... Please decide...
 instance Convertible (Path a b) Name.Name where convert = convert . Path.toFilePath ; {-# INLINE convert    #-}
 instance Convertible (Path a b) Text where convert = convert . Path.toFilePath ; {-# INLINE convert    #-}
 

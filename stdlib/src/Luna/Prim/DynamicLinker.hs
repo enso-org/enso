@@ -171,7 +171,7 @@ dynamicLibraryExtensions = ["", ".dll"]
 nativeLibraryProjectDir :: Path Rel Dir
 nativeLibraryProjectDir = $(mkRelDir "windows")
 
--- TODO JCM: Did my best but I am not running Windows
+-- TODO [JCM]: Did my best but I am not running Windows
 -- based on https://msdn.microsoft.com/en-us/library/windows/desktop/ms682586(v=vs.85).aspx
 nativeSearchPaths :: [Path Abs Dir]
 nativeSearchPaths = unsafePerformIO $ do
@@ -194,7 +194,7 @@ nativeLoadFromCache _ = return Nothing
 
 #else
 
--- TODO JCM : proposal : an invalid path throws an exception
+-- TODO [JCM] : proposal : an invalid path throws an exception
 lookupSearchPath :: String -> IO [Path Abs Dir]
 lookupSearchPath env = do
     val <- Env.lookupEnv env
