@@ -23,7 +23,7 @@ import Control.Exception                  (IOException)
 import Luna.Package.Configuration.License (License)
 import System.IO                          (hPutStrLn, stderr)
 
-import Path (Path, Abs, Rel, Dir, (</>))
+import Path (Path, Abs, Rel, Dir, (</>), (-<.>))
 
 
 
@@ -86,7 +86,7 @@ generateConfigDir pkgAbsPath mLicense globalCfg = do
 
     Path.createDir configPath
 
-    packageRelFile <- (Path.coerceToFile pkgPath) Path.-<.> Name.packageExt
+    packageRelFile <- (Path.coerceToFile pkgPath) -<.> Name.packageExt
     let packageAbsFile = configPath </> packageRelFile
     IO.appendFile (Path.fromAbsFile packageAbsFile) ""
 

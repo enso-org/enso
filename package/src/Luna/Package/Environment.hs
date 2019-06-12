@@ -13,8 +13,6 @@ import Luna.IR (Name)
 packageEnvVarPrefix :: String
 packageEnvVarPrefix = "LUNA_LIBRARY_"
 
--- TODO JCM : check where these functions are used
-
 -- | This function translates a name like MyLibrary to an underscored
 --   environment variable name: LUNA_LIBRARY_MY_LIBRARY.
 packageNameToEnvVarName :: Text -> Text

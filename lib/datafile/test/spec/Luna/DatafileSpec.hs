@@ -4,6 +4,7 @@ import Prologue
 
 import qualified Luna.Datafile          as Datafile
 import qualified Path                   as Path
+import qualified Path.IO                as Path
 import qualified System.Directory       as Directory
 import qualified System.IO.Temp         as Temp
 
@@ -71,29 +72,25 @@ testRepoHeadDiscovery ty = Temp.withSystemTempDirectory "LunaTemp" $ \fp -> do
 data EnvValType = ValidEnvVal | InvalidEnvVal deriving (Eq, Show)
 
 testEnvVal :: EnvValType -> Expectation
-testEnvVal ty = Temp.withSystemTempDirectory "LunaTemp" $ \fp -> do
+testEnvVal ty = Path.withSystemTempDir "LunaTemp" $ \envValContentsPath -> do
     let envValName         = "SOME_ENV_VAL"
-        envValContents     = fp
 
-    envValContentsPath <- Path.parseAbsDir fp
-    extraDirPath       <- Path.parseRelDir "Foo"
+    let extraDirPath   = $(Path.mkRelDir "Foo")
 
-    let fullPath      = envValContentsPath </> extraDirPath
+    let fullPath      = envValContentsPath Path.</> extraDirPath
         verifier path = do
-            Directory.doesDirectoryExist $ Path.fromAbsDir
-                $ path </> extraDirPath
+            Path.doesDirExist $ path Path.</> extraDirPath
 
     case ty of
         ValidEnvVal -> do
-            liftIO . Directory.createDirectoryIfMissing True $ Path.fromAbsDir
-                fullPath
+            Path.createDirIfMissing True fullPath
 
-            result <- Datafile.dataPathFromEnvVar envValName envValContents
+            result <- Datafile.dataPathFromEnvVar envValName envValContentsPath
                 verifier
 
             result `shouldBe` envValContentsPath
 
-        InvalidEnvVal -> Datafile.dataPathFromEnvVar envValName envValContents
+        InvalidEnvVal -> Datafile.dataPathFromEnvVar envValName envValContentsPath
             verifier `shouldThrow` envVarSetButInvalid
 
 

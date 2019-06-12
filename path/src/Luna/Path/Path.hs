@@ -17,15 +17,14 @@ import qualified Path.Internal as IPath
 --
 -- The following properties hold:
 --
--- @dirname $(mkRelDir ".") == $(mkRelDir ".")@
+-- @dirnameNoSlash $(mkRelDir ".") == $(mkRelDir ".")@
 --
--- @dirname (p <\> a) == dirname a@
+-- @dirnameNoSlash (p <\> a) == dirnameNoSlash a@
 --
 dirnameNoSlash :: Path b Dir -> Path Rel Dir
 dirnameNoSlash (IPath.Path "") = IPath.Path ""
 dirnameNoSlash (IPath.Path l) | FilePath.isDrive l = IPath.Path ""
 dirnameNoSlash (IPath.Path l) = IPath.Path (last (FilePath.splitDirectories l))
-
 
 dropExtensions :: Path a b -> Path a b
 dropExtensions = IPath.Path . FilePath.dropExtensions . toFilePath
@@ -54,9 +53,3 @@ unsafeParseRelDir = unsafeFromJust . parseRelDir
 unsafeParseAbsDir :: FilePath -> Path Abs Dir
 unsafeParseAbsDir = unsafeFromJust . parseAbsDir
 
--- TODO JCM : use Convertible class here?
-relDirToFile ::  (MonadThrow m) => Path Rel Dir -> m (Path Rel File)
-relDirToFile dir = parseRelFile (fromRelDir dir)
-
-absDirToFile ::  (MonadThrow m) => Path Abs Dir -> m (Path Abs File)
-absDirToFile dir = parseAbsFile (fromAbsDir dir)

@@ -25,7 +25,7 @@ import Control.Monad.Exception (MonadExceptions, MonadException)
 import Data.Char               (isUpper)
 import Data.Bimap              (Bimap)
 import Data.Map                (Map)
-import Path                    (Path, Abs, Rel, File, Dir, (</>))
+import Path                    (Path, Abs, Rel, File, Dir, (</>), (<.>))
 
 -----------------------
 -- === Instances === --
@@ -317,12 +317,12 @@ rename srcPath destPath = do
 
     -- Rename the `*.lunaproject` file
     origProjFile <- Exception.rethrowFromIO @Path.PathException $ do
-        file <- Path.relDirToFile originalName
-        (file Path.<.> Name.packageExt)
+        let file = Path.coerceToFile originalName
+        (file <.> Name.packageExt)
     newName      <- name destPath
     newProjFile  <- Exception.rethrowFromIO @Path.PathException $ do
-        file <- Path.relDirToFile newName
-        file Path.<.> Name.packageExt
+        let file = Path.coerceToFile newName
+        file <.> Name.packageExt
 
     let origProjPath = destPath </> Name.configDirectory </> origProjFile
         newProjPath  = destPath </> Name.configDirectory </> newProjFile
