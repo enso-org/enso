@@ -8,6 +8,7 @@ trigger:
       - .github/*
       - doc/*
       - .gitignore
+      - .scalafmt.conf
       - CODE_OF_CONDUCT.md
       - CONTRIBUTING.md
       - LICENSE
