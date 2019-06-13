@@ -19,7 +19,6 @@ import qualified Path                                     as Path
 import qualified Path.IO                                  as Path
 import qualified System.FilePath.Find                     as Find
 
-
 import Control.Arrow           ((&&&))
 import Control.Monad           (filterM)
 import Control.Monad.Exception (MonadExceptions, MonadException)
@@ -221,7 +220,7 @@ includedLibs stdlibPath = do
     projectNames <- do
         (contents, _) <- Path.listDirRel lunaroot
         dirs          <- filterM (\a -> Path.doesDirExist $ lunaroot </> a)
-            contents
+                contents
         let projects = filter
                 (Path.liftPredicate (\a -> (isUpper <$> head a) == Just True)) dirs
         pure projects
