@@ -135,7 +135,7 @@ getLunaPackagesFromDir dir = do
     if not hasConfigDir then tryConvertPackageFormat dir else do
         (_, files) <- Path.listDirRel configDirPath
         pure . fmap (configDirPath </>) $ filter
-                    (\file -> Path.fileExtension file == Name.packageExtWithDot) files
+            (\file -> Path.fileExtension file == Name.packageExtWithDot) files
 
 tryConvertPackageFormat :: (MonadIO m)
     => Path Abs Dir -> m [Path Abs File]
