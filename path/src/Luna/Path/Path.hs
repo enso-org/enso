@@ -20,7 +20,6 @@ import qualified Path.Internal as IPath
 -- @dirnameNoSlash $(mkRelDir ".") == $(mkRelDir ".")@
 --
 -- @dirnameNoSlash (p <\> a) == dirnameNoSlash a@
---
 dirnameNoSlash :: Path b Dir -> Path Rel Dir
 dirnameNoSlash (IPath.Path "") = IPath.Path ""
 dirnameNoSlash (IPath.Path l) | FilePath.isDrive l = IPath.Path ""
