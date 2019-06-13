@@ -222,7 +222,7 @@ includedLibs stdlibPath = do
     lunaroot     <- Path.canonicalizePath stdlibPath
     projectNames <- do
         (contents, _) <- Path.listDirRel lunaroot
-        dirs          <- filterM
+        dirs          <- filterM (\a -> Path.doesDirExist $ lunaroot </> a)
             (\a -> Path.doesDirExist $ lunaroot </> a)
             contents
         let projects = filter
