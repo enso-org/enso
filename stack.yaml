@@ -74,7 +74,3 @@ packages:
     - lib/typelevel
     - lib/vector-text
     - lib/yaml-utils
-
-extra-deps: [
-    path-io-1.4.2
-]

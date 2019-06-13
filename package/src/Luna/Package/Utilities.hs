@@ -17,4 +17,3 @@ partitionM f (x:xs) = do
     res <- f x
     (as, bs) <- partitionM f xs
     pure ([x | res] <> as, [x | not res] <> bs)
-

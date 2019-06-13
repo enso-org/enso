@@ -5,11 +5,11 @@ import Prologue
 import qualified Luna.Package.Structure.Name   as Name
 import qualified Luna.Syntax.Text.Lexer.Runner as Lexer
 import qualified Luna.Syntax.Text.Lexer.Symbol as Symbol
-import qualified Luna.Path                     as Path
+import qualified Luna.Path.Path                as Path
 import qualified Path                          as Path
 import qualified Path.IO                       as Path
 
-import Path      (Path, Abs, Rel, Dir, (</>))
+import Path (Path, Abs, Rel, Dir, (</>))
 
 import Luna.Syntax.Text.Lexer.Token as Token
 

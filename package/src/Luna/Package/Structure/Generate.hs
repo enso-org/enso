@@ -11,7 +11,7 @@ import qualified Control.Exception                        as Exception
 import qualified Luna.Package.Configuration.Global        as Global
 import qualified Luna.Package.Structure.Generate.Internal as Internal
 import qualified Luna.Package.Structure.Utilities         as Utilities
-import qualified Luna.Path                                as Path
+import qualified Luna.Path.Path                           as Path
 import qualified Path                                     as Path
 import qualified Path.IO                                  as Path
 

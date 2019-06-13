@@ -12,7 +12,7 @@ import qualified Luna.Package.Configuration.License      as License
 import qualified Luna.Package.Configuration.License.Data as License
 import qualified Luna.Package.Configuration.Local        as Local
 import qualified Luna.Package.Structure.Name             as Name
-import qualified Luna.Path                               as Path
+import qualified Luna.Path.Path                          as Path
 import qualified Path                                    as Path
 import qualified Path.IO                                 as Path
 import qualified System.IO                               as IO

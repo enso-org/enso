@@ -176,7 +176,8 @@ locate :: forall a m . ( MonadDatafile m
     -> m (Path Abs Dir) -- ^ The path to the requested data.
 locate mEnvVar verifier = case mEnvVar of
         Just envVar -> liftIO $ Environment.lookupEnv envVar  >>= \case
-            Just val ->  Path.parseAbsDir val >>= \p -> dataPathFromEnvVar envVar p verifier
+            Just val ->  Path.parseAbsDir val
+                >>= \envPath -> dataPathFromEnvVar envVar envPath verifier
             Nothing  -> getDatafileDefaultPath @a verifier
         Nothing -> getDatafileDefaultPath @a verifier
 
@@ -190,8 +191,8 @@ dataPathFromEnvVar :: forall m . (MonadDatafile m)
 dataPathFromEnvVar var pathVal verify = do
     validPath <- liftIO $ verify pathVal
 
-    if validPath then pure pathVal else
-        Exception.throw $ EnvVarSetButInvalid var (Path.fromAbsDir pathVal) Nothing
+    if validPath then pure pathVal else Exception.throw
+        $ EnvVarSetButInvalid var (Path.fromAbsDir pathVal) Nothing
 
 getDatafileDefaultPath :: forall a m . (MonadDatafile m, DatafileData a)
     => Verifier -> m (Path Abs Dir)

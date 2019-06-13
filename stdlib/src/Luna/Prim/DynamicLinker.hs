@@ -15,7 +15,7 @@ import qualified Data.List            as List
 import qualified Data.Text            as Text
 import qualified Luna.Datafile.Stdlib as Stdlib
 import qualified Luna.Package         as Package
-import qualified Luna.Path            as Path
+import qualified Luna.Path.Path       as Path
 import qualified Safe                 as Safe
 import qualified Path                 as Path
 import qualified Path.IO              as Path
@@ -93,7 +93,8 @@ tryLoad :: Path Abs File -> IO (Either String Handle)
 tryLoad path = do
     loadRes <- tryAny $ nativeLoadLibrary path
     let errorDetails exc =
-            "loading \"" <> (Path.fromAbsFile path) <> "\" failed with: " <> displayException exc
+            "loading \"" <> (Path.fromAbsFile path) <> "\" failed with: "
+            <> displayException exc
     pure $ EitherR.fmapL errorDetails loadRes
 
 parseError :: [String] -> [String]

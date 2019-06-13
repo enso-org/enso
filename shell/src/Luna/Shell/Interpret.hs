@@ -18,7 +18,7 @@ import qualified Luna.Pass.Sourcing.Data.Unit        as Unit
 import qualified Luna.Pass.Sourcing.UnitLoader       as ModLoader
 import qualified Luna.Pass.Sourcing.UnitMapper       as UnitMap
 import qualified Luna.Pass.Typing.Data.Typed         as Typed
-import qualified Luna.Path                           as Path    (dropExtensions)
+import qualified Luna.Path.Path                      as Path    (dropExtensions)
 import qualified Luna.Runtime                        as Runtime
 import qualified Luna.Std                            as Std
 import qualified OCI.Data.Name                       as Name

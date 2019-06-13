@@ -75,8 +75,6 @@ documentUnit name unit = UnitDocumentation name Nothing classDocs funDocs where
 defaultOutFileName :: FilePath
 defaultOutFileName = "documentation.json"
 
-
-
 generateDocumentation :: FilePath -> FilePath -> IO ()
 generateDocumentation outFile' modPath' = do
     outFile      <- Path.parseRelFile $ if null outFile' then defaultOutFileName else outFile'
@@ -99,5 +97,3 @@ generateDocumentation outFile' modPath' = do
                 <$> units
             projectDoc = ProjectDocumentation projectName Nothing unitDocs
         liftIO $ Aeson.encodeFile (Path.toFilePath outFile) projectDoc
-
-

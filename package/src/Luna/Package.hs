@@ -13,11 +13,12 @@ import qualified Luna.Package.Configuration.Local         as Local
 import qualified Luna.Package.Structure.Generate.Internal as Generate
 import qualified Luna.Package.Structure.Name              as Name
 import qualified Luna.Package.Structure.Utilities         as Structure
-import qualified Luna.Path                                as Path
+import qualified Luna.Path.Path                           as Path
 import qualified OCI.Data.Name                            as Name
 import qualified Path                                     as Path
 import qualified Path.IO                                  as Path
 import qualified System.FilePath.Find                     as Find
+
 
 import Control.Arrow           ((&&&))
 import Control.Monad           (filterM)
@@ -26,14 +27,7 @@ import Data.Char               (isUpper)
 import Data.Bimap              (Bimap)
 import Data.Map                (Map)
 import Path                    (Path, Abs, Rel, File, Dir, (</>), (<.>))
-
------------------------
--- === Instances === --
------------------------
-
--- TODO [JCM] : Do we need these instances ? Maybe not... Please decide...
-instance Convertible (Path a b) Name.Name where convert = convert . Path.toFilePath ; {-# INLINE convert    #-}
-instance Convertible (Path a b) Text where convert = convert . Path.toFilePath ; {-# INLINE convert    #-}
+import Luna.Package.Orphans    ()
 
 
 --------------------------------------
@@ -81,13 +75,16 @@ data RenameException
 instance Exception RenameException where
     displayException (InvalidName text) = convert text
         <> " is not a valid package name."
-    displayException (InaccessiblePath path) = Path.fromAbsDir path <> " is inaccessible."
-    displayException (InaccessibleFile file) = Path.fromAbsFile file <> " is inaccessible."
-    displayException (DestinationExists path) = Path.fromAbsDir path <> " already exists."
-    displayException (CannotDelete path ex) = "Cannot delete" <> Path.fromAbsDir path
-        <> ": " <> displayException ex
-    displayException (CannotRenameFile file ex) = "Cannot rename " <> Path.fromAbsFile file
-        <> ": " <> displayException ex
+    displayException (InaccessiblePath path) = Path.fromAbsDir path
+        <> " is inaccessible."
+    displayException (InaccessibleFile file) = Path.fromAbsFile file
+        <> " is inaccessible."
+    displayException (DestinationExists path) = Path.fromAbsDir path
+        <> " already exists."
+    displayException (CannotDelete path ex) = "Cannot delete"
+        <> Path.fromAbsDir path <> ": " <> displayException ex
+    displayException (CannotRenameFile file ex) = "Cannot rename "
+        <> Path.fromAbsFile file <> ": " <> displayException ex
 
 
 
@@ -135,7 +132,7 @@ getLunaPackagesFromDir dir = do
     if not hasConfigDir then tryConvertPackageFormat dir else do
         (_, files) <- Path.listDirRel configDirPath
         pure . fmap (configDirPath </>) $ filter
-                    (\file -> Path.fileExtension file == Name.packageExtWithDot) files
+            (\file -> Path.fileExtension file == Name.packageExtWithDot) files
 
 tryConvertPackageFormat :: (MonadIO m)
     => Path Abs Dir -> m [Path Abs File]
@@ -171,7 +168,7 @@ findPackageRoot dir = getLunaPackagesFromDir dir >>= \case
     [] -> let parentDir = Path.parent dir in
         if parentDir == dir then pure Nothing else findPackageRoot parentDir
     [_] -> pure $ Just dir
-    _             -> pure Nothing
+    _   -> pure Nothing
 
 getPackageName :: Path Abs Dir -> Name.Name
 getPackageName = convert . Path.dirnameNoSlash
@@ -180,7 +177,8 @@ mkQualName :: Name.Name -> Path Rel File -> Name.Qualified
 mkQualName pkgName file = qualName where
     qualName        = convert $ concat nameParts
     nameParts       = [ [pkgName], convert <$> path, [convert moduleName] ]
-    path            = filter (Path.liftPredicate (/= ".")) $ Path.splitDirectories dir
+    path            = filter (Path.liftPredicate (/= "."))
+        $ Path.splitDirectories dir
     moduleName      = Path.dropExtensions filename
     (dir, filename) = (Path.parent file, Path.filename file)
 
@@ -222,8 +220,7 @@ includedLibs stdlibPath = do
     lunaroot     <- Path.canonicalizePath stdlibPath
     projectNames <- do
         (contents, _) <- Path.listDirRel lunaroot
-        dirs          <- filterM
-            (\a -> Path.doesDirExist $ lunaroot </> a)
+        dirs          <- filterM (\a -> Path.doesDirExist $ lunaroot </> a)
             contents
         let projects = filter
                 (Path.liftPredicate (\a -> (isUpper <$> head a) == Just True)) dirs
@@ -353,7 +350,8 @@ rename srcPath destPath = do
 
     pure (destPath, Nothing)
 
-recursiveListDir :: (MonadIO m) => Path Abs Dir -> m ([Path Abs Dir], [Path Abs File])
+recursiveListDir :: (MonadIO m)
+    => Path Abs Dir -> m ([Path Abs Dir], [Path Abs File])
 recursiveListDir dir = do
     (dirs, files) <- Path.listDir dir
     (recDirs, recFiles) <- fmap unzip $ mapM recursiveListDir dirs

@@ -183,9 +183,11 @@ run (RunOpts target') = liftIO $ catch compute recover where
             hPutStrLn stdout $ "Using standard library at " <> show stdlibPath
 
             if fileExists then do
-                if Path.fileExtension canonicalFilePath /= Package.lunaFileExt then
-                    hPutStrLn stderr $ (Path.fromAbsFile canonicalFilePath) <> " is not a Luna file."
-                else Interpret.file canonicalFilePath stdlibPath
+                if Path.fileExtension canonicalFilePath /= Package.lunaFileExt
+                    then hPutStrLn stderr
+                        $ (Path.fromAbsFile canonicalFilePath)
+                        <> " is not a Luna file."
+                    else Interpret.file canonicalFilePath stdlibPath
             else if projectExists then runPackage canonicalDirPath stdlibPath
             else hPutStrLn stderr $ target' <> " not found."
         else do
@@ -362,9 +364,10 @@ acquireGlobalConfig = liftIO $ Exception.catch acquire recovery where
         configFileExists <- Path.doesFileExist lunaConfigFile
 
         unless configFileExists $ do
+            let fpPath = Path.fromAbsFile lunaConfigFile
             putStrLn "Generating Global Config"
-            putStrLn $ "Please fill in your name in " <> (Path.fromAbsFile lunaConfigFile)
-            putStrLn $ "Please fill in your email in " <> (Path.fromAbsFile lunaConfigFile)
+            putStrLn $ "Please fill in your name in "  <> fpPath
+            putStrLn $ "Please fill in your email in " <> fpPath
             let defaultConfig = def @Global.Config
             Yaml.encodeFile (Path.fromAbsFile lunaConfigFile) defaultConfig
 
