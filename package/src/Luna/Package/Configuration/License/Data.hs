@@ -11,6 +11,9 @@ import qualified Path.IO                            as Path
 
 import Control.Monad.Exception (MonadException)
 import Data.Map                (Map)
+==== BASE ====
+import System.FilePath         ((</>))
+==== BASE ====
 
 import Path                    (Path, Rel, File, (</>), mkRelFile)
 
