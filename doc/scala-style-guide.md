@@ -11,9 +11,6 @@ programmer burden; there is usually only _one way_ to lay out code correctly.
 
 - [Code Formatting](#code-formatting)
   - [Naming](#naming)
-  - [Imports](#imports)
-  - [Visibility](#visibility)
-  - [Section Headers](#section-headers)
 - [Build Tooling](#build-tooling)
 - [Commenting](#commenting)
   - [Documentation Comments](#documentation-comments)
@@ -40,8 +37,9 @@ should be used for all new Scala projects.
 All files must be formatted using `scalafmt` before commit, and this should be
 set up as either a precommit hook, or using the integration in IntelliJ. If you
 use the IntelliJ integration, please note that you need only have the official
-[Scala Plugin](https://www.jetbrains.com/help/idea/discover-intellij-idea-for-scala.html) installed, and be using IntelliJ 2019.1
-or later. You should _not_ use the independent Scalafmt plugin.
+[Scala Plugin](https://www.jetbrains.com/help/idea/discover-intellij-idea-for-scala.html) 
+installed, and be using IntelliJ 2019.1 or later. You should _not_ use the 
+independent Scalafmt plugin.
 
 ### Naming
 Luna has some fairly simple general naming conventions, though the sections
@@ -55,59 +53,6 @@ below may provide more rules for use in specific cases.
   there is no other appropriate name, and should _never_ be used to refer to
   temporary data in a function.
 - Names should be descriptive, even if this makes them longer.
-
-### Imports
-Organisation of imports is simple, and should be ordered alphabetically within
-each of the following sections. Each section should be separated from the one
-above using a blank line.
-
-1. **Standard Library:** Any imports from the standard library.
-2. **Java Standard Library:** Any imports from the Java standard library.
-3. **Additional Dependencies:** Imports from project dependencies.
-
-In general, we prefer not to import unqualified into the package scope, as this
-just leads to additional clutter.
-
-### Visibility
-There is nothing more frustrating than needing to use a function that hasn't
-been exported from a package. To this end, we strongly discourage making things
-private or protected in our codebase.
-
-If, however, you want to indicate that something is for internal use, you use
-one of the following two methods.
-
-1. **Nested Types:** Declaration of inner types called `Internal`.
-2. **Internal Packages:**  For a package named `com.luna-lang.package` that
-   contains `MyType`, we can define internal functions and data-types in a
-   package named `com.luna-lang.package.mytype`. This means that these functions
-   can be imported by clients of the API if they need to, but that we provide no
-   guarantees about API stability when using those functions.
-
-### Section Headers
-In order to visually break up the code for easier 'visual grepping', we organise
-it using section headers. These allow us to easily find the section that we are
-looking for, even in a large file.
-
-For each Scala type, within the body of the type, we organise functions as
-follows:
-
-```hs
--- === Definition === --
-{- The definition of the type goes here -}
-
-
--- === API === --
-{- The API of the type goes here -}
-
-
--- === Instances === --
-{- Any instances for the type go here -}
-
-```
-
-The section header must be preceded by three blank lines, while the subsection
-headers (except the first) should be preceded by two blank lines. Any of these
-subsections may be omitted if they don't exist.
 
 ## Build Tooling
 All Scala projects in the Luna organisation should manage their dependencies and
