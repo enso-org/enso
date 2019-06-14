@@ -4,6 +4,7 @@ name:       luna-path
 version:    "0.1"
 author:     Jean-Christophe Mincke <jeanchristophe.mincke@gmail.com>
 maintainer:
+    - Luna Team <contact@luna-lang.org>
     - Jean-Christophe Mincke <jeanchristophe.mincke@gmail.com>
 
 library:
