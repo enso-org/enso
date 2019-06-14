@@ -5,7 +5,9 @@ import Prologue
 import qualified OCI.Data.Name as Name
 import qualified Path          as Path
 
-import Path            (Path, Rel, Dir, File)
+import Path (Path, Rel, Dir, File)
+
+
 
 -------------------------------------
 -- === Package Component Names === --

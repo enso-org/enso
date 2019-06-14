@@ -20,14 +20,17 @@ import Path      (Path, Abs, Dir)
 import Luna.Package.Configuration.License       (License)
 import Luna.Package.Structure.Generate.Internal (recovery)
 
+
+
 --------------------------------
 -- === Project Generation === --
 --------------------------------
 
 -- === API === --
 
-genPackageStructure :: MonadIO m => Path a Dir -> Maybe License -> Global.Config
-                    -> m (Either GeneratorError (Path Abs Dir))
+genPackageStructure :: MonadIO m
+    => Path a Dir -> Maybe License -> Global.Config
+    -> m (Either GeneratorError (Path Abs Dir))
 genPackageStructure path mLicense gblConf =
     if Path.liftPredicate (\name -> length name < 1) path then
         pure . Left . InvalidPackageName $ convert (Path.toFilePath path)
@@ -40,7 +43,8 @@ genPackageStructure path mLicense gblConf =
         insidePkg     <- Utilities.findParentPackageIfInside canonicalPath
 
         case (Utilities.isValidPkgName pkgName , insidePkg) of
-            (True, Nothing) -> liftIO $ Exception.catch create (recovery canonicalPath)
+            (True, Nothing) -> liftIO
+                $ Exception.catch create (recovery canonicalPath)
             (_, Just pkg) -> pure . Left . InvalidPackageLocation $ pkg
             _ ->  pure . Left . InvalidPackageName
                 $ convert (Path.fromAbsDir canonicalPath)

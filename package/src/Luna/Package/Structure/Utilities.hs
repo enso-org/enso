@@ -13,6 +13,8 @@ import Path (Path, Abs, Rel, Dir, (</>))
 
 import Luna.Syntax.Text.Lexer.Token as Token
 
+
+
 ------------------------------------------
 -- === Project Generation Utilities === --
 ------------------------------------------
@@ -20,11 +22,14 @@ import Luna.Syntax.Text.Lexer.Token as Token
 -- === API === --
 
 isValidPkgName :: Path Rel Dir -> Bool
-isValidPkgName path = length validTokens == 1
-    where validTokens = catMaybes $ Symbol.matchCons . view Token.element
-                                <$> Lexer.evalDefLexer (convert $ Path.fromRelDir path)
+isValidPkgName path =
+    length validTokens == 1
+    where
+    validTokens = catMaybes $ Symbol.matchCons . view Token.element
+        <$> Lexer.evalDefLexer (convert $ Path.fromRelDir path)
 
-findParentPackageIfInside :: MonadIO m => Path Abs Dir -> m (Maybe (Path Abs Dir))
+findParentPackageIfInside :: MonadIO m
+    => Path Abs Dir -> m (Maybe (Path Abs Dir))
 findParentPackageIfInside path = do
     let parentPath = Path.parent path
 

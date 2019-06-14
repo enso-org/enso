@@ -30,7 +30,9 @@ doesExist :: FilePath -> FilePath -> Expectation
 doesExist path tempDir = do
     canonicalPath <- Directory.canonicalizePath tempDir
     let packageDir = canonicalPath </> "TestPackage"
-    _ <- genPackageStructure (Path.unsafeParseAbsDir packageDir) (Just License.MIT) $ def @Global.Config
+    _ <- genPackageStructure
+            (Path.unsafeParseAbsDir packageDir) (Just License.MIT)
+            $ def @Global.Config
 
     dirExists <- Directory.doesPathExist (packageDir </> path)
 
@@ -39,7 +41,8 @@ doesExist path tempDir = do
 findPackageDir :: Bool -> FilePath -> FilePath -> Expectation
 findPackageDir shouldFind name rootPath = do
     canonicalPath <- Directory.canonicalizePath rootPath
-    result <- genPackageStructure (Path.unsafeParseAbsDir (canonicalPath </> name)) (Just License.MIT)
+    result <- genPackageStructure
+        (Path.unsafeParseAbsDir (canonicalPath </> name)) (Just License.MIT)
         $ def @Global.Config
 
     case result of
@@ -54,7 +57,8 @@ testNesting isNested tempPath = do
     canonicalPath <- Directory.canonicalizePath tempPath
 
     when isNested (Directory.createDirectory $ canonicalPath </> configDir)
-    result <- genPackageStructure (Path.unsafeParseAbsDir (canonicalPath </> "TestPackage"))
+    result <- genPackageStructure
+        (Path.unsafeParseAbsDir (canonicalPath </> "TestPackage"))
         (Just License.MIT) $ def @Global.Config
     case result of
         Left _ -> isNested `shouldBe` True
@@ -102,8 +106,10 @@ spec = do
             $ doesExist "dist/.lir"
 
     describe "Package name checking" $ do
-        it "Is a valid package name" $ isValidPkgName (Path.unsafeParseRelDir "Foo")
-        it "Is an invalid packageName" . not $ isValidPkgName (Path.unsafeParseRelDir "baAr")
+        it "Is a valid package name"
+            $ isValidPkgName (Path.unsafeParseRelDir "Foo")
+        it "Is an invalid packageName" . not
+            $ isValidPkgName (Path.unsafeParseRelDir "baAr")
 
     describe "Detection of nested packages" $ do
         it "Is inside a package" . testPkgDir $ testNesting True

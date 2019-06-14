@@ -23,7 +23,7 @@ import Control.Exception                  (IOException)
 import Luna.Package.Configuration.License (License)
 import System.IO                          (hPutStrLn, stderr)
 
-import Path (Path, Abs, Rel, Dir, (</>), (-<.>))
+import Path (Path, Abs, Rel, Dir, (</>), (-<.>), fromAbsFile, fromRelDir)
 
 
 
@@ -73,7 +73,6 @@ instance StyledShow PrettyShowStyle GeneratorError where
 
 -- === API === --
 
-
 generateConfigDir :: Path Abs Dir -> Maybe License -> Global.Config -> IO ()
 generateConfigDir pkgAbsPath mLicense globalCfg = do
     let configPath = pkgAbsPath </> Name.configDirectory
@@ -88,23 +87,24 @@ generateConfigDir pkgAbsPath mLicense globalCfg = do
 
     packageRelFile <- (Path.coerceToFile pkgPath) -<.> Name.packageExt
     let packageAbsFile = configPath </> packageRelFile
-    IO.appendFile (Path.fromAbsFile packageAbsFile) ""
+    IO.appendFile (fromAbsFile packageAbsFile) ""
 
-    IO.appendFile (Path.fromAbsFile (configPath </> Name.depsFile)) ""
-    IO.appendFile (Path.fromAbsFile (configPath </> Name.depsHistFile)) ""
+    IO.appendFile (fromAbsFile (configPath </> Name.depsFile)) ""
+    IO.appendFile (fromAbsFile (configPath </> Name.depsHistFile)) ""
 
     packageConfig mLicense pkgPath authorName maintainer configPath
 
-packageConfig :: Maybe License -> Path Rel Dir -> Text -> Text -> Path Abs Dir -> IO ()
+packageConfig :: Maybe License -> Path Rel Dir -> Text -> Text -> Path Abs Dir
+    -> IO ()
 packageConfig mLicense pkgName authorName maintainer path = do
     let initConfig = (def @Local.Config)
             & Local.license     .~ (fromJust License.None mLicense)
-            & Local.projectName .~ (convert $ Path.fromRelDir pkgName)
+            & Local.projectName .~ (convert $ fromRelDir pkgName)
             & Local.author      .~ authorName
             & Local.maintainer  .~ maintainer
 
     -- Write the project configuration
-    Yaml.encodeFile (Path.fromAbsFile (path </> Name.configFile)) initConfig
+    Yaml.encodeFile (fromAbsFile (path </> Name.configFile)) initConfig
 
 generateDistributionDir :: Path Abs Dir -> IO ()
 generateDistributionDir pkgPath = do
@@ -118,7 +118,7 @@ generateSourceDir pkgPath = do
     let srcPath = pkgPath </> Name.srcDir
 
     liftIO $ Path.createDir srcPath
-    IO.appendFile (Path.fromAbsFile (srcPath </> Name.mainFile)) [qqStr|
+    IO.appendFile (fromAbsFile (srcPath </> Name.mainFile)) [qqStr|
 import Std.Base
 
 def main:
@@ -130,23 +130,24 @@ generateTestDir pkgPath = do
     let testPath = pkgPath </> Name.testDir
 
     liftIO $ Path.createDir testPath
-    IO.appendFile (Path.fromAbsFile (testPath </> Name.mainFile)) [qqStr|
+    IO.appendFile (fromAbsFile (testPath </> Name.mainFile)) [qqStr|
 import Std.Base
 
 def main:
     hello = "Hello, world!"
     None
- |]
+|]
 
 generateReadme :: Path Abs Dir -> IO ()
 generateReadme pkgPath = do
     let pkgName    = unsafeLast $ Path.splitDirectories pkgPath
 
-    IO.appendFile (Path.fromAbsFile (pkgPath </> Name.readmeFile)) $ "# " <> (Path.fromRelDir pkgName)
+    IO.appendFile (fromAbsFile (pkgPath </> Name.readmeFile))
+        $ "# " <> (fromRelDir pkgName)
 
 generateGitignore :: Path Abs Dir -> IO ()
-generateGitignore pkgPath = IO.appendFile (Path.fromAbsFile (pkgPath </> Name.gitignoreFile))
-    "# Luna Build Artefacts\n"
+generateGitignore pkgPath = IO.appendFile
+    (fromAbsFile (pkgPath </> Name.gitignoreFile)) "# Luna Build Artefacts\n"
 
 generateLicense :: Path Abs Dir -> Maybe License -> IO ()
 generateLicense pkgPath mLicense = do
@@ -155,11 +156,12 @@ generateLicense pkgPath mLicense = do
     case mLicense of
         Nothing  -> pure ()
         Just key -> case key of
-            License.Unknown tx -> IO.appendFile (Path.fromAbsFile licensePath) $ convert tx
+            License.Unknown tx -> IO.appendFile (fromAbsFile licensePath)
+                $ convert tx
             License.None       -> pure ()
             _                  -> do
                 licenseText <- MException.catch @DatafileException
                     (\e -> hPutStrLn stderr (displayException e) >> pure "")
                     $ License.getLicenseText key
-                IO.appendFile (Path.fromAbsFile licensePath) licenseText
+                IO.appendFile (fromAbsFile licensePath) licenseText
 

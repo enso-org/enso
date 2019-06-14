@@ -135,7 +135,8 @@ loadLibrary namePattern = do
         const (pure Nothing)
     extendedSearchPaths <- fmap concat . for nativeSearchPaths $ \path -> do
         files <- (Path.listDir path >>= (pure . snd)) `catchAny` \_ -> pure []
-        let matchingFiles = filter (Path.liftPredicate $ List.isInfixOf library) files
+        let matchingFiles = filter
+                (Path.liftPredicate $ List.isInfixOf library) files
         pure $ matchingFiles
     result <- runExceptT . EitherR.runExceptRT $ do
         let allPaths = possiblePaths <> linkerCache <> extendedSearchPaths
@@ -159,7 +160,8 @@ closeLibrary _ = pure ()
 
 #if mingw32_HOST_OS
 nativeLoadLibrary :: Path Abs File -> IO Handle
-nativeLoadLibrary library = Win32.loadLibraryEx (Path.fromAbsFile library) Foreign.nullPtr
+nativeLoadLibrary library = Win32.loadLibraryEx
+    (Path.fromAbsFile library) Foreign.nullPtr
     Win32.lOAD_WITH_ALTERED_SEARCH_PATH
 
 nativeLoadSymbol :: Handle -> String -> IO (FunPtr a)
@@ -172,7 +174,6 @@ dynamicLibraryExtensions = ["", ".dll"]
 nativeLibraryProjectDir :: Path Rel Dir
 nativeLibraryProjectDir = $(Path.mkRelDir "windows")
 
--- TODO [JCM]: Did my best but I am not running Windows
 -- based on https://msdn.microsoft.com/en-us/library/windows/desktop/ms682586(v=vs.85).aspx
 nativeSearchPaths :: [Path Abs Dir]
 nativeSearchPaths = unsafePerformIO $ do
@@ -203,9 +204,9 @@ lookupSearchPath env = do
         Just envValue   -> mapM Path.parseAbsDir $ FP.splitSearchPath envValue
         Nothing         -> pure []
 
-
 nativeLoadLibrary :: Path Abs File -> IO Handle
-nativeLoadLibrary library = Unix.dlopen (Path.fromAbsFile library) [Unix.RTLD_NOW]
+nativeLoadLibrary library = Unix.dlopen
+    (Path.fromAbsFile library) [Unix.RTLD_NOW]
 
 nativeLoadSymbol :: Handle -> String -> IO (FunPtr a)
 nativeLoadSymbol = Unix.dlsym
@@ -254,7 +255,6 @@ nativeLoadFromCache namePattern = do
 dynamicLibraryExtensions = [".dylib", ""]
 
 nativeLibraryProjectDir = $(Path.mkRelDir "macos")
-
 
 -- based on https://developer.apple.com/library/content/documentation/DeveloperTools/Conceptual/DynamicLibraries/100-Articles/UsingDynamicLibraries.html
 nativeSearchPaths :: [Path Abs Dir]

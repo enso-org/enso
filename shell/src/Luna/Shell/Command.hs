@@ -31,6 +31,7 @@ import System.Exit             (die)
 import System.IO               (hPutStrLn, stderr, stdout)
 
 
+
 -------------------------------
 -- === Config State Monad == --
 -------------------------------
@@ -205,7 +206,8 @@ run (RunOpts target') = liftIO $ catch compute recover where
         isLunaPackage <- Package.isLunaPackage packagePath
 
         if isLunaPackage then Interpret.package packagePath stdlibPath
-        else hPutStrLn stderr $ (Path.fromAbsDir packagePath) <> " is not a Luna Package."
+        else hPutStrLn stderr
+            $ (Path.fromAbsDir packagePath) <> " is not a Luna Package."
 
 init :: (ConfigStateIO m, MonadException Path.PathException m) => InitOpts
         -> m ()
@@ -371,7 +373,8 @@ acquireGlobalConfig = liftIO $ Exception.catch acquire recovery where
             let defaultConfig = def @Global.Config
             Yaml.encodeFile (Path.fromAbsFile lunaConfigFile) defaultConfig
 
-        globalConfig <- Yaml.decodeFileEither @Global.Config (Path.fromAbsFile lunaConfigFile)
+        let luneConfigFilePath = Path.fromAbsFile lunaConfigFile
+        globalConfig <- Yaml.decodeFileEither @Global.Config luneConfigFilePath
 
         case globalConfig of
             Left _    -> pure $ Left "Unable to decode global configuration."
