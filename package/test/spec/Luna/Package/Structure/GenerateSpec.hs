@@ -5,6 +5,7 @@ import Prologue
 import qualified Luna.Package.Configuration.Global  as Global
 import qualified Luna.Package.Configuration.License as License
 import qualified Luna.Package.Structure.Name        as Name
+import qualified Luna.Path.Path                     as Path
 import qualified Path                               as Path
 import qualified System.Directory                   as Directory
 import qualified System.IO.Temp                     as Temp
@@ -14,6 +15,8 @@ import Luna.Package.Structure.Generate ( genPackageStructure
 import System.FilePath                 ( FilePath, (</>) )
 import Test.Hspec                      ( Spec, Expectation, it, describe
                                        , shouldBe )
+
+
 
 --------------------------------------
 -- === Testing Helper Functions === --
@@ -27,7 +30,7 @@ doesExist :: FilePath -> FilePath -> Expectation
 doesExist path tempDir = do
     canonicalPath <- Directory.canonicalizePath tempDir
     let packageDir = canonicalPath </> "TestPackage"
-    _ <- genPackageStructure packageDir (Just License.MIT) $ def @Global.Config
+    _ <- genPackageStructure (Path.unsafeParseAbsDir packageDir) (Just License.MIT) $ def @Global.Config
 
     dirExists <- Directory.doesPathExist (packageDir </> path)
 
@@ -36,12 +39,12 @@ doesExist path tempDir = do
 findPackageDir :: Bool -> FilePath -> FilePath -> Expectation
 findPackageDir shouldFind name rootPath = do
     canonicalPath <- Directory.canonicalizePath rootPath
-    result <- genPackageStructure (canonicalPath </> name) (Just License.MIT)
+    result <- genPackageStructure (Path.unsafeParseAbsDir (canonicalPath </> name)) (Just License.MIT)
         $ def @Global.Config
 
     case result of
         Right path -> do
-            test <- Directory.doesDirectoryExist path
+            test <- Directory.doesDirectoryExist (Path.fromAbsDir path)
             test `shouldBe` shouldFind
         Left _ -> shouldFind `shouldBe` False
 
@@ -51,7 +54,7 @@ testNesting isNested tempPath = do
     canonicalPath <- Directory.canonicalizePath tempPath
 
     when isNested (Directory.createDirectory $ canonicalPath </> configDir)
-    result <- genPackageStructure (canonicalPath </> "TestPackage")
+    result <- genPackageStructure (Path.unsafeParseAbsDir (canonicalPath </> "TestPackage"))
         (Just License.MIT) $ def @Global.Config
     case result of
         Left _ -> isNested `shouldBe` True
@@ -99,8 +102,8 @@ spec = do
             $ doesExist "dist/.lir"
 
     describe "Package name checking" $ do
-        it "Is a valid package name" $ isValidPkgName "Foo"
-        it "Is an invalid packageName" . not $ isValidPkgName "baAr"
+        it "Is a valid package name" $ isValidPkgName (Path.unsafeParseRelDir "Foo")
+        it "Is an invalid packageName" . not $ isValidPkgName (Path.unsafeParseRelDir "baAr")
 
     describe "Detection of nested packages" $ do
         it "Is inside a package" . testPkgDir $ testNesting True

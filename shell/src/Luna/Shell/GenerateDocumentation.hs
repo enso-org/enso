@@ -18,7 +18,7 @@ import qualified Luna.Pass.Sourcing.UnitLoader as ModLoader
 import qualified Luna.Pass.Sourcing.UnitMapper as UnitMap
 import qualified Luna.Shell.CWD                as CWD
 import qualified Path
-import qualified System.Directory              as Directory
+import qualified Path.IO
 
 import Data.Aeson                    (ToJSON)
 import Luna.Pass.Sourcing.Data.Class (Class)
@@ -77,11 +77,10 @@ defaultOutFileName = "documentation.json"
 
 generateDocumentation :: FilePath -> FilePath -> IO ()
 generateDocumentation outFile' modPath' = do
-    let outFile = if null outFile' then defaultOutFileName else outFile'
-    modPath      <- if null modPath' then CWD.get else pure modPath'
-    canonModPath <- Directory.canonicalizePath modPath
-    path         <- Path.parseAbsDir canonModPath
-    sourcesMap   <- fmap Path.toFilePath . Bimap.toMapR
+    outFile      <- Path.parseRelFile $ if null outFile' then defaultOutFileName else outFile'
+    modPath      <- if null modPath' then CWD.get else Path.parseAbsDir modPath'
+    path         <- Path.IO.canonicalizePath modPath
+    sourcesMap   <- Bimap.toMapR
         <$> Package.findPackageSources path
     let projectName = convert $ Package.getPackageName path
     Graph.encodeAndEval @TC.Stage $ Scheduler.evalT $ do
@@ -97,4 +96,4 @@ generateDocumentation outFile' modPath' = do
         let unitDocs = (\(n, u) -> documentUnit (convertVia @IR.Name n) u)
                 <$> units
             projectDoc = ProjectDocumentation projectName Nothing unitDocs
-        liftIO $ Aeson.encodeFile outFile projectDoc
+        liftIO $ Aeson.encodeFile (Path.toFilePath outFile) projectDoc

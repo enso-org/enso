@@ -17,6 +17,7 @@ import qualified Luna.Syntax.Text.Parser.State.Result  as Parser
 import qualified Luna.Syntax.Text.Parser.State.Invalid as Parser
 import qualified Luna.Pass.Parsing.Parser             as Parser
 import qualified Luna.Syntax.Text.Source              as Parser
+import           Path
 import qualified System.IO                            as IO
 
 import Data.Set                             (Set)
@@ -55,7 +56,7 @@ resetParserState = do
     Scheduler.enableAttrByType @Imports
 
 loadUnitIfMissing :: Set IR.Qualified
-                  -> Map.Map IR.Qualified FilePath
+                  -> Map.Map IR.Qualified (Path Abs File)
                   -> [IR.Qualified]
                   -> IR.Qualified
                   -> TC.Monad ()
@@ -65,12 +66,12 @@ loadUnitIfMissing = \knownModules sourcesMap stack modName -> do
         $ loadUnit knownModules sourcesMap stack modName
 
 readUnit
-    :: FilePath
+    :: Path Abs File
     -> IR.Qualified
     -> TC.Monad UnitRef
 readUnit srcPath _ = do
     resetParserState
-    fileHandle <- liftIO $ IO.openFile srcPath IO.ReadMode
+    fileHandle <- liftIO $ IO.openFile (Path.toFilePath srcPath) IO.ReadMode
     liftIO $ IO.hSetEncoding fileHandle IO.utf8
     src <- liftIO $ IO.hGetContents fileHandle
 
@@ -88,7 +89,7 @@ readUnit srcPath _ = do
     pure $ UnitRef (Unit.Graph $ Layout.unsafeRelayout root) imports
 
 loadUnit :: Set IR.Qualified
-         -> Map.Map IR.Qualified FilePath
+         -> Map.Map IR.Qualified (Path Abs File)
          -> [IR.Qualified]
          -> IR.Qualified
          -> TC.Monad ()

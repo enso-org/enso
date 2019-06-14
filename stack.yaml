@@ -24,6 +24,7 @@ packages:
     - debug
     - passes
     - package
+    - path
     - runtime
     - stdlib
     - shell
@@ -73,4 +74,3 @@ packages:
     - lib/typelevel
     - lib/vector-text
     - lib/yaml-utils
-

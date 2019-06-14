@@ -36,12 +36,15 @@ library:
         - luna-datafile
         - luna-package
         - luna-passes
+        - luna-path
         - luna-runtime
         - luna-syntax-text-prettyprint
         - mtl
         - network
         - process
         - prologue
+        - path
+        - path-io
         - random
         - safe
         - safe-exceptions

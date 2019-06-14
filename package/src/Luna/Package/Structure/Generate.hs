@@ -11,12 +11,14 @@ import qualified Control.Exception                        as Exception
 import qualified Luna.Package.Configuration.Global        as Global
 import qualified Luna.Package.Structure.Generate.Internal as Internal
 import qualified Luna.Package.Structure.Utilities         as Utilities
-import qualified System.Directory                         as Directory
-import qualified System.FilePath                          as FilePath
+import qualified Luna.Path.Path                           as Path
+import qualified Path                                     as Path
+import qualified Path.IO                                  as Path
+
+import Path      (Path, Abs, Dir)
 
 import Luna.Package.Configuration.License       (License)
 import Luna.Package.Structure.Generate.Internal (recovery)
-import System.FilePath                          (FilePath)
 
 --------------------------------
 -- === Project Generation === --
@@ -24,32 +26,29 @@ import System.FilePath                          (FilePath)
 
 -- === API === --
 
-genPackageStructure :: MonadIO m => FilePath -> Maybe License -> Global.Config
-                    -> m (Either GeneratorError FilePath)
-genPackageStructure name mLicense gblConf =
-    if length name < 1 then
-        pure . Left . InvalidPackageName $ convert name
+genPackageStructure :: MonadIO m => Path a Dir -> Maybe License -> Global.Config
+                    -> m (Either GeneratorError (Path Abs Dir))
+genPackageStructure path mLicense gblConf =
+    if Path.liftPredicate (\name -> length name < 1) path then
+        pure . Left . InvalidPackageName $ convert (Path.toFilePath path)
     else do
-        -- This is safe as it has at least one component if `name` is nonemtpy
-        -- `name` is nonempty due to the guard above.
-        let pkgName = unsafeLast $ FilePath.splitDirectories name
+        -- This is safe as it has at least one component if `path` is nonemtpy
+        -- `path` is nonempty due to the guard above.
+        let pkgName = unsafeLast $ Path.splitDirectories path
 
-        canonicalName <- liftIO $ Directory.canonicalizePath name
-        insidePkg     <- Utilities.findParentPackageIfInside canonicalName
+        canonicalPath <- Path.canonicalizePath path
+        insidePkg     <- Utilities.findParentPackageIfInside canonicalPath
 
-        let isInsidePkg = isJust insidePkg
-
-        if  | Utilities.isValidPkgName pkgName && not isInsidePkg ->
-                liftIO $ Exception.catch create (recovery canonicalName)
-            | isInsidePkg -> pure . Left . InvalidPackageLocation
-                $ fromJust "" insidePkg
-            | otherwise -> pure . Left . InvalidPackageName
-                $ convert canonicalName
+        case (Utilities.isValidPkgName pkgName , insidePkg) of
+            (True, Nothing) -> liftIO $ Exception.catch create (recovery canonicalPath)
+            (_, Just pkg) -> pure . Left . InvalidPackageLocation $ pkg
+            _ ->  pure . Left . InvalidPackageName
+                $ convert (Path.fromAbsDir canonicalPath)
         where
-            create :: IO (Either GeneratorError FilePath)
+            create :: IO (Either GeneratorError (Path Abs Dir))
             create = do
-                canonicalPath <- Directory.canonicalizePath name
-                Directory.createDirectoryIfMissing True canonicalPath
+                canonicalPath <- Path.canonicalizePath path
+                Path.createDirIfMissing True canonicalPath
 
                 Internal.generateConfigDir       canonicalPath mLicense gblConf
                 Internal.generateDistributionDir canonicalPath
@@ -59,4 +58,3 @@ genPackageStructure name mLicense gblConf =
                 Internal.generateGitignore       canonicalPath
 
                 pure $ Right canonicalPath
-

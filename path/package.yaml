@@ -1,0 +1,23 @@
+_config/lib: !include "../config/hpack-common.yaml"
+
+name:       luna-path
+version:    "0.1"
+author:     Jean-Christophe Mincke <jeanchristophe.mincke@gmail.com>
+maintainer:
+    - Luna Team <contact@luna-lang.org>
+    - Jean-Christophe Mincke <jeanchristophe.mincke@gmail.com>
+
+library:
+    source-dirs:
+        - src
+    dependencies:
+        - base
+        - exceptions
+        - filepath
+        - path
+        - path-io
+        - prologue
+    ghc-options:
+        -Wall
+
+default-extensions: *luna-extensions

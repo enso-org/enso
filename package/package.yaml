@@ -21,6 +21,8 @@ tests:
         source-dirs: test/spec
         dependencies:
             - bytestring
+            - directory
+            - filepath
             - hspec
             - hspec-jenkins
             - luna-ci
@@ -35,10 +37,8 @@ dependencies:
     - base
     - bimap
     - containers
-    - directory
     - exceptions
     - filemanip
-    - filepath
     - hspec
     - hspec-megaparsec
     - lens
@@ -47,10 +47,12 @@ dependencies:
     - luna-datafile
     - luna-exception
     - luna-parser-utils
+    - luna-path
     - luna-syntax-text-lexer
     - megaparsec
     - mtl
     - path >= 0.6.0
+    - path-io >= 1.4.0
     - prologue
     - safe-exceptions
     - text
