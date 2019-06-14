@@ -170,7 +170,7 @@ dynamicLibraryExtensions :: [String]
 dynamicLibraryExtensions = ["", ".dll"]
 
 nativeLibraryProjectDir :: Path Rel Dir
-nativeLibraryProjectDir = $(mkRelDir "windows")
+nativeLibraryProjectDir = $(Path.mkRelDir "windows")
 
 -- TODO [JCM]: Did my best but I am not running Windows
 -- based on https://msdn.microsoft.com/en-us/library/windows/desktop/ms682586(v=vs.85).aspx
