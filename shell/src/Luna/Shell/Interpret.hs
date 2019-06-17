@@ -18,7 +18,7 @@ import qualified Luna.Pass.Sourcing.Data.Unit        as Unit
 import qualified Luna.Pass.Sourcing.UnitLoader       as ModLoader
 import qualified Luna.Pass.Sourcing.UnitMapper       as UnitMap
 import qualified Luna.Pass.Typing.Data.Typed         as Typed
-import qualified Luna.Path.Path                      as Path    (dropExtensions)
+import qualified Luna.Path.Path                      as Path (dropExtensions)
 import qualified Luna.Runtime                        as Runtime
 import qualified Luna.Std                            as Std
 import qualified OCI.Data.Name                       as Name
@@ -30,6 +30,7 @@ import qualified System.IO                           as IO
 import Control.Monad.Exception               (MonadExceptions)
 import Data.Map                              (Map)
 import Path                                  (Path, Abs, Dir, File)
+
 
 
 -------------------------------
@@ -102,16 +103,17 @@ file filePath stdlibPath = liftIO $ Path.withCurrentDir fileFP $ do
     fileSources <- Package.fileSourcePaths filePath stdlibPath
     includedImports <- Package.includedLibs stdlibPath
 
-    let fileName = convertVia @Name.Name . Path.fromRelFile . Path.dropExtensions $
-                        Path.filename filePath
+    let fileName =
+            convertVia @Name.Name . Path.fromRelFile . Path.dropExtensions
+            $ Path.filename filePath
 
     PackageEnv.setLibraryVars includedImports
     liftIO $ interpretWithMain fileName fileSources
 
     where fileFP = Path.parent filePath
 
-
-package :: (InterpreterMonad m, MonadMask m) => Path Abs Dir -> Path Abs Dir -> m ()
+package :: (InterpreterMonad m, MonadMask m)
+    => Path Abs Dir -> Path Abs Dir -> m ()
 package pkgPath stdlibPath = Path.withCurrentDir pkgPath $ do
     packageRoot     <- fromJust pkgPath <$> Package.findPackageRoot pkgPath
     packageImports  <- Package.packageImportPaths packageRoot stdlibPath

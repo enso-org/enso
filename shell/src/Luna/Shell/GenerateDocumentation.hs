@@ -77,8 +77,10 @@ defaultOutFileName = "documentation.json"
 
 generateDocumentation :: FilePath -> FilePath -> IO ()
 generateDocumentation outFile' modPath' = do
-    outFile      <- Path.parseRelFile $ if null outFile' then defaultOutFileName else outFile'
-    modPath      <- if null modPath' then CWD.get else Path.parseAbsDir modPath'
+    outFile      <- Path.parseRelFile $ if null outFile'
+        then defaultOutFileName else outFile'
+    modPath      <- if null modPath'
+        then CWD.get else Path.parseAbsDir modPath'
     path         <- Path.IO.canonicalizePath modPath
     sourcesMap   <- Bimap.toMapR
         <$> Package.findPackageSources path

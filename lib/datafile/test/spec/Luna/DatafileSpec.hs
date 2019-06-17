@@ -90,8 +90,9 @@ testEnvVal ty = Path.withSystemTempDir "LunaTemp" $ \envValContentsPath -> do
 
             result `shouldBe` envValContentsPath
 
-        InvalidEnvVal -> Datafile.dataPathFromEnvVar envValName envValContentsPath
-            verifier `shouldThrow` envVarSetButInvalid
+        InvalidEnvVal ->
+            Datafile.dataPathFromEnvVar envValName envValContentsPath verifier
+            `shouldThrow` envVarSetButInvalid
 
 
 

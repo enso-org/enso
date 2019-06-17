@@ -46,7 +46,8 @@ data PackageNotFoundException
 
 instance Exception PackageNotFoundException where
     displayException (PackageNotFound file) =
-        "File \"" <> Path.fromAbsFile file <> "\" is not a part of any package."
+        "File \"" <> Path.fromAbsFile file
+        <> "\" is not a part of any package."
     displayException (PackageRootNotFound dir) =
         show dir <> " is not a Luna Package root."
     displayException (FSError str) = "FSError: " <> str
@@ -151,7 +152,6 @@ tryConvertPackageFormat dir = do
                 Path.removeFile (dir </> file)
             pure $ map (configDirPath </>) files
 
-
 findPackageFile :: (MonadIO m, MonadException Path.PathException m)
     => Path Abs Dir -> m (Maybe (Path Abs File))
 findPackageFile dir = getLunaPackagesFromDir dir >>= \case
@@ -159,7 +159,6 @@ findPackageFile dir = getLunaPackagesFromDir dir >>= \case
         if parentDir == dir then pure Nothing else findPackageFile parentDir
     [packageFile] -> pure $ Just packageFile
     _             -> pure Nothing
-
 
 findPackageRoot :: (MonadIO m, MonadException Path.PathException m)
     => Path Abs Dir -> m (Maybe (Path Abs Dir))
@@ -199,7 +198,6 @@ findPackageSources pkg = do
     let modules  = assignQualName pkg <$> lunaFilesAbs
     pure $ Bimap.fromList modules
 
-
 listDependencies :: (MonadIO m, MonadException Path.PathException m)
     => Path Abs Dir -> m [(Name.Name, Path Abs Dir)]
 listDependencies pkgSrc = do
@@ -221,13 +219,12 @@ includedLibs stdlibPath = do
         (contents, _) <- Path.listDirRel lunaroot
         dirs          <- filterM (\a -> Path.doesDirExist $ lunaroot </> a)
                 contents
-        let projects = filter
-                (Path.liftPredicate (\a -> (isUpper <$> head a) == Just True)) dirs
+        let projects = filter (Path.liftPredicate projectNamePred) dirs
         pure projects
     for projectNames $ \projectName ->
         pure (convert projectName, lunaroot </> projectName)
-
-
+    where
+    projectNamePred prjName = (isUpper <$> head prjName) == Just True
 
 packageImportPaths :: (MonadIO m, MonadException Path.PathException m)
     => Path Abs Dir -> Path Abs Dir -> m [(Name.Name, Path Abs Dir)]
@@ -238,8 +235,8 @@ packageImportPaths pkgRoot stdlibPath = do
                     : dependencies
     pure $ includedImports <> importPaths
 
-
-fileSourcePaths :: (MonadIO m, MonadThrow m, MonadException Path.PathException m)
+fileSourcePaths :: ( MonadIO m, MonadThrow m
+                   , MonadException Path.PathException m)
     => Path Abs File -> Path Abs Dir -> m (Map Name.Qualified (Path Abs File))
 fileSourcePaths lunaFile stdlibPath = do
     fileName    <- liftIO $ Path.setFileExtension "" $ Path.filename lunaFile
@@ -255,12 +252,9 @@ fileSourcePaths lunaFile stdlibPath = do
 
     pure allSrcMap
 
-
 isLunaPackage :: (MonadIO m, MonadException Path.PathException m)
     => Path Abs Dir -> m Bool
 isLunaPackage path = isJust <$> findPackageRoot path
-
-
 
 name :: (MonadIO m, MonadExceptions '[ PackageNotFoundException
                                      , Path.PathException ] m)
@@ -270,7 +264,6 @@ name path = do
         Nothing   -> Exception.throw $ PackageRootNotFound path
         -- Safe because Path.fromAbsDir is guaranteed nonempty
         Just root -> pure . unsafeLast . Path.splitDirectories $ root
-
 
 rename :: ( MonadIO m
           , MonadExceptions '[ PackageNotFoundException
@@ -301,13 +294,14 @@ rename srcPath destPath = do
 
     (dirsToCreate, filesToCopy) <- recursiveListDir srcPath
 
-
     for_ dirsToCreate $ \dir -> do
-      relPath <- Exception.rethrowFromIO @Path.PathException $ Path.stripProperPrefix srcPath dir
-      Path.createDirIfMissing True (destPath </> relPath)
+        relPath <- Exception.rethrowFromIO @Path.PathException
+            $ Path.stripProperPrefix srcPath dir
+        Path.createDirIfMissing True (destPath </> relPath)
 
     for_ filesToCopy $ \file -> do
-        relPath <- Exception.rethrowFromIO @Path.PathException $ Path.stripProperPrefix srcPath file
+        relPath <- Exception.rethrowFromIO @Path.PathException
+            $ Path.stripProperPrefix srcPath file
         Path.copyFile file (destPath </> relPath)
 
     -- Rename the `*.lunaproject` file
