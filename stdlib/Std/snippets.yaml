@@ -6,7 +6,7 @@ Std.Base:
       documentation: Creates a map with a single element with key "foo" and value 10.
     - name: JSON.empty
       documentation: Empty JSON object.
-    - name: readFile $ Package.samples "Base" / "exampleFile.txt"
+    - name: readFile $ Package.samples "Std" / "exampleFile.txt"
       documentation: Read file from the hard drive.
     - name: writeFile "./myFile.txt" "lorem ipsum"
       documentation: Write a Text object into a file with a given path.
