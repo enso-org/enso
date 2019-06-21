@@ -3720,12 +3720,12 @@ class Package:
     # Get the sample data directory for a given package.
     # Samples are, by convention, data files that can be used to demonstrate
     # capabilities of the library.
-    # They are located in the `LIBRARY_ROOT/samples` directory.
+    # They are located in the `LIBRARY_ROOT/data/samples` directory.
     # For example, the path to `iris.csv` sample dataset from the
     # `Dataframes` package can be accessed as:
     # ```
     # Package.samples 'Dataframes' / 'iris.csv'
     # ```
     def samples name:
-        self.root name / 'samples'
+        self.root name / 'data' / 'samples'
 
