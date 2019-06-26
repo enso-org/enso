@@ -1,7 +1,7 @@
 # Haskell Style Guide
 Like many style guides, this Haskell style guide exists for two primary reasons.
 The first is to provide guidelines that result in a consistent code style across
-all of the Luna codebases, while the second is to guide people towards a style
+all of the Enso codebases, while the second is to guide people towards a style
 that is expressive while still easy to read and understand.
 
 In general, it aims to create a set of 'zero-thought' rules in order to ease the
@@ -42,7 +42,7 @@ This section explains the rules for visually laying out your code. They provide
 a robust set of guidelines for creating a consistent visual to the code.
 
 ### Whitespace
-The rules for whitespace in the Luna codebases are relatively simple:
+The rules for whitespace in the Enso codebases are relatively simple:
 
 - 4 spaces are used for indentation, with no tabs.
 - There should not be any trailing whitespace.
@@ -145,7 +145,7 @@ multiple lines, it _no longer counts_ as visually similar, and hence subsequent
 lines should not be aligned with it.
 
 ### Naming
-Luna has some fairly simple general naming conventions, though the sections
+Enso has some fairly simple general naming conventions, though the sections
 below may provide more rules for use in specific cases.
 
 - Types are written using `UpperCamelCase`.
@@ -183,9 +183,9 @@ module unqualified. This can be seen with `Map` in the examples below.
 This example is for a module that re-exports some names:
 
 ```hs
-module Luna.MyModule (module Luna.MyModule, module X) where
+module Enso.MyModule (module Enso.MyModule, module X) where
 
-import Luna.MyModule.Class as X (foo, bar)
+import Enso.MyModule.Class as X (foo, bar)
 
 import Prologue
 
@@ -201,7 +201,7 @@ However, in the context where your module doesn't re-export anything, you can
 use the simplified form:
 
 ```hs
-module Luna.MyModule where
+module Enso.MyModule where
 
 import Prologue
 
@@ -219,8 +219,8 @@ module that hasn't been exported. To that end, we do not allow for restricted
 export lists in our modules.
 
 Instead, if you want to indicate that something is for internal use, you need to
-define it in an internal module. For a module named `Luna.MyModule`, we can
-define internal functions and data-types in `Luna.MyModule.Internal`. This means
+define it in an internal module. For a module named `Enso.MyModule`, we can
+define internal functions and data-types in `Enso.MyModule.Internal`. This means
 that these functions can be imported by clients of the API if they need to, but
 that we provide no guarantees about API stability when using those functions.
 
@@ -277,7 +277,7 @@ Code should be written in such a way that it guides you over what it does, and
 comments should not be used as a crutch for badly-designed code.
 
 ### Documentation Comments
-One of the primary forms of comment that we allow across the Luna codebases is
+One of the primary forms of comment that we allow across the Enso codebases is
 the doc comment. These are intended to be consumed by users of the API, and use
 the standard Haddock syntax. Doc comments should:
 
@@ -392,12 +392,12 @@ Any good style guide goes beyond purely stylistic rules, and also talks about
 design styles to use in code.
 
 ### Libraries
-The Luna project has many internal libraries that are useful, but we have found
+The Enso project has many internal libraries that are useful, but we have found
 that maintaining these on Hackage while they are under such active development
 is counterproductive.
 
 Instead, libraries live in the `lib/` folder of the primary project with which
-they are associated (Luna, Luna Studio, or Dataframes). These libraries may be
+they are associated (Enso, Enso Studio, or Dataframes). These libraries may be
 freely used by others of our projects by depending on a git commit of the
 project that they live in. All of these are safe to use.
 
@@ -438,7 +438,7 @@ We have our own exception framework based on `ExceptT` that encodes exception
 usage at the type level. This ensures that all synchronous exceptions must be
 dealt with.
 
-It is defined in [`lib/exception/`](https://github.com/luna/luna/tree/master/lib/exception)
+It is defined in [`lib/exception/`](https://github.com/Enso/Enso/tree/master/lib/exception)
 and contains utilities for declaring that a function throws an exception, as
 well as throwing and catching exceptions.
 
@@ -468,14 +468,14 @@ in mind:
 - When designing a module that exports a type, the module should be named after
   that type. If it exports multiple types, there should be a primary type, or
   the other types should be factored out into their own modules.
-- We import modules as their name. If you have a module `Luna.Space.MyType`, we
+- We import modules as their name. If you have a module `Enso.Space.MyType`, we
   import it qualified as `MyType`.
 - Functions should be named with the assumption of being used qualified. This
   means that we rarely refer to the module name in the function name (e.g.
   `State.run` rather than `State.runState`).
 
 ### Data Declarations
-When declaring data types in the Luna codebases, please make sure to keep the
+When declaring data types in the Enso codebases, please make sure to keep the
 following rules of thumb in mind:
 
 - For single-constructor types:
@@ -515,7 +515,7 @@ following rules of thumb in mind:
   + Monad Transformers: `MonadTrans`.
 
 #### Lenses
-The Luna codebases make significant use of Lenses, and so we have some rules for
+The Enso codebases make significant use of Lenses, and so we have some rules for
 their use:
 
 - Always use the `makeLenses` wrapper exported from `Prologue`.
@@ -556,7 +556,7 @@ in a rigorous fashion.
   run, and should use the mechanisms HSpec provides for automatic test
   discovery.
 - A test file should be named after the module it tests. If the module is named
-  `Luna.MyModule`, then the test file should be named `Luna.MyModuleSpec`.
+  `Enso.MyModule`, then the test file should be named `Enso.MyModuleSpec`.
 
 Any performance-critical code should also be accompanied by a set of benchmarks.
 These are intended to allow us to catch performance regressions as the code
@@ -598,7 +598,7 @@ of `foo $ bar $ baz $ bam quux`, you should write `foo . bar. baz $ bam quux`
 to use function composition.
 
 ## Language Extensions
-Much like any sophisticated Haskell codebase, Luna makes heavy use of the GHC
+Much like any sophisticated Haskell codebase, Enso makes heavy use of the GHC
 language extensions. We have a broad swath of extensions that are enabled by
 default across our projects, and a further set which are allowed whenever
 necessary. We also have a set of extensions that are allowed with care, which
@@ -616,9 +616,9 @@ extension (linked from the extension's table below).
 
 ### Default Extensions
 The following language extensions are considered to be so safe, or to have such
-high utility, that they are considered to be Luna's set of default extensions.
-You can find said set of extensions for Luna itself defined in a
-[common configuration file](https://github.com/luna/luna/blob/master/config/hpack-common.yaml).
+high utility, that they are considered to be Enso's set of default extensions.
+You can find said set of extensions for Enso itself defined in a
+[common configuration file](https://github.com/Enso/Enso/blob/master/config/hpack-common.yaml).
 
 #### AllowAmbiguousTypes
 
@@ -698,7 +698,7 @@ are promoted to kinds and the value constructors are promoted to type
 constructors.
 
 This is incredibly useful, and used heavily in the type-level programming that
-makes the Luna codebase so expressive and yet so safe.
+makes the Enso codebase so expressive and yet so safe.
 
 #### DefaultSignatures
 
@@ -1365,7 +1365,7 @@ cause the typechecker to loop.
 
 ### Disallowed Extensions
 If a language extension hasn't been listed in the above sections, then it is
-considered to be disallowed throughout the Luna codebases. If you have a good
+considered to be disallowed throughout the Enso codebases. If you have a good
 reason to want to use one of these disallowed extensions, please talk to Ara or
 Wojciech to discuss its usage.
 

@@ -1,5 +1,5 @@
-# Scala Style Guide
-Like many style guides, this Scala style guide exists for two primary reasons.
+# Java Style Guide
+Like many style guides, this Java style guide exists for two primary reasons.
 The first is to provide guidelines that result in a consistent code style across
 all of the Enso codebases, while the second is to guide people towards a style
 that is expressive while still easy to read and understand.
@@ -11,14 +11,12 @@ programmer burden; there is usually only _one way_ to lay out code correctly.
 
 - [Code Formatting](#code-formatting)
   - [Naming](#naming)
-- [Build Tooling](#build-tooling)
 - [Commenting](#commenting)
   - [Documentation Comments](#documentation-comments)
   - [Source Notes](#source-notes)
   - [TODO Comments](#todo-comments)
   - [Other Comment Usage](#other-comment-usage)
 - [Program Design](#program-design)
-  - [Safety](#safety)
   - [Testing and Benchmarking](#testing-and-benchmarking)
   - [Warnings, and Lints](#warnings-and-lints)
 
@@ -28,18 +26,14 @@ programmer burden; there is usually only _one way_ to lay out code correctly.
 This section explains the rules for visually laying out your code. They provide
 a robust set of guidelines for creating a consistent visual to the code.
 
-Primary formatting is dealt with through use of the Scala formatting tool
-[`scalafmt`](https://scalameta.org/scalafmt/), which enforces rules around
-whitespace, line-wrapping, and alignment. The Enso repository contains the main
-[`.scalafmt.conf`](../.scalafmt.conf) configuration file, and this is what
-should be used for all new Scala projects.
+Primary code formatting is done using the [Google Java Format](https://github.com/google/google-java-format)
+tool, which enforces a clear and consistent style. This is a zero configuration
+tool, and hence there is no project-level configuration for this tool. It should
+be used for all new Java projects.
 
-All files must be formatted using `scalafmt` before commit, and this should be
-set up as either a precommit hook, or using the integration in IntelliJ. If you
-use the IntelliJ integration, please note that you need only have the official
-[Scala Plugin](https://www.jetbrains.com/help/idea/discover-intellij-idea-for-scala.html) 
-installed, and be using IntelliJ 2019.1 or later. You should _not_ use the 
-independent Scalafmt plugin.
+All files must be formatted using this tool before being committed, and this
+should be set up as either a precommit hook, or using an integration in your
+IDE.
 
 ### Naming
 Enso has some fairly simple general naming conventions, though the sections
@@ -53,13 +47,6 @@ below may provide more rules for use in specific cases.
   there is no other appropriate name, and should _never_ be used to refer to
   temporary data in a function.
 - Names should be descriptive, even if this makes them longer.
-
-## Build Tooling
-All Scala projects in the Enso organisation should manage their dependencies and
-build setup using [SBT](hhttps://www.scala-sbt.org/1.x/docs/index.html).
-
-If you are using IntelliJ, please ensure that you select to use the SBT shell
-for both imports and builds.
 
 ## Commenting
 Comments are a tricky area to get right, as we have found that comments often
@@ -79,8 +66,7 @@ comments should not be used as a crutch for badly-designed code.
 ### Documentation Comments
 One of the primary forms of comment that we allow across the Enso codebases is
 the doc comment. These are intended to be consumed by users of the API, and use
-the standard [scaladoc](https://docs.scala-lang.org/style/scaladoc.html) syntax.
-Doc comments should:
+the standard Javadoc syntax. Doc comments should:
 
 - Provide a short one-line explanation of the object being documented.
 - Provide a longer description of the object, including examples where relevant.
@@ -109,7 +95,7 @@ A source note comment is broken into two parts:
    already in use.
 2. **Source Note:** This is the comment itself, which is a large block comment
    placed after the first function in which it is referred to in the module. It
-   uses the scala block-comment syntax `/* ... */`, and the first line names
+   uses the java block-comment syntax `/* ... */`, and the first line names
    the note using the same referrer as above: `/* Note [Note Name]`. The name(s)
    in the note are underlined using a string of the `~` (tilde) character.
 
@@ -124,14 +110,15 @@ additional context to that reference.
 
 An example, based on some code in the GHC codebase, can be seen below:
 
-```scala
+```java
 {
-def prepRHS (env : SimplEnv, outExpr : OutExpr) : SimplM[SimplEnv, OutExpr] = {
-  val (ty1, _ty2) = coercionKind(env) // Note [Float Coercions]
+public SimplM<SimplEnv, OutExpr> prepRHS(SimplEnv env, OutExpr outExpr) {
+  var ty1 = coercionKind(env); // Note [Float Coercions]
 
   if (!isUnliftedType(ty1)) {
-    val newTy1 = convertTy(ty1) // Note [Float Coercions (Unlifted)]
-    ...more expressions defining prepRHS...
+    var newTy1 = convertTy(ty1) // Note [Float Coercions (Unlifted)]
+
+    ...more code defining prepRHS...
   }
 }
 
@@ -174,7 +161,7 @@ We follow a simple convention for `TODO` comments in our codebases:
 
 For example:
 
-```scala
+```java
 {
 // TODO [ARA] This is a bit of a kludge. Instead of X it should to Y, accounting
 // for the fact that Z.
@@ -194,21 +181,6 @@ There are, of course, a few other situations where commenting is very useful:
 ## Program Design
 Any good style guide goes beyond purely stylistic rules, and also talks about
 design styles to use in code.
-
-### Safety
-It is incredibly important that we can trust the code that we use, and hence we
-tend to disallow the definition of unsafe functions in our public API. When
-defining an unsafe function, you must account for the following:
-
-- It must be named `unsafeX`.
-- Unsafe functions should only be used in the minimal scope in which it can be
-  shown correct, not in larger pieces of code.
-- Unsafe function definition must be accompanied by a source note explaining why
-  it is not defined safely (e.g. performance).
-- Unsafe function usage must be accompanied by a source note explaining why this
-  usage of it is safe.
-
-Furthermore, we do not allow for code containing pattern matches that can fail.
 
 ### Testing and Benchmarking
 New code should always be accompanied by tests. These can be unit, integration,
@@ -237,7 +209,7 @@ entirely useless.
 
 ### Warnings, and Lints
 In general, we aim for a codebase that is free of warnings and lints, and we do
-this using the following ideas:
+this using the following ideas.
 
 #### Warnings
 New code should introduce no new warnings onto master. You may build with
@@ -246,5 +218,6 @@ should not introduce new warnings. You should also endeavour to fix any warnings
 that you come across during development.
 
 Sometimes it is impossible to fix a warning (often in situations involving the
-use of macros). In such cases, you are allowed to suppress the warning locally,
-but this must be accompanied by a source note explaining why you are doing so.
+use of macros or code-generation). In such cases, you are allowed to suppress
+the warning locally, but this must be accompanied by a source note explaining
+why you are doing so.
