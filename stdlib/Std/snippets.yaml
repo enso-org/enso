@@ -165,7 +165,7 @@ Std.Base:
       documentation: Remove first n elements from a list.
     - name: reverse
       documentation: Reverse the list.
-    - name: prepend "foo"
+    - name: map .toText . prepend "foo"
       documentation: Prepend an element to the list.
   Map:
     - name: size
