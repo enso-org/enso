@@ -20,7 +20,8 @@ lazy val enso = (project in file("."))
   .aggregate(
     syntax,
     pkg,
-    interpreter
+    interpreter,
+    projectManager
   )
 
 // Sub-Projects
@@ -90,3 +91,26 @@ lazy val interpreter = (project in file("interpreter"))
     bench := (test in Benchmark).value,
     parallelExecution in Benchmark := false
   )
+
+val akkaActor  = "com.typesafe.akka" %% "akka-actor"           % "2.5.23"
+val akkaStream = "com.typesafe.akka" %% "akka-stream"          % "2.5.23"
+val akkaHttp   = "com.typesafe.akka" %% "akka-http"            % "10.1.8"
+val akkaSpray  = "com.typesafe.akka" %% "akka-http-spray-json" % "10.1.8"
+val akkaTyped  = "com.typesafe.akka" %% "akka-actor-typed"     % "2.5.23"
+
+val akka = Seq(akkaActor, akkaStream, akkaHttp, akkaSpray, akkaTyped)
+
+val circe = Seq("circe-core", "circe-generic", "circe-yaml").map(
+  "io.circe" %% _ % "0.10.0"
+)
+
+lazy val projectManager = (project in file("project-manager"))
+  .settings(
+    (Compile / mainClass) := Some("org.enso.projectmanager.Server")
+  )
+  .settings(
+    libraryDependencies ++= akka,
+    libraryDependencies ++= circe,
+    libraryDependencies += "io.spray" %% "spray-json" % "1.3.5"
+  )
+  .dependsOn(pkg)
