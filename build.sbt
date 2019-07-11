@@ -10,6 +10,8 @@ scalacOptions ++= Seq(
   "-Xlint"
 )
 
+javacOptions ++= Seq("-source", "12", "-target", "1.8")
+
 // Benchmark Configuration
 lazy val Benchmark = config("bench") extend Test
 lazy val bench     = taskKey[Unit]("Run Benchmarks")
@@ -68,6 +70,19 @@ lazy val pkg = (project in file("pkg"))
     libraryDependencies += "commons-io" % "commons-io" % "2.6"
   )
 
+val truffleRunOptions = Seq(
+  fork := true,
+  javaOptions += s"-Dtruffle.class.path.append=${(Compile / classDirectory).value}",
+  javaOptions += s"-Dgraal.PrintGraph=Network",
+  javaOptions += s"-Dgraal.Dump=Truffle:2",
+  javaOptions += s"-Dgraal.TruffleBackgroundCompilation=false",
+  javaOptions += s"-Dgraal.TraceTruffleCompilation=true",
+  javaOptions += s"-Dgraal.TraceTruffleCompilationCallTree=true",
+  javaOptions += s"-Dgraal.TraceTruffleInlining=true",
+  javaOptions += s"-Dgraal.TraceTrufflePerformanceWarnings=true",
+  javaOptions += s"-XX:-UseJVMCIClassLoader"
+)
+
 lazy val interpreter = (project in file("interpreter"))
   .settings(
     mainClass in (Compile, run) := Some("org.enso.interpreter.Main"),
@@ -75,19 +90,46 @@ lazy val interpreter = (project in file("interpreter"))
   )
   .settings(
     libraryDependencies ++= Seq(
-      "com.chuusai"       %% "shapeless"  % "2.3.3",
-      "com.storm-enroute" %% "scalameter" % "0.17" % "bench",
-      "org.graalvm.sdk"   % "graal-sdk"   % "19.0.0",
-      "org.scalacheck"    %% "scalacheck" % "1.14.0" % Test,
-      "org.scalatest"     %% "scalatest"  % "3.2.0-SNAP10" % Test,
-      "org.typelevel"     %% "cats-core"  % "2.0.0-M4"
+      "com.chuusai"            %% "shapeless"                % "2.3.3",
+      "com.storm-enroute"      %% "scalameter"               % "0.17" % "bench",
+      "org.graalvm.sdk"        % "graal-sdk"                 % "19.0.0",
+      "org.graalvm.sdk"        % "polyglot-tck"              % "19.0.0",
+      "org.graalvm.truffle"    % "truffle-api"               % "19.0.0",
+      "org.graalvm.truffle"    % "truffle-dsl-processor"     % "19.0.0",
+      "org.graalvm.truffle"    % "truffle-nfi"               % "19.0.0",
+      "org.graalvm.truffle"    % "truffle-tck"               % "19.0.0",
+      "org.graalvm.truffle"    % "truffle-tck-common"        % "19.0.0",
+      "org.scalacheck"         %% "scalacheck"               % "1.14.0" % Test,
+      "org.scalatest"          %% "scalatest"                % "3.2.0-SNAP10" % Test,
+      "org.scalactic"          %% "scalactic"                % "3.0.8" % Test,
+      "com.storm-enroute"      %% "scalameter"               % "0.17" % Benchmark,
+      "org.typelevel"          %% "cats-core"                % "2.0.0-M4",
+      "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.4",
+      "org.apache.commons"     % "commons-lang3"             % "3.9"
     )
   )
-  .dependsOn(syntax)
-  .configs(Test)
+  .settings(
+    (Compile / javacOptions) ++= Seq(
+      "-s",
+      (Compile / sourceManaged).value.getAbsolutePath
+    )
+  )
+  .settings(
+    (Compile / compile) := (Compile / compile)
+      .dependsOn(Def.task { (Compile / sourceManaged).value.mkdirs })
+      .value
+  )
+  .settings(
+    inConfig(Compile)(truffleRunOptions),
+    inConfig(Test)(truffleRunOptions),
+    parallelExecution in Test := false
+  )
   .configs(Benchmark)
   .settings(
+    testFrameworks += new TestFramework("org.scalameter.ScalaMeterFramework"),
+    logBuffered := false,
     inConfig(Benchmark)(Defaults.testSettings),
+    inConfig(Benchmark)(truffleRunOptions),
     bench := (test in Benchmark).value,
     parallelExecution in Benchmark := false
   )

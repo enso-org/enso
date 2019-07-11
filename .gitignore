@@ -3,6 +3,7 @@
 ## Scala ##
 ###########
 
+graal_dumps/
 target/
 *.class
 *.log
