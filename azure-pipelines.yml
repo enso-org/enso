@@ -31,11 +31,11 @@ jobs:
       sudo yum install -y sbt
     displayName: "Install sbt"
   - script: |
-      sbt test
+      sbt -no-colors test
     displayName: sbt test
     continueOnError: true
   - script: |
-      sbt bench
+      sbt -no-colors bench
     displayName: sbt bench
     continueOnError: true
   - task: PublishTestResults@2
@@ -59,11 +59,11 @@ jobs:
         brew install sbt
       displayName: Install sbt
     - script: |
-        sbt test
+        sbt -no-colors test
       displayName: sbt test
       continueOnError: true
     - script: |
-        sbt bench
+        sbt -no-colors bench
       displayName: sbt bench
       continueOnError: true
     - task: PublishTestResults@2

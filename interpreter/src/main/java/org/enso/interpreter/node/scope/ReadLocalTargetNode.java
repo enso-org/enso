@@ -1,4 +1,4 @@
-package org.enso.interpreter.node.local;
+package org.enso.interpreter.node.scope;
 
 import com.oracle.truffle.api.dsl.NodeField;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -11,7 +11,7 @@ import org.enso.interpreter.runtime.Function;
 @NodeInfo(shortName = "readVar", description = "Access local variable value.")
 @NodeField(name = "slot", type = FrameSlot.class)
 @NodeField(name = "parentLevel", type = int.class)
-public abstract class ReadLocalVariableNode extends ExpressionNode {
+public abstract class ReadLocalTargetNode extends ExpressionNode {
   public abstract int getParentLevel();
 
   public abstract FrameSlot getSlot();

@@ -122,7 +122,8 @@ lazy val interpreter = (project in file("interpreter"))
   .settings(
     inConfig(Compile)(truffleRunOptions),
     inConfig(Test)(truffleRunOptions),
-    parallelExecution in Test := false
+    parallelExecution in Test := false,
+    logBuffered in Test := false
   )
   .configs(Benchmark)
   .settings(

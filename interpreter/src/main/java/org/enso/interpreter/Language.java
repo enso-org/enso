@@ -6,11 +6,11 @@ import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.instrumentation.ProvidedTags;
 import com.oracle.truffle.api.instrumentation.StandardTags;
+import org.enso.interpreter.builder.FileDetector;
+import org.enso.interpreter.builder.GlobalScopeExpressionFactory;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.Context;
-import org.enso.interpreter.builder.ExpressionFactory;
-import org.enso.interpreter.builder.FileDetector;
 
 @TruffleLanguage.Registration(
     id = Constants.LANGUAGE_ID,
@@ -46,10 +46,14 @@ public final class Language extends TruffleLanguage<Context> {
 
   @Override
   protected CallTarget parse(ParsingRequest request) throws Exception {
-    AstExpression parsed =
+    AstGlobalScope parsed =
         new EnsoParser().parseEnso(request.getSource().getCharacters().toString());
-    ExpressionNode result = new ExpressionFactory(this).run(parsed);
+    ExpressionNode result = new GlobalScopeExpressionFactory(this).run(parsed);
     EnsoRootNode root = new EnsoRootNode(this, new FrameDescriptor(), result, null, "root");
     return Truffle.getRuntime().createCallTarget(root);
+  }
+
+  public Context getCurrentContext() {
+    return getCurrentContext(Language.class);
   }
 }

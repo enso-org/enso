@@ -1,10 +1,9 @@
 package org.enso.interpreter.builder;
 
 import com.oracle.truffle.api.TruffleFile;
-import org.enso.interpreter.Constants;
-
 import java.io.IOException;
 import java.nio.charset.Charset;
+import org.enso.interpreter.Constants;
 
 public final class FileDetector implements TruffleFile.FileTypeDetector {
 

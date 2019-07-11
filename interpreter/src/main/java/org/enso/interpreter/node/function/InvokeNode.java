@@ -1,16 +1,17 @@
 package org.enso.interpreter.node.function;
 
 import com.oracle.truffle.api.CompilerAsserts;
-import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.nodes.*;
-import org.enso.interpreter.runtime.TailCallException;
+import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
+import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.Function;
+import org.enso.interpreter.optimiser.TailCallException;
 
 @NodeInfo(shortName = "@", description = "Executes function")
 public final class InvokeNode extends ExpressionNode {
-  @Child private ExpressionNode expression;
   @Children private final ExpressionNode[] arguments;
+  @Child private ExpressionNode expression;
   @Child private DispatchNode dispatchNode;
 
   public InvokeNode(ExpressionNode expression, ExpressionNode[] arguments) {

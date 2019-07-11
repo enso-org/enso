@@ -1,6 +1,6 @@
 package org.enso.interpreter.node.function;
 
-import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import org.enso.interpreter.node.ExpressionNode;

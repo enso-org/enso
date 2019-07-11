@@ -7,10 +7,9 @@ import com.oracle.truffle.api.source.SourceSection;
 import org.enso.interpreter.Language;
 
 public class EnsoRootNode extends RootNode {
-  @Child private ExpressionNode body;
-
   private final String name;
   private final SourceSection sourceSection;
+  @Child private ExpressionNode body;
 
   public EnsoRootNode(
       Language language,
