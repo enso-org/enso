@@ -42,34 +42,42 @@ jobs:
     inputs:
       testResultsFormat: 'JUnit'
       testResultsFiles: '**/TEST-*.xml'
+  - script: |
+      echo "##vso[task.complete result=Failed;]DONE"
+    condition: eq(variables['Agent.JobStatus'], 'SucceededWithIssues')
+    displayName: "Fail if there were issues"
 - job: macOS
   pool:
     vmImage: macOS-10.13
   steps:
-    - script: |
-        curl -fSL -o graal.tar.gz https://github.com/oracle/graal/releases/download/vm-19.1.0/graalvm-ce-darwin-amd64-19.1.0.tar.gz
-        tar -x -z -C ~ -f graal.tar.gz
-        ls ~/graalvm-ce-19.1.0
-        sudo mv ~/graalvm-ce-19.1.0 /Library/Java/JavaVirtualMachines
-        echo "##vso[task.setvariable variable=JAVA_HOME]/Library/Java/JavaVirtualMachines/graalvm-ce-19.1.0/Contents/Home"
-        echo "##vso[task.setvariable variable=PATH]/Library/Java/JavaVirtualMachines/graalvm-ce-19.1.0/Contents/Home/bin:$PATH"
-      displayName: Install GraalVM
-    - script: |
-        brew update
-        brew install sbt
-      displayName: Install sbt
-    - script: |
-        sbt -no-colors test
-      displayName: sbt test
-      continueOnError: true
-    - script: |
-        sbt -no-colors bench
-      displayName: sbt bench
-      continueOnError: true
-    - task: PublishTestResults@2
-      inputs:
-        testResultsFormat: 'JUnit'
-        testResultsFiles: '**/TEST-*.xml'
+  - script: |
+      curl -fSL -o graal.tar.gz https://github.com/oracle/graal/releases/download/vm-19.1.0/graalvm-ce-darwin-amd64-19.1.0.tar.gz
+      tar -x -z -C ~ -f graal.tar.gz
+      ls ~/graalvm-ce-19.1.0
+      sudo mv ~/graalvm-ce-19.1.0 /Library/Java/JavaVirtualMachines
+      echo "##vso[task.setvariable variable=JAVA_HOME]/Library/Java/JavaVirtualMachines/graalvm-ce-19.1.0/Contents/Home"
+      echo "##vso[task.setvariable variable=PATH]/Library/Java/JavaVirtualMachines/graalvm-ce-19.1.0/Contents/Home/bin:$PATH"
+    displayName: Install GraalVM
+  - script: |
+      brew update
+      brew install sbt
+    displayName: Install sbt
+  - script: |
+      sbt -no-colors test
+    displayName: sbt test
+    continueOnError: true
+  - script: |
+      sbt -no-colors bench
+    displayName: sbt bench
+    continueOnError: true
+  - task: PublishTestResults@2
+    inputs:
+      testResultsFormat: 'JUnit'
+      testResultsFiles: '**/TEST-*.xml'
+  - script: |
+      echo "##vso[task.complete result=Failed;]DONE"
+    condition: eq(variables['Agent.JobStatus'], 'SucceededWithIssues')
+    displayName: "Fail if there were issues"
 - job: Windows
   pool:
     vmImage: windows-2019
@@ -98,3 +106,7 @@ jobs:
     inputs:
       testResultsFormat: 'JUnit'
       testResultsFiles: '**/TEST-*.xml'
+  - script: |
+      echo "##vso[task.complete result=Failed;]DONE"
+    condition: eq(variables['Agent.JobStatus'], 'SucceededWithIssues')
+    displayName: "Fail if there were issues"
