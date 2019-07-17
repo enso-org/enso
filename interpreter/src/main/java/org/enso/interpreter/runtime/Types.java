@@ -4,7 +4,7 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.ImplicitCast;
 import com.oracle.truffle.api.dsl.TypeSystem;
 
-@TypeSystem({long.class, Function.class})
+@TypeSystem({long.class, Function.class, Atom.class, AtomConstructor.class})
 public class Types {
 
   @ImplicitCast
@@ -12,4 +12,5 @@ public class Types {
   public static long castLong(int value) {
     return value;
   }
+
 }

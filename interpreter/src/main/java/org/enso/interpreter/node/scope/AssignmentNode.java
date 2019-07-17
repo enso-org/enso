@@ -1,4 +1,4 @@
-package org.enso.interpreter.node.controlflow;
+package org.enso.interpreter.node.scope;
 
 import com.oracle.truffle.api.dsl.NodeChild;
 import com.oracle.truffle.api.dsl.NodeField;
@@ -8,7 +8,7 @@ import com.oracle.truffle.api.frame.FrameSlotKind;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.runtime.Unit;
+import org.enso.interpreter.runtime.AtomConstructor;
 
 @NodeInfo(shortName = "=", description = "Assigns expression result to a variable.")
 @NodeChild(value = "rhsNode", type = ExpressionNode.class)
@@ -22,7 +22,7 @@ public abstract class AssignmentNode extends ExpressionNode {
     frame.getFrameDescriptor().setFrameSlotKind(getFrameSlot(), FrameSlotKind.Long);
     frame.setLong(getFrameSlot(), value);
 
-    return Unit.instance();
+    return AtomConstructor.UNIT.newInstance();
   }
 
   @Specialization
@@ -30,6 +30,6 @@ public abstract class AssignmentNode extends ExpressionNode {
     frame.getFrameDescriptor().setFrameSlotKind(getFrameSlot(), FrameSlotKind.Object);
     frame.setObject(getFrameSlot(), value);
 
-    return Unit.instance();
+    return AtomConstructor.UNIT.newInstance();
   }
 }

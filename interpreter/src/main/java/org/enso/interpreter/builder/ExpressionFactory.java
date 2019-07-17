@@ -4,32 +4,30 @@ import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.nodes.RootNode;
+import org.enso.interpreter.*;
+import org.enso.interpreter.node.EnsoRootNode;
+import org.enso.interpreter.node.ExpressionNode;
+import org.enso.interpreter.node.controlflow.*;
+import org.enso.interpreter.node.expression.builtin.PrintNode;
+import org.enso.interpreter.node.expression.constant.ConstructorNode;
+import org.enso.interpreter.node.expression.literal.IntegerLiteralNode;
+import org.enso.interpreter.node.expression.operator.*;
+import org.enso.interpreter.node.function.CreateFunctionNode;
+import org.enso.interpreter.node.function.FunctionBodyNode;
+import org.enso.interpreter.node.function.InvokeNodeGen;
+import org.enso.interpreter.node.function.ReadArgumentNode;
+import org.enso.interpreter.node.scope.AssignmentNode;
+import org.enso.interpreter.node.scope.AssignmentNodeGen;
+import org.enso.interpreter.node.scope.ReadGlobalTargetNode;
+import org.enso.interpreter.node.scope.ReadLocalTargetNodeGen;
+import org.enso.interpreter.runtime.errors.VariableDoesNotExistException;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import org.enso.interpreter.AstExpression;
-import org.enso.interpreter.AstExpressionVisitor;
-import org.enso.interpreter.Language;
-import org.enso.interpreter.node.EnsoRootNode;
-import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.node.controlflow.AssignmentNode;
-import org.enso.interpreter.node.controlflow.AssignmentNodeGen;
-import org.enso.interpreter.node.controlflow.IfZeroNode;
-import org.enso.interpreter.node.expression.builtin.PrintNode;
-import org.enso.interpreter.node.expression.literal.IntegerLiteralNode;
-import org.enso.interpreter.node.expression.operator.AddOperatorNodeGen;
-import org.enso.interpreter.node.expression.operator.DivideOperatorNodeGen;
-import org.enso.interpreter.node.expression.operator.ModOperatorNodeGen;
-import org.enso.interpreter.node.expression.operator.MultiplyOperatorNodeGen;
-import org.enso.interpreter.node.expression.operator.SubtractOperatorNodeGen;
-import org.enso.interpreter.node.function.CreateFunctionNode;
-import org.enso.interpreter.node.function.FunctionBodyNode;
-import org.enso.interpreter.node.function.InvokeNode;
-import org.enso.interpreter.node.function.ReadArgumentNode;
-import org.enso.interpreter.node.scope.ReadGlobalTargetNode;
-import org.enso.interpreter.node.scope.ReadLocalTargetNodeGen;
-import org.enso.interpreter.runtime.GlobalCallTarget;
+import java.util.stream.Stream;
 
 public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
 
@@ -90,19 +88,19 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
 
   @Override
   public ExpressionNode visitVariable(String name) {
-    Optional<FramePointer> slot = scope.getSlot(name);
+    Supplier<Optional<ExpressionNode>> localNode =
+        () -> scope.getSlot(name).map(ReadLocalTargetNodeGen::create);
+    Supplier<Optional<ExpressionNode>> constructor =
+        () -> globalScope.getConstructor(name).map(ConstructorNode::new);
+    Supplier<Optional<ExpressionNode>> globalFun =
+        () -> globalScope.getGlobalCallTarget(name).map(ReadGlobalTargetNode::new);
 
-    if (slot.isPresent()) {
-      return ReadLocalTargetNodeGen.create(slot.get().getFrameSlot(), slot.get().getParentLevel());
-    } else {
-      Optional<GlobalCallTarget> tgt = this.globalScope.getGlobalCallTarget(name);
-
-      if (tgt.isPresent()) {
-        return new ReadGlobalTargetNode(tgt.get());
-      } else {
-        throw new VariableDoesNotExistException(name);
-      }
-    }
+    return Stream.of(localNode, constructor, globalFun)
+        .map(Supplier::get)
+        .filter(Optional::isPresent)
+        .map(Optional::get)
+        .findFirst()
+        .orElseThrow(() -> new VariableDoesNotExistException(name));
   }
 
   public ExpressionNode processFunctionBody(
@@ -133,14 +131,16 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
   public ExpressionNode visitFunction(
       List<String> arguments, List<AstExpression> statements, AstExpression retValue) {
     ExpressionFactory child = createChild(currentVarName);
-    return child.processFunctionBody(arguments, statements, retValue);
+    ExpressionNode fun = child.processFunctionBody(arguments, statements, retValue);
+    fun.markTail();
+    return fun;
   }
 
   @Override
   public ExpressionNode visitApplication(AstExpression function, List<AstExpression> arguments) {
-    return new InvokeNode(
-        function.visit(this),
-        arguments.stream().map(arg -> arg.visit(this)).toArray(ExpressionNode[]::new));
+    return InvokeNodeGen.create(
+        arguments.stream().map(arg -> arg.visit(this)).toArray(ExpressionNode[]::new),
+        function.visit(this));
   }
 
   @Override
@@ -158,5 +158,32 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
   @Override
   public ExpressionNode visitPrint(AstExpression body) {
     return new PrintNode(body.visit(this));
+  }
+
+  @Override
+  public ExpressionNode visitCaseFunction(
+      List<String> arguments, List<AstExpression> statements, AstExpression retValue) {
+    ExpressionFactory child = createChild(currentVarName);
+    ExpressionNode fun = child.processFunctionBody(arguments, statements, retValue);
+    return fun;
+  }
+
+  @Override
+  public ExpressionNode visitMatch(
+      AstExpression target, List<AstCase> branches, Optional<AstCaseFunction> fallback) {
+    ExpressionNode targetNode = target.visit(this);
+    CaseNode[] cases =
+        branches.stream()
+            .map(
+                branch ->
+                    new ConstructorCaseNode(
+                        branch.cons().visit(this), branch.function().visit(this)))
+            .toArray(CaseNode[]::new);
+    CaseNode fallbackNode =
+        fallback
+            .map(fb -> (CaseNode) new FallbackNode(fb.visit(this)))
+            .orElseGet(DefaultFallbackNode::new);
+
+    return new MatchNode(targetNode, cases, fallbackNode);
   }
 }

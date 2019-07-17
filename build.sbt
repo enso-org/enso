@@ -80,6 +80,7 @@ val truffleRunOptions = Seq(
   javaOptions += s"-Dgraal.TraceTruffleCompilationCallTree=true",
   javaOptions += s"-Dgraal.TraceTruffleInlining=true",
   javaOptions += s"-Dgraal.TraceTrufflePerformanceWarnings=true",
+  javaOptions += s"-Dgraal.TruffleIterativePartialEscape=true",
   javaOptions += s"-XX:-UseJVMCIClassLoader"
 )
 

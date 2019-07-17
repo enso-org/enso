@@ -14,6 +14,10 @@ public class FunctionBodyNode extends ExpressionNode {
   public FunctionBodyNode(ExpressionNode[] statements, ExpressionNode returnExpr) {
     this.statements = statements;
     this.returnExpr = returnExpr;
+  }
+
+  @Override
+  public void markTail() {
     returnExpr.markTail();
   }
 

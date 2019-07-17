@@ -32,4 +32,8 @@ public class EnsoRootNode extends RootNode {
   public String toString() {
     return this.name;
   }
+
+  public void markTail() {
+    body.markTail();
+  }
 }

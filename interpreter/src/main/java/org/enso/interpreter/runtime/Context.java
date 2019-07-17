@@ -1,10 +1,11 @@
 package org.enso.interpreter.runtime;
 
 import com.oracle.truffle.api.TruffleLanguage.Env;
+import org.enso.interpreter.Language;
+
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
-import org.enso.interpreter.Language;
 
 public class Context {
   private final Language language;

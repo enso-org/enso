@@ -1,7 +1,10 @@
 package org.enso.interpreter
 
-import scala.util.parsing.combinator._
+import java.util
+import java.util.Optional
+
 import scala.collection.JavaConverters._
+import scala.util.parsing.combinator._
 
 trait AstExpressionVisitor[+T] {
   def visitLong(l: Long): T
@@ -10,6 +13,12 @@ trait AstExpressionVisitor[+T] {
   def visitVariable(name: String): T
 
   def visitFunction(
+    arguments: java.util.List[String],
+    statements: java.util.List[AstExpression],
+    retValue: AstExpression
+  ): T
+
+  def visitCaseFunction(
     arguments: java.util.List[String],
     statements: java.util.List[AstExpression],
     retValue: AstExpression
@@ -29,23 +38,46 @@ trait AstExpressionVisitor[+T] {
   def visitAssignment(varName: String, expr: AstExpression): T
 
   def visitPrint(body: AstExpression): T
+
+  def visitMatch(
+    target: AstExpression,
+    branches: java.util.List[AstCase],
+    fallback: java.util.Optional[AstCaseFunction]
+  ): T
 }
 
 trait AstGlobalScopeVisitor[+T] {
 
   def visitGlobalScope(
+    typeDefs: java.util.List[AstTypeDef],
     bindings: java.util.List[AstAssignment],
     expression: AstExpression
   ): T
 }
 
+sealed trait AstGlobalSymbol
+
+case class AstTypeDef(name: String, arguments: List[String])
+    extends AstGlobalSymbol {
+  def getArguments: java.util.List[String] = arguments.asJava
+}
+
 case class AstGlobalScope(
-  bindings: List[AstAssignment],
+  bindings: List[AstGlobalSymbol],
   expression: AstExpression)
     extends {
 
-  def visit[T](visitor: AstGlobalScopeVisitor[T]): T =
-    visitor.visitGlobalScope(bindings.asJava, expression)
+  def visit[T](visitor: AstGlobalScopeVisitor[T]): T = {
+    val types = new util.ArrayList[AstTypeDef]()
+    val defs  = new util.ArrayList[AstAssignment]()
+
+    bindings.foreach {
+      case assignment: AstAssignment => defs.add(assignment)
+      case typeDef: AstTypeDef       => types.add(typeDef)
+    }
+
+    visitor.visitGlobalScope(types, defs, expression)
+  }
 }
 
 sealed trait AstExpression {
@@ -88,8 +120,18 @@ case class AstFunction(
     visitor.visitFunction(arguments.asJava, statements.asJava, ret)
 }
 
-case class AstAssignment(name: String, body: AstExpression)
+case class AstCaseFunction(
+  arguments: List[String],
+  statements: List[AstExpression],
+  ret: AstExpression)
     extends AstExpression {
+  override def visit[T](visitor: AstExpressionVisitor[T]): T =
+    visitor.visitCaseFunction(arguments.asJava, statements.asJava, ret)
+}
+
+case class AstAssignment(name: String, body: AstExpression)
+    extends AstExpression
+    with AstGlobalSymbol {
   override def visit[T](visitor: AstExpressionVisitor[T]): T =
     visitor.visitAssignment(name, body)
 }
@@ -106,6 +148,20 @@ case class AstIfZero(
     extends AstExpression {
   override def visit[T](visitor: AstExpressionVisitor[T]): T =
     visitor.visitIf(cond, ifTrue, ifFalse)
+}
+
+case class AstCase(cons: AstExpression, function: AstCaseFunction)
+case class AstMatch(
+  target: AstExpression,
+  branches: Seq[AstCase],
+  fallback: Option[AstCaseFunction])
+    extends AstExpression {
+  override def visit[T](visitor: AstExpressionVisitor[T]): T =
+    visitor.visitMatch(
+      target,
+      branches.asJava,
+      Optional.ofNullable(fallback.orNull)
+    )
 }
 
 class EnsoParserInternal extends JavaTokenParsers {
@@ -147,7 +203,8 @@ class EnsoParserInternal extends JavaTokenParsers {
       case a ~ None         => a
     }
 
-  def expression: Parser[AstExpression] = ifZero | arith | function
+  def expression: Parser[AstExpression] =
+    ifZero | matchClause | arith | function
 
   def call: Parser[AstApply] = "@" ~> expression ~ (argList ?) ^^ {
     case expr ~ args => AstApply(expr, args.getOrElse(Nil))
@@ -168,11 +225,31 @@ class EnsoParserInternal extends JavaTokenParsers {
       case args ~ stmts ~ expr => AstFunction(args.getOrElse(Nil), stmts, expr)
     }
 
+  def caseFunction: Parser[AstCaseFunction] = function ^^ {
+    case AstFunction(args, stmts, ret) => AstCaseFunction(args, stmts, ret)
+  }
+
+  def caseClause: Parser[AstCase] =
+    (expression <~ "~") ~ (caseFunction <~ ";") ^^ {
+      case cons ~ fun =>
+        AstCase(cons, AstCaseFunction(fun.arguments, fun.statements, fun.ret))
+    }
+
+  def matchClause: Parser[AstMatch] =
+    ("match" ~> expression <~ "<") ~ (caseClause *) ~ (((caseFunction <~ ";") ?) <~ ">") ^^ {
+      case expr ~ cases ~ fallback => AstMatch(expr, cases, fallback)
+    }
+
   def statement: Parser[AstExpression] = assignment | print | expression
 
-  def globalScope: Parser[AstGlobalScope] = ((assignment) *) ~ expression ^^ {
-    case assignments ~ expr => AstGlobalScope(assignments, expr)
+  def typeDef: Parser[AstGlobalSymbol] = "type" ~> ident ~ (ident *) <~ ";" ^^ {
+    case name ~ args => AstTypeDef(name, args)
   }
+
+  def globalScope: Parser[AstGlobalScope] =
+    ((typeDef | assignment) *) ~ expression ^^ {
+      case assignments ~ expr => AstGlobalScope(assignments, expr)
+    }
 
   def parseGlobalScope(code: String): AstGlobalScope = {
     parseAll(globalScope, code).get

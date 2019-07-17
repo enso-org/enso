@@ -1,4 +1,4 @@
-package org.enso.interpreter.runtime;
+package org.enso.interpreter.runtime.errors;
 
 import com.oracle.truffle.api.TruffleException;
 import com.oracle.truffle.api.nodes.Node;

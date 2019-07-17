@@ -2,6 +2,8 @@ package org.enso.interpreter.builder;
 
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.FrameSlot;
+import org.enso.interpreter.runtime.errors.VariableRedefinitionException;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;

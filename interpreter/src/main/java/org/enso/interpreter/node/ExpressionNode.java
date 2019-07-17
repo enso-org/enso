@@ -6,8 +6,10 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
+import org.enso.interpreter.runtime.Atom;
+import org.enso.interpreter.runtime.AtomConstructor;
+import org.enso.interpreter.runtime.Function;
 import org.enso.interpreter.runtime.TypesGen;
-import org.enso.interpreter.runtime.Unit;
 
 @NodeInfo(shortName = "EnsoExpression", description = "The base node for all enso expressions.")
 @ReportPolymorphism
@@ -31,13 +33,20 @@ public abstract class ExpressionNode extends Node {
     return TypesGen.expectLong(executeGeneric(frame));
   }
 
-  public abstract Object executeGeneric(VirtualFrame frame);
-
-  public Unit executeUnit(VirtualFrame frame) {
-    executeGeneric(frame);
-
-    return Unit.instance();
+  public AtomConstructor executeAtomConstructor(VirtualFrame frame)
+      throws UnexpectedResultException {
+    return TypesGen.expectAtomConstructor(executeGeneric(frame));
   }
+
+  public Atom executeAtom(VirtualFrame frame) throws UnexpectedResultException {
+    return TypesGen.expectAtom(executeGeneric(frame));
+  }
+
+  public Function executeFunction(VirtualFrame frame) throws UnexpectedResultException {
+    return TypesGen.expectFunction(executeGeneric(frame));
+  }
+
+  public abstract Object executeGeneric(VirtualFrame frame);
 
   public void executeVoid(VirtualFrame frame) {
     executeGeneric(frame);
