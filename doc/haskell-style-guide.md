@@ -262,11 +262,19 @@ to revisiting this decision; if you know of a tool that would let us automate
 the above stylistic rules, then please speak up.
 
 ## Commenting
-Comments are a tricky area to get right, as we have found that comments often
-expire quickly and, in absence of a way to validate them, remain incorrect for
-long periods of time. That is not to say, however, that we eschew comments
-entirely. Instead, we make keeping comments up to date an integral part of our
-programming practice, while also limiting the types of comments that we allow.
+Comments in code are a tricky area to get right as we have found that comments
+often expire quickly, and in absence of a way to validate them, remain incorrect
+for long periods of time. In order to best deal with this problem, we make the
+keeping of comments up-to-date into an integral part of our programming practice
+while also limiting the types and kinds of comments we allow.
+
+Comments across the Enso codebases fall into three main types:
+
+- **Documentation Comments:** API documentation for all language constructs that
+  can have it (functions, typeclasses, and so on).
+- **Source Notes:** Detailed explorations of design reasoning that avoid
+  cluttering the code itself.
+- **Tasks:** Things that need doing or fixing in the codebase.
 
 When we write comments, we try to follow one general guideline. A comment should
 explain _what_ and _why_, without mentioning _how_. The _how_ should be
@@ -278,8 +286,9 @@ comments should not be used as a crutch for badly-designed code.
 
 ### Documentation Comments
 One of the primary forms of comment that we allow across the Enso codebases is
-the doc comment. These are intended to be consumed by users of the API, and use
-the standard Haddock syntax. Doc comments should:
+the doc comment. Every language construct that can have an associated doc
+comment should do so. These are intended to be consumed by users of the API, and
+use the standard Haddock syntax. Doc comments should:
 
 - Provide a short one-line explanation of the object being documented.
 - Provide a longer description of the object, including examples where relevant.
