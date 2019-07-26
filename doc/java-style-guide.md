@@ -133,21 +133,21 @@ public SimplM<SimplEnv, OutExpr> prepRHS(SimplEnv env, OutExpr outExpr) {
 }
 
 /* Note [Float Coercions]
-~~~~~~~~~~~~~~~~~~~~~~~~~
-When we find the binding
+ * ~~~~~~~~~~~~~~~~~~~~~~
+ * When we find the binding
         x = cast(e, co)
-we'd like to transform it to
-        x' = e
-        x = cast(x, co) // A trivial binding
-There's a chance that e will be a constructor application or function, or
-something like that, so moving the coercion to the usage site may well cancel
-the coercions and lead to further optimisation.
-        ...more stuff about coercion floating...
-
-== Note [Float Coercions (Unlifted)]
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        ...explanations of floating for unlifted types...
-*/
+ * we'd like to transform it to
+ *         x' = e
+ *         x = cast(x, co) // A trivial binding
+ * There's a chance that e will be a constructor application or function, or
+ * something like that, so moving the coercion to the usage site may well cancel
+ * the coercions and lead to further optimisation.
+ *         ...more stuff about coercion floating...
+ * 
+ * Note [Float Coercions (Unlifted)]
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ *      ...explanations of floating for unlifted types...
+ */
 }
 ```
 
