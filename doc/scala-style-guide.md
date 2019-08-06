@@ -41,7 +41,7 @@ use the IntelliJ integration, please note that you need only have the official
 installed, and be using IntelliJ 2019.1 or later. You should _not_ use the
 independent Scalafmt plugin.
 
-### Naming
+## Naming
 Enso has some fairly simple general naming conventions, though the sections
 below may provide more rules for use in specific cases.
 
@@ -53,6 +53,25 @@ below may provide more rules for use in specific cases.
   there is no other appropriate name, and should _never_ be used to refer to
   temporary data in a function.
 - Names should be descriptive, even if this makes them longer.
+
+## Package structure and naming
+Enso follows the 
+[Java convention for naming packages](https://docs.oracle.com/javase/tutorial/java/package/namingpkgs.html):
+package name components may contain only lower case characters and, if
+necessary, an underscore character. All Enso package names should be prefixed
+with `org.enso`. For example, the package for implementation of `File Manager` 
+project should be named `org.enso.filemanager`.
+
+When the name of the file in the package is the same as the final component of 
+the package name, the file should be moved one level up. For examples, if 
+`File Manager` project contains `FileManager.scala` file, then the file should
+be placed directly in the `org.enso` package instead of `org.enso.filemanager`.
+This is to avoid repetitious contructs like `org.enso.filemanager.FileManager`.
+
+The root directory for the project should follow the naming scheme of types. 
+For example, if the project name is `File Manager`, then sources of the main
+package shall be located under path 
+`FileManager\src\main\scala\org\enso\filemanager`.
 
 ## Build Tooling
 All Scala projects in the Enso organisation should manage their dependencies and

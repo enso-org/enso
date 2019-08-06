@@ -28,7 +28,7 @@ lazy val enso = (project in file("."))
   )
 
 // Sub-Projects
-lazy val syntax = (project in file("syntax"))
+lazy val syntax = (project in file("Syntax"))
   .settings(
     mainClass in (Compile, run) := Some("org.enso.syntax.Main"),
     version := "0.1"
@@ -60,7 +60,7 @@ lazy val syntax = (project in file("syntax"))
     parallelExecution in Benchmark := false
   )
 
-lazy val pkg = (project in file("pkg"))
+lazy val pkg = (project in file("Pkg"))
   .settings(
     mainClass in (Compile, run) := Some("org.enso.pkg.Main"),
     version := "0.1"
@@ -85,7 +85,7 @@ val truffleRunOptions = Seq(
   javaOptions += s"-XX:-UseJVMCIClassLoader"
 )
 
-lazy val interpreter = (project in file("interpreter"))
+lazy val interpreter = (project in file("Interpreter"))
   .settings(
     mainClass in (Compile, run) := Some("org.enso.interpreter.Main"),
     version := "0.1"
@@ -167,7 +167,7 @@ lazy val fileManager = (project in file("FileManager"))
     libraryDependencies += "io.methvin" % "directory-watcher" % "0.9.6"
   )
 
-lazy val projectManager = (project in file("project-manager"))
+lazy val projectManager = (project in file("ProjectManager"))
   .settings(
     (Compile / mainClass) := Some("org.enso.projectmanager.Server")
   )
