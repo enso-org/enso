@@ -67,3 +67,9 @@ cabal.sandbox.config
 .idea/
 *.swp
 .projections.json
+
+
+#######################
+## Benchmark Reports ##
+#######################
+bench-report.xml
