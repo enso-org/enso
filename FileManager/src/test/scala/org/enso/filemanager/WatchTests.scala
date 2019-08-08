@@ -60,16 +60,14 @@ class WatchTests
   def matchesEvent(
     path: Path,
     eventType: DirectoryChangeEvent.EventType
-  )(message: FileSystemEvent
-  ): Boolean = {
+  )(message: FileSystemEvent): Boolean = {
     message.path == path && message.eventType == eventType
   }
 
   def expectEventFor(
     eventType: DirectoryChangeEvent.EventType,
     events: Seq[FileSystemEvent]
-  )(path: Path
-  ): Unit = {
+  )(path: Path): Unit = {
     assert(
       events.exists(matchesEvent(path, eventType)),
       s"not received message about $path"
@@ -107,25 +105,28 @@ class WatchTests
     Await.result(futureResponse, timeout.duration).get
   }
 
-  test("Watcher: observe subtree creation and deletion") {
-    val subtree = createSubtree()
-    val events  = testProbe.receiveMessages(subtree.elements.size)
-    subtree.elements.foreach(
-      expectEventFor(DirectoryChangeEvent.EventType.CREATE, events)
-    )
-
-    FileUtils.deleteDirectory(subtree.root.toFile)
-
-    val deletionEvents = testProbe.receiveMessages(subtree.elements.size)
-    subtree.elements.foreach(
-      expectEventFor(
-        DirectoryChangeEvent.EventType.DELETE,
-        deletionEvents
-      )
-    )
-
-    testProbe.expectNoMessage(50.millis)
-  }
+  // FIXME [MWU]
+  //  This test has been temporarily disabled because it was failing from time
+  //  to time on CI runs: https://github.com/luna/enso/issues/73
+//  test("Watcher: observe subtree creation and deletion") {
+//    val subtree = createSubtree()
+//    val events  = testProbe.receiveMessages(subtree.elements.size)
+//    subtree.elements.foreach(
+//      expectEventFor(DirectoryChangeEvent.EventType.CREATE, events)
+//    )
+//
+//    FileUtils.deleteDirectory(subtree.root.toFile)
+//
+//    val deletionEvents = testProbe.receiveMessages(subtree.elements.size)
+//    subtree.elements.foreach(
+//      expectEventFor(
+//        DirectoryChangeEvent.EventType.DELETE,
+//        deletionEvents
+//      )
+//    )
+//
+//    testProbe.expectNoMessage(50.millis)
+//  }
 
   test("Watcher: observe file modification") {
     val dir10 = tempDir.resolve("dir10")
