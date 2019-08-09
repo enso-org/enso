@@ -1,6 +1,6 @@
 package org.enso.interpreter.benchmarks;
 
-import org.enso.interpreter.RecursionFixtures;
+import org.enso.interpreter.fixtures.RecursionFixtures;
 import org.openjdk.jmh.annotations.*;
 
 import java.util.concurrent.TimeUnit;
@@ -21,5 +21,10 @@ public class RecursionBenchmarks {
   @Benchmark
   public void benchSumTCOFoldLike() {
     recursionFixtures.sumTCOFoldLike().execute(recursionFixtures.hundredMillion());
+  }
+
+  @Benchmark
+  public void benchSumRecursive() {
+    recursionFixtures.sumTCO().execute(recursionFixtures.hundred());
   }
 }

@@ -3,7 +3,6 @@ package org.enso.interpreter
 import org.graalvm.polyglot.PolyglotException
 
 class GlobalScopeTest extends LanguageTest {
-  // TODO [AA] Should work with bare vars.
   "Variables" should "be able to be read from the global scope" in {
     val code =
       """

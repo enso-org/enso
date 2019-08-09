@@ -12,6 +12,15 @@ import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.Context;
 
+/**
+ * The root of the Enso implementation.
+ *
+ * <p>This class contains all of the services needed by a Truffle language to enable interoperation
+ * with other guest languages on the same VM. This ensures that Enso is usable via the polyglot API,
+ * and hence that it can both call other languages seamlessly, and be called from other languages.
+ *
+ * See {@link TruffleLanguage} for more information on the lifecycle of a language.
+ */
 @TruffleLanguage.Registration(
     id = Constants.LANGUAGE_ID,
     name = Constants.LANGUAGE_NAME,
@@ -29,21 +38,47 @@ import org.enso.interpreter.runtime.Context;
 })
 public final class Language extends TruffleLanguage<Context> {
 
+  /**
+   * Creates a new Enso context.
+   *
+   * @param env the language execution environment
+   * @return a new Enso context
+   */
   @Override
   protected Context createContext(Env env) {
     return new Context(this, env);
   }
 
+  /**
+   * Checks if a given object is native to Enso.
+   *
+   * @param object the object to check
+   * @return {@code true} if {@code object} belongs to Enso, {@code false} otherwise
+   */
   @Override
   protected boolean isObjectOfLanguage(Object object) {
     return false;
   }
 
+  /**
+   * Checks if this Enso execution environment is accessible in a multithreaded context.
+   *
+   * @param thread the thread to check access for
+   * @param singleThreaded whether or not execution is single threaded
+   * @return whether or not thread access is allowed
+   */
   @Override
   protected boolean isThreadAccessAllowed(Thread thread, boolean singleThreaded) {
     return super.isThreadAccessAllowed(thread, singleThreaded);
   }
 
+  /**
+   * Parses Enso source code ready for execution.
+   *
+   * @param request the source to parse, plus contextual information
+   * @return a ready-to-execute node representing the code provided in {@code request}
+   * @throws Exception when parsing or AST construction fail
+   */
   @Override
   protected CallTarget parse(ParsingRequest request) throws Exception {
     AstGlobalScope parsed =
@@ -53,6 +88,11 @@ public final class Language extends TruffleLanguage<Context> {
     return Truffle.getRuntime().createCallTarget(root);
   }
 
+  /**
+   * Gets the current Enso execution context.
+   *
+   * @return the current execution context
+   */
   public Context getCurrentContext() {
     return getCurrentContext(Language.class);
   }

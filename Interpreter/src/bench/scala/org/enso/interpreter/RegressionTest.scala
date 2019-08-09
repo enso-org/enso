@@ -3,9 +3,10 @@ package org.enso.interpreter
 import org.scalatest.FlatSpec
 import org.scalatest.Matchers
 
-import collection.JavaConverters._
+import scala.collection.JavaConverters._
 
 class RegressionTest extends FlatSpec with Matchers {
+  // This tolerance may be adjusted depending on the stability of CI
   final val TOLERANCE = 0.2
 
   val runner     = new BenchmarksRunner

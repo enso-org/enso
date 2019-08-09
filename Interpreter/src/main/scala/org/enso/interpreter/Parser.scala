@@ -13,20 +13,20 @@ trait AstExpressionVisitor[+T] {
   def visitVariable(name: String): T
 
   def visitFunction(
-    arguments: java.util.List[String],
+    arguments: java.util.List[AstArgDefinition],
     statements: java.util.List[AstExpression],
     retValue: AstExpression
   ): T
 
   def visitCaseFunction(
-    arguments: java.util.List[String],
+    arguments: java.util.List[AstArgDefinition],
     statements: java.util.List[AstExpression],
     retValue: AstExpression
   ): T
 
-  def visitApplication(
+  def visitFunctionApplication(
     function: AstExpression,
-    arguments: java.util.List[AstExpression]
+    arguments: java.util.List[AstCallArg]
   ): T
 
   def visitIf(
@@ -57,15 +57,14 @@ trait AstGlobalScopeVisitor[+T] {
 
 sealed trait AstGlobalSymbol
 
-case class AstTypeDef(name: String, arguments: List[String])
+case class AstTypeDef(name: String, arguments: List[AstArgDefinition])
     extends AstGlobalSymbol {
-  def getArguments: java.util.List[String] = arguments.asJava
+  def getArguments: java.util.List[AstArgDefinition] = arguments.asJava
 }
 
 case class AstGlobalScope(
   bindings: List[AstGlobalSymbol],
-  expression: AstExpression)
-    extends {
+  expression: AstExpression) {
 
   def visit[T](visitor: AstGlobalScopeVisitor[T]): T = {
     val types = new util.ArrayList[AstTypeDef]()
@@ -82,6 +81,52 @@ case class AstGlobalScope(
 
 sealed trait AstExpression {
   def visit[T](visitor: AstExpressionVisitor[T]): T
+}
+
+sealed trait AstArgDefinition {
+  def visit[T](visitor: AstArgDefinitionVisitor[T], position: Int): T
+}
+
+trait AstArgDefinitionVisitor[+T] {
+  def visitDefaultedArg(name: String, value: AstExpression, position: Int): T
+  def visitBareArg(name: String, position: Int): T
+}
+
+case class AstDefaultedArgDefinition(name: String, value: AstExpression)
+    extends AstArgDefinition {
+  override def visit[T](visitor: AstArgDefinitionVisitor[T], position: Int): T =
+    visitor.visitDefaultedArg(name, value, position)
+}
+
+case class AstBareArgDefinition(name: String) extends AstArgDefinition {
+  override def visit[T](visitor: AstArgDefinitionVisitor[T], position: Int): T =
+    visitor.visitBareArg(name, position)
+}
+
+sealed trait AstCallArg {
+  def visit[T](visitor: AstCallArgVisitor[T], position: Int): T
+}
+
+trait AstCallArgVisitor[+T] {
+  def visitNamedCallArg(name: String, value: AstExpression, position: Int): T
+  def visitUnnamedCallArg(value: AstExpression, position: Int): T
+  def visitIgnore(name: String, position: Int): T
+}
+
+case class AstNamedCallArg(name: String, value: AstExpression)
+    extends AstCallArg {
+  override def visit[T](visitor: AstCallArgVisitor[T], position: Int): T =
+    visitor.visitNamedCallArg(name, value, position)
+}
+
+case class AstUnnamedCallArg(value: AstExpression) extends AstCallArg {
+  override def visit[T](visitor: AstCallArgVisitor[T], position: Int): T =
+    visitor.visitUnnamedCallArg(value, position)
+}
+
+case class AstIgnore(name: String) extends AstCallArg {
+  override def visit[T](visitor: AstCallArgVisitor[T], position: Int): T =
+    visitor.visitIgnore(name, position)
 }
 
 case class AstLong(l: Long) extends AstExpression {
@@ -105,14 +150,14 @@ case class AstVariable(name: String) extends AstExpression {
     visitor.visitVariable(name)
 }
 
-case class AstApply(fun: AstExpression, args: List[AstExpression])
+case class AstApply(fun: AstExpression, args: List[AstCallArg])
     extends AstExpression {
   override def visit[T](visitor: AstExpressionVisitor[T]): T =
-    visitor.visitApplication(fun, args.asJava)
+    visitor.visitFunctionApplication(fun, args.asJava)
 }
 
 case class AstFunction(
-  arguments: List[String],
+  arguments: List[AstArgDefinition],
   statements: List[AstExpression],
   ret: AstExpression)
     extends AstExpression {
@@ -121,7 +166,7 @@ case class AstFunction(
 }
 
 case class AstCaseFunction(
-  arguments: List[String],
+  arguments: List[AstArgDefinition],
   statements: List[AstExpression],
   ret: AstExpression)
     extends AstExpression {
@@ -185,10 +230,29 @@ class EnsoParserInternal extends JavaTokenParsers {
       case lang ~ code => AstForeign(lang, code)
     }
 
-  def argList: Parser[List[AstExpression]] =
-    delimited("[", "]", nonEmptyList(expression))
+  def argList: Parser[List[AstCallArg]] =
+    delimited("[", "]", nonEmptyList(ignore | namedCallArg | unnamedCallArg))
 
-  def inArgList: Parser[List[String]] = delimited("|", "|", nonEmptyList(ident))
+  def namedCallArg: Parser[AstNamedCallArg] = ident ~ ("=" ~> expression) ^^ {
+    case name ~ expr => AstNamedCallArg(name, expr)
+  }
+
+  def unnamedCallArg: Parser[AstCallArg] = expression ^^ AstUnnamedCallArg
+
+  def defaultedArgDefinition: Parser[AstDefaultedArgDefinition] =
+    ident ~ ("=" ~> expression) ^^ {
+      case name ~ value => AstDefaultedArgDefinition(name, value)
+    }
+
+  def bareArgDefinition: Parser[AstBareArgDefinition] =
+    ident ^^ AstBareArgDefinition
+
+  def inArgList: Parser[List[AstArgDefinition]] =
+    delimited(
+      "|",
+      "|",
+      nonEmptyList(defaultedArgDefinition | bareArgDefinition)
+    )
 
   def foreignLiteral: Parser[String] = "**" ~> "[^\\*]*".r <~ "**"
 
@@ -206,6 +270,8 @@ class EnsoParserInternal extends JavaTokenParsers {
   def expression: Parser[AstExpression] =
     ifZero | matchClause | arith | function
 
+  def ignore: Parser[AstIgnore] = ident ~> "=" ~> "!!" ^^ AstIgnore
+
   def call: Parser[AstApply] = "@" ~> expression ~ (argList ?) ^^ {
     case expr ~ args => AstApply(expr, args.getOrElse(Nil))
   }
@@ -216,9 +282,10 @@ class EnsoParserInternal extends JavaTokenParsers {
 
   def print: Parser[AstPrint] = "print:" ~> expression ^^ AstPrint
 
-  def ifZero: Parser[AstIfZero] = "ifZero:" ~> argList ^^ {
-    case List(cond, ift, iff) => AstIfZero(cond, ift, iff)
-  }
+  def ifZero: Parser[AstIfZero] =
+    "ifZero:" ~> "[" ~> (expression ~ ("," ~> expression ~ ("," ~> expression))) <~ "]" ^^ {
+      case cond ~ (ift ~ iff) => AstIfZero(cond, ift, iff)
+    }
 
   def function: Parser[AstFunction] =
     ("{" ~> (inArgList ?) ~ ((statement <~ ";") *) ~ expression <~ "}") ^^ {
@@ -242,9 +309,10 @@ class EnsoParserInternal extends JavaTokenParsers {
 
   def statement: Parser[AstExpression] = assignment | print | expression
 
-  def typeDef: Parser[AstGlobalSymbol] = "type" ~> ident ~ (ident *) <~ ";" ^^ {
-    case name ~ args => AstTypeDef(name, args)
-  }
+  def typeDef: Parser[AstGlobalSymbol] =
+    "type" ~> ident ~ ((bareArgDefinition | ("(" ~> defaultedArgDefinition <~ ")")) *) <~ ";" ^^ {
+      case name ~ args => AstTypeDef(name, args)
+    }
 
   def globalScope: Parser[AstGlobalScope] =
     ((typeDef | assignment) *) ~ expression ^^ {
