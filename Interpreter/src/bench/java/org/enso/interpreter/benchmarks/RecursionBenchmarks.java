@@ -17,4 +17,9 @@ public class RecursionBenchmarks {
   public void benchSumTCO() {
     recursionFixtures.sumTCO().execute(recursionFixtures.hundredMillion());
   }
+
+  @Benchmark
+  public void benchSumTCOFoldLike() {
+    recursionFixtures.sumTCOFoldLike().execute(recursionFixtures.hundredMillion());
+  }
 }
