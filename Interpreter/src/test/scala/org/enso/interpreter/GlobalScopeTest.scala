@@ -3,12 +3,13 @@ package org.enso.interpreter
 import org.graalvm.polyglot.PolyglotException
 
 class GlobalScopeTest extends LanguageTest {
+
   "Variables" should "be able to be read from the global scope" in {
     val code =
       """
-        |a = 10
+        |Unit.a = 10
         |
-        |a
+        |@a [@Unit]
     """.stripMargin
 
     eval(code) shouldEqual 10
@@ -17,10 +18,10 @@ class GlobalScopeTest extends LanguageTest {
   "Functions" should "use values from the global scope in their bodies" in {
     val code =
       """
-        |a = 10
-        |addTen = { |b| a + b }
+        |Unit.a = 10
+        |Unit.addTen = { |b| (@a [@Unit]) + b }
         |
-        |@addTen [5]
+        |@addTen [@Unit, 5]
     """.stripMargin
 
     eval(code) shouldEqual 15
@@ -29,10 +30,10 @@ class GlobalScopeTest extends LanguageTest {
   "Functions" should "be able to call other functions in scope" in {
     val code =
       """
-        |adder = { |a, b| a + b }
+        |Unit.adder = { |a, b| a + b }
         |
         |@{ |multiply|
-        |  res = @adder [1, 2];
+        |  res = @adder [@Unit, 1, 2];
         |  doubled = res * multiply;
         |  doubled
         |} [2]
@@ -44,14 +45,14 @@ class GlobalScopeTest extends LanguageTest {
   "Functions" should "be able to be passed as values when in scope" in {
     val code =
       """
-        |adder = { |a, b| a + b }
+        |Unit.adder = { |a, b| a + b }
         |
-        |binaryFn = { |a, b, function|
+        |Unit.binaryFn = { |a, b, function|
         |  result = @function [a, b];
         |  result
         |}
         |
-        |@binaryFn [1, 2, adder]
+        |@binaryFn [@Unit, 1, 2, { |a, b| @adder [@Unit, a, b] }]
     """.stripMargin
 
     eval(code) shouldEqual 3
@@ -60,16 +61,16 @@ class GlobalScopeTest extends LanguageTest {
   "Functions" should "be able to mutually recurse in the global scope" in {
     val code =
       """
-        |decrementCall = { |number|
+        |Unit.decrementCall = { |number|
         |  res = number - 1;
-        |  @fn1 [res]
+        |  @fn1 [@Unit, res]
         |}
         |
-        |fn1 = { |number|
-        |  ifZero: [number % 3, number, @decrementCall [number]]
+        |Unit.fn1 = { |number|
+        |  ifZero: [number % 3, number, @decrementCall [@Unit, number]]
         |}
         |
-        |@fn1 [5]
+        |@fn1 [@Unit, 5]
       """.stripMargin
 
     eval(code) shouldEqual 3
@@ -78,9 +79,9 @@ class GlobalScopeTest extends LanguageTest {
   "Functions" should "be suspended within blocks" in {
     val code =
       """
-        |a = 10/0
+        |Unit.a = 10/0
         |
-        |b = { @a }
+        |Unit.b = { @a [@Unit] }
         |b
     """.stripMargin
 
@@ -90,10 +91,10 @@ class GlobalScopeTest extends LanguageTest {
   "Exceptions" should "be thrown when called" in {
     val code =
       """
-        |a = 10/0
+        |Unit.a = 10/0
         |
-        |b = { @a }
-        |@b
+        |Unit.b = { @a [@Unit] }
+        |@b [@Unit]
       """.stripMargin
 
     a[PolyglotException] should be thrownBy eval(code)

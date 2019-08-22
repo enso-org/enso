@@ -48,6 +48,9 @@ class LexicalScopeTest extends LanguageTest {
   }
 
   "Reference to an undefined variable" should "throw error" in {
+    //TODO: Pending, because we're not yet sure what the behavior should be in the presence
+    // of dynamic dispatch. `y` in this code is actually equivalent to `x -> x.y`.
+    pending
     val code =
       """
         |@{

@@ -59,4 +59,22 @@ public class CreateFunctionNode extends ExpressionNode {
   public Object executeGeneric(VirtualFrame frame) {
     return executeFunction(frame);
   }
+
+  /**
+   * Gets the call target associated with this function.
+   *
+   * @return the call target for this function
+   */
+  public RootCallTarget getCallTarget() {
+    return callTarget;
+  }
+
+  /**
+   * Gets the argument information from the function definition site.
+   *
+   * @return information on the function's arguments
+   */
+  public ArgumentDefinition[] getArgs() {
+    return args;
+  }
 }

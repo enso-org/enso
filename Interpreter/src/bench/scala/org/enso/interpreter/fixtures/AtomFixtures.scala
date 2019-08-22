@@ -3,7 +3,7 @@ package org.enso.interpreter.fixtures
 import org.enso.interpreter.LanguageRunner
 
 class AtomFixtures extends LanguageRunner {
-  val million: Long        = 1000000
+  val million: Long = 1000000
 
   val generateListCode =
     """
@@ -31,6 +31,19 @@ class AtomFixtures extends LanguageRunner {
     """.stripMargin
 
   val reverseList = eval(reverseListCode)
+
+  val reverseListMethodsCode =
+    """
+      |Cons.reverse = { |acc| match this <
+      |  Cons ~ { |h, t| @reverse [t, @Cons [h, acc]] };
+      |>}
+      |
+      |Nil.reverse = { |acc| acc }
+      |
+      |{ |list| @reverse [list, @Nil] }
+      |""".stripMargin
+
+  val reverseListMethods = eval(reverseListMethodsCode)
 
   val sumListCode =
     """
@@ -60,4 +73,15 @@ class AtomFixtures extends LanguageRunner {
 
   val sumListFallback = eval(sumListFallbackCode)
 
+  val sumListMethodsCode =
+    """
+      |Nil.sum = { |acc| acc }
+      |Cons.sum = { |acc| match this <
+      |  Cons ~ { |h, t| @sum [t, h + acc] };
+      |>}
+      |
+      |{ |list| @sum [list, 0] }
+      |""".stripMargin
+
+  val sumListMethods = eval(sumListMethodsCode)
 }

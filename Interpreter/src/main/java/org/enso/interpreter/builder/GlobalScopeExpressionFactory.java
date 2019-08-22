@@ -1,19 +1,19 @@
 package org.enso.interpreter.builder;
 
-import com.oracle.truffle.api.RootCallTarget;
-import com.oracle.truffle.api.Truffle;
-import com.oracle.truffle.api.frame.FrameDescriptor;
 import java.util.List;
-import org.enso.interpreter.AstAssignment;
 import org.enso.interpreter.AstExpression;
 import org.enso.interpreter.AstGlobalScope;
 import org.enso.interpreter.AstGlobalScopeVisitor;
+import org.enso.interpreter.AstMethodDef;
 import org.enso.interpreter.AstTypeDef;
+import org.enso.interpreter.Constants;
 import org.enso.interpreter.Language;
-import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
+import org.enso.interpreter.node.callable.function.CreateFunctionNode;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.error.VariableDoesNotExistException;
 import org.enso.interpreter.runtime.scope.GlobalScope;
 
 /**
@@ -52,10 +52,8 @@ public class GlobalScopeExpressionFactory implements AstGlobalScopeVisitor<Expre
    */
   @Override
   public ExpressionNode visitGlobalScope(
-      List<AstTypeDef> typeDefs, List<AstAssignment> bindings, AstExpression executableExpression) {
-    GlobalScope globalScope = new GlobalScope();
-
-    bindings.forEach(binding -> globalScope.registerName(binding.name()));
+      List<AstTypeDef> typeDefs, List<AstMethodDef> bindings, AstExpression executableExpression) {
+    GlobalScope globalScope = language.getCurrentContext().getGlobalScope();
 
     for (AstTypeDef type : typeDefs) {
       ArgDefinitionFactory argFactory = new ArgDefinitionFactory(language, globalScope);
@@ -68,17 +66,22 @@ public class GlobalScopeExpressionFactory implements AstGlobalScopeVisitor<Expre
       globalScope.registerConstructor(new AtomConstructor(type.name(), argDefs));
     }
 
-    for (AstAssignment binding : bindings) {
-      String name = binding.name();
-      AstExpression body = binding.body();
-
-      ExpressionFactory exprFactory = new ExpressionFactory(language, name, globalScope);
-      ExpressionNode node = exprFactory.run(body);
-
-      EnsoRootNode root = new EnsoRootNode(this.language, new FrameDescriptor(), node, null, name);
-      RootCallTarget target = Truffle.getRuntime().createCallTarget(root);
-
-      globalScope.updateCallTarget(name, target);
+    for (AstMethodDef method : bindings) {
+      AtomConstructor constructor =
+          globalScope
+              .getConstructor(method.typeName())
+              .orElseThrow(() -> new VariableDoesNotExistException(method.typeName()));
+      ExpressionFactory expressionFactory =
+          new ExpressionFactory(
+              language,
+              method.typeName() + Constants.SCOPE_SEPARATOR + method.methodName(),
+              globalScope);
+      CreateFunctionNode funNode =
+          expressionFactory.processFunctionBody(
+              method.fun().getArguments(), method.fun().getStatements(), method.fun().ret());
+      funNode.markTail();
+      Function function = new Function(funNode.getCallTarget(), null, funNode.getArgs());
+      globalScope.registerMethod(constructor, method.methodName(), function);
     }
 
     ExpressionFactory factory = new ExpressionFactory(this.language, globalScope);

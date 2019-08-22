@@ -7,19 +7,24 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import com.oracle.truffle.api.profiles.ConditionProfile;
 import java.util.Arrays;
+import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.argument.sorter.ArgumentSorterNode;
 import org.enso.interpreter.node.callable.argument.sorter.ArgumentSorterNodeGen;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
 import org.enso.interpreter.node.callable.dispatch.SimpleCallOptimiserNode;
 import org.enso.interpreter.optimiser.tco.TailCallException;
+import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgument;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.error.MethodDoesNotExistException;
 import org.enso.interpreter.runtime.error.NotInvokableException;
+import org.enso.interpreter.runtime.type.TypesGen;
 
 /**
  * This node is responsible for organising callable calls so that they are ready to be made.
@@ -33,8 +38,14 @@ public abstract class InvokeCallableNode extends ExpressionNode {
   @Children
   private @CompilationFinal(dimensions = 1) ExpressionNode[] argExpressions;
 
+  private final boolean canApplyThis;
+  private final int thisArgumentPosition;
+
   @Child private ArgumentSorterNode argumentSorter;
   @Child private CallOptimiserNode callOptimiserNode;
+  @Child private MethodResolverNode methodResolverNode;
+
+  private final ConditionProfile methodCalledOnNonAtom = ConditionProfile.createCountingProfile();
 
   /**
    * Creates a new node for performing callable invocation.
@@ -51,8 +62,22 @@ public abstract class InvokeCallableNode extends ExpressionNode {
     CallArgumentInfo[] argSchema =
         Arrays.stream(callArguments).map(CallArgumentInfo::new).toArray(CallArgumentInfo[]::new);
 
+    boolean appliesThis = false;
+    int idx = 0;
+    for (; idx < argSchema.length; idx++) {
+      CallArgumentInfo arg = argSchema[idx];
+      if (arg.isPositional()
+          || (arg.isNamed() && arg.getName().equals(Constants.THIS_ARGUMENT_NAME))) {
+        appliesThis = true;
+        break;
+      }
+    }
+    this.canApplyThis = appliesThis;
+    this.thisArgumentPosition = idx;
+
     this.callOptimiserNode = new SimpleCallOptimiserNode();
     this.argumentSorter = ArgumentSorterNodeGen.create(argSchema);
+    this.methodResolverNode = MethodResolverNodeGen.create();
   }
 
   /**
@@ -103,6 +128,37 @@ public abstract class InvokeCallableNode extends ExpressionNode {
     Object[] evaluatedArguments = evaluateArguments(frame);
     Object[] sortedArguments = this.argumentSorter.execute(callable, evaluatedArguments);
     return callable.newInstance(sortedArguments);
+  }
+
+  /**
+   * Invokes a dynamic symbol after resolving it for the actual symbol for the {@code this}
+   * argument.
+   *
+   * @param frame the stack frame in which to execute
+   * @param symbol the name of the requested symbol
+   * @return the result of resolving and executing the symbol for the {@code this} argument
+   */
+  @Specialization
+  public Object invokeDynamicSymbol(VirtualFrame frame, UnresolvedSymbol symbol) {
+    if (canApplyThis) {
+      Object[] evaluatedArguments = evaluateArguments(frame);
+      Object selfArgument = evaluatedArguments[thisArgumentPosition];
+      if (methodCalledOnNonAtom.profile(TypesGen.isAtom(selfArgument))) {
+        Atom self = (Atom) selfArgument;
+        Function function = methodResolverNode.execute(symbol, self);
+        Object[] sortedArguments = this.argumentSorter.execute(function, evaluatedArguments);
+
+        if (this.isTail()) {
+          throw new TailCallException(function, sortedArguments);
+        } else {
+          return this.callOptimiserNode.executeDispatch(function, sortedArguments);
+        }
+      } else {
+        throw new MethodDoesNotExistException(selfArgument, symbol.getName(), this);
+      }
+    } else {
+      throw new RuntimeException("Currying without `this` argument is not yet supported.");
+    }
   }
 
   /**

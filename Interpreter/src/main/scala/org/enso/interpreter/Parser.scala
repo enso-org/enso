@@ -50,7 +50,7 @@ trait AstGlobalScopeVisitor[+T] {
 
   def visitGlobalScope(
     typeDefs: java.util.List[AstTypeDef],
-    bindings: java.util.List[AstAssignment],
+    bindings: java.util.List[AstMethodDef],
     expression: AstExpression
   ): T
 }
@@ -62,17 +62,20 @@ case class AstTypeDef(name: String, arguments: List[AstArgDefinition])
   def getArguments: java.util.List[AstArgDefinition] = arguments.asJava
 }
 
+case class AstMethodDef(typeName: String, methodName: String, fun: AstFunction)
+    extends AstGlobalSymbol
+
 case class AstGlobalScope(
   bindings: List[AstGlobalSymbol],
   expression: AstExpression) {
 
   def visit[T](visitor: AstGlobalScopeVisitor[T]): T = {
     val types = new util.ArrayList[AstTypeDef]()
-    val defs  = new util.ArrayList[AstAssignment]()
+    val defs  = new util.ArrayList[AstMethodDef]()
 
     bindings.foreach {
-      case assignment: AstAssignment => defs.add(assignment)
-      case typeDef: AstTypeDef       => types.add(typeDef)
+      case assignment: AstMethodDef => defs.add(assignment)
+      case typeDef: AstTypeDef      => types.add(typeDef)
     }
 
     visitor.visitGlobalScope(types, defs, expression)
@@ -163,6 +166,9 @@ case class AstFunction(
     extends AstExpression {
   override def visit[T](visitor: AstExpressionVisitor[T]): T =
     visitor.visitFunction(arguments.asJava, statements.asJava, ret)
+
+  def getArguments: util.List[AstArgDefinition] = arguments.asJava
+  def getStatements: util.List[AstExpression] = statements.asJava
 }
 
 case class AstCaseFunction(
@@ -175,8 +181,7 @@ case class AstCaseFunction(
 }
 
 case class AstAssignment(name: String, body: AstExpression)
-    extends AstExpression
-    with AstGlobalSymbol {
+    extends AstExpression {
   override def visit[T](visitor: AstExpressionVisitor[T]): T =
     visitor.visitAssignment(name, body)
 }
@@ -314,8 +319,20 @@ class EnsoParserInternal extends JavaTokenParsers {
       case name ~ args => AstTypeDef(name, args)
     }
 
+  def methodDef: Parser[AstMethodDef] =
+    (ident <~ ".") ~ (ident <~ "=") ~ expression ^^ {
+      case typeName ~ methodName ~ body =>
+        val thisArg = AstBareArgDefinition(Constants.THIS_ARGUMENT_NAME);
+        val fun = body match {
+          case b: AstFunction =>
+            b.copy(arguments = thisArg :: b.arguments)
+          case _ => AstFunction(List(thisArg), List(), body)
+        }
+        AstMethodDef(typeName, methodName, fun)
+    }
+
   def globalScope: Parser[AstGlobalScope] =
-    ((typeDef | assignment) *) ~ expression ^^ {
+    ((typeDef | methodDef) *) ~ expression ^^ {
       case assignments ~ expr => AstGlobalScope(assignments, expr)
     }
 
