@@ -1,20 +1,18 @@
 package org.enso.interpreter.builder;
 
-import java.util.List;
-import org.enso.interpreter.AstExpression;
-import org.enso.interpreter.AstGlobalScope;
-import org.enso.interpreter.AstGlobalScopeVisitor;
-import org.enso.interpreter.AstMethodDef;
-import org.enso.interpreter.AstTypeDef;
-import org.enso.interpreter.Constants;
-import org.enso.interpreter.Language;
+import org.enso.interpreter.*;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.function.CreateFunctionNode;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.callable.function.ArgumentSchema;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.error.VariableDoesNotExistException;
 import org.enso.interpreter.runtime.scope.GlobalScope;
+
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
  * A {@code GlobalScopeExpressionFactory} is responsible for converting the top-level definitions of
@@ -55,16 +53,26 @@ public class GlobalScopeExpressionFactory implements AstGlobalScopeVisitor<Expre
       List<AstTypeDef> typeDefs, List<AstMethodDef> bindings, AstExpression executableExpression) {
     GlobalScope globalScope = language.getCurrentContext().getGlobalScope();
 
-    for (AstTypeDef type : typeDefs) {
-      ArgDefinitionFactory argFactory = new ArgDefinitionFactory(language, globalScope);
-      ArgumentDefinition[] argDefs = new ArgumentDefinition[type.getArguments().size()];
+    List<AtomConstructor> constructors =
+        typeDefs.stream()
+            .map(type -> new AtomConstructor(type.name()))
+            .collect(Collectors.toList());
 
-      for (int i = 0; i < type.getArguments().size(); ++i) {
-        argDefs[i] = type.getArguments().get(i).visit(argFactory, i);
-      }
+    constructors.forEach(globalScope::registerConstructor);
 
-      globalScope.registerConstructor(new AtomConstructor(type.name(), argDefs));
-    }
+    IntStream.range(0, constructors.size())
+        .forEach(
+            idx -> {
+              ArgDefinitionFactory argFactory = new ArgDefinitionFactory(language, globalScope);
+              AstTypeDef type = typeDefs.get(idx);
+              ArgumentDefinition[] argDefs = new ArgumentDefinition[type.getArguments().size()];
+
+              for (int i = 0; i < type.getArguments().size(); ++i) {
+                argDefs[i] = type.getArguments().get(i).visit(argFactory, i);
+              }
+
+              constructors.get(idx).initializeFields(argDefs);
+            });
 
     for (AstMethodDef method : bindings) {
       AtomConstructor constructor =
@@ -80,7 +88,8 @@ public class GlobalScopeExpressionFactory implements AstGlobalScopeVisitor<Expre
           expressionFactory.processFunctionBody(
               method.fun().getArguments(), method.fun().getStatements(), method.fun().ret());
       funNode.markTail();
-      Function function = new Function(funNode.getCallTarget(), null, funNode.getArgs());
+      Function function =
+          new Function(funNode.getCallTarget(), null, new ArgumentSchema(funNode.getArgs()));
       globalScope.registerMethod(constructor, method.methodName(), function);
     }
 

@@ -8,14 +8,10 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.ConditionProfile;
-import java.util.Arrays;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.argument.sorter.ArgumentSorterNode;
 import org.enso.interpreter.node.callable.argument.sorter.ArgumentSorterNodeGen;
-import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
-import org.enso.interpreter.node.callable.dispatch.SimpleCallOptimiserNode;
-import org.enso.interpreter.optimiser.tco.TailCallException;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgument;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
@@ -25,6 +21,8 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.error.MethodDoesNotExistException;
 import org.enso.interpreter.runtime.error.NotInvokableException;
 import org.enso.interpreter.runtime.type.TypesGen;
+
+import java.util.Arrays;
 
 /**
  * This node is responsible for organising callable calls so that they are ready to be made.
@@ -42,7 +40,6 @@ public abstract class InvokeCallableNode extends ExpressionNode {
   private final int thisArgumentPosition;
 
   @Child private ArgumentSorterNode argumentSorter;
-  @Child private CallOptimiserNode callOptimiserNode;
   @Child private MethodResolverNode methodResolverNode;
 
   private final ConditionProfile methodCalledOnNonAtom = ConditionProfile.createCountingProfile();
@@ -50,8 +47,7 @@ public abstract class InvokeCallableNode extends ExpressionNode {
   /**
    * Creates a new node for performing callable invocation.
    *
-   * @param callArguments information on the arguments being passed to the {@link
-   *     org.enso.interpreter.runtime.callable.Callable}
+   * @param callArguments information on the arguments being passed to the {@link Function}
    */
   public InvokeCallableNode(CallArgument[] callArguments) {
     this.argExpressions =
@@ -75,13 +71,22 @@ public abstract class InvokeCallableNode extends ExpressionNode {
     this.canApplyThis = appliesThis;
     this.thisArgumentPosition = idx;
 
-    this.callOptimiserNode = new SimpleCallOptimiserNode();
     this.argumentSorter = ArgumentSorterNodeGen.create(argSchema);
     this.methodResolverNode = MethodResolverNodeGen.create();
   }
 
   /**
-   * Evaluates the arguments being passed to the callable.
+   * Marks whether the {@code argumentSorter} child is tail–recursive.
+   * @param isTail whether or not the node is tail-recursive.
+   */
+  @Override
+  public void setTail(boolean isTail) {
+    super.setTail(isTail);
+    argumentSorter.setTail(isTail);
+  }
+
+  /**
+   * Evaluates the arguments being passed to the function.
    *
    * @param frame the stack frame in which to execute
    * @return the results of evaluating the function arguments
@@ -101,33 +106,25 @@ public abstract class InvokeCallableNode extends ExpressionNode {
    * Invokes a function directly on the arguments contained in this node.
    *
    * @param frame the stack frame in which to execute
-   * @param callable the function to be executed
+   * @param function the function to be executed
    * @return the result of executing {@code callable} on the known arguments
    */
   @Specialization
-  public Object invokeFunction(VirtualFrame frame, Function callable) {
+  public Object invokeFunction(VirtualFrame frame, Function function) {
     Object[] evaluatedArguments = evaluateArguments(frame);
-    Object[] sortedArguments = this.argumentSorter.execute(callable, evaluatedArguments);
-
-    if (this.isTail()) {
-      throw new TailCallException(callable, sortedArguments);
-    } else {
-      return this.callOptimiserNode.executeDispatch(callable, sortedArguments);
-    }
+    return this.argumentSorter.execute(function, evaluatedArguments);
   }
 
   /**
    * Invokes a constructor directly on the arguments contained in this node.
    *
    * @param frame the stack frame in which to execute
-   * @param callable the constructor to be executed
-   * @return the result of executing {@code callable} on the known arguments
+   * @param constructor the constructor to be executed
+   * @return the result of executing {@code constructor} on the known arguments
    */
   @Specialization
-  public Atom invokeConstructor(VirtualFrame frame, AtomConstructor callable) {
-    Object[] evaluatedArguments = evaluateArguments(frame);
-    Object[] sortedArguments = this.argumentSorter.execute(callable, evaluatedArguments);
-    return callable.newInstance(sortedArguments);
+  public Object invokeConstructor(VirtualFrame frame, AtomConstructor constructor) {
+    return invokeFunction(frame, constructor.getConstructorFunction());
   }
 
   /**
@@ -146,13 +143,7 @@ public abstract class InvokeCallableNode extends ExpressionNode {
       if (methodCalledOnNonAtom.profile(TypesGen.isAtom(selfArgument))) {
         Atom self = (Atom) selfArgument;
         Function function = methodResolverNode.execute(symbol, self);
-        Object[] sortedArguments = this.argumentSorter.execute(function, evaluatedArguments);
-
-        if (this.isTail()) {
-          throw new TailCallException(function, sortedArguments);
-        } else {
-          return this.callOptimiserNode.executeDispatch(function, sortedArguments);
-        }
+        return this.argumentSorter.execute(function, evaluatedArguments);
       } else {
         throw new MethodDoesNotExistException(selfArgument, symbol.getName(), this);
       }

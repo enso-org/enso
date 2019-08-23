@@ -2,12 +2,13 @@ package org.enso.interpreter.builder;
 
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleFile.FileTypeDetector;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.Charset;
 import org.apache.tika.detect.DefaultEncodingDetector;
 import org.apache.tika.detect.EncodingDetector;
 import org.enso.interpreter.Constants;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.Charset;
 
 /**
  * A detector for finding a {@link TruffleFile file's} MIME type and encoding.

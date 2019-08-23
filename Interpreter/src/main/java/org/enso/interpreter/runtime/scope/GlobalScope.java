@@ -1,12 +1,11 @@
 package org.enso.interpreter.runtime.scope;
 
-import com.oracle.truffle.api.RootCallTarget;
+import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.callable.function.Function;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import org.enso.interpreter.runtime.GlobalCallTarget;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
-import org.enso.interpreter.runtime.callable.function.Function;
 
 /** A representation of Enso's top-level scope. */
 public class GlobalScope {

@@ -1,6 +1,5 @@
 package org.enso.interpreter;
 
-import org.enso.interpreter.benchmarks.RecursionBenchmarks;
 import org.openjdk.jmh.results.RunResult;
 import org.openjdk.jmh.runner.BenchmarkList;
 import org.openjdk.jmh.runner.BenchmarkListEntry;
@@ -11,7 +10,8 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 import javax.xml.bind.JAXBException;
 import java.io.File;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Collectors;
 
 /**

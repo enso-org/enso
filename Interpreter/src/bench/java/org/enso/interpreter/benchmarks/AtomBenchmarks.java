@@ -42,4 +42,14 @@ public class AtomBenchmarks {
   public void benchSumListMethods() {
     fixtures.sumListMethods().execute(fixtures.millionElementList());
   }
+
+  @Benchmark
+  public void benchMapReverseList() {
+    fixtures.mapReverseList().execute(fixtures.millionElementList());
+  }
+
+  @Benchmark
+  public void benchMapReverseCurryList() {
+    fixtures.mapReverseListCurry().execute(fixtures.millionElementList());
+  }
 }

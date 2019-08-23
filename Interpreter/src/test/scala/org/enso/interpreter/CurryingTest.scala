@@ -1,20 +1,17 @@
 package org.enso.interpreter;
 
 class CurryingTest extends LanguageTest {
-
-  "Functions" should "allow defaulted values to be removed" in {
-    pending
+  "Functions" should "allow partial application" in {
     val code =
       """
-        |addNum = { |a, num = 10| a + num }
-        |
-        |add = @addNum [num = !!]
-        |
-        |0
-      """.stripMargin
-
-    noException should be thrownBy parse(code)
-    eval(code) shouldEqual 0
+        |@{
+        |  apply = { |v, f| @f [v] };
+        |  adder = { |a, b| a + b };
+        |  plusOne = @apply [f = @adder [1]];
+        |  result = @plusOne [10];
+        |  result
+        |}
+        |""".stripMargin
+    eval(code) shouldEqual 11
   }
-
 }

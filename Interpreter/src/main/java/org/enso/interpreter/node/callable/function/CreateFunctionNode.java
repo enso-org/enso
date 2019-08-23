@@ -6,6 +6,7 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
+import org.enso.interpreter.runtime.callable.function.ArgumentSchema;
 import org.enso.interpreter.runtime.callable.function.Function;
 
 /**
@@ -14,7 +15,7 @@ import org.enso.interpreter.runtime.callable.function.Function;
  */
 public class CreateFunctionNode extends ExpressionNode {
   private final RootCallTarget callTarget;
-  private final ArgumentDefinition[] args;
+  private final ArgumentSchema schema;
 
   /**
    * Creates a new node to represent a function definition.
@@ -24,7 +25,7 @@ public class CreateFunctionNode extends ExpressionNode {
    */
   public CreateFunctionNode(RootCallTarget callTarget, ArgumentDefinition[] args) {
     this.callTarget = callTarget;
-    this.args = args;
+    this.schema = new ArgumentSchema(args);
   }
 
   /**
@@ -46,7 +47,7 @@ public class CreateFunctionNode extends ExpressionNode {
   @Override
   public Function executeFunction(VirtualFrame frame) {
     MaterializedFrame scope = frame.materialize();
-    return new Function(callTarget, scope, this.args);
+    return new Function(callTarget, scope, this.schema);
   }
 
   /**
@@ -75,6 +76,6 @@ public class CreateFunctionNode extends ExpressionNode {
    * @return information on the function's arguments
    */
   public ArgumentDefinition[] getArgs() {
-    return args;
+    return schema.getArgumentInfos();
   }
 }

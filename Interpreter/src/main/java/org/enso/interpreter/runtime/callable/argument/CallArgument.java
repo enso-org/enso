@@ -2,12 +2,10 @@ package org.enso.interpreter.runtime.callable.argument;
 
 import org.enso.interpreter.node.ExpressionNode;
 
-/**
- * Tracks the specifics about how arguments are specified at a call site.
- */
+/** Tracks the specifics about how arguments are specified at a call site. */
 public class CallArgument {
   private final String name;
-  private ExpressionNode expression;
+  private final ExpressionNode expression;
 
   /**
    * Creates an argument passed positionally.
@@ -16,15 +14,6 @@ public class CallArgument {
    */
   public CallArgument(ExpressionNode expression) {
     this(null, expression);
-  }
-
-  /**
-   * Creates an argument that ignores the default (for currying purposes).
-   *
-   * @param name the name of the argument whose default should be ignored
-   */
-  public CallArgument(String name) {
-    this(name, null);
   }
 
   /**
@@ -38,14 +27,6 @@ public class CallArgument {
     this.expression = expression;
   }
 
-  /**
-   * Checks if the argument is an ignore.
-   *
-   * @return {@code true} if it is an ignore, otherwise {@code false}
-   */
-  public boolean isIgnored() {
-    return (this.name != null) && (this.expression == null);
-  }
 
   /**
    * Checks if the argument is passed by name.
@@ -53,7 +34,7 @@ public class CallArgument {
    * @return {@code true} if it is passed by name, otherwise {@code false}
    */
   public boolean isNamed() {
-    return (this.name != null) && (this.expression != null);
+    return this.name != null;
   }
 
   /**
@@ -62,7 +43,7 @@ public class CallArgument {
    * @return {@code true} if it is passed by position, otherwise {@code false}
    */
   public boolean isPositional() {
-    return !isNamed() && !isIgnored();
+    return !isNamed();
   }
 
   /**

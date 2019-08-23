@@ -34,21 +34,6 @@ public class CallArgFactory implements AstCallArgVisitor<CallArgument> {
   }
 
   /**
-   * Processes an ignore argument.
-   *
-   * <p>Such arguments are used to disable the function's usage of a default with which it was
-   * defined, and become useful in the presence of partial function application and currying.
-   *
-   * @param name the name of the argument whose default is ignored
-   * @param position the position of this argument in the calling arguments list
-   * @return a runtime representation of the argument
-   */
-  @Override
-  public CallArgument visitIgnore(String name, int position) {
-    return new CallArgument(name);
-  }
-
-  /**
    * Processes a named argument application.
    *
    * <p>Arguments can be applied by name, and can occur at any point in the parameter list.

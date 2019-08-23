@@ -224,7 +224,6 @@ class NamedArgumentsTest extends LanguageTest {
   }
 
   "Default arguments to constructors" should "be resolved dynamically" in {
-    pending
     val code =
       """
         |type Cons2 head (rest = Nil2);
@@ -237,40 +236,20 @@ class NamedArgumentsTest extends LanguageTest {
   }
 
   "Constructors" should "be able to take and use default arguments" in {
-    pending
     val code =
       """
+        |type Cons2 head (rest = @Nil2);
         |type Nil2;
-        |type Cons2 head (rest = Nil2);
         |
-        |sumList = { |list| match list <
-        |  Cons2 ~ { |head, rest| head + @sumList [rest] };
+        |Unit.sumList = { |list| match list <
+        |  Cons2 ~ { |head, rest| head + @sumList [@Unit, rest] };
         |  Nil2 ~ { 0 };
         |>}
         |
-        |@sumList [@Cons2 [10]]
+        |@sumList [@Unit, @Cons2 [10]]
         """.stripMargin
 
     eval(code) shouldEqual 10
-  }
-
-  "Constructor arguments" should "be matchable in arbitrary order by name" in {
-    pending
-    val code =
-      """
-        |type Nil2;
-        |type Cons2 head (rest = Nil2);
-        |
-        |genList = { |i| ifZero: [i, @Nil2, @Cons2 [rest = @genList [i-1], head = i]] }
-        |
-        |sumList = { |list| match list <
-        |  Cons2 ~ { |rest, head| head + @sumList [rest] };
-        |  Nil2 ~ { 0 };
-        |>}
-        |
-        |@sumList [@genList [5]]
-        """.stripMargin
-    eval(code) shouldEqual 15
   }
 
 }

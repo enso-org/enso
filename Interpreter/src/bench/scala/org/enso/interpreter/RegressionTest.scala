@@ -1,7 +1,6 @@
 package org.enso.interpreter
 
-import org.scalatest.FlatSpec
-import org.scalatest.Matchers
+import org.scalatest.{FlatSpec, Matchers}
 
 import scala.collection.JavaConverters._
 

@@ -113,7 +113,6 @@ sealed trait AstCallArg {
 trait AstCallArgVisitor[+T] {
   def visitNamedCallArg(name: String, value: AstExpression, position: Int): T
   def visitUnnamedCallArg(value: AstExpression, position: Int): T
-  def visitIgnore(name: String, position: Int): T
 }
 
 case class AstNamedCallArg(name: String, value: AstExpression)
@@ -125,11 +124,6 @@ case class AstNamedCallArg(name: String, value: AstExpression)
 case class AstUnnamedCallArg(value: AstExpression) extends AstCallArg {
   override def visit[T](visitor: AstCallArgVisitor[T], position: Int): T =
     visitor.visitUnnamedCallArg(value, position)
-}
-
-case class AstIgnore(name: String) extends AstCallArg {
-  override def visit[T](visitor: AstCallArgVisitor[T], position: Int): T =
-    visitor.visitIgnore(name, position)
 }
 
 case class AstLong(l: Long) extends AstExpression {
@@ -167,8 +161,8 @@ case class AstFunction(
   override def visit[T](visitor: AstExpressionVisitor[T]): T =
     visitor.visitFunction(arguments.asJava, statements.asJava, ret)
 
-  def getArguments: util.List[AstArgDefinition] = arguments.asJava
-  def getStatements: util.List[AstExpression] = statements.asJava
+  def getArguments:  util.List[AstArgDefinition] = arguments.asJava
+  def getStatements: util.List[AstExpression]    = statements.asJava
 }
 
 case class AstCaseFunction(
@@ -236,7 +230,7 @@ class EnsoParserInternal extends JavaTokenParsers {
     }
 
   def argList: Parser[List[AstCallArg]] =
-    delimited("[", "]", nonEmptyList(ignore | namedCallArg | unnamedCallArg))
+    delimited("[", "]", nonEmptyList(namedCallArg | unnamedCallArg))
 
   def namedCallArg: Parser[AstNamedCallArg] = ident ~ ("=" ~> expression) ^^ {
     case name ~ expr => AstNamedCallArg(name, expr)
@@ -274,8 +268,6 @@ class EnsoParserInternal extends JavaTokenParsers {
 
   def expression: Parser[AstExpression] =
     ifZero | matchClause | arith | function
-
-  def ignore: Parser[AstIgnore] = ident ~> "=" ~> "!!" ^^ AstIgnore
 
   def call: Parser[AstApply] = "@" ~> expression ~ (argList ?) ^^ {
     case expr ~ args => AstApply(expr, args.getOrElse(Nil))

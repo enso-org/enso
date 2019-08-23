@@ -4,8 +4,10 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlTransient;
-import java.util.*;
-import java.util.stream.DoubleStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.OptionalDouble;
 
 /** Contains historic results for a single benchmark identified by label. */
 @XmlRootElement

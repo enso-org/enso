@@ -76,7 +76,8 @@ val truffleRunOptions = Seq(
   fork := true,
   javaOptions += s"-Dtruffle.class.path.append=${(Compile / classDirectory).value}",
   javaOptions += s"-Dgraal.TruffleIterativePartialEscape=true",
-  javaOptions += s"-XX:-UseJVMCIClassLoader"
+  javaOptions += s"-XX:-UseJVMCIClassLoader",
+  javaOptions += s"-Dgraal.TruffleBackgroundCompilation=false"
 )
 
 val truffleDebugOptions = Seq(

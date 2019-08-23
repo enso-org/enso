@@ -3,7 +3,6 @@ package org.enso.interpreter.runtime.type;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.ImplicitCast;
 import com.oracle.truffle.api.dsl.TypeSystem;
-import org.enso.interpreter.runtime.callable.Callable;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -18,7 +17,7 @@ import org.enso.interpreter.runtime.callable.function.Function;
  * By declaring the primitive types here, the interpreter obtains automatically generated utilities
  * for working with them.
  */
-@TypeSystem({long.class, Function.class, Atom.class, AtomConstructor.class, Callable.class})
+@TypeSystem({long.class, Function.class, Atom.class, AtomConstructor.class})
 public class Types {
 
   /**

@@ -84,4 +84,31 @@ class AtomFixtures extends LanguageRunner {
       |""".stripMargin
 
   val sumListMethods = eval(sumListMethodsCode)
+
+  val mapReverseListCode =
+    """
+      |Nil.mapReverse = { |f, acc| acc }
+      |Cons.mapReverse = { |f, acc| match this <
+      |  Cons ~ { |h, t| @mapReverse [t, f, @Cons [@f [h], acc]] };
+      |>}
+      |
+      |{ |list| @mapReverse [list, { |x| x + 1 }, @Nil] }
+      |""".stripMargin
+
+  val mapReverseList = eval(mapReverseListCode)
+
+  val mapReverseListCurryCode =
+    """
+      |Nil.mapReverse = { |f, acc| acc }
+      |Cons.mapReverse = { |f, acc| match this <
+      |  Cons ~ { |h, t| @mapReverse [t, f, @Cons [@f [h], acc]] };
+      |>}
+      |
+      |{ |list|
+      |  adder = { |x, y| x + y };
+      |  @mapReverse [list, @adder [1], @Nil]
+      |}
+      |""".stripMargin
+
+  val mapReverseListCurry = eval(mapReverseListCurryCode)
 }

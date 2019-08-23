@@ -1,5 +1,6 @@
 package org.enso.interpreter.runtime.callable.function;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -10,27 +11,45 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.DirectCallNode;
 import com.oracle.truffle.api.nodes.IndirectCallNode;
-import org.enso.interpreter.runtime.callable.Callable;
-import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 
 /** A runtime representation of a function object in Enso. */
 @ExportLibrary(InteropLibrary.class)
-public final class Function extends Callable implements TruffleObject {
+public final class Function implements TruffleObject {
   private final RootCallTarget callTarget;
   private final MaterializedFrame scope;
+  private final ArgumentSchema schema;
+  private final @CompilerDirectives.CompilationFinal(dimensions = 1) Object[] preAppliedArguments;
 
   /**
    * Creates a new function.
    *
    * @param callTarget the target containing the function's code
    * @param scope a frame representing the function's scope
-   * @param arguments the arguments with which the function was defined
+   * @param schema the {@link ArgumentSchema} with which the function was defined
+   * @param preAppliedArguments the preapplied arguments for this function. The layout of this array
+   *     must be conforming to the {@code schema}. {@code null} is allowed if the function does not
+   *     have any partially applied arguments.
    */
   public Function(
-      RootCallTarget callTarget, MaterializedFrame scope, ArgumentDefinition[] arguments) {
-    super(arguments);
+      RootCallTarget callTarget,
+      MaterializedFrame scope,
+      ArgumentSchema schema,
+      Object[] preAppliedArguments) {
     this.callTarget = callTarget;
     this.scope = scope;
+    this.schema = schema;
+    this.preAppliedArguments = preAppliedArguments;
+  }
+
+  /**
+   * Creates a new function without any partially applied arguments.
+   *
+   * @param callTarget the target containing the function's code
+   * @param scope a frame representing the function's scope
+   * @param schema the {@link ArgumentSchema} with which the function was defined
+   */
+  public Function(RootCallTarget callTarget, MaterializedFrame scope, ArgumentSchema schema) {
+    this(callTarget, scope, schema, null);
   }
 
   /**
@@ -49,6 +68,25 @@ public final class Function extends Callable implements TruffleObject {
    */
   public MaterializedFrame getScope() {
     return scope;
+  }
+
+  /**
+   * Gets the function's argument schema.
+   *
+   * @return the function's argument schema
+   */
+  public ArgumentSchema getSchema() {
+    return schema;
+  }
+
+  /**
+   * Gets a copy of the partially applied arguments for this function, safe to be mutated by
+   * clients.
+   *
+   * @return a copy of the partially applied arguments for this function
+   */
+  public Object[] clonePreAppliedArguments() {
+    return preAppliedArguments.clone();
   }
 
   /**

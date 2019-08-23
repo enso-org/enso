@@ -3,6 +3,7 @@ package org.enso.interpreter.runtime.callable.atom;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.interop.TruffleObject;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
