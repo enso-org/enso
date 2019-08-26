@@ -16,12 +16,15 @@ trigger:
 
 pr: none
 
+variables:
+  graalVersion: 19.2.0
+
 jobs:
 - job: Linux
   pool:
     vmImage: 'Ubuntu-16.04'
   container:
-    image: oracle/graalvm-ce:19.0.0
+    image: oracle/graalvm-ce:$(graalVersion)
     options: "--name ci-container -v /usr/bin/docker:/tmp/docker:ro"
   steps:
   - script: /tmp/docker exec -t -u 0 ci-container sh -c "yum install -y sudo"
@@ -51,12 +54,12 @@ jobs:
     vmImage: macOS-10.13
   steps:
   - script: |
-      curl -fSL -o graal.tar.gz https://github.com/oracle/graal/releases/download/vm-19.1.0/graalvm-ce-darwin-amd64-19.1.0.tar.gz
+      curl -fSL -o graal.tar.gz https://github.com/oracle/graal/releases/download/vm-$(graalVersion)/graalvm-ce-darwin-amd64-$(graalVersion).tar.gz
       tar -x -z -C ~ -f graal.tar.gz
-      ls ~/graalvm-ce-19.1.0
-      sudo mv ~/graalvm-ce-19.1.0 /Library/Java/JavaVirtualMachines
-      echo "##vso[task.setvariable variable=JAVA_HOME]/Library/Java/JavaVirtualMachines/graalvm-ce-19.1.0/Contents/Home"
-      echo "##vso[task.setvariable variable=PATH]/Library/Java/JavaVirtualMachines/graalvm-ce-19.1.0/Contents/Home/bin:$PATH"
+      ls ~/graalvm-ce-$(graalVersion)
+      sudo mv ~/graalvm-ce-$(graalVersion) /Library/Java/JavaVirtualMachines
+      echo "##vso[task.setvariable variable=JAVA_HOME]/Library/Java/JavaVirtualMachines/graalvm-ce-$(graalVersion)/Contents/Home"
+      echo "##vso[task.setvariable variable=PATH]/Library/Java/JavaVirtualMachines/graalvm-ce-$(graalVersion)/Contents/Home/bin:$PATH"
     displayName: Install GraalVM
   - script: |
       brew update
@@ -83,7 +86,7 @@ jobs:
     vmImage: windows-2019
   steps:
   - script: |
-      curl -fSL -o graal.zip https://github.com/oracle/graal/releases/download/vm-19.0.0/graalvm-ce-windows-amd64-19.0.0.zip
+      curl -fSL -o graal.zip https://github.com/oracle/graal/releases/download/vm-$(graalVersion)/graalvm-ce-windows-amd64-$(graalVersion).zip
       7z x -y -oC:\ graal.zip
     displayName: "Install GraalVM"
   - script: |
@@ -91,8 +94,8 @@ jobs:
     displayName: "Install sbt"
   - script: |
         call refreshenv
-        echo ##vso[task.setvariable variable=JAVA_HOME]C:\graalvm-ce-19.0.0
-        echo ##vso[task.setvariable variable=PATH]C:\graalvm-ce-19.0.0\bin;%PATH%
+        echo ##vso[task.setvariable variable=JAVA_HOME]C:\graalvm-ce-$(graalVersion)
+        echo ##vso[task.setvariable variable=PATH]C:\graalvm-ce-$(graalVersion)\bin;%PATH%
     displayName: "Adjust environment variables"
   - script: |
       sbt test
