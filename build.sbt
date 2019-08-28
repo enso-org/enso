@@ -1,3 +1,5 @@
+import scala.sys.process._
+
 // Global Configuration
 organization := "org.enso"
 scalaVersion := "2.12.8"
@@ -16,6 +18,8 @@ javacOptions ++= Seq("-source", "12", "-target", "1.8")
 lazy val Benchmark = config("bench") extend Test
 lazy val bench     = taskKey[Unit]("Run Benchmarks")
 lazy val benchOnly = inputKey[Unit]("Run benchmarks by name substring")
+lazy val buildNativeImage =
+  taskKey[Unit]("Build native image for the Enso executable")
 
 // Global Project
 lazy val enso = (project in file("."))
@@ -79,16 +83,6 @@ val truffleRunOptions = Seq(
   javaOptions += s"-Dgraal.TruffleBackgroundCompilation=false"
 )
 
-val truffleDebugOptions = Seq(
-  javaOptions += s"-Dgraal.PrintGraph=Network",
-  javaOptions += s"-Dgraal.Dump=Truffle:2",
-  javaOptions += s"-Dgraal.TraceTruffleCompilation=true",
-  javaOptions += s"-Dgraal.TraceTruffleCompilationCallTree=true",
-  javaOptions += s"-Dgraal.TraceTruffleInlining=true",
-  javaOptions += s"-Dgraal.TraceTrufflePerformanceWarnings=true",
-  javaOptions += s"-Dgraal.TruffleBackgroundCompilation=false"
-)
-
 val jmh = Seq(
   "org.openjdk.jmh" % "jmh-core"                 % "1.21" % Benchmark,
   "org.openjdk.jmh" % "jmh-generator-annprocess" % "1.21" % Benchmark
@@ -99,6 +93,7 @@ lazy val interpreter = (project in file("Interpreter"))
     mainClass in (Compile, run) := Some("org.enso.interpreter.Main"),
     version := "0.1"
   )
+  .settings(commands += RunDebugCommand.runDebug)
   .settings(
     libraryDependencies ++= Seq(
       "com.chuusai"            %% "shapeless"                % "2.3.3",
@@ -114,7 +109,8 @@ lazy val interpreter = (project in file("Interpreter"))
       "org.scalacheck"         %% "scalacheck"               % "1.14.0" % Test,
       "org.scalactic"          %% "scalactic"                % "3.0.8" % Test,
       "org.scalatest"          %% "scalatest"                % "3.2.0-SNAP10" % Test,
-      "org.typelevel"          %% "cats-core"                % "2.0.0-M4"
+      "org.typelevel"          %% "cats-core"                % "2.0.0-M4",
+      "commons-cli"            % "commons-cli"               % "1.4"
     ),
     libraryDependencies ++= jmh
   )
@@ -135,6 +131,19 @@ lazy val interpreter = (project in file("Interpreter"))
     parallelExecution in Test := false,
     logBuffered in Test := false
   )
+  .settings(
+    buildNativeImage := Def
+      .task {
+        val javaHome        = System.getProperty("java.home")
+        val nativeImagePath = s"$javaHome/bin/native-image"
+        val classPath       = (Runtime / fullClasspath).value.files.mkString(":")
+        val cmd =
+          s"$nativeImagePath --macro:truffle --no-fallback --initialize-at-build-time -cp $classPath ${(Compile / mainClass).value.get} enso"
+        cmd !
+      }
+      .dependsOn(Compile / compile)
+      .value
+  )
   .configs(Benchmark)
   .settings(
     logBuffered := false,
@@ -145,7 +154,7 @@ lazy val interpreter = (project in file("Interpreter"))
       import complete.Parsers.spaceDelimited
       val name = spaceDelimited("<name>").parsed match {
         case List(name) => name
-        case _ => throw new IllegalArgumentException("Expected one argument.")
+        case _          => throw new IllegalArgumentException("Expected one argument.")
       }
       Def.task {
         (testOnly in Benchmark).toTask(" -- -z " + name).value
