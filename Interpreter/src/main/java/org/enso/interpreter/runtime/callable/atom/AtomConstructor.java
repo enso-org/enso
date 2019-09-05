@@ -12,16 +12,13 @@ import org.enso.interpreter.node.expression.atom.InstantiateNode;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.function.ArgumentSchema;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.scope.ModuleScope;
 
 /** A representation of an Atom constructor. */
 public class AtomConstructor implements TruffleObject {
-  public static final AtomConstructor CONS =
-      new AtomConstructor("Cons")
-          .initializeFields(new ArgumentDefinition(0, "head"), new ArgumentDefinition(1, "rest"));
-  public static final AtomConstructor NIL = new AtomConstructor("Nil").initializeFields();
-  public static final AtomConstructor UNIT = new AtomConstructor("Unit").initializeFields();
 
   private final String name;
+  private final ModuleScope definitionScope;
   private @CompilerDirectives.CompilationFinal Atom cachedInstance;
   private @CompilerDirectives.CompilationFinal Function constructorFunction;
 
@@ -30,9 +27,11 @@ public class AtomConstructor implements TruffleObject {
    * AtomConstructor#initializeFields(ArgumentDefinition...)} is called.
    *
    * @param name the name of the Atom constructor
+   * @param definitionScope the scope in which this constructor was defined
    */
-  public AtomConstructor(String name) {
+  public AtomConstructor(String name, ModuleScope definitionScope) {
     this.name = name;
+    this.definitionScope = definitionScope;
   }
 
   /**
@@ -82,6 +81,15 @@ public class AtomConstructor implements TruffleObject {
   }
 
   /**
+   * Gets the scope in which this constructor was defined.
+   *
+   * @return the scope in which this constructor was defined
+   */
+  public ModuleScope getDefinitionScope() {
+    return definitionScope;
+  }
+
+  /**
    * Gets the number of arguments expected by the constructor.
    *
    * @return the number of args expected by the constructor.
@@ -108,9 +116,14 @@ public class AtomConstructor implements TruffleObject {
    */
   @Override
   public String toString() {
-    return super.toString() + "<" + name + "/" + getArity() + ">";
+    return name;
   }
 
+  /**
+   * Gets the constructor function of this constructor.
+   *
+   * @return the constructor function of this constructor.
+   */
   public Function getConstructorFunction() {
     return constructorFunction;
   }

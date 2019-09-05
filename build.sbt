@@ -162,6 +162,7 @@ lazy val interpreter = (project in file("Interpreter"))
     }.evaluated,
     parallelExecution in Benchmark := false
   )
+  .dependsOn(pkg)
 
 val akkaActor        = "com.typesafe.akka" %% "akka-actor"               % "2.5.23"
 val akkaStream       = "com.typesafe.akka" %% "akka-stream"              % "2.5.23"

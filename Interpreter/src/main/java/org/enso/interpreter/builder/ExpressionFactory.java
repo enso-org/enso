@@ -24,7 +24,7 @@ import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.CallArgument;
 import org.enso.interpreter.runtime.error.DuplicateArgumentNameException;
-import org.enso.interpreter.runtime.scope.GlobalScope;
+import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.scope.LocalScope;
 
 import java.util.*;
@@ -40,7 +40,7 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
   private final LocalScope scope;
   private final Language language;
   private final String scopeName;
-  private final GlobalScope globalScope;
+  private final ModuleScope moduleScope;
   private String currentVarName = "annonymous";
 
   /**
@@ -49,14 +49,14 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
    * @param language the name of the language for which the nodes are defined
    * @param scope the language scope in which definitions are processed
    * @param scopeName the name of the scope in which definitions are processed
-   * @param globalScope the current language global scope
+   * @param moduleScope the current language global scope
    */
   public ExpressionFactory(
-      Language language, LocalScope scope, String scopeName, GlobalScope globalScope) {
+      Language language, LocalScope scope, String scopeName, ModuleScope moduleScope) {
     this.language = language;
     this.scope = scope;
     this.scopeName = scopeName;
-    this.globalScope = globalScope;
+    this.moduleScope = moduleScope;
   }
 
   /**
@@ -64,20 +64,20 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
    *
    * @param language the name of the language for which the nodes are defined
    * @param scopeName the name of the scope in which definitions are processed
-   * @param globalScope the current language global scope
+   * @param moduleScope the current language global scope
    */
-  public ExpressionFactory(Language language, String scopeName, GlobalScope globalScope) {
-    this(language, new LocalScope(), scopeName, globalScope);
+  public ExpressionFactory(Language language, String scopeName, ModuleScope moduleScope) {
+    this(language, new LocalScope(), scopeName, moduleScope);
   }
 
   /**
    * Defaults the local scope, and defaults the name of said scope to {@code "<root>"}
    *
    * @param language the name of the language for which the nodes are defined
-   * @param globalScope the current language global scope
+   * @param moduleScope the current language global scope
    */
-  public ExpressionFactory(Language language, GlobalScope globalScope) {
-    this(language, "<root>", globalScope);
+  public ExpressionFactory(Language language, ModuleScope moduleScope) {
+    this(language, "<root>", moduleScope);
   }
 
   /**
@@ -90,7 +90,7 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
    * @return a child of this current expression factory
    */
   public ExpressionFactory createChild(String name) {
-    return new ExpressionFactory(language, scope.createChild(), name, this.globalScope);
+    return new ExpressionFactory(language, scope.createChild(), name, this.moduleScope);
   }
 
   /**
@@ -162,14 +162,14 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
     Supplier<Optional<ExpressionNode>> localVariableNode =
         () -> scope.getSlot(name).map(ReadLocalTargetNodeGen::create);
     Supplier<Optional<ExpressionNode>> constructorNode =
-        () -> globalScope.getConstructor(name).map(ConstructorNode::new);
+        () -> moduleScope.getConstructor(name).map(ConstructorNode::new);
 
     return Stream.of(localVariableNode, constructorNode)
         .map(Supplier::get)
         .filter(Optional::isPresent)
         .map(Optional::get)
         .findFirst()
-        .orElseGet(() -> new DynamicSymbolNode(new UnresolvedSymbol(name)));
+        .orElseGet(() -> new DynamicSymbolNode(new UnresolvedSymbol(name, moduleScope)));
   }
 
   /**
@@ -187,7 +187,7 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
       List<AstArgDefinition> arguments, List<AstExpression> expressions, AstExpression retValue) {
 
     ArgDefinitionFactory argFactory =
-        new ArgDefinitionFactory(scope, language, scopeName, globalScope);
+        new ArgDefinitionFactory(scope, language, scopeName, moduleScope);
     ArgumentDefinition[] argDefinitions = new ArgumentDefinition[arguments.size()];
     List<ExpressionNode> argExpressions = new ArrayList<>();
     Set<String> seenArgNames = new HashSet<>();
@@ -301,7 +301,7 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
   @Override
   public ExpressionNode visitFunctionApplication(
       AstExpression function, List<AstCallArg> arguments) {
-    CallArgFactory argFactory = new CallArgFactory(scope, language, scopeName, globalScope);
+    CallArgFactory argFactory = new CallArgFactory(scope, language, scopeName, moduleScope);
 
     List<CallArgument> callArgs = new ArrayList<>();
     for (int position = 0; position < arguments.size(); ++position) {

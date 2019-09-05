@@ -2,6 +2,8 @@ package org.enso.pkg
 
 import java.io.File
 import java.io.PrintWriter
+import java.nio.file.Files
+import scala.collection.JavaConverters._
 
 import org.apache.commons.io.FileUtils
 
@@ -10,107 +12,244 @@ import scala.util.Try
 
 object CouldNotCreateDirectory extends Exception
 
+/**
+  * Represents a source file with known qualified name.
+  *
+  * @param qualifiedName the qualified name of this file
+  * @param file the location of this file
+  */
+case class SourceFile(qualifiedName: String, file: File)
+
+/**
+  * Represents an Enso package stored on the hard drive.
+  *
+  * @param root the root directory of this package
+  * @param config the metadata contained in the package configuration
+  */
 case class Package(root: File, config: Config) {
 
-  val sourceDir = new File(root, Package.sourceDirName)
+  val sourceDir  = new File(root, Package.sourceDirName)
   val configFile = new File(root, Package.configFileName)
-  val thumbFile = new File(root, Package.thumbFileName)
+  val thumbFile  = new File(root, Package.thumbFileName)
 
+  /**
+    * Stores the package metadata on the hard drive. If the package does not exist,
+    * creates the required directory structure.
+    */
   def save(): Unit = {
     if (!root.exists) createDirectories()
     if (!sourceDir.exists) createSourceDir()
     saveConfig()
   }
 
+  /**
+    * Creates the package directory structure.
+    */
   def createDirectories() {
     val created = Try(root.mkdirs).getOrElse(false)
     if (!created) throw CouldNotCreateDirectory
     createSourceDir()
   }
 
+  /**
+    * Changes the package name.
+    *
+    * @param newName the new package name
+    * @return The package object with changed name. The old package is not valid anymore.
+    */
   def rename(newName: String): Package = {
     val newPkg = copy(config = config.copy(name = newName))
     newPkg.save()
     newPkg
   }
 
+  /**
+    * Deletes the package from hard drive.
+    */
   def remove(): Unit = {
     FileUtils.deleteDirectory(root)
   }
 
+  /**
+    * Moves the package to a new location.
+    *
+    * @param newRoot the new root location
+    * @return The package object with new location. The old package is not valid anymore.
+    */
   def move(newRoot: File): Package = {
     val newPkg = copyPackage(newRoot)
     remove()
     newPkg
   }
 
+  /**
+    * Creates a copy of this package.
+    *
+    * @param newRoot the root location of the copied package.
+    * @return the package object for the copied package.
+    */
   def copyPackage(newRoot: File): Package = {
     FileUtils.copyDirectory(root, newRoot)
     copy(root = newRoot)
   }
 
+  /**
+    * Creates the sources directory and populates it with a dummy Main file.
+    */
   def createSourceDir(): Unit = {
     if (!Try(sourceDir.mkdir).getOrElse(false)) throw CouldNotCreateDirectory
-    val lunaCodeSrc = Source.fromResource(Package.mainFileName)
-    val writer = new PrintWriter(new File(sourceDir, Package.mainFileName))
-    writer.write(lunaCodeSrc.mkString)
+    val mainCodeSrc = Source.fromResource(Package.mainFileName)
+    val writer      = new PrintWriter(new File(sourceDir, Package.mainFileName))
+    writer.write(mainCodeSrc.mkString)
     writer.close()
-    lunaCodeSrc.close()
+    mainCodeSrc.close()
   }
 
+  /**
+    * Saves the config metadata into the package configuration file.
+    */
   def saveConfig(): Unit = {
     val writer = new PrintWriter(configFile)
     Try(writer.write(config.toYaml))
     writer.close()
   }
 
+  /**
+    * Gets the location of the package's Main file.
+    *
+    * @return the location of the Main file.
+    */
+  def mainFile: File = {
+    new File(sourceDir, Package.mainFileName)
+  }
+
+  /**
+    * Checks if the package has a thumbnail file.
+    *
+    * @return `true` if the thumbnail file exists, `false` otherwise.
+    */
   def hasThumb: Boolean = thumbFile.exists
+
+  /**
+    * Returns the name of this package.
+    * @return the name of this package.
+    */
   def name: String = config.name
+
+  /**
+    * Lists the source files in this package.
+    *
+    * @return the list of all source files in this package, together with their qualified names.
+    */
+  def listSources: List[SourceFile] = {
+    val sourcesPath = sourceDir.toPath
+    val sources = Files
+      .walk(sourcesPath)
+      .filter(Files.isRegularFile(_))
+      .iterator
+      .asScala
+      .toList
+    sources.map { path =>
+      val segments    = sourcesPath.relativize(path).iterator().asScala.toList
+      val dirSegments = segments.take(segments.length - 1).map(_.toString)
+      val fileNameWithoutExtension =
+        path.getFileName.toString.takeWhile(_ != '.')
+      val qualName = (name :: (dirSegments :+ fileNameWithoutExtension))
+        .mkString(Package.qualifiedNameSeparator)
+      SourceFile(qualName, path.toFile)
+    }
+  }
 }
 
+/**
+  * A companion object for static methods on the [[Package]] class.
+  */
 object Package {
-  val configFileName = "package.yaml"
-  val sourceDirName = "src"
-  val mainFileName = "Main.luna"
-  val thumbFileName = "thumb.png"
+  val configFileName         = "package.yaml"
+  val sourceDirName          = "src"
+  val mainFileName           = "Main.enso"
+  val thumbFileName          = "thumb.png"
+  val qualifiedNameSeparator = "."
 
+  /**
+    * Creates a new Package in a given location and with config file.
+    *
+    * @param root the root location of the package.
+    * @param config the config for the new package.
+    * @return a package object representing the newly created package.
+    */
   def create(root: File, config: Config): Package = {
     val pkg = Package(root, config)
     pkg.save()
     pkg
   }
 
+  /**
+    * Creates a new Package in a given location and with given name. Leaves all the other config fields blank.
+    *
+    * @param root  the root location of the package.
+    * @param name the name for the new package.
+    * @return a package object representing the newly created package.
+    */
   def create(root: File, name: String): Package = {
     val config = Config(
-      author = "",
+      author     = "",
       maintainer = "",
-      name = name,
-      version = "",
-      license = ""
+      name       = normalizeName(name),
+      version    = "",
+      license    = ""
     )
     create(root, config)
   }
 
+  /**
+    * Tries to parse package structure from a given root location.
+    *
+    * @param root the root location to get package info from.
+    * @return `Some(pkg)` if the location represents a package, `None` otherwise.
+    */
   def fromDirectory(root: File): Option[Package] = {
     if (!root.exists()) return None
     val configFile = new File(root, configFileName)
-    val source = Try(Source.fromFile(configFile))
-    val result = source.map(_.mkString).toOption.flatMap(Config.fromYaml)
+    val source     = Try(Source.fromFile(configFile))
+    val result     = source.map(_.mkString).toOption.flatMap(Config.fromYaml)
     source.foreach(_.close())
     result.map(Package(root, _))
   }
 
+  /**
+    * Tries to parse package structure from a given root location or creates a new package if it fails.
+    *
+    * @param root the package root location.
+    * @return the package object for the package found or created in the root location.
+    */
   def getOrCreate(root: File): Package = {
     val existing = fromDirectory(root)
     existing.getOrElse(create(root, generateName(root)))
   }
 
+  /**
+    * Transforms the given string into a valid package name (i.e. a CamelCased identifier).
+    *
+    * @param name the original name.
+    * @return the transformed name conforming to the specification.
+    */
+  def normalizeName(name: String): String = {
+    val startingWithLetter =
+      if (name.length == 0 || !name(0).isLetter) "Project" ++ name else name
+    val startingWithUppercase = startingWithLetter.capitalize
+    val onlyAlphanumeric      = startingWithUppercase.filter(_.isLetterOrDigit)
+    onlyAlphanumeric
+  }
+
+  /**
+    * Generates a name for the package, by normalizing the last segment of its root path.
+    *
+    * @param file the root location of the package.
+    * @return the generated package name.
+    */
   def generateName(file: File): String = {
     val dirname = file.getName
-    val startingWithLetter =
-      if (!dirname(0).isLetter) "Project" ++ dirname else dirname
-    val startingWithUppercase = startingWithLetter.capitalize
-    val onlyAlphanumeric = startingWithUppercase.filter(_.isLetterOrDigit)
-    onlyAlphanumeric
+    normalizeName(dirname)
   }
 }

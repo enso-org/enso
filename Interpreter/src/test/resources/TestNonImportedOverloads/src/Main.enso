@@ -1,0 +1,5 @@
+import TestNonImportedOverloads.Util
+
+X.method = 10
+
+@util [@Unit, @X [1]]

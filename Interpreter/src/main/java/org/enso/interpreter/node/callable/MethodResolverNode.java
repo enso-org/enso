@@ -23,14 +23,14 @@ public abstract class MethodResolverNode extends Node {
    * DSL method to generate the actual cached code. Uses Cached arguments and performs all the logic
    * through the DSL. Not for manual use.
    */
-  @Specialization(guards = "isValidCache(symbol, cachedName, atom, cachedConstructor)")
+  @Specialization(guards = "isValidCache(symbol, cachedSymbol, atom, cachedConstructor)")
   public Function resolveCached(
       UnresolvedSymbol symbol,
       Atom atom,
       @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> contextRef,
-      @Cached("symbol.getName()") String cachedName,
+      @Cached("symbol") UnresolvedSymbol cachedSymbol,
       @Cached("atom.getConstructor()") AtomConstructor cachedConstructor,
-      @Cached("resolveMethod(contextRef, cachedConstructor, cachedName)") Function function) {
+      @Cached("resolveMethod(cachedConstructor, cachedSymbol)") Function function) {
     return function;
   }
 
@@ -46,18 +46,16 @@ public abstract class MethodResolverNode extends Node {
   /**
    * Handles the actual method lookup. Not for manual use.
    *
-   * @param contextReference Reference for the current language context.
    * @param cons Type for which to resolve the method.
-   * @param name Name of the method.
+   * @param symbol symbol representing the method to resolve
    * @return Resolved method definition.
    */
   public Function resolveMethod(
-      TruffleLanguage.ContextReference<Context> contextReference,
       AtomConstructor cons,
-      String name) {
-    Function result = contextReference.get().getGlobalScope().lookupMethodDefinition(cons, name);
+      UnresolvedSymbol symbol) {
+    Function result = symbol.resolveFor(cons);
     if (result == null) {
-      throw new MethodDoesNotExistException(cons, name, this);
+      throw new MethodDoesNotExistException(cons, symbol.getName(), this);
     }
     return result;
   }
@@ -67,15 +65,7 @@ public abstract class MethodResolverNode extends Node {
    * the same method name and this argument type. Not for manual use.
    */
   public boolean isValidCache(
-      UnresolvedSymbol symbol, String cachedName, Atom atom, AtomConstructor cachedConstructor) {
-    // Note [Safe Name Equality Comparisons]
-    //noinspection StringEquality
-    return (symbol.getName() == cachedName) && (atom.getConstructor() == cachedConstructor);
+      UnresolvedSymbol symbol, UnresolvedSymbol cachedSymbol, Atom atom, AtomConstructor cachedConstructor) {
+    return (symbol == cachedSymbol) && (atom.getConstructor() == cachedConstructor);
   }
-
-  /* Note [Safe Equality Comparisons]
-   * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-   * It is safe to compare the names of the symbols using `==` as all symbol names are intentionally
-   * interned to assist in performance of comparisons.
-   */
 }

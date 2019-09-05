@@ -4,7 +4,7 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.Builtins;
 
 /** This node allows for printing the result of an arbitrary expression to standard output. */
 @NodeInfo(shortName = "print", description = "Prints the value of child expression.")
@@ -24,13 +24,13 @@ public final class PrintNode extends ExpressionNode {
    * Executes the print node.
    *
    * @param frame the stack frame for execution
-   * @return unit {@link AtomConstructor#UNIT unit} type
+   * @return unit {@link Builtins#UNIT unit} type
    */
   @Override
   public Object executeGeneric(VirtualFrame frame) {
     doPrint(expression.executeGeneric(frame));
 
-    return AtomConstructor.UNIT.newInstance();
+    return Builtins.UNIT.newInstance();
   }
 
   /**

@@ -1,0 +1,5 @@
+type X a;
+
+Unit.util = { |x| @method [x] }
+
+0

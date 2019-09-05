@@ -1,6 +1,5 @@
 package org.enso.interpreter
 
-import java.util
 import java.util.Optional
 
 import scala.collection.JavaConverters._
@@ -8,8 +7,11 @@ import scala.util.parsing.combinator._
 
 trait AstExpressionVisitor[+T] {
   def visitLong(l: Long): T
+
   def visitArithOp(op: String, left: AstExpression, right: AstExpression): T
+
   def visitForeign(lang: String, code: String): T
+
   def visitVariable(name: String): T
 
   def visitFunction(
@@ -48,7 +50,9 @@ trait AstExpressionVisitor[+T] {
 
 trait AstGlobalScopeVisitor[+T] {
 
+  @throws(classOf[Exception])
   def visitGlobalScope(
+    imports: java.util.List[AstImport],
     typeDefs: java.util.List[AstTypeDef],
     bindings: java.util.List[AstMethodDef],
     expression: AstExpression
@@ -65,20 +69,23 @@ case class AstTypeDef(name: String, arguments: List[AstArgDefinition])
 case class AstMethodDef(typeName: String, methodName: String, fun: AstFunction)
     extends AstGlobalSymbol
 
+case class AstImport(name: String)
+
 case class AstGlobalScope(
+  imports: List[AstImport],
   bindings: List[AstGlobalSymbol],
   expression: AstExpression) {
 
   def visit[T](visitor: AstGlobalScopeVisitor[T]): T = {
-    val types = new util.ArrayList[AstTypeDef]()
-    val defs  = new util.ArrayList[AstMethodDef]()
+    val types = new java.util.ArrayList[AstTypeDef]()
+    val defs  = new java.util.ArrayList[AstMethodDef]()
 
     bindings.foreach {
       case assignment: AstMethodDef => defs.add(assignment)
       case typeDef: AstTypeDef      => types.add(typeDef)
     }
 
-    visitor.visitGlobalScope(types, defs, expression)
+    visitor.visitGlobalScope(imports.asJava, types, defs, expression)
   }
 }
 
@@ -92,6 +99,7 @@ sealed trait AstArgDefinition {
 
 trait AstArgDefinitionVisitor[+T] {
   def visitDefaultedArg(name: String, value: AstExpression, position: Int): T
+
   def visitBareArg(name: String, position: Int): T
 }
 
@@ -112,6 +120,7 @@ sealed trait AstCallArg {
 
 trait AstCallArgVisitor[+T] {
   def visitNamedCallArg(name: String, value: AstExpression, position: Int): T
+
   def visitUnnamedCallArg(value: AstExpression, position: Int): T
 }
 
@@ -161,8 +170,9 @@ case class AstFunction(
   override def visit[T](visitor: AstExpressionVisitor[T]): T =
     visitor.visitFunction(arguments.asJava, statements.asJava, ret)
 
-  def getArguments:  util.List[AstArgDefinition] = arguments.asJava
-  def getStatements: util.List[AstExpression]    = statements.asJava
+  def getArguments: java.util.List[AstArgDefinition] = arguments.asJava
+
+  def getStatements: java.util.List[AstExpression] = statements.asJava
 }
 
 case class AstCaseFunction(
@@ -195,6 +205,7 @@ case class AstIfZero(
 }
 
 case class AstCase(cons: AstExpression, function: AstCaseFunction)
+
 case class AstMatch(
   target: AstExpression,
   branches: Seq[AstCase],
@@ -323,9 +334,15 @@ class EnsoParserInternal extends JavaTokenParsers {
         AstMethodDef(typeName, methodName, fun)
     }
 
+  def importStmt: Parser[AstImport] =
+    "import" ~> ident ~ (("." ~> ident) *) ^^ {
+      case seg ~ segs => AstImport((seg :: segs).mkString("."))
+    }
+
   def globalScope: Parser[AstGlobalScope] =
-    ((typeDef | methodDef) *) ~ expression ^^ {
-      case assignments ~ expr => AstGlobalScope(assignments, expr)
+    (importStmt *) ~ ((typeDef | methodDef) *) ~ expression ^^ {
+      case imports ~ assignments ~ expr =>
+        AstGlobalScope(imports, assignments, expr)
     }
 
   def parseGlobalScope(code: String): AstGlobalScope = {

@@ -1,0 +1,4 @@
+import TestOverloadsTransitive.AtomDef
+import TestOverloadsTransitive.DummyModule
+
+@method [@X [1]]

@@ -1,0 +1,7 @@
+import TestNonImportedOwnMethods.Util
+
+type X a;
+
+X.method = 10
+
+@util [@Unit, @X [1]]

@@ -1,0 +1,3 @@
+import TestSimpleImports.Atom
+
+@method[@X[1]]

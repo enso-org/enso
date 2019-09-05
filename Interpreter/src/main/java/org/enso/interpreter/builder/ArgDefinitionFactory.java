@@ -4,7 +4,7 @@ import org.enso.interpreter.AstArgDefinitionVisitor;
 import org.enso.interpreter.AstExpression;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
-import org.enso.interpreter.runtime.scope.GlobalScope;
+import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.scope.LocalScope;
 
 /**
@@ -15,7 +15,7 @@ public class ArgDefinitionFactory implements AstArgDefinitionVisitor<ArgumentDef
   private final LocalScope scope;
   private final Language language;
   private final String scopeName;
-  private final GlobalScope globalScope;
+  private final ModuleScope moduleScope;
 
   /**
    * Explicitly specifies all constructor arguments.
@@ -23,14 +23,14 @@ public class ArgDefinitionFactory implements AstArgDefinitionVisitor<ArgumentDef
    * @param scope the language scope into which the arguments are defined
    * @param language the name of the language for which the arguments are defined
    * @param scopeName the name of the scope in which the arguments are defined
-   * @param globalScope the current language global scope
+   * @param moduleScope the current language global scope
    */
   public ArgDefinitionFactory(
-      LocalScope scope, Language language, String scopeName, GlobalScope globalScope) {
+      LocalScope scope, Language language, String scopeName, ModuleScope moduleScope) {
     this.scope = scope;
     this.language = language;
     this.scopeName = scopeName;
-    this.globalScope = globalScope;
+    this.moduleScope = moduleScope;
   }
 
   /**
@@ -38,20 +38,20 @@ public class ArgDefinitionFactory implements AstArgDefinitionVisitor<ArgumentDef
    *
    * @param language the name of the language for which the arguments are defined
    * @param scopeName the name of the scope in which the arguments are defined
-   * @param globalScope the current language global scope
+   * @param moduleScope the current language global scope
    */
-  public ArgDefinitionFactory(Language language, String scopeName, GlobalScope globalScope) {
-    this(new LocalScope(), language, scopeName, globalScope);
+  public ArgDefinitionFactory(Language language, String scopeName, ModuleScope moduleScope) {
+    this(new LocalScope(), language, scopeName, moduleScope);
   }
 
   /**
    * Default constructs the {@code LocalScope} and defaults the scope name to {@code <root>}.
    *
    * @param language the name of the language for which the arguments are defined
-   * @param globalScope the current language global scope
+   * @param moduleScope the current language global scope
    */
-  public ArgDefinitionFactory(Language language, GlobalScope globalScope) {
-    this(language, "<root>", globalScope);
+  public ArgDefinitionFactory(Language language, ModuleScope moduleScope) {
+    this(language, "<root>", moduleScope);
   }
 
   /**
@@ -76,7 +76,7 @@ public class ArgDefinitionFactory implements AstArgDefinitionVisitor<ArgumentDef
    */
   @Override
   public ArgumentDefinition visitDefaultedArg(String name, AstExpression value, int position) {
-    ExpressionFactory exprFactory = new ExpressionFactory(language, scope, scopeName, globalScope);
+    ExpressionFactory exprFactory = new ExpressionFactory(language, scope, scopeName, moduleScope);
     return new ArgumentDefinition(position, name, value.visit(exprFactory));
   }
 }

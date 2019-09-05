@@ -8,7 +8,7 @@ import com.oracle.truffle.api.frame.FrameSlotKind;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.Builtins;
 
 /** This node represents an assignment to a variable in a given scope. */
 @NodeInfo(shortName = "=", description = "Assigns expression result to a variable.")
@@ -20,14 +20,14 @@ public abstract class AssignmentNode extends ExpressionNode {
    *
    * @param frame the frame to write to
    * @param value the value to write
-   * @return the {@link AtomConstructor#UNIT unit} type
+   * @return the {@link Builtins#UNIT unit} type
    */
   @Specialization
   protected Object writeLong(VirtualFrame frame, long value) {
     frame.getFrameDescriptor().setFrameSlotKind(getFrameSlot(), FrameSlotKind.Long);
     frame.setLong(getFrameSlot(), value);
 
-    return AtomConstructor.UNIT.newInstance();
+    return Builtins.UNIT.newInstance();
   }
 
   /**
@@ -35,14 +35,14 @@ public abstract class AssignmentNode extends ExpressionNode {
    *
    * @param frame the frame to write to
    * @param value the value to write
-   * @return the {@link AtomConstructor#UNIT unit} type
+   * @return the {@link Builtins#UNIT unit} type
    */
   @Specialization
   protected Object writeObject(VirtualFrame frame, Object value) {
     frame.getFrameDescriptor().setFrameSlotKind(getFrameSlot(), FrameSlotKind.Object);
     frame.setObject(getFrameSlot(), value);
 
-    return AtomConstructor.UNIT.newInstance();
+    return Builtins.UNIT.newInstance();
   }
 
   /**

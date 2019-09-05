@@ -1,16 +1,13 @@
 package org.enso.interpreter;
 
 import com.oracle.truffle.api.CallTarget;
-import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleLanguage;
-import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.instrumentation.ProvidedTags;
 import com.oracle.truffle.api.instrumentation.StandardTags;
 import org.enso.interpreter.builder.FileDetector;
-import org.enso.interpreter.builder.GlobalScopeExpressionFactory;
-import org.enso.interpreter.node.EnsoRootNode;
-import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.RuntimeOptions;
+import org.graalvm.options.OptionDescriptors;
 
 /**
  * The root of the Enso implementation.
@@ -19,7 +16,7 @@ import org.enso.interpreter.runtime.Context;
  * with other guest languages on the same VM. This ensures that Enso is usable via the polyglot API,
  * and hence that it can both call other languages seamlessly, and be called from other languages.
  *
- * See {@link TruffleLanguage} for more information on the lifecycle of a language.
+ * <p>See {@link TruffleLanguage} for more information on the lifecycle of a language.
  */
 @TruffleLanguage.Registration(
     id = Constants.LANGUAGE_ID,
@@ -77,15 +74,10 @@ public final class Language extends TruffleLanguage<Context> {
    *
    * @param request the source to parse, plus contextual information
    * @return a ready-to-execute node representing the code provided in {@code request}
-   * @throws Exception when parsing or AST construction fail
    */
   @Override
-  protected CallTarget parse(ParsingRequest request) throws Exception {
-    AstGlobalScope parsed =
-        new EnsoParser().parseEnso(request.getSource().getCharacters().toString());
-    ExpressionNode result = new GlobalScopeExpressionFactory(this).run(parsed);
-    EnsoRootNode root = new EnsoRootNode(this, new FrameDescriptor(), result, null, "root");
-    return Truffle.getRuntime().createCallTarget(root);
+  protected CallTarget parse(ParsingRequest request) {
+    return getCurrentContext().parse(request.getSource());
   }
 
   /**
@@ -95,5 +87,14 @@ public final class Language extends TruffleLanguage<Context> {
    */
   public Context getCurrentContext() {
     return getCurrentContext(Language.class);
+  }
+
+  /**
+   * Returns the supported options descriptors, for use by Graal's engine.
+   * @return The supported options descriptors
+   */
+  @Override
+  protected OptionDescriptors getOptionDescriptors() {
+    return RuntimeOptions.OPTION_DESCRIPTORS;
   }
 }

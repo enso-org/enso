@@ -18,6 +18,7 @@ pr: none
 
 variables:
   graalVersion: 19.2.0
+  historicMacOSSbtFormula: https://raw.githubusercontent.com/Homebrew/homebrew-core/5311047af872538de3bd9fa10d78eda3185a7559/Formula/sbt.rb
 
 jobs:
 - job: Linux
@@ -63,7 +64,7 @@ jobs:
     displayName: Install GraalVM
   - script: |
       brew update
-      brew install sbt
+      brew install $(historicMacOSSbtFormula)
     displayName: Install sbt
   - script: |
       sbt -no-colors test
