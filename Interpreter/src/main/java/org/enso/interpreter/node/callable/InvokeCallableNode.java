@@ -8,6 +8,7 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.ConditionProfile;
+import java.util.Arrays;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.argument.sorter.ArgumentSorterNode;
@@ -22,8 +23,6 @@ import org.enso.interpreter.runtime.error.MethodDoesNotExistException;
 import org.enso.interpreter.runtime.error.NotInvokableException;
 import org.enso.interpreter.runtime.type.TypesGen;
 
-import java.util.Arrays;
-
 /**
  * This node is responsible for organising callable calls so that they are ready to be made.
  *
@@ -33,14 +32,16 @@ import java.util.Arrays;
 @NodeInfo(shortName = "@", description = "Executes function")
 @NodeChild(value = "callable", type = ExpressionNode.class)
 public abstract class InvokeCallableNode extends ExpressionNode {
-  @Children
-  private @CompilationFinal(dimensions = 1) ExpressionNode[] argExpressions;
 
-  private final boolean canApplyThis;
-  private final int thisArgumentPosition;
+  @Children
+  @CompilationFinal(dimensions = 1)
+  private ExpressionNode[] argExpressions;
 
   @Child private ArgumentSorterNode argumentSorter;
   @Child private MethodResolverNode methodResolverNode;
+
+  private final boolean canApplyThis;
+  private final int thisArgumentPosition;
 
   private final ConditionProfile methodCalledOnNonAtom = ConditionProfile.createCountingProfile();
 
@@ -49,7 +50,7 @@ public abstract class InvokeCallableNode extends ExpressionNode {
    *
    * @param callArguments information on the arguments being passed to the {@link Function}
    */
-  public InvokeCallableNode(CallArgument[] callArguments) {
+  public InvokeCallableNode(CallArgument[] callArguments, boolean hasDefaultsSuspended) {
     this.argExpressions =
         Arrays.stream(callArguments)
             .map(CallArgument::getExpression)
@@ -57,9 +58,9 @@ public abstract class InvokeCallableNode extends ExpressionNode {
 
     CallArgumentInfo[] argSchema =
         Arrays.stream(callArguments).map(CallArgumentInfo::new).toArray(CallArgumentInfo[]::new);
-
     boolean appliesThis = false;
     int idx = 0;
+
     for (; idx < argSchema.length; idx++) {
       CallArgumentInfo arg = argSchema[idx];
       if (arg.isPositional()
@@ -68,15 +69,17 @@ public abstract class InvokeCallableNode extends ExpressionNode {
         break;
       }
     }
+
     this.canApplyThis = appliesThis;
     this.thisArgumentPosition = idx;
 
-    this.argumentSorter = ArgumentSorterNodeGen.create(argSchema);
+    this.argumentSorter = ArgumentSorterNodeGen.create(argSchema, hasDefaultsSuspended);
     this.methodResolverNode = MethodResolverNodeGen.create();
   }
 
   /**
    * Marks whether the {@code argumentSorter} child is tail–recursive.
+   *
    * @param isTail whether or not the node is tail-recursive.
    */
   @Override

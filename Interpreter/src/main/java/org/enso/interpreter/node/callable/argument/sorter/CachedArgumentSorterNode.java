@@ -13,6 +13,7 @@ import org.enso.interpreter.runtime.callable.function.Function;
  */
 @NodeInfo(shortName = "CachedArgumentSorter")
 public class CachedArgumentSorterNode extends BaseNode {
+
   private final Function originalFunction;
   private final @CompilationFinal(dimensions = 1) int[] mapping;
   private final ArgumentSchema postApplicationSchema;
@@ -22,9 +23,12 @@ public class CachedArgumentSorterNode extends BaseNode {
    * Creates a node that generates and then caches the argument mapping.
    *
    * @param function the function to sort arguments for
-   * @param schema information on the calling arguments
+   * @param schema information on the calling argument
+   * @param hasDefaultsSuspended whether or not the function to which these arguments are applied
+   *     has its defaults suspended.
    */
-  public CachedArgumentSorterNode(Function function, CallArgumentInfo[] schema) {
+  public CachedArgumentSorterNode(
+      Function function, CallArgumentInfo[] schema, boolean hasDefaultsSuspended) {
     this.originalFunction = function;
     CallArgumentInfo.ArgumentMapping mapping =
         CallArgumentInfo.ArgumentMapping.generate(function.getSchema(), schema);
@@ -33,7 +37,10 @@ public class CachedArgumentSorterNode extends BaseNode {
 
     boolean fullApplication = true;
     for (int i = 0; i < postApplicationSchema.getArgumentsCount(); i++) {
-      if (!(postApplicationSchema.hasDefaultAt(i) || postApplicationSchema.hasPreAppliedAt(i))) {
+      boolean hasValidDefault = postApplicationSchema.hasDefaultAt(i) && !hasDefaultsSuspended;
+      boolean hasPreappliedArg = postApplicationSchema.hasPreAppliedAt(i);
+
+      if (!(hasValidDefault || hasPreappliedArg)) {
         fullApplication = false;
         break;
       }
@@ -48,8 +55,9 @@ public class CachedArgumentSorterNode extends BaseNode {
    * @param schema information on the calling arguments
    * @return a sorter node for the arguments in {@code schema} being passed to {@code callable}
    */
-  public static CachedArgumentSorterNode create(Function function, CallArgumentInfo[] schema) {
-    return new CachedArgumentSorterNode(function, schema);
+  public static CachedArgumentSorterNode create(
+      Function function, CallArgumentInfo[] schema, boolean hasDefaultsSuspended) {
+    return new CachedArgumentSorterNode(function, schema, hasDefaultsSuspended);
   }
 
   /**

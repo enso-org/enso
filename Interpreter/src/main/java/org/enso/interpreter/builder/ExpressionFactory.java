@@ -4,19 +4,42 @@ import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.nodes.RootNode;
-import org.enso.interpreter.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import org.enso.interpreter.AstArgDefinition;
+import org.enso.interpreter.AstCallArg;
+import org.enso.interpreter.AstCase;
+import org.enso.interpreter.AstCaseFunction;
+import org.enso.interpreter.AstExpression;
+import org.enso.interpreter.AstExpressionVisitor;
+import org.enso.interpreter.Language;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.InvokeCallableNodeGen;
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode;
 import org.enso.interpreter.node.callable.function.CreateFunctionNode;
 import org.enso.interpreter.node.callable.function.FunctionBodyNode;
-import org.enso.interpreter.node.controlflow.*;
+import org.enso.interpreter.node.controlflow.CaseNode;
+import org.enso.interpreter.node.controlflow.ConstructorCaseNode;
+import org.enso.interpreter.node.controlflow.DefaultFallbackNode;
+import org.enso.interpreter.node.controlflow.FallbackNode;
+import org.enso.interpreter.node.controlflow.IfZeroNode;
+import org.enso.interpreter.node.controlflow.MatchNode;
 import org.enso.interpreter.node.expression.builtin.PrintNode;
 import org.enso.interpreter.node.expression.constant.ConstructorNode;
 import org.enso.interpreter.node.expression.constant.DynamicSymbolNode;
 import org.enso.interpreter.node.expression.literal.IntegerLiteralNode;
-import org.enso.interpreter.node.expression.operator.*;
+import org.enso.interpreter.node.expression.operator.AddOperatorNodeGen;
+import org.enso.interpreter.node.expression.operator.DivideOperatorNodeGen;
+import org.enso.interpreter.node.expression.operator.ModOperatorNodeGen;
+import org.enso.interpreter.node.expression.operator.MultiplyOperatorNodeGen;
+import org.enso.interpreter.node.expression.operator.SubtractOperatorNodeGen;
 import org.enso.interpreter.node.scope.AssignmentNode;
 import org.enso.interpreter.node.scope.AssignmentNodeGen;
 import org.enso.interpreter.node.scope.ReadLocalTargetNodeGen;
@@ -27,16 +50,12 @@ import org.enso.interpreter.runtime.error.DuplicateArgumentNameException;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.scope.LocalScope;
 
-import java.util.*;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 /**
  * An {@code ExpressionFactory} is responsible for converting the majority of Enso's parsed AST into
  * nodes evaluated by the interpreter at runtime.
  */
 public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
+
   private final LocalScope scope;
   private final Language language;
   private final String scopeName;
@@ -128,11 +147,21 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
       String operator, AstExpression leftAst, AstExpression rightAst) {
     ExpressionNode left = leftAst.visit(this);
     ExpressionNode right = rightAst.visit(this);
-    if (operator.equals("+")) return AddOperatorNodeGen.create(left, right);
-    if (operator.equals("-")) return SubtractOperatorNodeGen.create(left, right);
-    if (operator.equals("*")) return MultiplyOperatorNodeGen.create(left, right);
-    if (operator.equals("/")) return DivideOperatorNodeGen.create(left, right);
-    if (operator.equals("%")) return ModOperatorNodeGen.create(left, right);
+    if (operator.equals("+")) {
+      return AddOperatorNodeGen.create(left, right);
+    }
+    if (operator.equals("-")) {
+      return SubtractOperatorNodeGen.create(left, right);
+    }
+    if (operator.equals("*")) {
+      return MultiplyOperatorNodeGen.create(left, right);
+    }
+    if (operator.equals("/")) {
+      return DivideOperatorNodeGen.create(left, right);
+    }
+    if (operator.equals("%")) {
+      return ModOperatorNodeGen.create(left, right);
+    }
     return null;
   }
 
@@ -300,7 +329,7 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
    */
   @Override
   public ExpressionNode visitFunctionApplication(
-      AstExpression function, List<AstCallArg> arguments) {
+      AstExpression function, List<AstCallArg> arguments, boolean hasDefaultsSuspended) {
     CallArgFactory argFactory = new CallArgFactory(scope, language, scopeName, moduleScope);
 
     List<CallArgument> callArgs = new ArrayList<>();
@@ -310,7 +339,7 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
     }
 
     return InvokeCallableNodeGen.create(
-        callArgs.stream().toArray(CallArgument[]::new), function.visit(this));
+        callArgs.toArray(new CallArgument[0]), hasDefaultsSuspended, function.visit(this));
   }
 
   /**

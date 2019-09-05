@@ -12,6 +12,7 @@ import org.enso.interpreter.runtime.scope.LocalScope;
  * runtime nodes used by the interpreter to guide function evaluation.
  */
 public class CallArgFactory implements AstCallArgVisitor<CallArgument> {
+
   private final LocalScope scope;
   private final Language language;
   private final String scopeName;
