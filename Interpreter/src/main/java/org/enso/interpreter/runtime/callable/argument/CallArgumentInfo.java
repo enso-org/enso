@@ -81,7 +81,7 @@ public class CallArgumentInfo {
    */
   @ExplodeLoop
   public static void reorderArguments(int[] order, Object[] args, Object[] result) {
-    for (int i = 0; i < args.length; i++) {
+    for (int i = 0; i < order.length; i++) {
       result[order[i]] = args[i];
     }
   }

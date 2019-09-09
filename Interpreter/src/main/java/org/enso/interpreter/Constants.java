@@ -1,8 +1,6 @@
 package org.enso.interpreter;
 
-/**
- * Language-level constants for use throughout the program.
- */
+/** Language-level constants for use throughout the program. */
 public class Constants {
   public static final String LANGUAGE_ID = "enso";
   public static final String LANGUAGE_NAME = "Enso";
@@ -13,4 +11,10 @@ public class Constants {
 
   public static final String THIS_ARGUMENT_NAME = "this";
   public static final String SCOPE_SEPARATOR = ".";
+
+  /** Cache sizes for different AST nodes. */
+  public static class CacheSizes {
+    public static final String ARGUMENT_SORTER_NODE = "10";
+    public static final String FUNCTION_INTEROP_LIBRARY = "10";
+  }
 }

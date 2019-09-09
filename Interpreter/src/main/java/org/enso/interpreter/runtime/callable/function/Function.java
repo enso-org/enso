@@ -9,8 +9,11 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
-import com.oracle.truffle.api.nodes.DirectCallNode;
-import com.oracle.truffle.api.nodes.IndirectCallNode;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
+import org.enso.interpreter.Constants;
+import org.enso.interpreter.node.callable.argument.sorter.ArgumentSorterNode;
+import org.enso.interpreter.node.callable.argument.sorter.ArgumentSorterNodeGen;
+import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 
 /** A runtime representation of a function object in Enso. */
 @ExportLibrary(InteropLibrary.class)
@@ -109,41 +112,50 @@ public final class Function implements TruffleObject {
   public abstract static class Execute {
 
     /**
-     * Calls the function directly.
+     * Builds an argument sorter node prepared to apply a predefined number of arguments.
      *
-     * <p>This specialisation comes into play where the call target for the provided function is
-     * already cached. THis means that the call can be made quickly.
-     *
-     * @param function the function to execute
-     * @param arguments the arguments passed to {@code function} in the expected positional order
-     * @param cachedTarget the cached call target for {@code function}
-     * @param callNode the cached call node for {@code cachedTarget}
-     * @return the result of executing {@code function} on {@code arguments}
+     * @param length the number of arguments to build the sorter node for.
+     * @return an argument sorter node ready to apply {@code length} arguments.
      */
-    @Specialization(guards = "function.getCallTarget() == cachedTarget")
-    protected static Object callDirect(
-        Function function,
-        Object[] arguments,
-        @Cached("function.getCallTarget()") RootCallTarget cachedTarget,
-        @Cached("create(cachedTarget)") DirectCallNode callNode) {
-      return callNode.call(function.getScope(), arguments);
+    @ExplodeLoop
+    protected static ArgumentSorterNode buildSorter(int length) {
+      CallArgumentInfo[] args = new CallArgumentInfo[length];
+      for (int i = 0; i < length; i++) {
+        args[i] = new CallArgumentInfo(null, false, true);
+      }
+      return ArgumentSorterNodeGen.create(args, false);
     }
 
     /**
-     * Calls the function with a lookup.
-     *
-     * <p>This specialisation is used in the case where there is no cached call target for the
-     * provided function. This is much slower and should, in general, be avoided.
+     * Calls a function extensively caching relevant metadata. This is the fast path operation.
      *
      * @param function the function to execute
      * @param arguments the arguments passed to {@code function} in the expected positional order
-     * @param callNode the cached call node for making indirect calls
+     * @param cachedArgsLength the cached arguments count
+     * @param sorterNode the cached argument sorter node for the particular arguments array length.
      * @return the result of executing {@code function} on {@code arguments}
      */
-    @Specialization(replaces = "callDirect")
-    protected static Object callIndirect(
-        Function function, Object[] arguments, @Cached IndirectCallNode callNode) {
-      return callNode.call(function.getCallTarget(), function.getScope(), arguments);
+    @Specialization(
+        guards = "arguments.length == cachedArgsLength",
+        limit = Constants.CacheSizes.FUNCTION_INTEROP_LIBRARY)
+    protected static Object callCached(
+        Function function,
+        Object[] arguments,
+        @Cached(value = "arguments.length") int cachedArgsLength,
+        @Cached(value = "buildSorter(cachedArgsLength)") ArgumentSorterNode sorterNode) {
+      return sorterNode.execute(function, arguments);
+    }
+
+    /**
+     * Calls a function without any caching. This is the slow path variant.
+     *
+     * @param function the function to execute.
+     * @param arguments the arguments to pass to the {@code function}.
+     * @return the result of function application.
+     */
+    @Specialization(replaces = "callCached")
+    protected static Object callUncached(Function function, Object[] arguments) {
+      return callCached(function, arguments, arguments.length, buildSorter(arguments.length));
     }
   }
 

@@ -15,6 +15,7 @@ class RegressionTest extends FlatSpec with Matchers {
     benchmark should "not be slower than before" in {
       val item       = runner.run(benchmark)
       val difference = (item.getScore / item.getBestScore) - 1
+      println(s"Difference was: $difference.")
       difference should be < TOLERANCE
     }
   }

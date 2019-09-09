@@ -53,4 +53,5 @@ class RecursionFixtures extends LanguageRunner {
     """.stripMargin
 
   val sumRecursive = ctx.eval(Constants.LANGUAGE_ID, sumRecursiveCode)
+
 }
