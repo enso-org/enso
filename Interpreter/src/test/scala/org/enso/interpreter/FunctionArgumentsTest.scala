@@ -1,7 +1,5 @@
 package org.enso.interpreter
 
-import org.graalvm.polyglot.PolyglotException
-
 class FunctionArgumentsTest extends LanguageTest {
   "Functions" should "take arguments and use them in their bodies" in {
     val code     = "{ |x| x * x }"
@@ -35,34 +33,62 @@ class FunctionArgumentsTest extends LanguageTest {
     eval(code) shouldEqual 55
   }
 
-  "Functions" should "not take more arguments than they are defined for" in {
-    pending
+  "Function calls" should "accept more arguments than needed and pass them to the result upon execution" in {
     val code =
       """
         |@{
-        |  sumTo = { |x| ifZero: [x, 0, x + (@sumTo [x - 1])] };
-        |  @sumTo [10, 11]
+        |  f = { |x| { |z| x + z } };
+        |
+        |  @f [1, 2]
         |}
-      """.stripMargin
-
-    val errMsg =
-      """
-        |org.enso.interpreter.runtime.errors.ArityException: Wrong number of
-        | arguments. Expected: 1 but got: 2.
-        |""".stripMargin.replaceAll("\n", "")
-
-    the[PolyglotException] thrownBy eval(code) should have message errMsg
-  }
-
-  "Function calls" should "accept more arguments than needed and pass them to the result upon execution" in {
-    pending
-    val code =
-      """
-        |f = { |x| { |z| x + z } }
-        |@f [1, 2]
         |""".stripMargin
 
     eval(code) shouldEqual 3
   }
 
+  "Function calls" should "allow oversaturation and execute until completion" in {
+    val code =
+      """
+        |@{
+        |  f = { | x, y | { | w | { | z | (x * y) + (w + z) } } };
+        |
+        |  @f [3, 3, 10, 1]
+        |}
+        |""".stripMargin
+
+    eval(code) shouldEqual 20
+  }
+
+  "Function calls" should "be able to return atoms that are evaluated with oversaturated args" in {
+    val code =
+      """
+        |@{
+        |  f = { |x| Cons };
+        |
+        |  myCons = @f [1, 2, 3];
+        |
+        |  match myCons <
+        |    Cons ~ { |h, t| h + t };
+        |  >
+        |}
+        |""".stripMargin
+
+    eval(code) shouldEqual 5
+  }
+
+  "Methods" should "support the use of oversaturated args" in {
+    val code =
+      """
+        |Unit.myMethod = 1
+        |
+        |@{
+        |  f = { |x| myMethod };
+        |  t = @f [10, @Unit];
+        |
+        |  t
+        |}
+        |""".stripMargin
+
+    eval(code) shouldEqual 1
+  }
 }

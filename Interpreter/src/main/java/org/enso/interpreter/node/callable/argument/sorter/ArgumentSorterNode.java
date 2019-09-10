@@ -7,7 +7,6 @@ import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
-import org.enso.interpreter.optimiser.tco.TailCallException;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 
@@ -25,6 +24,8 @@ public abstract class ArgumentSorterNode extends BaseNode {
    * Creates a node that performs the argument organisation for the provided schema.
    *
    * @param schema information about the call arguments in positional order
+   * @param hasDefaultsSuspended whether or not the default arguments are suspended for this
+   *     function invocation
    */
   public ArgumentSorterNode(CallArgumentInfo[] schema, boolean hasDefaultsSuspended) {
     this.schema = schema;
@@ -54,23 +55,10 @@ public abstract class ArgumentSorterNode extends BaseNode {
   public Object invokeCached(
       Function function,
       Object[] arguments,
-      @Cached("create(function, getSchema(), hasDefaultsSuspended())")
+      @Cached("create(function, getSchema(), hasDefaultsSuspended(), isTail())")
           CachedArgumentSorterNode mappingNode,
       @Cached CallOptimiserNode optimiser) {
-    Object[] mappedArguments = mappingNode.execute(function, arguments);
-    if (mappingNode.appliesFully()) {
-      if (this.isTail()) {
-        throw new TailCallException(mappingNode.getOriginalFunction(), mappedArguments);
-      } else {
-        return optimiser.executeDispatch(mappingNode.getOriginalFunction(), mappedArguments);
-      }
-    } else {
-      return new Function(
-          function.getCallTarget(),
-          function.getScope(),
-          mappingNode.getPostApplicationSchema(),
-          mappedArguments);
-    }
+    return mappingNode.execute(function, arguments, optimiser);
   }
 
   /**
@@ -86,7 +74,7 @@ public abstract class ArgumentSorterNode extends BaseNode {
     return invokeCached(
         function,
         arguments,
-        CachedArgumentSorterNode.create(function, getSchema(), hasDefaultsSuspended()),
+        CachedArgumentSorterNode.create(function, getSchema(), hasDefaultsSuspended(), isTail()),
         CallOptimiserNode.create());
   }
 

@@ -32,9 +32,8 @@ public class ReadArgumentNode extends ExpressionNode {
    *
    * <p>This function also handles the defaulted case by checking for a {@code null} value at the
    * argument's position. This works in conjunction with {@link
-   * org.enso.interpreter.runtime.callable.argument.CallArgumentInfo#reorderArguments(int[],
-   * Object[], Object[])}, which will place nulls in any position where an argument has not been
-   * applied.
+   * org.enso.interpreter.runtime.callable.argument.CallArgumentInfo.ArgumentMapping#reorderAppliedArguments(Object[],
+   * Object[])} which will place nulls in any position where an argument has not been applied.
    *
    * @param frame the stack frame to execute in
    * @return the computed value of the argument at this position

@@ -1,9 +1,14 @@
 package org.enso.interpreter.node.callable.argument.sorter;
 
-import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.BaseNode;
+import org.enso.interpreter.node.callable.InvokeCallableNode;
+import org.enso.interpreter.node.callable.InvokeCallableNodeGen;
+import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
+import org.enso.interpreter.optimiser.tco.TailCallException;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
+import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo.ArgumentMapping;
+import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo.ArgumentMappingBuilder;
 import org.enso.interpreter.runtime.callable.function.ArgumentSchema;
 import org.enso.interpreter.runtime.callable.function.Function;
 
@@ -15,9 +20,10 @@ import org.enso.interpreter.runtime.callable.function.Function;
 public class CachedArgumentSorterNode extends BaseNode {
 
   private final Function originalFunction;
-  private final @CompilationFinal(dimensions = 1) int[] mapping;
+  private final ArgumentMapping mapping;
   private final ArgumentSchema postApplicationSchema;
   private final boolean appliesFully;
+  @Child private InvokeCallableNode oversaturatedCallableNode = null;
 
   /**
    * Creates a node that generates and then caches the argument mapping.
@@ -28,24 +34,31 @@ public class CachedArgumentSorterNode extends BaseNode {
    *     has its defaults suspended.
    */
   public CachedArgumentSorterNode(
-      Function function, CallArgumentInfo[] schema, boolean hasDefaultsSuspended) {
+      Function function, CallArgumentInfo[] schema, boolean hasDefaultsSuspended, boolean isTail) {
+    this.setTail(isTail);
     this.originalFunction = function;
-    CallArgumentInfo.ArgumentMapping mapping =
-        CallArgumentInfo.ArgumentMapping.generate(function.getSchema(), schema);
+    ArgumentMappingBuilder mapping = ArgumentMappingBuilder.generate(function.getSchema(), schema);
     this.mapping = mapping.getAppliedMapping();
     this.postApplicationSchema = mapping.getPostApplicationSchema();
 
-    boolean fullApplication = true;
+    boolean functionIsFullyApplied = true;
     for (int i = 0; i < postApplicationSchema.getArgumentsCount(); i++) {
       boolean hasValidDefault = postApplicationSchema.hasDefaultAt(i) && !hasDefaultsSuspended;
       boolean hasPreappliedArg = postApplicationSchema.hasPreAppliedAt(i);
 
       if (!(hasValidDefault || hasPreappliedArg)) {
-        fullApplication = false;
+        functionIsFullyApplied = false;
         break;
       }
     }
-    appliesFully = fullApplication;
+    appliesFully = functionIsFullyApplied;
+
+    if (postApplicationSchema.hasOversaturatedArgs()) {
+      oversaturatedCallableNode =
+          InvokeCallableNodeGen.create(
+              postApplicationSchema.getOversaturatedArguments(), hasDefaultsSuspended);
+      oversaturatedCallableNode.setTail(isTail);
+    }
   }
 
   /**
@@ -53,11 +66,14 @@ public class CachedArgumentSorterNode extends BaseNode {
    *
    * @param function the function to sort arguments for
    * @param schema information on the calling arguments
+   * @param hasDefaultsSuspended whether or not the default arguments are suspended for this
+   *     function invocation
+   * @param isTail whether or not this node is a tail call
    * @return a sorter node for the arguments in {@code schema} being passed to {@code callable}
    */
   public static CachedArgumentSorterNode create(
-      Function function, CallArgumentInfo[] schema, boolean hasDefaultsSuspended) {
-    return new CachedArgumentSorterNode(function, schema, hasDefaultsSuspended);
+      Function function, CallArgumentInfo[] schema, boolean hasDefaultsSuspended, boolean isTail) {
+    return new CachedArgumentSorterNode(function, schema, hasDefaultsSuspended, isTail);
   }
 
   /**
@@ -65,17 +81,72 @@ public class CachedArgumentSorterNode extends BaseNode {
    *
    * @param function the function this node is reordering arguments for
    * @param arguments the arguments to reorder
+   * @param optimiser a call optimiser node, capable of performing the actual function call
    * @return the provided {@code arguments} in the order expected by the cached {@link Function}
    */
-  public Object[] execute(Function function, Object[] arguments) {
-    Object[] result;
+  public Object execute(Function function, Object[] arguments, CallOptimiserNode optimiser) {
+    Object[] mappedAppliedArguments;
+
     if (originalFunction.getSchema().hasAnyPreApplied()) {
-      result = function.clonePreAppliedArguments();
+      mappedAppliedArguments = function.clonePreAppliedArguments();
     } else {
-      result = new Object[this.postApplicationSchema.getArgumentsCount()];
+      mappedAppliedArguments = new Object[this.postApplicationSchema.getArgumentsCount()];
     }
-    CallArgumentInfo.reorderArguments(this.mapping, arguments, result);
-    return result;
+
+    mapping.reorderAppliedArguments(arguments, mappedAppliedArguments);
+
+    if (this.appliesFully()) {
+      if (!postApplicationSchema.hasOversaturatedArgs()) {
+        if (this.isTail()) {
+          throw new TailCallException(this.getOriginalFunction(), mappedAppliedArguments);
+        } else {
+          return optimiser.executeDispatch(this.getOriginalFunction(), mappedAppliedArguments);
+        }
+      } else {
+        Object evaluatedVal =
+            optimiser.executeDispatch(this.getOriginalFunction(), mappedAppliedArguments);
+
+        return this.oversaturatedCallableNode.execute(
+            evaluatedVal, generateOversaturatedArguments(function, arguments));
+      }
+    } else {
+      return new Function(
+          function.getCallTarget(),
+          function.getScope(),
+          this.getPostApplicationSchema(),
+          mappedAppliedArguments,
+          generateOversaturatedArguments(function, arguments));
+    }
+  }
+
+  /**
+   * Generates an array containing the oversaturated arguments for the function being executed (if
+   * any).
+   *
+   * <p>It accounts for oversaturated arguments at the function call site, as well as any that have
+   * been 'remembered' in the passed {@link Function} object.
+   *
+   * @param function the function being executed
+   * @param arguments the arguments being applied to {@code function}
+   * @return any oversaturated arguments on {@code function}
+   */
+  private Object[] generateOversaturatedArguments(Function function, Object[] arguments) {
+    Object[] oversaturatedArguments =
+        new Object[this.postApplicationSchema.getOversaturatedArguments().length];
+
+    System.arraycopy(
+        function.getOversaturatedArguments(),
+        0,
+        oversaturatedArguments,
+        0,
+        originalFunction.getSchema().getOversaturatedArguments().length);
+
+    mapping.obtainOversaturatedArguments(
+        arguments,
+        oversaturatedArguments,
+        originalFunction.getSchema().getOversaturatedArguments().length);
+
+    return oversaturatedArguments;
   }
 
   /**

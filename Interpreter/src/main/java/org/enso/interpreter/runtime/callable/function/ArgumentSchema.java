@@ -1,17 +1,19 @@
 package org.enso.interpreter.runtime.callable.function;
 
-import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
+import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 
 /**
  * Holds the definition site argument information together with information on the partially applied
  * arguments positions.
  */
 public class ArgumentSchema {
-  private final @CompilerDirectives.CompilationFinal(dimensions = 1) ArgumentDefinition[]
-      argumentInfos;
-  private final @CompilerDirectives.CompilationFinal(dimensions = 1) boolean[] hasPreApplied;
+  private final @CompilationFinal(dimensions = 1) ArgumentDefinition[] argumentInfos;
+  private final @CompilationFinal(dimensions = 1) boolean[] hasPreApplied;
+  private final @CompilationFinal(dimensions = 1) CallArgumentInfo[] oversaturatedArguments;
   private final boolean hasAnyPreApplied;
+  private final boolean hasOversaturatedArguments;
 
   /**
    * Creates an {@link ArgumentSchema} instance.
@@ -20,17 +22,24 @@ public class ArgumentSchema {
    * @param hasPreApplied A flags collection such that {@code hasPreApplied[i]} is true iff a
    *     function has a partially applied argument at position {@code i}
    */
-  public ArgumentSchema(ArgumentDefinition[] argumentInfos, boolean[] hasPreApplied) {
+  public ArgumentSchema(
+      ArgumentDefinition[] argumentInfos,
+      boolean[] hasPreApplied,
+      CallArgumentInfo[] oversaturatedArguments) {
     this.argumentInfos = argumentInfos;
+    this.oversaturatedArguments = oversaturatedArguments;
     this.hasPreApplied = hasPreApplied;
     boolean hasAnyPreApplied = false;
-    for (int i = 0; i < hasPreApplied.length; i++) {
-      if (hasPreApplied[i]) {
+
+    for (boolean b : hasPreApplied) {
+      if (b) {
         hasAnyPreApplied = true;
         break;
       }
     }
+
     this.hasAnyPreApplied = hasAnyPreApplied;
+    this.hasOversaturatedArguments = this.oversaturatedArguments.length > 0;
   }
 
   /**
@@ -40,7 +49,7 @@ public class ArgumentSchema {
    * @param argumentInfos Definition site arguments information
    */
   public ArgumentSchema(ArgumentDefinition[] argumentInfos) {
-    this(argumentInfos, new boolean[argumentInfos.length]);
+    this(argumentInfos, new boolean[argumentInfos.length], new CallArgumentInfo[0]);
   }
 
   /**
@@ -66,6 +75,15 @@ public class ArgumentSchema {
   }
 
   /**
+   * Checks if the schema has associated oversaturated arguments.
+   *
+   * @return {@code true} if the schema has oversaturated arguments, otherwise {@code false}
+   */
+  public boolean hasOversaturatedArgs() {
+    return this.hasOversaturatedArguments;
+  }
+
+  /**
    * Return the definition site arguments information.
    *
    * @return the definition site arguments information
@@ -81,6 +99,15 @@ public class ArgumentSchema {
    */
   public boolean[] cloneHasPreApplied() {
     return hasPreApplied.clone();
+  }
+
+  /**
+   * Gets a copy of the oversaturated arguments in the schema.
+   *
+   * @return a copy of the array containing info on the oversaturated arguments
+   */
+  public CallArgumentInfo[] cloneOversaturatedArgs() {
+    return this.oversaturatedArguments.clone();
   }
 
   /**
@@ -101,5 +128,14 @@ public class ArgumentSchema {
    */
   public int getArgumentsCount() {
     return argumentInfos.length;
+  }
+
+  /**
+   * Returns the oversaturated arguments contained within the schema.
+   *
+   * @return an array of the oversaturated arguments in the schema
+   */
+  public CallArgumentInfo[] getOversaturatedArguments() {
+    return oversaturatedArguments;
   }
 }

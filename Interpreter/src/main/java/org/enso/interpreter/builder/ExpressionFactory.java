@@ -21,7 +21,7 @@ import org.enso.interpreter.AstExpressionVisitor;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.node.callable.InvokeCallableNodeGen;
+import org.enso.interpreter.node.callable.ApplicationNode;
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode;
 import org.enso.interpreter.node.callable.function.CreateFunctionNode;
 import org.enso.interpreter.node.callable.function.FunctionBodyNode;
@@ -47,8 +47,8 @@ import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.CallArgument;
 import org.enso.interpreter.runtime.error.DuplicateArgumentNameException;
-import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.scope.LocalScope;
+import org.enso.interpreter.runtime.scope.ModuleScope;
 
 /**
  * An {@code ExpressionFactory} is responsible for converting the majority of Enso's parsed AST into
@@ -338,8 +338,8 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
       callArgs.add(arg);
     }
 
-    return InvokeCallableNodeGen.create(
-        callArgs.toArray(new CallArgument[0]), hasDefaultsSuspended, function.visit(this));
+    return new ApplicationNode(
+        function.visit(this), callArgs.toArray(new CallArgument[0]), hasDefaultsSuspended);
   }
 
   /**

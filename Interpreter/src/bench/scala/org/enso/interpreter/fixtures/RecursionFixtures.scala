@@ -1,10 +1,13 @@
 package org.enso.interpreter.fixtures
 
-import org.enso.interpreter.{Constants, LanguageRunner}
+import org.enso.interpreter.Constants
+import org.enso.interpreter.LanguageRunner
 
 class RecursionFixtures extends LanguageRunner {
   val hundredMillion: Long = 100000000
-  val hundred: Long = 100
+  val million: Long        = 1000000
+  val thousand: Long       = 1000
+  val hundred: Long        = 100
 
   // Currently unused as we know this is very slow.
   val mutRecursiveCode =
@@ -53,5 +56,17 @@ class RecursionFixtures extends LanguageRunner {
     """.stripMargin
 
   val sumRecursive = ctx.eval(Constants.LANGUAGE_ID, sumRecursiveCode)
+
+  val oversaturatedRecursiveCallTCOCode =
+    """
+      |{ |sumTo|
+      |  summator = { |acc, i, f| ifZero: [i, acc, @summator [@f [acc, i], i - 1, f]] };
+      |  res = @summator [0, sumTo, {|x| { |y| x + y }}];
+      |  res
+      |}
+      |""".stripMargin
+
+  val oversaturatedRecursiveCall =
+    ctx.eval(Constants.LANGUAGE_ID, oversaturatedRecursiveCallTCOCode);
 
 }

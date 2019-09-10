@@ -1,6 +1,7 @@
 package org.enso.interpreter.runtime.callable.function;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -22,6 +23,7 @@ public final class Function implements TruffleObject {
   private final MaterializedFrame scope;
   private final ArgumentSchema schema;
   private final @CompilerDirectives.CompilationFinal(dimensions = 1) Object[] preAppliedArguments;
+  private final @CompilationFinal(dimensions = 1) Object[] oversaturatedArguments;
 
   /**
    * Creates a new function.
@@ -29,7 +31,7 @@ public final class Function implements TruffleObject {
    * @param callTarget the target containing the function's code
    * @param scope a frame representing the function's scope
    * @param schema the {@link ArgumentSchema} with which the function was defined
-   * @param preAppliedArguments the preapplied arguments for this function. The layout of this array
+   * @param preappliedArguments the preapplied arguments for this function. The layout of this array
    *     must be conforming to the {@code schema}. {@code null} is allowed if the function does not
    *     have any partially applied arguments.
    */
@@ -37,11 +39,13 @@ public final class Function implements TruffleObject {
       RootCallTarget callTarget,
       MaterializedFrame scope,
       ArgumentSchema schema,
-      Object[] preAppliedArguments) {
+      Object[] preappliedArguments,
+      Object[] oversaturatedArguments) {
     this.callTarget = callTarget;
     this.scope = scope;
     this.schema = schema;
-    this.preAppliedArguments = preAppliedArguments;
+    this.preAppliedArguments = preappliedArguments;
+    this.oversaturatedArguments = oversaturatedArguments;
   }
 
   /**
@@ -52,7 +56,7 @@ public final class Function implements TruffleObject {
    * @param schema the {@link ArgumentSchema} with which the function was defined
    */
   public Function(RootCallTarget callTarget, MaterializedFrame scope, ArgumentSchema schema) {
-    this(callTarget, scope, schema, null);
+    this(callTarget, scope, schema, null, null);
   }
 
   /**
@@ -80,6 +84,15 @@ public final class Function implements TruffleObject {
    */
   public ArgumentSchema getSchema() {
     return schema;
+  }
+
+  /**
+   * Obtains the oversaturated arguments associated with this function.
+   *
+   * @return an array of this function's oversaturated arguments
+   */
+  public Object[] getOversaturatedArguments() {
+    return oversaturatedArguments != null ? oversaturatedArguments : new Object[0];
   }
 
   /**
