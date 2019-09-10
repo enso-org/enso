@@ -1,17 +1,20 @@
-import sbt.Keys.javaOptions
+package org.enso.build
+
 import sbt._
 
-/** Command allowing to run the CLI program with additional JVM-level flags.
-  * The supported flags are:
+/** Command allowing to run a task with additional JVM-level flags.
+  * Supported tasks are run and benchOnly.
+  * Supported flags are:
   * * `--dumpGraphs`: dumps IGV output of the program
   * * `--showCompilations`: prints Truffle compilation traces
   * * `--printAssembly`: prints the disassembler output
-  * Any CLI arguments should be passed following `--` like so:
+  * Any task arguments should be passed following `--` like so:
   * {{{
-  *   runDebug --dumpGraphs --printAssembly -- --run myFile.enso
+  *   withDebug run --dumpGraphs --printAssembly -- --run myFile.enso
+  *   withDebug benchOnly --showCompilations -- myBenchmark
   * }}}
   */
-object RunDebugCommand {
+object WithDebugCommand {
 
   val truffleNoBackgroundCompilationOptions = Seq(
     "-Dgraal.TruffleBackgroundCompilation=false"
@@ -42,13 +45,22 @@ object RunDebugCommand {
 
   val argSeparator = "--"
 
-  val commandName = "runDebug"
+  val commandName = "withDebug"
+
+  val benchOnlyCommandName = "benchOnly"
+  val runCommandName       = "run"
 
   /** The main logic for parsing and transforming the debug flags into JVM level flags */
-  def runDebug: Command = Command.args(commandName, "<arguments>") {
+  def withDebug: Command = Command.args(commandName, "<arguments>") {
     (state, args) =>
       val (debugFlags, prefixedRunArgs) = args.span(_ != argSeparator)
       val runArgs                       = " " + prefixedRunArgs.drop(1).mkString(" ")
+
+      val taskKey =
+        if (debugFlags.contains(benchOnlyCommandName)) BenchTasks.benchOnly
+        else if (debugFlags.contains(runCommandName)) Compile / Keys.run
+        else throw new IllegalArgumentException("Invalid command name.")
+
       val dumpGraphsOpts =
         if (debugFlags.contains(dumpGraphsOption)) truffleDumpGraphsOptions
         else Seq()
@@ -69,12 +81,12 @@ object RunDebugCommand {
 
       val extracted = Project.extract(state)
       val withJavaOpts = extracted.appendWithoutSession(
-        Seq(Compile / Keys.run / Keys.javaOptions ++= javaOpts),
+        Seq(Compile / Keys.javaOptions ++= javaOpts),
         state
       )
       Project
         .extract(withJavaOpts)
-        .runInputTask(Compile / Keys.run, runArgs, withJavaOpts)
+        .runInputTask(taskKey, runArgs, withJavaOpts)
       state
   }
 }

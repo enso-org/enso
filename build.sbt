@@ -1,4 +1,6 @@
 import scala.sys.process._
+import org.enso.build.BenchTasks._
+import org.enso.build.WithDebugCommand
 
 // Global Configuration
 organization := "org.enso"
@@ -15,9 +17,9 @@ scalacOptions ++= Seq(
 javacOptions ++= Seq("-source", "12", "-target", "1.8")
 
 // Benchmark Configuration
-lazy val Benchmark = config("bench") extend Test
-lazy val bench     = taskKey[Unit]("Run Benchmarks")
-lazy val benchOnly = inputKey[Unit]("Run benchmarks by name substring")
+lazy val Benchmark = config("bench") extend sbt.Test
+
+// Native Image Generation
 lazy val buildNativeImage =
   taskKey[Unit]("Build native image for the Enso executable")
 
@@ -93,7 +95,7 @@ lazy val interpreter = (project in file("Interpreter"))
     mainClass in (Compile, run) := Some("org.enso.interpreter.Main"),
     version := "0.1"
   )
-  .settings(commands += RunDebugCommand.runDebug)
+  .settings(commands += WithDebugCommand.withDebug)
   .settings(
     libraryDependencies ++= Seq(
       "com.chuusai"            %% "shapeless"                % "2.3.3",
