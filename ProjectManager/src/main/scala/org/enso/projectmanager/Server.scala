@@ -1,44 +1,25 @@
 package org.enso.projectmanager
 
 import java.io.File
-import java.util.UUID
 import java.util.concurrent.TimeUnit
 
-import akka.actor.ActorSystem
-import akka.actor.Scheduler
-import com.typesafe.config.ConfigFactory
+import akka.actor.{ActorSystem, Scheduler}
 import akka.actor.typed.ActorRef
-import akka.actor.typed.scaladsl.adapter._
 import akka.actor.typed.scaladsl.AskPattern._
+import akka.actor.typed.scaladsl.adapter._
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.HttpResponse
-import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.model.Uri
-import akka.http.scaladsl.server.Directives
-import akka.http.scaladsl.server.Route
+import akka.http.scaladsl.model.{HttpResponse, StatusCodes, Uri}
+import akka.http.scaladsl.server.{Directives, Route}
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
-import org.enso.projectmanager.api.ProjectFactory
-import org.enso.projectmanager.api.ProjectJsonSupport
-import org.enso.projectmanager.model.Project
-import org.enso.projectmanager.model.ProjectId
-import org.enso.projectmanager.services.CreateTemporary
-import org.enso.projectmanager.services.CreateTemporaryResponse
-import org.enso.projectmanager.services.GetProjectById
-import org.enso.projectmanager.services.GetProjectResponse
-import org.enso.projectmanager.services.ListProjectsRequest
-import org.enso.projectmanager.services.ListProjectsResponse
-import org.enso.projectmanager.services.ListTutorialsRequest
-import org.enso.projectmanager.services.ProjectsCommand
-import org.enso.projectmanager.services.ProjectsService
-import org.enso.projectmanager.services.StorageManager
-import org.enso.projectmanager.services.TutorialsDownloader
+import com.typesafe.config.ConfigFactory
+import org.enso.projectmanager.api.{ProjectFactory, ProjectJsonSupport}
+import org.enso.projectmanager.model.{Project, ProjectId}
+import org.enso.projectmanager.services._
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
-import scala.util.Failure
-import scala.util.Success
+import scala.util.{Failure, Success}
 
 case class Server(
   host: String,

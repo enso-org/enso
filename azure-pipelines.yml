@@ -22,6 +22,7 @@ variables:
 
 jobs:
 - job: Linux
+  timeoutInMinutes: 90
   pool:
     vmImage: 'Ubuntu-16.04'
   container:
@@ -39,8 +40,12 @@ jobs:
     displayName: sbt test
     continueOnError: true
   - script: |
-      sbt -no-colors bench
-    displayName: sbt bench
+      sbt -no-colors syntax/bench
+    displayName: sbt bench parser
+    continueOnError: true
+  - script: |
+      sbt -no-colors interpreter/bench
+    displayName: sbt bench interpreter
     continueOnError: true
   - task: PublishTestResults@2
     inputs:
@@ -51,6 +56,7 @@ jobs:
     condition: eq(variables['Agent.JobStatus'], 'SucceededWithIssues')
     displayName: "Fail if there were issues"
 - job: macOS
+  timeoutInMinutes: 90
   pool:
     vmImage: macOS-10.13
   steps:
@@ -71,8 +77,12 @@ jobs:
     displayName: sbt test
     continueOnError: true
   - script: |
-      sbt -no-colors bench
-    displayName: sbt bench
+      sbt -no-colors syntax/bench
+    displayName: sbt bench parser
+    continueOnError: true
+  - script: |
+      sbt -no-colors interpreter/bench
+    displayName: sbt bench interpreter
     continueOnError: true
   - task: PublishTestResults@2
     inputs:
@@ -83,6 +93,7 @@ jobs:
     condition: eq(variables['Agent.JobStatus'], 'SucceededWithIssues')
     displayName: "Fail if there were issues"
 - job: Windows
+  timeoutInMinutes: 90
   pool:
     vmImage: windows-2019
   steps:
@@ -103,9 +114,13 @@ jobs:
     continueOnError: true
     displayName: "sbt test"
   - script: |
-      sbt bench
+      sbt syntax/bench
+    displayName: sbt bench parser
     continueOnError: true
-    displayName: "sbt bench"
+  - script: |
+      sbt interpreter/bench
+    displayName: sbt bench interpreter
+    continueOnError: true
   - task: PublishTestResults@2
     inputs:
       testResultsFormat: 'JUnit'

@@ -84,3 +84,9 @@ bench-report.xml
 ##############
 
 /enso
+
+#########
+## IDE ##
+#########
+
+.editorconfig

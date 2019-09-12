@@ -1,14 +1,8 @@
 package org.enso.projectmanager.services
 
-import java.util.UUID
-
-import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.scaladsl.StashBuffer
-import akka.actor.typed.ActorRef
-import akka.actor.typed.Behavior
-import org.enso.projectmanager.model.Project
-import org.enso.projectmanager.model.ProjectId
-import org.enso.projectmanager.model.ProjectsRepository
+import akka.actor.typed.{ActorRef, Behavior}
+import akka.actor.typed.scaladsl.{Behaviors, StashBuffer}
+import org.enso.projectmanager.model.{Project, ProjectId, ProjectsRepository}
 
 import scala.collection.immutable.HashMap
 

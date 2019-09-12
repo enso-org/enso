@@ -1,11 +1,8 @@
 package org.enso.projectmanager.api
 
-import java.util.UUID
-
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.model.Uri
-import org.enso.projectmanager.RouteHelper
-import org.enso.projectmanager.model
+import org.enso.projectmanager.{RouteHelper, model}
 import org.enso.projectmanager.model.ProjectId
 import spray.json.DefaultJsonProtocol
 

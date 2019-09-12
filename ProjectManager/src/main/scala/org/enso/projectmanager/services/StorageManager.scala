@@ -1,17 +1,9 @@
 package org.enso.projectmanager.services
 
 import java.io.File
-import java.util.UUID
 
 import org.enso.pkg.Package
-import org.enso.projectmanager.model.Local
-import org.enso.projectmanager.model.Project
-import org.enso.projectmanager.model.ProjectType
-import org.enso.projectmanager.model.ProjectsRepository
-import org.enso.projectmanager.model.Temporary
-import org.enso.projectmanager.model.Tutorial
-
-import scala.collection.immutable.HashMap
+import org.enso.projectmanager.model._
 
 case class StorageManager(
   localProjectsPath: File,

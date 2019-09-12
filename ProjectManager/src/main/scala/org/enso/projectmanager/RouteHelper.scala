@@ -1,11 +1,8 @@
 package org.enso.projectmanager
 
-import java.util.UUID
-
 import akka.http.scaladsl.model.Uri
 import akka.http.scaladsl.model.Uri.Path
-import akka.http.scaladsl.server.PathMatcher0
-import akka.http.scaladsl.server.PathMatcher1
+import akka.http.scaladsl.server.{PathMatcher0, PathMatcher1}
 import akka.http.scaladsl.server.PathMatchers.JavaUUID
 import org.enso.projectmanager.model.ProjectId
 

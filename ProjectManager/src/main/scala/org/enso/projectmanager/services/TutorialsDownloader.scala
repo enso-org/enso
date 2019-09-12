@@ -35,7 +35,7 @@ trait GithubJsonProtocol extends SprayJsonSupport with DefaultJsonProtocol {
     jsonFormat(GithubTutorial, "name", "pushed_at")
 }
 
-case class HttpHelper(
+case class HttpHelper()(
   implicit val executor: ExecutionContext,
   implicit val system: ActorSystem,
   implicit val materializer: ActorMaterializer) {

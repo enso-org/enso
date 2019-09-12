@@ -3,6 +3,7 @@ package org.enso.interpreter
 import java.util.Optional
 
 import scala.collection.JavaConverters._
+import scala.language.postfixOps
 import scala.util.parsing.combinator._
 
 trait AstExpressionVisitor[+T] {
