@@ -98,13 +98,13 @@ public class CachedArgumentSorterNode extends BaseNode {
     if (this.appliesFully()) {
       if (!postApplicationSchema.hasOversaturatedArgs()) {
         if (this.isTail()) {
-          throw new TailCallException(this.getOriginalFunction(), mappedAppliedArguments);
+          throw new TailCallException(function, mappedAppliedArguments);
         } else {
-          return optimiser.executeDispatch(this.getOriginalFunction(), mappedAppliedArguments);
+          return optimiser.executeDispatch(function, mappedAppliedArguments);
         }
       } else {
         Object evaluatedVal =
-            optimiser.executeDispatch(this.getOriginalFunction(), mappedAppliedArguments);
+            optimiser.executeDispatch(function, mappedAppliedArguments);
 
         return this.oversaturatedCallableNode.execute(
             evaluatedVal, generateOversaturatedArguments(function, arguments));
