@@ -54,7 +54,7 @@ below may provide more rules for use in specific cases.
   temporary data in a function.
 - Names should be descriptive, even if this makes them longer.
 
-## Package structure and naming
+## Package Structure and Naming
 Enso follows the 
 [Java convention for naming packages](https://docs.oracle.com/javase/tutorial/java/package/namingpkgs.html):
 package name components may contain only lower case characters and, if

@@ -8,6 +8,7 @@ import org.enso.build.WithDebugCommand
 //////////////////////////////
 
 val scalacVersion = "2.12.8"
+val graalVersion = "19.2.0.1"
 organization in ThisBuild := "org.enso"
 scalaVersion in ThisBuild := scalacVersion
 
@@ -222,12 +223,12 @@ lazy val interpreter = (project in file("Interpreter"))
       "com.chuusai"            %% "shapeless"                % "2.3.3",
       "org.apache.commons"     % "commons-lang3"             % "3.9",
       "org.apache.tika"        % "tika-core"                 % "1.21",
-      "org.graalvm.sdk"        % "graal-sdk"                 % "19.2.0",
-      "org.graalvm.sdk"        % "polyglot-tck"              % "19.2.0",
-      "org.graalvm.truffle"    % "truffle-api"               % "19.2.0",
-      "org.graalvm.truffle"    % "truffle-dsl-processor"     % "19.2.0",
-      "org.graalvm.truffle"    % "truffle-tck"               % "19.2.0",
-      "org.graalvm.truffle"    % "truffle-tck-common"        % "19.2.0",
+      "org.graalvm.sdk"        % "graal-sdk"                 % graalVersion,
+      "org.graalvm.sdk"        % "polyglot-tck"              % graalVersion,
+      "org.graalvm.truffle"    % "truffle-api"               % graalVersion,
+      "org.graalvm.truffle"    % "truffle-dsl-processor"     % graalVersion,
+      "org.graalvm.truffle"    % "truffle-tck"               % graalVersion,
+      "org.graalvm.truffle"    % "truffle-tck-common"        % graalVersion,
       "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.4",
       "org.scalacheck"         %% "scalacheck"               % "1.14.0" % Test,
       "org.scalactic"          %% "scalactic"                % "3.0.8" % Test,

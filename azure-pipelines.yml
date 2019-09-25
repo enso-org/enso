@@ -17,7 +17,8 @@ trigger:
 pr: none
 
 variables:
-  graalVersion: 19.2.0
+  graalVersion: 19.2.0.1 # Please ensure this is in sync with the graalAPIVersion in build.sbt
+  sbtVersion: 1.2.8      # Please ensure this is in sync with project/build.properties
   historicMacOSSbtFormula: https://raw.githubusercontent.com/Homebrew/homebrew-core/5311047af872538de3bd9fa10d78eda3185a7559/Formula/sbt.rb
 
 jobs:
@@ -32,8 +33,9 @@ jobs:
   - script: /tmp/docker exec -t -u 0 ci-container sh -c "yum install -y sudo"
     displayName: Setup sudo
   - script: |
-      curl https://bintray.com/sbt/rpm/rpm | sudo tee /etc/yum.repos.d/bintray-sbt-rpm.repo
-      sudo yum install -y sbt
+      curl -fSL -o sbt.tgz https://piccolo.link/sbt-$(sbtVersion).tgz
+      tar -x -z -C ~ -f sbt.tgz
+      echo "##vso[task.setvariable variable=PATH]~/sbt/bin/:$PATH"
     displayName: "Install sbt"
   - script: |
       sbt -no-colors test
@@ -69,8 +71,9 @@ jobs:
       echo "##vso[task.setvariable variable=PATH]/Library/Java/JavaVirtualMachines/graalvm-ce-$(graalVersion)/Contents/Home/bin:$PATH"
     displayName: Install GraalVM
   - script: |
-      brew update
-      brew install $(historicMacOSSbtFormula)
+      curl -fSL -o sbt.tgz https://piccolo.link/sbt-$(sbtVersion).tgz
+      tar -x -z -C ~ -f sbt.tgz
+      echo "##vso[task.setvariable variable=PATH]~/sbt/bin/:$PATH"
     displayName: Install sbt
   - script: |
       sbt -no-colors test
@@ -102,15 +105,17 @@ jobs:
       7z x -y -oC:\ graal.zip
     displayName: "Install GraalVM"
   - script: |
-      choco install -y sbt
+      curl -fSL -o sbt.tgz https://piccolo.link/sbt-$(sbtVersion).tgz
+      tar -x -z -C %USERPROFILE% -f sbt.tgz
     displayName: "Install sbt"
   - script: |
-        call refreshenv
-        echo ##vso[task.setvariable variable=JAVA_HOME]C:\graalvm-ce-$(graalVersion)
-        echo ##vso[task.setvariable variable=PATH]C:\graalvm-ce-$(graalVersion)\bin;%PATH%
+      call refreshenv
+      echo ##vso[task.setvariable variable=JAVA_HOME]C:\graalvm-ce-$(graalVersion)
+      echo ##vso[task.setvariable variable=PATH]C:\graalvm-ce-$(graalVersion)\bin;%PATH%
+      echo ##vso[task.setvariable variable=PATH]%USERPROFILE%\sbt\bin\;%PATH%
     displayName: "Adjust environment variables"
   - script: |
-      sbt test
+      sbt.bat test
     continueOnError: true
     displayName: "sbt test"
   - script: |
