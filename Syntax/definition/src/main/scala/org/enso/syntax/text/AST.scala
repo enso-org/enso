@@ -6,9 +6,7 @@ import cats.Functor
 import cats.derived._
 import cats.implicits._
 import org.enso.data.List1._
-import org.enso.data.List1
-import org.enso.data.Shifted
-import org.enso.data.Tree
+import org.enso.data.{List1, Pool, Shifted, Tree}
 import org.enso.lint.Unused
 import org.enso.syntax.text.ast.Repr.R
 import org.enso.syntax.text.ast.Repr._
@@ -477,30 +475,35 @@ object AST {
     val any = UnapplyByType[Ident]
 
     object Blank {
+      private val blank   = BlankOf[AST]()
       val any             = UnapplyByType[Blank]
       def unapply(t: AST) = Unapply[Blank].run(_ => true)(t)
-      def apply(): Blank = BlankOf[AST]()
+      def apply(): Blank = blank
     }
     object Var {
+      private val pool    = new Pool[VarOf[AST]]()
       val any             = UnapplyByType[Var]
       def unapply(t: AST) = Unapply[Var].run(_.name)(t)
-      def apply(name: String): Var = VarOf[AST](name)
+      def apply(name: String): Var = pool.get(VarOf[AST](name))
     }
     object Cons {
+      private val pool    = new Pool[ConsOf[AST]]()
       val any             = UnapplyByType[Cons]
       def unapply(t: AST) = Unapply[Cons].run(_.name)(t)
-      def apply(name: String): Cons = ConsOf[AST](name)
+      def apply(name: String): Cons = pool.get(ConsOf[AST](name))
     }
     object Mod {
+      private val pool    = new Pool[ModOf[AST]]()
       val any             = UnapplyByType[Mod]
       def unapply(t: AST) = Unapply[Mod].run(_.name)(t)
-      def apply(name: String): Mod = ModOf[AST](name)
+      def apply(name: String): Mod =  pool.get(ModOf[AST](name))
     }
     object Opr {
+      private val pool    = new Pool[OprOf[AST]]()
       val app             = Opr(" ")
       val any             = UnapplyByType[Opr]
       def unapply(t: AST) = Unapply[Opr].run(_.name)(t)
-      def apply(name: String): Opr = OprOf[AST](name)
+      def apply(name: String): Opr =  pool.get(OprOf[AST](name))
     }
 
     ///////////////////////
