@@ -155,6 +155,12 @@ below may provide more rules for use in specific cases.
 - Short variable names such as `a` and `b` should only be used in contexts where
   there is no other appropriate name (e.g. `flip (a, b) = (b, a)`). They should
   _never_ be used to refer to temporary data in a `where` or `let` expression.
+- Any function that performs an unsafe operation that is not documented in its
+  type (e.g. `head : [a] -> a`, which fails if the list is empty), must be named
+  using the word 'unsafe' (e.g. `unsafeHead`). For more information on unsafe
+  function usage, see the section on [safety](#safety). The one exception to
+  this rule is for functions which fail intentionally on a broken implementation
+  (e.g. "should not happen"-style fatal crashes).
 
 ### Imports
 Organising imports properly means that it's easy to find the provenance of a
@@ -337,7 +343,7 @@ prepareRhs :: SimplEnv -> OutExpr -> SimplM (SimplEnv, OutExpr)
 -- Adds new floats to the env iff that allows us to return a good RHS
 prepareRhs env (Cast rhs co)    -- Note [Float Coercions]
   | (ty1, _ty2) <- coercionKind co      -- Do *not* do this if rhs is unlifted
-  , not (isUnLiftedType ty1)            -- see Note [Float Coercions (Unlifted)]
+  , not (isUnLiftedType ty1)            -- seUnsae Note [Float Coercions (Unlifted)]
   = do  { (env', rhs') <- makeTrivial env rhs
         ; return (env', Cast rhs' co) }
 
@@ -432,7 +438,7 @@ It is incredibly important that we can trust the code that we use, and hence we
 tend to disallow the definition of unsafe functions in our public API. When
 defining an unsafe function, you must account for the following:
 
-- It must be named `unsafeX`.
+- It must be named `unsafeX`, as discussed in the section on [naming](#naming).
 - Unsafe functions should only be used in the minimal scope in which it can be
   shown correct, not in larger pieces of code.
 - Unsafe function definition must be accompanied by a source note explaining why

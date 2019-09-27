@@ -7,7 +7,7 @@ import org.enso.build.WithDebugCommand
 //// Global Configuration ////
 //////////////////////////////
 
-val scalacVersion = "2.12.8"
+val scalacVersion = "2.12.10"
 val graalVersion = "19.2.0.1"
 organization in ThisBuild := "org.enso"
 scalaVersion in ThisBuild := scalacVersion

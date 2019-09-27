@@ -1,5 +1,5 @@
-# Scala Style Guide
-Like many style guides, this Scala style guide exists for two primary reasons.
+# Rust Style Guide
+Like many style guides, this Rust style guide exists for two primary reasons.
 The first is to provide guidelines that result in a consistent code style across
 all of the Enso codebases, while the second is to guide people towards a style
 that is expressive while still easy to read and understand.
@@ -30,89 +30,65 @@ programmer burden; there is usually only _one way_ to lay out code correctly.
 This section explains the rules for visually laying out your code. They provide
 a robust set of guidelines for creating a consistent visual to the code.
 
-Primary formatting is dealt with through use of the Scala formatting tool
-[`scalafmt`](https://scalameta.org/scalafmt/), which enforces rules around
+Primary formatting is dealt with using the Rust formatting tool
+['rustfmt'](https://rust-lang.github.io/rustfmt/), which enforces rules around
 whitespace, line-wrapping, and alignment. The Enso repository contains the main
-[`.scalafmt.conf`](../.scalafmt.conf) configuration file, and this is what
-should be used for all new Scala projects.
+[`.rustfmt.toml`](../.rustfmt.toml) configuration file, and this is what should
+be used for all new Rust projects.
 
-All files must be formatted using `scalafmt` before commit, and this should be
-set up as either a precommit hook, or using the integration in IntelliJ. If you
-use the IntelliJ integration, please note that you need only have the official
-[Scala Plugin](https://www.jetbrains.com/help/idea/discover-intellij-idea-for-scala.html)
-installed, and be using IntelliJ 2019.1 or later. You should _not_ use the
-independent Scalafmt plugin.
+All files must be formatted using `rustfmt` before commit, and this should be
+set up as either a precommit hook, or using functionality for automatic
+formatting in your editor. To quickly format code, it can be run via `cargo`
+using the `cargo fmt` command.
 
 ## Naming
 Enso has some fairly simple general naming conventions, though the sections
 below may provide more rules for use in specific cases.
 
 - Types are written using `UpperCamelCase`.
-- Variables and function names are written using `camelCase`.
+- Variables and function names are written using `snake_case`.
 - If a name contains an initialism or acronym, all parts of that initialism
-  should be of the same case: `httpRequest` or `makeHTTPRequest`.
-- Short variable names such as `a` and `b` should only be used in contexts where
-  there is no other appropriate name, and should _never_ be used to refer to
-  temporary data in a function.
+  should be lower-case: `make_http_request`, not `make_HTTP_request`.
+- Short variable names such as `a` and `b` should only be used in the following
+  contexts:
+  - Where there is no other appropriate name.
+  - Named lifetimes.
+  They should _never_ be used to refer to temporary data in a function, as all
+  temporaries should be given descriptive names.
 - Names should be descriptive, even if this makes them longer.
 - Any function that performs an unsafe operation that is not documented in its
-  type (e.g. `def head[T](ts: List[T]): T`, which fails if the list is empty),
+  type (e.g. `fn head<T>(ts: Vec<T>) -> T`, which fails if the list is empty),
   must be named using the word 'unsafe' (e.g. `unsafeHead`). For more
   information on unsafe function usage, see the section on [safety](#safety).
-  The one exception to this rule is for functions which fail intentionally on a
-  broken implementation (e.g. "should not happen"-style fatal crashes).
 
 ## Package Structure and Naming
-Enso follows the
-[Java convention for naming packages](https://docs.oracle.com/javase/tutorial/java/package/namingpkgs.html):
-package name components may contain only lower case characters and, if
-necessary, an underscore character. All Enso package names should be prefixed
-with `org.enso`. For example, the package for implementation of `File Manager`
-project should be named `org.enso.filemanager`.
+Enso follows the standard rust convention for structuring crates, as provided
+by `cargo new`. This is discussed more in depth [here](https://learning-rust.github.io/docs/a4.cargo,crates_and_basic_project_structure.html#Project-Structure).
 
-When the name of the file in the package is the same as the final component of
-the package name, the file should be moved one level up. For examples, if
-`File Manager` project contains `FileManager.scala` file, then the file should
-be placed directly in the `org.enso` package instead of `org.enso.filemanager`.
-This is to avoid repetitious constructs like `org.enso.filemanager.FileManager`.
-
-The root directory for the project should follow the naming scheme of types.
-For example, if the project name is `File Manager`, then sources of the main
-package shall be located under path
-`FileManager\src\main\scala\org\enso\filemanager`.
+In order to match up with the project naming convention we use for Scala and
+Java projects, any rust code must be in a directory named using `UpperCamelCase`
+in the root of the project (e.g. `enso/BaseGL`).
 
 ### The Public API
-In order to produce as flexible a codebase as possible, we tend not to make use
-of access modifiers in our code (`public`, `private`, and so on). Instead, we
-use the concept of `Internal` modules to separate public from private.
+Whereas Rust defaults to making module members _private_ by default, this is not
+the philosophy used by the Enso codebases. We tend to want our codebase to be
+flexible for consumers, so we tend to avoid making things private. Instead, we
+use the concept of an `internal` module to separate public from private.
 
-If you are writing code in a package `X.Y.MyType` and would like to signal that
+If you are writing code in a module `foo.bar.baz` and would like to signal that
 a particular construct (e.g. a function) is for internal use in that package,
-you should create a `X.Y.MyType.Internal` package. You can then write the
+you should create a `foo.bar.baz.internal` package. You can then write the
 relevant language construct in that package instead of the source package.
 
 #### Using Access Modifiers
-There are, however, a few notable exceptions to the above:
-
-- **Safety:** Privacy modifiers (e.g. `private` and `private[this]`) should be
-  used to enforce an API contract around safety. An example of this is Scala's
-  immutable `List`, which contains a private mutable buffer for performance
-  reasons.
-- **Reducing Overhead:** As the `Internal` module is a separate module, there
-  can (under some circumstances) be some overhead for its use. If you are
-  writing code on a performance-critical path, you may instead make use of
-  access modifiers.
-- **Enabling Optimisations:** The JVM is capable of performing optimisations by
-  making use of visibility information (e.g. in the interpreter). If you are
-  writing performance-critical code, you may use access modifiers to provide the
-  JVM with additional information.
+Given Rust's performance guarantees, making things `pub` has no impact on the
+performance of the compiled code. As a result, the _only_ circumstance under
+which things are allowed to not be `pub` is when doing so would allow consumers
+of an API to break internal guarantees provided by that API (e.g. building an
+immutable collection on top of a mutable buffer).
 
 ## Build Tooling
-All Scala projects in the Enso organisation should manage their dependencies and
-build setup using [SBT](hhttps://www.scala-sbt.org/1.x/docs/index.html).
-
-If you are using IntelliJ, please ensure that you select to use the SBT shell
-for both imports and builds.
+All Rust projects are built and managed using [cargo](https://doc.rust-lang.org/cargo/).
 
 ## Commenting
 Comments in code are a tricky area to get right as we have found that comments
@@ -144,88 +120,39 @@ as defined in [The Public API](#the-public-api). For constructs that _are_ part
 of the public API, the following should be documented:
 
 1. **Top-Level Type Definitions:** All top-level type definitions must have a
-   doc comment. If a type is defined multiple times (e.g. `trait T` and
-   `object T`), you need only document it once. Under these circumstances it is
-   recommended to document the in the order of: `trait`, `class`, `object`.
+   doc comment.
 2. **Functions:** Function documentation should provide at-a-glance intuition
    for how to use that function.
 
-An example of a valid set of comments is as follows:
-
-```scala
-package org.enso.syntax.graph
-
-/** An [[Action]] is a representation of an operation that can be made on a
-  * [[SpanTree]].
-  */
-sealed trait Action
-object Action {
-  object Insert extends Action
-  object Erase  extends Action
-  object Set    extends Action
-}
-
-/** Values representing sets of [[Action]]s at a given point.
-  */
-object Actions {
-  val All: Set[Action]      = Set(Action.Insert, Action.Erase, Action.Set)
-  val Function: Set[Action] = Set(Action.Set)
-  val Root: Set[Action]     = Set(Action.Set)
-
-  /** Makes a set from the provided actions.
-    *
-    * @param actions a variable number of actions
-    * @return a set containing the provided actions
-    */
-  def mkActionSet(actions: Action*): Set[Action] = {
-    // ...
-  }
-}
-```
-
 Documentation comments are intended for consumption by the users of the API, and
-are written using the standard [scaladoc](https://docs.scala-lang.org/style/scaladoc.html)
+are written using the standard [rustdoc](https://doc.rust-lang.org/rustdoc/index.html)
 syntax. Doc comments should contain:
 
-1. **Summary:** A one-line summary of the construct's behaviour. This should be
-   a valid sentence with 'this X' (where X = function, trait, etc) prepended to
-   it.
+1. **Summary:** A one-line summary of the construct's behaviour or purpose.
 2. **Description (Optional):** Any useful information that would be necessary
    for a consumer of the API to know (that is not encoded in the types). This
    should be written in grammatically correct English.
-3. **Parameters and Returns:** The return value must always be described. If the
-   parameters are _all_ obvious from their names, you must omit the `@param`
-   annotations. If one or more parameters require explanation (for things not
-   expressed in their name or type), then all parameters must be annotated.
 
-An example comment that requires a description is as follows (but omits the
-necessary comment on `Tree` for brevity):
+Convention in rust is to not document function or return parameters, and so
+rustdoc does not provide a way to do so.
 
-```scala
-trait Tree[T}] {
-  /** Provides a sequence representation of the tree.
-    *
-    * The function provides configurable behaviour for the order in which the
-    * tree is walked. See [[WalkStrategy]] for the provided options.
-    *
-    * @param order the strategy by which the tree's elements are traversed
-    * @return the elements contained in the tree arranged according to the
-    *     provided `order`
-    */
-  def walkToSequence(order: WalkStrategy[Tree[T]]): Seq[T]
-}
-```
+An example of a valid set of comments for some rust code is as follows:
 
-A simpler example that does _not_ require a description is as follows (but omits
-the necessary comment on `Tree` for brevity):
+```rust
+/// A representation of tree structures containing elements of type `T`.
+pub trait Tree<T> {
+  /// Provides a sequence representation of the tree.
+  ///
+  /// The function provides configurable behaviour for the order in which the
+  /// tree is walked. See [WalkStrategy](org.enso.WalkStrategy.html) for
+  /// the provided options.
+  pub fn walk_to_sequence(self: &Self, order: WalkStrategy<T>) -> Vec<T> {
+    // ...
+  }
 
-```scala
-trait Tree[T] {
-  /** Provides a sequence representation of the tree.
-    *
-    * @return the elements of the tree arranged in preorder-walk sequence
-    */
-  def toSeq(): Seq[T]
+  fn getBuffer(self: &Self) -> Vec<T> {
+    // ...
+  }
 }
 ```
 
@@ -281,35 +208,30 @@ should never be done in-line. Instead, a piece of code should reference a source
 note in the same module that references the other note while providing
 additional context to that reference.
 
-An example, based on some code in the GHC codebase, can be seen below:
+An example can be seen below:
 
-```scala
-{
-def prepRHS (env : SimplEnv, outExpr : OutExpr) : SimplM[SimplEnv, OutExpr] = {
-  val (ty1, _ty2) = coercionKind(env) // Note [Float Coercions]
-
-  if (!isUnliftedType(ty1)) {
-    val newTy1 = convertTy(ty1) // Note [Float Coercions (Unlifted)]
-    ...more expressions defining prepRHS...
+```rust
+/// A representation of tree structures containing elements of type `T`.
+pub trait Tree<T> {
+  /// Provides a sequence representation of the tree.
+  ///
+  /// The function provides configurable behaviour for the order in which the
+  /// tree is walked. See [WalkStrategy](org.enso.WalkStrategy.html) for
+  /// the provided options.
+  pub fn walk_to_sequence(self: &Self, order: WalkStrategy<T>) -> Vec<T> {
+    let mut output_vec = Vec.new(self.getBuffer().len()); // Note [Buffer Size]
+    // ...
   }
-}
 
-/* Note [Float Coercions]
- * ~~~~~~~~~~~~~~~~~~~~~~
- * When we find the binding
- *         x = cast(e, co)
- * we'd like to transform it to
- *         x' = e
- *         x = cast(x, co) // A trivial binding
- * There's a chance that e will be a constructor application or function, or
- * something like that, so moving the coercion to the usage site may well cancel
- * the coercions and lead to further optimisation.
- *         ...more stuff about coercion floating...
- *
- * Note [Float Coercions (Unlifted)]
- * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- *      ...explanations of floating for unlifted types...
- */
+  /* Note [Buffer Size]
+   * ~~~~~~~~~~~~~~~~~~
+   * When working with the buffer for the tree walk, it is important that you
+   * ensure....
+   */
+
+  fn getBuffer(self: &Self) -> Vec<T> {
+    // ...
+  }
 }
 ```
 
@@ -323,11 +245,9 @@ We follow a simple convention for `TODO` comments in our codebases:
 
 For example:
 
-```scala
-{
+```rust
 // TODO [ARA] This is a bit of a kludge. Instead of X it should to Y, accounting
 // for the fact that Z.
-}
 ```
 
 ### Other Comment Usage
@@ -345,17 +265,17 @@ Any good style guide goes beyond purely stylistic rules, and also talks about
 design styles to use in code.
 
 ### Safety
-It is incredibly important that we can trust the code that we use, and hence we
-tend to disallow the definition of unsafe functions in our public API. When
-defining an unsafe function, you must account for the following:
+Whereas most languages don't have a concept of _safety_, rust comes with a built
+in notion of `unsafe`. When working with `unsafe` functions and code blocks, you
+must account for the following:
 
-- It must be named `unsafeX`, as mentioned above in [naming](#naming).
-- Unsafe functions should only be used in the minimal scope in which it can be
-  shown correct, not in larger pieces of code.
-- Unsafe function definition must be accompanied by a source note explaining why
-  it is not defined safely (e.g. performance).
-- Unsafe function usage must be accompanied by a source note explaining why this
-  usage of it is safe.
+- As unsafe functions are explicitly declared with the keyword `unsafe`, we do
+  not need any special naming convention for them.
+- Usage of unsafety should be confined to the smallest possible block.
+- Usage of unsafety should be accompanied by a source note that explains why it
+  is necessary, and any constraints on its usage.
+- Unsafe function usage must be accompanied by a source note explaining how this
+  usage of it is made safe.
 
 Furthermore, we do not allow for code containing pattern matches that can fail.
 
@@ -364,19 +284,19 @@ New code should always be accompanied by tests. These can be unit, integration,
 or some combination of the two, and they should always aim to test the new code
 in a rigorous fashion.
 
-- We tend to use ScalaTest, but also make use of ScalaCheck for property-based
-  testing.
-- Tests should be declared in the project configuration so they can be trivially
-  run.
-- A test file should be named after the module it tests.
+- Testing should be performed as described in [the Rust book](https://doc.rust-lang.org/book/ch11-00-testing.html)
+  and should use the functionality for testing built into the language.
+- Tests should cover as much code as possible, and may be a combination of unit
+  and integration tests.
 
 Any performance-critical code should also be accompanied by a set of benchmarks.
 These are intended to allow us to catch performance regressions as the code
 evolves, but also ensure that we have some idea of the code's performance in
 general.
 
-- We use Caliper for our benchmarks.
-- We measure time, but also memory usage and CPU time where possible.
+- We use nightly rust in order to access the built-in [benchmarking](https://doc.rust-lang.org/unstable-book/library-features/test.html)
+  functionality.
+- We measure time, CPU, and memory usage where possible.
 - Where relevant, benchmarks may set thresholds which, when surpassed, cause the
   benchmark to fail. These thresholds should be set for a release build, and not
   for a development build.

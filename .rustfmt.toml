@@ -1,0 +1,28 @@
+# Basic Configuration
+edition = "2018"
+format_code_in_doc_comments = true
+max_width = 80
+newline_style = "Unix"
+
+# Comments
+comment_width = 80
+normalize_doc_attributes = true
+wrap_comments = true
+
+# Imports
+merge_imports = true
+reorder_imports = true
+
+# Indentation
+imports_indent = "Block"
+indent_style = "Block"
+
+# Operators
+binop_separator = "Front"
+
+# Block Formattingg
+blank_lines_lower_bound = 0
+blank_lines_upper_bound = 1
+brace_style = "SameLineWhere"
+control_brace_style = "AlwaysSameLine"
+empty_item_single_line = true

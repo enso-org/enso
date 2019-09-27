@@ -11,6 +11,8 @@ programmer burden; there is usually only _one way_ to lay out code correctly.
 
 - [Code Formatting](#code-formatting)
   - [Naming](#naming)
+- [Package Structure and Naming](#package-structure-and-naming)
+  - [The Public API](#the-public-api)
 - [Commenting](#commenting)
   - [Documentation Comments](#documentation-comments)
   - [Source Notes](#source-notes)
@@ -48,6 +50,49 @@ below may provide more rules for use in specific cases.
   temporary data in a function.
 - Names should be descriptive, even if this makes them longer.
 
+## Package Structure and Naming
+Enso follows the
+[Java convention for naming packages](https://docs.oracle.com/javase/tutorial/java/package/namingpkgs.html):
+package name components may contain only lower case characters and, if
+necessary, an underscore character. All Enso package names should be prefixed
+with `org.enso`. For example, the package for implementation of `File Manager`
+project should be named `org.enso.filemanager`.
+
+When the name of the file in the package is the same as the final component of
+the package name, the file should be moved one level up. For examples, if
+`File Manager` project contains `FileManager.java` file, then the file should
+be placed directly in the `org.enso` package instead of `org.enso.filemanager`.
+This is to avoid repetitious constructs like `org.enso.filemanager.FileManager`.
+
+The root directory for the project should follow the naming scheme of types.
+For example, if the project name is `File Manager`, then sources of the main
+package shall be located under path
+`FileManager\src\main\java\org\enso\filemanager`.
+
+### The Public API
+In order to produce as flexible a codebase as possible, we tend not to make use
+of access modifiers in our code (`protected`, `private`, and so on). Instead, we
+use the concept of `Internal` modules to separate public from private.
+
+If you are writing code in a package `X.Y.MyType` and would like to signal that
+a particular construct (e.g. a function) is for internal use in that package,
+you should create a `X.Y.MyType.Internal` package. You can then write the
+relevant language construct in that package instead of the source package.
+
+#### Using Access Modifiers
+There are, however, a few notable exceptions to the above:
+
+- **Safety:** Privacy modifiers (e.g. `private` and `protected`) should be
+  used to enforce an API contract around safety.
+- **Reducing Overhead:** As the `Internal` module is a separate module, there
+  can (under some circumstances) be some overhead for its use. If you are
+  writing code on a performance-critical path, you may instead make use of
+  access modifiers.
+- **Enabling Optimisations:** The JVM is capable of performing optimisations by
+  making use of visibility information (e.g. in the interpreter). If you are
+  writing performance-critical code, you may use access modifiers to provide the
+  JVM with additional information.
+
 ## Commenting
 Comments in code are a tricky area to get right as we have found that comments
 often expire quickly, and in absence of a way to validate them, remain incorrect
@@ -73,23 +118,80 @@ comments should not be used as a crutch for badly-designed code.
 
 ### Documentation Comments
 One of the primary forms of comment that we allow across the Enso codebases is
-the doc comment. Every language construct that can have an associated doc
-comment should do so. These are intended to be consumed by users of the API,
-whether internal or external, and use the standard Javadoc syntax. Doc comments
-should:
+the doc comment. We use these comments to document the public API of a module,
+as defined in [The Public API](#the-public-api). For constructs that _are_ part
+of the public API, the following should be documented:
 
-- Provide a short one-line explanation of the object being documented.
-- Provide a longer description of the object, including examples where relevant.
-- Explain the arguments to a function where relevant.
+1. **Top-Level Type Definitions:** All type definitions must be accompanied by a
+   doc comment. This includes nested classes.
+2. **Functions:** Function documentation should provide at-a-glance intuition
+   for how to use that function.
 
-They should not reference internal implementation details, or be used to explain
-choices made in the function's implementation. See [Source Notes](#source-notes)
-below for how to indicate that kind of information.
+Documentation comments are intended for consumption by the users of the API, and
+are written using the standard JavaDoc syntax. Doc comments should contain:
+
+1. **Summary:** A one-line summary of the construct's behaviour. This should be
+   a valid sentence with 'this X' (where X = class, method, etc) prepended to
+   it.
+2. **Description (Optional):** Any useful information that would be necessary
+   for a consumer of the API to know (that is not encoded in the types). This
+   should be written in grammatically correct English.
+3. **Parameters and Returns:** The return value must always be described. If the
+   parameters are _all_ obvious from their names, you must omit the `@param`
+   annotations. If one or more parameters require explanation (for things not
+   expressed in their name or type), then all parameters must be annotated.
+
+An example of a valid set of doc comments is provided below:
+
+```java
+/**
+ * Contains an implementation of a span tree.
+ *
+ * This tree implementation provides O(log(n)) average and worst-case complexity
+ * for insertion, lookup and
+ *
+ * @param <T> the type of the tree's elements
+ */
+public class SpanTree<T> implements Tree<T> {
+
+  /** Constructs an empty tree. */
+  public Tree() {}
+
+  /**
+   * Inserts the provided element into the span tree.
+   *
+   * The complexity of insertion is O(log(n)) in both the average and worst
+   * cases.
+   *
+   * @param element the element to be inserted into the tree
+   */
+  public void insert(T element) {
+    // ...
+  }
+
+  private class Node<T> {
+    // ...
+  }
+}
+```
 
 ### Source Notes
 Source Notes is a mechanism for moving detailed design information about a piece
 of code out of the code itself. In doing so, it retains the key information
-about the design while not impeding the flow of the code.
+about the design while not impeding the flow of the code. They are used in the
+following circumstances:
+
+- **Design Information:** Documentation about _why_ something was written in a
+  particular fashion, as well as information on the process that led to it being
+  done this way.
+- **Explaining Complexity:** If an implementation uses complex constructs or any
+  elements that are non-obvious, these should be explained as part of a source
+  note.
+- **Knowledge Provenance:** Explaining where some knowledge (e.g. a mathematical
+  formula or an algorithm) was obtained from. It is also useful to accompany
+  these by some commentary on _why_ the choice was made.
+- **Safety:** Any unsafe usage of a function must be accompanied by a source
+  note that explains what makes this particular usage safe.
 
 Source notes are detailed comments that, like all comments, explain both the
 _what_ and the _why_ of the code being described. In very rare cases, it may
@@ -118,8 +220,6 @@ should never be done in-line. Instead, a piece of code should reference a source
 note in the same module that references the other note while providing
 additional context to that reference.
 
-An example, based on some code in the GHC codebase, can be seen below:
-
 ```java
 {
 public SimplM<SimplEnv, OutExpr> prepRHS(SimplEnv env, OutExpr outExpr) {
@@ -135,7 +235,7 @@ public SimplM<SimplEnv, OutExpr> prepRHS(SimplEnv env, OutExpr outExpr) {
 /* Note [Float Coercions]
  * ~~~~~~~~~~~~~~~~~~~~~~
  * When we find the binding
-        x = cast(e, co)
+ *     x = cast(e, co)
  * we'd like to transform it to
  *         x' = e
  *         x = cast(x, co) // A trivial binding
@@ -143,7 +243,7 @@ public SimplM<SimplEnv, OutExpr> prepRHS(SimplEnv env, OutExpr outExpr) {
  * something like that, so moving the coercion to the usage site may well cancel
  * the coercions and lead to further optimisation.
  *         ...more stuff about coercion floating...
- * 
+ *
  * Note [Float Coercions (Unlifted)]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  *      ...explanations of floating for unlifted types...
@@ -166,7 +266,7 @@ We follow a simple convention for `TODO` comments in our codebases:
 
 - The line starts with `TODO` or `FIXME`.
 - It is then followed by the author's initials `[ARA]`, or for multiple people
-  `[ARA, WD]`, in square brackets.
+  `[ARA, MK]`, in square brackets.
 - It is then followed by an explanation of what needs to be done.
 
 For example:
@@ -208,7 +308,7 @@ These are intended to allow us to catch performance regressions as the code
 evolves, but also ensure that we have some idea of the code's performance in
 general.
 
-- We use Caliper for our benchmarks.
+- We use JMH for our benchmarks.
 - We measure time, but also memory usage and CPU time where possible.
 - Where relevant, benchmarks may set thresholds which, when surpassed, cause the
   benchmark to fail. These thresholds should be set for a release build, and not
