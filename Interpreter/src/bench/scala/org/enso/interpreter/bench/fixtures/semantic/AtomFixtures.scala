@@ -59,6 +59,21 @@ class AtomFixtures extends LanguageRunner {
 
   val sumList = eval(sumListCode)
 
+  val sumListLeftFoldCode =
+    """
+      |{ |list|
+      |  fold = { |f, acc, list| match list <
+      |    Cons ~ { |h, t| @fold [f, @f[acc, h], t] };
+      |    { acc };
+      |  >};
+      |
+      |  res = @fold [{ |x, y| x + y }, 0, list];
+      |  res
+      |}
+    """.stripMargin
+
+  val sumListLeftFold = eval(sumListLeftFoldCode)
+
   val sumListFallbackCode =
     """
       |{ |list|

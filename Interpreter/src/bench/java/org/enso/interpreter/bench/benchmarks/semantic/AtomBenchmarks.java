@@ -34,6 +34,11 @@ public class AtomBenchmarks {
   }
 
   @Benchmark
+  public void sumListLeftFold() {
+    fixtures.sumListLeftFold().execute(fixtures.millionElementList());
+  }
+
+  @Benchmark
   public void benchSumListFallback() {
     fixtures.sumListFallback().execute(fixtures.millionElementList());
   }
