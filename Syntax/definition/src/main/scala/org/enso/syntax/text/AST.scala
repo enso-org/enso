@@ -623,14 +623,16 @@ object AST {
       implicit def functor: Functor[TextOf] = semi.functor
       implicit def repr[T: Repr]: Repr[TextOf[T]] =
         t => R + t.quoteRepr + t.bodyRepr + t.quoteRepr
-      implicit def offzip[T]: OffsetZip[TextOf, T] = {
+      implicit def offzip[T: Repr]: OffsetZip[TextOf, T] = {
         case t: Text.RawOf[T] => OffsetZip(t)
         case t: Text.FmtOf[T] => OffsetZip(t)
       }
     }
     object Text {
 
-      def apply(body: BodyOf[Fmt.Segment[AST]]): Fmt = Fmt(body)
+      import Segment.implicits._
+
+      def apply(body: BodyOf[Segment._Fmt[AST]]): Fmt = Fmt(body)
 
       //// Definition ////
 
@@ -644,12 +646,12 @@ object AST {
 
       case class BodyOf[+T](quote: Quote, lines: Text.Block[T])
 
-      case class RawOf[T](body: BodyOf[Raw.Segment[T]])
+      case class RawOf[T](body: BodyOf[Segment._Raw[T]])
           extends TextOf[T]
           with Phantom {
         val quoteChar = '"'
       }
-      case class FmtOf[T](body: BodyOf[Fmt.Segment[T]]) extends TextOf[T] {
+      case class FmtOf[T](body: BodyOf[Segment._Fmt[T]]) extends TextOf[T] {
         val quoteChar = '\''
       }
       case class UnclosedOf[T](text: TextOf[T]) extends AST.InvalidOf[T]
@@ -660,17 +662,11 @@ object AST {
       }
 
       object Raw {
-        type Segment[T] = Text.Segment._Raw[T]
-        type Block[T]   = Text.Block[Segment[T]]
-
-        def apply(body: BodyOf[Segment[AST]]): Raw = RawOf(body)
+        def apply(body: BodyOf[Segment._Raw[AST]]): Raw = RawOf(body)
       }
 
       object Fmt {
-        type Segment[T] = Text.Segment._Fmt[T]
-        type Block[T]   = Text.Block[Segment[T]]
-
-        def apply(body: BodyOf[Segment[AST]]): Fmt = FmtOf(body)
+        def apply(body: BodyOf[Segment._Fmt[AST]]): Fmt = FmtOf(body)
       }
 
       object Unclosed {
@@ -689,20 +685,36 @@ object AST {
         implicit def functor: Functor[FmtOf] = semi.functor
         implicit def repr[T: Repr]: Repr[FmtOf[T]] =
           t => R + t.quoteRepr + t.bodyRepr + t.quoteRepr
-        implicit def offzip[T]: OffsetZip[FmtOf, T] =
-          t => t.map((0, _)) // FIXME
+        implicit def offzip[T: Repr]: OffsetZip[FmtOf, T] = t => {
+          var offset = 0
+          val lines = for (line <- t.body.lines) yield {
+            val offLine = line.map {
+              OffsetZip(_).map { case (o, e) => (o + offset, e) }
+            }
+            offset += line.span
+            offLine
+          }
+          t.copy(body = t.body.copy(lines = lines))
+        }
       }
       object LineOf {
         implicit def functor:       Functor[LineOf] = semi.functor
         implicit def repr[T: Repr]: Repr[LineOf[T]] = R + _.elem.map(R + _)
-        implicit def offzip[T]: OffsetZip[LineOf, T] =
-          t => t.map((0, _)) // FIXME
+        implicit def offzip[T: Repr]: OffsetZip[LineOf, T] = t => {
+          var offset = t.off
+          val elem = for (elem <- t.elem) yield {
+            val offElem = (offset, elem)
+            offset += elem.span
+            offElem
+          }
+          t.copy(elem = elem)
+        }
       }
       object UnclosedOf {
         implicit def functor[T]: Functor[UnclosedOf] = semi.functor
         implicit def repr[T: Repr]: Repr[UnclosedOf[T]] =
           t => R + t.text.quoteRepr + t.text.bodyRepr
-        implicit def offzip[T]: OffsetZip[UnclosedOf, T] =
+        implicit def offzip[T: Repr]: OffsetZip[UnclosedOf, T] =
           t => t.copy(text = OffsetZip(t.text))
       }
 
@@ -737,12 +749,8 @@ object AST {
         final case class _Expr[T](value: Option[T]) extends _Fmt[T]
         final case class _Escape[T](code: Escape)   extends _Fmt[T] with Phantom
 
-        object Expr {
-          def apply(t: Option[AST]): Fmt = _Expr(t)
-        }
-        object Plain {
-          def apply(s: String): Raw = _Plain(s)
-        }
+        object Expr  { def apply(t: Option[AST]): Fmt = _Expr(t)  }
+        object Plain { def apply(s: String): Raw      = _Plain(s) }
 
         //// Instances ////
 
@@ -1037,7 +1045,16 @@ object AST {
       }
       headRepr + emptyLinesRepr + firstLineRepr + linesRepr
     }
-    implicit def offZipBlock[T]: OffsetZip[BlockOf, T] = _.map((0, _))
+    implicit def offZipBlock[T: Repr]: OffsetZip[BlockOf, T] = t => {
+      val line   = t.firstLine.copy(elem = (0, t.firstLine.elem))
+      var offset = t.firstLine.span
+      val lines = for (line <- t.lines) yield {
+        val elem = line.elem.map((offset, _))
+        offset += line.span
+        line.copy(elem = elem)
+      }
+      t.copy(firstLine = line, lines = lines)
+    }
   }
 
   //////////////////////////////////////////////////////////////////////////////
