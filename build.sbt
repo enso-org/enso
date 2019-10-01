@@ -99,7 +99,7 @@ val monocle = {
 val cats = {
   Seq(
     "org.typelevel" %% "cats-core" % "2.0.0-RC1",
-    "org.typelevel" %% "kittens"   % "1.2.1"
+    "org.typelevel" %% "kittens"   % "2.0.0"
   )
 }
 
