@@ -19,6 +19,7 @@ programmer burden; there is usually only _one way_ to lay out code correctly.
   - [TODO Comments](#todo-comments)
   - [Other Comment Usage](#other-comment-usage)
 - [Program Design](#program-design)
+  - [Code Complexity](#code-complexity)
   - [Testing and Benchmarking](#testing-and-benchmarking)
   - [Warnings, and Lints](#warnings-and-lints)
 
@@ -291,6 +292,17 @@ There are, of course, a few other situations where commenting is very useful:
 ## Program Design
 Any good style guide goes beyond purely stylistic rules, and also talks about
 design styles to use in code.
+
+### Code Complexity
+While we often have to write complex functionality, we want to ensure that the
+code itself is kept as simple and easy to read as possible. To do this, please
+use the following rules:
+
+- Write single-line expressions wherever possible, rather than writing one
+  complex chunk of code.
+- Separate intermediate results out to their own variables with appropriate
+  names. Even if they are temporaries, giving them a name is a great aid to code
+  comprehension.
 
 ### Testing and Benchmarking
 New code should always be accompanied by tests. These can be unit, integration,
