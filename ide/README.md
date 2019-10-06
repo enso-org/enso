@@ -6,7 +6,7 @@ https://github.com/luna/basegl-old.
 
 # Working with the code
 
-### Toolchain 
+## The Rust toolchain 
 
 In order to use some of the WASM pipeline features we need to use a nightly Rust
 channel. The same applies to the code auto-formatter and it's advanced
@@ -23,7 +23,7 @@ rustup component add rustfmt     # Install the code auto-formatter.
 rustup component add clippy      # Install the linter.
 ```
 
-### Building and testing the project
+## Building and testing the project
 
 Please use the `build.sh` script. We need to use a simple custom wrapper here
 because of the following Rust toolchain issues: 
@@ -49,7 +49,9 @@ npm run start
 You can now open the following address in your browser: http://localhost:8080.
 **Please remember to disable the cache in your browser!**
 
-### Formatting 
+## Working with the source code
+
+### Formatting
 
 All codebase should be auto-formatted using `rustfmt`. It is highly recommended
 that you use an IDE which takes care of formatting the code as you type. Please
