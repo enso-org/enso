@@ -40,9 +40,11 @@ jobs:
       - name: Generate coverage report
         uses: actions-rs/grcov@v0.1
       - name: What was the file?
-        run: echo ${{ steps.coverage.outputs.report }}
+        run: echo ./lcov.info
+      - name: What was in the file?
+        run: cat ./lcov.info
       - name: Upload coverage report
         uses: codecov/codecov-action@v1.0.2
         with:
           token: 70c0d44d-6ee2-4f23-b16b-0ed801149f8a
-          file: ${{ steps.coverage.outputs.report }}
+          file: ./lcov.info
