@@ -1,4 +1,5 @@
-required_version = "1.4.8"
+unstable_features = true
+required_version  = "1.4.8"
 
 # Basic Configuration
 edition                     = "2018"
