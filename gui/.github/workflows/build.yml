@@ -9,7 +9,7 @@ jobs:
       matrix: 
         os: [windows-latest, macOS-latest, ubuntu-latest]
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@v1
       - name: Install Rust Nightly Toolchain
         uses: actions-rs/toolchain@v1
         with:
@@ -19,3 +19,28 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: check
+
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: Install Rust Nightly Toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          override: true
+      - name: Generate test profile
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --all-features --no-fail-fast
+        env:
+          'CARGO_INCREMENTAL': '0'
+          'RUSTFLAGS': '-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Zno-landing-pads'
+      - name: Generate coverage report
+        uses: actions-rs/grcov@v0.1
+      - name: Upload coverage report
+        uses: codecov/codecov-action@v1.0.2
+        with:
+          token: 70c0d44d-6ee2-4f23-b16b-0ed801149f8a
+          file: ${{ steps.coverage.outputs.report }}
