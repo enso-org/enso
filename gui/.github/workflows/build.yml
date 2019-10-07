@@ -92,8 +92,6 @@ jobs:
         run: ls -la /tmp
       - name: show the coverage report
         run: cat ${{ steps.coverage.outputs.report }}
-      - name: copy the file to local fs
-        run: cp ${{ steps.coverage.outputs.report }} ./lcov.info
       - name: Upload coverage report
         uses: codecov/codecov-action@v1.0.2
         with:
