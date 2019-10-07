@@ -93,8 +93,6 @@ jobs:
         uses: actions-rs/grcov@v0.1
       - name: What was the file 1?
         run: echo "It was ${{ steps.coverage.outputs.report }}"
-      - name: What was the file 2?
-        run: echo "It was ${{ outputs.report }}"
       - name: What was in the file?
         run: cat ./lcov.info
       - name: Upload coverage report
