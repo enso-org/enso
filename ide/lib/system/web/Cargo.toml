@@ -33,6 +33,3 @@ features = [
 
 [dev-dependencies]
 wasm-bindgen-test = "0.2"
-
-[profile.release]
-opt-level = 3

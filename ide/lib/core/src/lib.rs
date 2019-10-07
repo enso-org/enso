@@ -1,6 +1,10 @@
 #![feature(type_ascription)]
 #![feature(unboxed_closures)]
 #![cfg_attr(test, allow(dead_code))]
+//#![warn(missing_docs)]
+
+// Lints
+#![allow(clippy::option_map_unit_fn)]
 
 // =================================
 // === Module Structure Reexport ===

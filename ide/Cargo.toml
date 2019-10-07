@@ -3,3 +3,6 @@
 members = [
     "lib/core",
 ]
+
+[profile.release]
+opt-level = 3

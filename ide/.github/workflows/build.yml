@@ -2,11 +2,8 @@ name: Build (MacOS, Linux, Windows)
 
 on: [push]
 
-
 # Please check if all components are available before updating the rust toolchain version.
 # https://rust-lang.github.io/rustup-components-history/x86_64-unknown-linux-gnu.html
-  
-
 
 jobs:
   build:
