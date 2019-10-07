@@ -28,21 +28,26 @@ rustup component add clippy                 # Install the linter.
 
 ## Building and testing the project
 
-Please use the `build.sh` script. We need to use a simple custom wrapper here
-because of the following Rust toolchain issues: 
+Please use the `script/build.sh`, `script/watch.sh`, and `script/lint.sh`
+scripts to build, watch, and lint the project respectively. We need to use a
+simple custom wrappers here because of the several Rust toolchain issues:
 
 - [No direct support for Cargo Workspaces in
-wasm-pack.](https://github.com/rustwasm/wasm-pack/issues/642) 
+wasm-pack.](https://github.com/rustwasm/wasm-pack/issues/642). Fixed in
+`build.sh`. 
 - There is no watch utility in wasm-pack, which makes using it harder than it
-should be.
+should be. Fixed in `watch.sh`.
+- [The commands cargo-check and cargo-clippy do not clean local cache if used
+several times.](https://github.com/rust-lang/cargo/issues/6986). Fixed in
+`lint.sh`.
 
-In order to build and test the project, please use the following commands:
+In order to build an example demo scene, please use the following commands:
 
 ```bash
-./build.sh
+./script/watch.sh # Build and watch for changes.
 
 # Wait till the project finishes building.
-# Run the following lines from other cmd.
+# Run the following lines from other cmd:
 
 cd examples/01-scene
 npm install
