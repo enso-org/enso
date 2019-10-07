@@ -48,3 +48,22 @@ impl<T> OptVec<T> {
         item
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_add() {
+        let mut v = OptVec::new();
+        let ix1 = v.insert(|_| 1);
+        let ix2 = v.insert(|_| 2);
+        v.remove(ix1);
+        let ix3 = v.insert(|_| 3);
+        let ix4 = v.insert(|_| 4);
+        assert_eq!(ix1, 0);
+        assert_eq!(ix2, 1);
+        assert_eq!(ix3, 0);
+        assert_eq!(ix4, 2);
+    }
+}
