@@ -4,10 +4,15 @@ on: [push]
 
 jobs:
   build:
-
-    runs-on: ubuntu-latest
-
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix: 
+        os: [ubuntu-latest]
+        rust: [nightly]
     steps:
+    - uses: hecrj/setup-rust-action@v1
+      with:
+        rust-version: ${{ matrix.rust }}
     - uses: actions/checkout@v1
     - name: Build
       run: cargo build --verbose
