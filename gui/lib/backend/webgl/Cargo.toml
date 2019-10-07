@@ -22,6 +22,3 @@ features = [
   'WebGlProgram',
   'WebGlShader',
 ]
-
-[profile.release]
-opt-level = 3

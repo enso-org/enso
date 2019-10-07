@@ -20,6 +20,7 @@ failure              = { version = "0.1.5"  }
 derive_more          = { version = "0.15.0" }
 shrinkwraprs         = { version = "0.2.1"  }
 itertools            = { version = "0.8"    }
+nalgebra             = { version = "0.18.1" }
 
 # TODO: disable for release
 console_error_panic_hook = { version = "0.1.1", optional = true }
@@ -40,6 +41,3 @@ features = [
 
 [dev-dependencies]
 wasm-bindgen-test = "0.2"
-
-[profile.release]
-opt-level = 3

@@ -2,6 +2,7 @@ use crate::prelude::*;
 
 use crate::system::web::fmt;
 use crate::system::web::Logger;
+use std::ops::Range;
 
 // ============================
 // === TO BE REFACTORED OUT ===
@@ -15,9 +16,17 @@ impl When for bool {
     fn when<F: FnOnce() -> T, T>(&self, f: F) {
         if *self {
             f();
-            ()
         }
     }
+}
+
+// ===================
+// === RangedDirty ===
+// ===================
+
+pub struct RangedDirty<T> {
+    pub native: Dirty,
+    pub range:  Option<Range<T>>,
 }
 
 // =============
@@ -26,7 +35,7 @@ impl When for bool {
 
 #[derive(Clone, Debug)]
 pub struct Dirty {
-    data: Rc<RefCell<DirtyData>>,
+    pub data: Rc<RefCell<DirtyData>>,
 }
 
 impl Dirty {

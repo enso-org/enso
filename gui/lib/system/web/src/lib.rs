@@ -4,7 +4,6 @@ pub mod resize_observer;
 
 use basegl_prelude::*;
 
-use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;
@@ -132,13 +131,13 @@ macro_rules! fmt {
 // === DOM Helpers ===
 // ===================
 pub fn window() -> Result<web_sys::Window> {
-    web_sys::window().ok_or(Error::missing("window"))
+    web_sys::window().ok_or_else(|| Error::missing("window"))
 }
 pub fn document() -> Result<web_sys::Document> {
-    window()?.document().ok_or(Error::missing("document"))
+    window()?.document().ok_or_else(|| Error::missing("document"))
 }
 pub fn get_element_by_id(id: &str) -> Result<web_sys::Element> {
-    document()?.get_element_by_id(id).ok_or(Error::missing(id))
+    document()?.get_element_by_id(id).ok_or_else(|| Error::missing(id))
 }
 pub fn get_element_by_id_as<T: wasm_bindgen::JsCast>(id: &str) -> Result<T> {
     let elem = get_element_by_id(id)?;
@@ -157,7 +156,7 @@ pub fn get_webgl_context(
     let no_webgl = || Error::NoWebGL { version };
     let name_sfx = if version == 1 { "".to_string() } else { version.to_string() };
     let name = &format!("webgl{}", &name_sfx);
-    let context = canvas.get_context(name).map_err(|_| no_webgl())?.ok_or(no_webgl())?;
+    let context = canvas.get_context(name).map_err(|_| no_webgl())?.ok_or_else(no_webgl)?;
     context.dyn_into().map_err(|_| no_webgl())
 }
 pub fn request_animation_frame(f: &Closure<dyn FnMut()>) -> Result<i32> {

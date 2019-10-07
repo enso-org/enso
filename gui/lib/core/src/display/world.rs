@@ -27,8 +27,8 @@ pub struct World {
     pub on_every_frame: Callback,
 }
 
-impl World {
-    pub fn new() -> Self {
+impl Default for World {
+    fn default() -> Self {
         let data = Rc::new(RefCell::new(WorldData::new()));
         let on_every_frame = Rc::new(RefCell::new(None));
         let data_local = data.clone();
@@ -41,6 +41,12 @@ impl World {
             }
         }) as Box<dyn FnMut()>));
         Self { data, on_every_frame }
+    }
+}
+
+impl World {
+    pub fn new() -> Self {
+        Default::default()
     }
 
     pub fn started(&self) -> bool {
@@ -89,13 +95,19 @@ pub struct WorldData {
     pub started:    bool,
 }
 
-impl WorldData {
-    pub fn new() -> Self {
+impl Default for WorldData {
+    fn default() -> Self {
         let workspaces = OptVec::new();
         let logger = Logger::new("world");
         let dirty = Dirty::new(&logger);
         let started = false;
         Self { workspaces, dirty, logger, started }
+    }
+}
+
+impl WorldData {
+    pub fn new() -> Self {
+        Default::default()
     }
 
     pub fn add_workspace(&mut self, name: &str) -> workspace::ID {
