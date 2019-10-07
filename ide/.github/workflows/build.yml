@@ -39,6 +39,8 @@ jobs:
           'RUSTFLAGS': '-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Zno-landing-pads'
       - name: Generate coverage report
         uses: actions-rs/grcov@v0.1
+      - name: What was the file?
+        run: echo ${{ steps.coverage.outputs.report }}
       - name: Upload coverage report
         uses: codecov/codecov-action@v1.0.2
         with:
