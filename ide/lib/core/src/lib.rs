@@ -3,7 +3,7 @@
 #![cfg_attr(test, allow(dead_code))]
 //#![warn(missing_docs)]
 
-// Lints
+// Lints. To be refactored after this gets resolved: https://github.com/rust-lang/cargo/issues/5034
 #![allow(clippy::option_map_unit_fn)]
 
 // =================================
