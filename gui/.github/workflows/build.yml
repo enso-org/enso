@@ -88,10 +88,12 @@ jobs:
       - name: Generate coverage report
         id: coverage
         uses: actions-rs/grcov@v0.1
-      - name: list files
+      - name: list all /tmp files
         run: ls -la /tmp
+      - name: show the coverage report
+        run: cat ${{ steps.coverage.outputs.report }}
       - name: Upload coverage report
         uses: codecov/codecov-action@v1.0.2
         with:
           token: 70c0d44d-6ee2-4f23-b16b-0ed801149f8a
-          file: ${{ steps.coverage.outputs.report }}.info
+          file: ${{ steps.coverage.outputs.report }}
