@@ -77,7 +77,7 @@ jobs:
       - name: Install Rust Nightly Toolchain
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly
+          toolchain: ${{ env.rust-version }}
           override: true
       - name: Generate test profile
         uses: actions-rs/cargo@v1
@@ -89,8 +89,10 @@ jobs:
           'RUSTFLAGS': '-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Zno-landing-pads'
       - name: Generate coverage report
         uses: actions-rs/grcov@v0.1
-      - name: What was the file?
-        run: echo ./lcov.info
+      - name: What was the file 1?
+        run: echo "It was ${{ jobs.coverage.outputs.report }}"
+      - name: What was the file 2?
+        run: echo "It was ${{ outputs.report }}"
       - name: What was in the file?
         run: cat ./lcov.info
       - name: Upload coverage report
