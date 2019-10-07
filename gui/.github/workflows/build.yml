@@ -10,7 +10,7 @@ on: [push]
 
 jobs:
   build:
-    name: Build Check
+    name: Build
     runs-on: ${{ matrix.os }}
     strategy:
       matrix: 
@@ -28,7 +28,7 @@ jobs:
           command: check
           
   test:
-    name: Test Suite
+    name: Tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
@@ -41,7 +41,7 @@ jobs:
           command: test
 
   fmt:
-    name: Code Formatting Check
+    name: Formatter
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
@@ -56,7 +56,7 @@ jobs:
           args: --all -- --check
 
   clippy:
-    name: Code Linting Check
+    name: Linter
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
@@ -71,7 +71,7 @@ jobs:
           args: -- -D warnings
 
   coverage:
-    name: Code Coverage Check
+    name: Coverage
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
