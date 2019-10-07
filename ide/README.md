@@ -1,5 +1,7 @@
 # BaseGL
 
+[![Actions Status](https://github.com/luna/basegl/workflows/Rust/badge.svg)](https://github.com/luna/basegl/actions)
+
 BaseGL is a blazing fast 2D drawing API. This repository is a work in progress
 of BaseGL 2.0. Please refer to BaseGL 1.0 repository for more information:
 https://github.com/luna/basegl-old.
