@@ -2,6 +2,11 @@ name: Build (MacOS, Linux, Windows)
 
 on: [push]
 
+env:
+  # Please check if all components are available before updating
+  # https://rust-lang.github.io/rustup-components-history/x86_64-unknown-linux-gnu.html
+  rust-version: nightly-2019-10-03
+
 jobs:
   build:
     name: Build Check
@@ -14,7 +19,7 @@ jobs:
       - name: Install Rust Nightly Toolchain
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly
+          toolchain: ${{ env.rust-version }}
           override: true
       - name: Run cargo check
         uses: actions-rs/cargo@v1
@@ -28,7 +33,7 @@ jobs:
       - uses: actions/checkout@v1
       - uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly
+          toolchain: ${{ env.rust-version }}
           override: true
       - uses: actions-rs/cargo@v1
         with:
@@ -41,7 +46,7 @@ jobs:
       - uses: actions/checkout@v1
       - uses: actions-rs/toolchain@v1
         with:
-          toolchain: stable
+          toolchain: ${{ env.rust-version }}
           override: true
       - run: rustup component add rustfmt
       - uses: actions-rs/cargo@v1
@@ -56,7 +61,7 @@ jobs:
       - uses: actions/checkout@v1
       - uses: actions-rs/toolchain@v1
         with:
-          toolchain: stable
+          toolchain: ${{ env.rust-version }}
           override: true
       - run: rustup component add clippy
       - uses: actions-rs/cargo@v1
