@@ -64,7 +64,7 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
     def pop(): Unit = logger.trace {
       current = stack.head
       stack   = stack.tail
-      logger.log(s"New result: $current")
+      logger.log(s"New result: ${current.map(_.show).getOrElse("None")}")
     }
 
     def app(fn: String => AST): Unit =
@@ -277,7 +277,6 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
   num.PHASE2 || "_"                   || reify { num.onDanglingBase()   }
   num.PHASE2 || always                || reify { num.onNoExplicitBase() }
 
-
   //////////////
   //// Text ////
   //////////////
@@ -440,11 +439,12 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
       off.push()
     }
 
-    val stringChar = noneOf("'`\"\\\n")
-    val seg        = stringChar.many1
+    val fmtChar    = noneOf("'`\\\n")
     val escape_int = "\\" >> num.decimal
-    val escape_u16 = "\\u" >> repeat(stringChar, 0, 4)
-    val escape_u32 = "\\U" >> repeat(stringChar, 0, 8)
+    val escape_u16 = "\\u" >> repeat(fmtChar, 0, 4)
+    val escape_u32 = "\\U" >> repeat(fmtChar, 0, 8)
+    val fmtSeg     = fmtChar.many1
+    val rawSeg     = noneOf("\"\n").many1
 
     val FMT: State         = state.define("Formatted Text")
     val RAW: State         = state.define("Raw Text")
@@ -453,24 +453,24 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
     INTERPOLATE.parent = ROOT
   }
 
-  ROOT     || '`'      || reify { text.onInterpolateEnd()              }
-  text.FMT || '`'      || reify { text.onInterpolateBegin()            }
-  ROOT     || "'"      || reify { text.onBegin(text.FMT, Quote.Single) }
-  ROOT     || "'''"    || reify { text.onBegin(text.FMT, Quote.Triple) }
-  text.FMT || "'"      || reify { text.onQuote(Quote.Single)           }
-  text.FMT || "'''"    || reify { text.onQuote(Quote.Triple)           }
-  text.FMT || text.seg || reify { text.submitPlainSegment()            }
-  text.FMT || eof      || reify { text.onEOF()                         }
-  text.FMT || '\n'     || reify { state.begin(text.NEWLINE)            }
+  ROOT     || '`'         || reify { text.onInterpolateEnd()              }
+  text.FMT || '`'         || reify { text.onInterpolateBegin()            }
+  ROOT     || "'"         || reify { text.onBegin(text.FMT, Quote.Single) }
+  ROOT     || "'''"       || reify { text.onBegin(text.FMT, Quote.Triple) }
+  text.FMT || "'"         || reify { text.onQuote(Quote.Single)           }
+  text.FMT || "'''"       || reify { text.onQuote(Quote.Triple)           }
+  text.FMT || text.fmtSeg || reify { text.submitPlainSegment()            }
+  text.FMT || eof         || reify { text.onEOF()                         }
+  text.FMT || '\n'        || reify { state.begin(text.NEWLINE)            }
 
-  ROOT     || "\""           || reify { text.onBegin(text.RAW, Quote.Single) }
-  ROOT     || "\"\"\""       || reify { text.onBegin(text.RAW, Quote.Triple) }
-  text.RAW || "\""           || reify { text.onQuote(Quote.Single)           }
-  text.RAW || "$$$$$" || reify {}
-  text.RAW || "\"\"\""       || reify { text.onQuote(Quote.Triple)           }
-  text.RAW || noneOf("\"\n") || reify { text.submitPlainSegment()            }
-  text.RAW || eof            || reify { text.onEOF()                         }
-  text.RAW || '\n'           || reify { state.begin(text.NEWLINE)            }
+  ROOT     || "\""        || reify { text.onBegin(text.RAW, Quote.Single) }
+  ROOT     || "\"\"\""    || reify { text.onBegin(text.RAW, Quote.Triple) }
+  text.RAW || "\""        || reify { text.onQuote(Quote.Single)           }
+  text.RAW || "$$$$$"     || reify {}
+  text.RAW || "\"\"\""    || reify { text.onQuote(Quote.Triple)           }
+  text.RAW || text.rawSeg || reify { text.submitPlainSegment()            }
+  text.RAW || eof         || reify { text.onEOF()                         }
+  text.RAW || '\n'        || reify { state.begin(text.NEWLINE)            }
 
   text.NEWLINE || space.opt || reify { text.onNewLine() }
 
@@ -488,14 +488,14 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
     text.FMT || s"\\$code" || q"text.onEscape($ctrl)"
   }
 
-  text.FMT || text.escape_u16           || reify { text.onEscapeU16()        }
-  text.FMT || text.escape_u32           || reify { text.onEscapeU32()        }
-  text.FMT || text.escape_int           || reify { text.onEscapeInt()        }
-  text.FMT || "\\\\"                    || reify { text.onEscapeSlash()      }
-  text.FMT || "\\'"                     || reify { text.onEscapeQuote()      }
-  text.FMT || "\\\""                    || reify { text.onEscapeRawQuote()   }
-  text.FMT || ("\\" >> text.stringChar) || reify { text.onInvalidEscape()    }
-  text.FMT || "\\"                      || reify { text.submitPlainSegment() }
+  text.FMT || text.escape_u16        || reify { text.onEscapeU16()        }
+  text.FMT || text.escape_u32        || reify { text.onEscapeU32()        }
+  text.FMT || text.escape_int        || reify { text.onEscapeInt()        }
+  text.FMT || "\\\\"                 || reify { text.onEscapeSlash()      }
+  text.FMT || "\\'"                  || reify { text.onEscapeQuote()      }
+  text.FMT || "\\\""                 || reify { text.onEscapeRawQuote()   }
+  text.FMT || ("\\" >> text.fmtChar) || reify { text.onInvalidEscape()    }
+  text.FMT || "\\"                   || reify { text.submitPlainSegment() }
 
   //////////////
   /// Blocks ///

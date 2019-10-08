@@ -184,6 +184,7 @@ class ParserTest extends FlatSpec with Matchers {
   "'''''''" ?= Text(Text.Body(q3)) $ Text.Unclosed(Text(Text.Body(q1)))
   "'a'"     ?= Text(Text.Body(q1, "a"))
   "'a"      ?= Text.Unclosed(Text(Text.Body(q1, "a")))
+  "'\"'"    ?= Text(Text.Body(q1, "\""))
   "'a'''"   ?= Text(Text.Body(q1, "a")) $ Text(Text.Body(q1))
   "'''a'''" ?= Text(Text.Body(q3, "a"))
   "'''a'"   ?= Text.Unclosed(Text(Text.Body(q3, "a'")))
