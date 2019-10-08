@@ -7,9 +7,9 @@ BaseGL is a blazing fast 2D drawing API. This repository is a work in progress
 of BaseGL 2.0. Please refer to BaseGL 1.0 repository for more information:
 https://github.com/luna/basegl-old.
 
-# Working with the code
+## Working with the code
 
-## The Rust toolchain 
+### The Rust toolchain 
 
 In order to use some of the WASM pipeline features we need to use a nightly Rust
 channel. The same applies to the code auto-formatter and it's advanced
@@ -26,7 +26,7 @@ rustup component add rustfmt                # Install the code auto-formatter.
 rustup component add clippy                 # Install the linter.
 ```
 
-## Building and testing the project
+### Building and testing the project
 
 Please use the `script/build.sh`, `script/watch.sh`, and `script/lint.sh`
 scripts to build, watch, and lint the project respectively. We need to use a
@@ -57,9 +57,9 @@ npm run start
 You can now open the following address in your browser: http://localhost:8080.
 **Please remember to disable the cache in your browser!**
 
-## Working with the source code
+### Working with the source code
 
-### Formatting
+#### Formatting
 
 All codebase should be auto-formatted using `rustfmt`. It is highly recommended
 that you use an IDE which takes care of formatting the code as you type. Please
@@ -69,7 +69,7 @@ guide](https://github.com/luna/enso/blob/master/doc/rust-style-guide.md) and
 apply it everywhere in your codebase.
 
 
-### Linting 
+#### Linting 
 
 Please be sure to fix all errors reported by `cargo clippy` before creating a
 pull request to this repository.
