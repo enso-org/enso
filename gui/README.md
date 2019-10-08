@@ -1,7 +1,7 @@
-# BaseGL
-
 [![License](https://img.shields.io/static/v1?label=License&message=MIT&color=2ec352&labelColor=2c3239)](https://github.com/luna/basegl/blob/master/LICENSE) [![Actions Status](https://github.com/luna/basegl/workflows/Build%20%28MacOS%2C%20Linux%2C%20Windows%29/badge.svg)](https://github.com/luna/basegl/actions) [![Coverage](https://img.shields.io/codecov/c/github/luna/basegl?label=Coverage&labelColor=2c3239)](https://codecov.io/gh/luna/basegl/branch/master) 
 ![Stability](https://img.shields.io/static/v1?label=Stability&message=Unstable&color=d52229&labelColor=2c3239)
+
+# BaseGL
 
 BaseGL is a blazing fast 2D drawing API. This repository is a work in progress
 of BaseGL 2.0. Please refer to BaseGL 1.0 repository for more information:
