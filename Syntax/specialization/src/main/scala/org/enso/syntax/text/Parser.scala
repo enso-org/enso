@@ -3,12 +3,12 @@ package org.enso.syntax.text
 import org.enso.flexer
 import org.enso.flexer.Reader
 import org.enso.syntax.text.ast.meta.Builtin
-import org.enso.syntax.text.ast.meta.Pattern
 import org.enso.syntax.text.ast.opr.Prec
 import org.enso.syntax.text.prec.Distance
 import org.enso.syntax.text.prec.Macro
 import org.enso.syntax.text.prec.Operator
 import org.enso.syntax.text.spec.ParserDef
+import scala.math.Ordering.Implicits._
 
 import scala.annotation.tailrec
 
@@ -148,10 +148,9 @@ class Parser {
   import Parser._
   private val engine = newEngine()
 
-  def run(input: Reader): AST.Module =
-    run(input, Map())
+  def run(input: Reader): AST.Module = run(input, Nil)
 
-  def run(input: Reader, idMap: Map[(Int, Int), AST.ID]): AST.Module =
+  def run(input: Reader, idMap: IDMap): AST.Module =
     engine.run(input).map(Macro.run) match {
       case flexer.Parser.Result(_, flexer.Parser.Result.Success(mod)) =>
         val mod2 = annotateModule(idMap, mod)
@@ -160,16 +159,25 @@ class Parser {
     }
 
   def annotateModule(
-    idMap: Map[(Int, Int), AST.ID],
+    idMap: IDMap,
     mod: AST.Module
-  ): AST.Module = mod.traverseWithOff { (off, ast) =>
-    idMap.get((off, ast.repr.span)) match {
-      case Some(id) => ast.setID(id)
-      case None =>
-        ast match {
-          case AST.Macro.Match.any(_) => ast.withNewID()
-          case _                      => ast
-        }
+  ): AST.Module = {
+    var ids = idMap.map { case ((a, b), id) => (a, -b) -> id }.sorted.toList
+    mod.traverseWithOff { (off, ast) =>
+      val key = (off, -ast.span)
+
+      while (ids.nonEmpty && ids.head._1 < key) ids = ids.tail
+
+      ids match {
+        case (k, id) :: _ if k == key =>
+          ids = ids.tail
+          ast.setID(id)
+        case _ =>
+          ast match {
+            case AST.Macro.Match.any(_) => ast.withNewID()
+            case _                      => ast
+          }
+      }
     }
   }
 
@@ -208,7 +216,8 @@ class Parser {
 }
 
 object Parser {
-  def apply(): Parser = new Parser()
+  type IDMap = Seq[((Int, Int), AST.ID)]
+  def apply(): Parser   = new Parser()
   private val newEngine = flexer.Parser.compile(ParserDef())
 
   //// Exceptions ////
@@ -321,10 +330,7 @@ object Main extends App {
 
   println("--- PARSING ---")
 
-  val mod = parser.run(
-    new Reader(inp),
-    Map()
-  )
+  val mod = parser.run(new Reader(inp))
 
   println(pretty(mod.toString))
 
