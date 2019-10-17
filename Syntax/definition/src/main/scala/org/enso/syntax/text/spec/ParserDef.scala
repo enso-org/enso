@@ -46,8 +46,8 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
   ////////////////
 
   override def getResult() = result.current.flatMap {
-    case mod: AST.Module => Some(mod)
-    case _               => None
+    case AST.Module.any(mod) => Some(mod)
+    case _                   => None
   }
 
   final object result {
@@ -184,6 +184,11 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
       on(cons(currentMatch))
     }
 
+    def onGrp(cons: String => AST.Ident): Unit = logger.trace {
+      ident.current = Some(cons(currentMatch))
+      ident.onNoErrSfx()
+    }
+
     def onNoMod(cons: String => AST.Ident): Unit = logger.trace {
       onNoMod(cons(currentMatch))
     }
@@ -211,7 +216,7 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
     val opsDot: Pattern   = "." | ".." | "..." | ","
     val opsGrp: Pattern   = anyOf("()[]{}")
     val opsCmm: Pattern   = "#" | "##"
-    val opsNoMod: Pattern = opsEq | opsDot | opsGrp | opsCmm
+    val opsNoMod: Pattern = opsEq | opsDot | opsCmm
 
     val SFX_CHECK = state.define("Operator Suffix Check")
     val MOD_CHECK = state.define("Operator Modifier Check")
@@ -220,6 +225,7 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
 
   ROOT          || opr.body     || reify { opr.on(AST.Opr(_))      }
   ROOT          || opr.opsNoMod || reify { opr.onNoMod(AST.Opr(_)) }
+  ROOT          || opr.opsGrp   || reify { opr.onGrp(AST.Opr(_))   }
   opr.MOD_CHECK || "="          || reify { opr.onMod()             }
   opr.SFX_CHECK || opr.errSfx   || reify { ident.onErrSfx()        }
   opr.SFX_CHECK || always       || reify { ident.onNoErrSfx()      }
