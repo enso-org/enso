@@ -16,5 +16,6 @@ public class Constants {
   public static class CacheSizes {
     public static final String ARGUMENT_SORTER_NODE = "10";
     public static final String FUNCTION_INTEROP_LIBRARY = "10";
+    public static final String THUNK_EXECUTOR_NODE = "10";
   }
 }

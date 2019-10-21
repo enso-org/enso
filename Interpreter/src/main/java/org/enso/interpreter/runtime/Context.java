@@ -7,8 +7,8 @@ import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLanguage.Env;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.source.Source;
-import java.io.File;
-import java.io.IOException;
+
+import java.io.*;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -35,6 +35,7 @@ public class Context {
   private final Language language;
   private final Env environment;
   private final Map<String, Module> knownFiles;
+  private final PrintStream out;
 
   /**
    * Creates a new Enso context.
@@ -45,6 +46,7 @@ public class Context {
   public Context(Language language, Env environment) {
     this.language = language;
     this.environment = environment;
+    this.out = new PrintStream(environment.out());
 
     List<File> packagePaths = RuntimeOptions.getPackagesPaths(environment);
     // TODO [MK] Replace getTruffleFile with getInternalTruffleFile when Graal 19.3.0 comes out.
@@ -119,5 +121,14 @@ public class Context {
    */
   public Env getEnvironment() {
     return environment;
+  }
+
+  /**
+   * Returns the standard output stream for this context.
+   *
+   * @return the standard output stream for this context.
+   */
+  public PrintStream getOut() {
+    return out;
   }
 }

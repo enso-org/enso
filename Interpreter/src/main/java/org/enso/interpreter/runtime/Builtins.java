@@ -13,7 +13,8 @@ public class Builtins {
       new AtomConstructor("Nil", BUILTIN_SCOPE).initializeFields();
   public static final AtomConstructor CONS =
       new AtomConstructor("Cons", BUILTIN_SCOPE)
-          .initializeFields(new ArgumentDefinition(0, "head"), new ArgumentDefinition(1, "rest"));
+          .initializeFields(
+              new ArgumentDefinition(0, "head", false), new ArgumentDefinition(1, "rest", false));
 
   static {
     BUILTIN_SCOPE.registerConstructor(Builtins.CONS);

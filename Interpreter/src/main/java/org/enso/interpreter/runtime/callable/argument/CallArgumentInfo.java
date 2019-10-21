@@ -71,6 +71,7 @@ public class CallArgumentInfo {
   public static class ArgumentMappingBuilder {
     private int[] appliedMapping;
     private int[] oversaturatedArgumentMapping;
+    private boolean[] argumentShouldExecute;
     private ArgumentDefinition[] definitions;
     private CallArgumentInfo[] callArgs;
     private CallArgumentInfo[] existingOversaturatedArgs;
@@ -89,6 +90,7 @@ public class CallArgumentInfo {
       this.appliedMapping = new int[callArgs.length];
       this.oversaturatedArgumentMapping = new int[callArgs.length];
       this.callSiteArgApplied = new boolean[callArgs.length];
+      this.argumentShouldExecute = new boolean[callArgs.length];
 
       this.callArgs = callArgs;
       this.definitions = schema.getArgumentInfos();
@@ -142,6 +144,9 @@ public class CallArgumentInfo {
         appliedMapping[callArgIndex] = position;
         argumentUsed[position] = true;
         callSiteArgApplied[callArgIndex] = true;
+        if (!definitions[position].isSuspended()) {
+          argumentShouldExecute[callArgIndex] = true;
+        }
       } else {
         oversaturatedArgumentMapping[callArgIndex] = oversaturatedWritePosition;
         oversaturatedWritePosition++;
@@ -173,7 +178,8 @@ public class CallArgumentInfo {
      * @return the computed argument mapping
      */
     public ArgumentMapping getAppliedMapping() {
-      return new ArgumentMapping(appliedMapping, oversaturatedArgumentMapping, callSiteArgApplied);
+      return new ArgumentMapping(
+          appliedMapping, oversaturatedArgumentMapping, callSiteArgApplied, argumentShouldExecute);
     }
 
     /**
@@ -217,6 +223,7 @@ public class CallArgumentInfo {
     private @CompilationFinal(dimensions = 1) int[] appliedArgumentMapping;
     private @CompilationFinal(dimensions = 1) int[] oversaturatedArgumentMapping;
     private @CompilationFinal(dimensions = 1) boolean[] isValidAppliedArg;
+    private @CompilationFinal(dimensions = 1) boolean[] argumentShouldExecute;
 
     /**
      * Creates a new instance to represent a mapping.
@@ -231,10 +238,12 @@ public class CallArgumentInfo {
     public ArgumentMapping(
         int[] appliedArgumentMapping,
         int[] oversaturatedArgumentMapping,
-        boolean[] isAppliedFlags) {
+        boolean[] isAppliedFlags,
+        boolean[] argumentShouldExecute) {
       this.appliedArgumentMapping = appliedArgumentMapping;
       this.oversaturatedArgumentMapping = oversaturatedArgumentMapping;
       this.isValidAppliedArg = isAppliedFlags;
+      this.argumentShouldExecute = argumentShouldExecute;
     }
 
     /**
@@ -272,6 +281,17 @@ public class CallArgumentInfo {
           result[offset + this.oversaturatedArgumentMapping[i]] = argValues[i];
         }
       }
+    }
+
+    /**
+     * Returns a boolean array where the i-th entry is {@code true} iff the i-th argument should be
+     * executed immediately and not passed suspended.
+     *
+     * @return a boolean array where the i-th entry is {@code true} iff the i-th argument should be
+     *     executed immediately and not passed suspended.
+     */
+    public boolean[] getArgumentShouldExecute() {
+      return argumentShouldExecute;
     }
   }
 }

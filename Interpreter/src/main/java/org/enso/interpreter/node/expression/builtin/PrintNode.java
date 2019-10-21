@@ -1,14 +1,21 @@
 package org.enso.interpreter.node.expression.builtin;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.CachedContext;
+import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import org.enso.interpreter.Language;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.Builtins;
+import org.enso.interpreter.runtime.Context;
+
+import java.io.OutputStream;
+import java.io.PrintStream;
 
 /** This node allows for printing the result of an arbitrary expression to standard output. */
 @NodeInfo(shortName = "print", description = "Prints the value of child expression.")
-public final class PrintNode extends ExpressionNode {
+public abstract class PrintNode extends ExpressionNode {
   @Child private ExpressionNode expression;
 
   /**
@@ -26,9 +33,9 @@ public final class PrintNode extends ExpressionNode {
    * @param frame the stack frame for execution
    * @return unit {@link Builtins#UNIT unit} type
    */
-  @Override
-  public Object executeGeneric(VirtualFrame frame) {
-    doPrint(expression.executeGeneric(frame));
+  @Specialization
+  public Object doPrint(VirtualFrame frame, @CachedContext(Language.class) Context ctx) {
+    doPrint(ctx.getOut(), expression.executeGeneric(frame));
 
     return Builtins.UNIT.newInstance();
   }
@@ -39,7 +46,7 @@ public final class PrintNode extends ExpressionNode {
    * @param object the value to print
    */
   @CompilerDirectives.TruffleBoundary
-  private void doPrint(Object object) {
-    System.out.println(object);
+  private void doPrint(PrintStream out, Object object) {
+    out.println(object);
   }
 }

@@ -19,6 +19,7 @@ public abstract class ArgumentSorterNode extends BaseNode {
 
   private @CompilationFinal(dimensions = 1) CallArgumentInfo[] schema;
   private final boolean hasDefaultsSuspended;
+  private final boolean ignoresArgumentsExecution;
 
   /**
    * Creates a node that performs the argument organisation for the provided schema.
@@ -27,9 +28,11 @@ public abstract class ArgumentSorterNode extends BaseNode {
    * @param hasDefaultsSuspended whether or not the default arguments are suspended for this
    *     function invocation
    */
-  public ArgumentSorterNode(CallArgumentInfo[] schema, boolean hasDefaultsSuspended) {
+  public ArgumentSorterNode(
+      CallArgumentInfo[] schema, boolean hasDefaultsSuspended, boolean ignoresArgumentsExecution) {
     this.schema = schema;
     this.hasDefaultsSuspended = hasDefaultsSuspended;
+    this.ignoresArgumentsExecution = ignoresArgumentsExecution;
   }
 
   /**
@@ -55,7 +58,8 @@ public abstract class ArgumentSorterNode extends BaseNode {
   public Object invokeCached(
       Function function,
       Object[] arguments,
-      @Cached("create(function, getSchema(), hasDefaultsSuspended(), isTail())")
+      @Cached(
+              "create(function, getSchema(), hasDefaultsSuspended(), ignoresArgumentsExecution(), isTail())")
           CachedArgumentSorterNode mappingNode,
       @Cached CallOptimiserNode optimiser) {
     return mappingNode.execute(function, arguments, optimiser);
@@ -74,7 +78,8 @@ public abstract class ArgumentSorterNode extends BaseNode {
     return invokeCached(
         function,
         arguments,
-        CachedArgumentSorterNode.create(function, getSchema(), hasDefaultsSuspended(), isTail()),
+        CachedArgumentSorterNode.create(
+            function, getSchema(), hasDefaultsSuspended(), ignoresArgumentsExecution, isTail()),
         CallOptimiserNode.create());
   }
 
@@ -103,5 +108,14 @@ public abstract class ArgumentSorterNode extends BaseNode {
    */
   boolean hasDefaultsSuspended() {
     return this.hasDefaultsSuspended;
+  }
+
+  /**
+   * Checks whether this node ignores argument execution, assuming none of them is passed suspended.
+   *
+   * @return {@code true} if arguments should be assumed pre-executed, {@code false} otherwise.
+   */
+  public boolean ignoresArgumentsExecution() {
+    return ignoresArgumentsExecution;
   }
 }

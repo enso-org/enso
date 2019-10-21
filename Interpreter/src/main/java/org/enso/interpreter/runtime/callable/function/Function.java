@@ -136,7 +136,7 @@ public final class Function implements TruffleObject {
       for (int i = 0; i < length; i++) {
         args[i] = new CallArgumentInfo(null, false, true);
       }
-      return ArgumentSorterNodeGen.create(args, false);
+      return ArgumentSorterNodeGen.create(args, false, true);
     }
 
     /**

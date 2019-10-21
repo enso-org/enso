@@ -2,6 +2,8 @@ package org.enso.interpreter.test.semantic
 
 import org.enso.interpreter.{AstGlobalScope, Constants, EnsoParser}
 import org.graalvm.polyglot.{Context, Value}
+import java.io.ByteArrayOutputStream
+
 import org.scalactic.Equality
 import org.scalatest.{FlatSpec, Matchers}
 
@@ -9,8 +11,19 @@ trait LanguageRunner {
   implicit class RichValue(value: Value) {
     def call(l: Long*): Value = value.execute(l.map(_.asInstanceOf[AnyRef]): _*)
   }
-  val ctx = Context.newBuilder(Constants.LANGUAGE_ID).build()
-  def eval(code: String): Value = ctx.eval(Constants.LANGUAGE_ID, code)
+  val output = new ByteArrayOutputStream()
+  val ctx    = Context.newBuilder(Constants.LANGUAGE_ID).out(output).build()
+
+  def eval(code: String): Value = {
+    output.reset()
+    ctx.eval(Constants.LANGUAGE_ID, code)
+  }
+
+  def consumeOut: List[String] = {
+    val result = output.toString
+    output.reset()
+    result.lines.toList
+  }
 
   def parse(code: String): AstGlobalScope =
     new EnsoParser().parseEnso(code)

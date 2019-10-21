@@ -48,6 +48,8 @@ trait AstExpressionVisitor[+T] {
     branches: java.util.List[AstCase],
     fallback: java.util.Optional[AstCaseFunction]
   ): T
+
+  def visitDesuspend(target: AstExpression): T
 }
 
 trait AstGlobalScopeVisitor[+T] {
@@ -95,25 +97,28 @@ sealed trait AstExpression {
   def visit[T](visitor: AstExpressionVisitor[T]): T
 }
 
-sealed trait AstArgDefinition {
-  def visit[T](visitor: AstArgDefinitionVisitor[T], position: Int): T
-}
-
 trait AstArgDefinitionVisitor[+T] {
-  def visitDefaultedArg(name: String, value: AstExpression, position: Int): T
 
-  def visitBareArg(name: String, position: Int): T
+  def visitArg(
+    name: String,
+    value: Optional[AstExpression],
+    suspended: Boolean,
+    position: Int
+  ): T
 }
 
-case class AstDefaultedArgDefinition(name: String, value: AstExpression)
-    extends AstArgDefinition {
-  override def visit[T](visitor: AstArgDefinitionVisitor[T], position: Int): T =
-    visitor.visitDefaultedArg(name, value, position)
-}
+case class AstArgDefinition(
+  name: String,
+  defaultValue: Option[AstExpression],
+  suspended: Boolean) {
 
-case class AstBareArgDefinition(name: String) extends AstArgDefinition {
-  override def visit[T](visitor: AstArgDefinitionVisitor[T], position: Int): T =
-    visitor.visitBareArg(name, position)
+  def visit[T](visitor: AstArgDefinitionVisitor[T], position: Int): T =
+    visitor.visitArg(
+      name,
+      Optional.ofNullable(defaultValue.orNull),
+      suspended,
+      position
+    )
 }
 
 sealed trait AstCallArg {
@@ -121,20 +126,23 @@ sealed trait AstCallArg {
 }
 
 trait AstCallArgVisitor[+T] {
-  def visitNamedCallArg(name: String, value: AstExpression, position: Int): T
 
-  def visitUnnamedCallArg(value: AstExpression, position: Int): T
+  def visitCallArg(
+    name: Optional[String],
+    value: AstExpression,
+    position: Int
+  ): T
 }
 
 case class AstNamedCallArg(name: String, value: AstExpression)
     extends AstCallArg {
   override def visit[T](visitor: AstCallArgVisitor[T], position: Int): T =
-    visitor.visitNamedCallArg(name, value, position)
+    visitor.visitCallArg(Optional.of(name), value, position)
 }
 
 case class AstUnnamedCallArg(value: AstExpression) extends AstCallArg {
   override def visit[T](visitor: AstCallArgVisitor[T], position: Int): T =
-    visitor.visitUnnamedCallArg(value, position)
+    visitor.visitCallArg(Optional.empty(), value, position)
 }
 
 case class AstLong(l: Long) extends AstExpression {
@@ -224,6 +232,11 @@ case class AstMatch(
     )
 }
 
+case class AstDesuspend(target: AstExpression) extends AstExpression {
+  override def visit[T](visitor: AstExpressionVisitor[T]): T =
+    visitor.visitDesuspend(target)
+}
+
 class EnsoParserInternal extends JavaTokenParsers {
 
   override def skipWhitespace: Boolean = true
@@ -254,19 +267,16 @@ class EnsoParserInternal extends JavaTokenParsers {
 
   def unnamedCallArg: Parser[AstCallArg] = expression ^^ AstUnnamedCallArg
 
-  def defaultedArgDefinition: Parser[AstDefaultedArgDefinition] =
-    ident ~ ("=" ~> expression) ^^ {
-      case name ~ value => AstDefaultedArgDefinition(name, value)
+  def argDefinition: Parser[AstArgDefinition] =
+    ("$" ?) ~ ident ~ (("=" ~> expression) ?) ^^ {
+      case susp ~ name ~ value => AstArgDefinition(name, value, susp.isDefined)
     }
-
-  def bareArgDefinition: Parser[AstBareArgDefinition] =
-    ident ^^ AstBareArgDefinition
 
   def inArgList: Parser[List[AstArgDefinition]] =
     delimited(
       "|",
       "|",
-      nonEmptyList(defaultedArgDefinition | bareArgDefinition)
+      nonEmptyList(argDefinition)
     )
 
   def foreignLiteral: Parser[String] = "**" ~> "[^\\*]*".r <~ "**"
@@ -283,7 +293,7 @@ class EnsoParserInternal extends JavaTokenParsers {
     }
 
   def expression: Parser[AstExpression] =
-    ifZero | matchClause | arith | function
+    desuspend | print | ifZero | matchClause | arith | function
 
   def functionCall: Parser[AstApply] =
     "@" ~> expression ~ (argList ?) ~ defaultSuspend ^^ {
@@ -296,6 +306,8 @@ class EnsoParserInternal extends JavaTokenParsers {
       case Some(_) => true
       case None    => false
     })
+
+  def desuspend: Parser[AstDesuspend] = "$" ~> expression ^^ AstDesuspend
 
   def assignment: Parser[AstAssignment] = ident ~ ("=" ~> expression) ^^ {
     case v ~ exp => AstAssignment(v, exp)
@@ -328,17 +340,18 @@ class EnsoParserInternal extends JavaTokenParsers {
       case expr ~ cases ~ fallback => AstMatch(expr, cases, fallback)
     }
 
-  def statement: Parser[AstExpression] = assignment | print | expression
+  def statement: Parser[AstExpression] = assignment | expression
 
   def typeDef: Parser[AstGlobalSymbol] =
-    "type" ~> ident ~ ((bareArgDefinition | ("(" ~> defaultedArgDefinition <~ ")")) *) <~ ";" ^^ {
+    "type" ~> ident ~ ((argDefinition | ("(" ~> argDefinition <~ ")")) *) <~ ";" ^^ {
       case name ~ args => AstTypeDef(name, args)
     }
 
   def methodDef: Parser[AstMethodDef] =
     (ident <~ ".") ~ (ident <~ "=") ~ expression ^^ {
       case typeName ~ methodName ~ body =>
-        val thisArg = AstBareArgDefinition(Constants.THIS_ARGUMENT_NAME);
+        val thisArg =
+          AstArgDefinition(Constants.THIS_ARGUMENT_NAME, None, false)
         val fun = body match {
           case b: AstFunction =>
             b.copy(arguments = thisArg :: b.arguments)

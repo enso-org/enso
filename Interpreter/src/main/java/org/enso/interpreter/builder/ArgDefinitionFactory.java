@@ -3,9 +3,12 @@ package org.enso.interpreter.builder;
 import org.enso.interpreter.AstArgDefinitionVisitor;
 import org.enso.interpreter.AstExpression;
 import org.enso.interpreter.Language;
+import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.scope.LocalScope;
+
+import java.util.Optional;
 
 /**
  * An {@code ArgDefinitionFactory} is responsible for converting argument definitions in the Enso
@@ -55,28 +58,27 @@ public class ArgDefinitionFactory implements AstArgDefinitionVisitor<ArgumentDef
   }
 
   /**
-   * Processes a function argument that is provided without a default.
+   * Processes a function argument.
    *
    * @param name the name of the argument
+   * @param defaultValue the default value expression for this argument
+   * @param suspended whether this argument's execution is lazy or not
    * @param position the position of the argument in the definition list
    * @return a runtime type representing the argument input
    */
   @Override
-  public ArgumentDefinition visitBareArg(String name, int position) {
-    return new ArgumentDefinition(position, name);
-  }
+  public ArgumentDefinition visitArg(
+      String name, Optional<AstExpression> defaultValue, boolean suspended, int position) {
+    ExpressionNode defNode =
+        defaultValue
+            .map(
+                def -> {
+                  ExpressionFactory exprFactory =
+                      new ExpressionFactory(language, scope, scopeName, moduleScope);
+                  return defaultValue.get().visit(exprFactory);
+                })
+            .orElse(null);
 
-  /**
-   * Processes a function argument that is provided with a default value.
-   *
-   * @param name the name of the argument
-   * @param value the default value of the argument
-   * @param position the position of the argument in the definition list
-   * @return a runtime type representing the argument input
-   */
-  @Override
-  public ArgumentDefinition visitDefaultedArg(String name, AstExpression value, int position) {
-    ExpressionFactory exprFactory = new ExpressionFactory(language, scope, scopeName, moduleScope);
-    return new ArgumentDefinition(position, name, value.visit(exprFactory));
+    return new ArgumentDefinition(position, name, defNode, suspended);
   }
 }

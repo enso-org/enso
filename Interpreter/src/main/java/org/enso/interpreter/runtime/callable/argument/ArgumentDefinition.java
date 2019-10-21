@@ -9,6 +9,7 @@ public class ArgumentDefinition {
   private final int position;
   private final String name;
   private final Optional<ExpressionNode> defaultValue;
+  private final boolean isSuspended;
 
   /**
    * Creates a new argument definition without a default value.
@@ -16,8 +17,8 @@ public class ArgumentDefinition {
    * @param position the position of the argument at the definition site
    * @param name the name of the argument
    */
-  public ArgumentDefinition(int position, String name) {
-    this(position, name, null);
+  public ArgumentDefinition(int position, String name, boolean isSuspended) {
+    this(position, name, null, isSuspended);
   }
 
   /**
@@ -27,10 +28,12 @@ public class ArgumentDefinition {
    * @param name the name of the argument
    * @param defaultValue the default value of the argument
    */
-  public ArgumentDefinition(int position, String name, ExpressionNode defaultValue) {
+  public ArgumentDefinition(
+      int position, String name, ExpressionNode defaultValue, boolean isSuspended) {
     this.position = position;
     this.name = name;
     this.defaultValue = Optional.ofNullable(defaultValue);
+    this.isSuspended = isSuspended;
   }
 
   /**
@@ -67,5 +70,14 @@ public class ArgumentDefinition {
    */
   public boolean hasDefaultValue() {
     return this.defaultValue.isPresent();
+  }
+
+  /**
+   * Whether this argument is passed lazy or executed on the call-site.
+   *
+   * @return {@code true} if the argument is lazy, {@code false} otherwise.
+   */
+  public boolean isSuspended() {
+    return isSuspended;
   }
 }
