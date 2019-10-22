@@ -3,8 +3,9 @@ package org.enso.syntax.text.ast.meta
 import org.enso.syntax.text.AST
 import org.enso.syntax.text.AST.SAST
 import org.enso.syntax.text.prec.Operator
+
 import scala.annotation.tailrec
-import org.enso.data.Shifted
+import org.enso.data.{Index, Shifted}
 import org.enso.syntax.text.ast.Repr
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -264,7 +265,7 @@ object Pattern {
     implicit def offZipMatch[T: Repr]: AST.OffsetZip[MatchOf, T] = t => {
       val s  = t.map(Shifted(0, _))
       val s2 = mapWithOff(s) { case (i, el) => Shifted(i, el.el) }
-      val s3 = s2.map(t => (t.off, t.el))
+      val s3 = s2.map(t => (Index(t.off), t.el))
       s3
     }
 

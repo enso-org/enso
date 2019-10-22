@@ -1,5 +1,6 @@
 package org.enso.syntax.text
 
+import org.enso.data.{Index, Span}
 import org.enso.flexer
 import org.enso.flexer.Reader
 import org.enso.syntax.text.ast.meta.Builtin
@@ -8,8 +9,8 @@ import org.enso.syntax.text.prec.Distance
 import org.enso.syntax.text.prec.Macro
 import org.enso.syntax.text.prec.Operator
 import org.enso.syntax.text.spec.ParserDef
-import scala.math.Ordering.Implicits._
 
+import scala.math.Ordering.Implicits._
 import scala.annotation.tailrec
 
 ////////////////////////////////
@@ -162,9 +163,9 @@ class Parser {
     idMap: IDMap,
     mod: AST.Module
   ): AST.Module = {
-    var ids = idMap.map { case ((a, b), id) => (a, -b) -> id }.sorted.toList
+    var ids = idMap.sorted.toList
     mod.traverseWithOff { (off, ast) =>
-      val key = (off, -ast.span)
+      val key = Span(off, ast)
 
       while (ids.nonEmpty && ids.head._1 < key) ids = ids.tail
 
@@ -216,7 +217,7 @@ class Parser {
 }
 
 object Parser {
-  type IDMap = Seq[((Int, Int), AST.ID)]
+  type IDMap = Seq[(Span, AST.ID)]
   def apply(): Parser   = new Parser()
   private val newEngine = flexer.Parser.compile(ParserDef())
 
