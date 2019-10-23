@@ -28,7 +28,7 @@ public class Module {
    */
   public ModuleScope requestParse(Context context) throws IOException {
     if (cachedScope == null) {
-      cachedScope = new ModuleScope();
+      cachedScope = context.createScope();
       context.parse(file, cachedScope);
     }
     return cachedScope;

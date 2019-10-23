@@ -41,8 +41,6 @@ trait AstExpressionVisitor[+T] {
 
   def visitAssignment(varName: String, expr: AstExpression): T
 
-  def visitPrint(body: AstExpression): T
-
   def visitMatch(
     target: AstExpression,
     branches: java.util.List[AstCase],
@@ -203,11 +201,6 @@ case class AstAssignment(name: String, body: AstExpression)
     visitor.visitAssignment(name, body)
 }
 
-case class AstPrint(body: AstExpression) extends AstExpression {
-  override def visit[T](visitor: AstExpressionVisitor[T]): T =
-    visitor.visitPrint(body)
-}
-
 case class AstIfZero(
   cond: AstExpression,
   ifTrue: AstExpression,
@@ -293,7 +286,7 @@ class EnsoParserInternal extends JavaTokenParsers {
     }
 
   def expression: Parser[AstExpression] =
-    desuspend | print | ifZero | matchClause | arith | function
+    desuspend | ifZero | matchClause | arith | function
 
   def functionCall: Parser[AstApply] =
     "@" ~> expression ~ (argList ?) ~ defaultSuspend ^^ {
@@ -312,8 +305,6 @@ class EnsoParserInternal extends JavaTokenParsers {
   def assignment: Parser[AstAssignment] = ident ~ ("=" ~> expression) ^^ {
     case v ~ exp => AstAssignment(v, exp)
   }
-
-  def print: Parser[AstPrint] = "print:" ~> expression ^^ AstPrint
 
   def ifZero: Parser[AstIfZero] =
     "ifZero:" ~> "[" ~> (expression ~ ("," ~> expression ~ ("," ~> expression))) <~ "]" ^^ {

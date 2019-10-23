@@ -1,6 +1,7 @@
 package org.enso.interpreter.runtime.scope;
 
 import org.enso.interpreter.runtime.Builtins;
+import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 
@@ -13,11 +14,6 @@ public class ModuleScope {
   private final Map<AtomConstructor, Map<String, Function>> methods = new HashMap<>();
   private final Set<ModuleScope> imports = new HashSet<>();
   private final Set<ModuleScope> transitiveImports = new HashSet<>();
-
-  /** Creates a new scope. Every scope implicitly imports the builtin scope. */
-  public ModuleScope() {
-    imports.add(Builtins.BUILTIN_SCOPE);
-  }
 
   /**
    * Adds an Atom constructor definition to the module scope.
@@ -81,9 +77,13 @@ public class ModuleScope {
    */
   public Function lookupMethodDefinition(AtomConstructor atom, String name) {
     Function definedWithAtom = atom.getDefinitionScope().getMethodMapFor(atom).get(name);
-    if (definedWithAtom != null) { return definedWithAtom; }
+    if (definedWithAtom != null) {
+      return definedWithAtom;
+    }
     Function definedHere = getMethodMapFor(atom).get(name);
-    if (definedHere != null) { return definedHere; }
+    if (definedHere != null) {
+      return definedHere;
+    }
     return transitiveImports.stream()
         .map(scope -> scope.getMethodMapFor(atom).get(name))
         .filter(Objects::nonNull)

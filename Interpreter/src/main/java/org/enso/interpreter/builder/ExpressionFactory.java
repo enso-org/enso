@@ -32,7 +32,6 @@ import org.enso.interpreter.node.controlflow.DefaultFallbackNode;
 import org.enso.interpreter.node.controlflow.FallbackNode;
 import org.enso.interpreter.node.controlflow.IfZeroNode;
 import org.enso.interpreter.node.controlflow.MatchNode;
-import org.enso.interpreter.node.expression.builtin.PrintNodeGen;
 import org.enso.interpreter.node.expression.constant.ConstructorNode;
 import org.enso.interpreter.node.expression.constant.DynamicSymbolNode;
 import org.enso.interpreter.node.expression.literal.IntegerLiteralNode;
@@ -368,17 +367,6 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
     currentVarName = varName;
     FrameSlot slot = scope.createVarSlot(varName);
     return AssignmentNodeGen.create(expr.visit(this), slot);
-  }
-
-  /**
-   * Creates a runtime node representing a print expression.
-   *
-   * @param body an expression that computes the value to print
-   * @return a runtime node representing the print
-   */
-  @Override
-  public ExpressionNode visitPrint(AstExpression body) {
-    return PrintNodeGen.create(body.visit(this));
   }
 
   /**

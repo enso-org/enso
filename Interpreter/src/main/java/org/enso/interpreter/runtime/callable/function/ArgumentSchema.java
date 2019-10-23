@@ -48,7 +48,7 @@ public class ArgumentSchema {
    *
    * @param argumentInfos Definition site arguments information
    */
-  public ArgumentSchema(ArgumentDefinition[] argumentInfos) {
+  public ArgumentSchema(ArgumentDefinition... argumentInfos) {
     this(argumentInfos, new boolean[argumentInfos.length], new CallArgumentInfo[0]);
   }
 

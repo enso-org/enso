@@ -20,6 +20,7 @@ import org.enso.interpreter.Language;
 import org.enso.interpreter.builder.ModuleScopeExpressionFactory;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
+import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.error.ModuleDoesNotExistException;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.util.ScalaConversions;
@@ -36,6 +37,7 @@ public class Context {
   private final Env environment;
   private final Map<String, Module> knownFiles;
   private final PrintStream out;
+  private final Builtins builtins;
 
   /**
    * Creates a new Enso context.
@@ -47,6 +49,7 @@ public class Context {
     this.language = language;
     this.environment = environment;
     this.out = new PrintStream(environment.out());
+    this.builtins = new Builtins(language);
 
     List<File> packagePaths = RuntimeOptions.getPackagesPaths(environment);
     // TODO [MK] Replace getTruffleFile with getInternalTruffleFile when Graal 19.3.0 comes out.
@@ -86,7 +89,7 @@ public class Context {
    * @return a call target which execution corresponds to the toplevel executable bits in the module
    */
   public CallTarget parse(Source source) {
-    return parse(source, new ModuleScope());
+    return parse(source, createScope());
   }
 
   /**
@@ -130,5 +133,30 @@ public class Context {
    */
   public PrintStream getOut() {
     return out;
+  }
+
+  /**
+   * Creates a new module scope that automatically imports all the builtin types and methods.
+   *
+   * @return a new module scope with automatic builtins dependency.
+   */
+  public ModuleScope createScope() {
+    ModuleScope moduleScope = new ModuleScope();
+    moduleScope.addImport(getBuiltins().getScope());
+    return moduleScope;
+  }
+
+  private Builtins getBuiltins() {
+    return builtins;
+  }
+
+  /**
+   * Returns the atom constructor corresponding to the {@code Unit} type, for builtin constructs
+   * that need to return an atom of this type.
+   *
+   * @return the builtin {@code Unit} atom constructor
+   */
+  public AtomConstructor getUnit() {
+    return getBuiltins().unit();
   }
 }

@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.scope;
 
+import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.NodeChild;
 import com.oracle.truffle.api.dsl.NodeField;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -7,8 +8,10 @@ import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.frame.FrameSlotKind;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import org.enso.interpreter.Language;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.Builtins;
+import org.enso.interpreter.runtime.Context;
 
 /** This node represents an assignment to a variable in a given scope. */
 @NodeInfo(shortName = "=", description = "Assigns expression result to a variable.")
@@ -20,14 +23,16 @@ public abstract class AssignmentNode extends ExpressionNode {
    *
    * @param frame the frame to write to
    * @param value the value to write
-   * @return the {@link Builtins#UNIT unit} type
+   * @param ctx language context for global values access
+   * @return the unit type
    */
   @Specialization
-  protected Object writeLong(VirtualFrame frame, long value) {
+  protected Object writeLong(
+      VirtualFrame frame, long value, @CachedContext(Language.class) Context ctx) {
     frame.getFrameDescriptor().setFrameSlotKind(getFrameSlot(), FrameSlotKind.Long);
     frame.setLong(getFrameSlot(), value);
 
-    return Builtins.UNIT.newInstance();
+    return ctx.getUnit().newInstance();
   }
 
   /**
@@ -35,14 +40,16 @@ public abstract class AssignmentNode extends ExpressionNode {
    *
    * @param frame the frame to write to
    * @param value the value to write
-   * @return the {@link Builtins#UNIT unit} type
+   * @param ctx language context for global values access
+   * @return the unit type
    */
   @Specialization
-  protected Object writeObject(VirtualFrame frame, Object value) {
+  protected Object writeObject(
+      VirtualFrame frame, Object value, @CachedContext(Language.class) Context ctx) {
     frame.getFrameDescriptor().setFrameSlotKind(getFrameSlot(), FrameSlotKind.Object);
     frame.setObject(getFrameSlot(), value);
 
-    return Builtins.UNIT.newInstance();
+    return ctx.getUnit().newInstance();
   }
 
   /**

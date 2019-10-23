@@ -14,7 +14,7 @@ import org.enso.interpreter.runtime.type.TypesGen;
  *
  * <p>Enso is an expression-oriented language, and hence doesn't have any statements. This means
  * that all expression execution will return a value, even if that is just the {@link
- * Builtins#UNIT} type.
+ * Builtins#unit()} type.
  *
  * <p>This class contains specialisations of the {@link #executeGeneric(VirtualFrame)
  * executeGeneric} method for various scenarios in order to improve performance.
