@@ -44,8 +44,9 @@ public class ApplicationNode extends ExpressionNode {
         Arrays.stream(callArguments).map(CallArgumentInfo::new).toArray(CallArgumentInfo[]::new);
 
     this.callable = callable;
+    boolean argumentsArePreExecuted = false;
     this.invokeCallableNode =
-        InvokeCallableNodeGen.create(argSchema, hasDefaultsSuspended);
+        InvokeCallableNodeGen.create(argSchema, hasDefaultsSuspended, argumentsArePreExecuted);
   }
 
   /**

@@ -33,4 +33,15 @@ class InteropTest extends LanguageTest {
     val fun = eval(code)
     fun.call(1).call(2).call(3) shouldEqual 6
   }
+
+  "Interop library" should "work with oversaturated calls on unresolved methods returned from functions" in {
+    val code =
+      """
+        |Any.method = this
+        |
+        |{ |x| method }
+        |""".stripMargin
+    val fun = eval(code)
+    fun.call(1, 2) shouldEqual 2
+  }
 }

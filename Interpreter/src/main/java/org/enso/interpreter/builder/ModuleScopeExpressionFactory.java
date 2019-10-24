@@ -90,10 +90,6 @@ public class ModuleScopeExpressionFactory implements AstGlobalScopeVisitor<Expre
             });
 
     for (AstMethodDef method : bindings) {
-      AtomConstructor constructor =
-          moduleScope
-              .getConstructor(method.typeName())
-              .orElseThrow(() -> new VariableDoesNotExistException(method.typeName()));
       ExpressionFactory expressionFactory =
           new ExpressionFactory(
               language,
@@ -105,7 +101,16 @@ public class ModuleScopeExpressionFactory implements AstGlobalScopeVisitor<Expre
       funNode.markTail();
       Function function =
           new Function(funNode.getCallTarget(), null, new ArgumentSchema(funNode.getArgs()));
-      moduleScope.registerMethod(constructor, method.methodName(), function);
+
+      if (method.typeName().equals(Constants.ANY_TYPE_NAME)) {
+        moduleScope.registerMethodForAny(method.methodName(), function);
+      } else {
+        AtomConstructor constructor =
+            moduleScope
+                .getConstructor(method.typeName())
+                .orElseThrow(() -> new VariableDoesNotExistException(method.typeName()));
+        moduleScope.registerMethod(constructor, method.methodName(), function);
+      }
     }
 
     ExpressionFactory factory = new ExpressionFactory(this.language, moduleScope);

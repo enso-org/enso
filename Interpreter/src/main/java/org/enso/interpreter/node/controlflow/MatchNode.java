@@ -1,30 +1,31 @@
 package org.enso.interpreter.node.controlflow;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.NodeChild;
+import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.callable.atom.Atom;
+import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.error.TypeError;
 
-/** A node representing a pattern match on an Atom. */
-public class MatchNode extends ExpressionNode {
-  @Child private ExpressionNode target;
+/**
+ * A node representing a pattern match on an arbitrary runtime value.
+ *
+ * <p>Has a scrutinee node and a collection of {@link CaseNode}s. The case nodes get executed one by
+ * one, until one throws an {@link BranchSelectedException}, the value of which becomes the result
+ * of this pattern match.
+ */
+@NodeChild(value = "scrutinee", type = ExpressionNode.class)
+public abstract class MatchNode extends ExpressionNode {
   @Children private final CaseNode[] cases;
   @Child private CaseNode fallback;
   private final BranchProfile typeErrorProfile = BranchProfile.create();
 
-  /**
-   * Creates a node that pattern matches on an Atom.
-   *
-   * @param target the atom to pattern match on
-   * @param cases the branches of the pattern match
-   * @param fallback the fallback case of the pattern match
-   */
-  public MatchNode(ExpressionNode target, CaseNode[] cases, CaseNode fallback) {
-    this.target = target;
+  MatchNode(CaseNode[] cases, CaseNode fallback) {
     this.cases = cases;
     this.fallback = fallback;
   }
@@ -43,21 +44,62 @@ public class MatchNode extends ExpressionNode {
     fallback.setTail(isTail);
   }
 
-  /**
-   * Executes the pattern match.
-   *
-   * @param frame the stack frame for execution
-   * @return the result of the pattern match
-   */
+  // TODO[MK]: The atom, number and function cases are very repetitive and should be refactored.
+  // It poses some engineering challenge – the approaches tried so far included passing the only
+  // changing line as a lambda and introducing a separate node between this and the CaseNodes.
+  // Both attempts resulted in a performance drop.
+
   @ExplodeLoop
-  @Override
-  public Object executeGeneric(VirtualFrame frame) {
+  @Specialization
+  Object doAtom(VirtualFrame frame, Atom atom) {
     try {
-      Atom atom = target.executeAtom(frame);
       for (CaseNode caseNode : cases) {
-        caseNode.execute(frame, atom);
+        caseNode.executeAtom(frame, atom);
       }
-      fallback.execute(frame, atom);
+      fallback.executeAtom(frame, atom);
+      CompilerDirectives.transferToInterpreter();
+      throw new RuntimeException("Impossible behavior.");
+
+    } catch (BranchSelectedException e) {
+      // Note [Branch Selection Control Flow]
+      return e.getResult();
+
+    } catch (UnexpectedResultException e) {
+      typeErrorProfile.enter();
+      throw new TypeError("Expected an Atom.", this);
+    }
+  }
+
+  @ExplodeLoop
+  @Specialization
+  Object doFunction(VirtualFrame frame, Function function) {
+    try {
+      for (CaseNode caseNode : cases) {
+        caseNode.executeFunction(frame, function);
+      }
+      fallback.executeFunction(frame, function);
+      CompilerDirectives.transferToInterpreter();
+      throw new RuntimeException("Impossible behavior.");
+
+    } catch (BranchSelectedException e) {
+      // Note [Branch Selection Control Flow]
+      return e.getResult();
+
+    } catch (UnexpectedResultException e) {
+      typeErrorProfile.enter();
+      throw new TypeError("Expected an Atom.", this);
+    }
+  }
+
+  @ExplodeLoop
+  @Specialization
+  Object doNumber(VirtualFrame frame, long number) {
+    try {
+
+      for (CaseNode caseNode : cases) {
+        caseNode.executeNumber(frame, number);
+      }
+      fallback.executeNumber(frame, number);
       CompilerDirectives.transferToInterpreter();
       throw new RuntimeException("Impossible behavior.");
 

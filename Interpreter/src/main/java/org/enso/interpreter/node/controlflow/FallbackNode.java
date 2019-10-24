@@ -25,6 +25,11 @@ public class FallbackNode extends CaseNode {
     this.functionNode = functionNode;
   }
 
+  private void execute(VirtualFrame frame, Object target) throws UnexpectedResultException {
+    Function function = functionNode.executeFunction(frame);
+    throw new BranchSelectedException(executeCallNode.executeCall(function, new Object[0]));
+  }
+
   /**
    * Executes the case expression catch-all case.
    *
@@ -37,8 +42,40 @@ public class FallbackNode extends CaseNode {
    *     represented as a value of the expected return type
    */
   @Override
-  public void execute(VirtualFrame frame, Atom target) throws UnexpectedResultException {
-    Function function = functionNode.executeFunction(frame);
-    throw new BranchSelectedException(executeCallNode.executeCall(function, new Object[0]));
+  public void executeAtom(VirtualFrame frame, Atom target) throws UnexpectedResultException {
+    execute(frame, target);
+  }
+
+  /**
+   * Executes the case expression catch-all case.
+   *
+   * <p>It has no direct return value and instead uses a {@link BranchSelectedException} to signal
+   * the correct result back to the parent of the case expression.
+   *
+   * @param frame the stack frame in which to execute
+   * @param target the constructor to destructure
+   * @throws UnexpectedResultException when the result of desctructuring {@code target} can't be
+   *     represented as a value of the expected return type
+   */
+  @Override
+  public void executeFunction(VirtualFrame frame, Function target)
+      throws UnexpectedResultException {
+    execute(frame, target);
+  }
+
+  /**
+   * Executes the case expression catch-all case.
+   *
+   * <p>It has no direct return value and instead uses a {@link BranchSelectedException} to signal
+   * the correct result back to the parent of the case expression.
+   *
+   * @param frame the stack frame in which to execute
+   * @param target the constructor to destructure
+   * @throws UnexpectedResultException when the result of desctructuring {@code target} can't be
+   *     represented as a value of the expected return type
+   */
+  @Override
+  public void executeNumber(VirtualFrame frame, long target) throws UnexpectedResultException {
+    execute(frame, target);
   }
 }

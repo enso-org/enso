@@ -11,6 +11,7 @@ public class Constants {
 
   public static final String THIS_ARGUMENT_NAME = "this";
   public static final String SCOPE_SEPARATOR = ".";
+  public static final String ANY_TYPE_NAME = "Any";
 
   /** Cache sizes for different AST nodes. */
   public static class CacheSizes {

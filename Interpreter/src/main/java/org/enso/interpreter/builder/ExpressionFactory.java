@@ -26,12 +26,7 @@ import org.enso.interpreter.node.callable.ForceNodeGen;
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode;
 import org.enso.interpreter.node.callable.function.CreateFunctionNode;
 import org.enso.interpreter.node.callable.function.FunctionBodyNode;
-import org.enso.interpreter.node.controlflow.CaseNode;
-import org.enso.interpreter.node.controlflow.ConstructorCaseNode;
-import org.enso.interpreter.node.controlflow.DefaultFallbackNode;
-import org.enso.interpreter.node.controlflow.FallbackNode;
-import org.enso.interpreter.node.controlflow.IfZeroNode;
-import org.enso.interpreter.node.controlflow.MatchNode;
+import org.enso.interpreter.node.controlflow.*;
 import org.enso.interpreter.node.expression.constant.ConstructorNode;
 import org.enso.interpreter.node.expression.constant.DynamicSymbolNode;
 import org.enso.interpreter.node.expression.literal.IntegerLiteralNode;
@@ -395,7 +390,7 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
             .map(fb -> (CaseNode) new FallbackNode(fb.visit(this)))
             .orElseGet(DefaultFallbackNode::new);
 
-    return new MatchNode(targetNode, cases, fallbackNode);
+    return MatchNodeGen.create(cases, fallbackNode, targetNode);
   }
 
   /* Note [Pattern Match Fallbacks]

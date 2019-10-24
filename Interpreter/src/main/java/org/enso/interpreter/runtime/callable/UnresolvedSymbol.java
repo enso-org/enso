@@ -1,5 +1,6 @@
 package org.enso.interpreter.runtime.callable;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.interop.TruffleObject;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -27,7 +28,7 @@ public class UnresolvedSymbol implements TruffleObject {
    * <p>All names for dynamic symbols are interned, making it safe to compare symbol names using the
    * standard {@code ==} equality operator.
    *
-   * @return the name of this symbol.
+   * @return the name of this symbol
    */
   public String getName() {
     return name;
@@ -40,6 +41,26 @@ public class UnresolvedSymbol implements TruffleObject {
    * @return the resolved function definition, or null if not found
    */
   public Function resolveFor(AtomConstructor cons) {
-    return scope.lookupMethodDefinition(cons, name);
+    return scope.lookupMethodDefinitionForAtom(cons, name);
+  }
+
+  /**
+   * Resolves the symbol for a number.
+   *
+   * @return the resolved function definition, or null if not found
+   */
+  @CompilerDirectives.TruffleBoundary
+  public Function resolveForNumber() {
+    return scope.lookupMethodDefinitionForAny(name).orElse(null);
+  }
+
+  /**
+   * Resolves the symbol for a function.
+   *
+   * @return the resolved function definition, or null if not found
+   */
+  @CompilerDirectives.TruffleBoundary
+  public Function resolveForFunction() {
+    return scope.lookupMethodDefinitionForAny(name).orElse(null);
   }
 }

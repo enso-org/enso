@@ -40,8 +40,8 @@ public class CachedArgumentSorterNode extends BaseNode {
    * @param schema information on the calling argument
    * @param hasDefaultsSuspended whether or not the function to which these arguments are applied
    *     has its defaults suspended.
-   * @param ignoresArgumentExecution whether this node assumes all arguments are pre-executed and not
-   *     passed in a {@link Thunk}.
+   * @param ignoresArgumentExecution whether this node assumes all arguments are pre-executed and
+   *     not passed in a {@link Thunk}.
    * @param isTail whether this node is called from a tail call position.
    */
   public CachedArgumentSorterNode(
@@ -72,7 +72,9 @@ public class CachedArgumentSorterNode extends BaseNode {
     if (postApplicationSchema.hasOversaturatedArgs()) {
       oversaturatedCallableNode =
           InvokeCallableNodeGen.create(
-              postApplicationSchema.getOversaturatedArguments(), hasDefaultsSuspended);
+              postApplicationSchema.getOversaturatedArguments(),
+              hasDefaultsSuspended,
+              ignoresArgumentExecution);
       oversaturatedCallableNode.setTail(isTail);
     }
 
@@ -149,8 +151,7 @@ public class CachedArgumentSorterNode extends BaseNode {
           return optimiser.executeDispatch(function, mappedAppliedArguments);
         }
       } else {
-        Object evaluatedVal =
-            optimiser.executeDispatch(function, mappedAppliedArguments);
+        Object evaluatedVal = optimiser.executeDispatch(function, mappedAppliedArguments);
 
         return this.oversaturatedCallableNode.execute(
             evaluatedVal, generateOversaturatedArguments(function, arguments));
