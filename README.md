@@ -3,6 +3,9 @@
 <h1 align="center">
   <b>DEVELOPMENT HAS MOVED TO <a href="https://github.com/luna/enso">ENSO</a> WHICH IS THE 2.0 VERSION OF LUNA</b>
 </h1>
+<p align="center">
+  <b>If you want to add GitHub star to the project, add it to this repo. We will migrate Enso repo to this one in the future!</b>
+</p>
 
 <p align="center">
 <img src="https://github.com/luna/luna-studio/raw/master/resources/logo.ico" style="margin: 0 auto;">
