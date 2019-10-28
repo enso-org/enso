@@ -1,4 +1,3 @@
 @{
-  print: 0;
-  0
+  @println [@IO,0]
 }

@@ -252,11 +252,12 @@ lazy val interpreter = (project in file("Interpreter"))
   .settings(
     buildNativeImage := Def
       .task {
-        val javaHome        = System.getProperty("java.home")
-        val nativeImagePath = s"$javaHome/bin/native-image"
-        val classPath       = (Runtime / fullClasspath).value.files.mkString(":")
+        val javaHome         = System.getProperty("java.home")
+        val nativeImagePath  = s"$javaHome/bin/native-image"
+        val classPath        = (Runtime / fullClasspath).value.files.mkString(":")
+        val resourcesGlobOpt = "-H:IncludeResources=.*Main.enso$"
         val cmd =
-          s"$nativeImagePath --macro:truffle --no-fallback --initialize-at-build-time -cp $classPath ${(Compile / mainClass).value.get} enso"
+          s"$nativeImagePath $resourcesGlobOpt --macro:truffle --no-fallback --initialize-at-build-time -cp $classPath ${(Compile / mainClass).value.get} enso"
         cmd !
       }
       .dependsOn(Compile / compile)
