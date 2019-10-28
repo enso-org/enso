@@ -1,8 +1,8 @@
 [![Build Status](https://dev.azure.com/luna-lang/luna/_apis/build/status/luna.luna?branchName=master)](https://dev.azure.com/luna-lang/luna/_build/latest?definitionId=1&branchName=master)
 
-<p align="center">
+<h1 align="center">
   <b>DEVELOPMENT HAS MOVED TO <a href="https://github.com/luna/enso">ENSO</a> WHICH IS THE 2.0 VERSION OF LUNA</b>
-</p>
+</h1>
 
 <p align="center">
 <img src="https://github.com/luna/luna-studio/raw/master/resources/logo.ico" style="margin: 0 auto;">
