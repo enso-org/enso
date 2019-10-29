@@ -1,6 +1,6 @@
 package org.enso.interpreter.test.semantic
 
-import org.graalvm.polyglot.PolyglotException
+import org.enso.interpreter.test.{InterpreterException, LanguageTest}
 
 class GlobalScopeTest extends LanguageTest {
 
@@ -97,7 +97,7 @@ class GlobalScopeTest extends LanguageTest {
         |@b [@Unit]
       """.stripMargin
 
-    a[PolyglotException] should be thrownBy eval(code)
+    an[InterpreterException] should be thrownBy eval(code)
   }
 
 }

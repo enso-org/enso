@@ -10,6 +10,7 @@ import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.error.RuntimeError;
 import org.enso.interpreter.runtime.error.TypeError;
 
 /**
@@ -42,6 +43,11 @@ public abstract class MatchNode extends ExpressionNode {
       caseNode.setTail(isTail);
     }
     fallback.setTail(isTail);
+  }
+
+  @Specialization
+  Object doError(VirtualFrame frame, RuntimeError error) {
+    return error;
   }
 
   // TODO[MK]: The atom, number and function cases are very repetitive and should be refactored.

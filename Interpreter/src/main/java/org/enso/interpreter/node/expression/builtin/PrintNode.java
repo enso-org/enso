@@ -19,21 +19,15 @@ import org.enso.interpreter.runtime.callable.function.Function;
 
 import java.io.PrintStream;
 
-/** This node allows for printing the result of arbitrary values to standard output. */
-@NodeInfo(shortName = "print", description = "Root of the IO.println method.")
+/** Allows for printing arbitrary values to the standard output. */
+@NodeInfo(shortName = "IO.println", description = "Root of the IO.println method.")
 public abstract class PrintNode extends RootNode {
-
-  /**
-   * Creates a root node for the builtin IO.println method.
-   *
-   * @param language the current {@link Language} instance.
-   */
-  public PrintNode(Language language) {
+  PrintNode(Language language) {
     super(language);
   }
 
   @Specialization
-  protected Object doPrint(VirtualFrame frame, @CachedContext(Language.class) Context ctx) {
+  Object doPrint(VirtualFrame frame, @CachedContext(Language.class) Context ctx) {
     doPrint(ctx.getOut(), Function.ArgumentsHelper.getPositionalArguments(frame.getArguments())[1]);
 
     return ctx.getUnit().newInstance();
@@ -51,12 +45,10 @@ public abstract class PrintNode extends RootNode {
    * @param language the current {@link Language} instance
    * @return a {@link Function} object wrapping the behavior of this node
    */
-  public static Function toFunction(Language language) {
-    PrintNode node = PrintNodeGen.create(language);
-    RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(node);
-    ArgumentSchema schema =
-        new ArgumentSchema(
-            new ArgumentDefinition(0, "this", false), new ArgumentDefinition(1, "value", false));
-    return new Function(callTarget, null, schema);
+  public static Function makeFunction(Language language) {
+    return Function.fromRootNode(
+        PrintNodeGen.create(language),
+        new ArgumentDefinition(0, "this", ArgumentDefinition.ExecutionMode.EXECUTE),
+        new ArgumentDefinition(1, "value", ArgumentDefinition.ExecutionMode.EXECUTE));
   }
 }

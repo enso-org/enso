@@ -34,7 +34,9 @@ public class ApplicationNode extends ExpressionNode {
    * @param callArguments information on the arguments being passed to the {@link Function}
    */
   public ApplicationNode(
-      ExpressionNode callable, CallArgument[] callArguments, boolean hasDefaultsSuspended) {
+      ExpressionNode callable,
+      CallArgument[] callArguments,
+      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode) {
     this.argExpressions =
         Arrays.stream(callArguments)
             .map(CallArgument::getExpression)
@@ -44,9 +46,9 @@ public class ApplicationNode extends ExpressionNode {
         Arrays.stream(callArguments).map(CallArgumentInfo::new).toArray(CallArgumentInfo[]::new);
 
     this.callable = callable;
-    boolean argumentsArePreExecuted = false;
     this.invokeCallableNode =
-        InvokeCallableNodeGen.create(argSchema, hasDefaultsSuspended, argumentsArePreExecuted);
+        InvokeCallableNodeGen.create(
+            argSchema, defaultsExecutionMode, InvokeCallableNode.ArgumentsExecutionMode.EXECUTE);
   }
 
   /**

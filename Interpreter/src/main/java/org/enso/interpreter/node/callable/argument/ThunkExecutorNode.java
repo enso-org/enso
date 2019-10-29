@@ -23,12 +23,12 @@ public abstract class ThunkExecutorNode extends Node {
    */
   public abstract Object executeThunk(Thunk thunk);
 
-  protected abstract boolean getIsTail();
+  abstract boolean getIsTail();
 
   @Specialization(
       guards = "callNode.getCallTarget() == thunk.getCallTarget()",
       limit = Constants.CacheSizes.THUNK_EXECUTOR_NODE)
-  protected Object doCached(
+  Object doCached(
       Thunk thunk,
       @Cached("create(thunk.getCallTarget())") DirectCallNode callNode,
       @Cached("createLoopingOptimizerIfNeeded()")
@@ -45,7 +45,7 @@ public abstract class ThunkExecutorNode extends Node {
   }
 
   @Specialization(replaces = "doCached")
-  protected Object doUncached(
+  Object doUncached(
       Thunk thunk,
       @Cached IndirectCallNode callNode,
       @Cached("createLoopingOptimizerIfNeeded()")
@@ -57,7 +57,17 @@ public abstract class ThunkExecutorNode extends Node {
     }
   }
 
-  protected LoopingCallOptimiserNode createLoopingOptimizerIfNeeded() {
+  LoopingCallOptimiserNode createLoopingOptimizerIfNeeded() {
     return getIsTail() ? null : new LoopingCallOptimiserNode();
+  }
+
+  /**
+   * Creates an instance of this node.
+   *
+   * @param isTail whether or not the thunk is being executed in a tail call position
+   * @return an instance of this node
+   */
+  public static ThunkExecutorNode build(boolean isTail) {
+    return ThunkExecutorNodeGen.create(isTail);
   }
 }

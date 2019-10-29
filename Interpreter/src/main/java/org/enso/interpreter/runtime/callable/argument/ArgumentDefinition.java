@@ -6,6 +6,24 @@ import java.util.Optional;
 
 /** Tracks the specifics about how arguments are defined at the callable definition site. */
 public class ArgumentDefinition {
+
+  /** Represents the mode of passing this argument to the function. */
+  public enum ExecutionMode {
+    /** Argument should be passed fully executed. */
+    EXECUTE,
+    /** Argument should be passed suspended, as a thunk. */
+    PASS_THUNK;
+
+    /**
+     * Does the mode indicate argument should be passed suspended?
+     *
+     * @return {@code true} if the argument should be passed suspended, {@code false} otherwise.
+     */
+    public boolean isSuspended() {
+      return this == PASS_THUNK;
+    }
+  }
+
   private final int position;
   private final String name;
   private final Optional<ExpressionNode> defaultValue;
@@ -16,9 +34,10 @@ public class ArgumentDefinition {
    *
    * @param position the position of the argument at the definition site
    * @param name the name of the argument
+   * @param executionMode the execution mode for this argument
    */
-  public ArgumentDefinition(int position, String name, boolean isSuspended) {
-    this(position, name, null, isSuspended);
+  public ArgumentDefinition(int position, String name, ExecutionMode executionMode) {
+    this(position, name, null, executionMode);
   }
 
   /**
@@ -27,13 +46,14 @@ public class ArgumentDefinition {
    * @param position the position of the argument at the definition site
    * @param name the name of the argument
    * @param defaultValue the default value of the argument
+   * @param executionMode the execution mode for this argument
    */
   public ArgumentDefinition(
-      int position, String name, ExpressionNode defaultValue, boolean isSuspended) {
+      int position, String name, ExpressionNode defaultValue, ExecutionMode executionMode) {
     this.position = position;
     this.name = name;
     this.defaultValue = Optional.ofNullable(defaultValue);
-    this.isSuspended = isSuspended;
+    this.isSuspended = executionMode.isSuspended();
   }
 
   /**

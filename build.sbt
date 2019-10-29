@@ -12,6 +12,8 @@ val graalVersion  = "19.2.0.1"
 organization in ThisBuild := "org.enso"
 scalaVersion in ThisBuild := scalacVersion
 
+Global / onChangedBuildSource := ReloadOnSourceChanges
+
 //////////////////////////
 //// Compiler Options ////
 //////////////////////////

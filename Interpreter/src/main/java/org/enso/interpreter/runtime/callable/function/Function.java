@@ -3,6 +3,7 @@ package org.enso.interpreter.runtime.callable.function;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.RootCallTarget;
+import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.MaterializedFrame;
@@ -11,9 +12,12 @@ import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
+import com.oracle.truffle.api.nodes.RootNode;
 import org.enso.interpreter.Constants;
+import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.argument.sorter.ArgumentSorterNode;
 import org.enso.interpreter.node.callable.argument.sorter.ArgumentSorterNodeGen;
+import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 
 /** A runtime representation of a function object in Enso. */
@@ -134,9 +138,12 @@ public final class Function implements TruffleObject {
     protected static ArgumentSorterNode buildSorter(int length) {
       CallArgumentInfo[] args = new CallArgumentInfo[length];
       for (int i = 0; i < length; i++) {
-        args[i] = new CallArgumentInfo(null, false, true);
+        args[i] = new CallArgumentInfo();
       }
-      return ArgumentSorterNodeGen.create(args, false, true);
+      return ArgumentSorterNodeGen.create(
+          args,
+          InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
+          InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED);
     }
 
     /**
@@ -216,5 +223,18 @@ public final class Function implements TruffleObject {
     public static MaterializedFrame getLocalScope(Object[] arguments) {
       return (MaterializedFrame) arguments[0];
     }
+  }
+
+  /**
+   * Creates a Function object from a {@link RootNode} and argument definitions.
+   *
+   * @param node the {@link RootNode} for the function logic
+   * @param args argument definitons
+   * @return a Function object with specified behavior and arguments
+   */
+  public static Function fromRootNode(RootNode node, ArgumentDefinition... args) {
+    RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(node);
+    ArgumentSchema schema = new ArgumentSchema(args);
+    return new Function(callTarget, null, schema);
   }
 }

@@ -6,6 +6,7 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.BaseNode;
+import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -18,21 +19,23 @@ import org.enso.interpreter.runtime.callable.function.Function;
 public abstract class ArgumentSorterNode extends BaseNode {
 
   private @CompilationFinal(dimensions = 1) CallArgumentInfo[] schema;
-  private final boolean hasDefaultsSuspended;
-  private final boolean ignoresArgumentsExecution;
+  private final InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode;
+  private final InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode;
 
   /**
    * Creates a node that performs the argument organisation for the provided schema.
    *
    * @param schema information about the call arguments in positional order
-   * @param hasDefaultsSuspended whether or not the default arguments are suspended for this
-   *     function invocation
+   * @param defaultsExecutionMode the defaults execution mode for this function invocation
+   * @param argumentsExecutionMode the arguments execution mode for this function invocation
    */
   public ArgumentSorterNode(
-      CallArgumentInfo[] schema, boolean hasDefaultsSuspended, boolean ignoresArgumentsExecution) {
+      CallArgumentInfo[] schema,
+      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
+      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode) {
     this.schema = schema;
-    this.hasDefaultsSuspended = hasDefaultsSuspended;
-    this.ignoresArgumentsExecution = ignoresArgumentsExecution;
+    this.defaultsExecutionMode = defaultsExecutionMode;
+    this.argumentsExecutionMode = argumentsExecutionMode;
   }
 
   /**
@@ -59,7 +62,7 @@ public abstract class ArgumentSorterNode extends BaseNode {
       Function function,
       Object[] arguments,
       @Cached(
-              "create(function, getSchema(), hasDefaultsSuspended(), ignoresArgumentsExecution(), isTail())")
+              "build(function, getSchema(), getDefaultsExecutionMode(), getArgumentsExecutionMode(), isTail())")
           CachedArgumentSorterNode mappingNode,
       @Cached CallOptimiserNode optimiser) {
     return mappingNode.execute(function, arguments, optimiser);
@@ -78,8 +81,12 @@ public abstract class ArgumentSorterNode extends BaseNode {
     return invokeCached(
         function,
         arguments,
-        CachedArgumentSorterNode.create(
-            function, getSchema(), hasDefaultsSuspended(), ignoresArgumentsExecution, isTail()),
+        CachedArgumentSorterNode.build(
+            function,
+            getSchema(),
+            getDefaultsExecutionMode(),
+            getArgumentsExecutionMode(),
+            isTail()),
         CallOptimiserNode.create());
   }
 
@@ -92,30 +99,15 @@ public abstract class ArgumentSorterNode extends BaseNode {
    */
   public abstract Object execute(Function callable, Object[] arguments);
 
-  /**
-   * Gets the schema for use in Truffle DSL guards.
-   *
-   * @return the argument schema
-   */
   CallArgumentInfo[] getSchema() {
     return schema;
   }
 
-  /**
-   * Checks whether the function whose arguments are being sorted has suspended defaults arguments.
-   *
-   * @return {@code true} if it has suspended defaults, otherwise {@code false}
-   */
-  boolean hasDefaultsSuspended() {
-    return this.hasDefaultsSuspended;
+  InvokeCallableNode.DefaultsExecutionMode getDefaultsExecutionMode() {
+    return this.defaultsExecutionMode;
   }
 
-  /**
-   * Checks whether this node ignores argument execution, assuming none of them is passed suspended.
-   *
-   * @return {@code true} if arguments should be assumed pre-executed, {@code false} otherwise.
-   */
-  public boolean ignoresArgumentsExecution() {
-    return ignoresArgumentsExecution;
+  InvokeCallableNode.ArgumentsExecutionMode getArgumentsExecutionMode() {
+    return argumentsExecutionMode;
   }
 }

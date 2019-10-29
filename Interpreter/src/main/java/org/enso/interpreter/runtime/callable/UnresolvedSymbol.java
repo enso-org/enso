@@ -63,4 +63,14 @@ public class UnresolvedSymbol implements TruffleObject {
   public Function resolveForFunction() {
     return scope.lookupMethodDefinitionForAny(name).orElse(null);
   }
+
+  /**
+   * Resolves the symbol for an error.
+   *
+   * @return the resolved function definition, or null if not found
+   */
+  @CompilerDirectives.TruffleBoundary
+  public Function resolveForError() {
+    return scope.lookupMethodDefinitionForAny(name).orElse(null);
+  }
 }

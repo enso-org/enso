@@ -12,6 +12,7 @@ import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.error.MethodDoesNotExistException;
+import org.enso.interpreter.runtime.error.RuntimeError;
 
 /**
  * A node performing lookups of method definitions.
@@ -39,7 +40,7 @@ public abstract class MethodResolverNode extends Node {
       @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> contextRef,
       @Cached("symbol") UnresolvedSymbol cachedSymbol,
       @Cached("atom.getConstructor()") AtomConstructor cachedConstructor,
-      @Cached("resolveAtomMethod(cachedConstructor, cachedSymbol)") Function function) {
+      @Cached("resolveMethodOnAtom(cachedConstructor, cachedSymbol)") Function function) {
     return function;
   }
 
@@ -49,7 +50,7 @@ public abstract class MethodResolverNode extends Node {
       long self,
       @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> contextReference,
       @Cached("symbol") UnresolvedSymbol cachedSymbol,
-      @Cached("resolveNumberMethod(cachedSymbol)") Function function) {
+      @Cached("resolveMethodOnNumber(cachedSymbol)") Function function) {
     return function;
   }
 
@@ -59,32 +60,41 @@ public abstract class MethodResolverNode extends Node {
       Function self,
       @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> contextReference,
       @Cached("symbol") UnresolvedSymbol cachedSymbol,
-      @Cached("resolveFunctionMethod(cachedSymbol)") Function function) {
+      @Cached("resolveMethodOnFunction(cachedSymbol)") Function function) {
     return function;
   }
 
-  Function resolveAtomMethod(AtomConstructor cons, UnresolvedSymbol symbol) {
-    Function result = symbol.resolveFor(cons);
-    if (result == null) {
-      throw new MethodDoesNotExistException(cons, symbol.getName(), this);
-    }
-    return result;
+  @Specialization(guards = "cachedSymbol == symbol")
+  Function resolveErrorCached(
+      UnresolvedSymbol symbol,
+      RuntimeError self,
+      @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> contextReference,
+      @Cached("symbol") UnresolvedSymbol cachedSymbol,
+      @Cached("resolveMethodOnError(cachedSymbol)") Function function) {
+    return function;
   }
 
-  Function resolveNumberMethod(UnresolvedSymbol symbol) {
-    Function result = symbol.resolveForNumber();
-    if (result == null) {
-      throw new MethodDoesNotExistException("Number", symbol.getName(), this);
+  private Function throwIfNull(Function function, Object target, UnresolvedSymbol symbol) {
+    if (function == null) {
+      throw new MethodDoesNotExistException(target, symbol.getName(), this);
     }
-    return result;
+    return function;
   }
 
-  Function resolveFunctionMethod(UnresolvedSymbol symbol) {
-    Function result = symbol.resolveForFunction();
-    if (result == null) {
-      throw new MethodDoesNotExistException("Function", symbol.getName(), this);
-    }
-    return result;
+  Function resolveMethodOnAtom(AtomConstructor cons, UnresolvedSymbol symbol) {
+    return throwIfNull(symbol.resolveFor(cons), cons, symbol);
+  }
+
+  Function resolveMethodOnNumber(UnresolvedSymbol symbol) {
+    return throwIfNull(symbol.resolveForNumber(), "Number", symbol);
+  }
+
+  Function resolveMethodOnFunction(UnresolvedSymbol symbol) {
+    return throwIfNull(symbol.resolveForFunction(), "Function", symbol);
+  }
+
+  Function resolveMethodOnError(UnresolvedSymbol symbol) {
+    return throwIfNull(symbol.resolveForError(), "Error", symbol);
   }
 
   boolean isValidAtomCache(

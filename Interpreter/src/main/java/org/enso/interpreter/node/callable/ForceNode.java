@@ -12,13 +12,8 @@ import org.enso.interpreter.runtime.callable.argument.Thunk;
 @NodeChild(value = "target", type = ExpressionNode.class)
 public abstract class ForceNode extends ExpressionNode {
   @Specialization
-  protected Object passToExecutorNode(
-      Thunk thunk,
-      @Cached("createThunkExecutor()") ThunkExecutorNode thunkExecutorNode) {
+  Object passToExecutorNode(
+      Thunk thunk, @Cached("build(isTail())") ThunkExecutorNode thunkExecutorNode) {
     return thunkExecutorNode.executeThunk(thunk);
-  }
-
-  protected ThunkExecutorNode createThunkExecutor() {
-    return ThunkExecutorNodeGen.create(isTail());
   }
 }

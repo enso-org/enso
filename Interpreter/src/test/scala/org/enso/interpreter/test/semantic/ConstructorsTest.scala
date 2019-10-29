@@ -1,6 +1,6 @@
 package org.enso.interpreter.test.semantic
 
-import org.graalvm.polyglot.PolyglotException
+import org.enso.interpreter.test.{InterpreterException, LanguageTest}
 
 class ConstructorsTest extends LanguageTest {
 
@@ -73,8 +73,8 @@ class ConstructorsTest extends LanguageTest {
         |  >
         |}
       """.stripMargin
-    the[PolyglotException] thrownBy eval(testCode)
-      .execute() should have message "Inexhaustive pattern match."
+    the[InterpreterException] thrownBy eval(testCode)
+      .call() should have message "Inexhaustive pattern match."
   }
 
   "Constructor definitions" should "be usable in code, with arbitrary definition order" in {

@@ -1,22 +1,31 @@
-package org.enso.interpreter.test.semantic
+package org.enso.interpreter.test
 
-import org.enso.interpreter.{AstGlobalScope, Constants, EnsoParser}
-import org.graalvm.polyglot.{Context, Value}
+import org.enso.interpreter.AstGlobalScope
+import org.enso.interpreter.Constants
+import org.enso.interpreter.EnsoParser
+import org.graalvm.polyglot.Context
+import org.graalvm.polyglot.PolyglotException
+import org.graalvm.polyglot.Value
 import java.io.ByteArrayOutputStream
 
 import org.scalactic.Equality
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.FlatSpec
+import org.scalatest.Matchers
 
 trait LanguageRunner {
+
   implicit class RichValue(value: Value) {
-    def call(l: Long*): Value = value.execute(l.map(_.asInstanceOf[AnyRef]): _*)
+    def call(l: Long*): Value =
+      InterpreterException.rethrowPolyglot(
+        value.execute(l.map(_.asInstanceOf[AnyRef]): _*)
+      )
   }
   val output = new ByteArrayOutputStream()
   val ctx    = Context.newBuilder(Constants.LANGUAGE_ID).out(output).build()
 
   def eval(code: String): Value = {
     output.reset()
-    ctx.eval(Constants.LANGUAGE_ID, code)
+    InterpreterException.rethrowPolyglot(ctx.eval(Constants.LANGUAGE_ID, code))
   }
 
   def consumeOut: List[String] = {
@@ -27,6 +36,10 @@ trait LanguageRunner {
 
   def parse(code: String): AstGlobalScope =
     new EnsoParser().parseEnso(code)
+
+  implicit def toPolyglotException(
+    interpreterException: InterpreterException
+  ): PolyglotException = interpreterException.polyglotException
 }
 
 trait ValueEquality {

@@ -79,6 +79,10 @@ public class ArgDefinitionFactory implements AstArgDefinitionVisitor<ArgumentDef
                 })
             .orElse(null);
 
-    return new ArgumentDefinition(position, name, defNode, suspended);
+    ArgumentDefinition.ExecutionMode executionMode =
+        suspended
+            ? ArgumentDefinition.ExecutionMode.PASS_THUNK
+            : ArgumentDefinition.ExecutionMode.EXECUTE;
+    return new ArgumentDefinition(position, name, defNode, executionMode);
   }
 }

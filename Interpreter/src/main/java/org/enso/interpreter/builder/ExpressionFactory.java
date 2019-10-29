@@ -23,6 +23,7 @@ import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.ApplicationNode;
 import org.enso.interpreter.node.callable.ForceNodeGen;
+import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode;
 import org.enso.interpreter.node.callable.function.CreateFunctionNode;
 import org.enso.interpreter.node.callable.function.FunctionBodyNode;
@@ -333,8 +334,13 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
       callArgs.add(arg);
     }
 
+    InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode =
+        hasDefaultsSuspended
+            ? InvokeCallableNode.DefaultsExecutionMode.IGNORE
+            : InvokeCallableNode.DefaultsExecutionMode.EXECUTE;
+
     return new ApplicationNode(
-        function.visit(this), callArgs.toArray(new CallArgument[0]), hasDefaultsSuspended);
+        function.visit(this), callArgs.toArray(new CallArgument[0]), defaultsExecutionMode);
   }
 
   /**
@@ -401,9 +407,9 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
    * it has one to catch that error.
    */
 
-
   /**
    * Creates a runtime representation of lazy function argument forcing.
+   *
    * @param target the parser AST fragment representing a value to force
    * @return the AST fragment representing forcing of the requested value
    */

@@ -1,6 +1,6 @@
 package org.enso.interpreter.bench.fixtures.semantic
 
-import org.enso.interpreter.test.semantic.LanguageRunner
+import org.enso.interpreter.test.LanguageRunner
 
 class AtomFixtures extends LanguageRunner {
   val million: Long = 1000000

@@ -1,6 +1,6 @@
 package org.enso.interpreter.test.semantic
 
-import org.graalvm.polyglot.PolyglotException
+import org.enso.interpreter.test.{InterpreterException, LanguageTest}
 
 class LexicalScopeTest extends LanguageTest {
   "Scope capture from outer scope" should "work" in {
@@ -44,7 +44,7 @@ class LexicalScopeTest extends LanguageTest {
         |  }
         |}
       """.stripMargin
-    the[PolyglotException] thrownBy eval(code) should have message "Variable y was already defined in this scope."
+    the[InterpreterException] thrownBy eval(code) should have message "Variable y was already defined in this scope."
   }
 
   "Reference to an undefined variable" should "throw error" in {
@@ -58,7 +58,7 @@ class LexicalScopeTest extends LanguageTest {
         |  y
         |}
       """.stripMargin
-    the[PolyglotException] thrownBy eval(code) should have message "Variable y is not defined."
+    the[InterpreterException] thrownBy eval(code) should have message "Variable y is not defined."
   }
 
 }

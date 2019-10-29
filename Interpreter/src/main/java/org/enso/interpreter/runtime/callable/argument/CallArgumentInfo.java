@@ -13,8 +13,6 @@ import org.enso.interpreter.runtime.callable.function.ArgumentSchema;
  */
 public class CallArgumentInfo {
   private final String name;
-  private final boolean isNamed;
-  private final boolean isPositional;
 
   /**
    * Creates the information from a {@link CallArgument}.
@@ -22,20 +20,23 @@ public class CallArgumentInfo {
    * @param callArgNode the structure to take information from
    */
   public CallArgumentInfo(CallArgument callArgNode) {
-    this(callArgNode.getName(), callArgNode.isNamed(), callArgNode.isPositional());
+    this(callArgNode.getName());
   }
 
   /**
-   * Creates the information explicitly.
+   * Creates a named call argument.
    *
    * @param name the name of the argument, if present
-   * @param isNamed whether or not the argument is passed by name
-   * @param isPositional whether or not the argument is passed by position
    */
-  public CallArgumentInfo(String name, boolean isNamed, boolean isPositional) {
+  public CallArgumentInfo(String name) {
     this.name = name;
-    this.isNamed = isNamed;
-    this.isPositional = isPositional;
+  }
+
+  /**
+   * Creates an unnamed call argument.
+   */
+  public CallArgumentInfo() {
+    this.name = null;
   }
 
   /**
@@ -53,7 +54,7 @@ public class CallArgumentInfo {
    * @return {@code true} if the argument was applied by name, otherwise {@code false}
    */
   public boolean isNamed() {
-    return isNamed;
+    return name != null;
   }
 
   /**
@@ -62,7 +63,7 @@ public class CallArgumentInfo {
    * @return {@code true} if the argument was applied positionally, otherwise {@code false}
    */
   public boolean isPositional() {
-    return isPositional;
+    return !isNamed();
   }
 
   /**

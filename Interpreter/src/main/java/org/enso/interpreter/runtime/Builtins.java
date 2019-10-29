@@ -1,7 +1,7 @@
 package org.enso.interpreter.runtime;
 
 import org.enso.interpreter.Language;
-import org.enso.interpreter.node.expression.builtin.PrintNode;
+import org.enso.interpreter.node.expression.builtin.*;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.scope.ModuleScope;
@@ -24,15 +24,25 @@ public class Builtins {
     AtomConstructor cons =
         new AtomConstructor("Cons", scope)
             .initializeFields(
-                new ArgumentDefinition(0, "head", false), new ArgumentDefinition(1, "rest", false));
+                new ArgumentDefinition(0, "head", ArgumentDefinition.ExecutionMode.EXECUTE),
+                new ArgumentDefinition(1, "rest", ArgumentDefinition.ExecutionMode.EXECUTE));
     AtomConstructor io = new AtomConstructor("IO", scope).initializeFields();
+    AtomConstructor panic = new AtomConstructor("Panic", scope).initializeFields();
+    AtomConstructor error = new AtomConstructor("Error", scope).initializeFields();
 
     scope.registerConstructor(cons);
     scope.registerConstructor(nil);
     scope.registerConstructor(unit);
     scope.registerConstructor(io);
+    scope.registerConstructor(panic);
+    scope.registerConstructor(error);
 
-    scope.registerMethod(io, "println", PrintNode.toFunction(language));
+    scope.registerMethod(io, "println", PrintNode.makeFunction(language));
+    scope.registerMethod(panic, "throw", PanicNode.makeFunction(language));
+    scope.registerMethod(panic, "recover", CatchPanicNode.makeFunction(language));
+    scope.registerMethod(error, "throw", ThrowErrorNode.makeFunction(language));
+
+    scope.registerMethodForAny("catch", CatchErrorNode.makeFunction(language));
   }
 
   /**

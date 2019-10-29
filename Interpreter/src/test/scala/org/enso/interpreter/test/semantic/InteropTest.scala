@@ -1,5 +1,7 @@
 package org.enso.interpreter.test.semantic
 
+import org.enso.interpreter.test.LanguageTest
+
 class InteropTest extends LanguageTest {
   "Interop library" should "support tail recursive functions" in {
     val code =

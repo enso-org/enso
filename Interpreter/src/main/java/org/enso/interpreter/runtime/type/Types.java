@@ -7,6 +7,7 @@ import org.enso.interpreter.runtime.callable.argument.Thunk;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.error.RuntimeError;
 
 /**
  * This class defines the interpreter-level type system for Enso.
@@ -15,10 +16,17 @@ import org.enso.interpreter.runtime.callable.function.Function;
  * primitive-level types in order to make execution fast. All higher-level types can be desugared in
  * terms of the more limited set of types expressed here.
  *
- * By declaring the primitive types here, the interpreter obtains automatically generated utilities
- * for working with them.
+ * <p>By declaring the primitive types here, the interpreter obtains automatically generated
+ * utilities for working with them.
  */
-@TypeSystem({long.class, Function.class, Atom.class, AtomConstructor.class, Thunk.class})
+@TypeSystem({
+  long.class,
+  Function.class,
+  Atom.class,
+  AtomConstructor.class,
+  Thunk.class,
+  RuntimeError.class
+})
 public class Types {
 
   /**

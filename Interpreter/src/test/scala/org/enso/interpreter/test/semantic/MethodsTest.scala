@@ -1,6 +1,6 @@
 package org.enso.interpreter.test.semantic
 
-import org.graalvm.polyglot.PolyglotException
+import org.enso.interpreter.test.{InterpreterException, LanguageTest}
 
 class MethodsTest extends LanguageTest {
   "Methods" should "be defined in the global scope and dispatched to" in {
@@ -42,7 +42,7 @@ class MethodsTest extends LanguageTest {
       """
         |@foo [7]
         |""".stripMargin
-    the[PolyglotException] thrownBy eval(code) should have message "Object Number does not define method foo."
+    the[InterpreterException] thrownBy eval(code) should have message "Object Number does not define method foo."
   }
 
   "Methods defined on Any type" should "be callable for any type" in {

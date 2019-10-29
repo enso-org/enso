@@ -1,5 +1,7 @@
 package org.enso.interpreter.test.semantic
 
+import org.enso.interpreter.test.LanguageTest
+
 class FunctionArgumentsTest extends LanguageTest {
   "Functions" should "take arguments and use them in their bodies" in {
     val code     = "{ |x| x * x }"

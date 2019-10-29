@@ -3,11 +3,9 @@ package org.enso.interpreter.node.callable;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.argument.ThunkExecutorNode;
-import org.enso.interpreter.node.callable.argument.ThunkExecutorNodeGen;
 import org.enso.interpreter.node.callable.argument.sorter.ArgumentSorterNode;
 import org.enso.interpreter.node.callable.argument.sorter.ArgumentSorterNodeGen;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
@@ -26,6 +24,42 @@ import org.enso.interpreter.runtime.error.NotInvokableException;
  */
 public abstract class InvokeCallableNode extends BaseNode {
 
+  /** Denotes the mode of defaulted arguments treatment for a function invocation. */
+  public enum DefaultsExecutionMode {
+    /** Defaulted arguments should be ignored for this application position. */
+    IGNORE,
+    /** Defaulted arguments should be executed normally for this application position. */
+    EXECUTE;
+
+    /**
+     * Should the presence of defaulted arguments be ignored for this application position?
+     *
+     * @return {@code true} if the defaulted arguments should be ignored, {@code false} otherwise
+     */
+    public boolean isIgnore() {
+      return this == IGNORE;
+    }
+  }
+
+  /** Denotes the mode of arguments execution for a function invocation */
+  public enum ArgumentsExecutionMode {
+    /** Arguments are pre-executed for this call. */
+    PRE_EXECUTED,
+    /**
+     * Arguments are passed as {@link Thunk}s and should be executed before calling the function.
+     */
+    EXECUTE;
+
+    /**
+     * Should the arguments be executed before calling the function?
+     *
+     * @return {@code true} if the arguments should be executed, {@code false} otherwise
+     */
+    public boolean shouldExecute() {
+      return this == EXECUTE;
+    }
+  }
+
   @Child private ArgumentSorterNode argumentSorter;
   @Child private MethodResolverNode methodResolverNode;
   @Child private ThunkExecutorNode thisExecutor;
@@ -33,21 +67,12 @@ public abstract class InvokeCallableNode extends BaseNode {
   private final boolean canApplyThis;
   private final int thisArgumentPosition;
 
-  private final boolean argumentsArePreExecuted;
+  private final ArgumentsExecutionMode argumentsExecutionMode;
 
-  private final ConditionProfile methodCalledOnNonAtom = ConditionProfile.createCountingProfile();
-
-  /**
-   * Creates a new instance of the node.
-   *
-   * @param schema a description of the arguments being applied to the callable
-   * @param hasDefaultsSuspended whether or not the invocation has the callable's default arguments
-   *     (if any) suspended
-   * @param argumentsArePreExecuted whether the arguments will be provided as thunks or fully
-   *     computed values
-   */
-  public InvokeCallableNode(
-      CallArgumentInfo[] schema, boolean hasDefaultsSuspended, boolean argumentsArePreExecuted) {
+  InvokeCallableNode(
+      CallArgumentInfo[] schema,
+      DefaultsExecutionMode defaultsExecutionMode,
+      ArgumentsExecutionMode argumentsExecutionMode) {
     boolean appliesThis = false;
     int idx = 0;
     for (; idx < schema.length; idx++) {
@@ -63,11 +88,25 @@ public abstract class InvokeCallableNode extends BaseNode {
     this.canApplyThis = appliesThis;
     this.thisArgumentPosition = idx;
 
-    this.argumentsArePreExecuted = argumentsArePreExecuted;
+    this.argumentsExecutionMode = argumentsExecutionMode;
 
     this.argumentSorter =
-        ArgumentSorterNodeGen.create(schema, hasDefaultsSuspended, argumentsArePreExecuted);
+        ArgumentSorterNodeGen.create(schema, defaultsExecutionMode, argumentsExecutionMode);
     this.methodResolverNode = MethodResolverNodeGen.create();
+  }
+
+  /**
+   * Creates a new instance of this node.
+   *
+   * @param schema a description of the arguments being applied to the callable
+   * @param defaultsExecutionMode the defaulted arguments handling mode for this call
+   * @param argumentsExecutionMode the arguments execution mode for this call
+   */
+  public static InvokeCallableNode build(
+      CallArgumentInfo[] schema,
+      DefaultsExecutionMode defaultsExecutionMode,
+      ArgumentsExecutionMode argumentsExecutionMode) {
+    return InvokeCallableNodeGen.create(schema, defaultsExecutionMode, argumentsExecutionMode);
   }
 
   /**
@@ -106,10 +145,10 @@ public abstract class InvokeCallableNode extends BaseNode {
   public Object invokeDynamicSymbol(UnresolvedSymbol symbol, Object[] arguments) {
     if (canApplyThis) {
       Object selfArgument = arguments[thisArgumentPosition];
-      if (!argumentsArePreExecuted) {
+      if (argumentsExecutionMode.shouldExecute()) {
         if (thisExecutor == null) {
           CompilerDirectives.transferToInterpreterAndInvalidate();
-          thisExecutor = ThunkExecutorNodeGen.create(false);
+          thisExecutor = ThunkExecutorNode.build(false);
         }
         selfArgument = thisExecutor.executeThunk((Thunk) selfArgument);
       }

@@ -1,5 +1,7 @@
 package org.enso.interpreter.test.semantic
 
+import org.enso.interpreter.test.LanguageTest
+
 class CurryingTest extends LanguageTest {
   "Functions" should "allow partial application" in {
     val code =

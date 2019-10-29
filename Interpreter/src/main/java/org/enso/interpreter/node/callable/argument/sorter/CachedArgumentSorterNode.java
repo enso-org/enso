@@ -7,7 +7,6 @@ import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.InvokeCallableNodeGen;
 import org.enso.interpreter.node.callable.argument.ThunkExecutorNode;
-import org.enso.interpreter.node.callable.argument.ThunkExecutorNodeGen;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
 import org.enso.interpreter.runtime.callable.argument.Thunk;
 import org.enso.interpreter.runtime.control.TailCallException;
@@ -31,35 +30,35 @@ public class CachedArgumentSorterNode extends BaseNode {
   @Children private ThunkExecutorNode[] executors;
   private final boolean appliesFully;
   @Child private InvokeCallableNode oversaturatedCallableNode = null;
-  private final boolean ignoresArgumentExecution;
+  private final InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode;
 
   /**
    * Creates a node that generates and then caches the argument mapping.
    *
    * @param function the function to sort arguments for
    * @param schema information on the calling argument
-   * @param hasDefaultsSuspended whether or not the function to which these arguments are applied
-   *     has its defaults suspended.
-   * @param ignoresArgumentExecution whether this node assumes all arguments are pre-executed and
-   *     not passed in a {@link Thunk}.
+   * @param defaultsExecutionMode the defaulted arguments execution mode for this function
+   *     invocation
+   * @param argumentsExecutionMode the arguments execution mode for this function invocation
    * @param isTail whether this node is called from a tail call position.
    */
   public CachedArgumentSorterNode(
       Function function,
       CallArgumentInfo[] schema,
-      boolean hasDefaultsSuspended,
-      boolean ignoresArgumentExecution,
+      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
+      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       boolean isTail) {
     this.setTail(isTail);
     this.originalFunction = function;
-    this.ignoresArgumentExecution = ignoresArgumentExecution;
+    this.argumentsExecutionMode = argumentsExecutionMode;
     ArgumentMappingBuilder mapping = ArgumentMappingBuilder.generate(function.getSchema(), schema);
     this.mapping = mapping.getAppliedMapping();
     this.postApplicationSchema = mapping.getPostApplicationSchema();
 
     boolean functionIsFullyApplied = true;
     for (int i = 0; i < postApplicationSchema.getArgumentsCount(); i++) {
-      boolean hasValidDefault = postApplicationSchema.hasDefaultAt(i) && !hasDefaultsSuspended;
+      boolean hasValidDefault =
+          postApplicationSchema.hasDefaultAt(i) && !defaultsExecutionMode.isIgnore();
       boolean hasPreappliedArg = postApplicationSchema.hasPreAppliedAt(i);
 
       if (!(hasValidDefault || hasPreappliedArg)) {
@@ -73,8 +72,8 @@ public class CachedArgumentSorterNode extends BaseNode {
       oversaturatedCallableNode =
           InvokeCallableNodeGen.create(
               postApplicationSchema.getOversaturatedArguments(),
-              hasDefaultsSuspended,
-              ignoresArgumentExecution);
+              defaultsExecutionMode,
+              argumentsExecutionMode);
       oversaturatedCallableNode.setTail(isTail);
     }
 
@@ -86,19 +85,20 @@ public class CachedArgumentSorterNode extends BaseNode {
    *
    * @param function the function to sort arguments for
    * @param schema information on the calling arguments
-   * @param hasDefaultsSuspended whether or not the default arguments are suspended for this
-   *     function invocation
+   * @param defaultsExecutionMode the defaulted arguments execution mode for this function
+   *     invocation
+   * @param argumentsExecutionMode the arguments execution mode for this function invocation
    * @param isTail whether or not this node is a tail call
    * @return a sorter node for the arguments in {@code schema} being passed to {@code callable}
    */
-  public static CachedArgumentSorterNode create(
+  public static CachedArgumentSorterNode build(
       Function function,
       CallArgumentInfo[] schema,
-      boolean hasDefaultsSuspended,
-      boolean ignoreArgumentExecution,
+      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
+      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       boolean isTail) {
     return new CachedArgumentSorterNode(
-        function, schema, hasDefaultsSuspended, ignoreArgumentExecution, isTail);
+        function, schema, defaultsExecutionMode, argumentsExecutionMode, isTail);
   }
 
   private void initArgumentExecutors(Object[] arguments) {
@@ -106,7 +106,7 @@ public class CachedArgumentSorterNode extends BaseNode {
     executors = new ThunkExecutorNode[argumentShouldExecute.length];
     for (int i = 0; i < argumentShouldExecute.length; i++) {
       if (argumentShouldExecute[i] && arguments[i] instanceof Thunk) {
-        executors[i] = ThunkExecutorNodeGen.create(false);
+        executors[i] = ThunkExecutorNode.build(false);
       }
     }
   }
@@ -133,7 +133,7 @@ public class CachedArgumentSorterNode extends BaseNode {
    */
   public Object execute(Function function, Object[] arguments, CallOptimiserNode optimiser) {
     Object[] mappedAppliedArguments;
-    if (!ignoresArgumentExecution) executeArguments(arguments);
+    if (argumentsExecutionMode.shouldExecute()) executeArguments(arguments);
 
     if (originalFunction.getSchema().hasAnyPreApplied()) {
       mappedAppliedArguments = function.clonePreAppliedArguments();
