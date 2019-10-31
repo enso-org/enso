@@ -4,7 +4,7 @@ import org.enso.flexer.automata.NFA
 import org.enso.flexer.automata.Pattern
 import org.enso.flexer.state.Rule
 
-import scala.reflect.runtime.universe.Tree
+import scala.reflect.macros.blackbox.Context
 
 class State(val label: String, val ix: Int, val finish: () => Unit) {
   var parent: Option[State]        = None
@@ -22,9 +22,9 @@ class State(val label: String, val ix: Int, val finish: () => Unit) {
   def ||(expr: Pattern): Rule.Builder =
     rule(expr)
 
-  def rules(): List[Rule] = {
+  def rules: List[Rule] = {
     val myRules = revRules.reverse
-    parent.map(myRules ++ _.rules()).getOrElse(myRules)
+    parent.map(myRules ++ _.rules).getOrElse(myRules)
   }
 
   private def ruleName(ruleIx: Int): String =
@@ -33,7 +33,7 @@ class State(val label: String, val ix: Int, val finish: () => Unit) {
   private def buildAutomata(): NFA = {
     val nfa   = new NFA
     val start = nfa.addState()
-    val endpoints = rules().zipWithIndex.map {
+    val endpoints = rules.zipWithIndex.map {
       case (rule, ix) => buildRuleAutomata(nfa, start, ix, rule)
     }
     val end = nfa.addState()
@@ -82,14 +82,16 @@ class State(val label: String, val ix: Int, val finish: () => Unit) {
     }
   }
 
-  def generate(): Tree = {
-    import scala.reflect.runtime.universe._
+  def generate[C <: Context](c: C): c.Tree = {
+    import c.universe._
+
     val nfa   = buildAutomata()
     val dfa   = nfa.toDFA()
-    val state = Spec(dfa).generate(ix)
+    val state = Spec[c.type](c, dfa).generate(ix)
     val rs = rules.zipWithIndex.map {
       case (rule, ruleIx) =>
-        q"def ${TermName(ruleName(ruleIx))}() = ${rule.tree}"
+        val tree = c.parse(rule.tree)
+        q"def ${TermName(ruleName(ruleIx))}() = $tree"
     }
     q"..$state; ..$rs"
   }

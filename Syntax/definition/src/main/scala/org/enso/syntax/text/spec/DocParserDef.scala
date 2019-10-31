@@ -7,8 +7,6 @@ import org.enso.data.List1
 import org.enso.syntax.text.ast.Doc._
 import org.enso.syntax.text.ast.Doc
 
-import scala.reflect.runtime.universe.reify
-
 case class DocParserDef() extends Parser[Doc] {
 
   //////////////////////////////////////////////////////////////////////////////
@@ -103,7 +101,7 @@ case class DocParserDef() extends Parser[Doc] {
     }
   }
 
-  ROOT || normalText || reify { text.onPushing(currentMatch) }
+  ROOT || normalText || text.onPushing(currentMatch)
 
   //////////////////////////////////////////////////////////////////////////////
   //// Tags ////////////////////////////////////////////////////////////////////
@@ -205,10 +203,10 @@ case class DocParserDef() extends Parser[Doc] {
   val notNewLine: Pattern = not(newline).many1
   val CODE: State         = state.define("Code")
 
-  ROOT || code.inlinePattern || reify { code.onPushingInline(currentMatch) }
-  CODE || newline            || reify { state.end(); state.begin(NEWLINE) }
-  CODE || notNewLine         || reify { code.onPushingMultiline(currentMatch) }
-  CODE || eof                || reify { state.end(); documentation.onEOF() }
+  ROOT || code.inlinePattern || code.onPushingInline(currentMatch)
+  CODE || newline            || { state.end(); state.begin(NEWLINE) }
+  CODE || notNewLine         || code.onPushingMultiline(currentMatch)
+  CODE || eof                || { state.end(); documentation.onEOF() }
 
   //////////////////////////////////////////////////////////////////////////////
   //// Formatter ///////////////////////////////////////////////////////////////
@@ -287,15 +285,14 @@ case class DocParserDef() extends Parser[Doc] {
     val strikeoutTrigger: Char = Elem.Formatter.Strikeout.marker
   }
 
-  ROOT || formatter.boldTrigger || reify {
-    formatter.onPushing(Elem.Formatter.Bold)
-  }
-  ROOT || formatter.italicTrigger || reify {
-    formatter.onPushing(Elem.Formatter.Italic)
-  }
-  ROOT || formatter.strikeoutTrigger || reify {
-    formatter.onPushing(Elem.Formatter.Strikeout)
-  }
+  ROOT || formatter.boldTrigger || formatter
+    .onPushing(Elem.Formatter.Bold)
+
+  ROOT || formatter.italicTrigger || formatter
+    .onPushing(Elem.Formatter.Italic)
+
+  ROOT || formatter.strikeoutTrigger || formatter
+    .onPushing(Elem.Formatter.Strikeout)
 
   //////////////////////////////////////////////////////////////////////////////
   //// Header //////////////////////////////////////////////////////////////////
@@ -401,10 +398,10 @@ case class DocParserDef() extends Parser[Doc] {
       ).many1 >> eof
   }
 
-  ROOT || link.imagePattern          || reify { link.onCreatingImage() }
-  ROOT || link.urlPattern            || reify { link.onCreatingURL() }
-  ROOT || link.invalidPatternNewline || reify { link.onInvalidLinkNewline() }
-  ROOT || link.invalidPatternEOF     || reify { link.onInvalidLinkEOF() }
+  ROOT || link.imagePattern          || link.onCreatingImage()
+  ROOT || link.urlPattern            || link.onCreatingURL()
+  ROOT || link.invalidPatternNewline || link.onInvalidLinkNewline()
+  ROOT || link.invalidPatternEOF     || link.onInvalidLinkEOF()
 
   //////////////////////////////////////////////////////////////////////////////
   //// Indent Management & New line ////////////////////////////////////////////
@@ -524,9 +521,9 @@ case class DocParserDef() extends Parser[Doc] {
 
   val NEWLINE: State = state.define("Newline")
 
-  ROOT    || newline              || reify { state.begin(NEWLINE) }
-  NEWLINE || indent.EOFPattern    || reify { indent.onEOFPattern() }
-  NEWLINE || indent.indentPattern || reify { indent.onIndentPattern() }
+  ROOT    || newline              || state.begin(NEWLINE)
+  NEWLINE || indent.EOFPattern    || indent.onEOFPattern()
+  NEWLINE || indent.indentPattern || indent.onIndentPattern()
 
   //////////////////////////////////////////////////////////////////////////////
   //// Lists ///////////////////////////////////////////////////////////////////
@@ -597,8 +594,8 @@ case class DocParserDef() extends Parser[Doc] {
       : Pattern = indent.indentPattern >> unorderedListTrigger >> notNewLine
   }
 
-  NEWLINE || list.orderedPattern   || reify { list.onOrdered() }
-  NEWLINE || list.unorderedPattern || reify { list.onUnordered() }
+  NEWLINE || list.orderedPattern   || list.onOrdered()
+  NEWLINE || list.unorderedPattern || list.onUnordered()
 
   //////////////////////////////////////////////////////////////////////////////
   //// Section /////////////////////////////////////////////////////////////////
@@ -728,19 +725,19 @@ case class DocParserDef() extends Parser[Doc] {
       : Pattern = indent.indentPattern >> exampleTrigger >> indent.indentPattern
   }
 
-  NEWLINE || indent.emptyLine || reify { section.onNewRaw() }
-  NEWLINE || indent.emptyLine >> indent.emptyLine || reify {
-    section.onNewRawWithHeader()
-  }
-  ROOT || section.importantPattern || reify {
-    section.onNewMarked(Section.Marked.Important)
-  }
-  ROOT || section.infoPattern || reify {
-    section.onNewMarked(Section.Marked.Info)
-  }
-  ROOT || section.examplePattern || reify {
-    section.onNewMarked(Section.Marked.Example)
-  }
+  NEWLINE || indent.emptyLine || section.onNewRaw()
+
+  NEWLINE || indent.emptyLine >> indent.emptyLine || section
+    .onNewRawWithHeader()
+
+  ROOT || section.importantPattern || section
+    .onNewMarked(Section.Marked.Important)
+
+  ROOT || section.infoPattern || section
+    .onNewMarked(Section.Marked.Info)
+
+  ROOT || section.examplePattern || section
+    .onNewMarked(Section.Marked.Example)
 
   //////////////////////////////////////////////////////////////////////////////
   //// Documentation ///////////////////////////////////////////////////////////
@@ -804,5 +801,5 @@ case class DocParserDef() extends Parser[Doc] {
     }
   }
 
-  ROOT || eof || reify { documentation.onEOF() }
+  ROOT || eof || documentation.onEOF()
 }

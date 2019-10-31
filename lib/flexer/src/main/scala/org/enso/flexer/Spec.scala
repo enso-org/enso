@@ -5,7 +5,7 @@ import org.enso.flexer.automata.State
 
 import scala.collection.immutable.Range
 import scala.collection.mutable
-import scala.reflect.runtime.universe._
+import scala.reflect.macros.blackbox.Context
 
 /** Creates update functions for given DFA ~ nextState : state -> state.
   * Each state has a pattern match on current utf code point.
@@ -13,7 +13,8 @@ import scala.reflect.runtime.universe._
   * The rest of UTF characters is dispatched by tree of if-else,
   * with O(log(N)) lookup.
   */
-case class Spec(dfa: DFA) {
+case class Spec[C <: Context](c: C, dfa: DFA) {
+  import c.universe._
   import Spec._
 
   val stateHasOverlappingRules = mutable.Map(0 -> false)

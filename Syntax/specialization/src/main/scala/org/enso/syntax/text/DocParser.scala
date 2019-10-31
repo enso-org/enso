@@ -7,8 +7,6 @@ import org.enso.syntax.text.spec.DocParserDef
 import scalatags.Text.TypedTag
 import scalatags.Text.{all => HTML}
 import HTML._
-import java.io.File
-import java.io.PrintWriter
 import flexer.Parser.{Result => res}
 import org.enso.data.List1
 import org.enso.syntax.text.AST.Block.{LineOf => Line}
@@ -54,6 +52,7 @@ class DocParser {
   //// HTML Rendering of Documentation /////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
+  // TODO remove this functionality from parser
   /**
     * Used to create HTML files from Doc with or without title after Doc Parser
     * Runner finished it's job
@@ -66,7 +65,7 @@ class DocParser {
     val htmlCode    = renderHTML(documented.ast, documented.doc, cssFileName)
     val astLines    = documented.ast.show().split("\n")
     val fileName    = astLines.head.replaceAll("/", "")
-    saveHTMLToFile(path, fileName, htmlCode)
+    htmlCode
   }
 
   /**
@@ -119,22 +118,6 @@ object DocParser {
   def runMatched(input: String): Doc         = new DocParser().runMatched(input)
   def run(input: String):        Result[Doc] = new DocParser().run(input)
 
-  /**
-    * Saves HTML code to file
-    *
-    * @param path - path to file
-    * @param name - file name
-    * @param code - HTML code generated with Doc Parser
-    */
-  def saveHTMLToFile(
-    path: String,
-    name: String,
-    code: TypedTag[String]
-  ): Unit = {
-    val writer = new PrintWriter(new File(path + name + ".html"))
-    writer.write(code.toString)
-    writer.close()
-  }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
