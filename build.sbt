@@ -18,10 +18,15 @@ Global / onChangedBuildSource := ReloadOnSourceChanges
 //// Compiler Options ////
 //////////////////////////
 
+javacOptions in ThisBuild ++= Seq(
+  "-encoding", // Provide explicit encoding (the next line)
+  "UTF-8"      // Specify character encoding used by Java source files.
+)
+
 scalacOptions in ThisBuild ++= Seq(
   "-deprecation",                       // Emit warning and location for usages of deprecated APIs.
   "-encoding",                          // Provide explicit encoding (the next line)
-  "utf-8",                              // Specify character encoding used by source files.
+  "utf-8",                              // Specify character encoding used by Scala source files.
   "-explaintypes",                      // Explain type errors in more detail.
   "-feature",                           // Emit warning and location for usages of features that should be imported explicitly.
   "-language:existentials",             // Existential types (besides wildcard types) can be written and inferred
