@@ -4,21 +4,7 @@ import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.nodes.RootNode;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import org.enso.interpreter.AstArgDefinition;
-import org.enso.interpreter.AstCallArg;
-import org.enso.interpreter.AstCase;
-import org.enso.interpreter.AstCaseFunction;
-import org.enso.interpreter.AstExpression;
-import org.enso.interpreter.AstExpressionVisitor;
-import org.enso.interpreter.Language;
+import org.enso.interpreter.*;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.ApplicationNode;
@@ -31,11 +17,7 @@ import org.enso.interpreter.node.controlflow.*;
 import org.enso.interpreter.node.expression.constant.ConstructorNode;
 import org.enso.interpreter.node.expression.constant.DynamicSymbolNode;
 import org.enso.interpreter.node.expression.literal.IntegerLiteralNode;
-import org.enso.interpreter.node.expression.operator.AddOperatorNodeGen;
-import org.enso.interpreter.node.expression.operator.DivideOperatorNodeGen;
-import org.enso.interpreter.node.expression.operator.ModOperatorNodeGen;
-import org.enso.interpreter.node.expression.operator.MultiplyOperatorNodeGen;
-import org.enso.interpreter.node.expression.operator.SubtractOperatorNodeGen;
+import org.enso.interpreter.node.expression.operator.*;
 import org.enso.interpreter.node.scope.AssignmentNode;
 import org.enso.interpreter.node.scope.AssignmentNodeGen;
 import org.enso.interpreter.node.scope.ReadLocalTargetNodeGen;
@@ -45,6 +27,11 @@ import org.enso.interpreter.runtime.callable.argument.CallArgument;
 import org.enso.interpreter.runtime.error.DuplicateArgumentNameException;
 import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
+
+import java.util.*;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * An {@code ExpressionFactory} is responsible for converting the majority of Enso's parsed AST into

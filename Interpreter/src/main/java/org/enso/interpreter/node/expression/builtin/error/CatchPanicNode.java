@@ -1,4 +1,4 @@
-package org.enso.interpreter.node.expression.builtin;
+package org.enso.interpreter.node.expression.builtin.error;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
@@ -6,10 +6,10 @@ import com.oracle.truffle.api.nodes.RootNode;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.callable.argument.ThunkExecutorNode;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
-import org.enso.interpreter.runtime.callable.argument.Thunk;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.RuntimeError;
+import org.enso.interpreter.runtime.state.Stateful;
 import org.enso.interpreter.runtime.type.TypesGen;
 
 /** Root node for the builtin catch panic function. */
@@ -33,16 +33,17 @@ public class CatchPanicNode extends RootNode {
    * @return the result of the computation if it didn't throw, or a {@link RuntimeError} containing
    *     the thrown panic's payload.
    */
-  public Object execute(VirtualFrame frame) {
+  public Stateful execute(VirtualFrame frame) {
     Object maybeThunk = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments())[1];
+    Object state = Function.ArgumentsHelper.getState(frame.getArguments());
     if (TypesGen.isThunk(maybeThunk)) {
       try {
-        return thunkExecutorNode.executeThunk(TypesGen.asThunk(maybeThunk));
+        return thunkExecutorNode.executeThunk(TypesGen.asThunk(maybeThunk), state);
       } catch (PanicException e) {
-        return new RuntimeError(e.getExceptionObject());
+        return new Stateful(state, new RuntimeError(e.getExceptionObject()));
       }
     } else {
-      return maybeThunk;
+      return new Stateful(state, maybeThunk);
     }
   }
 

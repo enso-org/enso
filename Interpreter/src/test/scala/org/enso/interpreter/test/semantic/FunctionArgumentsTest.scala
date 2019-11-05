@@ -14,7 +14,8 @@ class FunctionArgumentsTest extends LanguageTest {
     val code =
       """
         |{ |a|
-        |  adder = { |b| a + b };
+        |  add = { |a, b| a + b };
+        |  adder = { |b| @add [a,b] };
         |  res = @adder [2];
         |  res
         |}  

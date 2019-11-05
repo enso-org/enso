@@ -8,13 +8,14 @@ import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.InvokeCallableNodeGen;
 import org.enso.interpreter.node.callable.argument.ThunkExecutorNode;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
-import org.enso.interpreter.runtime.callable.argument.Thunk;
-import org.enso.interpreter.runtime.control.TailCallException;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo.ArgumentMapping;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo.ArgumentMappingBuilder;
+import org.enso.interpreter.runtime.callable.argument.Thunk;
 import org.enso.interpreter.runtime.callable.function.ArgumentSchema;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.control.TailCallException;
+import org.enso.interpreter.runtime.state.Stateful;
 
 /**
  * This class handles the case where a mapping for reordering arguments to a given callable has
@@ -112,28 +113,35 @@ public class CachedArgumentSorterNode extends BaseNode {
   }
 
   @ExplodeLoop
-  private void executeArguments(Object[] arguments) {
+  private Object executeArguments(Object[] arguments, Object state) {
     if (executors == null) {
       initArgumentExecutors(arguments);
     }
     for (int i = 0; i < argumentShouldExecute.length; i++) {
       if (executors[i] != null) {
-        arguments[i] = executors[i].executeThunk(((Thunk) arguments[i]));
+        Stateful result = executors[i].executeThunk((Thunk) arguments[i], state);
+        arguments[i] = result.getValue();
+        state = result.getState();
       }
     }
+    return state;
   }
 
   /**
    * Reorders the provided arguments into the necessary order for the cached callable.
    *
    * @param function the function this node is reordering arguments for
+   * @param state the state to pass to the function
    * @param arguments the arguments to reorder
    * @param optimiser a call optimiser node, capable of performing the actual function call
    * @return the provided {@code arguments} in the order expected by the cached {@link Function}
    */
-  public Object execute(Function function, Object[] arguments, CallOptimiserNode optimiser) {
+  public Stateful execute(
+      Function function, Object state, Object[] arguments, CallOptimiserNode optimiser) {
     Object[] mappedAppliedArguments;
-    if (argumentsExecutionMode.shouldExecute()) executeArguments(arguments);
+    if (argumentsExecutionMode.shouldExecute()) {
+      state = executeArguments(arguments, state);
+    }
 
     if (originalFunction.getSchema().hasAnyPreApplied()) {
       mappedAppliedArguments = function.clonePreAppliedArguments();
@@ -146,23 +154,27 @@ public class CachedArgumentSorterNode extends BaseNode {
     if (this.appliesFully()) {
       if (!postApplicationSchema.hasOversaturatedArgs()) {
         if (this.isTail()) {
-          throw new TailCallException(function, mappedAppliedArguments);
+          throw new TailCallException(function, state, mappedAppliedArguments);
         } else {
-          return optimiser.executeDispatch(function, mappedAppliedArguments);
+          return optimiser.executeDispatch(function, state, mappedAppliedArguments);
         }
       } else {
-        Object evaluatedVal = optimiser.executeDispatch(function, mappedAppliedArguments);
+        Stateful evaluatedVal = optimiser.executeDispatch(function, state, mappedAppliedArguments);
 
         return this.oversaturatedCallableNode.execute(
-            evaluatedVal, generateOversaturatedArguments(function, arguments));
+            evaluatedVal.getValue(),
+            evaluatedVal.getState(),
+            generateOversaturatedArguments(function, arguments));
       }
     } else {
-      return new Function(
-          function.getCallTarget(),
-          function.getScope(),
-          this.getPostApplicationSchema(),
-          mappedAppliedArguments,
-          generateOversaturatedArguments(function, arguments));
+      return new Stateful(
+          state,
+          new Function(
+              function.getCallTarget(),
+              function.getScope(),
+              this.getPostApplicationSchema(),
+              mappedAppliedArguments,
+              generateOversaturatedArguments(function, arguments)));
     }
   }
 

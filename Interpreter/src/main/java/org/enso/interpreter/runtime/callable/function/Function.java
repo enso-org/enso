@@ -5,6 +5,7 @@ import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -14,11 +15,14 @@ import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.RootNode;
 import org.enso.interpreter.Constants;
+import org.enso.interpreter.Language;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.argument.sorter.ArgumentSorterNode;
 import org.enso.interpreter.node.callable.argument.sorter.ArgumentSorterNodeGen;
+import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
+import org.enso.interpreter.runtime.callable.argument.Thunk;
 
 /** A runtime representation of a function object in Enso. */
 @ExportLibrary(InteropLibrary.class)
@@ -151,6 +155,7 @@ public final class Function implements TruffleObject {
      *
      * @param function the function to execute
      * @param arguments the arguments passed to {@code function} in the expected positional order
+     * @param context the current language context
      * @param cachedArgsLength the cached arguments count
      * @param sorterNode the cached argument sorter node for the particular arguments array length.
      * @return the result of executing {@code function} on {@code arguments}
@@ -161,9 +166,10 @@ public final class Function implements TruffleObject {
     protected static Object callCached(
         Function function,
         Object[] arguments,
+        @CachedContext(Language.class) Context context,
         @Cached(value = "arguments.length") int cachedArgsLength,
         @Cached(value = "buildSorter(cachedArgsLength)") ArgumentSorterNode sorterNode) {
-      return sorterNode.execute(function, arguments);
+      return sorterNode.execute(function, context.getUnit().newInstance(), arguments).getValue();
     }
 
     /**
@@ -171,11 +177,14 @@ public final class Function implements TruffleObject {
      *
      * @param function the function to execute.
      * @param arguments the arguments to pass to the {@code function}.
+     * @param context the current language context
      * @return the result of function application.
      */
     @Specialization(replaces = "callCached")
-    protected static Object callUncached(Function function, Object[] arguments) {
-      return callCached(function, arguments, arguments.length, buildSorter(arguments.length));
+    protected static Object callUncached(
+        Function function, Object[] arguments, @CachedContext(Language.class) Context context) {
+      return callCached(
+          function, arguments, context, arguments.length, buildSorter(arguments.length));
     }
   }
 
@@ -195,28 +204,52 @@ public final class Function implements TruffleObject {
      * org.enso.interpreter.node.callable.argument.sorter.ArgumentSorterNode}.
      *
      * @param function the function to be called
+     * @param state the state to execute the function with
      * @param positionalArguments the arguments to that function, sorted into positional order
      * @return an array containing the necessary information to call an Enso function
      */
-    public static Object[] buildArguments(Function function, Object[] positionalArguments) {
-      return new Object[] {function.getScope(), positionalArguments};
+    public static Object[] buildArguments(
+        Function function, Object state, Object[] positionalArguments) {
+      return new Object[] {function.getScope(), state, positionalArguments};
+    }
+
+    /**
+     * Generates an array of arguments using the schema to be passed to a call target.
+     *
+     * @param thunk the thunk to be called
+     * @param state the state to execute the thunk with
+     * @return an array containing the necessary information to call an Enso thunk
+     */
+    public static Object[] buildArguments(Thunk thunk, Object state) {
+      return new Object[] {thunk.getScope(), state, new Object[0]};
     }
 
     /**
      * Gets the positional arguments out of the array.
      *
-     * @param arguments an array produced by {@link ArgumentsHelper#buildArguments(Function,
+     * @param arguments an array produced by {@link ArgumentsHelper#buildArguments(Function, Object,
      *     Object[])}
      * @return the positional arguments to the function
      */
     public static Object[] getPositionalArguments(Object[] arguments) {
-      return (Object[]) arguments[1];
+      return (Object[]) arguments[2];
+    }
+
+    /**
+     * Gets the state out of the array.
+     *
+     * @param arguments an array produced by {@link ArgumentsHelper#buildArguments(Function, Object,
+     *     Object[])}
+     * @return the state for the function
+     */
+    public static Object getState(Object[] arguments) {
+      return arguments[1];
     }
 
     /**
      * Gets the function's local scope out of the array.
      *
-     * @param arguments an array produced by {@link ArgumentsHelper#buildArguments(Function,
+     * @param arguments an array produced by {@link ArgumentsHelper#buildArguments(Function, Object,
      *     Object[])}
      * @return the local scope for the associated function
      */

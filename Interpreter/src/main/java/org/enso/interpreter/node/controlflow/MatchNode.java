@@ -68,8 +68,8 @@ public abstract class MatchNode extends ExpressionNode {
 
     } catch (BranchSelectedException e) {
       // Note [Branch Selection Control Flow]
-      return e.getResult();
-
+      frame.setObject(getStateFrameSlot(), e.getResult().getState());
+      return e.getResult().getValue();
     } catch (UnexpectedResultException e) {
       typeErrorProfile.enter();
       throw new TypeError("Expected an Atom.", this);
@@ -89,8 +89,8 @@ public abstract class MatchNode extends ExpressionNode {
 
     } catch (BranchSelectedException e) {
       // Note [Branch Selection Control Flow]
-      return e.getResult();
-
+      frame.setObject(getStateFrameSlot(), e.getResult().getState());
+      return e.getResult().getValue();
     } catch (UnexpectedResultException e) {
       typeErrorProfile.enter();
       throw new TypeError("Expected an Atom.", this);
@@ -111,8 +111,8 @@ public abstract class MatchNode extends ExpressionNode {
 
     } catch (BranchSelectedException e) {
       // Note [Branch Selection Control Flow]
-      return e.getResult();
-
+      frame.setObject(getStateFrameSlot(), e.getResult().getState());
+      return e.getResult().getValue();
     } catch (UnexpectedResultException e) {
       typeErrorProfile.enter();
       throw new TypeError("Expected an Atom.", this);

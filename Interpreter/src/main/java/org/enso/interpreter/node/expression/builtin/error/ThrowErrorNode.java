@@ -1,4 +1,4 @@
-package org.enso.interpreter.node.expression.builtin;
+package org.enso.interpreter.node.expression.builtin.error;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
@@ -7,6 +7,7 @@ import org.enso.interpreter.Language;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.error.RuntimeError;
+import org.enso.interpreter.runtime.state.Stateful;
 
 /** Root node for the builtin throw error function. */
 @NodeInfo(
@@ -30,7 +31,8 @@ public class ThrowErrorNode extends RootNode {
   @Override
   public Object execute(VirtualFrame frame) {
     Object errorPayload = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments())[1];
-    return new RuntimeError(errorPayload);
+    Object state = Function.ArgumentsHelper.getState(frame.getArguments());
+    return new Stateful(state, new RuntimeError(errorPayload));
   }
 
   /**

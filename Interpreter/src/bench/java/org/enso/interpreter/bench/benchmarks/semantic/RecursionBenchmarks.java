@@ -32,4 +32,9 @@ public class RecursionBenchmarks {
   public void benchOversaturatedRecursiveCall() {
     recursionFixtures.oversaturatedRecursiveCall().execute(recursionFixtures.hundredMillion());
   }
+
+  @Benchmark
+  public void benchSumStateTCO() {
+    recursionFixtures.sumStateTCO().execute(recursionFixtures.hundredMillion());
+  }
 }

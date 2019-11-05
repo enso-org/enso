@@ -10,7 +10,6 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.runtime.Builtins;
 import org.enso.interpreter.runtime.Context;
 
 /** This node represents an assignment to a variable in a given scope. */

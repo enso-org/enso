@@ -7,12 +7,6 @@ import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLanguage.Env;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.source.Source;
-
-import java.io.*;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
 import org.enso.interpreter.AstGlobalScope;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.EnsoParser;
@@ -26,6 +20,14 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.util.ScalaConversions;
 import org.enso.pkg.Package;
 import org.enso.pkg.SourceFile;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * The language context is the internal state of the language that is associated with each thread in
@@ -78,7 +80,14 @@ public class Context {
   public CallTarget parse(Source source, ModuleScope scope) {
     AstGlobalScope parsed = new EnsoParser().parseEnso(source.getCharacters().toString());
     ExpressionNode result = new ModuleScopeExpressionFactory(language, scope).run(parsed);
-    EnsoRootNode root = new EnsoRootNode(language, new FrameDescriptor(), result, null, "root");
+    EnsoRootNode root =
+        new EnsoRootNode(
+            language,
+            new FrameDescriptor(),
+            result,
+            null,
+            "root",
+            EnsoRootNode.ResultStateHandlingMode.IGNORE);
     return Truffle.getRuntime().createCallTarget(root);
   }
 

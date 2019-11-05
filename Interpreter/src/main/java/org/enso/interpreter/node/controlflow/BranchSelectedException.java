@@ -1,17 +1,18 @@
 package org.enso.interpreter.node.controlflow;
 
 import com.oracle.truffle.api.nodes.ControlFlowException;
+import org.enso.interpreter.runtime.state.Stateful;
 
 /** This exception is used to signal when a certain branch in a case expression has been taken. */
 public class BranchSelectedException extends ControlFlowException {
-  private final Object result;
+  private final Stateful result;
 
   /**
    * Creates a new exception instance.
    *
    * @param result the result of executing the branch this is thrown from
    */
-  public BranchSelectedException(Object result) {
+  public BranchSelectedException(Stateful result) {
     this.result = result;
   }
 
@@ -20,7 +21,7 @@ public class BranchSelectedException extends ControlFlowException {
    *
    * @return the result of executing the case branch from which this is thrown
    */
-  public Object getResult() {
+  public Stateful getResult() {
     return result;
   }
 }

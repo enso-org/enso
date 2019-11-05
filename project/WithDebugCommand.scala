@@ -33,8 +33,8 @@ object WithDebugCommand {
   )
 
   val trufflePrintAssemblyOptions = Seq(
-    "-XX:CompileCommand=print,*OptimizedCallTarget.callRoot",
-    "-XX:CompileCommand=exclude,*OptimizedCallTarget.callRoot"
+    "-XX:+UnlockDiagnosticVMOptions",
+    "-XX:+PrintAssembly"
   )
 
   val dumpGraphsOption = "--dumpGraphs"

@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.controlflow;
 
+import com.oracle.truffle.api.frame.FrameUtil;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
 import org.enso.interpreter.node.ExpressionNode;
@@ -27,7 +28,8 @@ public class FallbackNode extends CaseNode {
 
   private void execute(VirtualFrame frame, Object target) throws UnexpectedResultException {
     Function function = functionNode.executeFunction(frame);
-    throw new BranchSelectedException(executeCallNode.executeCall(function, new Object[0]));
+    Object state = FrameUtil.getObjectSafe(frame, getStateFrameSlot());
+    throw new BranchSelectedException(executeCallNode.executeCall(function, state, new Object[0]));
   }
 
   /**

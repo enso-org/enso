@@ -7,6 +7,7 @@ import com.oracle.truffle.api.nodes.DirectCallNode;
 import com.oracle.truffle.api.nodes.IndirectCallNode;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.state.Stateful;
 
 /**
  * This node is responsible for optimising function calls.
@@ -23,18 +24,21 @@ public abstract class ExecuteCallNode extends Node {
    * already cached. THis means that the call can be made quickly.
    *
    * @param function the function to execute
+   * @param state the current state value
    * @param arguments the arguments passed to {@code function} in the expected positional order
    * @param cachedTarget the cached call target for {@code function}
    * @param callNode the cached call node for {@code cachedTarget}
    * @return the result of executing {@code function} on {@code arguments}
    */
   @Specialization(guards = "function.getCallTarget() == cachedTarget")
-  protected Object callDirect(
+  protected Stateful callDirect(
       Function function,
+      Object state,
       Object[] arguments,
       @Cached("function.getCallTarget()") RootCallTarget cachedTarget,
       @Cached("create(cachedTarget)") DirectCallNode callNode) {
-    return callNode.call(Function.ArgumentsHelper.buildArguments(function, arguments));
+    return (Stateful)
+        callNode.call(Function.ArgumentsHelper.buildArguments(function, state, arguments));
   }
 
   /**
@@ -44,23 +48,27 @@ public abstract class ExecuteCallNode extends Node {
    * provided function. This is much slower and should, in general, be avoided.
    *
    * @param function the function to execute
+   * @param state the current state value
    * @param arguments the arguments passed to {@code function} in the expected positional order
    * @param callNode the cached call node for making indirect calls
    * @return the result of executing {@code function} on {@code arguments}
    */
   @Specialization(replaces = "callDirect")
-  protected Object callIndirect(
-      Function function, Object[] arguments, @Cached IndirectCallNode callNode) {
-    return callNode.call(
-        function.getCallTarget(), Function.ArgumentsHelper.buildArguments(function, arguments));
+  protected Stateful callIndirect(
+      Function function, Object state, Object[] arguments, @Cached IndirectCallNode callNode) {
+    return (Stateful)
+        callNode.call(
+            function.getCallTarget(),
+            Function.ArgumentsHelper.buildArguments(function, state, arguments));
   }
 
   /**
    * Executes the function call.
    *
    * @param function the function to execute
+   * @param state the state value to pass to the function
    * @param arguments the arguments to be passed to {@code function}
    * @return the result of executing {@code function} on {@code arguments}
    */
-  public abstract Object executeCall(Object function, Object[] arguments);
+  public abstract Stateful executeCall(Object function, Object state, Object[] arguments);
 }

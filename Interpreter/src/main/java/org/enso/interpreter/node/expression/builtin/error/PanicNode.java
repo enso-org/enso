@@ -1,4 +1,4 @@
-package org.enso.interpreter.node.expression.builtin;
+package org.enso.interpreter.node.expression.builtin.error;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
@@ -7,6 +7,7 @@ import org.enso.interpreter.Language;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.state.Stateful;
 
 /** Root node for the builtin panic function. */
 @NodeInfo(shortName = "Panic.throw", description = "Root node for the builtin panic function.")
@@ -24,7 +25,7 @@ public class PanicNode extends RootNode {
    * @param frame current execution frame
    * @return never returns, always throws an exception
    */
-  public Object execute(VirtualFrame frame) {
+  public Stateful execute(VirtualFrame frame) {
     Object payload = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments())[1];
     throw new PanicException(payload, this);
   }

@@ -1,6 +1,7 @@
 package org.enso.interpreter.node.callable.dispatch;
 
 import com.oracle.truffle.api.nodes.Node;
+import org.enso.interpreter.runtime.state.Stateful;
 
 /**
  * This node handles optimising calls. It performs detection based on the kind of call being made,
@@ -15,10 +16,11 @@ public abstract class CallOptimiserNode extends Node {
    * @param arguments the arguments to {@code callable}
    * @return the result of executing {@code callable} using {@code arguments}
    */
-  public abstract Object executeDispatch(Object callable, Object[] arguments);
+  public abstract Stateful executeDispatch(Object callable, Object state, Object[] arguments);
 
   /**
    * Creates an instance of default implementation of {@link CallOptimiserNode}.
+   *
    * @return a fresh instance of {@link CallOptimiserNode}
    */
   public static CallOptimiserNode create() {

@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.controlflow;
 
+import com.oracle.truffle.api.frame.FrameUtil;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
 import com.oracle.truffle.api.profiles.ConditionProfile;
@@ -9,7 +10,6 @@ import org.enso.interpreter.node.callable.ExecuteCallNodeGen;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.type.TypesGen;
 
 /** An implementation of the case expression specialised to working on constructors. */
 public class ConstructorCaseNode extends CaseNode {
@@ -52,9 +52,11 @@ public class ConstructorCaseNode extends CaseNode {
   @Override
   public void executeAtom(VirtualFrame frame, Atom target) throws UnexpectedResultException {
     AtomConstructor matcherVal = matcher.executeAtomConstructor(frame);
+    Object state = FrameUtil.getObjectSafe(frame, getStateFrameSlot());
     if (profile.profile(matcherVal == target.getConstructor())) {
       Function function = branch.executeFunction(frame);
-      throw new BranchSelectedException(executeCallNode.executeCall(function, target.getFields()));
+      throw new BranchSelectedException(
+          executeCallNode.executeCall(function, state, target.getFields()));
     }
   }
 

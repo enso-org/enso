@@ -6,10 +6,9 @@ import org.enso.interpreter.AstExpression;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.node.callable.argument.ThunkNode;
 import org.enso.interpreter.runtime.callable.argument.CallArgument;
-import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.scope.LocalScope;
+import org.enso.interpreter.runtime.scope.ModuleScope;
 
 import java.util.Optional;
 
@@ -53,7 +52,8 @@ public class CallArgFactory implements AstCallArgVisitor<CallArgument> {
    */
   @Override
   public CallArgument visitCallArg(Optional<String> name, AstExpression value, int position) {
-    ExpressionFactory factory = new ExpressionFactory(language, scope, scopeName, moduleScope);
+    LocalScope childScope = new LocalScope(scope);
+    ExpressionFactory factory = new ExpressionFactory(language, childScope, scopeName, moduleScope);
     ExpressionNode expr = value.visit(factory);
     expr.markTail();
     String displayName = "callArgument<" + name.orElse(String.valueOf(position)) + ">";
@@ -62,10 +62,6 @@ public class CallArgFactory implements AstCallArgVisitor<CallArgument> {
         Truffle.getRuntime()
             .createCallTarget(
                 new EnsoRootNode(
-                    language,
-                    scope.getFrameDescriptor(),
-                    new ThunkNode(expr),
-                    null,
-                    displayName)));
+                    language, childScope.getFrameDescriptor(), expr, null, displayName)));
   }
 }

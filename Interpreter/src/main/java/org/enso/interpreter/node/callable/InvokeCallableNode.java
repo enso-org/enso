@@ -14,6 +14,7 @@ import org.enso.interpreter.runtime.callable.argument.Thunk;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.error.NotInvokableException;
+import org.enso.interpreter.runtime.state.Stateful;
 
 /**
  * This class is responsible for performing the actual invocation of a given callable with its
@@ -113,24 +114,26 @@ public abstract class InvokeCallableNode extends BaseNode {
    * Invokes a function directly on the arguments contained in this node.
    *
    * @param function the function to be executed
+   * @param state the state to pass to the function
    * @param arguments the arguments to the function
    * @return the result of executing {@code callable} on the known arguments
    */
   @Specialization
-  public Object invokeFunction(Function function, Object[] arguments) {
-    return this.argumentSorter.execute(function, arguments);
+  public Stateful invokeFunction(Function function, Object state, Object[] arguments) {
+    return this.argumentSorter.execute(function, state, arguments);
   }
 
   /**
    * Invokes a constructor directly on the arguments contained in this node.
    *
    * @param constructor the constructor to be executed
+   * @param state the state to pass to the function
    * @param arguments the arguments to the constructor
    * @return the result of executing {@code constructor} on the known arguments
    */
   @Specialization
-  public Object invokeConstructor(AtomConstructor constructor, Object[] arguments) {
-    return invokeFunction(constructor.getConstructorFunction(), arguments);
+  public Stateful invokeConstructor(AtomConstructor constructor, Object state, Object[] arguments) {
+    return invokeFunction(constructor.getConstructorFunction(), state, arguments);
   }
 
   /**
@@ -138,11 +141,12 @@ public abstract class InvokeCallableNode extends BaseNode {
    * argument.
    *
    * @param symbol the name of the requested symbol
+   * @param state the state to pass to the function
    * @param arguments the arguments to the dynamic symbol
    * @return the result of resolving and executing the symbol for the {@code this} argument
    */
   @Specialization
-  public Object invokeDynamicSymbol(UnresolvedSymbol symbol, Object[] arguments) {
+  public Stateful invokeDynamicSymbol(UnresolvedSymbol symbol, Object state, Object[] arguments) {
     if (canApplyThis) {
       Object selfArgument = arguments[thisArgumentPosition];
       if (argumentsExecutionMode.shouldExecute()) {
@@ -150,10 +154,12 @@ public abstract class InvokeCallableNode extends BaseNode {
           CompilerDirectives.transferToInterpreterAndInvalidate();
           thisExecutor = ThunkExecutorNode.build(false);
         }
-        selfArgument = thisExecutor.executeThunk((Thunk) selfArgument);
+        Stateful selfResult = thisExecutor.executeThunk((Thunk) selfArgument, state);
+        selfArgument = selfResult.getValue();
+        state = selfResult.getState();
       }
       Function function = methodResolverNode.execute(symbol, selfArgument);
-      return this.argumentSorter.execute(function, arguments);
+      return this.argumentSorter.execute(function, state, arguments);
     } else {
       throw new RuntimeException("Currying without `this` argument is not yet supported.");
     }
@@ -166,11 +172,12 @@ public abstract class InvokeCallableNode extends BaseNode {
    * NotInvokableException} to signal this.
    *
    * @param callable the callable to be executed
+   * @param state the state to pass to the function
    * @param arguments the arguments to the callable
    * @return error
    */
   @Fallback
-  public Object invokeGeneric(Object callable, Object[] arguments) {
+  public Stateful invokeGeneric(Object callable, Object state, Object[] arguments) {
     throw new NotInvokableException(callable, this);
   }
 
@@ -178,10 +185,11 @@ public abstract class InvokeCallableNode extends BaseNode {
    * Executes the provided {@code callable} on the supplied {@code arguments}.
    *
    * @param callable the callable to evaluate
+   * @param state the state to pass to the function
    * @param arguments the arguments to evaluate {@code callable} on
    * @return the result of executing {@code callable} on the supplied {@code arguments}
    */
-  public abstract Object execute(Object callable, Object[] arguments);
+  public abstract Stateful execute(Object callable, Object state, Object[] arguments);
 
   /**
    * Sets whether or not the current node is tail-recursive.

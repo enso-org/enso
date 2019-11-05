@@ -2,16 +2,19 @@ package org.enso.interpreter.node.callable;
 
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.RootCallTarget;
+import com.oracle.truffle.api.frame.FrameUtil;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import java.util.Arrays;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.callable.argument.CallArgument;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.argument.Thunk;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.state.Stateful;
+
+import java.util.Arrays;
 
 /**
  * This node is responsible for organising callable calls so that they are ready to be made.
@@ -86,7 +89,10 @@ public class ApplicationNode extends ExpressionNode {
    */
   @Override
   public Object executeGeneric(VirtualFrame frame) {
-    return this.invokeCallableNode.execute(
-        this.callable.executeGeneric(frame), evaluateArguments(frame));
+    Object state = FrameUtil.getObjectSafe(frame, getStateFrameSlot());
+    Stateful result = this.invokeCallableNode.execute(
+        this.callable.executeGeneric(frame), state, evaluateArguments(frame));
+    frame.setObject(getStateFrameSlot(), result.getState());
+    return result.getValue();
   }
 }
