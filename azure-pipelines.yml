@@ -53,6 +53,18 @@ jobs:
       testResultsFormat: 'JUnit'
       testResultsFiles: '**/TEST-*.xml'
   - script: |
+      sbt interpreter/assembly
+    displayName: sbt assembly
+    continueOnError: true
+  - task: CopyFiles@2
+    inputs:
+      contents: "enso.jar"
+      TargetFolder: "$(Build.ArtifactStagingDirectory)"
+  - task: PublishBuildArtifacts@1
+    inputs:
+      pathtoPublish: "$(Build.ArtifactStagingDirectory)"
+      artifactName: enso-cli
+  - script: |
       echo "##vso[task.complete result=Failed;]DONE"
     condition: eq(variables['Agent.JobStatus'], 'SucceededWithIssues')
     displayName: "Fail if there were issues"
