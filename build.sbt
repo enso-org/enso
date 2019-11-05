@@ -2,6 +2,7 @@ import sbt.Keys.scalacOptions
 import scala.sys.process._
 import org.enso.build.BenchTasks._
 import org.enso.build.WithDebugCommand
+import sbtassembly.AssemblyPlugin.defaultUniversalScript
 
 //////////////////////////////
 //// Global Configuration ////
@@ -211,31 +212,47 @@ lazy val pkg = (project in file("Pkg"))
   )
 
 val truffleRunOptions = Seq(
+  "-Dgraal.TruffleIterativePartialEscape=true",
+  "-XX:-UseJVMCIClassLoader",
+  "-Dgraal.TruffleBackgroundCompilation=false"
+)
+
+val truffleRunOptionsSettings = Seq(
   fork := true,
-  javaOptions += s"-Dgraal.TruffleIterativePartialEscape=true",
-  javaOptions += s"-XX:-UseJVMCIClassLoader",
-  javaOptions += s"-Dgraal.TruffleBackgroundCompilation=false"
+  javaOptions ++= truffleRunOptions
 )
 
 lazy val interpreter = (project in file("Interpreter"))
   .settings(
     mainClass in (Compile, run) := Some("org.enso.interpreter.Main"),
+    mainClass in assembly := (Compile / run / mainClass).value,
+    assemblyJarName in assembly := "enso.jar",
+    test in assembly := {},
+    assemblyOutputPath in assembly := file("enso.jar"),
+    assemblyOption in assembly := (assemblyOption in assembly).value.copy(
+      prependShellScript = Some(
+        defaultUniversalScript(
+          shebang  = false,
+          javaOpts = truffleRunOptions
+        )
+      )
+    ),
     version := "0.1",
     commands += WithDebugCommand.withDebug,
-    inConfig(Compile)(truffleRunOptions),
-    inConfig(Test)(truffleRunOptions),
+    inConfig(Compile)(truffleRunOptionsSettings),
+    inConfig(Test)(truffleRunOptionsSettings),
     parallelExecution in Test := false,
     logBuffered in Test := false,
     libraryDependencies ++= jmh ++ Seq(
       "com.chuusai"            %% "shapeless"                % "2.3.3",
       "org.apache.commons"     % "commons-lang3"             % "3.9",
       "org.apache.tika"        % "tika-core"                 % "1.21",
-      "org.graalvm.sdk"        % "graal-sdk"                 % graalVersion,
-      "org.graalvm.sdk"        % "polyglot-tck"              % graalVersion,
-      "org.graalvm.truffle"    % "truffle-api"               % graalVersion,
-      "org.graalvm.truffle"    % "truffle-dsl-processor"     % graalVersion,
-      "org.graalvm.truffle"    % "truffle-tck"               % graalVersion,
-      "org.graalvm.truffle"    % "truffle-tck-common"        % graalVersion,
+      "org.graalvm.sdk"        % "graal-sdk"                 % graalVersion % "provided",
+      "org.graalvm.sdk"        % "polyglot-tck"              % graalVersion % "provided",
+      "org.graalvm.truffle"    % "truffle-api"               % graalVersion % "provided",
+      "org.graalvm.truffle"    % "truffle-dsl-processor"     % graalVersion % "provided",
+      "org.graalvm.truffle"    % "truffle-tck"               % graalVersion % "provided",
+      "org.graalvm.truffle"    % "truffle-tck-common"        % graalVersion % "provided",
       "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.4",
       "org.scalacheck"         %% "scalacheck"               % "1.14.0" % Test,
       "org.scalactic"          %% "scalactic"                % "3.0.8" % Test,
@@ -274,7 +291,7 @@ lazy val interpreter = (project in file("Interpreter"))
   .settings(
     logBuffered := false,
     inConfig(Benchmark)(Defaults.testSettings),
-    inConfig(Benchmark)(truffleRunOptions),
+    inConfig(Benchmark)(truffleRunOptionsSettings),
     bench := (test in Benchmark).tag(Exclusive).value,
     benchOnly := Def.inputTaskDyn {
       import complete.Parsers.spaceDelimited

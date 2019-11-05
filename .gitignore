@@ -84,6 +84,7 @@ bench-report.xml
 ##############
 
 /enso
+/enso.jar
 
 #########
 ## IDE ##
