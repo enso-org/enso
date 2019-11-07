@@ -240,54 +240,6 @@ object Parser {
 
 object Main extends App {
 
-  def pretty(str: String): String = {
-
-    def checkClosing(in: List[Char]): Int = {
-      @tailrec
-      def go(i: Int, rest: Int, in: List[Char], bias: Int): Int =
-        (rest, bias, in) match {
-          case (0, _, _)   => 0
-          case (_, 0, _)   => i
-          case (_, _, Nil) => i
-          case (_, _, s :: ss) =>
-            s match {
-              case '(' => go(i + 1, rest - 1, ss, bias - 1)
-              case ')' => go(i + 1, rest - 1, ss, bias + 1)
-              case _   => go(i + 1, rest - 1, ss, bias)
-            }
-
-        }
-      go(0, 10, in, -1)
-    }
-
-    @tailrec
-    def go(ind: Int, in: List[Char], out: List[String]): List[String] = {
-      def newline(i: Int) = "\n" + " " * i * 2
-      in match {
-        case Nil => out
-        case s :: ss =>
-          val s2 = s.toString
-          s match {
-            case '(' =>
-              checkClosing(ss) match {
-                case 0 => go(ind + 1, ss, newline(ind + 1) :: s2 :: out)
-                case i =>
-                  go(
-                    ind,
-                    ss.drop(i),
-                    ss.take(i).mkString("") :: s2 :: out
-                  )
-              }
-
-            case ')' => go(ind - 1, ss, s2 :: newline(ind - 1) :: out)
-            case ',' => go(ind, ss, newline(ind) :: s2 :: out)
-            case _   => go(ind, ss, s2 :: out)
-          }
-      }
-    }
-    go(0, str.toList, List()).reverse.mkString("")
-  }
-
   println("--- START ---")
 
   val parser = new Parser()
@@ -333,14 +285,14 @@ object Main extends App {
 
   val mod = parser.run(new Reader(inp))
 
-  println(pretty(mod.toString))
+  println(Debug.pretty(mod.toString))
 
   println("=========================")
-  println(pretty(parser.dropMacroMeta(mod).toString))
+  println(Debug.pretty(parser.dropMacroMeta(mod).toString))
   val rmod = parser.resolveMacros(mod)
   if (mod != rmod) {
     println("\n---\n")
-    println(pretty(rmod.toString))
+    println(Debug.pretty(rmod.toString))
   }
 
   println("------")
@@ -356,7 +308,7 @@ object Main extends App {
   val documentation    = DocParserRunner.createDocs(droppedMeta)
   val documentationHTML =
     DocParserRunner.generateHTMLForEveryDocumented(documentation)
-  println(pretty(documentation.toString))
+  println(Debug.pretty(documentation.toString))
   println("------")
   println(documentation.show())
   println("=========================")

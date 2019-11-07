@@ -1,6 +1,6 @@
 package org.enso.interpreter.test.semantic
 
-import org.graalvm.polyglot.PolyglotException
+import org.enso.interpreter.test.InterpreterException
 
 class ImportsTest extends PackageTest {
   "Atoms and methods" should "be available for import" in {
@@ -16,6 +16,8 @@ class ImportsTest extends PackageTest {
   }
 
   "Overloaded methods" should "not be visible when not imported" in {
-    the[PolyglotException] thrownBy evalTestProject("TestNonImportedOverloads") should have message "Object X does not define method method."
+    the[InterpreterException] thrownBy evalTestProject(
+      "TestNonImportedOverloads"
+    ) should have message "Object X does not define method method."
   }
 }

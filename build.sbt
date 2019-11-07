@@ -306,6 +306,7 @@ lazy val interpreter = (project in file("Interpreter"))
     parallelExecution in Benchmark := false
   )
   .dependsOn(pkg)
+  .dependsOn(syntax)
 
 lazy val fileManager = (project in file("FileManager"))
   .settings(

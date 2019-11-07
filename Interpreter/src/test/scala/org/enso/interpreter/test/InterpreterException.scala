@@ -1,6 +1,7 @@
 package org.enso.interpreter.test
 
-import org.graalvm.polyglot.{PolyglotException, Value}
+import org.graalvm.polyglot.PolyglotException
+import org.graalvm.polyglot.Value
 
 case class InterpreterException(
   @transient polyglotException: PolyglotException
@@ -13,8 +14,13 @@ case class InterpreterException(
 }
 
 object InterpreterException {
-  def rethrowPolyglot(compute: => Value): Value =
+  def rethrowPolyglot[T](compute: => T): T =
     try {
       compute
     } catch { case e: PolyglotException => throw InterpreterException(e) }
+
+  implicit def toPolyglotException(
+    interpreterException: InterpreterException
+  ): PolyglotException = interpreterException.polyglotException
+
 }

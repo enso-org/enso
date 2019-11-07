@@ -1,8 +1,8 @@
 package org.enso.interpreter.bench.fixtures.semantic
 
-import org.enso.interpreter.test.LanguageRunner
+import org.enso.interpreter.test.InterpreterRunner
 
-class AtomFixtures extends LanguageRunner {
+class AtomFixtures extends InterpreterRunner {
   val million: Long = 1000000
 
   val generateListCode =

@@ -5,7 +5,7 @@ import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.nodes.RootNode;
 import org.enso.interpreter.*;
-import org.enso.interpreter.node.EnsoRootNode;
+import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.ApplicationNode;
 import org.enso.interpreter.node.callable.ForceNodeGen;
@@ -234,7 +234,7 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
     FunctionBodyNode fnBodyNode =
         new FunctionBodyNode(allFnExpressions.toArray(new ExpressionNode[0]), returnExpr);
     RootNode fnRootNode =
-        new EnsoRootNode(
+        new ClosureRootNode(
             language, scope.getFrameDescriptor(), fnBodyNode, null, "lambda::" + scopeName);
     RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(fnRootNode);
 

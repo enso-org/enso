@@ -46,12 +46,7 @@ public class ModuleScope {
    * @return a map containing all the defined methods by name
    */
   private Map<String, Function> getMethodMapFor(AtomConstructor cons) {
-    Map<String, Function> result = methods.get(cons);
-    if (result == null) {
-      result = new HashMap<>();
-      methods.put(cons, result);
-    }
-    return result;
+    return methods.computeIfAbsent(cons, k -> new HashMap<>());
   }
 
   /**
@@ -154,6 +149,6 @@ public class ModuleScope {
   public void addImport(ModuleScope scope) {
     imports.add(scope);
     transitiveImports.add(scope);
-    transitiveImports.addAll(scope.transitiveImports);
+    transitiveImports.addAll(scope.getTransitiveImports());
   }
 }

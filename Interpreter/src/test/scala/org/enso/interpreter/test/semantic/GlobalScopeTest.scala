@@ -1,8 +1,9 @@
 package org.enso.interpreter.test.semantic
 
-import org.enso.interpreter.test.{InterpreterException, LanguageTest}
+import org.enso.interpreter.test.InterpreterException
+import org.enso.interpreter.test.InterpreterTest
 
-class GlobalScopeTest extends LanguageTest {
+class GlobalScopeTest extends InterpreterTest {
 
   "Variables" should "be able to be read from the global scope" in {
     val code =

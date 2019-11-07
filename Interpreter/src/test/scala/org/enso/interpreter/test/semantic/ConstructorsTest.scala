@@ -1,8 +1,8 @@
 package org.enso.interpreter.test.semantic
 
-import org.enso.interpreter.test.{InterpreterException, LanguageTest}
+import org.enso.interpreter.test.{InterpreterException, InterpreterTest}
 
-class ConstructorsTest extends LanguageTest {
+class ConstructorsTest extends InterpreterTest {
 
   "Pattern matching" should "dispatch to the proper branch" in {
     val patternMatchingCode =

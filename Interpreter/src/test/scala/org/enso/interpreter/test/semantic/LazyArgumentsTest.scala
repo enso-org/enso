@@ -1,8 +1,8 @@
 package org.enso.interpreter.test.semantic
 
-import org.enso.interpreter.test.LanguageTest
+import org.enso.interpreter.test.InterpreterTest
 
-class LazyArgumentsTest extends LanguageTest {
+class LazyArgumentsTest extends InterpreterTest {
   val subject = "Lazy arguments"
 
   subject should "not get executed upfront" in {

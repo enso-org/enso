@@ -73,6 +73,7 @@ cabal.sandbox.config
 ############################
 
 javadoc/
+scaladoc/
 
 #######################
 ## Benchmark Reports ##

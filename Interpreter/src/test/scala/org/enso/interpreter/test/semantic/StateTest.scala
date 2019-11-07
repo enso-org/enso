@@ -1,10 +1,8 @@
 package org.enso.interpreter.test.semantic
 
-import org.enso.interpreter.test.LanguageTest
+import org.enso.interpreter.test.InterpreterTest
 
-import scala.util.Try
-
-class StateTest extends LanguageTest {
+class StateTest extends InterpreterTest {
   "State" should "be accessible from functions" in {
     val code =
       """

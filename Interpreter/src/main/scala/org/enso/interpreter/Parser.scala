@@ -50,10 +50,10 @@ trait AstExpressionVisitor[+T] {
   def visitDesuspend(target: AstExpression): T
 }
 
-trait AstGlobalScopeVisitor[+T] {
+trait AstModuleScopeVisitor[+T] {
 
   @throws(classOf[Exception])
-  def visitGlobalScope(
+  def visitModuleScope(
     imports: java.util.List[AstImport],
     typeDefs: java.util.List[AstTypeDef],
     bindings: java.util.List[AstMethodDef],
@@ -73,12 +73,13 @@ case class AstMethodDef(typeName: String, methodName: String, fun: AstFunction)
 
 case class AstImport(name: String)
 
-case class AstGlobalScope(
+case class AstModuleScope(
   imports: List[AstImport],
   bindings: List[AstGlobalSymbol],
-  expression: AstExpression) {
+  expression: AstExpression
+) {
 
-  def visit[T](visitor: AstGlobalScopeVisitor[T]): T = {
+  def visit[T](visitor: AstModuleScopeVisitor[T]): T = {
     val types = new java.util.ArrayList[AstTypeDef]()
     val defs  = new java.util.ArrayList[AstMethodDef]()
 
@@ -87,7 +88,7 @@ case class AstGlobalScope(
       case typeDef: AstTypeDef      => types.add(typeDef)
     }
 
-    visitor.visitGlobalScope(imports.asJava, types, defs, expression)
+    visitor.visitModuleScope(imports.asJava, types, defs, expression)
   }
 }
 
@@ -108,7 +109,8 @@ trait AstArgDefinitionVisitor[+T] {
 case class AstArgDefinition(
   name: String,
   defaultValue: Option[AstExpression],
-  suspended: Boolean) {
+  suspended: Boolean
+) {
 
   def visit[T](visitor: AstArgDefinitionVisitor[T], position: Int): T =
     visitor.visitArg(
@@ -167,8 +169,8 @@ case class AstVariable(name: String) extends AstExpression {
 case class AstApply(
   fun: AstExpression,
   args: List[AstCallArg],
-  hasDefaultsSuspended: Boolean)
-    extends AstExpression {
+  hasDefaultsSuspended: Boolean
+) extends AstExpression {
   override def visit[T](visitor: AstExpressionVisitor[T]): T =
     visitor.visitFunctionApplication(fun, args.asJava, hasDefaultsSuspended)
 }
@@ -176,8 +178,8 @@ case class AstApply(
 case class AstFunction(
   arguments: List[AstArgDefinition],
   statements: List[AstExpression],
-  ret: AstExpression)
-    extends AstExpression {
+  ret: AstExpression
+) extends AstExpression {
   override def visit[T](visitor: AstExpressionVisitor[T]): T =
     visitor.visitFunction(arguments.asJava, statements.asJava, ret)
 
@@ -189,8 +191,8 @@ case class AstFunction(
 case class AstCaseFunction(
   arguments: List[AstArgDefinition],
   statements: List[AstExpression],
-  ret: AstExpression)
-    extends AstExpression {
+  ret: AstExpression
+) extends AstExpression {
   override def visit[T](visitor: AstExpressionVisitor[T]): T =
     visitor.visitCaseFunction(arguments.asJava, statements.asJava, ret)
 }
@@ -204,8 +206,8 @@ case class AstAssignment(name: String, body: AstExpression)
 case class AstIfZero(
   cond: AstExpression,
   ifTrue: AstExpression,
-  ifFalse: AstExpression)
-    extends AstExpression {
+  ifFalse: AstExpression
+) extends AstExpression {
   override def visit[T](visitor: AstExpressionVisitor[T]): T =
     visitor.visitIf(cond, ifTrue, ifFalse)
 }
@@ -215,8 +217,8 @@ case class AstCase(cons: AstExpression, function: AstCaseFunction)
 case class AstMatch(
   target: AstExpression,
   branches: Seq[AstCase],
-  fallback: Option[AstCaseFunction])
-    extends AstExpression {
+  fallback: Option[AstCaseFunction]
+) extends AstExpression {
   override def visit[T](visitor: AstExpressionVisitor[T]): T =
     visitor.visitMatch(
       target,
@@ -356,13 +358,13 @@ class EnsoParserInternal extends JavaTokenParsers {
       case seg ~ segs => AstImport((seg :: segs).mkString("."))
     }
 
-  def globalScope: Parser[AstGlobalScope] =
+  def globalScope: Parser[AstModuleScope] =
     (importStmt *) ~ ((typeDef | methodDef) *) ~ expression ^^ {
       case imports ~ assignments ~ expr =>
-        AstGlobalScope(imports, assignments, expr)
+        AstModuleScope(imports, assignments, expr)
     }
 
-  def parseGlobalScope(code: String): AstGlobalScope = {
+  def parseGlobalScope(code: String): AstModuleScope = {
     parseAll(globalScope, code).get
   }
 
@@ -373,7 +375,7 @@ class EnsoParserInternal extends JavaTokenParsers {
 
 class EnsoParser {
 
-  def parseEnso(code: String): AstGlobalScope = {
+  def parseEnso(code: String): AstModuleScope = {
     new EnsoParserInternal().parseGlobalScope(code)
   }
 }

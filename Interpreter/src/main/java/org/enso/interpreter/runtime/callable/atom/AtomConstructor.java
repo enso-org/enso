@@ -5,7 +5,7 @@ import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.interop.TruffleObject;
-import org.enso.interpreter.node.EnsoRootNode;
+import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode;
 import org.enso.interpreter.node.expression.atom.InstantiateNode;
@@ -64,8 +64,8 @@ public class AtomConstructor implements TruffleObject {
       argumentReaders[i] = new ReadArgumentNode(i, args[i].getDefaultValue().orElse(null));
     }
     ExpressionNode instantiateNode = new InstantiateNode(this, argumentReaders);
-    EnsoRootNode rootNode =
-        new EnsoRootNode(
+    ClosureRootNode rootNode =
+        new ClosureRootNode(
             null, new FrameDescriptor(), instantiateNode, null, "<constructor>:" + name);
     RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(rootNode);
     return new Function(callTarget, null, new ArgumentSchema(args));

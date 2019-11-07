@@ -1,10 +1,14 @@
 package org.enso.interpreter;
 
 import com.oracle.truffle.api.CallTarget;
+import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleLanguage;
+import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.instrumentation.ProvidedTags;
 import com.oracle.truffle.api.instrumentation.StandardTags;
+import com.oracle.truffle.api.nodes.RootNode;
 import org.enso.interpreter.builder.FileDetector;
+import org.enso.interpreter.node.ProgramRootNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.RuntimeOptions;
 import org.graalvm.options.OptionDescriptors;
@@ -77,7 +81,10 @@ public final class Language extends TruffleLanguage<Context> {
    */
   @Override
   protected CallTarget parse(ParsingRequest request) {
-    return getCurrentContext().parse(request.getSource());
+    RootNode root =
+        new ProgramRootNode(this, new FrameDescriptor(), "root", null, request.getSource());
+
+    return Truffle.getRuntime().createCallTarget(root);
   }
 
   /**
@@ -91,6 +98,7 @@ public final class Language extends TruffleLanguage<Context> {
 
   /**
    * Returns the supported options descriptors, for use by Graal's engine.
+   *
    * @return The supported options descriptors
    */
   @Override

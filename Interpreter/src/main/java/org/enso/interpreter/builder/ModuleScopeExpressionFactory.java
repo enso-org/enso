@@ -11,7 +11,6 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.error.VariableDoesNotExistException;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -20,7 +19,7 @@ import java.util.stream.IntStream;
  * A {@code GlobalScopeExpressionFactory} is responsible for converting the top-level definitions of
  * an Enso program into AST nodes for the interpreter to evaluate.
  */
-public class ModuleScopeExpressionFactory implements AstGlobalScopeVisitor<ExpressionNode> {
+public class ModuleScopeExpressionFactory implements AstModuleScopeVisitor<ExpressionNode> {
   private final Language language;
   private final ModuleScope moduleScope;
 
@@ -41,7 +40,7 @@ public class ModuleScopeExpressionFactory implements AstGlobalScopeVisitor<Expre
    * @param expr the expression to execute on
    * @return a runtime node representing the top-level expression
    */
-  public ExpressionNode run(AstGlobalScope expr) {
+  public ExpressionNode run(AstModuleScope expr) {
     return expr.visit(this);
   }
 
@@ -55,17 +54,15 @@ public class ModuleScopeExpressionFactory implements AstGlobalScopeVisitor<Expre
    * @return a runtime node representing the whole top-level program scope
    */
   @Override
-  public ExpressionNode visitGlobalScope(
+  public ExpressionNode visitModuleScope(
       List<AstImport> imports,
       List<AstTypeDef> typeDefs,
       List<AstMethodDef> bindings,
-      AstExpression executableExpression)
-      throws IOException {
-
+      AstExpression executableExpression) {
     Context context = language.getCurrentContext();
 
     for (AstImport imp : imports) {
-      moduleScope.addImport(context.requestParse(imp.name()));
+      this.moduleScope.addImport(context.compiler().requestProcess(imp.name()));
     }
 
     List<AtomConstructor> constructors =

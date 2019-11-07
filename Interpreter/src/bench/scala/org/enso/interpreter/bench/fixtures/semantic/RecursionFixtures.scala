@@ -1,9 +1,9 @@
 package org.enso.interpreter.bench.fixtures.semantic
 
 import org.enso.interpreter.Constants
-import org.enso.interpreter.test.LanguageRunner
+import org.enso.interpreter.test.InterpreterRunner
 
-class RecursionFixtures extends LanguageRunner {
+class RecursionFixtures extends InterpreterRunner {
   val hundredMillion: Long = 100000000
   val million: Long        = 1000000
   val thousand: Long       = 1000

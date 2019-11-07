@@ -1,8 +1,8 @@
 package org.enso.interpreter.test.semantic
 
-import org.enso.interpreter.test.{InterpreterException, LanguageTest}
+import org.enso.interpreter.test.{InterpreterException, InterpreterTest}
 
-class MethodsTest extends LanguageTest {
+class MethodsTest extends InterpreterTest {
   "Methods" should "be defined in the global scope and dispatched to" in {
     val code =
       """

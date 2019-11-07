@@ -4,7 +4,7 @@ import com.oracle.truffle.api.Truffle;
 import org.enso.interpreter.AstCallArgVisitor;
 import org.enso.interpreter.AstExpression;
 import org.enso.interpreter.Language;
-import org.enso.interpreter.node.EnsoRootNode;
+import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.callable.argument.CallArgument;
 import org.enso.interpreter.runtime.scope.LocalScope;
@@ -61,7 +61,7 @@ public class CallArgFactory implements AstCallArgVisitor<CallArgument> {
         name.orElse(null),
         Truffle.getRuntime()
             .createCallTarget(
-                new EnsoRootNode(
+                new ClosureRootNode(
                     language, childScope.getFrameDescriptor(), expr, null, displayName)));
   }
 }

@@ -1,8 +1,8 @@
 package org.enso.interpreter.test.semantic
 
-import org.enso.interpreter.test.LanguageTest
+import org.enso.interpreter.test.InterpreterTest
 
-class CurryingTest extends LanguageTest {
+class CurryingTest extends InterpreterTest {
   "Functions" should "allow partial application" in {
     val code =
       """
@@ -14,6 +14,7 @@ class CurryingTest extends LanguageTest {
         |  result
         |}
         |""".stripMargin
+
     eval(code) shouldEqual 11
   }
 

@@ -3,7 +3,7 @@ package org.enso.interpreter.node.callable.function;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
-import org.enso.interpreter.node.EnsoRootNode;
+import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.function.ArgumentSchema;
@@ -35,7 +35,7 @@ public class CreateFunctionNode extends ExpressionNode {
    */
   @Override
   public void setTail(boolean isTail) {
-    ((EnsoRootNode) callTarget.getRootNode()).setTail(isTail);
+    ((ClosureRootNode) callTarget.getRootNode()).setTail(isTail);
   }
 
   /**

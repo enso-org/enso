@@ -31,7 +31,7 @@ object Builtin {
       }
     }
 
-    val defn = Definition(Var("def") -> {
+    val defn = Definition(Var("type") -> {
       val head = Pattern.Cons().or("missing name").tag("name")
       val args =
         Pattern.NonSpacedExpr_().tag("parameter").many.tag("parameters")
@@ -122,7 +122,7 @@ object Builtin {
     val nonSpacedExpr = Pattern.Any(Some(false)).many1.build
 
     val arrow = Definition(
-      Some(nonSpacedExpr.or(Pattern.OprExpr("->"))),
+      Some(nonSpacedExpr.or(Pattern.ExprUntilOpr("->"))),
       Opr("->") -> Pattern.NonSpacedExpr().or(Pattern.Expr())
     ) { ctx =>
       (ctx.prefix, ctx.body) match {

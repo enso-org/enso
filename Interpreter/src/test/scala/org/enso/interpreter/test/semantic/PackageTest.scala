@@ -4,10 +4,14 @@ import java.io.File
 
 import org.enso.interpreter.Constants
 import org.enso.interpreter.runtime.RuntimeOptions
+import org.enso.interpreter.test.InterpreterException
 import org.enso.interpreter.test.ValueEquality
 import org.enso.pkg.Package
-import org.graalvm.polyglot.{Context, Source, Value}
-import org.scalatest.{FlatSpec, Matchers}
+import org.graalvm.polyglot.Context
+import org.graalvm.polyglot.Source
+import org.graalvm.polyglot.Value
+import org.scalatest.FlatSpec
+import org.scalatest.Matchers
 
 trait PackageTest extends FlatSpec with Matchers with ValueEquality {
 
@@ -23,6 +27,8 @@ trait PackageTest extends FlatSpec with Matchers with ValueEquality {
       .out(System.out)
       .in(System.in)
       .build()
-    context.eval(Source.newBuilder(Constants.LANGUAGE_ID, mainFile).build)
+    InterpreterException.rethrowPolyglot(
+      context.eval(Source.newBuilder(Constants.LANGUAGE_ID, mainFile).build)
+    )
   }
 }

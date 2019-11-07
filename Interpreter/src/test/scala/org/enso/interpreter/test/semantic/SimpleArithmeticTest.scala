@@ -1,8 +1,8 @@
 package org.enso.interpreter.test.semantic
 
-import org.enso.interpreter.test.LanguageTest
+import org.enso.interpreter.test.InterpreterTest
 
-class SimpleArithmeticTest extends LanguageTest {
+class SimpleArithmeticTest extends InterpreterTest {
   "1 + 1" should "equal 2" in {
     eval("1 + 1") shouldEqual 2
   }

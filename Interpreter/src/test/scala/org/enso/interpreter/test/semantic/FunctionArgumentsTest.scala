@@ -1,10 +1,14 @@
 package org.enso.interpreter.test.semantic
 
-import org.enso.interpreter.test.LanguageTest
+import org.enso.interpreter.test.InterpreterTest
 
-class FunctionArgumentsTest extends LanguageTest {
+class FunctionArgumentsTest extends InterpreterTest {
   "Functions" should "take arguments and use them in their bodies" in {
-    val code     = "{ |x| x * x }"
+    val code =
+        """
+        |{ |x| x * x }
+        |""".stripMargin
+
     val function = eval(code)
     function.call(1) shouldEqual 1
     function.call(4) shouldEqual 16
@@ -18,7 +22,7 @@ class FunctionArgumentsTest extends LanguageTest {
         |  adder = { |b| @add [a,b] };
         |  res = @adder [2];
         |  res
-        |}  
+        |}
       """.stripMargin
 
     eval(code).call(3) shouldEqual 5

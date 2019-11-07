@@ -341,9 +341,9 @@ class ParserTest extends FlatSpec with Matchers {
 
   "import Std .  Math  .Vector".stripMargin ?= Import("Std", "Math", "Vector")
 
-  """def Maybe a
-    |    def Just val:a
-    |    def Nothing""".stripMargin ?= {
+  """type Maybe a
+    |    type Just val:a
+    |    type Nothing""".stripMargin ?= {
     val defJust    = Def("Just", List("val" $ ":" $ "a"))
     val defNothing = Def("Nothing")
     Def(
