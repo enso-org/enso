@@ -15,9 +15,8 @@ results and visually profile the performance in real-time.
 
 Visit [The Enso Website](http://www.luna-lang.org) to learn more!
 
-This repository contains the Enso interpreter and runtime, as well as its
-command-line interface. For the full (visual) Enso Studio, please take a look at
-[Enso Studio](https://github.com/luna/luna-studio).
+This repository contains both the [Enso Engine](engine/) (its compiler, 
+interpreter, runtime, and language server), and its cloud-ready [IDE](ide/).
 
 ## Contributing to Enso
 If you are interested in contributing to the development of Enso, please read

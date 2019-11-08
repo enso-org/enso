@@ -1,4 +1,4 @@
-# Enso Interpreter
+# Enso Compiler and Interpreter
 
 ### Truffle Nodes creation convention
 

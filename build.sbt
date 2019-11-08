@@ -89,7 +89,16 @@ lazy val buildNativeImage =
 
 lazy val enso = (project in file("."))
   .settings(version := "0.1")
-  .aggregate(syntax, pkg, interpreter)
+  .aggregate(
+    syntax,
+    pkg,
+    runtime,
+    flexer,
+    unused,
+    syntax_definition,
+    file_manager,
+    project_manager
+  )
   .settings(Global / concurrentRestrictions += Tags.exclusive(Exclusive))
 
 ////////////////////////////
@@ -144,14 +153,14 @@ val jmh = Seq(
 //// Sub-Projects ////
 //////////////////////
 
-lazy val logger = (project in file("lib/logger"))
+lazy val logger = (project in file("common/scala/logger"))
   .dependsOn(unused)
   .settings(
     version := "0.1",
     libraryDependencies ++= scala_compiler
   )
 
-lazy val flexer = (project in file("lib/flexer"))
+lazy val flexer = (project in file("common/scala/flexer"))
   .dependsOn(logger)
   .settings(
     version := "0.1",
@@ -162,10 +171,10 @@ lazy val flexer = (project in file("lib/flexer"))
     )
   )
 
-lazy val unused = (project in file("lib/unused"))
+lazy val unused = (project in file("common/scala/unused"))
   .settings(version := "0.1", scalacOptions += "-nowarn")
 
-lazy val syntax_definition = (project in file("Syntax/definition"))
+lazy val syntax_definition = (project in file("common/scala/syntax/definition"))
   .dependsOn(logger, flexer)
   .settings(
     libraryDependencies ++= monocle ++ cats ++ scala_compiler ++ Seq(
@@ -173,7 +182,7 @@ lazy val syntax_definition = (project in file("Syntax/definition"))
     )
   )
 
-lazy val syntax = (project in file("Syntax/specialization"))
+lazy val syntax = (project in file("common/scala/syntax/specialization"))
   .dependsOn(logger, flexer, syntax_definition)
   .configs(Test)
   .configs(Benchmark)
@@ -204,7 +213,7 @@ lazy val syntax = (project in file("Syntax/specialization"))
       .value
   )
 
-lazy val pkg = (project in file("Pkg"))
+lazy val pkg = (project in file("common/scala/pkg"))
   .settings(
     mainClass in (Compile, run) := Some("org.enso.pkg.Main"),
     version := "0.1",
@@ -222,7 +231,7 @@ val truffleRunOptionsSettings = Seq(
   javaOptions ++= truffleRunOptions
 )
 
-lazy val interpreter = (project in file("Interpreter"))
+lazy val runtime = (project in file("engine/runtime"))
   .settings(
     mainClass in (Compile, run) := Some("org.enso.interpreter.Main"),
     mainClass in assembly := (Compile / run / mainClass).value,
@@ -308,7 +317,7 @@ lazy val interpreter = (project in file("Interpreter"))
   .dependsOn(pkg)
   .dependsOn(syntax)
 
-lazy val fileManager = (project in file("FileManager"))
+lazy val file_manager = (project in file("common/scala/file-manager"))
   .settings(
     (Compile / mainClass) := Some("org.enso.filemanager.FileManager")
   )
@@ -323,7 +332,7 @@ lazy val fileManager = (project in file("FileManager"))
     libraryDependencies += "io.methvin" % "directory-watcher" % "0.9.6"
   )
 
-lazy val projectManager = (project in file("ProjectManager"))
+lazy val project_manager = (project in file("common/scala/project-manager"))
   .settings(
     (Compile / mainClass) := Some("org.enso.projectmanager.Server")
   )

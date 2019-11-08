@@ -45,15 +45,15 @@ jobs:
     displayName: Benchmark the Parser
     continueOnError: true
   - script: |
-      sbt -no-colors interpreter/Benchmark/compile
-    displayName: Check Interpreter Benchmarks Compile
+      sbt -no-colors runtime/Benchmark/compile
+    displayName: Check Runtime Benchmarks Compile
     continueOnError: true
   - task: PublishTestResults@2
     inputs:
       testResultsFormat: 'JUnit'
       testResultsFiles: '**/TEST-*.xml'
   - script: |
-      sbt interpreter/assembly
+      sbt runtime/assembly
     displayName: Build the Uberjar
     continueOnError: true
   - task: CopyFiles@2
@@ -95,8 +95,8 @@ jobs:
     displayName: Benchmark the Parser
     continueOnError: true
   - script: |
-      sbt -no-colors interpreter/Benchmark/compile
-    displayName: Check Interpreter Benchmarks Compile
+      sbt -no-colors runtime/Benchmark/compile
+    displayName: Check Runtime Benchmarks Compile
     continueOnError: true
   - task: PublishTestResults@2
     inputs:
@@ -134,8 +134,8 @@ jobs:
     displayName: Benchmark the Parser
     continueOnError: true
   - script: |
-      sbt interpreter/Benchmark/compile
-    displayName: Check Interpreter Benchmarks Compile
+      sbt runtime/Benchmark/compile
+    displayName: Check Runtime Benchmarks Compile
     continueOnError: true
   - task: PublishTestResults@2
     inputs:
