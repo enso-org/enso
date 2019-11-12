@@ -1,0 +1,16 @@
+[package]
+name    = "basegl-prelude"
+version = "0.1.0"
+authors = ["Wojciech Danilo <wojciech.danilo@gmail.com>"]
+edition = "2018"
+
+[lib]
+
+[dependencies]
+failure      = "0.1.5"
+derive_more  = "0.15.0"
+shrinkwraprs = "0.2.1"
+itertools    = "0.8"
+derivative   = "1.0.3"
+num          = "0.2.0"
+boolinator   = "2.4.0"

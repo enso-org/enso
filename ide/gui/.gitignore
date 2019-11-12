@@ -1,0 +1,12 @@
+# Rust
+/target
+**/*.rs.bk
+Cargo.lock
+bin/
+pkg/
+wasm-pack.log
+
+# IntelliJ
+.idea/
+.vscode/
+*.iml

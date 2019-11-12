@@ -1,0 +1,10 @@
+[workspace]
+
+members = [
+    "lib/core",
+    "lib/structology/core",
+    "lib/structology/macros",
+]
+
+[profile.release]
+opt-level = 3

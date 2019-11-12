@@ -1,0 +1,15 @@
+[package]
+name    = "structology"
+version = "0.1.0"
+authors = ["Wojciech Danilo <wojciech.danilo@gmail.com>"]
+edition = "2018"
+
+[lib]
+
+[features]
+default = []
+
+[dependencies]
+structology-macros = { version = "0.1.0"  , path = "../macros"     }
+basegl-prelude     = { version = "0.1.0"  , path = "../../prelude" }
+
