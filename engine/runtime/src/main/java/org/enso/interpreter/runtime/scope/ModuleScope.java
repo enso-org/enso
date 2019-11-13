@@ -12,6 +12,7 @@ public class ModuleScope {
   private final Map<String, AtomConstructor> constructors = new HashMap<>();
   private final Map<AtomConstructor, Map<String, Function>> methods = new HashMap<>();
   private final Map<String, Function> anyMethods = new HashMap<>();
+  private final Map<String, Function> numberMethods = new HashMap<>();
   private final Set<ModuleScope> imports = new HashSet<>();
   private final Set<ModuleScope> transitiveImports = new HashSet<>();
 
@@ -71,6 +72,16 @@ public class ModuleScope {
   }
 
   /**
+   * Registers a method for the {@code Number} type.
+   *
+   * @param methodName the name of the method to register
+   * @param function the {@link Function} associated with this definition
+   */
+  public void registerMethodForNumber(String methodName, Function function) {
+    numberMethods.put(methodName, function);
+  }
+
+  /**
    * Looks up the definition for a given type and method name.
    *
    * <p>The resolution algorithm is first looking for methods defined at the constructor definition
@@ -102,14 +113,7 @@ public class ModuleScope {
    */
   @CompilerDirectives.TruffleBoundary
   public Optional<Function> lookupMethodDefinitionForAny(String name) {
-    Function definedHere = anyMethods.get(name);
-    if (definedHere != null) {
-      return Optional.of(definedHere);
-    }
-    return transitiveImports.stream()
-        .map(scope -> scope.getMethodsOfAny().get(name))
-        .filter(Objects::nonNull)
-        .findFirst();
+    return searchAuxiliaryMethodsMap(ModuleScope::getMethodsOfAny, name);
   }
 
   private Optional<Function> lookupSpecificMethodDefinitionForAtom(
@@ -128,6 +132,43 @@ public class ModuleScope {
         .findFirst();
   }
 
+  private Optional<Function> lookupSpecificMethodDefinitionForNumber(String name) {
+    return searchAuxiliaryMethodsMap(ModuleScope::getMethodsOfNumber, name);
+  }
+
+  /**
+   * Looks up a method definition by-name, for methods defined on the type Number.
+   *
+   * <p>The resolution algorithm prefers methods defined locally over any other method. The
+   * definitions are imported into scope transitively.
+   *
+   * <p>If the specific search fails, methods defined for any type are searched, first looking at *
+   * locally defined methods and then all the transitive imports.
+   *
+   * @param name the name of the method to look up
+   * @return {@code Optional.of(resultMethod)} if the method existed, {@code Optional.empty()}
+   *     otherwise
+   */
+  @CompilerDirectives.TruffleBoundary
+  public Optional<Function> lookupMethodDefinitionForNumber(String name) {
+    return Optional.ofNullable(
+        lookupSpecificMethodDefinitionForNumber(name)
+            .orElseGet(() -> lookupMethodDefinitionForAny(name).orElse(null)));
+  }
+
+  private Optional<Function> searchAuxiliaryMethodsMap(
+      java.util.function.Function<ModuleScope, Map<String, Function>> mapGetter,
+      String methodName) {
+    Function definedHere = mapGetter.apply(this).get(methodName);
+    if (definedHere != null) {
+      return Optional.of(definedHere);
+    }
+    return transitiveImports.stream()
+        .map(scope -> mapGetter.apply(scope).get(methodName))
+        .filter(Objects::nonNull)
+        .findFirst();
+  }
+
   /**
    * Returns all the transitive dependencies of this module.
    *
@@ -139,6 +180,10 @@ public class ModuleScope {
 
   private Map<String, Function> getMethodsOfAny() {
     return anyMethods;
+  }
+
+  private Map<String, Function> getMethodsOfNumber() {
+    return numberMethods;
   }
 
   /**

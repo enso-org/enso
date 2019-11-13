@@ -8,7 +8,7 @@ class AtomFixtures extends InterpreterRunner {
   val generateListCode =
     """
       |{ |length|
-      |  generator = { |acc, i| ifZero: [i, acc, @generator [@Cons [i, acc], i - 1]] };
+      |  generator = { |acc, i| @ifZero [i, acc, @generator [@Cons [i, acc], i - 1]] };
       |  res = @generator [@Nil, length];
       |  res
       |}

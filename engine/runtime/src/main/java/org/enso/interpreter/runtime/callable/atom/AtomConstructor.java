@@ -10,7 +10,7 @@ import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode;
 import org.enso.interpreter.node.expression.atom.InstantiateNode;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
-import org.enso.interpreter.runtime.callable.function.ArgumentSchema;
+import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 
@@ -68,7 +68,8 @@ public class AtomConstructor implements TruffleObject {
         new ClosureRootNode(
             null, new FrameDescriptor(), instantiateNode, null, "<constructor>:" + name);
     RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(rootNode);
-    return new Function(callTarget, null, new ArgumentSchema(args));
+    return new Function(
+        callTarget, null, new FunctionSchema(FunctionSchema.CallStrategy.ALWAYS_DIRECT, args));
   }
 
   /**

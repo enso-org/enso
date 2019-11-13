@@ -2,7 +2,7 @@ package org.enso.interpreter.runtime.callable.argument;
 
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
-import org.enso.interpreter.runtime.callable.function.ArgumentSchema;
+import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 
 import java.util.OptionalInt;
 import java.util.function.Predicate;
@@ -33,9 +33,7 @@ public class CallArgumentInfo {
     this.name = name;
   }
 
-  /**
-   * Creates an unnamed call argument.
-   */
+  /** Creates an unnamed call argument. */
   public CallArgumentInfo() {
     this.name = null;
   }
@@ -80,6 +78,7 @@ public class CallArgumentInfo {
     private boolean[] argumentUsed;
     private boolean[] callSiteArgApplied;
     private int oversaturatedWritePosition = 0;
+    private FunctionSchema.CallStrategy callStrategy;
 
     /**
      * Creates an unitialised object of this class. This instance is not safe for external use and
@@ -88,7 +87,7 @@ public class CallArgumentInfo {
      * @param schema the definition site arguments schema
      * @param callArgs the call site arguments schema
      */
-    private ArgumentMappingBuilder(ArgumentSchema schema, CallArgumentInfo[] callArgs) {
+    private ArgumentMappingBuilder(FunctionSchema schema, CallArgumentInfo[] callArgs) {
       this.appliedMapping = new int[callArgs.length];
       this.oversaturatedArgumentMapping = new int[callArgs.length];
       this.callSiteArgApplied = new boolean[callArgs.length];
@@ -98,6 +97,7 @@ public class CallArgumentInfo {
       this.definitions = schema.getArgumentInfos();
       this.argumentUsed = schema.cloneHasPreApplied();
       this.existingOversaturatedArgs = schema.cloneOversaturatedArgs();
+      this.callStrategy = schema.getCallStrategy();
     }
 
     /**
@@ -108,7 +108,7 @@ public class CallArgumentInfo {
      * @return the generated argument mapping
      */
     public static ArgumentMappingBuilder generate(
-        ArgumentSchema schema, CallArgumentInfo[] callArgs) {
+        FunctionSchema schema, CallArgumentInfo[] callArgs) {
       ArgumentMappingBuilder mapping = new ArgumentMappingBuilder(schema, callArgs);
       mapping.processArguments();
       return mapping;
@@ -185,12 +185,12 @@ public class CallArgumentInfo {
     }
 
     /**
-     * Returns an {@link ArgumentSchema} object resulting from filling in all the call site
+     * Returns an {@link FunctionSchema} object resulting from filling in all the call site
      * arguments in the original definition site schema.
      *
      * @return the post-application arguments schema
      */
-    public ArgumentSchema getPostApplicationSchema() {
+    public FunctionSchema getPostApplicationSchema() {
       CallArgumentInfo[] newOversaturatedArgInfo =
           IntStream.range(0, this.callArgs.length)
               .filter(i -> !this.callSiteArgApplied[i])
@@ -214,7 +214,7 @@ public class CallArgumentInfo {
           this.existingOversaturatedArgs.length,
           newOversaturatedArgInfo.length);
 
-      return new ArgumentSchema(definitions, argumentUsed, oversaturatedArgInfo);
+      return new FunctionSchema(callStrategy, definitions, argumentUsed, oversaturatedArgInfo);
     }
   }
 

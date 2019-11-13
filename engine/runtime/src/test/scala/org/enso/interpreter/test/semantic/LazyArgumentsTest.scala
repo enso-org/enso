@@ -9,7 +9,7 @@ class LazyArgumentsTest extends InterpreterTest {
     val code =
       """
         |@{
-        |  foo = { |i, $x, $y| ifZero: [i, $x, $y] };
+        |  foo = { |i, $x, $y| @ifZero [i, $x, $y] };
         |  @foo [1, @println [@IO, 1], @println [@IO, 2]]
         |}
         |""".stripMargin
@@ -22,7 +22,7 @@ class LazyArgumentsTest extends InterpreterTest {
     val code =
       """
         |@{
-        |  if = { |c, $ifT, $ifF| ifZero: [c, $ifT, $ifF] };
+        |  if = { |c, $ifT, $ifF| @ifZero [c, $ifT, $ifF] };
         |  sum = { |c, acc| @if [c, acc, @sum [c-1, acc + c]] };
         |  res = @sum [10000, 0];
         |  res
@@ -68,7 +68,7 @@ class LazyArgumentsTest extends InterpreterTest {
     val code =
       """
         |@{
-        |  if = { |c, $ifT, $ifF| ifZero: [c, $ifT, $ifF] };
+        |  if = { |c, $ifT, $ifF| @ifZero [c, $ifT, $ifF] };
         |  foo = { |c| @if [c] };
         |  @foo [0, @println [@IO, 1], @println [@IO, 2]];
         |  @foo [1, @println [@IO, 3], @println [@IO, 4]]

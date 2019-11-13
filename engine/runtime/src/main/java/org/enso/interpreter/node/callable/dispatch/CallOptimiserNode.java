@@ -23,7 +23,7 @@ public abstract class CallOptimiserNode extends Node {
    *
    * @return a fresh instance of {@link CallOptimiserNode}
    */
-  public static CallOptimiserNode create() {
+  public static CallOptimiserNode build() {
     return new SimpleCallOptimiserNode();
   }
 }

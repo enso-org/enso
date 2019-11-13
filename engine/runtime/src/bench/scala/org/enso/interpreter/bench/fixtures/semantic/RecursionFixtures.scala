@@ -13,7 +13,7 @@ class RecursionFixtures extends InterpreterRunner {
   val mutRecursiveCode =
     """
     |summator = { |acc, current|
-    |    ifZero: [current, acc, @summator [acc + current, current - 1]]
+    |    @ifZero [current, acc, @summator [acc + current, current - 1]]
     |}
     |
     |{ |sumTo|
@@ -26,7 +26,7 @@ class RecursionFixtures extends InterpreterRunner {
     """
       |{ |sumTo|
       |  summator = { |acc, current|
-      |      ifZero: [current, acc, @summator [acc + current, current - 1]]
+      |      @ifZero [current, acc, @summator [acc + current, current - 1]]
       |  };
       |  res = @summator [0, sumTo];
       |  res
@@ -38,7 +38,7 @@ class RecursionFixtures extends InterpreterRunner {
   val sumTCOFoldLikeCode =
     """
       |{ |sumTo|
-      |  summator = { |acc, i, f| ifZero: [i, acc, @summator [@f [acc, i], i - 1, f]] };
+      |  summator = { |acc, i, f| @ifZero [i, acc, @summator [@f [acc, i], i - 1, f]] };
       |  res = @summator [0, sumTo, {|x, y| x + y }];
       |  res
       |}
@@ -49,7 +49,7 @@ class RecursionFixtures extends InterpreterRunner {
   val sumRecursiveCode =
     """
       |{ |sumTo|
-      |  summator = { |i| ifZero: [i, 0, i + (@summator [i - 1])] };
+      |  summator = { |i| @ifZero [i, 0, i + (@summator [i - 1])] };
       |  res = @summator [sumTo];
       |  res
       |}
@@ -60,7 +60,7 @@ class RecursionFixtures extends InterpreterRunner {
   val oversaturatedRecursiveCallTCOCode =
     """
       |{ |sumTo|
-      |  summator = { |acc, i, f| ifZero: [i, acc, @summator [@f [acc, i], i - 1, f]] };
+      |  summator = { |acc, i, f| @ifZero [i, acc, @summator [@f [acc, i], i - 1, f]] };
       |  res = @summator [0, sumTo, {|x| { |y| x + y }}];
       |  res
       |}
@@ -75,7 +75,7 @@ class RecursionFixtures extends InterpreterRunner {
       |  stateSum = { |n|
       |    acc = @get [@State];
       |    @put [@State, acc + n];
-      |    ifZero: [n, 0, @stateSum [n-1]]
+      |    @ifZero [n, @get [@State], @stateSum [n-1]]
       |  };
       |  @put [@State, 0];
       |  @stateSum [sumTo]

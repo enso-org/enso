@@ -71,4 +71,8 @@ public abstract class ExecuteCallNode extends Node {
    * @return the result of executing {@code function} on {@code arguments}
    */
   public abstract Stateful executeCall(Object function, Object state, Object[] arguments);
+
+  public static ExecuteCallNode build() {
+    return ExecuteCallNodeGen.create();
+  }
 }

@@ -5,18 +5,19 @@ import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.oracle.truffle.api.nodes.RootNode;
 import org.enso.interpreter.Language;
+import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.state.Stateful;
 
 import java.io.PrintStream;
 
 /** Allows for printing arbitrary values to the standard output. */
 @NodeInfo(shortName = "IO.println", description = "Root of the IO.println method.")
-public abstract class PrintNode extends RootNode {
+public abstract class PrintNode extends BuiltinRootNode {
   PrintNode(Language language) {
     super(language);
   }
@@ -42,8 +43,9 @@ public abstract class PrintNode extends RootNode {
    * @return a {@link Function} object wrapping the behavior of this node
    */
   public static Function makeFunction(Language language) {
-    return Function.fromRootNode(
+    return Function.fromBuiltinRootNode(
         PrintNodeGen.create(language),
+        FunctionSchema.CallStrategy.ALWAYS_DIRECT,
         new ArgumentDefinition(0, "this", ArgumentDefinition.ExecutionMode.EXECUTE),
         new ArgumentDefinition(1, "value", ArgumentDefinition.ExecutionMode.EXECUTE));
   }

@@ -119,7 +119,7 @@ class NamedArgumentsTest extends InterpreterTest {
       """
         |Unit.summer = { |sumTo|
         |  summator = { |acc = 0, current|
-        |      ifZero: [current, acc, @summator [current = current - 1, acc = acc + current]]
+        |      @ifZero [current, acc, @summator [current = current - 1, acc = acc + current]]
         |  };
         |  res = @summator [current = sumTo];
         |  res
@@ -189,7 +189,7 @@ class NamedArgumentsTest extends InterpreterTest {
         |type Nil2;
         |
         |@{
-        |  genList = { |i| ifZero: [i, @Nil2, @Cons2 [rest = @genList [i-1], head = i]] };
+        |  genList = { |i| @ifZero [i, @Nil2, @Cons2 [rest = @genList [i-1], head = i]] };
         |
         |  sumList = { |list| match list <
         |    Cons2 ~ { |head, rest| head + @sumList [rest] };
@@ -210,7 +210,7 @@ class NamedArgumentsTest extends InterpreterTest {
         |type Nil2;
         |type Cons2 head (rest = Nil2);
         |@{
-        |  genList = { |i| ifZero: [i, @Nil2, @Cons2 [rest = @genList [i-1], head = i]] };
+        |  genList = { |i| @ifZero [i, @Nil2, @Cons2 [rest = @genList [i-1], head = i]] };
         |
         |  sumList = { |list| match list <
         |    Cons2 ~ { |head, rest| head + @sumList [rest] };

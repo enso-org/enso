@@ -8,24 +8,60 @@ import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
  * Holds the definition site argument information together with information on the partially applied
  * arguments positions.
  */
-public class ArgumentSchema {
+public class FunctionSchema {
+
+  /**
+   * Denotes the call strategy that should be used whenever a function with this schema is called.
+   *
+   * <p>For builtin functions, the algorithm for choosing the proper {@link CallStrategy} is as
+   * follows: if the node executes user-provided code ({@link
+   * org.enso.interpreter.runtime.callable.argument.Thunk} or a {@link Function}) using the Tail
+   * Call Optimization machinery (i.e. marking the execution node as tail position), the right
+   * choice is {@code DIRECT_WHEN_TAIL}. Otherwise {@code ALWAYS_DIRECT} should be chosen.
+   */
+  public enum CallStrategy {
+
+    /** Always call the function directly. */
+    ALWAYS_DIRECT,
+    /** Call the function directly when said function is in tail call position. */
+    DIRECT_WHEN_TAIL,
+    /** Always call the function using standard tail call machinery. */
+    CALL_LOOP;
+
+    /**
+     * Should this function be called directly in the given position?
+     *
+     * @param isTail is this a tail position?
+     * @return {@code true} if the function should be called directly, {@code false} otherwise
+     */
+    public boolean shouldCallDirect(boolean isTail) {
+      return this == ALWAYS_DIRECT || (this == DIRECT_WHEN_TAIL && isTail);
+    }
+  }
+
   private final @CompilationFinal(dimensions = 1) ArgumentDefinition[] argumentInfos;
   private final @CompilationFinal(dimensions = 1) boolean[] hasPreApplied;
   private final @CompilationFinal(dimensions = 1) CallArgumentInfo[] oversaturatedArguments;
+  private final CallStrategy callStrategy;
   private final boolean hasAnyPreApplied;
   private final boolean hasOversaturatedArguments;
 
   /**
-   * Creates an {@link ArgumentSchema} instance.
+   * Creates an {@link FunctionSchema} instance.
    *
+   * @param callStrategy the call strategy to use for functions having this schema
    * @param argumentInfos Definition site arguments information
    * @param hasPreApplied A flags collection such that {@code hasPreApplied[i]} is true iff a
    *     function has a partially applied argument at position {@code i}
+   * @param oversaturatedArguments information about any unused, oversaturated arguments passed to
+   *     this function so far
    */
-  public ArgumentSchema(
+  public FunctionSchema(
+      CallStrategy callStrategy,
       ArgumentDefinition[] argumentInfos,
       boolean[] hasPreApplied,
       CallArgumentInfo[] oversaturatedArguments) {
+    this.callStrategy = callStrategy;
     this.argumentInfos = argumentInfos;
     this.oversaturatedArguments = oversaturatedArguments;
     this.hasPreApplied = hasPreApplied;
@@ -43,13 +79,13 @@ public class ArgumentSchema {
   }
 
   /**
-   * Creates an {@link ArgumentSchema} instance assuming the function has no partially applied
+   * Creates an {@link FunctionSchema} instance assuming the function has no partially applied
    * arguments.
    *
    * @param argumentInfos Definition site arguments information
    */
-  public ArgumentSchema(ArgumentDefinition... argumentInfos) {
-    this(argumentInfos, new boolean[argumentInfos.length], new CallArgumentInfo[0]);
+  public FunctionSchema(CallStrategy callStrategy, ArgumentDefinition... argumentInfos) {
+    this(callStrategy, argumentInfos, new boolean[argumentInfos.length], new CallArgumentInfo[0]);
   }
 
   /**
@@ -137,5 +173,14 @@ public class ArgumentSchema {
    */
   public CallArgumentInfo[] getOversaturatedArguments() {
     return oversaturatedArguments;
+  }
+
+  /**
+   * Returns the call strategy to use for functions with this schema.
+   *
+   * @return the call strategy to use
+   */
+  public CallStrategy getCallStrategy() {
+    return callStrategy;
   }
 }

@@ -6,7 +6,7 @@ import org.enso.interpreter.node.callable.function.CreateFunctionNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
-import org.enso.interpreter.runtime.callable.function.ArgumentSchema;
+import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.error.VariableDoesNotExistException;
 import org.enso.interpreter.runtime.scope.ModuleScope;
@@ -97,7 +97,10 @@ public class ModuleScopeExpressionFactory implements AstModuleScopeVisitor<Expre
               method.fun().getArguments(), method.fun().getStatements(), method.fun().ret());
       funNode.markTail();
       Function function =
-          new Function(funNode.getCallTarget(), null, new ArgumentSchema(funNode.getArgs()));
+          new Function(
+              funNode.getCallTarget(),
+              null,
+              new FunctionSchema(FunctionSchema.CallStrategy.CALL_LOOP, funNode.getArgs()));
 
       if (method.typeName().equals(Constants.ANY_TYPE_NAME)) {
         moduleScope.registerMethodForAny(method.methodName(), function);

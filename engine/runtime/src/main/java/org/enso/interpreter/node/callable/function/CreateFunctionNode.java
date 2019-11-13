@@ -6,7 +6,7 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
-import org.enso.interpreter.runtime.callable.function.ArgumentSchema;
+import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.callable.function.Function;
 
 /**
@@ -15,7 +15,7 @@ import org.enso.interpreter.runtime.callable.function.Function;
  */
 public class CreateFunctionNode extends ExpressionNode {
   private final RootCallTarget callTarget;
-  private final ArgumentSchema schema;
+  private final FunctionSchema schema;
 
   /**
    * Creates a new node to represent a function definition.
@@ -25,7 +25,7 @@ public class CreateFunctionNode extends ExpressionNode {
    */
   public CreateFunctionNode(RootCallTarget callTarget, ArgumentDefinition[] args) {
     this.callTarget = callTarget;
-    this.schema = new ArgumentSchema(args);
+    this.schema = new FunctionSchema(FunctionSchema.CallStrategy.CALL_LOOP, args);
   }
 
   /**

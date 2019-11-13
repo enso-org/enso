@@ -2,11 +2,12 @@ package org.enso.interpreter.node.expression.builtin.error;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.oracle.truffle.api.nodes.RootNode;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.callable.argument.ThunkExecutorNode;
+import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.RuntimeError;
 import org.enso.interpreter.runtime.state.Stateful;
@@ -16,7 +17,7 @@ import org.enso.interpreter.runtime.type.TypesGen;
 @NodeInfo(
     shortName = "Panic.catch",
     description = "Root node for the builtin catch panic function.")
-public class CatchPanicNode extends RootNode {
+public class CatchPanicNode extends BuiltinRootNode {
   private ThunkExecutorNode thunkExecutorNode = ThunkExecutorNode.build(false);
 
   private CatchPanicNode(Language language) {
@@ -54,8 +55,9 @@ public class CatchPanicNode extends RootNode {
    * @return a function wrapping this node
    */
   public static Function makeFunction(Language language) {
-    return Function.fromRootNode(
+    return Function.fromBuiltinRootNode(
         new CatchPanicNode(language),
+        FunctionSchema.CallStrategy.ALWAYS_DIRECT,
         new ArgumentDefinition(0, "this", ArgumentDefinition.ExecutionMode.EXECUTE),
         new ArgumentDefinition(1, "value", ArgumentDefinition.ExecutionMode.PASS_THUNK));
   }

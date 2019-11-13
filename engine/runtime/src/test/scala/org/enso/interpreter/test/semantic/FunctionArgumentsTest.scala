@@ -32,7 +32,7 @@ class FunctionArgumentsTest extends InterpreterTest {
     val code =
       """
         |@{
-        |  sumTo = { |x| ifZero: [x, 0, x + (@sumTo [x - 1])] };
+        |  sumTo = { |x| @ifZero [x, 0, x + (@sumTo [x - 1])] };
         |  @sumTo [10]
         |}
       """.stripMargin
@@ -103,7 +103,7 @@ class FunctionArgumentsTest extends InterpreterTest {
     val code =
       """
         |@{
-        |  summator = { |current| ifZero: [current, 0,  @{@summator [current - 1]} ] };
+        |  summator = { |current| @ifZero [current, 0,  @{@summator [current - 1]} ] };
         |  res = @summator [0];
         |  res
         |}

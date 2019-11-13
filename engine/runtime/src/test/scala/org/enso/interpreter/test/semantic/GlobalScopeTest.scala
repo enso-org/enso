@@ -68,7 +68,7 @@ class GlobalScopeTest extends InterpreterTest {
         |}
         |
         |Unit.fn1 = { |number|
-        |  ifZero: [number % 3, number, @decrementCall [@Unit, number]]
+        |  @ifZero [number % 3, number, @decrementCall [@Unit, number]]
         |}
         |
         |@fn1 [@Unit, 5]

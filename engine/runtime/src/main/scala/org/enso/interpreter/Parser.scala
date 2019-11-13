@@ -33,12 +33,6 @@ trait AstExpressionVisitor[+T] {
     defaultsSuspended: Boolean
   ): T
 
-  def visitIf(
-    cond: AstExpression,
-    ifTrue: AstExpression,
-    ifFalse: AstExpression
-  ): T
-
   def visitAssignment(varName: String, expr: AstExpression): T
 
   def visitMatch(
@@ -203,15 +197,6 @@ case class AstAssignment(name: String, body: AstExpression)
     visitor.visitAssignment(name, body)
 }
 
-case class AstIfZero(
-  cond: AstExpression,
-  ifTrue: AstExpression,
-  ifFalse: AstExpression
-) extends AstExpression {
-  override def visit[T](visitor: AstExpressionVisitor[T]): T =
-    visitor.visitIf(cond, ifTrue, ifFalse)
-}
-
 case class AstCase(cons: AstExpression, function: AstCaseFunction)
 
 case class AstMatch(
@@ -288,7 +273,7 @@ class EnsoParserInternal extends JavaTokenParsers {
     }
 
   def expression: Parser[AstExpression] =
-    desuspend | ifZero | matchClause | arith | function
+    desuspend | matchClause | arith | function
 
   def functionCall: Parser[AstApply] =
     "@" ~> expression ~ (argList ?) ~ defaultSuspend ^^ {
@@ -307,11 +292,6 @@ class EnsoParserInternal extends JavaTokenParsers {
   def assignment: Parser[AstAssignment] = ident ~ ("=" ~> expression) ^^ {
     case v ~ exp => AstAssignment(v, exp)
   }
-
-  def ifZero: Parser[AstIfZero] =
-    "ifZero:" ~> "[" ~> (expression ~ ("," ~> expression ~ ("," ~> expression))) <~ "]" ^^ {
-      case cond ~ (ift ~ iff) => AstIfZero(cond, ift, iff)
-    }
 
   def function: Parser[AstFunction] =
     ("{" ~> (inArgList ?) ~ ((statement <~ ";") *) ~ expression <~ "}") ^^ {

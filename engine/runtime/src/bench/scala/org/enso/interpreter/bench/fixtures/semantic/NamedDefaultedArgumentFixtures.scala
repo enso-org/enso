@@ -9,7 +9,7 @@ class NamedDefaultedArgumentFixtures extends InterpreterRunner {
     """
       |{ |sumTo|
       |  summator = { |acc, current|
-      |      ifZero: [current, acc, @summator [current = current - 1, acc = acc + current]]
+      |      @ifZero [current, acc, @summator [current = current - 1, acc = acc + current]]
       |  };
       |  res = @summator [current = sumTo, acc = 0];
       |  res
@@ -22,7 +22,7 @@ class NamedDefaultedArgumentFixtures extends InterpreterRunner {
     """
       |{ |sumTo|
       |  summator = { |acc = 0, current|
-      |      ifZero: [current, acc, @summator [current = current - 1, acc = acc + current]]
+      |      @ifZero [current, acc, @summator [current = current - 1, acc = acc + current]]
       |  };
       |  res = @summator [current = sumTo];
       |  res

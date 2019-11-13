@@ -22,7 +22,7 @@ class ConstructorsTest extends InterpreterTest {
     val testCode =
       """
         |@{
-        |  genList = { |i| ifZero: [i, @Nil, @Cons [i, @genList [i-1]]] };
+        |  genList = { |i| @ifZero [i, @Nil, @Cons [i, @genList [i-1]]] };
         |  sumList = { |list| match list <
         |    Cons ~ { |h, t| h + (@sumList [t]) };
         |    Nil  ~ { 0 };
@@ -82,7 +82,7 @@ class ConstructorsTest extends InterpreterTest {
       """
         |type Cons2 a b;
         |
-        |Unit.genList = { |i| ifZero: [i, @Nil2, @Cons2 [i, @genList [@Unit, i-1]]] }
+        |Unit.genList = { |i| @ifZero [i, @Nil2, @Cons2 [i, @genList [@Unit, i-1]]] }
         |
         |type Nil2;
         |

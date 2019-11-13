@@ -19,6 +19,7 @@ import org.enso.interpreter.Language;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.argument.sorter.ArgumentSorterNode;
 import org.enso.interpreter.node.callable.argument.sorter.ArgumentSorterNodeGen;
+import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
@@ -29,7 +30,7 @@ import org.enso.interpreter.runtime.callable.argument.Thunk;
 public final class Function implements TruffleObject {
   private final RootCallTarget callTarget;
   private final MaterializedFrame scope;
-  private final ArgumentSchema schema;
+  private final FunctionSchema schema;
   private final @CompilerDirectives.CompilationFinal(dimensions = 1) Object[] preAppliedArguments;
   private final @CompilationFinal(dimensions = 1) Object[] oversaturatedArguments;
 
@@ -38,7 +39,7 @@ public final class Function implements TruffleObject {
    *
    * @param callTarget the target containing the function's code
    * @param scope a frame representing the function's scope
-   * @param schema the {@link ArgumentSchema} with which the function was defined
+   * @param schema the {@link FunctionSchema} with which the function was defined
    * @param preappliedArguments the preapplied arguments for this function. The layout of this array
    *     must be conforming to the {@code schema}. {@code null} is allowed if the function does not
    *     have any partially applied arguments.
@@ -46,7 +47,7 @@ public final class Function implements TruffleObject {
   public Function(
       RootCallTarget callTarget,
       MaterializedFrame scope,
-      ArgumentSchema schema,
+      FunctionSchema schema,
       Object[] preappliedArguments,
       Object[] oversaturatedArguments) {
     this.callTarget = callTarget;
@@ -61,10 +62,25 @@ public final class Function implements TruffleObject {
    *
    * @param callTarget the target containing the function's code
    * @param scope a frame representing the function's scope
-   * @param schema the {@link ArgumentSchema} with which the function was defined
+   * @param schema the {@link FunctionSchema} with which the function was defined
    */
-  public Function(RootCallTarget callTarget, MaterializedFrame scope, ArgumentSchema schema) {
+  public Function(RootCallTarget callTarget, MaterializedFrame scope, FunctionSchema schema) {
     this(callTarget, scope, schema, null, null);
+  }
+
+  /**
+   * Creates a Function object from a {@link RootNode} and argument definitions.
+   *
+   * @param node the {@link RootNode} for the function logic
+   * @param callStrategy the {@link FunctionSchema.CallStrategy} to use for this function
+   * @param args argument definitons
+   * @return a Function object with specified behavior and arguments
+   */
+  public static Function fromBuiltinRootNode(
+      BuiltinRootNode node, FunctionSchema.CallStrategy callStrategy, ArgumentDefinition... args) {
+    RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(node);
+    FunctionSchema schema = new FunctionSchema(callStrategy, args);
+    return new Function(callTarget, null, schema);
   }
 
   /**
@@ -74,6 +90,15 @@ public final class Function implements TruffleObject {
    */
   public RootCallTarget getCallTarget() {
     return callTarget;
+  }
+
+  /**
+   * Gets the call strategy that should be used for this function.
+   *
+   * @return this function's call strategy
+   */
+  public FunctionSchema.CallStrategy getCallStrategy() {
+    return getSchema().getCallStrategy();
   }
 
   /**
@@ -90,7 +115,7 @@ public final class Function implements TruffleObject {
    *
    * @return the function's argument schema
    */
-  public ArgumentSchema getSchema() {
+  public FunctionSchema getSchema() {
     return schema;
   }
 
@@ -256,18 +281,5 @@ public final class Function implements TruffleObject {
     public static MaterializedFrame getLocalScope(Object[] arguments) {
       return (MaterializedFrame) arguments[0];
     }
-  }
-
-  /**
-   * Creates a Function object from a {@link RootNode} and argument definitions.
-   *
-   * @param node the {@link RootNode} for the function logic
-   * @param args argument definitons
-   * @return a Function object with specified behavior and arguments
-   */
-  public static Function fromRootNode(RootNode node, ArgumentDefinition... args) {
-    RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(node);
-    ArgumentSchema schema = new ArgumentSchema(args);
-    return new Function(callTarget, null, schema);
   }
 }

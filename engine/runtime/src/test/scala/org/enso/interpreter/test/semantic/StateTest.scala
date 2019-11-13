@@ -65,7 +65,7 @@ class StateTest extends InterpreterTest {
         |    acc = @get [@State];
         |    @println[@IO, acc];
         |    @put [@State, acc + n];
-        |    ifZero: [n, @get [@State], @stateSum [n-1]]
+        |    @ifZero [n, @get [@State], @stateSum [n-1]]
         |  };
         |  @run [@State, 0, @stateSum [10]]
         |}

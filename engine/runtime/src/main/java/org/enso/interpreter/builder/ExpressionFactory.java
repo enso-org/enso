@@ -331,19 +331,6 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
   }
 
   /**
-   * Creates a runtime node representing a conditional expression.
-   *
-   * @param cond the condition
-   * @param ifTrue the code to execute if {@code cond} is true
-   * @param ifFalse the code to execute if {@code cond} is false
-   * @return a runtime node representing the conditional
-   */
-  @Override
-  public ExpressionNode visitIf(AstExpression cond, AstExpression ifTrue, AstExpression ifFalse) {
-    return new IfZeroNode(cond.visit(this), ifTrue.visit(this), ifFalse.visit(this));
-  }
-
-  /**
    * Creates a runtime node representing an assignment expression.
    *
    * @param varName the name of the variable

@@ -2,15 +2,16 @@ package org.enso.interpreter.node.expression.builtin.state;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.oracle.truffle.api.nodes.RootNode;
 import org.enso.interpreter.Language;
+import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.state.Stateful;
 
 /** Root node for the builtin State.put function. */
 @NodeInfo(shortName = "State.put", description = "Root node for the builtin State.put function")
-public class PutStateNode extends RootNode {
+public class PutStateNode extends BuiltinRootNode {
   private PutStateNode(Language language) {
     super(language);
   }
@@ -35,8 +36,9 @@ public class PutStateNode extends RootNode {
    * @return a function wrapping this node
    */
   public static Function makeFunction(Language language) {
-    return Function.fromRootNode(
+    return Function.fromBuiltinRootNode(
         new PutStateNode(language),
+        FunctionSchema.CallStrategy.ALWAYS_DIRECT,
         new ArgumentDefinition(0, "this", ArgumentDefinition.ExecutionMode.EXECUTE),
         new ArgumentDefinition(1, "newState", ArgumentDefinition.ExecutionMode.EXECUTE));
   }

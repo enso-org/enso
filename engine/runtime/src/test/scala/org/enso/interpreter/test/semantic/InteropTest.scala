@@ -7,7 +7,7 @@ class InteropTest extends InterpreterTest {
     val code =
       """
         |@{
-        |  recurFun = { |i| ifZero: [i, 0, @recurFun [i - 1]] };
+        |  recurFun = { |i| @ifZero [i, 0, @recurFun [i - 1]] };
         |  recurFun
         |}
         |""".stripMargin

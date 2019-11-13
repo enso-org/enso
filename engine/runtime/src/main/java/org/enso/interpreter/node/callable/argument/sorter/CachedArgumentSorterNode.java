@@ -4,6 +4,7 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.BaseNode;
+import org.enso.interpreter.node.callable.ExecuteCallNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.InvokeCallableNodeGen;
 import org.enso.interpreter.node.callable.argument.ThunkExecutorNode;
@@ -12,7 +13,7 @@ import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo.ArgumentMapping;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo.ArgumentMappingBuilder;
 import org.enso.interpreter.runtime.callable.argument.Thunk;
-import org.enso.interpreter.runtime.callable.function.ArgumentSchema;
+import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.control.TailCallException;
 import org.enso.interpreter.runtime.state.Stateful;
@@ -26,12 +27,14 @@ public class CachedArgumentSorterNode extends BaseNode {
 
   private final Function originalFunction;
   private final ArgumentMapping mapping;
-  private final ArgumentSchema postApplicationSchema;
+  private final FunctionSchema postApplicationSchema;
   private @CompilerDirectives.CompilationFinal(dimensions = 1) boolean[] argumentShouldExecute;
-  @Children private ThunkExecutorNode[] executors;
+  private @Children ThunkExecutorNode[] executors;
   private final boolean appliesFully;
-  @Child private InvokeCallableNode oversaturatedCallableNode = null;
+  private @Child InvokeCallableNode oversaturatedCallableNode;
   private final InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode;
+  private @Child ExecuteCallNode directCall;
+  private @Child CallOptimiserNode loopingCall;
 
   /**
    * Creates a node that generates and then caches the argument mapping.
@@ -56,6 +59,39 @@ public class CachedArgumentSorterNode extends BaseNode {
     this.mapping = mapping.getAppliedMapping();
     this.postApplicationSchema = mapping.getPostApplicationSchema();
 
+    appliesFully = isFunctionFullyApplied(defaultsExecutionMode);
+
+    initializeOversaturatedCallNode(defaultsExecutionMode, argumentsExecutionMode);
+
+    argumentShouldExecute = this.mapping.getArgumentShouldExecute();
+
+    initializeCallNodes();
+  }
+
+  private void initializeCallNodes() {
+    if (postApplicationSchema.hasOversaturatedArgs()
+        || !originalFunction.getCallStrategy().shouldCallDirect(isTail())) {
+      this.loopingCall = CallOptimiserNode.build();
+    } else {
+      this.directCall = ExecuteCallNode.build();
+    }
+  }
+
+  private void initializeOversaturatedCallNode(
+      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
+      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode) {
+    if (postApplicationSchema.hasOversaturatedArgs()) {
+      oversaturatedCallableNode =
+          InvokeCallableNodeGen.create(
+              postApplicationSchema.getOversaturatedArguments(),
+              defaultsExecutionMode,
+              argumentsExecutionMode);
+      oversaturatedCallableNode.setTail(isTail());
+    }
+  }
+
+  private boolean isFunctionFullyApplied(
+      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode) {
     boolean functionIsFullyApplied = true;
     for (int i = 0; i < postApplicationSchema.getArgumentsCount(); i++) {
       boolean hasValidDefault =
@@ -67,18 +103,7 @@ public class CachedArgumentSorterNode extends BaseNode {
         break;
       }
     }
-    appliesFully = functionIsFullyApplied;
-
-    if (postApplicationSchema.hasOversaturatedArgs()) {
-      oversaturatedCallableNode =
-          InvokeCallableNodeGen.create(
-              postApplicationSchema.getOversaturatedArguments(),
-              defaultsExecutionMode,
-              argumentsExecutionMode);
-      oversaturatedCallableNode.setTail(isTail);
-    }
-
-    argumentShouldExecute = this.mapping.getArgumentShouldExecute();
+    return functionIsFullyApplied;
   }
 
   /**
@@ -133,33 +158,21 @@ public class CachedArgumentSorterNode extends BaseNode {
    * @param function the function this node is reordering arguments for
    * @param state the state to pass to the function
    * @param arguments the arguments to reorder
-   * @param optimiser a call optimiser node, capable of performing the actual function call
    * @return the provided {@code arguments} in the order expected by the cached {@link Function}
    */
-  public Stateful execute(
-      Function function, Object state, Object[] arguments, CallOptimiserNode optimiser) {
-    Object[] mappedAppliedArguments;
+  public Stateful execute(Function function, Object state, Object[] arguments) {
     if (argumentsExecutionMode.shouldExecute()) {
       state = executeArguments(arguments, state);
     }
 
-    if (originalFunction.getSchema().hasAnyPreApplied()) {
-      mappedAppliedArguments = function.clonePreAppliedArguments();
-    } else {
-      mappedAppliedArguments = new Object[this.postApplicationSchema.getArgumentsCount()];
-    }
-
-    mapping.reorderAppliedArguments(arguments, mappedAppliedArguments);
+    Object[] mappedAppliedArguments = prepareArguments(function, arguments);
 
     if (this.appliesFully()) {
       if (!postApplicationSchema.hasOversaturatedArgs()) {
-        if (this.isTail()) {
-          throw new TailCallException(function, state, mappedAppliedArguments);
-        } else {
-          return optimiser.executeDispatch(function, state, mappedAppliedArguments);
-        }
+        return doCall(function, state, mappedAppliedArguments);
       } else {
-        Stateful evaluatedVal = optimiser.executeDispatch(function, state, mappedAppliedArguments);
+        Stateful evaluatedVal =
+            loopingCall.executeDispatch(function, state, mappedAppliedArguments);
 
         return this.oversaturatedCallableNode.execute(
             evaluatedVal.getValue(),
@@ -176,6 +189,17 @@ public class CachedArgumentSorterNode extends BaseNode {
               mappedAppliedArguments,
               generateOversaturatedArguments(function, arguments)));
     }
+  }
+
+  private Object[] prepareArguments(Function function, Object[] arguments) {
+    Object[] mappedAppliedArguments;
+    if (originalFunction.getSchema().hasAnyPreApplied()) {
+      mappedAppliedArguments = function.clonePreAppliedArguments();
+    } else {
+      mappedAppliedArguments = new Object[this.postApplicationSchema.getArgumentsCount()];
+    }
+    mapping.reorderAppliedArguments(arguments, mappedAppliedArguments);
+    return mappedAppliedArguments;
   }
 
   /**
@@ -208,6 +232,16 @@ public class CachedArgumentSorterNode extends BaseNode {
     return oversaturatedArguments;
   }
 
+  private Stateful doCall(Function function, Object state, Object[] arguments) {
+    if (getOriginalFunction().getCallStrategy().shouldCallDirect(isTail())) {
+      return directCall.executeCall(function, state, arguments);
+    } else if (isTail()) {
+      throw new TailCallException(function, state, arguments);
+    } else {
+      return loopingCall.executeDispatch(function, state, arguments);
+    }
+  }
+
   /**
    * Determines if the provided function is the same as the cached one.
    *
@@ -228,11 +262,11 @@ public class CachedArgumentSorterNode extends BaseNode {
   }
 
   /**
-   * Returns the {@link ArgumentSchema} to use in case the function call is not fully saturated.
+   * Returns the {@link FunctionSchema} to use in case the function call is not fully saturated.
    *
-   * @return the call result {@link ArgumentSchema}.
+   * @return the call result {@link FunctionSchema}.
    */
-  public ArgumentSchema getPostApplicationSchema() {
+  public FunctionSchema getPostApplicationSchema() {
     return postApplicationSchema;
   }
 
