@@ -647,138 +647,197 @@ object AST {
     type Text = ASTOf[TextOf]
 
     sealed trait TextOf[T] extends ShapeOf[T] with LiteralOf[T] {
-      val body: Text.BodyOf[Text.Segment[T]]
-      val quoteChar: Char
-      def quoteRepr: String = quoteChar.toString * body.quote.asInt
-      def bodyRepr(implicit ev: Repr[T]): Repr.Builder =
-        R + body.lines.head + body.lines.tail.map(t => newline + t.off + t.elem)
+      def quote: Repr.Builder
     }
 
     object TextOf {
+      import Text._
+
       implicit def ftor: Functor[TextOf]  = semi.functor
       implicit def fold: Foldable[TextOf] = semi.foldable
-      implicit def repr[T: Repr]: Repr[TextOf[T]] =
-        t => R + t.quoteRepr + t.bodyRepr + t.quoteRepr
+      implicit def repr[T: Repr]: Repr[TextOf[T]] = {
+        case t: Line[T]       => Repr(t)
+        case t: Text.Block[T] => Repr(t)
+        case t: UnclosedOf[T] => Repr(t)
+      }
       implicit def ozip[T: Repr]: OffsetZip[TextOf, T] = {
-        case t: Text.RawOf[T] => OffsetZip(t)
-        case t: Text.FmtOf[T] => OffsetZip(t)
+        case t: Line[T]       => OffsetZip(t)
+        case t: Text.Block[T] => OffsetZip(t)
+        case t: UnclosedOf[T] => OffsetZip(t)
       }
     }
+
     object Text {
-
-      import Segment.implicits._
-
-      def apply(body: BodyOf[Segment._Fmt[AST]]): Fmt = Fmt(body)
 
       //// Definition ////
 
-      type Block[+T] = List1[LineOf[T]]
+      sealed trait Line[T] extends TextOf[T]
+      sealed trait Block[T] extends TextOf[T]
 
-      type Raw      = ASTOf[RawOf]
-      type Fmt      = ASTOf[FmtOf]
-      type Unclosed = ASTOf[UnclosedOf]
-
-      case class LineOf[+T](off: Int, elem: List[T])
-
-      case class BodyOf[+T](quote: Quote, lines: Text.Block[T])
-
-      case class RawOf[T](body: BodyOf[Segment._Raw[T]])
+      final case class UnclosedOf[T](line: Line[T])
           extends TextOf[T]
-          with Phantom {
-        val quoteChar = '"'
-      }
-      case class FmtOf[T](body: BodyOf[Segment._Fmt[T]]) extends TextOf[T] {
-        val quoteChar = '\''
-      }
-      case class UnclosedOf[T](text: TextOf[T]) extends AST.InvalidOf[T]
-
-      // The body of the text. For a given quote type `t`, `q` can be either
-      // single or triple. Triple allows for using that quote type within the
-      // body. `q` is the number of the quote type `t`.
-      // - Body contains expression segments for the interpolation.
-      object Body {
-        def apply[S <: Segment[AST]](q: Quote, s: S*) =
-          BodyOf(q, List1(LineOf(0, s.to[List])))
+          with AST.InvalidOf[T] {
+        def quote = line.quote
       }
 
-      // These are non-interpolated strings, using `"` as the quote type.
-      object Raw {
-        def apply(body: BodyOf[Segment._Raw[AST]]): Raw = RawOf(body)
-        def unapply(t: AST): Option[BodyOf[Segment._Raw[AST]]] =
-          Unapply[Raw].run(t => t.body)(t)
-      }
+      final case class InvalidQuoteOf[T](quote: Builder)
+          extends AST.InvalidOf[T]
+          with Phantom
 
-      // These are interpolated strings, using `'` as the quote type.
-      object Fmt {
-        def apply(body: BodyOf[Segment._Fmt[AST]]): Fmt = FmtOf(body)
-        def unapply(t: AST): Option[BodyOf[Segment._Fmt[AST]]] =
-          Unapply[Fmt].run(t => t.body)(t)
-      }
+      final case class InlineBlockOf[T](quote: Builder)
+          extends AST.InvalidOf[T]
+          with Phantom
 
-      // An unclosed text literal (of either kind).
-      object Unclosed {
-        def apply(text: TextOf[AST]): Unclosed = UnclosedOf(text)
-        def unapply(t: AST): Option[TextOf[AST]] =
-          Unapply[Unclosed].run(t => t.text)(t)
-      }
+      object Line {
+        final case class Raw[T](text: List[Segment._Raw[T]])
+            extends Line[T]
+            with Phantom {
+          val quote = '"'
+        }
+        final case class Fmt[T](text: List[Segment._Fmt[T]]) extends Line[T] {
+          val quote = '\''
+        }
 
-      //// Instances ////
+        ////// INSTANCES /////
+        import Segment.implicits._
 
-      object RawOf {
-        implicit def ftor: Functor[RawOf]  = semi.functor
-        implicit def fold: Foldable[RawOf] = semi.foldable
-        implicit def repr[T: Repr]: Repr[RawOf[T]] =
-          t => R + t.quoteRepr + t.bodyRepr + t.quoteRepr
-        implicit def ozip[T]: OffsetZip[RawOf, T] = t => t.coerce
-      }
-      object FmtOf {
-        implicit def ftor: Functor[FmtOf]  = semi.functor
-        implicit def fold: Foldable[FmtOf] = semi.foldable
-        implicit def repr[T: Repr]: Repr[FmtOf[T]] =
-          t => R + t.quoteRepr + t.bodyRepr + t.quoteRepr
-        implicit def ozip[T: Repr]: OffsetZip[FmtOf, T] = t => {
-          var offset = Index.Start
-          val lines = for (line <- t.body.lines) yield {
-            val offLine = line.map {
-              OffsetZip(_).map { case (o, e) => (offset + o.asSize, e) }
+        implicit def ftor: Functor[Line]  = semi.functor
+        implicit def fold: Foldable[Line] = semi.foldable
+        implicit def repr[T: Repr]: Repr[Line[T]] = {
+          case t: Raw[T] => t.quote + t.text + t.quote
+          case t: Fmt[T] => t.quote + t.text + t.quote
+        }
+        implicit def ozip[T: Repr]: OffsetZip[Line, T] =  {
+          case t: Raw[T]       => t.coerce
+          case t: Fmt[T]       =>
+            var offset = Index(t.quote.span)
+            val text2 = for (elem <- t.text) yield {
+              val offElem = elem.map(offset -> _)
+              offset += Size(elem.span)
+              offElem
             }
-            offset += Size(line.span)
-            offLine
-          }
-          t.copy(body = t.body.copy(lines = lines))
+            Line.Fmt(text2)
         }
       }
-      object LineOf {
-        implicit def ftor: Functor[LineOf]          = semi.functor
-        implicit def fold: Foldable[LineOf]         = semi.foldable
-        implicit def repr[T: Repr]: Repr[LineOf[T]] = R + _.elem.map(R + _)
-        implicit def ozip[T: Repr]: OffsetZip[LineOf, T] = t => {
-          var offset = Index(t.off)
-          val elem = for (elem <- t.elem) yield {
-            val offElem = (offset, elem)
-            offset += Size(elem.span)
-            offElem
+      object Block {
+        final case class Line[+T](emptyLines: List[Int], text: List[T])
+
+        final case class Raw[T](
+          text: List[Line[Segment._Raw[T]]],
+          spaces: Int,
+          offset: Int
+        ) extends Block[T]
+            with Phantom {
+          val quote = "\"\"\""
+        }
+        case class Fmt[T](
+          text: List[Line[Segment._Fmt[T]]],
+          spaces: Int,
+          offset: Int
+        ) extends Block[T] {
+          val quote = "'''"
+        }
+
+        ///// INSTANCES /////
+
+        import Segment.implicits._
+
+        implicit def ftor: Functor[Block]  = semi.functor
+        implicit def fold: Foldable[Block] = semi.foldable
+        implicit def repr[T: Repr]: Repr[Block[T]] = t => {
+          val q = t.quote
+
+          def line(off: Int, l: Line[Segment._Fmt[T]]): Builder =
+            R + l.emptyLines.map(newline + _) + newline + off + l.text
+
+          t match {
+            case Raw(text, s, off) => q + s + text.map(line(off, _))
+            case Fmt(text, s, off) => q + s + text.map(line(off, _))
           }
-          t.copy(elem = elem)
+        }
+        implicit def ozip[T: Repr]: OffsetZip[Block, T] =  {
+          case body: Raw[T] => body.coerce
+          case body: Fmt[T] =>
+            var offset = Index(body.quote.span)
+            val text =
+              for (line <- body.text) yield {
+                offset += Size(line.emptyLines.length + line.emptyLines.sum)
+                offset += Size(1 + body.offset)
+                val text = for (elem <- line.text) yield {
+                  val offElem = elem.map(offset -> _)
+                  offset += Size(elem.span)
+                  offElem
+                }
+                line.copy(text = text)
+              }
+            body.copy(text = text)
         }
       }
+
+      ////// CONSTRUCTORS ///////
+      type Unclosed = ASTOf[UnclosedOf]
+      object Unclosed {
+        val any = UnapplyByType[Unclosed]
+        def unapply(t: AST) =
+          Unapply[Unclosed].run(t => t.line)(t)
+        def apply(segment: Segment.Fmt*): Unclosed =
+          UnclosedOf(Line.Fmt(segment.to[List]))
+        object Raw {
+          def apply(segment: Segment.Raw*): Unclosed =
+            Text.UnclosedOf(Line.Raw(segment.to[List]))
+        }
+      }
+      type InvalidQuote = ASTOf[InvalidQuoteOf]
+      object InvalidQuote {
+        val any = UnapplyByType[InvalidQuote]
+        def unapply(t: AST) =
+          Unapply[InvalidQuote].run(t => t.quote)(t)
+        def apply(quote: String): InvalidQuote = InvalidQuoteOf[AST](quote)
+      }
+      type InlineBlock = ASTOf[InlineBlockOf]
+      object InlineBlock {
+        val any = UnapplyByType[InlineBlock]
+        def unapply(t: AST) =
+          Unapply[InlineBlock].run(t => t.quote)(t)
+        def apply(quote: String): InlineBlock = InlineBlockOf[AST](quote)
+      }
+
+      def apply(text: TextOf[AST]): Text = text
+      def apply(segment: Segment.Fmt*): Text   = Text(Line.Fmt(segment.to[List]))
+      def apply(spaces: Int, off: Int, line: Block.Line[Segment.Fmt]*): Text =
+        Text(Block.Fmt(line.to[List], spaces, off))
+
+      object Raw {
+        def apply(segment: Segment.Raw*): Text = Text(Line.Raw(segment.to[List]))
+        def apply(spaces: Int, off: Int, line: Block.Line[Segment.Raw]*): Text =
+          Text(Block.Raw(line.to[List], spaces, off))
+      }
+
+      /////// INSTANCES //////////
+
       object UnclosedOf {
+        import Segment.implicits._
+
         implicit def ftor: Functor[UnclosedOf]  = semi.functor
         implicit def fold: Foldable[UnclosedOf] = semi.foldable
-        implicit def repr[T: Repr]: Repr[UnclosedOf[T]] =
-          t => R + t.text.quoteRepr + t.text.bodyRepr
+        implicit def repr[T: Repr]: Repr[UnclosedOf[T]] = {
+          case UnclosedOf(t: Line.Raw[T]) => t.quote + t.text
+          case UnclosedOf(t: Line.Fmt[T]) => t.quote + t.text
+        }
         implicit def ozip[T: Repr]: OffsetZip[UnclosedOf, T] =
-          t => t.copy(text = OffsetZip(t.text))
+          t => t.copy(line = OffsetZip(t.line))
       }
-
-      ///////////////
-      //// Quote ////
-      ///////////////
-
-      sealed trait Quote { val asInt: Int }
-      object Quote {
-        final case object Single extends Quote { val asInt = 1 }
-        final case object Triple extends Quote { val asInt = 3 }
+      object InvalidQuoteOf {
+        implicit def ftor: Functor[InvalidQuoteOf]  = semi.functor
+        implicit def fold: Foldable[InvalidQuoteOf] = semi.foldable
+        implicit def repr[T: Repr]: Repr[InvalidQuoteOf[T]] = _.quote
+        implicit def ozip[T: Repr]: OffsetZip[InvalidQuoteOf, T] = t => t.coerce
+      }
+      object InlineBlockOf {
+        implicit def ftor: Functor[InlineBlockOf]  = semi.functor
+        implicit def fold: Foldable[InlineBlockOf] = semi.foldable
+        implicit def repr[T: Repr]: Repr[InlineBlockOf[T]] = _.quote
+        implicit def ozip[T: Repr]: OffsetZip[InlineBlockOf, T] = t => t.coerce
       }
 
       /////////////////
@@ -1071,11 +1130,16 @@ object AST {
     ): Block = BlockOf(typ, indent, emptyLines, firstLine, lines)
 
     def apply(
-      typ: Type,
       indent: Int,
-      firstLine: LineOf[AST],
-      lines: List[LineOf[Option[AST]]]
-    ): Block = Block(typ, indent, List(), firstLine, lines)
+      firstLine: AST,
+      lines: AST*
+    ): Block = Block(
+      Continuous,
+      indent,
+      List(),
+      Line(firstLine),
+      lines.to[List].map(ast => Line(Some(ast)))
+    )
 
     val any = UnapplyByType[Block]
     def unapply(t: AST) =
@@ -1183,7 +1247,7 @@ object AST {
       segs: Shifted.List1[Match.SegmentOf[T]],
       resolved: AST
     ) extends MacroOf[T] {
-      def path(): List1[AST] = segs.toList1().map(_.el.head)
+      def path: List1[AST] = segs.toList1().map(_.el.head)
     }
 
     object MatchOf {

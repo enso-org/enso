@@ -47,8 +47,10 @@ object AstToIr {
     case AST.Invalid.Unrecognized(str) => IR.Error.UnrecognisedSymbol(str)
     case AST.Ident.InvalidSuffix(identifier, suffix) =>
       IR.Error.InvalidSuffix(processIdent(identifier), suffix)
-    case AST.Literal.Text.Unclosed(text) =>
-      IR.Error.UnclosedText(text.body.lines.toList.map(processLine))
+    case AST.Literal.Text.Unclosed(AST.Literal.Text.Line.Raw(text)) =>
+      IR.Error.UnclosedText(List(processLine(text)))
+    case AST.Literal.Text.Unclosed(AST.Literal.Text.Line.Fmt(text)) =>
+      IR.Error.UnclosedText(List(processLine(text)))
     case _ =>
       throw new RuntimeException(
         "Fatal: Unhandled entity in processInvalid = " + invalid
@@ -102,12 +104,14 @@ object AstToIr {
   def processLiteral(literal: AST.Literal): IR.Literal = {
     literal match {
       case AST.Literal.Number(base, number) => IR.Literal.Number(number, base)
-      case AST.Literal.Text.Raw(body) => {
-        IR.Literal.Text.Raw(body.lines.toList.map(processLine))
-      }
-      case AST.Literal.Text.Fmt(body) => {
-        IR.Literal.Text.Format(body.lines.toList.map(processLine))
-      }
+
+//      TODO [AA] Handle text properly
+//      case AST.Literal.Text.Raw(body) =>
+//        IR.Literal.Text.Raw(body.lines.toList.map(processLine))
+//
+//      case AST.Literal.Text.Line.Fmt(lines) =>
+//        IR.Literal.Text.Format(lines.toList.map(processLine))
+
       case _ => throw new UnhandledEntity(literal, "processLiteral")
     }
   }
@@ -119,9 +123,9 @@ object AstToIr {
     * @return a representation of `line` in the compiler's [[IR IR]]
     */
   def processLine(
-    line: AST.Literal.Text.LineOf[AST.Literal.Text.Segment[AST]]
+    line: List[AST.Literal.Text.Segment[AST]]
   ): IR.Literal.Text.Line =
-    IR.Literal.Text.Line(line.elem.map(processTextSegment))
+    IR.Literal.Text.Line(line.map(processTextSegment))
 
   /**
     * Transforms a segment of text from the parser AST.

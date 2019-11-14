@@ -36,9 +36,9 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
   val digit: Pattern       = range('0', '9')
   val hex: Pattern         = digit | range('a', 'f') | range('A', 'F')
   val alphaNum: Pattern    = digit | lowerLetter | upperLetter
-  val whitespace0: Pattern = ' '.many
   val space: Pattern       = ' '.many1
   val newline: Pattern     = '\n'
+  val emptyLine: Pattern   = ' '.many >> newline
 
   ////////////////
   //// Result ////
@@ -286,90 +286,117 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
   //// Text ////
   //////////////
 
-  import AST.Text.Quote
-
   class TextState(
-    var lines: List[AST.Text.LineOf[AST.Text.Segment._Fmt[AST]]],
-    var lineBuilder: List[AST.Text.Segment.Fmt],
-    val quote: Quote
+    var offset: Int,
+    var spaces: Int,
+    var lines: List[AST.Text.Block.Line[AST.Text.Segment.Fmt]],
+    var emptyLines: List[Int],
+    var lineBuilder: List[AST.Text.Segment.Fmt]
   )
 
   final object text {
 
+    import AST.Text.Block.Line
+
     val Segment = AST.Text.Segment
 
     var stack: List[TextState] = Nil
-    var current                = new TextState(Nil, Nil, Quote.Single)
+    var text: TextState        = _
 
     def push(): Unit = logger.trace {
-      stack +:= current
+      stack +:= text
     }
 
     def pop(): Unit = logger.trace {
-      current = stack.head
-      stack   = stack.tail
+      text  = stack.head
+      stack = stack.tail
     }
 
-    def submitEmpty(groupIx: State, quoteNum: Quote): Unit = logger.trace {
-      if (groupIx == RAW)
-        result.app(AST.Text.Raw(AST.Text.Body(quoteNum)))
-      else
-        result.app(AST.Text.Fmt(AST.Text.Body(quoteNum)))
+    def onInvalidQuote(): Unit = logger.trace {
+      result.app(AST.Text.InvalidQuote(currentMatch))
     }
 
-    def finishCurrent(): AST.Text = logger.trace {
-      onSubmitLine()
-      val t     = current
-      val body  = AST.Text.BodyOf(t.quote, List1(t.lines.reverse).get)
-      val isRaw = state.current == RAW
+    def onInlineBlock(): Unit = logger.trace {
+      result.app(AST.Text.InlineBlock(currentMatch))
+    }
+
+    def finish(
+      raw: List[Line[Segment.Raw]] => AST,
+      fmt: List[Line[Segment.Fmt]] => AST
+    ): Unit = logger.trace {
+      submitLine()
+      val isFMT = state.current.parent.contains(FMT)
+      val body  = text.lines.reverse
+      val t =
+        if (isFMT) fmt(body)
+        else raw(body.asInstanceOf[List[Line[Segment.Raw]]])
       pop()
-      off.pop()
       state.end()
-      if (isRaw)
-        AST.Text.Raw(body.asInstanceOf[AST.Text.BodyOf[Segment._Raw[AST]]])
-      else
-        AST.Text.Fmt(body)
-    }
-
-    def submit(): Unit = logger.trace {
-      result.app(finishCurrent())
+      result.app(t)
     }
 
     def submit(segment: Segment.Fmt): Unit = logger.trace {
-      current.lineBuilder +:= segment
+      text.lineBuilder +:= segment
+    }
+
+    def submit(): Unit = logger.trace {
+      finish(t => AST.Text.Raw(t.head.text: _*), t => AST.Text(t.head.text: _*))
     }
 
     def submitUnclosed(): Unit = logger.trace {
-      result.app(AST.Text.UnclosedOf(finishCurrent()))
+      rewind()
+      val Text = AST.Text.Unclosed
+      finish(t => Text.Raw(t.head.text: _*), t => Text(t.head.text: _*))
     }
 
-    def onBegin(grp: State, quoteSize: Quote): Unit = logger.trace {
+    def submitDoubleQuote(): Unit = logger.trace {
+      val Text = AST.Text.Unclosed
+      finish(t => Text.Raw(t.head.text: _*), t => Text(t.head.text: _*))
+      onInvalidQuote()
+    }
+
+    def onEndOfBlock(): Unit = logger.trace {
+      if (text.lineBuilder.isEmpty)
+        block.emptyLines = text.emptyLines ++ block.emptyLines
+      val (s, o) = (text.spaces, text.offset)
+      finish(t => AST.Text.Raw(s, o, t: _*), t => AST.Text(s, o, t: _*))
+      off.push()
+      rewind()
+    }
+
+    def onBegin(grp: State): Unit = logger.trace {
       push()
-      off.push()
-      off.push()
-      current = new TextState(Nil, Nil, quoteSize)
       state.begin(grp)
+      text = new TextState(0, 0, Nil, Nil, Nil)
     }
 
-    def submitPlainSegment(): Unit = logger.trace {
-      current.lineBuilder = current.lineBuilder match {
-        case Segment._Plain(t) :: _ =>
-          Segment.Plain(t + currentMatch) :: current.lineBuilder.tail
-        case _ => Segment.Plain(currentMatch) :: current.lineBuilder
+    def onBeginBlock(grp: State): Unit = logger.trace {
+      val offset = if (state.current == block.FIRSTCHAR) {
+        state.end()
+        block.current.offset
+      } else
+        OFFSET_OF_FIRST_LINE_FOUND
+      if (currentMatch.last == '\n') {
+        onBegin(grp)
+        text.offset = offset
+        text.spaces = currentMatch.length - BLOCK_QUOTE_SIZE - 1
+        state.begin(NEWLINE)
+      } else {
+        val spaces = currentMatch.length - BLOCK_QUOTE_SIZE
+        result.app(
+          if (grp == FMT_BLCK) AST.Text(spaces = spaces, offset)
+          else AST.Text.Raw(spaces             = spaces, offset)
+        )
+        onEOF()
       }
     }
 
-    def onQuote(quoteSize: Quote): Unit = logger.trace {
-      if (current.quote == Quote.Triple
-          && quoteSize == Quote.Single)
-        submitPlainSegment()
-      else if (current.quote == Quote.Single
-               && quoteSize == Quote.Triple) {
-        val groupIx = state.current
-        submit()
-        submitEmpty(groupIx, Quote.Single)
-      } else
-        submit()
+    def submitPlainSegment(): Unit = logger.trace {
+      text.lineBuilder = text.lineBuilder match {
+        case Segment._Plain(t) :: _ =>
+          Segment.Plain(t + currentMatch) :: text.lineBuilder.tail
+        case _ => Segment.Plain(currentMatch) :: text.lineBuilder
+      }
     }
 
     def onEscape(code: Segment.Escape): Unit = logger.trace {
@@ -426,58 +453,109 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
       }
     }
 
-    def onEOF(): Unit = logger.trace {
+    def onTextEOF(): Unit = logger.trace {
       submitUnclosed()
       rewind()
     }
 
-    def onSubmitLine(): Unit = logger.trace {
-      off.pop()
-      current.lines +:= AST.Text.LineOf(off.use(), current.lineBuilder.reverse)
-      current.lineBuilder = Nil
+    def submitLine(): Unit = logger.trace {
+      if (state.current == FMT_LINE || state.current == RAW_LINE || text.lineBuilder.nonEmpty) {
+        text.lines +:= Line(text.emptyLines.reverse, text.lineBuilder.reverse)
+        text.lineBuilder = Nil
+        text.emptyLines  = Nil
+      }
+    }
+
+    def onEndOfLine(): Unit = logger.trace {
+      state.begin(NEWLINE)
+      submitLine()
     }
 
     def onNewLine(): Unit = logger.trace {
       state.end()
-      onSubmitLine()
-      off.on()
-      off.push()
+      if (text.offset == OFFSET_OF_FIRST_LINE_FOUND)
+        text.offset = currentMatch.length
+      val leadingSpaces = currentMatch.length - text.offset
+      if (leadingSpaces < 0) {
+        onEndOfBlock()
+        state.begin(block.NEWLINE)
+      } else if (leadingSpaces != 0)
+        text.lineBuilder +:= Segment.Plain(" " * leadingSpaces)
     }
 
+    def onEmptyLine(): Unit = logger.trace {
+      text.emptyLines :+= currentMatch.length - 1
+    }
+
+    def onEOFNewLine(): Unit = logger.trace {
+      state.end()
+      onEndOfBlock()
+      state.begin(block.NEWLINE)
+    }
+
+    val BLOCK_QUOTE_SIZE           = 3
+    val OFFSET_OF_FIRST_LINE_FOUND = -1
+
+    val fmtBlock   = "'''" >> space.opt >> (eof | newline)
+    val rawBlock   = "\"\"\"" >> space.opt >> (eof | newline)
     val fmtChar    = noneOf("'`\\\n")
     val escape_int = "\\" >> num.decimal
     val escape_u16 = "\\u" >> repeat(fmtChar, 0, 4)
     val escape_u32 = "\\U" >> repeat(fmtChar, 0, 8)
     val fmtSeg     = fmtChar.many1
     val rawSeg     = noneOf("\"\n").many1
+    val fmtBSeg    = noneOf("\n\\`").many1
+    val rawBSeg    = noneOf("\n").many1
 
     val FMT: State         = state.define("Formatted Text")
-    val RAW: State         = state.define("Raw Text")
+    val FMT_LINE: State    = state.define("Formatted Line Of Text")
+    val RAW_LINE: State    = state.define("Raw Line Of Text")
+    val FMT_BLCK: State    = state.define("Formatted Block Of Text")
+    val RAW_BLCK: State    = state.define("Raw Block Of Text")
     val NEWLINE: State     = state.define("Text Newline")
     val INTERPOLATE: State = state.define("Interpolate")
     INTERPOLATE.parent = ROOT
+    FMT_LINE.parent    = FMT
+    FMT_BLCK.parent    = FMT
   }
 
-  ROOT     || '`'         || text.onInterpolateEnd()
-  text.FMT || '`'         || text.onInterpolateBegin()
-  ROOT     || "'"         || text.onBegin(text.FMT, Quote.Single)
-  ROOT     || "'''"       || text.onBegin(text.FMT, Quote.Triple)
-  text.FMT || "'"         || text.onQuote(Quote.Single)
-  text.FMT || "'''"       || text.onQuote(Quote.Triple)
-  text.FMT || text.fmtSeg || text.submitPlainSegment()
-  text.FMT || eof         || text.onEOF()
-  text.FMT || '\n'        || state.begin(text.NEWLINE)
+  ROOT     || '`' || text.onInterpolateEnd()
+  text.FMT || '`' || text.onInterpolateBegin()
 
-  ROOT     || "\""        || text.onBegin(text.RAW, Quote.Single)
-  ROOT     || "\"\"\""    || text.onBegin(text.RAW, Quote.Triple)
-  text.RAW || "\""        || text.onQuote(Quote.Single)
-  text.RAW || "$$$$$"     || {}
-  text.RAW || "\"\"\""    || text.onQuote(Quote.Triple)
-  text.RAW || text.rawSeg || text.submitPlainSegment()
-  text.RAW || eof         || text.onEOF()
-  text.RAW || '\n'        || state.begin(text.NEWLINE)
+  ROOT || "'''" >> "'".many1     || text.onInvalidQuote()
+  ROOT || "\"\"\"" >> "\"".many1 || text.onInvalidQuote()
 
-  text.NEWLINE || space.opt || text.onNewLine()
+  ROOT            || "'"           || text.onBegin(text.FMT_LINE)
+  text.FMT_LINE   || "'"           || text.submit()
+  text.FMT_LINE   || "''"          || text.submitDoubleQuote()
+  text.FMT_LINE   || "'".many1     || text.submitUnclosed()
+  text.FMT_LINE   || text.fmtSeg   || text.submitPlainSegment()
+  text.FMT_LINE   || eof           || text.onTextEOF()
+  text.FMT_LINE   || newline       || text.submitUnclosed()
+  block.FIRSTCHAR || text.fmtBlock || text.onBeginBlock(text.FMT_BLCK)
+  ROOT            || text.fmtBlock || text.onBeginBlock(text.FMT_BLCK)
+  ROOT            || "'''"         || text.onInlineBlock()
+  text.FMT_BLCK   || text.fmtBSeg  || text.submitPlainSegment()
+  text.FMT_BLCK   || eof           || text.onEndOfBlock()
+  text.FMT_BLCK   || newline       || text.onEndOfLine()
+
+  ROOT            || '"'           || text.onBegin(text.RAW_LINE)
+  text.RAW_LINE   || '"'           || text.submit()
+  text.RAW_LINE   || "\"\""        || text.submitDoubleQuote()
+  text.RAW_LINE   || '"'.many1     || text.submitUnclosed()
+  text.RAW_LINE   || text.rawSeg   || text.submitPlainSegment()
+  text.RAW_LINE   || eof           || text.onTextEOF()
+  text.RAW_LINE   || newline       || text.submitUnclosed()
+  block.FIRSTCHAR || text.rawBlock || text.onBeginBlock(text.RAW_BLCK)
+  ROOT            || text.rawBlock || text.onBeginBlock(text.RAW_BLCK)
+  ROOT            || "\"\"\""      || text.onInlineBlock()
+  text.RAW_BLCK   || text.rawBSeg  || text.submitPlainSegment()
+  text.RAW_BLCK   || eof           || text.onEndOfBlock()
+  text.RAW_BLCK   || newline       || text.onEndOfLine()
+
+  text.NEWLINE || space.opt            || text.onNewLine()
+  text.NEWLINE || space.opt >> newline || text.onEmptyLine()
+  text.NEWLINE || space.opt >> eof     || text.onEOFNewLine()
 
   AST.Text.Segment.Escape.Character.codes.foreach { code =>
     val char = s"text.Segment.Escape.Character.$code"
@@ -506,7 +584,7 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
   class BlockState(
     val isOrphan: Boolean,
     var isValid: Boolean,
-    var indent: Int,
+    var offset: Int,
     var emptyLines: List[Int],
     var firstLine: Option[AST.Block.Line.NonEmpty],
     var lines: List[AST.Block.OptLine]
@@ -536,7 +614,7 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
       AST.Block(
         current.isOrphan,
         AST.Block.Continuous,
-        current.indent,
+        current.offset,
         current.emptyLines,
         unwrap(current.firstLine),
         current.lines.reverse
@@ -548,15 +626,9 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
       result.pop()
       off.pop()
       pop()
-      val block2 = result.last() match {
-        case None => block
-        case Some(ast) =>
-          ast match {
-            case AST.Opr.any(_) =>
-              block.replaceType(AST.Block.Discontinuous): AST.Block
-            case _ => block
-
-          }
+      val block2: AST.Block = result.last() match {
+        case Some(AST.Opr.any(_)) => block.replaceType(AST.Block.Discontinuous)
+        case _                    => block
       }
       result.app(block2)
       off.push()
@@ -630,9 +702,9 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
     def onNewLine(): Unit = logger.trace {
       state.end()
       off.on()
-      if (off.current == current.indent)
+      if (off.current == current.offset)
         submitLine()
-      else if (off.current > current.indent)
+      else if (off.current > current.offset)
         onBegin(off.use())
       else
         onEnd(off.use())
@@ -640,8 +712,8 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
     }
 
     def onEnd(newIndent: Int): Unit = logger.trace {
-      while (newIndent < current.indent) submit()
-      if (newIndent > current.indent) {
+      while (newIndent < current.offset) submit()
+      if (newIndent > current.offset) {
         logger.log("Block with invalid indentation")
         onBegin(newIndent)
         current.isValid = false
@@ -656,13 +728,13 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
     val FIRSTCHAR = state.define("First Char")
   }
 
-  ROOT            || newline              || block.onEndLine()
-  block.NEWLINE   || space.opt >> newline || block.onEmptyLine()
-  block.NEWLINE   || space.opt >> eof     || block.onEOFLine()
-  block.NEWLINE   || space.opt            || block.onNewLine()
-  block.MODULE    || space.opt >> newline || block.onEmptyLine()
-  block.MODULE    || space.opt            || block.onModuleBegin()
-  block.FIRSTCHAR || always               || state.end()
+  ROOT            || newline          || block.onEndLine()
+  block.NEWLINE   || emptyLine        || block.onEmptyLine()
+  block.NEWLINE   || space.opt >> eof || block.onEOFLine()
+  block.NEWLINE   || space.opt        || block.onNewLine()
+  block.MODULE    || emptyLine        || block.onEmptyLine()
+  block.MODULE    || space.opt        || block.onModuleBegin()
+  block.FIRSTCHAR || always           || state.end()
 
   ////////////////
   /// Defaults ///

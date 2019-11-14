@@ -172,88 +172,77 @@ class ParserTest extends FlatSpec with Matchers {
 
   import Text.Segment.implicits.txtFromString
 
-  val q1 = Text.Quote.Single
-  val q3 = Text.Quote.Triple
+  def line(s: String, empty: Int*) =
+    Text.Block.Line(empty.to[List], List(txtFromString[AST](s)))
+  def line(segment: AST.Text.Segment.Fmt, empty: Int*) =
+    Text.Block.Line(empty.to[List], List(segment))
 
-  "'"       ?= Text.Unclosed(Text(Text.Body(q1)))
-  "''"      ?= Text(Text.Body(q1))
-  "'''"     ?= Text.Unclosed(Text(Text.Body(q3)))
-  "''''"    ?= Text.Unclosed(Text(Text.Body(q3, "'")))
-  "'''''"   ?= Text.Unclosed(Text(Text.Body(q3, "''")))
-  "''''''"  ?= Text(Text.Body(q3))
-  "'''''''" ?= Text(Text.Body(q3)) $ Text.Unclosed(Text(Text.Body(q1)))
-  "'a'"     ?= Text(Text.Body(q1, "a"))
-  "'a"      ?= Text.Unclosed(Text(Text.Body(q1, "a")))
-  "'\"'"    ?= Text(Text.Body(q1, "\""))
-  "'a'''"   ?= Text(Text.Body(q1, "a")) $ Text(Text.Body(q1))
-  "'''a'''" ?= Text(Text.Body(q3, "a"))
-  "'''a'"   ?= Text.Unclosed(Text(Text.Body(q3, "a'")))
-  "'''a''"  ?= Text.Unclosed(Text(Text.Body(q3, "a''")))
+  "'"    ?= Text.Unclosed()
+  "''"   ?= Text()
+  "'''"  ?= Text(0, 0)
+  "'''a" ?= Text.InlineBlock("'''") $ "a"
+  "''a"  ?= Text() $ "a"
+  "'a'"  ?= Text("a")
+  "'a"   ?= Text.Unclosed("a")
+  "'a''" ?= Text.Unclosed("a") $ Text.InvalidQuote("''")
+  "'\"'" ?= Text("\"")
 
-  "\""            ?= Text.Unclosed(Text.Raw(Text.Body(q1)))
-  "\"\""          ?= Text.Raw(Text.Body(q1))
-  "\"\"\""        ?= Text.Unclosed(Text.Raw(Text.Body(q3)))
-  "\"\"\"\""      ?= Text.Unclosed(Text.Raw(Text.Body(q3, "\"")))
-  "\"\"\"\"\""    ?= Text.Unclosed(Text.Raw(Text.Body(q3, "\"\"")))
-  "\"\"\"\"\"\""  ?= Text.Raw(Text.Body(q3))
-  "\"a\""         ?= Text.Raw(Text.Body(q1, "a"))
-  "\"a"           ?= Text.Unclosed(Text.Raw(Text.Body(q1, "a")))
-  "\"a\"\"\""     ?= Text.Raw(Text.Body(q1, "a")) $ Text.Raw(Text.Body(q1))
-  "\"\"\"a\"\"\"" ?= Text.Raw(Text.Body(q3, "a"))
-  "\"\"\"a\""     ?= Text.Unclosed(Text.Raw(Text.Body(q3, "a\"")))
-  "\"\"\"a\"\""   ?= Text.Unclosed(Text.Raw(Text.Body(q3, "a\"\"")))
-  "\"\"\"\"\"\"\"" ?= Text.Raw(Text.Body(q3)) $ Text.Unclosed(
-    Text.Raw(Text.Body(q1))
-  )
+  "''' \n\n X\n\n Y"    ?= Text(1, 0, line(" X", 0), line(" Y", 0))
+  "a '''\n\n\n X\n\n Y" ?= "a" $_ Text(0, 1, line("X", 0, 0), line("Y", 0))
 
-  "'''\nX\n Y\n'''" ?= Text(
-    Text.BodyOf(
-      q3,
-      List1(
-        Text.LineOf(0, Nil),
-        Text.LineOf(0, List("X")),
-        Text.LineOf(1, List("Y")),
-        Text.LineOf(0, Nil)
-      )
-    )
-  )
+  "\""      ?= Text.Unclosed.Raw()
+  "\"\""    ?= Text.Raw()
+  "\"\"\""  ?= Text.Raw(0, 0)
+  "\"\"\"a" ?= Text.InlineBlock("\"\"\"") $ "a"
+  "\"\"a"   ?= Text.Raw() $ "a"
+  "\"a\""   ?= Text.Raw("a")
+  "\"a"     ?= Text.Unclosed.Raw("a")
+  "\"a\"\"" ?= Text.Unclosed.Raw("a") $ Text.InvalidQuote("\"\"")
+  "\"'\""   ?= Text.Raw("'")
+
+  "\"\"\" \n\n X\n\n Y"    ?= Text.Raw(1, 0, line(" X", 0), line(" Y", 0))
+  "a \"\"\"\n\n\n X\n\n Y" ?= "a" $_ Text.Raw(0, 1, line("X", 0, 0), line("Y", 0))
 
   //// Escapes ////
 
+  val Esc = Text.Segment.Escape
+  def escape(esc: Text.Segment.Escape): Text.Segment.Fmt =
+    Text.Segment._Escape(esc)
+
   Text.Segment.Escape.Character.codes.foreach(
-    i => s"'\\$i'" ?= Text(Text.Body(q1, Text.Segment._Escape(i)))
+    i => s"'\\$i'" ?= Text(escape(i))
   )
   Text.Segment.Escape.Control.codes.foreach(
-    i => s"'\\$i'" ?= Text(Text.Body(q1, Text.Segment._Escape(i)))
+    i => s"'\\$i'" ?= Text(escape(i))
   )
 
-  "'\\\\'" ?= Text(
-    Text.Body(q1, Text.Segment._Escape(Text.Segment.Escape.Slash))
-  )
-  "'\\''" ?= Text(
-    Text.Body(q1, Text.Segment._Escape(Text.Segment.Escape.Quote))
-  )
-  "'\\\"'" ?= Text(
-    Text.Body(q1, Text.Segment._Escape(Text.Segment.Escape.RawQuote))
-  )
-  "'\\" ?= Text.Unclosed(Text(Text.Body(q1, "\\")))
-  "'\\c'" ?= Text(
-    Text.Body(q1, Text.Segment._Escape(Text.Segment.Escape.Invalid("c")))
-  )
-  "'\\cd'" ?= Text(
-    Text.Body(q1, Text.Segment._Escape(Text.Segment.Escape.Invalid("c")), "d")
-  )
-  "'\\123d'" ?= Text(
-    Text.Body(q1, Text.Segment._Escape(Text.Segment.Escape.Number(123)), "d")
-  )
+  "'\\\\'"   ?= Text(escape(Esc.Slash))
+  "'\\''"    ?= Text(escape(Esc.Quote))
+  "'\\\"'"   ?= Text(escape(Esc.RawQuote))
+  "'\\"      ?= Text.Unclosed("\\")
+  "'\\c'"    ?= Text(escape(Esc.Invalid("c")))
+  "'\\cd'"   ?= Text(escape(Esc.Invalid("c")), "d")
+  "'\\123d'" ?= Text(escape(Esc.Number(123)), "d")
 
   //// Interpolation ////
 
-  "'a`b`c'" ?= Text(Text.Body(q1, "a", Text.Segment._Expr(Some("b")), "c"))
+  def expr(ast: AST) = Text.Segment._Expr(Some(ast))
+
+  "'a`b`c'" ?= Text("a", expr("b"), "c")
   "'a`b 'c`d`e' f`g'" ?= {
-    val bd = "b" $_ Text(Text.Body(q1, "c", Text.Segment._Expr(Some("d")), "e")) $_ "f"
-    Text(Text.Body(q1, "a", Text.Segment._Expr(Some(bd)), "g"))
+    val bd = "b" $_ Text("c", expr("d"), "e") $_ "f"
+    Text("a", expr(bd), "g")
   }
+
+  "say \n  '''\n  Hello\n  `World`\npal" ??= Module(
+    OptLine("say" $_ Block(2, Text(0, 2, line("Hello"), line(expr("World"))))),
+    OptLine("pal")
+  )
+
+  "say '''\n  Hello\n  `World`\npal" ??= Module(
+    OptLine("say" $_ Text(0, 2, line("Hello"), line(expr("World")))),
+    OptLine("pal")
+  )
 
 ////  //  // Comments
 //////    expr("#"              , Comment)
@@ -349,14 +338,7 @@ class ParserTest extends FlatSpec with Matchers {
     Def(
       "Maybe",
       List("a"),
-      Some(
-        Block(
-          Block.Continuous,
-          4,
-          Block.Line(defJust),
-          List(Block.Line(Some(defNothing)))
-        )
-      )
+      Some(Block(4, defJust, defNothing))
     )
   }
 //
@@ -424,26 +406,21 @@ class ParserTest extends FlatSpec with Matchers {
   """.testIdentity
 
   """
-  # pop1: adults
-  # pop2: children
-  # pop3: mutants
+  # adults: old population
+  # children: new individuals from crossover
+  # mutation: new individuals from mutation
     Selects the 'fittest' individuals from population and kills the rest!
-
-  log
-  '''
-  keepBest
-  `pop1`
-  `pop2`
-  `pop3`
-  '''
-
-  unique xs
-    = xs.at(0.0) +: [1..length xs -1] . filter (isUnique xs) . map xs.at
-
-  isUnique xs i ####
-    = xs.at(i).score != xs.at(i-1).score
-
-  pop1<>pop2<>pop3 . sorted . unique . take (length pop1) . pure
+  armageddon adults children mutants =
+    log '''
+      keepBest
+      `pop1`
+      `pop2`
+      `pop3`
+    unique xs
+      = xs.at(0.0) +: [1..length xs -1] . filter (isUnique xs) . map xs.at
+    isUnique xs i ####
+      = xs.at(i).score != xs.at(i-1).score
+    adults++children++mutants . sorted . unique . take (length pop1) . pure
   """.testIdentity
 
   ///////////////////////
