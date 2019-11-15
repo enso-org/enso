@@ -56,9 +56,18 @@ public class ConstructorCaseNode extends CaseNode {
     if (profile.profile(matcherVal == target.getConstructor())) {
       Function function = branch.executeFunction(frame);
       throw new BranchSelectedException(
-          executeCallNode.executeCall(function, state, target.getFields()));
+          executeCallNode.executeCall(
+              function, null, state, target.getFields())); // Note [Caller Info For Case Branches]
     }
   }
+
+  /* Note [Caller Info For Case Branches]
+   * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   *
+   * It is assumed that functions serving as pattern match logic branches are always function
+   * literals, not references, curried functions etc. Therefore, as function literals, they
+   * have no way of accessing the caller frame and can safely be passed null.
+   */
 
   /**
    * Handles the function scrutinee case, by not matching it at all.

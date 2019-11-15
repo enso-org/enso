@@ -6,10 +6,13 @@ import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
+import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
+import org.enso.interpreter.runtime.scope.LocalScope;
+import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.Stateful;
 import org.enso.interpreter.runtime.type.TypesGen;
 
@@ -45,7 +48,7 @@ public class CatchErrorNode extends BuiltinRootNode {
     Object handler = arguments[1];
     if (executionProfile.profile(TypesGen.isRuntimeError(scrutinee))) {
       return invokeCallableNode.execute(
-          handler, state, new Object[] {TypesGen.asRuntimeError(scrutinee).getPayload()});
+          handler, frame, state, new Object[] {TypesGen.asRuntimeError(scrutinee).getPayload()});
     } else {
       return new Stateful(state, scrutinee);
     }

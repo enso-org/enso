@@ -7,6 +7,7 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RepeatingNode;
 import org.enso.interpreter.node.callable.ExecuteCallNode;
 import org.enso.interpreter.node.callable.ExecuteCallNodeGen;
+import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.control.TailCallException;
 import org.enso.interpreter.runtime.state.Stateful;
 
@@ -33,14 +34,17 @@ public class LoopingCallOptimiserNode extends CallOptimiserNode {
    * Calls the provided {@code function} using the provided {@code arguments}.
    *
    * @param function the function to execute
+   * @param callerInfo the caller info to pass to the function
    * @param state the state to pass to the function
    * @param arguments the arguments to {@code function}
    * @return the result of executing {@code function} using {@code arguments}
    */
   @Override
-  public Stateful executeDispatch(Object function, Object state, Object[] arguments) {
+  public Stateful executeDispatch(
+      Object function, CallerInfo callerInfo, Object state, Object[] arguments) {
     VirtualFrame frame = Truffle.getRuntime().createVirtualFrame(null, loopFrameDescriptor);
-    ((RepeatedCallNode) loopNode.getRepeatingNode()).setNextCall(frame, function, state, arguments);
+    ((RepeatedCallNode) loopNode.getRepeatingNode())
+        .setNextCall(frame, function, callerInfo, state, arguments);
     loopNode.executeLoop(frame);
 
     return ((RepeatedCallNode) loopNode.getRepeatingNode()).getResult(frame);
@@ -56,6 +60,7 @@ public class LoopingCallOptimiserNode extends CallOptimiserNode {
     private final FrameSlot functionSlot;
     private final FrameSlot argsSlot;
     private final FrameSlot stateSlot;
+    private final FrameSlot callerInfoSlot;
     @Child private ExecuteCallNode dispatchNode;
 
     /**
@@ -68,6 +73,7 @@ public class LoopingCallOptimiserNode extends CallOptimiserNode {
       resultSlot = descriptor.findOrAddFrameSlot("<TCO Result>", FrameSlotKind.Object);
       argsSlot = descriptor.findOrAddFrameSlot("<TCO Arguments>", FrameSlotKind.Object);
       stateSlot = descriptor.findOrAddFrameSlot("<TCO State>", FrameSlotKind.Object);
+      callerInfoSlot = descriptor.findOrAddFrameSlot("<TCO Caller Info>", FrameSlotKind.Object);
       dispatchNode = ExecuteCallNodeGen.create();
     }
 
@@ -76,11 +82,18 @@ public class LoopingCallOptimiserNode extends CallOptimiserNode {
      *
      * @param frame the stack frame for execution
      * @param function the function to execute in {@code frame}
+     * @param callerInfo the caller info to pass to the function
      * @param state the state to pass to the function
      * @param arguments the arguments to execute {@code function} with
      */
-    public void setNextCall(VirtualFrame frame, Object function, Object state, Object[] arguments) {
+    public void setNextCall(
+        VirtualFrame frame,
+        Object function,
+        CallerInfo callerInfo,
+        Object state,
+        Object[] arguments) {
       frame.setObject(functionSlot, function);
+      frame.setObject(callerInfoSlot, callerInfo);
       frame.setObject(stateSlot, state);
       frame.setObject(argsSlot, arguments);
     }
@@ -93,6 +106,12 @@ public class LoopingCallOptimiserNode extends CallOptimiserNode {
      */
     public Stateful getResult(VirtualFrame frame) {
       return (Stateful) FrameUtil.getObjectSafe(frame, resultSlot);
+    }
+
+    private CallerInfo getCallerInfo(VirtualFrame frame) {
+      CallerInfo result = (CallerInfo) FrameUtil.getObjectSafe(frame, callerInfoSlot);
+      frame.setObject(callerInfoSlot, null);
+      return result;
     }
 
     /**
@@ -143,10 +162,12 @@ public class LoopingCallOptimiserNode extends CallOptimiserNode {
         Object function = getNextFunction(frame);
         Object state = getNextState(frame);
         Object[] arguments = getNextArgs(frame);
-        frame.setObject(resultSlot, dispatchNode.executeCall(function, state, arguments));
+        CallerInfo callerInfo = getCallerInfo(frame);
+        frame.setObject(
+            resultSlot, dispatchNode.executeCall(function, callerInfo, state, arguments));
         return false;
       } catch (TailCallException e) {
-        setNextCall(frame, e.getFunction(), e.getState(), e.getArguments());
+        setNextCall(frame, e.getFunction(), e.getCallerInfo(), e.getState(), e.getArguments());
         return true;
       }
     }

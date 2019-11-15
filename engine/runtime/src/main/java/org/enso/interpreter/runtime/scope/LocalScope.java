@@ -14,24 +14,23 @@ import java.util.Optional;
  * frames.
  */
 public class LocalScope {
-  private Map<String, FrameSlot> items;
-  private FrameDescriptor frameDescriptor;
-  private LocalScope parent;
+  public final Map<String, FrameSlot> items;
+  private final FrameDescriptor frameDescriptor;
+  public final LocalScope parent;
 
-  /** Creates a new local scope with defaulted arguments. */
+  /** Creates a root local scope. */
   public LocalScope() {
-    items = new HashMap<>();
-    frameDescriptor = new FrameDescriptor();
-    parent = null;
+    this(null);
   }
 
   /**
-   * Creates a new local scope with a known parent.
+   * Creates a child local scope with a given parent.
    *
    * @param parent the parent scope
    */
   public LocalScope(LocalScope parent) {
-    this();
+    items = new HashMap<>();
+    frameDescriptor = new FrameDescriptor();
     this.parent = parent;
   }
 

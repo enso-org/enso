@@ -1,7 +1,6 @@
 package org.enso.interpreter.test
 
 import org.graalvm.polyglot.PolyglotException
-import org.graalvm.polyglot.Value
 
 case class InterpreterException(
   @transient polyglotException: PolyglotException

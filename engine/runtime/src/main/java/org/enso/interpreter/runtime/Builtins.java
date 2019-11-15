@@ -2,6 +2,7 @@ package org.enso.interpreter.runtime;
 
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.expression.builtin.IfZeroNode;
+import org.enso.interpreter.node.expression.builtin.debug.DebugEvalNode;
 import org.enso.interpreter.node.expression.builtin.error.CatchErrorNode;
 import org.enso.interpreter.node.expression.builtin.error.CatchPanicNode;
 import org.enso.interpreter.node.expression.builtin.error.PanicNode;
@@ -38,6 +39,7 @@ public class Builtins {
     AtomConstructor panic = new AtomConstructor("Panic", scope).initializeFields();
     AtomConstructor error = new AtomConstructor("Error", scope).initializeFields();
     AtomConstructor state = new AtomConstructor("State", scope).initializeFields();
+    AtomConstructor debug = new AtomConstructor("Debug", scope).initializeFields();
 
     scope.registerConstructor(cons);
     scope.registerConstructor(nil);
@@ -46,6 +48,7 @@ public class Builtins {
     scope.registerConstructor(panic);
     scope.registerConstructor(error);
     scope.registerConstructor(state);
+    scope.registerConstructor(debug);
 
     scope.registerMethod(io, "println", PrintNode.makeFunction(language));
 
@@ -59,6 +62,8 @@ public class Builtins {
     scope.registerMethod(state, "get", GetStateNode.makeFunction(language));
     scope.registerMethod(state, "put", PutStateNode.makeFunction(language));
     scope.registerMethod(state, "run", RunStateNode.makeFunction(language));
+
+    scope.registerMethod(debug, "eval", DebugEvalNode.makeFunction(language));
   }
 
   /**

@@ -38,15 +38,13 @@ public abstract class ThunkExecutorNode extends Node {
       @Cached("createLoopingOptimizerIfNeeded()")
           LoopingCallOptimiserNode loopingCallOptimiserNode) {
     if (getIsTail()) {
-      return (Stateful)
-          callNode.call(Function.ArgumentsHelper.buildArguments(thunk, state));
+      return (Stateful) callNode.call(Function.ArgumentsHelper.buildArguments(thunk, state));
     } else {
       try {
-        return (Stateful)
-            callNode.call(Function.ArgumentsHelper.buildArguments(thunk, state));
+        return (Stateful) callNode.call(Function.ArgumentsHelper.buildArguments(thunk, state));
       } catch (TailCallException e) {
         return loopingCallOptimiserNode.executeDispatch(
-            e.getFunction(), e.getState(), e.getArguments());
+            e.getFunction(), e.getCallerInfo(), e.getState(), e.getArguments());
       }
     }
   }
@@ -58,14 +56,19 @@ public abstract class ThunkExecutorNode extends Node {
       @Cached IndirectCallNode callNode,
       @Cached("createLoopingOptimizerIfNeeded()")
           LoopingCallOptimiserNode loopingCallOptimiserNode) {
-    try {
+    if (getIsTail()) {
       return (Stateful)
           callNode.call(
-              thunk.getCallTarget(),
-              Function.ArgumentsHelper.buildArguments(thunk, state));
-    } catch (TailCallException e) {
-      return loopingCallOptimiserNode.executeDispatch(
-          e.getFunction(), e.getState(), e.getArguments());
+              thunk.getCallTarget(), Function.ArgumentsHelper.buildArguments(thunk, state));
+    } else {
+      try {
+        return (Stateful)
+            callNode.call(
+                thunk.getCallTarget(), Function.ArgumentsHelper.buildArguments(thunk, state));
+      } catch (TailCallException e) {
+        return loopingCallOptimiserNode.executeDispatch(
+            e.getFunction(), e.getCallerInfo(), e.getState(), e.getArguments());
+      }
     }
   }
 

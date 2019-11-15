@@ -2,13 +2,13 @@ package org.enso.interpreter.node;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.ReportPolymorphism;
-import com.oracle.truffle.api.frame.FrameDescriptor;
-import com.oracle.truffle.api.frame.FrameSlotKind;
 import com.oracle.truffle.api.frame.FrameUtil;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.source.SourceSection;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.scope.LocalScope;
+import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.Stateful;
 
 /**
@@ -26,23 +26,20 @@ public class ClosureRootNode extends EnsoRootNode {
    * Creates a new root node.
    *
    * @param language the language identifier
-   * @param frameDescriptor a description of the stack frame
+   * @param localScope a description of the local scope
+   * @param moduleScope a description of the module scope
    * @param body the program body to be executed
    * @param section a mapping from {@code body} to the program source
    * @param name a name for the node
    */
   public ClosureRootNode(
       Language language,
-      FrameDescriptor frameDescriptor,
+      LocalScope localScope,
+      ModuleScope moduleScope,
       ExpressionNode body,
       SourceSection section,
       String name) {
-    super(
-        language,
-        frameDescriptor,
-        name,
-        section,
-        frameDescriptor.findOrAddFrameSlot("<<state>>", FrameSlotKind.Object));
+    super(language, localScope, moduleScope, name, section);
     this.body = body;
   }
 

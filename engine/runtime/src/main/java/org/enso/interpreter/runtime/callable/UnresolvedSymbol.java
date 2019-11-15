@@ -73,4 +73,9 @@ public class UnresolvedSymbol implements TruffleObject {
   public Function resolveForError() {
     return scope.lookupMethodDefinitionForAny(name).orElse(null);
   }
+
+  @Override
+  public String toString() {
+    return "UnresolvedSymbol<" + this.name + ">";
+  }
 }

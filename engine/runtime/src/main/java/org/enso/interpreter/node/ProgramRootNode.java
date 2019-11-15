@@ -1,13 +1,13 @@
 package org.enso.interpreter.node;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.frame.FrameDescriptor;
-import com.oracle.truffle.api.frame.FrameSlotKind;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.scope.LocalScope;
+import org.enso.interpreter.runtime.scope.ModuleScope;
 
 /**
  * This node handles static transformation of the input AST before execution and represents the root
@@ -27,23 +27,25 @@ public class ProgramRootNode extends EnsoRootNode {
    * Constructs the root node.
    *
    * @param language the language instance in which this will execute
-   * @param frameDescriptor a reference to the program root frame
+   * @param localScope a reference to the program local scope
+   * @param moduleScope a reference to the program module scope
    * @param name the name of the program
    * @param sourceSection a reference to the source code being executed
    * @param sourceCode the code to compile and execute
    */
   public ProgramRootNode(
       Language language,
-      FrameDescriptor frameDescriptor,
+      LocalScope localScope,
+      ModuleScope moduleScope,
       String name,
       SourceSection sourceSection,
       Source sourceCode) {
     super(
         language,
-        frameDescriptor,
+        localScope,
+        moduleScope,
         name,
-        sourceSection,
-        frameDescriptor.findOrAddFrameSlot("<<state>>", FrameSlotKind.Object));
+        sourceSection);
     this.sourceCode = sourceCode;
   }
 

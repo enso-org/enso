@@ -77,8 +77,8 @@ public class CallArgumentInfo {
     private CallArgumentInfo[] existingOversaturatedArgs;
     private boolean[] argumentUsed;
     private boolean[] callSiteArgApplied;
+    private FunctionSchema originalSchema;
     private int oversaturatedWritePosition = 0;
-    private FunctionSchema.CallStrategy callStrategy;
 
     /**
      * Creates an unitialised object of this class. This instance is not safe for external use and
@@ -97,7 +97,7 @@ public class CallArgumentInfo {
       this.definitions = schema.getArgumentInfos();
       this.argumentUsed = schema.cloneHasPreApplied();
       this.existingOversaturatedArgs = schema.cloneOversaturatedArgs();
-      this.callStrategy = schema.getCallStrategy();
+      this.originalSchema = schema;
     }
 
     /**
@@ -214,7 +214,12 @@ public class CallArgumentInfo {
           this.existingOversaturatedArgs.length,
           newOversaturatedArgInfo.length);
 
-      return new FunctionSchema(callStrategy, definitions, argumentUsed, oversaturatedArgInfo);
+      return new FunctionSchema(
+          originalSchema.getCallStrategy(),
+          originalSchema.getCallerFrameAccess(),
+          definitions,
+          argumentUsed,
+          oversaturatedArgInfo);
     }
   }
 

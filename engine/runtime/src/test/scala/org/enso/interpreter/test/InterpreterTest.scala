@@ -3,10 +3,8 @@ package org.enso.interpreter.test
 import java.io.ByteArrayOutputStream
 
 import org.enso.interpreter.Constants
-import org.graalvm.polyglot.Context
-import org.graalvm.polyglot.Value
-import org.scalatest.FlatSpec
-import org.scalatest.Matchers
+import org.graalvm.polyglot.{Context, Value}
+import org.scalatest.{FlatSpec, Matchers}
 
 trait InterpreterRunner {
   implicit class RichValue(value: Value) {

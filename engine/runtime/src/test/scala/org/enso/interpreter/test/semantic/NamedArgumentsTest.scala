@@ -1,7 +1,6 @@
 package org.enso.interpreter.test.semantic
 
 import org.enso.interpreter.test.{InterpreterException, InterpreterTest}
-import org.graalvm.polyglot.PolyglotException
 
 class NamedArgumentsTest extends InterpreterTest {
   "Functions" should "take arguments by name and use them in their bodies" in {

@@ -17,6 +17,7 @@ import org.enso.interpreter.node.controlflow.*;
 import org.enso.interpreter.node.expression.constant.ConstructorNode;
 import org.enso.interpreter.node.expression.constant.DynamicSymbolNode;
 import org.enso.interpreter.node.expression.literal.IntegerLiteralNode;
+import org.enso.interpreter.node.expression.literal.StringLiteralNode;
 import org.enso.interpreter.node.expression.operator.*;
 import org.enso.interpreter.node.scope.AssignmentNode;
 import org.enso.interpreter.node.scope.AssignmentNodeGen;
@@ -113,8 +114,20 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
    * @param l the value to represent
    * @return a runtime node representing that value
    */
+  @Override
   public ExpressionNode visitLong(long l) {
     return new IntegerLiteralNode(l);
+  }
+
+  /**
+   * Creates a runtime String literal value from an AST node.
+   *
+   * @param string the string value of this literal
+   * @return a runtime node representing this literal
+   */
+  @Override
+  public ExpressionNode visitStringLiteral(String string) {
+    return new StringLiteralNode(string);
   }
 
   /**
@@ -234,8 +247,7 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
     FunctionBodyNode fnBodyNode =
         new FunctionBodyNode(allFnExpressions.toArray(new ExpressionNode[0]), returnExpr);
     RootNode fnRootNode =
-        new ClosureRootNode(
-            language, scope.getFrameDescriptor(), fnBodyNode, null, "lambda::" + scopeName);
+        new ClosureRootNode(language, scope, moduleScope, fnBodyNode, null, "lambda::" + scopeName);
     RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(fnRootNode);
 
     return new CreateFunctionNode(callTarget, argDefinitions);

@@ -61,7 +61,6 @@ public class CallArgFactory implements AstCallArgVisitor<CallArgument> {
         name.orElse(null),
         Truffle.getRuntime()
             .createCallTarget(
-                new ClosureRootNode(
-                    language, childScope.getFrameDescriptor(), expr, null, displayName)));
+                new ClosureRootNode(language, childScope, moduleScope, expr, null, displayName)));
   }
 }

@@ -29,7 +29,9 @@ public class FallbackNode extends CaseNode {
   private void execute(VirtualFrame frame, Object target) throws UnexpectedResultException {
     Function function = functionNode.executeFunction(frame);
     Object state = FrameUtil.getObjectSafe(frame, getStateFrameSlot());
-    throw new BranchSelectedException(executeCallNode.executeCall(function, state, new Object[0]));
+    throw new BranchSelectedException(
+        executeCallNode.executeCall(
+            function, null, state, new Object[0])); // Note [Caller Info For Case Branches]
   }
 
   /**

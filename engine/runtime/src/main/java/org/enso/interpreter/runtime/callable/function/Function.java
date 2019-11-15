@@ -21,6 +21,7 @@ import org.enso.interpreter.node.callable.argument.sorter.ArgumentSorterNode;
 import org.enso.interpreter.node.callable.argument.sorter.ArgumentSorterNodeGen;
 import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
 import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.argument.Thunk;
@@ -43,6 +44,9 @@ public final class Function implements TruffleObject {
    * @param preappliedArguments the preapplied arguments for this function. The layout of this array
    *     must be conforming to the {@code schema}. {@code null} is allowed if the function does not
    *     have any partially applied arguments.
+   * @param oversaturatedArguments the oversaturated arguments this function may have accumulated.
+   *     The layout of this array must be conforming to the {@code schema}. @{code null} is allowed
+   *     if the function does not carry any oversaturated arguments.
    */
   public Function(
       RootCallTarget callTarget,
@@ -69,7 +73,7 @@ public final class Function implements TruffleObject {
   }
 
   /**
-   * Creates a Function object from a {@link RootNode} and argument definitions.
+   * Creates a Function object from a {@link BuiltinRootNode} and argument definitions.
    *
    * @param node the {@link RootNode} for the function logic
    * @param callStrategy the {@link FunctionSchema.CallStrategy} to use for this function
@@ -80,6 +84,25 @@ public final class Function implements TruffleObject {
       BuiltinRootNode node, FunctionSchema.CallStrategy callStrategy, ArgumentDefinition... args) {
     RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(node);
     FunctionSchema schema = new FunctionSchema(callStrategy, args);
+    return new Function(callTarget, null, schema);
+  }
+
+  /**
+   * Creates a Function object from a {@link BuiltinRootNode} and argument definitions.
+   *
+   * <p>The root node wrapped using this method can safely assume the {@link CallerInfo} argument
+   * will be non-null.
+   *
+   * @param node the {@link RootNode} for the function logic
+   * @param callStrategy the {@link FunctionSchema.CallStrategy} to use for this function
+   * @param args argument definitons
+   * @return a Function object with specified behavior and arguments
+   */
+  public static Function fromBuiltinRootNodeWithCallerFrameAccess(
+      BuiltinRootNode node, FunctionSchema.CallStrategy callStrategy, ArgumentDefinition... args) {
+    RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(node);
+    FunctionSchema schema =
+        new FunctionSchema(callStrategy, FunctionSchema.CallerFrameAccess.FULL, args);
     return new Function(callTarget, null, schema);
   }
 
@@ -194,7 +217,9 @@ public final class Function implements TruffleObject {
         @CachedContext(Language.class) Context context,
         @Cached(value = "arguments.length") int cachedArgsLength,
         @Cached(value = "buildSorter(cachedArgsLength)") ArgumentSorterNode sorterNode) {
-      return sorterNode.execute(function, context.getUnit().newInstance(), arguments).getValue();
+      return sorterNode
+          .execute(function, null, context.getUnit().newInstance(), arguments)
+          .getValue();
     }
 
     /**
@@ -234,8 +259,8 @@ public final class Function implements TruffleObject {
      * @return an array containing the necessary information to call an Enso function
      */
     public static Object[] buildArguments(
-        Function function, Object state, Object[] positionalArguments) {
-      return new Object[] {function.getScope(), state, positionalArguments};
+        Function function, CallerInfo callerInfo, Object state, Object[] positionalArguments) {
+      return new Object[] {function.getScope(), callerInfo, state, positionalArguments};
     }
 
     /**
@@ -246,36 +271,51 @@ public final class Function implements TruffleObject {
      * @return an array containing the necessary information to call an Enso thunk
      */
     public static Object[] buildArguments(Thunk thunk, Object state) {
-      return new Object[] {thunk.getScope(), state, new Object[0]};
+      return new Object[] {thunk.getScope(), null, state, new Object[0]};
     }
 
     /**
      * Gets the positional arguments out of the array.
      *
-     * @param arguments an array produced by {@link ArgumentsHelper#buildArguments(Function, Object,
-     *     Object[])}
+     * @param arguments an array produced by {@link ArgumentsHelper#buildArguments(Function,
+     *     CallerInfo, Object, Object[])}
      * @return the positional arguments to the function
      */
     public static Object[] getPositionalArguments(Object[] arguments) {
-      return (Object[]) arguments[2];
+      return (Object[]) arguments[3];
     }
 
     /**
      * Gets the state out of the array.
      *
-     * @param arguments an array produced by {@link ArgumentsHelper#buildArguments(Function, Object,
-     *     Object[])}
+     * @param arguments an array produced by {@link
+     *     ArgumentsHelper#buildArguments(Function,CallerInfo, Object, Object[])}
      * @return the state for the function
      */
     public static Object getState(Object[] arguments) {
-      return arguments[1];
+      return arguments[2];
+    }
+
+    /**
+     * Gets the caller info out of the array.
+     *
+     * <p>Any function using this method should declare {@link
+     * FunctionSchema.CallerFrameAccess#FULL} in its schema for the result to be guaranteed
+     * non-null.
+     *
+     * @param arguments an array produced by {@link ArgumentsHelper#buildArguments(Function,
+     *     CallerInfo, Object, Object[])}
+     * @return the caller info for the function
+     */
+    public static CallerInfo getCallerInfo(Object[] arguments) {
+      return (CallerInfo) arguments[1];
     }
 
     /**
      * Gets the function's local scope out of the array.
      *
-     * @param arguments an array produced by {@link ArgumentsHelper#buildArguments(Function, Object,
-     *     Object[])}
+     * @param arguments an array produced by {@link ArgumentsHelper#buildArguments(Function,
+     *     CallerInfo, Object, Object[])}
      * @return the local scope for the associated function
      */
     public static MaterializedFrame getLocalScope(Object[] arguments) {

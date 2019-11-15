@@ -83,4 +83,16 @@ class RecursionFixtures extends InterpreterRunner {
       |""".stripMargin
 
   val sumStateTCO = eval(sumStateTCOCode)
+
+  val sumTCOWithEvalCode =
+    """
+      |{ |sumTo|
+      |  summator = { |acc, current|
+      |      @ifZero [current, acc, @eval [@Debug, "@summator [acc + current, current - 1]"]]
+      |  };
+      |  res = @summator [0, sumTo];
+      |  res
+      |}
+      |""".stripMargin
+  val sumTCOWithEval = eval(sumTCOWithEvalCode)
 }

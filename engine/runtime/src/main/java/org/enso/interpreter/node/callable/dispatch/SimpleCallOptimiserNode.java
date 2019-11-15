@@ -3,6 +3,7 @@ package org.enso.interpreter.node.callable.dispatch;
 import com.oracle.truffle.api.CompilerDirectives;
 import org.enso.interpreter.node.callable.ExecuteCallNode;
 import org.enso.interpreter.node.callable.ExecuteCallNodeGen;
+import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.control.TailCallException;
 import org.enso.interpreter.runtime.state.Stateful;
 
@@ -19,19 +20,22 @@ public class SimpleCallOptimiserNode extends CallOptimiserNode {
    * Calls the provided {@code function} using the provided {@code arguments}.
    *
    * @param function the function to execute
+   * @param callerInfo the caller info to pass to the function
    * @param state the state to pass to the function
    * @param arguments the arguments to {@code function}
    * @return the result of executing {@code function} using {@code arguments}
    */
   @Override
-  public Stateful executeDispatch(Object function, Object state, Object[] arguments) {
+  public Stateful executeDispatch(
+      Object function, CallerInfo callerInfo, Object state, Object[] arguments) {
     try {
-      return executeCallNode.executeCall(function, state, arguments);
+      return executeCallNode.executeCall(function, callerInfo, state, arguments);
     } catch (TailCallException e) {
       CompilerDirectives.transferToInterpreterAndInvalidate();
       CallOptimiserNode replacement = new LoopingCallOptimiserNode();
       this.replace(replacement);
-      return replacement.executeDispatch(e.getFunction(), e.getState(), e.getArguments());
+      return replacement.executeDispatch(
+          e.getFunction(), e.getCallerInfo(), e.getState(), e.getArguments());
     }
   }
 }

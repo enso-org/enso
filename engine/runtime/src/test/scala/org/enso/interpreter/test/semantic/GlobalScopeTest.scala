@@ -1,7 +1,6 @@
 package org.enso.interpreter.test.semantic
 
-import org.enso.interpreter.test.InterpreterException
-import org.enso.interpreter.test.InterpreterTest
+import org.enso.interpreter.test.{InterpreterException, InterpreterTest}
 
 class GlobalScopeTest extends InterpreterTest {
 

@@ -90,8 +90,10 @@ public class ApplicationNode extends ExpressionNode {
   @Override
   public Object executeGeneric(VirtualFrame frame) {
     Object state = FrameUtil.getObjectSafe(frame, getStateFrameSlot());
-    Stateful result = this.invokeCallableNode.execute(
-        this.callable.executeGeneric(frame), state, evaluateArguments(frame));
+
+    Stateful result =
+        this.invokeCallableNode.execute(
+            this.callable.executeGeneric(frame), frame, state, evaluateArguments(frame));
     frame.setObject(getStateFrameSlot(), result.getState());
     return result.getValue();
   }

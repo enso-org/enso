@@ -2,10 +2,11 @@ package org.enso.interpreter.node.expression.literal;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import org.enso.interpreter.node.ExpressionNode;
 
 /** A representation of integer literals in Enso. */
 @NodeInfo(shortName = "IntegerLiteral")
-public final class IntegerLiteralNode extends LiteralNode {
+public final class IntegerLiteralNode extends ExpressionNode {
   private final long value;
 
   /**

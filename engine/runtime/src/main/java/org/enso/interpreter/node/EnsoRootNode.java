@@ -2,18 +2,22 @@ package org.enso.interpreter.node;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleLanguage;
-import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.FrameSlot;
+import com.oracle.truffle.api.frame.FrameSlotKind;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.SourceSection;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.scope.LocalScope;
+import org.enso.interpreter.runtime.scope.ModuleScope;
 
 /** A common base class for all kinds of root node in Enso. */
 public abstract class EnsoRootNode extends RootNode {
   private final String name;
   private final SourceSection sourceSection;
   private final FrameSlot stateFrameSlot;
+  private final LocalScope localScope;
+  private final ModuleScope moduleScope;
   private @CompilerDirectives.CompilationFinal TruffleLanguage.ContextReference<Context>
       contextReference;
   private @CompilerDirectives.CompilationFinal TruffleLanguage.LanguageReference<Language>
@@ -23,21 +27,24 @@ public abstract class EnsoRootNode extends RootNode {
    * Constructs the root node.
    *
    * @param language the language instance in which this will execute
-   * @param frameDescriptor a reference to the construct root frame
+   * @param localScope a reference to the construct local scope
+   * @param moduleScope a reference to the construct module scope
    * @param name the name of the construct
    * @param sourceSection a reference to the source code being executed
-   * @param stateFrameSlot the code to compile and execute
    */
   public EnsoRootNode(
       Language language,
-      FrameDescriptor frameDescriptor,
+      LocalScope localScope,
+      ModuleScope moduleScope,
       String name,
-      SourceSection sourceSection,
-      FrameSlot stateFrameSlot) {
-    super(language, frameDescriptor);
+      SourceSection sourceSection) {
+    super(language, localScope.getFrameDescriptor());
     this.name = name;
+    this.localScope = localScope;
+    this.moduleScope = moduleScope;
     this.sourceSection = sourceSection;
-    this.stateFrameSlot = stateFrameSlot;
+    this.stateFrameSlot =
+        localScope.getFrameDescriptor().findOrAddFrameSlot("<<state>>", FrameSlotKind.Object);
   }
 
   /**
@@ -88,5 +95,23 @@ public abstract class EnsoRootNode extends RootNode {
   @Override
   public SourceSection getSourceSection() {
     return sourceSection;
+  }
+
+  /**
+   * Gets the local scope this node expects to work with
+   *
+   * @return the local scope for this node
+   */
+  public LocalScope getLocalScope() {
+    return localScope;
+  }
+
+  /**
+   * Gets the module scope this node was defined with
+   *
+   * @return the module scope for this node
+   */
+  public ModuleScope getModuleScope() {
+    return moduleScope;
   }
 }

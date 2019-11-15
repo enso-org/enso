@@ -39,17 +39,38 @@ public class FunctionSchema {
     }
   }
 
+  /** Denotes the caller frame access functions with this schema require to run properly. */
+  public enum CallerFrameAccess {
+    /** Requires full access to the (materialized) caller frame. */
+    FULL,
+    /** Does not use the caller frame at all. */
+    NONE;
+
+    /**
+     * Is there any level of caller frame access required by the function?
+     *
+     * @return {@code true} if the function must be passed the caller frame, {@code false}
+     *     otherwise.
+     */
+    public boolean shouldFrameBePassed() {
+      return this != NONE;
+    }
+  }
+
   private final @CompilationFinal(dimensions = 1) ArgumentDefinition[] argumentInfos;
   private final @CompilationFinal(dimensions = 1) boolean[] hasPreApplied;
   private final @CompilationFinal(dimensions = 1) CallArgumentInfo[] oversaturatedArguments;
   private final CallStrategy callStrategy;
   private final boolean hasAnyPreApplied;
   private final boolean hasOversaturatedArguments;
+  private final CallerFrameAccess callerFrameAccess;
 
   /**
    * Creates an {@link FunctionSchema} instance.
    *
    * @param callStrategy the call strategy to use for functions having this schema
+   * @param callerFrameAccess the declaration of whether access to caller frame is required for this
+   *     function
    * @param argumentInfos Definition site arguments information
    * @param hasPreApplied A flags collection such that {@code hasPreApplied[i]} is true iff a
    *     function has a partially applied argument at position {@code i}
@@ -58,6 +79,7 @@ public class FunctionSchema {
    */
   public FunctionSchema(
       CallStrategy callStrategy,
+      CallerFrameAccess callerFrameAccess,
       ArgumentDefinition[] argumentInfos,
       boolean[] hasPreApplied,
       CallArgumentInfo[] oversaturatedArguments) {
@@ -65,8 +87,8 @@ public class FunctionSchema {
     this.argumentInfos = argumentInfos;
     this.oversaturatedArguments = oversaturatedArguments;
     this.hasPreApplied = hasPreApplied;
+    this.callerFrameAccess = callerFrameAccess;
     boolean hasAnyPreApplied = false;
-
     for (boolean b : hasPreApplied) {
       if (b) {
         hasAnyPreApplied = true;
@@ -82,10 +104,33 @@ public class FunctionSchema {
    * Creates an {@link FunctionSchema} instance assuming the function has no partially applied
    * arguments.
    *
+   * @param callStrategy the call strategy to use for this function
+   * @param callerFrameAccess the declaration of need to access the caller frame from the function
+   * @param argumentInfos Definition site arguments information
+   */
+  public FunctionSchema(
+      CallStrategy callStrategy,
+      CallerFrameAccess callerFrameAccess,
+      ArgumentDefinition... argumentInfos) {
+    this(
+        callStrategy,
+        callerFrameAccess,
+        argumentInfos,
+        new boolean[argumentInfos.length],
+        new CallArgumentInfo[0]);
+  }
+
+  /**
+   * Creates an {@link FunctionSchema} instance assuming the function has no partially applied
+   * arguments.
+   *
+   * <p>Caller frame access is assumed to be {@link CallerFrameAccess#NONE}.
+   *
+   * @param callStrategy the call strategy to use for this function
    * @param argumentInfos Definition site arguments information
    */
   public FunctionSchema(CallStrategy callStrategy, ArgumentDefinition... argumentInfos) {
-    this(callStrategy, argumentInfos, new boolean[argumentInfos.length], new CallArgumentInfo[0]);
+    this(callStrategy, CallerFrameAccess.NONE, argumentInfos);
   }
 
   /**
@@ -182,5 +227,14 @@ public class FunctionSchema {
    */
   public CallStrategy getCallStrategy() {
     return callStrategy;
+  }
+
+  /**
+   * Returns the caller frame access declaration for this function.
+   *
+   * @return the caller frame access declaration
+   */
+  public CallerFrameAccess getCallerFrameAccess() {
+    return callerFrameAccess;
   }
 }
