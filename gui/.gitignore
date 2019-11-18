@@ -9,3 +9,6 @@ wasm-pack.log
 # IntelliJ
 .idea/
 *.iml
+
+# A thirdparty downloaded js
+/lib/core/msdf-sys/msdfgen_wasm.js
