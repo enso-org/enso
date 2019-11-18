@@ -55,7 +55,6 @@ scalacOptions in ThisBuild ++= Seq(
   "-Xlint:unsound-match",               // Pattern match may not be typesafe.
   "-Xmacro-settings:-logging@org.enso", // Disable the debug logging globally.
   "-Yno-adapted-args",                  // Do not adapt an argument list (either by inserting () or creating a tuple) to match the receiver.
-  "-Ypartial-unification",              // Enable partial unification (which is enabled by default in Scala 2.13).
   "-Ypartial-unification",              // Enable partial unification in type constructor inference
   "-Ywarn-dead-code",                   // Warn when dead code is identified.
   "-Ywarn-extra-implicit",              // Warn when more than one implicit parameter section is defined.
@@ -311,19 +310,6 @@ val truffleRunOptionsSettings = Seq(
 
 lazy val runtime = (project in file("engine/runtime"))
   .settings(
-    mainClass in (Compile, run) := Some("org.enso.interpreter.Main"),
-    mainClass in assembly := (Compile / run / mainClass).value,
-    assemblyJarName in assembly := "enso.jar",
-    test in assembly := {},
-    assemblyOutputPath in assembly := file("enso.jar"),
-    assemblyOption in assembly := (assemblyOption in assembly).value.copy(
-      prependShellScript = Some(
-        defaultUniversalScript(
-          shebang  = false,
-          javaOpts = truffleRunOptions
-        )
-      )
-    ),
     version := "0.1",
     commands += WithDebugCommand.withDebug,
     inConfig(Compile)(truffleRunOptionsSettings),
@@ -344,8 +330,7 @@ lazy val runtime = (project in file("engine/runtime"))
       "org.scalacheck"         %% "scalacheck"               % "1.14.0" % Test,
       "org.scalactic"          %% "scalactic"                % "3.0.8" % Test,
       "org.scalatest"          %% "scalatest"                % "3.2.0-SNAP10" % Test,
-      "org.typelevel"          %% "cats-core"                % "2.0.0-M4",
-      "commons-cli"            % "commons-cli"               % "1.4"
+      "org.typelevel"          %% "cats-core"                % "2.0.0-M4"
     ),
     libraryDependencies ++= jmh
   )
@@ -358,20 +343,6 @@ lazy val runtime = (project in file("engine/runtime"))
   .settings(
     (Compile / compile) := (Compile / compile)
       .dependsOn(Def.task { (Compile / sourceManaged).value.mkdirs })
-      .value
-  )
-  .settings(
-    buildNativeImage := Def
-      .task {
-        val javaHome         = System.getProperty("java.home")
-        val nativeImagePath  = s"$javaHome/bin/native-image"
-        val classPath        = (Runtime / fullClasspath).value.files.mkString(":")
-        val resourcesGlobOpt = "-H:IncludeResources=.*Main.enso$"
-        val cmd =
-          s"$nativeImagePath $resourcesGlobOpt --macro:truffle --no-fallback --initialize-at-build-time -cp $classPath ${(Compile / mainClass).value.get} enso"
-        cmd !
-      }
-      .dependsOn(Compile / compile)
       .value
   )
   .configs(Benchmark)
@@ -394,3 +365,43 @@ lazy val runtime = (project in file("engine/runtime"))
   )
   .dependsOn(pkg)
   .dependsOn(syntax)
+
+lazy val language_server = project
+  .in(file("engine/language-server"))
+  .settings(
+    mainClass in (Compile, run) := Some("org.enso.languageserver.Main"),
+    mainClass in assembly := (Compile / run / mainClass).value,
+    assemblyJarName in assembly := "enso.jar",
+    test in assembly := {},
+    assemblyOutputPath in assembly := file("enso.jar"),
+    assemblyOption in assembly := (assemblyOption in assembly).value.copy(
+      prependShellScript = Some(
+        defaultUniversalScript(
+          shebang  = false,
+          javaOpts = truffleRunOptions
+        )
+      )
+    ),
+    inConfig(Compile)(truffleRunOptionsSettings),
+    libraryDependencies ++= Seq(
+      "org.graalvm.sdk"       % "polyglot-tck"           % graalVersion % "provided",
+      "commons-cli"           % "commons-cli"            % "1.4",
+      "io.github.spencerpark" % "jupyter-jvm-basekernel" % "2.3.0"
+    )
+  )
+  .settings(
+    buildNativeImage := Def
+      .task {
+        val javaHome         = System.getProperty("java.home")
+        val nativeImagePath  = s"$javaHome/bin/native-image"
+        val classPath        = (Runtime / fullClasspath).value.files.mkString(":")
+        val resourcesGlobOpt = "-H:IncludeResources=.*Main.enso$"
+        val cmd =
+          s"$nativeImagePath $resourcesGlobOpt --macro:truffle --no-fallback --initialize-at-build-time -cp $classPath ${(Compile / mainClass).value.get} enso"
+        cmd !
+      }
+      .dependsOn(Compile / compile)
+      .value
+  )
+  .dependsOn(runtime)
+  .dependsOn(pkg)

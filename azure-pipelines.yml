@@ -53,7 +53,7 @@ jobs:
       testResultsFormat: 'JUnit'
       testResultsFiles: '**/TEST-*.xml'
   - script: |
-      sbt runtime/assembly
+      sbt language_server/assembly
     displayName: Build the Uberjar
     continueOnError: true
   - task: CopyFiles@2
