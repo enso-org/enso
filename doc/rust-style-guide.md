@@ -195,10 +195,10 @@ A source note comment is broken into two parts:
    descriptive, and make sure you search for it before using it, in case it is
    already in use.
 2. **Source Note:** This is the comment itself, which is a large block comment
-   placed after the first function in which it is referred to in the module. It
-   uses the scala block-comment syntax `/* ... */`, and the first line names
-   the note using the same referrer as above: `/* Note [Note Name]`. The name(s)
-   in the note are underlined using a string of the `~` (tilde) character.
+   placed after the first function in which it is referred to in the module. The 
+   first line names the note using the same referrer as above: 
+   `// Note [Note Name]`. The name(s) in the note are underlined using a string 
+   of the `=` (equals) character.
 
 A source note may contain sections within it where necessary. These are titled
 using the following syntax: `== Note [Note Name (Section Name)]`, and can be
@@ -224,11 +224,10 @@ pub trait Tree<T> {
     // ...
   }
 
-  /* Note [Buffer Size]
-   * ~~~~~~~~~~~~~~~~~~
-   * When working with the buffer for the tree walk, it is important that you
-   * ensure....
-   */
+  // Note [Buffer Size]
+  // ==================
+  // When working with the buffer for the tree walk, it is important that you
+  // ensure....
 
   fn getBuffer(self: &Self) -> Vec<T> {
     // ...
