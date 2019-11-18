@@ -3,7 +3,7 @@ package org.enso.compiler
 import com.oracle.truffle.api.TruffleFile
 import com.oracle.truffle.api.source.Source
 import org.enso.compiler.generate.AstToIr
-import org.enso.compiler.ir.IR
+import org.enso.compiler.core.IR
 import org.enso.flexer.Reader
 import org.enso.interpreter.AstExpression
 import org.enso.interpreter.Constants
@@ -17,8 +17,7 @@ import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.runtime.error.ModuleDoesNotExistException
 import org.enso.interpreter.runtime.scope.LocalScope
 import org.enso.interpreter.runtime.scope.ModuleScope
-import org.enso.syntax.text.AST
-import org.enso.syntax.text.Parser
+import org.enso.syntax.text.{AST, Parser}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
@@ -46,6 +45,11 @@ class Compiler(
     *         executable functionality in the module corresponding to `source`.
     */
   def run(source: Source, scope: ModuleScope): ExpressionNode = {
+    /* TODO [AA] Introduce this next task
+     * val parsedAST: AST = parse(source)
+     * val convertedIR: ExpressionNode = translate(parsedAST)
+     */
+
     val parsed =
       new EnsoParser().parseEnso(source.getCharacters.toString)
 

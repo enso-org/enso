@@ -92,3 +92,4 @@ bench-report.xml
 #########
 
 .editorconfig
+.bloop

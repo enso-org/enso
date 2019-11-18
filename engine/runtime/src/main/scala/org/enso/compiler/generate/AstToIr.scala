@@ -1,7 +1,7 @@
 package org.enso.compiler.generate
 
 import org.enso.compiler.exception.UnhandledEntity
-import org.enso.compiler.ir.IR
+import org.enso.compiler.core.IR
 import org.enso.syntax.text.AST
 
 /**

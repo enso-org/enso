@@ -35,6 +35,7 @@ scalacOptions in ThisBuild ++= Seq(
   "-language:higherKinds",              // Allow higher-kinded types
   "-language:implicitConversions",      // Allow definition of implicit functions called views
   "-unchecked",                         // Enable additional warnings where generated code depends on assumptions.
+  "-Xcheckinit",                        // Wrap field accessors to throw an exception on uninitialized access.
   "-Xlint:adapted-args",                // Warn if an argument list is modified to match the receiver.
   "-Xlint:by-name-right-associative",   // By-name parameter of right associative operator.
   "-Xlint:constant",                    // Evaluation of a constant arithmetic expression results in an error.
@@ -50,9 +51,10 @@ scalacOptions in ThisBuild ++= Seq(
   "-Xlint:poly-implicit-overload",      // Parameterized overloaded implicit methods are not visible as view bounds.
   "-Xlint:private-shadow",              // A private field (or class parameter) shadows a superclass field.
   "-Xlint:stars-align",                 // Pattern sequence wildcard must align with sequence component.
-  "-Xlint:type-parameter-shadow",       // A local type parameter shadows a type already in scope.
   "-Xlint:unsound-match",               // Pattern match may not be typesafe.
+  "-Xmacro-settings:-logging@org.enso", // Disable the debug logging globally.
   "-Yno-adapted-args",                  // Do not adapt an argument list (either by inserting () or creating a tuple) to match the receiver.
+  "-Ypartial-unification",              // Enable partial unification (which is enabled by default in Scala 2.13).
   "-Ypartial-unification",              // Enable partial unification in type constructor inference
   "-Ywarn-dead-code",                   // Warn when dead code is identified.
   "-Ywarn-extra-implicit",              // Warn when more than one implicit parameter section is defined.
@@ -61,17 +63,17 @@ scalacOptions in ThisBuild ++= Seq(
   "-Ywarn-nullary-override",            // Warn when non-nullary `def f()' overrides nullary `def f'.
   "-Ywarn-nullary-unit",                // Warn when nullary methods return Unit.
   "-Ywarn-numeric-widen",               // Warn when numerics are widened.
-  "-Ywarn-unused:implicits",            // Warn if an implicit parameter is unused.
   "-Ywarn-unused:imports",              // Warn if an import selector is not referenced.
   "-Ywarn-unused:locals",               // Warn if a local definition is unused.
-  "-Ywarn-unused:params",               // Warn if a value parameter is unused.
   "-Ywarn-unused:patvars",              // Warn if a variable bound in a pattern is unused.
   "-Ywarn-unused:privates",             // Warn if a private member is unused.
-  "-Ywarn-value-discard",               // Warn when non-Unit expression results are unused.
-  "-Ypartial-unification",              // Enable partial unification (which is enabled by default in Scala 2.13).
-  "-Xmacro-settings:-logging@org.enso", // Disable the debug logging globally.
-  "-Xcheckinit"                         // Wrap field accessors to throw an exception on uninitialized access.
+  "-Ywarn-value-discard"                // Warn when non-Unit expression results are unused.
 )
+
+// ENABLE THIS IN Scala 2.13.1 (where import annotation.unused is available).
+//  "-Xlint:type-parameter-shadow",     // A local type parameter shadows a type already in scope.
+//  "-Ywarn-unused:implicits",          // Warn if an implicit parameter is unused.
+//  "-Ywarn-unused:params",             // Warn if a value parameter is unused.
 
 /////////////////////////////////
 //// Benchmark Configuration ////
@@ -90,14 +92,15 @@ lazy val buildNativeImage =
 lazy val enso = (project in file("."))
   .settings(version := "0.1")
   .aggregate(
-    syntax,
-    pkg,
-    runtime,
-    flexer,
-    unused,
-    syntax_definition,
     file_manager,
-    project_manager
+    flexer,
+    graph,
+    pkg,
+    project_manager,
+    runtime,
+    syntax,
+    syntax_definition,
+    unused
   )
   .settings(Global / concurrentRestrictions += Tags.exclusive(Exclusive))
 
@@ -115,8 +118,11 @@ val monocle = {
 }
 val cats = {
   Seq(
-    "org.typelevel" %% "cats-core" % "2.0.0-RC1",
-    "org.typelevel" %% "kittens"   % "2.0.0"
+    "org.typelevel" %% "cats-core"   % "2.0.0",
+    "org.typelevel" %% "cats-effect" % "2.0.0",
+    "org.typelevel" %% "cats-free"   % "2.0.0",
+    "org.typelevel" %% "cats-macros" % "2.0.0",
+    "org.typelevel" %% "kittens"     % "2.0.0"
   )
 }
 
@@ -149,9 +155,11 @@ val jmh = Seq(
   "org.openjdk.jmh" % "jmh-generator-annprocess" % "1.21" % Benchmark
 )
 
-//////////////////////
-//// Sub-Projects ////
-//////////////////////
+val silencerVersion = "1.4.4"
+
+////////////////////////////
+//// Internal Libraries ////
+////////////////////////////
 
 lazy val logger = (project in file("common/scala/logger"))
   .dependsOn(unused)
@@ -179,6 +187,34 @@ lazy val syntax_definition = (project in file("common/scala/syntax/definition"))
   .settings(
     libraryDependencies ++= monocle ++ cats ++ scala_compiler ++ Seq(
       "com.lihaoyi" %% "scalatags" % "0.7.0"
+    )
+  )
+
+lazy val graph = (project in file("common/scala/graph/"))
+  .dependsOn(logger)
+  .configs(Test)
+  .settings(
+    version := "0.1",
+    scalacOptions -= "-deprecation", // FIXME
+    resolvers ++= Seq(
+      Resolver.sonatypeRepo("releases"),
+      Resolver.sonatypeRepo("snapshots")
+    ),
+    libraryDependencies ++= scala_compiler ++ Seq(
+      "com.chuusai"                %% "shapeless"    % "2.3.3",
+      "io.estatico"                %% "newtype"      % "0.4.3",
+      "org.scalatest"              %% "scalatest"    % "3.2.0-SNAP10" % Test,
+      "org.scalacheck"             %% "scalacheck"   % "1.14.0" % Test,
+      "com.github.julien-truffaut" %% "monocle-core" % "2.0.0"
+    ),
+    libraryDependencies ++= Seq(
+      compilerPlugin(
+        "com.github.ghik" % "silencer-plugin" % silencerVersion cross CrossVersion.full
+      ),
+      "com.github.ghik" % "silencer-lib" % silencerVersion % Provided cross CrossVersion.full
+    ),
+    addCompilerPlugin(
+      "org.scalamacros" % "paradise" % "2.1.1" cross CrossVersion.full
     )
   )
 
@@ -219,6 +255,36 @@ lazy val pkg = (project in file("common/scala/pkg"))
     version := "0.1",
     libraryDependencies ++= circe ++ Seq("commons-io" % "commons-io" % "2.6")
   )
+
+lazy val file_manager = (project in file("common/scala/file-manager"))
+  .settings(
+    (Compile / mainClass) := Some("org.enso.filemanager.FileManager")
+  )
+  .settings(
+    libraryDependencies ++= akka,
+    libraryDependencies += akkaSLF4J,
+    libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.3",
+    libraryDependencies += "org.scalatest"  %% "scalatest"      % "3.2.0-SNAP10" % Test,
+    libraryDependencies += "org.scalacheck" %% "scalacheck"     % "1.14.0" % Test,
+    libraryDependencies += akkaTestkitTyped,
+    libraryDependencies += "commons-io" % "commons-io"        % "2.6",
+    libraryDependencies += "io.methvin" % "directory-watcher" % "0.9.6"
+  )
+
+lazy val project_manager = (project in file("common/scala/project-manager"))
+  .settings(
+    (Compile / mainClass) := Some("org.enso.projectmanager.Server")
+  )
+  .settings(
+    libraryDependencies ++= akka,
+    libraryDependencies ++= circe,
+    libraryDependencies += "io.spray" %% "spray-json" % "1.3.5"
+  )
+  .dependsOn(pkg)
+
+//////////////////////
+//// Sub Projects ////
+//////////////////////
 
 val truffleRunOptions = Seq(
   "-Dgraal.TruffleIterativePartialEscape=true",
@@ -316,29 +382,3 @@ lazy val runtime = (project in file("engine/runtime"))
   )
   .dependsOn(pkg)
   .dependsOn(syntax)
-
-lazy val file_manager = (project in file("common/scala/file-manager"))
-  .settings(
-    (Compile / mainClass) := Some("org.enso.filemanager.FileManager")
-  )
-  .settings(
-    libraryDependencies ++= akka,
-    libraryDependencies += akkaSLF4J,
-    libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.3",
-    libraryDependencies += "org.scalatest"  %% "scalatest"      % "3.2.0-SNAP10" % Test,
-    libraryDependencies += "org.scalacheck" %% "scalacheck"     % "1.14.0" % Test,
-    libraryDependencies += akkaTestkitTyped,
-    libraryDependencies += "commons-io" % "commons-io"        % "2.6",
-    libraryDependencies += "io.methvin" % "directory-watcher" % "0.9.6"
-  )
-
-lazy val project_manager = (project in file("common/scala/project-manager"))
-  .settings(
-    (Compile / mainClass) := Some("org.enso.projectmanager.Server")
-  )
-  .settings(
-    libraryDependencies ++= akka,
-    libraryDependencies ++= circe,
-    libraryDependencies += "io.spray" %% "spray-json" % "1.3.5"
-  )
-  .dependsOn(pkg)

@@ -1,6 +1,6 @@
-package org.enso.compiler.ir
+package org.enso.compiler.core
 
-import org.enso.compiler.ir.IR.Literal.Text
+import org.enso.compiler.core.IR.Literal.Text
 import org.enso.syntax.text.AST
 import org.enso.syntax.text.ast.text.Escape
 
