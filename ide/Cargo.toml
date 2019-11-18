@@ -1,7 +1,11 @@
 [workspace]
 
 members = [
+    "lib/prelude",
     "lib/core",
+    "lib/core/msdf-sys",
+    "lib/backend/webgl",
+    "lib/system/web",
 ]
 
 [profile.release]

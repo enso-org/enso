@@ -20,7 +20,7 @@ To setup the toolchain, please use the [the Rust toolchain installer
 ](https://rustup.rs/):
 
 ```bash
-rustup toolchain install nightly-2019-10-03 # Install the nightly channel.
+rustup toolchain install nightly-2019-11-04 # Install the nightly channel.
 rustup default nightly                      # Set it as the default one.
 rustup component add rustfmt                # Install the code auto-formatter.
 rustup component add clippy                 # Install the linter.
