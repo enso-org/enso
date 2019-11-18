@@ -10,6 +10,7 @@ import sbtassembly.AssemblyPlugin.defaultUniversalScript
 
 val scalacVersion = "2.12.10"
 val graalVersion  = "19.2.0.1"
+val circeVersion  = "0.11.1"
 organization in ThisBuild := "org.enso"
 scalaVersion in ThisBuild := scalacVersion
 
@@ -98,6 +99,7 @@ lazy val enso = (project in file("."))
     pkg,
     project_manager,
     runtime,
+    parser_service,
     syntax,
     syntax_definition,
     unused
@@ -131,8 +133,8 @@ val scala_compiler = Seq(
   "org.scala-lang" % "scala-compiler" % scalacVersion
 )
 
-val circe = Seq("circe-core", "circe-generic", "circe-yaml")
-  .map("io.circe" %% _ % "0.10.0")
+val circe = Seq("circe-core", "circe-generic", "circe-parser")
+  .map("io.circe" %% _ % circeVersion)
 
 def akkaPkg(name: String)     = akkaURL %% s"akka-$name" % akkaVersion
 def akkaHTTPPkg(name: String) = akkaURL %% s"akka-$name" % akkaHTTPVersion
@@ -185,7 +187,7 @@ lazy val unused = (project in file("common/scala/unused"))
 lazy val syntax_definition = (project in file("common/scala/syntax/definition"))
   .dependsOn(logger, flexer)
   .settings(
-    libraryDependencies ++= monocle ++ cats ++ scala_compiler ++ Seq(
+    libraryDependencies ++= monocle ++ cats ++ circe ++ scala_compiler ++ Seq(
       "com.lihaoyi" %% "scalatags" % "0.7.0"
     )
   )
@@ -230,7 +232,7 @@ lazy val syntax = (project in file("common/scala/syntax/specialization"))
     inConfig(Benchmark)(Defaults.testSettings),
     bench := (test in Benchmark).tag(Exclusive).value,
     parallelExecution in Benchmark := false,
-    libraryDependencies ++= Seq(
+    libraryDependencies ++= circe ++ Seq(
       "com.storm-enroute" %% "scalameter" % "0.17" % "bench",
       "org.scalatest"     %% "scalatest"  % "3.0.5" % Test,
       "com.lihaoyi"       %% "pprint"     % "0.5.3"
@@ -249,11 +251,21 @@ lazy val syntax = (project in file("common/scala/syntax/specialization"))
       .value
   )
 
+lazy val parser_service = (project in file("common/scala/parser-service"))
+  .dependsOn(syntax)
+  .settings(
+    libraryDependencies ++= akka,
+    mainClass := Some("org.enso.ParserServiceMain")
+  )
+
 lazy val pkg = (project in file("common/scala/pkg"))
   .settings(
     mainClass in (Compile, run) := Some("org.enso.pkg.Main"),
     version := "0.1",
-    libraryDependencies ++= circe ++ Seq("commons-io" % "commons-io" % "2.6")
+    libraryDependencies ++= circe ++ Seq(
+      "io.circe"   %% "circe-yaml" % "0.10.0", // separate from other circe deps because its independent project with its own versioning
+      "commons-io" % "commons-io"  % "2.6"
+    )
   )
 
 lazy val file_manager = (project in file("common/scala/file-manager"))

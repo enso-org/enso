@@ -1,6 +1,7 @@
 package org.enso.syntax.text
 
-import org.enso.data.{Index, Span}
+import org.enso.data.Index
+import org.enso.data.Span
 import org.enso.flexer
 import org.enso.flexer.Reader
 import org.enso.syntax.text.ast.meta.Builtin
@@ -218,7 +219,7 @@ class Parser {
 
 object Parser {
   type IDMap = Seq[(Span, AST.ID)]
-  def apply(): Parser   = new Parser()
+  def apply(): Parser = new Parser()
   private val newEngine = flexer.Parser.compile(ParserDef())
 
   //// Exceptions ////

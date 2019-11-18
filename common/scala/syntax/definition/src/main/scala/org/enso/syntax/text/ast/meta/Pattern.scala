@@ -5,7 +5,8 @@ import org.enso.syntax.text.AST.SAST
 import org.enso.syntax.text.prec.Operator
 
 import scala.annotation.tailrec
-import org.enso.data.{Index, Shifted}
+import org.enso.data.Index
+import org.enso.data.Shifted
 import org.enso.syntax.text.ast.Repr
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -13,7 +14,9 @@ import org.enso.syntax.text.ast.Repr
 ////////////////////////////////////////////////////////////////////////////////
 
 object Pattern {
-  import cats.{Foldable, Functor, Traverse}
+  import cats.Foldable
+  import cats.Functor
+  import cats.Traverse
   import cats.derived._
 
   type P      = Pattern
@@ -34,7 +37,7 @@ object Pattern {
     (nStream.reverse, nOff)
   }
 
-  trait Class
+  sealed trait Class
   object Class {
     final case object Normal  extends Class
     final case object Pattern extends Class
@@ -195,7 +198,7 @@ object Pattern {
 
     //// Result ////
 
-    case class Result(elem: Match, stream: AST.Stream) {
+    final case class Result(elem: Match, stream: AST.Stream) {
       def map(fn: Match => Match): Result = copy(elem = fn(elem))
     }
 

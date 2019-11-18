@@ -1,13 +1,13 @@
 package org.enso.syntax.text.ast.text
 
 import org.enso.flexer.ADT
+import org.enso.syntax.text.ast.text.Escape.Slash.toString
 
 sealed trait Escape {
   val repr: String
 }
 
 object Escape {
-
 
   final case class Invalid(str: String) extends Escape {
     val repr = str
@@ -21,18 +21,46 @@ object Escape {
   sealed trait Unicode extends Escape
   object Unicode {
 
-    final case class Invalid(unicode: Unicode) extends Unicode {
+    /* Note [Circe and Naming] */
+    type Invalid = InvalidUnicode
+
+    /* Note [Circe and Naming] */
+    val Invalid = InvalidUnicode
+
+    /* Note [Circe and Naming] */
+    final case class InvalidUnicode(unicode: Unicode) extends Unicode {
       val repr = unicode.repr
     }
 
-    abstract class U(pfx: String, sfx: String = "") extends Unicode {
-      val digits: String
+    /* NOTE [Circe and Naming]
+     * Name of the class above cannot be Invalid, as we already have
+     * Escape.Invalid. And to be able to derive JSON serialization with circe
+     * case class names within a trait subtree need to be unique.
+     *
+     * To keep this unpleasant detail hidden from library users, we introduce
+     * aliases for type and object named `Invalid`.
+     */
+
+    type U16 = _U16
+    final case class _U16(digits: String) extends Unicode {
+      val pfx  = "u"
+      val sfx  = ""
       val repr = pfx + digits + sfx
     }
 
-    final case class U16 private (digits: String) extends U("u")
-    final case class U32 private (digits: String) extends U("U")
-    final case class U21 private (digits: String) extends U("u{", "}")
+    type U32 = _U32
+    final case class _U32(digits: String) extends Unicode {
+      val pfx  = "U"
+      val sfx  = ""
+      val repr = pfx + digits + sfx
+    }
+
+    type U21 = _U21
+    final case class _U21(digits: String) extends Unicode {
+      val pfx  = "u{"
+      val sfx  = "}"
+      val repr = pfx + digits + sfx
+    }
 
     object Validator {
       val hexChars =
@@ -43,8 +71,8 @@ object Escape {
 
     object U16 {
       def apply(digits: String): Unicode =
-        if (validate(digits)) U16(digits)
-        else Invalid(U16(digits))
+        if (validate(digits)) _U16(digits)
+        else Invalid(_U16(digits))
       def validate(digits: String) = {
         import Validator._
         val validLength = digits.length == 4
@@ -54,8 +82,8 @@ object Escape {
     }
     object U32 {
       def apply(digits: String): Unicode =
-        if (validate(digits)) U32(digits)
-        else Invalid(U32(digits))
+        if (validate(digits)) _U32(digits)
+        else Invalid(_U32(digits))
       def validate(digits: String) = {
         import Validator._
         val validLength = digits.length == 8
@@ -66,8 +94,8 @@ object Escape {
     }
     object U21 {
       def apply(digits: String): Unicode =
-        if (validate(digits)) U21(digits)
-        else Invalid(U21(digits))
+        if (validate(digits)) _U21(digits)
+        else Invalid(_U21(digits))
       def validate(digits: String) = {
         import Validator._
         val validLength = digits.length >= 1 && digits.length <= 6
@@ -77,66 +105,236 @@ object Escape {
     }
   }
 
-
-  abstract class Simple(val code: Int) extends Escape{
-    def name = toString
-    val repr = name
+  case object Slash extends Escape {
+    val code: Int     = '\\'
+    def name: String  = toString
+    override val repr = "\\"
+  }
+  case object Quote extends Escape {
+    val code: Int     = '\''
+    def name: String  = toString
+    override val repr = "\'"
+  }
+  case object RawQuote extends Escape {
+    val code: Int     = '"'
+    def name: String  = toString
+    override val repr = "\""
   }
 
-  case object Slash    extends Simple('\\') { override val repr = "\\" }
-  case object Quote    extends Simple('\'') { override val repr = "\'" }
-  case object RawQuote extends Simple('"')  { override val repr = "\"" }
-
   // Reference: https://en.wikipedia.org/wiki/String_literal
-  sealed trait Character extends Simple
+  sealed trait Character extends Escape
   object Character {
-    case object a extends Simple('\u0007') with Character
-    case object b extends Simple('\u0008') with Character
-    case object f extends Simple('\u000C') with Character
-    case object n extends Simple('\n') with Character
-    case object r extends Simple('\r') with Character
-    case object t extends Simple('\u0009') with Character
-    case object v extends Simple('\u000B') with Character
-    case object e extends Simple('\u001B') with Character
+    case object a extends Character {
+      val code: Int     = '\u0007'
+      def name: String  = toString
+      override val repr = name
+    }
+    case object b extends Character {
+      val code: Int     = '\u0008'
+      def name: String  = toString
+      override val repr = name
+    }
+    case object f extends Character {
+      val code: Int     = '\u000C'
+      def name: String  = toString
+      override val repr = name
+    }
+    case object n extends Character {
+      val code: Int     = '\n'
+      def name: String  = toString
+      override val repr = name
+    }
+    case object r extends Character {
+      val code: Int     = '\r'
+      def name: String  = toString
+      override val repr = name
+    }
+    case object t extends Character {
+      val code: Int     = '\u0009'
+      def name: String  = toString
+      override val repr = name
+    }
+    case object v extends Character {
+      val code: Int     = '\u000B'
+      def name: String  = toString
+      override val repr = name
+    }
+    case object e extends Character {
+      val code: Int     = '\u001B'
+      def name: String  = toString
+      override val repr = name
+    }
     val codes = ADT.constructors[Character]
   }
 
   // Reference: https://en.wikipedia.org/wiki/Control_character
-  sealed trait Control extends Simple
+  sealed trait Control extends Escape
   object Control {
-    case object NUL extends Simple(0x00) with Control
-    case object SOH extends Simple(0x01) with Control
-    case object STX extends Simple(0x02) with Control
-    case object ETX extends Simple(0x03) with Control
-    case object EOT extends Simple(0x04) with Control
-    case object ENQ extends Simple(0x05) with Control
-    case object ACK extends Simple(0x06) with Control
-    case object BEL extends Simple(0x07) with Control
-    case object BS  extends Simple(0x08) with Control
-    case object TAB extends Simple(0x09) with Control
-    case object LF  extends Simple(0x0A) with Control
-    case object VT  extends Simple(0x0B) with Control
-    case object FF  extends Simple(0x0C) with Control
-    case object CR  extends Simple(0x0D) with Control
-    case object SO  extends Simple(0x0E) with Control
-    case object SI  extends Simple(0x0F) with Control
-    case object DLE extends Simple(0x10) with Control
-    case object DC1 extends Simple(0x11) with Control
-    case object DC2 extends Simple(0x12) with Control
-    case object DC3 extends Simple(0x13) with Control
-    case object DC4 extends Simple(0x14) with Control
-    case object NAK extends Simple(0x15) with Control
-    case object SYN extends Simple(0x16) with Control
-    case object ETB extends Simple(0x17) with Control
-    case object CAN extends Simple(0x18) with Control
-    case object EM  extends Simple(0x19) with Control
-    case object SUB extends Simple(0x1A) with Control
-    case object ESC extends Simple(0x1B) with Control
-    case object FS  extends Simple(0x1C) with Control
-    case object GS  extends Simple(0x1D) with Control
-    case object RS  extends Simple(0x1E) with Control
-    case object US  extends Simple(0x1F) with Control
-    case object DEL extends Simple(0x7F) with Control
+    case object NUL extends Control {
+      val code: Int     = 0x00
+      def name: String  = toString
+      override val repr = name
+    }
+    case object SOH extends Control {
+      val code: Int     = 0x01
+      def name: String  = toString
+      override val repr = name
+    }
+    case object STX extends Control {
+      val code: Int     = 0x02
+      def name: String  = toString
+      override val repr = name
+    }
+    case object ETX extends Control {
+      val code: Int     = 0x03
+      def name: String  = toString
+      override val repr = name
+    }
+    case object EOT extends Control {
+      val code: Int     = 0x04
+      def name: String  = toString
+      override val repr = name
+    }
+    case object ENQ extends Control {
+      val code: Int     = 0x05
+      def name: String  = toString
+      override val repr = name
+    }
+    case object ACK extends Control {
+      val code: Int     = 0x06
+      def name: String  = toString
+      override val repr = name
+    }
+    case object BEL extends Control {
+      val code: Int     = 0x07
+      def name: String  = toString
+      override val repr = name
+    }
+    case object BS extends Control {
+      val code: Int     = 0x08
+      def name: String  = toString
+      override val repr = name
+    }
+    case object TAB extends Control {
+      val code: Int     = 0x09
+      def name: String  = toString
+      override val repr = name
+    }
+    case object LF extends Control {
+      val code: Int     = 0x0A
+      def name: String  = toString
+      override val repr = name
+    }
+    case object VT extends Control {
+      val code: Int     = 0x0B
+      def name: String  = toString
+      override val repr = name
+    }
+    case object FF extends Control {
+      val code: Int     = 0x0C
+      def name: String  = toString
+      override val repr = name
+    }
+    case object CR extends Control {
+      val code: Int     = 0x0D
+      def name: String  = toString
+      override val repr = name
+    }
+    case object SO extends Control {
+      val code: Int     = 0x0E
+      def name: String  = toString
+      override val repr = name
+    }
+    case object SI extends Control {
+      val code: Int     = 0x0F
+      def name: String  = toString
+      override val repr = name
+    }
+    case object DLE extends Control {
+      val code: Int     = 0x10
+      def name: String  = toString
+      override val repr = name
+    }
+    case object DC1 extends Control {
+      val code: Int     = 0x11
+      def name: String  = toString
+      override val repr = name
+    }
+    case object DC2 extends Control {
+      val code: Int     = 0x12
+      def name: String  = toString
+      override val repr = name
+    }
+    case object DC3 extends Control {
+      val code: Int     = 0x13
+      def name: String  = toString
+      override val repr = name
+    }
+    case object DC4 extends Control {
+      val code: Int     = 0x14
+      def name: String  = toString
+      override val repr = name
+    }
+    case object NAK extends Control {
+      val code: Int     = 0x15
+      def name: String  = toString
+      override val repr = name
+    }
+    case object SYN extends Control {
+      val code: Int     = 0x16
+      def name: String  = toString
+      override val repr = name
+    }
+    case object ETB extends Control {
+      val code: Int     = 0x17
+      def name: String  = toString
+      override val repr = name
+    }
+    case object CAN extends Control {
+      val code: Int     = 0x18
+      def name: String  = toString
+      override val repr = name
+    }
+    case object EM extends Control {
+      val code: Int     = 0x19
+      def name: String  = toString
+      override val repr = name
+    }
+    case object SUB extends Control {
+      val code: Int     = 0x1A
+      def name: String  = toString
+      override val repr = name
+    }
+    case object ESC extends Control {
+      val code: Int     = 0x1B
+      def name: String  = toString
+      override val repr = name
+    }
+    case object FS extends Control {
+      val code: Int     = 0x1C
+      def name: String  = toString
+      override val repr = name
+    }
+    case object GS extends Control {
+      val code: Int     = 0x1D
+      def name: String  = toString
+      override val repr = name
+    }
+    case object RS extends Control {
+      val code: Int     = 0x1E
+      def name: String  = toString
+      override val repr = name
+    }
+    case object US extends Control {
+      val code: Int     = 0x1F
+      def name: String  = toString
+      override val repr = name
+    }
+    case object DEL extends Control {
+      val code: Int     = 0x7F
+      def name: String  = toString
+      override val repr = name
+    }
     val codes = ADT.constructors[Control]
   }
 }

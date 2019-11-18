@@ -303,9 +303,9 @@ class ParserTest extends FlatSpec with Matchers {
   def _amb_group_(i: Int)(t: AST): Macro.Ambiguous =
     amb("(", List(List(")")), Shifted(i, t))
 
-  val amb_group   = _amb_group_(0)(_)
-  val amb_group_  = _amb_group_(1)(_)
-  val amb_group__ = _amb_group_(2)(_)
+  val amb_group                 = _amb_group_(0)(_)
+  val amb_group_                = _amb_group_(1)(_)
+  val amb_group__               = _amb_group_(2)(_)
   def group_(): Macro.Ambiguous = amb("(", List(List(")")))
 
   def _amb_if(i: Int)(t: AST) =
