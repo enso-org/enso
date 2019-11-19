@@ -20,6 +20,11 @@ import org.enso.interpreter.runtime.state.Stateful;
 /** Node running Enso expressions passed to it as strings. */
 @NodeInfo(description = "Evaluates code passed to it as string")
 public abstract class EvalNode extends BaseNode {
+  private final boolean shouldCaptureResultScope;
+
+  EvalNode(boolean shouldCaptureResultScope) {
+    this.shouldCaptureResultScope = shouldCaptureResultScope;
+  }
 
   /**
    * Creates an instance of this node.
@@ -27,7 +32,16 @@ public abstract class EvalNode extends BaseNode {
    * @return an instance of this node
    */
   public static EvalNode build() {
-    return EvalNodeGen.create();
+    return EvalNodeGen.create(false);
+  }
+
+  /**
+   * Creates an instance of this node, with frame capture enabled.
+   *
+   * @return an instance of this node
+   */
+  public static EvalNode buildWithResultScopeCapture() {
+    return EvalNodeGen.create(true);
   }
 
   /**
@@ -48,6 +62,9 @@ public abstract class EvalNode extends BaseNode {
             .get()
             .compiler()
             .runInline(expression, language, localScope, moduleScope);
+    if (shouldCaptureResultScope) {
+      expr = CaptureResultScopeNode.build(expr);
+    }
     ClosureRootNode framedNode =
         new ClosureRootNode(
             lookupLanguageReference(Language.class).get(),

@@ -2,6 +2,7 @@ package org.enso.interpreter.runtime;
 
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.expression.builtin.IfZeroNode;
+import org.enso.interpreter.node.expression.builtin.debug.DebugBreakpointNode;
 import org.enso.interpreter.node.expression.builtin.debug.DebugEvalNode;
 import org.enso.interpreter.node.expression.builtin.error.CatchErrorNode;
 import org.enso.interpreter.node.expression.builtin.error.CatchPanicNode;
@@ -64,6 +65,7 @@ public class Builtins {
     scope.registerMethod(state, "run", RunStateNode.makeFunction(language));
 
     scope.registerMethod(debug, "eval", DebugEvalNode.makeFunction(language));
+    scope.registerMethod(debug, "breakpoint", DebugBreakpointNode.makeFunction(language));
   }
 
   /**

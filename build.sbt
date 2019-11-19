@@ -309,11 +309,14 @@ val truffleRunOptionsSettings = Seq(
 )
 
 lazy val runtime = (project in file("engine/runtime"))
+  .configs(Benchmark)
   .settings(
     version := "0.1",
     commands += WithDebugCommand.withDebug,
     inConfig(Compile)(truffleRunOptionsSettings),
     inConfig(Test)(truffleRunOptionsSettings),
+    inConfig(Benchmark)(Defaults.testSettings),
+    inConfig(Benchmark)(truffleRunOptionsSettings),
     parallelExecution in Test := false,
     logBuffered in Test := false,
     libraryDependencies ++= jmh ++ Seq(
@@ -330,9 +333,9 @@ lazy val runtime = (project in file("engine/runtime"))
       "org.scalacheck"         %% "scalacheck"               % "1.14.0" % Test,
       "org.scalactic"          %% "scalactic"                % "3.0.8" % Test,
       "org.scalatest"          %% "scalatest"                % "3.2.0-SNAP10" % Test,
+      "org.graalvm.truffle"    % "truffle-api"               % graalVersion % Benchmark,
       "org.typelevel"          %% "cats-core"                % "2.0.0-M4"
-    ),
-    libraryDependencies ++= jmh
+    )
   )
   .settings(
     (Compile / javacOptions) ++= Seq(
@@ -345,11 +348,8 @@ lazy val runtime = (project in file("engine/runtime"))
       .dependsOn(Def.task { (Compile / sourceManaged).value.mkdirs })
       .value
   )
-  .configs(Benchmark)
   .settings(
     logBuffered := false,
-    inConfig(Benchmark)(Defaults.testSettings),
-    inConfig(Benchmark)(truffleRunOptionsSettings),
     bench := (test in Benchmark).tag(Exclusive).value,
     benchOnly := Def.inputTaskDyn {
       import complete.Parsers.spaceDelimited
@@ -385,8 +385,10 @@ lazy val language_server = project
     inConfig(Compile)(truffleRunOptionsSettings),
     libraryDependencies ++= Seq(
       "org.graalvm.sdk"       % "polyglot-tck"           % graalVersion % "provided",
+      "org.graalvm.truffle"   % "truffle-api"            % graalVersion % "provided",
       "commons-cli"           % "commons-cli"            % "1.4",
-      "io.github.spencerpark" % "jupyter-jvm-basekernel" % "2.3.0"
+      "io.github.spencerpark" % "jupyter-jvm-basekernel" % "2.3.0",
+      "org.jline"             % "jline"                  % "3.1.3"
     )
   )
   .settings(

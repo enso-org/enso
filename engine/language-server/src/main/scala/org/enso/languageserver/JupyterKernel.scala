@@ -18,7 +18,12 @@ import org.graalvm.polyglot.Context
   */
 class JupyterKernel extends BaseKernel {
   private val context: Context =
-    new ContextFactory().create("", getIO.in, getIO.out)
+    new ContextFactory().create(
+      "",
+      getIO.in,
+      getIO.out,
+      Repl(SimpleReplIO(getIO.in, getIO.out))
+    )
 
   /**
     * Evaluates Enso code in the context of Jupyter request

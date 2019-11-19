@@ -15,13 +15,10 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
 public abstract class EnsoRootNode extends RootNode {
   private final String name;
   private final SourceSection sourceSection;
-  private final FrameSlot stateFrameSlot;
   private final LocalScope localScope;
   private final ModuleScope moduleScope;
   private @CompilerDirectives.CompilationFinal TruffleLanguage.ContextReference<Context>
       contextReference;
-  private @CompilerDirectives.CompilationFinal TruffleLanguage.LanguageReference<Language>
-      languageReference;
 
   /**
    * Constructs the root node.
@@ -43,8 +40,6 @@ public abstract class EnsoRootNode extends RootNode {
     this.localScope = localScope;
     this.moduleScope = moduleScope;
     this.sourceSection = sourceSection;
-    this.stateFrameSlot =
-        localScope.getFrameDescriptor().findOrAddFrameSlot("<<state>>", FrameSlotKind.Object);
   }
 
   /**
@@ -84,7 +79,7 @@ public abstract class EnsoRootNode extends RootNode {
    * @return the state frame slot
    */
   public FrameSlot getStateFrameSlot() {
-    return this.stateFrameSlot;
+    return localScope.getStateFrameSlot();
   }
 
   /**

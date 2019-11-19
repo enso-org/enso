@@ -3,6 +3,7 @@ package org.enso.interpreter;
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleLanguage;
+import com.oracle.truffle.api.debug.DebuggerTags;
 import com.oracle.truffle.api.instrumentation.ProvidedTags;
 import com.oracle.truffle.api.instrumentation.StandardTags;
 import com.oracle.truffle.api.nodes.RootNode;
@@ -33,6 +34,7 @@ import org.graalvm.options.OptionDescriptors;
     contextPolicy = TruffleLanguage.ContextPolicy.SHARED,
     fileTypeDetectors = FileDetector.class)
 @ProvidedTags({
+  DebuggerTags.AlwaysHalt.class,
   StandardTags.CallTag.class,
   StandardTags.ExpressionTag.class,
   StandardTags.RootTag.class,

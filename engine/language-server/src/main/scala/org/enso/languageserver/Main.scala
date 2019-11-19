@@ -13,6 +13,7 @@ object Main {
   private val RUN_OPTION     = "run"
   private val HELP_OPTION    = "help"
   private val NEW_OPTION     = "new"
+  private val REPL_OPTION    = "repl"
   private val JUPYTER_OPTION = "jupyter-kernel"
 
   /**
@@ -25,6 +26,10 @@ object Main {
       .builder("h")
       .longOpt(HELP_OPTION)
       .desc("Displays this message.")
+      .build
+    val repl = Option.builder
+      .longOpt(REPL_OPTION)
+      .desc("Runs the Enso REPL.")
       .build
     val run = Option.builder
       .hasArg(true)
@@ -50,6 +55,7 @@ object Main {
     val options = new Options
     options
       .addOption(help)
+      .addOption(repl)
       .addOption(run)
       .addOption(newOpt)
       .addOption(jupyterOption)
@@ -105,9 +111,25 @@ object Main {
       }
       mainLocation = main.get
     }
-    val context = new ContextFactory().create(packagePath)
-    val source  = Source.newBuilder(Constants.LANGUAGE_ID, mainLocation).build
+    val context = new ContextFactory().create(
+      packagePath,
+      System.in,
+      System.out,
+      Repl(TerminalIO())
+    )
+    val source = Source.newBuilder(Constants.LANGUAGE_ID, mainLocation).build
     context.eval(source)
+    exitSuccess()
+  }
+
+  /**
+    * Handles the `--repl` CLI option
+    */
+  private def runRepl(): Unit = {
+    val dummySourceToTriggerRepl = "@{ @breakpoint[@Debug] }"
+    val context =
+      new ContextFactory().create("", System.in, System.out, Repl(TerminalIO()))
+    context.eval(Constants.LANGUAGE_ID, dummySourceToTriggerRepl)
     exitSuccess()
   }
 
@@ -133,6 +155,9 @@ object Main {
     }
     if (line.hasOption(RUN_OPTION)) {
       run(line.getOptionValue(RUN_OPTION))
+    }
+    if (line.hasOption(REPL_OPTION)) {
+      runRepl()
     }
     if (line.hasOption(JUPYTER_OPTION)) {
       new JupyterKernel().run(line.getOptionValue(JUPYTER_OPTION))

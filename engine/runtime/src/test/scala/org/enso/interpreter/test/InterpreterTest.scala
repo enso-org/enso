@@ -3,6 +3,7 @@ package org.enso.interpreter.test
 import java.io.ByteArrayOutputStream
 
 import org.enso.interpreter.Constants
+import org.enso.interpreter.instrument.ReplDebuggerInstrument
 import org.graalvm.polyglot.{Context, Value}
 import org.scalatest.{FlatSpec, Matchers}
 
@@ -29,6 +30,12 @@ trait InterpreterRunner {
 
   def parse(code: String): Value =
     InterpreterException.rethrowPolyglot(eval(code))
+
+  def getReplInstrument: ReplDebuggerInstrument = {
+    ctx.getEngine.getInstruments
+      .get(ReplDebuggerInstrument.INSTRUMENT_ID)
+      .lookup(classOf[ReplDebuggerInstrument])
+  }
 }
 
 trait InterpreterTest

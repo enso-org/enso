@@ -2,6 +2,7 @@ package org.enso.interpreter.runtime.scope;
 
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.FrameSlot;
+import com.oracle.truffle.api.frame.FrameSlotKind;
 import org.enso.interpreter.runtime.error.VariableRedefinitionException;
 
 import java.util.HashMap;
@@ -14,9 +15,10 @@ import java.util.Optional;
  * frames.
  */
 public class LocalScope {
-  public final Map<String, FrameSlot> items;
   private final FrameDescriptor frameDescriptor;
-  public final LocalScope parent;
+  private final LocalScope parent;
+  private final Map<String, FrameSlot> items;
+  private final FrameSlot stateFrameSlot;
 
   /** Creates a root local scope. */
   public LocalScope() {
@@ -29,9 +31,11 @@ public class LocalScope {
    * @param parent the parent scope
    */
   public LocalScope(LocalScope parent) {
-    items = new HashMap<>();
-    frameDescriptor = new FrameDescriptor();
+    this.items = new HashMap<>();
+    this.frameDescriptor = new FrameDescriptor();
     this.parent = parent;
+    this.stateFrameSlot =
+        frameDescriptor.findOrAddFrameSlot("<<monadic_state>>", FrameSlotKind.Object);
   }
 
   /**
@@ -96,5 +100,32 @@ public class LocalScope {
       parentCounter++;
     }
     return Optional.empty();
+  }
+
+  /**
+   * Gets the monadic state frame slot for this local scope.
+   *
+   * @return the frame slot containing monadic state
+   */
+  public FrameSlot getStateFrameSlot() {
+    return stateFrameSlot;
+  }
+
+  private Map<String, FramePointer> flattenWithLevel(int level) {
+    Map<String, FramePointer> parentResult =
+        parent == null ? new HashMap<>() : getParent().flattenWithLevel(level + 1);
+    for (Map.Entry<String, FrameSlot> entry : items.entrySet()) {
+      parentResult.put(entry.getKey(), new FramePointer(level, entry.getValue()));
+    }
+    return parentResult;
+  }
+
+  /**
+   * Returns a flat representation of the scope, including variables from all parent lexical scopes.
+   *
+   * @return a flat representation of this scope
+   */
+  public Map<String, FramePointer> flatten() {
+    return flattenWithLevel(0);
   }
 }
