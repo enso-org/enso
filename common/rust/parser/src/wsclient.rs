@@ -1,7 +1,7 @@
 #![cfg(not(target_arch = "wasm32"))]
 
-use failure::Fail;
-use std::default::Default;
+use prelude::*;
+
 use websocket::{
     stream::sync::TcpStream, ClientBuilder, Message, OwnedMessage,
 };

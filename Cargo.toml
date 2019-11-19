@@ -1,5 +1,6 @@
 [workspace]
 
 members = [
-    "common/rust/parser"
+    "common/rust/parser",
+    "common/rust/prelude"
 ]

@@ -1,5 +1,5 @@
 use crate::{api, api::IsParser};
-use failure::Fail;
+use prelude::*;
 
 pub type Result<T> = std::result::Result<T, Error>;
 

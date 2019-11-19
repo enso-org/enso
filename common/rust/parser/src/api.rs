@@ -1,4 +1,4 @@
-use failure::Fail;
+use prelude::*;
 
 // ============
 // == Parser ==
