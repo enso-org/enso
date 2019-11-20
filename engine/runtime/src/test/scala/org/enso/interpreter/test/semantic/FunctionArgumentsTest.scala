@@ -9,7 +9,7 @@ class FunctionArgumentsTest extends InterpreterTest {
         |{ |x| x * x }
         |""".stripMargin
 
-    val function = eval(code)
+    val function = evalOld(code)
     function.call(1) shouldEqual 1
     function.call(4) shouldEqual 16
   }
@@ -25,7 +25,7 @@ class FunctionArgumentsTest extends InterpreterTest {
         |}
       """.stripMargin
 
-    eval(code).call(3) shouldEqual 5
+    evalOld(code).call(3) shouldEqual 5
   }
 
   "Recursion" should "work" in {
@@ -37,7 +37,7 @@ class FunctionArgumentsTest extends InterpreterTest {
         |}
       """.stripMargin
 
-    eval(code) shouldEqual 55
+    evalOld(code) shouldEqual 55
   }
 
   "Function calls" should "accept more arguments than needed and pass them to the result upon execution" in {
@@ -50,7 +50,7 @@ class FunctionArgumentsTest extends InterpreterTest {
         |}
         |""".stripMargin
 
-    eval(code) shouldEqual 3
+    evalOld(code) shouldEqual 3
   }
 
   "Function calls" should "allow oversaturation and execute until completion" in {
@@ -63,7 +63,7 @@ class FunctionArgumentsTest extends InterpreterTest {
         |}
         |""".stripMargin
 
-    eval(code) shouldEqual 20
+    evalOld(code) shouldEqual 20
   }
 
   "Function calls" should "be able to return atoms that are evaluated with oversaturated args" in {
@@ -80,7 +80,7 @@ class FunctionArgumentsTest extends InterpreterTest {
         |}
         |""".stripMargin
 
-    eval(code) shouldEqual 5
+    evalOld(code) shouldEqual 5
   }
 
   "Methods" should "support the use of oversaturated args" in {
@@ -96,7 +96,7 @@ class FunctionArgumentsTest extends InterpreterTest {
         |}
         |""".stripMargin
 
-    eval(code) shouldEqual 1
+    evalOld(code) shouldEqual 1
   }
 
   "Recursion closing over lexical scope" should "work properly" in {
@@ -109,6 +109,6 @@ class FunctionArgumentsTest extends InterpreterTest {
         |}
         |""".stripMargin
 
-    eval(code) shouldEqual 0
+    evalOld(code) shouldEqual 0
   }
 }

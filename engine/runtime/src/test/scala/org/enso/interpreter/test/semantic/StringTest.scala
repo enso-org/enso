@@ -9,7 +9,7 @@ class StringTest extends InterpreterTest {
         |@println [@IO, "hello world!"]
         |""".stripMargin
 
-    noException shouldBe thrownBy(eval(code))
+    noException shouldBe thrownBy(evalOld(code))
     consumeOut shouldEqual List("hello world!")
   }
 }

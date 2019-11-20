@@ -4,6 +4,7 @@ import org.enso.compiler.core.IR.Literal.Text
 import org.enso.syntax.text.AST
 import org.enso.syntax.text.ast.text.Escape
 
+// TODO [AA] REMOVE THIS ENTIRE FILE ONCE WE HAVE NEW CORE
 /**
   * This is the compiler's high-level intermediate representation.
   *

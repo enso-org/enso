@@ -1,10 +1,10 @@
 package org.enso.interpreter.test
 
-import java.io.ByteArrayOutputStream
+import java.io.{ByteArrayOutputStream, StringReader}
 
 import org.enso.interpreter.Constants
+import org.graalvm.polyglot.{Context, Source, Value}
 import org.enso.interpreter.instrument.ReplDebuggerInstrument
-import org.graalvm.polyglot.{Context, Value}
 import org.scalatest.{FlatSpec, Matchers}
 
 trait InterpreterRunner {
@@ -17,9 +17,23 @@ trait InterpreterRunner {
   val output = new ByteArrayOutputStream()
   val ctx    = Context.newBuilder(Constants.LANGUAGE_ID).out(output).build()
 
-  def eval(code: String): Value = {
+  def evalGeneric(code: String, mimeType: String): Value = {
     output.reset()
-    InterpreterException.rethrowPolyglot(ctx.eval(Constants.LANGUAGE_ID, code))
+
+    val source = Source
+      .newBuilder(Constants.LANGUAGE_ID, new StringReader(code), "test")
+      .mimeType(mimeType)
+      .build()
+
+    InterpreterException.rethrowPolyglot(ctx.eval(source))
+  }
+
+  def eval(code: String): Value = {
+    evalGeneric(code, Constants.MIME_TYPE)
+  }
+
+  def evalOld(code: String): Value = {
+    evalGeneric(code, Constants.Debug.MIME_TYPE)
   }
 
   def consumeOut: List[String] = {
@@ -29,7 +43,7 @@ trait InterpreterRunner {
   }
 
   def parse(code: String): Value =
-    InterpreterException.rethrowPolyglot(eval(code))
+    InterpreterException.rethrowPolyglot(evalOld(code))
 
   def getReplInstrument: ReplDebuggerInstrument = {
     ctx.getEngine.getInstruments

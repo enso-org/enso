@@ -2,13 +2,10 @@ package org.enso.compiler
 
 import com.oracle.truffle.api.TruffleFile
 import com.oracle.truffle.api.source.Source
-import org.enso.compiler.generate.AstToIr
+import org.enso.compiler.generate.AstToAstExpression
 import org.enso.compiler.core.IR
 import org.enso.flexer.Reader
-import org.enso.interpreter.AstExpression
-import org.enso.interpreter.Constants
-import org.enso.interpreter.EnsoParser
-import org.enso.interpreter.Language
+import org.enso.interpreter.{AstExpression, AstModuleScope, Constants, EnsoParser, Language}
 import org.enso.interpreter.builder.ExpressionFactory
 import org.enso.interpreter.builder.ModuleScopeExpressionFactory
 import org.enso.interpreter.node.ExpressionNode
@@ -45,18 +42,17 @@ class Compiler(
     *         executable functionality in the module corresponding to `source`.
     */
   def run(source: Source, scope: ModuleScope): ExpressionNode = {
-    /* TODO [AA] Introduce this next task
-     * val parsedAST: AST = parse(source)
-     * val convertedIR: ExpressionNode = translate(parsedAST)
-     */
+    val mimeType = source.getMimeType
 
-    val parsed =
+    val expr: AstModuleScope = if (mimeType == Constants.MIME_TYPE) {
+      val parsedAST: AST = parse(source)
+      translate(parsedAST)
+    } else {
       new EnsoParser().parseEnso(source.getCharacters.toString)
+    }
 
-    new ModuleScopeExpressionFactory(language, scope).run(parsed)
+    new ModuleScopeExpressionFactory(language, scope).run(expr)
   }
-
-  // TODO [AA] This needs to evolve to support scope execution
 
   /**
     * Processes the language sources in the provided file, registering any
@@ -166,5 +162,6 @@ class Compiler(
     * @return an IR representation with a 1:1 mapping to the parser AST
     *         constructs
     */
-  def translate(sourceAST: AST): IR = AstToIr.process(sourceAST)
+  def translate(sourceAST: AST): AstModuleScope =
+    AstToAstExpression.translate(sourceAST)
 }

@@ -15,7 +15,7 @@ class CurryingTest extends InterpreterTest {
         |}
         |""".stripMargin
 
-    eval(code) shouldEqual 11
+    evalOld(code) shouldEqual 11
   }
 
   "Functions" should "allow default arguments to be suspended" in {
@@ -32,7 +32,7 @@ class CurryingTest extends InterpreterTest {
         |}
         |""".stripMargin
 
-    eval(code) shouldEqual 26
+    evalOld(code) shouldEqual 26
   }
 
   "Functions" should "allow defaults to be suspended in application chains" in {
@@ -45,6 +45,6 @@ class CurryingTest extends InterpreterTest {
         |}
         |""".stripMargin
 
-    eval(code) shouldEqual 32
+    evalOld(code) shouldEqual 32
   }
 }

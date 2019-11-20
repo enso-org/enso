@@ -10,7 +10,7 @@ class MethodsTest extends InterpreterTest {
         |Foo.bar = { |number| number + 1 }
         |@bar [@Foo, 10]
         |""".stripMargin
-    eval(code) shouldEqual 11
+    evalOld(code) shouldEqual 11
   }
 
   "Methods" should "be dispatched to the proper constructor" in {
@@ -24,7 +24,7 @@ class MethodsTest extends InterpreterTest {
         |@sum [@Cons [1, @Cons [2, @Nil]], 0]
         |""".stripMargin
 
-    eval(code) shouldEqual 3
+    evalOld(code) shouldEqual 3
   }
 
   "Method call target" should "be passable by-name" in {
@@ -34,7 +34,7 @@ class MethodsTest extends InterpreterTest {
         |@testMethod [x = 1, y = 2, this = @Unit, z = 3]
         |""".stripMargin
 
-    eval(code) shouldEqual 6
+    evalOld(code) shouldEqual 6
   }
 
   "Calling a non-existent method" should "throw an exception" in {
@@ -42,7 +42,7 @@ class MethodsTest extends InterpreterTest {
       """
         |@foo [7]
         |""".stripMargin
-    the[InterpreterException] thrownBy eval(code) should have message "Object Number does not define method foo."
+    the[InterpreterException] thrownBy evalOld(code) should have message "Object Number does not define method foo."
   }
 
   "Methods defined on Any type" should "be callable for any type" in {
@@ -69,7 +69,7 @@ class MethodsTest extends InterpreterTest {
         |  0
         |}
         |""".stripMargin
-    eval(code)
+    evalOld(code)
     consumeOut shouldEqual List("1", "2", "3", "0", "0", "0")
   }
 }

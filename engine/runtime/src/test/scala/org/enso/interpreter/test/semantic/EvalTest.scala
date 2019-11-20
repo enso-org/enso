@@ -10,7 +10,7 @@ class EvalTest extends InterpreterTest {
         |  @eval [@Debug, "@println[@IO, \"foo\"]"]
         |}
         |""".stripMargin
-    eval(code)
+    evalOld(code)
     consumeOut shouldEqual List("foo")
   }
 
@@ -22,7 +22,7 @@ class EvalTest extends InterpreterTest {
         |  @eval [@Debug, "@println[@IO, x]"]
         |}
         |""".stripMargin
-    eval(code)
+    evalOld(code)
     consumeOut shouldEqual List("Hello World!")
   }
 
@@ -36,7 +36,7 @@ class EvalTest extends InterpreterTest {
         |  @eval [@Debug, "@println[@IO, @MyType[x]]"]
         |}
         |""".stripMargin
-    eval(code)
+    evalOld(code)
     consumeOut shouldEqual List("MyType<10>")
   }
 
@@ -50,7 +50,7 @@ class EvalTest extends InterpreterTest {
         |  res + 1
         |}
         |""".stripMargin
-    eval(code) shouldEqual 4
+    evalOld(code) shouldEqual 4
   }
 
   "Debug.eval" should "work in a recursive setting" in {
@@ -64,7 +64,7 @@ class EvalTest extends InterpreterTest {
         |  res
         |}
         |""".stripMargin
-    val fun = eval(code)
+    val fun = evalOld(code)
     fun.call(100) shouldEqual 5050
   }
 
@@ -79,7 +79,7 @@ class EvalTest extends InterpreterTest {
         |  res
         |}
         |""".stripMargin
-    val fun = eval(code)
+    val fun = evalOld(code)
     fun.call(100) shouldEqual 5050
   }
 }

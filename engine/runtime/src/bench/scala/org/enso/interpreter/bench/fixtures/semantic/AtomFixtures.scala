@@ -14,7 +14,7 @@ class AtomFixtures extends InterpreterRunner {
       |}
     """.stripMargin
 
-  val generateList = eval(generateListCode)
+  val generateList = evalOld(generateListCode)
 
   val millionElementList = generateList.call(million)
 
@@ -30,7 +30,7 @@ class AtomFixtures extends InterpreterRunner {
       |}
     """.stripMargin
 
-  val reverseList = eval(reverseListCode)
+  val reverseList = evalOld(reverseListCode)
 
   val reverseListMethodsCode =
     """
@@ -43,7 +43,7 @@ class AtomFixtures extends InterpreterRunner {
       |{ |list| @reverse [list, @Nil] }
       |""".stripMargin
 
-  val reverseListMethods = eval(reverseListMethodsCode)
+  val reverseListMethods = evalOld(reverseListMethodsCode)
 
   val sumListCode =
     """
@@ -57,7 +57,7 @@ class AtomFixtures extends InterpreterRunner {
       |}
     """.stripMargin
 
-  val sumList = eval(sumListCode)
+  val sumList = evalOld(sumListCode)
 
   val sumListLeftFoldCode =
     """
@@ -72,7 +72,7 @@ class AtomFixtures extends InterpreterRunner {
       |}
     """.stripMargin
 
-  val sumListLeftFold = eval(sumListLeftFoldCode)
+  val sumListLeftFold = evalOld(sumListLeftFoldCode)
 
   val sumListFallbackCode =
     """
@@ -86,7 +86,7 @@ class AtomFixtures extends InterpreterRunner {
       |}
     """.stripMargin
 
-  val sumListFallback = eval(sumListFallbackCode)
+  val sumListFallback = evalOld(sumListFallbackCode)
 
   val sumListMethodsCode =
     """
@@ -98,7 +98,7 @@ class AtomFixtures extends InterpreterRunner {
       |{ |list| @sum [list, 0] }
       |""".stripMargin
 
-  val sumListMethods = eval(sumListMethodsCode)
+  val sumListMethods = evalOld(sumListMethodsCode)
 
   val mapReverseListCode =
     """
@@ -110,7 +110,7 @@ class AtomFixtures extends InterpreterRunner {
       |{ |list| @mapReverse [list, { |x| x + 1 }, @Nil] }
       |""".stripMargin
 
-  val mapReverseList = eval(mapReverseListCode)
+  val mapReverseList = evalOld(mapReverseListCode)
 
   val mapReverseListCurryCode =
     """
@@ -125,5 +125,5 @@ class AtomFixtures extends InterpreterRunner {
       |}
       |""".stripMargin
 
-  val mapReverseListCurry = eval(mapReverseListCurryCode)
+  val mapReverseListCurry = evalOld(mapReverseListCurryCode)
 }

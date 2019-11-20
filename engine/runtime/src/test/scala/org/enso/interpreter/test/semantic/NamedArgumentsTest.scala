@@ -12,7 +12,7 @@ class NamedArgumentsTest extends InterpreterTest {
         |@addTen [@Unit, b = 10]
       """.stripMargin
 
-    eval(code) shouldEqual 20
+    evalOld(code) shouldEqual 20
   }
 
   "Functions" should "be able to have named arguments given out of order" in {
@@ -23,7 +23,7 @@ class NamedArgumentsTest extends InterpreterTest {
         |@subtract [@Unit, b = 10, a = 5]
     """.stripMargin
 
-    eval(code) shouldEqual -5
+    evalOld(code) shouldEqual -5
   }
 
   "Functions" should "be able to have scope values as named arguments" in {
@@ -37,7 +37,7 @@ class NamedArgumentsTest extends InterpreterTest {
         |}
     """.stripMargin
 
-    eval(code) shouldEqual 20
+    evalOld(code) shouldEqual 20
   }
 
   "Functions" should "be able to be defined with default argument values" in {
@@ -48,7 +48,7 @@ class NamedArgumentsTest extends InterpreterTest {
         |@addNum [@Unit, 5]
     """.stripMargin
 
-    eval(code) shouldEqual 15
+    evalOld(code) shouldEqual 15
   }
 
   "Default arguments" should "be able to default to complex expressions" in {
@@ -61,7 +61,7 @@ class NamedArgumentsTest extends InterpreterTest {
         |@doThing [@Unit, 10]
         |""".stripMargin
 
-    eval(code) shouldEqual 13
+    evalOld(code) shouldEqual 13
   }
 
   "Default arguments" should "be able to close over their outer scope" in {
@@ -77,7 +77,7 @@ class NamedArgumentsTest extends InterpreterTest {
         |}
         |""".stripMargin
 
-    eval(code) shouldEqual 1
+    evalOld(code) shouldEqual 1
   }
 
   "Functions" should "use their default values when none is supplied" in {
@@ -88,7 +88,7 @@ class NamedArgumentsTest extends InterpreterTest {
         |@addTogether [@Unit]
     """.stripMargin
 
-    eval(code) shouldEqual 11
+    evalOld(code) shouldEqual 11
   }
 
   "Functions" should "override defaults by name" in {
@@ -99,7 +99,7 @@ class NamedArgumentsTest extends InterpreterTest {
         |@addNum [@Unit, 1, num = 1]
     """.stripMargin
 
-    eval(code) shouldEqual 2
+    evalOld(code) shouldEqual 2
   }
 
   "Functions" should "override defaults by position" in {
@@ -110,7 +110,7 @@ class NamedArgumentsTest extends InterpreterTest {
         |@addNum [@Unit, 1, 2]
         |""".stripMargin
 
-    eval(code) shouldEqual 3
+    evalOld(code) shouldEqual 3
   }
 
   "Defaulted arguments" should "work in a recursive context" in {
@@ -127,7 +127,7 @@ class NamedArgumentsTest extends InterpreterTest {
         |@summer [@Unit, 100]
     """.stripMargin
 
-    eval(code) shouldEqual 5050
+    evalOld(code) shouldEqual 5050
   }
 
   "Named Arguments" should "only be scoped to their definitions" in {
@@ -146,7 +146,7 @@ class NamedArgumentsTest extends InterpreterTest {
         |}
         |""".stripMargin
 
-    eval(code) shouldEqual 0
+    evalOld(code) shouldEqual 0
   }
 
   "Named arguments" should "be applied in a sequence compatible with Eta-expansions" in {
@@ -166,7 +166,7 @@ class NamedArgumentsTest extends InterpreterTest {
         |@doubleOrAdd [@Unit, 5]
         |""".stripMargin
 
-    eval(code) shouldEqual 10
+    evalOld(code) shouldEqual 10
   }
 
   "Default arguments" should "not be able to depend on later arguments" in {
@@ -178,7 +178,7 @@ class NamedArgumentsTest extends InterpreterTest {
         |@badArgFn [@Unit, 3]
         |""".stripMargin
 
-    an[InterpreterException] should be thrownBy eval(code)
+    an[InterpreterException] should be thrownBy evalOld(code)
   }
 
   "Constructors" should "be able to use named arguments" in {
@@ -200,7 +200,7 @@ class NamedArgumentsTest extends InterpreterTest {
         |}
         """.stripMargin
 
-    eval(code) shouldEqual 55
+    evalOld(code) shouldEqual 55
   }
 
   "Constructors" should "be able to take default arguments that are overridden" in {
@@ -221,7 +221,7 @@ class NamedArgumentsTest extends InterpreterTest {
         |}
         """.stripMargin
 
-    eval(code) shouldEqual 15
+    evalOld(code) shouldEqual 15
   }
 
   "Default arguments to constructors" should "be resolved dynamically" in {
@@ -233,7 +233,7 @@ class NamedArgumentsTest extends InterpreterTest {
         |5
         |""".stripMargin
 
-    eval(code) shouldEqual 5
+    evalOld(code) shouldEqual 5
   }
 
   "Constructors" should "be able to take and use default arguments" in {
@@ -250,7 +250,7 @@ class NamedArgumentsTest extends InterpreterTest {
         |@sumList [@Unit, @Cons2 [10]]
         """.stripMargin
 
-    eval(code) shouldEqual 10
+    evalOld(code) shouldEqual 10
   }
 
 }

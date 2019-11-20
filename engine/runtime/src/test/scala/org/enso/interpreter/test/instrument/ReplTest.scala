@@ -19,7 +19,7 @@ class ReplTest extends InterpreterTest {
       scopeResult = executor.listBindings.asScala.toMap
       executor.exit()
     }
-    eval(code)
+    evalOld(code)
     scopeResult shouldEqual Map("x" -> 10, "y" -> 20, "z" -> 30)
   }
 
@@ -37,7 +37,7 @@ class ReplTest extends InterpreterTest {
       evalResult = executor.evaluate("x + y")
       executor.exit()
     }
-    eval(code)
+    evalOld(code)
     evalResult shouldEqual 3
   }
 
@@ -55,7 +55,7 @@ class ReplTest extends InterpreterTest {
       executor.evaluate("a + b")
       executor.exit()
     }
-    eval(code) shouldEqual 55
+    evalOld(code) shouldEqual 55
   }
 
   "Repl" should "be able to define its local variables" in {
@@ -72,7 +72,7 @@ class ReplTest extends InterpreterTest {
       executor.evaluate("z")
       executor.exit()
     }
-    eval(code) shouldEqual 110
+    evalOld(code) shouldEqual 110
   }
 
   "Repl" should "access and modify monadic state" in {
@@ -89,6 +89,6 @@ class ReplTest extends InterpreterTest {
       executor.evaluate("@put[@State, x+1]")
       executor.exit()
     }
-    eval(code) shouldEqual 11
+    evalOld(code) shouldEqual 11
   }
 }

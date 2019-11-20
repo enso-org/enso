@@ -15,7 +15,7 @@ class ConstructorsTest extends InterpreterTest {
         |  >
         |}  
       """.stripMargin
-    eval(patternMatchingCode) shouldEqual 1
+    evalOld(patternMatchingCode) shouldEqual 1
   }
 
   "Recursion with pattern matching" should "terminate" in {
@@ -31,7 +31,7 @@ class ConstructorsTest extends InterpreterTest {
         |  res
         |}
       """.stripMargin
-    eval(testCode) shouldEqual 55
+    evalOld(testCode) shouldEqual 55
   }
 
   "Pattern match expression" should "behave correctly in non-tail positions" in {
@@ -46,7 +46,7 @@ class ConstructorsTest extends InterpreterTest {
         |  result + 1
         |}
       """.stripMargin
-    eval(testCode).execute() shouldEqual 4
+    evalOld(testCode).execute() shouldEqual 4
   }
 
   "Pattern match expressions" should "accept a catch-all fallback clause" in {
@@ -60,7 +60,7 @@ class ConstructorsTest extends InterpreterTest {
         |  >
         |}
       """.stripMargin
-    eval(testCode).execute() shouldEqual 1
+    evalOld(testCode).execute() shouldEqual 1
   }
 
   "Pattern match expressions" should "throw an exception when match fails" in {
@@ -73,7 +73,7 @@ class ConstructorsTest extends InterpreterTest {
         |  >
         |}
       """.stripMargin
-    the[InterpreterException] thrownBy eval(testCode)
+    the[InterpreterException] thrownBy evalOld(testCode)
       .call() should have message "Inexhaustive pattern match."
   }
 
@@ -93,6 +93,6 @@ class ConstructorsTest extends InterpreterTest {
         |
         |@sumList [@Unit, @genList [@Unit, 10]]
       """.stripMargin
-    eval(testCode) shouldEqual 55
+    evalOld(testCode) shouldEqual 55
   }
 }

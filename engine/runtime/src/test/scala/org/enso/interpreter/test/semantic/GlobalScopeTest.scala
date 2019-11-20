@@ -12,7 +12,7 @@ class GlobalScopeTest extends InterpreterTest {
         |@a [@Unit]
     """.stripMargin
 
-    eval(code) shouldEqual 10
+    evalOld(code) shouldEqual 10
   }
 
   "Functions" should "use values from the global scope in their bodies" in {
@@ -24,7 +24,7 @@ class GlobalScopeTest extends InterpreterTest {
         |@addTen [@Unit, 5]
     """.stripMargin
 
-    eval(code) shouldEqual 15
+    evalOld(code) shouldEqual 15
   }
 
   "Functions" should "be able to call other functions in scope" in {
@@ -39,7 +39,7 @@ class GlobalScopeTest extends InterpreterTest {
         |} [2]
     """.stripMargin
 
-    eval(code) shouldEqual 6
+    evalOld(code) shouldEqual 6
   }
 
   "Functions" should "be able to be passed as values when in scope" in {
@@ -55,7 +55,7 @@ class GlobalScopeTest extends InterpreterTest {
         |@binaryFn [@Unit, 1, 2, { |a, b| @adder [@Unit, a, b] }]
     """.stripMargin
 
-    eval(code) shouldEqual 3
+    evalOld(code) shouldEqual 3
   }
 
   "Functions" should "be able to mutually recurse in the global scope" in {
@@ -73,7 +73,7 @@ class GlobalScopeTest extends InterpreterTest {
         |@fn1 [@Unit, 5]
       """.stripMargin
 
-    eval(code) shouldEqual 3
+    evalOld(code) shouldEqual 3
   }
 
   "Functions" should "be suspended within blocks" in {
@@ -85,7 +85,7 @@ class GlobalScopeTest extends InterpreterTest {
         |b
     """.stripMargin
 
-    noException should be thrownBy eval(code)
+    noException should be thrownBy evalOld(code)
   }
 
   "Exceptions" should "be thrown when called" in {
@@ -97,7 +97,7 @@ class GlobalScopeTest extends InterpreterTest {
         |@b [@Unit]
       """.stripMargin
 
-    an[InterpreterException] should be thrownBy eval(code)
+    an[InterpreterException] should be thrownBy evalOld(code)
   }
 
 }

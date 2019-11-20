@@ -12,7 +12,7 @@ class InteropTest extends InterpreterTest {
         |}
         |""".stripMargin
 
-    val recurFun = eval(code)
+    val recurFun = evalOld(code)
     recurFun.call(15) shouldEqual 0
   }
 
@@ -25,7 +25,7 @@ class InteropTest extends InterpreterTest {
         |}
         |""".stripMargin
 
-    val curriedFun = eval(code)
+    val curriedFun = evalOld(code)
     curriedFun.call(2, 3) shouldEqual 6
   }
 
@@ -35,7 +35,7 @@ class InteropTest extends InterpreterTest {
         |{ |x, y, z| (x + y) + z }
         |""".stripMargin
 
-    val fun = eval(code)
+    val fun = evalOld(code)
     fun.call(1).call(2).call(3) shouldEqual 6
   }
 
@@ -47,7 +47,7 @@ class InteropTest extends InterpreterTest {
         |{ |x| method }
         |""".stripMargin
 
-    val fun = eval(code)
+    val fun = evalOld(code)
     fun.call(1, 2) shouldEqual 2
   }
 }

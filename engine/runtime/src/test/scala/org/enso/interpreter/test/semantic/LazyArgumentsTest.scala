@@ -14,7 +14,7 @@ class LazyArgumentsTest extends InterpreterTest {
         |}
         |""".stripMargin
     noException should be thrownBy parse(code)
-    eval(code)
+    evalOld(code)
     consumeOut shouldEqual List("2")
   }
 
@@ -28,7 +28,7 @@ class LazyArgumentsTest extends InterpreterTest {
         |  res
         |}
         |""".stripMargin
-    eval(code) shouldEqual 50005000
+    evalOld(code) shouldEqual 50005000
   }
 
   subject should "work in non-tail positions" in {
@@ -41,7 +41,7 @@ class LazyArgumentsTest extends InterpreterTest {
         |}
         |""".stripMargin
 
-    val result = eval(code)
+    val result = evalOld(code)
     result shouldEqual 12
   }
 
@@ -60,7 +60,7 @@ class LazyArgumentsTest extends InterpreterTest {
         |  @method [@Foo, @println [@IO, 3]]
         |}
         |""".stripMargin
-    eval(code)
+    evalOld(code)
     consumeOut shouldEqual List("2")
   }
 
@@ -74,7 +74,7 @@ class LazyArgumentsTest extends InterpreterTest {
         |  @foo [1, @println [@IO, 3], @println [@IO, 4]]
         |}
         |""".stripMargin
-    eval(code)
+    evalOld(code)
     consumeOut shouldEqual List("1","4")
   }
 }

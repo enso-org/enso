@@ -16,7 +16,7 @@ class NamedDefaultedArgumentFixtures extends InterpreterRunner {
       |}
     """.stripMargin
 
-  val sumTCOWithNamedArguments = eval(sumTCOWithNamedArgumentsCode)
+  val sumTCOWithNamedArguments = evalOld(sumTCOWithNamedArgumentsCode)
 
   val sumTCOWithDefaultedArgumentsCode =
     """
@@ -29,6 +29,6 @@ class NamedDefaultedArgumentFixtures extends InterpreterRunner {
       |}
     """.stripMargin
 
-  val sumTCOWithDefaultedArguments = eval(sumTCOWithDefaultedArgumentsCode)
+  val sumTCOWithDefaultedArguments = evalOld(sumTCOWithDefaultedArgumentsCode)
 
 }

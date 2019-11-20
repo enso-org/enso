@@ -16,7 +16,7 @@ class ErrorsTest extends InterpreterTest {
         |}
         |""".stripMargin
 
-    val exception = the[InterpreterException] thrownBy eval(code)
+    val exception = the[InterpreterException] thrownBy evalOld(code)
     exception.isGuestException shouldEqual true
     exception.getGuestObject.toString shouldEqual "Bar<>"
     consumeOut shouldEqual List("Foo<>")
@@ -34,7 +34,7 @@ class ErrorsTest extends InterpreterTest {
         |}
         |""".stripMargin
 
-    noException shouldBe thrownBy(eval(code))
+    noException shouldBe thrownBy(evalOld(code))
     consumeOut shouldEqual List("Error:MyError<>")
   }
 
@@ -52,8 +52,8 @@ class ErrorsTest extends InterpreterTest {
         |  @println [@IO, matched]
         |}
         |""".stripMargin
-    eval(code)
-    noException shouldBe thrownBy(eval(code))
+    evalOld(code)
+    noException shouldBe thrownBy(evalOld(code))
     consumeOut shouldEqual List("Error:MyError<>")
   }
 
@@ -65,7 +65,7 @@ class ErrorsTest extends InterpreterTest {
         |  @catch [intError, { |x| x + 3 }]
         |}
         |""".stripMargin
-    eval(code) shouldEqual 4
+    evalOld(code) shouldEqual 4
   }
 
   "Catch function" should "accept a constructor handler" in {
@@ -78,7 +78,7 @@ class ErrorsTest extends InterpreterTest {
         |  @println [@IO, @catch [unitErr, MyCons]]
         |}
         |""".stripMargin
-    eval(code)
+    evalOld(code)
     consumeOut shouldEqual List("MyCons<Unit<>>")
   }
 
@@ -98,12 +98,12 @@ class ErrorsTest extends InterpreterTest {
         |}
         |
         |""".stripMargin
-    eval(code)
+    evalOld(code)
     consumeOut shouldEqual List("MyRecovered<20>")
   }
 
   "Catch function" should "act as identity for non-error values" in {
     val code = "@catch [10, {|x| x + 1}]"
-    eval(code) shouldEqual 10
+    evalOld(code) shouldEqual 10
   }
 }

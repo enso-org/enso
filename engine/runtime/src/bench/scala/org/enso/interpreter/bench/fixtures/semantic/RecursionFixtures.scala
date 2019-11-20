@@ -44,7 +44,7 @@ class RecursionFixtures extends InterpreterRunner {
       |}
       |""".stripMargin
 
-  val sumTCOFoldLike = eval(sumTCOFoldLikeCode)
+  val sumTCOFoldLike = evalOld(sumTCOFoldLikeCode)
 
   val sumRecursiveCode =
     """
@@ -82,7 +82,7 @@ class RecursionFixtures extends InterpreterRunner {
       |}
       |""".stripMargin
 
-  val sumStateTCO = eval(sumStateTCOCode)
+  val sumStateTCO = evalOld(sumStateTCOCode)
 
   val sumTCOWithEvalCode =
     """
@@ -94,5 +94,5 @@ class RecursionFixtures extends InterpreterRunner {
       |  res
       |}
       |""".stripMargin
-  val sumTCOWithEval = eval(sumTCOWithEvalCode)
+  val sumTCOWithEval = evalOld(sumTCOWithEvalCode)
 }

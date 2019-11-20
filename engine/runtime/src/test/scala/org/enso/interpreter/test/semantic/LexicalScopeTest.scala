@@ -15,7 +15,7 @@ class LexicalScopeTest extends InterpreterTest {
         |}  
       """.stripMargin
 
-    eval(code) shouldEqual 15
+    evalOld(code) shouldEqual 15
   }
 
   "Variable shadowing" should "work" in {
@@ -29,7 +29,7 @@ class LexicalScopeTest extends InterpreterTest {
         |  }
         |}
       """.stripMargin
-    eval(code) shouldEqual 6
+    evalOld(code) shouldEqual 6
   }
 
   "Variable redefinition in same scope" should "throw error" in {
@@ -44,7 +44,7 @@ class LexicalScopeTest extends InterpreterTest {
         |  }
         |}
       """.stripMargin
-    the[InterpreterException] thrownBy eval(code) should have message "Variable y was already defined in this scope."
+    the[InterpreterException] thrownBy evalOld(code) should have message "Variable y was already defined in this scope."
   }
 
   "Reference to an undefined variable" should "throw error" in {
@@ -58,7 +58,7 @@ class LexicalScopeTest extends InterpreterTest {
         |  y
         |}
       """.stripMargin
-    the[InterpreterException] thrownBy eval(code) should have message "Variable y is not defined."
+    the[InterpreterException] thrownBy evalOld(code) should have message "Variable y is not defined."
   }
 
 }

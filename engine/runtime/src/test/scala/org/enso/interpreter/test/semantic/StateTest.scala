@@ -14,7 +14,7 @@ class StateTest extends InterpreterTest {
         |}
         |""".stripMargin
 
-    eval(code) shouldEqual 11
+    evalOld(code) shouldEqual 11
   }
 
   "State" should "be implicitly threaded through function executions" in {
@@ -36,7 +36,7 @@ class StateTest extends InterpreterTest {
         |}
         |""".stripMargin
 
-    eval(code) shouldEqual 5
+    evalOld(code) shouldEqual 5
   }
 
   "State" should "be localized with State.run" in {
@@ -54,7 +54,7 @@ class StateTest extends InterpreterTest {
         |  res + state
         |}
         |""".stripMargin
-    eval(code) shouldEqual 30
+    evalOld(code) shouldEqual 30
   }
 
   "State" should "work well with recursive code" in {
@@ -70,7 +70,7 @@ class StateTest extends InterpreterTest {
         |  @run [@State, 0, @stateSum [10]]
         |}
         |""".stripMargin
-    eval(code) shouldEqual 55
+    evalOld(code) shouldEqual 55
   }
 
   "State" should "be initialized to a Unit by default" in {
@@ -78,7 +78,7 @@ class StateTest extends InterpreterTest {
       """
         |@println[@IO, @get[@State]]
         |""".stripMargin
-    eval(code)
+    evalOld(code)
     consumeOut shouldEqual List("Unit<>")
   }
 
@@ -98,7 +98,7 @@ class StateTest extends InterpreterTest {
         |  0
         |}
         |""".stripMargin
-    eval(code)
+    evalOld(code)
     consumeOut shouldEqual List("11", "16")
   }
 
@@ -112,6 +112,6 @@ class StateTest extends InterpreterTest {
         |  @get[@State]
         |}
         |""".stripMargin
-    eval(code) shouldEqual (-5)
+    evalOld(code) shouldEqual (-5)
   }
 }

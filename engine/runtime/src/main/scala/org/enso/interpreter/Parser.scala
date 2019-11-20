@@ -59,21 +59,21 @@ trait AstModuleScopeVisitor[+T] {
   ): T
 }
 
-sealed trait AstGlobalSymbol
+sealed trait AstModuleSymbol
 
 case class AstTypeDef(name: String, arguments: List[AstArgDefinition])
-    extends AstGlobalSymbol {
+    extends AstModuleSymbol {
   def getArguments: java.util.List[AstArgDefinition] = arguments.asJava
 }
 
 case class AstMethodDef(typeName: String, methodName: String, fun: AstFunction)
-    extends AstGlobalSymbol
+    extends AstModuleSymbol
 
 case class AstImport(name: String)
 
 case class AstModuleScope(
   imports: List[AstImport],
-  bindings: List[AstGlobalSymbol],
+  bindings: List[AstModuleSymbol],
   expression: AstExpression
 ) {
 
@@ -330,7 +330,7 @@ class EnsoParserInternal extends JavaTokenParsers {
 
   def statement: Parser[AstExpression] = assignment | expression
 
-  def typeDef: Parser[AstGlobalSymbol] =
+  def typeDef: Parser[AstModuleSymbol] =
     "type" ~> ident ~ ((argDefinition | ("(" ~> argDefinition <~ ")")) *) <~ ";" ^^ {
       case name ~ args => AstTypeDef(name, args)
     }
