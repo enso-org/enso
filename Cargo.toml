@@ -1,6 +1,11 @@
 [workspace]
 
 members = [
+    "common/rust/ast/core",
+    "common/rust/ast/macros",
+    "common/rust/macro-utils",
     "common/rust/parser",
-    "common/rust/prelude"
+    "common/rust/prelude",
+    "common/rust/shapely/core",
+    "common/rust/shapely/macros"
 ]

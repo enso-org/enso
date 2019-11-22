@@ -1,0 +1,14 @@
+[package]
+name    = "shapely"
+version = "0.1.0"
+authors = ["Enso Team <contact@luna-lang.org>"]
+edition = "2018"
+
+[lib]
+
+[features]
+default = []
+
+[dependencies]
+prelude        = { version = "0.1.0"  , path = "../../prelude" }
+shapely-macros = { version = "0.1.0"  , path = "../macros"     }
