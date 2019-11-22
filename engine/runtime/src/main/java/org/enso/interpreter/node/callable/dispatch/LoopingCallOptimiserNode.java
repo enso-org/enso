@@ -45,7 +45,7 @@ public class LoopingCallOptimiserNode extends CallOptimiserNode {
     VirtualFrame frame = Truffle.getRuntime().createVirtualFrame(null, loopFrameDescriptor);
     ((RepeatedCallNode) loopNode.getRepeatingNode())
         .setNextCall(frame, function, callerInfo, state, arguments);
-    loopNode.executeLoop(frame);
+    loopNode.execute(frame);
 
     return ((RepeatedCallNode) loopNode.getRepeatingNode()).getResult(frame);
   }

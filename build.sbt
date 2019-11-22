@@ -9,7 +9,7 @@ import sbtassembly.AssemblyPlugin.defaultUniversalScript
 //////////////////////////////
 
 val scalacVersion = "2.12.10"
-val graalVersion  = "19.2.0.1"
+val graalVersion  = "19.3.0"
 val circeVersion  = "0.11.1"
 organization in ThisBuild := "org.enso"
 scalaVersion in ThisBuild := scalacVersion
@@ -300,7 +300,8 @@ lazy val project_manager = (project in file("common/scala/project-manager"))
 val truffleRunOptions = Seq(
   "-Dgraal.TruffleIterativePartialEscape=true",
   "-XX:-UseJVMCIClassLoader",
-  "-Dgraal.TruffleBackgroundCompilation=false"
+  "-Dgraal.TruffleBackgroundCompilation=false",
+  "-Dgraalvm.locatorDisabled=true"
 )
 
 val truffleRunOptionsSettings = Seq(
