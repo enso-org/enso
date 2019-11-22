@@ -46,7 +46,7 @@ impl Default for World {
 
 impl World {
     pub fn new() -> Self {
-        Default::default()
+        default()
     }
 
     pub fn started(&self) -> bool {
@@ -107,7 +107,7 @@ impl Default for WorldData {
 
 impl WorldData {
     pub fn new() -> Self {
-        Default::default()
+        default()
     }
 
     pub fn add_workspace(&mut self, name: &str) -> workspace::ID {
