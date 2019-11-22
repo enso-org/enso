@@ -5,7 +5,7 @@ authors = ["Wojciech Danilo <wojciech.danilo@gmail.com>"]
 edition = "2018"
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["rlib", "cdylib"]
 
 [features]
 default = ["console_error_panic_hook"]
@@ -29,7 +29,11 @@ console_error_panic_hook = { version = "0.1.1", optional = true }
 version = "0.3.4"
 features = [
   'Document',
+  'Node',
   'Element',
+  'HtmlElement',
+  'HtmlCollection',
+  'CssStyleDeclaration',
   'HtmlCanvasElement',
   'WebGlBuffer',
   'WebGlRenderingContext',

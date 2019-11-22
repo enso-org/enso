@@ -9,6 +9,8 @@ use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;
 use web_sys::HtmlCanvasElement;
 use web_sys::WebGlRenderingContext;
+use web_sys::Node;
+use std::fmt::Debug;
 
 pub use web_sys::console;
 
@@ -16,7 +18,7 @@ pub use web_sys::console;
 // === Error ===
 // =============
 
-type Result<A> = std::result::Result<A, Error>;
+pub type Result<A> = std::result::Result<A, Error>;
 
 #[derive(Debug, Fail)]
 pub enum Error {
@@ -38,6 +40,15 @@ impl Error {
         let got = got.to_string();
         Error::TypeMismatch { expected, got }
     }
+}
+
+// ===================
+// === JS Bindings ===
+// ===================
+
+#[macro_export]
+macro_rules! console_log {
+    ($($t:tt)*) => ($crate::console::log_1(&format_args!($($t)*).to_string().into()))
 }
 
 // ==============
@@ -130,6 +141,16 @@ macro_rules! fmt {
 // ===================
 // === DOM Helpers ===
 // ===================
+
+pub fn dyn_into<T, U>(obj : T) -> Result<U>
+where T : wasm_bindgen::JsCast + Debug,
+      U : wasm_bindgen::JsCast
+{
+    let expected = type_name::<T>();
+    let got = format!("{:?}", obj);
+    obj.dyn_into().map_err(|_| Error::type_mismatch(&expected, &got))
+}
+
 pub fn window() -> Result<web_sys::Window> {
     web_sys::window().ok_or_else(|| Error::missing("window"))
 }
@@ -139,14 +160,19 @@ pub fn document() -> Result<web_sys::Document> {
 pub fn get_element_by_id(id: &str) -> Result<web_sys::Element> {
     document()?.get_element_by_id(id).ok_or_else(|| Error::missing(id))
 }
+#[deprecated(note = "Use get_element_by_id with dyn_into instead")]
 pub fn get_element_by_id_as<T: wasm_bindgen::JsCast>(id: &str) -> Result<T> {
     let elem = get_element_by_id(id)?;
-    let expected = type_name::<T>();
-    let got = format!("{:?}", elem);
-    elem.dyn_into().map_err(|_| Error::type_mismatch(&expected, &got))
+    dyn_into(elem)
+}
+pub fn create_element(id: &str) -> Result<web_sys::Element> {
+    match document()?.create_element(id) {
+        Ok(element) => Ok(element),
+        Err(_) => Err(Error::missing(id)),
+    }
 }
 pub fn get_canvas(id: &str) -> Result<web_sys::HtmlCanvasElement> {
-    get_element_by_id_as(id)
+    dyn_into(get_element_by_id(id)?)
 }
 pub fn get_webgl_context(
     canvas: &HtmlCanvasElement,
@@ -162,4 +188,76 @@ pub fn get_webgl_context(
 pub fn request_animation_frame(f: &Closure<dyn FnMut()>) -> Result<i32> {
     let req = window()?.request_animation_frame(f.as_ref().unchecked_ref());
     req.map_err(|_| Error::missing("requestAnimationFrame"))
+}
+
+// ===================
+// === Other Helpers ===
+// ===================
+
+pub trait AttributeSetter {
+    fn set_attribute_or_panic<T, U>(&self, name : T, value : U)
+            where T : AsRef<str>,
+                  U : AsRef<str>;
+}
+
+impl AttributeSetter for web_sys::HtmlElement {
+    fn set_attribute_or_panic<T, U>(&self, name : T, value : U)
+            where T : AsRef<str>,
+                  U : AsRef<str> {
+        let name  = name.as_ref();
+        let value = value.as_ref();
+        let values = format!("\"{}\" = \"{}\" on \"{:?}\"", name, value, self);
+        self.set_attribute(name, value)
+            .unwrap_or_else(|_| panic!("Failed to set attribute {}", values));
+    }
+}
+
+pub trait StyleSetter {
+    fn set_property_or_panic<T, U>(&self, name : T, value : U)
+            where T : AsRef<str>,
+                  U : AsRef<str>;
+}
+
+impl StyleSetter for web_sys::HtmlElement {
+    fn set_property_or_panic<T, U>(&self, name : T, value : U)
+            where T : AsRef<str>,
+                  U : AsRef<str> {
+        let name  = name.as_ref();
+        let value = value.as_ref();
+        let values = format!("\"{}\" = \"{}\" on \"{:?}\"", name, value, self);
+        self.style().set_property(name, value)
+            .unwrap_or_else(|_| panic!("Failed to set style {}", values));
+    }
+}
+
+pub trait NodeAppender {
+    fn append_child_or_panic(&self, node : &Node);
+}
+
+impl NodeAppender for Node {
+    fn append_child_or_panic(&self, node : &Node) {
+        self.append_child(node)
+            .unwrap_or_else(|_|
+                panic!("Failed to append child \"{:?}\" to \"{:?}\"",
+                       node,
+                       self
+                )
+            );
+    }
+}
+
+pub trait NodeRemover {
+    fn remove_child_or_panic(&self, node : &Node);
+}
+
+impl NodeRemover for Node {
+    fn remove_child_or_panic(&self, node : &Node) {
+        self.remove_child(node)
+            .unwrap_or_else(|_|
+                panic!("Failed to remove child \"{:?}\" from \"{:?}\"",
+                       node,
+                       self
+                )
+            );
+    }
 }
