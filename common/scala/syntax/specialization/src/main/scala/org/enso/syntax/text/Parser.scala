@@ -261,30 +261,72 @@ object Main extends App {
   val in2  = "(a) b = c]"
   val inp2 = "a (b (c)) x"
 
-  val inp = """## This function adds `x` to `y`
-              |add x y = x + y
-              |mul x y = x * y
-              |
-              |## This function divides `x` by `y`
-              |div x y = x / y
-              |
-              |## Just a comment
-              |
-              |## Doc for infix with empty lines between 
-              |
-              |sub x y = x - y
-              |
-              |## Foo bar baz
-              |   bax
-              |def Maybe a
-              |    ## test attached to Just
-              |    def Just val:a
-              |    def Nothing
-              |""".stripMargin
+  val inp =
+    """
+      |##
+      |  DEPRECATED
+      |  REMOVED - replaced by Foo Bar
+      |  ADDED
+      |  MODIFIED
+      |  UPCOMING
+      |  ALAMAKOTA a kot ma Ale
+      |  This is a test of Enso Documentation Parser. This is a short synopsis.
+      | 
+      |  Here you can write the body of documentation. On top you can see tags
+      |  added to this piece of code. You can customise your text with _Italic_
+      |  ~Strikethrough~ or *Bold*. ~_*Combined*_~ is funny
+      |  
+      |  
+      |  There are 3 kinds of sections
+      |    - Important
+      |    - Info
+      |    - Example
+      |      * You can use example to add multiline code to your documentation
+      | 
+      |  ! Important
+      |    Here is a small test of Important Section
+      |    
+      |  ? Info
+      |    Here is a small test of Info Section
+      |    
+      |  > Example
+      |    Here is a small test of Example Section
+      |        Import Foo
+      |        def Bar a
+      |type Maybe a
+      |    ## test attached to Just
+      |    type Just val:a
+      |    type Nothing
+      |""".stripMargin
+  val inC =
+    """
+      |## Optional values.
+      |   Type `Option` represents an optional value: every `Option` is either `Some`
+      |   and contains a value, or `None`, and does not. Option types are very common
+      |   in Enso code, as they have a number of uses:
+      |     - Initial values.
+      |     - Return values for functions that are not defined over their entire input range (partial functions).
+      |     - Return value for otherwise reporting simple errors, where `None` is returned on error.
+      |     - Optional struct fields.
+      |     - Optional function arguments.
+      |   `Option`s are commonly paired with pattern matching to query the presence of
+      |   a value and take action, always accounting for the None case.
+      |
+      |type Option a
+      |    ## The `None` type indicates a presence of a value.
+      |    type Some a
+      |
+      |    ##
+      |     The `None` type indicates a lack of a value.
+      |     It is a very common type and is used by such types as `Maybe` or `List`.
+      |     Also, `None` is the return value of functions which do not return an
+      |     explicit value.
+      |    type None
+      |""".stripMargin
 
   println("--- PARSING ---")
 
-  val mod = parser.run(new Reader(inp))
+  val mod = parser.run(new Reader(inC))
 
   println(Debug.pretty(mod.toString))
 
@@ -297,18 +339,22 @@ object Main extends App {
   }
 
   println("------")
-  println(mod.show() == inp)
+  println(mod.show() == inC)
   println("------")
   println(mod.show())
   println("------")
 
   /** Invoking the Enso Documentation Parser */
   println("===== DOCUMENTATION =====")
-  val isGeneratingHTML = false
-  val droppedMeta      = parser.dropMacroMeta(mod)
-  val documentation    = DocParserRunner.createDocs(droppedMeta)
-  val documentationHTML =
-    DocParserRunner.generateHTMLForEveryDocumented(documentation)
+  val droppedMeta   = parser.dropMacroMeta(mod)
+  val documentation = DocParserRunner.createDocs(droppedMeta)
+  val htmlPath      = "target/"
+  val cssFileName   = "style.css"
+  DocParserHTMLGenerator.generateHTMLForEveryDocumented(
+    documentation,
+    htmlPath,
+    cssFileName
+  )
   println(Debug.pretty(documentation.toString))
   println("------")
   println(documentation.show())

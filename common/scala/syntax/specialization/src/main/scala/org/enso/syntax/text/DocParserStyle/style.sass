@@ -1,0 +1,359 @@
+/*///////////
+//// DOM ////
+///////////*/
+
+body 
+    -webkit-font-smoothing: antialiased
+    font-style: normal
+    word-wrap: break-word
+    font-size: 17px
+    line-height: 1.52947
+    font-weight: 400
+    letter-spacing: -0.021em
+    font-family: "SF Pro Text", "SF Pro Icons", "Helvetica Neue", "Helvetica","Arial", sans-serif
+    background-color: white
+    color: #333333
+    font-style: normal
+
+p 
+    display: block
+    margin-block-start: 1em
+    margin-block-end: 1em
+    margin-inline-start: 0
+    margin-inline-end: 0
+
+a:hover 
+    color: #35a5ff !important
+    text-decoration: none
+
+a 
+    color: #0070c9
+    background-color: transparent
+    text-decoration: none
+    display: inline-block
+    transition: all 0.3s ease
+
+img 
+    display: block
+
+code 
+    color: #0070c9
+    background-color: transparent
+    font-size: inherit
+    font-family: monospace
+    line-height: inherit
+    display: inline-block
+    white-space: pre-wrap
+
+button 
+    display: inline-block
+    padding: 8px 30px
+    margin: 10px 0
+    outline: none
+    background-color: #777
+    border: none
+    color: #fafafa
+    border-radius: 5px
+    box-shadow: 5px 0 #555
+    font-size: 13px
+    vertical-align: top
+    transition: all 0.3s ease
+
+button:hover 
+    background-color: #333
+
+b 
+    font-weight: 600
+
+h1 
+    font-size: 34px
+    line-height: 1.08824
+    font-weight: 500
+    letter-spacing: 0.01em
+
+
+h2 
+    font-size: 28px
+    line-height: 1.1073
+    font-weight: 500
+    letter-spacing: 0.012em
+
+
+.Body h2
+    margin: 0
+    margin-top: 0.65rem
+
+
+/*///////////////////
+//// Invalid AST ////
+///////////////////*/
+
+// Creator - a special mode for displaying parsing errors in output
+.creator
+    .Unclosed,
+    .invalidIndent,
+    .invalidLink
+        display: inline
+        color: orangered
+
+    .Tags
+        .UNRECOGNIZED
+            border: 2px solid
+            color: orangered
+
+.Unclosed,
+.invalidIndent,
+.invalidLink 
+    display: inline
+
+/*//////////////
+//// Header ////
+//////////////*/
+
+.Header 
+    font-size: 19px
+    font-weight: 500
+
+
+.Important .Header,
+.Info .Header,
+.Example .Header 
+    margin-bottom: 0.7em
+    font-weight: 600
+    letter-spacing: -0.021em
+    line-height: 17px
+    font-synthesis: none
+    font-family: "SF Pro Text", "SF Pro Icons", "Helvetica Neue", "Helvetica","Arial", sans-serif
+
+
+/*////////////
+//// Tags ////
+////////////*/
+
+.Tags
+    margin-left: auto
+    margin-right: auto
+    margin-bottom: 20px
+    padding: 15px 10px
+    text-align: center
+    background-color: #fafafa
+    border-radius: 8px
+
+    .DEPRECATED,
+    .MODIFIED,
+    .ADDED,
+    .UPCOMING,
+    .REMOVED,
+    .UNRECOGNIZED
+        line-height: 1.5
+        font-weight: 400
+        border-radius: 3px
+        font-size: 12px
+        letter-spacing: -0.021em
+        border: 1px solid
+        display: inline-flex
+        padding: 3px 15px
+        margin: 2px
+        white-space: nowrap
+        background: transparent
+
+    .DEPRECATED
+        border-color: #c35400
+        color: #c35400
+    .MODIFIED
+        border-color: #8A82CF
+        color: #8A82CF
+    .ADDED
+        border-color: #79A129
+        color: #79A129
+    .UPCOMING,
+    .REMOVED,
+    .UNRECOGNIZED
+        border-color: #888888
+        color: #666666
+
+.ExtForTagDetails
+    margin: 0 3px
+    color: #999999
+
+/*////////////////
+//// Sections ////
+////////////////*/
+
+.Raw,
+.Important,
+.Info,
+.CodeBlock,
+.Example 
+    margin-top: 0
+    margin-left: auto
+    margin-right: auto
+    position: relative
+
+
+.Body .Raw 
+    padding: 0.75em 0
+    margin-bottom: 0.6rem
+    font-size: 17px
+    line-height: 1.52947
+    font-weight: 400
+    letter-spacing: -0.021em
+    font-family: "SF Pro Text", "SF Pro Icons", "Helvetica Neue", "Helvetica","Arial", sans-serif
+    background-color: white
+    color: #333333
+    font-style: normal
+
+
+.Synopsis .Raw 
+    margin-bottom: 2rem
+
+
+.Important,
+.Info,
+.CodeBlock,
+.Example 
+    font-size: 17px
+    padding-top: 0.94118rem
+    padding-bottom: 0.94118rem
+    padding-left: 18px
+    padding-right: 10px
+    border: 1px solid #8a82cf
+    border-left: 6px solid #8a82cf
+    border-radius: 6px
+    margin: 0.7em 0
+
+
+.Important 
+    border-right: 0
+    border-top: 0
+    border-bottom: 0
+    border-color: #fee450
+    background-color: #fbf8e8
+
+
+.Info 
+    border-color: #69c5e8
+
+
+.Example 
+    border-color: #8a82cf
+
+
+.CodeBlock 
+    border-color: #7cd58b
+    margin: 10px 20px
+    display: none
+
+
+/*///////////////////////////////////
+//// HTML generated - Def, Infix ////
+///////////////////////////////////*/
+
+.Def 
+    padding: 10px 20px
+
+    .Synopsis,
+    .Body,
+    .Tags,
+    .ASTData
+        width: 90% !important
+
+
+.DefTitle
+    display: inline-flex
+    font-size: x-large
+    font-weight: 600
+    margin-bottom: 20px
+
+
+.DefArgs
+    margin-left: 5px
+    font-weight: 400
+    color: #0070c9
+
+
+.Infix
+    font-size: large
+    font-weight: 500
+    margin-bottom: 20px
+
+
+/*/////////////////////////
+//// Synopsis & Detail ////
+/////////////////////////*/
+
+.Synopsis,
+.Body  
+    margin: 0 auto
+    padding: 5px
+    margin-bottom: 20px
+    text-align: left
+
+
+.Synopsis 
+    font-size: 20px
+    line-height: 1.5
+    font-weight: 300
+    letter-spacing: 0.017em
+    border-bottom: 1px solid #d6d6d6
+
+
+.Documentation
+    .ASTData
+        margin: 20px auto
+        text-align: left
+        line-height: 1.05
+        letter-spacing: 0.008em
+        background-color: #fafafa
+        border-radius: 6px
+
+    .Documented
+        margin: 0
+        width: 100%
+        background-color: #ffffff
+
+
+@media (min-width: 300px) 
+    .Synopsis,
+    .Body,
+    .Tags,
+    .Documentation .ASTData
+        width: 380px
+    
+
+
+@media (min-width: 500px) 
+    .Synopsis,
+    .Body,
+    .Tags,
+    .Documentation .ASTData 
+        width: 440px
+    
+
+
+@media (min-width: 600px) 
+    .Synopsis,
+    .Body,
+    .Tags,
+    .Documentation .ASTData 
+        width: 490px
+    
+
+
+@media (min-width: 900px) 
+    .Synopsis,
+    .Body,
+    .Tags,
+    .Documentation .ASTData 
+        width: 670px
+    
+
+
+@media (min-width: 1300px) 
+    .Synopsis,
+    .Body,
+    .Tags,
+    .Documentation .ASTData  
+        width: 780px
+    
+
