@@ -33,24 +33,42 @@ jobs:
         with:
           toolchain: nightly-2019-11-04
           override: true
-      - uses: actions-rs/cargo@v1
+      - uses: nanasess/setup-chromedriver@master
+        with:
+          chromedriver-version: '78.0.3904.105'
+      - name: Install wasm-pack
+        uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: wasm-pack
+      - name: Run tests
+        uses: actions-rs/cargo@v1
         with:
           command: test
+      - name: Run wasm-pack tests
+        uses: actions-rs/cargo@v1
+        with:
+          command: run
+          args: >
+            --manifest-path=script/rust/Cargo.toml
+            --bin test-all
+            -- --node --chrome --headless
 
-#   fmt:
-#     name: Formatter
-#     runs-on: ubuntu-latest
-#     steps:
-#       - uses: actions/checkout@v1
-#       - uses: actions-rs/toolchain@v1
-#         with:
-#           toolchain: nightly-2019-11-04
-#           override: true
-#       - run: rustup component add rustfmt
-#       - uses: actions-rs/cargo@v1
-#         with:
-#           command: fmt
-#           args: --all -- --check
+# TODO[AO] formatter does not work
+#  fmt:
+#    name: Formatter
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v1
+#      - uses: actions-rs/toolchain@v1
+#        with:
+#          toolchain: nightly-2019-11-04
+#          override: true
+#      - run: rustup component add rustfmt
+#      - uses: actions-rs/cargo@v1
+#        with:
+#          command: fmt
+#          args: --all -- --check
 
   clippy:
     name: Linter
