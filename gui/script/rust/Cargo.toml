@@ -1,0 +1,10 @@
+[package]
+name = "build-scripts"
+version = "0.1.0"
+authors = ["Adam Obuchowicz <adam.obuchowicz@luna-lang.org>"]
+edition = "2018"
+
+[workspace]
+
+[dependencies]
+toml="0.5.5"
