@@ -5,6 +5,7 @@ import org.enso.syntax.text.ast.Doc._
 import org.enso.syntax.text.ast.Doc.Elem._
 import org.enso.Logger
 import org.enso.flexer.Parser.Result
+import org.enso.flexer.Reader
 import org.scalatest.FlatSpec
 import org.scalatest.Matchers
 import org.scalatest.Assertion
@@ -17,7 +18,7 @@ class DocParserTests extends FlatSpec with Matchers {
     output match {
       case Result(_, Result.Success(value)) =>
         assert(value == result)
-        assert(value.show() == input)
+        assert(value.show() == new Reader(input).toString())
       case _ =>
         fail(s"Parsing documentation failed, consumed ${output.offset} chars")
     }
@@ -31,9 +32,7 @@ class DocParserTests extends FlatSpec with Matchers {
 
     private val testBase = it should parseDocumentation(input)
 
-    def ?=(out: Doc): Unit = testBase in {
-      assertExpr(input, out)
-    }
+    def ?=(out: Doc): Unit = testBase in { assertExpr(input, out) }
   }
 
   //////////////////////////////////////////////////////////////////////////////

@@ -13,7 +13,6 @@ import io.circe.generic.auto._
 import org.enso.data.List1._
 import org.enso.data.Index
 import org.enso.data.List1
-import org.enso.data.Pool
 import org.enso.data.Shifted
 import org.enso.data.Size
 import org.enso.data.Span
@@ -489,29 +488,25 @@ object AST {
       def apply(): Blank = blank
     }
     object Var {
-      private val pool    = new Pool[VarOf[AST]]()
-      val any             = UnapplyByType[Var]
-      def unapply(t: AST) = Unapply[Var].run(_.name)(t)
-      def apply(name: String): Var = pool.get(VarOf[AST](name))
+      val any                      = UnapplyByType[Var]
+      def unapply(t: AST)          = Unapply[Var].run(_.name)(t)
+      def apply(name: String): Var = VarOf[AST](name)
     }
     object Cons {
-      private val pool    = new Pool[ConsOf[AST]]()
-      val any             = UnapplyByType[Cons]
-      def unapply(t: AST) = Unapply[Cons].run(_.name)(t)
-      def apply(name: String): Cons = pool.get(ConsOf[AST](name))
+      val any                       = UnapplyByType[Cons]
+      def unapply(t: AST)           = Unapply[Cons].run(_.name)(t)
+      def apply(name: String): Cons = ConsOf[AST](name)
     }
     object Mod {
-      private val pool    = new Pool[ModOf[AST]]()
-      val any             = UnapplyByType[Mod]
-      def unapply(t: AST) = Unapply[Mod].run(_.name)(t)
-      def apply(name: String): Mod = pool.get(ModOf[AST](name))
+      val any                      = UnapplyByType[Mod]
+      def unapply(t: AST)          = Unapply[Mod].run(_.name)(t)
+      def apply(name: String): Mod = ModOf[AST](name)
     }
     object Opr {
-      private val pool    = new Pool[OprOf[AST]]()
-      val app             = Opr(" ")
-      val any             = UnapplyByType[Opr]
-      def unapply(t: AST) = Unapply[Opr].run(_.name)(t)
-      def apply(name: String): Opr = pool.get(OprOf[AST](name))
+      val app                      = Opr(" ")
+      val any                      = UnapplyByType[Opr]
+      def unapply(t: AST)          = Unapply[Opr].run(_.name)(t)
+      def apply(name: String): Opr = OprOf[AST](name)
     }
 
     ///////////////////////

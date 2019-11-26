@@ -39,6 +39,10 @@ jobs:
           echo "##vso[task.setvariable variable=PATH]~/sbt/bin/:$PATH"
         displayName: Install SBT
       - script: |
+          sbt -no-colors syntaxJS/test
+        displayName: Test JS
+        continueOnError: true
+      - script: |
           sbt -no-colors test
         displayName: Test All
         continueOnError: true
@@ -89,6 +93,10 @@ jobs:
           echo "##vso[task.setvariable variable=PATH]~/sbt/bin/:$PATH"
         displayName: Install SBT
       - script: |
+          sbt -no-colors syntaxJS/test
+        displayName: Test JS
+        continueOnError: true
+      - script: |
           sbt -no-colors test
         displayName: Test All
         continueOnError: true
@@ -128,13 +136,9 @@ jobs:
           echo ##vso[task.setvariable variable=PATH]%USERPROFILE%\sbt\bin\;%PATH%
         displayName: Adjust Environment Variables
       - script: |
-          sbt.bat test
+          sbt test
         continueOnError: true
         displayName: Test All
-      - script: |
-          sbt syntax/bench
-        displayName: Benchmark the Parser
-        continueOnError: true
       - script: |
           sbt runtime/Benchmark/compile
         displayName: Check Runtime Benchmarks Compile

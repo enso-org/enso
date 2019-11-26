@@ -3,6 +3,7 @@ import scala.sys.process._
 import org.enso.build.BenchTasks._
 import org.enso.build.WithDebugCommand
 import sbtassembly.AssemblyPlugin.defaultUniversalScript
+import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 
 //////////////////////////////
 //// Global Configuration ////
@@ -10,7 +11,7 @@ import sbtassembly.AssemblyPlugin.defaultUniversalScript
 
 val scalacVersion = "2.12.10"
 val graalVersion  = "19.3.0"
-val circeVersion  = "0.11.1"
+val circeVersion  = "0.12.3"
 organization in ThisBuild := "org.enso"
 scalaVersion in ThisBuild := scalacVersion
 
@@ -92,16 +93,16 @@ lazy val buildNativeImage =
 lazy val enso = (project in file("."))
   .settings(version := "0.1")
   .aggregate(
-    file_manager,
-    flexer,
-    graph,
+    unused.jvm,
+    flexer.jvm,
+    syntax_definition.jvm,
+    syntax.jvm,
     pkg,
     project_manager,
     runtime,
     parser_service,
-    syntax,
-    syntax_definition,
-    unused
+    file_manager,
+    project_manager
   )
   .settings(Global / concurrentRestrictions += Tags.exclusive(Exclusive))
 
@@ -162,37 +163,115 @@ val silencerVersion = "1.4.4"
 //// Internal Libraries ////
 ////////////////////////////
 
-lazy val logger = (project in file("common/scala/logger"))
+lazy val logger = crossProject(JVMPlatform, JSPlatform)
+  .withoutSuffixFor(JVMPlatform)
+  .crossType(CrossType.Pure)
+  .in(file("common/scala/logger"))
   .dependsOn(unused)
   .settings(
     version := "0.1",
     libraryDependencies ++= scala_compiler
   )
+  .jsSettings(testFrameworks := Nil)
 
-lazy val flexer = (project in file("common/scala/flexer"))
+lazy val flexer = crossProject(JVMPlatform, JSPlatform)
+  .withoutSuffixFor(JVMPlatform)
+  .crossType(CrossType.Pure)
+  .in(file("common/scala/flexer"))
   .dependsOn(logger)
   .settings(
     version := "0.1",
     scalacOptions -= "-deprecation", // FIXME
     resolvers += Resolver.sonatypeRepo("releases"),
     libraryDependencies ++= scala_compiler ++ Seq(
-      "org.feijoas" %% "mango" % "0.14"
+      "org.feijoas"   %% "mango"      % "0.14",
+      "org.typelevel" %%% "cats-core" % "2.0.0-RC1",
+      "org.typelevel" %%% "kittens"   % "2.0.0"
     )
   )
+  .jsSettings(testFrameworks := Nil)
 
-lazy val unused = (project in file("common/scala/unused"))
+lazy val unused = crossProject(JVMPlatform, JSPlatform)
+  .withoutSuffixFor(JVMPlatform)
+  .crossType(CrossType.Pure)
+  .in(file("common/scala/unused"))
   .settings(version := "0.1", scalacOptions += "-nowarn")
+  .jsSettings(testFrameworks := Nil)
 
-lazy val syntax_definition = (project in file("common/scala/syntax/definition"))
+lazy val syntax_definition = crossProject(JVMPlatform, JSPlatform)
+  .withoutSuffixFor(JVMPlatform)
+  .crossType(CrossType.Pure)
+  .in(file("common/scala/syntax/definition"))
   .dependsOn(logger, flexer)
   .settings(
-    libraryDependencies ++= monocle ++ cats ++ circe ++ scala_compiler ++ Seq(
-      "com.lihaoyi" %% "scalatags" % "0.7.0"
+    libraryDependencies ++= monocle ++ scala_compiler ++ Seq(
+      "org.typelevel" %%% "cats-core"     % "2.0.0-RC1",
+      "org.typelevel" %%% "kittens"       % "2.0.0",
+      "com.lihaoyi"   %%% "scalatags"     % "0.7.0",
+      "io.circe"      %%% "circe-core"    % circeVersion,
+      "io.circe"      %%% "circe-generic" % circeVersion,
+      "io.circe"      %%% "circe-parser"  % circeVersion
     )
+  )
+  .jsSettings(testFrameworks := Nil)
+
+lazy val syntax = crossProject(JVMPlatform, JSPlatform)
+  .withoutSuffixFor(JVMPlatform)
+  .crossType(CrossType.Pure)
+  .in(file("common/scala/syntax/specialization"))
+  .dependsOn(logger, flexer, syntax_definition)
+  .configs(Test)
+  .configs(Benchmark)
+  .settings(
+    testFrameworks := Nil,
+    mainClass in (Compile, run) := Some("org.enso.syntax.text.Main"),
+    version := "0.1",
+    logBuffered := false,
+    libraryDependencies ++= Seq(
+      "org.scalatest" %%% "scalatest"     % "3.0.5" % Test,
+      "com.lihaoyi"   %%% "pprint"        % "0.5.3",
+      "io.circe"      %%% "circe-core"    % circeVersion,
+      "io.circe"      %%% "circe-generic" % circeVersion,
+      "io.circe"      %%% "circe-parser"  % circeVersion
+    ),
+    compile := (Compile / compile)
+      .dependsOn(Def.taskDyn {
+        val parserCompile =
+          (syntax_definition.jvm / Compile / compileIncremental).value
+        if (parserCompile.hasModified) {
+          Def.task {
+            streams.value.log.info("Parser changed, forcing recompilation.")
+            clean.value
+          }
+        } else Def.task {}
+      })
+      .value
+  )
+  .jvmSettings(
+    inConfig(Benchmark)(Defaults.testSettings),
+    unmanagedSourceDirectories in Benchmark +=
+    baseDirectory.value.getParentFile / "src/bench/scala",
+    libraryDependencies += "com.storm-enroute" %% "scalameter" % "0.17" % "bench",
+    testFrameworks := List(
+      new TestFramework("org.scalatest.tools.Framework"),
+      new TestFramework("org.scalameter.ScalaMeterFramework")
+    ),
+    bench := (test in Benchmark).tag(Exclusive).value
+  )
+  .jsSettings(
+    scalaJSUseMainModuleInitializer := true,
+    testFrameworks := List(new TestFramework("org.scalatest.tools.Framework"))
+  )
+
+lazy val parser_service = (project in file("common/scala/parser-service"))
+  .dependsOn(syntax.jvm)
+  .settings(
+    libraryDependencies ++= akka,
+    mainClass := Some("org.enso.ParserServiceMain")
   )
 
 lazy val graph = (project in file("common/scala/graph/"))
-  .dependsOn(logger)
+  .dependsOn(logger.jvm)
   .configs(Test)
   .settings(
     version := "0.1",
@@ -217,44 +296,6 @@ lazy val graph = (project in file("common/scala/graph/"))
     addCompilerPlugin(
       "org.scalamacros" % "paradise" % "2.1.1" cross CrossVersion.full
     )
-  )
-
-lazy val syntax = (project in file("common/scala/syntax/specialization"))
-  .dependsOn(logger, flexer, syntax_definition)
-  .configs(Test)
-  .configs(Benchmark)
-  .settings(
-    mainClass in (Compile, run) := Some("org.enso.syntax.text.Main"),
-    version := "0.1",
-    testFrameworks += new TestFramework("org.scalameter.ScalaMeterFramework"),
-    logBuffered := false,
-    inConfig(Benchmark)(Defaults.testSettings),
-    bench := (test in Benchmark).tag(Exclusive).value,
-    parallelExecution in Benchmark := false,
-    libraryDependencies ++= circe ++ Seq(
-      "com.storm-enroute" %% "scalameter" % "0.17" % "bench",
-      "org.scalatest"     %% "scalatest"  % "3.0.5" % Test,
-      "com.lihaoyi"       %% "pprint"     % "0.5.3"
-    ),
-    compile := (Compile / compile)
-      .dependsOn(Def.taskDyn {
-        val parserCompile =
-          (syntax_definition / Compile / compileIncremental).value
-        if (parserCompile.hasModified) {
-          Def.task {
-            streams.value.log.info("Parser changed, forcing recompilation.")
-            clean.value
-          }
-        } else Def.task {}
-      })
-      .value
-  )
-
-lazy val parser_service = (project in file("common/scala/parser-service"))
-  .dependsOn(syntax)
-  .settings(
-    libraryDependencies ++= akka,
-    mainClass := Some("org.enso.ParserServiceMain")
   )
 
 lazy val pkg = (project in file("common/scala/pkg"))
@@ -365,7 +406,7 @@ lazy val runtime = (project in file("engine/runtime"))
     parallelExecution in Benchmark := false
   )
   .dependsOn(pkg)
-  .dependsOn(syntax)
+  .dependsOn(syntax.jvm)
 
 lazy val language_server = project
   .in(file("engine/language-server"))

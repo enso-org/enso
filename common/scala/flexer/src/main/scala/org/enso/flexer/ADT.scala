@@ -8,7 +8,7 @@ object ADT {
   def constructorsImpl[T: c.WeakTypeTag](c: Context): c.Expr[Set[T]] = {
     import c.universe._
 
-    val subs = weakTypeTag[T].tpe.typeSymbol.asClass.knownDirectSubclasses.map {
+    val subs = c.weakTypeTag[T].tpe.typeSymbol.asClass.knownDirectSubclasses.map {
       symbol =>
         q"${c.mirror.staticModule(symbol.fullName)}"
     }

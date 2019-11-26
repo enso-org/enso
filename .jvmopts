@@ -1,2 +1,3 @@
--Xss8M
--Xmx3072M
+-Xss16M
+-Xmx3G
+-XX:+UseCompressedOops

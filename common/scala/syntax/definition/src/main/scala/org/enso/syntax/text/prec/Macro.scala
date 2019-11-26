@@ -18,10 +18,15 @@ object Macro {
   def run(module: AST.Module): AST.Module =
     module.map(transform)
 
-  private def transform(t: AST): AST = {
+  private def transform(t: AST): AST =
+    new Transformer(t).run(AST.tokenize(t).toList())
+
+  final private class Transformer(t: AST) {
     val root                        = Builder.Context(Builtin.registry.tree)
+
     var builder: Builder            = Builder.moduleBuilder()
     var builderStack: List[Builder] = Nil
+    var isLineBegin: Boolean        = true
 
     def pushBuilder(name: AST.Ident, off: Int, lineBegin: Boolean): Unit =
       logger.trace {
@@ -40,22 +45,21 @@ object Macro {
       }
     }
 
-    var isLineBegin: Boolean = true
-
     @tailrec
-    def finalize(): AST = {
+    def finish(): AST = {
       popBuilder() match {
         case Some(bldr) =>
           logger.log("End of input (in stack)")
           builder.merge(bldr)
-          finalize()
+          finish()
         case None =>
           logger.log("End of input (not in stack)")
           builder.buildAsModule()
       }
     }
+
     @tailrec
-    def go(input: AST.Stream): AST = {
+    def run(input: AST.Stream): AST = {
       input match {
         case Nil =>
           val builders                      = builder :: builderStack
@@ -78,7 +82,7 @@ object Macro {
 
           builder      = newBuilders.head
           builderStack = newBuilders.tail
-          finalize()
+          finish()
         case (t1 @ Shifted(off, AST.Ident.any(el1))) :: t2_ =>
           logger.log(s"Token $t1")
           logger.beginGroup()
@@ -92,7 +96,7 @@ object Macro {
                 tr.value.map(Some(_)).getOrElse(builder.macroDef)
               builder.context = builder.context.copy(tree = tr)
               logger.endGroup()
-              go(t2_)
+              run(t2_)
 
             case None =>
               root.lookup(el1) match {
@@ -103,7 +107,7 @@ object Macro {
                   builder.macroDef = tr.value
                   builder.context  = Builder.Context(tr, Some(context))
                   logger.endGroup()
-                  go(t2_)
+                  run(t2_)
 
                 case _ =>
                   val currentClosed = builder.context.isEmpty
@@ -120,27 +124,25 @@ object Macro {
                       popBuilder()
                       builder.merge(subBuilder)
                       logger.endGroup()
-                      go(input)
+                      run(input)
                     case false =>
                       logger.log("Add token")
                       builder.current.revStream +:= t1
                       logger.endGroup()
-                      go(t2_)
+                      run(t2_)
                   }
               }
           }
-        case (Shifted(off, AST.Block.any(el1))) :: t2_ =>
+        case Shifted(off, AST.Block.any(el1)) :: t2_ =>
           val nt1 = Shifted(off, el1.map(transform))
           builder.current.revStream +:= nt1
-          go(t2_)
+          run(t2_)
 
         case t1 :: t2_ =>
           builder.current.revStream +:= t1
-          go(t2_)
+          run(t2_)
 
       }
     }
-    val stream = AST.tokenize(t).toList()
-    go(stream)
   }
 }

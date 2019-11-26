@@ -7,6 +7,7 @@ import org.enso.syntax.text.AST
 import org.enso.syntax.text.AST.Ident
 import org.enso.syntax.text.AST.Macro
 import Pattern.streamShift
+import cats.data.NonEmptyList
 
 import scala.annotation.tailrec
 
@@ -14,7 +15,7 @@ import scala.annotation.tailrec
 //// Builder ////
 /////////////////
 
-class Builder(
+final class Builder(
   head: Ident,
   offset: Int                  = 0,
   lineBegin: Boolean           = false,
@@ -61,7 +62,7 @@ class Builder(
 
       case Some(mdef) =>
         val revSegPats    = mdef.fwdPats.reverse
-        val revSegsOuts   = revSegBldrs.zipWith(revSegPats)(_.build(_))
+        val revSegsOuts   = zipWith(revSegBldrs, revSegPats)(_.build(_))
         val revSegs       = revSegsOuts.map(_._1)
         val revSegStreams = revSegsOuts.map(_._2)
         val tailStream    = revSegStreams.head
@@ -100,6 +101,23 @@ class Builder(
     }
   }
 
+  // FIXME This is here because of bug in scalajs https://github.com/scala-js/scala-js/issues/3885
+  private def zipWith[A, B, C](a: NonEmptyList[A], b: NonEmptyList[B])(
+    f: (A, B) => C
+  ): NonEmptyList[C] = {
+
+    @tailrec
+    def zwRev(as: List[A], bs: List[B], acc: List[C]): List[C] =
+      (as, bs) match {
+        case (Nil, Nil)         => acc // without this we get match error
+        case (Nil, _)           => acc
+        case (_, Nil)           => acc
+        case (x :: xs, y :: ys) => zwRev(xs, ys, f(x, y) :: acc)
+      }
+
+    NonEmptyList(f(a.head, b.head), zwRev(a.tail, b.tail, Nil).reverse)
+  }
+
   if (isModuleBuilder)
     macroDef = Some(
       Macro.Definition((AST.Blank(): AST) -> Pattern.Expr()) { ctx =>
@@ -135,7 +153,7 @@ object Builder {
 
   case class Context(tree: Registry.Tree, parent: Option[Context]) {
     def lookup(t: AST): Option[Registry.Tree] = tree.get(t)
-    def isEmpty:        Boolean               = tree.isLeaf
+    def isEmpty: Boolean                      = tree.isLeaf
 
     @tailrec
     final def parentLookup(t: AST): Boolean = {
@@ -150,7 +168,7 @@ object Builder {
     }
   }
   object Context {
-    def apply():                    Context = Context(data.Tree(), None)
+    def apply(): Context                    = Context(data.Tree(), None)
     def apply(tree: Registry.Tree): Context = Context(tree, None)
   }
 

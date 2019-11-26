@@ -22,7 +22,7 @@ object Macro {
 
     c.macroApplication match {
       case Apply(Select(lhs, _), _) => q"$lhs.run(${showCode(tree)})"
-      case x                        => throw new Error("Unsupported shape")
+      case _                        => throw new Error("Unsupported shape")
     }
   }
 
@@ -35,8 +35,8 @@ object Macro {
     val expr   = q"$tree"
     val parser = c.eval(c.Expr[Parser[T]](c.untypecheck(expr.duplicate)))
     val groups = q"..${parser.state.registry.map(_.generate(c))}"
-    val (superClassName, tree2) = tree match {
-      case Apply(Select(tree2 @ Select(_, name), _), _) => (name, tree2)
+    val tree2 = tree match {
+      case Apply(Select(tree2 @ Select(_, _), _), _) => tree2
       case _ =>
         throw new Error(
           s""" ERROR: Wrong shape
