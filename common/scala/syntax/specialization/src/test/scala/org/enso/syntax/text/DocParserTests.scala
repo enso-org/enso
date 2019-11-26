@@ -6,6 +6,7 @@ import org.enso.syntax.text.ast.Doc.Elem._
 import org.enso.Logger
 import org.enso.flexer.Parser.Result
 import org.enso.flexer.Reader
+import org.enso.syntax.text.ast.Doc.Tags.Tag
 import org.scalatest.FlatSpec
 import org.scalatest.Matchers
 import org.scalatest.Assertion
@@ -17,6 +18,7 @@ class DocParserTests extends FlatSpec with Matchers {
     val output = DocParser.run(input)
     output match {
       case Result(_, Result.Success(value)) =>
+        pprint.pprintln(value)
         assert(value == result)
         assert(value.show() == new Reader(input).toString())
       case _ =>
@@ -341,6 +343,46 @@ class DocParserTests extends FlatSpec with Matchers {
   """List
     |  - First unordered item
     |  - Second unordered item
+    |  - Third unordered item""".stripMargin
+    .replaceAll(System.lineSeparator(), "\n") ?= Doc(
+    Synopsis(
+      Section.Raw(
+        "List",
+        Newline,
+        List(
+          2,
+          List.Unordered,
+          " First unordered item",
+          " Second unordered item",
+          " Third unordered item"
+        )
+      )
+    )
+  )
+  """List
+    |  - First unordered item
+    |  - Second unordered item
+    |  - Third unordered item
+    |""".stripMargin
+    .replaceAll(System.lineSeparator(), "\n") ?= Doc(
+    Synopsis(
+      Section.Raw(
+        "List",
+        Newline,
+        List(
+          2,
+          List.Unordered,
+          " First unordered item",
+          " Second unordered item",
+          " Third unordered item"
+        ),
+        Newline
+      )
+    )
+  )
+  """List
+    |  - First unordered item
+    |  - Second unordered item
     |    * First ordered sub item
     |    * Second ordered sub item
     |  - Third unordered item""".stripMargin
@@ -582,7 +624,8 @@ class DocParserTests extends FlatSpec with Matchers {
   //// Tags ////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
-  val allPossibleTags = Tags.Tag.Type.codes.-(Tags.Tag.Unrecognized)
+  val allPossibleTags: Set[Tag.Type] =
+    Tags.Tag.Type.codes.-(Tags.Tag.Unrecognized)
 
   allPossibleTags.foreach(
     t =>
@@ -710,7 +753,7 @@ class DocParserTests extends FlatSpec with Matchers {
     Synopsis(
       Section.Raw(
         Newline,
-        " - bar",
+        List(1, List.Unordered, " bar"),
         Newline,
         CodeBlock(CodeBlock.Line(1, "baz")),
         Newline

@@ -40,7 +40,7 @@ code
     color: #0070c9
     background-color: transparent
     font-size: inherit
-    font-family: monospace
+    font-family: "SF Pro Text", "SF Pro Icons", "Helvetica Neue", "Helvetica", "Arial", sans-serif
     line-height: inherit
     display: inline-block
     white-space: pre-wrap
@@ -199,7 +199,6 @@ h2
     font-weight: 400
     letter-spacing: -0.021em
     font-family: "SF Pro Text", "SF Pro Icons", "Helvetica Neue", "Helvetica","Arial", sans-serif
-    background-color: white
     color: #333333
     font-style: normal
 
@@ -313,47 +312,57 @@ h2
         background-color: #ffffff
 
 
-@media (min-width: 300px) 
-    .Synopsis,
-    .Body,
-    .Tags,
-    .Documentation .ASTData
-        width: 380px
+@media (max-width: 500px)
+  .Synopsis,
+  .Body,
+  .Tags
+    width: 380px
+
+  .Documentation .ASTData
+    width: 400px
     
 
 
-@media (min-width: 500px) 
-    .Synopsis,
-    .Body,
-    .Tags,
-    .Documentation .ASTData 
-        width: 440px
+@media (min-width: 500px)
+  .Synopsis,
+  .Body,
+  .Tags
+    width: 440px
+
+  .Documentation .ASTData
+    width: 470px
     
 
 
-@media (min-width: 600px) 
-    .Synopsis,
-    .Body,
-    .Tags,
-    .Documentation .ASTData 
-        width: 490px
+@media (min-width: 600px)
+  .Synopsis,
+  .Body,
+  .Tags
+    width: 490px
+
+  .Documentation .ASTData
+    width: 520px
     
 
 
-@media (min-width: 900px) 
-    .Synopsis,
-    .Body,
-    .Tags,
-    .Documentation .ASTData 
-        width: 670px
+@media (min-width: 900px)
+  .Synopsis,
+  .Body,
+  .Tags
+    width: 670px
+
+  .Documentation .ASTData
+    width: 710px
     
 
 
 @media (min-width: 1300px) 
     .Synopsis,
     .Body,
-    .Tags,
-    .Documentation .ASTData  
+    .Tags
         width: 780px
+
+    .Documentation .ASTData
+        width: 820px
     
 
