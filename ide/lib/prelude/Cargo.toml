@@ -1,7 +1,7 @@
 [package]
 name    = "basegl-prelude"
 version = "0.1.0"
-authors = ["Wojciech Danilo <wojciech.danilo@gmail.com>"]
+authors = ["Enso Team <contact@luna-lang.org>"]
 edition = "2018"
 
 [lib]

@@ -13,7 +13,7 @@ where_single_line           = true
 condense_wildcard_suffixes  = true # `let (a,b,_,_) = x` -> `let (a,b,..) = x`
 
 # Max Width
-max_width              = 100
+max_width              = 80
 error_on_line_overflow = true
 error_on_unformatted   = true
 format_strings         = true
@@ -34,8 +34,8 @@ overflow_delimited_expr = true
 reorder_impl_items = true
 
 # Vertical Alignment
-struct_field_align_threshold = 100
-enum_discrim_align_threshold = 100
+struct_field_align_threshold = 80
+enum_discrim_align_threshold = 80
 spaces_around_ranges         = true
 brace_style                  = "PreferSameLine"
 

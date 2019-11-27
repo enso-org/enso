@@ -1,0 +1,364 @@
+// README README README README README README README README README README README 
+// README README README README README README README README README README README 
+// README README README README README README README README README README README 
+
+// This library is in a very early stage. It will be refactored and improved 
+// soon. It should not be reviewed now.
+
+#![feature(generators, generator_trait)]
+#![feature(specialization)]
+#![feature(overlapping_marker_traits)]
+
+pub use shapely_macros::*;
+
+use std::ops::Generator;
+use std::ops::GeneratorState;
+use std::pin::Pin;
+use basegl_prelude::*;
+
+// ========================
+// === IterForGenerator ===
+// ========================
+
+pub struct IterForGenerator<G: Generator>(pub G);
+
+impl<G> Iterator for IterForGenerator<G>
+where G: Generator<Return = ()> + Unpin {
+    type Item = G::Yield;
+    fn next(&mut self) -> Option<Self::Item> {
+        match { Pin::new(&mut self.0).resume() } {
+            GeneratorState::Yielded(element) => Some(element),
+            _ => None,
+        }
+    }
+}
+
+
+// ======================
+// === EmptyGenerator ===
+// ======================
+
+#[derive(Derivative)]
+#[derivative(Default(bound=""))]
+pub struct EmptyGenerator<T>(PhantomData<T>);
+
+impl<T> EmptyGenerator<T> {
+    pub fn new() -> Self { default() }
+}
+
+impl<T> Iterator for EmptyGenerator<T> {
+    type Item = T;
+    fn next(&mut self) -> Option<Self::Item> {
+        None
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+use std::ops::Deref;
+
+macro_rules! extension_struct {
+    ($name:ident { $($field:ident : $field_type:ty),* }) => { paste::item! {
+
+        ////// With_NAME_ //////
+
+        #[derive(Shrinkwrap)]
+        #[shrinkwrap(mutable)]
+        struct [<With $name>]<T>($($field_type),*, #[shrinkwrap(main_field)] T);
+
+        ////// Has_NAME_ //////
+
+        pub trait [<Has $name>] {
+            $(fn $field(&self) -> &$field_type;)*
+        }
+
+        impl<T: [<Has $name Indirect>]>
+        [<Has $name>] for T {
+            $(fn $field(&self) -> &$field_type {
+                [<Has $name Spec1>]::$field(self)
+            })*
+        }
+
+        ////// Has_NAME_Indirect //////
+
+        pub trait [<Has $name Indirect>] {}
+
+        impl<T>
+        [<Has $name Indirect>] for [<With $name>]<T> {}
+
+        impl<T>
+        [<Has $name Indirect>] for T
+        where T: Deref, <Self as Deref>::Target : [<Has $name>] {}
+
+        ////// Has_NAME_Spec1 //////
+
+        trait [<Has $name Spec1>] {
+            $(fn $field(&self) -> &$field_type;)*
+        }
+
+        impl<T>
+        [<Has $name Spec1>] for [<With $name>]<T> {
+            $(fn $field(&self) -> &$field_type {
+                &self.0
+            })*
+        }
+
+        impl<T: [<Has $name Indirect>]>
+        [<Has $name Spec1>] for T {
+            $(default fn $field(&self) -> &$field_type {
+                [<Has $name Spec2>]::$field(self)
+            })*
+        }
+
+        ////// Has_NAME_Spec2 //////
+
+        trait [<Has $name Spec2>] {
+            $(fn $field(&self) -> &$field_type;)*
+        }
+
+        impl<T: [<Has $name Indirect>]>
+        [<Has $name Spec2>] for T {
+            $(default fn $field(&self) -> &$field_type {
+                unreachable!();
+            })*
+        }
+
+        impl<T>
+        [<Has $name Spec2>] for T
+        where T: Deref, <Self as Deref>::Target : [<Has $name>] {
+            $(fn $field(&self) -> &$field_type {
+                self.deref().$field()
+            })*
+        }
+    }};
+}
+
+
+extension_struct!(Label {
+    label: String
+});
+
+extension_struct!(Foo {
+    t1: String
+});
+
+
+
+// ==============
+// === WithID ===
+// ==============
+
+struct WithID<T>(i32, T);
+
+impl<T> Deref for WithID<T> {
+    type Target = T;
+    fn deref(&self) -> &Self::Target {
+        &self.1
+    }
+}
+
+struct WithID2<T>(i32, T);
+
+impl<T> Deref for WithID2<T> {
+    type Target = T;
+    fn deref(&self) -> &Self::Target {
+        &self.1
+    }
+}
+
+//// === HasID ===
+//
+//pub trait HasID {
+//    fn id(&self) -> &i32;
+//}
+//
+//impl<T: MarkerCtxForHasID> HasID for T {
+//    fn id(&self) -> &i32 {
+//        HasIDForVariantOrAny::id(self)
+//    }
+//}
+//
+//// === MarkerCtxForHasID ===
+//
+//pub trait MarkerCtxForHasID {}
+//
+//impl<T> MarkerCtxForHasID for WithID<T> {}
+//
+//impl<T> MarkerCtxForHasID for T
+//where T: Deref, <T as Deref>::Target : HasID {}
+//
+//
+//// === HasIDForVariantOrAny ===
+//
+//trait HasIDForVariantOrAny {
+//    fn id(&self) -> &i32;
+//}
+//impl<T> HasIDForVariantOrAny for WithID<T> {
+//    fn id(&self) -> &i32 {
+//        &self.0
+//    }
+//}
+//impl<T: MarkerCtxForHasID> HasIDForVariantOrAny for T {
+//    default fn id(&self) -> &i32 {
+//        HasIDForDerefOrAny::id(self)
+//    }
+//}
+//
+//// === HasIDForDerefOrAny ===
+//
+//trait HasIDForDerefOrAny {
+//    fn id(&self) -> &i32;
+//}
+//impl<T> HasIDForDerefOrAny for T
+//where T: Deref, <Self as Deref>::Target : HasID {
+//    fn id(&self) -> &i32 {
+//        self.deref().id()
+//    }
+//}
+//impl<T> HasIDForDerefOrAny for T {
+//    default fn id(&self) -> &i32 {
+//        unreachable!();
+//    }
+//}
+
+
+
+
+
+// === HasID ===
+
+pub trait HasID {
+    fn id(&self) -> &i32;
+}
+
+
+//////////////////////////////////
+
+#[overlappable]
+impl<T> HasID for T
+    where T: Deref, <Self as Deref>::Target : HasID {
+    fn id(&self) -> &i32 {
+        self.deref().id()
+    }
+}
+
+impl<T: MarkerCtx_HasID> HasID for T {
+    fn id(&self) -> &i32 {
+        VariantOrAny_HasID::id(self)
+    }
+}
+
+// === MarkerCtx_HasID ===
+
+#[allow(non_camel_case_types)]
+pub trait MarkerCtx_HasID {}
+
+impl<T> MarkerCtx_HasID for T
+    where T: Deref, <T as Deref>::Target : HasID {}
+
+// === VariantOrAny_HasID ===
+
+#[allow(non_camel_case_types)]
+trait VariantOrAny_HasID {
+    fn id(&self) -> &i32;
+}
+
+impl<T: MarkerCtx_HasID> VariantOrAny_HasID for T {
+    default fn id(&self) -> &i32 {
+        DerefOrAny_HasID::id(self)
+    }
+}
+
+// === DerefOrAny_HasID ===
+
+#[allow(non_camel_case_types)]
+trait DerefOrAny_HasID {
+    fn id(&self) -> &i32;
+}
+impl<T> DerefOrAny_HasID for T
+    where T: Deref, <Self as Deref>::Target : HasID {
+    fn id(&self) -> &i32 {
+        self.deref().id()
+    }
+}
+impl<T> DerefOrAny_HasID for T {
+    default fn id(&self) -> &i32 {
+        unreachable!();
+    }
+}
+
+
+/////////////////////////////////////////////
+
+
+//#[overlapping]
+//impl<T> HasID for WithID<T> {
+//    fn id(&self) -> &i32 {
+//        &self.0
+//    }
+//}
+
+impl<T> MarkerCtx_HasID for WithID<T> {}
+
+impl<T> VariantOrAny_HasID for WithID<T> {
+    fn id(&self) -> &i32 {
+        &self.0
+    }
+}
+
+//// NON-CONFLICTING:
+//
+//trait HasFoo2 {
+//    fn foo(&self) -> i32;
+//}
+//impl<T> HasFoo2 for T {
+//    default fn foo(&self) -> i32 {
+//        7
+//    }
+//}
+//impl<T> HasFoo2 for WithID<T> {
+//    default fn foo(&self) -> i32 {
+//        8
+//    }
+//}
+//
+//// CONFLICTING
+//
+//trait HasFoo3 {
+//    fn foo(&self) -> i32;
+//}
+//impl<T> HasFoo3 for T
+//    where T: Deref,
+//          <T as Deref>::Target: HasFoo3 {
+//    default fn foo(&self) -> i32 {
+//        self.deref().foo()
+//    }
+//}
+//impl<T> HasFoo3 for WithID<T> {
+//    default fn foo(&self) -> i32 {
+//        8
+//    }
+//}
+
+
+// =============
+// === Usage ===
+// =============
+
+struct _A(i32);
+
+type _X = WithLabel<WithID<_A>>;
+
+fn _test<T: HasID + HasLabel> (t: T) {
+    println!("{:?}", t.label());
+    println!("{:?}", t.id());
+}
+
+fn _main() {
+    let v1 = WithLabel("label1".to_string(), WithID(0, _A(1)));
+    _test(v1); // THIS IS EXAMPLE USE CASE WHICH DOES NOT COMPILE
+
+//    println!("{}", 7.foo());
+}
