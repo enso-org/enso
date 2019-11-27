@@ -1,7 +1,7 @@
 [package]
 name = "basegl-core-msdf-sys"
 version = "0.1.0"
-authors = ["Adam Obuchowicz <adam.obuchowicz@luna-lang.com>"]
+authors = ["Enso Team <contact@luna-lang.org>"]
 edition = "2018"
 
 [lib]

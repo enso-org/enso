@@ -7,7 +7,7 @@ use crate::system::web::Result;
 use crate::system::web::StyleSetter;
 use crate::system::web::NodeAppender;
 use crate::system::web::NodeRemover;
-use crate::data::types::Index;
+
 
 // =================
 // === HTMLScene ===
@@ -23,6 +23,8 @@ pub struct HTMLScene {
     pub camera  : HTMLObject,
     pub objects : OptVec<HTMLObject>,
 }
+
+pub type Index = usize;
 
 impl HTMLScene {
     /// Searches for a HtmlElement identified by id and appends to it.
@@ -49,7 +51,7 @@ impl HTMLScene {
     /// Moves a HTMLObject to the Scene and returns an index to it.
     pub fn add(&mut self, object: HTMLObject) -> Index {
         self.camera.element.append_child_or_panic(&object.element);
-        self.objects.insert(|_| object)
+        self.objects.insert(object)
     }
 
     /// Removes and retrieves a HTMLObject based on the index provided by

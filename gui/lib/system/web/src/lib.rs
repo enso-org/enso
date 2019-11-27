@@ -65,9 +65,9 @@ impl LogMsg for &str {
     }
 }
 
-impl<F: Fn() -> String> LogMsg for F {
+impl<F: Fn() -> S, S: AsRef<str>> LogMsg for F {
     fn with_log_msg<G: FnOnce(&str) -> T, T>(&self, f: G) -> T {
-        f(self().as_str())
+        f(self().as_ref())
     }
 }
 
@@ -85,6 +85,7 @@ impl Logger {
         Self { path }
     }
 
+    // FIXME: Default
     pub fn new_() -> Self {
         Self::new("")
     }
@@ -98,7 +99,9 @@ impl Logger {
     }
 
     pub fn info<M: LogMsg>(&self, msg: M) {
-        console::info_1(&self.format(msg));
+        // console::info_1(&self.format(msg));
+        console::group_1(&self.format(msg));
+        console::group_end();
     }
 
     pub fn warning<M: LogMsg>(&self, msg: M) {
@@ -129,6 +132,12 @@ impl Logger {
     }
 }
 
+impl Default for Logger {
+    fn default() -> Self {
+        Self::new("")
+    }
+}
+
 // ====================
 // === Logger Utils ===
 // ====================
@@ -136,6 +145,25 @@ impl Logger {
 #[macro_export]
 macro_rules! fmt {
     ($($arg:tt)*) => (||(format!($($arg)*)))
+}
+
+#[macro_export]
+macro_rules! group {
+    ($logger:expr, $message:expr, $body:tt) => {{
+        $logger.group_begin(|| $message);
+        let out = $body;
+        $logger.group_end();
+        out
+    }};
+    ($logger:expr, $str:expr, $a1:expr, $body:tt) => {{
+        group!($logger, format!($str,$a1), $body)
+    }};
+    ($logger:expr, $str:expr, $a1:expr, $a2:expr, $body:tt) => {{
+        group!($logger, format!($str,$a1,$a2), $body)
+    }};
+    ($logger:expr, $str:expr, $a1:expr, $a2:expr, $a3:expr, $body:tt) => {{
+        group!($logger, format!($str,$a1,$a2,$a3), $body)
+    }};
 }
 
 // ===================
@@ -154,12 +182,20 @@ where T : wasm_bindgen::JsCast + Debug,
 pub fn window() -> Result<web_sys::Window> {
     web_sys::window().ok_or_else(|| Error::missing("window"))
 }
+
+pub fn device_pixel_ratio() -> Result<f64> {
+    let win = window()?;
+    Ok(win.device_pixel_ratio())
+}
+
 pub fn document() -> Result<web_sys::Document> {
     window()?.document().ok_or_else(|| Error::missing("document"))
 }
+
 pub fn get_element_by_id(id: &str) -> Result<web_sys::Element> {
     document()?.get_element_by_id(id).ok_or_else(|| Error::missing(id))
 }
+
 #[deprecated(note = "Use get_element_by_id with dyn_into instead")]
 pub fn get_element_by_id_as<T: wasm_bindgen::JsCast>(id: &str) -> Result<T> {
     let elem = get_element_by_id(id)?;
@@ -171,9 +207,11 @@ pub fn create_element(id: &str) -> Result<web_sys::Element> {
         Err(_) => Err(Error::missing(id)),
     }
 }
+
 pub fn get_canvas(id: &str) -> Result<web_sys::HtmlCanvasElement> {
     dyn_into(get_element_by_id(id)?)
 }
+
 pub fn get_webgl_context(
     canvas: &HtmlCanvasElement,
     version: u32,
@@ -185,14 +223,20 @@ pub fn get_webgl_context(
     let context = canvas.get_context(name).map_err(|_| no_webgl())?.ok_or_else(no_webgl)?;
     context.dyn_into().map_err(|_| no_webgl())
 }
+
 pub fn request_animation_frame(f: &Closure<dyn FnMut()>) -> Result<i32> {
     let req = window()?.request_animation_frame(f.as_ref().unchecked_ref());
     req.map_err(|_| Error::missing("requestAnimationFrame"))
 }
 
-// ===================
+pub fn cancel_animation_frame(id: i32) -> Result<()> {
+    let req = window()?.cancel_animation_frame(id);
+    req.map_err(|_| Error::missing("cancel_animation_frame"))
+}
+
+// =====================
 // === Other Helpers ===
-// ===================
+// =====================
 
 pub trait AttributeSetter {
     fn set_attribute_or_panic<T, U>(&self, name : T, value : U)

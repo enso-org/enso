@@ -1,0 +1,12 @@
+[package]
+name    = "optics"
+version = "0.1.0"
+authors = ["Enso Team <contact@luna-lang.org>"]
+edition = "2018"
+
+[lib]
+
+[features]
+
+[dependencies]
+basegl-prelude = { version = "0.1.0", path = "../prelude" }

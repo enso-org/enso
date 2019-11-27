@@ -10,5 +10,8 @@ wasm-pack.log
 .idea/
 *.iml
 
+# VisualStudio Code
+.vscode/
+
 # A thirdparty downloaded js
 /lib/core/msdf-sys/msdfgen_wasm.js
