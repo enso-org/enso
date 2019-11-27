@@ -6,7 +6,6 @@ import org.enso.flexer.automata.Pattern._
 import org.enso.data.List1
 import org.enso.syntax.text.ast.Doc._
 import org.enso.syntax.text.ast.Doc
-import org.enso.syntax.text.ast.Doc.Elem.{CodeBlock, Link}
 
 case class DocParserDef() extends Parser[Doc] {
 

@@ -301,8 +301,7 @@ object DocParserHTMLGenerator {
       elem match {
         case AST.Documented.any(d) =>
           val file = onHTMLRendering(d, cssFileName)
-          saveHTMLToFile(path, file._2, file._1)
-        case _ => generateHTMLForEveryDocumented(elem, path, cssFileName)
+          saveHTMLToFile(path, file.name, file.code)
       }
       elem
     }
@@ -335,17 +334,18 @@ object DocParserHTMLGenerator {
     *
     * @param documented - documented made by Doc Parser Runner from AST and Doc
     * @param cssFileName - name of file containing stylesheets for the HTML code
-    * @return - tuple containing HTML code with file name
+    * @return - HTML code with file name
     */
   def onHTMLRendering(
     documented: AST.Documented,
     cssFileName: String
-  ): (TypedTag[String], String) = {
+  ): htmlFile = {
     val htmlCode = renderHTML(documented.ast, documented.doc, cssFileName)
     val astLines = documented.ast.show().split("\n")
     val fileName = astLines.head.replaceAll("/", "")
-    (htmlCode, fileName)
+    htmlFile(htmlCode, fileName)
   }
+  case class htmlFile(code: TypedTag[String], name: String)
 
   /**
     * Function invoked by [[onHTMLRendering]] to render HTML File
@@ -380,11 +380,12 @@ object DocParserHTMLGenerator {
     ast: AST,
     doc: Doc
   ): TypedTag[String] = {
-    val astCls   = HTML.`class` := "ASTData"
-    val astHTML  = createHTMLFromAST(ast)
-    val astName  = Seq(HTML.div(astCls)(astHTML.header))
-    val astBody  = Seq(HTML.div(astCls)(astHTML.body))
-    val docClass = HTML.`class` := "Documentation"
+    val astHeadCls = HTML.`class` := "ASTHead"
+    val astBodyCls = HTML.`class` := "ASTData"
+    val astHTML    = createHTMLFromAST(ast)
+    val astName    = Seq(HTML.div(astHeadCls)(astHTML.header))
+    val astBody    = Seq(HTML.div(astBodyCls)(astHTML.body))
+    val docClass   = HTML.`class` := "Documentation"
     HTML.div(docClass)(astName, doc.html, astBody)
   }
 
@@ -442,11 +443,12 @@ object DocParserHTMLGenerator {
     body: AST.Block
   ): astHtmlRepr = {
     val firstLine     = Line(Option(body.firstLine.elem), body.firstLine.off)
+    val constructors  = HTML.h2(`class` := "constr")("Constructors")
     val allLines      = firstLine :: body.lines
     val generatedCode = renderHTMLOnLine(allLines)
     val head          = createDefTitle(name, args)
     val clsBody       = HTML.`class` := "DefBody"
-    val lines         = HTML.div(clsBody)(generatedCode)
+    val lines         = HTML.div(clsBody)(constructors, generatedCode)
     val cls           = HTML.`class` := "Def"
     astHtmlRepr(HTML.div(cls)(head), HTML.div(cls)(lines))
   }
