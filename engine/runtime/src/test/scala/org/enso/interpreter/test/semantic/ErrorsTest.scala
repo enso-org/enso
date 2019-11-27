@@ -6,36 +6,33 @@ class ErrorsTest extends InterpreterTest {
   "Panics" should "be thrown and stop evaluation" in {
     val code =
       """
-        |type Foo;
-        |type Bar;
-        |type Baz;
-        |@{
-        |  @println [@IO, @Foo];
-        |  @throw [@Panic, @Bar];
-        |  @println [@IO, @Baz]
-        |}
+        |type Foo
+        |type Bar
+        |type Baz
+        |
+        |IO.println Foo
+        |Panic.throw Bar
+        |IO.println Baz
         |""".stripMargin
 
-    val exception = the[InterpreterException] thrownBy evalOld(code)
+    val exception = the[InterpreterException] thrownBy eval(code)
     exception.isGuestException shouldEqual true
-    exception.getGuestObject.toString shouldEqual "Bar<>"
-    consumeOut shouldEqual List("Foo<>")
+    exception.getGuestObject.toString shouldEqual "Bar"
+    consumeOut shouldEqual List("Foo")
   }
 
   "Panics" should "be recoverable and transformed into errors" in {
     val code =
       """
-        |type MyError;
+        |type MyError
         |
-        |@{
-        |  thrower = { |x| @throw [@Panic, x] };
-        |  caught = @recover [@Panic, @thrower [@MyError]];
-        |  @println [@IO, caught]
-        |}
+        |thrower = x -> Panic.throw x
+        |caught = Panic.recover (thrower MyError)
+        |IO.println caught
         |""".stripMargin
 
-    noException shouldBe thrownBy(evalOld(code))
-    consumeOut shouldEqual List("Error:MyError<>")
+    noException shouldBe thrownBy(eval(code))
+    consumeOut shouldEqual List("Error:MyError")
   }
 
   "Errors" should "propagate through pattern matches" in {
@@ -60,26 +57,22 @@ class ErrorsTest extends InterpreterTest {
   "Errors" should "be catchable by a user-provided special handling function" in {
     val code =
       """
-        |@{
-        |  intError = @throw [@Error, 1];
-        |  @catch [intError, { |x| x + 3 }]
-        |}
+        |intError = Error.throw 1
+        |intError.catch (x -> x + 3)
         |""".stripMargin
-    evalOld(code) shouldEqual 4
+    eval(code) shouldEqual 4
   }
 
   "Catch function" should "accept a constructor handler" in {
     val code =
       """
-        |type MyCons err;
+        |type MyCons err
         |
-        |@{
-        |  unitErr = @throw [@Error, @Unit];
-        |  @println [@IO, @catch [unitErr, MyCons]]
-        |}
+        |unitErr = Error.throw Unit
+        |IO.println (unitErr.catch MyCons)
         |""".stripMargin
-    evalOld(code)
-    consumeOut shouldEqual List("MyCons<Unit<>>")
+    eval(code)
+    consumeOut shouldEqual List("MyCons<Unit>")
   }
 
   "Catch function" should "accept a method handler" in {
@@ -103,7 +96,7 @@ class ErrorsTest extends InterpreterTest {
   }
 
   "Catch function" should "act as identity for non-error values" in {
-    val code = "@catch [10, {|x| x + 1}]"
-    evalOld(code) shouldEqual 10
+    val code = "10.catch (x -> x + 1)"
+    eval(code) shouldEqual 10
   }
 }

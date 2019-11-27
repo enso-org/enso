@@ -19,14 +19,12 @@ trait AstExpressionVisitor[+T] {
 
   def visitFunction(
     arguments: java.util.List[AstArgDefinition],
-    statements: java.util.List[AstExpression],
-    retValue: AstExpression
+    body: AstExpression
   ): T
 
   def visitCaseFunction(
     arguments: java.util.List[AstArgDefinition],
-    statements: java.util.List[AstExpression],
-    retValue: AstExpression
+    body: AstExpression
   ): T
 
   def visitFunctionApplication(
@@ -46,17 +44,22 @@ trait AstExpressionVisitor[+T] {
   def visitDesuspend(target: AstExpression): T
 
   def visitStringLiteral(string: String): T
+
+  def visitBlock(
+    statements: java.util.List[AstExpression],
+    retValue: AstExpression
+  ): T
 }
 
-trait AstModuleScopeVisitor[+T] {
+trait AstModuleScopeVisitor[T] {
 
   @throws(classOf[Exception])
   def visitModuleScope(
     imports: java.util.List[AstImport],
     typeDefs: java.util.List[AstTypeDef],
     bindings: java.util.List[AstMethodDef],
-    expression: AstExpression
-  ): T
+    expression: java.util.Optional[AstExpression]
+  ): java.util.Optional[T]
 }
 
 sealed trait AstModuleSymbol
@@ -74,10 +77,10 @@ case class AstImport(name: String)
 case class AstModuleScope(
   imports: List[AstImport],
   bindings: List[AstModuleSymbol],
-  expression: AstExpression
+  expression: Option[AstExpression]
 ) {
 
-  def visit[T](visitor: AstModuleScopeVisitor[T]): T = {
+  def visit[T](visitor: AstModuleScopeVisitor[T]): Optional[T] = {
     val types = new java.util.ArrayList[AstTypeDef]()
     val defs  = new java.util.ArrayList[AstMethodDef]()
 
@@ -86,7 +89,12 @@ case class AstModuleScope(
       case typeDef: AstTypeDef      => types.add(typeDef)
     }
 
-    visitor.visitModuleScope(imports.asJava, types, defs, expression)
+    visitor.visitModuleScope(
+      imports.asJava,
+      types,
+      defs,
+      Optional.ofNullable(expression.orNull)
+    )
   }
 }
 
@@ -180,24 +188,20 @@ case class AstApply(
 
 case class AstFunction(
   arguments: List[AstArgDefinition],
-  statements: List[AstExpression],
-  ret: AstExpression
+  body: AstExpression
 ) extends AstExpression {
   override def visit[T](visitor: AstExpressionVisitor[T]): T =
-    visitor.visitFunction(arguments.asJava, statements.asJava, ret)
+    visitor.visitFunction(arguments.asJava, body)
 
   def getArguments: java.util.List[AstArgDefinition] = arguments.asJava
-
-  def getStatements: java.util.List[AstExpression] = statements.asJava
 }
 
 case class AstCaseFunction(
   arguments: List[AstArgDefinition],
-  statements: List[AstExpression],
-  ret: AstExpression
+  body: AstExpression
 ) extends AstExpression {
   override def visit[T](visitor: AstExpressionVisitor[T]): T =
-    visitor.visitCaseFunction(arguments.asJava, statements.asJava, ret)
+    visitor.visitCaseFunction(arguments.asJava, body)
 }
 
 case class AstAssignment(name: String, body: AstExpression)
@@ -224,6 +228,12 @@ case class AstMatch(
 case class AstDesuspend(target: AstExpression) extends AstExpression {
   override def visit[T](visitor: AstExpressionVisitor[T]): T =
     visitor.visitDesuspend(target)
+}
+
+case class AstBlock(statements: List[AstExpression], retVal: AstExpression)
+    extends AstExpression {
+  override def visit[T](visitor: AstExpressionVisitor[T]): T =
+    visitor.visitBlock(statements.asJava, retVal)
 }
 
 class EnsoParserInternal extends JavaTokenParsers {
@@ -310,17 +320,19 @@ class EnsoParserInternal extends JavaTokenParsers {
 
   def function: Parser[AstFunction] =
     ("{" ~> (inArgList ?) ~ ((statement <~ ";") *) ~ expression <~ "}") ^^ {
-      case args ~ stmts ~ expr => AstFunction(args.getOrElse(Nil), stmts, expr)
+      case args ~ stmts ~ expr =>
+        AstFunction(args.getOrElse(Nil), AstBlock(stmts, expr))
     }
 
   def caseFunction: Parser[AstCaseFunction] = function ^^ {
-    case AstFunction(args, stmts, ret) => AstCaseFunction(args, stmts, ret)
+    case AstFunction(args, AstBlock(stmts, ret)) =>
+      AstCaseFunction(args, AstBlock(stmts, ret))
   }
 
   def caseClause: Parser[AstCase] =
     (expression <~ "~") ~ (caseFunction <~ ";") ^^ {
       case cons ~ fun =>
-        AstCase(cons, AstCaseFunction(fun.arguments, fun.statements, fun.ret))
+        AstCase(cons, AstCaseFunction(fun.arguments, fun.body))
     }
 
   def matchClause: Parser[AstMatch] =
@@ -338,12 +350,9 @@ class EnsoParserInternal extends JavaTokenParsers {
   def methodDef: Parser[AstMethodDef] =
     (ident <~ ".") ~ (ident <~ "=") ~ expression ^^ {
       case typeName ~ methodName ~ body =>
-        val thisArg =
-          AstArgDefinition(Constants.THIS_ARGUMENT_NAME, None, false)
         val fun = body match {
-          case b: AstFunction =>
-            b.copy(arguments = thisArg :: b.arguments)
-          case _ => AstFunction(List(thisArg), List(), body)
+          case b: AstFunction => b
+          case _              => AstFunction(List(), body)
         }
         AstMethodDef(typeName, methodName, fun)
     }
@@ -356,7 +365,7 @@ class EnsoParserInternal extends JavaTokenParsers {
   def globalScope: Parser[AstModuleScope] =
     (importStmt *) ~ ((typeDef | methodDef) *) ~ expression ^^ {
       case imports ~ assignments ~ expr =>
-        AstModuleScope(imports, assignments, expr)
+        AstModuleScope(imports, assignments, Some(expr))
     }
 
   def parseGlobalScope(code: String): AstModuleScope = {

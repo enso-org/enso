@@ -119,6 +119,24 @@ object Builtin {
       }
     }
 
+    val case_of = Definition(
+      Var("case") -> Pattern.Expr(),
+      Var("of")   -> Pattern.Block()
+    ) { ctx =>
+      ctx.body match {
+        case List(scrutineePart, branchesPart) =>
+          (scrutineePart.body.toStream, branchesPart.body.toStream) match {
+            case (List(scrutinee), List(branches)) =>
+              AST.Mixfix(
+                List1(scrutineePart.head, branchesPart.head),
+                List1(scrutinee.el, branches.el)
+              )
+            case _ => internalError
+          }
+        case _ => internalError
+      }
+    }
+
     val nonSpacedExpr = Pattern.Any(Some(false)).many1.build
 
     val arrow = Definition(
@@ -226,6 +244,7 @@ object Builtin {
 
     Registry(
       group,
+      case_of,
       if_then,
       if_then_else,
       imp,

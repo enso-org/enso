@@ -6,39 +6,35 @@ class StateTest extends InterpreterTest {
   "State" should "be accessible from functions" in {
     val code =
       """
-        |@{
-        |  @put [@State, 10];
-        |  x = @get [@State];
-        |  @put [@State, x + 1];
-        |  @get [@State]
-        |}
+        |State.put 10
+        |x = State.get
+        |State.put x+1
+        |State.get
         |""".stripMargin
 
-    evalOld(code) shouldEqual 11
+    eval(code) shouldEqual 11
   }
 
   "State" should "be implicitly threaded through function executions" in {
     val code =
       """
-        |Unit.incState = {
-        |  x = @get [@State];
-        |  @put [@State, x + 1]
-        |}
+        |Unit.incState =
+        |  x = State.get
+        |  State.put x+1
         |
-        |@{
-        |  @put [@State, 0];
-        |  @incState [@Unit];
-        |  @incState [@Unit];
-        |  @incState [@Unit];
-        |  @incState [@Unit];
-        |  @incState [@Unit];
-        |  @get [@State]
-        |}
+        |State.put 0
+        |Unit.incState
+        |Unit.incState
+        |Unit.incState
+        |Unit.incState
+        |Unit.incState
+        |State.get
         |""".stripMargin
 
-    evalOld(code) shouldEqual 5
+    eval(code) shouldEqual 5
   }
 
+  // TODO [AA,MK]: New syntax must support suspended blocks like `myFun` here
   "State" should "be localized with State.run" in {
     val code =
       """
@@ -60,25 +56,22 @@ class StateTest extends InterpreterTest {
   "State" should "work well with recursive code" in {
     val code =
       """
-        |@{
-        |  stateSum = { |n|
-        |    acc = @get [@State];
-        |    @println[@IO, acc];
-        |    @put [@State, acc + n];
-        |    @ifZero [n, @get [@State], @stateSum [n-1]]
-        |  };
-        |  @run [@State, 0, @stateSum [10]]
-        |}
+        |stateSum = n ->
+        |  acc = State.get
+        |  State.put acc+n
+        |  ifZero n State.get (stateSum n-1)
+        |
+        |State.run 0 (stateSum 10)
         |""".stripMargin
-    evalOld(code) shouldEqual 55
+    eval(code) shouldEqual 55
   }
 
   "State" should "be initialized to a Unit by default" in {
     val code =
       """
-        |@println[@IO, @get[@State]]
+        |IO.println State.get
         |""".stripMargin
-    evalOld(code)
+    eval(code)
     consumeOut shouldEqual List("Unit<>")
   }
 
@@ -111,6 +104,7 @@ class StateTest extends InterpreterTest {
         |  @recover[@Panic, @panicker];
         |  @get[@State]
         |}
+        |
         |""".stripMargin
     evalOld(code) shouldEqual (-5)
   }

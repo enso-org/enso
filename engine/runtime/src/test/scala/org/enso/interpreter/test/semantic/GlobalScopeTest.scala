@@ -9,71 +9,68 @@ class GlobalScopeTest extends InterpreterTest {
       """
         |Unit.a = 10
         |
-        |@a [@Unit]
+        |a Unit
     """.stripMargin
 
-    evalOld(code) shouldEqual 10
+    eval(code) shouldEqual 10
   }
 
   "Functions" should "use values from the global scope in their bodies" in {
     val code =
       """
         |Unit.a = 10
-        |Unit.addTen = { |b| (@a [@Unit]) + b }
+        |Unit.addTen = b -> a Unit + b
         |
-        |@addTen [@Unit, 5]
+        |addTen Unit 5
     """.stripMargin
 
-    evalOld(code) shouldEqual 15
+    eval(code) shouldEqual 15
   }
 
   "Functions" should "be able to call other functions in scope" in {
     val code =
       """
-        |Unit.adder = { |a, b| a + b }
+        |Unit.adder = a b -> a + b
         |
-        |@{ |multiply|
-        |  res = @adder [@Unit, 1, 2];
-        |  doubled = res * multiply;
+        |fn = multiply ->
+        |  res = adder Unit 1 2
+        |  doubled = res * multiply
         |  doubled
-        |} [2]
+        |fn 2
     """.stripMargin
 
-    evalOld(code) shouldEqual 6
+    eval(code) shouldEqual 6
   }
 
   "Functions" should "be able to be passed as values when in scope" in {
     val code =
       """
-        |Unit.adder = { |a, b| a + b }
+        |Unit.adder = a b -> a + b
         |
-        |Unit.binaryFn = { |a, b, function|
-        |  result = @function [a, b];
+        |Unit.binaryFn = a b function ->
+        |  result = function a b
         |  result
-        |}
         |
-        |@binaryFn [@Unit, 1, 2, { |a, b| @adder [@Unit, a, b] }]
+        |binaryFn Unit 1 2 (a b -> adder Unit a b)
     """.stripMargin
 
-    evalOld(code) shouldEqual 3
+    eval(code) shouldEqual 3
   }
 
   "Functions" should "be able to mutually recurse in the global scope" in {
     val code =
       """
-        |Unit.decrementCall = { |number|
-        |  res = number - 1;
-        |  @fn1 [@Unit, res]
-        |}
+        |Unit.decrementCall = number ->
+        |  res = number - 1
+        |  Unit.fn1 res
         |
-        |Unit.fn1 = { |number|
-        |  @ifZero [number % 3, number, @decrementCall [@Unit, number]]
-        |}
+        |Unit.fn1 = number ->
+        |  ifZero (number % 3) number (Unit.decrementCall number)
         |
-        |@fn1 [@Unit, 5]
+        |Unit.fn1 5
       """.stripMargin
 
-    evalOld(code) shouldEqual 3
+    eval(code) shouldEqual 3
   }
 
   "Functions" should "be suspended within blocks" in {
@@ -81,11 +78,11 @@ class GlobalScopeTest extends InterpreterTest {
       """
         |Unit.a = 10/0
         |
-        |Unit.b = { @a [@Unit] }
+        |Unit.b = Unit.a
         |b
     """.stripMargin
 
-    noException should be thrownBy evalOld(code)
+    noException should be thrownBy eval(code)
   }
 
   "Exceptions" should "be thrown when called" in {
@@ -93,11 +90,11 @@ class GlobalScopeTest extends InterpreterTest {
       """
         |Unit.a = 10/0
         |
-        |Unit.b = { @a [@Unit] }
-        |@b [@Unit]
+        |Unit.b = Unit.a
+        |Unit.b
       """.stripMargin
 
-    an[InterpreterException] should be thrownBy evalOld(code)
+    an[InterpreterException] should be thrownBy eval(code)
   }
 
 }

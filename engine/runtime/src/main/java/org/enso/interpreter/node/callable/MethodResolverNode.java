@@ -37,9 +37,18 @@ public abstract class MethodResolverNode extends Node {
   Function resolveAtomCached(
       UnresolvedSymbol symbol,
       Atom atom,
-      @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> contextRef,
       @Cached("symbol") UnresolvedSymbol cachedSymbol,
       @Cached("atom.getConstructor()") AtomConstructor cachedConstructor,
+      @Cached("resolveMethodOnAtom(cachedConstructor, cachedSymbol)") Function function) {
+    return function;
+  }
+
+  @Specialization(guards = {"cachedSymbol == symbol", "atomConstructor == cachedConstructor"})
+  Function resolveAtomConstructorCached(
+      UnresolvedSymbol symbol,
+      AtomConstructor atomConstructor,
+      @Cached("symbol") UnresolvedSymbol cachedSymbol,
+      @Cached("atomConstructor") AtomConstructor cachedConstructor,
       @Cached("resolveMethodOnAtom(cachedConstructor, cachedSymbol)") Function function) {
     return function;
   }
@@ -48,7 +57,6 @@ public abstract class MethodResolverNode extends Node {
   Function resolveNumberCached(
       UnresolvedSymbol symbol,
       long self,
-      @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> contextReference,
       @Cached("symbol") UnresolvedSymbol cachedSymbol,
       @Cached("resolveMethodOnNumber(cachedSymbol)") Function function) {
     return function;
@@ -58,7 +66,6 @@ public abstract class MethodResolverNode extends Node {
   Function resolveFunctionCached(
       UnresolvedSymbol symbol,
       Function self,
-      @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> contextReference,
       @Cached("symbol") UnresolvedSymbol cachedSymbol,
       @Cached("resolveMethodOnFunction(cachedSymbol)") Function function) {
     return function;
@@ -68,7 +75,6 @@ public abstract class MethodResolverNode extends Node {
   Function resolveErrorCached(
       UnresolvedSymbol symbol,
       RuntimeError self,
-      @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> contextReference,
       @Cached("symbol") UnresolvedSymbol cachedSymbol,
       @Cached("resolveMethodOnError(cachedSymbol)") Function function) {
     return function;

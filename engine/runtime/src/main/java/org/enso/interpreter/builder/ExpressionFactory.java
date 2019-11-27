@@ -12,7 +12,7 @@ import org.enso.interpreter.node.callable.ForceNodeGen;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode;
 import org.enso.interpreter.node.callable.function.CreateFunctionNode;
-import org.enso.interpreter.node.callable.function.FunctionBodyNode;
+import org.enso.interpreter.node.callable.function.BlockNode;
 import org.enso.interpreter.node.controlflow.*;
 import org.enso.interpreter.node.expression.constant.ConstructorNode;
 import org.enso.interpreter.node.expression.constant.DynamicSymbolNode;
@@ -204,12 +204,11 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
    * function arguments into a state where they can actually be read.
    *
    * @param arguments the arguments the function is defined for
-   * @param expressions the body of the function
-   * @param retValue the return value of the function
+   * @param body the body of the function
    * @return a runtime node representing the function body
    */
   public CreateFunctionNode processFunctionBody(
-      List<AstArgDefinition> arguments, List<AstExpression> expressions, AstExpression retValue) {
+      List<AstArgDefinition> arguments, AstExpression body) {
 
     ArgDefinitionFactory argFactory =
         new ArgDefinitionFactory(scope, language, scopeName, moduleScope);
@@ -235,17 +234,9 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
       }
     }
 
-    List<ExpressionNode> fnBodyExpressionNodes =
-        expressions.stream().map(stmt -> stmt.visit(this)).collect(Collectors.toList());
+    ExpressionNode bodyExpr = body.visit(this);
 
-    List<ExpressionNode> allFnExpressions = new ArrayList<>();
-    allFnExpressions.addAll(argExpressions);
-    allFnExpressions.addAll(fnBodyExpressionNodes);
-
-    ExpressionNode returnExpr = retValue.visit(this);
-
-    FunctionBodyNode fnBodyNode =
-        new FunctionBodyNode(allFnExpressions.toArray(new ExpressionNode[0]), returnExpr);
+    BlockNode fnBodyNode = new BlockNode(argExpressions.toArray(new ExpressionNode[0]), bodyExpr);
     RootNode fnRootNode =
         new ClosureRootNode(language, scope, moduleScope, fnBodyNode, null, "lambda::" + scopeName);
     RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(fnRootNode);
@@ -278,20 +269,18 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
   /**
    * Creates a runtime node representing a function.
    *
-   * <p>Given that most of the work takes place in {@link #processFunctionBody(List, List,
-   * AstExpression) processFunctionBody}, this node is solely responsible for handling the creation
-   * of a new scope for the function, and marking it as tail recursive.
+   * <p>Given that most of the work takes place in {@link #processFunctionBody(List, AstExpression)
+   * processFunctionBody}, this node is solely responsible for handling the creation of a new scope
+   * for the function, and marking it as tail recursive.
    *
    * @param arguments the arguments to the function
-   * @param expressions the expressions that make up the function body
-   * @param retValue the return value of the function
+   * @param body the body of the function
    * @return a runtime node representing the function
    */
   @Override
-  public ExpressionNode visitFunction(
-      List<AstArgDefinition> arguments, List<AstExpression> expressions, AstExpression retValue) {
+  public ExpressionNode visitFunction(List<AstArgDefinition> arguments, AstExpression body) {
     ExpressionFactory child = createChild(currentVarName);
-    ExpressionNode fun = child.processFunctionBody(arguments, expressions, retValue);
+    ExpressionNode fun = child.processFunctionBody(arguments, body);
     fun.markTail();
     return fun;
   }
@@ -299,20 +288,18 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
   /**
    * Creates a runtime node representing a case function.
    *
-   * <p>Given that most of the work takes place in {@link #processFunctionBody(List, List,
-   * AstExpression) processFunctionBody}, this node is solely responsible for handling the creation
-   * of a new scope for the function.
+   * <p>Given that most of the work takes place in {@link #processFunctionBody(List, AstExpression)
+   * processFunctionBody}, this node is solely responsible for handling the creation of a new scope
+   * for the function.
    *
    * @param arguments the arguments to the function
-   * @param expressions the expressions that make up the function body
-   * @param retValue the return value of the function
+   * @param body the body of the function
    * @return a runtime node representing the function
    */
   @Override
-  public ExpressionNode visitCaseFunction(
-      List<AstArgDefinition> arguments, List<AstExpression> expressions, AstExpression retValue) {
+  public ExpressionNode visitCaseFunction(List<AstArgDefinition> arguments, AstExpression body) {
     ExpressionFactory child = createChild(currentVarName);
-    return child.processFunctionBody(arguments, expressions, retValue);
+    return child.processFunctionBody(arguments, body);
   }
 
   /**
@@ -402,5 +389,20 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
   @Override
   public ExpressionNode visitDesuspend(AstExpression target) {
     return ForceNodeGen.create(target.visit(this));
+  }
+
+  /**
+   * Creates a runtime representation of a block.
+   *
+   * @param statements the statements making up the body of this block
+   * @param retValue the return value expression
+   * @return AST fragment representing the block
+   */
+  @Override
+  public ExpressionNode visitBlock(List<AstExpression> statements, AstExpression retValue) {
+    ExpressionNode[] statementExprs =
+        statements.stream().map(expr -> expr.visit(this)).toArray(ExpressionNode[]::new);
+    ExpressionNode retExpr = retValue.visit(this);
+    return new BlockNode(statementExprs, retExpr);
   }
 }

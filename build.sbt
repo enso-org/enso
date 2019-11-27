@@ -356,9 +356,7 @@ lazy val runtime = (project in file("engine/runtime"))
     version := "0.1",
     commands += WithDebugCommand.withDebug,
     inConfig(Compile)(truffleRunOptionsSettings),
-    inConfig(Test)(truffleRunOptionsSettings),
     inConfig(Benchmark)(Defaults.testSettings),
-    inConfig(Benchmark)(truffleRunOptionsSettings),
     parallelExecution in Test := false,
     logBuffered in Test := false,
     libraryDependencies ++= jmh ++ Seq(

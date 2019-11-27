@@ -6,16 +6,14 @@ class CurryingTest extends InterpreterTest {
   "Functions" should "allow partial application" in {
     val code =
       """
-        |@{
-        |  apply = { |v, f| @f [v] };
-        |  adder = { |a, b| a + b };
-        |  plusOne = @apply [f = @adder [1]];
-        |  result = @plusOne [10];
-        |  result
-        |}
+        |apply = v f -> f v
+        |adder = a b -> a + b
+        |plusOne = apply (f = adder 1)
+        |result = plusOne 10
+        |result
         |""".stripMargin
 
-    evalOld(code) shouldEqual 11
+    eval(code) shouldEqual 11
   }
 
   "Functions" should "allow default arguments to be suspended" in {

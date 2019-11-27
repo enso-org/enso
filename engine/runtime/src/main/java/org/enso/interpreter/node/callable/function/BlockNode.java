@@ -10,7 +10,7 @@ import org.enso.interpreter.node.ExpressionNode;
  * function body.
  */
 @NodeInfo(shortName = "{}")
-public class FunctionBodyNode extends ExpressionNode {
+public class BlockNode extends ExpressionNode {
   @Children private final ExpressionNode[] statements;
   @Child private ExpressionNode returnExpr;
 
@@ -20,7 +20,7 @@ public class FunctionBodyNode extends ExpressionNode {
    * @param expressions the function body
    * @param returnExpr the return expression from the function
    */
-  public FunctionBodyNode(ExpressionNode[] expressions, ExpressionNode returnExpr) {
+  public BlockNode(ExpressionNode[] expressions, ExpressionNode returnExpr) {
     this.statements = expressions;
     this.returnExpr = returnExpr;
   }

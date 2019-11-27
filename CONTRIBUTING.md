@@ -81,9 +81,9 @@ part of the compiler that they relate to.
 In order to build and run Enso you will need the following tools:
 
 - [sbt](https://www.scala-sbt.org/) with version at least 1.3.0.
-- [GraalVM](https://www.graalvm.org/) with version at least 19.2.0 and
-  configured as your default JVM. [Jenv](http://www.jenv.be/) is a useful tool
-  for managing multiple JVMs.
+- [GraalVM](https://www.graalvm.org/) with version at least that described in
+  the [`build.sbt`](build.sbt) file configured as your default JVM. 
+  [Jenv](http://www.jenv.be/) is a useful tool for managing multiple JVMs.
 
 ### Getting the Sources
 Given you've probably been reading this document on GitHub, you might have an
@@ -243,7 +243,9 @@ need to follow these steps:
 4. In the options for that configuration select 'Listen to remote JVM' under
    'Debugger mode:'
 5. Where it provides the command-line arguments for the remote JVM, copy these
-   and add them to `truffleRunOptions` in [`build.sbt`](build.sbt).
+   and add them to `truffleRunOptions` in [`build.sbt`](build.sbt). Remove the
+   portion of these options after `suspend=y`, including the comma. They are
+   placeholders that we don't use.
 6. Now, when you want to debug something, you can place a breakpoint as usual in
    IntelliJ, and then execute your remote debugging configuration. Now, in the
    SBT shell, run a command to execute the code you want to debug (e.g.

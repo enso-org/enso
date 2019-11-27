@@ -1,5 +1,7 @@
 package org.enso.compiler
 
+import java.util.Optional
+
 import com.oracle.truffle.api.TruffleFile
 import com.oracle.truffle.api.source.Source
 import org.enso.compiler.generate.AstToAstExpression
@@ -11,10 +13,11 @@ import org.enso.interpreter.builder.ModuleScopeExpressionFactory
 import org.enso.interpreter.node.ExpressionNode
 import org.enso.interpreter.runtime.Context
 import org.enso.interpreter.runtime.Module
+import org.enso.interpreter.runtime.callable.function.Function
 import org.enso.interpreter.runtime.error.ModuleDoesNotExistException
 import org.enso.interpreter.runtime.scope.LocalScope
 import org.enso.interpreter.runtime.scope.ModuleScope
-import org.enso.syntax.text.{AST, Parser}
+import org.enso.syntax.text.{AST, Debug, Parser}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
@@ -41,7 +44,7 @@ class Compiler(
     * @return an interpreter node whose execution corresponds to the top-level
     *         executable functionality in the module corresponding to `source`.
     */
-  def run(source: Source, scope: ModuleScope): ExpressionNode = {
+  def run(source: Source, scope: ModuleScope): Optional[Function] = {
     val mimeType = source.getMimeType
 
     val expr: AstModuleScope = if (mimeType == Constants.MIME_TYPE) {
@@ -63,7 +66,7 @@ class Compiler(
     * @return an interpreter node whose execution corresponds to the top-level
     *         executable functionality in the module corresponding to `source`.
     */
-  def run(file: TruffleFile, scope: ModuleScope): ExpressionNode = {
+  def run(file: TruffleFile, scope: ModuleScope): Optional[Function] = {
     run(Source.newBuilder(Constants.LANGUAGE_ID, file).build, scope)
   }
 
@@ -75,7 +78,7 @@ class Compiler(
     * @return an interpreter node whose execution corresponds to the top-level
     *         executable functionality in the module corresponding to `source`.
     */
-  def run(source: Source): ExpressionNode = {
+  def run(source: Source): Optional[Function] = {
     run(source, context.createScope)
   }
 
@@ -87,7 +90,7 @@ class Compiler(
     * @return an interpreter node whose execution corresponds to the top-level
     *         executable functionality in the module corresponding to `source`.
     */
-  def run(file: TruffleFile): ExpressionNode = {
+  def run(file: TruffleFile): Optional[Function] = {
     run(Source.newBuilder(Constants.LANGUAGE_ID, file).build)
   }
 
