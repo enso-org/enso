@@ -157,7 +157,7 @@ principles designed to keep the required cognitive effort low:
 6. **Predictable performance and behavior.**  
    Predictable performance and behavior is one of the most important principles
    which separates well designed languages from the bad designed ones. A
-   language provides a predicable behavior when its user can write code which
+   language provides a predictable behavior when its user can write code which
    will not break because of some external conditions, like not-dependent code
    change. A good examples of breaking this rule are standard extension methods
    mechanism (monkey patching in Ruby, Python, JavaScript) or orphan overlapping
@@ -165,7 +165,7 @@ principles designed to keep the required cognitive effort low:
    affect the performance. Again, consider Haskell here. Changing
    `func2 a = func1 a` to `func2 = func1`
    [can affect performance](https://gitlab.haskell.org/ghc/ghc/issues/8099)
-   which it makes Haskell programs very hard to reason about.
+   which makes Haskell programs very hard to reason about.
 7. **Guidance is better than on-boarding.**  
    In particular, it should provide guidance regarding possible next steps and
    human readable error messages.
@@ -228,13 +228,13 @@ window width set to 80.
 
 Enso uses indentation to determine the structure of the code.
 
-In general, every indented line consists a sub-structure of the nearest previous
-line with a smaller indentation. We refer to them as child line and parent line,
-respectively. There are a few additional layout rules:
+In general, every indented line constitutes a sub-structure of the nearest
+previous line with a smaller indentation. We refer to them as child line and
+parent line, respectively. There are a few additional layout rules:
 
-- **Operator on the end of a parent line**  
+- **Operator at the end of a parent line**  
   If a line ends with an operator then all of its child lines form a code block.
-  Code blocks in Enso are a syntactic sugar for a monadic bindings, you will
+  Code blocks in Enso are a syntactic sugar for monadic bindings, you will
   learn about them in later chapters. The most common usage is a function
   definition body after the last arrow operator:
 
@@ -244,13 +244,13 @@ respectively. There are a few additional layout rules:
       print 'The sum is `sum`'
   ```
 
-* **Operator on the beginning of a child line**  
+* **Operator at the beginning of a child line**  
   If all the children lines start with operators, they form a single expression,
   while the operators behave left associative with the lowest precedence level.
   In other words, every line forms a separate expression and the final
-  expression is build line-by-line, top to bottom. The most common usage is to
+  expression is built line-by-line, top to bottom. The most common usage is to
   use the dot operator to create chained method calls. Please note that the
-  operator on the beginning of a child line is used after the line expression is
+  operator at the beginning of a child line is used after the line expression is
   formed, so in the following code both `tst1` and `tst2` have exactly the same
   value.
 
@@ -281,8 +281,8 @@ respectively. There are a few additional layout rules:
 
 - **Debug line breaker `\\`**
 
-  There is also a special, debug line-break operator `\\` which placed on the
-  beginning of a child line tells Enso to just glue the line with the previous
+  There is also a special, debug line-break operator `\\` which, when placed at
+  the beginning of a child line, tells Enso to glue the line with the previous
   one. However, the line-break operator should not be used in production code,
   as it's always better to re-structure the code to separate method calls
   instead. In the following code, both `debugFunc` and `validFunc` work in the
@@ -392,7 +392,7 @@ compiler knows that `print` uses the `IO` context, so considering the provided
 hint, the final inferred type would be
 `Int in c1 -> Int in c2 -> Int in IO | c1 | c2`.
 
-TODO: The above information about contexts could be removed from here as its
+TODO: The above information about contexts could be removed from here as it is
 pretty advanced. We should just mention that explicit type signatures are hints
 everywhere BUT function definitions and new type definitions, where they are
 constraining possible values.
@@ -429,7 +429,7 @@ structures.
 ## Creating and Using Functions
 
 Functions are defined in a similar way to variables. The only difference is that
-the function name is followed by parameters seperated by spaces. For example,
+the function name is followed by parameters separated by spaces. For example,
 the following code defines a function taking two values and returning their sum.
 
 ```haskell
@@ -661,7 +661,7 @@ Formally, any sequence of the following characters forms an operator
 definition, with an optional precedence relation declaration. Consider the
 following definition from the standard library:
 
-```haskel
+```haskell
 @prec  [> *, < $]
 @assoc left
 a ^ n = a * a ^ (n-1)
@@ -669,11 +669,11 @@ a ^ n = a * a ^ (n-1)
 
 The `prec` decorator specifies the
 [precedence relation](https://en.wikipedia.org/wiki/Order_of_operations) to
-other operators. Here, we specified that the precedence is bigger than the
-multiplication operator. The precedences are inherited in Enso, so if the
-multiplication operator was provided with information that it has a bigger
-precedence than addition, the new operator above will inherit this dependency as
-well. The `assoc` decorator defines the
+other operators. Here, we specified that the precedence is higher than the
+precedence of the multiplication operator. The precedences are inherited in
+Enso, so if the multiplication operator was defined with a higher precedence
+than addition, the new operator above would inherit this dependency as well. The
+`assoc` decorator defines the
 [operator associativity](https://en.wikipedia.org/wiki/Operator_associativity) –
 it is either left, right or none. If you do not provide the information, no
 precedence relations would be defined and the associativity will default to
@@ -683,15 +683,15 @@ left.
 
 Operator precedence is a collection of rules that reflect conventions about
 which procedures to perform first in order to evaluate a given mathematical
-expression. For example, multiplication operator is granted with a higher
-precedence than addition operator, which means that multiplication will be
+expression. For example, multiplication operator is given higher
+precedence than addition, which means that multiplication will be
 performed before addition in a single expression like `2 + 5 * 10`.
 
-However, in contrast to most languages, the operator precedence depends on the
-fact if a particular operator was surrounded with spaces or not. **The
-precedence of any operator not surrounded with spaces is always higher than the
-precedence of any operator surrounded with spaces.** For example, the code
-`2+5 * 10` results in `70`, not `50`!
+However, in contrast to most languages, the operator precedence depends on
+whether a particular operator is surrounded with spaces or not. **The precedence
+of any operator not surrounded with spaces is always higher than the precedence
+of any operator surrounded with spaces.** For example, the code `2+5 * 10`
+results in `70`, not `50`!
 
 The space-based precedence allows for writing much cleaner code than any other
 functional language, including all languages from the ML family, like Haskell,
@@ -861,7 +861,7 @@ s1 = sphere 10
 ```
 
 Informally, when you call a function, Enso will traverse all not provided
-arguments in order and will apply the default values unless it founds the first
+arguments in order and will apply the default values unless it finds the first
 argument without a default value defined. To disable this behavior, you can use
 the special `...` operator. The following code creates a curried function which
 accepts radius, color and geometry type and creates a sphere with radius of
@@ -977,7 +977,7 @@ expressive EDSLs. Consider the following function which just prints arguments,
 each in a separate line:
 
 ```haskell
-multiPring : args... -> Nothing in IO
+multiPrint : args... -> Nothing in IO
 multiPrint = args... -> args.each case
     Simple      val -> print val
     Keyword key val -> print '#{key} = #{val}'
@@ -1029,7 +1029,7 @@ a chain of lambdas the same name was used in several pattern matches, the names
 are unified and have to be provided with the same value.** The chain of lambdas
 could be broken with any expression or code block.
 
-This rule could not make a lot of sense in the value level, as if you define
+This rule could not make a lot of sense on the value level, as if you define
 function `add a a = a + a` you will be allowed to evaluate it as `add 2 2`, but
 not as `add 2 3`, however, you should not try to use the same names when
 defining functions on value level nevertheless.
@@ -1040,7 +1040,7 @@ will be consequently instantiated as `a = Number | Text`, and `b = Text`, or to
 be very precise, `a = 1|2|'a'|'b'`, and `b = '1'|'2'|'a'|'b'`.
 
 Because type variables are accessible in the scope of a function, it's
-straightforward to define a polymorphic variable, which value will be an empty
+straightforward to define a polymorphic variable, whose value will be an empty
 value for the expected type:
 
 ```haskell
@@ -1053,12 +1053,12 @@ print (empty : Text)     -- Result: ''
 
 ### Type Applications
 
-All libraries that sometimes need passing an explicit type from user should be
-designed as the `read` utility, so you can optionally pass the type if you want
-to, while it defaults to the inference otherwise. However, sometimes it's handy
-to just ad-hoc refine a type of a particular function, often for the debugging
-purposes. Luna allows to both apply values by name as well as refining types by
-name. The syntax is very similar, consider this simple function:
+All libraries that sometimes need passing of an explicit type from the user
+should be designed as the `read` utility, so you can optionally pass the type if
+you want to, while it defaults to the inference otherwise. However, sometimes
+it's handy to just ad-hoc refine a type of a particular function, often for
+debugging purposes. Luna allows to both apply values by name as well as refining
+types by name. The syntax is very similar, consider this simple function:
 
 ```haskell
 checkLength : this -> Bool
@@ -1071,7 +1071,7 @@ checkLength this =
 ```
 
 This function works on any type which has a method `length` returning a number.
-We can easily create a function with exactly the same functionality but it's
+We can easily create a function with exactly the same functionality but its
 input type restricted to accept lists only:
 
 ```haskell
@@ -1120,11 +1120,11 @@ checkListLength = checkLength
 
 ## Constructor Types
 
-Constructors define the most primitive way to construct a type, it's where they
+Constructors define the most primitive way to construct a type, it's where the
 name comes from. Formally, they are
 [product types](https://en.wikipedia.org/wiki/Product_type). Their fields are
 always named and fully polymorphic (each field has a distinct polymorphic type).
-Constructors are distinguishable. You are not allowed to pass an constructor to
+Constructors are distinguishable. You are not allowed to pass a constructor to
 a function accepting other constructor, even if their fields are named the same
 way.
 
@@ -1175,7 +1175,7 @@ map f = case of
 
 ### Syntax sugar
 
-Enso provides a syntactic sugar for easy definition of algebraic data types and
+Enso provides syntactic sugar for easy definition of algebraic data types and
 related methods. You are always required to provide explicit name for all the
 constructors and all its fields.
 
@@ -1192,8 +1192,8 @@ type Maybe a
 
 Please note, that all functions defined in the type definition scope are
 desugared to global functions operating on that type. However, all functions
-defined as constructor field are considered to be record fields. They can be
-provided with a default implementation and their definition can be changed in
+defined as constructor fields are considered to be record fields. They can be
+provided with a default implementation and their definition can be changed at
 runtime.
 
 ### To Be Described
@@ -1229,8 +1229,6 @@ main =
 
 Please note, that `lessThan -1 Natural` returns `True`, which is just more
 specific than `Bool` because it holds true for every natural number.
-<<<<<<< HEAD
-=======
 
 ## Interfaces
 
@@ -1319,7 +1317,6 @@ map4 f self =
             Just a  -> a
             Nothing -> error "impossible"
 ```
->>>>>>> syntax-docs
 
 # Refinement Types
 
@@ -1426,7 +1423,7 @@ The `applyToResult` function is very simple, although, from the first sight it
 may look strange. It just takes a function `f` and an argument and if the
 argument was not a function, then it applies `f` to it. If the argument was a
 function, it just skips it and does the same to the result of the function. Now,
-we can define the `refined` function which we used on the beginning as:
+we can define the `refined` function which we used in the beginning as:
 
 ```haskell
 refined = applyToResult << refine
@@ -1453,15 +1450,15 @@ way we type it depends on two factors:
   The performance implications are obvious. By computing the value during
   compilation, we do not have to compute it during runtime anymore. On the other
   side, compile time function evaluation is often costly, so such optimization
-  opportunities should be always chosen carefully.
+  opportunities should always be chosen carefully.
 
-- **The information we need to proof the corectness of the program**  
+- **The information we need to prove correctness of the program**  
   In a case we drop the results, like `print $ const 10 (fib 10)`, it's
   completely OK to stop the type checking process on assuming that the type of
   `fib 10` is just any type, or to be more precise, a `fib 10` itself. Its value
-  is always discarded and we do not need anymore information to prove that the
+  is always discarded and we do not need any more information to prove that the
   type flow is correct. However, if the result of `fib 10` would be passed to a
-  function accepting only numbers smaller than `100`, the value have to be
+  function accepting only numbers smaller than `100`, the value would have to be
   computed during compilation time.
 
 ## Explicit type signatures
@@ -1477,8 +1474,8 @@ the types. There are two major ways explicit type signatures are used in Enso:
 
 - **Explicit type checks**  
   Explicit type signatures in other places in the code are used as type checks.
-  If you type your variable as `Number` it does not mean that enso will forget
-  about other information inferred so far. It will always check if the signature
+  If you type your variable as `Number`, it does not mean that Enso will forget
+  the other information inferred so far. It will always check if the signature
   is correct and report an error in case it's not. For example, the following
   code will type check correctly.
 
@@ -1680,14 +1677,14 @@ obj.__model__ =
 
 ## Dynamic access
 
-Even typed data in Enso behaves like it was fully dynamic. You can access the
+Even typed data in Enso behaves like if it was fully dynamic. You can access the
 field dictionary of each object and alter it. It's amazing for type level
 programming, as you could be able to generate types by defining their
 dictionaries during "module compilation time". To be described – how to do it –
 type is just a named record, which is like a dictionary.
 
-Basically, every property of object (let them behave like classes, modules or
-interfaces) should be accessible and extendible in such way.
+Basically, every property of an object (let them behave like classes, modules or
+interfaces) should be accessible and extensible in such way.
 
 ```haskell
 class Point a
@@ -1718,7 +1715,7 @@ field1 = p1.fields.get name -- field1 : Dynamic
 
 # Lists
 
-Lists in Luna are defined as follow:
+Lists in Luna are defined as follows:
 
 ```haskell
 type List a
@@ -1735,7 +1732,7 @@ lst1 = List.Cons 1 (List.Cons "foo" List.End)
 lst2 = [1,"foo"] : [1,"foo"] : List (Int | String)
 ```
 
-# Proving the Software Correctness
+# Proving Software Correctness
 
 **Note [To be included somewhere]**: Enso is dependently typed because we can
 run arbitrary code on type-level.
@@ -1747,7 +1744,7 @@ systems allow us to validate our programs with respect to a fixed set of
 criteria, dependent types are much more flexible, they realize a continuum of
 precision from the basic assertions we are used to expect from types up to a
 complete specification of the program’s behaviour. It is the programmer’s choice
-to what degree he wants to exploit the expressiveness of such a powerful type
+to what degree they want to exploit the expressiveness of such a powerful type
 discipline. While the price for formally certified software may be high, it is
 good to know that we can pay it in installments and that we are free to decide
 how far we want to go. Dependent types reduce certification to type checking,
@@ -1758,9 +1755,9 @@ carrying code.
 **If dependent types are so great, why they are not used widely?** Basically,
 there are two problems. First, there is a small set of languages allowing for
 dependent types, like Agda or Idris. Second, both writing as well as using
-dependently typed code is significantly harder than a code using conventional
-type system. The second problem is even bigger because it stands in a way to
-easily refactor the code base and keep it in a good shape.
+dependently typed code is significantly harder than for code using a
+conventional type system. The second problem is even bigger because it stands in
+the way of easy refactoring of the code base and keeping it in good shape.
 
 **I've heard that dependent type system in Enso is different, how?** The Enso
 type system provides a novel approach to dependent types. It allows to just
@@ -1801,11 +1798,12 @@ Hello!
 *** test.idr:18:23:unmatched case in Main.index ***
 ```
 
-The above program crashed in the middle of execution. Such mistakes as the
-possibility of the index to be out of bounds are very hard to catch and most of
-programming languages do not provide a standard, easy mechanism to prevent them
-from happening. Let's improve the situation and use the power of dependent types
-to keep the information about the length of the list visible to the compiler:
+The above program crashed in the middle of execution. Such mistakes (related to
+the possibility of the index being out of bounds) are very hard to catch, and
+most programming languages do not provide a standard, easy mechanism to prevent
+them from happening. Let's improve the situation and use the power of dependent
+types to keep the information about the length of the list visible to the
+compiler:
 
 ```haskell
 -----------------------
@@ -1837,7 +1835,7 @@ When elaborating argument prf to function Data.Fin.fromInteger:
                 0 is not strictly less than 0
 ```
 
-This time the error was catched by the compiler, however, both the
+This time the error was caught by the compiler, however, both the
 implementation as well as the library interface are much more complex now.
 
 Let's now write the same implementation in Luna:
@@ -1870,7 +1868,7 @@ Error in test.enso at line 18:
     Arising from ...
 ```
 
-Although the Enso implementation is over 15% shorter that the insecure Idris
+Although the Enso implementation is over 15% shorter than the insecure Idris
 implementation and over 50% shorter than the secure implementation, it provides
 the same robustness as the secure Idris implementation. Moreover, the user
 facing interface is kept simple, without information provided explicitly for the
@@ -1931,19 +1929,19 @@ main =
         else print mail
 ```
 
-## Types Resolution
+## Type Resolution
 
-The natural next question is, how it was possible to get such a drastic quality
+The natural next question is, how was it possible to get such a drastic quality
 improvement? As already mentioned, dependent types are types expressed in terms
 of data, explicitly relating their inhabitants to that data. Enso atom types
 make it possible to expose all data structures to the compiler automatically, so
-they can be statically analyzed. There is no need to explicitly provide some
+they can be statically analyzed. There is no need to explicitly provide any
 selected data to the compiler, as it has access to every structural information
 by design.
 
 Let's describe where the compiler gets the required information from. Please
 note, that the following description is shown for illustration purposes only and
-do not represent the real compilation algorithm. First, lets focus on the
+does not represent the real compilation algorithm. First, let's focus on the
 definition of the `index` function:
 
 ```haskell
@@ -2138,7 +2136,7 @@ could not be obvious, so lets describe it better. Consider a function `foo`:
 foo : (Natural -> Int) -> String
 ```
 
-From definition, we can provide it with any value, which type is the subtype of
+From definition, we can provide it with any value, whose type is the subtype of
 `Natural -> Int`. This argument needs to handle all possible values of `Natural`
 as an input. Moreover, we know that `foo` assumes that the result of the
 argument is any value from the set `Int`, so we cannot provide a function with a
@@ -2201,10 +2199,10 @@ addAlias : Natural -> Text -> String
 ```
 
 We can also type the whole function using any broader type. In order to
-understand what a subtype of a function, visualize it's transformation as arrows
-between categories. The above function takes any value from a set `Natural` and
-set `Text` and transforms it to some value in set `String`. We can use any wider
-type instead:
+understand what a subtype of a function is, visualize its transformation as
+arrows between categories. The above function takes any value from a set
+`Natural` and set `Text` and transforms it to some value in set `String`. We can
+use any wider type instead:
 
 ```haskell
 addAlias : Natural -> Text -> Type
@@ -2238,7 +2236,8 @@ type Graph a
         inputs : List (Mutable (Graph a))
         value : a
 
--- THIS MAY BE WRONG, we need to have semantics how to assign mutable vars to mutable vars to crete mutual refs and also pure vars to create new refs
+-- THIS MAY BE WRONG, we need to have semantics how to assign mutable vars to
+mutable vars to create mutual refs and also pure vars to create new refs
 n1 = Node [n2] 1
 n2 = Node [n1] 2
 ```
@@ -2250,9 +2249,9 @@ n2 = Node [n1] 2
 - modules and imports (from the deprecated section)
 
 - Using and creating Monads, example State implementation (Monad = always
-  transformer, on the bottom Pure or IO)
+  transformer, at the bottom Pure or IO)
 
-- IO should be more precise, like `IO.Read` or `IO.Wrtie`, while `IO.Read : IO`
+- IO should be more precise, like `IO.Read` or `IO.Write`, while `IO.Read : IO`
 
 - Constrained types (like all numbers bigger that `10`)
 
@@ -2263,7 +2262,7 @@ n2 = Node [n1] 2
       DynamicError -> 0
   ```
 
-- Catching Errors when not catched explicitly – important for correctness
+- Catching Errors when not caught explicitly – important for correctness
 
 - Type-level / meta programming – like taking an interface and returning
   interface with more generic types (move a lot of examples from TypeScript
@@ -2280,8 +2279,8 @@ n2 = Node [n1] 2
 
 - monadfix
 
-- implementing custom contexts (monads). Including example how to implement a
-  "check monad" which have lines checking dataframes for errors.
+- implementing custom contexts (monads). Including example on how to implement a
+  "check monad" which has lines checking dataframes for errors.
 
 ###
 
@@ -2350,8 +2349,8 @@ low precedence and it is defined in the standard library.
 ## Types as Classes
 
 The following chapter describes the replacement for the currently used concept
-of _classes_. We have been always dreaming about true dependent typed language
-and the way classes currently work stands on the way to achieve the dreams. The
+of _classes_. We have been always dreaming about true dependently typed language
+and the way classes currently work stands in the way to achieve the dreams. The
 change is, however, not as drastic as it seems. It is rather a process of
 extending the current model to provide more fine grained control over the
 objects and types.
@@ -2437,12 +2436,12 @@ values of its fields.
 
 For example, the `True` constructor could be used to describe the set of all
 possible values of its fields. While it does not have any fields, the set
-contains only two value, the `True` constructor itself and an `undefined` value.
-Thus it is correct to write in Enso `True : True` and assume that the only
-possible values of a variable typed as `a : True` are either `True` or
+contains only two values, the `True` constructor itself and an `undefined`
+value. Thus it is correct to write in Enso `True : True` and assume that the
+only possible values of a variable typed as `a : True` are either `True` or
 `undefined`.
 
-On the other hand, The `Point` constructor do contain fields, thus it could be
+On the other hand, The `Point` constructor does contain fields, thus it could be
 used for example to describe all possible points, whose first coordinate is an
 integral number, while the second and third coordinates are equal to zero:
 `a : Point int 0 0`.
@@ -2470,7 +2469,7 @@ called "type pattern matching".
 
 While constructors allow combining fields into a single structure and type
 combinators allow joining types into more general ones, the pattern matching
-mechanism allows going the opposite direction. In the most common use case
+mechanism allows going in the opposite direction. In the most common use case
 pattern matching will be performed during runtime, however it is worth to note
 that the Enso compiler has enough information to perform pattern matching during
 compilation if the appropriate values could be deduced in the compilation
@@ -2522,9 +2521,9 @@ main =
 ```
 
 The `point` function is the most basic form of polymorphic type definition in
-Enso. It defines all such sets of points, whose all components belong to the
-provided type. To better understand this relation, please consider the following
-valid expressions:
+Enso. It defines all sets of points such that every point component belongs to
+the provided type. To better understand this relation, please consider the
+following valid expressions:
 
 ```haskell
 p1 = Point 1 2 3 : Point 1 2 3
@@ -2565,9 +2564,9 @@ typeDef = "type" varName [":" interface] [({consDef} | {consField})] [method]
 ```
 
 The body of a type can contain functions, data, or even _other types_, and _yes_
-because ytrou were wondering, types _can_ be defined inductively or using a GADT
-style. We can re-write the earlier provided definitions using this form as
-follow:
+because you were wondering, types _can_ be defined inductively or using a GADT
+style. We can re-write the earlier provided definitions using the form as
+follows:
 
 ```haskell
 type bool
@@ -2595,9 +2594,9 @@ type tuple a b
 ```
 
 While using this form we define common methods on a set of constructors, like
-the method `not` and we use pattern matching to chose the right algorithm path,
+the method `not`, and we use pattern matching to chose the right algorithm path,
 this approach does not have any performance penalties, because the compiler is
-provided with enough information to optimize this check away if the value was
+provided with enough information to optimize this check away if the value is
 known at compile time.
 
 One important thing to note here is that if you don't define any explicit
@@ -2734,10 +2733,10 @@ Both of these methods will support extension to automatic deriving strategies in
 future iterations of the Enso compiler.
 
 It should also be noted that it is not possible to implement orphan instances of
-interfaces in Enso, as it leads to difficult to understand code. This means that
-an interface must either be implemented in the same file as the interface
-definition, or in the same file as the definition of the type for which the
-interface is being implemented. (TODO: To be discussed)
+interfaces in Enso, as it leads to code that is difficult to understand. This
+means that an interface must either be implemented in the same file as the
+interface definition, or in the same file as the definition of the type for
+which the interface is being implemented. (TODO: To be discussed)
 
 Consider an interface `PrettyPrinter` as follows, which has a default
 implementation for its `prettyPrint` method.
@@ -2774,7 +2773,7 @@ HOLES!!!
 <!-- #### On the Semantics of Standalone Implementations
 Standalone implementations allow for limited extension methods on types. The
 interface methods implemented for a type in the standalone definition can be
-used like any other method on a Enso type.
+used like any other method on an Enso type.
 
 #### Overlapping Interface Implementations
 Sometimes it is beneficial to allow interfaces to overlap in one or more of
@@ -2818,7 +2817,7 @@ syntaxes are valid:
 - **Specified Imports:** These allow the specification of additional functions
   to be brought into the current scope. For example `import Data.Map: fromList`
   would bring `Map`, its constructors and `fromList` into scope.
-- **Renamed Imports:** These allow for the programmer to rename the imported
+- **Renamed Imports:** These allow the programmer to rename the imported
   type. For example `import Data.Containers.Map as MapInterface` brings `Map`
   into scope named as `MapInterface`. Here, constructors are also imported.
 - **Specialised Imports:** These allow the programmer to specialise type
