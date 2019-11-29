@@ -251,7 +251,9 @@ object AST {
     * @param end the exclusive, 0-indexed position of the end of
     *            the expression
     */
-  case class Location(start: Int, end: Int)
+  case class Location(start: Int, end: Int) {
+    def length: Int = end - start
+  }
 
   object Location {
     implicit val optionSpanMonoid: Monoid[Option[Location]] =
