@@ -2,8 +2,7 @@ package org.enso.syntax.text
 
 import java.util.UUID
 
-import cats.Foldable
-import cats.Functor
+import cats.{Foldable, Functor, Monoid}
 import cats.derived._
 import cats.implicits._
 import io.circe.Encoder
@@ -241,6 +240,39 @@ object AST {
     }
   }
 
+  //////////////////////////
+  //// AbsolutePosition ////
+  //////////////////////////
+
+  /**
+    * Represents an expression's absolute positioning in a source file.
+    * @param start the inclusive, 0-indexed position of the beginning
+    *              of the expression
+    * @param end the exclusive, 0-indexed position of the end of
+    *            the expression
+    */
+  case class Location(start: Int, end: Int)
+
+  object Location {
+    implicit val optionSpanMonoid: Monoid[Option[Location]] =
+      new Monoid[Option[Location]] {
+        def empty: Option[Location] = None
+
+        def combine(
+          x: Option[Location],
+          y: Option[Location]
+        ): Option[Location] = x match {
+          case None => y
+          case Some(lSpan @ Location(lStart, _)) =>
+            y match {
+              case None => Some(lSpan)
+              case Some(Location(_, rEnd)) =>
+                Some(Location(lStart, rEnd))
+            }
+        }
+      }
+  }
+
   //////////////////////////////////////////////////////////////////////////////
   //// ASTOf ///////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
@@ -260,19 +292,31 @@ object AST {
     * remembers a bunch of stuff, which can be fast accessed even if we cast the
     * type to generic [[AST]].
     */
-  final case class ASTOf[+T[_]](shape: T[AST], id: Option[ID] = None)(
+  final case class ASTOf[+T[_]](
+    shape: T[AST],
+    id: Option[ID]             = None,
+    location: Option[Location] = None
+  )(
     implicit cls: ASTClass[T]
   ) {
-    override def toString = s"Node($id,$shape)"
+    override def toString = s"Node($id,$location,$shape)"
     override def equals(obj: Any): Boolean = obj match {
       case a: ASTOf[_] => shape == a.shape
       case _           => false
     }
+    override def hashCode(): Int = shape.hashCode()
+
     val repr: Repr.Builder = cls.repr(shape)
     val span: Int          = cls.repr(shape).span
-    def show():             String   = repr.build()
-    def setID(newID: ID):   ASTOf[T] = copy(id = Some(newID))
-    def withNewID():        ASTOf[T] = copy(id = Some(UUID.randomUUID()))
+    def show(): String     = repr.build()
+    def setLocation(newLocation: Option[Location]): ASTOf[T] =
+      copy(location = newLocation)
+    def setLocation(newLocation: Location): ASTOf[T] =
+      setLocation(Some(newLocation))
+    def setID(newID: ID): ASTOf[T] = copy(id = Some(newID))
+    def withNewID(): ASTOf[T]      = copy(id = Some(UUID.randomUUID()))
+    def foldMap[A](f: AST => A)(implicit A: Monoid[A]): A =
+      cls.foldMap(shape)(f)
     def map(f: AST => AST): ASTOf[T] = copy(shape = cls.map(shape)(f))
     def mapWithOff(f: (Index, AST) => AST): ASTOf[T] =
       copy(shape = cls.mapWithOff(shape)(f))
@@ -285,7 +329,10 @@ object AST {
     implicit def wrap[T[_]](t: T[AST])(
       implicit
       ev: ASTClass[T]
-    ): ASTOf[T] = ASTOf(t)
+    ): ASTOf[T] = {
+      val absSpan = ev.foldMap(t)(_.location)
+      ASTOf(t, location = absSpan)
+    }
 
     implicit def jsonEncoder[T[_]]: Encoder[ASTOf[T]] =
       Encoder.forProduct2("shape", "id")(ast => ast.encodeShape() -> ast.id)
@@ -1094,6 +1141,10 @@ object AST {
   ) extends ShapeOf[T] {
     // FIXME: Compatibility mode
     def replaceType(ntyp: Block.Type): BlockOf[T] = copy(typ = ntyp)
+    def replaceFirstLine(line: Block.LineOf[T]): BlockOf[T] =
+      copy(firstLine = line)
+    def replaceLines(lines: List[Block.LineOf[Option[T]]]): BlockOf[T] =
+      copy(lines = lines)
   }
 
   object Block {
@@ -1196,8 +1247,11 @@ object AST {
   //////////////////////////////////////////////////////////////////////////////
 
   type Module = ASTOf[ModuleOf]
+
   final case class ModuleOf[T](lines: List1[Block.OptLineOf[T]])
-      extends ShapeOf[T]
+    extends ShapeOf[T] {
+    def setLines(lines: List1[Block.OptLineOf[T]]) = copy(lines = lines)
+  }
 
   object Module {
     import Block._
@@ -1547,7 +1601,8 @@ object AST {
 
   object DocumentedOf {
     import Comment.symbol
-    implicit def functor[T]: Functor[DocumentedOf] = semi.functor
+    implicit def functor[T]: Functor[DocumentedOf]   = semi.functor
+    implicit def foldable[T]: Foldable[DocumentedOf] = semi.foldable
     implicit def repr[T: Repr]: Repr[DocumentedOf[T]] = t => {
       val symbolRepr        = R + symbol + symbol
       val betweenDocAstRepr = R + newline + newline.build * t.emptyLinesBetween
@@ -1694,24 +1749,28 @@ object AST {
     * is used to cache all necessary operations during AST construction.
     */
   sealed trait ASTClass[T[_]] {
-    def repr(t: T[AST]): Repr.Builder
-    def map(t: T[AST])(f: AST => AST): T[AST]
-    def mapWithOff(t: T[AST])(f: (Index, AST) => AST): T[AST]
-    def zipWithOffset(t: T[AST]): T[(Index, AST)]
-    def encode(t: T[AST]): Json
+    def repr(t: T[AST]):                                           Repr.Builder
+    def foldMap[A](t: T[AST])(f: AST => A)(implicit A: Monoid[A]): A
+    def map(t: T[AST])(f: AST => AST):                             T[AST]
+    def mapWithOff(t: T[AST])(f: (Index, AST) => AST):             T[AST]
+    def zipWithOffset(t: T[AST]):                                  T[(Index, AST)]
+    def encode(t: T[AST]):                                         Json
   }
   object ASTClass {
     def apply[T[_]](implicit cls: ASTClass[T]): ASTClass[T] = cls
     implicit def instance[T[S] <: ShapeOf[S]](
       implicit
       evRepr: Repr[T[AST]],
+      evFold: Foldable[T],
       evFtor: Functor[T],
       evOzip: OffsetZip[T, AST]
     ): ASTClass[T] =
       new ASTClass[T] {
-        def repr(t: T[AST]):               Repr.Builder    = evRepr.repr(t)
-        def map(t: T[AST])(f: AST => AST): T[AST]          = Functor[T].map(t)(f)
-        def zipWithOffset(t: T[AST]):      T[(Index, AST)] = OffsetZip(t)
+        def repr(t: T[AST]): Repr.Builder = evRepr.repr(t)
+        def foldMap[A](t: T[AST])(f: AST => A)(implicit A: Monoid[A]): A =
+          evFold.foldMap(t)(f)
+        def map(t: T[AST])(f: AST => AST): T[AST]     = Functor[T].map(t)(f)
+        def zipWithOffset(t: T[AST]): T[(Index, AST)] = OffsetZip(t)
         def mapWithOff(t: T[AST])(f: (Index, AST) => AST): T[AST] =
           Functor[T].map(zipWithOffset(t))(f.tupled)
         def encode(t: T[AST]): Json = {
