@@ -7,7 +7,8 @@ import com.oracle.truffle.api.source.Source
 import org.enso.compiler.core.{AstExpression, AstModuleScope, EnsoParser}
 import org.enso.compiler.generate.AstToAstExpression
 import org.enso.flexer.Reader
-import org.enso.interpreter.builder.{ExpressionFactory, ModuleScopeExpressionFactory}
+import org.enso.interpreter.builder.ExpressionFactory
+import org.enso.interpreter.builder.ModuleScopeExpressionFactory
 import org.enso.interpreter.node.ExpressionNode
 import org.enso.interpreter.runtime.{Context, Module}
 import org.enso.interpreter.runtime.callable.function.Function
@@ -51,7 +52,7 @@ class Compiler(
       new EnsoParser().parseEnso(source.getCharacters.toString)
     }
 
-    new ModuleScopeExpressionFactory(language, scope).run(expr)
+    new ModuleScopeExpressionFactory(language, source, scope).run(expr)
   }
 
   /**
@@ -108,8 +109,15 @@ class Compiler(
     moduleScope: ModuleScope
   ): ExpressionNode = {
     val parsed = parseInline(source)
-    new ExpressionFactory(language, localScope, "<inline_source>", moduleScope)
-      .run(parsed)
+    new ExpressionFactory(
+      language,
+      Source
+        .newBuilder(Constants.LANGUAGE_ID, source, "<interactive_source>")
+        .build(),
+      localScope,
+      "<inline_source>",
+      moduleScope
+    ).run(parsed)
   }
 
   /**

@@ -44,4 +44,14 @@ public class PanicNode extends BuiltinRootNode {
         new ArgumentDefinition(0, "this", ArgumentDefinition.ExecutionMode.EXECUTE),
         new ArgumentDefinition(1, "value", ArgumentDefinition.ExecutionMode.EXECUTE));
   }
+
+  /**
+   * Returns a language specific name of this node.
+   *
+   * @return the name of this node
+   */
+  @Override
+  public String getName() {
+    return "Panic.throw";
+  }
 }

@@ -67,6 +67,16 @@ public abstract class EnsoRootNode extends RootNode {
   }
 
   /**
+   * Returns a language specific name of this node.
+   *
+   * @return a name of this node
+   */
+  @Override
+  public String getName() {
+    return this.name;
+  }
+
+  /**
    * Sets whether the node is tail-recursive.
    *
    * @param isTail whether or not the node is tail-recursive
@@ -108,5 +118,15 @@ public abstract class EnsoRootNode extends RootNode {
    */
   public ModuleScope getModuleScope() {
     return moduleScope;
+  }
+
+  /**
+   * Marks this node as instrumentable by Truffle instruments API.
+   *
+   * @return {@code true}
+   */
+  @Override
+  protected boolean isInstrumentable() {
+    return true;
   }
 }

@@ -38,4 +38,17 @@ public class PanicException extends RuntimeException implements TruffleException
   public Object getExceptionObject() {
     return payload;
   }
+
+  /**
+   * Override recommended by the Truffle documentation for better performance.
+   *
+   * @see <a
+   *     href="https://www.graalvm.org/truffle/javadoc/com/oracle/truffle/api/TruffleException.html">Relevant
+   *     documentation</a>
+   * @return this exception
+   */
+  @Override
+  public Throwable fillInStackTrace() {
+    return this;
+  }
 }

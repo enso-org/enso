@@ -10,41 +10,27 @@ import scala.language.postfixOps
 import scala.util.parsing.combinator._
 
 trait AstExpressionVisitor[+T] {
-  def visitLong(l: Long): T
+  def visitLong(l: AstLong): T
 
-  def visitArithOp(op: String, left: AstExpression, right: AstExpression): T
+  def visitArithOp(astArithOp: AstArithOp): T
 
   def visitForeign(lang: String, code: String): T
 
-  def visitVariable(name: String): T
+  def visitVariable(astVariable: AstVariable): T
 
-  def visitFunction(
-    arguments: java.util.List[AstArgDefinition],
-    body: AstExpression
-  ): T
+  def visitFunction(function: AstFunction): T
 
-  def visitCaseFunction(
-    arguments: java.util.List[AstArgDefinition],
-    body: AstExpression
-  ): T
+  def visitCaseFunction(function: AstCaseFunction): T
 
-  def visitFunctionApplication(
-    function: AstExpression,
-    arguments: java.util.List[AstCallArg],
-    defaultsSuspended: Boolean
-  ): T
+  def visitFunctionApplication(application: AstApply): T
 
-  def visitAssignment(varName: String, expr: AstExpression): T
+  def visitAssignment(assignment: AstAssignment): T
 
-  def visitMatch(
-    target: AstExpression,
-    branches: java.util.List[AstCase],
-    fallback: java.util.Optional[AstCaseFunction]
-  ): T
+  def visitMatch(astMatch: AstMatch): T
 
-  def visitDesuspend(target: AstExpression): T
+  def visitForce(target: AstForce): T
 
-  def visitStringLiteral(string: String): T
+  def visitStringLiteral(string: AstStringLiteral): T
 
   def visitBlock(
     statements: java.util.List[AstExpression],
@@ -154,15 +140,16 @@ case class AstUnnamedCallArg(value: AstExpression) extends AstCallArg {
     visitor.visitCallArg(Optional.empty(), value, position)
 }
 
-case class AstLong(location: Option[Location], l: Long) extends AstExpression {
+case class AstLong(location: Option[Location], value: Long)
+    extends AstExpression {
   override def visit[T](visitor: AstExpressionVisitor[T]): T =
-    visitor.visitLong(l)
+    visitor.visitLong(this)
 }
 
 case class AstStringLiteral(location: Option[Location], string: String)
     extends AstExpression {
   override def visit[T](visitor: AstExpressionVisitor[T]): T =
-    visitor.visitStringLiteral(string)
+    visitor.visitStringLiteral(this)
 }
 
 case class AstArithOp(
@@ -172,7 +159,7 @@ case class AstArithOp(
   right: AstExpression
 ) extends AstExpression {
   override def visit[T](visitor: AstExpressionVisitor[T]): T =
-    visitor.visitArithOp(op, left, right)
+    visitor.visitArithOp(this)
 }
 
 case class AstForeign(location: Option[Location], lang: String, code: String)
@@ -184,7 +171,7 @@ case class AstForeign(location: Option[Location], lang: String, code: String)
 case class AstVariable(location: Option[Location], name: String)
     extends AstExpression {
   override def visit[T](visitor: AstExpressionVisitor[T]): T =
-    visitor.visitVariable(name)
+    visitor.visitVariable(this)
 }
 
 case class AstApply(
@@ -194,7 +181,7 @@ case class AstApply(
   hasDefaultsSuspended: Boolean
 ) extends AstExpression {
   override def visit[T](visitor: AstExpressionVisitor[T]): T =
-    visitor.visitFunctionApplication(fun, getArgs, hasDefaultsSuspended)
+    visitor.visitFunctionApplication(this)
   def getArgs: java.util.List[AstCallArg] = args.asJava
 }
 
@@ -204,7 +191,7 @@ case class AstFunction(
   body: AstExpression
 ) extends AstExpression {
   override def visit[T](visitor: AstExpressionVisitor[T]): T =
-    visitor.visitFunction(getArguments, body)
+    visitor.visitFunction(this)
 
   def getArguments: java.util.List[AstArgDefinition] = arguments.asJava
 }
@@ -215,7 +202,7 @@ case class AstCaseFunction(
   body: AstExpression
 ) extends AstExpression {
   override def visit[T](visitor: AstExpressionVisitor[T]): T =
-    visitor.visitCaseFunction(getArguments, body)
+    visitor.visitCaseFunction(this)
 
   def getArguments: java.util.List[AstArgDefinition] = arguments.asJava
 }
@@ -226,7 +213,7 @@ case class AstAssignment(
   body: AstExpression
 ) extends AstExpression {
   override def visit[T](visitor: AstExpressionVisitor[T]): T =
-    visitor.visitAssignment(name, body)
+    visitor.visitAssignment(this)
 }
 
 case class AstCase(
@@ -242,17 +229,16 @@ case class AstMatch(
   fallback: Option[AstCaseFunction]
 ) extends AstExpression {
   override def visit[T](visitor: AstExpressionVisitor[T]): T =
-    visitor.visitMatch(
-      target,
-      branches.asJava,
-      Optional.ofNullable(fallback.orNull)
-    )
+    visitor.visitMatch(this)
+  def getBranches: java.util.List[AstCase] = branches.asJava
+  def getFallback: Optional[AstCaseFunction] =
+    Optional.ofNullable(fallback.orNull)
 }
 
-case class AstDesuspend(location: Option[Location], target: AstExpression)
+case class AstForce(location: Option[Location], target: AstExpression)
     extends AstExpression {
   override def visit[T](visitor: AstExpressionVisitor[T]): T =
-    visitor.visitDesuspend(target)
+    visitor.visitForce(this)
 }
 
 case class AstBlock(
@@ -341,8 +327,8 @@ class EnsoParserInternal extends JavaTokenParsers {
       case None    => false
     }
 
-  def desuspend: Parser[AstDesuspend] =
-    "$" ~> expression ^^ (AstDesuspend(None, _))
+  def desuspend: Parser[AstForce] =
+    "$" ~> expression ^^ (AstForce(None, _))
 
   def assignment: Parser[AstAssignment] = ident ~ ("=" ~> expression) ^^ {
     case v ~ exp => AstAssignment(None, v, exp)

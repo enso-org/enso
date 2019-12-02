@@ -290,6 +290,37 @@ class Parser {
       case _ => ast.map(resolveMacros)
     }
 
+  /**
+    * Automatically derives source location for an AST node, based on its
+    * children's locations
+    *
+    * @param ast the AST to derive location for
+    * @return AST with derived location
+    */
+  def deriveLocation(ast: AST): AST =
+    if (ast.location.isEmpty) {
+      val location = ast match {
+        case AST.App.Section.Right(opr, right) =>
+          opr.location |+| right.location
+        case _ => ast.foldMap(_.location)
+      }
+      ast.setLocation(location)
+    } else {
+      ast
+    }
+
+  /**
+    * Derives location (see [[deriveLocation]]) for a node and all its
+    * descendants.
+    *
+    * @param ast the AST to derive location for
+    * @return AST with derived location
+    */
+  def deriveLocations(ast: AST): AST = {
+    val withLocatedChildren = ast.map(deriveLocations)
+    deriveLocation(withLocatedChildren)
+  }
+
   /** Drops macros metadata keeping only resolved macros in the AST.
     * WARNING: this transformation drops the relative information about AST
     * spacing, while the absolute positioning is preserved.
@@ -299,13 +330,13 @@ class Parser {
       case AST.Macro.Match.any(t) => {
         val prefix           = t.pfx.toList.flatMap(_.toStream.map(_.el))
         val segments         = t.segs.toList().flatMap(_.el.toStream.map(_.el))
-        val originalSegments = prefix ++ segments
+        val originalSegments = (prefix ++ segments).map(deriveLocations)
         val originalSpan =
           Foldable[List].foldMap(originalSegments)(_.location)
         val resolved = t.resolved.setLocation(originalSpan)
         go(resolved)
       }
-      case t => t.map(go)
+      case t => deriveLocation(t.map(go))
     }
     ast.map(go)
   }

@@ -122,7 +122,9 @@ object OffsetZip {
   * @param end the exclusive, 0-indexed position of the end of
   *            the expression
   */
-case class Location(start: Int, end: Int)
+case class Location(start: Int, end: Int) {
+  def length: Int = end - start
+}
 
 object Location {
   implicit val optionSpanMonoid: Monoid[Option[Location]] =
@@ -1359,10 +1361,8 @@ object AST {
     implicit def span[T[_]]: HasSpan[ASTOf[T]] = t => t.span
     implicit def wrap[T[_]](
       t: T[AST]
-    )(implicit ev: HasSpan[T[AST]], foldEv: Foldable[T]): ASTOf[T] = {
-      val absSpan = foldEv.foldMap(t)(_.location)
-      ASTOf(t, ev.span(t), location = absSpan)
-    }
+    )(implicit ev: HasSpan[T[AST]]): ASTOf[T] = ASTOf(t, ev.span(t))
+
   }
 
   trait AstImplicits extends AstImplicits2 {

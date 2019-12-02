@@ -3,6 +3,8 @@ package org.enso.interpreter.builder;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
 import org.enso.compiler.core.*;
+import com.oracle.truffle.api.source.Source;
+import com.oracle.truffle.api.source.SourceSection;
 import org.enso.interpreter.*;
 import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.ExpressionNode;
@@ -29,16 +31,19 @@ import java.util.stream.IntStream;
 public class ModuleScopeExpressionFactory implements AstModuleScopeVisitor<Function> {
   private final Language language;
   private final ModuleScope moduleScope;
+  private final Source source;
 
   /**
    * Creates a factory for the given language.
    *
    * @param language the name of the language for which this factory is creating nodes
+   * @param source the source this factory is used to parse
    * @param moduleScope the scope in which bindings created by this factory should be registered
    */
-  public ModuleScopeExpressionFactory(Language language, ModuleScope moduleScope) {
+  public ModuleScopeExpressionFactory(Language language, Source source, ModuleScope moduleScope) {
     this.language = language;
     this.moduleScope = moduleScope;
+    this.source = source;
   }
 
   /**
@@ -82,7 +87,8 @@ public class ModuleScopeExpressionFactory implements AstModuleScopeVisitor<Funct
     IntStream.range(0, constructors.size())
         .forEach(
             idx -> {
-              ArgDefinitionFactory argFactory = new ArgDefinitionFactory(language, moduleScope);
+              ArgDefinitionFactory argFactory =
+                  new ArgDefinitionFactory(language, source, moduleScope);
               AstTypeDef type = typeDefs.get(idx);
               ArgumentDefinition[] argDefs = new ArgumentDefinition[type.getArguments().size()];
 
@@ -101,6 +107,7 @@ public class ModuleScopeExpressionFactory implements AstModuleScopeVisitor<Funct
       ExpressionFactory expressionFactory =
           new ExpressionFactory(
               language,
+              source,
               method.typeName() + Constants.SCOPE_SEPARATOR + method.methodName(),
               moduleScope);
 
@@ -108,7 +115,8 @@ public class ModuleScopeExpressionFactory implements AstModuleScopeVisitor<Funct
       realArgs.add(0, thisArgument);
 
       CreateFunctionNode funNode =
-          expressionFactory.processFunctionBody(realArgs, method.fun().body());
+          expressionFactory.processFunctionBody(
+              method.fun().getLocation(), realArgs, method.fun().body());
       funNode.markTail();
       Function function =
           new Function(
@@ -134,10 +142,12 @@ public class ModuleScopeExpressionFactory implements AstModuleScopeVisitor<Funct
     LocalScope scope = new LocalScope();
     String name = "executable_expression";
     ExpressionFactory expressionFactory =
-        new ExpressionFactory(this.language, scope, name, moduleScope);
+        new ExpressionFactory(this.language, source, scope, name, moduleScope);
     ExpressionNode expression = expressionFactory.run(expr);
+    SourceSection section =
+        expr.getLocation().map(loc -> source.createSection(loc.start(), loc.length())).orElse(null);
     ClosureRootNode rootNode =
-        new ClosureRootNode(language, scope, moduleScope, expression, null, name);
+        new ClosureRootNode(language, scope, moduleScope, expression, section, name);
     RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(rootNode);
     return new Function(
         callTarget, null, new FunctionSchema(FunctionSchema.CallStrategy.CALL_LOOP));

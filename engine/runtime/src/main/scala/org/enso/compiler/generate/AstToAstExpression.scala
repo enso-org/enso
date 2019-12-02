@@ -142,7 +142,7 @@ object AstToAstExpression {
   def translateCallable(application: AST): AstExpression = {
     application match {
       case AstView.ForcedTerm(term) =>
-        AstDesuspend(term.location, translateExpression(term))
+        AstForce(application.location, translateExpression(term))
       case AstView.Application(name, args) =>
         val validArguments = args.filter {
           case AstView.SuspendDefaultsOperator(_) => false

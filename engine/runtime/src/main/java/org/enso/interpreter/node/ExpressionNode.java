@@ -1,8 +1,14 @@
 package org.enso.interpreter.node;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.instrumentation.GenerateWrapper;
+import com.oracle.truffle.api.instrumentation.InstrumentableNode;
+import com.oracle.truffle.api.instrumentation.ProbeNode;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
+import com.oracle.truffle.api.source.SourceSection;
 import org.enso.interpreter.runtime.Builtins;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
@@ -20,7 +26,50 @@ import org.enso.interpreter.runtime.type.TypesGen;
  * executeGeneric} method for various scenarios in order to improve performance.
  */
 @NodeInfo(shortName = "EnsoExpression", description = "The base node for all enso expressions.")
-public abstract class ExpressionNode extends BaseNode {
+@GenerateWrapper
+public abstract class ExpressionNode extends BaseNode implements InstrumentableNode {
+  private static final int NO_SOURCE = -1;
+  private @CompilerDirectives.CompilationFinal int sourceStartIndex;
+  private @CompilerDirectives.CompilationFinal int sourceLength;
+
+  /** Creates a new instance of this node. */
+  public ExpressionNode() {
+    sourceLength = NO_SOURCE;
+    sourceStartIndex = NO_SOURCE;
+  }
+
+  /**
+   * Sets the source location of this node.
+   *
+   * @param sourceStartIndex the source index this node begins at
+   * @param sourceLength the length of this node's source
+   */
+  public void setSourceLocation(int sourceStartIndex, int sourceLength) {
+    CompilerDirectives.transferToInterpreterAndInvalidate();
+    this.sourceStartIndex = sourceStartIndex;
+    this.sourceLength = sourceLength;
+  }
+
+  /**
+   * Creates a source section this node represents.
+   *
+   * @return a source section for this node
+   */
+  @Override
+  public SourceSection getSourceSection() {
+    if (sourceStartIndex == NO_SOURCE) {
+      return null;
+    }
+    RootNode rootNode = getRootNode();
+    if (rootNode == null) {
+      return null;
+    }
+    SourceSection rootSourceSection = rootNode.getSourceSection();
+    if (rootSourceSection == null) {
+      return null;
+    }
+    return rootSourceSection.getSource().createSection(sourceStartIndex, sourceLength);
+  }
 
   /**
    * Executes the current node, returning the result as a {@code long}.
@@ -86,5 +135,26 @@ public abstract class ExpressionNode extends BaseNode {
    */
   public void executeVoid(VirtualFrame frame) {
     executeGeneric(frame);
+  }
+
+  /**
+   * Marks this node as instrumentable by Truffle Instrumentation APIs.
+   *
+   * @return {@code true}
+   */
+  @Override
+  public boolean isInstrumentable() {
+    return true;
+  }
+
+  /**
+   * Wraps this node with an instrumentation probe. For internal use by the Truffle framework.
+   *
+   * @param probe the probe to attach to this node
+   * @return a wrapper delegating both to this node and the probe
+   */
+  @Override
+  public WrapperNode createWrapper(ProbeNode probe) {
+    return new ExpressionNodeWrapper(this, probe);
   }
 }

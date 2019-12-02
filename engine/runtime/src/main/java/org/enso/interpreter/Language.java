@@ -86,7 +86,12 @@ public final class Language extends TruffleLanguage<Context> {
   protected CallTarget parse(ParsingRequest request) {
     RootNode root =
         new ProgramRootNode(
-            this, new LocalScope(), new ModuleScope(), "root", null, request.getSource());
+            this,
+            new LocalScope(),
+            new ModuleScope(),
+            "root",
+            request.getSource().createUnavailableSection(),
+            request.getSource());
 
     return Truffle.getRuntime().createCallTarget(root);
   }
