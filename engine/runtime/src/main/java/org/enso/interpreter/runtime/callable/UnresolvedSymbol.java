@@ -61,7 +61,7 @@ public class UnresolvedSymbol implements TruffleObject {
    */
   @CompilerDirectives.TruffleBoundary
   public Function resolveForFunction() {
-    return scope.lookupMethodDefinitionForAny(name).orElse(null);
+    return scope.lookupMethodDefinitionForFunction(name).orElse(null);
   }
 
   /**

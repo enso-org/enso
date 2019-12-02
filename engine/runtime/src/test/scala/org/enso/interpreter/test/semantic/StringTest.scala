@@ -4,12 +4,14 @@ import org.enso.interpreter.test.InterpreterTest
 
 class StringTest extends InterpreterTest {
   "Strings" should "exist in the language and be printable" in {
+    pending
     val code =
       """
-        |@println [@IO, "hello world!"]
+        |IO.println "hello world!"
         |""".stripMargin
 
-    noException shouldBe thrownBy(evalOld(code))
+//    noException shouldBe thrownBy(eval(code))
+    eval(code)
     consumeOut shouldEqual List("hello world!")
   }
 }

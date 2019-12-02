@@ -7,7 +7,7 @@ class EvalTest extends InterpreterTest {
     val code =
       """
         |@{
-        |  @eval [@Debug, "@println[@IO, \"foo\"]"]
+        |  @eval [Debug, "@println[IO, \"foo\"]"]
         |}
         |""".stripMargin
     evalOld(code)
@@ -19,7 +19,7 @@ class EvalTest extends InterpreterTest {
       """
         |@{
         |  x = "Hello World!";
-        |  @eval [@Debug, "@println[@IO, x]"]
+        |  @eval [Debug, "@println[IO, x]"]
         |}
         |""".stripMargin
     evalOld(code)
@@ -33,7 +33,7 @@ class EvalTest extends InterpreterTest {
         |
         |@{
         |  x = 10;
-        |  @eval [@Debug, "@println[@IO, @MyType[x]]"]
+        |  @eval [Debug, "@println[IO, @MyType[x]]"]
         |}
         |""".stripMargin
     evalOld(code)
@@ -46,7 +46,7 @@ class EvalTest extends InterpreterTest {
         |@{
         |  x = 1;
         |  y = 2;
-        |  res = @eval [@Debug, "x + y"];
+        |  res = @eval [Debug, "x + y"];
         |  res + 1
         |}
         |""".stripMargin
@@ -58,7 +58,7 @@ class EvalTest extends InterpreterTest {
       """
         |{ |sumTo|
         |  summator = { |acc, current|
-        |      @eval [@Debug, "@ifZero [current, acc, @summator [acc + current, current - 1]]"]
+        |      @eval [Debug, "@ifZero [current, acc, @summator [acc + current, current - 1]]"]
         |  };
         |  res = @summator [0, sumTo];
         |  res
@@ -73,7 +73,7 @@ class EvalTest extends InterpreterTest {
       """
         |{ |sumTo|
         |  summator = { |acc, current|
-        |      @ifZero [current, acc, @eval [@Debug, "@summator [acc + current, current - 1]"]]
+        |      @ifZero [current, acc, @eval [Debug, "@summator [acc + current, current - 1]"]]
         |  };
         |  res = @summator [0, sumTo];
         |  res

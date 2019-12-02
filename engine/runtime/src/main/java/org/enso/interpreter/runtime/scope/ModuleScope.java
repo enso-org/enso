@@ -13,6 +13,7 @@ public class ModuleScope {
   private final Map<AtomConstructor, Map<String, Function>> methods = new HashMap<>();
   private final Map<String, Function> anyMethods = new HashMap<>();
   private final Map<String, Function> numberMethods = new HashMap<>();
+  private final Map<String, Function> functionMethods = new HashMap<>();
   private final Set<ModuleScope> imports = new HashSet<>();
   private final Set<ModuleScope> transitiveImports = new HashSet<>();
 
@@ -82,6 +83,16 @@ public class ModuleScope {
   }
 
   /**
+   * Registers a method for the {@link Function} type.
+   *
+   * @param methodName the name of the method to register
+   * @param function the {@link Function} associated with this definition
+   */
+  public void registerMethodForFunction(String methodName, Function function) {
+    functionMethods.put(methodName, function);
+  }
+
+  /**
    * Looks up the definition for a given type and method name.
    *
    * <p>The resolution algorithm is first looking for methods defined at the constructor definition
@@ -136,6 +147,10 @@ public class ModuleScope {
     return searchAuxiliaryMethodsMap(ModuleScope::getMethodsOfNumber, name);
   }
 
+  private Optional<Function> lookupSpecificMethodDefinitionForFunction(String name) {
+    return searchAuxiliaryMethodsMap(ModuleScope::getMethodsOfFunction, name);
+  }
+
   /**
    * Looks up a method definition by-name, for methods defined on the type Number.
    *
@@ -153,6 +168,26 @@ public class ModuleScope {
   public Optional<Function> lookupMethodDefinitionForNumber(String name) {
     return Optional.ofNullable(
         lookupSpecificMethodDefinitionForNumber(name)
+            .orElseGet(() -> lookupMethodDefinitionForAny(name).orElse(null)));
+  }
+
+  /**
+   * Looks up a method definition by-name, for methods defined on the type {@link Function}.
+   *
+   * <p>The resolution algorithm prefers methods defined locally over any other method. The
+   * definitions are imported into scope transitively.
+   *
+   * <p>If the specific search fails, methods defined for any type are searched, first looking at *
+   * locally defined methods and then all the transitive imports.
+   *
+   * @param name the name of the method to look up
+   * @return {@code Optional.of(resultMethod)} if the method existed, {@code Optional.empty()}
+   *     otherwise
+   */
+  @CompilerDirectives.TruffleBoundary
+  public Optional<Function> lookupMethodDefinitionForFunction(String name) {
+    return Optional.ofNullable(
+        lookupSpecificMethodDefinitionForFunction(name)
             .orElseGet(() -> lookupMethodDefinitionForAny(name).orElse(null)));
   }
 
@@ -184,6 +219,10 @@ public class ModuleScope {
 
   private Map<String, Function> getMethodsOfNumber() {
     return numberMethods;
+  }
+
+  private Map<String, Function> getMethodsOfFunction() {
+    return functionMethods;
   }
 
   /**

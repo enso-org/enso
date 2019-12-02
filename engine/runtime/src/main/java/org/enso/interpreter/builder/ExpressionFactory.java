@@ -4,11 +4,12 @@ import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.nodes.RootNode;
+import org.enso.compiler.core.*;
 import org.enso.interpreter.*;
 import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.ApplicationNode;
-import org.enso.interpreter.node.callable.ForceNodeGen;
+import org.enso.interpreter.node.callable.thunk.ForceNodeGen;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode;
 import org.enso.interpreter.node.callable.function.CreateFunctionNode;
@@ -31,7 +32,6 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
 
 import java.util.*;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -208,7 +208,7 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
    * @return a runtime node representing the function body
    */
   public CreateFunctionNode processFunctionBody(
-      List<AstArgDefinition> arguments, AstExpression body) {
+          List<AstArgDefinition> arguments, AstExpression body) {
 
     ArgDefinitionFactory argFactory =
         new ArgDefinitionFactory(scope, language, scopeName, moduleScope);
@@ -311,7 +311,7 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
    */
   @Override
   public ExpressionNode visitFunctionApplication(
-      AstExpression function, List<AstCallArg> arguments, boolean hasDefaultsSuspended) {
+          AstExpression function, List<AstCallArg> arguments, boolean hasDefaultsSuspended) {
     CallArgFactory argFactory = new CallArgFactory(scope, language, scopeName, moduleScope);
 
     List<CallArgument> callArgs = new ArrayList<>();

@@ -1,8 +1,6 @@
 package org.enso.compiler.generate
 
 import org.enso.data
-import org.enso.data.Shifted.List1
-import org.enso.interpreter.AstBlock
 import org.enso.syntax.text.{AST, Debug}
 
 // TODO [AA] Handle arbitrary parens
@@ -14,6 +12,7 @@ import org.enso.syntax.text.{AST, Debug}
   * return [[Some]] when more complex conditions are met.
   */
 object AstView {
+
   object Block {
     def unapply(ast: AST): Option[(List[AST], AST)] = ast match {
       case AST.Block(_, _, firstLine, lines) =>
@@ -81,37 +80,36 @@ object AstView {
     }
   }
 
-  object PatternMatch {
-    // Cons, args
-    def unapply(ast: AST): Option[(AST.Ident.Cons, List[AST])] = {
+  object ForcedTerm {
+    def unapply(ast: AST): Option[AST] = {
       ast match {
-        case SpacedList(AST.Ident.Cons.any(cons) :: xs) =>
-          val realArgs = xs.collect { case a @ MatchParam(_) => a }
-
-          if (realArgs.length == xs.length) {
-            Some((cons, xs))
-          } else {
-            None
-          }
+        case MaybeParensed(
+            AST.App.Section.Right(AST.Ident.Opr("~"), ast)
+            ) =>
+          Some(ast)
         case _ => None
       }
     }
   }
 
-  object MatchParam {
+  object LazyArgument {
     def unapply(ast: AST): Option[AST] = ast match {
-      case DefinitionArgument(_) => Some(ast)
-      case PatternMatch(_, _)    => Some(ast)
-      case _                     => None
+      case MaybeParensed(
+          AST.App.Section.Right(AST.Ident.Opr("~"), FunctionParam(arg))
+          ) =>
+        Some(arg)
+      case _ => None
     }
   }
 
   object FunctionParam {
     def unapply(ast: AST): Option[AST] = ast match {
-      case AssignedArgument(_, _) => Some(ast)
-      case DefinitionArgument(_)  => Some(ast)
-      case PatternMatch(_)        => Some(ast)
-      case _                      => None
+      case LazyAssignedArgument(_, _) => Some(ast)
+      case AssignedArgument(_, _)     => Some(ast)
+      case DefinitionArgument(_)      => Some(ast)
+      case PatternMatch(_, _)         => Some(ast)
+      case LazyArgument(_)            => Some(ast)
+      case _                          => None
     }
   }
 
@@ -128,10 +126,16 @@ object AstView {
           } else {
             None
           }
-
-        // TODO [AA] This really isn't true........
-        case _ => Some(List(ast))
+        case FunctionParam(p) => Some(List(p))
+        case _                => None
       }
+    }
+  }
+
+  // TODO [AA] a matcher for type signatured definitions
+  object MaybeTyped {
+    def unapply(ast: AST): Option[(AST, AST)] = {
+      None
     }
   }
 
@@ -148,6 +152,21 @@ object AstView {
   object AssignedArgument {
     def unapply(ast: AST): Option[(AST.Ident.Var, AST)] =
       MaybeParensed.unapply(ast).flatMap(Assignment.unapply)
+  }
+
+  object LazyAssignedArgument {
+    def unapply(ast: AST): Option[(AST.Ident.Var, AST)] = {
+      ast match {
+        case MaybeParensed(
+            Binding(
+              AST.App.Section.Right(AST.Ident.Opr("~"), AST.Ident.Var.any(v)),
+              r
+            )
+            ) =>
+          Some((v, r))
+        case _ => None
+      }
+    }
   }
 
   object DefinitionArgument {
@@ -183,9 +202,18 @@ object AstView {
     }
   }
 
+  object SuspendDefaultsOperator {
+    def unapply(ast: AST): Option[AST] = {
+      ast match {
+        case AST.Ident.Opr("...") => Some(ast)
+        case _                    => None
+      }
+    }
+  }
+
   object SpacedList {
 
-    /**
+    /** Also matches lists with a ... left section
       *
       * @param ast
       * @return the constructor, and a list of its arguments
@@ -196,14 +224,26 @@ object AstView {
 
     def matchSpacedList(ast: AST): Option[List[AST]] = {
       ast match {
-        case AST.App.Prefix(fn, arg) =>
+        case MaybeParensed(AST.App.Prefix(fn, arg)) =>
           val fnRecurse = matchSpacedList(fn)
 
           fnRecurse match {
             case Some(headItems) => Some(headItems :+ arg)
             case None            => Some(List(fn, arg))
           }
+        case MaybeParensed(
+            AST.App.Section.Left(ast, SuspendDefaultsOperator(suspend))
+            ) =>
+          ast match {
+            case ConsOrVar(_) => Some(List(ast, suspend))
+            case _ =>
+              val astRecurse = matchSpacedList(ast)
 
+              astRecurse match {
+                case Some(items) => Some(items :+ suspend)
+                case None        => None
+              }
+          }
         case _ => None
       }
     }
@@ -294,10 +334,6 @@ object AstView {
     }
   }
 
-  object CaseBranch {
-    // TODO [AA]
-  }
-
   object CaseExpression {
     val caseName = data.List1(AST.Ident.Var("case"), AST.Ident.Var("of"))
 
@@ -306,10 +342,28 @@ object AstView {
       ast match {
         case AST.Mixfix(identSegments, argSegments) =>
           if (identSegments == caseName) {
-            println("==== MIXFIX ====")
-            println(Debug.pretty(ast.toString))
+            if (argSegments.length == 2) {
+              val scrutinee    = argSegments.head
+              val caseBranches = argSegments.last
 
-            None
+              caseBranches match {
+                case AST.Block(_, _, firstLine, restLines) =>
+                  val blockLines = firstLine.elem :: restLines.flatMap(_.elem)
+
+                  val matchBranches = blockLines.collect {
+                    case b @ CaseBranch(_, _, _) => b
+                  }
+
+                  if (matchBranches.length == blockLines.length) {
+                    Some((scrutinee, matchBranches))
+                  } else {
+                    None
+                  }
+                case _ => None
+              }
+            } else {
+              None
+            }
           } else {
             None
           }
@@ -317,4 +371,65 @@ object AstView {
       }
     }
   }
+
+  object ConsCaseBranch {
+    def unapply(ast: AST): Option[(AST, List[AST], AST)] = {
+      CaseBranch.unapply(ast).flatMap {
+        case (cons, args, ast) => cons.map((_, args, ast))
+      }
+    }
+  }
+
+  object FallbackCaseBranch {
+    def unapply(ast: AST): Option[AST] = {
+      CaseBranch.unapply(ast).flatMap {
+        case (cons, args, ast) =>
+          if (cons.isEmpty && args.isEmpty) Some(ast) else None
+      }
+    }
+  }
+
+  object CaseBranch {
+    // matcher, arguments, body
+    def unapply(ast: AST): Option[(Option[AST], List[AST], AST)] = {
+      ast match {
+        case AST.App.Infix(left, AST.Ident.Opr("->"), right) =>
+          left match {
+            case PatternMatch(cons, args) => Some((Some(cons), args, right))
+            case AST.Ident.Blank.any(_)   => Some((None, List(), right))
+            case DefinitionArgument(v)    => Some((None, List(v), right))
+            case _                        => None
+          }
+        case _ => None
+      }
+    }
+  }
+
+  object PatternMatch {
+    // Cons, args
+    def unapply(ast: AST): Option[(AST.Ident.Cons, List[AST])] = {
+      ast match {
+        case SpacedList(AST.Ident.Cons.any(cons) :: xs) =>
+          val realArgs: List[AST] = xs.collect { case a @ MatchParam(_) => a }
+
+          if (realArgs.length == xs.length) {
+            Some((cons, xs))
+          } else {
+            None
+          }
+        case AST.Ident.Cons.any(cons) => Some((cons, List()))
+        case _                        => None
+      }
+    }
+  }
+
+  object MatchParam {
+    def unapply(ast: AST): Option[AST] = ast match {
+      case DefinitionArgument(_)  => Some(ast)
+      case PatternMatch(_, _)     => Some(ast)
+      case AST.Ident.Blank.any(b) => Some(b)
+      case _                      => None
+    }
+  }
+
 }

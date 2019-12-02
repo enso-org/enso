@@ -51,7 +51,7 @@ class GlobalScopeTest extends InterpreterTest {
         |  result = function a b
         |  result
         |
-        |binaryFn Unit 1 2 (a b -> adder Unit a b)
+        |Unit.binaryFn 1 2 (a b -> Unit.adder a b)
     """.stripMargin
 
     eval(code) shouldEqual 3
@@ -95,6 +95,22 @@ class GlobalScopeTest extends InterpreterTest {
       """.stripMargin
 
     an[InterpreterException] should be thrownBy eval(code)
+  }
+
+  "Suspended blocks" should "work properly in the global scope" in {
+    pending
+    val code =
+      """
+        |myFun =
+        |  IO.println 10
+        |  0
+        |
+        |IO.println 5
+        |myFun.call
+        |""".stripMargin
+
+    eval(code) shouldEqual 0
+    consumeOut shouldEqual List("5", "10")
   }
 
 }

@@ -11,7 +11,7 @@ class ReplTest extends InterpreterTest {
         |  x = 10;
         |  y = 20;
         |  z = x + y;
-        |  @breakpoint[@Debug]
+        |  @breakpoint[Debug]
         |}
         |""".stripMargin
     var scopeResult: Map[String, AnyRef] = Map()
@@ -29,7 +29,7 @@ class ReplTest extends InterpreterTest {
         |@{
         |  x = 1;
         |  y = 2;
-        |  @breakpoint[@Debug]
+        |  @breakpoint[Debug]
         |}
         |""".stripMargin
     var evalResult: AnyRef = null
@@ -47,7 +47,7 @@ class ReplTest extends InterpreterTest {
         |@{
         |  a = 5;
         |  b = 6;
-        |  c = @breakpoint[@Debug];
+        |  c = @breakpoint[Debug];
         |  c * a
         |}
         |""".stripMargin
@@ -63,7 +63,7 @@ class ReplTest extends InterpreterTest {
       """
         |@{
         |  x = 10;
-        |  @breakpoint[@Debug]
+        |  @breakpoint[Debug]
         |}
         |""".stripMargin
     getReplInstrument.setSessionManager { executor =>
@@ -79,14 +79,14 @@ class ReplTest extends InterpreterTest {
     val code =
       """
         |@{
-        |  @put[@State, 10];
-        |  @breakpoint[@Debug];
-        |  @get[@State]
+        |  @put[State, 10];
+        |  @breakpoint[Debug];
+        |  @get[State]
         |}
         |""".stripMargin
     getReplInstrument.setSessionManager { executor =>
-      executor.evaluate("x = @get[@State]")
-      executor.evaluate("@put[@State, x+1]")
+      executor.evaluate("x = @get[State]")
+      executor.evaluate("@put[State, x+1]")
       executor.exit()
     }
     evalOld(code) shouldEqual 11

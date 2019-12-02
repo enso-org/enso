@@ -67,18 +67,15 @@ class FunctionArgumentsTest extends InterpreterTest {
   "Function calls" should "be able to return atoms that are evaluated with oversaturated args" in {
     val code =
       """
-        |@{
-        |  f = { |x| Cons };
+        |f = x -> Cons
         |
-        |  myCons = @f [1, 2, 3];
+        |myCons = f 1 2 3
         |
-        |  match myCons <
-        |    Cons ~ { |h, t| h + t };
-        |  >
-        |}
+        |case myCons of
+        |  Cons h t -> h + t
         |""".stripMargin
 
-    evalOld(code) shouldEqual 5
+    eval(code) shouldEqual 5
   }
 
   "Methods" should "support the use of oversaturated args" in {
@@ -97,7 +94,8 @@ class FunctionArgumentsTest extends InterpreterTest {
   "Recursion closing over lexical scope" should "work properly" in {
     val code =
       """
-        |summator = current -> ifZero current 0 ((x -> summator (current - 1)) 0)
+        |summator = current ->
+        |  ifZero current 0 ((x -> summator (current - 1)) 0)
         |res = summator 0
         |res
         |""".stripMargin

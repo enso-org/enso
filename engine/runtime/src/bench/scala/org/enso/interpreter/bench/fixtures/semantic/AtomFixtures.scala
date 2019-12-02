@@ -9,7 +9,7 @@ class AtomFixtures extends InterpreterRunner {
     """
       |{ |length|
       |  generator = { |acc, i| @ifZero [i, acc, @generator [@Cons [i, acc], i - 1]] };
-      |  res = @generator [@Nil, length];
+      |  res = @generator [Nil, length];
       |  res
       |}
     """.stripMargin
@@ -25,7 +25,7 @@ class AtomFixtures extends InterpreterRunner {
       |    Cons ~ { |h, t| @reverser [@Cons [h, acc], t] };
       |    Nil  ~ { acc };
       |  >};
-      |  res = @reverser [@Nil, list];
+      |  res = @reverser [Nil, list];
       |  res
       |}
     """.stripMargin
@@ -40,7 +40,7 @@ class AtomFixtures extends InterpreterRunner {
       |
       |Nil.reverse = { |acc| acc }
       |
-      |{ |list| @reverse [list, @Nil] }
+      |{ |list| @reverse [list, Nil] }
       |""".stripMargin
 
   val reverseListMethods = evalOld(reverseListMethodsCode)
@@ -107,7 +107,7 @@ class AtomFixtures extends InterpreterRunner {
       |  Cons ~ { |h, t| @mapReverse [t, f, @Cons [@f [h], acc]] };
       |>}
       |
-      |{ |list| @mapReverse [list, { |x| x + 1 }, @Nil] }
+      |{ |list| @mapReverse [list, { |x| x + 1 }, Nil] }
       |""".stripMargin
 
   val mapReverseList = evalOld(mapReverseListCode)
@@ -121,7 +121,7 @@ class AtomFixtures extends InterpreterRunner {
       |
       |{ |list|
       |  adder = { |x, y| x + y };
-      |  @mapReverse [list, @adder [1], @Nil]
+      |  @mapReverse [list, @adder [1], Nil]
       |}
       |""".stripMargin
 

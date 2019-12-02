@@ -8,6 +8,7 @@ import org.enso.interpreter.node.expression.builtin.error.CatchErrorNode;
 import org.enso.interpreter.node.expression.builtin.error.CatchPanicNode;
 import org.enso.interpreter.node.expression.builtin.error.PanicNode;
 import org.enso.interpreter.node.expression.builtin.error.ThrowErrorNode;
+import org.enso.interpreter.node.expression.builtin.function.ExplicitCallFunctionNode;
 import org.enso.interpreter.node.expression.builtin.io.PrintNode;
 import org.enso.interpreter.node.expression.builtin.state.GetStateNode;
 import org.enso.interpreter.node.expression.builtin.state.PutStateNode;
@@ -66,6 +67,8 @@ public class Builtins {
 
     scope.registerMethod(debug, "eval", DebugEvalNode.makeFunction(language));
     scope.registerMethod(debug, "breakpoint", DebugBreakpointNode.makeFunction(language));
+
+    scope.registerMethodForFunction("call", ExplicitCallFunctionNode.makeFunction(language));
   }
 
   /**

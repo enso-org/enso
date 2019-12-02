@@ -72,7 +72,7 @@ public abstract class MatchNode extends ExpressionNode {
       return e.getResult().getValue();
     } catch (UnexpectedResultException e) {
       typeErrorProfile.enter();
-      throw new TypeError("Expected an Atom.", this);
+      throw new TypeError("Expected an Atom, got " + e.getResult(), this);
     }
   }
 
@@ -93,7 +93,7 @@ public abstract class MatchNode extends ExpressionNode {
       return e.getResult().getValue();
     } catch (UnexpectedResultException e) {
       typeErrorProfile.enter();
-      throw new TypeError("Expected an Atom.", this);
+      throw new TypeError("Expected an Atom, got " + e.getResult(), this);
     }
   }
 
@@ -115,7 +115,7 @@ public abstract class MatchNode extends ExpressionNode {
       return e.getResult().getValue();
     } catch (UnexpectedResultException e) {
       typeErrorProfile.enter();
-      throw new TypeError("Expected an Atom.", this);
+      throw new TypeError("Expected an Atom: " + e.getResult(), this);
     }
   }
 

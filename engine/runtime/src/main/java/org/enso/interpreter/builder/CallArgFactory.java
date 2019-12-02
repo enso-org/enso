@@ -1,8 +1,8 @@
 package org.enso.interpreter.builder;
 
 import com.oracle.truffle.api.Truffle;
-import org.enso.interpreter.AstCallArgVisitor;
-import org.enso.interpreter.AstExpression;
+import org.enso.compiler.core.AstCallArgVisitor;
+import org.enso.compiler.core.AstExpression;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.ExpressionNode;

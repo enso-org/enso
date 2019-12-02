@@ -170,44 +170,37 @@ class NamedArgumentsTest extends InterpreterTest {
   "Constructors" should "be able to use named arguments" in {
     val code =
       """
-        |type Cons2 head rest;
-        |type Nil2;
+        |type Cons2 head rest
+        |type Nil2
         |
-        |@{
-        |  genList = { |i| @ifZero [i, @Nil2, @Cons2 [rest = @genList [i-1], head = i]] };
+        |genList = i -> ifZero i Nil2 (Cons2 (rest = genList i-1) head=i)
         |
-        |  sumList = { |list| match list <
-        |    Cons2 ~ { |head, rest| head + @sumList [rest] };
-        |    Nil2 ~ { 0 };
-        |  >};
+        |sum = list -> case list of
+        |  Cons2 h t -> h + t.sum
+        |  Nil2 -> 0
         |
-        |  res = @sumList [@genList [10]];
-        |  res
-        |}
+        |10.genList.sum
         """.stripMargin
 
-    evalOld(code) shouldEqual 55
+    eval(code) shouldEqual 55
   }
 
   "Constructors" should "be able to take default arguments that are overridden" in {
     val code =
       """
-        |type Nil2;
-        |type Cons2 head (rest = Nil2);
-        |@{
-        |  genList = { |i| @ifZero [i, @Nil2, @Cons2 [rest = @genList [i-1], head = i]] };
+        |type Nil2
+        |type Cons2 head (rest = Nil2)
         |
-        |  sumList = { |list| match list <
-        |    Cons2 ~ { |head, rest| head + @sumList [rest] };
-        |    Nil2 ~ { 0 };
-        |  >};
+        |genList = i -> ifZero i Nil2 (Cons2 (rest = genList i-1) head=i)
         |
-        |  res = @sumList [@genList [5]];
-        |  res
-        |}
+        |sum = list -> case list of
+        |  Cons2 h t -> h + t.sum
+        |  Nil2 -> 0
+        |
+        |5.genList.sum
         """.stripMargin
 
-    evalOld(code) shouldEqual 15
+    eval(code) shouldEqual 15
   }
 
   "Default arguments to constructors" should "be resolved dynamically" in {
@@ -225,18 +218,17 @@ class NamedArgumentsTest extends InterpreterTest {
   "Constructors" should "be able to take and use default arguments" in {
     val code =
       """
-        |type Cons2 head (rest = @Nil2);
-        |type Nil2;
+        |type Cons2 head (rest = Nil2)
+        |type Nil2
         |
-        |Unit.sumList = { |list| match list <
-        |  Cons2 ~ { |head, rest| head + @sumList [@Unit, rest] };
-        |  Nil2 ~ { 0 };
-        |>}
+        |Unit.sumList = list -> case list of
+        |  Cons2 h t -> h + Unit.sumList t
+        |  Nil2 -> 0
         |
-        |@sumList [@Unit, @Cons2 [10]]
+        |Unit.sumList (Cons2 10)
         """.stripMargin
 
-    evalOld(code) shouldEqual 10
+    eval(code) shouldEqual 10
   }
 
 }

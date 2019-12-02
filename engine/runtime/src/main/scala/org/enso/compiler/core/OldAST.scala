@@ -1,4 +1,4 @@
-package org.enso.interpreter
+package org.enso.compiler.core
 
 import java.util.Optional
 

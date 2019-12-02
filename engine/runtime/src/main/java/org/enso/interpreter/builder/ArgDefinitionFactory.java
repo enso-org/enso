@@ -1,9 +1,14 @@
 package org.enso.interpreter.builder;
 
-import org.enso.interpreter.AstArgDefinitionVisitor;
-import org.enso.interpreter.AstExpression;
+import com.oracle.truffle.api.RootCallTarget;
+import com.oracle.truffle.api.Truffle;
+import com.oracle.truffle.api.nodes.RootNode;
+import org.enso.compiler.core.AstArgDefinitionVisitor;
+import org.enso.compiler.core.AstExpression;
 import org.enso.interpreter.Language;
+import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.ExpressionNode;
+import org.enso.interpreter.node.callable.thunk.CreateThunkNode;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
@@ -69,7 +74,7 @@ public class ArgDefinitionFactory implements AstArgDefinitionVisitor<ArgumentDef
   @Override
   public ArgumentDefinition visitArg(
       String name, Optional<AstExpression> defaultValue, boolean suspended, int position) {
-    ExpressionNode defNode =
+    ExpressionNode defExpression =
         defaultValue
             .map(
                 def -> {
@@ -79,10 +84,22 @@ public class ArgDefinitionFactory implements AstArgDefinitionVisitor<ArgumentDef
                 })
             .orElse(null);
 
+    ExpressionNode defaultedValue = defExpression;
+
+    if (suspended && defExpression != null) {
+      RootNode defaultRootNode =
+          new ClosureRootNode(
+              language, scope, moduleScope, defExpression, null, "default::" + scopeName);
+
+      RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(defaultRootNode);
+
+      defaultedValue = new CreateThunkNode(callTarget);
+    }
+
     ArgumentDefinition.ExecutionMode executionMode =
         suspended
             ? ArgumentDefinition.ExecutionMode.PASS_THUNK
             : ArgumentDefinition.ExecutionMode.EXECUTE;
-    return new ArgumentDefinition(position, name, defNode, executionMode);
+    return new ArgumentDefinition(position, name, defaultedValue, executionMode);
   }
 }

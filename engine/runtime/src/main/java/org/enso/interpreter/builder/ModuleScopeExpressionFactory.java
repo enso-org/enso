@@ -2,7 +2,7 @@ package org.enso.interpreter.builder;
 
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
-import org.enso.compiler.core.IR;
+import org.enso.compiler.core.*;
 import org.enso.interpreter.*;
 import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.ExpressionNode;

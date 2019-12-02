@@ -4,20 +4,17 @@ import java.util.Optional
 
 import com.oracle.truffle.api.TruffleFile
 import com.oracle.truffle.api.source.Source
+import org.enso.compiler.core.{AstExpression, AstModuleScope, EnsoParser}
 import org.enso.compiler.generate.AstToAstExpression
-import org.enso.compiler.core.IR
 import org.enso.flexer.Reader
-import org.enso.interpreter.{AstExpression, AstModuleScope, Constants, EnsoParser, Language}
-import org.enso.interpreter.builder.ExpressionFactory
-import org.enso.interpreter.builder.ModuleScopeExpressionFactory
+import org.enso.interpreter.builder.{ExpressionFactory, ModuleScopeExpressionFactory}
 import org.enso.interpreter.node.ExpressionNode
-import org.enso.interpreter.runtime.Context
-import org.enso.interpreter.runtime.Module
+import org.enso.interpreter.runtime.{Context, Module}
 import org.enso.interpreter.runtime.callable.function.Function
 import org.enso.interpreter.runtime.error.ModuleDoesNotExistException
-import org.enso.interpreter.runtime.scope.LocalScope
-import org.enso.interpreter.runtime.scope.ModuleScope
-import org.enso.syntax.text.{AST, Debug, Parser}
+import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
+import org.enso.interpreter.{Constants, Language}
+import org.enso.syntax.text.{AST, Parser}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable

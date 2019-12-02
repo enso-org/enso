@@ -10,6 +10,7 @@ import org.enso.interpreter.node.callable.ExecuteCallNodeGen;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.type.TypesGen;
 
 /** An implementation of the case expression specialised to working on constructors. */
 public class ConstructorCaseNode extends CaseNode {
@@ -17,6 +18,7 @@ public class ConstructorCaseNode extends CaseNode {
   @Child private ExpressionNode branch;
   @Child private ExecuteCallNode executeCallNode = ExecuteCallNodeGen.create();
   private final ConditionProfile profile = ConditionProfile.createCountingProfile();
+  private final ConditionProfile atomTypeProfile = ConditionProfile.createCountingProfile();
 
   /**
    * Creates a new node for handling matching on a case expression.
@@ -51,9 +53,17 @@ public class ConstructorCaseNode extends CaseNode {
    */
   @Override
   public void executeAtom(VirtualFrame frame, Atom target) throws UnexpectedResultException {
-    AtomConstructor matcherVal = matcher.executeAtomConstructor(frame);
+    Object matcherVal = matcher.executeGeneric(frame);
+    AtomConstructor constructor;
+
+    if (atomTypeProfile.profile(TypesGen.isAtom(matcherVal))) {
+      constructor = TypesGen.asAtom(matcherVal).getConstructor();
+    } else {
+      constructor = TypesGen.expectAtomConstructor(matcherVal);
+    }
+
     Object state = FrameUtil.getObjectSafe(frame, getStateFrameSlot());
-    if (profile.profile(matcherVal == target.getConstructor())) {
+    if (profile.profile(constructor == target.getConstructor())) {
       Function function = branch.executeFunction(frame);
       throw new BranchSelectedException(
           executeCallNode.executeCall(

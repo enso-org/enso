@@ -1,6 +1,6 @@
 package org.enso.interpreter.test.semantic
 
-import org.enso.interpreter.test.InterpreterException
+import org.enso.interpreter.test.{InterpreterException, PackageTest}
 
 class ImportsTest extends PackageTest {
   "Atoms and methods" should "be available for import" in {

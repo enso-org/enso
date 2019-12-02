@@ -80,15 +80,14 @@ class MethodsTest extends InterpreterTest {
   "Methods" should "be dispatched to the proper constructor" in {
     val code =
       """
-        |Nil.sum = { |acc| acc }
-        |Cons.sum = { |acc| match this <
-        |  Cons ~ { |h, t| @sum [t, h + acc] };
-        |>}
+        |Nil.sum = acc -> acc
+        |Cons.sum = acc -> case this of
+        |  Cons h t -> sum t (h + acc)
         |
-        |@sum [@Cons [1, @Cons [2, @Nil]], 0]
+        |sum (Cons 1 (Cons 2 Nil)) 0
         |""".stripMargin
 
-    evalOld(code) shouldEqual 3
+    eval(code) shouldEqual 3
   }
 
   "Method call target" should "be passable by-name" in {
@@ -97,7 +96,6 @@ class MethodsTest extends InterpreterTest {
         |Unit.testMethod = x y z -> x + y + z
         |testMethod x=1 y=2 this=Unit z=3
         |""".stripMargin
-
     eval(code) shouldEqual 6
   }
 
@@ -112,46 +110,38 @@ class MethodsTest extends InterpreterTest {
   "Methods defined on Any type" should "be callable for any type" in {
     val code =
       """
-        |type Foo;
-        |type Bar;
-        |type Baz;
+        |type Foo
+        |type Bar
+        |type Baz
         |
-        |Any.method = { match this <
-        |  Foo ~ { 1 };
-        |  Bar ~ { 2 };
-        |  Baz ~ { 3 };
-        |  { 0 };
-        |>}
+        |Any.method = case this of
+        |  Foo -> 1
+        |  Bar -> 2
+        |  Baz -> 3
+        |  _ -> 0
         |
-        |@{
-        |  @println [@IO, @method [@Foo]];
-        |  @println [@IO, @method [@Bar]];
-        |  @println [@IO, @method [@Baz]];
-        |  @println [@IO, @method [@Unit]];
-        |  @println [@IO, @method [123]];
-        |  @println [@IO, @method [{|x| x }]];
-        |  0
-        |}
+        |IO.println Foo.method
+        |IO.println Bar.method
+        |IO.println Baz.method
+        |IO.println Unit.method
+        |IO.println 123.method
+        |IO.println (x -> x).method
+        |0
         |""".stripMargin
-    evalOld(code)
+    eval(code)
     consumeOut shouldEqual List("1", "2", "3", "0", "0", "0")
   }
 
-  "Test" should "test test" in {
-    pending
-//    val code =
-//      """
-//        |Nil.sum = 0
-//        |Cons.sum = case this of
-//        |  Cons h t -> h + sum t
-//        |
-//        |myList = Cons (Cons (Cons 3 Nil) 2) 1
-//        |
-//        |""".stripMargin
+  "Methods defined across constructors" should "work as expected" in {
     val code =
       """
-        |Cons.sum = case a of
-        |  b
+        |Nil.sum = 0
+        |Cons.sum = case this of
+        |  Cons h t -> h + sum t
+        |
+        |myList = Cons 1 (Cons 2 (Cons 3 Nil))
+        |myList.sum
+        |
         |""".stripMargin
 
     eval(code) shouldEqual 6

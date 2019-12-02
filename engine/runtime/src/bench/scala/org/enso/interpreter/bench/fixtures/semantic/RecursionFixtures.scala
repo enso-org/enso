@@ -73,11 +73,11 @@ class RecursionFixtures extends InterpreterRunner {
     """
       |{ |sumTo|
       |  stateSum = { |n|
-      |    acc = @get [@State];
-      |    @put [@State, acc + n];
-      |    @ifZero [n, @get [@State], @stateSum [n-1]]
+      |    acc = @get [State];
+      |    @put [State, acc + n];
+      |    @ifZero [n, @get [State], @stateSum [n-1]]
       |  };
-      |  @put [@State, 0];
+      |  @put [State, 0];
       |  @stateSum [sumTo]
       |}
       |""".stripMargin
@@ -88,7 +88,7 @@ class RecursionFixtures extends InterpreterRunner {
     """
       |{ |sumTo|
       |  summator = { |acc, current|
-      |      @ifZero [current, acc, @eval [@Debug, "@summator [acc + current, current - 1]"]]
+      |      @ifZero [current, acc, @eval [Debug, "@summator [acc + current, current - 1]"]]
       |  };
       |  res = @summator [0, sumTo];
       |  res

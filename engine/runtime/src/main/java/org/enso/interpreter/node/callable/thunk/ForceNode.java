@@ -1,4 +1,4 @@
-package org.enso.interpreter.node.callable;
+package org.enso.interpreter.node.callable.thunk;
 
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.NodeChild;

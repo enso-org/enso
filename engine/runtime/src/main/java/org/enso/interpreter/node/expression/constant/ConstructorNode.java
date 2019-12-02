@@ -24,18 +24,11 @@ public class ConstructorNode extends ExpressionNode {
    * @return the constructor of the type defined
    */
   @Override
-  public AtomConstructor executeAtomConstructor(VirtualFrame frame) {
-    return constructor;
-  }
-
-  /**
-   * Executes the type constructor definition.
-   *
-   * @param frame the frame to execute in
-   * @return the constructor of the type defined
-   */
-  @Override
   public Object executeGeneric(VirtualFrame frame) {
-    return constructor;
+    if (constructor.getArity() == 0) {
+      return constructor.newInstance();
+    } else {
+      return constructor;
+    }
   }
 }
