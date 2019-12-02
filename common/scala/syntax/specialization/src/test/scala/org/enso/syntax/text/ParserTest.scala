@@ -12,17 +12,25 @@ import org.scalatest._
 
 class ParserTest extends FlatSpec with Matchers {
 
+  def assertSpan(input: String, ast: AST): Assertion = {
+    val gotSpan      = ast.span
+    val expectedSpan = new Reader(input).toString().length
+    gotSpan shouldEqual expectedSpan
+  }
+
   def assertModule(input: String, result: AST): Assertion = {
-    val parser  = Parser()
-    val module  = parser.run(new Reader(input))
+    val parser = Parser()
+    val module = parser.run(new Reader(input))
+    assertSpan(input, module)
     val rmodule = parser.dropMacroMeta(module)
     assert(rmodule == result)
     assert(module.show() == new Reader(input).toString())
   }
 
   def assertExpr(input: String, result: AST): Assertion = {
-    val parser  = Parser()
-    val module  = parser.run(new Reader(input))
+    val parser = Parser()
+    val module = parser.run(new Reader(input))
+    assertSpan(input, module)
     val rmodule = parser.dropMacroMeta(module)
     val tail    = module.lines.tail
     if (!tail.forall(_.elem.isEmpty)) fail("Multi-line block")
@@ -38,6 +46,7 @@ class ParserTest extends FlatSpec with Matchers {
 
   def assertIdentity(input: String): Assertion = {
     val module = Parser().run(new Reader(input))
+    assertSpan(input, module)
     assert(module.show() == new Reader(input).toString())
   }
 
@@ -170,12 +179,11 @@ class ParserTest extends FlatSpec with Matchers {
   //// Text ////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
-  import Text.Segment.implicits.txtFromString
-
+  import Shape.SegmentPlain.txtFromString
   def line(s: String, empty: Int*) =
-    Text.Block.Line(empty.to[List], List(txtFromString[AST](s)))
+    Shape.TextBlockLine(empty.to[List], List(txtFromString[AST](s)))
   def line(segment: AST.Text.Segment.Fmt, empty: Int*) =
-    Text.Block.Line(empty.to[List], List(segment))
+    Shape.TextBlockLine(empty.to[List], List(segment))
 
   "'"    ?= Text.Unclosed()
   "''"   ?= Text()
@@ -200,14 +208,19 @@ class ParserTest extends FlatSpec with Matchers {
   "\"a\"\"" ?= Text.Unclosed.Raw("a") $ Text.InvalidQuote("\"\"")
   "\"'\""   ?= Text.Raw("'")
 
-  "\"\"\" \n\n X\n\n Y"    ?= Text.Raw(1, 0, line(" X", 0), line(" Y", 0))
-  "a \"\"\"\n\n\n X\n\n Y" ?= "a" $_ Text.Raw(0, 1, line("X", 0, 0), line("Y", 0))
+  "\"\"\" \n\n X\n\n Y" ?= Text.Raw(1, 0, line(" X", 0), line(" Y", 0))
+  "a \"\"\"\n\n\n X\n\n Y" ?= "a" $_ Text.Raw(
+    0,
+    1,
+    line("X", 0, 0),
+    line("Y", 0)
+  )
 
   //// Escapes ////
 
   val Esc = Text.Segment.Escape
   def escape(esc: Text.Segment.Escape): Text.Segment.Fmt =
-    Text.Segment._Escape(esc)
+    Shape.SegmentEscape(esc)
 
   Text.Segment.Escape.Character.codes.foreach(
     i => s"'\\$i'" ?= Text(escape(i))
@@ -226,7 +239,7 @@ class ParserTest extends FlatSpec with Matchers {
 
   //// Interpolation ////
 
-  def expr(ast: AST) = Text.Segment._Expr(Some(ast))
+  def expr(ast: AST) = Shape.SegmentExpr(Some(ast))
 
   "'a`b`c'" ?= Text("a", expr("b"), "c")
   "'a`b 'c`d`e' f`g'" ?= {

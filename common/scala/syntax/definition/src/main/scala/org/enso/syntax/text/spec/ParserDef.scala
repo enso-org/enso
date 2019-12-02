@@ -6,7 +6,7 @@ import org.enso.flexer.Reader
 import org.enso.flexer.State
 import org.enso.flexer.automata.Pattern
 import org.enso.flexer.automata.Pattern._
-import org.enso.syntax.text.AST
+import org.enso.syntax.text.{AST, Shape}
 
 import scala.annotation.tailrec
 
@@ -393,14 +393,14 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
 
     def submitPlainSegment(): Unit = logger.trace {
       text.lineBuilder = text.lineBuilder match {
-        case Segment._Plain(t) :: _ =>
+        case Shape.SegmentPlain(t) :: _ =>
           Segment.Plain(t + currentMatch) :: text.lineBuilder.tail
         case _ => Segment.Plain(currentMatch) :: text.lineBuilder
       }
     }
 
     def onEscape(code: Segment.Escape): Unit = logger.trace {
-      submit(Segment._Escape(code))
+      submit(Shape.SegmentEscape(code))
     }
 
     def onEscapeU16(): Unit = logger.trace {
@@ -460,6 +460,7 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
 
     def submitLine(): Unit = logger.trace {
       if (state.current == FMT_LINE || state.current == RAW_LINE || text.lineBuilder.nonEmpty) {
+        val Line = Shape.TextBlockLine
         text.lines +:= Line(text.emptyLines.reverse, text.lineBuilder.reverse)
         text.lineBuilder = Nil
         text.emptyLines  = Nil

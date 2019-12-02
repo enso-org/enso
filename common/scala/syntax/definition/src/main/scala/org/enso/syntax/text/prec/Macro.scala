@@ -22,7 +22,7 @@ object Macro {
     new Transformer(t).run(AST.tokenize(t).toList())
 
   final private class Transformer(t: AST) {
-    val root                        = Builder.Context(Builtin.registry.tree)
+    val root: Builder.Context       = Builder.Context(Builtin.registry.tree)
 
     var builder: Builder            = Builder.moduleBuilder()
     var builderStack: List[Builder] = Nil

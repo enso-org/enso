@@ -21,13 +21,13 @@ object Repr {
   //// Smart Constructors ////
 
   def apply[T: Repr](t: T): Builder = implicitly[Repr[T]].repr(t)
+
   val R = Repr.Builder.Empty()
 
   //// Operations ////
 
   implicit class ToReprOps[T: Repr](t: T) {
     def repr: Builder = Repr(t)
-    def span: Int     = repr.span
   }
 
   ///// Instances ////
@@ -124,8 +124,8 @@ object Repr {
 
     //// Instances ////
 
-    implicit def fromString(a: String):        Builder = Repr(a)
-    implicit def fromChar(a: Char):            Builder = Repr(a)
+    implicit def fromString(a: String): Builder        = Repr(a)
+    implicit def fromChar(a: Char): Builder            = Repr(a)
     implicit def reprForBuilder[T <: Builder]: Repr[T] = identity(_)
     implicit val monoidForBuilder: Monoid[Builder] = new Monoid[Builder] {
       def empty: Builder = R

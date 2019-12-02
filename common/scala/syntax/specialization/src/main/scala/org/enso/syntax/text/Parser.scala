@@ -6,8 +6,9 @@ import cats.{Foldable, Monoid}
 import org.enso.data.{Index, List1, Shifted, Span}
 import org.enso.flexer
 import org.enso.flexer.Reader
-import org.enso.syntax.text.AST.Block.{Line, LineOf, OptLine}
-import org.enso.syntax.text.AST.{App, Location, Module}
+import org.enso.syntax.text.AST.Block.{Line, OptLine}
+import org.enso.syntax.text.AST.Macro.Match.SegmentOps
+import org.enso.syntax.text.AST.{App, Module}
 import org.enso.syntax.text.ast.meta.Builtin
 import org.enso.syntax.text.ast.opr.Prec
 import org.enso.syntax.text.prec.Distance
@@ -202,7 +203,7 @@ class Parser {
       emptyLinesNewLinesOffset + emptyLinesSpacingOffset
     var currentOffset = firstLineOffset
     currentOffset += ast.indent
-    val locatedFirstLine: LineOf[AST] =
+    val locatedFirstLine: AST.Block.Line =
       ast.firstLine.map(attachLocations(_, currentOffset))
     currentOffset += locatedFirstLine.elem.span + locatedFirstLine.off + newLineOffset
     val locatedLines = ast.lines.map { line =>
@@ -313,7 +314,7 @@ class Parser {
 
 object Parser {
   type IDMap = Seq[(Span, AST.ID)]
-  def apply(): Parser   = new Parser()
+  def apply(): Parser = new Parser()
   private val newEngine = flexer.Parser.compile(ParserDef())
 
   //// Exceptions ////

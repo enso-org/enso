@@ -54,7 +54,7 @@ object ParserBenchmark extends Bench.OfflineRegressionReport {
   }
 
   val parserInput = List(
-    "text"                  -> gen(exp(10), i => "'ab #$ 60'" * i),
+    "text"                  -> gen(exp(10), i => "'ab #$ 60' " * i),
     "number"                -> gen(exp(10), i => "123456789 " * i),
     "codeBlock"             -> gen(exp(10), i => "foo0\nBar2\n" * i),
     "codeBlock with macros" -> gen(exp(10), i => "a = x\nb++\n" * i),

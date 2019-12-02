@@ -7,8 +7,7 @@ import cats.Foldable
 import org.enso.compiler.core.IR
 import org.enso.compiler.exception.UnhandledEntity
 import org.enso.interpreter._
-import org.enso.syntax.text.AST.Location
-import org.enso.syntax.text.{AST, Debug}
+import org.enso.syntax.text.{AST, Debug, Location}
 import cats.implicits._
 
 // TODO [AA] Please note that this entire translation is _very_ work-in-progress

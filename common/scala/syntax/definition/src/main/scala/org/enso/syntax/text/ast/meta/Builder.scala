@@ -92,7 +92,7 @@ final class Builder(
           )
         }
 
-//        val resolved = mdef.fin(pfxMatch, shiftSegs.toList().map(_.el))
+        //        val resolved = mdef.fin(pfxMatch, shiftSegs.toList().map(_.el))
         val template = Macro.Match(pfxMatch, shiftSegs, null)
         val newTok   = Shifted(segs2.head.off, template)
 
@@ -198,7 +198,7 @@ object Builder {
             s"Internal error: template pattern segment was unmatched"
           )
         case Some(rr) =>
-          (Shifted(offset, Match.SegmentOf(ast, rr.elem)), rr.stream)
+          (Shifted(offset, Match.Segment(ast, rr.elem)), rr.stream)
       }
     }
 

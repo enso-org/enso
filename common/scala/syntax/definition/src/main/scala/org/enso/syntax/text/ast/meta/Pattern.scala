@@ -1,13 +1,14 @@
 package org.enso.syntax.text.ast.meta
 
-import org.enso.syntax.text.AST
+import org.enso.syntax.text.{AST, HasSpan, OffsetZip}
+import org.enso.syntax.text.HasSpan.implicits._
 import org.enso.syntax.text.AST.SAST
 import org.enso.syntax.text.prec.Operator
+import org.enso.syntax.text.ast.Repr
 
 import scala.annotation.tailrec
 import org.enso.data.Index
 import org.enso.data.Shifted
-import org.enso.syntax.text.ast.Repr
 
 ////////////////////////////////////////////////////////////////////////////////
 //// Pattern ///////////////////////////////////////////////////////////////////
@@ -56,7 +57,7 @@ object Pattern {
   final case class Or      (pat1 : P     , pat2   : P)              extends P
   final case class Many    (pat  : P)                               extends P
   final case class Except  (not  : P     , pat    : P)              extends P
-  
+
   /** Meta Patterns */
   final case class Build   (pat  : P)                               extends P
   final case class Err     (msg  : String, pat    : P)              extends P
@@ -269,32 +270,38 @@ object Pattern {
     implicit def travMatch: Traverse[MatchOf] = _MatchOf.travMatch
     implicit def foldMatch: Foldable[MatchOf] = _MatchOf.foldMatch
 
-    implicit def offZipMatch[T: Repr]: AST.OffsetZip[MatchOf, T] = t => {
+    implicit def offZipMatch[T: HasSpan]: OffsetZip[MatchOf, T] = t => {
       val s  = t.map(Shifted(0, _))
       val s2 = mapWithOff(s) { case (i, el) => Shifted(i, el.el) }
       val s3 = s2.map(t => (Index(t.off), t.el))
       s3
     }
 
+    import HasSpan.implicits._
+    implicit def span[T: HasSpan]: HasSpan[MatchOf[T]] = t => {
+      t.toStream.span()
+    }
+
     val M = Match
     // format: off
-    def mapWithOff[T:Repr](self:MatchOf[T])(f: (Int,T) => T): MatchOf[T] =
+    def mapWithOff[T:HasSpan](self:MatchOf[T])(f: (Int,T) => T): MatchOf[T] =
       mapWithOff_(self)(f,0)._1
-    
-    def mapWithOff_[T:Repr](self:MatchOf[T])(f: (Int,T) => T, off:Int): (MatchOf[T], Int) = self match {
-      case m: M.Build[T]   => (m.copy(elem = f(off,m.elem)), off + Repr(m.elem).span)
-      case m: M.Err[T]     => (m.copy(elem = f(off,m.elem)), off + Repr(m.elem).span)
-      case m: M.Tok[T]     => (m.copy(elem = f(off,m.elem)), off + Repr(m.elem).span)
-      case m: M.Blank[T]   => (m.copy(elem = f(off,m.elem)), off + Repr(m.elem).span)
-      case m: M.Var[T]     => (m.copy(elem = f(off,m.elem)), off + Repr(m.elem).span)
-      case m: M.Cons[T]    => (m.copy(elem = f(off,m.elem)), off + Repr(m.elem).span)
-      case m: M.Opr[T]     => (m.copy(elem = f(off,m.elem)), off + Repr(m.elem).span)
-      case m: M.Mod[T]     => (m.copy(elem = f(off,m.elem)), off + Repr(m.elem).span)
-      case m: M.Num[T]     => (m.copy(elem = f(off,m.elem)), off + Repr(m.elem).span)
-      case m: M.Text[T]    => (m.copy(elem = f(off,m.elem)), off + Repr(m.elem).span)
-      case m: M.Block[T]   => (m.copy(elem = f(off,m.elem)), off + Repr(m.elem).span)
-      case m: M.Macro[T]   => (m.copy(elem = f(off,m.elem)), off + Repr(m.elem).span)
-      case m: M.Invalid[T] => (m.copy(elem = f(off,m.elem)), off + Repr(m.elem).span)
+
+    def mapWithOff_[T:HasSpan](self:MatchOf[T])(f: (Int,T) => T, off:Int): (MatchOf[T], Int) = self match {
+      // TODO: [MWU] code below could likely be cleaned up with macro usage
+      case m: M.Build[T]   => (m.copy(elem = f(off,m.elem)), off + m.elem.span)
+      case m: M.Err[T]     => (m.copy(elem = f(off,m.elem)), off + m.elem.span)
+      case m: M.Tok[T]     => (m.copy(elem = f(off,m.elem)), off + m.elem.span)
+      case m: M.Blank[T]   => (m.copy(elem = f(off,m.elem)), off + m.elem.span)
+      case m: M.Var[T]     => (m.copy(elem = f(off,m.elem)), off + m.elem.span)
+      case m: M.Cons[T]    => (m.copy(elem = f(off,m.elem)), off + m.elem.span)
+      case m: M.Opr[T]     => (m.copy(elem = f(off,m.elem)), off + m.elem.span)
+      case m: M.Mod[T]     => (m.copy(elem = f(off,m.elem)), off + m.elem.span)
+      case m: M.Num[T]     => (m.copy(elem = f(off,m.elem)), off + m.elem.span)
+      case m: M.Text[T]    => (m.copy(elem = f(off,m.elem)), off + m.elem.span)
+      case m: M.Block[T]   => (m.copy(elem = f(off,m.elem)), off + m.elem.span)
+      case m: M.Macro[T]   => (m.copy(elem = f(off,m.elem)), off + m.elem.span)
+      case m: M.Invalid[T] => (m.copy(elem = f(off,m.elem)), off + m.elem.span)
       case m: Pattern.MatchOf[T] =>
         var loff = off
         val out  = m.mapStructShallow {p =>

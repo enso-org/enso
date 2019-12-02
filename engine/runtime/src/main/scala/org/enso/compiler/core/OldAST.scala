@@ -3,7 +3,7 @@ package org.enso.compiler.core
 import java.util.Optional
 
 import org.apache.commons.lang3.StringEscapeUtils
-import org.enso.syntax.text.AST.Location
+import org.enso.syntax.text.Location
 
 import scala.collection.JavaConverters._
 import scala.language.postfixOps

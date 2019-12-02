@@ -140,6 +140,10 @@ jobs:
         continueOnError: true
         displayName: Test All
       - script: |
+          sbt syntax/bench
+        displayName: Benchmark the Parser
+        continueOnError: true
+      - script: |
           sbt runtime/Benchmark/compile
         displayName: Check Runtime Benchmarks Compile
         continueOnError: true
