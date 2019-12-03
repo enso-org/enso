@@ -19,6 +19,7 @@ use crate::system::web::resize_observer::ResizeObserver;
 use eval_tt::*;
 use wasm_bindgen::prelude::Closure;
 use web_sys::WebGlRenderingContext;
+use crate::text;
 
 
 // =============
@@ -47,6 +48,9 @@ pub struct Workspace<OnDirty> {
     pub shape_dirty         : ShapeDirty<OnDirty>,
     pub logger              : Logger,
     pub listeners           : Listeners,
+    // TODO[AO] this is a very temporary solution. Need to develop some general
+    // component handling
+    pub text_components     : Vec<text::TextComponent>,
 }
 
 #[derive(Default)]
@@ -103,9 +107,10 @@ impl<OnDirty: Clone + Callback0 + 'static> Workspace<OnDirty> {
         let shape         = default();
         let listeners     = Self::init_listeners(&canvas,&shape,&shape_dirty);
         let mesh_registry_dirty = dirty_flag;
+        let text_components     = Vec::new();
         let this = Self
             {canvas,context,pixel_ratio,mesh_registry,mesh_registry_dirty
-            ,shape,shape_dirty,logger,listeners};
+            ,shape,shape_dirty,logger,listeners, text_components};
         Ok(this)
     }
     /// Initialize all listeners and attach them to DOM elements.
@@ -160,15 +165,25 @@ impl<OnDirty: Clone + Callback0 + 'static> Workspace<OnDirty> {
                 self.mesh_registry.update();
                 self.mesh_registry_dirty.unset();
             }
-        
+
+            // Clear
+            self.context.clear_color(0.0, 0.0, 0.0, 1.0);
+            self.context.clear(webgl::Context::COLOR_BUFFER_BIT);
+
+            for text_component in &self.text_components {
+                text_component.display()
+            }
+
+            if self.text_components.is_empty() {
+            // Note [broken indentation]
             let vert_shader = webgl::compile_shader(
-                &self.context,
-                webgl::Context::VERTEX_SHADER,
-                r#"
-    attribute vec4 position;
-    void main() {
-        gl_Position = position;
-    }
+            &self.context,
+            webgl::Context::VERTEX_SHADER,
+            r#"
+attribute vec4 position;
+void main() {
+    gl_Position = position;
+}
 "#,
             )
             .unwrap();
@@ -190,7 +205,7 @@ impl<OnDirty: Clone + Callback0 + 'static> Workspace<OnDirty> {
 
             println!("pos_loc: {}", pos_loc);
 
-            let vertices: [f32; 9] = 
+            let vertices: [f32; 9] =
                  [ -1.0, -1.0, 0.0
                  ,  1.0, -1.0, 0.0
                  ,  0.0,  1.0, 0.0
@@ -221,11 +236,6 @@ impl<OnDirty: Clone + Callback0 + 'static> Workspace<OnDirty> {
             // === Rendering ===
             // =================
 
-            // Clear
-            self.context.clear_color(0.0, 0.0, 0.0, 1.0);
-            self.context.clear(webgl::Context::COLOR_BUFFER_BIT);
-
-
             self.context.use_program(Some(&program));
 
             self.context.enable_vertex_attrib_array(pos_loc);
@@ -244,10 +254,16 @@ impl<OnDirty: Clone + Callback0 + 'static> Workspace<OnDirty> {
 
 
             self.context.draw_arrays(webgl::Context::TRIANGLES, 0, (vertices.len() / 3) as i32);
+            }
 })
     }
 }
 
+/* Note [broken indentation]
+ *
+ * This code is refactored on another branch, so is left as it is to avoid
+ * heavy merge/rebase conflicts
+ */
 
 impl<OnDirty> Index<usize> for Workspace<OnDirty> {
     type Output = Mesh<OnDirty>;

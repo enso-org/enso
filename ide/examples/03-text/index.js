@@ -1,2 +1,2 @@
 import * as wasm from "basegl";
-wasm.run_01_example()
+wasm.run_03_text()

@@ -10,8 +10,8 @@ module.exports = {
   },
   mode: "development",
   node: {
-      fs: 'empty'
-    },
+    fs: 'empty'
+  },
   plugins: [
     new CopyWebpackPlugin(['index.html']),
 //    new HtmlWebpackPlugin({template: 'index.html'}),

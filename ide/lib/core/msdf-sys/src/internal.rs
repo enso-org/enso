@@ -1,8 +1,16 @@
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::JsValue;
+use crate::prelude::*;
 
 #[wasm_bindgen(module = "/msdfgen_wasm.js")]
 extern {
+    #[wasm_bindgen(js_name="addInitializationCb")]
+    pub fn on_emscripten_runtime_initialized(callback : JsValue)
+        -> js_sys::Promise;
+
+    #[wasm_bindgen(js_name="isInitialized")]
+    pub fn is_emscripten_runtime_initialized() -> bool;
+
     #[wasm_bindgen(js_name="ccall")]
     pub fn emscripten_call_function(
         name        : &str,
@@ -48,18 +56,58 @@ pub mod emscripten_data_types {
     pub const FLOAT  : &str = "float";
 }
 
-pub fn copy_f32_data_from_msdfgen_memory(
-    address        : usize,
-    output         : &mut[f32],
-    elements_count : usize
-) {
-    for (i, element) in
-        output.iter_mut().enumerate().take(elements_count) {
+// ==========================
+// === F32ArrayMemoryView ===
+// ==========================
 
-        let offset = i * emscripten_data_types::FLOAT_SIZE_IN_BYTES;
-        *element = emscripten_get_value_from_memory(
-            address + offset,
-            emscripten_data_types::FLOAT
-        ).as_f64().unwrap() as f32;
+pub struct F32ArrayMemoryView {
+    begin_address : usize,
+    end_address   : usize
+}
+
+pub struct F32ArrayMemoryViewIterator {
+    next_read_address : usize,
+    end_address       : usize
+}
+
+impl F32ArrayMemoryView {
+    pub fn new(address : usize, size : usize) -> F32ArrayMemoryView {
+        let size_in_bytes =
+            size * emscripten_data_types::FLOAT_SIZE_IN_BYTES;
+        F32ArrayMemoryView {
+            begin_address : address,
+            end_address   : address + size_in_bytes
+        }
+    }
+
+    pub fn iter(&self) -> F32ArrayMemoryViewIterator {
+        F32ArrayMemoryViewIterator {
+            next_read_address : self.begin_address,
+            end_address       : self.end_address
+        }
+    }
+}
+
+impl IntoIterator for F32ArrayMemoryView {
+    type Item = f32;
+    type IntoIter = F32ArrayMemoryViewIterator;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
+impl Iterator for F32ArrayMemoryViewIterator {
+    type Item = f32;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let has_element = self.next_read_address < self.end_address;
+        has_element.and_option_from(|| {
+            let ret_val = emscripten_get_value_from_memory(
+                self.next_read_address,
+                emscripten_data_types::FLOAT);
+            self.next_read_address += emscripten_data_types::FLOAT_SIZE_IN_BYTES;
+            Some(ret_val.as_f64().unwrap() as f32)
+        })
     }
 }
