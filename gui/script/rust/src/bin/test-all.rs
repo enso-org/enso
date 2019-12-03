@@ -11,6 +11,8 @@ fn get_workspace_members(cargo_toml_root : toml::Value) -> Vec<String> {
     }
 }
 
+const BUILD_UTILITIES_DIR : &str = "build-utilities";
+
 /// Call wasm-pack test for each workspace member
 ///
 /// This function reads workspace members list from `Cargo.toml` in current
@@ -21,7 +23,11 @@ fn main() {
     let cargo_toml_root = std::fs::read_to_string("Cargo.toml").unwrap()
         .parse::<toml::Value>().unwrap();
 
-    for member in get_workspace_members(cargo_toml_root) {
+    let all_members = get_workspace_members(cargo_toml_root);
+    let tested_members = all_members.iter()
+        .filter(|path| !path.starts_with(BUILD_UTILITIES_DIR));
+
+    for member in tested_members {
         println!("Running tests for {}:", member);
         let status = std::process::Command::new("wasm-pack")
             .arg("test")

@@ -1,20 +1,22 @@
 [package]
-name = "basegl-core-msdf-sys"
+name    = "basegl-core-msdf-sys"
 version = "0.1.0"
 authors = ["Enso Team <contact@luna-lang.org>"]
 edition = "2018"
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-wasm-bindgen = "0.2.53"
-js-sys = "0.3.30"
-vector2d = "2.2.0"
+wasm-bindgen   = "0.2.53"
+js-sys         = "0.3.30"
+vector2d       = "2.2.0"
+basegl-prelude = { version = "0.1.0", path="../../prelude" }
 
 [dev-dependencies]
-wasm-bindgen-test = "0.3.3"
+wasm-bindgen-test          = "0.3.3"
+futures                    = ""
+basegl-core-embedded-fonts = { version = "0.1.0", path="../embedded-fonts" }
 
 [build-dependencies]
-download-lp = "0.2.0"
-zip = { version = "0.5" }
+basegl-build-utilities = { version = "0.1.0", path="../../../build-utilities" }

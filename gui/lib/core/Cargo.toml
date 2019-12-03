@@ -12,27 +12,29 @@ default = ["no_unboxed_callbacks"]
 no_unboxed_callbacks = []
 
 [dependencies]
-basegl-prelude           = { version = "0.1.0"  , path = "../prelude"       }
-eval-tt                  = { version = "0.1.0"  , path = "../eval-tt"       }
-optics                   = { version = "0.1.0"  , path = "../optics"        }
-basegl-system-web        = { version = "0.1.0"  , path = "../system/web"    }
-basegl-backend-webgl     = { version = "0.1.0"  , path = "../backend/webgl" }
-shapely                  = { version = "0.1.0"  , path = "../shapely/impl"  }
-wasm-bindgen             = { version = "^0.2"   , features = ["nightly"]    }
-js-sys                   = { version = "0.3.28"  }
-failure                  = { version = "0.1.5"   }
-derive_more              = { version = "0.15.0"  }
-shrinkwraprs             = { version = "0.2.1"   }
-itertools                = { version = "0.8"     }
-nalgebra                 = { version = "0.18.1"  }
-bit_field                = { version = "0.10.0"  }
-paste                    = { version = "0.1.6"   }
-enum_dispatch            = { version = "= 0.1.3" } # https://gitlab.com/antonok/enum_dispatch/issues/10
-typenum                  = { version = "1.11.2"  }
-rustc-hash               = { version = "1.0.1"   }
-console_error_panic_hook = { version = "0.1.6"   }
-num_enum                 = { version = "0.4.2"   }
-smallvec                 = { version = "1.0.0"   }
+basegl-prelude             = { version = "0.1.0"  , path = "../prelude"       }
+eval-tt                    = { version = "0.1.0"  , path = "../eval-tt"       }
+optics                     = { version = "0.1.0"  , path = "../optics"        }
+basegl-system-web          = { version = "0.1.0"  , path = "../system/web"    }
+basegl-backend-webgl       = { version = "0.1.0"  , path = "../backend/webgl" }
+basegl-core-embedded-fonts = { version = "0.1.0"  , path = "embedded-fonts"   }
+basegl-core-msdf-sys       = { version = "0.1.0"  , path = "msdf-sys"         }
+shapely                    = { version = "0.1.0"  , path = "../shapely/impl"  }
+wasm-bindgen               = { version = "^0.2"   , features = ["nightly"]    }
+js-sys                     = { version = "0.3.28"  }
+failure                    = { version = "0.1.5"   }
+derive_more                = { version = "0.15.0"  }
+shrinkwraprs               = { version = "0.2.1"   }
+itertools                  = { version = "0.8"     }
+nalgebra                   = { version = "0.18.1"  }
+bit_field                  = { version = "0.10.0"  }
+paste                      = { version = "0.1.6"   }
+enum_dispatch              = { version = "= 0.1.3" } # https://gitlab.com/antonok/enum_dispatch/issues/10
+typenum                    = { version = "1.11.2"  }
+rustc-hash                 = { version = "1.0.1"   }
+console_error_panic_hook   = { version = "0.1.6"   }
+num_enum                   = { version = "0.4.2"   }
+smallvec                   = { version = "1.0.0"   }
 
 [dependencies.web-sys]
 version = "0.3.4"
@@ -48,9 +50,11 @@ features = [
   'WebGlRenderingContext',
   'WebGlProgram',
   'WebGlShader',
+  'WebGlUniformLocation',
+  'WebGlTexture',
   'Window',
   'console'
 ]
 
 [dev-dependencies]
-wasm-bindgen-test = "0.2"
+wasm-bindgen-test = "0.3.3"
