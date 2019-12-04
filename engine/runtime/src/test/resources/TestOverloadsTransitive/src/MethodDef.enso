@@ -1,5 +1,5 @@
 import TestOverloadsTransitive.AtomDef
 
-X.method = 30
+X.method = x -> 30
 
 0

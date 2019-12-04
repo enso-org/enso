@@ -1,18 +1,19 @@
 package org.enso.interpreter.runtime.callable.argument;
 
 import com.oracle.truffle.api.RootCallTarget;
+import org.enso.interpreter.node.ExpressionNode;
 
 /** Tracks the specifics about how arguments are specified at a call site. */
 public class CallArgument {
   private final String name;
-  private final RootCallTarget expression;
+  private final ExpressionNode expression;
 
   /**
    * Creates an argument passed positionally.
    *
    * @param expression the value of the argument
    */
-  public CallArgument(RootCallTarget expression) {
+  public CallArgument(ExpressionNode expression) {
     this(null, expression);
   }
 
@@ -22,7 +23,7 @@ public class CallArgument {
    * @param name the name of the argument being applied
    * @param expression the value of the argument
    */
-  public CallArgument(String name, RootCallTarget expression) {
+  public CallArgument(String name, ExpressionNode expression) {
     this.name = name;
     this.expression = expression;
   }
@@ -60,7 +61,7 @@ public class CallArgument {
    *
    * @return the expression representing the value of the argument
    */
-  public RootCallTarget getExpression() {
+  public ExpressionNode getExpression() {
     return expression;
   }
 }

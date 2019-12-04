@@ -34,7 +34,8 @@ trait AstExpressionVisitor[+T] {
 
   def visitBlock(
     statements: java.util.List[AstExpression],
-    retValue: AstExpression
+    retValue: AstExpression,
+    suspended: Boolean
   ): T
 }
 
@@ -244,10 +245,11 @@ case class AstForce(location: Option[Location], target: AstExpression)
 case class AstBlock(
   location: Option[Location],
   statements: List[AstExpression],
-  retVal: AstExpression
+  retVal: AstExpression,
+  suspended: Boolean = false
 ) extends AstExpression {
   override def visit[T](visitor: AstExpressionVisitor[T]): T =
-    visitor.visitBlock(statements.asJava, retVal)
+    visitor.visitBlock(statements.asJava, retVal, suspended)
 }
 
 class EnsoParserInternal extends JavaTokenParsers {
@@ -341,7 +343,7 @@ class EnsoParserInternal extends JavaTokenParsers {
     }
 
   def caseFunction: Parser[AstCaseFunction] = function ^^ {
-    case AstFunction(None, args, AstBlock(None, stmts, ret)) =>
+    case AstFunction(None, args, AstBlock(None, stmts, ret, _)) =>
       AstCaseFunction(None, args, AstBlock(None, stmts, ret))
   }
 

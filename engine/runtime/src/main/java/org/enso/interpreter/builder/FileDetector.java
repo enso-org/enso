@@ -26,8 +26,7 @@ public final class FileDetector implements TruffleFile.FileTypeDetector {
   public String findMimeType(TruffleFile file) throws IOException {
     String name = file.getName();
     if (name != null && name.endsWith(Constants.FILE_EXTENSION)) {
-      // TODO [AA] Once the new connection is complete remove this
-      return Constants.Debug.MIME_TYPE;
+      return Constants.MIME_TYPE;
     }
     return null;
   }

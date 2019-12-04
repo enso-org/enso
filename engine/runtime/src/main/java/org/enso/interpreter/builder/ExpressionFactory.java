@@ -4,25 +4,54 @@ import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.nodes.RootNode;
-import org.enso.compiler.core.*;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
-import org.enso.interpreter.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Supplier;
+import java.util.stream.Stream;
+import org.enso.compiler.core.AstApply;
+import org.enso.compiler.core.AstArgDefinition;
+import org.enso.compiler.core.AstArithOp;
+import org.enso.compiler.core.AstAssignment;
+import org.enso.compiler.core.AstCallArg;
+import org.enso.compiler.core.AstCaseFunction;
+import org.enso.compiler.core.AstExpression;
+import org.enso.compiler.core.AstExpressionVisitor;
+import org.enso.compiler.core.AstForce;
+import org.enso.compiler.core.AstFunction;
+import org.enso.compiler.core.AstLong;
+import org.enso.compiler.core.AstMatch;
+import org.enso.compiler.core.AstStringLiteral;
+import org.enso.compiler.core.AstVariable;
+import org.enso.interpreter.Language;
 import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.ApplicationNode;
-import org.enso.interpreter.node.callable.thunk.ForceNode;
-import org.enso.interpreter.node.callable.thunk.ForceNodeGen;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode;
-import org.enso.interpreter.node.callable.function.CreateFunctionNode;
 import org.enso.interpreter.node.callable.function.BlockNode;
-import org.enso.interpreter.node.controlflow.*;
+import org.enso.interpreter.node.callable.function.CreateFunctionNode;
+import org.enso.interpreter.node.callable.thunk.CreateThunkNode;
+import org.enso.interpreter.node.callable.thunk.ForceNode;
+import org.enso.interpreter.node.callable.thunk.ForceNodeGen;
+import org.enso.interpreter.node.controlflow.CaseNode;
+import org.enso.interpreter.node.controlflow.ConstructorCaseNode;
+import org.enso.interpreter.node.controlflow.DefaultFallbackNode;
+import org.enso.interpreter.node.controlflow.FallbackNode;
+import org.enso.interpreter.node.controlflow.MatchNodeGen;
 import org.enso.interpreter.node.expression.constant.ConstructorNode;
 import org.enso.interpreter.node.expression.constant.DynamicSymbolNode;
 import org.enso.interpreter.node.expression.literal.IntegerLiteralNode;
-import org.enso.interpreter.node.expression.literal.StringLiteralNode;
-import org.enso.interpreter.node.expression.operator.*;
+import org.enso.interpreter.node.expression.literal.TextLiteralNode;
+import org.enso.interpreter.node.expression.operator.AddOperatorNodeGen;
+import org.enso.interpreter.node.expression.operator.DivideOperatorNodeGen;
+import org.enso.interpreter.node.expression.operator.ModOperatorNodeGen;
+import org.enso.interpreter.node.expression.operator.MultiplyOperatorNodeGen;
+import org.enso.interpreter.node.expression.operator.SubtractOperatorNodeGen;
 import org.enso.interpreter.node.scope.AssignmentNode;
 import org.enso.interpreter.node.scope.AssignmentNodeGen;
 import org.enso.interpreter.node.scope.ReadLocalTargetNodeGen;
@@ -32,12 +61,7 @@ import org.enso.interpreter.runtime.callable.argument.CallArgument;
 import org.enso.interpreter.runtime.error.DuplicateArgumentNameException;
 import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
-import org.enso.syntax.text.AST;
 import org.enso.syntax.text.Location;
-
-import java.util.*;
-import java.util.function.Supplier;
-import java.util.stream.Stream;
 
 /**
  * An {@code ExpressionFactory} is responsible for converting the majority of Enso's parsed AST into
@@ -156,7 +180,7 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
    */
   @Override
   public ExpressionNode visitStringLiteral(AstStringLiteral string) {
-    ExpressionNode node = new StringLiteralNode(string.string());
+    ExpressionNode node = new TextLiteralNode(string.string());
     return setLocation(node, string.getLocation());
   }
 
@@ -345,7 +369,6 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
   @Override
   public ExpressionNode visitFunctionApplication(AstApply application) {
     CallArgFactory argFactory = new CallArgFactory(scope, language, source, scopeName, moduleScope);
-
     List<AstCallArg> arguments = application.getArgs();
     List<CallArgument> callArgs = new ArrayList<>();
     for (int position = 0; position < arguments.size(); ++position) {
@@ -438,10 +461,26 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
    * @return AST fragment representing the block
    */
   @Override
-  public ExpressionNode visitBlock(List<AstExpression> statements, AstExpression retValue) {
-    ExpressionNode[] statementExprs =
-        statements.stream().map(expr -> expr.visit(this)).toArray(ExpressionNode[]::new);
-    ExpressionNode retExpr = retValue.visit(this);
-    return new BlockNode(statementExprs, retExpr);
+  public ExpressionNode visitBlock(
+      List<AstExpression> statements, AstExpression retValue, boolean suspended) {
+    if (suspended) {
+      ExpressionFactory childFactory = this.createChild("suspended-block");
+      LocalScope childScope = childFactory.scope;
+
+      ExpressionNode block = childFactory.visitBlock(statements, retValue, false);
+
+      RootNode defaultRootNode =
+          new ClosureRootNode(
+              language, childScope, moduleScope, block, null, "default::" + scopeName);
+      RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(defaultRootNode);
+
+      return CreateThunkNode.build(callTarget);
+    } else {
+      ExpressionNode[] statementExprs =
+          statements.stream().map(expr -> expr.visit(this)).toArray(ExpressionNode[]::new);
+      ExpressionNode retExpr = retValue.visit(this);
+
+      return new BlockNode(statementExprs, retExpr);
+    }
   }
 }

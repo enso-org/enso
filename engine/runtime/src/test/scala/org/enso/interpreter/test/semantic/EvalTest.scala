@@ -5,81 +5,76 @@ import org.enso.interpreter.test.InterpreterTest
 class EvalTest extends InterpreterTest {
   "Debug.eval" should "evaluate a string expression" in {
     val code =
-      """
-        |@{
-        |  @eval [Debug, "@println[IO, \"foo\"]"]
-        |}
+      s"""
+        |Debug.eval $rawTQ
+        |  IO.println "foo"
         |""".stripMargin
-    evalOld(code)
+    eval(code)
     consumeOut shouldEqual List("foo")
   }
 
   "Debug.eval" should "have access to the caller scope" in {
     val code =
-      """
-        |@{
-        |  x = "Hello World!";
-        |  @eval [Debug, "@println[IO, x]"]
-        |}
+      s"""
+        |x = "Hello World!"
+        |
+        |Debug.eval $rawTQ
+        |  IO.println x
         |""".stripMargin
-    evalOld(code)
+    eval(code)
     consumeOut shouldEqual List("Hello World!")
   }
 
   "Debug.eval" should "have access to the caller module scope" in {
     val code =
-      """
-        |type MyType x;
+      s"""
+        |type MyType x
+        |x = 10
         |
-        |@{
-        |  x = 10;
-        |  @eval [Debug, "@println[IO, @MyType[x]]"]
-        |}
+        |Debug.eval $rawTQ
+        |  IO.println (MyType x)
         |""".stripMargin
-    evalOld(code)
+    eval(code)
     consumeOut shouldEqual List("MyType<10>")
   }
 
   "Debug.eval" should "return a value usable in the caller scope" in {
     val code =
       """
-        |@{
-        |  x = 1;
-        |  y = 2;
-        |  res = @eval [Debug, "x + y"];
-        |  res + 1
-        |}
+        |x = 1
+        |y = 2
+        |
+        |res = Debug.eval "x + y"
+        |res + 1
         |""".stripMargin
-    evalOld(code) shouldEqual 4
+    eval(code) shouldEqual 4
   }
 
   "Debug.eval" should "work in a recursive setting" in {
     val code =
       """
-        |{ |sumTo|
-        |  summator = { |acc, current|
-        |      @eval [Debug, "@ifZero [current, acc, @summator [acc + current, current - 1]]"]
-        |  };
-        |  res = @summator [0, sumTo];
-        |  res
-        |}
+        |fn = sumTo ->
+        |  summator = acc current ->
+        |    Debug.eval "ifZero current acc (summator (acc + current) (current - 1))"
+        |
+        |  summator 0 sumTo
+        |
+        |fn 100
         |""".stripMargin
-    val fun = evalOld(code)
-    fun.call(100) shouldEqual 5050
+    eval(code) shouldEqual 5050
   }
 
   "Debug.eval" should "work inside a thunk passed to another function" in {
     val code =
       """
-        |{ |sumTo|
-        |  summator = { |acc, current|
-        |      @ifZero [current, acc, @eval [Debug, "@summator [acc + current, current - 1]"]]
-        |  };
-        |  res = @summator [0, sumTo];
-        |  res
-        |}
+        |fn = sumTo ->
+        |  summator = acc current ->
+        |    ifZero current acc (Debug.eval "summator (acc + current) (current - 1)")
+        |
+        |  summator 0 sumTo
+        |
+        |fn 100
         |""".stripMargin
-    val fun = evalOld(code)
-    fun.call(100) shouldEqual 5050
+    eval(code) shouldEqual 5050
   }
 }

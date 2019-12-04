@@ -1,5 +1,5 @@
-type X a;
+type X a
 
-Unit.util = { |x| @method [x] }
+Unit.util = x -> x.method
 
 0

@@ -13,6 +13,16 @@ import org.enso.syntax.text.{AST, Debug}
   */
 object AstView {
 
+  object SuspendedBlock {
+    def unapply(ast: AST): Option[(AST.Ident.Var, AST.Block)] = {
+      ast match {
+        case Assignment(name, AST.Block.any(block)) =>
+          Some((name, block))
+        case _ => None
+      }
+    }
+  }
+
   object Block {
     def unapply(ast: AST): Option[(List[AST], AST)] = ast match {
       case AST.Block(_, _, firstLine, lines) =>
@@ -114,8 +124,6 @@ object AstView {
   }
 
   object LambdaParamList {
-    //TODO suspended arguments
-
     def unapply(ast: AST): Option[List[AST]] = {
       ast match {
         case SpacedList(args) =>

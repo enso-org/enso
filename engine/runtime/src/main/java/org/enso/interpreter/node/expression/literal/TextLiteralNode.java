@@ -6,7 +6,7 @@ import org.enso.interpreter.node.ExpressionNode;
 
 /** Node representing a constant String value. */
 @NodeInfo(shortName = "StringLiteral", description = "Constant string literal expression")
-public class StringLiteralNode extends ExpressionNode {
+public class TextLiteralNode extends ExpressionNode {
   private final String value;
 
   /**
@@ -14,7 +14,7 @@ public class StringLiteralNode extends ExpressionNode {
    *
    * @param value the literal value this node represents
    */
-  public StringLiteralNode(String value) {
+  public TextLiteralNode(String value) {
     this.value = value;
   }
 

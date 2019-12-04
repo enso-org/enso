@@ -34,23 +34,20 @@ class StateTest extends InterpreterTest {
     eval(code) shouldEqual 5
   }
 
-  // TODO [AA,MK]: New syntax must support suspended blocks like `myFun` here
   "State" should "be localized with State.run" in {
     val code =
       """
-        |@{
-        |  @put[State, 20];
-        |  myFun = {
-        |    res = @get[State];
-        |    @put[State, 0];
-        |    res
-        |  };
-        |  res = @run[State, 10, @myFun];
-        |  state = @get[State];
-        |  res + state
-        |}
+        |State.put 20
+        |myBlock =
+        |  res = State.get
+        |  State.put 0
+        |  res
+        |
+        |res2 = State.run 10 ~myBlock
+        |state = State.get
+        |res2 + state
         |""".stripMargin
-    evalOld(code) shouldEqual 30
+    eval(code) shouldEqual 30
   }
 
   "State" should "work well with recursive code" in {
@@ -97,17 +94,17 @@ class StateTest extends InterpreterTest {
     consumeOut shouldEqual List("11", "16")
   }
 
-  // TODO [AA] Needs suspended blocks
   "Panics" should "undo state changes" in {
     val code =
       """
-        |@{
-        |  panicker = { @put[State, 400]; @throw[Panic, Unit] };
-        |  @put[State,-5];
-        |  @recover[Panic, @panicker];
-        |  @get[State]
-        |}
+        |panicker =
+        |  State.put 400
+        |  Panic.throw Unit
+        |
+        |State.put 5
+        |Panic.recover ~panicker
+        |State.get
         |""".stripMargin
-    evalOld(code) shouldEqual (-5)
+    eval(code) shouldEqual 5
   }
 }

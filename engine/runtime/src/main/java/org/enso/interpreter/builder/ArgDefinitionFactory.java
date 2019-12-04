@@ -109,7 +109,7 @@ public class ArgDefinitionFactory implements AstArgDefinitionVisitor<ArgumentDef
 
       RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(defaultRootNode);
 
-      defaultedValue = new CreateThunkNode(callTarget);
+      defaultedValue = CreateThunkNode.build(callTarget);
     }
 
     ArgumentDefinition.ExecutionMode executionMode =

@@ -1,5 +1,6 @@
 package org.enso.compiler
 
+import java.io.StringReader
 import java.util.Optional
 
 import com.oracle.truffle.api.TruffleFile
@@ -7,13 +8,15 @@ import com.oracle.truffle.api.source.Source
 import org.enso.compiler.core.{AstExpression, AstModuleScope, EnsoParser}
 import org.enso.compiler.generate.AstToAstExpression
 import org.enso.flexer.Reader
-import org.enso.interpreter.builder.ExpressionFactory
-import org.enso.interpreter.builder.ModuleScopeExpressionFactory
+import org.enso.interpreter.builder.{
+  ExpressionFactory,
+  ModuleScopeExpressionFactory
+}
 import org.enso.interpreter.node.ExpressionNode
-import org.enso.interpreter.runtime.{Context, Module}
 import org.enso.interpreter.runtime.callable.function.Function
 import org.enso.interpreter.runtime.error.ModuleDoesNotExistException
 import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
+import org.enso.interpreter.runtime.{Context, Module}
 import org.enso.interpreter.{Constants, Language}
 import org.enso.syntax.text.{AST, Parser}
 
@@ -103,21 +106,31 @@ class Compiler(
     * @return an expression node representing the parsed and analyzed source
     */
   def runInline(
-    source: String,
+    srcString: String,
     language: Language,
     localScope: LocalScope,
     moduleScope: ModuleScope
-  ): ExpressionNode = {
-    val parsed = parseInline(source)
-    new ExpressionFactory(
-      language,
-      Source
-        .newBuilder(Constants.LANGUAGE_ID, source, "<interactive_source>")
-        .build(),
-      localScope,
-      "<inline_source>",
-      moduleScope
-    ).run(parsed)
+  ): Option[ExpressionNode] = {
+    val source = Source
+      .newBuilder(
+        Constants.LANGUAGE_ID,
+        new StringReader(srcString),
+        "<interactive_source>"
+      )
+      .build()
+    val parsed: AST = parse(source)
+    
+    translateInline(parsed).flatMap { ast =>
+      Some(
+        new ExpressionFactory(
+          language,
+          source,
+          localScope,
+          "<inline_source>",
+          moduleScope
+        ).run(ast)
+      )
+    }
   }
 
   /**
@@ -152,17 +165,6 @@ class Compiler(
   }
 
   /**
-    * Parses the provided language source expression in inline mode.
-    *
-    * @param source the code to parse
-    * @return an AST representation of `source`
-    */
-  def parseInline(source: String): AstExpression = {
-    val parsed = new EnsoParser().parseEnsoInline(source)
-    parsed
-  }
-
-  /**
     * Lowers the input AST to the compiler's high-level intermediate
     * representation.
     *
@@ -172,4 +174,7 @@ class Compiler(
     */
   def translate(sourceAST: AST): AstModuleScope =
     AstToAstExpression.translate(sourceAST)
+
+  def translateInline(sourceAST: AST): Option[AstExpression] =
+    AstToAstExpression.translateInline(sourceAST)
 }

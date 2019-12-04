@@ -145,11 +145,11 @@ class CodeLocationsTest extends InterpreterTest {
   withLocationsInstrumenter { instrumenter =>
     val code =
       """
-        |bar = a ~b ~c -> ifZero a ~b ~c
+        |bar = a ~b ~c -> a + ~b + ~c
         |
-        |bar 0 (IO.println 0) 0
+        |bar 0 10 0
         |""".stripMargin
-    instrumenter.assertNodeExists(27, 2, classOf[ForceNode])
+    instrumenter.assertNodeExists(22, 2, classOf[ForceNode])
     eval(code)
   }
 }

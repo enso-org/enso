@@ -27,7 +27,7 @@ import org.enso.syntax.text.ast.meta.Pattern
 import scala.annotation.tailrec
 import scala.reflect.ClassTag
 
-/* Note: [JSON Serialization]
+/* Note [JSON Serialization]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  * Using Circe's auto-derived `asJson` on AST is extremely costly in terms
  * of compile-time resource usage. It adds like 2-4 min to compile time.
@@ -1445,7 +1445,7 @@ object AST {
       ids.reverse
     }
 
-    // Note: [JSON Serialization] at the file top
+    // Note [JSON Serialization]
     def toJson(): Json = {
       import io.circe.syntax._
       import io.circe.generic.auto._
@@ -1636,9 +1636,12 @@ object AST {
       }
 
       object Block {
+        val Line = Shape.TextBlockLine
         type Line[T] = Shape.TextBlockLine[T]
-        type Raw[T]  = Shape.TextBlockRaw[T]
-        type Fmt[T]  = Shape.TextBlockFmt[T]
+        val Raw = Shape.TextBlockRaw
+        type Raw[T] = Shape.TextBlockRaw[T]
+        val Fmt = Shape.TextBlockFmt
+        type Fmt[T] = Shape.TextBlockFmt[T]
       }
 
       ////// CONSTRUCTORS ///////
@@ -1695,16 +1698,26 @@ object AST {
       type Segment[T] = Shape.Segment[T]
       object Segment {
 
-        type Escape = org.enso.syntax.text.ast.text.Escape
         val Escape = org.enso.syntax.text.ast.text.Escape
+        type Escape = org.enso.syntax.text.ast.text.Escape
 
         //// Definition ////
 
+        val Fmt = Shape.SegmentFmt
         type Fmt = Shape.SegmentFmt[AST]
+        val Raw = Shape.SegmentRaw
         type Raw = Shape.SegmentRaw[AST]
 
-        object Expr  { def apply(t: Option[AST]): Fmt = Shape.SegmentExpr(t)  }
-        object Plain { def apply(s: String):      Raw = Shape.SegmentPlain(s) }
+        object Expr {
+          def apply(t: Option[AST]): Fmt = Shape.SegmentExpr(t)
+          def unapply(shape: Shape.SegmentExpr[AST]): Option[Option[AST]] =
+            Shape.SegmentExpr.unapply(shape)
+        }
+        object Plain {
+          def apply(s: String): Raw = Shape.SegmentPlain(s)
+          def unapply(shape: Shape.SegmentPlain[AST]): Option[String] =
+            Shape.SegmentPlain.unapply(shape)
+        }
       }
     }
   }

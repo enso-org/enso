@@ -2,4 +2,4 @@ import TestNonImportedOverloads.Util
 
 X.method = 10
 
-@util [Unit, @X [1]]
+Unit.util (X 1)

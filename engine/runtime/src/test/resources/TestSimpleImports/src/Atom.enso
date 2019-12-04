@@ -1,3 +1,6 @@
-type X a;
-X.method = { 20 }
+type X a
+
+X.method =
+  20
+
 0

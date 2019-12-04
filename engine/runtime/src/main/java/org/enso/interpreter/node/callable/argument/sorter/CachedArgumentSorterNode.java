@@ -139,7 +139,7 @@ public class CachedArgumentSorterNode extends BaseNode {
     executors = new ThunkExecutorNode[argumentShouldExecute.length];
     for (int i = 0; i < argumentShouldExecute.length; i++) {
       if (argumentShouldExecute[i] && arguments[i] instanceof Thunk) {
-        executors[i] = ThunkExecutorNode.build(false);
+        executors[i] = insert(ThunkExecutorNode.build(false));
       }
     }
   }

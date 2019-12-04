@@ -136,12 +136,13 @@ class NamedArgumentsTest extends InterpreterTest {
   }
 
   "Named arguments" should "be applied in a sequence compatible with Eta-expansions" in {
-    pending
     val code =
       """
-        |Unit.foo = a b c -> a + b
-        |foo Unit 20 (a = 10)
+        |Unit.foo = a b c -> a -> a
+        |foo Unit 20 (a = 10) 0 0
         |""".stripMargin
+
+    eval(code) shouldEqual 10
   }
 
   "Default arguments" should "be able to depend on prior arguments" in {
@@ -156,7 +157,6 @@ class NamedArgumentsTest extends InterpreterTest {
   }
 
   "Default arguments" should "not be able to depend on later arguments" in {
-    //TODO: Currently throws something equivalent to "Can't add dynamic symbol to Long". Needs rethinking.
     val code =
       """
         |Unit.badArgFn = a (b = c) (c = a) -> a + b + c

@@ -1,14 +1,11 @@
 package org.enso.compiler.generate
 
-import org.enso.compiler.core
-import org.enso.compiler.core._
-import org.enso.compiler.exception.UnhandledEntity
 import cats.Foldable
-import org.enso.compiler.core.IR
-import org.enso.compiler.exception.UnhandledEntity
-import org.enso.interpreter._
-import org.enso.syntax.text.{AST, Debug, Location}
 import cats.implicits._
+import org.enso.compiler.core
+import org.enso.compiler.core.{IR, _}
+import org.enso.compiler.exception.UnhandledEntity
+import org.enso.syntax.text.{AST, Location}
 
 // TODO [AA] Please note that this entire translation is _very_ work-in-progress
 //  and is hence quite ugly right now. It will be cleaned up as work progresses,
@@ -18,19 +15,100 @@ import cats.implicits._
 //  - Retain information about groups for diagnostics and desugarings
 
 // TODO [Generic]
-//  - Suspended blocks
 //  - Groups
-//  - String literals
-//  - Remove evalOld / rewrite benchmarks to new syntax
-//  - Translate if-then-else to ifZero for now
+//  - Translate if-then-else to a function and test it by definining
+//    `if_then_else` on the type
 //  - Type signatures
-//  - Import Tests
 
 /**
   * This is a representation of the raw conversion from the Parser [[AST AST]]
   * to the internal [[IR IR]] used by the static transformation passes.
   */
 object AstToAstExpression {
+
+  /** Translates an inline expression from the parser into an internal rep.
+    *
+    * The restrictions that this must be only an expression are artificial and
+    * currently enforced only due to limitations of the interpreter for now.
+    *
+    * @param inputAST
+    * @return
+    */
+  def translateInline(inputAST: AST): Option[AstExpression] = {
+    inputAST match {
+      case AST.Module.any(module) =>
+        val presentBlocks = module.lines.collect {
+          case t if t.elem.isDefined => t.elem.get
+        }
+
+        val expressions = presentBlocks
+          .filter {
+            case AST.Import.any(_)                 => false
+            case AST.Def.any(_)                    => false
+            case AstView.MethodDefinition(_, _, _) => false
+            case _                                 => true
+          }
+          .map(translateExpression)
+
+        expressions match {
+          case List()     => None
+          case List(expr) => Some(expr)
+          case _ =>
+            Some(
+              AstBlock(
+                Foldable[List].foldMap(expressions)(_.location),
+                expressions.dropRight(1),
+                expressions.last
+              )
+            )
+        }
+      case _ => None
+    }
+  }
+
+  // TODO [AA] Fix the types
+  def translateModule(module: AST.Module): AstModuleScope = {
+    module match {
+      case AST.Module(blocks) => {
+        val presentBlocks = blocks.collect {
+          case t if t.elem.isDefined => t.elem.get
+        }
+
+        val imports = presentBlocks.collect {
+          case AST.Import.any(list) => translateImport(list)
+        }
+
+        val nonImportBlocks = presentBlocks.filter {
+          case AST.Import.any(_) => false
+          case _                 => true
+        }
+
+        val definitions = nonImportBlocks.takeWhile {
+          case AST.Def(_, _, _)                  => true
+          case AstView.MethodDefinition(_, _, _) => true
+          case _                                 => false
+        }
+
+        val executableExpressions = nonImportBlocks.drop(definitions.length)
+
+        val statements  = definitions.map(translateModuleSymbol)
+        val expressions = executableExpressions.map(translateExpression)
+        val block = expressions match {
+          case List()     => None
+          case List(expr) => Some(expr)
+          case _ =>
+            Some(
+              AstBlock(
+                Foldable[List].foldMap(expressions)(_.location),
+                expressions.dropRight(1),
+                expressions.last
+              )
+            )
+        }
+        core.AstModuleScope(imports, statements, block)
+      }
+    }
+  }
 
   /**
     * Transforms the input [[AST]] into the compiler's high-level intermediate
@@ -85,10 +163,32 @@ object AstToAstExpression {
         AstLong(literal.location, number.toLong)
       }
       case AST.Literal.Text.any(literal) =>
-        println("===== TEXT =====")
-        println(Debug.pretty(literal.toString))
+        literal.shape match {
+          case AST.Literal.Text.Line.Raw(segments) =>
+            val fullString = segments.collect {
+              case AST.Literal.Text.Segment.Plain(str) => str
+            }.mkString
 
-        AstStringLiteral(literal.location, ???)
+            AstStringLiteral(literal.location, fullString)
+          case AST.Literal.Text.Block.Raw(lines, _, _) =>
+            val fullString = lines
+              .map(
+                t =>
+                  t.text.collect {
+                    case AST.Literal.Text.Segment.Plain(str) => str
+                  }.mkString
+              )
+              .mkString("\n")
+
+            AstStringLiteral(literal.location, fullString)
+          case AST.Literal.Text.Block.Fmt(_, _, _) =>
+            // TODO [AA] Add support for format strings
+            throw new RuntimeException("Format strings not yet supported")
+          case AST.Literal.Text.Line.Fmt(_) =>
+            throw new RuntimeException("Format strings not yet supported")
+          case _ =>
+            throw new UnhandledEntity(literal.shape, "translateLiteral")
+        }
       case _ => throw new UnhandledEntity(literal, "processLiteral")
     }
   }
@@ -240,6 +340,18 @@ object AstToAstExpression {
 
   def translateExpression(inputAST: AST): AstExpression = {
     inputAST match {
+      case AstView
+            .SuspendedBlock(name, block @ AstView.Block(lines, lastLine)) =>
+        AstAssignment(
+          inputAST.location,
+          name.name,
+          AstBlock(
+            block.location,
+            lines.map(translateExpression),
+            translateExpression(lastLine),
+            suspended = true
+          )
+        )
       case AstView.Assignment(name, expr) =>
         translateAssignment(inputAST.location, name, expr)
       case AstView.MethodCall(target, name, args) =>
@@ -264,7 +376,7 @@ object AstToAstExpression {
       case AST.App.any(inputAST)     => translateCallable(inputAST)
       case AST.Literal.any(inputAST) => translateLiteral(inputAST)
       case AST.Group.any(inputAST)   => translateGroup(inputAST)
-      case AST.Ident.any(inputAST) => translateIdent(inputAST)
+      case AST.Ident.any(inputAST)   => translateIdent(inputAST)
       case AstView.Block(lines, retLine) =>
         AstBlock(
           inputAST.location,
@@ -293,50 +405,6 @@ object AstToAstExpression {
       case None => {
         // FIXME [AA] This should generate an error node in core
         throw new RuntimeException("Empty group")
-      }
-    }
-  }
-
-  // TODO [AA] Fix the types
-  def translateModule(module: AST.Module): AstModuleScope = {
-    module match {
-      case AST.Module(blocks) => {
-        val presentBlocks = blocks.collect {
-          case t if t.elem.isDefined => t.elem.get
-        }
-
-        val imports = presentBlocks.collect {
-          case AST.Import.any(list) => translateImport(list)
-        }
-
-        val nonImportBlocks = presentBlocks.filter {
-          case AST.Import.any(_) => false
-          case _                 => true
-        }
-
-        val definitions = nonImportBlocks.takeWhile {
-          case AST.Def(_, _, _)                  => true
-          case AstView.MethodDefinition(_, _, _) => true
-          case _                                 => false
-        }
-
-        val executableExpressions = nonImportBlocks.drop(definitions.length)
-
-        val statements  = definitions.map(translateModuleSymbol)
-        val expressions = executableExpressions.map(translateExpression)
-        val block = expressions match {
-          case List()     => None
-          case List(expr) => Some(expr)
-          case _ =>
-            Some(
-              AstBlock(
-                Foldable[List].foldMap(expressions)(_.location),
-                expressions.dropRight(1),
-                expressions.last
-              )
-            )
-        }
-        core.AstModuleScope(imports, statements, block)
       }
     }
   }

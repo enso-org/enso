@@ -66,24 +66,20 @@ trait InterpreterRunner {
     evalGeneric(code, Constants.MIME_TYPE)
   }
 
-  def evalOld(code: String): Value = {
-    evalGeneric(code, Constants.Debug.MIME_TYPE)
-  }
-
   def consumeOut: List[String] = {
     val result = output.toString
     output.reset()
     result.lines.toList
   }
 
-  def parse(code: String): Value =
-    InterpreterException.rethrowPolyglot(evalOld(code))
-
   def getReplInstrument: ReplDebuggerInstrument = {
     ctx.getEngine.getInstruments
       .get(ReplDebuggerInstrument.INSTRUMENT_ID)
       .lookup(classOf[ReplDebuggerInstrument])
   }
+
+  // For Enso raw text blocks inside scala multiline strings
+  val rawTQ = "\"\"\""
 }
 
 trait InterpreterTest

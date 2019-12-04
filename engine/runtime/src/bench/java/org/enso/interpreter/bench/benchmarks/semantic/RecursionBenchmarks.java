@@ -42,4 +42,9 @@ public class RecursionBenchmarks {
   public void benchSumStateTCO() {
     recursionFixtures.sumStateTCO().execute(recursionFixtures.hundredMillion());
   }
+
+  @Benchmark
+  public void benchNestedThunkSum() {
+    recursionFixtures.nestedThunkSum().execute(recursionFixtures.hundredMillion());
+  }
 }
