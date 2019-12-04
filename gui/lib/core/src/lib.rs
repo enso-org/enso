@@ -94,14 +94,28 @@ mod example_01 {
 // ==================
 
 mod example_03 {
+    use wasm_bindgen::prelude::*;
+
     use crate::utils;
-    use crate::display::world::{World, WorkspaceID, Workspace, Add};
+    use crate::display::world::{World,Workspace,Add};
     use crate::text::font::FontRenderInfo;
     use crate::Color;
+
     use crate::dirty::traits::SharedSetter1;
     use basegl_core_embedded_fonts::EmbeddedFonts;
     use itertools::iproduct;
-    use wasm_bindgen::prelude::*;
+
+    const FONT_NAMES : &[&str] = &
+    [ "DejaVuSans"
+    , "DejaVuSansMono"
+    , "DejaVuSansMono-Bold"
+    , "DejaVuSansMono-Oblique"
+    , "DejaVuSansCondensed"
+    , "DejaVuSerif"
+    , "DejaVuSerifCondensed"
+    ];
+
+    const SIZES : &[f64] = &[0.016, 0.024, 0.032, 0.048, 0.064];
 
     #[wasm_bindgen]
     #[allow(dead_code)]
@@ -109,29 +123,19 @@ mod example_03 {
         utils::set_panic_hook();
         basegl_core_msdf_sys::run_once_initialized(|| {
             let mut world_ref = World::new();
-            let workspace_id : WorkspaceID = world_ref.add(Workspace::build("canvas"));
+            let workspace_id  = world_ref.add(Workspace::build("canvas"));
+            let world         = &mut world_ref.borrow_mut();
+            let workspace     = &mut world[workspace_id];
+            let font_base     = EmbeddedFonts::create_and_fill();
+            let font_creator  = |name:&&'static str| FontRenderInfo::from_embedded(&font_base,name);
+            let fonts_iter    = FONT_NAMES.iter().map(font_creator);
+            let mut fonts     = fonts_iter.collect::<Box<[FontRenderInfo]>>();
 
-            let world = &mut world_ref.borrow_mut();
-            let workspace = &mut world[workspace_id];
+            let all_cases     = iproduct!(0..fonts.len(), SIZES.iter());
 
-            let font_base = EmbeddedFonts::create_and_fill();
-            let font_names = [
-                "DejaVuSans",
-                "DejaVuSansMono",
-                "DejaVuSansMono-Bold",
-                "DejaVuSansMono-Oblique",
-                "DejaVuSansCondensed",
-                "DejaVuSerif",
-                "DejaVuSerifCondensed",
-            ];
-            let mut fonts : Box<[FontRenderInfo]> = font_names.iter().map(
-                |name| FontRenderInfo::from_embedded(&font_base, name)
-            ).collect();
-            let sizes = [0.024, 0.032, 0.048, 0.064];
+            for (i, (font, size)) in all_cases.enumerate() {
 
-            for (i, (font, size)) in
-                iproduct!(0..fonts.len(), sizes.iter()).enumerate() {
-
+                let line_position = nalgebra::Vector2::new(-0.95, 0.9 - 0.064*(i as f64));
                 let text_compnent = crate::text::TextComponentBuilder {
                     text : "To be, or not to be, that is the question: \
                         Whether 'tis nobler in the mind to suffer \
@@ -139,12 +143,10 @@ mod example_03 {
                         Or to take arms against a sea of troubles \
                         And by opposing end them."
                         .to_string(),
-                    font             : &mut fonts[font],
-                    x                : -0.95,
-                    y                : 0.9 - 0.064*(i as f32),
-                    size             : *size,
-                    color            : Color {r: 1.0, g: 1.0, b: 1.0, a: 1.0},
-                    background_color : Color {r: 0.0, g: 0.0, b: 0.0, a: 1.0}
+                    font     : &mut fonts[font],
+                    position : line_position,
+                    size     : *size,
+                    color    : Color {r: 1.0, g: 1.0, b: 1.0, a: 1.0},
                 }.build(workspace);
                 workspace.text_components.push(text_compnent);
             }
@@ -153,8 +155,6 @@ mod example_03 {
     }
 }
 
-////////////////////////////////////////////////
-////////////////////////////////////////////////
 
 // =================
 // === Utilities ===

@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use smallvec::SmallVec;
 use std::iter::FilterMap;
 use std::slice;
 

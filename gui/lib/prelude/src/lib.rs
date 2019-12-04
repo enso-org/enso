@@ -15,6 +15,7 @@ pub use itertools::Itertools;
 pub use num::Num;
 pub use paste;
 pub use shrinkwraprs::Shrinkwrap;
+pub use smallvec::SmallVec;
 pub use std::cell::Ref;
 pub use std::cell::RefMut;
 pub use std::cell::RefCell;
