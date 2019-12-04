@@ -8,6 +8,7 @@ edition = "2018"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+ast               = { version = "0.1.0", path = "../ast/core"     }
 failure           = "0.1"
 matches           = "0.1"
 prelude           = { version = "0.1.0", path = "../prelude"     }

@@ -143,6 +143,8 @@ fn gen_variant_decl
 
 /// Generate `From` trait implementations converting from each of extracted
 /// types back into primary enumeration.
+/// Generate `TryFrom` implementation from primary enumeration into each
+/// extracted type.
 fn gen_from_impls
 ( ident  : &syn::Ident
 , decl   : &syn::DeriveInput
@@ -150,6 +152,7 @@ fn gen_from_impls
 ) -> TokenStream {
     let sum_label     = &decl.ident;
     let variant_label = &variant.ident;
+    let variant_name = variant_label.to_string();
 
     let sum_params = &decl.generics.params
         .iter().cloned().collect::<Vec<_>>();
@@ -166,6 +169,57 @@ fn gen_from_impls
         for #sum_label<#(#sum_params),*> {
             fn from(t: #variant_label<#(#variant_params),*>) -> Self {
                 #sum_label::#ident(t)
+            }
+        }
+
+
+        // impl<'t, T> TryFrom<&'t Shape<T>> for &'t Infix<T> {
+        //     type Error = WrongEnum;
+        //     fn try_from(value: &'t Shape<T>) -> Result<Self, Self::Error> {
+        //         match value {
+        //             Shape::Infix(elem) => Ok (elem),
+        //             _ => {
+        //                 let error = WrongEnum {
+        //                     expected_con : "Infix" };
+        //                 Err(error)
+        //             },
+        //         }
+        //     }
+        // }
+        impl<'t, #(#sum_params),*> TryFrom<&'t #sum_label<#(#sum_params),*>>
+        for &'t #variant_label<#(#variant_params),*> {
+            type Error = WrongEnum;
+
+            fn try_from
+            (value: &'t #sum_label<#(#sum_params),*>)
+            -> Result<Self, Self::Error> {
+                match value {
+                    #sum_label::#ident(elem) => Ok(elem),
+                    _  => {
+                        let error = WrongEnum {
+                            expected_con: #variant_name.to_string() };
+                        Err(error)
+                    },
+                }
+            }
+        }
+
+        // same as above but for values
+        impl<#(#sum_params),*> TryFrom<#sum_label<#(#sum_params),*>>
+        for #variant_label<#(#variant_params),*> {
+            type Error = WrongEnum;
+
+            fn try_from
+            (value: #sum_label<#(#sum_params),*>)
+            -> Result<Self, Self::Error> {
+                match value {
+                    #sum_label::#ident(elem) => Ok(elem),
+                    _  => {
+                        let error = WrongEnum {
+                            expected_con: #variant_name.to_string() };
+                        Err(error)
+                    },
+                }
             }
         }
     }

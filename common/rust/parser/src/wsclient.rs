@@ -81,8 +81,8 @@ pub enum Request {
 /// All responses that Parser Service might reply with.
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub enum Response {
-    Success { ast:     String },
-    Error   { message: String },
+    Success { ast_json: String },
+    Error   { message:  String },
 }
 
 // ============
@@ -160,6 +160,12 @@ mod internal {
             self.recv_response()
         }
     }
+
+    /// Deserialize AST from JSON text received from WS Parser Service.
+    pub fn from_json(json_text: &str) -> api::Result<api::Ast> {
+        let ast = serde_json::from_str::<api::Ast>(json_text);
+        Ok(ast.map_err(|e| JsonSerializationError(e))?)
+    }
 }
 
 impl Client {
@@ -183,12 +189,12 @@ impl Client {
 }
 
 impl api::IsParser for Client {
-    fn parse(&mut self, program: String) -> api::Result<api::AST> {
+    fn parse(&mut self, program: String) -> api::Result<api::Ast> {
         let request  = Request::ParseRequest { program };
         let response = self.rpc_call(request)?;
         match response {
-            Response::Success { ast     } => Ok(ast),
-            Response::Error   { message } => Err(ParsingError(message)),
+            Response::Success { ast_json } => internal::from_json(&ast_json),
+            Response::Error   { message  } => Err(ParsingError(message)),
         }
     }
 }

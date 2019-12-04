@@ -4,11 +4,22 @@
 use prelude::*;
 
 use serde::{Serialize, Deserialize};
-
+use serde::ser::{Serializer, SerializeStruct};
+use serde::de::{Deserializer, Visitor};
+use uuid::Uuid;
 use ast_macros::*;
 use shapely::*;
 
 pub type Stream<T> = Vec<T>;
+
+// ==============
+// === Errors ===
+// ==============
+
+/// Exception raised by macro-generated TryFrom methods that try to "downcast"
+/// enum type to its variant subtype if different constructor was used.
+#[derive(Display, Debug, Fail)]
+pub struct WrongEnum { pub expected_con: String }
 
 // ============
 // === Tree ===
@@ -84,13 +95,17 @@ impl<T> Layer<T> for Layered<T> {
 /// to either of the implementation need to be applied to the other one as well.
 ///
 /// Each AST node is annotated with span and an optional ID.
-#[derive(Eq, PartialEq, Debug, Shrinkwrap, Serialize, Deserialize)]
+#[derive(Eq, PartialEq, Debug, Shrinkwrap)]
 #[shrinkwrap(mutable)]
 pub struct Ast {
-    #[serde(flatten)]
     pub wrapped: Rc<WithID<WithSpan<Shape<Ast>>>>
 }
 
+impl Clone for Ast {
+    fn clone(&self) -> Self {
+        Ast { wrapped: self.wrapped.clone() }
+    }
+}
 
 impl Ast {
     pub fn iter(&self) -> Rc<dyn Iterator<Item = &'_ Shape<Ast>> + '_> {
@@ -99,12 +114,20 @@ impl Ast {
     }
 
     pub fn shape(&self) -> &Shape<Ast> {
-        &self.wrapped.wrapped.wrapped
+        self
     }
 
+    /// Wraps given shape with an optional ID into Ast. Span will ba
+    /// automatically calculated based on Shape.
     pub fn new<S: Into<Shape<Ast>>>(shape: S, id: Option<ID>) -> Ast {
+        let shape: Shape<Ast> = shape.into();
+        let span = shape.span();
+        Ast::new_with_span(shape, id, span)
+    }
+
+    pub fn new_with_span<S: Into<Shape<Ast>>>
+    (shape: S, id: Option<ID>, span: usize) -> Ast {
         let shape     = shape.into();
-        let span      = shape.span();
         let with_span = WithSpan { wrapped: shape,     span };
         let with_id   = WithID   { wrapped: with_span, id   };
         Ast { wrapped: Rc::new(with_id) }
@@ -123,6 +146,78 @@ From<T> for Ast {
     fn from(t: T) -> Self {
         let id = None;
         Ast::new(t, id)
+    }
+}
+
+// Serialization & Deserialization //
+
+/// Literals used in `Ast` serialization and deserialization.
+pub mod ast_schema {
+    pub const STRUCT_NAME: &str      = "Ast";
+    pub const SHAPE:       &str      = "shape";
+    pub const ID:          &str      = "id";
+    pub const SPAN:        &str      = "span";
+    pub const FIELDS:      [&str; 3] = [SHAPE, ID, SPAN];
+    pub const COUNT:       usize     = FIELDS.len();
+}
+
+impl Serialize for Ast {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where S: Serializer {
+        use ast_schema::*;
+        let mut state = serializer.serialize_struct(STRUCT_NAME, COUNT)?;
+        state.serialize_field(SHAPE, &self.shape())?;
+        if self.id.is_some() {
+            state.serialize_field(ID, &self.id)?;
+        }
+        state.serialize_field(SPAN,  &self.span)?;
+        state.end()
+    }
+}
+
+/// Type to provide serde::de::Visitor to deserialize data into `Ast`.
+struct AstDeserializationVisitor;
+
+impl<'de> Visitor<'de> for AstDeserializationVisitor {
+    type Value = Ast;
+
+    fn expecting
+    (&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+        use ast_schema::*;
+        write!(formatter, "an object with `{}` and `{}` fields", SHAPE, SPAN)
+    }
+
+    fn visit_map<A>
+    (self, mut map: A) -> Result<Self::Value, A::Error>
+    where A: serde::de::MapAccess<'de>, {
+        use ast_schema::*;
+
+        let mut shape: Option<Shape<Ast>> = None;
+        let mut id:    Option<Option<ID>> = None;
+        let mut span:  Option<usize>      = None;
+
+        while let Some(key) = map.next_key()? {
+            match key {
+                SHAPE => shape = Some(map.next_value()?),
+                ID    => id    = Some(map.next_value()?),
+                SPAN  => span  = Some(map.next_value()?),
+                _     => {},
+            }
+        }
+
+        let shape = shape.ok_or(serde::de::Error::missing_field(SHAPE))?;
+        let id    = id.unwrap_or(None); // allow missing `id` field
+        let span  = span.ok_or(serde::de::Error::missing_field(SPAN))?;
+        Ok(Ast::new_with_span(shape, id, span))
+    }
+}
+
+impl<'de> Deserialize<'de> for Ast {
+    fn deserialize<D>(deserializer: D) -> Result<Ast, D::Error>
+    where D: Deserializer<'de> {
+        use ast_schema::FIELDS;
+        let visitor = AstDeserializationVisitor;
+        deserializer.deserialize_struct("AstOf", &FIELDS, visitor)
     }
 }
 
@@ -147,7 +242,7 @@ From<T> for Ast {
     Text      (Text<T>),
 
     // === Expressions ===
-    App       { func : T   , off  : usize , arg: T                          },
+    Prefix    { func : T   , off  : usize , arg: T                          },
     Infix     { larg : T   , loff : usize , opr: T , roff: usize , rarg: T  },
     SectLeft  { arg  : T   , off  : usize , opr: T                          },
     SectRight { opr  : T   , off  : usize , arg: T                          },
@@ -211,22 +306,22 @@ pub type TextBlock<T> = Vec<TextLine<T>>;
 // =============
 
 #[ast] pub struct Block<T> {
-    ty          : BlockType,
-    ident       : usize,
-    empty_lines : usize,
-    first_line  : BlockLine<T>,
-    lines       : Vec<BlockLine<Option<T>>>,
-    is_orphan   : bool,
+    pub ty          : BlockType,
+    pub ident       : usize,
+    pub empty_lines : usize,
+    pub first_line  : BlockLine<T>,
+    pub lines       : Vec<BlockLine<Option<T>>>,
+    pub is_orphan   : bool,
 }
 
 #[ast] pub enum   BlockType     { Continuous, Discontinuous }
-#[ast] pub struct BlockLine <T> { elem: T, off: usize }
+#[ast] pub struct BlockLine <T> { pub elem: T, pub off: usize }
 
 // ==============
 // === Module ===
 // ==============
 
-#[ast] pub struct Module<T> { lines: Vec<BlockLine<Option<T>>> }
+#[ast] pub struct Module<T> {  pub lines: Vec<BlockLine<Option<T>>> }
 
 // =============
 // === Macro ===
@@ -397,11 +492,11 @@ impl HasSpan for &str {
 
 // === WithID ===
 
+pub type ID = Uuid;
+
 pub trait HasID {
     fn id(&self) -> Option<ID>;
 }
-
-pub type ID = i32;
 
 #[derive(Eq, PartialEq, Debug, Shrinkwrap, Serialize, Deserialize)]
 #[shrinkwrap(mutable)]
@@ -522,6 +617,15 @@ impl HasSpan for Var {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde::de::DeserializeOwned;
+
+    /// Assert that given value round trips JSON serialization.
+    fn round_trips<T>(input_val: &T)
+    where T: Serialize + DeserializeOwned + PartialEq + Debug {
+        let json_str            = serde_json::to_string(&input_val).unwrap();
+        let deserialized_val: T = serde_json::from_str(&json_str).unwrap();
+        assert_eq!(*input_val, deserialized_val);
+    }
 
     #[test]
     fn var_smart_constructor() {
@@ -547,16 +651,38 @@ mod tests {
 
     #[test]
     fn serialization_round_trip() {
-        let var_name = "foo";
-        let v1       = Var { name: var_name.to_string() };
-        let v1_str   = serde_json::to_string(&v1).unwrap();
-        let v2: Var  = serde_json::from_str(&v1_str).unwrap();
-        assert_eq!(v1, v2);
+        let make_var = || Var { name: "foo".into() };
+        round_trips(&make_var());
 
-        let id        = Some(15);
-        let ast1      = Ast::new(v1, id);
-        let ast_str   = serde_json::to_string(&ast1).unwrap();
-        let ast2: Ast = serde_json::from_str(&ast_str).unwrap();
-        assert_eq!(ast1, ast2);
+        let ast_without_id = Ast::new(make_var(), None);
+        round_trips(&ast_without_id);
+
+        let id        = Uuid::parse_str("15").ok();
+        let ast_with_id = Ast::new(make_var(), id);
+        round_trips(&ast_with_id);
+    }
+
+    #[test]
+    fn deserialize_var() {
+        let var_name = "foo";
+        let uuid_str = "51e74fb9-75a4-499d-9ea3-a90a2663b4a1";
+
+        let sample_json = serde_json::json!({
+            "shape": { "Var":{"name": var_name}},
+            "id": uuid_str,
+            "span": var_name.len()
+        });
+        let sample_json_text = sample_json.to_string();
+        let ast: Ast         = serde_json::from_str(&sample_json_text).unwrap();
+
+        let expected_uuid = Uuid::parse_str(uuid_str).ok();
+        assert_eq!(ast.id, expected_uuid);
+
+        let expected_span = 3;
+        assert_eq!(ast.span, expected_span);
+
+        let expected_var   = Var { name: var_name.into() };
+        let expected_shape = Shape::from(expected_var);
+        assert_eq!(*ast.shape(), expected_shape);
     }
 }

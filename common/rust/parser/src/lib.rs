@@ -40,7 +40,7 @@ impl Parser {
 }
 
 impl api::IsParser for Parser {
-    fn parse(&mut self, program: String) -> api::Result<api::AST> {
+    fn parse(&mut self, program: String) -> api::Result<api::Ast> {
         self.deref_mut().parse(program)
     }
 }

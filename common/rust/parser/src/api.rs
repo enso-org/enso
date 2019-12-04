@@ -1,21 +1,15 @@
 use prelude::*;
 
+pub type Ast = ast::Ast;
+
 // ============
 // == Parser ==
 // ============
 
 /// Entity being able to parse Luna programs into Luna's AST.
 pub trait IsParser {
-    fn parse(&mut self, program: String) -> Result<AST>;
+    fn parse(&mut self, program: String) -> Result<Ast>;
 }
-
-// =========
-// == AST ==
-// =========
-
-// TODO: placeholder until we have real AST, see:
-// https://github.com/luna/enso/issues/296
-pub type AST = String;
 
 // ===========
 // == Error ==

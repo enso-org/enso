@@ -13,8 +13,8 @@ object Protocol {
   final case class ParseRequest(program: String) extends Request
 
   sealed trait Response
-  final case class Success(ast: String)   extends Response
-  final case class Error(message: String) extends Response
+  final case class Success(ast_json: String) extends Response
+  final case class Error(message: String)    extends Response
 }
 
 /** Helper for implementing protocol over text-based transport.

@@ -237,7 +237,7 @@ class Parser {
     */
   def attachLocations(ast: AST, startOffset: Int): AST = ast match {
     case App.Prefix.any(app) =>
-      val locatedFn = attachLocations(app.fn, startOffset)
+      val locatedFn = attachLocations(app.func, startOffset)
       val locatedArg =
         attachLocations(app.arg, startOffset + locatedFn.span + app.off)
       App.Prefix(locatedFn, app.off, locatedArg)
