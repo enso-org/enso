@@ -57,6 +57,7 @@ let resizeObserverPool = new Pool((...args) => new ResizeObserver(...args))
 export function resize_observe(target, f) {
     let id = resizeObserverPool.reserve(resize_observer_update(f))
     resizeObserverPool[id].observe(target)
+    return id
 }
 
 export function resize_unobserve(id) {
