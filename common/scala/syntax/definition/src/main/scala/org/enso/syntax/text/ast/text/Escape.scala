@@ -6,11 +6,18 @@ import org.enso.syntax.text.ast.text.Escape.Slash.toString
 sealed trait Escape {
   val repr: String
 }
+sealed trait RawEscape {
+  val repr: String
+}
 
 object Escape {
 
-  final case class Invalid(str: String) extends Escape {
-    val repr = str
+  final case object Unfinished extends RawEscape {
+    val repr = ""
+  }
+
+  final case class Invalid(str: Char) extends RawEscape {
+    val repr = str.toString
   }
 
   final case class Number(int: Int) extends Escape {
@@ -105,17 +112,17 @@ object Escape {
     }
   }
 
-  case object Slash extends Escape {
+  case object Slash extends RawEscape {
     val code: Int     = '\\'
     def name: String  = toString
     override val repr = "\\"
   }
-  case object Quote extends Escape {
+  case object Quote extends RawEscape {
     val code: Int     = '\''
     def name: String  = toString
     override val repr = "\'"
   }
-  case object RawQuote extends Escape {
+  case object RawQuote extends RawEscape {
     val code: Int     = '"'
     def name: String  = toString
     override val repr = "\""

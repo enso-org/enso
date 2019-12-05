@@ -219,8 +219,8 @@ class ParserTest extends FlatSpec with Matchers {
   //// Escapes ////
 
   val Esc = Text.Segment.Escape
-  def escape(esc: Text.Segment.Escape): Text.Segment.Fmt =
-    Shape.SegmentEscape(esc)
+  def escape(code: Text.Segment.Escape)    = Shape.SegmentEscape[AST](code)
+  def escape(code: Text.Segment.RawEscape) = Shape.SegmentRawEscape[AST](code)
 
   Text.Segment.Escape.Character.codes.foreach(
     i => s"'\\$i'" ?= Text(escape(i))
@@ -231,11 +231,15 @@ class ParserTest extends FlatSpec with Matchers {
 
   "'\\\\'"   ?= Text(escape(Esc.Slash))
   "'\\''"    ?= Text(escape(Esc.Quote))
-  "'\\\"'"   ?= Text(escape(Esc.RawQuote))
-  "'\\"      ?= Text.Unclosed("\\")
-  "'\\c'"    ?= Text(escape(Esc.Invalid("c")))
-  "'\\cd'"   ?= Text(escape(Esc.Invalid("c")), "d")
+  "'\\"      ?= Text.Unclosed(escape(Esc.Unfinished))
+  "'\\c'"    ?= Text(escape(Esc.Invalid('c')))
+  "'\\cd'"   ?= Text(escape(Esc.Invalid('c')), "d")
   "'\\123d'" ?= Text(escape(Esc.Number(123)), "d")
+
+  "\"\\\\\"" ?= Text.Raw(escape(Esc.Slash))
+  "\"\\\"\"" ?= Text.Raw(escape(Esc.RawQuote))
+  "\"\\"     ?= Text.Unclosed.Raw(escape(Esc.Unfinished))
+  "\"\\cd\"" ?= Text.Raw(escape(Esc.Invalid('c')), "d")
 
   //// Interpolation ////
 
