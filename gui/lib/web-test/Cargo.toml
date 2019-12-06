@@ -1,0 +1,19 @@
+[package]
+name = "web-test"
+version = "0.1.0"
+authors = ["Enso Team <contact@luna-lang.org>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+wasm-bindgen-test = "0.3.3"
+web-test-proc-macro  = { version = "0.1.0" , path = "../web-test-proc-macro" }
+basegl-prelude       = { version = "0.1.0" , path = "../prelude"       }
+basegl-system-web    = { version = "0.1.0" , path = "../system/web"    }
+wasm-bindgen         = { version = "^0.2"  , features = ["nightly"]    }
+js-sys               = { version = "0.3.28" }
+shrinkwraprs         = { version = "0.2.1"  }
+
+[dependencies.web-sys]
+version = "0.3.4"

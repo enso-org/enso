@@ -32,7 +32,8 @@ features = [
   'WebGlProgram',
   'WebGlShader',
   'Window',
-  'console'
+  'console',
+  'Performance'
 ]
 
 [dev-dependencies]

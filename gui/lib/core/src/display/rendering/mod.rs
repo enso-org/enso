@@ -1,19 +1,17 @@
-mod camera;
 mod object;
-mod renderer;
 mod scene;
+
+pub use object::*;
+pub use scene::*;
+
+mod camera;
 mod transform;
+mod graphics_renderer;
+mod dom_container;
 
-mod htmlobject;
-mod htmlrenderer;
-mod htmlscene;
+pub use camera::*;
+pub use transform::*;
+pub use graphics_renderer::*;
+pub use dom_container::*;
 
-pub use camera::Camera;
-pub use object::Object;
-pub use renderer::Renderer;
-pub use scene::Scene;
-pub use transform::Transform;
-
-pub use htmlobject::HTMLObject;
-pub use htmlrenderer::HTMLRenderer;
-pub use htmlscene::HTMLScene;
+pub mod html;

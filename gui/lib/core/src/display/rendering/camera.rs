@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-use super::Object;
+use crate::display::rendering::Object;
 
 use nalgebra::base::Matrix4;
 use nalgebra::geometry::Perspective3;
@@ -22,13 +22,15 @@ pub struct Camera {
 
 impl Camera {
     /// Creates a Camera with perspective projection.
-    pub fn perspective(fov: f32, aspect: f32, z_near: f32, z_far: f32) -> Self {
+    pub fn perspective(fov:f32, aspect:f32, z_near:f32, z_far:f32) -> Self {
         let fov = fov / 180.0 * PI;
         let projection = Perspective3::new(aspect, fov, z_near, z_far);
         let projection = *projection.as_matrix();
         let object     = default();
         Self { object, projection }
     }
+
+    pub fn get_y_scale(&self) -> f32 { self.projection.m11 }
 }
 
 #[cfg(test)]
