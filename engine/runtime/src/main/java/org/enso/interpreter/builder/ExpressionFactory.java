@@ -355,7 +355,7 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
    */
   @Override
   public ExpressionNode visitCaseFunction(AstCaseFunction function) {
-    ExpressionFactory child = createChild(currentVarName);
+    ExpressionFactory child = createChild("case_expression");
     return child.processFunctionBody(
         function.getLocation(), function.getArguments(), function.body());
   }

@@ -69,7 +69,7 @@ class StateTest extends InterpreterTest {
         |IO.println State.get
         |""".stripMargin
     eval(code)
-    consumeOut shouldEqual List("Unit<>")
+    consumeOut shouldEqual List("Unit")
   }
 
   "State" should "work with pattern matches" in {

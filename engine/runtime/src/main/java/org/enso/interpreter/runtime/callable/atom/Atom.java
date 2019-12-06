@@ -42,6 +42,34 @@ public class Atom implements TruffleObject {
     return fields;
   }
 
+  private String toString(boolean shouldParen) {
+    StringBuilder builder = new StringBuilder();
+    boolean parensNeeded = shouldParen && fields.length > 0;
+    if (parensNeeded) {
+      builder.append("(");
+    }
+    builder.append(getConstructor().getName());
+    if (fields.length > 0) {
+      builder.append(" ");
+    }
+    List<String> fieldStrings =
+        Arrays.stream(fields)
+            .map(
+                obj -> {
+                  if (obj instanceof Atom) {
+                    return ((Atom) obj).toString(true);
+                  } else {
+                    return obj.toString();
+                  }
+                })
+            .collect(Collectors.toList());
+    builder.append(String.join(" ", fieldStrings));
+    if (parensNeeded) {
+      builder.append(")");
+    }
+    return builder.toString();
+  }
+
   /**
    * Creates a textual representation of this Atom, useful for debugging.
    *
@@ -50,14 +78,6 @@ public class Atom implements TruffleObject {
   @Override
   @CompilerDirectives.TruffleBoundary
   public String toString() {
-    StringBuilder builder = new StringBuilder();
-    builder.append(getConstructor().getName());
-    builder.append("<");
-    List<String> fieldStrings =
-        Arrays.stream(fields).map(Object::toString).collect(Collectors.toList());
-    builder.append(String.join(", ", fieldStrings));
-    builder.append(">");
-
-    return builder.toString();
+    return toString(false);
   }
 }

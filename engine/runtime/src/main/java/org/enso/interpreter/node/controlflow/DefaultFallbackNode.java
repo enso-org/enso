@@ -16,22 +16,11 @@ public class DefaultFallbackNode extends CaseNode {
    * InexhaustivePatternMatchException}.
    *
    * @param frame the stack frame in which to execute
-   * @param target the constructor to destructure
-   */
-  private void execute(VirtualFrame frame, Object target) {
-    throw new InexhaustivePatternMatchException(this.getParent());
-  }
-
-  /**
-   * Executes the case expression's error case, by throwing a {@link
-   * InexhaustivePatternMatchException}.
-   *
-   * @param frame the stack frame in which to execute
    * @param target the atom to match and destructure
    */
   @Override
   public void executeAtom(VirtualFrame frame, Atom target) {
-    execute(frame, target);
+    throw new InexhaustivePatternMatchException(this.getParent(), target.getConstructor());
   }
 
   /**
@@ -43,7 +32,7 @@ public class DefaultFallbackNode extends CaseNode {
    */
   @Override
   public void executeFunction(VirtualFrame frame, Function target) {
-    execute(frame, target);
+    throw new InexhaustivePatternMatchException(this.getParent(), "Function");
   }
 
   /**
@@ -55,6 +44,6 @@ public class DefaultFallbackNode extends CaseNode {
    */
   @Override
   public void executeNumber(VirtualFrame frame, long target) {
-    execute(frame, target);
+    throw new InexhaustivePatternMatchException(this.getParent(), target);
   }
 }

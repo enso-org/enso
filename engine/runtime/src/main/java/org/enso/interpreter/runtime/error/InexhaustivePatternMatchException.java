@@ -16,8 +16,8 @@ public class InexhaustivePatternMatchException extends RuntimeException
    *
    * @param node the node where the fallthrough occurred
    */
-  public InexhaustivePatternMatchException(Node node) {
-    super("Inexhaustive pattern match.");
+  public InexhaustivePatternMatchException(Node node, Object unhandledScrutinee) {
+    super("Inexhaustive pattern match: the " + unhandledScrutinee + " case is not handled.");
     this.node = node;
   }
 

@@ -76,7 +76,7 @@ public class CallArgFactory implements AstCallArgVisitor<CallArgument> {
           new ExpressionFactory(language, source, childScope, scopeName, moduleScope);
       ExpressionNode expr = value.visit(factory);
       expr.markTail();
-      String displayName = "callArgument<" + name.orElse(String.valueOf(position)) + ">";
+      String displayName = "call_argument<" + name.orElse(String.valueOf(position)) + ">";
       SourceSection section =
           value
               .getLocation()

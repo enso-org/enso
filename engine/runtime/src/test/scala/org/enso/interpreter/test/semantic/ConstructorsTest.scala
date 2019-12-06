@@ -65,7 +65,7 @@ class ConstructorsTest extends InterpreterTest {
         |  Cons h t -> 0
       """.stripMargin
     the[InterpreterException] thrownBy eval(testCode)
-      .call() should have message "Inexhaustive pattern match."
+      .call() should have message "Inexhaustive pattern match: the Nil case is not handled."
   }
 
   "Constructor definitions" should "be usable in code, with arbitrary definition order" in {
