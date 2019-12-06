@@ -1,24 +1,57 @@
-use crate::system::web::{get_element_by_id, dyn_into, Result};
-use web_sys::HtmlElement;
-use nalgebra::Vector2;
+use crate::prelude::*;
+use crate::data::opt_vec::*;
+
+type Index = usize;
+
+// =============
+// === Scene ===
+// =============
 
 /// A collection for holding 3D `Object`s.
-#[derive(Debug)]
-pub struct Scene {
-    pub container : HtmlElement,
+#[derive(Derivative)]
+#[derivative(Default(bound = ""))]
+pub struct Scene<T> {
+    objects : OptVec<T>
 }
 
-impl Scene {
+impl<T> Scene<T> {
     /// Searches for a HtmlElement identified by id and appends to it.
-    pub fn new(dom_id: &str) -> Result<Self> {
-        let container = dyn_into(get_element_by_id(dom_id)?)?;
-        Ok(Self { container })
+    pub fn new() -> Self { default() }
+
+    /// Moves a HTMLObject to the Scene and returns an index to it.
+    pub fn add(&mut self, object: T) -> Index {
+        self.objects.insert(object)
     }
 
-    /// Gets the HtmlElement container's dimensions.
-    pub fn get_dimensions(&self) -> Vector2<f32> {
-        let width  = self.container.client_width()  as f32;
-        let height = self.container.client_height() as f32;
-        Vector2::new(width, height)
+    /// Removes and retrieves a HTMLObject based on the index provided by
+    pub fn remove(&mut self, index: usize) -> Option<T> {
+        self.objects.remove(index)
+    }
+
+    /// Returns the number of `Object`s in the Scene,
+    /// also referred to as its 'length'.
+    pub fn len(&self) -> usize {
+        self.objects.len()
+    }
+
+    /// Returns true if the Scene contains no `Object`s.
+    pub fn is_empty(&self) -> bool {
+        self.objects.is_empty()
+    }
+}
+
+impl<'a, T> IntoIterator for &'a Scene<T> {
+    type Item = &'a T;
+    type IntoIter = Iter<'a, T>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.objects.into_iter()
+    }
+}
+
+impl<'a, T> IntoIterator for &'a mut Scene<T> {
+    type Item = &'a mut T;
+    type IntoIter = IterMut<'a, T>;
+    fn into_iter(self) -> Self::IntoIter {
+        (&mut self.objects).into_iter()
     }
 }

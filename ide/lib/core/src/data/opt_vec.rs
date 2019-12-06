@@ -115,6 +115,14 @@ impl<'a, T> IntoIterator for &'a OptVec<T> {
    }
 }
 
+impl<'a, T> IntoIterator for &'a mut OptVec<T> {
+    type Item     = &'a mut T;
+    type IntoIter = IterMut<'a, T>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter_mut()
+    }
+}
+
 #[cfg(test)]
 mod tests {
    use super::*;
@@ -169,4 +177,27 @@ mod tests {
            assert_eq!(i + 1, *value);
        }
    }
+
+    #[test]
+    fn test_iter_mut() {
+        let mut v = OptVec::new();
+
+        let  ix1 = v.insert(0);
+        let _ix2 = v.insert(1);
+        let _ix3 = v.insert(2);
+
+        assert_eq!(v.len(), 3, "OptVec should have 3 items");
+
+        v.remove(ix1);
+
+        assert_eq!(v.len(), 2, "OptVec should have 2 items");
+
+        for value in &mut v {
+            *value *= 2;
+        }
+
+        for (i, value) in v.into_iter().enumerate() {
+            assert_eq!((i + 1) * 2, *value);
+        }
+    }
 }
