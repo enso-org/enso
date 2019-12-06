@@ -61,4 +61,14 @@ public class CatchPanicNode extends BuiltinRootNode {
         new ArgumentDefinition(0, "this", ArgumentDefinition.ExecutionMode.EXECUTE),
         new ArgumentDefinition(1, "value", ArgumentDefinition.ExecutionMode.PASS_THUNK));
   }
+
+  /**
+   * Gets the source-level name of this node.
+   *
+   * @return the source-level name of the node
+   */
+  @Override
+  public String getName() {
+    return "Panic.catch";
+  }
 }

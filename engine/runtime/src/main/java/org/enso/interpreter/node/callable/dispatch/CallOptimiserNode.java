@@ -1,6 +1,7 @@
 package org.enso.interpreter.node.callable.dispatch;
 
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.state.Stateful;
 
@@ -8,6 +9,7 @@ import org.enso.interpreter.runtime.state.Stateful;
  * This node handles optimising calls. It performs detection based on the kind of call being made,
  * and then executes the call in the most efficient manner possible for it.
  */
+@NodeInfo(shortName = "CallOptimiser", description = "Optimises function calls")
 public abstract class CallOptimiserNode extends Node {
 
   /**

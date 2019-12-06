@@ -1,6 +1,7 @@
 package org.enso.interpreter.node.controlflow;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.error.InexhaustivePatternMatchException;
@@ -9,6 +10,9 @@ import org.enso.interpreter.runtime.error.InexhaustivePatternMatchException;
  * This node is used when there is no explicit default case provided by the user for a pattern
  * match. It is used to signal inexhaustivity.
  */
+@NodeInfo(
+    shortName = "DefaultFallback",
+    description = "A fallback branch for a case expression when none is explicitly provided")
 public class DefaultFallbackNode extends CaseNode {
 
   /**

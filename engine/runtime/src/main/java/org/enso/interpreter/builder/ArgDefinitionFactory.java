@@ -97,6 +97,7 @@ public class ArgDefinitionFactory implements AstArgDefinitionVisitor<ArgumentDef
 
     ExpressionNode defaultedValue = defExpression;
 
+    // Note [Handling Suspended Defaults]
     if (suspended && defExpression != null) {
       RootNode defaultRootNode =
           new ClosureRootNode(
@@ -118,4 +119,14 @@ public class ArgDefinitionFactory implements AstArgDefinitionVisitor<ArgumentDef
             : ArgumentDefinition.ExecutionMode.EXECUTE;
     return new ArgumentDefinition(position, name, defaultedValue, executionMode);
   }
+
+  /* Note [Handling Suspended Defaults]
+   * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   * Suspended defaults need to be wrapped in a thunk to ensure that they behave properly with
+   * regards to the expected semantics of lazy arguments. 
+   * 
+   * Were they not wrapped in a thunk, they would be evaluated eagerly, and hence the point at
+   * which the default would be evaluated would differ from the point at which a passed-in argument
+   * would be evaluated. 
+   */
 }

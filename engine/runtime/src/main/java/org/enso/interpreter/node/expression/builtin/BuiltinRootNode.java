@@ -7,7 +7,7 @@ import org.enso.interpreter.Language;
 import org.enso.interpreter.runtime.state.Stateful;
 
 /** Root node for use by all the builtin functions. */
-@NodeInfo(description = "Root node for builtin functions.")
+@NodeInfo(shortName = "BuiltinRoot", description = "Root node for builtin functions.")
 public abstract class BuiltinRootNode extends RootNode {
   protected BuiltinRootNode(Language language) {
     super(language);
@@ -22,4 +22,12 @@ public abstract class BuiltinRootNode extends RootNode {
    */
   @Override
   public abstract Stateful execute(VirtualFrame frame);
+
+  /**
+   * Gets the source-level name of this node.
+   *
+   * @return the source-level name of the node
+   */
+  @Override
+  public abstract String getName();
 }

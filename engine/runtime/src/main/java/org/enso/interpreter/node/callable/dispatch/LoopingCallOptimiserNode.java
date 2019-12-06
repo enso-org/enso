@@ -4,6 +4,7 @@ import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.LoopNode;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.RepeatingNode;
 import org.enso.interpreter.node.callable.ExecuteCallNode;
 import org.enso.interpreter.node.callable.ExecuteCallNodeGen;
@@ -21,6 +22,7 @@ import org.enso.interpreter.runtime.state.Stateful;
  *
  * @see TailCallException
  */
+@NodeInfo(shortName = "LoopCall", description = "Handles tail-call elimination")
 public class LoopingCallOptimiserNode extends CallOptimiserNode {
   private final FrameDescriptor loopFrameDescriptor = new FrameDescriptor();
   @Child private LoopNode loopNode;

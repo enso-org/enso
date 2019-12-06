@@ -42,4 +42,14 @@ public class PutStateNode extends BuiltinRootNode {
         new ArgumentDefinition(0, "this", ArgumentDefinition.ExecutionMode.EXECUTE),
         new ArgumentDefinition(1, "newState", ArgumentDefinition.ExecutionMode.EXECUTE));
   }
+
+  /**
+   * Gets the source-level name of this node.
+   *
+   * @return the source-level name of the node
+   */
+  @Override
+  public String getName() {
+    return "State.put";
+  }
 }

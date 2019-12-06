@@ -6,6 +6,7 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.DirectCallNode;
 import com.oracle.truffle.api.nodes.IndirectCallNode;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.state.Stateful;
@@ -15,6 +16,7 @@ import org.enso.interpreter.runtime.state.Stateful;
  *
  * <p>Where possible, it will make the call as a direct call, with potential for inlining.
  */
+@NodeInfo(shortName = "ExecCall", description = "Optimises function calls")
 public abstract class ExecuteCallNode extends Node {
 
   /**

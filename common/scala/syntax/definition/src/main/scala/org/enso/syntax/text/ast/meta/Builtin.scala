@@ -86,7 +86,7 @@ object Builtin {
     }
 
     val if_then = Definition(
-      Var("if")   -> Pattern.Expr(),
+      Var("if")   -> Pattern.Expr(allowBlocks = false),
       Var("then") -> Pattern.Expr()
     ) { ctx =>
       ctx.body match {
@@ -101,7 +101,7 @@ object Builtin {
     }
 
     val if_then_else = Definition(
-      Var("if")   -> Pattern.Expr(),
+      Var("if")   -> Pattern.Expr(allowBlocks = false),
       Var("then") -> Pattern.Expr(),
       Var("else") -> Pattern.Expr()
     ) { ctx =>
@@ -120,7 +120,7 @@ object Builtin {
     }
 
     val case_of = Definition(
-      Var("case") -> Pattern.Expr(),
+      Var("case") -> Pattern.Expr(allowBlocks = false),
       Var("of")   -> Pattern.Block()
     ) { ctx =>
       ctx.body match {

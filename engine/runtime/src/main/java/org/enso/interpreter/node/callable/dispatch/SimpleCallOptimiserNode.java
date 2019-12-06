@@ -1,6 +1,7 @@
 package org.enso.interpreter.node.callable.dispatch;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.callable.ExecuteCallNode;
 import org.enso.interpreter.node.callable.ExecuteCallNodeGen;
 import org.enso.interpreter.runtime.callable.CallerInfo;
@@ -13,6 +14,7 @@ import org.enso.interpreter.runtime.state.Stateful;
  * LoopingCallOptimiserNode}. Thanks to this design, the (much more common) case of calling a
  * function in a non-tail position does not force the overhead of loop.
  */
+@NodeInfo(shortName = "SimpleCallOpt", description = "Handles non-tail-call execution")
 public class SimpleCallOptimiserNode extends CallOptimiserNode {
   @Child private ExecuteCallNode executeCallNode = ExecuteCallNodeGen.create();
 

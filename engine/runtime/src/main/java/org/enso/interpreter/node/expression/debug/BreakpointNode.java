@@ -16,7 +16,7 @@ import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.state.Stateful;
 
 /** A base node serving as an instrumentable marker. */
-@NodeInfo(description = "Instrumentation marker node.")
+@NodeInfo(shortName = "Breakpoint", description = "Instrumentation marker node.")
 @GenerateWrapper
 public abstract class BreakpointNode extends Node implements InstrumentableNode {
 

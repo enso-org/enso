@@ -63,4 +63,14 @@ public class IfZeroNode extends BuiltinRootNode {
         new ArgumentDefinition(1, "ifTrue", ArgumentDefinition.ExecutionMode.PASS_THUNK),
         new ArgumentDefinition(2, "ifFalse", ArgumentDefinition.ExecutionMode.PASS_THUNK));
   }
+
+  /**
+   * Gets the source-level name of this node.
+   *
+   * @return the source-level name of the node
+   */
+  @Override
+  public String getName() {
+    return "Number.ifZero";
+  }
 }

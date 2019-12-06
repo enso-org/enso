@@ -47,7 +47,6 @@ class ErrorsTest extends InterpreterTest {
         |
         |IO.println matched
         |""".stripMargin
-    eval(code)
     noException shouldBe thrownBy(eval(code))
     consumeOut shouldEqual List("Error:MyError")
   }

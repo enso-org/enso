@@ -4,6 +4,7 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.frame.FrameUtil;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.source.SourceSection;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -18,6 +19,7 @@ import org.enso.interpreter.runtime.state.Stateful;
  * determined by the API provided by Truffle.
  */
 @ReportPolymorphism
+@NodeInfo(shortName = "Closure", description = "A root node for Enso closures")
 public class ClosureRootNode extends EnsoRootNode {
 
   @Child private ExpressionNode body;

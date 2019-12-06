@@ -1,12 +1,14 @@
 package org.enso.interpreter.node.controlflow;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.function.Function;
 
 /** An abstract representation of a case expression. */
+@NodeInfo(shortName = "CaseOf", description = "Represents a case expression at runtime")
 public abstract class CaseNode extends BaseNode {
   /**
    * Executes the case expression with an atom scrutinee.

@@ -1,12 +1,9 @@
 package org.enso.interpreter.node.callable;
 
-import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.Language;
-import org.enso.interpreter.runtime.Context;
+import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
@@ -22,6 +19,7 @@ import org.enso.interpreter.runtime.error.RuntimeError;
  * <p>The dispatch algorithm works by matching the kind of value the method is requested for and
  * delegating to the proper lookup method of {@link UnresolvedSymbol}.
  */
+@NodeInfo(shortName = "MethodResolve", description = "Resolves method calls to concrete targets")
 public abstract class MethodResolverNode extends Node {
 
   /**

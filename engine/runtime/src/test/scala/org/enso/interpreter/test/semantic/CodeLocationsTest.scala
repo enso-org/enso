@@ -12,7 +12,7 @@ class CodeLocationsTest extends InterpreterTest {
   def debugPrintCodeLocations(code: String): Unit = {
     var off = 0
     code.lines.toList.foreach { line =>
-      val chars = line.toList.map { c =>
+      val chars: List[Any] = line.toList.map { c =>
           s" ${if (c == ' ') '_' else c} "
         } :+ '↵'
       val ixes = off.until(off + chars.length).map { i =>
@@ -32,6 +32,7 @@ class CodeLocationsTest extends InterpreterTest {
     instrumenter.assertNodeExists(4, 7, classOf[MultiplyOperatorNode])
     instrumenter.assertNodeExists(4, 2, classOf[IntegerLiteralNode])
     eval(code)
+    ()
   }
 
   "Code locations" should "be correct with parenthesized expressions" in
@@ -40,6 +41,7 @@ class CodeLocationsTest extends InterpreterTest {
     instrumenter.assertNodeExists(0, 13, classOf[MultiplyOperatorNode])
     instrumenter.assertNodeExists(1, 6, classOf[AddOperatorNode])
     eval(code)
+    ()
   }
 
   "Code Locations" should "be correct in applications and method calls" in
@@ -48,6 +50,7 @@ class CodeLocationsTest extends InterpreterTest {
     instrumenter.assertNodeExists(0, 27, classOf[ApplicationNode])
     instrumenter.assertNodeExists(16, 8, classOf[ApplicationNode])
     eval(code)
+    ()
   }
 
   "Code Locations" should "be correct in assignments and variable reads" in
@@ -64,6 +67,7 @@ class CodeLocationsTest extends InterpreterTest {
     instrumenter.assertNodeExists(23, 1, classOf[ReadLocalTargetNode])
     instrumenter.assertNodeExists(36, 1, classOf[ReadLocalTargetNode])
     eval(code)
+    ()
   }
 
   "Code Locations" should "be correct for deeply nested functions" in
@@ -84,6 +88,7 @@ class CodeLocationsTest extends InterpreterTest {
     instrumenter.assertNodeExists(77, 7, classOf[ApplicationNode])
     instrumenter.assertNodeExists(87, 9, classOf[ApplicationNode])
     eval(code)
+    ()
   }
 
   "Code Locations" should "be correct inside pattern matches" in
@@ -109,6 +114,7 @@ class CodeLocationsTest extends InterpreterTest {
     instrumenter.assertNodeExists(98, 9, classOf[AssignmentNode])
     instrumenter.assertNodeExists(121, 5, classOf[MultiplyOperatorNode])
     eval(code)
+    ()
   }
 
   "Code locations" should "be correct for lambdas" in
@@ -125,6 +131,7 @@ class CodeLocationsTest extends InterpreterTest {
     instrumenter.assertNodeExists(5, 12, classOf[CreateFunctionNode])
     instrumenter.assertNodeExists(22, 27, classOf[CreateFunctionNode])
     eval(code)
+    ()
   }
 
   "Code locations" should "be correct for defaulted arguments" in
@@ -139,6 +146,7 @@ class CodeLocationsTest extends InterpreterTest {
     instrumenter.assertNodeExists(35, 3, classOf[ReadLocalTargetNode])
     instrumenter.assertNodeExists(39, 1, classOf[ReadLocalTargetNode])
     eval(code)
+    ()
   }
 
   "Code locations" should "be correct for lazy arguments" in
@@ -151,5 +159,6 @@ class CodeLocationsTest extends InterpreterTest {
         |""".stripMargin
     instrumenter.assertNodeExists(22, 2, classOf[ForceNode])
     eval(code)
+    ()
   }
 }

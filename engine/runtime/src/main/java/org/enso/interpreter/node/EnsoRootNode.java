@@ -4,6 +4,7 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.frame.FrameSlotKind;
+import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.SourceSection;
 import org.enso.interpreter.Language;
@@ -12,6 +13,7 @@ import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 
 /** A common base class for all kinds of root node in Enso. */
+@NodeInfo(shortName = "Root", description = "A root node for Enso computations")
 public abstract class EnsoRootNode extends RootNode {
   private final String name;
   private final SourceSection sourceSection;

@@ -18,7 +18,7 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.Stateful;
 
 /** Node running Enso expressions passed to it as strings. */
-@NodeInfo(description = "Evaluates code passed to it as string")
+@NodeInfo(shortName = "Eval", description = "Evaluates code passed to it as string")
 public abstract class EvalNode extends BaseNode {
   private final boolean shouldCaptureResultScope;
 
@@ -61,7 +61,8 @@ public abstract class EvalNode extends BaseNode {
         lookupContextReference(Language.class)
             .get()
             .compiler()
-            .runInline(expression, language, localScope, moduleScope).getOrElse(null);
+            .runInline(expression, language, localScope, moduleScope)
+            .getOrElse(null);
     if (expr == null) {
       throw new RuntimeException("Invalid code passed to `eval`: " + expression);
     }

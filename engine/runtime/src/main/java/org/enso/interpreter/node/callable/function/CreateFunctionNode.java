@@ -3,6 +3,7 @@ package org.enso.interpreter.node.callable.function;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
@@ -13,6 +14,9 @@ import org.enso.interpreter.runtime.callable.function.FunctionSchema;
  * This node is responsible for representing the definition of a function. It contains information
  * about the function's arguments, as well as the target for calling said function.
  */
+@NodeInfo(
+    shortName = "CreateFn",
+    description = "Represents the definition of a function at runtime")
 public class CreateFunctionNode extends ExpressionNode {
   private final RootCallTarget callTarget;
   private final FunctionSchema schema;

@@ -9,7 +9,7 @@ import org.enso.interpreter.node.ExpressionNode;
  * This node defines the body of a function for execution, as well as the protocol for executing the
  * function body.
  */
-@NodeInfo(shortName = "{}")
+@NodeInfo(shortName = "Block")
 public class BlockNode extends ExpressionNode {
   @Children private final ExpressionNode[] statements;
   @Child private ExpressionNode returnExpr;

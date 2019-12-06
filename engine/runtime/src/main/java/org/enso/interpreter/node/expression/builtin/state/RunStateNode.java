@@ -63,4 +63,9 @@ public class RunStateNode extends BuiltinRootNode {
         new ArgumentDefinition(
             2, "statefulComputation", ArgumentDefinition.ExecutionMode.PASS_THUNK));
   }
+
+  @Override
+  public String getName() {
+    return "State.run";
+  }
 }

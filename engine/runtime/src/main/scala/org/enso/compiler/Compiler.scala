@@ -164,12 +164,18 @@ class Compiler(
     * representation.
     *
     * @param sourceAST the parser AST input
-    * @return an IR representation with a 1:1 mapping to the parser AST
-    *         constructs
+    * @return an IR representation of the program represented by `sourceAST`
     */
   def translate(sourceAST: AST): AstModuleScope =
     AstToAstExpression.translate(sourceAST)
 
+  /**
+    * Lowers the input AST to the compiler's high-level intermediate
+    * representation.
+    *
+    * @param sourceAST the parser AST representing the program source
+    * @return an IR representation of the program represented by `sourceAST`
+    */
   def translateInline(sourceAST: AST): Option[AstExpression] =
     AstToAstExpression.translateInline(sourceAST)
 }

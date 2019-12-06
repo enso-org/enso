@@ -1,10 +1,12 @@
 package org.enso.interpreter.node.expression.constant;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 
 /** Represents a type constructor definition. */
+@NodeInfo(shortName = "Cons", description = "Represents a constructor definition")
 public class ConstructorNode extends ExpressionNode {
   private final AtomConstructor constructor;
 

@@ -268,8 +268,8 @@ object Shape extends ShapeImplicit {
       extends SegmentFmt[T]
       with Phantom
   final case class SegmentRawEscape[T](code: RawEscape)
-    extends SegmentRaw[T]
-    with Phantom
+      extends SegmentRaw[T]
+      with Phantom
 
   ///////////
   /// App ///
@@ -1720,16 +1720,30 @@ object AST {
       object Segment {
 
         val Escape = org.enso.syntax.text.ast.text.Escape
-        type Escape = org.enso.syntax.text.ast.text.Escape
+        type Escape    = org.enso.syntax.text.ast.text.Escape
         type RawEscape = org.enso.syntax.text.ast.text.RawEscape
 
         //// Definition ////
 
+        val EscT = Shape.SegmentEscape
+        type EscT = Shape.SegmentEscape[AST]
+        val RawEscT = Shape.SegmentRawEscape
+        type RawEscT = Shape.SegmentRawEscape[AST]
         val Fmt = Shape.SegmentFmt
         type Fmt = Shape.SegmentFmt[AST]
         val Raw = Shape.SegmentRaw
         type Raw = Shape.SegmentRaw[AST]
 
+        object Esc {
+          def apply(code: Escape): EscT = Shape.SegmentEscape(code)
+          def unapply(shape: EscT): Option[Escape] =
+            Shape.SegmentEscape.unapply(shape)
+        }
+        object RawEsc {
+          def apply(code: RawEscape): RawEscT = Shape.SegmentRawEscape(code)
+          def unapply(shape: RawEscT): Option[RawEscape] =
+            Shape.SegmentRawEscape.unapply(shape)
+        }
         object Expr {
           def apply(t: Option[AST]): Fmt = Shape.SegmentExpr(t)
           def unapply(shape: Shape.SegmentExpr[AST]): Option[Option[AST]] =

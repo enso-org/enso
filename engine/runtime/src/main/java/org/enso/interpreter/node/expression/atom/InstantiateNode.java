@@ -2,6 +2,7 @@ package org.enso.interpreter.node.expression.atom;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
+import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 
@@ -9,6 +10,7 @@ import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
  * A node instantiating a constant {@link AtomConstructor} with values computed based on the
  * children nodes.
  */
+@NodeInfo(shortName = "Instantiate", description = "Instantiates a constant Atom constructor")
 public class InstantiateNode extends ExpressionNode {
   private final AtomConstructor constructor;
   private @Children ExpressionNode[] arguments;

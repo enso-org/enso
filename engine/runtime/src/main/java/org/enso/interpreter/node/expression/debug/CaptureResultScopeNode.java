@@ -7,7 +7,7 @@ import org.enso.interpreter.node.callable.CaptureCallerInfoNode;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 
 /** Node capturing the runtime execution scope of its child. */
-@NodeInfo(description = "Captures the child's execution scope.")
+@NodeInfo(shortName = "ScopeCapture", description = "Captures the child's execution scope.")
 public class CaptureResultScopeNode extends ExpressionNode {
 
   /** Value object wrapping the expression return value and the execution scope. */

@@ -3,6 +3,7 @@ package org.enso.interpreter.node;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.DirectCallNode;
+import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
@@ -24,6 +25,7 @@ import java.util.Optional;
  * must have access to the interpreter, it must take place as part of the interpreter context. As a
  * result, this node handles the transformations and re-writes
  */
+@NodeInfo(shortName = "ProgramRoot", description = "The root of an Enso program's execution")
 public class ProgramRootNode extends EnsoRootNode {
 
   private final Source sourceCode;

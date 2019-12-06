@@ -2,6 +2,7 @@ package org.enso.interpreter.node.controlflow;
 
 import com.oracle.truffle.api.frame.FrameUtil;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.node.ExpressionNode;
@@ -13,6 +14,7 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.type.TypesGen;
 
 /** An implementation of the case expression specialised to working on constructors. */
+@NodeInfo(shortName = "ConsCaseNode")
 public class ConstructorCaseNode extends CaseNode {
   @Child private ExpressionNode matcher;
   @Child private ExpressionNode branch;

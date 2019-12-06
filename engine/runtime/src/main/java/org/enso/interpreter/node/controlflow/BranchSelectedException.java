@@ -1,9 +1,11 @@
 package org.enso.interpreter.node.controlflow;
 
 import com.oracle.truffle.api.nodes.ControlFlowException;
+import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.runtime.state.Stateful;
 
 /** This exception is used to signal when a certain branch in a case expression has been taken. */
+@NodeInfo(shortName = "BranchSelect", description = "Signals that a case branch has been selected")
 public class BranchSelectedException extends ControlFlowException {
   private final Stateful result;
 

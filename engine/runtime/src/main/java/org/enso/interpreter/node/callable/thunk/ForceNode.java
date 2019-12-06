@@ -5,12 +5,14 @@ import com.oracle.truffle.api.dsl.NodeChild;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.FrameUtil;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.argument.ThunkExecutorNode;
 import org.enso.interpreter.runtime.callable.argument.Thunk;
 import org.enso.interpreter.runtime.state.Stateful;
 
 /** Node responsible for handling user-requested thunks forcing. */
+@NodeInfo(shortName = "Force", description = "Forces execution of a thunk at runtime")
 @NodeChild(value = "target", type = ExpressionNode.class)
 public abstract class ForceNode extends ExpressionNode {
   @Specialization

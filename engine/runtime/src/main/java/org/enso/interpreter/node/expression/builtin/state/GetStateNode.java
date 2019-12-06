@@ -40,4 +40,14 @@ public class GetStateNode extends BuiltinRootNode {
         FunctionSchema.CallStrategy.ALWAYS_DIRECT,
         new ArgumentDefinition(0, "this", ArgumentDefinition.ExecutionMode.EXECUTE));
   }
+
+  /**
+   * Gets the source-level name of this node.
+   *
+   * @return the source-level name of the node
+   */
+  @Override
+  public String getName() {
+    return "State.get";
+  }
 }

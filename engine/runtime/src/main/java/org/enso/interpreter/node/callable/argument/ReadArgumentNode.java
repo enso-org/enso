@@ -10,7 +10,7 @@ import org.enso.interpreter.runtime.callable.function.Function;
  * Reads and evaluates the expression provided as a function argument. It handles the case where
  * none is given and the default should be used instead.
  */
-@NodeInfo(description = "Read function argument.")
+@NodeInfo(shortName = "ReadArg", description = "Read function argument.")
 public class ReadArgumentNode extends ExpressionNode {
   private final int index;
   @Child ExpressionNode defaultValue;

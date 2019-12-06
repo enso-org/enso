@@ -22,7 +22,7 @@ import java.util.Arrays;
  * <p>It handles computing the values of the arguments to the callable, and also the sorting of
  * those arguments into the correct positional order for the callable being called.
  */
-@NodeInfo(shortName = "@", description = "Executes function")
+@NodeInfo(shortName = "App", description = "Executes function")
 public class ApplicationNode extends ExpressionNode {
 
   private @Children ExpressionNode[] argExpressions;

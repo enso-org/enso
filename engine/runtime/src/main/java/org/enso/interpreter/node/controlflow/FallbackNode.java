@@ -2,6 +2,7 @@ package org.enso.interpreter.node.controlflow;
 
 import com.oracle.truffle.api.frame.FrameUtil;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.ExecuteCallNode;
@@ -13,6 +14,7 @@ import org.enso.interpreter.runtime.callable.function.Function;
  * This node represents an explicit catch-call case in a pattern match, as provided by the user. It
  * executes the catch-all case code.
  */
+@NodeInfo(shortName = "Fallback", description = "An explicit fallback branch in a case expression")
 public class FallbackNode extends CaseNode {
   @Child private ExpressionNode functionNode;
   @Child private ExecuteCallNode executeCallNode = ExecuteCallNodeGen.create();
