@@ -12,6 +12,7 @@ pub use derivative::Derivative;
 pub use derive_more::*;
 pub use failure::Fail;
 pub use itertools::Itertools;
+pub use lazy_static::lazy_static;
 pub use num::Num;
 pub use paste;
 pub use shrinkwraprs::Shrinkwrap;
