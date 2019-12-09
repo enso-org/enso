@@ -94,43 +94,28 @@ for the top-level evaluation of statements in Enso. In order to help make a
 decision, we listed the following use-cases for top-level evaluation. These are
 annotated using the following key:
 
-- `[?,_]` - We don't know how to implement it, but it may be possible.
-- `[-,_]` - Not possible to implement using purely syntactic macros.
-- `[M,_]` - Possible to implement using purely syntactic macros.
-- `[_,H]` - High priority. This will be used often.
-- `[_,M]` - Medium priority. This will be used with a medium frequency.
-- `[_,L]` - Low priority. Nice to have, but we can likely live without it.
-- `[_,!]` - Something that we never want to have in the language.
+|  Label  | Meaning |
+| --------| ------- |
+| `[?,_]` | We don't know how to implement it, but it may be possible.
+| `[-,_]` | Not possible to implement using purely syntactic macros.
+| `[M,_]` | Possible to implement using purely syntactic macros.
+| `[_,H]` | High priority. This will be used often.
+| `[_,M]` | Medium priority. This will be used with a medium frequency.
+| `[_,L]` | Low priority. Nice to have, but we can likely live without it.
+| `[_,!]` | Something that we never want to have in the language.
 
 The use-cases we have considered are as follows:
 
-- `[-,L]` Creating top-level constructs in `IO`, such as `IORef`. This is, in
-  general, considered to be bad style, but can sometimes be useful.
-- `[-,L]` Using enso files like python is able to be for scripting work. The
-  ability to write constructs at the top-level and just evaluate them.
-- `[M,H]` The ability to generate structures and / types for a dataframe at
-  compilation time, or the automatic generation of an API for a library. A key
-  recognition is that dependent types and type-level execution replace much of
-  the need to be able to query the type-checker and runtime while writing a
-  syntactic macro.
-- `[M,H]` Static metaprogramming (transformations from `AST -> AST`) to let
-  users generate types and functions based on existing AST. There is the
-  potential to want to be able to evaluate actions in `IO` while doing this,
-  but it may not be necessary.
-- `[-,!]` Dynamic metaprogramming to let users mutate program state at runtime
-  (e.g. changing atom shapes, function definitions), also known as 'monkey
-  patching'. This is not something we want in the language, but we do perhaps
-  want the ability to do so on values of type `Dynamic`.
-- `[M,H]` 'Remembering' things when compiling a file, such as remembering all
-  structures marked by an `AST` annotation. An example use case for a mechanism
-  like this is to generate pattern matches for all possible `AST` types. This
-  can be done by letting macros write to a per-file peristent block of storage
-  that could be serialised during precompilation.
-- `[M,H]` Grouping of macros (e.g. `deriveAll = derive Ord Debug Show`). This
-  can be easily handled by doing discovery on functions used as macros, and
-  treating it as a macro as well.
-- `[?,M]` Method-missing magic, akin to ruby. This is likely able to be handled
-  using other, existing language mechanisms.
+|  Label  | Description |
+| ------- | ----------- |
+| `[-,L]` | Creating top-level constructs in `IO`, such as `IORef`. This is, in general, considered to be bad style, but can sometimes be useful.
+| `[-,L]` | Using enso files like python is able to be for scripting work. The ability to write constructs at the top-level and just evaluate them.
+| `[M,H]` | The ability to generate structures and / types for a dataframe at compilation time, or the automatic generation of an API for a library. A key recognition is that dependent types and type-level execution replace much of the need to be able to query the type-checker and runtime while writing a syntactic macro.
+| `[M,H]` | Static metaprogramming (transformations from `AST -> AST`) to let users generate types and functions based on existing AST. There is the potential to want to be able to evaluate actions in `IO` while doing this, but it may not be necessary.
+| `[-,!]` | Dynamic metaprogramming to let users mutate program state at runtime (e.g. changing atom shapes, function definitions), also known as 'monkey patching'. This is not something we want in the language, but we do perhaps want the ability to do so on values of type `Dynamic`.
+| `[M,H]` | 'Remembering' things when compiling a file, such as remembering all structures marked by an `AST` annotation. An example use case for a mechanism like this is to generate pattern matches for all possible `AST` types. This can be done by letting macros write to a per-file peristent block of storage that could be serialised during precompilation.
+| `[M,H]` | Grouping of macros (e.g. `deriveAll = derive Ord Debug Show`). This can be easily handled by doing discovery on functions used as macros, and treating it as a macro as well.
+| `[?,M]` | Method-missing magic, akin to ruby. This is likely able to be handled using other, existing language mechanisms.
 
 In summary and when considering the above use-cases, it seems that there is
 little need for top-level expression evaluation in Enso. We can support all of
@@ -205,6 +190,10 @@ atom inside another type that doesn't define it.
   but this is likely to be unclear to users.
 - Instead we propose to use a keyword (e.g. `use` or `include`) to signify the
   inclusion of an atom inside a type definition.
+  
+However, please note that in case there is no top-level evaluation, there is no
+need for any additional keyword because the inclusion syntax is not ambiguous
+anymore.
 
 > The actionable items for this section are as follows:
 >
@@ -321,6 +310,8 @@ means that the sets represent the same type.
 Two typesets `A` and `B` also have a _subsumption_ relationship `<:` defined
 between them. `A` is said to be subsumed by `B` (`A <: B`) if the following
 hold:
+
+**[WD]** I don't think it holds for functions (contravariances).
 
 1.  `A` contains a subset of the labels in `B`.
 2.  For each label in `A`, its type is a subset of the type of the same label in
