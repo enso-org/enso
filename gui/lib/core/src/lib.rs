@@ -109,13 +109,10 @@ mod example_03 {
     [ "DejaVuSans"
     , "DejaVuSansMono"
     , "DejaVuSansMono-Bold"
-    , "DejaVuSansMono-Oblique"
-    , "DejaVuSansCondensed"
     , "DejaVuSerif"
-    , "DejaVuSerifCondensed"
     ];
 
-    const SIZES : &[f64] = &[0.016, 0.024, 0.032, 0.048, 0.064];
+    const SIZES : &[f64] = &[0.024, 0.032, 0.048];
 
     #[wasm_bindgen]
     #[allow(dead_code)]
@@ -131,21 +128,23 @@ mod example_03 {
             let fonts_iter    = FONT_NAMES.iter().map(font_creator);
             let mut fonts     = fonts_iter.collect::<Box<[FontRenderInfo]>>();
 
-            let all_cases     = iproduct!(0..fonts.len(), SIZES.iter());
+            let all_cases     = iproduct!(0..fonts.len(), 0..SIZES.len());
 
-            for (i, (font, size)) in all_cases.enumerate() {
+            for (font, size) in all_cases {
 
-                let line_position = nalgebra::Vector2::new(-0.95, 0.9 - 0.064*(i as f64));
+                let x = -0.95 + 0.6 * (size as f64);
+                let y = 0.90 - 0.45 * (font as f64);
+                let line_position = nalgebra::Vector2::new(x,y);
                 let text_compnent = crate::text::TextComponentBuilder {
-                    text : "To be, or not to be, that is the question: \
-                        Whether 'tis nobler in the mind to suffer \
-                        The slings and arrows of outrageous fortune, \
-                        Or to take arms against a sea of troubles \
+                    text : "To be, or not to be, that is the question:\n\
+                        Whether 'tis nobler in the mind to suffer\n\
+                        The slings and arrows of outrageous fortune,\n\
+                        Or to take arms against a sea of troubles\n\
                         And by opposing end them."
                         .to_string(),
                     font     : &mut fonts[font],
                     position : line_position,
-                    size     : *size,
+                    size     : SIZES[size],
                     color    : Color {r: 1.0, g: 1.0, b: 1.0, a: 1.0},
                 }.build(workspace);
                 workspace.text_components.push(text_compnent);
