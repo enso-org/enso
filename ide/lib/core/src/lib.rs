@@ -99,7 +99,7 @@ mod example_03 {
     use crate::utils;
     use crate::display::world::{World,Workspace,Add};
     use crate::text::font::FontRenderInfo;
-    use crate::Color;
+    use crate::{Area,Color};
 
     use crate::dirty::traits::SharedSetter1;
     use basegl_core_embedded_fonts::EmbeddedFonts;
@@ -134,7 +134,12 @@ mod example_03 {
 
                 let x = -0.95 + 0.6 * (size as f64);
                 let y = 0.90 - 0.45 * (font as f64);
-                let line_position = nalgebra::Vector2::new(x,y);
+                let area = Area {
+                    left   : x,
+                    right  : x + 0.5,
+                    top    : y,
+                    bottom : y - 0.2
+                };
                 let text_compnent = crate::text::TextComponentBuilder {
                     text : "To be, or not to be, that is the question:\n\
                         Whether 'tis nobler in the mind to suffer\n\
@@ -143,9 +148,10 @@ mod example_03 {
                         And by opposing end them."
                         .to_string(),
                     font     : &mut fonts[font],
-                    position : line_position,
+                    scroll_position: nalgebra::Vector2::new(0.0, 0.05),
                     size     : SIZES[size],
                     color    : Color {r: 1.0, g: 1.0, b: 1.0, a: 1.0},
+                    area
                 }.build(workspace);
                 workspace.text_components.push(text_compnent);
             }
@@ -164,9 +170,26 @@ pub struct Color<T> {
     pub r : T,
     pub g : T,
     pub b : T,
-    pub a : T
+    pub a : T,
 }
 
+#[derive(Debug)]
+pub struct Area<T> {
+    pub left   : T,
+    pub right  : T,
+    pub top    : T,
+    pub bottom : T,
+}
+
+impl<T:std::ops::Sub+Clone> Area<T> {
+    pub fn width(&self) -> T::Output {
+        self.right.clone() - self.left.clone()
+    }
+
+    pub fn height(&self) -> T::Output {
+        self.top.clone() - self.bottom.clone()
+    }
+}
 
 // ===============
 // === Printer ===

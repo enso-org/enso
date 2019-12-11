@@ -3,7 +3,8 @@ use crate::prelude::*;
 use crate::text::font::FontRenderInfo;
 use crate::text::msdf::MsdfTexture;
 
-use nalgebra::{Point2,Transform2,Translation2,Affine2,Matrix3,Scalar};
+use nalgebra::{Point2,Translation2,Affine2,Matrix3,Scalar};
+use std::ops::Range;
 
 // ============================
 // === Base vertices layout ===
@@ -22,9 +23,61 @@ lazy_static! {
         ];
 }
 
-
 fn point_to_iterable<T:Scalar>(p:Point2<T>) -> SmallVec<[T;2]> {
     p.iter().cloned().collect()
+}
+
+
+// ===========
+// === Pen ===
+// ===========
+
+/// A pen position
+///
+/// The pen is a font-specific term (see
+/// [freetype documentation](https://www.freetype.org/freetype2/docs/glyphs/glyphs-3.html#section-1)
+/// for details). The structure keeps pen position _before_ rendering the `current_char`.
+#[derive(Clone)]
+#[derive(Debug)]
+pub struct Pen {
+    pub position     : Point2<f64>,
+    pub current_char : Option<char>,
+    pub next_advance : f64,
+}
+
+impl Pen {
+    /// Create the pen structure, where the first char will be rendered at `position`.
+    pub fn new(position:Point2<f64>) -> Pen {
+        Pen {
+            position,
+            current_char : None,
+            next_advance : 0.0
+        }
+    }
+
+    /// Move pen to the next character
+    ///
+    /// The new position will be the base for `ch` rendering with applied kerning.
+    pub fn next_char(&mut self, ch:char, font:&mut FontRenderInfo) -> &mut Self {
+        if let Some(current_ch) = self.current_char {
+            self.move_pen(current_ch,ch,font)
+        }
+        self.next_advance = font.get_glyph_info(ch).advance;
+        self.current_char = Some(ch);
+        self
+    }
+
+    fn move_pen(&mut self, current:char, next:char, font:&mut FontRenderInfo) {
+        let kerning   = font.get_kerning(current, next);
+        let transform = Translation2::new(self.next_advance + kerning, 0.0);
+        self.position = transform * self.position;
+    }
+
+    pub fn is_in_x_range(&self, range:&Range<f64>) -> bool {
+        let x_min  = self.position.x;
+        let x_max  = x_min + self.next_advance;
+        range.contains(&x_min) || range.contains(&x_max) || (x_min..x_max).contains(&range.start)
+    }
 }
 
 // =========================================
@@ -55,37 +108,24 @@ pub trait GlyphAttributeBuilder {
 // ==================================
 
 /// Builder for glyph square vertex positions
+///
+/// `pen` field points to the position of last built glyph.
 pub struct GlyphVertexPositionBuilder<'a> {
-    pub previous_char : Option<char>,
     pub font          : &'a mut FontRenderInfo,
-    pub pen_position  : Point2<f64>,
-    pub to_window     : Transform2<f64>,
+    pub pen           : Pen,
 }
 
 impl<'a> GlyphVertexPositionBuilder<'a> {
     /// New GlyphVertexPositionBuilder
     ///
-    /// The newly created builder start to place glyphs with pen located at the beginning of given
-    /// line.
-    pub fn new(font:&'a mut FontRenderInfo, to_window:Transform2<f64>, line_number:usize)
+    /// The newly created builder start to place glyphs at location pointed by given pen.
+    pub fn new(font:&'a mut FontRenderInfo, pen:Pen)
     -> GlyphVertexPositionBuilder<'a> {
-        GlyphVertexPositionBuilder {
-            previous_char : None,
-            font,
-            pen_position  : Point2::new(0.0, -1.0*line_number as f64),
-            to_window,
-        }
-    }
-
-    fn translation_by_kerning_value(&mut self, ch:char) -> Translation2<f64> {
-        let prev_char = self.previous_char;
-        let opt_value = prev_char.map(|lc| self.font.get_kerning(lc, ch));
-        let value     = opt_value.unwrap_or(0.0);
-        Translation2::new(value, 0.0)
+        GlyphVertexPositionBuilder {font,pen}
     }
 
     fn translation_by_pen_position(&self) -> Translation2<f64>{
-        Translation2::new(self.pen_position.x, self.pen_position.y)
+        Translation2::new(self.pen.position.x, self.pen.position.y)
     }
 }
 
@@ -93,24 +133,16 @@ impl<'a> GlyphAttributeBuilder for GlyphVertexPositionBuilder<'a> {
     const OUTPUT_SIZE : usize = BASE_LAYOUT_SIZE * 2;
     type Output = SmallVec<[f64;12]>; // Note[Output size]
 
-    /// Compute vertices for one glyph and move pen for next position.
+    /// Compute vertices for the next glyph.
     fn build_for_next_glyph(&mut self, ch:char) -> Self::Output {
-        let apply_kerning            = self.translation_by_kerning_value(ch);
+        self.pen.next_char(ch, self.font);
         let to_pen_position          = self.translation_by_pen_position();
         let glyph_info               = self.font.get_glyph_info(ch);
         let glyph_specific_transform = &glyph_info.from_base_layout;
-        let to_window                = &self.to_window;
-        let advance_pen              = Translation2::new(glyph_info.advance, 0.0);
-        let pen_transformation       = apply_kerning * advance_pen;
-
-        self.pen_position            = pen_transformation * self.pen_position;
-        self.previous_char           = Some(ch);
         let base                     = GLYPH_SQUARE_VERTICES_BASE_LAYOUT.iter();
         let glyph_fixed              = base                 .map(|p| glyph_specific_transform * p);
         let moved_to_pen_position    = glyph_fixed          .map(|p| to_pen_position * p);
-        let kerning_applied          = moved_to_pen_position.map(|p| apply_kerning * p);
-        let mapped_to_window         = kerning_applied      .map(|p| to_window * p);
-        mapped_to_window.map(point_to_iterable).flatten().collect()
+        moved_to_pen_position.map(point_to_iterable).flatten().collect()
     }
 
     fn empty() -> Self::Output {
@@ -209,6 +241,7 @@ impl<'a> GlyphAttributeBuilder for GlyphTextureCoordsBuilder<'a> {
  * https://github.com/rust-lang/rust/issues/62708
  */
 
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -220,46 +253,60 @@ mod tests {
     use wasm_bindgen_test::wasm_bindgen_test;
 
     #[wasm_bindgen_test(async)]
+    fn moving_pen() -> impl Future<Output=()> {
+        TestAfterInit::schedule(|| {
+            let mut font = FontRenderInfo::mock_font("Test font".to_string());
+            mock_a_glyph_info(&mut font);
+            mock_w_glyph_info(&mut font);
+            font.mock_kerning_info('A', 'W', -0.16);
+            font.mock_kerning_info('W', 'A', 0.0);
+
+            let mut pen = Pen::new(Point2::new(0.0, 0.0));
+            pen.next_char('A', &mut font);
+            assert_eq!(Some('A'), pen.current_char);
+            assert_eq!(0.56     , pen.next_advance);
+            assert_eq!(0.0      , pen.position.x);
+            assert_eq!(0.0      , pen.position.y);
+            pen.next_char('W', &mut font);
+            assert_eq!(Some('W'), pen.current_char);
+            assert_eq!(0.7      , pen.next_advance);
+            assert_eq!(0.4      , pen.position.x);
+            assert_eq!(0.0      , pen.position.y);
+            pen.next_char('A', &mut font);
+            assert_eq!(Some('A'), pen.current_char);
+            assert_eq!(0.56     , pen.next_advance);
+            assert_eq!(1.1      , pen.position.x);
+            assert_eq!(0.0      , pen.position.y);
+        })
+    }
+
+    #[wasm_bindgen_test(async)]
     fn build_vertices_for_glyph_square() -> impl Future<Output=()> {
         TestAfterInit::schedule(|| {
             let mut font = FontRenderInfo::mock_font("Test font".to_string());
             mock_a_glyph_info(&mut font);
             mock_w_glyph_info(&mut font);
             font.mock_kerning_info('A', 'W', -0.16);
-            let to_window_transformation = {
-                let to_window_mtx = nalgebra::Matrix3::new
-                    ( 0.1, 0.0, -1.0
-                    , 0.0, 0.1, -0.5
-                    , 0.0, 0.0,  1.0
-                    );
-                nalgebra::Transform2::from_matrix_unchecked(to_window_mtx)
-            };
-
-            let mut builder = GlyphVertexPositionBuilder::new(&mut font,to_window_transformation,0);
+            
+            let mut builder = GlyphVertexPositionBuilder::new(&mut font,Pen::new(Point2::new(0.0,0.0)));
             let a_vertices  = builder.build_for_next_glyph('A');
-            assert_eq!(Some('A'), builder.previous_char);
-            assert_eq!(0.56     , builder.pen_position.x);
-            assert_eq!(0.0      , builder.pen_position.y);
             let w_vertices  = builder.build_for_next_glyph('W');
-            assert_eq!(Some('W'), builder.previous_char);
-            assert_eq!(1.1      , builder.pen_position.x);
-            assert_eq!(0.0      , builder.pen_position.y);
 
             let expected_a_vertices = &
-                [ -0.99 , -0.48
-                , -0.99 , -0.4
-                , -0.94 , -0.48
-                , -0.94 , -0.48
-                , -0.99 , -0.4
-                , -0.94 , -0.4
+                [ 0.1 , 0.2
+                , 0.1 , 1.0
+                , 0.6 , 0.2
+                , 0.6 , 0.2
+                , 0.1 , 1.0
+                , 0.6 , 1.0
                 ];
             let expected_w_vertices = &
-                [ -0.95 , -0.48
-                , -0.95 , -0.39
-                , -0.89 , -0.48
-                , -0.89 , -0.48
-                , -0.95 , -0.39
-                , -0.89 , -0.39
+                [ 0.5 , 0.2
+                , 0.5 , 1.1
+                , 1.1 , 0.2
+                , 1.1 , 0.2
+                , 0.5 , 1.1
+                , 1.1 , 1.1
                 ];
 
             assert_eq!(expected_a_vertices, a_vertices.as_ref());
