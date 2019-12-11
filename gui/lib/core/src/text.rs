@@ -4,14 +4,14 @@ pub mod msdf;
 
 use crate::prelude::*;
 
-use crate::Color;
+use crate::{Area,Color};
 use crate::display::world::Workspace;
 use crate::text::buffer::TextComponentBuffers;
 use crate::text::msdf::MsdfTexture;
 
 use font::FontRenderInfo;
 use basegl_backend_webgl::{Context,compile_shader,link_program,Program,Shader};
-use nalgebra::{Vector2,Similarity2,Transform2};
+use nalgebra::{Vector2,Similarity2,Point2,Projective2};
 use web_sys::{WebGlRenderingContext,WebGlBuffer,WebGlTexture};
 
 
@@ -30,7 +30,7 @@ pub struct TextComponent {
     gl_msdf_texture : WebGlTexture,
     lines           : Vec<Line>,
     buffers         : TextComponentBuffers,
-    to_window       : Transform2<f64>
+    to_window       : Projective2<f64>
 }
 
 #[derive(Debug)]
@@ -68,11 +68,11 @@ impl TextComponent {
         gl_context.bind_buffer(target,Some(buffer));
         gl_context.vertex_attrib_pointer_with_i32
         ( location
-            , item_size
-            , item_type
-            , normalized
-            , stride
-            , offset
+        , item_size
+        , item_type
+        , normalized
+        , stride
+        , offset
         );
     }
 
@@ -95,11 +95,12 @@ impl TextComponent {
 
 /// Text component builder
 pub struct TextComponentBuilder<'a, Str:AsRef<str>> {
-    pub text     : Str,
-    pub font     : &'a mut FontRenderInfo,
-    pub position : Vector2<f64>,
-    pub size     : f64,
-    pub color    : Color<f32>,
+    pub text            : Str,
+    pub font            : &'a mut FontRenderInfo,
+    pub scroll_position : Vector2<f64>,
+    pub size            : f64,
+    pub color           : Color<f32>,
+    pub area            : Area<f64>
 }
 
 impl<'a,Str:AsRef<str>> TextComponentBuilder<'a,Str> {
@@ -107,17 +108,14 @@ impl<'a,Str:AsRef<str>> TextComponentBuilder<'a,Str> {
     /// Build a new text component rendering on given workspace
     pub fn build(mut self, workspace : &Workspace) -> TextComponent {
         self.load_all_chars();
-        let displayed_lines   = 100; // TODO[AO] replace with actual component size
-        let displayed_columns = 100;
         let gl_context        = workspace.context.clone();
         let gl_program        = self.create_program(&gl_context);
         let gl_msdf_texture   = self.create_msdf_texture(&gl_context);
         let lines             = self.split_lines();
-        let mut buffers       = TextComponentBuffers::new(&gl_context,displayed_lines,displayed_columns);
         let to_window         = self.to_window_transform();
-
-        self.setup_uniforms(&gl_context, &gl_program);
-        buffers.refresh_all(&gl_context, &lines, self.font, &to_window);
+        let mut buffers       = self.create_buffers(&gl_context, &to_window);
+        self.setup_uniforms(&gl_context,&gl_program,&to_window);
+        buffers.refresh_all(&gl_context,&lines,self.font);
         TextComponent {
             gl_context,
             gl_program,
@@ -167,9 +165,11 @@ impl<'a,Str:AsRef<str>> TextComponentBuilder<'a,Str> {
         compile_shader(gl_context,shader_type,body).unwrap()
     }
 
-    fn to_window_transform(&self) -> Transform2<f64> {
-        const ROTATION : f64 = 0.0;
-        let similarity       = Similarity2::new(self.position,ROTATION,self.size);
+    fn to_window_transform(&self) -> Projective2<f64> {
+        const ROTATION : f64  = 0.0;
+        let base_position     = Vector2::new(self.area.left,self.area.top);
+        let scrolled_position = base_position - self.scroll_position;
+        let similarity        = Similarity2::new(scrolled_position,ROTATION,self.size);
         nalgebra::convert(similarity)
     }
 
@@ -208,20 +208,54 @@ impl<'a,Str:AsRef<str>> TextComponentBuilder<'a,Str> {
         msdf_texture
     }
 
-    fn setup_uniforms(&self, gl_context:&Context, gl_program:&Program) {
-        let color         = &self.color;
-        let range         = FontRenderInfo::MSDF_PARAMS.range as f32;
-        let msdf_width    = MsdfTexture::WIDTH as f32;
-        let msdf_height   = self.font.msdf_texture.rows() as f32;
-        let color_loc     = gl_context.get_uniform_location(gl_program,"color");
-        let range_loc     = gl_context.get_uniform_location(gl_program,"range");
-        let msdf_loc      = gl_context.get_uniform_location(gl_program,"msdf");
-        let msdf_size_loc = gl_context.get_uniform_location(gl_program,"msdfSize");
+    fn create_buffers(&mut self, gl_context:&Context, to_window:&Projective2<f64>)
+    -> TextComponentBuffers {
+        let from_window       = to_window.inverse();
+        let component_lb      = Point2::new(self.area.left, self.area.bottom);
+        let component_rt      = Point2::new(self.area.right, self.area.top);
+        let displayed_text_lb = from_window * component_lb;
+        let displayed_text_rt = from_window * component_rt;
+        let displayed_text    = Area {
+            left              : displayed_text_lb.x,
+            right             : displayed_text_rt.x,
+            top               : displayed_text_rt.y,
+            bottom            : displayed_text_lb.y,
+        };
+        TextComponentBuffers::new(gl_context,displayed_text,self.font)
+    }
+
+    fn setup_uniforms(&self, gl_context:&Context, gl_program:&Program, to_window:&Projective2<f64>) {
+        let to_window_converted = Self::convert_to_window(to_window);
+        let to_window_ref       = to_window_converted.as_ref();
+        let area                = &self.area;
+        let color               = &self.color;
+        let range               = FontRenderInfo::MSDF_PARAMS.range as f32;
+        let msdf_width          = MsdfTexture::WIDTH as f32;
+        let msdf_height         = self.font.msdf_texture.rows() as f32;
+        let transpose           = false;
+        let to_window_loc       = gl_context.get_uniform_location(gl_program,"toWindow");
+        let clip_lower_loc      = gl_context.get_uniform_location(gl_program,"clipLower");
+        let clip_upper_loc      = gl_context.get_uniform_location(gl_program,"clipUpper");
+        let color_loc           = gl_context.get_uniform_location(gl_program,"color");
+        let range_loc           = gl_context.get_uniform_location(gl_program,"range");
+        let msdf_loc            = gl_context.get_uniform_location(gl_program,"msdf");
+        let msdf_size_loc       = gl_context.get_uniform_location(gl_program,"msdfSize");
 
         gl_context.use_program(Some(gl_program));
+        gl_context.uniform_matrix3fv_with_f32_array(to_window_loc.as_ref(),transpose,to_window_ref);
+        gl_context.uniform2f(clip_lower_loc.as_ref(),area.left as f32,area.bottom as f32);
+        gl_context.uniform2f(clip_upper_loc.as_ref(),area.right as f32,area.top as f32);
         gl_context.uniform4f(color_loc.as_ref(),color.r,color.g,color.b,color.a);
         gl_context.uniform1f(range_loc.as_ref(),range);
         gl_context.uniform1i(msdf_loc.as_ref(),0);
         gl_context.uniform2f(msdf_size_loc.as_ref(),msdf_width,msdf_height);
+    }
+
+    fn convert_to_window(to_window:&Projective2<f64>) -> SmallVec<[f32;9]> {
+        let matrix            = to_window.matrix();
+        let view : &[[f64;3]] = matrix.as_ref();
+        let flatten_view      = view.iter().flatten();
+        let converted         = flatten_view.map(|f| *f as f32);
+        converted.collect()
     }
 }
