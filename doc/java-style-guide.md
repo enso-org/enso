@@ -65,11 +65,6 @@ the package name, the file should be moved one level up. For examples, if
 be placed directly in the `org.enso` package instead of `org.enso.filemanager`.
 This is to avoid repetitious constructs like `org.enso.filemanager.FileManager`.
 
-The root directory for the project should follow the naming scheme of types.
-For example, if the project name is `File Manager`, then sources of the main
-package shall be located under path
-`FileManager\src\main\java\org\enso\filemanager`.
-
 ### The Public API
 In order to produce as flexible a codebase as possible, we tend not to make use
 of access modifiers in our code (`protected`, `private`, and so on). Instead, we
