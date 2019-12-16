@@ -30,6 +30,7 @@ use of unbounded recursion in Enso on GraalVM.
 - [Avoiding Stack Usage via a CPS Transform](#avoiding-stack-usage-via-a-cps-transform)
   - [The CPS Transform](#the-cps-transform)
   - [A Hybrid Approach](#a-hybrid-approach)
+- [Linearised Representations](#linearised-representations)
 - [Alternatives](#alternatives)
 - [Open Questions](#open-questions)
 
@@ -196,7 +197,7 @@ program stack in a thread-safe manner and perform the transformation at runtime
 
 ### A Hybrid Approach
 As we clearly don't want to CPS transform the program globally, we need some
-mechanism by which we can rewrite only when necessary. As discussed above, we 
+mechanism by which we can rewrite only when necessary. As discussed above, we
 could do this via a dynamic runtime analysis, but we could also potentially make
 use of the Java stack at least in part.
 
@@ -222,15 +223,40 @@ Main.testHybrid      1000000  avgt    5  25.961 ±  2.775  ms/op
 ```
 
 This hybrid implementation makes things faster overall, with some particularly
-good performance wins for the smaller cases. 
+good performance wins for the smaller cases.
 
 An open question for this is how you work out exactly _what_ code to CPS
 transform at the point of the stack overflow. In the simply-recursive case this
 is trivial, but it may require some more sophisticated tracing in the case of
 mutually-recursive functions.
 
+## Linearised Representations
+While not something that we could feasibly do at the moment, one of the
+potential solutions for this is to statically compile the language to a
+linearised representation. Rather than trying to implement the CPS transform in
+a Truffle interpreter not designed for it, we could instead compile Enso to a
+low-level IR format which has no stack frames, and instead just uses jumps.
+
+Whether we write this IR ourselves or use an existing one implemented as a
+Truffle language, such as WASM bytecode (currently very experimental) or LLVM
+IR (much more tried and tested), this would provide a number of benefits:
+
+- The IR output by the compiler phase need not be fed into the truffle
+  interpreter for said IR.
+- We gain more flexibility.
+- We can still support interoperation with foreign languages through Truffle.
+
+However, such an approach also has some major downsides:
+
+- We do not have the time to pursue such an approach in the short term.
+- Such an approach would require significantly more work, as generating linear
+  IR representations is not as simple as generating a high-level truffle node
+  IR.
+- Such an approach adds quite a lot of complexity to the compiler pipeline,
+  which, is currently tied quite strongly into the Truffle language life-cycle.
+
 ## Alternatives
-At the current time there are no apparent alternatives to the two approaches
+At the current time there are no apparent alternatives to the three approaches
 discussed above. While it would be ideal for the JVM to have native support for
 stack segmentation on the heap, this would likely be an in-depth and significant
 amount of work to add, with no guarantee that it would be accepted into master.

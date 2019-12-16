@@ -1,4 +1,6 @@
 # GraalVM
+The notes contained below are out of date, but still may e relevant.
+
 The following are notes based on questions that we have about using GraalVM to
 provide a backend for Enso.
 
@@ -43,34 +45,3 @@ provide a backend for Enso.
   of compilation, but it is _possible_ to write additional JIT phases.
 - There is the polyglot REPL, but it is definitely possible to build a proper
   polyglot repl based around Enso. Take a look at `polyglot - shell`.
-
-Sit down with Chris in London with some concrete code and examples.
-
-## A Design Based on GraalVM
-
-- The parser remains in Haskell.
-- The backend works on AST changesets instead. 
-- The compiler is written in Scala using Truffle, implementing the following set
-  of processes:
-  + Ingestion: Transformation of AST to Graal internal AST.
-  + Desugaring: Removal of all syntax sugar from the expressions to create a
-    core language.
-  + Typechecking: Typechecking of the core language.
-  + Optimisation: Optimisation of the core language.
-  + Interpretation: Using GraalVM.
-
-Roadmap:
-
-1. Write up a specification of the runtime, type system, and syntax.
-2. WD fixes the parser for the new syntax including markers, double rep, and AST
-   printing.
-3. Build the first version of the GraalVM backend to operate in a standalone
-   fashion, with no interactivity. This will have no standard library support.
-4. Build the standard library, initially focusing on the basics, HTTP, and the
-   primary interchange formats (JSON and YAML). 
-5. Design the IDE protocol and implement the necessary introspection 
-   functionality. The messages should only be implemented enough to support the
-   Enso Studio use-cases.
-6. Implement the caching in earnest.
-7. Implement the typechecker and rework caching as needed. 
-8. Implement the necessary sets of optimisation passes in GraalVM.
