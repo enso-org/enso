@@ -45,6 +45,9 @@ pub enum Error {
 
     #[fail(display = "JSON (de)serialization failed: {:?}", _0)]
     JsonSerializationError(#[cause] serde_json::error::Error),
+
+    #[fail(display = "JSON deserialization failed: {:?}, JSON was: {}", _0, _1)]
+    JsonDeserializationError(#[cause] serde_json::error::Error, String),
 }
 
 impl From<Error> for api::Error {
@@ -164,7 +167,7 @@ mod internal {
     /// Deserialize AST from JSON text received from WS Parser Service.
     pub fn from_json(json_text: &str) -> api::Result<api::Ast> {
         let ast = serde_json::from_str::<api::Ast>(json_text);
-        Ok(ast.map_err(|e| JsonSerializationError(e))?)
+        Ok(ast.map_err(|e| JsonDeserializationError(e, json_text.into()))?)
     }
 }
 

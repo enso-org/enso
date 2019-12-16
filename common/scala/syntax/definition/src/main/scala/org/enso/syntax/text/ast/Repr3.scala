@@ -42,7 +42,7 @@ object Spanned {
   implicit def spannedForList1[T: Spanned]: Spanned[List1[T]] =
     _.map(Spanned(_)).foldLeft(0)(_ + _)
   implicit def spannedForShifted[T: Spanned]: Spanned[Shifted[T]] =
-    t => t.off + Spanned(t.el)
+    t => t.off + Spanned(t.wrapped)
   implicit def spannedForRepr[T: Repr]: Spanned[T] = t => Repr(t).span
 
 }
@@ -89,7 +89,7 @@ object Repr {
   implicit def reprForList1[T: Repr: Spanned]: Repr[List1[T]] =
     t => R + t.head + t.tail
   implicit def reprForShifted[T: Repr: Spanned]: Repr[Shifted[T]] =
-    t => R + t.off + t.el
+    t => R + t.off + t.wrapped
   implicit def reprForShiftedList1[T: Repr: Spanned]: Repr[Shifted.List1[T]] =
     t => R + t.head + t.tail
   implicit def reprForOption[T: Repr]: Repr[Option[T]] =

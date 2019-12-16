@@ -1,7 +1,8 @@
 package org.enso.data
 
-import io.circe.Decoder
-import io.circe.Encoder
+import io.circe.{Decoder, Encoder, Json}
+import io.circe.syntax._
+import io.circe.generic.auto._
 
 final case class Tree[K, V](value: Option[V], branches: Map[K, Tree[K, V]]) {
   def +(item: (List[K], V)): Tree[K, V] = item._1 match {
@@ -44,9 +45,11 @@ object Tree {
 
   /* Note [Tree Serialization] */
   implicit def jsonEncode[K: Encoder, V: Encoder]: Encoder[Tree[K, V]] =
-    Encoder.forProduct2("value", "branches")(
-      tree => tree.value -> tree.branches.toSeq
-    )
+    tree =>
+      Json.obj(
+        "value"    -> tree.value.asJson,
+        "branches" -> tree.branches.toSeq.asJson
+      )
 
   /* Note [Tree Serialization]
    * We can't directly serialize Map[K,V], as circe tries to use whole K as a

@@ -55,7 +55,7 @@ final class Builder(
         val head     = segments.head
         val tail     = segments.tail
         val paths    = context.tree.dropValues()
-        val stream   = Shifted.List1(head.el, tail)
+        val stream   = Shifted.List1(head.wrapped, tail)
         val template = Macro.Ambiguous(stream, paths)
         val newTok   = Shifted(head.off, template)
         (revStreamL, newTok, List())
@@ -84,7 +84,7 @@ final class Builder(
 
         }
 
-        val shiftSegs = Shifted.List1(segs2.head.el, segs2.tail)
+        val shiftSegs = Shifted.List1(segs2.head.wrapped, segs2.tail)
 
         if (!revSegStreams.tail.forall(_.isEmpty)) {
           throw new Error(
@@ -124,7 +124,7 @@ final class Builder(
         ctx.body match {
           case List(seg) =>
             seg.body.toStream match {
-              case List(mod) => mod.el
+              case List(mod) => mod.wrapped
               case _         => throw new scala.Error("Impossible happened")
             }
         }
@@ -132,10 +132,10 @@ final class Builder(
     )
 
   def buildAsModule(): AST = {
-    build(List())._2.el match {
+    build(List())._2.wrapped match {
       case Macro.Match.any(m) =>
         m.segs.head.body.toStream match {
-          case s :: Nil => s.el
+          case s :: Nil => s.wrapped
           case _        => throw new scala.Error("Impossible happened.")
         }
       case _ => throw new scala.Error("Impossible happened.")
@@ -153,7 +153,7 @@ object Builder {
 
   case class Context(tree: Registry.Tree, parent: Option[Context]) {
     def lookup(t: AST): Option[Registry.Tree] = tree.get(t)
-    def isEmpty: Boolean                      = tree.isLeaf
+    def isEmpty:        Boolean               = tree.isLeaf
 
     @tailrec
     final def parentLookup(t: AST): Boolean = {
@@ -168,7 +168,7 @@ object Builder {
     }
   }
   object Context {
-    def apply(): Context                    = Context(data.Tree(), None)
+    def apply():                    Context = Context(data.Tree(), None)
     def apply(tree: Registry.Tree): Context = Context(tree, None)
   }
 

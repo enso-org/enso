@@ -32,7 +32,7 @@ object Pattern {
     def go(off: Int, str: AST.Stream, out: AST.Stream): (AST.Stream, Int) =
       str match {
         case Nil     => (out, off)
-        case t :: ts => go(t.off, ts, Shifted(off, t.el) :: out)
+        case t :: ts => go(t.off, ts, Shifted(off, t.wrapped) :: out)
       }
     val (nStream, nOff) = go(off, revStream, List())
     (nStream.reverse, nOff)
@@ -272,8 +272,8 @@ object Pattern {
 
     implicit def offZipMatch[T: HasSpan]: OffsetZip[MatchOf, T] = t => {
       val s  = t.map(Shifted(0, _))
-      val s2 = mapWithOff(s) { case (i, el) => Shifted(i, el.el) }
-      val s3 = s2.map(t => (Index(t.off), t.el))
+      val s2 = mapWithOff(s) { case (i, el) => Shifted(i, el.wrapped) }
+      val s3 = s2.map(t => (Index(t.off), t.wrapped))
       s3
     }
 
@@ -520,7 +520,7 @@ sealed trait Pattern {
           matchByCls_[AST.Block](spaced, M.Block(p, _))
         case p @ P.Opr(spaced, maxPrec) =>
           matchByCls[AST.Opr](spaced) { sast =>
-            Option.when(maxPrec.forall(_ >= sast.el.prec))(M.Opr(p, sast))
+            Option.when(maxPrec.forall(_ >= sast.wrapped.prec))(M.Opr(p, sast))
           }
         case p @ P.Mod(spaced) => matchByCls_[AST.Mod](spaced, M.Mod(p, _))
 

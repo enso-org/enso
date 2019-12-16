@@ -62,7 +62,11 @@ fn derive_iterator_for
                 })
             }).collect()
         }
-        syn::Data::Enum(_) | syn::Data::Union(_) => unimplemented!(),
+        syn::Data::Enum(_) | syn::Data::Union(_) => {
+            println!("derive(Iterator) for non-struct type is not implemented");
+            println!("{} will get no-op Iterator impls", decl.ident);
+            Vec::new()
+        }
     };
     let data           = &decl.ident;
     let t_iterator     = format!("{}Iterator"    , data);

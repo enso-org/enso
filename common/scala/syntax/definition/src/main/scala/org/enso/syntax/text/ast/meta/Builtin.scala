@@ -43,7 +43,7 @@ object Builtin {
           import Pattern.Match._
           st1.body match {
             case Seq(_, (namePat, Seq(_, (argsPat, bodyPat)))) =>
-              val args = argsPat.toStream.map(_.el)
+              val args = argsPat.toStream.map(_.wrapped)
               val body = bodyPat.toStream match {
                 case List(Shifted(_, AST.Block.any(block))) => Some(block)
                 case List()                                 => None
@@ -93,7 +93,7 @@ object Builtin {
         case List(s1, s2) =>
           (s1.body.toStream, s2.body.toStream) match {
             case (List(t1), List(t2)) =>
-              AST.Mixfix(List1(s1.head, s2.head), List1(t1.el, t2.el))
+              AST.Mixfix(List1(s1.head, s2.head), List1(t1.wrapped, t2.wrapped))
             case _ => internalError
           }
         case _ => internalError
@@ -111,7 +111,7 @@ object Builtin {
             case (List(t1), List(t2), List(t3)) =>
               AST.Mixfix(
                 List1(s1.head, s2.head, s3.head),
-                List1(t1.el, t2.el, t3.el)
+                List1(t1.wrapped, t2.wrapped, t3.wrapped)
               )
             case _ => internalError
           }
@@ -129,7 +129,7 @@ object Builtin {
             case (List(scrutinee), List(branches)) =>
               AST.Mixfix(
                 List1(scrutineePart.head, branchesPart.head),
-                List1(scrutinee.el, branches.el)
+                List1(scrutinee.wrapped, branches.wrapped)
               )
             case _ => internalError
           }
@@ -146,8 +146,9 @@ object Builtin {
       (ctx.prefix, ctx.body) match {
         case (Some(pfx), List(s1)) =>
           (pfx.toStream, s1.body.toStream) match {
-            case (List(l), List(r)) => AST.App.Infix(l.el, Opr("->"), r.el)
-            case _                  => internalError
+            case (List(l), List(r)) =>
+              AST.App.Infix(l.wrapped, Opr("->"), r.wrapped)
+            case _ => internalError
           }
       }
     }
@@ -160,7 +161,7 @@ object Builtin {
           s1.body.toStream match {
             case List(langAST, Shifted(_, AST.Block.any(bodyAST))) =>
               val indent     = bodyAST.indent
-              val lang       = langAST.el.show()
+              val lang       = langAST.wrapped.show()
               val body       = bodyAST.show()
               val bodyLines  = body.split("\\r?\\n").toList.drop(1)
               val bodyLines2 = bodyLines.map(_.drop(indent))

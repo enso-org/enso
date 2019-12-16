@@ -135,7 +135,7 @@ object DocParserRunner {
     val TLHeadOff        = transformedLines.head.off
     val head             = AST.Block.Line(TLHeadElem, TLHeadOff)
     val lines            = transformedLines.tail
-    val body             = AST.Block(b.typ, b.indent, b.emptyLines, head, lines)
+    val body             = AST.Block(b.ty, b.indent, b.emptyLines, head, lines)
     AST.Def(name, args, Some(body))
   }
 

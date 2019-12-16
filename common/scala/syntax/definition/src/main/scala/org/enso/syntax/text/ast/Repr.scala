@@ -51,7 +51,7 @@ object Repr {
   implicit def reprForList1[T: Repr]: Repr[List1[T]] =
     t => R + t.head + t.tail
   implicit def reprForShifted[T: Repr]: Repr[Shifted[T]] =
-    t => R + t.off + t.el
+    t => R + t.off + t.wrapped
   implicit def reprForShiftedList1[T: Repr]: Repr[Shifted.List1[T]] =
     t => R + t.head + t.tail
   implicit def reprForOption[T: Repr]: Repr[Option[T]] =
@@ -124,8 +124,8 @@ object Repr {
 
     //// Instances ////
 
-    implicit def fromString(a: String): Builder        = Repr(a)
-    implicit def fromChar(a: Char): Builder            = Repr(a)
+    implicit def fromString(a: String):        Builder = Repr(a)
+    implicit def fromChar(a: Char):            Builder = Repr(a)
     implicit def reprForBuilder[T <: Builder]: Repr[T] = identity(_)
     implicit val monoidForBuilder: Monoid[Builder] = new Monoid[Builder] {
       def empty: Builder = R

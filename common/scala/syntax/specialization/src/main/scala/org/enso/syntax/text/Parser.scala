@@ -281,7 +281,7 @@ class Parser {
           case None => throw MissingMacroDefinition
           case Some(spec) =>
             val id       = resolvedAST.id.getOrElse(UUID.randomUUID)
-            val segments = resolvedAST.segs.toList().map(_.el)
+            val segments = resolvedAST.segs.toList().map(_.wrapped)
             val ctx      = AST.Macro.Resolver.Context(resolvedAST.pfx, segments, id)
             resolvedAST.copy(shape = resolvedAST.shape.copy[AST](resolved = {
               resolveMacros(spec.resolver(ctx))
@@ -328,8 +328,9 @@ class Parser {
   def dropMacroMeta(ast: AST.Module): AST.Module = {
     def go: AST => AST = {
       case AST.Macro.Match.any(t) => {
-        val prefix           = t.pfx.toList.flatMap(_.toStream.map(_.el))
-        val segments         = t.segs.toList().flatMap(_.el.toStream.map(_.el))
+        val prefix = t.pfx.toList.flatMap(_.toStream.map(_.wrapped))
+        val segments =
+          t.segs.toList().flatMap(_.wrapped.toStream.map(_.wrapped))
         val originalSegments = (prefix ++ segments).map(deriveLocations)
         val originalSpan =
           Foldable[List].foldMap(originalSegments)(_.location)
@@ -345,7 +346,7 @@ class Parser {
 
 object Parser {
   type IDMap = Seq[(Span, AST.ID)]
-  def apply(): Parser = new Parser()
+  def apply(): Parser   = new Parser()
   private val newEngine = flexer.Parser.compile(ParserDef())
 
   //// Exceptions ////

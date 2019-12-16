@@ -30,7 +30,8 @@ object Operator {
   }
 
   def rebuildSpaced(flatExpr: AST.Stream1): Shifted[AST] = {
-    val flatExpr2 = Shifted(flatExpr.head.off, Shifted.List1(flatExpr.head.el,flatExpr.tail))
+    val list      = Shifted.List1(flatExpr.head.wrapped,flatExpr.tail)
+    val flatExpr2 = Shifted(flatExpr.head.off, list)
     flatExpr2.map(rebuildExpr)
   }
   
@@ -79,13 +80,13 @@ object Operator {
           }
 
           input.stack.head match {
-            case AST.Opr.any(stack1) => seg1.el match {
+            case AST.Opr.any(stack1) => seg1.wrapped match {
               case AST.Opr.any(seg1) => go(handleAssoc(seg1, stack1))
               case _             => go(shift)
             }
             case _ => input.stack.tail match {
               case Nil         => go(shift)
-              case stack2 :: _ => go(handleAssoc(seg1.el, stack2.el))
+              case stack2 :: _ => go(handleAssoc(seg1.wrapped, stack2.wrapped))
             }
           }
       }
@@ -97,22 +98,23 @@ object Operator {
       stack.head match {
         case AST.Opr.any(s1) => stack.tail match {
           case Nil => (AST.App.Sides(s1), Nil)
-          case s2 :: s3_ => s2.el match {
+          case s2 :: s3_ => s2.wrapped match {
             case AST.Opr.any(_) => (AST.App.Sides(s1), s2 :: s3_)
-            case _          => (AST.App.Left(s2.el, s2.off, s1), s3_)
+            case _          => (AST.App.Left(s2.wrapped, s2.off, s1), s3_)
           }
         }
         case t1 => stack.tail match {
           case Nil => stack
-          case s2 :: s3 :: s4_ => s2.el match {
-            case AST.Opr.any(v2) => s3.el match {
+          case s2 :: s3 :: s4_ => s2.wrapped match {
+            case AST.Opr.any(v2) => s3.wrapped match {
               case AST.Opr.any(_) => (AST.App.Right(v2, s2.off, t1), s3 :: s4_)
-              case _          => (AST.App.Infix(s3.el, s3.off, v2, s2.off, t1), s4_)
+              case _ => 
+                (AST.App.Infix(s3.wrapped, s3.off, v2, s2.off, t1), s4_)
             }
             case v2 => (AST.App.Prefix(v2, s2.off, t1), s3 :: s4_)
           }
 
-          case s2 :: s3_ => s2.el match {
+          case s2 :: s3_ => s2.wrapped match {
             case AST.Opr.any(v2) => (AST.App.Right(v2, s2.off, t1), s3_)
             case v2          => (AST.App.Prefix(v2, s2.off, t1), s3_)
           }

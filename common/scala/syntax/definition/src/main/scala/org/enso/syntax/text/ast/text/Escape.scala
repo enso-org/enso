@@ -175,7 +175,9 @@ object Escape {
   }
 
   // Reference: https://en.wikipedia.org/wiki/Control_character
-  sealed trait Control extends Escape
+  sealed trait Control extends Escape {
+    val code: Int
+  }
   object Control {
     case object NUL extends Control {
       val code: Int     = 0x00

@@ -2,9 +2,9 @@ package org.enso.data
 
 import org.enso.data
 
-case class Shifted[+T](off: Int, el: T) {
+case class Shifted[+T](off: Int, wrapped: T) {
   def map[S](f: T => S): Shifted[S] =
-    Shifted(off, f(el))
+    Shifted(off, f(wrapped))
 }
 
 object Shifted {
@@ -24,7 +24,7 @@ object Shifted {
       List1(t._2, Shifted(t._1, head) :: tail)
 
     def +:[B >: T](t: Shifted[B]): List1[B] =
-      List1(t.el, Shifted(t.off, head) :: tail)
+      List1(t.wrapped, Shifted(t.off, head) :: tail)
 
     def +[B >: T](that: List1[B]): List1[B] =
       List1(head, tail ++ that.toList())
@@ -42,7 +42,7 @@ object Shifted {
       List1(t._1, t._2)
 
     def fromListDropHead[T](lst: List[Shifted[T]]) =
-      List1(lst.head.el, lst.tail)
+      List1(lst.head.wrapped, lst.tail)
   }
 
 }
