@@ -265,6 +265,8 @@ It needs to support the following functionality:
 > - If so, should this happen for 2.0?
 > - Are there any other operations needed from the IDE that would fall under
 >   this component?
+> - Should this component be the engine team's responsibility? It is only needed
+    in the cloud setting and has more to do with Cloud than the Language.
 
 ### Textual Diff Management
 The engine services need to support robust handling of textual diffs. This is
@@ -276,6 +278,8 @@ operations:
   of the files in the project.
 - Diff update requests, that send a textual diff between client and server (or
   vice versa).
+- Metadata modification requests. The IDE can set a metadata of any location,
+  storing payloads of its choice (e.g. node positions).
 - It will need to handle ensuring that the node metadata is correctly kept in
   sync.
 
@@ -326,8 +330,9 @@ This implies that the following functionalities are needed:
 >   to place on GUI communication (e.g. does the multi-user coordinator need to
 >   have heartbeat messages for keepalive)?
 > - What, exactly, should the value listener updates contain? Should they have
->   the whole update, or just a short rep and type with a pointer to where a
->   request can be made to get the full value (maybe better for performance)
+>   the whole update, just a short rep and type with a pointer to where a
+>   request can be made to get the full value (better for performance), or
+    just the full value pointer (best performance, clunky usage)?
 
 ### Completion
 The IDE needs the ability to request completions for some target point (cursor
@@ -350,8 +355,22 @@ smart completion. The completion should provide the following:
 It should be noted that the exact set of criteria for determining the
 'relevance' of a suggestion have not yet been determined.
 
+Another possible solution is for the engine to send _all_ globally defined
+symbols to the IDE upfront and for the suggestions algorithm to be implement
+client side. This has the potential upsides of:
+
+  - Better performance & more fluid experience (no need to ping the server
+    every time a user is about to type).
+  - Lower cloud resources usage (the often-triggered bit of computing
+    hints is offloaded to the client's browser).
+  - In phase 1 of the project (before TC), it is the only way to take types
+    into account – IDE is the only component that reliably stores the type 
+    information.
+
+
 > The actionables for this section are:
->
+> - Determine whether the algorithmic details are a part of the language server
+    design.
 > - Determine what should form the candidate set in a given completion location,
 >   and how these candidates should be ranked (type information, scope
 >   information, documentation, tags, other scoring metadata).
@@ -362,9 +381,10 @@ It should be noted that the exact set of criteria for determining the
 A major part of Enso Studio's functionality is the rich embedded visualisations
 that it supports. This means that the following functionality is necessary:
 
-- Execution of an arbitrary Enso expression on a cached value designated by a
-  source location.
-- This code should be executed in its own isolated scope, with only the required
+- Execution of an arbitrary Enso expression on a cached value designated by
+  a source location.
+- This code should be executed in its own isolated scope (having certains
+  modules imported, per the visualization's request), with only the required
   input values being available.
 
 > The actionables for this section are:
@@ -377,8 +397,9 @@ to help users navigate their code. As these rely on knowledge of the language
 semantics, they must be explicitly supported by the language server:
 
 - List functions/methods in scope
-- Find usages of symbol
-- Jump to definition of symbol
+- Find usages of symbol (impossible without a typechecker)
+- Jump to definition of symbol (only possible without a typechecker by runtime
+  profiling)
 - Search for symbol
 - Import file for symbol
 
