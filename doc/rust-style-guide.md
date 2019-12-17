@@ -10,6 +10,15 @@ programmer burden; there is usually only _one way_ to lay out code correctly.
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
 - [Code Formatting](#code-formatting)
+  - [Line Width](#line-width)
+  - [Imports](#imports)
+  - [Sections](#sections)
+  - [Vertical Spacing](#vertical-spacing)
+  - [Multi-Line Expressions](#multi-line-expressions)
+  - [Vertical Alignment](#vertical-alignment)
+  - [Spacing](#spacing)
+  - [Impl Definitions](#impl-definitions)
+  - [Getters and Setters](#getters-and-setters)
 - [Naming](#naming)
 - [Package Structure and Naming](#package-structure-and-naming)
   - [The Public API](#the-public-api)
@@ -31,16 +40,368 @@ programmer burden; there is usually only _one way_ to lay out code correctly.
 This section explains the rules for visually laying out your code. They provide
 a robust set of guidelines for creating a consistent visual to the code.
 
-Primary formatting is dealt with using the Rust formatting tool
-['rustfmt'](https://rust-lang.github.io/rustfmt/), which enforces rules around
-whitespace, line-wrapping, and alignment. The Enso repository contains the main
-[`.rustfmt.toml`](../.rustfmt.toml) configuration file, and this is what should
-be used for all new Rust projects.
+Code style is _far_ more than just the visual formatting of the code, especially
+as formatting can often be automated. According to the documentation of rustfmt,
+"formatting code is a mostly mechanical task which takes both time and mental
+effort." While, in many cases, the programmer can be relieved of this burden
+through use of an automated formatter, it is sometimes the case that such a tool
+imposes _more_ cognitive load in programmers. With rustfmt, programmers tend to
+have to refactor long lines to use variables, and move code to specific modules
+or sections lest rustfmt produce code that is hard to read and write. Thus, it
+is very important to write code in such a way that we can be proud of its
+quality.
 
-All files must be formatted using `rustfmt` before commit, and this should be
-set up as either a precommit hook, or using functionality for automatic
-formatting in your editor. To quickly format code, it can be run via `cargo`
-using the `cargo fmt` command.
+Due to the fact that `rustfmt` doesn't support multiple of our requirements, we
+have created a guide for how to format Rust code for this project. Please read
+it carefully.
+
+We hope that, in the future, `rustfmt` will come to support many of the things
+described below, but even so, many portions of this guide will need to be
+handled manually.
+
+### Line Width
+Each line in the source file should be of a maximum of 80 characters of text.
+This includes comments.
+
+### Imports
+The imports section at the top of a file should be separated into four groups.
+These groups should be sorted in alphabetical order and are divided as follows:
+
+```rust
+// Group 1: sub-module definitions.
+// Group 2: prelude-like imports.
+// Group 3: local-crate imports.
+// Group 4: external imports.
+```
+
+Please look at the following by way of example:
+
+```rust
+pub mod display_object;
+
+use crate::prelude::*;
+
+use crate::closure;
+use crate::data::opt_vec::OptVec;
+use crate::dirty;
+use crate::system::web::group;
+
+use nalgebra::Matrix4;
+use nalgebra::Vector3;
+```
+
+### Sections
+Rust source files should be divided into sections, with a header placed before
+the definition of each new concept in a file.
+
+By the term "concept," we are referring primarily to a structure with a set of
+related implementations. However if the related implementations rely on some
+simple helper structs, these may also be defined in the same section. A section
+should have a header as follows.
+
+```rust
+// ===================
+// === SectionName ===
+// ===================
+```
+
+Additionally, the code in each section should further be divided into
+sub-sections that group relevant functionality within the section. The header
+for a sub-section is as follows.
+
+```rust
+// === SubSectionName ===
+```
+
+At least one section should be defined in every file.
+
+#### An Example of Using Sections
+Here is a large-scale example of how sections should be used in source files.
+
+```rust
+// =================
+// === AxisOrder ===
+// =================
+
+/// Defines the order in which particular axis coordinates are processed. Used
+/// for example to define the rotation order in `DisplayObject`.
+pub enum AxisOrder {XYZ,XZY,YXZ,YZX,ZXY,ZYX}
+
+impl Default for AxisOrder {
+    fn default() -> Self {Self::XYZ}
+}
+
+
+// =================
+// === Transform ===
+// =================
+
+/// Defines the order in which transformations (scale, rotate, translate) are
+/// applied to a particular object.
+pub enum TransformOrder {
+    ScaleRotateTranslate,
+    ScaleTranslateRotate,
+    RotateScaleTranslate,
+    RotateTranslateScale,
+    TranslateRotateScale,
+    TranslateScaleRotate
+}
+
+impl Default for TransformOrder {
+    fn default() -> Self { Self::ScaleRotateTranslate }
+}
+
+
+// =============================
+// === HierarchicalTransform ===
+// =============================
+
+pub struct HierarchicalTransform<OnChange> {
+    transform        : Transform,
+    transform_matrix : Matrix4<f32>,
+    origin           : Matrix4<f32>,
+    matrix           : Matrix4<f32>,
+    pub dirty        : dirty::SharedBool<OnChange>,
+    pub logger       : Logger,
+}
+
+impl<OnChange> HierarchicalTransform<OnChange> {
+    pub fn new(logger:Logger, on_change:OnChange) -> Self {
+        let logger_dirty     = logger.sub("dirty");
+        let transform        = default();
+        let transform_matrix = Matrix4::identity();
+        let origin           = Matrix4::identity();
+        let matrix           = Matrix4::identity();
+        let dirty            = dirty::SharedBool::new(logger_dirty,on_change);
+        Self {transform,transform_matrix,origin,matrix,dirty,logger}
+    }
+}
+
+// === Getters ===
+
+impl<OnChange> HierarchicalTransform<OnChange> {
+    pub fn position(&self) -> &Vector3<f32> {
+        &self.transform.position
+    }
+
+    pub fn rotation(&self) -> &Vector3<f32> {
+        &self.transform.rotation
+    }
+
+    ...
+}
+
+// === Setters ===
+
+impl<OnChange:Callback0> HierarchicalTransform<OnChange> {
+    pub fn position_mut(&mut self) -> &mut Vector3<f32> {
+        self.dirty.set();
+        &mut self.transform.position
+    }
+
+    pub fn rotation_mut(&mut self) -> &mut Vector3<f32> {
+        self.dirty.set();
+        &mut self.transform.rotation
+    }
+
+    ...
+}
+```
+
+### Vertical Spacing
+We use the following rules for the amount of vertical space separating various
+constructs in the source:
+
+- 2 blank lines after the imporst
+- 2 blank lines before each section
+- 1 blank line before and after sub-section
+- 1 blank line before functions / structures / impls
+- 1 blank line at the end of the file
+
+### Multi-Line Expressions
+In an ideal world, all expressions in the code should be a single line. This is
+because multi-line expressions are usually hard to read, and because they can
+introduce lots of noise in the code. In the vast majority of cases, the presence
+of a multi-line expression indicates that the code needs refactoring.
+
+Please try to refactor portions of multi-line expressions to well-named
+variables, and divide them up to a set of single-line expressions.
+
+#### Multi-Line Expression Examples
+The following is an example of poorly formatted code:
+
+```rust
+pub fn new() -> Self {
+    let shape_dirty = ShapeDirty::new(logger.sub("shape_dirty"),
+        on_dirty.clone());
+    let dirty_flag = MeshRegistryDirty::new(logger.sub("mesh_registry_dirty"),
+        on_dirty);
+    Self { dirty_flag, dirty_flag }
+}
+```
+
+The following is an example of the same code properly formatted:
+
+```rust
+pub fn new() -> Self {
+    let sub_logger  = logger.sub("shape_dirty");
+    let shape_dirty = ShapeDirty::new(sub_logger,on_dirty.clone());
+    let sub_logger  = logger.sub("mesh_registry_dirty");
+    let dirty_flag  = MeshRegistryDirty::new(sub_logger,on_dirty);
+    Self {shape_dirty,dirty_flag}
+}
+```
+
+### Vertical Alignment
+In order to create a visual flow to our code that aids readability, the
+following constructs should be aligned vertically where possible:
+
+- Assignment operators (`=`)
+- Type operators (`:`)
+- Match arrows (`=>`)
+- Similar parameters or types
+
+#### A Vertical Alignment Example
+The following is an example of a function that correctly uses the vertical
+alignment rules above:
+
+```rust
+impl Printer for GlobalVarStorage {
+    fn print(&self, builder:&mut Builder) {
+        match self {
+            Self::ConstStorage      => build!(builder,"const"),
+            Self::UniformStorage    => build!(builder,"uniform"),
+            Self::InStorage  (qual) => build!(builder,"in" ,qual),
+            Self::OutStorage (qual) => build!(builder,"out",qual),
+        }
+    }
+}
+```
+
+### Spacing
+The following spacing rules are _also_ employed in order to create a visual flow
+to our code to aid readability:
+
+- The type operator is not spaced: `fn test(foo:String, bar:Int) { ... }`
+- Commas between complex expressions (including the argument list) are spaced
+- Commas between simple elements are not spaced: `Result<Self,Error>`
+- Arguments to functions are not spaced: `build(builder,"out",qual)`
+- Operators are always spaced: `let foo = a + b * c;`
+
+#### Spacing Examples as Function Definitions
+The following function definitions are all good examples of correct use of
+spacing.
+
+```rust
+pub fn new<Dom:Str>(dom:Dom, logger:Logger) -> Result<Self,Error> {
+    ...
+}
+```
+
+```rust
+pub fn new<Dom:Str>(dom:Dom, logger:Logger) -> Result<Self,Error> {
+    ...
+}
+```
+
+```rust
+pub fn new<Dom:Str>
+(dom:Dom, logger:Logger, on_dirty:OnDirty) -> Result<Self,Error> {
+    ...
+}
+```
+
+```rust
+pub fn new<Dom:Str>
+(dom:Dom, logger:Logger, on_dirty:OnDirty, on_remove:OnRemove)
+-> Result<Self,Error> {
+    ...
+}
+```
+
+```rust
+pub fn new<Dom:Str>
+( dom        : Dom
+, logger     : Logger
+, on_dirty   : OnDirty
+, on_remove  : OnRemove
+, on_replace : OnReplace
+) -> Result<Self,Error> {
+    ...
+}
+```
+
+Long `where` clauses are formatted this way:
+
+```rust
+pub fn new<D,L>(dom:D, logger:L) -> Result<Self,Error>
+where D:AsRef<str>, L:IsLogger {
+    ...
+}
+```
+
+Or, in case they are really long, this way:
+
+```rust
+pub fn new<D,L>(dom:D, logger:L) -> Result<Self,Error>
+where D:AsRef<str>
+      L:IsLogger
+      ... {
+    ...
+}
+```
+
+### Impl Definitions
+In order to aid in fast discovery of the header of an impl definition, we use
+the following style. In all cases, the `where` block should be placed after a
+line break.
+
+
+```rust
+// No constraints
+impl<T> Printer for Option<T> {
+    ...
+}
+```
+
+```rust
+// Some constraints
+impl<T:Printer>
+Printer for Option<T> {
+    ...
+}
+```
+
+```rust
+// Constraints in where block
+impl<T> Printer for Option<T>
+where T: Printer {
+    ...
+}
+```
+
+### Getters and Setters
+We have the following rules for getters and setters in our codebase.
+
+- Getters do not have the `get_` prefix, while setters do have the `set_`
+  prefix.
+- If a setter is provided, a `mut` accessor should be provided as well.
+
+Correct examples for the definition of getters and setters can be found below:
+
+```rust
+fn field(&self) -> &Type {
+    &self.field
+}
+
+fn field_mut(&mut self) -> &mut Type {
+    &mut self.field
+}
+
+fn set_field(&mut self, val:Type) {
+    *self.field_mut = val;
+}
+```
 
 ## Naming
 Enso has some fairly simple general naming conventions, though the sections
@@ -195,9 +556,9 @@ A source note comment is broken into two parts:
    descriptive, and make sure you search for it before using it, in case it is
    already in use.
 2. **Source Note:** This is the comment itself, which is a large block comment
-   placed after the first function in which it is referred to in the module. The 
-   first line names the note using the same referrer as above: 
-   `// Note [Note Name]`. The name(s) in the note are underlined using a string 
+   placed after the first function in which it is referred to in the module. The
+   first line names the note using the same referrer as above:
+   `// Note [Note Name]`. The name(s) in the note are underlined using a string
    of the `=` (equals) character.
 
 A source note may contain sections within it where necessary. These are titled
