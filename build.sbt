@@ -163,6 +163,13 @@ val silencerVersion = "1.4.4"
 //// Internal Libraries ////
 ////////////////////////////
 
+val jsSettings = Seq(
+  scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.ESModule) },
+  // FIXME workaround for scalajs bug:
+  //  https://github.com/scala-js/scala-js/issues/3673
+  testFrameworks := Nil
+)
+
 lazy val logger = crossProject(JVMPlatform, JSPlatform)
   .withoutSuffixFor(JVMPlatform)
   .crossType(CrossType.Pure)
@@ -172,7 +179,7 @@ lazy val logger = crossProject(JVMPlatform, JSPlatform)
     version := "0.1",
     libraryDependencies ++= scala_compiler
   )
-  .jsSettings(testFrameworks := Nil)
+  .jsSettings(jsSettings)
 
 lazy val flexer = crossProject(JVMPlatform, JSPlatform)
   .withoutSuffixFor(JVMPlatform)
@@ -189,7 +196,7 @@ lazy val flexer = crossProject(JVMPlatform, JSPlatform)
       "org.typelevel" %%% "kittens"   % "2.0.0"
     )
   )
-  .jsSettings(testFrameworks := Nil)
+  .jsSettings(jsSettings)
 
 lazy val unused = crossProject(JVMPlatform, JSPlatform)
   .withoutSuffixFor(JVMPlatform)
@@ -213,11 +220,11 @@ lazy val syntax_definition = crossProject(JVMPlatform, JSPlatform)
       "io.circe"      %%% "circe-parser"  % circeVersion
     )
   )
-  .jsSettings(testFrameworks := Nil)
+  .jsSettings(jsSettings)
 
 lazy val syntax = crossProject(JVMPlatform, JSPlatform)
   .withoutSuffixFor(JVMPlatform)
-  .crossType(CrossType.Pure)
+  .crossType(CrossType.Full)
   .in(file("common/scala/syntax/specialization"))
   .dependsOn(logger, flexer, syntax_definition)
   .configs(Test)
@@ -259,8 +266,10 @@ lazy val syntax = crossProject(JVMPlatform, JSPlatform)
     bench := (test in Benchmark).tag(Exclusive).value
   )
   .jsSettings(
-    scalaJSUseMainModuleInitializer := true,
-    testFrameworks := List(new TestFramework("org.scalatest.tools.Framework"))
+    scalaJSUseMainModuleInitializer := false,
+    scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.ESModule)},
+    testFrameworks := List(new TestFramework("org.scalatest.tools.Framework")),
+    Compile / fullOptJS / artifactPath := file("target/scala-parser.js")
   )
 
 lazy val parser_service = (project in file("common/scala/parser-service"))

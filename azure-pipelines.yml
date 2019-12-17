@@ -39,8 +39,8 @@ jobs:
           echo "##vso[task.setvariable variable=PATH]~/sbt/bin/:$PATH"
         displayName: Install SBT
       - script: |
-          sbt -no-colors syntaxJS/test
-        displayName: Test JS
+          sbt -no-colors syntaxJS/fullOptJS
+        displayName: Check Compilation to JS
         continueOnError: true
       - script: |
           sbt -no-colors test
@@ -93,8 +93,8 @@ jobs:
           echo "##vso[task.setvariable variable=PATH]~/sbt/bin/:$PATH"
         displayName: Install SBT
       - script: |
-          sbt -no-colors syntaxJS/test
-        displayName: Test JS
+          sbt -no-colors syntaxJS/fullOptJS
+        displayName: Check Compilation to JS
         continueOnError: true
       - script: |
           sbt -no-colors test

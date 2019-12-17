@@ -1,6 +1,5 @@
 package org.enso.syntax.text
 
-import java.io.{File, PrintWriter}
 import org.enso.flexer
 import org.enso.flexer.Reader
 import org.enso.syntax.text.ast.Doc
@@ -276,53 +275,9 @@ object DocParserRunner {
   * Essentially it enables Doc Parser to create pretty HTML files from
   * documented code.
   *
-  * When Doc Parser finishes its job user can invoke DocParserHTMLGenerator by
-  * simply passing the output of Doc Parser onto function called
-  * [[DocParserHTMLGenerator.generateHTMLForEveryDocumented]], and it will
-  * automatically traverse through AST prepared by Doc Parser and generate
-  * HTML files in all appropriate places.
   */
 object DocParserHTMLGenerator {
 
-  /**
-    * This method is used for generation of HTML files from parsed and
-    * reformatted [[AST.Documented]]
-    *
-    * @param ast - parsed AST.Module and reformatted using Doc Parser
-    * @param path - path to save file
-    * @param cssFileName - name of file containing stylesheets for the HTML code
-    */
-  def generateHTMLForEveryDocumented(
-    ast: AST,
-    path: String,
-    cssFileName: String
-  ): Unit = {
-    ast.map { elem =>
-      elem match {
-        case AST.Documented.any(d) =>
-          val file = onHTMLRendering(d, cssFileName)
-          saveHTMLToFile(path, file.name, file.code)
-      }
-      elem
-    }
-  }
-
-  /**
-    * Saves HTML code to file
-    *
-    * @param path - path to file
-    * @param name - file name
-    * @param code - HTML code generated with Doc Parser
-    */
-  def saveHTMLToFile(
-    path: String,
-    name: String,
-    code: TypedTag[String]
-  ): Unit = {
-    val writer = new PrintWriter(new File(path + name + ".html"))
-    writer.write(code.toString)
-    writer.close()
-  }
 
   //////////////////////////////////////////////////////////////////////////////
   //// HTML Rendering of Documentation /////////////////////////////////////////

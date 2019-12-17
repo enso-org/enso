@@ -6,6 +6,11 @@ mod jsclient;
 mod wsclient;
 
 
+use std::panic;
+use std::ops::DerefMut;
+extern crate console_error_panic_hook;
+use crate::api::IsParser;
+
 /// Handle to a parser implementation.
 ///
 /// Currently this component is implemented as a wrapper over parser written
@@ -26,10 +31,10 @@ impl Parser {
 
     /// Obtains a default parser implementation.
     #[cfg(target_arch = "wasm32")]
-    pub fn new() -> api::Result<ParserWrapper> {
+    pub fn new() -> api::Result<Parser> {
         let client = jsclient::Client::new()?;
         let parser = Box::new(client);
-        Ok(parser)
+        Ok(Parser(parser))
     }
 
     /// Obtains a default parser implementation, panicking in case of failure.
