@@ -83,3 +83,45 @@ fn no_params() {
     // `derive(Iterator)` is no-op for structures with no type parameters.
     // We just make sure that it does not cause compilation error.
 }
+
+// ========================
+// === Enumeration Type ===
+// ========================
+
+#[derive(Iterator)]
+#[warn(dead_code)] // value is never read and shouldn't be
+pub struct Unrecognized{ pub value : String }
+
+#[derive(Iterator)]
+pub enum Foo<U, T> {
+    Con1(PairUV<U, T>),
+    Con2(PairTT<T>),
+    Con3(Unrecognized)
+}
+
+#[test]
+fn enum_is_into_iterator() {
+    is_into_iterator::<&Foo<i32, i32>>();
+}
+
+#[test]
+fn enum_iter1() {
+    let v          = Foo::Con1(PairUV(4, 50));
+    let mut v_iter = v.into_iter();
+    assert_eq!(*v_iter.next().unwrap(),50);
+    assert!(v_iter.next().is_none());
+}
+#[test]
+fn enum_iter2() {
+    let v: Foo<i32, i32> = Foo::Con2(PairTT(6,60));
+    let mut v_iter       = v.into_iter();
+    assert_eq!(*v_iter.next().unwrap(),6);
+    assert_eq!(*v_iter.next().unwrap(),60);
+    assert!(v_iter.next().is_none());
+}
+#[test]
+fn enum_iter3() {
+    let v: Foo<i32, i32> = Foo::Con3(Unrecognized{value:"foo".into()});
+    let mut v_iter       = v.into_iter();
+    assert!(v_iter.next().is_none());
+}

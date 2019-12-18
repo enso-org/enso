@@ -12,5 +12,6 @@ quote          = "1.0"
 [dependencies.syn]
 version = "1.0"
 features = [
-  'extra-traits'
+  'extra-traits',
+  'full' # for syn::ItemStruct
 ]
