@@ -6,7 +6,7 @@ use wasm_bindgen::JsValue;
 // === Types ===
 // =============
 
-pub type Listener = Closure<dyn FnMut(i32, i32)>;
+pub type Listener = Closure<dyn FnMut(f64,f64)>;
 
 // ===================
 // === JS Bindings ===

@@ -1,17 +1,19 @@
 #![feature(type_ascription)]
 
+pub mod glsl;
+
 use basegl_prelude::*;
 
 use web_sys::WebGlProgram;
-use web_sys::WebGlRenderingContext;
+use web_sys::WebGl2RenderingContext;
 use web_sys::WebGlShader;
 
 // =============
 // === Types ===
 // =============
 
-pub type Context = WebGlRenderingContext;
-pub type Shader = WebGlShader;
+pub type Context = WebGl2RenderingContext;
+pub type Shader  = WebGlShader;
 pub type Program = WebGlProgram;
 
 // =============

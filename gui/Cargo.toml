@@ -9,6 +9,7 @@ members = [
     "lib/eval-tt",
     "lib/optics",
     "lib/prelude",
+    "lib/code-builder",
     "lib/shapely/impl",
     "lib/system/web",
 ]

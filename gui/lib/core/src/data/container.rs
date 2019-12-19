@@ -12,11 +12,13 @@ pub trait Add<T> {
 
 pub type AddResult<T,S> = <T as Add<S>>::Result;
 
+
+
 // =======================
 // === CachingIterator ===
 // =======================
 
-/// Iterator wrapper caching the last retrieved value
+/// Iterator wrapper caching the last retrieved value.
 ///
 /// The item type is `(Option<T>, T)` where the second tuple element is
 /// a current value and first element is a previous one `None` on the first
@@ -38,7 +40,7 @@ impl<T:Clone, It:Iterator<Item=T>> Iterator for CachingIterator<T, It> {
     }
 }
 
-/// A trait for wrapping in caching iterator
+/// A trait for wrapping in caching iterator.
 ///
 /// It is implemented for each iterator over cloneable items.
 pub trait IntoCachingIterator {

@@ -16,98 +16,46 @@ use std::hash::Hash;
 use std::ops;
 
 
-// ================
-// === Wrappers ===
-// ================
-// TODO: Refactor all wrappers using Shapely generics
+// ==================
+// === Operations ===
+// ==================
 
-// === Logger Wrapper ===
-
-/// Struct-wrapper adding a logger to the underlying structure. See the
-/// documentation of `shapely` to learn more about struct-wrappers.
-#[derive(Shrinkwrap,Debug)]
-#[shrinkwrap(mutable)]
-pub struct WithLogger<T>
-    ( pub Logger
-    , #[shrinkwrap(main_field)] pub T
-    );
-
-pub trait HasLogger {
-    fn logger(&self) -> &Logger;
-}
-
-impl<T> HasLogger for WithLogger<T> {
-    fn logger(&self) -> &Logger {
-        &self.0
-    }
-}
-
-// === OnSet Wrapper ===
-
-/// Struct-wrapper adding a callback to the underlying structure. See the
-/// documentation of `shapely` to learn more about struct-wrappers.
-#[derive(Derivative,Shrinkwrap)]
-#[derivative(Debug(bound = "T:Debug"))]
-#[shrinkwrap(mutable)]
-pub struct WithOnSet<OnSet, T>
-    ( pub Callback<OnSet>
-    , #[shrinkwrap(main_field)] pub T
-    );
-
-pub trait HasOnSet<OnSet> {
-   fn on_set(&mut self) -> &mut Callback<OnSet>;
-}
-
-impl<OnSet,T> HasOnSet<OnSet> for WithOnSet<OnSet, T> {
-    fn on_set(&mut self) -> &mut Callback<OnSet> {
-        &mut self.0
-    }
-}
-
-impl<OnSet,T:HasOnSet<OnSet>> HasOnSet<OnSet> for WithLogger<T> {
-    fn on_set(&mut self) -> &mut Callback<OnSet> {
-        self.deref_mut().on_set()
-    }
-}
-
-// =====================
-// === Smart Setters ===
-// =====================
-
-/// All of these smart setters implement the same method but in different
-/// variants depending on the super-constraint. We cannot automatically import
-/// it, so the users of this module need to manually import all `traits::*`.
 pub mod traits {
-    pub trait Setter0           { fn set(&mut self); }
-    pub trait Setter1<A1>       { fn set(&mut self, a1:A1); }
-    pub trait Setter2<A1,A2>    { fn set(&mut self, a1:A1, a2:A2); }
-    pub trait Setter3<A1,A2,A3> { fn set(&mut self, a1:A1, a2:A2, a3:A3); }
+    use super::*;
 
-    pub trait SharedSetter0           { fn set(&self); }
-    pub trait SharedSetter1<A1>       { fn set(&self, a1:A1); }
-    pub trait SharedSetter2<A1,A2>    { fn set(&self, a1:A1, a2:A2); }
-    pub trait SharedSetter3<A1,A2,A3> { fn set(&self, a1:A1, a2:A2, a3:A3); }
+    // === Arg ===
+    pub trait HasArg { type Arg; }
+    pub type Arg<T> = <T as HasArg>::Arg;
+
+    // === Global Operations ===
+    pub trait HasCheckAll { fn check_all (&self) -> bool; }
+    pub trait HasUnsetAll { fn unset_all (&mut self); }
+
+    // === Arity-0 Operations ===
+    pub trait HasCheck0   { fn check (&self) -> bool; }
+    pub trait HasSet0     { fn set   (&mut self); }
+    pub trait HasUnset0   { fn unset (&mut self); }
+
+    // === Arity-1 Operations ===
+    pub trait HasCheck1 : HasArg { fn check (&    self, arg: &Self::Arg) -> bool; }
+    pub trait HasSet1   : HasArg { fn set   (&mut self, arg:  Self::Arg);         }
+    pub trait HasUnset1 : HasArg { fn unset (&mut self, arg: &Self::Arg);         }
+
+    // === Shared Operations ===
+    pub trait SharedHasUnsetAll        { fn unset_all (&self); }
+    pub trait SharedHasSet0            { fn set       (&self); }
+    pub trait SharedHasUnset0          { fn unset     (&self); }
+    pub trait SharedHasSet1   : HasArg { fn set       (&self, arg: Self::Arg); }
+    pub trait SharedHasUnset1 : HasArg { fn unset     (&self, arg:&Self::Arg); }
+
+    // === Type Aliases ===
+    pub trait DirtyFlagOps  = Display + HasCheckAll + HasUnsetAll;
+    pub trait DirtyFlagOps0 = DirtyFlagOps + HasCheck0 + HasSet0;
+    pub trait DirtyFlagOps1 = DirtyFlagOps + HasCheck1 + HasSet1 where Arg<Self>: Display;
 }
 
 use traits::*;
 
-
-// =====================
-// === DirtyFlagData ===
-// =====================
-
-/// The abstraction for dirty flag underlying structure. You would rather not
-/// need to ever access these methods directly. They are used to implement
-/// high-level methods in `DirtyFlag` and `SharedDirtyFlag` wrappers.
-pub trait DirtyFlagData: Display {
-    type SetArgs;
-    fn raw_check(&self) -> bool;
-    fn raw_check_for(&self, args: &Self::SetArgs) -> bool;
-    fn raw_set(&mut self, args: Self::SetArgs);
-    fn raw_unset(&mut self);
-}
-
-type SetArgs<T> = <T as DirtyFlagData>::SetArgs;
 
 
 // =================
@@ -119,110 +67,114 @@ type SetArgs<T> = <T as DirtyFlagData>::SetArgs;
 /// Abstraction for every dirty flag implementation. It is a smart struct adding
 /// logging and callback utilities to the underlying data. Moreover, it
 /// implements public API for working with dirty flags.
-#[derive(Derivative,Shrinkwrap)]
+#[derive(Derivative)]
 #[derivative(Debug(bound = "T:Debug"))]
-#[shrinkwrap(mutable)]
-pub struct DirtyFlag<T,OnSet> (pub WithLogger<WithOnSet<OnSet,T>>);
-
-// === API ===
-
-impl<OnSet,T>
-DirtyFlag<T,OnSet> {
-    pub fn data(&self) -> &T { self }
+//#[shrinkwrap(mutable)]
+pub struct DirtyFlag<T,OnSet> {
+    data   : T,
+    on_set : Callback<OnSet>,
+    logger : Logger,
 }
 
-impl<OnSet,T:Default>
-DirtyFlag<T,OnSet> {
+
+// === Basics ===
+
+impl<OnSet,T:Default> DirtyFlag<T,OnSet> {
     pub fn new(logger: Logger, on_set:Callback<OnSet>) -> Self {
-        DirtyFlag(WithLogger(logger, WithOnSet(on_set, default())))
+        let data = default();
+        Self {data,on_set,logger}
     }
 }
 
-impl<T:DirtyFlagData, OnSet:Callback0>
-DirtyFlag<T,OnSet> {
-    /// Sets the dirty flag by providing explicit parameters in a tuple. You
-    /// should rather not need to use this function explicitly. You can use the
-    /// smart setters instead. They are just `set` function which accepts as
-    /// many parameters as really needed.
-    pub fn set_with(&mut self, args: SetArgs<T>) {
-        let first_set = !self.check();
-        let is_set_for = self.check_for(&args);
-        if !is_set_for {
-            self.raw_set(args);
-            group!(self.logger(), format!("Setting to {}.", self.data()), {
-                if first_set { self.on_set().call() }
+
+// === Arguments ===
+
+impl<T:HasArg,OnSet>
+HasArg for DirtyFlag<T,OnSet> {
+    type Arg = Arg<T>;
+}
+
+
+// === Global Operations ===
+
+impl<T:HasCheckAll,OnSet>
+HasCheckAll for DirtyFlag<T,OnSet> {
+    fn check_all(&self) -> bool { self.data.check_all() }
+}
+
+impl<T:HasUnsetAll,OnSet>
+HasUnsetAll for DirtyFlag<T,OnSet> {
+    fn unset_all(&mut self) { self.data.unset_all() }
+}
+
+
+// === Check ===
+
+impl<T:DirtyFlagOps0,OnSet:Callback0>
+HasCheck0 for DirtyFlag<T,OnSet> {
+    fn check(&self) -> bool {
+        self.data.check()
+    }
+}
+
+impl<T:DirtyFlagOps1,OnSet:Callback0>
+HasCheck1 for DirtyFlag<T,OnSet> {
+    fn check(&self, arg: &Self::Arg) -> bool {
+        self.data.check(arg)
+    }
+}
+
+
+// === Set ===
+
+impl<T:DirtyFlagOps0,OnSet:Callback0>
+HasSet0 for  DirtyFlag<T,OnSet> {
+    fn set(&mut self) {
+        let is_set = self.data.check_all();
+        if !is_set {
+            self.data.set();
+            group!(self.logger, "Setting.", {
+                self.on_set.call()
             })
         }
     }
 }
 
-impl<T:DirtyFlagData,OnSet>
-DirtyFlag<T,OnSet> {
-    /// Unset the dirty flag. This function resets the state of the flag, so it
-    /// is exactly as it was after fresh flag creation.
-    pub fn unset(&mut self) {
-        if self.check() {
-            group!(self.logger(), "Unsetting.", {
-                self.raw_unset()
+impl<T:DirtyFlagOps1,OnSet:Callback0>
+HasSet1 for DirtyFlag<T,OnSet> {
+    fn set(&mut self, arg: Self::Arg) {
+        let first_set = !self.check_all();
+        let is_set    = self.data.check(&arg);
+        if !is_set {
+            self.data.set(arg);
+            group!(self.logger, format!("Setting to {}.", self.data), {
+                if first_set { self.on_set.call() }
             })
         }
     }
+}
 
-    /// Check if the flag was dirty, unset it, and result the check status.
-    pub fn check_and_unset(&mut self) -> bool {
-        let is_set = self.check();
-        self.unset();
-        is_set
-    }
 
-    /// Check if the flag is dirty.
-    pub fn check(&self) -> bool {
-        self.raw_check()
-    }
+// === Unset ===
 
-    /// Check if the flag is dirty for a specific input argument.
-    pub fn check_for(&self, args: &SetArgs<T>) -> bool {
-        self.raw_check_for(args)
+impl<T:HasUnset0,OnSet>
+HasUnset0 for DirtyFlag<T,OnSet> {
+    fn unset(&mut self) {
+        self.logger.info("Unsetting.");
+        self.data.unset()
     }
 }
 
-// === Instances ===
-
-// TODO: Remove after refactoring HasOnSet to Shapely
-impl <OnSet,T> HasOnSet<OnSet> for DirtyFlag<T,OnSet> {
-    fn on_set(&mut self) -> &mut Callback<OnSet> {
-        self.deref_mut().on_set()
+impl<T:HasUnset1,OnSet>
+HasUnset1 for DirtyFlag<T,OnSet>
+    where Arg<T>:Display {
+    fn unset(&mut self, arg: &Self::Arg) {
+        self.logger.info(|| format!("Unsetting {}.", arg));
+        self.data.unset(arg)
     }
 }
 
-// TODO: Remove after refactoring HasOnSet to Shapely
-impl<OnSet,T> HasLogger for DirtyFlag<T,OnSet> {
-    fn logger(&self) -> &Logger {
-        self.deref().logger()
-    }
-}
 
-// === Smart Setters ===
-
-impl<T, OnSet> Setter0 for DirtyFlag<T,OnSet>
-    where T: DirtyFlagData<SetArgs=()>, OnSet:Callback0 {
-    fn set(&mut self) { self.set_with(()) }
-}
-
-impl<T, OnSet, A1> Setter1<A1> for DirtyFlag<T,OnSet>
-    where T: DirtyFlagData<SetArgs=(A1,)>, OnSet:Callback0 {
-    fn set(&mut self, a1:A1) { self.set_with((a1,)) }
-}
-
-impl<T,OnSet,A1,A2> Setter2<A1,A2> for DirtyFlag<T,OnSet>
-    where T: DirtyFlagData<SetArgs=(A1,A2)>, OnSet:Callback0 {
-    fn set(&mut self, a1:A1, a2:A2) { self.set_with((a1, a2)) }
-}
-
-impl<T,OnSet,A1,A2,A3> Setter3<A1,A2,A3> for DirtyFlag<T,OnSet>
-    where T: DirtyFlagData<SetArgs=(A1,A2,A3)>, OnSet:Callback0 {
-    fn set(&mut self, a1:A1, a2:A2, a3:A3) { self.set_with((a1, a2, a3)) }
-}
 
 // =======================
 // === SharedDirtyFlag ===
@@ -239,14 +191,8 @@ pub struct SharedDirtyFlag<T,OnSet> {
     rc: Rc<RefCell<DirtyFlag<T,OnSet>>>
 }
 
-// === API ===
 
-impl<T:Copy,OnSet>
-SharedDirtyFlag<T,OnSet> {
-    pub fn data(&self) -> T {
-        *self.rc.borrow().data()
-    }
-}
+// === API ===
 
 impl<T:Default,OnSet>
 SharedDirtyFlag<T,OnSet> {
@@ -257,29 +203,10 @@ SharedDirtyFlag<T,OnSet> {
     }
 }
 
-impl<T:DirtyFlagData, OnSet:Callback0>
+impl<T,OnSet>
 SharedDirtyFlag<T,OnSet> {
-    pub fn set_with(&self, args: SetArgs<T>) {
-        self.rc.borrow_mut().set_with(args)
-    }
-}
-
-impl<T:DirtyFlagData,OnSet>
-SharedDirtyFlag<T,OnSet> {
-    pub fn unset(&mut self) {
-        self.rc.borrow_mut().unset()
-    }
-
-    pub fn check_and_unset(&mut self) -> bool {
-        self.rc.borrow_mut().check_and_unset()
-    }
-
-    pub fn check(&self) -> bool {
-        self.rc.borrow().check()
-    }
-
-    pub fn check_for(&self, args: &SetArgs<T>) -> bool {
-        self.rc.borrow().check_for(args)
+    pub fn set_callback(&self, on_set:OnSet) {
+        self.rc.borrow_mut().on_set = Callback(on_set);
     }
 }
 
@@ -291,29 +218,69 @@ From<Rc<RefCell<DirtyFlag<T,OnSet>>>> for SharedDirtyFlag<T,OnSet> {
 }
 
 
-// === Smart Setters ===
+// === Arg ===
 
-impl<T,OnSet> SharedSetter0 for SharedDirtyFlag<T,OnSet>
-    where T: DirtyFlagData<SetArgs=()>, OnSet:Callback0 {
-    fn set(&self) { self.rc.borrow_mut().set_with(()) }
+impl<T:HasArg,OnSet> HasArg for SharedDirtyFlag<T,OnSet> {
+    type Arg = Arg<T>;
 }
 
-impl<T,OnSet,A1> SharedSetter1<A1> for SharedDirtyFlag<T,OnSet>
-    where T: DirtyFlagData<SetArgs=(A1,)>, OnSet:Callback0 {
-    fn set(&self, a1:A1) { self.rc.borrow_mut().set_with((a1,)) }
-}
 
-impl<T,OnSet,A1,A2> SharedSetter2<A1,A2> for SharedDirtyFlag<T,OnSet>
-    where T: DirtyFlagData<SetArgs=(A1,A2)>, OnSet:Callback0 {
-    fn set(&self, a1:A1, a2:A2) { self.rc.borrow_mut().set_with((a1, a2)) }
-}
+// === Global Operations ===
 
-impl<T,OnSet,A1,A2,A3> SharedSetter3<A1,A2,A3> for SharedDirtyFlag<T,OnSet>
-    where T: DirtyFlagData<SetArgs=(A1,A2,A3)>, OnSet:Callback0 {
-    fn set(&self, a1:A1, a2:A2, a3:A3) {
-        self.rc.borrow_mut().set_with((a1, a2, a3))
+impl<T:HasUnsetAll,OnSet>
+SharedHasUnsetAll for SharedDirtyFlag<T,OnSet> {
+    fn unset_all(&self) {
+        self.rc.borrow_mut().unset_all()
     }
 }
+
+impl<T:HasCheckAll,OnSet>
+HasCheckAll for SharedDirtyFlag<T,OnSet> {
+    fn check_all(&self) -> bool {
+        self.rc.borrow().check_all()
+    }
+}
+
+// === Check ===
+
+impl<T:DirtyFlagOps0,OnSet:Callback0>
+HasCheck0 for SharedDirtyFlag<T,OnSet> {
+    fn check (&self) -> bool { self.borrow().check()   }
+}
+
+impl<T:DirtyFlagOps1,OnSet:Callback0>
+HasCheck1 for SharedDirtyFlag<T,OnSet> {
+    fn check (&self, arg:&Arg<T>) -> bool { self.borrow().check(arg)   }
+}
+
+// === Set ===
+
+impl<T:DirtyFlagOps0,OnSet:Callback0>
+SharedHasSet0 for SharedDirtyFlag<T,OnSet> {
+    fn set (&self) { self.borrow_mut().set() }
+}
+
+impl<T:DirtyFlagOps1,OnSet:Callback0>
+SharedHasSet1 for SharedDirtyFlag<T,OnSet> {
+    fn set (&self, arg: Arg<T>) { self.borrow_mut().set(arg) }
+}
+
+// === Unset ===
+
+impl<T:HasUnset0,OnSet>
+SharedHasUnset0 for SharedDirtyFlag<T,OnSet> {
+    fn unset(&self) {
+        self.borrow_mut().unset()
+    }
+}
+
+impl<T:HasUnset1,OnSet>
+SharedHasUnset1 for SharedDirtyFlag<T,OnSet> where Arg<T>:Display {
+    fn unset(&self, arg:&Self::Arg) {
+        self.borrow_mut().unset(arg)
+    }
+}
+
 
 // === Iterators ===
 
@@ -323,11 +290,11 @@ impl<T,OnSet,A1,A2,A3> SharedSetter3<A1,A2,A3> for SharedDirtyFlag<T,OnSet>
 // [1] Please refer to `Prelude::drop_lifetime` docs to learn why it is safe to
 // use it here.
 impl<T, OnSet> SharedDirtyFlag<T,OnSet>
-where for<'t> &'t T: IntoIterator {
+    where for<'t> &'t T: IntoIterator {
     pub fn iter(&self) -> SharedDirtyFlagIter<T, OnSet> {
         let _borrow   = self.rc.borrow();
         let reference = unsafe { drop_lifetime(&_borrow) }; // [1]
-        let iter      = reference.into_iter();
+        let iter      = reference.data.into_iter();
         SharedDirtyFlagIter { iter, _borrow }
     }
 }
@@ -335,34 +302,32 @@ where for<'t> &'t T: IntoIterator {
 /// Iterator guard for SharedDirtyFlag. It exposes the iterator of original
 /// structure behind the shared reference.
 pub struct SharedDirtyFlagIter<'t,T,OnSet>
-where &'t T: IntoIterator {
+    where &'t T: IntoIterator {
     pub iter : <&'t T as IntoIterator>::IntoIter,
     _borrow  : Ref<'t,DirtyFlag<T,OnSet>>
 }
 
 impl<'t,T,OnSet> Deref for SharedDirtyFlagIter<'t,T,OnSet>
-where &'t T: IntoIterator {
+    where &'t T: IntoIterator {
     type Target = <&'t T as IntoIterator>::IntoIter;
     fn deref(&self) -> &Self::Target { &self.iter }
 }
 
 impl<'t,T,OnSet> DerefMut for SharedDirtyFlagIter<'t,T,OnSet>
-where &'t T: IntoIterator {
+    where &'t T: IntoIterator {
     fn deref_mut(&mut self) -> &mut Self::Target { &mut self.iter }
 }
 
 impl<'t,T,OnSet> Iterator for SharedDirtyFlagIter<'t,T,OnSet>
-where &'t T: IntoIterator {
+    where &'t T: IntoIterator {
     type Item = <&'t T as IntoIterator>::Item;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.next()
     }
-
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        self.iter.size_hint()
-    }
 }
+
+
 
 // =============================================================================
 // === Flags ===================================================================
@@ -381,13 +346,12 @@ pub trait BoolCtx    <OnSet> = where OnSet: Callback0;
 
 #[derive(Debug,Display,Default)]
 pub struct BoolData { is_dirty: bool }
-impl DirtyFlagData for BoolData {
-    type SetArgs = ();
-    fn raw_check     (&self) -> bool        { self.is_dirty }
-    fn raw_check_for (&self, _:&()) -> bool { self.is_dirty }
-    fn raw_set       (&mut self, _:())      { self.is_dirty = true  }
-    fn raw_unset     (&mut self)            { self.is_dirty = false }
-}
+impl HasCheckAll for BoolData { fn check_all (&self)     -> bool { self.is_dirty         } }
+impl HasUnsetAll for BoolData { fn unset_all (&mut self)         { self.is_dirty = false } }
+impl HasCheck0   for BoolData { fn check     (&    self) -> bool { self.is_dirty         } }
+impl HasSet0     for BoolData { fn set       (&mut self)         { self.is_dirty = true  } }
+impl HasUnset0   for BoolData { fn unset     (&mut self)         { self.is_dirty = false } }
+
 
 
 // =============
@@ -405,21 +369,19 @@ pub trait RangeIx                = PartialOrd + Copy + Debug;
 
 #[derive(Debug,Default)]
 pub struct RangeData<Ix=usize> { pub range: Option<ops::RangeInclusive<Ix>> }
-impl<Ix:RangeIx> DirtyFlagData for RangeData<Ix> {
-    type SetArgs = (Ix,);
-    fn raw_unset(&mut self) {
-        self.range = None
-    }
 
-    fn raw_check(&self) -> bool {
-        self.range.is_some()
-    }
+impl<Ix> HasArg      for RangeData<Ix> { type Arg = Ix; }
+impl<Ix> HasCheckAll for RangeData<Ix> { fn check_all(&self) -> bool { self.range.is_some() } }
+impl<Ix> HasUnsetAll for RangeData<Ix> { fn unset_all(&mut self)     { self.range = None    } }
 
-    fn raw_check_for(&self, (ix,): &Self::SetArgs) -> bool {
+impl<Ix:RangeIx> HasCheck1 for RangeData<Ix> {
+    fn check(&self, ix:&Ix) -> bool {
         self.range.as_ref().map(|r| r.contains(ix)) == Some(true)
     }
+}
 
-    fn raw_set(&mut self, (ix,): Self::SetArgs) {
+impl<Ix:RangeIx> HasSet1 for RangeData<Ix> {
+    fn set(&mut self, ix:Ix) {
         self.range = match &self.range {
             None    => Some(ix ..= ix),
             Some(r) => {
@@ -431,14 +393,20 @@ impl<Ix:RangeIx> DirtyFlagData for RangeData<Ix> {
     }
 }
 
+impl<Ix:RangeIx> HasUnset1 for RangeData<Ix> {
+    fn unset(&mut self, _arg:&Self::Arg) {}
+}
+
 impl<Ix:RangeIx> Display for RangeData<Ix> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f:&mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.range.as_ref().map(|t|
             format!("[{:?}...{:?}]",t.start(),t.end()))
             .unwrap_or_else(|| "false".into())
         )
     }
 }
+
+
 
 // ===========
 // === Set ===
@@ -448,35 +416,41 @@ impl<Ix:RangeIx> Display for RangeData<Ix> {
 /// counterpart. Please note that it uses `FxHashSet` under the hood, so there
 /// are no guarantees regarding attack-proof hashing algorithm here.
 
-pub type Set       <Ix,OnSet=()> = DirtyFlag       <SetData<Ix>,OnSet>;
-pub type SharedSet <Ix,OnSet=()> = SharedDirtyFlag <SetData<Ix>,OnSet>;
-pub trait SetCtx      <OnSet> = where OnSet: Callback0;
-pub trait SetItem             = Eq + Hash + Debug;
+pub type  Set       <Ix,OnSet=()> = DirtyFlag       <SetData<Ix>,OnSet>;
+pub type  SharedSet <Ix,OnSet=()> = SharedDirtyFlag <SetData<Ix>,OnSet>;
+pub trait SetCtx       <OnSet>    = where OnSet: Callback0;
+pub trait SetItem                 = Eq + Hash + Debug;
 
-#[derive(Debug,Default,Shrinkwrap)]
-pub struct SetData<Item:SetItem> { pub set: FxHashSet<Item> }
-impl<Item:SetItem> DirtyFlagData for SetData<Item> {
-    type SetArgs = (Item,);
-    fn raw_check (&self) -> bool {
-        !self.set.is_empty()
-    }
+#[derive(Derivative,Shrinkwrap)]
+#[derivative(Debug   (bound="Item:SetItem"))]
+#[derivative(Default (bound="Item:SetItem"))]
+pub struct SetData<Item> { pub set: FxHashSet<Item> }
 
-    fn raw_unset (&mut self) {
-        self.set.clear();
-    }
+impl<Item> HasArg      for SetData<Item> { type Arg = Item; }
+impl<Item> HasCheckAll for SetData<Item> { fn check_all(&self) -> bool { !self.set.is_empty() } }
+impl<Item> HasUnsetAll for SetData<Item> { fn unset_all(&mut self)     {  self.set.clear();   } }
 
-    fn raw_check_for (&self, (a,): &Self::SetArgs) -> bool {
+impl<Item:SetItem> HasCheck1 for SetData<Item> {
+    fn check(&self, a:&Item) -> bool {
         self.set.contains(a)
     }
+}
 
-    fn raw_set (&mut self, (a,): Self::SetArgs) {
+impl<Item:SetItem> HasSet1 for SetData<Item> {
+    fn set (&mut self, a:Item) {
         self.set.insert(a);
+    }
+}
+
+impl<Item:SetItem> HasUnset1 for SetData<Item> {
+    fn unset (&mut self, a:&Item) {
+        self.set.remove(a);
     }
 }
 
 impl<Ix:SetItem> Display for SetData<Ix> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}",self.set)
+        write!(f,"{:?}",self.set)
     }
 }
 
@@ -487,6 +461,7 @@ impl<'t,Item:SetItem> IntoIterator for &'t SetData<Item> {
         (&self.set).iter()
     }
 }
+
 
 
 // ================
@@ -503,12 +478,12 @@ pub type  Enum       <Prim,T,OnSet> = DirtyFlag       <EnumData<Prim,T>,OnSet>;
 pub type  SharedEnum <Prim,T,OnSet> = SharedDirtyFlag <EnumData<Prim,T>,OnSet>;
 pub trait EnumCtx           <OnSet> = where OnSet: Callback0;
 pub trait EnumBase                  = Default + PartialEq + Copy + BF;
+pub trait EnumElem                  = Copy+Into<usize>;
 
 /// Dirty flag which keeps dirty indexes in a `BitField` under the hood.
 
 pub type  BitField        <Prim,OnSet> = Enum       <Prim,usize,OnSet>;
 pub type  SharedBitField  <Prim,OnSet> = SharedEnum <Prim,usize,OnSet>;
-
 
 #[derive(Derivative)]
 #[derivative(Debug(bound="Prim:Debug"))]
@@ -518,27 +493,42 @@ pub struct EnumData<Prim=u32,T=usize> {
     phantom  : PhantomData<T>
 }
 
-impl<Prim:EnumBase,T:Copy+Into<usize>> DirtyFlagData for EnumData<Prim,T> {
-    type SetArgs = (T,);
-    fn raw_unset(&mut self) {
-        self.bits = default()
-    }
+impl<Prim,T> HasArg for EnumData<Prim,T> {
+    type Arg = T;
+}
 
-    fn raw_check(&self) -> bool {
+impl<Prim:EnumBase,T> HasCheckAll for EnumData<Prim,T> {
+    fn check_all(&self) -> bool {
         self.bits != default()
     }
+}
 
-    fn raw_check_for(&self, (t,): &Self::SetArgs) -> bool {
+impl<Prim:EnumBase,T> HasUnsetAll for EnumData<Prim,T> {
+    fn unset_all(&mut self) {
+        self.bits = default()
+    }
+}
+
+impl<Prim:EnumBase,T:EnumElem> HasCheck1 for EnumData<Prim,T> {
+    fn check(&self, t:&T) -> bool {
         self.bits.get_bit((*t).into())
     }
+}
 
-    fn raw_set(&mut self, (t,): Self::SetArgs) {
+impl<Prim:EnumBase,T:EnumElem> HasSet1 for EnumData<Prim,T> {
+    fn set(&mut self, t:T) {
         self.bits.set_bit(t.into(), true);
     }
 }
 
-impl<Prim:EnumBase,T:Copy+Into<usize>> Display for EnumData<Prim,T> {
+impl<Prim:EnumBase,T:EnumElem> HasUnset1 for EnumData<Prim,T> {
+    fn unset(&mut self, t:&T) {
+        self.bits.set_bit((*t).into(), false);
+    }
+}
+
+impl<Prim:EnumBase,T:EnumElem> Display for EnumData<Prim,T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.raw_check())
+        write!(f,"{}",self.check_all())
     }
 }

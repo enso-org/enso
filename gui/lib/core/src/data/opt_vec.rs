@@ -18,11 +18,11 @@ pub struct OptVec<T> {
     pub free_ixs: SmallVec<[Ix; 128]>,
 }
 
-pub type Ix             = usize;
-pub type Iter<'t, T>    = FilterMap<slice::Iter<'t, Option<T>>, OptionAsRef<T>>;
-pub type IterMut<'t, T> = FilterMap<slice::IterMut<'t, Option<T>>, OptionAsRefMut<T>>;
-pub type OptionAsRef<T> = for<'r> fn(&'r Option<T>) -> Option<&'r T>;
-pub type OptionAsRefMut<T> = for<'r> fn(&'r mut Option<T>) -> Option<&'r mut T>;
+pub type Ix                     = usize;
+pub type Iter           <'t, T> = FilterMap<slice::Iter<'t, Option<T>>, OptionAsRef<T>>;
+pub type IterMut        <'t, T> = FilterMap<slice::IterMut<'t, Option<T>>, OptionAsRefMut<T>>;
+pub type OptionAsRef        <T> = for<'r> fn(&'r Option<T>) -> Option<&'r T>;
+pub type OptionAsRefMut     <T> = for<'r> fn(&'r mut Option<T>) -> Option<&'r mut T>;
 
 impl<T> OptVec<T> {
     /// Constructs a new, empty `Vec<T>`. It will not allocate until elements
@@ -78,8 +78,8 @@ impl<T> OptVec<T> {
         item
     }
 
-    /// Returns the number of elements in the vector, also referred to as its
-    /// 'length'.
+    /// Returns the number of elements in the vector, including reserved indexes. Also referred to
+    /// as its 'length'.
     pub fn len(&self) -> usize {
         self.items.len() - self.free_ixs.len()
     }

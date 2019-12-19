@@ -12,7 +12,7 @@ use crate::text::msdf::MsdfTexture;
 use font::FontRenderInfo;
 use basegl_backend_webgl::{Context,compile_shader,link_program,Program,Shader};
 use nalgebra::{Vector2,Similarity2,Point2,Projective2};
-use web_sys::{WebGlRenderingContext,WebGlBuffer,WebGlTexture};
+use web_sys::{WebGl2RenderingContext,WebGlBuffer,WebGlTexture};
 
 
 // =====================
@@ -25,7 +25,7 @@ use web_sys::{WebGlRenderingContext,WebGlBuffer,WebGlTexture};
 /// commits
 #[derive(Debug)]
 pub struct TextComponent {
-    gl_context      : WebGlRenderingContext,
+    gl_context      : WebGl2RenderingContext,
     gl_program      : Program,
     gl_msdf_texture : WebGlTexture,
     lines           : Vec<Line>,
@@ -35,7 +35,7 @@ pub struct TextComponent {
 
 #[derive(Debug)]
 pub struct Line {
-    pub content                  : String,
+    pub content : String,
 }
 
 impl TextComponent {
@@ -50,16 +50,16 @@ impl TextComponent {
         self.bind_buffer_to_attribute("texCoord",&self.buffers.texture_coords);
         self.setup_blending();
         gl_context.bind_texture(Context::TEXTURE_2D, Some(&self.gl_msdf_texture));
-        gl_context.draw_arrays(WebGlRenderingContext::TRIANGLES,0,vertices_count);
+        gl_context.draw_arrays(WebGl2RenderingContext::TRIANGLES,0,vertices_count);
     }
 
     fn bind_buffer_to_attribute(&self, attribute_name:&str, buffer:&WebGlBuffer) {
         let gl_context = &self.gl_context;
         let gl_program = &self.gl_program;
         let location   = gl_context.get_attrib_location(gl_program,attribute_name) as u32;
-        let target     = WebGlRenderingContext::ARRAY_BUFFER;
+        let target     = WebGl2RenderingContext::ARRAY_BUFFER;
         let item_size  = 2;
-        let item_type  = WebGlRenderingContext::FLOAT;
+        let item_type  = WebGl2RenderingContext::FLOAT;
         let normalized = false;
         let stride     = 0;
         let offset     = 0;
@@ -153,14 +153,14 @@ impl<'a,Str:AsRef<str>> TextComponentBuilder<'a,Str> {
 
     fn create_vertex_shader(&self, gl_context:&Context) -> Shader {
         let body        = include_str!("text/msdf_vert.glsl");
-        let shader_type = WebGlRenderingContext::VERTEX_SHADER;
+        let shader_type = WebGl2RenderingContext::VERTEX_SHADER;
 
         compile_shader(gl_context,shader_type,body).unwrap()
     }
 
     fn create_fragment_shader(&self, gl_context:&Context) -> Shader {
         let body        = include_str!("text/msdf_frag.glsl");
-        let shader_type = WebGlRenderingContext::FRAGMENT_SHADER;
+        let shader_type = WebGl2RenderingContext::FRAGMENT_SHADER;
 
         compile_shader(gl_context,shader_type,body).unwrap()
     }

@@ -10,7 +10,7 @@ use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;
 use web_sys::HtmlCanvasElement;
-use web_sys::WebGlRenderingContext;
+use web_sys::WebGl2RenderingContext;
 use web_sys::Performance;
 use web_sys::Node;
 use std::fmt::Debug;
@@ -83,67 +83,71 @@ impl<F: Fn() -> S, S: AsRef<str>> LogMsg for F {
 // === Logger ===
 // ==============
 
-#[derive(Clone, Debug)]
+#[derive(Clone,Debug,Default)]
 pub struct Logger {
     pub path: String,
 }
+
+#[allow(dead_code)]
 impl Logger {
     pub fn new<T: AsRef<str>>(path:T) -> Self {
         let path = path.as_ref().to_string();
         Self { path }
     }
 
-    // FIXME: Default
-    pub fn new_() -> Self {
-        Self::new("")
-    }
-
-    pub fn sub<T: AsRef<str>>(&self, path:T) -> Self {
+    pub fn sub<T: AsRef<str>>(&self, path: T) -> Self {
         Self::new(format!("{}.{}", self.path, path.as_ref()))
     }
 
-    pub fn trace<M: LogMsg>(&self, msg:M) {
-        console::debug_1(&self.format(msg));
-    }
-
-    pub fn info<M: LogMsg>(&self, msg:M) {
-        // console::info_1(&self.format(msg));
-        console::group_1(&self.format(msg));
-        console::group_end();
-    }
-
-    pub fn warning<M: LogMsg>(&self, msg:M) {
-        console::warn_1(&self.format(msg));
-    }
-
-    pub fn error<M: LogMsg>(&self, msg:M) {
-        console::error_1(&self.format(msg));
-    }
-
-    pub fn group_begin<M: LogMsg>(&self, msg:M) {
-        console::group_1(&self.format(msg));
-    }
-
-    pub fn group_end(&self) {
-        console::group_end();
-    }
-
-    pub fn group<M:LogMsg, T, F:FnOnce() -> T>(&self, msg:M, f:F) -> T {
+    pub fn group<M: LogMsg, T, F: FnOnce() -> T>(&self, msg: M, f: F) -> T {
         self.group_begin(msg);
         let out = f();
         self.group_end();
         out
     }
 
-    fn format<M: LogMsg>(&self, msg:M) -> JsValue {
+    fn format<M: LogMsg>(&self, msg: M) -> JsValue {
         msg.with_log_msg(|s| format!("[{}] {}", self.path, s)).into()
     }
 }
 
-impl Default for Logger {
-    fn default() -> Self {
-        Self::new("")
+#[cfg(target_arch = "wasm32")]
+impl Logger {
+    pub fn trace<M: LogMsg>(&self, msg: M) {
+//        console::debug_1(&self.format(msg));
     }
+
+    pub fn info<M: LogMsg>(&self, msg: M) {
+//        console::group_1(&self.format(msg));
+//        console::group_end();
+    }
+
+    pub fn warning<M: LogMsg>(&self, msg: M) {
+//        console::warn_1(&self.format(msg));
+    }
+
+    pub fn error<M: LogMsg>(&self, msg: M) {
+//        console::error_1(&self.format(msg));
+    }
+
+    pub fn group_begin<M: LogMsg>(&self, msg: M) {
+//        console::group_1(&self.format(msg));
+    }
+
+    pub fn group_end(&self) {
+//        console::group_end();
+    }
+}
+
+// FIXME: Add the non-wasm impl
+#[cfg(not(target_arch = "wasm32"))]
+impl Logger {
+    pub fn trace<M: LogMsg>(&self, _msg: M) {}
+    pub fn info<M: LogMsg>(&self, _msg: M) {}
+    pub fn warning<M: LogMsg>(&self, _msg: M) {}
+    pub fn error<M: LogMsg>(&self, _msg: M) {}
+    pub fn group_begin<M: LogMsg>(&self, _msg: M) {}
+    pub fn group_end(&self) {}
 }
 
 
@@ -221,20 +225,10 @@ pub fn get_canvas(id:&str) -> Result<web_sys::HtmlCanvasElement> {
     dyn_into(get_element_by_id(id)?)
 }
 
-pub fn get_webgl_context(
-    canvas: &HtmlCanvasElement,
-    version: u32,
-) -> Result<WebGlRenderingContext>
-{
-    let no_webgl = || Error::NoWebGL { version };
-    let name_sfx = if version == 1 {
-        "".to_string()
-    } else {
-        version.to_string()
-    };
-    let name = &format!("webgl{}", &name_sfx);
-    let context = canvas.get_context(name)
-                        .map_err(|_| no_webgl())?.ok_or_else(no_webgl)?;
+pub fn get_webgl2_context
+(canvas:&HtmlCanvasElement) -> Result<WebGl2RenderingContext> {
+    let no_webgl = || Error::NoWebGL { version:2 };
+    let context = canvas.get_context("webgl2").map_err(|_| no_webgl())?.ok_or_else(no_webgl)?;
     context.dyn_into().map_err(|_| no_webgl())
 }
 
@@ -251,6 +245,7 @@ pub fn cancel_animation_frame(id:i32) -> Result<()> {
 pub fn get_performance() -> Result<Performance> {
     window()?.performance().ok_or_else(|| Error::missing("performance"))
 }
+
 
 
 // =====================
