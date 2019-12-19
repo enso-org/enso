@@ -3,7 +3,11 @@ use crate::prelude::*;
 use crate::text::font::FontRenderInfo;
 use crate::text::msdf::MsdfTexture;
 
-use nalgebra::{Point2,Translation2,Affine2,Matrix3,Scalar};
+use nalgebra::Point2;
+use nalgebra::Translation2;
+use nalgebra::Affine2;
+use nalgebra::Matrix3;
+use nalgebra::Scalar;
 use std::ops::Range;
 
 // ============================

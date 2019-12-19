@@ -1,36 +1,38 @@
-#extension GL_OES_standard_derivatives : enable
+#version 300 es
 
-varying highp vec2 vTexCoord;
-varying highp vec4 vClipDistance;
+in highp vec2 v_tex_coord;
+in highp vec4 v_clip_distance;
 
 uniform sampler2D   msdf;
 // Number of MSDF cells in row and column
-uniform highp vec2  msdfSize;
+uniform highp vec2  msdf_size;
 // Range parameter of msdf generation - the distance between 0.0 and 1.0 values
 // expressed in MSDF cells
 uniform highp float range;
 uniform highp vec4  color;
+
+out highp vec4 out_color;
 
 highp float median(highp vec3 v) {
     return max(min(v.x, v.y), min(max(v.x, v.y), v.z));
 }
 
 void main() {
-    bool clipped              = any(lessThan(vClipDistance, vec4(0.0)));
-    highp vec2  msdfUnitTex   = range/msdfSize;
-    highp vec2  msdfUnitPx    = msdfUnitTex/fwidth(vTexCoord);
-    highp float avgMsdfUnitPx = (msdfUnitPx.x + msdfUnitPx.y) / 2.0;
+    bool clipped                 = any(lessThan(v_clip_distance, vec4(0.0)));
+    highp vec2  msdf_unit_tex    = range / msdf_size;
+    highp vec2  msdf_unit_px     = msdf_unit_tex/  fwidth(v_tex_coord);
+    highp float avg_msdf_unit_px = (msdf_unit_px.x + msdf_unit_px.y) / 2.0;
     // Note [dpiDilate]
-    highp float dpiDilate     = avgMsdfUnitPx < range*0.49 ? 1.0 : 0.0;
+    highp float dpi_dilate       = avg_msdf_unit_px < range*0.49 ? 1.0 : 0.0;
 
     if (clipped) {
         discard;
     } else {
-        highp vec3  msdfSample    = texture2D(msdf, vTexCoord).rgb;
-        highp float sigDist       = median(msdfSample) - 0.5;
-        highp float sigDistPx     = sigDist * avgMsdfUnitPx;
-        highp float opacity       = 0.5 + sigDistPx + dpiDilate*0.1;
-        gl_FragColor = vec4(color.xyz, color.w * clamp(opacity, 0.0, 1.0));
+        highp vec3  msdf_sample  = texture(msdf, v_tex_coord).rgb;
+        highp float sig_dist     = median(msdf_sample) - 0.5;
+        highp float sig_dist_px  = sig_dist * avg_msdf_unit_px;
+        highp float opacity      = 0.5 + sig_dist_px + dpi_dilate * 0.08;
+        out_color = vec4(color.xyz, color.w * clamp(opacity, 0.0, 1.0));
     }
 }
 

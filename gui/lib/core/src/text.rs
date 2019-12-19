@@ -4,15 +4,27 @@ pub mod msdf;
 
 use crate::prelude::*;
 
-use crate::{Area,Color};
+use crate::Color;
 use crate::display::world::Workspace;
+use crate::text::buffer::ContentRef;
 use crate::text::buffer::TextComponentBuffers;
+use crate::text::font::FontId;
+use crate::text::font::FontRenderInfo;
+use crate::text::font::Fonts;
 use crate::text::msdf::MsdfTexture;
 
-use font::FontRenderInfo;
-use basegl_backend_webgl::{Context,compile_shader,link_program,Program,Shader};
-use nalgebra::{Vector2,Similarity2,Point2,Projective2};
-use web_sys::{WebGl2RenderingContext,WebGlBuffer,WebGlTexture};
+use basegl_backend_webgl::Context;
+use basegl_backend_webgl::compile_shader;
+use basegl_backend_webgl::link_program;
+use basegl_backend_webgl::Program;
+use basegl_backend_webgl::Shader;
+use nalgebra::Vector2;
+use nalgebra::Similarity2;
+use nalgebra::Point2;
+use nalgebra::Projective2;
+use web_sys::WebGl2RenderingContext;
+use web_sys::WebGlBuffer;
+use web_sys::WebGlTexture;
 
 
 // =====================
@@ -25,32 +37,82 @@ use web_sys::{WebGl2RenderingContext,WebGlBuffer,WebGlTexture};
 /// commits
 #[derive(Debug)]
 pub struct TextComponent {
+    pub lines       : Vec<String>,
+    pub font        : FontId,
+    pub position    : Point2<f64>,
+    pub size        : Vector2<f64>,
+    pub text_size   : f64,
     gl_context      : WebGl2RenderingContext,
     gl_program      : Program,
     gl_msdf_texture : WebGlTexture,
-    lines           : Vec<Line>,
     buffers         : TextComponentBuffers,
-    to_window       : Projective2<f64>
-}
-
-#[derive(Debug)]
-pub struct Line {
-    pub content : String,
 }
 
 impl TextComponent {
+    /// Scroll text by given offset.
+    ///
+    /// The value of 1.0 on both dimensions is equal to one line's height.
+    pub fn scroll(&mut self, offset:Vector2<f64>) {
+        self.buffers.scroll(offset);
+    }
+
+    /// Get current scroll position.
+    ///
+    /// The _scroll_position_ is a position of top-left corner of the first line.
+    /// The offset of 1.0 on both dimensions is equal to one line's height.
+    pub fn scroll_position(&self) -> &Vector2<f64> {
+        &self.buffers.scroll_offset
+    }
+
+    /// Jump to scroll position.
+    ///
+    /// The `scroll_position` is a position of top-left corner of the first line.
+    /// The offset of 1.0 on both dimensions is equal to one line's height.
+    pub fn jump_to_position(&mut self, scroll_position:Vector2<f64>) {
+        self.buffers.jump_to(scroll_position);
+    }
+
 
     /// Render text
-    pub fn display(&self) {
+    pub fn display(&mut self, fonts:&mut Fonts) {
         let gl_context     = &self.gl_context;
         let vertices_count = self.buffers.vertices_count() as i32;
+        let lines          = &mut self.lines;
+        let font           = fonts.get_render_info(self.font);
+        let content_ref    = ContentRef{lines,font};
 
+        self.buffers.refresh(gl_context,content_ref);
         gl_context.use_program(Some(&self.gl_program));
+        self.update_uniforms();
         self.bind_buffer_to_attribute("position",&self.buffers.vertex_position);
-        self.bind_buffer_to_attribute("texCoord",&self.buffers.texture_coords);
+        self.bind_buffer_to_attribute("tex_coord",&self.buffers.texture_coords);
         self.setup_blending();
         gl_context.bind_texture(Context::TEXTURE_2D, Some(&self.gl_msdf_texture));
         gl_context.draw_arrays(WebGl2RenderingContext::TRIANGLES,0,vertices_count);
+    }
+
+    fn update_uniforms(&self) {
+        let gl_context          = &self.gl_context;
+        let to_scene            = self.to_scene_matrix();
+        let to_scene_ref        = to_scene.as_ref();
+        let to_scene_loc        = gl_context.get_uniform_location(&self.gl_program,"to_scene");
+        let transpose           = false;
+        gl_context.uniform_matrix3fv_with_f32_array(to_scene_loc.as_ref(),transpose,to_scene_ref);
+    }
+
+    fn to_scene_matrix(&self) -> SmallVec<[f32;9]> {
+        const ROTATION : f64            = 0.0;
+        let scroll_offset               = self.buffers.scroll_offset*self.text_size;
+        let to_position                 = self.position.coords + Vector2::new(0.0, self.size.y);
+        let translate                   = to_position - scroll_offset;
+        let scale                       = self.text_size;
+        let similarity                  = Similarity2::new(translate,ROTATION,scale);
+        let to_scene : Projective2<f64> = nalgebra::convert(similarity);
+        let matrix                      = to_scene.matrix();
+        let view : &[[f64;3]]           = matrix.as_ref();
+        let flatten_view                = view.iter().flatten();
+        let converted                   = flatten_view.map(|f| *f as f32);
+        converted.collect()
     }
 
     fn bind_buffer_to_attribute(&self, attribute_name:&str, buffer:&WebGlBuffer) {
@@ -94,58 +156,57 @@ impl TextComponent {
 // ============================
 
 /// Text component builder
-pub struct TextComponentBuilder<'a, Str:AsRef<str>> {
+pub struct TextComponentBuilder<'a, 'b, Str:AsRef<str>> {
+    pub workspace       : &'a Workspace,
+    pub fonts           : &'b mut Fonts,
     pub text            : Str,
-    pub font            : &'a mut FontRenderInfo,
-    pub scroll_position : Vector2<f64>,
-    pub size            : f64,
+    pub font_id         : FontId,
+    pub position        : Point2<f64>,
+    pub size            : Vector2<f64>,
+    pub text_size       : f64,
     pub color           : Color<f32>,
-    pub area            : Area<f64>
 }
 
-impl<'a,Str:AsRef<str>> TextComponentBuilder<'a,Str> {
+impl<'a,'b,Str:AsRef<str>> TextComponentBuilder<'a,'b,Str> {
 
     /// Build a new text component rendering on given workspace
-    pub fn build(mut self, workspace : &Workspace) -> TextComponent {
+    pub fn build(mut self) -> TextComponent {
         self.load_all_chars();
-        let gl_context        = workspace.context.clone();
+        let gl_context        = self.workspace.context.clone();
         let gl_program        = self.create_program(&gl_context);
         let gl_msdf_texture   = self.create_msdf_texture(&gl_context);
         let lines             = self.split_lines();
-        let to_window         = self.to_window_transform();
-        let mut buffers       = self.create_buffers(&gl_context, &to_window);
-        self.setup_uniforms(&gl_context,&gl_program,&to_window);
-        buffers.refresh_all(&gl_context,&lines,self.font);
+        let font              = self.fonts.get_render_info(self.font_id);
+        let display_size      = self.size / self.text_size;
+        let content_ref       = ContentRef{lines:lines.as_ref(),font};
+        let buffers           = TextComponentBuffers::new(&gl_context,display_size,content_ref);
+        self.setup_constant_uniforms(&gl_context,&gl_program);
         TextComponent {
+            lines,
+            font: self.font_id,
+            position: self.position,
+            size: self.size,
+            text_size: self.text_size,
             gl_context,
             gl_program,
             gl_msdf_texture,
             buffers,
-            lines,
-            to_window,
         }
     }
 
     fn load_all_chars(&mut self) {
         for ch in self.text.as_ref().chars() {
-            self.font.get_glyph_info(ch);
+            self.fonts.get_render_info(self.font_id).get_glyph_info(ch);
         }
     }
 
-    fn split_lines(&self) -> Vec<Line> {
+    fn split_lines(&self) -> Vec<String> {
         let lines_text = self.text.as_ref().split('\n');
-        let lines_iter = lines_text.map(Self::initialize_line);
+        let lines_iter = lines_text.map(|line| line.to_string());
         lines_iter.collect()
     }
 
-    fn initialize_line(text:&str) -> Line {
-        Line {
-            content : text.to_string(),
-        }
-    }
-
     fn create_program(&self, gl_context:&Context) -> Program {
-        gl_context.get_extension("OES_standard_derivatives").unwrap().unwrap();
         let vert_shader = self.create_vertex_shader(gl_context);
         let frag_shader = self.create_fragment_shader(gl_context);
         link_program(&gl_context, &vert_shader, &frag_shader).unwrap()
@@ -165,28 +226,21 @@ impl<'a,Str:AsRef<str>> TextComponentBuilder<'a,Str> {
         compile_shader(gl_context,shader_type,body).unwrap()
     }
 
-    fn to_window_transform(&self) -> Projective2<f64> {
-        const ROTATION : f64  = 0.0;
-        let base_position     = Vector2::new(self.area.left,self.area.top);
-        let scrolled_position = base_position - self.scroll_position;
-        let similarity        = Similarity2::new(scrolled_position,ROTATION,self.size);
-        nalgebra::convert(similarity)
-    }
-
-    fn create_msdf_texture(&self, gl_ctx:&Context)
+    fn create_msdf_texture(&mut self, gl_ctx:&Context)
     -> WebGlTexture {
         let msdf_texture = gl_ctx.create_texture().unwrap();
+        let font_msdf    = &self.fonts.get_render_info(self.font_id).msdf_texture;
         let target       = Context::TEXTURE_2D;
         let wrap         = Context::CLAMP_TO_EDGE as i32;
         let min_filter   = Context::LINEAR as i32;
         let width        = MsdfTexture::WIDTH as i32;
-        let height       = self.font.msdf_texture.rows() as i32;
+        let height       = font_msdf.rows() as i32;
         let border       = 0;
         let tex_level    = 0;
         let format       = Context::RGB;
         let internal_fmt = Context::RGB as i32;
         let tex_type     = Context::UNSIGNED_BYTE;
-        let data         = Some(self.font.msdf_texture.data.as_slice());
+        let data         = Some(font_msdf.data.as_slice());
 
         gl_ctx.bind_texture(target,Some(&msdf_texture));
         gl_ctx.tex_parameteri(target,Context::TEXTURE_WRAP_S,wrap);
@@ -208,54 +262,28 @@ impl<'a,Str:AsRef<str>> TextComponentBuilder<'a,Str> {
         msdf_texture
     }
 
-    fn create_buffers(&mut self, gl_context:&Context, to_window:&Projective2<f64>)
-    -> TextComponentBuffers {
-        let from_window       = to_window.inverse();
-        let component_lb      = Point2::new(self.area.left, self.area.bottom);
-        let component_rt      = Point2::new(self.area.right, self.area.top);
-        let displayed_text_lb = from_window * component_lb;
-        let displayed_text_rt = from_window * component_rt;
-        let displayed_text    = Area {
-            left              : displayed_text_lb.x,
-            right             : displayed_text_rt.x,
-            top               : displayed_text_rt.y,
-            bottom            : displayed_text_lb.y,
-        };
-        TextComponentBuffers::new(gl_context,displayed_text,self.font)
-    }
-
-    fn setup_uniforms(&self, gl_context:&Context, gl_program:&Program, to_window:&Projective2<f64>) {
-        let to_window_converted = Self::convert_to_window(to_window);
-        let to_window_ref       = to_window_converted.as_ref();
-        let area                = &self.area;
-        let color               = &self.color;
-        let range               = FontRenderInfo::MSDF_PARAMS.range as f32;
-        let msdf_width          = MsdfTexture::WIDTH as f32;
-        let msdf_height         = self.font.msdf_texture.rows() as f32;
-        let transpose           = false;
-        let to_window_loc       = gl_context.get_uniform_location(gl_program,"toWindow");
-        let clip_lower_loc      = gl_context.get_uniform_location(gl_program,"clipLower");
-        let clip_upper_loc      = gl_context.get_uniform_location(gl_program,"clipUpper");
-        let color_loc           = gl_context.get_uniform_location(gl_program,"color");
-        let range_loc           = gl_context.get_uniform_location(gl_program,"range");
-        let msdf_loc            = gl_context.get_uniform_location(gl_program,"msdf");
-        let msdf_size_loc       = gl_context.get_uniform_location(gl_program,"msdfSize");
+    fn setup_constant_uniforms(&mut self, gl_context:&Context, gl_program:&Program) {
+        let left           = self.position.x                 as f32;
+        let right          = (self.position.x + self.size.x) as f32;
+        let top            = (self.position.y + self.size.y) as f32;
+        let bottom         = self.position.y                 as f32;
+        let color          = &self.color;
+        let range          = FontRenderInfo::MSDF_PARAMS.range as f32;
+        let msdf_width     = MsdfTexture::WIDTH as f32;
+        let msdf_height    = self.fonts.get_render_info(self.font_id).msdf_texture.rows() as f32;
+        let clip_lower_loc = gl_context.get_uniform_location(gl_program,"clip_lower");
+        let clip_upper_loc = gl_context.get_uniform_location(gl_program,"clip_upper");
+        let color_loc      = gl_context.get_uniform_location(gl_program,"color");
+        let range_loc      = gl_context.get_uniform_location(gl_program,"range");
+        let msdf_loc       = gl_context.get_uniform_location(gl_program,"msdf");
+        let msdf_size_loc  = gl_context.get_uniform_location(gl_program,"msdf_size");
 
         gl_context.use_program(Some(gl_program));
-        gl_context.uniform_matrix3fv_with_f32_array(to_window_loc.as_ref(),transpose,to_window_ref);
-        gl_context.uniform2f(clip_lower_loc.as_ref(),area.left as f32,area.bottom as f32);
-        gl_context.uniform2f(clip_upper_loc.as_ref(),area.right as f32,area.top as f32);
+        gl_context.uniform2f(clip_lower_loc.as_ref(),left,bottom);
+        gl_context.uniform2f(clip_upper_loc.as_ref(),right,top);
         gl_context.uniform4f(color_loc.as_ref(),color.r,color.g,color.b,color.a);
         gl_context.uniform1f(range_loc.as_ref(),range);
         gl_context.uniform1i(msdf_loc.as_ref(),0);
         gl_context.uniform2f(msdf_size_loc.as_ref(),msdf_width,msdf_height);
-    }
-
-    fn convert_to_window(to_window:&Projective2<f64>) -> SmallVec<[f32;9]> {
-        let matrix            = to_window.matrix();
-        let view : &[[f64;3]] = matrix.as_ref();
-        let flatten_view      = view.iter().flatten();
-        let converted         = flatten_view.map(|f| *f as f32);
-        converted.collect()
     }
 }

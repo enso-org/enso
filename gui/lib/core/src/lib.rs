@@ -199,12 +199,12 @@ mod example_03 {
 
     use crate::utils;
     use crate::display::world::{World,Workspace,Add};
-    use crate::text::font::FontRenderInfo;
-    use crate::{Area,Color};
-
+    use crate::text::font::FontId;
+    use crate::Color;
     use crate::dirty::traits::*;
-    use basegl_core_embedded_fonts::EmbeddedFonts;
+
     use itertools::iproduct;
+    use nalgebra::{Point2,Vector2};
 
     const FONT_NAMES : &[&str] = &
         [ "DejaVuSans"
@@ -222,41 +222,44 @@ mod example_03 {
         basegl_core_msdf_sys::run_once_initialized(|| {
             let mut world_ref = World::new();
             let workspace_id  = world_ref.add(Workspace::build("canvas"));
-            let world         = &mut world_ref.borrow_mut();
-            let workspace     = &mut world[workspace_id];
-            let font_base     = EmbeddedFonts::create_and_fill();
-            let font_creator  = |name:&&'static str| FontRenderInfo::from_embedded(&font_base,name);
-            let fonts_iter    = FONT_NAMES.iter().map(font_creator);
-            let mut fonts     = fonts_iter.collect::<Box<[FontRenderInfo]>>();
+            let world :&mut World = &mut world_ref.borrow_mut();
+            let workspace     = &mut world.workspaces[workspace_id];
+            let fonts         = &mut world.fonts;
+            let font_ids_iter = FONT_NAMES.iter().map(|name| fonts.load_embedded_font(name).unwrap());
+            let font_ids      = font_ids_iter.collect::<Box<[FontId]>>();
 
-            let all_cases     = iproduct!(0..fonts.len(), 0..SIZES.len());
+            let all_cases     = iproduct!(0..font_ids.len(), 0..SIZES.len());
 
             for (font, size) in all_cases {
 
                 let x = -0.95 + 0.6 * (size as f64);
                 let y = 0.90 - 0.45 * (font as f64);
-                let area = Area {
-                    left   : x,
-                    right  : x + 0.5,
-                    top    : y,
-                    bottom : y - 0.2
-                };
                 let text_compnent = crate::text::TextComponentBuilder {
+                    workspace,
+                    fonts,
                     text : "To be, or not to be, that is the question:\n\
                         Whether 'tis nobler in the mind to suffer\n\
                         The slings and arrows of outrageous fortune,\n\
                         Or to take arms against a sea of troubles\n\
                         And by opposing end them."
                         .to_string(),
-                    font     : &mut fonts[font],
-                    scroll_position: nalgebra::Vector2::new(0.0, 0.05),
-                    size     : SIZES[size],
+                    font_id: font_ids[font],
+                    position: Point2::new(x, y),
+                    size: Vector2::new(0.5, 0.2),
+                    text_size: SIZES[size],
                     color    : Color {r: 1.0, g: 1.0, b: 1.0, a: 1.0},
-                    area
-                }.build(workspace);
+                }.build();
                 workspace.text_components.push(text_compnent);
             }
             world.workspace_dirty.set(workspace_id);
+
+            world.on_frame(move |w| {
+                let space = &mut w.workspaces[workspace_id];
+                for text_component in &mut space.text_components {
+                    text_component.scroll(Vector2::new(0.0,0.00001));
+                }
+                w.workspace_dirty.set(workspace_id);
+            }).forget();
         });
     }
 }

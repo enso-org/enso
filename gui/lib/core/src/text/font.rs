@@ -1,11 +1,15 @@
 use crate::prelude::*;
-use crate::text::msdf::
-{MsdfTexture,convert_msdf_transformation,x_distance_from_msdf_value};
+
+use crate::text::msdf::MsdfTexture;
+use crate::text::msdf::convert_msdf_transformation;
+use crate::text::msdf::x_distance_from_msdf_value;
 
 use basegl_core_msdf_sys as msdf_sys;
 use basegl_core_embedded_fonts::EmbeddedFonts;
-use msdf_sys::{MsdfParameters,MultichannelSignedDistanceField};
-use std::collections::hash_map::Entry::{Occupied,Vacant};
+use msdf_sys::MsdfParameters;
+use msdf_sys::MultichannelSignedDistanceField;
+use std::collections::hash_map::Entry::Occupied;
+use std::collections::hash_map::Entry::Vacant;
 
 // ========================
 // === Font render info ===
@@ -22,6 +26,7 @@ use std::collections::hash_map::Entry::{Occupied,Vacant};
 ///
 /// For explanation of various font-rendering terms, see
 /// [freetype documentation](https://www.freetype.org/freetype2/docs/glyphs/glyphs-3.html#section-1)
+#[derive(Debug)]
 pub struct GlyphRenderInfo {
     pub msdf_texture_rows : std::ops::Range<usize>,
     pub from_base_layout  : nalgebra::Projective2<f64>,
@@ -35,6 +40,7 @@ pub struct GlyphRenderInfo {
 /// Each distance and transformation values are expressed in normalized coordinates, where `y` = 0.0
 /// is _baseline_ and `y` = 1.0 is _ascender_. For explanation of various font-rendering terms, see
 /// [freetype documentation](https://www.freetype.org/freetype2/docs/glyphs/glyphs-3.html#section-1)
+#[derive(Debug)]
 pub struct FontRenderInfo {
     pub name          : String,
     pub msdf_sys_font : msdf_sys::Font,
@@ -79,10 +85,10 @@ impl FontRenderInfo {
     }
 
     /// Create render info for one of embedded fonts
-    pub fn from_embedded(base:&EmbeddedFonts, name:&'static str)
-    -> FontRenderInfo {
-        let font_data = base.font_data_by_name.get(name).unwrap();
-        FontRenderInfo::new(name.to_string(),font_data)
+    pub fn from_embedded(base:&EmbeddedFonts, name:&str)
+    -> Option<FontRenderInfo> {
+        let font_data_opt = base.font_data_by_name.get(name);
+        font_data_opt.map(|data| FontRenderInfo::new(name.to_string(),data))
     }
 
     /// Load char render info
@@ -162,6 +168,57 @@ impl FontRenderInfo {
 }
 
 
+// ===================
+// === LoadedFonts ===
+// ===================
+
+/// A handle for fonts loaded into memory.
+pub type FontId = usize;
+
+/// Structure keeping all fonts loaded from different sources.
+#[derive(Debug)]
+pub struct Fonts {
+    embedded : EmbeddedFonts,
+    fonts    : HashMap<FontId,FontRenderInfo>,
+    next_id  : FontId
+}
+
+impl Fonts {
+    /// Create empty `Fonts` structure (however it contains raw data of embedded fonts).
+    pub fn new() -> Fonts {
+        Fonts {
+            embedded : EmbeddedFonts::create_and_fill(),
+            fonts    : HashMap::new(),
+            next_id  : 1
+        }
+    }
+
+    /// Load data from one of embedded fonts. Returns None if embedded font not found.
+    pub fn load_embedded_font(&mut self, name:&str) -> Option<FontId> {
+        let render_info = FontRenderInfo::from_embedded(&self.embedded,name);
+        render_info.map(|info| self.put_render_info(info))
+    }
+
+    fn put_render_info(&mut self, font:FontRenderInfo) -> FontId {
+        let id = self.next_id;
+        self.fonts.insert(id,font);
+        self.next_id += 1;
+        id
+    }
+
+    /// Get render info of one of loaded fonts. Panics for unrecognized id - you should only use
+    /// ids returned from `Fonts`' functions.
+    pub fn get_render_info(&mut self, id:FontId) -> &mut FontRenderInfo {
+        self.fonts.get_mut(&id).unwrap()
+    }
+}
+
+impl Default for Fonts {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -179,7 +236,7 @@ mod tests {
         FontRenderInfo::from_embedded(
             &mut embedded_fonts,
             TEST_FONT_NAME
-        )
+        ).unwrap()
     }
 
     wasm_bindgen_test_configure!(run_in_browser);

@@ -32,6 +32,7 @@ where F : 'static + FnOnce() {
 // === Font ===
 // ============
 
+#[derive(Debug)]
 pub struct Font {
     pub handle: JsValue
 }

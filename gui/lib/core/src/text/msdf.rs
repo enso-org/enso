@@ -11,6 +11,7 @@ use nalgebra::clamp;
 /// This structure keeps texture data in 8-bit-per-channel RGB format, which
 /// is ready to be passed to webgl texImage2D. The texture contains MSDFs for
 /// all loaded glyphs, organized in vertical column.
+#[derive(Debug)]
 pub struct MsdfTexture {
     pub data : Vec<u8>
 }
