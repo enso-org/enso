@@ -119,12 +119,12 @@ to provide work-arounds for building on that platform while it is still in an
 unstable state.
 
 #### Building Enso Components
-In order to build a specific component (e.g. `interpreter`), please follow the
+In order to build a specific component (e.g. `runtime`), please follow the
 following steps.
 
 1. Enter the sbt shell in the repository root directory by typing `sbt`.
-2. Change to the project you are concerned with (in our case `interpreter`) by
-   executing `project interpreter`.
+2. Change to the project you are concerned with (in our case `runtime`) by
+   executing `project runtime`.
 3. Execute `compile` in order to compile the project in question. This will
    compile the project and all its dependencies as necessary.
 
@@ -135,9 +135,9 @@ or benchmarks to run (e.g. `testOnly *FunctionArguments*`).
 
 #### Building the Interpreter CLI Fat Jar
 In order to build a fat jar with the CLI component, run the `assembly` task
-inside the `interpreter` subproject:
+inside the `runtime` subproject:
 ```
-sbt "interpreter/assembly"
+sbt "runtime/assembly"
 ```
 This will produce an executable `enso.jar` fat jar in the repository root.
 It's self contained, with its only dependencies being available inside
@@ -195,7 +195,7 @@ interpreter itself). However, it results in significantly degraded peak
 performance, so it is not part of our roadmap currently.
 
 If you would like to experiment with it, you can execute the `buildNativeImage`
-command in the sbt shell while inside the `interpreter` project. Please note
+command in the sbt shell while inside the `language_server` project. Please note
 that while the command is available at the moment, and you are welcome to
 [report an issue](https://github.com/luna/enso/issues/new?assignees=&labels=Type%3A+Bug&template=bug-report.md&title=)
 with the functionality, any bugs you report will _not_ be considered high
@@ -277,7 +277,7 @@ in our issue tracker and we will get back to you as soon as possible.
 ### Running Enso
 The only component in this repository with a proper executable is the Enso
 interpreter. It can be run using the sbt `run` command in the project
-`interpreter` and provides a rudimentary command-line interface to the basic
+`language_server` and provides a rudimentary command-line interface to the basic
 capabilities of the interpreter.
 
 Detailed information on the flags it supports can be obtained by executing `run
