@@ -54,6 +54,14 @@ pub trait Callback5<Arg1, Arg2, Arg3, Arg4, Arg5> {
 
 // === Unit Implementations ===
 
+impl<T:Callback0> Callback0 for Option<T> {
+    fn call(&mut self) {
+        self.iter_mut().for_each(|t| {
+            t.call()
+        })
+    }
+}
+
 impl Callback0 for () {
     fn call(&mut self) {}
 }

@@ -1,5 +1,6 @@
 use crate::prelude::*;
 
+use crate::backend::webgl::Context;
 use crate::closure;
 use crate::data::function::callback::*;
 use crate::data::opt_vec::OptVec;
@@ -22,8 +23,8 @@ use eval_tt::*;
 
 // === Definition ===
 
-/// Scope defines a view for geometry structure. For example, there is point 
-/// scope or instance scope. Scope contains buffer of data for each item it 
+/// Scope defines a view for geometry structure. For example, there is point
+/// scope or instance scope. Scope contains buffer of data for each item it
 /// describes.
 #[derive(Derivative)]
 #[derivative(Debug(bound=""))]
@@ -33,7 +34,8 @@ pub struct Scope <OnDirty> {
     pub shape_dirty  : ShapeDirty<OnDirty>,
     pub name_map     : HashMap<BufferName, BufferIndex>,
     pub logger       : Logger,
-    instance_count   : usize
+    instance_count   : usize,
+    context          : Context
 }
 
 // === Types ===
@@ -53,20 +55,20 @@ macro_rules! promote_scope_types { ($callbacks:tt $module:ident) => {
 // === Callbacks ===
 
 closure! {
-fn buffer_on_set<C:Callback0> (dirty:BufferDirty<C>, ix:usize) ->
-    BufferOnSet { || dirty.set(ix) }
-}
+fn buffer_on_set<C:Callback0> (dirty:BufferDirty<C>, ix:usize) -> BufferOnSet {
+    || dirty.set(ix)
+}}
 
 closure! {
-fn buffer_on_resize<C:Callback0> (dirty:ShapeDirty<C>) ->
-    BufferOnResize { || dirty.set() }
-}
+fn buffer_on_resize<C:Callback0> (dirty:ShapeDirty<C>) -> BufferOnResize {
+    || dirty.set()
+}}
 
 // === Implementation ===
 
 impl<OnDirty: Clone> Scope<OnDirty> {
     /// Create a new scope with the provided dirty callback.
-    pub fn new(logger:Logger, on_dirty:OnDirty) -> Self {
+    pub fn new(context:&Context, logger:Logger, on_dirty:OnDirty) -> Self {
         logger.info("Initializing.");
         let buffer_logger  = logger.sub("buffer_dirty");
         let shape_logger   = logger.sub("shape_dirty");
@@ -75,15 +77,18 @@ impl<OnDirty: Clone> Scope<OnDirty> {
         let buffers        = default();
         let name_map       = default();
         let instance_count = default();
-        Self {buffers,buffer_dirty,shape_dirty,name_map,logger,instance_count}
+        let context        = context.clone();
+        Self {context,buffers,buffer_dirty,shape_dirty,name_map,logger
+            ,instance_count}
     }
 }
 
 impl<OnDirty: Callback0> Scope<OnDirty> {
+
     /// Adds a new named buffer to the scope.
     pub fn add_buffer<Name: Str, T: Item>
     (&mut self, name:Name) -> SharedBuffer<T,OnDirty>
-    where AnyBuffer<OnDirty>: From<SharedBuffer<T,OnDirty>> {
+        where AnyBuffer<OnDirty>: From<SharedBuffer<T,OnDirty>> {
         let name         = name.as_ref().to_string();
         let buffer_dirty = self.buffer_dirty.clone();
         let shape_dirty  = self.shape_dirty.clone();
@@ -92,7 +97,8 @@ impl<OnDirty: Callback0> Scope<OnDirty> {
             let on_set     = buffer_on_set(buffer_dirty, ix);
             let on_resize  = buffer_on_resize(shape_dirty);
             let logger     = self.logger.sub(&name);
-            let buffer     = SharedBuffer::new(logger,on_set,on_resize);
+            let context    = &self.context;
+            let buffer     = SharedBuffer::new(context,logger,on_set,on_resize);
             let buffer_ref = buffer.clone();
             self.buffers.set(ix, AnyBuffer::from(buffer));
             self.name_map.insert(name, ix);
@@ -100,6 +106,11 @@ impl<OnDirty: Callback0> Scope<OnDirty> {
             buffer_ref
         })
     }
+
+    pub fn buffer(&self, name:&str) -> Option<&AnyBuffer<OnDirty>> {
+        self.name_map.get(name).map(|i| &self.buffers[*i])
+    }
+
     /// Adds a new instance to every buffer in the scope.
     pub fn add_instance(&mut self) -> usize {
         group!(self.logger, "Adding {} instance(s).", 1, {
@@ -109,16 +120,20 @@ impl<OnDirty: Callback0> Scope<OnDirty> {
             ix
         })
     }
+
     /// Check dirty flags and update the state accordingly.
     pub fn update(&mut self) {
         group!(self.logger, "Updating.", {
             for i in 0..self.buffers.len() {
-                if self.buffer_dirty.check_for(&(i, )) {
+                if self.buffer_dirty.check(&i) {
                     self.buffers[i].update()
                 }
             }
-            self.buffer_dirty.unset()
+            self.buffer_dirty.unset_all()
         })
     }
-}
 
+    pub fn size(&self) -> usize {
+        self.instance_count
+    }
+}

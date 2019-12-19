@@ -46,9 +46,9 @@ promote_workspace_types!{ [[WorkspaceOnChange]] workspace }
 // === Callbacks ===
 
 closure! {
-fn workspace_on_change(dirty:WorkspaceDirty, ix:WorkspaceID) -> 
-    WorkspaceOnChange { || dirty.set(ix) }
-}
+fn workspace_on_change(dirty:WorkspaceDirty, ix:WorkspaceID) -> WorkspaceOnChange {
+    || dirty.set(ix)
+}}
 
 // === Implementation ===
 
@@ -67,9 +67,10 @@ impl World {
         });
         world_ref
     }
+
     /// Create new uninitialized world instance. You should rather not need to
     /// call this function directly.
-    pub fn new_uninitialized() -> Self {
+    fn new_uninitialized() -> Self {
         let workspaces       = default();
         let logger           = Logger::new("world");
         let workspace_logger = logger.sub("workspace_dirty");
@@ -78,8 +79,9 @@ impl World {
         let update_handle    = default();
         let self_reference   = default();
         Self {workspaces,workspace_dirty,logger,event_loop,update_handle
-             ,self_reference}
+            ,self_reference}
     }
+
     /// Add new workspace and get its ID.
     pub fn add_workspace(&mut self, name: &str) -> WorkspaceID {
         let logger = &self.logger;
@@ -90,8 +92,9 @@ impl World {
                 let wspace_logger = logger.sub(ix.to_string());
                 Workspace::new(name,wspace_logger,on_change).unwrap() // FIXME
             })
-        })   
+        })
     }
+
     /// Dispose the workspace by the provided ID. In case of invalid ID, a 
     /// warning will be emitted.
     pub fn drop_workspace(&mut self, id: WorkspaceID) {
@@ -104,24 +107,35 @@ impl World {
             }),
         }
     }
-    /// Run the provided callback on every frame. Returns a `CallbackHandle`, 
+
+    /// Run the provided callback on every frame. Returns a `CallbackHandle`,
     /// which when dropped will cancel the callback. If you want the function
-    /// to run forever, you can use the `forget` method in the handle. 
+    /// to run forever, you can use the `forget` method in the handle.
     pub fn on_frame<F:FnMut(&mut World)+'static>
-    (&mut self, mut callback: F) -> CallbackHandle { 
+    (&mut self, mut callback: F) -> CallbackHandle {
         let this = self.self_reference.as_ref().unwrap().clone_rc();
         let func = move || callback(&mut this.borrow_mut());
         self.event_loop.add_callback(func)
     }
+
     /// Check dirty flags and update the state accordingly.
     pub fn update(&mut self) {
-        if self.workspace_dirty.check() {
-            group!(self.logger, "Updating.", {
-                self.workspace_dirty.unset();
-                self.workspaces.iter_mut().for_each(|t| t.update());
-            });
-        }
+//        if self.workspace_dirty.check_all() {
+//            group!(self.logger, "Updating.", {
+        // FIXME render only needed workspaces.
+        self.workspace_dirty.unset_all();
+        self.workspaces.iter_mut().for_each(|t| t.update());
+//            });
+//        }
     }
+
+    // [Adam Obuchowicz]
+    // So, I'm worried about this manual memory handling. For instance, I'm not sure that page
+    // refresh clears all allocated wasm memory, because when I run examples/tests I got
+    // performance drop and even crashes when I refresh browser tab many times.
+    //
+    // Normally the Rc for such object should be passed from one request_animation_frame to another
+    // until the end of callback's life. Maybe we should do here a similar approach?
     /// Dispose the world object, cancel all handlers and events.
     pub fn dispose(&mut self) {
         self.self_reference = None;

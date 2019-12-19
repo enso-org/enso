@@ -1,10 +1,12 @@
 [package]
-name    = "eval-tt"
+name    = "code-builder"
 version = "0.1.0"
 authors = ["Enso Team <contact@luna-lang.org>"]
 edition = "2018"
 
 [lib]
 
+[features]
+
 [dependencies]
-paste        = "0.1"
+basegl-prelude = { version = "0.1.0", path = "../prelude" }
