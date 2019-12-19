@@ -1,4 +1,5 @@
 use basegl_prelude::*;
+use basegl_prelude::fmt::{Formatter, Error};
 
 /// A base of built-in fonts in application
 ///
@@ -19,6 +20,12 @@ impl EmbeddedFonts {
         let mut font_data_by_name = HashMap::<&'static str,&'static [u8]>::new();
         include!(concat!(env!("OUT_DIR"), "/fill_map.rs"));
         EmbeddedFonts{font_data_by_name}
+    }
+}
+
+impl Debug for EmbeddedFonts {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
+        f.write_str("<Embedded fonts>")
     }
 }
 

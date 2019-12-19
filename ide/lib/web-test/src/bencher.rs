@@ -16,7 +16,7 @@ use std::cell::RefCell;
 
 /// Cell, used to hold Bencher's data
 pub struct BencherCell {
-    func       : Box<dyn FnMut()>,
+    func: Box<dyn FnMut()>,
     container  : BenchContainer,
     iterations : usize,
     total_time : f64,
@@ -96,6 +96,7 @@ impl BencherData {
 // ===============
 
 /// The Bencher struct with an API compatible to Rust's test Bencher.
+#[derive(Clone)]
 pub struct Bencher {
     data : Rc<BencherData>
 }
@@ -124,6 +125,10 @@ impl Bencher {
         }
 
         Self { data }
+    }
+
+    pub fn is_running(&self) -> bool {
+        self.data.is_running()
     }
 
     /// Callback for benchmark functions to run in their body.

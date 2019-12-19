@@ -15,6 +15,8 @@ use crate::promote_workspace_types;
 use crate::promote;
 use crate::system::web::group;
 use crate::system::web::Logger;
+use crate::text::font::Fonts;
+
 use eval_tt::*;
 
 
@@ -33,6 +35,7 @@ pub struct World {
     pub workspace_dirty : WorkspaceDirty,
     pub logger          : Logger,
     pub event_loop      : EventLoop,
+    pub fonts           : Fonts,
     pub update_handle   : Option<CallbackHandle>,
     pub self_reference  : Option<WorldRef>
 }
@@ -72,14 +75,14 @@ impl World {
     /// call this function directly.
     fn new_uninitialized() -> Self {
         let workspaces       = default();
+        let fonts            = Fonts::new();
         let logger           = Logger::new("world");
         let workspace_logger = logger.sub("workspace_dirty");
         let workspace_dirty  = WorkspaceDirty::new(workspace_logger,());
         let event_loop       = EventLoop::new();
         let update_handle    = default();
         let self_reference   = default();
-        Self {workspaces,workspace_dirty,logger,event_loop,update_handle
-            ,self_reference}
+        Self {workspaces,workspace_dirty,logger,event_loop,fonts,update_handle,self_reference}
     }
 
     /// Add new workspace and get its ID.
@@ -124,7 +127,8 @@ impl World {
 //            group!(self.logger, "Updating.", {
         // FIXME render only needed workspaces.
         self.workspace_dirty.unset_all();
-        self.workspaces.iter_mut().for_each(|t| t.update());
+        let fonts = &mut self.fonts;
+        self.workspaces.iter_mut().for_each(|t| t.update(fonts));
 //            });
 //        }
     }

@@ -1,20 +1,22 @@
-attribute vec2 position;
-attribute vec2 texCoord;
+#version 300 es
 
-uniform highp mat3 toWindow;
-uniform highp vec2 clipLower;
-uniform highp vec2 clipUpper;
+in vec2 position;
+in vec2 tex_coord;
 
-varying vec2 vTexCoord;
-varying vec4 vClipDistance;
+uniform highp mat3 to_scene;
+uniform highp vec2 clip_lower;
+uniform highp vec2 clip_upper;
+
+out vec2 v_tex_coord;
+out vec4 v_clip_distance;
 
 void main() {
-    highp vec3 positionOnWindow = toWindow * vec3(position, 1.0);
-    vClipDistance.x = positionOnWindow.x - clipLower.x;
-    vClipDistance.y = positionOnWindow.y - clipLower.y;
-    vClipDistance.z = clipUpper.x - positionOnWindow.x;
-    vClipDistance.w = clipUpper.y - positionOnWindow.y;
+    highp vec3 position_on_scene = to_scene * vec3(position, 1.0);
+    v_clip_distance.x = position_on_scene.x - clip_lower.x;
+    v_clip_distance.y = position_on_scene.y - clip_lower.y;
+    v_clip_distance.z = clip_upper.x - position_on_scene.x;
+    v_clip_distance.w = clip_upper.y - position_on_scene.y;
 
-    vTexCoord = texCoord;
-    gl_Position = vec4(positionOnWindow.xy, 0.0, positionOnWindow.z);
+    v_tex_coord = tex_coord;
+    gl_Position = vec4(position_on_scene.xy, 0.0, position_on_scene.z);
 }

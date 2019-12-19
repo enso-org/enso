@@ -55,6 +55,15 @@ npm run start
 ```
 
 You can now open the following address in your browser: http://localhost:8080.
+
+There are also _web test_ which are run in browser and produce some output. To
+run them, pick a test suite (`html_renderer` for instance) and run:
+```bash
+wasm-pack test lib/core --chrome --release -- --test html_renderer
+```
+Now the test output is available at http://127.0.0.1:8000. There are benchmark
+tests too (that's why `--release` flag is recommended).
+
 **Please remember to disable the cache in your browser!**
 
 ### Working with the source code

@@ -8,6 +8,7 @@ use crate::data::function::callback::*;
 use crate::dirty;
 use crate::dirty::traits::*;
 use crate::display::mesh_registry;
+use crate::display::scene::Scene;
 use crate::promote_all;
 use crate::promote_mesh_registry_types;
 use crate::promote;
@@ -16,10 +17,10 @@ use crate::system::web::fmt;
 use crate::system::web::group;
 use crate::system::web::Logger;
 use crate::system::web::resize_observer::ResizeObserver;
+use crate::text;
+use crate::text::font::Fonts;
 use eval_tt::*;
 use wasm_bindgen::prelude::Closure;
-use crate::display::scene::Scene;
-use crate::text;
 
 
 // =============
@@ -144,7 +145,7 @@ pub struct Listeners {
 
 impl<OnDirty: Clone + Callback0 + 'static> Workspace<OnDirty> {
     /// Create new instance with the provided on-dirty callback.
-    pub fn new<Dom: Str>
+    pub fn new<Dom:Str>
     (dom:Dom, logger:Logger, on_dirty:OnDirty) -> Result<Self, Error> {
         logger.trace("Initializing.");
         let dom                 = dom.as_ref();
@@ -212,7 +213,7 @@ impl<OnDirty: Clone + Callback0 + 'static> Workspace<OnDirty> {
     }
 
     /// Check dirty flags and update the state accordingly.
-    pub fn update(&mut self) {
+    pub fn update(&mut self, fonts:&mut Fonts) {
         group!(self.logger, "Updating.", {
             if self.shape_dirty.check_all() {
                 let screen = self.shape.screen_shape();
@@ -230,6 +231,12 @@ impl<OnDirty: Clone + Callback0 + 'static> Workspace<OnDirty> {
             self.context.clear(webgl::Context::COLOR_BUFFER_BIT);
             self.logger.info("Rendering meshes.");
             self.mesh_registry.render(&self.scene.camera);
+            if !self.text_components.is_empty() {
+                self.logger.info("Rendering text components");
+                for text_component in &mut self.text_components {
+                    text_component.display(fonts);
+                }
+            }
         })
     }
 }
