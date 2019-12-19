@@ -15,21 +15,21 @@ services components, as well as any open questions that may remain.
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
 - [Architecture](#architecture)
-  - [Language Server](#language-server)
-  - [File Manager](#file-manager)
-  - [Multi-Client Coordinator](#multi-client-coordinator)
   - [Supervisor](#supervisor)
+  - [The Gateway](#the-gateway)
+  - [Language Server](#language-server)
 - [The Protocol Itself](#the-protocol-itself)
   - [Protocol Communication Patterns](#protocol-communication-patterns)
   - [The Protocol Transport](#the-protocol-transport)
   - [The Protocol Format](#the-protocol-format)
 - [Protocol Functionality](#protocol-functionality)
+  - [Textual Diff Management](#textual-diff-management)
+  - [Handling Multiple Clients](#handling-multiple-clients)
   - [Project State Management](#project-state-management)
   - [File Management and Storage](#file-management-and-storage)
-  - [Textual Diff Management](#textual-diff-management)
   - [Execution Management](#execution-management)
-  - [Completion](#completion)
   - [Visualisation Support](#visualisation-support)
+  - [Completion](#completion)
   - [Analysis Operations](#analysis-operations)
   - [Functionality Post 2.0](#functionality-post-20)
 - [Protocol Message Specification](#protocol-message-specification)
@@ -37,34 +37,56 @@ services components, as well as any open questions that may remain.
 <!-- /MarkdownTOC -->
 
 ## Architecture
-While it may initially seem like these service components could all be rolled
-into one, division of responsibilities combines with plain necessity to mean
-that we require a set of services instead. This section deals with an
-architecture proposal for how to make these services work together.
+While it may initially seem like all of the service components that make up the
+Engine Services could be rolled into a single service, division of
+responsibility combines with plain necessity to mean that we need a _set_ of
+services instead. This section deals with the intended architecture for the
+Engine Services.
 
-It can be summarised with three main ideas:
+The engine services are divided into three main components:
 
-1. **Defined Services:** These, such as the language server and file manager are
-   just doing their isolated jobs. They make the assumption that they only have
-   a single client connected to them.
-2. **Multi-Client Coordination:** This is an independent service that deals with
-   handling connections from multiple clients (IDEs). This service will then
-   combine the messages from those clients to create a single authoritative
-   message stream that the services in point 1 can deal with.
-3. **Supervisor:** The supervisor process is responsible for set-up and
-   tear-down of the other processes, as well as for restarting any of the other
+1. **The Supervisor Daemon:** This component is responsible for setting up and
+   tearing down the other processes, as well as restarting any of the other
    processes correctly if they fail.
+2. **The Gateway:** This component is responsible for dealing with incoming
+   connections (including multiple clients) and handling the communication with
+   said clients over the Language Server Protocol. It is also responsible for
+   resolving conflicts between commands sent by multiple connections.
+3. **The Language Server:** This component is responsible for actually providing
+   the functionality to back the protocol requests that come in, and talking to
+   the runtime directly. It talks to the gateway via akka messages.
 
-> The actionables for this section are:
->
-> - Determine any feasible alternatives for this architecture.
-> - Make a final decision on how to architect the set of back-end services.
+The gateway and language server will be implemented as Akka services so that we
+can defer the choice of whether to run them in a single or multiple processes
+until later. For now we intend to run them in a single process.
+
+### Supervisor
+The supervisor process is an orchestrator, and is responsible for setting up and
+tearing down the other services, as well as restarting them when they fail. Its
+responsibilities can be summarised as follows:
+
+- Starting up the set of services for a given project.
+- Tearing down the set of services correctly when a project is closed.
+- Restarting any of the services properly when they fail. Please note that this
+  may require the ability to kill and re-start services that haven't crashed due
+  to dependencies between services.
+
+### The Gateway
+The gateway component is responsible for managing the actual language server
+protocol usage. This means that it talks directly to clients using protocol
+messages, and then handles these messages by talking to the language server.
+
+It is responsible for the following:
+
+- Accepting connections from multiple clients while remaining compatible with
+  LSP for single client negotiation.
+- Reconciling conflicts between messages from multiple clients.
+- Servicing these requests by talking directly to the language server.
+- Optimising requests where possible (e.g. value subscription pooling).
 
 ### Language Server
-The language server is solely responsible for handling the duties commonly
-attributed to a language server, as well as the special functionality needed by
-Enso Studio. Its functionality can be summarised as follows, though not all of
-this is necessary for 2.0:
+The language server is responsible for providing the functionality to back the
+gateway's responses to clients. This includes but is not limited to:
 
 - **Completion Information:** It should be able to provide a set of candidate
   completions for a given location in the code.
@@ -84,56 +106,15 @@ this is necessary for 2.0:
   than the language server itself, this refers to the ability to watch files and
   monitor IO in order to recompute minimal subsets of the program.
 
-### File Manager
-The file manager service is responsible for actually handling the physical files
-on disk. While there are some arguments for including this in the language
-server, it makes far more sense as a separate component.
+It should be noted that the language server _explicitly does not_ talk using
+LSP. The component is solely responsible for _servicing_ requests, instead of
+dealing with the minutiae of connection negotiation and request handling.
 
-This component is responsible for the following:
-
-- **Code File Management:** Handling the loading and saving of code files on
-  disk in response to commands from the GUI.
-- **Data File Management:** Handling the upload and download of data files that
-  the users want to work with. These files should be accessible by the language
-  server, but it doesn't need to know about how they got there or how they get
-  edited.
-- **Version Control:** In the future, this component will also become
-  responsible for interacting with the underlying version control system that
-  stores the project data, and creating a coherent file history view for users.
-
-> The actionables for this section are:
->
-> - Determine if whose responsibility the file-management component should be.
-
-### Multi-Client Coordinator
-This coordinator process is responsible for accepting connections from multiple
-users' IDEs in order to enable a multi-client editing experience. It has to take
-the messages that come in across these multiple connections and reconcile them
-to create a single 'stream of truth' for the file manager and language server,
-as neither are multi-client aware.
-
-This component is responsible for the following:
-
-- Accepting connections from multiple clients.
-- Distributing updates between clients.
-- Reconciling the edits of multiple people at once to create a coherent edit
-  stream for the language server.
-- De-duplicating requests where relevant (e.g. value subscription pooling) by
-  tracking which clients are to receive which responses.
-
-It should be noted that _all_ protocol messages will go via this coordinator
-service, and it will hence be the 'entry point' to the set of services.
-
-### Supervisor
-The supervisor process is an orchestrator, and is responsible for setting up and
-tearing down the other services, as well as restarting them when they fail. Its
-responsibilities can be summarised as follows:
-
-- Starting up the set of services for a given project.
-- Tearing down the set of services correctly when a project is closed.
-- Restarting any of the services properly when they fail. Please note that this
-  may require the ability to kill and re-start services that haven't crashed due
-  to dependencies between services.
+Additionally, it is _very important_ to note that the language server _must not_
+depend directly on the runtime (as a compile-time dependency). This would
+introduce significant coupling between the runtime implementation and the
+language server. Instead, the LS should only depend on `org.graalvm.polyglot` to
+interface with the runtime.
 
 ## The Protocol Itself
 The protocol refers to the communication format that all of the above services
@@ -141,11 +122,23 @@ speak between each other and to the GUI. This protocol is not specialised only
 to language server operations, as instead it needs to work for all of the
 various services in this set.
 
-> The actionables for this section are:
->
-> - Do we want to remain compatible (where possible) with the Microsoft LSP
->   [specification](https://microsoft.github.io/language-server-protocol/specifications/specification-3-14/)?
-> - What is the agreed-upon design for the protocol itself?
+The protocol we are using intends to be fully compatible with the Microsoft LSP
+[specification](https://microsoft.github.io/language-server-protocol/specifications/specification-3-145) (version 3.15). In essence, we will operate
+as follows:
+
+- Where our use case matches with a function provided by LSP, we will use the
+  specified LSP message (e.g. completions).
+- Where our use-case does not match a message provided by LSP, we will use the
+  following process:
+  1. If we can implement this on top of one of LSP's extensible mechanisms (e.g.
+     commands) we will do so.
+  2. If this is not possible, we will specify an _extension_ to the protocol.
+     This extension will be well-specified within this document, and should be
+     in the spirit of the existing protocol. If relevant, we may propose it as
+     a future extension to the specification.
+
+Aside from the language server protocol-based operations, we will definitely
+need a protocol extension
 
 ### Protocol Communication Patterns
 Whatever protocol we decide on will need to have support for a couple of main
@@ -163,58 +156,44 @@ There are also certain messages that follow the request/response model but where
 the responses are trivial acknowledgements. For simplicity's sake these are
 currently subsumed by the generic request-response model.
 
-> The actionables for this section are as follows:
->
-> - Determine if there are any other communication patterns that we need to be
->   able to support.
-> - Do we want to support the request/ack pattern as a separate style (e.g.
->   "run code")?
+As we have decided to remain compatible with LSP, we can use any communication
+pattern that we desire, either by employing existing LSP messages, or writing
+our own protocol extensions. Both of the above-listed patterns are supported by
+LSP.
+
+We can support additional patterns through LSP's mechanisms:
+
+- Asynchronous responses can be sent as notifications.
+- Protocol-level acknowledgements is supported directly in LSP.
 
 ### The Protocol Transport
 The transport of the protocol refers to the underlying layer over which its
 messages (discussed in [the protocol format](#the-protocol-format) below) are
-sent. It is unclear at this point as to the exact transport we want to use, but
-the communication patterns listed above seem to point in the direction of either
-WebSocket on its own, or a mixture of WebSockets and HTTP.
+sent. As we are maintaining compatibility with LSP, the protocol transport
+format is already defined for us.
+
+- Textual messages are sent using [JSON-RPC](https://en.wikipedia.org/wiki/JSON-RPC) over a WebSocket connection (as defined in the LSP spec).
+- As a protocol extension we also negotiate a secondary binary WebSocket
+  connection for sending visualisation data. This transport is independent of
+  the LSP spec, and hence is defined entirely by us.
 
 > The actionables for this section are:
 >
-> - Do we want to stay compatible with LSP? If so, we're forced into using pure
->   WS for transport.
-> - What does the GUI prefer in this regard? Why?
-> - Do we need true serialized request-response? If so, then a full WS solution
->   would need a concept of message IDs.
-> - Marcin: Does JSON RPC satisfy our needs?
+> - Determine the details for the binary WebSocket, including how we want to
+>   encode messages and pointers into the stream, as well as how we set it up
+>   and tear it down.
 
 ### The Protocol Format
-This section describes the format of a protocol message. This format should be
-adhered to by all messages and should obey the following tenets:
+Protocol messages are defined by LSP. Any extensions to the messages defined in
+the standard should use similar patterns such that they are not incongruous with
+LSP messages. The following notes apply:
 
-- It should permit easy debugging, remaining human readable where possible.
-- It should have good support across multiple languages.
-- It needs to have good performance for all use-cases, _including_ potentially
-  large visualisation data.
+- Textual messages should be sent as LSP messages or extensions to them.
+- We have a hybrid extension to the protocol to allow us to send binary data
+  (for visualisations) over a second WebSocket connection.
 
-The exact format of the protocol is up in the air, but given the above
-requirements it makes the most sense for it to be a hybrid protocol that
-combines both textual and binary representations. This comes down to the
-following set of tradeoffs:
-
-- We want the majority of messages to be human readable to permit easy debugging
-  and allow for better multi-language support.
-- Textual formats have _low_ overhead for most data.
-- _However_, such formats have significant overhead for large chunks of binary
-  data, even if they can support them (such as via Base64 encoding).
-- We need large chunks of binary data to be _fast_.
-
-> The actionables for this section are as follows:
->
-> - Determine if we should settle for a full-binary, or hybrid protocol format.
-> - Determine how we can support a hybrid protocol. There is potential for
->   maintaining a separate WS connection for visualisation data only (e.g. audio,
->   video, images, etc).
-> - Do we ever want to send raw binary data in circumstances _not_ tied to the
->   visualisations.
+This means that we have two pipes: one is the textual WebSocket defined by LSP,
+and the other is a binary WebSocket.
 
 ## Protocol Functionality
 This entire section deals with the _functional_ requirements placed upon the
@@ -226,48 +205,6 @@ All of the following pieces of functionality that are explained in detail are
 those _expected_ for the 2.0 release. Any additional functionality beyond this
 milestone is described in a [dedicated section](#functionality-post-20).
 
-> The actionables for this section are as follows:
->
-> - Determine if the ere is any missing or extraneous functionality for the 2.0
->   release of Enso.
-> - Once we have a set of requirements, these should be prioritised in order to
->   assist the IDE team in getting things working as quickly as possible.
-
-### Project State Management
-One of the most important functionalities for this service set is the ability to
-manage the state of a project in general. The project state refers to the whole
-set of the project files and metadata and needs to support the following
-functionalities:
-
-- Get project metadata (name, maintainer, version, dependencies, and so on)
-- List modules
-- Delete module
-- Create module
-
-> The actionables for this section are as follows:
->
-> - Are there any other functionalities needed from this component?
-
-### File Management and Storage
-The file management component needs to deal with both the files storing the
-textual program source and any data files uploaded by the user for their program
-to use. It should be noted that this does _not_ refer to any sophisticated IO
-management that may be done by the runtime in the future.
-
-It needs to support the following functionality:
-
-- CRUD operations on Enso source files.
-- CRUD operations on user data files.
-
-> The actionables for this section are:
->
-> - Should this component support git and provide a historical view over files?
-> - If so, should this happen for 2.0?
-> - Are there any other operations needed from the IDE that would fall under
->   this component?
-> - Should this component be the engine team's responsibility? It is only needed
-    in the cloud setting and has more to do with Cloud than the Language.
-
 ### Textual Diff Management
 The engine services need to support robust handling of textual diffs. This is
 simply because it is the primary form of communication for synchronising source
@@ -278,35 +215,92 @@ operations:
   of the files in the project.
 - Diff update requests, that send a textual diff between client and server (or
   vice versa).
-- Metadata modification requests. The IDE can set a metadata of any location,
-  storing payloads of its choice (e.g. node positions).
-- It will need to handle ensuring that the node metadata is correctly kept in
-  sync.
 
-In order to support these properly, it needs to account for the following things
-in the design:
+Both of these are supported natively within the LSP, and we will be using those
+messages to implement this.
 
-- Diffs should be kept as mimimal as possible. Even so, diffs will likely
-  requires some rich minimisation on the server. This will involve AST-based
-  diffing and various other compiler-internal functionality to ensure that we
-  recompute the minimal possible subset.
-- The library for recomputing ID locations needs to be written in scala (for use
-  by the server), or those recomputed IDs must be sent on every diff (but this
-  would muck with the potential for alternative front-ends).
-- The component responsible for handling multiple connections must be able to
-  send a file update notification to other clients.
+It should be noted that we _explicitly_ do not intend to handle updates to node
+metadata within the language server.
 
-> The actionables for this section are:
->
-> - Determine if there are other types of operations needed to be supported on
->   diffs.
-> - Determine if there are missing portions of the design.
-> - What guarantees can we get about the diffs? What can we realistically
->   expect?
-> - Which team is responsible for writing the library for recomputing the ID
->   locations?
-> - What kind of multi-client editing do we want to support at first? FCFS, or
->   a 'write-lock' style solution?
+- These updates should be sent as part of each diff the client provides (as a
+  separate segment in the `didChange` message).
+- We may support this _in the future_, but we do not for now.
+
+We place the following requirements upon the implementation of this:
+
+- We must be able to handle diffs of _any size_, even though we prefer that the
+  client sends us minimal diffs. We do not know what _all_ clients will do, and
+  hence to remain compatible we must handle all diffs.
+- Diffs may require some AST-based or semantic minimisation in order to assist
+  in the compiler's incremental pipeline.
+- The gateway must handle diffs from multiple clients properly.
+
+The implementation is as follows:
+
+- Support for the LSP messages `didOpen`, `didChange`, `willSaveWaitUntil`,
+  `didSave`, `didClose`, and support for informing the runtime on each of these.
+- It must track which files are currently open in the editor.
+- The language server and runtime should watch the project folder in order to
+  track updates as necessary.
+
+### Handling Multiple Clients
+Multiple-client support will be implemented while remaining compatible with the
+LSP specification.
+
+- In the initial implementation, we will work on the principle of 'write lock',
+  where only one of the multiple connected clients has the ability to write to
+  the file.
+- In the future we will work on true conflict resolution of edits, mediated by
+  the language server.
+
+It will work as follows:
+
+- We will use as much of the LSP initialisation and connection flow as possible
+  to connect additional clients. The extensions should be minimal and should
+  _not_ break compatibility with LSP.
+- We will extend the protocol (or use extension mechanisms) to implement
+  write-lock negotiation. The first client to connect is granted write-lock, but
+  this may be changed later via negotiation.
+- If any client sends a `didChange` message without holding the write lock, it
+  should receive an `applyEdit` message that reverts the change, as well as a
+  notification of the error.
+- The language server / gateway is responsible for synchronising state with new
+  clients as they connect. As part of initialisation it should receive client
+  state, and then `applyEdit` to synchronise views of the code.
+
+### Project State Management
+One of the most important functionalities for this service set is the ability to
+manage the state of a project in general. The project state refers to the whole
+set of the project files and metadata and needs to support the following
+functionalities:
+
+- Get project metadata (name, maintainer, version, dependencies, and so on)
+- Change requests for the above
+
+All file-based operations in the project can be handled by the editor directly,
+or the language server (when doing refactoring operations), and as such need no
+support in this section of the protocol.
+
+At the current time, the language server has a 1:1 correspondence with a
+project. In the future, however, we may want to add LSP support for multiple
+projects in a single engine, as this would allow users to work with multiple
+related projects in a single instance of the IDE.
+
+### File Management and Storage
+The nature of LSP means that file management and storage is _not_ handled by the
+language server, and is instead handled by the editor. The protocol makes a
+distinction between:
+
+- **Open Files:** These are the ones currently open in the editor, and are
+  'owned' by the editor. The language server has to work with an in-memory
+  representation for these files.
+- **Closed Files:** These are the ones not open in the editor, and can be
+  accessed and modified _directly_ by the language server.
+
+The language server must have _direct_ access to the project directory on the
+machine where it is running (either the local machine or in the Enso cloud), and
+file operations between the IDE and that machine are handled _indepdendently_ of
+the language server.
 
 ### Execution Management
 The language server process will need to be able to respond to requests for
@@ -314,25 +308,101 @@ various kinds of execution of Enso code. Furthermore, it needs to be able to
 respond to requests to 'listen' to the execution of various portions of code.
 This implies that the following functionalities are needed:
 
-- Execute a method/function with arguments.
-- Execute a method/function with arguments _from_ a selected application (i.e.
-  enter a node from its call-site).
-- Attach an execution listener to an arbitrary code span. These listeners should
-  trigger an update (by ID) every time a node at that position is executed or
-  its type changes. It is very important to be able to get type information as
-  this is used to colour connections on the graph.
-- Detach an execution listener.
+- Execution of a function with provided arguments.
+- Execution of a function from a given call site (stack position and code
+  position).
+- Attach an execution listener to an arbitrary code span.
+- Detach an execution listener by ID.
+- Implement heartbeat messages for execution listeners. If a heartbeat response
+  isn't received before some time-out, the language server should detach the
+  listener.
+- Force cache invalidation for arbitrary code spans.
+- Attach an automatic execution request.
+- Detach an automatic execution request.
+- Redirect `stdout`/`stdin`/`stderr` to and from the IDE.
 
-> The actionables for this section are:
->
-> - What else do we need to support for 2.0?
-> - Since listeners are per-GUI (for performance), what requirements do we need
->   to place on GUI communication (e.g. does the multi-user coordinator need to
->   have heartbeat messages for keepalive)?
-> - What, exactly, should the value listener updates contain? Should they have
->   the whole update, just a short rep and type with a pointer to where a
->   request can be made to get the full value (better for performance), or
-    just the full value pointer (best performance, clunky usage)?
+All of these functionalities will need to take the form of custom extensions to
+the LSP, as they do not fit well into any of the available extension points. To
+that end, these extensions should fit well with the LSP.
+
+A subscription (execution listener) is applied to an arbitrary span of code at a
+given position in the call stack.
+
+- A subscription may encompass multiple nodes or a single node. Information is
+  received for _all_ nodes covered by the provided span.
+- A subscription will ensure that the client receives information on changes in:
+  + Execution state (whether the node is being computed or is cached)
+  + Profiling information
+  + Values
+  + Types
+  + Where we are in the call stack (useful for recursive execution)
+- Such subscriptions _must_ be accompanied by heartbeat messages in order to
+  allow the language server to cull unused subscriptions.
+- Additionally, it will be important for each subscription to be able to
+  configure a _rate limit_, such that the update messages do not overwhelm the
+  client. If unspecified this should be set to a sensible default.
+
+#### Caching
+One of the most important elements of execution management for the language
+server is the ability to control and interact with the execution cache state in
+the runtime.
+
+- This cache stores intermediate values, and every value can be in one of three
+  states: invalid, valid but evicted, and valid but present.
+- The cache works based on dependencies between data, such that if `foo` is used
+  by `bar`, then changing `foo` must recompute `bar`.
+
+The cache eviction strategy is one that will need to evolve. This comes down to
+the simple fact that we do not yet have the tools to implement sophisticated
+strategies, but we need to be correct.
+
+- In the initial version we will invalidate _all_ call sites for a given method
+  name when a name is changed. Internally this is implemented as the
+  invalidation of all occurrences of a dynamic symbol by name, while ignoring
+  the type it was defined on.
+- We also need to account for dependencies between data such that if there is a
+  dependency `b => a`, then a change to `a` must invalidate the cache result of
+  `b`.
+- In future, the typechecker will be able to help constrain the set of evicted
+  methods by exploiting dependencies between values and types with more
+  information.
+- There may also be non-obvious data dependencies that can be exploited to make
+  better cache-eviction decisions.
+
+#### Progress Reporting
+In the future it will be desirable for long running computations to provide
+real-time progress information (e.g. for training a neural network it would be
+great to know which epoch is running).
+
+- This could be achieved by a special kind of Monadic context (similar to
+  writer, but mutable buffer based).
+- This would allow the function to log values without needing to return.
+- These would be sent as visualisations for use in the IDE.
+
+LSP provides an inbuilt mechanism for reporting progress, but that will not work
+with visualisations. As a result that should be reserved for reporting progress
+of long-running operations within the _language server_ rather than in user
+code.
+
+### Visualisation Support
+A major part of Enso Studio's functionality is the rich embedded visualisations
+that it supports. This means that the following functionality is necessary:
+
+- Execution of an arbitrary Enso expression on a cached value designated by
+  a source location.
+- The ability to create and destroy visualisation subscriptions with an
+  arbitrary piece of Enso code as the preprocessing function.
+- The ability to update _existing_ subscriptions with a new preprocessing
+  function.
+
+From the implementation perspective:
+
+- This will need to be an entirely separate set of protocol messages that should
+  be specified in detail in this document.
+- Visualisations should work on a pub/sub model, where an update is sent every
+  time the underlying data is recomputed.
+- Protocol responses must contain a pointer into the binary pipe carrying the
+  visualisation data to identify an update.
 
 ### Completion
 The IDE needs the ability to request completions for some target point (cursor
@@ -340,6 +410,7 @@ position) in the source code. In essence, this boils down to _some_ kind of
 smart completion. The completion should provide the following:
 
 - Sensible suggestions at the cursor position, ranked by relevance.
+- Local variables, where relevant.
 - Suggestions for symbols that would make sense (e.g. by type) but are not
   imported. To support this, selection of such a symbol will trigger the
   automatic addition of the relevant import on the language server.
@@ -352,60 +423,44 @@ smart completion. The completion should provide the following:
   feature should suggest libraries that are available, along with provide their
   top-level documentation to give users an idea of what they can be used for.
 
-It should be noted that the exact set of criteria for determining the
-'relevance' of a suggestion have not yet been determined.
+Hints should be gathered by the runtime in an un-ranked fashion based upon the
+above criteria. This will involve combining knowledge from both the compiler and
+the interpreter to deliver a sensible set of hints.
 
-Another possible solution is for the engine to send _all_ globally defined
-symbols to the IDE upfront and for the suggestions algorithm to be implement
-client side. This has the potential upsides of:
+- Hints should be scored on a type match. For example, if we have a type `5`,
+  `foo : 5 -> String` scores higher than `bar : Nat -> Dynamic`, scores higher
+  than `baz : Any -> Any`. This should be done by heuristics initially, and
+  later by querying the typechecker for subsumption relationships (the notion of
+  specificity discussed in the types design document).
+- Information contained in the `tags` section of the documentation should also
+  be used to rank candidates.
+- Please note that this ranking algorithm will be required to get more complex
+  in the future, so please design it for extensibility _and_ high performance.
+- Local variables should rank higher than global symbols.
 
-  - Better performance & more fluid experience (no need to ping the server
-    every time a user is about to type).
-  - Lower cloud resources usage (the often-triggered bit of computing
-    hints is offloaded to the client's browser).
-  - In phase 1 of the project (before TC), it is the only way to take types
-    into account – IDE is the only component that reliably stores the type 
-    information.
+From an implementation perspective, the following notes apply:
 
-
-> The actionables for this section are:
-> - Determine whether the algorithmic details are a part of the language server
-    design.
-> - Determine what should form the candidate set in a given completion location,
->   and how these candidates should be ranked (type information, scope
->   information, documentation, tags, other scoring metadata).
-> - Determine how best to transport these candidates back to the GUI in order to
->   provide the best performance and responsiveness possible.
-
-### Visualisation Support
-A major part of Enso Studio's functionality is the rich embedded visualisations
-that it supports. This means that the following functionality is necessary:
-
-- Execution of an arbitrary Enso expression on a cached value designated by
-  a source location.
-- This code should be executed in its own isolated scope (having certains
-  modules imported, per the visualization's request), with only the required
-  input values being available.
-
-> The actionables for this section are:
->
-> - What else do we need to support visualisations for 2.0?
+- This will be implemented on top of the `completion` and `completionResolve`
+  messages provided by the LSP spec.
+- We will extend these messages with an _optional_ field that specifies the type
+  being queried upon. This is a stop-gap solution until inference can determine
+  the type.
+- The request does _not_ contain the query string, as text matching is handled
+  by the IDE. The language server only handles candidate completions.
+- We should determine if there are any sensible ways in which this process can
+  be optimised, as we have the potential to return very large completion sets.
+  It is probably worth waiting to see if this is necessary before implementing
+  any optimisations here.
 
 ### Analysis Operations
 We also want to be able to support a useful set of semantic analysis operations
 to help users navigate their code. As these rely on knowledge of the language
 semantics, they must be explicitly supported by the language server:
 
-- List functions/methods in scope
-- Find usages of symbol (impossible without a typechecker)
-- Jump to definition of symbol (only possible without a typechecker by runtime
-  profiling)
-- Search for symbol
-- Import file for symbol
-
-> The actionables for this section are:
->
-> - Are there any other analyses we need to support for 2.0?
+- **List Symbols in Scope:** The scope should be specified by a code span.
+- **Insert Import for Symbol:** This should use an `applyEdit` message to ask
+  the IDE to insert an import for the symbol specified in the request. If the
+  file is closed, then the edit should be made directly, as the LSP specifies.
 
 ### Functionality Post 2.0
 In addition to the functionality discussed in detail above, there are further
@@ -419,8 +474,7 @@ and will be expanded upon as necessary in the future.
   extraction and inlining of entities. In future this could be expanded to
   include refactoring hints a la IntelliJ.
 - **Arbitrary Visualisation Code:** Visualisations should be able to be defined
-  using Enso code, and hence there needs to be the ability to execute arbitrary
-  code on values visible in the current scope.
+  using Enso code and will require additional support.
 - **IO Manager:** The ability to do sophisticated IO monitoring, such as
   watching for file changes, in order to support minimal re-execution of
   analysis pipelines.
@@ -436,16 +490,29 @@ and will be expanded upon as necessary in the future.
   inspect values during execution of a program. This debugging functionality
   should allow for hot-reloading of code, changing of values within a live
   program, and various other debugger functionality (step over, step in, step
-  out, continue, etc).
+  out, continue, etc). Future debugger functionality should be based on the
+  standard [debug adapter protocol](https://microsoft.github.io/debug-adapter-protocol/specification).
 - **Profiling Information:** Profiling information for the executing code, able
   to be displayed visually in Enso Studio.
 - **Code Formatting:** Automatic formatting of Enso code using the One True
   Style ™.
-
-> The actionables for this section are:
->
-> - Are there any other things we know now that we want to support in the
->   future?
+- **Server-Side Metadata Management:** The lack of node metadata management in
+  the language server currently means that any language client other than Enso
+  Studio is guaranteed to corrupt the node metadata when editing Enso code. This
+  will reset the node layout and can be quite annoying.
+- **True Multi-Client Support:** The initial release will only support multiple
+  connected clients through the use of a write lock. This is not a great user
+  experience, and in future we should instead use proper conflict resolution for
+  true collaborative editing. This will use a combination of `didChange` and
+  `applyEdit` messages to reconcile all clients' views of the files. This is
+  also why `willSaveWaitUntil` is important, as it can ensure that no client
+  editor saves until it has the authority to do so (all changes are reconciled).
+- **Enhanced Semantic Analysis:** Enhanced semantic analysis operations that
+  rely on compiler analysis and typechecking. This includes things like "find
+  usages", "jump to definition" and "find symbol", as these can greatly enhance
+  a user's development experience.
+- **LSP Spec Completeness:** We should also support all LSP messages that are
+  relevant to our language. Currently we only support a small subset thereof.
 
 ## Protocol Message Specification
 This section exists to contain a specification of each of the messages the
@@ -457,3 +524,4 @@ the Engine team.
 >
 > - As we establish the _exact_ format for each of the messages supported by the
 >   services, record the details of each message here.
+> - This should always be done, but may reference LSP.
