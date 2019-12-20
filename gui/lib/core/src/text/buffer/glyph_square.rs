@@ -138,6 +138,9 @@ impl<'a> GlyphAttributeBuilder for GlyphVertexPositionBuilder<'a> {
     type Output = SmallVec<[f64;12]>; // Note[Output size]
 
     /// Compute vertices for the next glyph.
+    ///
+    /// The vertices position are the final vertices passed to webgl buffer. It takes the previous
+    /// built glyph into consideration for proper spacing.
     fn build_for_next_glyph(&mut self, ch:char) -> Self::Output {
         self.pen.next_char(ch, self.font);
         let to_pen_position          = self.translation_by_pen_position();
@@ -170,50 +173,52 @@ impl<'a> GlyphTextureCoordsBuilder<'a> {
         GlyphTextureCoordsBuilder {font}
     }
 
+    /// Convert base layout to msdf space.
+    ///
+    /// The base layout contains vertices within (0.0, 0.0) - (1.0, 1.0) range. In msdf
+    /// space we use distances expressed in msdf cells.
+    pub fn base_layout_to_msdf_space() -> Affine2<f64> {
+        let scale_x = MsdfTexture::WIDTH as f64;
+        let scale_y = MsdfTexture::ONE_GLYPH_HEIGHT as f64;
+        let matrix = Matrix3::new
+            ( scale_x, 0.0    , 0.0
+            , 0.0    , scale_y, 0.0
+            , 0.0    , 0.0    , 1.0
+            );
+        Affine2::from_matrix_unchecked(matrix)
+    }
+
     /// Transformation aligning borders to MSDF cell center
     ///
     /// Each cell in MSFD contains a distance measured from its center, therefore the borders of
     /// glyph's square should be matched with center of MSDF cells to read distance properly.
     ///
     /// The transformation's input should be a point in _single MSDF space_, where (0.0, 0.0) is
-    /// the bottom-left corner of MSDF, and (1.0, 1.0) is the top-right corner.
-    pub fn align_borders_to_msdf_cell_center_transform(&self) -> Affine2<f64> {
+    /// the bottom-left corner of MSDF, and each cell have size of 1.0.
+    pub fn align_borders_to_msdf_cell_center_transform() -> Affine2<f64> {
         let columns       = MsdfTexture::WIDTH            as f64;
         let rows          = MsdfTexture::ONE_GLYPH_HEIGHT as f64;
-        let column_size   = 1.0 / columns;
-        let row_size      = 1.0 / rows;
 
-        let translation_x = column_size / 2.0;
-        let translation_y = row_size    / 2.0;
-        let scale_x       = 1.0 - column_size;
-        let scale_y       = 1.0 - row_size;
+        let translation_x = 0.5;
+        let translation_y = 0.5;
+        let scale_x       = (columns - 1.0) / columns;
+        let scale_y       = (rows - 1.0) / rows;
         let matrix = Matrix3::new
-        ( scale_x, 0.0    , translation_x
-        , 0.0    , scale_y, translation_y
-        , 0.0    , 0.0    , 1.0
-        );
+            ( scale_x, 0.0    , translation_x
+            , 0.0    , scale_y, translation_y
+            , 0.0    , 0.0    , 1.0
+            );
         Affine2::from_matrix_unchecked(matrix)
     }
 
     /// Transformation MSDF texture fragment associated with given glyph
     ///
-    /// The MSDF texture contains MSDFs for many glyphs. The returned transform maps the point in
-    /// a _single MSDF space_ to actual texture space. In other words, a (0.0, 0.0) point will be
-    /// mapped to bottom-left corner of `ch` texture fragment, and a (1.0, 1.0) will be mapped to
-    /// upper-right corner.
-    pub fn glyph_texture_fragment_transform(&mut self, ch:char) -> Affine2<f64> {
-        let one_glyph_rows = MsdfTexture::ONE_GLYPH_HEIGHT as f64;
-        let all_rows       = self.font.msdf_texture.rows() as f64;
-
-        let fraction       = one_glyph_rows / all_rows;
+    /// The MSDF texture contains MSDFs for many glyphs, so this translation moves points expressed
+    /// in "single" msdf space to actual texture coordinates.
+    pub fn glyph_texture_fragment_transform(&mut self, ch:char) -> Translation2<f64> {
         let glyph_info     = self.font.get_glyph_info(ch);
-        let offset         = glyph_info.msdf_texture_rows.start as f64 / all_rows;
-        let matrix         = nalgebra::Matrix3::new
-        ( 1.0, 0.0     , 0.0
-        , 0.0, fraction, offset
-        , 0.0, 0.0     , 1.0
-        );
-        Affine2::from_matrix_unchecked(matrix)
+        let offset_y       = glyph_info.msdf_texture_rows.start as f64;
+        Translation2::new(0.0, offset_y)
     }
 }
 
@@ -223,13 +228,14 @@ impl<'a> GlyphAttributeBuilder for GlyphTextureCoordsBuilder<'a> {
 
     type Output = SmallVec<[f64; 12]>; // Note[Output size]
 
-    /// Compute texture coordinates for `ch`
+    /// Compute texture coordinates for `ch`.
     fn build_for_next_glyph(&mut self, ch:char) -> Self::Output {
-        let border_align       = self.align_borders_to_msdf_cell_center_transform();
+        let to_msdf            = Self::base_layout_to_msdf_space();
+        let border_align       = Self::align_borders_to_msdf_cell_center_transform();
         let to_proper_fragment = self.glyph_texture_fragment_transform(ch);
 
         let base               = GLYPH_SQUARE_VERTICES_BASE_LAYOUT.iter();
-        let aligned_to_border  = base             .map(|p| border_align * p);
+        let aligned_to_border  = base             .map(|p| border_align * to_msdf * p);
         let transformed        = aligned_to_border.map(|p| to_proper_fragment * p);
         transformed.map(point_to_iterable).flatten().collect()
     }
@@ -330,20 +336,20 @@ mod tests {
             let w_texture_coords = builder.build_for_next_glyph('W');
 
             let expected_a_coords = &
-                [  1./64. ,  1./128.
-                ,  1./64. , 63./128.
-                , 63./64. ,  1./128.
-                , 63./64. ,  1./128.
-                ,  1./64. , 63./128.
-                , 63./64. , 63./128.
+                [  0.5 ,  0.5
+                ,  0.5 , 31.5
+                , 31.5 ,  0.5
+                , 31.5 ,  0.5
+                ,  0.5 , 31.5
+                , 31.5 , 31.5
                 ];
             let expected_w_coords = &
-                [  1./64. ,  65./128.
-                ,  1./64. , 127./128.
-                , 63./64. ,  65./128.
-                , 63./64. ,  65./128.
-                ,  1./64. , 127./128.
-                , 63./64. , 127./128.
+                [  0.5 ,  32.5
+                ,  0.5 ,  63.5
+                , 31.5 ,  32.5
+                , 31.5 ,  32.5
+                ,  0.5 ,  63.5
+                , 31.5 ,  63.5
                 ];
 
             assert_eq!(expected_a_coords, a_texture_coords.as_ref());
