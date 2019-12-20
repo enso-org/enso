@@ -3,6 +3,7 @@
 in vec2 position;
 in vec2 tex_coord;
 
+uniform highp vec2 msdf_size;
 uniform highp mat3 to_scene;
 uniform highp vec2 clip_lower;
 uniform highp vec2 clip_upper;
@@ -17,6 +18,6 @@ void main() {
     v_clip_distance.z = clip_upper.x - position_on_scene.x;
     v_clip_distance.w = clip_upper.y - position_on_scene.y;
 
-    v_tex_coord = tex_coord;
+    v_tex_coord = tex_coord / msdf_size;
     gl_Position = vec4(position_on_scene.xy, 0.0, position_on_scene.z);
 }

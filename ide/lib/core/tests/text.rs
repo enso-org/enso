@@ -82,6 +82,8 @@ mod tests {
     use super::WorldTest;
     use basegl::Color;
     use basegl::display::world::World;
+    use basegl::text::content::TextChange;
+    use basegl::text::content::CharPosition;
     use basegl::text::TextComponentBuilder;
 
     use basegl_core_msdf_sys::run_once_initialized;
@@ -138,8 +140,8 @@ mod tests {
     }
 
     #[web_bench]
-    fn scrolling_vertical(bencher:&mut Bencher) {
-        if let Some(world_test) = WorldTest::new("scrolling_vertical") {
+    fn scrolling_vertical_30(bencher:&mut Bencher) {
+        if let Some(world_test) = WorldTest::new("scrolling_vertical_30") {
             let mut bencher_clone = bencher.clone();
             run_once_initialized(move || {
                 create_full_sized_text_component(&world_test,LONG_TEXT.to_string());
@@ -158,8 +160,8 @@ mod tests {
     }
 
     #[web_bench]
-    fn scrolling_horizontal(bencher:&mut Bencher) {
-        if let Some(world_test) = WorldTest::new("scrolling_horizontal") {
+    fn scrolling_horizontal_10(bencher:&mut Bencher) {
+        if let Some(world_test) = WorldTest::new("scrolling_horizontal_10") {
             let mut bencher_clone = bencher.clone();
             run_once_initialized(move || {
                 create_full_sized_text_component(&world_test,WIDE_TEXT.to_string());
@@ -172,6 +174,50 @@ mod tests {
                         world.workspace_dirty.set(world_test.workspace_id);
                         world.update();
                     }
+                });
+            });
+        }
+    }
+
+    #[web_bench]
+    fn editing_single_long_line_20(bencher:&mut Bencher) {
+        if let Some(world_test) = WorldTest::new("editing_single_long_line_20") {
+            let mut bencher_clone = bencher.clone();
+            run_once_initialized(move || {
+                create_full_sized_text_component(&world_test,WIDE_TEXT.to_string());
+                bencher_clone.iter(move || {
+                    let world : &mut World = &mut world_test.world_ptr.borrow_mut();
+                    for _ in 0..20 {
+                        let workspace      = &mut world.workspaces[world_test.workspace_id];
+                        let text_component = &mut workspace.text_components[0];
+                        let replace_from   = CharPosition{line:1, byte_offset:2};
+                        let replace_to     = CharPosition{line:1, byte_offset:3};
+                        let replaced_range = replace_from..replace_to;
+                        let change         = TextChange::replace(replaced_range, "abc");
+                        text_component.content.make_change(change);
+                        world.workspace_dirty.set(world_test.workspace_id);
+                        world.update();
+                    }
+                });
+            });
+        }
+    }
+
+    #[web_bench]
+    fn inserting_many_lines_in_long_file(bencher:&mut Bencher) {
+        if let Some(world_test) = WorldTest::new("inserting_many_lines_in_long_file") {
+            let mut bencher_clone = bencher.clone();
+            run_once_initialized(move || {
+                create_full_sized_text_component(&world_test,LONG_TEXT.to_string());
+                bencher_clone.iter(move || {
+                    let world : &mut World = &mut world_test.world_ptr.borrow_mut();
+                    let workspace      = &mut world.workspaces[world_test.workspace_id];
+                    let text_component = &mut workspace.text_components[0];
+                    let position       = CharPosition{line:1, byte_offset:0};
+                    let change         = TextChange::insert(position, TEST_TEXT);
+                    text_component.content.make_change(change);
+                    world.workspace_dirty.set(world_test.workspace_id);
+                    world.update();
                 });
             });
         }

@@ -4,6 +4,7 @@ use crate::text::buffer::glyph_square::Pen;
 use crate::text::buffer::glyph_square::GlyphVertexPositionBuilder;
 use crate::text::buffer::glyph_square::GlyphTextureCoordsBuilder;
 use crate::text::buffer::line::LineAttributeBuilder;
+use crate::text::content::DirtyLines;
 use crate::text::font::FontRenderInfo;
 
 use nalgebra::geometry::Point2;
@@ -121,6 +122,7 @@ impl<'a> FragmentsDataBuilder<'a> {
         let first_char_ref = first_char.as_ref();
         let rendered_text  = first_char_ref.map_or(line, |rch| &line[rch.byte_offset..]);
         let last_char      = first_char_ref.map(|fc| self.last_rendered_char(&fc,rendered_text));
+
         self.build_vertex_positions(&pen,rendered_text);
         self.build_texture_coords(&rendered_text);
         match (first_char,last_char.flatten()) {
@@ -167,14 +169,16 @@ impl<'a> FragmentsDataBuilder<'a> {
     pub fn build_vertex_positions(&mut self, pen:&Pen, text:&str) {
         let rendering_pen = Pen::new(pen.position);
         let glyph_builder = GlyphVertexPositionBuilder::new(self.font,rendering_pen);
-        let builder       = LineAttributeBuilder::new(text,glyph_builder,self.max_chars_in_fragment);
+        let max_line_size = self.max_chars_in_fragment;
+        let builder       = LineAttributeBuilder::new(text,glyph_builder,max_line_size);
         self.vertex_position_data.extend(builder.flatten().map(|f| f as f32));
     }
 
     /// Extend texture coordinates data with a new line's.
     pub fn build_texture_coords(&mut self, text:&str) {
         let glyph_builder = GlyphTextureCoordsBuilder::new(self.font);
-        let builder       = LineAttributeBuilder::new(text,glyph_builder,self.max_chars_in_fragment);
+        let max_line_size = self.max_chars_in_fragment;
+        let builder       = LineAttributeBuilder::new(text,glyph_builder,max_line_size);
         self.texture_coords_data.extend(builder.flatten().map(|f| f as f32));
     }
 }
@@ -292,6 +296,14 @@ impl BufferFragments {
         }
     }
 
+    /// Mark as dirty all fragments with dirty assigned line.
+    pub fn mark_lines_dirty(&mut self, lines:&DirtyLines) {
+        let not_yet_dirty = self.fragments.iter_mut().filter(|f| !f.dirty);
+        for fragment in not_yet_dirty {
+            fragment.dirty = fragment.assigned_line.map_or(false, |l| lines.is_dirty(l));
+        }
+    }
+
     /// Get the minimum fragment id range covering all dirties.
     pub fn minimum_fragments_range_with_all_dirties(&self) -> Option<RangeInclusive<usize>> {
         let fragments     = self.fragments.iter().enumerate();
@@ -317,6 +329,7 @@ impl BufferFragments {
         }
     }
 }
+
 
 #[cfg(test)]
 mod tests {
