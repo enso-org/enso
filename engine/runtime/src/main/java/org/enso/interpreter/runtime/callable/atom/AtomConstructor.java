@@ -3,7 +3,11 @@ package org.enso.interpreter.runtime.callable.atom;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
+import com.oracle.truffle.api.interop.ArityException;
+import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.library.ExportLibrary;
+import com.oracle.truffle.api.library.ExportMessage;
 import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode;
@@ -15,6 +19,7 @@ import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 
 /** A representation of an Atom constructor. */
+@ExportLibrary(InteropLibrary.class)
 public class AtomConstructor implements TruffleObject {
 
   private final String name;
@@ -68,7 +73,7 @@ public class AtomConstructor implements TruffleObject {
         new ClosureRootNode(
             null,
             new LocalScope(),
-            new ModuleScope(),
+            definitionScope,
             instantiateNode,
             null,
             "<constructor>:" + name);
@@ -132,5 +137,33 @@ public class AtomConstructor implements TruffleObject {
    */
   public Function getConstructorFunction() {
     return constructorFunction;
+  }
+
+  /**
+   * Marks this object as instantiable through the polyglot APIs.
+   *
+   * @return {@code true}
+   */
+  @ExportMessage
+  boolean isInstantiable() {
+    return true;
+  }
+
+  /**
+   * Handles instantiation through the polyglot APIs.
+   *
+   * @param arguments the field values for the new instance.
+   * @return an instance of this constructor with expected fields.
+   * @throws ArityException when the provided field count does match this constructor's field count.
+   */
+  @ExportMessage
+  Atom instantiate(Object... arguments) throws ArityException {
+    if (arguments.length != getArity()) {
+      throw ArityException.create(getArity(), arguments.length);
+    }
+    if (cachedInstance != null) {
+      return cachedInstance;
+    }
+    return newInstance(arguments);
   }
 }

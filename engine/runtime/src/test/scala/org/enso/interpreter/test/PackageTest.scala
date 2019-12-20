@@ -13,7 +13,9 @@ trait PackageTest extends FlatSpec with Matchers with ValueEquality {
   def evalTestProject(name: String): Value = {
     val pkgPath =
       new File(getClass.getClassLoader.getResource(name).getPath)
-    val mainFile = Package.fromDirectory(pkgPath).get.mainFile
+    val pkg        = Package.fromDirectory(pkgPath).get
+    val mainFile   = pkg.mainFile
+    val mainModule = pkg.moduleNameForFile(mainFile)
     val context = Context
       .newBuilder(Constants.LANGUAGE_ID)
       .allowExperimentalOptions(true)
@@ -22,8 +24,11 @@ trait PackageTest extends FlatSpec with Matchers with ValueEquality {
       .out(System.out)
       .in(System.in)
       .build()
-    InterpreterException.rethrowPolyglot(
-      context.eval(Source.newBuilder(Constants.LANGUAGE_ID, mainFile).build)
-    )
+    context.initialize(Constants.LANGUAGE_ID)
+    val bindings        = context.getBindings(Constants.LANGUAGE_ID)
+    val mainModuleScope = bindings.invokeMember("get_module", mainModule.toString)
+    val assocCons       = mainModuleScope.invokeMember("get_associated_constructor")
+    val mainFun         = mainModuleScope.invokeMember("get_method", assocCons, "main")
+    InterpreterException.rethrowPolyglot(mainFun.execute(assocCons))
   }
 }

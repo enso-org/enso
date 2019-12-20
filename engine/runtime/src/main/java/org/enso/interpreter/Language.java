@@ -1,11 +1,16 @@
 package org.enso.interpreter;
 
 import com.oracle.truffle.api.CallTarget;
+import com.oracle.truffle.api.Scope;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.debug.DebuggerTags;
 import com.oracle.truffle.api.instrumentation.ProvidedTags;
 import com.oracle.truffle.api.instrumentation.StandardTags;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.library.ExportLibrary;
+import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.RootNode;
 import org.enso.interpreter.builder.FileDetector;
 import org.enso.interpreter.node.ProgramRootNode;
@@ -14,6 +19,10 @@ import org.enso.interpreter.runtime.RuntimeOptions;
 import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.graalvm.options.OptionDescriptors;
+
+import java.lang.reflect.Array;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * The root of the Enso implementation.
@@ -84,15 +93,7 @@ public final class Language extends TruffleLanguage<Context> {
    */
   @Override
   protected CallTarget parse(ParsingRequest request) {
-    RootNode root =
-        new ProgramRootNode(
-            this,
-            new LocalScope(),
-            new ModuleScope(),
-            "root",
-            request.getSource().createUnavailableSection(),
-            request.getSource());
-
+    RootNode root = new ProgramRootNode(this, request.getSource());
     return Truffle.getRuntime().createCallTarget(root);
   }
 
@@ -106,12 +107,23 @@ public final class Language extends TruffleLanguage<Context> {
   }
 
   /**
-   * Returns the supported options descriptors, for use by Graal's engine.
+   * Returns the supported options descriptors, for use by Graal's engine. `
    *
    * @return The supported options descriptors
    */
   @Override
   protected OptionDescriptors getOptionDescriptors() {
     return RuntimeOptions.OPTION_DESCRIPTORS;
+  }
+
+  /**
+   * Returns the top scope of the requested context.
+   *
+   * @param context the context holding the top scope.
+   * @return a singleton collection containing the context's top scope.
+   */
+  @Override
+  protected Iterable<Scope> findTopScopes(Context context) {
+    return Collections.singleton(context.compiler().topScope().getScope());
   }
 }

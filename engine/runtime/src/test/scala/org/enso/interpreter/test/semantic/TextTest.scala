@@ -6,7 +6,7 @@ class TextTest extends InterpreterTest {
   "Single line raw text literals" should "exist in the language" in {
     val code =
       """
-        |IO.println "hello world!"
+        |main = IO.println "hello world!"
         |""".stripMargin
 
     eval(code)
@@ -16,12 +16,13 @@ class TextTest extends InterpreterTest {
   "Block raw text literals" should "exist in the language" in {
     val code =
       s"""
-        |x = $rawTQ
-        |  Foo
-        |  Bar
-        |    Baz
+        |main =
+        |    x = $rawTQ
+        |        Foo
+        |        Bar
+        |          Baz
         |
-        |IO.println x
+        |    IO.println x
         |""".stripMargin
 
     eval(code)
@@ -31,7 +32,7 @@ class TextTest extends InterpreterTest {
   "Raw text literals" should "support escape sequences" in {
     val code =
       """
-        |IO.println "\"Grzegorz Brzeczyszczykiewicz\""
+        |main = IO.println "\"Grzegorz Brzeczyszczykiewicz\""
         |""".stripMargin
 
     eval(code)

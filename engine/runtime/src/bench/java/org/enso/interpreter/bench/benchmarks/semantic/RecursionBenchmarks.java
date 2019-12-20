@@ -1,6 +1,7 @@
 package org.enso.interpreter.bench.benchmarks.semantic;
 
 import org.enso.interpreter.bench.fixtures.semantic.RecursionFixtures;
+import org.enso.interpreter.test.InterpreterRunner;
 import org.openjdk.jmh.annotations.*;
 
 import java.util.concurrent.TimeUnit;
@@ -13,38 +14,43 @@ import java.util.concurrent.TimeUnit;
 public class RecursionBenchmarks {
   private static RecursionFixtures recursionFixtures = new RecursionFixtures();
 
+  private void runOnHundredMillion(InterpreterRunner.MainMethod main) {
+    main.mainFunction().execute(main.mainConstructor(), recursionFixtures.hundredMillion());
+  }
+
   @Benchmark
   public void benchSumTCO() {
-    recursionFixtures.sumTCO().execute(recursionFixtures.hundredMillion());
+    runOnHundredMillion(recursionFixtures.sumTCO());
   }
 
   @Benchmark
   public void benchSumTCOWithEval() {
-    recursionFixtures.sumTCOWithEval().execute(recursionFixtures.hundredMillion());
+    runOnHundredMillion(recursionFixtures.sumTCOWithEval());
   }
 
   @Benchmark
   public void benchSumTCOFoldLike() {
-    recursionFixtures.sumTCOFoldLike().execute(recursionFixtures.hundredMillion());
+    runOnHundredMillion(recursionFixtures.sumTCOFoldLike());
   }
 
   @Benchmark
   public void benchSumRecursive() {
-    recursionFixtures.sumTCO().execute(recursionFixtures.hundred());
+    InterpreterRunner.MainMethod main = recursionFixtures.sumRecursive();
+    main.mainFunction().execute(main.mainConstructor(), recursionFixtures.hundred());
   }
 
   @Benchmark
   public void benchOversaturatedRecursiveCall() {
-    recursionFixtures.oversaturatedRecursiveCall().execute(recursionFixtures.hundredMillion());
+    runOnHundredMillion(recursionFixtures.oversaturatedRecursiveCall());
   }
 
   @Benchmark
   public void benchSumStateTCO() {
-    recursionFixtures.sumStateTCO().execute(recursionFixtures.hundredMillion());
+    runOnHundredMillion(recursionFixtures.sumStateTCO());
   }
 
   @Benchmark
   public void benchNestedThunkSum() {
-    recursionFixtures.nestedThunkSum().execute(recursionFixtures.hundredMillion());
+    runOnHundredMillion(recursionFixtures.nestedThunkSum());
   }
 }

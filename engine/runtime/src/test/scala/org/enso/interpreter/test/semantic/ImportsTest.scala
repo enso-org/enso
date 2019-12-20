@@ -7,10 +7,6 @@ class ImportsTest extends PackageTest {
     evalTestProject("TestSimpleImports") shouldEqual 20
   }
 
-  "Overloaded methods" should "be imported transitively" in {
-    evalTestProject("TestOverloadsTransitive") shouldEqual 30
-  }
-
   "Methods defined together with atom" should "be visible even if not imported" in {
     evalTestProject("TestNonImportedOwnMethods") shouldEqual 10
   }

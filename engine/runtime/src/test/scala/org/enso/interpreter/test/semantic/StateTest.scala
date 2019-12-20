@@ -6,10 +6,11 @@ class StateTest extends InterpreterTest {
   "State" should "be accessible from functions" in {
     val code =
       """
-        |State.put 10
-        |x = State.get
-        |State.put x+1
-        |State.get
+        |main =
+        |    State.put 10
+        |    x = State.get
+        |    State.put x+1
+        |    State.get
         |""".stripMargin
 
     eval(code) shouldEqual 11
@@ -22,13 +23,14 @@ class StateTest extends InterpreterTest {
         |  x = State.get
         |  State.put x+1
         |
-        |State.put 0
-        |Unit.incState
-        |Unit.incState
-        |Unit.incState
-        |Unit.incState
-        |Unit.incState
-        |State.get
+        |main =
+        |    State.put 0
+        |    Unit.incState
+        |    Unit.incState
+        |    Unit.incState
+        |    Unit.incState
+        |    Unit.incState
+        |    State.get
         |""".stripMargin
 
     eval(code) shouldEqual 5
@@ -37,15 +39,16 @@ class StateTest extends InterpreterTest {
   "State" should "be localized with State.run" in {
     val code =
       """
-        |State.put 20
-        |myBlock =
-        |  res = State.get
-        |  State.put 0
-        |  res
+        |main =
+        |    State.put 20
+        |    myBlock =
+        |        res = State.get
+        |        State.put 0
+        |        res
         |
-        |res2 = State.run 10 ~myBlock
-        |state = State.get
-        |res2 + state
+        |    res2 = State.run 10 ~myBlock
+        |    state = State.get
+        |    res2 + state
         |""".stripMargin
     eval(code) shouldEqual 30
   }
@@ -53,12 +56,13 @@ class StateTest extends InterpreterTest {
   "State" should "work well with recursive code" in {
     val code =
       """
-        |stateSum = n ->
-        |  acc = State.get
-        |  State.put acc+n
-        |  ifZero n State.get (stateSum n-1)
+        |main =
+        |    stateSum = n ->
+        |        acc = State.get
+        |        State.put acc+n
+        |        ifZero n State.get (stateSum n-1)
         |
-        |State.run 0 (stateSum 10)
+        |    State.run 0 (stateSum 10)
         |""".stripMargin
     eval(code) shouldEqual 55
   }
@@ -66,7 +70,7 @@ class StateTest extends InterpreterTest {
   "State" should "be initialized to a Unit by default" in {
     val code =
       """
-        |IO.println State.get
+        |main = IO.println State.get
         |""".stripMargin
     eval(code)
     consumeOut shouldEqual List("Unit")
@@ -75,20 +79,21 @@ class StateTest extends InterpreterTest {
   "State" should "work with pattern matches" in {
     val code =
       """
-        |matcher = x -> case x of
-        |  Unit ->
-        |    y = State.get
-        |    State.put (y + 5)
-        |  Nil ->
-        |    y = State.get
-        |    State.put (y + 10)
+        |main =
+        |    matcher = x -> case x of
+        |        Unit ->
+        |            y = State.get
+        |            State.put (y + 5)
+        |        Nil ->
+        |            y = State.get
+        |            State.put (y + 10)
         |
-        |State.put 1
-        |matcher Nil
-        |IO.println State.get
-        |matcher Unit
-        |IO.println State.get
-        |0
+        |    State.put 1
+        |    matcher Nil
+        |    IO.println State.get
+        |    matcher Unit
+        |    IO.println State.get
+        |    0
         |""".stripMargin
     eval(code)
     consumeOut shouldEqual List("11", "16")
@@ -97,13 +102,14 @@ class StateTest extends InterpreterTest {
   "Panics" should "undo state changes" in {
     val code =
       """
-        |panicker =
-        |  State.put 400
-        |  Panic.throw Unit
+        |main =
+        |    panicker =
+        |        State.put 400
+        |        Panic.throw Unit
         |
-        |State.put 5
-        |Panic.recover ~panicker
-        |State.get
+        |    State.put 5
+        |    Panic.recover ~panicker
+        |    State.get
         |""".stripMargin
     eval(code) shouldEqual 5
   }

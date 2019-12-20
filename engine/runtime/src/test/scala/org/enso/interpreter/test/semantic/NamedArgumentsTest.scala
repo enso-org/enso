@@ -9,7 +9,7 @@ class NamedArgumentsTest extends InterpreterTest {
         |Unit.a = 10
         |Unit.addTen = b -> a Unit + b
         |
-        |addTen Unit (b = 10)
+        |main = addTen Unit (b = 10)
       """.stripMargin
 
     eval(code) shouldEqual 20
@@ -20,7 +20,7 @@ class NamedArgumentsTest extends InterpreterTest {
       """
         |Unit.subtract = a b -> a - b
         |
-        |subtract Unit (b = 10) (a = 5)
+        |main = subtract Unit (b = 10) (a = 5)
     """.stripMargin
 
     eval(code) shouldEqual -5
@@ -29,10 +29,11 @@ class NamedArgumentsTest extends InterpreterTest {
   "Functions" should "be able to have scope values as named arguments" in {
     val code =
       """
-        |a = 10
-        |addTen = num -> num + a
-        |res = addTen (num = a)
-        |res
+        |main =
+        |    a = 10
+        |    addTen = num -> num + a
+        |    res = addTen (num = a)
+        |    res
     """.stripMargin
 
     eval(code) shouldEqual 20
@@ -43,7 +44,7 @@ class NamedArgumentsTest extends InterpreterTest {
       """
         |Unit.addNum = a (num = 10) -> a + num
         |
-        |addNum Unit 5
+        |main = addNum Unit 5
     """.stripMargin
 
     eval(code) shouldEqual 15
@@ -55,7 +56,7 @@ class NamedArgumentsTest extends InterpreterTest {
         |Unit.add = a b -> a + b
         |Unit.doThing = a (b = add Unit 1 2) -> a + b
         |
-        |doThing Unit 10
+        |main = doThing Unit 10
         |""".stripMargin
 
     eval(code) shouldEqual 13
@@ -64,10 +65,11 @@ class NamedArgumentsTest extends InterpreterTest {
   "Default arguments" should "be able to close over their outer scope" in {
     val code =
       """
-        |id = x -> x
-        |apply = val (fn = id) -> fn val
-        |res = apply (val = 1)
-        |res
+        |main =
+        |    id = x -> x
+        |    apply = val (fn = id) -> fn val
+        |    res = apply (val = 1)
+        |    res
         |""".stripMargin
 
     eval(code) shouldEqual 1
@@ -78,7 +80,7 @@ class NamedArgumentsTest extends InterpreterTest {
       """
         |Unit.addTogether = (a = 5) (b = 6) -> a + b
         |
-        |addTogether Unit
+        |main = addTogether Unit
     """.stripMargin
 
     eval(code) shouldEqual 11
@@ -89,7 +91,7 @@ class NamedArgumentsTest extends InterpreterTest {
       """
         |Unit.addNum = a (num = 10) -> a + num
         |
-        |addNum Unit 1 (num = 1)
+        |main = addNum Unit 1 (num = 1)
     """.stripMargin
 
     eval(code) shouldEqual 2
@@ -100,7 +102,7 @@ class NamedArgumentsTest extends InterpreterTest {
       """
         |Unit.addNum = a (num = 10) -> a + num
         |
-        |addNum Unit 1 2
+        |main = addNum Unit 1 2
         |""".stripMargin
 
     eval(code) shouldEqual 3
@@ -115,7 +117,7 @@ class NamedArgumentsTest extends InterpreterTest {
         |  res = summator (current = sumTo)
         |  res
         |
-        |summer Unit 100
+        |main = summer Unit 100
     """.stripMargin
 
     eval(code) shouldEqual 5050
@@ -124,12 +126,13 @@ class NamedArgumentsTest extends InterpreterTest {
   "Named Arguments" should "only be scoped to their definitions" in {
     val code =
       """
-        |foo = x y -> x - y
-        |bar = y x -> x - y
-        |baz = f -> f (x=10) (y=11)
-        |a = baz foo
-        |b = baz bar
-        |a - b
+        |main =
+        |    foo = x y -> x - y
+        |    bar = y x -> x - y
+        |    baz = f -> f (x=10) (y=11)
+        |    a = baz foo
+        |    b = baz bar
+        |    a - b
         |""".stripMargin
 
     eval(code) shouldEqual 0
@@ -139,7 +142,7 @@ class NamedArgumentsTest extends InterpreterTest {
     val code =
       """
         |Unit.foo = a b c -> a -> a
-        |foo Unit 20 (a = 10) 0 0
+        |main = foo Unit 20 (a = 10) 0 0
         |""".stripMargin
 
     eval(code) shouldEqual 10
@@ -150,7 +153,7 @@ class NamedArgumentsTest extends InterpreterTest {
       """
         |Unit.doubleOrAdd = a (b = a) -> a + b
         |
-        |doubleOrAdd Unit 5
+        |main = doubleOrAdd Unit 5
         |""".stripMargin
 
     eval(code) shouldEqual 10
@@ -161,7 +164,7 @@ class NamedArgumentsTest extends InterpreterTest {
       """
         |Unit.badArgFn = a (b = c) (c = a) -> a + b + c
         |
-        |badArgFn Unit 3
+        |main = badArgFn Unit 3
         |""".stripMargin
 
     an[InterpreterException] should be thrownBy eval(code)
@@ -173,13 +176,14 @@ class NamedArgumentsTest extends InterpreterTest {
         |type Cons2 head rest
         |type Nil2
         |
-        |genList = i -> ifZero i Nil2 (Cons2 (rest = genList i-1) head=i)
+        |main =
+        |    genList = i -> ifZero i Nil2 (Cons2 (rest = genList i-1) head=i)
         |
-        |sum = list -> case list of
-        |  Cons2 h t -> h + t.sum
-        |  Nil2 -> 0
+        |    sum = list -> case list of
+        |        Cons2 h t -> h + t.sum
+        |        Nil2 -> 0
         |
-        |10.genList.sum
+        |    10.genList.sum
         """.stripMargin
 
     eval(code) shouldEqual 55
@@ -191,13 +195,14 @@ class NamedArgumentsTest extends InterpreterTest {
         |type Nil2
         |type Cons2 head (rest = Nil2)
         |
-        |genList = i -> ifZero i Nil2 (Cons2 (rest = genList i-1) head=i)
+        |main =
+        |    genList = i -> ifZero i Nil2 (Cons2 (rest = genList i-1) head=i)
         |
-        |sum = list -> case list of
-        |  Cons2 h t -> h + t.sum
-        |  Nil2 -> 0
+        |    sum = list -> case list of
+        |        Cons2 h t -> h + t.sum
+        |        Nil2 -> 0
         |
-        |5.genList.sum
+        |    5.genList.sum
         """.stripMargin
 
     eval(code) shouldEqual 15
@@ -209,10 +214,10 @@ class NamedArgumentsTest extends InterpreterTest {
         |type Cons2 head (rest = Nil2)
         |type Nil2
         |
-        |5
+        |main = Cons2 5
         |""".stripMargin
 
-    eval(code) shouldEqual 5
+    eval(code).toString shouldEqual "Cons2 5 Nil2"
   }
 
   "Constructors" should "be able to take and use default arguments" in {
@@ -225,7 +230,7 @@ class NamedArgumentsTest extends InterpreterTest {
         |  Cons2 h t -> h + Unit.sumList t
         |  Nil2 -> 0
         |
-        |Unit.sumList (Cons2 10)
+        |main = Unit.sumList (Cons2 10)
         """.stripMargin
 
     eval(code) shouldEqual 10

@@ -15,7 +15,7 @@ import org.enso.interpreter.builder.{
 import org.enso.interpreter.node.ExpressionNode
 import org.enso.interpreter.runtime.callable.function.Function
 import org.enso.interpreter.runtime.error.ModuleDoesNotExistException
-import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
+import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope, TopLevelScope}
 import org.enso.interpreter.runtime.{Context, Module}
 import org.enso.interpreter.{Constants, Language}
 import org.enso.syntax.text.{AST, Parser}
@@ -30,11 +30,9 @@ import scala.collection.mutable
   */
 class Compiler(
   val language: Language,
-  val files: java.util.Map[String, Module],
+  val topScope: TopLevelScope,
   val context: Context
 ) {
-
-  val knownFiles: mutable.Map[String, Module] = files.asScala
 
   /**
     * Processes the provided language sources, registering any bindings in the
@@ -45,11 +43,9 @@ class Compiler(
     * @return an interpreter node whose execution corresponds to the top-level
     *         executable functionality in the module corresponding to `source`.
     */
-  def run(source: Source, scope: ModuleScope): Optional[Function] = {
-    val expr: AstModuleScope = {
-      val parsedAST: AST = parse(source)
-      translate(parsedAST)
-    }
+  def run(source: Source, scope: ModuleScope): Unit = {
+    val parsedAST = parse(source)
+    val expr      = translate(parsedAST)
     new ModuleScopeExpressionFactory(language, source, scope).run(expr)
   }
 
@@ -62,7 +58,7 @@ class Compiler(
     * @return an interpreter node whose execution corresponds to the top-level
     *         executable functionality in the module corresponding to `source`.
     */
-  def run(file: TruffleFile, scope: ModuleScope): Optional[Function] = {
+  def run(file: TruffleFile, scope: ModuleScope): Unit = {
     run(Source.newBuilder(Constants.LANGUAGE_ID, file).build, scope)
   }
 
@@ -74,8 +70,8 @@ class Compiler(
     * @return an interpreter node whose execution corresponds to the top-level
     *         executable functionality in the module corresponding to `source`.
     */
-  def run(source: Source): Optional[Function] = {
-    run(source, context.createScope)
+  def run(source: Source, moduleName: String): Unit = {
+    run(source, context.createScope(moduleName))
   }
 
   /**
@@ -86,15 +82,15 @@ class Compiler(
     * @return an interpreter node whose execution corresponds to the top-level
     *         executable functionality in the module corresponding to `source`.
     */
-  def run(file: TruffleFile): Optional[Function] = {
-    run(Source.newBuilder(Constants.LANGUAGE_ID, file).build)
+  def run(file: TruffleFile, moduleName: String): Unit = {
+    run(Source.newBuilder(Constants.LANGUAGE_ID, file).build, moduleName)
   }
 
   /**
     * Processes the language source, interpreting it as an expression.
     * Processes the source in the context of given local and module scopes.
     *
-    * @param source string representing the expression to process
+    * @param srcString string representing the expression to process
     * @param language current language instance
     * @param localScope local scope to process the source in
     * @param moduleScope module scope to process the source in
@@ -138,9 +134,11 @@ class Compiler(
     * @return the scope containing all definitions in the requested module
     */
   def requestProcess(qualifiedName: String): ModuleScope = {
-    knownFiles.get(qualifiedName) match {
-      case Some(module) => module.requestParse(language.getCurrentContext)
-      case None         => throw new ModuleDoesNotExistException(qualifiedName)
+    val module = topScope.getModule(qualifiedName)
+    if (module.isPresent) {
+      module.get().requestParse(context)
+    } else {
+      throw new ModuleDoesNotExistException(qualifiedName)
     }
   }
 

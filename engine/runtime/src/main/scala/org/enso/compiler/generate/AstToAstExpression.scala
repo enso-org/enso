@@ -5,6 +5,8 @@ import cats.implicits._
 import org.enso.compiler.core
 import org.enso.compiler.core._
 import org.enso.compiler.exception.UnhandledEntity
+import org.enso.interpreter.Constants
+import org.enso.interpreter.Constants.Names
 import org.enso.syntax.text.{AST, Location}
 
 // FIXME [AA] All places where we currently throw a `RuntimeException` should
@@ -52,14 +54,7 @@ object AstToAstExpression {
           case t if t.elem.isDefined => t.elem.get
         }
 
-        val expressions = presentBlocks
-          .filter {
-            case AST.Import.any(_)                 => false
-            case AST.Def.any(_)                    => false
-            case AstView.MethodDefinition(_, _, _) => false
-            case _                                 => true
-          }
-          .map(translateExpression)
+        val expressions = presentBlocks.map(translateExpression)
 
         expressions match {
           case List()     => None
@@ -98,29 +93,8 @@ object AstToAstExpression {
           case _                 => true
         }
 
-        val definitions = nonImportBlocks.takeWhile {
-          case AST.Def(_, _, _)                  => true
-          case AstView.MethodDefinition(_, _, _) => true
-          case _                                 => false
-        }
-
-        val executableExpressions = nonImportBlocks.drop(definitions.length)
-
-        val statements  = definitions.map(translateModuleSymbol)
-        val expressions = executableExpressions.map(translateExpression)
-        val block = expressions match {
-          case List()     => None
-          case List(expr) => Some(expr)
-          case _ =>
-            Some(
-              AstBlock(
-                Foldable[List].foldMap(expressions)(_.location),
-                expressions.dropRight(1),
-                expressions.last
-              )
-            )
-        }
-        core.AstModuleScope(imports, statements, block)
+        val statements = nonImportBlocks.map(translateModuleSymbol)
+        core.AstModuleScope(imports, statements)
       }
     }
   }
@@ -140,8 +114,11 @@ object AstToAstExpression {
           AstTypeDef(consName.name, args.map(translateArgumentDefinition(_)))
         }
       case AstView.MethodDefinition(targetPath, name, definition) =>
-        val path =
+        val path = if (targetPath.nonEmpty) {
           targetPath.collect { case AST.Ident.Cons(name) => name }.mkString(".")
+        } else {
+          Constants.Names.CURRENT_MODULE_VARIABLE_NAME
+        }
         val nameStr       = name match { case AST.Ident.Var(name) => name }
         val defExpression = translateExpression(definition)
         val defExpr: AstFunction = defExpression match {

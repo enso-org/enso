@@ -1,6 +1,3 @@
 type X a
 
-X.method =
-  20
-
-0
+X.method = 20

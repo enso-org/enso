@@ -11,7 +11,8 @@ import io.github.spencerpark.jupyter.kernel.KernelConnectionProperties
 import io.github.spencerpark.jupyter.kernel.LanguageInfo
 import io.github.spencerpark.jupyter.kernel.display.DisplayData
 import org.enso.interpreter.Constants
-import org.graalvm.polyglot.Context
+import org.enso.languageserver.PolyglotHelpers.Module
+import org.graalvm.polyglot.{Context, Value}
 
 /**
   * A wrapper for Enso interpreter for use by Jupyter
@@ -24,15 +25,30 @@ class JupyterKernel extends BaseKernel {
       getIO.out,
       Repl(SimpleReplIO(getIO.in, getIO.out))
     )
+  private val jupyterModule: Module = PolyglotHelpers
+    .getTopScope(context)
+    .createModule("Jupyter")
+  jupyterModule.patch("main = Unit")
+  private val moduleCons: Value = jupyterModule.getAssociatedConstructor
+  private var lastMain: PolyglotHelpers.Function =
+    jupyterModule.getMethod(moduleCons, "main")
 
   /**
     * Evaluates Enso code in the context of Jupyter request
     *
     * @param expr the expression to execute
-    * @return the Jupyter-friendly representation of the result of executing `expr`
+    * @return the Jupyter-friendly representation of the result of executing expr`
     */
-  override def eval(expr: String) =
-    new DisplayData(context.eval(Constants.LANGUAGE_ID, expr).toString)
+  override def eval(expr: String): DisplayData = {
+    jupyterModule.patch(expr)
+    val newMain = jupyterModule.getMethod(moduleCons, "main")
+    if (!newMain.equals(lastMain)) {
+      lastMain = newMain
+      new DisplayData(newMain.execute(moduleCons).toString)
+    } else {
+      DisplayData.EMPTY
+    }
+  }
 
   /**
     * Basic language information to display in Jupyter

@@ -1,6 +1,7 @@
 package org.enso.interpreter.bench.benchmarks.semantic;
 
 import org.enso.interpreter.bench.fixtures.semantic.NamedDefaultedArgumentFixtures;
+import org.enso.interpreter.test.InterpreterRunner;
 import org.openjdk.jmh.annotations.*;
 
 import java.util.concurrent.TimeUnit;
@@ -14,13 +15,17 @@ public class NamedDefaultedArgumentBenchmarks {
   private static NamedDefaultedArgumentFixtures argumentFixtures =
       new NamedDefaultedArgumentFixtures();
 
+  private void runOnHundredMillion(InterpreterRunner.MainMethod main) {
+    main.mainFunction().execute(main.mainConstructor(), argumentFixtures.hundredMillion());
+  }
+
   @Benchmark
   public void benchSumTCOWithNamedArgs() {
-    argumentFixtures.sumTCOWithNamedArguments().execute(argumentFixtures.hundredMillion());
+    runOnHundredMillion(argumentFixtures.sumTCOWithNamedArguments());
   }
 
   @Benchmark
   public void benchSumTCOWithDefaultArgs() {
-    argumentFixtures.sumTCOWithDefaultedArguments().execute(argumentFixtures.hundredMillion());
+    runOnHundredMillion(argumentFixtures.sumTCOWithDefaultedArguments());
   }
 }

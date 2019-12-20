@@ -7,11 +7,12 @@ class ReplTest extends InterpreterTest {
   "Repl" should "be able to list local variables in its scope" in {
     val code =
       """
-        |x = 10
-        |y = 20
-        |z = x + y
+        |main =
+        |    x = 10
+        |    y = 20
+        |    z = x + y
         |
-        |Debug.breakpoint
+        |    Debug.breakpoint
         |""".stripMargin
     var scopeResult: Map[String, AnyRef] = Map()
     getReplInstrument.setSessionManager { executor =>
@@ -19,15 +20,21 @@ class ReplTest extends InterpreterTest {
       executor.exit()
     }
     eval(code)
-    scopeResult shouldEqual Map("x" -> 10, "y" -> 20, "z" -> 30)
+    scopeResult.mapValues(_.toString) shouldEqual Map(
+      "this" -> "Test",
+      "x"    -> "10",
+      "y"    -> "20",
+      "z"    -> "30"
+    )
   }
 
   "Repl" should "be able to execute arbitrary code in the caller scope" in {
     val code =
       """
-        |x = 1
-        |y = 2
-        |Debug.breakpoint
+        |main =
+        |    x = 1
+        |    y = 2
+        |    Debug.breakpoint
         |""".stripMargin
     var evalResult: AnyRef = null
     getReplInstrument.setSessionManager { executor =>
@@ -41,10 +48,11 @@ class ReplTest extends InterpreterTest {
   "Repl" should "return the last evaluated value back to normal execution flow" in {
     val code =
       """
-        |a = 5
-        |b = 6
-        |c = Debug.breakpoint
-        |c * a
+        |main =
+        |    a = 5
+        |    b = 6
+        |    c = Debug.breakpoint
+        |    c * a
         |""".stripMargin
     getReplInstrument.setSessionManager { executor =>
       executor.evaluate("a + b")
@@ -56,8 +64,9 @@ class ReplTest extends InterpreterTest {
   "Repl" should "be able to define its local variables" in {
     val code =
       """
-        |x = 10
-        |Debug.breakpoint
+        |main =
+        |    x = 10
+        |    Debug.breakpoint
         |""".stripMargin
     getReplInstrument.setSessionManager { executor =>
       executor.evaluate("y = x + 1")
@@ -71,9 +80,10 @@ class ReplTest extends InterpreterTest {
   "Repl" should "access and modify monadic state" in {
     val code =
       """
-        |State.put 10
-        |Debug.breakpoint
-        |State.get
+        |main =
+        |    State.put 10
+        |    Debug.breakpoint
+        |    State.get
         |""".stripMargin
     getReplInstrument.setSessionManager { executor =>
       executor.evaluate("x = State.get")

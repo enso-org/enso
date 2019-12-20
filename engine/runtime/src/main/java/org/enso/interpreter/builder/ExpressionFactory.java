@@ -27,6 +27,7 @@ import org.enso.compiler.core.AstLong;
 import org.enso.compiler.core.AstMatch;
 import org.enso.compiler.core.AstStringLiteral;
 import org.enso.compiler.core.AstVariable;
+import org.enso.interpreter.Constants;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.ExpressionNode;
@@ -238,13 +239,17 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
   @Override
   public ExpressionNode visitVariable(AstVariable astVariable) {
     String name = astVariable.name();
+    Optional<ExpressionNode> currentModuleVariable =
+        name.equals(Constants.Names.CURRENT_MODULE_VARIABLE_NAME)
+            ? Optional.of(new ConstructorNode(moduleScope.getAssociatedType()))
+            : Optional.empty();
     Supplier<Optional<ExpressionNode>> localVariableNode =
         () -> scope.getSlot(name).map(ReadLocalTargetNodeGen::create);
     Supplier<Optional<ExpressionNode>> constructorNode =
         () -> moduleScope.getConstructor(name).map(ConstructorNode::new);
 
     ExpressionNode variableRead =
-        Stream.of(localVariableNode, constructorNode)
+        Stream.of(() -> currentModuleVariable, localVariableNode, constructorNode)
             .map(Supplier::get)
             .filter(Optional::isPresent)
             .map(Optional::get)

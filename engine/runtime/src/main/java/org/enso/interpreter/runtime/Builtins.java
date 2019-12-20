@@ -19,6 +19,7 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
 
 /** Container class for static predefined atoms, methods, and their containing scope. */
 public class Builtins {
+  public static final String MODULE_NAME = "Builtins";
   private final ModuleScope scope;
   private final AtomConstructor unit;
 
@@ -28,7 +29,7 @@ public class Builtins {
    * @param language the current {@link Language} instance
    */
   public Builtins(Language language) {
-    scope = new ModuleScope();
+    scope = new ModuleScope(MODULE_NAME);
     unit = new AtomConstructor("Unit", scope).initializeFields();
 
     AtomConstructor nil = new AtomConstructor("Nil", scope).initializeFields();

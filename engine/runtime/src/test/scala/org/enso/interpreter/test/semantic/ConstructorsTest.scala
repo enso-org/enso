@@ -7,11 +7,11 @@ class ConstructorsTest extends InterpreterTest {
   "Pattern matching" should "dispatch to the proper branch" in {
     val patternMatchingCode =
       """
-        |x = Cons 1 Nil
-        |
-        |case x of
-        |  Cons h t -> h
-        |  Nil -> 0
+        |main =
+        |    x = Cons 1 Nil
+        |    case x of
+        |        Cons h t -> h
+        |        Nil -> 0
       """.stripMargin
     eval(patternMatchingCode) shouldEqual 1
   }
@@ -19,12 +19,13 @@ class ConstructorsTest extends InterpreterTest {
   "Recursion with pattern matching" should "terminate" in {
     val testCode =
       """
-        |genList = i -> ifZero i Nil (Cons i (genList (i - 1)))
-        |sumList = list -> case list of
-        |  Cons h t -> h + sumList t
-        |  Nil -> 0
+        |main =
+        |    genList = i -> ifZero i Nil (Cons i (genList (i - 1)))
+        |    sumList = list -> case list of
+        |        Cons h t -> h + sumList t
+        |        Nil -> 0
         |
-        |sumList (genList 10)
+        |    sumList (genList 10)
       """.stripMargin
     eval(testCode) shouldEqual 55
   }
@@ -32,13 +33,14 @@ class ConstructorsTest extends InterpreterTest {
   "Pattern match expression" should "behave correctly in non-tail positions" in {
     val testCode =
       """
-        |add = x y -> x + y
-        |testCons = Cons 1 2
+        |main =
+        |    add = x y -> x + y
+        |    testCons = Cons 1 2
         |
-        |result = case testCons of
-        |  Cons x y -> add x y
+        |    result = case testCons of
+        |        Cons x y -> add x y
         |
-        |result + 1
+        |    result + 1
       """.stripMargin
     eval(testCode) shouldEqual 4
   }
@@ -48,11 +50,11 @@ class ConstructorsTest extends InterpreterTest {
     //  be used here.
     val testCode =
       """
-        |nil = Nil
-        |
-        |case nil of
-        |  Cons h t -> 0
-        |  _ -> 1
+        |main =
+        |    nil = Nil
+        |    case nil of
+        |        Cons h t -> 0
+        |        _ -> 1
       """.stripMargin
     eval(testCode) shouldEqual 1
   }
@@ -60,9 +62,10 @@ class ConstructorsTest extends InterpreterTest {
   "Pattern match expressions" should "throw an exception when match fails" in {
     val testCode =
       """
-        |nil = Nil
-        |case nil of
-        |  Cons h t -> 0
+        |main =
+        |    nil = Nil
+        |    case nil of
+        |        Cons h t -> 0
       """.stripMargin
     the[InterpreterException] thrownBy eval(testCode)
       .call() should have message "Inexhaustive pattern match: the Nil case is not handled."
@@ -81,7 +84,7 @@ class ConstructorsTest extends InterpreterTest {
         |  Cons2 h t -> h + sumList Unit t
         |  Nil2 -> 0
         |
-        |sumList Unit (genList Unit 10)
+        |main = sumList Unit (genList Unit 10)
       """.stripMargin
     eval(testCode) shouldEqual 55
   }

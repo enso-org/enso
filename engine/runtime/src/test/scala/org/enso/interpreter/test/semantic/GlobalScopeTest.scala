@@ -9,7 +9,7 @@ class GlobalScopeTest extends InterpreterTest {
       """
         |Unit.a = 10
         |
-        |a Unit
+        |main = a Unit
     """.stripMargin
 
     eval(code) shouldEqual 10
@@ -21,7 +21,7 @@ class GlobalScopeTest extends InterpreterTest {
         |Unit.a = 10
         |Unit.addTen = b -> a Unit + b
         |
-        |addTen Unit 5
+        |main = addTen Unit 5
     """.stripMargin
 
     eval(code) shouldEqual 15
@@ -32,11 +32,12 @@ class GlobalScopeTest extends InterpreterTest {
       """
         |Unit.adder = a b -> a + b
         |
-        |fn = multiply ->
-        |  res = adder Unit 1 2
-        |  doubled = res * multiply
-        |  doubled
-        |fn 2
+        |main =
+        |    fn = multiply ->
+        |        res = adder Unit 1 2
+        |        doubled = res * multiply
+        |        doubled
+        |    fn 2
     """.stripMargin
 
     eval(code) shouldEqual 6
@@ -51,7 +52,7 @@ class GlobalScopeTest extends InterpreterTest {
         |  result = function a b
         |  result
         |
-        |Unit.binaryFn 1 2 (a b -> Unit.adder a b)
+        |main = Unit.binaryFn 1 2 (a b -> Unit.adder a b)
     """.stripMargin
 
     eval(code) shouldEqual 3
@@ -67,7 +68,7 @@ class GlobalScopeTest extends InterpreterTest {
         |Unit.fn1 = number ->
         |  ifZero (number % 3) number (Unit.decrementCall number)
         |
-        |Unit.fn1 5
+        |main = Unit.fn1 5
       """.stripMargin
 
     eval(code) shouldEqual 3
@@ -79,7 +80,7 @@ class GlobalScopeTest extends InterpreterTest {
         |Unit.a = 10/0
         |
         |Unit.b = Unit.a
-        |b
+        |main = b
     """.stripMargin
 
     noException should be thrownBy eval(code)
@@ -91,7 +92,7 @@ class GlobalScopeTest extends InterpreterTest {
         |Unit.a = 10/0
         |
         |Unit.b = Unit.a
-        |Unit.b
+        |main = Unit.b
       """.stripMargin
 
     an[InterpreterException] should be thrownBy eval(code)
@@ -100,12 +101,13 @@ class GlobalScopeTest extends InterpreterTest {
   "Suspended blocks" should "work properly in the global scope" in {
     val code =
       """
-        |myFun =
-        |  IO.println 10
-        |  0
+        |main =
+        |    myFun =
+        |        IO.println 10
+        |        0
         |
-        |IO.println 5
-        |~myFun
+        |    IO.println 5
+        |    ~myFun
         |""".stripMargin
 
     eval(code) shouldEqual 0
@@ -115,37 +117,17 @@ class GlobalScopeTest extends InterpreterTest {
   "Suspended blocks" should "be properly suspended" in {
     val code =
       """
-        |block =
-        |  State.put 0
+        |main =
+        |    block =
+        |        State.put 0
         |
-        |State.put 5
-        |IO.println State.get
-        |~block
-        |IO.println State.get
-        |
+        |    State.put 5
+        |    IO.println State.get
+        |    ~block
+        |    IO.println State.get
         |""".stripMargin
 
     eval(code)
     consumeOut shouldEqual List("5", "0")
-  }
-
-  "Test" should "test test" in {
-    val code =
-      """
-        |n ->
-        |  doNTimes = n ~block ->
-        |    ~block
-        |    ifZero n-1 Unit (doNTimes n-1 ~block)
-        |
-        |  block =
-        |    x = State.get
-        |    State.put x+1
-        |
-        |  State.put 0
-        |  doNTimes n ~block
-        |  State.get
-        |""".stripMargin
-
-    eval(code).call(100) shouldEqual 100
   }
 }

@@ -15,6 +15,7 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 
+import java.io.File;
 import java.util.Optional;
 
 /**
@@ -26,31 +27,18 @@ import java.util.Optional;
  * result, this node handles the transformations and re-writes
  */
 @NodeInfo(shortName = "ProgramRoot", description = "The root of an Enso program's execution")
-public class ProgramRootNode extends EnsoRootNode {
-
+public class ProgramRootNode extends RootNode {
   private final Source sourceCode;
-  @Child private CallOptimiserNode executableExpressionCaller = CallOptimiserNode.build();
-  private @CompilerDirectives.CompilationFinal Function executableExpression = null;
-  private boolean programShouldBeTailRecursive = false;
+  private @CompilerDirectives.CompilationFinal ModuleScope moduleScope;
 
   /**
    * Constructs the root node.
    *
    * @param language the language instance in which this will execute
-   * @param localScope a reference to the program local scope
-   * @param moduleScope a reference to the program module scope
-   * @param name the name of the program
-   * @param sourceSection a reference to the source code being executed
    * @param sourceCode the code to compile and execute
    */
-  public ProgramRootNode(
-      Language language,
-      LocalScope localScope,
-      ModuleScope moduleScope,
-      String name,
-      SourceSection sourceSection,
-      Source sourceCode) {
-    super(language, localScope, moduleScope, name, sourceSection);
+  public ProgramRootNode(Language language, Source sourceCode) {
+    super(language);
     this.sourceCode = sourceCode;
   }
 
@@ -62,19 +50,14 @@ public class ProgramRootNode extends EnsoRootNode {
    */
   @Override
   public Object execute(VirtualFrame frame) {
-    Context context = getContext();
-
-    // Note [Static Passes]
-    if (this.executableExpression == null) {
+    if (moduleScope == null) {
       CompilerDirectives.transferToInterpreterAndInvalidate();
-      Optional<Function> program = context.compiler().run(this.sourceCode);
-      executableExpression =
-          program.orElseGet(() -> getContext().getUnit().getConstructorFunction());
+      Context context = lookupContextReference(Language.class).get();
+      moduleScope = context.createScope(sourceCode.getName());
+      context.compiler().run(this.sourceCode, moduleScope);
     }
-
-    return this.executableExpressionCaller
-        .executeDispatch(executableExpression, null, context.getUnit().newInstance(), new Object[0])
-        .getValue();
+    // Note [Static Passes]
+    return moduleScope;
   }
 
   /* Note [Static Passes]
@@ -91,37 +74,10 @@ public class ProgramRootNode extends EnsoRootNode {
    * is completed.
    *
    * To that end, we have a special kind of root node. It is constructed with the input AST only,
-   * and when executed acts as follows:
-   * 1. It takes the input source and executes a sequence of analyses and transformations such that
-   *    the end result is a `Node`-based AST representing the program.
-   * 2. It rewrites itself to contain the program, and then executes that program.
+   * and when executed it takes the input source and executes a sequence of analyses and
+   * transformations such that the end result is a registration of all defined symbols in the
+   * Language Context.
    *
-   * Note [Static Passes (Lack of Profiling)]
-   * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-   * While it is, in general, good practice to profile branches that don't depend on compilation
-   * final values in a truffle interpreter, this `if` is only ever executed once. This means that
-   * there is no need to profile it as the knowledge can't be used by the partial evaluator in any
-   * case.
    */
 
-  /**
-   * Sets whether the node is tail-recursive.
-   *
-   * @param isTail whether or not the node is tail-recursive.
-   */
-  @Override
-  public void setTail(boolean isTail) {
-    // Note [Delayed Tail Calls]
-    this.programShouldBeTailRecursive = isTail;
-  }
-
-  /* Note [Delayed Tail Calls]
-   * ~~~~~~~~~~~~~~~~~~~~~~~~~
-   * As there is no guarantee that the program has been generated at the point at which setTail is
-   * called, we need to ensure that the tail-calledness information still makes its way to the
-   * program itself.
-   *
-   * To do this, we set a variable internally, that is then passed to the program just before it is
-   * executed.
-   */
 }

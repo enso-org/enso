@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.callable.argument.sorter;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -10,6 +11,7 @@ import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.state.Stateful;
 
 /**
@@ -22,6 +24,7 @@ public abstract class ArgumentSorterNode extends BaseNode {
   private @CompilationFinal(dimensions = 1) CallArgumentInfo[] schema;
   private final InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode;
   private final InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode;
+  private @Child CachedArgumentSorterNode uncachedSorter;
 
   /**
    * Creates a node that performs the argument organisation for the provided schema.
@@ -84,17 +87,16 @@ public abstract class ArgumentSorterNode extends BaseNode {
   @Specialization(replaces = "invokeCached")
   public Stateful invokeUncached(
       Function function, VirtualFrame callerFrame, Object state, Object[] arguments) {
-    return invokeCached(
-        function,
-        callerFrame,
-        state,
-        arguments,
-        CachedArgumentSorterNode.build(
-            function,
-            getSchema(),
-            getDefaultsExecutionMode(),
-            getArgumentsExecutionMode(),
-            isTail()));
+    CompilerDirectives.transferToInterpreterAndInvalidate();
+    uncachedSorter =
+        insert(
+            CachedArgumentSorterNode.build(
+                function,
+                getSchema(),
+                getDefaultsExecutionMode(),
+                getArgumentsExecutionMode(),
+                isTail()));
+    return invokeCached(function, callerFrame, state, arguments, uncachedSorter);
   }
 
   /**

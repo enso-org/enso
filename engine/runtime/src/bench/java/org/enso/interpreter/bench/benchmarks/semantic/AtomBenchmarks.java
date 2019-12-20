@@ -1,6 +1,8 @@
 package org.enso.interpreter.bench.benchmarks.semantic;
 
 import org.enso.interpreter.bench.fixtures.semantic.AtomFixtures;
+import org.enso.interpreter.test.InterpreterRunner;
+import org.graalvm.polyglot.PolyglotException;
 import org.openjdk.jmh.annotations.*;
 
 import java.util.concurrent.TimeUnit;
@@ -15,46 +17,51 @@ public class AtomBenchmarks {
 
   @Benchmark
   public void benchGenerateList() {
-    fixtures.generateList().execute(fixtures.million());
+    InterpreterRunner.MainMethod main = fixtures.generateList();
+    main.mainFunction().execute(main.mainConstructor(), fixtures.million());
+  }
+
+  private void benchOnList(InterpreterRunner.MainMethod main) {
+    main.mainFunction().execute(main.mainConstructor(), fixtures.millionElementList());
   }
 
   @Benchmark
   public void benchReverseList() {
-    fixtures.reverseList().execute(fixtures.millionElementList());
+    benchOnList(fixtures.reverseList());
   }
 
   @Benchmark
   public void benchReverseListMethods() {
-    fixtures.reverseListMethods().execute(fixtures.millionElementList());
+    benchOnList(fixtures.reverseListMethods());
   }
 
   @Benchmark
   public void benchSumList() {
-    fixtures.sumList().execute(fixtures.millionElementList());
+    benchOnList(fixtures.sumList());
   }
 
   @Benchmark
   public void sumListLeftFold() {
-    fixtures.sumListLeftFold().execute(fixtures.millionElementList());
+    benchOnList(fixtures.sumListLeftFold());
   }
 
   @Benchmark
   public void benchSumListFallback() {
-    fixtures.sumListFallback().execute(fixtures.millionElementList());
+    benchOnList(fixtures.sumListFallback());
   }
 
   @Benchmark
   public void benchSumListMethods() {
-    fixtures.sumListMethods().execute(fixtures.millionElementList());
+    benchOnList(fixtures.sumListMethods());
   }
 
   @Benchmark
   public void benchMapReverseList() {
-    fixtures.mapReverseList().execute(fixtures.millionElementList());
+    benchOnList(fixtures.mapReverseList());
   }
 
   @Benchmark
   public void benchMapReverseCurryList() {
-    fixtures.mapReverseListCurry().execute(fixtures.millionElementList());
+    benchOnList(fixtures.mapReverseListCurry());
   }
 }

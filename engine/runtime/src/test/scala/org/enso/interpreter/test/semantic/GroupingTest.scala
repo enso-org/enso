@@ -8,7 +8,7 @@ class GroupingTest extends InterpreterTest {
   "Arbitrary lambdas" should condition in {
     val code =
       """
-        |(x -> x)
+        |main = (x -> x)
         |""".stripMargin
 
     eval(code).call(5) shouldEqual 5
@@ -17,9 +17,9 @@ class GroupingTest extends InterpreterTest {
   "RHS of an assignment" should condition in {
     val code =
       """
-        |fn = (x -> x)
-        |
-        |fn 10
+        |main =
+        |    fn = (x -> x)
+        |    fn 10
         |""".stripMargin
 
     eval(code) shouldEqual 10
@@ -28,9 +28,10 @@ class GroupingTest extends InterpreterTest {
   "Forced terms and lazy arguments" should condition in {
     val code =
       """
-        |ifTest = c (~ifT) ~ifF -> ifZero c ~ifT (~ifF)
-        |sum = c acc -> ifTest c acc (sum c-1 acc+c)
-        |sum 10000 0
+        |main =
+        |    ifTest = c (~ifT) ~ifF -> ifZero c ~ifT (~ifF)
+        |    sum = c acc -> ifTest c acc (sum c-1 acc+c)
+        |    sum 10000 0
         |""".stripMargin
 
     eval(code) shouldEqual 50005000
@@ -39,7 +40,7 @@ class GroupingTest extends InterpreterTest {
   "Arbitrary arguments" should condition in {
     val code =
       """
-        |(x) -> x
+        |main = (x) -> x
         |""".stripMargin
 
     eval(code).call(5) shouldEqual 5
@@ -48,11 +49,12 @@ class GroupingTest extends InterpreterTest {
   "Pattern matches" should condition in {
     val code =
       """
-        |fn = x -> case x of
-        |  (Cons h t) -> h + fn t
-        |  (_) -> 0
+        |main =
+        |    fn = x -> case x of
+        |        (Cons h t) -> h + fn t
+        |        (_) -> 0
         |
-        |fn (Cons 7 Nil)
+        |    fn (Cons 7 Nil)
         |""".stripMargin
 
     eval(code) shouldEqual 7
@@ -63,7 +65,8 @@ class GroupingTest extends InterpreterTest {
       """
         |type Foo
         |Foo.bar = number -> number + 1
-        |(Foo.bar) 10
+        |
+        |main = (Foo.bar) 10
         |""".stripMargin
 
     eval(code) shouldEqual 11

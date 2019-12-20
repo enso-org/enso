@@ -1,5 +1,3 @@
 type X a
 
 Unit.util = x -> x.method
-
-0

@@ -2,4 +2,4 @@ import TestNonImportedOverloads.Util
 
 X.method = 10
 
-Unit.util (X 1)
+Main.main = Unit.util (X 1)

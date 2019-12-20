@@ -6,8 +6,9 @@ class EvalTest extends InterpreterTest {
   "Debug.eval" should "evaluate a string expression" in {
     val code =
       s"""
-        |Debug.eval $rawTQ
-        |  IO.println "foo"
+        |main =
+        |    Debug.eval $rawTQ
+        |        IO.println "foo"
         |""".stripMargin
     eval(code)
     consumeOut shouldEqual List("foo")
@@ -16,10 +17,10 @@ class EvalTest extends InterpreterTest {
   "Debug.eval" should "have access to the caller scope" in {
     val code =
       s"""
-        |x = "Hello World!"
-        |
-        |Debug.eval $rawTQ
-        |  IO.println x
+        |main =
+        |    x = "Hello World!"
+        |    Debug.eval $rawTQ
+        |        IO.println x
         |""".stripMargin
     eval(code)
     consumeOut shouldEqual List("Hello World!")
@@ -29,10 +30,11 @@ class EvalTest extends InterpreterTest {
     val code =
       s"""
         |type MyType x
-        |x = 10
         |
-        |Debug.eval $rawTQ
-        |  IO.println (MyType x)
+        |main =
+        |    x = 10
+        |    Debug.eval $rawTQ
+        |        IO.println (MyType x)
         |""".stripMargin
     eval(code)
     consumeOut shouldEqual List("MyType 10")
@@ -41,11 +43,12 @@ class EvalTest extends InterpreterTest {
   "Debug.eval" should "return a value usable in the caller scope" in {
     val code =
       """
-        |x = 1
-        |y = 2
+        |main =
+        |    x = 1
+        |    y = 2
         |
-        |res = Debug.eval "x + y"
-        |res + 1
+        |    res = Debug.eval "x + y"
+        |    res + 1
         |""".stripMargin
     eval(code) shouldEqual 4
   }
@@ -53,13 +56,12 @@ class EvalTest extends InterpreterTest {
   "Debug.eval" should "work in a recursive setting" in {
     val code =
       """
-        |fn = sumTo ->
-        |  summator = acc current ->
-        |    Debug.eval "ifZero current acc (summator (acc + current) (current - 1))"
-        |
-        |  summator 0 sumTo
-        |
-        |fn 100
+        |main =
+        |    fn = sumTo ->
+        |        summator = acc current ->
+        |            Debug.eval "ifZero current acc (summator (acc + current) (current - 1))"
+        |        summator 0 sumTo
+        |    fn 100
         |""".stripMargin
     eval(code) shouldEqual 5050
   }
@@ -67,13 +69,14 @@ class EvalTest extends InterpreterTest {
   "Debug.eval" should "work inside a thunk passed to another function" in {
     val code =
       """
-        |fn = sumTo ->
-        |  summator = acc current ->
-        |    ifZero current acc (Debug.eval "summator (acc + current) (current - 1)")
+        |main =
+        |    fn = sumTo ->
+        |        summator = acc current ->
+        |            ifZero current acc (Debug.eval "summator (acc + current) (current - 1)")
         |
-        |  summator 0 sumTo
+        |        summator 0 sumTo
         |
-        |fn 100
+        |    fn 100
         |""".stripMargin
     eval(code) shouldEqual 5050
   }

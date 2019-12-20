@@ -1,5 +1,0 @@
-import TestOverloadsTransitive.AtomDef
-
-X.method = x -> 30
-
-0

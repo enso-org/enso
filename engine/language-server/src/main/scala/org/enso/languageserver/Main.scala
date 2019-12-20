@@ -3,8 +3,11 @@ package org.enso.languageserver
 import org.apache.commons.cli._
 import org.enso.interpreter.Constants
 import org.enso.pkg.Package
-import org.graalvm.polyglot.Source
+import org.graalvm.polyglot.{Context, Source, Value}
 import java.io.File
+
+import org.enso.languageserver.PolyglotHelpers.Module
+
 import scala.util.Try
 
 /** The main CLI entry point class. */
@@ -94,42 +97,63 @@ object Main {
   private def run(path: String): Unit = {
     val file = new File(path)
     if (!file.exists) {
-      System.out.println("File " + file + " does not exist.")
+      println(s"File $file does not exist.")
       exitFail()
     }
     val projectMode = file.isDirectory
     val packagePath =
       if (projectMode) file.getAbsolutePath
       else ""
-    var mainLocation = file
-    if (projectMode) {
-      val pkg  = Package.fromDirectory(file)
-      val main = pkg.map(_.mainFile)
-      if (!main.exists(_.exists)) {
-        println("Main file does not exist.")
-        exitFail()
-      }
-      mainLocation = main.get
-    }
     val context = new ContextFactory().create(
       packagePath,
       System.in,
       System.out,
       Repl(TerminalIO())
     )
-    val source = Source.newBuilder(Constants.LANGUAGE_ID, mainLocation).build
-    context.eval(source)
+    if (projectMode) {
+      val pkg  = Package.fromDirectory(file)
+      val main = pkg.map(_.mainFile)
+      if (!main.exists(_.exists())) {
+        println("Main file does not exist.")
+        exitFail()
+      }
+      val mainFile       = main.get
+      val mainModuleName = pkg.get.moduleNameForFile(mainFile).toString
+      runPackage(context, mainModuleName)
+    } else {
+      runSingleFile(context, file)
+    }
     exitSuccess()
+  }
+
+  private def runPackage(context: Context, mainModuleName: String): Unit = {
+    val topScope   = PolyglotHelpers.getTopScope(context)
+    val mainModule = topScope.getModule(mainModuleName)
+    runMain(mainModule)
+  }
+
+  private def runSingleFile(context: Context, file: File): Unit = {
+    val source     = Source.newBuilder(Constants.LANGUAGE_ID, file).build()
+    val mainModule = context.eval(source)
+    runMain(new Module(mainModule))
+  }
+
+  private def runMain(mainModule: Module): Value = {
+    val mainCons = mainModule.getAssociatedConstructor
+    val mainFun  = mainModule.getMethod(mainCons, "main")
+    mainFun.execute(mainCons.newInstance())
   }
 
   /**
     * Handles the `--repl` CLI option
     */
   private def runRepl(): Unit = {
-    val dummySourceToTriggerRepl = "@{ @breakpoint[@Debug] }"
+    val dummySourceToTriggerRepl = "main = Debug.breakpoint"
     val context =
       new ContextFactory().create("", System.in, System.out, Repl(TerminalIO()))
-    context.eval(Constants.LANGUAGE_ID, dummySourceToTriggerRepl)
+    val mainModule =
+      context.eval(Constants.LANGUAGE_ID, dummySourceToTriggerRepl)
+    runMain(new Module(mainModule))
     exitSuccess()
   }
 

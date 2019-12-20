@@ -6,9 +6,9 @@ import org.enso.compiler.Compiler;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.scope.ModuleScope;
+import org.enso.interpreter.runtime.scope.TopLevelScope;
 import org.enso.interpreter.util.ScalaConversions;
 import org.enso.pkg.Package;
-import org.enso.pkg.SourceFile;
 
 import java.io.File;
 import java.io.PrintStream;
@@ -27,7 +27,6 @@ public class Context {
   private final Env environment;
   private final Compiler compiler;
   private final PrintStream out;
-  private final Builtins builtins;
 
   /**
    * Creates a new Enso context.
@@ -39,10 +38,8 @@ public class Context {
     this.language = language;
     this.environment = environment;
     this.out = new PrintStream(environment.out());
-    this.builtins = new Builtins(language);
 
     List<File> packagePaths = RuntimeOptions.getPackagesPaths(environment);
-    // TODO [MK] Replace getTruffleFile with getInternalTruffleFile when Graal 19.3.0 comes out.
     Map<String, Module> knownFiles =
         packagePaths.stream()
             .map(Package::fromDirectory)
@@ -52,13 +49,15 @@ public class Context {
             .flatMap(p -> ScalaConversions.asJava(p.listSources()).stream())
             .collect(
                 Collectors.toMap(
-                    SourceFile::qualifiedName,
+                    srcFile -> srcFile.qualifiedName().toString(),
                     srcFile ->
                         new Module(
+                            srcFile.qualifiedName(),
                             getEnvironment()
                                 .getInternalTruffleFile(srcFile.file().getAbsolutePath()))));
+    TopLevelScope topLevelScope = new TopLevelScope(new Builtins(language), knownFiles);
 
-    this.compiler = new Compiler(this.language, knownFiles, this);
+    this.compiler = new Compiler(this.language, topLevelScope, this);
   }
 
   /**
@@ -106,10 +105,12 @@ public class Context {
   /**
    * Creates a new module scope that automatically imports all the builtin types and methods.
    *
+   * @param name the name of the newly created scope.
+   *
    * @return a new module scope with automatic builtins dependency.
    */
-  public ModuleScope createScope() {
-    ModuleScope moduleScope = new ModuleScope();
+  public ModuleScope createScope(String name) {
+    ModuleScope moduleScope = new ModuleScope(name);
     moduleScope.addImport(getBuiltins().getScope());
     return moduleScope;
   }
@@ -120,7 +121,7 @@ public class Context {
    * @return an object containing the builtin functions
    */
   Builtins getBuiltins() {
-    return this.builtins;
+    return this.compiler.topScope().getBuiltins();
   }
 
   /**

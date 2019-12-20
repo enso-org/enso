@@ -1,3 +1,1 @@
-@{
-  @println [@IO,0]
-}
+main = IO.println "Hello, World!"

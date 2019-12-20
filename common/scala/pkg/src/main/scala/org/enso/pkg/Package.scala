@@ -2,10 +2,11 @@ package org.enso.pkg
 
 import java.io.File
 import java.io.PrintWriter
-import java.nio.file.Files
-import scala.collection.JavaConverters._
+import java.nio.file.{Files, Path}
 
+import scala.collection.JavaConverters._
 import org.apache.commons.io.FileUtils
+import org.enso.pkg.Package.QualifiedName
 
 import scala.io.Source
 import scala.util.Try
@@ -18,7 +19,7 @@ object CouldNotCreateDirectory extends Exception
   * @param qualifiedName the qualified name of this file
   * @param file the location of this file
   */
-case class SourceFile(qualifiedName: String, file: File)
+case class SourceFile(qualifiedName: QualifiedName, file: File)
 
 /**
   * Represents an Enso package stored on the hard drive.
@@ -137,6 +138,23 @@ case class Package(root: File, config: Config) {
   def name: String = config.name
 
   /**
+    * Parses a file path into a qualified module name belonging to this
+    * package.
+    *
+    * @param file the source file path to translate into a qualified name.
+    * @return a qualified name of the input source path.
+    */
+  def moduleNameForFile(file: File): QualifiedName = {
+    val path        = file.toPath
+    val sourcesPath = sourceDir.toPath
+    val segments    = sourcesPath.relativize(path).iterator().asScala.toList
+    val dirSegments = segments.take(segments.length - 1).map(_.toString)
+    val fileNameWithoutExtension =
+      path.getFileName.toString.takeWhile(_ != '.')
+    QualifiedName(name :: dirSegments, fileNameWithoutExtension)
+  }
+
+  /**
     * Lists the source files in this package.
     *
     * @return the list of all source files in this package, together with their qualified names.
@@ -150,13 +168,7 @@ case class Package(root: File, config: Config) {
       .asScala
       .toList
     sources.map { path =>
-      val segments    = sourcesPath.relativize(path).iterator().asScala.toList
-      val dirSegments = segments.take(segments.length - 1).map(_.toString)
-      val fileNameWithoutExtension =
-        path.getFileName.toString.takeWhile(_ != '.')
-      val qualName = (name :: (dirSegments :+ fileNameWithoutExtension))
-        .mkString(Package.qualifiedNameSeparator)
-      SourceFile(qualName, path.toFile)
+      SourceFile(moduleNameForFile(path.toFile), path.toFile)
     }
   }
 }
@@ -170,6 +182,37 @@ object Package {
   val mainFileName           = "Main.enso"
   val thumbFileName          = "thumb.png"
   val qualifiedNameSeparator = "."
+
+  /**
+    * Represents a qualified name of a source module.
+    *
+    * @param path the names of the package and directories the module is
+    *             contained in
+    * @param module the name of the module
+    */
+  case class QualifiedName(path: List[String], module: String) {
+    override def toString: String =
+      (path :+ module).mkString(qualifiedNameSeparator)
+  }
+
+  object QualifiedName {
+
+    /**
+      * Parses a dot-separated string representation of a qualified name into
+      * a [[QualifiedName]] object.
+      *
+      * @param qualName the string representation of a qualified name.
+      * @return the corresponding [[QualifiedName]] object.
+      */
+    def fromString(qualName: String): Option[QualifiedName] = {
+      val segments = qualName.split(qualifiedNameSeparator).toList
+      if (segments.nonEmpty) {
+        Some(QualifiedName(segments.dropRight(1), segments.last))
+      } else {
+        None
+      }
+    }
+  }
 
   /**
     * Creates a new Package in a given location and with config file.

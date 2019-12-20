@@ -8,7 +8,7 @@ class MethodsTest extends InterpreterTest {
       """
         |type Foo
         |Foo.bar = number -> number + 1
-        |bar Foo 10
+        |main = bar Foo 10
         |""".stripMargin
     eval(code) shouldEqual 11
   }
@@ -18,7 +18,7 @@ class MethodsTest extends InterpreterTest {
       """
         |type Foo
         |Foo.bar = number -> number + 1
-        |Foo.bar 10
+        |main = Foo.bar 10
         |""".stripMargin
     eval(code) shouldEqual 11
   }
@@ -34,7 +34,7 @@ class MethodsTest extends InterpreterTest {
         |Bar.baz = x -> Baz
         |Baz.spam = y -> y + 25
         |
-        |Foo.bar.baz 54 . spam 2
+        |main = Foo.bar.baz 54 . spam 2
         |""".stripMargin
     eval(code) shouldEqual 27
   }
@@ -48,7 +48,7 @@ class MethodsTest extends InterpreterTest {
         |Foo.bar = a b -> a + b
         |Bar.constant = 10
         |
-        |Foo.bar Bar.constant Bar.constant
+        |main = Foo.bar Bar.constant Bar.constant
         |
         |""".stripMargin
     eval(code) shouldEqual 20
@@ -59,7 +59,7 @@ class MethodsTest extends InterpreterTest {
       """
         |type Foo
         |Foo.bar = 1
-        |bar Foo + 5
+        |main = bar Foo + 5
         |""".stripMargin
     eval(code) shouldEqual 6
   }
@@ -71,8 +71,8 @@ class MethodsTest extends InterpreterTest {
         |    x = this * this
         |    y = x * 2
         |    y + 1
-        |    
-        |3.method
+        |
+        |main = 3.method
         |""".stripMargin
     eval(code) shouldEqual 19
   }
@@ -84,7 +84,7 @@ class MethodsTest extends InterpreterTest {
         |Cons.sum = acc -> case this of
         |  Cons h t -> sum t (h + acc)
         |
-        |sum (Cons 1 (Cons 2 Nil)) 0
+        |main = sum (Cons 1 (Cons 2 Nil)) 0
         |""".stripMargin
 
     eval(code) shouldEqual 3
@@ -94,7 +94,7 @@ class MethodsTest extends InterpreterTest {
     val code =
       """
         |Unit.testMethod = x y z -> x + y + z
-        |testMethod x=1 y=2 this=Unit z=3
+        |main = testMethod x=1 y=2 this=Unit z=3
         |""".stripMargin
     eval(code) shouldEqual 6
   }
@@ -102,7 +102,7 @@ class MethodsTest extends InterpreterTest {
   "Calling a non-existent method" should "throw an exception" in {
     val code =
       """
-        |foo 7
+        |main = foo 7
         |""".stripMargin
     the[InterpreterException] thrownBy eval(code) should have message "Object Number does not define method foo."
   }
@@ -120,13 +120,13 @@ class MethodsTest extends InterpreterTest {
         |  Baz -> 3
         |  _ -> 0
         |
-        |IO.println Foo.method
-        |IO.println Bar.method
-        |IO.println Baz.method
-        |IO.println Unit.method
-        |IO.println 123.method
-        |IO.println (x -> x).method
-        |0
+        |main =
+        |    IO.println Foo.method
+        |    IO.println Bar.method
+        |    IO.println Baz.method
+        |    IO.println Unit.method
+        |    IO.println 123.method
+        |    IO.println (x -> x).method
         |""".stripMargin
     eval(code)
     consumeOut shouldEqual List("1", "2", "3", "0", "0", "0")
@@ -139,8 +139,9 @@ class MethodsTest extends InterpreterTest {
         |Cons.sum = case this of
         |  Cons h t -> h + sum t
         |
-        |myList = Cons 1 (Cons 2 (Cons 3 Nil))
-        |myList.sum
+        |main =
+        |    myList = Cons 1 (Cons 2 (Cons 3 Nil))
+        |    myList.sum
         |
         |""".stripMargin
 

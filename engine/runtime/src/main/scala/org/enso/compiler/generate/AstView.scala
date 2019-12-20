@@ -400,9 +400,10 @@ object AstView {
 
     /** Matches on the definition of a method.
       *
-      * These take the form of `<type>.<fn-name> = <expression>` where `<type>`
-      * is the name of a type, `<fn-name>` is the name of a function, and
-      * `<expression>` is an arbitrary program expression.
+      * These take the form of `<type>.<fn-name> = <expression>`,
+      * or `<fn-name> = <expression>`, where `<type>` is the name of a type,
+      * `<fn-name>` is the name of a function, and `<expression>` is an
+      * arbitrary program expression.
       *
       * @param ast the structure to try and match on
       * @return the path segments of the type reference, the function name, and
@@ -414,6 +415,7 @@ object AstView {
           lhs match {
             case MethodReference(targetPath, name) =>
               Some((targetPath, name, rhs))
+            case AST.Ident.Var.any(name)  => Some((List(), name, rhs))
             case _ =>
               None
           }

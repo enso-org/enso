@@ -8,9 +8,9 @@ class LazyArgumentsTest extends InterpreterTest {
   subject should "work in basic expressions" in {
     val code =
       """
-        |lazyId = ~x -> ~x
-        |
-        |lazyId (1 + 1)
+        |main =
+        |    lazyId = ~x -> ~x
+        |    lazyId (1 + 1)
         |""".stripMargin
 
     eval (code) shouldEqual 2
@@ -19,8 +19,9 @@ class LazyArgumentsTest extends InterpreterTest {
   subject should "not get executed upfront" in {
     val code =
       """
-        |foo = i ~x ~y -> ifZero i ~x ~y
-        |foo 1 (IO.println 1) (IO.println 2)
+        |main =
+        |    foo = i ~x ~y -> ifZero i ~x ~y
+        |    foo 1 (IO.println 1) (IO.println 2)
         |""".stripMargin
     eval(code)
     consumeOut shouldEqual List("2")
@@ -29,9 +30,10 @@ class LazyArgumentsTest extends InterpreterTest {
   subject should "work well with tail recursion" in {
     val code =
       """
-        |ifTest = c ~ifT ~ifF -> ifZero c ~ifT ~ifF
-        |sum = c acc -> ifTest c acc (sum c-1 acc+c)
-        |sum 10000 0
+        |main =
+        |    ifTest = c ~ifT ~ifF -> ifZero c ~ifT ~ifF
+        |    sum = c acc -> ifTest c acc (sum c-1 acc+c)
+        |    sum 10000 0
         |""".stripMargin
     eval(code) shouldEqual 50005000
   }
@@ -39,8 +41,9 @@ class LazyArgumentsTest extends InterpreterTest {
   subject should "work in non-tail positions" in {
     val code =
       """
-        |suspInc = ~x -> 1 + ~x
-        |suspInc (suspInc 10)
+        |main =
+        |    suspInc = ~x -> 1 + ~x
+        |    suspInc (suspInc 10)
         |""".stripMargin
 
     eval(code) shouldEqual 12
@@ -55,9 +58,10 @@ class LazyArgumentsTest extends InterpreterTest {
         |Foo.method = ~x -> 10
         |Bar.method = x -> 10
         |
-        |Foo.method (IO.println 1)
-        |Bar.method (IO.println 2)
-        |Foo.method (IO.println 3)
+        |main =
+        |    Foo.method (IO.println 1)
+        |    Bar.method (IO.println 2)
+        |    Foo.method (IO.println 3)
         |""".stripMargin
     eval(code)
     consumeOut shouldEqual List("2")
@@ -66,11 +70,12 @@ class LazyArgumentsTest extends InterpreterTest {
   subject should "work properly with oversaturated arguments" in {
     val code =
       """
-        |ifTest = c ~ifT ~ifF -> ifZero c ~ifT ~ifF
-        |foo = c -> ifTest c
+        |main =
+        |    ifTest = c ~ifT ~ifF -> ifZero c ~ifT ~ifF
+        |    foo = c -> ifTest c
         |
-        |foo 0 (IO.println 1) (IO.println 2)
-        |foo 1 (IO.println 3) (IO.println 4)
+        |    foo 0 (IO.println 1) (IO.println 2)
+        |    foo 1 (IO.println 3) (IO.println 4)
         |""".stripMargin
     eval(code)
     consumeOut shouldEqual List("1", "4")
@@ -79,7 +84,7 @@ class LazyArgumentsTest extends InterpreterTest {
   subject should "work properly with defaulted arguments" in {
     val code =
       """
-        |a (~b = Panic.throw 1) -> a
+        |main = a (~b = Panic.throw 1) -> a
         |""".stripMargin
     eval(code).call(1) shouldEqual 1
   }

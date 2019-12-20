@@ -46,8 +46,7 @@ trait AstModuleScopeVisitor[T] {
     imports: java.util.List[AstImport],
     typeDefs: java.util.List[AstTypeDef],
     bindings: java.util.List[AstMethodDef],
-    expression: java.util.Optional[AstExpression]
-  ): java.util.Optional[T]
+  ): Unit
 }
 
 sealed trait AstModuleSymbol
@@ -65,10 +64,9 @@ case class AstImport(name: String)
 case class AstModuleScope(
   imports: List[AstImport],
   bindings: List[AstModuleSymbol],
-  expression: Option[AstExpression]
 ) {
 
-  def visit[T](visitor: AstModuleScopeVisitor[T]): Optional[T] = {
+  def visit[T](visitor: AstModuleScopeVisitor[T]): Unit = {
     val types = new java.util.ArrayList[AstTypeDef]()
     val defs  = new java.util.ArrayList[AstMethodDef]()
 
@@ -80,8 +78,7 @@ case class AstModuleScope(
     visitor.visitModuleScope(
       imports.asJava,
       types,
-      defs,
-      Optional.ofNullable(expression.orNull)
+      defs
     )
   }
 }

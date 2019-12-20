@@ -1,13 +1,8 @@
 package org.enso.interpreter.builder;
 
-import com.oracle.truffle.api.RootCallTarget;
-import com.oracle.truffle.api.Truffle;
 import org.enso.compiler.core.*;
 import com.oracle.truffle.api.source.Source;
-import com.oracle.truffle.api.source.SourceSection;
 import org.enso.interpreter.*;
-import org.enso.interpreter.node.ClosureRootNode;
-import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.function.CreateFunctionNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
@@ -15,12 +10,10 @@ import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.error.VariableDoesNotExistException;
-import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -50,10 +43,9 @@ public class ModuleScopeExpressionFactory implements AstModuleScopeVisitor<Funct
    * Executes the factory on a global expression.
    *
    * @param expr the expression to execute on
-   * @return a runtime node representing the top-level expression
    */
-  public Optional<Function> run(AstModuleScope expr) {
-    return expr.visit(this);
+  public void run(AstModuleScope expr) {
+    expr.visit(this);
   }
 
   /**
@@ -62,15 +54,10 @@ public class ModuleScopeExpressionFactory implements AstModuleScopeVisitor<Funct
    * @param imports any imports requested by this module
    * @param typeDefs any type definitions defined in the global scope
    * @param bindings any bindings made in the global scope
-   * @param executableExpression the executable expression for the program
-   * @return a runtime node representing the whole top-level program scope
    */
   @Override
-  public Optional<Function> visitModuleScope(
-      List<AstImport> imports,
-      List<AstTypeDef> typeDefs,
-      List<AstMethodDef> bindings,
-      Optional<AstExpression> executableExpression) {
+  public void visitModuleScope(
+      List<AstImport> imports, List<AstTypeDef> typeDefs, List<AstMethodDef> bindings) {
     Context context = language.getCurrentContext();
 
     for (AstImport imp : imports) {
@@ -102,13 +89,18 @@ public class ModuleScopeExpressionFactory implements AstModuleScopeVisitor<Funct
     for (AstMethodDef method : bindings) {
       scala.Option<AstExpression> scalaNone = scala.Option.apply(null);
       AstArgDefinition thisArgument =
-          new AstArgDefinition(Constants.THIS_ARGUMENT_NAME, scalaNone, false);
+          new AstArgDefinition(Constants.Names.THIS_ARGUMENT_NAME, scalaNone, false);
+
+      String typeName = method.typeName();
+      if (typeName.equals(Constants.Names.CURRENT_MODULE_VARIABLE_NAME)) {
+        typeName = moduleScope.getAssociatedType().getName();
+      }
 
       ExpressionFactory expressionFactory =
           new ExpressionFactory(
               language,
               source,
-              method.typeName() + Constants.SCOPE_SEPARATOR + method.methodName(),
+              typeName + Constants.SCOPE_SEPARATOR + method.methodName(),
               moduleScope);
 
       List<AstArgDefinition> realArgs = new ArrayList<>(method.fun().getArguments());
@@ -124,32 +116,15 @@ public class ModuleScopeExpressionFactory implements AstModuleScopeVisitor<Funct
               null,
               new FunctionSchema(FunctionSchema.CallStrategy.CALL_LOOP, funNode.getArgs()));
 
-      if (method.typeName().equals(Constants.ANY_TYPE_NAME)) {
+      if (typeName.equals(Constants.Names.ANY_TYPE_NAME)) {
         moduleScope.registerMethodForAny(method.methodName(), function);
       } else {
         AtomConstructor constructor =
             moduleScope
-                .getConstructor(method.typeName())
+                .getConstructor(typeName)
                 .orElseThrow(() -> new VariableDoesNotExistException(method.typeName()));
         moduleScope.registerMethod(constructor, method.methodName(), function);
       }
     }
-
-    return executableExpression.map(this::wrapExecutableExpression);
-  }
-
-  private Function wrapExecutableExpression(AstExpression expr) {
-    LocalScope scope = new LocalScope();
-    String name = "executable_expression";
-    ExpressionFactory expressionFactory =
-        new ExpressionFactory(this.language, source, scope, name, moduleScope);
-    ExpressionNode expression = expressionFactory.run(expr);
-    SourceSection section =
-        expr.getLocation().map(loc -> source.createSection(loc.start(), loc.length())).orElse(null);
-    ClosureRootNode rootNode =
-        new ClosureRootNode(language, scope, moduleScope, expression, section, name);
-    RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(rootNode);
-    return new Function(
-        callTarget, null, new FunctionSchema(FunctionSchema.CallStrategy.CALL_LOOP));
   }
 }
