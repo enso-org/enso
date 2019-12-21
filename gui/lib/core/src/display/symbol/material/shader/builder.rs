@@ -1,8 +1,11 @@
 use crate::prelude::*;
 
-use crate::data::container::Add;
 use super::glsl;
+use crate::data::container::Add;
+use crate::display::symbol::material::shader::glsl::{Type, PrimType};
 use code_builder::HasCodeRepr;
+use std::collections::BTreeMap;
+
 
 // ==============
 // === Shader ===
@@ -22,29 +25,45 @@ pub struct Shader {
 #[derive(Clone,Debug,Default)]
 pub struct ShaderConfig {
     pub precision  : ShaderPrecision,
-    pub outputs    : HashMap<String,AttributeQualifier>,
-    pub shared     : HashMap<String,AttributeQualifier>,
-    pub attributes : HashMap<String,AttributeQualifier>,
-    pub uniforms   : HashMap<String,UniformQualifier>,
+    pub outputs    : BTreeMap<String,AttributeQualifier>,
+    pub shared     : BTreeMap<String,AttributeQualifier>,
+    pub attributes : BTreeMap<String,AttributeQualifier>,
+    pub uniforms   : BTreeMap<String,UniformQualifier>,
 }
 
 impl ShaderConfig {
     pub fn new() -> Self { default() }
+
+    pub fn insert_attribute<S:Str,Q:Into<AttributeQualifier>>(&mut self, name:S, qual:Q) {
+        self.attributes.insert(name.as_ref().to_string(), qual.into());
+    }
+
+    pub fn insert_shared_attribute<S:Str,Q:Into<AttributeQualifier>>(&mut self, name:S, qual:Q) {
+        self.shared.insert(name.as_ref().to_string(), qual.into());
+    }
+
+    pub fn insert_uniform<S:Str,Q:Into<UniformQualifier>>(&mut self, name:S, qual:Q) {
+        self.uniforms.insert(name.as_ref().to_string(), qual.into());
+    }
+
+    pub fn insert_output<S:Str,Q:Into<AttributeQualifier>>(&mut self, name:S, qual:Q) {
+        self.outputs.insert(name.as_ref().to_string(), qual.into());
+    }
 }
 
 // === ShaderPrecision ===
 
 #[derive(Clone,Debug)]
 pub struct ShaderPrecision {
-    pub vertex   : HashMap<glsl::PrimType,glsl::Precision>,
-    pub fragment : HashMap<glsl::PrimType,glsl::Precision>,
+    pub vertex   : BTreeMap<glsl::PrimType,glsl::Precision>,
+    pub fragment : BTreeMap<glsl::PrimType,glsl::Precision>,
 }
 
 impl Default for ShaderPrecision {
     fn default() -> Self {
-        let mut map = HashMap::new();
-        map.insert(glsl::PrimType::Int   , glsl::Precision::Medium);
-        map.insert(glsl::PrimType::Float , glsl::Precision::Medium);
+        let mut map = BTreeMap::new();
+        map.insert(glsl::PrimType::Int   , glsl::Precision::High);
+        map.insert(glsl::PrimType::Float , glsl::Precision::High);
         let vertex   = map.clone();
         let fragment = map;
         Self {vertex,fragment}
@@ -69,6 +88,7 @@ impl LocalVarQualifier {
         }
     }
 }
+
 
 // === AttributeQualifier ===
 
@@ -105,6 +125,22 @@ impl AttributeQualifier {
     }
 }
 
+impl From<glsl::Type> for AttributeQualifier {
+    fn from(typ: Type) -> Self {
+        let storage = default();
+        let prec    = default();
+        Self {storage,prec,typ}
+    }
+}
+
+impl From<glsl::PrimType> for AttributeQualifier {
+    fn from(prim_type: glsl::PrimType) -> Self {
+        let typ:Type = prim_type.into();
+        typ.into()
+    }
+}
+
+
 // === UniformQualifier ===
 
 #[derive(Clone,Debug)]
@@ -126,6 +162,43 @@ impl UniformQualifier {
     }
 }
 
+impl From<glsl::Type> for UniformQualifier {
+    fn from(typ: Type) -> Self {
+        let prec = default();
+        Self {prec,typ}
+    }
+}
+
+impl From<glsl::PrimType> for UniformQualifier {
+    fn from(prim_type: PrimType) -> Self {
+        let typ:Type = prim_type.into();
+        typ.into()
+    }
+}
+
+
+
+// ====================
+// === CodeTemplate ===
+// ====================
+
+/// A GLSL code template. It is used to provide a pre-defined GLSL code chunk and insert generated
+/// GLSL snippets in right places.
+#[derive(Default)]
+pub struct CodeTemplete {
+    pub before_main : String,
+    pub main        : String,
+    pub after_main  : String,
+}
+
+impl CodeTemplete {
+    /// Creates a new instance from the provided main GLSL code definition.
+    pub fn from_main<S:Str>(main:S) -> Self {
+        Self {main: main.as_ref().to_string(), ..default()}
+    }
+}
+
+
 
 // =====================
 // === ShaderBuilder ===
@@ -140,13 +213,22 @@ pub struct ShaderBuilder {
 impl ShaderBuilder {
     pub fn new() -> Self { default() }
 
-    pub fn compute<V:Str,F:Str>
-    (&mut self, cfg:&ShaderConfig, _vertex_code:V, _fragment_code:F) {
+    pub fn compute
+    (&mut self, cfg:&ShaderConfig, vertex_code:CodeTemplete, fragment_code:CodeTemplete) {
         self.gen_precision_code(cfg);
         self.gen_attributes_code(cfg);
         self.gen_shared_attributes_code(cfg);
         self.gen_uniforms_code(cfg);
         self.gen_outputs_code(cfg);
+        self.add_template_code(vertex_code,fragment_code);
+    }
+
+    fn add_template_code(&mut self, vertex_code:CodeTemplete, fragment_code:CodeTemplete) {
+        self.vertex.main.body.add(&vertex_code.main);
+        self.vertex.add(glsl::Statement::Raw(glsl::RawCode::new(vertex_code.before_main)));
+
+        self.fragment.main.body.add(&fragment_code.main);
+        self.fragment.add(glsl::Statement::Raw(glsl::RawCode::new(fragment_code.before_main)));
     }
 
     fn gen_precision_code(&mut self, cfg:&ShaderConfig) {
@@ -175,10 +257,9 @@ impl ShaderBuilder {
     fn gen_shared_attributes_code(&mut self, cfg:&ShaderConfig) {
         if !cfg.shared.is_empty() {
             for (name,qual) in &cfg.shared {
-                let vert_name = mk_vertex_name(&name);
                 let frag_name = mk_fragment_name(&name);
-                self.vertex  .add(qual.to_output_var(vert_name));
-                self.fragment.add(qual.to_input_var (frag_name));
+                self.vertex  .add(qual.to_output_var(&frag_name));
+                self.fragment.add(qual.to_input_var (&frag_name));
             }
         }
     }
@@ -195,6 +276,7 @@ impl ShaderBuilder {
     fn gen_outputs_code(&mut self, cfg:&ShaderConfig) {
         if !cfg.outputs.is_empty() {
             cfg.outputs.iter().enumerate().for_each(|(loc,(name,qual))|{
+                let name = mk_out_name(name);
                 let mut var = qual.to_output_var(name);
                 var.layout = Some(glsl::Layout {location: loc});
                 self.fragment.add(var);
@@ -202,33 +284,13 @@ impl ShaderBuilder {
         }
     }
 
-    pub fn get(&self) -> Shader {
+    pub fn build(&self) -> Shader {
         let vertex   = self.vertex  .to_code();
         let fragment = self.fragment.to_code();
         Shader {vertex,fragment}
     }
 }
 
-fn _mk_out_name     <S:Str> (s:S) -> String { format!("out_{}", s.as_ref()) }
-fn mk_vertex_name   <S:Str> (s:S) -> String { format!("v_{}"  , s.as_ref()) }
-fn mk_fragment_name <S:Str> (s:S) -> String { s.as_ref().into() }
-
-
-//use crate::prelude::*;
-//
-//pub fn main() {
-//    let mut cfg = builder::ShaderConfig::new();
-//    let mut sb = builder::ShaderBuilder::new();
-//    cfg.attributes.insert("foo".to_string(),builder::AttributeQualifier{
-//        storage: default(),
-//        prec: default(),
-//        typ: glsl::Type {
-//            prim: glsl::PrimType::Float,
-//            array: None
-//        }
-//    });
-//    sb.compute(&cfg,"--1--","--2--");
-//    let s  = sb.get();
-//    println!("{}",s.vertex);
-//    println!("{}",s.fragment);
-//}
+pub fn mk_out_name      <S:Str> (s:S) -> String { format!("out_{}"    , s.as_ref()) }
+pub fn mk_vertex_name   <S:Str> (s:S) -> String { format!("vertex_{}" , s.as_ref()) }
+pub fn mk_fragment_name <S:Str> (s:S) -> String { s.as_ref().into() }

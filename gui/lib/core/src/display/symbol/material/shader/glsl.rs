@@ -100,7 +100,7 @@ impl HasCodeRepr for RawCode {
 // ==================
 
 /// Variable or type identifier.
-#[derive(Clone,Debug,Eq,Hash,PartialEq)]
+#[derive(Clone,Debug,Eq,Hash,PartialEq,PartialOrd,Ord)]
 pub struct Identifier(pub String);
 
 impl HasCodeRepr for Identifier {
@@ -191,7 +191,8 @@ impl HasCodeRepr for Assignment {
 #[derive(Clone,Debug)]
 pub enum Statement {
     Function      (Function),
-    PrecisionDecl (PrecisionDecl)
+    PrecisionDecl (PrecisionDecl),
+    Raw           (RawCode)
 }
 
 impl HasCodeRepr for Statement {
@@ -199,6 +200,7 @@ impl HasCodeRepr for Statement {
         match self {
             Self::Function       (t) => builder.add(t),
             Self::PrecisionDecl  (t) => builder.add(t),
+            Self::Raw            (t) => builder.add(t),
         };
     }
 }
@@ -319,7 +321,7 @@ derive_clone_plus!(Type);
 // ================
 
 /// Any non-array GLSL type.
-#[derive(Clone,Debug,Eq,Hash,PartialEq)]
+#[derive(Clone,Debug,Eq,Hash,PartialEq,PartialOrd,Ord)]
 pub enum PrimType {
     Float, Int, Void, Bool,
     Mat2, Mat3, Mat4,
@@ -390,6 +392,7 @@ impl HasCodeRepr for PrimType {
         };
     }
 }
+
 
 
 // =================
@@ -476,6 +479,7 @@ impl HasCodeRepr for GlobalVar {
 }
 
 
+
 // ================
 // === LocalVar ===
 // ================
@@ -496,6 +500,7 @@ impl HasCodeRepr for LocalVar {
         builder.add(&self.typ).add(&self.ident);
     }
 }
+
 
 
 // =================
@@ -543,6 +548,7 @@ impl From<&Precision> for Precision {
 /// Translation unit definition. It represents the whole GLSL file.
 #[derive(Clone,Debug)]
 pub struct Module {
+    pub prec_decls  : Vec<PrecisionDecl>,
     pub global_vars : Vec<GlobalVar>,
     pub statements  : Vec<Statement>,
     pub main        : Function
@@ -550,14 +556,15 @@ pub struct Module {
 
 impl Default for Module {
     fn default() -> Self {
-        let global_vars = default ();
+        let prec_decls  = default();
+        let global_vars = default();
         let statements  = default();
         let main        = Function {
             typ   : PrimType::Void.into(),
             ident : "main".into(),
             body  : default()
         };
-        Self {global_vars,statements,main}
+        Self {prec_decls,global_vars,statements,main}
     }
 }
 
@@ -578,7 +585,7 @@ impl Add<Statement> for Module {
 impl Add<PrecisionDecl> for Module {
     type Result = ();
     fn add(&mut self, t: PrecisionDecl) {
-        self.statements.push(t.into());
+        self.prec_decls.push(t);
     }
 }
 
@@ -591,11 +598,23 @@ impl Add<Expr> for Module {
 
 impl HasCodeRepr for Module {
     fn build(&self, builder:&mut CodeBuilder) {
+        builder.add("#version 300 es");
+        builder.newline();
+        builder.newline();
+
+        for t in &self.prec_decls {
+            builder.add(t);
+            builder.newline();
+        }
+        builder.newline();
+
         for t in &self.global_vars {
             builder.add(t);
             builder.terminator();
             builder.newline();
         }
+        builder.newline();
+
         for t in &self.statements {
             builder.add(t);
             builder.newline();
@@ -603,3 +622,4 @@ impl HasCodeRepr for Module {
         builder.add(&self.main);
     }
 }
+

@@ -78,20 +78,19 @@ pub struct Scopes<OnDirty> {
     pub global    : GlobalScope  <OnDirty>,
 }
 
-#[allow(non_camel_case_types)]
-#[derive(Copy,Clone,Debug,IntoPrimitive)]
+#[derive(Copy,Clone,Debug,IntoPrimitive,PartialEq)]
 #[repr(u8)]
-pub enum ScopesDirtyStatus {
-    point, vertex, primitive, instance, object, global
+pub enum ScopeType {
+    Point, Vertex, Primitive, Instance, Object, Global
 }
 
-impl From<ScopesDirtyStatus> for usize {
-    fn from(t: ScopesDirtyStatus) -> Self {
+impl From<ScopeType> for usize {
+    fn from(t: ScopeType) -> Self {
         Into::<u8>::into(t).into()
     }
 }
 
-impl Display for ScopesDirtyStatus {
+impl Display for ScopeType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f,"{:?}",self)
     }
@@ -99,7 +98,7 @@ impl Display for ScopesDirtyStatus {
 
 // === Types ===
 
-pub type ScopesDirty  <F> = dirty::SharedEnum<u8,ScopesDirtyStatus, F>;
+pub type ScopesDirty  <F> = dirty::SharedEnum<u8,ScopeType,F>;
 pub type VarScope     <F> = scope::Scope<ScopeOnChange<F>>;
 pub type UniformScope <F> = scope::Scope<ScopeOnChange<F>>; // FIXME mock
 pub type GlobalScope  <F> = scope::Scope<ScopeOnChange<F>>; // FIXME mock
@@ -114,14 +113,14 @@ macro_rules! promote_geometry_types { ($($args:tt)*) => {
 // === Callbacks ===
 
 closure! {
-fn scope_on_change<C:Callback0>(dirty:ScopesDirty<C>, item:ScopesDirtyStatus) -> ScopeOnChange {
+fn scope_on_change<C:Callback0>(dirty:ScopesDirty<C>, item:ScopeType) -> ScopeOnChange {
     || dirty.set(item)
 }}
 
 // === Implementation ===
 
-macro_rules! update_scopes { ($self:ident . {$($name:ident),*}) => {$(
-    if $self.scopes_dirty.check(&ScopesDirtyStatus::$name) {
+macro_rules! update_scopes { ($self:ident . {$($name:ident),*} {$($uname:ident),*}) => {$(
+    if $self.scopes_dirty.check(&ScopeType::$uname) {
         $self.scopes.$name.update()
     }
 )*}}
@@ -133,16 +132,16 @@ impl<OnDirty: Callback0> Geometry<OnDirty> {
         let scopes_dirty  = ScopesDirty::new(scopes_logger,on_dirty);
         let context       = context.clone();
         let scopes        = group!(logger, "Initializing.", {
-            macro_rules! new_scope { ($cls:ident { $($name:ident),* } ) => {$(
+            macro_rules! new_scope { ($cls:ident { $($name:ident),* } { $($uname:ident),* } ) => {$(
                 let sub_logger = logger.sub(stringify!($name));
-                let status_mod = ScopesDirtyStatus::$name;
+                let status_mod = ScopeType::$uname;
                 let scs_dirty  = scopes_dirty.clone_rc();
                 let callback   = scope_on_change(scs_dirty, status_mod);
                 let $name      = $cls::new(&context,sub_logger, callback);
             )*}}
-            new_scope!(VarScope {point,vertex,primitive,instance});
-            new_scope!(VarScope {object});
-            new_scope!(VarScope {global});
+            new_scope!(VarScope {point,vertex,primitive,instance}{Point,Vertex,Primitive,Instance});
+            new_scope!(VarScope {object}{Object});
+            new_scope!(VarScope {global}{Global});
             Scopes {point,vertex,primitive,instance,object,global}
         });
         Self {context,scopes,scopes_dirty,logger}
@@ -151,10 +150,35 @@ impl<OnDirty: Callback0> Geometry<OnDirty> {
     pub fn update(&mut self) {
         group!(self.logger, "Updating.", {
             if self.scopes_dirty.check_all() {
-                update_scopes!(self.{point,vertex,primitive,instance});
-                update_scopes!(self.{object,global});
+                update_scopes!(self.{point,vertex,primitive,instance}
+                                    {Point,Vertex,Primitive,Instance});
+                update_scopes!(self.{object,global}{Object,Global});
                 self.scopes_dirty.unset_all()
             }
         })
+    }
+
+    /// Browses all scopes and finds where a variable was defined. Scopes are browsed in a
+    /// hierarchical order. To learn more about the ordering see the documentation of `Geometry`.
+    pub fn lookup_variable<S:Str>(&self, name:S) -> Option<ScopeType> {
+        let name = name.as_ref();
+        if      self.scopes.point     . contains(name) { Some(ScopeType::Point)     }
+        else if self.scopes.vertex    . contains(name) { Some(ScopeType::Vertex)    }
+        else if self.scopes.primitive . contains(name) { Some(ScopeType::Primitive) }
+        else if self.scopes.instance  . contains(name) { Some(ScopeType::Instance)  }
+        else if self.scopes.object    . contains(name) { Some(ScopeType::Object)    }
+        else if self.scopes.global    . contains(name) { Some(ScopeType::Global)    }
+        else {None}
+    }
+
+    /// Gets reference to scope based on the scope type.
+    pub fn var_scope(&self, scope_type:ScopeType) -> Option<&VarScope<OnDirty>> {
+        match scope_type {
+            ScopeType::Point     => Some(&self.scopes.point),
+            ScopeType::Vertex    => Some(&self.scopes.vertex),
+            ScopeType::Primitive => Some(&self.scopes.primitive),
+            ScopeType::Instance  => Some(&self.scopes.instance),
+            _                    => None
+        }
     }
 }

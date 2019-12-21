@@ -75,28 +75,37 @@ fn unwrap_error(opt_err: Option<String>) -> String {
 // === Compile / Link ===
 // ======================
 
-pub fn compile_shader(ctx: &Context, tp: u32, src: &str) -> Result<Shader> {
+pub fn compile_vertex_shader(ctx:&Context, src:&str) -> Result<Shader> {
+    compile_shader(ctx,Context::VERTEX_SHADER,src)
+}
+
+pub fn compile_fragment_shader(ctx:&Context, src:&str) -> Result<Shader> {
+    compile_shader(ctx,Context::FRAGMENT_SHADER,src)
+}
+
+pub fn compile_shader(ctx:&Context, tp:u32, src:&str) -> Result<Shader> {
     let target = ErrorTarget::Shader;
-    let shader = ctx.create_shader(tp).ok_or(Error::Create { target })?;
+    let shader = ctx.create_shader(tp).ok_or(Error::Create {target})?;
     ctx.shader_source(&shader, src);
     ctx.compile_shader(&shader);
     handle_error(ctx, target, shader)
 }
 
-pub fn link_program(ctx: &Context, vert_shader: &Shader, frag_shader: &Shader) -> Result<Program> {
+pub fn link_program(ctx:&Context, vert_shader:&Shader, frag_shader:&Shader) -> Result<Program> {
     let target = ErrorTarget::Program;
-    let program = ctx.create_program().ok_or(Error::Create { target })?;
+    let program = ctx.create_program().ok_or(Error::Create {target})?;
     ctx.attach_shader(&program, vert_shader);
     ctx.attach_shader(&program, frag_shader);
     ctx.link_program(&program);
     handle_error(ctx, target, program)
 }
 
-fn handle_error<T: CompilationTarget>(ctx: &Context, target: ErrorTarget, t: T) -> Result<T> {
+fn handle_error<T: CompilationTarget>(ctx:&Context, target:ErrorTarget, t:T) -> Result<T> {
     if t.check_ok(ctx) {
         Ok(t)
     } else {
         let message = t.get_info_log(ctx);
-        Err(Error::Compile { target, message })
+        let error   = Error::Compile {target,message};
+        Err(error)
     }
 }

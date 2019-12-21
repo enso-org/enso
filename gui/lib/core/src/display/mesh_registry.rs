@@ -77,7 +77,7 @@ impl<OnDirty:Callback0> MeshRegistry<OnDirty> {
     /// Check dirty flags and update the state accordingly.
     pub fn update(&mut self) {
         group!(self.logger, "Updating.", {
-            for mesh_id in self.mesh_dirty.iter() {
+            for mesh_id in self.mesh_dirty.borrow().data.iter() {
                 self.meshes[*mesh_id].update()
             }
             self.mesh_dirty.unset_all();
