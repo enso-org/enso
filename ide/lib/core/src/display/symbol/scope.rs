@@ -87,8 +87,8 @@ impl<OnDirty: Callback0> Scope<OnDirty> {
 
     /// Adds a new named buffer to the scope.
     pub fn add_buffer<Name: Str, T: Item>
-    (&mut self, name:Name) -> SharedBuffer<T,OnDirty>
-        where AnyBuffer<OnDirty>: From<SharedBuffer<T,OnDirty>> {
+    (&mut self, name:Name) -> Buffer<T,OnDirty>
+        where AnyBuffer<OnDirty>: From<Buffer<T,OnDirty>> {
         let name         = name.as_ref().to_string();
         let buffer_dirty = self.buffer_dirty.clone();
         let shape_dirty  = self.shape_dirty.clone();
@@ -98,7 +98,7 @@ impl<OnDirty: Callback0> Scope<OnDirty> {
             let on_resize  = buffer_on_resize(shape_dirty);
             let logger     = self.logger.sub(&name);
             let context    = &self.context;
-            let buffer     = SharedBuffer::new(context,logger,on_set,on_resize);
+            let buffer     = Buffer::new(context,logger,on_set,on_resize);
             let buffer_ref = buffer.clone();
             self.buffers.set(ix, AnyBuffer::from(buffer));
             self.name_map.insert(name, ix);
@@ -109,6 +109,10 @@ impl<OnDirty: Callback0> Scope<OnDirty> {
 
     pub fn buffer(&self, name:&str) -> Option<&AnyBuffer<OnDirty>> {
         self.name_map.get(name).map(|i| &self.buffers[*i])
+    }
+
+    pub fn contains<S:Str>(&self, name:S) -> bool {
+        self.name_map.contains_key(name.as_ref())
     }
 
     /// Adds a new instance to every buffer in the scope.

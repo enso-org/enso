@@ -430,7 +430,7 @@ impl DisplayObjectDataMut {
                 self.logger.info("Self origin did not change.");
                 if self.child_dirty.check_all() {
                     group!(self.logger, "Updating dirty children.", {
-                        self.child_dirty.iter().for_each(|ix| {
+                        self.child_dirty.borrow().data.iter().for_each(|ix| {
                             self.children[*ix].update_with(origin,false)
                         });
                     })

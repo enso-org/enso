@@ -59,6 +59,8 @@ impl World {
     /// Create and initialize new world instance.
     #[allow(clippy::new_ret_no_self)]
     pub fn new() -> WorldRef {
+        println!("NOTICE! When profiling in Chrome check 'Disable JavaScript Samples' under the \
+                  gear icon in the 'Performance' tab. It can drastically slow the reading.");
         let world_ref  = WorldRef::new(Self::new_uninitialized());
         let world_ref2 = world_ref.clone_rc();
         let world_ref3 = world_ref.clone_rc();

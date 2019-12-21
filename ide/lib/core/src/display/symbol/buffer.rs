@@ -20,11 +20,12 @@ use nalgebra::Vector4;
 use nalgebra::Matrix4;
 use std::iter::Extend;
 use web_sys::WebGlBuffer;
+use std::ops::RangeInclusive;
 
 
-// ==============
-// === Buffer ===
-// ==============
+// ==================
+// === BufferData ===
+// ==================
 
 // === Definition ===
 
@@ -36,10 +37,10 @@ use web_sys::WebGlBuffer;
 #[derive(Derivative,Shrinkwrap)]
 #[shrinkwrap(mutable)]
 #[derivative(Debug(bound="T:Debug"))]
-pub struct Buffer<T,OnSet,OnResize> {
+pub struct BufferData<T,OnSet,OnResize> {
     #[shrinkwrap(main_field)]
     pub buffer       : Data        <T,OnSet,OnResize>,
-    pub set_dirty    : SetDirty    <OnSet>,
+    pub buffer_dirty : BufferDirty <OnSet>,
     pub resize_dirty : ResizeDirty <OnResize>,
     pub logger       : Logger,
     pub gl_buffer    : WebGlBuffer,
@@ -52,12 +53,12 @@ pub type Data <T,S,R> = data::Data <T,DataOnSet<S>,DataOnResize<R>>;
 
 #[macro_export]
 macro_rules! promote_buffer_types { ($callbacks:tt $module:ident) => {
-    promote! { $callbacks $module [Var<T>,Buffer<T>,SharedBuffer<T>,AnyBuffer] }
+    promote! { $callbacks $module [Var<T>,BufferData<T>,Buffer<T>,AnyBuffer] }
 };}
 
 // === Callbacks ===
 
-pub type SetDirty    <Callback> = dirty::SharedRange<usize,Callback>;
+pub type BufferDirty    <Callback> = dirty::SharedRange<usize,Callback>;
 pub type ResizeDirty <Callback> = dirty::SharedBool<Callback>;
 
 closure! {
@@ -66,44 +67,37 @@ fn buffer_on_resize<C:Callback0> (dirty:ResizeDirty<C>) -> DataOnResize {
 }}
 
 closure! {
-fn buffer_on_set<C:Callback0> (dirty:SetDirty<C>) -> DataOnSet {
+fn buffer_on_set<C:Callback0> (dirty:BufferDirty<C>) -> DataOnSet {
     |ix: usize| dirty.set(ix)
 }}
 
 // === Instances ===
 
 impl<T,OnSet:Callback0, OnResize:Callback0>
-Buffer<T,OnSet,OnResize> {
+BufferData<T,OnSet,OnResize> {
     /// Creates new buffer from provided explicit buffer object.
-    pub fn new_from
-    ( context   : &Context
-    , vec       : Vec<T>
-    , logger    : Logger
-    , on_set    : OnSet
-    , on_resize : OnResize
-    ) -> Self {
+    pub fn new_from(context: &Context, vec:Vec<T>, logger:Logger, on_set:OnSet, on_resize:OnResize)
+    -> Self {
         logger.info(fmt!("Creating new {} buffer.", T::type_debug_name()));
-        let set_logger     = logger.sub("set_dirty");
+        let set_logger     = logger.sub("buffer_dirty");
         let resize_logger  = logger.sub("resize_dirty");
-        let set_dirty      = SetDirty::new(set_logger,on_set);
+        let buffer_dirty   = BufferDirty::new(set_logger,on_set);
         let resize_dirty   = ResizeDirty::new(resize_logger,on_resize);
         let buff_on_resize = buffer_on_resize(resize_dirty.clone_rc());
-        let buff_on_set    = buffer_on_set(set_dirty.clone_rc());
+        let buff_on_set    = buffer_on_set(buffer_dirty.clone_rc());
         let buffer         = Data::new_from(vec, buff_on_set, buff_on_resize);
         let context        = context.clone();
         let gl_buffer      = create_gl_buffer(&context);
-        Self {buffer,set_dirty,resize_dirty,logger,gl_buffer,context}
+        Self {buffer,buffer_dirty,resize_dirty,logger,gl_buffer,context}
     }
+
     /// Creates a new empty buffer.
-    pub fn new
-    (context:&Context, logger:Logger, on_set:OnSet, on_resize:OnResize)
-     -> Self {
+    pub fn new(context:&Context, logger:Logger, on_set:OnSet, on_resize:OnResize) -> Self {
         Self::new_from(context,default(),logger,on_set,on_resize)
     }
+
     /// Build the buffer from the provider configuration builder.
-    pub fn build
-    (context:&Context, builder:Builder<T>, on_set:OnSet, on_resize:OnResize)
-     -> Self {
+    pub fn build(context:&Context, builder:Builder<T>, on_set:OnSet, on_resize:OnResize) -> Self {
         let buffer = builder._buffer.unwrap_or_else(default);
         let logger = builder._logger.unwrap_or_else(default);
         Self::new_from(context,buffer,logger,on_set,on_resize)
@@ -111,23 +105,30 @@ Buffer<T,OnSet,OnResize> {
 }
 
 impl<T:Item,OnSet,OnResize>
-Buffer<T,OnSet,OnResize> where Prim<T>:Debug { // TODO remove Prim<T>:Debug
+BufferData<T,OnSet,OnResize> where Prim<T>:Debug { // TODO remove Prim<T>:Debug
 pub fn as_prim(&self) -> &[Prim<T>] {
     <T as Item>::to_prim_buffer(&self.buffer.data)
 }
     /// Check dirty flags and update the state accordingly.
     pub fn update(&mut self) {
         group!(self.logger, "Updating.", {
-            self.set_dirty.unset_all();
-            self.resize_dirty.unset_all();
+
             let data = self.as_prim();
             self.context.bind_buffer(Context::ARRAY_BUFFER, Some(&self.gl_buffer));
-            Self::buffer_data(&self.context,data);
+            Self::buffer_data(&self.context,data,&None);
             // TODO finish
+
+            {
+//            let range: &Option<RangeInclusive<usize>> = &self.buffer_dirty.borrow().data.range;
+//            println!("{:?}", range);
+            }
+
+            self.buffer_dirty.unset_all();
+            self.resize_dirty.unset_all();
         })
     }
 
-    fn buffer_data(context:&Context, data:&[T::Prim]) {
+    fn buffer_data(context:&Context, data:&[T::Prim], opt_range:&Option<RangeInclusive<usize>>) {
         // Note that `js_buffer_view` is somewhat dangerous (hence the
         // `unsafe`!). This is creating a raw view into our module's
         // `WebAssembly.Memory` buffer, but if we allocate more pages for
@@ -136,10 +137,23 @@ pub fn as_prim(&self) -> &[Prim<T>] {
         //
         // As a result, after `js_buffer_view` we have to be very careful not to
         // do any memory allocations before it's dropped.
-        unsafe {
-            let js_array = <T as Item>::js_buffer_view(&data);
-            context.buffer_data_with_array_buffer_view
-            (Context::ARRAY_BUFFER, &js_array, Context::STATIC_DRAW);
+
+        match opt_range {
+            None => unsafe {
+                let js_array = <T as Item>::js_buffer_view(&data);
+                context.buffer_data_with_array_buffer_view
+                (Context::ARRAY_BUFFER, &js_array, Context::STATIC_DRAW);
+            }
+            Some(range) => {
+                let start  = *range.start() as u32;
+                let end    = *range.end()   as u32;
+                let length = end - start + 1;
+                unsafe {
+                    let js_array = <T as Item>::js_buffer_view(&data);
+                    context.buffer_data_with_array_buffer_view_and_src_offset_and_length
+                    (Context::ARRAY_BUFFER, &js_array, Context::STATIC_DRAW, start, length);
+                }
+            }
         }
     }
     /// Binds the buffer currently bound to gl.ARRAY_BUFFER to a generic vertex attribute of the
@@ -148,7 +162,7 @@ pub fn as_prim(&self) -> &[Prim<T>] {
     /// handles complex data types like `mat4`. See the following links to learn more:
     /// https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/vertexAttribPointer
     /// https://stackoverflow.com/questions/38853096/webgl-how-to-bind-values-to-a-mat4-attribute
-    pub fn vertex_attrib_pointer(&self, loc:u32) {
+    pub fn vertex_attrib_pointer(&self, loc:u32, instanced:bool) {
         let item_size = <T as Item>::gl_item_byte_size() as i32;
         let item_type = <T as Item>::gl_item_type();
         let rows      = <T as Item>::rows() as i32;
@@ -161,12 +175,15 @@ pub fn as_prim(&self) -> &[Prim<T>] {
             let off  = col * col_size;
             self.context.enable_vertex_attrib_array(lloc);
             self.context.vertex_attrib_pointer_with_i32(lloc,rows,item_type,normalize,stride,off);
+            if instanced {
+                self.context.vertex_attrib_divisor(lloc, 1);
+            }
         }
     }
 }
 
 impl<T,OnSet,OnResize>
-Buffer<T,OnSet,OnResize> {
+BufferData<T,OnSet,OnResize> {
     /// Returns a new buffer `Builder` object.
     pub fn builder() -> Builder<T> {
         default()
@@ -194,7 +211,7 @@ pub trait AddElementCtx<T,OnResize> = where
     OnResize: Callback0;
 
 impl<T,OnSet,OnResize>
-Buffer<T,OnSet,OnResize> where Self: AddElementCtx<T,OnResize> {
+BufferData<T,OnSet,OnResize> where Self: AddElementCtx<T,OnResize> {
     /// Adds a single new element initialized to default value.
     pub fn add_element(&mut self) {
         self.add_elements(1);
@@ -207,7 +224,7 @@ Buffer<T,OnSet,OnResize> where Self: AddElementCtx<T,OnResize> {
 }
 
 impl<T,OnSet,OnResize>
-Index<usize> for Buffer<T,OnSet,OnResize> {
+Index<usize> for BufferData<T,OnSet,OnResize> {
     type Output = T;
     fn index(&self, index: usize) -> &Self::Output {
         self.buffer.index(index)
@@ -215,7 +232,7 @@ Index<usize> for Buffer<T,OnSet,OnResize> {
 }
 
 impl<T,OnSet:Callback0,OnResize>
-IndexMut<usize> for Buffer<T,OnSet,OnResize> {
+IndexMut<usize> for BufferData<T,OnSet,OnResize> {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         self.buffer.index_mut(index)
     }
@@ -229,25 +246,26 @@ fn create_gl_buffer(context:&Context) -> WebGlBuffer {
 }
 
 
-// ====================
-// === SharedBuffer ===
-// ====================
+
+// ==============
+// === Buffer ===
+// ==============
 
 /// Shared view for `Buffer`.
-#[derive(Derivative,Shrinkwrap)]
+#[derive(Derivative)]
 #[derivative(Debug(bound="T:Debug"))]
 #[derivative(Clone(bound=""))]
-pub struct SharedBuffer<T,OnSet,OnResize> {
-    rc: Rc<RefCell<Buffer<T,OnSet,OnResize>>>
+pub struct Buffer<T,OnSet,OnResize> {
+    rc: Rc<RefCell<BufferData<T,OnSet,OnResize>>>
 }
 
 impl<T, OnSet:Callback0, OnResize:Callback0>
-SharedBuffer<T,OnSet,OnResize> {
+Buffer<T,OnSet,OnResize> {
     /// Creates a new empty buffer.
     pub fn new
     (context:&Context, logger:Logger, on_set:OnSet, on_resize:OnResize)
      -> Self {
-        let data = Buffer::new(context,logger,on_set,on_resize);
+        let data = BufferData::new(context, logger, on_set, on_resize);
         let rc   = Rc::new(RefCell::new(data));
         Self {rc}
     }
@@ -256,62 +274,62 @@ SharedBuffer<T,OnSet,OnResize> {
     pub fn build
     (context:&Context, builder:Builder<T>, on_set:OnSet, on_resize:OnResize)
      -> Self {
-        let data = Buffer::build(context,builder,on_set,on_resize);
+        let data = BufferData::build(context, builder, on_set, on_resize);
         let rc   = Rc::new(RefCell::new(data));
         Self {rc}
     }
 }
 
 impl<T:Item,OnSet,OnResize>
-SharedBuffer<T,OnSet,OnResize> where Prim<T>: Debug { // TODO: remove Prim<T>: Debug
-/// Check dirty flags and update the state accordingly.
-pub fn update(&self) {
-    self.borrow_mut().update()
-}
+Buffer<T,OnSet,OnResize> where Prim<T>: Debug { // TODO: remove Prim<T>: Debug
+    /// Check dirty flags and update the state accordingly.
+    pub fn update(&self) {
+        self.rc.borrow_mut().update()
+    }
 
     /// binds the buffer currently bound to gl.ARRAY_BUFFER to a generic vertex
     /// attribute of the current vertex buffer object and specifies its layout.
     /// https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/vertexAttribPointer
-    pub fn vertex_attrib_pointer(&self, index: u32) {
-        self.borrow().vertex_attrib_pointer(index)
+    pub fn vertex_attrib_pointer(&self, index:u32, instanced:bool) {
+        self.rc.borrow().vertex_attrib_pointer(index,instanced)
     }
 }
 
 impl<T,OnSet,OnResize>
-SharedBuffer<T,OnSet,OnResize> {
+Buffer<T,OnSet,OnResize> {
     /// Get the variable by given index.
     pub fn get(&self, index:usize) -> Var<T,OnSet,OnResize> {
-        Var::new(index,self.clone_rc())
+        Var::new(index,self.clone())
     }
 
     /// Returns the number of elements in the buffer.
     pub fn len(&self) -> usize {
-        self.borrow().len()
+        self.rc.borrow().len()
     }
 
     /// Checks if the buffer is empty.
     pub fn is_empty(&self) -> bool {
-        self.borrow().is_empty()
+        self.rc.borrow().is_empty()
     }
 
     /// Binds the underlying WebGLBuffer to a given target.
     /// https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/bindBuffer
     pub fn bind(&self, target:u32) {
-        self.borrow().bind(target)
+        self.rc.borrow().bind(target)
     }
 }
 
 impl<T,OnSet,OnResize>
-SharedBuffer<T,OnSet,OnResize> where (): AddElementCtx<T,OnResize> {
+Buffer<T,OnSet,OnResize> where (): AddElementCtx<T,OnResize> {
     /// Adds a single new element initialized to default value.
     pub fn add_element(&self){
-        self.borrow_mut().add_element()
+        self.rc.borrow_mut().add_element()
     }
 }
 
 impl <T,OnSet,OnResize>
-From<Rc<RefCell<Buffer<T,OnSet,OnResize>>>> for SharedBuffer<T,OnSet,OnResize> {
-    fn from(rc: Rc<RefCell<Buffer<T, OnSet, OnResize>>>) -> Self {
+From<Rc<RefCell<BufferData<T,OnSet,OnResize>>>> for Buffer<T,OnSet,OnResize> {
+    fn from(rc: Rc<RefCell<BufferData<T, OnSet, OnResize>>>) -> Self {
         Self {rc}
     }
 }
@@ -323,69 +341,40 @@ From<Rc<RefCell<Buffer<T,OnSet,OnResize>>>> for SharedBuffer<T,OnSet,OnResize> {
 
 /// View for a particular buffer. Allows reading and writing buffer data
 /// via the internal mutability pattern. It is implemented as a view on
-/// a selected `SharedBuffer` element under the hood.
+/// a selected `Buffer` element under the hood.
 #[derive(Clone,Derivative)]
 #[derivative(Debug(bound="T:Debug"))]
 pub struct Var<T,OnSet,OnResize> {
     index  : usize,
-    buffer : SharedBuffer<T,OnSet,OnResize>
+    buffer : Buffer<T,OnSet,OnResize>
 }
 
-impl<T,OnSet,OnResize>
-Var<T,OnSet,OnResize> {
+impl<T,OnSet,OnResize> Var<T,OnSet,OnResize> {
     /// Creates a new variable as an indexed view over provided buffer.
-    pub fn new(index:usize, buffer: SharedBuffer<T,OnSet,OnResize>) -> Self {
+    pub fn new(index:usize, buffer: Buffer<T,OnSet,OnResize>) -> Self {
         Self {index, buffer}
     }
-
-    /// Gets immutable reference to the underlying data.
-    // [1] Please refer to `Prelude::drop_lifetime` docs to learn why it is safe
-    // to use it here.
-    pub fn get(&self) -> IndexGuard<Buffer<T,OnSet,OnResize>> {
-        let _borrow = self.buffer.borrow();
-        let target  = _borrow.index(self.index);
-        let target  = unsafe { drop_lifetime(target) }; // [1]
-        IndexGuard {target,_borrow}
-    }
 }
 
-impl<T,OnSet:Callback0,OnResize>
-Var<T,OnSet,OnResize> {
-    /// Gets mutable reference to the underlying data.
-    // [1] Please refer to `Prelude::drop_lifetime` docs to learn why it is safe
-    // to use it here.
-    pub fn get_mut(&self) -> IndexGuardMut<Buffer<T,OnSet,OnResize>> {
-        let mut _borrow = self.buffer.borrow_mut();
-        let target      = _borrow.index_mut(self.index);
-        let target      = unsafe { drop_lifetime_mut(target) }; // [1]
-        IndexGuardMut {target,_borrow}
+impl<T:Copy,OnSet:Callback0,OnResize> Var<T,OnSet,OnResize> {
+    /// Gets immutable reference to the underlying data.
+    pub fn get(&self) -> T {
+        *self.buffer.rc.borrow().index(self.index)
     }
 
     /// Sets the variable to a new value.
-    pub fn set(&self, val:T) {
-        **self.get_mut() = val;
+    pub fn set(&self, value:T) {
+        *self.buffer.rc.borrow_mut().index_mut(self.index) = value;
     }
 
     /// Modifies the underlying data by using the provided function.
-    pub fn modify<F: FnOnce(&mut T)>(&self, f:F) {
-        f(&mut self.buffer.borrow_mut()[self.index]);
+    pub fn modify<F:FnOnce(&mut T)>(&self, f:F) {
+        let mut value = self.get();
+        f(&mut value);
+        self.set(value);
     }
 }
 
-#[derive(Shrinkwrap)]
-pub struct IndexGuard<'t,T> where T:Index<usize> {
-    #[shrinkwrap(main_field)]
-    pub target : &'t <T as Index<usize>>::Output,
-    _borrow    : Ref<'t,T>
-}
-
-#[derive(Shrinkwrap)]
-#[shrinkwrap(mutable)]
-pub struct IndexGuardMut<'t,T> where T:Index<usize> {
-    #[shrinkwrap(main_field)]
-    pub target : &'t mut <T as Index<usize>>::Output,
-    _borrow    : RefMut<'t,T>
-}
 
 
 // ===============
@@ -468,7 +457,7 @@ macro_rules! mk_any_buffer_impl {
     #[derivative(Debug(bound=""))]
     pub enum AnyBuffer<OnSet, OnResize> {
         $(  [<Variant $base For $param>]
-                (SharedBuffer<$base<$param>, OnSet, OnResize>),
+                (Buffer<$base<$param>, OnSet, OnResize>),
         )*
     }
 
@@ -476,10 +465,10 @@ macro_rules! mk_any_buffer_impl {
 
     impl<'t, T, S>
     TryFrom<&'t AnyBuffer<T, S>>
-    for &'t SharedBuffer<$base<$param>, T, S> {
+    for &'t Buffer<$base<$param>, T, S> {
         type Error = BadVariant;
         fn try_from(v: &'t AnyBuffer<T, S>)
-        -> Result <&'t SharedBuffer<$base<$param>, T, S>, Self::Error> {
+        -> Result <&'t Buffer<$base<$param>, T, S>, Self::Error> {
             match v {
                 AnyBuffer::[<Variant $base For $param>](a) => Ok(a),
                 _ => Err(BadVariant)
@@ -489,10 +478,10 @@ macro_rules! mk_any_buffer_impl {
 
     impl<'t, T, S>
     TryFrom<&'t mut AnyBuffer<T, S>>
-    for &'t mut SharedBuffer<$base<$param>, T, S> {
+    for &'t mut Buffer<$base<$param>, T, S> {
         type Error = BadVariant;
         fn try_from(v: &'t mut AnyBuffer<T, S>)
-        -> Result <&'t mut SharedBuffer<$base<$param>, T, S>, Self::Error> {
+        -> Result <&'t mut Buffer<$base<$param>, T, S>, Self::Error> {
             match v {
                 AnyBuffer::[<Variant $base For $param>](a) => Ok(a),
                 _ => Err(BadVariant)
@@ -523,5 +512,5 @@ pub trait IsBuffer<OnSet: Callback0, OnResize: Callback0> {
     fn is_empty(&self) -> bool;
     fn update(&self);
     fn bind(&self, target:u32);
-    fn vertex_attrib_pointer(&self, index: u32);
+    fn vertex_attrib_pointer(&self, index:u32, instanced:bool);
 }

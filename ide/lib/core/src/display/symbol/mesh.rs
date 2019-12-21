@@ -19,6 +19,64 @@ use eval_tt::*;
 
 use crate::display::symbol::buffer::IsBuffer;
 use crate::display::symbol::display_object::Camera2D;
+use crate::display::symbol::material::shader;
+
+use web_sys::WebGlVertexArrayObject;
+use web_sys::WebGlProgram;
+
+
+// =========================
+// === VertexArrayObject ===
+// =========================
+
+/// A safe wrapper for WebGL VertexArrayObject. It implements `drop` which deletes the VAO from
+/// GPU memory as soon as this object is dropped.
+#[derive(Debug)]
+pub struct VertexArrayObject {
+    context : Context,
+    vao     : WebGlVertexArrayObject,
+}
+
+// === Public API ===
+
+impl VertexArrayObject {
+    /// Creates a new VAO instance.
+    pub fn new(context:&Context) -> Self {
+        let context = context.clone();
+        let vao     = context.create_vertex_array().unwrap();
+        Self {context,vao}
+    }
+
+    /// Binds the VAO, evaluates the provided function, and unbinds the VAO.
+    pub fn with<F:FnOnce() -> T,T>(&self, f:F) -> T {
+        self.bind();
+        let out = f();
+        self.unbind();
+        out
+    }
+}
+
+// === Private API ===
+
+impl VertexArrayObject {
+    fn bind(&self) {
+        self.context.bind_vertex_array(Some(&self.vao));
+    }
+
+    fn unbind(&self) {
+        self.context.bind_vertex_array(None);
+    }
+}
+
+// === Instances ===
+
+impl Drop for VertexArrayObject {
+    fn drop(&mut self) {
+        self.context.delete_vertex_array(Some(&self.vao));
+    }
+}
+
+
 
 // ============
 // === Mesh ===
@@ -38,7 +96,8 @@ pub struct Mesh<OnDirty> {
     pub geometry_dirty : GeometryDirty <OnDirty>,
     pub material_dirty : MaterialDirty <OnDirty>,
     pub logger         : Logger,
-    context            : Context
+    context            : Context,
+    vao                : Option<VertexArrayObject>,
 }
 
 // === Types ===
@@ -70,6 +129,7 @@ fn material_on_change<C:Callback0>(dirty:MaterialDirty<C>) -> OnMaterialChange {
 // === Implementation ===
 
 impl<OnDirty:Callback0+Clone> Mesh<OnDirty> {
+
     /// Create new instance with the provided on-dirty callback.
     pub fn new(ctx:&Context, logger:Logger, on_dirty:OnDirty) -> Self {
         let init_logger = logger.clone();
@@ -86,162 +146,105 @@ impl<OnDirty:Callback0+Clone> Mesh<OnDirty> {
             let mat_on_change   = material_on_change(material_dirty.clone_rc());
             let material        = Material::new(ctx,mat_logger,mat_on_change);
             let geometry        = Geometry::new(ctx,geo_logger,geo_on_change);
-            Self{geometry,material,geometry_dirty,material_dirty,logger,context}
+            let vao             = default();
+            Self{geometry,material,geometry_dirty,material_dirty,logger,context,vao}
         })
     }
+
     /// Check dirty flags and update the state accordingly.
     pub fn update(&mut self) {
         group!(self.logger, "Updating.", {
-            if self.geometry_dirty.check_all() {
+            if self.geometry_dirty.check() {
                 self.geometry.update();
-                self.geometry_dirty.unset_all();
+                self.geometry_dirty.unset();
+            }
+            if self.material_dirty.check() {
+                self.material.update();
+                self.init_vao();
+               self.material_dirty.unset();
             }
         })
     }
 
+    /// Creates a new VertexArrayObject, discovers all variable bindings from material to geometry,
+    /// and initializes the VAO with the bindings.
+    fn init_vao(&mut self) {
+        self.vao = Some(VertexArrayObject::new(&self.context));
+        self.with_program(|program|{
+            let var_bindings = self.discover_variable_bindings();
+            for (variable,opt_scope_type) in &var_bindings {
+                if let Some(scope_type) = opt_scope_type {
+                    let opt_scope = self.geometry.var_scope(*scope_type);
+                    match opt_scope {
+                        None => self.logger.error("Internal error. Invalid var scope."),
+                        Some(scope) => {
+                            let vtx_name = shader::builder::mk_vertex_name(&variable);
+                            let location = self.context.get_attrib_location(program, &vtx_name);
+                            if location < 0 {
+                                self.logger.error(|| format!("Attribute '{}' not found.",vtx_name));
+                            } else {
+                                let location     = location as u32;
+                                let buffer       = &scope.buffer(&variable).unwrap();
+                                let is_instanced = scope_type == &geometry::ScopeType::Instance;
+                                buffer.bind(webgl::Context::ARRAY_BUFFER);
+                                buffer.vertex_attrib_pointer(location, is_instanced);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    /// For each variable from the material definition, looks up its position in geometry scopes.
+    pub fn discover_variable_bindings(&self) -> Vec<(String,Option<geometry::ScopeType>)> {
+        let variables = self.material.collect_variables();
+        variables.into_iter().map(|variable| {
+            let target = self.geometry.lookup_variable(&variable);
+            if target.is_none() {
+                let msg = || format!("Unable to bind variable '{}' to geometry buffer.", variable);
+                self.logger.warning(msg);
+            }
+            (variable,target)
+        }).collect()
+    }
+
+    /// Runs the provided function in a context of active program and active VAO. After the function
+    /// is executed, both program and VAO are bound to None.
+    pub fn with_program<F:FnOnce(&WebGlProgram) -> T,T>(&self, f:F) -> T {
+        let program = self.material.program().as_ref().unwrap(); // FIXME
+        self.context.use_program(Some(&program));
+        let vao = self.vao.as_ref().unwrap(); // FIXME
+        let out = vao.with(|| {
+            f(program)
+        });
+        self.context.use_program(None);
+        out
+    }
+
     pub fn render(&self, camera:&Camera2D) {
         group!(self.logger, "Rendering.", {
-            let vert_shader = webgl::compile_shader(
-                &self.context,
-                webgl::Context::VERTEX_SHADER,
-                r#"#version 300 es
+            self.with_program(|program|{
 
-    precision highp float;
-    precision highp int;
+                // FIXME: do proper uniform management
+                let view_projection_location =
+                    self.context.get_uniform_location(program, "view_projection");
+                camera.update();
+                self.context.set_uniform(&view_projection_location.unwrap(),
+                    &camera.view_projection_matrix());
 
-    in vec4 vertex_position;
-    out vec4 _position;
-
-    in mat4 vertex_model_matrix;
-    out mat4 model_matrix;
-    in vec2 vertex_bbox;
-    out vec2 bbox;
-    in float vertex_symbol_id;
-    out float symbol_id;
-    in float vertex_symbol_family_id;
-    out float symbolFamilyID;
-    in vec2 vertex_uv;
-    out vec2 uv;
-
-    out vec3 local;
-
-    uniform mediump mat4 view_matrix;
-    uniform mediump mat4 projection_matrix;
-    uniform mediump mat4 view_projection_matrix;
-
-    uniform mediump float zoom;
-
-    void main() {
-        model_matrix   = vertex_model_matrix;
-        bbox           = vertex_bbox;
-        symbol_id      = vertex_symbol_id;
-        symbolFamilyID = vertex_symbol_family_id;
-        uv             = vertex_uv;
-
-        vec4 position2 = model_matrix * vec4(0.0,0.0,0.0,1.0);
-
-
-
-        mat4 model_view_projection_matrix = view_projection_matrix * model_matrix;
-
-
-        local       = vec3((uv - 0.5) * bbox, 0.0);
-        gl_Position = model_view_projection_matrix * vec4(local,1.0);
-
-
-
-
-        _position = view_projection_matrix * vec4(local,1.0);
-
-
-//        mat4 model_view_matrix  = view_matrix * model_matrix;
-//        vec4 eyeT               = model_view_matrix * vec4(local,1.0);
-//        gl_Position             = projection_matrix * eyeT;
-//        world                   = gl_Position.xyz;
-//        eye                     = eyeT.xyz;
-//        eye.z                   = -eye.z;
-
-    }
-"#,
-            )
-                .unwrap();
-            let frag_shader = webgl::compile_shader(
-                &self.context,
-                webgl::Context::FRAGMENT_SHADER,
-                r#"#version 300 es
-
-    precision highp float;
-    precision highp int;
-
-    out vec4 out_color;
-    in mat4 model_matrix;
-    in vec4 _position;
-    in vec2 uv;
-
-    in vec3 local;
-
-    uniform mediump mat4 view_matrix;
-    uniform mediump mat4 projection_matrix;
-    uniform mediump mat4 view_projection_matrix;
-
-    void main() {
-        out_color = vec4(uv.x, uv.y, 0.0, 1.0);
-        out_color = vec4(local, 1.0);
-        out_color = _position;
-        out_color = vec4(1.0,1.0,1.0,1.0);
-    }
-"#,
-            )
-                .unwrap();
-
-//            println!("{:?}", self.context.get_shader_info_log(&vert_shader));
-//            println!("{:?}", self.context.get_shader_info_log(&frag_shader));
-
-
-            let program =
-                webgl::link_program(&self.context, &vert_shader, &frag_shader).unwrap();
-
-
-            // === Rendering ==
-
-            self.context.use_program(Some(&program));
-
-
-            self.geometry.scopes.point.name_map.keys().for_each(|name| {
-                let vtx_name = format!("vertex_{}",name);
-                let location = self.context.get_attrib_location(&program, &vtx_name) as u32;
-                // TODO handle missing location
-                let buffer = &self.geometry.scopes.point.buffer(name).unwrap();
-                buffer.bind(webgl::Context::ARRAY_BUFFER);
-                buffer.vertex_attrib_pointer(location);
+                let mode           = webgl::Context::TRIANGLE_STRIP;
+                let first          = 0;
+                let count          = self.geometry.scopes.point.size() as i32;
+                let instance_count = self.geometry.scopes.instance.size() as i32;
+                self.context.draw_arrays_instanced(mode,first,count,instance_count);
             });
 
-
-//            println!("!! 3");
-
-            let view_projection_matrix_location = self.context.get_uniform_location(&program, "view_projection_matrix");
-//            println!("{:?}",view_projection_matrix_location);
-//            println!("{:?}",self.context.get_error());
-
-
-//            println!("----- {} , {}", Context::INVALID_VALUE, Context::INVALID_OPERATION);
-
-
-
-            camera.update();
-            self.context.set_uniform(&view_projection_matrix_location.unwrap(), &camera.view_projection_matrix());
-
-//            println!("CAMERA");
-//            println!("{:?}", camera.view_projection_matrix());
-
-
-            let pts = self.geometry.scopes.point.size();
-            self.context.draw_arrays(webgl::Context::TRIANGLE_STRIP, 0, pts as i32);
-
-//            println!("{:?}",&self.geometry.scopes.point.buffers[0]);
         })
     }
 }
+
+
 
 // ==================
 // === SharedMesh ===
