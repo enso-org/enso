@@ -42,7 +42,7 @@ pub struct Tree<K,V> {
 // ===============
 
 /// A value of type `T` annotated with offset value `off`.
-#[derive(Eq, PartialEq, Debug, Serialize, Deserialize, Shrinkwrap)]
+#[derive(Eq, PartialEq, Debug, Serialize, Deserialize, Shrinkwrap, Iterator)]
 #[shrinkwrap(mutable)]
 pub struct Shifted<T> {
     #[shrinkwrap(main_field)]
@@ -51,7 +51,7 @@ pub struct Shifted<T> {
 }
 
 /// A non-empty sequence of `T`s interspersed by offsets.
-#[derive(Eq, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Eq, PartialEq, Debug, Serialize, Deserialize, Iterator)]
 pub struct ShiftedVec1<T> {
     pub head: T,
     pub tail: Vec<Shifted<T>>
@@ -439,9 +439,17 @@ pub type MacroPattern = Rc<MacroPatternRaw>;
 #[ast] pub enum PatternClass { Normal, Pattern }
 pub type Spaced = Option<bool>;
 
-#[derive(Eq, PartialEq, Hash, Debug, Serialize, Deserialize)]
-pub enum Either<L,R> { Left{value: L}, Right{value: R} }
-pub type Switch<T> = Either<T,T>;
+// Note: Switch Implementation
+#[ast(flat)]
+pub enum Switch<T> { Left{value: T}, Right{value: T} }
+
+// Note: Switch Implementation
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// Switch is not defined as Either<T,T> because an iterator generated for such
+// type would only iterate over right element, while we require both.
+//
+// Switch however does not need to be #[ast], when derive(Iterator) supports
+// enum with struct variants, this attribute should be possible to remove.
 
 pub type MacroPatternMatch<T> = Rc<MacroPatternMatchRaw<T>>;
 #[ast] pub enum MacroPatternMatchRaw<T> {
@@ -634,6 +642,12 @@ impl Ast {
         Ast::from(opr)
     }
 
+    pub fn prefix<Func:Into<Ast>, Arg:Into<Ast>>(func:Func, arg:Arg) -> Ast {
+        let off = 1;
+        let opr = Prefix{ func:func.into(), off, arg:arg.into() };
+        Ast::from(opr)
+    }
+
     pub fn infix<Str0, Str1, Str2>(larg:Str0, opr:Str1, rarg:Str2) -> Ast
     where Str0: ToString
         , Str1: ToString
@@ -765,11 +779,11 @@ mod tests {
     #[test]
     fn ast_wrapping() {
         // We can convert `Var` into AST without worrying about span nor id.
-        let sample_name = "foo".to_string();
-        let v = Var{ name: sample_name.clone() };
-        let ast = Ast::from(v);
+        let ident = "foo".to_string();
+        let v     = Var{ name: ident.clone() };
+        let ast   = Ast::from(v);
         assert_eq!(ast.wrapped.id, None);
-        assert_eq!(ast.wrapped.wrapped.span, sample_name.span());
+        assert_eq!(ast.wrapped.wrapped.span, ident.span());
     }
 
     #[test]
@@ -831,5 +845,18 @@ mod tests {
         assert_contains("bar");
         assert_contains("+");
         assert_eq!(strings.len(), 3);
+    }
+
+
+    #[test]
+    fn iterate_nested() {
+        let a   = Ast::var("a");
+        let b   = Ast::var("b");
+        let c   = Ast::var("c");
+        let ab  = Ast::prefix(a,b);
+        let abc = Ast::prefix(ab, c); // repr is `a b c`
+
+        assert_eq!((&abc).iter().count(), 2); // for App's two children
+        assert_eq!(abc.iter_recursive().count(), 5); // for 2 Apps and 3 Vars
     }
 }

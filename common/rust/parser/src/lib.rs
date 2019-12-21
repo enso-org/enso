@@ -9,7 +9,6 @@ mod wsclient;
 use std::panic;
 use std::ops::DerefMut;
 extern crate console_error_panic_hook;
-use crate::api::IsParser;
 
 /// Handle to a parser implementation.
 ///

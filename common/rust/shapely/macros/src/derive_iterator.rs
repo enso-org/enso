@@ -2,46 +2,207 @@ use prelude::*;
 
 use quote::quote;
 use proc_macro2::{TokenStream,Ident,Span};
-use macro_utils::{fields_list,type_matches,type_depends_on};
+use macro_utils::fields_list;
+use macro_utils::field_ident_token;
+use macro_utils::repr;
+use macro_utils::type_depends_on;
+use macro_utils::type_matches;
+use macro_utils::ty_path_type_args;
+use macro_utils::variant_depends_on;
 use inflector::Inflector;
 
-/// Returns token that refers to the field.
-///
-/// It is the field name for named field and field index for unnamed fields.
-pub fn field_ident_token(field:&syn::Field, index:syn::Index) -> TokenStream {
-    match &field.ident {
-        Some(ident) => quote!(#ident),
-        None        => quote!(#index),
+// =============
+// === IsMut ===
+// =============
+
+/// Describes whether a mutable or immutable iterator is being derived.
+#[derive(Clone,Copy,Debug,PartialEq)]
+pub enum IsMut {
+    Mutable,
+    Immutable,
+}
+
+impl IsMut {
+    fn is_mut(&self) -> bool {
+        *self == IsMut::Mutable
+    }
+
+    /// Returns `mut` token for mutable iterator derivation.
+    fn to_token(&self) -> Option<syn::Token![mut]> {
+        self.is_mut().as_some(<syn::Token![mut]>::default())
+    }
+
+    /// Name of method for generating iterator.
+    fn iter_method(&self) -> TokenStream {
+        if self.is_mut() {
+            quote!(iter_mut)
+        } else {
+            quote!(iter)
+        }
     }
 }
 
-/// Returns identifiers of fields with type matching `target_param`.
+
+// ======================
+// === DependentValue ===
+// ======================
+
+/// A value dependent on out target parameter.
 ///
-/// If the struct is tuple-like, returns index pseudo-identifiers.
-pub fn matching_fields
-( data:&syn::DataStruct
-, target_param:&syn::GenericParam
-) -> Vec<TokenStream> {
-    let fields           = fields_list(&data.fields);
-    let indexed_fields   = fields.iter().enumerate();
-    let ret              = indexed_fields.filter_map(|(i,f)| {
-        let type_matched = type_matches(&f.ty, target_param);
-        type_matched.as_some_from(|| field_ident_token(&f, i.into()))
-    }).collect::<Vec<_>>();
-    ret
+/// Helper methods can be used to generate code yielding values from this.
+pub struct DependentValue<'t> {
+    /// Type of the value (ref-stripped).
+    pub ty          : &'t syn::Type,
+    /// Tokens yielding the value.
+    pub value       : TokenStream,
+    /// Parameter type we want to iterate over.
+    pub target_param: &'t syn::GenericParam,
+    /// Are the value yielded as reference.
+    pub through_ref : bool
 }
 
-/// Does enum variant depend on given type.
-pub fn variant_depends_on
-(var:&syn::Variant, target_param:&syn::GenericParam) -> bool {
-    var.fields.iter().any(|field| type_depends_on(&field.ty, target_param))
+impl<'t> DependentValue<'t> {
+    /// Returns Some when type is dependent and None otherwise.
+    pub fn try_new
+    (ty: &'t syn::Type, value:TokenStream, target_param:&'t syn::GenericParam)
+     -> Option<DependentValue<'t>> {
+        if type_depends_on(ty, target_param) {
+            Some(DependentValue{ty,value,target_param,through_ref:false})
+        } else {
+            None
+        }
+    }
+
+    /// Collects dependent sub-values from the tuple value.
+    pub fn collect_tuple
+    (tuple:&'t syn::TypeTuple, target_param:&'t syn::GenericParam)
+     -> Vec<DependentValue<'t>> {
+        tuple.elems.iter().enumerate().filter_map(|(ix,ty)| {
+            let ix    = syn::Index::from(ix);
+            let ident = quote!(t.#ix);
+            DependentValue::try_new(ty,ident,target_param)
+        }).collect()
+    }
+
+    /// Generates code yielding all values of target type accessible from this
+    /// value.
+    pub fn yield_value(&self, is_mut:IsMut) -> TokenStream {
+        match self.ty {
+            syn::Type::Tuple(tuple) => self.yield_tuple_value(tuple, is_mut),
+            syn::Type::Path(path)   => {
+                if type_matches(&self.ty, &self.target_param) {
+                    self.yield_direct_value(is_mut)
+                } else {
+                    self.yield_dependent_ty_path_value(path,is_mut)
+                }
+            }
+            _ =>
+                panic!("Don't know how to yield value of type {} from type {}"
+                      , repr(&self.target_param), repr(&self.ty)),
+        }
+    }
+
+    /// Code yielding value that directly matches the target parameter type.
+    pub fn yield_direct_value
+    (&self, is_mut:IsMut) -> TokenStream {
+        let value = &self.value;
+        let opt_mut = is_mut.to_token();
+        let opt_ref = (!self.through_ref).as_some(quote!( & #opt_mut ));
+
+        // yield &mut value;
+        quote!(  yield #opt_ref #value; )
+    }
+
+    /// Code yielding values from tuple dependent on the target parameter type.
+    pub fn yield_tuple_value
+    (&self, ty:&syn::TypeTuple,is_mut:IsMut)
+     -> TokenStream {
+        let value     = &self.value;
+        let mut_kwd   = is_mut.to_token();
+        let subfields = DependentValue::collect_tuple(ty, self.target_param);
+        let yield_sub = subfields.iter().map(|f| {
+            f.yield_value(is_mut)
+        }).collect_vec();
+
+        // yield &mut t.0;
+        // yield &mut t.2;
+        quote!( {
+            let t = & #mut_kwd #value;
+            #(#yield_sub)*
+        })
+    }
+
+    /// Obtain the type of iterator-yielded value.
+    ///
+    /// Panics when given a type which is not supported for derivation, like
+    /// having dependent type on the non-last position.
+    pub fn type_path_elem_type(&self, ty_path:&'t syn::TypePath) -> &syn::Type {
+        let mut type_args = ty_path_type_args(ty_path);
+        let     last_arg  = match type_args.pop() {
+            Some(arg) => arg,
+            None      => panic!("Type {} has no segments!", repr(&ty_path))
+        };
+
+        // Last and only last type argument is dependent.
+        for non_last_segment in type_args {
+            assert!(!type_depends_on(non_last_segment, self.target_param)
+                    , "Type {} has non-last argument {} that depends on {}"
+                    , repr(ty_path)
+                    , repr(non_last_segment)
+                    , repr(self.target_param)
+            );
+        }
+        assert!(type_depends_on(last_arg, self.target_param));
+        last_arg
+    }
+
+    /// Code yielding values from data dependent on the target parameter type.
+    pub fn yield_dependent_ty_path_value
+    (&self, ty_path:&'t syn::TypePath, is_mut:IsMut)
+     -> TokenStream {
+        let opt_mut = is_mut.to_token();
+        let elem_ty = self.type_path_elem_type(ty_path);
+        let elem    = quote!(t);
+
+        let elem_info = DependentValue{
+            value        : elem.clone(),
+            target_param : self.target_param,
+            ty           : elem_ty,
+            through_ref  : true,
+        };
+        let yield_elem  = elem_info.yield_value(is_mut);
+        let value       = &self.value;
+        let iter_method = if is_mut.is_mut() {
+            quote!(iter_mut)
+        } else {
+            quote!(iter)
+        };
+
+        quote! {
+            for #opt_mut #elem in #value.#iter_method() {
+                #yield_elem
+            }
+        }
+    }
+
+    /// Describe relevant fields of the struct definition.
+    pub fn collect_struct
+    (data:&'t syn::DataStruct, target_param:&'t syn::GenericParam)
+    -> Vec<DependentValue<'t>> {
+        let fields    = fields_list(&data.fields);
+        let dep_field = fields.iter().enumerate().filter_map(|(i,f)| {
+            let ident = field_ident_token(f,i.into());
+            let value = quote!(t.#ident);
+            DependentValue::try_new(&f.ty,value,target_param)
+        });
+        dep_field.collect()
+    }
 }
 
 /// Parts of derivation output that are specific to enum- or struct- target.
 pub struct OutputParts<'ast> {
     pub iterator_tydefs  : TokenStream,
     pub iter_body        : TokenStream,
-    pub iter_body_mut    : TokenStream,
     pub iterator_params  : Vec<&'ast syn::GenericParam>,
 }
 
@@ -52,44 +213,41 @@ pub struct DerivingIterator<'ast> {
     pub data          : &'ast syn::Data,         // { foo: T }
     pub ident         : &'ast syn::Ident,        // Foo
     pub params        : Vec<&'ast syn::GenericParam>, // <S, T>
-    pub t_iterator    : syn::Ident,              // FooIterator
-    pub t_iterator_mut: syn::Ident,              // FooIteratorMut
-    pub iterator      : syn::Ident,              // foo_iterator
-    pub iterator_mut  : syn::Ident,              // foo_iterator_mut
-    pub target_param  : &'ast syn::GenericParam  // T
+    pub t_iterator    : syn::Ident,               // FooIterator{Mut}
+    pub iterator      : syn::Ident,               // foo_iterator{_mut}
+    pub target_param  : &'ast syn::GenericParam,  // T
+    pub is_mut        : IsMut,                    // are we mutable iterator?
 }
 
 impl DerivingIterator<'_> {
     pub fn new<'ast>
-    (decl: &'ast syn::DeriveInput, target_param : &'ast syn::GenericParam)
-     -> DerivingIterator<'ast> {
-        let data           = &decl.data;
-        let params         = decl.generics.params.iter().collect::<Vec<_>>();
-        let ident          = &decl.ident;
-        let t_iterator     = format!("{}Iterator"    , ident);
-        let t_iterator_mut = format!("{}IteratorMut" , ident);
-        let iterator       = t_iterator.to_snake_case();
-        let iterator_mut   = t_iterator_mut.to_snake_case();
-        let t_iterator     = Ident::new(&t_iterator     , Span::call_site());
-        let t_iterator_mut = Ident::new(&t_iterator_mut , Span::call_site());
-        let iterator       = Ident::new(&iterator       , Span::call_site());
-        let iterator_mut   = Ident::new(&iterator_mut   , Span::call_site());
+    ( decl        :&'ast syn::DeriveInput
+    , target_param:&'ast syn::GenericParam
+    , is_mut      :IsMut
+    ) -> DerivingIterator<'ast> {
+        let mut_or_not = if is_mut.is_mut() { "Mut" } else { "" };
+        let data       = &decl.data;
+        let params     = decl.generics.params.iter().collect();
+        let ident      = &decl.ident;
+        let t_iterator = format!("{}Iterator{}", ident, mut_or_not);
+        let iterator   = t_iterator.to_snake_case();
+        let t_iterator = Ident::new(&t_iterator, Span::call_site());
+        let iterator   = Ident::new(&iterator  , Span::call_site());
         DerivingIterator {
             data,
             ident,
             params,
             t_iterator,
-            t_iterator_mut,
             iterator,
-            iterator_mut,
-            target_param
+            target_param,
+            is_mut,
         }
     }
 
     /// Handles all enum-specific parts.
     pub fn prepare_parts_enum(&self, data:&syn::DataEnum) -> OutputParts {
+        let opt_mut         = &self.is_mut.to_token();
         let t_iterator      = &self.t_iterator;
-        let t_iterator_mut  = &self.t_iterator_mut;
         let ident           = &self.ident;
         let target_param    = &self.target_param;
         let iterator_params = vec!(self.target_param);
@@ -99,18 +257,15 @@ impl DerivingIterator<'_> {
             // type FooIteratorMut<'t, U> =
             //     Box<dyn Iterator<Item=&'t mut U> + 't>;
             type #t_iterator<'t, #(#iterator_params),*>  =
-                Box<dyn Iterator<Item=&'t #target_param> + 't>;
-            type #t_iterator_mut<'t, #(#iterator_params),*> =
-                Box<dyn Iterator<Item=&'t mut #target_param> + 't>;
+                Box<dyn Iterator<Item=&'t #opt_mut #target_param> + 't>;
         );
         // For types that use target type parameter, refer to their
         // `IntoIterator` implementation. Otherwise, use `EmptyIterator`.
         let arms = data.variants.iter().map(|var| {
-            let con = &var.ident;
+            let con  = &var.ident;
             let iter = if variant_depends_on(var, target_param) {
                 quote!(elem.into_iter())
-            }
-            else {
+            } else {
                 quote!(shapely::EmptyIterator::new())
             };
             quote!(#ident::#con(elem) => Box::new(#iter))
@@ -120,26 +275,26 @@ impl DerivingIterator<'_> {
         //     Foo::Con1(elem) => Box::new(elem.into_iter()),
         //     Foo::Con2(elem) => Box::new(shapely::EmptyIterator::new()),
         // }
-        let iter_body       = quote!( match t {  #(#arms,)*  } );
-        let iter_body_mut   = iter_body.clone();
-        OutputParts{iterator_tydefs,iter_body,iter_body_mut,iterator_params}
+        let iter_body = quote!( match t {  #(#arms,)*  } );
+        OutputParts{iterator_tydefs,iter_body,iterator_params}
     }
 
     /// Handles all struct-specific parts.
     pub fn prepare_parts_struct(&self, data:&syn::DataStruct) -> OutputParts {
-        let t_iterator = &self.t_iterator;
-        let t_iterator_mut = &self.t_iterator_mut;
-        let target_param = &self.target_param;
+        let opt_mut         = &self.is_mut.to_token();
+        let t_iterator      = &self.t_iterator;
+        let target_param    = &self.target_param;
         let iterator_params = self.params.clone();
         let iterator_tydefs = quote!(
             // type FooIterator<'t, T>    = impl Iterator<Item = &'t T>;
             // type FooIteratorMut<'t, T> = impl Iterator<Item = &'t mut T>;
             type #t_iterator<'t, #(#iterator_params),*> =
-                impl Iterator<Item = &'t #target_param>;
-            type #t_iterator_mut<'t, #(#iterator_params),*> =
-                impl Iterator<Item = &'t mut #target_param>;
+                impl Iterator<Item = &'t #opt_mut #target_param>;
         );
-        let matched_fields = matching_fields(data, target_param);
+        let matched_fields = DependentValue::collect_struct(data, target_param);
+        let yield_fields = matched_fields.iter().map(|field| {
+            field.yield_value(self.is_mut)
+        }).collect_vec();
 
         // shapely::EmptyIterator::new()
         let empty_body = quote! { shapely::EmptyIterator::new() };
@@ -147,24 +302,19 @@ impl DerivingIterator<'_> {
         // shapely::GeneratingIterator(move || {
         //     yield &t.foo;
         // })
-        let body = quote! {
-            shapely::GeneratingIterator
-            (move || { #(yield &t.#matched_fields;)* })
-        };
-
         // shapely::GeneratingIterator(move || {
         //     yield &mut t.foo;
         // })
-        let body_mut = quote! {
+        let body = quote! {
             shapely::GeneratingIterator
-            (move || { #(yield &mut t.#matched_fields;)* })
+            (move || { #(#yield_fields)* })
         };
 
-        let (iter_body, iter_body_mut) = match matched_fields.is_empty() {
-            true => (empty_body.clone(), empty_body),
-            false => (body, body_mut)
+        let iter_body = match matched_fields.is_empty() {
+            true => (empty_body),
+            false => (body)
         };
-        OutputParts{iterator_tydefs,iter_body,iter_body_mut,iterator_params}
+        OutputParts{iterator_tydefs,iter_body,iterator_params}
     }
 
     /// Handles common (between enum and struct) code and assembles it all
@@ -172,15 +322,14 @@ impl DerivingIterator<'_> {
     pub fn assemble_output(&self, parts:OutputParts) -> TokenStream {
         let iterator_tydefs = &parts.iterator_tydefs;
         let iter_body       = &parts.iter_body;
-        let iter_body_mut   = &parts.iter_body_mut;
         let iterator_params = &parts.iterator_params;
+        let opt_mut         = &self.is_mut.to_token();
         let iterator        = &self.iterator;
-        let iterator_mut    = &self.iterator_mut;
         let t_iterator      = &self.t_iterator;
-        let t_iterator_mut  = &self.t_iterator_mut;
         let params          = &self.params;
         let ident           = &self.ident;
         let target_param    = &self.target_param;
+        let iter_method     = &self.is_mut.iter_method();
 
         quote!{
             #iterator_tydefs
@@ -191,40 +340,29 @@ impl DerivingIterator<'_> {
             //        yield &t.foo;
             //    })
             // }
-            pub fn #iterator<'t, #(#params),*>
-            (t: &'t #ident<#(#params),*>)
-             -> #t_iterator<'t, #(#iterator_params),*> {
-                #iter_body
-            }
-
             // pub fn foo_iterator_mut<'t, T>
             // (t: &'t mut Foo<T>) -> FooIteratorMut<'t, T> {
             //    shapely::GeneratingIterator(move || {
             //        yield &t.foo;
             //    })
             // }
-            pub fn #iterator_mut<'t, #(#params),*>
-            (t: &'t mut #ident<#(#params),*>)
-            -> #t_iterator_mut<'t, #(#iterator_params),*> {
-                #iter_body_mut
+            pub fn #iterator<'t, #(#params),*>
+            (t: &'t #opt_mut #ident<#(#params),*>)
+             -> #t_iterator<'t, #(#iterator_params),*> {
+                #iter_body
             }
 
-            // impl<'t, T> IntoIterator for &'t Foo<T> {
+            // impl<'t, T>
+            // IntoIterator for &'t Foo<T> {
             //     type Item     = &'t T;
             //     type IntoIter = FooIterator<'t, T>;
             //     fn into_iter(self) -> FooIterator<'t, T> {
             //         foo_iterator(self)
             //     }
             // }
-            impl<'t, #(#params),*> IntoIterator for &'t #ident<#(#params),*> {
-                type Item     = &'t #target_param;
-                type IntoIter = #t_iterator<'t, #(#iterator_params),*>;
-                fn into_iter(self) -> #t_iterator<'t, #(#iterator_params),*> {
-                    #iterator(self)
-                }
-            }
-
-            // impl<'t, T> IntoIterator for &'t mut Foo<T> {
+            //
+            // impl<'t, T>
+            // IntoIterator for &'t mut Foo<T> {
             //     type Item     = &'t mut T;
             //     type IntoIter = FooIteratorMut<'t, T>;
             //     fn into_iter(self) -> FooIteratorMut<'t, T> {
@@ -232,12 +370,11 @@ impl DerivingIterator<'_> {
             //     }
             // }
             impl<'t, #(#params),*>
-            IntoIterator for &'t mut #ident<#(#params),*> {
-                type Item     = &'t mut #target_param;
-                type IntoIter = #t_iterator_mut<'t, #(#iterator_params),*>;
-                fn into_iter
-                (self) -> #t_iterator_mut<'t, #(#iterator_params),*> {
-                    #iterator_mut(self)
+            IntoIterator for &'t #opt_mut #ident<#(#params),*> {
+                type Item     = &'t #opt_mut #target_param;
+                type IntoIter = #t_iterator<'t, #(#iterator_params),*>;
+                fn into_iter(self) -> #t_iterator<'t, #(#iterator_params),*> {
+                    #iterator(self)
                 }
             }
 
@@ -250,17 +387,15 @@ impl DerivingIterator<'_> {
             //     }
             // }
             impl<#(#params),*> #ident<#(#params),*> {
-                pub fn iter(&self) -> #t_iterator<'_, #(#iterator_params),*> {
+                pub fn #iter_method
+                (& #opt_mut self) -> #t_iterator<'_, #(#iterator_params),*> {
                     #iterator(self)
-                }
-                pub fn iter_mut
-                (&mut self) -> #t_iterator_mut<'_, #(#iterator_params),*> {
-                    #iterator_mut(self)
                 }
             }
         }
     }
 
+    /// Generates the code that derives desired iterator.
     pub fn output(&self) -> TokenStream {
         let parts = match self.data {
             syn::Data::Struct(data) => self.prepare_parts_struct(data),
@@ -272,10 +407,21 @@ impl DerivingIterator<'_> {
     }
 }
 
+/// Common implementation for deriving iterator through `derive(Iterator)` and
+/// `derive(IteratorMut)`.
 pub fn derive
-(decl: &syn::DeriveInput, target_param : &syn::GenericParam) -> TokenStream {
-    let derive = DerivingIterator::new(decl,target_param);
-    derive.output()
+(input:proc_macro::TokenStream, is_mut:IsMut) -> proc_macro::TokenStream {
+    let decl   = syn::parse_macro_input!(input as syn::DeriveInput);
+    let params = &decl.generics.params.iter().collect::<Vec<_>>();
+    let output = match params.last() {
+        Some(last_param) => {
+            let der = DerivingIterator::new(&decl,last_param,is_mut);
+            der.output()
+        }
+        None =>
+            TokenStream::new(),
+    };
+    output.into()
 }
 
 // Note [Expansion Example]
@@ -285,6 +431,9 @@ pub fn derive
 //
 // #[derive(Iterator)]
 // pub struct Foo<S, T> { foo: T }
+//
+// When different output is generated for mutable and immutable content, both
+// expansions are presented.
 //
 // For examples that are enum-specific rather than struct-specific, the
 // following definition is assumed:

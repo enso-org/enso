@@ -11,7 +11,7 @@ use shapely::*;
 fn is_into_iterator<T: IntoIterator>(){}
 
 fn to_vector<T>(t: T) -> Vec<T::Item>
-where T: IntoIterator,
+where T      : IntoIterator,
       T::Item: Copy {
     t.into_iter().collect()
 }
@@ -20,7 +20,7 @@ where T: IntoIterator,
 // === Struct with single type param ===
 // =====================================
 
-#[derive(Iterator, Eq, PartialEq, Debug)]
+#[derive(Iterator, IteratorMut, Eq, PartialEq, Debug)]
 pub struct PairTT<T>(T, T);
 
 #[test]
@@ -61,7 +61,7 @@ fn derive_iterator_single_t() {
 // === Struct with two type params ===
 // ===================================
 
-#[derive(Iterator, Eq, PartialEq, Debug)]
+#[derive(Iterator, IteratorMut, Eq, PartialEq, Debug)]
 pub struct PairUV<U,V>(U,V);
 
 #[test]
@@ -123,5 +123,39 @@ fn enum_iter2() {
 fn enum_iter3() {
     let v: Foo<i32, i32> = Foo::Con3(Unrecognized{value:"foo".into()});
     let mut v_iter       = v.into_iter();
+    assert!(v_iter.next().is_none());
+}
+
+// =======================
+// === Dependent Types ===
+// =======================
+
+#[derive(Iterator)]
+#[derive(IteratorMut)]
+pub struct DependentTest<U, T> {
+    a:T,
+    b:(T,U,PairUV<U, T>),
+    #[allow(dead_code)]
+    c:PairTT<U>,
+    d:(i32, Option<Vec<T>>),
+}
+
+#[test]
+fn dependent_test_iter() {
+    let val = DependentTest{
+        a : 1,
+        b : (2,3,PairUV(4,5)),
+        c : PairTT(6,6),
+        d : (7, Some(vec![8,9])),
+    };
+    let mut v_iter = val.into_iter();
+    assert_eq!(*v_iter.next().unwrap(), 1);
+    assert_eq!(*v_iter.next().unwrap(), 2);
+    // 3 is `U` in tuple
+    // 4 is `U` in <U,T> pair
+    assert_eq!(*v_iter.next().unwrap(), 5);
+    // 7 is `i32` in tuple
+    assert_eq!(*v_iter.next().unwrap(), 8);
+    assert_eq!(*v_iter.next().unwrap(), 9);
     assert!(v_iter.next().is_none());
 }
