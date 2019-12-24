@@ -114,28 +114,28 @@ impl Logger {
 #[cfg(target_arch = "wasm32")]
 impl Logger {
     pub fn trace<M: LogMsg>(&self, msg: M) {
-        console::debug_1(&self.format(msg));
-        }
+//        console::debug_1(&self.format(msg));
+    }
 
     pub fn info<M: LogMsg>(&self, msg: M) {
-        console::group_1(&self.format(msg));
-        console::group_end();
+//        console::group_1(&self.format(msg));
+//        console::group_end();
     }
 
     pub fn warning<M: LogMsg>(&self, msg: M) {
-        console::warn_1(&self.format(msg));
+//        console::warn_1(&self.format(msg));
     }
 
     pub fn error<M: LogMsg>(&self, msg: M) {
-        console::error_1(&self.format(msg));
+//        console::error_1(&self.format(msg));
     }
 
     pub fn group_begin<M: LogMsg>(&self, msg: M) {
-        console::group_1(&self.format(msg));
+//        console::group_1(&self.format(msg));
     }
 
     pub fn group_end(&self) {
-        console::group_end();
+//        console::group_end();
     }
 }
 

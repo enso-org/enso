@@ -77,14 +77,14 @@ impl WorldTest {
 #[cfg(test)]
 mod tests {
     use web_test::*;
-    use basegl::dirty::traits::*;
+    use basegl::data::dirty::traits::*;
 
     use super::WorldTest;
     use basegl::Color;
     use basegl::display::world::World;
-    use basegl::text::content::TextChange;
-    use basegl::text::content::CharPosition;
-    use basegl::text::TextComponentBuilder;
+    use basegl::display::shape::text::content::TextChange;
+    use basegl::display::shape::text::content::CharPosition;
+    use basegl::display::shape::text::TextComponentBuilder;
 
     use basegl_core_msdf_sys::run_once_initialized;
     use nalgebra::Point2;

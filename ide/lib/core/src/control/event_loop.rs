@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-use crate::control::callback::Callback;
+use crate::control::callback::CallbackMut;
 use crate::control::callback::CallbackHandle;
 use crate::control::callback::CallbackRegistry;
 use crate::system::web;
@@ -20,11 +20,10 @@ use wasm_bindgen::prelude::Closure;
 /// removed as soon as the handle is dropped. You can also use the `forget`
 /// method on the handle to make the callback registered forever, but beware
 /// that it can easily lead to memory leaks.
-#[derive(Shrinkwrap)]
 #[derive(Derivative)]
 #[derivative(Debug, Default)]
 pub struct EventLoop {
-    pub rc: Rc<RefCell<EventLoopData>>,
+    rc: Rc<RefCell<EventLoopData>>,
 }
 
 impl EventLoop {
@@ -37,7 +36,7 @@ impl EventLoop {
     fn init(self) -> Self {
         let data = Rc::downgrade(&self.rc);
         let main = move || { data.upgrade().map(|t| t.borrow_mut().run()); };
-        with(self.borrow_mut(), |mut data| {
+        with(self.rc.borrow_mut(), |mut data| {
             data.main = Some(Closure::new(main));
             data.run();
         });
@@ -46,16 +45,12 @@ impl EventLoop {
 
     /// Add new callback. Returns `CallbackHandle` which when dropped, removes
     /// the callback as well.
-    pub fn add_callback<F: Callback>(&self, callback: F) -> CallbackHandle {
-        self.borrow_mut().callbacks.add(callback)
+    pub fn add_callback<F:CallbackMut>(&self, callback:F) -> CallbackHandle {
+        self.rc.borrow_mut().callbacks.add(callback)
     }
 }
 
-impl From<Rc<RefCell<EventLoopData>>> for EventLoop {
-    fn from(rc: Rc<RefCell<EventLoopData>>) -> Self {
-        Self {rc}
-    }
-}
+
 
 // =====================
 // === EventLoopData ===
@@ -65,9 +60,9 @@ impl From<Rc<RefCell<EventLoopData>>> for EventLoop {
 #[derive(Derivative)]
 #[derivative(Debug, Default)]
 pub struct EventLoopData {
-    pub main      : Option<Closure<dyn FnMut()>>,
-    pub main_id   : i32,
-    pub callbacks : CallbackRegistry,
+    main      : Option<Closure<dyn FnMut()>>,
+    callbacks : CallbackRegistry,
+    main_id   : i32,
 }
 
 impl EventLoopData {
