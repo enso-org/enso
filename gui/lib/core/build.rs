@@ -8,7 +8,6 @@ mod huge_text_generator {
     use std::io::Write;
     use std::path::Path;
 
-
     const MANY        : usize = 100000;
     const NOT_SO_MANY : usize = 100;
 
@@ -31,13 +30,13 @@ mod huge_text_generator {
                 let line_index = i / verses_in_line;
                 let offset     = hash_from(line_index) % 32;
                 let prefix     = (0..offset).map(|_| '|').collect::<String>();
-                writeln!(file, "").unwrap();
-                write!(file, "{}", prefix).unwrap();
+                writeln!(file,"").unwrap();
+                write!(file,"{}",prefix).unwrap();
             }
         }
     }
 
-    fn hash_from(i : usize) -> u64 {
+    fn hash_from(i:usize) -> u64 {
         let mut hasher = DefaultHasher::new();
         i.hash(&mut hasher);
         hasher.finish()

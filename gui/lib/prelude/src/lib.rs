@@ -3,6 +3,7 @@
 //! defines several aliases and utils which may find their place in new
 //! libraries in the future.
 
+#![feature(specialization)]
 #![feature(trait_alias)]
 
 pub use boolinator::Boolinator;
@@ -39,6 +40,11 @@ pub use std::rc::Weak;
 pub use std::slice;
 pub use std::slice::SliceIndex;
 pub use lazy_static::lazy_static;
+
+use nalgebra::Matrix;
+use nalgebra::DimName;
+use nalgebra::Scalar;
+
 
 /// Abstraction for any kind of string as an argument. Functions defined as
 /// `fn test<S:Str>(s: Str) { ... }` can be called with `String`, `&String`,
@@ -102,6 +108,17 @@ impl<T> OptionOps for Option<T> {
 
 
 
+// ================
+// === CloneRef ===
+// ================
+
+/// Like `Clone` but should be implemented only for cheap reference-based clones. Using `clone_ref`
+/// instead of `clone` makes the code more clear and makes it easier to predict its performance.
+pub trait CloneRef {
+    fn clone_ref(&self) -> Self;
+}
+
+
 
 // ===================
 // === WithPhantom ===
@@ -126,6 +143,7 @@ impl<T, P> WithPhantom<T, P> {
         Self { without_phantom, phantom }
     }
 }
+
 
 
 // =====================
@@ -158,6 +176,39 @@ impl<T> RcOps for Rc<T> {
         Rc::clone(self)
     }
 }
+
+
+
+// ===================
+// === TypeDisplay ===
+// ===================
+
+/// Like `Display` trait but for types. However, unlike `Display` it defaults to
+/// `core::any::type_name` if not provided with explicit implementation.
+pub trait TypeDisplay {
+    fn type_display() -> String;
+}
+
+impl<T> TypeDisplay for T {
+    default fn type_display() -> String {
+        type_name::<Self>().to_string()
+    }
+}
+
+// TODO: This impl should be hidden behind a flag. Not everybody using prelude want to import
+//       nalgebra as well.
+impl <T:Scalar,R:DimName,C:DimName,S> TypeDisplay for Matrix<T,R,C,S> {
+    fn type_display() -> String {
+        let cols = <C as DimName>::dim();
+        let rows = <R as DimName>::dim();
+        let item = type_name::<T>();
+        match cols {
+            1 => format!("Vector{}<{}>"    , rows, item),
+            _ => format!("Matrix{}x{}<{}>" , rows, cols, item)
+        }
+    }
+}
+
 
 
 // =================================================================================================

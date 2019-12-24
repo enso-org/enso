@@ -2,7 +2,6 @@
 
 members = [
     "build-utilities",
-    "lib/backend/webgl",
     "lib/core",
     "lib/core/embedded-fonts",
     "lib/core/msdf-sys",

@@ -6,12 +6,11 @@ use std::slice;
 // === OptVec ===
 // ==============
 
-/// A contiguous growable sparse array type. Similar to `Vec<T>`, but allowing
-/// missing values. After a value is removed, it remembers the index for reuse
-/// in the future.
+/// A contiguous growable sparse array type. Similar to `Vec<T>`, but allowing missing values.
+/// After a value is removed, it remembers the index for reuse in the future.
 #[derive(Derivative)]
 #[derivative(Default(bound = ""))]
-#[derive(Clone, Debug, Shrinkwrap)]
+#[derive(Clone,Debug,Shrinkwrap)]
 pub struct OptVec<T> {
     #[shrinkwrap(main_field)]
     pub items: Vec<Option<T>>,
@@ -19,30 +18,34 @@ pub struct OptVec<T> {
 }
 
 pub type Ix                     = usize;
-pub type Iter           <'t, T> = FilterMap<slice::Iter<'t, Option<T>>, OptionAsRef<T>>;
+pub type Iter           <'t, T> = FilterMap<slice::Iter   <'t, Option<T>>, OptionAsRef   <T>>;
 pub type IterMut        <'t, T> = FilterMap<slice::IterMut<'t, Option<T>>, OptionAsRefMut<T>>;
-pub type OptionAsRef        <T> = for<'r> fn(&'r Option<T>) -> Option<&'r T>;
+pub type OptionAsRef        <T> = for<'r> fn(&'r     Option<T>) -> Option<&'r     T>;
 pub type OptionAsRefMut     <T> = for<'r> fn(&'r mut Option<T>) -> Option<&'r mut T>;
 
 impl<T> OptVec<T> {
-    /// Constructs a new, empty `Vec<T>`. It will not allocate until elements
-    /// are pushed onto it.
-    pub fn new() -> Self { default() }
+    /// Constructs a new, empty `Vec<T>`. It will not allocate until elements are pushed onto it.
+    pub fn new() -> Self {
+        default()
+    }
 
+    /// Inserts the provided element to the vector. It reuses free indexes if any.
     pub fn insert(&mut self, item: T) -> Ix {
         self.insert_with_ix(|_| item)
     }
 
+    /// Iterator.
     pub fn iter(&self) -> Iter<T> {
         self.items.iter().filter_map(Option::as_ref)
     }
 
+    /// Mutable iterator.
     pub fn iter_mut(&mut self) -> IterMut<T> {
         self.items.iter_mut().filter_map(Option::as_mut)
     }
 
-    /// Finds a free index and inserts the element. The index is re-used in case
-    /// the array is sparse or is added in case of no free places.
+    /// Finds a free index and inserts the element. The index is re-used in case the array is sparse
+    /// or is added in case of no free places.
     pub fn insert_with_ix<F: FnOnce(Ix) -> T>(&mut self, f: F) -> Ix {
         match self.free_ixs.pop() {
             None => {
@@ -57,6 +60,8 @@ impl<T> OptVec<T> {
         }
     }
 
+    /// Reserve an index for further reuse. Please remember that you cannot use the index to read
+    /// values unless the value is set.
     pub fn reserve_ix(&mut self) -> Ix {
         self.free_ixs.pop().unwrap_or_else(|| {
             let ix = self.items.len();
@@ -65,13 +70,13 @@ impl<T> OptVec<T> {
         })
     }
 
+    /// Sets the value at given index. Panics if the index was already freed.
     pub fn set(&mut self, ix:Ix, t:T) {
         self.items[ix] = Some(t);
     }
 
-    /// Removes the element at provided index and marks the index to be reused.
-    /// Does nothing if the index was already empty. Panics if the index was out
-    /// of bounds.
+    /// Removes the element at provided index and marks the index to be reused. Does nothing if the
+    /// index was already empty. Panics if the index was out of bounds.
     pub fn remove(&mut self, ix: Ix) -> Option<T> {
         let item = self.items[ix].take();
         item.iter().for_each(|_| self.free_ixs.push(ix));
@@ -90,6 +95,9 @@ impl<T> OptVec<T> {
     }
 }
 
+
+// === Indexing ===
+
 impl<T> Index<usize> for OptVec<T> {
     type Output = T;
     fn index(&self, ix: usize) -> &Self::Output {
@@ -103,9 +111,8 @@ impl<T> IndexMut<usize> for OptVec<T> {
     }
 }
 
-// ============
-// === Iter ===
-// ============
+
+// === Iterators ===
 
 impl<'a, T> IntoIterator for &'a OptVec<T> {
    type Item     = &'a T;
@@ -123,6 +130,12 @@ impl<'a, T> IntoIterator for &'a mut OptVec<T> {
     }
 }
 
+
+
+// =============
+// === Tests ===
+// =============
+
 #[cfg(test)]
 mod tests {
    use super::*;
@@ -130,30 +143,31 @@ mod tests {
    #[test]
    fn test_add() {
        let mut v = OptVec::new();
-       assert!(v.is_empty(), "OptVec should be created empty");
+       assert!(v.is_empty());
 
        let ix1 = v.insert(1);
-       assert_eq!(ix1, 0, "ix1 should be indexed at 0");
-       assert_eq!(v.len(), 1, "OptVec should have 1 item now");
-       assert!(!v.is_empty(), "OptVec is no longer empty now");
+       assert_eq!(ix1,0);
+       assert_eq!(v.len(),1);
+       assert!(!v.is_empty());
 
        let ix2 = v.insert(2);
-       assert_eq!(ix2, 1, "ix2 should be indexed at 1");
-       assert_eq!(v.len(), 2);
+       assert_eq!(ix2,1);
+       assert_eq!(v.len(),2);
 
-       v.remove(ix1); // remove ix1 (0) and make 0 index free
-       assert_eq!(v.len(), 1); // removing should decrease len by 1
+       v.remove(ix1);
+       assert_eq!(v.len(),1);
 
-       v.remove(ix2); // remove ix2 (1) and make 1 index free
-       assert_eq!(v.len(), 0);
-       assert!(v.is_empty(), "OptVec should be empty now");
+       v.remove(ix2);
+       assert_eq!(v.len(),0);
+       assert!(v.is_empty());
 
        let ix3 = v.insert(3);
-       assert_eq!(v.len(), 1);
+       assert_eq!(v.len(),1);
+
        let ix4 = v.insert(4);
-       assert_eq!(ix3, 1, "ix3 should be the first freed index");
-       assert_eq!(ix4, 0, "ix4 should be the second freed index");
-       assert_eq!(v.len(), 2);
+       assert_eq!(ix3,1);
+       assert_eq!(ix4,0);
+       assert_eq!(v.len(),2);
    }
 
    #[test]
@@ -163,17 +177,15 @@ mod tests {
        let  ix1 = v.insert(0);
        let _ix2 = v.insert(1);
        let _ix3 = v.insert(2);
+       assert_eq!(v.len(),3);
 
-       assert_eq!(v.len(), 3, "OptVec should have 3 items");
-
-       for (i, value) in v.into_iter().enumerate() {
+       for (i,value) in v.into_iter().enumerate() {
            assert_eq!(i, *value);
        }
 
        v.remove(ix1);
-       assert_eq!(v.len(), 2, "OptVec should have 2 items");
-       for (i, value) in v.into_iter().enumerate() {
-           // we add + 1, because the fisrt item is 1 now.
+       assert_eq!(v.len(),2);
+       for (i,value) in v.into_iter().enumerate() {
            assert_eq!(i + 1, *value);
        }
    }
@@ -185,17 +197,12 @@ mod tests {
         let  ix1 = v.insert(0);
         let _ix2 = v.insert(1);
         let _ix3 = v.insert(2);
-
-        assert_eq!(v.len(), 3, "OptVec should have 3 items");
+        assert_eq!(v.len(),3);
 
         v.remove(ix1);
+        assert_eq!(v.len(),2);
 
-        assert_eq!(v.len(), 2, "OptVec should have 2 items");
-
-        for value in &mut v {
-            *value *= 2;
-        }
-
+        for value in &mut v { *value *= 2; }
         for (i, value) in v.into_iter().enumerate() {
             assert_eq!((i + 1) * 2, *value);
         }

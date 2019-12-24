@@ -45,7 +45,7 @@ use crate::prelude::*;
 
 use crate::closure;
 use crate::data::opt_vec::OptVec;
-use crate::dirty;
+use crate::data::dirty;
 use crate::system::web::group;
 
 use nalgebra::Matrix4;

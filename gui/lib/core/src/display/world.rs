@@ -1,23 +1,26 @@
+pub mod scene;
+pub mod workspace;
+
 use crate::prelude::*;
 
 pub use crate::data::container::*;
-pub use crate::display::workspace::MeshID;
+pub use crate::display::world::workspace::SymbolId;
 
 use crate::closure;
 use crate::control::callback::CallbackHandle;
 use crate::control::event_loop::EventLoop;
 use crate::data::opt_vec::OptVec;
-use crate::dirty;
-use crate::dirty::traits::*;
-use crate::display::workspace;
+use crate::data::dirty;
+use crate::data::dirty::traits::*;
 use crate::promote_all;
 use crate::promote_workspace_types;
 use crate::promote;
 use crate::system::web::group;
 use crate::system::web::Logger;
-use crate::text::font::Fonts;
+use crate::display::shape::text::font::Fonts;
 
 use eval_tt::*;
+
 
 
 // =============
@@ -40,11 +43,13 @@ pub struct World {
     pub self_reference  : Option<WorldRef>
 }
 
+
 // === Types ===
 
 pub type WorkspaceID    = usize;
 pub type WorkspaceDirty = dirty::SharedSet<WorkspaceID>;
 promote_workspace_types!{ [[WorkspaceOnChange]] workspace }
+
 
 // === Callbacks ===
 
@@ -52,6 +57,7 @@ closure! {
 fn workspace_on_change(dirty:WorkspaceDirty, ix:WorkspaceID) -> WorkspaceOnChange {
     || dirty.set(ix)
 }}
+
 
 // === Implementation ===
 
@@ -93,7 +99,7 @@ impl World {
         let dirty  = &self.workspace_dirty;
         self.workspaces.insert_with_ix(|ix| {
             group!(logger, format!("Adding workspace {} ({}).", ix, name), {
-                let on_change     = workspace_on_change(dirty.clone_rc(),ix);
+                let on_change     = workspace_on_change(dirty.clone_ref(),ix);
                 let wspace_logger = logger.sub(ix.to_string());
                 Workspace::new(name,wspace_logger,on_change).unwrap() // FIXME
             })
@@ -125,14 +131,14 @@ impl World {
 
     /// Check dirty flags and update the state accordingly.
     pub fn update(&mut self) {
-//        if self.workspace_dirty.check_all() {
-//            group!(self.logger, "Updating.", {
+        if self.workspace_dirty.check_all() {
+            group!(self.logger, "Updating.", {
         // FIXME render only needed workspaces.
         self.workspace_dirty.unset_all();
         let fonts = &mut self.fonts;
         self.workspaces.iter_mut().for_each(|t| t.update(fonts));
-//            });
-//        }
+            });
+        }
     }
 
     // [Adam Obuchowicz]
@@ -193,6 +199,7 @@ impl Drop for World {
 }
 
 
+
 // ================
 // === WorldRef ===
 // ================
@@ -225,6 +232,7 @@ impl<T> Add<T> for WorldRef where World: Add<T> {
         self.borrow_mut().add(t)
     }
 }
+
 
 // === Instances ===
 
