@@ -3,6 +3,8 @@ use crate::data::opt_vec::*;
 
 type Index = usize;
 
+
+
 // =============
 // === Scene ===
 // =============
@@ -38,20 +40,24 @@ impl<T> Scene<T> {
     pub fn is_empty(&self) -> bool {
         self.objects.is_empty()
     }
+
+    /// Gets mutable iterator.
+    pub fn iter_mut(&mut self) -> IterMut<'_, T> { self.objects.iter_mut() }
+
+    /// Gets iterator.
+    pub fn iter(&self) -> Iter<'_, T> { self.objects.iter() }
 }
 
 impl<'a, T> IntoIterator for &'a Scene<T> {
     type Item = &'a T;
     type IntoIter = Iter<'a, T>;
     fn into_iter(self) -> Self::IntoIter {
-        self.objects.into_iter()
+        self.iter()
     }
 }
 
 impl<'a, T> IntoIterator for &'a mut Scene<T> {
     type Item = &'a mut T;
-    type IntoIter = IterMut<'a, T>;
-    fn into_iter(self) -> Self::IntoIter {
-        (&mut self.objects).into_iter()
-    }
+    type IntoIter = IterMut<'a, T>  ;
+    fn into_iter(self) -> Self::IntoIter { self.iter_mut() }
 }

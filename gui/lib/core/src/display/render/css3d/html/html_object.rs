@@ -6,22 +6,35 @@ use crate::system::web::dyn_into;
 use crate::system::web::Result;
 use crate::system::web::Error;
 use crate::system::web::StyleSetter;
+use crate::traits::HasPosition;
 
-use nalgebra::Vector2;
+use nalgebra::{Vector2, Vector3};
 use web_sys::HtmlElement;
+
+
 
 // ==================
 // === HTMLObject ===
 // ==================
 
 /// A structure for representing a 3D HTMLElement in a `HTMLScene`.
-#[derive(Shrinkwrap, Debug)]
+#[derive(Shrinkwrap, Debug, Clone)]
 #[shrinkwrap(mutable)]
 pub struct HTMLObject {
     #[shrinkwrap(main_field)]
     pub object     : Object,
     pub dom        : HtmlElement,
     dimensions     : Vector2<f32>,
+}
+
+impl HasPosition for HTMLObject {
+    fn position(&self) -> Vector3<f32> {
+        self.object.position()
+    }
+
+    fn set_position(&mut self, position:Vector3<f32>) {
+        self.object.set_position(position)
+    }
 }
 
 impl HTMLObject {

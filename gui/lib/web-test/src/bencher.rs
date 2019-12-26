@@ -2,12 +2,13 @@ use crate::prelude::*;
 
 use super::BenchContainer;
 pub use crate::system::web::get_performance;
-pub use crate::system::web::AnimationFrameLoop;
+pub use crate::system::web::animation_frame_loop::AnimationFrameLoop;
 
 use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsCast;
 use std::rc::Rc;
 use std::cell::RefCell;
+
 
 
 // ===================
@@ -46,6 +47,7 @@ impl BencherCell {
 }
 
 
+
 // ===================
 // === BencherData ===
 // ===================
@@ -66,7 +68,7 @@ impl BencherData {
         let data_clone = self.clone();
         let performance = get_performance().expect("Performance object");
         let mut t0 = performance.now();
-        let anim_loop = AnimationFrameLoop::new(Box::new(move || {
+        let anim_loop = AnimationFrameLoop::new(Box::new(move |_| {
             let mut data = data_clone.borrow_mut();
 
             (&mut data.func)();
@@ -90,6 +92,8 @@ impl BencherData {
         self.borrow().anim_loop.is_some()
     }
 }
+
+
 
 // ===============
 // === Bencher ===
