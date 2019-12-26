@@ -24,8 +24,10 @@ mod tests {
     use basegl::display::render::css3d::html::HTMLRenderer;
     use basegl::system::web::StyleSetter;
     use basegl::system::web::get_performance;
+    use basegl::traits::HasPosition;
     use web_test::*;
     use web_sys::Performance;
+    use nalgebra::Vector3;
 
     #[web_test(no_container)]
     fn invalid_container() {
@@ -44,7 +46,7 @@ mod tests {
         assert_eq!((view_dim.x, view_dim.y), (320.0, 240.0));
 
         let mut object = HTMLObject::new("div").unwrap();
-        object.set_position(0.0, 0.0, 0.0);
+        object.set_position(Vector3::new(0.0, 0.0, 0.0));
         object.dom.set_property_or_panic("background-color", "black");
         object.set_dimensions(100.0, 100.0);
         scene.add(object);
@@ -52,7 +54,7 @@ mod tests {
         let aspect_ratio = view_dim.x / view_dim.y;
         let mut camera = Camera::perspective(45.0, aspect_ratio, 1.0, 1000.0);
         // We move the Camera behind the object so we don't see it.
-        camera.set_position(0.0, 0.0, -100.0);
+        camera.set_position(Vector3::new(0.0, 0.0, -100.0));
 
         renderer.render(&mut camera, &scene);
     }
@@ -76,7 +78,7 @@ mod tests {
                 let x = (i * axis.0) as f32;
                 let y = (i * axis.1) as f32;
                 let z = (i * axis.2) as f32;
-                object.set_position(x, y, z);
+                object.set_position(Vector3::new(x, y, z));
 
                 // Creates a gradient color based on the axis.
                 let r = (x * 25.5) as u8;
@@ -105,7 +107,7 @@ mod tests {
         let mut camera = Camera::perspective(45.0, aspect_ratio, 1.0, 1000.0);
 
         // We move the Camera 29 units away from the center.
-        camera.set_position(0.0, 0.0, 29.0);
+        camera.set_position(Vector3::new(0.0, 0.0, 29.0));
 
         renderer.render(&mut camera, &scene);
     }
@@ -125,7 +127,7 @@ mod tests {
         let mut camera = Camera::perspective(45.0, aspect_ratio, 1.0, 1000.0);
 
         // We move the Camera -29 units away from the center.
-        camera.set_position(0.0, 0.0, -29.0);
+        camera.set_position(Vector3::new(0.0, 0.0, -29.0));
         // We rotate it 180 degrees so we can see the center of the scene
         // from behind.
         camera.set_rotation(0.0, PI, 0.0);
@@ -150,7 +152,7 @@ mod tests {
         b.iter(move || {
             let t = (performance.now() / 1000.0) as f32;
             // We move the Camera 29 units away from the center.
-            camera.set_position(t.sin() * 5.0, t.cos() * 5.0, 29.0);
+            camera.set_position(Vector3::new(t.sin() * 5.0, t.cos() * 5.0, 29.0));
 
             renderer.render(&mut camera, &scene);
         })
@@ -174,7 +176,7 @@ mod tests {
             x += (y * 1.25 + t * 2.50).cos() * 0.5;
             y += (z * 1.25 + t * 2.00).cos() * 0.5;
             z += (x * 1.25 + t * 3.25).cos() * 0.5;
-            object.set_position(x * 5.0, y * 5.0, z * 5.0);
+            object.set_position(Vector3::new(x * 5.0, y * 5.0, z * 5.0));
 
             let faster_t = t * 100.0;
             let r = (i +   0.0 + faster_t) as u8 % 255;
@@ -208,7 +210,7 @@ mod tests {
                          .expect("Couldn't get performance obj");
 
         // We move the Camera 29 units away from the center.
-        camera.set_position(0.0, 0.0, 29.0);
+        camera.set_position(Vector3::new(0.0, 0.0, 29.0));
 
         make_sphere(&mut scene, &performance);
 
@@ -241,7 +243,7 @@ mod tests {
                          .expect("Couldn't get performance obj");
 
         // We move the Camera 29 units away from the center.
-        camera.set_position(0.0, 0.0, 29.0);
+        camera.set_position(Vector3::new(0.0, 0.0, 29.0));
 
         b.iter(move || {
             make_sphere(&mut scene, &performance);

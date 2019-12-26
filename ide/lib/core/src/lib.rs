@@ -26,6 +26,7 @@ pub mod control;
 pub mod data;
 pub mod debug;
 pub mod display;
+pub mod traits;
 
 pub use basegl_prelude as prelude;
 pub mod system {

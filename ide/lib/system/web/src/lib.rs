@@ -1,8 +1,7 @@
 #![feature(trait_alias)]
 
 pub mod resize_observer;
-mod animationframeloop;
-pub use animationframeloop::AnimationFrameLoop;
+pub mod animation_frame_loop;
 
 use basegl_prelude::*;
 
@@ -113,24 +112,24 @@ impl Logger {
 
 #[cfg(target_arch = "wasm32")]
 impl Logger {
-    pub fn trace<M: LogMsg>(&self, msg: M) {
+    pub fn trace<M: LogMsg>(&self, _msg: M) {
 //        console::debug_1(&self.format(msg));
     }
 
-    pub fn info<M: LogMsg>(&self, msg: M) {
+    pub fn info<M: LogMsg>(&self, _msg: M) {
 //        console::group_1(&self.format(msg));
 //        console::group_end();
     }
 
-    pub fn warning<M: LogMsg>(&self, msg: M) {
+    pub fn warning<M: LogMsg>(&self, _msg: M) {
 //        console::warn_1(&self.format(msg));
     }
 
-    pub fn error<M: LogMsg>(&self, msg: M) {
+    pub fn error<M: LogMsg>(&self, _msg: M) {
 //        console::error_1(&self.format(msg));
     }
 
-    pub fn group_begin<M: LogMsg>(&self, msg: M) {
+    pub fn group_begin<M: LogMsg>(&self, _msg: M) {
 //        console::group_1(&self.format(msg));
     }
 
@@ -232,7 +231,7 @@ pub fn get_webgl2_context
     context.dyn_into().map_err(|_| no_webgl())
 }
 
-pub fn request_animation_frame(f:&Closure<dyn FnMut()>) -> Result<i32> {
+pub fn request_animation_frame(f:&Closure<dyn FnMut(f32)>) -> Result<i32> {
     let req = window()?.request_animation_frame(f.as_ref().unchecked_ref());
     req.map_err(|_| Error::missing("requestAnimationFrame"))
 }

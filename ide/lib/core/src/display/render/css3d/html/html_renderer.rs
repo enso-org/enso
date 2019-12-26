@@ -18,6 +18,12 @@ use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::JsValue;
 use web_sys::HtmlElement;
 
+
+
+// ===================
+// === Js Bindings ===
+// ===================
+
 mod js {
     use super::*;
     #[wasm_bindgen(module = "/src/display/render/css3d/html/snippets.js")]
@@ -73,6 +79,8 @@ fn setup_camera_transform
         )
     }
 }
+
+
 
 // ========================
 // === HTMLRendererData ===
@@ -145,7 +153,7 @@ impl HTMLRenderer {
 
     /// Renders the `Scene` from `Camera`'s point of view.
     pub fn render(&self, camera: &mut Camera, scene: &Scene<HTMLObject>) {
-        let trans_cam    = camera.transform.to_homogeneous().try_inverse();
+        let trans_cam    = camera.transform().to_homogeneous().try_inverse();
         let trans_cam    = trans_cam.expect("Camera's matrix is not invertible.");
         let trans_cam    = trans_cam.map(eps);
         let trans_cam    = invert_y(trans_cam);
@@ -166,7 +174,7 @@ impl HTMLRenderer {
 
         let scene : &Scene<HTMLObject> = &scene;
         for object in &mut scene.into_iter() {
-            let mut transform = object.transform.to_homogeneous();
+            let mut transform = object.transform().to_homogeneous();
             transform.iter_mut().for_each(|a| *a = eps(*a));
 
             let parent_node  = object.dom.parent_node();

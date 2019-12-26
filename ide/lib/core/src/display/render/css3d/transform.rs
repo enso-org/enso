@@ -5,6 +5,8 @@ use nalgebra::Quaternion;
 use nalgebra::UnitQuaternion;
 use nalgebra::Vector3;
 
+
+
 // =============
 // === Utils ===
 // =============
@@ -22,12 +24,14 @@ fn from_euler_angles_pry(roll:f32, pitch:f32, yaw:f32) -> UnitQuaternion<f32> {
     ))
 }
 
+
+
 // =================
 // === Transform ===
 // =================
 
 /// A structure representing 3D Position, Rotation and Scale.
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Transform {
     pub translation : Vector3<f32>,
     pub rotation    : UnitQuaternion<f32>,
@@ -48,8 +52,8 @@ impl Transform {
     pub fn identity() -> Self { default() }
 
     /// Sets Transform's translation.
-    pub fn set_translation(&mut self, x:f32, y:f32, z:f32) {
-        self.translation = Vector3::new(x, y, z);
+    pub fn set_translation(&mut self, translation:Vector3<f32>) {
+        self.translation = translation;
     }
 
     /// Gets Transform's translation.
@@ -121,6 +125,8 @@ impl Transform {
     }
 }
 
+
+
 // =============
 // === Tests ===
 // =============
@@ -147,7 +153,7 @@ mod test {
         use std::f32::consts::PI;
 
         let mut transform = Transform::identity();
-        transform.set_translation(1.0, 2.0, 3.0);
+        transform.set_translation(Vector3::new(1.0, 2.0, 3.0));
         transform.set_scale(3.0, 2.0, 1.0);
         transform.set_rotation(PI * 2.0, PI, PI / 2.0);
 
