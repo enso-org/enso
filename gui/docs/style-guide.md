@@ -78,6 +78,7 @@ impl Default for AxisOrder {
 }
 
 
+
 // =================
 // === Transform ===
 // =================
@@ -96,6 +97,7 @@ pub enum TransformOrder {
 impl Default for TransformOrder {
     fn default() -> Self { Self::ScaleRotateTranslate }
 }
+
 
 
 // =============================
@@ -123,6 +125,7 @@ impl<OnChange> HierarchicalTransform<OnChange> {
     }
 }
 
+
 // === Getters ===
 
 impl<OnChange> HierarchicalTransform<OnChange> {
@@ -136,6 +139,7 @@ impl<OnChange> HierarchicalTransform<OnChange> {
 
     ...
 }
+
 
 // === Setters ===
 
@@ -157,11 +161,14 @@ impl<OnChange:Callback0> HierarchicalTransform<OnChange> {
 
 ### Vertical spacing
 We use the following amount of vertical spacing:
-- 2 blank lines after imports
-- 2 blank lines before each section.
-- 1 blank line before and after sub-section.
+- 3 blank lines after imports.
+- 3 blank lines before each section.
+- 2 blank line before and after sub-section.
 - 1 blank line before functions / structures / impls.
 - 1 blank line at the end of the file.
+
+Please note that vertical spacing overlapps. For example, if there is a section
+after imports, the total number of blank lines is 3, not 6.
 
 
 ### Multiline Expressions
