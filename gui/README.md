@@ -23,7 +23,6 @@ installer](https://rustup.rs/):
 ```bash
 rustup toolchain install nightly-2019-11-04 # Install the nightly channel.
 rustup default nightly                      # Set it as the default one.
-rustup component add rustfmt                # Install the code auto-formatter.
 rustup component add clippy                 # Install the linter.
 ```
 
@@ -75,9 +74,9 @@ Please note that this codebase does not use `rustfmt`. Please read the following
 documents to learn more about reasons behind this decision and the recommended
 code style guide. Be sure to carefully read the documents before contributing to
 this repository:
-- [Rust style guide](https://github.com/luna/basegl/blob/master/docs/style-guide.md)
+- [Rust style guide 1](https://github.com/luna/basegl/blob/master/docs/style-guide.md)
 - [Rust style
-  guide](https://github.com/luna/enso/blob/master/doc/rust-style-guide.md) 
+  guide 2](https://github.com/luna/enso/blob/master/doc/rust-style-guide.md) 
 
 
 #### Linting 
