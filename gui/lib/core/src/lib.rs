@@ -146,7 +146,6 @@ mod example_01 {
         let make_widget = |scope: &mut VarScope| {
             let inst_1_ix = scope.add_instance();
             let transform1 = transform.get(inst_1_ix);
-//            transform1.modify(|t| {t.append_translation_mut(&Vector3::new( 0.0,0.0,0.0));}); // DELETEME
             Widget::new(Logger::new("widget"),transform1)
         };
 
@@ -158,7 +157,7 @@ mod example_01 {
 
 
         let mut widgets: Vec<Widget> = default();
-        let count = 1000;
+        let count = 100;
         for _ in 0 .. count {
             let widget = make_widget(inst_scope);
             widgets.push(widget);
@@ -168,23 +167,47 @@ mod example_01 {
 
 
         let mut i:i32 = 0;
-        world.on_frame(move |_| on_frame(&mut i,&w1, &mut widgets,&performance)).forget();
+        world.on_frame(move |w| on_frame(w,&mut i,&w1, &mut widgets,&performance,wspace_id,sym_id,&transform)).forget();
 
 
     }
 
+    #[allow(clippy::too_many_arguments)]
     #[allow(clippy::many_single_char_names)]
-    pub fn on_frame(ii:&mut i32, w1:&Widget, widgets:&mut Vec<Widget>, performance:&Performance) {
+    pub fn on_frame(world:&mut World, ii:&mut i32, w1:&Widget, widgets:&mut Vec<Widget>, performance:&Performance, wspace_id:WorkspaceID, sym_id:SymbolId, transform : &Buffer<Matrix4<f32>>) {
 //        camera.mod_position(|p| {
 //            p.x -= 0.1;
 //            p.z += 1.0
 //        });
+
+        let workspace : &mut Workspace = &mut world[wspace_id];
+        let symbol    : &mut Symbol    = &mut workspace[sym_id];
+        let mesh      : &mut Mesh      = &mut symbol.surface;
+        let scopes    : &mut Scopes    = &mut mesh.scopes;
+        let inst_scope: &mut VarScope  = &mut scopes.instance;
+
+        let make_widget = |scope: &mut VarScope| {
+            let inst_1_ix = scope.add_instance();
+            let transform1 = transform.get(inst_1_ix);
+            Widget::new(Logger::new("widget"),transform1)
+        };
+
+
+
         w1.transform.mod_position(|p| p.y += 0.5);
         w1.transform.update();
 
         *ii += 1;
 
-        if *ii < 1000i32 {
+        if *ii < 200i32 {
+            let count = 100;
+            if widgets.len() < 100_000 {
+                for _ in 0..count {
+                    let widget = make_widget(inst_scope);
+                    widgets.push(widget);
+                }
+            }
+
             let t = (performance.now() / 1000.0) as f32;
             let length = widgets.len() as f32;
             for (i, object) in widgets.iter_mut().enumerate() {

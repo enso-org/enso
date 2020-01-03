@@ -1,3 +1,2 @@
-#!/bin/sh
-cargo clean -p basegl -p basegl-backend-webgl -p basegl-prelude -p basegl-system-web
+#!/bin/bash
 cargo clippy -- -D warnings

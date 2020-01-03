@@ -1,6 +1,7 @@
-const CopyWebpackPlugin = require("copy-webpack-plugin");
-const HtmlWebpackPlugin = require('html-webpack-plugin')
+const CopyWebpackPlugin = require("copy-webpack-plugin")
 const path = require('path');
+
+const mb = 1024 * 1024;
 
 module.exports = {
     entry: "./bootstrap.js",
@@ -8,17 +9,22 @@ module.exports = {
         path: path.resolve(__dirname, "dist"),
         filename: "bootstrap.js",
     },
-    mode: "development",
     node: {
         fs: 'empty'
     },
     plugins: [
         new CopyWebpackPlugin(['index.html']),
-//    new HtmlWebpackPlugin({template: 'index.html'}),
     ],
     devServer: {
         historyApiFallback: {
             index: 'index.html'
         }
-    }
+    },
+    resolve: {
+        modules: [path.resolve(__dirname, "node_modules")]
+    },
+    performance: {
+        hints: 'error',
+        maxAssetSize: 3.7 * mb,
+    },
 };

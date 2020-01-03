@@ -13,5 +13,14 @@ members = [
     "lib/system/web",
 ]
 
+[profile.dev]
+opt-level = 1
+lto       = false
+
 [profile.release]
 opt-level = 3
+lto       = true
+
+[profile.bench]
+opt-level = 3
+lto       = true

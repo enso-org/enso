@@ -5,6 +5,9 @@ use crate::control::callback::CallbackHandle;
 use crate::control::callback::CallbackRegistry;
 use crate::system::web;
 use wasm_bindgen::prelude::Closure;
+use crate::debug::monitor;
+use crate::debug::monitor::Monitor;
+use crate::debug::monitor::Panel;
 
 
 // =================
@@ -58,22 +61,46 @@ impl EventLoop {
 
 /// The internal state of the `EventLoop`.
 #[derive(Derivative)]
-#[derivative(Debug, Default)]
+#[derivative(Debug)]
 pub struct EventLoopData {
     main      : Option<Closure<dyn FnMut(f32)>>,
     callbacks : CallbackRegistry,
+    monitor   : Monitor,
+    time      : Panel,
+    fps       : Panel,
+    mem       : Panel,
     main_id   : i32,
+}
+
+impl Default for EventLoopData {
+    fn default() -> Self {
+        let main        = default();
+        let callbacks   = default();
+        let main_id     = default();
+        let mut monitor = Monitor::new();
+        let time        = monitor.add(monitor::FrameTime::new());
+        let fps         = monitor.add(monitor::Fps::new());
+        let mem         = monitor.add(monitor::WasmMemory::new());
+        Self {main,callbacks,monitor,time,fps,mem,main_id}
+    }
 }
 
 impl EventLoopData {
     /// Create new instance.
     pub fn run(&mut self) {
+        self.time.begin();
+        self.fps.begin();
+        self.mem.begin();
         let callbacks   = &mut self.callbacks;
         let callback_id = self.main.as_ref().map_or(default(), |main| {
             callbacks.run_all();
             web::request_animation_frame(main).unwrap()
         });
         self.main_id = callback_id;
+        self.time.end();
+        self.fps.end();
+        self.mem.end();
+        self.monitor.draw();
     }
 }
 

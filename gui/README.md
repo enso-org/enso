@@ -1,23 +1,24 @@
-[![License](https://img.shields.io/static/v1?label=License&message=MIT&color=2ec352&labelColor=2c3239)](https://github.com/luna/basegl/blob/master/LICENSE) [![Actions Status](https://github.com/luna/basegl/workflows/Build%20%28MacOS%2C%20Linux%2C%20Windows%29/badge.svg)](https://github.com/luna/basegl/actions) [![Coverage](https://img.shields.io/codecov/c/github/luna/basegl?label=Coverage&labelColor=2c3239)](https://codecov.io/gh/luna/basegl/branch/master) 
+[![License](https://img.shields.io/static/v1?label=License&message=MIT&color=2ec352&labelColor=2c3239)](https://github.com/luna/basegl/blob/master/LICENSE) 
+[![Actions Status](https://github.com/luna/basegl/workflows/Build%20%28MacOS%2C%20Linux%2C%20Windows%29/badge.svg)](https://github.com/luna/basegl/actions)
+[![Coverage](https://img.shields.io/codecov/c/github/luna/basegl?label=Coverage&labelColor=2c3239)](https://codecov.io/gh/luna/basegl/branch/master) 
 ![Stability](https://img.shields.io/static/v1?label=Stability&message=Unstable&color=d52229&labelColor=2c3239)
 
 # BaseGL
 
-BaseGL is a blazing fast 2D drawing API. This repository is a work in progress
-of BaseGL 2.0. Please refer to BaseGL 1.0 repository for more information:
-https://github.com/luna/basegl-old.
+BaseGL is a blazing fast 2D vector rendering engine with a rich set of
+primitives and a GUI component library. It is able to display millions of shapes
+60 frames per second in a web browser on a modern laptop hardware. 
 
-## Working with the code
+This repository is a work in progress of BaseGL 2.0. Please refer to BaseGL 1.0
+repository for more information: https://github.com/luna/basegl-old.
+
+
+## Development
 
 ### The Rust toolchain 
-
-In order to use some of the WASM pipeline features we need to use a nightly Rust
-channel. The same applies to the code auto-formatter and it's advanced
-configuration options used here. You would neither be able to compile not format
-the code using the stable branch. 
-
-To setup the toolchain, please use the [the Rust toolchain installer
-](https://rustup.rs/):
+This project uses several features available only in the nightly Rust toolchain.
+To setup the toolchain, please use the [the Rust toolchain
+installer](https://rustup.rs/):
 
 ```bash
 rustup toolchain install nightly-2019-11-04 # Install the nightly channel.
@@ -26,59 +27,59 @@ rustup component add rustfmt                # Install the code auto-formatter.
 rustup component add clippy                 # Install the linter.
 ```
 
-### Building and testing the project
+### Building the sources
+Please use the `script/build.sh` script to build the project or the
+`script/watch.sh` script to run a file watch utility which will build the
+project when on every source change. The scripts are thin wrappers over
+[wasm-pack](https://github.com/rustwasm/wasm-pack) and accept the same [command
+line arguments](https://rustwasm.github.io/wasm-pack/book/commands/build.html).
+In particular, you can provide them with `--release`, `--dev`, or `--profile`
+flags to switch the compilation profile. If not option is provided, the scripts
+default to the `--release` profile.
 
-Please use the `script/build.sh`, `script/watch.sh`, and `script/lint.sh`
-scripts to build, watch, and lint the project respectively. We need to use a
-simple custom wrappers here because of the several Rust toolchain issues:
-
-- [No direct support for Cargo Workspaces in
-wasm-pack.](https://github.com/rustwasm/wasm-pack/issues/642). Fixed in
-`build.sh`. 
-- There is no watch utility in wasm-pack, which makes using it harder than it
-should be. Fixed in `watch.sh`.
-- [The commands cargo-check and cargo-clippy do not clean local cache if used
-several times.](https://github.com/rust-lang/cargo/issues/6986). Fixed in
-`lint.sh`.
-
-In order to build an example demo scene, please use the following commands:
+### Running examples
+Please note that in order to run the examples you have to first build the
+project. For best experience, it is recommended to use the `scripts/watch.sh`
+in a second shell. In order to build the demo scenes, follow the steps below:
 
 ```bash
-./script/watch.sh # Build and watch for changes.
-
-# Wait till the project finishes building.
-# Run the following lines from other cmd:
-
-cd examples/01-scene
+cd examples
 npm install
-npm run start
+npm run start 
 ```
 
-You can now open the following address in your browser: http://localhost:8080.
+You can now navigate to http://localhost:8080 and play with the demo scenes!
 
-There are also _web test_ which are run in browser and produce some output. To
-run them, pick a test suite (`html_renderer` for instance) and run:
-```bash
-wasm-pack test lib/core --chrome --release -- --test html_renderer
-```
-Now the test output is available at http://127.0.0.1:8000. There are benchmark
-tests too (that's why `--release` flag is recommended).
+Please note that `npm run start` runs the Webpack Dev-Server in the production
+mode. You can use the `npm run start-dev` in order to enable the development
+mode, however, as all sources are provided to Webpack in form of WASM binaries,
+we haven't observed any differences between them in this project. 
 
-**Please remember to disable the cache in your browser!**
+While Webpack provides handy utilities for development, like live-reloading on
+sources change, it also adds some runtime overhead. In order to run the compiled
+examples using a lightweight http-server (without live-reloading functionality),
+please use the `npm run prod-server` command.
+
+**Please remember to disable the cache in your browser during development!**
+
+### Running tests
+The sources use both unit tests and web test, which are run in a browser and
+produce visual results. To run them, use the `scripts/test.sh` script and follow
+the output in the terminal.
+
 
 ### Working with the source code
 
 #### Formatting
-
-All codebase should be auto-formatted using `rustfmt`. It is highly recommended
-that you use an IDE which takes care of formatting the code as you type. Please
-remember that auto-formatting does not mean you should not care of the way your
-code looks and feels! Be sure to carefully read the [Rust style
-guide](https://github.com/luna/enso/blob/master/doc/rust-style-guide.md) and
-apply it everywhere in your codebase.
+Please note that this codebase does not use `rustfmt`. Please read the following
+documents to learn more about reasons behind this decision and the recommended
+code style guide. Be sure to carefully read the documents before contributing to
+this repository:
+- [Rust style guide](https://github.com/luna/basegl/blob/master/docs/style-guide.md)
+- [Rust style
+  guide](https://github.com/luna/enso/blob/master/doc/rust-style-guide.md) 
 
 
 #### Linting 
-
-Please be sure to fix all errors reported by `cargo clippy` before creating a
+Please be sure to fix all errors reported by `scripts/lint.sh` before creating a
 pull request to this repository.
