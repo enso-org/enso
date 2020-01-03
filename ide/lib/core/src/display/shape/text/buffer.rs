@@ -5,6 +5,8 @@ pub mod line;
 use crate::prelude::*;
 
 use crate::display::render::webgl::Context;
+use crate::display::render::webgl::set_buffer_data;
+use crate::display::render::webgl::set_buffer_subdata;
 use crate::display::shape::text::buffer::glyph_square::BASE_LAYOUT_SIZE;
 use crate::display::shape::text::buffer::glyph_square::GlyphAttributeBuilder;
 use crate::display::shape::text::buffer::glyph_square::GlyphVertexPositionBuilder;
@@ -14,10 +16,10 @@ use crate::display::shape::text::buffer::fragment::FragmentsDataBuilder;
 use crate::display::shape::text::content::RefreshInfo;
 use crate::display::shape::text::font::FontRenderInfo;
 
-use js_sys::Float32Array;
 use nalgebra::Vector2;
 use web_sys::WebGlBuffer;
 use std::ops::RangeInclusive;
+
 
 
 // =============================
@@ -69,14 +71,14 @@ impl TextComponentBuffers {
     pub fn refresh(&mut self, gl_context:&Context, info:RefreshInfo) {
         let scrolled_x = self.scroll_since_last_frame.x != 0.0;
         let scrolled_y = self.scroll_since_last_frame.y != 0.0;
-        if scrolled_y {
+        if scrolled_y || info.dirty_lines.range.is_some() {
             let displayed_lines = self.displayed_lines(info.lines.len());
             self.fragments.reassign_fragments(displayed_lines);
         }
         if scrolled_x {
             let displayed_x = self.displayed_x_range();
             let x_scroll    = self.scroll_since_last_frame.x;
-            let lines       = info.lines;
+            let lines       = &info.lines;
             self.fragments.mark_dirty_after_x_scrolling(x_scroll,displayed_x,lines);
         }
         if scrolled_x || scrolled_y || info.dirty_lines.any_dirty() {
@@ -151,16 +153,16 @@ impl TextComponentBuffers {
         self.fragments.build_buffer_data_for_fragments(all_fragments,&mut builder,lines);
         let vertex_position_data = builder.vertex_position_data.as_ref();
         let texture_coords_data  = builder.texture_coords_data.as_ref();
-        self.set_buffer_data(gl_context,&self.vertex_position, vertex_position_data);
-        self.set_buffer_data(gl_context,&self.texture_coords , texture_coords_data);
+        set_buffer_data(gl_context,&self.vertex_position, vertex_position_data);
+        set_buffer_data(gl_context,&self.texture_coords , texture_coords_data);
     }
 
     fn refresh_fragments
-    (&mut self, gl_context:&Context, indexes:RangeInclusive<usize>, refresh:RefreshInfo) {
+    (&mut self, gl_context:&Context, indexes:RangeInclusive<usize>, mut refresh:RefreshInfo) {
         let offset      = *indexes.start();
         let mut builder = self.create_fragments_data_builder(refresh.font);
 
-        self.fragments.build_buffer_data_for_fragments(indexes,&mut builder,refresh.lines.as_ref());
+        self.fragments.build_buffer_data_for_fragments(indexes,&mut builder,&mut refresh.lines);
         self.set_vertex_position_buffer_subdata(gl_context,offset,&builder);
         self.set_texture_coords_buffer_subdata (gl_context,offset,&builder);
     }
@@ -186,7 +188,7 @@ impl TextComponentBuffers {
         let fragment_size      = line_output_floats * Self::GL_FLOAT_SIZE;
         let offset             = fragment_size * fragment_offset;
         let data               = builder.vertex_position_data.as_ref();
-        self.set_buffer_subdata(gl_context,&self.vertex_position,offset,data);
+        set_buffer_subdata(gl_context,&self.vertex_position,offset,data);
     }
 
     fn set_texture_coords_buffer_subdata
@@ -196,44 +198,8 @@ impl TextComponentBuffers {
         let fragment_size      = line_output_floats * Self::GL_FLOAT_SIZE;
         let offset        = fragment_size * fragment_offset;
         let data          = builder.texture_coords_data.as_ref();
-        self.set_buffer_subdata(gl_context,&self.texture_coords,offset,data);
+        set_buffer_subdata(gl_context,&self.texture_coords,offset,data);
     }
-
-    fn set_buffer_data(&self, gl_context:&Context, buffer:&WebGlBuffer, data:&[f32]) {
-        let target = Context::ARRAY_BUFFER;
-        gl_context.bind_buffer(target,Some(&buffer));
-        Self::set_bound_buffer_data(gl_context,target,data);
-    }
-
-    fn set_bound_buffer_data(gl_context:&Context, target:u32, data:&[f32]) {
-        let usage      = Context::STATIC_DRAW;
-        unsafe { // Note [unsafe buffer_data]
-            let float_array = Float32Array::view(&data);
-            gl_context.buffer_data_with_array_buffer_view(target,&float_array,usage);
-        }
-    }
-
-    fn set_buffer_subdata
-    (&self, gl_context:&Context, buffer:&WebGlBuffer, offset:usize, data:&[f32]) {
-        let target = Context::ARRAY_BUFFER;
-        gl_context.bind_buffer(target,Some(&buffer));
-        Self::set_bound_buffer_subdata(gl_context,target,offset as i32,data);
-    }
-
-    fn set_bound_buffer_subdata(gl_context:&Context, target:u32, offset:i32, data:&[f32]) {
-        unsafe { // Note [unsafe buffer_data]
-            let float_array = Float32Array::view(&data);
-            gl_context.buffer_sub_data_with_i32_and_array_buffer_view(target,offset,&float_array);
-        }
-    }
-
-    /* Note [unsafe buffer_data]
-     *
-     * The Float32Array::view is safe as long there are no allocations done
-     * until it is destroyed. This way of creating buffers were taken from
-     * wasm-bindgen examples
-     * (https://rustwasm.github.io/wasm-bindgen/examples/webgl.html)
-     */
 
     pub fn vertices_count(&self) -> usize {
         BASE_LAYOUT_SIZE * self.fragments.fragments.len() * self.max_chars_in_fragment

@@ -19,44 +19,20 @@ pub struct LineAttributeBuilder<'a,GlyphBuilder:GlyphAttributeBuilder> {
     max_line_size    : usize,
     squares_produced : usize,
     glyph_builder    : GlyphBuilder,
-    chars_iterator   : Option<std::str::Chars<'a>>,
+    chars            : &'a[char],
 }
 
-pub type LineVerticesBuilder<'a,'b>      = LineAttributeBuilder<'a,GlyphVertexPositionBuilder<'b>>;
+pub type LineVerticesBuilder<'a,'b,'c> =
+    LineAttributeBuilder<'a,GlyphVertexPositionBuilder<'b,'c>>;
 pub type LineTextureCoordsBuilder<'a,'b> = LineAttributeBuilder<'a,GlyphTextureCoordsBuilder<'b>>;
 
 impl<'a,GlyphBuilder: GlyphAttributeBuilder> LineAttributeBuilder<'a,GlyphBuilder> {
     /// Create new LineAttributeBuilder based on `glyph_builder`
-    pub fn new(line: &'a str, glyph_builder: GlyphBuilder, max_line_size:usize)
+    pub fn new(chars: &'a[char], glyph_builder: GlyphBuilder, max_line_size:usize)
         -> LineAttributeBuilder<'a, GlyphBuilder> {
-        LineAttributeBuilder {
-            max_line_size,
-            glyph_builder,
-            squares_produced: 0,
-            chars_iterator: Some(line.chars())
+        LineAttributeBuilder {max_line_size,glyph_builder,chars,
+            squares_produced : 0,
         }
-    }
-
-    fn next_item(&mut self) -> GlyphBuilder::Output {
-        let chars_iterator_output = self.chars_iterator.as_mut().map(|iter| iter.next());
-        match chars_iterator_output {
-            Some(Some(ch)) => self.chars_iterator_returned_value(ch),
-            Some(None)     => self.chars_iterator_returned_none(),
-            None           => self.chars_iterator_exthaused_before()
-        }
-    }
-
-    fn chars_iterator_returned_value(&mut self, value:char) -> GlyphBuilder::Output {
-        self.glyph_builder.build_for_next_glyph(value)
-    }
-
-    fn chars_iterator_returned_none(&mut self) -> GlyphBuilder::Output {
-        self.chars_iterator = None;
-        GlyphBuilder::empty()
-    }
-
-    fn chars_iterator_exthaused_before(&mut self) -> GlyphBuilder::Output {
-        GlyphBuilder::empty()
     }
 }
 
@@ -69,9 +45,12 @@ impl<'a,GlyphBuilder: GlyphAttributeBuilder> Iterator for LineAttributeBuilder<'
     /// number of items  produced reach `max_line_size` value.
     fn next(&mut self) -> Option<Self::Item> {
         let values_remain = self.squares_produced < self.max_line_size;
+        let next_char     = self.chars.get(self.squares_produced);
         values_remain.and_option_from(|| {
             self.squares_produced += 1;
-            Some(self.next_item())
+            let next_char_attrs = next_char.map(|ch| self.glyph_builder.build_for_next_glyph(*ch));
+            let returned_value  = next_char_attrs.unwrap_or_else(GlyphBuilder::empty);
+            Some(returned_value)
         })
     }
 }
@@ -105,14 +84,14 @@ mod tests {
 
     #[test]
     fn line_attribute_builder_with_short_line() {
-        let line                = "SKR";
+        let line                = "SKR".chars().collect_vec();
         let mut processed_chars = Vec::<char>::new();
         let max_line_size       = 6;
         let glyph_builder       = GlyphAttributeBuilderMock {
             iteration           : 0,
             processed_chars     : &mut processed_chars
         };
-        let line_builder        = LineAttributeBuilder::new(line,glyph_builder,max_line_size);
+        let line_builder        = LineAttributeBuilder::new(line.as_slice(),glyph_builder,max_line_size);
         let data                = line_builder.collect::<Vec<TestOutput>>();
 
         let expected_data = vec!
@@ -130,14 +109,14 @@ mod tests {
 
     #[test]
     fn line_attribute_builder_with_long_line() {
-        let line                = "XIXAXA XOXAXA XUXAXA";
+        let line                = "XIXAXA XOXAXA XUXAXA".chars().collect_vec();
         let mut processed_chars = Vec::<char>::new();
         let max_line_size       = 6;
         let glyph_builder       = GlyphAttributeBuilderMock {
             iteration           : 0,
             processed_chars     : &mut processed_chars
         };
-        let line_builder        = LineAttributeBuilder::new(line,glyph_builder,max_line_size);
+        let line_builder        = LineAttributeBuilder::new(line.as_slice(),glyph_builder,max_line_size);
         let data                = line_builder.collect::<Vec<TestOutput>>();
 
         let expected_data = vec!
