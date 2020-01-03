@@ -8,7 +8,7 @@ use nalgebra::Translation2;
 use nalgebra::Affine2;
 use nalgebra::Matrix3;
 use nalgebra::Scalar;
-use std::ops::Range;
+use std::ops::RangeInclusive;
 
 // ============================
 // === Base vertices layout ===
@@ -27,7 +27,7 @@ lazy_static! {
         ];
 }
 
-fn point_to_iterable<T:Scalar>(p:Point2<T>) -> SmallVec<[T;2]> {
+pub fn point_to_iterable<T:Scalar>(p:Point2<T>) -> SmallVec<[T;2]> {
     p.iter().cloned().collect()
 }
 
@@ -52,10 +52,16 @@ pub struct Pen {
 impl Pen {
     /// Create the pen structure, where the first char will be rendered at `position`.
     pub fn new(position:Point2<f64>) -> Pen {
-        Pen {
-            position,
+        Pen {position,
             current_char : None,
             next_advance : 0.0
+        }
+    }
+
+    pub fn new_with_char(position:Point2<f64>, ch:char, font:&mut FontRenderInfo) -> Self {
+        Pen {position,
+            current_char : Some(ch),
+            next_advance : font.get_glyph_info(ch).advance
         }
     }
 
@@ -77,10 +83,14 @@ impl Pen {
         self.position = transform * self.position;
     }
 
-    pub fn is_in_x_range(&self, range:&Range<f64>) -> bool {
+    pub fn is_in_x_range(&self, range:&RangeInclusive<f64>) -> bool {
         let x_min  = self.position.x;
         let x_max  = x_min + self.next_advance;
-        range.contains(&x_min) || range.contains(&x_max) || (x_min..x_max).contains(&range.start)
+        range.contains(&x_min) || range.contains(&x_max) || (x_min..x_max).contains(range.start())
+    }
+
+    pub fn current_char_x_range(&self) -> RangeInclusive<f64> {
+        self.position.x..=(self.position.x + self.next_advance)
     }
 }
 
@@ -114,17 +124,16 @@ pub trait GlyphAttributeBuilder {
 /// Builder for glyph square vertex positions
 ///
 /// `pen` field points to the position of last built glyph.
-pub struct GlyphVertexPositionBuilder<'a> {
+pub struct GlyphVertexPositionBuilder<'a,'b> {
     pub font          : &'a mut FontRenderInfo,
-    pub pen           : Pen,
+    pub pen           : &'b mut Pen,
 }
 
-impl<'a> GlyphVertexPositionBuilder<'a> {
+impl<'a,'b> GlyphVertexPositionBuilder<'a,'b> {
     /// New GlyphVertexPositionBuilder
     ///
     /// The newly created builder start to place glyphs at location pointed by given pen.
-    pub fn new(font:&'a mut FontRenderInfo, pen:Pen)
-    -> GlyphVertexPositionBuilder<'a> {
+    pub fn new(font:&'a mut FontRenderInfo, pen:&'b mut Pen) -> Self {
         GlyphVertexPositionBuilder {font,pen}
     }
 
@@ -133,7 +142,7 @@ impl<'a> GlyphVertexPositionBuilder<'a> {
     }
 }
 
-impl<'a> GlyphAttributeBuilder for GlyphVertexPositionBuilder<'a> {
+impl<'a,'b> GlyphAttributeBuilder for GlyphVertexPositionBuilder<'a,'b> {
     const OUTPUT_SIZE : usize = BASE_LAYOUT_SIZE * 2;
     type Output = SmallVec<[f64;12]>; // Note[Output size]
 
@@ -297,8 +306,9 @@ mod tests {
             mock_a_glyph_info(&mut font);
             mock_w_glyph_info(&mut font);
             font.mock_kerning_info('A', 'W', -0.16);
-            
-            let mut builder = GlyphVertexPositionBuilder::new(&mut font,Pen::new(Point2::new(0.0,0.0)));
+
+            let mut pen     = Pen::new(Point2::new(0.0,0.0));
+            let mut builder = GlyphVertexPositionBuilder::new(&mut font,&mut pen);
             let a_vertices  = builder.build_for_next_glyph('A');
             let w_vertices  = builder.build_for_next_glyph('W');
 
@@ -321,6 +331,8 @@ mod tests {
 
             assert_eq!(expected_a_vertices, a_vertices.as_ref());
             assert_eq!(expected_w_vertices, w_vertices.as_ref());
+            assert_eq!(Point2::new(0.4,0.0), pen.position);
+            assert_eq!(Some('W')           , pen.current_char);
         })
     }
 
