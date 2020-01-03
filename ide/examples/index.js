@@ -11,7 +11,7 @@ function hello_screen(msg) {
         }
     }
 
-    if(msg==="" && msg===null && msg===undefined) {
+    if(msg==="" || msg===null || msg===undefined) {
         msg = ""
     }
     let newDiv     = document.createElement("div");

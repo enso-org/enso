@@ -1,18 +1,21 @@
 {
-  "name": "example-scene",
+  "name": "example-scenes",
   "version": "0.1.0",
-  "description": "Example Scene",
+  "description": "Example Scenes",
   "main": "index.js",
   "bin": {
     "create-wasm-app": ".bin/create-wasm-app.js"
   },
   "scripts": {
-    "build": "webpack --config webpack.config.js",
-    "start": "webpack-dev-server"
+    "build": "webpack --config webpack.prod.js",
+    "build-dev": "webpack --config webpack.dev.js",
+    "start": "webpack-dev-server --config webpack.prod.js",
+    "start-dev": "webpack-dev-server --config webpack.dev.js",
+    "prod-server": "npx http-server -p 3000 --proxy http://localhost:3000\\? dist"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/rustwasm/create-wasm-app.git"
+    "url": "git@github.com:luna/basegl.git"
   },
   "keywords": [
     "webassembly",
@@ -20,19 +23,20 @@
     "rust",
     "webpack"
   ],
-  "author": "Ashley Williams <ashley666ashley@gmail.com>",
+  "author": "Enso Team (contact@luna-lang.org)",
   "license": "(MIT OR Apache-2.0)",
   "bugs": {
-    "url": "https://github.com/rustwasm/create-wasm-app/issues"
+    "url": "https://github.com/luna/basegl/issues"
   },
-  "homepage": "https://github.com/rustwasm/create-wasm-app#readme",
+  "homepage": "https://github.com/luna/basegl",
   "devDependencies": {
-    "basegl": "file:../target/web",
     "copy-webpack-plugin": "^5.1.1",
-    "hello-wasm-pack": "^0.1.0",
-    "html-webpack-plugin": "^3.2.0",
     "webpack": "^4.29.3",
     "webpack-cli": "^3.1.0",
-    "webpack-dev-server": "^3.1.5"
+    "webpack-dev-server": "^3.1.5",
+    "webpack-merge": "^4.2.2"
+  },
+  "dependencies": {
+    "basegl": "file:../target/web"
   }
 }

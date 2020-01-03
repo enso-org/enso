@@ -44,6 +44,7 @@ features = [
   'Element',
   'HtmlElement',
   'HtmlCollection',
+  'CanvasRenderingContext2d',
   'CssStyleDeclaration',
   'HtmlCanvasElement',
   'WebGlBuffer',
