@@ -29,7 +29,7 @@ rustup component add clippy                 # Install the linter.
 ### Building the sources
 Please use the `script/build.sh` script to build the project or the
 `script/watch.sh` script to run a file watch utility which will build the
-project when on every source change. The scripts are thin wrappers over
+project on every source change. The scripts are thin wrappers for
 [wasm-pack](https://github.com/rustwasm/wasm-pack) and accept the same [command
 line arguments](https://rustwasm.github.io/wasm-pack/book/commands/build.html).
 In particular, you can provide them with `--release`, `--dev`, or `--profile`
