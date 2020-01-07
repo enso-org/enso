@@ -5,7 +5,10 @@ import java.io.{ByteArrayOutputStream, StringReader}
 import com.oracle.truffle.api.instrumentation.EventBinding
 import org.enso.interpreter.Constants
 import org.graalvm.polyglot.{Context, Source, Value}
-import org.enso.interpreter.instrument.ReplDebuggerInstrument
+import org.enso.interpreter.instrument.{
+  ReplDebuggerInstrument,
+  ValueExtractorInstrument
+}
 import org.enso.interpreter.test.CodeLocationsTestInstrument.LocationsEventListener
 import org.scalatest.{Assertions, FlatSpec, Matchers}
 
@@ -51,7 +54,12 @@ trait InterpreterRunner {
     instrumenter.close()
   }
 
-  case class MainMethod(mainConstructor: Value, mainFunction: Value)
+  case class MainMethod(mainConstructor: Value, mainFunction: Value) {
+    def execute(args: AnyRef*): Value =
+      InterpreterException.rethrowPolyglot(
+        mainFunction.execute(mainConstructor +: args: _*)
+      )
+  }
 
   def getMain(code: String): MainMethod = {
     output.reset()
@@ -84,6 +92,12 @@ trait InterpreterRunner {
     ctx.getEngine.getInstruments
       .get(ReplDebuggerInstrument.INSTRUMENT_ID)
       .lookup(classOf[ReplDebuggerInstrument])
+  }
+
+  def getValueExtractorInstrument: ValueExtractorInstrument = {
+    ctx.getEngine.getInstruments
+      .get(ValueExtractorInstrument.INSTRUMENT_ID)
+      .lookup(classOf[ValueExtractorInstrument])
   }
 
   // For Enso raw text blocks inside scala multiline strings
