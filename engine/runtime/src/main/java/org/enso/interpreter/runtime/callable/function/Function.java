@@ -19,8 +19,7 @@ import com.oracle.truffle.api.nodes.RootNode;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
-import org.enso.interpreter.node.callable.argument.sorter.ArgumentSorterNode;
-import org.enso.interpreter.node.callable.argument.sorter.ArgumentSorterNodeGen;
+import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.CallerInfo;
@@ -190,12 +189,12 @@ public final class Function implements TruffleObject {
      * @return an argument sorter node ready to apply {@code length} arguments.
      */
     @ExplodeLoop
-    protected static ArgumentSorterNode buildSorter(int length) {
+    protected static InvokeFunctionNode buildSorter(int length) {
       CallArgumentInfo[] args = new CallArgumentInfo[length];
       for (int i = 0; i < length; i++) {
         args[i] = new CallArgumentInfo();
       }
-      return ArgumentSorterNodeGen.create(
+      return InvokeFunctionNode.build(
           args,
           InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
           InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED);
@@ -219,7 +218,7 @@ public final class Function implements TruffleObject {
         Object[] arguments,
         @CachedContext(Language.class) Context context,
         @Cached(value = "arguments.length") int cachedArgsLength,
-        @Cached(value = "buildSorter(cachedArgsLength)") ArgumentSorterNode sorterNode) {
+        @Cached(value = "buildSorter(cachedArgsLength)") InvokeFunctionNode sorterNode) {
       return sorterNode
           .execute(function, null, context.getUnit().newInstance(), arguments)
           .getValue();
@@ -312,8 +311,7 @@ public final class Function implements TruffleObject {
      * Generates an array of arguments using the schema to be passed to a call target.
      *
      * <p>The arguments passed to this function must be in positional order. For more information on
-     * how to do this, see {@link
-     * org.enso.interpreter.node.callable.argument.sorter.ArgumentSorterNode}.
+     * how to do this, see {@link InvokeFunctionNode}.
      *
      * @param function the function to be called
      * @param state the state to execute the function with

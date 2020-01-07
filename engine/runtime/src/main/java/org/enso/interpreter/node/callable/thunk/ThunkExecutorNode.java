@@ -1,4 +1,4 @@
-package org.enso.interpreter.node.callable.argument;
+package org.enso.interpreter.node.callable.thunk;
 
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.NodeField;
@@ -73,7 +73,7 @@ public abstract class ThunkExecutorNode extends Node {
   }
 
   LoopingCallOptimiserNode createLoopingOptimizerIfNeeded() {
-    return getIsTail() ? null : new LoopingCallOptimiserNode();
+    return getIsTail() ? null : LoopingCallOptimiserNode.build();
   }
 
   /**

@@ -4,6 +4,8 @@ import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import org.enso.interpreter.Language;
+import org.enso.interpreter.runtime.Builtins;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
@@ -78,7 +80,7 @@ public abstract class MethodResolverNode extends Node {
     return function;
   }
 
-  private Function throwIfNull(Function function, Object target, UnresolvedSymbol symbol) {
+  private Function ensureMethodExists(Function function, Object target, UnresolvedSymbol symbol) {
     if (function == null) {
       throw new MethodDoesNotExistException(target, symbol.getName(), this);
     }
@@ -86,19 +88,21 @@ public abstract class MethodResolverNode extends Node {
   }
 
   Function resolveMethodOnAtom(AtomConstructor cons, UnresolvedSymbol symbol) {
-    return throwIfNull(symbol.resolveFor(cons), cons, symbol);
+    return ensureMethodExists(symbol.resolveFor(cons, getBuiltins().any()), cons, symbol);
   }
 
   Function resolveMethodOnNumber(UnresolvedSymbol symbol) {
-    return throwIfNull(symbol.resolveForNumber(), "Number", symbol);
+    return ensureMethodExists(
+        symbol.resolveFor(getBuiltins().number(), getBuiltins().any()), "Number", symbol);
   }
 
   Function resolveMethodOnFunction(UnresolvedSymbol symbol) {
-    return throwIfNull(symbol.resolveForFunction(), "Function", symbol);
+    return ensureMethodExists(
+        symbol.resolveFor(getBuiltins().function(), getBuiltins().any()), "Function", symbol);
   }
 
   Function resolveMethodOnError(UnresolvedSymbol symbol) {
-    return throwIfNull(symbol.resolveForError(), "Error", symbol);
+    return ensureMethodExists(symbol.resolveFor(getBuiltins().any()), "Error", symbol);
   }
 
   boolean isValidAtomCache(
@@ -107,5 +111,9 @@ public abstract class MethodResolverNode extends Node {
       Atom atom,
       AtomConstructor cachedConstructor) {
     return (symbol == cachedSymbol) && (atom.getConstructor() == cachedConstructor);
+  }
+
+  private Builtins getBuiltins() {
+    return lookupContextReference(Language.class).get().getBuiltins();
   }
 }

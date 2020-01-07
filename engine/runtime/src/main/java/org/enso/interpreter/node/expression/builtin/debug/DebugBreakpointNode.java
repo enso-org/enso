@@ -45,7 +45,7 @@ public class DebugBreakpointNode extends BuiltinRootNode {
         new DebugBreakpointNode(language),
         FunctionSchema.CallStrategy.ALWAYS_DIRECT,
         new ArgumentDefinition(
-            0, Constants.Names.THIS_ARGUMENT_NAME, ArgumentDefinition.ExecutionMode.EXECUTE));
+            0, Constants.Names.THIS_ARGUMENT, ArgumentDefinition.ExecutionMode.EXECUTE));
   }
 
   /**

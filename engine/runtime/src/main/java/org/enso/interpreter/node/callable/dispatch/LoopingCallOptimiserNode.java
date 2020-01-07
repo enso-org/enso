@@ -1,7 +1,11 @@
 package org.enso.interpreter.node.callable.dispatch;
 
 import com.oracle.truffle.api.Truffle;
+import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.GenerateUncached;
+import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.nodes.LoopNode;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
@@ -23,13 +27,19 @@ import org.enso.interpreter.runtime.state.Stateful;
  * @see TailCallException
  */
 @NodeInfo(shortName = "LoopCall", description = "Handles tail-call elimination")
-public class LoopingCallOptimiserNode extends CallOptimiserNode {
-  private final FrameDescriptor loopFrameDescriptor = new FrameDescriptor();
-  @Child private LoopNode loopNode;
+@GenerateUncached
+public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
+  static LoopNode createLoopNode() {
+    return Truffle.getRuntime().createLoopNode(new RepeatedCallNode());
+  }
 
-  /** Creates a new node for computing tail-call-optimised functions. */
-  public LoopingCallOptimiserNode() {
-    loopNode = Truffle.getRuntime().createLoopNode(new RepeatedCallNode(loopFrameDescriptor));
+  /**
+   * Creates a new instance of this node.
+   *
+   * @return a new instance of this node.
+   */
+  public static LoopingCallOptimiserNode build() {
+    return LoopingCallOptimiserNodeGen.create();
   }
 
   /**
@@ -39,17 +49,22 @@ public class LoopingCallOptimiserNode extends CallOptimiserNode {
    * @param callerInfo the caller info to pass to the function
    * @param state the state to pass to the function
    * @param arguments the arguments to {@code function}
+   * @param loopNode a cached instance of the loop node used by this node
    * @return the result of executing {@code function} using {@code arguments}
    */
-  @Override
-  public Stateful executeDispatch(
-      Object function, CallerInfo callerInfo, Object state, Object[] arguments) {
-    VirtualFrame frame = Truffle.getRuntime().createVirtualFrame(null, loopFrameDescriptor);
-    ((RepeatedCallNode) loopNode.getRepeatingNode())
-        .setNextCall(frame, function, callerInfo, state, arguments);
+  @Specialization
+  public Stateful dispatch(
+      Object function,
+      CallerInfo callerInfo,
+      Object state,
+      Object[] arguments,
+      @Cached(value = "createLoopNode()", allowUncached = true) LoopNode loopNode) {
+    RepeatedCallNode repeatedCallNode = (RepeatedCallNode) loopNode.getRepeatingNode();
+    VirtualFrame frame = repeatedCallNode.createFrame();
+    repeatedCallNode.setNextCall(frame, function, callerInfo, state, arguments);
     loopNode.execute(frame);
 
-    return ((RepeatedCallNode) loopNode.getRepeatingNode()).getResult(frame);
+    return repeatedCallNode.getResult(frame);
   }
 
   /**
@@ -63,20 +78,22 @@ public class LoopingCallOptimiserNode extends CallOptimiserNode {
     private final FrameSlot argsSlot;
     private final FrameSlot stateSlot;
     private final FrameSlot callerInfoSlot;
+    private final FrameDescriptor descriptor;
     @Child private ExecuteCallNode dispatchNode;
 
-    /**
-     * Creates a new node used for repeating a call.
-     *
-     * @param descriptor a handle to the slots of the current stack frame
-     */
-    public RepeatedCallNode(FrameDescriptor descriptor) {
+    /** Creates a new node used for repeating a call. */
+    public RepeatedCallNode() {
+      descriptor = new FrameDescriptor();
       functionSlot = descriptor.findOrAddFrameSlot("<TCO Function>", FrameSlotKind.Object);
       resultSlot = descriptor.findOrAddFrameSlot("<TCO Result>", FrameSlotKind.Object);
       argsSlot = descriptor.findOrAddFrameSlot("<TCO Arguments>", FrameSlotKind.Object);
       stateSlot = descriptor.findOrAddFrameSlot("<TCO State>", FrameSlotKind.Object);
       callerInfoSlot = descriptor.findOrAddFrameSlot("<TCO Caller Info>", FrameSlotKind.Object);
       dispatchNode = ExecuteCallNodeGen.create();
+    }
+
+    private VirtualFrame createFrame() {
+      return Truffle.getRuntime().createVirtualFrame(null, descriptor);
     }
 
     /**
@@ -88,7 +105,7 @@ public class LoopingCallOptimiserNode extends CallOptimiserNode {
      * @param state the state to pass to the function
      * @param arguments the arguments to execute {@code function} with
      */
-    public void setNextCall(
+    private void setNextCall(
         VirtualFrame frame,
         Object function,
         CallerInfo callerInfo,

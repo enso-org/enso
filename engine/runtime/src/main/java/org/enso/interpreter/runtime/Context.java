@@ -120,7 +120,7 @@ public class Context {
    *
    * @return an object containing the builtin functions
    */
-  Builtins getBuiltins() {
+  public Builtins getBuiltins() {
     return this.compiler.topScope().getBuiltins();
   }
 

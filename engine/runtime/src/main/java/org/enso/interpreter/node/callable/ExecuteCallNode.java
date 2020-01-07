@@ -2,6 +2,7 @@ package org.enso.interpreter.node.callable;
 
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.DirectCallNode;
 import com.oracle.truffle.api.nodes.IndirectCallNode;
@@ -17,6 +18,7 @@ import org.enso.interpreter.runtime.state.Stateful;
  * <p>Where possible, it will make the call as a direct call, with potential for inlining.
  */
 @NodeInfo(shortName = "ExecCall", description = "Optimises function calls")
+@GenerateUncached
 public abstract class ExecuteCallNode extends Node {
 
   /**
@@ -91,5 +93,14 @@ public abstract class ExecuteCallNode extends Node {
    */
   public static ExecuteCallNode build() {
     return ExecuteCallNodeGen.create();
+  }
+
+  /**
+   * Returns the uncached version of this node, for slow-path operations.
+   *
+   * @return the uncached instance of this node.
+   */
+  public static ExecuteCallNode buildUncached() {
+    return ExecuteCallNodeGen.getUncached();
   }
 }

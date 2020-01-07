@@ -17,6 +17,7 @@ import org.enso.interpreter.runtime.state.Stateful;
 @NodeInfo(shortName = "SimpleCallOpt", description = "Handles non-tail-call execution")
 public class SimpleCallOptimiserNode extends CallOptimiserNode {
   @Child private ExecuteCallNode executeCallNode = ExecuteCallNodeGen.create();
+  @Child private CallOptimiserNode next = null;
 
   /**
    * Calls the provided {@code function} using the provided {@code arguments}.
@@ -33,10 +34,11 @@ public class SimpleCallOptimiserNode extends CallOptimiserNode {
     try {
       return executeCallNode.executeCall(function, callerInfo, state, arguments);
     } catch (TailCallException e) {
-      CompilerDirectives.transferToInterpreterAndInvalidate();
-      CallOptimiserNode replacement = new LoopingCallOptimiserNode();
-      this.replace(replacement);
-      return replacement.executeDispatch(
+      if (next == null) {
+        CompilerDirectives.transferToInterpreterAndInvalidate();
+        next = insert(LoopingCallOptimiserNode.build());
+      }
+      return next.executeDispatch(
           e.getFunction(), e.getCallerInfo(), e.getState(), e.getArguments());
     }
   }

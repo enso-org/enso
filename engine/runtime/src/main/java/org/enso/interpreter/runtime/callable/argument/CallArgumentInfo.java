@@ -107,11 +107,10 @@ public class CallArgumentInfo {
      * @param callArgs the call site arguments schema
      * @return the generated argument mapping
      */
-    public static ArgumentMappingBuilder generate(
-        FunctionSchema schema, CallArgumentInfo[] callArgs) {
+    public static ArgumentMapping generate(FunctionSchema schema, CallArgumentInfo[] callArgs) {
       ArgumentMappingBuilder mapping = new ArgumentMappingBuilder(schema, callArgs);
       mapping.processArguments();
-      return mapping;
+      return mapping.getAppliedMapping();
     }
 
     /**
@@ -181,7 +180,11 @@ public class CallArgumentInfo {
      */
     public ArgumentMapping getAppliedMapping() {
       return new ArgumentMapping(
-          appliedMapping, oversaturatedArgumentMapping, callSiteArgApplied, argumentShouldExecute);
+          appliedMapping,
+          oversaturatedArgumentMapping,
+          callSiteArgApplied,
+          argumentShouldExecute,
+          getPostApplicationSchema());
     }
 
     /**
@@ -231,6 +234,7 @@ public class CallArgumentInfo {
     private @CompilationFinal(dimensions = 1) int[] oversaturatedArgumentMapping;
     private @CompilationFinal(dimensions = 1) boolean[] isValidAppliedArg;
     private @CompilationFinal(dimensions = 1) boolean[] argumentShouldExecute;
+    private final FunctionSchema postApplicationSchema;
 
     /**
      * Creates a new instance to represent a mapping.
@@ -241,16 +245,19 @@ public class CallArgumentInfo {
      *     the callable in question
      * @param isAppliedFlags an array of flags that determines which arguments have been applied to
      *     the callable
+     * @param postApplicationSchema the schema resulting from applying this mapping
      */
     public ArgumentMapping(
         int[] appliedArgumentMapping,
         int[] oversaturatedArgumentMapping,
         boolean[] isAppliedFlags,
-        boolean[] argumentShouldExecute) {
+        boolean[] argumentShouldExecute,
+        FunctionSchema postApplicationSchema) {
       this.appliedArgumentMapping = appliedArgumentMapping;
       this.oversaturatedArgumentMapping = oversaturatedArgumentMapping;
       this.isValidAppliedArg = isAppliedFlags;
       this.argumentShouldExecute = argumentShouldExecute;
+      this.postApplicationSchema = postApplicationSchema;
     }
 
     /**
@@ -299,6 +306,15 @@ public class CallArgumentInfo {
      */
     public boolean[] getArgumentShouldExecute() {
       return argumentShouldExecute;
+    }
+
+    /**
+     * Returns the function schema resulting from applying this mapping.
+     *
+     * @return the post application schema
+     */
+    public FunctionSchema getPostApplicationSchema() {
+      return postApplicationSchema;
     }
   }
 }

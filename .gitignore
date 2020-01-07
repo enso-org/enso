@@ -62,7 +62,6 @@ cabal.sandbox.config
 
 *.jpg
 *.jpeg
-*.png
 *.bmp
 *.psd
 

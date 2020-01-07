@@ -89,10 +89,10 @@ public class ModuleScopeExpressionFactory implements AstModuleScopeVisitor<Funct
     for (AstMethodDef method : bindings) {
       scala.Option<AstExpression> scalaNone = scala.Option.apply(null);
       AstArgDefinition thisArgument =
-          new AstArgDefinition(Constants.Names.THIS_ARGUMENT_NAME, scalaNone, false);
+          new AstArgDefinition(Constants.Names.THIS_ARGUMENT, scalaNone, false);
 
       String typeName = method.typeName();
-      if (typeName.equals(Constants.Names.CURRENT_MODULE_VARIABLE_NAME)) {
+      if (typeName.equals(Constants.Names.CURRENT_MODULE)) {
         typeName = moduleScope.getAssociatedType().getName();
       }
 
@@ -116,15 +116,11 @@ public class ModuleScopeExpressionFactory implements AstModuleScopeVisitor<Funct
               null,
               new FunctionSchema(FunctionSchema.CallStrategy.CALL_LOOP, funNode.getArgs()));
 
-      if (typeName.equals(Constants.Names.ANY_TYPE_NAME)) {
-        moduleScope.registerMethodForAny(method.methodName(), function);
-      } else {
-        AtomConstructor constructor =
-            moduleScope
-                .getConstructor(typeName)
-                .orElseThrow(() -> new VariableDoesNotExistException(method.typeName()));
-        moduleScope.registerMethod(constructor, method.methodName(), function);
-      }
+      AtomConstructor constructor =
+          moduleScope
+              .getConstructor(typeName)
+              .orElseThrow(() -> new VariableDoesNotExistException(method.typeName()));
+      moduleScope.registerMethod(constructor, method.methodName(), function);
     }
   }
 }

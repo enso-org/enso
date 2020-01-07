@@ -13,9 +13,8 @@ public class Constants {
 
   /** Names for different language elements. */
   public static class Names {
-    public static final String THIS_ARGUMENT_NAME = "this";
-    public static final String CURRENT_MODULE_VARIABLE_NAME = "here";
-    public static final String ANY_TYPE_NAME = "Any";
+    public static final String THIS_ARGUMENT = "this";
+    public static final String CURRENT_MODULE = "here";
   }
 
   /** Cache sizes for different AST nodes. */

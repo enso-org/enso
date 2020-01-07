@@ -23,9 +23,6 @@ public class ModuleScope implements TruffleObject {
   private final AtomConstructor associatedType;
   private final Map<String, AtomConstructor> constructors = new HashMap<>();
   private final Map<AtomConstructor, Map<String, Function>> methods = new HashMap<>();
-  private final Map<String, Function> anyMethods = new HashMap<>();
-  private final Map<String, Function> numberMethods = new HashMap<>();
-  private final Map<String, Function> functionMethods = new HashMap<>();
   private final Set<ModuleScope> imports = new HashSet<>();
 
   /**
@@ -76,8 +73,16 @@ public class ModuleScope implements TruffleObject {
    * @param cons the constructor for which method map is requested
    * @return a map containing all the defined methods by name
    */
-  private Map<String, Function> getMethodMapFor(AtomConstructor cons) {
+  private Map<String, Function> ensureMethodMapFor(AtomConstructor cons) {
     return methods.computeIfAbsent(cons, k -> new HashMap<>());
+  }
+
+  private Map<String, Function> getMethodMapFor(AtomConstructor cons) {
+    Map<String, Function> result = methods.get(cons);
+    if (result == null) {
+      return new HashMap<>();
+    }
+    return result;
   }
 
   /**
@@ -88,37 +93,7 @@ public class ModuleScope implements TruffleObject {
    * @param function the {@link Function} associated with this definition
    */
   public void registerMethod(AtomConstructor atom, String method, Function function) {
-    getMethodMapFor(atom).put(method, function);
-  }
-
-  /**
-   * Registers a method for the {@code Any} type.
-   *
-   * @param methodName the name of the method to register
-   * @param function the {@link Function} associated with this definition
-   */
-  public void registerMethodForAny(String methodName, Function function) {
-    anyMethods.put(methodName, function);
-  }
-
-  /**
-   * Registers a method for the {@code Number} type.
-   *
-   * @param methodName the name of the method to register
-   * @param function the {@link Function} associated with this definition
-   */
-  public void registerMethodForNumber(String methodName, Function function) {
-    numberMethods.put(methodName, function);
-  }
-
-  /**
-   * Registers a method for the {@link Function} type.
-   *
-   * @param methodName the name of the method to register
-   * @param function the {@link Function} associated with this definition
-   */
-  public void registerMethodForFunction(String methodName, Function function) {
-    functionMethods.put(methodName, function);
+    ensureMethodMapFor(atom).put(method, function);
   }
 
   /**
@@ -128,118 +103,25 @@ public class ModuleScope implements TruffleObject {
    * site (i.e. non-overloads), then looks for methods defined in this scope and finally tries to
    * resolve the method in all dependencies of this module.
    *
-   * <p>If the specific search fails, methods defined for any type are searched, first looking at
-   * locally defined methods and then all the imports.
-   *
    * @param atom type to lookup the method for.
    * @param name the method name.
    * @return the matching method definition or null if not found.
    */
   @CompilerDirectives.TruffleBoundary
-  public Function lookupMethodDefinitionForAtom(AtomConstructor atom, String name) {
-    return lookupSpecificMethodDefinitionForAtom(atom, name)
-        .orElseGet(() -> lookupMethodDefinitionForAny(name).orElse(null));
-  }
-
-  /**
-   * Looks up a method definition by-name, for methods defined on the type Any.
-   *
-   * <p>The resolution algorithm prefers methods defined locally over any other method.
-   *
-   * @param name the name of the method to look up
-   * @return {@code Optional.of(resultMethod)} if the method existed, {@code Optional.empty()}
-   *     otherwise
-   */
-  @CompilerDirectives.TruffleBoundary
-  public Optional<Function> lookupMethodDefinitionForAny(String name) {
-    return searchAuxiliaryMethodsMap(ModuleScope::getMethodsOfAny, name);
-  }
-
-  private Optional<Function> lookupSpecificMethodDefinitionForAtom(
-      AtomConstructor atom, String name) {
+  public Function lookupMethodDefinition(AtomConstructor atom, String name) {
     Function definedWithAtom = atom.getDefinitionScope().getMethodMapFor(atom).get(name);
     if (definedWithAtom != null) {
-      return Optional.of(definedWithAtom);
+      return definedWithAtom;
     }
     Function definedHere = getMethodMapFor(atom).get(name);
     if (definedHere != null) {
-      return Optional.of(definedHere);
+      return definedHere;
     }
     return imports.stream()
         .map(scope -> scope.getMethodMapFor(atom).get(name))
         .filter(Objects::nonNull)
-        .findFirst();
-  }
-
-  private Optional<Function> lookupSpecificMethodDefinitionForNumber(String name) {
-    return searchAuxiliaryMethodsMap(ModuleScope::getMethodsOfNumber, name);
-  }
-
-  private Optional<Function> lookupSpecificMethodDefinitionForFunction(String name) {
-    return searchAuxiliaryMethodsMap(ModuleScope::getMethodsOfFunction, name);
-  }
-
-  /**
-   * Looks up a method definition by-name, for methods defined on the type Number.
-   *
-   * <p>The resolution algorithm prefers methods defined locally over any other method.
-   *
-   * <p>If the specific search fails, methods defined for any type are searched, first looking at *
-   * locally defined methods and then all the imports.
-   *
-   * @param name the name of the method to look up
-   * @return {@code Optional.of(resultMethod)} if the method existed, {@code Optional.empty()}
-   *     otherwise
-   */
-  @CompilerDirectives.TruffleBoundary
-  public Optional<Function> lookupMethodDefinitionForNumber(String name) {
-    return Optional.ofNullable(
-        lookupSpecificMethodDefinitionForNumber(name)
-            .orElseGet(() -> lookupMethodDefinitionForAny(name).orElse(null)));
-  }
-
-  /**
-   * Looks up a method definition by-name, for methods defined on the type {@link Function}.
-   *
-   * <p>The resolution algorithm prefers methods defined locally over any other method.
-   *
-   * <p>If the specific search fails, methods defined for any type are searched, first looking at *
-   * locally defined methods and then all the imports.
-   *
-   * @param name the name of the method to look up
-   * @return {@code Optional.of(resultMethod)} if the method existed, {@code Optional.empty()}
-   *     otherwise
-   */
-  @CompilerDirectives.TruffleBoundary
-  public Optional<Function> lookupMethodDefinitionForFunction(String name) {
-    return Optional.ofNullable(
-        lookupSpecificMethodDefinitionForFunction(name)
-            .orElseGet(() -> lookupMethodDefinitionForAny(name).orElse(null)));
-  }
-
-  private Optional<Function> searchAuxiliaryMethodsMap(
-      java.util.function.Function<ModuleScope, Map<String, Function>> mapGetter,
-      String methodName) {
-    Function definedHere = mapGetter.apply(this).get(methodName);
-    if (definedHere != null) {
-      return Optional.of(definedHere);
-    }
-    return imports.stream()
-        .map(scope -> mapGetter.apply(scope).get(methodName))
-        .filter(Objects::nonNull)
-        .findFirst();
-  }
-
-  private Map<String, Function> getMethodsOfAny() {
-    return anyMethods;
-  }
-
-  private Map<String, Function> getMethodsOfNumber() {
-    return numberMethods;
-  }
-
-  private Map<String, Function> getMethodsOfFunction() {
-    return functionMethods;
+        .findFirst()
+        .orElse(null);
   }
 
   /**

@@ -240,7 +240,7 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
   public ExpressionNode visitVariable(AstVariable astVariable) {
     String name = astVariable.name();
     Optional<ExpressionNode> currentModuleVariable =
-        name.equals(Constants.Names.CURRENT_MODULE_VARIABLE_NAME)
+        name.equals(Constants.Names.CURRENT_MODULE)
             ? Optional.of(new ConstructorNode(moduleScope.getAssociatedType()))
             : Optional.empty();
     Supplier<Optional<ExpressionNode>> localVariableNode =

@@ -10,7 +10,7 @@ import org.enso.interpreter.Language;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.node.callable.argument.ThunkExecutorNode;
+import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.argument.Thunk;
 import org.enso.interpreter.runtime.scope.LocalScope;

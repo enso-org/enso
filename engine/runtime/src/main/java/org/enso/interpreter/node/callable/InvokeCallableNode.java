@@ -6,9 +6,8 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.BaseNode;
-import org.enso.interpreter.node.callable.argument.ThunkExecutorNode;
-import org.enso.interpreter.node.callable.argument.sorter.ArgumentSorterNode;
-import org.enso.interpreter.node.callable.argument.sorter.ArgumentSorterNodeGen;
+import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
+import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.argument.Thunk;
@@ -62,7 +61,7 @@ public abstract class InvokeCallableNode extends BaseNode {
     }
   }
 
-  @Child private ArgumentSorterNode argumentSorter;
+  @Child private InvokeFunctionNode invokeFunctionNode;
   @Child private MethodResolverNode methodResolverNode;
   @Child private ThunkExecutorNode thisExecutor;
 
@@ -80,7 +79,8 @@ public abstract class InvokeCallableNode extends BaseNode {
     for (; idx < schema.length; idx++) {
       CallArgumentInfo arg = schema[idx];
 
-      boolean isNamedThis = arg.isNamed() && arg.getName().equals(Constants.Names.THIS_ARGUMENT_NAME);
+      boolean isNamedThis =
+          arg.isNamed() && arg.getName().equals(Constants.Names.THIS_ARGUMENT);
       if (arg.isPositional() || isNamedThis) {
         appliesThis = true;
         break;
@@ -92,8 +92,8 @@ public abstract class InvokeCallableNode extends BaseNode {
 
     this.argumentsExecutionMode = argumentsExecutionMode;
 
-    this.argumentSorter =
-        ArgumentSorterNodeGen.create(schema, defaultsExecutionMode, argumentsExecutionMode);
+    this.invokeFunctionNode =
+        InvokeFunctionNode.build(schema, defaultsExecutionMode, argumentsExecutionMode);
     this.methodResolverNode = MethodResolverNodeGen.create();
   }
 
@@ -123,7 +123,7 @@ public abstract class InvokeCallableNode extends BaseNode {
   @Specialization
   Stateful invokeFunction(
       Function function, VirtualFrame callerFrame, Object state, Object[] arguments) {
-    return this.argumentSorter.execute(function, callerFrame, state, arguments);
+    return this.invokeFunctionNode.execute(function, callerFrame, state, arguments);
   }
 
   /**
@@ -166,7 +166,7 @@ public abstract class InvokeCallableNode extends BaseNode {
         state = selfResult.getState();
       }
       Function function = methodResolverNode.execute(symbol, selfArgument);
-      return this.argumentSorter.execute(function, callerFrame, state, arguments);
+      return this.invokeFunctionNode.execute(function, callerFrame, state, arguments);
     } else {
       throw new RuntimeException("Currying without `this` argument is not yet supported.");
     }
@@ -210,6 +210,6 @@ public abstract class InvokeCallableNode extends BaseNode {
   @Override
   public void setTail(boolean isTail) {
     super.setTail(isTail);
-    argumentSorter.setTail(isTail);
+    invokeFunctionNode.setTail(isTail);
   }
 }

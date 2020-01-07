@@ -117,7 +117,7 @@ object AstToAstExpression {
         val path = if (targetPath.nonEmpty) {
           targetPath.collect { case AST.Ident.Cons(name) => name }.mkString(".")
         } else {
-          Constants.Names.CURRENT_MODULE_VARIABLE_NAME
+          Constants.Names.CURRENT_MODULE
         }
         val nameStr       = name match { case AST.Ident.Var(name) => name }
         val defExpression = translateExpression(definition)
