@@ -1,9 +1,65 @@
+#![warn(missing_docs)]
+
+//! A number of helper functions meant to be used in the procedural macros
+//! definitions.
+
 use prelude::*;
 
 use quote::quote;
 use syn;
-use syn::visit::{self, Visit};
+use syn::visit::Visit;
 use proc_macro2::TokenStream;
+use proc_macro2::TokenTree;
+
+// =========================
+// === Token Stream Utils ===
+// =========================
+
+/// Maps all the tokens in the stream using a given function.
+pub fn map_tokens<F:Fn(TokenTree) -> TokenTree>
+(input:TokenStream, f:F) -> TokenStream {
+    let ret_iter = input.into_iter().map(f);
+    TokenStream::from_iter(ret_iter)
+}
+
+/// Rewrites stream replacing each token with a sequence of tokens returned by
+/// the given function. The groups (e.g. token tree within braces) are unpacked,
+/// rewritten and repacked into groups -- the function is applied recursively.
+pub fn rewrite_stream
+<F:Fn(TokenTree) -> TokenStream + Copy>
+(input:TokenStream, f:F) -> TokenStream {
+    let mut ret = TokenStream::new();
+    for token in input.into_iter() {
+        match token {
+            proc_macro2::TokenTree::Group(group) => {
+                let delim  = group.delimiter();
+                let span   = group.span();
+                let rewritten = rewrite_stream(group.stream(), f);
+                let mut new_group = proc_macro2::Group::new(delim,rewritten);
+                new_group.set_span(span);
+                let new_group = vec![TokenTree::from(new_group)];
+                ret.extend(new_group.into_iter())
+            }
+            _ => ret.extend(f(token)),
+        }
+    }
+    ret
+}
+
+
+
+// ===================
+// === Token Utils ===
+// ===================
+
+/// Is the given token an identifier matching to a given string?
+pub fn matching_ident(token:&TokenTree, name:&str) -> bool {
+    match token {
+        TokenTree::Ident(ident) => ident.to_string() == name,
+        _                       => false,
+    }
+}
+
 
 
 // ============
@@ -14,6 +70,7 @@ use proc_macro2::TokenStream;
 pub fn repr<T: quote::ToTokens>(t:&T) -> String {
     quote!(#t).to_string()
 }
+
 
 
 // ===================
@@ -38,6 +95,7 @@ pub fn field_ident_token(field:&syn::Field, index:syn::Index) -> TokenStream {
         None        => quote!(#index),
     }
 }
+
 
 
 // =======================
@@ -80,16 +138,19 @@ pub fn last_type_arg(ty_path:&syn::TypePath) -> Option<&syn::GenericArgument> {
 }
 
 
+
 // =====================
 // === Collect Types ===
 // =====================
 
 /// Visitor that accumulates all visited `syn::TypePath`.
 pub struct TypeGatherer<'ast> {
+    /// Observed types accumulator.
     pub types: Vec<&'ast syn::TypePath>
 }
 
 impl TypeGatherer<'_> {
+    /// Create a new visitor value.
     pub fn new() -> Self {
         let types = default();
         Self { types }
@@ -99,7 +160,7 @@ impl TypeGatherer<'_> {
 impl<'ast> Visit<'ast> for TypeGatherer<'ast> {
     fn visit_type_path(&mut self, node:&'ast syn::TypePath) {
         self.types.push(node);
-        visit::visit_type_path(self, node);
+        syn::visit::visit_type_path(self, node);
     }
 }
 
@@ -114,6 +175,7 @@ pub fn gather_all_types(node:&syn::Type) -> Vec<&syn::TypePath> {
 pub fn gather_all_type_reprs(node:&syn::Type) -> Vec<String> {
     gather_all_types(node).iter().map(|t| repr(t)).collect()
 }
+
 
 
 // =======================
@@ -143,6 +205,7 @@ pub fn variant_depends_on
 (var:&syn::Variant, target_param:&syn::GenericParam) -> bool {
     var.fields.iter().any(|field| type_depends_on(&field.ty, target_param))
 }
+
 
 
 // =============

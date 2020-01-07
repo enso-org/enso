@@ -16,6 +16,8 @@ where T      : IntoIterator,
     t.into_iter().collect()
 }
 
+
+
 // =====================================
 // === Struct with single type param ===
 // =====================================
@@ -57,6 +59,8 @@ fn derive_iterator_single_t() {
     assert_eq!(sum, pair.0 + pair.1)
 }
 
+
+
 // ===================================
 // === Struct with two type params ===
 // ===================================
@@ -71,6 +75,8 @@ fn two_params() {
     assert_eq!(to_vector(pair.iter().copied()), vec![10]);
 }
 
+
+
 // ======================================
 // === Struct without any type params ===
 // ======================================
@@ -83,6 +89,8 @@ fn no_params() {
     // `derive(Iterator)` is no-op for structures with no type parameters.
     // We just make sure that it does not cause compilation error.
 }
+
+
 
 // ========================
 // === Enumeration Type ===
@@ -126,6 +134,8 @@ fn enum_iter3() {
     assert!(v_iter.next().is_none());
 }
 
+
+
 // =======================
 // === Dependent Types ===
 // =======================
@@ -135,6 +145,7 @@ fn enum_iter3() {
 pub struct DependentTest<U, T> {
     a:T,
     b:(T,U,PairUV<U, T>),
+    // is never used, as it doesn't depend on `T` (last param)
     #[allow(dead_code)]
     c:PairTT<U>,
     d:(i32, Option<Vec<T>>),

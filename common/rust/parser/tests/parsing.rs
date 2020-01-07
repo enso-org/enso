@@ -1,3 +1,5 @@
+#![feature(generators, generator_trait)]
+
 use prelude::*;
 
 use ast::*;
@@ -41,6 +43,16 @@ fn assert_opr<StringLike:Into<String>>(ast:&Ast, name:StringLike) {
     assert_eq!(*actual,expected);
 }
 
+/// Checks if all nodes in subtree have declared spans equal to
+/// spans we calculate.
+fn validate_spans(ast:&Ast) {
+    for node in ast.iter_recursive() {
+        let calculated = node.shape().span();
+        let declared   = node.wrapped.wrapped.span;
+        assert_eq!(calculated, declared
+                  , "`{}` part of `{}`", node.repr(), ast.repr());
+    }
+}
 
 // ===================
 // === ExpectTuple ===
@@ -112,7 +124,12 @@ impl Fixture {
 
     /// Runs parser on given input, panics on any error.
     fn parse(&mut self, program:&str) -> Ast {
-        self.0.parse(program.into()).unwrap()
+        println!("parsing {}", program);
+        let ast = self.0.parse(program.into()).unwrap();
+        assert_eq!(ast.shape().span(), program.len());
+        validate_spans(&ast);
+        assert_eq!(ast.repr(), program, "{:?}", ast);
+        ast
     }
 
     /// Program is expected to be single line module. The line's AST is
@@ -121,8 +138,8 @@ impl Fixture {
         let ast  = self.parse(program);
         let line = expect_single_line(&ast);
         line.clone()
-
     }
+
     /// Program is expected to be single line module. The line's Shape subtype
     /// is obtained and passed to `tester`.
     fn test_shape<T,F>(&mut self, program:&str, tester:F)
@@ -223,6 +240,14 @@ impl Fixture {
         });
     }
 
+    fn test_text_fmt_segment<F>(&mut self, program:&str, tester:F)
+    where F: FnOnce(&SegmentFmt<Ast>) -> () {
+        self.test_shape(program,|shape:&TextLineFmt<Ast>| {
+            let (segment,)  = (&shape.text).expect_tuple();
+            tester(segment)
+        });
+    }
+
     fn deserialize_text_line_fmt(&mut self) {
         use SegmentFmt::SegmentExpr;
 
@@ -244,8 +269,7 @@ impl Fixture {
 
         // expression empty
         let expr_fmt = r#"'``'"#;
-        self.test_shape(expr_fmt,|shape:&TextLineFmt<Ast>| {
-            let (segment,)  = (&shape.text).expect_tuple();
+        self.test_text_fmt_segment(expr_fmt,|segment| {
             match segment {
                 SegmentExpr(expr) => assert_eq!(expr.value,None),
                 _                 => panic!("wrong segment type received"),
@@ -254,8 +278,7 @@ impl Fixture {
 
         // expression non-empty
         let expr_fmt = r#"'`foo`'"#;
-        self.test_shape(expr_fmt,|shape:&TextLineFmt<Ast>| {
-            let (segment,)  = (&shape.text).expect_tuple();
+        self.test_text_fmt_segment(expr_fmt,|segment| {
             match segment {
                 SegmentExpr(expr) =>
                     assert_var(expr.value.as_ref().unwrap(),"foo"),
@@ -263,21 +286,19 @@ impl Fixture {
             }
         });
 
-        let expr_fmt = r#"'\n\u0394\U0001f34c'"#;
-        self.test_shape(expr_fmt,|shape:&TextLineFmt<Ast>| {
-            let segments: (_,_,_)  = (&shape.text).expect_tuple();
-
-            let expected = Escape::Character{c:'n'};
-            assert_eq!(*segments.0,expected.into());
-
-            let expected = Escape::Unicode16{digits: "0394".into()};
-            assert_eq!(*segments.1,expected.into());
-
-            // TODO We don't test Unicode21 as it is not yet supported by
-            //      parser.
-
-            let expected = Escape::Unicode32{digits: "0001f34c".into()};
-            assert_eq!(*segments.2,expected.into());
+        self.test_text_fmt_segment(r#"'\n'"#,|segment| {
+            let expected = EscapeCharacter{c:'n'};
+            assert_eq!(*segment,expected.into());
+        });
+        self.test_text_fmt_segment(r#"'\u0394'"#,|segment| {
+            let expected = EscapeUnicode16{digits: "0394".into()};
+            assert_eq!(*segment,expected.into());
+        });
+        // TODO [MWU] We don't test Unicode21 as it is not yet supported by the
+        //            parser.
+        self.test_text_fmt_segment(r#"'\U0001f34c'"#,|segment| {
+            let expected = EscapeUnicode32{digits: "0001f34c".into()};
+            assert_eq!(*segment,expected.into());
         });
     }
 
@@ -401,6 +422,7 @@ impl Fixture {
             [ "foo -> bar"
             , "()"
             , "(foo -> bar)"
+            , "a b c -> bar"
             , "type Maybe a\n    Just val:a"
             , "foreign Python3\n  bar"
             , "if foo > 8 then 10 else 9"
@@ -456,6 +478,7 @@ impl Fixture {
         self.deserialize_macro_ambiguous();
     }
 }
+
 
 /// A single entry point for all the tests here using external parser.
 ///

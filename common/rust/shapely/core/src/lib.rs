@@ -1,5 +1,9 @@
 #![feature(generators, generator_trait)]
 #![feature(type_ascription)]
+#![warn(missing_docs)]
+
+//! Helper code meant to be used by the code generated through usage of macros
+//! from `shapely-macros` crate.
 
 pub use shapely_macros::*;
 
@@ -27,6 +31,8 @@ where G: Generator<Return = ()> + Unpin {
     }
 }
 
+
+
 // =====================
 // === EmptyIterator ===
 // =====================
@@ -46,6 +52,7 @@ impl<T> Iterator for EmptyIterator<T> {
         None
     }
 }
+
 
 
 // =============
