@@ -1,13 +1,20 @@
+#![allow(missing_docs)]
+
+#[warn(missing_docs)]
 pub mod font;
+#[warn(missing_docs)]
 pub mod buffer;
+#[warn(missing_docs)]
 pub mod content;
+#[warn(missing_docs)]
 pub mod cursor;
+#[warn(missing_docs)]
 pub mod msdf;
+#[warn(missing_docs)]
 pub mod program;
 
 use crate::prelude::*;
 
-use crate::Color;
 use crate::display::world::Workspace;
 use crate::display::render::webgl::Context;
 use crate::display::shape::text::buffer::TextComponentBuffers;
@@ -27,6 +34,39 @@ use nalgebra::Point2;
 use nalgebra::Projective2;
 use web_sys::WebGl2RenderingContext;
 use web_sys::WebGlTexture;
+
+
+
+// =================
+// === Utilities ===
+// =================
+
+#[derive(Debug)]
+pub struct Color<T> {
+    pub r : T,
+    pub g : T,
+    pub b : T,
+    pub a : T,
+}
+
+#[derive(Debug)]
+pub struct Area<T> {
+    pub left   : T,
+    pub right  : T,
+    pub top    : T,
+    pub bottom : T,
+}
+
+impl<T:std::ops::Sub+Clone> Area<T> {
+    pub fn width(&self) -> T::Output {
+        self.right.clone() - self.left.clone()
+    }
+
+    pub fn height(&self) -> T::Output {
+        self.top.clone() - self.bottom.clone()
+    }
+}
+
 
 
 // =====================

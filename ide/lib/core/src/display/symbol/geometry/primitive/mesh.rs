@@ -1,20 +1,24 @@
-pub mod buffer;
-pub mod scope;
+#![allow(missing_docs)]
 
-use crate::prelude::*;
+pub use crate::system::gpu::data;
+pub use crate::system::gpu::data::Uniform;
+pub use crate::system::gpu::data::UniformScope;
 
-use crate::display::render::webgl::Context;
 use crate::closure;
-use crate::data::function::callback::*;
-use crate::data::dirty;
 use crate::data::dirty::traits::*;
+use crate::data::dirty;
+use crate::data::function::callback::*;
+use crate::debug::stats::Stats;
+use crate::display::render::webgl::Context;
+use crate::prelude::*;
+use crate::promote;
 use crate::promote_all;
 use crate::promote_scope_types;
-use crate::promote;
 use crate::system::web::group;
 use crate::system::web::Logger;
 use eval_tt::*;
 use num_enum::IntoPrimitive;
+
 
 
 // ============
@@ -64,19 +68,25 @@ pub struct Mesh<OnMut> {
     pub scopes       : Scopes      <OnMut>,
     pub scopes_dirty : ScopesDirty <OnMut>,
     pub logger       : Logger,
-    context          : Context
+    context          : Context,
+    stats            : Stats,
 }
 
 #[derive(Derivative)]
 #[derivative(Debug(bound=""))]
 pub struct Scopes<OnMut> {
-    pub point     : VarScope     <OnMut>,
-    pub vertex    : VarScope     <OnMut>,
-    pub primitive : VarScope     <OnMut>,
-    pub instance  : VarScope     <OnMut>,
-    pub object    : UniformScope <OnMut>,
-    pub global    : GlobalScope  <OnMut>,
+    pub point     : AttributeScope <OnMut>,
+    pub vertex    : AttributeScope <OnMut>,
+    pub primitive : AttributeScope <OnMut>,
+    pub instance  : AttributeScope <OnMut>,
+    pub object    : UniformScope,
+    pub global    : UniformScope,
 }
+
+pub type PointId     = usize;
+pub type VertexId    = usize;
+pub type PrimitiveId = usize;
+pub type InstanceId  = usize;
 
 #[derive(Copy,Clone,Debug,IntoPrimitive,PartialEq)]
 #[repr(u8)]
@@ -99,16 +109,14 @@ impl Display for ScopeType {
 
 // === Types ===
 
-pub type ScopesDirty  <F> = dirty::SharedEnum<u8,ScopeType,F>;
-pub type VarScope     <F> = scope::Scope<ScopeOnChange<F>>;
-pub type UniformScope <F> = scope::Scope<ScopeOnChange<F>>; // FIXME mock
-pub type GlobalScope  <F> = scope::Scope<ScopeOnChange<F>>; // FIXME mock
-promote_scope_types!{ [ScopeOnChange] scope }
+pub type ScopesDirty<F> = dirty::SharedEnum<u8,ScopeType,F>;
+promote_scope_types!{ [ScopeOnChange] data }
 
 #[macro_export]
+/// Promote relevant types to parent scope. See `promote!` macro for more information.
 macro_rules! promote_mesh_types { ($($args:tt)*) => {
     crate::promote_scope_types! { $($args)* }
-    promote! {$($args)* [Mesh,Scopes,VarScope,UniformScope,GlobalScope]}
+    promote! {$($args)* [Mesh,Scopes]}
 };}
 
 
@@ -131,7 +139,10 @@ macro_rules! update_scopes { ($self:ident . {$($name:ident),*} {$($uname:ident),
 impl<OnMut: Callback0> Mesh<OnMut> {
 
     /// Creates new mesh with attached dirty callback.
-    pub fn new(context:&Context, logger:Logger, on_mut:OnMut) -> Self {
+    pub fn new
+    (global:&UniformScope, logger:Logger, stats:&Stats, context:&Context, on_mut:OnMut) -> Self {
+        stats.inc_mesh_count();
+        let stats         = stats.clone();
         let scopes_logger = logger.sub("scopes_dirty");
         let scopes_dirty  = ScopesDirty::new(scopes_logger,on_mut);
         let context       = context.clone();
@@ -141,14 +152,17 @@ impl<OnMut: Callback0> Mesh<OnMut> {
                 let status_mod = ScopeType::$uname;
                 let scs_dirty  = scopes_dirty.clone_ref();
                 let callback   = scope_on_change(scs_dirty, status_mod);
-                let $name      = $cls::new(&context,sub_logger,callback);
+                let $name      = $cls::new(sub_logger,&stats,&context,callback);
             )*}}
-            new_scope!(VarScope {point,vertex,primitive,instance}{Point,Vertex,Primitive,Instance});
-            new_scope!(VarScope {object}{Object});
-            new_scope!(VarScope {global}{Global});
+            new_scope!(AttributeScope {point,vertex,primitive,instance}{Point,Vertex,Primitive,Instance});
+
+            let object_scope_logger = logger.sub("object");
+            let object              = UniformScope::new(object_scope_logger);
+            let global              = global.clone();
+
             Scopes {point,vertex,primitive,instance,object,global}
         });
-        Self {context,scopes,scopes_dirty,logger}
+        Self {context,scopes,scopes_dirty,logger,stats}
     }
 
     /// Check dirty flags and update the state accordingly.
@@ -157,7 +171,7 @@ impl<OnMut: Callback0> Mesh<OnMut> {
             if self.scopes_dirty.check_all() {
                 update_scopes!(self.{point,vertex,primitive,instance}
                                     {Point,Vertex,Primitive,Instance});
-                update_scopes!(self.{object,global}{Object,Global});
+//                update_scopes!(self.{object,global}{Object,Global});
                 self.scopes_dirty.unset_all()
             }
         })
@@ -177,7 +191,7 @@ impl<OnMut: Callback0> Mesh<OnMut> {
     }
 
     /// Gets reference to scope based on the scope type.
-    pub fn var_scope(&self, scope_type:ScopeType) -> Option<&VarScope<OnMut>> {
+    pub fn var_scope(&self, scope_type:ScopeType) -> Option<&AttributeScope<OnMut>> {
         match scope_type {
             ScopeType::Point     => Some(&self.scopes.point),
             ScopeType::Vertex    => Some(&self.scopes.vertex),
@@ -185,5 +199,11 @@ impl<OnMut: Callback0> Mesh<OnMut> {
             ScopeType::Instance  => Some(&self.scopes.instance),
             _                    => None
         }
+    }
+}
+
+impl<OnMut> Drop for Mesh<OnMut> {
+    fn drop(&mut self) {
+        self.stats.dec_mesh_count();
     }
 }

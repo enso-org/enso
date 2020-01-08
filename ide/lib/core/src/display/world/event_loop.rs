@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 use crate::prelude::*;
 
 use crate::control::callback::CallbackMut;
@@ -5,9 +7,7 @@ use crate::control::callback::CallbackHandle;
 use crate::control::callback::CallbackRegistry;
 use crate::system::web;
 use wasm_bindgen::prelude::Closure;
-use crate::debug::monitor;
-use crate::debug::monitor::Monitor;
-use crate::debug::monitor::Panel;
+
 
 
 // =================
@@ -51,6 +51,14 @@ impl EventLoop {
     pub fn add_callback<F:CallbackMut>(&self, callback:F) -> CallbackHandle {
         self.rc.borrow_mut().callbacks.add(callback)
     }
+
+    pub fn set_on_loop_started<F:FnMut()+'static>(&self, f:F) {
+        self.rc.borrow_mut().set_on_loop_started(f)
+    }
+
+    pub fn set_on_loop_finished<F:FnMut()+'static>(&self, f:F) {
+        self.rc.borrow_mut().set_on_loop_finished(f);
+    }
 }
 
 
@@ -63,44 +71,45 @@ impl EventLoop {
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct EventLoopData {
-    main      : Option<Closure<dyn FnMut(f32)>>,
-    callbacks : CallbackRegistry,
-    monitor   : Monitor,
-    time      : Panel,
-    fps       : Panel,
-    mem       : Panel,
-    main_id   : i32,
+    main             : Option<Closure<dyn FnMut(f32)>>,
+    callbacks        : CallbackRegistry,
+    #[derivative(Debug="ignore")]
+    on_loop_started  : Box<dyn FnMut()>,
+    #[derivative(Debug="ignore")]
+    on_loop_finished : Box<dyn FnMut()>,
+    main_id          : i32,
 }
 
 impl Default for EventLoopData {
     fn default() -> Self {
-        let main        = default();
-        let callbacks   = default();
-        let main_id     = default();
-        let mut monitor = Monitor::new();
-        let time        = monitor.add(monitor::FrameTime::new());
-        let fps         = monitor.add(monitor::Fps::new());
-        let mem         = monitor.add(monitor::WasmMemory::new());
-        Self {main,callbacks,monitor,time,fps,mem,main_id}
+        let main             = default();
+        let callbacks        = default();
+        let main_id          = default();
+        let on_loop_started  = Box::new(||{});
+        let on_loop_finished = Box::new(||{});
+        Self {main,callbacks,on_loop_started,on_loop_finished,main_id}
     }
 }
 
 impl EventLoopData {
     /// Create new instance.
     pub fn run(&mut self) {
-        self.time.begin();
-        self.fps.begin();
-        self.mem.begin();
+        (self.on_loop_started)();
         let callbacks   = &mut self.callbacks;
         let callback_id = self.main.as_ref().map_or(default(), |main| {
             callbacks.run_all();
             web::request_animation_frame(main).unwrap()
         });
         self.main_id = callback_id;
-        self.time.end();
-        self.fps.end();
-        self.mem.end();
-        self.monitor.draw();
+        (self.on_loop_finished)();
+    }
+
+    pub fn set_on_loop_started<F:FnMut()+'static>(&mut self, f:F) {
+        self.on_loop_started = Box::new(f);
+    }
+
+    pub fn set_on_loop_finished<F:FnMut()+'static>(&mut self, f:F) {
+        self.on_loop_finished = Box::new(f);
     }
 }
 

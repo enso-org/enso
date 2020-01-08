@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 //! This module contains implementation of various dirty flags. A dirty flag is a structure which
 //! remembers that something was changed, but not updated yet. For example, dirty flags are useful
 //! when defining OpenGL buffer management. When a data in CPU-buffer changes, dirty flags can keep
@@ -307,9 +309,9 @@ SharedHasUnset1 for SharedDirtyFlag<T,OnSet> where Arg<T>:Display {
 /// The on / off dirty flag. If you need a simple dirty / clean switch, this one
 /// is the right choice.
 
-pub type  Bool       <OnSet> = DirtyFlag       <BoolData,OnSet>;
-pub type  SharedBool <OnSet> = SharedDirtyFlag <BoolData,OnSet>;
-pub trait BoolCtx    <OnSet> = where OnSet: Callback0;
+pub type  Bool       <OnSet=()> = DirtyFlag       <BoolData,OnSet>;
+pub type  SharedBool <OnSet=()> = SharedDirtyFlag <BoolData,OnSet>;
+pub trait BoolCtx    <OnSet>    = where OnSet: Callback0;
 
 #[derive(Debug,Display,Default)]
 pub struct BoolData { is_dirty: bool }

@@ -1,3 +1,6 @@
+#![allow(missing_docs)]
+
+#[warn(missing_docs)]
 pub mod transform;
 
 use crate::prelude::*;
@@ -57,6 +60,10 @@ impl HierarchicalObjectData {
         let parent_bind = default();
         let children    = default();
         Self {parent_bind,children,logger}
+    }
+
+    pub fn child_count(&self) -> usize {
+        self.children.len()
     }
 }
 
@@ -320,7 +327,18 @@ impl DisplayObjectData {
 
     /// Adds a new `DisplayObject` as a child to the current one.
     pub fn add_child<T:DisplayObject>(&self, child:T) {
-        child.display_object_description().set_parent(self);
+        self.clone_ref().add_child_take(child);
+    }
+
+    /// Adds a new `DisplayObject` as a child to the current one.
+    pub fn add_child_take<T:DisplayObject>(self, child:T) {
+        self.rc.borrow().logger.info("Adding new child.");
+        let child = child.display_object_description();
+        child.unset_parent();
+        let index = self.rc.borrow_mut().register_child(&child);
+        self.rc.borrow().logger.info(|| format!("Child index is {}.", index));
+        let parent_bind = ParentBind {parent:self,index};
+        child.set_parent_bind(parent_bind);
     }
 
     /// Removes the provided object reference from child list of this object. Does nothing if the
@@ -334,14 +352,7 @@ impl DisplayObjectData {
 
     /// Replaces the parent binding with a new parent.
     pub fn set_parent<T:DisplayObject>(&self, parent:T) {
-        group!(self.rc.borrow().logger, "Setting new parent.", {
-            self.unset_parent();
-            let parent      = parent.display_object_description();
-            let index       = parent.rc.borrow_mut().register_child(self);
-            let parent_bind = ParentBind {parent,index};
-            self.rc.borrow().logger.info(|| format!("Child index is {}.", index));
-            self.set_parent_bind(parent_bind);
-        })
+        parent.display_object_description().add_child_take(self);
     }
 
     /// Removes the current parent binding.
@@ -360,6 +371,11 @@ impl DisplayObjectData {
         child.parent_bind().and_then(|bind| {
             if self == &bind.parent { Some(bind.index) } else { None }
         })
+    }
+
+    /// Returns the number of children of this node.
+    pub fn child_count(&self) -> usize {
+        self.rc.borrow().child_count()
     }
 }
 
@@ -507,14 +523,23 @@ pub trait DisplayObject: Into<DisplayObjectData> {
 impl<T:Into<DisplayObjectData>> DisplayObject for T {}
 
 
-//pub trait DisplayObjectOps where for<'t> &'t Self:DisplayObject {
-//    fn add_child<T:DisplayObject>(&self, child:T) {
-//        self.display_object_description().add_child(child)
-//    }
-//}
-//
-//impl<T> DisplayObjectOps for T where for<'t> &'t Self:DisplayObject {}
+pub trait DisplayObjectOps<'t>
+where &'t Self:DisplayObject, Self:'t {
+    fn add_child<T:DisplayObject>(&'t self, child:T) {
+        self.display_object_description().add_child_take(child);
+    }
 
+    fn update(&'t self) where &'t Self: Modify<&'t DisplayObjectData> {
+        self.modify(|t| t.update());
+    }
+}
+
+impl<'t,T> DisplayObjectOps<'t> for T
+where T:'t, &'t T:DisplayObject {}
+
+pub trait Modify<T> {
+    fn modify<F:FnOnce(T)>(self, f:F);
+}
 
 
 
@@ -525,7 +550,7 @@ impl<T:Into<DisplayObjectData>> DisplayObject for T {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::f32::consts::{PI};
+    use std::f32::consts::PI;
 
     #[test]
     fn hierarchy_test() {
@@ -610,6 +635,18 @@ mod tests {
         obj2.update();
         obj3.update();
         assert_eq!(obj3.global_position() , Vector3::new(7.0,6.0,0.0));
+    }
+
+    #[test]
+    fn parent_test() {
+        let obj1 = DisplayObjectData::new(Logger::new("obj1"));
+        let obj2 = DisplayObjectData::new(Logger::new("obj2"));
+        let obj3 = DisplayObjectData::new(Logger::new("obj3"));
+        obj1.add_child(&obj2);
+        obj1.add_child(&obj3);
+        obj2.unset_parent();
+        obj3.unset_parent();
+        assert_eq!(obj1.child_count(),0);
     }
 }
 

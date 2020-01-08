@@ -9,6 +9,8 @@
 #![feature(specialization)]
 #![feature(overlapping_marker_traits)]
 
+pub mod shared;
+
 pub use shapely_macros::*;
 
 use std::ops::Generator;

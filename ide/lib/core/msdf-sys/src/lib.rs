@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 mod internal;
 pub mod emscripten_data;
 pub mod test_utils;

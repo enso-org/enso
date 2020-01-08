@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 use crate::prelude::*;
 
 use crate::display::render::css3d::Object;
@@ -6,7 +8,7 @@ use crate::system::web::dyn_into;
 use crate::system::web::Result;
 use crate::system::web::Error;
 use crate::system::web::StyleSetter;
-use crate::traits::HasPosition;
+use crate::animation::position::HasPosition;
 
 use nalgebra::{Vector2, Vector3};
 use web_sys::HtmlElement;

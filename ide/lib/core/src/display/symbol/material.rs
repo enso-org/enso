@@ -1,107 +1,107 @@
-pub mod shader;
+//! This module defines `Material`, an abstraction for look and feel of a `Symbol`.
 
 use crate::prelude::*;
 
-use crate::display::render::webgl::Context;
-use crate::display::render::webgl;
+use crate::system::gpu::data::GpuData;
 use crate::display::render::webgl::glsl;
-use crate::data::function::callback::*;
-use crate::data::dirty;
-use crate::data::dirty::traits::*;
-use crate::system::web::group;
-use crate::system::web::Logger;
-use web_sys::WebGlProgram;
+use crate::display::symbol::shader::builder::CodeTemplete;
+
+
+
+// ===============
+// === VarDecl ===
+// ===============
+
+/// Material's variable declaration. Please note that variables in material do not define whether
+/// they are stored as attributes or uniforms. They are bound to the underlying implementation
+/// automatically by their name. In case of unsuccessful binding, the default value is used.
+#[derive(Clone,Debug)]
+pub struct VarDecl {
+    /// The GLSL type of the variable.
+    pub tp: glsl::PrimType,
+
+    /// Default value of the variable used in case it was not bound to a real value.
+    pub default : String,
+}
+
+impl VarDecl {
+    /// Constructor.
+    pub fn new(tp:glsl::PrimType, default:String) -> Self {
+        Self {tp,default}
+    }
+}
+
 
 
 // ================
 // === Material ===
 // ================
 
-// === Definition ===
-
-/// Material keeps track of a shader and related WebGL Program.
-#[derive(Derivative)]
-#[derivative(Debug(bound=""))]
-pub struct Material<OnMut> {
-    program    : Option<WebGlProgram>,
-    pub dirty  : Dirty <OnMut>,
-    pub logger : Logger,
-    context    : Context
+/// Abstraction for look and feel of a `Symbol`. Under the hood, material defines a GLSL shader.
+#[derive(Clone,Debug,Default,Shrinkwrap)]
+#[shrinkwrap(mutable)]
+#[shrinkwrap(unsafe_ignore_visibility)]
+pub struct Material {
+    #[shrinkwrap(main_field)]
+    code    : CodeTemplete,
+    inputs  : BTreeMap<String,VarDecl>,
+    outputs : BTreeMap<String,VarDecl>,
 }
 
-// === Types ===
-
-pub type Dirty <F> = dirty::SharedBool<F>;
-
-#[macro_export]
-macro_rules! promote_material_types { ($($args:tt)*) => {
-    promote! {$($args)* [Material]}
-};}
-
-// === Implementation ===
-
-impl<OnDirty: Callback0> Material<OnDirty> {
-
-    /// Creates new material with attached callback.
-    pub fn new(context:&Context, logger:Logger, on_mut:OnDirty) -> Self {
-        let program      = default();
-        let dirty_logger = logger.sub("dirty");
-        let dirty        = Dirty::new(dirty_logger,on_mut);
-        let context      = context.clone();
-        dirty.set();
-        Self {program,dirty,logger,context}
+impl Material {
+    /// Constructor.
+    pub fn new() -> Self {
+        default()
     }
 
-    /// Check dirty flags and update the state accordingly.
-    pub fn update(&mut self) {
-        group!(self.logger, "Updating.", {
-            if self.dirty.check_all() {
-
-                // FIXME: Hardcoded variables until we get proper shaders EDSL.
-
-                let mut shader_cfg     = shader::ShaderConfig::new();
-                let mut shader_builder = shader::ShaderBuilder::new();
-                shader_cfg.insert_attribute        ("bbox"            , glsl::PrimType::Vec2);
-                shader_cfg.insert_attribute        ("uv"              , glsl::PrimType::Vec2);
-                shader_cfg.insert_attribute        ("transform"       , glsl::PrimType::Mat4);
-                shader_cfg.insert_shared_attribute ("local"           , glsl::PrimType::Vec3);
-                shader_cfg.insert_uniform          ("view_projection" , glsl::PrimType::Mat4);
-                shader_cfg.insert_output           ("color"           , glsl::PrimType::Vec4);
-
-                let vtx_template = shader::CodeTemplete::from_main("
-                mat4 model_view_projection = view_projection * transform;
-                local                      = vec3((uv - 0.5) * bbox, 0.0);
-                gl_Position                = model_view_projection * vec4(local,1.0);
-                ");
-                let frag_template = shader::CodeTemplete::from_main("
-                out_color = vec4(1.0,1.0,1.0,1.0);
-                ");
-                shader_builder.compute(&shader_cfg,vtx_template,frag_template);
-                let shader      = shader_builder.build();
-                let vert_shader = webgl::compile_vertex_shader  (&self.context,&shader.vertex);
-                let frag_shader = webgl::compile_fragment_shader(&self.context,&shader.fragment);
-                let vert_shader = vert_shader.unwrap();
-                let frag_shader = frag_shader.unwrap();
-                let program     = webgl::link_program(&self.context,&vert_shader,&frag_shader);
-                let program     = program.unwrap();
-                self.program    = Some(program);
-                self.dirty.unset_all();
-            }
-        })
+    /// Adds a new input variable.
+    pub fn add_input<Name:Str,T:GpuData>(&mut self, name:Name, t:T) {
+        self.inputs.insert(name.into(),Self::make_var_decl(t));
     }
 
-    /// Traverses the material definition and collects all attribute names.
-    pub fn collect_variables(&self) -> Vec<String> {
-        // FIXME: Hardcoded.
-        vec!["bbox".into(),"uv".into(),"transform".into()]
+    /// Adds a new output variable.
+    pub fn add_output<Name:Str,T:GpuData>(&mut self, name:Name, t:T) {
+        self.outputs.insert(name.into(),Self::make_var_decl(t));
+    }
+
+    fn make_var_decl<T:GpuData>(t:T) -> VarDecl {
+        VarDecl::new(<T as GpuData>::glsl_type(), t.to_glsl())
+    }
+}
+
+impl From<&Material> for Material {
+    fn from(t:&Material) -> Self {
+        t.clone()
     }
 }
 
 
 // === Getters ===
 
-impl<OnDirty> Material<OnDirty> {
-    pub fn program(&self) -> &Option<WebGlProgram> {
-        &self.program
+impl Material {
+    /// Gets the GLSL code of this material.
+    pub fn code(&self) -> &CodeTemplete {
+        &self.code
+    }
+
+    /// Gets all registered inputs as a map.
+    pub fn inputs(&self) -> &BTreeMap<String,VarDecl> {
+        &self.inputs
+    }
+
+    /// Gets all registered outputs as a map.
+    pub fn outputs(&self) -> &BTreeMap<String,VarDecl> {
+        &self.outputs
+    }
+}
+
+
+// === Setters ===
+
+impl Material {
+    /// Sets the GLSL code of this material. This is a very primitive method. Use it only when
+    /// defining primitive materials.
+    pub fn set_code<T:Into<CodeTemplete>>(&mut self, code:T) {
+        self.code = code.into();
     }
 }

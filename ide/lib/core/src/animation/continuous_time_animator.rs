@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 use crate::system::web::get_performance;
 use crate::system::web::animation_frame_loop::AnimationFrameLoop;
 use super::FnAnimation;

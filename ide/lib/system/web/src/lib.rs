@@ -1,4 +1,5 @@
 #![feature(trait_alias)]
+#![feature(set_stdio)]
 
 pub mod resize_observer;
 pub mod animation_frame_loop;
@@ -122,12 +123,12 @@ impl Logger {
 //        console::group_end();
     }
 
-    pub fn warning<M: LogMsg>(&self, _msg: M) {
-//        console::warn_1(&self.format(msg));
+    pub fn warning<M: LogMsg>(&self, msg: M) {
+        console::warn_1(&self.format(msg));
     }
 
-    pub fn error<M: LogMsg>(&self, _msg: M) {
-//        console::error_1(&self.format(msg));
+    pub fn error<M: LogMsg>(&self, msg: M) {
+        console::error_1(&self.format(msg));
     }
 
     pub fn group_begin<M: LogMsg>(&self, _msg: M) {
@@ -254,14 +255,14 @@ pub fn get_performance() -> Result<Performance> {
 
 pub trait AttributeSetter {
     fn set_attribute_or_panic<T, U>(&self, name:T, value:U)
-            where T : AsRef<str>,
-                  U : AsRef<str>;
+    where T : AsRef<str>,
+          U : AsRef<str>;
 }
 
 impl AttributeSetter for web_sys::HtmlElement {
     fn set_attribute_or_panic<T,U>(&self, name:T, value:U)
-            where T : AsRef<str>,
-                  U : AsRef<str> {
+    where T : AsRef<str>,
+          U : AsRef<str> {
         let name   = name.as_ref();
         let value  = value.as_ref();
         let values = format!("\"{}\" = \"{}\" on \"{:?}\"",name,value,self);
@@ -272,14 +273,14 @@ impl AttributeSetter for web_sys::HtmlElement {
 
 pub trait StyleSetter {
     fn set_property_or_panic<T,U>(&self, name:T, value:U)
-            where T : AsRef<str>,
-                  U : AsRef<str>;
+    where T : AsRef<str>,
+          U : AsRef<str>;
 }
 
 impl StyleSetter for web_sys::HtmlElement {
     fn set_property_or_panic<T,U>(&self, name:T, value:U)
-            where T : AsRef<str>,
-                  U : AsRef<str> {
+    where T : AsRef<str>,
+          U : AsRef<str> {
         let name   = name.as_ref();
         let value  = value.as_ref();
         let values = format!("\"{}\" = \"{}\" on \"{:?}\"",name,value,self);
@@ -333,4 +334,99 @@ impl NodeRemover for Node {
 #[wasm_bindgen(inline_js = "export function request_animation_frame2(f) { requestAnimationFrame(f) }")]
 extern "C" {
     pub fn request_animation_frame2(closure: &Closure<dyn FnMut()>) -> i32;
+}
+
+
+
+// ===============
+// === Printer ===
+// ===============
+
+type PrintFn = fn(&str) -> std::io::Result<()>;
+
+struct Printer {
+    printfn: PrintFn,
+    buffer: String,
+    is_buffered: bool,
+}
+
+impl Printer {
+    fn new(printfn: PrintFn, is_buffered: bool) -> Printer {
+        Printer {
+            buffer: String::new(),
+            printfn,
+            is_buffered,
+        }
+    }
+}
+
+impl std::io::Write for Printer {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        self.buffer.push_str(&String::from_utf8_lossy(buf));
+
+        if !self.is_buffered {
+            (self.printfn)(&self.buffer)?;
+            self.buffer.clear();
+
+            return Ok(buf.len());
+        }
+
+        if let Some(i) = self.buffer.rfind('\n') {
+            let buffered = {
+                let (first, last) = self.buffer.split_at(i);
+                (self.printfn)(first)?;
+
+                String::from(&last[1..])
+            };
+
+            self.buffer.clear();
+            self.buffer.push_str(&buffered);
+        }
+
+        Ok(buf.len())
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        (self.printfn)(&self.buffer)?;
+        self.buffer.clear();
+
+        Ok(())
+    }
+}
+
+fn _print(msg: &str) -> std::io::Result<()> {
+    web_sys::console::info_1(&msg.to_string().into());
+    Ok(())
+}
+
+
+pub fn set_stdout() {
+    let printer = Printer::new(_print, true);
+    std::io::set_print(Some(Box::new(printer)));
+}
+
+pub fn set_stdout_unbuffered() {
+    let printer = Printer::new(_print, false);
+    std::io::set_print(Some(Box::new(printer)));
+}
+
+#[wasm_bindgen(inline_js = "
+export function set_stack_trace_limit() {
+    Error.stackTraceLimit = 100
+}
+")]
+extern "C" {
+    pub fn set_stack_trace_limit();
+}
+
+
+/// Enables forwarding panic messages to `console.error`.
+pub fn forward_panic_hook_to_console() {
+    // When the `console_error_panic_hook` feature is enabled, we can call the
+    // `set_panic_hook` function at least once during initialization, and then
+    // we will get better error messages if our code ever panics.
+    //
+    // For more details see
+    // https://github.com/rustwasm/console_error_panic_hook#readme
+    console_error_panic_hook::set_once();
 }

@@ -1,9 +1,9 @@
+#![allow(missing_docs)]
+
 use crate::prelude::*;
 
 use crate::data::container::Add;
 use crate::display::render::webgl::glsl;
-use crate::display::render::webgl::glsl::PrimType;
-use crate::display::render::webgl::glsl::Type;
 
 use code_builder::HasCodeRepr;
 use std::collections::BTreeMap;
@@ -38,19 +38,19 @@ pub struct ShaderConfig {
 impl ShaderConfig {
     pub fn new() -> Self { default() }
 
-    pub fn insert_attribute<S:Str,Q:Into<AttributeQualifier>>(&mut self, name:S, qual:Q) {
+    pub fn add_attribute<S:Str,Q:Into<AttributeQualifier>>(&mut self, name:S, qual:Q) {
         self.attributes.insert(name.as_ref().to_string(), qual.into());
     }
 
-    pub fn insert_shared_attribute<S:Str,Q:Into<AttributeQualifier>>(&mut self, name:S, qual:Q) {
+    pub fn add_shared_attribute<S:Str,Q:Into<AttributeQualifier>>(&mut self, name:S, qual:Q) {
         self.shared.insert(name.as_ref().to_string(), qual.into());
     }
 
-    pub fn insert_uniform<S:Str,Q:Into<UniformQualifier>>(&mut self, name:S, qual:Q) {
+    pub fn add_uniform<S:Str,Q:Into<UniformQualifier>>(&mut self, name:S, qual:Q) {
         self.uniforms.insert(name.as_ref().to_string(), qual.into());
     }
 
-    pub fn insert_output<S:Str,Q:Into<AttributeQualifier>>(&mut self, name:S, qual:Q) {
+    pub fn add_output<S:Str,Q:Into<AttributeQualifier>>(&mut self, name:S, qual:Q) {
         self.outputs.insert(name.as_ref().to_string(), qual.into());
     }
 }
@@ -132,7 +132,7 @@ impl AttributeQualifier {
 }
 
 impl From<glsl::Type> for AttributeQualifier {
-    fn from(typ: Type) -> Self {
+    fn from(typ:glsl::Type) -> Self {
         let storage = default();
         let prec    = default();
         Self {storage,prec,typ}
@@ -140,8 +140,15 @@ impl From<glsl::Type> for AttributeQualifier {
 }
 
 impl From<glsl::PrimType> for AttributeQualifier {
-    fn from(prim_type: glsl::PrimType) -> Self {
-        let typ:Type = prim_type.into();
+    fn from(prim_type:glsl::PrimType) -> Self {
+        let typ:glsl::Type = prim_type.into();
+        typ.into()
+    }
+}
+
+impl From<&glsl::PrimType> for AttributeQualifier {
+    fn from(prim_type:&glsl::PrimType) -> Self {
+        let typ:glsl::Type = prim_type.into();
         typ.into()
     }
 }
@@ -169,15 +176,22 @@ impl UniformQualifier {
 }
 
 impl From<glsl::Type> for UniformQualifier {
-    fn from(typ: Type) -> Self {
+    fn from(typ:glsl::Type) -> Self {
         let prec = default();
         Self {prec,typ}
     }
 }
 
 impl From<glsl::PrimType> for UniformQualifier {
-    fn from(prim_type: PrimType) -> Self {
-        let typ:Type = prim_type.into();
+    fn from(prim_type:glsl::PrimType) -> Self {
+        let typ:glsl::Type = prim_type.into();
+        typ.into()
+    }
+}
+
+impl From<&glsl::PrimType> for UniformQualifier {
+    fn from(prim_type:&glsl::PrimType) -> Self {
+        let typ:glsl::Type = prim_type.into();
         typ.into()
     }
 }
@@ -190,17 +204,56 @@ impl From<glsl::PrimType> for UniformQualifier {
 
 /// A GLSL code template. It is used to provide a pre-defined GLSL code chunk and insert generated
 /// GLSL snippets in right places.
-#[derive(Default)]
+#[derive(Clone,Debug,Default)]
 pub struct CodeTemplete {
-    pub before_main : String,
-    pub main        : String,
-    pub after_main  : String,
+    before_main : String,
+    main        : String,
+    after_main  : String,
 }
 
 impl CodeTemplete {
+    /// Constructor.
+    pub fn new(before_main:String, main:String, after_main:String) -> Self {
+        Self {before_main,main,after_main}
+    }
+
     /// Creates a new instance from the provided main GLSL code definition.
     pub fn from_main<S:Str>(main:S) -> Self {
         Self {main: main.as_ref().to_string(), ..default()}
+    }
+}
+
+
+// === Getters ===
+
+impl CodeTemplete {
+    pub fn before_main(&self) -> &String {
+        &self.before_main
+    }
+
+    pub fn main(&self) -> &String {
+        &self.main
+    }
+
+    pub fn after_main(&self) -> &String {
+        &self.after_main
+    }
+}
+
+
+// === Setters ===
+
+impl CodeTemplete {
+    pub fn set_before_main<S:Str>(&mut self, value:S) {
+        self.before_main = value.into();
+    }
+
+    pub fn set_main<S:Str>(&mut self, value:S) {
+        self.main = value.into();
+    }
+
+    pub fn set_after_main<S:Str>(&mut self, value:S) {
+        self.after_main = value.into();
     }
 }
 
@@ -249,8 +302,8 @@ impl ShaderBuilder {
     fn gen_attributes_code(&mut self, cfg:&ShaderConfig) {
         if !cfg.attributes.is_empty() {
             for (name,qual) in &cfg.attributes {
-                let vert_name = mk_vertex_name(&name);
-                let frag_name = mk_fragment_name(&name);
+                let vert_name = mk_vertex_name(name);
+                let frag_name = mk_fragment_name(name);
                 let sharing   = glsl::Assignment::new(&frag_name,&vert_name);
                 self.vertex  .add(qual.to_input_var (&vert_name));
                 self.vertex  .add(qual.to_output_var(&frag_name));
@@ -263,7 +316,7 @@ impl ShaderBuilder {
     fn gen_shared_attributes_code(&mut self, cfg:&ShaderConfig) {
         if !cfg.shared.is_empty() {
             for (name,qual) in &cfg.shared {
-                let frag_name = mk_fragment_name(&name);
+                let frag_name = mk_fragment_name(name);
                 self.vertex  .add(qual.to_output_var(&frag_name));
                 self.fragment.add(qual.to_input_var (&frag_name));
             }
@@ -273,8 +326,9 @@ impl ShaderBuilder {
     fn gen_uniforms_code(&mut self, cfg:&ShaderConfig) {
         if !cfg.uniforms.is_empty() {
             for (name,qual) in &cfg.uniforms {
-                self.vertex  .add(qual.to_var(name));
-                self.fragment.add(qual.to_var(name));
+                let name = mk_uniform_name(name);
+                self.vertex  .add(qual.to_var(&name));
+                self.fragment.add(qual.to_var(&name));
             }
         }
     }
@@ -297,6 +351,7 @@ impl ShaderBuilder {
     }
 }
 
-pub fn mk_out_name      <S:Str> (s:S) -> String { format!("out_{}"    , s.as_ref()) }
+pub fn mk_out_name      <S:Str> (s:S) -> String { format!("output_{}" , s.as_ref()) }
 pub fn mk_vertex_name   <S:Str> (s:S) -> String { format!("vertex_{}" , s.as_ref()) }
-pub fn mk_fragment_name <S:Str> (s:S) -> String { s.as_ref().into() }
+pub fn mk_fragment_name <S:Str> (s:S) -> String { format!("input_{}"  , s.as_ref()) }
+pub fn mk_uniform_name  <S:Str> (s:S) -> String { format!("input_{}"  , s.as_ref()) }

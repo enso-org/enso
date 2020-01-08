@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 // ===============
 // === Closure ===
 // ===============
@@ -161,6 +163,7 @@ macro_rules! promote {
 }
 
 #[macro_export]
+/// Promote all provided types to the current scope.
 macro_rules! promote_all {
     ([$gens:tt] [$module:ident] [$($target:tt)*]) => {
         $(promote!{$gens $module $target})*

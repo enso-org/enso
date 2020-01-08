@@ -1,7 +1,9 @@
+#![allow(missing_docs)]
+
 use crate::prelude::*;
 
 use crate::animation::{Animator, IntervalCounter, linear_interpolation};
-use crate::traits::HasPosition;
+use crate::animation::position::HasPosition;
 
 use nalgebra::Vector3;
 use nalgebra::zero;
@@ -19,7 +21,7 @@ pub trait PhysicsForce {
 // ======================
 
 /// This structure contains air dragging properties.
-#[derive(Default, Clone, Copy)]
+#[derive(Default,Debug,Clone,Copy)]
 pub struct DragProperties {
     coefficient: f32
 }

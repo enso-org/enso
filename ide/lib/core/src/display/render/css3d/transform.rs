@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 use crate::prelude::*;
 
 use nalgebra::Matrix4;
@@ -13,9 +15,9 @@ use nalgebra::Vector3;
 
 // This constructs a Quaternion with rotation order Pitch -> Roll -> Yaw:
 fn from_euler_angles_pry(roll:f32, pitch:f32, yaw:f32) -> UnitQuaternion<f32> {
-    let (s1, c1): (f32, f32) = (roll  * 0.5 as f32).sin_cos();
-    let (s2, c2): (f32, f32) = (pitch * 0.5 as f32).sin_cos();
-    let (s3, c3): (f32, f32) = (yaw   * 0.5 as f32).sin_cos();
+    let (s1, c1): (f32, f32) = (roll  * 0.5).sin_cos();
+    let (s2, c2): (f32, f32) = (pitch * 0.5).sin_cos();
+    let (s3, c3): (f32, f32) = (yaw   * 0.5).sin_cos();
     UnitQuaternion::from_quaternion(Quaternion::new(
         c1 * c2 * c3 - s1 * s2 * s3,
         s1 * c2 * c3 + c1 * s2 * s3,

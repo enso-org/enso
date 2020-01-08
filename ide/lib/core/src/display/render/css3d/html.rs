@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 mod html_object;
 mod html_renderer;
 

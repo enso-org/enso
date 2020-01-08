@@ -1,4 +1,4 @@
-pub mod symbol_registry;
+#![allow(missing_docs)]
 
 use crate::prelude::*;
 
