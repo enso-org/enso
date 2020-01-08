@@ -16,10 +16,13 @@ members = [
 [profile.dev]
 opt-level = 1
 lto       = false
+debug     = true
 
 [profile.release]
 opt-level = 3
 lto       = true
+# TODO: consider if we need it here. See discussion here: https://github.com/luna/basegl/pull/105
+debug     = true
 
 [profile.bench]
 opt-level = 3

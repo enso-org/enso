@@ -1,3 +1,8 @@
+#![allow(missing_docs)]
+
+//! Camera implementation which is specialized for 2D view (it computes some additional parameters,
+//! like the zoom to the canvas).
+
 use crate::prelude::*;
 
 use crate::data::dirty;
@@ -12,6 +17,7 @@ use crate::data::dirty::traits::*;
 // === Alignment ===
 // =================
 
+/// Camera alignment. It describes where the origin of the camera should be aligned to.
 #[derive(Clone,Debug)]
 pub struct Alignment {
     pub horizontal : HorizontalAlignment,
@@ -127,7 +133,7 @@ impl Camera2DData {
         let projection             = default();
         let clipping               = default();
         let alignment              = default();
-        let zoom                   = 2.0;
+        let zoom                   = 1.0;
         let native_z               = 1.0;
         let view_matrix            = Matrix4::identity();
         let projection_matrix      = Matrix4::identity();
@@ -190,7 +196,13 @@ impl Camera2DData {
 // === Getters ===
 
 impl Camera2DData {
-    pub fn view_projection_matrix (&self) -> &Matrix4<f32> { &self.view_projection_matrix }
+    pub fn zoom(&self) -> f32 {
+        self.zoom
+    }
+
+    pub fn view_projection_matrix (&self) -> &Matrix4<f32> {
+        &self.view_projection_matrix
+    }
 }
 
 
@@ -302,6 +314,10 @@ impl Camera2D {
 // === Getters ===
 
 impl Camera2D {
+    pub fn zoom(&self) -> f32 {
+        self.rc.borrow().zoom()
+    }
+
     pub fn view_projection_matrix(&self) -> Matrix4<f32> {
         *self.rc.borrow().view_projection_matrix()
     }

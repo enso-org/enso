@@ -1,5 +1,10 @@
+#![allow(missing_docs)]
+
+#[warn(missing_docs)]
 pub mod fragment;
+#[warn(missing_docs)]
 pub mod glyph_square;
+#[warn(missing_docs)]
 pub mod line;
 
 use crate::prelude::*;

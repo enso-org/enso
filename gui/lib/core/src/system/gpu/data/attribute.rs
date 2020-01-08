@@ -1,19 +1,25 @@
+#![allow(missing_docs)]
+
+#[warn(missing_docs)]
+pub mod class;
+
 use crate::prelude::*;
 
-use crate::display::render::webgl::Context;
 use crate::closure;
+use crate::data::dirty::traits::*;
+use crate::data::dirty;
 use crate::data::function::callback::*;
 use crate::data::opt_vec::OptVec;
-use crate::data::dirty;
-use crate::data::dirty::traits::*;
-use crate::display::symbol::geometry::primitive::mesh::buffer;
-use crate::display::symbol::geometry::primitive::mesh::buffer::item::Item;
-use crate::display::symbol::geometry::primitive::mesh::buffer::IsBuffer;
-use crate::system::web::group;
-use crate::system::web::Logger;
+use crate::debug::stats::Stats;
+use crate::display::render::webgl::Context;
+use crate::system::gpu::buffer::IsBuffer;
+use crate::system::gpu::data::GpuData;
+use crate::system::gpu::buffer;
 use crate::promote;
 use crate::promote_all;
 use crate::promote_buffer_types;
+use crate::system::web::group;
+use crate::system::web::Logger;
 use eval_tt::*;
 
 
@@ -29,29 +35,34 @@ use eval_tt::*;
 /// describes.
 #[derive(Derivative)]
 #[derivative(Debug(bound=""))]
-pub struct Scope <OnMut> {
+pub struct AttributeScope<OnMut> {
     pub buffers      : OptVec<AnyBuffer<OnMut>>,
     pub buffer_dirty : BufferDirty<OnMut>,
     pub shape_dirty  : ShapeDirty<OnMut>,
     pub name_map     : HashMap<BufferName, BufferIndex>,
     pub logger       : Logger,
-    instance_count   : usize,
-    context          : Context
+    free_ids         : Vec<InstanceId>,
+    size             : usize,
+    context          : Context,
+    stats            : Stats,
 }
 
 
 // === Types ===
 
+pub type InstanceId            = usize;
 pub type BufferIndex           = usize;
 pub type BufferName            = String;
-pub type BufferDirty <OnMut> = dirty::SharedBitField<u64, OnMut>;
-pub type ShapeDirty  <OnMut> = dirty::SharedBool<OnMut>;
-promote_buffer_types! {[BufferOnSet, BufferOnResize] buffer}
+pub type BufferDirty   <OnMut> = dirty::SharedBitField<u64,OnMut>;
+pub type ShapeDirty    <OnMut> = dirty::SharedBool<OnMut>;
+pub type Attribute   <T,OnMut> = class::Attribute<T,BufferOnSet<OnMut>,BufferOnResize<OnMut>>;
+promote_buffer_types! {[BufferOnSet,BufferOnResize] buffer}
 
 #[macro_export]
+/// Promote relevant types to parent scope. See `promote!` macro for more information.
 macro_rules! promote_scope_types { ($callbacks:tt $module:ident) => {
     crate::promote_buffer_types! { $callbacks $module }
-    promote! { $callbacks $module [Scope] }
+    promote! { $callbacks $module [Attribute<T>,AttributeScope] }
 };}
 
 
@@ -70,29 +81,28 @@ fn buffer_on_resize<C:Callback0> (dirty:ShapeDirty<C>) -> BufferOnResize {
 
 // === Implementation ===
 
-impl<OnMut: Clone> Scope<OnMut> {
+impl<OnMut:Clone> AttributeScope<OnMut> {
     /// Create a new scope with the provided dirty callback.
-    pub fn new(context:&Context, logger:Logger, on_mut:OnMut) -> Self {
+    pub fn new(logger:Logger, stats:&Stats, context:&Context, on_mut:OnMut) -> Self {
         logger.info("Initializing.");
-        let buffer_logger  = logger.sub("buffer_dirty");
-        let shape_logger   = logger.sub("shape_dirty");
-        let buffer_dirty   = BufferDirty::new(buffer_logger,on_mut.clone());
-        let shape_dirty    = ShapeDirty::new(shape_logger,on_mut);
-        let buffers        = default();
-        let name_map       = default();
-        let instance_count = default();
-        let context        = context.clone();
-        Self {context,buffers,buffer_dirty,shape_dirty,name_map,logger
-            ,instance_count}
+        let stats         = stats.clone_ref();
+        let buffer_logger = logger.sub("buffer_dirty");
+        let shape_logger  = logger.sub("shape_dirty");
+        let buffer_dirty  = BufferDirty::new(buffer_logger,on_mut.clone());
+        let shape_dirty   = ShapeDirty::new(shape_logger,on_mut);
+        let buffers       = default();
+        let name_map      = default();
+        let free_ids      = default();
+        let size          = default();
+        let context       = context.clone();
+        Self {context,buffers,buffer_dirty,shape_dirty,name_map,logger,free_ids,size,stats}
     }
 }
 
-impl<OnMut: Callback0> Scope<OnMut> {
-
+impl<OnMut: Callback0> AttributeScope<OnMut> {
     /// Adds a new named buffer to the scope.
-    pub fn add_buffer<Name: Str, T: Item>
-    (&mut self, name:Name) -> Buffer<T,OnMut>
-        where AnyBuffer<OnMut>: From<Buffer<T,OnMut>> {
+    pub fn add_buffer<Name:Str, T:GpuData>(&mut self, name:Name) -> Buffer<T,OnMut>
+    where AnyBuffer<OnMut>: From<Buffer<T,OnMut>> {
         let name         = name.as_ref().to_string();
         let buffer_dirty = self.buffer_dirty.clone();
         let shape_dirty  = self.shape_dirty.clone();
@@ -102,7 +112,7 @@ impl<OnMut: Callback0> Scope<OnMut> {
             let on_resize  = buffer_on_resize(shape_dirty);
             let logger     = self.logger.sub(&name);
             let context    = &self.context;
-            let buffer     = Buffer::new(context,logger,on_set,on_resize);
+            let buffer     = Buffer::new(logger,&self.stats,context,on_set,on_resize);
             let buffer_ref = buffer.clone();
             self.buffers.set(ix, AnyBuffer::from(buffer));
             self.name_map.insert(name, ix);
@@ -122,12 +132,26 @@ impl<OnMut: Callback0> Scope<OnMut> {
     }
 
     /// Adds a new instance to every buffer in the scope.
-    pub fn add_instance(&mut self) -> usize {
+    pub fn add_instance(&mut self) -> InstanceId {
         group!(self.logger, "Adding {} instance(s).", 1, {
-            let ix = self.instance_count;
-            self.instance_count += 1;
-            self.buffers.iter_mut().for_each(|t| t.add_element());
-            ix
+            match self.free_ids.pop() {
+                Some(ix) => ix,
+                None     => {
+                    let ix = self.size;
+                    self.size += 1;
+                    self.buffers.iter_mut().for_each(|t| t.add_element());
+                    ix
+                }
+            }
+        })
+    }
+
+    /// Disposes instance for reuse in the future. Please note that the disposed data still
+    /// exists in the buffer and will be used when rendering. It is yours responsibility to hide
+    /// id, fo example by degenerating vertices.
+    pub fn dispose(&mut self, id:InstanceId) {
+        group!(self.logger, "Disposing instance {}.", id, {
+            self.free_ids.push(id);
         })
     }
 
@@ -152,6 +176,6 @@ impl<OnMut: Callback0> Scope<OnMut> {
 
     /// Returns the size of buffers in this scope.
     pub fn size(&self) -> usize {
-        self.instance_count
+        self.size
     }
 }

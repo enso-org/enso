@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 use basegl_prelude::*;
 use basegl_prelude::fmt::{Formatter, Error};
 

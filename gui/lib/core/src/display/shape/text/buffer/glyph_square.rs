@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 use crate::prelude::*;
 
 use crate::display::shape::text::font::FontRenderInfo;

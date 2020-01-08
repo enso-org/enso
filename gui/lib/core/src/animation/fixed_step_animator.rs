@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 use super::Animator;
 use super::FnAnimation;
 
@@ -10,6 +12,7 @@ use nalgebra::zero;
 // =======================
 
 /// This struct counts the intervals in a time period.
+#[derive(Debug)]
 pub struct IntervalCounter {
     pub interval_duration : f32,
     pub accumulated_time  : f32

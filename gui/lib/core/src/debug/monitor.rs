@@ -1,5 +1,8 @@
+//! This module implements performance monitoring utils.
+
 use crate::prelude::*;
 
+use crate::debug::stats::Stats;
 use js_sys::ArrayBuffer;
 use js_sys::WebAssembly::Memory;
 use std::collections::VecDeque;
@@ -7,7 +10,9 @@ use std::f64;
 use wasm_bindgen::JsCast;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen;
-use web_sys::*;
+use web_sys::CanvasRenderingContext2d;
+use web_sys::Performance;
+use web_sys;
 
 
 
@@ -37,7 +42,9 @@ fn performance() -> Performance {
 // === Config ===
 // ==============
 
+/// Look and feel configuration for the performance monitor.
 #[derive(Clone,Debug)]
+#[allow(missing_docs)]
 pub struct ConfigTemplate<Str,Num> {
     pub background_color      : Str,
     pub label_color_ok        : Str,
@@ -57,7 +64,10 @@ pub struct ConfigTemplate<Str,Num> {
     pub font_vertical_offset  : Num,
 }
 
-pub type Config        = ConfigTemplate<String,u32>;
+/// Specialization of the `ConfigTemplate` for users of the library.
+pub type Config = ConfigTemplate<String,u32>;
+
+/// Specialization of the `ConfigTemplate` for the usage in JS environment.
 pub type SamplerConfig = ConfigTemplate<JsValue,f64>;
 
 impl Default for Config {
@@ -75,7 +85,7 @@ impl Default for Config {
             margin                : 4,
             panel_height          : 15,
             labels_width          : 120,
-            results_width         : 30,
+            results_width         : 50,
             plots_width           : 100,
             font_size             : 9,
             font_vertical_offset  : 4,
@@ -84,7 +94,8 @@ impl Default for Config {
 }
 
 impl Config {
-    pub fn to_plot_config(&self) -> SamplerConfig {
+    /// Translates the configuration to JS values.
+    pub fn to_js_config(&self) -> SamplerConfig {
         let ratio      = window().device_pixel_ratio();
         SamplerConfig {
             background_color      : (&self.background_color)      . into(),
@@ -113,15 +124,16 @@ impl Config {
 // === Monitor ===
 // ===============
 
+/// Implementation of the monitoring panel.
 #[derive(Debug)]
 pub struct Monitor {
     user_config   : Config,
     config        : SamplerConfig,
     width         : f64,
     height        : f64,
-    dom           : Element,
+    dom           : web_sys::Element,
     panels        : Vec<Panel>,
-    canvas        : HtmlCanvasElement,
+    canvas        : web_sys::HtmlCanvasElement,
     context       : CanvasRenderingContext2d,
     is_first_draw : bool,
 }
@@ -138,14 +150,14 @@ impl Default for Monitor {
         let width               = default();
         let height              = default();
         let is_first_draw       = true;
-        let config              = user_config.to_plot_config();
+        let config              = user_config.to_js_config();
 
         let dom = document().create_element("div").unwrap();
         dom.set_attribute("style", "position:absolute;").unwrap();
         body().prepend_with_node_1(&dom).unwrap();
 
         let canvas = document().create_element("canvas").unwrap();
-        let canvas: HtmlCanvasElement = canvas.dyn_into().unwrap();
+        let canvas: web_sys::HtmlCanvasElement = canvas.dyn_into().unwrap();
 
         let context = canvas.get_context("2d").unwrap().unwrap();
         let context: CanvasRenderingContext2d = context.dyn_into().unwrap();
@@ -192,7 +204,7 @@ impl Monitor {
 
 impl Monitor {
     fn update_config(&mut self) {
-        self.config = self.user_config.to_plot_config()
+        self.config = self.user_config.to_js_config()
     }
 
     fn resize(&mut self) {
@@ -217,9 +229,9 @@ impl Monitor {
     }
 
     fn shift_plot_area_left(&mut self) {
-        let width  = self.width as f64;
-        let height = self.height as f64;
-        let shift  = -(self.config.plot_step_size as f64);
+        let width  = self.width;
+        let height = self.height;
+        let shift  = -(self.config.plot_step_size);
         self.context.draw_image_with_html_canvas_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh
         (&self.canvas,0.0,0.0,width,height,shift,0.0,self.width,self.height).unwrap();
     }
@@ -305,12 +317,32 @@ impl Panel {
 // === ValueCheck ===
 // ==================
 
+/// Values drawn in the monitor can be assigned with a check: `Correct`, `Warning`, and `Error`.
+/// It affects the way they are visually displayed.
 #[derive(Copy,Clone,Debug)]
+#[allow(missing_docs)]
 pub enum ValueCheck {Correct,Warning,Error}
 
 impl Default for ValueCheck {
     fn default() -> Self {
         Self::Correct
+    }
+}
+
+// To be removed after this gets resolved: https://github.com/rust-lang/rust-clippy/issues/4971
+#[allow(clippy::collapsible_if)]
+impl ValueCheck {
+    /// Construct the check by comparing the provided value to two threshold values.
+    pub fn from_threshold(warn_threshold:f64, err_threshold:f64, value:f64) -> Self {
+        if warn_threshold > err_threshold {
+            if      value >= warn_threshold { ValueCheck::Correct }
+            else if value >= err_threshold  { ValueCheck::Warning }
+            else                            { ValueCheck::Error   }
+        } else {
+            if      value <= warn_threshold { ValueCheck::Correct }
+            else if value <= err_threshold  { ValueCheck::Warning }
+            else                            { ValueCheck::Error   }
+        }
     }
 }
 
@@ -320,16 +352,50 @@ impl Default for ValueCheck {
 // === Sampler ===
 // ===============
 
+/// Abstraction for a sampling utility. Samplers gather the data and expose it in a way suitable for
+/// the monitor.
 pub trait Sampler: Debug {
-    fn label        (&self) -> &str;
-    fn begin        (&mut self, _time:f64) {}
-    fn end          (&mut self, _time:f64) {}
-    fn value        (&self) -> f64;
-    fn check        (&self) -> ValueCheck  { ValueCheck::Correct }
-    fn max_value    (&self) -> Option<f64> { None }
-    fn min_value    (&self) -> Option<f64> { None }
-    fn min_size     (&self) -> Option<f64> { None }
-    fn smooth_range (&self) -> usize { 2 }
+    /// Label of the sampler in the monitor window.
+    fn label(&self) -> &str;
+
+    /// Function which should be run on the beginning of the code we want to measure.
+    fn begin(&mut self, _time:f64) {}
+
+    /// Function which should be run on the end of the code we want to measure.
+    fn end(&mut self, _time:f64) {}
+
+    /// Get the newest value of the sampler. The value will be displayed in the monitor panel.
+    fn value(&self) -> f64;
+
+    /// Check whether the newest value is correct, or should be displayed as warning or error.
+    fn check(&self) -> ValueCheck  { ValueCheck::Correct }
+
+    /// Returns the maximum expected value in order to set proper scaling of the monitor plots.
+    /// If the real value will be bigger than this parameter, it will be clamped.
+    fn max_value(&self) -> Option<f64> { None }
+
+    /// Returns the minimum expected value in order to set proper scaling of the monitor plots.
+    /// If the real value will be smaller than this parameter, it will be clamped.
+    fn min_value(&self) -> Option<f64> { None }
+
+    /// Returns the maximum expected value in order to set proper scaling of the monitor plots.
+    /// If the real value will be bigger than this parameter, the graphs will be re-scaled
+    /// automatically.
+    fn min_size(&self) -> Option<f64> { None }
+
+    /// Returns the number describing the amount of last values which should be consideration
+    /// when displaying the final value. The final value will be the average of # previous values.
+    fn smooth_range(&self) -> usize { 2 }
+
+    /// The number of digits after the dot which should be displayed in the monitor panel.
+    fn precision(&self) -> usize { 2 }
+
+    // === Utils ===
+
+    /// Wrapper for `ValueCheck::from_threshold`.
+    fn check_by_threshold(&self, warn_threshold:f64, err_threshold:f64) -> ValueCheck {
+        ValueCheck::from_threshold(warn_threshold,err_threshold,self.value())
+    }
 }
 
 
@@ -338,6 +404,7 @@ pub trait Sampler: Debug {
 // === PanelData ===
 // =================
 
+/// A `Panel` is a single row in the monitor view.
 #[derive(Debug)]
 pub struct PanelData {
     label       : String,
@@ -352,6 +419,7 @@ pub struct PanelData {
     norm_value  : f64,
     draw_offset : f64,
     value_check : ValueCheck,
+    precision   : usize,
     sampler     : Box<dyn Sampler>
 }
 
@@ -359,21 +427,23 @@ pub struct PanelData {
 // === Construction ===
 
 impl PanelData {
+    /// Constructor.
     pub fn new<S:Sampler+'static>
     (context:CanvasRenderingContext2d, config:SamplerConfig, sampler:S) -> Self {
-        let label         = sampler.label().into();
-        let performance   = performance();
-        let min_value     = f64::INFINITY;
-        let max_value     = f64::NEG_INFINITY;
-        let begin_value   = default();
-        let value         = default();
-        let last_values   = default();
-        let norm_value    = default();
-        let draw_offset   = 0.0;
-        let value_check   = default();
-        let sampler       = Box::new(sampler);
+        let label       = sampler.label().into();
+        let performance = performance();
+        let min_value   = f64::INFINITY;
+        let max_value   = f64::NEG_INFINITY;
+        let begin_value = default();
+        let value       = default();
+        let last_values = default();
+        let norm_value  = default();
+        let draw_offset = 0.0;
+        let value_check = default();
+        let sampler     = Box::new(sampler);
+        let precision   = sampler.precision();
         Self {label,context,performance,config,min_value,max_value,begin_value,value,last_values
-             ,norm_value,draw_offset,value_check,sampler}
+            ,norm_value,draw_offset,value_check,precision,sampler}
     }
 }
 
@@ -381,11 +451,13 @@ impl PanelData {
 // === Begin / End ===
 
 impl PanelData {
+    /// Start measuring the data.
     pub fn begin(&mut self) {
         let time = self.performance.now();
         self.sampler.begin(time);
     }
 
+    /// Stop measuring the data.
     pub fn end(&mut self) {
         let time = self.performance.now();
         self.sampler.end(time);
@@ -396,6 +468,7 @@ impl PanelData {
         self.normalize_value();
     }
 
+    /// Clamp the measured values to the `max_value` and `min_value`.
     fn clamp_value(&mut self) {
         if let Some(max_value) = self.sampler.max_value() {
             if self.value > max_value { self.value = max_value; }
@@ -407,6 +480,7 @@ impl PanelData {
         if self.value < self.min_value { self.min_value = self.value; }
     }
 
+    /// Smooth the final value based on the last measured values.
     fn smooth_value(&mut self) {
         self.last_values.push_front(self.value);
         if self.last_values.len() > self.sampler.smooth_range() {
@@ -417,6 +491,7 @@ impl PanelData {
         self.value /= self.last_values.len() as f64
     }
 
+    /// Normalize the value to the monitor's plot size.
     fn normalize_value(&mut self) {
         let mut size = self.max_value - self.min_value;
         if let Some(min_size) = self.sampler.min_size() {
@@ -430,13 +505,14 @@ impl PanelData {
 // === Draw ===
 
 impl PanelData {
+    /// Draws the panel to the screen.
     pub fn draw(&mut self) {
         self.init_draw();
         self.draw_plots();
         self.finish_draw();
     }
 
-    pub fn first_draw(&mut self) {
+    fn first_draw(&mut self) {
         self.init_draw();
         self.context.set_fill_style(&self.config.plot_background_color);
         self.context.fill_rect(0.0,0.0,self.config.plots_width,self.config.panel_height);
@@ -470,8 +546,7 @@ impl PanelData {
     }
 
     fn draw_results(&mut self) {
-        let display_value = (self.value * 100.0).round() / 100.0;
-        let display_value = format!("{:.*}",2,display_value);
+        let display_value = format!("{1:.0$}",self.precision,self.value);
         let y_pos         = self.config.panel_height - self.config.font_vertical_offset;
         let color         = match self.value_check {
             ValueCheck::Correct => &self.config.label_color_ok,
@@ -509,6 +584,7 @@ impl PanelData {
 // === FrameTime ===
 // =================
 
+/// Sampler measuring the time for a given operation.
 #[derive(Debug,Default)]
 pub struct FrameTime {
     begin_time  : f64,
@@ -517,8 +593,12 @@ pub struct FrameTime {
 }
 
 impl FrameTime {
+    /// Constructor
     pub fn new() -> Self { default() }
 }
+
+const FRAME_TIME_WARNING_THRESHOLD : f64 = 1000.0/55.0;
+const FRAME_TIME_ERROR_THRESHOLD   : f64 = 1000.0/25.0;
 
 impl Sampler for FrameTime {
     fn label (&self) -> &str       { "Frame time (ms)" }
@@ -528,10 +608,8 @@ impl Sampler for FrameTime {
     fn end   (&mut self, time:f64) {
         let end_time     = time;
         self.value       = end_time - self.begin_time;
-        self.value_check =
-            if      self.value < 1000.0 / 55.0 { ValueCheck::Correct }
-            else if self.value < 1000.0 / 25.0 { ValueCheck::Warning }
-            else                               { ValueCheck::Error   };
+        self.value_check = self.check_by_threshold
+            (FRAME_TIME_WARNING_THRESHOLD, FRAME_TIME_ERROR_THRESHOLD);
     }
 }
 
@@ -541,6 +619,7 @@ impl Sampler for FrameTime {
 // === Fps ===
 // ===========
 
+/// Sampler measuring the frames per second count for a given operation.
 #[derive(Debug,Default)]
 pub struct Fps {
     begin_time  : f64,
@@ -549,8 +628,12 @@ pub struct Fps {
 }
 
 impl Fps {
+    /// Constructor.
     pub fn new() -> Self { default() }
 }
+
+const FPS_WARNING_THRESHOLD : f64 = 55.0;
+const FPS_ERROR_THRESHOLD   : f64 = 25.0;
 
 impl Sampler for Fps {
     fn label     (&self) -> &str        { "Frames per second" }
@@ -561,10 +644,7 @@ impl Sampler for Fps {
         if self.begin_time > 0.0 {
             let end_time     = time;
             self.value       = 1000.0 / (end_time - self.begin_time);
-            self.value_check =
-                if      self.value >= 55.0 { ValueCheck::Correct }
-                else if self.value >= 25.0 { ValueCheck::Warning }
-                else                       { ValueCheck::Error   };
+            self.value_check = self.check_by_threshold(FPS_WARNING_THRESHOLD,FPS_ERROR_THRESHOLD);
         }
         self.begin_time = time;
     }
@@ -576,6 +656,7 @@ impl Sampler for Fps {
 // === WasmMemory ===
 // ==================
 
+/// Sampler measuring the memory usage of the WebAssembly part of the program.
 #[derive(Debug,Default)]
 pub struct WasmMemory {
     value       : f64,
@@ -583,21 +664,72 @@ pub struct WasmMemory {
 }
 
 impl WasmMemory {
+    /// Constructor.
     pub fn new() -> Self { default() }
 }
+
+const WASM_MEM_WARNING_THRESHOLD : f64 = 50.0;
+const WASM_MEM_ERROR_THRESHOLD   : f64 = 100.0;
 
 impl Sampler for WasmMemory {
     fn label    (&self) -> &str        { "WASM memory usage (Mb)" }
     fn value    (&self) -> f64         { self.value }
     fn check    (&self) -> ValueCheck  { self.value_check }
     fn min_size (&self) -> Option<f64> { Some(100.0) }
-    fn end      (&mut self, _time:f64)  {
+    fn end      (&mut self, _time:f64) {
         let memory: Memory      = wasm_bindgen::memory().dyn_into().unwrap();
         let buffer: ArrayBuffer = memory.buffer().dyn_into().unwrap();
         self.value              = (buffer.byte_length() as f64) / (1024.0 * 1024.0);
-        self.value_check        =
-            if      self.value <=  50.0 { ValueCheck::Correct }
-            else if self.value <= 100.0 { ValueCheck::Warning }
-            else                        { ValueCheck::Error   };
+        self.value_check        = self.check_by_threshold
+            (WASM_MEM_WARNING_THRESHOLD,WASM_MEM_ERROR_THRESHOLD);
     }
 }
+
+
+
+// ======================
+// === Stats Samplers ===
+// ======================
+
+/// Utility to generate Samplers for stats parameters. See the usages below this declaration to
+/// discover more.
+macro_rules! stats_sampler {
+    ( $label:tt, $name:ident, $stats_method:ident, $t1:expr, $t2:expr, $precision:expr
+    , $value_divisor:expr) => {
+
+        /// Sampler implementation.
+        #[derive(Debug,Default)]
+        pub struct $name {
+            stats: Stats,
+        }
+
+        impl $name {
+            /// Constructor.
+            pub fn new(stats:&Stats) -> Self {
+                Self {stats:stats.clone()}
+            }
+        }
+
+        impl Sampler for $name {
+            fn label     (&self) -> &str        { $label }
+            fn value     (&self) -> f64         { self.stats.$stats_method() as f64 / $value_divisor }
+            fn min_size  (&self) -> Option<f64> { Some($t1) }
+            fn precision (&self) -> usize       { $precision }
+            fn check     (&self) -> ValueCheck  { self.check_by_threshold($t1,$t2) }
+        }
+
+    };
+}
+
+const MB:f64 = (1024 * 1024) as f64;
+
+stats_sampler!("GPU memory usage (Mb)"  , GpuMemoryUsage     , gpu_memory_usage     , 100.0     , 500.0     , 2 , MB);
+stats_sampler!("Draw call count"        , DrawCallCount      , draw_call_count      , 100.0     , 500.0     , 0 , 1.0);
+stats_sampler!("Buffer count"           , BufferCount        , buffer_count         , 100.0     , 500.0     , 0 , 1.0);
+stats_sampler!("Data upload count"      , DataUploadCount    , data_upload_count    , 100.0     , 500.0     , 0 , 1.0);
+stats_sampler!("Data upload size (Mb)"  , DataUploadSize     , data_upload_size     ,   1.0     ,  10.0     , 2 , MB);
+stats_sampler!("Sprite system count"    , SpriteSystemCount  , sprite_system_count  , 100.0     , 500.0     , 0 , 1.0);
+stats_sampler!("Symbol count"           , SymbolCount        , symbol_count         , 100.0     , 500.0     , 0 , 1.0);
+stats_sampler!("Sprite count"           , SpriteCount        , sprite_count         , 100_000.0 , 500_000.0 , 0 , 1.0);
+stats_sampler!("Shader count"           , ShaderCount        , shader_count         , 100.0     , 500.0     , 0 , 1.0);
+stats_sampler!("Shader compile count"   , ShaderCompileCount , shader_compile_count , 10.0      , 100.0     , 0 , 1.0);

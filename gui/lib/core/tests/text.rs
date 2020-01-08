@@ -4,8 +4,8 @@
 use basegl::display::world::Add;
 use basegl::display::world::Workspace;
 use basegl::display::world::WorkspaceID;
+use basegl::display::world::WorldData;
 use basegl::display::world::World;
-use basegl::display::world::WorldRef;
 use basegl_system_web::create_element;
 use basegl_system_web::dyn_into;
 use basegl_system_web::Error;
@@ -26,8 +26,7 @@ use web_sys::HtmlCanvasElement;
 ///
 /// This should be a temporary solution - until world and htmlscene frameworks will be merged.
 pub struct WorldTest {
-    pub world_ptr    : WorldRef,
-    pub workspace_id : WorkspaceID,
+    pub world_ptr: World,
 }
 
 impl WorldTest {
@@ -62,10 +61,8 @@ impl WorldTest {
     }
 
     fn create_world_with_workspace(test_name:&str) -> WorldTest {
-        let world_ptr    = World::new();
-        let workspace    = Workspace::build(Self::workspace_name(test_name));
-        let workspace_id = world_ptr.borrow_mut().add(workspace);
-        WorldTest {world_ptr,workspace_id}
+        let world_ptr    = WorldData::new(Self::workspace_name(test_name));
+        WorldTest {world_ptr}
     }
 
     fn workspace_name(test_name:&str) -> String {
@@ -80,11 +77,11 @@ mod tests {
     use basegl::data::dirty::traits::*;
 
     use super::WorldTest;
-    use basegl::Color;
-    use basegl::display::world::World;
+    use basegl::display::shape::text::Color;
     use basegl::display::shape::text::content::TextChange;
     use basegl::display::shape::text::content::CharPosition;
     use basegl::display::shape::text::TextComponentBuilder;
+    use basegl::display::world::WorldData;
     use basegl::display::shape::text::TextComponentProperties;
 
     use basegl_core_msdf_sys::run_once_initialized;
@@ -147,12 +144,12 @@ mod tests {
             run_once_initialized(move || {
                 create_full_sized_text_component(&world_test,LONG_TEXT.to_string());
                 bencher_clone.iter(move || {
-                    let world : &mut World = &mut world_test.world_ptr.borrow_mut();
+                    let world : &mut WorldData = &mut world_test.world_ptr.borrow_mut();
                     for _ in 0..30 { //TODO[AO] make target FPS feature in web_bench
-                        let workspace      = &mut world.workspaces[world_test.workspace_id];
+                        let workspace      = &mut world.workspace;
                         let text_component = &mut workspace.text_components[0];
                         text_component.scroll(Vector2::new(0.0,-1.0));
-                        world.workspace_dirty.set(world_test.workspace_id);
+                        world.workspace_dirty.set();
                         world.update();
                     }
                 });
@@ -167,12 +164,12 @@ mod tests {
             run_once_initialized(move || {
                 create_full_sized_text_component(&world_test,WIDE_TEXT.to_string());
                 bencher_clone.iter(move || {
-                    let world : &mut World = &mut world_test.world_ptr.borrow_mut();
-                    for _ in 0..20 { //TODO[AO] make target FPS feature in web_bench
-                        let workspace      = &mut world.workspaces[world_test.workspace_id];
+                    let world : &mut WorldData = &mut world_test.world_ptr.borrow_mut();
+                    for _ in 0..10 { //TODO[AO] make target FPS feature in web_bench
+                        let workspace      = &mut world.workspace;
                         let text_component = &mut workspace.text_components[0];
                         text_component.scroll(Vector2::new(1.0,0.0));
-                        world.workspace_dirty.set(world_test.workspace_id);
+                        world.workspace_dirty.set();
                         world.update();
                     }
                 });
@@ -187,16 +184,16 @@ mod tests {
             run_once_initialized(move || {
                 create_full_sized_text_component(&world_test,WIDE_TEXT.to_string());
                 bencher_clone.iter(move || {
-                    let world : &mut World = &mut world_test.world_ptr.borrow_mut();
-                    for _ in 0..15 {
-                        let workspace      = &mut world.workspaces[world_test.workspace_id];
+                    let world : &mut WorldData = &mut world_test.world_ptr.borrow_mut();
+                    for _ in 0..20 {
+                        let workspace      = &mut world.workspace;
                         let text_component = &mut workspace.text_components[0];
                         let replace_from   = CharPosition{line:1, column:2};
                         let replace_to     = CharPosition{line:1, column:3};
                         let replaced_range = replace_from..replace_to;
                         let change         = TextChange::replace(replaced_range, "abc");
                         text_component.content.make_change(change);
-                        world.workspace_dirty.set(world_test.workspace_id);
+                        world.workspace_dirty.set();
                         world.update();
                     }
                 });
@@ -211,13 +208,13 @@ mod tests {
             run_once_initialized(move || {
                 create_full_sized_text_component(&world_test,LONG_TEXT.to_string());
                 bencher_clone.iter(move || {
-                    let world : &mut World = &mut world_test.world_ptr.borrow_mut();
-                    let workspace      = &mut world.workspaces[world_test.workspace_id];
+                    let world : &mut WorldData = &mut world_test.world_ptr.borrow_mut();
+                    let workspace      = &mut world.workspace;
                     let text_component = &mut workspace.text_components[0];
                     let position       = CharPosition{line:1, column:0};
                     let change         = TextChange::insert(position, TEST_TEXT);
                     text_component.content.make_change(change);
-                    world.workspace_dirty.set(world_test.workspace_id);
+                    world.workspace_dirty.set();
                     world.update();
                 });
             });
@@ -225,9 +222,8 @@ mod tests {
     }
 
     fn create_full_sized_text_component(world_test:&WorldTest, text:String) {
-        let workspace_id       = world_test.workspace_id;
-        let world : &mut World = &mut world_test.world_ptr.borrow_mut();
-        let workspace          = &mut world.workspaces[workspace_id];
+        let world : &mut WorldData = &mut world_test.world_ptr.borrow_mut();
+        let workspace          = &mut world.workspace;
         let fonts              = &mut world.fonts;
         let font_name          = FONTS[1];
         let font_id            = fonts.load_embedded_font(font_name).unwrap();
@@ -241,13 +237,12 @@ mod tests {
         let builder        = TextComponentBuilder {workspace,fonts,text,font_id,properties};
         let text_component = builder.build();
         workspace.text_components.push(text_component);
-        world.workspace_dirty.set(workspace_id); // TODO[AO] Make dirty flags for component
+        world.workspace_dirty.set(); // TODO[AO] Make dirty flags for component
     }
 
     fn create_test_components_for_each_font(world_test:&WorldTest, text:String, text_size:f64) {
-        let workspace_id       = world_test.workspace_id;
-        let world : &mut World = &mut world_test.world_ptr.borrow_mut();
-        let workspace          = &mut world.workspaces[workspace_id];
+        let world : &mut WorldData = &mut world_test.world_ptr.borrow_mut();
+        let workspace          = &mut world.workspace;
         let fonts              = &mut world.fonts;
 
         for (i, font_name) in FONTS.iter().enumerate() {
@@ -270,6 +265,6 @@ mod tests {
             text_component.cursors.add_cursor(cursor_position_2);
             workspace.text_components.push(text_component);
         }
-        world.workspace_dirty.set(workspace_id);
+        world.workspace_dirty.set();
     }
 }

@@ -13,7 +13,7 @@ basegl-prelude       = { version = "0.1.0" , path = "../prelude"       }
 basegl-system-web    = { version = "0.1.0" , path = "../system/web"    }
 wasm-bindgen         = { version = "^0.2"  , features = ["nightly"]    }
 js-sys               = { version = "0.3.28" }
-shrinkwraprs         = { version = "0.2.1"  }
+shrinkwraprs         = { version = "0.3.0"  }
 
 [dependencies.web-sys]
 version = "0.3.4"

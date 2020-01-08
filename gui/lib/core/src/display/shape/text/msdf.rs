@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 use basegl_core_msdf_sys as msdf_sys;
 use msdf_sys::MultichannelSignedDistanceField;
 use nalgebra::clamp;

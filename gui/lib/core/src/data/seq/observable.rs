@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 use crate::prelude::*;
 use crate::data::function::callback::{Callback0,Callback1};
 

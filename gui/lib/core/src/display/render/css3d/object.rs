@@ -1,13 +1,15 @@
+#![allow(missing_docs)]
+
 use crate::prelude::*;
 
 use crate::display::render::css3d::Transform;
+use crate::animation::position::HasPosition;
 
 use nalgebra::UnitQuaternion;
 use nalgebra::Vector3;
 
 use std::rc::Rc;
 use std::cell::RefCell;
-use crate::traits::HasPosition;
 
 
 
@@ -62,7 +64,7 @@ impl HasPosition for Object {
 #[cfg(test)]
 mod test {
     use super::Object;
-    use crate::traits::HasPosition;
+    use crate::animation::position::HasPosition;
     use nalgebra::Vector3;
     use nalgebra::Quaternion;
     use std::f32::consts::PI;

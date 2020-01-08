@@ -3,6 +3,8 @@
 //! easily extendable in case other targets will be needed in the future.
 
 #![feature(specialization)]
+#![allow(missing_docs)]
+
 
 use basegl_prelude::*;
 use std::fmt::Write;

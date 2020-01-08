@@ -1,4 +1,10 @@
+#![allow(missing_docs)]
+
 use nalgebra::Vector3;
+
+// ===================
+// === HasPosition ===
+// ===================
 
 pub trait HasPosition {
     /// Gets self's position.

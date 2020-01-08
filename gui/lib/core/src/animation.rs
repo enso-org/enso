@@ -1,15 +1,21 @@
+#![allow(missing_docs)]
+
+// FIXME: Ideally this file should only reexport things.
 // FIXME: Animators structs should get EventLoop as parameter. The whole application should have
 // only one RequestAnimationFrame loop going on to avoid its overhead.
 
 pub mod physics;
-mod continuous_time_animator;
-mod animator;
-mod fixed_step_animator;
+pub mod animator;
+pub mod continuous_time_animator;
+pub mod fixed_step_animator;
+pub mod position;
 
 pub use continuous_time_animator::ContinuousTimeAnimator;
 pub use animator::Animator;
 pub use fixed_step_animator::FixedStepAnimator;
 pub use fixed_step_animator::IntervalCounter;
+
+
 
 // ===================
 // === FnAnimation ===

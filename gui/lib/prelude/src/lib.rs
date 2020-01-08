@@ -12,24 +12,27 @@ pub use core::fmt::Debug;
 pub use derivative::Derivative;
 pub use derive_more::*;
 pub use failure::Fail;
+pub use ifmt::*;
 pub use itertools::Itertools;
+pub use lazy_static::lazy_static;
 pub use num::Num;
 pub use paste;
 pub use shrinkwraprs::Shrinkwrap;
 pub use smallvec::SmallVec;
 pub use std::cell::Ref;
-pub use std::cell::RefMut;
 pub use std::cell::RefCell;
+pub use std::cell::RefMut;
+pub use std::collections::BTreeMap;
 pub use std::collections::HashMap;
 pub use std::collections::HashSet;
 pub use std::convert::identity;
 pub use std::convert::TryFrom;
 pub use std::convert::TryInto;
-pub use std::fmt;
 pub use std::fmt::Display;
+pub use std::fmt;
 pub use std::hash::Hash;
-pub use std::iter;
 pub use std::iter::FromIterator;
+pub use std::iter;
 pub use std::marker::PhantomData;
 pub use std::ops::Deref;
 pub use std::ops::DerefMut;
@@ -37,9 +40,8 @@ pub use std::ops::Index;
 pub use std::ops::IndexMut;
 pub use std::rc::Rc;
 pub use std::rc::Weak;
-pub use std::slice;
 pub use std::slice::SliceIndex;
-pub use lazy_static::lazy_static;
+pub use std::slice;
 
 use nalgebra::Matrix;
 use nalgebra::DimName;
@@ -47,9 +49,11 @@ use nalgebra::Scalar;
 
 
 /// Abstraction for any kind of string as an argument. Functions defined as
-/// `fn test<S:Str>(s: Str) { ... }` can be called with `String`, `&String`,
-/// and `&str` without requiring caller to know the implementation details.
-pub trait Str = AsRef<str>;
+/// `fn test<S:Str>(s: Str) { ... }` can be called with `String`, `&String`, and `&str` without
+/// requiring caller to know the implementation details. Moreover, the definition can decide if it
+/// needs allocation or not. Calling `s.as_ref()` will never allocate, while `s.into()` will
+/// allocate only when necessary.
+pub trait Str = Into<String> + AsRef<str>;
 
 /// Alias for `Default::default()`.
 pub fn default<T: Default>() -> T {

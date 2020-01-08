@@ -1,25 +1,27 @@
-pub mod item;
+#![allow(missing_docs)]
 
 use crate::prelude::*;
 
-use crate::display::render::webgl::Context;
 use crate::closure;
-use crate::data::function::callback::*;
-use crate::data::dirty;
 use crate::data::dirty::traits::*;
+use crate::data::dirty;
+use crate::data::function::callback::*;
 use crate::data::seq::observable::Observable;
+use crate::debug::stats::Stats;
+use crate::display::render::webgl::Context;
+use crate::system::gpu::data::attribute::class::Attribute;
+use crate::system::gpu::data::GpuData;
+use crate::system::gpu::data::Item;
 use crate::system::web::fmt;
 use crate::system::web::group;
 use crate::system::web::Logger;
-use item::Item;
-use item::Prim;
+use nalgebra::Matrix4;
 use nalgebra::Vector2;
 use nalgebra::Vector3;
 use nalgebra::Vector4;
-use nalgebra::Matrix4;
 use std::iter::Extend;
-use web_sys::WebGlBuffer;
 use std::ops::RangeInclusive;
+use web_sys::WebGlBuffer;
 
 
 
@@ -44,7 +46,9 @@ pub struct BufferData<T,OnMut,OnResize> {
     pub resize_dirty : ResizeDirty <OnResize>,
     pub logger       : Logger,
     pub gl_buffer    : WebGlBuffer,
-    context          : Context
+    context          : Context,
+    stats            : Stats,
+    gpu_mem_usage    : u32,
 }
 
 
@@ -54,8 +58,9 @@ pub type ObservableVec<T,OnMut,OnResize> = Observable<Vec<T>,OnMut,OnResize>;
 pub type Data<T,OnMut,OnResize> = ObservableVec<T,DataOnSet<OnMut>,DataOnResize<OnResize>>;
 
 #[macro_export]
+/// Promote relevant types to parent scope. See `promote!` macro for more information.
 macro_rules! promote_buffer_types { ($callbacks:tt $module:ident) => {
-    promote! { $callbacks $module [Var<T>,BufferData<T>,Buffer<T>,AnyBuffer] }
+    promote! { $callbacks $module [BufferData<T>,Buffer<T>,AnyBuffer] }
 };}
 
 
@@ -81,9 +86,11 @@ impl<T,OnMut:Callback0, OnResize:Callback0>
 BufferData<T,OnMut,OnResize> {
 
     /// Creates a new empty buffer.
-    pub fn new(context: &Context, logger:Logger, on_mut:OnMut, on_resize:OnResize)
-    -> Self {
+    pub fn new
+    (logger:Logger, stats:&Stats, context:&Context, on_mut:OnMut, on_resize:OnResize) -> Self {
+        stats.inc_buffer_count();
         logger.info(fmt!("Creating new {} buffer.", T::type_display()));
+        let stats          = stats.clone_ref();
         let set_logger     = logger.sub("buffer_dirty");
         let resize_logger  = logger.sub("resize_dirty");
         let buffer_dirty   = BufferDirty::new(set_logger,on_mut);
@@ -93,22 +100,17 @@ BufferData<T,OnMut,OnResize> {
         let buffer         = Data::new(buff_on_mut, buff_on_resize);
         let context        = context.clone();
         let gl_buffer      = create_gl_buffer(&context);
-        Self {buffer,buffer_dirty,resize_dirty,logger,gl_buffer,context}
-    }
-
-    /// Build the buffer from the provider configuration builder.
-    pub fn build(context:&Context, builder:Builder, on_mut:OnMut, on_resize:OnResize) -> Self {
-        let logger = builder._logger.unwrap_or_else(default);
-        Self::new(context,logger,on_mut,on_resize)
+        let gpu_mem_usage  = default();
+        Self {buffer,buffer_dirty,resize_dirty,logger,gl_buffer,context,stats,gpu_mem_usage}
     }
 }
 
-impl<T:Item,OnMut,OnResize>
+impl<T:GpuData,OnMut,OnResize>
 BufferData<T,OnMut,OnResize> {
 
     /// View the data as slice of primitive elements.
-    pub fn as_prim_slice(&self) -> &[Prim<T>] {
-        <T as Item>::convert_prim_buffer(&self.buffer.data)
+    pub fn as_prim_slice(&self) -> &[Item<T>] {
+        <T as GpuData>::convert_prim_buffer(&self.buffer.data)
     }
 
     /// View the data as slice of elements.
@@ -119,13 +121,12 @@ BufferData<T,OnMut,OnResize> {
     /// Check dirty flags and update the state accordingly.
     pub fn update(&mut self) {
         group!(self.logger, "Updating.", {
-            let data = self.as_slice();
             self.context.bind_buffer(Context::ARRAY_BUFFER, Some(&self.gl_buffer));
             if self.resize_dirty.check() {
-                self.upload_data(&self.context,data,&None);
+                self.upload_data(&None);
             } else if self.buffer_dirty.check_all() {
                 let range = &self.buffer_dirty.take().range;
-                self.upload_data(&self.context,data,range);
+                self.upload_data(range);
             }
             self.buffer_dirty.unset_all();
             self.resize_dirty.unset();
@@ -133,7 +134,7 @@ BufferData<T,OnMut,OnResize> {
     }
 
     /// Uploads the provided data to the GPU buffer.
-    fn upload_data(&self, context:&Context, data:&[T], opt_range:&Option<RangeInclusive<usize>>) {
+    fn upload_data(&mut self, opt_range:&Option<RangeInclusive<usize>>) {
         // Note that `js_buffer_view` is somewhat dangerous (hence the `unsafe`!). This is creating
         // a raw view into our module's `WebAssembly.Memory` buffer, but if we allocate more pages
         // for ourself (aka do a memory allocation in Rust) it'll cause the buffer to change,
@@ -143,25 +144,35 @@ BufferData<T,OnMut,OnResize> {
         // allocations before it's dropped.
 
         self.logger.info("Setting buffer data.");
+        self.stats.inc_data_upload_count();
+
+        let data           = self.as_slice();
+        let item_byte_size = <T as GpuData>::gpu_item_byte_size() as u32;
+        let item_count     = <T as GpuData>::item_count()         as u32;
 
         match opt_range {
             None => unsafe {
                 let js_array = data.js_buffer_view();
-                context.buffer_data_with_array_buffer_view
+                self.context.buffer_data_with_array_buffer_view
                 (Context::ARRAY_BUFFER, &js_array, Context::STATIC_DRAW);
+
+                self.stats.mod_gpu_memory_usage(|s| s - self.gpu_mem_usage);
+                self.gpu_mem_usage = self.len() as u32 * item_count * item_byte_size;
+                self.stats.mod_gpu_memory_usage(|s| s + self.gpu_mem_usage);
+                self.stats.mod_data_upload_size(|s| s + self.gpu_mem_usage);
             }
             Some(range) => {
-                let item_byte_size  = <T as Item>::gpu_prim_byte_size() as u32;
-                let item_count      = <T as Item>::item_count() as u32;
                 let start           = *range.start() as u32;
                 let end             = *range.end()   as u32;
+                let start_item      = start * item_count;
                 let length          = (end - start + 1) * item_count;
-                let dst_byte_offset = (item_byte_size * start) as i32;
+                let dst_byte_offset = (item_byte_size * item_count * start) as i32;
                 unsafe {
                     let js_array = data.js_buffer_view();
-                    context.buffer_sub_data_with_i32_and_array_buffer_view_and_src_offset_and_length
-                    (Context::ARRAY_BUFFER,dst_byte_offset,&js_array,start,length)
+                    self.context.buffer_sub_data_with_i32_and_array_buffer_view_and_src_offset_and_length
+                    (Context::ARRAY_BUFFER,dst_byte_offset,&js_array,start_item,length)
                 }
+                self.stats.mod_data_upload_size(|s| s + length * item_byte_size);
             }
         }
     }
@@ -173,10 +184,10 @@ BufferData<T,OnMut,OnResize> {
     /// https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/vertexAttribPointer
     /// https://stackoverflow.com/questions/38853096/webgl-how-to-bind-values-to-a-mat4-attribute
     pub fn vertex_attrib_pointer(&self, loc:u32, instanced:bool) {
-        let item_byte_size = <T as Item>::gpu_prim_byte_size() as i32;
-        let item_type      = <T as Item>::gpu_item_type();
-        let rows           = <T as Item>::rows() as i32;
-        let cols           = <T as Item>::cols() as i32;
+        let item_byte_size = <T as GpuData>::gpu_item_byte_size() as i32;
+        let item_type      = <T as GpuData>::glsl_item_type_code();
+        let rows           = <T as GpuData>::rows() as i32;
+        let cols           = <T as GpuData>::cols() as i32;
         let col_byte_size  = item_byte_size * rows;
         let stride         = col_byte_size  * cols;
         let normalize      = false;
@@ -194,11 +205,6 @@ BufferData<T,OnMut,OnResize> {
 
 impl<T,OnMut,OnResize>
 BufferData<T,OnMut,OnResize> {
-    /// Returns a new buffer `Builder` object.
-    pub fn builder() -> Builder {
-        default()
-    }
-
     /// Returns the number of elements in the buffer.
     pub fn len(&self) -> usize {
         self.buffer.len()
@@ -217,7 +223,7 @@ BufferData<T,OnMut,OnResize> {
 }
 
 pub trait AddElementCtx<T,OnResize> = where
-    T: Item + Clone,
+    T: GpuData + Clone,
     OnResize: Callback0;
 
 impl<T,OnMut,OnResize>
@@ -248,6 +254,14 @@ IndexMut<usize> for BufferData<T,OnMut,OnResize> {
     }
 }
 
+impl<T,OnMut,OnResize> Drop for BufferData<T,OnMut,OnResize> {
+    fn drop(&mut self) {
+        self.context.delete_buffer(Some(&self.gl_buffer));
+        self.stats.mod_gpu_memory_usage(|s| s - self.gpu_mem_usage);
+        self.stats.dec_buffer_count();
+    }
+}
+
 
 // === Utils ===
 
@@ -267,30 +281,21 @@ fn create_gl_buffer(context:&Context) -> WebGlBuffer {
 #[derivative(Debug(bound="T:Debug"))]
 #[derivative(Clone(bound=""))]
 pub struct Buffer<T,OnMut,OnResize> {
-    rc: Rc<RefCell<BufferData<T,OnMut,OnResize>>>
+    pub rc: Rc<RefCell<BufferData<T,OnMut,OnResize>>>
 }
 
 impl<T, OnMut:Callback0, OnResize:Callback0>
 Buffer<T,OnMut,OnResize> {
-
     /// Creates a new empty buffer.
     pub fn new
-    (context:&Context, logger:Logger, on_mut:OnMut, on_resize:OnResize)
-     -> Self {
-        let data = BufferData::new(context, logger, on_mut, on_resize);
-        let rc   = Rc::new(RefCell::new(data));
-        Self {rc}
-    }
-
-    /// Build the buffer from the provided configuration builder.
-    pub fn build(context:&Context, builder:Builder, on_mut:OnMut, on_resize:OnResize) -> Self {
-        let data = BufferData::build(context, builder, on_mut, on_resize);
+    (logger:Logger, stats:&Stats, context:&Context, on_mut:OnMut, on_resize:OnResize) -> Self {
+        let data = BufferData::new(logger,stats,context,on_mut,on_resize);
         let rc   = Rc::new(RefCell::new(data));
         Self {rc}
     }
 }
 
-impl<T:Item,OnMut,OnResize>
+impl<T:GpuData,OnMut,OnResize>
 Buffer<T,OnMut,OnResize> {
     /// Check dirty flags and update the state accordingly.
     pub fn update(&self) {
@@ -307,9 +312,10 @@ Buffer<T,OnMut,OnResize> {
 
 impl<T,OnMut,OnResize>
 Buffer<T,OnMut,OnResize> {
+    // FIXME: Rethink if buffer should know about Attribute.
     /// Get the variable by given index.
-    pub fn get(&self, index:usize) -> Var<T,OnMut,OnResize> {
-        Var::new(index,self.clone())
+    pub fn get(&self, index:usize) -> Attribute<T,OnMut,OnResize> {
+        Attribute::new(index, self.clone())
     }
 
     /// Returns the number of elements in the buffer.
@@ -341,73 +347,6 @@ impl <T,OnMut,OnResize>
 From<Rc<RefCell<BufferData<T,OnMut,OnResize>>>> for Buffer<T,OnMut,OnResize> {
     fn from(rc: Rc<RefCell<BufferData<T, OnMut, OnResize>>>) -> Self {
         Self {rc}
-    }
-}
-
-
-
-// ===========
-// === Var ===
-// ===========
-
-/// View for a particular buffer. Allows reading and writing buffer data
-/// via the internal mutability pattern. It is implemented as a view on
-/// a selected `Buffer` element under the hood.
-#[derive(Clone,Derivative)]
-#[derivative(Debug(bound="T:Debug"))]
-pub struct Var<T,OnMut,OnResize> {
-    index  : usize,
-    buffer : Buffer<T,OnMut,OnResize>
-}
-
-impl<T,OnMut,OnResize> Var<T,OnMut,OnResize> {
-    /// Creates a new variable as an indexed view over provided buffer.
-    pub fn new(index:usize, buffer: Buffer<T,OnMut,OnResize>) -> Self {
-        Self {index, buffer}
-    }
-}
-
-impl<T:Copy,OnMut:Callback0,OnResize> Var<T,OnMut,OnResize> {
-    /// Gets immutable reference to the underlying data.
-    pub fn get(&self) -> T {
-        *self.buffer.rc.borrow().index(self.index)
-    }
-
-    /// Sets the variable to a new value.
-    pub fn set(&self, value:T) {
-        *self.buffer.rc.borrow_mut().index_mut(self.index) = value;
-    }
-
-    /// Modifies the underlying data by using the provided function.
-    pub fn modify<F:FnOnce(&mut T)>(&self, f:F) {
-        let mut value = self.get();
-        f(&mut value);
-        self.set(value);
-    }
-}
-
-
-
-// ===============
-// === Builder ===
-// ===============
-
-/// Buffer builder.
-#[derive(Derivative)]
-#[derivative(Default(bound=""))]
-pub struct Builder {
-    pub _logger : Option <Logger>
-}
-
-impl Builder {
-    /// Creates a new builder object.
-    pub fn new() -> Self {
-        default()
-    }
-
-    /// Sets the logger.
-    pub fn logger(self, val: Logger) -> Self {
-        Self { _logger: Some(val) }
     }
 }
 
@@ -460,7 +399,7 @@ macro_rules! mk_any_buffer_impl {
 
     /// An enum with a variant per possible buffer type (i32, f32, Vector<f32>,
     /// and many, many more). It provides a faster alternative to dyn trait one:
-    /// `Buffer<dyn Item, OnMut, OnResize>`.
+    /// `Buffer<dyn GpuData, OnMut, OnResize>`.
     #[enum_dispatch(IsBuffer)]
     #[derive(Derivative)]
     #[derivative(Debug(bound=""))]

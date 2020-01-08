@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 // use super::Camera;
 use crate::prelude::*;
 use super::DOMContainer;

@@ -4,7 +4,7 @@ use wasm_bindgen::JsValue;
 #[wasm_bindgen(module = "/msdfgen_wasm.js")]
 extern {
     #[wasm_bindgen(js_name="addInitializationCb")]
-    pub fn on_emscripten_runtime_initialized(callback:JsValue) -> js_sys::Promise;
+    pub fn on_emscripten_runtime_initialized(callback:JsValue);
 
     #[wasm_bindgen(js_name="isInitialized")]
     pub fn is_emscripten_runtime_initialized() -> bool;

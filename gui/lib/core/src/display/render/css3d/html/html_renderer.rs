@@ -1,10 +1,12 @@
+#![allow(missing_docs)]
+
 use crate::prelude::*;
 
 use crate::display::render::css3d::GraphicsRenderer;
 use crate::display::render::css3d::Scene;
 use crate::display::render::css3d::Camera;
 use crate::display::render::css3d::html::HTMLObject;
-use crate::display::symbol::geometry::primitive::mesh::buffer::item::JSBufferView;
+use crate::system::gpu::data::JSBufferView;
 use crate::system::web::Result;
 use crate::system::web::create_element;
 use crate::system::web::dyn_into;

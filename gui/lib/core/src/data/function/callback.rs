@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 use crate::prelude::*;
 use std::fmt;
 
@@ -43,7 +45,7 @@ pub struct Callback<Func>(pub Func);
 //    }
 //}
 
-impl<Func> fmt::Debug for Callback<Func> {
+impl<Func> Debug for Callback<Func> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Callback")
     }
