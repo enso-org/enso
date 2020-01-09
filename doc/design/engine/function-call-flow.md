@@ -9,13 +9,16 @@ The following is an overview of the logic, outlining the most important
 features supported by this system and a diagram of how they fit into the
 Truffle framework.
 
-- [Function call logic in the Enso interpreter](#function-call-logic-in-the-enso-interpreter)
-  * [Tail Call Optimization](#tail-call-optimization)
-  * [Named application arguments](#named-application-arguments)
-  * [Definition-site arguments laziness](#definition-site-arguments-laziness)
-  * [Currying and eta-expansion](#currying-and-eta-expansion)
-  * [Dynamic dispatch](#dynamic-dispatch)
-  * [Flow diagram](#flow-diagram)
+<!-- MarkdownTOC levels="2,3" autolink="true" -->
+
+- [Tail Call Optimization](#tail-call-optimization)
+- [Named Application Arguments](#named-application-arguments)
+- [Definition-Site Arguments Laziness](#definition-site-arguments-laziness)
+- [Currying and Eta-Expansion](#currying-and-eta-expansion)
+- [Dynamic Dispatch](#dynamic-dispatch)
+- [Flow Diagram](#flow-diagram)
+
+<!-- /MarkdownTOC -->
 
 ## Tail Call Optimization
 
@@ -120,6 +123,5 @@ and performed (with caching) in the `MethodResolverNode`.
 The following diagram summarizes all the nodes participating in a function
 call. The entry points to this system are `ApplicationNode` (for in-language
 function calls) and `InteropLibrary<Function>` (for polyglot function calls).
-
 
 ![diagram](function-call-diagram.png)
