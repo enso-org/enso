@@ -10,6 +10,7 @@ edition = "2018"
 default = ["console_error_panic_hook"]
 
 [dependencies]
+data           = { version = "0.1.0"  , path = "../../data" }
 basegl-prelude = { version = "0.1.0"  , path = "../../prelude" }
 js-sys         = { version = "0.3.28" }
 wasm-bindgen   = { version = "^0.2"   , features = ["nightly"] }
@@ -34,7 +35,10 @@ features = [
   'WebGlShader',
   'Window',
   'console',
-  'Performance'
+  'Performance',
+  'Event',
+  'MouseEvent',
+  'EventTarget'
 ]
 
 [dev-dependencies]

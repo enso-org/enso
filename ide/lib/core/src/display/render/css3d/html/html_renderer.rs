@@ -5,6 +5,7 @@ use crate::prelude::*;
 use crate::display::render::css3d::GraphicsRenderer;
 use crate::display::render::css3d::Scene;
 use crate::display::render::css3d::Camera;
+use crate::display::render::css3d::CameraType;
 use crate::display::render::css3d::html::HTMLObject;
 use crate::system::gpu::data::JSBufferView;
 use crate::system::web::Result;
@@ -32,9 +33,10 @@ mod js {
     extern "C" {
         pub fn set_object_transform(dom:&JsValue, matrix_array:&Object);
         pub fn setup_perspective(dom: &JsValue, znear: &JsValue);
-        pub fn setup_camera_transform
+        pub fn setup_camera_orthographic(dom:&JsValue, matrix_array:&JsValue);
+        pub fn setup_camera_perspective
         ( dom          : &JsValue
-        , znear        : &JsValue
+        , y_scale      : &JsValue
         , half_width   : &JsValue
         , half_height  : &JsValue
         , matrix_array : &JsValue
@@ -65,20 +67,29 @@ fn set_object_transform(dom: &JsValue, matrix: &Matrix4<f32>) {
     }
 }
 
-fn setup_camera_transform
-(dom:&JsValue, near:f32, half_width:f32, half_height:f32, matrix:&Matrix4<f32>) {
-    // Views to WASM memory are only valid as long the backing buffer isn't
+fn setup_camera_perspective
+(dom:&JsValue, near:f32, half_width:f32, half_height:f32, matrix:&Matrix4<f32>) { // Views to WASM memory are only valid as long the backing buffer isn't
     // resized. Check documentation of IntoFloat32ArrayView trait for more
     // details.
     unsafe {
         let matrix_array = matrix.js_buffer_view();
-        js::setup_camera_transform(
+        js::setup_camera_perspective(
             &dom,
             &near.into(),
             &half_width.into(),
             &half_height.into(),
             &matrix_array
         )
+    }
+}
+
+fn setup_camera_orthographic(dom:&JsValue, matrix:&Matrix4<f32>) {
+    // Views to WASM memory are only valid as long the backing buffer isn't
+    // resized. Check documentation of IntoFloat32ArrayView trait for more
+    // details.
+    unsafe {
+        let matrix_array = matrix.js_buffer_view();
+        js::setup_camera_orthographic(&dom, &matrix_array)
     }
 }
 
@@ -128,6 +139,10 @@ impl HTMLRenderer {
         let div    : HtmlElement = dyn_into(create_element("div")?)?;
         let camera : HtmlElement = dyn_into(create_element("div")?)?;
 
+        div.set_property_or_panic("position", "absolute");
+        div.set_property_or_panic("top", "0px");
+        div.set_property_or_panic("overflow", "hidden");
+        div   .set_property_or_panic("overflow"       , "hidden");
         div   .set_property_or_panic("width"          , "100%");
         div   .set_property_or_panic("height"         , "100%");
         camera.set_property_or_panic("width"          , "100%");
@@ -160,19 +175,25 @@ impl HTMLRenderer {
         let trans_cam    = trans_cam.map(eps);
         let trans_cam    = invert_y(trans_cam);
 
-        // Note [znear from projection matrix]
         let half_dim     = self.renderer.container.dimensions() / 2.0;
         let y_scale      = camera.get_y_scale();
-        let near         = y_scale * half_dim.y;
+        let y_scale      = y_scale * half_dim.y;
 
-        js::setup_perspective(&self.data.div, &near.into());
-        setup_camera_transform(
-            &self.data.camera,
-            near,
-            half_dim.x,
-            half_dim.y,
-            &trans_cam
-        );
+        match camera.camera_type() {
+            CameraType::Perspective(_) => {
+                js::setup_perspective(&self.data.div, &y_scale.into());
+                setup_camera_perspective(
+                    &self.data.camera,
+                    y_scale,
+                    half_dim.x,
+                    half_dim.y,
+                    &trans_cam
+                );
+            },
+            CameraType::Orthographic(_) => {
+                setup_camera_orthographic(&self.data.camera, &trans_cam);
+            }
+        }
 
         let scene : &Scene<HTMLObject> = &scene;
         for object in &mut scene.into_iter() {
@@ -194,6 +215,11 @@ impl HTMLRenderer {
     }
 }
 
-// Note [znear from projection matrix]
-// ===================================
-// https://github.com/mrdoob/three.js/blob/22ed6755399fa180ede84bf18ff6cea0ad66f6c0/examples/js/renderers/CSS3DRenderer.js#L275
+
+// === Getters ===
+
+impl HTMLRenderer {
+    pub fn div(&self) -> &HtmlElement {
+        &self.data.div
+    }
+}

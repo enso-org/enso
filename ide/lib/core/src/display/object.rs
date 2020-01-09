@@ -8,7 +8,7 @@ use crate::prelude::*;
 use crate::closure;
 use crate::data::dirty;
 use crate::data::dirty::traits::*;
-use crate::data::opt_vec::OptVec;
+use data::opt_vec::OptVec;
 use crate::system::web::group;
 
 use basegl_system_web::Logger;

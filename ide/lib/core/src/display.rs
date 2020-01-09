@@ -7,3 +7,4 @@ pub mod symbol;
 pub mod object;
 pub mod render;
 pub mod world;
+pub mod navigation;

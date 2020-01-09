@@ -1,8 +1,9 @@
 use crate::prelude::*;
 
 use super::BenchContainer;
-pub use crate::system::web::get_performance;
-pub use crate::system::web::animation_frame_loop::AnimationFrameLoop;
+use crate::system::web::get_performance;
+use crate::system::web::animation_frame_loop::AnimationFrameLoop;
+use crate::system::web::animation_frame_loop::AnimationFrameCallbackGuard;
 
 use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsCast;
@@ -10,27 +11,28 @@ use std::rc::Rc;
 use std::cell::RefCell;
 
 
-
-// ===================
-// === BencherCell ===
-// ===================
+// =========================
+// === BencherProperties ===
+// =========================
 
 /// Cell, used to hold Bencher's data
-pub struct BencherCell {
-    func: Box<dyn FnMut()>,
-    container  : BenchContainer,
-    iterations : usize,
-    total_time : f64,
-    anim_loop  : Option<AnimationFrameLoop>
+pub struct BencherProperties {
+    callback       : Box<dyn FnMut()>,
+    container      : BenchContainer,
+    iterations     : usize,
+    total_time     : f64,
+    event_loop     : AnimationFrameLoop,
+    callback_guard : Option<AnimationFrameCallbackGuard>
 }
 
-impl BencherCell {
-    pub fn new(f:Box<dyn FnMut()>, container:BenchContainer) -> Self {
-        let func       = f;
-        let iterations = 0;
-        let total_time = 0.0;
-        let anim_loop  = None;
-        Self { func,container,iterations,total_time,anim_loop }
+impl BencherProperties {
+    pub fn new<T:FnMut() + 'static>
+    (event_loop:AnimationFrameLoop, callback:T, container:BenchContainer) -> Self {
+        let iterations     = 0;
+        let total_time     = 0.0;
+        let callback_guard = None;
+        let callback       = Box::new(callback);
+        Self {callback,container,iterations,total_time,event_loop,callback_guard}
     }
 
     /// Adds the duration of the next iteration and updates the UI.
@@ -54,13 +56,16 @@ impl BencherCell {
 
 #[derive(Shrinkwrap)]
 pub struct BencherData {
-    cell : RefCell<BencherCell>
+    properties: RefCell<BencherProperties>
 }
 
 impl BencherData {
-    pub fn new(f:Box<dyn FnMut()>, container:BenchContainer) -> Rc<Self> {
-        let cell = RefCell::new(BencherCell::new(f, container));
-        Rc::new(Self { cell })
+    pub fn new<T:FnMut() + 'static>
+    ( event_loop:AnimationFrameLoop
+    , callback:T
+    , container:BenchContainer) -> Rc<Self> {
+        let properties = RefCell::new(BencherProperties::new(event_loop,callback,container));
+        Rc::new(Self {properties})
     }
 
     /// Starts the benchmarking loop.
@@ -68,10 +73,10 @@ impl BencherData {
         let data_clone = self.clone();
         let performance = get_performance().expect("Performance object");
         let mut t0 = performance.now();
-        let anim_loop = AnimationFrameLoop::new(Box::new(move |_| {
+        let callback_guard = self.event_loop().add_callback(Box::new(move |_| {
             let mut data = data_clone.borrow_mut();
 
-            (&mut data.func)();
+            (&mut data.callback)();
 
             let t1 = performance.now();
             let dt = t1 - t0;
@@ -79,17 +84,31 @@ impl BencherData {
 
             data.add_iteration_time(dt);
         }));
-        self.borrow_mut().anim_loop = Some(anim_loop);
+        self.properties.borrow_mut().callback_guard = Some(callback_guard);
     }
 
     /// Stops the benchmarking loop.
-    fn stop(self:&Rc<Self>) {
-        self.borrow_mut().anim_loop = None;
+    fn stop(&self) {
+        self.properties.borrow_mut().callback_guard = None;
+    }
+
+    fn iter<T, F:FnMut() -> T + 'static>(&self, mut callback:F) {
+        self.properties.borrow_mut().callback = Box::new(move || { callback(); });
+    }
+
+}
+
+
+// === Getters ===
+
+impl BencherData {
+    fn event_loop(&self) -> AnimationFrameLoop {
+        self.properties.borrow().event_loop.clone()
     }
 
     /// Check if the loop is running.
     fn is_running(self:&Rc<Self>) -> bool {
-        self.borrow().anim_loop.is_some()
+        self.properties.borrow().callback_guard.is_some()
     }
 }
 
@@ -108,8 +127,9 @@ pub struct Bencher {
 impl Bencher {
     /// Creates a Bencher with a html test container.
     pub fn new(container:BenchContainer) -> Self {
-        let func = Box::new(|| ());
-        let data = BencherData::new(func, container);
+        let func       = Box::new(|| ());
+        let event_loop = AnimationFrameLoop::new();
+        let data       = BencherData::new(event_loop, func, container);
 
         let data_clone = data.clone();
         let closure = Box::new(move || {
@@ -122,7 +142,7 @@ impl Bencher {
 
         {
             let closure = Closure::wrap(closure);
-            let cell = data.cell.borrow();
+            let cell = data.properties.borrow();
             let measurement = &cell.container.measurement;
             measurement.set_onclick(Some(closure.as_ref().unchecked_ref()));
             closure.forget();
@@ -136,7 +156,11 @@ impl Bencher {
     }
 
     /// Callback for benchmark functions to run in their body.
-    pub fn iter<T, F:FnMut() -> T + 'static>(&mut self, mut func:F) {
-        self.data.borrow_mut().func = Box::new(move || { func(); });
+    pub fn iter<T, F:FnMut() -> T + 'static>(&mut self, callback:F) {
+        self.data.iter(callback);
+    }
+
+    pub fn event_loop(&self) -> AnimationFrameLoop {
+        self.data.event_loop()
     }
 }

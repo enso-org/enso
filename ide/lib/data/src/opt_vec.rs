@@ -117,11 +117,11 @@ impl<T> IndexMut<usize> for OptVec<T> {
 // === Iterators ===
 
 impl<'a, T> IntoIterator for &'a OptVec<T> {
-   type Item     = &'a T;
-   type IntoIter = Iter<'a, T>;
-   fn into_iter(self) -> Self::IntoIter {
-       self.iter()
-   }
+    type Item     = &'a T;
+    type IntoIter = Iter<'a, T>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
 }
 
 impl<'a, T> IntoIterator for &'a mut OptVec<T> {
@@ -140,57 +140,57 @@ impl<'a, T> IntoIterator for &'a mut OptVec<T> {
 
 #[cfg(test)]
 mod tests {
-   use super::*;
+    use super::*;
 
-   #[test]
-   fn test_add() {
-       let mut v = OptVec::new();
-       assert!(v.is_empty());
+    #[test]
+    fn test_add() {
+        let mut v = OptVec::new();
+        assert!(v.is_empty());
 
-       let ix1 = v.insert(1);
-       assert_eq!(ix1,0);
-       assert_eq!(v.len(),1);
-       assert!(!v.is_empty());
+        let ix1 = v.insert(1);
+        assert_eq!(ix1,0);
+        assert_eq!(v.len(),1);
+        assert!(!v.is_empty());
 
-       let ix2 = v.insert(2);
-       assert_eq!(ix2,1);
-       assert_eq!(v.len(),2);
+        let ix2 = v.insert(2);
+        assert_eq!(ix2,1);
+        assert_eq!(v.len(),2);
 
-       v.remove(ix1);
-       assert_eq!(v.len(),1);
+        v.remove(ix1);
+        assert_eq!(v.len(),1);
 
-       v.remove(ix2);
-       assert_eq!(v.len(),0);
-       assert!(v.is_empty());
+        v.remove(ix2);
+        assert_eq!(v.len(),0);
+        assert!(v.is_empty());
 
-       let ix3 = v.insert(3);
-       assert_eq!(v.len(),1);
+        let ix3 = v.insert(3);
+        assert_eq!(v.len(),1);
 
-       let ix4 = v.insert(4);
-       assert_eq!(ix3,1);
-       assert_eq!(ix4,0);
-       assert_eq!(v.len(),2);
-   }
+        let ix4 = v.insert(4);
+        assert_eq!(ix3,1);
+        assert_eq!(ix4,0);
+        assert_eq!(v.len(),2);
+    }
 
-   #[test]
-   fn test_iter() {
-       let mut v = OptVec::new();
+    #[test]
+    fn test_iter() {
+        let mut v = OptVec::new();
 
-       let  ix1 = v.insert(0);
-       let _ix2 = v.insert(1);
-       let _ix3 = v.insert(2);
-       assert_eq!(v.len(),3);
+        let  ix1 = v.insert(0);
+        let _ix2 = v.insert(1);
+        let _ix3 = v.insert(2);
+        assert_eq!(v.len(),3);
 
-       for (i,value) in v.into_iter().enumerate() {
-           assert_eq!(i, *value);
-       }
+        for (i,value) in v.into_iter().enumerate() {
+            assert_eq!(i, *value);
+        }
 
-       v.remove(ix1);
-       assert_eq!(v.len(),2);
-       for (i,value) in v.into_iter().enumerate() {
-           assert_eq!(i + 1, *value);
-       }
-   }
+        v.remove(ix1);
+        assert_eq!(v.len(),2);
+        for (i,value) in v.into_iter().enumerate() {
+            assert_eq!(i + 1, *value);
+        }
+    }
 
     #[test]
     fn test_iter_mut() {

@@ -1,7 +1,9 @@
 #![feature(trait_alias)]
 #![feature(set_stdio)]
+#![feature(arbitrary_self_types)]
 
 pub mod resize_observer;
+pub mod intersection_observer;
 pub mod animation_frame_loop;
 
 use basegl_prelude::*;
@@ -13,10 +15,14 @@ use web_sys::HtmlCanvasElement;
 use web_sys::WebGl2RenderingContext;
 use web_sys::Performance;
 use web_sys::Node;
+use web_sys::MouseEvent;
+use web_sys::EventTarget;
+use js_sys::Function;
 use std::fmt::Debug;
 
 pub use web_sys::console;
 use wasm_bindgen::prelude::*;
+
 
 
 // =============
@@ -33,6 +39,10 @@ pub enum Error {
     TypeMismatch { expected: String, got: String },
     #[fail(display = "WebGL {} is not available.", version)]
     NoWebGL { version: u32 },
+    #[fail(display = "Failed to add event listener")]
+    FailedToAddEventListener,
+    #[fail(display = "Failed to remove event listener")]
+    FailedToRemoveEventListener
 }
 impl Error {
     pub fn missing(name:&str) -> Error {
@@ -179,6 +189,28 @@ macro_rules! group {
         group!($logger, format!($str,$a1,$a2,$a3), $body)
     }};
 }
+
+
+// =============
+// === Utils ===
+// =============
+
+/// Ignores context menu when clicking with the right mouse button.
+pub fn ignore_context_menu(target:&EventTarget) -> Result<Closure<dyn FnMut(MouseEvent)>> {
+    let closure = move |event:MouseEvent| {
+        const RIGHT_MOUSE_BUTTON : i16 = 2;
+        if  event.button() == RIGHT_MOUSE_BUTTON {
+            event.prevent_default();
+        }
+    };
+    let closure = Closure::wrap(Box::new(closure) as Box<dyn FnMut(MouseEvent)>);
+    let callback : &Function = closure.as_ref().unchecked_ref();
+    match target.add_event_listener_with_callback("contextmenu", callback) {
+        Ok(_)  => Ok(closure),
+        Err(_) => Err(Error::FailedToAddEventListener)
+    }
+}
+
 
 // ===================
 // === DOM Helpers ===

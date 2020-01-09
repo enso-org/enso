@@ -6,34 +6,121 @@ use crate::display::render::css3d::Object;
 
 use nalgebra::base::Matrix4;
 use nalgebra::geometry::Perspective3;
+use nalgebra::geometry::Orthographic3;
 use std::f32::consts::PI;
+
+
+
+// ===================
+// === Perspective ===
+// ===================
+
+/// Perspective projection properties.
+#[derive(Debug, Clone, Copy)]
+pub struct Perspective {
+    pub fov    : f32,
+    pub aspect : f32,
+    pub near   : f32,
+    pub far    : f32
+}
+
+
+
+// ====================
+// === Orthographic ===
+// ====================
+
+/// Orthographic projection properties.
+#[derive(Debug, Clone, Copy)]
+pub struct Orthographic {
+    pub left   : f32,
+    pub right  : f32,
+    pub top    : f32,
+    pub bottom : f32,
+    pub near   : f32,
+    pub far    : f32
+}
+
+
+
+// ==================
+// === CameraType ===
+// ==================
+
+/// CameraType enum.
+#[derive(Debug, Clone, Copy)]
+pub enum CameraType {
+    Perspective(Perspective),
+    Orthographic(Orthographic)
+}
+
+
+
+// ==================
+// === CameraData ===
+// ==================
+
+struct CameraData {
+    camera_type : CameraType,
+    projection  : Matrix4<f32>
+}
 
 // ==============
 // === Camera ===
 // ==============
 
-/// A 3D camera representation with its own 3D `Transform` and
-/// projection matrix.
-#[derive(Shrinkwrap, Debug)]
+/// A 3D camera representation with its own 3D Transform and projection matrix.
+#[derive(Shrinkwrap, Clone)]
 #[shrinkwrap(mutable)]
 pub struct Camera {
     #[shrinkwrap(main_field)]
-    pub object     : Object,
-    pub projection : Matrix4<f32>,
+    pub object  : Object,
+    data        : Rc<RefCell<CameraData>>
 }
 
 impl Camera {
-    /// Creates a Camera with perspective projection.
-    pub fn perspective(fov:f32, aspect:f32, z_near:f32, z_far:f32) -> Self {
+    /// Creates a perspective projection Camera.
+    pub fn perspective(fov:f32, aspect:f32, near:f32, far:f32) -> Self {
         let fov = fov / 180.0 * PI;
-        let projection = Perspective3::new(aspect, fov, z_near, z_far);
-        let projection = *projection.as_matrix();
-        let object     = default();
-        Self { object, projection }
+        let projection  = Perspective3::new(aspect, fov, near, far);
+        let projection  = *projection.as_matrix();
+        let object      = default();
+        let camera_type = Perspective { fov, aspect, near, far };
+        let camera_type = CameraType::Perspective(camera_type);
+        let data        = Rc::new(RefCell::new(CameraData { camera_type, projection }));
+        Self { object, data }
     }
 
-    pub fn get_y_scale(&self) -> f32 { self.projection.m11 }
+    /// Creates an orthographic projection Camera.
+    pub fn orthographic
+        (left    : f32
+        , right  : f32
+        , bottom : f32
+        , top    : f32
+        , near   : f32
+        , far    : f32) -> Self {
+        let projection  = Orthographic3::new(left, right, bottom, top, near, far);
+        let projection  = *projection.as_matrix();
+        let object      = default();
+        let camera_type = Orthographic { left, right, bottom, top, near, far };
+        let camera_type = CameraType::Orthographic(camera_type);
+        let data        = Rc::new(RefCell::new(CameraData { camera_type, projection }));
+        Self { object, data }
+    }
+
+    /// Gets CameraType.
+    pub fn camera_type(&self) -> CameraType { self.data.borrow().camera_type }
+
+    /// Gets projection's y scaling.
+    pub fn get_y_scale(&self) -> f32 { self.data.borrow().projection.m11 }
+
+    /// Gets Camera's projection matrix.
+    pub fn projection(&self) -> Matrix4<f32> { self.data.borrow().projection }
 }
+
+// =============
+// === Tests ===
+// =============
 
 #[cfg(test)]
 mod test {
@@ -48,6 +135,6 @@ mod test {
             , 0.0     ,       0.0, -1.002002, -2.002002
             , 0.0     ,       0.0,      -1.0,       0.0
             );
-       assert_eq!(camera.projection, expected);
+        assert_eq!(camera.projection(), expected);
     }
 }
