@@ -3,3 +3,4 @@
 pub mod sprite_system;
 pub mod text;
 pub mod shapes;
+pub mod camera_navigation;

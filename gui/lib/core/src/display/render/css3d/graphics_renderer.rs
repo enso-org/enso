@@ -3,9 +3,8 @@
 // use super::Camera;
 use crate::prelude::*;
 use super::DOMContainer;
-use super::ResizeCallbackFn;
+use super::ResizeCallback;
 use crate::system::web::Result;
-use crate::system::web::StyleSetter;
 
 use nalgebra::Vector2;
 
@@ -21,8 +20,7 @@ pub struct GraphicsRenderer {
 
 impl GraphicsRenderer {
     pub fn new(dom_id: &str) -> Result<Self> {
-        let container = DOMContainer::new(dom_id)?;
-        container.dom.set_property_or_panic("overflow", "hidden");
+        let container = DOMContainer::from_id(dom_id)?;
         Ok(Self { container })
     }
 
@@ -37,8 +35,7 @@ impl GraphicsRenderer {
     }
 
     /// Adds a ResizeCallback.
-    pub fn add_resize_callback<T>(&mut self, callback : T)
-    where T : ResizeCallbackFn {
+    pub fn add_resize_callback<T:ResizeCallback>(&mut self, callback : T) {
         self.container.add_resize_callback(callback);
     }
 }

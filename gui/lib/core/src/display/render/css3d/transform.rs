@@ -63,6 +63,11 @@ impl Transform {
         &self.translation
     }
 
+    /// Gets mutable Transform's translation.
+    pub fn translation_mut(&mut self) -> &mut Vector3<f32> {
+        &mut self.translation
+    }
+
     /// Sets Transform's scale.
     pub fn set_scale(&mut self, x:f32, y:f32, z:f32) {
         self.scale = Vector3::new(x, y, z);
@@ -73,14 +78,24 @@ impl Transform {
         &self.scale
     }
 
+    /// Gets mutable Transform's scale.
+    pub fn scale_mut(&mut self) -> &mut Vector3<f32> {
+        &mut self.scale
+    }
+
     /// Sets Transform's rotation from Euler angles in radians.
     pub fn set_rotation(&mut self, roll:f32, pitch:f32, yaw:f32) {
         self.rotation = from_euler_angles_pry(roll, pitch, yaw);
     }
 
-    /// Gets Transform's rotation UnitQuaternion
+    /// Gets Transform's rotation UnitQuaternion.
     pub fn rotation(&self) -> &UnitQuaternion<f32> {
         &self.rotation
+    }
+
+    /// Gets mutable Transform's rotation UnitQuaternion.
+    pub fn rotation_mut(&mut self) -> &mut UnitQuaternion<f32> {
+        &mut self.rotation
     }
 
     /// Gets a homogeneous transform Matrix4. The rotation order is YXZ (pitch,

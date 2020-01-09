@@ -24,7 +24,7 @@ mod tests {
     use basegl::display::render::css3d::html::HTMLRenderer;
     use basegl::system::web::StyleSetter;
     use basegl::system::web::get_performance;
-    use basegl::traits::HasPosition;
+    use basegl::animation::position::HasPosition;
     use web_test::*;
     use web_sys::Performance;
     use nalgebra::Vector3;

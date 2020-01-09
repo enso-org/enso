@@ -5,6 +5,7 @@ members = [
     "lib/core",
     "lib/core/embedded-fonts",
     "lib/core/msdf-sys",
+    "lib/data",
     "lib/eval-tt",
     "lib/optics",
     "lib/prelude",

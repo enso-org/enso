@@ -7,17 +7,17 @@ web_configure!(run_in_browser);
 #[cfg(test)]
 mod tests {
     use basegl::system::web::StyleSetter;
-    use basegl::animation::physics::DragProperties;
-    use basegl::animation::physics::SpringProperties;
-    use basegl::animation::physics::KinematicsProperties;
-    use basegl::animation::FixedStepAnimator;
-    use basegl::animation::physics::PhysicsSimulator;
-    use basegl::animation::physics::PhysicsProperties;
+    use basegl::animation::physics::inertia::DragProperties;
+    use basegl::animation::physics::inertia::SpringProperties;
+    use basegl::animation::physics::inertia::KinematicsProperties;
+    use basegl::animation::physics::inertia::PhysicsSimulator;
+    use basegl::animation::physics::inertia::PhysicsProperties;
+    use basegl::animation::animator::fixed_step::FixedStepAnimator;
     use basegl::display::render::css3d::html::HTMLRenderer;
     use basegl::display::render::css3d::html::HTMLObject;
     use basegl::display::render::css3d::Scene;
     use basegl::display::render::css3d::Camera;
-    use basegl::traits::HasPosition;
+    use basegl::animation::position::HasPosition;
     use web_test::*;
     use nalgebra::{zero, Vector3};
     use js_sys::Math::random;
@@ -46,23 +46,30 @@ mod tests {
         let mut camera = Camera::perspective(45.0, aspect_ratio, 1.0, 1000.0);
         camera.set_position(Vector3::new(0.0, 0.0, 29.0));
 
-        let mass           = 2.0;
-        let kinematics     = KinematicsProperties::new(zero(), zero(), zero(), mass);
-        let coefficient    = 10.0;
-        let fixed_point    = zero();
-        let spring         = SpringProperties::new(coefficient, fixed_point);
-        let drag           = DragProperties::new(0.8);
-        let mut properties = PhysicsProperties::new(kinematics, spring, drag);
-        let simulator      = PhysicsSimulator::new(object, properties.clone());
+        let mut event_loop   = b.event_loop();
+        let mass             = 2.0;
+        let kinematics       = KinematicsProperties::new(zero(), zero(), zero(), mass);
+        let coefficient      = 10.0;
+        let fixed_point      = zero();
+        let spring           = SpringProperties::new(coefficient, fixed_point);
+        let drag             = DragProperties::new(0.8);
+        let mut properties   = PhysicsProperties::new(kinematics, spring, drag);
+        let steps_per_second = 60.0;
+        let simulator        = PhysicsSimulator::new(
+            &mut event_loop,
+            steps_per_second,
+            object,
+            properties.clone()
+        );
 
         // Updates spring's fixed point every two seconds.
         let every = 2.0;
-        let animator  = FixedStepAnimator::new(1.0 / every, move |_| {
+        let animator  = FixedStepAnimator::new(&mut event_loop, 1.0 / every, move |_| {
             let x = 32.0 * (random() - 0.5) as f32;
             let y = 24.0 * (random() - 0.5) as f32;
             let z = 0.0;
             let position = Vector3::new(x, y, z);
-            properties.mod_spring(|spring| spring.set_fixed_point(position));
+            properties.mod_spring(|spring| spring.fixed_point = position);
             target.set_position(position);
         });
 

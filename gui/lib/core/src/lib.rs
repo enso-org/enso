@@ -49,6 +49,6 @@ pub mod debug;
 pub mod display;
 pub mod examples;
 pub mod system;
+pub mod math;
 
 pub use basegl_prelude as prelude;
-

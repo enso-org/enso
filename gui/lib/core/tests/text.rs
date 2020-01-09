@@ -1,9 +1,6 @@
 //! Test suite for the Web and headless browsers.
 #![cfg(target_arch = "wasm32")]
 
-use basegl::display::world::Add;
-use basegl::display::world::Workspace;
-use basegl::display::world::WorkspaceID;
 use basegl::display::world::WorldData;
 use basegl::display::world::World;
 use basegl_system_web::create_element;

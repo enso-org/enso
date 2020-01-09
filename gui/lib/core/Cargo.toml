@@ -12,6 +12,7 @@ default = ["no_unboxed_callbacks"]
 no_unboxed_callbacks = []
 
 [dependencies]
+data                       = { version = "0.1.0"  , path = "../data"          }
 basegl-prelude             = { version = "0.1.0"  , path = "../prelude"       }
 eval-tt                    = { version = "0.1.0"  , path = "../eval-tt"       }
 optics                     = { version = "0.1.0"  , path = "../optics"        }
@@ -41,7 +42,6 @@ Inflector                  = { version = "0.11.4" }
 version = "0.3.4"
 features = [
   'CanvasRenderingContext2d',
-  'console',
   'CssStyleDeclaration',
   'Document',
   'Element',
@@ -60,6 +60,13 @@ features = [
   'WebGlUniformLocation',
   'WebGlVertexArrayObject',
   'Window',
+  'console',
+  'EventTarget',
+  'Event',
+  'MouseEvent',
+  'WheelEvent',
+  'DomRect',
+  'AddEventListenerOptions'
 ]
 
 [dev-dependencies]

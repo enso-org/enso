@@ -9,7 +9,6 @@ use crate::closure;
 use crate::data::dirty::traits::*;
 use crate::data::dirty;
 use crate::data::function::callback::*;
-use crate::data::opt_vec::OptVec;
 use crate::debug::stats::Stats;
 use crate::display::render::webgl::Context;
 use crate::system::gpu::buffer::IsBuffer;
@@ -20,6 +19,7 @@ use crate::promote_all;
 use crate::promote_buffer_types;
 use crate::system::web::group;
 use crate::system::web::Logger;
+use data::opt_vec::OptVec;
 use eval_tt::*;
 
 
