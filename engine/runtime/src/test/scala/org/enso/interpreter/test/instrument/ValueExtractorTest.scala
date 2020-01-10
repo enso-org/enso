@@ -77,4 +77,37 @@ class ValueExtractorTest extends InterpreterTest {
     getMain(code).execute(5L.asInstanceOf[AnyRef])
     result shouldEqual Some(6)
   }
+
+  subject should "enable values to be used in arbitrary expressions" in {
+    val code =
+      """
+        |main = arg ->
+        |    x = arg + 5
+        |    y = x * 5
+        |    z = y + 5
+        |    z
+        |""".stripMargin
+    val values       = mutable.HashMap[String, Any]()
+    val instrumenter = getValueExtractorInstrument
+    instrumenter.bindTo(23, 7, { x =>
+      values.put("x", x)
+    })
+    instrumenter.bindTo(39, 5, { y =>
+      values.put("y", y)
+    })
+    getMain(code).execute(5L.asInstanceOf[AnyRef])
+    val visualizationModule =
+      """
+        |foo = x -> x + 1
+        |""".stripMargin
+    val module =
+      executionContext.evalModule(visualizationModule, "MyVisualization")
+    val visualizationExpr = "val -> here.foo val * 3"
+    val visualization     = module.evalExpression(visualizationExpr)
+    val results =
+      values.mapValues(
+        v => visualization.execute(v.asInstanceOf[AnyRef]).asLong
+      )
+    results shouldEqual Map("x" -> 33L, "y" -> 153L)
+  }
 }

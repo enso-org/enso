@@ -27,6 +27,7 @@ import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.argument.Thunk;
 import org.enso.interpreter.runtime.data.Vector;
+import org.enso.polyglot.MethodNames;
 
 /** A runtime representation of a function object in Enso. */
 @ExportLibrary(InteropLibrary.class)
@@ -240,8 +241,6 @@ public final class Function implements TruffleObject {
     }
   }
 
-  private static final String EQUALITY_KEY = "equals";
-
   /**
    * Handles member invocation through the polyglot API.
    *
@@ -256,7 +255,7 @@ public final class Function implements TruffleObject {
   @ExportMessage
   Object invokeMember(String member, Object... args)
       throws ArityException, UnknownIdentifierException {
-    if (member.equals(EQUALITY_KEY)) {
+    if (member.equals(MethodNames.Function.EQUALS)) {
       if (args.length != 1) {
         throw ArityException.create(1, args.length);
       }
@@ -273,7 +272,7 @@ public final class Function implements TruffleObject {
    */
   @ExportMessage
   boolean isMemberInvocable(String member) {
-    return member.equals(EQUALITY_KEY);
+    return member.equals(MethodNames.Function.EQUALS);
   }
 
   /**
@@ -296,7 +295,7 @@ public final class Function implements TruffleObject {
    */
   @ExportMessage
   Object getMembers(boolean includeInternal) {
-    return new Vector(EQUALITY_KEY);
+    return new Vector(MethodNames.Function.EQUALS);
   }
 
   /**

@@ -1,0 +1,31 @@
+package org.enso.polyglot
+
+import org.graalvm.polyglot.{Context, Value}
+
+/**
+  * Represents the top scope of Enso execution context
+  *
+  * @param value the polyglot value of this scope
+  */
+class TopScope(private val value: Value) {
+  import MethodNames.TopScope._
+
+  /** Gets a module by name.
+    *
+    * @param name the module name to get
+    * @return the representation of the module
+    */
+  def getModule(name: String): Module =
+    new Module(value.invokeMember(GET_MODULE, name))
+
+  /**
+    * Creates a new, unregistered module.
+    *
+    * The returned module is not accessible through [[getModule()]].
+    *
+    * @param name the name for the new module
+    * @return a new module
+    */
+  def createModule(name: String): Module =
+    new Module(value.invokeMember(CREATE_MODULE, name))
+}

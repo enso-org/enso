@@ -8,16 +8,14 @@ import com.oracle.truffle.api.source.Source
 import org.enso.compiler.core.{AstExpression, AstModuleScope}
 import org.enso.compiler.generate.AstToAstExpression
 import org.enso.flexer.Reader
-import org.enso.interpreter.builder.{
-  ExpressionFactory,
-  ModuleScopeExpressionFactory
-}
+import org.enso.interpreter.builder.{ExpressionFactory, ModuleScopeExpressionFactory}
 import org.enso.interpreter.node.ExpressionNode
 import org.enso.interpreter.runtime.callable.function.Function
 import org.enso.interpreter.runtime.error.ModuleDoesNotExistException
 import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope, TopLevelScope}
 import org.enso.interpreter.runtime.{Context, Module}
 import org.enso.interpreter.{Constants, Language}
+import org.enso.polyglot.LanguageInfo
 import org.enso.syntax.text.{AST, Parser}
 
 import scala.collection.JavaConverters._
@@ -59,7 +57,7 @@ class Compiler(
     *         executable functionality in the module corresponding to `source`.
     */
   def run(file: TruffleFile, scope: ModuleScope): Unit = {
-    run(Source.newBuilder(Constants.LANGUAGE_ID, file).build, scope)
+    run(Source.newBuilder(LanguageInfo.ID, file).build, scope)
   }
 
   /**
@@ -83,7 +81,7 @@ class Compiler(
     *         executable functionality in the module corresponding to `source`.
     */
   def run(file: TruffleFile, moduleName: String): Unit = {
-    run(Source.newBuilder(Constants.LANGUAGE_ID, file).build, moduleName)
+    run(Source.newBuilder(LanguageInfo.ID, file).build, moduleName)
   }
 
   /**
@@ -104,7 +102,7 @@ class Compiler(
   ): Option[ExpressionNode] = {
     val source = Source
       .newBuilder(
-        Constants.LANGUAGE_ID,
+        LanguageInfo.ID,
         new StringReader(srcString),
         "<interactive_source>"
       )

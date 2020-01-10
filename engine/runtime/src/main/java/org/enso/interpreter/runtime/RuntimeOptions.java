@@ -2,12 +2,14 @@ package org.enso.interpreter.runtime;
 
 import com.oracle.truffle.api.TruffleLanguage;
 import org.enso.interpreter.Constants;
+import org.enso.polyglot.LanguageInfo;
 import org.graalvm.options.OptionDescriptor;
 import org.graalvm.options.OptionDescriptors;
 import org.graalvm.options.OptionKey;
 
 import java.io.File;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -18,7 +20,7 @@ public class RuntimeOptions {
   private static final OptionDescriptor PACKAGES_PATH_DESCRIPTOR =
       OptionDescriptor.newBuilder(PACKAGES_PATH_KEY, getPackagesPathOption()).build();
   public static final OptionDescriptors OPTION_DESCRIPTORS =
-      OptionDescriptors.create(Arrays.asList(PACKAGES_PATH_DESCRIPTOR));
+      OptionDescriptors.create(Collections.singletonList(PACKAGES_PATH_DESCRIPTOR));
 
   /**
    * Canonicalizes the option name by prefixing it with the language name.
@@ -27,7 +29,7 @@ public class RuntimeOptions {
    * @return the canonicalized representation of the option.
    */
   private static String optionName(String name) {
-    return Constants.LANGUAGE_ID + "." + name;
+    return LanguageInfo.ID + "." + name;
   }
 
   /**

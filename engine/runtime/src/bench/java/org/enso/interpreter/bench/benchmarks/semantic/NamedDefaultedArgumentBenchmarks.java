@@ -16,7 +16,7 @@ public class NamedDefaultedArgumentBenchmarks {
       new NamedDefaultedArgumentFixtures();
 
   private void runOnHundredMillion(InterpreterRunner.MainMethod main) {
-    main.mainFunction().execute(main.mainConstructor(), argumentFixtures.hundredMillion());
+    main.mainFunction().value().execute(main.mainConstructor(), argumentFixtures.hundredMillion());
   }
 
   @Benchmark

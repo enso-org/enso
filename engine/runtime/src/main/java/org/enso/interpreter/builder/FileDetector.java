@@ -5,6 +5,7 @@ import com.oracle.truffle.api.TruffleFile.FileTypeDetector;
 import org.apache.tika.detect.DefaultEncodingDetector;
 import org.apache.tika.detect.EncodingDetector;
 import org.enso.interpreter.Constants;
+import org.enso.polyglot.LanguageInfo;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -23,10 +24,10 @@ public final class FileDetector implements TruffleFile.FileTypeDetector {
    * @throws IOException if an I/O error occurs
    */
   @Override
-  public String findMimeType(TruffleFile file) throws IOException {
+  public String findMimeType(TruffleFile file) {
     String name = file.getName();
-    if (name != null && name.endsWith(Constants.FILE_EXTENSION)) {
-      return Constants.MIME_TYPE;
+    if (name != null && name.endsWith(LanguageInfo.FILE_EXTENSION)) {
+      return LanguageInfo.MIME_TYPE;
     }
     return null;
   }

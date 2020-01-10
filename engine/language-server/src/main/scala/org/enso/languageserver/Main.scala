@@ -1,12 +1,11 @@
 package org.enso.languageserver
 
 import org.apache.commons.cli._
-import org.enso.interpreter.Constants
 import org.enso.pkg.Package
-import org.graalvm.polyglot.{Context, Source, Value}
+import org.graalvm.polyglot.Value
 import java.io.File
 
-import org.enso.languageserver.PolyglotHelpers.Module
+import org.enso.polyglot.{ExecutionContext, LanguageInfo, Module}
 
 import scala.util.Try
 
@@ -71,7 +70,7 @@ object Main {
     * @param options object representing the CLI syntax
     */
   private def printHelp(options: Options): Unit =
-    new HelpFormatter().printHelp(Constants.LANGUAGE_ID, options)
+    new HelpFormatter().printHelp(LanguageInfo.ID, options)
 
   /** Terminates the process with a failure exit code. */
   private def exitFail(): Unit = System.exit(1)
@@ -126,16 +125,18 @@ object Main {
     exitSuccess()
   }
 
-  private def runPackage(context: Context, mainModuleName: String): Unit = {
-    val topScope   = PolyglotHelpers.getTopScope(context)
+  private def runPackage(
+    context: ExecutionContext,
+    mainModuleName: String
+  ): Unit = {
+    val topScope   = context.getTopScope
     val mainModule = topScope.getModule(mainModuleName)
     runMain(mainModule)
   }
 
-  private def runSingleFile(context: Context, file: File): Unit = {
-    val source     = Source.newBuilder(Constants.LANGUAGE_ID, file).build()
-    val mainModule = context.eval(source)
-    runMain(new Module(mainModule))
+  private def runSingleFile(context: ExecutionContext, file: File): Unit = {
+    val mainModule = context.evalModule(file)
+    runMain(mainModule)
   }
 
   private def runMain(mainModule: Module): Value = {
@@ -149,11 +150,12 @@ object Main {
     */
   private def runRepl(): Unit = {
     val dummySourceToTriggerRepl = "main = Debug.breakpoint"
+    val replModuleName           = "Repl"
     val context =
       new ContextFactory().create("", System.in, System.out, Repl(TerminalIO()))
     val mainModule =
-      context.eval(Constants.LANGUAGE_ID, dummySourceToTriggerRepl)
-    runMain(new Module(mainModule))
+      context.evalModule(dummySourceToTriggerRepl, replModuleName)
+    runMain(mainModule)
     exitSuccess()
   }
 

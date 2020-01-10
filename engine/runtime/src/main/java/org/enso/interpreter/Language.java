@@ -7,22 +7,15 @@ import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.debug.DebuggerTags;
 import com.oracle.truffle.api.instrumentation.ProvidedTags;
 import com.oracle.truffle.api.instrumentation.StandardTags;
-import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.TruffleObject;
-import com.oracle.truffle.api.library.ExportLibrary;
-import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.RootNode;
 import org.enso.interpreter.builder.FileDetector;
 import org.enso.interpreter.node.ProgramRootNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.RuntimeOptions;
-import org.enso.interpreter.runtime.scope.LocalScope;
-import org.enso.interpreter.runtime.scope.ModuleScope;
+import org.enso.polyglot.LanguageInfo;
 import org.graalvm.options.OptionDescriptors;
 
-import java.lang.reflect.Array;
 import java.util.Collections;
-import java.util.List;
 
 /**
  * The root of the Enso implementation.
@@ -34,12 +27,12 @@ import java.util.List;
  * <p>See {@link TruffleLanguage} for more information on the lifecycle of a language.
  */
 @TruffleLanguage.Registration(
-    id = Constants.LANGUAGE_ID,
-    name = Constants.LANGUAGE_NAME,
-    implementationName = Constants.IMPL_NAME,
-    version = Constants.LANGUAGE_VERSION,
-    defaultMimeType = Constants.MIME_TYPE,
-    characterMimeTypes = {Constants.MIME_TYPE},
+    id = LanguageInfo.ID,
+    name = LanguageInfo.NAME,
+    implementationName = LanguageInfo.IMPLEMENTATION,
+    version = LanguageInfo.VERSION,
+    defaultMimeType = LanguageInfo.MIME_TYPE,
+    characterMimeTypes = {LanguageInfo.MIME_TYPE},
     contextPolicy = TruffleLanguage.ContextPolicy.SHARED,
     fileTypeDetectors = FileDetector.class)
 @ProvidedTags({
@@ -50,7 +43,6 @@ import java.util.List;
   StandardTags.TryBlockTag.class
 })
 public final class Language extends TruffleLanguage<Context> {
-
   /**
    * Creates a new Enso context.
    *

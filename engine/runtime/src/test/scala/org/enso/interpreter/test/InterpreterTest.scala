@@ -10,30 +10,32 @@ import org.enso.interpreter.instrument.{
   ValueExtractorInstrument
 }
 import org.enso.interpreter.test.CodeLocationsTestInstrument.LocationsEventListener
+import org.enso.polyglot.{ExecutionContext, Function, LanguageInfo}
 import org.scalatest.{Assertions, FlatSpec, Matchers}
 
-trait InterpreterRunner {
-  case class LocationsInstrumenter(instrument: CodeLocationsTestInstrument) {
-    var bindings: List[EventBinding[LocationsEventListener]] = List()
+case class LocationsInstrumenter(instrument: CodeLocationsTestInstrument) {
+  var bindings: List[EventBinding[LocationsEventListener]] = List()
 
-    def assertNodeExists(start: Int, length: Int, kind: Class[_]): Unit =
-      bindings ::= instrument.bindTo(start, length, kind)
+  def assertNodeExists(start: Int, length: Int, kind: Class[_]): Unit =
+    bindings ::= instrument.bindTo(start, length, kind)
 
-    def verifyResults(): Unit = {
-      bindings.foreach { binding =>
-        val listener = binding.getElement
-        if (!listener.isSuccessful) {
-          Assertions.fail(
-            s"Node of type ${listener.getType.getSimpleName} at position ${listener.getStart} with length ${listener.getLength} was not found."
-          )
-        }
+  def verifyResults(): Unit = {
+    bindings.foreach { binding =>
+      val listener = binding.getElement
+      if (!listener.isSuccessful) {
+        Assertions.fail(
+          s"Node of type ${listener.getType.getSimpleName} at position ${listener.getStart} with length ${listener.getLength} was not found."
+        )
       }
     }
-
-    def close(): Unit = {
-      bindings.foreach(_.dispose)
-    }
   }
+
+  def close(): Unit = {
+    bindings.foreach(_.dispose)
+  }
+}
+
+trait InterpreterRunner {
 
   implicit class RichValue(value: Value) {
     def call(l: Long*): Value =
@@ -41,8 +43,9 @@ trait InterpreterRunner {
         value.execute(l.map(_.asInstanceOf[AnyRef]): _*)
       )
   }
-  val output = new ByteArrayOutputStream()
-  val ctx    = Context.newBuilder(Constants.LANGUAGE_ID).out(output).build()
+  val output           = new ByteArrayOutputStream()
+  val ctx              = Context.newBuilder(LanguageInfo.ID).out(output).build()
+  val executionContext = new ExecutionContext(ctx)
 
   def withLocationsInstrumenter(test: LocationsInstrumenter => Unit): Unit = {
     val instrument = ctx.getEngine.getInstruments
@@ -54,7 +57,7 @@ trait InterpreterRunner {
     instrumenter.close()
   }
 
-  case class MainMethod(mainConstructor: Value, mainFunction: Value) {
+  case class MainMethod(mainConstructor: Value, mainFunction: Function) {
     def execute(args: AnyRef*): Value =
       InterpreterException.rethrowPolyglot(
         mainFunction.execute(mainConstructor +: args: _*)
@@ -63,13 +66,11 @@ trait InterpreterRunner {
 
   def getMain(code: String): MainMethod = {
     output.reset()
-    val source = Source
-      .newBuilder(Constants.LANGUAGE_ID, code, "Test")
-      .build()
-
-    val module       = InterpreterException.rethrowPolyglot(ctx.eval(source))
-    val assocCons    = module.invokeMember("get_associated_constructor")
-    val mainFunction = module.invokeMember("get_method", assocCons, "main")
+    val module = InterpreterException.rethrowPolyglot(
+      executionContext.evalModule(code, "Test")
+    )
+    val assocCons    = module.getAssociatedConstructor
+    val mainFunction = module.getMethod(assocCons, "main")
     MainMethod(assocCons, mainFunction)
   }
 

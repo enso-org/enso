@@ -18,11 +18,11 @@ public class AtomBenchmarks {
   @Benchmark
   public void benchGenerateList() {
     InterpreterRunner.MainMethod main = fixtures.generateList();
-    main.mainFunction().execute(main.mainConstructor(), fixtures.million());
+    main.mainFunction().value().execute(main.mainConstructor(), fixtures.million());
   }
 
   private void benchOnList(InterpreterRunner.MainMethod main) {
-    main.mainFunction().execute(main.mainConstructor(), fixtures.millionElementList());
+    main.mainFunction().value().execute(main.mainConstructor(), fixtures.millionElementList());
   }
 
   @Benchmark

@@ -13,9 +13,9 @@ class AtomFixtures extends InterpreterRunner {
 
   def buildInputList(length: Long): Value = {
     val builtins =
-      ctx.getBindings(Constants.LANGUAGE_ID).invokeMember("get_module", Builtins.MODULE_NAME)
-    val nil  = builtins.invokeMember("get_constructor", "Nil")
-    val cons = builtins.invokeMember("get_constructor", "Cons")
+      executionContext.getTopScope.getModule(Builtins.MODULE_NAME)
+    val nil  = builtins.getConstructor("Nil")
+    val cons = builtins.getConstructor("Cons")
     1L.to(length).foldLeft(nil.newInstance()) {
       case (tail, el) => cons.newInstance(el.asInstanceOf[Object], tail)
     }

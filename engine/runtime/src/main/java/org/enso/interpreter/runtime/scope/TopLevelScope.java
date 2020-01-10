@@ -12,6 +12,8 @@ import org.enso.interpreter.runtime.Builtins;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.data.Vector;
+import org.enso.interpreter.runtime.type.Types;
+import org.enso.polyglot.MethodNames;
 
 import java.util.Map;
 import java.util.Optional;
@@ -62,11 +64,6 @@ public class TopLevelScope implements TruffleObject {
     return builtins;
   }
 
-  private static class PolyglotKeys {
-    private static final String GET_MODULE = "get_module";
-    private static final String CREATE_MODULE = "create_module";
-  }
-
   /**
    * Marks this object as having members accessible through the polyglot API.
    *
@@ -87,7 +84,7 @@ public class TopLevelScope implements TruffleObject {
    */
   @ExportMessage
   Vector getMembers(boolean includeInternal) {
-    return new Vector(PolyglotKeys.GET_MODULE, PolyglotKeys.CREATE_MODULE);
+    return new Vector(MethodNames.TopScope.GET_MODULE, MethodNames.TopScope.CREATE_MODULE);
   }
 
   /** Handles member invocation through the polyglot API. */
@@ -98,13 +95,7 @@ public class TopLevelScope implements TruffleObject {
         Object[] arguments,
         TruffleLanguage.ContextReference<Context> contextReference)
         throws ArityException, UnsupportedTypeException, UnknownIdentifierException {
-      if (arguments.length != 1) {
-        throw ArityException.create(1, arguments.length);
-      }
-      if (!(arguments[0] instanceof String)) {
-        throw UnsupportedTypeException.create(arguments, "Argument must be a String");
-      }
-      String moduleName = (String) arguments[0];
+      String moduleName = Types.extractArguments(arguments, String.class);
 
       if (moduleName.equals(Builtins.MODULE_NAME)) {
         return scope.builtins.getScope();
@@ -123,13 +114,7 @@ public class TopLevelScope implements TruffleObject {
     private static ModuleScope createModule(
         TopLevelScope scope, Object[] arguments, Context context)
         throws ArityException, UnsupportedTypeException {
-      if (arguments.length != 1) {
-        throw ArityException.create(1, arguments.length);
-      }
-      if (!(arguments[0] instanceof String)) {
-        throw UnsupportedTypeException.create(arguments, "Argument must be a String");
-      }
-      String moduleName = (String) arguments[0];
+      String moduleName = Types.extractArguments(arguments, String.class);
       return context.createScope(moduleName);
     }
 
@@ -141,9 +126,9 @@ public class TopLevelScope implements TruffleObject {
         @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> contextRef)
         throws UnknownIdentifierException, ArityException, UnsupportedTypeException {
       switch (member) {
-        case PolyglotKeys.GET_MODULE:
+        case MethodNames.TopScope.GET_MODULE:
           return getModule(scope, arguments, contextRef);
-        case PolyglotKeys.CREATE_MODULE:
+        case MethodNames.TopScope.CREATE_MODULE:
           return createModule(scope, arguments, contextRef.get());
         default:
           throw UnknownIdentifierException.create(member);
@@ -159,7 +144,7 @@ public class TopLevelScope implements TruffleObject {
    */
   @ExportMessage
   boolean isMemberInvocable(String member) {
-    return member.equals(PolyglotKeys.GET_MODULE)
-        || member.equals(PolyglotKeys.CREATE_MODULE);
+    return member.equals(MethodNames.TopScope.GET_MODULE)
+        || member.equals(MethodNames.TopScope.CREATE_MODULE);
   }
 }
