@@ -8,11 +8,13 @@ use crate::data::dirty::traits::*;
 
 use nalgebra::Point2;
 use nalgebra::Vector2;
-use crate::display::shape::text::content::CharPosition;
+use crate::display::shape::text::content::TextLocation;
 use crate::display::shape::text::content::TextChange;
-use crate::display::shape::text::{TextComponentBuilder, Color};
+use crate::display::shape::text::TextComponentBuilder;
+use crate::display::shape::text::Color;
 use crate::display::shape::text::TextComponentProperties;
 use crate::system::web::forward_panic_hook_to_console;
+use crate::display::shape::text::cursor::Step::Right;
 
 #[wasm_bindgen]
 #[allow(dead_code)]
@@ -38,7 +40,7 @@ pub fn run_example_text() {
                     color: Color { r: 0.0, g: 0.8, b: 0.0, a: 1.0 },
                 }
             }.build();
-            text_component.cursors.add_cursor(CharPosition { line: 0, column: 0 });
+            text_component.cursors.add_cursor(TextLocation { line: 0, column: 0 });
             workspace.text_components.push(text_component);
             world.workspace_dirty.set();
         }
@@ -71,10 +73,11 @@ fn animate_text_component
 ( world:&World
 , typed_chars:&mut Vec<CharToPush>
 , start_scrolling:f64) {
-    let mut world   = world.rc.borrow_mut();
-    let workspace   = &mut world.workspace;
-    let editor      = workspace.text_components.first_mut().unwrap();
-    let now         = js_sys::Date::now();
+    let world : &mut WorldData = &mut world.rc.borrow_mut();
+    let workspace              = &mut world.workspace;
+    let editor                 = workspace.text_components.first_mut().unwrap();
+    let fonts                  = &mut world.fonts;
+    let now                    = js_sys::Date::now();
 
     let to_type_now = typed_chars.drain_filter(|ch| ch.time <= now);
     for ch in to_type_now {
@@ -82,12 +85,7 @@ fn animate_text_component
         let string = ch.a_char.to_string();
         let change = TextChange::insert(cursor.position, string.as_str());
         editor.content.make_change(change);
-        let new_cursor_position = CharPosition {
-            line: editor.content.lines.len()-1,
-            column : editor.content.lines.last().unwrap().len(),
-        };
-        cursor.position = new_cursor_position;
-        editor.cursors.dirty_cursors.insert(0);
+        editor.navigate_cursors(Right,false,fonts);
     }
     if start_scrolling <= js_sys::Date::now() {
         editor.scroll(Vector2::new(0.0, -0.01));
