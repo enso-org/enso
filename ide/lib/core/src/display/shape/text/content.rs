@@ -82,21 +82,21 @@ pub enum ChangeType {
 
 /// A structure describing a text operation in one place.
 pub struct TextChange {
-    replaced : Range<CharPosition>,
+    replaced : Range<TextLocation>,
     lines    : Vec<Vec<char>>,
 }
 
 impl TextChange {
     /// Creates operation which inserts text at given position.
-    pub fn insert(position:CharPosition, text:&str) -> Self {
+    pub fn insert(at:TextLocation, text:&str) -> Self {
         TextChange {
-            replaced : position..position,
-            lines    : TextComponentContent::split_to_lines(text).map(|s| s.chars().collect_vec()).collect()
+            replaced : at..at,
+            lines    : Self::mk_lines_as_char_vector(text)
         }
     }
 
     /// Creates operation which deletes text at given range.
-    pub fn delete(range:Range<CharPosition>) -> Self {
+    pub fn delete(range:Range<TextLocation>) -> Self {
         TextChange {
             replaced : range,
             lines    : vec![vec![]],
@@ -104,9 +104,9 @@ impl TextChange {
     }
 
     /// Creates operation which replaces text at given range with given string.
-    pub fn replace(replaced:Range<CharPosition>, text:&str) -> Self {
+    pub fn replace(replaced:Range<TextLocation>, text:&str) -> Self {
         TextChange {replaced,
-            lines : TextComponentContent::split_to_lines(text).map(|s| s.chars().collect_vec()).collect()
+            lines : Self::mk_lines_as_char_vector(text)
         }
     }
 
@@ -123,7 +123,44 @@ impl TextChange {
             ChangeType::Multiline
         }
     }
+
+    fn mk_lines_as_char_vector(text:&str) -> Vec<Vec<char>> {
+        TextComponentContent::split_to_lines(text).map(|s| s.chars().collect_vec()).collect()
+    }
 }
+
+
+
+// ====================
+// === TextLocation ===
+// ====================
+
+/// A position of character in a multiline text.
+#[derive(Copy,Clone,Debug,PartialEq,Eq,PartialOrd,Ord)]
+pub struct TextLocation {
+    pub line   : usize,
+    pub column : usize,
+}
+
+impl TextLocation {
+    /// Create location at begin of given line.
+    pub fn at_line_begin(line_index:usize) -> TextLocation {
+        TextLocation {
+            line   : line_index,
+            column : 0,
+        }
+    }
+
+    /// Create location at begin of the whole document.
+    pub fn at_document_begin() -> TextLocation {
+        TextLocation {
+            line   : 0,
+            column : 0,
+        }
+    }
+}
+
+
 
 // ============================
 // === TextComponentContent ===
@@ -135,13 +172,6 @@ pub struct TextComponentContent {
     pub lines       : Vec<Line>,
     pub dirty_lines : DirtyLines,
     pub font        : FontId,
-}
-
-/// A position of character in multiline text.
-#[derive(Copy,Clone,Debug,PartialEq,Eq,PartialOrd,Ord)]
-pub struct CharPosition {
-    pub line   : usize,
-    pub column : usize,
 }
 
 /// References to all needed stuff for generating buffer's data.
@@ -177,7 +207,7 @@ impl TextComponentContent {
     }
 
     /// LineRef structure for line at given index.
-    pub fn line(& mut self, index:usize) -> LineRef {
+    pub fn line(&mut self, index:usize) -> LineRef {
         LineRef {
             line    : &mut self.lines[index],
             line_id : index,
@@ -310,10 +340,10 @@ mod test {
     #[test]
     fn edit_single_line() {
         let text                   = "Line a\nLine b\nLine c";
-        let delete_from            = CharPosition{line:1, column:0};
-        let delete_to              = CharPosition{line:1, column:4};
+        let delete_from            = TextLocation {line:1, column:0};
+        let delete_to              = TextLocation {line:1, column:4};
         let deleted_range          = delete_from..delete_to;
-        let insert                 = TextChange::insert(CharPosition{line:1, column:1}, "ab");
+        let insert                 = TextChange::insert(TextLocation {line:1, column:1}, "ab");
         let delete                 = TextChange::delete(deleted_range.clone());
         let replace                = TextChange::replace(deleted_range, "text");
 
@@ -340,12 +370,12 @@ mod test {
     fn insert_multiple_lines() {
         let text             = "Line a\nLine b\nLine c";
         let inserted         = "Ins a\nIns b";
-        let begin_position   = CharPosition{line:0, column:0};
-        let middle_position  = CharPosition{line:1, column:2};
-        let end_position     = CharPosition{line:2, column:6};
-        let insert_at_begin  = TextChange::insert(begin_position , inserted);
-        let insert_in_middle = TextChange::insert(middle_position, inserted);
-        let insert_at_end    = TextChange::insert(end_position   , inserted);
+        let begin_loc        = TextLocation {line:0, column:0};
+        let middle_loc       = TextLocation {line:1, column:2};
+        let end_loc          = TextLocation {line:2, column:6};
+        let insert_at_begin  = TextChange::insert(begin_loc ,inserted);
+        let insert_in_middle = TextChange::insert(middle_loc,inserted);
+        let insert_at_end    = TextChange::insert(end_loc   ,inserted);
 
         let mut content      = TextComponentContent::new(0,text);
 
@@ -376,8 +406,8 @@ mod test {
     #[test]
     fn delete_multiple_lines() {
         let text          = "Line a\nLine b\nLine c";
-        let delete_from   = CharPosition{line:0, column:2};
-        let delete_to     = CharPosition{line:2, column:3};
+        let delete_from   = TextLocation {line:0, column:2};
+        let delete_to     = TextLocation {line:2, column:3};
         let deleted_range = delete_from..delete_to;
         let delete        = TextChange::delete(deleted_range);
 

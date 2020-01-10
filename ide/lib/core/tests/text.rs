@@ -76,7 +76,7 @@ mod tests {
     use super::WorldTest;
     use basegl::display::shape::text::Color;
     use basegl::display::shape::text::content::TextChange;
-    use basegl::display::shape::text::content::CharPosition;
+    use basegl::display::shape::text::content::TextLocation;
     use basegl::display::shape::text::TextComponentBuilder;
     use basegl::display::world::WorldData;
     use basegl::display::shape::text::TextComponentProperties;
@@ -185,8 +185,8 @@ mod tests {
                     for _ in 0..20 {
                         let workspace      = &mut world.workspace;
                         let text_component = &mut workspace.text_components[0];
-                        let replace_from   = CharPosition{line:1, column:2};
-                        let replace_to     = CharPosition{line:1, column:3};
+                        let replace_from   = TextLocation {line:1, column:2};
+                        let replace_to     = TextLocation {line:1, column:3};
                         let replaced_range = replace_from..replace_to;
                         let change         = TextChange::replace(replaced_range, "abc");
                         text_component.content.make_change(change);
@@ -208,8 +208,8 @@ mod tests {
                     let world : &mut WorldData = &mut world_test.world_ptr.borrow_mut();
                     let workspace      = &mut world.workspace;
                     let text_component = &mut workspace.text_components[0];
-                    let position       = CharPosition{line:1, column:0};
-                    let change         = TextChange::insert(position, TEST_TEXT);
+                    let location       = TextLocation {line:1, column:0};
+                    let change         = TextChange::insert(location,TEST_TEXT);
                     text_component.content.make_change(change);
                     world.workspace_dirty.set();
                     world.update();
@@ -256,10 +256,10 @@ mod tests {
                 text: text.clone()
             };
             let mut text_component = builder.build();
-            let cursor_position_1  = CharPosition{line:0, column: 10};
-            let cursor_position_2  = CharPosition{line:1, column: 6};
-            text_component.cursors.add_cursor(cursor_position_1);
-            text_component.cursors.add_cursor(cursor_position_2);
+            let cursor_loc_1       = TextLocation {line:0, column: 10};
+            let cursor_loc_2       = TextLocation {line:1, column: 6};
+            text_component.cursors.add_cursor(cursor_loc_1);
+            text_component.cursors.add_cursor(cursor_loc_2);
             workspace.text_components.push(text_component);
         }
         world.workspace_dirty.set();

@@ -20,6 +20,8 @@ use crate::display::render::webgl::Context;
 use crate::display::shape::text::buffer::TextComponentBuffers;
 use crate::display::shape::text::content::TextComponentContent;
 use crate::display::shape::text::cursor::Cursors;
+use crate::display::shape::text::cursor::Step;
+use crate::display::shape::text::cursor::CursorNavigation;
 use crate::display::shape::text::font::FontId;
 use crate::display::shape::text::font::Fonts;
 use crate::display::shape::text::msdf::MsdfTexture;
@@ -134,6 +136,12 @@ impl TextComponent {
         }
     }
 
+    pub fn navigate_cursors(&mut self, step:Step, selecting:bool, fonts:&mut Fonts) {
+        let content        = &mut self.content;
+        let mut navigation = CursorNavigation {content,fonts,selecting};
+        self.cursors.navigate_all_cursors(&mut navigation,&step);
+    }
+
     fn refresh_content_buffers(&mut self, fonts:&mut Fonts) {
         let refresh_info = self.content.refresh_info(fonts);
         self.buffers.refresh(&self.gl_context,refresh_info);
@@ -165,8 +173,7 @@ impl TextComponent {
     }
 
     fn refresh_cursors(&mut self, fonts:&mut Fonts) {
-        let cursors_changed = !self.cursors.dirty_cursors.is_empty();
-        if cursors_changed {
+        if self.cursors.dirty {
             let gl_context = &self.gl_context;
             let content    = &mut self.content;
             self.cursors.update_buffer_data(gl_context,content,fonts);
@@ -209,6 +216,7 @@ impl TextComponent {
     }
 
     fn display_cursors(&self) {
+        let buffer           = self.cursors.buffer.as_ref().unwrap();
         let gl_context       = &self.gl_context;
         let to_scene_matrix  = self.to_scene_matrix();
         let program          = &self.cursors_program;
@@ -216,7 +224,7 @@ impl TextComponent {
 
         gl_context.use_program(Some(&program.gl_program));
         self.cursors_program.set_to_scene_transformation(&to_scene_matrix);
-        self.cursors_program.bind_buffer_to_attribute("position",&self.cursors.buffer);
+        self.cursors_program.bind_buffer_to_attribute("position",buffer);
         gl_context.line_width(2.0);
         gl_context.draw_arrays(WebGl2RenderingContext::LINES,0,vertices_count);
         gl_context.line_width(1.0);
