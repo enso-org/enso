@@ -13,10 +13,10 @@ mod tests {
     use basegl::animation::physics::inertia::PhysicsSimulator;
     use basegl::animation::physics::inertia::PhysicsProperties;
     use basegl::animation::animator::fixed_step::FixedStepAnimator;
-    use basegl::display::render::css3d::html::HTMLRenderer;
-    use basegl::display::render::css3d::html::HTMLObject;
-    use basegl::display::render::css3d::Scene;
-    use basegl::display::render::css3d::Camera;
+    use basegl::system::web::dom::html::HTMLRenderer;
+    use basegl::system::web::dom::html::HTMLObject;
+    use basegl::system::web::dom::Scene;
+    use basegl::system::web::dom::Camera;
     use basegl::animation::position::HasPosition;
     use web_test::*;
     use nalgebra::{zero, Vector3};

@@ -9,31 +9,32 @@ pub mod registry;
 #[warn(missing_docs)]
 pub mod shader;
 
+pub mod types {
+    use super::*;
+    pub use geometry::types::*;
+}
+pub use types::*;
+
+
 use crate::prelude::*;
 
-use crate::closure;
 use crate::data::dirty::traits::*;
 use crate::data::dirty;
-use crate::data::function::callback::*;
 use crate::debug::stats::Stats;
-use crate::display::render::webgl::Context;
-use crate::display::render::webgl;
-use crate::system::gpu::buffer::IsBuffer;
+use crate::system::gpu::shader::Context;
+use crate::system::gpu::data::buffer::IsBuffer;
 use crate::system::gpu::data::uniform::AnyUniform;
-use crate::system::gpu::data::uniform::AnyUniformOps;
-use crate::system::gpu::data::uniform::UniformScope;
+use crate::system::gpu::data::uniform::AnyTextureUniform;
+use crate::system::gpu::data::uniform::AnyPrimUniform;
+use crate::system::gpu::data::uniform::AnyPrimUniformOps;
 use crate::display::symbol::geometry::primitive::mesh;
-use crate::promote;
-use crate::promote_all;
-use crate::promote_mesh_types;
-use crate::promote_shader_types;
-use crate::system::web::group;
-use crate::system::web::Logger;
 
-use eval_tt::*;
+use shader::Shader;
+
 use web_sys::WebGlVertexArrayObject;
 use web_sys::WebGlProgram;
 use web_sys::WebGlUniformLocation;
+
 
 
 
@@ -43,11 +44,27 @@ use web_sys::WebGlUniformLocation;
 pub struct UniformBinding {
     name     : String,
     location : WebGlUniformLocation,
-    uniform  : AnyUniform,
+    uniform  : AnyPrimUniform,
 }
 
 impl UniformBinding {
-    pub fn new<Name:Str>(name:Name, location:WebGlUniformLocation, uniform:AnyUniform) -> Self {
+    pub fn new<Name:Str>(name:Name, location:WebGlUniformLocation, uniform:AnyPrimUniform) -> Self {
+        let name = name.into();
+        Self {name,location,uniform}
+    }
+}
+
+
+
+#[derive(Clone,Debug)]
+pub struct TextureBinding {
+    name     : String,
+    location : WebGlUniformLocation,
+    uniform  : AnyTextureUniform,
+}
+
+impl TextureBinding {
+    pub fn new<Name:Str>(name:Name, location:WebGlUniformLocation, uniform:AnyTextureUniform) -> Self {
         let name = name.into();
         Self {name,location,uniform}
     }
@@ -119,73 +136,64 @@ impl Drop for VertexArrayObject {
 /// Symbol is a surface with attached `Shader`.
 #[derive(Derivative)]
 #[derivative(Debug(bound=""))]
-pub struct Symbol<OnMut> {
-    pub surface        : Mesh          <OnMut>,
-    pub shader         : Shader        <OnMut>,
-    pub surface_dirty  : GeometryDirty <OnMut>,
-    pub shader_dirty   : ShaderDirty   <OnMut>,
-    pub logger         : Logger,
+pub struct Symbol {
+    pub surface        : Mesh,
+    pub shader         : Shader,
+    pub surface_dirty  : GeometryDirty,
+    pub shader_dirty   : ShaderDirty,
+    symbol_scope       : UniformScope,
+    global_scope       : UniformScope,
     context            : Context,
+    logger             : Logger,
     vao                : Option<VertexArrayObject>,
     uniforms           : Vec<UniformBinding>,
+    textures           : Vec<TextureBinding>,
     stats              : Stats,
 }
 
 // === Types ===
 
-pub type GeometryDirty<Callback> = dirty::SharedBool<Callback>;
-pub type ShaderDirty<Callback> = dirty::SharedBool<Callback>;
-promote_mesh_types!   { [OnSurfaceMut] mesh }
-promote_shader_types! { [OnSurfaceMut] shader }
+#[derive(Copy,Clone,Debug,PartialEq)]
+pub enum ScopeType {
+    Mesh(mesh::ScopeType), Symbol, Global
+}
 
-#[macro_export]
-/// Promote relevant types to parent scope. See `promote!` macro for more information.
-macro_rules! promote_symbol_types { ($($args:tt)*) => {
-    crate::promote_mesh_types!   {$($args)*}
-    crate::promote_shader_types! {$($args)*}
-    promote! {$($args)* [Symbol]}
-};}
+pub type GeometryDirty = dirty::SharedBool<Box<dyn Fn()>>;
+pub type ShaderDirty   = dirty::SharedBool<Box<dyn Fn()>>;
 
-
-// === Callbacks ===
-
-closure! {
-fn surface_on_mut<C:Callback0>(dirty:GeometryDirty<C>) -> OnSurfaceMut {
-    || dirty.set()
-}}
-
-closure! {
-fn shader_on_mut<C:Callback0>(dirty:ShaderDirty<C>) -> OnShaderMut {
-    || dirty.set()
-}}
 
 
 // === Implementation ===
 
-impl<OnMut:Callback0+Clone> Symbol<OnMut> {
+impl Symbol {
 
     /// Create new instance with the provided on-dirty callback.
-    pub fn new
-    (global:&UniformScope, logger:Logger, stats:&Stats, ctx:&Context, on_dirty:OnMut) -> Self {
+    pub fn new <OnMut:Fn()+Clone+'static>
+    (global_scope:&UniformScope, logger:Logger, stats:&Stats, context:&Context, on_mut:OnMut) -> Self {
         stats.inc_symbol_count();
         let init_logger = logger.clone();
         group!(init_logger, "Initializing.", {
-            let context         = ctx.clone();
-            let on_dirty2       = on_dirty.clone();
+            let on_mut2         = on_mut.clone();
             let surface_logger  = logger.sub("surface");
             let shader_logger   = logger.sub("shader");
             let geo_dirt_logger = logger.sub("surface_dirty");
             let mat_dirt_logger = logger.sub("shader_dirty");
-            let surface_dirty   = GeometryDirty::new(geo_dirt_logger,on_dirty2);
-            let shader_dirty    = ShaderDirty::new(mat_dirt_logger,on_dirty);
-            let geo_on_change   = surface_on_mut(surface_dirty.clone_ref());
-            let mat_on_change   = shader_on_mut(shader_dirty.clone_ref());
-            let shader          = Shader::new(shader_logger,&stats,ctx,mat_on_change);
-            let surface         = Mesh::new(global,surface_logger,&stats,ctx,geo_on_change);
+            let surface_dirty   = GeometryDirty::new(geo_dirt_logger,Box::new(on_mut2));
+            let shader_dirty    = ShaderDirty::new(mat_dirt_logger,Box::new(on_mut));
+            let surface_dirty2  = surface_dirty.clone_ref();
+            let shader_dirty2   = shader_dirty.clone_ref();
+            let surface_on_mut  = Box::new(move || { surface_dirty2.set() });
+            let shader_on_mut   = Box::new(move || { shader_dirty2.set() });
+            let shader          = Shader::new(shader_logger,&stats,context,shader_on_mut);
+            let surface         = Mesh::new(surface_logger,&stats,context,surface_on_mut);
+            let symbol_scope    = UniformScope::new(logger.sub("uniform_scope"),context);
+            let global_scope    = global_scope.clone();
             let vao             = default();
             let uniforms        = default();
+            let textures        = default();
             let stats           = stats.clone_ref();
-            Self{surface,shader,surface_dirty,shader_dirty,logger,context,vao,uniforms,stats}
+            let context         = context.clone();
+            Self{surface,shader,surface_dirty,shader_dirty,symbol_scope,global_scope,logger,context,vao,uniforms,textures,stats}
         })
     }
 
@@ -199,7 +207,7 @@ impl<OnMut:Callback0+Clone> Symbol<OnMut> {
             if self.shader_dirty.check() {
                 let var_bindings = self.discover_variable_bindings();
                 self.shader.update(&var_bindings);
-                self.init_vao(&var_bindings);
+                self.init_variable_bindings(&var_bindings);
                 self.shader_dirty.unset();
             }
         })
@@ -207,53 +215,69 @@ impl<OnMut:Callback0+Clone> Symbol<OnMut> {
 
     /// Creates a new VertexArrayObject, discovers all variable bindings from shader to geometry,
     /// and initializes the VAO with the bindings.
-    fn init_vao(&mut self, var_bindings:&[shader::VarBinding]) {
-        self.vao = Some(VertexArrayObject::new(&self.context));
-        let mut uniforms: Vec<UniformBinding> = default();
-        self.with_program(|program|{
+    fn init_variable_bindings(&mut self, var_bindings:&[shader::VarBinding]) {
+        self.vao      = Some(VertexArrayObject::new(&self.context));
+        self.uniforms = default();
+        self.textures = default();
+        self.with_program_mut(|this,program|{
             for binding in var_bindings {
                 if let Some(scope_type) = binding.scope.as_ref() {
-                    let opt_scope = self.surface.var_scope(*scope_type);
-                    match opt_scope {
-                        None => {
-                            let name     = &binding.name;
-                            let uni_name = shader::builder::mk_uniform_name(name);
-                            let location = self.context.get_uniform_location(program,&uni_name);
-                            match location {
-                                None => self.logger.warning(|| format!("The uniform '{}' is not used in this shader. It is recommended to remove it from the material definition.", name)),
-                                Some(location) => {
-                                    let uniform = self.surface.scopes.global.get(name).unwrap();
-                                    let binding = UniformBinding::new(name,location,uniform);
-                                    uniforms.push(binding);
-                                }
-                            }
-
-                        },
-                        Some(scope) => {
-                            let vtx_name = shader::builder::mk_vertex_name(&binding.name);
-                            let location = self.context.get_attrib_location(program, &vtx_name);
-                            if location < 0 {
-                                self.logger.error(|| format!("Attribute '{}' not found.",vtx_name));
-                            } else {
-                                let location     = location as u32;
-                                let buffer       = &scope.buffer(&binding.name).unwrap();
-                                let is_instanced = scope_type == &mesh::ScopeType::Instance;
-                                buffer.bind(webgl::Context::ARRAY_BUFFER);
-                                buffer.vertex_attrib_pointer(location, is_instanced);
-                            }
-                        }
+                    match scope_type {
+                        ScopeType::Mesh(s) => this.init_attribute_binding(program,binding,*s),
+                        _                  => this.init_uniform_binding(program,binding),
                     }
                 }
             }
         });
-        self.uniforms = uniforms;
+    }
+
+
+    fn init_attribute_binding(&mut self, program:&WebGlProgram, binding:&shader::VarBinding, mesh_scope_type:mesh::ScopeType) {
+        let vtx_name = shader::builder::mk_vertex_name(&binding.name);
+        let scope    = self.surface.scope_by_type(mesh_scope_type);
+        let location = self.context.get_attrib_location(program, &vtx_name);
+        if location < 0 {
+            self.logger.error(|| format!("Attribute '{}' not found.",vtx_name));
+        } else {
+            let location     = location as u32;
+            let buffer       = &scope.buffer(&binding.name).unwrap();
+            let is_instanced = mesh_scope_type == mesh::ScopeType::Instance;
+            buffer.bind(Context::ARRAY_BUFFER);
+            buffer.vertex_attrib_pointer(location, is_instanced);
+        }
+    }
+
+    fn init_uniform_binding(&mut self, program:&WebGlProgram, binding:&shader::VarBinding) {
+        let name         = &binding.name;
+        let uni_name     = shader::builder::mk_uniform_name(name);
+        let opt_location = self.context.get_uniform_location(program,&uni_name);
+        opt_location.map(|location|{
+            let uniform = self.global_scope.get(name).unwrap_or_else(||{
+                panic!("Internal error. Variable {} not found in program.",name)
+            });
+            match uniform {
+                AnyUniform::Prim(uniform) =>
+                    self.uniforms.push(UniformBinding::new(name,location,uniform)),
+                AnyUniform::Texture(uniform) =>
+                    self.textures.push(TextureBinding::new(name,location,uniform)),
+            }
+        });
+    }
+
+    pub fn lookup_variable<S:Str>(&self, name:S) -> Option<ScopeType> {
+        let name = name.as_ref();
+        self.surface.lookup_variable(name).map(ScopeType::Mesh).or_else(|| {
+            if      self.symbol_scope.contains(name) { Some(ScopeType::Symbol) }
+            else if self.global_scope.contains(name) { Some(ScopeType::Global) }
+            else                                     { None }
+        })
     }
 
     /// For each variable from the shader definition, looks up its position in geometry scopes.
     pub fn discover_variable_bindings(&self) -> Vec<shader::VarBinding> {
         let var_decls = self.shader.collect_variables();
         var_decls.into_iter().map(|(var_name,var_decl)| {
-            let target = self.surface.lookup_variable(&var_name);
+            let target = self.lookup_variable(&var_name);
             if target.is_none() {
                 let msg = || format!("Unable to bind variable '{}' to geometry buffer.", var_name);
                 self.logger.warning(msg);
@@ -268,10 +292,26 @@ impl<OnMut:Callback0+Clone> Symbol<OnMut> {
         let program = self.shader.program().as_ref().unwrap(); // FIXME
         self.context.use_program(Some(&program));
         let vao = self.vao.as_ref().unwrap(); // FIXME
-        let out = vao.with(|| {
-            f(program)
-        });
+        let out = vao.with(||{ f(program) });
         self.context.use_program(None);
+        out
+    }
+
+    /// Runs the provided function in a context of active program and active VAO. After the function
+    /// is executed, both program and VAO are bound to None.
+    pub fn with_program_mut<F:FnOnce(&mut Self, &WebGlProgram) -> T,T>(&mut self, f:F) -> T {
+        let this:&mut Self = self;
+        let program = this.shader.program().as_ref().unwrap().clone(); // FIXME
+        this.context.use_program(Some(&program));
+        let out = this.with_vao_mut(|this|{ f(this,&program) });
+        self.context.use_program(None);
+        out
+    }
+
+    pub fn with_vao_mut<F:FnOnce(&mut Self) -> T,T>(&mut self, f:F) -> T {
+        self.vao.as_ref().unwrap().bind();
+        let out = f(self);
+        self.vao.as_ref().unwrap().unbind();
         out
     }
 
@@ -282,10 +322,10 @@ impl<OnMut:Callback0+Clone> Symbol<OnMut> {
                     binding.uniform.upload(&self.context,&binding.location);
                 }
 
-                let mode           = webgl::Context::TRIANGLE_STRIP;
+                let mode           = Context::TRIANGLE_STRIP;
                 let first          = 0;
-                let count          = self.surface.scopes.point.size()    as i32;
-                let instance_count = self.surface.scopes.instance.size() as i32;
+                let count          = self.surface.point.size()    as i32;
+                let instance_count = self.surface.instance.size() as i32;
 
                 self.stats.inc_draw_call_count();
                 self.context.draw_arrays_instanced(mode,first,count,instance_count);
@@ -295,7 +335,7 @@ impl<OnMut:Callback0+Clone> Symbol<OnMut> {
     }
 }
 
-impl<OnMut> Drop for Symbol<OnMut> {
+impl Drop for Symbol {
     fn drop(&mut self) {
         self.stats.dec_symbol_count();
     }

@@ -3,7 +3,7 @@
 use crate::prelude::*;
 
 use crate::data::container::Add;
-use crate::display::render::webgl::glsl;
+use crate::system::gpu::shader::glsl;
 
 use code_builder::HasCodeRepr;
 use std::collections::BTreeMap;

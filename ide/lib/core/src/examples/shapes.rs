@@ -1,7 +1,7 @@
 #![allow(missing_docs)]
 
 use crate::display::object::DisplayObjectOps;
-use crate::display::symbol::geometry::sprite::Sprite;
+use crate::display::symbol::geometry::Sprite;
 use crate::display::shape::primitive::system::ShapeSystem;
 use crate::display::world::*;
 use crate::system::web::set_stdout;
@@ -24,9 +24,6 @@ pub fn run_example_shapes() {
 }
 
 fn init(world: &World) {
-
-
-
     let s1 = Circle("25.0 + 20.0*sin(input_time/1000.0)");
     let s2 = s1.translate(25.0,0.0);
     let s3 = &s1 + &s2;

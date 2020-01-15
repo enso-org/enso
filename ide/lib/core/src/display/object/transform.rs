@@ -4,8 +4,7 @@ use crate::prelude::*;
 
 use crate::data::dirty;
 use crate::data::function::callback::*;
-use crate::system::web::group;
-use basegl_system_web::Logger;
+
 use nalgebra::Matrix4;
 use nalgebra::Vector3;
 use nalgebra::Vector4;
@@ -21,7 +20,7 @@ use crate::data::dirty::traits::*;
 /// Defines the order in which particular axis coordinates are processed. Used for example to define
 /// the rotation order in `DisplayObject`.
 #[derive(Clone,Debug)]
-pub enum AxisOrder { XYZ, XZY, YXZ, YZX, ZXY, ZYX }
+pub enum AxisOrder {XYZ,XZY,YXZ,YZX,ZXY,ZYX}
 
 impl Default for AxisOrder {
     fn default() -> Self { Self::XYZ }
@@ -231,7 +230,7 @@ impl<OnChange> CachedTransform<OnChange> {
 
 // === Setters ===
 
-impl<OnChange:Callback0> CachedTransform<OnChange> {
+impl<OnChange:Function0> CachedTransform<OnChange> {
     pub fn position_mut(&mut self) -> &mut Vector3<f32> {
         self.dirty.set();
         &mut self.transform.position

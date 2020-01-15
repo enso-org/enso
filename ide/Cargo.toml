@@ -7,6 +7,7 @@ members = [
     "lib/core/msdf-sys",
     "lib/data",
     "lib/eval-tt",
+    "lib/logger",
     "lib/optics",
     "lib/prelude",
     "lib/code-builder",
@@ -15,16 +16,16 @@ members = [
 ]
 
 [profile.dev]
-opt-level = 1
+opt-level = 3
 lto       = false
 debug     = true
 
 [profile.release]
 opt-level = 3
 lto       = true
-# TODO: consider if we need it here. See discussion here: https://github.com/luna/basegl/pull/105
-debug     = true
+debug     = false
 
 [profile.bench]
 opt-level = 3
 lto       = true
+debug     = false

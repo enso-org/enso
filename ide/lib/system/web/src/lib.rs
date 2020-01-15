@@ -10,7 +10,6 @@ use basegl_prelude::*;
 
 use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsCast;
-use wasm_bindgen::JsValue;
 use web_sys::HtmlCanvasElement;
 use web_sys::WebGl2RenderingContext;
 use web_sys::Performance;
@@ -58,139 +57,6 @@ impl Error {
 }
 
 
-// ===================
-// === JS Bindings ===
-// ===================
-
-#[macro_export]
-macro_rules! console_log {
-    ($($t:tt)*) => ($crate::console::log_1(&format_args!($($t)*)
-                                    .to_string().into()))
-}
-
-
-// ==============
-// === LogMsg ===
-// ==============
-
-pub trait LogMsg {
-    fn with_log_msg<F: FnOnce(&str) -> T, T>(&self, f:F) -> T;
-}
-
-impl LogMsg for &str {
-    fn with_log_msg<F: FnOnce(&str) -> T, T>(&self, f:F) -> T {
-        f(self)
-    }
-}
-
-impl<F: Fn() -> S, S: AsRef<str>> LogMsg for F {
-    fn with_log_msg<G: FnOnce(&str) -> T, T>(&self, f:G) -> T {
-        f(self().as_ref())
-    }
-}
-
-
-// ==============
-// === Logger ===
-// ==============
-
-#[derive(Clone,Debug,Default)]
-pub struct Logger {
-    pub path: String,
-}
-
-#[allow(dead_code)]
-impl Logger {
-    pub fn new<T: AsRef<str>>(path:T) -> Self {
-        let path = path.as_ref().to_string();
-        Self { path }
-    }
-
-    pub fn sub<T: AsRef<str>>(&self, path: T) -> Self {
-        Self::new(format!("{}.{}", self.path, path.as_ref()))
-    }
-
-    pub fn group<M: LogMsg, T, F: FnOnce() -> T>(&self, msg: M, f: F) -> T {
-        self.group_begin(msg);
-        let out = f();
-        self.group_end();
-        out
-    }
-
-    fn format<M: LogMsg>(&self, msg: M) -> JsValue {
-        msg.with_log_msg(|s| format!("[{}] {}", self.path, s)).into()
-    }
-}
-
-#[cfg(target_arch = "wasm32")]
-impl Logger {
-    pub fn trace<M: LogMsg>(&self, _msg: M) {
-//        console::debug_1(&self.format(msg));
-    }
-
-    pub fn info<M: LogMsg>(&self, _msg: M) {
-//        console::group_1(&self.format(msg));
-//        console::group_end();
-    }
-
-    pub fn warning<M: LogMsg>(&self, msg: M) {
-        console::warn_1(&self.format(msg));
-    }
-
-    pub fn error<M: LogMsg>(&self, msg: M) {
-        console::error_1(&self.format(msg));
-    }
-
-    pub fn group_begin<M: LogMsg>(&self, _msg: M) {
-//        console::group_1(&self.format(msg));
-    }
-
-    pub fn group_end(&self) {
-//        console::group_end();
-    }
-}
-
-// FIXME: Add the non-wasm impl
-#[cfg(not(target_arch = "wasm32"))]
-impl Logger {
-    pub fn trace<M: LogMsg>(&self, _msg: M) {}
-    pub fn info<M: LogMsg>(&self, _msg: M) {}
-    pub fn warning<M: LogMsg>(&self, _msg: M) {}
-    pub fn error<M: LogMsg>(&self, _msg: M) {}
-    pub fn group_begin<M: LogMsg>(&self, _msg: M) {}
-    pub fn group_end(&self) {}
-}
-
-
-// ====================
-// === Logger Utils ===
-// ====================
-
-#[macro_export]
-macro_rules! fmt {
-    ($($arg:tt)*) => (||(format!($($arg)*)))
-}
-
-#[macro_export]
-macro_rules! group {
-    ($logger:expr, $message:expr, $body:tt) => {{
-        $logger.group_begin(|| $message);
-        let out = $body;
-        $logger.group_end();
-        out
-    }};
-    ($logger:expr, $str:expr, $a1:expr, $body:tt) => {{
-        group!($logger, format!($str,$a1), $body)
-    }};
-    ($logger:expr, $str:expr, $a1:expr, $a2:expr, $body:tt) => {{
-        group!($logger, format!($str,$a1,$a2), $body)
-    }};
-    ($logger:expr, $str:expr, $a1:expr, $a2:expr, $a3:expr, $body:tt) => {{
-        group!($logger, format!($str,$a1,$a2,$a3), $body)
-    }};
-}
-
-
 // =============
 // === Utils ===
 // =============
@@ -225,17 +91,22 @@ where T : wasm_bindgen::JsCast + Debug,
     obj.dyn_into().map_err(|_| Error::type_mismatch(&expected, &got))
 }
 
-pub fn window() -> Result<web_sys::Window> {
+pub fn window() -> web_sys::Window {
+    web_sys::window().unwrap_or_else(|| panic!("Cannot access window object."))
+}
+
+
+pub fn try_window() -> Result<web_sys::Window> {
     web_sys::window().ok_or_else(|| Error::missing("window"))
 }
 
 pub fn device_pixel_ratio() -> Result<f64> {
-    let win = window()?;
+    let win = try_window()?;
     Ok(win.device_pixel_ratio())
 }
 
 pub fn document() -> Result<web_sys::Document> {
-    window()?.document().ok_or_else(|| Error::missing("document"))
+    try_window()?.document().ok_or_else(|| Error::missing("document"))
 }
 
 pub fn get_element_by_id(id:&str) -> Result<web_sys::Element> {
@@ -266,17 +137,17 @@ pub fn get_webgl2_context
 }
 
 pub fn request_animation_frame(f:&Closure<dyn FnMut(f32)>) -> Result<i32> {
-    let req = window()?.request_animation_frame(f.as_ref().unchecked_ref());
+    let req = try_window()?.request_animation_frame(f.as_ref().unchecked_ref());
     req.map_err(|_| Error::missing("requestAnimationFrame"))
 }
 
 pub fn cancel_animation_frame(id:i32) -> Result<()> {
-    let req = window()?.cancel_animation_frame(id);
+    let req = try_window()?.cancel_animation_frame(id);
     req.map_err(|_| Error::missing("cancel_animation_frame"))
 }
 
 pub fn get_performance() -> Result<Performance> {
-    window()?.performance().ok_or_else(|| Error::missing("performance"))
+    try_window()?.performance().ok_or_else(|| Error::missing("performance"))
 }
 
 

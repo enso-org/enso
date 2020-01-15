@@ -6,8 +6,102 @@
 use crate::prelude::*;
 
 use crate::data::container::Add;
+
 use code_builder::{CodeBuilder, HasCodeRepr};
+use nalgebra::*;
 use shapely::derive_clone_plus;
+use crate::system::gpu::data::buffer::item::MatrixCtx;
+
+
+
+// =================================================================================================
+// === Glsl ========================================================================================
+// =================================================================================================
+
+/// A GLSL code representation.
+#[derive(Clone,Debug,Shrinkwrap)]
+#[shrinkwrap(mutable)]
+pub struct Glsl {
+    /// Raw, textual code representation.
+    pub str: String,
+}
+
+impl Display for Glsl {
+    fn fmt(&self, f:&mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        Display::fmt(&self.str,f)
+    }
+}
+
+
+// === Conversions from Glsl ===
+
+impl From<Glsl> for String {
+    fn from(t:Glsl) -> Self {
+        t.str
+    }
+}
+
+impl From<&Glsl> for String {
+    fn from(t:&Glsl) -> Self {
+        t.str.clone()
+    }
+}
+
+
+// === Conversions to Glsl ===
+
+impl From<&Glsl> for Glsl {
+    fn from(t:&Glsl) -> Self {
+        t.clone()
+    }
+}
+
+impl From<String> for Glsl {
+    fn from(t:String) -> Self {
+        Self {str:t}
+    }
+}
+
+impl From<&String> for Glsl {
+    fn from(t:&String) -> Self {
+        Self {str:t.into()}
+    }
+}
+
+impl From<&str> for Glsl {
+    fn from(t:&str) -> Self {
+        Self {str:(*t).into()}
+    }
+}
+
+impl From<bool> for Glsl {
+    fn from(t:bool) -> Self {
+        t.to_string().into()
+    }
+}
+
+impl From<i32> for Glsl {
+    fn from(t:i32) -> Self {
+        t.to_string().into()
+    }
+}
+
+impl From<f32> for Glsl {
+    fn from(t:f32) -> Self {
+        let is_int = t.fract() == 0.0;
+        if is_int { iformat!("{t}.0").into() }
+        else      { iformat!("{t}").into() }
+    }
+}
+
+impl<T,R,C> From<MatrixMN<T,R,C>> for Glsl
+where Self:MatrixCtx<T,R,C>, PhantomData<MatrixMN<T,R,C>>:Into<PrimType> {
+    fn from(t:MatrixMN<T,R,C>) -> Self {
+        let type_name = PrimType::phantom_from::<MatrixMN<T,R,C>>().to_code();
+        let vals:Vec<String> = t.as_slice().iter().cloned().map(|t|format!("{:?}",t)).collect();
+        format!("{}({})",type_name,vals.join(",")).into()
+    }
+}
 
 
 
@@ -341,14 +435,14 @@ pub enum PrimType {
     Mat4x2, Mat4x3, Mat4x4,
     Vec2, Vec3, Vec4, IVec2, IVec3, IVec4, BVec2, BVec3, BVec4,
     UInt, UVec2, UVec3, UVec4,
-    Sampler2D, Sampler3D, SamplerCube,
-    Sampler2DShadow, SamplerCubeShadow,
-    Sampler2DArray,
-    Sampler2DArrayShadow,
-    ISampler2D, ISampler3D, ISamplerCube,
-    ISampler2DArray,
-    USampler2D, USampler3D, USamplerCube,
-    USampler2DArray,
+    Sampler2d, Sampler3d, SamplerCube,
+    Sampler2dShadow, SamplerCubeShadow,
+    Sampler2dArray,
+    Sampler2dArrayShadow,
+    ISampler2d, ISampler3d, ISamplerCube,
+    ISampler2dArray,
+    USampler2d, USampler3d, USamplerCube,
+    USampler2dArray,
     Struct(Identifier),
 }
 
@@ -384,23 +478,35 @@ impl HasCodeRepr for PrimType {
             Self::UVec2                => builder.add("uvec2"),
             Self::UVec3                => builder.add("uvec3"),
             Self::UVec4                => builder.add("uvec4"),
-            Self::Sampler2D            => builder.add("sampler2d"),
-            Self::Sampler3D            => builder.add("sampler3d"),
+            Self::Sampler2d            => builder.add("sampler2d"),
+            Self::Sampler3d            => builder.add("sampler3d"),
             Self::SamplerCube          => builder.add("samplerCube"),
-            Self::Sampler2DShadow      => builder.add("sampler2DShadow"),
+            Self::Sampler2dShadow      => builder.add("sampler2DShadow"),
             Self::SamplerCubeShadow    => builder.add("samplerCubeShadow"),
-            Self::Sampler2DArray       => builder.add("sampler2DArray"),
-            Self::Sampler2DArrayShadow => builder.add("sampler2DArrayShadow"),
-            Self::ISampler2D           => builder.add("isampler2D"),
-            Self::ISampler3D           => builder.add("isampler3D"),
+            Self::Sampler2dArray       => builder.add("sampler2DArray"),
+            Self::Sampler2dArrayShadow => builder.add("sampler2DArrayShadow"),
+            Self::ISampler2d           => builder.add("isampler2D"),
+            Self::ISampler3d           => builder.add("isampler3D"),
             Self::ISamplerCube         => builder.add("isamplerCube"),
-            Self::ISampler2DArray      => builder.add("isampler2DArray"),
-            Self::USampler2D           => builder.add("usampler2D"),
-            Self::USampler3D           => builder.add("usampler3D"),
+            Self::ISampler2dArray      => builder.add("isampler2DArray"),
+            Self::USampler2d           => builder.add("usampler2D"),
+            Self::USampler3d           => builder.add("usampler3D"),
             Self::USamplerCube         => builder.add("usamplerCube"),
-            Self::USampler2DArray      => builder.add("usampler2DArray"),
+            Self::USampler2dArray      => builder.add("usampler2DArray"),
             Self::Struct(ident)        => builder.add(ident),
         };
+    }
+}
+
+impl From<PrimType> for String {
+    fn from(t:PrimType) -> Self {
+        t.to_code()
+    }
+}
+
+impl Display for PrimType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f,"{}",self.to_code())
     }
 }
 
@@ -445,6 +551,7 @@ pub struct LinkageStorage {
 /// Interpolation storage type for attributes.
 #[derive(Clone,Debug)]
 pub enum InterpolationStorage {Smooth, Flat}
+
 
 // === Printers ===
 
@@ -633,3 +740,85 @@ impl HasCodeRepr for Module {
         builder.add(&self.main);
     }
 }
+
+
+// ============================
+// === PrimType Conversions ===
+// ============================
+
+macro_rules! define_glsl_prim_type_conversions {
+    ($($ty:ty => $name:ident),* $(,)?) => {$(
+        impl From<PhantomData<$ty>> for PrimType {
+            fn from(_:PhantomData<$ty>) -> Self {
+                Self::$name
+            }
+        }
+
+        impl From<PhantomData<$ty>> for Type {
+            fn from(_:PhantomData<$ty>) -> Self {
+                PrimType::$name.into()
+            }
+        }
+    )*}
+}
+
+define_glsl_prim_type_conversions! {
+    bool           => Bool,
+    i32            => Int,
+    f32            => Float,
+
+    Vector2<f32>   => Vec2,
+    Vector3<f32>   => Vec3,
+    Vector4<f32>   => Vec4,
+
+    Vector2<i32>   => IVec2,
+    Vector3<i32>   => IVec3,
+    Vector4<i32>   => IVec4,
+
+    Vector2<bool>  => BVec2,
+    Vector3<bool>  => BVec3,
+    Vector4<bool>  => BVec4,
+
+    Matrix2<f32>   => Mat2,
+    Matrix3<f32>   => Mat3,
+    Matrix4<f32>   => Mat4,
+
+    Matrix2x3<f32> => Mat2x3,
+    Matrix2x4<f32> => Mat2x4,
+    Matrix3x2<f32> => Mat3x2,
+    Matrix3x4<f32> => Mat3x4,
+    Matrix4x2<f32> => Mat4x2,
+    Matrix4x3<f32> => Mat4x3,
+}
+
+
+// === Smart accessors ===
+
+/// Extension methods.
+pub mod traits {
+    use super::*;
+
+    /// Extension methods for every type which could be converted to `PrimType`.
+    pub trait PhantomIntoPrimType: Sized + PhantomInto<PrimType> {
+        /// `PrimType` representation of the current type.
+        fn glsl_prim_type() -> PrimType {
+            Self::phantom_into()
+        }
+    }
+    impl<T:PhantomInto<PrimType>> PhantomIntoPrimType for T {}
+
+    pub trait IntoGlsl<'a> where Self:'a, &'a Self:Into<Glsl> {
+        fn glsl(&'a self) -> Glsl {
+            self.into()
+        }
+    }
+    impl<'a,T> IntoGlsl<'a> for T where T:'a, &'a T:Into<Glsl> {}
+
+    pub trait IntoGlsl2 where Self:Into<Glsl> {
+        fn glsl(self) -> Glsl {
+            self.into()
+        }
+    }
+    impl<T> IntoGlsl2 for T where T:Into<Glsl> {}
+}
+pub use traits::*;

@@ -7,34 +7,28 @@ pub mod scene;
 #[warn(missing_docs)]
 pub mod workspace;
 
-use crate::prelude::*;
-
+pub use crate::display::symbol::types::*;
+pub use crate::display::world::workspace::Workspace;
 pub use crate::data::container::*;
 pub use crate::display::world::workspace::SymbolId;
 
+use crate::prelude::*;
+
 use crate::closure;
 use crate::control::callback::CallbackHandle;
-use crate::data::dirty;
 use crate::data::dirty::traits::*;
-use crate::debug::stats::Stats;
-use crate::promote_all;
-use crate::promote_workspace_types;
-use crate::promote;
-use crate::system::web;
-use crate::system::web::group;
-use crate::system::web::Logger;
-use crate::display::shape::text::font::Fonts;
-use crate::debug::monitor;
+use crate::data::dirty;
 use crate::debug::monitor::Monitor;
 use crate::debug::monitor::Panel;
-use crate::system::gpu::data::uniform::UniformScope;
-use crate::system::gpu::data::uniform::Uniform;
+use crate::debug::monitor;
+use crate::debug::stats::Stats;
+use crate::display::shape::text::font::Fonts;
+
+use crate::system::web;
+use event_loop::EventLoop;
 use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::{JsCast, JsValue};
-
 use web_sys::{Performance,KeyboardEvent};
-use event_loop::EventLoop;
-use eval_tt::*;
 
 
 
@@ -186,7 +180,6 @@ pub struct WorldData {
     pub workspace_dirty : WorkspaceDirty,
     pub logger          : Logger,
     pub event_loop      : EventLoop,
-    pub variables       : UniformScope,
     pub performance     : Performance,
     pub start_time      : f32,
     pub time            : Uniform<f32>,
@@ -202,7 +195,6 @@ pub struct WorldData {
 
 pub type WorkspaceID    = usize;
 pub type WorkspaceDirty = dirty::SharedBool;
-promote_workspace_types!{ [[WorkspaceOnChange]] workspace }
 
 
 // === Callbacks ===
@@ -238,7 +230,8 @@ impl WorldData {
             if      key == "0" { world_copy.borrow_mut().display_mode.set(0) }
             else if key == "1" { world_copy.borrow_mut().display_mode.set(1) }
         }));
-        web::document().unwrap().add_event_listener_with_callback("keydown",c.as_ref().unchecked_ref()).unwrap();
+        web::document().unwrap().add_event_listener_with_callback
+            ("keydown",c.as_ref().unchecked_ref()).unwrap();
         c.forget();
         // -----------------------------------------------------------------------------------------
 
@@ -253,11 +246,12 @@ impl WorldData {
         let workspace_logger       = logger.sub("workspace");
         let workspace_dirty_logger = logger.sub("workspace_dirty");
         let workspace_dirty        = WorkspaceDirty::new(workspace_dirty_logger,());
-        let on_change              = workspace_on_change(workspace_dirty.clone_ref());
-        let variables              = UniformScope::new(logger.sub("global_variables"));
+        let workspace_dirty2       = workspace_dirty.clone();
+        let on_change              = move || {workspace_dirty2.set()};
+        let workspace              = Workspace::new(dom,workspace_logger,&stats,on_change).unwrap(); // fixme unwrap
+        let variables              = &workspace.variables;
         let time                   = variables.add_or_panic("time",0.0);
         let display_mode           = variables.add_or_panic("display_mode",0);
-        let workspace              = Workspace::new(dom,&variables,workspace_logger,&stats,on_change).unwrap(); // fixme unwrap
         let fonts                  = Fonts::new();
         let event_loop             = EventLoop::new();
         let update_handle          = default();
@@ -268,7 +262,8 @@ impl WorldData {
         let stats_monitor_cp_2     = stats_monitor.clone();
         event_loop.set_on_loop_started  (move || { stats_monitor_cp_1.begin(); });
         event_loop.set_on_loop_finished (move || { stats_monitor_cp_2.end();   });
-        Self {workspace,workspace_dirty,logger,event_loop,variables,performance,start_time,time,display_mode,fonts,update_handle,stats,stats_monitor}
+        Self {workspace,workspace_dirty,logger,event_loop,performance,start_time,time,display_mode
+             ,fonts,update_handle,stats,stats_monitor}
     }
 
     pub fn run(&mut self) {
@@ -282,11 +277,10 @@ impl WorldData {
         //TODO[WD]: Re-think when should we check the condition (uniform update):
         //          if self.workspace_dirty.check_all() {
         group!(self.logger, "Updating.", {
-        // FIXME render only needed workspaces.
-        self.workspace_dirty.unset_all();
-        let fonts = &mut self.fonts;
-        self.workspace.update(fonts);
-            });
+            self.workspace_dirty.unset_all();
+            let fonts = &mut self.fonts;
+            self.workspace.update(fonts);
+        });
     }
 
     /// Dispose the world object, cancel all handlers and events.
@@ -300,5 +294,3 @@ impl Drop for WorldData {
         self.logger.info("Dropping.");
     }
 }
-
-

@@ -9,7 +9,7 @@ edition = "2018"
 [dependencies]
 boolinator   = "2.4.0"
 derivative   = "1.0.3"
-derive_more  = "0.15.0"
+derive_more  = "0.99.2"
 failure      = "0.1.5"
 itertools    = "0.8"
 num          = "0.2.0"

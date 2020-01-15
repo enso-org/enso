@@ -2,10 +2,10 @@
 
 use crate::prelude::*;
 
-use crate::display::render::webgl::Context;
-use crate::display::render::webgl::compile_shader;
-use crate::display::render::webgl::link_program;
-use crate::display::render::webgl::Program;
+use crate::system::gpu::shader::Context;
+use crate::system::gpu::shader::compile_shader;
+use crate::system::gpu::shader::link_program;
+use crate::system::gpu::shader::Program;
 use crate::display::shape::text::font::FontRenderInfo;
 use crate::display::shape::text::msdf::MsdfTexture;
 use crate::display::shape::text::TextComponentProperties;

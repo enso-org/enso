@@ -5,21 +5,16 @@ use crate::prelude::*;
 use crate::closure;
 use crate::data::dirty::traits::*;
 use crate::data::dirty;
-use crate::data::function::callback::*;
 use crate::debug::stats::Stats;
-use crate::display::camera::Camera2D;
-use crate::display::render::webgl::Context;
-use crate::display::symbol;
-use crate::promote;
-use crate::promote_all;
-use crate::promote_symbol_types;
+use crate::display::camera::Camera2d;
+use crate::display::symbol::Symbol;
 use crate::system::gpu::data::uniform::Uniform;
 use crate::system::gpu::data::uniform::UniformScope;
-use crate::system::web::group;
-use crate::system::web::Logger;
+use crate::system::gpu::shader::Context;
+
 use data::opt_vec::OptVec;
-use eval_tt::*;
 use nalgebra::Matrix4;
+
 
 
 // ======================
@@ -29,14 +24,12 @@ use nalgebra::Matrix4;
 // === Definition ===
 
 /// Registry for all the created symbols.
-#[derive(Derivative)]
-#[derivative(Debug(bound=""))]
-pub struct SymbolRegistry<OnMut> {
-    pub symbols         : OptVec<Symbol<OnMut>>,
-    pub symbol_dirty    : SymbolDirty<OnMut>,
+#[derive(Debug)]
+pub struct SymbolRegistry {
+    pub symbols         : OptVec<Symbol>,
+    pub symbol_dirty    : SymbolDirty,
     pub logger          : Logger,
     pub view_projection : Uniform<Matrix4<f32>>,
-    pub zoom            : Uniform<f32>,
     variables           : UniformScope,
     context             : Context,
     stats               : Stats,
@@ -45,42 +38,33 @@ pub struct SymbolRegistry<OnMut> {
 
 // === Types ===
 
-pub type SymbolId             = usize;
-pub type SymbolDirty<OnDirty> = dirty::SharedSet<SymbolId, OnDirty>;
-promote_symbol_types!{ [OnSymbolChange] symbol }
-
-#[macro_export]
-/// Promote relevant types to parent scope. See `promote!` macro for more information.
-macro_rules! promote_symbol_registry_types { ($($args:tt)*) => {
-    crate::promote_symbol_types! { $($args)* }
-    promote! { $($args)* [SymbolRegistry] }
-};}
+pub type SymbolId    = usize;
+pub type SymbolDirty = dirty::SharedSet<SymbolId,Box<dyn Fn()>>;
 
 
 // === Callbacks ===
 
 closure! {
-fn mesh_on_change<C:Callback0> (dirty:SymbolDirty<C>, ix:SymbolId) -> OnSymbolChange {
+fn mesh_on_change(dirty:SymbolDirty, ix:SymbolId) -> OnSymbolChange {
     || dirty.set(ix)
 }}
 
 
 // === Implementation ===
 
-impl<OnDirty:Callback0> SymbolRegistry<OnDirty> {
+impl SymbolRegistry {
 
     /// Create new instance with the provided on-dirty callback.
-    pub fn new(variables:&UniformScope, stats:&Stats, context:&Context, logger:Logger, on_mut:OnDirty) -> Self {
+    pub fn new<OnMut:Fn()+'static>(variables:&UniformScope, stats:&Stats, context:&Context, logger:Logger, on_mut:OnMut) -> Self {
         logger.info("Initializing.");
         let symbol_logger   = logger.sub("symbol_dirty");
-        let symbol_dirty    = SymbolDirty::new(symbol_logger, on_mut);
+        let symbol_dirty    = SymbolDirty::new(symbol_logger,Box::new(on_mut));
         let symbols         = default();
         let variables       = variables.clone();
         let view_projection = variables.add_or_panic("view_projection", Matrix4::<f32>::identity());
-        let zoom            = variables.add_or_panic("zoom"           , 1.0);
         let context         = context.clone();
         let stats           = stats.clone_ref();
-        Self {symbols,symbol_dirty,logger,view_projection,zoom,variables,context,stats}
+        Self {symbols,symbol_dirty,logger,view_projection,variables,context,stats}
     }
 
     /// Creates a new `Symbol` instance.
@@ -91,7 +75,7 @@ impl<OnDirty:Callback0> SymbolRegistry<OnDirty> {
         let context      = &self.context;
         let stats        = &self.stats;
         self.symbols.insert_with_ix(|ix| {
-            let on_mut = mesh_on_change(symbol_dirty, ix);
+            let on_mut = move || {symbol_dirty.set(ix)};
             let logger = logger.sub(format!("symbol{}",ix));
             Symbol::new(variables,logger,stats,context,on_mut)
         })
@@ -107,11 +91,10 @@ impl<OnDirty:Callback0> SymbolRegistry<OnDirty> {
         })
     }
 
-    pub fn render(&self, camera:&Camera2D) {
+    pub fn render(&self, camera:&Camera2d) {
         let changed = camera.update();
         if changed {
             self.view_projection.set(camera.view_projection_matrix());
-            self.zoom.set(camera.zoom());
         }
         group!(self.logger, "Rendering.", {
             for symbol in &self.symbols {
@@ -121,14 +104,14 @@ impl<OnDirty:Callback0> SymbolRegistry<OnDirty> {
     }
 }
 
-impl<OnDirty> Index<usize> for SymbolRegistry<OnDirty> {
-    type Output = Symbol<OnDirty>;
+impl Index<usize> for SymbolRegistry {
+    type Output = Symbol;
     fn index(&self, ix:usize) -> &Self::Output {
         self.symbols.index(ix)
     }
 }
 
-impl<OnDirty> IndexMut<usize> for SymbolRegistry<OnDirty> {
+impl IndexMut<usize> for SymbolRegistry {
     fn index_mut(&mut self, ix:usize) -> &mut Self::Output {
         self.symbols.index_mut(ix)
     }

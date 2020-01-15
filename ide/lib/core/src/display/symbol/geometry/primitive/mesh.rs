@@ -1,23 +1,28 @@
-#![allow(missing_docs)]
+//! This module defines a [polygon mesh](https://en.wikipedia.org/wiki/Polygon_mesh).
 
-pub use crate::system::gpu::data;
-pub use crate::system::gpu::data::Uniform;
-pub use crate::system::gpu::data::UniformScope;
+use crate::prelude::*;
 
 use crate::closure;
+use crate::control::callback::CallbackFn;
 use crate::data::dirty::traits::*;
 use crate::data::dirty;
-use crate::data::function::callback::*;
 use crate::debug::stats::Stats;
-use crate::display::render::webgl::Context;
-use crate::prelude::*;
-use crate::promote;
-use crate::promote_all;
-use crate::promote_scope_types;
-use crate::system::web::group;
-use crate::system::web::Logger;
-use eval_tt::*;
+use crate::system::gpu::shader::Context;
+
 use num_enum::IntoPrimitive;
+
+
+
+// ===============
+// === Exports ===
+// ===============
+
+/// Common data types.
+pub mod types {
+    pub use crate::system::gpu::types::*;
+    pub use super::Mesh;
+}
+pub use types::*;
 
 
 
@@ -29,26 +34,11 @@ use num_enum::IntoPrimitive;
 
 /// A polygon mesh is a collection of vertices, edges and faces that defines the shape of a
 /// polyhedral object. Mesh describes the shape of the display element. It consist of several
-/// scopes containing sets of variables.
+/// scopes containing sets of variables. See the documentation of `Scopes` to learn more.
 ///
-///   - Point Scope
-///     A point is simply a point in space. Points are often assigned with such variables as
-///     'position' or 'color'.
+/// Please note, that there are other, higher-level scopes defined by other structures, including:
 ///
-///   - Vertex Scope
-///     A vertex is a reference to a point. Primitives use vertices to reference points. For
-///     example, the corners of a polygon, the center of a sphere, or a control vertex of a spline
-///     curve. Primitives can share points, while vertices are unique to a primitive.
-///
-///   - Primitive Scope
-///     Primitives refer to a unit of geometry, lower-level than an object but above points. There
-///     are several different types of primitives, including polygon faces or Bezier/NURBS surfaces.
-///
-///   - Instance Scope
-///     Instances are virtual copies of the same geometry. They share point, vertex, and primitive
-///     variables.
-///
-///   - Object Scope
+///   - Symbol Scope
 ///     Object refers to the whole geometry with all of its instances.
 ///
 ///   - Global Scope
@@ -59,40 +49,45 @@ use num_enum::IntoPrimitive;
 /// name was defined in various scopes, it gets resolved to the var defined in the most specific
 /// scope. For example, if var 'color' was defined in both 'instance' and 'point' scope, the 'point'
 /// definition overlapps the other one.
-#[derive(Shrinkwrap)]
+#[derive(Debug,Shrinkwrap)]
 #[shrinkwrap(mutable)]
-#[derive(Derivative)]
-#[derivative(Debug(bound=""))]
-pub struct Mesh<OnMut> {
+pub struct Mesh {
+    /// Scope list.
     #[shrinkwrap(main_field)]
-    pub scopes       : Scopes      <OnMut>,
-    pub scopes_dirty : ScopesDirty <OnMut>,
-    pub logger       : Logger,
-    context          : Context,
-    stats            : Stats,
+    pub scopes   : Scopes,
+    scopes_dirty : ScopesDirty,
+    logger       : Logger,
+    context      : Context,
+    stats        : Stats,
 }
 
-#[derive(Derivative)]
-#[derivative(Debug(bound=""))]
-pub struct Scopes<OnMut> {
-    pub point     : AttributeScope <OnMut>,
-    pub vertex    : AttributeScope <OnMut>,
-    pub primitive : AttributeScope <OnMut>,
-    pub instance  : AttributeScope <OnMut>,
-    pub object    : UniformScope,
-    pub global    : UniformScope,
+/// Container for all scopes owned by a mesh.
+#[derive(Debug)]
+pub struct Scopes {
+    /// Point Scope. A point is simply a point in space. Points are often assigned with such
+    /// variables as 'position' or 'color'.
+    pub point: AttributeScope,
+
+    /// Vertex Scope. A vertex is a reference to a point. Primitives use vertices to reference
+    /// points. For example, the corners of a polygon, the center of a sphere, or a control vertex
+    /// of a spline curve. Primitives can share points, while vertices are unique to a primitive.
+    pub vertex: AttributeScope,
+
+    /// Primitive Scope. Primitives refer to a unit of geometry, lower-level than an object but
+    /// above points. There are several different types of primitives, including polygon faces or
+    /// Bezier/NURBS surfaces.
+    pub primitive: AttributeScope,
+
+    /// Instance Scope. Instances are virtual copies of the same geometry. They share point, vertex,
+    /// and primitive variables.
+    pub instance: AttributeScope,
 }
 
-pub type PointId     = usize;
-pub type VertexId    = usize;
-pub type PrimitiveId = usize;
-pub type InstanceId  = usize;
-
-#[derive(Copy,Clone,Debug,IntoPrimitive,PartialEq)]
+/// A singleton for each of scope types.
+#[derive(Copy,Clone,Debug,Display,IntoPrimitive,PartialEq)]
+#[allow(missing_docs)]
 #[repr(u8)]
-pub enum ScopeType {
-    Point, Vertex, Primitive, Instance, Object, Global
-}
+pub enum ScopeType {Point,Vertex,Primitive,Instance}
 
 impl From<ScopeType> for usize {
     fn from(t: ScopeType) -> Self {
@@ -100,67 +95,47 @@ impl From<ScopeType> for usize {
     }
 }
 
-impl Display for ScopeType {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f,"{:?}",self)
-    }
-}
-
 
 // === Types ===
 
-pub type ScopesDirty<F> = dirty::SharedEnum<u8,ScopeType,F>;
-promote_scope_types!{ [ScopeOnChange] data }
-
-#[macro_export]
-/// Promote relevant types to parent scope. See `promote!` macro for more information.
-macro_rules! promote_mesh_types { ($($args:tt)*) => {
-    crate::promote_scope_types! { $($args)* }
-    promote! {$($args)* [Mesh,Scopes]}
-};}
-
-
-// === Callbacks ===
+/// Dirty flag remembering which scopes were mutated.
+pub type ScopesDirty = dirty::SharedEnum<u8,ScopeType,Box<dyn Fn()>>;
 
 closure! {
-fn scope_on_change<C:Callback0>(dirty:ScopesDirty<C>, item:ScopeType) -> ScopeOnChange {
+fn scope_on_change(dirty:ScopesDirty, item:ScopeType) -> ScopeOnChange {
     || dirty.set(item)
 }}
 
 
 // === Implementation ===
 
-macro_rules! update_scopes { ($self:ident . {$($name:ident),*} {$($uname:ident),*}) => {$(
-    if $self.scopes_dirty.check(&ScopeType::$uname) {
-        $self.scopes.$name.update()
-    }
-)*}}
+macro_rules! update_scopes {
+    ($self:ident . {$($name:ident),*} {$($uname:ident),*}) => {$(
+        if $self.scopes_dirty.check(&ScopeType::$uname) {
+            $self.scopes.$name.update()
+        }
+    )*}
+}
 
-impl<OnMut: Callback0> Mesh<OnMut> {
-
+impl Mesh {
     /// Creates new mesh with attached dirty callback.
-    pub fn new
-    (global:&UniformScope, logger:Logger, stats:&Stats, context:&Context, on_mut:OnMut) -> Self {
+    pub fn new<OnMut:CallbackFn>
+    (logger:Logger, stats:&Stats, context:&Context,on_mut:OnMut) -> Self {
         stats.inc_mesh_count();
         let stats         = stats.clone();
         let scopes_logger = logger.sub("scopes_dirty");
-        let scopes_dirty  = ScopesDirty::new(scopes_logger,on_mut);
+        let scopes_dirty  = ScopesDirty::new(scopes_logger,Box::new(on_mut));
         let context       = context.clone();
         let scopes        = group!(logger, "Initializing.", {
-            macro_rules! new_scope { ($cls:ident { $($name:ident),* } { $($uname:ident),* } ) => {$(
+            macro_rules! new_scope { ({ $($name:ident),* } { $($uname:ident),* } ) => {$(
                 let sub_logger = logger.sub(stringify!($name));
                 let status_mod = ScopeType::$uname;
                 let scs_dirty  = scopes_dirty.clone_ref();
-                let callback   = scope_on_change(scs_dirty, status_mod);
-                let $name      = $cls::new(sub_logger,&stats,&context,callback);
+                let callback   = move || {scs_dirty.set(status_mod)};
+                let $name      = AttributeScope::new(sub_logger,&stats,&context,callback);
             )*}}
-            new_scope!(AttributeScope {point,vertex,primitive,instance}{Point,Vertex,Primitive,Instance});
-
-            let object_scope_logger = logger.sub("object");
-            let object              = UniformScope::new(object_scope_logger);
-            let global              = global.clone();
-
-            Scopes {point,vertex,primitive,instance,object,global}
+            new_scope! ({point,vertex,primitive,instance}{Point,Vertex,Primitive,Instance});
+            Scopes {point,vertex,primitive,instance}
         });
         Self {context,scopes,scopes_dirty,logger,stats}
     }
@@ -169,9 +144,9 @@ impl<OnMut: Callback0> Mesh<OnMut> {
     pub fn update(&mut self) {
         group!(self.logger, "Updating.", {
             if self.scopes_dirty.check_all() {
-                update_scopes!(self.{point,vertex,primitive,instance}
-                                    {Point,Vertex,Primitive,Instance});
-//                update_scopes!(self.{object,global}{Object,Global});
+                update_scopes!{
+                    self.{point,vertex,primitive,instance}{Point,Vertex,Primitive,Instance}
+                }
                 self.scopes_dirty.unset_all()
             }
         })
@@ -185,24 +160,21 @@ impl<OnMut: Callback0> Mesh<OnMut> {
         else if self.scopes.vertex    . contains(name) { Some(ScopeType::Vertex)    }
         else if self.scopes.primitive . contains(name) { Some(ScopeType::Primitive) }
         else if self.scopes.instance  . contains(name) { Some(ScopeType::Instance)  }
-        else if self.scopes.object    . contains(name) { Some(ScopeType::Object)    }
-        else if self.scopes.global    . contains(name) { Some(ScopeType::Global)    }
         else {None}
     }
 
     /// Gets reference to scope based on the scope type.
-    pub fn var_scope(&self, scope_type:ScopeType) -> Option<&AttributeScope<OnMut>> {
+    pub fn scope_by_type(&self, scope_type:ScopeType) -> &AttributeScope {
         match scope_type {
-            ScopeType::Point     => Some(&self.scopes.point),
-            ScopeType::Vertex    => Some(&self.scopes.vertex),
-            ScopeType::Primitive => Some(&self.scopes.primitive),
-            ScopeType::Instance  => Some(&self.scopes.instance),
-            _                    => None
+            ScopeType::Point     => &self.scopes.point,
+            ScopeType::Vertex    => &self.scopes.vertex,
+            ScopeType::Primitive => &self.scopes.primitive,
+            ScopeType::Instance  => &self.scopes.instance,
         }
     }
 }
 
-impl<OnMut> Drop for Mesh<OnMut> {
+impl Drop for Mesh {
     fn drop(&mut self) {
         self.stats.dec_mesh_count();
     }

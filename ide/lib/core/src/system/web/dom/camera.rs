@@ -2,7 +2,7 @@
 
 use crate::prelude::*;
 
-use crate::display::render::css3d::Object;
+use crate::system::web::dom::Object;
 
 use nalgebra::base::Matrix4;
 use nalgebra::geometry::Perspective3;

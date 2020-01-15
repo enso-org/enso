@@ -1,7 +1,9 @@
 #![allow(missing_docs)]
 
 use crate::prelude::*;
-use crate::data::function::callback::{Callback0,Callback1};
+use crate::data::function::callback::Function0;
+use crate::data::function::callback::Function1;
+
 
 
 // ==================
@@ -12,7 +14,7 @@ use crate::data::function::callback::{Callback0,Callback1};
 /// structure changes.
 #[derive(Shrinkwrap)]
 #[derive(Derivative)]
-#[derivative(Debug(bound="T:Debug"))]
+#[derivative(Clone,Debug(bound="T:Debug"))]
 pub struct Observable<T,OnMut,OnResize> {
     #[shrinkwrap(main_field)]
     pub data: T,
@@ -39,7 +41,7 @@ Index<Ix> for Observable<T,OnMut,OnResize> {
     }
 }
 
-impl<T:IndexMut<Ix>,OnMut:Callback1<Ix>,OnResize,Ix:Copy>
+impl<T:IndexMut<Ix>, OnMut: Function1<Ix> ,OnResize, Ix:Copy>
 IndexMut<Ix> for Observable<T,OnMut,OnResize> {
     #[inline]
     fn index_mut(&mut self, index:Ix) -> &mut Self::Output {
@@ -48,7 +50,7 @@ IndexMut<Ix> for Observable<T,OnMut,OnResize> {
     }
 }
 
-impl <T:Extend<S>,S,OnMut,OnResize:Callback0>
+impl <T:Extend<S>,S,OnMut,OnResize:Function0>
 Extend<S> for Observable<T,OnMut,OnResize> {
     #[inline]
     fn extend<I:IntoIterator<Item=S>>(&mut self, iter:I) {

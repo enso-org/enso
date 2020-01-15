@@ -2,9 +2,8 @@
 
 use crate::prelude::*;
 
-use crate::system::gpu::data::GpuData;
-use crate::display::render::webgl::glsl;
 use crate::display::symbol::shader::builder::CodeTemplete;
+use crate::system::gpu::types::*;
 
 
 
@@ -31,6 +30,13 @@ impl VarDecl {
     }
 }
 
+impl<T:PhantomInto<glsl::PrimType> + Into<Glsl>>
+From<T> for VarDecl {
+    fn from(t:T) -> Self {
+        Self::new(<T>::glsl_prim_type(), t.glsl().into())
+    }
+}
+
 
 
 // ================
@@ -48,6 +54,9 @@ pub struct Material {
     outputs : BTreeMap<String,VarDecl>,
 }
 
+/// Bounds for the material inputs.
+pub trait Input = Into<VarDecl> + GpuDefault;
+
 impl Material {
     /// Constructor.
     pub fn new() -> Self {
@@ -55,17 +64,23 @@ impl Material {
     }
 
     /// Adds a new input variable.
-    pub fn add_input<Name:Str,T:GpuData>(&mut self, name:Name, t:T) {
-        self.inputs.insert(name.into(),Self::make_var_decl(t));
+    pub fn add_input<T:Input>(&mut self, name:&str, t:T) {
+        self.inputs.insert(name.into(),t.into());
     }
 
     /// Adds a new output variable.
-    pub fn add_output<Name:Str,T:GpuData>(&mut self, name:Name, t:T) {
-        self.outputs.insert(name.into(),Self::make_var_decl(t));
+    pub fn add_output<T:Input>(&mut self, name:&str, t:T) {
+        self.outputs.insert(name.into(),t.into());
     }
 
-    fn make_var_decl<T:GpuData>(t:T) -> VarDecl {
-        VarDecl::new(<T as GpuData>::glsl_type(), t.to_glsl())
+    /// Adds a new input variable.
+    pub fn add_input_def<T:Input>(&mut self, name:&str) {
+        self.inputs.insert(name.into(),<T>::gpu_default().into());
+    }
+
+    /// Adds a new output variable.
+    pub fn add_output_def<T:Input>(&mut self, name:&str) {
+        self.outputs.insert(name.into(),<T>::gpu_default().into());
     }
 }
 

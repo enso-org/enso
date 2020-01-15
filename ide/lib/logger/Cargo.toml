@@ -1,0 +1,17 @@
+[package]
+name    = "logger"
+version = "0.1.0"
+authors = ["Enso Team <contact@luna-lang.org>"]
+edition = "2018"
+
+[lib]
+
+[features]
+default = []
+
+[dependencies]
+wasm-bindgen = { version = "^0.2", features = ["nightly"] }
+
+[dependencies.web-sys]
+version = "0.3.4"
+features = ['console']

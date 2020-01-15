@@ -18,10 +18,10 @@ extern "C" {
 
 #[cfg(test)]
 mod tests {
-    use basegl::display::render::css3d::Scene;
-    use basegl::display::render::css3d::Camera;
-    use basegl::display::render::css3d::html::HTMLObject;
-    use basegl::display::render::css3d::html::HTMLRenderer;
+    use basegl::system::web::dom::Scene;
+    use basegl::system::web::dom::Camera;
+    use basegl::system::web::dom::html::HTMLObject;
+    use basegl::system::web::dom::html::HTMLRenderer;
     use basegl::system::web::StyleSetter;
     use basegl::system::web::get_performance;
     use basegl::animation::position::HasPosition;

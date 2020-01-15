@@ -2,12 +2,12 @@
 
 use crate::prelude::*;
 
-use crate::display::render::css3d::GraphicsRenderer;
-use crate::display::render::css3d::Scene;
-use crate::display::render::css3d::Camera;
-use crate::display::render::css3d::CameraType;
-use crate::display::render::css3d::html::HTMLObject;
-use crate::system::gpu::data::JSBufferView;
+use crate::system::web::dom::GraphicsRenderer;
+use crate::system::web::dom::Scene;
+use crate::system::web::dom::Camera;
+use crate::system::web::dom::CameraType;
+use crate::system::web::dom::html::HTMLObject;
+use crate::system::gpu::data::JsBufferView;
 use crate::system::web::Result;
 use crate::system::web::create_element;
 use crate::system::web::dyn_into;
@@ -29,7 +29,7 @@ use web_sys::HtmlElement;
 
 mod js {
     use super::*;
-    #[wasm_bindgen(module = "/src/display/render/css3d/html/snippets.js")]
+    #[wasm_bindgen(module = "/src/system/web/dom/html/snippets.js")]
     extern "C" {
         pub fn set_object_transform(dom:&JsValue, matrix_array:&Object);
         pub fn setup_perspective(dom: &JsValue, znear: &JsValue);

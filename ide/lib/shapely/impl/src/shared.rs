@@ -114,14 +114,17 @@ macro_rules! shared_bracket_impl {
     ([impl [$($impl_params:tt)*] $name:ident $name_mut:ident $([$($params:tt)*])?] [
         $(
             $(#[$($meta:tt)*])*
-            pub fn $fn_name:ident $([$($fn_params:tt)*])? ($($fn_args:tt)*) $(-> $fn_type:ty)? {
+            pub fn $fn_name:ident
+            $([$($fn_params:tt)*])? ($($fn_args:tt)*) $(-> $fn_type:ty)? {
                 $($fn_body:tt)*
-        })*
+            }
+        )*
     ]) => {
         impl <$($impl_params)*> $name_mut $(<$($params)*>)? {
             $(
                 $(#[$($meta)*])*
-                pub fn $fn_name $(<$($fn_params)*>)* ($($fn_args)*) $(-> $fn_type)? {$($fn_body)*}
+                pub fn $fn_name $(<$($fn_params)*>)*
+                ($($fn_args)*) $(-> $fn_type)? {$($fn_body)*}
             )*
         }
 
@@ -164,7 +167,7 @@ macro_rules! shared_bracket_normalized {
     ( [$name:ident] [
         $(#[$($meta:tt)*])*
         pub struct $name_mut:ident $params:tt {
-            $($field:ident : $field_type:ty),* $(,)?
+            $($(#[$($field_meta:tt)*])* $field:ident : $field_type:ty),* $(,)?
         }
 
         $(impl $([$($impl_params:tt)*])? {$($impl_body:tt)*})*
@@ -172,7 +175,7 @@ macro_rules! shared_bracket_normalized {
         $crate::shared_struct! {
             $(#[$($meta)*])*
             pub struct $name $name_mut $params {
-                $($field : $field_type),*
+                $($(#[$($field_meta)*])* $field : $field_type),*
             }
         }
 
@@ -187,14 +190,28 @@ macro_rules! shared_struct {
     (
         $(#[$($meta:tt)*])*
         pub struct $name:ident $name_mut:ident [$($params:tt)*] {
-            $($field:ident : $field_type:ty),* $(,)?
+            $($(#[$($field_meta:tt)*])* $field:ident : $field_type:ty),* $(,)?
         }
     ) => {
         $(#[$($meta)*])*
         pub struct $name <$($params)*> { rc: Rc<RefCell<$name_mut<$($params)*>>> }
 
         $(#[$($meta)*])*
-        pub struct $name_mut <$($params)*> { $($field : $field_type),* }
+        pub struct $name_mut <$($params)*> { $($(#[$($field_meta)*])* $field : $field_type),* }
+
+        impl<$($params)*> Clone for $name <$($params)*> {
+            fn clone(&self) -> Self {
+                let rc = self.rc.clone();
+                Self {rc}
+            }
+        }
+
+        impl<$($params)*> $name <$($params)*> {
+            /// Cheap clone of the structure. Implemented as the `Rc::clone` under the hood.
+            pub fn clone_ref(&self) -> Self {
+                self.clone()
+            }
+        }
     };
 }
 

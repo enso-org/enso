@@ -56,7 +56,7 @@ use nalgebra::Scalar;
 pub trait Str = Into<String> + AsRef<str>;
 
 /// Alias for `Default::default()`.
-pub fn default<T: Default>() -> T {
+pub fn default<T:Default>() -> T {
     Default::default()
 }
 
@@ -147,6 +147,60 @@ impl<T, P> WithPhantom<T, P> {
         Self { without_phantom, phantom }
     }
 }
+
+
+
+// ==========================
+// === PhantomConversions ===
+// ==========================
+
+/// A utility for easy driving of type-level computations from value level. Often we've got some
+/// type level relations, like a few singleton types, and for each such type we've got an associated
+/// value. For example, we can define types `Int` and `Float` and associate with them
+/// `WebGlContext::Int` and `WebGlContext::Float` constants encoded as `GlEnum`. In order to convert
+/// `Int` or `Float` to the `GlEnum` we do not need the instance of the types, only the information
+/// what type it was. So we can define:
+///
+/// ```compile_fail
+/// impl From<PhantomData<Int>> for u32 {
+///     from(_:PhantomData<Int>>) {
+///         GlEnum(WebGlContext::Int)
+///     }
+/// }
+/// ```
+///
+/// And use it like:
+///
+/// ```compile_fail
+/// let val = GlEnum::from(PhantomData::<Int>)
+/// ```
+///
+/// Using this utility we can always write the following code instead:
+///
+/// ```compile_fail
+/// let val = GlEnum::phantom_from::<Int>()
+/// ```
+pub trait PhantomConversions: Sized {
+    fn phantom_into<P>() -> P where Self:PhantomInto<P> {
+        PhantomData::<Self>.into()
+    }
+    fn phantom_from<P:PhantomInto<Self>>() -> Self {
+        PhantomData::<P>.into()
+    }
+}
+impl<T> PhantomConversions for T {}
+
+/// Like `Into` but for phantom types.
+pub trait PhantomInto<T> = where PhantomData<Self>: Into<T>;
+
+
+/// Provides method `to`, which is just like `into` but allows fo superfish syntax.
+pub trait ToImpl: Sized {
+    fn to<P>(self) -> P where Self:Into<P> {
+        self.into()
+    }
+}
+impl<T> ToImpl for T {}
 
 
 

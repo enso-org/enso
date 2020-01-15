@@ -3,7 +3,7 @@
 
 use crate::prelude::*;
 
-use crate::display::symbol::geometry::sprite::SpriteSystem;
+use crate::display::symbol::geometry::SpriteSystem;
 use crate::display::world::World;
 use crate::display::symbol::material::Material;
 use crate::display::shape::primitive::shader;
