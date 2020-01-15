@@ -21,6 +21,8 @@ variables:
   graalReleasesUrl: https://github.com/graalvm/graalvm-ce-builds/releases/download
   graalDistributionName: graalvm-ce-java8
   sbtVersion: 1.3.3    # Please ensure this is in sync with project/build.properties
+  wasmpackVersion: 0.8.1
+  rustToolchain: nightly-2019-12-13
 
 jobs:
   - job: Linux
@@ -31,8 +33,19 @@ jobs:
       image: oracle/graalvm-ce:$(graalVersion)-java8
       options: "--name ci-container -v /usr/bin/docker:/tmp/docker:ro"
     steps:
-      - script: /tmp/docker exec -t -u 0 ci-container sh -c "yum install -y sudo"
+      - script: |
+          /tmp/docker exec -t -u 0 ci-container sh -c "yum install -y sudo"
         displayName: Setup Sudo
+      - script: |
+          /tmp/docker exec -t -u 0 ci-container sh -c "yum install -y firefox"
+        displayName: Install Firefox
+      - script: |
+          curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain $(rustToolchain)
+          echo "##vso[task.setvariable variable=PATH;]$PATH:$HOME/.cargo/bin"
+        displayName: Install Rust
+      - script: |
+          cargo install wasm-pack --version $(wasmpackVersion)
+        displayName: Install Wasm-Pack
       - script: |
           curl -fSL -o sbt.tgz https://piccolo.link/sbt-$(sbtVersion).tgz
           tar -x -z -C ~ -f sbt.tgz
@@ -40,11 +53,23 @@ jobs:
         displayName: Install SBT
       - script: |
           sbt -no-colors syntaxJS/fullOptJS
-        displayName: Check Compilation to JS
+        displayName: Generate target/scala-parser.js
+        continueOnError: true
+      - script: |
+          cargo build --all
+        displayName: Cargo Build
+        continueOnError: true
+      - script: |
+          cargo test --all
+        displayName: Cargo Test
+        continueOnError: true
+      - script: |
+          wasm-pack test common/rust/parser --headless --firefox
+        displayName: Wasm-Pack Test Parser
         continueOnError: true
       - script: |
           sbt -no-colors test
-        displayName: Test All
+        displayName: Test SBT
         continueOnError: true
       - script: |
           sbt -no-colors syntax/bench
@@ -88,17 +113,41 @@ jobs:
           echo "##vso[task.setvariable variable=PATH]/Library/Java/JavaVirtualMachines/$(graalDistributionName)-$(graalVersion)/Contents/Home/bin:$PATH"
         displayName: Install GraalVM
       - script: |
+          curl -fSL -o firefox.dmg "https://download.mozilla.org/?product=firefox-latest-ssl&os=osx"
+          hdiutil attach firefox.dmg
+          cp -R /Volumes/Firefox/Firefox.app /Applications/Firefox.app
+        displayName: Install Firefox
+      - script: |
+          curl -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain $(rustToolchain)
+          echo "##vso[task.setvariable variable=PATH;]$PATH:$HOME/.cargo/bin"
+        displayName: Install Rust
+      - script: |
+          cargo install wasm-pack --version $(wasmpackVersion)
+        displayName: Install Wasm-Pack
+      - script: |
           curl -fSL -o sbt.tgz https://piccolo.link/sbt-$(sbtVersion).tgz
           tar -x -z -C ~ -f sbt.tgz
           echo "##vso[task.setvariable variable=PATH]~/sbt/bin/:$PATH"
         displayName: Install SBT
       - script: |
           sbt -no-colors syntaxJS/fullOptJS
-        displayName: Check Compilation to JS
+        displayName: Generate target/scala-parser.js
+        continueOnError: true
+      - script: |
+          cargo build --all
+        displayName: Cargo Build
+        continueOnError: true
+      - script: |
+          cargo test --all
+        displayName: Cargo Test
+        continueOnError: true
+      - script: |
+          wasm-pack test common/rust/parser --headless --firefox
+        displayName: Wasm-Pack Test Parser
         continueOnError: true
       - script: |
           sbt -no-colors test
-        displayName: Test All
+        displayName: Test SBT
         continueOnError: true
       - script: |
           sbt -no-colors syntax/bench
@@ -126,6 +175,20 @@ jobs:
           7z x -y -oC:\ graal.zip
         displayName: Install GraalVM
       - script: |
+          curl -fSL -o firefox.exe "https://download.mozilla.org/?product=firefox-latest-ssl&os=win"
+          firefox.exe /S
+        displayName: Install Firefox
+      - script: |
+          curl -sSf -o rustup-init.exe "https://win.rustup.rs"
+          rustup-init.exe -y --default-toolchain $(rustToolchain)
+          rustup update nightly
+          rustup override set nightly
+          echo "##vso[task.setvariable variable=PATH;]%PATH%;%USERPROFILE%\.cargo\bin"
+        displayName: Install Rust
+      - script: |
+          cargo install wasm-pack --version $(wasmpackVersion)
+        displayName: Install Wasm-Pack
+      - script: |
           curl -fSL -o sbt.tgz https://piccolo.link/sbt-$(sbtVersion).tgz
           tar -x -z -C %USERPROFILE% -f sbt.tgz
         displayName: Install SBT
@@ -136,9 +199,25 @@ jobs:
           echo ##vso[task.setvariable variable=PATH]%USERPROFILE%\sbt\bin\;%PATH%
         displayName: Adjust Environment Variables
       - script: |
-          sbt test
+          sbt -no-colors syntaxJS/fullOptJS
+        displayName: Generate target/scala-parser.js
         continueOnError: true
-        displayName: Test All
+      - script: |
+          cargo build --all
+        displayName: Cargo Build
+        continueOnError: true
+      - script: |
+          cargo test --all
+        continueOnError: true
+        displayName: Cargo Test
+      - script: |
+          wasm-pack test common/rust/parser --headless --firefox
+        displayName: Wasm-Pack Test Parser
+        continueOnError: true
+      - script: |
+          sbt test
+        displayName: Test SBT
+        continueOnError: true
       - script: |
           sbt syntax/bench
         displayName: Benchmark the Parser
