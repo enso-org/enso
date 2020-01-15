@@ -15,6 +15,7 @@ Enso.
 
 - [Strict Evaluation](#strict-evaluation)
     - [Optional Suspension](#optional-suspension)
+- [Bindings](#bindings)
 
 <!-- /MarkdownTOC -->
 
@@ -45,3 +46,19 @@ optional _suspension_, through the built-in `Suspended` type.
 > The actionables for this section are:
 >
 > - Make this far better specified.
+
+## Bindings
+While some expression-based languages with bindings have the binding return the
+value assigned to the binding, we feel that this is far too error prone.
+Consider the following code as a demonstration:
+
+```ruby
+if x = someExprEvaluatingToBool then foo else bar
+```
+
+This is the perennially-discussed C++ bug where you fail to type `==` in an
+if-statement.
+
+Enso, instead, takes the approach where a binding expression returns the
+singleton value of the type `Nothing`, making the above-written code a type
+error.
