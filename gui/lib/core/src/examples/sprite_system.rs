@@ -1,8 +1,8 @@
 #![allow(missing_docs)]
 
 use crate::display::object::DisplayObjectOps;
-use crate::display::symbol::geometry::sprite::Sprite;
-use crate::display::symbol::geometry::sprite::SpriteSystem;
+use crate::display::symbol::geometry::Sprite;
+use crate::display::symbol::geometry::SpriteSystem;
 use crate::display::world::*;
 use crate::prelude::*;
 use crate::system::web::set_stdout;

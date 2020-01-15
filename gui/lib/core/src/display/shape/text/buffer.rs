@@ -9,9 +9,9 @@ pub mod line;
 
 use crate::prelude::*;
 
-use crate::display::render::webgl::Context;
-use crate::display::render::webgl::set_buffer_data;
-use crate::display::render::webgl::set_buffer_subdata;
+use crate::system::gpu::shader::Context;
+use crate::system::gpu::shader::set_buffer_data;
+use crate::system::gpu::shader::set_buffer_subdata;
 use crate::display::shape::text::buffer::glyph_square::BASE_LAYOUT_SIZE;
 use crate::display::shape::text::buffer::glyph_square::GlyphAttributeBuilder;
 use crate::display::shape::text::buffer::glyph_square::GlyphVertexPositionBuilder;

@@ -16,7 +16,7 @@ pub mod program;
 use crate::prelude::*;
 
 use crate::display::world::Workspace;
-use crate::display::render::webgl::Context;
+use crate::system::gpu::shader::Context;
 use crate::display::shape::text::buffer::TextComponentBuffers;
 use crate::display::shape::text::content::TextComponentContent;
 use crate::display::shape::text::cursor::Cursors;

@@ -3,4 +3,4 @@
 #[warn(missing_docs)]
 pub mod camera2d;
 
-pub use camera2d::Camera2D;
+pub use camera2d::Camera2d;

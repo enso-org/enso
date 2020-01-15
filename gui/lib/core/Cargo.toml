@@ -8,35 +8,37 @@ edition = "2018"
 crate-type = ["rlib", "cdylib"]
 
 [features]
-default = ["no_unboxed_callbacks"]
+default = ["statistics", "no_unboxed_callbacks"]
+statistics = []
 no_unboxed_callbacks = []
 
 [dependencies]
-data                       = { version = "0.1.0"  , path = "../data"          }
-basegl-prelude             = { version = "0.1.0"  , path = "../prelude"       }
-eval-tt                    = { version = "0.1.0"  , path = "../eval-tt"       }
-optics                     = { version = "0.1.0"  , path = "../optics"        }
-basegl-system-web          = { version = "0.1.0"  , path = "../system/web"    }
 basegl-core-embedded-fonts = { version = "0.1.0"  , path = "embedded-fonts"   }
 basegl-core-msdf-sys       = { version = "0.1.0"  , path = "msdf-sys"         }
-shapely                    = { version = "0.1.0"  , path = "../shapely/impl"  }
+basegl-prelude             = { version = "0.1.0"  , path = "../prelude"       }
+basegl-system-web          = { version = "0.1.0"  , path = "../system/web"    }
 code-builder               = { version = "0.1.0"  , path = "../code-builder"  }
-wasm-bindgen               = { version = "^0.2"   , features = ["nightly"]    }
-js-sys                     = { version = "0.3.28" }
-failure                    = { version = "0.1.5"  }
-derive_more                = { version = "0.15.0" }
-shrinkwraprs               = { version = "0.3.0"  }
-itertools                  = { version = "0.8"    }
-nalgebra                   = { version = "0.19.0" }
+data                       = { version = "0.1.0"  , path = "../data"          }
+eval-tt                    = { version = "0.1.0"  , path = "../eval-tt"       }
+logger                     = { version = "0.1.0"  , path = "../logger"        }
+optics                     = { version = "0.1.0"  , path = "../optics"        }
+shapely                    = { version = "0.1.0"  , path = "../shapely/impl"  }
+
 bit_field                  = { version = "0.10.0" }
-paste                      = { version = "0.1.6"  }
-enum_dispatch              = { version = "0.2.0"  }
-typenum                    = { version = "1.11.2" }
-rustc-hash                 = { version = "1.0.1"  }
 console_error_panic_hook   = { version = "0.1.6"  }
-num_enum                   = { version = "0.4.2"  }
-smallvec                   = { version = "1.0.0"  }
+enum_dispatch              = { version = "0.2.0"  }
+failure                    = { version = "0.1.5"  }
 Inflector                  = { version = "0.11.4" }
+itertools                  = { version = "0.8"    }
+js-sys                     = { version = "0.3.28" }
+nalgebra                   = { version = "0.19.0" }
+num_enum                   = { version = "0.4.2"  }
+paste                      = { version = "0.1.6"  }
+rustc-hash                 = { version = "1.0.1"  }
+shrinkwraprs               = { version = "0.3.0"  }
+smallvec                   = { version = "1.0.0"  }
+typenum                    = { version = "1.11.2" }
+wasm-bindgen               = { version = "^0.2"   , features = ["nightly"]    }
 
 [dependencies.web-sys]
 version = "0.3.4"
@@ -50,7 +52,10 @@ features = [
   'HtmlCanvasElement',
   'HtmlCollection',
   'HtmlElement',
+  'HtmlImageElement',
+  'Location',
   'Node',
+  'Url',
   'WebGlBuffer',
   'WebGlProgram',
   'WebGlRenderingContext',

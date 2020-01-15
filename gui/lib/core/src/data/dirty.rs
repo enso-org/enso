@@ -9,8 +9,6 @@
 use crate::prelude::*;
 
 use crate::data::function::callback::*;
-use crate::system::web::group;
-use crate::system::web::Logger;
 use rustc_hash::FxHashSet;
 use std::hash::Hash;
 use std::mem;
@@ -69,18 +67,18 @@ use traits::*;
 /// logging and callback utilities to the underlying data. Moreover, it
 /// implements public API for working with dirty flags.
 #[derive(Derivative)]
-#[derivative(Debug(bound = "T:Debug"))]
-pub struct DirtyFlag<T,OnSet> {
+#[derivative(Debug(bound="T:Debug"))]
+pub struct DirtyFlag<T,OnMut> {
     pub data : T,
-    on_set   : Callback<OnSet>,
+    on_set   : Function<OnMut>,
     logger   : Logger,
 }
 
 
 // === Basics ===
 
-impl<OnSet,T:Default> DirtyFlag<T,OnSet> {
-    pub fn new(logger: Logger, on_set:Callback<OnSet>) -> Self {
+impl<OnMut,T:Default> DirtyFlag<T,OnMut> {
+    pub fn new(logger: Logger, on_set: Function<OnMut>) -> Self {
         let data = default();
         Self {data,on_set,logger}
     }
@@ -93,36 +91,36 @@ impl<OnSet,T:Default> DirtyFlag<T,OnSet> {
 
 // === Arguments ===
 
-impl<T:HasArg,OnSet>
-HasArg for DirtyFlag<T,OnSet> {
+impl<T:HasArg,OnMut>
+HasArg for DirtyFlag<T,OnMut> {
     type Arg = Arg<T>;
 }
 
 
 // === Global Operations ===
 
-impl<T:HasCheckAll,OnSet>
-HasCheckAll for DirtyFlag<T,OnSet> {
+impl<T:HasCheckAll,OnMut>
+HasCheckAll for DirtyFlag<T,OnMut> {
     fn check_all(&self) -> bool { self.data.check_all() }
 }
 
-impl<T:HasUnsetAll,OnSet>
-HasUnsetAll for DirtyFlag<T,OnSet> {
+impl<T:HasUnsetAll,OnMut>
+HasUnsetAll for DirtyFlag<T,OnMut> {
     fn unset_all(&mut self) { self.data.unset_all() }
 }
 
 
 // === Check ===
 
-impl<T:DirtyFlagOps0,OnSet>
-HasCheck0 for DirtyFlag<T,OnSet> {
+impl<T:DirtyFlagOps0,OnMut>
+HasCheck0 for DirtyFlag<T,OnMut> {
     fn check(&self) -> bool {
         self.data.check()
     }
 }
 
-impl<T:DirtyFlagOps1,OnSet>
-HasCheck1 for DirtyFlag<T,OnSet> {
+impl<T:DirtyFlagOps1,OnMut>
+HasCheck1 for DirtyFlag<T,OnMut> {
     fn check(&self, arg: &Self::Arg) -> bool {
         self.data.check(arg)
     }
@@ -131,8 +129,8 @@ HasCheck1 for DirtyFlag<T,OnSet> {
 
 // === Set ===
 
-impl<T:DirtyFlagOps0,OnSet:Callback0>
-HasSet0 for  DirtyFlag<T,OnSet> {
+impl<T:DirtyFlagOps0,OnMut:Function0>
+HasSet0 for  DirtyFlag<T,OnMut> {
     fn set(&mut self) {
         let is_set = self.data.check_all();
         if !is_set {
@@ -144,14 +142,14 @@ HasSet0 for  DirtyFlag<T,OnSet> {
     }
 }
 
-impl<T:DirtyFlagOps1,OnSet:Callback0>
-HasSet1 for DirtyFlag<T,OnSet> {
+impl<T:DirtyFlagOps1,OnMut:Function0>
+HasSet1 for DirtyFlag<T,OnMut> {
     fn set(&mut self, arg: Self::Arg) {
         let first_set = !self.check_all();
         let is_set    = self.data.check(&arg);
         if !is_set {
             self.data.set(arg);
-            group!(self.logger, format!("Setting to {}.", self.data), {
+            group!(self.logger, "Setting to {self.data}.", {
                 if first_set { self.on_set.call() }
             })
         }
@@ -161,19 +159,19 @@ HasSet1 for DirtyFlag<T,OnSet> {
 
 // === Unset ===
 
-impl<T:HasUnset0,OnSet>
-HasUnset0 for DirtyFlag<T,OnSet> {
+impl<T:HasUnset0,OnMut>
+HasUnset0 for DirtyFlag<T,OnMut> {
     fn unset(&mut self) {
-        self.logger.info("Unsetting.");
+        info!(self.logger, "Unsetting.");
         self.data.unset()
     }
 }
 
-impl<T:HasUnset1,OnSet>
-HasUnset1 for DirtyFlag<T,OnSet>
+impl<T:HasUnset1,OnMut>
+HasUnset1 for DirtyFlag<T,OnMut>
     where Arg<T>:Display {
     fn unset(&mut self, arg: &Self::Arg) {
-        self.logger.info(|| format!("Unsetting {}.", arg));
+        info!(self.logger, "Unsetting {arg}.");
         self.data.unset(arg)
     }
 }
@@ -189,19 +187,19 @@ HasUnset1 for DirtyFlag<T,OnSet>
 /// A version of `DirtyFlag` which uses internal mutability pattern. It is meant to expose the same
 /// API but without requiring `self` reference to be mutable.
 #[derive(Derivative)]
-#[derivative(Debug(bound = "T:Debug"))]
-#[derivative(Clone(bound = ""))]
-pub struct SharedDirtyFlag<T,OnSet> {
-    rc: Rc<RefCell<DirtyFlag<T,OnSet>>>
+#[derivative(Debug(bound="T:Debug"))]
+#[derivative(Clone(bound=""))]
+pub struct SharedDirtyFlag<T,OnMut> {
+    rc: Rc<RefCell<DirtyFlag<T,OnMut>>>
 }
 
 
 // === API ===
 
-impl<T:Default,OnSet>
-SharedDirtyFlag<T,OnSet> {
-    pub fn new(logger: Logger, on_set: OnSet) -> Self {
-        let callback = Callback(on_set);
+impl<T:Default,OnMut>
+SharedDirtyFlag<T,OnMut> {
+    pub fn new(logger:Logger, on_set:OnMut) -> Self {
+        let callback = Function(on_set);
         let rc       = Rc::new(RefCell::new(DirtyFlag::new(logger,callback)));
         Self { rc }
     }
@@ -211,23 +209,23 @@ SharedDirtyFlag<T,OnSet> {
     }
 }
 
-impl<T,OnSet>
-SharedDirtyFlag<T,OnSet> {
+impl<T,OnMut>
+SharedDirtyFlag<T,OnMut> {
     pub fn clone_ref(&self) -> Self {
         self.clone()
     }
 }
 
-impl<T,OnSet>
-SharedDirtyFlag<T,OnSet> {
-    pub fn set_callback(&self, on_set:OnSet) {
-        self.rc.borrow_mut().on_set = Callback(on_set);
+impl<T,OnMut>
+SharedDirtyFlag<T,OnMut> {
+    pub fn set_callback(&self, on_set:OnMut) {
+        self.rc.borrow_mut().on_set = Function(on_set);
     }
 }
 
-impl<T,OnSet>
-From<Rc<RefCell<DirtyFlag<T,OnSet>>>> for SharedDirtyFlag<T,OnSet> {
-    fn from(rc: Rc<RefCell<DirtyFlag<T,OnSet>>>) -> Self {
+impl<T,OnMut>
+From<Rc<RefCell<DirtyFlag<T,OnMut>>>> for SharedDirtyFlag<T,OnMut> {
+    fn from(rc: Rc<RefCell<DirtyFlag<T,OnMut>>>) -> Self {
         Self {rc}
     }
 }
@@ -235,22 +233,22 @@ From<Rc<RefCell<DirtyFlag<T,OnSet>>>> for SharedDirtyFlag<T,OnSet> {
 
 // === Arg ===
 
-impl<T:HasArg,OnSet> HasArg for SharedDirtyFlag<T,OnSet> {
+impl<T:HasArg,OnMut> HasArg for SharedDirtyFlag<T,OnMut> {
     type Arg = Arg<T>;
 }
 
 
 // === Global Operations ===
 
-impl<T:HasUnsetAll,OnSet>
-SharedHasUnsetAll for SharedDirtyFlag<T,OnSet> {
+impl<T:HasUnsetAll,OnMut>
+SharedHasUnsetAll for SharedDirtyFlag<T,OnMut> {
     fn unset_all(&self) {
         self.rc.borrow_mut().unset_all()
     }
 }
 
-impl<T:HasCheckAll,OnSet>
-HasCheckAll for SharedDirtyFlag<T,OnSet> {
+impl<T:HasCheckAll,OnMut>
+HasCheckAll for SharedDirtyFlag<T,OnMut> {
     fn check_all(&self) -> bool {
         self.rc.borrow().check_all()
     }
@@ -258,39 +256,39 @@ HasCheckAll for SharedDirtyFlag<T,OnSet> {
 
 // === Check ===
 
-impl<T:DirtyFlagOps0,OnSet>
-HasCheck0 for SharedDirtyFlag<T,OnSet> {
+impl<T:DirtyFlagOps0,OnMut>
+HasCheck0 for SharedDirtyFlag<T,OnMut> {
     fn check (&self) -> bool { self.rc.borrow().check()   }
 }
 
-impl<T:DirtyFlagOps1,OnSet>
-HasCheck1 for SharedDirtyFlag<T,OnSet> {
+impl<T:DirtyFlagOps1,OnMut>
+HasCheck1 for SharedDirtyFlag<T,OnMut> {
     fn check (&self, arg:&Arg<T>) -> bool { self.rc.borrow().check(arg)   }
 }
 
 // === Set ===
 
-impl<T:DirtyFlagOps0,OnSet:Callback0>
-SharedHasSet0 for SharedDirtyFlag<T,OnSet> {
+impl<T:DirtyFlagOps0,OnMut:Function0>
+SharedHasSet0 for SharedDirtyFlag<T,OnMut> {
     fn set (&self) { self.rc.borrow_mut().set() }
 }
 
-impl<T:DirtyFlagOps1,OnSet:Callback0>
-SharedHasSet1 for SharedDirtyFlag<T,OnSet> {
+impl<T:DirtyFlagOps1,OnMut:Function0>
+SharedHasSet1 for SharedDirtyFlag<T,OnMut> {
     fn set (&self, arg: Arg<T>) { self.rc.borrow_mut().set(arg) }
 }
 
 // === Unset ===
 
-impl<T:HasUnset0,OnSet>
-SharedHasUnset0 for SharedDirtyFlag<T,OnSet> {
+impl<T:HasUnset0,OnMut>
+SharedHasUnset0 for SharedDirtyFlag<T,OnMut> {
     fn unset(&self) {
         self.rc.borrow_mut().unset()
     }
 }
 
-impl<T:HasUnset1,OnSet>
-SharedHasUnset1 for SharedDirtyFlag<T,OnSet> where Arg<T>:Display {
+impl<T:HasUnset1,OnMut>
+SharedHasUnset1 for SharedDirtyFlag<T,OnMut> where Arg<T>:Display {
     fn unset(&self, arg:&Self::Arg) {
         self.rc.borrow_mut().unset(arg)
     }
@@ -309,9 +307,9 @@ SharedHasUnset1 for SharedDirtyFlag<T,OnSet> where Arg<T>:Display {
 /// The on / off dirty flag. If you need a simple dirty / clean switch, this one
 /// is the right choice.
 
-pub type  Bool       <OnSet=()> = DirtyFlag       <BoolData,OnSet>;
-pub type  SharedBool <OnSet=()> = SharedDirtyFlag <BoolData,OnSet>;
-pub trait BoolCtx    <OnSet>    = where OnSet: Callback0;
+pub type  Bool       <OnMut=()> = DirtyFlag       <BoolData,OnMut>;
+pub type  SharedBool <OnMut=()> = SharedDirtyFlag <BoolData,OnMut>;
+pub trait BoolCtx    <OnMut>    = where OnMut:Function0;
 
 #[derive(Debug,Display,Default)]
 pub struct BoolData { is_dirty: bool }
@@ -330,9 +328,9 @@ impl HasUnset0   for BoolData { fn unset     (&mut self)         { self.is_dirty
 /// Dirty flag which keeps information about a range of dirty items. It does not track items
 /// separately, nor you are allowed to keep multiple ranges in it. Just a single value range.
 
-pub type  Range       <Ix,OnSet> = DirtyFlag       <RangeData<Ix>,OnSet>;
-pub type  SharedRange <Ix,OnSet> = SharedDirtyFlag <RangeData<Ix>,OnSet>;
-pub trait RangeCtx       <OnSet> = where OnSet: Callback0;
+pub type  Range       <Ix,OnMut> = DirtyFlag       <RangeData<Ix>,OnMut>;
+pub type  SharedRange <Ix,OnMut> = SharedDirtyFlag <RangeData<Ix>,OnMut>;
+pub trait RangeCtx       <OnMut> = where OnMut:Function0;
 pub trait RangeIx                = PartialOrd + Copy + Debug;
 
 #[derive(Debug,Default)]
@@ -384,9 +382,9 @@ impl<Ix:RangeIx> Display for RangeData<Ix> {
 /// counterpart. Please note that it uses `FxHashSet` under the hood, so there
 /// are no guarantees regarding attack-proof hashing algorithm here.
 
-pub type  Set       <Ix,OnSet=()> = DirtyFlag       <SetData<Ix>,OnSet>;
-pub type  SharedSet <Ix,OnSet=()> = SharedDirtyFlag <SetData<Ix>,OnSet>;
-pub trait SetCtx       <OnSet>    = where OnSet: Callback0;
+pub type  Set       <Ix,OnMut=()> = DirtyFlag       <SetData<Ix>,OnMut>;
+pub type  SharedSet <Ix,OnMut=()> = SharedDirtyFlag <SetData<Ix>,OnMut>;
+pub trait SetCtx       <OnMut>    = where OnMut:Function0;
 pub trait SetItem                 = Eq + Hash + Debug;
 
 #[derive(Derivative,Shrinkwrap)]
@@ -442,16 +440,16 @@ use bit_field::BitField as BF;
 /// items must be a plain enumerator implementing `Into<usize>`. The data is
 /// stored as an efficient `BitField` under the hood.
 
-pub type  Enum       <Prim,T,OnSet> = DirtyFlag       <EnumData<Prim,T>,OnSet>;
-pub type  SharedEnum <Prim,T,OnSet> = SharedDirtyFlag <EnumData<Prim,T>,OnSet>;
-pub trait EnumCtx           <OnSet> = where OnSet: Callback0;
+pub type  Enum       <Prim,T,OnMut> = DirtyFlag       <EnumData<Prim,T>,OnMut>;
+pub type  SharedEnum <Prim,T,OnMut> = SharedDirtyFlag <EnumData<Prim,T>,OnMut>;
+pub trait EnumCtx           <OnMut> = where OnMut:Function0;
 pub trait EnumBase                  = Default + PartialEq + Copy + BF;
 pub trait EnumElem                  = Copy+Into<usize>;
 
 /// Dirty flag which keeps dirty indexes in a `BitField` under the hood.
 
-pub type  BitField        <Prim,OnSet> = Enum       <Prim,usize,OnSet>;
-pub type  SharedBitField  <Prim,OnSet> = SharedEnum <Prim,usize,OnSet>;
+pub type  BitField        <Prim,OnMut> = Enum       <Prim,usize,OnMut>;
+pub type  SharedBitField  <Prim,OnMut> = SharedEnum <Prim,usize,OnMut>;
 
 #[derive(Derivative)]
 #[derivative(Debug(bound="Prim:Debug"))]

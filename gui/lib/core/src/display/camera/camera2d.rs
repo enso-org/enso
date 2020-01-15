@@ -8,7 +8,8 @@ use crate::prelude::*;
 use crate::data::dirty;
 use crate::display::object::DisplayObjectData;
 use nalgebra::{Vector3, Matrix4, Perspective3};
-use basegl_system_web::Logger;
+use crate::system::gpu::data::uniform::Uniform;
+use crate::system::gpu::data::uniform::UniformScope;
 use crate::data::dirty::traits::*;
 
 
@@ -104,15 +105,16 @@ impl Default for Clipping {
 
 
 // ====================
-// === Camera2DData ===
+// === Camera2dData ===
 // ====================
 
-/// Internal `Camera2D` representation. Please see `Camera2D` for full documentation.
+/// Internal `Camera2d` representation. Please see `Camera2d` for full documentation.
 #[derive(Clone,Debug)]
-pub struct Camera2DData {
+pub struct Camera2dData {
     pub transform          : DisplayObjectData,
     screen                 : Screen,
     zoom                   : f32,
+    zoom_uniform           : Uniform<f32>,
     native_z               : f32,
     alignment              : Alignment,
     projection             : Projection,
@@ -127,8 +129,8 @@ pub struct Camera2DData {
 type ProjectionDirty = dirty::SharedBool<()>;
 type TransformDirty2 = dirty::SharedBool<()>;
 
-impl Camera2DData {
-    pub fn new(logger: Logger) -> Self {
+impl Camera2dData {
+    pub fn new(logger:Logger, globals:&UniformScope) -> Self {
         let screen                 = default();
         let projection             = default();
         let clipping               = default();
@@ -142,10 +144,11 @@ impl Camera2DData {
         let transform_dirty        = TransformDirty2::new(logger.sub("transform_dirty"),());
         let transform_dirty_copy   = transform_dirty.clone();
         let transform              = DisplayObjectData::new(logger);
+        let zoom_uniform           = globals.add_or_panic("zoom",1.0);
         transform.set_on_updated(move |_| { transform_dirty_copy.set(); });
         transform.mod_position(|p| p.z = 1.0);
         projection_dirty.set();
-        Self {transform,screen,projection,clipping,alignment,zoom,native_z,view_matrix
+        Self {transform,screen,projection,clipping,alignment,zoom,zoom_uniform,native_z,view_matrix
              ,projection_matrix,view_projection_matrix,projection_dirty,transform_dirty}
     }
 
@@ -187,6 +190,7 @@ impl Camera2DData {
         }
         if changed {
             self.view_projection_matrix = self.projection_matrix * self.view_matrix;
+            self.zoom_uniform.set(self.zoom);
         }
         changed
     }
@@ -195,7 +199,7 @@ impl Camera2DData {
 
 // === Getters ===
 
-impl Camera2DData {
+impl Camera2dData {
     pub fn zoom(&self) -> f32 {
         self.zoom
     }
@@ -208,7 +212,7 @@ impl Camera2DData {
 
 // === Setters ===
 
-impl Camera2DData {
+impl Camera2dData {
     pub fn projection_mut(&mut self) -> &mut Projection {
         self.projection_dirty.set();
         &mut self.projection
@@ -240,7 +244,7 @@ impl Camera2DData {
 
 // === Transform Setters ===
 
-impl Camera2DData {
+impl Camera2dData {
     pub fn mod_position<F:FnOnce(&mut Vector3<f32>)>(&mut self, f:F) {
         self.mod_position_keep_zoom(f);
         self.zoom = self.native_z / self.transform.position().z;
@@ -254,7 +258,7 @@ impl Camera2DData {
 
 // === Private Transform Setters ===
 
-impl Camera2DData {
+impl Camera2dData {
     fn mod_position_keep_zoom<F:FnOnce(&mut Vector3<f32>)>(&mut self, f:F) {
         self.transform.mod_position(f)
     }
@@ -263,7 +267,7 @@ impl Camera2DData {
 
 
 // ================
-// === Camera2D ===
+// === Camera2d ===
 // ================
 
 /// Camera definition for 2D objects.
@@ -282,14 +286,14 @@ impl Camera2DData {
 ///   corner, you will get a view which behaves like a window in window-based GUIs. When scaling
 ///   the window, the left-bottom corner will stay in place.
 #[derive(Clone,Debug)]
-pub struct Camera2D {
-    rc: Rc<RefCell<Camera2DData>>
+pub struct Camera2d {
+    rc: Rc<RefCell<Camera2dData>>
 }
 
-impl Camera2D {
+impl Camera2d {
     /// Creates new Camera instance.
-    pub fn new(logger:Logger) -> Self {
-        let data = Camera2DData::new(logger);
+    pub fn new(logger:Logger, globals:&UniformScope) -> Self {
+        let data = Camera2dData::new(logger,globals);
         let rc   = Rc::new(RefCell::new(data));
         Self {rc}
     }
@@ -298,7 +302,7 @@ impl Camera2D {
 
 // === Modifiers ===
 
-impl Camera2D {
+impl Camera2d {
     /// Sets screen dimensions.
     pub fn set_screen(&self, width:f32, height:f32) {
         self.rc.borrow_mut().set_screen(width,height)
@@ -313,7 +317,7 @@ impl Camera2D {
 
 // === Getters ===
 
-impl Camera2D {
+impl Camera2d {
     pub fn zoom(&self) -> f32 {
         self.rc.borrow().zoom()
     }
@@ -326,7 +330,7 @@ impl Camera2D {
 
 // === Setters ===
 
-impl Camera2D {
+impl Camera2d {
     pub fn mod_position<F:FnOnce(&mut Vector3<f32>)>(&self, f:F) {
         self.rc.borrow_mut().mod_position(f)
     }

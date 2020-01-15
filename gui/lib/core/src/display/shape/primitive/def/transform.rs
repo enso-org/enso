@@ -9,6 +9,7 @@ use crate::display::shape::primitive::def::class::ShapeRef;
 use crate::display::shape::primitive::shader::canvas::Canvas;
 use crate::display::shape::primitive::shader::canvas::CanvasShape;
 use crate::display::shape::primitive::shader::data::ShaderData;
+use crate::system::gpu::shader::glsl::Glsl;
 
 
 
@@ -32,15 +33,15 @@ use crate::display::shape::primitive::shader::data::ShaderData;
 ///
 ///     pub struct Translate<child> {
 ///         pub child : child,
-///         pub x     : String,
-///         pub y     : String,
+///         pub x     : Glsl,
+///         pub y     : Glsl,
 ///     }
 ///
 ///     impl<child:Shape> Translate<child> {
 ///         pub fn new<x:ShaderData<f32>,y:ShaderData<f32>>(child:&child,x:x,y:y) -> Self {
 ///             let child = child.clone();
-///             let x     = x.to_glsl();
-///             let y     = y.to_glsl();
+///             let x     = x.into();
+///             let y     = y.into();
 ///             Self {child,x,y}
 ///         }
 ///     }
@@ -80,7 +81,7 @@ macro_rules! _define_compound_shape_data {
         #[allow(missing_docs)]
         pub struct $name<$($shape_field),*> {
             $(pub $shape_field : $shape_field),*,
-            $(pub $field       : String      ),*
+            $(pub $field       : Glsl),*
         }
 
         impl<$($shape_field:Shape),*> $name<$($shape_field),*> {
@@ -88,7 +89,7 @@ macro_rules! _define_compound_shape_data {
             pub fn new<$($field:ShaderData<$field_type>),*>
             ($($shape_field:&$shape_field),*,$($field:$field),*) -> Self {
                 $(let $shape_field = $shape_field.clone();)*
-                $(let $field       = $field.to_glsl();)*
+                $(let $field       = $field.into();)*
                 Self {$($shape_field),*,$($field),*}
             }
         }

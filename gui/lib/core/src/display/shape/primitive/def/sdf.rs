@@ -13,7 +13,9 @@ use crate::display::shape::primitive::def::class::ShapeRef;
 use crate::display::shape::primitive::shader::canvas::Canvas;
 use crate::display::shape::primitive::shader::canvas::CanvasShape;
 use crate::display::shape::primitive::shader::data::ShaderData;
-use crate::system::gpu::data::GpuData;
+use crate::system::gpu::shader::glsl::Glsl;
+
+use crate::system::gpu::shader::glsl::traits::*;
 
 
 
@@ -63,14 +65,14 @@ pub trait SdfShape {
 ///
 ///     #[derive(Debug,Clone)]
 ///     pub struct Circle {
-///         pub glsl_name : String,
-///         pub radius    : String,
+///         pub glsl_name : Glsl,
+///         pub radius    : Glsl,
 ///     }
 ///
 ///     impl Circle {
 ///         pub fn new<radius:ShaderData<f32>>(radius:radius) -> Self {
-///             let glsl_name = "circle".to_string();
-///             let radius    = radius.to_glsl();
+///             let glsl_name = "circle".into();
+///             let radius    = radius.into();
 ///             Self {glsl_name,radius}
 ///         }
 ///     }
@@ -97,7 +99,7 @@ pub trait SdfShape {
 ///             let body = "return bound_sdf(length(position)-radius, bounding_box(radius,radius));";
 ///             let args = vec![
 ///                 "vec2 position".to_string(),
-///                 format!("{} {}", <$f32 as GpuData>::gpu_type_name(), "radius")
+///                 format!("{} {}", <$f32 as BufferItem>::gpu_type_name(), "radius")
 ///                 ].join(", ");
 ///             format!("sdf {} ({}) {{ {} }}",self.glsl_name,args,body)
 ///         }
@@ -156,7 +158,7 @@ macro_rules! _define_sdf_shape_immutable_part {
                 let name = stringify!($name).to_snake_case();
                 let body = stringify!($body);
                 let args = vec!["vec2 position".to_string(), $(
-                    format!("{} {}", <$field_type as GpuData>::glsl_type_name(), stringify!($field))
+                    format!("{} {}", <$field_type>::glsl_prim_type(), stringify!($field))
                 ),*].join(", ");
                 iformat!("BoundSdf {name} ({args}) {body}")
             }
@@ -172,16 +174,16 @@ macro_rules! _define_sdf_shape_mutable_part {
         #[allow(missing_docs)]
         #[derive(Debug,Clone)]
         pub struct $name {
-            pub glsl_name : String,
-            $(pub $field  : String),*
+            pub glsl_name : Glsl,
+            $(pub $field  : Glsl),*
         }
 
         impl $name {
             /// Constructor.
             #[allow(clippy::new_without_default)]
             pub fn new <$($field:ShaderData<$field_type>),*> ( $($field : $field),* ) -> Self {
-                let glsl_name = stringify!($name).to_snake_case();
-                $(let $field = $field.to_glsl();)*
+                let glsl_name = stringify!($name).to_snake_case().into();
+                $(let $field = $field.into();)*
                 Self {glsl_name,$($field),*}
             }
         }

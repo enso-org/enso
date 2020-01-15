@@ -2,7 +2,7 @@
 //! component library. It is able to display millions of shapes 60 frames per second in a web
 //! browser on a modern laptop hardware. This is the main entry point to the library.
 
-#![cfg_attr(test, allow(dead_code))]
+#![allow(dead_code)]
 
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
@@ -20,6 +20,7 @@
 #![feature(unboxed_closures)]
 #![feature(weak_into_raw)]
 #![feature(drain_filter)]
+#![recursion_limit="256"]
 
 // To be removed after this gets resolved: https://github.com/rust-lang/cargo/issues/5034
 #![allow(clippy::option_map_unit_fn)]
@@ -49,6 +50,10 @@ pub mod debug;
 pub mod display;
 pub mod examples;
 pub mod system;
-pub mod math;
 
-pub use basegl_prelude as prelude;
+/// Prelude - commonly used utilities.
+pub mod prelude {
+    pub use basegl_prelude::*;
+    pub use logger::*;
+    pub use shapely::newtype_copy;
+}

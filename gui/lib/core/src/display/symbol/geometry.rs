@@ -3,4 +3,16 @@
 
 pub mod compound;
 pub mod primitive;
-pub mod sprite;
+
+
+// =================
+// === Reexports ===
+// =================
+
+/// Common types.
+pub mod types {
+    use super::*;
+    pub use primitive::types::*;
+    pub use compound::types::*;
+}
+pub use types::*;

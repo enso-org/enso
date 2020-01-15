@@ -44,7 +44,6 @@ macro_rules! gen_stats {
         }
 
         impl Stats { $(
-
             /// Field getter.
             pub fn $field(&self) -> $field_type {
                 self.rc.borrow().$field
@@ -97,4 +96,15 @@ impl StatsData {
         self.data_upload_count    = 0;
         self.data_upload_size     = 0;
     }
+}
+
+/// Keeps the body if the `statistics` compilation flag was enabled.
+#[macro_export]
+macro_rules! if_compiled_with_stats {
+    ($($tok:tt)*) => {
+        #[cfg(feature = "statistics")]
+        {$($tok)*}
+        #[cfg(not(feature = "statistics"))]
+        {}
+    };
 }

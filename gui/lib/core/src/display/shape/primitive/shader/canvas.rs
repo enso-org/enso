@@ -2,6 +2,7 @@
 
 use crate::prelude::*;
 use crate::display::shape::primitive::shader::data::ShaderData;
+use crate::system::gpu::shader::glsl::Glsl;
 
 
 
@@ -189,13 +190,13 @@ impl Canvas {
     }
 
     /// Translate the current canvas origin.
-    pub fn translate<X: ShaderData<f32>,Y: ShaderData<f32>>
+    pub fn translate<X:ShaderData<f32>, Y:ShaderData<f32>>
     (&mut self, num:usize, s1:CanvasShape, x:X, y:Y) -> CanvasShape {
         self.if_not_defined(num, |this| {
-            let x     = x.to_glsl();
-            let y     = y.to_glsl();
-            let trans = iformat!("position = translate(position,vec2({x},{y}));");
-            let expr  = iformat!("return {s1.getter()};");
+            let x:Glsl = x.into();
+            let y:Glsl = y.into();
+            let trans  = iformat!("position = translate(position,vec2({x},{y}));");
+            let expr   = iformat!("return {s1.getter()};");
             this.add_current_function_code_line(trans);
             let mut shape = this.new_shape_from_expr(num,&expr);
             shape.add_ids(&s1.ids);

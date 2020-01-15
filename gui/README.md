@@ -61,6 +61,13 @@ please use the `npm run prod-server` command.
 
 **Please remember to disable the cache in your browser during development!**
 
+### Minimizing the WASM binary size.
+After building the project you can use the `scripts/minimize_wasm.sh` to optimize 
+the binary and compress it by using `gzip`. After the script is complete, the
+final size is printed to stdout. Please note that in order to run the script, the
+[Binaryen](https://github.com/WebAssembly/binaryen) toolkit has to be installed
+on your system.
+
 ### Running tests
 The sources use both unit tests and web test, which are run in a browser and
 produce visual results. To run them, use the `scripts/test.sh` script and follow

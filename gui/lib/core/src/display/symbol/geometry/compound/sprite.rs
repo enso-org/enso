@@ -4,12 +4,12 @@
 
 use crate::prelude::*;
 
-use crate::display::object::*;
-use crate::display::symbol::geometry::primitive::mesh::InstanceId;
 use crate::display::symbol::material::Material;
+use crate::system::gpu::data::AttributeInstanceIndex;
+
+use crate::display::object::*;
 use crate::display::world::*;
 
-use basegl_system_web::Logger;
 use nalgebra::Vector2;
 use nalgebra::Vector3;
 use nalgebra::Matrix4;
@@ -29,7 +29,7 @@ pub struct SymbolRef {
 
 impl SymbolRef {
     /// Constructor.
-    pub fn new(world: World, symbol_id:SymbolId) -> Self {
+    pub fn new(world:World, symbol_id:SymbolId) -> Self {
         Self {world,symbol_id}
     }
 }
@@ -44,12 +44,12 @@ impl SymbolRef {
 #[derive(Clone,Debug)]
 pub struct SpriteRef {
     symbol_ref  : SymbolRef,
-    instance_id : InstanceId,
+    instance_id : AttributeInstanceIndex,
 }
 
 impl SpriteRef {
     /// Constructor.
-    pub fn new(symbol_ref:SymbolRef, instance_id:InstanceId) -> Self {
+    pub fn new(symbol_ref:SymbolRef, instance_id:AttributeInstanceIndex) -> Self {
         Self {symbol_ref,instance_id}
     }
 }
@@ -132,16 +132,17 @@ struct SpriteData {
 
 impl SpriteData {
     pub fn new
-    (sprite_ref:SpriteRef, _transform:Attribute<Matrix4<f32>>, bbox:Attribute<Vector2<f32>>) -> Self {
+    ( sprite_ref:SpriteRef
+    , _transform:Attribute<Matrix4<f32>>
+    , bbox:Attribute<Vector2<f32>>
+    ) -> Self {
         let logger         = Logger::new(format!("Sprite{}",sprite_ref.instance_id));
         let display_object = DisplayObjectData::new(logger);
         let transform_cp   = _transform.clone();
         display_object.set_on_updated(move |t| {
             transform_cp.set(t.matrix().clone());
         });
-
         sprite_ref.symbol_ref.world.mod_stats(|stats| stats.inc_sprite_count());
-
         Self {sprite_ref,display_object,_transform,bbox}
     }
 }
@@ -181,11 +182,11 @@ impl Drop for SpriteData {
 /// system is a very efficient way to display geometry. Sprites are rendered as instances of the
 /// same mesh. Each sprite can be controlled by the instance and global attributes.
 pub struct SpriteSystem {
-    display_object    : DisplayObjectData,
-    symbol_ref        : SymbolRef,
-    transform         : Buffer<Matrix4<f32>>,
-    _uv               : Buffer<Vector2<f32>>,
-    bbox              : Buffer<Vector2<f32>>,
+    display_object : DisplayObjectData,
+    symbol_ref     : SymbolRef,
+    transform      : Buffer<Matrix4<f32>>,
+    _uv            : Buffer<Vector2<f32>>,
+    bbox           : Buffer<Vector2<f32>>,
 }
 
 impl SpriteSystem {
@@ -213,10 +214,10 @@ impl SpriteSystem {
         let p3_index = mesh.scopes.point.add_instance();
         let p4_index = mesh.scopes.point.add_instance();
 
-        uv.get(p1_index).set(Vector2::new(0.0, 0.0));
-        uv.get(p2_index).set(Vector2::new(0.0, 1.0));
-        uv.get(p3_index).set(Vector2::new(1.0, 0.0));
-        uv.get(p4_index).set(Vector2::new(1.0, 1.0));
+        uv.at(p1_index).set(Vector2::new(0.0, 0.0));
+        uv.at(p2_index).set(Vector2::new(0.0, 1.0));
+        uv.at(p3_index).set(Vector2::new(1.0, 0.0));
+        uv.at(p4_index).set(Vector2::new(1.0, 1.0));
 
         world_data.stats.inc_sprite_system_count();
 
@@ -232,8 +233,8 @@ impl SpriteSystem {
             let symbol     = &mut world_data.workspace[self.symbol_ref.symbol_id];
             symbol.surface.instance.add_instance()
         };
-        let transform    = self.transform.get(instance_id);
-        let bbox         = self.bbox.get(instance_id);
+        let transform    = self.transform.at(instance_id);
+        let bbox         = self.bbox.at(instance_id);
         let sprite_ref   = SpriteRef::new(self.symbol_ref.clone(),instance_id);
         bbox.set(Vector2::new(1.0,1.0));
         let sprite = Sprite::new(sprite_ref,transform,bbox);
@@ -243,11 +244,11 @@ impl SpriteSystem {
 
     fn geometry_material() -> Material {
         let mut material = Material::new();
-        material.add_input  ("bounds"          , Vector2::<f32>::zeros());
-        material.add_input  ("uv"              , Vector2::<f32>::zeros());
-        material.add_input  ("transform"       , Matrix4::<f32>::identity());
-        material.add_input  ("view_projection" , Matrix4::<f32>::identity());
-        material.add_output ("local"           , Vector3::<f32>::zeros());
+        material.add_input_def  :: <Vector2<f32>> ("bounds");
+        material.add_input_def  :: <Vector2<f32>> ("uv");
+        material.add_input_def  :: <Matrix4<f32>> ("transform");
+        material.add_input_def  :: <Matrix4<f32>> ("view_projection");
+        material.add_output_def :: <Vector3<f32>> ("local");
         material.set_main("
                 mat4 model_view_projection = input_view_projection * input_transform;
                 input_local                = vec3((input_uv - 0.5) * input_bounds, 0.0);

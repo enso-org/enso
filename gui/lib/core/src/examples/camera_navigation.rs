@@ -2,10 +2,10 @@
 
 use wasm_bindgen::prelude::*;
 
-use crate::display::render::css3d::Scene;
-use crate::display::render::css3d::Camera;
-use crate::display::render::css3d::html::HTMLObject;
-use crate::display::render::css3d::html::HTMLRenderer;
+use crate::system::web::dom::Scene;
+use crate::system::web::dom::Camera;
+use crate::system::web::dom::html::HTMLObject;
+use crate::system::web::dom::html::HTMLRenderer;
 use crate::system::web::StyleSetter;
 use crate::display::navigation::navigator::Navigator;
 

@@ -2,5 +2,4 @@
 //! including the native system, JS world, GPU runtime, etc.
 
 pub mod gpu;
-
-pub use basegl_system_web as web;
+pub mod web;
