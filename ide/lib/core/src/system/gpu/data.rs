@@ -37,6 +37,10 @@ pub mod types {
     pub use gl_enum::GlEnum;
     pub use gl_enum::traits::*;
     pub use prim::*;
+    pub use texture::TextureBindGuard;
+    pub use uniform::AnyPrimUniform;
+    pub use uniform::AnyTextureUniform;
+    pub use uniform::AnyUniform;
     pub use uniform::Uniform;
     pub use uniform::UniformScope;
 }

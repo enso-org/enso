@@ -17,15 +17,17 @@ use crate::system::gpu::types::*;
 #[derive(Clone,Debug)]
 pub struct VarDecl {
     /// The GLSL type of the variable.
-    pub tp: glsl::PrimType,
+    pub tp : glsl::PrimType,
 
-    /// Default value of the variable used in case it was not bound to a real value.
-    pub default : String,
+    /// Default value of the variable used in case it was not bound to a real value. It's `None` in
+    /// case the value does not have glsl representation (for now, only samplers are such
+    /// variables).
+    pub default : Option<Glsl>,
 }
 
 impl VarDecl {
     /// Constructor.
-    pub fn new(tp:glsl::PrimType, default:String) -> Self {
+    pub fn new(tp:glsl::PrimType, default:Option<Glsl>) -> Self {
         Self {tp,default}
     }
 }

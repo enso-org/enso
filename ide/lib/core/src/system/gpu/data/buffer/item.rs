@@ -248,6 +248,12 @@ impl JsBufferView for [f32] {
     }
 }
 
+impl JsBufferView for [u8] {
+    unsafe fn js_buffer_view(&self) -> js_sys::Object {
+        js_sys::Uint8Array::view(self).into()
+    }
+}
+
 impl<T: BufferItem<Item=T>,R,C> JsBufferView for [MatrixMN<T,R,C>]
     where Self                    : MatrixCtx<T,R,C>,
           T                       : ItemBounds,
