@@ -1,4 +1,4 @@
-package org.enso.languageserver
+package org.enso.runner
 
 import java.nio.file.Files
 import java.nio.file.Paths

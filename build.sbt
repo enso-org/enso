@@ -106,7 +106,9 @@ lazy val enso = (project in file("."))
     polyglot_api,
     parser_service,
     file_manager,
-    project_manager
+    runner,
+    gateway,
+    language_server
   )
   .settings(Global / concurrentRestrictions += Tags.exclusive(Exclusive))
 
@@ -420,10 +422,10 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(syntax.jvm)
   .dependsOn(polyglot_api)
 
-lazy val language_server = project
-  .in(file("engine/language-server"))
+lazy val runner = project
+  .in(file("engine/runner"))
   .settings(
-    mainClass in (Compile, run) := Some("org.enso.languageserver.Main"),
+    mainClass in (Compile, run) := Some("org.enso.runner.Main"),
     mainClass in assembly := (Compile / run / mainClass).value,
     assemblyJarName in assembly := "enso.jar",
     test in assembly := {},
@@ -443,7 +445,8 @@ lazy val language_server = project
       "commons-cli"           % "commons-cli"            % "1.4",
       "io.github.spencerpark" % "jupyter-jvm-basekernel" % "2.3.0",
       "org.jline"             % "jline"                  % "3.1.3"
-    )
+    ),
+    connectInput in run := true
   )
   .settings(
     buildNativeImage := Def
@@ -461,6 +464,28 @@ lazy val language_server = project
   )
   .dependsOn(runtime)
   .dependsOn(pkg)
+  .dependsOn(language_server)
+  .dependsOn(gateway)
+  .dependsOn(polyglot_api)
+
+lazy val gateway = (project in file("engine/gateway"))
+  .dependsOn(language_server)
+  .settings(
+    libraryDependencies ++= akka ++ circe ++ Seq(
+      akkaTestkit      % Test,
+      "io.circe"       %% "circe-generic-extras" % "0.12.2",
+      "io.circe"       %% "circe-literal" % circeVersion,
+      "org.scalatest"  %% "scalatest" % "3.2.0-SNAP10" % Test,
+      "org.scalacheck" %% "scalacheck" % "1.14.0" % Test
+    )
+  )
+
+lazy val language_server = (project in file("engine/language-server"))
+  .settings(
+    libraryDependencies ++= akka ++ Seq(
+      "org.graalvm.sdk" % "polyglot-tck" % graalVersion % Provided
+    )
+  )
   .dependsOn(polyglot_api)
 
 lazy val polyglot_api = project

@@ -1,4 +1,4 @@
-package org.enso.languageserver
+package org.enso.runner
 
 import java.io.{InputStream, OutputStream, PrintStream}
 import java.util.Scanner
