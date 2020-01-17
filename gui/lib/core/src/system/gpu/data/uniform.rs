@@ -52,10 +52,10 @@ macro_rules! define_identity_uniform_value_impl {
 }
 crate::with_all_prim_types!([[define_identity_uniform_value_impl][]]);
 
-impl<I:InternalFormat,T:TextureItemType> IntoUniformValueImpl for Texture<I,T> {
-    type Result = BoundTexture<I,T>;
+impl<Provider:TextureProvider> IntoUniformValueImpl for Provider {
+    type Result = Texture<Provider>;
     fn into_uniform_value(self, context:&Context) -> Self::Result {
-        BoundTexture::new(self,context)
+        self.new_texture(context)
     }
 }
 
@@ -148,7 +148,7 @@ pub struct UniformData<Value> {
 impl<Value> {
     /// Constructor.
     pub fn new(value:Value) -> Self {
-        let dirty = false;
+        let dirty = true;
         Self {value,dirty}
     }
 
@@ -194,6 +194,14 @@ impl<Value:UniformValue> Uniform<Value> {
     }
 }
 
+impl<Value> Uniform<Value> where Context : ContextTextureOps<Value,Guard=TextureBindGuard> {
+    /// Bind texture in this WebGl context.
+    pub fn bind_texture_unit(&self, context:&Context, unit:u32) -> TextureBindGuard {
+        let value = &self.rc.borrow().value;
+        context.bind_texture_unit(value,unit)
+    }
+}
+
 
 
 // ======================
@@ -232,7 +240,7 @@ macro_rules! gen_any_texture_uniform {
         #[enum_dispatch(AnyTextureUniformOps)]
         #[derive(Clone,Debug)]
         pub enum AnyTextureUniform {
-            $( [< $internal_format _ $type >] (Uniform<BoundTexture<$internal_format,$type>>) ),*
+            $( [< $internal_format _ $type >] (Uniform<Texture<TextureData<$internal_format,$type>>>) ),*
         }
     }}
 }
@@ -249,8 +257,8 @@ macro_rules! gen_prim_conversions {
 
 macro_rules! gen_texture_conversions {
     ( $([$internal_format:tt $type:tt])* ) => {$(
-        impl From<Uniform<BoundTexture<$internal_format,$type>>> for AnyUniform {
-            fn from(t:Uniform<BoundTexture<$internal_format,$type>>) -> Self {
+        impl From<Uniform<Texture<TextureData<$internal_format,$type>>>> for AnyUniform {
+            fn from(t:Uniform<Texture<TextureData<$internal_format,$type>>>) -> Self {
                 Self::Texture(t.into())
             }
         }
@@ -262,6 +270,7 @@ crate::with_all_texture_types!(gen_any_texture_uniform);
 
 #[enum_dispatch]
 pub trait AnyTextureUniformOps {
+    fn bind_texture_unit(&self, context:&Context, unit:u32) -> TextureBindGuard;
 }
 
 
