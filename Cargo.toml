@@ -2,6 +2,7 @@
 
 members = [
     "common/rust/ast/core",
+    "common/rust/json-rpc",
     "common/rust/ast/macros",
     "common/rust/macro-utils",
     "common/rust/parser",

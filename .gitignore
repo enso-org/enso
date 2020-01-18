@@ -98,3 +98,9 @@ bench-report.xml
 
 .editorconfig
 .bloop
+
+
+#########
+## NPM ##
+#########
+node_modules/
