@@ -163,8 +163,8 @@ impl<OnChange:Callback0> HierarchicalTransform<OnChange> {
 We use the following amount of vertical spacing:
 - 3 blank lines after imports.
 - 3 blank lines before each section.
-- 2 blank line before and sub-section.
-- 1 blank line after section / sub-section.
+- 2 blank lines before each sub-section.
+- 1 blank line after each section / sub-section.
 - 1 blank line before functions / structures / impls.
 - 1 blank line at the end of the file.
 
