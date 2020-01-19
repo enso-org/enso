@@ -2,8 +2,8 @@ use crate::prelude::*;
 
 use super::BenchContainer;
 use crate::system::web::get_performance;
-use crate::system::web::animation_frame_loop::AnimationFrameLoop;
-use crate::system::web::animation_frame_loop::AnimationFrameCallbackGuard;
+use basegl::control::EventLoop;
+use basegl::control::callback::CallbackHandle;
 
 use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsCast;
@@ -21,13 +21,13 @@ pub struct BencherProperties {
     container      : BenchContainer,
     iterations     : usize,
     total_time     : f64,
-    event_loop     : AnimationFrameLoop,
-    callback_guard : Option<AnimationFrameCallbackGuard>
+    event_loop     : EventLoop,
+    callback_guard : Option<CallbackHandle>
 }
 
 impl BencherProperties {
     pub fn new<T:FnMut() + 'static>
-    (event_loop:AnimationFrameLoop, callback:T, container:BenchContainer) -> Self {
+    (event_loop:EventLoop, callback:T, container:BenchContainer) -> Self {
         let iterations     = 0;
         let total_time     = 0.0;
         let callback_guard = None;
@@ -61,7 +61,7 @@ pub struct BencherData {
 
 impl BencherData {
     pub fn new<T:FnMut() + 'static>
-    ( event_loop:AnimationFrameLoop
+    ( event_loop:EventLoop
     , callback:T
     , container:BenchContainer) -> Rc<Self> {
         let properties = RefCell::new(BencherProperties::new(event_loop,callback,container));
@@ -102,7 +102,7 @@ impl BencherData {
 // === Getters ===
 
 impl BencherData {
-    fn event_loop(&self) -> AnimationFrameLoop {
+    fn event_loop(&self) -> EventLoop {
         self.properties.borrow().event_loop.clone()
     }
 
@@ -128,7 +128,7 @@ impl Bencher {
     /// Creates a Bencher with a html test container.
     pub fn new(container:BenchContainer) -> Self {
         let func       = Box::new(|| ());
-        let event_loop = AnimationFrameLoop::new();
+        let event_loop = EventLoop::new();
         let data       = BencherData::new(event_loop, func, container);
 
         let data_clone = data.clone();
@@ -148,7 +148,7 @@ impl Bencher {
             closure.forget();
         }
 
-        Self { data }
+        Self {data}
     }
 
     pub fn is_running(&self) -> bool {
@@ -160,7 +160,7 @@ impl Bencher {
         self.data.iter(callback);
     }
 
-    pub fn event_loop(&self) -> AnimationFrameLoop {
+    pub fn event_loop(&self) -> EventLoop {
         self.data.event_loop()
     }
 }

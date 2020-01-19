@@ -9,13 +9,12 @@ use crate::system::web::Result;
 use crate::system::web::dom::Camera;
 use crate::system::web::dom::CameraType;
 use crate::system::web::dom::DOMContainer;
-use crate::animation::position::HasPosition;
 use crate::animation::physics::inertia::PhysicsSimulator;
 use crate::animation::physics::inertia::SpringProperties;
 use crate::animation::physics::inertia::DragProperties;
 use crate::animation::physics::inertia::PhysicsProperties;
 use crate::animation::physics::inertia::KinematicsProperties;
-use crate::system::web::animation_frame_loop::AnimationFrameLoop;
+use crate::control::EventLoop;
 
 use nalgebra::{Vector3, zero};
 use nalgebra::Vector2;
@@ -35,9 +34,8 @@ pub struct Navigator {
 
 impl Navigator {
     // FIXME: Create a simplified constructor with dom defaulted to window.
-    pub fn new
-    (mut event_loop:&mut AnimationFrameLoop, dom:&DOMContainer, camera:Camera) -> Result<Self> {
-        let (_simulator, properties) = Self::start_simulator(&mut event_loop, camera.clone());
+    pub fn new(event_loop:&mut EventLoop, dom:&DOMContainer, camera:Camera) -> Result<Self> {
+        let (_simulator, properties) = Self::start_simulator(event_loop, camera.clone());
         let zoom_speed             = 2.0;
         let min_zoom               = 10.0;
         let max_zoom               = 10000.0;
@@ -50,12 +48,11 @@ impl Navigator {
             scaled_down_zoom_speed,
             properties
         )?;
-        Ok(Self { _events, _simulator })
+        Ok(Self {_events,_simulator})
     }
 
     fn start_simulator
-    ( mut event_loop:&mut AnimationFrameLoop
-    , camera:Camera) -> (PhysicsSimulator, PhysicsProperties) {
+    (event_loop:&mut EventLoop, mut camera:Camera) -> (PhysicsSimulator, PhysicsProperties) {
         let mass               = 30.0;
         let velocity           = zero();
         let position           = camera.position();
@@ -65,16 +62,11 @@ impl Navigator {
         let spring             = SpringProperties::new(spring_coefficient, fixed_point);
         let drag               = DragProperties::new(1500.0);
         let properties         = PhysicsProperties::new(kinematics, spring, drag);
-        let camera             = camera.object;
         let steps_per_second   = 60.0;
         let properties_clone   = properties.clone();
-        let simulator          = PhysicsSimulator::new(
-            &mut event_loop,
-            steps_per_second,
-            camera,
-            properties_clone
-        );
-        (simulator, properties)
+        let callback           = move |position| camera.set_position(position);
+        let sim = PhysicsSimulator::new(event_loop,steps_per_second,properties_clone,callback);
+        (sim,properties)
     }
 
     fn start_navigator_events

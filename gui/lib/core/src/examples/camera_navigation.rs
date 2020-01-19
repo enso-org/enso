@@ -6,14 +6,14 @@ use crate::system::web::dom::Scene;
 use crate::system::web::dom::Camera;
 use crate::system::web::dom::html::HTMLObject;
 use crate::system::web::dom::html::HTMLRenderer;
+use crate::control::EventLoop;
 use crate::system::web::StyleSetter;
 use crate::display::navigation::navigator::Navigator;
 
 use crate::animation::animator::continuous::ContinuousAnimator;
-use crate::animation::physics::inertia::*;
 
-use nalgebra::{Vector2, Vector3};
-use basegl_system_web::animation_frame_loop::AnimationFrameLoop;
+use nalgebra::Vector2;
+use nalgebra::Vector3;
 
 fn create_scene(dim:Vector2<f32>) -> Scene<HTMLObject> {
     let mut scene : Scene<HTMLObject> = Scene::new();
@@ -66,7 +66,7 @@ pub fn run_example_camera_navigation() {
     let z = y * camera.get_y_scale();
     camera.set_position(Vector3::new(x, y, z));
 
-    let mut event_loop = AnimationFrameLoop::new();
+    let mut event_loop = EventLoop::new();
 
     let camera_clone = camera.clone();
     let navigator  = Navigator::new(&mut event_loop, &renderer.container, camera_clone);
@@ -77,4 +77,5 @@ pub fn run_example_camera_navigation() {
         renderer.render(&mut camera, &scene);
     });
     std::mem::forget(animator);
+    std::mem::forget(event_loop);
 }

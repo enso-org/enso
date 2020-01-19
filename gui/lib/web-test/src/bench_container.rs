@@ -57,6 +57,6 @@ impl BenchContainer {
         container.div.insert_before_or_panic(&div, &container.container);
 
         let measurement = div;
-        Self { container,measurement,time,iter,button }
+        Self {container,measurement,time,iter,button}
     }
 }

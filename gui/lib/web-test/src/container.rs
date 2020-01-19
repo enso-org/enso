@@ -51,6 +51,6 @@ impl Container {
         div.append_or_panic(&container);
 
         Group::new(group).div.append_or_panic(&div);
-        Self { div, header, container }
+        Self {div,header,container}
     }
 }

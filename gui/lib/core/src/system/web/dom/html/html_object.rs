@@ -8,9 +8,8 @@ use crate::system::web::dyn_into;
 use crate::system::web::Result;
 use crate::system::web::Error;
 use crate::system::web::StyleSetter;
-use crate::animation::position::HasPosition;
 
-use nalgebra::{Vector2, Vector3};
+use nalgebra::Vector2;
 use web_sys::HtmlElement;
 
 
@@ -29,16 +28,6 @@ pub struct HTMLObject {
     dimensions     : Vector2<f32>,
 }
 
-impl HasPosition for HTMLObject {
-    fn position(&self) -> Vector3<f32> {
-        self.object.position()
-    }
-
-    fn set_position(&mut self, position:Vector3<f32>) {
-        self.object.set_position(position)
-    }
-}
-
 impl HTMLObject {
     /// Creates a HTMLObject from element name.
     pub fn new(dom_name: &str) -> Result<Self> {
@@ -54,7 +43,7 @@ impl HTMLObject {
         let dom = element;
         let object = default();
         let dimensions = Vector2::new(0.0, 0.0);
-        Self { object, dom, dimensions }
+        Self {object,dom,dimensions}
     }
 
     /// Creates a HTMLObject from a HTML string.

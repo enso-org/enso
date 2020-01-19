@@ -3,7 +3,6 @@
 use crate::prelude::*;
 
 use crate::system::web::dom::Transform;
-use crate::animation::position::HasPosition;
 
 use nalgebra::UnitQuaternion;
 use nalgebra::Vector3;
@@ -30,6 +29,16 @@ impl Object {
     /// Gets object's transform.
     pub fn transform(&self) -> Transform { *self.transform.borrow() }
 
+    /// Gets object's position.
+    pub fn position(&self) -> Vector3<f32> {
+        *self.transform.borrow().translation()
+    }
+
+    /// Sets object's position.
+    pub fn set_position(&mut self, position:Vector3<f32>) {
+        self.transform.borrow_mut().set_translation(position)
+    }
+
     /// Sets the object's rotation in YXZ (yaw -> roll -> pitch) order.
     pub fn set_rotation(&mut self, roll:f32, pitch:f32, yaw:f32) {
         self.transform.borrow_mut().set_rotation(roll, pitch, yaw)
@@ -51,20 +60,9 @@ impl Object {
     }
 }
 
-impl HasPosition for Object {
-    fn position(&self) -> Vector3<f32> {
-        *self.transform.borrow().translation()
-    }
-
-    fn set_position(&mut self, position:Vector3<f32>) {
-        self.transform.borrow_mut().set_translation(position)
-    }
-}
-
 #[cfg(test)]
 mod test {
     use super::Object;
-    use crate::animation::position::HasPosition;
     use nalgebra::Vector3;
     use nalgebra::Quaternion;
     use std::f32::consts::PI;

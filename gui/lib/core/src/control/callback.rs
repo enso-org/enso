@@ -20,8 +20,17 @@ pub fn Callback<F:CallbackFn>(f:F) -> Callback {
     Box::new(f)
 }
 
-/// Callback accepted by the `CallbackRegistry`.
-pub trait CallbackMut = FnMut() + 'static;
+/// Mutable callback type.
+pub trait CallbackMutFn = FnMut() + 'static;
+
+/// Mutable callback object.
+pub type CallbackMut = Box<dyn CallbackMutFn>;
+
+/// Mutable callback type with one parameter.
+pub trait CallbackMut1Fn<T> = FnMut(T) + 'static;
+
+/// Mutable callback object with one parameter.
+pub type CallbackMut1<T> = Box<dyn CallbackMut1Fn<T>>;
 
 
 
@@ -81,13 +90,13 @@ impl Guard {
 #[derivative(Debug, Default)]
 pub struct CallbackRegistry {
     #[derivative(Debug="ignore")]
-    callback_list: Vec<(Guard, Box<dyn FnMut()>)>
+    callback_list: Vec<(Guard, CallbackMut)>
 }
 
 impl CallbackRegistry {
 
     /// Adds new callback and returns a new handle for it.
-    pub fn add<F:CallbackMut>(&mut self, callback:F) -> CallbackHandle {
+    pub fn add<F:CallbackMutFn>(&mut self, callback:F) -> CallbackHandle {
         let callback = Box::new(callback);
         let handle   = CallbackHandle::new();
         let guard    = handle.guard();
@@ -99,6 +108,38 @@ impl CallbackRegistry {
     pub fn run_all(&mut self) {
         self.clear_unused_callbacks();
         self.callback_list.iter_mut().for_each(|(_,callback)| callback());
+    }
+
+    /// Checks all registered callbacks and removes the ones which got dropped.
+    fn clear_unused_callbacks(&mut self) {
+        self.callback_list.retain(|(guard,_)| guard.exists());
+    }
+}
+
+/// Registry gathering callbacks. Each registered callback is assigned with a handle. Callback and
+/// handle lifetimes are strictly connected. As soon a handle is dropped, the callback is removed
+/// as well.
+#[derive(Derivative)]
+#[derivative(Debug, Default)]
+pub struct CallbackRegistry1<T:Copy> {
+    #[derivative(Debug="ignore")]
+    callback_list: Vec<(Guard, CallbackMut1<T>)>
+}
+
+impl<T:Copy> CallbackRegistry1<T> {
+    /// Adds new callback and returns a new handle for it.
+    pub fn add<F:CallbackMut1Fn<T>>(&mut self, callback:F) -> CallbackHandle {
+        let callback = Box::new(callback);
+        let handle   = CallbackHandle::new();
+        let guard    = handle.guard();
+        self.callback_list.push((guard, callback));
+        handle
+    }
+
+    /// Fires all registered callbacks.
+    pub fn run_all(&mut self, t:T) {
+        self.clear_unused_callbacks();
+        self.callback_list.iter_mut().for_each(move |(_,callback)| callback(t));
     }
 
     /// Checks all registered callbacks and removes the ones which got dropped.
