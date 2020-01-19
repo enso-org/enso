@@ -107,7 +107,7 @@ pub struct HTMLRendererData {
 
 impl HTMLRendererData {
     pub fn new(div : HtmlElement, camera : HtmlElement) -> Self {
-        Self { div, camera }
+        Self {div,camera}
     }
 
     pub fn set_dimensions(&self, dimensions : Vector2<f32>) {
@@ -153,7 +153,7 @@ impl HTMLRenderer {
         div                   .append_or_panic(&camera);
 
         let data       = Rc::new(HTMLRendererData::new(div, camera));
-        let mut htmlrenderer = Self { renderer, data };
+        let mut htmlrenderer = Self {renderer,data};
 
         htmlrenderer.init_listeners();
         Ok(htmlrenderer)

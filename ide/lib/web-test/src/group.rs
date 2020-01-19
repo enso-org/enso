@@ -52,6 +52,6 @@ impl Group {
                 div
             },
         };
-        Self { div }
+        Self {div}
     }
 }

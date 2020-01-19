@@ -2,3 +2,6 @@
 
 pub mod callback;
 pub mod io;
+mod event_loop;
+
+pub use event_loop::*;

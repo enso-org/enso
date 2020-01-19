@@ -1,10 +1,8 @@
 #![feature(trait_alias)]
 #![feature(set_stdio)]
-#![feature(arbitrary_self_types)]
 
 pub mod resize_observer;
 pub mod intersection_observer;
-pub mod animation_frame_loop;
 
 use basegl_prelude::*;
 
@@ -136,7 +134,7 @@ pub fn get_webgl2_context
     context.dyn_into().map_err(|_| no_webgl())
 }
 
-pub fn request_animation_frame(f:&Closure<dyn FnMut(f32)>) -> Result<i32> {
+pub fn request_animation_frame(f:&Closure<dyn FnMut(f64)>) -> Result<i32> {
     let req = try_window()?.request_animation_frame(f.as_ref().unchecked_ref());
     req.map_err(|_| Error::missing("requestAnimationFrame"))
 }
@@ -156,6 +154,7 @@ pub fn get_performance() -> Result<Performance> {
 // === Other Helpers ===
 // =====================
 
+/// Trait used to set HtmlElement attributes.
 pub trait AttributeSetter {
     fn set_attribute_or_panic<T, U>(&self, name:T, value:U)
     where T : AsRef<str>,
@@ -174,6 +173,7 @@ impl AttributeSetter for web_sys::HtmlElement {
     }
 }
 
+/// Trait used to set css styles.
 pub trait StyleSetter {
     fn set_property_or_panic<T,U>(&self, name:T, value:U)
     where T : AsRef<str>,
@@ -192,6 +192,7 @@ impl StyleSetter for web_sys::HtmlElement {
     }
 }
 
+/// Trait used to insert `Node`s.
 pub trait NodeInserter {
     fn append_or_panic (&self, node:&Node);
     fn prepend_or_panic(&self, node:&Node);
@@ -222,6 +223,7 @@ impl NodeInserter for Node {
     }
 }
 
+/// Trait used to remove `Node`s.
 pub trait NodeRemover {
     fn remove_child_or_panic(&self, node:&Node);
 }

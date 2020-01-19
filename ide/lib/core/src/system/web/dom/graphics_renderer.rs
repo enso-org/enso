@@ -21,7 +21,7 @@ pub struct GraphicsRenderer {
 impl GraphicsRenderer {
     pub fn new(dom_id: &str) -> Result<Self> {
         let container = DOMContainer::from_id(dom_id)?;
-        Ok(Self { container })
+        Ok(Self {container})
     }
 
     /// Sets the Scene Renderer's dimensions.

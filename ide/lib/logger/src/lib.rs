@@ -43,7 +43,7 @@ pub struct Logger {
 impl Logger {
     pub fn new<T: AsRef<str>>(path:T) -> Self {
         let path = path.as_ref().to_string();
-        Self { path }
+        Self {path}
     }
 
     pub fn sub<T: AsRef<str>>(&self, path: T) -> Self {

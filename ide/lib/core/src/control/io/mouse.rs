@@ -1,4 +1,5 @@
-#![allow(missing_docs)]
+//! This module contains the `MouseManager` implementation, its associated structs such as
+//! `MousePositionEvent`, `MouseClickEvent` and `MouseWheelEvent`.
 
 use crate::system::web::dom::DOMContainer;
 use crate::system::web::dyn_into;
@@ -50,8 +51,10 @@ impl<T:?Sized> Drop for EventListener<T> {
 // === Mouse Event Listeners ===
 // =============================
 
+/// EventListener for Mouse events.
 pub type MouseEventListener = EventListener<dyn FnMut(MouseEvent)>;
 
+/// EventListener for Wheel events.
 pub type WheelEventListener = EventListener<dyn FnMut(WheelEvent)>;
 
 
@@ -62,9 +65,16 @@ pub type WheelEventListener = EventListener<dyn FnMut(WheelEvent)>;
 
 /// An enumeration representing the mouse buttons.
 pub enum MouseButton {
+    /// Left mouse button.
     LEFT,
+
+    /// Middle mouse button.
     MIDDLE,
+
+    /// Right mouse button.
     RIGHT,
+
+    /// For unknown mouse buttons IDs.
     UNKNOWN
 }
 
@@ -74,12 +84,16 @@ pub enum MouseButton {
 // === MouseClickEvent ===
 // =======================
 
+/// Mouse click callback used by `MouseManager`.
 pub trait MouseClickCallback = FnMut(MouseClickEvent) + 'static;
 
 /// A struct storing information about mouse down and mouse up events.
 pub struct MouseClickEvent {
+    /// The position where the MouseClickEvent occurred.
     pub position : Vector2<f32>,
-    pub button   : MouseButton
+
+    /// The button which triggered the event.
+    pub button : MouseButton
 }
 
 impl MouseClickEvent {
@@ -102,12 +116,16 @@ impl MouseClickEvent {
 // === MousePositionEvent ===
 // ==========================
 
+/// Mouse position callback used by `MouseManager`.
 pub trait MousePositionCallback = FnMut(MousePositionEvent)  + 'static;
 
 /// A struct storing information about mouse move, mouse enter and mouse leave events.
 pub struct MousePositionEvent {
+    /// The previous position where the mouse was.
     pub previous_position : Vector2<f32>,
-    pub position          : Vector2<f32>
+
+    /// The current position where the mouse is.
+    pub position : Vector2<f32>
 }
 
 impl MousePositionEvent {
@@ -129,13 +147,19 @@ impl MousePositionEvent {
 // === MouseWheelEvent ===
 // =======================
 
+/// Mouse wheel callback used by `MouseManager`.
 pub trait MouseWheelCallback = FnMut(MouseWheelEvent) + 'static;
 
 /// A struct storing information about mouse wheel events.
 pub struct MouseWheelEvent {
+    /// A boolean indicating if the keyboard ctrl button is pressed.
     pub is_ctrl_pressed : bool,
-    pub movement_x      : f32,
-    pub movement_y      : f32
+
+    /// The horizontal movement in pixels.
+    pub movement_x : f32,
+
+    /// The vertical movement in pixels.
+    pub movement_y : f32
 }
 
 impl MouseWheelEvent {
@@ -168,7 +192,7 @@ struct MouseManagerProperties {
 
 /// A struct used for storing shared MouseManager's mutable data.
 struct MouseManagerData {
-    properties: RefCell<MouseManagerProperties>
+    properties : RefCell<MouseManagerProperties>
 }
 
 impl MouseManagerData {
@@ -234,7 +258,8 @@ impl MouseManagerData {
 /// ```
 macro_rules! add_callback {
     ($name:ident, $event_type:ident, $target:literal) => { paste::item! {
-        pub fn $name
+        /// Adds $name event callback and returns its listener object.
+        pub fn [<add_ $name _callback>]
         <F:[<$event_type Callback>]>(&mut self, mut f:F) -> Result<MouseEventListener> {
             let data = Rc::downgrade(&self.data);
             let closure = move |event:MouseEvent| {
@@ -263,6 +288,7 @@ const MIDDLE_MOUSE_BUTTON: i16 = 1;
 const  RIGHT_MOUSE_BUTTON: i16 = 2;
 
 impl MouseManager {
+    /// Creates a new instance to manage mouse events in the specified DOMContainer.
     pub fn new(dom:&DOMContainer) -> Result<Self> {
         let target              = dyn_into::<_, EventTarget>(dom.dom.clone())?;
         let dom                 = dom.clone();
@@ -278,17 +304,13 @@ impl MouseManager {
         Ok(EventListener::new(self.data.target(), "contextmenu", listener))
     }
 
-    /// Adds mouse down event callback and returns its listener object.
-    add_callback!(add_mouse_down_callback, MouseClick, "mousedown");
+    add_callback!(mouse_down, MouseClick, "mousedown");
 
-    /// Adds mouse up event callback and returns its listener object.
-    add_callback!(add_mouse_up_callback, MouseClick, "mouseup");
+    add_callback!(mouse_up, MouseClick, "mouseup");
 
-    /// Adds mouse move event callback and returns its listener object.
-    add_callback!(add_mouse_move_callback, MousePosition, "mousemove");
+    add_callback!(mouse_move, MousePosition, "mousemove");
 
-    /// Adds mouse leave event callback and returns its listener object.
-    add_callback!(add_mouse_leave_callback, MousePosition, "mouseleave");
+    add_callback!(mouse_leave, MousePosition, "mouseleave");
 
     /// Adds MouseWheel event callback and returns its listener object.
     pub fn add_mouse_wheel_callback

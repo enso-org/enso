@@ -24,6 +24,7 @@ use std::rc::Rc;
 // === PositionCallback ===
 // ========================
 
+/// Position callback used by `DOMContainer`.
 pub trait PositionCallback = Fn(&Vector2<f32>) + 'static;
 
 
@@ -32,6 +33,7 @@ pub trait PositionCallback = Fn(&Vector2<f32>) + 'static;
 // === ResizeCallback ===
 // ======================
 
+/// Resize callback used by `DOMContainer`.
 pub trait ResizeCallback = Fn(&Vector2<f32>) + 'static;
 
 
@@ -70,7 +72,7 @@ impl DOMContainerData {
             resize_callbacks,
             position_callbacks
         });
-        Rc::new(Self { properties })
+        Rc::new(Self {properties})
     }
 
     fn on_resize(&self) {

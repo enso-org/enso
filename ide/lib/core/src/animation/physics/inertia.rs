@@ -1,6 +1,4 @@
-#![allow(missing_docs)]
-
-//! This file implements physics components to simulate a rubber band dynamics.
+//! This module implements physics components to simulate a rubber band dynamics.
 //! The components has the potential to be further developed and extended in the future into a
 //! more sophisticated physics simulator.
 
@@ -8,8 +6,8 @@ use crate::prelude::*;
 
 use crate::animation::animator::Animator;
 use crate::animation::animator::fixed_step::IntervalCounter;
-use crate::animation::position::HasPosition;
-use crate::system::web::animation_frame_loop::AnimationFrameLoop;
+use crate::animation::linear_interpolation;
+use crate::control::EventLoop;
 
 use nalgebra::Vector3;
 use nalgebra::zero;
@@ -22,6 +20,7 @@ use nalgebra::zero;
 
 /// A trait for implementing 3 dimensional forces.
 pub trait PhysicsForce {
+    /// Gets the calculated force.
     fn force(&self, kinematics:&KinematicsProperties) -> Vector3<f32>;
 }
 
@@ -34,12 +33,14 @@ pub trait PhysicsForce {
 /// This structure contains air dragging properties.
 #[derive(Default, Clone, Copy)]
 pub struct DragProperties {
+    /// Drag`s coefficient.
     pub coefficient: f32
 }
 
 impl DragProperties {
-    pub fn new(amount:f32) -> Self {
-        Self { coefficient: amount }
+    /// Creates `DragProperties` with drag's `coefficient`.
+    pub fn new(coefficient:f32) -> Self {
+        Self { coefficient }
     }
 }
 
@@ -58,7 +59,9 @@ impl PhysicsForce for DragProperties {
 /// This structure contains spring physics properties.
 #[derive(Debug, Clone, Copy)]
 pub struct SpringProperties {
+    /// Spring's coefficient.
     pub coefficient : f32,
+    /// Spring's fixed point.
     pub fixed_point : Vector3<f32>
 }
 
@@ -69,6 +72,7 @@ impl Default for SpringProperties {
 }
 
 impl SpringProperties {
+    /// Creates `SpringProperties` with spring's `coefficient` and `fixed_point`.
     pub fn new(coefficient:f32, fixed_point:Vector3<f32>) -> Self {
         Self { coefficient,fixed_point }
     }
@@ -109,6 +113,7 @@ impl Default for KinematicsProperties {
 }
 
 impl KinematicsProperties {
+    /// Creates `KinematicsProperties` with `position`, `velocity`, `acceleration` and `mass`.
     pub fn new
     (position:Vector3<f32>, velocity:Vector3<f32>, acceleration:Vector3<f32>, mass:f32) -> Self {
         Self { position,velocity,acceleration,mass }
@@ -119,31 +124,50 @@ impl KinematicsProperties {
 // === Getters ===
 
 impl KinematicsProperties {
-    pub fn velocity    (&self) -> Vector3<f32> { self.velocity }
-    pub fn acceleration(&self) -> Vector3<f32> { self.acceleration }
-    pub fn mass        (&self) -> f32          { self.mass }
+    /// `Position` getter.
+    pub fn position(&self) -> Vector3<f32> {
+        self.position
+    }
+
+    /// `Velocity` getter.
+    pub fn velocity(&self) -> Vector3<f32> {
+        self.velocity
+    }
+
+    /// `Acceleration` getter.
+    pub fn acceleration(&self) -> Vector3<f32> {
+        self.acceleration
+    }
+
+    /// `Mass` getter.
+    pub fn mass(&self) -> f32 {
+        self.mass
+    }
 }
 
 
 // === Setters ===
 
 impl KinematicsProperties {
+    /// `Position` setter.
+    pub fn set_position(&mut self, position:Vector3<f32>) {
+        self.position = position
+    }
+
+    /// `Velocity` setter.
     pub fn set_velocity(&mut self, velocity:Vector3<f32>) {
         self.velocity = velocity
     }
 
+    /// `Acceleration` setter.
     pub fn set_acceleration(&mut self, acceleration:Vector3<f32>) {
         self.acceleration = acceleration
     }
 
+    /// `Mass` setter.
     pub fn set_mass(&mut self, mass:f32) {
         self.mass = mass
     }
-}
-
-impl HasPosition for KinematicsProperties {
-    fn position    (&self) -> Vector3<f32>            { self.position }
-    fn set_position(&mut self, position:Vector3<f32>) { self.position = position }
 }
 
 
@@ -178,6 +202,7 @@ pub struct PhysicsProperties {
 }
 
 impl PhysicsProperties {
+    /// Creates  `PhysicsProperties` with `kinematics`, `spring` and `drag`.
     pub fn new
     (kinematics: KinematicsProperties, spring:SpringProperties, drag:DragProperties) -> Self {
         let data = Rc::new(RefCell::new(PhysicsPropertiesData::new(kinematics,spring,drag)));
@@ -189,8 +214,11 @@ impl PhysicsProperties {
 // === Getters ===
 
 impl PhysicsProperties {
+    /// `KinematicsProperties` getter.
     pub fn kinematics(&self) -> KinematicsProperties { self.data.borrow().kinematics }
+    /// `SpringProperties` getter.
     pub fn spring    (&self) -> SpringProperties     { self.data.borrow().spring }
+    /// `DragProperties` getter.
     pub fn drag      (&self) -> DragProperties       { self.data.borrow().drag }
 }
 
@@ -198,32 +226,38 @@ impl PhysicsProperties {
 // === Setters ===
 
 impl PhysicsProperties {
+    /// Safe accessor to modify `KinematicsProperties`.
     pub fn mod_kinematics<F:FnOnce(&mut KinematicsProperties)>(&mut self, f:F) {
         let mut kinematics = self.kinematics();
         f(&mut kinematics);
         self.set_kinematics(kinematics);
     }
 
+    /// `KinematicsProperties` setter.
     pub fn set_kinematics(&mut self, kinematics:KinematicsProperties) {
         self.data.borrow_mut().kinematics = kinematics;
     }
 
+    /// Safe accessor to modify `SpringProperties`.
     pub fn mod_spring<F:FnOnce(&mut SpringProperties)>(&mut self, f:F) {
         let mut spring = self.spring();
         f(&mut spring);
         self.set_spring(spring);
     }
 
+    /// `SpringProperties` setter.
     pub fn set_spring(&mut self, spring:SpringProperties) {
         self.data.borrow_mut().spring = spring;
     }
 
+    /// Safe accessor to modify `DragProperties`.
     pub fn mod_drag<F:FnOnce(&mut DragProperties)>(&mut self, f:F) {
         let mut drag = self.drag();
         f(&mut drag);
         self.set_drag(drag);
     }
 
+    /// `DragProperties` setter.
     pub fn set_drag(&mut self, drag:DragProperties) {
         self.data.borrow_mut().drag = drag;
     }
@@ -235,7 +269,8 @@ impl PhysicsProperties {
 // === PhysicsSimulator ===
 // ========================
 
-pub trait SimulationObject = HasPosition + 'static;
+/// A callback used by PhysicsSimulator.
+pub trait PhysicsCallback = FnMut(Vector3<f32>) + 'static;
 
 /// A fixed step physics simulator used to simulate `PhysicsProperties`.
 pub struct PhysicsSimulator {
@@ -243,19 +278,17 @@ pub struct PhysicsSimulator {
 }
 
 impl PhysicsSimulator {
-    /// Simulates `Properties` on `object`.
-    pub fn new<T>
-    ( mut event_loop:&mut AnimationFrameLoop
-    , steps_per_second:f32
-    , mut object:T
-    , mut properties:PhysicsProperties) -> Self
-    where T:SimulationObject {
-        properties.mod_kinematics(|kinematics| { kinematics.set_position(object.position()); });
+    /// Simulates `Properties` and inputs `Kinematics`' position in `PhysicsCallback`.
+    pub fn new<F:PhysicsCallback>
+    ( event_loop:&mut EventLoop
+    , steps_per_second:f64
+    , mut properties:PhysicsProperties
+    , mut callback:F) -> Self {
         let step_ms              = 1000.0 / steps_per_second;
-        let mut current_position = object.position();
+        let mut current_position = properties.kinematics().position();
         let mut next_position    = simulate(&mut properties, step_ms);
         let mut interval_counter = IntervalCounter::new(step_ms);
-        let _animator            = Animator::new(&mut event_loop, move |delta_ms| {
+        let _animator            = Animator::new(event_loop, move |delta_ms| {
             let intervals = interval_counter.add_time(delta_ms);
             for _ in 0..intervals {
                 current_position = next_position;
@@ -263,8 +296,8 @@ impl PhysicsSimulator {
             }
 
             let transition = interval_counter.accumulated_time / interval_counter.interval_duration;
-            let position   = linear_interpolation(current_position,next_position,transition);
-            object.set_position(position);
+            let position   = linear_interpolation(current_position,next_position,transition as f32);
+            callback(position);
         });
 
         Self { _animator }
@@ -272,14 +305,15 @@ impl PhysicsSimulator {
 }
 
 /// Simulate the `KinematicProperties`.
-fn simulate_kinematics(kinematics:&mut KinematicsProperties, force:&Vector3<f32>, dt:f32) {
+fn simulate_kinematics(kinematics:&mut KinematicsProperties, force:&Vector3<f32>, dt:f64) {
+    let dt = dt as f32;
     kinematics.set_acceleration(force / kinematics.mass);
     kinematics.set_velocity(kinematics.velocity() + kinematics.acceleration() * dt);
     kinematics.set_position(kinematics.position() + kinematics.velocity()     * dt);
 }
 
 /// Runs a simulation step.
-fn simulate(properties:&mut PhysicsProperties, delta_ms:f32) -> Vector3<f32> {
+fn simulate(properties:&mut PhysicsProperties, delta_ms:f64) -> Vector3<f32> {
     let spring        = properties.spring();
     let drag          = properties.drag();
     let mut net_force = zero();
@@ -290,20 +324,4 @@ fn simulate(properties:&mut PhysicsProperties, delta_ms:f32) -> Vector3<f32> {
         simulate_kinematics(&mut kinematics, &net_force, delta_seconds);
     });
     properties.kinematics().position()
-}
-
-
-
-// =============
-// === Utils ===
-// =============
-
-use nalgebra::clamp;
-use std::ops::Mul;
-use std::ops::Add;
-
-pub fn linear_interpolation<T>(a:T, b:T, t:f32) -> T
-    where T : Mul<f32, Output = T> + Add<T, Output = T> {
-    let t = clamp(t, 0.0, 1.0);
-    a * (1.0 - t) + b * t
 }

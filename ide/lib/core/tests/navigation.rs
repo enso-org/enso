@@ -13,7 +13,6 @@ mod tests {
     use basegl::system::web::dom::html::HTMLRenderer;
     use basegl::system::web::StyleSetter;
     use basegl::display::navigation::navigator::Navigator;
-    use basegl::animation::position::HasPosition;
     use web_test::*;
 
     use nalgebra::Vector3;

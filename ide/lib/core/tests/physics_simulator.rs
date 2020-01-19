@@ -17,7 +17,6 @@ mod tests {
     use basegl::system::web::dom::html::HTMLObject;
     use basegl::system::web::dom::Scene;
     use basegl::system::web::dom::Camera;
-    use basegl::animation::position::HasPosition;
     use web_test::*;
     use nalgebra::{zero, Vector3};
     use js_sys::Math::random;
@@ -48,7 +47,8 @@ mod tests {
 
         let mut event_loop   = b.event_loop();
         let mass             = 2.0;
-        let kinematics       = KinematicsProperties::new(zero(), zero(), zero(), mass);
+        let position         = object.position();
+        let kinematics       = KinematicsProperties::new(position, zero(), zero(), mass);
         let coefficient      = 10.0;
         let fixed_point      = zero();
         let spring           = SpringProperties::new(coefficient, fixed_point);
@@ -58,8 +58,10 @@ mod tests {
         let simulator        = PhysicsSimulator::new(
             &mut event_loop,
             steps_per_second,
-            object,
-            properties.clone()
+            properties.clone(),
+            move |position| {
+                object.set_position(position);
+            }
         );
 
         // Updates spring's fixed point every two seconds.
