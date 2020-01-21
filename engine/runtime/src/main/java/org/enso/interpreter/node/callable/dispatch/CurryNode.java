@@ -3,10 +3,7 @@ package org.enso.interpreter.node.callable.dispatch;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.BaseNode;
-import org.enso.interpreter.node.callable.CaptureCallerInfoNode;
-import org.enso.interpreter.node.callable.ExecuteCallNode;
-import org.enso.interpreter.node.callable.InvokeCallableNode;
-import org.enso.interpreter.node.callable.InvokeCallableNodeGen;
+import org.enso.interpreter.node.callable.*;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -23,7 +20,6 @@ public class CurryNode extends BaseNode {
   private @Child InvokeCallableNode oversaturatedCallableNode;
   private @Child ExecuteCallNode directCall;
   private @Child CallOptimiserNode loopingCall;
-  private @Child CaptureCallerInfoNode captureCallerInfoNode;
 
   private CurryNode(
       FunctionSchema originalSchema,
@@ -35,9 +31,6 @@ public class CurryNode extends BaseNode {
     this.preApplicationSchema = originalSchema;
     this.postApplicationSchema = postApplicationSchema;
     appliesFully = isFunctionFullyApplied(defaultsExecutionMode);
-    if (preApplicationSchema.getCallerFrameAccess().shouldFrameBePassed()) {
-      this.captureCallerInfoNode = CaptureCallerInfoNode.build();
-    }
     initializeCallNodes();
     initializeOversaturatedCallNode(defaultsExecutionMode, argumentsExecutionMode);
   }
@@ -68,7 +61,7 @@ public class CurryNode extends BaseNode {
    * Creates a new instance of this node.
    *
    * @param preApplicationSchema the schema of all functions being used in the {@link
-   *     #execute(VirtualFrame, Function, Object, Object[], Object[])} method.
+   *     #execute(VirtualFrame, Function, CallerInfo, Object, Object[], Object[])} method.
    * @param argumentMapping the argument mapping for moving from the original schema to the argument
    *     schema expected by the function.
    * @param defaultsExecutionMode the mode of handling defaulted arguments for this call.
@@ -95,6 +88,7 @@ public class CurryNode extends BaseNode {
    *
    * @param frame current execution frame, used as a caller frame if the function requires it.
    * @param function the function to execute.
+   * @param callerInfo the caller info to pass to the function.
    * @param state current monadic state.
    * @param arguments the properly ordered arguments to pass to the function.
    * @param oversaturatedArguments any arguments that should be treated as candidates for an
@@ -104,13 +98,10 @@ public class CurryNode extends BaseNode {
   public Stateful execute(
       VirtualFrame frame,
       Function function,
+      CallerInfo callerInfo,
       Object state,
       Object[] arguments,
       Object[] oversaturatedArguments) {
-    CallerInfo callerInfo = null;
-    if (captureCallerInfoNode != null) {
-      callerInfo = captureCallerInfoNode.execute(frame);
-    }
     if (appliesFully) {
       if (!postApplicationSchema.hasOversaturatedArgs()) {
         return doCall(function, callerInfo, state, arguments);

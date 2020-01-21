@@ -9,7 +9,7 @@ class ValueExtractorTest extends InterpreterTest {
   subject should "extract values in a simple expression" in {
     val code    = "main = 2 + 2"
     val results = mutable.HashMap[(Int, Int), Any]()
-    getValueExtractorInstrument.bindTo(7, 5, { res =>
+    getValueExtractorInstrument.bindTo("Test.main", 7, 5, { res =>
       results.put((7, 5), res)
     })
     eval(code)
@@ -27,13 +27,13 @@ class ValueExtractorTest extends InterpreterTest {
         |""".stripMargin
     val results      = mutable.HashMap[String, Any]()
     val instrumenter = getValueExtractorInstrument
-    instrumenter.bindTo(23, 7, { x =>
+    instrumenter.bindTo("Test.main", 23, 7, { x =>
       results.put("x", x)
     })
-    instrumenter.bindTo(39, 5, { y =>
+    instrumenter.bindTo("Test.main", 39, 5, { y =>
       results.put("y", y)
     })
-    instrumenter.bindTo(53, 5, { z =>
+    instrumenter.bindTo("Test.main", 53, 5, { z =>
       results.put("z", z)
     })
 
@@ -51,7 +51,7 @@ class ValueExtractorTest extends InterpreterTest {
         |""".stripMargin
 
     var results = List[Any]()
-    getValueExtractorInstrument.bindTo(23, 7, { x =>
+    getValueExtractorInstrument.bindTo("Test.main", 23, 7, { x =>
       results ::= x
     })
 
@@ -71,11 +71,28 @@ class ValueExtractorTest extends InterpreterTest {
         |""".stripMargin
 
     var result: Option[Any] = None
-    getValueExtractorInstrument.bindTo(33, 7, { x =>
+    getValueExtractorInstrument.bindTo("Test.main", 33, 7, { x =>
       result = Some(x)
     })
     getMain(code).execute(5L.asInstanceOf[AnyRef])
     result shouldEqual Some(6)
+  }
+
+  subject should "work for recursive calls" in {
+    val code =
+      """
+        |main = arg ->
+        |    x = arg - 1
+        |    y = x.ifZero 0 (here.main x)
+        |    z = y + arg
+        |    z
+        |""".stripMargin
+    var zVal: Option[Any] = None
+    getValueExtractorInstrument.bindTo("Test.main", 72, 7, { z =>
+      zVal = Some(z)
+    })
+    getMain(code).execute(5L.asInstanceOf[AnyRef])
+    zVal shouldEqual Some(15)
   }
 
   subject should "enable values to be used in arbitrary expressions" in {
@@ -89,10 +106,10 @@ class ValueExtractorTest extends InterpreterTest {
         |""".stripMargin
     val values       = mutable.HashMap[String, Any]()
     val instrumenter = getValueExtractorInstrument
-    instrumenter.bindTo(23, 7, { x =>
+    instrumenter.bindTo("Test.main", 23, 7, { x =>
       values.put("x", x)
     })
-    instrumenter.bindTo(39, 5, { y =>
+    instrumenter.bindTo("Test.main", 39, 5, { y =>
       values.put("y", y)
     })
     getMain(code).execute(5L.asInstanceOf[AnyRef])
@@ -110,4 +127,5 @@ class ValueExtractorTest extends InterpreterTest {
       )
     results shouldEqual Map("x" -> 33L, "y" -> 153L)
   }
+
 }

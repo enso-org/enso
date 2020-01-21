@@ -8,16 +8,16 @@ import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.MaterializedFrame;
-import com.oracle.truffle.api.interop.ArityException;
-import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.TruffleObject;
-import com.oracle.truffle.api.interop.UnknownIdentifierException;
+import com.oracle.truffle.api.interop.*;
+import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.RootNode;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.Language;
+import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
+import org.enso.interpreter.node.callable.InteropApplicationNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
@@ -27,6 +27,7 @@ import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.argument.Thunk;
 import org.enso.interpreter.runtime.data.Vector;
+import org.enso.interpreter.runtime.type.Types;
 import org.enso.polyglot.MethodNames;
 
 /** A runtime representation of a function object in Enso. */
@@ -170,7 +171,7 @@ public final class Function implements TruffleObject {
    * @return {@code true}
    */
   @ExportMessage
-  public boolean isExecutable() {
+  boolean isExecutable() {
     return true;
   }
 
@@ -181,63 +182,14 @@ public final class Function implements TruffleObject {
    * from other guest languages running on GraalVM.
    */
   @ExportMessage
-  public abstract static class Execute {
-
-    /**
-     * Builds an argument sorter node prepared to apply a predefined number of arguments.
-     *
-     * @param length the number of arguments to build the sorter node for.
-     * @return an argument sorter node ready to apply {@code length} arguments.
-     */
-    @ExplodeLoop
-    protected static InvokeFunctionNode buildSorter(int length) {
-      CallArgumentInfo[] args = new CallArgumentInfo[length];
-      for (int i = 0; i < length; i++) {
-        args[i] = new CallArgumentInfo();
-      }
-      return InvokeFunctionNode.build(
-          args,
-          InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
-          InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED);
-    }
-
-    /**
-     * Calls a function extensively caching relevant metadata. This is the fast path operation.
-     *
-     * @param function the function to execute
-     * @param arguments the arguments passed to {@code function} in the expected positional order
-     * @param context the current language context
-     * @param cachedArgsLength the cached arguments count
-     * @param sorterNode the cached argument sorter node for the particular arguments array length.
-     * @return the result of executing {@code function} on {@code arguments}
-     */
-    @Specialization(
-        guards = "arguments.length == cachedArgsLength",
-        limit = Constants.CacheSizes.FUNCTION_INTEROP_LIBRARY)
-    protected static Object callCached(
+  abstract static class Execute {
+    @Specialization
+    static Object doCall(
         Function function,
         Object[] arguments,
-        @CachedContext(Language.class) Context context,
-        @Cached(value = "arguments.length") int cachedArgsLength,
-        @Cached(value = "buildSorter(cachedArgsLength)") InvokeFunctionNode sorterNode) {
-      return sorterNode
-          .execute(function, null, context.getUnit().newInstance(), arguments)
-          .getValue();
-    }
-
-    /**
-     * Calls a function without any caching. This is the slow path variant.
-     *
-     * @param function the function to execute.
-     * @param arguments the arguments to pass to the {@code function}.
-     * @param context the current language context
-     * @return the result of function application.
-     */
-    @Specialization(replaces = "callCached")
-    protected static Object callUncached(
-        Function function, Object[] arguments, @CachedContext(Language.class) Context context) {
-      return callCached(
-          function, arguments, context, arguments.length, buildSorter(arguments.length));
+        @Cached InteropApplicationNode interopApplicationNode,
+        @CachedContext(Language.class) Context context) {
+      return interopApplicationNode.execute(function, context.getBuiltins().unit(), arguments);
     }
   }
 
@@ -254,12 +206,10 @@ public final class Function implements TruffleObject {
    */
   @ExportMessage
   Object invokeMember(String member, Object... args)
-      throws ArityException, UnknownIdentifierException {
+      throws ArityException, UnknownIdentifierException, UnsupportedTypeException {
     if (member.equals(MethodNames.Function.EQUALS)) {
-      if (args.length != 1) {
-        throw ArityException.create(1, args.length);
-      }
-      return this == args[0];
+      Object that = Types.extractArguments(args, Object.class);
+      return this == that;
     }
     throw UnknownIdentifierException.create(member);
   }

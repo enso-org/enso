@@ -2,9 +2,7 @@ package org.enso.interpreter.node;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.instrumentation.GenerateWrapper;
-import com.oracle.truffle.api.instrumentation.InstrumentableNode;
-import com.oracle.truffle.api.instrumentation.ProbeNode;
+import com.oracle.truffle.api.instrumentation.*;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
@@ -145,6 +143,17 @@ public abstract class ExpressionNode extends BaseNode implements InstrumentableN
   @Override
   public boolean isInstrumentable() {
     return true;
+  }
+
+  /**
+   * Marks this node as carrying the {@link StandardTags.ExpressionTag}.
+   *
+   * @param tag the tag to check against.
+   * @return true if {@code tag} was the {@link StandardTags.ExpressionTag}, false otherwise.
+   */
+  @Override
+  public boolean hasTag(Class<? extends Tag> tag) {
+    return tag == StandardTags.ExpressionTag.class;
   }
 
   /**

@@ -1,24 +1,17 @@
 package org.enso.interpreter.instrument;
 
-import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.*;
-import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.source.SourceSection;
+import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 
-import java.util.concurrent.Callable;
 import java.util.function.Consumer;
 
-/**
- * An instrument used to extract node values from currently executed functions.
- *
- * <p>Allows to listen for a node at a given position, and trigger a callback when the node is
- * executed for the first time, passing the node's return value to the callback.
- */
+/** An instrument used to extract function call information. */
 @TruffleInstrument.Registration(
-    id = ValueExtractorInstrument.INSTRUMENT_ID,
-    services = ValueExtractorInstrument.class)
-public class ValueExtractorInstrument extends ExactPositionInstrument<Object> {
-  public static final String INSTRUMENT_ID = "value-extractor";
+    id = FunctionCallExtractorInstrument.INSTRUMENT_ID,
+    services = FunctionCallExtractorInstrument.class)
+public class FunctionCallExtractorInstrument
+    extends ExactPositionInstrument<FunctionCallInstrumentationNode.FunctionCall> {
+  public static final String INSTRUMENT_ID = "function-call-extractor";
 
   /**
    * Creates the listener instance for this instrument and given source info.
@@ -31,11 +24,16 @@ public class ValueExtractorInstrument extends ExactPositionInstrument<Object> {
    */
   @Override
   public ExactPositionListener createListener(
-      String funName, int sourceStart, int length, Consumer<Object> callback) {
+      String funName,
+      int sourceStart,
+      int length,
+      Consumer<FunctionCallInstrumentationNode.FunctionCall> callback) {
     return new ExactPositionListener(funName, sourceStart, length) {
       @Override
       public void handleReturnValue(Object result) {
-        callback.accept(result);
+        if (result instanceof FunctionCallInstrumentationNode.FunctionCall) {
+          callback.accept((FunctionCallInstrumentationNode.FunctionCall) result);
+        }
       }
     };
   }
@@ -52,7 +50,7 @@ public class ValueExtractorInstrument extends ExactPositionInstrument<Object> {
   public SourceSectionFilter createSourceSectionFilter(
       String funName, int sourceStart, int length) {
     return SourceSectionFilter.newBuilder()
-        .tagIs(StandardTags.ExpressionTag.class)
+        .tagIs(StandardTags.CallTag.class)
         .indexIn(sourceStart, length)
         .build();
   }

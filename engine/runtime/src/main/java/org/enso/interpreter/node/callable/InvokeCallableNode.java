@@ -4,6 +4,8 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.source.SourceSection;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
@@ -79,8 +81,7 @@ public abstract class InvokeCallableNode extends BaseNode {
     for (; idx < schema.length; idx++) {
       CallArgumentInfo arg = schema[idx];
 
-      boolean isNamedThis =
-          arg.isNamed() && arg.getName().equals(Constants.Names.THIS_ARGUMENT);
+      boolean isNamedThis = arg.isNamed() && arg.getName().equals(Constants.Names.THIS_ARGUMENT);
       if (arg.isPositional() || isNamedThis) {
         appliesThis = true;
         break;
@@ -211,5 +212,12 @@ public abstract class InvokeCallableNode extends BaseNode {
   public void setTail(boolean isTail) {
     super.setTail(isTail);
     invokeFunctionNode.setTail(isTail);
+  }
+
+  /** @return the source section for this node. */
+  @Override
+  public SourceSection getSourceSection() {
+    Node parent = getParent();
+    return parent == null ? null : parent.getSourceSection();
   }
 }
