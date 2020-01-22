@@ -63,7 +63,7 @@ impl<T> ShapeRef<T> where ShapeRef<T>:Shape {
     }
 }
 
-impl<T,S:Shape> std::ops::Add<&S> for &ShapeRef<T> where ShapeRef<T>:Shape {
+impl<T,S:Shape> Add<&S> for &ShapeRef<T> where ShapeRef<T>:Shape {
     type Output = Union<ShapeRef<T>,S>;
     fn add(self, that:&S) -> Self::Output {
         self.union(that)

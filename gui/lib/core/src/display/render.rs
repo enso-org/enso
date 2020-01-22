@@ -1,4 +1,16 @@
-#![allow(missing_docs)]
+//! Root module for rendering utilities, including render pipelines and render passes.
 
-#[warn(missing_docs)]
-pub mod css3d;
+pub mod composer;
+pub mod passes;
+pub mod pipeline;
+
+
+
+/// Common types.
+pub mod types {
+    use super::*;
+    pub use composer::*;
+    pub use passes::*;
+    pub use pipeline::*;
+}
+pub use types::*;

@@ -115,7 +115,7 @@ macro_rules! shared_bracket_impl {
         $(
             $(#[$($meta:tt)*])*
             pub fn $fn_name:ident
-            $([$($fn_params:tt)*])? ($($fn_args:tt)*) $(-> $fn_type:ty)? {
+            $([$($fn_params:tt)*])? ($($fn_args:tt)*) $(-> $fn_type:ty)? $(where $($wt1:ty : $wt2:path),* )? {
                 $($fn_body:tt)*
             }
         )*
@@ -124,14 +124,14 @@ macro_rules! shared_bracket_impl {
             $(
                 $(#[$($meta)*])*
                 pub fn $fn_name $(<$($fn_params)*>)*
-                ($($fn_args)*) $(-> $fn_type)? {$($fn_body)*}
+                ($($fn_args)*) $(-> $fn_type)? $(where $($wt1 : $wt2),* )? {$($fn_body)*}
             )*
         }
 
         impl <$($impl_params)*> $name $(<$($params)*>)? {
             $($crate::shared_bracket_fn! {
                 $name_mut :: $(#[$($meta)*])*
-                pub fn $fn_name [$($($fn_params)*)*] ($($fn_args)*) $(-> $fn_type)?
+                pub fn $fn_name [$($($fn_params)*)*] ($($fn_args)*) $(-> $fn_type)? $(where $($wt1 : $wt2),* )?
             })*
         }
     };
@@ -140,23 +140,23 @@ macro_rules! shared_bracket_impl {
 #[macro_export]
 macro_rules! shared_bracket_fn {
     ( $base:ident :: $(#[$($meta:tt)*])* pub fn new $([$($params:tt)*])?
-      ($($arg:ident : $arg_type:ty),*) $(-> $type:ty)? ) => {
+      ($($arg:ident : $arg_type:ty),*) $(-> $type:ty)? $(where $($wt1:ty : $wt2:path),* )? ) => {
         $(#[$($meta)*])*
-        pub fn new $(<$($params)*>)* ($($arg : $arg_type),*) $(-> $type)? {
+        pub fn new $(<$($params)*>)* ($($arg : $arg_type),*) $(-> $type)? $(where $($wt1 : $wt2),* )? {
             Self { rc: Rc::new(RefCell::new($base::new($($arg),*))) }
         }
     };
     ( $base:ident :: $(#[$($meta:tt)*])* pub fn $name:ident $([$($params:tt)*])?
-      (&self $(,$($arg:ident : $arg_type:ty),+)?) $(-> $type:ty)? ) => {
+      (&self $(,$($arg:ident : $arg_type:ty),+)?) $(-> $type:ty)? $(where $($wt1:ty : $wt2:path),* )? ) => {
         $(#[$($meta)*])*
-        pub fn $name $(<$($params)*>)* (&self $(,$($arg : $arg_type),*)?) $(-> $type)? {
+        pub fn $name $(<$($params)*>)* (&self $(,$($arg : $arg_type),*)?) $(-> $type)? $(where $($wt1 : $wt2),* )? {
             self.rc.borrow().$name($($($arg),*)?)
         }
     };
     ( $base:ident :: $(#[$($meta:tt)*])* pub fn $name:ident $([$($params:tt)*])?
-      (&mut self $(,$($arg:ident : $arg_type:ty),+)?) $(-> $type:ty)? ) => {
+      (&mut self $(,$($arg:ident : $arg_type:ty),+)?) $(-> $type:ty)? $(where $($wt1:ty : $wt2:path),* )? ) => {
         $(#[$($meta)*])*
-        pub fn $name $(<$($params)*>)* (&self $(,$($arg : $arg_type),*)?) $(-> $type)? {
+        pub fn $name $(<$($params)*>)* (&self $(,$($arg : $arg_type),*)?) $(-> $type)? $(where $($wt1 : $wt2),* )? {
             self.rc.borrow_mut().$name($($($arg),*)?)
         }
     };
@@ -206,10 +206,35 @@ macro_rules! shared_struct {
             }
         }
 
-        impl<$($params)*> $name <$($params)*> {
-            /// Cheap clone of the structure. Implemented as the `Rc::clone` under the hood.
-            pub fn clone_ref(&self) -> Self {
-                self.clone()
+        impl<$($params)*> CloneRef for $name <$($params)*> {}
+
+        paste::item! {
+            $(#[$($meta)*])*
+            pub struct [<Weak $name>] <$($params)*> { weak: Weak<RefCell<$name_mut<$($params)*>>> }
+
+            impl<$($params)*> $name <$($params)*> {
+                /// Downgrade the reference to weak ref.
+                pub fn downgrade(&self) -> [<Weak $name>] <$($params)*> {
+                    let weak = Rc::downgrade(&self.rc);
+                    [<Weak $name>] {weak}
+                }
+            }
+
+            impl<$($params)*> Clone for [<Weak $name>] <$($params)*> {
+                fn clone(&self) -> Self {
+                    let weak = self.weak.clone();
+                    Self {weak}
+                }
+            }
+
+            impl<$($params)*> CloneRef for [<Weak $name>] <$($params)*> {}
+
+            impl<$($params)*> [<Weak $name>] <$($params)*> {
+                /// Attempts to upgrade the weak pointer to an rc, delaying dropping of the inner
+                /// value if successful.
+                pub fn upgrade(&self) -> Option<$name <$($params)*>> {
+                    self.weak.upgrade().map(|rc| $name {rc})
+                }
             }
         }
     };
@@ -236,6 +261,7 @@ macro_rules! _angles_to_brackets_shallow {
     ( $f:ident $f_arg:tt [$($depth:tt)*]           $out:tt       [$($cout:tt)*] <<<   $($rest:tt)* ) => { $crate::_angles_to_brackets_shallow! { $f $f_arg [$($depth)* . . .]     $out                        [$($cout)* <<<]   $($rest)* } };
     ( $f:ident $f_arg:tt [$($depth:tt)*]           $out:tt       [$($cout:tt)*] <<<<  $($rest:tt)* ) => { $crate::_angles_to_brackets_shallow! { $f $f_arg [$($depth)* . . . .]   $out                        [$($cout)* <<<<]  $($rest)* } };
     ( $f:ident $f_arg:tt [$($depth:tt)*]           $out:tt       [$($cout:tt)*] <<<<< $($rest:tt)* ) => { $crate::_angles_to_brackets_shallow! { $f $f_arg [$($depth)* . . . . .] $out                        [$($cout)* <<<<<] $($rest)* } };
+    ( $f:ident $f_arg:tt [. $($depth:tt)*]         $out:tt       [$($cout:tt)*] ->    $($rest:tt)* ) => { $crate::_angles_to_brackets_shallow! { $f $f_arg [. $($depth)*]         $out                        [$($cout)* ->]    $($rest)* } };
     ( $f:ident $f_arg:tt [.]                       [$($out:tt)*] $cout:tt       >     $($rest:tt)* ) => { $crate::_angles_to_brackets_shallow! { $f $f_arg []                     [$($out)* $cout]            []                $($rest)* } };
     ( $f:ident $f_arg:tt [. .]                     [$($out:tt)*] [$($cout:tt)*] >>    $($rest:tt)* ) => { $crate::_angles_to_brackets_shallow! { $f $f_arg []                     [$($out)* [$($cout)* >]]    []                $($rest)* } };
     ( $f:ident $f_arg:tt [. . .]                   [$($out:tt)*] [$($cout:tt)*] >>>   $($rest:tt)* ) => { $crate::_angles_to_brackets_shallow! { $f $f_arg []                     [$($out)* [$($cout)* >>]]   []                $($rest)* } };
@@ -248,15 +274,36 @@ macro_rules! _angles_to_brackets_shallow {
     ( $f:ident $f_arg:tt [. . . . . $($depth:tt)*] $out:tt       [$($cout:tt)*] >>>>> $($rest:tt)* ) => { $crate::_angles_to_brackets_shallow! { $f $f_arg [$($depth)*]           $out                        [$($cout)* >>>>>] $($rest)* } };
 
     // Function output handling
-    ( $f:ident $f_arg:tt $depth:tt $out:tt [$($cout:tt)*] -> $t1:tt {$($b:tt)*} $($rest:tt)* )                                                         => { $crate::_angles_to_brackets_shallow! { $f $f_arg $depth $out [$($cout)* -> $t1 {$($b)*}]                                 $($rest)* } };
-    ( $f:ident $f_arg:tt $depth:tt $out:tt [$($cout:tt)*] -> $t1:tt $t2:tt {$($b:tt)*} $($rest:tt)* )                                                  => { $crate::_angles_to_brackets_shallow! { $f $f_arg $depth $out [$($cout)* -> $t1 $t2 {$($b)*}]                             $($rest)* } };
-    ( $f:ident $f_arg:tt $depth:tt $out:tt [$($cout:tt)*] -> $t1:tt $t2:tt $t3:tt {$($b:tt)*} $($rest:tt)* )                                           => { $crate::_angles_to_brackets_shallow! { $f $f_arg $depth $out [$($cout)* -> $t1 $t2 $t3 {$($b)*}]                         $($rest)* } };
-    ( $f:ident $f_arg:tt $depth:tt $out:tt [$($cout:tt)*] -> $t1:tt $t2:tt $t3:tt $t4:tt {$($b:tt)*} $($rest:tt)* )                                    => { $crate::_angles_to_brackets_shallow! { $f $f_arg $depth $out [$($cout)* -> $t1 $t2 $t3 $t4 {$($b)*}]                     $($rest)* } };
-    ( $f:ident $f_arg:tt $depth:tt $out:tt [$($cout:tt)*] -> $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt {$($b:tt)*} $($rest:tt)* )                             => { $crate::_angles_to_brackets_shallow! { $f $f_arg $depth $out [$($cout)* -> $t1 $t2 $t3 $t4 $t5 {$($b)*}]                 $($rest)* } };
-    ( $f:ident $f_arg:tt $depth:tt $out:tt [$($cout:tt)*] -> $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $t6:tt {$($b:tt)*} $($rest:tt)* )                      => { $crate::_angles_to_brackets_shallow! { $f $f_arg $depth $out [$($cout)* -> $t1 $t2 $t3 $t4 $t5 $t6 {$($b)*}]             $($rest)* } };
-    ( $f:ident $f_arg:tt $depth:tt $out:tt [$($cout:tt)*] -> $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $t6:tt $t7:tt {$($b:tt)*} $($rest:tt)* )               => { $crate::_angles_to_brackets_shallow! { $f $f_arg $depth $out [$($cout)* -> $t1 $t2 $t3 $t4 $t5 $t6 $t7 {$($b)*}]         $($rest)* } };
-    ( $f:ident $f_arg:tt $depth:tt $out:tt [$($cout:tt)*] -> $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $t6:tt $t7:tt $t8:tt {$($b:tt)*} $($rest:tt)* )        => { $crate::_angles_to_brackets_shallow! { $f $f_arg $depth $out [$($cout)* -> $t1 $t2 $t3 $t4 $t5 $t6 $t7 $t8 {$($b)*}]     $($rest)* } };
-    ( $f:ident $f_arg:tt $depth:tt $out:tt [$($cout:tt)*] -> $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $t6:tt $t7:tt $t8:tt $t9:tt {$($b:tt)*} $($rest:tt)* ) => { $crate::_angles_to_brackets_shallow! { $f $f_arg $depth $out [$($cout)* -> $t1 $t2 $t3 $t4 $t5 $t6 $t7 $t8 $t9 {$($b)*}] $($rest)* } };
+    ( $f:ident $f_arg:tt [] $out:tt [$($cout:tt)*] -> $t1:tt {$($b:tt)*} $($rest:tt)* )                                                         => { $crate::_angles_to_brackets_shallow! { $f $f_arg [] $out [$($cout)* -> $t1 {$($b)*}]                                 $($rest)* } };
+    ( $f:ident $f_arg:tt [] $out:tt [$($cout:tt)*] -> $t1:tt $t2:tt {$($b:tt)*} $($rest:tt)* )                                                  => { $crate::_angles_to_brackets_shallow! { $f $f_arg [] $out [$($cout)* -> $t1 $t2 {$($b)*}]                             $($rest)* } };
+    ( $f:ident $f_arg:tt [] $out:tt [$($cout:tt)*] -> $t1:tt $t2:tt $t3:tt {$($b:tt)*} $($rest:tt)* )                                           => { $crate::_angles_to_brackets_shallow! { $f $f_arg [] $out [$($cout)* -> $t1 $t2 $t3 {$($b)*}]                         $($rest)* } };
+    ( $f:ident $f_arg:tt [] $out:tt [$($cout:tt)*] -> $t1:tt $t2:tt $t3:tt $t4:tt {$($b:tt)*} $($rest:tt)* )                                    => { $crate::_angles_to_brackets_shallow! { $f $f_arg [] $out [$($cout)* -> $t1 $t2 $t3 $t4 {$($b)*}]                     $($rest)* } };
+    ( $f:ident $f_arg:tt [] $out:tt [$($cout:tt)*] -> $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt {$($b:tt)*} $($rest:tt)* )                             => { $crate::_angles_to_brackets_shallow! { $f $f_arg [] $out [$($cout)* -> $t1 $t2 $t3 $t4 $t5 {$($b)*}]                 $($rest)* } };
+    ( $f:ident $f_arg:tt [] $out:tt [$($cout:tt)*] -> $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $t6:tt {$($b:tt)*} $($rest:tt)* )                      => { $crate::_angles_to_brackets_shallow! { $f $f_arg [] $out [$($cout)* -> $t1 $t2 $t3 $t4 $t5 $t6 {$($b)*}]             $($rest)* } };
+    ( $f:ident $f_arg:tt [] $out:tt [$($cout:tt)*] -> $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $t6:tt $t7:tt {$($b:tt)*} $($rest:tt)* )               => { $crate::_angles_to_brackets_shallow! { $f $f_arg [] $out [$($cout)* -> $t1 $t2 $t3 $t4 $t5 $t6 $t7 {$($b)*}]         $($rest)* } };
+    ( $f:ident $f_arg:tt [] $out:tt [$($cout:tt)*] -> $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $t6:tt $t7:tt $t8:tt {$($b:tt)*} $($rest:tt)* )        => { $crate::_angles_to_brackets_shallow! { $f $f_arg [] $out [$($cout)* -> $t1 $t2 $t3 $t4 $t5 $t6 $t7 $t8 {$($b)*}]     $($rest)* } };
+    ( $f:ident $f_arg:tt [] $out:tt [$($cout:tt)*] -> $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $t6:tt $t7:tt $t8:tt $t9:tt {$($b:tt)*} $($rest:tt)* ) => { $crate::_angles_to_brackets_shallow! { $f $f_arg [] $out [$($cout)* -> $t1 $t2 $t3 $t4 $t5 $t6 $t7 $t8 $t9 {$($b)*}] $($rest)* } };
+    ( $f:ident $f_arg:tt [] $out:tt [$($cout:tt)*] -> $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $t6:tt $t7:tt $t8:tt $t9:tt $t10:tt {$($b:tt)*} $($rest:tt)* ) => { $crate::_angles_to_brackets_shallow! { $f $f_arg [] $out [$($cout)* -> $t1 $t2 $t3 $t4 $t5 $t6 $t7 $t8 $t9 $t10 {$($b)*}] $($rest)* } };
+    ( $f:ident $f_arg:tt [] $out:tt [$($cout:tt)*] -> $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $t6:tt $t7:tt $t8:tt $t9:tt $t10:tt $t11:tt {$($b:tt)*} $($rest:tt)* ) => { $crate::_angles_to_brackets_shallow! { $f $f_arg [] $out [$($cout)* -> $t1 $t2 $t3 $t4 $t5 $t6 $t7 $t8 $t9 $t10 $t11 {$($b)*}] $($rest)* } };
+    ( $f:ident $f_arg:tt [] $out:tt [$($cout:tt)*] -> $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $t6:tt $t7:tt $t8:tt $t9:tt $t10:tt $t11:tt $t12:tt {$($b:tt)*} $($rest:tt)* ) => { $crate::_angles_to_brackets_shallow! { $f $f_arg [] $out [$($cout)* -> $t1 $t2 $t3 $t4 $t5 $t6 $t7 $t8 $t9 $t10 $t11 $t12 {$($b)*}] $($rest)* } };
+    ( $f:ident $f_arg:tt [] $out:tt [$($cout:tt)*] -> $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $t6:tt $t7:tt $t8:tt $t9:tt $t10:tt $t11:tt $t12:tt $t13:tt {$($b:tt)*} $($rest:tt)* ) => { $crate::_angles_to_brackets_shallow! { $f $f_arg [] $out [$($cout)* -> $t1 $t2 $t3 $t4 $t5 $t6 $t7 $t8 $t9 $t10 $t11 $t12 $t13 {$($b)*}] $($rest)* } };
+    ( $f:ident $f_arg:tt [] $out:tt [$($cout:tt)*] -> $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $t6:tt $t7:tt $t8:tt $t9:tt $t10:tt $t11:tt $t12:tt $t13:tt $t14:tt {$($b:tt)*} $($rest:tt)* ) => { $crate::_angles_to_brackets_shallow! { $f $f_arg [] $out [$($cout)* -> $t1 $t2 $t3 $t4 $t5 $t6 $t7 $t8 $t9 $t10 $t11 $t12 $t13 $t14 {$($b)*}] $($rest)* } };
+    ( $f:ident $f_arg:tt [] $out:tt [$($cout:tt)*] -> $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $t6:tt $t7:tt $t8:tt $t9:tt $t10:tt $t11:tt $t12:tt $t13:tt $t14:tt $t15:tt {$($b:tt)*} $($rest:tt)* ) => { $crate::_angles_to_brackets_shallow! { $f $f_arg [] $out [$($cout)* -> $t1 $t2 $t3 $t4 $t5 $t6 $t7 $t8 $t9 $t10 $t11 $t12 $t13 $t14 $t15 {$($b)*}] $($rest)* } };
+    ( $f:ident $f_arg:tt [] $out:tt [$($cout:tt)*] -> $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $t6:tt $t7:tt $t8:tt $t9:tt $t10:tt $t11:tt $t12:tt $t13:tt $t14:tt $t15:tt $t16:tt {$($b:tt)*} $($rest:tt)* ) => { $crate::_angles_to_brackets_shallow! { $f $f_arg [] $out [$($cout)* -> $t1 $t2 $t3 $t4 $t5 $t6 $t7 $t8 $t9 $t10 $t11 $t12 $t13 $t14 $t15 $t16 {$($b)*}] $($rest)* } };
+    ( $f:ident $f_arg:tt [] $out:tt [$($cout:tt)*] -> $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $t6:tt $t7:tt $t8:tt $t9:tt $t10:tt $t11:tt $t12:tt $t13:tt $t14:tt $t15:tt $t16:tt $t17:tt {$($b:tt)*} $($rest:tt)* ) => { $crate::_angles_to_brackets_shallow! { $f $f_arg [] $out [$($cout)* -> $t1 $t2 $t3 $t4 $t5 $t6 $t7 $t8 $t9 $t10 $t11 $t12 $t13 $t14 $t15 $t16 $t17 {$($b)*}] $($rest)* } };
+    ( $f:ident $f_arg:tt [] $out:tt [$($cout:tt)*] -> $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $t6:tt $t7:tt $t8:tt $t9:tt $t10:tt $t11:tt $t12:tt $t13:tt $t14:tt $t15:tt $t16:tt $t17:tt $t18:tt {$($b:tt)*} $($rest:tt)* ) => { $crate::_angles_to_brackets_shallow! { $f $f_arg [] $out [$($cout)* -> $t1 $t2 $t3 $t4 $t5 $t6 $t7 $t8 $t9 $t10 $t11 $t12 $t13 $t14 $t15 $t16 $t17 $t18 {$($b)*}] $($rest)* } };
+    ( $f:ident $f_arg:tt [] $out:tt [$($cout:tt)*] -> $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $t6:tt $t7:tt $t8:tt $t9:tt $t10:tt $t11:tt $t12:tt $t13:tt $t14:tt $t15:tt $t16:tt $t17:tt $t18:tt $t19:tt {$($b:tt)*} $($rest:tt)* ) => { $crate::_angles_to_brackets_shallow! { $f $f_arg [] $out [$($cout)* -> $t1 $t2 $t3 $t4 $t5 $t6 $t7 $t8 $t9 $t10 $t11 $t12 $t13 $t14 $t15 $t16 $t17 $t18 $t19 {$($b)*}] $($rest)* } };
+    ( $f:ident $f_arg:tt [] $out:tt [$($cout:tt)*] -> $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $t6:tt $t7:tt $t8:tt $t9:tt $t10:tt $t11:tt $t12:tt $t13:tt $t14:tt $t15:tt $t16:tt $t17:tt $t18:tt $t19:tt $t20:tt {$($b:tt)*} $($rest:tt)* ) => { $crate::_angles_to_brackets_shallow! { $f $f_arg [] $out [$($cout)* -> $t1 $t2 $t3 $t4 $t5 $t6 $t7 $t8 $t9 $t10 $t11 $t12 $t13 $t14 $t15 $t16 $t17 $t18 $t19 $t20 {$($b)*}] $($rest)* } };
+    ( $f:ident $f_arg:tt [] $out:tt [$($cout:tt)*] -> $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $t6:tt $t7:tt $t8:tt $t9:tt $t10:tt $t11:tt $t12:tt $t13:tt $t14:tt $t15:tt $t16:tt $t17:tt $t18:tt $t19:tt $t20:tt $t21:tt {$($b:tt)*} $($rest:tt)* ) => { $crate::_angles_to_brackets_shallow! { $f $f_arg [] $out [$($cout)* -> $t1 $t2 $t3 $t4 $t5 $t6 $t7 $t8 $t9 $t10 $t11 $t12 $t13 $t14 $t15 $t16 $t17 $t18 $t19 $t20 $t21 {$($b)*}] $($rest)* } };
+    ( $f:ident $f_arg:tt [] $out:tt [$($cout:tt)*] -> $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $t6:tt $t7:tt $t8:tt $t9:tt $t10:tt $t11:tt $t12:tt $t13:tt $t14:tt $t15:tt $t16:tt $t17:tt $t18:tt $t19:tt $t20:tt $t21:tt $t22:tt {$($b:tt)*} $($rest:tt)* ) => { $crate::_angles_to_brackets_shallow! { $f $f_arg [] $out [$($cout)* -> $t1 $t2 $t3 $t4 $t5 $t6 $t7 $t8 $t9 $t10 $t11 $t12 $t13 $t14 $t15 $t16 $t17 $t18 $t19 $t20 $t21 $t22 {$($b)*}] $($rest)* } };
+    ( $f:ident $f_arg:tt [] $out:tt [$($cout:tt)*] -> $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $t6:tt $t7:tt $t8:tt $t9:tt $t10:tt $t11:tt $t12:tt $t13:tt $t14:tt $t15:tt $t16:tt $t17:tt $t18:tt $t19:tt $t20:tt $t21:tt $t22:tt $t23:tt {$($b:tt)*} $($rest:tt)* ) => { $crate::_angles_to_brackets_shallow! { $f $f_arg [] $out [$($cout)* -> $t1 $t2 $t3 $t4 $t5 $t6 $t7 $t8 $t9 $t10 $t11 $t12 $t13 $t14 $t15 $t16 $t17 $t18 $t19 $t20 $t21 $t22 $t23 {$($b)*}] $($rest)* } };
+    ( $f:ident $f_arg:tt [] $out:tt [$($cout:tt)*] -> $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $t6:tt $t7:tt $t8:tt $t9:tt $t10:tt $t11:tt $t12:tt $t13:tt $t14:tt $t15:tt $t16:tt $t17:tt $t18:tt $t19:tt $t20:tt $t21:tt $t22:tt $t23:tt $t24:tt {$($b:tt)*} $($rest:tt)* ) => { $crate::_angles_to_brackets_shallow! { $f $f_arg [] $out [$($cout)* -> $t1 $t2 $t3 $t4 $t5 $t6 $t7 $t8 $t9 $t10 $t11 $t12 $t13 $t14 $t15 $t16 $t17 $t18 $t19 $t20 $t21 $t22 $t23 $t24 {$($b)*}] $($rest)* } };
+    ( $f:ident $f_arg:tt [] $out:tt [$($cout:tt)*] -> $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $t6:tt $t7:tt $t8:tt $t9:tt $t10:tt $t11:tt $t12:tt $t13:tt $t14:tt $t15:tt $t16:tt $t17:tt $t18:tt $t19:tt $t20:tt $t21:tt $t22:tt $t23:tt $t24:tt $t25:tt {$($b:tt)*} $($rest:tt)* ) => { $crate::_angles_to_brackets_shallow! { $f $f_arg [] $out [$($cout)* -> $t1 $t2 $t3 $t4 $t5 $t6 $t7 $t8 $t9 $t10 $t11 $t12 $t13 $t14 $t15 $t16 $t17 $t18 $t19 $t20 $t21 $t22 $t23 $t24 $t25 {$($b)*}] $($rest)* } };
+    ( $f:ident $f_arg:tt [] $out:tt [$($cout:tt)*] -> $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $t6:tt $t7:tt $t8:tt $t9:tt $t10:tt $t11:tt $t12:tt $t13:tt $t14:tt $t15:tt $t16:tt $t17:tt $t18:tt $t19:tt $t20:tt $t21:tt $t22:tt $t23:tt $t24:tt $t25:tt $t26:tt {$($b:tt)*} $($rest:tt)* ) => { $crate::_angles_to_brackets_shallow! { $f $f_arg [] $out [$($cout)* -> $t1 $t2 $t3 $t4 $t5 $t6 $t7 $t8 $t9 $t10 $t11 $t12 $t13 $t14 $t15 $t16 $t17 $t18 $t19 $t20 $t21 $t22 $t23 $t24 $t25 $t26 {$($b)*}] $($rest)* } };
+    ( $f:ident $f_arg:tt [] $out:tt [$($cout:tt)*] -> $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $t6:tt $t7:tt $t8:tt $t9:tt $t10:tt $t11:tt $t12:tt $t13:tt $t14:tt $t15:tt $t16:tt $t17:tt $t18:tt $t19:tt $t20:tt $t21:tt $t22:tt $t23:tt $t24:tt $t25:tt $t26:tt $t27:tt {$($b:tt)*} $($rest:tt)* ) => { $crate::_angles_to_brackets_shallow! { $f $f_arg [] $out [$($cout)* -> $t1 $t2 $t3 $t4 $t5 $t6 $t7 $t8 $t9 $t10 $t11 $t12 $t13 $t14 $t15 $t16 $t17 $t18 $t19 $t20 $t21 $t22 $t23 $t24 $t25 $t26 $t27 {$($b)*}] $($rest)* } };
+    ( $f:ident $f_arg:tt [] $out:tt [$($cout:tt)*] -> $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $t6:tt $t7:tt $t8:tt $t9:tt $t10:tt $t11:tt $t12:tt $t13:tt $t14:tt $t15:tt $t16:tt $t17:tt $t18:tt $t19:tt $t20:tt $t21:tt $t22:tt $t23:tt $t24:tt $t25:tt $t26:tt $t27:tt $t28:tt {$($b:tt)*} $($rest:tt)* ) => { $crate::_angles_to_brackets_shallow! { $f $f_arg [] $out [$($cout)* -> $t1 $t2 $t3 $t4 $t5 $t6 $t7 $t8 $t9 $t10 $t11 $t12 $t13 $t14 $t15 $t16 $t17 $t18 $t19 $t20 $t21 $t22 $t23 $t24 $t25 $t26 $t27 $t28 {$($b)*}] $($rest)* } };
+    ( $f:ident $f_arg:tt [] $out:tt [$($cout:tt)*] -> $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $t6:tt $t7:tt $t8:tt $t9:tt $t10:tt $t11:tt $t12:tt $t13:tt $t14:tt $t15:tt $t16:tt $t17:tt $t18:tt $t19:tt $t20:tt $t21:tt $t22:tt $t23:tt $t24:tt $t25:tt $t26:tt $t27:tt $t28:tt $t29:tt {$($b:tt)*} $($rest:tt)* ) => { $crate::_angles_to_brackets_shallow! { $f $f_arg [] $out [$($cout)* -> $t1 $t2 $t3 $t4 $t5 $t6 $t7 $t8 $t9 $t10 $t11 $t12 $t13 $t14 $t15 $t16 $t17 $t18 $t19 $t20 $t21 $t22 $t23 $t24 $t25 $t26 $t27 $t28 $t29 {$($b)*}] $($rest)* } };
+    ( $f:ident $f_arg:tt [] $out:tt [$($cout:tt)*] -> $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $t6:tt $t7:tt $t8:tt $t9:tt $t10:tt $t11:tt $t12:tt $t13:tt $t14:tt $t15:tt $t16:tt $t17:tt $t18:tt $t19:tt $t20:tt $t21:tt $t22:tt $t23:tt $t24:tt $t25:tt $t26:tt $t27:tt $t28:tt $t29:tt $t30:tt {$($b:tt)*} $($rest:tt)* ) => { $crate::_angles_to_brackets_shallow! { $f $f_arg [] $out [$($cout)* -> $t1 $t2 $t3 $t4 $t5 $t6 $t7 $t8 $t9 $t10 $t11 $t12 $t13 $t14 $t15 $t16 $t17 $t18 $t19 $t20 $t21 $t22 $t23 $t24 $t25 $t26 $t27 $t28 $t29 $t30 {$($b)*}] $($rest)* } };
 
     // Any token handling
     ( $f:ident $f_arg:tt $depth:tt $out:tt [$($cout:tt)*] $t:tt $($rest:tt)* ) => { $crate::_angles_to_brackets_shallow! { $f $f_arg $depth $out [$($cout)* $t] $($rest)* } };

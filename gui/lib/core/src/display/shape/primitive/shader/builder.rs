@@ -6,7 +6,7 @@ use crate::prelude::*;
 use super::canvas::Canvas;
 use super::super::class::Shape;
 use crate::display::shape::primitive::def::sdf;
-use crate::display::symbol::shader::builder::CodeTemplete;
+use crate::display::symbol::shader::builder::CodeTemplate;
 use crate::display::shape::primitive::shader::overload;
 
 
@@ -31,7 +31,7 @@ pub struct Builder {}
 
 impl Builder {
     /// Returns the final GLSL code.
-    pub fn run<S:Shape>(shape:&S) -> CodeTemplete {
+    pub fn run<S:Shape>(shape:&S) -> CodeTemplate {
         let sdf_defs     = sdf::all_shapes_glsl_definitions();
         let mut canvas   = Canvas::default();
         let shape_ref    = shape.draw(&mut canvas);
@@ -50,7 +50,7 @@ impl Builder {
         let defs = overload::allow_overloading(&defs);
         let code = format!("{}\n\n{}\n\n{}\n\n{}\n\n{}\n\n{}",redirections,math,color,debug,shape,defs);
 
-        CodeTemplete::new(code,FRAGMENT_RUNNER.to_string(),default())
+        CodeTemplate::new(code,FRAGMENT_RUNNER.to_string(),default())
     }
 }
 

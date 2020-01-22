@@ -38,7 +38,7 @@
 macro_rules! define_singletons {
     ( $( $(#$meta:tt)* $name:ident ),* $(,)? ) => {$(
         #[allow(missing_docs)]
-        #[derive(Copy,Clone,Debug)]
+        #[derive(Copy,Clone,Debug,PartialEq,Eq)]
         $(#$meta)*
         pub struct $name;
 
@@ -105,7 +105,7 @@ macro_rules! define_singleton_enum_from {
         }
     ) => {
         #[allow(missing_docs)]
-        #[derive(Copy,Clone,Debug)]
+        #[derive(Copy,Clone,Debug,PartialEq,Eq)]
         $(#$meta)*
         pub enum $name {
             $( $(#$field_meta)* $field ),*

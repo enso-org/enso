@@ -5,7 +5,6 @@
 
 use crate::prelude::*;
 
-use crate::data::container::Add;
 use crate::system::gpu::data::buffer::item::MatrixCtx;
 
 use code_builder::CodeBuilder;
@@ -103,6 +102,12 @@ where Self:MatrixCtx<T,R,C>, PhantomData<MatrixMN<T,R,C>>:Into<PrimType> {
         format!("{}({})",type_name,vals.join(",")).into()
     }
 }
+
+
+// === Wrong Conversions ===
+
+/// Error indicating that a value cannot be converted to Glsl.
+pub struct NotGlslError;
 
 
 
@@ -240,8 +245,8 @@ pub struct Block {
     pub exprs: Vec<Expr>
 }
 
-impl<T:Into<Expr>> Add<T> for Block {
-    type Result = ();
+impl<T:Into<Expr>> AddMut<T> for Block {
+    type Output = ();
     fn add(&mut self, t:T) {
         self.exprs.push(t.into());
     }
@@ -339,8 +344,8 @@ impl HasCodeRepr for Function {
     }
 }
 
-impl<T:Into<Expr>> Add<T> for Function {
-    type Result = ();
+impl<T:Into<Expr>> AddMut<T> for Function {
+    type Output = ();
     fn add(&mut self, t: T) {
         self.body.add(t)
     }
@@ -479,8 +484,8 @@ impl HasCodeRepr for PrimType {
             Self::UVec2                => builder.add("uvec2"),
             Self::UVec3                => builder.add("uvec3"),
             Self::UVec4                => builder.add("uvec4"),
-            Self::Sampler2d            => builder.add("sampler2d"),
-            Self::Sampler3d            => builder.add("sampler3d"),
+            Self::Sampler2d            => builder.add("sampler2D"),
+            Self::Sampler3d            => builder.add("sampler3D"),
             Self::SamplerCube          => builder.add("samplerCube"),
             Self::Sampler2dShadow      => builder.add("sampler2DShadow"),
             Self::SamplerCubeShadow    => builder.add("samplerCubeShadow"),
@@ -687,29 +692,29 @@ impl Default for Module {
     }
 }
 
-impl Add<GlobalVar> for Module {
-    type Result = ();
+impl AddMut<GlobalVar> for Module {
+    type Output = ();
     fn add(&mut self, t: GlobalVar) {
         self.global_vars.push(t);
     }
 }
 
-impl Add<Statement> for Module {
-    type Result = ();
+impl AddMut<Statement> for Module {
+    type Output = ();
     fn add(&mut self, t: Statement) {
         self.statements.push(t);
     }
 }
 
-impl Add<PrecisionDecl> for Module {
-    type Result = ();
+impl AddMut<PrecisionDecl> for Module {
+    type Output = ();
     fn add(&mut self, t: PrecisionDecl) {
         self.prec_decls.push(t);
     }
 }
 
-impl Add<Expr> for Module {
-    type Result = ();
+impl AddMut<Expr> for Module {
+    type Output = ();
     fn add(&mut self, t: Expr) {
         self.main.add(t);
     }

@@ -206,20 +206,20 @@ impl<OnChange> CachedTransform<OnChange> {
 // === Getters ===
 
 impl<OnChange> CachedTransform<OnChange> {
-    pub fn position(&self) -> &Vector3<f32> {
-        &self.transform.position
+    pub fn position(&self) -> Vector3<f32> {
+        self.transform.position
     }
 
-    pub fn rotation(&self) -> &Vector3<f32> {
-        &self.transform.rotation
+    pub fn rotation(&self) -> Vector3<f32> {
+        self.transform.rotation
     }
 
-    pub fn scale(&self) -> &Vector3<f32> {
-        &self.transform.scale
+    pub fn scale(&self) -> Vector3<f32> {
+        self.transform.scale
     }
 
-    pub fn matrix(&self) -> &Matrix4<f32> {
-        &self.matrix
+    pub fn matrix(&self) -> Matrix4<f32> {
+        self.matrix
     }
 
     pub fn global_position(&self) -> Vector3<f32> {

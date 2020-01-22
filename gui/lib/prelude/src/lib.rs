@@ -11,6 +11,7 @@ pub use core::any::type_name;
 pub use core::fmt::Debug;
 pub use derivative::Derivative;
 pub use derive_more::*;
+pub use enclose::enclose;
 pub use failure::Fail;
 pub use ifmt::*;
 pub use itertools::Itertools;
@@ -19,6 +20,7 @@ pub use num::Num;
 pub use paste;
 pub use shrinkwraprs::Shrinkwrap;
 pub use smallvec::SmallVec;
+pub use std::any::Any;
 pub use std::cell::Ref;
 pub use std::cell::RefCell;
 pub use std::cell::RefMut;
@@ -34,6 +36,7 @@ pub use std::hash::Hash;
 pub use std::iter::FromIterator;
 pub use std::iter;
 pub use std::marker::PhantomData;
+pub use std::ops::Add;
 pub use std::ops::Deref;
 pub use std::ops::DerefMut;
 pub use std::ops::Index;
@@ -118,8 +121,10 @@ impl<T> OptionOps for Option<T> {
 
 /// Like `Clone` but should be implemented only for cheap reference-based clones. Using `clone_ref`
 /// instead of `clone` makes the code more clear and makes it easier to predict its performance.
-pub trait CloneRef {
-    fn clone_ref(&self) -> Self;
+pub trait CloneRef: Clone {
+    fn clone_ref(&self) -> Self {
+        self.clone()
+    }
 }
 
 
@@ -363,3 +368,86 @@ impl <T:Scalar,R:DimName,C:DimName,S> TypeDisplay for Matrix<T,R,C,S> {
 //pub unsafe fn drop_lifetime_mut<'a,'b,T>(t: &'a mut T) -> &'b mut T {
 //    std::mem::transmute(t)
 //}
+
+
+#[macro_export]
+macro_rules! clone_boxed {
+    ( $name:ident ) => { paste::item! {
+        #[allow(missing_docs)]
+        pub trait [<CloneBoxedFor $name>] {
+            fn clone_boxed(&self) -> Box<dyn $name>;
+        }
+
+        impl<T:Clone+$name+'static> [<CloneBoxedFor $name>] for T {
+            fn clone_boxed(&self) -> Box<dyn $name> {
+                Box::new(self.clone())
+            }
+        }
+
+        impl Clone for Box<dyn $name> {
+            fn clone(&self) -> Self {
+                self.clone_boxed()
+            }
+        }
+    }}
+}
+
+
+// ===================
+// === WithContent ===
+// ===================
+
+pub trait WithContent {
+    type Content;
+    fn with_content<F:FnOnce(&Self::Content)->T,T>(&self, f:F) -> T;
+}
+
+impl<T:Deref> WithContent for T
+    where <T as Deref>::Target: WithContent {
+    type Content = <<T as Deref>::Target as WithContent>::Content;
+    default fn with_content<F:FnOnce(&Self::Content)->R,R>(&self, f:F) -> R {
+        self.deref().with_content(f)
+    }
+}
+
+
+
+// =============
+// === Value ===
+// =============
+
+/// Defines relation between types and values, like between `True` and `true`.
+pub trait Value {
+
+    /// The value-level counterpart of this type-value.
+    type Type;
+
+    /// The value of this type-value.
+    fn value() -> Self::Type;
+}
+
+
+
+// =======================
+// === Type-level Bool ===
+// =======================
+
+/// Type level `true` value.
+pub struct True {}
+
+/// Type level `false` value.
+pub struct False {}
+
+impl Value for True {
+    type Type = bool;
+    fn value() -> Self::Type {
+        true
+    }
+}
+
+impl Value for False {
+    type Type = bool;
+    fn value() -> Self::Type {
+        false
+    }
+}

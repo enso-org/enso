@@ -4,15 +4,14 @@
 use crate::prelude::*;
 
 use crate::display::symbol::geometry::SpriteSystem;
-use crate::display::world::World;
 use crate::display::symbol::material::Material;
 use crate::display::shape::primitive::shader;
 use crate::display::shape::primitive::def::class::Shape;
+use crate::display::object::*;
 
 
 /// Defines a system containing shapes. It is a specialized `SpriteSystem` version.
-#[derive(Shrinkwrap)]
-#[shrinkwrap(mutable)]
+#[derive(Debug,Shrinkwrap)]
 pub struct ShapeSystem {
     /// The underlying `SpriteSystem`.
     pub sprite_system: SpriteSystem
@@ -20,8 +19,8 @@ pub struct ShapeSystem {
 
 impl ShapeSystem {
     /// Constructor.
-    pub fn new<S:Shape>(world:&World, shape:&S) -> Self {
-        let mut sprite_system = SpriteSystem::new(world);
+    pub fn new<S:Shape>(shape:&S) -> Self {
+        let sprite_system = SpriteSystem::new();
         sprite_system.set_material(Self::material(shape));
         Self {sprite_system}
     }
@@ -36,5 +35,11 @@ impl ShapeSystem {
         let code = shader::builder::Builder::run(shape);
         material.set_code(code);
         material
+    }
+}
+
+impl From<&ShapeSystem> for DisplayObjectData {
+    fn from(t:&ShapeSystem) -> Self {
+        (&t.sprite_system).into()
     }
 }

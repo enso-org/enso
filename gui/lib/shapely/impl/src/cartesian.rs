@@ -36,10 +36,10 @@ macro_rules! _cartesian_impl {
     ([[$f:path] $args:tt] $out:tt [] $b:tt $init_b:tt) => {
         $f!{ $args $out }
     };
-    ($f:tt $out:tt [$a:ident $($at:tt)*] [] $init_b:tt) => {
+    ($f:tt $out:tt [$a:tt $($at:tt)*] [] $init_b:tt) => {
         $crate::_cartesian_impl!{ $f $out [$($at)*] $init_b $init_b }
     };
-    ($f:tt [$($out:tt)*] [$a:ident $($at:tt)*] [$b:ident $($bt:tt)*] $init_b:tt) => {
+    ($f:tt [$($out:tt)*] [$a:tt $($at:tt)*] [$b:tt $($bt:tt)*] $init_b:tt) => {
         $crate::_cartesian_impl!{ $f [$($out)* [$a $b]] [$a $($at)*] [$($bt)*] $init_b }
     };
 }
