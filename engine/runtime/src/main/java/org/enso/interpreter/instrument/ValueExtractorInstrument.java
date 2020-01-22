@@ -4,6 +4,7 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.*;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.SourceSection;
+import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 
 import java.util.concurrent.Callable;
 import java.util.function.Consumer;
@@ -34,7 +35,11 @@ public class ValueExtractorInstrument extends ExactPositionInstrument<Object> {
       String funName, int sourceStart, int length, Consumer<Object> callback) {
     return new ExactPositionListener(funName, sourceStart, length) {
       @Override
-      public void handleReturnValue(Object result) {
+      public void onReturnValue(EventContext context, VirtualFrame frame, Object result) {
+        if (!shouldTrigger(context)) {
+          return;
+        }
+        detach();
         callback.accept(result);
       }
     };

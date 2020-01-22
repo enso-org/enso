@@ -1,5 +1,6 @@
 package org.enso.interpreter.instrument;
 
+import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.*;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 
@@ -30,8 +31,12 @@ public class FunctionCallExtractorInstrument
       Consumer<FunctionCallInstrumentationNode.FunctionCall> callback) {
     return new ExactPositionListener(funName, sourceStart, length) {
       @Override
-      public void handleReturnValue(Object result) {
+      public void onReturnValue(EventContext context, VirtualFrame frame, Object result) {
+        if (!shouldTrigger(context)) {
+          return;
+        }
         if (result instanceof FunctionCallInstrumentationNode.FunctionCall) {
+          detach();
           callback.accept((FunctionCallInstrumentationNode.FunctionCall) result);
         }
       }

@@ -13,11 +13,11 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.SourceSection;
 
 /**
- * A simple {@link ExecutionEventListener} scaffolding, capable of triggering exactly once for an
- * exact code position, properly handling recursive calls (fires only in the top frame).
+ * A simple {@link ExecutionEventListener} scaffolding, capable of triggering for an exact code
+ * position, properly handling recursive calls (fires only in the top frame).
  */
-public abstract class ExactPositionListener implements ExecutionEventListener {
-  private EventBinding<ExactPositionListener> binding;
+public class ExactPositionListener implements ExecutionEventListener {
+  private EventBinding<? extends ExactPositionListener> binding;
   private final int start;
   private final int length;
   private final String funName;
@@ -42,7 +42,7 @@ public abstract class ExactPositionListener implements ExecutionEventListener {
    *
    * @param binding the event binding resulting from attaching this listener.
    */
-  public void setBinding(EventBinding<ExactPositionListener> binding) {
+  public void setBinding(EventBinding<? extends ExactPositionListener> binding) {
     this.binding = binding;
   }
 
@@ -78,12 +78,31 @@ public abstract class ExactPositionListener implements ExecutionEventListener {
   }
 
   /**
-   * Handler for the {@link #onReturnValue(EventContext, VirtualFrame, Object)} event in the case it
-   * triggered for the actually required node.
+   * Checks whether the listener should trigger in the current context.
    *
-   * @param result the result of executing the instrumented node.
+   * <p>The conditions checked are:
+   * <li>Is it not a recursive call?
+   * <li>Is the node at the exact requested source position?
+   *
+   * @param context the current event context.
+   * @return true if the listener should trigger, false otherwise.
    */
-  public abstract void handleReturnValue(Object result);
+  protected boolean shouldTrigger(EventContext context) {
+    if (!isTopFrame()) {
+      return false;
+    }
+    Node node = context.getInstrumentedNode();
+    SourceSection section = node.getSourceSection();
+    if (section == null || !section.hasCharIndex()) {
+      return false;
+    }
+    return section.getCharIndex() == start && section.getCharLength() == length;
+  }
+
+  /** Detach this listener, ensuring it won't ever trigger. */
+  protected void detach() {
+    binding.dispose();
+  }
 
   /**
    * Get the start location of the nodes expected by this listener.
@@ -112,32 +131,20 @@ public abstract class ExactPositionListener implements ExecutionEventListener {
     return binding.isDisposed();
   }
 
+  /**
+   * Get the current binding associated with this listener.
+   *
+   * @return the binding associated with this listener.
+   */
+  public EventBinding<? extends ExactPositionListener> getBinding() {
+    return binding;
+  }
+
   @Override
   public void onEnter(EventContext context, VirtualFrame frame) {}
 
-  /**
-   * Checks if the node to be executed is the node this listener was created to observe and triggers
-   * {@link #handleReturnValue(Object)} if the correct node just finished executing.
-   *
-   * @param context current execution context
-   * @param frame current execution frame
-   * @param result the return value of the currently executed node
-   */
   @Override
-  public void onReturnValue(EventContext context, VirtualFrame frame, Object result) {
-    if (!isTopFrame()) {
-      return;
-    }
-    Node node = context.getInstrumentedNode();
-    SourceSection section = node.getSourceSection();
-    if (section == null || !section.hasCharIndex()) {
-      return;
-    }
-    if (section.getCharIndex() == start && section.getCharLength() == length) {
-      binding.dispose();
-      handleReturnValue(result);
-    }
-  }
+  public void onReturnValue(EventContext context, VirtualFrame frame, Object result) {}
 
   @Override
   public void onReturnExceptional(EventContext context, VirtualFrame frame, Throwable exception) {}

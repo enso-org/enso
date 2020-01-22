@@ -97,4 +97,47 @@ class IdeWorkflowTest extends InterpreterTest {
     fooValues shouldEqual Map("a" -> 45, "b" -> 44)
 
   }
+
+  "instruments" should "allow to get executed values and use them in caches" in {
+    val code =
+      """
+        |foo = arg ->
+        |    IO.println "I'm expensive!"
+        |    arg + 5
+        |
+        |bar = arg ->
+        |    IO.println "I'm more expensive!"
+        |    arg * 5
+        |
+        |main =
+        |    x = 10
+        |    y = here.foo x
+        |    z = here.bar y
+        |    z
+        |""".stripMargin
+
+    val module    = executionContext.evalModule(code, "Test")
+    val assocCons = module.getAssociatedConstructor
+    val main      = module.getMethod(assocCons, "main")
+
+    val extractInstrument = getValueExtractorInstrument
+    var yVal: AnyRef      = null
+    var zVal: AnyRef      = null
+    extractInstrument.bindTo("Test.main", 148, 10, { y =>
+      yVal = y
+    })
+    extractInstrument.bindTo("Test.main", 167, 10, { z =>
+      zVal = z
+    })
+
+    main.execute(assocCons.newInstance()) shouldEqual 75
+    consumeOut shouldEqual List("I'm expensive!", "I'm more expensive!")
+
+    val overrideInstrument = getValueOverrideInstrument
+    overrideInstrument.overrideAt("Test.main", 148, 10, yVal)
+    overrideInstrument.overrideAt("Test.main", 167, 10, zVal)
+
+    main.execute(assocCons.newInstance()) shouldEqual 75
+    consumeOut shouldEqual List()
+  }
 }
