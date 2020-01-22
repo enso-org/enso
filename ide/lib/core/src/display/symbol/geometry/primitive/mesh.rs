@@ -2,7 +2,6 @@
 
 use crate::prelude::*;
 
-use crate::closure;
 use crate::control::callback::CallbackFn;
 use crate::data::dirty::traits::*;
 use crate::data::dirty;
@@ -10,6 +9,9 @@ use crate::debug::stats::Stats;
 use crate::system::gpu::shader::Context;
 
 use num_enum::IntoPrimitive;
+
+use shapely::shared;
+
 
 
 
@@ -25,41 +27,7 @@ pub mod types {
 pub use types::*;
 
 
-
-// ============
-// === Mesh ===
-// ============
-
-// === Definition ===
-
-/// A polygon mesh is a collection of vertices, edges and faces that defines the shape of a
-/// polyhedral object. Mesh describes the shape of the display element. It consist of several
-/// scopes containing sets of variables. See the documentation of `Scopes` to learn more.
-///
-/// Please note, that there are other, higher-level scopes defined by other structures, including:
-///
-///   - Symbol Scope
-///     Object refers to the whole geometry with all of its instances.
-///
-///   - Global Scope
-///     Global scope is shared by all objects and it contains some universal global variables, like
-///     the current 'time' counter.
-///
-/// Each scope can contain named attributes which can be accessed from within materials. If the same
-/// name was defined in various scopes, it gets resolved to the var defined in the most specific
-/// scope. For example, if var 'color' was defined in both 'instance' and 'point' scope, the 'point'
-/// definition overlapps the other one.
-#[derive(Debug,Shrinkwrap)]
-#[shrinkwrap(mutable)]
-pub struct Mesh {
-    /// Scope list.
-    #[shrinkwrap(main_field)]
-    pub scopes   : Scopes,
-    scopes_dirty : ScopesDirty,
-    logger       : Logger,
-    context      : Context,
-    stats        : Stats,
-}
+// --------------------------------------------------
 
 /// Container for all scopes owned by a mesh.
 #[derive(Debug)]
@@ -101,11 +69,6 @@ impl From<ScopeType> for usize {
 /// Dirty flag remembering which scopes were mutated.
 pub type ScopesDirty = dirty::SharedEnum<u8,ScopeType,Box<dyn Fn()>>;
 
-closure! {
-fn scope_on_change(dirty:ScopesDirty, item:ScopeType) -> ScopeOnChange {
-    || dirty.set(item)
-}}
-
 
 // === Implementation ===
 
@@ -117,7 +80,41 @@ macro_rules! update_scopes {
     )*}
 }
 
-impl Mesh {
+
+// ============
+// === Mesh ===
+// ============
+
+// === Definition ===
+
+shared! { Mesh
+/// A polygon mesh is a collection of vertices, edges and faces that defines the shape of a
+/// polyhedral object. Mesh describes the shape of the display element. It consist of several
+/// scopes containing sets of variables. See the documentation of `Scopes` to learn more.
+///
+/// Please note, that there are other, higher-level scopes defined by other structures, including:
+///
+///   - Symbol Scope
+///     Object refers to the whole geometry with all of its instances.
+///
+///   - Global Scope
+///     Global scope is shared by all objects and it contains some universal global variables, like
+///     the current 'time' counter.
+///
+/// Each scope can contain named attributes which can be accessed from within materials. If the same
+/// name was defined in various scopes, it gets resolved to the var defined in the most specific
+/// scope. For example, if var 'color' was defined in both 'instance' and 'point' scope, the 'point'
+/// definition overlapps the other one.
+#[derive(Debug)]
+pub struct MeshData {
+    scopes       : Scopes,
+    scopes_dirty : ScopesDirty,
+    logger       : Logger,
+    context      : Context,
+    stats        : Stats,
+}
+
+impl {
     /// Creates new mesh with attached dirty callback.
     pub fn new<OnMut:CallbackFn>
     (logger:Logger, stats:&Stats, context:&Context,on_mut:OnMut) -> Self {
@@ -138,6 +135,26 @@ impl Mesh {
             Scopes {point,vertex,primitive,instance}
         });
         Self {context,scopes,scopes_dirty,logger,stats}
+    }
+
+    /// Point scope accessor.
+    pub fn point_scope(&self) -> AttributeScope {
+        self.scopes.point.clone_ref()
+    }
+
+    /// Vertex scope accessor.
+    pub fn vertex_scope(&self) -> AttributeScope {
+        self.scopes.vertex.clone_ref()
+    }
+
+    /// Primitive scope accessor.
+    pub fn primitive_scope(&self) -> AttributeScope {
+        self.scopes.primitive.clone_ref()
+    }
+
+    /// Instance scope accessor.
+    pub fn instance_scope(&self) -> AttributeScope {
+        self.scopes.instance.clone_ref()
     }
 
     /// Check dirty flags and update the state accordingly.
@@ -164,17 +181,17 @@ impl Mesh {
     }
 
     /// Gets reference to scope based on the scope type.
-    pub fn scope_by_type(&self, scope_type:ScopeType) -> &AttributeScope {
+    pub fn scope_by_type(&self, scope_type:ScopeType) -> AttributeScope {
         match scope_type {
             ScopeType::Point     => &self.scopes.point,
             ScopeType::Vertex    => &self.scopes.vertex,
             ScopeType::Primitive => &self.scopes.primitive,
             ScopeType::Instance  => &self.scopes.instance,
-        }
+        }.clone_ref()
     }
-}
+}}
 
-impl Drop for Mesh {
+impl Drop for MeshData {
     fn drop(&mut self) {
         self.stats.dec_mesh_count();
     }

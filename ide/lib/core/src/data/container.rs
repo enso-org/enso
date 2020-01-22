@@ -1,18 +1,18 @@
 #![allow(missing_docs)]
 
-// ===========
-// === Add ===
-// ===========
+// ==============
+// === AddMut ===
+// ==============
 
-/// An abstraction for container which can be provided with new elements. The
-/// element type is polymorphic, allowing the container to reuse the function
-/// for different item types.
-pub trait Add<T> {
-    type Result = ();
-    fn add(&mut self, component:T) -> Self::Result;
+/// An abstraction for container which can be provided with new elements. The element type is
+/// polymorphic, allowing the container to reuse the function for different item types.
+/// Please note that this trait is very similar to the `std::ops::Add` one, however, it allows for
+/// a much nicer API. For example, you can write `foo.bar.add(x)`, because `foo.bar` will be
+/// automatically used as mutable reference while using this trait.
+pub trait AddMut<T> {
+    type Output = ();
+    fn add(&mut self, component:T) -> Self::Output;
 }
-
-pub type AddResult<T,S> = <T as Add<S>>::Result;
 
 
 

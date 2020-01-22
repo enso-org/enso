@@ -24,12 +24,12 @@ pub fn run_example_text() {
         let world_ref = WorldData::new("canvas");
         {
             let world: &mut WorldData = &mut world_ref.rc.borrow_mut();
-            let workspace = &mut world.workspace;
+            let scene = &mut world.scene;
             let fonts = &mut world.fonts;
             let font_id = fonts.load_embedded_font("DejaVuSansMono").unwrap();
 
             let mut text_component = TextComponentBuilder {
-                workspace,
+                scene,
                 fonts,
                 font_id,
                 text: "".to_string(),
@@ -41,8 +41,8 @@ pub fn run_example_text() {
                 }
             }.build();
             text_component.cursors.add_cursor(TextLocation { line: 0, column: 0 });
-            workspace.text_components.push(text_component);
-            world.workspace_dirty.set();
+            scene.tmp_borrow_mut().tmp_text_components().push(text_component);
+            world.scene_dirty.set();
         }
 
         let now             = js_sys::Date::now();
@@ -74,8 +74,9 @@ fn animate_text_component
 , typed_chars:&mut Vec<CharToPush>
 , start_scrolling:f64) {
     let world : &mut WorldData = &mut world.rc.borrow_mut();
-    let workspace              = &mut world.workspace;
-    let editor                 = workspace.text_components.first_mut().unwrap();
+    let scene              = &mut world.scene;
+    let mut scene          = scene.tmp_borrow_mut();
+    let editor                 = scene.tmp_text_components().first_mut().unwrap();
     let fonts                  = &mut world.fonts;
     let now                    = js_sys::Date::now();
 
@@ -90,5 +91,5 @@ fn animate_text_component
     if start_scrolling <= js_sys::Date::now() {
         editor.scroll(Vector2::new(0.0, -0.01));
     }
-    world.workspace_dirty.set();
+    world.scene_dirty.set();
 }

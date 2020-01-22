@@ -1,0 +1,67 @@
+//! This module defines a geometry which always covers the whole screen. An example use case is
+//! render pass implementation - rendering to framebuffer and then using the result with some
+//! post-processing effect by applying the previous output to a screen covering geometry.
+
+
+use crate::prelude::*;
+
+use crate::display::symbol::geometry::Sprite;
+use crate::display::symbol::geometry::SpriteSystem;
+use crate::display::symbol::material::Material;
+use crate::system::gpu::data::texture;
+use crate::system::gpu::data::types::*;
+
+
+
+/// Defines a system containing shapes. It is a specialized `SpriteSystem` version.
+#[derive(Clone,Debug)]
+pub struct Screen {
+    sprite        : Sprite,
+    sprite_system : SpriteSystem,
+}
+
+impl CloneRef for Screen {}
+
+impl Default for Screen {
+    fn default() -> Self {
+        let sprite_system = SpriteSystem::new();
+        sprite_system.set_geometry_material(Self::geometry_material());
+        sprite_system.set_material(Self::surface_material());
+        let sprite = sprite_system.new_instance();
+        Self {sprite_system,sprite}
+    }
+}
+
+impl Screen {
+    /// Constructor.
+    pub fn new() -> Self {
+        default()
+    }
+
+    /// Local variables used by the screen object.
+    pub fn variables(&self) -> UniformScope {
+        self.sprite_system.symbol().variables()
+    }
+
+    /// Render the shape.
+    pub fn render(&self) {
+        self.sprite_system.render()
+    }
+
+    fn geometry_material() -> Material {
+        let mut material = Material::new();
+        material.add_input_def::<Vector2<f32>>("uv");
+        material.set_main("gl_Position = vec4((input_uv-0.5)*2.0,0.0,1.0);");
+        material
+    }
+
+    fn surface_material() -> Material {
+        let mut material = Material::new();
+        material.add_input_def::<texture::FloatSampler>("pass_color");
+        material.set_main("
+        vec4 test_color = texture(input_pass_color, input_uv);
+        output_color = test_color;//vec4(0.0,1.0,0.0,1.0);
+        ");
+        material
+    }
+}

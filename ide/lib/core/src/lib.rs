@@ -20,7 +20,7 @@
 #![feature(unboxed_closures)]
 #![feature(weak_into_raw)]
 #![feature(drain_filter)]
-#![recursion_limit="256"]
+#![recursion_limit="512"]
 
 // To be removed after this gets resolved: https://github.com/rust-lang/cargo/issues/5034
 #![allow(clippy::option_map_unit_fn)]
@@ -56,4 +56,6 @@ pub mod prelude {
     pub use basegl_prelude::*;
     pub use logger::*;
     pub use shapely::newtype_copy;
+    pub use shapely::shared;
+    pub use super::data::container::AddMut;
 }

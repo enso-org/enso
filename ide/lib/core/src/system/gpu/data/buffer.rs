@@ -333,7 +333,7 @@ macro_rules! define_any_buffer {
     /// and many, many more). It provides a faster alternative to dyn trait one:
     /// `Buffer<dyn BufferItem, OnMut, OnResize>`.
     #[enum_dispatch(IsBuffer)]
-    #[derive(Debug)]
+    #[derive(Clone,Debug)]
     #[allow(missing_docs)]
     pub enum AnyBuffer {
         $([<Variant $base For $param>](Buffer<$base<$param>>)),*

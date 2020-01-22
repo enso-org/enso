@@ -2,7 +2,7 @@
 
 use crate::prelude::*;
 
-use crate::display::symbol::shader::builder::CodeTemplete;
+use crate::display::symbol::shader::builder::CodeTemplate;
 use crate::system::gpu::types::*;
 
 
@@ -32,10 +32,10 @@ impl VarDecl {
     }
 }
 
-impl<T:PhantomInto<glsl::PrimType> + Into<Glsl>>
+impl<T:PhantomInto<glsl::PrimType> + TryInto<Glsl>>
 From<T> for VarDecl {
     fn from(t:T) -> Self {
-        Self::new(<T>::glsl_prim_type(), t.glsl().into())
+        Self::new(<T>::glsl_prim_type(), t.try_into().ok())
     }
 }
 
@@ -51,7 +51,7 @@ From<T> for VarDecl {
 #[shrinkwrap(unsafe_ignore_visibility)]
 pub struct Material {
     #[shrinkwrap(main_field)]
-    code    : CodeTemplete,
+    code    : CodeTemplate,
     inputs  : BTreeMap<String,VarDecl>,
     outputs : BTreeMap<String,VarDecl>,
 }
@@ -97,7 +97,7 @@ impl From<&Material> for Material {
 
 impl Material {
     /// Gets the GLSL code of this material.
-    pub fn code(&self) -> &CodeTemplete {
+    pub fn code(&self) -> &CodeTemplate {
         &self.code
     }
 
@@ -118,7 +118,7 @@ impl Material {
 impl Material {
     /// Sets the GLSL code of this material. This is a very primitive method. Use it only when
     /// defining primitive materials.
-    pub fn set_code<T:Into<CodeTemplete>>(&mut self, code:T) {
+    pub fn set_code<T:Into<CodeTemplate>>(&mut self, code:T) {
         self.code = code.into();
     }
 }

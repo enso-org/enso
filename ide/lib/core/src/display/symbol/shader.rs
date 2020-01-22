@@ -18,6 +18,8 @@ use crate::control::callback::CallbackFn;
 
 use web_sys::WebGlProgram;
 
+use shapely::shared;
+
 
 
 // ==================
@@ -46,10 +48,16 @@ impl VarBinding {
 
 // === Definition ===
 
+// === Types ===
+
+pub type Dirty = dirty::SharedBool<Box<dyn Fn()>>;
+
+
+
+shared! { Shader
 /// Shader keeps track of a shader and related WebGL Program.
-#[derive(Derivative)]
-#[derivative(Debug(bound=""))]
-pub struct Shader {
+#[derive(Debug)]
+pub struct ShaderData {
     geometry_material : Material,
     surface_material  : Material,
     program           : Option<WebGlProgram>,
@@ -59,14 +67,21 @@ pub struct Shader {
     stats             : Stats,
 }
 
-// === Types ===
+impl {
 
-pub type Dirty = dirty::SharedBool<Box<dyn Fn()>>;
+    pub fn program(&self) -> Option<WebGlProgram> {
+        self.program.clone()
+    }
 
+    pub fn set_geometry_material<M:Into<Material>>(&mut self, material:M) {
+        self.geometry_material = material.into();
+        self.dirty.set();
+    }
 
-// === Implementation ===
-
-impl Shader {
+    pub fn set_material<M:Into<Material>>(&mut self, material:M) {
+        self.surface_material = material.into();
+        self.dirty.set();
+    }
 
     /// Creates new shader with attached callback.
     pub fn new<OnMut:CallbackFn>(logger:Logger, stats:&Stats, context:&Context, on_mut:OnMut) -> Self {
@@ -97,7 +112,10 @@ impl Shader {
                     let name = &binding.name;
                     let tp   = &binding.decl.tp;
                     match binding.scope {
-                        None => todo!(),
+                        None => {
+                            self.logger.warning("TODO: default shader values.");
+                            shader_cfg.add_uniform(name,tp);
+                        },
                         Some(scope_type) => match scope_type {
                             ScopeType::Symbol => shader_cfg.add_uniform   (name,tp),
                             ScopeType::Global => shader_cfg.add_uniform   (name,tp),
@@ -139,34 +157,10 @@ impl Shader {
         let surface_material_inputs  = self.surface_material.inputs().clone();
         geometry_material_inputs.into_iter().chain(surface_material_inputs).collect()
     }
-}
+}}
 
-impl Drop for Shader {
+impl Drop for ShaderData {
     fn drop(&mut self) {
         self.stats.dec_shader_count();
-    }
-}
-
-
-// === Getters ===
-
-impl Shader {
-    pub fn program(&self) -> &Option<WebGlProgram> {
-        &self.program
-    }
-}
-
-
-// === Setters ===
-
-impl Shader {
-    pub fn set_geometry_material<M:Into<Material>>(&mut self, material:M) {
-        self.geometry_material = material.into();
-        self.dirty.set();
-    }
-
-    pub fn set_material<M:Into<Material>>(&mut self, material:M) {
-        self.surface_material = material.into();
-        self.dirty.set();
     }
 }

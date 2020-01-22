@@ -15,7 +15,7 @@ pub mod program;
 
 use crate::prelude::*;
 
-use crate::display::world::Workspace;
+use crate::display::Scene;
 use crate::system::gpu::shader::Context;
 use crate::display::shape::text::buffer::TextComponentBuffers;
 use crate::display::shape::text::content::TextComponentContent;
@@ -249,19 +249,19 @@ impl TextComponent {
 
 /// Text component builder
 pub struct TextComponentBuilder<'a, 'b, Str:AsRef<str>> {
-    pub workspace       : &'a Workspace,
-    pub fonts           : &'b mut Fonts,
-    pub text            : Str,
-    pub font_id         : FontId,
-    pub properties      : TextComponentProperties,
+    pub scene      : &'a Scene,
+    pub fonts      : &'b mut Fonts,
+    pub text       : Str,
+    pub font_id    : FontId,
+    pub properties : TextComponentProperties,
 }
 
 impl<'a,'b,Str:AsRef<str>> TextComponentBuilder<'a,'b,Str> {
 
-    /// Build a new text component rendering on given workspace
+    /// Build a new text component rendering on given scene
     pub fn build(mut self) -> TextComponent {
         self.load_all_chars();
-        let gl_context      = self.workspace.context.clone();
+        let gl_context      = self.scene.context();
         let content_program = create_content_program(&gl_context);
         let cursors_program = create_cursors_program(&gl_context);
         let gl_msdf_texture = self.create_msdf_texture(&gl_context);

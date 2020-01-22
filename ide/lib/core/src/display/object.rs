@@ -114,7 +114,9 @@ pub struct DisplayObjectDataMut {
     pub child_dirty      : ChildDirty,
     pub new_parent_dirty : NewParentDirty,
     #[derivative(Debug="ignore")]
-    pub on_updated       : Option<Box<dyn Fn(&DisplayObjectDataMut)>>,
+    pub on_updated: Option<Box<dyn Fn(&DisplayObjectDataMut)>>,
+    #[derivative(Debug="ignore")]
+    pub on_render: Option<Box<dyn Fn()>>,
 }
 
 
@@ -141,7 +143,15 @@ impl DisplayObjectDataMut {
         let new_parent_dirty = NewParentDirty  :: new(logger.sub("new_parent_dirty"),());
         let wrapped          = HierarchicalObjectData::new(logger);
         let on_updated       = None;
-        Self {wrapped,transform,child_dirty,new_parent_dirty,on_updated}
+        let on_render        = None;
+        Self {wrapped,transform,child_dirty,new_parent_dirty,on_updated,on_render}
+    }
+
+    pub fn render(&self) {
+        if let Some(f) = &self.on_render { f() }
+        self.children.iter().for_each(|child| {
+            child.render();
+        });
     }
 
     pub fn update(&mut self) {
@@ -228,19 +238,19 @@ impl DisplayObjectDataMut {
         self.transform.global_position()
     }
 
-    pub fn position(&self) -> &Vector3<f32> {
+    pub fn position(&self) -> Vector3<f32> {
         self.transform.position()
     }
 
-    pub fn scale(&self) -> &Vector3<f32> {
+    pub fn scale(&self) -> Vector3<f32> {
         self.transform.scale()
     }
 
-    pub fn rotation(&self) -> &Vector3<f32> {
+    pub fn rotation(&self) -> Vector3<f32> {
         self.transform.rotation()
     }
 
-    pub fn matrix(&self) -> &Matrix4<f32> {
+    pub fn matrix(&self) -> Matrix4<f32> {
         self.transform.matrix()
     }
 }
@@ -287,6 +297,10 @@ impl DisplayObjectDataMut {
 
     pub fn set_on_updated<F:Fn(&DisplayObjectDataMut)+'static>(&mut self, f:F) {
         self.on_updated = Some(Box::new(f))
+    }
+
+    pub fn set_on_render<F:Fn()+'static>(&mut self, f:F) {
+        self.on_render = Some(Box::new(f))
     }
 }
 
@@ -376,6 +390,11 @@ impl DisplayObjectData {
     pub fn child_count(&self) -> usize {
         self.rc.borrow().child_count()
     }
+
+    /// Renders the object to the screen.
+    pub fn render(&self) {
+        self.rc.borrow().render()
+    }
 }
 
 
@@ -433,19 +452,19 @@ impl DisplayObjectData {
     }
 
     pub fn position(&self) -> Vector3<f32> {
-        *self.rc.borrow().position()
+        self.rc.borrow().position()
     }
 
     pub fn scale(&self) -> Vector3<f32> {
-        *self.rc.borrow().scale()
+        self.rc.borrow().scale()
     }
 
     pub fn rotation(&self) -> Vector3<f32> {
-        *self.rc.borrow().rotation()
+        self.rc.borrow().rotation()
     }
 
     pub fn matrix(&self) -> Matrix4<f32> {
-        *self.rc.borrow().matrix()
+        self.rc.borrow().matrix()
     }
 }
 
@@ -479,6 +498,10 @@ impl DisplayObjectData {
 
     pub fn set_on_updated<F:Fn(&DisplayObjectDataMut)+'static>(&self, f:F) {
         self.rc.borrow_mut().set_on_updated(f)
+    }
+
+    pub fn set_on_render<F:Fn()+'static>(&self, f:F) {
+        self.rc.borrow_mut().set_on_render(f)
     }
 }
 
@@ -528,17 +551,13 @@ where &'t Self:DisplayObject, Self:'t {
         self.display_object_description().add_child_take(child);
     }
 
-    fn update(&'t self) where &'t Self: Modify<&'t DisplayObjectData> {
-        self.modify(|t| t.update());
+    fn update(&'t self) {
+        self.display_object_description().update();
     }
 }
 
 impl<'t,T> DisplayObjectOps<'t> for T
 where T:'t, &'t T:DisplayObject {}
-
-pub trait Modify<T> {
-    fn modify<F:FnOnce(T)>(self, f:F);
-}
 
 
 
