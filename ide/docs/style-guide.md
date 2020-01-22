@@ -2,29 +2,30 @@
 
 ## Motivation - why not rely on a formatting tool for code style?
 
-The code style is way more then just formatting. In many cases formatting can
-be automated. According to rustfmt docs: "formatting code is a mostly mechanical 
-task which takes both time and mental effort. By using an automatic formatting 
-tool, a programmer is relieved of this task and can concentrate on more important 
-things.". While in many cases it is true, if the author of code does not take 
-extra effort to make his code pretty by refactoring long lines to variables, 
-moving code to specific modules, or sections, the formatting tool will result in
-a code which is hard to read and hard to write. Thus, it is important to take 
-write the code in such way that we can be proud of its quality.
+The code style is way more than just formatting. In many cases formatting can be
+automated. According to rustfmt docs: "formatting code is a mostly mechanical
+task which takes both time and mental effort. By using an automatic formatting
+tool, a programmer is relieved of this task and can concentrate on more
+important things.". While in many cases it is true, if the code author does not
+take extra effort to make his code pretty by refactoring long lines to
+variables, moving code to specific modules, or sections, the formatting tool
+will result in code that is hard to read and hard to write. Thus, it is
+important to take time to write code in such way that we can be proud of its
+quality.
 
-Because `rustfmt` does not support multiple of our requirements, we have created
-a guide how to format Rust code in this project. Please read it carefully. We 
-hope that in the future, many of the things described below will be possible 
-while using `rustfmt` (and we encourage you to contribute there!), however, 
-even if it happens, many parts of this guide will still be valid and will need 
-to be handled manually.
+Because `rustfmt` does not support many of our requirements, we have created a
+guide to describe how to format Rust code in this project. Please read it
+carefully. We hope that in the future, some of the things described below will
+be possible while using `rustfmt` (and we encourage you to contribute there!),
+however, even if it happens, many parts of this guide will still be valid and
+will need to be handled manually.
 
 
 
 ## Styling rules
 
 ### Code width
-Each line in a source file should have max of 80 chars of text (including 
+Each line in a source file should have max 80 chars of text (including 
 comments).
 
 ### Imports 
@@ -55,14 +56,14 @@ use nalgebra::Vector3;
 
 ### Sections
 
-Source files should be divided into sections. Section should be placed before 
-each new "concept" defined in a file. By "concept" we normally mean a structure
-with related implementations. In case the related implementations use some 
-helper structs with a very small implementations, these helper structs may be 
-defined in the same section. Moreover, the code in each section should be divided
-into sub-sections, grouping related definitions into groups. At least one section
-should be defined in a file (if there is at least one struct definition as well).
-For example:
+Source files should be divided into sections. Section headers should be placed
+before each new "concept" defined in a file. By "concept" we normally mean a
+structure with related implementations. In case related implementations use some
+helper structs with very small implementations, these helper structs may be
+defined in the same section. Moreover, the code in each section should be
+divided into sub-sections, grouping related definitions. At least one section
+should be defined in a file (if there is at least one struct definition as
+well). For example:
 
 ```rust
 // =================
@@ -168,18 +169,18 @@ We use the following amount of vertical spacing:
 - 1 blank line before functions / structures / impls.
 - 1 blank line at the end of the file.
 
-Please note that vertical spacing overlapps. For example, if there is a section
+Please note that vertical spacing overlaps. For example, if there is a section
 after imports, the total number of blank lines is 3, not 6.
 
 
 ### Multiline Expressions
-Most (preferably all) expressions should be single line. Multiline expression is
-hard to read and introduces noise in the code. Often, it is also an indicator of
-a code which is not properly refactored. Try to refactor parts of multiline 
-expressions to well-named variables, and divide them to several single-line 
+Most (preferably all) expressions should be single line. Multiline expressions
+are hard to read and introduce noise in the code. Often, it is also an indicator
+of code that is not properly refactored. Try to refactor parts of multiline
+expressions to well-named variables, and divide them to several single-line
 expressions.
 
-Example of bad formatted code:
+Example of poorly formatted code:
 ```rust
 pub fn new() -> Self {
     let shape_dirty = ShapeDirty::new(logger.sub("shape_dirty"),
@@ -296,10 +297,10 @@ where D:AsRef<str>
 
 
 ### Impl definitions
-Sometimes when browsing code it is hard to understand where is the header of 
-an impl declaration. Thus the following style allows for such a fast discovery. 
+Sometimes when browsing code it is hard to understand where the header of 
+an impl declaration is. Thus, the following style allows to find it easier. 
 The `where` block should be placed after a linebreak.
-All of the following codes are correct:
+All of the following are correct:
 
 ```rust
 // No constraints
@@ -327,7 +328,7 @@ where T: Printer {
 ### Getters and Setters
 Getters do not have the `get_` prefix, while setters do. If a setter is 
 provided (method with the `set_` prefix), a `mut` accessor should be 
-provided as well. The correct way of definning getters and setters is 
+provided as well. The correct way of defining getters and setters is 
 presented below:
 
 ```rust
