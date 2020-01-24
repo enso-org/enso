@@ -2,18 +2,28 @@
 //// DOM ////
 ///////////*/
 
+$defaultLineHeight: 1.52947
+$defaultFontSize: 17px
+$defaultFontFamily: "SF Pro Text", "SF Pro Icons", "Helvetica Neue", "Helvetica", "Arial", sans-serif
+$defaultFontWeight: 400
+$defaultBoldFontWeight: 600
+$defaultHeaderFontWeight: 500
+$defaultLetterSpacing: -0.021em
+$defaultTextColor: #333333
+$defaultCodeColor: #0070c9
+
+
 body
   -webkit-font-smoothing: antialiased
   font-style: normal
   word-wrap: break-word
-  font-size: 17px
-  line-height: 1.52947
-  font-weight: 400
-  letter-spacing: -0.021em
-  font-family: "SF Pro Text", "SF Pro Icons", "Helvetica Neue", "Helvetica","Arial", sans-serif
+  font-size: $defaultFontSize
+  line-height: $defaultLineHeight
+  font-weight: $defaultFontWeight
+  letter-spacing: $defaultLetterSpacing
+  font-family: $defaultFontFamily
   background-color: white
-  color: #333333
-  font-style: normal
+  color: $defaultTextColor
   margin: 0
   padding: 0
 
@@ -25,13 +35,13 @@ p
   margin-inline-end: 0
 
 a:hover
-  color: #35a5ff !important
-  text-decoration: none
+  color: $defaultCodeColor !important
+  text-decoration: inherit
 
 a
-  color: #0070c9
+  color: $defaultTextColor
   background-color: transparent
-  text-decoration: none
+  text-decoration: inherit
   display: inline-block
   transition: all 0.3s ease
 
@@ -39,10 +49,10 @@ img
   display: block
 
 code
-  color: #0070c9
+  color: $defaultCodeColor
   background-color: transparent
   font-size: inherit
-  font-family: "SF Pro Text", "SF Pro Icons", "Helvetica Neue", "Helvetica", "Arial", sans-serif
+  font-family: $defaultFontFamily
   line-height: inherit
   display: inline-block
   white-space: pre-wrap
@@ -52,38 +62,37 @@ button
   padding: 8px 30px
   margin: 10px 0
   outline: none
-  background-color: #777
-  border: none
-  color: #fafafa
+  background-color: transparent
+  border: 1px solid $defaultTextColor
+  color: $defaultTextColor
   border-radius: 5px
-  box-shadow: 5px 0 #555
   font-size: 13px
   vertical-align: top
   transition: all 0.3s ease
 
 button:hover
-  background-color: #333
+  background-color: $defaultTextColor
+  color: #e5e5e5
 
 b
-  font-weight: 600
+  font-weight: $defaultBoldFontWeight
 
 h1
   font-size: 34px
   line-height: 1.08824
-  font-weight: 500
+  font-weight: $defaultHeaderFontWeight
   letter-spacing: 0.01em
 
 
 h2
   font-size: 28px
   line-height: 1.1073
-  font-weight: 500
+  font-weight: $defaultHeaderFontWeight
   letter-spacing: 0.012em
 
 
 .Body h2
-  margin: 0
-  margin-top: 0.65rem
+  margin: 0.65rem 0 0
 
 li
   padding-left: 10px
@@ -117,19 +126,18 @@ li
 
 .Header
   font-size: 19px
-  font-weight: 500
+  font-weight: $defaultHeaderFontWeight
 
 
 .Important .Header,
 .Info .Header,
 .Example .Header
   margin-bottom: 0.7em
-  font-weight: 600
-  letter-spacing: -0.021em
-  line-height: 17px
+  font-weight: $defaultBoldFontWeight
+  letter-spacing: $defaultLetterSpacing
+  line-height: $defaultFontSize
   font-synthesis: none
-  font-family: "SF Pro Text", "SF Pro Icons", "Helvetica Neue", "Helvetica","Arial", sans-serif
-
+  font-family: $defaultFontFamily
 
 /*////////////
 //// Tags ////
@@ -139,10 +147,7 @@ li
   margin-left: auto
   margin-right: auto
   margin-bottom: 20px
-  padding: 15px 10px
-  text-align: center
-  background-color: #fafafa
-  border-radius: 8px
+  padding-top: 15px
 
   .DEPRECATED,
   .MODIFIED,
@@ -151,31 +156,37 @@ li
   .REMOVED,
   .UNRECOGNIZED
     line-height: 1.5
-    font-weight: 400
-    border-radius: 3px
+    font-weight: $defaultFontWeight
+    border-radius: 4px
     font-size: 12px
-    letter-spacing: -0.021em
-    border: 1px solid
+    letter-spacing: $defaultLetterSpacing
     display: inline-flex
-    padding: 3px 15px
+    padding: 5px 15px
     margin: 2px
     white-space: nowrap
     background: transparent
 
   .DEPRECATED
-    border-color: #c35400
-    color: #c35400
+    $col: #d20606
+    border: 1px solid $col
+    color: $col
+
   .MODIFIED
-    border-color: #8A82CF
-    color: #8A82CF
+    $col: #003ec3
+    border: 1px solid $col
+    color: $col
+
   .ADDED
-    border-color: #79A129
-    color: #79A129
+    $col: #79A129
+    border: 1px solid $col
+    color: $col
+
   .UPCOMING,
   .REMOVED,
   .UNRECOGNIZED
-    border-color: #888888
-    color: #666666
+    $col: #666666
+    border: 1px solid $col
+    color: $col
 
 .ExtForTagDetails
   margin: 0 3px
@@ -194,57 +205,43 @@ li
   margin-left: auto
   margin-right: auto
   position: relative
+  text-decoration: inherit
 
 
 .Body .Raw
-  padding: 0.75em 0
   margin-bottom: 0.6rem
-  font-size: 17px
-  line-height: 1.52947
-  font-weight: 400
-  letter-spacing: -0.021em
-  font-family: "SF Pro Text", "SF Pro Icons", "Helvetica Neue", "Helvetica","Arial", sans-serif
-  color: #333333
+  font-size: $defaultFontSize
+  line-height: $defaultLineHeight
+  font-weight: $defaultFontWeight
+  letter-spacing: $defaultLetterSpacing
+  font-family: $defaultFontFamily
+  color: $defaultTextColor
   font-style: normal
-
-
-.Synopsis .Raw
-  margin-bottom: 2rem
-
 
 .Important,
 .Info,
 .CodeBlock,
 .Example
-  font-size: 17px
-  padding-top: 0.94118rem
-  padding-bottom: 0.94118rem
-  padding-left: 18px
-  padding-right: 10px
-  border: 1px solid #8a82cf
-  border-left: 6px solid #8a82cf
+  font-size: $defaultFontSize
+  padding: 15px 10px 15px 20px
+  border: 0
   border-radius: 6px
   margin: 0.7em 0
 
 
 .Important
-  border-right: 0
-  border-top: 0
-  border-bottom: 0
-  border-color: #fee450
-  background-color: #fbf8e8
+  background-color: #FBECC2
 
 
 .Info
-  border-color: #69c5e8
+  background-color: #D6E1CA
 
 
 .Example
-  border-color: #8a82cf
-
+  background-color: #fafafa
 
 .CodeBlock
-  border-color: #7cd58b
+  background-color: #fefefe
   margin: 10px 20px
   display: none
 
@@ -257,41 +254,76 @@ li
 ///////////////////////////////////*/
 
 .Def
-  margin: auto
-  padding: 10px 15px
+  margin: 40px auto auto
+  padding: 0 15px
+  text-decoration: inherit
 
   .Synopsis,
   .Body,
   .Tags,
   .ASTData
-    padding-left: 0px
+    padding-left: 0
+    text-decoration: inherit
+
+  .Synopsis
+    padding: 0
+    margin-bottom: 15px
+    font-size: $defaultFontSize
+    font-weight: $defaultFontWeight
+    color: $defaultTextColor
+    font-style: normal
 
   .constr
-    margin-bottom: 40px
+    padding: 25px 0
+    margin: 0
 
   .DefDoc
     .Body
       display: none
 
+    .documentation
+      display: inline-flex
+      width: 100%
+      margin-bottom: 10px
+
+
+      .ASTHead
+        width: 30% !important
+        margin: 10px 0
+
+        .DefTitle,
+        .Infix
+          padding: 0
+          font-size: $defaultFontSize
+          font-weight: $defaultFontWeight
+          font-style: normal
+          text-decoration: inherit
+
+      .ASTData
+        width: 70% !important
+
+      .Doc
+        text-decoration: inherit
+
+        .Synopsis
+          text-decoration: inherit
+          margin: 10px 0
+
+      .Tags
+        margin: 2px 0 0 auto
+        padding: 0
 
 .DefTitle
   display: inline-flex
   font-size: x-large
-  font-weight: 400
+  font-weight: $defaultFontWeight
   margin-bottom: 20px
 
 
 .DefArgs
   margin-left: 5px
-  font-weight: 400
-  color: #0070c9
-
-
-.Infix
-  font-size: large
-  font-weight: 500
-  margin-bottom: 20px
-
+  font-weight: $defaultFontWeight
+  color: $defaultCodeColor
 
 /*/////////////////////////
 //// Synopsis & Detail ////
@@ -301,33 +333,29 @@ li
 .Body
   margin: 0 auto
   padding: 5px
-  margin-bottom: 20px
   text-align: left
 
 
 .Synopsis
+  margin-top: 35px
   font-size: 20px
-  line-height: 1.5
-  font-weight: 300
-  letter-spacing: 0.017em
-  border-bottom: 1px solid #d6d6d6
-
 
 .Documentation
   .ASTData,
   .ASTHead
     text-align: left
     line-height: 1.05
-    letter-spacing: 0.008em
-    background-color: #fafafa
     border-radius: 6px
 
   .ASTData
     width: 100%
+    background-color: #fafafa
+
 
   .ASTHead
-    margin: 20px auto
+    margin: 20px auto 5px
     background-color: #ffffff
+
     .DefTitle
       font-size: 42px
       margin: 0
@@ -335,6 +363,7 @@ li
   .ASTData
     .ASTHead
       background-color: #fafafa
+
       .DefTitle
         font-size: x-large
 
@@ -343,6 +372,13 @@ li
     width: 100%
     background-color: #ffffff
 
+  .DefNoBody
+    text-decoration: inherit
+
+
+/*///////////////////////////
+////         RWD         ////
+///////////////////////////*/
 @media (max-width: 500px)
   .Synopsis,
   .Body,
@@ -354,6 +390,9 @@ li
   .DefNoBody,
   .DefBody
     max-width: 400px
+
+  .Def
+    padding: 5px
 
 @media (min-width: 500px)
   .Synopsis,
@@ -384,7 +423,7 @@ li
   .Body,
   .Tags,
   .Documentation .ASTData .Def
-    max-width: 670px
+    max-width: 680px
 
   .Documentation .ASTHead,
   .DefNoBody,
@@ -396,11 +435,9 @@ li
   .Body,
   .Tags,
   .Documentation .ASTData .Def
-    max-width: 780px
+    max-width: 790px
 
   .Documentation .ASTHead,
   .DefNoBody,
   .DefBody
     max-width: 820px
-    
-

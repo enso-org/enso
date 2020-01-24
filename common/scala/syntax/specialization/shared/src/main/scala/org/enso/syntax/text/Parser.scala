@@ -148,7 +148,6 @@ class InternalError(reason: String, cause: Throwable = None.orNull)
   * applies [[AST.Macro.Definition.Resolver]] to each [[AST.Macro.Match]] found
   * in the AST, while loosing a lot of positional information.
   */
-
 class Parser {
   import Parser._
   private val engine = newEngine()
@@ -424,11 +423,22 @@ object Main extends scala.App {
       |type Maybe a
       |    ## test attached to Just
       |    type Just val:a
+      |    ##DEPRECATED
+      |      foo bar baz
       |    type Nothing
+      |    
+      |    ## The pow function calculates power of integers.
+      |    pow x y = x ** y
       |""".stripMargin
   val inC =
     """
-      |## Optional values.
+      |## DEPRECATED
+      |  REMOVED - replaced by Foo Bar
+      |  ADDED
+      |  MODIFIED
+      |  UPCOMING
+      |  ALAMAKOTA a kot ma Ale
+      |  Optional values.
       |
       |   Type `Option` represents an optional value: every `Option` is either `Some`
       |   and contains a value, or `None`, and does not. Option types are very common
@@ -451,11 +461,14 @@ object Main extends scala.App {
       |     Also, `None` is the return value of functions which do not return an
       |     explicit value.
       |    type None
+      |    
+      |    ## The pow function calculates power of integers.
+      |    pow x y = x ** y
       |""".stripMargin
 
   println("--- PARSING ---")
 
-  val mod = parser.run(new Reader(inC))
+  val mod = parser.run(new Reader(inp))
 
   println(Debug.pretty(mod.toString))
 
@@ -484,7 +497,11 @@ object Main extends scala.App {
   println("------")
   println(documentation.show())
   println("=========================")
-
+  DocParserHTMLGenerator.generateHTMLForEveryDocumented(
+    documentation,
+    htmlPath,
+    cssFileName
+  )
   println()
 
   AST.main()
