@@ -89,6 +89,7 @@ class CodeLocationsTest extends InterpreterTest {
     instrumenter.assertNodeExists(91, 7, classOf[ApplicationNode])
     instrumenter.assertNodeExists(103, 9, classOf[ApplicationNode])
     eval(code)
+    ()
   }
 
   "Code Locations" should "be correct inside pattern matches" in
@@ -115,6 +116,7 @@ class CodeLocationsTest extends InterpreterTest {
     instrumenter.assertNodeExists(143, 9, classOf[AssignmentNode])
     instrumenter.assertNodeExists(180, 5, classOf[MultiplyOperatorNode])
     eval(code)
+    ()
   }
 
   "Code locations" should "be correct for lambdas" in

@@ -10,7 +10,7 @@ import com.oracle.truffle.api.library.ExportMessage;
 /** An immutable array-like collection. */
 @ExportLibrary(InteropLibrary.class)
 public class Vector implements TruffleObject {
-  private final @CompilerDirectives.CompilationFinal Object[] items;
+  private final @CompilerDirectives.CompilationFinal(dimensions = 1) Object[] items;
 
   /**
    * Creates a new Vector

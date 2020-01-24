@@ -1,7 +1,10 @@
 package org.enso.graph
 
+import shapeless.ops.hlist._
 import shapeless.ops.{hlist, nat}
-import shapeless.{::, HList, HNil, Nat}
+import shapeless.{::, HList, HNil, IsDistinctConstraint, Nat}
+
+import scala.collection.mutable
 
 // Don't use AnyType here, as it gets boxed sometimes.
 import io.estatico.newtype.macros.newtype
@@ -63,7 +66,7 @@ object HListSum {
 // === HListOfNatToVec ===
 // =======================
 
-/** Converts an [[HList]] of [[Nat]] to a vactor containing those same numbers
+/** Converts an [[HList]] of [[Nat]] to a vector containing those same numbers
   * as integers.
   *
   * @tparam L the [[HList]] to convert
@@ -247,6 +250,49 @@ object SizeUntil {
     }
 }
 
+/** Produces a [[HList]] of pairs of `(Type, Map[Type])` from a [[HList]] of
+  * types.
+  *
+  * The map it produces is a scala [[mutable.Map]]. Additionally, it has a
+  * constraint that no type may appear twice in the input list.
+  *
+  * @tparam List the list to start from
+  */
+trait MapsOf[List <: HList] {
+  type Out <: HList
+  val instance: Out
+}
+object MapsOf {
+  type Aux[List <: HList, X] = MapsOf[List] { type Out = X }
+
+  def apply[List <: HList](
+    implicit ev: MapsOf[List]
+  ): MapsOf.Aux[List, ev.Out] = ev
+
+  implicit def onNil: MapsOf.Aux[HNil, HNil] =
+    new MapsOf[HNil] {
+      type Out = HNil
+      val instance = HNil
+    }
+
+  implicit def onCons[Head, Tail <: HList](
+    implicit ev: MapsOf[Tail],
+    distinct: IsDistinctConstraint[Head :: Tail]
+  ): MapsOf.Aux[Head :: Tail, mutable.Map[Int, Head] :: ev.Out] =
+    new MapsOf[Head :: Tail] {
+      type Out = mutable.Map[Int, Head] :: ev.Out
+      val instance = mutable.Map[Int, Head]() :: ev.instance
+    }
+
+  def getOpaqueData[T, Opaques <: HList](
+    list: Opaques
+  )(
+    implicit ev: Selector[Opaques, mutable.Map[Int, T]]
+  ): mutable.Map[Int, T] = {
+    list.select[mutable.Map[Int, T]]
+  }
+}
+
 // ============================================================================
 // === Graph ==================================================================
 // ============================================================================
@@ -330,6 +376,8 @@ object Graph {
       *
       * @tparam G the graph for which the components are defined.
       */
+    // TODO [AA] Use a type level map/filter to make this more robust. The props
+    //  should be checked at compile time even if a thing isn't used.
     trait List[G <: Graph] {
       type Out <: HList
     }
@@ -363,6 +411,8 @@ object Graph {
         * @tparam G the graph to which the component type [[C]] belongs
         * @tparam C the component type to which the fields in the list belong
         */
+      // TODO [AA] Use a type level map/filter to make this more robust. Props
+      //  should be checked at compile time even if a thing isn't used.
       trait List[G <: Graph, C <: Component] { type Out <: HList }
       object List {
         type Aux[G <: Graph, C <: Component, X] = List[G, C] { type Out = X }
@@ -494,9 +544,9 @@ object Graph {
       componentSizesEv: ComponentListToSizes[G, ComponentList],
       len: nat.ToInt[ComponentListLength]
     ): GraphInfo[G] = new GraphInfo[G] {
-      val componentCount = len()
-      val componentSizes = componentSizesEv.sizes
-    }
+        val componentCount = len()
+        val componentSizes = componentSizesEv.sizes
+      }
   }
 
   // === HasComponent ===

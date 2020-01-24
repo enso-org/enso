@@ -1,99 +1,90 @@
 package org.enso.graph
 
-import org.enso.graph.Graph.Component
-import org.enso.graph.definition.Macro.{component, field}
+import org.enso.graph.{Graph => PrimGraph}
 import org.scalatest.{FlatSpec, Matchers}
-import shapeless.{::, HNil}
+import org.enso.graph.GraphTestDefinition._
 
+/** This file contains tests for the graph library. */
 class GraphTest extends FlatSpec with Matchers {
-  object GraphImpl {
-
-    // ========================================================================
-    // === Component Definitions ==============================================
-    // ========================================================================
-
-    // === Node ===
-    @component case class Nodes() { type Node[G <: Graph] }
-
-    // === Edge ===
-    @component case class Edges() { type Edge[G <: Graph] }
-
-    // ========================================================================
-    // === Component Field Definitions ========================================
-    // ========================================================================
-
-    object Node {
-
-      // === Node Shape ===
-      @field object Shape {
-        case class Null()
-        case class App[G <: Graph](fn: Edge[G], argTest: Edge[G])
-      }
-
-      // === ParentLink ===
-      @field case class ParentLink[G <: Graph](parent: Edge[G])
-    }
-
-    object Edge {
-
-      // === Edge Shape ===
-      @field case class Shape[G <: Graph](source: Node[G], target: Node[G])
-    }
-
-    // ========================================================================
-    // === Example Graph Implementation =======================================
-    // ========================================================================
-
-    case class MyGraph() extends Graph
-
-    implicit def components = new Graph.Component.List[MyGraph] {
-      type Out = Nodes :: Edges :: HNil
-    }
-
-    implicit def nodeFields = new Graph.Component.Field.List[MyGraph, Nodes] {
-      type Out = Node.Shape :: Node.ParentLink :: HNil
-    }
-
-    implicit def edgeFields = new Graph.Component.Field.List[MyGraph, Edges] {
-      type Out = Edge.Shape :: HNil
-    }
-  }
 
   // ==========================================================================
   // === Example Graph Usage ==================================================
   // ==========================================================================
 
-  import GraphImpl.Edge.Shape._
-  import GraphImpl.Node.ParentLink._
-  import GraphImpl.Node.Shape.App._
   import GraphImpl._
+  import GraphImpl.Node.ParentLink._
+  import GraphImpl.Node.Location._
+  import GraphImpl.Edge.Shape._
 
-  implicit val graph = Graph[GraphImpl.MyGraph]();
+  implicit val graph: PrimGraph.GraphData[Graph] = PrimGraph[Graph]();
+  implicit val stringStorage: StrStorage         = StrStorage()
+  implicit val backrefStorage: BackrefStorage    = BackrefStorage()
 
-  val n1: Node[MyGraph] = graph.addNode()
-  val n2: Node[MyGraph] = graph.addNode()
-  val n3: Node[MyGraph] = graph.addNode()
+  val n1: Node[Graph] = graph.addNode()
+  val n2: Node[Graph] = graph.addNode()
+  val n3: Node[Graph] = graph.addNode()
 
-  val e1: Edge[MyGraph] = graph.addEdge()
+  val e1: Edge[Graph] = graph.addEdge()
   e1.source = n1
   e1.target = n2
 
-  n1.parent = Component.Ref(1)
-  n2.parent = Component.Ref(2)
-  n3.parent = Component.Ref(3)
+  n1.parent = e1
+  n2.parent = e1
+  n3.parent = e1
 
-  // This is just dirty and very unsafe way of changing `n1` to be App!
-  graph.unsafeWriteField[Nodes, GraphImpl.Node.Shape](n1.ix, 0, 1)
+  // Change `n1` to be `App`
+  graph.unsafeWriteField[Nodes, GraphImpl.Node.Shape](
+    n1.ix,
+    0,
+    Node.Shape.App.index
+  )
+
+  // Change `n2` to be `Name`
+  graph.unsafeWriteField[Nodes, GraphImpl.Node.Shape](
+    n2.ix,
+    0,
+    Node.Shape.Name.index
+  )
+
+  // Change `n3` to be `Nul`
+  graph.unsafeWriteField[Nodes, GraphImpl.Node.Shape](
+    n3.ix,
+    0,
+    Node.Shape.Nul.index
+  )
 
   // ==========================================================================
   // === Tests ================================================================
   // ==========================================================================
 
+  "Component fields" should "be able to be accessed by their types" in {
+    n1.line   = 10
+    n1.column = 5
+
+    n1.line shouldEqual 10
+    n1.column shouldEqual 5
+
+    n1.location = Node.LocationVal[Graph](1, 2)
+
+    n1.line shouldEqual 1
+    n1.column shouldEqual 2
+  }
+
+  "Opaque types" should "be accessed successfully" in {
+    val nameStr = "TestName"
+    val n2Refined = n2 match {
+      case GraphImpl.Node.Shape.Name.any(n2) => n2
+    }
+
+    n2Refined.str = nameStr
+    n2Refined.str shouldEqual nameStr
+  }
+
   "Matching on variants" should "work properly" in {
     val typeResult = n1 match {
-      case GraphImpl.Node.Shape.Null.any(n @ _) => "Null"
+      case GraphImpl.Node.Shape.Nul.any(n @ _)  => "Null"
       case GraphImpl.Node.Shape.App.any(n1 @ _) => "App1"
-      case GraphImpl.Node.Shape.App(_, _) => "App2"
+      case GraphImpl.Node.Shape.App(_, _)       => "App2"
     }
 
     typeResult shouldEqual "App1"
@@ -113,7 +104,7 @@ class GraphTest extends FlatSpec with Matchers {
   }
 
   "The graph" should "be mutable" in {
-    val e2: Edge[MyGraph] = graph.addEdge()
+    val e2: Edge[Graph] = graph.addEdge()
     e2.source = n1
     e2.target = n2
 
