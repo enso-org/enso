@@ -15,8 +15,12 @@ pub mod api;
 pub mod error;
 pub mod handler;
 pub mod messages;
+pub mod test_util;
 pub mod transport;
 
+pub use api::RemoteMethodCall;
+pub use api::Result;
 pub use transport::Transport;
 pub use transport::TransportEvent;
+pub use handler::Event;
 pub use handler::Handler;

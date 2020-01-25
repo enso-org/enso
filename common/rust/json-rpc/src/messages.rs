@@ -186,6 +186,19 @@ pub enum IncomingMessage {
     Notification(Notification<serde_json::Value>),
 }
 
+/// Partially decodes incoming message.
+///
+/// This checks if has `jsonrpc` version string, and whether it is a
+/// response or a notification.
+pub fn decode_incoming_message
+(message:String) -> serde_json::Result<IncomingMessage> {
+    use serde_json::Value;
+    use serde_json::from_str;
+    use serde_json::from_value;
+    let message = from_str::<Message<Value>>(&message)?;
+    from_value::<IncomingMessage>(message.payload)
+}
+
 /// Message from server to client.
 /// 
 /// `In` is any serializable (or already serialized) representation of the 

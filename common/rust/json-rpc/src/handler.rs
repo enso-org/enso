@@ -8,12 +8,13 @@ use crate::error::HandlingError;
 use crate::error::RpcError;
 use crate::messages;
 use crate::messages::Id;
-use crate::messages::IncomingMessage;
-use crate::messages::Message;
 use crate::transport::Transport;
 use crate::transport::TransportEvent;
 
 use futures::FutureExt;
+use futures::Stream;
+use futures::channel::mpsc::unbounded;
+use futures::channel::mpsc::UnboundedSender;
 use futures::channel::oneshot;
 use serde::de::DeserializeOwned;
 use std::future::Future;
@@ -117,47 +118,19 @@ impl SharedBuffer {
 
 
 
-// ================
-// === Callback ===
-// ================
+// =============
+// === Event ===
+// =============
 
-/// An optional callback procedure taking `T`.
-pub struct Callback<T> {
-    cb: Option<Box<dyn Fn(T) -> ()>>
-}
-
-impl<T> Debug for Callback<T> {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "{}", match self.cb {
-            Some(_) => "Some(<function>)",
-            None    => "None",
-        })
-    }
-}
-
-impl<T> Callback<T> {
-    /// Create a new, empty callaback.
-    pub fn new() -> Callback<T> {
-        Callback { cb:None }
-    }
-
-    /// Sets callback to the given callable.
-    pub fn set<F : Fn(T) -> () + 'static>(&mut self, cb:F) {
-        self.cb = Some(Box::new(cb));
-    }
-
-    /// Clears the previously set callback (if any).
-    pub fn unset(&mut self) {
-        self.cb = None;
-    }
-
-    /// Calls the provided callback with `t`. Does nothing, if no callback was
-    /// provided.
-    pub fn try_call(&mut self, t:T) {
-        if let Some(cb) = &self.cb {
-            cb(t);
-        }
-    }
+/// Event emitted by the `Handler<N>`.
+#[derive(Debug)]
+pub enum Event<N> {
+    /// Transport has been closed.
+    Closed,
+    /// Error occurred.
+    Error(HandlingError),
+    /// Notification received.
+    Notification(N),
 }
 
 
@@ -177,10 +150,13 @@ pub type OngoingCalls = HashMap<Id,oneshot::Sender<ReplyMessage>>;
 /// It allows making request, where method calls are described by values
 /// implementing `RemoteMethodCall`. The response is returned as a `Future`.
 ///
-/// Notifications and internal messages are emitted using an optionally set
-/// callbacks.
+/// Notifications and internal messages are emitted using the `events` stream.
+///
+/// `Notification` is a type for notifications. It should implement
+/// `DeserializeOwned` and deserialize from JSON maps with `method` and `params`
+/// fields.
 #[derive(Debug)]
-pub struct Handler {
+pub struct Handler<Notification> {
     /// Contains handles to calls that were made but no response has came.
     pub ongoing_calls   : OngoingCalls,
     /// Provides identifiers for requests.
@@ -189,25 +165,22 @@ pub struct Handler {
     pub transport       : Box<dyn Transport>,
     /// Allows receiving events from the `Transport`.
     pub incoming_events : std::sync::mpsc::Receiver<TransportEvent>,
-    /// Callback called when internal error happens.
-    pub on_error        : Callback<HandlingError>,
-    /// Callback called when notification from server is received.
-    pub on_notification : Callback<messages::Notification<serde_json::Value>>,
+    /// Handle to send outgoing events.
+    pub outgoing_events : Option<UnboundedSender<Event<Notification>>>,
 }
 
-impl Handler {
+impl<Notification> Handler<Notification> {
     /// Creates a new handler working on a given `Transport`.
     ///
     /// `Transport` must be functional (e.g. not in the process of opening).
-    pub fn new(transport:impl Transport + 'static) -> Handler {
+    pub fn new(transport:impl Transport + 'static) -> Handler<Notification> {
         let (event_tx, event_rx) = std::sync::mpsc::channel();
         let mut ret = Handler {
             ongoing_calls   : OngoingCalls::new(),
             id_generator    : IdGenerator::new(),
             transport       : Box::new(transport),
             incoming_events : event_rx,
-            on_error        : Callback::new(),
-            on_notification : Callback::new(),
+            outgoing_events : None,
         };
         ret.transport.set_event_tx(event_tx);
         ret
@@ -243,7 +216,7 @@ impl Handler {
         if let Some(sender) = self.ongoing_calls.remove(&message.id) {
             // Disregard any error. We do not care if RPC caller already
             // dropped the future.
-            let _ = sender.send(message.result);
+            sender.send(message.result).ok();
         } else {
             self.error_occurred(HandlingError::UnexpectedResponse(message));
         }
@@ -251,32 +224,30 @@ impl Handler {
 
     /// Deal with `Notification` message from the peer.
     ///
-    /// It shall be announced using `on_notification` callback, allowing a
-    /// specific API client to properly deal with message details.
+    /// If possible, emits a message with notification. In case of failure,
+    /// emits relevant error.
     pub fn process_notification
-    (&mut self, message:messages::Notification<serde_json::Value>) {
-        self.on_notification.try_call(message);
-    }
-
-    /// Partially decodes incoming message.
-    ///
-    /// This checks if has `jsonrpc` version string, and whetehr it is a
-    /// response or a notification.
-    pub fn decode_incoming_message(&mut self, message:String)
-    -> serde_json::Result<IncomingMessage> {
-        use serde_json::Value;
-        use serde_json::from_str;
-        use serde_json::from_value;
-        let message = from_str::<Message<Value>>(&message)?;
-        from_value::<IncomingMessage>(message.payload)
+    (&mut self, message:messages::Notification<serde_json::Value>)
+    where Notification: DeserializeOwned {
+        match serde_json::from_value(message.0) {
+            Ok(notification) => {
+                let event = Event::Notification(notification);
+                self.send_event(event);
+            },
+            Err(e) => {
+                let err = HandlingError::InvalidNotification(e);
+                self.error_occurred(err);
+            }
+        }
     }
 
     /// Deal with incoming text message from the peer.
     ///
     /// The message must conform either to the `Response` or to the
     /// `Notification` JSON-serialized format. Otherwise, an error is raised.
-    pub fn process_incoming_message(&mut self, message:String) {
-        match self.decode_incoming_message(message) {
+    pub fn process_incoming_message(&mut self, message:String)
+    where Notification: DeserializeOwned {
+        match messages::decode_incoming_message(message) {
             Ok(messages::IncomingMessage::Response(response)) =>
                 self.process_response(response),
             Ok(messages::IncomingMessage::Notification(notification)) =>
@@ -289,11 +260,14 @@ impl Handler {
     /// With with a handling error. Uses `on_error` callback to notify the
     /// owner.
     pub fn error_occurred(&mut self, error: HandlingError) {
-        self.on_error.try_call(error);
+        self.send_event(Event::Error(error))
     }
 
     /// Processes a single transport event.
-    pub fn process_event(&mut self, event:TransportEvent) {
+    ///
+    /// Each event either completes a requests or is translated into `Event`.
+    pub fn process_event(&mut self, event:TransportEvent)
+    where Notification: DeserializeOwned {
         match event {
             TransportEvent::TextMessage(msg) =>
                 self.process_incoming_message(msg),
@@ -301,6 +275,7 @@ impl Handler {
                 // Dropping all ongoing calls will mark their futures as
                 // cancelled.
                 self.ongoing_calls.clear();
+                self.send_event(Event::Closed);
             }
         }
     }
@@ -311,7 +286,8 @@ impl Handler {
     /// This will decode the incoming messages, providing input to the futures
     /// returned from RPC calls.
     /// Also this cancels any ongoing calls if the connection was lost.
-    pub fn process_events(&mut self) {
+    pub fn process_events(&mut self)
+    where Notification: DeserializeOwned {
         loop {
             match self.incoming_events.try_recv() {
                 Ok(event) => self.process_event(event),
@@ -322,19 +298,32 @@ impl Handler {
         }
     }
 
-    /// Decode expected notification type from JSON.
-    ///
-    /// Returns Some on success and None on failure. Addittionaly, a handling
-    /// error is raised in case of failure.
-    pub fn decode_notification<N:DeserializeOwned>
-    (&mut self, json:serde_json::Value) -> Option<N> {
-        match serde_json::from_value(json) {
-            Ok(ret) => ret,
-            Err(e) => {
-                let err = HandlingError::InvalidNotification(e);
-                self.error_occurred(err);
-                None
+    /// Sends a handler event to the event stream.
+    pub fn send_event(&mut self, event:Event<Notification>) {
+        if let Some(tx) = self.outgoing_events.as_mut() {
+            match tx.unbounded_send(event) {
+                Ok(()) => {},
+                Err(e) =>
+                    if e.is_full() {
+                        // Impossible, as per `futures` library docs.
+                        panic!("unbounded channel should never be full")
+                    } else if e.is_disconnected() {
+                        // It is ok for receiver to disconnect and ignore events.
+                    } else {
+                        // Never happens unless `futures` library changes API.
+                        panic!("unknown unexpected error")
+                    }
             }
         }
+    }
+
+    /// Creates a new stream with events from this handler.
+    ///
+    /// If such stream was already existing, it will be finished (and
+    /// continuations should be able to process any remaining events).
+    pub fn events(&mut self) -> impl Stream<Item = Event<Notification>> {
+        let (tx,rx)          = unbounded();
+        self.outgoing_events = Some(tx);
+        rx
     }
 }

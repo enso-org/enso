@@ -1,0 +1,12 @@
+[package]
+name = "utils"
+version = "0.1.0"
+authors = ["Enso Team <contact@luna-lang.org>"]
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+futures = "0.3.1"
+prelude = { version = "0.1.0"  , path = "../prelude" }

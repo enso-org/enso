@@ -6,6 +6,7 @@ extern crate proc_macro;
 
 mod derive_iterator;
 
+#[allow(unused)]
 use prelude::*;
 
 use crate::derive_iterator::IsMut;
