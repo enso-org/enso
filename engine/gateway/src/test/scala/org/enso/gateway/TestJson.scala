@@ -81,4 +81,21 @@ object TestJson {
            }
          }"""
   }
+
+  object Shutdown extends TestJson {
+    val request =
+      json"""
+         {
+           "jsonrpc": "2.0",
+           "id": 10,
+           "method": "shutdown"         
+         }"""
+
+    val expectedResponse =
+      json"""
+         {
+           "jsonrpc" : "2.0",
+           "id" : 10         
+         }"""
+  }
 }

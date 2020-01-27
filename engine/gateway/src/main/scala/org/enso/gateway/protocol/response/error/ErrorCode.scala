@@ -6,22 +6,35 @@ import io.circe.Encoder
 sealed abstract class ErrorCode(val code: Int)
 object ErrorCode {
 
-  /** Invalid JSON was received by the server. An error occurred on the server
-    * while parsing the JSON text. Defined by JSON-RPC Spec.
+  /** Signals that invalid JSON was received by the server.
+    *
+    * An error occurred on the server while parsing the JSON text.
+    * Defined by JSON-RPC Spec.
     */
   case object ParseError extends ErrorCode(-32700)
 
-  /** The JSON sent is not a valid Request object. Defined by JSON-RPC Spec. */
+  /** Signals that the JSON sent is not a valid Request object.
+    *
+    * Defined by JSON-RPC Spec.
+    */
   case object InvalidRequest extends ErrorCode(-32600)
 
-  /** The method does not exist or is not available. Defined by JSON-RPC Spec.
+  /** Signals that the method does not exist or is not available.
+    *
+    * Defined by JSON-RPC Spec.
     */
   case object MethodNotFound extends ErrorCode(-32601)
 
-  /** Invalid method parameters. Defined by JSON-RPC Spec. */
+  /** Signals that method parameters are invalid.
+    *
+    * Defined by JSON-RPC Spec.
+    */
   case object InvalidParams extends ErrorCode(-32602)
 
-  /** Internal JSON-RPC error. Defined by JSON-RPC Spec. */
+  /** Internal JSON-RPC error.
+    *
+    * Defined by JSON-RPC Spec.
+    */
   case object InternalError extends ErrorCode(-32603)
 
   /** Codes from -32000 to -32099 reserved for implementation-defined

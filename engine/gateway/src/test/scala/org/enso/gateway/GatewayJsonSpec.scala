@@ -7,8 +7,12 @@ import akka.http.scaladsl.model.ws.{Message, TextMessage, WebSocketRequest}
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Flow, Keep, Sink, Source}
 import io.circe.Json
-import org.enso.gateway.Server.Config
-import org.enso.gateway.TestJson.{Initialize, WrongJsonrpc, WrongMethod}
+import org.enso.gateway.TestJson.{
+  Initialize,
+  Shutdown,
+  WrongJsonrpc,
+  WrongMethod
+}
 import org.enso.{Gateway, LanguageServer}
 import org.scalatest.{
   Assertion,
@@ -18,10 +22,12 @@ import org.scalatest.{
   Matchers
 }
 import io.circe.parser.parse
+import org.enso.gateway.server.Config
 
-import scala.concurrent.Future
+import scala.concurrent.{Await, Future}
+import scala.concurrent.duration._
 
-class GatewaySpec
+class GatewayJsonSpec
     extends AsyncFlatSpec
     with Matchers
     with BeforeAndAfterAll
@@ -32,22 +38,34 @@ class GatewaySpec
 
   import system.dispatcher
 
-  override def beforeAll: Unit = {
-    val languageServerActorName = "languageServer"
-    val gatewayActorName        = "gateway"
-    val languageServer: ActorRef =
-      system.actorOf(LanguageServer.props(null), languageServerActorName)
-    val gateway: ActorRef =
-      system.actorOf(Gateway.props(languageServer), gatewayActorName)
+  private val languageServerActorName = "testingLanguageServer"
+  private val gatewayActorName        = "testingGateway"
+  private val languageServer: ActorRef =
+    system.actorOf(LanguageServer.props(null), languageServerActorName)
+  private val gateway: ActorRef =
+    system.actorOf(Gateway.props(languageServer), gatewayActorName)
 
-    val jsonRpcController = new JsonRpcController(gateway)
-    val server            = new Server(jsonRpcController)
+  private val jsonRpcController = new JsonRpcController(gateway)
+
+  private val config = {
+    val port = 30001
+    val host = "localhost"
+    new Config(port, host)
+  }
+
+  private val server = new Server(jsonRpcController, config)
+
+  override def beforeAll: Unit = {
     server.run()
   }
 
   override def afterAll: Unit = {
-    system.terminate()
-    ()
+    val terminationFuture = for {
+      _ <- server.shutdown()
+      _ <- system.terminate()
+    } yield ()
+    val timeout = 5.seconds
+    Await.result(terminationFuture, timeout)
   }
 
   "Gateway" should "reply with a proper response to request with initialize method" in {
@@ -62,19 +80,23 @@ class GatewaySpec
     checkRequestResponse(WrongMethod)
   }
 
+  "Gateway" should "reply with a proper response to request with shutdown method" in {
+    checkRequestResponse(Shutdown)
+  }
+
   private def checkRequestResponse(
-    testJsons: TestJson
+    testJson: TestJson
   ): Future[Assertion] = {
     Given("server replies with responses to requests")
     val messageToMessageFlow: Flow[Message, Message, Future[Message]] =
       createFlow(
-        TextMessage(testJsons.request.toString)
+        TextMessage(testJson.request.toString)
       )
 
     When("server receives request")
     val (_, messageFuture) = Http()
       .singleWebSocketRequest(
-        WebSocketRequest(Config.addressString),
+        WebSocketRequest(config.addressString),
         messageToMessageFlow
       )
 
@@ -82,7 +104,7 @@ class GatewaySpec
     messageFuture.map {
       case message: TextMessage.Strict =>
         val actualResponse = parse(message.text).getOrElse(Json.Null)
-        assert(actualResponse === testJsons.expectedResponse)
+        assert(actualResponse === testJson.expectedResponse)
       case _ => assert(false, "binary or streamed text message")
     }
   }

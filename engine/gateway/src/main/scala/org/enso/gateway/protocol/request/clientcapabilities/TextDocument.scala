@@ -26,7 +26,7 @@ import org.enso.gateway.protocol.request.clientcapabilities.textdocument.{
   TypeDefinition
 }
 
-/** Define capabilities for text document features the client supports. */
+/** Defines capabilities for text document features the client supports. */
 case class TextDocument(
   synchronization: Option[Sync]                  = None,
   completion: Option[Completion]                 = None,

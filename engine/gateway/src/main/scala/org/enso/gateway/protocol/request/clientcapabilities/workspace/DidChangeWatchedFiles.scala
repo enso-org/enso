@@ -5,7 +5,7 @@ import io.circe.generic.semiauto.deriveDecoder
 
 /** Capabilities specific to the `workspace/didChangeWatchedFiles` notification.
   */
-case class DidChangeWatchedFiles()
+case class DidChangeWatchedFiles(dynamicRegistration: Option[Boolean] = None)
 object DidChangeWatchedFiles {
   implicit val clientCapabilitiesWorkspaceDidChangeWatchedFilesDecoder
     : Decoder[DidChangeWatchedFiles] =

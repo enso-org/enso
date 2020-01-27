@@ -3,9 +3,7 @@ package org.enso.gateway.protocol
 import io.circe.Decoder
 import org.enso.gateway.protocol.request.Params
 
-/**
-  * Parent trait for [[Request]] and [[Notification]]
-  */
+/** Parent trait for [[Request]] and [[Notification]]. */
 sealed trait RequestOrNotification {
 
   /** JSON-RPC Version.
@@ -22,7 +20,8 @@ object RequestOrNotification {
     RequestOrNotificationDecoder.instance
 }
 
-/** `RequestMessage` in LSP Spec:
+/** `RequestMessage` in LSP Spec.
+  *
   * https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#requestMessage
   *
   * @param jsonrpc JSON-RPC Version
@@ -38,20 +37,18 @@ case class Request[P <: Params](
   method: String,
   params: Option[P]
 ) extends RequestOrNotification
-
 object Request {
-
-  /** Field `id`. */
   val idField = "id"
 
   implicit def requestDecoder[T <: Params]: Decoder[Request[T]] =
     RequestDecoder.instance
 }
 
-/** `NotificationMessage` in LSP Spec:
-  * https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#notificationMessage
+/** `NotificationMessage` in LSP Spec.
+  *
   * A processed notification message must not send a response back (they work
   * like events). Therefore no `id`.
+  * https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#notificationMessage
   *
   * @param jsonrpc JSON-RPC Version.
   * @param method  The JSON-RPC method to be invoked.
@@ -66,15 +63,9 @@ case class Notification[P <: Params](
   params: Option[P]
 ) extends RequestOrNotification
 object Notification {
-
-  /** Field `jsonrpc` to be validated. */
   val jsonrpcField = "jsonrpc"
-
-  /** Field `method`, which is discriminator. */
-  val methodField = "method"
-
-  /** Field `params`. */
-  val paramsField = "params"
+  val methodField  = "method"
+  val paramsField  = "params"
 
   implicit def notificationDecoder[P <: Params]: Decoder[Notification[P]] =
     NotificationDecoder.instance

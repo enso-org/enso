@@ -2,17 +2,18 @@ package org.enso.gateway.protocol.response.result
 
 import io.circe.generic.semiauto.deriveEncoder
 import io.circe.Encoder
+import org.enso.gateway.protocol.response.result.servercapabilities.declarationprovider.DocumentFilter
 import org.enso.gateway.protocol.response.result.servercapabilities.{
   CodeActionProvider,
-  CodeLensProvider,
+  CodeLensOptions,
   ColorProvider,
   CompletionOptions,
   DeclarationProvider,
   DefinitionProvider,
   DocumentFormattingProvider,
   DocumentHighlightProvider,
-  DocumentLinkProvider,
-  DocumentOnTypeFormattingProvider,
+  DocumentLinkOptions,
+  DocumentOnTypeFormattingOptions,
   DocumentRangeFormattingProvider,
   DocumentSymbolProvider,
   ExecuteCommandOptions,
@@ -28,8 +29,8 @@ import org.enso.gateway.protocol.response.result.servercapabilities.{
   Workspace
 }
 
-/** [[org.enso.gateway.protocol.response.Result.InitializeResult]] server
-  * capabilities.
+/** Server capabilities in
+  * [[org.enso.gateway.protocol.response.Result.InitializeResult]].
   *
   * @param textDocumentSync                 @see [[TextDocumentSync]]
   * @param completionProvider               @see [[CompletionOptions]]
@@ -43,14 +44,14 @@ import org.enso.gateway.protocol.response.result.servercapabilities.{
   * @param documentHighlightProvider        @see [[DocumentHighlightProvider]]
   * @param documentSymbolProvider           @see [[DocumentSymbolProvider]]
   * @param codeActionProvider               @see [[CodeActionProvider]]
-  * @param codeLensProvider                 @see [[CodeLensProvider]]
-  * @param documentLinkProvider             @see [[DocumentLinkProvider]]
+  * @param codeLensProvider                 @see [[CodeLensOptions]]
+  * @param documentLinkProvider             @see [[DocumentLinkOptions]]
   * @param colorProvider                    @see [[ColorProvider]]
   * @param documentFormattingProvider       @see [[DocumentFormattingProvider]]
   * @param documentRangeFormattingProvider  @see
   *                                         [[DocumentRangeFormattingProvider]]
   * @param documentOnTypeFormattingProvider @see
-  *                                         [[DocumentOnTypeFormattingProvider]]
+  *                                         [[DocumentOnTypeFormattingOptions]]
   * @param renameProvider                   @see [[RenameProvider]]
   * @param foldingRangeProvider             @see [[FoldingRangeProvider]]
   * @param executeCommandProvider           @see [[ExecuteCommandOptions]]
@@ -72,13 +73,13 @@ case class ServerCapabilities(
   documentHighlightProvider: Option[DocumentHighlightProvider]   = None,
   documentSymbolProvider: Option[DocumentSymbolProvider]         = None,
   codeActionProvider: Option[CodeActionProvider]                 = None,
-  codeLensProvider: Option[CodeLensProvider]                     = None,
-  documentLinkProvider: Option[DocumentLinkProvider]             = None,
+  codeLensProvider: Option[CodeLensOptions]                      = None,
+  documentLinkProvider: Option[DocumentLinkOptions]              = None,
   colorProvider: Option[ColorProvider]                           = None,
   documentFormattingProvider: Option[DocumentFormattingProvider] = None,
   documentRangeFormattingProvider: Option[DocumentRangeFormattingProvider] =
     None,
-  documentOnTypeFormattingProvider: Option[DocumentOnTypeFormattingProvider] =
+  documentOnTypeFormattingProvider: Option[DocumentOnTypeFormattingOptions] =
     None,
   renameProvider: Option[RenameProvider]                = None,
   foldingRangeProvider: Option[FoldingRangeProvider]    = None,
@@ -88,6 +89,7 @@ case class ServerCapabilities(
   experimental: Option[Experimental]                    = None
 )
 object ServerCapabilities {
+  type DocumentSelector = Seq[DocumentFilter]
   implicit val serverCapabilitiesEncoder: Encoder[ServerCapabilities] =
     deriveEncoder
 }

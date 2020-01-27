@@ -6,7 +6,9 @@ import io.circe.generic.semiauto.deriveDecoder
 /** Capabilities specific to the `textDocument/documentColor` and the
   * `textDocument/colorPresentation` request.
   */
-case class Color()
+case class Color(
+  dynamicRegistration: Option[Boolean] = None
+)
 object Color {
   implicit val clientCapabilitiesTextDocumentColorDecoder: Decoder[Color] =
     deriveDecoder

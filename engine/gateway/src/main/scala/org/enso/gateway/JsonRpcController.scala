@@ -23,6 +23,7 @@ import scala.concurrent.Future
 object JsonRpcController {
 
   /** A string specifying the version of the JSON-RPC protocol.
+    *
     * Must be exactly "2.0".
     *
     * @see LSP Spec:
@@ -33,6 +34,7 @@ object JsonRpcController {
 }
 
 /** Helper for implementing protocol over text-based transport.
+  *
   * Requests and responses are marshaled as text using JSON-RPC.
   * It handles and decodes all JSON-RPC messages and dispatch them to the
   * Gateway.
@@ -40,10 +42,9 @@ object JsonRpcController {
   * @param gateway [[ActorRef]] of Gateway actor.
   */
 class JsonRpcController(gateway: ActorRef)(implicit system: ActorSystem) {
-
   import system.dispatcher
 
-  /** Generate text reply for given request text message, no reply for
+  /** Generates text reply for given request text message, no reply for
     * notification.
     */
   def getTextOutput(

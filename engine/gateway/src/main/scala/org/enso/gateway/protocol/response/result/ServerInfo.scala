@@ -3,7 +3,8 @@ package org.enso.gateway.protocol.response.result
 import io.circe.generic.semiauto.deriveEncoder
 import io.circe.Encoder
 
-/** [[org.enso.gateway.protocol.response.Result.InitializeResult]] server info.
+/** Server info in
+  * [[org.enso.gateway.protocol.response.Result.InitializeResult]].
   *
   * @param name    Name of Language Server
   * @param version Version of Language Server

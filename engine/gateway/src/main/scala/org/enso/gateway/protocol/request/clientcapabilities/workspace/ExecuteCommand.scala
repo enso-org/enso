@@ -4,7 +4,7 @@ import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 
 /** Capabilities specific to the `workspace/executeCommand` request. */
-case class ExecuteCommand()
+case class ExecuteCommand(dynamicRegistration: Option[Boolean] = None)
 object ExecuteCommand {
   implicit val clientCapabilitiesWorkspaceExecuteCommandDecoder
     : Decoder[ExecuteCommand] =

@@ -14,6 +14,8 @@ import org.enso.gateway.JsonRpcController
 
 import scala.io.StdIn
 import scala.util.Try
+import scala.concurrent.Await
+import scala.concurrent.duration._
 
 /** The main CLI entry point class. */
 object Main {
@@ -185,6 +187,7 @@ object Main {
     implicit val system: ActorSystem = ActorSystem()
     implicit val materializer: ActorMaterializer =
       ActorMaterializer.create(system)
+    import system.dispatcher
 
     val languageServerActorName = "languageServer"
     val gatewayActorName        = "gateway"
@@ -194,11 +197,17 @@ object Main {
       system.actorOf(Gateway.props(languageServer), gatewayActorName)
 
     val jsonRpcController = new JsonRpcController(gateway)
-    val server            = new enso.gateway.Server(jsonRpcController)
+    val config            = new enso.gateway.server.Config
+    val server            = new enso.gateway.Server(jsonRpcController, config)
     server.run()
 
     StdIn.readLine()
-    system.terminate()
+    val terminationFuture = for {
+      _ <- server.shutdown()
+      _ <- system.terminate()
+    } yield ()
+    val timeout = 5.seconds
+    Await.result(terminationFuture, timeout)
     exitSuccess()
   }
 

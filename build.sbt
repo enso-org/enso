@@ -485,9 +485,9 @@ lazy val gateway = (project in file("engine/gateway"))
   .dependsOn(language_server)
   .settings(
     libraryDependencies ++= akka ++ circe ++ Seq(
-      akkaTestkit      % Test,
       "io.circe"       %% "circe-generic-extras" % "0.12.2",
       "io.circe"       %% "circe-literal" % circeVersion,
+      akkaTestkit      % Test,
       "org.scalatest"  %% "scalatest" % "3.2.0-SNAP10" % Test,
       "org.scalacheck" %% "scalacheck" % "1.14.0" % Test
     )
@@ -496,7 +496,10 @@ lazy val gateway = (project in file("engine/gateway"))
 lazy val language_server = (project in file("engine/language-server"))
   .settings(
     libraryDependencies ++= akka ++ Seq(
-      "org.graalvm.sdk" % "polyglot-tck" % graalVersion % Provided
+      "org.graalvm.sdk" % "polyglot-tck" % graalVersion % Provided,
+      akkaTestkit       % Test,
+      "org.scalatest"   %% "scalatest" % "3.2.0-SNAP10" % Test,
+      "org.scalacheck"  %% "scalacheck" % "1.14.0" % Test
     )
   )
   .dependsOn(polyglot_api)

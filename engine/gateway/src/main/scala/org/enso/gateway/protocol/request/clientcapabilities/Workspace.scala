@@ -10,7 +10,7 @@ import org.enso.gateway.protocol.request.clientcapabilities.workspace.{
   WorkspaceSymbol
 }
 
-/** Define capabilities for workspace features the client supports.
+/** Defines capabilities for workspace features the client supports.
   *
   * @param applyEdit              The client supports applying batch edits to
   *                               the workspace by supporting the request

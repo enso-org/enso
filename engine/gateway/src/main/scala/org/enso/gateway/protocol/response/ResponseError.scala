@@ -4,7 +4,7 @@ import io.circe.Encoder
 import org.enso.gateway.protocol.response.error.{Data, ErrorCode, ErrorMessage}
 import org.enso.gateway.protocol.response.error.Data.{InitializeData, ParseData}
 
-/** [[org.enso.gateway.protocol.Response]] error.
+/** Error of [[org.enso.gateway.protocol.Response]].
   *
   * `ResponseError` in LSP Spec:
   * https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#responseMessage
@@ -42,7 +42,8 @@ object ResponseError {
         data
       )
 
-  /** [[org.enso.gateway.protocol.Requests.Initialize]] error.
+  /** Error of [[org.enso.gateway.protocol.Requests.Initialize]].
+    *
     * Wrong JSON-RPC version.
     */
   case class InitializeError(

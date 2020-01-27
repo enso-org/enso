@@ -3,12 +3,10 @@ package org.enso.gateway.protocol
 import io.circe.Decoder
 import org.enso.gateway.protocol.request.Params
 
-/**
-  * Helper object for decoding [[Request]].
-  */
+/** Helper object for decoding [[Request]]. */
 object RequestDecoder {
 
-  /** Make Circe decoder for requests.
+  /** Makes Circe decoder for requests.
     *
     * @tparam P Subtype of [[Params]] for a request with specific method.
     * @return The decoder.

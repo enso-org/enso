@@ -18,15 +18,33 @@ import org.enso.gateway.protocol.request.Param.{
 sealed trait Params
 object Params {
   implicit val paramsDecoder: Decoder[Params] = List[Decoder[Params]](
-    Decoder[InitializeParams].widen,
-    Decoder[InitializedParams].widen,
-    Decoder[Array].widen
+    Decoder[Array].widen,
+    Decoder[VoidParams].widen,
+    Decoder[InitializeParams].widen
   ).reduceLeft(_ or _)
 
   type DocumentUri = String
 
-  /** Params of the request
-    * [[org.enso.gateway.protocol.Requests.Initialize]].
+  /** Array params. */
+  case class Array(value: Seq[Option[Param]]) extends Params
+  object Array {
+    implicit val paramsArrayDecoder: Decoder[Array] =
+      deriveUnwrappedDecoder
+  }
+
+  /** Void params.
+    *
+    * Params of [[org.enso.gateway.protocol.Requests.Shutdown]],
+    * [[org.enso.gateway.protocol.Notifications.Initialized]],
+    * [[org.enso.gateway.protocol.Notifications.Exit]].
+    */
+  case class VoidParams() extends Params
+  object VoidParams {
+    implicit val voidParamsDecoder: Decoder[VoidParams] =
+      deriveDecoder
+  }
+
+  /** Params of the request [[org.enso.gateway.protocol.Requests.Initialize]].
     */
   case class InitializeParams(
     processId: Option[Int]         = None,
@@ -39,32 +57,14 @@ object Params {
     trace: Option[Trace]                           = None,
     workspaceFolders: Option[Seq[WorkspaceFolder]] = None
   ) extends Params
-
   object InitializeParams {
     implicit val initializeParamsDecoder: Decoder[InitializeParams] =
       deriveDecoder
   }
 
   /* Note [rootPath deprecated]
-   * ~~~~~~~~~~~~~~~~~~~~~~~~~~
-   * `rootPath` is deprecated: use `rootUri`, LSP Spec.
-   */
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~
+ * `rootPath` is deprecated: use `rootUri`, LSP Spec.
+ */
 
-  /** Params of the notification
-    * [[org.enso.gateway.protocol.Notifications.Initialized]].
-    */
-  case class InitializedParams() extends Params
-
-  object InitializedParams {
-    implicit val initializedParamsDecoder: Decoder[InitializedParams] =
-      deriveDecoder
-  }
-
-  /** Array params. */
-  case class Array(value: Seq[Option[Param]]) extends Params
-
-  object Array {
-    implicit val paramsArrayDecoder: Decoder[Array] =
-      deriveUnwrappedDecoder
-  }
 }

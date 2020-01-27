@@ -3,15 +3,12 @@ package org.enso.gateway.protocol
 import io.circe.{ACursor, Decoder, DecodingFailure}
 import org.enso.gateway.JsonRpcController.jsonRpcVersion
 import org.enso.gateway.protocol.request.Params
-import org.enso.gateway.protocol.request.Params.{
-  InitializeParams,
-  InitializedParams
-}
+import org.enso.gateway.protocol.request.Params.{InitializeParams, VoidParams}
 
 /** Helper object for decoding [[Notification]]. */
 object NotificationDecoder {
 
-  /** Make Circe decoder for notifications and notification fields of requests.
+  /** Makes Circe decoder for notifications and notification fields of requests.
     *
     * @tparam P Subtype of [[Params]] for a notification with specific method.
     * @return the Circe decoder.
@@ -38,9 +35,11 @@ object NotificationDecoder {
     (method match {
       case Requests.Initialize.method =>
         Decoder[Option[InitializeParams]]
+      case Requests.Shutdown.method =>
+        Decoder[Option[VoidParams]]
 
-      case Notifications.Initialized.method =>
-        Decoder[Option[InitializedParams]]
+      case Notifications.Initialized.method | Notifications.Exit.method =>
+        Decoder[Option[VoidParams]]
 
       case m =>
         Decoder.failed(

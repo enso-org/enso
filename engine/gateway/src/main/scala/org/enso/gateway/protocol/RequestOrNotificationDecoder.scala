@@ -2,10 +2,7 @@ package org.enso.gateway.protocol
 
 import io.circe.CursorOp.DownField
 import io.circe.{Decoder, DecodingFailure}
-import org.enso.gateway.protocol.request.Params.{
-  InitializeParams,
-  InitializedParams
-}
+import org.enso.gateway.protocol.request.Params.{InitializeParams, VoidParams}
 
 /** Helper object for decoding [[RequestOrNotification]]. */
 object RequestOrNotificationDecoder {
@@ -19,7 +16,7 @@ object RequestOrNotificationDecoder {
         .flatMap(selectRequestOrNotificationDecoder(_).apply(cursor))
     }
 
-  /** Make Circe failure if method is unknown.
+  /** Makes Circe failure if method is unknown.
     *
     * @param method Name of method.
     * @return The failure.
@@ -36,9 +33,11 @@ object RequestOrNotificationDecoder {
     method match {
       case Requests.Initialize.method =>
         Decoder[Request[InitializeParams]]
+      case Requests.Shutdown.method =>
+        Decoder[Request[VoidParams]]
 
-      case Notifications.Initialized.method =>
-        Decoder[Notification[InitializedParams]]
+      case Notifications.Initialized.method | Notifications.Exit.method =>
+        Decoder[Notification[VoidParams]]
 
       case m =>
         Decoder.failed(
