@@ -55,6 +55,11 @@ jobs:
           sbt -no-colors syntaxJS/fullOptJS
         displayName: Generate target/scala-parser.js
         continueOnError: true
+      - task: PublishPipelineArtifact@1
+        inputs:
+          targetPath: '$(Pipeline.Workspace)/s/target/scala-parser.js'
+          artifact: 'parser-js'
+          publishLocation: 'pipeline'
       - script: |
           cargo build --all
         displayName: Cargo Build
@@ -234,3 +239,4 @@ jobs:
           echo "##vso[task.complete result=Failed;]DONE"
         condition: eq(variables['Agent.JobStatus'], 'SucceededWithIssues')
         displayName: Fail on Issues
+        
