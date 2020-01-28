@@ -28,12 +28,16 @@ impl DisplayObjectRenderPass {
 
 impl RenderPass for DisplayObjectRenderPass {
     fn outputs(&self) -> Vec<RenderPassOutput> {
-        vec![RenderPassOutput::new("color",texture::AnyInternalFormat::Rgba)]
+        vec![ RenderPassOutput::new("color",texture::Rgba,texture::item_type::u8)
+            , RenderPassOutput::new("id",texture::Rgba32ui,texture::item_type::u32)
+            ]
     }
 
     fn run(&mut self, context:&Context, _:&UniformScope) {
-        context.clear_color(0.0, 0.0, 0.0, 1.0);
-        context.clear(Context::COLOR_BUFFER_BIT);
+        let arr = vec![0.0,0.0,0.0,0.0];
+        let arr2 = vec![0,0,0,0];
+        context.clear_bufferfv_with_f32_array(Context::COLOR,0,&arr);
+        context.clear_bufferuiv_with_u32_array(Context::COLOR,1,&arr2);
         self.target.render();
     }
 }

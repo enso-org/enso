@@ -34,6 +34,7 @@ pub type GpuByteSize<T> = <T as GpuKnownSize>::GpuByteSize;
 
 impl GpuKnownSize for bool { type GpuByteSize = U4; }
 impl GpuKnownSize for i32  { type GpuByteSize = U4; }
+impl GpuKnownSize for u32  { type GpuByteSize = U4; }
 impl GpuKnownSize for f32  { type GpuByteSize = U4; }
 
 type Mul<A,B> = <A as DimMul<B>>::Output;

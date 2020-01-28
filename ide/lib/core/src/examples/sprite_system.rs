@@ -1,12 +1,13 @@
 #![allow(missing_docs)]
 
+use crate::display::object::DisplayObject;
 use crate::display::object::DisplayObjectOps;
 use crate::display::symbol::geometry::Sprite;
 use crate::display::symbol::geometry::SpriteSystem;
 use crate::display::world::*;
 use crate::prelude::*;
-use crate::system::web::set_stdout;
 use crate::system::web::forward_panic_hook_to_console;
+use crate::system::web::set_stdout;
 
 use nalgebra::Vector2;
 use nalgebra::Vector3;
@@ -107,5 +108,5 @@ pub fn on_frame
         }
     }
 
-    sprite_system.update();
+    sprite_system.display_object().update();
 }

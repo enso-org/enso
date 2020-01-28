@@ -31,6 +31,12 @@ impl UniformUpload for i32 {
     }
 }
 
+impl UniformUpload for u32 {
+    fn upload_uniform(&self, context:&Context, location:&WebGlUniformLocation) {
+        context.uniform1ui(Some(location),*self);
+    }
+}
+
 impl UniformUpload for f32 {
     fn upload_uniform(&self, context:&Context, location:&WebGlUniformLocation) {
         context.uniform1f(Some(location),*self);
@@ -70,6 +76,24 @@ impl UniformUpload for Vector3<i32> {
 impl UniformUpload for Vector4<i32> {
     fn upload_uniform(&self, context:&Context, location:&WebGlUniformLocation) {
         context.uniform4iv_with_i32_array(Some(location),self.data.as_slice());
+    }
+}
+
+impl UniformUpload for Vector2<u32> {
+    fn upload_uniform(&self, context:&Context, location:&WebGlUniformLocation) {
+        context.uniform2uiv_with_u32_array(Some(location),self.data.as_slice());
+    }
+}
+
+impl UniformUpload for Vector3<u32> {
+    fn upload_uniform(&self, context:&Context, location:&WebGlUniformLocation) {
+        context.uniform3uiv_with_u32_array(Some(location),self.data.as_slice());
+    }
+}
+
+impl UniformUpload for Vector4<u32> {
+    fn upload_uniform(&self, context:&Context, location:&WebGlUniformLocation) {
+        context.uniform4uiv_with_u32_array(Some(location),self.data.as_slice());
     }
 }
 

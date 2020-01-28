@@ -30,6 +30,7 @@ macro_rules! define_gpu_defaults {
 
 define_gpu_defaults! {
     i32            = 0,
+    u32            = 0,
     f32            = 0.0,
     bool           = false,
 
@@ -40,6 +41,10 @@ define_gpu_defaults! {
     Vector2<i32>   = Vector2::new(0,0),
     Vector3<i32>   = Vector3::new(0,0,0),
     Vector4<i32>   = Vector4::new(0,0,0,1),
+
+    Vector2<u32>   = Vector2::new(0,0),
+    Vector3<u32>   = Vector3::new(0,0,0),
+    Vector4<u32>   = Vector4::new(0,0,0,1),
 
     Vector2<bool>  = Vector2::new(false,false),
     Vector3<bool>  = Vector3::new(false,false,false),

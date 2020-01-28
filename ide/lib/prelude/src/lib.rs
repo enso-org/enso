@@ -121,7 +121,17 @@ impl<T> OptionOps for Option<T> {
 
 /// Like `Clone` but should be implemented only for cheap reference-based clones. Using `clone_ref`
 /// instead of `clone` makes the code more clear and makes it easier to predict its performance.
-pub trait CloneRef: Clone {
+pub trait CloneRef: Sized + Clone {
+    fn clone_ref(&self) -> Self {
+        self.clone()
+    }
+}
+
+impl CloneRef for () {
+    fn clone_ref(&self) -> Self {}
+}
+
+impl<T:?Sized> CloneRef for Rc<T> {
     fn clone_ref(&self) -> Self {
         self.clone()
     }

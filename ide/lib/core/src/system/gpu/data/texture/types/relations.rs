@@ -83,13 +83,16 @@ macro_rules! with_texture_format_relations { ($f:ident $args:tt) => { $crate::$f
 /// See docs of `with_all_texture_types`.
 #[macro_export]
 macro_rules! with_all_texture_types_cartesians {
-    ($f:ident [$($out:tt)*]) => {
+    ([$f:ident] [$($out:tt)*]) => {
         shapely::cartesian! { [[$f]] [Owned GpuOnly RemoteImage] [$($out)*] }
     };
-    ($f:ident $out:tt [$a:tt []] $($in:tt)*) => {
+    ([$f:ident _] $out:tt) => {
+        $f! { $out }
+    };
+    ($f:tt $out:tt [$a:tt []] $($in:tt)*) => {
         $crate::with_all_texture_types_cartesians! {$f $out $($in)*}
     };
-    ($f:ident [$($out:tt)*] [$a:tt [$b:tt $($bs:tt)*]] $($in:tt)*) => {
+    ($f:tt [$($out:tt)*] [$a:tt [$b:tt $($bs:tt)*]] $($in:tt)*) => {
         $crate::with_all_texture_types_cartesians! {$f [$($out)* [$a $b]] [$a [$($bs)*]]  $($in)* }
     };
 }
@@ -97,8 +100,8 @@ macro_rules! with_all_texture_types_cartesians {
 /// See docs of `with_all_texture_types`.
 #[macro_export]
 macro_rules! with_all_texture_types_impl {
-    ( [$f:ident]
-     $( $internal_format:ident $format:ident $color_renderable:tt $filterable:tt
+    ( $f:tt
+     $( $internal_format:ident $format:ident $sampler:ident $color_renderable:tt $filterable:tt
         [$($possible_types:ident : $bytes_per_element:ident),*]
     )*) => {
         $crate::with_all_texture_types_cartesians!
@@ -110,7 +113,7 @@ macro_rules! with_all_texture_types_impl {
 /// `arg! { [Alpha u8] [Alpha f16] [Alpha f32] [Luminance u8] ... }`
 #[macro_export]
 macro_rules! with_all_texture_types {
-    ($f:ident) => {
-        $crate::with_texture_format_relations! { with_all_texture_types_impl [$f] }
+    ($f:tt) => {
+        $crate::with_texture_format_relations! { with_all_texture_types_impl $f }
     }
 }

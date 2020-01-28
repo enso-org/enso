@@ -11,6 +11,9 @@ pub mod types {
     pub use super::data::types::*;
     pub use super::shader::types::*;
 
+    pub use super::data::attribute;
+    pub use super::data::uniform;
+
     /// Alias for WebGl2RenderingContext.
     pub type Context = WebGl2RenderingContext;
 }

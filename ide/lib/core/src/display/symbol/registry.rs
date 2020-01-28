@@ -72,7 +72,8 @@ impl {
         self.symbols.insert_with_ix(|ix| {
             let on_mut = move || {symbol_dirty.set(ix)};
             let logger = logger.sub(format!("symbol{}",ix));
-            Symbol::new(variables,logger,stats,context,on_mut)
+            let id     = ix as i32;
+            Symbol::new(logger,context,stats,id,variables,on_mut)
         })
     }
 
@@ -108,16 +109,3 @@ impl {
 //        })
     }
 }}
-
-//impl Index<usize> for SymbolRegistry {
-//    type Output = Symbol;
-//    fn index(&self, ix:usize) -> &Self::Output {
-//        self.symbols.index(ix)
-//    }
-//}
-//
-//impl IndexMut<usize> for SymbolRegistry {
-//    fn index_mut(&mut self, ix:usize) -> &mut Self::Output {
-//        self.symbols.index_mut(ix)
-//    }
-//}

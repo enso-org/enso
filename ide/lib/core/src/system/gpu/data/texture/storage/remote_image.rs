@@ -47,7 +47,7 @@ impl RemoteImageData {
     }
 }
 
-impl<I:InternalFormat,T:Item>
+impl<I:InternalFormat,T:ItemType>
 Texture<RemoteImage,I,T> {
     /// Initializes default texture value. It is useful when the texture data needs to be downloaded
     /// asynchronously. This method creates a mock 1px x 1px texture and uses it as a mock texture
@@ -68,7 +68,7 @@ Texture<RemoteImage,I,T> {
     }
 }
 
-impl<I:InternalFormat,T:Item>
+impl<I:InternalFormat,T:ItemType>
 TextureReload for Texture<RemoteImage,I,T> {
     /// Loads or re-loads the texture data from the provided url.
     /// This action will be performed asynchronously.

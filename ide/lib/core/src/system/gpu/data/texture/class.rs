@@ -70,37 +70,37 @@ pub trait TextureReload {
 
 // === Type Level Utils ===
 
-impl<S:StorageRelation<I,T>,I:InternalFormat,T:Item>
+impl<S:StorageRelation<I,T>,I:InternalFormat,T:ItemType>
 Texture<S,I,T> {
-    /// Internal format instance of this texture. Please note, that this value could be computed
-    /// without taking self reference, however it was defined in such way for convenient usage.
+    /// Internal format instance of this texture.
     pub fn internal_format() -> AnyInternalFormat {
         <I>::default().into()
     }
 
-    /// Format instance of this texture. Please note, that this value could be computed
-    /// without taking self reference, however it was defined in such way for convenient usage.
+    /// Format instance of this texture.
     pub fn format() -> AnyFormat {
         <I>::Format::default().into()
     }
 
-    /// Internal format of this texture as `GlEnum`. Please note, that this value could be computed
-    /// without taking self reference, however it was defined in such way for convenient usage.
+    /// Internal format of this texture as `GlEnum`.
     pub fn gl_internal_format() -> i32 {
         let GlEnum(u) = Self::internal_format().into_gl_enum();
         u as i32
     }
 
-    /// Format of this texture as `GlEnum`. Please note, that this value could be computed
-    /// without taking self reference, however it was defined in such way for convenient usage.
+    /// Format of this texture as `GlEnum`.
     pub fn gl_format() -> GlEnum {
         Self::format().into_gl_enum()
     }
 
-    /// Element type of this texture as `GlEnum`. Please note, that this value could be computed
-    /// without taking self reference, however it was defined in such way for convenient usage.
+    /// Element type of this texture as `GlEnum`.
     pub fn gl_elem_type() -> u32 {
         <T>::gl_enum().into()
+    }
+
+    /// Element type of this texture.
+    pub fn item_type() -> AnyItemType {
+        PhantomData::<T>.into()
     }
 }
 
@@ -127,7 +127,7 @@ impl<S:StorageRelation<I,T>,I,T> Texture<S,I,T> {
 
 // === Constructors ===
 
-impl<S:StorageRelation<I,T>,I:InternalFormat,T:Item> Texture<S,I,T>
+impl<S:StorageRelation<I,T>,I:InternalFormat,T:ItemType> Texture<S,I,T>
     where Self: TextureReload {
     /// Constructor.
     pub fn new<P:Into<StorageOf<S,I,T>>>(context:&Context, provider:P) -> Self {
@@ -194,9 +194,15 @@ pub trait TextureOps {
 
     /// Accessor.
     fn gl_texture(&self) -> WebGlTexture;
+
+    /// Accessor.
+    fn get_format(&self) -> AnyFormat;
+
+    /// Accessor.
+    fn get_item_type(&self) -> AnyItemType;
 }
 
-impl<P:WithContent<Content=Texture<S,I,T>>,S:StorageRelation<I,T>,I,T>
+impl<P:WithContent<Content=Texture<S,I,T>>,S:StorageRelation<I,T>,I:InternalFormat,T:ItemType>
 TextureOps for P {
     fn bind_texture_unit(&self, context:&Context, unit:TextureUnit) -> TextureBindGuard {
         self.with_content(|this| {
@@ -211,5 +217,13 @@ TextureOps for P {
 
     fn gl_texture(&self) -> WebGlTexture {
         self.with_content(|this| { this.gl_texture.clone() })
+    }
+
+    fn get_format(&self) -> AnyFormat {
+        self.with_content(|_| { <Texture<S,I,T>>::format() })
+    }
+
+    fn get_item_type(&self) -> AnyItemType {
+        self.with_content(|_| { <Texture<S,I,T>>::item_type() })
     }
 }

@@ -132,7 +132,7 @@ macro_rules! define_singleton_enum_gl_from {
         impl From<&$name> for $($target)* {
             fn from(t:&$name) -> Self {
                 match t {
-                    $($name::$field => $field.into()),*
+                    $($name::$field => PhantomData::<$field>.into()),*
                 }
             }
         }
@@ -140,12 +140,13 @@ macro_rules! define_singleton_enum_gl_from {
         impl From<$name> for $($target)* {
             fn from(t:$name) -> Self {
                 match t {
-                    $($name::$field => $field.into()),*
+                    $($name::$field => PhantomData::<$field>.into()),*
                 }
             }
         }
     }
 }
+
 
 
 // ================================

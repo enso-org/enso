@@ -1,5 +1,6 @@
 #![allow(missing_docs)]
 
+use crate::display::object::DisplayObject;
 use crate::display::object::DisplayObjectOps;
 use crate::display::symbol::geometry::Sprite;
 use crate::display::shape::primitive::system::ShapeSystem;
@@ -13,6 +14,8 @@ use wasm_bindgen::prelude::*;
 
 use crate::display::shape::primitive::def::*;
 use crate::display::navigation::navigator::Navigator;
+
+use crate::control::frp;
 
 
 #[wasm_bindgen]
@@ -54,6 +57,8 @@ fn init(world: &World) {
         let _keep_alive = &navigator;
         on_frame(&mut time,&mut iter,&sprite,&shape_system)
     }).forget();
+
+    frp::test();
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -64,5 +69,5 @@ pub fn on_frame
 , _sprite1     : &Sprite
 , shape_system : &ShapeSystem) {
     *iter += 1;
-    shape_system.update();
+    shape_system.display_object().update();
 }
