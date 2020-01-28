@@ -145,25 +145,25 @@ impl WorldData {
     /// Create new uninitialized world instance. You should rather not need to
     /// call this function directly.
     fn new_uninitialized<Dom:Str>(dom:Dom) -> Self {
-        let stats                  = default();
-        let logger                 = Logger::new("world");
+        let stats              = default();
+        let logger             = Logger::new("world");
         let scene_logger       = logger.sub("scene");
         let scene_dirty_logger = logger.sub("scene_dirty");
         let scene_dirty        = SceneDirty::new(scene_dirty_logger,());
         let scene_dirty2       = scene_dirty.clone();
-        let on_change              = move || {scene_dirty2.set()};
+        let on_change          = move || {scene_dirty2.set()};
         let scene              = Scene::new(dom,scene_logger,&stats,on_change);
-        let variables              = &scene.variables();
-        let time                   = variables.add_or_panic("time",0.0);
-        let display_mode           = variables.add_or_panic("display_mode",0);
-        let fonts                  = Fonts::new();
-        let event_loop             = EventLoop::new();
-        let update_handle          = default();
-        let stats_monitor          = StatsMonitor::new(&stats);
-        let performance            = web::get_performance().unwrap();
-        let start_time             = performance.now() as f32;
-        let stats_monitor_cp_1     = stats_monitor.clone();
-        let stats_monitor_cp_2     = stats_monitor.clone();
+        let variables          = &scene.variables();
+        let time               = variables.add_or_panic("time",0.0);
+        let display_mode       = variables.add_or_panic("display_mode",0);
+        let fonts              = Fonts::new();
+        let event_loop         = EventLoop::new();
+        let update_handle      = default();
+        let stats_monitor      = StatsMonitor::new(&stats);
+        let performance        = web::get_performance().unwrap();
+        let start_time         = performance.now() as f32;
+        let stats_monitor_cp_1 = stats_monitor.clone();
+        let stats_monitor_cp_2 = stats_monitor.clone();
 
         event_loop.set_on_loop_started  (move || { stats_monitor_cp_1.begin(); });
         event_loop.set_on_loop_finished (move || { stats_monitor_cp_2.end();   });
@@ -275,11 +275,19 @@ impl World {
     }
 
     fn init_composer(&self) {
-        let root     = &self.display_object_description();
+        let root                = &self.display_object();
+        let mouse_hover_ids     = self.rc.borrow().scene.mouse_hover_ids();
+        let mouse_position      = self.rc.borrow().scene.mouse_position_uniform();
+        let mut pixel_read_pass = PixelReadPass::<u32>::new(&mouse_position);
+        pixel_read_pass.set_callback(move |v| {
+            mouse_hover_ids.set(Vector4::from_iterator(v))
+        });
+        // TODO: We may want to enable it on weak hardware.
+        // pixel_read_pass.set_threshold(1);
         let pipeline = RenderPipeline::new()
             .add(DisplayObjectRenderPass::new(root))
             .add(ScreenRenderPass::new())
-            .add(PixelReadPass::new());
+            .add(pixel_read_pass);
         self.rc.borrow_mut().scene.set_render_pipeline(pipeline);
     }
 }

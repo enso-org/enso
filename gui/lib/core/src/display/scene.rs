@@ -9,19 +9,29 @@ use crate::data::dirty;
 use crate::debug::stats::Stats;
 use crate::display::camera::Camera2d;
 use crate::display::object::DisplayObjectData;
+use crate::display::render::RenderComposer;
+use crate::display::render::RenderPipeline;
 use crate::display::shape::text::font::Fonts;
 use crate::display::shape::text;
 use crate::display::symbol::registry::SymbolRegistry;
 use crate::display::symbol::Symbol;
-use crate::display::render::RenderComposer;
-use crate::display::render::RenderPipeline;
 use crate::system::gpu::data::uniform::UniformScope;
 use crate::system::gpu::shader::Context;
+use crate::system::gpu::types::*;
 use crate::system::web::resize_observer::ResizeObserver;
 use crate::system::web;
+use crate::display::object::DisplayObjectOps;
 use crate::system::gpu::data::uniform::Uniform;
 
 use wasm_bindgen::prelude::Closure;
+use wasm_bindgen::JsValue;
+
+use crate::control::io::mouse2::MouseManager;
+use crate::control::io::mouse2;
+use crate::control::callback::CallbackHandle;
+
+
+use crate::control::callback::DynEvent;
 
 
 
@@ -82,6 +92,8 @@ impl Shape {
     }
 }
 
+impl CloneRef for Shape {}
+
 
 // === ShapeData ===
 
@@ -106,6 +118,96 @@ impl ShapeData {
 
 
 
+// ======================
+// === Mouse Handling ===
+// ======================
+
+pub trait MouseEventFn      = Fn(JsValue) + 'static;
+pub type  MouseEventClosure = Closure<dyn Fn(JsValue)>;
+
+fn mouse_event_closure<F:MouseEventFn>(f:F) -> MouseEventClosure {
+    Closure::wrap(Box::new(f))
+}
+
+#[derive(Debug)]
+struct Mouse {
+    mouse_manager   : MouseManager,
+    position        : Uniform<Vector2<i32>>,
+    hover_ids       : Uniform<Vector4<u32>>,
+    button0_pressed : Uniform<bool>,
+    button1_pressed : Uniform<bool>,
+    button2_pressed : Uniform<bool>,
+    button3_pressed : Uniform<bool>,
+    button4_pressed : Uniform<bool>,
+    last_hover_ids  : Vector4<u32>,
+    handles         : Vec<CallbackHandle>,
+}
+
+impl Mouse {
+    pub fn new(shape:&Shape, variables:&UniformScope) -> Self {
+
+        let empty_hover_ids = Vector4::<u32>::new(0,0,0,0);
+        let position        = variables.add_or_panic("mouse_position",Vector2::new(0,0));
+        let hover_ids       = variables.add_or_panic("mouse_hover_ids",empty_hover_ids);
+        let button0_pressed = variables.add_or_panic("mouse_button0_pressed",false);
+        let button1_pressed = variables.add_or_panic("mouse_button1_pressed",false);
+        let button2_pressed = variables.add_or_panic("mouse_button2_pressed",false);
+        let button3_pressed = variables.add_or_panic("mouse_button3_pressed",false);
+        let button4_pressed = variables.add_or_panic("mouse_button4_pressed",false);
+        let last_hover_ids  = empty_hover_ids;
+        let document        = web::document().unwrap();
+        let mouse_manager   = MouseManager::new(&document);
+
+        let shape_ref       = shape.clone_ref();
+        let position_ref    = position.clone_ref();
+        let on_move_handle  = mouse_manager.on_move.add(move |event:&mouse2::event::OnMove| {
+            let pixel_ratio = shape_ref.pixel_ratio() as i32;
+            let screen_x    = event.offset_x();
+            let screen_y    = shape_ref.screen_shape().height as i32 - event.offset_y();
+            let canvas_x    = pixel_ratio * screen_x;
+            let canvas_y    = pixel_ratio * screen_y;
+            position_ref.set(Vector2::new(canvas_x,canvas_y))
+        });
+
+        let button0_pressed_ref = button0_pressed.clone_ref();
+        let button1_pressed_ref = button1_pressed.clone_ref();
+        let button2_pressed_ref = button2_pressed.clone_ref();
+        let button3_pressed_ref = button3_pressed.clone_ref();
+        let button4_pressed_ref = button4_pressed.clone_ref();
+        let on_down_handle      = mouse_manager.on_down.add(move |event:&mouse2::event::OnDown| {
+            match event.button() {
+                mouse2::Button0 => button0_pressed_ref.set(true),
+                mouse2::Button1 => button1_pressed_ref.set(true),
+                mouse2::Button2 => button2_pressed_ref.set(true),
+                mouse2::Button3 => button3_pressed_ref.set(true),
+                mouse2::Button4 => button4_pressed_ref.set(true),
+            }
+        });
+
+        let button0_pressed_ref = button0_pressed.clone_ref();
+        let button1_pressed_ref = button1_pressed.clone_ref();
+        let button2_pressed_ref = button2_pressed.clone_ref();
+        let button3_pressed_ref = button3_pressed.clone_ref();
+        let button4_pressed_ref = button4_pressed.clone_ref();
+        let on_up_handle        = mouse_manager.on_up.add(move |event:&mouse2::event::OnUp| {
+            match event.button() {
+                mouse2::Button0 => button0_pressed_ref.set(false),
+                mouse2::Button1 => button1_pressed_ref.set(false),
+                mouse2::Button2 => button2_pressed_ref.set(false),
+                mouse2::Button3 => button3_pressed_ref.set(false),
+                mouse2::Button4 => button4_pressed_ref.set(false),
+            }
+        });
+
+        let handles = vec![on_move_handle,on_down_handle,on_up_handle];
+
+        Self {mouse_manager,position,hover_ids,button0_pressed,button1_pressed,button2_pressed,button3_pressed
+             ,button4_pressed,last_hover_ids,handles}
+    }
+}
+
+
+
 // =============
 // === Scene ===
 // =============
@@ -115,25 +217,30 @@ shared! { Scene
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct SceneData {
-    root : DisplayObjectData,
-    canvas          : web_sys::HtmlCanvasElement,
-    context         : Context,
-    symbols         : SymbolRegistry,
-    symbols_dirty   : SymbolRegistryDirty,
-    camera          : Camera2d,
-    shape           : Shape,
-    shape_dirty     : ShapeDirty,
-    logger          : Logger,
-    listeners       : Listeners,
-    variables       : UniformScope,
+    root          : DisplayObjectData,
+    canvas        : web_sys::HtmlCanvasElement,
+    context       : Context,
+    symbols       : SymbolRegistry,
+    symbols_dirty : SymbolRegistryDirty,
+    camera        : Camera2d,
+    shape         : Shape,
+    shape_dirty   : ShapeDirty,
+    logger        : Logger,
+    listeners     : Listeners,
+    variables     : UniformScope,
+    pipeline      : RenderPipeline,
+    composer      : RenderComposer,
+    stats         : Stats,
+    pixel_ratio   : Uniform<f32>,
+    zoom_uniform  : Uniform<f32>,
+    mouse         : Mouse,
+
+
     #[derivative(Debug="ignore")]
-    on_resize       : Option<Box<dyn Fn(&Shape)>>,
+    on_resize: Option<Box<dyn Fn(&Shape)>>,
+
     // TODO[AO] this is a very temporary solution. Need to develop some general component handling.
     text_components : Vec<text::TextComponent>,
-    pipeline        : RenderPipeline,
-    composer        : RenderComposer,
-    stats           : Stats,
-    zoom_uniform    : Uniform<f32>
 }
 
 impl {
@@ -165,12 +272,12 @@ impl {
         let text_components = default();
         let on_resize       = default();
         let stats           = stats.clone();
+        let pixel_ratio     = variables.add_or_panic("pixel_ratio", shape.pixel_ratio());
+        let mouse           = Mouse::new(&shape,&variables);
         let zoom_uniform_cp = zoom_uniform.clone();
         camera.add_zoom_update_callback(move |zoom| zoom_uniform_cp.set(zoom));
-        variables.add("pixel_ratio", shape.pixel_ratio());
 
         context.enable(Context::BLEND);
-
         // To learn more about the blending equations used here, please see the following articles:
         // - http://www.realtimerendering.com/blog/gpus-prefer-premultiplication
         // - https://www.khronos.org/opengl/wiki/Blending#Colors
@@ -184,8 +291,9 @@ impl {
         let height   = shape.canvas_shape().height as i32;
         let composer = RenderComposer::new(&pipeline,&context,&variables,width,height);
 
-        Self {pipeline,composer,root,canvas,context,symbols,camera,symbols_dirty,shape,shape_dirty,logger
-             ,listeners,variables,on_resize,text_components,stats,zoom_uniform}
+        Self { pipeline,composer,root,canvas,context,symbols,camera,symbols_dirty,shape,shape_dirty
+             , logger,listeners,variables,on_resize,text_components,stats,pixel_ratio,mouse
+             , zoom_uniform }
     }
 
     pub fn canvas(&self) -> web_sys::HtmlCanvasElement {
@@ -200,6 +308,14 @@ impl {
         self.variables.clone_ref()
     }
 
+    pub fn mouse_position_uniform(&self) -> Uniform<Vector2<i32>> {
+        self.mouse.position.clone_ref()
+    }
+
+    pub fn mouse_hover_ids(&self) -> Uniform<Vector4<u32>> {
+        self.mouse.hover_ids.clone_ref()
+    }
+
     pub fn set_render_pipeline<P:Into<RenderPipeline>>(&mut self, pipeline:P) {
         self.pipeline = pipeline.into();
         self.init_composer();
@@ -212,6 +328,23 @@ impl {
     }
 
     pub fn render(&mut self) {
+
+        let mouse_hover_ids = self.mouse.hover_ids.get();
+        if mouse_hover_ids != self.mouse.last_hover_ids {
+            self.mouse.last_hover_ids = mouse_hover_ids;
+            let is_not_background = mouse_hover_ids.w != 0;
+            if is_not_background {
+                let symbol_id = mouse_hover_ids.x;
+                let symbol = self.symbols.index(symbol_id as usize);
+                symbol.dispatch(&DynEvent::new(()));
+                // println!("{:?}",self.mouse.hover_ids.get());
+                // TODO: finish events sending, including OnOver and OnOut.
+            }
+        }
+
+
+
+
         group!(self.logger, "Updating.", {
             if self.shape_dirty.check_all() {
                 let screen = self.shape.screen_shape();
@@ -224,9 +357,6 @@ impl {
                 self.symbols.update();
                 self.symbols_dirty.unset_all();
             }
-            self.logger.info("Clearing the scene.");
-            self.context.clear_color(0.0, 0.0, 0.0, 1.0);
-            self.context.clear(Context::COLOR_BUFFER_BIT);
             self.logger.info("Rendering meshes.");
             self.symbols.render(&self.camera);
 

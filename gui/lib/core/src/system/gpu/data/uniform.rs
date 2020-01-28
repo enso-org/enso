@@ -207,6 +207,13 @@ impl<Value> {
     pub fn unset_dirty(&mut self) {
         self.dirty = false;
     }
+}
+
+impl<Value:Clone> {
+    /// Reads the value of this uniform.
+    pub fn get(&self) -> Value {
+        self.value.clone()
+    }
 }}
 
 impl<Value:UniformValue> UniformData<Value> {
@@ -306,13 +313,41 @@ impl<T:AnyTextureUniformOps + 'static> From<T> for AnyTextureUniform {
     }
 }
 
-impl<'t,S:StorageRelation<I,T>,I:InternalFormat,T:Item>
+impl<'t,S:StorageRelation<I,T>,I:InternalFormat,T:ItemType>
 TryFrom<&'t AnyTextureUniform> for &'t Uniform<Texture<S,I,T>> {
     type Error = TypeMismatch;
     fn try_from(value:&'t AnyTextureUniform) -> Result<Self,Self::Error> {
         value.as_any().downcast_ref().ok_or(TypeMismatch)
     }
 }
+
+
+macro_rules! define_get_or_add_gpu_texture_dyn {
+    ( [ $([$internal_format:ident $item_type:ident])* ] ) => {
+        pub fn get_or_add_gpu_texture_dyn<P:Into<GpuOnlyData>>
+        ( context         : &Context
+        , scope           : &UniformScope
+        , name            : &str
+        , internal_format : AnyInternalFormat
+        , item_type       : AnyItemType
+        , provider        : P
+        ) -> AnyTextureUniform {
+            let provider = provider.into();
+            match (internal_format,item_type) {
+                $((AnyInternalFormat::$internal_format, AnyItemType::$item_type) => {
+                    let texture = Texture::<GpuOnly,$internal_format,$item_type>
+                                ::new(&context,provider);
+                    let uniform = scope.get_or_add(name,texture).unwrap();
+                    uniform.into()
+                })*
+                _ => panic!("Invalid (internal format, item type) combination.")
+            }
+        }
+    }
+}
+
+
+crate::with_all_texture_types! ([define_get_or_add_gpu_texture_dyn _]);
 
 
 
@@ -345,7 +380,7 @@ impl<T:Into<AnyPrimUniform>> IntoAnyUniform for T {
     }
 }
 
-impl<S:StorageRelation<I,T>,I:InternalFormat,T:Item>
+impl<S:StorageRelation<I,T>,I:InternalFormat,T:ItemType>
 IntoAnyUniform for Uniform<Texture<S,I,T>> {
     fn into_any_uniform(self) -> AnyUniform {
         AnyUniform::Texture(AnyTextureUniform {raw: Box::new(self)})
@@ -368,7 +403,7 @@ macro_rules! generate_prim_type_downcasts {
 crate::with_all_prim_types!([[generate_prim_type_downcasts][]]);
 
 
-impl<'t,S:StorageRelation<I,T>,I:InternalFormat,T:Item>
+impl<'t,S:StorageRelation<I,T>,I:InternalFormat,T:ItemType>
 TryFrom<&'t AnyUniform> for &'t Uniform<Texture<S,I,T>>
 where &'t Uniform<Texture<S,I,T>> : TryFrom<&'t AnyTextureUniform, Error=TypeMismatch> {
     type Error = TypeMismatch;

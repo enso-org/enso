@@ -4,6 +4,7 @@ use crate::prelude::*;
 
 use crate::display::render::pipeline::*;
 use crate::system::gpu::*;
+use js_sys::Array;
 
 
 
@@ -100,13 +101,30 @@ impl ComposerPass {
     }
 
     fn initialize(&mut self) {
+        self.initialize_outputs();
+        self.initialize_draw_buffers();
+    }
+
+    fn initialize_outputs(&mut self) {
         for output in &self.pass.outputs() {
-            // FIXME: Hardcoded texture type.
-            let texture = Texture::<texture::GpuOnly,texture::Rgba,u8>::new
-                (&self.context,(self.width,self.height));
-            let uniform = self.variables.get_or_add(&format!("pass_{}",output.name()),texture).
-                unwrap();
-            self.add_output(uniform.into());
+            let name    = format!("pass_{}",output.name());
+            let args    = (self.width,self.height);
+            let texture = uniform::get_or_add_gpu_texture_dyn
+                (&self.context,&self.variables,&name,output.internal_format,output.item_type,args);
+            self.add_output(texture);
+        }
+    }
+
+    /// WebGL has to be informed to what attachments it is allowed to draw. This function enables
+    /// every attachment bound to an output.
+    fn initialize_draw_buffers(&mut self) {
+        if !self.outputs.is_empty() {
+            let draw_buffers = Array::new();
+            self.outputs.iter().enumerate().for_each(|(i, _)| {
+                let attachment_point = Context::COLOR_ATTACHMENT0 + i as u32;
+                draw_buffers.push(&attachment_point.into());
+            });
+            self.context.draw_buffers(&draw_buffers);
         }
     }
 

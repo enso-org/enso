@@ -156,7 +156,7 @@ pub trait HasCodeRepr {
     }
 }
 
-impl<T: HasCodeRepr> HasCodeRepr for Option<T> {
+impl<T:HasCodeRepr> HasCodeRepr for Option<T> {
     fn build(&self, builder:&mut CodeBuilder) {
         self.iter().for_each(|t| t.build(builder));
     }

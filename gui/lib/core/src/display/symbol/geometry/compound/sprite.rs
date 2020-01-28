@@ -95,7 +95,6 @@ shared! { SpriteSystem
 /// same mesh. Each sprite can be controlled by the instance and global attributes.
 #[derive(Debug)]
 pub struct SpriteSystemData {
-    display_object : DisplayObjectData,
     symbol         : Symbol,
     transform      : Buffer<Matrix4<f32>>,
     uv             : Buffer<Vector2<f32>>,
@@ -108,8 +107,6 @@ impl {
     pub fn new() -> Self {
         let scene          = world::get_scene();
         let stats          = scene.stats();
-        let logger         = Logger::new("SpriteSystem");
-        let display_object = DisplayObjectData::new(logger);
         let symbol         = scene.new_symbol();
         let mesh           = symbol.surface();
         let point_scope    = mesh.point_scope();
@@ -120,10 +117,9 @@ impl {
 
         stats.inc_sprite_system_count();
 
-        let this = Self {display_object,symbol,transform,uv,size,stats};
+        let this = Self {symbol,transform,uv,size,stats};
         this.init_attributes();
         this.init_shader();
-        this.init_render();
         this
     }
 
@@ -184,11 +180,6 @@ impl SpriteSystemData {
         shader.set_material          (&surface_material);
     }
 
-    fn init_render(&self) {
-        let symbol = self.symbol.clone_ref();
-        self.display_object.set_on_render(move || {symbol.render()});
-    }
-
     fn geometry_material() -> Material {
         let mut material = Material::new();
         material.add_input_def  :: <Vector2<f32>> ("bounds");
@@ -196,29 +187,36 @@ impl SpriteSystemData {
         material.add_input_def  :: <Matrix4<f32>> ("transform");
         material.add_input_def  :: <Matrix4<f32>> ("view_projection");
         material.add_output_def :: <Vector3<f32>> ("local");
+        material.add_output_def :: <i32>          ("instance_id");
         material.set_main("
                 mat4 model_view_projection = input_view_projection * input_transform;
                 input_local                = vec3((input_uv - 0.5) * input_bounds, 0.0);
                 gl_Position                = model_view_projection * vec4(input_local,1.0);
+                input_instance_id          = gl_InstanceID;
                 ");
         material
     }
 
     fn surface_material() -> Material {
         let mut material = Material::new();
-        material.set_main("output_color = vec4(1.0,1.0,1.0,1.0);");
+        // FIXME We need to use this output, as we need to declare the same amount of shader
+        // FIXME outputs as the number of attachments to framebuffer. We should manage this more
+        // FIXME intelligent. For example, we could allow defining output shader fragments,
+        // FIXME which will be enabled only if pass of given attachment type was enabled.
+        material.add_output ("id", Vector4::<u32>::new(0,0,0,0));
+        material.set_main("output_color = vec4(0.0,0.0,0.0,1.0);");
         material
     }
 }
 
 impl From<&SpriteSystemData> for DisplayObjectData {
     fn from(t:&SpriteSystemData) -> Self {
-        t.display_object.clone_ref()
+        t.symbol.display_object()
     }
 }
 
 impl From<&SpriteSystem> for DisplayObjectData {
     fn from(t:&SpriteSystem) -> Self {
-        t.rc.borrow().display_object.clone_ref()
+        t.rc.borrow().display_object()
     }
 }

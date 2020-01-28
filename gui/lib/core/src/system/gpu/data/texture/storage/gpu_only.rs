@@ -45,7 +45,7 @@ impl GpuOnlyData {
     }
 }
 
-impl<I:InternalFormat,T:Item>
+impl<I:InternalFormat,T:ItemType>
 TextureReload for Texture<GpuOnly,I,T> {
     fn reload(&self) {
         let width           = self.storage().width;

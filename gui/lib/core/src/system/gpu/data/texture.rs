@@ -9,3 +9,8 @@ pub mod class;
 pub use class::*;
 pub use types::*;
 pub use storage::*;
+
+/// Provides smart scope for item types.
+pub mod item_type {
+    pub use super::types::item_type::AnyItemType::*;
+}

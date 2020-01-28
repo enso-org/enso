@@ -3,6 +3,7 @@
 use crate::prelude::*;
 
 use crate::system::gpu::types::*;
+use crate::system::gpu::texture::*;
 
 
 
@@ -48,15 +49,22 @@ impl<Pass:RenderPass> Add<Pass> for RenderPipeline {
 /// An output definition of a render pass. The output describes a format of framebuffer attachment,
 /// which will be the result of running the current pass.
 pub struct RenderPassOutput {
-    name            : String,
-    internal_format : texture::AnyInternalFormat,
+    /// Name of the pass.
+    pub name : String,
+    /// Internal texture format of the pass framebuffer's attachment.
+    pub internal_format : AnyInternalFormat,
+    /// Item texture type of the pass framebuffer's attachment.
+    pub item_type : AnyItemType,
 }
 
 impl RenderPassOutput {
     /// Constructor.
-    pub fn new<Name:Str>(name:Name, internal_format:texture::AnyInternalFormat) -> Self {
-        let name = name.into();
-        Self {name,internal_format}
+    pub fn new<Name:Str,F:Into<AnyInternalFormat>,T:Into<AnyItemType>>
+    (name:Name, internal_format:F, item_type:T) -> Self {
+        let name            = name.into();
+        let internal_format = internal_format.into();
+        let item_type       = item_type.into();
+        Self {name,internal_format,item_type}
     }
 
     /// Getter.

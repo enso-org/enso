@@ -146,7 +146,7 @@ pub fn link_program(ctx:&Context, vert_shader:&Shader, frag_shader:&Shader) -> R
     ctx.attach_shader(&program, vert_shader);
     ctx.attach_shader(&program, frag_shader);
     ctx.link_program(&program);
-    // TODO: handler errors
+    // TODO: handle errors
     Ok(program)
 }
 
@@ -155,6 +155,8 @@ pub fn link_program(ctx:&Context, vert_shader:&Shader, frag_shader:&Shader) -> R
 // ========================
 // === Managing buffers ===
 // ========================
+
+// TODO: The functions below might be obsolete after text is fully integrated to buffer management.
 
 /// Set the array buffer data with floats.
 pub fn set_buffer_data(gl_context:&Context, buffer:&WebGlBuffer, data:&[f32]) {
@@ -172,7 +174,7 @@ pub fn set_buffer_data(gl_context:&Context, buffer:&WebGlBuffer, data:&[f32]) {
 /// (https://rustwasm.github.io/wasm-bindgen/examples/webgl.html)
 fn set_bound_buffer_data(gl_context:&Context, target:u32, data:&[f32]) {
     let usage = Context::STATIC_DRAW;
-    unsafe { // Note [unsafe buffer_data]
+    unsafe {
         let float_array = Float32Array::view(&data);
         gl_context.buffer_data_with_array_buffer_view(target,&float_array,usage);
     }
@@ -193,7 +195,7 @@ pub fn set_buffer_subdata(gl_context:&Context, buffer:&WebGlBuffer, offset:usize
 /// wasm-bindgen examples
 /// (https://rustwasm.github.io/wasm-bindgen/examples/webgl.html)
 fn set_bound_buffer_subdata(gl_context:&Context, target:u32, offset:i32, data:&[f32]) {
-    unsafe { // Note [unsafe buffer_data]
+    unsafe {
         let float_array = Float32Array::view(&data);
         gl_context.buffer_sub_data_with_i32_and_array_buffer_view(target,offset,&float_array);
     }

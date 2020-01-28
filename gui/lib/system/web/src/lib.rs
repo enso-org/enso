@@ -129,8 +129,11 @@ pub fn get_canvas(id:&str) -> Result<web_sys::HtmlCanvasElement> {
 
 pub fn get_webgl2_context
 (canvas:&HtmlCanvasElement) -> Result<WebGl2RenderingContext> {
+    let options = js_sys::Object::new();
+    js_sys::Reflect::set(&options, &"antialias".into(), &false.into()).unwrap();
     let no_webgl = || Error::NoWebGL { version:2 };
-    let context = canvas.get_context("webgl2").map_err(|_| no_webgl())?.ok_or_else(no_webgl)?;
+    let context = canvas.get_context_with_context_options("webgl2",&options)
+        .map_err(|_| no_webgl())?.ok_or_else(no_webgl)?;
     context.dyn_into().map_err(|_| no_webgl())
 }
 

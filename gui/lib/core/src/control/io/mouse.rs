@@ -1,6 +1,9 @@
 //! This module contains the `MouseManager` implementation, its associated structs such as
 //! `MousePositionEvent`, `MouseClickEvent` and `MouseWheelEvent`.
 
+pub mod event;
+pub mod button;
+
 use crate::system::web::dom::DomContainer;
 use crate::system::web::dyn_into;
 use crate::system::web::Result;
@@ -63,6 +66,8 @@ pub type WheelEventListener = EventListener<dyn FnMut(WheelEvent)>;
 // === MouseButton ===
 // ===================
 
+// FIXME: this does not handle all buttons (js defines 5 buttons) and assumes mouses for
+// FIXME: right hand people.
 /// An enumeration representing the mouse buttons.
 pub enum MouseButton {
     /// Left mouse button.
@@ -87,6 +92,7 @@ pub enum MouseButton {
 /// Mouse click callback used by `MouseManager`.
 pub trait MouseClickCallback = FnMut(MouseClickEvent) + 'static;
 
+// FIXME: "click" means mouse down and then up. This is misleading.
 /// A struct storing information about mouse down and mouse up events.
 pub struct MouseClickEvent {
     /// The position where the MouseClickEvent occurred.
@@ -97,6 +103,9 @@ pub struct MouseClickEvent {
 }
 
 impl MouseClickEvent {
+    // FIXME: function from should be used only with From trait.
+    // FIXME: this impleementation is slow - it does a lot of computing although I may never need
+    // FIXME: the position field.
     fn from(event:MouseEvent, data:&Rc<MouseManagerData>) -> Self {
         let position  = Vector2::new(event.x() as f32, event.y() as f32);
         let position  = position - data.dom().position_with_style_reflow();
@@ -116,6 +125,8 @@ impl MouseClickEvent {
 // === MousePositionEvent ===
 // ==========================
 
+// FIXME: "Position" is not an action. In english, "position event" doesnt make sense.
+// FIXME: this is a "move event".
 /// Mouse position callback used by `MouseManager`.
 pub trait MousePositionCallback = FnMut(MousePositionEvent)  + 'static;
 
@@ -131,6 +142,7 @@ pub struct MousePositionEvent {
 impl MousePositionEvent {
     fn from(event:MouseEvent, data:&Rc<MouseManagerData>) -> Self {
         let position          = Vector2::new(event.x() as f32,event.y() as f32);
+        // FIXME: This does not work, as we were chatting on Discord.
         let position          = position - data.dom().position_with_style_reflow();
         let previous_position = match data.mouse_position() {
             Some(position) => position,
@@ -163,6 +175,10 @@ pub struct MouseWheelEvent {
 }
 
 impl MouseWheelEvent {
+    // FIXME: this is slow implementation. What if I dont need all the fields? I just need
+    // FIXME: `delta_x` - you still translate all values from JS to Rust.
+    // FIXME: Even worse - what if I need other fields than those? This implementation will grow
+    // FIXME: and will be slower and slower.
     fn from(event:WheelEvent) -> Self {
         let movement_x      = event.delta_x() as f32;
         let movement_y      = event.delta_y() as f32;
@@ -192,6 +208,7 @@ struct MouseManagerProperties {
 
 /// A struct used for storing shared MouseManager's mutable data.
 struct MouseManagerData {
+    // FIXME: naked refcell
     properties : RefCell<MouseManagerProperties>
 }
 
@@ -240,6 +257,9 @@ impl MouseManagerData {
 // ==========================
 // === add_callback macro ===
 // ==========================
+
+// FIXME: This implementation uses paste::item unnecessary and thus intellij cannot expand it and give us hints
+// FIXME: this can be implemented faster, you do not need rc downgrade / upgrade here.
 
 /// Creates an add_callback method implementation.
 /// ```compile_fail
@@ -341,6 +361,7 @@ impl MouseManager {
 // === Utils ===
 // =============
 
+// FIXME: these functions should be refactored out.
 fn add_event_listener_with_callback
 (target:&EventTarget, name:&str, function:&Function) -> Result<()> {
     match target.add_event_listener_with_callback(name, function) {

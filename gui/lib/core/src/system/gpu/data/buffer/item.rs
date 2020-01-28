@@ -147,6 +147,17 @@ impl BufferItem for i32 {
     fn slice_to_items_mut   (buffer: &mut [Self]) -> &mut [Self::Item] { buffer }
 }
 
+impl BufferItem for u32 {
+    type Item = Self;
+    type Rows = U1;
+    type Cols = U1;
+
+    fn slice_from_items     (buffer: &    [Self::Item]) -> &    [Self] { buffer }
+    fn slice_from_items_mut (buffer: &mut [Self::Item]) -> &mut [Self] { buffer }
+    fn slice_to_items       (buffer: &    [Self]) -> &    [Self::Item] { buffer }
+    fn slice_to_items_mut   (buffer: &mut [Self]) -> &mut [Self::Item] { buffer }
+}
+
 impl BufferItem for f32 {
     type Item = Self;
     type Rows = U1;
@@ -239,6 +250,12 @@ impl JsBufferView for [bool] {
 impl JsBufferView for [i32] {
     unsafe fn js_buffer_view(&self) -> js_sys::Object {
         js_sys::Int32Array::view(self).into()
+    }
+}
+
+impl JsBufferView for [u32] {
+    unsafe fn js_buffer_view(&self) -> js_sys::Object {
+        js_sys::Uint32Array::view(self).into()
     }
 }
 

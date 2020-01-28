@@ -41,7 +41,7 @@ impl<T> OwnedData<T> {
 
 // === API ===
 
-impl<I:InternalFormat,T:Item+JsBufferViewArr>
+impl<I:InternalFormat,T:ItemType+JsBufferViewArr>
 TextureReload for Texture<Owned,I,T> {
     fn reload(&self) {
         let width           = self.storage().width;
