@@ -6,7 +6,7 @@ use crate::control::io::mouse::MouseButton;
 use crate::control::io::mouse::WheelEventListener;
 use crate::control::io::mouse::MouseEventListener;
 use crate::system::web::Result;
-use crate::system::web::dom::DOMContainer;
+use crate::system::web::dom::DomContainer;
 
 use nalgebra::Vector2;
 use std::rc::Rc;
@@ -184,7 +184,7 @@ pub struct NavigatorEvents {
 
 impl NavigatorEvents {
     pub fn new
-    <P,Z>(dom:&DOMContainer, pan_callback:P, zoom_callback:Z, zoom_speed:f32) -> Result<Self>
+    <P,Z>(dom:&DomContainer, pan_callback:P, zoom_callback:Z, zoom_speed:f32) -> Result<Self>
     where P : FnPanEvent, Z : FnZoomEvent {
         let pan_callback         = Box::new(pan_callback);
         let zoom_callback        = Box::new(zoom_callback);

@@ -20,10 +20,9 @@ export function setup_camera_orthographic(dom, matrix_array) {
 
 // Setup Camera perspective projection on DOM.
 export function setup_camera_perspective
-(dom, y_scale, half_width, half_height, matrix_array) {
-    let translateZ  = "translateZ(" + y_scale + "px)";
+(dom, near, matrix_array) {
+    let translateZ  = "translateZ(" + near + "px)";
     let matrix3d    = arr_to_css_matrix3d(matrix_array);
-    let translate2d = "translate(" + half_width + "px," + half_height + "px)";
-    let transform   = translateZ + matrix3d + translate2d;
+    let transform   = translateZ + matrix3d;
     dom.style.transform = transform;
 }

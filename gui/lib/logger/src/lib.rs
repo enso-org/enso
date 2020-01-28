@@ -188,3 +188,9 @@ macro_rules! internal_warning {
         $crate::log_internal_bug_template! {warning $($toks)*}
     };
 }
+
+impl Into<Logger> for &Logger {
+    fn into(self) -> Logger {
+        self.clone()
+    }
+}

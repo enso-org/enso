@@ -19,6 +19,7 @@ use crate::system::gpu::data::uniform::UniformScope;
 use crate::system::gpu::shader::Context;
 use crate::system::web::resize_observer::ResizeObserver;
 use crate::system::web;
+use crate::system::gpu::data::uniform::Uniform;
 
 use wasm_bindgen::prelude::Closure;
 
@@ -47,14 +48,20 @@ pub struct Shape {
     rc: Rc<RefCell<ShapeData>>
 }
 
-impl Default for Shape {
-    fn default() -> Self {
-        let rc = Rc::new(RefCell::new(default()));
+impl Shape {
+    pub fn new(width:f32, height:f32) -> Shape {
+        let rc = Rc::new(RefCell::new(ShapeData::new(width,height)));
         Self {rc}
     }
-}
 
-impl Shape {
+    pub fn from_window(window:&web_sys::Window) -> Self {
+        let width  = window.inner_width().unwrap().as_f64().unwrap() as f32;
+        let height = window.inner_height().unwrap().as_f64().unwrap() as f32;
+        let rc     = Rc::new(RefCell::new(ShapeData::new(width,height)));
+        Self{rc}
+    }
+
+
     pub fn screen_shape(&self) -> ShapeData {
         self.rc.borrow().clone()
     }
@@ -85,16 +92,12 @@ pub struct ShapeData {
     pub pixel_ratio : f32
 }
 
-impl Default for ShapeData {
-    fn default() -> Self {
-        let width       = 100.0;
-        let height      = 100.0;
-        let pixel_ratio = web::device_pixel_ratio().unwrap_or(1.0) as f32;
-        Self {width,height,pixel_ratio}
-    }
-}
-
 impl ShapeData {
+    pub fn new(width:f32, height:f32) -> ShapeData {
+        let pixel_ratio = web::device_pixel_ratio().unwrap_or(1.0) as f32;
+        Self{width,height,pixel_ratio}
+    }
+
     pub fn set_screen_dimension(&mut self, width:f32, height:f32) {
         self.width  = width;
         self.height = height;
@@ -130,7 +133,7 @@ pub struct SceneData {
     pipeline        : RenderPipeline,
     composer        : RenderComposer,
     stats           : Stats,
-
+    zoom_uniform    : Uniform<f32>
 }
 
 impl {
@@ -138,7 +141,7 @@ impl {
     pub fn new<Dom:Str, OnMut:Fn()+Clone+'static>
     (dom:Dom, logger:Logger, stats:&Stats, on_mut:OnMut) -> Self {
         logger.trace("Initializing.");
-        let root  = DisplayObjectData::new(logger.clone());
+        let root            = DisplayObjectData::new(&logger);
         let dom             = dom.as_ref();
         let canvas          = web::get_canvas(dom).unwrap();
         let context         = web::get_webgl2_context(&canvas).unwrap();
@@ -150,14 +153,20 @@ impl {
         let sub_logger      = logger.sub("symbols");
         let variables       = UniformScope::new(logger.sub("global_variables"),&context);
         let symbols         = SymbolRegistry::new(&variables,&stats,&context,sub_logger,on_change);
-        let shape           = Shape::default();
+        let window          = crate::system::web::window();
+        let shape           = Shape::from_window(&window);
+        let shape_data      = shape.screen_shape();
+        let width           = shape_data.width;
+        let height          = shape_data.height;
         let listeners       = Self::init_listeners(&logger,&canvas,&shape,&shape_dirty);
         let symbols_dirty   = dirty_flag;
-        let camera          = Camera2d::new(logger.sub("camera"),&variables);
+        let camera          = Camera2d::new(logger.sub("camera"),width,height);
+        let zoom_uniform    = variables.add_or_panic("zoom", 1.0);
         let text_components = default();
         let on_resize       = default();
         let stats           = stats.clone();
-
+        let zoom_uniform_cp = zoom_uniform.clone();
+        camera.add_zoom_update_callback(move |zoom| zoom_uniform_cp.set(zoom));
         variables.add("pixel_ratio", shape.pixel_ratio());
 
         context.enable(Context::BLEND);
@@ -176,7 +185,11 @@ impl {
         let composer = RenderComposer::new(&pipeline,&context,&variables,width,height);
 
         Self {pipeline,composer,root,canvas,context,symbols,camera,symbols_dirty,shape,shape_dirty,logger
-             ,listeners,variables,on_resize,text_components,stats}
+             ,listeners,variables,on_resize,text_components,stats,zoom_uniform}
+    }
+
+    pub fn canvas(&self) -> web_sys::HtmlCanvasElement {
+        self.canvas.clone()
     }
 
     pub fn context(&self) -> Context {
@@ -230,6 +243,10 @@ impl {
                 text_component.display(fonts);
             }
         }
+    }
+
+    pub fn camera(&self) -> Camera2d {
+        self.camera.clone_ref()
     }
 
     pub fn stats(&self) -> Stats {
