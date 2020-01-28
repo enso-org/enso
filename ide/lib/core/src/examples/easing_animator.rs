@@ -7,7 +7,6 @@ use crate::system::web::create_element;
 use crate::system::web::NodeInserter;
 use crate::system::web::AttributeSetter;
 use crate::system::web::StyleSetter;
-use crate::control::EventLoop;
 
 use nalgebra::Vector2;
 use nalgebra::zero;
@@ -171,12 +170,11 @@ struct SubExample {
 
 impl SubExample {
     fn new<F>
-    ( event_loop        : &mut EventLoop
-     , graph_canvas     : Canvas
-     , animation_canvas : Canvas
-     , f                : &'static F
-     , initial_value    : Properties
-     , final_value      : Properties) -> Self
+    ( graph_canvas     : Canvas
+    , animation_canvas : Canvas
+    , f                : &'static F
+    , initial_value    : Properties
+    , final_value      : Properties) -> Self
     where F:FnEasing {
         let properties       = Properties::new(Vector2::new(0.0, 0.0), 1.0);
         let easing_animator  = None;
@@ -192,7 +190,6 @@ impl SubExample {
         let weak     = Rc::downgrade(&data);
         let duration = 2.0;
         let easing_animator = EasingAnimator::new(
-            event_loop,
             move |value| { weak.upgrade().map(|data| data.borrow_mut().properties = value); },
             f,
             initial_value,
@@ -224,8 +221,7 @@ struct Example {
 
 impl Example {
     pub fn new<F1, F2, F3>
-    ( event_loop  : &mut EventLoop
-    , name        : &str
+    ( name        : &str
     , ease_in     : &'static F1
     , ease_out    : &'static F2
     , ease_in_out : &'static F3) -> Self
@@ -247,7 +243,6 @@ impl Example {
         let final_value      = Properties::random();
 
         let mut easing_in = SubExample::new(
-            event_loop,
             graph_canvas.clone(),
             animation_canvas.clone(),
             ease_in,
@@ -257,7 +252,6 @@ impl Example {
         let easing_in_clone = easing_in.clone();
 
         let mut easing_out = SubExample::new(
-            event_loop,
             graph_canvas.clone(),
             animation_canvas.clone(),
             ease_out,
@@ -267,7 +261,6 @@ impl Example {
         let easing_out_clone = easing_out.clone();
 
         let mut easing_in_out = SubExample::new(
-            event_loop,
             graph_canvas.clone(),
             animation_canvas.clone(),
             ease_in_out,
@@ -276,14 +269,14 @@ impl Example {
         );
         let easing_in_out_clone = easing_in_out.clone();
 
-        let _fixed_step = FixedStepAnimator::new(event_loop, 1.0 / 3.0, move |_| {
+        let _fixed_step = FixedStepAnimator::new(1.0 / 3.0, move |_| {
             let properties = Properties::random();
             easing_in.set_properties(properties);
             easing_out.set_properties(properties);
             easing_in_out.set_properties(properties);
         });
 
-        let _animator = ContinuousAnimator::new(event_loop, move |time_ms| {
+        let _animator = ContinuousAnimator::new(move |time_ms| {
             let _keep_alive = &_fixed_step;
             graph_canvas.clear();
             animation_canvas.clear();
@@ -296,9 +289,8 @@ impl Example {
 }
 
 macro_rules! example {
-    ($event_loop:ident, $name:ident) => {
+    ($name:ident) => {
         std::mem::forget(Example::new(
-            &mut $event_loop,
             stringify!($name),
             &paste::expr!{[<$name _in>]},
             &paste::expr!{[<$name _out>]},
@@ -311,7 +303,6 @@ macro_rules! example {
 #[allow(dead_code)]
 /// Runs EasingAnimator example.
 pub fn run_example_easing_animator() {
-    let mut event_loop = EventLoop::new();
     let container : HtmlElement = create_element("div").unwrap().dyn_into().unwrap();
     container.set_attribute_or_panic("id", "examples");
     container.set_property_or_panic("display", "flex");
@@ -319,15 +310,14 @@ pub fn run_example_easing_animator() {
     container.set_property_or_panic("position", "absolute");
     container.set_property_or_panic("top", "0px");
     get_element_by_id("app").unwrap().append_or_panic(&container);
-    example!(event_loop, expo);
-    example!(event_loop, bounce);
-    example!(event_loop, circ);
-    example!(event_loop, quad);
-    example!(event_loop, cubic);
-    example!(event_loop, quart);
-    example!(event_loop, quint);
-    example!(event_loop, sine);
-    example!(event_loop, back);
-    example!(event_loop, elastic);
-    std::mem::forget(event_loop);
+    example!(expo);
+    example!(bounce);
+    example!(circ);
+    example!(quad);
+    example!(cubic);
+    example!(quart);
+    example!(quint);
+    example!(sine);
+    example!(back);
+    example!(elastic);
 }

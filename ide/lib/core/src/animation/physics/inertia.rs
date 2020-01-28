@@ -7,7 +7,6 @@ use crate::prelude::*;
 use crate::animation::animator::Animator;
 use crate::animation::animator::fixed_step::IntervalCounter;
 use crate::animation::linear_interpolation;
-use crate::control::EventLoop;
 
 use nalgebra::Vector3;
 use nalgebra::zero;
@@ -280,15 +279,14 @@ pub struct PhysicsSimulator {
 impl PhysicsSimulator {
     /// Simulates `Properties` and inputs `Kinematics`' position in `PhysicsCallback`.
     pub fn new<F:PhysicsCallback>
-    ( event_loop:&mut EventLoop
-    , steps_per_second:f64
+    ( steps_per_second:f64
     , mut properties:PhysicsProperties
     , mut callback:F) -> Self {
         let step_ms              = 1000.0 / steps_per_second;
         let mut current_position = properties.kinematics().position();
         let mut next_position    = simulate(&mut properties, step_ms);
         let mut interval_counter = IntervalCounter::new(step_ms);
-        let _animator            = Animator::new(event_loop, move |delta_ms| {
+        let _animator            = Animator::new(move |delta_ms| {
             let intervals = interval_counter.add_time(delta_ms);
             for _ in 0..intervals {
                 current_position = next_position;

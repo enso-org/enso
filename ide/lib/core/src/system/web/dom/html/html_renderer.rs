@@ -1,18 +1,18 @@
-#![allow(missing_docs)]
+//! This module contains the HTMLRenderer, a struct used to render CSS3D elements.
 
 use crate::prelude::*;
 
-use crate::system::web::dom::GraphicsRenderer;
-use crate::system::web::dom::Scene;
-use crate::system::web::dom::Camera;
-use crate::system::web::dom::CameraType;
-use crate::system::web::dom::html::HTMLObject;
+use crate::display::camera::Camera2d;
+use crate::display::camera::camera2d::Projection;
+use crate::system::web::dom::html::HtmlScene;
 use crate::system::gpu::data::JsBufferView;
 use crate::system::web::Result;
 use crate::system::web::create_element;
 use crate::system::web::dyn_into;
 use crate::system::web::NodeInserter;
 use crate::system::web::StyleSetter;
+use crate::system::web::dom::DomContainer;
+use crate::system::web::dom::ResizeCallback;
 
 use js_sys::Object;
 use nalgebra::Vector2;
@@ -36,9 +36,7 @@ mod js {
         pub fn setup_camera_orthographic(dom:&JsValue, matrix_array:&JsValue);
         pub fn setup_camera_perspective
         ( dom          : &JsValue
-        , y_scale      : &JsValue
-        , half_width   : &JsValue
-        , half_height  : &JsValue
+        , near         : &JsValue
         , matrix_array : &JsValue
         );
     }
@@ -68,7 +66,7 @@ fn set_object_transform(dom: &JsValue, matrix: &Matrix4<f32>) {
 }
 
 fn setup_camera_perspective
-(dom:&JsValue, near:f32, half_width:f32, half_height:f32, matrix:&Matrix4<f32>) { // Views to WASM memory are only valid as long the backing buffer isn't
+(dom:&JsValue, near:f32, matrix:&Matrix4<f32>) { // Views to WASM memory are only valid as long the backing buffer isn't
     // resized. Check documentation of IntoFloat32ArrayView trait for more
     // details.
     unsafe {
@@ -76,8 +74,6 @@ fn setup_camera_perspective
         js::setup_camera_perspective(
             &dom,
             &near.into(),
-            &half_width.into(),
-            &half_height.into(),
             &matrix_array
         )
     }
@@ -101,20 +97,20 @@ fn setup_camera_orthographic(dom:&JsValue, matrix:&Matrix4<f32>) {
 
 #[derive(Debug)]
 pub struct HTMLRendererData {
-    pub div    : HtmlElement,
+    pub dom    : HtmlElement,
     pub camera : HtmlElement
 }
 
 impl HTMLRendererData {
-    pub fn new(div : HtmlElement, camera : HtmlElement) -> Self {
-        Self {div,camera}
+    pub fn new(dom:HtmlElement, camera:HtmlElement) -> Self {
+        Self {dom,camera}
     }
 
     pub fn set_dimensions(&self, dimensions : Vector2<f32>) {
         let width  = format!("{}px", dimensions.x);
         let height = format!("{}px", dimensions.y);
-        self.div   .set_property_or_panic("width" , &width);
-        self.div   .set_property_or_panic("height", &height);
+        self.dom.set_property_or_panic("width", &width);
+        self.dom.set_property_or_panic("height", &height);
         self.camera.set_property_or_panic("width" , &width);
         self.camera.set_property_or_panic("height", &height);
     }
@@ -125,79 +121,77 @@ impl HTMLRendererData {
 // ====================
 
 /// A renderer for `HTMLObject`s.
-#[derive(Shrinkwrap, Debug)]
-pub struct HTMLRenderer {
-    #[shrinkwrap(main_field)]
-    pub renderer : GraphicsRenderer,
-    pub data     : Rc<HTMLRendererData>
+#[derive(Debug)]
+pub struct HtmlRenderer {
+    container : DomContainer,
+    data      : Rc<HTMLRendererData>
 }
 
-impl HTMLRenderer {
+impl HtmlRenderer {
     /// Creates a HTMLRenderer.
     pub fn new(dom_id: &str) -> Result<Self> {
-        let renderer             = GraphicsRenderer::new(dom_id)?;
-        let div    : HtmlElement = dyn_into(create_element("div")?)?;
+        let container            = DomContainer::from_id(dom_id)?;
+        let dom: HtmlElement     = dyn_into(create_element("div")?)?;
         let camera : HtmlElement = dyn_into(create_element("div")?)?;
 
-        div.set_property_or_panic("position", "absolute");
-        div.set_property_or_panic("top", "0px");
-        div.set_property_or_panic("overflow", "hidden");
-        div   .set_property_or_panic("overflow"       , "hidden");
-        div   .set_property_or_panic("width"          , "100%");
-        div   .set_property_or_panic("height"         , "100%");
+        dom.set_property_or_panic("position", "absolute");
+        dom.set_property_or_panic("top"     , "0px");
+        dom.set_property_or_panic("overflow", "hidden");
+        dom.set_property_or_panic("overflow", "hidden");
+        dom.set_property_or_panic("width"   , "100%");
+        dom.set_property_or_panic("height"  , "100%");
         camera.set_property_or_panic("width"          , "100%");
         camera.set_property_or_panic("height"         , "100%");
         camera.set_property_or_panic("transform-style", "preserve-3d");
 
-        renderer.container.dom.append_or_panic(&div);
-        div                   .append_or_panic(&camera);
+        container.dom.append_or_panic(&dom);
+        dom.append_or_panic(&camera);
 
-        let data       = Rc::new(HTMLRendererData::new(div, camera));
-        let mut htmlrenderer = Self {renderer,data};
+        let data             = Rc::new(HTMLRendererData::new(dom,camera));
+        let mut htmlrenderer = Self {container,data};
 
         htmlrenderer.init_listeners();
         Ok(htmlrenderer)
     }
 
     fn init_listeners(&mut self) {
-        let dimensions = self.renderer.dimensions();
-        let data = self.data.clone();
-        self.renderer.add_resize_callback(move |dimensions:&Vector2<f32>| {
+        let dimensions = self.dimensions();
+        let data       = self.data.clone();
+        self.add_resize_callback(move |dimensions:&Vector2<f32>| {
             data.set_dimensions(*dimensions);
         });
         self.set_dimensions(dimensions);
     }
 
     /// Renders the `Scene` from `Camera`'s point of view.
-    pub fn render(&self, camera: &mut Camera, scene: &Scene<HTMLObject>) {
-        let trans_cam    = camera.transform().to_homogeneous().try_inverse();
-        let trans_cam    = trans_cam.expect("Camera's matrix is not invertible.");
-        let trans_cam    = trans_cam.map(eps);
-        let trans_cam    = invert_y(trans_cam);
+    pub fn render(&self, camera: &mut Camera2d, scene: &HtmlScene) {
+        camera.update();
+        let trans_cam  = camera.transform().matrix().try_inverse();
+        let trans_cam  = trans_cam.expect("Camera's matrix is not invertible.");
+        let trans_cam  = trans_cam.map(eps);
+        let trans_cam  = invert_y(trans_cam);
+        let half_dim   = self.container.dimensions() / 2.0;
+        let fovy_slope = camera.half_fovy_slope();
+        let near       = half_dim.y / fovy_slope;
 
-        let half_dim     = self.renderer.container.dimensions() / 2.0;
-        let y_scale      = camera.get_y_scale();
-        let y_scale      = y_scale * half_dim.y;
-
-        match camera.camera_type() {
-            CameraType::Perspective(_) => {
-                js::setup_perspective(&self.data.div, &y_scale.into());
+        match camera.projection() {
+            Projection::Perspective{..} => {
+                js::setup_perspective(&self.data.dom, &near.into());
                 setup_camera_perspective(
                     &self.data.camera,
-                    y_scale,
-                    half_dim.x,
-                    half_dim.y,
+                    near,
                     &trans_cam
                 );
             },
-            CameraType::Orthographic(_) => {
+            Projection::Orthographic => {
                 setup_camera_orthographic(&self.data.camera, &trans_cam);
             }
         }
 
-        let scene : &Scene<HTMLObject> = &scene;
+        let scene : &HtmlScene = &scene;
         for object in &mut scene.into_iter() {
-            let mut transform = object.transform().to_homogeneous();
+            object.update();
+            let mut transform = object.matrix();
             transform.iter_mut().for_each(|a| *a = eps(*a));
 
             let parent_node  = object.dom.parent_node();
@@ -209,8 +203,14 @@ impl HTMLRenderer {
         }
     }
 
+    /// Adds a ResizeCallback.
+    pub fn add_resize_callback<T:ResizeCallback>(&mut self, callback : T) {
+        self.container.add_resize_callback(callback);
+    }
+
+    /// Sets HTMLRenderer's container dimensions.
     pub fn set_dimensions(&mut self, dimensions : Vector2<f32>) {
-        self.renderer.set_dimensions(dimensions);
+        self.container.set_dimensions(dimensions);
         self.data.set_dimensions(dimensions);
     }
 }
@@ -218,8 +218,19 @@ impl HTMLRenderer {
 
 // === Getters ===
 
-impl HTMLRenderer {
-    pub fn div(&self) -> &HtmlElement {
-        &self.data.div
+impl HtmlRenderer {
+    /// Gets HTMLRenderer's container.
+    pub fn container(&self) -> &DomContainer {
+        &self.container
+    }
+
+    /// Gets HTMLRenderer's DOM.
+    pub fn dom(&self) -> &HtmlElement {
+        &self.data.dom
+    }
+
+    /// Gets the Scene Renderer's dimensions.
+    pub fn dimensions(&self) -> Vector2<f32> {
+        self.container.dimensions()
     }
 }

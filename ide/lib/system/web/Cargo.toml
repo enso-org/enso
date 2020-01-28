@@ -15,7 +15,7 @@ basegl-prelude = { version = "0.1.0"  , path = "../../prelude" }
 js-sys         = { version = "0.3.28" }
 wasm-bindgen   = { version = "^0.2"   , features = ["nightly"] }
 failure        = { version = "0.1.5"  }
-
+nalgebra       = { version = "0.19.0" }
 console_error_panic_hook = { version = "0.1.1", optional = true }
 
 [dependencies.web-sys]
@@ -38,7 +38,8 @@ features = [
   'Performance',
   'Event',
   'MouseEvent',
-  'EventTarget'
+  'EventTarget',
+  'DomRect'
 ]
 
 [dev-dependencies]

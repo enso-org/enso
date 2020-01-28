@@ -252,10 +252,9 @@ impl World {
     /// Run the provided callback on every frame. Returns a `CallbackHandle`,
     /// which when dropped will cancel the callback. If you want the function
     /// to run forever, you can use the `forget` method in the handle.
-    pub fn on_frame<F:FnMut(&World)+'static>
+    pub fn on_frame<F:FnMut(f64)+'static>
     (&self, mut callback:F) -> CallbackHandle {
-        let this = self.clone_ref();
-        let func = move |_| callback(&this);
+        let func = move |time_ms| callback(time_ms);
         self.rc.borrow_mut().event_loop.add_callback(func)
     }
 
@@ -265,6 +264,14 @@ impl World {
 
     pub fn render(&self) {
         self.rc.borrow_mut().run();
+    }
+
+    pub fn event_loop(&self) -> EventLoop {
+        self.rc.borrow().event_loop.clone()
+    }
+
+    pub fn scene(&self) -> Scene {
+        self.rc.borrow().scene.clone()
     }
 
     fn init_composer(&self) {

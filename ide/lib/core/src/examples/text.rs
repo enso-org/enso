@@ -15,6 +15,7 @@ use crate::display::shape::text::Color;
 use crate::display::shape::text::TextComponentProperties;
 use crate::system::web::forward_panic_hook_to_console;
 use crate::display::shape::text::cursor::Step::Right;
+use crate::display::navigation::navigator::Navigator;
 
 #[wasm_bindgen]
 #[allow(dead_code)]
@@ -22,6 +23,10 @@ pub fn run_example_text() {
     forward_panic_hook_to_console();
     basegl_core_msdf_sys::run_once_initialized(|| {
         let world_ref = WorldData::new("canvas");
+        let scene     = world_ref.scene();
+        let camera    = scene.camera();
+        let navigator = Navigator::new(&scene, &camera);
+        let navigator = navigator.expect("Couldn't create navigator");
         {
             let world: &mut WorldData = &mut world_ref.rc.borrow_mut();
             let scene = &mut world.scene;
@@ -49,8 +54,10 @@ pub fn run_example_text() {
         let animation_start = now + 3000.0;
         let start_scrolling = animation_start + 10000.0;
         let mut chars       = typed_character_list(animation_start,include_str!("../lib.rs"));
-        world_ref.on_frame(move |w| {
-            animate_text_component(w,&mut chars,start_scrolling)
+        let w = world_ref.clone_ref();
+        world_ref.on_frame(move |_| {
+            let _keep_alive = &navigator;
+            animate_text_component(&w,&mut chars,start_scrolling)
         }).forget();
     });
 }

@@ -11,7 +11,8 @@ use crate::system::web::forward_panic_hook_to_console;
 use nalgebra::Vector2;
 use nalgebra::Vector3;
 use wasm_bindgen::prelude::*;
-
+use crate::display::navigation::navigator::Navigator;
+use crate::display::camera::Camera2d;
 
 
 #[wasm_bindgen]
@@ -23,15 +24,15 @@ pub fn run_example_sprite_system() {
 }
 
 fn init(world: &World) {
-
-
+    let scene         = world.scene();
+    let camera        = scene.camera()  ;
+    let navigator     = Navigator::new(&scene, &camera).expect("Couldn't create navigator");
     let sprite_system = SpriteSystem::new();
-    let sprite1 = sprite_system.new_instance();
-    sprite1.size().set(Vector2::new(10.0,10.0));
-    sprite1.mod_position(|t| t.x += 10.0);
+    let sprite1       = sprite_system.new_instance();
+    sprite1.size().set(Vector2::new(10.0, 10.0));
+    sprite1.mod_position(|t| *t = Vector3::new(5.0, 5.0, 0.0));
 
     world.add_child(&sprite_system);
-
 
     let mut sprites: Vec<Sprite> = default();
     let count = 100;
@@ -41,26 +42,21 @@ fn init(world: &World) {
     }
 
     let mut iter:i32 = 0;
-    let mut time:i32 = 0;
-    world.on_frame(move |_| {
-        on_frame(&mut time,&mut iter,&sprite1,&mut sprites,&sprite_system)
+    world.on_frame(move |time_ms| {
+        let _keep_alive = &navigator;
+        on_frame(&camera, time_ms,&mut iter,&sprite1,&mut sprites,&sprite_system)
     }).forget();
 }
 
 #[allow(clippy::too_many_arguments)]
 #[allow(clippy::many_single_char_names)]
 pub fn on_frame
-( time          : &mut i32
+( camera        : &Camera2d
+, time          : f64
 , iter          : &mut i32
 , sprite1       : &Sprite
 , sprites       : &mut Vec<Sprite>
 , sprite_system : &SpriteSystem) {
-
-//        camera.mod_position(|p| {
-//            p.x -= 0.1;
-//            p.z += 1.0
-//        });
-
     *iter += 1;
 
     let cycle_duration        = 300;
@@ -86,9 +82,12 @@ pub fn on_frame
         *sprites = default();
     }
 
+    let screen = camera.screen();
+    let half_width = screen.width / 2.0;
+    let half_height = screen.height / 2.0;
+
     if !frozen {
-        *time += 1;
-        let t = *time as f32 / 50.0;
+        let t = time as f32 / 1000.0;
         let length = sprites.len() as f32;
         for (i, sprite) in sprites.iter_mut().enumerate() {
             let i = i as f32;
@@ -102,7 +101,9 @@ pub fn on_frame
             x += (y * 1.25 + t * 2.50).cos() * 0.5;
             y += (z * 1.25 + t * 2.00).cos() * 0.5;
             z += (x * 1.25 + t * 3.25).cos() * 0.5;
-            sprite.set_position(Vector3::new(x * 50.0 + 200.0, y * 50.0 + 100.0, z * 50.0));
+
+            let position = Vector3::new(x * 150.0 + half_width, y * 150.0 + half_height, z * 150.0);
+            sprite.set_position(position);
         }
     }
 
