@@ -43,7 +43,7 @@ fn performance() -> Performance {
 // ==============
 
 /// Look and feel configuration for the performance monitor.
-#[derive(Clone,Debug)]
+#[derive(Clone,Copy,Debug)]
 #[allow(missing_docs)]
 pub struct ConfigTemplate<Str,Num> {
     pub background_color      : Str,
@@ -585,7 +585,7 @@ impl PanelData {
 // =================
 
 /// Sampler measuring the time for a given operation.
-#[derive(Debug,Default)]
+#[derive(Clone,Copy,Debug,Default)]
 pub struct FrameTime {
     begin_time  : f64,
     value       : f64,
@@ -620,7 +620,7 @@ impl Sampler for FrameTime {
 // ===========
 
 /// Sampler measuring the frames per second count for a given operation.
-#[derive(Debug,Default)]
+#[derive(Clone,Copy,Debug,Default)]
 pub struct Fps {
     begin_time  : f64,
     value       : f64,
@@ -657,7 +657,7 @@ impl Sampler for Fps {
 // ==================
 
 /// Sampler measuring the memory usage of the WebAssembly part of the program.
-#[derive(Debug,Default)]
+#[derive(Clone,Copy,Debug,Default)]
 pub struct WasmMemory {
     value       : f64,
     value_check : ValueCheck,

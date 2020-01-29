@@ -30,7 +30,7 @@ pub trait PhysicsForce {
 // ======================
 
 /// This structure contains air dragging properties.
-#[derive(Default, Clone, Copy)]
+#[derive(Default,Clone,Copy,Debug)]
 pub struct DragProperties {
     /// Drag`s coefficient.
     pub coefficient: f32
@@ -175,6 +175,7 @@ impl KinematicsProperties {
 // === PhysicsPropertiesData ===
 // =============================
 
+#[derive(Debug)]
 struct PhysicsPropertiesData {
     kinematics : KinematicsProperties,
     spring     : SpringProperties,
@@ -195,7 +196,7 @@ impl PhysicsPropertiesData {
 // =========================
 
 /// A structure including kinematics, drag and spring properties.
-#[derive(Clone)]
+#[derive(Clone,Debug)]
 pub struct PhysicsProperties {
     data : Rc<RefCell<PhysicsPropertiesData>>
 }
@@ -272,6 +273,7 @@ impl PhysicsProperties {
 pub trait PhysicsCallback = FnMut(Vector3<f32>) + 'static;
 
 /// A fixed step physics simulator used to simulate `PhysicsProperties`.
+#[derive(Debug)]
 pub struct PhysicsSimulator {
     _animator : Animator
 }

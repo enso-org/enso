@@ -73,7 +73,7 @@ impl Shape {
 
 
     pub fn screen_shape(&self) -> ShapeData {
-        self.rc.borrow().clone()
+        *self.rc.borrow()
     }
 
     pub fn canvas_shape(&self) -> ShapeData {
@@ -97,7 +97,7 @@ impl CloneRef for Shape {}
 
 // === ShapeData ===
 
-#[derive(Clone,Debug)]
+#[derive(Clone,Copy,Debug)]
 pub struct ShapeData {
     pub width       : f32,
     pub height      : f32,

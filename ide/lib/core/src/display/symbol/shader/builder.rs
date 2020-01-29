@@ -108,11 +108,11 @@ pub struct AttributeQualifier {
 impl AttributeQualifier {
     pub fn to_input_var<Name:Into<glsl::Identifier>>
     (&self, name:Name) -> glsl::GlobalVar {
-        let storage = self.storage.clone();
+        let storage = self.storage;
         glsl::GlobalVar {
             layout  : None,
             storage : Some(glsl::GlobalVarStorage::InStorage(storage)),
-            prec    : self.prec.clone(),
+            prec    : self.prec,
             typ     : self.typ.clone(),
             ident   : name.into()
         }
@@ -120,11 +120,11 @@ impl AttributeQualifier {
 
     pub fn to_output_var<Name:Into<glsl::Identifier>>
     (&self, name:Name) -> glsl::GlobalVar {
-        let storage = self.storage.clone();
+        let storage = self.storage;
         glsl::GlobalVar {
             layout  : None,
             storage : Some(glsl::GlobalVarStorage::OutStorage(storage)),
-            prec    : self.prec.clone(),
+            prec    : self.prec,
             typ     : self.typ.clone(),
             ident   : name.into()
         }
@@ -175,7 +175,7 @@ impl UniformQualifier {
         glsl::GlobalVar{
             layout  : None,
             storage : Some(glsl::GlobalVarStorage::UniformStorage),
-            prec    : self.prec.clone(),
+            prec    : self.prec,
             typ     : self.typ.clone(),
             ident   : name.into()
         }

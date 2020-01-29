@@ -1,3 +1,7 @@
+#![warn(unsafe_code)]
+#![warn(missing_copy_implementations)]
+#![warn(missing_debug_implementations)]
+
 extern crate proc_macro;
 
 use basegl_prelude::*;
@@ -6,7 +10,6 @@ use inflector::Inflector;
 use proc_macro2::{TokenStream, Ident, Span};
 use quote::quote;
 use syn;
-
 
 ////////////////////////////////////////////////
 

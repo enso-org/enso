@@ -24,6 +24,7 @@ use nalgebra::clamp;
 // =================
 
 /// Navigator enables camera navigation with mouse interactions.
+#[derive(Debug)]
 pub struct Navigator {
     _events     : NavigatorEvents,
     _simulator  : PhysicsSimulator,

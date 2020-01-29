@@ -4,6 +4,7 @@ use std::future::Future;
 use crate::{ is_emscripten_runtime_initialized, run_once_initialized };
 
 /// The future for running test after initialization
+#[derive(Debug)]
 pub struct TestAfterInit<F:Fn()> {
     test : F
 }

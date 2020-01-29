@@ -48,6 +48,7 @@ impl<Pass:RenderPass> Add<Pass> for RenderPipeline {
 
 /// An output definition of a render pass. The output describes a format of framebuffer attachment,
 /// which will be the result of running the current pass.
+#[derive(Debug)]
 pub struct RenderPassOutput {
     /// Name of the pass.
     pub name : String,

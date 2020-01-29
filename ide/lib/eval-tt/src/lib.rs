@@ -27,6 +27,10 @@
 //! evaluated. This is just because the implementation is not finished and
 //! there are comments in code where it should be added.
 
+#![warn(unsafe_code)]
+#![warn(missing_copy_implementations)]
+#![warn(missing_debug_implementations)]
+
 // ============
 // === Eval ===
 // ============

@@ -311,7 +311,7 @@ pub type  Bool       <OnMut=()> = DirtyFlag       <BoolData,OnMut>;
 pub type  SharedBool <OnMut=()> = SharedDirtyFlag <BoolData,OnMut>;
 pub trait BoolCtx    <OnMut>    = where OnMut:Function0;
 
-#[derive(Debug,Display,Default)]
+#[derive(Clone,Copy,Debug,Display,Default)]
 pub struct BoolData { is_dirty: bool }
 impl HasCheckAll for BoolData { fn check_all (&self)     -> bool { self.is_dirty         } }
 impl HasUnsetAll for BoolData { fn unset_all (&mut self)         { self.is_dirty = false } }

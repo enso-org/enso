@@ -13,6 +13,7 @@ use data::opt_vec::*;
 // =================
 
 /// A collection for holding 3D `Object`s.
+#[derive(Debug)]
 pub struct HtmlScene {
     display_object : DisplayObjectData,
     objects        : OptVec<HtmlObject>

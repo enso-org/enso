@@ -3,6 +3,9 @@
 //! defines several aliases and utils which may find their place in new
 //! libraries in the future.
 
+#![warn(unsafe_code)]
+#![warn(missing_copy_implementations)]
+#![warn(missing_debug_implementations)]
 #![feature(specialization)]
 #![feature(trait_alias)]
 
@@ -443,9 +446,11 @@ pub trait Value {
 // =======================
 
 /// Type level `true` value.
+#[derive(Clone,Copy,Debug)]
 pub struct True {}
 
 /// Type level `false` value.
+#[derive(Clone,Copy,Debug)]
 pub struct False {}
 
 impl Value for True {

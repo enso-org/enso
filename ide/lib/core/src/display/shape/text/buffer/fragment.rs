@@ -92,6 +92,7 @@ impl RenderedFragment {
 /// Builder of buffer data of some consecutive buffer fragments
 ///
 /// The result is stored in `vertex_position_data` and `texture_coords_data` fields.
+#[derive(Debug)]
 pub struct FragmentsDataBuilder<'a> {
     pub vertex_position_data  : Vec<f32>,
     pub texture_coords_data   : Vec<f32>,
@@ -176,7 +177,7 @@ impl<'a> FragmentsDataBuilder<'a> {
 /// During x scrolling we don't immediately refresh all the lines, but pick only one which is
 /// "centered" on current scroll - the rest of lines should still have data in buffers for
 /// shown glyphs.
-#[derive(Debug)]
+#[derive(Clone,Copy,Debug)]
 pub struct NextFragmentToRefreshAfterXScrolling {
     pub fragments_count : usize,
     pub next_fragment   : usize

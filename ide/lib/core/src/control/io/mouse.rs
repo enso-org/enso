@@ -1,6 +1,8 @@
 //! This module contains the `MouseManager` implementation, its associated structs such as
 //! `MousePositionEvent`, `MouseClickEvent` and `MouseWheelEvent`.
 
+use crate::prelude::*;
+
 pub mod event;
 pub mod button;
 
@@ -28,6 +30,7 @@ use std::cell::RefCell;
 // =====================
 
 /// This struct keeps the register of the event listener and unregisters it when it's dropped.
+#[derive(Debug)]
 pub struct EventListener<T:?Sized> {
     target   : EventTarget,
     name     : String,
@@ -69,19 +72,9 @@ pub type WheelEventListener = EventListener<dyn FnMut(WheelEvent)>;
 // FIXME: this does not handle all buttons (js defines 5 buttons) and assumes mouses for
 // FIXME: right hand people.
 /// An enumeration representing the mouse buttons.
-pub enum MouseButton {
-    /// Left mouse button.
-    LEFT,
-
-    /// Middle mouse button.
-    MIDDLE,
-
-    /// Right mouse button.
-    RIGHT,
-
-    /// For unknown mouse buttons IDs.
-    UNKNOWN
-}
+#[derive(Clone,Copy,Debug)]
+#[allow(missing_docs)]
+pub enum MouseButton {LEFT,MIDDLE,RIGHT,UNKNOWN}
 
 
 
@@ -94,6 +87,7 @@ pub trait MouseClickCallback = FnMut(MouseClickEvent) + 'static;
 
 // FIXME: "click" means mouse down and then up. This is misleading.
 /// A struct storing information about mouse down and mouse up events.
+#[derive(Clone,Copy,Debug)]
 pub struct MouseClickEvent {
     /// The position where the MouseClickEvent occurred.
     pub position : Vector2<f32>,
@@ -131,6 +125,7 @@ impl MouseClickEvent {
 pub trait MousePositionCallback = FnMut(MousePositionEvent)  + 'static;
 
 /// A struct storing information about mouse move, mouse enter and mouse leave events.
+#[derive(Clone,Copy,Debug)]
 pub struct MousePositionEvent {
     /// The previous position where the mouse was.
     pub previous_position : Vector2<f32>,
@@ -163,6 +158,7 @@ impl MousePositionEvent {
 pub trait MouseWheelCallback = FnMut(MouseWheelEvent) + 'static;
 
 /// A struct storing information about mouse wheel events.
+#[derive(Clone,Copy,Debug)]
 pub struct MouseWheelEvent {
     /// A boolean indicating if the keyboard ctrl button is pressed.
     pub is_ctrl_pressed : bool,
@@ -193,10 +189,13 @@ impl MouseWheelEvent {
 // === MouseManagerProperties ===
 // ==============================
 
+#[derive(Derivative)]
+#[derivative(Debug)]
 struct MouseManagerProperties {
     dom                    : DomContainer,
     mouse_position         : Option<Vector2<f32>>,
     target                 : EventTarget,
+    #[derivative(Debug="ignore")]
     stop_tracking_listener : Option<MouseEventListener>
 }
 
@@ -207,8 +206,8 @@ struct MouseManagerProperties {
 // ========================
 
 /// A struct used for storing shared MouseManager's mutable data.
+#[derive(Debug)]
 struct MouseManagerData {
-    // FIXME: naked refcell
     properties : RefCell<MouseManagerProperties>
 }
 
@@ -299,6 +298,7 @@ macro_rules! add_callback {
 // ====================
 
 /// This structs manages mouse events in a specified DOM object.
+#[derive(Debug)]
 pub struct MouseManager {
     data : Rc<MouseManagerData>
 }

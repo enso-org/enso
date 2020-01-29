@@ -14,7 +14,7 @@ use crate::data::dirty::traits::*;
 // =================
 
 /// Camera alignment. It describes where the origin of the camera should be aligned to.
-#[derive(Clone,Debug)]
+#[derive(Clone,Copy,Debug)]
 pub struct Alignment {
     /// Horizontal alignment.
     pub horizontal : HorizontalAlignment,
@@ -24,12 +24,12 @@ pub struct Alignment {
 }
 
 /// Horizontal alignments.
-#[derive(Clone,Debug)]
+#[derive(Clone,Copy,Debug)]
 #[allow(missing_docs)]
 pub enum HorizontalAlignment {Left,Center,Right}
 
 /// Vertical alignments.
-#[derive(Clone,Debug)]
+#[derive(Clone,Copy,Debug)]
 #[allow(missing_docs)]
 pub enum VerticalAlignment {Top,Center,Bottom}
 
@@ -50,7 +50,7 @@ impl Default for Alignment {
 // ==============
 
 /// Camera's frustum screen dimensions.
-#[derive(Clone,Debug)]
+#[derive(Clone,Copy,Debug)]
 pub struct Screen {
     /// Screen's width.
     pub width  : f32,
@@ -66,7 +66,7 @@ impl Screen {
     }
 
     /// Gets Screen's aspect ratio.
-    pub fn aspect(&self) -> f32 {
+    pub fn aspect(self) -> f32 {
         self.width / self.height
     }
 }
@@ -78,7 +78,7 @@ impl Screen {
 // ==================
 
 /// Camera's projection type.
-#[derive(Clone,Debug,Copy)]
+#[derive(Clone,Copy,Debug)]
 pub enum Projection {
     /// Perspective projection.
     Perspective {
@@ -103,7 +103,7 @@ impl Default for Projection {
 // ================
 
 /// Camera's frustum clipping range.
-#[derive(Clone,Debug)]
+#[derive(Clone,Copy,Debug)]
 pub struct Clipping {
     /// Near clipping limit.
     pub near : f32,
@@ -373,12 +373,12 @@ impl Camera2d {
 impl Camera2d {
     /// Gets `Clipping`.
     pub fn clipping(&self) -> Clipping {
-        self.rc.borrow().clipping.clone()
+        self.rc.borrow().clipping
     }
 
     /// Gets `Screen`.
     pub fn screen(&self) -> Screen {
-        self.rc.borrow().screen.clone()
+        self.rc.borrow().screen
     }
 
     /// Gets zoom.

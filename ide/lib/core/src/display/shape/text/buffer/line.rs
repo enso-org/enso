@@ -17,6 +17,7 @@ use crate::display::shape::text::buffer::glyph_square::GlyphTextureCoordsBuilder
 /// texture coordinates) for one line. If line is longer than `max_line_size`, it is
 /// cut. When line is shorter, the buffer is padded with empty values (obtained from
 /// `GlyphAttributeBuilder::empty()`).
+#[derive(Debug)]
 pub struct LineAttributeBuilder<'a,GlyphBuilder:GlyphAttributeBuilder> {
     max_line_size    : usize,
     squares_produced : usize,

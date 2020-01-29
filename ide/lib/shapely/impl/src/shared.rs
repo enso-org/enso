@@ -20,7 +20,7 @@
 /// ```compile_fail
 /// shared! { Uniform
 ///
-/// #[derive(Clone,Debug)]
+/// #[derive(Clone,Copy,Debug)]
 /// pub struct UniformData<Value> {
 ///     value: Value,
 ///     dirty: bool,
@@ -49,7 +49,7 @@
 /// The following output will be generated:
 ///
 /// ```compile_fail
-/// #[derive(Clone,Debug)]
+/// #[derive(Clone,Copy,Debug)]
 /// pub struct UniformData<Value> {
 ///     value: Value,
 ///     dirty: bool,
@@ -74,7 +74,7 @@
 ///     }
 /// }
 ///
-/// #[derive(Clone,Debug)]
+/// #[derive(Clone,Copy,Debug)]
 /// pub struct Uniform<Value> {
 ///     rc: Rc<RefCell<UniformData<Value>>>
 /// }

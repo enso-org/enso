@@ -14,7 +14,7 @@ use web_sys::HtmlElement;
 // ======================
 
 /// Html container displaying benchmark results.
-#[derive(Shrinkwrap)]
+#[derive(Shrinkwrap,Debug)]
 pub struct BenchContainer {
     #[shrinkwrap(main_field)]
     container       : Container,

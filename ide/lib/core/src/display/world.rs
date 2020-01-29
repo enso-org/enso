@@ -51,6 +51,7 @@ pub use stats::*;
 static mut SCENE: Option<Scene> = None;
 
 /// Very unsafe function. Do not use. See documentation of `WORLD` to learn more.
+#[allow(unsafe_code)]
 pub(crate) fn get_scene() -> Scene {
     unsafe {
         SCENE.as_ref().unwrap_or_else(|| panic!("World not initialized.")).clone_ref()
@@ -58,6 +59,7 @@ pub(crate) fn get_scene() -> Scene {
 }
 
 /// Very unsafe function. Do not use. See documentation of `WORLD` to learn more.
+#[allow(unsafe_code)]
 fn init_global_variables(world:&World) {
     unsafe {
         SCENE = Some(world.rc.borrow().scene.clone_ref());

@@ -43,6 +43,7 @@ impl<T> OwnedData<T> {
 
 impl<I:InternalFormat,T:ItemType+JsBufferViewArr>
 TextureReload for Texture<Owned,I,T> {
+    #[allow(unsafe_code)]
     fn reload(&self) {
         let width           = self.storage().width;
         let height          = self.storage().height;

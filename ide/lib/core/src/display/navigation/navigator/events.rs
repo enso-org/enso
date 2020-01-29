@@ -1,3 +1,5 @@
+use crate::prelude::*;
+
 use crate::control::io::mouse::MouseManager;
 use crate::control::io::mouse::MouseClickEvent;
 use crate::control::io::mouse::MouseWheelEvent;
@@ -78,7 +80,7 @@ impl PanEvent {
 // === MovementType ===
 // ====================
 
-#[derive(PartialEq, Clone, Copy)]
+#[derive(PartialEq,Clone,Copy,Debug)]
 enum MovementType {
     Pan,
     Zoom { focus : Vector2<f32> }
@@ -90,10 +92,14 @@ enum MovementType {
 // === NavigatorEventsProperties ===
 // =================================
 
+#[derive(Derivative)]
+#[derivative(Debug)]
 struct NavigatorEventsProperties {
     movement_type  : Option<MovementType>,
     mouse_position : Vector2<f32>,
+    #[derivative(Debug="ignore")]
     pan_callback   : Box<dyn FnPanEvent>,
+    #[derivative(Debug="ignore")]
     zoom_callback  : Box<dyn FnZoomEvent>,
     zoom_speed     : f32
 }
@@ -104,6 +110,7 @@ struct NavigatorEventsProperties {
 // === NavigatorEventsData ===
 // ===========================
 
+#[derive(Debug)]
 struct NavigatorEventsData {
     properties : RefCell<NavigatorEventsProperties>
 }
@@ -171,14 +178,22 @@ impl NavigatorEventsData {
 // =======================
 
 /// Struct used to handle pan and zoom events from mouse interactions.
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub struct NavigatorEvents {
     data                 : Rc<NavigatorEventsData>,
     mouse_manager        : MouseManager,
+    #[derivative(Debug="ignore")]
     mouse_down           : Option<MouseEventListener>,
+    #[derivative(Debug="ignore")]
     mouse_move           : Option<MouseEventListener>,
+    #[derivative(Debug="ignore")]
     mouse_up             : Option<MouseEventListener>,
+    #[derivative(Debug="ignore")]
     mouse_leave          : Option<MouseEventListener>,
+    #[derivative(Debug="ignore")]
     disable_context_menu : Option<MouseEventListener>,
+    #[derivative(Debug="ignore")]
     wheel_zoom           : Option<WheelEventListener>
 }
 

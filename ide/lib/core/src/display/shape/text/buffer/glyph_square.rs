@@ -43,8 +43,7 @@ pub fn point_to_iterable<T:Scalar>(p:Point2<T>) -> SmallVec<[T;2]> {
 /// The pen is a font-specific term (see
 /// [freetype documentation](https://www.freetype.org/freetype2/docs/glyphs/glyphs-3.html#section-1)
 /// for details). The structure keeps pen position _before_ rendering the `current_char`.
-#[derive(Clone)]
-#[derive(Debug)]
+#[derive(Clone,Copy,Debug)]
 pub struct Pen {
     pub position     : Point2<f64>,
     pub current_char : Option<char>,
@@ -126,6 +125,7 @@ pub trait GlyphAttributeBuilder {
 /// Builder for glyph square vertex positions
 ///
 /// `pen` field points to the position of last built glyph.
+#[derive(Debug)]
 pub struct GlyphVertexPositionBuilder<'a,'b> {
     pub font          : &'a mut FontRenderInfo,
     pub pen           : &'b mut Pen,
@@ -173,6 +173,7 @@ impl<'a,'b> GlyphAttributeBuilder for GlyphVertexPositionBuilder<'a,'b> {
 // ======================================
 
 /// Builder for glyph MSDF texture coordinates
+#[derive(Debug)]
 pub struct GlyphTextureCoordsBuilder<'a> {
     pub font : &'a mut FontRenderInfo
 }

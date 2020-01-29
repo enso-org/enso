@@ -19,7 +19,7 @@ use crate::data::dirty::traits::*;
 
 /// Defines the order in which particular axis coordinates are processed. Used for example to define
 /// the rotation order in `DisplayObject`.
-#[derive(Clone,Debug)]
+#[derive(Clone,Copy,Debug)]
 pub enum AxisOrder {XYZ,XZY,YXZ,YZX,ZXY,ZYX}
 
 impl Default for AxisOrder {
@@ -34,7 +34,7 @@ impl Default for AxisOrder {
 
 /// Defines the order in which transformations (scale, rotate, translate) are applied to a
 /// particular object.
-#[derive(Clone,Debug)]
+#[derive(Clone,Copy,Debug)]
 pub enum TransformOrder {
     ScaleRotateTranslate,
     ScaleTranslateRotate,
@@ -58,7 +58,7 @@ impl Default for TransformOrder {
 /// You can use methods like `matrix` to get a combined transformation matrix. Bear in mind that
 /// the matrix will always be recomputed from scratch. This structure does not contain any caching
 /// mechanisms.
-#[derive(Clone,Debug)]
+#[derive(Clone,Copy,Debug)]
 pub struct Transform {
     pub position        : Vector3<f32>,
     pub scale           : Vector3<f32>,

@@ -14,6 +14,7 @@ use web_sys::HtmlElement;
 // =============
 
 /// Helper to group test containers
+#[derive(Clone,Debug)]
 pub struct Group {
     pub div : HtmlElement,
 }

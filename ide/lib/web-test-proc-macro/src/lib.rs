@@ -1,3 +1,7 @@
+#![warn(unsafe_code)]
+#![warn(missing_copy_implementations)]
+#![warn(missing_debug_implementations)]
+
 extern crate proc_macro;
 
 use proc_macro::TokenStream;

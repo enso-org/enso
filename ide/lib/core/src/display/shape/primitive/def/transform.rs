@@ -79,6 +79,7 @@ macro_rules! _define_compound_shape_data {
 
         /// Shape type definition.
         #[allow(missing_docs)]
+        #[derive(Debug)]
         pub struct $name<$($shape_field),*> {
             $(pub $shape_field : $shape_field),*,
             $(pub $field       : Glsl),*

@@ -231,6 +231,7 @@ impl<T: BufferItem> BufferData<T> {
     }
 
     /// Replaces the whole GPU buffer by the local data.
+    #[allow(unsafe_code)]
     fn replace_gpu_buffer(&mut self) {
         let data    = self.as_slice();
         let gl_enum = self.usage.into_gl_enum().into();
@@ -251,6 +252,7 @@ impl<T: BufferItem> BufferData<T> {
     }
 
     /// Updates the GPU sub-buffer data by the provided index range.
+    #[allow(unsafe_code)]
     fn update_gpu_sub_buffer(&mut self, range:&RangeInclusive<usize>) {
         let data            = self.as_slice();
         let item_byte_size  = T::item_gpu_byte_size() as u32;
@@ -323,7 +325,7 @@ use crate::system::gpu::data::AttributeInstanceIndex;
 // === Macros ===
 
 /// Variant mismatch error type.
-#[derive(Debug)]
+#[derive(Clone,Copy,Debug)]
 pub struct BadVariant;
 
 macro_rules! define_any_buffer {
