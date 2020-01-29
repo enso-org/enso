@@ -25,12 +25,11 @@ import org.enso.polyglot.MethodNames;
 import java.util.*;
 
 /** A representation of Enso's per-file top-level scope. */
-@ExportLibrary(InteropLibrary.class)
-public class ModuleScope implements TruffleObject {
+public class ModuleScope {
   private final AtomConstructor associatedType;
-  private final Map<String, AtomConstructor> constructors = new HashMap<>();
-  private final Map<AtomConstructor, Map<String, Function>> methods = new HashMap<>();
-  private final Set<ModuleScope> imports = new HashSet<>();
+  private Map<String, AtomConstructor> constructors = new HashMap<>();
+  private Map<AtomConstructor, Map<String, Function>> methods = new HashMap<>();
+  private Set<ModuleScope> imports = new HashSet<>();
 
   /**
    * Creates a new object of this class.
@@ -140,128 +139,17 @@ public class ModuleScope implements TruffleObject {
     imports.add(scope);
   }
 
-  /**
-   * Handles member invocations through the polyglot API.
-   *
-   * <p>The exposed members are:
-   * <li>{@code get_method(AtomConstructor, String)}
-   * <li>{@code get_constructor(String)}
-   * <li>{@code patch(String)}
-   * <li>{@code get_associated_constructor()}
-   * <li>{@code eval_expression(String)}
-   */
-  @ExportMessage
-  abstract static class InvokeMember {
-    private static Function getMethod(ModuleScope scope, Object[] args)
-        throws ArityException, UnsupportedTypeException {
-      Types.Pair<AtomConstructor, String> arguments =
-          Types.extractArguments(args, AtomConstructor.class, String.class);
-      AtomConstructor cons = arguments.getFirst();
-      String name = arguments.getSecond();
-      return scope.methods.get(cons).get(name);
-    }
-
-    private static AtomConstructor getConstructor(ModuleScope scope, Object[] args)
-        throws ArityException, UnsupportedTypeException {
-      String name = Types.extractArguments(args, String.class);
-      return scope.constructors.get(name);
-    }
-
-    private static ModuleScope patch(ModuleScope scope, Object[] args, Context context)
-        throws ArityException, UnsupportedTypeException {
-      String sourceString = Types.extractArguments(args, String.class);
-      Source source =
-          Source.newBuilder(LanguageInfo.ID, sourceString, scope.associatedType.getName()).build();
-      context.compiler().run(source, scope);
-      return scope;
-    }
-
-    private static AtomConstructor getAssociatedConstructor(ModuleScope scope, Object[] args)
-        throws ArityException {
-      Types.extractArguments(args);
-      return scope.associatedType;
-    }
-
-    private static Object evalExpression(
-        ModuleScope scope, Object[] args, Context context, CallOptimiserNode callOptimiserNode)
-        throws ArityException, UnsupportedTypeException {
-      String expr = Types.extractArguments(args, String.class);
-      AtomConstructor debug = context.getBuiltins().debug();
-      Function eval =
-          context
-              .getBuiltins()
-              .getScope()
-              .lookupMethodDefinition(debug, Builtins.MethodNames.Debug.EVAL);
-      CallerInfo callerInfo = new CallerInfo(null, new LocalScope(), scope);
-      Object state = context.getBuiltins().unit().newInstance();
-      return callOptimiserNode
-          .executeDispatch(eval, callerInfo, state, new Object[] {debug, expr})
-          .getValue();
-    }
-
-    @Specialization
-    static Object doInvoke(
-        ModuleScope scope,
-        String member,
-        Object[] arguments,
-        @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> contextRef,
-        @Cached(value = "build()", allowUncached = true) CallOptimiserNode callOptimiserNode)
-        throws UnknownIdentifierException, ArityException, UnsupportedTypeException {
-      switch (member) {
-        case MethodNames.Module.GET_METHOD:
-          return getMethod(scope, arguments);
-        case MethodNames.Module.GET_CONSTRUCTOR:
-          return getConstructor(scope, arguments);
-        case MethodNames.Module.PATCH:
-          return patch(scope, arguments, contextRef.get());
-        case MethodNames.Module.GET_ASSOCIATED_CONSTRUCTOR:
-          return getAssociatedConstructor(scope, arguments);
-        case MethodNames.Module.EVAL_EXPRESSION:
-          return evalExpression(scope, arguments, contextRef.get(), callOptimiserNode);
-        default:
-          throw UnknownIdentifierException.create(member);
-      }
-    }
+  public Map<String, AtomConstructor> getConstructors() {
+    return constructors;
   }
 
-  /**
-   * Marks the object as having members for the purposes of the polyglot API.
-   *
-   * @return {@code true}
-   */
-  @ExportMessage
-  boolean hasMembers() {
-    return true;
+  public Map<AtomConstructor, Map<String, Function>> getMethods() {
+    return methods;
   }
 
-  /**
-   * Exposes a member method validity check for the polyglot API.
-   *
-   * @param member the member to check
-   * @return {@code true} if the member is supported, {@code false} otherwise.
-   */
-  @ExportMessage
-  boolean isMemberInvocable(String member) {
-    return member.equals(MethodNames.Module.GET_METHOD)
-        || member.equals(MethodNames.Module.GET_CONSTRUCTOR)
-        || member.equals(MethodNames.Module.PATCH)
-        || member.equals(MethodNames.Module.GET_ASSOCIATED_CONSTRUCTOR)
-        || member.equals(MethodNames.Module.EVAL_EXPRESSION);
-  }
-
-  /**
-   * Returns a collection of all the supported members in this scope for the polyglot API.
-   *
-   * @param includeInternal ignored.
-   * @return a collection of all the member names.
-   */
-  @ExportMessage
-  Object getMembers(boolean includeInternal) {
-    return new Vector(
-        MethodNames.Module.GET_METHOD,
-        MethodNames.Module.GET_CONSTRUCTOR,
-        MethodNames.Module.PATCH,
-        MethodNames.Module.GET_ASSOCIATED_CONSTRUCTOR,
-        MethodNames.Module.EVAL_EXPRESSION);
+  public void reset() {
+    imports = new HashSet<>();
+    methods = new HashMap<>();
+    constructors = new HashMap<>();
   }
 }

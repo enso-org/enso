@@ -13,8 +13,11 @@ import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.data.Vector;
 import org.enso.interpreter.runtime.type.Types;
+import org.enso.pkg.Package;
+import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.MethodNames;
 
+import java.io.File;
 import java.util.Map;
 import java.util.Optional;
 
@@ -84,13 +87,17 @@ public class TopLevelScope implements TruffleObject {
    */
   @ExportMessage
   Vector getMembers(boolean includeInternal) {
-    return new Vector(MethodNames.TopScope.GET_MODULE, MethodNames.TopScope.CREATE_MODULE);
+    return new Vector(
+        MethodNames.TopScope.GET_MODULE,
+        MethodNames.TopScope.CREATE_MODULE,
+        MethodNames.TopScope.REGISTER_MODULE,
+        MethodNames.TopScope.UNREGISTER_MODULE);
   }
 
   /** Handles member invocation through the polyglot API. */
   @ExportMessage
   abstract static class InvokeMember {
-    private static ModuleScope getModule(
+    private static Module getModule(
         TopLevelScope scope,
         Object[] arguments,
         TruffleLanguage.ContextReference<Context> contextReference)
@@ -98,28 +105,42 @@ public class TopLevelScope implements TruffleObject {
       String moduleName = Types.extractArguments(arguments, String.class);
 
       if (moduleName.equals(Builtins.MODULE_NAME)) {
-        return scope.builtins.getScope();
+        return scope.builtins.getModule();
       }
       Module module = scope.modules.get(moduleName);
       if (module == null) {
         throw UnknownIdentifierException.create(moduleName);
       }
-      if (module.hasComputedScope()) {
-        return module.getScope();
-      } else {
-        return module.requestParse(contextReference.get());
-      }
+
+      return module;
     }
 
-    private static ModuleScope createModule(
-        TopLevelScope scope, Object[] arguments, Context context)
+    private static Module createModule(TopLevelScope scope, Object[] arguments, Context context)
         throws ArityException, UnsupportedTypeException {
       String moduleName = Types.extractArguments(arguments, String.class);
-      return context.createScope(moduleName);
+      return new Module(QualifiedName.simpleName(moduleName), context.createScope(moduleName));
+    }
+
+    private static Module registerModule(TopLevelScope scope, Object[] arguments, Context context)
+        throws ArityException, UnsupportedTypeException {
+      Types.Pair<String, String> args =
+          Types.extractArguments(arguments, String.class, String.class);
+      QualifiedName qualName = QualifiedName.fromString(args.getFirst()).get();
+      File location = new File(args.getSecond());
+      Module module = new Module(qualName, context.getTruffleFile(location));
+      scope.modules.put(qualName.toString(), module);
+      return module;
+    }
+
+    private static Object unregisterModule(TopLevelScope scope, Object[] arguments, Context context)
+        throws ArityException, UnsupportedTypeException {
+      String name = Types.extractArguments(arguments, String.class);
+      scope.modules.remove(name);
+      return context.getUnit().newInstance();
     }
 
     @Specialization
-    static ModuleScope doInvoke(
+    static Object doInvoke(
         TopLevelScope scope,
         String member,
         Object[] arguments,
@@ -130,6 +151,10 @@ public class TopLevelScope implements TruffleObject {
           return getModule(scope, arguments, contextRef);
         case MethodNames.TopScope.CREATE_MODULE:
           return createModule(scope, arguments, contextRef.get());
+        case MethodNames.TopScope.REGISTER_MODULE:
+          return registerModule(scope, arguments, contextRef.get());
+        case MethodNames.TopScope.UNREGISTER_MODULE:
+          return unregisterModule(scope, arguments, contextRef.get());
         default:
           throw UnknownIdentifierException.create(member);
       }
@@ -145,6 +170,8 @@ public class TopLevelScope implements TruffleObject {
   @ExportMessage
   boolean isMemberInvocable(String member) {
     return member.equals(MethodNames.TopScope.GET_MODULE)
-        || member.equals(MethodNames.TopScope.CREATE_MODULE);
+        || member.equals(MethodNames.TopScope.CREATE_MODULE)
+        || member.equals(MethodNames.TopScope.REGISTER_MODULE)
+        || member.equals(MethodNames.TopScope.UNREGISTER_MODULE);
   }
 }

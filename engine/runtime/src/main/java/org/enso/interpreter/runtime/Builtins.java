@@ -16,6 +16,8 @@ import org.enso.interpreter.node.expression.builtin.state.RunStateNode;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.scope.ModuleScope;
+import org.enso.pkg.Package;
+import org.enso.pkg.QualifiedName;
 
 /** Container class for static predefined atoms, methods, and their containing scope. */
 public class Builtins {
@@ -28,6 +30,7 @@ public class Builtins {
     }
   }
 
+  private final Module module;
   private final ModuleScope scope;
   private final AtomConstructor unit;
   private final AtomConstructor any;
@@ -43,6 +46,7 @@ public class Builtins {
    */
   public Builtins(Language language) {
     scope = new ModuleScope(MODULE_NAME);
+    module = new Module(QualifiedName.simpleName(MODULE_NAME), scope);
     unit = new AtomConstructor("Unit", scope).initializeFields();
     any = new AtomConstructor("Any", scope).initializeFields();
     number = new AtomConstructor("Number", scope).initializeFields();
@@ -155,5 +159,9 @@ public class Builtins {
    */
   public ModuleScope getScope() {
     return scope;
+  }
+
+  public Module getModule() {
+    return module;
   }
 }

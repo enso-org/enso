@@ -3,9 +3,13 @@ package org.enso.interpreter.test
 import java.io.File
 
 import org.enso.interpreter.Constants
-import org.enso.interpreter.runtime.RuntimeOptions
 import org.enso.pkg.Package
-import org.enso.polyglot.{ExecutionContext, LanguageInfo, TopScope}
+import org.enso.polyglot.{
+  ExecutionContext,
+  LanguageInfo,
+  RuntimeOptions,
+  TopScope
+}
 import org.graalvm.polyglot.{Context, Source, Value}
 import org.scalatest.{FlatSpec, Matchers}
 
@@ -27,10 +31,10 @@ trait PackageTest extends FlatSpec with Matchers with ValueEquality {
       .build()
     context.initialize(LanguageInfo.ID)
     val executionContext = new ExecutionContext(context)
-    val topScope = executionContext.getTopScope
-    val mainModuleScope = topScope.getModule(mainModule.toString)
-    val assocCons = mainModuleScope.getAssociatedConstructor
-    val mainFun = mainModuleScope.getMethod(assocCons, "main")
+    val topScope         = executionContext.getTopScope
+    val mainModuleScope  = topScope.getModule(mainModule.toString)
+    val assocCons        = mainModuleScope.getAssociatedConstructor
+    val mainFun          = mainModuleScope.getMethod(assocCons, "main")
     InterpreterException.rethrowPolyglot(mainFun.execute(assocCons))
   }
 }

@@ -11,9 +11,11 @@ import org.enso.interpreter.Language;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
 import org.enso.interpreter.node.expression.atom.InstantiateNode;
 import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
+import org.enso.pkg.QualifiedName;
 
 import java.io.File;
 import java.util.Optional;
@@ -29,7 +31,7 @@ import java.util.Optional;
 @NodeInfo(shortName = "ProgramRoot", description = "The root of an Enso program's execution")
 public class ProgramRootNode extends RootNode {
   private final Source sourceCode;
-  private @CompilerDirectives.CompilationFinal ModuleScope moduleScope;
+  private @CompilerDirectives.CompilationFinal Module module;
 
   /**
    * Constructs the root node.
@@ -50,14 +52,12 @@ public class ProgramRootNode extends RootNode {
    */
   @Override
   public Object execute(VirtualFrame frame) {
-    if (moduleScope == null) {
+    if (module == null) {
       CompilerDirectives.transferToInterpreterAndInvalidate();
-      Context context = lookupContextReference(Language.class).get();
-      moduleScope = context.createScope(sourceCode.getName());
-      context.compiler().run(this.sourceCode, moduleScope);
+      module = new Module(QualifiedName.simpleName(sourceCode.getName()), sourceCode);
     }
     // Note [Static Passes]
-    return moduleScope;
+    return module;
   }
 
   /* Note [Static Passes]

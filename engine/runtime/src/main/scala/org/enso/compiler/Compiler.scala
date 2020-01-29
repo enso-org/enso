@@ -134,7 +134,7 @@ class Compiler(
   def requestProcess(qualifiedName: String): ModuleScope = {
     val module = topScope.getModule(qualifiedName)
     if (module.isPresent) {
-      module.get().requestParse(context)
+      module.get().getScope(context)
     } else {
       throw new ModuleDoesNotExistException(qualifiedName)
     }

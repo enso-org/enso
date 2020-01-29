@@ -1,14 +1,17 @@
 package org.enso.interpreter.runtime;
 
+import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLanguage.Env;
 import org.enso.compiler.Compiler;
 import org.enso.interpreter.Language;
+import org.enso.interpreter.OptionsHelper;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.scope.TopLevelScope;
 import org.enso.interpreter.util.ScalaConversions;
 import org.enso.pkg.Package;
+import org.enso.polyglot.RuntimeOptions;
 
 import java.io.File;
 import java.io.PrintStream;
@@ -39,7 +42,7 @@ public class Context {
     this.environment = environment;
     this.out = new PrintStream(environment.out());
 
-    List<File> packagePaths = RuntimeOptions.getPackagesPaths(environment);
+    List<File> packagePaths = OptionsHelper.getPackagesPaths(environment);
     Map<String, Module> knownFiles =
         packagePaths.stream()
             .map(Package::fromDirectory)
@@ -58,6 +61,10 @@ public class Context {
     TopLevelScope topLevelScope = new TopLevelScope(new Builtins(language), knownFiles);
 
     this.compiler = new Compiler(this.language, topLevelScope, this);
+  }
+
+  public TruffleFile getTruffleFile(File file) {
+    return getEnvironment().getInternalTruffleFile(file.getAbsolutePath());
   }
 
   /**
@@ -106,13 +113,21 @@ public class Context {
    * Creates a new module scope that automatically imports all the builtin types and methods.
    *
    * @param name the name of the newly created scope.
-   *
    * @return a new module scope with automatic builtins dependency.
    */
   public ModuleScope createScope(String name) {
     ModuleScope moduleScope = new ModuleScope(name);
-    moduleScope.addImport(getBuiltins().getScope());
+    initializeScope(moduleScope);
     return moduleScope;
+  }
+
+  public void resetScope(ModuleScope scope) {
+    scope.reset();
+    initializeScope(scope);
+  }
+
+  private void initializeScope(ModuleScope scope) {
+    scope.addImport(getBuiltins().getScope());
   }
 
   /**

@@ -6,7 +6,7 @@ import java.nio.file.{Files, Path}
 
 import scala.collection.JavaConverters._
 import org.apache.commons.io.FileUtils
-import org.enso.pkg.Package.QualifiedName
+import org.enso.pkg.Package.qualifiedNameSeparator
 
 import scala.io.Source
 import scala.util.Try
@@ -174,45 +174,50 @@ case class Package(root: File, config: Config) {
 }
 
 /**
+  * Represents a qualified name of a source module.
+  *
+  * @param path the names of the package and directories the module is
+  *             contained in
+  * @param module the name of the module
+  */
+case class QualifiedName(path: List[String], module: String) {
+  override def toString: String =
+    (path :+ module).mkString(qualifiedNameSeparator)
+}
+
+object QualifiedName {
+
+  /**
+    * Parses a dot-separated string representation of a qualified name into
+    * a [[QualifiedName]] object.
+    *
+    * @param qualName the string representation of a qualified name.
+    * @return the corresponding [[QualifiedName]] object.
+    */
+  def fromString(qualName: String): Option[QualifiedName] = {
+    val segments = qualName.split(Package.qualifiedNameSeparatorRegex).toList
+    if (segments.nonEmpty) {
+      Some(QualifiedName(segments.dropRight(1), segments.last))
+    } else {
+      None
+    }
+  }
+
+  def simpleName(modName: String): QualifiedName =
+    QualifiedName(List(), modName)
+}
+
+/**
   * A companion object for static methods on the [[Package]] class.
   */
 object Package {
-  val configFileName         = "package.yaml"
-  val sourceDirName          = "src"
-  val mainFileName           = "Main.enso"
-  val thumbFileName          = "thumb.png"
-  val qualifiedNameSeparator = "."
-
-  /**
-    * Represents a qualified name of a source module.
-    *
-    * @param path the names of the package and directories the module is
-    *             contained in
-    * @param module the name of the module
-    */
-  case class QualifiedName(path: List[String], module: String) {
-    override def toString: String =
-      (path :+ module).mkString(qualifiedNameSeparator)
-  }
-
-  object QualifiedName {
-
-    /**
-      * Parses a dot-separated string representation of a qualified name into
-      * a [[QualifiedName]] object.
-      *
-      * @param qualName the string representation of a qualified name.
-      * @return the corresponding [[QualifiedName]] object.
-      */
-    def fromString(qualName: String): Option[QualifiedName] = {
-      val segments = qualName.split(qualifiedNameSeparator).toList
-      if (segments.nonEmpty) {
-        Some(QualifiedName(segments.dropRight(1), segments.last))
-      } else {
-        None
-      }
-    }
-  }
+  val fileExtension               = "enso"
+  val configFileName              = "package.yaml"
+  val sourceDirName               = "src"
+  val mainFileName                = "Main.enso"
+  val thumbFileName               = "thumb.png"
+  val qualifiedNameSeparator      = "."
+  val qualifiedNameSeparatorRegex = "\\."
 
   /**
     * Creates a new Package in a given location and with config file.

@@ -28,4 +28,11 @@ class TopScope(private val value: Value) {
     */
   def createModule(name: String): Module =
     new Module(value.invokeMember(CREATE_MODULE, name))
+
+  def registerModule(qualifiedName: String, filePath: String): Module =
+    new Module(value.invokeMember(REGISTER_MODULE, qualifiedName, filePath))
+
+  def unregisterModule(qualifiedName: String): Unit = {
+    value.invokeMember(UNREGISTER_MODULE, qualifiedName)
+  }
 }

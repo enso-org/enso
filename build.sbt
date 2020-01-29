@@ -522,4 +522,4 @@ lazy val polyglot_api = project
       "org.scalatest"   %% "scalatest"   % "3.2.0-SNAP10" % Test,
       "org.scalacheck"  %% "scalacheck"  % "1.14.0"       % Test
     )
-  )
+  ).dependsOn(pkg)

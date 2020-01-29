@@ -5,6 +5,9 @@ public class MethodNames {
   public static class TopScope {
     public static final String GET_MODULE = "get_module";
     public static final String CREATE_MODULE = "create_module";
+    public static final String REGISTER_MODULE = "register_module";
+    public static final String UNREGISTER_MODULE = "unregister_module";
+
   }
 
   public static class Module {
@@ -12,6 +15,9 @@ public class MethodNames {
     public static final String GET_METHOD = "get_method";
     public static final String GET_CONSTRUCTOR = "get_constructor";
     public static final String PATCH = "patch";
+    public static final String REPARSE = "reparse";
+    public static final String SET_SOURCE = "set_source";
+    public static final String SET_SOURCE_FILE = "set_source_file";
     public static final String EVAL_EXPRESSION = "eval_expression";
   }
 

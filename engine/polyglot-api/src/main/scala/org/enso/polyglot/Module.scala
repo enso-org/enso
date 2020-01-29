@@ -1,5 +1,7 @@
 package org.enso.polyglot
 
+import java.io.File
+
 import org.graalvm.polyglot.Value
 
 /**
@@ -53,4 +55,18 @@ class Module(private val value: Value) {
     */
   def evalExpression(code: String): Value =
     value.invokeMember(EVAL_EXPRESSION, code)
+
+  /**
+    * Triggers reparsing of module sources. Used to notify the module that
+    * sources have changed.
+    */
+  def reparse(): Unit = { value.invokeMember(REPARSE) }
+
+  def setSource(source: String): Unit = {
+    value.invokeMember(SET_SOURCE, source)
+  }
+
+  def setSourceFile(file: String): Unit = {
+    value.invokeMember(SET_SOURCE_FILE, file)
+  }
 }
