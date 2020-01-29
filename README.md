@@ -1,11 +1,13 @@
 [![Build Status](https://dev.azure.com/luna-lang/luna/_apis/build/status/luna.enso?branchName=master)](https://dev.azure.com/luna-lang/luna/_build/latest?definitionId=10&branchName=master)
 
 <p align="center">
-<img src="https://github.com/luna/luna-studio/raw/master/resources/logo.ico" style="margin: 0 auto;">
+<img src="https://github.com/luna/luna-studio/raw/master/resources/logo.ico" 
+style="margin: 0 auto;">
 </p>
 <h1 align="center">Enso Programming Language</h1>
 <h3 align="center">
-Visual and textual functional programming language with a focus on productivity, collaboration and development ergonomics.
+Visual and textual functional programming language with a focus on productivity,
+collaboration and development ergonomics.
 </h3>
 
 Enso is a developer’s whiteboard on steroids. Design, prototype, develop and
@@ -15,8 +17,9 @@ results and visually profile the performance in real-time.
 
 Visit [The Enso Website](http://www.luna-lang.org) to learn more!
 
-This repository contains both the [Enso Engine](engine/) (its compiler, 
-interpreter, runtime, and language server), and its cloud-ready [IDE](ide/).
+This repository contains [Enso Engine](engine/) (its compiler, 
+interpreter, runtime, and language server). Its cloud-ready IDE can be found in
+a [separate repository](https://github.com/luna/ide/).
 
 ## Contributing to Enso
 If you are interested in contributing to the development of Enso, please read

@@ -181,7 +181,7 @@ val jsSettings = Seq(
 lazy val logger = crossProject(JVMPlatform, JSPlatform)
   .withoutSuffixFor(JVMPlatform)
   .crossType(CrossType.Pure)
-  .in(file("common/scala/logger"))
+  .in(file("common/logger"))
   .dependsOn(unused)
   .settings(
     version := "0.1",
@@ -192,7 +192,7 @@ lazy val logger = crossProject(JVMPlatform, JSPlatform)
 lazy val flexer = crossProject(JVMPlatform, JSPlatform)
   .withoutSuffixFor(JVMPlatform)
   .crossType(CrossType.Pure)
-  .in(file("common/scala/flexer"))
+  .in(file("common/flexer"))
   .dependsOn(logger)
   .settings(
     version := "0.1",
@@ -209,14 +209,14 @@ lazy val flexer = crossProject(JVMPlatform, JSPlatform)
 lazy val unused = crossProject(JVMPlatform, JSPlatform)
   .withoutSuffixFor(JVMPlatform)
   .crossType(CrossType.Pure)
-  .in(file("common/scala/unused"))
+  .in(file("common/unused"))
   .settings(version := "0.1", scalacOptions += "-nowarn")
   .jsSettings(testFrameworks := Nil)
 
 lazy val syntax_definition = crossProject(JVMPlatform, JSPlatform)
   .withoutSuffixFor(JVMPlatform)
   .crossType(CrossType.Pure)
-  .in(file("common/scala/syntax/definition"))
+  .in(file("common/syntax/definition"))
   .dependsOn(logger, flexer)
   .settings(
     libraryDependencies ++= monocle ++ scala_compiler ++ Seq(
@@ -233,7 +233,7 @@ lazy val syntax_definition = crossProject(JVMPlatform, JSPlatform)
 lazy val syntax = crossProject(JVMPlatform, JSPlatform)
   .withoutSuffixFor(JVMPlatform)
   .crossType(CrossType.Full)
-  .in(file("common/scala/syntax/specialization"))
+  .in(file("common/syntax/specialization"))
   .dependsOn(logger, flexer, syntax_definition)
   .configs(Test)
   .configs(Benchmark)
@@ -280,14 +280,14 @@ lazy val syntax = crossProject(JVMPlatform, JSPlatform)
     Compile / fullOptJS / artifactPath := file("target/scala-parser.js")
   )
 
-lazy val parser_service = (project in file("common/scala/parser-service"))
+lazy val parser_service = (project in file("common/parser-service"))
   .dependsOn(syntax.jvm)
   .settings(
     libraryDependencies ++= akka,
     mainClass := Some("org.enso.ParserServiceMain")
   )
 
-lazy val graph = (project in file("common/scala/graph/"))
+lazy val graph = (project in file("common/graph/"))
   .dependsOn(logger.jvm)
   .configs(Test)
   .settings(
@@ -322,7 +322,7 @@ lazy val graph = (project in file("common/scala/graph/"))
     )
   )
 
-lazy val pkg = (project in file("common/scala/pkg"))
+lazy val pkg = (project in file("common/pkg"))
   .settings(
     mainClass in (Compile, run) := Some("org.enso.pkg.Main"),
     version := "0.1",
@@ -332,7 +332,7 @@ lazy val pkg = (project in file("common/scala/pkg"))
     )
   )
 
-lazy val file_manager = (project in file("common/scala/file-manager"))
+lazy val file_manager = (project in file("common/file-manager"))
   .settings(
     (Compile / mainClass) := Some("org.enso.filemanager.FileManager")
   )
@@ -347,7 +347,7 @@ lazy val file_manager = (project in file("common/scala/file-manager"))
     libraryDependencies += "io.methvin" % "directory-watcher" % "0.9.6"
   )
 
-lazy val project_manager = (project in file("common/scala/project-manager"))
+lazy val project_manager = (project in file("common/project-manager"))
   .settings(
     (Compile / mainClass) := Some("org.enso.projectmanager.Server")
   )
