@@ -7,7 +7,7 @@ mod internal;
 pub mod emscripten_data;
 pub mod test_utils;
 
-pub use basegl_prelude as prelude;
+pub use enso_prelude as prelude;
 use internal::*;
 
 use emscripten_data::ArrayMemoryView;

@@ -260,7 +260,7 @@ impl<T> RcOps for Rc<T> {
 // ===================
 
 /// Like `Display` trait but for types. However, unlike `Display` it defaults to
-/// `core::any::type_name` if not provided with explicit implementation.
+/// `impl::any::type_name` if not provided with explicit implementation.
 pub trait TypeDisplay {
     fn type_display() -> String;
 }
@@ -346,8 +346,8 @@ impl <T:Scalar,R:DimName,C:DimName,S> TypeDisplay for Matrix<T,R,C,S> {
 /////
 /////    ```compile_fail
 /////    use std::rc::Rc;
-/////    use core::cell::RefCell;
-/////    use core::cell::Ref;
+/////    use impl::cell::RefCell;
+/////    use impl::cell::Ref;
 /////
 /////    pub struct SharedDirtyFlag<T> {
 /////        data: Rc<RefCell<T>>

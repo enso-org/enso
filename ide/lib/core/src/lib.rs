@@ -55,7 +55,7 @@ pub mod system;
 
 /// Prelude - commonly used utilities.
 pub mod prelude {
-    pub use basegl_prelude::*;
+    pub use enso_prelude::*;
     pub use logger::*;
     pub use shapely::newtype_copy;
     pub use shapely::shared;

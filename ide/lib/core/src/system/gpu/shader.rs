@@ -3,7 +3,7 @@
 #[warn(missing_docs)]
 pub mod glsl;
 
-use basegl_prelude::*;
+use enso_prelude::*;
 
 use js_sys::Float32Array;
 use web_sys::WebGlBuffer;

@@ -10,18 +10,21 @@
 #![warn(missing_debug_implementations)]
 #![feature(generators, generator_trait)]
 #![feature(specialization)]
+#![feature(type_ascription)]
 #![feature(overlapping_marker_traits)]
 
+pub mod generator;
 pub mod shared;
 pub mod singleton;
 pub mod cartesian;
 
+pub use enso_prelude as prelude;
 pub use shapely_macros::*;
 
-use std::ops::Generator;
-use std::ops::GeneratorState;
-use std::pin::Pin;
-use basegl_prelude::*;
+pub use generator::EmptyIterator;
+pub use generator::GeneratingIterator;
+
+use crate::prelude::*;
 
 
 /// Generates a newtype wrapper for the provided types. It also generates a lot of impls,
@@ -80,45 +83,6 @@ macro_rules! derive_clone_plus {
                 t.clone().into()
             }
         }
-    }
-}
-
-
-// ========================
-// === IterForGenerator ===
-// ========================
-
-#[derive(Debug)]
-pub struct IterForGenerator<G: Generator>(pub G);
-
-impl<G> Iterator for IterForGenerator<G>
-where G: Generator<Return = ()> + Unpin {
-    type Item = G::Yield;
-    fn next(&mut self) -> Option<Self::Item> {
-        match { Pin::new(&mut self.0).resume() } {
-            GeneratorState::Yielded(element) => Some(element),
-            _ => None,
-        }
-    }
-}
-
-
-// ======================
-// === EmptyGenerator ===
-// ======================
-
-#[derive(Derivative)]
-#[derivative(Debug,Default(bound=""))]
-pub struct EmptyGenerator<T>(PhantomData<T>);
-
-impl<T> EmptyGenerator<T> {
-    pub fn new() -> Self { default() }
-}
-
-impl<T> Iterator for EmptyGenerator<T> {
-    type Item = T;
-    fn next(&mut self) -> Option<Self::Item> {
-        None
     }
 }
 

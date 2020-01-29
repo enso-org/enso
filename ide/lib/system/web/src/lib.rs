@@ -7,7 +7,7 @@
 pub mod resize_observer;
 pub mod dom;
 
-use basegl_prelude::*;
+use enso_prelude::*;
 
 use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsCast;
