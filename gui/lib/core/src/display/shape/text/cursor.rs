@@ -23,7 +23,7 @@ use web_sys::WebGlBuffer;
 // ==============
 
 /// Cursor in TextComponent with its selection
-#[derive(Clone,Debug,Eq,PartialEq)]
+#[derive(Clone,Copy,Debug,Eq,PartialEq)]
 pub struct Cursor {
     pub position    : TextLocation,
     pub selected_to : TextLocation,
@@ -102,10 +102,11 @@ impl Cursor {
 
 /// An enum representing cursor moving step. The steps are based of possible keystrokes (arrows,
 /// Home, End, Ctrl+Home, etc.)
-#[derive(Debug,Eq,Hash,PartialEq)]
+#[derive(Clone,Copy,Debug,Eq,Hash,PartialEq)]
 pub enum Step {Left,Right,Up,Down,LineBegin,LineEnd,DocBegin,DocEnd}
 
 /// A struct for cursor navigation process
+#[derive(Debug)]
 pub struct CursorNavigation<'a,'b> {
     pub content   : &'a mut TextComponentContent,
     pub fonts     : &'b mut Fonts,
@@ -122,8 +123,8 @@ impl<'a,'b> CursorNavigation<'a,'b> {
     }
 
     /// Move cursor by given step.
-    pub fn move_cursor(&mut self, cursor:&mut Cursor, step:&Step) {
-        let new_position = self.new_position(cursor.position,&step);
+    pub fn move_cursor(&mut self, cursor:&mut Cursor, step:Step) {
+        let new_position = self.new_position(cursor.position,step);
         self.move_cursor_to_position(cursor,new_position);
     }
 
@@ -183,7 +184,7 @@ impl<'a,'b> CursorNavigation<'a,'b> {
     }
 
     /// New position of cursor at `position` after applying `step`.
-    fn new_position(&mut self, position: TextLocation, step:&Step) -> TextLocation {
+    fn new_position(&mut self, position: TextLocation, step:Step) -> TextLocation {
         match step {
             Step::Left      => self.prev_char_position(&position).unwrap_or(position),
             Step::Right     => self.next_char_position(&position).unwrap_or(position),
@@ -291,8 +292,8 @@ impl Cursors {
     ///
     /// If after this operation some of the cursors occupies the same position, or their selected
     /// area overlap, they are irreversibly merged.
-    pub fn navigate_all_cursors(&mut self, navigaton:&mut CursorNavigation, step:&Step) {
-        self.cursors.iter_mut().for_each(|cursor| navigaton.move_cursor(cursor,&step));
+    pub fn navigate_all_cursors(&mut self, navigaton:&mut CursorNavigation, step:Step) {
+        self.cursors.iter_mut().for_each(|cursor| navigaton.move_cursor(cursor,step));
         self.merge_overlapping_cursors();
         self.dirty = true;
     }
@@ -411,7 +412,7 @@ mod test {
             for step in &[Left,Right,Up,Down,LineBegin,LineEnd,DocBegin,DocEnd] {
                 let mut cursors = Cursors::mock(initial_cursors.clone());
 
-                cursors.navigate_all_cursors(&mut navigation,step);
+                cursors.navigate_all_cursors(&mut navigation,*step);
                 let expected = expected_positions.get(step).unwrap();
                 let current  = cursors.cursors.iter().map(|c| (c.position.line, c.position.column));
                 assert_eq!(expected,&current.collect_vec(), "Error for step {:?}", step);
@@ -439,7 +440,7 @@ mod test {
                 selecting: false
             };
             let mut cursors    = Cursors::mock(initial_cursors.clone());
-            cursors.navigate_all_cursors(&mut navigation,&LineEnd);
+            cursors.navigate_all_cursors(&mut navigation,LineEnd);
             assert_eq!(new_position, cursors.cursors.first().unwrap().position);
             assert_eq!(new_position, cursors.cursors.first().unwrap().selected_to);
         })
@@ -462,7 +463,7 @@ mod test {
                 selecting: true
             };
             let mut cursors = Cursors::mock(initial_cursors.clone());
-            cursors.navigate_all_cursors(&mut navigation,&LineEnd);
+            cursors.navigate_all_cursors(&mut navigation,LineEnd);
             assert_eq!(new_loc    , cursors.cursors.first().unwrap().position);
             assert_eq!(initial_loc, cursors.cursors.first().unwrap().selected_to);
         })

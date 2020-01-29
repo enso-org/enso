@@ -43,6 +43,7 @@ impl AnimatorData {
 
 /// This struct which runs a callback once per frame with a time difference from the last frame
 /// as its input.
+#[derive(Debug)]
 pub struct Animator {
     _continuous_animator: ContinuousAnimator
 }

@@ -48,6 +48,7 @@ impl EmscriptenRepresentation for f64 {
 // =======================
 
 /// View of array in `msdfgen` library memory
+#[derive(Debug)]
 pub struct ArrayMemoryView<F : EmscriptenRepresentation> {
     begin_address : usize,
     end_address   : usize,
@@ -58,6 +59,7 @@ pub struct ArrayMemoryView<F : EmscriptenRepresentation> {
 ///
 /// It cannot outlives view from which was created, because one might expect, that data may be freed
 /// by library once view is destroyed
+#[derive(Clone,Copy,Debug)]
 pub struct ArrayMemoryViewIterator<'a, F : EmscriptenRepresentation> {
     next_read_address : usize,
     end_address       : usize,

@@ -172,6 +172,7 @@ pub fn set_buffer_data(gl_context:&Context, buffer:&WebGlBuffer, data:&[f32]) {
 /// until it is destroyed. This way of creating buffers were taken from
 /// wasm-bindgen examples
 /// (https://rustwasm.github.io/wasm-bindgen/examples/webgl.html)
+#[allow(unsafe_code)]
 fn set_bound_buffer_data(gl_context:&Context, target:u32, data:&[f32]) {
     let usage = Context::STATIC_DRAW;
     unsafe {
@@ -194,6 +195,7 @@ pub fn set_buffer_subdata(gl_context:&Context, buffer:&WebGlBuffer, offset:usize
 /// until it is destroyed. This way of creating buffers were taken from
 /// wasm-bindgen examples
 /// (https://rustwasm.github.io/wasm-bindgen/examples/webgl.html)
+#[allow(unsafe_code)]
 fn set_bound_buffer_subdata(gl_context:&Context, target:u32, offset:i32, data:&[f32]) {
     unsafe {
         let float_array = Float32Array::view(&data);

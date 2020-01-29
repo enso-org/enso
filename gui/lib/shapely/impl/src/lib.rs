@@ -5,6 +5,9 @@
 // This library is in a very early stage. It will be refactored and improved 
 // soon. It should not be reviewed now.
 
+#![warn(unsafe_code)]
+#![warn(missing_copy_implementations)]
+#![warn(missing_debug_implementations)]
 #![feature(generators, generator_trait)]
 #![feature(specialization)]
 #![feature(overlapping_marker_traits)]
@@ -85,6 +88,7 @@ macro_rules! derive_clone_plus {
 // === IterForGenerator ===
 // ========================
 
+#[derive(Debug)]
 pub struct IterForGenerator<G: Generator>(pub G);
 
 impl<G> Iterator for IterForGenerator<G>
@@ -104,7 +108,7 @@ where G: Generator<Return = ()> + Unpin {
 // ======================
 
 #[derive(Derivative)]
-#[derivative(Default(bound=""))]
+#[derivative(Debug,Default(bound=""))]
 pub struct EmptyGenerator<T>(PhantomData<T>);
 
 impl<T> EmptyGenerator<T> {

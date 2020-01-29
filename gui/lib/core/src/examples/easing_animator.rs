@@ -23,14 +23,14 @@ use js_sys::Math;
 use std::rc::Rc;
 use std::cell::RefCell;
 
-#[derive(Clone)]
+#[derive(Clone,Debug)]
 /// A simplified Canvas object used in the EasingAnimator example.
 pub struct Canvas {
     canvas  : HtmlCanvasElement,
     context : CanvasRenderingContext2d
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone,Copy,Debug)]
 /// Interpolable properties for our example code.
 pub struct Properties {
     /// Position property.

@@ -139,7 +139,7 @@ impl TextComponent {
     pub fn navigate_cursors(&mut self, step:Step, selecting:bool, fonts:&mut Fonts) {
         let content        = &mut self.content;
         let mut navigation = CursorNavigation {content,fonts,selecting};
-        self.cursors.navigate_all_cursors(&mut navigation,&step);
+        self.cursors.navigate_all_cursors(&mut navigation,step);
     }
 
     fn refresh_content_buffers(&mut self, fonts:&mut Fonts) {
@@ -248,6 +248,7 @@ impl TextComponent {
 // ============================
 
 /// Text component builder
+#[derive(Debug)]
 pub struct TextComponentBuilder<'a, 'b, Str:AsRef<str>> {
     pub scene      : &'a Scene,
     pub fonts      : &'b mut Fonts,

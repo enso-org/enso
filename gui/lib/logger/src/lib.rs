@@ -1,5 +1,8 @@
 #![feature(trait_alias)]
 #![feature(set_stdio)]
+#![warn(unsafe_code)]
+#![warn(missing_copy_implementations)]
+#![warn(missing_debug_implementations)]
 
 use std::fmt::Debug;
 use wasm_bindgen::JsValue;

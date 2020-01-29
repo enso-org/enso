@@ -76,11 +76,13 @@ impl DirtyLines {
 ///
 /// A change is simple if it's replace a fragment of one line with text without new lines. Otherwise
 /// its a multiline change.
+#[derive(Clone,Copy,Debug)]
 pub enum ChangeType {
     Simple, Multiline
 }
 
 /// A structure describing a text operation in one place.
+#[derive(Debug)]
 pub struct TextChange {
     replaced : Range<TextLocation>,
     lines    : Vec<Vec<char>>,
@@ -175,6 +177,7 @@ pub struct TextComponentContent {
 }
 
 /// References to all needed stuff for generating buffer's data.
+#[derive(Debug)]
 pub struct RefreshInfo<'a, 'b> {
     pub lines            : &'a mut [Line],
     pub dirty_lines      : DirtyLines,

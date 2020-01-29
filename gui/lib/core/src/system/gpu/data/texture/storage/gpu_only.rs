@@ -15,7 +15,7 @@ use crate::system::gpu::data::texture::types::*;
 // ===============
 
 /// Sized, uninitialized texture.
-#[derive(Debug)]
+#[derive(Clone,Copy,Debug)]
 pub struct GpuOnlyData {
     /// Texture width.
     pub width  : i32,

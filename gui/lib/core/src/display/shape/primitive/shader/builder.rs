@@ -27,6 +27,7 @@ const FRAGMENT_RUNNER :&str = include_str!("../glsl/fragment_runner.glsl");
 
 // TODO: Consider removing this struct and moving the utils to functions.
 /// GLSL code builder.
+#[derive(Clone,Copy,Debug)]
 pub struct Builder {}
 
 impl Builder {

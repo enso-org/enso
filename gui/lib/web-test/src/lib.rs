@@ -1,4 +1,7 @@
 #![feature(arbitrary_self_types)]
+#![warn(unsafe_code)]
+#![warn(missing_copy_implementations)]
+#![warn(missing_debug_implementations)]
 
 mod system {
     pub use basegl_system_web as web;

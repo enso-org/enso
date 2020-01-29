@@ -48,8 +48,7 @@ pub type XCallbackMut1<T> = Box<dyn XCallbackMut1Fn<T>>;
 // ======================
 
 /// Handle to a callback. When the handle is dropped, the callback is removed.
-#[derive(Derivative)]
-#[derivative(Debug, Default)]
+#[derive(Debug,Default)]
 pub struct CallbackHandle {
     rc: Rc<()>
 }
@@ -75,6 +74,7 @@ impl CallbackHandle {
 }
 
 /// CallbackHandle's guard. Used to check if the handle is still valid.
+#[derive(Debug)]
 pub struct Guard {
     weak: Weak<()>
 }

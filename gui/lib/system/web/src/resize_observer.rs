@@ -14,7 +14,10 @@ pub type Listener = Closure<dyn FnMut(f64,f64)>;
 
 #[wasm_bindgen(module = "/js/resize_observer.js")]
 extern "C" {
+    #[allow(unsafe_code)]
     fn resize_observe(target: &JsValue, closure: &Listener) -> usize;
+
+    #[allow(unsafe_code)]
     fn resize_unobserve(id: usize);
 }
 

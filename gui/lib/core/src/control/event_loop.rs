@@ -34,8 +34,7 @@ pub trait EventLoopCallback = FnMut(f64) + 'static;
 /// removed as soon as the handle is dropped. You can also use the `forget`
 /// method on the handle to make the callback registered forever, but beware
 /// that it can easily lead to memory leaks.
-#[derive(Derivative)]
-#[derivative(Debug, Default, Clone)]
+#[derive(Debug,Default,Clone)]
 pub struct EventLoop {
     rc: Rc<RefCell<EventLoopData>>,
 }

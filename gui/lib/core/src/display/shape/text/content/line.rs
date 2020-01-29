@@ -14,8 +14,7 @@ use std::ops::Range;
 /// position of the char in a _text space_ (where value of 1.0 is equal to lines height). The cache
 /// is initially empty and is load on demand - so the `char_x_position` vector will be often shorter
 /// than number of characters in line.
-#[derive(Debug)]
-#[derive(Clone)]
+#[derive(Clone,Debug)]
 pub struct Line {
     chars            : Vec<char>,
     char_x_positions : Vec<f32>,
@@ -143,7 +142,7 @@ impl Line {
 }
 
 /// A line reference with it's index.
-#[derive(Shrinkwrap)]
+#[derive(Shrinkwrap,Debug)]
 #[shrinkwrap(mutable)]
 pub struct LineRef<'a> {
     #[shrinkwrap(main_field)]

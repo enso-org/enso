@@ -27,6 +27,7 @@ pub struct TextureUnit(u32);
 // ========================
 
 /// Guard which unbinds texture in specific texture unit on drop.
+#[derive(Debug)]
 pub struct TextureBindGuard {
     context : Context,
     target  : u32,

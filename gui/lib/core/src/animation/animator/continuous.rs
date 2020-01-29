@@ -1,6 +1,8 @@
 //! This module implements `ContinuousAnimator`, an object used to run a callback with a continuous
 //! time in milliseconds as its input. It can be used to implement a playback mechanism.
 
+use crate::prelude::*;
+
 use crate::control::EventLoop;
 use crate::control::callback::CallbackHandle;
 use super::AnimationCallback;
@@ -13,7 +15,10 @@ use std::cell::RefCell;
 // === ContinuousTimeAnimatorProperties ===
 // ========================================
 
+#[derive(Derivative)]
+#[derivative(Debug)]
 struct ContinuousTimeAnimatorProperties {
+    #[derivative(Debug="ignore")]
     callback                   : Box<dyn AnimationCallback>,
     relative_start_ms          : f64,
     absolute_start_ms          : Option<f64>,
@@ -26,6 +31,7 @@ struct ContinuousTimeAnimatorProperties {
 // === ContinuousTimeAnimatorData ===
 // ==================================
 
+#[derive(Debug)]
 struct ContinuousAnimatorData {
     properties : RefCell<ContinuousTimeAnimatorProperties>
 }
@@ -96,6 +102,7 @@ impl ContinuousAnimatorData {
 
 /// `ContinuousAnimator` calls `AnimationCallback` with the playback time in millisecond as its
 /// input once per frame.
+#[derive(Debug)]
 pub struct ContinuousAnimator {
     data       : Rc<ContinuousAnimatorData>,
     event_loop : EventLoop

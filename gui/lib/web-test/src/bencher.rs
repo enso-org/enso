@@ -16,7 +16,10 @@ use std::cell::RefCell;
 // =========================
 
 /// Cell, used to hold Bencher's data
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub struct BencherProperties {
+    #[derivative(Debug="ignore")]
     callback       : Box<dyn FnMut()>,
     container      : BenchContainer,
     iterations     : usize,
@@ -54,7 +57,7 @@ impl BencherProperties {
 // === BencherData ===
 // ===================
 
-#[derive(Shrinkwrap)]
+#[derive(Shrinkwrap,Debug)]
 pub struct BencherData {
     properties: RefCell<BencherProperties>
 }
@@ -119,7 +122,7 @@ impl BencherData {
 // ===============
 
 /// The Bencher struct with an API compatible to Rust's test Bencher.
-#[derive(Clone)]
+#[derive(Clone,Debug)]
 pub struct Bencher {
     data : Rc<BencherData>
 }

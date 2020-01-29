@@ -25,6 +25,7 @@ pub trait AddMut<T> {
 /// The item type is `(Option<T>, T)` where the second tuple element is
 /// a current value and first element is a previous one `None` on the first
 /// iteration.
+#[derive(Debug)]
 pub struct CachingIterator<T:Clone, It:Iterator<Item=T>> {
     last : Option<T>,
     iter : It

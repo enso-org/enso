@@ -13,6 +13,7 @@ use web_sys::HtmlElement;
 // =================
 
 /// A container to hold tests in `wasm-pack test`.
+#[derive(Clone,Debug)]
 pub struct Container {
     pub div       : HtmlElement,
     pub header    : HtmlElement,

@@ -31,9 +31,16 @@ mod js {
     use super::*;
     #[wasm_bindgen(module = "/src/system/web/dom/html/snippets.js")]
     extern "C" {
+        #[allow(unsafe_code)]
         pub fn set_object_transform(dom:&JsValue, matrix_array:&Object);
+
+        #[allow(unsafe_code)]
         pub fn setup_perspective(dom: &JsValue, znear: &JsValue);
+
+        #[allow(unsafe_code)]
         pub fn setup_camera_orthographic(dom:&JsValue, matrix_array:&JsValue);
+
+        #[allow(unsafe_code)]
         pub fn setup_camera_perspective
         ( dom          : &JsValue
         , near         : &JsValue
@@ -55,6 +62,7 @@ pub fn invert_y(mut m: Matrix4<f32>) -> Matrix4<f32> {
     m
 }
 
+#[allow(unsafe_code)]
 fn set_object_transform(dom: &JsValue, matrix: &Matrix4<f32>) {
     // Views to WASM memory are only valid as long the backing buffer isn't
     // resized. Check documentation of IntoFloat32ArrayView trait for more
@@ -65,6 +73,7 @@ fn set_object_transform(dom: &JsValue, matrix: &Matrix4<f32>) {
     }
 }
 
+#[allow(unsafe_code)]
 fn setup_camera_perspective
 (dom:&JsValue, near:f32, matrix:&Matrix4<f32>) { // Views to WASM memory are only valid as long the backing buffer isn't
     // resized. Check documentation of IntoFloat32ArrayView trait for more
@@ -79,6 +88,7 @@ fn setup_camera_perspective
     }
 }
 
+#[allow(unsafe_code)]
 fn setup_camera_orthographic(dom:&JsValue, matrix:&Matrix4<f32>) {
     // Views to WASM memory are only valid as long the backing buffer isn't
     // resized. Check documentation of IntoFloat32ArrayView trait for more

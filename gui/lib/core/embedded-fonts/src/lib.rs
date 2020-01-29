@@ -1,4 +1,7 @@
 #![allow(missing_docs)]
+#![warn(unsafe_code)]
+#![warn(missing_copy_implementations)]
+#![warn(missing_debug_implementations)]
 
 use basegl_prelude::*;
 use basegl_prelude::fmt::{Formatter, Error};

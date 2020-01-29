@@ -8,8 +8,10 @@ use wasm_bindgen::prelude::*;
 extern "C" {
     /// Returns GLSL code which redirects mangled function names to their original primitive
     /// definitions.
+    #[allow(unsafe_code)]
     pub fn builtin_redirections() -> String;
 
     /// Mangles the provided GLSL code to allow primitive definitions overloading.
+    #[allow(unsafe_code)]
     pub fn allow_overloading(s:&str) -> String;
 }
