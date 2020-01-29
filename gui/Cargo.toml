@@ -2,16 +2,24 @@
 
 members = [
     "build-utilities",
+    "lib/code-builder",
     "lib/core",
     "lib/core/embedded-fonts",
     "lib/core/msdf-sys",
     "lib/data",
     "lib/eval-tt",
+    "lib/ide/ast/impl",
+    "lib/ide/ast/macros",
+    "lib/ide/file-manager",
+    "lib/ide/json-rpc",
+    "lib/ide/parser",
+    "lib/ide/utils",
     "lib/logger",
+    "lib/macro-utils",
     "lib/optics",
     "lib/prelude",
-    "lib/code-builder",
     "lib/shapely/impl",
+    "lib/shapely/macros",
     "lib/system/web",
 ]
 

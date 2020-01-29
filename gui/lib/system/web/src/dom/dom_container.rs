@@ -1,7 +1,7 @@
 //! This file contains the implementation of DOMContainer. A struct that aids us to handle html
 //! elements, get its dimension avoiding style reflow.
 
-use basegl_prelude::*;
+use enso_prelude::*;
 
 use crate::get_element_by_id;
 use crate::dyn_into;

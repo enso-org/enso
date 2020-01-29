@@ -4,4 +4,4 @@
 
 pub mod opt_vec;
 
-pub use basegl_prelude as prelude;
+pub use enso_prelude as prelude;
