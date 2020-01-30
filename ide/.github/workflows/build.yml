@@ -26,7 +26,10 @@ jobs:
           
   test:
     name: Tests
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest,macOS-latest,ubuntu-latest]
     steps:
       - uses: actions/checkout@v1
       - uses: actions-rs/toolchain@v1
@@ -42,8 +45,9 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
-#      - name: Install Firefox
-#        run: sudo apt-get install firefox
+      - name: Install Firefox
+        run: brew cask install firefox
+        if: runner.os == 'macOS'
       - name: Run wasm-pack tests
         uses: actions-rs/cargo@v1
         with:
