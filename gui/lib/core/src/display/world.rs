@@ -15,12 +15,11 @@ use crate::data::dirty::traits::*;
 use crate::data::dirty;
 use crate::debug::stats::Stats;
 use crate::display::object::*;
+use crate::display::render::*;
 use crate::display::scene::Scene;
 use crate::display::shape::text::font::Fonts;
 use crate::display::symbol::Symbol;
 use crate::system::web;
-
-use crate::display::render::*;
 
 use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsCast;
@@ -30,41 +29,6 @@ use web_sys::KeyboardEvent;
 
 
 pub use stats::*;
-
-
-
-// ===========================
-// === UNSAFE GLOBAL STATE ===
-// ===========================
-
-/// The following code is very unsafe and should disappear in the future. We are using it in order
-/// to keep the API simple and future-proof. Each `Stage` is associated with HTML Canvas element,
-/// and we currently support a single stage only. Although this is very low-priority task, as we
-/// would not need it in our use case, it would be nice to have support for it in the library.
-/// Supporting multiple stages means, that we would be able to create a symbol, add it to a scene,
-/// and then add it to another scene (while disconnecting the previous one). This would require
-/// symbol to be associated with different contexts / different buffers depending on the root
-/// parent object. Currently this information is hardcoded while object creation and it is obtained
-/// from these global variables. By using them we simulate the final API, where symbols do not need
-/// to know scene in order to be constructed.
-
-static mut SCENE: Option<Scene> = None;
-
-/// Very unsafe function. Do not use. See documentation of `WORLD` to learn more.
-#[allow(unsafe_code)]
-pub(crate) fn get_scene() -> Scene {
-    unsafe {
-        SCENE.as_ref().unwrap_or_else(|| panic!("World not initialized.")).clone_ref()
-    }
-}
-
-/// Very unsafe function. Do not use. See documentation of `WORLD` to learn more.
-#[allow(unsafe_code)]
-fn init_global_variables(world:&World) {
-    unsafe {
-        SCENE = Some(world.rc.borrow().scene.clone_ref());
-    }
-}
 
 
 
@@ -228,7 +192,6 @@ impl World {
     pub fn new(world_data: WorldData) -> Self {
         let rc = Rc::new(RefCell::new(world_data));
         let out = Self {rc};
-        init_global_variables(&out);
         out.init_composer();
         out
     }
@@ -288,7 +251,7 @@ impl World {
         // pixel_read_pass.set_threshold(1);
         let pipeline = RenderPipeline::new()
             .add(DisplayObjectRenderPass::new(root))
-            .add(ScreenRenderPass::new())
+            .add(ScreenRenderPass::new(self))
             .add(pixel_read_pass);
         self.rc.borrow_mut().scene.set_render_pipeline(pipeline);
     }

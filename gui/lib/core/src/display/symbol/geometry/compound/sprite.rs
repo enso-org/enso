@@ -8,7 +8,7 @@ use crate::debug::Stats;
 use crate::display::object::*;
 use crate::display::symbol::material::Material;
 use crate::display::symbol::Symbol;
-use crate::display::world;
+use crate::display::world::World;
 use crate::system::gpu::types::*;
 
 
@@ -104,8 +104,8 @@ pub struct SpriteSystemData {
 
 impl {
     /// Constructor.
-    pub fn new() -> Self {
-        let scene          = world::get_scene();
+    pub fn new(world:&World) -> Self {
+        let scene          = world.scene();
         let stats          = scene.stats();
         let symbol         = scene.new_symbol();
         let mesh           = symbol.surface();

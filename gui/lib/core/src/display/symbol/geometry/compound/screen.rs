@@ -8,6 +8,7 @@ use crate::prelude::*;
 use crate::display::symbol::geometry::Sprite;
 use crate::display::symbol::geometry::SpriteSystem;
 use crate::display::symbol::material::Material;
+use crate::display::world::World;
 use crate::system::gpu::data::texture;
 use crate::system::gpu::data::types::*;
 
@@ -22,20 +23,14 @@ pub struct Screen {
 
 impl CloneRef for Screen {}
 
-impl Default for Screen {
-    fn default() -> Self {
-        let sprite_system = SpriteSystem::new();
+impl Screen {
+    /// Constructor.
+    pub fn new(world:&World) -> Self {
+        let sprite_system = SpriteSystem::new(world);
         sprite_system.set_geometry_material(Self::geometry_material());
         sprite_system.set_material(Self::surface_material());
         let sprite = sprite_system.new_instance();
         Self {sprite_system,sprite}
-    }
-}
-
-impl Screen {
-    /// Constructor.
-    pub fn new() -> Self {
-        default()
     }
 
     /// Local variables used by the screen object.

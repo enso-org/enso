@@ -8,6 +8,7 @@ use crate::display::symbol::material::Material;
 use crate::display::shape::primitive::shader;
 use crate::display::shape::primitive::def::class::Shape;
 use crate::display::object::*;
+use crate::display::world::World;
 use crate::system::gpu::types::*;
 
 
@@ -21,8 +22,8 @@ pub struct ShapeSystem {
 
 impl ShapeSystem {
     /// Constructor.
-    pub fn new<S:Shape>(shape:&S) -> Self {
-        let sprite_system = SpriteSystem::new();
+    pub fn new<S:Shape>(world:&World, shape:&S) -> Self {
+        let sprite_system = SpriteSystem::new(world);
         sprite_system.set_material(Self::surface_material(shape));
         Self {sprite_system}
     }

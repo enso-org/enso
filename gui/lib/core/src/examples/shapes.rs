@@ -39,7 +39,7 @@ fn init(world: &World) {
     let s2 = s1.translate(25.0,0.0);
     let s3 = &s1 + &s2;
 
-    let shape_system = ShapeSystem::new(&s3);
+    let shape_system = ShapeSystem::new(world,&s3);
     let sprite = shape_system.new_instance();
     sprite.size().set(Vector2::new(200.0,200.0));
     sprite.mod_position(|t| {
