@@ -1,5 +1,4 @@
 package org.enso.interpreter.test.instrument
-import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode.FunctionCall
 import org.enso.interpreter.test.InterpreterTest
 import org.graalvm.polyglot.Value

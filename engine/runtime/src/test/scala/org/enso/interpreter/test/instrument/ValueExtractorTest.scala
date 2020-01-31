@@ -11,6 +11,7 @@ class ValueExtractorTest extends InterpreterTest {
     val results = mutable.HashMap[(Int, Int), Any]()
     getValueExtractorInstrument.bindTo("Test.main", 7, 5, { res =>
       results.put((7, 5), res)
+      ()
     })
     eval(code)
     results shouldEqual Map((7, 5) -> 4)
@@ -29,12 +30,15 @@ class ValueExtractorTest extends InterpreterTest {
     val instrumenter = getValueExtractorInstrument
     instrumenter.bindTo("Test.main", 23, 7, { x =>
       results.put("x", x)
+      ()
     })
     instrumenter.bindTo("Test.main", 39, 5, { y =>
       results.put("y", y)
+      ()
     })
     instrumenter.bindTo("Test.main", 53, 5, { z =>
       results.put("z", z)
+      ()
     })
 
     getMain(code).execute(5L.asInstanceOf[AnyRef])
@@ -53,6 +57,7 @@ class ValueExtractorTest extends InterpreterTest {
     var results = List[Any]()
     getValueExtractorInstrument.bindTo("Test.main", 23, 7, { x =>
       results ::= x
+      ()
     })
 
     getMain(code).execute(5L.asInstanceOf[AnyRef])
@@ -73,6 +78,7 @@ class ValueExtractorTest extends InterpreterTest {
     var result: Option[Any] = None
     getValueExtractorInstrument.bindTo("Test.main", 33, 7, { x =>
       result = Some(x)
+      ()
     })
     getMain(code).execute(5L.asInstanceOf[AnyRef])
     result shouldEqual Some(6)
@@ -90,6 +96,7 @@ class ValueExtractorTest extends InterpreterTest {
     var zVal: Option[Any] = None
     getValueExtractorInstrument.bindTo("Test.main", 72, 7, { z =>
       zVal = Some(z)
+      ()
     })
     getMain(code).execute(5L.asInstanceOf[AnyRef])
     zVal shouldEqual Some(15)
@@ -108,9 +115,11 @@ class ValueExtractorTest extends InterpreterTest {
     val instrumenter = getValueExtractorInstrument
     instrumenter.bindTo("Test.main", 23, 7, { x =>
       values.put("x", x)
+      ()
     })
     instrumenter.bindTo("Test.main", 39, 5, { y =>
       values.put("y", y)
+      ()
     })
     getMain(code).execute(5L.asInstanceOf[AnyRef])
     val visualizationModule =

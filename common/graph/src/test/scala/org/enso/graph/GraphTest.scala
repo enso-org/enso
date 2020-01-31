@@ -33,25 +33,25 @@ class GraphTest extends FlatSpec with Matchers {
   n3.parent = e1
 
   // Change `n1` to be `App`
-  graph.unsafeWriteField[Nodes, GraphImpl.Node.Shape](
-    n1.ix,
-    0,
-    Node.Shape.App.index
-  )
+  graph.unsafeSetVariantCase[
+    Nodes,
+    GraphImpl.Node.Shape,
+    GraphImpl.Node.Shape.App
+  ](n1)
 
   // Change `n2` to be `Name`
-  graph.unsafeWriteField[Nodes, GraphImpl.Node.Shape](
-    n2.ix,
-    0,
-    Node.Shape.Name.index
-  )
+  graph.unsafeSetVariantCase[
+    Nodes,
+    GraphImpl.Node.Shape,
+    GraphImpl.Node.Shape.Name
+  ](n2)
 
   // Change `n3` to be `Nul`
-  graph.unsafeWriteField[Nodes, GraphImpl.Node.Shape](
-    n3.ix,
-    0,
-    Node.Shape.Nul.index
-  )
+  graph.unsafeSetVariantCase[
+    Nodes,
+    GraphImpl.Node.Shape,
+    GraphImpl.Node.Shape.Nul
+  ](n3)
 
   // ==========================================================================
   // === Tests ================================================================

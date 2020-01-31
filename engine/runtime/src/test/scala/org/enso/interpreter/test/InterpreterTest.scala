@@ -1,10 +1,8 @@
 package org.enso.interpreter.test
 
-import java.io.{ByteArrayOutputStream, StringReader}
+import java.io.ByteArrayOutputStream
 
 import com.oracle.truffle.api.instrumentation.EventBinding
-import org.enso.interpreter.Constants
-import org.graalvm.polyglot.{Context, Source, Value}
 import org.enso.interpreter.instrument.{
   FunctionCallExtractorInstrument,
   ReplDebuggerInstrument,
@@ -13,6 +11,7 @@ import org.enso.interpreter.instrument.{
 }
 import org.enso.interpreter.test.CodeLocationsTestInstrument.LocationsEventListener
 import org.enso.polyglot.{ExecutionContext, Function, LanguageInfo}
+import org.graalvm.polyglot.{Context, Value}
 import org.scalatest.{Assertions, FlatSpec, Matchers}
 
 case class LocationsInstrumenter(instrument: CodeLocationsTestInstrument) {

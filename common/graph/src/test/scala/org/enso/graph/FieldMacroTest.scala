@@ -12,8 +12,8 @@ class FieldMacroTest extends FlatSpec with Matchers {
   // === Components for Tests =================================================
   @component case class Nodes() { type Node[G <: Graph] }
   @component case class Edges() { type Edge[G <: Graph] }
-  @opaque case class Backref(opaque: Vector[Int])
-  @opaque case class Str(opaque: String)
+  @opaque case class Backref[G <: PrimGraph](opaque: Vector[Int])
+  @opaque case class Str[G <: PrimGraph](opaque: String)
 
   // === Tests ================================================================
   subject should "not explicitly depend on the graph type name" in {

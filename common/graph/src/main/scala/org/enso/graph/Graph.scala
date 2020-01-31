@@ -293,6 +293,23 @@ object MapsOf {
   }
 }
 
+/** A representation of the index of a variant case within the variant field.
+  *
+  * A variant node field is one that may take on many different forms under the
+  * umbrella of a single field. The prototypical example of this is `Shape`,
+  * which can be anything from `Empty` to `TypeDef`. We use the following
+  * terminology to describe variant fields:
+  * - "The variant" refers to the umbrella type (`Shape` in the example above).
+  * - "Branch" revers to the particular variant _element_ which the variant is
+  *   taking on at any given time.
+  *
+  * @tparam F the variant field type
+  * @tparam V the variant branch type
+  */
+trait VariantIndexed[F <: Graph.Component.Field, V <: F] {
+  val ix: Int
+}
+
 // ============================================================================
 // === Graph ==================================================================
 // ============================================================================
@@ -454,7 +471,7 @@ object Graph {
         ev: HasComponentField[G, C, T]
       ): Option[Component.Refined[T, V, Component.Ref[G, C]]] = {
         val variantIndexByteOffset = 0
-        if (graph.unsafeReadField[C, T](arg.ix, variantIndexByteOffset) == ix)
+        if (graph.unsafeReadFieldByIndex[C, T](arg.ix, variantIndexByteOffset) == ix)
           Some(Component.Refined[T, V, Component.Ref[G, C]](arg))
         else None
       }
@@ -477,7 +494,68 @@ object Graph {
     var components: Array[Component.Storage] =
       this.componentSizes.map(size => new Component.Storage(size)).to[Array]
 
+    /** Gets a reference to the graph component at the specified index.
+      *
+      * No bounds checking is done on the provided index.
+      *
+      * @param index the index of the component to access
+      * @param ev evidence that the graph [[G]] has a component [[C]]
+      * @tparam C the type of the component to access
+      * @return a reference to the component at `index`
+      */
+    def componentReferenceFromIndex[C <: Component](index: Int)(
+      implicit ev: HasComponent[G, C]
+    ): Graph.Component.Ref[G, C] = {
+      Graph.Component.Ref(index)
+    }
+
+    /** Sets a variant node field to the specified case.
+      *
+      * @param component the component to set the field in
+      * @param info evidence that the component [[C]] has field [[F]] in [[G]]
+      * @param indexed evidence that [[V]] is an indexed field in the variant
+      *                [[F]]
+      * @tparam C the component type
+      * @tparam F the field type
+      * @tparam V the variant branch type
+      */
+    def unsafeSetVariantCase[C <: Component, F <: Component.Field, V <: F](
+      component: Component.Ref[G, C]
+    )(
+      implicit info: HasComponentField[G, C, F],
+      indexed: VariantIndexed[F, V]
+    ): Unit = {
+      unsafeWriteField[C, F](component, indexed.ix)
+    }
+
+    /** Reads the data for a specified field [[F]] in a component [[C]] from the
+      * graph for the component instance [[component]].
+      *
+      * @param component the component instance to read from
+      * @param info evidence that component [[C]] has field [[F]] in [[G]]
+      * @tparam C the component type
+      * @tparam F the field type
+      * @return the raw field data from [[component]] specified by [[F]]
+      */
     def unsafeGetFieldData[C <: Component, F <: Component.Field](
+      component: Component.Ref[G, C]
+    )(implicit info: HasComponentField[G, C, F]): (Array[Int], Int) = {
+      unsafeGetFieldDataByIndex[C, F](component.ix, info.fieldOffset)
+    }
+
+    /** Reads the data for a specified field [[F]] in a component [[C]] from the
+      * graph for the component instance represented by [[componentIx]].
+      *
+      * No bounds checking is performed on any of the provided indices.
+      *
+      * @param componentIx the index representing the component to read from
+      * @param fieldIx the index of the field [[F]] in the component [[C]]
+      * @param info evidence that component [[C]] has field [[F]] in [[G]]
+      * @tparam C the component type
+      * @tparam F the field type
+      * @return the raw field data from [[component]] specified by [[F]]
+      */
+    def unsafeGetFieldDataByIndex[C <: Component, F <: Component.Field](
       componentIx: Int,
       fieldIx: Int
     )(implicit info: HasComponentField[G, C, F]): (Array[Int], Int) = {
@@ -486,23 +564,84 @@ object Graph {
       (arr, idx)
     }
 
+    /** Reads the spcified field [[F]] from [[component]].
+      *
+      * @param component the component instance to read from
+      * @param ev evidence that component [[C]] has field [[F]] in [[G]]
+      * @tparam C the component type
+      * @tparam F the field type
+      * @return the value of field [[F]] in [[component]]
+      */
     def unsafeReadField[C <: Component, F <: Component.Field](
+      component: Component.Ref[G, C]
+    )(implicit ev: HasComponentField[G, C, F]): Int = {
+      unsafeReadFieldByIndex[C, F](component.ix, ev.fieldOffset)
+    }
+
+    /** Reads the spcified field [[F]] from the instance of [[C]] at
+      * [[componentIx]].
+      *
+      * No bounds checking is performed on any of the provided indices.
+      *
+      * @param componentIx the index representing the component [[C]]
+      * @param fieldIx the index of the field [[F]] in the component [[C]]
+      * @param ev evidence that component [[C]] has field [[F]] in [[G]]
+      * @tparam C the component type
+      * @tparam F the field type
+      * @return the value of field [[F]] in [[component]]
+      */
+    def unsafeReadFieldByIndex[C <: Component, F <: Component.Field](
       componentIx: Int,
       fieldIx: Int
     )(implicit ev: HasComponentField[G, C, F]): Int = {
-      val (arr, idx) = unsafeGetFieldData(componentIx, fieldIx)
+      val (arr, idx) = unsafeGetFieldDataByIndex(componentIx, fieldIx)
       arr(idx)
     }
 
+    /** Writes the value of field [[F]] in [[component]] to be [[value]].
+      *
+      * @param component the instance of [[C]] to write to
+      * @param value the value to write to the field [[F]]
+      * @param ev evidence that component [[C]] has field [[F]] in [[G]]
+      * @tparam C the component type
+      * @tparam F the field type
+      */
     def unsafeWriteField[C <: Component, F <: Component.Field](
+      component: Component.Ref[G, C],
+      value: Int
+    )(
+      implicit ev: HasComponentField[G, C, F]
+    ): Unit = {
+      unsafeWriteFieldByIndex[C, F](component.ix, ev.fieldOffset, value)
+    }
+
+    /** Sets the field at [[fieldIx]] in the instance of [[C]] represented by
+      * [[componentIx]] to have the value [[value]].
+      *
+      * No bounds checking is performed on any of the provided indices.
+      *
+      * @param componentIx the index representing an instance of [[C]]
+      * @param fieldIx the index of the field [[F]] in [[C]]
+      * @param value the value to set [[F]] to
+      * @param ev evidence that component [[C]] has field [[F]] in [[G]]
+      * @tparam C the component type
+      * @tparam F the field type
+      */
+    def unsafeWriteFieldByIndex[C <: Component, F <: Component.Field](
       componentIx: Int,
       fieldIx: Int,
       value: Int
     )(implicit ev: HasComponentField[G, C, F]): Unit = {
-      val (arr, idx) = unsafeGetFieldData(componentIx, fieldIx)
+      val (arr, idx) = unsafeGetFieldDataByIndex(componentIx, fieldIx)
       arr(idx) = value
     }
 
+    /** Adds a new instance of component [[C]] to the graph.
+      *
+      * @param info evidence that the graph [[G]] has component [[C]]
+      * @tparam C the component type
+      * @return a reference to the new component [[C]]
+      */
     def addComponent[C <: Component]()(
       implicit info: HasComponent[G, C]
     ): Component.Ref[G, C] = {
@@ -514,6 +653,13 @@ object Graph {
     }
   }
   object GraphData {
+
+    /** Gets the [[GraphInfo]] from the [[GraphData]] instance.
+      *
+      * @param g the graph data
+      * @tparam G the graph type
+      * @return the graph info for [[G]]
+      */
     implicit def getInfo[G <: Graph](g: GraphData[G]): GraphInfo[G] = g.info
   }
 
@@ -544,9 +690,9 @@ object Graph {
       componentSizesEv: ComponentListToSizes[G, ComponentList],
       len: nat.ToInt[ComponentListLength]
     ): GraphInfo[G] = new GraphInfo[G] {
-        val componentCount = len()
-        val componentSizes = componentSizesEv.sizes
-      }
+      val componentCount = len()
+      val componentSizes = componentSizesEv.sizes
+    }
   }
 
   // === HasComponent ===

@@ -1,5 +1,7 @@
 package org.enso.graph.definition
 
+import org.apache.commons.lang3.StringUtils
+
 import scala.annotation.{compileTimeOnly, StaticAnnotation}
 import scala.reflect.macros.whitebox
 
@@ -260,7 +262,10 @@ object Macro {
               implicit graph: $graphTermName.GraphData[G],
               ev: $graphTermName.HasComponentField[G, C, $enclosingTypeName]
             ): $paramType = {
-              graph.unsafeReadField[C, $enclosingTypeName](node.ix, $index)
+              graph.unsafeReadFieldByIndex[C, $enclosingTypeName](
+                node.ix,
+                $index
+              )
             }
             """
           } else {
@@ -270,7 +275,7 @@ object Macro {
               ev: $graphTermName.HasComponentField[G, C, $enclosingTypeName]
             ): $paramType = {
               $graphTermName.Component.Ref(
-                graph.unsafeReadField[C, $enclosingTypeName](
+                graph.unsafeReadFieldByIndex[C, $enclosingTypeName](
                   $graphTermName.Component.Refined.unwrap(node),
                   $index
                 )
@@ -313,7 +318,10 @@ object Macro {
               ev: $graphTermName.HasComponentField[G, C, $enclosingTypeName]
             ): $paramType = {
               $graphTermName.Component.Ref(
-                graph.unsafeReadField[C, $enclosingTypeName](node.ix, $index)
+                graph.unsafeReadFieldByIndex[C, $enclosingTypeName](
+                  node.ix,
+                  $index
+                )
               )
             }
             """
@@ -324,7 +332,7 @@ object Macro {
               ev: $graphTermName.HasComponentField[G, C, $enclosingTypeName]
             ): $paramType = {
               $graphTermName.Component.Ref(
-                graph.unsafeReadField[C, $enclosingTypeName](
+                graph.unsafeReadFieldByIndex[C, $enclosingTypeName](
                   $graphTermName.Component.Refined.unwrap(node).ix,
                   $index
                 )
@@ -367,7 +375,7 @@ object Macro {
               implicit graph: $graphTermName.GraphData[G],
               ev: $graphTermName.HasComponentField[G, C, $enclosingTypeName]
             ): Unit = {
-              graph.unsafeWriteField[C, $enclosingTypeName](
+              graph.unsafeWriteFieldByIndex[C, $enclosingTypeName](
                 node.ix, $index, value
               )
             }
@@ -378,7 +386,7 @@ object Macro {
               implicit graph: $graphTermName.GraphData[G],
               ev: $graphTermName.HasComponentField[G, C, $enclosingTypeName]
             ): Unit = {
-              graph.unsafeWriteField[C, $enclosingTypeName](
+              graph.unsafeWriteFieldByIndex[C, $enclosingTypeName](
                 $graphTermName.Component.Refined.unwrap(node).ix,
                 $index,
                 value
@@ -420,7 +428,7 @@ object Macro {
               implicit graph: $graphTermName.GraphData[G],
               ev: $graphTermName.HasComponentField[G, C, $enclosingTypeName]
             ): Unit = {
-              graph.unsafeWriteField[C, $enclosingTypeName](
+              graph.unsafeWriteFieldByIndex[C, $enclosingTypeName](
                 node.ix, $index, value.ix
               )
             }
@@ -431,7 +439,7 @@ object Macro {
               implicit graph: $graphTermName.GraphData[G],
               ev: $graphTermName.HasComponentField[G, C, $enclosingTypeName]
             ): Unit = {
-              graph.unsafeWriteField[C, $enclosingTypeName](
+              graph.unsafeWriteFieldByIndex[C, $enclosingTypeName](
                 $graphTermName.Component.Refined.unwrap(node).ix,
                 $index,
                 value.ix
@@ -440,6 +448,23 @@ object Macro {
             """
           }
         }
+      }
+
+      /** Makes a type accessor name from a type name.
+        *
+        * This basically means converting from `PascalCase` to `camelCase`.
+        *
+        * @param fieldName the name of the field
+        * @return the accessor name for [[fieldName]]
+        */
+      def makeTypeAccessorName(fieldName: TypeName): String = {
+        StringUtils.uncapitalize(fieldName.toString)
+//        val matcher = "([A-Z])(.*)".r
+//
+//        matcher.findFirstMatchIn(fieldName.toString) match {
+//          case Some(t) => s"${t.group(1).toLowerCase()}${t.group(2)}"
+//          case None    => fieldName.toString.toLowerCase
+//        }
       }
 
       /** Generates accessor methods for the 'value class', the one that can
@@ -467,10 +492,9 @@ object Macro {
         val graphTermName = graphTypeName.toTermName
 
         val valClassTermName = valClassTypeName.toTermName
-        val valGetterName    = TermName(fieldName.toString.toLowerCase)
-        val valSetterName = TermName(
-          fieldName.toString.toLowerCase + "_$eq"
-        )
+        val valGetterName    = TermName(makeTypeAccessorName(fieldName))
+        val valSetterName =
+          TermName(makeTypeAccessorName(fieldName) + "_$eq")
 
         val opaqueStorageImplicits =
           generateOpaqueStorageImplicitArguments(subfields)
@@ -847,6 +871,10 @@ object Macro {
               implicit def sized = new Sized[$typeName] {
                 type Out = $natSubfields
               }
+              implicit def indexed =
+                new VariantIndexed[$parentName, $typeName] {
+                  val ix = index
+                }
             }
            """.asInstanceOf[ModuleDef]
 
@@ -1261,7 +1289,8 @@ object Macro {
     *
     * Please note that the type `T` must be fully applied. The macro must also
     * be applied to a case class, and that case class must define a single
-    * value member `opaque`.
+    * value member `opaque`. This means that the opaque storage cannot be used
+    * to store graph elements.
     *
     * By way of example, consider the following macro invocation:
     *
@@ -1276,6 +1305,10 @@ object Macro {
     *   val backref: mutable.Map[Int, Vector[Int]] = mutable.Map()
     * }
     * }}}
+    *
+    * Please note that while it is possible to define a field with multiple
+    * opaque subfields, those fields _must_ not use the same underlying storage
+    * type.
     */
   @compileTimeOnly("please enable macro paradise to expand macro annotations")
   class opaque extends StaticAnnotation {
@@ -1362,4 +1395,51 @@ object Macro {
     *                 [[opaque]] macro
     */
   trait OpaqueData[T, Storage]
+
+  /** This macro is used to annotate the object that defines the graph. It will
+    * output the macro results into a separate object nested at the same level,
+    * which can help with autocompletion in an IDE.
+    *
+    * It is used as follows:
+    *
+    * {{{
+    * @genGraph object Definition { ... }
+    * }}}
+    *
+    * If your graph definition is in an object called Foo, the new object will
+    * be called `FooGen`. The definition object must not be the top-level object
+    * in the file due to restrictions of Macro Paradise.
+    */
+  @compileTimeOnly("please enable macro paradise to expand macro annotations")
+  class genGraph extends StaticAnnotation {
+    def macroTransform(annottees: Any*): Any = macro GenGraph.impl
+  }
+  object GenGraph {
+    def impl(c: whitebox.Context)(annottees: c.Expr[Any]*): c.Expr[Any] = {
+      import c.universe._
+      val members = annottees.map(_.tree).toList
+
+      if (members.length != 1) {
+        c.error(
+          c.enclosingPosition,
+          "You must apply the `@genGraph` macro to a single object."
+        )
+      }
+
+      val objectDef = members.head
+      objectDef match {
+        case ModuleDef(mods, name, body) =>
+          val genDef = ModuleDef(mods, TermName(name.toString + "Gen"), body)
+
+          c.Expr(genDef)
+        case _ =>
+          c.error(
+            c.enclosingPosition,
+            "Your macro must be applied to an object definition."
+          )
+
+          c.Expr(objectDef)
+      }
+    }
+  }
 }

@@ -4,6 +4,8 @@ import org.enso.graph.definition.Macro.{component, field, opaque}
 import org.enso.graph.{Graph => PrimGraph}
 import shapeless.{::, HNil}
 
+import shapeless.nat._
+
 /** This file provides a small graph implementation for testing purposes.
   *
   * It creates a small graph implementation that tests both the various features
@@ -108,6 +110,9 @@ object GraphTestDefinition {
 //          implicit def sized =
 //            new Sized[Nul] { type Out = _0 }
 //
+//          implicit def indexed =
+//            new VariantIndexed[Shape, Nul] { val ix = index }
+//
 //          def unapply[G <: PrimGraph, C <: PrimGraph.Component](
 //            arg: PrimGraph.Component.Ref[G, C]
 //          )(
@@ -145,6 +150,9 @@ object GraphTestDefinition {
 //          implicit def sized =
 //            new Sized[App] { type Out = _2 }
 //
+//          implicit def indexed =
+//            new VariantIndexed[Shape, App] { val ix = index }
+//
 //          def unapply[G <: PrimGraph, C <: PrimGraph.Component](
 //            arg: PrimGraph.Component.Ref[G, C]
 //          )(
@@ -165,7 +173,7 @@ object GraphTestDefinition {
 //              ev: PrimGraph.HasComponentField[G, C, Shape]
 //            ): Edge[G] =
 //              PrimGraph.Component.Ref(
-//                graph.unsafeReadField[C, Shape](
+//                graph.primUnsafeReadField[C, Shape](
 //                  PrimGraph.Component.Refined.unwrap(node).ix,
 //                  0
 //                )
@@ -175,7 +183,7 @@ object GraphTestDefinition {
 //              implicit graph: PrimGraph.GraphData[G],
 //              ev: PrimGraph.HasComponentField[G, C, Shape]
 //            ): Unit =
-//              graph.unsafeWriteField[C, Shape](
+//              graph.primUnsafeWriteField[C, Shape](
 //                PrimGraph.Component.Refined.unwrap(node).ix,
 //                0,
 //                value.ix
@@ -186,7 +194,7 @@ object GraphTestDefinition {
 //              ev: PrimGraph.HasComponentField[G, C, Shape]
 //            ): Edge[G] =
 //              PrimGraph.Component.Ref(
-//                graph.unsafeReadField[C, Shape](
+//                graph.primUnsafeReadField[C, Shape](
 //                  PrimGraph.Component.Refined.unwrap(node).ix,
 //                  1
 //                )
@@ -196,7 +204,7 @@ object GraphTestDefinition {
 //              implicit graph: PrimGraph.GraphData[G],
 //              ev: PrimGraph.HasComponentField[G, C, Shape]
 //            ): Unit =
-//              graph.unsafeWriteField[C, Shape](
+//              graph.primUnsafeWriteField[C, Shape](
 //                PrimGraph.Component.Refined.unwrap(node).ix,
 //                1,
 //                value.ix
@@ -228,9 +236,11 @@ object GraphTestDefinition {
 //        object Centre {
 //          val index = 2
 //          val any =
-//            PrimGraph.Component.VariantMatcher[Shape, App](index)
+//            PrimGraph.Component.VariantMatcher[Shape, Centre](index)
 //          implicit def sized =
 //            new Sized[Centre] { type Out = _1 }
+//          implicit def indexed =
+//            new VariantIndexed[Shape, Centre] { val ix = index }
 //
 //          def unapply[G <: PrimGraph, C <: PrimGraph.Component](
 //            arg: PrimGraph.Component.Ref[G, C]
@@ -255,7 +265,7 @@ object GraphTestDefinition {
 //              ev: PrimGraph.HasComponentField[G, C, Shape]
 //            ): Edge[G] =
 //              PrimGraph.Component.Ref(
-//                graph.unsafeReadField[C, Shape](
+//                graph.primUnsafeReadField[C, Shape](
 //                  PrimGraph.Component.Refined.unwrap(node).ix,
 //                  0
 //                )
@@ -265,7 +275,7 @@ object GraphTestDefinition {
 //              implicit graph: PrimGraph.GraphData[G],
 //              ev: PrimGraph.HasComponentField[G, C, Shape]
 //            ): Unit =
-//              graph.unsafeWriteField[C, Shape](
+//              graph.primUnsafeWriteField[C, Shape](
 //                PrimGraph.Component.Refined.unwrap(node).ix,
 //                0,
 //                value.ix
@@ -277,7 +287,7 @@ object GraphTestDefinition {
 //            ): CentreVal[G] = {
 //              CentreVal(
 //                PrimGraph.Component.Ref(
-//                  graph.unsafeReadField[C, Shape](
+//                  graph.primUnsafeReadField[C, Shape](
 //                    PrimGraph.Component.Refined.unwrap(node).ix,
 //                    0
 //                  )
@@ -289,7 +299,7 @@ object GraphTestDefinition {
 //              implicit graph: PrimGraph.GraphData[G],
 //              ev: PrimGraph.HasComponentField[G, C, Shape]
 //            ): Unit = {
-//              graph.unsafeWriteField[C, Shape](
+//              graph.primUnsafeWriteField[C, Shape](
 //                PrimGraph.Component.Refined.unwrap(node).ix,
 //                0,
 //                value.fn.ix
@@ -308,12 +318,14 @@ object GraphTestDefinition {
 //          val any   = PrimGraph.Component.VariantMatcher[Shape, Name](index)
 //          implicit def sized =
 //            new Sized[Centre] { type Out = _1 } // Due to one field being opaque
+//          implicit def indexed =
+//            new VariantIndexed[Shape, Name] { val ix = index }
 //
 //          def unapply[G <: PrimGraph, C <: PrimGraph.Component](
 //            arg: PrimGraph.Component.Ref[G, C]
 //          )(
 //            implicit graph: PrimGraph.GraphData[G],
-//            map: StringStorage,
+//            map: StrStorage,
 //            ev: PrimGraph.HasComponentField[G, C, Shape]
 //          ): Option[scala.Tuple1[String]] = {
 //            any.unapply(arg).map(t => scala.Tuple1(t.str))
@@ -331,18 +343,18 @@ object GraphTestDefinition {
 //          ) {
 //            def str(
 //              implicit graph: PrimGraph.GraphData[G],
-//              map: StringStorage,
+//              map: StrStorage,
 //              ev: PrimGraph.HasComponentField[G, C, Shape]
 //            ): String = {
-//              map.string(PrimGraph.Component.Refined.unwrap(node).ix)
+//              map.str(PrimGraph.Component.Refined.unwrap(node).ix)
 //            }
 //
 //            def str_=(value: String)(
 //              implicit graph: PrimGraph.GraphData[G],
-//              map: StringStorage,
+//              map: StrStorage,
 //              ev: PrimGraph.HasComponentField[G, C, Shape]
 //            ): Unit = {
-//              map.string(PrimGraph.Component.Refined.unwrap(node).ix) = value
+//              map.str(PrimGraph.Component.Refined.unwrap(node).ix) = value
 //            }
 //
 //            def linkEdge(
@@ -350,7 +362,7 @@ object GraphTestDefinition {
 //              ev: PrimGraph.HasComponentField[G, C, Shape]
 //            ): Edge[G] = {
 //              PrimGraph.Component.Ref(
-//                graph.unsafeReadField[C, Shape](
+//                graph.primUnsafeReadField[C, Shape](
 //                  PrimGraph.Component.Refined.unwrap(node).ix,
 //                  0 // as the other field is opaque
 //                )
@@ -361,7 +373,7 @@ object GraphTestDefinition {
 //              implicit graph: PrimGraph.GraphData[G],
 //              ev: PrimGraph.HasComponentField[G, C, Shape]
 //            ): Unit = {
-//              graph.unsafeWriteField[C, Shape](
+//              graph.primUnsafeWriteField[C, Shape](
 //                PrimGraph.Component.Refined.unwrap(node).ix,
 //                0,
 //                value.ix
@@ -370,7 +382,7 @@ object GraphTestDefinition {
 //
 //            def name(
 //              implicit graph: PrimGraph.GraphData[G],
-//              map: StringStorage,
+//              map: StrStorage,
 //              ev: PrimGraph.HasComponentField[G, C, Shape]
 //            ): NameVal[G] = {
 //              NameVal(
@@ -381,7 +393,7 @@ object GraphTestDefinition {
 //
 //            def name_=(value: NameVal[G])(
 //              implicit graph: PrimGraph.GraphData[G],
-//              map: StringStorage,
+//              map: StrStorage,
 //              ev: PrimGraph.HasComponentField[G, C, Shape]
 //            ): Unit = {
 //              this.str      = value.str

@@ -2,15 +2,9 @@ package org.enso.interpreter.test
 
 import java.io.File
 
-import org.enso.interpreter.Constants
 import org.enso.pkg.Package
-import org.enso.polyglot.{
-  ExecutionContext,
-  LanguageInfo,
-  RuntimeOptions,
-  TopScope
-}
-import org.graalvm.polyglot.{Context, Source, Value}
+import org.enso.polyglot.{ExecutionContext, LanguageInfo, RuntimeOptions}
+import org.graalvm.polyglot.{Context, Value}
 import org.scalatest.{FlatSpec, Matchers}
 
 trait PackageTest extends FlatSpec with Matchers with ValueEquality {

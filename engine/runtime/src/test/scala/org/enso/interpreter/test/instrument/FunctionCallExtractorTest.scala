@@ -1,7 +1,6 @@
 package org.enso.interpreter.test.instrument
 import java.util.function.Consumer
 
-import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode.FunctionCall
 import org.enso.interpreter.test.InterpreterTest
 
