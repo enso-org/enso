@@ -4,6 +4,7 @@
 use crate::prelude::*;
 
 use crate::system::gpu::Context;
+use crate::system::gpu::data::buffer::item::JsBufferViewArr;
 use crate::system::gpu::data::texture::class::*;
 use crate::system::gpu::data::texture::storage::*;
 use crate::system::gpu::data::texture::types::*;
@@ -62,5 +63,15 @@ TextureReload for Texture<GpuOnly,I,T> {
         (target,level,internal_format,width,height,border,format,elem_type,None).unwrap();
 
         Self::set_texture_parameters(self.context());
+    }
+}
+
+impl<I:InternalFormat, T:ItemType+JsBufferViewArr> Texture<GpuOnly,I,T> {
+    /// Reload texture with given content. The data will be copied to gpu, but the texture will not
+    /// take ownership.
+    pub fn reload_with_content(&self, data:&[T]) {
+        let width  = self.storage().width;
+        let height = self.storage().height;
+        self.reload_from_memory(data,width,height);
     }
 }

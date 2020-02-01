@@ -1,17 +1,19 @@
-#![allow(missing_docs)]
+//! In this module we handle the fonts information required for rendering glyphs.
 
 use crate::prelude::*;
 
-use crate::display::shape::text::msdf::MsdfTexture;
-use crate::display::shape::text::msdf::convert_msdf_transformation;
-use crate::display::shape::text::msdf::x_distance_from_msdf_value;
+use crate::display::shape::glyph::msdf::{MsdfTexture, convert_msdf_translation};
+use crate::display::shape::glyph::msdf::x_distance_from_msdf_value;
 
 use basegl_core_msdf_sys as msdf_sys;
 use basegl_core_embedded_fonts::EmbeddedFonts;
 use msdf_sys::MsdfParameters;
 use msdf_sys::MultichannelSignedDistanceField;
+use nalgebra::Vector2;
 use std::collections::hash_map::Entry::Occupied;
 use std::collections::hash_map::Entry::Vacant;
+
+
 
 // ========================
 // === Font render info ===
@@ -22,17 +24,23 @@ use std::collections::hash_map::Entry::Vacant;
 /// Each distance and transformation values are expressed in normalized coordinates, where
 /// (0.0, 0.0) is initial pen position for an character, and `y` = 1.0 is _ascender_.
 ///
-/// `from_base_layout` transforms the _base square_ for a character, such the glyph will be rendered
-/// correctly with assigned MSDF texture. The _base square_ corners are (0.0, 0.0), (1.0, 1.0).
-/// See also `glyph_render::GLYPH_SQUARE_VERTICES_BASE_LAYOUT`.
+/// `offset` and `scale` transforms the _base square_ for a character, such the glyph will be
+/// rendered correctly with assigned MSDF texture. The _base square_ corners are (0.0, 0.0),
+/// (1.0, 1.0).
 ///
 /// For explanation of various font-rendering terms, see
 /// [freetype documentation](https://www.freetype.org/freetype2/docs/glyphs/glyphs-3.html#section-1)
-#[derive(Debug)]
+#[derive(Copy,Clone,Debug)]
 pub struct GlyphRenderInfo {
-    pub msdf_texture_rows : std::ops::Range<usize>,
-    pub from_base_layout  : nalgebra::Projective2<f64>,
-    pub advance           : f64
+    /// An index of glyph in a msdf texture (counted from the top of column. For details, see
+    /// MsdfTexture documentation.
+    pub msdf_texture_glyph_id: usize,
+    /// A required offset of the _base square_ see structure documentation for details.
+    pub offset: Vector2<f32>,
+    /// A required scale of the _base square_ see structure documentation for details.
+    pub scale: Vector2<f32>,
+    /// An advance. Advance is the distance between two successive pen positions for specific glyph.
+    pub advance: f64
 }
 
 /// A single font data used for rendering
@@ -44,36 +52,37 @@ pub struct GlyphRenderInfo {
 /// [freetype documentation](https://www.freetype.org/freetype2/docs/glyphs/glyphs-3.html#section-1)
 #[derive(Debug)]
 pub struct FontRenderInfo {
-    pub name          : String,
-    pub msdf_sys_font : msdf_sys::Font,
-    pub msdf_texture  : MsdfTexture,
-    glyphs            : HashMap<char,GlyphRenderInfo>,
-    kerning           : HashMap<(char,char),f64>
+    /// Name of the font.
+    pub name      : String,
+    msdf_sys_font : msdf_sys::Font,
+    msdf_texture  : MsdfTexture,
+    glyphs        : HashMap<char,GlyphRenderInfo>,
+    kerning       : HashMap<(char,char),f64>
 }
 
 impl FontRenderInfo {
+    /// See `MSDF_PARAMS` docs.
     pub const MAX_MSDF_SHRINK_FACTOR : f64 = 4.; // Note [Picked MSDF parameters]
+    /// See `MSDF_PARAMS` docs.
     pub const MAX_MSDF_GLYPH_SCALE   : f64 = 2.; // Note [Picked MSDF parameters]
 
+    /// Parameters used for MSDF generation.
+    ///
+    /// The range was picked such way, that we avoid fitting range in one rendered pixel.
+    /// Otherwise the antialiasing won't work. I assumed some maximum `shrink factor` (how many
+    /// times rendered square will be smaller than MSDF size), and pick an arbitrary maximum glyph
+    /// scale up.
+    ///
+    /// The rest of parameters are the defaults taken from msdfgen library
     pub const MSDF_PARAMS : MsdfParameters = MsdfParameters {
         width                         : MsdfTexture::WIDTH,
         height                        : MsdfTexture::ONE_GLYPH_HEIGHT,
-        edge_coloring_angle_threshold : 3.0,   // Note [Picked MSDF parameters]
+        edge_coloring_angle_threshold : 3.0,
         range                         : Self::MAX_MSDF_SHRINK_FACTOR * Self::MAX_MSDF_GLYPH_SCALE,
         max_scale                     : Self::MAX_MSDF_GLYPH_SCALE,
-        edge_threshold                : 1.001, // Note [Picked MSDF parameters]
-        overlap_support               : true   // Note [Picked MSDF parameters]
+        edge_threshold                : 1.001,
+        overlap_support               : true
     };
-
-    /* Note [Picked MSDF parameters]
-     *
-     * The range was picked such way, that we avoid fitting range in one rendered pixel.
-     * Otherwise the antialiasing won't work. I assumed some maximum `shrink factor` (how many
-     * times rendered square will be smaller than MSDF size), and pick an arbitrary maximum glyph
-     * scale up.
-     *
-     * The rest of parameters are the defaults taken from msdfgen library
-     */
 
     /// Create render info based on font data in memory
     pub fn new(name:String, font_data:&[u8]) -> FontRenderInfo {
@@ -95,20 +104,18 @@ impl FontRenderInfo {
 
     /// Load char render info
     pub fn load_char(&mut self, ch:char) {
-        let handle              = &self.msdf_sys_font;
-        let unicode             = ch as u32;
-        let params              = Self::MSDF_PARAMS;
-        let msdf_height         = MsdfTexture::ONE_GLYPH_HEIGHT;
-        let msdf_tex_rows_begin = self.msdf_texture.rows();
-        let msdf_tex_rows_end   = msdf_tex_rows_begin + msdf_height;
+        let handle         = &self.msdf_sys_font;
+        let unicode        = ch as u32;
+        let params         = Self::MSDF_PARAMS;
 
-        let msdf                = MultichannelSignedDistanceField::generate(handle,unicode,&params);
-        let msdf_transformation = convert_msdf_transformation(&msdf);
-        let advance             = x_distance_from_msdf_value(msdf.advance);
+        let msdf           = MultichannelSignedDistanceField::generate(handle,unicode,&params);
+        let inversed_scale = Vector2::new(1.0/msdf.scale.x, 1.0/msdf.scale.y);
+        let translation    = convert_msdf_translation(&msdf);
         let glyph_info = GlyphRenderInfo {
-            msdf_texture_rows     : msdf_tex_rows_begin..msdf_tex_rows_end,
-            from_base_layout      : msdf_transformation.inverse(),
-            advance
+            msdf_texture_glyph_id : self.glyphs.len(),
+            offset                : nalgebra::convert(-translation),
+            scale                 : nalgebra::convert(inversed_scale),
+            advance               : x_distance_from_msdf_value(msdf.advance),
         };
         self.msdf_texture.extend(msdf.data.iter());
         self.glyphs.insert(ch, glyph_info);
@@ -134,6 +141,11 @@ impl FontRenderInfo {
         }
     }
 
+    /// A whole msdf texture bound for this font.
+    pub fn msdf_texture(&self) -> &MsdfTexture {
+        &self.msdf_texture
+    }
+
     #[cfg(test)]
     pub fn mock_font(name : String) -> FontRenderInfo {
         FontRenderInfo {
@@ -147,15 +159,13 @@ impl FontRenderInfo {
 
     #[cfg(test)]
     pub fn mock_char_info(&mut self, ch : char) -> &mut GlyphRenderInfo {
-        let msdf_height             = MsdfTexture::ONE_GLYPH_HEIGHT;
-        let msdf_texture_rows_begin = self.msdf_texture.rows();
-        let msdf_texture_rows_end   = msdf_texture_rows_begin + msdf_height;
         let data_size               = MsdfTexture::ONE_GLYPH_SIZE;
         let msdf_data               = (0..data_size).map(|_| 0.12345);
 
         let char_info = GlyphRenderInfo {
-            msdf_texture_rows     : (msdf_texture_rows_begin..msdf_texture_rows_end),
-            from_base_layout      : nalgebra::Transform::identity(),
+            msdf_texture_glyph_id : self.glyphs.len(),
+            offset                : Vector2::new(0.0, 0.0),
+            scale                 : Vector2::new(1.0, 1.0),
             advance               : 0.0
         };
         self.msdf_texture.extend(msdf_data);
@@ -170,6 +180,7 @@ impl FontRenderInfo {
 }
 
 
+
 // ===================
 // === LoadedFonts ===
 // ===================
@@ -179,16 +190,16 @@ pub type FontId = usize;
 
 /// Structure keeping all fonts loaded from different sources.
 #[derive(Debug)]
-pub struct Fonts {
+pub struct FontRegistry {
     embedded : EmbeddedFonts,
     fonts    : HashMap<FontId,FontRenderInfo>,
     next_id  : FontId
 }
 
-impl Fonts {
+impl FontRegistry {
     /// Create empty `Fonts` structure (however it contains raw data of embedded fonts).
-    pub fn new() -> Fonts {
-        Fonts {
+    pub fn new() -> FontRegistry {
+        FontRegistry {
             embedded : EmbeddedFonts::create_and_fill(),
             fonts    : HashMap::new(),
             next_id  : 1
@@ -215,21 +226,25 @@ impl Fonts {
     }
 }
 
-impl Default for Fonts {
+impl Default for FontRegistry {
     fn default() -> Self {
         Self::new()
     }
 }
 
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::display::shape::text::msdf::MsdfTexture;
+    use crate::display::shape::glyph::msdf::MsdfTexture;
+
     use basegl_core_msdf_sys as msdf_sys;
     use basegl_core_embedded_fonts::EmbeddedFonts;
-    use wasm_bindgen_test::{wasm_bindgen_test, wasm_bindgen_test_configure};
     use msdf_sys::test_utils::TestAfterInit;
     use std::future::Future;
+    use wasm_bindgen_test::wasm_bindgen_test;
+    use wasm_bindgen_test::wasm_bindgen_test_configure;
 
     const TEST_FONT_NAME : &str = "DejaVuSansMono-Bold";
 
@@ -275,11 +290,11 @@ mod tests {
             let first_char  = font_render_info.glyphs.get(&'A').unwrap();
             let second_char = font_render_info.glyphs.get(&'B').unwrap();
 
-            let first_range  = 0..MsdfTexture::ONE_GLYPH_HEIGHT;
-            let second_range = MsdfTexture::ONE_GLYPH_HEIGHT..tex_height;
+            let first_index  = 0;
+            let second_index = 1;
 
-            assert_eq!(first_range  , first_char.msdf_texture_rows);
-            assert_eq!(second_range , second_char.msdf_texture_rows);
+            assert_eq!(first_index  , first_char.msdf_texture_glyph_id);
+            assert_eq!(second_index , second_char.msdf_texture_glyph_id);
         })
     }
 
@@ -290,13 +305,13 @@ mod tests {
 
             {
                 let char_info = font_render_info.get_glyph_info('A');
-                assert_eq!(0..MsdfTexture::WIDTH, char_info.msdf_texture_rows);
+                assert_eq!(0, char_info.msdf_texture_glyph_id);
             }
             assert_eq!(1, font_render_info.glyphs.len());
 
             {
                 let char_info = font_render_info.get_glyph_info('A');
-                assert_eq!(0..MsdfTexture::WIDTH, char_info.msdf_texture_rows);
+                assert_eq!(0, char_info.msdf_texture_glyph_id);
             }
             assert_eq!(1, font_render_info.glyphs.len());
         })

@@ -3,6 +3,7 @@
 use crate::prelude::*;
 
 use crate::system::gpu::Context;
+use crate::system::gpu::data::buffer::item::JsBufferViewArr;
 use crate::system::gpu::data::gl_enum::*;
 use crate::system::gpu::data::gl_enum::traits::*;
 use crate::system::gpu::data::texture::storage::*;
@@ -167,6 +168,35 @@ impl<S:StorageRelation<I,T>,I,T> Texture<S,I,T> {
         context.tex_parameteri(target,Context::TEXTURE_MIN_FILTER,Context::LINEAR as i32);
         context.tex_parameteri(target,Context::TEXTURE_WRAP_S,wrap);
         context.tex_parameteri(target,Context::TEXTURE_WRAP_T,wrap);
+    }
+}
+
+impl<S,I,T> Texture<S,I,T>
+where S : StorageRelation<I,T>,
+      I : InternalFormat,
+      T : ItemType + JsBufferViewArr {
+    /// Reloads gpu texture with data from given slice.
+    pub fn reload_from_memory(&self, data:&[T], width:i32, height:i32) {
+        let target          = Context::TEXTURE_2D;
+        let level           = 0;
+        let border          = 0;
+        let internal_format = Self::gl_internal_format();
+        let format          = Self::gl_format().into();
+        let elem_type       = Self::gl_elem_type();
+
+        self.context.bind_texture(target,Some(&self.gl_texture));
+        #[allow(unsafe_code)]
+        unsafe {
+            // We use unsafe array view which is used immediately, so no allocations should happen
+            // until we drop the view.
+            let view = data.js_buffer_view();
+            let result = self.context
+                .tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_opt_array_buffer_view
+                (target,level,internal_format,width,height,border,format,elem_type,Some(&view));
+            result.unwrap();
+        }
+
+        Self::set_texture_parameters(&self.context);
     }
 }
 

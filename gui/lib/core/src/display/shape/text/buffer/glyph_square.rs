@@ -101,7 +101,7 @@ impl Pen {
 
 /// Builder for specific attribute of glyph square's vertices
 ///
-/// Builder is meant to be used for producing attribute data for squares of glyphs placed in one
+/// Builder is meant to be used for producing attribute data for squares of glyph placed in one
 /// line of text. The attribute may be vertices position, texture coordinates, etc.
 pub trait GlyphAttributeBuilder {
     const OUTPUT_SIZE : usize;
@@ -134,7 +134,7 @@ pub struct GlyphVertexPositionBuilder<'a,'b> {
 impl<'a,'b> GlyphVertexPositionBuilder<'a,'b> {
     /// New GlyphVertexPositionBuilder
     ///
-    /// The newly created builder start to place glyphs at location pointed by given pen.
+    /// The newly created builder start to place glyph at location pointed by given pen.
     pub fn new(font:&'a mut FontRenderInfo, pen:&'b mut Pen) -> Self {
         GlyphVertexPositionBuilder {font,pen}
     }
@@ -225,11 +225,11 @@ impl<'a> GlyphTextureCoordsBuilder<'a> {
 
     /// Transformation MSDF texture fragment associated with given glyph
     ///
-    /// The MSDF texture contains MSDFs for many glyphs, so this translation moves points expressed
+    /// The MSDF texture contains MSDFs for many glyph, so this translation moves points expressed
     /// in "single" msdf space to actual texture coordinates.
     pub fn glyph_texture_fragment_transform(&mut self, ch:char) -> Translation2<f64> {
         let glyph_info     = self.font.get_glyph_info(ch);
-        let offset_y       = glyph_info.msdf_texture_rows.start as f64;
+        let offset_y       = glyph_info.msdf_texture_glyph_id as f64 * ;
         Translation2::new(0.0, offset_y)
     }
 }
@@ -370,29 +370,5 @@ mod tests {
             assert_eq!(expected_a_coords, a_texture_coords.as_ref());
             assert_eq!(expected_w_coords, w_texture_coords.as_ref());
         })
-    }
-
-    fn mock_a_glyph_info(font:&mut FontRenderInfo) -> &mut GlyphRenderInfo {
-        let a_info = font.mock_char_info('A');
-        a_info.advance = 0.56;
-        let trans_mtx = nalgebra::Matrix3::new
-            ( 0.5, 0.0, 0.1
-            , 0.0, 0.8, 0.2
-            , 0.0, 0.0, 1.0
-            );
-        a_info.from_base_layout = nalgebra::Projective2::from_matrix_unchecked(trans_mtx);
-        a_info
-    }
-
-    fn mock_w_glyph_info(font:&mut FontRenderInfo) -> &mut GlyphRenderInfo {
-        let a_info = font.mock_char_info('W');
-        a_info.advance = 0.7;
-        let trans_mtx = nalgebra::Matrix3::new
-            ( 0.6, 0.0, 0.1
-            , 0.0, 0.9, 0.2
-            , 0.0, 0.0, 1.0
-            );
-        a_info.from_base_layout = nalgebra::Projective2::from_matrix_unchecked(trans_mtx);
-        a_info
     }
 }
