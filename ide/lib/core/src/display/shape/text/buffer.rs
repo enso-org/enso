@@ -106,8 +106,8 @@ impl TextComponentBuffers {
     fn create_uninitialized
     (gl_context:&Context, display_size:Vector2<f64>, refresh:&mut RefreshInfo)
     -> TextComponentBuffers {
-        // Display_size.(x/y).floor() makes space for all lines/glyphs that fit in space in
-        // their full size. But we have 2 more lines/glyphs: one clipped from top or left, and one
+        // Display_size.(x/y).floor() makes space for all lines/glyph that fit in space in
+        // their full size. But we have 2 more lines/glyph: one clipped from top or left, and one
         // from bottom or right.
         const ADDITIONAL: usize   = 2;
         let displayed_lines       = display_size.y.floor() as usize + ADDITIONAL;

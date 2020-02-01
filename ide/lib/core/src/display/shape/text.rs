@@ -1,6 +1,5 @@
 #![allow(missing_docs)]
 
-#[warn(missing_docs)]
 pub mod font;
 #[warn(missing_docs)]
 pub mod buffer;

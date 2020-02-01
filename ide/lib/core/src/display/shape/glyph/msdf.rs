@@ -1,4 +1,4 @@
-#![allow(missing_docs)]
+//! Multichannel Signed Distance Field handling.
 
 use basegl_core_msdf_sys as msdf_sys;
 use msdf_sys::MultichannelSignedDistanceField;
@@ -8,21 +8,27 @@ use nalgebra::clamp;
 // === MSDF Texture ===
 // ====================
 
-/// Texture with msdf for all loaded glyphs of font
+/// Texture with msdf for all loaded glyph of font
 ///
 /// This structure keeps texture data in 8-bit-per-channel RGB format, which
 /// is ready to be passed to webgl texImage2D. The texture contains MSDFs for
-/// all loaded glyphs, organized in vertical column.
+/// all loaded glyph, organized in vertical column.
 #[derive(Debug)]
 pub struct MsdfTexture {
+    /// A plain data of this texture.
     pub data : Vec<u8>
 }
 
 impl MsdfTexture {
+    /// Number of channels per cell in MSDF texture
     pub const CHANNELS_COUNT   : usize = MultichannelSignedDistanceField::CHANNELS_COUNT;
+    /// Width of single MSDF in cells.
     pub const WIDTH            : usize = 32;
+    /// Size of the texture row.
     pub const ROW_SIZE         : usize = Self::CHANNELS_COUNT * Self::WIDTH;
+    /// Height of single MSDF in cells.
     pub const ONE_GLYPH_HEIGHT : usize = 32;
+    /// Size of single MSDF.
     pub const ONE_GLYPH_SIZE   : usize = Self::ROW_SIZE * Self::ONE_GLYPH_HEIGHT;
 
     /// Number of rows in texture
@@ -73,25 +79,20 @@ pub fn y_distance_from_msdf_value(msdf_value:f64) -> f64 {
     msdf_value / MsdfTexture::ONE_GLYPH_HEIGHT as f64
 }
 
-/// Converts transformation obtained from msdf-sys to vertex-space values
+/// Converts translation obtained from msdf-sys to vertex-space values
 ///
 /// This function get the transformation obtained from `msdf_sys` which is
 /// expressed in MSDF units, and convert it to  normalized coordinates, where
 /// (0.0, 0.0) is initial pen position for an character, and `y` = 1.0 is
 /// _ascender_.
-pub fn convert_msdf_transformation(msdf:&MultichannelSignedDistanceField)
--> nalgebra::Projective2<f64> {
+pub fn convert_msdf_translation(msdf:&MultichannelSignedDistanceField)
+-> nalgebra::Vector2<f32> {
     let translate_converted_x = x_distance_from_msdf_value(msdf.translation.x);
     let translate_converted_y = y_distance_from_msdf_value(msdf.translation.y);
-    let translate_scaled_x    = translate_converted_x * msdf.scale.x;
-    let translate_scaled_y    = translate_converted_y * msdf.scale.y;
-    let msdf_transformation_matrix = nalgebra::Matrix3::new(
-        msdf.scale.x, 0.0,          translate_scaled_x,
-        0.0,          msdf.scale.y, translate_scaled_y,
-        0.0,          0.0,          1.0
-    );
-    nalgebra::Projective2::from_matrix_unchecked(msdf_transformation_matrix)
+    nalgebra::Vector2::new(translate_converted_x as f32, translate_converted_y as f32)
 }
+
+
 
 #[cfg(test)]
 mod test {
@@ -125,21 +126,15 @@ mod test {
     }
 
     #[wasm_bindgen_test(async)]
-    fn msdf_transformation_converting() -> impl Future<Output=()> {
+    fn msdf_translation_converting() -> impl Future<Output=()> {
         TestAfterInit::schedule(|| {
             let mut msdf = MultichannelSignedDistanceField::mock_results();
-            msdf.scale       = Vector2::new(2.0,  3.0);
             msdf.translation = Vector2::new(16.0, 4.0);
 
-            let converted = convert_msdf_transformation(&msdf);
+            let converted = convert_msdf_translation(&msdf);
+            let expected = nalgebra::Vector2::new(0.5, 1.0/8.0);
 
-            let expected_mtx = nalgebra::Matrix3::new(
-                2.0, 0.0, 1.0,
-                0.0, 3.0, 3.0/8.0,
-                0.0, 0.0, 1.0
-            );
-
-            assert_eq!(expected_mtx, *converted.matrix());
+            assert_eq!(expected, converted);
         })
     }
 }

@@ -144,7 +144,7 @@ impl MsdfProgram {
 // === Specific program constructors ===
 // =====================================
 
-/// Create program for TextComponent content (glyphs) rendering.
+/// Create program for TextComponent content (glyph) rendering.
 pub fn create_content_program(gl_context:&Context) -> MsdfProgram {
     let vert_shader_body = include_str!("program/msdf_vert.glsl");
     let frag_shader_body = include_str!("program/msdf_frag.glsl");
