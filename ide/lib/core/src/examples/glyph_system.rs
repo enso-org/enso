@@ -1,8 +1,9 @@
 //! An example showing usage of GlyphSystem.
 
-use crate::display::shape::glyph::font::FontRegistry;
-use crate::display::shape::glyph::system::GlyphSystem;
-use crate::display::object::{DisplayObjectOps, DisplayObject};
+use crate::display::object::DisplayObjectOps;
+use crate::display::object::DisplayObject;
+use crate::display::shape::text::glyph::font::FontRegistry;
+use crate::display::shape::text::glyph::system::GlyphSystem;
 use crate::display::world::*;
 
 use basegl_core_msdf_sys::run_once_initialized;

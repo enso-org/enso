@@ -65,8 +65,8 @@ impl Extend<f32> for MsdfTexture {
 /// function convert them to normalized coordinates, where
 /// (0.0, 0.0) is initial pen position for an character, and `y` = 1.0 is
 /// _ascender_.
-pub fn x_distance_from_msdf_value(msdf_value:f64) -> f64 {
-    msdf_value / MsdfTexture::WIDTH as f64
+pub fn x_distance_from_msdf_value(msdf_value:f64) -> f32 {
+    msdf_value as f32 / MsdfTexture::WIDTH as f32
 }
 
 /// Converts y dimension distance obtained from msdf-sys to vertex-space values
@@ -75,8 +75,8 @@ pub fn x_distance_from_msdf_value(msdf_value:f64) -> f64 {
 /// function convert them to normalized coordinates, where
 /// (0.0, 0.0) is initial pen position for an character, and `y` = 1.0 is
 /// _ascender_.
-pub fn y_distance_from_msdf_value(msdf_value:f64) -> f64 {
-    msdf_value / MsdfTexture::ONE_GLYPH_HEIGHT as f64
+pub fn y_distance_from_msdf_value(msdf_value:f64) -> f32 {
+    msdf_value as f32 / MsdfTexture::ONE_GLYPH_HEIGHT as f32
 }
 
 /// Converts translation obtained from msdf-sys to vertex-space values
@@ -89,7 +89,7 @@ pub fn convert_msdf_translation(msdf:&MultichannelSignedDistanceField)
 -> nalgebra::Vector2<f32> {
     let translate_converted_x = x_distance_from_msdf_value(msdf.translation.x);
     let translate_converted_y = y_distance_from_msdf_value(msdf.translation.y);
-    nalgebra::Vector2::new(translate_converted_x as f32, translate_converted_y as f32)
+    nalgebra::Vector2::new(translate_converted_x, translate_converted_y)
 }
 
 

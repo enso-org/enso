@@ -4,7 +4,7 @@
 
 use crate::prelude::*;
 
-use crate::display::shape::glyph::font::FontRenderInfo;
+use crate::display::shape::text::glyph::font::FontRenderInfo;
 
 use nalgebra::Vector2;
 
@@ -59,13 +59,13 @@ where CharIterator : Iterator<Item=char> {
         if let Some(current_ch) = self.current_char {
             self.move_pen(current_ch,ch)
         }
-        self.next_advance = self.font.get_glyph_info(ch).advance as f32;
+        self.next_advance = self.font.get_glyph_info(ch).advance;
         self.current_char = Some(ch);
         (ch,self.position)
     }
 
     fn move_pen(&mut self, current:char, next:char) {
-        let kerning   = self.font.get_kerning(current,next) as f32;
+        let kerning   = self.font.get_kerning(current,next);
         self.position.x += (self.next_advance + kerning) * self.line_height;
     }
 }
@@ -76,7 +76,7 @@ where CharIterator : Iterator<Item=char> {
 mod tests {
     use super::*;
 
-    use crate::display::shape::glyph::font::GlyphRenderInfo;
+    use crate::display::shape::text::glyph::font::GlyphRenderInfo;
 
     use basegl_core_msdf_sys::test_utils::TestAfterInit;
     use std::future::Future;
