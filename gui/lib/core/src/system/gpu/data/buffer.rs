@@ -152,7 +152,7 @@ impl<T:BufferItem> {
             } else if self.mut_dirty.check_all() {
                 self.upload_data(&self.mut_dirty.take().range);
             } else {
-                internal_warning!(self.logger,"Update requested but it was not needed.")
+                internal_warning!(self.logger,"Update requested but it was not needed.");
             }
             self.mut_dirty.unset_all();
             self.resize_dirty.unset();

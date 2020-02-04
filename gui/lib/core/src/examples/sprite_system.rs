@@ -47,7 +47,6 @@ fn init(world:&World) {
         let _keep_alive = &navigator;
         on_frame(&camera, time_ms,&mut iter,&sprite1,&mut sprites,&sprite_system)
     }).forget();
-//    world.on_frame(move |_| sprite_system.update());
 }
 
 #[allow(clippy::too_many_arguments)]

@@ -3,11 +3,11 @@
 use crate::prelude::*;
 
 use crate::display::layout::types::*;
-use crate::display::shape::glyph::font::FontId;
-use crate::display::shape::glyph::font::FontRenderInfo;
-use crate::display::shape::glyph::font::FontRegistry;
-use crate::display::shape::glyph::pen::PenIterator;
-use crate::display::shape::glyph::msdf::MsdfTexture;
+use crate::display::shape::text::glyph::font::FontId;
+use crate::display::shape::text::glyph::font::FontRenderInfo;
+use crate::display::shape::text::glyph::font::FontRegistry;
+use crate::display::shape::text::glyph::pen::PenIterator;
+use crate::display::shape::text::glyph::msdf::MsdfTexture;
 use crate::display::symbol::material::Material;
 use crate::display::symbol::shader::builder::CodeTemplate;
 use crate::display::world::*;
@@ -16,7 +16,7 @@ use crate::system::gpu::types::*;
 
 use nalgebra::Vector2;
 use nalgebra::Vector4;
-
+use crate::display::object::DisplayObjectData;
 
 // =============
 // === Glyph ===
@@ -92,8 +92,9 @@ impl Line {
     /// The replacing strings will reuse glyphs which increases performance of rendering text.
     pub fn replace_text<Chars>(&mut self, chars:Chars, fonts:&mut FontRegistry)
     where Chars : Iterator<Item=char> + Clone {
-        let font = fonts.get_render_info(self.font_id);
-        let pen  = PenIterator::new(self.baseline_start,self.height,chars.clone(),font);
+        let font        = fonts.get_render_info(self.font_id);
+        let chars_count = chars.clone().count();
+        let pen         = PenIterator::new(self.baseline_start,self.height,chars.clone(),font);
 
         for (glyph,(_,position)) in self.glyphs.iter_mut().zip(pen) {
             glyph.set_position(Vector3::new(position.x,position.y,0.0));
@@ -108,7 +109,33 @@ impl Line {
             glyph.mod_position(|pos| { *pos += Vector3::new(offset.x,offset.y,0.0); });
             glyph.size().set(size);
         }
+        for glyph in self.glyphs.iter_mut().skip(chars_count) {
+            glyph.size().set(Vector2::new(0.0,0.0));
+        }
     }
+
+    /// Set the baseline start point for this line.
+    pub fn set_baseline_start(&mut self, new_start:Vector2<f32>) {
+        let offset = new_start - self.baseline_start;
+        for glyph in self.glyphs.iter_mut() {
+            glyph.mod_position(|pos| *pos += Vector3::new(offset.x,offset.y,0.0));
+        }
+        self.baseline_start = new_start;
+    }
+}
+
+
+// === Getters ===
+
+#[allow(missing_docs)]
+impl Line {
+    /// The starting point of this line's baseline.
+    pub fn baseline_start(&self) -> &Vector2<f32> { &self.baseline_start }
+    /// Line's height in pixels.
+    pub fn height        (&self) -> f32           { self.height          }
+    /// Number of glyphs, giving the maximum length of displayed line.
+    pub fn length        (&self) -> usize         { self.glyphs.len()    }
+    pub fn font_id       (&self) -> FontId        { self.font_id         }
 }
 
 
@@ -205,6 +232,11 @@ impl GlyphSystem {
     }
 }
 
+impl From<&GlyphSystem> for DisplayObjectData {
+    fn from(glyph_system: &GlyphSystem) -> Self {
+        (&glyph_system.sprite_system).into()
+    }
+}
 
 // === Private ===
 
@@ -219,6 +251,11 @@ impl GlyphSystem {
         material.add_input("zoom"       , 1.0);
         material.add_input("msdf_range" , FontRenderInfo::MSDF_PARAMS.range as f32);
         material.add_input("color"      , Vector4::new(0.0,0.0,0.0,1.0));
+        // FIXME We need to use this output, as we need to declare the same amount of shader
+        // FIXME outputs as the number of attachments to framebuffer. We should manage this more
+        // FIXME intelligent. For example, we could allow defining output shader fragments,
+        // FIXME which will be enabled only if pass of given attachment type was enabled.
+        material.add_output("id", Vector4::<u32>::new(0,0,0,0));
 
         let code = CodeTemplate::new(BEFORE_MAIN.to_string(),MAIN.to_string(),"".to_string());
         material.set_code(code);

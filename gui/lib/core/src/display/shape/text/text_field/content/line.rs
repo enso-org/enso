@@ -1,11 +1,17 @@
+//! Structures and methods related to single line of TextField content.
 use crate::prelude::*;
 
-use crate::display::shape::text::font::FontRenderInfo;
-use crate::display::shape::text::buffer::glyph_square::Pen;
+use crate::display::shape::text::glyph::font::FontRenderInfo;
+use crate::display::shape::text::glyph::pen::PenIterator;
 
-use nalgebra::Point2;
+use nalgebra::Vector2;
 use std::ops::Range;
 
+
+
+// ============
+// === Line ===
+// ============
 
 /// A line of text in TextComponent.
 ///
@@ -62,33 +68,61 @@ impl Line {
         self.char_x_positions.clear();
         &mut self.chars
     }
+}
+
+
+
+// ======================
+// === Line Full Info ===
+// ======================
+
+/// A structure wrapping line reference with information about line number and font. These
+/// information allows to get more information from line about chars position in rendered text.
+#[derive(Debug,Shrinkwrap)]
+#[shrinkwrap(mutable)]
+#[allow(missing_docs)]
+pub struct LineFullInfo<'a,'b> {
+    #[shrinkwrap(main_field)]
+    pub line    : &'a mut Line,
+    pub line_id : usize,
+    pub font    : &'b mut FontRenderInfo,
+    pub height  : f32,
+}
+
+impl<'a,'b> LineFullInfo<'a,'b> {
+    /// Get the point where a _baseline_ of current line begins (The _baseline_ is a font specific
+    /// term, for details see [freetype documentation]
+    /// (https://www.freetype.org/freetype2/docs/glyphs/glyphs-3.html#section-1)).
+    pub fn baseline_start(&self) -> Vector2<f32> {
+        Vector2::new(0.0, (-(self.line_id as f32) - 0.85) * self.height)
+    }
 
     /// Get x position of character with given index. The position is in _text space_.
-    pub fn get_char_x_position(&mut self, index:usize, font:&mut FontRenderInfo) -> f32 {
-        self.fill_chars_x_position_up_to(index,font);
+    pub fn get_char_x_position(&mut self, index:usize) -> f32 {
+        self.fill_chars_x_position_up_to(index);
         self.char_x_positions[index]
     }
 
     /// Get range of x coordinates containing the given character.
-    pub fn get_char_x_range(&mut self, index:usize, font:&mut FontRenderInfo) -> Range<f32> {
-        let start   = self.get_char_x_position(index,font);
-        let advance = font.get_glyph_info(self.chars[index]).advance as f32;
+    pub fn get_char_x_range(&mut self, index:usize) -> Range<f32> {
+        let start   = self.get_char_x_position(index);
+        let advance = self.font.get_glyph_info(self.chars[index]).advance * self.height;
         start..(start + advance)
     }
 
     /// Find the character occupying the given `x_position` in a _text space_. If there are two
     /// characters under this x coordinate (e.g. due to a kerning) the char on the left will be
     /// returned.
-    pub fn find_char_at_x_position(&mut self, x_position:f32, font:&mut FontRenderInfo)
+    pub fn find_char_at_x_position(&mut self, x_position:f32)
     -> Option<usize> {
         if self.chars.is_empty() {
             None
         } else {
             let comparator   = |f:&f32| f.partial_cmp(&x_position).unwrap();
-            self.fill_chars_x_position_up_to_value(x_position,font);
+            self.fill_chars_x_position_up_to_value(x_position);
             let last_index   = self.len() - 1;
             let found        = self.char_x_positions.binary_search_by(comparator);
-            let mut in_range = || self.get_char_x_range(last_index, font).end >= x_position;
+            let mut in_range = || self.get_char_x_range(last_index).end >= x_position;
             match found {
                 Ok(index)                        => Some(index),
                 Err(0)                           => None,
@@ -100,62 +134,38 @@ impl Line {
 
     /// Fill the `chars_x_position` cache so it will contain information about character with given
     /// index.
-    pub fn fill_chars_x_position_up_to(&mut self, index:usize, font:&mut FontRenderInfo) {
-        let new_len = index + 1;
-        let to_fill = new_len.saturating_sub(self.char_x_positions.len());
-        let pen_opt = self.last_cached_char_pen(font);
-        let mut pen = pen_opt.unwrap_or_else(|| Pen::new(Point2::new(0.0,0.0)));
-        let chars   = &self.chars[self.char_x_positions.len()..];
-        for ch in chars.iter().take(to_fill) {
-            pen.next_char(*ch,font);
-            let x_position = pen.position.x as f32;
-            self.char_x_positions.push(x_position);
+    pub fn fill_chars_x_position_up_to(&mut self, index:usize) {
+        let baseline_start = self.baseline_start();
+        let new_len        = index + 1;
+        let from_index     = self.char_x_positions.len().saturating_sub(1);
+        let to_fill        = new_len.saturating_sub(self.char_x_positions.len());
+        let y_position     = baseline_start.y;
+        let x_position     = self.char_x_positions.last().cloned().unwrap_or(baseline_start.x);
+        let start_from     = Vector2::new(x_position,y_position);
+        let line           = &mut self.line;
+        let chars          = line.chars[from_index..].iter().cloned();
+        let to_skip        = if line.char_x_positions.is_empty() {0} else {1};
+        let pen            = PenIterator::new(start_from,self.height,chars,self.font);
+
+        for (_,position) in pen.skip(to_skip).take(to_fill) {
+            line.char_x_positions.push(position.x);
         }
     }
 
     /// Fill the `chars_x_position` cache so it will contain information about character being
     /// under given `x_position`.
-    pub fn fill_chars_x_position_up_to_value(&mut self, x_position:f32, font:&mut FontRenderInfo) {
+    pub fn fill_chars_x_position_up_to_value(&mut self, x_position:f32) {
         let last_cached    = self.char_x_positions.last();
         let already_filled = last_cached.map_or(false, |cached| *cached >= x_position);
         if !already_filled {
             for index in self.char_x_positions.len()..self.chars.len() {
-                self.fill_chars_x_position_up_to(index,font);
+                self.fill_chars_x_position_up_to(index);
                 let current = self.char_x_positions[index];
                 if current >= x_position {
                     break;
                 }
             }
         }
-    }
-
-    fn last_cached_char_pen(&mut self, font:&mut FontRenderInfo) -> Option<Pen> {
-        let y_position = 0.0;
-        let x_position = self.char_x_positions.last().map(|f| *f as f64);
-        let index      = self.char_x_positions.len().checked_sub(1);
-        let char_opt   = index.map(|i| self.chars[i]);
-        match (x_position,char_opt) {
-            (Some(x),Some(ch)) => Some(Pen::new_with_char(Point2::new(x,y_position),ch,font)),
-            _                  => None,
-        }
-    }
-}
-
-/// A line reference with it's index.
-#[derive(Shrinkwrap,Debug)]
-#[shrinkwrap(mutable)]
-pub struct LineRef<'a> {
-    #[shrinkwrap(main_field)]
-    pub line    : &'a mut Line,
-    pub line_id : usize,
-}
-
-impl<'a> LineRef<'a> {
-    /// Get the point where a _baseline_ of current line begins (The _baseline_ is a font specific
-    /// term, for details see [freetype documentation]
-    /// (https://www.freetype.org/freetype2/docs/glyphs/glyphs-3.html#section-1)).
-    pub fn start_point(&self) -> Point2<f64> {
-        Point2::new(0.0, -(self.line_id as f64) - 1.0)
     }
 }
 
@@ -174,11 +184,18 @@ mod test {
         TestAfterInit::schedule(|| {
             let mut font = prepare_font_with_ab();
             let mut line = Line::new("ABA");
-            assert_eq!(0, line.char_x_positions.len());
-            let first_pos = line.get_char_x_position(0,&mut font);
-            assert_eq!(1, line.char_x_positions.len());
-            let third_pos = line.get_char_x_position(2,&mut font);
-            assert_eq!(3, line.char_x_positions.len());
+            let mut line_ref = LineFullInfo {
+                line    : &mut line,
+                font    : &mut font,
+                line_id : 0,
+                height  : 1.0,
+            };
+
+            assert_eq!(0, line_ref.char_x_positions.len());
+            let first_pos = line_ref.get_char_x_position(0);
+            assert_eq!(1, line_ref.char_x_positions.len());
+            let third_pos = line_ref.get_char_x_position(2);
+            assert_eq!(3, line_ref.char_x_positions.len());
 
             assert_eq!(0.0, first_pos);
             assert_eq!(2.5, third_pos);
@@ -190,19 +207,26 @@ mod test {
         TestAfterInit::schedule(|| {
             let mut font           = prepare_font_with_ab();
             let mut line           = Line::new("ABBA");
-            let before_first       = line.find_char_at_x_position(-0.1, &mut font);
-            assert_eq!(1, line.char_x_positions.len());
-            let first              = line.find_char_at_x_position(0.5, &mut font);
-            assert_eq!(2, line.char_x_positions.len());
-            let first_again        = line.find_char_at_x_position(0.5, &mut font);
-            assert_eq!(2, line.char_x_positions.len());
-            let third              = line.find_char_at_x_position(3.0, &mut font);
-            assert_eq!(4, line.char_x_positions.len());
-            let last               = line.find_char_at_x_position(4.5, &mut font);
-            assert_eq!(4, line.char_x_positions.len());
-            let after_last         = line.find_char_at_x_position(5.5, &mut font);
-            let third_again        = line.find_char_at_x_position(3.0, &mut font);
-            let before_first_again = line.find_char_at_x_position(-0.5, &mut font);
+            let mut line_ref = LineFullInfo {
+                line    : &mut line,
+                font    : &mut font,
+                line_id : 0,
+                height  : 1.0,
+            };
+
+            let before_first       = line_ref.find_char_at_x_position(-0.1);
+            assert_eq!(1, line_ref.char_x_positions.len());
+            let first              = line_ref.find_char_at_x_position(0.5);
+            assert_eq!(2, line_ref.char_x_positions.len());
+            let first_again        = line_ref.find_char_at_x_position(0.5);
+            assert_eq!(2, line_ref.char_x_positions.len());
+            let third              = line_ref.find_char_at_x_position(3.0);
+            assert_eq!(4, line_ref.char_x_positions.len());
+            let last               = line_ref.find_char_at_x_position(4.5);
+            assert_eq!(4, line_ref.char_x_positions.len());
+            let after_last         = line_ref.find_char_at_x_position(5.5);
+            let third_again        = line_ref.find_char_at_x_position(3.0);
+            let before_first_again = line_ref.find_char_at_x_position(-0.5);
 
             assert_eq!(None, before_first);
             assert_eq!(Some(0), first);
@@ -220,8 +244,14 @@ mod test {
         TestAfterInit::schedule(|| {
             let mut font = prepare_font_with_ab();
             let mut line = Line::new("");
-            let below_0  = line.find_char_at_x_position(-0.1,&mut font);
-            let above_0  = line.find_char_at_x_position( 0.1,&mut font);
+            let mut line_ref = LineFullInfo {
+                line    : &mut line,
+                font    : &mut font,
+                line_id : 0,
+                height  : 1.0,
+            };
+            let below_0  = line_ref.find_char_at_x_position(-0.1);
+            let above_0  = line_ref.find_char_at_x_position( 0.1);
             assert_eq!(None,below_0);
             assert_eq!(None,above_0);
         })
@@ -232,11 +262,17 @@ mod test {
         TestAfterInit::schedule(|| {
             let mut font = prepare_font_with_ab();
             let mut line = Line::new("AB");
-            let before_edit = line.get_char_x_position(1,&mut font);
-            assert_eq!(2, line.char_x_positions.len());
-            line.modify().insert(0, 'B');
-            assert_eq!(0, line.char_x_positions.len());
-            let after_edit = line.get_char_x_position(1,&mut font);
+            let mut line_ref = LineFullInfo {
+                line    : &mut line,
+                font    : &mut font,
+                line_id : 0,
+                height  : 1.0,
+            };
+            let before_edit = line_ref.get_char_x_position(1);
+            assert_eq!(2, line_ref.char_x_positions.len());
+            line_ref.modify().insert(0, 'B');
+            assert_eq!(0, line_ref.char_x_positions.len());
+            let after_edit = line_ref.get_char_x_position(1);
 
             assert_eq!(1.0, before_edit);
             assert_eq!(1.5, after_edit);
