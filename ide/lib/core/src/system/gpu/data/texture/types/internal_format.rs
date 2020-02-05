@@ -54,19 +54,19 @@ pub trait InternalFormat : Default + Into<AnyInternalFormat> + 'static {
     type Sampler: Sampler;
 
     /// Checks if the texture format can be rendered as color.
-    type ColorRenderable: Value<Type=bool>;
+    type ColorRenderable: KnownTypeValue<Value=bool>;
 
     /// Checks it he texture can be filtered.
-    type Filterable: Value<Type=bool>;
+    type Filterable: KnownTypeValue<Value=bool>;
 
     /// Checks if the texture format can be rendered as color.
     fn color_renderable() -> bool {
-        <Self::ColorRenderable as Value>::value()
+        <Self::ColorRenderable as KnownTypeValue>::value()
     }
 
     /// Checks it he texture can be filtered.
     fn filterable() -> bool {
-        <Self::Filterable as Value>::value()
+        <Self::Filterable as KnownTypeValue>::value()
     }
 }
 
