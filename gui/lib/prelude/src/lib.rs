@@ -9,6 +9,16 @@
 #![feature(specialization)]
 #![feature(trait_alias)]
 
+pub mod cow_string;
+pub mod macros;
+pub mod std_reexports;
+pub mod wrapper;
+
+pub use cow_string::*;
+pub use macros::*;
+pub use std_reexports::*;
+pub use wrapper::*;
+
 pub use boolinator::Boolinator;
 pub use core::any::type_name;
 pub use core::fmt::Debug;
@@ -23,31 +33,7 @@ pub use num::Num;
 pub use paste;
 pub use shrinkwraprs::Shrinkwrap;
 pub use smallvec::SmallVec;
-pub use std::any::Any;
-pub use std::cell::Ref;
-pub use std::cell::RefCell;
-pub use std::cell::RefMut;
-pub use std::collections::BTreeMap;
-pub use std::collections::HashMap;
-pub use std::collections::HashSet;
-pub use std::convert::identity;
-pub use std::convert::TryFrom;
-pub use std::convert::TryInto;
-pub use std::fmt::Display;
-pub use std::fmt;
-pub use std::hash::Hash;
-pub use std::iter::FromIterator;
-pub use std::iter;
-pub use std::marker::PhantomData;
-pub use std::ops::Add;
-pub use std::ops::Deref;
-pub use std::ops::DerefMut;
-pub use std::ops::Index;
-pub use std::ops::IndexMut;
-pub use std::rc::Rc;
-pub use std::rc::Weak;
-pub use std::slice::SliceIndex;
-pub use std::slice;
+
 
 use nalgebra::Matrix;
 use nalgebra::DimName;
@@ -115,6 +101,19 @@ impl<T> OptionOps for Option<T> {
         if let Some(x) = self { f(x); }
     }
 }
+
+
+
+// =============
+// === ToRef ===
+// =============
+
+/// Similar to `AsRef` but more specific and automatically implemented for every type. Allows for
+/// conversion `&T` to `&T` (identity) and `T` to `&T` for any type `T`. In contrast, `AsRef`
+/// requires explicit impls, so for example you cannot do `let t:&() = ().as_ref()`
+pub trait ToRef<T>        where T:?Sized { fn to_ref(&self) -> &T; }
+impl<T>   ToRef<T> for  T where T:?Sized { fn to_ref(&self) -> &T { self } }
+impl<T>   ToRef<T> for &T where T:?Sized { fn to_ref(&self) -> &T { self } }
 
 
 
@@ -430,14 +429,16 @@ impl<T:Deref> WithContent for T
 // =============
 
 /// Defines relation between types and values, like between `True` and `true`.
-pub trait Value {
+pub trait KnownTypeValue {
 
     /// The value-level counterpart of this type-value.
-    type Type;
+    type Value;
 
     /// The value of this type-value.
-    fn value() -> Self::Type;
+    fn value() -> Self::Value;
 }
+
+pub type TypeValue<T> = <T as KnownTypeValue>::Value;
 
 
 
@@ -453,16 +454,16 @@ pub struct True {}
 #[derive(Clone,Copy,Debug)]
 pub struct False {}
 
-impl Value for True {
-    type Type = bool;
-    fn value() -> Self::Type {
+impl KnownTypeValue for True {
+    type Value = bool;
+    fn value() -> Self::Value {
         true
     }
 }
 
-impl Value for False {
-    type Type = bool;
-    fn value() -> Self::Type {
+impl KnownTypeValue for False {
+    type Value = bool;
+    fn value() -> Self::Value {
         false
     }
 }
