@@ -141,8 +141,8 @@ impl DomContainer {
 
     /// Sets the Scene DOM's dimensions.
     pub fn set_dimensions(&mut self, dimensions:Vector2<f32>) {
-        self.dom.set_property_or_panic("width" , format!("{}px", dimensions.x));
-        self.dom.set_property_or_panic("height", format!("{}px", dimensions.y));
+        self.dom.set_style_or_panic("width" , format!("{}px", dimensions.x));
+        self.dom.set_style_or_panic("height", format!("{}px", dimensions.y));
         self.data.set_dimensions(dimensions);
     }
 

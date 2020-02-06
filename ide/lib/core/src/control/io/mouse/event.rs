@@ -11,8 +11,8 @@ use crate::control::io::mouse::button::*;
 
 macro_rules! define_events {
     ( $( $js_event:ident :: $name:ident ),* $(,)? ) => {$(
-        #[derive(Debug,Clone,From,Shrinkwrap)]
         /// Mouse event wrapper.
+        #[derive(Debug,Clone,From,Shrinkwrap)]
         pub struct $name {
             raw: web_sys::$js_event
         }

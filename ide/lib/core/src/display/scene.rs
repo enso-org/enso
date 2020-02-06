@@ -20,9 +20,12 @@ use crate::system::web::resize_observer::ResizeObserver;
 use crate::system::web;
 use crate::display::object::DisplayObjectOps;
 use crate::system::gpu::data::uniform::Uniform;
+use crate::system::web::dom::html::Css3dRenderer;
+use crate::system::web::dyn_into;
 
 use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsValue;
+use web_sys::HtmlElement;
 
 use crate::control::io::mouse2::MouseManager;
 use crate::control::io::mouse2;
@@ -62,11 +65,17 @@ impl Shape {
         Self {rc}
     }
 
+    pub fn from_element(element:&HtmlElement) -> Self {
+        let bounding_box = element.get_bounding_client_rect();
+        let width        = bounding_box.width() as f32;
+        let height       = bounding_box.height() as f32;
+        Self::new(width,height)
+    }
+
     pub fn from_window(window:&web_sys::Window) -> Self {
         let width  = window.inner_width().unwrap().as_f64().unwrap() as f32;
         let height = window.inner_height().unwrap().as_f64().unwrap() as f32;
-        let rc     = Rc::new(RefCell::new(ShapeData::new(width,height)));
-        Self{rc}
+        Self::new(width,height)
     }
 
 
@@ -215,23 +224,24 @@ shared! { Scene
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct SceneData {
-    root          : DisplayObjectData,
-    canvas        : web_sys::HtmlCanvasElement,
-    context       : Context,
-    symbols       : SymbolRegistry,
-    symbols_dirty : SymbolRegistryDirty,
-    camera        : Camera2d,
-    shape         : Shape,
-    shape_dirty   : ShapeDirty,
-    logger        : Logger,
-    listeners     : Listeners,
-    variables     : UniformScope,
-    pipeline      : RenderPipeline,
-    composer      : RenderComposer,
-    stats         : Stats,
-    pixel_ratio   : Uniform<f32>,
-    zoom_uniform  : Uniform<f32>,
-    mouse         : Mouse,
+    root           : DisplayObjectData,
+    canvas         : web_sys::HtmlCanvasElement,
+    context        : Context,
+    css3d_renderer : Css3dRenderer,
+    symbols        : SymbolRegistry,
+    symbols_dirty  : SymbolRegistryDirty,
+    camera         : Camera2d,
+    shape          : Shape,
+    shape_dirty    : ShapeDirty,
+    logger         : Logger,
+    listeners      : Listeners,
+    variables      : UniformScope,
+    pipeline       : RenderPipeline,
+    composer       : RenderComposer,
+    stats          : Stats,
+    pixel_ratio    : Uniform<f32>,
+    zoom_uniform   : Uniform<f32>,
+    mouse          : Mouse,
 
 
     #[derivative(Debug="ignore")]
@@ -255,11 +265,11 @@ impl {
         let sub_logger      = logger.sub("symbols");
         let variables       = UniformScope::new(logger.sub("global_variables"),&context);
         let symbols         = SymbolRegistry::new(&variables,&stats,&context,sub_logger,on_change);
-        let window          = crate::system::web::window();
-        let shape           = Shape::from_window(&window);
-        let shape_data      = shape.screen_shape();
-        let width           = shape_data.width;
-        let height          = shape_data.height;
+        let canvas_parent   = dyn_into::<_,HtmlElement>(canvas.parent_node().unwrap()).unwrap();
+        let shape           = Shape::from_element(&canvas_parent);
+        let screen_shape    = shape.screen_shape();
+        let width           = screen_shape.width;
+        let height          = screen_shape.height;
         let listeners       = Self::init_listeners(&logger,&canvas,&shape,&shape_dirty);
         let symbols_dirty   = dirty_flag;
         let camera          = Camera2d::new(logger.sub("camera"),width,height);
@@ -284,8 +294,15 @@ impl {
         let height   = shape.canvas_shape().height as i32;
         let composer = RenderComposer::new(&pipeline,&context,&variables,width,height);
 
+        let css3d_renderer = Css3dRenderer::from_element_or_panic(&logger,canvas_parent);
+
         Self { pipeline,composer,root,canvas,context,symbols,camera,symbols_dirty,shape,shape_dirty
-             , logger,listeners,variables,on_resize,stats,pixel_ratio,mouse,zoom_uniform }
+             , logger,listeners,variables,on_resize,stats,pixel_ratio,mouse,zoom_uniform
+             , css3d_renderer }
+    }
+
+    pub fn css3d_renderer(&self) -> Css3dRenderer {
+        self.css3d_renderer.clone()
     }
 
     pub fn canvas(&self) -> web_sys::HtmlCanvasElement {
@@ -351,6 +368,7 @@ impl {
             }
             self.logger.info("Rendering meshes.");
             self.symbols.render(&self.camera);
+            self.css3d_renderer.render(&self.camera);
 
             self.composer.run();
         })

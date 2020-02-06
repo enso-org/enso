@@ -13,37 +13,44 @@ mod tests {
     use basegl::animation::physics::inertia::PhysicsSimulator;
     use basegl::animation::physics::inertia::PhysicsProperties;
     use basegl::animation::animator::fixed_step::FixedStepAnimator;
-    use basegl::system::web::dom::html::HtmlRenderer;
-    use basegl::system::web::dom::html::HtmlObject;
-    use basegl::system::web::dom::html::HtmlScene;
-    use basegl::display::camera::Camera2d;
+    use basegl::system::web::dom::html::Css3dSystem;
     use web_test::*;
     use nalgebra::{zero, Vector3};
     use js_sys::Math::random;
-    use logger::Logger;
+    use basegl::display::world::WorldData;
+    use basegl::display::object::DisplayObjectOps;
+    use basegl::system::web::dyn_into;
+    use basegl::system::web::get_element_by_id;
+    use basegl::system::web::create_element;
+    use web_sys::HtmlElement;
+    use nalgebra::Vector2;
+    use basegl::system::web::NodeInserter;
+    use basegl::system::web::AttributeSetter;
+    use basegl::system::web::set_stdout;
+    use basegl::display::object::DisplayObject;
 
-    #[web_bench]
-    fn simulator(b : &mut Bencher) {
-        let renderer = HtmlRenderer::new("simulator").expect("Renderer couldn't be created");
-        renderer.container().dom.set_property_or_panic("background-color", "black");
+    #[web_test]
+    fn simulator() {
+        set_stdout();
+        let name          = "simulator";
+        let canvas_name   = format!("canvas_{}",name);
+        let container     = dyn_into::<_,HtmlElement>(get_element_by_id(name).unwrap()).unwrap();
+        let canvas        = create_element("canvas").unwrap();
+        canvas.set_attribute_or_panic("id", &canvas_name);
+        container.append_or_panic(&canvas);
+        let world         = WorldData::new(&canvas_name);
+        let css3d_system  = Css3dSystem::new(&world);
+        world.add_child(&css3d_system);
 
-        let logger    = Logger::new("simulator");
-        let mut scene = HtmlScene::new(&logger);
+        container.set_style_or_panic("background-color", "black");
 
-        let mut target = HtmlObject::new(&logger, "div").unwrap();
-        target.set_dimensions(10.0, 10.0);
-        target.dom.set_property_or_panic("background-color", "green");
-        scene.add_child(target.clone());
+        let mut target = css3d_system.new_instance("div").unwrap();
+        target.set_dimensions(Vector2::new(10.0, 10.0));
+        target.dom().set_style_or_panic("background-color", "green");
 
-        let mut object = HtmlObject::new(&logger, "div").unwrap();
-        object.set_dimensions(10.0, 10.0);
-        object.dom.set_property_or_panic("background-color", "red");
-        scene.add_child(object.clone());
-
-        let view_dim = renderer.dimensions();
-        assert_eq!((view_dim.x, view_dim.y), (320.0, 240.0));
-
-        let mut camera  = Camera2d::new(logger,view_dim.x,view_dim.y);
+        let mut object = css3d_system.new_instance("div").unwrap();
+        object.set_dimensions(Vector2::new(10.0, 10.0));
+        object.dom().set_style_or_panic("background-color", "red");
 
         let mass             = 2.0;
         let position         = object.position();
@@ -58,25 +65,25 @@ mod tests {
             steps_per_second,
             properties.clone(),
             move |position| {
-                object.set_position(position);
+                object.mod_position(|t| *t = position);
+                world.display_object().update();
             }
         );
 
         // Updates spring's fixed point every two seconds.
-        let every = 2.0;
-        let animator  = FixedStepAnimator::new(1.0 / every, move |_| {
+        let every    = 2.0;
+        let animator = FixedStepAnimator::new(1.0 / every, move |_| {
+            let _keep_alive = &simulator;
+            let _keep_alive = &css3d_system;
+
             let x = 320.0 * random() as f32;
             let y = 240.0 * random() as f32;
             let z = 0.0;
             let position = Vector3::new(x, y, z);
             properties.mod_spring(|spring| spring.fixed_point = position);
-            target.set_position(position);
+            target.mod_position(|t| *t = position);
         });
 
-        b.iter(move || {
-            let _keep_alive = &simulator;
-            let _keep_alive = &animator;
-            renderer.render(&mut camera, &scene);
-        });
+        std::mem::forget(animator);
     }
 }

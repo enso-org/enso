@@ -30,12 +30,12 @@ impl BenchContainer {
         let div = create_element("div").expect("div");
         let div : HtmlElement = dyn_into(div).expect("HtmlElement");
 
-        div.set_property_or_panic("margin"         , "0px 2px");
-        div.set_property_or_panic("height"         , "24px");
-        div.set_property_or_panic("bottom-border"  , "1px solid black");
-        div.set_property_or_panic("display"        , "flex");
-        div.set_property_or_panic("justify-content", "space-between");
-        div.set_property_or_panic("align-items"    , "center");
+        div.set_style_or_panic("margin"         , "0px 2px");
+        div.set_style_or_panic("height"         , "24px");
+        div.set_style_or_panic("bottom-border"  , "1px solid black");
+        div.set_style_or_panic("display"        , "flex");
+        div.set_style_or_panic("justify-content", "space-between");
+        div.set_style_or_panic("align-items"    , "center");
 
         div.set_inner_html("<div>00.00ms</div>\
                             <div>0 iterations</div>\
@@ -53,7 +53,7 @@ impl BenchContainer {
         let header_height   = 17.0;
         let height          = format!("{}px", height + header_height + 25.0);
 
-        container.div.set_property_or_panic("height", height);
+        container.div.set_style_or_panic("height", height);
         container.div.insert_before_or_panic(&div, &container.container);
 
         let measurement = div;

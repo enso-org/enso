@@ -31,10 +31,10 @@ impl Group {
                 let div = dyn_into::<_, HtmlElement>(div).expect("HtmlElement");
 
                 div.set_attribute_or_panic("id"           , name);
-                div.set_property_or_panic ("display"      , "flex");
-                div.set_property_or_panic ("flex-wrap"    , "wrap");
-                div.set_property_or_panic ("border"       , "1px solid black");
-                div.set_property_or_panic ("margin-bottom", "10px");
+                div.set_style_or_panic ("display"      , "flex");
+                div.set_style_or_panic ("flex-wrap"    , "wrap");
+                div.set_style_or_panic ("border"       , "1px solid black");
+                div.set_style_or_panic ("margin-bottom", "10px");
 
                 let header = create_element("center");
                 let header = header.expect("TestGroup failed to create header");
@@ -43,8 +43,8 @@ impl Group {
                 let border = "1px solid black";
 
                 header.set_inner_html(name);
-                header.set_property_or_panic("border-bottom", border);
-                header.set_property_or_panic("width"        , "100%");
+                header.set_style_or_panic("border-bottom", border);
+                header.set_style_or_panic("width"        , "100%");
                 div.append_or_panic(&header);
 
                 let document = document().expect("Document is not present");

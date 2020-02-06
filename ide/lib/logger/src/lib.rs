@@ -6,6 +6,7 @@
 
 use std::fmt::Debug;
 use wasm_bindgen::JsValue;
+use enso_prelude::*;
 
 #[cfg(target_arch = "wasm32")]
 use web_sys::console;
@@ -26,7 +27,7 @@ impl LogMsg for &str {
     }
 }
 
-impl<F: Fn() -> S, S: AsRef<str>> LogMsg for F {
+impl<F: Fn() -> S, S:Str> LogMsg for F {
     fn with_log_msg<G: FnOnce(&str) -> T, T>(&self, f:G) -> T {
         f(self().as_ref())
     }
@@ -44,12 +45,12 @@ pub struct Logger {
 
 #[allow(dead_code)]
 impl Logger {
-    pub fn new<T: AsRef<str>>(path:T) -> Self {
+    pub fn new<T:Str>(path:T) -> Self {
         let path = path.as_ref().to_string();
         Self {path}
     }
 
-    pub fn sub<T: AsRef<str>>(&self, path: T) -> Self {
+    pub fn sub<T:Str>(&self, path: T) -> Self {
         Self::new(format!("{}.{}", self.path, path.as_ref()))
     }
 

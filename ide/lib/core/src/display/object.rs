@@ -344,6 +344,10 @@ impl DisplayObjectData {
         Self {rc}
     }
 
+    pub fn with_logger<F:FnOnce(&Logger)>(&self, f:F) {
+        f(&self.rc.borrow().logger)
+    }
+
     pub fn dispatch(&self, event:&DynEvent) {
         self.rc.borrow_mut().dispatch(event)
     }

@@ -23,15 +23,15 @@ use js_sys::Math;
 use std::rc::Rc;
 use std::cell::RefCell;
 
-#[derive(Clone,Debug)]
 /// A simplified Canvas object used in the EasingAnimator example.
+#[derive(Clone,Debug)]
 pub struct Canvas {
     canvas  : HtmlCanvasElement,
     context : CanvasRenderingContext2d
 }
 
-#[derive(Clone,Copy,Debug)]
 /// Interpolable properties for our example code.
+#[derive(Clone,Copy,Debug)]
 pub struct Properties {
     /// Position property.
     pub position : Vector2<f32>,
@@ -78,7 +78,7 @@ impl Canvas {
     pub fn new(container_id:&str) -> Self {
         let canvas = create_element("canvas").unwrap();
         let canvas: HtmlCanvasElement = canvas.dyn_into().unwrap();
-        canvas.set_property_or_panic("border", "1px solid black");
+        canvas.set_style_or_panic("border", "1px solid black");
 
         canvas.set_width (256);
         canvas.set_height(256);
@@ -228,11 +228,11 @@ impl Example {
     where F1:FnEasing, F2:FnEasing, F3:FnEasing {
         let example : HtmlElement = create_element("div").unwrap().dyn_into().unwrap();
         example.set_attribute_or_panic("id", name);
-        example.set_property_or_panic("margin", "10px");
+        example.set_style_or_panic("margin", "10px");
         let container : HtmlElement = get_element_by_id("examples").unwrap().dyn_into().unwrap();
         let header    : HtmlElement = create_element("center").unwrap().dyn_into().unwrap();
-        header.set_property_or_panic("background-color", "black");
-        header.set_property_or_panic("color", "white");
+        header.set_style_or_panic("background-color", "black");
+        header.set_style_or_panic("color", "white");
         header.set_inner_html(name);
         example.append_or_panic(&header);
         container.append_or_panic(&example);
@@ -305,10 +305,10 @@ macro_rules! example {
 pub fn run_example_easing_animator() {
     let container : HtmlElement = create_element("div").unwrap().dyn_into().unwrap();
     container.set_attribute_or_panic("id", "examples");
-    container.set_property_or_panic("display", "flex");
-    container.set_property_or_panic("flex-wrap", "wrap");
-    container.set_property_or_panic("position", "absolute");
-    container.set_property_or_panic("top", "0px");
+    container.set_style_or_panic("display", "flex");
+    container.set_style_or_panic("flex-wrap", "wrap");
+    container.set_style_or_panic("position", "absolute");
+    container.set_style_or_panic("top", "0px");
     get_element_by_id("app").unwrap().append_or_panic(&container);
     example!(expo);
     example!(bounce);
