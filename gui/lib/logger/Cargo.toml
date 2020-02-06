@@ -11,6 +11,7 @@ default = []
 
 [dependencies]
 wasm-bindgen = { version = "^0.2", features = ["nightly"] }
+enso-prelude = { version = "0.1.0"  , path = "../prelude" }
 
 [dependencies.web-sys]
 version = "0.3.4"

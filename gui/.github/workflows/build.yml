@@ -45,9 +45,6 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
-      - name: Install Firefox
-        run: brew cask install firefox
-        if: runner.os == 'macOS'
       - name: Run wasm-pack tests
         uses: actions-rs/cargo@v1
         with:
@@ -55,7 +52,7 @@ jobs:
           args: >
             --manifest-path=script/rust/Cargo.toml
             --bin test-all
-            -- --headless --firefox
+            -- --headless --chrome
 
   size:
     name: Check size

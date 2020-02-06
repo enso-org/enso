@@ -19,6 +19,7 @@ use web_sys::MouseEvent;
 use web_sys::EventTarget;
 use js_sys::Function;
 use std::fmt::Debug;
+use logger::Logger;
 
 pub use web_sys::console;
 use wasm_bindgen::prelude::*;
@@ -162,15 +163,11 @@ pub fn get_performance() -> Result<Performance> {
 
 /// Trait used to set HtmlElement attributes.
 pub trait AttributeSetter {
-    fn set_attribute_or_panic<T, U>(&self, name:T, value:U)
-    where T : AsRef<str>,
-          U : AsRef<str>;
+    fn set_attribute_or_panic<T:Str,U:Str>(&self, name:T, value:U);
 }
 
-impl AttributeSetter for web_sys::HtmlElement {
-    fn set_attribute_or_panic<T,U>(&self, name:T, value:U)
-    where T : AsRef<str>,
-          U : AsRef<str> {
+impl AttributeSetter for web_sys::Element {
+    fn set_attribute_or_panic<T:Str,U:Str>(&self, name:T, value:U) {
         let name   = name.as_ref();
         let value  = value.as_ref();
         let values = format!("\"{}\" = \"{}\" on \"{:?}\"",name,value,self);
@@ -181,28 +178,43 @@ impl AttributeSetter for web_sys::HtmlElement {
 
 /// Trait used to set css styles.
 pub trait StyleSetter {
-    fn set_property_or_panic<T,U>(&self, name:T, value:U)
-    where T : AsRef<str>,
-          U : AsRef<str>;
+    fn set_style_or_panic<T:Str,U:Str>(&self, name:T, value:U);
+    fn set_style_or_warn<T:Str,U:Str>(&self, name:T, value:U, logger:&Logger);
 }
 
 impl StyleSetter for web_sys::HtmlElement {
-    fn set_property_or_panic<T,U>(&self, name:T, value:U)
-    where T : AsRef<str>,
-          U : AsRef<str> {
-        let name   = name.as_ref();
-        let value  = value.as_ref();
-        let values = format!("\"{}\" = \"{}\" on \"{:?}\"",name,value,self);
+    fn set_style_or_panic<T:Str,U:Str>(&self, name:T, value:U) {
+        let name      = name.as_ref();
+        let value     = value.as_ref();
+        let values    = format!("\"{}\" = \"{}\" on \"{:?}\"",name,value,self);
         let panic_msg = |_| panic!("Failed to set style {}",values);
         self.style().set_property(name, value).unwrap_or_else(panic_msg);
+    }
+
+    fn set_style_or_warn<T:Str,U:Str>(&self, name:T, value:U, logger:&Logger) {
+        let name            = name.as_ref();
+        let value           = value.as_ref();
+        let values          = format!("\"{}\" = \"{}\" on \"{:?}\"",name,value,self);
+        let warn_msg : &str = &format!("Failed to set style {}",values);
+        if self.style().set_property(name, value).is_err() {
+            logger.warning(warn_msg);
+        }
     }
 }
 
 /// Trait used to insert `Node`s.
 pub trait NodeInserter {
-    fn append_or_panic (&self, node:&Node);
+    fn append_or_panic(&self, node:&Node);
+
+    fn append_or_warn(&self, node:&Node, logger:&Logger);
+
     fn prepend_or_panic(&self, node:&Node);
+
+    fn prepend_or_warn(&self, node:&Node, logger:&Logger);
+
     fn insert_before_or_panic(&self,node:&Node,reference_node:&Node);
+
+    fn insert_before_or_warn(&self,node:&Node,reference_node:&Node, logger:&Logger);
 }
 
 impl NodeInserter for Node {
@@ -212,33 +224,79 @@ impl NodeInserter for Node {
         self.append_child(node).unwrap_or_else(panic_msg);
     }
 
-    fn prepend_or_panic(&self, node : &Node) {
-        let panic_msg = |_|
-            panic!("Failed to prepend child \"{:?}\" to \"{:?}\"",node,self);
+    fn append_or_warn(&self, node:&Node, logger:&Logger) {
+        let warn_msg : &str = &format!("Failed to append child {:?} to {:?}",node,self);
+        if self.append_child(node).is_err() {
+            logger.warning(warn_msg)
+        };
+    }
 
+    fn prepend_or_panic(&self, node:&Node) {
+        let panic_msg = |_| panic!("Failed to prepend child \"{:?}\" to \"{:?}\"",node,self);
         let first_c = self.first_child();
         self.insert_before(node, first_c.as_ref()).unwrap_or_else(panic_msg);
     }
+
+    fn prepend_or_warn(&self, node:&Node, logger:&Logger) {
+        let warn_msg : &str = &format!("Failed to prepend child \"{:?}\" to \"{:?}\"",node,self);
+        let first_c = self.first_child();
+        if self.insert_before(node, first_c.as_ref()).is_err() {
+            logger.warning(warn_msg)
+        }
+    }
+
     fn insert_before_or_panic(&self, node:&Node, ref_node:&Node) {
-        let panic_msg = |_|
-            panic!("Failed to insert {:?} before {:?} in {:?}",
-                   node,
-                   ref_node,
-                   self);
+        let panic_msg = |_| panic!("Failed to insert {:?} before {:?} in {:?}",node,ref_node,self);
         self.insert_before(node, Some(ref_node)).unwrap_or_else(panic_msg);
+    }
+
+    fn insert_before_or_warn(&self, node:&Node, ref_node:&Node, logger:&Logger) {
+        let warn_msg : &str =
+            &format!("Failed to insert {:?} before {:?} in {:?}",node,ref_node,self);
+        if self.insert_before(node, Some(ref_node)).is_err() {
+            logger.warning(warn_msg)
+        }
     }
 }
 
 /// Trait used to remove `Node`s.
 pub trait NodeRemover {
+    fn remove_from_parent_or_panic(&self);
+
+    fn remove_from_parent_or_warn(&self, logger:&Logger);
+
     fn remove_child_or_panic(&self, node:&Node);
+
+    fn remove_child_or_warn(&self, node:&Node, logger:&Logger);
 }
 
 impl NodeRemover for Node {
+    fn remove_from_parent_or_panic(&self) {
+        if let Some(parent) = self.parent_node() {
+            let panic_msg = |_|  panic!("Failed to remove {:?} from parent", self);
+            parent.remove_child(self).unwrap_or_else(panic_msg);
+        }
+    }
+
+    fn remove_from_parent_or_warn(&self, logger:&Logger) {
+        if let Some(parent) = self.parent_node() {
+            let warn_msg : &str = &format!("Failed to remove {:?} from parent", self);
+            if parent.remove_child(self).is_err() {
+                logger.warning(warn_msg)
+            }
+        }
+    }
+
     fn remove_child_or_panic(&self, node:&Node) {
-        let panic_msg = |_|
-            panic!("Failed to remove child {:?} from {:?}",node,self);
+        let panic_msg = |_| panic!("Failed to remove child {:?} from {:?}",node,self);
         self.remove_child(node).unwrap_or_else(panic_msg);
+    }
+
+    fn remove_child_or_warn(&self, node:&Node, logger:&Logger) {
+        let warn_msg : &str = &format!("Failed to remove child {:?} from {:?}",node,self);
+        if self.remove_child(node).is_err() {
+            logger.warning(warn_msg)
+        }
     }
 }
 

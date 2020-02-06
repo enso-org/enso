@@ -38,7 +38,7 @@ pub struct EventListener<T:?Sized> {
 }
 
 impl<T:?Sized> EventListener<T> {
-    fn new<Str:AsRef<str>>(target:EventTarget, name:Str, callback:Closure<T>) -> Self {
+    fn new<S:Str>(target:EventTarget, name:S, callback:Closure<T>) -> Self {
         let name = name.as_ref().to_string();
         Self { target,name,callback }
     }
