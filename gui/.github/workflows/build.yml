@@ -10,7 +10,7 @@ jobs:
     name: Build
     runs-on: ${{ matrix.os }}
     strategy:
-      matrix: 
+      matrix:
         os: [windows-latest, macOS-latest, ubuntu-latest]
     steps:
       - uses: actions/checkout@v1
@@ -23,7 +23,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: check
-          
+
   test:
     name: Tests
     runs-on: ${{ matrix.os }}
@@ -57,21 +57,27 @@ jobs:
             --bin test-all
             -- --headless --firefox
 
-# TODO[AO] formatter does not work
-#  fmt:
-#    name: Formatter
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/checkout@v1
-#      - uses: actions-rs/toolchain@v1
-#        with:
-#          toolchain: nightly-2019-11-04
-#          override: true
-#      - run: rustup component add rustfmt
-#      - uses: actions-rs/cargo@v1
-#        with:
-#          command: fmt
-#          args: --all -- --check
+  size:
+    name: Check size
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: Install Rust Nightly Toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly-2019-11-04
+          override: true
+      - name: Install wasm-pack
+        uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: wasm-pack --version 0.8.1
+      - name: Compile to WASM
+        run: ./script/build.sh
+      - name: Minimize WASM
+        run: ./script/minimize_wasm.sh > file_size
+      - name: Check WASM size
+        run: ./script/assert_max_wasm_size.sh
 
   clippy:
     name: Linter

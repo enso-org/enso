@@ -1,8 +1,6 @@
 const CopyWebpackPlugin = require("copy-webpack-plugin")
 const path = require('path');
 
-const mb = 1024 * 1024;
-
 module.exports = {
     entry: "./bootstrap.js",
     output: {
@@ -25,6 +23,5 @@ module.exports = {
     },
     performance: {
         hints: 'error',
-        maxAssetSize: 4.7 * mb,
     },
 };
