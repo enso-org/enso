@@ -9,6 +9,7 @@ members = [
     "lib/data",
     "lib/eval-tt",
     "lib/frp",
+    "lib/gui",
     "lib/ide/ast/impl",
     "lib/ide/ast/macros",
     "lib/ide/file-manager",
@@ -25,7 +26,7 @@ members = [
 ]
 
 [profile.dev]
-opt-level = 3
+opt-level = 2
 lto       = false
 debug     = true
 
@@ -37,4 +38,9 @@ debug     = false
 [profile.bench]
 opt-level = 3
 lto       = true
+debug     = false
+
+[profile.test]
+opt-level = 0
+lto       = false
 debug     = false

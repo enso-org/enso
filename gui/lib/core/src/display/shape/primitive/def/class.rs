@@ -1,11 +1,11 @@
 //! This module defines the class of all shapes.
 
-
 use crate::prelude::*;
 
 use crate::display::shape::primitive::def::*;
 use crate::display::shape::primitive::shader::canvas::Canvas;
 use crate::display::shape::primitive::shader::canvas::CanvasShape;
+use crate::system::gpu::shader::glsl::Glsl;
 
 
 
@@ -60,6 +60,11 @@ impl<T> ShapeRef<T> where ShapeRef<T>:Shape {
     /// Unify the shape with another one.
     pub fn union<S:Shape>(&self, that:&S) -> Union<Self,S> {
         Union(self,that)
+    }
+
+    /// Fill the shape with the provided color.
+    pub fn fill<Color:Into<Glsl>>(&self, color:Color) -> Fill<Self> {
+        Fill(self,color)
     }
 }
 

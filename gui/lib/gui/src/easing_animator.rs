@@ -1,27 +1,29 @@
 //! EasingAnimator examples.
 
-use wasm_bindgen::prelude::*;
-use crate::animation::easing::*;
-use crate::animation::animator::easing::EasingAnimator;
-use crate::system::web::create_element;
-use crate::system::web::NodeInserter;
-use crate::system::web::AttributeSetter;
-use crate::system::web::StyleSetter;
+use crate::prelude::*;
 
+use basegl::animation::animator::continuous::ContinuousAnimator;
+use basegl::animation::animator::easing::EasingAnimator;
+use basegl::animation::animator::fixed_step::FixedStepAnimator;
+use basegl::animation::easing::*;
+use basegl::system::web::AttributeSetter;
+use basegl::system::web::create_element;
+use basegl::system::web::get_element_by_id;
+use basegl::system::web::NodeInserter;
+use basegl::system::web::StyleSetter;
+use basegl::system::web;
+use js_sys::Math;
 use nalgebra::Vector2;
 use nalgebra::zero;
-
-use web_sys::HtmlElement;
-use web_sys::HtmlCanvasElement;
-use web_sys::CanvasRenderingContext2d;
-use wasm_bindgen::JsCast;
-use crate::system::web::get_element_by_id;
-use crate::animation::animator::continuous::ContinuousAnimator;
-use crate::animation::animator::fixed_step::FixedStepAnimator;
-use js_sys::Math;
-
-use std::rc::Rc;
 use std::cell::RefCell;
+use std::rc::Rc;
+use wasm_bindgen::JsCast;
+use wasm_bindgen::prelude::*;
+use web_sys::CanvasRenderingContext2d;
+use web_sys::HtmlCanvasElement;
+use web_sys::HtmlElement;
+
+
 
 /// A simplified Canvas object used in the EasingAnimator example.
 #[derive(Clone,Debug)]
@@ -303,13 +305,16 @@ macro_rules! example {
 #[allow(dead_code)]
 /// Runs EasingAnimator example.
 pub fn run_example_easing_animator() {
+    web::forward_panic_hook_to_console();
+    web::set_stdout();
+    web::set_stack_trace_limit();
     let container : HtmlElement = create_element("div").unwrap().dyn_into().unwrap();
     container.set_attribute_or_panic("id", "examples");
     container.set_style_or_panic("display", "flex");
     container.set_style_or_panic("flex-wrap", "wrap");
     container.set_style_or_panic("position", "absolute");
     container.set_style_or_panic("top", "0px");
-    get_element_by_id("app").unwrap().append_or_panic(&container);
+    web::body().append_or_panic(&container);
     example!(expo);
     example!(bounce);
     example!(circ);

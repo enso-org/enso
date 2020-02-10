@@ -30,7 +30,7 @@ vec3 fusion_gradient_hdr(float x) {
 }
 
 // TODO: consider using (dFdx, dFdy) to detect discontinuities.
-RGB distance_meter(float dist, float ray_length, float cam_height) {
+Rgb distance_meter(float dist, float ray_length, float cam_height) {
     float idealGridDistance = 20.0/ray_length;
     float nearestBase = floor(log(idealGridDistance)/log(10.));
     float relativeDist = abs(dist/cam_height);
@@ -55,5 +55,5 @@ RGB distance_meter(float dist, float ray_length, float cam_height) {
     col.rgb *= 0.1+0.9*(1.-l0)*(1.-l1);
     col = uncharted_to_tone_mapping(col);
     col = pow(col, vec3(1./2.2));
-    return RGB(col);
+    return rgb(col);
 }

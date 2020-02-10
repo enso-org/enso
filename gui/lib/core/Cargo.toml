@@ -35,11 +35,12 @@ js-sys                     = { version = "0.3.28" }
 nalgebra                   = { version = "0.19.0" }
 num_enum                   = { version = "0.4.2"  }
 paste                      = { version = "0.1.6"  }
+palette                    = { version = "0.5.0"  }
 rustc-hash                 = { version = "1.0.1"  }
 shrinkwraprs               = { version = "0.3.0"  }
 smallvec                   = { version = "1.0.0"  }
 typenum                    = { version = "1.11.2" }
-wasm-bindgen               = { version = "^0.2"   , features = ["nightly"]    }
+wasm-bindgen               = { version = "0.2.58" , features = ["nightly"]    }
 
 [dependencies.web-sys]
 version = "0.3.4"
@@ -52,6 +53,7 @@ features = [
   'KeyboardEvent',
   'HtmlCanvasElement',
   'HtmlCollection',
+  'HtmlDivElement',
   'HtmlElement',
   'HtmlImageElement',
   'Location',

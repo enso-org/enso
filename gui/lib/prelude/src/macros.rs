@@ -22,11 +22,11 @@
 /// This macro is meant to support many standard traits (like From) and should grow in the future.
 #[macro_export]
 macro_rules! impls {
-    ($([$($impl_params:tt)*])? From<$ty:ty> for $target:ty {
+    ($([$($impl_params:tt)*])? From<$ty:ty> for $target:ty $(where [$($bounds:tt)*])? {
         |$arg:tt| $($result:tt)*
     } ) => {
         #[allow(clippy::redundant_closure_call)]
-        impl <$($($impl_params)*)?> From <$ty> for $target {
+        impl <$($($impl_params)*)?> From <$ty> for $target $(where $($bounds)*)? {
             fn from (arg:$ty) -> Self {
                 (|$arg:$ty| $($result)*)(arg)
             }

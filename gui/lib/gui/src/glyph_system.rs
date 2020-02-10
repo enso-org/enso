@@ -1,14 +1,12 @@
 //! An example showing usage of GlyphSystem.
 
-use crate::display::object::DisplayObjectOps;
-use crate::display::object::DisplayObject;
-use crate::display::shape::text::glyph::font::FontRegistry;
-use crate::display::shape::text::glyph::system::GlyphSystem;
-use crate::display::world::*;
-
+use basegl::display::object::DisplayObject;
+use basegl::display::object::DisplayObjectOps;
+use basegl::display::shape::text::glyph::font::FontRegistry;
+use basegl::display::shape::text::glyph::system::GlyphSystem;
+use basegl::display::world::*;
+use basegl::system::web;
 use basegl_core_msdf_sys::run_once_initialized;
-use basegl_system_web::forward_panic_hook_to_console;
-use basegl_system_web::set_stdout;
 use nalgebra::Vector4;
 use wasm_bindgen::prelude::*;
 
@@ -18,9 +16,9 @@ use wasm_bindgen::prelude::*;
 #[wasm_bindgen]
 #[allow(dead_code)]
 pub fn run_example_glyph_system() {
-    forward_panic_hook_to_console();
-    set_stdout();
-    run_once_initialized(|| init(&WorldData::new("canvas")));
+    web::forward_panic_hook_to_console();
+    web::set_stdout();
+    run_once_initialized(|| init(&WorldData::new(&web::body())));
 }
 
 fn init(world: &World) {

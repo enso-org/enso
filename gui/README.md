@@ -38,8 +38,9 @@ default to the `--release` profile.
 
 ### Running examples
 Please note that in order to run the examples you have to first build the
-project. For best experience, it is recommended to use the `scripts/watch.sh`
-in a second shell. In order to build the demo scenes, follow the steps below:
+project. For best experience, it is recommended to use the 
+`scripts/watch.sh --dev` in a second shell. In order to build the demo scenes, 
+follow the steps below:
 
 ```bash
 cd examples
@@ -48,11 +49,6 @@ npm run start
 ```
 
 You can now navigate to http://localhost:8080 and play with the demo scenes!
-
-Please note that `npm run start` runs the Webpack Dev-Server in the production
-mode. You can use the `npm run start-dev` in order to enable the development
-mode, however, as all sources are provided to Webpack in form of WASM binaries,
-we haven't observed any differences between them in this project. 
 
 While Webpack provides handy utilities for development, like live-reloading on
 sources change, it also adds some runtime overhead. In order to run the compiled

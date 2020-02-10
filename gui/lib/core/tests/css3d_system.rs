@@ -49,14 +49,14 @@ mod tests {
 
     fn initialize_system(name:&str,color:&str) -> (World,Css3dSystem) {
         web::set_stdout();
-        let canvas_name   = format!("canvas_{}",name);
+//        let canvas_name   = format!("canvas_{}",name);
         let container     = dyn_into::<_,HtmlElement>(get_element_by_id(name).unwrap()).unwrap();
-        let canvas        = dyn_into::<_,HtmlElement>(create_element("canvas").unwrap()).unwrap();
-        canvas.set_attribute_or_panic("id", &canvas_name);
-        canvas.set_style_or_panic("width", "100%");
-        canvas.set_style_or_panic("height", "100%");
-        container.append_or_panic(&canvas);
-        let world         = WorldData::new(&canvas_name);
+//        let canvas        = dyn_into::<_,HtmlElement>(create_element("canvas").unwrap()).unwrap();
+//        canvas.set_attribute_or_panic("id", &canvas_name);
+//        canvas.set_style_or_panic("width", "100%");
+//        canvas.set_style_or_panic("height", "100%");
+//        container.append_or_panic(&canvas);
+        let world         = WorldData::new(&container);
         let css3d_system  = Css3dSystem::new(&world);
         container.set_style_or_panic("background-color", color);
         world.add_child(&css3d_system);

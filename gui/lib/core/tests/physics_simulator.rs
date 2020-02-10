@@ -33,12 +33,12 @@ mod tests {
     fn simulator() {
         set_stdout();
         let name          = "simulator";
-        let canvas_name   = format!("canvas_{}",name);
+//        let canvas_name   = format!("canvas_{}",name);
         let container     = dyn_into::<_,HtmlElement>(get_element_by_id(name).unwrap()).unwrap();
-        let canvas        = create_element("canvas").unwrap();
-        canvas.set_attribute_or_panic("id", &canvas_name);
-        container.append_or_panic(&canvas);
-        let world         = WorldData::new(&canvas_name);
+//        let canvas        = create_element("canvas").unwrap();
+//        canvas.set_attribute_or_panic("id", &canvas_name);
+//        container.append_or_panic(&canvas);
+        let world         = WorldData::new(&container);
         let css3d_system  = Css3dSystem::new(&world);
         world.add_child(&css3d_system);
 

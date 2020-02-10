@@ -2,26 +2,23 @@
 
 use crate::prelude::*;
 
-use crate::display::world::WorldData;
-use crate::display::object::DisplayObjectOps;
-use crate::display::shape::text::glyph::font::FontRegistry;
-use crate::display::shape::text::text_field::TextField;
-use crate::display::shape::text::text_field::TextFieldProperties;
-use crate::display::world::*;
-use crate::system::web;
-use crate::system::web::forward_panic_hook_to_console;
-
-
+use basegl::display::object::DisplayObjectOps;
+use basegl::display::shape::text::glyph::font::FontRegistry;
+use basegl::display::shape::text::text_field::location::TextLocation;
+use basegl::display::shape::text::text_field::TextField;
+use basegl::display::shape::text::text_field::TextFieldProperties;
+use basegl::display::world::*;
+use basegl::display::world::WorldData;
+use basegl::system::web::forward_panic_hook_to_console;
+use basegl::system::web::text_input::KeyboardBinding;
+use basegl::system::web;
 use basegl_system_web::set_stdout;
 use nalgebra::Vector2;
 use nalgebra::Vector4;
-use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsCast;
-use web_sys::MouseEvent;
-use failure::_core::cell::RefCell;
 use wasm_bindgen::prelude::*;
-use crate::system::web::text_input::KeyboardBinding;
-use crate::display::shape::text::text_field::location::TextLocation;
+use wasm_bindgen::prelude::Closure;
+use web_sys::MouseEvent;
 
 
 const TEXT:&str =
@@ -42,7 +39,7 @@ pub fn run_example_text_selecting() {
     forward_panic_hook_to_console();
     set_stdout();
     basegl_core_msdf_sys::run_once_initialized(|| {
-        let world     = &WorldData::new("canvas");
+        let world     = &WorldData::new(&web::body());
         let scene     = world.scene();
         let camera    = scene.camera();
         let screen    = camera.screen();

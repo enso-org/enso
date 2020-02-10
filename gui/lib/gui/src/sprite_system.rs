@@ -1,19 +1,19 @@
 #![allow(missing_docs)]
 
-use crate::display::object::DisplayObject;
-use crate::display::object::DisplayObjectOps;
-use crate::display::symbol::geometry::Sprite;
-use crate::display::symbol::geometry::SpriteSystem;
-use crate::display::world::*;
-use crate::prelude::*;
-use crate::system::web::forward_panic_hook_to_console;
-use crate::system::web::set_stdout;
-
+use basegl::display::camera::Camera2d;
+use basegl::display::navigation::navigator::Navigator;
+use basegl::display::object::DisplayObject;
+use basegl::display::object::DisplayObjectOps;
+use basegl::display::symbol::geometry::Sprite;
+use basegl::display::symbol::geometry::SpriteSystem;
+use basegl::display::world::*;
+use basegl::prelude::*;
+use basegl::system::web::forward_panic_hook_to_console;
+use basegl::system::web::set_stdout;
+use basegl::system::web;
 use nalgebra::Vector2;
 use nalgebra::Vector3;
 use wasm_bindgen::prelude::*;
-use crate::display::navigation::navigator::Navigator;
-use crate::display::camera::Camera2d;
 
 
 #[wasm_bindgen]
@@ -21,7 +21,7 @@ use crate::display::camera::Camera2d;
 pub fn run_example_sprite_system() {
     forward_panic_hook_to_console();
     set_stdout();
-    init(&WorldData::new("canvas"));
+    init(&WorldData::new(&web::body()));
 }
 
 fn init(world:&World) {

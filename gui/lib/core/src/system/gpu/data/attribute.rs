@@ -76,7 +76,7 @@ impl {
     }
 
     /// Adds a new named buffer to the scope.
-    pub fn add_buffer<Name:Str, T:BufferItem>(&mut self, name:Name) -> Buffer<T>
+    pub fn add_buffer<Name:Str, T:Storable>(&mut self, name:Name) -> Buffer<T>
     where AnyBuffer: From<Buffer<T>> {
         let name         = name.as_ref().to_string();
         let buffer_dirty = self.buffer_dirty.clone();
@@ -178,7 +178,7 @@ impl<T> Attribute<T> {
     }
 }
 
-impl<T: BufferItem> Attribute<T> {
+impl<T:Storable> Attribute<T> {
     /// Gets a copy of the data this attribute points to.
     pub fn get(&self) -> T {
         self.buffer.get(self.index.into())

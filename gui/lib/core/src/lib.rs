@@ -4,25 +4,23 @@
 
 #![allow(dead_code)]
 
-#![warn(unsafe_code)]
-#![warn(missing_copy_implementations)]
-#![warn(missing_debug_implementations)]
-#![warn(missing_docs)]
-#![warn(trivial_casts)]
-#![warn(trivial_numeric_casts)]
-#![warn(unused_import_braces)]
-#![warn(unused_qualifications)]
-//#![warn(unsafe_code)]
-//#![warn(missing_copy_implementations)]
-//#![warn(missing_debug_implementations)]
-
 #![feature(associated_type_defaults)]
+#![feature(drain_filter)]
+#![feature(overlapping_marker_traits)]
 #![feature(specialization)]
 #![feature(trait_alias)]
 #![feature(type_alias_impl_trait)]
 #![feature(unboxed_closures)]
 #![feature(weak_into_raw)]
-#![feature(drain_filter)]
+#![warn(missing_copy_implementations)]
+#![warn(missing_debug_implementations)]
+#![warn(missing_docs)]
+#![warn(trivial_casts)]
+#![warn(trivial_numeric_casts)]
+#![warn(unsafe_code)]
+#![warn(unused_import_braces)]
+#![warn(unused_qualifications)]
+
 #![recursion_limit="512"]
 
 // To be removed after this gets resolved: https://github.com/rust-lang/cargo/issues/5034
@@ -50,7 +48,6 @@ pub mod control;
 pub mod data;
 pub mod debug;
 pub mod display;
-pub mod examples;
 pub mod system;
 
 /// Prelude - commonly used utilities.

@@ -1,0 +1,56 @@
+[package]
+name    = "gui"
+version = "0.1.0"
+authors = ["Enso Team <contact@luna-lang.org>"]
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib"]
+
+
+[dependencies]
+basegl               = { version = "0.1.0"  , path = "../core"          }
+basegl-core-msdf-sys = { version = "0.1.0"  , path = "../core/msdf-sys" }
+basegl-system-web    = { version = "0.1.0"  , path = "../system/web"    }
+enso-frp             = { version = "0.1.0"  , path = "../frp"   }
+
+enso-prelude         = { version = "0.1.0"  , path = "../prelude"       }
+wasm-bindgen         = { version = "0.2.58" , features = ["nightly"]    }
+nalgebra             = { version = "0.19.0" }
+js-sys               = { version = "0.3.28" }
+
+[dependencies.web-sys]
+version = "0.3.4"
+features = [
+  'CanvasRenderingContext2d',
+  'CssStyleDeclaration',
+  'Document',
+  'Element',
+  'EventTarget',
+  'KeyboardEvent',
+  'HtmlCanvasElement',
+  'HtmlCollection',
+  'HtmlElement',
+  'HtmlImageElement',
+  'Location',
+  'Node',
+  'Url',
+  'WebGlBuffer',
+  'WebGlFramebuffer',
+  'WebGlProgram',
+  'WebGlRenderingContext',
+  'WebGlShader',
+  'WebGlSync',
+  'WebGlTexture',
+  'WebGlUniformLocation',
+  'WebGlUniformLocation',
+  'WebGlVertexArrayObject',
+  'Window',
+  'console',
+  'EventTarget',
+  'Event',
+  'MouseEvent',
+  'WheelEvent',
+  'DomRect',
+  'AddEventListenerOptions'
+]
