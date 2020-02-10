@@ -149,17 +149,18 @@ impl TextFieldSprites {
     pub fn update_glyphs(&mut self, content:&mut TextFieldContent, fonts:&mut FontRegistry) {
         let glyph_lines       = self.glyph_lines.iter_mut().enumerate();
         let lines_assignment  = glyph_lines.zip(self.assignment.glyph_lines_fragments.iter());
-        let assigned_lines    = lines_assignment.filter_map(|(l,opt)| opt.as_ref().map(|f|(l,f)));
         let dirty_lines       = std::mem::take(&mut content.dirty_lines);
         let dirty_glyph_lines = std::mem::take(&mut self.assignment.dirty_glyph_lines);
-        for ((index,glyph_line),fragment) in assigned_lines {
-            if dirty_glyph_lines.contains(&index) || dirty_lines.is_dirty(fragment.line_index) {
-                let mut f_content = content.full_info(fonts);
-                let bsl_start     = Self::baseline_start_for_fragment(fragment,&mut f_content);
-                let line          = &content.lines[fragment.line_index];
-                let chars         = &line.chars()[fragment.chars_range.clone()];
-                glyph_line.set_baseline_start(bsl_start);
-                glyph_line.replace_text(chars.iter().cloned(),fonts);
+
+        for ((index,glyph_line),assignment) in lines_assignment {
+            let is_glyph_line_dirty = dirty_glyph_lines.contains(&index);
+            let assigned_line       = assignment.as_ref().map(|fragment| fragment.line_index);
+            let is_line_dirty       = assigned_line.map_or(false, |l| dirty_lines.is_dirty(l));
+            if is_glyph_line_dirty || is_line_dirty {
+                match assignment {
+                    Some(fragment) => Self::update_glyph_line(glyph_line,fragment,content,fonts),
+                    None           => glyph_line.replace_text("".chars(), fonts),
+                }
             }
         }
         self.display_object.update();
@@ -183,6 +184,19 @@ impl TextFieldSprites {
             sprites.selection = generator.generate(&selection);
         }
         self.display_object.update();
+    }
+
+    fn update_glyph_line
+    ( glyph_line : &mut GlyphLine
+    , fragment   : &LineFragment
+    , content    : &mut TextFieldContent
+    , fonts      : &mut FontRegistry) {
+        let mut f_content = content.full_info(fonts);
+        let bsl_start     = Self::baseline_start_for_fragment(fragment,&mut f_content);
+        let line          = &content.lines[fragment.line_index];
+        let chars         = &line.chars()[fragment.chars_range.clone()];
+        glyph_line.set_baseline_start(bsl_start);
+        glyph_line.replace_text(chars.iter().cloned(),fonts);
     }
 
     /// The baseline start for given line's fragment.
