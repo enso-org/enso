@@ -3,8 +3,8 @@
 use wasm_bindgen::prelude::*;
 
 use crate::display::object::DisplayObjectOps;
-use crate::display::shape::text::text_field::content::TextChange;
-use crate::display::shape::text::text_field::{TextField, TextFieldProperties};
+use crate::display::shape::text::text_field::TextField;
+use crate::display::shape::text::text_field::TextFieldProperties;
 use crate::display::shape::text::text_field::cursor::Step::Right;
 use crate::display::shape::text::glyph::font::FontRegistry;
 use crate::display::world::*;
@@ -68,10 +68,8 @@ fn animate_text_component
     let now         = js_sys::Date::now();
     let to_type_now = typed_chars.drain_filter(|ch| ch.time <= now);
     for ch in to_type_now {
-        let cursor = text_field.cursors().cursors.first().unwrap();
         let string = ch.a_char.to_string();
-        let change = TextChange::insert(cursor.position, string.as_str());
-        text_field.make_change(change,fonts);
+        text_field.edit(string.as_str(),fonts);
         text_field.navigate_cursors(Right,false,fonts);
     }
     if start_scrolling <= js_sys::Date::now() {
