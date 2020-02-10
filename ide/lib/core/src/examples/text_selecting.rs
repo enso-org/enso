@@ -21,6 +21,7 @@ use web_sys::MouseEvent;
 use failure::_core::cell::RefCell;
 use wasm_bindgen::prelude::*;
 use crate::system::web::text_input::KeyboardBinding;
+use crate::display::shape::text::text_field::location::TextLocation;
 
 
 const TEXT:&str =
@@ -58,6 +59,7 @@ pub fn run_example_text_selecting() {
         let text_field = TextField::new(&world,TEXT,properties,&mut fonts);
         text_field.set_position(Vector3::new(10.0, 600.0, 0.0));
         text_field.jump_cursor(Vector2::new(50.0, -40.0),false,&mut fonts);
+        text_field.add_cursor(TextLocation{line:1, column:0}, &mut fonts);
         world.add_child(&text_field);
         text_field.update();
 

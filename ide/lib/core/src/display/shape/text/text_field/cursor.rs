@@ -2,9 +2,9 @@
 
 use crate::prelude::*;
 
-use crate::display::shape::text::text_field::content::TextLocation;
 use crate::display::shape::text::text_field::content::TextFieldContentFullInfo;
 use crate::display::shape::text::text_field::content::line::LineFullInfo;
+use crate::display::shape::text::text_field::location::TextLocation;
 
 use nalgebra::Vector2;
 use std::cmp::Ordering;
@@ -298,6 +298,11 @@ impl Cursors {
         self.merge_overlapping_cursors();
     }
 
+    /// Returns cursor indices sorted by cursors' position in text.
+    pub fn sorted_cursor_indices(&self) -> Vec<usize> {
+        self.cursors.iter().enumerate().sorted_by_key(|(_,c)| c.position).map(|(i,_)| i).collect()
+    }
+
     /// Merge overlapping cursors
     ///
     /// This function checks all cursors, and merge each pair where cursors are at the same position
@@ -307,19 +312,23 @@ impl Cursors {
     /// removed cursors.
     fn merge_overlapping_cursors(&mut self) {
         if !self.cursors.is_empty() {
-            self.cursors.sort_by_key(|c| c.position);
-            let mut i          = 1;
-            while i < self.cursors.len() {
-                let merged = self.merged_selection_range(i - 1,i);
+            let sorted             = self.sorted_cursor_indices();
+            let mut to_remove      = Vec::new();
+            let mut last_cursor_id = sorted[0];
+            for id in sorted.iter().skip(1) {
+                let merged = self.merged_selection_range(last_cursor_id,*id);
                 match merged {
                     Some(merged_range) => {
-                        self.cursors[i-1].extend_selection(&merged_range);
-                        self.cursors.remove(i);
+                        self.cursors[last_cursor_id].extend_selection(&merged_range);
+                        to_remove.push(*id);
                     },
                     None => {
-                        i += 1
+                        last_cursor_id = *id;
                     }
                 };
+            }
+            for id in to_remove.iter().sorted().rev() {
+                self.cursors.remove(*id);
             }
         }
     }
@@ -471,7 +480,7 @@ mod test {
     fn merging_selection_after_moving_case<F>(convert:F)
     where F : FnMut(&Range<(usize,usize)>) -> Cursor + Clone {
         let ranges           = vec![(1,4)..(1,5), (0,0)..(0,5), (0,2)..(1,0), (1,5)..(2,0)];
-        let expected_ranges  = vec![(0,0)..(1,0), (1,4)..(1,5), (1,5)..(2,0)];
+        let expected_ranges  = vec![(1,4)..(1,5), (0,0)..(1,0), (1,5)..(2,0)];
         let initial_cursors  = ranges.iter().map(convert.clone()).collect_vec();
         let expected_cursors = expected_ranges.iter().map(convert).collect_vec();
         let mut cursors      = Cursors::mock(initial_cursors);

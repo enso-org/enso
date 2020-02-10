@@ -2,6 +2,7 @@
 
 pub mod content;
 pub mod cursor;
+pub mod location;
 pub mod render;
 
 use crate::prelude::*;
@@ -9,9 +10,12 @@ use crate::prelude::*;
 use crate::display::object::DisplayObjectData;
 use crate::display::shape::text::text_field::content::TextFieldContent;
 use crate::display::shape::text::text_field::content::TextChange;
-use crate::display::shape::text::text_field::cursor::{Cursors, Cursor};
+use crate::display::shape::text::text_field::cursor::Cursors;
+use crate::display::shape::text::text_field::cursor::Cursor;
 use crate::display::shape::text::text_field::cursor::Step;
 use crate::display::shape::text::text_field::cursor::CursorNavigation;
+use crate::display::shape::text::text_field::location::TextLocation;
+use crate::display::shape::text::text_field::location::TextLocationChange;
 use crate::display::shape::text::glyph::font::FontId;
 use crate::display::shape::text::glyph::font::FontRegistry;
 use crate::display::shape::text::text_field::render::TextFieldSprites;
@@ -112,6 +116,12 @@ shared! { TextField
             self.rendered.display_object.position().xy()
         }
 
+        /// Add cursor.
+        pub fn add_cursor(&mut self, position:TextLocation, fonts:&mut FontRegistry) {
+            self.cursors.add_cursor(position);
+            self.rendered.update_cursor_sprites(&self.cursors, &mut self.content.full_info(fonts));
+        }
+
         /// Move all cursors by given step.
         pub fn navigate_cursors(&mut self, step:Step, selecting:bool, fonts:&mut FontRegistry) {
             let content        = self.content.full_info(fonts);
@@ -153,19 +163,18 @@ shared! { TextField
         pub fn edit(&mut self, insertion:&str, fonts:&mut FontRegistry) {
             let trimmed                 = insertion.trim_end_matches('\n');
             let is_line_per_cursor_edit = trimmed.contains('\n') && self.cursors.cursors.len() > 1;
-            let selection               = self.cursors.cursors.iter().map(Cursor::selection_range);
+            let cursor_ids              = self.cursors.sorted_cursor_indices();
 
             if is_line_per_cursor_edit {
-                let range_with_line = selection.zip(trimmed.split('\n'));
-                let changes         = range_with_line.map(|(r,l)| TextChange::replace(r,l));
-                self.content.apply_changes(changes);
+                let cursor_with_line = cursor_ids.iter().cloned().zip(trimmed.split('\n'));
+                self.edit_per_cursor(cursor_with_line);
             } else {
-                let changes = selection.map(|range| TextChange::replace(range,insertion));
-                self.content.apply_changes(changes);
+                let cursor_with_line = cursor_ids.iter().map(|cursor_id| (*cursor_id,insertion));
+                self.edit_per_cursor(cursor_with_line);
             };
-            // TODO[ao]: fix cursor positions after applying changes.
             self.assignment_update(fonts).update_after_text_edit();
             self.rendered.update_glyphs(&mut self.content,fonts);
+            self.rendered.update_cursor_sprites(&self.cursors, &mut self.content.full_info(fonts));
         }
 
         /// Update underlying Display Object.
@@ -192,6 +201,19 @@ impl TextFieldData {
             assignment    : &mut self.rendered.assignment,
             scroll_offset : -self.rendered.display_object.position().xy(),
             view_size     : self.properties.size,
+        }
+    }
+
+    fn edit_per_cursor<'a,It>(&mut self, cursor_id_with_text_to_insert:It)
+    where It : Iterator<Item=(usize,&'a str)> {
+        let mut location_change = TextLocationChange::default();
+        for (cursor_id,to_insert) in cursor_id_with_text_to_insert {
+            let cursor   = &mut self.cursors.cursors[cursor_id];
+            let replaced = location_change.apply_to_range(cursor.selection_range());
+            let change   = TextChange::replace(replaced,to_insert);
+            location_change.add_change(&change);
+            *cursor = Cursor::new(change.inserted_text_range().end);
+            self.content.apply_change(change);
         }
     }
 }

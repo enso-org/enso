@@ -8,6 +8,7 @@ use crate::display::shape::text::glyph::font::FontRegistry;
 use crate::display::shape::text::glyph::font::FontRenderInfo;
 use crate::display::shape::text::text_field::content::line::Line;
 use crate::display::shape::text::text_field::content::line::LineFullInfo;
+use crate::display::shape::text::text_field::location::TextLocation;
 use crate::display::shape::text::text_field::TextFieldProperties;
 
 use nalgebra::Vector2;
@@ -93,8 +94,12 @@ pub enum ChangeType {
 /// A structure describing a text operation in one place.
 #[derive(Debug)]
 pub struct TextChange {
-    replaced : Range<TextLocation>,
-    lines    : Vec<Vec<char>>,
+    /// Text fragment to be replaced. If we don't mean to remove any text, this should be an empty
+    /// range with start set at position there `lines` will be inserted (see `TextChange::insert`
+    /// definition).
+    pub replaced : Range<TextLocation>,
+    /// Lines to insert instead of replaced fragment.
+    pub lines : Vec<Vec<char>>,
 }
 
 impl TextChange {
@@ -135,41 +140,21 @@ impl TextChange {
         }
     }
 
+    /// Returns text location range where the inserted text will appear after making this change.
+    pub fn inserted_text_range(&self) -> Range<TextLocation> {
+        let start         = self.replaced.start;
+        let end_line      = start.line + self.lines.len().saturating_sub(1);
+        let last_line_len = self.lines.last().map_or(0, |l| l.len());
+        let end_column = if start.line == end_line {
+            start.column + last_line_len
+        } else {
+            last_line_len
+        };
+        start..TextLocation{line:end_line, column:end_column}
+    }
+
     fn mk_lines_as_char_vector(text:&str) -> Vec<Vec<char>> {
         TextFieldContent::split_to_lines(text).map(|s| s.chars().collect_vec()).collect()
-    }
-}
-
-
-
-// ====================
-// === TextLocation ===
-// ====================
-
-/// A position of character in a multiline text.
-#[derive(Copy,Clone,Debug,PartialEq,Eq,PartialOrd,Ord)]
-pub struct TextLocation {
-    /// Line index.
-    pub line: usize,
-    /// Column is a index of char in given line.
-    pub column: usize,
-}
-
-impl TextLocation {
-    /// Create location at begin of given line.
-    pub fn at_line_begin(line_index:usize) -> TextLocation {
-        TextLocation {
-            line   : line_index,
-            column : 0,
-        }
-    }
-
-    /// Create location at begin of the whole document.
-    pub fn at_document_begin() -> TextLocation {
-        TextLocation {
-            line   : 0,
-            column : 0,
-        }
     }
 }
 
@@ -521,6 +506,21 @@ mod test {
         assert_eq!("\nLine"  , content.copy_fragment(eol_with_line));
         assert_eq!(" a\nLine", content.copy_fragment(multi_line));
         assert_eq!(text      , content.copy_fragment(whole_content));
+    }
+
+    #[test]
+    fn get_inserted_text_location_of_change() {
+        let one_line         = "One line";
+        let two_lines        = "Two\nlines";
+        let replaced_range   = TextLocation{line:1,column:2}..TextLocation{line:2,column:2};
+
+        let one_line_change  = TextChange::replace(replaced_range.clone(),one_line);
+        let two_lines_change = TextChange::replace(replaced_range.clone(),two_lines);
+
+        let one_line_expected  = replaced_range.start..TextLocation{line:1, column:10};
+        let two_lines_expected = replaced_range.start..TextLocation{line:2, column:5 };
+        assert_eq!(one_line_expected , one_line_change .inserted_text_range());
+        assert_eq!(two_lines_expected, two_lines_change.inserted_text_range());
     }
 
     fn get_lines_as_strings(content:&TextFieldContent) -> Vec<String> {
