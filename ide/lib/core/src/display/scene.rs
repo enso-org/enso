@@ -3,36 +3,35 @@
 use crate::prelude::*;
 
 pub use crate::display::symbol::registry::SymbolId;
+
 use crate::closure;
+use crate::control::callback::CallbackHandle;
+use crate::control::callback::DynEvent;
+use crate::control::io::mouse2::MouseManager;
+use crate::control::io::mouse2;
 use crate::data::dirty::traits::*;
 use crate::data::dirty;
 use crate::debug::stats::Stats;
 use crate::display::camera::Camera2d;
 use crate::display::object::DisplayObjectData;
+use crate::display::object::DisplayObjectOps;
 use crate::display::render::RenderComposer;
 use crate::display::render::RenderPipeline;
 use crate::display::symbol::registry::SymbolRegistry;
 use crate::display::symbol::Symbol;
+use crate::system::gpu::data::uniform::Uniform;
 use crate::system::gpu::data::uniform::UniformScope;
 use crate::system::gpu::shader::Context;
 use crate::system::gpu::types::*;
-use crate::system::web::resize_observer::ResizeObserver;
-use crate::system::web;
-use crate::display::object::DisplayObjectOps;
-use crate::system::gpu::data::uniform::Uniform;
 use crate::system::web::dom::html::Css3dRenderer;
 use crate::system::web::dyn_into;
+use crate::system::web::resize_observer::ResizeObserver;
+use crate::system::web::StyleSetter;
+use crate::system::web;
 
 use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsValue;
 use web_sys::HtmlElement;
-
-use crate::control::io::mouse2::MouseManager;
-use crate::control::io::mouse2;
-use crate::control::callback::CallbackHandle;
-
-
-use crate::control::callback::DynEvent;
 
 
 
@@ -250,12 +249,20 @@ pub struct SceneData {
 
 impl {
     /// Create new instance with the provided on-dirty callback.
-    pub fn new<Dom:Str, OnMut:Fn()+Clone+'static>
-    (dom:Dom, logger:Logger, stats:&Stats, on_mut:OnMut) -> Self {
+    pub fn new<OnMut:Fn()+Clone+'static>
+    (parent_dom:&HtmlElement, logger:Logger, stats:&Stats, on_mut:OnMut) -> Self {
         logger.trace("Initializing.");
         let root            = DisplayObjectData::new(&logger);
-        let dom             = dom.as_ref();
-        let canvas          = web::get_canvas(dom).unwrap();
+        let dom             = web::create_div();
+        let canvas          = web::create_canvas();
+        dom.set_style_or_panic("height","100vh");
+        dom.set_style_or_panic("width","100vw");
+        dom.set_style_or_panic("display","block");
+        canvas.set_style_or_panic("height","100vh");
+        canvas.set_style_or_panic("width","100vw");
+        canvas.set_style_or_panic("display","block");
+        parent_dom.append_child(&dom).unwrap();
+        dom.append_child(&canvas).unwrap();
         let context         = web::get_webgl2_context(&canvas).unwrap();
         let sub_logger      = logger.sub("shape_dirty");
         let shape_dirty     = ShapeDirty::new(sub_logger,Box::new(on_mut.clone()));
@@ -368,7 +375,7 @@ impl {
             }
             self.logger.info("Rendering meshes.");
             self.symbols.render(&self.camera);
-            self.css3d_renderer.render(&self.camera);
+//            self.css3d_renderer.render(&self.camera);
 
             self.composer.run();
         })

@@ -3,6 +3,7 @@
 use crate::prelude::*;
 use crate::display::shape::primitive::shader::data::ShaderData;
 use crate::system::gpu::shader::glsl::Glsl;
+use palette::*;
 
 
 
@@ -152,10 +153,10 @@ impl Canvas {
     /// Defines a new shape with a new id and associated parameters, like color.
     pub fn define_shape(&mut self, num:usize, sdf:&str) -> CanvasShape {
         self.if_not_defined(num, |this| {
-            let color     = "lcha(rgba(1.0,0.0,0.0))";
+            let color     = "rgba(1.0,0.0,0.0)";
             let mut shape = CanvasShapeData::new(num);
             let id        = this.get_new_id();
-            this.define("LCHA"     , "color" , iformat!("{color}"));
+            this.define("Rgba"     , "color" , iformat!("{color}"));
             this.define("BoundSdf" , "sdf"   , iformat!("{sdf}"));
             this.define("Id"       , "id"    , iformat!("new_id_layer(sdf,{id})"));
             this.add_current_function_code_line("return shape(id,sdf,color);");
@@ -200,6 +201,20 @@ impl Canvas {
             this.add_current_function_code_line(trans);
             let mut shape = this.new_shape_from_expr(num,&expr);
             shape.add_ids(&s1.ids);
+            shape
+        })
+    }
+
+    /// Fill the shape with the provided color.
+    pub fn fill<Color:ShaderData<Srgb>>
+    (&mut self, num:usize, s:CanvasShape, color:Color) -> CanvasShape {
+        self.if_not_defined(num, |this| {
+            let color:Glsl = color.into();
+            this.add_current_function_code_line(iformat!("Shape shape = {s.getter()};"));
+            this.add_current_function_code_line(iformat!("Rgba  color = rgba({color});"));
+            let expr = iformat!("return set_color(shape,color);");
+            let mut shape = this.new_shape_from_expr(num,&expr);
+            shape.add_ids(&s.ids);
             shape
         })
     }

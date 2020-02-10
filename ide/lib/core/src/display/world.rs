@@ -76,7 +76,7 @@ fn scene_on_change(dirty:SceneDirty) -> SceneOnChange {
 impl WorldData {
     /// Create and initialize new world instance.
     #[allow(clippy::new_ret_no_self)]
-    pub fn new<Dom:Str>(dom:Dom) -> World {
+    pub fn new(dom:&web_sys::HtmlElement) -> World {
         println!("NOTICE! When profiling in Chrome check 'Disable JavaScript Samples' under the \
                   gear icon in the 'Performance' tab. It can drastically slow the rendering.");
         let world          = World::new(Self::new_uninitialized(dom));
@@ -108,7 +108,7 @@ impl WorldData {
 
     /// Create new uninitialized world instance. You should rather not need to
     /// call this function directly.
-    fn new_uninitialized<Dom:Str>(dom:Dom) -> Self {
+    fn new_uninitialized(dom:&web_sys::HtmlElement) -> Self {
         let stats              = default();
         let logger             = Logger::new("world");
         let scene_logger       = logger.sub("scene");
@@ -131,7 +131,7 @@ impl WorldData {
         event_loop.set_on_loop_started  (move || { stats_monitor_cp_1.begin(); });
         event_loop.set_on_loop_finished (move || { stats_monitor_cp_2.end();   });
         Self {scene,scene_dirty,logger,event_loop,performance,start_time,time,display_mode
-            ,update_handle,stats,stats_monitor}
+             ,update_handle,stats,stats_monitor}
     }
 
 

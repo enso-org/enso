@@ -9,6 +9,6 @@ then
   npm install binaryen
 fi
 
-npx wasm-opt -O3 -o basegl_bg_opt.wasm basegl_bg.wasm
-gzip --best --force basegl_bg_opt.wasm
-du -h basegl_bg_opt.wasm.gz | awk '{ print $1 }'
+npx wasm-opt -O3 -o gui_opt.wasm gui.wasm
+gzip --best --force gui_opt.wasm
+du -h gui_opt.wasm.gz | awk '{ print $1 }'

@@ -26,33 +26,43 @@ pub trait MatrixCtx<T,R,C> = where
 
 
 
-// ==================
-// === BufferItem ===
-// ==================
+// ============
+// === Item ===
+// ============
 
 // === Definition ===
 
 pub trait JsBufferViewArr = Sized where [Self]:JsBufferView;
 
-/// Super bounds of the `BufferItem::Item` type;
-pub trait ItemBounds = BufferItem + PhantomInto<GlEnum>;
+/// Super bounds of the `Item::Item` type;
+pub trait ItemBounds = Storable + PhantomInto<GlEnum>;
 
-/// Super bounds of the `BufferItem` trait.
+/// Super bounds of the `Item` trait.
 pub trait BufferItemBounds =
     Copy + GpuDefault + JsBufferViewArr + PhantomInto<glsl::PrimType> + Into<Glsl> + GpuKnownSize;
+
+/// GPU Buffer item.
+pub trait Item {
+    /// Storable representation of the item.
+    type Storable : Storable;
+}
+
+impl<T:Storable> Item for T { type Storable = T; }
+
+
 
 /// Class for buffer items, like `f32` or `Vector<f32>`.
 ///
 /// WebGL buffers contain primitive values only, so for example, two `Vector3<f32>` are represented
 /// as six `f32` values. This trait defines fast conversions (views) for the underlying flat data
 /// storage.
-pub trait BufferItem: BufferItemBounds {
+pub trait Storable: BufferItemBounds {
 
     // === Types ===
 
     /// The primitive type which this type is build of. In case of the most primitive types, like
     /// `f32` this type may be set to itself.
-    type Item: ItemBounds;
+    type Cell: ItemBounds;
 
     /// The number of rows of the type encoded as 2d matrix.
     type Rows: DimName;
@@ -83,16 +93,16 @@ pub trait BufferItem: BufferItemBounds {
     // === Conversions ===
 
     /// Conversion from a slice of items to a buffer slice.
-    fn slice_from_items(buffer: &[Self::Item]) -> &[Self];
+    fn slice_from_items(buffer: &[Self::Cell]) -> &[Self];
 
     /// Conversion from a mutable slice of items to a mutable buffer slice.
-    fn slice_from_items_mut(buffer: &mut [Self::Item]) -> &mut [Self];
+    fn slice_from_items_mut(buffer: &mut [Self::Cell]) -> &mut [Self];
 
     /// Converts from a buffer slice to a slice of items.
-    fn slice_to_items(buffer: &[Self]) -> &[Self::Item];
+    fn slice_to_items(buffer: &[Self]) -> &[Self::Cell];
 
     /// Converts from a mutable buffer slice to a mutable slice of items.
-    fn slice_to_items_mut(buffer: &mut [Self]) -> &mut [Self::Item];
+    fn slice_to_items_mut(buffer: &mut [Self]) -> &mut [Self::Cell];
 
 
     // === Temporary Helpers ===
@@ -100,13 +110,13 @@ pub trait BufferItem: BufferItemBounds {
     // TODO: Remove when it gets resolved: https://github.com/rust-lang/rust/issues/68210
     /// Returns the WebGL enum code representing the item type, like Context::FLOAT.
     fn item_gl_enum() -> GlEnum {
-        Self::Item::gl_enum()
+        Self::Cell::gl_enum()
     }
 
     // TODO: Remove when it gets resolved: https://github.com/rust-lang/rust/issues/68210
     /// Returns the size in bytes in GPU memory of the primitive type of this type.
     fn item_gpu_byte_size() -> usize {
-        Self::Item::gpu_byte_size()
+        Self::Cell::gpu_byte_size()
     }
 }
 
@@ -114,71 +124,72 @@ pub trait BufferItem: BufferItemBounds {
 // === Type Families ===
 
 /// Item accessor.
-pub type Item <T> = <T as BufferItem>::Item;
+pub type Cell <T> = <T as Storable>::Cell;
 
 /// Rows accessor.
-pub type Rows <T> = <T as BufferItem>::Rows;
+pub type Rows <T> = <T as Storable>::Rows;
 
 /// Cols accessor.
-pub type Cols <T> = <T as BufferItem>::Cols;
+pub type Cols <T> = <T as Storable>::Cols;
 
 
 // === Instances ===
 
-impl BufferItem for bool {
-    type Item = Self;
+
+impl Storable for bool {
+    type Cell = Self;
     type Rows = U1;
     type Cols = U1;
 
-    fn slice_from_items     (buffer: &    [Self::Item]) -> &    [Self] { buffer }
-    fn slice_from_items_mut (buffer: &mut [Self::Item]) -> &mut [Self] { buffer }
-    fn slice_to_items       (buffer: &    [Self]) -> &    [Self::Item] { buffer }
-    fn slice_to_items_mut   (buffer: &mut [Self]) -> &mut [Self::Item] { buffer }
+    fn slice_from_items     (buffer: &    [Self::Cell]) -> &    [Self] { buffer }
+    fn slice_from_items_mut (buffer: &mut [Self::Cell]) -> &mut [Self] { buffer }
+    fn slice_to_items       (buffer: &    [Self]) -> &    [Self::Cell] { buffer }
+    fn slice_to_items_mut   (buffer: &mut [Self]) -> &mut [Self::Cell] { buffer }
 }
 
-impl BufferItem for i32 {
-    type Item = Self;
+impl Storable for i32 {
+    type Cell = Self;
     type Rows = U1;
     type Cols = U1;
 
-    fn slice_from_items     (buffer: &    [Self::Item]) -> &    [Self] { buffer }
-    fn slice_from_items_mut (buffer: &mut [Self::Item]) -> &mut [Self] { buffer }
-    fn slice_to_items       (buffer: &    [Self]) -> &    [Self::Item] { buffer }
-    fn slice_to_items_mut   (buffer: &mut [Self]) -> &mut [Self::Item] { buffer }
+    fn slice_from_items     (buffer: &    [Self::Cell]) -> &    [Self] { buffer }
+    fn slice_from_items_mut (buffer: &mut [Self::Cell]) -> &mut [Self] { buffer }
+    fn slice_to_items       (buffer: &    [Self]) -> &    [Self::Cell] { buffer }
+    fn slice_to_items_mut   (buffer: &mut [Self]) -> &mut [Self::Cell] { buffer }
 }
 
-impl BufferItem for u32 {
-    type Item = Self;
+impl Storable for u32 {
+    type Cell = Self;
     type Rows = U1;
     type Cols = U1;
 
-    fn slice_from_items     (buffer: &    [Self::Item]) -> &    [Self] { buffer }
-    fn slice_from_items_mut (buffer: &mut [Self::Item]) -> &mut [Self] { buffer }
-    fn slice_to_items       (buffer: &    [Self]) -> &    [Self::Item] { buffer }
-    fn slice_to_items_mut   (buffer: &mut [Self]) -> &mut [Self::Item] { buffer }
+    fn slice_from_items     (buffer: &    [Self::Cell]) -> &    [Self] { buffer }
+    fn slice_from_items_mut (buffer: &mut [Self::Cell]) -> &mut [Self] { buffer }
+    fn slice_to_items       (buffer: &    [Self]) -> &    [Self::Cell] { buffer }
+    fn slice_to_items_mut   (buffer: &mut [Self]) -> &mut [Self::Cell] { buffer }
 }
 
-impl BufferItem for f32 {
-    type Item = Self;
+impl Storable for f32 {
+    type Cell = Self;
     type Rows = U1;
     type Cols = U1;
 
-    fn slice_from_items     (buffer: &    [Self::Item]) -> &    [Self] { buffer }
-    fn slice_from_items_mut (buffer: &mut [Self::Item]) -> &mut [Self] { buffer }
-    fn slice_to_items       (buffer: &    [Self]) -> &    [Self::Item] { buffer }
-    fn slice_to_items_mut   (buffer: &mut [Self]) -> &mut [Self::Item] { buffer }
+    fn slice_from_items     (buffer: &    [Self::Cell]) -> &    [Self] { buffer }
+    fn slice_from_items_mut (buffer: &mut [Self::Cell]) -> &mut [Self] { buffer }
+    fn slice_to_items       (buffer: &    [Self]) -> &    [Self::Cell] { buffer }
+    fn slice_to_items_mut   (buffer: &mut [Self]) -> &mut [Self::Cell] { buffer }
 }
 
 
-impl<T:BufferItem<Item=T>,R,C> BufferItem for MatrixMN<T,R,C>
+impl<T:Storable<Cell=T>,R,C> Storable for MatrixMN<T,R,C>
     where T:ItemBounds, Self:MatrixCtx<T,R,C>,
           Self:GpuDefault + PhantomInto<glsl::PrimType> + GpuKnownSize {
-    type Item = T;
+    type Cell = T;
     type Rows = R;
     type Cols = C;
 
     #[allow(unsafe_code)]
-    fn slice_from_items(buffer: &[Self::Item]) -> &[Self] {
+    fn slice_from_items(buffer: &[Self::Cell]) -> &[Self] {
         // This code casts slice to matrix. This is safe because `MatrixMN`
         // uses `nalgebra::Owned` allocator, which resolves to array defined as
         // `#[repr(C)]` under the hood.
@@ -187,7 +198,7 @@ impl<T:BufferItem<Item=T>,R,C> BufferItem for MatrixMN<T,R,C>
     }
 
     #[allow(unsafe_code)]
-    fn slice_from_items_mut(buffer: &mut [Self::Item]) -> &mut [Self] {
+    fn slice_from_items_mut(buffer: &mut [Self::Cell]) -> &mut [Self] {
         // This code casts slice to matrix. This is safe because `MatrixMN`
         // uses `nalgebra::Owned` allocator, which resolves to array defined as
         // `#[repr(C)]` under the hood.
@@ -196,7 +207,7 @@ impl<T:BufferItem<Item=T>,R,C> BufferItem for MatrixMN<T,R,C>
     }
 
     #[allow(unsafe_code)]
-    fn slice_to_items(buffer: &[Self]) -> &[Self::Item] {
+    fn slice_to_items(buffer: &[Self]) -> &[Self::Cell] {
         // This code casts slice to matrix. This is safe because `MatrixMN`
         // uses `nalgebra::Owned` allocator, which resolves to array defined as
         // `#[repr(C)]` under the hood.
@@ -205,7 +216,7 @@ impl<T:BufferItem<Item=T>,R,C> BufferItem for MatrixMN<T,R,C>
     }
 
     #[allow(unsafe_code)]
-    fn slice_to_items_mut(buffer: &mut [Self]) -> &mut [Self::Item] {
+    fn slice_to_items_mut(buffer: &mut [Self]) -> &mut [Self::Cell] {
         // This code casts slice to matrix. This is safe because `MatrixMN`
         // uses `nalgebra::Owned` allocator, which resolves to array defined as
         // `#[repr(C)]` under the hood.
@@ -282,18 +293,18 @@ impl JsBufferView for [u8] {
 }
 
 #[allow(unsafe_code)]
-impl<T: BufferItem<Item=T>,R,C> JsBufferView for [MatrixMN<T,R,C>]
+impl<T: Storable<Cell=T>,R,C> JsBufferView for [MatrixMN<T,R,C>]
     where Self                    : MatrixCtx<T,R,C>,
           T                       : ItemBounds,
-          MatrixMN<T,R,C>         : BufferItem,
-          [Item<MatrixMN<T,R,C>>] : JsBufferView {
+          MatrixMN<T,R,C>         : Storable,
+          [Cell<MatrixMN<T,R,C>>] : JsBufferView {
     unsafe fn js_buffer_view(&self) -> js_sys::Object {
-        <MatrixMN<T,R,C> as BufferItem>::slice_to_items(self).js_buffer_view()
+        <MatrixMN<T,R,C> as Storable>::slice_to_items(self).js_buffer_view()
     }
 }
 
 #[allow(unsafe_code)]
-impl<T: BufferItem<Item=T>,R,C> JsBufferView for MatrixMN<T,R,C>
+impl<T: Storable<Cell=T>,R,C> JsBufferView for MatrixMN<T,R,C>
     where Self:MatrixCtx<T,R,C>, T:ItemBounds {
     unsafe fn js_buffer_view(&self) -> js_sys::Object {
         self.as_slice().js_buffer_view()

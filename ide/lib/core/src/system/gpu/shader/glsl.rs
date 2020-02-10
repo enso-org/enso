@@ -6,6 +6,7 @@
 use crate::prelude::*;
 
 use crate::system::gpu::data::buffer::item::MatrixCtx;
+use crate::data::color::*;
 
 use code_builder::CodeBuilder;
 use code_builder::HasCodeRepr;
@@ -35,79 +36,62 @@ impl Display for Glsl {
 
 // === Conversions from Glsl ===
 
-impl From<Glsl> for String {
-    fn from(t:Glsl) -> Self {
-        t.str
-    }
-}
-
-impl From<&Glsl> for String {
-    fn from(t:&Glsl) -> Self {
-        t.str.clone()
-    }
-}
+impls! { From<Glsl>  for String { |t| t.str } }
+impls! { From<&Glsl> for String { |t| t.str.clone() } }
 
 
-// === Conversions to Glsl ===
+// === Self Conversions ===
 
-impl From<&Glsl> for Glsl {
-    fn from(t:&Glsl) -> Self {
-        t.clone()
-    }
-}
+impls! { From<&Glsl> for Glsl { |t| t.clone() } }
 
-impl From<String> for Glsl {
-    fn from(t:String) -> Self {
-        Self {str:t}
-    }
-}
 
-impl From<&String> for Glsl {
-    fn from(t:&String) -> Self {
-        Self {str:t.into()}
-    }
-}
+// === From String to Glsl ===
 
-impl From<&str> for Glsl {
-    fn from(t:&str) -> Self {
-        Self {str:(*t).into()}
-    }
-}
+impls! { From<String>  for Glsl { |t| Self {str:t} } }
+impls! { From<&String> for Glsl { |t| Self {str:t.into()} } }
+impls! { From<&str>    for Glsl { |t| Self {str:(*t).into()} } }
 
-impl From<bool> for Glsl {
-    fn from(t:bool) -> Self {
-        t.to_string().into()
-    }
-}
 
-impl From<i32> for Glsl {
-    fn from(t:i32) -> Self {
-        t.to_string().into()
-    }
-}
+// === From Prim Types to Glsl ===
 
-impl From<u32> for Glsl {
-    fn from(t:u32) -> Self {
-        t.to_string().into()
-    }
-}
+impls! { From<bool> for Glsl { |t| t.to_string().into() } }
+impls! { From<i32>  for Glsl { |t| t.to_string().into() } }
+impls! { From<u32>  for Glsl { |t| t.to_string().into() } }
+impls! { From<f32>  for Glsl { |t| {
+    let is_int = t.fract() == 0.0;
+    if is_int { iformat!("{t}.0").into() }
+    else      { iformat!("{t}").into() }
+}}}
 
-impl From<f32> for Glsl {
-    fn from(t:f32) -> Self {
-        let is_int = t.fract() == 0.0;
-        if is_int { iformat!("{t}.0").into() }
-        else      { iformat!("{t}").into() }
-    }
-}
-
-impl<T,R,C> From<MatrixMN<T,R,C>> for Glsl
-where Self:MatrixCtx<T,R,C>, PhantomData<MatrixMN<T,R,C>>:Into<PrimType> {
-    fn from(t:MatrixMN<T,R,C>) -> Self {
+impls! { [T,R,C] From<MatrixMN<T,R,C>> for Glsl
+    where [ Self : MatrixCtx<T,R,C>
+          , PhantomData<MatrixMN<T,R,C>> : Into<PrimType> ] {
+    |t| {
         let type_name = PrimType::phantom_from::<MatrixMN<T,R,C>>().to_code();
         let vals:Vec<String> = t.as_slice().iter().cloned().map(|t|format!("{:?}",t)).collect();
         format!("{}({})",type_name,vals.join(",")).into()
     }
-}
+}}
+
+
+// === From Colors to Glsl ===
+
+impls! { From<Rgb<encoding::Srgb>> for Glsl {
+    |t| iformat!("srgb({t.red.glsl()},{t.green.glsl()},{t.blue.glsl()})").into()
+} }
+
+impls! { From<Rgba<encoding::Srgb>> for Glsl {
+    |t| iformat!("srgba({t.red.glsl()},{t.green.glsl()},{t.blue.glsl()},{t.alpha.glsl()})").into()
+} }
+
+impls! { From<Rgb<encoding::Linear<encoding::Srgb>>> for Glsl {
+    |t| iformat!("rgb({t.red.glsl()},{t.green.glsl()},{t.blue.glsl()})").into()
+} }
+
+impls! { From<Rgba<encoding::Linear<encoding::Srgb>>> for Glsl {
+    |t| iformat!("rgba({t.red.glsl()},{t.green.glsl()},{t.blue.glsl()},{t.alpha.glsl()})").into()
+} }
+
 
 
 // === Wrong Conversions ===

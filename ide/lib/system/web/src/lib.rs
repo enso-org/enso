@@ -111,6 +111,10 @@ pub fn document() -> Result<web_sys::Document> {
     try_window()?.document().ok_or_else(|| Error::missing("document"))
 }
 
+pub fn body() -> web_sys::HtmlElement {
+    document().unwrap().body().unwrap()
+}
+
 pub fn get_element_by_id(id:&str) -> Result<web_sys::Element> {
     document()?.get_element_by_id(id).ok_or_else(|| Error::missing(id))
 }
@@ -125,6 +129,14 @@ pub fn create_element(id:&str) -> Result<web_sys::Element> {
         Ok(element) => Ok(element),
         Err(_) => Err(Error::missing(id)),
     }
+}
+
+pub fn create_div() -> web_sys::HtmlDivElement {
+    document().unwrap().create_element("div").unwrap().unchecked_into()
+}
+
+pub fn create_canvas() -> web_sys::HtmlCanvasElement {
+    document().unwrap().create_element("canvas").unwrap().unchecked_into()
 }
 
 pub fn get_canvas(id:&str) -> Result<web_sys::HtmlCanvasElement> {

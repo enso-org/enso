@@ -112,29 +112,70 @@ Id new_id_layer (BoundSdf sdf, int i) {
 }
 
 
+// Premultiplied
+struct Color {
+    Rgba color;
+};
+
+Color premultiply(Rgba t) {
+    float alpha = a(t);
+    vec3 rgb    = t.raw.rgb * alpha;
+    return Color(rgba(rgb,alpha));
+}
+
+Rgba unpremultiply(Color t) {
+    float alpha = t.color.raw.a;
+    vec3  rgb   = t.color.raw.rgb / alpha;
+    return rgba(rgb,alpha);
+}
+
+// Implements glBlendFuncSeparate(GL_ONE,GL_ONE_MINUS_SRC_ALPHA,GL_ONE,GL_ONE_MINUS_SRC_ALPHA);
+Color blend(Color bg, Color fg) {
+    vec4 raw = fg.color.raw + (1.0 - fg.color.raw.a) * bg.color.raw;
+    return Color(rgba(raw));
+}
+
+
 
 // =============
 // === Shape ===
 // =============
 
+float render(BoundSdf sdf) {
+    return clamp((0.5 - sdf.distance) * input_pixel_ratio * input_zoom);
+}
+
+
+// Note: the color is premultiplied.
 struct Shape {
     Id       id;
     BoundSdf sdf;
-    LCHA    color;
+    Color    color;
+    float    alpha;
 };
 
-Shape shape (Id id, BoundSdf bound_sdf, LCHA color) {
-    return Shape(id,bound_sdf,color);
+Shape shape (Id id, BoundSdf bound_sdf, Rgba rgba) {
+    float alpha = render(bound_sdf);
+    rgba.raw.a *= alpha;
+    Color color = premultiply(rgba);
+    return Shape(id,bound_sdf,color,alpha);
+}
+
+Shape shape (Id id, BoundSdf bound_sdf, Color color) {
+    float alpha = render(bound_sdf);
+    return Shape(id,bound_sdf,color,alpha);
 }
 
 Shape unify (Shape s1, Shape s2) {
-    return Shape(s1.id,unify(s1.sdf,s2.sdf),s1.color);
+    return shape(s1.id,unify(s1.sdf,s2.sdf),blend(s1.color,s2.color));
 }
 
-float render(Shape shape) {
-    return clamp((0.5 - shape.sdf.distance) * input_pixel_ratio * input_zoom);
+Shape set_color(Shape shape, Rgba t) {
+    t.raw.a *= shape.alpha;
+    Color color = premultiply(t);
+    shape.color = color;
+    return shape;
 }
-
 
 
 // ===========

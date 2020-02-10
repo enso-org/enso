@@ -32,7 +32,7 @@ use std::ops::RangeInclusive;
 use web_sys::WebGlBuffer;
 
 
-pub use crate::system::gpu::data::BufferItem;
+pub use crate::system::gpu::data::Storable;
 
 
 
@@ -82,7 +82,7 @@ pub struct BufferData<T> {
     logger        : Logger,
 }
 
-impl<T:BufferItem> {
+impl<T:Storable> {
     /// Constructor.
     pub fn new<OnMut:CallbackFn,OnResize:CallbackFn>
     (logger:Logger, stats:&Stats, context:&Context, on_mut:OnMut, on_resize:OnResize) -> Self {
@@ -195,10 +195,10 @@ impl<T:BufferItem> {
 
 // === Private API ===
 
-impl<T: BufferItem> BufferData<T> {
+impl<T:Storable> BufferData<T> {
     /// View the data as slice of primitive elements.
-    pub fn as_prim_slice(&self) -> &[item::Item<T>] {
-        <T as BufferItem>::slice_to_items(&self.buffer.data)
+    pub fn as_prim_slice(&self) -> &[item::Cell<T>] {
+        <T as Storable>::slice_to_items(&self.buffer.data)
     }
 
     /// View the data as slice of elements.
@@ -213,11 +213,10 @@ impl<T: BufferItem> BufferData<T> {
 // Note [Safety]
 // =============
 // Usage of `js_buffer_view` is somewhat dangerous. It is creating a raw view into the module's
-// `WebAssembly.Memory` buffer, but if we allocate more pages for ourself (aka do a memory
-// allocation in Rust) it'll cause the buffer to change, causing the resulting js array to be
-// invalid.
+// `WebAssembly.Memory` buffer, but if we allocate more pages (aka do a memory allocation in Rust)
+// it'll cause the buffer to change, causing the resulting js array to be invalid.
 
-impl<T: BufferItem> BufferData<T> {
+impl<T:Storable> BufferData<T> {
     /// Uploads the provided data range to the GPU buffer. In case the local buffer was resized,
     /// it will be re-created on the GPU.
     fn upload_data(&mut self, opt_range:&Option<RangeInclusive<usize>>) {
@@ -274,7 +273,7 @@ impl<T: BufferItem> BufferData<T> {
 
 // === Smart Accessors ===
 
-impl<T: BufferItem> Buffer<T> {
+impl<T:Storable> Buffer<T> {
     /// Get the attribute pointing to a given buffer index.
     pub fn at(&self, index:AttributeInstanceIndex) -> Attribute<T> {
         Attribute::new(index,self.clone_ref())
@@ -333,7 +332,7 @@ macro_rules! define_any_buffer {
 
     /// An enum with a variant per possible buffer type (i32, f32, Vector<f32>,
     /// and many, many more). It provides a faster alternative to dyn trait one:
-    /// `Buffer<dyn BufferItem, OnMut, OnResize>`.
+    /// `Buffer<dyn Storable, OnMut, OnResize>`.
     #[enum_dispatch(IsBuffer)]
     #[derive(Clone,Debug)]
     #[allow(missing_docs)]

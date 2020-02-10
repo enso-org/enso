@@ -32,7 +32,7 @@ pub mod types {
     pub use attribute::AttributeScope;
     pub use buffer::AnyBuffer;
     pub use buffer::Buffer;
-    pub use buffer::BufferItem;
+    pub use buffer::Storable;
     pub use buffer::IsBuffer;
     pub use default::GpuDefault;
     pub use gl_enum::GlEnum;

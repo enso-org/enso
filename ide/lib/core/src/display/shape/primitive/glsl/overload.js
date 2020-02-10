@@ -209,7 +209,7 @@ bvec2 not(bvec2 x)
 bvec3 not(bvec3 x)
 bvec4 not(bvec4 x)`
 
-let reserved_builtins = ['union']
+let reserved_builtins = ['union','sample']
 let builtin_pattern   = /([^ ]+) ([^(]+)\(([^)]*)\)/
 
 function redirect_builtins() {
