@@ -43,7 +43,7 @@ project. For best experience, it is recommended to use the
 follow the steps below:
 
 ```bash
-cd examples
+cd app
 npm install
 npm run start 
 ```
