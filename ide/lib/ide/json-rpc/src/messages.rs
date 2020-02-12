@@ -28,6 +28,7 @@ pub struct Message<T> {
     pub payload: T
 }
 
+
 // === Common Message Subtypes ===
 
 /// A request message.
@@ -38,6 +39,7 @@ pub type ResponseMessage<Ret> = Message<Response<Ret>>;
 
 /// A response message.
 pub type NotificationMessage<Ret> = Message<Notification<MethodCall<Ret>>>;
+
 
 // === `new` Functions ===
 
@@ -52,8 +54,8 @@ impl<T> Message<T> {
 
     /// Construct a request message.
     pub fn new_request
-    (id:Id, method:&str, input:T) -> RequestMessage<T> {
-        let call = MethodCall {method: method.into(),input};
+    (id:Id, method:&str, params:T) -> RequestMessage<T> {
+        let call = MethodCall {method: method.into(),params};
         let request = Request::new(id,call);
         Message::new(request)
     }
@@ -76,8 +78,8 @@ impl<T> Message<T> {
 
     /// Construct a request message.
     pub fn new_notification
-    (method:&'static str, input:T) -> NotificationMessage<T> {
-        let call = MethodCall {method: method.into(),input};
+    (method:&'static str, params:T) -> NotificationMessage<T> {
+        let call = MethodCall {method: method.into(),params};
         let notification = Notification(call);
         Message::new(notification)
     }
@@ -90,7 +92,7 @@ impl<T> Message<T> {
 // ========================
 
 /// An id identifying the call request.
-/// 
+///
 /// Each request made by client should get a unique id (unique in a context of
 /// the current session). Auto-incrementing integer is a common choice.
 #[derive(Serialize, Deserialize)]
@@ -218,9 +220,9 @@ pub fn decode_incoming_message
 }
 
 /// Message from server to client.
-/// 
-/// `In` is any serializable (or already serialized) representation of the 
-/// method arguments passed in this call. 
+///
+/// `In` is any serializable (or already serialized) representation of the
+/// method arguments passed in this call.
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 #[derive(Shrinkwrap)]
 pub struct MethodCall<In> {
@@ -228,7 +230,7 @@ pub struct MethodCall<In> {
     pub method : String,
     /// Method arguments.
     #[shrinkwrap(main_field)]
-    pub input  : In
+    pub params : In
 }
 
 
@@ -256,7 +258,7 @@ mod tests {
         // === Field Names ===
         pub const JSONRPC : &str = "jsonrpc";
         pub const METHOD  : &str = "method";
-        pub const INPUT   : &str = "input";
+        pub const PARAMS  : &str = "params";
         pub const ID      : &str = "id";
 
         // === Version strings ===
@@ -279,11 +281,11 @@ mod tests {
         let id = Id(50);
         let method  = "mockMethod";
         let number  = 124;
-        let input   = MockRequest {number};
-        let call    = MethodCall {method:method.into(),input};
+        let params  = MockRequest {number};
+        let call    = MethodCall {method:method.into(),params};
         let request = Request::new(id,call);
         let message = Message::new(request);
-        
+
         let json = serde_json::to_value(message).expect("serialization error");
         let json = json.as_object().expect("expected an object");
         assert_eq!(json.len(), protocol::FIELD_COUNT_IN_REQUEST);
@@ -291,18 +293,18 @@ mod tests {
         assert_eq!(jsonrpc_field, protocol::VERSION2_STRING);
         assert_eq!(expect_field(json, protocol::ID), id.0);
         assert_eq!(expect_field(json, protocol::METHOD), method);
-        let input_json = expect_field(json, protocol::INPUT);
-        let input_json = input_json.as_object().expect("input must be object");
-        assert_eq!(input_json.len(), MockRequest::FIELD_COUNT);
-        assert_eq!(expect_field(input_json, MockRequest::FIELD_NAME), number);
+        let params_json = expect_field(json, protocol::PARAMS);
+        let params_json = params_json.as_object().expect("params must be object");
+        assert_eq!(params_json.len(), MockRequest::FIELD_COUNT);
+        assert_eq!(expect_field(params_json, MockRequest::FIELD_NAME), number);
     }
 
     #[test]
     fn test_notification_serialization() {
         let method       = "mockNotification";
         let number       = 125;
-        let input        = MockRequest {number};
-        let call         = MethodCall {method:method.into(),input};
+        let params       = MockRequest {number};
+        let call         = MethodCall {method:method.into(),params};
         let notification = Notification(call);
         let message      = Message::new(notification);
 
@@ -314,10 +316,10 @@ mod tests {
         let jsonrpc_field = expect_field(json, protocol::JSONRPC);
         assert_eq!(jsonrpc_field, protocol::VERSION2_STRING);
         assert_eq!(expect_field(json, protocol::METHOD), method);
-        let input_json = expect_field(json, protocol::INPUT);
-        let input_json = input_json.as_object().expect("input must be object");
-        assert_eq!(input_json.len(), MockRequest::FIELD_COUNT);
-        assert_eq!(expect_field(input_json, MockRequest::FIELD_NAME), number);
+        let params_json = expect_field(json, protocol::PARAMS);
+        let params_json = params_json.as_object().expect("params must be object");
+        assert_eq!(params_json.len(), MockRequest::FIELD_COUNT);
+        assert_eq!(expect_field(params_json, MockRequest::FIELD_NAME), number);
     }
 
 

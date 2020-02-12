@@ -96,7 +96,7 @@ format, e.g. `"2020-01-07T21:25:26Z"`.
     "jsonrpc" : "2.0",
     "id"      : 0,
     "method"  : "exists",
-    "input"   : { "path" : "./Main.luna" }
+    "params"  : { "path" : "./Main.luna" }
 }
 ```
 #### Response
