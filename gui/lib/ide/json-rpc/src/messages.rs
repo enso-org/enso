@@ -60,7 +60,7 @@ impl<T> Message<T> {
 
     /// Construct a successful response message.
     pub fn new_success(id:Id, result:T) -> ResponseMessage<T> {
-        let result   = Result::Success(Success {result});
+        let result   = Result::new_success(result);
         let response = Response {id,result};
         Message::new(response)
     }
@@ -69,7 +69,7 @@ impl<T> Message<T> {
     pub fn new_error
     (id:Id, code:i64, message:String, data:Option<serde_json::Value>)
      -> ResponseMessage<T> {
-        let result = Result::Error(Error{code,message,data});
+        let result = Result::new_error(code,message,data);
         let response = Response {id,result};
         Message::new(response)
     }
@@ -155,6 +155,24 @@ pub enum Result<Res> {
     Success(Success<Res>),
     /// Error value from a called that failed on the remote side.
     Error(Error),
+}
+
+impl<Res> Result<Res> {
+    /// Construct a successful remote call result value.
+    pub fn new_success(result: Res) -> Result<Res> {
+        Result::Success(Success {result})
+    }
+
+    /// Construct a failed remote call result value.
+    pub fn new_error
+    (code:i64, message:String, data:Option<serde_json::Value>) -> Result<Res> {
+        Result::Error(Error{code,message,data})
+    }
+
+    /// Construct a failed remote call result value that bears no optional data.
+    pub fn new_error_simple(code:i64, message:String) -> Result<Res> {
+        Self::new_error(code,message,None)
+    }
 }
 
 /// Value yield by a successful remote call.

@@ -13,6 +13,7 @@ members = [
     "lib/ide/ast/impl",
     "lib/ide/ast/macros",
     "lib/ide/file-manager",
+    "lib/ide/file-manager/mock-server",
     "lib/ide/json-rpc",
     "lib/ide/parser",
     "lib/ide/utils",

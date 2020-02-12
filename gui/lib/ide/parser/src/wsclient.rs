@@ -116,16 +116,10 @@ impl Config {
     /// using environment variables or, if they are not set, hardcoded
     /// defaults.
     pub fn from_env() -> Config {
-        let host = env_var_or(HOSTNAME_VAR, DEFAULT_HOSTNAME);
-        let port = env_var_or(PORT_VAR, Default::default())
-            .parse()
-            .unwrap_or(DEFAULT_PORT);
+        let host = utils::env::env_var_or(HOSTNAME_VAR, DEFAULT_HOSTNAME);
+        let port = utils::env::parse_var_or(PORT_VAR, DEFAULT_PORT);
         Config { host, port }
     }
-}
-
-pub fn env_var_or(varname: &str, default_value: &str) -> String {
-    std::env::var(varname).unwrap_or_else(|_| default_value.into())
 }
 
 
