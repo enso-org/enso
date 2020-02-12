@@ -312,7 +312,7 @@ mod tests {
 
         let request = transport.expect_message::<RequestMessage<Value>>();
         assert_eq!(request.method, expected_method);
-        assert_eq!(request.input,  expected_input);
+        assert_eq!(request.params, expected_input);
 
         let response = Message::new_success(request.id, result);
         transport.mock_peer_message(response);
