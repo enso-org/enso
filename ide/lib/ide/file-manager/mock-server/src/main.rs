@@ -48,7 +48,7 @@ pub const PORT_VAR:&str = "ENSO_FILE_MANAGER_PORT";
 
 
 /// Result used for implementing RPC methods.
-type CallResult<T> = std::result::Result<T,String>;
+type CallResult<T> = std::result::Result<T,failure::Error>;
 
 /// Partially decoded Request - its `id` can be read but the call parameters
 /// remain encoded in JSON.
@@ -70,7 +70,7 @@ impl Handler {
     fn realize_call<C: IsCall>(&self, call:&C) -> messages::Result<serde_json::Value> {
         match call.realize() {
             Ok(result) => messages::Result::new_success(serde_json::to_value(&result).unwrap()),
-            Err(e)     => messages::Result::new_error_simple(FAILED_CALL_ERROR_CODE,e),
+            Err(e)     => messages::Result::new_error_simple(FAILED_CALL_ERROR_CODE,e.to_string()),
         }
     }
 
@@ -82,7 +82,9 @@ impl Handler {
             Ok(call) => match call {
                 Call::CopyFile(call) => self.realize_call(&call),
                 Call::Exists  (call) => self.realize_call(&call),
+                Call::List    (call) => self.realize_call(&call),
                 Call::Read    (call) => self.realize_call(&call),
+                Call::Touch   (call) => self.realize_call(&call),
                 Call::Write   (call) => self.realize_call(&call),
             }
             Err(e) => {
@@ -116,8 +118,10 @@ impl Handler {
         while let Ok(request_msg) = self.socket.read_message() {
             if request_msg.is_text() {
                 let request_text = request_msg.to_string();
+                println!("Got text: {}", request_text);
                 let reply_json   = self.handle_message(request_text);
-                let reply_text   = serde_json::from_value::<String>(reply_json).unwrap();
+                let reply_text   = reply_json.to_string();
+                println!("Replying with text: {}", reply_text);
                 let reply_msg    = Message::text(reply_text);
                 if self.socket.write_message(reply_msg).is_err() {
                     break;
@@ -125,6 +129,7 @@ impl Handler {
             }
             // ignore non-text messages.
         }
+        println!("Finished handling connection");
     }
 }
 
@@ -179,7 +184,9 @@ pub trait IsCall {
 enum Call {
     CopyFile(CopyFile),
     Exists(Exists),
+    List(List),
     Read(Read),
+    Touch(Touch),
     Write(Write),
 }
 
@@ -194,10 +201,7 @@ struct CopyFile {from:PathBuf, to:PathBuf}
 impl IsCall for CopyFile {
     type Result = ();
     fn realize(&self) -> CallResult<()> {
-        match std::fs::copy(&self.from,&self.to) {
-            Ok(_)  => Ok(()),
-            Err(e) => Err(e.to_string())
-        }
+        Ok(std::fs::copy(&self.from,&self.to).map(|_| {})?)
     }
 }
 
@@ -211,11 +215,37 @@ impl IsCall for Exists {
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+struct List {path:PathBuf}
+impl IsCall for List {
+    type Result = Vec<PathBuf>;
+    fn realize(&self) -> CallResult<Self::Result> {
+        let read_dirs = std::fs::read_dir(&self.path)?;
+        let mut ret: Vec<PathBuf> = default();
+        for rd in read_dirs {
+            ret.push(rd?.path())
+        }
+        Ok(ret)
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 struct Read {path:PathBuf}
 impl IsCall for Read {
     type Result = String;
     fn realize(&self) -> CallResult<String> {
-        std::fs::read_to_string(&self.path).map_err(|e| e.to_string())
+        Ok(std::fs::read_to_string(&self.path)?)
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+struct Touch {path:PathBuf}
+impl IsCall for Touch {
+    type Result = ();
+    fn realize(&self) -> CallResult<()> {
+        let mut opts = std::fs::OpenOptions::new();
+        opts.create(true).write(true);
+        let _ = opts.open(&self.path)?;
+        Ok(())
     }
 }
 
@@ -224,6 +254,6 @@ struct Write {path:PathBuf, contents:String}
 impl IsCall for Write {
     type Result = ();
     fn realize(&self) -> CallResult<()> {
-        std::fs::write(&self.path,&self.contents).map_err(|e| e.to_string())
+        Ok(std::fs::write(&self.path,&self.contents)?)
     }
 }

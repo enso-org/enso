@@ -12,4 +12,4 @@ environment variable to customize this behaviour.
 
 The protocol is described in [a separate document](../README.md). Only
 its subset is provided. The following methods are currently implemented:
-`read`, `write`, `exists`, `copyFile`.
+`copyFile`, `exists`, `list`, `read`, `touch`, `write`.
