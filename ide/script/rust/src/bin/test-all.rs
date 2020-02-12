@@ -3,7 +3,12 @@
 use std::path::PathBuf;
 use std::path::Path;
 
-const BUILD_UTILITIES_DIR : &str = "build-utilities";
+/// List of workspace members that should not be tested by wasm-pack test.
+/// (e.g. because they do not target wasm at all)
+const PACKAGE_BLACKLIST:[&str;2] = [
+    "build-utilities",
+    "lib/ide/file-manager/mock-server"
+];
 
 /// Lists members of given Cargo.toml workspace.
 fn get_workspace_members(cargo_toml_root:toml::Value) -> Vec<String> {
@@ -26,10 +31,14 @@ fn parse_toml(path:impl AsRef<Path>) -> toml::Value {
     data.parse().unwrap()
 }
 
+/// Checks if the given member is blacklisted from running the tests.
+fn blacklisted(memeber:&str) -> bool {
+    PACKAGE_BLACKLIST.contains(&memeber)
+}
+
 /// Checks if for the given workspace member wasm-pack test should be run.
 fn to_be_tested(member:&str) -> bool {
-    let is_build_util = member.starts_with(BUILD_UTILITIES_DIR);
-    !is_build_util && !is_proc_macro_crate(member)
+    !blacklisted(member) && !is_proc_macro_crate(member)
 }
 
 /// Checks if given workspace member is a proc-macro crate.
