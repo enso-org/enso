@@ -3,9 +3,8 @@
 use crate::prelude::*;
 
 use crate::display::layout::types::*;
-use crate::display::shape::text::glyph::font::FontId;
-use crate::display::shape::text::glyph::font::FontRenderInfo;
-use crate::display::shape::text::glyph::font::FontRegistry;
+use crate::display::shape::text::glyph::font::FontHandle;
+use crate::display::shape::text::glyph::font::GlyphRenderInfo;
 use crate::display::shape::text::glyph::pen::PenIterator;
 use crate::display::shape::text::glyph::msdf::MsdfTexture;
 use crate::display::symbol::material::Material;
@@ -31,7 +30,7 @@ pub struct Glyph {
     context         : Context,
     msdf_index_attr : Attribute<f32>,
     color_attr      : Attribute<Vector4<f32>>,
-    font_id         : FontId,
+    font            : FontHandle,
     msdf_uniform    : Uniform<Texture<GpuOnly,Rgb,u8>>,
 }
 
@@ -42,25 +41,23 @@ impl Glyph {
     }
 
     /// Change the displayed character.
-    pub fn set_glyph(&mut self, ch:char, fonts:&mut FontRegistry) {
-        let font       = fonts.get_render_info(self.font_id);
-        let glyph_info = font.get_glyph_info(ch);
+    pub fn set_glyph(&mut self, ch:char) {
+        let glyph_info = self.font.get_glyph_info(ch);
         self.msdf_index_attr.set(glyph_info.msdf_texture_glyph_id as f32);
-        self.update_msdf_texture(fonts);
+        self.update_msdf_texture();
     }
 
-    fn update_msdf_texture(&mut self, fonts:&mut FontRegistry) {
-        let font = fonts.get_render_info(self.font_id);
+    fn update_msdf_texture(&mut self) {
         let texture_changed = self.msdf_uniform.with_content(|texture| {
-            texture.storage().height != font.msdf_texture().rows() as i32
+            texture.storage().height != self.font.msdf_texture_rows() as i32
         });
         if texture_changed {
-            let msdf_texture = font.msdf_texture();
-            let data         = msdf_texture.data.as_slice();
-            let width        = MsdfTexture::WIDTH  as i32;
-            let height       = msdf_texture.rows() as i32;
+            let width   = MsdfTexture::WIDTH  as i32;
+            let height  = self.font.msdf_texture_rows() as i32;
             let texture = Texture::<GpuOnly,Rgb,u8>::new(&self.context,(width,height));
-            texture.reload_with_content(data);
+            self.font.with_borrowed_msdf_texture_data(|data| {
+                texture.reload_with_content(data);
+            });
             self.msdf_uniform.set(texture);
         }
     }
@@ -83,30 +80,28 @@ pub struct Line {
     baseline_start : Vector2<f32>,
     base_color     : Vector4<f32>,
     height         : f32,
-    font_id        : FontId,
+    font           : FontHandle,
 }
 
 impl Line {
     /// Replace currently visible text.
     ///
     /// The replacing strings will reuse glyphs which increases performance of rendering text.
-    pub fn replace_text<Chars>(&mut self, chars:Chars, fonts:&mut FontRegistry)
+    pub fn replace_text<Chars>(&mut self, chars:Chars)
     where Chars : Iterator<Item=char> + Clone {
-        let font        = fonts.get_render_info(self.font_id);
         let chars_count = chars.clone().count();
-        let pen         = PenIterator::new(self.baseline_start,self.height,chars.clone(),font);
+        let font        = self.font.clone_ref();
+        let pen         = PenIterator::new(self.baseline_start,self.height,chars,font);
 
-        for (glyph,(_,position)) in self.glyphs.iter_mut().zip(pen) {
-            glyph.set_position(Vector3::new(position.x,position.y,0.0));
-        }
-        for (glyph,ch) in self.glyphs.iter_mut().zip(chars) {
-            let font       = fonts.get_render_info(self.font_id);
-            let glyph_info = font.get_glyph_info(ch);
+        for (glyph,(ch,position)) in self.glyphs.iter_mut().zip(pen) {
+            let glyph_info = self.font.get_glyph_info(ch);
             let size       = glyph_info.scale.scale(self.height);
             let offset     = glyph_info.offset.scale(self.height);
-            glyph.set_glyph(ch,fonts);
+            let x = position.x + offset.x;
+            let y = position.y + offset.y;
+            glyph.set_position(Vector3::new(x,y,0.0));
+            glyph.set_glyph(ch);
             glyph.color().set(self.base_color);
-            glyph.mod_position(|pos| { *pos += Vector3::new(offset.x,offset.y,0.0); });
             glyph.size().set(size);
         }
         for glyph in self.glyphs.iter_mut().skip(chars_count) {
@@ -127,15 +122,26 @@ impl Line {
 
 // === Getters ===
 
-#[allow(missing_docs)]
 impl Line {
     /// The starting point of this line's baseline.
-    pub fn baseline_start(&self) -> &Vector2<f32> { &self.baseline_start }
+    pub fn baseline_start(&self) -> &Vector2<f32> {
+        &self.baseline_start
+    }
+
     /// Line's height in pixels.
-    pub fn height        (&self) -> f32           { self.height          }
+    pub fn height(&self) -> f32 {
+        self.height
+    }
+
     /// Number of glyphs, giving the maximum length of displayed line.
-    pub fn length        (&self) -> usize         { self.glyphs.len()    }
-    pub fn font_id       (&self) -> FontId        { self.font_id         }
+    pub fn length(&self) -> usize {
+        self.glyphs.len()
+    }
+
+    /// Font used for rendering this line.
+    pub fn font(&self) -> FontHandle {
+        self.font.clone_ref()
+    }
 }
 
 
@@ -149,7 +155,7 @@ impl Line {
 pub struct GlyphSystem {
     context          : Context,
     sprite_system    : SpriteSystem,
-    font_id          : FontId,
+    font             : FontHandle,
     color            : Buffer<Vector4<f32>>,
     glyph_msdf_index : Buffer<f32>,
     msdf_uniform     : Uniform<Texture<GpuOnly,Rgb,u8>>,
@@ -157,7 +163,7 @@ pub struct GlyphSystem {
 
 impl GlyphSystem {
     /// Constructor.
-    pub fn new(world:&World, font_id:FontId) -> Self {
+    pub fn new(world:&World, font:FontHandle) -> Self {
         let msdf_width    = MsdfTexture::WIDTH as f32;
         let msdf_height   = MsdfTexture::ONE_GLYPH_HEIGHT as f32;
         let scene         = world.scene();
@@ -169,9 +175,9 @@ impl GlyphSystem {
 
         sprite_system.set_material(Self::material());
         sprite_system.set_alignment(HorizontalAlignment::Left,VerticalAlignment::Bottom);
-        scene.variables().add("msdf_range",FontRenderInfo::MSDF_PARAMS.range as f32);
+        scene.variables().add("msdf_range",GlyphRenderInfo::MSDF_PARAMS.range as f32);
         scene.variables().add("msdf_size",Vector2::new(msdf_width,msdf_height));
-        Self {context,sprite_system,font_id,
+        Self {context,sprite_system,font,
             msdf_uniform       : symbol.variables().add_or_panic("msdf_texture",texture),
             color              : mesh.instance_scope().add_buffer("color"),
             glyph_msdf_index   : mesh.instance_scope().add_buffer("glyph_msdf_index"),
@@ -186,12 +192,12 @@ impl GlyphSystem {
         let instance_id     = sprite.instance_id();
         let color_attr      = self.color.at(instance_id);
         let msdf_index_attr = self.glyph_msdf_index.at(instance_id);
-        let font_id         = self.font_id;
+        let font            = self.font.clone_ref();
         let msdf_uniform    = self.msdf_uniform.clone();
         color_attr.set(Vector4::new(0.0,0.0,0.0,0.0));
         msdf_index_attr.set(0.0);
 
-        Glyph {context,sprite,msdf_index_attr,color_attr,font_id,msdf_uniform}
+        Glyph {context,sprite,msdf_index_attr,color_attr,font,msdf_uniform}
     }
 
     /// Create an empty "line" structure with defined number of glyphs. In the returned `Line`
@@ -199,30 +205,23 @@ impl GlyphSystem {
     ///
     /// For details, see also `Line` structure documentation.
     pub fn new_empty_line
-    ( &mut self
-    , baseline_start : Vector2<f32>
-    , height         : f32
-    , length         : usize
-    , color          : Vector4<f32>) -> Line {
+    (&mut self, baseline_start:Vector2<f32>, height:f32, length:usize, color:Vector4<f32>)
+    -> Line {
         let glyphs     = (0..length).map(|_| self.new_glyph()).collect();
         let base_color = color;
-        let font_id    = self.font_id;
-        Line {glyphs,baseline_start,height,base_color,font_id}
+        let font       = self.font.clone_ref();
+        Line {glyphs,baseline_start,height,base_color,font}
     }
 
     /// Create a line of glyphs with proper alignment.
     ///
     /// For details, see also `Line` structure documentation.
     pub fn new_line
-    ( &mut self
-    , baseline_start : Vector2<f32>
-    , height         : f32
-    , text           : &str
-    , color          : Vector4<f32>
-    , fonts          : &mut FontRegistry) -> Line {
+    (&mut self, baseline_start:Vector2<f32>, height:f32, text:&str, color:Vector4<f32>)
+    -> Line {
         let length   = text.chars().count();
         let mut line = self.new_empty_line(baseline_start,height,length,color);
-        line.replace_text(text.chars(),fonts);
+        line.replace_text(text.chars());
         line
     }
 
@@ -249,7 +248,7 @@ impl GlyphSystem {
         material.add_input_def::<f32>         ("glyph_msdf_index");
         material.add_input("pixel_ratio", 1.0);
         material.add_input("zoom"       , 1.0);
-        material.add_input("msdf_range" , FontRenderInfo::MSDF_PARAMS.range as f32);
+        material.add_input("msdf_range" , GlyphRenderInfo::MSDF_PARAMS.range as f32);
         material.add_input("color"      , Vector4::new(0.0,0.0,0.0,1.0));
         // FIXME We need to use this output, as we need to declare the same amount of shader
         // FIXME outputs as the number of attachments to framebuffer. We should manage this more

@@ -6,11 +6,9 @@ pub mod selection;
 use crate::prelude::*;
 
 use crate::display::object::DisplayObjectData;
-use crate::display::shape::text::glyph::font::FontRegistry;
-use crate::display::shape::text::glyph::font::FontRenderInfo;
+use crate::display::shape::text::glyph::font::FontHandle;
 use crate::display::shape::text::glyph::system::GlyphSystem;
 use crate::display::shape::text::text_field::content::TextFieldContent;
-use crate::display::shape::text::text_field::content::TextFieldContentFullInfo;
 use crate::display::shape::text::text_field::cursor::Cursor;
 use crate::display::shape::text::text_field::cursor::Cursors;
 use crate::display::shape::text::text_field::render::assignment::GlyphLinesAssignment;
@@ -71,15 +69,15 @@ pub struct TextFieldSprites {
 impl TextFieldSprites {
 
     /// Create RenderedContent structure.
-    pub fn new(world:&World, properties:&TextFieldProperties, fonts:&mut FontRegistry) -> Self {
+    pub fn new(world:&World, properties:&TextFieldProperties) -> Self {
+        let font              = properties.font.clone_ref();
         let line_height       = properties.text_size;
         let window_size       = properties.size;
         let color             = properties.base_color;
-        let font              = fonts.get_render_info(properties.font_id);
         let cursor_system     = Self::create_cursor_system(world,line_height);
         let selection_system  = Self::create_selection_system(world);
         let cursors           = Vec::new();
-        let mut glyph_system  = GlyphSystem::new(world,properties.font_id);
+        let mut glyph_system  = GlyphSystem::new(world,font.clone_ref());
         let display_object    = DisplayObjectData::new(Logger::new("RenderedContent"));
         display_object.add_child(&selection_system);
         display_object.add_child(&glyph_system);
@@ -115,7 +113,7 @@ impl TextFieldSprites {
     fn create_assignment_structure
     ( window_size : Vector2<f32>
     , line_height : f32
-    , font        : &mut FontRenderInfo
+    , font        : FontHandle
     ) -> GlyphLinesAssignment {
         // Display_size.(x/y).floor() makes space for all lines/glyph that fit in space in
         // their full size. But we have 2 more lines/glyph: one clipped from top or left, and one
@@ -146,7 +144,7 @@ impl From<&TextFieldSprites> for DisplayObjectData {
 
 impl TextFieldSprites {
     /// Update all displayed glyphs.
-    pub fn update_glyphs(&mut self, content:&mut TextFieldContent, fonts:&mut FontRegistry) {
+    pub fn update_glyphs(&mut self, content:&mut TextFieldContent) {
         let glyph_lines       = self.glyph_lines.iter_mut().enumerate();
         let lines_assignment  = glyph_lines.zip(self.assignment.glyph_lines_fragments.iter());
         let dirty_lines       = std::mem::take(&mut content.dirty_lines);
@@ -158,8 +156,8 @@ impl TextFieldSprites {
             let is_line_dirty       = assigned_line.map_or(false, |l| dirty_lines.is_dirty(l));
             if is_glyph_line_dirty || is_line_dirty {
                 match assignment {
-                    Some(fragment) => Self::update_glyph_line(glyph_line,fragment,content,fonts),
-                    None           => glyph_line.replace_text("".chars(), fonts),
+                    Some(fragment) => Self::update_glyph_line(glyph_line,fragment,content),
+                    None           => glyph_line.replace_text("".chars()),
                 }
             }
         }
@@ -167,8 +165,7 @@ impl TextFieldSprites {
     }
 
     /// Update all displayed cursors with their selections.
-    pub fn update_cursor_sprites
-    (&mut self, cursors:&Cursors, content:&mut TextFieldContentFullInfo) {
+    pub fn update_cursor_sprites(&mut self, cursors:&Cursors, content:&mut TextFieldContent) {
         let cursor_system = &self.cursor_system;
         self.cursors.resize_with(cursors.cursors.len(),|| Self::new_cursor_sprites(cursor_system));
         for (sprites,cursor) in self.cursors.iter_mut().zip(cursors.cursors.iter()) {
@@ -187,16 +184,12 @@ impl TextFieldSprites {
     }
 
     fn update_glyph_line
-    ( glyph_line : &mut GlyphLine
-    , fragment   : &LineFragment
-    , content    : &mut TextFieldContent
-    , fonts      : &mut FontRegistry) {
-        let mut f_content = content.full_info(fonts);
-        let bsl_start     = Self::baseline_start_for_fragment(fragment,&mut f_content);
+    (glyph_line:&mut GlyphLine, fragment:&LineFragment, content:&mut TextFieldContent) {
+        let bsl_start     = Self::baseline_start_for_fragment(fragment,content);
         let line          = &content.lines[fragment.line_index];
         let chars         = &line.chars()[fragment.chars_range.clone()];
         glyph_line.set_baseline_start(bsl_start);
-        glyph_line.replace_text(chars.iter().cloned(),fonts);
+        glyph_line.replace_text(chars.iter().cloned());
     }
 
     /// The baseline start for given line's fragment.
@@ -204,7 +197,7 @@ impl TextFieldSprites {
     /// Because we're not rendering the whole lines, but only visible fragment of it (with some
     /// margin), the baseline used for placing glyph don't start on the line begin, but at the
     /// position of first char of fragment.
-    fn baseline_start_for_fragment(fragment:&LineFragment, content:&mut TextFieldContentFullInfo)
+    fn baseline_start_for_fragment(fragment:&LineFragment, content:&mut TextFieldContent)
     -> Vector2<f32> {
         let mut line = content.line(fragment.line_index);
         if fragment.chars_range.start >= line.chars().len() {

@@ -2,14 +2,13 @@
 
 use crate::prelude::*;
 
-use crate::display::shape::text::text_field::content::TextFieldContentFullInfo;
 use crate::display::shape::text::text_field::content::line::LineFullInfo;
+use crate::display::shape::text::text_field::content::TextFieldContent;
 use crate::display::shape::text::text_field::location::TextLocation;
 
 use nalgebra::Vector2;
 use std::cmp::Ordering;
 use std::ops::Range;
-
 
 
 // ==============
@@ -31,6 +30,11 @@ impl Cursor {
         Cursor {position,
             selected_to : position
         }
+    }
+
+    /// Returns true if some selection is bound to this cursor.
+    pub fn has_selection(&self) -> bool {
+        self.position != self.selected_to
     }
 
     /// Get range of selected text by this cursor.
@@ -59,8 +63,8 @@ impl Cursor {
     }
 
     /// Get `LineFullInfo` object of this cursor's line.
-    pub fn current_line<'a>(&self, content:&'a mut TextFieldContentFullInfo)
-    -> LineFullInfo<'a,'a> {
+    pub fn current_line<'a>(&self, content:&'a mut TextFieldContent)
+    -> LineFullInfo<'a> {
         content.line(self.position.line)
     }
 
@@ -70,10 +74,7 @@ impl Cursor {
     ///
     /// _Baseline_ is a font specific term, for details see [freetype documentation]
     ///  (https://www.freetype.org/freetype2/docs/glyphs/glyphs-3.html#section-1).
-    pub fn render_position
-    ( position : &TextLocation
-    , content  : &mut TextFieldContentFullInfo
-    ) -> Vector2<f32>{
+    pub fn render_position(position:&TextLocation, content:&mut TextFieldContent) -> Vector2<f32> {
         let line_height = content.line_height;
         let mut line    = content.line(position.line);
         // TODO[ao] this value should be read from font information, but msdf_sys library does
@@ -108,15 +109,15 @@ pub enum Step {Left,Right,Up,Down,LineBegin,LineEnd,DocBegin,DocEnd}
 
 /// A struct for cursor navigation process.
 #[derive(Debug)]
-pub struct CursorNavigation<'a,'b> {
+pub struct CursorNavigation<'a> {
     /// A reference to text content. This is required to obtain the x positions of chars for proper
     /// moving cursors up and down.
-    pub content   : TextFieldContentFullInfo<'a,'b>,
+    pub content: &'a mut TextFieldContent,
     /// Selecting navigation selects/unselects all text between current and new cursor position.
-    pub selecting : bool
+    pub selecting: bool
 }
 
-impl<'a,'b> CursorNavigation<'a,'b> {
+impl<'a> CursorNavigation<'a> {
     /// Jump cursor directly to given position.
     pub fn move_cursor_to_position(&self, cursor:&mut Cursor, to:TextLocation) {
         cursor.position = to;
@@ -284,8 +285,19 @@ impl Cursors {
     ///
     /// If after this operation some of the cursors occupies the same position, or their selected
     /// area overlap, they are irreversibly merged.
-    pub fn navigate_all_cursors(&mut self, navigaton:&mut CursorNavigation, step:Step) {
-        self.cursors.iter_mut().for_each(|cursor| navigaton.move_cursor(cursor,step));
+    pub fn navigate_all_cursors(&mut self, navigation:&mut CursorNavigation, step:Step) {
+        self.navigate_cursors(navigation,step,|_| true)
+    }
+
+    /// Do the navigation step of all cursors satisfying given predicate.
+    ///
+    /// If after this operation some of the cursors occupies the same position, or their selected
+    /// area overlap, they are irreversibly merged.
+    pub fn navigate_cursors<Predicate>
+    (&mut self, navigation:&mut CursorNavigation, step:Step, mut predicate:Predicate)
+    where Predicate : FnMut(&Cursor) -> bool {
+        let filtered = self.cursors.iter_mut().filter(|c| predicate(c));
+        filtered.for_each(|cursor| navigation.move_cursor(cursor, step));
         self.merge_overlapping_cursors();
     }
 
@@ -363,118 +375,112 @@ mod test {
     use super::*;
     use Step::*;
 
-    use basegl_core_msdf_sys::test_utils::TestAfterInit;
-    use std::future::Future;
-    use wasm_bindgen_test::wasm_bindgen_test;
-    use wasm_bindgen_test::wasm_bindgen_test_configure;
-    use crate::display::shape::text::text_field::cursor::Step::{LineBegin, DocBegin, LineEnd};
     use crate::display::shape::text::glyph::font::FontRegistry;
     use crate::display::shape::text::text_field::content::TextFieldContent;
     use crate::display::shape::text::text_field::TextFieldProperties;
 
+    use wasm_bindgen_test::wasm_bindgen_test;
+    use wasm_bindgen_test::wasm_bindgen_test_configure;
+
     wasm_bindgen_test_configure!(run_in_browser);
 
     #[wasm_bindgen_test(async)]
-    fn moving_cursors() -> impl Future<Output=()> {
-        TestAfterInit::schedule(||{
-            let text        = "FirstLine.\nSecondLine\nThirdLine";
-            let initial_cursors = vec!
-                [ Cursor::new(TextLocation {line:0, column:0 })
-                , Cursor::new(TextLocation {line:1, column:0 })
-                , Cursor::new(TextLocation {line:1, column:6 })
-                , Cursor::new(TextLocation {line:1, column:10})
-                , Cursor::new(TextLocation {line:2, column:9 })
-                ];
-            let mut expected_positions = HashMap::<Step,Vec<(usize,usize)>>::new();
-            expected_positions.insert(Left,      vec![(0,0),(0,10),(1,5),(1,9),(2,8)]);
-            expected_positions.insert(Right,     vec![(0,1),(1,1),(1,7),(2,0),(2,9)]);
-            expected_positions.insert(Up,        vec![(0,0),(0,6),(0,10),(1,9)]);
-            expected_positions.insert(Down,      vec![(1,0),(2,0),(2,6),(2,9)]);
-            expected_positions.insert(LineBegin, vec![(0,0),(1,0),(2,0)]);
-            expected_positions.insert(LineEnd,   vec![(0,10),(1,10),(2,9)]);
-            expected_positions.insert(DocBegin,  vec![(0,0)]);
-            expected_positions.insert(DocEnd,    vec![(2,9)]);
+    async fn moving_cursors() {
+        basegl_core_msdf_sys::initialized().await;
+        let text        = "FirstLine.\nSecondLine\nThirdLine";
+        let initial_cursors = vec!
+            [ Cursor::new(TextLocation {line:0, column:0 })
+            , Cursor::new(TextLocation {line:1, column:0 })
+            , Cursor::new(TextLocation {line:1, column:6 })
+            , Cursor::new(TextLocation {line:1, column:10})
+            , Cursor::new(TextLocation {line:2, column:9 })
+            ];
+        let mut expected_positions = HashMap::<Step,Vec<(usize,usize)>>::new();
+        expected_positions.insert(Left,      vec![(0,0),(0,10),(1,5),(1,9),(2,8)]);
+        expected_positions.insert(Right,     vec![(0,1),(1,1),(1,7),(2,0),(2,9)]);
+        expected_positions.insert(Up,        vec![(0,0),(0,6),(0,10),(1,9)]);
+        expected_positions.insert(Down,      vec![(1,0),(2,0),(2,6),(2,9)]);
+        expected_positions.insert(LineBegin, vec![(0,0),(1,0),(2,0)]);
+        expected_positions.insert(LineEnd,   vec![(0,10),(1,10),(2,9)]);
+        expected_positions.insert(DocBegin,  vec![(0,0)]);
+        expected_positions.insert(DocEnd,    vec![(2,9)]);
 
-            let mut fonts      = FontRegistry::new();
-            let properties     = TextFieldProperties::default(&mut fonts);
-            let mut content    = TextFieldContent::new(text,&properties);
-            let mut navigation = CursorNavigation {
-                content: content.full_info(&mut fonts),
-                selecting: false
-            };
+        let mut fonts      = FontRegistry::new();
+        let properties     = TextFieldProperties::default(&mut fonts);
+        let mut content    = TextFieldContent::new(text,&properties);
+        let mut navigation = CursorNavigation {
+            content: &mut content,
+            selecting: false
+        };
 
-            for step in &[/*Left,Right,Up,*/Down,/*LineBegin,LineEnd,DocBegin,DocEnd*/] {
-                let mut cursors = Cursors::mock(initial_cursors.clone());
-                cursors.navigate_all_cursors(&mut navigation,*step);
-                let expected = expected_positions.get(step).unwrap();
-                let current  = cursors.cursors.iter().map(|c| (c.position.line, c.position.column));
-                assert_eq!(expected,&current.collect_vec(), "Error for step {:?}", step);
-            }
-        })
-    }
-
-    #[wasm_bindgen_test(async)]
-    fn moving_without_select() -> impl Future<Output=()> {
-        TestAfterInit::schedule(||{
-            let text              = "FirstLine\nSecondLine";
-            let initial_cursor   = Cursor {
-                position    : TextLocation {line:1, column:0},
-                selected_to : TextLocation {line:0, column:1}
-            };
-            let initial_cursors   = vec![initial_cursor];
-            let new_position      = TextLocation {line:1,column:10};
-
-            let mut fonts      = FontRegistry::new();
-            let properties     = TextFieldProperties::default(&mut fonts);
-            let mut content    = TextFieldContent::new(text,&properties);
-            let mut navigation = CursorNavigation {
-                content: content.full_info(&mut fonts),
-                selecting: false
-            };
-            let mut cursors    = Cursors::mock(initial_cursors.clone());
-            cursors.navigate_all_cursors(&mut navigation,LineEnd);
-            assert_eq!(new_position, cursors.cursors.first().unwrap().position);
-            assert_eq!(new_position, cursors.cursors.first().unwrap().selected_to);
-        })
-    }
-
-    #[wasm_bindgen_test(async)]
-    fn moving_with_select() -> impl Future<Output=()> {
-        TestAfterInit::schedule(||{
-            let text              = "FirstLine\nSecondLine";
-            let initial_loc     = TextLocation {line:0,column:1};
-            let initial_cursors = vec![Cursor::new(initial_loc)];
-            let new_loc         = TextLocation {line:0,column:9};
-
-            let mut fonts      = FontRegistry::new();
-            let properties     = TextFieldProperties::default(&mut fonts);
-            let mut content    = TextFieldContent::new(text,&properties);
-            let mut navigation = CursorNavigation {
-                content: content.full_info(&mut fonts),
-                selecting: true
-            };
+        for step in &[/*Left,Right,Up,*/Down,/*LineBegin,LineEnd,DocBegin,DocEnd*/] {
             let mut cursors = Cursors::mock(initial_cursors.clone());
-            cursors.navigate_all_cursors(&mut navigation,LineEnd);
-            assert_eq!(new_loc    , cursors.cursors.first().unwrap().position);
-            assert_eq!(initial_loc, cursors.cursors.first().unwrap().selected_to);
-        })
+            cursors.navigate_all_cursors(&mut navigation,*step);
+            let expected = expected_positions.get(step).unwrap();
+            let current  = cursors.cursors.iter().map(|c| (c.position.line, c.position.column));
+            assert_eq!(expected,&current.collect_vec(), "Error for step {:?}", step);
+        }
     }
 
     #[wasm_bindgen_test(async)]
-    fn merging_selection_after_moving() -> impl Future<Output=()> {
-        TestAfterInit::schedule(||{
-            let make_char_loc  = |(line,column):(usize,usize)| TextLocation {line,column};
-            let cursor_on_left = |range:&Range<(usize,usize)>| Cursor {
-                position    : make_char_loc(range.start),
-                selected_to : make_char_loc(range.end)
-            };
-            let cursor_on_right = |range:&Range<(usize,usize)>| Cursor {
-                position    : make_char_loc(range.end),
-                selected_to : make_char_loc(range.start)
-            };
-            merging_selection_after_moving_case(cursor_on_left);
-            merging_selection_after_moving_case(cursor_on_right);
-        })
+    async fn moving_without_select() {
+        basegl_core_msdf_sys::initialized().await;
+        let text              = "FirstLine\nSecondLine";
+        let initial_cursor   = Cursor {
+            position    : TextLocation {line:1, column:0},
+            selected_to : TextLocation {line:0, column:1}
+        };
+        let initial_cursors   = vec![initial_cursor];
+        let new_position      = TextLocation {line:1,column:10};
+
+        let mut fonts      = FontRegistry::new();
+        let properties     = TextFieldProperties::default(&mut fonts);
+        let mut content    = TextFieldContent::new(text,&properties);
+        let mut navigation = CursorNavigation {
+            content: &mut content,
+            selecting: false
+        };
+        let mut cursors    = Cursors::mock(initial_cursors.clone());
+        cursors.navigate_all_cursors(&mut navigation,LineEnd);
+        assert_eq!(new_position, cursors.cursors.first().unwrap().position);
+        assert_eq!(new_position, cursors.cursors.first().unwrap().selected_to);
+    }
+
+    #[wasm_bindgen_test(async)]
+    async fn moving_with_select() {
+        basegl_core_msdf_sys::initialized().await;
+        let text              = "FirstLine\nSecondLine";
+        let initial_loc     = TextLocation {line:0,column:1};
+        let initial_cursors = vec![Cursor::new(initial_loc)];
+        let new_loc         = TextLocation {line:0,column:9};
+
+        let mut fonts      = FontRegistry::new();
+        let properties     = TextFieldProperties::default(&mut fonts);
+        let mut content    = TextFieldContent::new(text,&properties);
+        let mut navigation = CursorNavigation {
+            content: &mut content,
+            selecting: true
+        };
+        let mut cursors = Cursors::mock(initial_cursors.clone());
+        cursors.navigate_all_cursors(&mut navigation,LineEnd);
+        assert_eq!(new_loc    , cursors.cursors.first().unwrap().position);
+        assert_eq!(initial_loc, cursors.cursors.first().unwrap().selected_to);
+    }
+
+    #[wasm_bindgen_test(async)]
+    async fn merging_selection_after_moving() {
+        basegl_core_msdf_sys::initialized().await;
+        let make_char_loc  = |(line,column):(usize,usize)| TextLocation {line,column};
+        let cursor_on_left = |range:&Range<(usize,usize)>| Cursor {
+            position    : make_char_loc(range.start),
+            selected_to : make_char_loc(range.end)
+        };
+        let cursor_on_right = |range:&Range<(usize,usize)>| Cursor {
+            position    : make_char_loc(range.end),
+            selected_to : make_char_loc(range.start)
+        };
+        merging_selection_after_moving_case(cursor_on_left);
+        merging_selection_after_moving_case(cursor_on_right);
     }
 
     fn merging_selection_after_moving_case<F>(convert:F)

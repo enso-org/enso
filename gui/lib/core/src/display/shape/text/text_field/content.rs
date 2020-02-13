@@ -3,9 +3,7 @@ pub mod line;
 
 use crate::prelude::*;
 
-use crate::display::shape::text::glyph::font::FontId;
-use crate::display::shape::text::glyph::font::FontRegistry;
-use crate::display::shape::text::glyph::font::FontRenderInfo;
+use crate::display::shape::text::glyph::font::FontHandle;
 use crate::display::shape::text::text_field::content::line::Line;
 use crate::display::shape::text::text_field::content::line::LineFullInfo;
 use crate::display::shape::text::text_field::location::TextLocation;
@@ -170,19 +168,8 @@ impl TextChange {
 pub struct TextFieldContent {
     pub lines       : Vec<Line>,
     pub dirty_lines : DirtyLines,
-    pub font        : FontId,
+    pub font        : FontHandle,
     pub line_height : f32,
-}
-
-/// The wrapper for TextFieldContent reference with font. That allows to get specific information
-/// about lines and chars position in rendered text.
-#[derive(Debug,Shrinkwrap)]
-#[shrinkwrap(mutable)]
-#[allow(missing_docs)]
-pub struct TextFieldContentFullInfo<'a,'b> {
-    #[shrinkwrap(main_field)]
-    pub content : &'a mut TextFieldContent,
-    pub font    : &'b mut FontRenderInfo
 }
 
 impl TextFieldContent {
@@ -194,7 +181,7 @@ impl TextFieldContent {
             line_height : properties.text_size,
             lines       : Self::split_to_lines(text).map(Line::new).collect(),
             dirty_lines : DirtyLines::default(),
-            font        : properties.font_id,
+            font        : properties.font.clone_ref(),
         }
     }
 
@@ -208,16 +195,6 @@ impl TextFieldContent {
             &from[..from.len()-1]
         } else {
             from
-        }
-    }
-
-    /// Get the full-info wrapper for this content.
-    pub fn full_info<'a,'b>(&'a mut self, fonts:&'b mut FontRegistry)
-    -> TextFieldContentFullInfo<'a,'b> {
-        let font_id = self.font;
-        TextFieldContentFullInfo {
-            content : self,
-            font    : fonts.get_render_info(font_id),
         }
     }
 
@@ -247,7 +224,41 @@ impl TextFieldContent {
             let last_line = &self.lines[fragment.end.line];
             output.extend(last_line.chars()[..fragment.end.column].iter().cloned());
         }
+    }
 
+    /// Get a handy wrapper for line under index.
+    pub fn line(&mut self, index:usize) -> LineFullInfo {
+        LineFullInfo {
+            height  : self.line_height,
+            line    : &mut self.lines[index],
+            line_id : index,
+            font    : self.font.clone_ref(),
+        }
+    }
+
+    /// Get the nearest text location from the point on the screen.
+    pub fn location_at_point(&mut self, point:Vector2<f32>) -> TextLocation {
+        let line_opt = self.line_at_y_position(point.y);
+        let mut line = match line_opt {
+            Some(line)             => line,
+            None if point.y >= 0.0 => self.line(0),
+            None                   => self.line(self.lines.len()-1),
+        };
+        let column_opt = line.find_char_at_x_position(point.x);
+        let column = match column_opt {
+            Some(column)           => column,
+            None if point.x <= 0.0 => 0,
+            None                   => line.len(),
+        };
+        TextLocation{line:line.line_id, column}
+    }
+
+    /// Get the index of line which is displayed at given y screen coordinate.
+    pub fn line_at_y_position(&mut self, y:f32) -> Option<LineFullInfo> {
+        let index    = -(y / self.line_height).ceil();
+        let is_valid = index >= 0.0 && index < self.lines.len() as f32;
+        let index    = is_valid.and_option_from(|| Some(index as usize));
+        index.map(move |i| self.line(i))
     }
 }
 
@@ -319,52 +330,22 @@ impl TextFieldContent {
     }
 }
 
-impl<'a,'b> TextFieldContentFullInfo<'a,'b> {
-    /// Get a handy wrapper for line under index.
-    pub fn line(&mut self, index:usize) -> LineFullInfo {
-        LineFullInfo {
-            height  : self.content.line_height,
-            line    : &mut self.content.lines[index],
-            line_id : index,
-            font    : self.font,
-        }
-    }
 
-    /// Get the nearest text location from the point on the screen.
-    pub fn location_at_point(&mut self, point:Vector2<f32>) -> TextLocation {
-        let line_opt = self.line_at_y_position(point.y);
-        let mut line = match line_opt {
-            Some(line)             => line,
-            None if point.y >= 0.0 => self.line(0),
-            None                   => self.line(self.lines.len()-1),
-        };
-        let column_opt = line.find_char_at_x_position(point.x);
-        let column = match column_opt {
-            Some(column)           => column,
-            None if point.x <= 0.0 => 0,
-            None                   => line.len(),
-        };
-        TextLocation{line:line.line_id, column}
-    }
-
-    /// Get the index of line which is displayed at given y screen coordinate.
-    pub fn line_at_y_position(&mut self, y:f32) -> Option<LineFullInfo> {
-        let index    = -(y / self.line_height).ceil();
-        let is_valid = index >= 0.0 && index < self.lines.len() as f32;
-        let index    = is_valid.and_option_from(|| Some(index as usize));
-        index.map(move |i| self.line(i))
-    }
-}
 
 #[cfg(test)]
 mod test {
     use super::*;
 
+    use crate::display::shape::text::glyph::font::FontRenderInfo;
+
+    use basegl_core_msdf_sys as msdf_sys;
     use nalgebra::Vector2;
     use nalgebra::Vector4;
+    use wasm_bindgen_test::wasm_bindgen_test;
 
-    #[test]
-    fn mark_single_line_as_dirty() {
+    #[wasm_bindgen_test(async)]
+    async fn mark_single_line_as_dirty(){
+        msdf_sys::initialized().await;
         let mut dirty_lines = DirtyLines::default();
         dirty_lines.add_single_line(3);
         dirty_lines.add_single_line(5);
@@ -373,8 +354,9 @@ mod test {
         assert!( dirty_lines.is_dirty(5));
     }
 
-    #[test]
-    fn mark_line_range_as_dirty() {
+    #[wasm_bindgen_test(async)]
+    async fn mark_line_range_as_dirty() {
+        msdf_sys::initialized().await;
         let mut dirty_lines = DirtyLines::default();
         dirty_lines.add_lines_range(3..=5);
         assert!(!dirty_lines.is_dirty(2));
@@ -384,8 +366,9 @@ mod test {
         assert!(!dirty_lines.is_dirty(6));
     }
 
-    #[test]
-    fn mark_line_range_from_as_dirty() {
+    #[wasm_bindgen_test(async)]
+    async fn mark_line_range_from_as_dirty() {
+        msdf_sys::initialized().await;
         let mut dirty_lines = DirtyLines::default();
         dirty_lines.add_lines_range_from(3..);
         dirty_lines.add_lines_range_from(5..);
@@ -395,8 +378,9 @@ mod test {
         assert!( dirty_lines.is_dirty(70000));
     }
 
-    #[test]
-    fn create_content() {
+    #[wasm_bindgen_test(async)]
+    async fn create_content() {
+        msdf_sys::initialized().await;
         let single_line    = "Single line";
         let mutliple_lines = "Multiple\r\nlines\n";
 
@@ -410,8 +394,9 @@ mod test {
         assert_eq!(""         , multiline_content  .lines[2].chars().iter().collect::<String>());
     }
 
-    #[test]
-    fn edit_single_line() {
+    #[wasm_bindgen_test(async)]
+    async fn edit_single_line() {
+        msdf_sys::initialized().await;
         let text                   = "Line a\nLine b\nLine c";
         let delete_from            = TextLocation {line:1, column:0};
         let delete_to              = TextLocation {line:1, column:4};
@@ -439,8 +424,9 @@ mod test {
         assert!(!content.dirty_lines.is_dirty(2));
     }
 
-    #[test]
-    fn insert_multiple_lines() {
+    #[wasm_bindgen_test(async)]
+    async fn insert_multiple_lines() {
+        msdf_sys::initialized().await;
         let text             = "Line a\nLine b\nLine c";
         let inserted         = "Ins a\nIns b";
         let begin_loc        = TextLocation {line:0, column:0};
@@ -476,8 +462,9 @@ mod test {
         assert!( content.dirty_lines.is_dirty(2));
     }
 
-    #[test]
-    fn delete_multiple_lines() {
+    #[wasm_bindgen_test(async)]
+    async fn delete_multiple_lines() {
+        msdf_sys::initialized().await;
         let text          = "Line a\nLine b\nLine c";
         let delete_from   = TextLocation {line:0, column:2};
         let delete_to     = TextLocation {line:2, column:3};
@@ -491,8 +478,9 @@ mod test {
         assert_eq!(expected, get_lines_as_strings(&content));
     }
 
-    #[test]
-    fn get_line_fragment() {
+    #[wasm_bindgen_test(async)]
+    async fn get_line_fragment() {
+        msdf_sys::initialized().await;
         let text = "Line a\nLine b\nLine c";
         let single_line   = TextLocation {line:1, column:1} .. TextLocation {line:1, column:4};
         let line_with_eol = TextLocation {line:1, column:1} .. TextLocation {line:2, column:0};
@@ -508,8 +496,9 @@ mod test {
         assert_eq!(text      , content.copy_fragment(whole_content));
     }
 
-    #[test]
-    fn get_inserted_text_location_of_change() {
+    #[wasm_bindgen_test(async)]
+    async fn get_inserted_text_location_of_change() {
+        msdf_sys::initialized().await;
         let one_line         = "One line";
         let two_lines        = "Two\nlines";
         let replaced_range   = TextLocation{line:1,column:2}..TextLocation{line:2,column:2};
@@ -529,7 +518,7 @@ mod test {
 
     fn mock_properties()->  TextFieldProperties {
         TextFieldProperties {
-            font_id    : 0,
+            font       : FontHandle::new(FontRenderInfo::mock_font("Test font".to_string())),
             text_size  : 0.0,
             base_color : Vector4::new(1.0, 1.0, 1.0, 1.0),
             size       : Vector2::new(1.0, 1.0)

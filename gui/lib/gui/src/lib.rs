@@ -22,7 +22,7 @@ pub mod easing_animator;
 pub mod glyph_system;
 pub mod shapes;
 pub mod sprite_system;
-pub mod text_selecting;
+pub mod text_field;
 pub mod text_typing;
 
 use enso_prelude as prelude;

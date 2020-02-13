@@ -1,5 +1,7 @@
 //! Multichannel Signed Distance Field handling.
 
+use crate::prelude::*;
+
 use basegl_core_msdf_sys as msdf_sys;
 use msdf_sys::MultichannelSignedDistanceField;
 use nalgebra::clamp;
@@ -13,10 +15,10 @@ use nalgebra::clamp;
 /// This structure keeps texture data in 8-bit-per-channel RGB format, which
 /// is ready to be passed to webgl texImage2D. The texture contains MSDFs for
 /// all loaded glyph, organized in vertical column.
-#[derive(Debug)]
+#[derive(Debug,Default)]
 pub struct MsdfTexture {
     /// A plain data of this texture.
-    pub data : Vec<u8>
+    data : RefCell<Vec<u8>>
 }
 
 impl MsdfTexture {
@@ -33,30 +35,38 @@ impl MsdfTexture {
 
     /// Number of rows in texture
     pub fn rows(&self) -> usize {
-        self.data.len() / Self::ROW_SIZE
+        self.data.borrow().len() / Self::ROW_SIZE
+    }
+
+    /// Do operation on borrowed texture data. Panics, if inside `operation` the texture data will
+    /// be borrowed again (e.g. by calling `with_borrowed_data`.
+    pub fn with_borrowed_data<F,R>(&self, operation:F) -> R
+    where F : FnOnce(&Vec<u8>) -> R {
+        let data = self.data.borrow();
+        operation(&data)
+    }
+
+    /// Extends texture with new MSDF data in f32 format
+    pub fn extend_f32<T:IntoIterator<Item=f32>>(&self, iter:T) {
+        let f32_iterator       = iter.into_iter();
+        let converted_iterator = f32_iterator.map(Self::convert_cell_from_f32);
+        self.data.borrow_mut().extend(converted_iterator);
     }
 
     fn convert_cell_from_f32(value : f32) -> u8 {
         const UNSIGNED_BYTE_MIN : f32 = 0.0;
         const UNSIGNED_BYTE_MAX : f32 = 255.0;
 
-        let scaled_to_byte            = value * UNSIGNED_BYTE_MAX;
-        let clamped_to_byte           = clamp(scaled_to_byte,UNSIGNED_BYTE_MIN,UNSIGNED_BYTE_MAX);
+        let scaled_to_byte  = value * UNSIGNED_BYTE_MAX;
+        let clamped_to_byte = clamp(scaled_to_byte,UNSIGNED_BYTE_MIN,UNSIGNED_BYTE_MAX);
         clamped_to_byte as u8
     }
 }
 
-impl Extend<f32> for MsdfTexture {
-    /// Extends texture with new MSDF data in f32 format
-    fn extend<T:IntoIterator<Item=f32>>(&mut self, iter:T) {
-        let f32_iterator       = iter.into_iter();
-        let converted_iterator = f32_iterator.map(Self::convert_cell_from_f32);
-        self.data.extend(converted_iterator);
-    }
-}
+
 
 // ==================================
-// === msdf-sys values converting ===
+// === Msdf-sys Values Converting ===
 // ==================================
 
 /// Converts x dimension distance obtained from msdf-sys to vertex-space values
@@ -98,19 +108,17 @@ pub fn convert_msdf_translation(msdf:&MultichannelSignedDistanceField)
 mod test {
     use super::*;
 
-    use basegl_core_msdf_sys::test_utils::TestAfterInit;
     use nalgebra::Vector2;
-    use std::future::Future;
     use wasm_bindgen_test::wasm_bindgen_test;
 
     #[test]
     fn extending_msdf_texture() {
-        let mut texture = MsdfTexture{data : Vec::new()};
+        let texture = MsdfTexture::default();
         let msdf_values: &[f32] = &[-0.5, 0.0, 0.25, 0.5, 0.75, 1.0, 1.25];
-        texture.extend(msdf_values[..4].iter().cloned());
-        texture.extend(msdf_values[4..].iter().cloned());
+        texture.extend_f32(msdf_values[..4].iter().cloned());
+        texture.extend_f32(msdf_values[4..].iter().cloned());
 
-        assert_eq!([0, 0, 63, 127, 191, 255, 255], texture.data.as_slice());
+        assert_eq!([0, 0, 63, 127, 191, 255, 255], texture.data.borrow().as_slice());
     }
 
     #[test]
@@ -126,15 +134,14 @@ mod test {
     }
 
     #[wasm_bindgen_test(async)]
-    fn msdf_translation_converting() -> impl Future<Output=()> {
-        TestAfterInit::schedule(|| {
-            let mut msdf = MultichannelSignedDistanceField::mock_results();
-            msdf.translation = Vector2::new(16.0, 4.0);
+    async fn msdf_translation_converting() {
+        basegl_core_msdf_sys::initialized().await;
+        let mut msdf = MultichannelSignedDistanceField::mock_results();
+        msdf.translation = Vector2::new(16.0, 4.0);
 
-            let converted = convert_msdf_translation(&msdf);
-            let expected = nalgebra::Vector2::new(0.5, 1.0/8.0);
+        let converted = convert_msdf_translation(&msdf);
+        let expected = nalgebra::Vector2::new(0.5, 1.0/8.0);
 
-            assert_eq!(expected, converted);
-        })
+        assert_eq!(expected, converted);
     }
 }
