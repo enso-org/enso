@@ -1,29 +1,29 @@
 #![allow(missing_docs)]
 
-use crate::system::web;
+use basegl::system::web;
 use web::dom::html::Css3dSystem;
 use web::dom::html::Css3dObject;
 use web::dom::html::Css3dOrder;
 use web::StyleSetter;
-use crate::display::object::DisplayObject;
-use crate::display::object::DisplayObjectOps;
-use crate::display::symbol::geometry::Sprite;
-use crate::display::symbol::geometry::SpriteSystem;
-use crate::display::world::*;
-use crate::prelude::*;
-use crate::animation::animator::fixed_step::FixedStepAnimator;
+use basegl::display::object::DisplayObject;
+use basegl::display::object::DisplayObjectOps;
+use basegl::display::symbol::geometry::Sprite;
+use basegl::display::symbol::geometry::SpriteSystem;
+use basegl::display::world::*;
+use basegl::prelude::*;
+use basegl::animation::animator::fixed_step::FixedStepAnimator;
+use basegl::display::navigation::navigator::Navigator;
 
 use nalgebra::Vector2;
 use nalgebra::Vector3;
 use wasm_bindgen::prelude::*;
-use crate::display::navigation::navigator::Navigator;
 
 #[wasm_bindgen]
 #[allow(dead_code)]
 pub fn run_example_css3d_system() {
     web::forward_panic_hook_to_console();
     web::set_stdout();
-    init(WorldData::new("canvas"));
+    init(WorldData::new(&web::body()));
 }
 
 fn init(world:World) {

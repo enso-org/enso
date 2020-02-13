@@ -7,11 +7,12 @@ use crate::data::dirty;
 use crate::display::layout::types::*;
 use crate::display::object::DisplayObjectData;
 use crate::data::dirty::traits::*;
+use crate::control::callback::{XCallbackRegistry1, CallbackHandle, XCallbackMut1Fn};
 
+use nalgebra::Vector2;
 use nalgebra::Vector3;
 use nalgebra::Matrix4;
 use nalgebra::Perspective3;
-
 
 
 // ==============
@@ -95,9 +96,11 @@ impl Default for Clipping {
 // === Camera2dData ===
 // ====================
 
-pub trait ZoomUpdateFn = FnMut(f32) + 'static;
+/// Function used to return the updated screen dimensions.
+pub trait ScreenUpdateFn = XCallbackMut1Fn<Vector2<f32>>;
 
-type ZoomUpdateCallback = Box<dyn ZoomUpdateFn>;
+/// Function used to return the updated `Camera2d`'s zoom.
+pub trait ZoomUpdateFn = XCallbackMut1Fn<f32>;
 
 /// Internal `Camera2d` representation. Please see `Camera2d` for full documentation.
 #[derive(Derivative)]
@@ -115,8 +118,8 @@ struct Camera2dData {
     view_projection_matrix : Matrix4<f32>,
     projection_dirty       : ProjectionDirty,
     transform_dirty        : TransformDirty2,
-    #[derivative(Debug="ignore")]
-    zoom_update_callback   : Option<ZoomUpdateCallback>
+    zoom_update_registry   : XCallbackRegistry1<f32>,
+    screen_update_registry : XCallbackRegistry1<Vector2<f32>>,
 }
 
 type ProjectionDirty = dirty::SharedBool<()>;
@@ -137,19 +140,24 @@ impl Camera2dData {
         let transform_dirty        = TransformDirty2::new(logger.sub("transform_dirty"),());
         let transform_dirty_copy   = transform_dirty.clone();
         let transform              = DisplayObjectData::new(logger);
-        let zoom_update_callback   = None;
+        let zoom_update_registry   = default();
+        let screen_update_registry = default();
         transform.set_on_updated(move |_| { transform_dirty_copy.set(); });
         transform.mod_position(|p| p.z = 1.0);
         projection_dirty.set();
-        let mut camera = Self {transform,screen,projection,clipping,alignment,zoom,
-            zoom_update_callback,native_z,view_matrix,projection_matrix,view_projection_matrix,
-            projection_dirty,transform_dirty};
+        let mut camera = Self {transform,screen,projection,clipping,alignment,zoom,native_z,
+            view_matrix,projection_matrix,view_projection_matrix, projection_dirty,transform_dirty,
+            zoom_update_registry,screen_update_registry};
         camera.set_screen(width, height);
         camera
     }
 
-    pub fn add_zoom_update_callback<F:ZoomUpdateFn>(&mut self, f:F) {
-        self.zoom_update_callback = Some(Box::new(f));
+    pub fn add_zoom_update_callback<F:ZoomUpdateFn>(&mut self, f:F) -> CallbackHandle {
+        self.zoom_update_registry.add(f)
+    }
+
+    pub fn add_screen_update_callback<F:ScreenUpdateFn>(&mut self, f:F) -> CallbackHandle {
+        self.screen_update_registry.add(f)
     }
 
     pub fn recompute_view_matrix(&mut self) {
@@ -202,7 +210,7 @@ impl Camera2dData {
         if changed {
             self.view_projection_matrix = self.projection_matrix * self.view_matrix;
             let zoom = self.zoom;
-            self.zoom_update_callback.as_mut().map(|f| f(zoom));
+            self.zoom_update_registry.run_all(&zoom);
         }
         changed
     }
@@ -250,6 +258,8 @@ impl Camera2dData {
             }
             _ => unimplemented!()
         };
+        let dimensions = Vector2::new(width,height);
+        self.screen_update_registry.run_all(&dimensions);
     }
 }
 
@@ -331,8 +341,13 @@ impl Camera2d {
     }
 
     /// Adds a callback to notify when `zoom` is updated.
-    pub fn add_zoom_update_callback<F:ZoomUpdateFn>(&self, f:F) {
-        self.rc.borrow_mut().add_zoom_update_callback(f);
+    pub fn add_zoom_update_callback<F:ZoomUpdateFn>(&self, f:F) -> CallbackHandle {
+        self.rc.borrow_mut().add_zoom_update_callback(f)
+    }
+
+    /// Adds a callback to notify when `screen` is updated.
+    pub fn add_screen_update_callback<F:ScreenUpdateFn>(&self, f:F) -> CallbackHandle {
+        self.rc.borrow_mut().add_screen_update_callback(f)
     }
 }
 
