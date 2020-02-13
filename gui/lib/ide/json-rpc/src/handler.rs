@@ -12,13 +12,13 @@ use crate::transport::Transport;
 use crate::transport::TransportEvent;
 
 use futures::FutureExt;
+use futures::StreamExt;
 use futures::Stream;
 use futures::channel::mpsc::unbounded;
 use futures::channel::mpsc::UnboundedSender;
 use futures::channel::oneshot;
 use serde::de::DeserializeOwned;
 use std::future::Future;
-use std::sync::mpsc::TryRecvError;
 
 
 
@@ -78,41 +78,6 @@ impl IdGenerator {
 
 
 
-// ====================
-// === SharedBuffer ===
-// ====================
-
-/// The buffer shared between `Handler` and `Transport`.
-///
-/// The `Transport` callbacks store any input there. Then, `Handler` consumes it
-/// when prompted with `tick` method.
-#[derive(Debug,Default)]
-pub struct SharedBuffer {
-    /// Incoming text messages.
-    pub incoming: Vec<String>,
-
-    /// Whether the transport was closed. This means that the current transport
-    /// cannot be used anymore.
-    pub closed: bool,
-}
-
-impl SharedBuffer {
-    /// Create a new empty buffer.
-    pub fn new() -> SharedBuffer { default() }
-
-    /// Returns a new buffer with all the data moved from self.
-    ///
-    /// After the call incoming messages list in self is empty, however the
-    /// status of `closed` flag is not changed.
-    pub fn take(&mut self) -> SharedBuffer {
-        let incoming = std::mem::replace(&mut self.incoming, Vec::new());
-        let closed   = self.closed;
-        SharedBuffer {incoming,closed}
-    }
-}
-
-
-
 // =============
 // === Event ===
 // =============
@@ -130,14 +95,21 @@ pub enum Event<N> {
 
 
 
-// ===============
-// === Handler ===
-// ===============
+// ===================
+// === HandlerData ===
+// ===================
 
 /// Container that stores Sender's for ongoing calls. Each call identified by
 /// id has its own sender. After reply is received, the call is removed
 /// from this container.
 pub type OngoingCalls = HashMap<Id,oneshot::Sender<ReplyMessage>>;
+
+
+
+
+// ===============
+// === Handler ===
+// ===============
 
 /// Handler is a main provider of RPC protocol. Given with a transport capable
 /// of transporting text messages, it manages whole communication with a peer.
@@ -150,55 +122,138 @@ pub type OngoingCalls = HashMap<Id,oneshot::Sender<ReplyMessage>>;
 /// `Notification` is a type for notifications. It should implement
 /// `DeserializeOwned` and deserialize from JSON maps with `method` and `params`
 /// fields.
+
+pub use shapely::shared;
+
+shared! { Handler
+
+/// Mutable state of the `Handler`.
 #[derive(Debug)]
-pub struct Handler<Notification> {
-    /// Contains handles to calls that were made but no response has came.
-    pub ongoing_calls   : OngoingCalls,
-    /// Provides identifiers for requests.
-    pub id_generator    : IdGenerator,
-    /// Transports text messages between this handler and the peer.
-    pub transport       : Box<dyn Transport>,
-    /// Allows receiving events from the `Transport`.
-    pub incoming_events : std::sync::mpsc::Receiver<TransportEvent>,
+pub struct HandlerData<Notification> {
+    /// Ongoing calls.
+    ongoing_calls   : OngoingCalls,
     /// Handle to send outgoing events.
-    pub outgoing_events : Option<UnboundedSender<Event<Notification>>>,
+    outgoing_events : Option<UnboundedSender<Event<Notification>>>,
+    /// Provides identifiers for requests.
+    id_generator    : IdGenerator,
+    /// Transports text messages between this handler and the peer.
+    transport       : Box<dyn Transport>,
 }
 
+
+impl<Notification> {
+    /// Inserts a new entry for an ongoing request awaiting reply.
+    pub fn insert_ongoing_request(&mut self, id:Id, sender:oneshot::Sender<ReplyMessage>) {
+        self.ongoing_calls.insert(id,sender);
+    }
+
+    /// Removes the request from the map of ongoing requests, e.g. because it
+    /// has been successfully completed or we know that we will not receive an
+    /// answer anymore.
+    ///
+    /// Returns the channel handle for the request, it should be immediately
+    /// after notified or dropped.
+    pub fn remove_ongoing_request(&mut self, id:Id) -> Option<oneshot::Sender<ReplyMessage>> {
+        self.ongoing_calls.remove(&id)
+    }
+
+    /// Removes all the ongoing requests. This will be recognized by the `Future`s
+    /// as losing connection error.
+    pub fn clear_ongoing_requests(&mut self) {
+        self.ongoing_calls.clear()
+    }
+
+    /// Obtains an id for a new request to be made.
+    pub fn generate_new_id(&mut self) -> Id {
+        self.id_generator.generate()
+    }
+
+    /// Sends a text message to the peer.
+    pub fn send_text_message(&mut self, text:String) -> std::result::Result<(), failure::Error> {
+        self.transport.send_text(text)
+    }
+
+    /// Creates a new stream with events from this handler.
+    ///
+    /// If such stream was already existing, it will be finished (and
+    /// continuations should be able to process any remaining events).
+    pub fn handler_event_stream(&mut self) -> impl Stream<Item = Event<Notification>> {
+        let (tx,rx)          = unbounded();
+        self.outgoing_events = Some(tx);
+        rx
+    }
+
+    /// Sends a handler event to the event stream.
+    pub fn emit_event(&self, event:Event<Notification>) {
+        if let Some(event_tx) = self.outgoing_events.as_ref() {
+            match event_tx.unbounded_send(event) {
+                Ok(()) => {},
+                Err(e) =>
+                    if e.is_full() {
+                        // Impossible, as per `futures` library docs.
+                        panic!("Unbounded channel should never be full.")
+                    } else if e.is_disconnected() {
+                        // It is ok for receiver to disconnect and ignore events.
+                    } else {
+                        // Never happens unless `futures` library changes API.
+                        panic!("Unrecognized error when sending event.")
+                    }
+            }
+        }
+    }
+}
+} // shared!
+
+
+// === Handler methods ===
+
 impl<Notification> Handler<Notification> {
+    /// Obtains stream of events from our transport layer.
+    ///
+    /// Calling this function invalidates (closes) any previous stream obtained
+    /// from this function.
+    ///
+    /// This method is not public, as it is used internally by the `Handler` and
+    /// calling it by a third-party can break this type semantics.
+    fn transport_event_stream(&self) -> impl Stream<Item = TransportEvent> {
+        let (event_tx, event_rx) = unbounded();
+        with(self.rc.borrow_mut(), |mut data| {
+            data.transport.set_event_tx(event_tx);
+        });
+        event_rx
+    }
+
     /// Creates a new handler working on a given `Transport`.
     ///
     /// `Transport` must be functional (e.g. not in the process of opening).
     pub fn new(transport:impl Transport + 'static) -> Handler<Notification> {
-        let (event_tx, event_rx) = std::sync::mpsc::channel();
-        let mut ret = Handler {
-            ongoing_calls   : OngoingCalls::new(),
+        let data = HandlerData {
+            ongoing_calls   : default(),
             id_generator    : IdGenerator::new(),
             transport       : Box::new(transport),
-            incoming_events : event_rx,
             outgoing_events : None,
         };
-        ret.transport.set_event_tx(event_tx);
-        ret
+        Handler {rc: Rc::new(RefCell::new(data))}
     }
 
     /// Sends a request to the peer and returns a `Future` that shall yield a
     /// reply message. It is automatically decoded into the expected type.
     pub fn open_request<In:api::RemoteMethodCall>
-    (&mut self, input:In) -> impl Future<Output = Result<In::Returned>> {
+    (&self, input:In) -> impl Future<Output = Result<In::Returned>> {
         let (sender, receiver) = oneshot::channel::<ReplyMessage>();
         let ret                = receiver.map(|result_or_cancel| {
             let result = result_or_cancel?;
             decode_result(result)
         });
 
-        let id      = self.id_generator.generate();
+        let id      = self.generate_new_id();
         let message = api::into_request_message(input,id);
-        self.ongoing_calls.insert(message.payload.id, sender);
+        self.insert_ongoing_request(message.payload.id, sender);
 
         let serialized_message = serde_json::to_string(&message).unwrap();
-        if self.transport.send_text(serialized_message).is_err() {
+        if self.send_text_message(serialized_message).is_err() {
             // If message cannot be send, future ret must be cancelled.
-            self.ongoing_calls.remove(&id);
+            self.remove_ongoing_request(id);
         }
         ret
     }
@@ -207,8 +262,8 @@ impl<Notification> Handler<Notification> {
     ///
     /// It shall be either matched with an open request or yield an error.
     pub fn process_response
-    (&mut self, message:messages::Response<serde_json::Value>) {
-        if let Some(sender) = self.ongoing_calls.remove(&message.id) {
+    (&self, message:messages::Response<serde_json::Value>) {
+        if let Some(sender) = self.remove_ongoing_request(message.id) {
             // Disregard any error. We do not care if RPC caller already
             // dropped the future.
             sender.send(message.result).ok();
@@ -222,12 +277,12 @@ impl<Notification> Handler<Notification> {
     /// If possible, emits a message with notification. In case of failure,
     /// emits relevant error.
     pub fn process_notification
-    (&mut self, message:messages::Notification<serde_json::Value>)
+    (&self, message:messages::Notification<serde_json::Value>)
     where Notification: DeserializeOwned {
         match serde_json::from_value(message.0) {
             Ok(notification) => {
                 let event = Event::Notification(notification);
-                self.send_event(event);
+                self.emit_event(event);
             },
             Err(e) => {
                 let err = HandlingError::InvalidNotification(e);
@@ -240,7 +295,7 @@ impl<Notification> Handler<Notification> {
     ///
     /// The message must conform either to the `Response` or to the
     /// `Notification` JSON-serialized format. Otherwise, an error is raised.
-    pub fn process_incoming_message(&mut self, message:String)
+    pub fn process_incoming_message(&self, message:String)
     where Notification: DeserializeOwned {
         match messages::decode_incoming_message(message) {
             Ok(messages::IncomingMessage::Response(response)) =>
@@ -254,71 +309,48 @@ impl<Notification> Handler<Notification> {
 
     /// With with a handling error. Uses `on_error` callback to notify the
     /// owner.
-    pub fn error_occurred(&mut self, error: HandlingError) {
-        self.send_event(Event::Error(error))
+    pub fn error_occurred(&self, error: HandlingError) {
+        self.emit_event(Event::Error(error))
     }
 
     /// Processes a single transport event.
     ///
     /// Each event either completes a requests or is translated into `Event`.
-    pub fn process_event(&mut self, event:TransportEvent)
+    pub fn process_event(&self, event:TransportEvent)
     where Notification: DeserializeOwned {
         match event {
             TransportEvent::TextMessage(msg) =>
                 self.process_incoming_message(msg),
             TransportEvent::Closed => {
-                // Dropping all ongoing calls will mark their futures as
-                // cancelled.
-                self.ongoing_calls.clear();
-                self.send_event(Event::Closed);
+                // Dropping all ongoing calls will cancel their futures.
+                self.clear_ongoing_requests();
+                self.emit_event(Event::Closed);
             }
         }
     }
 
-    /// Processes all incoming events. Returns as soon as there are no more
-    /// messages pending.
+    /// Returns a `Future` that processes transport events incoming to this `Handler`.
+    /// Subsequent call will invalidate a previous one (though old future should
+    /// gracefully finish).
     ///
-    /// This will decode the incoming messages, providing input to the futures
-    /// returned from RPC calls.
-    /// Also this cancels any ongoing calls if the connection was lost.
-    pub fn process_events(&mut self)
-    where Notification: DeserializeOwned {
-        loop {
-            match self.incoming_events.try_recv() {
-                Ok(event) => self.process_event(event),
-                Err(TryRecvError::Disconnected) =>
-                    panic!("transport dropped the event sender"),
-                Err(TryRecvError::Empty) => break,
-            }
-        }
-    }
-
-    /// Sends a handler event to the event stream.
-    pub fn send_event(&mut self, event:Event<Notification>) {
-        if let Some(tx) = self.outgoing_events.as_mut() {
-            match tx.unbounded_send(event) {
-                Ok(()) => {},
-                Err(e) =>
-                    if e.is_full() {
-                        // Impossible, as per `futures` library docs.
-                        panic!("unbounded channel should never be full")
-                    } else if e.is_disconnected() {
-                        // It is ok for receiver to disconnect and ignore events.
-                    } else {
-                        // Never happens unless `futures` library changes API.
-                        panic!("unknown unexpected error")
-                    }
-            }
-        }
-    }
-
-    /// Creates a new stream with events from this handler.
+    /// A returned `Future` shall hold a weak handle to the data. Future will
+    /// finish, when the `Transport`'s event stream finishes, e.g. due to
+    /// dropping the `Transport` itself.
     ///
-    /// If such stream was already existing, it will be finished (and
-    /// continuations should be able to process any remaining events).
-    pub fn events(&mut self) -> impl Stream<Item = Event<Notification>> {
-        let (tx,rx)          = unbounded();
-        self.outgoing_events = Some(tx);
-        rx
+    /// It is expected that upon setting up the `Handler`, this future shall be
+    /// passed to the main executor.
+    pub fn runner(&mut self) -> impl Future<Output = ()>
+    where Notification: DeserializeOwned + 'static {
+        let event_rx  = self.transport_event_stream();
+        let weak_data = Rc::downgrade(&self.rc);
+        event_rx.for_each(move |event:TransportEvent| {
+            let data_opt    = weak_data.clone().upgrade();
+            let handler_opt = data_opt.map(|rc| Handler {rc});
+            if let Some(handler) = handler_opt {
+                handler.process_event(event)
+            }
+            // If the data is inaccessible, it is ok to just drop the event here.
+            futures::future::ready(())
+        })
     }
 }
