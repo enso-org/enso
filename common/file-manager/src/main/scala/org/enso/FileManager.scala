@@ -3,9 +3,9 @@ package org.enso
 import java.nio.file.Path
 import java.util.UUID
 
-import akka.actor.Scheduler
 import akka.actor.typed.ActorRef
 import akka.actor.typed.Behavior
+import akka.actor.typed.Scheduler
 import akka.actor.typed.scaladsl.AbstractBehavior
 import akka.actor.typed.scaladsl.ActorContext
 import akka.actor.typed.scaladsl.AskPattern.Askable
@@ -28,8 +28,8 @@ import scala.util.Try
   * [[org.enso.filemanager.API]] for a list of supported operations and their
   * respective request-response packages.
   */
-case class FileManager(projectRoot: Path, context: ActorContext[InputMessage])
-    extends AbstractBehavior[API.InputMessage] {
+case class FileManager(projectRoot: Path, override val context: ActorContext[API.InputMessage])
+    extends AbstractBehavior[API.InputMessage](context) {
 
   /** Active filesystem subtree watchers */
   val watchers: mutable.Map[UUID, DirectoryWatcher] = mutable.Map()

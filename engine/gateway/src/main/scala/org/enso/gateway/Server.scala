@@ -7,7 +7,6 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.ws.{BinaryMessage, Message, TextMessage}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Flow
 import akka.stream.scaladsl.Sink
 import akka.stream.scaladsl.Source
@@ -32,9 +31,7 @@ import scala.util.Success
   * @param config            Server config.
   */
 class Server(jsonRpcController: JsonRpcController, config: Config)(
-  implicit
-  system: ActorSystem,
-  materializer: ActorMaterializer
+  implicit system: ActorSystem
 ) {
   import system.dispatcher
 
@@ -57,7 +54,7 @@ class Server(jsonRpcController: JsonRpcController, config: Config)(
             .flatMapConcat(
               input =>
                 Source
-                  .fromFuture(
+                  .future(
                     jsonRpcController.getTextOutput(input)
                   )
             )

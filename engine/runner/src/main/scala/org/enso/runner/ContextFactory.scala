@@ -3,7 +3,6 @@ package org.enso.runner
 import java.io.InputStream
 import java.io.OutputStream
 
-import org.enso.interpreter.Constants
 import org.enso.interpreter.instrument.ReplDebuggerInstrument
 import org.enso.polyglot.{ExecutionContext, LanguageInfo, RuntimeOptions}
 import org.graalvm.polyglot.Context

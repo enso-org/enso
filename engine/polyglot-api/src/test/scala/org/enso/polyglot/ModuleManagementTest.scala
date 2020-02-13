@@ -1,14 +1,14 @@
 package org.enso.polyglot
+
 import java.io.File
 import java.nio.file.Files
 
+import org.enso.pkg.Package
 import org.graalvm.polyglot.{Context, PolyglotException}
-import org.scalatest.{FlatSpec, Matchers}
-import org.enso.pkg.{Package, QualifiedName}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-import scala.util.Try
-
-class ModuleManagementTest extends FlatSpec with Matchers {
+class ModuleManagementTest extends AnyFlatSpec with Matchers {
   class TestContext(packageName: String) {
     val tmpDir: File = Files.createTempDirectory("enso-test-packages").toFile
     val pkg: Package = Package.create(tmpDir, packageName)
@@ -24,11 +24,11 @@ class ModuleManagementTest extends FlatSpec with Matchers {
     def mkFile(name: String): File = new File(tmpDir, name)
 
     def writeFile(name: String, contents: String): Unit = {
-      Files.write(mkFile(name).toPath, contents.getBytes)
+      Files.write(mkFile(name).toPath, contents.getBytes): Unit
     }
 
     def writeMain(contents: String): Unit = {
-      Files.write(pkg.mainFile.toPath, contents.getBytes)
+      Files.write(pkg.mainFile.toPath, contents.getBytes): Unit
     }
   }
 

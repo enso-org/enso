@@ -5,12 +5,14 @@ import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import org.enso.LanguageServer
 import org.enso.languageserver.Notifications.{Exit, Initialized}
 import org.enso.languageserver.Requests.{Initialize, Shutdown}
-import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 
 class LanguageServerSpec()
     extends TestKit(ActorSystem("LanguageServerSpec"))
     with ImplicitSender
-    with WordSpecLike
+    with AnyWordSpecLike
     with Matchers
     with BeforeAndAfterAll {
 

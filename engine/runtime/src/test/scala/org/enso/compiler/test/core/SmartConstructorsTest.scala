@@ -7,10 +7,12 @@ import org.enso.core.CoreGraph.DefinitionGen.Node.{Shape => NodeShape}
 import org.enso.core.CoreGraph.{DefinitionGen => CoreDef}
 import org.enso.graph.{Graph => PrimGraph}
 import org.enso.syntax.text.{AST, Location => AstLocation}
-import org.scalatest.{Assertion, BeforeAndAfterEach, Matchers, WordSpec}
+import org.scalatest.{Assertion, BeforeAndAfterEach}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 
 class SmartConstructorsTest
-    extends WordSpec
+    extends AnyWordSpecLike
     with Matchers
     with BeforeAndAfterEach {
 

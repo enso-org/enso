@@ -6,7 +6,7 @@ import java.nio.file.Paths
 
 import org.apache.commons.io.FileUtils
 
-import org.scalatest.Matchers
+import org.scalatest.matchers.should.Matchers
 
 trait Helpers extends Matchers {
   var tempDir: Path = _
@@ -71,15 +71,17 @@ trait Helpers extends Matchers {
     )
 
     val listStream = Files.list(subtree.root)
-    try listStream.count() should be(2)
+    try listStream.count() should be(2) : Unit
     finally listStream.close()
   }
 
   def expectExist(path: Path): Unit = {
     assert(Files.exists(path), s"$path is expected to exist")
+    ()
   }
 
   def expectNotExist(path: Path): Unit = {
     assert(!Files.exists(path), s"$path is expected to not exist")
+    ()
   }
 }

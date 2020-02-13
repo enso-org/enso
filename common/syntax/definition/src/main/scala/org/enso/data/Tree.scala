@@ -14,7 +14,7 @@ final case class Tree[K, V](value: Option[V], branches: Map[K, Tree[K, V]]) {
   }
 
   def map[S](f: V => S): Tree[K, S] =
-    Tree(value.map(f), branches.mapValues(_.map(f)))
+    Tree(value.map(f), branches.view.mapValues(_.map(f)).toMap)
 
   def dropValues(): Tree[K, Unit] =
     map(_ => ())

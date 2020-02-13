@@ -1,12 +1,13 @@
 package org.enso.graph
 
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 import shapeless.{::, HNil, Nat}
 import shapeless.Nat._
 
 import scala.collection.mutable
 
-class TypeFunctionTest extends FlatSpec with Matchers {
+class TypeFunctionTest extends AnyFlatSpec with Matchers {
 
   object HListSumTest {
     implicitly[HListSum.Aux[HNil, _0]]
@@ -95,8 +96,8 @@ class TypeFunctionTest extends FlatSpec with Matchers {
 
     MapsOf.getOpaqueData[String, maps.Out](maps.instance) shouldEqual testMap
 
-    stringMap - 0
-    testMap - 0
+    stringMap -= 0
+    testMap -= 0
 
     MapsOf.getOpaqueData[String, maps.Out](maps.instance) shouldEqual testMap
   }

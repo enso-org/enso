@@ -1,6 +1,5 @@
 package org.enso
 
-import scala.language.experimental.macros
 import scala.reflect.macros.blackbox.Context
 import org.enso.lint.Unused
 

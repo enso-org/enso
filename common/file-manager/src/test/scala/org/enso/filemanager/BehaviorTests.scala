@@ -11,15 +11,15 @@ import java.nio.file.Path
 import org.apache.commons.io.FileExistsException
 import org.enso.FileManager
 import org.enso.FileManager.API._
-import org.scalatest.FunSuite
-import org.scalatest.Matchers
 import org.scalatest.Outcome
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 import scala.reflect.ClassTag
 import scala.util.Failure
 import scala.util.Success
 
-class BehaviorTests extends FunSuite with Matchers with Helpers {
+class BehaviorTests extends AnyFunSuite with Matchers with Helpers {
   var testKit: BehaviorTestKit[InputMessage] = _
   var inbox: TestInbox[OutputMessage]        = _
 

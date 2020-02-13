@@ -12,7 +12,9 @@ import org.enso.interpreter.instrument.{
 import org.enso.interpreter.test.CodeLocationsTestInstrument.LocationsEventListener
 import org.enso.polyglot.{ExecutionContext, Function, LanguageInfo}
 import org.graalvm.polyglot.{Context, Value}
-import org.scalatest.{Assertions, FlatSpec, Matchers}
+import org.scalatest.Assertions
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 case class LocationsInstrumenter(instrument: CodeLocationsTestInstrument) {
   var bindings: List[EventBinding[LocationsEventListener]] = List()
@@ -87,7 +89,7 @@ trait InterpreterRunner {
   def consumeOut: List[String] = {
     val result = output.toString
     output.reset()
-    result.lines.toList
+    result.linesIterator.toList
   }
 
   def getReplInstrument: ReplDebuggerInstrument = {
@@ -119,7 +121,7 @@ trait InterpreterRunner {
 }
 
 trait InterpreterTest
-    extends FlatSpec
+    extends AnyFlatSpec
     with Matchers
     with InterpreterRunner
     with ValueEquality

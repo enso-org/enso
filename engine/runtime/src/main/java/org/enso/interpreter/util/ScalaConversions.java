@@ -1,7 +1,9 @@
 package org.enso.interpreter.util;
 
 import scala.Option;
-import scala.collection.JavaConverters;
+import scala.jdk.javaapi.CollectionConverters;
+import scala.jdk.javaapi.OptionConverters;
+
 import scala.collection.Seq;
 
 import java.util.List;
@@ -16,7 +18,7 @@ public class ScalaConversions {
    * @return the corresponding java optional
    */
   public static <T> Optional<T> asJava(Option<T> option) {
-    return Optional.ofNullable(option.getOrElse(() -> null));
+    return OptionConverters.toJava(option);
   }
 
   /**
@@ -26,6 +28,6 @@ public class ScalaConversions {
    * @return the corresponding java list
    */
   public static <T> List<T> asJava(Seq<T> list) {
-    return JavaConverters.seqAsJavaList(list);
+    return CollectionConverters.asJava(list);
   }
 }

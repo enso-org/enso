@@ -6,7 +6,6 @@ import org.enso.compiler.core
 import org.enso.compiler.core._
 import org.enso.compiler.exception.UnhandledEntity
 import org.enso.interpreter.Constants
-import org.enso.interpreter.Constants.Names
 import org.enso.syntax.text.{AST, Location}
 
 // FIXME [AA] All places where we currently throw a `RuntimeException` should
@@ -307,7 +306,7 @@ object AstToAstExpression {
           case _                                  => true
         }
 
-        val suspendPositions = args.view.zipWithIndex.collect {
+        val suspendPositions = args.zipWithIndex.collect {
           case (AstView.SuspendDefaultsOperator(_), ix) => ix
         }
 

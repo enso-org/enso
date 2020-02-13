@@ -2,10 +2,11 @@ package org.enso.graph
 
 import org.enso.graph.{Graph => PrimGraph}
 import org.enso.graph.definition.Macro.component
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 import shapeless.test.illTyped
 
-class ComponentMacroTest extends FlatSpec with Matchers {
+class ComponentMacroTest extends AnyFlatSpec with Matchers {
 
   "The `@component` macro" should "define correct components" in {
     "@component case class Edges() { type Edge[G <: Graph] }" should compile

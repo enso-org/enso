@@ -1,12 +1,13 @@
 package org.enso.graph
 
 import org.enso.graph.definition.Macro.opaque
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 import shapeless.test.illTyped
 
 import scala.collection.mutable
 
-class OpaqueMacroTest extends FlatSpec with Matchers {
+class OpaqueMacroTest extends AnyFlatSpec with Matchers {
   val subject = "The @opaque macro"
 
   subject should "define proper opaque maps" in {

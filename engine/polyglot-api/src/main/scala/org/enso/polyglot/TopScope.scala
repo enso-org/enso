@@ -1,6 +1,6 @@
 package org.enso.polyglot
 
-import org.graalvm.polyglot.{Context, Value}
+import org.graalvm.polyglot.Value
 
 /**
   * Represents the top scope of Enso execution context
@@ -33,6 +33,6 @@ class TopScope(private val value: Value) {
     new Module(value.invokeMember(REGISTER_MODULE, qualifiedName, filePath))
 
   def unregisterModule(qualifiedName: String): Unit = {
-    value.invokeMember(UNREGISTER_MODULE, qualifiedName)
+    value.invokeMember(UNREGISTER_MODULE, qualifiedName): Unit
   }
 }

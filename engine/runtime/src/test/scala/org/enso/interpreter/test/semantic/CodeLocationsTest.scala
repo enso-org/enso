@@ -11,7 +11,7 @@ import org.enso.interpreter.test.InterpreterTest
 class CodeLocationsTest extends InterpreterTest {
   def debugPrintCodeLocations(code: String): Unit = {
     var off = 0
-    code.lines.toList.foreach { line =>
+    code.linesIterator.toList.foreach { line =>
       val chars: List[Any] = line.toList.map { c =>
           s" ${if (c == ' ') '_' else c} "
         } :+ '↵'

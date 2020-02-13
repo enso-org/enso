@@ -9,6 +9,8 @@ final class NFA {
   val states: mutable.ArrayBuffer[State] = new mutable.ArrayBuffer()
   val vocabulary                         = new Dict()
 
+  import State.Implicits._
+
   //// API ////
 
   def addState(): Int = {
@@ -65,7 +67,7 @@ final class NFA {
   private def epsMatrix(): IndexedSeq[Set[Int]] = {
     val arr = new Array[EpsMatrix](states.size)
     states.indices.foreach(fillEpsMatrix(_, arr))
-    arr.map(_.links)
+    arr.toIndexedSeq.map(_.links)
   }
 
   private def nfaMatrix(): Array[Array[Int]] = {
@@ -74,7 +76,7 @@ final class NFA {
       for (stateIx <- states.indices) {
         val s = state(stateIx)
         for ((range, vocIx) <- vocabulary) {
-          s.links.ranged.get(range.start) match {
+          s.links.ranged.getOption(range.start) match {
             case Some(tgt) => matrix(stateIx)(vocIx) = tgt
             case None      => matrix(stateIx)(vocIx) = State.missing
           }
@@ -167,7 +169,7 @@ final class NFA {
       } else {
         lines += s"""$source"""
       }
-      for ((range, target) <- state.links.ranged.asMapOfRanges()) {
+      state.links.ranged.asMapOfRanges().forEach { (range, target) =>
         lines += s"""$source -> $target [label="$range"]"""
       }
       for (target <- state.links.epsilon) {

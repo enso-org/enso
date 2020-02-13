@@ -11,8 +11,8 @@ import io.github.spencerpark.jupyter.kernel.KernelConnectionProperties
 import io.github.spencerpark.jupyter.kernel
 import io.github.spencerpark.jupyter.kernel.display.DisplayData
 import org.enso.polyglot
-import org.enso.polyglot.{ExecutionContext, LanguageInfo, Module, TopScope}
-import org.graalvm.polyglot.{Context, Value}
+import org.enso.polyglot.{ExecutionContext, LanguageInfo, Module}
+import org.graalvm.polyglot.Value
 
 /**
   * A wrapper for Enso interpreter for use by Jupyter

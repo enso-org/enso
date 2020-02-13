@@ -3,14 +3,14 @@ package org.enso.projectmanager
 import java.io.File
 import java.util.concurrent.TimeUnit
 
-import akka.actor.{ActorSystem, Scheduler}
+import akka.actor.ActorSystem
 import akka.actor.typed.ActorRef
+import akka.actor.typed.Scheduler
 import akka.actor.typed.scaladsl.AskPattern._
 import akka.actor.typed.scaladsl.adapter._
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.{HttpResponse, StatusCodes, Uri}
 import akka.http.scaladsl.server.{Directives, Route}
-import akka.stream.ActorMaterializer
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import org.enso.projectmanager.api.{ProjectFactory, ProjectJsonSupport}
@@ -29,12 +29,11 @@ case class Server(
   apiFactory: ProjectFactory
 )(implicit val system: ActorSystem,
   implicit val executor: ExecutionContext,
-  implicit val materializer: ActorMaterializer,
   implicit val askTimeout: Timeout)
     extends Directives
     with ProjectJsonSupport {
 
-  implicit val scheduler: Scheduler = system.scheduler
+  implicit val scheduler: Scheduler = system.scheduler.toTyped
 
   def projectDoesNotExistResponse(id: ProjectId): HttpResponse =
     HttpResponse(StatusCodes.NotFound, entity = s"Project $id does not exist")
@@ -114,7 +113,7 @@ case class Server(
 
 object Server {
 
-  def main(args: Array[String]) {
+  def main(args: Array[String]): Unit = {
 
     val config        = ConfigFactory.load.getConfig("project-manager")
     val serverConfig  = config.getConfig("server")
@@ -131,7 +130,6 @@ object Server {
 
     implicit val system: ActorSystem             = ActorSystem("project-manager")
     implicit val executor: ExecutionContext      = system.dispatcher
-    implicit val materializer: ActorMaterializer = ActorMaterializer()
     implicit val askTimeout: Timeout             = new Timeout(timeout)
 
     val localProjectsPath =
@@ -165,6 +163,6 @@ object Server {
     val apiFactory  = ProjectFactory(routeHelper)
 
     val server = Server(host, port, repoActor, routeHelper, apiFactory)
-    server.serve
+    server.serve: Unit
   }
 }

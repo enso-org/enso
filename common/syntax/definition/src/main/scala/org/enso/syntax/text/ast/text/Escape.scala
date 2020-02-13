@@ -1,7 +1,6 @@
 package org.enso.syntax.text.ast.text
 
 import org.enso.flexer.ADT
-import org.enso.syntax.text.ast.text.Escape.Slash.toString
 
 sealed trait Escape {
   val repr: String

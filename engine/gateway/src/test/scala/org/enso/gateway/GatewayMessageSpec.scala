@@ -3,14 +3,16 @@ package org.enso.gateway
 import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{ImplicitSender, TestKit}
 import org.enso.{Gateway, LanguageServer}
-import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 import org.enso.gateway.TestMessage.{Initialize, Shutdown}
 import org.enso.gateway.TestNotification.{Exit, Initialized}
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 
 class GatewayMessageSpec()
     extends TestKit(ActorSystem("GatewayMessageSpec"))
     with ImplicitSender
-    with WordSpecLike
+    with AnyWordSpecLike
     with Matchers
     with BeforeAndAfterAll {
 

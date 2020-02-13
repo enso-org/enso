@@ -1,11 +1,12 @@
 package org.enso.graph
 
 import org.enso.graph.{Graph => PrimGraph}
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 import org.enso.graph.GraphTestDefinition._
 
 /** This file contains tests for the graph library. */
-class GraphTest extends FlatSpec with Matchers {
+class GraphTest extends AnyFlatSpec with Matchers {
 
   // ==========================================================================
   // === Example Graph Usage ==================================================
@@ -84,7 +85,6 @@ class GraphTest extends FlatSpec with Matchers {
     val typeResult = n1 match {
       case GraphImpl.Node.Shape.Nul.any(n @ _)  => "Null"
       case GraphImpl.Node.Shape.App.any(n1 @ _) => "App1"
-      case GraphImpl.Node.Shape.App(_, _)       => "App2"
     }
 
     typeResult shouldEqual "App1"

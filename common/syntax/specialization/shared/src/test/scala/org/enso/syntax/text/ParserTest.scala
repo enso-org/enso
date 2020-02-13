@@ -9,8 +9,10 @@ import org.enso.syntax.text.AST._
 import org.enso.syntax.text.AST.conversions._
 import org.enso.syntax.text.ast.DSL._
 import org.scalatest._
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-class ParserTest extends FlatSpec with Matchers {
+class ParserTest extends AnyFlatSpec with Matchers {
 
   def assertSpan(input: String, ast: AST): Assertion = {
     val gotSpan      = ast.span
@@ -65,7 +67,7 @@ class ParserTest extends FlatSpec with Matchers {
 
     def ?=(out: AST) = testBase in { assertExpr(input, out) }
     def ??=(out: Module) = testBase in { assertModule(input, out) }
-    def testIdentity     = testBase in { assertIdentity(input)    }
+    def testIdentity()   = testBase in { assertIdentity(input)    }
   }
 
   //////////////////////////////////////////////////////////////////////////////
@@ -181,9 +183,9 @@ class ParserTest extends FlatSpec with Matchers {
 
   import Shape.SegmentPlain.txtFromString
   def line(s: String, empty: Int*) =
-    Shape.TextBlockLine(empty.to[List], List(txtFromString[AST](s)))
+    Shape.TextBlockLine(empty.toList, List(txtFromString[AST](s)))
   def line(segment: AST.Text.Segment.Fmt, empty: Int*) =
-    Shape.TextBlockLine(empty.to[List], List(segment))
+     Shape.TextBlockLine(empty.toList, List(segment))
 
   "'"    ?= Text.Unclosed()
   "''"   ?= Text()
@@ -398,20 +400,20 @@ class ParserTest extends FlatSpec with Matchers {
   //// Large Input /////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
-//  ("(" * 33000).testIdentity // FIXME Stack Overflow
-//  ("OVERFLOW " * 5000).testIdentity
-//  ("\uD800\uDF1E " * 10000).testIdentity
+//  ("(" * 33000).testIdentity() // FIXME Stack Overflow
+//  ("OVERFLOW " * 5000).testIdentity()
+//  ("\uD800\uDF1E " * 10000).testIdentity()
 
   //////////////////////////////////////////////////////////////////////////////
   //// OTHER (TO BE PARTITIONED)////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
-  "\na \nb \n".testIdentity
-  "f =  \n\n\n".testIdentity
-  "  \n\n\n f\nf".testIdentity
-  "f =  \n\n  x ".testIdentity
-  "  a\n   b\n  c".testIdentity
-  "f =\n\n  x\n\n y".testIdentity
+  "\na \nb \n".testIdentity()
+  "f =  \n\n\n".testIdentity()
+  "  \n\n\n f\nf".testIdentity()
+  "f =  \n\n  x ".testIdentity()
+  "  a\n   b\n  c".testIdentity()
+  "f =\n\n  x\n\n y".testIdentity()
 
   """
     a
@@ -420,7 +422,7 @@ class ParserTest extends FlatSpec with Matchers {
     d
   e
    f g h
-  """.testIdentity
+  """.testIdentity()
 
   """
   # adults: old population
@@ -438,7 +440,7 @@ class ParserTest extends FlatSpec with Matchers {
     isUnique xs i ####
       = xs.at(i).score != xs.at(i-1).score
     adults++children++mutants . sorted . unique . take (length pop1) . pure
-  """.testIdentity
+  """.testIdentity()
 
   ///////////////////////
   //// Preprocessing ////

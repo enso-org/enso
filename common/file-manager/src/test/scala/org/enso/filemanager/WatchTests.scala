@@ -1,9 +1,9 @@
 package org.enso.filemanager
 
-import akka.actor.Scheduler
 import akka.actor.testkit.typed.scaladsl.ActorTestKit
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorRef
+import akka.actor.typed.Scheduler
 import akka.util.Timeout
 import io.methvin.watcher.DirectoryChangeEvent
 import java.nio.file.Files
@@ -14,9 +14,9 @@ import java.util.UUID
 import org.apache.commons.io.FileUtils
 import org.enso.FileManager
 import org.scalatest.BeforeAndAfterAll
-import org.scalatest.FunSuite
-import org.scalatest.Matchers
 import org.scalatest.Outcome
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 import scala.concurrent.Await
 import scala.concurrent.Future
@@ -26,7 +26,7 @@ import scala.util.Try
 
 // needs to be separate because watcher message are asynchronous
 class WatchTests
-    extends FunSuite
+    extends AnyFunSuite
     with BeforeAndAfterAll
     with Matchers
     with Helpers {
@@ -49,11 +49,11 @@ class WatchTests
       try super.withFixture(test)
       finally if (watcherID != null)
         // Otherwise directory would stay blocked on Windows.
-        unobserve(watcherID)
+        unobserve(watcherID): Unit
     })
   }
 
-  override def afterAll() {
+  override def afterAll(): Unit = {
     testKit.shutdownTestKit()
   }
 
@@ -72,6 +72,7 @@ class WatchTests
       events.exists(matchesEvent(path, eventType)),
       s"not received message about $path"
     )
+    ()
   }
 
   def expectNextEvent(
@@ -84,6 +85,7 @@ class WatchTests
       matchesEvent(path, eventType)(message),
       s"expected of type $eventType for $path, got $message"
     )
+    ()
   }
 
   def ask[response <: Response.Success: ClassTag](
@@ -219,6 +221,6 @@ class WatchTests
       expectedOfType(DirectoryChangeEvent.EventType.DELETE)
 
       symlinkEventProbe.expectNoMessage(50.millis)
-    } finally unobserve(id)
+    } finally unobserve(id): Unit
   }
 }

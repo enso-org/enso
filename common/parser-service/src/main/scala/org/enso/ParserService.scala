@@ -1,7 +1,5 @@
 package org.enso
 
-import io.circe.syntax._
-import io.circe.generic.auto._
 import org.enso.flexer.Reader
 import org.enso.parserservice.Protocol
 import org.enso.parserservice.Server

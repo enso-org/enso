@@ -15,15 +15,14 @@ import akka.http.scaladsl.model.HttpResponse
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.headers.Location
 import akka.http.scaladsl.unmarshalling.Unmarshal
-import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.FileIO
 import org.apache.commons.io.IOUtils
 import spray.json.DefaultJsonProtocol
 import spray.json.JsonParser
 
-import scala.collection.JavaConverters._
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
+import scala.jdk.CollectionConverters._
 import scala.util.Try
 
 case class GithubTutorial(name: String, lastPushString: String) {
@@ -37,8 +36,7 @@ trait GithubJsonProtocol extends SprayJsonSupport with DefaultJsonProtocol {
 
 case class HttpHelper()(
   implicit val executor: ExecutionContext,
-  implicit val system: ActorSystem,
-  implicit val materializer: ActorMaterializer) {
+  implicit val system: ActorSystem) {
 
   def performWithRedirects(request: HttpRequest): Future[HttpResponse] =
     Http().singleRequest(request).flatMap(followRedirects)
@@ -59,8 +57,7 @@ case class TutorialsDownloader(
   cacheDir: File,
   packagesGithubOrganisation: String
 )(implicit val system: ActorSystem,
-  implicit val executor: ExecutionContext,
-  implicit val materializer: ActorMaterializer)
+  implicit val executor: ExecutionContext)
     extends GithubJsonProtocol {
 
   val packagesGithubUrl =

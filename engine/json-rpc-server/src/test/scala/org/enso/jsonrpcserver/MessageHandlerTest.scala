@@ -2,7 +2,9 @@ package org.enso.jsonrpcserver
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import io.circe.{Decoder, Encoder, Json}
-import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
+import org.scalatest.EitherValues
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 
 import scala.concurrent.duration._
 import io.circe.parser._
@@ -12,7 +14,7 @@ import org.enso.jsonrpcserver.MessageHandler.{Connected, WebMessage}
 class MessageHandlerTest
     extends TestKit(ActorSystem("TestSystem"))
     with ImplicitSender
-    with WordSpecLike
+    with AnyWordSpecLike
     with Matchers
     with BeforeAndAfterAll {
 
@@ -240,7 +242,7 @@ class MessageHandlerTest
     msg shouldBe an[WebMessage]
     val contents  = msg.asInstanceOf[WebMessage].message
     val maybeJson = parse(contents)
-    maybeJson shouldBe 'right
-    maybeJson.right.get shouldEqual expectedJson
+    maybeJson shouldBe Symbol("right")
+    maybeJson.foreach(_ shouldEqual expectedJson)
   }
 }

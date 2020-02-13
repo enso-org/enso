@@ -125,7 +125,7 @@ case class DocParserDef() extends Parser[Doc] {
           if (details.nonEmpty) {
             var det = text.removeWhitespaces(details)
             if (tagType != Tags.Tag.Unrecognized) {
-              det = ' ' + det
+              det = s" $det"
             }
             stack +:= Tags.Tag(indent, tagType, Some(det))
           } else {

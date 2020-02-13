@@ -1,8 +1,10 @@
 package org.enso.polyglot
-import org.graalvm.polyglot.Context
-import org.scalatest.{FlatSpec, Matchers}
 
-class ApiTest extends FlatSpec with Matchers {
+import org.graalvm.polyglot.Context
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
+
+class ApiTest extends AnyFlatSpec with Matchers {
   import LanguageInfo._
   val executionContext = new ExecutionContext(Context.newBuilder(ID).build())
 

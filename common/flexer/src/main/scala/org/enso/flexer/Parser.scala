@@ -24,7 +24,7 @@ trait Parser[T] {
     reader.rewind.matched.set()
     reader.nextChar()
 
-    while (state.runCurrent() == State.Status.Exit.OK) Unit
+    while (state.runCurrent() == State.Status.Exit.OK) ()
 
     val value: Result.Value[T] = getResult() match {
       case None => Result.Failure(None)

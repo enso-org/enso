@@ -2,16 +2,14 @@ package org.enso.syntax.text
 
 import java.util.UUID
 
-import cats.{Foldable, Monoid}
-import org.enso.data.{Index, List1, Shifted, Span}
+import cats.Foldable
+import org.enso.data.{List1, Span}
 import org.enso.flexer
 import org.enso.flexer.Reader
 import org.enso.syntax.text.AST.Block.{Line, OptLine}
 import org.enso.syntax.text.AST.Macro.Match.SegmentOps
-import org.enso.syntax.text.AST.{App, Module}
+import org.enso.syntax.text.AST.App
 import org.enso.syntax.text.ast.meta.Builtin
-import org.enso.syntax.text.ast.opr.Prec
-import org.enso.syntax.text.prec.Distance
 import org.enso.syntax.text.prec.Macro
 import org.enso.syntax.text.spec.ParserDef
 import cats.implicits._
@@ -398,24 +396,24 @@ object Main extends scala.App {
       |  UPCOMING
       |  ALAMAKOTA a kot ma Ale
       |  This is a test of Enso Documentation Parser. This is a short synopsis.
-      | 
+      |
       |  Here you can write the body of documentation. On top you can see tags
       |  added to this piece of code. You can customise your text with _Italic_
       |  ~Strikethrough~ or *Bold*. ~_*Combined*_~ is funny
-      |  
-      |  
+      |
+      |
       |  There are 3 kinds of sections
       |    - Important
       |    - Info
       |    - Example
       |      * You can use example to add multiline code to your documentation
-      | 
+      |
       |  ! Important
       |    Here is a small test of Important Section
-      |    
+      |
       |  ? Info
       |    Here is a small test of Info Section
-      |    
+      |
       |  > Example
       |    Here is a small test of Example Section
       |        Import Foo
@@ -426,7 +424,7 @@ object Main extends scala.App {
       |    ##DEPRECATED
       |      foo bar baz
       |    type Nothing
-      |    
+      |
       |    ## The pow function calculates power of integers.
       |    pow x y = x ** y
       |""".stripMargin
@@ -461,7 +459,7 @@ object Main extends scala.App {
       |     Also, `None` is the return value of functions which do not return an
       |     explicit value.
       |    type None
-      |    
+      |
       |    ## The pow function calculates power of integers.
       |    pow x y = x ** y
       |""".stripMargin

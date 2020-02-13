@@ -40,7 +40,7 @@ object API {
     projectRoot: Path,
     accessedPath: Path)
       extends Exception(
-        s"""Cannot access path $accessedPath because it does not belong to 
+        s"""Cannot access path $accessedPath because it does not belong to
            |the project under root directory $projectRoot""".stripMargin
           .replaceAll("\n", " ")
       )
@@ -150,7 +150,7 @@ object API {
       override def handle(fileManager: FileManager): Response = {
         val str = Files.list(path)
         try {
-          Response(str.toArray.to[Vector].map(_.asInstanceOf[Path]))
+          Response(str.toArray.toVector.map(_.asInstanceOf[Path]))
         } finally str.close()
       }
     }

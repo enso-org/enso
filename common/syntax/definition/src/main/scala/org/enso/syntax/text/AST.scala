@@ -917,7 +917,7 @@ object Shape extends ShapeImplicit {
       R + symbol + symbol + _.lines.mkString("\n")
     // FIXME: How to make it automatic for non-spaced AST?
     implicit def ozip[T]: OffsetZip[Comment, T] = _.map(Index.Start -> _)
-    implicit def span[T]: HasSpan[Comment[T]]   = t => 0
+    implicit def span[T]: HasSpan[Comment[T]]   = _ => 0
   }
 
   object Documented {
@@ -932,7 +932,7 @@ object Shape extends ShapeImplicit {
     }
     implicit def offsetZip[T]: OffsetZip[Documented, T] =
       _.map(Index.Start -> _)
-    implicit def span[T: HasSpan]: HasSpan[Documented[T]] = t => 0
+    implicit def span[T: HasSpan]: HasSpan[Documented[T]] = _ => 0
 
     implicit def toJson[T]: Encoder[Documented[T]] =
       _ => throw new NotImplementedError()
@@ -946,7 +946,7 @@ object Shape extends ShapeImplicit {
 
     // FIXME: How to make it automatic for non-spaced AST?
     implicit def ozip[T]: OffsetZip[Import, T] = _.map(Index.Start -> _)
-    implicit def span[T]: HasSpan[Import[T]]   = t => 0
+    implicit def span[T]: HasSpan[Import[T]]   = _ => 0
   }
 
   object Mixfix {
@@ -956,11 +956,11 @@ object Shape extends ShapeImplicit {
       val lastRepr = if (t.name.length == t.args.length) List() else List(R)
       val argsRepr = t.args.toList.map(R + " " + _) ++ lastRepr
       val nameRepr = t.name.toList.map(Repr(_))
-      R + (nameRepr, argsRepr).zipped.map(_ + _)
+      R + nameRepr.lazyZip(argsRepr).map(_ + _)
     }
     // FIXME: How to make it automatic for non-spaced AST?
     implicit def ozip[T]: OffsetZip[Mixfix, T] = _.map(Index.Start -> _)
-    implicit def span[T]: HasSpan[Mixfix[T]]   = t => 0
+    implicit def span[T]: HasSpan[Mixfix[T]]   = _ => 0
   }
 
   object Group {
@@ -970,7 +970,7 @@ object Shape extends ShapeImplicit {
       R + "(" + _.body + ")"
     // FIXME: How to make it automatic for non-spaced AST?
     implicit def ozip[T]: OffsetZip[Group, T] = _.map(Index.Start -> _)
-    implicit def span[T]: HasSpan[Group[T]]   = t => 0
+    implicit def span[T]: HasSpan[Group[T]]   = _ => 0
   }
 
   object Def {
@@ -980,7 +980,7 @@ object Shape extends ShapeImplicit {
       t => R + Def.symbol + 1 + t.name + t.args.map(R + 1 + _) + t.body
     // FIXME: How to make it automatic for non-spaced AST?
     implicit def ozip[T]: OffsetZip[Def, T] = _.map(Index.Start -> _)
-    implicit def span[T]: HasSpan[Def[T]]   = t => 0
+    implicit def span[T]: HasSpan[Def[T]]   = _ => 0
 
     val symbol = "def"
   }
@@ -994,7 +994,7 @@ object Shape extends ShapeImplicit {
     }
     // FIXME: How to make it automatic for non-spaced AST?
     implicit def ozip[T]: OffsetZip[Foreign, T] = _.map(Index.Start -> _)
-    implicit def span[T]: HasSpan[Foreign[T]]   = t => 0
+    implicit def span[T]: HasSpan[Foreign[T]]   = _ => 0
   }
   //// Implicits ////
 
@@ -1480,7 +1480,7 @@ object AST {
       import io.circe.generic.auto._
 
       // Note (below) [JSON Format Customizations]
-      implicit def blockEncoder[T: Encoder]: Encoder[Shape.Block[T]] =
+      implicit def blockEncoder[A: Encoder]: Encoder[Shape.Block[A]] =
         block =>
           Json.obj(
             "ty"          -> block.ty.asJson,
@@ -1721,10 +1721,10 @@ object AST {
         def unapply(t: AST) =
           Unapply[Unclosed].run(t => t.line)(t)
         def apply(segment: Segment.Fmt*): Unclosed =
-          Shape.TextUnclosed(Line.Fmt(segment.to[List]))
+          Shape.TextUnclosed(Line.Fmt(segment.toList))
         object Raw {
           def apply(segment: Segment.Raw*): Unclosed =
-            Shape.TextUnclosed(Line.Raw(segment.to[List]))
+            Shape.TextUnclosed(Line.Raw(segment.toList))
         }
       }
       type InvalidQuote = ASTOf[Shape.InvalidQuote]
@@ -1743,23 +1743,23 @@ object AST {
       }
 
       def apply(text: Shape.Text[AST]): Text = text
-      def apply(segment: Segment.Fmt*): Text = Text(Line.Fmt(segment.to[List]))
+      def apply(segment: Segment.Fmt*): Text = Text(Line.Fmt(segment.toList))
       def apply(
         spaces: Int,
         off: Int,
         line: Shape.TextBlockLine[Segment.Fmt]*
       ): Text =
-        Text(Shape.TextBlockFmt(line.to[List], spaces, off))
+        Text(Shape.TextBlockFmt(line.toList, spaces, off))
 
       object Raw {
         def apply(segment: Segment.Raw*): Text =
-          Text(Line.Raw(segment.to[List]))
+          Text(Line.Raw(segment.toList))
         def apply(
           spaces: Int,
           off: Int,
           line: Shape.TextBlockLine[Segment.Raw]*
         ): Text =
-          Text(Shape.TextBlockRaw(line.to[List], spaces, off))
+          Text(Shape.TextBlockRaw(line.toList, spaces, off))
       }
 
       /////////////////
@@ -1941,7 +1941,7 @@ object AST {
       indent,
       List(),
       Line(firstLine),
-      lines.to[List].map(ast => Line(Some(ast)))
+      lines.toList.map(ast => Line(Some(ast)))
     )
 
     val any = UnapplyByType[Block]
@@ -1979,7 +1979,7 @@ object AST {
     def unapply(t: AST)                         = Unapply[M].run(_.lines)(t)
     def apply(ls: List1[OptLine]): M            = Shape.Module(ls)
     def apply(l: OptLine): M                    = Module(List1(l))
-    def apply(l: OptLine, ls: OptLine*): M      = Module(List1(l, ls.to[List]))
+    def apply(l: OptLine, ls: OptLine*): M      = Module(List1(l, ls.toList))
     def apply(l: OptLine, ls: List[OptLine]): M = Module(List1(l, ls))
     def traverseWithOff(m: M)(f: (Index, AST) => AST): M = {
       val lines2 = m.lines.map { line: OptLine =>
@@ -2297,9 +2297,9 @@ object AST {
     val any = UnapplyByType[Foreign]
   }
 
-  def main() {
+  def main(): Unit = {
     val v1  = Ident.Var("foo")
-    val v1_ = v1: AST
+    //    val v1_ = v1: AST
 
     println(v1.span)
     println((v1: AST.Ident).span)
@@ -2308,7 +2308,7 @@ object AST {
     //    println(v1_.asJson)
     //    val opr1 = Ident.Opr("+")
     val v2  = App.Prefix(Ident.Var("x"), 10, Ident.Var("z"))
-    val v2_ = v2: AST
+    //    val v2_ = v2: AST
     //
     //    println(v2.asJson)
     //    println(v2_.asJson)

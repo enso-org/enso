@@ -1,7 +1,7 @@
 package org.enso.projectmanager.services
 
 import akka.actor.typed.{ActorRef, Behavior}
-import akka.actor.typed.scaladsl.{Behaviors, StashBuffer}
+import akka.actor.typed.scaladsl.Behaviors
 import org.enso.projectmanager.model.{Project, ProjectId, ProjectsRepository}
 
 import scala.collection.immutable.HashMap
@@ -34,39 +34,40 @@ object ProjectsService {
     storageManager: StorageManager,
     tutorialsDownloader: TutorialsDownloader
   ): Behavior[ProjectsServiceCommand] = Behaviors.setup { context =>
-    val buffer = StashBuffer[ProjectsServiceCommand](capacity = 100)
+    Behaviors.withStash(capacity = 100) { buffer =>
 
-    def handle(
-      localRepo: ProjectsRepository,
-      tutorialsRepo: Option[ProjectsRepository]
-    ): Behavior[ProjectsServiceCommand] = Behaviors.receiveMessage {
-      case ListProjectsRequest(replyTo) =>
-        replyTo ! ListProjectsResponse(localRepo.projects)
-        Behaviors.same
-      case msg: ListTutorialsRequest =>
-        tutorialsRepo match {
-          case Some(repo) => msg.replyTo ! ListProjectsResponse(repo.projects)
-          case None       => buffer.stash(msg)
-        }
-        Behaviors.same
-      case GetProjectById(id, replyTo) =>
-        val project =
-          localRepo.getById(id).orElse(tutorialsRepo.flatMap(_.getById(id)))
-        replyTo ! GetProjectResponse(project)
-        Behaviors.same
-      case TutorialsReady =>
-        val newTutorialsRepo = storageManager.readTutorials
-        buffer.unstashAll(context, handle(localRepo, Some(newTutorialsRepo)))
-      case msg: CreateTemporary =>
-        val project =
-          storageManager.createTemporary(msg.name)
-        val (projectId, newProjectsRepo) = localRepo.insert(project)
-        msg.replyTo ! CreateTemporaryResponse(projectId, project)
-        handle(newProjectsRepo, tutorialsRepo)
+      def handle(
+        localRepo: ProjectsRepository,
+        tutorialsRepo: Option[ProjectsRepository]
+      ): Behavior[ProjectsServiceCommand] = Behaviors.receiveMessage {
+        case ListProjectsRequest(replyTo) =>
+          replyTo ! ListProjectsResponse(localRepo.projects)
+          Behaviors.same
+        case msg: ListTutorialsRequest =>
+          tutorialsRepo match {
+            case Some(repo) => msg.replyTo ! ListProjectsResponse(repo.projects)
+            case None       => buffer.stash(msg)
+          }
+          Behaviors.same
+        case GetProjectById(id, replyTo) =>
+          val project =
+            localRepo.getById(id).orElse(tutorialsRepo.flatMap(_.getById(id)))
+          replyTo ! GetProjectResponse(project)
+          Behaviors.same
+        case TutorialsReady =>
+          val newTutorialsRepo = storageManager.readTutorials
+          buffer.unstashAll(handle(localRepo, Some(newTutorialsRepo)))
+        case msg: CreateTemporary =>
+          val project =
+            storageManager.createTemporary(msg.name)
+          val (projectId, newProjectsRepo) = localRepo.insert(project)
+          msg.replyTo ! CreateTemporaryResponse(projectId, project)
+          handle(newProjectsRepo, tutorialsRepo)
+      }
+
+      context.pipeToSelf(tutorialsDownloader.run())(_ => TutorialsReady)
+
+      handle(storageManager.readLocalProjects, None)
     }
-
-    context.pipeToSelf(tutorialsDownloader.run())(_ => TutorialsReady)
-
-    handle(storageManager.readLocalProjects, None)
   }
 }

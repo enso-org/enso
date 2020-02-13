@@ -5,9 +5,10 @@ import java.io.File
 import org.enso.pkg.Package
 import org.enso.polyglot.{ExecutionContext, LanguageInfo, RuntimeOptions}
 import org.graalvm.polyglot.{Context, Value}
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-trait PackageTest extends FlatSpec with Matchers with ValueEquality {
+trait PackageTest extends AnyFlatSpec with Matchers with ValueEquality {
 
   def evalTestProject(name: String): Value = {
     val pkgPath =

@@ -495,7 +495,7 @@ object Graph {
     */
   final class GraphData[G <: Graph]()(implicit val info: GraphInfo[G]) {
     var components: Array[Component.Storage] =
-      this.componentSizes.map(size => new Component.Storage(size)).to[Array]
+      this.componentSizes.map(size => new Component.Storage(size)).toArray
 
     /** Gets a reference to the graph component at the specified index.
       *

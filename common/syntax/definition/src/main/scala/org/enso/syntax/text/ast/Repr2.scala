@@ -160,7 +160,7 @@ object Repr {
         })
     }
 
-    def Empty()                     = Builder(0, identity(_))
+    def Empty()                     = Builder(0, identity(_): Unit)
     def Space(span: Int)            = Builder(span, _ ++= (" " * span))
     def Letter(char: Char)          = Builder(1, _ += char)
     def Text(str: String)           = Builder(str.length, _ ++= str)

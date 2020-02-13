@@ -2,10 +2,11 @@ package org.enso.graph
 
 import org.enso.graph.definition.Macro.{component, field, opaque}
 import org.enso.graph.{Graph => PrimGraph}
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 import shapeless.test.illTyped
 
-class FieldMacroTest extends FlatSpec with Matchers {
+class FieldMacroTest extends AnyFlatSpec with Matchers {
 
   val subject = "The `@field` macro"
 

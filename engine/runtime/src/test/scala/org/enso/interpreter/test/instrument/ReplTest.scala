@@ -1,7 +1,7 @@
 package org.enso.interpreter.test.instrument
 
 import org.enso.interpreter.test.InterpreterTest
-import collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 class ReplTest extends InterpreterTest {
   "Repl" should "be able to list local variables in its scope" in {
@@ -20,7 +20,7 @@ class ReplTest extends InterpreterTest {
       executor.exit()
     }
     eval(code)
-    scopeResult.mapValues(_.toString) shouldEqual Map(
+    scopeResult.view.mapValues(_.toString).toMap shouldEqual Map(
       "this" -> "Test",
       "x"    -> "10",
       "y"    -> "20",

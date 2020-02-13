@@ -1,12 +1,8 @@
 package org.enso.interpreter.bench.fixtures.semantic
 
-import org.enso.interpreter.Constants
 import org.enso.interpreter.runtime.Builtins
-import org.enso.interpreter.runtime.scope.TopLevelScope
-import org.enso.interpreter.test.{InterpreterException, InterpreterRunner}
-import org.graalvm.polyglot.{PolyglotException, Value}
-
-import scala.util.Try
+import org.enso.interpreter.test.InterpreterRunner
+import org.graalvm.polyglot.Value
 
 class AtomFixtures extends InterpreterRunner {
   val million: Long = 1000000

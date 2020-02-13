@@ -7,11 +7,11 @@ import org.enso.Logger
 import org.enso.flexer.Parser.Result
 import org.enso.flexer.Reader
 import org.enso.syntax.text.ast.Doc.Tags.Tag
-import org.scalatest.FlatSpec
-import org.scalatest.Matchers
 import org.scalatest.Assertion
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-class DocParserTests extends FlatSpec with Matchers {
+class DocParserTests extends AnyFlatSpec with Matchers {
   val logger = new Logger()
 
   def assertExpr(input: String, result: Doc): Assertion = {

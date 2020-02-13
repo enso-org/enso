@@ -4,25 +4,20 @@ import akka.NotUsed
 import akka.actor.{ActorRef, ActorSystem}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.ws.{Message, TextMessage, WebSocketRequest}
-import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Flow, Keep, Sink, Source}
 import io.circe.Json
+import io.circe.parser.parse
+import org.enso.{Gateway, LanguageServer}
 import org.enso.gateway.TestJson.{
   Initialize,
   Shutdown,
   WrongJsonrpc,
   WrongMethod
 }
-import org.enso.{Gateway, LanguageServer}
-import org.scalatest.{
-  Assertion,
-  AsyncFlatSpec,
-  BeforeAndAfterAll,
-  GivenWhenThen,
-  Matchers
-}
-import io.circe.parser.parse
 import org.enso.gateway.server.Config
+import org.scalatest.{Assertion, BeforeAndAfterAll, GivenWhenThen}
+import org.scalatest.flatspec.AsyncFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
@@ -33,8 +28,6 @@ class GatewayJsonSpec
     with BeforeAndAfterAll
     with GivenWhenThen {
   implicit private val system: ActorSystem = ActorSystem()
-  implicit private val materializer: ActorMaterializer =
-    ActorMaterializer.create(system)
 
   import system.dispatcher
 

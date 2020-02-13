@@ -9,7 +9,6 @@ import org.enso
 import org.enso.polyglot.{ExecutionContext, LanguageInfo, Module}
 import org.enso.{Gateway, LanguageServer}
 import akka.actor.{ActorRef, ActorSystem}
-import akka.stream.ActorMaterializer
 import org.enso.gateway.JsonRpcController
 
 import scala.io.StdIn
@@ -97,7 +96,7 @@ object Main {
     *
     * @param path root path of the newly created project
     */
-  private def createNew(path: String) {
+  private def createNew(path: String): Unit = {
     Package.getOrCreate(new File(path))
     exitSuccess()
   }
@@ -145,12 +144,12 @@ object Main {
   ): Unit = {
     val topScope   = context.getTopScope
     val mainModule = topScope.getModule(mainModuleName)
-    runMain(mainModule)
+    runMain(mainModule): Unit
   }
 
   private def runSingleFile(context: ExecutionContext, file: File): Unit = {
     val mainModule = context.evalModule(file)
-    runMain(mainModule)
+    runMain(mainModule): Unit
   }
 
   private def runMain(mainModule: Module): Value = {
@@ -185,8 +184,6 @@ object Main {
     )
 
     implicit val system: ActorSystem = ActorSystem()
-    implicit val materializer: ActorMaterializer =
-      ActorMaterializer.create(system)
     import system.dispatcher
 
     val languageServerActorName = "languageServer"

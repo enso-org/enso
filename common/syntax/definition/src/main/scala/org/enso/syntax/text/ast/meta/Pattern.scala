@@ -1,7 +1,6 @@
 package org.enso.syntax.text.ast.meta
 
 import org.enso.syntax.text.{AST, HasSpan, OffsetZip}
-import org.enso.syntax.text.HasSpan.implicits._
 import org.enso.syntax.text.AST.SAST
 import org.enso.syntax.text.prec.Operator
 import org.enso.syntax.text.ast.Repr

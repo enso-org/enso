@@ -2,9 +2,9 @@ package org.enso.pkg
 
 import java.io.File
 import java.io.PrintWriter
-import java.nio.file.{Files, Path}
+import java.nio.file.Files
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import org.apache.commons.io.FileUtils
 import org.enso.pkg.Package.qualifiedNameSeparator
 
@@ -46,7 +46,7 @@ case class Package(root: File, config: Config) {
   /**
     * Creates the package directory structure.
     */
-  def createDirectories() {
+  def createDirectories(): Unit = {
     val created = Try(root.mkdirs).getOrElse(false)
     if (!created) throw CouldNotCreateDirectory
     createSourceDir()

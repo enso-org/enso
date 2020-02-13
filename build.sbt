@@ -12,9 +12,9 @@ import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 //// Global Configuration ////
 //////////////////////////////
 
-val scalacVersion = "2.12.10"
-val graalVersion  = "19.3.0"
-val circeVersion  = "0.12.3"
+val scalacVersion = "2.13.1"
+val graalVersion  = "19.3.1"
+val circeVersion  = "0.13.0"
 organization in ThisBuild := "org.enso"
 scalaVersion in ThisBuild := scalacVersion
 
@@ -25,8 +25,9 @@ Global / onChangedBuildSource := ReloadOnSourceChanges
 //////////////////////////
 
 javacOptions in ThisBuild ++= Seq(
-  "-encoding", // Provide explicit encoding (the next line)
-  "UTF-8"      // Specify character encoding used by Java source files.
+  "-encoding",   // Provide explicit encoding (the next line)
+  "UTF-8",       // Specify character encoding used by Java source files.
+  "-deprecation" // Shows a description of each use or override of a deprecated member or class.
 )
 
 scalacOptions in ThisBuild ++= Seq(
@@ -42,7 +43,6 @@ scalacOptions in ThisBuild ++= Seq(
   "-unchecked",                         // Enable additional warnings where generated code depends on assumptions.
   "-Xcheckinit",                        // Wrap field accessors to throw an exception on uninitialized access.
   "-Xlint:adapted-args",                // Warn if an argument list is modified to match the receiver.
-  "-Xlint:by-name-right-associative",   // By-name parameter of right associative operator.
   "-Xlint:constant",                    // Evaluation of a constant arithmetic expression results in an error.
   "-Xlint:delayedinit-select",          // Selecting member of DelayedInit.
   "-Xlint:doc-detached",                // A Scaladoc comment appears to be detached from its element.
@@ -56,28 +56,19 @@ scalacOptions in ThisBuild ++= Seq(
   "-Xlint:poly-implicit-overload",      // Parameterized overloaded implicit methods are not visible as view bounds.
   "-Xlint:private-shadow",              // A private field (or class parameter) shadows a superclass field.
   "-Xlint:stars-align",                 // Pattern sequence wildcard must align with sequence component.
-  "-Xlint:unsound-match",               // Pattern match may not be typesafe.
+  "-Xlint:type-parameter-shadow",       // A local type parameter shadows a type already in scope.
   "-Xmacro-settings:-logging@org.enso", // Disable the debug logging globally.
-  "-Yno-adapted-args",                  // Do not adapt an argument list (either by inserting () or creating a tuple) to match the receiver.
-  "-Ypartial-unification",              // Enable partial unification in type constructor inference
   "-Ywarn-dead-code",                   // Warn when dead code is identified.
   "-Ywarn-extra-implicit",              // Warn when more than one implicit parameter section is defined.
-  "-Ywarn-inaccessible",                // Warn about inaccessible types in method signatures.
-  "-Ywarn-infer-any",                   // Warn when a type argument is inferred to be `Any`.
-  "-Ywarn-nullary-override",            // Warn when non-nullary `def f()' overrides nullary `def f'.
-  "-Ywarn-nullary-unit",                // Warn when nullary methods return Unit.
   "-Ywarn-numeric-widen",               // Warn when numerics are widened.
   "-Ywarn-unused:imports",              // Warn if an import selector is not referenced.
+  "-Ywarn-unused:implicits",            // Warn if an implicit parameter is unused.
   "-Ywarn-unused:locals",               // Warn if a local definition is unused.
   "-Ywarn-unused:patvars",              // Warn if a variable bound in a pattern is unused.
   "-Ywarn-unused:privates",             // Warn if a private member is unused.
+  "-Ywarn-unused:params",               // Warn if a value parameter is unused.
   "-Ywarn-value-discard"                // Warn when non-Unit expression results are unused.
 )
-
-// ENABLE THIS IN Scala 2.13.1 (where import annotation.unused is available).
-//  "-Xlint:type-parameter-shadow",     // A local type parameter shadows a type already in scope.
-//  "-Ywarn-unused:implicits",          // Warn if an implicit parameter is unused.
-//  "-Ywarn-unused:params",             // Warn if a value parameter is unused.
 
 /////////////////////////////////
 //// Benchmark Configuration ////
@@ -119,20 +110,22 @@ lazy val enso = (project in file("."))
 ////////////////////////////
 
 val monocle = {
-  val monocleVersion = "1.6.0"
+  val monocleVersion = "2.0.0"
   Seq(
     "com.github.julien-truffaut" %% "monocle-core"  % monocleVersion,
     "com.github.julien-truffaut" %% "monocle-macro" % monocleVersion,
     "com.github.julien-truffaut" %% "monocle-law"   % monocleVersion % "test"
   )
 }
+
+val catsVersion = "2.1.0"
 val cats = {
   Seq(
-    "org.typelevel" %% "cats-core"   % "2.0.0",
-    "org.typelevel" %% "cats-effect" % "2.0.0",
-    "org.typelevel" %% "cats-free"   % "2.0.0",
-    "org.typelevel" %% "cats-macros" % "2.0.0",
-    "org.typelevel" %% "kittens"     % "2.0.0"
+    "org.typelevel" %% "cats-core"   % catsVersion,
+    "org.typelevel" %% "cats-effect" % catsVersion,
+    "org.typelevel" %% "cats-free"   % catsVersion,
+    "org.typelevel" %% "cats-macros" % catsVersion,
+    "org.typelevel" %% "kittens"     % catsVersion
   )
 }
 
@@ -148,8 +141,8 @@ def akkaPkg(name: String)     = akkaURL %% s"akka-$name" % akkaVersion
 def akkaHTTPPkg(name: String) = akkaURL %% s"akka-$name" % akkaHTTPVersion
 
 val akkaURL          = "com.typesafe.akka"
-val akkaVersion      = "2.5.23"
-val akkaHTTPVersion  = "10.1.8"
+val akkaVersion      = "2.6.3"
+val akkaHTTPVersion  = "10.1.11"
 val akkaActor        = akkaPkg("actor")
 val akkaStream       = akkaPkg("stream")
 val akkaTyped        = akkaPkg("actor-typed")
@@ -196,12 +189,11 @@ lazy val flexer = crossProject(JVMPlatform, JSPlatform)
   .dependsOn(logger)
   .settings(
     version := "0.1",
-    scalacOptions -= "-deprecation", // FIXME
     resolvers += Resolver.sonatypeRepo("releases"),
     libraryDependencies ++= scala_compiler ++ Seq(
-      "org.feijoas"   %% "mango"      % "0.14",
-      "org.typelevel" %%% "cats-core" % "2.0.0-RC1",
-      "org.typelevel" %%% "kittens"   % "2.0.0"
+      "com.google.guava" % "guava"       % "28.2-jre",
+      "org.typelevel"    %%% "cats-core" % catsVersion,
+      "org.typelevel"    %%% "kittens"   % "2.0.0"
     )
   )
   .jsSettings(jsSettings)
@@ -220,9 +212,9 @@ lazy val syntax_definition = crossProject(JVMPlatform, JSPlatform)
   .dependsOn(logger, flexer)
   .settings(
     libraryDependencies ++= monocle ++ scala_compiler ++ Seq(
-      "org.typelevel" %%% "cats-core"     % "2.0.0-RC1",
+      "org.typelevel" %%% "cats-core"     % catsVersion,
       "org.typelevel" %%% "kittens"       % "2.0.0",
-      "com.lihaoyi"   %%% "scalatags"     % "0.7.0",
+      "com.lihaoyi"   %%% "scalatags"     % "0.8.5",
       "io.circe"      %%% "circe-core"    % circeVersion,
       "io.circe"      %%% "circe-generic" % circeVersion,
       "io.circe"      %%% "circe-parser"  % circeVersion
@@ -243,8 +235,8 @@ lazy val syntax = crossProject(JVMPlatform, JSPlatform)
     version := "0.1",
     logBuffered := false,
     libraryDependencies ++= Seq(
-      "org.scalatest" %%% "scalatest"     % "3.0.5" % Test,
-      "com.lihaoyi"   %%% "pprint"        % "0.5.3",
+      "org.scalatest" %%% "scalatest"     % "3.1.0" % Test,
+      "com.lihaoyi"   %%% "pprint"        % "0.5.9",
       "io.circe"      %%% "circe-core"    % circeVersion,
       "io.circe"      %%% "circe-generic" % circeVersion,
       "io.circe"      %%% "circe-parser"  % circeVersion
@@ -266,7 +258,7 @@ lazy val syntax = crossProject(JVMPlatform, JSPlatform)
     inConfig(Benchmark)(Defaults.testSettings),
     unmanagedSourceDirectories in Benchmark +=
     baseDirectory.value.getParentFile / "src/bench/scala",
-    libraryDependencies += "com.storm-enroute" %% "scalameter" % "0.17" % "bench",
+    libraryDependencies += "com.storm-enroute" %% "scalameter" % "0.19" % "bench",
     testFrameworks := List(
       new TestFramework("org.scalatest.tools.Framework"),
       new TestFramework("org.scalameter.ScalaMeterFramework")
@@ -292,16 +284,16 @@ lazy val graph = (project in file("common/graph/"))
   .configs(Test)
   .settings(
     version := "0.1",
-    scalacOptions -= "-deprecation", // FIXME
     resolvers ++= Seq(
       Resolver.sonatypeRepo("releases"),
       Resolver.sonatypeRepo("snapshots")
     ),
+    scalacOptions += "-Ymacro-annotations",
     libraryDependencies ++= scala_compiler ++ Seq(
       "com.chuusai"                %% "shapeless"    % "2.3.3",
       "io.estatico"                %% "newtype"      % "0.4.3",
-      "org.scalatest"              %% "scalatest"    % "3.2.0-SNAP10" % Test,
-      "org.scalacheck"             %% "scalacheck"   % "1.14.0" % Test,
+      "org.scalatest"              %% "scalatest"    % "3.2.0-M2" % Test,
+      "org.scalacheck"             %% "scalacheck"   % "1.14.3" % Test,
       "com.github.julien-truffaut" %% "monocle-core" % "2.0.0",
       "org.apache.commons"         % "commons-lang3" % "3.9"
     ),
@@ -314,10 +306,7 @@ lazy val graph = (project in file("common/graph/"))
     addCompilerPlugin(
       "org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full
     ),
-    addCompilerPlugin (
-      "org.scalamacros" % "paradise" % "2.1.1" cross CrossVersion.full
-    ),
-    addCompilerPlugin("io.tryp" % "splain" % "0.5.0" cross CrossVersion.patch),
+    addCompilerPlugin("io.tryp" % "splain" % "0.5.1" cross CrossVersion.patch),
     scalacOptions ++= Seq(
       "-P:splain:infix:true",
       "-P:splain:foundreq:true",
@@ -331,7 +320,7 @@ lazy val pkg = (project in file("common/pkg"))
     mainClass in (Compile, run) := Some("org.enso.pkg.Main"),
     version := "0.1",
     libraryDependencies ++= circe ++ Seq(
-      "io.circe"   %% "circe-yaml" % "0.10.0", // separate from other circe deps because its independent project with its own versioning
+      "io.circe"   %% "circe-yaml" % "0.12.0", // separate from other circe deps because its independent project with its own versioning
       "commons-io" % "commons-io"  % "2.6"
     )
   )
@@ -344,10 +333,11 @@ lazy val file_manager = (project in file("common/file-manager"))
     libraryDependencies ++= akka,
     libraryDependencies += akkaSLF4J,
     libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.3",
-    libraryDependencies += "org.scalatest"  %% "scalatest"      % "3.2.0-SNAP10" % Test,
-    libraryDependencies += "org.scalacheck" %% "scalacheck"     % "1.14.0" % Test,
+    libraryDependencies += "org.scalatest"  %% "scalatest"      % "3.2.0-M2" % Test,
+    libraryDependencies += "org.scalacheck" %% "scalacheck"     % "1.14.3" % Test,
     libraryDependencies += akkaTestkitTyped,
     libraryDependencies += "commons-io" % "commons-io"        % "2.6",
+    // upgrade blocked by gmethvin/directory-watcher#49
     libraryDependencies += "io.methvin" % "directory-watcher" % "0.9.6"
   )
 
@@ -357,8 +347,7 @@ lazy val project_manager = (project in file("common/project-manager"))
   )
   .settings(
     libraryDependencies ++= akka,
-    libraryDependencies ++= circe,
-    libraryDependencies += "io.spray" %% "spray-json" % "1.3.5"
+    libraryDependencies ++= circe
   )
   .dependsOn(pkg)
 
@@ -386,21 +375,44 @@ lazy val core_definition = (project in file("engine/core-definition"))
     inConfig(Benchmark)(Defaults.testSettings),
     parallelExecution in Test := false,
     logBuffered in Test := false,
+    scalacOptions += "-Ymacro-annotations",
     libraryDependencies ++= jmh ++ Seq(
       "com.chuusai"                %% "shapeless"    % "2.3.3",
-      "org.scalacheck"             %% "scalacheck"   % "1.14.0" % Test,
-      "org.scalactic"              %% "scalactic"    % "3.0.8" % Test,
-      "org.scalatest"              %% "scalatest"    % "3.2.0-SNAP10" % Test,
-      "org.typelevel"              %% "cats-core"    % "2.0.0-M4",
+      "org.scalacheck"             %% "scalacheck"   % "1.14.3" % Test,
+      "org.scalactic"              %% "scalactic"    % "3.2.0-M2" % Test,
+      "org.scalatest"              %% "scalatest"    % "3.2.0-M2" % Test,
+      "org.typelevel"              %% "cats-core"    % catsVersion,
       "com.github.julien-truffaut" %% "monocle-core" % "2.0.0"
     ),
     addCompilerPlugin(
-      "org.scalamacros" % "paradise" % "2.1.1" cross CrossVersion.full
+      "org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full
+    )
+  )
+  .dependsOn(graph)
+  .dependsOn(syntax.jvm)
+
+lazy val polyglot_api = project
+  .in(file("engine/polyglot-api"))
+  .settings(
+    Test / fork := true,
+    Test / javaOptions ++= Seq(
+      // Puts the language runtime on the truffle classpath, rather than the
+      // standard classpath. This is the recommended way of handling this and
+      // we should strive to use such structure everywhere. See
+      // https://www.graalvm.org/docs/graalvm-as-a-platform/implement-language#graalvm
+      s"-Dtruffle.class.path.append=${(LocalProject("runtime") / Compile / fullClasspath).value
+        .map(_.data)
+        .mkString(File.pathSeparator)}"
+    ),
+    libraryDependencies ++= Seq(
+      "org.graalvm.sdk" % "polyglot-tck" % graalVersion   % "provided",
+      "org.scalatest"   %% "scalatest"   % "3.2.0-M2"     % Test,
+      "org.scalacheck"  %% "scalacheck"  % "1.14.3"       % Test
     ),
     addCompilerPlugin(
       "org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full
     ),
-    addCompilerPlugin("io.tryp" % "splain" % "0.5.0" cross CrossVersion.patch),
+    addCompilerPlugin("io.tryp" % "splain" % "0.5.1" cross CrossVersion.patch),
     scalacOptions ++= Seq(
       "-P:splain:infix:true",
       "-P:splain:foundreq:true",
@@ -408,8 +420,41 @@ lazy val core_definition = (project in file("engine/core-definition"))
       "-P:splain:tree:true"
     )
   )
-  .dependsOn(graph)
-  .dependsOn(syntax.jvm)
+  .dependsOn(pkg)
+
+lazy val json_rpc_server = (project in file("engine/json-rpc-server"))
+  .settings(
+    libraryDependencies ++= akka ++ circe ++ Seq(
+      "io.circe"       %% "circe-generic-extras" % "0.12.2",
+      "io.circe"       %% "circe-literal" % circeVersion,
+      akkaTestkit      % Test,
+      "org.scalatest"  %% "scalatest" % "3.2.0-M2" % Test,
+      "org.scalacheck" %% "scalacheck" % "1.14.0" % Test
+    )
+  )
+
+lazy val language_server = (project in file("engine/language-server"))
+  .settings(
+    libraryDependencies ++= akka ++ Seq(
+      "org.graalvm.sdk" % "polyglot-tck" % graalVersion % Provided,
+      akkaTestkit       % Test,
+      "org.scalatest"   %% "scalatest"   % "3.2.0-M2"   % Test,
+      "org.scalacheck"  %% "scalacheck"  % "1.14.3"     % Test
+    )
+  )
+  .dependsOn(polyglot_api)
+
+lazy val gateway = (project in file("engine/gateway"))
+  .dependsOn(language_server)
+  .settings(
+    libraryDependencies ++= akka ++ circe ++ Seq(
+      "io.circe"       %% "circe-generic-extras" % "0.12.2",
+      "io.circe"       %% "circe-literal"        % circeVersion,
+      akkaTestkit      % Test,
+      "org.scalatest"  %% "scalatest"            % "3.2.0-M2" % Test,
+      "org.scalacheck" %% "scalacheck"           % "1.14.3" % Test
+    )
+  )
 
 lazy val runtime = (project in file("engine/runtime"))
   .configs(Benchmark)
@@ -420,21 +465,22 @@ lazy val runtime = (project in file("engine/runtime"))
     inConfig(Benchmark)(Defaults.testSettings),
     parallelExecution in Test := false,
     logBuffered in Test := false,
+    scalacOptions += "-Ymacro-annotations",
     libraryDependencies ++= jmh ++ Seq(
       "com.chuusai"         %% "shapeless"            % "2.3.3",
       "org.apache.commons"  % "commons-lang3"         % "3.9",
-      "org.apache.tika"     % "tika-core"             % "1.21",
+      "org.apache.tika"     % "tika-core"             % "1.23",
       "org.graalvm.sdk"     % "graal-sdk"             % graalVersion % "provided",
       "org.graalvm.sdk"     % "polyglot-tck"          % graalVersion % "provided",
       "org.graalvm.truffle" % "truffle-api"           % graalVersion % "provided",
       "org.graalvm.truffle" % "truffle-dsl-processor" % graalVersion % "provided",
       "org.graalvm.truffle" % "truffle-tck"           % graalVersion % "provided",
       "org.graalvm.truffle" % "truffle-tck-common"    % graalVersion % "provided",
-      "org.scalacheck"      %% "scalacheck"           % "1.14.0" % Test,
-      "org.scalactic"       %% "scalactic"            % "3.0.8" % Test,
-      "org.scalatest"       %% "scalatest"            % "3.2.0-SNAP10" % Test,
+      "org.scalacheck"      %% "scalacheck"           % "1.14.3" % Test,
+      "org.scalactic"       %% "scalactic"            % "3.2.0-M2" % Test,
+      "org.scalatest"       %% "scalatest"            % "3.2.0-M2" % Test,
       "org.graalvm.truffle" % "truffle-api"           % graalVersion % Benchmark,
-      "org.typelevel"       %% "cats-core"            % "2.0.0-M4"
+      "org.typelevel"       %% "cats-core"            % catsVersion
     ),
     // Note [Unmanaged Classpath]
     Compile / unmanagedClasspath += (core_definition / Compile / packageBin).value,
@@ -449,12 +495,9 @@ lazy val runtime = (project in file("engine/runtime"))
       (Compile / sourceManaged).value.getAbsolutePath
     ),
     addCompilerPlugin(
-      "org.scalamacros" % "paradise" % "2.1.1" cross CrossVersion.full
-    ),
-    addCompilerPlugin(
       "org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full
     ),
-    addCompilerPlugin("io.tryp" % "splain" % "0.5.0" cross CrossVersion.patch),
+    addCompilerPlugin("io.tryp" % "splain" % "0.5.1" cross CrossVersion.patch),
     scalacOptions ++= Seq(
       "-P:splain:infix:true",
       "-P:splain:foundreq:true",
@@ -523,7 +566,7 @@ lazy val runner = project
       "org.graalvm.truffle"   % "truffle-api"            % graalVersion % "provided",
       "commons-cli"           % "commons-cli"            % "1.4",
       "io.github.spencerpark" % "jupyter-jvm-basekernel" % "2.3.0",
-      "org.jline"             % "jline"                  % "3.1.3"
+      "org.jline"             % "jline"                  % "3.13.3"
     ),
     connectInput in run := true
   )
@@ -546,58 +589,3 @@ lazy val runner = project
   .dependsOn(language_server)
   .dependsOn(gateway)
   .dependsOn(polyglot_api)
-
-lazy val gateway = (project in file("engine/gateway"))
-  .dependsOn(language_server)
-  .settings(
-    libraryDependencies ++= akka ++ circe ++ Seq(
-      "io.circe"       %% "circe-generic-extras" % "0.12.2",
-      "io.circe"       %% "circe-literal" % circeVersion,
-      akkaTestkit      % Test,
-      "org.scalatest"  %% "scalatest" % "3.2.0-SNAP10" % Test,
-      "org.scalacheck" %% "scalacheck" % "1.14.0" % Test
-    )
-  )
-
-lazy val json_rpc_server = (project in file("engine/json-rpc-server"))
-  .settings(
-    libraryDependencies ++= akka ++ circe ++ Seq(
-      "io.circe"       %% "circe-generic-extras" % "0.12.2",
-      "io.circe"       %% "circe-literal" % circeVersion,
-      akkaTestkit      % Test,
-      "org.scalatest"  %% "scalatest" % "3.2.0-SNAP10" % Test,
-      "org.scalacheck" %% "scalacheck" % "1.14.0" % Test
-    )
-  )
-
-lazy val language_server = (project in file("engine/language-server"))
-  .settings(
-    libraryDependencies ++= akka ++ Seq(
-      "org.graalvm.sdk" % "polyglot-tck" % graalVersion % Provided,
-      akkaTestkit       % Test,
-      "org.scalatest"   %% "scalatest" % "3.2.0-SNAP10" % Test,
-      "org.scalacheck"  %% "scalacheck" % "1.14.0" % Test
-    )
-  )
-  .dependsOn(polyglot_api)
-
-lazy val polyglot_api = project
-  .in(file("engine/polyglot-api"))
-  .settings(
-    Test / fork := true,
-    Test / javaOptions ++= Seq(
-      // Puts the language runtime on the truffle classpath, rather than the
-      // standard classpath. This is the recommended way of handling this and
-      // we should strive to use such structure everywhere. See
-      // https://www.graalvm.org/docs/graalvm-as-a-platform/implement-language#graalvm
-      s"-Dtruffle.class.path.append=${(LocalProject("runtime") / Compile / fullClasspath).value
-        .map(_.data)
-        .mkString(File.pathSeparator)}"
-    ),
-    libraryDependencies ++= Seq(
-      "org.graalvm.sdk" % "polyglot-tck" % graalVersion   % "provided",
-      "org.scalatest"   %% "scalatest"   % "3.2.0-SNAP10" % Test,
-      "org.scalacheck"  %% "scalacheck"  % "1.14.0"       % Test
-    )
-  )
-  .dependsOn(pkg)

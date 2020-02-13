@@ -4,8 +4,7 @@ import java.util.Optional
 
 import org.enso.syntax.text.Location
 
-import scala.collection.JavaConverters._
-import scala.language.postfixOps
+import scala.jdk.CollectionConverters._
 
 trait AstExpressionVisitor[+T] {
   def visitLong(l: AstLong): T

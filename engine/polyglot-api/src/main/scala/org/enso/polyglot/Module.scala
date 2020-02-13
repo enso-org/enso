@@ -1,7 +1,5 @@
 package org.enso.polyglot
 
-import java.io.File
-
 import org.graalvm.polyglot.Value
 
 /**
@@ -45,7 +43,7 @@ class Module(private val value: Value) {
     * @param additionalSource the new source to parse
     */
   def patch(additionalSource: String): Unit =
-    value.invokeMember(PATCH, additionalSource)
+    value.invokeMember(PATCH, additionalSource): Unit
 
   /**
     * Evaluates an arbitrary expression as if it were placed in a function
@@ -60,13 +58,15 @@ class Module(private val value: Value) {
     * Triggers reparsing of module sources. Used to notify the module that
     * sources have changed.
     */
-  def reparse(): Unit = { value.invokeMember(REPARSE) }
+  def reparse(): Unit = {
+    value.invokeMember(REPARSE): Unit
+  }
 
   def setSource(source: String): Unit = {
-    value.invokeMember(SET_SOURCE, source)
+    value.invokeMember(SET_SOURCE, source): Unit
   }
 
   def setSourceFile(file: String): Unit = {
-    value.invokeMember(SET_SOURCE_FILE, file)
+    value.invokeMember(SET_SOURCE_FILE, file): Unit
   }
 }

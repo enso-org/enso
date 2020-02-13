@@ -7,7 +7,7 @@ import org.enso.interpreter.instrument.ReplDebuggerInstrument
 import org.jline.reader.{LineReader, LineReaderBuilder}
 import org.jline.terminal.{Terminal, TerminalBuilder}
 
-import collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.util.Try
 
 /**
