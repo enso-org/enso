@@ -11,7 +11,7 @@ use std::collections::VecDeque;
 use failure::Error;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-
+use futures::channel::mpsc::UnboundedSender;
 
 
 // ====================
@@ -53,7 +53,7 @@ pub enum Status {
 #[derive(Debug,Default)]
 pub struct MockTransportData {
     /// Events sink.
-    pub event_tx  : Option<std::sync::mpsc::Sender<TransportEvent>>,
+    pub event_tx  : Option<UnboundedSender<TransportEvent>>,
     /// Messages sent by the user.
     pub sent_msgs : VecDeque<String>,
     /// Transport status.
@@ -82,9 +82,9 @@ impl Transport for MockTransport {
         })
     }
 
-    fn set_event_tx(&mut self, tx:std::sync::mpsc::Sender<TransportEvent>) {
+    fn set_event_tx(&mut self, event_tx:UnboundedSender<TransportEvent>) {
         self.with_mut_data(|data| {
-            data.event_tx = Some(tx);
+            data.event_tx = Some(event_tx);
         })
     }
 }
@@ -105,8 +105,8 @@ impl MockTransport {
     /// Generates event that mocks receiving a text message from a peer.
     pub fn mock_peer_message_text<S:Into<String>>(&mut self, message:S) {
         let message = message.into();
-        if let Some(ref tx) = self.0.borrow_mut().event_tx {
-            let _ = tx.send(TransportEvent::TextMessage(message));
+        if let Some(ref mut tx) = self.0.borrow_mut().event_tx {
+            let _ = tx.unbounded_send(TransportEvent::TextMessage(message));
         }
     }
 
@@ -122,9 +122,9 @@ impl MockTransport {
     /// for any other reason).
     pub fn mock_connection_closed(&mut self) {
         self.with_mut_data(|data| {
-            if let Some(ref tx) = data.event_tx {
+            if let Some(ref mut tx) = data.event_tx {
                 data.is_closed = true;
-                let _          = tx.send(TransportEvent::Closed);
+                let _          = tx.unbounded_send(TransportEvent::Closed);
             }
         })
     }
