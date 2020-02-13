@@ -95,7 +95,7 @@ class GraphTest extends FlatSpec with Matchers {
       case GraphImpl.Node.Shape.App.any(n1) => n1.fn
     }
 
-    refinedResult shouldEqual 1
+    refinedResult shouldEqual 0
   }
 
   "Component fields" can "be accessed properly" in {

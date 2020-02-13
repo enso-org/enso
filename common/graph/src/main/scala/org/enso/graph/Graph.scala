@@ -19,6 +19,8 @@ import shapeless.nat._
  *    as much as possible.
  *  - Basic equality testing (that should be overridden as needed).
  *  - An ability to define fields that store complex data such as `String`.
+ *  - Add a `Default` typeclass, and ensure that all component fields are
+ *    instances of it. Fields should then be initialised using it.
  */
 
 /** This file contains the implementation of an incredibly generic graph.
@@ -357,8 +359,6 @@ object Graph {
     @newtype
     final case class Ref[G <: Graph, C <: Component](ix: Int)
 
-    // === Refined ===
-
     /** Type refinement for component references.
       *
       * Type refinement is used to add additional information to a [[Component]]
@@ -370,11 +370,14 @@ object Graph {
       * encoded having the following type `Refined[Shape, App, Node]`.
       */
     @newtype
-    final case class Refined[C <: Component.Field, Spec, T](wrapped: T)
+    final case class Refined[F <: Component.Field, Spec, T](wrapped: T)
     object Refined {
-      implicit def unwrap[C <: Component.Field, S, T](
-        t: Refined[C, S, T]
+      implicit def unwrap[F <: Component.Field, S <: F, T](
+        t: Refined[F, S, T]
       ): T = { t.wrapped }
+
+      def wrap[F <: Component.Field, S <: F, T](t: T): Refined[F, S, T] =
+        Refined(t)
     }
 
     // === List ===
@@ -721,7 +724,8 @@ object Graph {
       ev3: HListTakeUntil.Aux[C, ComponentList, PrevComponentList],
       ev4: hlist.Length.Aux[PrevComponentList, ComponentIndex],
       componentIndexEv: nat.ToInt[ComponentIndex],
-      componentSizeEv: KnownSize[FieldList]
+      componentSizeEv: KnownSize[FieldList],
+      listContainsComponent: Selector[ComponentList, C]
     ): HasComponent[G, C] = new HasComponent[G, C] {
       val componentIndex = componentIndexEv()
       val componentSize  = componentSizeEv.asInt
@@ -751,7 +755,8 @@ object Graph {
       implicit
       ev1: Component.Field.List.Aux[G, C, FieldList],
       evx: HasComponent[G, C],
-      fieldOffsetEv: SizeUntil[F, FieldList]
+      fieldOffsetEv: SizeUntil[F, FieldList],
+      containsField: Selector[FieldList, F]
     ): HasComponentField[G, C, F] = new HasComponentField[G, C, F] {
       val componentIndex = evx.componentIndex
       val componentSize  = evx.componentSize
@@ -782,5 +787,77 @@ object Graph {
       new ComponentListToSizes[G, C :: Tail] {
         val sizes = info.componentSize +: tail.sizes
       }
+  }
+
+  /** Allows casting between variant cases without actually mutating the
+    * underlying structure.
+    *
+    * This is a very unsafe operation and should be used with care.
+    *
+    * @param component the component to cast the variant field in
+    * @param ev evidence that component [[C]] has field [[G]] in graph [[G]]
+    * @tparam G the graph type
+    * @tparam C the component type
+    * @tparam F the field type
+    */
+  implicit class VariantCast[
+    G <: Graph,
+    C <: Component,
+    F <: Component.Field
+  ](val component: Component.Ref[G, C])(
+    implicit ev: HasComponentField[G, C, F],
+    graph: GraphData[G]
+  ) {
+
+    /** Checks if [[component]] is in the variant case denoted by the type
+      * [[V]].
+      *
+      * @param variantIndexed information that [[F]] is indeed a variant, with
+      *                       [[V]] as a valid case
+      * @tparam V the type of the variant case in question
+      * @return `true` if [[component]] is of the form denoted by [[V]], `false`
+      *         otherwise
+      */
+    def is[V <: F](
+      implicit variantIndexed: VariantIndexed[F, V]
+    ): Boolean = {
+      graph.unsafeReadField[C, F](component) == variantIndexed.ix
+    }
+
+    /** Casts the variant field [[F]] to behave as the variant branch [[V]].
+      *
+      * It should be noted that this is purely a superficial cast, and does not
+      * affect the underlying graph. This means that [[C]] will still pattern
+      * match as if it was its original variant branch.
+      *
+      * @param variantIndexed information that [[F]] is indeed a variant, with
+      *                       [[V]] as a valid case
+      * @tparam V the type of the variant case in question
+      * @return the component [[component]] refined to be the variant branch
+      *         [[V]]
+      */
+    def unsafeAs[V <: F](
+      implicit variantIndexed: VariantIndexed[F, V]
+    ): Component.Refined[F, V, Component.Ref[G, C]] = {
+      Component.Refined[F, V, Component.Ref[G, C]](component)
+    }
+
+    /** Performs a checked cast of [[component]] to the variant state denoted
+      * by [[V]].
+      *
+      * @param variantIndexed information that [[F]] is indeed a variant, with
+      *                       [[V]] as a valid case
+      * @tparam V the type of the variant case in question
+      * @return [[Some]] if [[component]] is a [[V]], otherwise [[None]]
+      */
+    def as[V <: F](
+      implicit variantIndexed: VariantIndexed[F, V]
+    ): Option[Component.Refined[F, V, Component.Ref[G, C]]] = {
+      if (is[V]) {
+        Some(unsafeAs[V])
+      } else {
+        None
+      }
+    }
   }
 }

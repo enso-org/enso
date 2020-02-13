@@ -312,6 +312,9 @@ lazy val graph = (project in file("common/graph/"))
       "com.github.ghik" % "silencer-lib" % silencerVersion % Provided cross CrossVersion.full
     ),
     addCompilerPlugin(
+      "org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full
+    ),
+    addCompilerPlugin (
       "org.scalamacros" % "paradise" % "2.1.1" cross CrossVersion.full
     ),
     addCompilerPlugin("io.tryp" % "splain" % "0.5.0" cross CrossVersion.patch),
@@ -394,6 +397,9 @@ lazy val core_definition = (project in file("engine/core-definition"))
     addCompilerPlugin(
       "org.scalamacros" % "paradise" % "2.1.1" cross CrossVersion.full
     ),
+    addCompilerPlugin(
+      "org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full
+    ),
     addCompilerPlugin("io.tryp" % "splain" % "0.5.0" cross CrossVersion.patch),
     scalacOptions ++= Seq(
       "-P:splain:infix:true",
@@ -403,6 +409,7 @@ lazy val core_definition = (project in file("engine/core-definition"))
     )
   )
   .dependsOn(graph)
+  .dependsOn(syntax.jvm)
 
 lazy val runtime = (project in file("engine/runtime"))
   .configs(Benchmark)
@@ -443,6 +450,9 @@ lazy val runtime = (project in file("engine/runtime"))
     ),
     addCompilerPlugin(
       "org.scalamacros" % "paradise" % "2.1.1" cross CrossVersion.full
+    ),
+    addCompilerPlugin(
+      "org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full
     ),
     addCompilerPlugin("io.tryp" % "splain" % "0.5.0" cross CrossVersion.patch),
     scalacOptions ++= Seq(

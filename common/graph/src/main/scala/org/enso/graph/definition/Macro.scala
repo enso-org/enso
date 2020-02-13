@@ -230,7 +230,11 @@ object Macro {
         }
       }
 
-      /** Generates a getter for an element of a non-variant field.
+      /** Generates a getter for an element of a field.
+        *
+        * In the case where the field is _not_ simple, the subfield offsets are
+        * all incremented by one, to account for the fact that the first index
+        * in a non-simple (variant) field encodes the variant branch.
         *
         * @param paramDef the definition of the subfield
         * @param enclosingTypeName the name of the field type
@@ -277,7 +281,7 @@ object Macro {
               $graphTermName.Component.Ref(
                 graph.unsafeReadFieldByIndex[C, $enclosingTypeName](
                   $graphTermName.Component.Refined.unwrap(node),
-                  $index
+                  ${index + 1}
                 )
               )
             }
@@ -334,7 +338,7 @@ object Macro {
               $graphTermName.Component.Ref(
                 graph.unsafeReadFieldByIndex[C, $enclosingTypeName](
                   $graphTermName.Component.Refined.unwrap(node).ix,
-                  $index
+                  ${index + 1}
                 )
               )
             }
@@ -343,7 +347,11 @@ object Macro {
         }
       }
 
-      /** Generates a setter for an element of a non-variant field.
+      /** Generates a setter for an element of field.
+        *
+        * In the case where the field is _not_ simple, the subfield offsets are
+        * all incremented by one, to account for the fact that the first index
+        * in a non-simple (variant) field encodes the variant branch.
         *
         * @param paramDef the definition of the subfield
         * @param enclosingTypeName the name of the field type
@@ -388,7 +396,7 @@ object Macro {
             ): Unit = {
               graph.unsafeWriteFieldByIndex[C, $enclosingTypeName](
                 $graphTermName.Component.Refined.unwrap(node).ix,
-                $index,
+                ${index + 1},
                 value
               )
             }
@@ -441,7 +449,7 @@ object Macro {
             ): Unit = {
               graph.unsafeWriteFieldByIndex[C, $enclosingTypeName](
                 $graphTermName.Component.Refined.unwrap(node).ix,
-                $index,
+                ${index + 1},
                 value.ix
               )
             }
@@ -459,12 +467,6 @@ object Macro {
         */
       def makeTypeAccessorName(fieldName: TypeName): String = {
         StringUtils.uncapitalize(fieldName.toString)
-//        val matcher = "([A-Z])(.*)".r
-//
-//        matcher.findFirstMatchIn(fieldName.toString) match {
-//          case Some(t) => s"${t.group(1).toLowerCase()}${t.group(2)}"
-//          case None    => fieldName.toString.toLowerCase
-//        }
       }
 
       /** Generates accessor methods for the 'value class', the one that can
@@ -527,7 +529,7 @@ object Macro {
       }
 
       /** Determines whether the parameter definition is defining an opaque
-        * type. An opaque type is one not stored in the graph represntation.
+        * type. An opaque type is one not stored in the graph representation.
         *
         * @param paramDef the definition to check
         * @return `true` if `paramDef` defines an opauqe type, otherwise `false`

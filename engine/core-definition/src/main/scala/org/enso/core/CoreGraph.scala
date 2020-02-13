@@ -3,8 +3,8 @@ package org.enso.core
 import org.enso.graph.definition.Macro.{component, field, genGraph, opaque}
 import org.enso.graph.{Sized, VariantIndexed, Graph => PrimGraph}
 import shapeless.{::, HNil}
+import org.enso.syntax.text.AST
 
-// TODO [AA] More detailed semantic descriptions for each node shape in future.
 object CoreGraph {
   @genGraph object Definition {
 
@@ -37,6 +37,9 @@ object CoreGraph {
       * that has the containing node as its `target` field.
       */
     @opaque case class Parent(opaque: Vector[Int])
+
+    /** Storage for raw AST nodes. */
+    @opaque case class Ast(opaque: AST)
 
     // ========================================================================
     // === Node ===============================================================
@@ -176,7 +179,7 @@ object CoreGraph {
         /** An import statement.
           *
           * @param segments the segments of the import path, represented as a
-          *                 [[NameLiteral]].
+          *                 [[MetaList]].
           */
         case class Import(segments: Link[G])
 
@@ -199,7 +202,8 @@ object CoreGraph {
         /** An expanded-form type definition, with a body.
           *
           * @param name the name of the aggregate type
-          * @param typeParams the type parameters to the definition
+          * @param typeParams the type parameters to the definition, as a
+          *                   [[MetaList]] of bindings
           * @param body       the body of the type definition, represented as a
           *                   [[MetaList]] of bindings
           */
@@ -211,7 +215,7 @@ object CoreGraph {
 
         // === Typing =========================================================
 
-        /** A type signature.
+        /** The ascription of a type to a value.
           *
           * @param typed the expression being ascribed a type
           * @param sig the signature being ascribed to [[typed]]
@@ -446,7 +450,7 @@ object CoreGraph {
         /** A case branch.
           *
           * All case patterns will initially be desugared to a
-          * [[StructuralMatch]] and will be refined during further desugaring
+          * [[StructuralPattern]] and will be refined during further desugaring
           * passes, some of which may depend on type checking.
           *
           * @param pattern the pattern to match the scrutinee against
@@ -459,7 +463,7 @@ object CoreGraph {
           * @param matchExpression the expression representing the possible
           *                        structure of the scrutinee
           */
-        case class StructuralMatch(matchExpression: Link[G])
+        case class StructuralPattern(matchExpression: Link[G])
 
         /** A pattern that matches on the scrutinee purely based on a type
           * subsumption judgement.
@@ -467,7 +471,7 @@ object CoreGraph {
           * @param matchExpression the expression representing the possible type
           *                        of the scrutinee
           */
-        case class TypeMatch(matchExpression: Link[G])
+        case class TypePattern(matchExpression: Link[G])
 
         /** A pattern that matches on the scrutinee based on a type subsumption
           * judgement and assigns a new name to it for use in the branch.
@@ -475,10 +479,10 @@ object CoreGraph {
           * @param matchExpression the expression representing the possible type
           *                        of the scrutinee, and its new name
           */
-        case class NamedMatch(matchExpression: Link[G])
+        case class NamedPattern(matchExpression: Link[G])
 
         /** A pattern that matches on any scrutinee. */
-        case class FallbackMatch()
+        case class FallbackPattern()
 
         // === Comments =======================================================
 
@@ -502,16 +506,60 @@ object CoreGraph {
 
         /** A syntax error.
           *
-          * @param errorNode the node representation of the syntax error
+          * @param errorAst the raw AST representation of the syntax error
           */
-        case class SyntaxError(errorNode: Link[G])
+        case class SyntaxError(errorAst: OpaqueData[AST, AstStorage])
 
-        // TODO [AA] Fill in the error types as they become evident
+        /** Returned on an attempt to construct erroneous core.
+          *
+          * @param erroneousCore a [[MetaList]] containing the one-or-more core
+          *                      nodes that were in an incorrect format
+          */
+        case class ConstructionError(erroneousCore: Link[G])
       }
 
       // ======================================================================
       // === Utility Functions ================================================
       // ======================================================================
+
+      /** Adds a link as a parent of the provided node.
+        *
+        * This should _only_ be used when the [[target]] field of [[link]]
+        * points to [[node]].
+        *
+        * @param node the node to add a parent to
+        * @param link the link to add as a parent
+        * @param graph the graph in which this takes place
+        * @param map the graph's parent storage
+        */
+      def addParent(
+        node: Node[CoreGraph],
+        link: Link[CoreGraph]
+      )(
+        implicit graph: PrimGraph.GraphData[CoreGraph],
+        map: ParentStorage
+      ): Unit = {
+        import Node.ParentLinks._
+
+        node.parents = node.parents :+ link.ix
+      }
+
+      /** Adds a node to the graph with its shape already set to a given shape.
+        *
+        * @param graph the graph to add the node to
+        * @param ev evidence that the variant field is indexed
+        * @tparam V the shape to set the node to
+        * @return a refined node reference
+        */
+      def addRefined[V <: Node.Shape](
+        implicit graph: PrimGraph.GraphData[CoreGraph],
+        ev: VariantIndexed[Node.Shape, V]
+      ): PrimGraph.Component.Refined[Node.Shape, V, Node[CoreGraph]] = {
+        val node = graph.addNode()
+
+        setShape[V](node)
+        PrimGraph.Component.Refined[Node.Shape, V, Node[CoreGraph]](node)
+      }
 
       /** Sets the shape of the provided [[node]] to [[Shape]].
         *
@@ -538,8 +586,9 @@ object CoreGraph {
         node: Node[CoreGraph]
       )(implicit graph: PrimGraph.GraphData[CoreGraph]): Boolean = {
         node match {
-          case Shape.SyntaxError.any(_) => true
-          case _                        => false
+          case Shape.SyntaxError.any(_)       => true
+          case Shape.ConstructionError.any(_) => true
+          case _                              => false
         }
       }
 

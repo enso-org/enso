@@ -18,7 +18,6 @@ class DocParserTests extends FlatSpec with Matchers {
     val output = DocParser.run(input)
     output match {
       case Result(_, Result.Success(value)) =>
-        pprint.pprintln(value)
         assert(value == result)
         assert(value.show() == new Reader(input).toString())
       case _ =>

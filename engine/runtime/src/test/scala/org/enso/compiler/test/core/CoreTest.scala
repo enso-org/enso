@@ -10,6 +10,4 @@ import org.enso.compiler.test.CompilerTest
 //  - Linked List
 //  - Parent Link walk to same place
 //  - etc.
-class CoreTest extends CompilerTest {
-
-}
+class CoreTest extends CompilerTest {}
