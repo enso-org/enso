@@ -1,7 +1,7 @@
 //! Structures and methods related to single line of TextField content.
 use crate::prelude::*;
 
-use crate::display::shape::text::glyph::font::FontRenderInfo;
+use crate::display::shape::text::glyph::font::FontHandle;
 use crate::display::shape::text::glyph::pen::PenIterator;
 
 use nalgebra::Vector2;
@@ -81,15 +81,15 @@ impl Line {
 #[derive(Debug,Shrinkwrap)]
 #[shrinkwrap(mutable)]
 #[allow(missing_docs)]
-pub struct LineFullInfo<'a,'b> {
+pub struct LineFullInfo<'a> {
     #[shrinkwrap(main_field)]
     pub line    : &'a mut Line,
     pub line_id : usize,
-    pub font    : &'b mut FontRenderInfo,
+    pub font    : FontHandle,
     pub height  : f32,
 }
 
-impl<'a,'b> LineFullInfo<'a,'b> {
+impl<'a> LineFullInfo<'a> {
     /// Get the point where a _baseline_ of current line begins (The _baseline_ is a font specific
     /// term, for details see [freetype documentation]
     /// (https://www.freetype.org/freetype2/docs/glyphs/glyphs-3.html#section-1)).
@@ -145,7 +145,7 @@ impl<'a,'b> LineFullInfo<'a,'b> {
         let line           = &mut self.line;
         let chars          = line.chars[from_index..].iter().cloned();
         let to_skip        = if line.char_x_positions.is_empty() {0} else {1};
-        let pen            = PenIterator::new(start_from,self.height,chars,self.font);
+        let pen            = PenIterator::new(start_from,self.height,chars,self.font.clone_ref());
 
         for (_,position) in pen.skip(to_skip).take(to_fill) {
             line.char_x_positions.push(position.x);
@@ -174,121 +174,112 @@ impl<'a,'b> LineFullInfo<'a,'b> {
 mod test {
     use super::*;
 
-    use basegl_core_msdf_sys::test_utils::TestAfterInit;
-    use std::future::Future;
+    use crate::display::shape::text::glyph::font::FontRenderInfo;
+
     use wasm_bindgen_test::wasm_bindgen_test;
 
-
     #[wasm_bindgen_test(async)]
-    fn getting_chars_x_position() -> impl Future<Output=()> {
-        TestAfterInit::schedule(|| {
-            let mut font = prepare_font_with_ab();
-            let mut line = Line::new("ABA");
-            let mut line_ref = LineFullInfo {
-                line    : &mut line,
-                font    : &mut font,
-                line_id : 0,
-                height  : 1.0,
-            };
+    async fn getting_chars_x_position() {
+        basegl_core_msdf_sys::initialized().await;
+        let mut line     = Line::new("ABA");
+        let mut line_ref = LineFullInfo {
+            line    : &mut line,
+            font    : prepare_font_with_ab(),
+            line_id : 0,
+            height  : 1.0,
+        };
 
-            assert_eq!(0, line_ref.char_x_positions.len());
-            let first_pos = line_ref.get_char_x_position(0);
-            assert_eq!(1, line_ref.char_x_positions.len());
-            let third_pos = line_ref.get_char_x_position(2);
-            assert_eq!(3, line_ref.char_x_positions.len());
+        assert_eq!(0, line_ref.char_x_positions.len());
+        let first_pos = line_ref.get_char_x_position(0);
+        assert_eq!(1, line_ref.char_x_positions.len());
+        let third_pos = line_ref.get_char_x_position(2);
+        assert_eq!(3, line_ref.char_x_positions.len());
 
-            assert_eq!(0.0, first_pos);
-            assert_eq!(2.5, third_pos);
-        })
+        assert_eq!(0.0, first_pos);
+        assert_eq!(2.5, third_pos);
     }
 
     #[wasm_bindgen_test(async)]
-    fn finding_char_by_x_position() -> impl Future<Output=()> {
-        TestAfterInit::schedule(|| {
-            let mut font           = prepare_font_with_ab();
-            let mut line           = Line::new("ABBA");
-            let mut line_ref = LineFullInfo {
-                line    : &mut line,
-                font    : &mut font,
-                line_id : 0,
-                height  : 1.0,
-            };
+    async fn finding_char_by_x_position() {
+        basegl_core_msdf_sys::initialized().await;
+        let mut line     = Line::new("ABBA");
+        let mut line_ref = LineFullInfo {
+            line    : &mut line,
+            font    : prepare_font_with_ab(),
+            line_id : 0,
+            height  : 1.0,
+        };
 
-            let before_first       = line_ref.find_char_at_x_position(-0.1);
-            assert_eq!(1, line_ref.char_x_positions.len());
-            let first              = line_ref.find_char_at_x_position(0.5);
-            assert_eq!(2, line_ref.char_x_positions.len());
-            let first_again        = line_ref.find_char_at_x_position(0.5);
-            assert_eq!(2, line_ref.char_x_positions.len());
-            let third              = line_ref.find_char_at_x_position(3.0);
-            assert_eq!(4, line_ref.char_x_positions.len());
-            let last               = line_ref.find_char_at_x_position(4.5);
-            assert_eq!(4, line_ref.char_x_positions.len());
-            let after_last         = line_ref.find_char_at_x_position(5.5);
-            let third_again        = line_ref.find_char_at_x_position(3.0);
-            let before_first_again = line_ref.find_char_at_x_position(-0.5);
+        let before_first       = line_ref.find_char_at_x_position(-0.1);
+        assert_eq!(1, line_ref.char_x_positions.len());
+        let first              = line_ref.find_char_at_x_position(0.5);
+        assert_eq!(2, line_ref.char_x_positions.len());
+        let first_again        = line_ref.find_char_at_x_position(0.5);
+        assert_eq!(2, line_ref.char_x_positions.len());
+        let third              = line_ref.find_char_at_x_position(3.0);
+        assert_eq!(4, line_ref.char_x_positions.len());
+        let last               = line_ref.find_char_at_x_position(4.5);
+        assert_eq!(4, line_ref.char_x_positions.len());
+        let after_last         = line_ref.find_char_at_x_position(5.5);
+        let third_again        = line_ref.find_char_at_x_position(3.0);
+        let before_first_again = line_ref.find_char_at_x_position(-0.5);
 
-            assert_eq!(None, before_first);
-            assert_eq!(Some(0), first);
-            assert_eq!(Some(0), first_again);
-            assert_eq!(Some(2), third);
-            assert_eq!(Some(3), last);
-            assert_eq!(None, after_last);
-            assert_eq!(Some(2), third_again);
-            assert_eq!(None, before_first_again);
-        })
+        assert_eq!(None, before_first);
+        assert_eq!(Some(0), first);
+        assert_eq!(Some(0), first_again);
+        assert_eq!(Some(2), third);
+        assert_eq!(Some(3), last);
+        assert_eq!(None, after_last);
+        assert_eq!(Some(2), third_again);
+        assert_eq!(None, before_first_again);
     }
 
     #[wasm_bindgen_test(async)]
-    fn finding_char_by_x_position_in_empty_line() -> impl Future<Output=()> {
-        TestAfterInit::schedule(|| {
-            let mut font = prepare_font_with_ab();
-            let mut line = Line::new("");
-            let mut line_ref = LineFullInfo {
-                line    : &mut line,
-                font    : &mut font,
-                line_id : 0,
-                height  : 1.0,
-            };
-            let below_0  = line_ref.find_char_at_x_position(-0.1);
-            let above_0  = line_ref.find_char_at_x_position( 0.1);
-            assert_eq!(None,below_0);
-            assert_eq!(None,above_0);
-        })
+    async fn finding_char_by_x_position_in_empty_line() {
+        basegl_core_msdf_sys::initialized().await;
+        let mut line     = Line::new("");
+        let mut line_ref = LineFullInfo {
+            line    : &mut line,
+            font    : prepare_font_with_ab(),
+            line_id : 0,
+            height  : 1.0,
+        };
+        let below_0  = line_ref.find_char_at_x_position(-0.1);
+        let above_0  = line_ref.find_char_at_x_position( 0.1);
+        assert_eq!(None,below_0);
+        assert_eq!(None,above_0);
     }
 
     #[wasm_bindgen_test(async)]
-    fn modifying_line() -> impl Future<Output=()> {
-        TestAfterInit::schedule(|| {
-            let mut font = prepare_font_with_ab();
-            let mut line = Line::new("AB");
-            let mut line_ref = LineFullInfo {
-                line    : &mut line,
-                font    : &mut font,
-                line_id : 0,
-                height  : 1.0,
-            };
-            let before_edit = line_ref.get_char_x_position(1);
-            assert_eq!(2, line_ref.char_x_positions.len());
-            line_ref.modify().insert(0, 'B');
-            assert_eq!(0, line_ref.char_x_positions.len());
-            let after_edit = line_ref.get_char_x_position(1);
+    async fn modifying_line() {
+        basegl_core_msdf_sys::initialized().await;
+        let mut line     = Line::new("AB");
+        let mut line_ref = LineFullInfo {
+            line    : &mut line,
+            font    : prepare_font_with_ab(),
+            line_id : 0,
+            height  : 1.0,
+        };
+        let before_edit = line_ref.get_char_x_position(1);
+        assert_eq!(2, line_ref.char_x_positions.len());
+        line_ref.modify().insert(0, 'B');
+        assert_eq!(0, line_ref.char_x_positions.len());
+        let after_edit = line_ref.get_char_x_position(1);
 
-            assert_eq!(1.0, before_edit);
-            assert_eq!(1.5, after_edit);
-        })
+        assert_eq!(1.0, before_edit);
+        assert_eq!(1.5, after_edit);
     }
 
-    fn prepare_font_with_ab() -> FontRenderInfo {
-        let mut font          = FontRenderInfo::mock_font("Test font".to_string());
-        let mut a_info        = font.mock_char_info('A');
-        a_info.advance        = 1.0;
-        let mut b_info        = font.mock_char_info('B');
-        b_info.advance        = 1.5;
+    fn prepare_font_with_ab() -> FontHandle {
+        let font   = FontRenderInfo::mock_font("Test font".to_string());
+        let scale  = Vector2::new(1.0, 1.0);
+        let offset = Vector2::new(0.0, 0.0);
+        font.mock_char_info('A',scale,offset,1.0);
+        font.mock_char_info('B',scale,offset,1.5);
         font.mock_kerning_info('A', 'B', 0.0);
         font.mock_kerning_info('B', 'A', 0.0);
         font.mock_kerning_info('A', 'A', 0.0);
         font.mock_kerning_info('B', 'B', 0.0);
-        font
+        FontHandle::new(font)
     }
 }

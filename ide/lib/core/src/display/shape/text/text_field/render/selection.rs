@@ -1,7 +1,7 @@
 //! Drawing selection utilities.
 
 use crate::display::shape::primitive::system::ShapeSystem;
-use crate::display::shape::text::text_field::content::TextFieldContentFullInfo;
+use crate::display::shape::text::text_field::content::TextFieldContent;
 use crate::display::shape::text::text_field::cursor::Cursor;
 use crate::display::shape::text::text_field::location::TextLocation;
 use crate::display::symbol::geometry::compound::sprite::Sprite;
@@ -19,13 +19,13 @@ use std::ops::Range;
 /// A helper structure for generating selection sprites.
 #[derive(Debug)]
 #[allow(missing_docs)]
-pub struct SelectionSpritesGenerator<'a,'b,'c,'d> {
+pub struct SelectionSpritesGenerator<'a,'b> {
     pub line_height : f32,
     pub system      : &'a ShapeSystem,
-    pub content     : &'b mut TextFieldContentFullInfo<'c,'d>,
+    pub content     : &'b mut TextFieldContent,
 }
 
-impl<'a,'b,'c,'d> SelectionSpritesGenerator<'a,'b,'c,'d> {
+impl<'a,'b> SelectionSpritesGenerator<'a,'b> {
     /// Generate sprites for given selection.
     pub fn generate(&mut self, selection : &Range<TextLocation>) -> Vec<Sprite> {
         let mut return_value = Vec::new();

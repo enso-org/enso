@@ -5,15 +5,21 @@
 
 mod internal;
 pub mod emscripten_data;
-pub mod test_utils;
-
 pub use enso_prelude as prelude;
+
 use internal::*;
 
 use emscripten_data::ArrayMemoryView;
 use js_sys::Uint8Array;
+use std::future::Future;
+use std::pin::Pin;
+use std::task::Context;
+use std::task::Poll;
 use wasm_bindgen::JsValue;
 use wasm_bindgen::prelude::Closure;
+
+
+
 
 // ======================
 // === Initialization ===
@@ -30,6 +36,29 @@ where F : 'static + FnOnce() {
     } else {
         let js_callback = Closure::once_into_js(callback);
         on_emscripten_runtime_initialized(js_callback);
+    }
+}
+
+/// Returns future which returns once the msdfgen library is initialized.
+pub fn initialized() -> impl Future<Output=()> {
+    MsdfgenJsInitialized{}
+}
+
+/// The future for running test after initialization
+#[derive(Debug)]
+struct MsdfgenJsInitialized {}
+
+impl Future for MsdfgenJsInitialized {
+    type Output = ();
+
+    fn poll(self:Pin<&mut Self>, cx:&mut Context<'_>) -> Poll<Self::Output> {
+        if is_emscripten_runtime_initialized() {
+            Poll::Ready(())
+        } else {
+            let waker = cx.waker().clone();
+            run_once_initialized(move || waker.wake());
+            Poll::Pending
+        }
     }
 }
 
@@ -182,47 +211,46 @@ impl Drop for MultichannelSignedDistanceField {
 
 #[cfg(test)]
 mod tests {
-    use crate::*;
-    use wasm_bindgen_test::{wasm_bindgen_test, wasm_bindgen_test_configure};
+    use super::*;
+
     use basegl_core_embedded_fonts::EmbeddedFonts;
-    use std::future::Future;
-    use test_utils::TestAfterInit;
     use nalgebra::Vector2;
+    use wasm_bindgen_test::wasm_bindgen_test;
+    use wasm_bindgen_test::wasm_bindgen_test_configure;
 
     wasm_bindgen_test_configure!(run_in_browser);
 
     #[wasm_bindgen_test(async)]
-    fn generate_msdf_for_capital_a() -> impl Future<Output=()> {
-        TestAfterInit::schedule(|| {
-            // given
-            let font_base = EmbeddedFonts::create_and_fill();
-            let font = Font::load_from_memory(
-                font_base.font_data_by_name.get("DejaVuSansMono-Bold").unwrap()
-            );
-            let params = MsdfParameters {
-                width                         : 32,
-                height                        : 32,
-                edge_coloring_angle_threshold : 3.0,
-                range                         : 2.0,
-                max_scale                     : 2.0,
-                edge_threshold                : 1.001,
-                overlap_support               : true
-            };
-            // when
-            let msdf = MultichannelSignedDistanceField::generate(
-                &font,
-                'A' as u32,
-                &params,
-            );
-            // then
-            let data : Vec<f32> = msdf.data.iter().collect();
-            assert_eq!(-0.9408906                , data[0]); // Note [asserts]
-            assert_eq!(0.2                       , data[10]);
-            assert_eq!(-4.3035655                , data[data.len()-1]);
-            assert_eq!(Vector2::new(3.03125, 1.0), msdf.translation);
-            assert_eq!(Vector2::new(1.25, 1.25)  , msdf.scale);
-            assert_eq!(19.265625                 , msdf.advance);
-        })
+    async fn generate_msdf_for_capital_a() {
+        initialized().await;
+        // given
+        let font_base = EmbeddedFonts::create_and_fill();
+        let font = Font::load_from_memory(
+            font_base.font_data_by_name.get("DejaVuSansMono-Bold").unwrap()
+        );
+        let params = MsdfParameters {
+            width                         : 32,
+            height                        : 32,
+            edge_coloring_angle_threshold : 3.0,
+            range                         : 2.0,
+            max_scale                     : 2.0,
+            edge_threshold                : 1.001,
+            overlap_support               : true
+        };
+        // when
+        let msdf = MultichannelSignedDistanceField::generate(
+            &font,
+            'A' as u32,
+            &params,
+        );
+        // then
+        let data : Vec<f32> = msdf.data.iter().collect();
+        assert_eq!(-0.9408906                , data[0]); // Note [asserts]
+        assert_eq!(0.2                       , data[10]);
+        assert_eq!(-4.3035655                , data[data.len()-1]);
+        assert_eq!(Vector2::new(3.03125, 1.0), msdf.translation);
+        assert_eq!(Vector2::new(1.25, 1.25)  , msdf.scale);
+        assert_eq!(19.265625                 , msdf.advance);
     }
 
     /* Note [asserts]

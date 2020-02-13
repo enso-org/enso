@@ -36,10 +36,9 @@ In particular, you can provide them with `--release`, `--dev`, or `--profile`
 flags to switch the compilation profile. If not option is provided, the scripts
 default to the `--release` profile.
 
-### Running examples
-Please note that in order to run the examples you have to first build the
-project. For best experience, it is recommended to use the 
-`scripts/watch.sh --dev` in a second shell. In order to build the demo scenes, 
+### Running application and examples
+For best experience, it is recommended to use the 
+`scripts/watch.sh --dev` in a second shell. In order to build the IDE application, 
 follow the steps below:
 
 ```bash
@@ -48,7 +47,8 @@ npm install
 npm run start 
 ```
 
-You can now navigate to http://localhost:8080 and play with the demo scenes!
+You can now navigate to http://localhost:8080 and play with it! The example
+scenes will be available at http://localhost:8080/debug.
 
 While Webpack provides handy utilities for development, like live-reloading on
 sources change, it also adds some runtime overhead. In order to run the compiled
