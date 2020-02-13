@@ -176,6 +176,8 @@ pub fn get_performance() -> Result<Performance> {
 /// Trait used to set HtmlElement attributes.
 pub trait AttributeSetter {
     fn set_attribute_or_panic<T:Str,U:Str>(&self, name:T, value:U);
+
+    fn set_attribute_or_warn<T:Str,U:Str>(&self, name:T, value:U, logger:&Logger);
 }
 
 impl AttributeSetter for web_sys::Element {
@@ -185,6 +187,16 @@ impl AttributeSetter for web_sys::Element {
         let values = format!("\"{}\" = \"{}\" on \"{:?}\"",name,value,self);
         self.set_attribute(name,value)
             .unwrap_or_else(|_| panic!("Failed to set attribute {}", values));
+    }
+
+    fn set_attribute_or_warn<T:Str,U:Str>(&self, name:T, value:U, logger:&Logger) {
+        let name            = name.as_ref();
+        let value           = value.as_ref();
+        let values          = format!("\"{}\" = \"{}\" on \"{:?}\"",name,value,self);
+        let warn_msg : &str = &format!("Failed to set attribute {}", values);
+        if self.set_attribute(name,value).is_err() {
+            logger.warning(warn_msg)
+        }
     }
 }
 

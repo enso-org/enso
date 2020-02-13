@@ -24,5 +24,6 @@ pub mod shapes;
 pub mod sprite_system;
 pub mod text_field;
 pub mod text_typing;
+pub mod css3d_system;
 
 use enso_prelude as prelude;

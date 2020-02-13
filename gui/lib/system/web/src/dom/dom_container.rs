@@ -22,7 +22,7 @@ use std::rc::Rc;
 // ======================
 
 /// Resize callback used by `DOMContainer`.
-pub trait ResizeCallback = Fn(&Vector2<f32>) + 'static;
+pub trait ResizeCallback = FnMut(&Vector2<f32>) + 'static;
 
 
 
@@ -59,7 +59,7 @@ impl DomContainerData {
 
     fn on_resize(&self) {
         let dimensions = self.dimensions();
-        for callback in &self.properties.borrow().resize_callbacks {
+        for callback in &mut self.properties.borrow_mut().resize_callbacks {
             (callback)(&dimensions)
         }
     }

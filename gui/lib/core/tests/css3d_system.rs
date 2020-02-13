@@ -33,11 +33,8 @@ mod tests {
     use basegl::display::object::DisplayObjectOps;
     use basegl::display::object::DisplayObject;
     use nalgebra::Vector2;
-    use basegl::system::web::AttributeSetter;
-    use basegl::system::web::NodeInserter;
     use basegl::system::web::dyn_into;
     use basegl::system::web::get_element_by_id;
-    use basegl::system::web::create_element;
     use web_sys::HtmlElement;
 
     #[web_test(no_container)]

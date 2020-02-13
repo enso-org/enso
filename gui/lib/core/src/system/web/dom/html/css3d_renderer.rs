@@ -186,12 +186,12 @@ pub struct Css3dRenderer {
 impl Css3dRenderer {
     /// Creates a Css3dRenderer inside an element.
     pub fn from_element_or_panic(logger:&Logger, element:HtmlElement) -> Self {
-        let logger       = logger.sub("Css3dRenderer");
-        let container    = DomContainer::from_element(element);
-        let front_dom    = create_div();
-        let back_dom     = create_div();
+        let logger           = logger.sub("Css3dRenderer");
+        let container        = DomContainer::from_element(element);
+        let front_dom        = create_div();
+        let back_dom         = create_div();
         let front_camera_dom = create_div();
-        let back_camera_dom = create_div();
+        let back_camera_dom  = create_div();
 
         front_dom.set_style_or_warn("position","absolute",&logger);
         front_dom.set_style_or_warn("top","0px",&logger);
@@ -243,8 +243,6 @@ impl Css3dRenderer {
     }
 
     fn init(mut self) -> Self {
-        let dimensions = self.dimensions();
-        self.set_dimensions(dimensions);
         let data = self.data.clone();
         self.add_resize_callback(move |dimensions:&Vector2<f32>| {
             data.set_dimensions(*dimensions);
