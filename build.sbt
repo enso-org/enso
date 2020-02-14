@@ -101,7 +101,8 @@ lazy val enso = (project in file("."))
     graph,
     runner,
     gateway,
-    language_server
+    language_server,
+    json_rpc_server
   )
   .settings(Global / concurrentRestrictions += Tags.exclusive(Exclusive))
 
@@ -336,7 +337,7 @@ lazy val file_manager = (project in file("common/file-manager"))
     libraryDependencies += "org.scalatest"  %% "scalatest"      % "3.2.0-M2" % Test,
     libraryDependencies += "org.scalacheck" %% "scalacheck"     % "1.14.3" % Test,
     libraryDependencies += akkaTestkitTyped,
-    libraryDependencies += "commons-io" % "commons-io"        % "2.6",
+    libraryDependencies += "commons-io" % "commons-io" % "2.6",
     // upgrade blocked by gmethvin/directory-watcher#49
     libraryDependencies += "io.methvin" % "directory-watcher" % "0.9.6"
   )
@@ -405,9 +406,9 @@ lazy val polyglot_api = project
         .mkString(File.pathSeparator)}"
     ),
     libraryDependencies ++= Seq(
-      "org.graalvm.sdk" % "polyglot-tck" % graalVersion   % "provided",
-      "org.scalatest"   %% "scalatest"   % "3.2.0-M2"     % Test,
-      "org.scalacheck"  %% "scalacheck"  % "1.14.3"       % Test
+      "org.graalvm.sdk" % "polyglot-tck" % graalVersion % "provided",
+      "org.scalatest"   %% "scalatest"   % "3.2.0-M2"   % Test,
+      "org.scalacheck"  %% "scalacheck"  % "1.14.3"     % Test
     ),
     addCompilerPlugin(
       "org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full
@@ -438,8 +439,8 @@ lazy val language_server = (project in file("engine/language-server"))
     libraryDependencies ++= akka ++ Seq(
       "org.graalvm.sdk" % "polyglot-tck" % graalVersion % Provided,
       akkaTestkit       % Test,
-      "org.scalatest"   %% "scalatest"   % "3.2.0-M2"   % Test,
-      "org.scalacheck"  %% "scalacheck"  % "1.14.3"     % Test
+      "org.scalatest"   %% "scalatest" % "3.2.0-M2" % Test,
+      "org.scalacheck"  %% "scalacheck" % "1.14.3" % Test
     )
   )
   .dependsOn(polyglot_api)
@@ -449,10 +450,10 @@ lazy val gateway = (project in file("engine/gateway"))
   .settings(
     libraryDependencies ++= akka ++ circe ++ Seq(
       "io.circe"       %% "circe-generic-extras" % "0.12.2",
-      "io.circe"       %% "circe-literal"        % circeVersion,
+      "io.circe"       %% "circe-literal" % circeVersion,
       akkaTestkit      % Test,
-      "org.scalatest"  %% "scalatest"            % "3.2.0-M2" % Test,
-      "org.scalacheck" %% "scalacheck"           % "1.14.3" % Test
+      "org.scalatest"  %% "scalatest" % "3.2.0-M2" % Test,
+      "org.scalacheck" %% "scalacheck" % "1.14.3" % Test
     )
   )
 

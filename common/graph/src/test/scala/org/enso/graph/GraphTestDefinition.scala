@@ -4,9 +4,6 @@ import org.enso.graph.definition.Macro.{component, field, opaque}
 import org.enso.graph.{Graph => PrimGraph}
 import shapeless.{::, HNil}
 
-// import intentionally left unused
-import shapeless.nat._
-
 /** This file provides a small graph implementation for testing purposes.
   *
   * It creates a small graph implementation that tests both the various features
@@ -85,6 +82,7 @@ object GraphTestDefinition {
     // ========================================================================
     // === Component Field Definitions ========================================
     // ========================================================================
+
 
     object Node {
 

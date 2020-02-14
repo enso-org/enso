@@ -1,18 +1,11 @@
 package org.enso.compiler.test.core
 
-import org.enso.compiler.test.CompilerTest
 import org.enso.core.CoreGraph.DefinitionGen.Node.LocationVal
-import org.enso.core.CoreGraph.DefinitionGen.{
-  AstStorage,
-  Link,
-  LiteralStorage,
-  NameStorage,
-  Node,
-  ParentStorage
-}
-import org.scalatest.BeforeAndAfterEach
 import org.enso.graph.{Graph => PrimGraph}
 import org.enso.syntax.text.AST
+import org.scalatest.BeforeAndAfterEach
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /** This file tests the primitive, low-level operations on core.
   *
@@ -22,14 +15,14 @@ import org.enso.syntax.text.AST
   * PLEASE NOTE: Many of these tests will be removed once the smart constructors
   * exist.
   */
-class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
+class CorePrimTest extends AnyFlatSpec with Matchers with BeforeAndAfterEach {
 
   // === Test Setup ===========================================================
-  import org.enso.core.CoreGraph.DefinitionGen._
   import org.enso.core.CoreGraph.DefinitionGen.Link.Shape._
-  import org.enso.core.CoreGraph.DefinitionGen.Node.Shape._
   import org.enso.core.CoreGraph.DefinitionGen.Node.Location._
   import org.enso.core.CoreGraph.DefinitionGen.Node.ParentLinks._
+  import org.enso.core.CoreGraph.DefinitionGen.Node.Shape._
+  import org.enso.core.CoreGraph.DefinitionGen._
 
   // Reassignable mutable fixture elements
   implicit var graph: PrimGraph.GraphData[CoreGraph] = _
@@ -140,8 +133,8 @@ class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
     consNode.parents  = Vector()
 
     // Intentional re-assignment in reverse order to check for clobbering
-    consNode.tail     = nilLink
-    consNode.head     = emptyLink
+    consNode.tail = nilLink
+    consNode.head = emptyLink
 
     consNode.head shouldEqual emptyLink
     consNode.tail shouldEqual nilLink

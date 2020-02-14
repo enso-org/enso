@@ -78,7 +78,7 @@ object CoreGraph {
         * would only make sense if the link direction was reversed. Instead, it
         * holds unsafe references to the incoming link in the underlying graph.
         * These can be turned into the [[Link]]s directly by using
-        * [[PrimGraph.GraphData.componentReferenceFromIndex()]].
+        * [[PrimGraph.GraphData.componentRefFromIndex()]].
         *
         * @param parents a vector containing the raw indices of the parent links
         * @tparam G the graph type
@@ -561,20 +561,20 @@ object CoreGraph {
         PrimGraph.Component.Refined[Node.Shape, V, Node[CoreGraph]](node)
       }
 
-      /** Sets the shape of the provided [[node]] to [[Shape]].
+      /** Sets the shape of the provided [[node]] to [[NodeShape]].
         *
         * @param node the node to set
-        * @param ev evidence that [[Shape]] belongs to an indexed variant
+        * @param ev evidence that [[NodeShape]] belongs to an indexed variant
         * @param graph the graph to mutate
-        * @tparam Shape the shape to set the node to
+        * @tparam NodeShape the shape to set the node to
         */
-      def setShape[Shape <: Node.Shape](
+      def setShape[NodeShape <: Node.Shape](
         node: Node[CoreGraph]
       )(
-        implicit ev: VariantIndexed[Node.Shape, Shape],
+        implicit ev: VariantIndexed[Node.Shape, NodeShape],
         graph: PrimGraph.GraphData[CoreGraph]
       ): Unit = {
-        graph.unsafeSetVariantCase[Nodes, Node.Shape, Shape](node)
+        graph.unsafeSetVariantCase[Nodes, Node.Shape, NodeShape](node)
       }
 
       /** Checks whether a given node represents some kind of language error.

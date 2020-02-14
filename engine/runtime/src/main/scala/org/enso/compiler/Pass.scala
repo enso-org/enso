@@ -18,7 +18,7 @@ trait Pass[In, Out] {
     * @param metadata any metadata produced by the pass
     * @tparam TOut the type of the pass output metadata
     */
-  final case class Output[TOut](result: Out, metadata: TOut)
+  sealed case class Output[TOut](result: Out, metadata: TOut)
 
   /**
     * Executes the pass on the source, with optional input metadata.

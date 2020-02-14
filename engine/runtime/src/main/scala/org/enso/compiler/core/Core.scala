@@ -1,15 +1,17 @@
 package org.enso.compiler.core
 
 import cats.data.NonEmptyList
+import com.oracle.truffle.api.nodes.UnexpectedResultException
 import org.enso.core.CoreGraph.DefinitionGen.Node.{
-  Shape => NodeShape,
-  LocationVal
+  LocationVal,
+  Shape => NodeShape
 }
 import org.enso.core.CoreGraph.{DefinitionGen => CoreDef}
 import org.enso.graph.{Graph => PrimGraph}
 import org.enso.syntax.text.{AST, Location => AstLocation}
 
 import scala.annotation.tailrec
+import scala.collection.mutable
 
 // TODO [AA] Detailed semantic descriptions for each node shape in future.
 // TODO [AA] Refactor over time to remove as much boilerplate as possible.
@@ -18,6 +20,7 @@ import scala.annotation.tailrec
 // TODO [AA] Need to present a nice interface
 //  - Copy subsection of graph
 //  - Check equality for subsection of graph
+//  - These need to be _very_ careful about cycles
 
 /** [[Core]] is the sophisticated internal representation supported by the
   * compiler.
@@ -76,8 +79,10 @@ object Core {
 
   // === Components ===========================================================
 
-  type Node = CoreDef.Node[Graph]
-  type Link = CoreDef.Link[Graph]
+  type Node  = CoreDef.Node[Graph]
+  type Nodes = CoreDef.Nodes
+  type Link  = CoreDef.Link[Graph]
+  type Links = CoreDef.Links
   type RefinedNode[V <: CoreDef.Node.Shape] =
     PrimGraph.Component.Refined[NodeShape, V, Node]
 
@@ -152,7 +157,7 @@ object Core {
         head: Node,
         tail: Node
       )(implicit core: Core): ConsErrOr[NodeShape.MetaList] = {
-        if (Utility.isListNode(tail)) {
+        if (Utility.ListOps.is(tail)) {
           val node = CoreDef.Node.addRefined[NodeShape.MetaList]
 
           val headLink = Link.New.Connected(node, head)
@@ -165,7 +170,7 @@ object Core {
 
           Right(node)
         } else {
-          val errorElems = Utility.coreListFrom(tail)
+          val errorElems = Utility.ListOps.from(tail)
           val errorNode  = ConstructionError(errorElems, tail.location)
 
           Left(errorNode)
@@ -363,13 +368,13 @@ object Core {
         definitions: Node,
         location: Location
       )(implicit core: Core): ConsErrOr[NodeShape.ModuleDef] = {
-        if (!Utility.isListNode(imports)) {
-          val errorElems = Utility.coreListFrom(imports)
+        if (!Utility.ListOps.is(imports)) {
+          val errorElems = Utility.ListOps.from(imports)
           val error      = ConstructionError(errorElems, imports.location)
 
           Left(error)
-        } else if (!Utility.isListNode(definitions)) {
-          val errorElems = Utility.coreListFrom(definitions)
+        } else if (!Utility.ListOps.is(definitions)) {
+          val errorElems = Utility.ListOps.from(definitions)
           val error      = ConstructionError(errorElems, definitions.location)
 
           Left(error)
@@ -401,7 +406,7 @@ object Core {
         segments: Node,
         location: Location
       )(implicit core: Core): ConsErrOr[NodeShape.Import] = {
-        if (Utility.isListNode(segments)) {
+        if (Utility.ListOps.is(segments)) {
           val node = CoreDef.Node.addRefined[NodeShape.Import]
 
           val segmentsLink = Link.New.Connected(node, segments)
@@ -412,7 +417,7 @@ object Core {
 
           Right(node)
         } else {
-          val errList = Utility.coreListFrom(segments)
+          val errList = Utility.ListOps.from(segments)
           val errNode = ConstructionError(errList, segments.location)
 
           Left(errNode)
@@ -471,7 +476,7 @@ object Core {
         args: Node,
         location: Location
       )(implicit core: Core): ConsErrOr[NodeShape.AtomDef] = {
-        if (Utility.isListNode(args)) {
+        if (Utility.ListOps.is(args)) {
           val node = CoreDef.Node.addRefined[NodeShape.AtomDef]
 
           val nameLink = Link.New.Connected(node, name)
@@ -484,7 +489,7 @@ object Core {
 
           Right(node)
         } else {
-          val errList = Utility.coreListFrom(args)
+          val errList = Utility.ListOps.from(args)
           val errNode = ConstructionError(errList, args.location)
 
           Left(errNode)
@@ -506,13 +511,13 @@ object Core {
         body: Node,
         location: Location
       )(implicit core: Core): ConsErrOr[NodeShape.TypeDef] = {
-        if (!Utility.isListNode(typeParams)) {
-          val errList = Utility.coreListFrom(typeParams)
+        if (!Utility.ListOps.is(typeParams)) {
+          val errList = Utility.ListOps.from(typeParams)
           val errNode = ConstructionError(errList, typeParams.location)
 
           Left(errNode)
-        } else if (!Utility.isListNode(body)) {
-          val errList = Utility.coreListFrom(body)
+        } else if (!Utility.ListOps.is(body)) {
+          val errList = Utility.ListOps.from(body)
           val errNode = ConstructionError(errList, body.location)
 
           Left(errNode)
@@ -841,7 +846,7 @@ object Core {
         body: Node,
         location: Location
       )(implicit core: Core): ConsErrOr[NodeShape.FunctionDef] = {
-        if (Utility.isListNode(args)) {
+        if (Utility.ListOps.is(args)) {
           val node = CoreDef.Node.addRefined[NodeShape.FunctionDef]
 
           val nameLink = Link.New.Connected(node, name)
@@ -856,7 +861,7 @@ object Core {
 
           Right(node)
         } else {
-          val errList = Utility.coreListFrom(args)
+          val errList = Utility.ListOps.from(args)
           val errNode = ConstructionError(errList, args.location)
 
           Left(errNode)
@@ -900,7 +905,7 @@ object Core {
 
           Right(node)
         } else {
-          val errList = Utility.coreListFrom(function)
+          val errList = Utility.ListOps.from(function)
           val errNode = ConstructionError(errList, function.location)
 
           Left(errNode)
@@ -946,7 +951,7 @@ object Core {
         default: Node,
         location: Location
       )(implicit core: Core): ConsErrOr[NodeShape.DefinitionArgument] = {
-        if (Utility.isBoolNode(suspended)) {
+        if (Utility.BoolOps.is(suspended)) {
           val node = CoreDef.Node.addRefined[NodeShape.DefinitionArgument]
 
           val nameLink      = Link.New.Connected(node, name)
@@ -961,7 +966,7 @@ object Core {
 
           Right(node)
         } else {
-          val errList = Utility.coreListFrom(suspended)
+          val errList = Utility.ListOps.from(suspended)
           val errNode = ConstructionError(errList, suspended.location)
 
           Left(errNode)
@@ -1224,7 +1229,7 @@ object Core {
         returnVal: Node,
         location: Location
       )(implicit core: Core): ConsErrOr[NodeShape.Block] = {
-        if (Utility.isListNode(expressions)) {
+        if (Utility.ListOps.is(expressions)) {
           val node = CoreDef.Node.addRefined[NodeShape.Block]
 
           val expressionsLink = Link.New.Connected(node, expressions)
@@ -1237,7 +1242,7 @@ object Core {
 
           Right(node)
         } else {
-          val errList = Utility.coreListFrom(expressions)
+          val errList = Utility.ListOps.from(expressions)
           val errNode = ConstructionError(errList, expressions.location)
 
           Left(errNode)
@@ -1287,7 +1292,7 @@ object Core {
         branches: Node,
         location: Location
       )(implicit core: Core): ConsErrOr[NodeShape.CaseExpr] = {
-        if (Utility.isListNode(branches)) {
+        if (Utility.ListOps.is(branches)) {
           val node = CoreDef.Node.addRefined[NodeShape.CaseExpr]
 
           val scrutineeLink = Link.New.Connected(node, scrutinee)
@@ -1300,7 +1305,7 @@ object Core {
 
           Right(node)
         } else {
-          val errList = Utility.coreListFrom(branches)
+          val errList = Utility.ListOps.from(branches)
           val errNode = ConstructionError(errList, branches.location)
 
           Left(errNode)
@@ -1495,7 +1500,7 @@ object Core {
 
             Right(node)
           case _ =>
-            val errList = Utility.coreListFrom(code)
+            val errList = Utility.ListOps.from(code)
             val errNode = ConstructionError(errList, code.location)
 
             Left(errNode)
@@ -1539,11 +1544,12 @@ object Core {
         erroneousCore: Node,
         location: Location
       )(implicit core: Core): RefinedNode[NodeShape.ConstructionError] = {
-        val erroneousCoreList: Node = if (Utility.isListNode(erroneousCore)) {
-          erroneousCore
-        } else {
-          Utility.coreListFrom(erroneousCore)
-        }
+        val erroneousCoreList: Node =
+          if (Utility.ListOps.is(erroneousCore)) {
+            erroneousCore
+          } else {
+            Utility.ListOps.from(erroneousCore)
+          }
 
         val node = CoreDef.Node.addRefined[NodeShape.ConstructionError]
 
@@ -1584,131 +1590,284 @@ object Core {
     /** Utility functions for working with nodes. */
     object Utility {
 
-      /** Checks if two lists on the core graph are equal.
-        *
-        * Equality for lists is defined as the lists containing the same nodes
-        * as members. The nodes making up the lists themselves need not be
-        * equal.
-        *
-        * @param left the first list
-        * @param right the second list
-        * @param core an implicit instance of core
-        * @return `true` if [[left]] is equal to [[right]], `false` otherwise
-        */
-      def listsAreEqual(
-        left: RefinedNode[MetaList],
-        right: RefinedNode[MetaList]
-      )(implicit core: Core): Boolean = {
-        @tailrec
-        def go(
-          left: Node,
-          right: Node
-        ): Boolean = {
-          left match {
-            case NodeShape.MetaNil.any(_) =>
-              right match {
-                case NodeShape.MetaNil.any(_) => true
-                case _                        => false
-              }
-            case NodeShape.MetaList.any(left1) =>
-              right match {
-                case NodeShape.MetaList.any(right1) =>
-                  (left1.head.target == right1.head.target) && go(
-                    left1.tail.target,
-                    right1.tail.target
-                  )
+      object ListOps {
+
+        /** Checks if two lists on the core graph are equal.
+          *
+          * Equality for lists is defined as the lists containing the same nodes
+          * as members. The nodes making up the lists themselves need not be
+          * equal.
+          *
+          * @param left the first list
+          * @param right the second list
+          * @param core an implicit instance of core
+          * @return `true` if [[left]] is equal to [[right]], `false` otherwise
+          */
+        def equals(
+          left: RefinedNode[MetaList],
+          right: RefinedNode[MetaList]
+        )(implicit core: Core): Boolean = {
+          val visitedNodesInLeft  = mutable.ArrayBuffer[Int]()
+          val visitedNodesInRight = mutable.ArrayBuffer[Int]()
+
+          @tailrec
+          def go(
+            left: Node,
+            right: Node
+          ): Boolean = {
+            val leftIsVisited  = visitedNodesInLeft.contains(left.ix)
+            val rightIsVisited = visitedNodesInRight.contains(right.ix)
+
+            if (leftIsVisited && rightIsVisited) {
+              true
+            } else if (!leftIsVisited && !rightIsVisited) {
+              visitedNodesInLeft.append(left.ix)
+              visitedNodesInRight.append(right.ix)
+
+              left match {
+                case NodeShape.MetaNil.any(_) =>
+                  right match {
+                    case NodeShape.MetaNil.any(_) => true
+                    case _                        => false
+                  }
+                case NodeShape.MetaList.any(left1) =>
+                  right match {
+                    case NodeShape.MetaList.any(right1) =>
+                      (left1.head.target == right1.head.target) && go(
+                        left1.tail.target,
+                        right1.tail.target
+                      )
+                    case _ => false
+                  }
                 case _ => false
               }
-            case _ => false
+            } else {
+              false
+            }
+          }
+
+          go(left, right)
+        }
+
+        /** Checks if the provided node is a meta-level list node.
+          *
+          * A node is considered to be a list node when it has either the shape
+          * [[NodeShape.MetaList]] or the shape [[NodeShape.MetaNil]].
+          *
+          * @param node the node to check
+          * @param core an implicit instance of core
+          * @return `true` if [[node]] is a list node, otherwise `false`
+          */
+        def is(node: Node)(implicit core: Core): Boolean = {
+          node match {
+            case NodeShape.MetaNil.any(_)  => true
+            case NodeShape.MetaList.any(_) => true
+            case _                         => false
           }
         }
 
-        go(left, right)
-      }
+        /** Finds the end of a list.
+          *
+          * @param node the list node to find the end of
+          * @param core an implicit instance of core
+          * @return [[Some]] when the [[node]] has an end, otherwise [[None]] if
+          *         [[node]] is cyclic or not a list
+          */
+        def end(node: Node)(implicit core: Core): Option[Node] = {
+          val visitedNodes = mutable.ArrayBuffer[Int]()
 
-      /** Checks if the provided node is a meta-level boolean node.
-       *
-       * @param node the node to check
-       * @param core an implicit instance of core
-       * @return `true` if [[node]] is a meta boolean, `false` otherwise
-       */
-      def isBoolNode(node: Node)(implicit core: Core): Boolean = {
-        node match {
-          case NodeShape.MetaTrue.any(_) => true
-          case NodeShape.MetaFalse.any(_) => true
-          case _ => false
+          @tailrec
+          def go(node: Node): Option[Node] = {
+            if (visitedNodes contains node.ix) {
+              None
+            } else {
+              node match {
+                case NodeShape.MetaNil.any(_)     => Some(node)
+                case NodeShape.MetaList.any(list) => go(list.tail.target)
+                case _                            => None
+              }
+            }
+          }
+
+          go(node)
+        }
+
+        /** Determines the length of a list.
+          *
+          * @param node the node representing a list
+          * @param core an implicit instance of core
+          * @return [[Some]] when [[node]] is a list that is not cyclical,
+          *         [[None]] when [[node]] is not a list or is cylical
+          */
+        def length(node: Node)(implicit core: Core): Option[Int] = {
+          val visitedNodes = mutable.ArrayBuffer[Int]()
+          var accumulator  = 0
+
+          @tailrec
+          @throws[UnexpectedResultException]
+          def go(node: Node): Int = {
+            if (visitedNodes.contains(node.ix)) {
+              throw new UnexpectedResultException(-1)
+            } else {
+              visitedNodes.append(node.ix)
+
+              node match {
+                case NodeShape.MetaNil.any(_) => accumulator
+                case NodeShape.MetaList.any(list) =>
+                  accumulator += 1
+                  go(list.tail.target)
+                case _ => throw new UnexpectedResultException(-1)
+              }
+            }
+          }
+
+          try {
+            Some(go(node))
+          } catch {
+            case _: UnexpectedResultException => None
+          }
+        }
+
+        /** Gets the node at a particular index in the list.
+          *
+          * @param node the node representing a list
+          * @param index the index of the item you want to access
+          * @param core an implicit instance of core
+          * @return [[Some]] if the item exists, [[None]] if the index is out of
+          *         bounds, [[node]] is not a list, or if [[index]] is past the
+          *         loop point in a cyclical list
+          */
+        def at(node: Node, index: Int)(implicit core: Core): Option[Node] = {
+          val visitedNodes = mutable.ArrayBuffer[Int]()
+
+          @tailrec
+          def go(node: Node, currentIndex: Int): Option[Node] = {
+            if (visitedNodes.contains(node.ix)) {
+              None
+            } else {
+              visitedNodes.append(node.ix)
+
+              node match {
+                case NodeShape.MetaNil.any(_) => None
+                case NodeShape.MetaList.any(list) =>
+                  if (currentIndex == index) {
+                    Some(list.head.target)
+                  } else {
+                    go(list.tail.target, currentIndex + 1)
+                  }
+                case _ => None
+              }
+            }
+          }
+
+          go(node, 0)
+        }
+
+        /** Constructs a meta list on the [[Core]] graph from a single core
+          * expression.
+          *
+          * @param node the expression to turn into a valid list
+          * @param core an implicit instance of core
+          * @return a node representing the head of a meta-level list
+          */
+        def from(
+          node: Node
+        )(implicit core: Core): RefinedNode[NodeShape.MetaList] = {
+          from(NonEmptyList(node, List()))
+        }
+
+        /** Constructs a meta list on the [[Core]] graph from a list of [[Core]]
+          * nodes.
+          *
+          * @param nodes the nodes to make a list out of
+          * @param core an implicit instance of core
+          * @return a node representing the head of a meta-level list
+          */
+        def from(
+          nodes: NonEmptyList[Node]
+        )(implicit core: Core): RefinedNode[NodeShape.MetaList] = {
+          val nodesWithNil = nodes :+ New.MetaNil().wrapped
+
+          // Note [Unsafety in List Construction]
+          val unrefinedMetaList =
+            nodesWithNil.toList.reduceRight(
+              (l, r) =>
+                New
+                  .MetaList(l, r)
+                  .getOrElse(throw new RuntimeException("Should never happen."))
+                  .wrapped
+            )
+
+          PrimGraph.Component.Refined
+            .wrap[NodeShape, NodeShape.MetaList, Node](unrefinedMetaList)
+        }
+
+        /* Note [Unsafety in List Construction]
+         * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+         * This makes use of internal implementation details to know that calling
+         * `right` here is always safe. The error condition for the `metaList`
+         * constructor occurs when the `tail` argument doesn't point to a valid
+         * list element, but here we construct that element directly and hence we
+         * know that it is valid.
+         *
+         * Furthermore, we can unconditionally refine the type as we know that the
+         * node we get back must be a MetaList, and we know that the input is not
+         * empty.
+         *
+         * It also bears noting that for this to be safe we _must_ use a right
+         * reduce, rather than a left reduce, otherwise the elements will not be
+         * constructed properly. This does, however, mean that this can stack
+         * overflow when provided with too many elements.
+         */
+
+        /** Generates a meta list on the core graph of length [[length]], with
+          * each cell filled with an empty node.
+          *
+          * @param length the length of the list to generate
+          * @param core an implicit instance of core
+          * @return a list of length [[length]] if `length > 0`, otherwise an
+          *         empty list.
+          */
+        def ofLength(length: Int)(implicit core: Core): Node = {
+          val nil = Node.New.MetaNil
+
+          @tailrec
+          def go(tail: Node, remainingLength: Int): Node = {
+            if (remainingLength == 0) {
+              tail
+            } else {
+              val cons = Node.New
+                .MetaList(Node.New.Empty(), tail)
+                .getOrElse(throw new RuntimeException("Should never happen"))
+
+              go(cons, remainingLength - 1)
+            }
+          }
+
+          if (length <= 0) {
+            nil
+          } else {
+            go(nil, length)
+          }
         }
       }
 
-      /** Checks if the provided node is a meta-level list node.
-        *
-        * A node is considered to be a list node when it has either the shape
-        * [[NodeShape.MetaList]] or the shape [[NodeShape.MetaNil]].
-        *
-        * @param node the node to check
-        * @param core an implicit instance of core
-        * @return `true` if [[node]] is a list node, otherwise `false`
-        */
-      def isListNode(node: Node)(implicit core: Core): Boolean = {
-        node match {
-          case NodeShape.MetaNil.any(_)  => true
-          case NodeShape.MetaList.any(_) => true
-          case _                         => false
+      object BoolOps {
+
+        /** Checks if the provided node is a meta-level boolean node.
+          *
+          * @param node the node to check
+          * @param core an implicit instance of core
+          * @return `true` if [[node]] is a meta boolean, `false` otherwise
+          */
+        def is(node: Node)(implicit core: Core): Boolean = {
+          node match {
+            case NodeShape.MetaTrue.any(_)  => true
+            case NodeShape.MetaFalse.any(_) => true
+            case _                          => false
+          }
         }
       }
-
-      /** Constructs a meta list on the [[Core]] graph from a single core
-        * expression.
-        *
-        * @param node the expression to turn into a valid list
-        * @param core an implicit instance of core
-        * @return a node representing the head of a meta-level list
-        */
-      def coreListFrom(
-        node: Node
-      )(implicit core: Core): RefinedNode[NodeShape.MetaList] = {
-        coreListFrom(NonEmptyList(node, List()))
-      }
-
-      /** Constructs a meta list on the [[Core]] graph from a list of [[Core]]
-        * nodes.
-        *
-        * @param nodes the nodes to make a list out of
-        * @param core an implicit instance of core
-        * @return a node representing the head of a meta-level list
-        */
-      def coreListFrom(
-        nodes: NonEmptyList[Node]
-      )(implicit core: Core): RefinedNode[NodeShape.MetaList] = {
-        val nodesWithNil = nodes :+ New.MetaNil().wrapped
-
-        // Note [Unsafety in List Construction]
-        val unrefinedMetaList =
-          nodesWithNil.toList.reduceRight(
-            (l, r) => New.MetaList(l, r).right.get.wrapped
-          )
-
-        PrimGraph.Component.Refined
-          .wrap[NodeShape, NodeShape.MetaList, Node](unrefinedMetaList)
-      }
-
-      /* Note [Unsafety in List Construction]
-     * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-     * This makes use of internal implementation details to know that calling
-     * `right` here is always safe. The error condition for the `metaList`
-     * constructor occurs when the `tail` argument doesn't point to a valid
-     * list element, but here we construct that element directly and hence we
-     * know that it is valid.
-     *
-     * Furthermore, we can unconditionally refine the type as we know that the
-     * node we get back must be a MetaList, and we know that the input is not
-     * empty.
-     *
-     * It also bears noting that for this to be safe we _must_ use a right
-     * reduce, rather than a left reduce, otherwise the elements will not be
-     * constructed properly. This does, however, mean that this can stack
-     * overflow when provided with too many elements.
-     */
     }
   }
 

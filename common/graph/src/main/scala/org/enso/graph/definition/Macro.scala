@@ -208,8 +208,7 @@ object Macro {
           enclosingName,
           fieldName,
           graphTypeName,
-          valClassTypeName,
-          isSimple
+          valClassTypeName
         )
 
         accessorDefs ++ valClassAccessors
@@ -478,8 +477,6 @@ object Macro {
         *                  `enclosingName` above)
         * @param graphTypeName the name of the graph type
         * @param valClassTypeName the typename of the value class
-        * @param isSimple whather or not the accessors are being generated for a
-        *                 simple field or a variant field
         * @return the definitions of the value class getter and the value class
         *         setter
         */
@@ -488,8 +485,7 @@ object Macro {
         enclosingName: TypeName,
         fieldName: TypeName,
         graphTypeName: TypeName,
-        valClassTypeName: TypeName,
-        isSimple: Boolean
+        valClassTypeName: TypeName
       ): List[Tree] = {
         val graphTermName = graphTypeName.toTermName
 

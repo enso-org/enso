@@ -1,8 +1,8 @@
 package org.enso.compiler.test
 
-import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 
 trait CompilerRunner {}
 
-trait CompilerTest extends AnyFlatSpec with Matchers with CompilerRunner
+trait CompilerTest extends AnyWordSpecLike with Matchers with CompilerRunner

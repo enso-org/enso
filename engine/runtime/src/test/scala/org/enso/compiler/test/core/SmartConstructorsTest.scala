@@ -2,19 +2,16 @@ package org.enso.compiler.test.core
 
 import cats.data.NonEmptyList
 import org.enso.compiler.core.Core
+import org.enso.compiler.core.Core.Node.Utility.BoolOps
 import org.enso.compiler.core.Core.Node.{Constants, Utility}
+import org.enso.compiler.test.CompilerTest
 import org.enso.core.CoreGraph.DefinitionGen.Node.{Shape => NodeShape}
 import org.enso.core.CoreGraph.{DefinitionGen => CoreDef}
 import org.enso.graph.{Graph => PrimGraph}
 import org.enso.syntax.text.{AST, Location => AstLocation}
-import org.scalatest.{Assertion, BeforeAndAfterEach}
-import org.scalatest.matchers.should.Matchers
-import org.scalatest.wordspec.AnyWordSpecLike
+import org.scalatest.Assertion
 
-class SmartConstructorsTest
-    extends AnyWordSpecLike
-    with Matchers
-    with BeforeAndAfterEach {
+class SmartConstructorsTest extends CompilerTest {
 
   // === Test Setup ===========================================================
 
@@ -57,14 +54,12 @@ class SmartConstructorsTest
       * @return a success if [[maybeErr]] is a failure and the contained error
       *         matches [[errList]], otherwise a failure
       */
-    def shouldFailWithResult[T <: CoreDef.Node.Shape](
-      errList: RefinedNode[MetaList]
-    ): Assertion = {
+    def shouldFailWithResult(errList: RefinedNode[MetaList]): Assertion = {
       maybeErr match {
         case Left(err) =>
           err.erroneousCore.target match {
             case NodeShape.MetaList.any(xs) =>
-              if (Utility.listsAreEqual(xs, errList)) {
+              if (Utility.ListOps.equals(xs, errList)) {
                 succeed
               } else {
                 fail
@@ -92,7 +87,8 @@ class SmartConstructorsTest
     implicit val core: Core = new Core()
     val emptyNode           = Node.New.Empty()
     val nilNode             = Node.New.MetaNil()
-    val listNode            = Node.New.MetaList(emptyNode, nilNode).right.get
+    val listNode =
+      Node.New.MetaList(emptyNode, nilNode).getOrElse(fail)
 
     "have valid fields" in {
       listNode.location shouldEqual Node.Constants.invalidLocation
@@ -114,7 +110,7 @@ class SmartConstructorsTest
     "fail to construct if tail isn't a valid meta list" in {
       val node = Node.New.MetaList(emptyNode, emptyNode)
 
-      node shouldFailWithResult Utility.coreListFrom(emptyNode)
+      node shouldFailWithResult Utility.ListOps.from(emptyNode)
     }
   }
 
@@ -229,7 +225,7 @@ class SmartConstructorsTest
     val name                = Node.New.Name("MyModule", dummyLocation)
 
     val module =
-      Node.New.ModuleDef(name, importNil, defNil, dummyLocation).right.get
+      Node.New.ModuleDef(name, importNil, defNil, dummyLocation).getOrElse(fail)
 
     "have valid fields" in {
       module.location shouldEqual dummyLocation
@@ -253,12 +249,12 @@ class SmartConstructorsTest
 
     "fail to construct if imports isn't a meta list" in {
       val node = Node.New.ModuleDef(name, name, defNil, dummyLocation)
-      node shouldFailWithResult Utility.coreListFrom(name)
+      node shouldFailWithResult Utility.ListOps.from(name)
     }
 
     "fail if construct definitions isn't a meta list" in {
       val node = Node.New.ModuleDef(name, importNil, name, dummyLocation)
-      node shouldFailWithResult Utility.coreListFrom(name)
+      node shouldFailWithResult Utility.ListOps.from(name)
     }
   }
 
@@ -267,7 +263,7 @@ class SmartConstructorsTest
     val segmentsNil         = Node.New.MetaNil()
     val empty               = Node.New.Empty()
     val imp =
-      Node.New.Import(segmentsNil, dummyLocation).right.get
+      Node.New.Import(segmentsNil, dummyLocation).getOrElse(fail)
 
     "have valid fields" in {
       imp.location shouldEqual dummyLocation
@@ -286,7 +282,7 @@ class SmartConstructorsTest
     "fail to construct if segments isn't a valid meta list" in {
       val node = Node.New.Import(empty, dummyLocation)
 
-      node shouldFailWithResult Utility.coreListFrom(empty)
+      node shouldFailWithResult Utility.ListOps.from(empty)
     }
   }
 
@@ -298,7 +294,9 @@ class SmartConstructorsTest
     val binding =
       Node.New.Binding(bindingSrc, bindingTgt, dummyLocation)
     val topLevelBinding =
-      Node.New.TopLevelBinding(emptyModule, binding, dummyLocation).right.get
+      Node.New
+        .TopLevelBinding(emptyModule, binding, dummyLocation)
+        .getOrElse(fail)
 
     "have valid fields" in {
       topLevelBinding.location shouldEqual dummyLocation
@@ -321,7 +319,7 @@ class SmartConstructorsTest
       val node =
         Node.New.TopLevelBinding(emptyModule, bindingSrc, dummyLocation)
 
-      node shouldFailWithResult Utility.coreListFrom(bindingSrc)
+      node shouldFailWithResult Utility.ListOps.from(bindingSrc)
     }
   }
 
@@ -332,9 +330,9 @@ class SmartConstructorsTest
 
     val name    = Node.New.Empty()
     val argName = Node.New.Empty()
-    val args    = Utility.coreListFrom(argName)
+    val args    = Utility.ListOps.from(argName)
 
-    val atomDef = Node.New.AtomDef(name, args, dummyLocation).right.get
+    val atomDef = Node.New.AtomDef(name, args, dummyLocation).getOrElse(fail)
 
     "have valid fields" in {
       atomDef.location shouldEqual dummyLocation
@@ -356,7 +354,7 @@ class SmartConstructorsTest
     "fail to construct if args is not a valid meta list" in {
       val node = Node.New.AtomDef(name, argName, dummyLocation)
 
-      node shouldFailWithResult Utility.coreListFrom(argName)
+      node shouldFailWithResult Utility.ListOps.from(argName)
     }
   }
 
@@ -365,12 +363,13 @@ class SmartConstructorsTest
 
     val name    = Node.New.Empty()
     val tParam  = Node.New.Empty()
-    val tParams = Utility.coreListFrom(tParam)
+    val tParams = Utility.ListOps.from(tParam)
 
     val bodyExpr = Node.New.Empty()
-    val body     = Utility.coreListFrom(bodyExpr)
+    val body     = Utility.ListOps.from(bodyExpr)
 
-    val typeDef = Node.New.TypeDef(name, tParams, body, dummyLocation).right.get
+    val typeDef =
+      Node.New.TypeDef(name, tParams, body, dummyLocation).getOrElse(fail)
 
     "have valid fields" in {
       typeDef.location shouldEqual dummyLocation
@@ -394,11 +393,11 @@ class SmartConstructorsTest
 
     "fail to construct of the type params are not a valid meta list" in {
       val node = Node.New.TypeDef(name, name, body, dummyLocation)
-      node shouldFailWithResult Utility.coreListFrom(name)
+      node shouldFailWithResult Utility.ListOps.from(name)
     }
     "fail to construct if the body is not a valid meta list" in {
       val node = Node.New.TypeDef(name, tParams, name, dummyLocation)
-      node shouldFailWithResult Utility.coreListFrom(name)
+      node shouldFailWithResult Utility.ListOps.from(name)
     }
   }
 
@@ -674,11 +673,11 @@ class SmartConstructorsTest
 
     val name = Node.New.Empty()
     val arg  = Node.New.Empty()
-    val args = Utility.coreListFrom(arg)
+    val args = Utility.ListOps.from(arg)
     val body = Node.New.Empty()
 
     val functionDef =
-      Node.New.FunctionDef(name, args, body, dummyLocation).right.get
+      Node.New.FunctionDef(name, args, body, dummyLocation).getOrElse(fail)
 
     "have valid fields" in {
       functionDef.location shouldEqual dummyLocation
@@ -702,7 +701,7 @@ class SmartConstructorsTest
 
     "fail to construct if args is not a meta list" in {
       val node = Node.New.FunctionDef(name, name, body, dummyLocation)
-      node shouldFailWithResult Utility.coreListFrom(name)
+      node shouldFailWithResult Utility.ListOps.from(name)
     }
   }
 
@@ -716,7 +715,9 @@ class SmartConstructorsTest
     val function   = Node.New.Lambda(lamArg, lamBody, dummyLocation)
 
     val methodDef =
-      Node.New.MethodDef(targetPath, name, function, dummyLocation).right.get
+      Node.New
+        .MethodDef(targetPath, name, function, dummyLocation)
+        .getOrElse(fail)
 
     "have valid fields" in {
       methodDef.location shouldEqual dummyLocation
@@ -740,7 +741,7 @@ class SmartConstructorsTest
 
     "fail to construct if function is not a valid function representation" in {
       val node = Node.New.MethodDef(targetPath, name, name, dummyLocation)
-      node shouldFailWithResult Utility.coreListFrom(name)
+      node shouldFailWithResult Utility.ListOps.from(name)
     }
   }
 
@@ -766,8 +767,7 @@ class SmartConstructorsTest
 
     val arg = Node.New
       .DefinitionArgument(name, suspended, default, dummyLocation)
-      .right
-      .get
+      .getOrElse(fail)
 
     "have valid fields" in {
       arg.location shouldEqual dummyLocation
@@ -791,7 +791,7 @@ class SmartConstructorsTest
 
     "fail to construct if suspended is not a meta boolean" in {
       val node = Node.New.DefinitionArgument(name, name, default, dummyLocation)
-      node shouldFailWithResult Utility.coreListFrom(name)
+      node shouldFailWithResult Utility.ListOps.from(name)
     }
   }
 
@@ -1004,10 +1004,11 @@ class SmartConstructorsTest
   "Block nodes" should {
     implicit val core: Core = new Core()
 
-    val expressions = Utility.coreListFrom(Node.New.Empty())
+    val expressions = Utility.ListOps.from(Node.New.Empty())
     val returnVal   = Node.New.Empty()
 
-    val block = Node.New.Block(expressions, returnVal, dummyLocation).right.get
+    val block =
+      Node.New.Block(expressions, returnVal, dummyLocation).getOrElse(fail)
 
     "have valid fields" in {
       block.location shouldEqual dummyLocation
@@ -1028,7 +1029,7 @@ class SmartConstructorsTest
 
     "fail to construct if expressions is not a valid meta list" in {
       val node = Node.New.Block(returnVal, returnVal, dummyLocation)
-      node shouldFailWithResult Utility.coreListFrom(returnVal)
+      node shouldFailWithResult Utility.ListOps.from(returnVal)
     }
   }
 
@@ -1064,10 +1065,10 @@ class SmartConstructorsTest
     implicit val core: Core = new Core()
 
     val scrutinee = Node.New.Empty()
-    val branches  = Utility.coreListFrom(Node.New.Empty())
+    val branches  = Utility.ListOps.from(Node.New.Empty())
 
     val caseExpr =
-      Node.New.CaseExpr(scrutinee, branches, dummyLocation).right.get
+      Node.New.CaseExpr(scrutinee, branches, dummyLocation).getOrElse(fail)
 
     "have valid fields" in {
       caseExpr.location shouldEqual dummyLocation
@@ -1088,7 +1089,7 @@ class SmartConstructorsTest
 
     "fail to construct if branches is not a valid meta list" in {
       val node = Node.New.CaseExpr(scrutinee, scrutinee, dummyLocation)
-      node shouldFailWithResult Utility.coreListFrom(scrutinee)
+      node shouldFailWithResult Utility.ListOps.from(scrutinee)
     }
   }
 
@@ -1233,7 +1234,7 @@ class SmartConstructorsTest
       Node.New.ForeignCodeLiteral("lambda x: x + 1", dummyLocation)
 
     val foreignDefinition =
-      Node.New.ForeignDefinition(language, code, dummyLocation).right.get
+      Node.New.ForeignDefinition(language, code, dummyLocation).getOrElse(fail)
 
     "have valid fields" in {
       foreignDefinition.location shouldEqual dummyLocation
@@ -1254,7 +1255,7 @@ class SmartConstructorsTest
 
     "fail to construct of code is not a valid foreign code literal" in {
       val node = Node.New.ForeignDefinition(language, language, dummyLocation)
-      node shouldFailWithResult Utility.coreListFrom(language)
+      node shouldFailWithResult Utility.ListOps.from(language)
     }
   }
 
@@ -1290,7 +1291,7 @@ class SmartConstructorsTest
     implicit val core: Core = new Core()
 
     val errNode = Node.New.Empty()
-    val errList = Utility.coreListFrom(errNode)
+    val errList = Utility.ListOps.from(errNode)
     val error   = Node.New.ConstructionError(errList, dummyLocation)
 
     "have valid fields" in {
@@ -1317,8 +1318,8 @@ class SmartConstructorsTest
 
       input.wrapped.is[NodeShape.Empty] shouldEqual true
 
-      Utility.isListNode(input) should not equal true
-      Utility.isListNode(err.erroneousCore.target) shouldEqual true
+      Utility.ListOps.is(input) should not equal true
+      Utility.ListOps.is(err.erroneousCore.target) shouldEqual true
 
       // The only element in that list should be the single node
       err.erroneousCore.target.unsafeAs[MetaList].head.target shouldEqual input
@@ -1338,16 +1339,16 @@ class SmartConstructorsTest
     val empty1 = Node.New.Empty().wrapped
     val empty2 = Node.New.Empty().wrapped
 
-    val list1 = Utility.coreListFrom(NonEmptyList(empty1, List(empty2)))
-    val list2 = Utility.coreListFrom(NonEmptyList(empty1, List(empty2)))
-    val list3 = Utility.coreListFrom(NonEmptyList(empty2, List(empty1)))
+    val list1 = Utility.ListOps.from(NonEmptyList(empty1, List(empty2)))
+    val list2 = Utility.ListOps.from(NonEmptyList(empty1, List(empty2)))
+    val list3 = Utility.ListOps.from(NonEmptyList(empty2, List(empty1)))
 
     "be defined as equal when the child nodes are equal" in {
-      Utility.listsAreEqual(list1, list2) shouldEqual true
+      Utility.ListOps.equals(list1, list2) shouldEqual true
     }
 
     "be defined as not equal when the child nodes are not equal" in {
-      Utility.listsAreEqual(list1, list3) shouldEqual false
+      Utility.ListOps.equals(list1, list3) shouldEqual false
     }
   }
 
@@ -1359,9 +1360,9 @@ class SmartConstructorsTest
     val falseNode = Node.New.MetaFalse()
 
     "be correctly identified" in {
-      Utility.isBoolNode(emptyNode) shouldEqual false
-      Utility.isBoolNode(trueNode) shouldEqual true
-      Utility.isBoolNode(falseNode) shouldEqual true
+      BoolOps.is(emptyNode) shouldEqual false
+      BoolOps.is(trueNode) shouldEqual true
+      BoolOps.is(falseNode) shouldEqual true
     }
   }
 
@@ -1369,12 +1370,13 @@ class SmartConstructorsTest
     implicit val core: Core = new Core()
     val emptyNode           = Node.New.Empty()
     val nilNode             = Node.New.MetaNil()
-    val consNode            = Node.New.MetaList(emptyNode, nilNode).right.get
+    val consNode =
+      Node.New.MetaList(emptyNode, nilNode).getOrElse(fail)
 
     "be correctly identified" in {
-      Utility.isListNode(emptyNode) shouldEqual false
-      Utility.isListNode(nilNode) shouldEqual true
-      Utility.isListNode(consNode) shouldEqual true
+      Utility.ListOps.is(emptyNode) shouldEqual false
+      Utility.ListOps.is(nilNode) shouldEqual true
+      Utility.ListOps.is(consNode) shouldEqual true
     }
   }
 
@@ -1385,9 +1387,9 @@ class SmartConstructorsTest
     val emptyNode2 = Node.New.Empty().wrapped
     val emptyNode3 = Node.New.Empty().wrapped
 
-    val listOfOne = Utility.coreListFrom(emptyNode1)
-    val listOfMany = Utility
-      .coreListFrom(NonEmptyList(emptyNode1, List(emptyNode2, emptyNode3)))
+    val listOfOne = Utility.ListOps.from(emptyNode1)
+    val listOfMany = Utility.ListOps
+      .from(NonEmptyList(emptyNode1, List(emptyNode2, emptyNode3)))
 
     "be able to be constructed from arbitrary nodes" in {
       listOfOne.head.target shouldEqual emptyNode1

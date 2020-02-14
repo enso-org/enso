@@ -4,6 +4,7 @@ import shapeless.ops.hlist._
 import shapeless.ops.{hlist, nat}
 import shapeless.{::, HList, HNil, IsDistinctConstraint, Nat}
 
+import scala.annotation.unused
 import scala.collection.mutable
 
 // Don't use AnyType here, as it gets boxed sometimes.
@@ -13,10 +14,9 @@ import io.estatico.newtype.macros.newtype
 import shapeless.nat._
 
 /* TODO [AA, WD] The following are features that we want for this graph:
- *  - Graphviz output for visualisations.
- *  - Utilities for copying (sub-)graphs.
+ *  - `unsafeRemoveComponent` functionality.
  *  - Storage should keep a free-list and re-use space in the underlying buffers
- *    as much as possible.
+ *    as much as possible in `addComponent`.
  *  - Basic equality testing (that should be overridden as needed).
  *  - An ability to define fields that store complex data such as `String`.
  *  - Add a `Default` typeclass, and ensure that all component fields are
@@ -34,7 +34,7 @@ import shapeless.nat._
   *   custom graph structure that provides a safe API.
   */
 // ============================================================================
-// === HList generic utilities ================================================
+// === HList Generic Utilities ================================================
 // ============================================================================
 
 // ================
@@ -57,8 +57,7 @@ object HListSum {
     new HListSum[HNil] { type Out = _0 }
 
   implicit def onCons[H <: Nat, T <: HList, TS <: Nat](
-    implicit
-    rest: HListSum.Aux[T, TS],
+    implicit @unused rest: HListSum.Aux[T, TS],
     all: nat.Sum[H, TS]
   ): HListSum.Aux[H :: T, all.Out] =
     new HListSum[H :: T] { type Out = all.Out }
@@ -105,20 +104,21 @@ object HListOfNatToVec {
   *   type HListTakeUntil[Sentinel, MyList]
   * }}}
   *
-  * If the sentinel [[T]] is not found in [[List]], the entire list is returned.
+  * If the sentinel [[T]] is not found in [[Items]], the entire list is
+  * returned.
   *
   * @tparam T the sentinel member
-  * @tparam List the list to take members from
+  * @tparam Items the list to take members from
   */
-trait HListTakeUntil[T, List <: HList] {
+trait HListTakeUntil[T, Items <: HList] {
   type Out <: HList
 }
 object HListTakeUntil extends HListTakeUntilDefaults {
-  type Aux[T, List <: HList, X] = HListTakeUntil[T, List] { type Out = X }
+  type Aux[T, Items <: HList, X] = HListTakeUntil[T, Items] { type Out = X }
 
-  def apply[T, List <: HList](
-    implicit ev: HListTakeUntil[T, List]
-  ): Aux[T, List, ev.Out] = ev
+  def apply[T, Items <: HList](
+    implicit ev: HListTakeUntil[T, Items]
+  ): Aux[T, Items, ev.Out] = ev
 
   implicit def onNil[T]: HListTakeUntil.Aux[T, HNil, HNil] =
     new HListTakeUntil[T, HNil] { type Out = HNil }
@@ -130,8 +130,7 @@ object HListTakeUntil extends HListTakeUntilDefaults {
 
 trait HListTakeUntilDefaults {
   implicit def onConsNotFound[T, Head, Tail <: HList, Tail2 <: HList](
-    implicit
-    ev1: HListTakeUntil.Aux[T, Tail, Tail2]
+    implicit @unused ev1: HListTakeUntil.Aux[T, Tail, Tail2]
   ): HListTakeUntil.Aux[T, Head :: Tail, Head :: Tail2] =
     new HListTakeUntil[T, Head :: Tail] { type Out = Head :: Tail2 }
 }
@@ -159,15 +158,15 @@ object Sized {
   def apply[T](implicit ev: Sized[T]): Aux[T, ev.Out] = ev
 
   implicit def instance[
-    List <: HList,
+    ListOfItems <: HList,
     ListOfSizes <: HList,
     TotalSize <: Nat
   ](
     implicit
-    ev1: MapSized.Aux[List, ListOfSizes],
-    ev2: HListSum.Aux[ListOfSizes, TotalSize]
-  ): Sized.Aux[List, TotalSize] =
-    new Sized[List] { type Out = TotalSize }
+    @unused ev1: MapSized.Aux[ListOfItems, ListOfSizes],
+    @unused ev2: HListSum.Aux[ListOfSizes, TotalSize]
+  ): Sized.Aux[ListOfItems, TotalSize] =
+    new Sized[ListOfItems] { type Out = TotalSize }
 }
 
 /** A utility for accessing a the Size of a [[Sized]] object as an [[Int]]. */
@@ -177,7 +176,7 @@ trait KnownSize[T] extends Sized[T] {
 object KnownSize {
   implicit def instance[T, Size <: Nat](
     implicit
-    ev: Sized.Aux[T, Size],
+    @unused ev: Sized.Aux[T, Size],
     sizeEv: nat.ToInt[Size]
   ): KnownSize[T] = new KnownSize[T] { val asInt: Int = sizeEv() }
 }
@@ -203,9 +202,8 @@ object MapSized {
     new MapSized[HNil] { type Out = HNil }
 
   implicit def onCons[H, T <: HList, TS <: HList, HSize <: Nat](
-    implicit
-    rest: MapSized.Aux[T, TS],
-    headSize: Sized.Aux[H, HSize]
+    implicit @unused rest: MapSized.Aux[T, TS],
+    @unused headSize: Sized.Aux[H, HSize]
   ): MapSized.Aux[H :: T, HSize :: TS] =
     new MapSized[H :: T] { type Out = HSize :: TS }
 }
@@ -220,33 +218,33 @@ object MapSized {
   * included in the sum.
   *
   * @tparam Elem the type of the element to stop computing at
-  * @tparam List the list of types to compute over
+  * @tparam Items the list of types to compute over
   */
-trait SizeUntil[Elem, List <: HList] {
+trait SizeUntil[Elem, Items <: HList] {
   type Out <: Nat
   val asInt: Int
 }
 object SizeUntil {
-  type Aux[Elem, List <: HList, X] = SizeUntil[Elem, List] { type Out = X }
+  type Aux[Elem, Items <: HList, X] = SizeUntil[Elem, Items] { type Out = X }
 
-  def apply[Elem, List <: HList](
-    implicit ev: SizeUntil[Elem, List]
-  ): Aux[Elem, List, ev.Out] = ev
+  def apply[Elem, Items <: HList](
+    implicit ev: SizeUntil[Elem, Items]
+  ): Aux[Elem, Items, ev.Out] = ev
 
   implicit def instance[
     Elem,
-    List <: HList,
+    Items <: HList,
     PriorElems <: HList,
     PriorFieldSizes <: HList,
     PriorFieldsSize <: Nat
   ](
     implicit
-    ev1: HListTakeUntil.Aux[Elem, List, PriorElems],
-    ev2: MapSized.Aux[PriorElems, PriorFieldSizes],
-    ev3: HListSum.Aux[PriorFieldSizes, PriorFieldsSize],
+    @unused ev1: HListTakeUntil.Aux[Elem, Items, PriorElems],
+    @unused ev2: MapSized.Aux[PriorElems, PriorFieldSizes],
+    @unused ev3: HListSum.Aux[PriorFieldSizes, PriorFieldsSize],
     sizeAsInt: nat.ToInt[PriorFieldsSize]
-  ): SizeUntil.Aux[Elem, List, PriorFieldsSize] =
-    new SizeUntil[Elem, List] {
+  ): SizeUntil.Aux[Elem, Items, PriorFieldsSize] =
+    new SizeUntil[Elem, Items] {
       type Out = PriorFieldsSize
       val asInt = sizeAsInt()
     }
@@ -258,18 +256,18 @@ object SizeUntil {
   * The map it produces is a scala [[mutable.Map]]. Additionally, it has a
   * constraint that no type may appear twice in the input list.
   *
-  * @tparam List the list to start from
+  * @tparam Items the list to start from
   */
-trait MapsOf[List <: HList] {
+trait MapsOf[Items <: HList] {
   type Out <: HList
   val instance: Out
 }
 object MapsOf {
-  type Aux[List <: HList, X] = MapsOf[List] { type Out = X }
+  type Aux[Items <: HList, X] = MapsOf[Items] { type Out = X }
 
-  def apply[List <: HList](
-    implicit ev: MapsOf[List]
-  ): MapsOf.Aux[List, ev.Out] = ev
+  def apply[Items <: HList](
+    implicit ev: MapsOf[Items]
+  ): MapsOf.Aux[Items, ev.Out] = ev
 
   implicit def onNil: MapsOf.Aux[HNil, HNil] =
     new MapsOf[HNil] {
@@ -279,7 +277,7 @@ object MapsOf {
 
   implicit def onCons[Head, Tail <: HList](
     implicit ev: MapsOf[Tail],
-    distinct: IsDistinctConstraint[Head :: Tail]
+    @unused distinct: IsDistinctConstraint[Head :: Tail]
   ): MapsOf.Aux[Head :: Tail, mutable.Map[Int, Head] :: ev.Out] =
     new MapsOf[Head :: Tail] {
       type Out = mutable.Map[Int, Head] :: ev.Out
@@ -447,7 +445,7 @@ object Graph {
       * it cannot be specialised for primitive types. [[Array]], on the other
       * hand, can be.
       */
-    final class Storage(elemSize: Int) {
+    final class Storage(@unused elemSize: Int) {
       var length: Int       = 0
       var array: Array[Int] = new Array[Int](length)
 
@@ -506,8 +504,8 @@ object Graph {
       * @tparam C the type of the component to access
       * @return a reference to the component at `index`
       */
-    def componentReferenceFromIndex[C <: Component](index: Int)(
-      implicit ev: HasComponent[G, C]
+    def componentRefFromIndex[C <: Component](index: Int)(
+      implicit @unused ev: HasComponent[G, C]
     ): Graph.Component.Ref[G, C] = {
       Graph.Component.Ref(index)
     }
@@ -688,8 +686,8 @@ object Graph {
       ComponentListLength <: Nat
     ](
       implicit
-      ev1: Component.List.Aux[G, ComponentList],
-      ev2: hlist.Length.Aux[ComponentList, ComponentListLength],
+      @unused ev1: Component.List.Aux[G, ComponentList],
+      @unused ev2: hlist.Length.Aux[ComponentList, ComponentListLength],
       componentSizesEv: ComponentListToSizes[G, ComponentList],
       len: nat.ToInt[ComponentListLength]
     ): GraphInfo[G] = new GraphInfo[G] {
@@ -719,13 +717,13 @@ object Graph {
       FieldList <: HList
     ](
       implicit
-      ev1: Component.List.Aux[G, ComponentList],
-      ev2: Component.Field.List.Aux[G, C, FieldList],
-      ev3: HListTakeUntil.Aux[C, ComponentList, PrevComponentList],
-      ev4: hlist.Length.Aux[PrevComponentList, ComponentIndex],
+      @unused ev1: Component.List.Aux[G, ComponentList],
+      @unused ev2: Component.Field.List.Aux[G, C, FieldList],
+      @unused ev3: HListTakeUntil.Aux[C, ComponentList, PrevComponentList],
+      @unused ev4: hlist.Length.Aux[PrevComponentList, ComponentIndex],
       componentIndexEv: nat.ToInt[ComponentIndex],
       componentSizeEv: KnownSize[FieldList],
-      listContainsComponent: Selector[ComponentList, C]
+      @unused listContainsComponent: Selector[ComponentList, C]
     ): HasComponent[G, C] = new HasComponent[G, C] {
       val componentIndex = componentIndexEv()
       val componentSize  = componentSizeEv.asInt
@@ -753,10 +751,10 @@ object Graph {
       FieldList <: HList
     ](
       implicit
-      ev1: Component.Field.List.Aux[G, C, FieldList],
+      @unused ev1: Component.Field.List.Aux[G, C, FieldList],
       evx: HasComponent[G, C],
       fieldOffsetEv: SizeUntil[F, FieldList],
-      containsField: Selector[FieldList, F]
+      @unused containsField: Selector[FieldList, F]
     ): HasComponentField[G, C, F] = new HasComponentField[G, C, F] {
       val componentIndex = evx.componentIndex
       val componentSize  = evx.componentSize
@@ -837,7 +835,7 @@ object Graph {
       *         [[V]]
       */
     def unsafeAs[V <: F](
-      implicit variantIndexed: VariantIndexed[F, V]
+      implicit @unused variantIndexed: VariantIndexed[F, V]
     ): Component.Refined[F, V, Component.Ref[G, C]] = {
       Component.Refined[F, V, Component.Ref[G, C]](component)
     }
@@ -859,5 +857,7 @@ object Graph {
         None
       }
     }
+
+    // TODO [AA] Add a utility to automatically refine variant branches
   }
 }

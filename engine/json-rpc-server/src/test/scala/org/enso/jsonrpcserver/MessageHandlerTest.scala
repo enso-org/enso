@@ -1,15 +1,15 @@
 package org.enso.jsonrpcserver
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
+import io.circe.literal._
+import io.circe.parser._
 import io.circe.{Decoder, Encoder, Json}
-import org.scalatest.EitherValues
+import org.enso.jsonrpcserver.MessageHandler.{Connected, WebMessage}
+import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 
 import scala.concurrent.duration._
-import io.circe.parser._
-import io.circe.literal._
-import org.enso.jsonrpcserver.MessageHandler.{Connected, WebMessage}
 
 class MessageHandlerTest
     extends TestKit(ActorSystem("TestSystem"))
@@ -34,9 +34,9 @@ class MessageHandlerTest
   case object MyError extends Error(15, "Test error")
 
   object MyProtocol {
+    import cats.syntax.functor._
     import io.circe.generic.auto._
     import io.circe.syntax._
-    import cats.syntax.functor._
 
     val encoder: Encoder[PayloadOf[Method]] = Encoder.instance {
       case m: MyRequestParams      => m.asJson
