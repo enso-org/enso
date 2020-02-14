@@ -5,9 +5,9 @@ use crate::prelude::*;
 use crate::display::shape::text::text_field::cursor::Step;
 use crate::display::shape::text::text_field::TextFieldData;
 use crate::system::web::text_input::KeyboardBinding;
+use crate::system::web::text_input::bind_frp_to_js_keyboard_actions;
 
 use enso_frp::*;
-use web_sys::KeyboardEvent;
 
 
 
@@ -25,33 +25,33 @@ use web_sys::KeyboardEvent;
 ///  * *text input operations* - here we want to handle all the keyboard mapping set by user, so
 ///    we connect this action directly to `key_press` node from `keyboard`.
 #[derive(Debug)]
-pub struct TextFieldFrp {
+pub struct TextFieldKeyboardFrp {
     /// A "keyboard" part of graph derived from frp crate.
-    keyboard: Keyboard,
+    pub keyboard: Keyboard,
     /// Keyboard actions. Here we define shortcuts for all actions except letters input, copying
     /// and pasting.
-    actions: KeyboardActions,
+    pub actions: KeyboardActions,
     /// Event sent once cut operation was requested.
-    on_cut: Dynamic<()>,
+    pub on_cut: Dynamic<()>,
     /// Event sent once copy operation was requested.
-    on_copy: Dynamic<()>,
+    pub on_copy: Dynamic<()>,
     /// Event sent once paste operation was requested.
-    on_paste: Dynamic<String>,
+    pub on_paste: Dynamic<String>,
     /// A lambda node performing cut operation. Returns the string which should be copied to
     /// clipboard.
-    do_cut: Dynamic<String>,
+    pub do_cut: Dynamic<String>,
     /// A lambda node performing copy operation. Returns the string which should be copied to
     /// clipboard.
-    do_copy: Dynamic<String>,
+    pub do_copy: Dynamic<String>,
     /// A lambda node performing paste operation.
-    do_paste: Dynamic<()>,
+    pub do_paste: Dynamic<()>,
     /// A lambda node performing character input operation.
-    do_char_input: Dynamic<()>,
+    pub do_char_input: Dynamic<()>,
 }
 
-impl TextFieldFrp {
+impl TextFieldKeyboardFrp {
     /// Create FRP graph operating on given TextField pointer.
-    pub fn new(text_field_ptr:Weak<RefCell<TextFieldData>>) -> TextFieldFrp {
+    pub fn new(text_field_ptr:Weak<RefCell<TextFieldData>>) -> Self {
         let keyboard    = Keyboard::default();
         let mut actions = KeyboardActions::new(&keyboard);
         let cut         = Self::copy_lambda(true, text_field_ptr.clone());
@@ -68,7 +68,7 @@ impl TextFieldFrp {
             text_field.do_char_input = keyboard.on_pressed.map2(&keyboard.key_mask,insert_char);
         }
         Self::initialize_actions_map(&mut actions,text_field_ptr);
-        TextFieldFrp {keyboard,actions,on_cut,on_copy,on_paste,do_cut,do_copy,do_paste,
+        TextFieldKeyboardFrp {keyboard,actions,on_cut,on_copy,on_paste,do_cut,do_copy,do_paste,
             do_char_input}
     }
 
@@ -77,34 +77,27 @@ impl TextFieldFrp {
     /// Until the returned `KeyboardBinding` structure lives, the js events will emit the proper
     /// source events in this graph.
     pub fn bind_frp_to_js_text_input_actions(&self) -> KeyboardBinding {
-        let mut binding      = KeyboardBinding::create();
-        let frp_key_pressed  = self.keyboard.on_pressed.clone_ref();
-        let frp_key_released = self.keyboard.on_released.clone_ref();
-        let frp_cut          = self.on_cut.clone_ref();
-        let frp_copy         = self.on_copy.clone_ref();
-        let frp_paste        = self.on_paste.clone_ref();
-        let frp_text_to_copy = self.do_copy.clone_ref();
-        binding.set_key_down_handler(move |event:KeyboardEvent| {
-            if let Ok(key) = event.key().parse::<Key>() {
-                frp_key_pressed.event.emit(key);
+        let mut binding  = bind_frp_to_js_keyboard_actions(&self.keyboard);
+        let copy_handler = enclose!(
+            ( self.on_cut  => on_cut
+            , self.on_copy => on_copy
+            , self.do_cut  => do_cut
+            , self.do_copy => do_copy
+            ) move |is_cut| {
+                if is_cut {
+                    on_cut.event.emit(());
+                    do_cut.behavior.current_value()
+                } else {
+                    on_copy.event.emit(());
+                    do_copy.behavior.current_value()
+                }
             }
+        );
+        let paste_handler = enclose!((self.on_paste => on_paste) move |text_to_paste| {
+            on_paste.event.emit(text_to_paste);
         });
-        binding.set_key_up_handler(move |event:KeyboardEvent| {
-            if let Ok(key) = event.key().parse::<Key>() {
-                frp_key_released.event.emit(key);
-            }
-        });
-        binding.set_copy_handler(move |is_cut| {
-            if is_cut {
-                frp_cut.event.emit(())
-            } else {
-                frp_copy.event.emit(());
-            }
-            frp_text_to_copy.behavior.current_value()
-        });
-        binding.set_paste_handler(move |text_to_paste| {
-            frp_paste.event.emit(text_to_paste);
-        });
+        binding.set_copy_handler(copy_handler);
+        binding.set_paste_handler(paste_handler);
         binding
     }
 }
@@ -112,7 +105,7 @@ impl TextFieldFrp {
 
 // === Private ===
 
-impl TextFieldFrp {
+impl TextFieldKeyboardFrp {
 
     fn copy_lambda(cut:bool, text_field_ptr:Weak<RefCell<TextFieldData>>)
                    -> impl Fn() -> String {
@@ -137,7 +130,7 @@ impl TextFieldFrp {
         move |key,mask| {
             text_field_ptr.upgrade().for_each(|text_field| {
                 if let Key::Character(string) = key {
-                    let modifiers = &[Key::Control,Key::Alt,Key::Meta];
+                    let modifiers = &[Key::Control,Key::Alt];
                     if !modifiers.iter().any(|k| mask.has_key(k)) {
                         text_field.borrow_mut().write(string);
                     }

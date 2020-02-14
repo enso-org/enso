@@ -121,7 +121,7 @@ pub fn frp_test (callback: Box<dyn Fn(f32,f32)>) -> MouseManager {
     let mouse           = Mouse::new();
 
     frp! {
-        mouse_down_position    = mouse.position.sample       (&mouse.down);
+        mouse_down_position    = mouse.position.sample       (&mouse.on_down);
         mouse_position_if_down = mouse.position.gate         (&mouse.is_down);
         final_position_ref     = recursive::<Position>       ();
         pos_diff_on_down       = mouse_down_position.map2    (&final_position_ref,|m,f|{m-f});
@@ -142,13 +142,13 @@ pub fn frp_test (callback: Box<dyn Fn(f32,f32)>) -> MouseManager {
     });
     handle.forget();
 
-    let target = mouse.down.event.clone_ref();
+    let target = mouse.on_down.event.clone_ref();
     let handle = mouse_manager.on_down.add(move |event:&mouse2::event::OnDown| {
         target.emit(());
     });
     handle.forget();
 
-    let target = mouse.up.event.clone_ref();
+    let target = mouse.on_up.event.clone_ref();
     let handle = mouse_manager.on_up.add(move |event:&mouse2::event::OnUp| {
         target.emit(());
     });

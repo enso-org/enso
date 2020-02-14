@@ -2,13 +2,14 @@
 //!
 //! These keyboard events are taken from created invisible textarea element in html document body.
 //! We do it this way, because this is the only way for handling clipboard operations.
+use crate::prelude::*;
 
+use enso_frp::*;
 use std::fmt::Debug;
 use std::fmt::Formatter;
 use std::fmt::Error;
 use wasm_bindgen::prelude::*;
 use web_sys::KeyboardEvent;
-
 
 
 // ===========================
@@ -127,4 +128,28 @@ impl Debug for KeyboardBinding {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
         f.write_str("<KeyboardBindings>")
     }
+}
+
+
+// =======================
+// === FRP Integration ===
+// =======================
+
+/// Bind this FRP graph to js events.
+///
+/// Until the returned `KeyboardBinding` structure lives, the js events will emit the proper
+/// source events in this graph.
+pub fn bind_frp_to_js_keyboard_actions(frp:&Keyboard) -> KeyboardBinding {
+    let mut binding     = KeyboardBinding::create();
+    binding.set_key_down_handler(enclose!((frp.on_pressed => frp) move |event:KeyboardEvent| {
+        if let Ok(key) = event.key().parse::<Key>() {
+            frp.event.emit(key);
+        }
+    }));
+    binding.set_key_up_handler(enclose!((frp.on_released => frp) move |event:KeyboardEvent| {
+        if let Ok(key) = event.key().parse::<Key>() {
+            frp.event.emit(key);
+        }
+    }));
+    binding
 }

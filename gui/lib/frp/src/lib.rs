@@ -45,7 +45,7 @@ mod tests {
     fn drag_and_drop() {
         let mouse = Mouse::new();
 
-        frp_def! { mouse_down_position    = mouse.position.sample (&mouse.down)    }
+        frp_def! { mouse_down_position    = mouse.position.sample (&mouse.on_down)    }
         frp_def! { mouse_position_if_down = mouse.position.gate   (&mouse.is_down) }
 
         let final_position_ref_event  = Recursive::<EventData<Position>>::new_named("final_position_ref");
@@ -62,16 +62,16 @@ mod tests {
         assert_eq!(final_position.behavior.current_value(),Position::new(0,0));
         mouse.position.event.emit(Position::new(3,4));
         assert_eq!(final_position.behavior.current_value(),Position::new(0,0));
-        mouse.down.event.emit(());
+        mouse.on_down.event.emit(());
         assert_eq!(final_position.behavior.current_value(),Position::new(0,0));
         mouse.position.event.emit(Position::new(4,6));
         assert_eq!(final_position.behavior.current_value(),Position::new(1,2));
         mouse.position.event.emit(Position::new(4,7));
         assert_eq!(final_position.behavior.current_value(),Position::new(1,3));
-        mouse.up.event.emit(());
+        mouse.on_up.event.emit(());
         mouse.position.event.emit(Position::new(4,0));
         assert_eq!(final_position.behavior.current_value(),Position::new(1,3));
-        mouse.down.event.emit(());
+        mouse.on_down.event.emit(());
         mouse.position.event.emit(Position::new(0,0));
         assert_eq!(final_position.behavior.current_value(),Position::new(-3,3));
     }
