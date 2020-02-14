@@ -8,6 +8,7 @@ use std::collections::hash_map::Entry;
 use crate::core::fmt::{Formatter, Error};
 
 
+
 // ===========
 // === Key ===
 // ===========
@@ -33,7 +34,13 @@ impl KeyMask {
     /// Check if key bit is on.
     pub fn has_key(&self, key:&Key) -> bool {
         let KeyMask(bit_set) = self;
-        bit_set.get_bit(key.legacy_keycode() as usize)
+        bit_set.get_bit(Self::bit_position_for(key))
+    }
+
+    /// Set the `key` bit for new state.
+    pub fn set_key(&mut self, key:&Key, state:bool) {
+        let KeyMask(ref mut bit_set) = self;
+        bit_set.set_bit(Self::bit_position_for(key),state);
     }
 }
 
@@ -51,7 +58,7 @@ impl<'a> FromIterator<&'a Key> for KeyMask {
     fn from_iter<T: IntoIterator<Item=&'a Key>>(iter:T) -> Self {
         let mut key_mask = KeyMask::default();
         for key in iter {
-            let bit = key.legacy_keycode() as usize;
+            let bit = Self::bit_position_for(key);
             key_mask.set_bit(bit,true);
         }
         key_mask
@@ -61,6 +68,19 @@ impl<'a> FromIterator<&'a Key> for KeyMask {
 impl From<&[Key]> for KeyMask {
     fn from(keys: &[Key]) -> Self {
         <KeyMask as FromIterator<&Key>>::from_iter(keys)
+    }
+}
+
+
+// === Private ===
+
+impl KeyMask {
+    fn bit_position_for(key:&Key) -> usize {
+        (match key {
+            // On Chrome, shift+alt gives `Meta` key, therefore we do a unification here.
+            Key::Meta => Key::Alt.legacy_keycode(),
+            other     => other.legacy_keycode(),
+        }) as usize
     }
 }
 
@@ -94,8 +114,7 @@ impl KeyState {
     /// Returns copy of given KeyMask with updated key state.
     fn updated_mask(&self, mask:&KeyMask) -> KeyMask {
         let mut mask = mask.clone();
-        let bit      = self.key.legacy_keycode() as usize;
-        mask.set_bit(bit,self.pressed);
+        mask.set_key(&self.key, self.pressed);
         mask
     }
 }
@@ -109,9 +128,9 @@ impl KeyState {
 /// A FRP graph for basic keyboard events.
 #[derive(Debug)]
 pub struct Keyboard {
-    /// The mouse up event.
+    /// The key pressed event.
     pub on_pressed: Dynamic<Key>,
-    /// The mouse down event.
+    /// The key released event.
     pub on_released: Dynamic<Key>,
     /// The structure holding mask of all of the currently pressed keys.
     pub key_mask: Dynamic<KeyMask>,

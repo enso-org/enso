@@ -2,7 +2,7 @@
 
 pub mod content;
 pub mod cursor;
-pub mod keyboard;
+pub mod frp;
 pub mod location;
 pub mod render;
 
@@ -17,13 +17,12 @@ use crate::display::shape::text::text_field::cursor::Step;
 use crate::display::shape::text::text_field::cursor::CursorNavigation;
 use crate::display::shape::text::text_field::location::TextLocation;
 use crate::display::shape::text::text_field::location::TextLocationChange;
-use crate::display::shape::text::text_field::keyboard::TextFieldFrp;
+use crate::display::shape::text::text_field::frp::TextFieldFrp;
 use crate::display::shape::text::glyph::font::FontHandle;
 use crate::display::shape::text::glyph::font::FontRegistry;
 use crate::display::shape::text::text_field::render::TextFieldSprites;
 use crate::display::shape::text::text_field::render::assignment::GlyphLinesAssignmentUpdate;
 use crate::display::world::World;
-use crate::system::web::text_input::KeyboardBinding;
 
 use nalgebra::Vector2;
 use nalgebra::Vector3;
@@ -51,7 +50,8 @@ pub struct TextFieldProperties {
 impl TextFieldProperties {
     const DEFAULT_FONT_FACE:&'static str = "DejaVuSansMono";
 
-    fn default(fonts:&mut FontRegistry) -> Self {
+    /// A default set of properties.
+    pub fn default(fonts:&mut FontRegistry) -> Self {
         TextFieldProperties {
             font      : fonts.get_or_load_embedded_font(Self::DEFAULT_FONT_FACE).unwrap(),
             text_size : 16.0,
@@ -75,7 +75,6 @@ shared! { TextField
         rendered         : TextFieldSprites,
         display_object   : DisplayObjectData,
         frp              : Option<TextFieldFrp>,
-        keyboard_binding : Option<KeyboardBinding>,
     }
 
     impl {
@@ -103,9 +102,25 @@ shared! { TextField
             self.rendered.display_object.position().xy()
         }
 
-        /// Add cursor.
-        pub fn add_cursor(&mut self, position:TextLocation) {
-            self.cursors.add_cursor(position);
+        /// Removes all cursors except one which is set and given point.
+        pub fn set_cursor(&mut self, point:Vector2<f32>) {
+            self.cursors.remove_additional_cursors();
+            self.jump_cursor(point,false);
+        }
+
+        /// Add cursor at point on the screen.
+        pub fn add_cursor(&mut self, point:Vector2<f32>) {
+            self.cursors.add_cursor(TextLocation::at_document_begin());
+            self.jump_cursor(point,false);
+        }
+
+        /// Jump active cursor to point on the screen.
+        pub fn jump_cursor(&mut self, point:Vector2<f32>, selecting:bool) {
+            let content        = &mut self.content;
+            let text_position  = self.rendered.display_object.global_position();
+            let point_on_text  = point - text_position.xy();
+            let mut navigation = CursorNavigation {content,selecting};
+            self.cursors.jump_cursor(&mut navigation,point_on_text);
             self.rendered.update_cursor_sprites(&self.cursors, &mut self.content);
         }
 
@@ -114,15 +129,6 @@ shared! { TextField
             let content        = &mut self.content;
             let mut navigation = CursorNavigation {content,selecting};
             self.cursors.navigate_all_cursors(&mut navigation,step);
-            self.rendered.update_cursor_sprites(&self.cursors, &mut self.content);
-        }
-
-        /// Jump cursor to point on the screen.
-        pub fn jump_cursor(&mut self, point:Vector2<f32>, selecting:bool) {
-            let content        = &mut self.content;
-            let mut navigation = CursorNavigation {content,selecting};
-            self.cursors.remove_additional_cursors();
-            self.cursors.jump_cursor(&mut navigation,point);
             self.rendered.update_cursor_sprites(&self.cursors, &mut self.content);
         }
 
@@ -186,6 +192,15 @@ shared! { TextField
         pub fn update(&self) {
             self.display_object.update()
         }
+
+        /// Check if given point on screen is inside this TextField.
+        pub fn is_inside(&self, point:Vector2<f32>) -> bool {
+            let position = self.display_object.global_position();
+            let size     = self.properties.size;
+            let x_range  = position.x ..= (position.x + size.x);
+            let y_range  = (position.y - size.y) ..= position.y;
+            x_range.contains(&point.x) && y_range.contains(&point.y)
+        }
     }
 }
 
@@ -203,10 +218,9 @@ impl TextField {
     -> Self {
         let data = TextFieldData::new(world,initial_content,properties);
         let rc   = Rc::new(RefCell::new(data));
-        let frp  = TextFieldFrp::new(Rc::downgrade(&rc));
+        let frp  = TextFieldFrp::new(world,Rc::downgrade(&rc));
         with(rc.borrow_mut(), move |mut data| {
-            data.keyboard_binding = Some(frp.bind_frp_to_js_text_input_actions());
-            data.frp              = Some(frp);
+            data.frp = Some(frp);
         });
         Self{rc}
     }
@@ -217,16 +231,15 @@ impl TextField {
 
 impl TextFieldData {
     fn new(world:&World, initial_content:&str, properties:TextFieldProperties) -> Self {
-        let logger           = Logger::new("TextField");
-        let display_object   = DisplayObjectData::new(logger);
-        let content          = TextFieldContent::new(initial_content,&properties);
-        let cursors          = Cursors::default();
-        let rendered         = TextFieldSprites::new(world,&properties);
-        let frp              = None;
-        let keyboard_binding = None;
+        let logger         = Logger::new("TextField");
+        let display_object = DisplayObjectData::new(logger);
+        let content        = TextFieldContent::new(initial_content,&properties);
+        let cursors        = Cursors::default();
+        let rendered       = TextFieldSprites::new(world,&properties);
+        let frp            = None;
         display_object.add_child(rendered.display_object.clone_ref());
 
-        Self {properties,content,cursors,rendered,display_object,frp,keyboard_binding}.initialize()
+        Self {properties,content,cursors,rendered,display_object,frp}.initialize()
     }
 
     fn initialize(mut self) -> Self{

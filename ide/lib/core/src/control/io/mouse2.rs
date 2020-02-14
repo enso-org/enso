@@ -3,7 +3,10 @@
 use crate::prelude::*;
 
 use crate::control::callback::*;
+use crate::display::scene::Shape;
 
+use enso_frp::EventEmitterPoly;
+use enso_frp::Position;
 use std::cell::RefCell;
 use std::rc::Rc;
 use wasm_bindgen::JsCast;
@@ -14,7 +17,6 @@ use web_sys::EventTarget;
 pub use crate::control::io::mouse::event;
 pub use crate::control::io::mouse::button;
 pub use crate::control::io::mouse::button::*;
-
 
 
 // =======================
@@ -108,4 +110,28 @@ define_bindings! {
     MouseEvent::mouseup    => on_up    (OnUp),
     MouseEvent::mousemove  => on_move  (OnMove),
     WheelEvent::mousewheel => on_wheel (OnWheel),
+}
+
+/// A handles of callbacks emitting events on bound FRP graph. See `CallbackHandle`.
+#[derive(Debug)]
+pub struct MouseFrpCallbackHandles {
+    on_move : CallbackHandle,
+    on_down : CallbackHandle,
+    on_up   : CallbackHandle,
+}
+
+/// Bind FRP graph to MouseManager.
+pub fn bind_frp_to_mouse(scene_shape:&Shape, frp:&enso_frp::Mouse, mouse_manager:&MouseManager)
+-> MouseFrpCallbackHandles {
+    let on_move = enclose!((frp.position.event => frp, scene_shape) move |e:&event::OnMove| {
+        let height = scene_shape.screen_shape().height as i32;
+        frp.emit(Position::new(e.client_x(),height - e.client_y()));
+    });
+    let on_down = enclose!((frp.on_down.event => frp) move |_:&event::OnDown| frp.emit(()));
+    let on_up   = enclose!((frp.on_up.event   => frp) move |_:&event::OnUp  | frp.emit(()));
+    MouseFrpCallbackHandles {
+        on_move : mouse_manager.on_move.add(on_move),
+        on_down : mouse_manager.on_down.add(on_down),
+        on_up   : mouse_manager.on_up.add(on_up)
+    }
 }
