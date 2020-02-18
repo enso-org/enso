@@ -33,6 +33,9 @@ pub use num::Num;
 pub use paste;
 pub use shrinkwraprs::Shrinkwrap;
 pub use smallvec::SmallVec;
+pub use weak_table;
+pub use weak_table::WeakValueHashMap;
+pub use weak_table::traits::WeakElement;
 
 
 use nalgebra::Matrix;

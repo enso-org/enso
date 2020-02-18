@@ -229,6 +229,18 @@ macro_rules! shared_struct {
                 }
             }
 
+            impl<$($params)*> WeakElement for [<Weak $name>] <$($params)*> {
+                type Strong = $name <$($params)*> ;
+
+                fn new(view: &Self::Strong) -> Self {
+                    view.downgrade()
+                }
+
+                fn view(&self) -> Option<Self::Strong> {
+                    self.upgrade()
+                }
+            }
+
             impl<$($params)*> $name <$($params)*> {
                 /// Downgrade the reference to weak ref.
                 pub fn downgrade(&self) -> [<Weak $name>] <$($params)*> {
