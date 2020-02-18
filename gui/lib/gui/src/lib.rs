@@ -25,5 +25,6 @@ pub mod sprite_system;
 pub mod text_field;
 pub mod text_typing;
 pub mod css3d_system;
+pub mod ide;
 
 use enso_prelude as prelude;

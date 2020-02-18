@@ -25,6 +25,8 @@ pub trait Transport : Debug {
 pub enum TransportEvent {
     /// A text message with has been received.
     TextMessage(String),
+    /// A socket has been opened.
+    Opened,
     /// A socket has been closed by the peer.
     Closed,
 }

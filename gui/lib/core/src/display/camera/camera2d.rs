@@ -7,7 +7,9 @@ use crate::data::dirty;
 use crate::display::layout::types::*;
 use crate::display::object::DisplayObjectData;
 use crate::data::dirty::traits::*;
-use crate::control::callback::{XCallbackRegistry1, CallbackHandle, XCallbackMut1Fn};
+use crate::control::callback::XCallbackRegistry1;
+use crate::control::callback::XCallbackMut1Fn;
+use crate::control::callback::CallbackHandle;
 
 use nalgebra::Vector2;
 use nalgebra::Vector3;

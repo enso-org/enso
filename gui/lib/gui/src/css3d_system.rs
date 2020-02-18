@@ -10,9 +10,9 @@ use basegl::display::object::DisplayObjectOps;
 use basegl::display::symbol::geometry::Sprite;
 use basegl::display::symbol::geometry::SpriteSystem;
 use basegl::display::world::*;
+use basegl::display::navigation::navigator::Navigator;
 use basegl::prelude::*;
 use basegl::animation::animator::fixed_step::FixedStepAnimator;
-use basegl::display::navigation::navigator::Navigator;
 
 use nalgebra::Vector2;
 use nalgebra::Vector3;
