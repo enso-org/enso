@@ -27,7 +27,7 @@ use wasm_bindgen::prelude::Closure;
 
 /// Add initialization callback
 ///
-/// The callback passed as argument will be called once the msdfgen libirary
+/// The callback passed as argument will be called once the msdfgen library
 /// will be initialized.
 pub fn run_once_initialized<F>(callback:F)
 where F : 'static + FnOnce() {

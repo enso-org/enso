@@ -212,14 +212,6 @@ macro_rules! shared_struct {
             $(#[$($meta)*])*
             pub struct [<Weak $name>] <$($params)*> { weak: Weak<RefCell<$name_mut<$($params)*>>> }
 
-            impl<$($params)*> $name <$($params)*> {
-                /// Downgrade the reference to weak ref.
-                pub fn downgrade(&self) -> [<Weak $name>] <$($params)*> {
-                    let weak = Rc::downgrade(&self.rc);
-                    [<Weak $name>] {weak}
-                }
-            }
-
             impl<$($params)*> Clone for [<Weak $name>] <$($params)*> {
                 fn clone(&self) -> Self {
                     let weak = self.weak.clone();
@@ -234,6 +226,26 @@ macro_rules! shared_struct {
                 /// value if successful.
                 pub fn upgrade(&self) -> Option<$name <$($params)*>> {
                     self.weak.upgrade().map(|rc| $name {rc})
+                }
+            }
+
+            impl<$($params)*> $name <$($params)*> {
+                /// Downgrade the reference to weak ref.
+                pub fn downgrade(&self) -> [<Weak $name>] <$($params)*> {
+                    let weak = Rc::downgrade(&self.rc);
+                    [<Weak $name>] {weak}
+                }
+
+                /// Call operation with borrowed data. Should be use in implementation of wrapper
+                /// only.
+                fn with_borrowed<F,R>(&self, operation:F) -> R
+                where F : FnOnce(&mut $name_mut<$($params)*>) -> R {
+                    operation(&mut self.rc.borrow_mut())
+                }
+
+                /// Check if the shared pointer points to the same struct as `other`.
+                pub fn identity_equals(&self, other:&Self) -> bool {
+                    Rc::ptr_eq(&self.rc,&other.rc)
                 }
             }
         }

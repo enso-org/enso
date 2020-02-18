@@ -321,6 +321,7 @@ impl<Notification> Handler<Notification> {
         match event {
             TransportEvent::TextMessage(msg) =>
                 self.process_incoming_message(msg),
+            TransportEvent::Opened => {}
             TransportEvent::Closed => {
                 // Dropping all ongoing calls will cancel their futures.
                 self.clear_ongoing_requests();

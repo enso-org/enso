@@ -242,7 +242,7 @@ impl PhysicsProperties {
 
 impl PhysicsProperties {
     /// Safe accessor to modify `KinematicsProperties`.
-    pub fn mod_kinematics<F:FnOnce(&mut KinematicsProperties)>(&mut self, f:F) {
+    pub fn modify_kinematics<F:FnOnce(&mut KinematicsProperties)>(&mut self, f:F) {
         let mut kinematics = self.kinematics();
         f(&mut kinematics);
         self.set_kinematics(kinematics);
@@ -254,7 +254,7 @@ impl PhysicsProperties {
     }
 
     /// Safe accessor to modify `SpringProperties`.
-    pub fn mod_spring<F:FnOnce(&mut SpringProperties)>(&mut self, f:F) {
+    pub fn modify_spring<F:FnOnce(&mut SpringProperties)>(&mut self, f:F) {
         let mut spring = self.spring();
         f(&mut spring);
         self.set_spring(spring);
@@ -266,7 +266,7 @@ impl PhysicsProperties {
     }
 
     /// Safe accessor to modify `DragProperties`.
-    pub fn mod_drag<F:FnOnce(&mut DragProperties)>(&mut self, f:F) {
+    pub fn modify_drag<F:FnOnce(&mut DragProperties)>(&mut self, f:F) {
         let mut drag = self.drag();
         f(&mut drag);
         self.set_drag(drag);
@@ -278,7 +278,7 @@ impl PhysicsProperties {
     }
 
     /// Safe accessor to modify `SimulationThresholds`.
-    pub fn mod_thresholds<F:FnOnce(&mut SimulationThresholds)>(&mut self, f:F) {
+    pub fn modify_thresholds<F:FnOnce(&mut SimulationThresholds)>(&mut self, f:F) {
         let mut thresholds = self.thresholds();
         f(&mut thresholds);
         self.set_thresholds(thresholds);
@@ -362,7 +362,7 @@ impl PhysicsSimulator {
 
             let fixed_point = properties.spring().fixed_point;
             let thresholds  = properties.thresholds();
-            properties.mod_kinematics(|kinematics| {
+            properties.modify_kinematics(|kinematics| {
                 let speed    = kinematics.velocity.magnitude();
                 let position = kinematics.position();
                 let distance = (position - fixed_point).magnitude();
@@ -398,7 +398,7 @@ fn simulate(properties:&mut PhysicsProperties, delta_ms:f64) -> Vector3<f32> {
     let spring        = properties.spring();
     let drag          = properties.drag();
     let mut net_force = zero();
-    properties.mod_kinematics(|mut kinematics| {
+    properties.modify_kinematics(|mut kinematics| {
         net_force += spring.force(&kinematics);
         net_force += drag.force(&kinematics);
         let delta_seconds = delta_ms / 1000.0;

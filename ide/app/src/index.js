@@ -73,7 +73,7 @@ async function download_content(cfg) {
 // ====================
 
 /// The name of the main scene in the WASM binary.
-let main_scene_name = 'shapes'
+let main_scene_name = 'ide'
 
 /// Prefix name of each scene defined in the WASM binary.
 let wasm_fn_pfx = "run_example_"

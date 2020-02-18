@@ -77,7 +77,7 @@ mod tests {
             let y = 240.0 * random() as f32;
             let z = 0.0;
             let position = Vector3::new(x, y, z);
-            properties.mod_spring(|spring| spring.fixed_point = position);
+            properties.modify_spring(|spring| spring.fixed_point = position);
             target.mod_position(|t| *t = position);
         });
 

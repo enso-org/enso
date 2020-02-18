@@ -42,6 +42,7 @@ pub struct TextFieldProperties {
     /// Text size being a line height in pixels.
     pub text_size: f32,
     /// Base color of displayed text.
+    //TODO: base_color should use definitions in core/data/color
     pub base_color: Vector4<f32>,
     /// Size of this component.
     pub size: Vector2<f32>,
@@ -81,6 +82,16 @@ shared! { TextField
         /// Set position of this TextField.
         pub fn set_position(&mut self, position:Vector3<f32>) {
             self.display_object.set_position(position);
+        }
+
+        /// Get position of this TextField.
+        pub fn position(&self) -> Vector3<f32> {
+            self.display_object.position()
+        }
+
+        /// Get size.
+        pub fn size(&self) -> Vector2<f32> {
+            self.properties.size
         }
 
         /// Scroll text by given offset in pixels.
