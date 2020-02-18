@@ -17,6 +17,7 @@ use json_rpc::Handler;
 use futures::Stream;
 use serde::Serialize;
 use serde::Deserialize;
+use shapely::shared;
 use std::future::Future;
 use uuid::Uuid;
 
@@ -141,35 +142,39 @@ pub enum FileKind {
 // === Client ===
 // ==============
 
-/// File Manager client. Contains numerous asynchronous methods for remote calls
-/// on File Manager server. Also, allows obtaining events stream by calling
-/// `events`.
-#[derive(Debug)]
-pub struct Client {
-    /// JSON-RPC protocol handler.
-    handler : Handler<Notification>,
-}
+shared! { Handle
 
-impl Client {
-    /// Create a new File Manager client that will use given transport.
-    pub fn new(transport:impl json_rpc::Transport + 'static) -> Client {
-        let handler = Handler::new(transport);
-        Client { handler }
+    /// File Manager client. Contains numerous asynchronous methods for remote calls
+    /// on File Manager server. Also, allows obtaining events stream by calling
+    /// `events`.
+    #[derive(Debug)]
+    pub struct Client {
+        /// JSON-RPC protocol handler.
+        handler : Handler<Notification>,
     }
 
-    /// Asynchronous event stream with notification and errors.
-    ///
-    /// On a repeated call, previous stream is closed.
-    pub fn events(&mut self) -> impl Stream<Item = Event> {
-        self.handler.handler_event_stream()
+    impl {
+        /// Create a new File Manager client that will use given transport.
+        pub fn new(transport:impl json_rpc::Transport + 'static) -> Self {
+            let handler = Handler::new(transport);
+            Client { handler }
+        }
+
+        /// Asynchronous event stream with notification and errors.
+        ///
+        /// On a repeated call, previous stream is closed.
+        pub fn events(&mut self) -> impl Stream<Item = Event> {
+            self.handler.handler_event_stream()
+        }
+
+        /// Returns a future that performs any background, asynchronous work needed
+        /// for this Client to correctly work. Should be continually run while the
+        /// `Client` is used. Will end once `Client` is dropped.
+        pub fn runner(&mut self) -> impl Future<Output = ()> {
+            self.handler.runner()
+        }
     }
 
-    /// Returns a future that performs any background, asynchronous work needed
-    /// for this Client to correctly work. Should be continually run while the
-    /// `Client` is used. Will end once `Client` is dropped.
-    pub fn runner(&mut self) -> impl Future<Output = ()> {
-        self.handler.runner()
-    }
 }
 
 
@@ -205,6 +210,14 @@ macro_rules! make_rpc_method {
             (&mut self, $($arg:$type),*) -> impl Future<Output=Result<$out>> {
                 let input = [<$name_typename Input>] { $($arg:$arg),* };
                 self.handler.open_request(input)
+            }
+        }
+
+        impl Handle {
+            /// Remote call to the method on the File Manager Server.
+            pub fn $name
+            (&mut self, $($arg:$type),*) -> impl Future<Output=Result<$out>> {
+                self.with_borrowed(|client| client.$name  ($($arg),*))
             }
         }
 

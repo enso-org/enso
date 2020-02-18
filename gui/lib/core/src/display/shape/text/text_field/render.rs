@@ -120,7 +120,7 @@ impl TextFieldSprites {
         // from bottom or right.
         const ADDITIONAL:usize = 2;
         let displayed_lines    = (window_size.y / line_height).floor() as usize + ADDITIONAL;
-        let space_width        = font.get_glyph_info(' ').advance;
+        let space_width        = font.get_glyph_info(' ').advance * line_height;
         let displayed_chars    = (window_size.x / space_width).floor();
         // This margin is to ensure, that after x scrolling we won't need to refresh all the lines
         // at once.
