@@ -1,5 +1,6 @@
 package org.enso
 
+import io.circe.parser.decode
 import org.enso.flexer.Reader
 import org.enso.parserservice.Protocol
 import org.enso.parserservice.Server
@@ -35,13 +36,16 @@ case class ParserService() extends Server with Protocol {
 
   def serializeAst(ast: AST.Module): String = ast.toJson().noSpaces
 
-  def runParser(program: String): AST.Module =
-    new Parser().run(new Reader(program))
+  def runParser(program: String, ids: Seq[((Int, Int), AST.ID)]): AST.Module =
+    new Parser().run(new Reader(program), Parser.idMap(ids))
 
   def handleRequest(request: Request): Response = {
     request match {
-      case ParseRequest(program) =>
-        val ast  = runParser(program)
+      case ParseRequest(program, idsJson) =>
+        val ids = decode[Seq[((Int, Int), AST.ID)]](idsJson).getOrElse {
+          throw new Exception("Could not decode IDMap from json.")
+        }
+        val ast  = runParser(program, ids)
         val json = serializeAst(ast)
         Protocol.Success(json)
       case _ =>

@@ -3,10 +3,14 @@ package org.enso.syntax.text
 import java.util.UUID
 
 import cats.Foldable
-import org.enso.data.{List1, Span}
+import org.enso.data.Index
+import org.enso.data.List1
+import org.enso.data.Size
+import org.enso.data.Span
 import org.enso.flexer
 import org.enso.flexer.Reader
-import org.enso.syntax.text.AST.Block.{Line, OptLine}
+import org.enso.syntax.text.AST.Block.Line
+import org.enso.syntax.text.AST.Block.OptLine
 import org.enso.syntax.text.AST.Macro.Match.SegmentOps
 import org.enso.syntax.text.AST.App
 import org.enso.syntax.text.ast.meta.Builtin
@@ -343,9 +347,14 @@ class Parser {
 
 object Parser {
   type IDMap = Seq[(Span, AST.ID)]
+
   private val newEngine = flexer.Parser.compile(ParserDef())
 
   def apply(): Parser = new Parser()
+
+  def idMap(ids: Seq[((Int, Int), AST.ID)]): IDMap = ids.map {
+    case ((ix, len), id) => (Span(Index(ix), Size(len)), id)
+  }
 
   //// Exceptions ////
 

@@ -10,7 +10,7 @@ import io.circe.syntax._
   */
 object Protocol {
   sealed trait Request
-  final case class ParseRequest(program: String) extends Request
+  final case class ParseRequest(program: String, ids: String) extends Request
 
   sealed trait Response
   final case class Success(ast_json: String) extends Response
