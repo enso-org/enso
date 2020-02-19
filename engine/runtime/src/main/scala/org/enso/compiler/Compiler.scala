@@ -4,7 +4,8 @@ import java.io.StringReader
 
 import com.oracle.truffle.api.TruffleFile
 import com.oracle.truffle.api.source.Source
-import org.enso.compiler.core.{AstExpression, AstModuleScope}
+import org.enso.compiler.core.IR.Expression
+import org.enso.compiler.core.IR.Module
 import org.enso.compiler.generate.AstToAstExpression
 import org.enso.flexer.Reader
 import org.enso.interpreter.builder.{ExpressionFactory, ModuleScopeExpressionFactory}
@@ -157,7 +158,7 @@ class Compiler(
     * @param sourceAST the parser AST input
     * @return an IR representation of the program represented by `sourceAST`
     */
-  def translate(sourceAST: AST): AstModuleScope =
+  def translate(sourceAST: AST): Module =
     AstToAstExpression.translate(sourceAST)
 
   /**
@@ -167,6 +168,6 @@ class Compiler(
     * @param sourceAST the parser AST representing the program source
     * @return an IR representation of the program represented by `sourceAST`
     */
-  def translateInline(sourceAST: AST): Option[AstExpression] =
+  def translateInline(sourceAST: AST): Option[Expression] =
     AstToAstExpression.translateInline(sourceAST)
 }

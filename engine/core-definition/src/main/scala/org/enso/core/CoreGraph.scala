@@ -390,7 +390,7 @@ object CoreGraph {
           */
         case class CentreSection(operator: Link[G])
 
-        /** A representatin of a term that is explicitly forced.
+        /** A representation of a term that is explicitly forced.
           *
           * An explicitly forced term is one where the user has explicitly
           * called the `force` operator on it. This is useful only while the

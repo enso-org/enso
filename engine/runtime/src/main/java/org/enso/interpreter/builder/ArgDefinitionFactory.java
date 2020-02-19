@@ -4,7 +4,7 @@ import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.nodes.RootNode;
 import org.enso.compiler.core.AstArgDefinitionVisitor;
-import org.enso.compiler.core.AstExpression;
+import org.enso.compiler.core.IR.Expression;
 import com.oracle.truffle.api.source.Source;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.ClosureRootNode;
@@ -84,7 +84,7 @@ public class ArgDefinitionFactory implements AstArgDefinitionVisitor<ArgumentDef
    */
   @Override
   public ArgumentDefinition visitArg(
-      String name, Optional<AstExpression> defaultValue, boolean suspended, int position) {
+      String name, Optional<Expression> defaultValue, boolean suspended, int position) {
     ExpressionNode defExpression =
         defaultValue
             .map(

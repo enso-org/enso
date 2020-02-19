@@ -1,8 +1,19 @@
 package org.enso.interpreter.builder;
 
-import org.enso.compiler.core.*;
 import com.oracle.truffle.api.source.Source;
-import org.enso.interpreter.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import org.enso.compiler.core.IR.DefinitionSiteArgument;
+import org.enso.compiler.core.IR.Expression;
+import org.enso.compiler.core.IR.AstImport;
+import org.enso.compiler.core.IR.Module;
+import org.enso.compiler.core.AstModuleScopeVisitor;
+import org.enso.compiler.core.IR.MethodDef;
+import org.enso.compiler.core.IR.AtomDef;
+import org.enso.interpreter.Constants;
+import org.enso.interpreter.Language;
 import org.enso.interpreter.node.callable.function.CreateFunctionNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
@@ -11,11 +22,6 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.error.VariableDoesNotExistException;
 import org.enso.interpreter.runtime.scope.ModuleScope;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 /**
  * A {@code GlobalScopeExpressionFactory} is responsible for converting the top-level definitions of
@@ -44,7 +50,7 @@ public class ModuleScopeExpressionFactory implements AstModuleScopeVisitor<Funct
    *
    * @param expr the expression to execute on
    */
-  public void run(AstModuleScope expr) {
+  public void run(Module expr) {
     expr.visit(this);
   }
 
@@ -52,12 +58,12 @@ public class ModuleScopeExpressionFactory implements AstModuleScopeVisitor<Funct
    * Processes definitions in the language global scope.
    *
    * @param imports any imports requested by this module
-   * @param typeDefs any type definitions defined in the global scope
+   * @param atomDefs any type definitions defined in the global scope
    * @param bindings any bindings made in the global scope
    */
   @Override
   public void visitModuleScope(
-      List<AstImport> imports, List<AstTypeDef> typeDefs, List<AstMethodDef> bindings) {
+      List<AstImport> imports, List<AtomDef> atomDefs, List<MethodDef> bindings) {
     Context context = language.getCurrentContext();
 
     for (AstImport imp : imports) {
@@ -65,7 +71,7 @@ public class ModuleScopeExpressionFactory implements AstModuleScopeVisitor<Funct
     }
 
     List<AtomConstructor> constructors =
-        typeDefs.stream()
+        atomDefs.stream()
             .map(type -> new AtomConstructor(type.name(), moduleScope))
             .collect(Collectors.toList());
 
@@ -76,7 +82,7 @@ public class ModuleScopeExpressionFactory implements AstModuleScopeVisitor<Funct
             idx -> {
               ArgDefinitionFactory argFactory =
                   new ArgDefinitionFactory(language, source, moduleScope);
-              AstTypeDef type = typeDefs.get(idx);
+              AtomDef type = atomDefs.get(idx);
               ArgumentDefinition[] argDefs = new ArgumentDefinition[type.getArguments().size()];
 
               for (int i = 0; i < type.getArguments().size(); ++i) {
@@ -86,10 +92,10 @@ public class ModuleScopeExpressionFactory implements AstModuleScopeVisitor<Funct
               constructors.get(idx).initializeFields(argDefs);
             });
 
-    for (AstMethodDef method : bindings) {
-      scala.Option<AstExpression> scalaNone = scala.Option.apply(null);
-      AstArgDefinition thisArgument =
-          new AstArgDefinition(Constants.Names.THIS_ARGUMENT, scalaNone, false);
+    for (MethodDef method : bindings) {
+      scala.Option<Expression> scalaNone = scala.Option.apply(null);
+      DefinitionSiteArgument thisArgument =
+          new DefinitionSiteArgument(Constants.Names.THIS_ARGUMENT, scalaNone, false);
 
       String typeName = method.typeName();
       if (typeName.equals(Constants.Names.CURRENT_MODULE)) {
@@ -103,12 +109,12 @@ public class ModuleScopeExpressionFactory implements AstModuleScopeVisitor<Funct
               typeName + Constants.SCOPE_SEPARATOR + method.methodName(),
               moduleScope);
 
-      List<AstArgDefinition> realArgs = new ArrayList<>(method.fun().getArguments());
+      List<DefinitionSiteArgument> realArgs = new ArrayList<>(method.function().getArguments());
       realArgs.add(0, thisArgument);
 
       CreateFunctionNode funNode =
           expressionFactory.processFunctionBody(
-              method.fun().getLocation(), realArgs, method.fun().body());
+              method.function().getLocation(), realArgs, method.function().body());
       funNode.markTail();
       Function function =
           new Function(

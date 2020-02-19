@@ -13,20 +13,20 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
-import org.enso.compiler.core.AstApply;
-import org.enso.compiler.core.AstArgDefinition;
-import org.enso.compiler.core.AstArithOp;
-import org.enso.compiler.core.AstAssignment;
-import org.enso.compiler.core.AstCallArg;
-import org.enso.compiler.core.AstCaseFunction;
-import org.enso.compiler.core.AstExpression;
 import org.enso.compiler.core.AstExpressionVisitor;
-import org.enso.compiler.core.AstForce;
-import org.enso.compiler.core.AstFunction;
-import org.enso.compiler.core.AstLong;
-import org.enso.compiler.core.AstMatch;
-import org.enso.compiler.core.AstStringLiteral;
-import org.enso.compiler.core.AstVariable;
+import org.enso.compiler.core.IR.BinaryOperator;
+import org.enso.compiler.core.IR.Binding;
+import org.enso.compiler.core.IR.CallArgumentDefinition;
+import org.enso.compiler.core.IR.CaseFunction;
+import org.enso.compiler.core.IR.DefinitionSiteArgument;
+import org.enso.compiler.core.IR.Expression;
+import org.enso.compiler.core.IR.ForcedTerm;
+import org.enso.compiler.core.IR.Lambda;
+import org.enso.compiler.core.IR.CaseExpr;
+import org.enso.compiler.core.IR.LiteralName;
+import org.enso.compiler.core.IR.NumberLiteral;
+import org.enso.compiler.core.IR.Prefix;
+import org.enso.compiler.core.IR.TextLiteral;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.ClosureRootNode;
@@ -142,7 +142,7 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
    * @param expr the expression to make executable
    * @return a node representing the provided computation
    */
-  public ExpressionNode run(AstExpression expr) {
+  public ExpressionNode run(Expression expr) {
     ExpressionNode result = expr.visit(this);
     result.markNotTail();
     return result;
@@ -169,8 +169,8 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
    * @return a runtime node representing that value
    */
   @Override
-  public ExpressionNode visitLong(AstLong l) {
-    return setLocation(new IntegerLiteralNode(l.value()), l.getLocation());
+  public ExpressionNode visitLong(NumberLiteral l) {
+    return setLocation(new IntegerLiteralNode(Long.parseLong(l.value())), l.getLocation());
   }
 
   /**
@@ -180,8 +180,8 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
    * @return a runtime node representing this literal
    */
   @Override
-  public ExpressionNode visitStringLiteral(AstStringLiteral string) {
-    ExpressionNode node = new TextLiteralNode(string.string());
+  public ExpressionNode visitStringLiteral(TextLiteral string) {
+    ExpressionNode node = new TextLiteralNode(string.text());
     return setLocation(node, string.getLocation());
   }
 
@@ -192,10 +192,10 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
    * @return a runtime node representing the arithmetic expression
    */
   @Override
-  public ExpressionNode visitArithOp(AstArithOp ast) {
+  public ExpressionNode visitArithOp(BinaryOperator ast) {
     ExpressionNode left = ast.left().visit(this);
     ExpressionNode right = ast.right().visit(this);
-    String operator = ast.op();
+    String operator = ast.operator();
     ExpressionNode resultOp = null;
     if (operator.equals("+")) {
       resultOp = AddOperatorNodeGen.create(left, right);
@@ -233,12 +233,12 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
    * <p>This method is solely responsible for looking up a variable in the parent scope with the
    * provided name and does not handle associating that variable with a value.
    *
-   * @param astVariable the AST to represent
+   * @param astName the AST to represent
    * @return a runtime node representing the variable
    */
   @Override
-  public ExpressionNode visitVariable(AstVariable astVariable) {
-    String name = astVariable.name();
+  public ExpressionNode visitName(LiteralName astName) {
+    String name = astName.name();
     Optional<ExpressionNode> currentModuleVariable =
         name.equals(Constants.Names.CURRENT_MODULE)
             ? Optional.of(new ConstructorNode(moduleScope.getAssociatedType()))
@@ -255,7 +255,7 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
             .map(Optional::get)
             .findFirst()
             .orElseGet(() -> new DynamicSymbolNode(new UnresolvedSymbol(name, moduleScope)));
-    return setLocation(variableRead, astVariable.getLocation());
+    return setLocation(variableRead, astName.getLocation());
   }
 
   /**
@@ -270,7 +270,7 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
    * @return a runtime node representing the function body
    */
   public CreateFunctionNode processFunctionBody(
-      Optional<Location> location, List<AstArgDefinition> arguments, AstExpression body) {
+      Optional<Location> location, List<DefinitionSiteArgument> arguments, Expression body) {
     ArgDefinitionFactory argFactory =
         new ArgDefinitionFactory(scope, language, source, scopeName, moduleScope);
     ArgumentDefinition[] argDefinitions = new ArgumentDefinition[arguments.size()];
@@ -333,17 +333,17 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
    * Creates a runtime node representing a function.
    *
    * <p>Given that most of the work takes place in {@link #processFunctionBody(Optional, List,
-   * AstExpression)}, this node is solely responsible for handling the creation of a new scope for
-   * the function, and marking it as tail recursive.
+   * Expression)}, this node is solely responsible for handling the creation of a new scope for the
+   * function, and marking it as tail recursive.
    *
-   * @param function the AST to represent
+   * @param lambda the AST to represent
    * @return a runtime node representing the function
    */
   @Override
-  public ExpressionNode visitFunction(AstFunction function) {
+  public ExpressionNode visitLambda(Lambda lambda) {
     ExpressionFactory child = createChild(currentVarName);
     ExpressionNode fun =
-        child.processFunctionBody(function.getLocation(), function.getArguments(), function.body());
+        child.processFunctionBody(lambda.getLocation(), lambda.getArguments(), lambda.body());
     fun.markTail();
     return fun;
   }
@@ -352,17 +352,19 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
    * Creates a runtime node representing a case function.
    *
    * <p>Given that most of the work takes place in {@link #processFunctionBody(Optional, List,
-   * AstExpression) processFunctionBody}, this node is solely responsible for handling the creation
-   * of a new scope for the function.
+   * Expression) processFunctionBody}, this node is solely responsible for handling the creation of
+   * a new scope for the function.
    *
    * @param function the AST to represent
    * @return a runtime node representing the function
    */
   @Override
-  public ExpressionNode visitCaseFunction(AstCaseFunction function) {
+  public ExpressionNode visitCaseFunction(CaseFunction function) {
     ExpressionFactory child = createChild("case_expression");
     return child.processFunctionBody(
         function.getLocation(), function.getArguments(), function.body());
+
+    // Explicitly not marked as tail
   }
 
   /**
@@ -372,9 +374,9 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
    * @return a runtime node representing the function call
    */
   @Override
-  public ExpressionNode visitFunctionApplication(AstApply application) {
+  public ExpressionNode visitFunctionApplication(Prefix application) {
     CallArgFactory argFactory = new CallArgFactory(scope, language, source, scopeName, moduleScope);
-    List<AstCallArg> arguments = application.getArgs();
+    List<CallArgumentDefinition> arguments = application.getArgs();
     List<CallArgument> callArgs = new ArrayList<>();
     for (int position = 0; position < arguments.size(); ++position) {
       CallArgument arg = arguments.get(position).visit(argFactory, position);
@@ -388,7 +390,7 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
 
     ApplicationNode appNode =
         new ApplicationNode(
-            application.fun().visit(this),
+            application.function().visit(this),
             callArgs.toArray(new CallArgument[0]),
             defaultsExecutionMode);
     setLocation(appNode, application.getLocation());
@@ -402,40 +404,40 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
    * @return a runtime node representing the assignment
    */
   @Override
-  public ExpressionNode visitAssignment(AstAssignment ast) {
+  public ExpressionNode visitAssignment(Binding ast) {
     currentVarName = ast.name();
     FrameSlot slot = scope.createVarSlot(ast.name());
-    return setLocation(AssignmentNodeGen.create(ast.body().visit(this), slot), ast.getLocation());
+    return setLocation(AssignmentNodeGen.create(ast.expression().visit(this), slot), ast.getLocation());
   }
 
   /**
    * Creates a runtime node representing a pattern match.
    *
-   * @param match the AST to represent
+   * @param caseExpr the AST to represent
    * @return a runtime node representing a pattern match expression
    */
   @Override
-  public ExpressionNode visitMatch(AstMatch match) {
+  public ExpressionNode visitMatch(CaseExpr caseExpr) {
     //      AstExpression target, List<AstCase> branches, Optional<AstCaseFunction> fallback) {
 
-    ExpressionNode targetNode = match.target().visit(this);
+    ExpressionNode targetNode = caseExpr.scrutinee().visit(this);
     CaseNode[] cases =
-        match.getBranches().stream()
+        caseExpr.getBranches().stream()
             .map(
                 branch ->
                     new ConstructorCaseNode(
-                        branch.cons().visit(this), branch.function().visit(this)))
+                        branch.pattern().visit(this), branch.expression().visit(this)))
             .toArray(CaseNode[]::new);
 
     // Note [Pattern Match Fallbacks]
     CaseNode fallbackNode =
-        match
+        caseExpr
             .getFallback()
             .map(fb -> (CaseNode) new FallbackNode(fb.visit(this)))
             .orElseGet(DefaultFallbackNode::new);
 
     ExpressionNode matchExpr = MatchNodeGen.create(cases, fallbackNode, targetNode);
-    return setLocation(matchExpr, match.getLocation());
+    return setLocation(matchExpr, caseExpr.getLocation());
   }
 
   /* Note [Pattern Match Fallbacks]
@@ -449,13 +451,13 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
   /**
    * Creates a runtime representation of lazy function argument forcing.
    *
-   * @param force the AST to represent
+   * @param forcedTerm the AST to represent
    * @return the AST fragment representing forcing of the requested value
    */
   @Override
-  public ExpressionNode visitForce(AstForce force) {
-    ForceNode node = ForceNodeGen.create(force.target().visit(this));
-    return setLocation(node, force.getLocation());
+  public ExpressionNode visitForce(ForcedTerm forcedTerm) {
+    ForceNode node = ForceNodeGen.create(forcedTerm.target().visit(this));
+    return setLocation(node, forcedTerm.getLocation());
   }
 
   /**
@@ -467,7 +469,7 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
    */
   @Override
   public ExpressionNode visitBlock(
-      List<AstExpression> statements, AstExpression retValue, boolean suspended) {
+      List<Expression> statements, Expression retValue, boolean suspended) {
     if (suspended) {
       ExpressionFactory childFactory = this.createChild("suspended-block");
       LocalScope childScope = childFactory.scope;

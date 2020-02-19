@@ -2,8 +2,7 @@ package org.enso.compiler.generate
 
 import cats.Foldable
 import cats.implicits._
-import org.enso.compiler.core
-import org.enso.compiler.core._
+import org.enso.compiler.core.IR._
 import org.enso.compiler.exception.UnhandledEntity
 import org.enso.interpreter.Constants
 import org.enso.syntax.text.{AST, Location}
@@ -15,7 +14,7 @@ import org.enso.syntax.text.{AST, Location}
   * This file contains the functionality that translates from the parser's
   * [[AST]] type to the internal representation used by the compiler.
   *
-  * This representation is currently [[AstExpression]], but this will change as
+  * This representation is currently [[Expression]], but this will change as
   * [[Core]] becomes implemented. Most function docs will refer to [[Core]]
   * now, as this will become true soon.
   */
@@ -27,7 +26,7 @@ object AstToAstExpression {
     * @param inputAST the [[AST]] representing the program to translate
     * @return the [[Core]] representation of `inputAST`
     */
-  def translate(inputAST: AST): AstModuleScope = {
+  def translate(inputAST: AST): Module = {
     inputAST match {
       case AST.Module.any(inputAST) => translateModule(inputAST)
       case _ => {
@@ -46,7 +45,7 @@ object AstToAstExpression {
     * @return the [[Core]] representation of `inputAST` if it is valid,
     *         otherwise [[None]]
     */
-  def translateInline(inputAST: AST): Option[AstExpression] = {
+  def translateInline(inputAST: AST): Option[Expression] = {
     inputAST match {
       case AST.Module.any(module) =>
         val presentBlocks = module.lines.collect {
@@ -60,7 +59,7 @@ object AstToAstExpression {
           case List(expr) => Some(expr)
           case _ =>
             Some(
-              AstBlock(
+              Block(
                 Foldable[List].foldMap(expressions)(_.location),
                 expressions.dropRight(1),
                 expressions.last
@@ -76,7 +75,7 @@ object AstToAstExpression {
     * @param module the [[AST]] representation of the module to translate
     * @return the [[Core]] representation of `module`
     */
-  def translateModule(module: AST.Module): AstModuleScope = {
+  def translateModule(module: AST.Module): Module = {
     module match {
       case AST.Module(blocks) => {
         val presentBlocks = blocks.collect {
@@ -93,7 +92,7 @@ object AstToAstExpression {
         }
 
         val statements = nonImportBlocks.map(translateModuleSymbol)
-        core.AstModuleScope(imports, statements)
+        Module(imports, statements)
       }
     }
   }
@@ -104,13 +103,13 @@ object AstToAstExpression {
     * @param inputAST the definition to be translated
     * @return the [[Core]] representation of `inputAST`
     */
-  def translateModuleSymbol(inputAST: AST): AstModuleSymbol = {
+  def translateModuleSymbol(inputAST: AST): TopLevelSymbol = {
     inputAST match {
       case AST.Def(consName, args, body) =>
         if (body.isDefined) {
           throw new RuntimeException("Cannot support complex type defs yet!!!!")
         } else {
-          AstTypeDef(consName.name, args.map(translateArgumentDefinition(_)))
+          AtomDef(consName.name, args.map(translateArgumentDefinition(_)))
         }
       case AstView.MethodDefinition(targetPath, name, definition) =>
         val path = if (targetPath.nonEmpty) {
@@ -120,11 +119,11 @@ object AstToAstExpression {
         }
         val nameStr       = name match { case AST.Ident.Var(name) => name }
         val defExpression = translateExpression(definition)
-        val defExpr: AstFunction = defExpression match {
-          case fun: AstFunction => fun
-          case expr             => AstFunction(expr.location, List(), expr)
+        val defExpr: Lambda = defExpression match {
+          case fun: Lambda => fun
+          case expr        => Lambda(expr.location, List(), expr)
         }
-        AstMethodDef(path, nameStr, defExpr)
+        MethodDef(path, nameStr, defExpr)
       case _ =>
         throw new UnhandledEntity(inputAST, "translateModuleSymbol")
     }
@@ -135,14 +134,14 @@ object AstToAstExpression {
     * @param inputAST the expresion to be translated
     * @return the [[Core]] representation of `inputAST`
     */
-  def translateExpression(inputAST: AST): AstExpression = {
+  def translateExpression(inputAST: AST): Expression = {
     inputAST match {
       case AstView
             .SuspendedBlock(name, block @ AstView.Block(lines, lastLine)) =>
-        AstAssignment(
+        Binding(
           inputAST.location,
           name.name,
-          AstBlock(
+          Block(
             block.location,
             lines.map(translateExpression),
             translateExpression(lastLine),
@@ -152,7 +151,7 @@ object AstToAstExpression {
       case AstView.Assignment(name, expr) =>
         translateBinding(inputAST.location, name, expr)
       case AstView.MethodCall(target, name, args) =>
-        AstApply(
+        Prefix(
           inputAST.location,
           translateExpression(name),
           (target :: args).map(translateCallArgument),
@@ -169,7 +168,7 @@ object AstToAstExpression {
             .drop(nonFallbackBranches.length)
             .headOption
             .map(translateFallbackBranch)
-        AstMatch(
+        CaseExpr(
           inputAST.location,
           actualScrutinee,
           nonFallbackBranches,
@@ -182,7 +181,7 @@ object AstToAstExpression {
         translateGroup(inputAST, translateExpression)
       case AST.Ident.any(inputAST) => translateIdent(inputAST)
       case AstView.Block(lines, retLine) =>
-        AstBlock(
+        Block(
           inputAST.location,
           lines.map(translateExpression),
           translateExpression(retLine)
@@ -204,14 +203,14 @@ object AstToAstExpression {
     * @param literal the literal to translate
     * @return the [[Core]] representation of `literal`
     */
-  def translateLiteral(literal: AST.Literal): AstExpression = {
+  def translateLiteral(literal: AST.Literal): Expression = {
     literal match {
       case AST.Literal.Number(base, number) => {
         if (base.isDefined && base.get != "10") {
           throw new RuntimeException("Only base 10 is currently supported")
         }
 
-        AstLong(literal.location, number.toLong)
+        NumberLiteral(literal.location, number)
       }
       case AST.Literal.Text.any(literal) =>
         literal.shape match {
@@ -221,7 +220,7 @@ object AstToAstExpression {
               case AST.Literal.Text.Segment.RawEsc(code) => code.repr
             }.mkString
 
-            AstStringLiteral(literal.location, fullString)
+            TextLiteral(literal.location, fullString)
           case AST.Literal.Text.Block.Raw(lines, _, _) =>
             val fullString = lines
               .map(
@@ -233,7 +232,7 @@ object AstToAstExpression {
               )
               .mkString("\n")
 
-            AstStringLiteral(literal.location, fullString)
+            TextLiteral(literal.location, fullString)
           case AST.Literal.Text.Block.Fmt(_, _, _) =>
             throw new RuntimeException("Format strings not yet supported")
           case AST.Literal.Text.Line.Fmt(_) =>
@@ -255,10 +254,10 @@ object AstToAstExpression {
   def translateArgumentDefinition(
     arg: AST,
     isSuspended: Boolean = false
-  ): AstArgDefinition = {
+  ): DefinitionSiteArgument = {
     arg match {
       case AstView.LazyAssignedArgumentDefinition(name, value) =>
-        AstArgDefinition(
+        DefinitionSiteArgument(
           name.name,
           Some(translateExpression(value)),
           true
@@ -266,9 +265,9 @@ object AstToAstExpression {
       case AstView.LazyArgument(arg) =>
         translateArgumentDefinition(arg, isSuspended = true)
       case AstView.DefinitionArgument(arg) =>
-        AstArgDefinition(arg.name, None, isSuspended)
+        DefinitionSiteArgument(arg.name, None, isSuspended)
       case AstView.AssignedArgument(name, value) =>
-        AstArgDefinition(
+        DefinitionSiteArgument(
           name.name,
           Some(translateExpression(value)),
           isSuspended
@@ -284,10 +283,10 @@ object AstToAstExpression {
     * @param arg the argument to translate
     * @return the [[Core]] representation of `arg`
     */
-  def translateCallArgument(arg: AST): AstCallArg = arg match {
+  def translateCallArgument(arg: AST): CallArgumentDefinition = arg match {
     case AstView.AssignedArgument(left, right) =>
-      AstNamedCallArg(left.name, translateExpression(right))
-    case _ => AstUnnamedCallArg(translateExpression(arg))
+      CallArgumentDefinition(Some(left.name), translateExpression(right))
+    case _ => CallArgumentDefinition(None, translateExpression(arg))
   }
 
   /** Translates an arbitrary expression that takes the form of a syntactic
@@ -296,10 +295,10 @@ object AstToAstExpression {
     * @param callable the callable to translate
     * @return the [[Core]] representation of `callable`
     */
-  def translateApplicationLike(callable: AST): AstExpression = {
+  def translateApplicationLike(callable: AST): Expression = {
     callable match {
       case AstView.ForcedTerm(term) =>
-        AstForce(callable.location, translateExpression(term))
+        ForcedTerm(callable.location, translateExpression(term))
       case AstView.Application(name, args) =>
         val validArguments = args.filter {
           case AstView.SuspendDefaultsOperator(_) => false
@@ -312,7 +311,7 @@ object AstToAstExpression {
 
         val hasDefaultsSuspended = suspendPositions.contains(args.length - 1)
 
-        AstApply(
+        Prefix(
           callable.location,
           translateExpression(name),
           validArguments.map(translateCallArgument),
@@ -321,18 +320,13 @@ object AstToAstExpression {
       case AstView.Lambda(args, body) =>
         val realArgs = args.map(translateArgumentDefinition(_))
         val realBody = translateExpression(body)
-        AstFunction(callable.location, realArgs, realBody)
+        Lambda(callable.location, realArgs, realBody)
       case AST.App.Infix(left, fn, right) =>
         // TODO [AA] We should accept all ops when translating to core
         val validInfixOps = List("+", "/", "-", "*", "%")
 
         if (validInfixOps.contains(fn.name)) {
-          AstArithOp(
-            callable.location,
-            fn.name,
-            translateExpression(left),
-            translateExpression(right)
-          )
+          BinaryOperator(callable.location, translateExpression(left), fn.name, translateExpression(right))
         } else {
           throw new RuntimeException(
             s"${fn.name} is not currently a valid infix operator"
@@ -358,7 +352,7 @@ object AstToAstExpression {
         val functionName =
           AST.Ident.Var(realNameSegments.map(_.name).mkString("_"))
 
-        AstApply(
+        Prefix(
           callable.location,
           translateExpression(functionName),
           args.map(translateCallArgument).toList,
@@ -374,10 +368,10 @@ object AstToAstExpression {
     * @param identifier the identifier to translate
     * @return the [[Core]] representation of `identifier`
     */
-  def translateIdent(identifier: AST.Ident): AstExpression = {
+  def translateIdent(identifier: AST.Ident): Expression = {
     identifier match {
-      case AST.Ident.Var(name)  => AstVariable(identifier.location, name)
-      case AST.Ident.Cons(name) => AstVariable(identifier.location, name)
+      case AST.Ident.Var(name)  => LiteralName(identifier.location, name)
+      case AST.Ident.Cons(name) => LiteralName(identifier.location, name)
       case AST.Ident.Blank(_) =>
         throw new RuntimeException("Blanks not yet properly supported")
       case AST.Ident.Opr.any(_) =>
@@ -403,10 +397,10 @@ object AstToAstExpression {
     location: Option[Location],
     name: AST,
     expr: AST
-  ): AstAssignment = {
+  ): Binding = {
     name match {
       case AST.Ident.Var(name) =>
-        AstAssignment(location, name, translateExpression(expr))
+        Binding(location, name, translateExpression(expr))
       case _ =>
         throw new UnhandledEntity(name, "translateAssignment")
     }
@@ -418,13 +412,13 @@ object AstToAstExpression {
     * @param branch the case branch to translate
     * @return the [[Core]] representation of `branch`
     */
-  def translateCaseBranch(branch: AST): AstCase = {
+  def translateCaseBranch(branch: AST): CaseBranch = {
     branch match {
       case AstView.ConsCaseBranch(cons, args, body) =>
-        AstCase(
+        CaseBranch(
           branch.location,
           translateExpression(cons),
-          AstCaseFunction(
+          CaseFunction(
             body.location,
             args.map(translateArgumentDefinition(_)),
             translateExpression(body)
@@ -441,10 +435,10 @@ object AstToAstExpression {
     * @param branch the fallback branch to translate
     * @return the [[Core]] representation of `branch`
     */
-  def translateFallbackBranch(branch: AST): AstCaseFunction = {
+  def translateFallbackBranch(branch: AST): CaseFunction = {
     branch match {
       case AstView.FallbackCaseBranch(body) =>
-        AstCaseFunction(body.location, List(), translateExpression(body))
+        CaseFunction(body.location, List(), translateExpression(body))
       case _ => throw new UnhandledEntity(branch, "translateFallbackBranch")
     }
   }
@@ -485,7 +479,7 @@ object AstToAstExpression {
     * @param invalid the invalid entity to translate
     * @return the [[Core]] representation of `invalid`
     */
-  def translateInvalid(invalid: AST.Invalid): AstExpression = {
+  def translateInvalid(invalid: AST.Invalid): Expression = {
     invalid match {
       case AST.Invalid.Unexpected(_, _) =>
         throw new RuntimeException(
@@ -519,7 +513,7 @@ object AstToAstExpression {
     * @param comment the comment to transform
     * @return the [[Core]] representation of `comment`
     */
-  def translateComment(comment: AST): AstExpression = {
+  def translateComment(comment: AST): Expression = {
     comment match {
       case AST.Comment(_) =>
         throw new RuntimeException(

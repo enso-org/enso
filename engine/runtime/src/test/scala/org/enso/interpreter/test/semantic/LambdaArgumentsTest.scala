@@ -2,7 +2,7 @@ package org.enso.interpreter.test.semantic
 
 import org.enso.interpreter.test.InterpreterTest
 
-class FunctionArgumentsTest extends InterpreterTest {
+class LambdaArgumentsTest extends InterpreterTest {
   "Functions" should "take arguments and use them in their bodies" in {
     val code =
       """

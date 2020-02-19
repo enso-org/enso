@@ -3,11 +3,11 @@ package org.enso.interpreter.builder;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
 import org.enso.compiler.core.AstCallArgVisitor;
-import org.enso.compiler.core.AstExpression;
+import org.enso.compiler.core.IR.Expression;
 import com.oracle.truffle.api.source.Source;
 
 import com.oracle.truffle.api.source.SourceSection;
-import org.enso.compiler.core.AstForce;
+import org.enso.compiler.core.IR.ForcedTerm;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.ExpressionNode;
@@ -64,12 +64,12 @@ public class CallArgFactory implements AstCallArgVisitor<CallArgument> {
    * @return a runtime representation of the argument
    */
   @Override
-  public CallArgument visitCallArg(Optional<String> name, AstExpression value, int position) {
+  public CallArgument visitCallArg(Optional<String> name, Expression value, int position) {
     ExpressionNode result;
 
-    if (value instanceof AstForce) {
+    if (value instanceof ForcedTerm) {
       ExpressionFactory factory = new ExpressionFactory(language, source, scope, scopeName, moduleScope);
-      result = ((AstForce) value).target().visit(factory);
+      result = ((ForcedTerm) value).target().visit(factory);
     } else {
       LocalScope childScope = new LocalScope(scope);
       ExpressionFactory factory =
