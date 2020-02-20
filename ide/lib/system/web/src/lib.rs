@@ -63,8 +63,22 @@ impl Error {
 // === Utils ===
 // =============
 
+/// Handle returned from `ignore_context_menu`. It unignores when the handle is dropped.
+#[derive(Debug)]
+pub struct IgnoreContextMenuHandle {
+    target  : EventTarget,
+    closure : Closure<dyn FnMut(MouseEvent)>
+}
+
+impl Drop for IgnoreContextMenuHandle {
+    fn drop(&mut self) {
+        let callback : &Function = self.closure.as_ref().unchecked_ref();
+        self.target.remove_event_listener_with_callback("contextmenu", callback).ok();
+    }
+}
+
 /// Ignores context menu when clicking with the right mouse button.
-pub fn ignore_context_menu(target:&EventTarget) -> Result<Closure<dyn FnMut(MouseEvent)>> {
+pub fn ignore_context_menu(target:&EventTarget) -> Result<IgnoreContextMenuHandle> {
     let closure = move |event:MouseEvent| {
         const RIGHT_MOUSE_BUTTON : i16 = 2;
         if  event.button() == RIGHT_MOUSE_BUTTON {
@@ -74,7 +88,11 @@ pub fn ignore_context_menu(target:&EventTarget) -> Result<Closure<dyn FnMut(Mous
     let closure = Closure::wrap(Box::new(closure) as Box<dyn FnMut(MouseEvent)>);
     let callback : &Function = closure.as_ref().unchecked_ref();
     match target.add_event_listener_with_callback("contextmenu", callback) {
-        Ok(_)  => Ok(closure),
+        Ok(_)  => {
+            let target = target.clone();
+            let handle = IgnoreContextMenuHandle { target, closure };
+            Ok(handle)
+        },
         Err(_) => Err(Error::FailedToAddEventListener)
     }
 }

@@ -114,8 +114,8 @@ impl ContinuousAnimator {
         let event_loop      = EventLoop::new();
         let data            = ContinuousAnimatorData::new(f);
         let weak_data       = Rc::downgrade(&data);
-        let callback_handle = event_loop.add_callback(move |absolute_time_ms| {
-            weak_data.upgrade().map(|data| data.on_animation_frame(absolute_time_ms));
+        let callback_handle = event_loop.add_callback(move |absolute_time_ms:&f64| {
+            weak_data.upgrade().map(|data| data.on_animation_frame(*absolute_time_ms));
         });
         data.set_event_loop_callback_handle(Some(callback_handle));
         Self {data,event_loop}

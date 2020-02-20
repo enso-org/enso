@@ -16,6 +16,7 @@ use futures::executor::LocalPool;
 use futures::executor::LocalSpawner;
 
 use basegl::control::callback::CallbackHandle;
+use basegl::control::callback::CallbackMut1Fn;
 use basegl::control::EventLoop;
 
 // TODO [mwu] If anything, likely thread local variable should be preferred.
@@ -72,7 +73,7 @@ impl JsExecutor {
 
     pub fn schedule_execution
     (event_loop:EventLoop, executor:Rc<RefCell<LocalPool>>) -> CallbackHandle {
-        event_loop.add_callback(move |_| {
+        event_loop.add_callback(move |_:&f64| {
             // Safe, because this is the only place borrowing executor and loop
             // callback shall never be re-entrant.
             let mut executor = executor.borrow_mut();
@@ -88,8 +89,7 @@ impl JsExecutor {
         self.spawner.spawn_local(f)
     }
 
-    pub fn add_callback<F:basegl::control::EventLoopCallback>
-    (&mut self, callback:F) -> CallbackHandle {
+    pub fn add_callback<F:CallbackMut1Fn<f64>>(&mut self, callback:F) -> CallbackHandle {
         self._event_loop.add_callback(callback)
     }
 }

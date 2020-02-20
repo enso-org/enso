@@ -76,7 +76,7 @@ impl BencherData {
         let data_clone = self.clone();
         let performance = get_performance().expect("Performance object");
         let mut t0 = performance.now();
-        let callback_guard = self.event_loop().add_callback(Box::new(move |_| {
+        let callback_guard = self.event_loop().add_callback(Box::new(move |_:&f64| {
             let mut data = data_clone.borrow_mut();
 
             (&mut data.callback)();

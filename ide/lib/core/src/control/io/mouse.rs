@@ -1,295 +1,53 @@
-//! This module contains the `MouseManager` implementation, its associated structs such as
-//! `MousePositionEvent`, `MouseClickEvent` and `MouseWheelEvent`.
+//! This module contains implementation of a mouse manager and related utilities.
 
 use crate::prelude::*;
 
-pub mod event;
 pub mod button;
+pub mod event;
 
-use crate::system::web::dom::DomContainer;
-use crate::system::web::dyn_into;
-use crate::system::web::Result;
-use crate::system::web::Error;
-use crate::system::web::ignore_context_menu;
+use crate::control::callback::*;
+use crate::display::scene::Shape;
 
-use wasm_bindgen::prelude::*;
-use wasm_bindgen::JsCast;
-use web_sys::MouseEvent;
-use web_sys::WheelEvent;
-use web_sys::EventTarget;
-use web_sys::AddEventListenerOptions;
-use js_sys::Function;
-use nalgebra::Vector2;
-use std::rc::Rc;
+use enso_frp::EventEmitterPoly;
+use enso_frp::Position;
 use std::cell::RefCell;
+use std::rc::Rc;
+use wasm_bindgen::JsCast;
+use wasm_bindgen::JsValue;
+use wasm_bindgen::prelude::Closure;
+use web_sys::EventTarget;
 
-
-
-// =====================
-// === EventListener ===
-// =====================
-
-/// This struct keeps the register of the event listener and unregisters it when it's dropped.
-#[derive(Debug)]
-pub struct EventListener<T:?Sized> {
-    target   : EventTarget,
-    name     : String,
-    callback : Closure<T>
-}
-
-impl<T:?Sized> EventListener<T> {
-    fn new<S:Str>(target:EventTarget, name:S, callback:Closure<T>) -> Self {
-        let name = name.as_ref().to_string();
-        Self { target,name,callback }
-    }
-}
-
-impl<T:?Sized> Drop for EventListener<T> {
-    fn drop(&mut self) {
-        let callback: &Function = self.callback.as_ref().unchecked_ref();
-        remove_event_listener_with_callback(&self.target,&self.name,&callback).ok();
-    }
-}
-
-
-
-// =============================
-// === Mouse Event Listeners ===
-// =============================
-
-/// EventListener for Mouse events.
-pub type MouseEventListener = EventListener<dyn FnMut(MouseEvent)>;
-
-/// EventListener for Wheel events.
-pub type WheelEventListener = EventListener<dyn FnMut(WheelEvent)>;
-
-
-
-// ===================
-// === MouseButton ===
-// ===================
-
-// FIXME: this does not handle all buttons (js defines 5 buttons) and assumes mouses for
-// FIXME: right hand people.
-/// An enumeration representing the mouse buttons.
-#[derive(Clone,Copy,Debug)]
-#[allow(missing_docs)]
-pub enum MouseButton {LEFT,MIDDLE,RIGHT,UNKNOWN}
+pub use button::*;
 
 
 
 // =======================
-// === MouseClickEvent ===
+// === EventDispatcher ===
 // =======================
 
-/// Mouse click callback used by `MouseManager`.
-pub trait MouseClickCallback = FnMut(MouseClickEvent) + 'static;
+// TODO: Consider merging this implementation with crate::control::callback::* ones.
 
-// FIXME: "click" means mouse down and then up. This is misleading.
-/// A struct storing information about mouse down and mouse up events.
-#[derive(Clone,Copy,Debug)]
-pub struct MouseClickEvent {
-    /// The position where the MouseClickEvent occurred.
-    pub position : Vector2<f32>,
-
-    /// The button which triggered the event.
-    pub button : MouseButton
+/// Shared event dispatcher.
+#[derive(Debug,Derivative)]
+#[derivative(Clone(bound=""))]
+#[derivative(Default(bound=""))]
+pub struct EventDispatcher<T> {
+    rc: Rc<RefCell<CallbackRegistry1<T>>>
 }
 
-impl MouseClickEvent {
-    // FIXME: function from should be used only with From trait.
-    // FIXME: this impleementation is slow - it does a lot of computing although I may never need
-    // FIXME: the position field.
-    fn from(event:MouseEvent, data:&Rc<MouseManagerData>) -> Self {
-        let position  = Vector2::new(event.x() as f32, event.y() as f32);
-        let position  = position - data.dom().position_with_style_reflow();
-        let button    = match event.button() {
-            LEFT_MOUSE_BUTTON      => MouseButton::LEFT,
-            MIDDLE_MOUSE_BUTTON    => MouseButton::MIDDLE,
-            RIGHT_MOUSE_BUTTON     => MouseButton::RIGHT,
-            _                      => MouseButton::UNKNOWN
-        };
-        Self { position, button }
+impl<T> EventDispatcher<T> {
+    /// Adds a new callback.
+    pub fn add<F:CallbackMut1Fn<T>>(&self, callback:F) -> CallbackHandle {
+        self.rc.borrow_mut().add(callback)
+    }
+
+    /// Dispatches event to all callbacks.
+    pub fn dispatch(&self, t:&T) {
+        self.rc.borrow_mut().run_all(t);
     }
 }
 
-
-
-// ==========================
-// === MousePositionEvent ===
-// ==========================
-
-// FIXME: "Position" is not an action. In english, "position event" doesnt make sense.
-// FIXME: this is a "move event".
-/// Mouse position callback used by `MouseManager`.
-pub trait MousePositionCallback = FnMut(MousePositionEvent)  + 'static;
-
-/// A struct storing information about mouse move, mouse enter and mouse leave events.
-#[derive(Clone,Copy,Debug)]
-pub struct MousePositionEvent {
-    /// The previous position where the mouse was.
-    pub previous_position : Vector2<f32>,
-
-    /// The current position where the mouse is.
-    pub position : Vector2<f32>
-}
-
-impl MousePositionEvent {
-    fn from(event:MouseEvent, data:&Rc<MouseManagerData>) -> Self {
-        let position          = Vector2::new(event.x() as f32,event.y() as f32);
-        // FIXME: This does not work, as we were chatting on Discord.
-        let position          = position - data.dom().position_with_style_reflow();
-        let previous_position = match data.mouse_position() {
-            Some(position) => position,
-            None           => position
-        };
-        data.set_mouse_position(Some(position));
-        Self { previous_position, position }
-    }
-}
-
-
-
-// =======================
-// === MouseWheelEvent ===
-// =======================
-
-/// Mouse wheel callback used by `MouseManager`.
-pub trait MouseWheelCallback = FnMut(MouseWheelEvent) + 'static;
-
-/// A struct storing information about mouse wheel events.
-#[derive(Clone,Copy,Debug)]
-pub struct MouseWheelEvent {
-    /// A boolean indicating if the keyboard ctrl button is pressed.
-    pub is_ctrl_pressed : bool,
-
-    /// The horizontal movement in pixels.
-    pub movement_x : f32,
-
-    /// The vertical movement in pixels.
-    pub movement_y : f32
-}
-
-impl MouseWheelEvent {
-    // FIXME: this is slow implementation. What if I dont need all the fields? I just need
-    // FIXME: `delta_x` - you still translate all values from JS to Rust.
-    // FIXME: Even worse - what if I need other fields than those? This implementation will grow
-    // FIXME: and will be slower and slower.
-    fn from(event:WheelEvent) -> Self {
-        let movement_x      = event.delta_x() as f32;
-        let movement_y      = event.delta_y() as f32;
-        let is_ctrl_pressed = event.ctrl_key();
-        Self { movement_x,movement_y,is_ctrl_pressed }
-    }
-}
-
-
-
-// ==============================
-// === MouseManagerProperties ===
-// ==============================
-
-#[derive(Derivative)]
-#[derivative(Debug)]
-struct MouseManagerProperties {
-    dom                    : DomContainer,
-    mouse_position         : Option<Vector2<f32>>,
-    target                 : EventTarget,
-    #[derivative(Debug="ignore")]
-    stop_tracking_listener : Option<MouseEventListener>
-}
-
-
-
-// ========================
-// === MouseManagerData ===
-// ========================
-
-/// A struct used for storing shared MouseManager's mutable data.
-#[derive(Debug)]
-struct MouseManagerData {
-    properties : RefCell<MouseManagerProperties>
-}
-
-impl MouseManagerData {
-    fn new(target:EventTarget, dom: DomContainer) -> Rc<Self> {
-        let mouse_position         = None;
-        let stop_tracking_listener = None;
-        let p = MouseManagerProperties{dom,mouse_position,target,stop_tracking_listener};
-        let properties = RefCell::new(p);
-        Rc::new(Self { properties })
-    }
-}
-
-
-// === Setters ===
-
-impl MouseManagerData {
-    fn set_mouse_position(&self, position:Option<Vector2<f32>>) {
-        self.properties.borrow_mut().mouse_position = position
-    }
-
-    fn set_stop_mouse_tracking(&self, listener:Option<MouseEventListener>) {
-        self.properties.borrow_mut().stop_tracking_listener = listener;
-    }
-}
-
-
-// === Getters ===
-
-impl MouseManagerData {
-    fn target(&self) -> EventTarget {
-        self.properties.borrow().target.clone()
-    }
-
-    fn mouse_position(&self) -> Option<Vector2<f32>> {
-        self.properties.borrow().mouse_position
-    }
-
-    fn dom(&self) -> DomContainer {
-        self.properties.borrow().dom.clone()
-    }
-}
-
-
-
-// ==========================
-// === add_callback macro ===
-// ==========================
-
-// FIXME: This implementation uses paste::item unnecessary and thus intellij cannot expand it and give us hints
-// FIXME: this can be implemented faster, you do not need rc downgrade / upgrade here.
-
-/// Creates an add_callback method implementation.
-/// ```compile_fail
-/// add_callback!(add_mouse_down_callback, MouseClick, "mousedown")
-/// ```
-/// expands to
-/// ```compile_fail
-/// fn add_mouse_down_callback
-/// <F:MouseClickEvent>(&mut self, mut f:F) -> Result<MouseEventListener> {
-///     let data = Rc::downgrade(&self.data);
-///     let closure = move |event:MouseEvent| {
-///     if let Some(data) = data.upgrade() {
-///         f(MouseClickEvent::from(event, &data));
-///     }
-/// };
-/// ```
-macro_rules! add_callback {
-    ($name:ident, $event_type:ident, $target:literal) => { paste::item! {
-        /// Adds $name event callback and returns its listener object.
-        pub fn [<add_ $name _callback>]
-        <F:[<$event_type Callback>]>(&mut self, mut f:F) -> Result<MouseEventListener> {
-            let data = Rc::downgrade(&self.data);
-            let closure = move |event:MouseEvent| {
-                if let Some(data) = data.upgrade() {
-                    f([<$event_type Event>]::from(event, &data));
-                }
-            };
-            add_mouse_event(&self.data.target(), $target, closure)
-        }
-    } };
-}
+impl<T> CloneRef for EventDispatcher<T> {}
 
 
 
@@ -297,111 +55,92 @@ macro_rules! add_callback {
 // === MouseManager ===
 // ====================
 
-/// This structs manages mouse events in a specified DOM object.
-#[derive(Debug)]
+/// An utility which registers JavaScript handlers for mouse events and translates them to Rust
+/// handlers. It is a top level mouse registry hub.
+#[derive(Debug,Shrinkwrap)]
 pub struct MouseManager {
-    data : Rc<MouseManagerData>
+    #[shrinkwrap(main_field)]
+    dispatchers : MouseManagerDispatchers,
+    closures    : MouseManagerClosures,
+    dom         : EventTarget,
 }
 
-const   LEFT_MOUSE_BUTTON: i16 = 0;
-const MIDDLE_MOUSE_BUTTON: i16 = 1;
-const  RIGHT_MOUSE_BUTTON: i16 = 2;
+/// A JavaScript callback closure for any mouse event.
+pub type MouseEventJsClosure = Closure<dyn Fn(JsValue)>;
 
-impl MouseManager {
-    /// Creates a new instance to manage mouse events in the specified DOMContainer.
-    pub fn new(dom:&DomContainer) -> Result<Self> {
-        let target              = dyn_into::<_, EventTarget>(dom.dom.clone())?;
-        let dom                 = dom.clone();
-        let data                = MouseManagerData::new(target,dom);
-        let mut mouse_manager   = Self { data };
-        mouse_manager.stop_tracking_mouse_when_it_leaves_dom()?;
-        Ok(mouse_manager)
-    }
+macro_rules! define_bindings {
+    ( $( $js_event:ident :: $js_name:ident => $name:ident ($target:ident) ),* $(,)? ) => {
 
-    /// Sets context menu state to enabled or disabled.
-    pub fn disable_context_menu(&mut self) -> Result<MouseEventListener> {
-        let listener = ignore_context_menu(&self.data.target())?;
-        Ok(EventListener::new(self.data.target(), "contextmenu", listener))
-    }
+        /// Keeps references to JavaScript closures in order to keep them alive.
+        #[derive(Debug)]
+        pub struct MouseManagerClosures {
+            $($name : MouseEventJsClosure),*
+        }
 
-    add_callback!(mouse_down, MouseClick, "mousedown");
+        /// Set of dispatchers for various mouse events.
+        #[derive(Debug,Default)]
+        #[allow(missing_docs)]
+        pub struct MouseManagerDispatchers {
+            $(pub $name : EventDispatcher<event::$target>),*
+        }
 
-    add_callback!(mouse_up, MouseClick, "mouseup");
-
-    add_callback!(mouse_move, MousePosition, "mousemove");
-
-    add_callback!(mouse_leave, MousePosition, "mouseleave");
-
-    /// Adds MouseWheel event callback and returns its listener object.
-    pub fn add_mouse_wheel_callback
-    <F:MouseWheelCallback>(&mut self, mut f:F) -> Result<WheelEventListener> {
-        let closure = move |event:WheelEvent| {
-            event.prevent_default();
-            f(MouseWheelEvent::from(event));
-        };
-        add_wheel_event(&self.data.target(), closure, false)
-    }
-
-    fn stop_tracking_mouse_when_it_leaves_dom(&mut self) -> Result<()> {
-        let data    = Rc::downgrade(&self.data);
-        let closure = move |_| {
-            if let Some(data) = data.upgrade() {
-                data.set_mouse_position(None);
+        impl MouseManager {
+            /// Constructor.
+            pub fn new (dom:&EventTarget) -> Self {
+                let dispatchers = MouseManagerDispatchers::default();
+                let dom         = dom.clone();
+                $(
+                    let dispatcher = dispatchers.$name.clone_ref();
+                    let $name : MouseEventJsClosure = Closure::wrap(Box::new(move |event:JsValue| {
+                        let event = event.unchecked_into::<web_sys::$js_event>();
+                        dispatcher.dispatch(&event.into())
+                    }));
+                    let js_closure = $name.as_ref().unchecked_ref();
+                    let js_name    = stringify!($js_name);
+                    let result     = dom.add_event_listener_with_callback(js_name,js_closure);
+                    if let Err(e)  = result { panic!("Cannot add event listener. {:?}",e) }
+                )*
+                let closures = MouseManagerClosures {$($name),*};
+                Self {dispatchers,closures,dom}
             }
-        };
-        let listener = add_mouse_event(&self.data.target(), "mouseleave", closure)?;
-        self.data.set_stop_mouse_tracking(Some(listener));
-        Ok(())
-    }
+        }
+    };
 }
 
-
-
-// =============
-// === Utils ===
-// =============
-
-// FIXME: these functions should be refactored out.
-fn add_event_listener_with_callback
-(target:&EventTarget, name:&str, function:&Function) -> Result<()> {
-    match target.add_event_listener_with_callback(name, function) {
-        Ok(_)  => Ok(()),
-        Err(_) => Err(Error::FailedToAddEventListener)
-    }
+define_bindings! {
+    MouseEvent::mousedown  => on_down  (OnDown),
+    MouseEvent::mouseup    => on_up    (OnUp),
+    MouseEvent::mousemove  => on_move  (OnMove),
+    MouseEvent::mouseleave => on_leave (OnLeave),
+    WheelEvent::wheel      => on_wheel (OnWheel),
 }
 
-fn remove_event_listener_with_callback
-(target:&EventTarget, name:&str, function:&Function) -> Result<()> {
-    match target.remove_event_listener_with_callback(name, function) {
-        Ok(_)  => Ok(()),
-        Err(_) => Err(Error::FailedToRemoveEventListener)
-    }
+/// A handles of callbacks emitting events on bound FRP graph. See `CallbackHandle`.
+#[derive(Debug)]
+pub struct MouseFrpCallbackHandles {
+    on_move  : CallbackHandle,
+    on_down  : CallbackHandle,
+    on_up    : CallbackHandle,
+    on_leave : CallbackHandle,
+    on_wheel : CallbackHandle
 }
 
-/// Adds mouse event callback and returns its listener.
-fn add_mouse_event<T>(target:&EventTarget, name:&str, closure: T) -> Result<MouseEventListener>
-where T : FnMut(MouseEvent) + 'static {
-    let closure : Closure<dyn FnMut(MouseEvent)> = Closure::wrap(Box::new(closure));
-    let callback : &Function = closure.as_ref().unchecked_ref();
-    add_event_listener_with_callback(target, name, callback)?;
-    Ok(EventListener::new(target.clone(), name.to_string(), closure))
-}
-
-/// Adds wheel event callback and returns its listener.
-fn add_wheel_event<T>(target:&EventTarget, closure: T, passive:bool) -> Result<WheelEventListener>
-where T : FnMut(WheelEvent) + 'static {
-    let closure : Closure<dyn FnMut(WheelEvent)> = Closure::wrap(Box::new(closure));
-    let callback    = closure.as_ref().unchecked_ref();
-    let mut options = AddEventListenerOptions::new();
-    options.passive(passive);
-    match target.add_event_listener_with_callback_and_add_event_listener_options
-    ("wheel", callback, &options) {
-        Ok(_)  => {
-            let target = target.clone();
-            let name = "wheel".to_string();
-            let listener = EventListener::new(target, name, closure);
-            Ok(listener)
-        },
-        Err(_) => Err(Error::FailedToAddEventListener)
+/// Bind FRP graph to MouseManager.
+pub fn bind_frp_to_mouse(scene_shape:&Shape, frp:&enso_frp::Mouse, mouse_manager:&MouseManager)
+-> MouseFrpCallbackHandles {
+    let on_move = enclose!((frp.position.event => frp, scene_shape) move |e:&event::OnMove| {
+        let height = scene_shape.screen_shape().height as i32;
+        frp.emit(Position::new(e.client_x(),height - e.client_y()));
+    });
+    let on_down  = enclose!((frp.on_down.event  => frp) move |_:&event::OnDown | frp.emit(()));
+    let on_up    = enclose!((frp.on_up.event    => frp) move |_:&event::OnUp   | frp.emit(()));
+    let on_wheel = enclose!((frp.on_wheel.event => frp) move |_:&event::OnWheel| frp.emit(()));
+    let on_leave = enclose!((frp.on_leave.event => frp) move |_:&event::OnLeave| frp.emit(()));
+    MouseFrpCallbackHandles {
+        on_move  : mouse_manager.on_move.add(on_move),
+        on_down  : mouse_manager.on_down.add(on_down),
+        on_up    : mouse_manager.on_up.add(on_up),
+        on_leave : mouse_manager.on_leave.add(on_leave),
+        on_wheel : mouse_manager.on_wheel.add(on_wheel)
     }
 }

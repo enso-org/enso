@@ -5,7 +5,7 @@ pub mod keyboard;
 
 use crate::prelude::*;
 
-use crate::control::io::mouse2::MouseFrpCallbackHandles;
+use crate::control::io::mouse::MouseFrpCallbackHandles;
 use crate::display::shape::text::text_field::frp::keyboard::TextFieldKeyboardFrp;
 use crate::display::shape::text::text_field::frp::mouse::TextFieldMouseFrp;
 use crate::display::shape::text::text_field::TextFieldData;
@@ -18,7 +18,7 @@ use crate::system::web::text_input::KeyboardBinding;
 // === TextFieldFrp ===
 // ====================
 
-/// A structure holding all of the FRP definitions for TextField, which are bound to appriopriate
+/// A structure holding all of the FRP definitions for TextField, which are bound to appropriate
 /// js events.
 // TODO[ao]: the frp should be bound to global event system (provided by e.g. display object).
 #[derive(Debug)]

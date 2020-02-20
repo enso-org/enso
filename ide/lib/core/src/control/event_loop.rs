@@ -5,6 +5,7 @@ use crate::prelude::*;
 
 use crate::control::callback::CallbackMut;
 use crate::control::callback::CallbackMutFn;
+use crate::control::callback::CallbackMut1Fn;
 use crate::control::callback::CallbackHandle;
 use crate::control::callback::CallbackRegistry1;
 use crate::system::web;
@@ -58,7 +59,7 @@ impl EventLoop {
 
     /// Add new callback. Returns `CallbackHandle` which when dropped, removes
     /// the callback as well.
-    pub fn add_callback<F:EventLoopCallback>(&self, callback:F) -> CallbackHandle {
+    pub fn add_callback<F:CallbackMut1Fn<f64>>(&self, callback:F) -> CallbackHandle {
         self.rc.borrow_mut().callbacks.add(Box::new(callback))
     }
 
@@ -109,7 +110,7 @@ impl EventLoopData {
         (self.on_loop_started)();
         let callbacks   = &mut self.callbacks;
         let callback_id = self.main.as_ref().map_or(default(), |main| {
-            callbacks.run_all(time_ms);
+            callbacks.run_all(&time_ms);
             web::request_animation_frame(main).unwrap()
         });
         self.main_id = callback_id;

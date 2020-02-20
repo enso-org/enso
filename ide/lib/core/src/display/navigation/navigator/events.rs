@@ -1,19 +1,20 @@
 use crate::prelude::*;
 
 use crate::control::io::mouse::MouseManager;
-use crate::control::io::mouse::MouseClickEvent;
-use crate::control::io::mouse::MouseWheelEvent;
-use crate::control::io::mouse::MousePositionEvent;
-use crate::control::io::mouse::MouseButton;
-use crate::control::io::mouse::WheelEventListener;
-use crate::control::io::mouse::MouseEventListener;
+use crate::control::io::mouse::event::*;
+use crate::control::io::mouse::button;
+use crate::control::callback::CallbackHandle;
 use crate::system::web::Result;
 use crate::system::web::dom::DomContainer;
+use crate::system::web::IgnoreContextMenuHandle;
+use crate::system::web::ignore_context_menu;
+use crate::system::web::dyn_into;
 
 use nalgebra::Vector2;
+use nalgebra::zero;
 use std::rc::Rc;
 use std::cell::RefCell;
-use nalgebra::zero;
+use web_sys::EventTarget;
 
 
 
@@ -34,18 +35,6 @@ impl ZoomEvent {
         let amount = amount * zoom_speed;
         Self { focus, amount }
     }
-
-    fn from_mouse_wheel
-    (event:MouseWheelEvent, mouse_position:Vector2<f32>, zoom_speed:f32) -> Self {
-        let amount = event.movement_y;
-        let focus  = mouse_position;
-        Self::new(focus, amount, zoom_speed)
-    }
-
-    fn from_mouse_move(event:MousePositionEvent, focus:Vector2<f32>, zoom_speed:f32) -> Self {
-        let amount = event.position.y - event.previous_position.y;
-        Self::new(focus, amount, zoom_speed)
-    }
 }
 
 
@@ -62,14 +51,7 @@ pub struct PanEvent {
 }
 
 impl PanEvent {
-    fn from_mouse_move(event:MousePositionEvent) -> Self {
-        let mut movement = event.position - event.previous_position;
-        movement.x       = -movement.x;
-        Self { movement }
-    }
-
-    fn from_wheel_event(event:MouseWheelEvent) -> Self {
-        let movement = Vector2::new(event.movement_x, -event.movement_y);
+    fn new(movement:Vector2<f32>) -> Self {
         Self { movement }
     }
 }
@@ -95,13 +77,14 @@ enum MovementType {
 #[derive(Derivative)]
 #[derivative(Debug)]
 struct NavigatorEventsProperties {
-    movement_type  : Option<MovementType>,
-    mouse_position : Vector2<f32>,
+    zoom_speed          : f32,
+    movement_type       : Option<MovementType>,
+    last_mouse_position : Vector2<f32>,
+    mouse_position      : Vector2<f32>,
     #[derivative(Debug="ignore")]
-    pan_callback   : Box<dyn FnPanEvent>,
+    pan_callback : Box<dyn FnPanEvent>,
     #[derivative(Debug="ignore")]
-    zoom_callback  : Box<dyn FnZoomEvent>,
-    zoom_speed     : f32
+    zoom_callback : Box<dyn FnZoomEvent>,
 }
 
 
@@ -120,9 +103,11 @@ impl NavigatorEventsData {
     ( pan_callback:Box<dyn FnPanEvent>
     , zoom_callback:Box<dyn FnZoomEvent>
     , zoom_speed:f32) -> Rc<Self> {
-        let mouse_position = zero();
-        let movement_type  = None;
-        let properties     = RefCell::new(NavigatorEventsProperties {
+        let mouse_position      = zero();
+        let last_mouse_position = zero();
+        let movement_type       = None;
+        let properties          = RefCell::new(NavigatorEventsProperties {
+            last_mouse_position,
             mouse_position,
             movement_type,
             pan_callback,
@@ -150,6 +135,10 @@ impl NavigatorEventsData {
         self.properties.borrow().mouse_position
     }
 
+    fn last_mouse_position(&self) -> Vector2<f32> {
+        self.properties.borrow().last_mouse_position
+    }
+
     fn zoom_speed(&self) -> f32 {
         self.properties.borrow().zoom_speed
     }
@@ -168,7 +157,9 @@ impl NavigatorEventsData {
     }
 
     fn set_mouse_position(&self, mouse_position:Vector2<f32>) {
-        self.properties.borrow_mut().mouse_position = mouse_position;
+        let mut properties             = self.properties.borrow_mut();
+        properties.last_mouse_position = properties.mouse_position;
+        properties.mouse_position      = mouse_position;
     }
 }
 
@@ -184,33 +175,34 @@ pub struct NavigatorEvents {
     data                 : Rc<NavigatorEventsData>,
     mouse_manager        : MouseManager,
     #[derivative(Debug="ignore")]
-    mouse_down           : Option<MouseEventListener>,
+    mouse_down           : Option<CallbackHandle>,
     #[derivative(Debug="ignore")]
-    mouse_move           : Option<MouseEventListener>,
+    mouse_up             : Option<CallbackHandle>,
     #[derivative(Debug="ignore")]
-    mouse_up             : Option<MouseEventListener>,
+    mouse_move           : Option<CallbackHandle>,
     #[derivative(Debug="ignore")]
-    mouse_leave          : Option<MouseEventListener>,
+    mouse_leave          : Option<CallbackHandle>,
     #[derivative(Debug="ignore")]
-    disable_context_menu : Option<MouseEventListener>,
+    disable_context_menu : Option<IgnoreContextMenuHandle>,
     #[derivative(Debug="ignore")]
-    wheel_zoom           : Option<WheelEventListener>
+    wheel_zoom           : Option<CallbackHandle>
 }
 
 impl NavigatorEvents {
     pub fn new
     <P,Z>(dom:&DomContainer, pan_callback:P, zoom_callback:Z, zoom_speed:f32) -> Result<Self>
     where P : FnPanEvent, Z : FnZoomEvent {
+        let event_target         = dyn_into(dom.dom.clone())?;
+        let mouse_manager        = MouseManager::new(&event_target);
         let pan_callback         = Box::new(pan_callback);
         let zoom_callback        = Box::new(zoom_callback);
         let mouse_move           = None;
         let mouse_up             = None;
-        let mouse_leave          = None;
         let mouse_down           = None;
         let wheel_zoom           = None;
         let disable_context_menu = None;
-        let mouse_manager        = MouseManager::new(dom)?;
-        let data          = NavigatorEventsData::new(pan_callback, zoom_callback, zoom_speed);
+        let mouse_leave          = None;
+        let data = NavigatorEventsData::new(pan_callback,zoom_callback,zoom_speed);
         let mut event_handler = Self {
             data,
             mouse_manager,
@@ -219,15 +211,15 @@ impl NavigatorEvents {
             mouse_up,
             mouse_leave,
             disable_context_menu,
-            wheel_zoom,
+            wheel_zoom
         };
 
-        event_handler.initialize_mouse_events()?;
+        event_handler.initialize_mouse_events(&event_target)?;
         Ok(event_handler)
     }
 
-    fn initialize_mouse_events(&mut self) -> Result<()> {
-        self.disable_context_menu()?;
+    fn initialize_mouse_events(&mut self, target:&EventTarget) -> Result<()> {
+        self.disable_context_menu(target)?;
         self.initialize_wheel_zoom()?;
         self.initialize_mouse_start_event()?;
         self.initialize_mouse_move_event()?;
@@ -235,91 +227,97 @@ impl NavigatorEvents {
     }
 
     fn initialize_wheel_zoom(&mut self) -> Result<()> {
-        let data = Rc::downgrade(&self.data);
-        let listener = self.mouse_manager.add_mouse_wheel_callback(move |event:MouseWheelEvent| {
+        let data     = Rc::downgrade(&self.data);
+        let listener = self.mouse_manager.on_wheel.add(move |event:&OnWheel| {
+            event.prevent_default();
             if let Some(data) = data.upgrade() {
-                if event.is_ctrl_pressed {
+                if event.ctrl_key() {
                     let position   = data.mouse_position();
                     let zoom_speed = data.zoom_speed();
-                    let zoom_event = ZoomEvent::from_mouse_wheel(event, position, zoom_speed);
+                    let amount     = event.delta_y() as f32;
+                    let zoom_event = ZoomEvent::new(position, amount, zoom_speed);
                     data.on_zoom(zoom_event);
                 } else {
-                    let pan_event = PanEvent::from_wheel_event(event);
+                    let x         =  event.delta_x() as f32;
+                    let y         = -event.delta_y() as f32;
+                    let movement  = Vector2::new(x,y);
+                    let pan_event = PanEvent::new(movement);
                     data.on_pan(pan_event);
                 }
             }
-        })?;
+        });
         self.wheel_zoom = Some(listener);
         Ok(())
     }
 
     fn initialize_mouse_start_event(&mut self) -> Result<()> {
         let data     = Rc::downgrade(&self.data);
-        let listener = self.mouse_manager.add_mouse_down_callback(move |event:MouseClickEvent| {
+        let listener = self.mouse_manager.on_down.add(move |event:&OnDown| {
             if let Some(data) = data.upgrade() {
-                match event.button {
-                    MouseButton::MIDDLE => {
+                match event.button() {
+                    button::MiddleButton => {
                         data.set_movement_type(Some(MovementType::Pan))
                     },
-                    MouseButton::RIGHT => {
-                        let focus = event.position;
+                    button::SecondaryButton => {
+                        let focus = Vector2::new(event.offset_x() as f32, event.offset_y() as f32);
                         data.set_movement_type(Some(MovementType::Zoom { focus }))
                     },
                     _ => ()
                 }
             }
-        })?;
+        });
         self.mouse_down = Some(listener);
         Ok(())
     }
 
-    fn disable_context_menu(&mut self) -> Result<()> {
-        self.disable_context_menu = Some(self.mouse_manager.disable_context_menu()?);
+    fn disable_context_menu(&mut self, target:&EventTarget) -> Result<()> {
+        self.disable_context_menu = Some(ignore_context_menu(target)?);
         Ok(())
     }
 
     fn initialize_mouse_end_event(&mut self) -> Result<()> {
-        let data         = Rc::downgrade(&self.data);
-        let closure      = move |_| {
+        let data     = Rc::downgrade(&self.data);
+        let listener = self.mouse_manager.on_up.add(move |_:&OnUp| {
             if let Some(data) = data.upgrade() {
                 data.set_movement_type(None);
             }
-        };
-        let listener     = self.mouse_manager.add_mouse_up_callback(closure)?;
-        self.mouse_up    = Some(listener);
+        });
+        self.mouse_up = Some(listener);
 
-        let data         = Rc::downgrade(&self.data);
-        let closure      = move |_| {
+        let data     = Rc::downgrade(&self.data);
+        let listener = self.mouse_manager.on_leave.add(move |_:&OnLeave| {
             if let Some(data) = data.upgrade() {
                 data.set_movement_type(None);
             }
-        };
-        let listener     = self.mouse_manager.add_mouse_leave_callback(closure)?;
+        });
         self.mouse_leave = Some(listener);
         Ok(())
     }
 
     fn initialize_mouse_move_event(&mut self) -> Result<()> {
         let data     = Rc::downgrade(&self.data);
-        let listener = self.mouse_manager.add_mouse_move_callback(move |event:MousePositionEvent| {
+        let listener = self.mouse_manager.on_move.add(move |event:&OnMove| {
             if let Some(data) = data.upgrade() {
-                data.set_mouse_position(event.position);
+                let position = Vector2::new(event.offset_x() as f32, event.offset_y() as f32);
+                data.set_mouse_position(position);
+                let mut movement = data.mouse_position() - data.last_mouse_position();
+                movement.x = -movement.x;
 
                 if let Some(movement_type) = data.movement_type() {
                     match movement_type {
                         MovementType::Zoom { focus } => {
                             let zoom_speed = data.zoom_speed();
-                            let zoom_event = ZoomEvent::from_mouse_move(event, focus, zoom_speed);
+                            let zoom_event = ZoomEvent::new(focus,movement.y,zoom_speed);
                             data.on_zoom(zoom_event);
                         },
                         MovementType::Pan => {
-                            let pan_event = PanEvent::from_mouse_move(event);
+                            let pan_event = PanEvent::new(movement);
                             data.on_pan(pan_event);
                         }
                     }
                 }
             }
-        })?;
+        });
         self.mouse_move = Some(listener);
         Ok(())
     }

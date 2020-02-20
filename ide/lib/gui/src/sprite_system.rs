@@ -45,7 +45,7 @@ fn init(world:&World) {
     let mut iter:i32 = 0;
     world.on_frame(move |time_ms| {
         let _keep_alive = &navigator;
-        on_frame(&camera, time_ms,&mut iter,&sprite1,&mut sprites,&sprite_system)
+        on_frame(&camera,*time_ms,&mut iter,&sprite1,&mut sprites,&sprite_system)
     }).forget();
 }
 
