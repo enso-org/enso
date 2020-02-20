@@ -12,17 +12,17 @@ use crate::prelude::*;
 ///
 /// JS supports up to 5 mouse buttons currently:
 /// https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent/button
-#[derive(Debug,Clone,Copy)]
+#[derive(Debug,Clone,Copy,PartialEq,Eq)]
 #[allow(missing_docs)]
 pub enum Button {Button0,Button1,Button2,Button3,Button4}
 pub use Button::*;
 
-#[allow(non_upper_case_globals)]
+#[allow(non_upper_case_globals,missing_docs)]
 mod button_aliases {
     use super::*;
-    const PrimaryButton   : Button = Button0;
-    const MiddleButton    : Button = Button1;
-    const SecondaryButton : Button = Button2;
+    pub const PrimaryButton   : Button = Button0;
+    pub const MiddleButton    : Button = Button1;
+    pub const SecondaryButton : Button = Button2;
 }
 pub use button_aliases::*;
 

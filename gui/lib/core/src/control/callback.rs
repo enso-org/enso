@@ -29,17 +29,10 @@ pub trait CallbackMutFn = FnMut() + 'static;
 pub type CallbackMut = Box<dyn CallbackMutFn>;
 
 /// Mutable callback type with one parameter.
-pub trait CallbackMut1Fn<T> = FnMut(T) + 'static;
+pub trait CallbackMut1Fn<T> = FnMut(&T) + 'static;
 
 /// Mutable callback object with one parameter.
 pub type CallbackMut1<T> = Box<dyn CallbackMut1Fn<T>>;
-
-
-/// Mutable callback type with one parameter.
-pub trait XCallbackMut1Fn<T> = FnMut(&T) + 'static;
-
-/// Mutable callback object with one parameter.
-pub type XCallbackMut1<T> = Box<dyn XCallbackMut1Fn<T>>;
 
 
 
@@ -92,77 +85,6 @@ impl Guard {
 // === CallbackRegistry ===
 // ========================
 
-/// Registry gathering callbacks. Each registered callback is assigned with a handle. Callback and
-/// handle lifetimes are strictly connected. As soon a handle is dropped, the callback is removed
-/// as well.
-#[derive(Derivative)]
-#[derivative(Debug, Default)]
-pub struct CallbackRegistry {
-    #[derivative(Debug="ignore")]
-    callback_list: Vec<(Guard, CallbackMut)>
-}
-
-impl CallbackRegistry {
-
-    /// Adds new callback and returns a new handle for it.
-    pub fn add<F:CallbackMutFn>(&mut self, callback:F) -> CallbackHandle {
-        let callback = Box::new(callback);
-        let handle   = CallbackHandle::new();
-        let guard    = handle.guard();
-        self.callback_list.push((guard, callback));
-        handle
-    }
-
-    /// Fires all registered callbacks.
-    pub fn run_all(&mut self) {
-        self.clear_unused_callbacks();
-        self.callback_list.iter_mut().for_each(|(_,callback)| callback());
-    }
-
-    /// Checks all registered callbacks and removes the ones which got dropped.
-    fn clear_unused_callbacks(&mut self) {
-        self.callback_list.retain(|(guard,_)| guard.exists());
-    }
-}
-
-/// Registry gathering callbacks. Each registered callback is assigned with a handle. Callback and
-/// handle lifetimes are strictly connected. As soon a handle is dropped, the callback is removed
-/// as well.
-#[derive(Derivative)]
-#[derivative(Debug, Default)]
-pub struct CallbackRegistry1<T:Copy> {
-    #[derivative(Debug="ignore")]
-    callback_list: Vec<(Guard, CallbackMut1<T>)>
-}
-
-impl<T:Copy> CallbackRegistry1<T> {
-    /// Adds new callback and returns a new handle for it.
-    pub fn add<F:CallbackMut1Fn<T>>(&mut self, callback:F) -> CallbackHandle {
-        let callback = Box::new(callback);
-        let handle   = CallbackHandle::new();
-        let guard    = handle.guard();
-        self.callback_list.push((guard, callback));
-        handle
-    }
-
-    /// Fires all registered callbacks.
-    pub fn run_all(&mut self, t:T) {
-        self.clear_unused_callbacks();
-        self.callback_list.iter_mut().for_each(move |(_,callback)| callback(t));
-    }
-
-    /// Checks all registered callbacks and removes the ones which got dropped.
-    fn clear_unused_callbacks(&mut self) {
-        self.callback_list.retain(|(guard,_)| guard.exists());
-    }
-}
-
-
-
-// ========================
-// === CallbackRegistry ===
-// ========================
-
 // TODO CallbackRegistry1 implementation is broken. It requires `T` to be `Copy` which does not
 //      make sense in general. This implementation is a correct one. All usages of the old one
 //      should be replaced in subsequent PRs.
@@ -172,14 +94,14 @@ impl<T:Copy> CallbackRegistry1<T> {
 /// as well.
 #[derive(Derivative)]
 #[derivative(Debug,Default(bound=""))]
-pub struct XCallbackRegistry1<T> {
+pub struct CallbackRegistry1<T> {
     #[derivative(Debug="ignore")]
-    callback_list: Vec<(Guard,XCallbackMut1<T>)>
+    callback_list: Vec<(Guard,CallbackMut1<T>)>
 }
 
-impl<T> XCallbackRegistry1<T> {
+impl<T> CallbackRegistry1<T> {
     /// Adds new callback and returns a new handle for it.
-    pub fn add<F:XCallbackMut1Fn<T>>(&mut self, callback:F) -> CallbackHandle {
+    pub fn add<F:CallbackMut1Fn<T>>(&mut self, callback:F) -> CallbackHandle {
         let callback = Box::new(callback);
         let handle   = CallbackHandle::new();
         let guard    = handle.guard();
@@ -226,12 +148,12 @@ impl DynEvent {
 #[derivative(Debug)]
 pub struct DynEventDispatcher {
     #[derivative(Debug="ignore")]
-    listener_map: HashMap<TypeId,Vec<(Guard,XCallbackMut1<DynEvent>)>>
+    listener_map: HashMap<TypeId,Vec<(Guard,CallbackMut1<DynEvent>)>>
 }
 
 impl DynEventDispatcher {
     /// Registers a new listener for a given type.
-    pub fn add_listener<F:XCallbackMut1Fn<T>,T:'static>(&mut self, mut f:F) -> CallbackHandle {
+    pub fn add_listener<F:CallbackMut1Fn<T>,T:'static>(&mut self, mut f:F) -> CallbackHandle {
         let callback = Box::new(move |event:&DynEvent| {
             event.any.downcast_ref::<T>().iter().for_each(|t| { f(t) })
         });

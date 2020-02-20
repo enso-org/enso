@@ -82,7 +82,7 @@ impl WorldData {
         let world          = World::new(Self::new_uninitialized(dom));
         let world_ref      = world.clone_ref();
         with(world.rc.borrow_mut(), |mut data| {
-            let update = move |_| {
+            let update = move |_:&f64| {
                 world_ref.rc.borrow_mut().run();
             };
             let update_handle   = data.event_loop.add_callback(update);
@@ -213,9 +213,9 @@ impl World {
     /// Run the provided callback on every frame. Returns a `CallbackHandle`,
     /// which when dropped will cancel the callback. If you want the function
     /// to run forever, you can use the `forget` method in the handle.
-    pub fn on_frame<F:FnMut(f64)+'static>
+    pub fn on_frame<F:FnMut(&f64)+'static>
     (&self, mut callback:F) -> CallbackHandle {
-        let func = move |time_ms| callback(time_ms);
+        let func = move |time_ms:&f64| callback(time_ms);
         self.rc.borrow_mut().event_loop.add_callback(func)
     }
 

@@ -29,5 +29,6 @@ define_events! {
     MouseEvent::OnDown,
     MouseEvent::OnUp,
     MouseEvent::OnMove,
+    MouseEvent::OnLeave,
     WheelEvent::OnWheel,
 }

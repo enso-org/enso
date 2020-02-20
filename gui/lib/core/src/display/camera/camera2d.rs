@@ -7,14 +7,15 @@ use crate::data::dirty;
 use crate::display::layout::types::*;
 use crate::display::object::DisplayObjectData;
 use crate::data::dirty::traits::*;
-use crate::control::callback::XCallbackRegistry1;
-use crate::control::callback::XCallbackMut1Fn;
+use crate::control::callback::CallbackRegistry1;
 use crate::control::callback::CallbackHandle;
+use crate::control::callback::CallbackMut1Fn;
 
 use nalgebra::Vector2;
 use nalgebra::Vector3;
 use nalgebra::Matrix4;
 use nalgebra::Perspective3;
+
 
 
 // ==============
@@ -99,10 +100,10 @@ impl Default for Clipping {
 // ====================
 
 /// Function used to return the updated screen dimensions.
-pub trait ScreenUpdateFn = XCallbackMut1Fn<Vector2<f32>>;
+pub trait ScreenUpdateFn = CallbackMut1Fn<Vector2<f32>>;
 
 /// Function used to return the updated `Camera2d`'s zoom.
-pub trait ZoomUpdateFn = XCallbackMut1Fn<f32>;
+pub trait ZoomUpdateFn = CallbackMut1Fn<f32>;
 
 /// Internal `Camera2d` representation. Please see `Camera2d` for full documentation.
 #[derive(Derivative)]
@@ -120,8 +121,8 @@ struct Camera2dData {
     view_projection_matrix : Matrix4<f32>,
     projection_dirty       : ProjectionDirty,
     transform_dirty        : TransformDirty2,
-    zoom_update_registry   : XCallbackRegistry1<f32>,
-    screen_update_registry : XCallbackRegistry1<Vector2<f32>>,
+    zoom_update_registry   : CallbackRegistry1<f32>,
+    screen_update_registry : CallbackRegistry1<Vector2<f32>>,
 }
 
 type ProjectionDirty = dirty::SharedBool<()>;
