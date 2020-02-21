@@ -12,11 +12,10 @@ To that end, we need to have a well-specified idea of what the various services
 do, and how they interact. This document contains a design for the engine
 services components, as well as any open questions that may remain.
 
-<!-- MarkdownTOC levels="2,3" autolink="true" -->
+<!-- MarkdownTOC levels="2,3,4" autolink="true" -->
 
 - [Architecture](#architecture)
-  - [Supervisor](#supervisor)
-  - [The Gateway](#the-gateway)
+  - [The Project Picker](#the-project-picker)
   - [Language Server](#language-server)
 - [The Protocol Itself](#the-protocol-itself)
   - [Protocol Communication Patterns](#protocol-communication-patterns)
@@ -28,65 +27,119 @@ services components, as well as any open questions that may remain.
   - [Project State Management](#project-state-management)
   - [File Management and Storage](#file-management-and-storage)
   - [Execution Management](#execution-management)
+    - [Caching](#caching)
+    - [Progress Reporting](#progress-reporting)
   - [Visualisation Support](#visualisation-support)
   - [Completion](#completion)
   - [Analysis Operations](#analysis-operations)
   - [Functionality Post 2.0](#functionality-post-20)
-- [Protocol Message Specification](#protocol-message-specification)
+- [Protocol Message Specification - Common Types](#protocol-message-specification---common-types)
+    - [`Path`](#path)
+    - [`AbsolutePath`](#absolutepath)
+- [Protocol Message Specification - Project Picker](#protocol-message-specification---project-picker)
+  - [Types](#types)
+    - [`ProjectMetadata`](#projectmetadata)
+  - [Project Management Operations](#project-management-operations)
+    - [`project/open`](#projectopen)
+    - [`project/close`](#projectclose)
+    - [`project/listRecent`](#projectlistrecent)
+    - [`project/create`](#projectcreate)
+    - [`project/delete`](#projectdelete)
+    - [`project/listSample`](#projectlistsample)
+  - [Language Server Management](#language-server-management)
+  - [Errors - Project Manager](#errors---project-manager)
+- [Protocol Message Specification - Language Server](#protocol-message-specification---language-server)
+  - [Types](#types-1)
+    - [`File`](#file)
+    - [`DirectoryTree`](#directorytree)
+    - [`FileAttributes`](#fileattributes)
+    - [`FileEventKind`](#fileeventkind)
+    - [`Position`](#position)
+    - [`Range`](#range)
+    - [`TextEdit`](#textedit)
+    - [`FileEdit`](#fileedit)
+    - [`FileContents`](#filecontents)
+    - [`FileSystemObject`](#filesystemobject)
+    - [`WorkspaceEdit`](#workspaceedit)
+  - [Capability Management](#capability-management)
+    - [`capability/acquire`](#capabilityacquire)
+    - [`capability/release`](#capabilityrelease)
+    - [`capability/granted`](#capabilitygranted)
+    - [`capability/forceReleased`](#capabilityforcereleased)
+  - [Capabilities](#capabilities)
+    - [`capability/canEdit`](#capabilitycanedit)
+    - [`capability/receivesTreeUpdates`](#capabilityreceivestreeupdates)
+  - [File Management Operations](#file-management-operations)
+    - [`file/write`](#filewrite)
+    - [`file/read`](#fileread)
+    - [`file/create`](#filecreate)
+    - [`file/delete`](#filedelete)
+    - [`file/copy`](#filecopy)
+    - [`file/move`](#filemove)
+    - [`file/exists`](#fileexists)
+    - [`file/tree`](#filetree)
+    - [`file/list`](#filelist)
+    - [`file/info`](#fileinfo)
+    - [`file/event`](#fileevent)
+    - [`file/addRoot`](#fileaddroot)
+    - [`file/removeRoot`](#fileremoveroot)
+    - [`file/rootAdded`](#filerootadded)
+    - [`file/rootRemoved`](#filerootremoved)
+  - [Text Editing Operations](#text-editing-operations)
+    - [`text/openFile`](#textopenfile)
+    - [`text/closeFile`](#textclosefile)
+    - [`text/save`](#textsave)
+    - [`text/applyEdit`](#textapplyedit)
+    - [`text/didChange`](#textdidchange)
+  - [Workspace Operations](#workspace-operations)
+    - [`workspace/connect`](#workspaceconnect)
+    - [`workspace/undo`](#workspaceundo)
+    - [`workspace/redo`](#workspaceredo)
+  - [Errors - Language Server](#errors---language-server)
 
 <!-- /MarkdownTOC -->
 
 ## Architecture
-While it may initially seem like all of the service components that make up the
-Engine Services could be rolled into a single service, division of
-responsibility combines with plain necessity to mean that we need a _set_ of
-services instead. This section deals with the intended architecture for the
-Engine Services.
+The divisions of responsibility between the backend engine services are dictated
+purely by necessity. As multi-client editing necessitates careful
+synchronisation and conflict resolution, between the actions of multiple
+clients. This section deals with the intended architecture for the Engine
+Services.
 
-The engine services are divided into three main components:
+The engine services are divided into two main components:
 
-1. **The Supervisor Daemon:** This component is responsible for setting up and
-   tearing down the other processes, as well as restarting any of the other
-   processes correctly if they fail.
-2. **The Gateway:** This component is responsible for dealing with incoming
-   connections (including multiple clients) and handling the communication with
-   said clients over the Language Server Protocol. It is also responsible for
-   resolving conflicts between commands sent by multiple connections.
-3. **The Language Server:** This component is responsible for actually providing
-   the functionality to back the protocol requests that come in, and talking to
-   the runtime directly. It talks to the gateway via akka messages.
+1. **The Project Picker:** This component is responsible for listing and
+   managing user projects, as well as spawning the language server for a given
+   project when it is opened.
+2. **The Language Server:** This component is responsible for dealing with
+   incoming connections and resolving conflicts between multiple clients. It is
+   also responsible for servicing all of the requests from the clients.
 
-The gateway and language server will be implemented as Akka services so that we
-can defer the choice of whether to run them in a single or multiple processes
-until later. For now we intend to run them in a single process.
+Both components will be implemented as akka actors such that we can defer the
+decision as to run them in different processes until the requirements become
+more clear.
 
-### Supervisor
-The supervisor process is an orchestrator, and is responsible for setting up and
-tearing down the other services, as well as restarting them when they fail. Its
-responsibilities can be summarised as follows:
+### The Project Picker
+The project picker service is responsible for both allowing users to work with
+their projects but also the setup and teardown of the language server itself.
+Its responsibilities can be summarised as follows:
 
-- Starting up the set of services for a given project.
-- Tearing down the set of services correctly when a project is closed.
-- Restarting any of the services properly when they fail. Please note that this
-  may require the ability to kill and re-start services that haven't crashed due
-  to dependencies between services.
-
-### The Gateway
-The gateway component is responsible for managing the actual language server
-protocol usage. This means that it talks directly to clients using protocol
-messages, and then handles these messages by talking to the language server.
-
-It is responsible for the following:
-
-- Accepting connections from multiple clients while remaining compatible with
-  LSP for single client negotiation.
-- Reconciling conflicts between messages from multiple clients.
-- Servicing these requests by talking directly to the language server.
-- Optimising requests where possible (e.g. value subscription pooling).
+- Allowing users to manage their projects.
+- Starting up the language server for a given project upon user selection.
+- Notifying the language server of a pending shutdown on project exit to allow
+  it to persist any state that it needs to disk.
 
 ### Language Server
-The language server is responsible for providing the functionality to back the
-gateway's responses to clients. This includes but is not limited to:
+The language server is responsible for managing incoming connections and
+communicating with the clients, as well as resolving any potential conflicts
+between the clients. It is responsible for the following:
+
+- Negotiating and accepting connections from multiple clients.
+- Resolving conflicts between messages from multiple clients.
+- Optimising incoming requests wherever possible.
+
+It is also responsible for actually servicing all of the incoming requests,
+which includes but isn't limited to:
 
 - **Completion Information:** It should be able to provide a set of candidate
   completions for a given location in the code.
@@ -514,14 +567,1124 @@ and will be expanded upon as necessary in the future.
 - **LSP Spec Completeness:** We should also support all LSP messages that are
   relevant to our language. Currently we only support a small subset thereof.
 
-## Protocol Message Specification
-This section exists to contain a specification of each of the messages the
-protocol supports. This is in order to aid the proper creation of clients, and
-to serve as an agreed-upon definition for the protocol between the IDE team and
-the Engine team.
+## Protocol Message Specification - Common Types
+There are a number of types that are shared between many of the protocol
+messages. They are specified below.
+
+#### `Path`
+A path is a representation of a path relative to a specified content root.
+
+##### Format
+Please note that segments can only be ordinary file names, `..` and `.` may not be supported.
+
+```typescript
+interface Path {
+  rootId: UUID;
+  segments: [String];
+}
+```
+
+#### `AbsolutePath`
+
+## Protocol Message Specification - Project Picker
+This section exists to contain a specification of each of the messages that the
+project picker supports. This is in order to aid in the proper creation of
+clients, and to serve as an agreed-upon definition for the protocol between the
+IDE and Engine teams.
+
+> The actionables for this section are:
+>
+> - As we establish the _exact_ format for each of the messages supported by the
+>   services, record the details of each message here.
+
+### Types
+There are a number of types that are used only within the project server's
+protocol messages. These are specified here.
+
+#### `ProjectMetadata`
+This type represents information about a project.
+
+##### Format
+
+```typescript
+interface ProjectMetadata {
+  name: String;
+  id: UUID;
+  size: Size;
+  lastOpened: UTCDateTime;
+  path: Path | URI;
+}
+```
+
+### Project Management Operations
+The primary responsibility of the project pickers is to allow users to manage
+their projects.
+
+#### `project/open`
+This message requests that the project picker open a specified project. This
+operation also includes spawning an instance of the language server open on the
+specified project.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+##### Parameters
+
+```typescript
+interface ProjectOpenRequest {
+  projectId: UUID;
+}
+```
+
+##### Result
+
+```typescript
+interface ProjectOpenResult {
+  lsAddress: IPWithSocket;
+}
+```
+
+##### Errors
+TBC
+
+#### `project/close`
+This message requests that the project picker close a specified project. This
+operation includes shutting down the language server gracefully so that it can
+persist state to disk as needed.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+##### Parameters
+
+```typescript
+interface ProjectCloseRequest {
+  projectId: UUID;
+}
+```
+
+##### Result
+
+```typescript
+{}
+```
+
+##### Errors
+TBC
+
+#### `project/listRecent`
+This message requests that the project picker lists the user's most recently
+opened projects.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+##### Parameters
+
+```typescript
+interface ProjectListRecentRequest {
+  numProjects: Int;
+}
+```
+
+##### Result
+
+```typescript
+interface ProjectListRecentResponse {
+  projects: [ProjectMetadata];
+}
+```
+
+##### Errors
+TBC
+
+#### `project/create`
+This message requests the creation of a new project.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+##### Parameters
+
+```typescript
+interface ProjectCreateRequest {
+  name: String;
+  location: SystemPath | URI;
+}
+```
+
+##### Result
+
+```typescript
+{}
+```
+
+##### Errors
+TBC
+
+#### `project/delete`
+This message requests the deletion of a project.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+##### Parameters
+
+```typescript
+interface ProjectDeleteRequest {
+  projectId: UUID;
+}
+```
+
+##### Result
+
+```typescript
+{}
+```
+
+##### Errors
+TBC
+
+#### `project/listSample`
+This request lists the sample projects that are available to the user.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+##### Parameters
+
+```typescript
+interface ProjectListSampleRequest {
+  numProjects: Int;
+}
+```
+
+##### Result
+
+```typescript
+interface ProjectListSampleResponse {
+  projects: [ProjectMetadata];
+}
+```
+
+##### Errors
+TBC
+
+### Language Server Management
+The project picker is also responsible for managing the language server. This
+means that it needs to be able to spawn the process, but also tell the process
+when to shut down.
+
+> The actionables for this section are:
+>
+> - Fill it in when we have more of an idea about exactly how this spawning
+>   relationship is going to work.
+
+### Errors - Project Manager
+The project picker component also has its own set of errors. This section is not
+a complete specification and will be updated as new errors are added.
+
+## Protocol Message Specification - Language Server
+This section exists to contain a specification of each of the messages that the
+language server supports. This is in order to aid in the proper creation of
+clients, and to serve as an agreed-upon definition for the protocol between the
+IDE and Engine teams.
 
 > The actionables for this section are:
 >
 > - As we establish the _exact_ format for each of the messages supported by the
 >   services, record the details of each message here.
 > - This should always be done, but may reference LSP.
+
+### Types
+There are a number of types that are used only within the language server's
+protocol messages. These are specified here.
+
+#### `File`
+A representation of a file on disk.
+
+##### Format
+
+```typescript
+interface File {
+  name: String; // Includes the file extension
+  type: String;
+}
+```
+
+#### `DirectoryTree`
+A directory tree is a recursive type used to represent tree structures of files
+and directories.
+
+##### Format
+
+```typescript
+interface DirectoryTree {
+  path: Path;
+  name: String;
+  files: [FileSystemObject];
+  directories: [DirectoryTree];
+}
+```
+
+#### `FileAttributes`
+A description of the attributes of a file required by the IDE. These attributes
+may be expanded in future.
+
+##### Format
+
+```typescript
+interface FileAttributes {
+  creationTime: UTCDateTime;
+  lastAccessTime: UTCDateTime;
+  lastModifiedTime: UTCDateTime;
+  kind: FileSystemObject;
+  byteSize: Size;
+}
+```
+
+#### `FileEventKind`
+The kind of event being described for a watched file.
+
+##### Format
+
+```typescript
+type FileEventKind = Added | Removed | Modified;
+```
+
+#### `Position`
+A representation of a position in a text file.
+
+##### Format
+
+```typescript
+interface Position {
+  /**
+   * Line position in a document (zero-based).
+   */
+  line: number;
+
+  /**
+   * Character offset on a line in a document (zero-based). Assuming that the line is
+   * represented as a string, the `character` value represents the gap between the
+   * `character` and `character + 1`.
+   *
+   * If the character value is greater than the line length it defaults back to the
+   * line length.
+   */
+  character: number;
+}
+```
+
+#### `Range`
+A representation of a range of text in a text file.
+
+##### Format
+
+```typescript
+interface Range {
+  /**
+   * The range's start position.
+   */
+  start: Position;
+
+  /**
+   * The range's end position.
+   */
+  end: Position;
+}
+```
+
+#### `TextEdit`
+A representation of a change to a text file at a given position.
+
+##### Format
+
+```typescript
+interface TextEdit {
+  range: Range;
+  text: String;
+}
+```
+
+#### `FileEdit`
+A representation of a batch of edits to a file, versioned.
+
+##### Format
+
+```typescript
+interface FileEdit {
+  path: Path;
+  edits: [TextEdit];
+  oldVersion: UUID;
+  newVersion: UUID;
+}
+```
+
+#### `FileContents`
+A representation of the contents of a file.
+
+##### Format
+
+```typescript
+interface FileContents[T] {
+  contents: T;
+}
+
+class TextFileContents extends FileContents[String];
+```
+
+#### `FileSystemObject`
+A representation of what kind of type a filesystem object can be.
+
+##### Format
+
+```typescript
+type FileSystemObject = Directory | File | Symlink | Other;
+
+interface Directory {
+  name: String;
+  path: Path;
+}
+
+interface File {
+  name: String;
+  path: Path;
+}
+
+interface Symlink {
+  source: Path;
+  target: Path | SystemPath;
+}
+
+interface Other;
+```
+
+#### `WorkspaceEdit`
+This is a message to be specified once we better understand the intricacies of
+undo/redo.
+
+### Capability Management
+In order to mediate between multiple clients properly, the language server has
+a robust notion of capability management to grant and remove permissions from
+clients.
+
+#### `capability/acquire`
+This requests that the server grant the specified capability to the requesting
+client.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+##### Parameters
+
+```typescript
+{
+  registration: CapabilityRegistration;
+}
+
+interface CapabilityRegistration {
+  id: UUID; // The registration ID
+  method: String;
+  registerOptions?: any;
+}
+```
+
+The `registerOptions` are determined by the `method`. The method must be listed
+in the section on [capabilities](#capabilities) below.
+
+##### Result
+
+```typescript
+null
+```
+
+##### Errors
+TBC
+
+#### `capability/release`
+This requests that the server acknowledge that the client is releasing a given
+capability.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+##### Parameters
+
+```typescript
+{
+  id: UUID; // The ID used to register the capability
+}
+```
+
+##### Result
+
+```typescript
+null
+```
+
+##### Errors
+TBC
+
+#### `capability/granted`
+This notifies the client that it has been granted a capability without any
+action on its part.
+
+- **Type:** Notification
+- **Direction:** Server -> Client
+
+##### Parameters
+
+```typescript
+{
+  registration: CapabilityRegistration;
+}
+```
+
+##### Errors
+TBC
+
+#### `capability/forceReleased`
+This notifies the client that a capability has been forcibly removed from its
+capability set.
+
+- **Type:** Notification
+- **Direction:** Server -> Client
+
+##### Parameters
+
+```typescript
+{
+  id: UUID; // The ID used to register the capability
+}
+```
+
+##### Errors
+TBC
+
+### Capabilities
+The capability management features work with the following capabilities.
+
+#### `capability/canEdit`
+This capability states that the capability has the ability to perform both
+`text/applyEdit` and `text/save` for the specified file.
+
+- **method:** `canEdit`
+- **registerOptions:** `{path: Path;}`
+
+#### `capability/receivesTreeUpdates`
+This capability states that the client will receive updates for any watched
+content roots in the current project.
+
+- **method:** `receivesTreeUpdates`
+- **registerOptions:** `{}`
+
+### File Management Operations
+The language server also provides file operations to the IDE.
+
+#### `file/write`
+This requests that the file manager component write to a specified file with
+the specified contents.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+This request is _explicitly_ allowed to write to files that do not exist, and
+will create them under such circumstances. If a file is recorded as 'open' by
+one of the clients, and another client attempts to write to that file, the
+write must fail.
+
+##### Parameters
+
+```typescript
+{
+  path: Path;
+  contents: FileContents[T];
+}
+```
+
+##### Result
+
+```typescript
+null
+```
+
+##### Errors
+TBC
+
+#### `file/read`
+This requests that the file manager component reads the contents of a specified
+file.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+If the file is recorded as open by the language server, then the result will
+return the contents from the in-memory buffer rather than the file on disk.
+
+##### Parameters
+
+```typescript
+{
+  path: Path;
+}
+```
+
+##### Result
+
+```typescript
+{
+  contents: FileContents[T]
+}
+```
+
+##### Errors
+TBC
+
+#### `file/create`
+This request asks the file manager to create the specified file system object.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+This will fail if the specified object already exists.
+
+##### Parameters
+
+```typescript
+{
+  object: FileSystemObject;
+}
+```
+
+##### Response
+
+```typescript
+null
+```
+
+##### Errors
+TBC
+
+#### `file/delete`
+This request asks the file manager to delete the specified file system object.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+##### Parameters
+
+```typescript
+{
+  path: Path;
+}
+```
+
+##### Result
+
+```
+null
+```
+
+##### Errors
+TBC
+
+#### `file/copy`
+This request asks the file manager to copy a specified filesystem object to
+another location.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+##### Parameters
+
+```typescript
+{
+  from: Path;
+  to: Path;
+}
+```
+
+##### Result
+
+```typescript
+null
+```
+
+##### Errors
+TBC
+
+#### `file/move`
+This request asks the file manager to move a specified filesystem object to
+another location.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+The move should be specified by filesystem events, and such notifications should
+inform the client that the currently edited file has been moved.
+
+##### Parameters
+
+```typescript
+{
+  from: Path;
+  to: Path;
+}
+```
+
+##### Result
+
+```typescript
+null
+```
+
+##### Errors
+TBC
+
+#### `file/exists`
+This request asks the file manager to check whether a filesystem object exists
+at the specified path.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+##### Parameters
+
+```typescript
+{
+  path: Path;
+}
+```
+
+##### Result
+
+```typescript
+{
+  exists: Boolean;
+}
+```
+
+##### Errors
+TBC
+
+#### `file/tree`
+This request asks the file manager component to generate and provide the
+directory tree starting at a given path.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+For trees that exceed the provided `depth`, the result should be truncated, and
+the corresponding flag should be set.
+
+##### Parameters
+
+```typescript
+{
+  path: Path;
+  depth?: Int;
+}
+```
+
+##### Result
+
+```typescript
+{
+  tree: DirectoryTree;
+}
+```
+
+##### Errors
+TBC
+
+#### `file/list`
+This request lists the contents of a given filesystem object. For a file it will
+just return the file, while for a directory it will list the contents of the
+directory.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+##### Parameters
+
+```typescript
+{
+  path: Path;
+}
+```
+
+##### Result
+
+```typescript
+{
+  paths: [FileSystemObject];
+}
+```
+
+##### Errors
+TBC
+
+#### `file/info`
+This request gets information about a specified filesystem object.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+This request should work for all kinds of filesystem object.
+
+##### Parameters
+
+```typescript
+{
+  path: Path;
+}
+```
+
+##### Result
+
+```typescript
+{
+  attributes: Attributes;
+}
+```
+
+##### Errors
+TBC
+
+#### `file/event`
+This is a notification that is sent every time something under a watched content
+root changes. It is used to ensure that the client's filesystem representation
+stays in synchronisation with reality.
+
+- **Type:** Notification
+- **Direction:** Server -> Client
+
+Events should be sent from server to client for every event observed under one
+of the (possibly multiple) content roots.
+
+##### Parameters
+
+```typescript
+{
+  object: FileSystemObject;
+  kind: FileEventKind;
+}
+```
+
+##### Errors
+TBC
+
+#### `file/addRoot`
+This request adds a content root to the active project.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+When a content root is added, the language server must notify clients other than
+the one that added the root by sending a `file/rootAdded`. Additionally, all
+clients must be notified with a `file/event` about the addition of the new root.
+The IDE is responsible for calling `file/tree` on that root to discover its
+structure.
+
+##### Parameters
+
+```typescript
+{
+  absolutePath: [String];
+  id: UUID; // The ID of the content root
+}
+```
+
+##### Result
+
+```typescript
+null
+```
+
+##### Errors
+TBC
+
+#### `file/removeRoot`
+This request removes a content root from the active project.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+When a content root is removed, the language server must notify clients other
+than the one that added the root by sending a `file/rootRemoved`. Additionally,
+the server must send a `file/event` making the root of the new tree visible. The
+IDE is responsible for any additional discovery.
+
+##### Parameters
+
+```typescript
+{
+  id: UUID; // The content root ID
+}
+```
+
+##### Result
+
+```typescript
+null
+```
+
+##### Errors
+TBC
+
+#### `file/rootAdded`
+This is a notification sent to all clients other than the one performing the
+addition of the root in order to inform them of the content root's ID.
+
+- **Type:** Notification
+- **Direction:** Server -> Client
+
+##### Parameters
+
+```typescript
+{
+  id: UUID; // The content root ID
+  absolutePath: [String]
+}
+```
+
+##### Errors
+TBC
+
+#### `file/rootRemoved`
+This is a notification sent to all clients other than the one performing the
+removal of the content root in order to inform them of the removal of the root.
+
+- **Type:** Notification
+- **Direction:** Server -> Client
+
+##### Parameters
+
+```typescript
+{
+  id: UUID; // The content root ID
+}
+```
+
+##### Errors
+TBC
+
+### Text Editing Operations
+The language server also has a set of text editing operations to ensure that it
+stays in sync with the clients.
+
+#### `text/openFile`
+This request informs the language server that a client has opened the specified
+file.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+If no client has write lock on the opened file, the capability is granted to
+the client that sent the `text/openFile` message.
+
+##### Parameters
+
+```typescript
+{
+  path: Path;
+}
+```
+
+##### Result
+
+```typescript
+{
+  writeCapability?: CapabilityRegistration;
+  currentVersion: UUID;
+}
+```
+
+##### Errors
+TBC
+
+#### `text/closeFile`
+This request informs the language server that a client has closed the specified
+file.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+##### Parameters
+
+```typescript
+{
+  path: Path;
+}
+```
+
+##### Result
+
+```typescript
+null
+```
+
+##### Errors
+TBC
+
+#### `text/save`
+This requests for the language server to save the specified file.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+The request may fail if the requesting client does not have permission to edit
+that file, or if the client is requesting a save of an outdated version.
+
+##### Parameters
+
+```typescript
+{
+  path: Path;
+  currentVersion: UUID;
+}
+```
+
+##### Result
+
+```typescript
+null
+```
+
+##### Errors
+TBC
+
+#### `text/applyEdit`
+This requests that the server apply a series of edits to the project. These
+edits solely concern text files.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+This operation may fail if the requesting client does not have permission to
+edit the resources for which edits are sent. This failure _may_ be partial, in
+that some edits are applied and others are not.
+
+##### Parameters
+
+```typescript
+{
+  edits: [FileEdit];
+}
+```
+
+##### Result
+
+```typescript
+null
+```
+
+##### Errors
+TBC
+
+#### `text/didChange`
+This is a notification sent from the server to the clients to inform them of any
+changes made to files that they have open.
+
+- **Type:** Notification
+- **Direction:** Server -> Client
+
+This notification must _only_ be sent for files that the client has open.
+
+##### Parameters
+
+```typescript
+{
+  edits: [FileEdit];
+}
+```
+
+##### Errors
+TBC
+
+### Workspace Operations
+The language server also has a set of operations useful for managing the client
+workspace.
+
+#### `workspace/connect`
+This is a request sent from the client to the server when it first connects to
+the server process, allowing it to obtain some initial information.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+##### Parameters
+
+```typescript
+null
+```
+
+##### Result
+
+```typescript
+{
+  contentRoots: [{id: UUID; absPath: [String]}]
+}
+```
+
+##### Errors
+TBC
+
+#### `workspace/undo`
+This request is sent from the client to the server to request that an operation
+be undone.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+The exact behaviour of this message is to be determined, but it must involve the
+server undoing that same action for all clients in the workspace.
+
+##### Parameters
+
+```typescript
+{
+  requestID?: UUID; // If not specified, it undoes the latest request
+}
+```
+
+##### Result
+
+```typescript
+null
+```
+
+##### Errors
+TBC
+
+#### `workspace/redo`
+This request is sent from the client to the server to request that an operation
+be redone.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+The exact behaviour of this message is to be determined, but it must involve the
+server redoing that same action for all clients in the workspace.
+
+##### Parameters
+
+```typescript
+{
+  requestID?: UUID; // If not specified, it redoes the latest request
+}
+```
+
+##### Result
+
+```typescript
+null
+```
+
+##### Errors
+TBC
+
+### Errors - Language Server
+The language server component also has its own set of errors. This section is
+not a complete specification and will be updated as new errors are added.
