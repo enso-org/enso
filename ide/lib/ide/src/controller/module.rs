@@ -31,7 +31,7 @@ impl Location {
 shared! { Handle
     /// State data of the module controller.
     #[derive(Debug)]
-    pub struct State {
+    pub struct Controller {
         /// This module's location.
         location : Location,
     }
@@ -39,7 +39,7 @@ shared! { Handle
     impl {
         /// Create new Module controller for given location.
         pub fn new(location:Location) -> Self {
-            State {location:location}
+            Controller {location:location}
         }
 
         /// Obtain clone of location.

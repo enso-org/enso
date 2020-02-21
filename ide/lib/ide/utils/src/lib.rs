@@ -12,5 +12,6 @@
 
 pub use enso_prelude as prelude;
 
+pub mod channel;
 pub mod env;
 pub mod test;

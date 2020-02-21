@@ -4,11 +4,20 @@
 #![feature(trait_alias)]
 #![feature(set_stdio)]
 
-pub mod resize_observer;
+pub mod closure;
 pub mod dom;
+pub mod resize_observer;
 
-use enso_prelude::*;
+/// Common types that should be visible across the whole crate.
+pub mod prelude {
+    pub use enso_prelude::*;
+    pub use wasm_bindgen::prelude::*;
+}
 
+use crate::prelude::*;
+
+use js_sys::Function;
+use logger::Logger;
 use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsCast;
 use web_sys::HtmlCanvasElement;
@@ -17,12 +26,8 @@ use web_sys::Performance;
 use web_sys::Node;
 use web_sys::MouseEvent;
 use web_sys::EventTarget;
-use js_sys::Function;
-use std::fmt::Debug;
-use logger::Logger;
 
 pub use web_sys::console;
-use wasm_bindgen::prelude::*;
 
 
 
@@ -57,6 +62,22 @@ impl Error {
         Error::TypeMismatch { expected, got }
     }
 }
+
+
+
+// ==============
+// === String ===
+// ==============
+
+#[wasm_bindgen]
+extern "C" {
+    /// Converts given `JsValue` into a `String`. Usees JS's `String` function,
+    /// see: https://www.w3schools.com/jsref/jsref_string.asp
+    #[allow(unsafe_code)]
+    #[wasm_bindgen(js_name="String")]
+    pub fn js_to_string(s: JsValue) -> String;
+}
+
 
 
 // =============
