@@ -1497,6 +1497,7 @@ the client that sent the `text/openFile` message.
 ```typescript
 {
   writeCapability?: CapabilityRegistration;
+  content: String;
   currentVersion: UUID;
 }
 ```
