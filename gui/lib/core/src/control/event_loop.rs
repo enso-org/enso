@@ -12,21 +12,19 @@ use crate::system::web;
 use wasm_bindgen::prelude::Closure;
 
 
+
 // =========================
 // === EventLoopCallback ===
 // =========================
 
 /// A callback to register in EventLoop, taking time_ms:f64 as its input.
-pub trait EventLoopCallback = FnMut(f64) + 'static;
+pub trait EventLoopCallback = CallbackMut1Fn<f64>;
 
 
 
 // =================
 // === EventLoop ===
 // =================
-
-
-// === Definition ===
 
 /// Event loop system.
 ///
@@ -59,7 +57,7 @@ impl EventLoop {
 
     /// Add new callback. Returns `CallbackHandle` which when dropped, removes
     /// the callback as well.
-    pub fn add_callback<F:CallbackMut1Fn<f64>>(&self, callback:F) -> CallbackHandle {
+    pub fn add_callback<F:EventLoopCallback>(&self, callback:F) -> CallbackHandle {
         self.rc.borrow_mut().callbacks.add(Box::new(callback))
     }
 
@@ -80,11 +78,13 @@ impl EventLoop {
 // === EventLoopData ===
 // =====================
 
+trait RequestFrameCallback = FnMut(f64) + 'static;
+
 /// The internal state of the `EventLoop`.
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct EventLoopData {
-    main             : Option<Closure<dyn EventLoopCallback>>,
+    main             : Option<Closure<dyn RequestFrameCallback>>,
     callbacks        : CallbackRegistry1<f64>,
     #[derivative(Debug="ignore")]
     on_loop_started  : CallbackMut,

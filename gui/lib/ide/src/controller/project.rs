@@ -4,7 +4,6 @@
 //! files and modules. Expected to live as long as the project remains open in the IDE.
 
 use crate::prelude::*;
-use crate::controller;
 
 use json_rpc::Transport;
 use weak_table::weak_value_hash_map::Entry::Occupied;
@@ -18,7 +17,7 @@ shared! { Handle
 
     /// Project controller's state.
     #[derive(Debug)]
-    pub struct State {
+    pub struct Controller {
         /// File Manager Client.
         file_manager: fmc::Handle,
         /// Cache of module controllers.
@@ -32,7 +31,7 @@ shared! { Handle
         ///
         /// The remote connections should be already established.
         pub fn new(file_manager_transport:impl Transport + 'static) -> Self {
-            State {
+            Controller {
                 file_manager : fmc::Handle::new(file_manager_transport),
                 module_cache : default(),
                 text_cache   : default(),
@@ -62,7 +61,25 @@ shared! { Handle
     }
 }
 
+impl Controller {
+    /// Creates a new project controller. Schedules all necessary execution with
+    /// the global executor.
+    pub fn new_running(file_manager_transport:impl Transport + 'static) -> Self {
+        let ret = Self::new(file_manager_transport);
+        crate::executor::global::spawn(ret.file_manager.runner());
+        ret
+    }
+}
 
+
+impl Handle {
+    /// Creates a new project controller. Schedules all necessary execution with
+    /// the global executor.
+    pub fn new_running(file_manager_transport:impl Transport + 'static) -> Self {
+        let data = Controller::new_running(file_manager_transport);
+        Self::new_from_data(data)
+    }
+}
 
 #[cfg(test)]
 mod test {

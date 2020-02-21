@@ -7,11 +7,12 @@ use crate::prelude::*;
 use crate::transport::Transport;
 use crate::transport::TransportEvent;
 
-use std::collections::VecDeque;
 use failure::Error;
+use futures::channel::mpsc::UnboundedSender;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use futures::channel::mpsc::UnboundedSender;
+use std::collections::VecDeque;
+use utils::channel;
 
 
 // ====================
@@ -53,11 +54,11 @@ pub enum Status {
 #[derive(Debug,Default)]
 pub struct MockTransportData {
     /// Events sink.
-    pub event_tx  : Option<UnboundedSender<TransportEvent>>,
+    pub event_transmitter : Option<UnboundedSender<TransportEvent>>,
     /// Messages sent by the user.
-    pub sent_msgs : VecDeque<String>,
+    pub sent_msgs         : VecDeque<String>,
     /// Transport status.
-    pub is_closed : bool,
+    pub is_closed         : bool,
 }
 
 
@@ -82,9 +83,9 @@ impl Transport for MockTransport {
         })
     }
 
-    fn set_event_tx(&mut self, event_tx:UnboundedSender<TransportEvent>) {
+    fn set_event_transmitter(&mut self, transmitter:UnboundedSender<TransportEvent>) {
         self.with_mut_data(|data| {
-            data.event_tx = Some(event_tx);
+            data.event_transmitter = Some(transmitter);
         })
     }
 }
@@ -105,8 +106,9 @@ impl MockTransport {
     /// Generates event that mocks receiving a text message from a peer.
     pub fn mock_peer_message_text<S:Into<String>>(&mut self, message:S) {
         let message = message.into();
-        if let Some(ref mut tx) = self.0.borrow_mut().event_tx {
-            let _ = tx.unbounded_send(TransportEvent::TextMessage(message));
+        if let Some(ref mut transmitter) = self.0.borrow_mut().event_transmitter {
+            let event = TransportEvent::TextMessage(message);
+            channel::emit(transmitter,event);
         }
     }
 
@@ -122,9 +124,9 @@ impl MockTransport {
     /// for any other reason).
     pub fn mock_connection_closed(&mut self) {
         self.with_mut_data(|data| {
-            if let Some(ref mut tx) = data.event_tx {
+            if let Some(ref mut transmitter) = data.event_transmitter {
                 data.is_closed = true;
-                let _          = tx.unbounded_send(TransportEvent::Closed);
+                channel::emit(transmitter,TransportEvent::Closed);
             }
         })
     }

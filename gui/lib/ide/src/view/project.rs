@@ -27,7 +27,8 @@ shared! { ProjectView
     pub struct ProjectViewData {
         world           : World,
         layout          : ViewLayout,
-        resize_callback: Option<CallbackHandle>
+        resize_callback : Option<CallbackHandle>,
+        controller      : controller::project::Handle,
     }
 
     impl {
@@ -38,20 +39,17 @@ shared! { ProjectView
     }
 }
 
-impl Default for ProjectViewData {
-    fn default() -> Self {
+impl ProjectView {
+    /// Create new ProjectView.
+    pub fn new(controller:controller::project::Handle) -> Self {
+
         let world           = WorldData::new(&web::body());
         let layout          = ViewLayout::default(&world);
         let resize_callback = None;
-        ProjectViewData{world,layout,resize_callback}
-    }
-}
 
-impl ProjectView {
-    /// Create new ProjectView.
-    pub fn new() -> Self {
-        let data = default();
-        Self{rc:data}.init()
+        let data = ProjectViewData {world,layout,resize_callback,controller};
+        let ret  = Self {rc:Rc::new(RefCell::new(data))};
+        ret.init()
     }
 
     fn init(self) -> Self {
@@ -71,11 +69,5 @@ impl ProjectView {
     /// Forgets ProjectView, so it won't get dropped when it goes out of scope.
     pub fn forget(self) {
         std::mem::forget(self)
-    }
-}
-
-impl Default for ProjectView {
-    fn default() -> Self {
-        Self::new()
     }
 }
