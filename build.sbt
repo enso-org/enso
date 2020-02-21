@@ -100,9 +100,7 @@ lazy val enso = (project in file("."))
     project_manager,
     graph,
     runner,
-    gateway,
-    language_server,
-    json_rpc_server
+    language_server
   )
   .settings(Global / concurrentRestrictions += Tags.exclusive(Exclusive))
 
@@ -423,37 +421,15 @@ lazy val polyglot_api = project
   )
   .dependsOn(pkg)
 
-lazy val json_rpc_server = (project in file("engine/json-rpc-server"))
+lazy val language_server = (project in file("engine/language-server"))
   .settings(
     libraryDependencies ++= akka ++ circe ++ Seq(
+      "ch.qos.logback" % "logback-classic" % "1.2.3",
       "io.circe"       %% "circe-generic-extras" % "0.12.2",
       "io.circe"       %% "circe-literal" % circeVersion,
       akkaTestkit      % Test,
       "org.scalatest"  %% "scalatest" % "3.2.0-M2" % Test,
       "org.scalacheck" %% "scalacheck" % "1.14.0" % Test
-    )
-  )
-
-lazy val language_server = (project in file("engine/language-server"))
-  .settings(
-    libraryDependencies ++= akka ++ Seq(
-      "org.graalvm.sdk" % "polyglot-tck" % graalVersion % Provided,
-      akkaTestkit       % Test,
-      "org.scalatest"   %% "scalatest" % "3.2.0-M2" % Test,
-      "org.scalacheck"  %% "scalacheck" % "1.14.3" % Test
-    )
-  )
-  .dependsOn(polyglot_api)
-
-lazy val gateway = (project in file("engine/gateway"))
-  .dependsOn(language_server)
-  .settings(
-    libraryDependencies ++= akka ++ circe ++ Seq(
-      "io.circe"       %% "circe-generic-extras" % "0.12.2",
-      "io.circe"       %% "circe-literal" % circeVersion,
-      akkaTestkit      % Test,
-      "org.scalatest"  %% "scalatest" % "3.2.0-M2" % Test,
-      "org.scalacheck" %% "scalacheck" % "1.14.3" % Test
     )
   )
 
@@ -589,5 +565,4 @@ lazy val runner = project
   .dependsOn(runtime)
   .dependsOn(pkg)
   .dependsOn(language_server)
-  .dependsOn(gateway)
   .dependsOn(polyglot_api)

@@ -7,9 +7,7 @@ import java.io.File
 
 import org.enso
 import org.enso.polyglot.{ExecutionContext, LanguageInfo, Module}
-import org.enso.{Gateway, LanguageServer}
 import akka.actor.{ActorRef, ActorSystem}
-import org.enso.gateway.JsonRpcController
 
 import scala.io.StdIn
 import scala.util.Try
@@ -24,7 +22,6 @@ object Main {
   private val NEW_OPTION     = "new"
   private val REPL_OPTION    = "repl"
   private val JUPYTER_OPTION = "jupyter-kernel"
-  private val LSP_OPTION     = "lsp"
 
   /**
     * Builds the [[Options]] object representing the CLI syntax.
@@ -62,10 +59,6 @@ object Main {
       .longOpt(JUPYTER_OPTION)
       .desc("Runs Enso Jupyter Kernel.")
       .build
-    val lsp = Option.builder
-      .longOpt(LSP_OPTION)
-      .desc("Talks Language Server Protocol.")
-      .build
     val options = new Options
     options
       .addOption(help)
@@ -73,7 +66,6 @@ object Main {
       .addOption(run)
       .addOption(newOpt)
       .addOption(jupyterOption)
-      .addOption(lsp)
     options
   }
 
@@ -173,42 +165,6 @@ object Main {
   }
 
   /**
-    * Handles the `--lsp` CLI option
-    */
-  private def talkLSP(): Unit = {
-    val context = new ContextFactory().create(
-      "",
-      System.in,
-      System.out,
-      Repl(TerminalIO())
-    )
-
-    implicit val system: ActorSystem = ActorSystem()
-    import system.dispatcher
-
-    val languageServerActorName = "languageServer"
-    val gatewayActorName        = "gateway"
-    val languageServer: ActorRef =
-      system.actorOf(LanguageServer.props(context), languageServerActorName)
-    val gateway: ActorRef =
-      system.actorOf(Gateway.props(languageServer), gatewayActorName)
-
-    val jsonRpcController = new JsonRpcController(gateway)
-    val config            = new enso.gateway.server.Config
-    val server            = new enso.gateway.Server(jsonRpcController, config)
-    server.run()
-
-    StdIn.readLine()
-    val terminationFuture = for {
-      _ <- server.shutdown()
-      _ <- system.terminate()
-    } yield ()
-    val timeout = 5.seconds
-    Await.result(terminationFuture, timeout)
-    exitSuccess()
-  }
-
-  /**
     * Main entry point for the CLI program.
     *
     * @param args the command line arguments
@@ -236,9 +192,6 @@ object Main {
     }
     if (line.hasOption(JUPYTER_OPTION)) {
       new JupyterKernel().run(line.getOptionValue(JUPYTER_OPTION))
-    }
-    if (line.hasOption(LSP_OPTION)) {
-      talkLSP()
     }
     printHelp(options)
     exitFail()
