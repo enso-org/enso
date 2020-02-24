@@ -1,3 +1,3 @@
 #!/bin/bash
 cargo test &&
-cargo run --manifest-path=script/rust/Cargo.toml --bin test-all -- --headless --firefox
+cargo run --manifest-path=script/rust/Cargo.toml --bin test-all -- --headless --chrome
