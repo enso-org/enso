@@ -1,9 +1,9 @@
 package org.enso.languageserver
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
+import io.circe.Json
 import io.circe.literal._
 import io.circe.parser._
-import io.circe.Json
 import org.enso.languageserver.jsonrpc.MessageHandler.{Connected, WebMessage}
 import org.enso.languageserver.jsonrpc.{
   Error,
@@ -19,9 +19,9 @@ import org.enso.languageserver.jsonrpc.{
   ResponseResult,
   Unused
 }
-import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
+import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 
 import scala.concurrent.duration._
 

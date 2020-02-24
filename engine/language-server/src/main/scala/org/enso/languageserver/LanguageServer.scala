@@ -1,86 +1,120 @@
 package org.enso.languageserver
-import java.io.File
-import java.util.UUID
-
 import akka.actor.{Actor, ActorLogging, ActorRef, Stash}
+import org.enso.languageserver.data._
 
 object LanguageProtocol {
-  type ClientId = UUID
-  case class Initialize(config: Config)
-  case class Connect(id: ClientId, client: Client)
-  case class Disconnect(clientId: ClientId)
 
-  case class Config(contentRoots: List[File], languagePath: List[File])
+  /** Initializes the Language Server. */
+  case object Initialize
 
-  case class Capabilities(hasWriteLock: Boolean) {
-    def acquireWriteLock: Capabilities = copy(hasWriteLock = true)
-    def releaseWriteLock: Capabilities = copy(hasWriteLock = false)
-  }
+  /**
+    * Notifies the Language Server about a new client connecting.
+    *
+    * @param clientId the internal client id.
+    * @param clientActor the actor this client is represented by.
+    */
+  case class Connect(clientId: Client.Id, clientActor: ActorRef)
 
-  object Capabilities {
-    val default: Capabilities = Capabilities(false)
-  }
+  /**
+    * Notifies the Language Server about a client disconnecting.
+    * The client may not send any further messages after this one.
+    *
+    * @param clientId the id of the disconnecting client.
+    */
+  case class Disconnect(clientId: Client.Id)
 
-  case class Client(actor: ActorRef, capabilities: Capabilities) {
-    def acquireWriteLock: Client =
-      copy(capabilities = capabilities.acquireWriteLock)
-    def releaseWriteLock: Client =
-      copy(capabilities = capabilities.releaseWriteLock)
-    def hasWriteLock: Boolean = capabilities.hasWriteLock
-  }
+  /**
+    * Requests the Language Server grant a new capability to a client.
+    *
+    * @param clientId the client to grant the capability to.
+    * @param registration the capability to grant.
+    */
+  case class AcquireCapability(
+    clientId: Client.Id,
+    registration: CapabilityRegistration
+  )
 
-  case class Env(clients: Map[ClientId, Client]) {
-    def addClient(id: ClientId, client: Client): Env = {
-      copy(clients = clients + (id -> client))
-    }
+  /**
+    * Notifies the Language Server about a client releasing a capability.
+    *
+    * @param clientId the client releasing the capability.
+    * @param capabilityId the capability being released.
+    */
+  case class ReleaseCapability(
+    clientId: Client.Id,
+    capabilityId: CapabilityRegistration.Id
+  )
 
-    def removeClient(clientId: ClientId): Env =
-      copy(clients = clients - clientId)
+  /**
+    * A notification sent by the Language Server, notifying a client about
+    * a capability being taken away from them.
+    *
+    * @param capabilityId the capability being released.
+    */
+  case class CapabilityForceReleased(capabilityId: CapabilityRegistration.Id)
 
-    def mapClients(fun: (ClientId, Client) => Client): Env =
-      copy(clients = clients.map { case (id, client) => (id, fun(id, client)) })
-  }
-
-  object Env {
-    def empty: Env = Env(Map())
-  }
-
-  case object ForceReleaseWriteLock
-  case class AcquireWriteLock(clientId: ClientId)
-  case object WriteLockAcquired
+  /**
+    * A notification sent by the Language Server, notifying a client about a new
+    * capability being granted to them.
+    *
+    * @param registration the capability being granted.
+    */
+  case class CapabilityGranted(registration: CapabilityRegistration)
 }
 
-class Server extends Actor with Stash with ActorLogging {
+/**
+  * An actor representing an instance of the Language Server.
+  *
+  * @param config the configuration used by this Language Server.
+  */
+class LanguageServer(config: Config)
+    extends Actor
+    with Stash
+    with ActorLogging {
   import LanguageProtocol._
 
   override def receive: Receive = {
-    case Initialize(config) =>
+    case Initialize =>
       log.debug("Language Server initialized.")
       unstashAll()
       context.become(initialized(config))
     case _ => stash()
   }
 
-  def initialized(config: Config, env: Env = Env.empty): Receive = {
-    case Connect(clientId, client) =>
+  def initialized(
+    config: Config,
+    env: Environment = Environment.empty
+  ): Receive = {
+    case Connect(clientId, actor) =>
       log.debug("Client connected [{}].", clientId)
-      context.become(initialized(config, env.addClient(clientId, client)))
+      context.become(
+        initialized(config, env.addClient(Client(clientId, actor)))
+      )
+
     case Disconnect(clientId) =>
       log.debug("Client disconnected [{}].", clientId)
       context.become(initialized(config, env.removeClient(clientId)))
-    case AcquireWriteLock(clientId) =>
-      val newEnv = env.mapClients {
-        case (id, client) =>
-          if (id == clientId) {
-            log.debug("Client {} has acquired the write lock.", clientId)
-            sender ! WriteLockAcquired
-            client.acquireWriteLock
-          } else if (client.hasWriteLock) {
-            log.debug("Client {} has lost the write lock.", clientId)
-            client.actor ! ForceReleaseWriteLock
-            client.releaseWriteLock
-          } else client
+
+    case AcquireCapability(
+        clientId,
+        reg @ CapabilityRegistration(_, capability: CanEdit)
+        ) =>
+      val (envWithoutCapability, releasingClients) = env.removeCapabilitiesBy {
+        case CapabilityRegistration(_, CanEdit(file)) => file == capability.path
+        case _                                        => false
       }
+      releasingClients.foreach {
+        case (client: Client, capabilities) =>
+          capabilities.foreach { registration =>
+            client.actor ! CapabilityForceReleased(registration.id)
+          }
+      }
+      val newEnv = envWithoutCapability.grantCapability(clientId, reg)
       context.become(initialized(config, newEnv))
+
+    case ReleaseCapability(clientId, capabilityId) =>
+      context.become(
+        initialized(config, env.releaseCapability(clientId, capabilityId))
+      )
   }
 }

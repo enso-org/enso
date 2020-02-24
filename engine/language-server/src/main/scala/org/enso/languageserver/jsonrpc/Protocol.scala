@@ -2,6 +2,7 @@ package org.enso.languageserver.jsonrpc
 
 import io.circe.{Decoder, Encoder, Json}
 
+import scala.annotation.unused
 import scala.reflect.ClassTag
 
 /**
@@ -74,13 +75,13 @@ case class Request[+M <: Method, +Params](
   method: M,
   id: Id,
   params: Params
-)(implicit ev: HasParams.Aux[M, Params])
+)(implicit @unused ev: HasParams.Aux[M, Params])
 
 /**
   * The basic JSON RPC notification type.
   */
 case class Notification[+M <: Method, +Params](method: M, params: Params)(
-  implicit ev: HasParams.Aux[M, Params]
+  implicit @unused ev: HasParams.Aux[M, Params]
 )
 
 /**
@@ -90,7 +91,7 @@ case class ResponseResult[+M <: Method, +Result](
   method: M,
   id: Id,
   data: Result
-)(implicit ev: HasResult.Aux[M, Result])
+)(implicit @unused ev: HasResult.Aux[M, Result])
 
 /**
   * The basic JSON RPC error response type.

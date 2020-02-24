@@ -1,92 +1,125 @@
 package org.enso.languageserver
 
-import java.io.File
 import java.util.UUID
 
 import akka.NotUsed
-import akka.actor.{Actor, ActorLogging, ActorRef, ActorSystem, Props, Stash}
+import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.ws.{Message, TextMessage}
+import akka.http.scaladsl.model.ws.{BinaryMessage, Message, TextMessage}
 import akka.http.scaladsl.server.Directives._
+import akka.http.scaladsl.server.Route
 import akka.stream.scaladsl.{Flow, Sink, Source}
-import akka.stream.{ActorMaterializer, OverflowStrategy}
+import akka.stream.{Materializer, OverflowStrategy}
 import org.enso.languageserver.jsonrpc.MessageHandler
 
+import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration._
-import scala.concurrent.Await
-import scala.io.StdIn
-
 
 object WebSocketServer {
 
-  def main(args: Array[String]): Unit = {
-    implicit val system       = ActorSystem()
-    implicit val materializer = ActorMaterializer()
+  /**
+    * A configuration object for properties of the WebSocketServer.
+    *
+    * @param outgoingBufferSize the number of messages buffered internally
+    *                           if the downstream connection is lagging behind.
+    * @param lazyMessageTimeout the timeout for downloading the whole of a lazy
+    *                           stream message from the user.
+    */
+  case class Config(outgoingBufferSize: Int, lazyMessageTimeout: FiniteDuration)
 
-    val serverActor: ActorRef = system.actorOf(Props(new Server))
+  case object Config {
 
-    serverActor ! LanguageProtocol.Initialize(
-      LanguageProtocol.Config(List(), List())
-    )
-
-    def newUser(): Flow[Message, Message, NotUsed] = {
-      val clientId    = UUID.randomUUID()
-      val clientActor = system.actorOf(Props(new Client(clientId, serverActor)))
-
-      val messageHandler =
-        system.actorOf(
-          Props(new MessageHandler(JsonRpcApi.protocol, clientActor))
-        )
-      clientActor ! JsonRpcApi.WsConnect(messageHandler)
-
-      serverActor ! LanguageProtocol.Connect(
-        clientId,
-        LanguageProtocol
-          .Client(clientActor, LanguageProtocol.Capabilities.default)
-      )
-
-      val incomingMessages: Sink[Message, NotUsed] =
-        Flow[Message]
-          .map {
-            case TextMessage.Strict(text) =>
-              MessageHandler.WebMessage(text)
-          }
-          .to(
-            Sink.actorRef[MessageHandler.WebMessage](
-              messageHandler,
-              MessageHandler.Disconnected, { _: Any =>
-                MessageHandler.Disconnected
-              }
-            )
-          )
-
-      val outgoingMessages: Source[Message, NotUsed] =
-        Source
-          .actorRef[MessageHandler.WebMessage](10, OverflowStrategy.fail)
-          .mapMaterializedValue { outActor =>
-            messageHandler ! MessageHandler.Connected(outActor)
-            NotUsed
-          }
-          .map(
-            (outMsg: MessageHandler.WebMessage) => TextMessage(outMsg.message)
-          )
-
-      Flow.fromSinkAndSource(incomingMessages, outgoingMessages)
-    }
-
-    val route =
-      path("") {
-        get {
-          handleWebSocketMessages(newUser())
-        }
-      }
-
-    val binding =
-      Await.result(Http().bindAndHandle(route, "127.0.0.1", 1234), 3.seconds)
-
-    // the rest of the sample code will go here
-    println("Started server at 127.0.0.1:8080, press enter to kill server")
-    StdIn.readLine()
-    system.terminate()
+    /**
+      * Creates a default instance of [[Config]].
+      *
+      * @return a default config.
+      */
+    def default: Config =
+      Config(outgoingBufferSize = 10, lazyMessageTimeout = 10.seconds)
   }
+}
+
+/**
+  * Exposes a multi-client Lanugage Server instance over WebSocket connections.
+  * @param languageServer an instance of a running and initialized Language
+  *                       Server.
+  */
+class WebSocketServer(
+  languageServer: ActorRef,
+  config: WebSocketServer.Config = WebSocketServer.Config.default
+)(
+  implicit val system: ActorSystem,
+  implicit val materializer: Materializer
+) {
+
+  implicit val ec: ExecutionContext = system.dispatcher
+
+  private val newConnectionPath: String = ""
+
+  private def newUser(): Flow[Message, Message, NotUsed] = {
+    val clientId = UUID.randomUUID()
+    val clientActor =
+      system.actorOf(Props(new ClientController(clientId, languageServer)))
+
+    val messageHandler =
+      system.actorOf(
+        Props(new MessageHandler(ClientApi.protocol, clientActor))
+      )
+    clientActor ! ClientApi.WebConnect(messageHandler)
+
+    languageServer ! LanguageProtocol.Connect(clientId, clientActor)
+
+    val incomingMessages: Sink[Message, NotUsed] =
+      Flow[Message]
+        .mapConcat({
+          case textMsg: TextMessage => textMsg :: Nil
+          case _: BinaryMessage     => Nil
+        })
+        .mapAsync(1)(
+          _.toStrict(config.lazyMessageTimeout)
+            .map(msg => MessageHandler.WebMessage(msg.text))
+        )
+        .to(
+          Sink.actorRef[MessageHandler.WebMessage](
+            messageHandler,
+            MessageHandler.Disconnected, { _: Any =>
+              MessageHandler.Disconnected
+            }
+          )
+        )
+
+    val outgoingMessages: Source[Message, NotUsed] =
+      Source
+        .actorRef[MessageHandler.WebMessage](
+          PartialFunction.empty,
+          PartialFunction.empty,
+          config.outgoingBufferSize,
+          OverflowStrategy.fail
+        )
+        .mapMaterializedValue { outActor =>
+          messageHandler ! MessageHandler.Connected(outActor)
+          NotUsed
+        }
+        .map(
+          (outMsg: MessageHandler.WebMessage) => TextMessage(outMsg.message)
+        )
+
+    Flow.fromSinkAndSource(incomingMessages, outgoingMessages)
+  }
+
+  private val route: Route = path(newConnectionPath) {
+    get { handleWebSocketMessages(newUser()) }
+  }
+
+  /**
+    * Binds this server instance to a given port and interface, allowing
+    * future connections.
+    *
+    * @param interface the interface to bind to.
+    * @param port the port to bind to.
+    * @return a server binding object.
+    */
+  def bind(interface: String, port: Int): Future[Http.ServerBinding] =
+    Http().bindAndHandle(route, interface, port)
 }
