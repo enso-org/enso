@@ -1,5 +1,6 @@
 package org.enso.languageserver
 
+import java.nio.file.{Files, Paths}
 import java.util.UUID
 
 import akka.NotUsed
@@ -9,16 +10,19 @@ import akka.http.scaladsl.model.ws.{Message, TextMessage, WebSocketRequest}
 import akka.stream.OverflowStrategy
 import akka.stream.scaladsl.{Flow, Sink, Source}
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
+import cats.effect.IO
 import io.circe.Json
 import io.circe.literal._
 import io.circe.parser._
 import org.enso.languageserver.data.Config
+import org.enso.languageserver.filemanager.FileSystem
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 import org.scalatest.{Assertion, BeforeAndAfterAll, BeforeAndAfterEach}
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
+import scala.io.{Source => IoSource}
 
 class WebSocketServerTest
     extends TestKit(ActorSystem("TestSystem"))
@@ -36,11 +40,18 @@ class WebSocketServerTest
   val port      = 54321
   val address   = s"ws://$interface:$port"
 
+  val testContentRoot   = Files.createTempDirectory(null)
+  val testContentRootId = UUID.randomUUID()
+
+  testContentRoot.toFile.deleteOnExit()
+
   var server: WebSocketServer     = _
   var binding: Http.ServerBinding = _
 
   override def beforeEach(): Unit = {
-    val languageServer = system.actorOf(Props(new LanguageServer(Config())))
+    val config = Config(Map(testContentRootId -> testContentRoot.toFile))
+    val languageServer =
+      system.actorOf(Props(new LanguageServer(config, new FileSystem[IO])))
     languageServer ! LanguageProtocol.Initialize
     server  = new WebSocketServer(languageServer)
     binding = Await.result(server.bind(interface, port), 3.seconds)
@@ -216,6 +227,62 @@ class WebSocketServerTest
           }
           """)
     }
+
+    "write textual content to a file" in {
+      val client = new WsTestClient(address)
+
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/write",
+            "id": 3,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "foo", "bar", "baz.txt" ]
+              },
+              "content": "123456789"
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 3,
+            "result": null
+          }
+          """)
+      client.expectNoMessage()
+      val path = Paths.get(testContentRoot.toString, "foo", "bar", "baz.txt")
+      IoSource.fromFile(path.toFile).getLines().mkString shouldBe "123456789"
+    }
+
+    "return failure when a content root cannot be found" in {
+      val client = new WsTestClient(address)
+
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/write",
+            "id": 3,
+            "params": {
+              "path": {
+                "rootId": ${UUID.randomUUID()},
+                "segments": [ "foo", "bar", "baz.txt" ]
+              },
+              "content": "123456789"
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 3,
+            "error" : {
+              "code" : 1001,
+              "message" : "Content root not found"
+            }
+          }
+          """)
+      client.expectNoMessage()
+    }
+
   }
 
   class WsTestClient(address: String) {

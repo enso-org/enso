@@ -1110,7 +1110,10 @@ null
 ```
 
 ##### Errors
-TBC
+
+- **FileSystemError(errorCode=1000)** This error signals generic file system errors.
+- **ContentRootNotFoundError(errorCode=1001)** The error informs that the requested content root cannot be found.
+- **AccessDeniedError(errorCode=1002)** It signals that a user doesn't have access to a resource.
 
 #### `file/read`
 This requests that the file manager component reads the contents of a specified

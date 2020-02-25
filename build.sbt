@@ -427,6 +427,9 @@ lazy val language_server = (project in file("engine/language-server"))
       "ch.qos.logback" % "logback-classic" % "1.2.3",
       "io.circe"       %% "circe-generic-extras" % "0.12.2",
       "io.circe"       %% "circe-literal" % circeVersion,
+      "org.typelevel"  %% "cats-core" % "2.0.0",
+      "org.typelevel"  %% "cats-effect" % "2.0.0",
+      "commons-io"     % "commons-io" % "2.6",
       akkaTestkit      % Test,
       "org.scalatest"  %% "scalatest" % "3.2.0-M2" % Test,
       "org.scalacheck" %% "scalacheck" % "1.14.0" % Test
@@ -530,14 +533,15 @@ lazy val runner = project
     assemblyJarName in assembly := "enso.jar",
     test in assembly := {},
     assemblyOutputPath in assembly := file("enso.jar"),
-    assemblyOption in assembly := (assemblyOption in assembly).value.copy(
-      prependShellScript = Some(
-        defaultUniversalScript(
-          shebang  = false,
-          javaOpts = truffleRunOptions
+    assemblyOption in assembly := (assemblyOption in assembly).value
+      .copy(
+        prependShellScript = Some(
+          defaultUniversalScript(
+            shebang  = false,
+            javaOpts = truffleRunOptions
+          )
         )
-      )
-    ),
+      ),
     inConfig(Compile)(truffleRunOptionsSettings),
     libraryDependencies ++= Seq(
       "org.graalvm.sdk"       % "polyglot-tck"           % graalVersion % "provided",

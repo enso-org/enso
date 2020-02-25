@@ -3,9 +3,26 @@ package org.enso.languageserver
 import java.util.UUID
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Stash}
+import akka.pattern.ask
+import akka.util.Timeout
 import org.enso.languageserver.ClientApi._
 import org.enso.languageserver.data.{CapabilityRegistration, Client}
+import org.enso.languageserver.filemanager.FileManagerApi.{
+  FileSystemError,
+  FileWrite,
+  FileWriteParams
+}
+import org.enso.languageserver.filemanager.FileManagerProtocol.FileWriteResult
+import org.enso.languageserver.filemanager.{
+  FileManagerProtocol,
+  FileSystemFailure,
+  FileSystemFailureMapper
+}
+import org.enso.languageserver.jsonrpc.Errors.ServiceError
 import org.enso.languageserver.jsonrpc._
+
+import scala.concurrent.duration._
+import scala.util.{Failure, Success}
 
 /**
   * The JSON RPC API provided by the language server.
@@ -51,6 +68,7 @@ object ClientApi {
   val protocol: Protocol = Protocol.empty
     .registerRequest(AcquireCapability)
     .registerRequest(ReleaseCapability)
+    .registerRequest(FileWrite)
     .registerNotification(ForceReleaseCapability)
     .registerNotification(GrantCapability)
 
@@ -64,10 +82,17 @@ object ClientApi {
   * @param clientId the internal client id.
   * @param server the language server actor.
   */
-class ClientController(val clientId: Client.Id, val server: ActorRef)
-    extends Actor
+class ClientController(
+  val clientId: Client.Id,
+  val server: ActorRef,
+  requestTimeout: FiniteDuration = 10.seconds
+) extends Actor
     with Stash
     with ActorLogging {
+
+  import context.dispatcher
+
+  implicit val timeout = Timeout(requestTimeout)
 
   override def receive: Receive = {
     case ClientApi.WebConnect(webActor) =>
@@ -97,5 +122,23 @@ class ClientController(val clientId: Client.Id, val server: ActorRef)
     case Request(ReleaseCapability, id, params: ReleaseCapabilityParams) =>
       server ! LanguageProtocol.ReleaseCapability(clientId, params.id)
       sender ! ResponseResult(ReleaseCapability, id, Unused)
+
+    case Request(FileWrite, id, params: FileWriteParams) =>
+      (server ? FileManagerProtocol.FileWrite(params.path, params.content))
+        .onComplete {
+          case Success(FileWriteResult(Right(()))) =>
+            webActor ! ResponseResult(FileWrite, id, Unused)
+
+          case Success(FileWriteResult(Left(failure))) =>
+            webActor ! ResponseError(
+              Some(id),
+              FileSystemFailureMapper.mapFailure(failure)
+            )
+
+          case Failure(th) =>
+            log.error("An exception occurred during writing to a file", th)
+            webActor ! ResponseError(Some(id), ServiceError)
+        }
   }
+
 }
