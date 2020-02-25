@@ -3,9 +3,7 @@ package org.enso.syntax.text
 import java.util.UUID
 
 import cats.Foldable
-import org.enso.data.Index
 import org.enso.data.List1
-import org.enso.data.Size
 import org.enso.data.Span
 import org.enso.flexer
 import org.enso.flexer.Reader
@@ -17,6 +15,9 @@ import org.enso.syntax.text.ast.meta.Builtin
 import org.enso.syntax.text.prec.Macro
 import org.enso.syntax.text.spec.ParserDef
 import cats.implicits._
+import io.circe
+import io.circe.generic.auto._
+import io.circe.parser._
 
 ////////////////////////////////
 
@@ -346,15 +347,15 @@ class Parser {
 }
 
 object Parser {
+
   type IDMap = Seq[(Span, AST.ID)]
 
   private val newEngine = flexer.Parser.compile(ParserDef())
 
   def apply(): Parser = new Parser()
 
-  def idMap(ids: Seq[((Int, Int), AST.ID)]): IDMap = ids.map {
-    case ((ix, len), id) => (Span(Index(ix), Size(len)), id)
-  }
+  def idMapFromJson(json: String): Either[circe.Error, IDMap] =
+    decode[IDMap](json)
 
   //// Exceptions ////
 

@@ -3,13 +3,13 @@ package org.enso.data
 import org.enso.syntax.text.AST
 
 /** Strongly typed span in a container. */
-case class Span(begin: Index, length: Size) extends Ordered[Span] {
+case class Span(index: Index, size: Size) extends Ordered[Span] {
 
   override def compare(that: Span): Int =
-    (begin -> that.length).compare(that.begin -> length)
+    (index -> that.size).compare(that.index -> size)
 
   /** Index of the first element past the span */
-  def end: Index = begin + length
+  def end: Index = index + size
 
 }
 
@@ -25,6 +25,6 @@ object Span {
 
   implicit class StringOps(text: String) {
     def substring(span: Span): String =
-      text.substring(span.begin.index, span.end.index)
+      text.substring(span.index.value, span.end.value)
   }
 }

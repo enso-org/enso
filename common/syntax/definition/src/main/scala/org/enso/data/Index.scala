@@ -1,18 +1,18 @@
 package org.enso.data
 
 /** Strongly typed index position in a container. */
-case class Index(index: Int) extends AnyVal with Ordered[Index] {
-  def +(offset: Size): Index = Index(index + offset.value)
-  def -(offset: Size): Index = Index(index - offset.value)
+case class Index(value: Int) extends AnyVal with Ordered[Index] {
+  def +(offset: Size): Index = Index(value + offset.value)
+  def -(offset: Size): Index = Index(value - offset.value)
 
   /** Span between two text positions. Operands order is irrelevant. */
   def <->(that: Index): Span =
-    if (index <= that.index) Span(this, Size(that.index - index))
-    else Span(that, Size(index - that.index))
+    if (value <= that.value) Span(this, Size(that.value - value))
+    else Span(that, Size(value - that.value))
 
-  def asSize: Size = Size(index)
+  def asSize: Size = Size(value)
 
-  def compare(rhs: Index): Int = index compare rhs.index
+  def compare(rhs: Index): Int = value compare rhs.value
 }
 
 object Index {
