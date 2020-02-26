@@ -7,6 +7,8 @@ mod repr;
 use prelude::*;
 
 use ast_macros::*;
+use data::text::*;
+
 use serde::de::Deserializer;
 use serde::de::Visitor;
 use serde::Deserialize;
@@ -15,6 +17,11 @@ use serde::ser::SerializeStruct;
 use serde::Serialize;
 use shapely::*;
 use uuid::Uuid;
+
+
+
+#[derive(Clone,Debug,Default,Serialize,Deserialize)]
+pub struct IdMap(pub Vec<(Span,ID)>);
 
 /// A sequence of AST nodes, typically the "token soup".
 pub type Stream<T> = Vec<T>;

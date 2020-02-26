@@ -1,7 +1,10 @@
 use crate::prelude::*;
 
-pub type Ast = ast::Ast;
+use ast::IdMap;
 
+
+
+pub use ast::Ast;
 
 
 // ============
@@ -10,9 +13,8 @@ pub type Ast = ast::Ast;
 
 /// Entity being able to parse Luna programs into Luna's AST.
 pub trait IsParser {
-    fn parse(&mut self, program: String) -> Result<Ast>;
+    fn parse(&mut self, program:String, ids:IdMap) -> Result<Ast>;
 }
-
 
 
 // ===========
@@ -32,7 +34,7 @@ pub enum Error {
 }
 
 /// Wraps an arbitrary `std::error::Error` as an `InteropError.`
-pub fn interop_error<T>(error: T) -> Error
+pub fn interop_error<T>(error:T) -> Error
     where T: Fail {
     Error::InteropError(Box::new(error))
 }
