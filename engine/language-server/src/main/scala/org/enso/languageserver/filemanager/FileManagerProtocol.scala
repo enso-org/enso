@@ -17,4 +17,18 @@ object FileManagerProtocol {
     */
   case class FileWriteResult(result: Either[FileSystemFailure, Unit])
 
+  /**
+    * Requests the Language Server read a file.
+    *
+    * @param path a path to a file
+    */
+  case class FileRead(path: Path)
+
+  /**
+    * Returns a result of reading a file.
+    *
+    * @param result either file system failure or content of a file
+    */
+  case class FileReadResult(result: Either[FileSystemFailure, String])
+
 }

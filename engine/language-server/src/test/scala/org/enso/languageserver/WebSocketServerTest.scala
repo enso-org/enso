@@ -240,7 +240,7 @@ class WebSocketServerTest
                 "rootId": $testContentRootId,
                 "segments": [ "foo", "bar", "baz.txt" ]
               },
-              "content": "123456789"
+              "contents": "123456789"
             }
           }
           """)
@@ -267,7 +267,7 @@ class WebSocketServerTest
                 "rootId": ${UUID.randomUUID()},
                 "segments": [ "foo", "bar", "baz.txt" ]
               },
-              "content": "123456789"
+              "contents": "123456789"
             }
           }
           """)
@@ -281,6 +281,74 @@ class WebSocketServerTest
           }
           """)
       client.expectNoMessage()
+    }
+
+    "read a file content" in {
+      val client = new WsTestClient(address)
+
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/write",
+            "id": 4,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "foo.txt" ]
+              },
+              "contents": "123456789"
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 4,
+            "result": null
+          }
+          """)
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/read",
+            "id": 5,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "foo.txt" ]
+              }
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 5,
+            "result": { "contents": "123456789" }
+          }
+          """)
+    }
+
+    "return FileNotFoundError if a file doesn't exist" in {
+      val client = new WsTestClient(address)
+
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/read",
+            "id": 6,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "bar.txt" ]
+              }
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 6,
+            "error" : {
+              "code" : 1003,
+              "message" : "File not found"
+            }
+          }
+          """)
     }
 
   }
