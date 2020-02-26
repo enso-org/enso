@@ -3,6 +3,7 @@ package org.enso.parserservice
 import io.circe.parser._
 import io.circe.generic.auto._
 import io.circe.syntax._
+import org.enso.syntax.text.Parser
 
 /** Types implementing parser server protocol.
   *
@@ -10,7 +11,8 @@ import io.circe.syntax._
   */
 object Protocol {
   sealed trait Request
-  final case class ParseRequest(program: String, ids: String) extends Request
+  final case class ParseRequest(program: String, ids: Parser.IDMap)
+      extends Request
 
   sealed trait Response
   final case class Success(ast_json: String) extends Response
