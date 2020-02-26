@@ -9,7 +9,11 @@ use crate::prelude::*;
 
 use std::panic;
 use std::ops::DerefMut;
+use ast::IdMap;
+
 extern crate console_error_panic_hook;
+
+
 
 /// Handle to a parser implementation.
 ///
@@ -45,7 +49,7 @@ impl Parser {
 }
 
 impl api::IsParser for Parser {
-    fn parse(&mut self, program: String) -> api::Result<api::Ast> {
-        self.deref_mut().parse(program)
+    fn parse(&mut self, program:String, ids:IdMap) -> api::Result<api::Ast> {
+        self.deref_mut().parse(program,ids)
     }
 }

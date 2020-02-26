@@ -9,3 +9,5 @@ crate-type = ["rlib", "cdylib"]
 
 [dependencies]
 enso-prelude = { version = "0.1.0"  , path = "../prelude" }
+
+serde        = { version = "1.0"  , features = ["derive"] }

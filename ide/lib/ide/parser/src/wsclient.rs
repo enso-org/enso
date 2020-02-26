@@ -7,7 +7,10 @@ use websocket::{
 };
 
 use crate::api;
+
 use api::Error::*;
+use ast::IdMap;
+
 use Error::*;
 
 type WsTcpClient = websocket::sync::Client<TcpStream>;
@@ -84,7 +87,7 @@ impl From<serde_json::error::Error> for Error {
 /// All request supported by the Parser Service.
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub enum Request {
-    ParseRequest { program: String },
+    ParseRequest { program:String, ids:IdMap },
 }
 
 /// All responses that Parser Service might reply with.
@@ -196,14 +199,15 @@ impl Client {
 }
 
 impl api::IsParser for Client {
-    fn parse(&mut self, program: String) -> api::Result<api::Ast> {
-        let request  = Request::ParseRequest { program };
+
+   fn parse(&mut self, program:String, ids:IdMap) -> api::Result<api::Ast> {
+        let request  = Request::ParseRequest {program,ids};
         let response = self.rpc_call(request)?;
         match response {
             Response::Success { ast_json } => internal::from_json(&ast_json),
             Response::Error   { message  } => Err(ParsingError(message)),
         }
-    }
+   }
 }
 
 

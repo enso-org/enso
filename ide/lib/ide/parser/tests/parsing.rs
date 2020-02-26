@@ -133,7 +133,7 @@ impl Fixture {
     /// Runs parser on given input, panics on any error.
     fn parse(&mut self, program:&str) -> Ast {
         println!("parsing {}", program);
-        let ast = self.0.parse(program.into()).unwrap();
+        let ast = self.0.parse(program.into(), default()).unwrap();
         assert_eq!(ast.shape().span(), program.len());
         validate_spans(&ast);
         assert_eq!(ast.repr(), program, "{:?}", ast);

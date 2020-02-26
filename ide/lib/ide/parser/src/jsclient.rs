@@ -3,42 +3,46 @@
 use crate::prelude::*;
 
 use crate::api;
-use crate::api::IsParser;
-use crate::api::Error::ParsingError;
+
+use api::IsParser;
+use ast::IdMap;
 
 use wasm_bindgen::prelude::*;
 
-pub type Result<T> = std::result::Result<T, Error>;
+pub type Result<T> = std::result::Result<T,Error>;
 
-#[derive(Debug, Fail)]
+#[derive(Debug,Fail)]
 pub enum Error {
     #[fail(display = "JSON (de)serialization failed: {:?}", _0)]
     JsonSerializationError(#[cause] serde_json::error::Error),
 
-    #[fail(display = "Scala parser threw an unexpected exception.")]
-    ScalaException(),
+    #[fail(display = "Scala parser failed: {:?}.", _0)]
+    ScalaException(String),
 }
 
 impl From<Error> for api::Error {
-    fn from(e: Error) -> Self {
+    fn from(e:Error) -> Self {
         api::interop_error(e)
     }
 }
 
 impl From<serde_json::error::Error> for Error {
-    fn from(error: serde_json::error::Error) -> Self {
+    fn from(error:serde_json::error::Error) -> Self {
         Error::JsonSerializationError(error)
+    }
+}
+
+impl From<JsValue> for Error {
+    fn from(jsvalue:JsValue) -> Self {
+        Error::ScalaException(format!("{:?}", jsvalue))
     }
 }
 
 #[wasm_bindgen(module = "/pkg/scala-parser.js")]
 extern "C" {
     #[wasm_bindgen(catch)]
-    fn parse(input: String) -> std::result::Result<String, JsValue>;
-    #[wasm_bindgen(catch)]
-    #[wasm_bindgen(js_name = parseWithIDs)]
-    fn parse_with_IDs
-    (input: String, ids: String) -> std::result::Result<String, JsValue>;
+    fn parse
+    (input:String, ids:String) -> std::result::Result<String,JsValue>;
 }
 
 /// Wrapper over the JS-compiled parser.
@@ -52,11 +56,17 @@ impl Client {
     }
 }
 
+
 impl IsParser for Client {
-    fn parse(&mut self, _program: String) -> api::Result<api::Ast> {
-        match parse(_program) {
-            Ok(json_ast) => Err(ParsingError(json_ast)),
-            Err(_)       => Err(api::interop_error(Error::ScalaException())),
-        }
+    fn parse(&mut self, program:String, ids:IdMap) -> api::Result<api::Ast> {
+        let ast = || {
+            let json_ids = serde_json::to_string(&ids)?;
+            let json_ast = parse(program,json_ids)?;
+            let      ast = serde_json::from_str(&json_ast)?;
+
+            Result::Ok(ast)
+        };
+
+        Ok(ast()?)
     }
 }
