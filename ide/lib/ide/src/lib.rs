@@ -18,7 +18,9 @@ pub mod view;
 
 /// Common types that should be visible across the whole IDE crate.
 pub mod prelude {
+    pub use basegl::prelude::*;
     pub use enso_prelude::*;
+    pub use wasm_bindgen::prelude::*;
 
     pub use crate::constants;
     pub use crate::controller;
@@ -29,7 +31,6 @@ pub mod prelude {
     pub use futures::Stream;
     pub use futures::StreamExt;
     pub use futures::task::LocalSpawnExt;
-    pub use wasm_bindgen::prelude::*;
 }
 
 use crate::prelude::*;
@@ -104,15 +105,17 @@ pub async fn connect_to_file_manager(config:SetupConfig) -> Result<WebSocket,Con
 }
 
 /// Sets up the project view, including the controller it uses.
-pub async fn setup_project_view(config:SetupConfig) -> Result<ProjectView,failure::Error> {
+pub async fn
+setup_project_view(logger:&Logger,config:SetupConfig) -> Result<ProjectView,failure::Error> {
     let fm_transport = connect_to_file_manager(config).await?;
     let controller   = controller::project::Handle::new_running(fm_transport);
-    let project_view = ProjectView::new(controller);
+    let project_view = ProjectView::new(logger,controller);
     Ok(project_view)
 }
 
 /// This function is the IDE entry point responsible for setting up all views and controllers.
 pub fn run_ide() {
+    let logger          = Logger::new("IDE");
     let global_executor = setup_global_executor();
     // We want global executor to live indefinitely.
     std::mem::forget(global_executor);
@@ -123,8 +126,8 @@ pub fn run_ide() {
         // TODO [mwu] Once IDE gets some well-defined mechanism of reporting
         //      issues to user, such information should be properly passed
         //      in case of setup failure.
-        let project_view = setup_project_view(config).await.expect(error_msg);
-        println!("setup done");
+        let project_view = setup_project_view(&logger,config).await.expect(error_msg);
+        logger.info("Setup done.");
         project_view.forget();
     });
 }

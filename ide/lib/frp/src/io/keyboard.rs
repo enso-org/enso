@@ -31,6 +31,16 @@ const MAX_KEY_CODE : usize = 255;
 pub struct KeyMask(pub DenseBitSetExtended);
 
 impl KeyMask {
+    /// Creates Key::Control + Key::Character.
+    pub fn new_control_character(character:char) -> Self {
+        Self::from_vec(vec![Key::Control, Key::Character(character.to_string())])
+    }
+
+    /// Creates KeyMask from Vec<Key>.
+    pub fn from_vec(keys:Vec<Key>) -> Self {
+        keys.iter().collect()
+    }
+
     /// Check if key bit is on.
     pub fn has_key(&self, key:&Key) -> bool {
         let KeyMask(bit_set) = self;

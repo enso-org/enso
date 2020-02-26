@@ -71,6 +71,15 @@ impl Line {
 }
 
 
+// === ToString ===
+
+impl ToString for Line {
+    fn to_string(&self) -> String {
+        String::from_iter(self.chars.iter())
+    }
+}
+
+
 
 // ======================
 // === Line Full Info ===

@@ -4,8 +4,8 @@
 use crate::prelude::*;
 
 use basegl::control::callback::CallbackHandle;
-use basegl::control::EventLoopCallback;
 use basegl::control::EventLoop;
+use basegl::control::EventLoopCallback;
 use futures::task::LocalSpawn;
 use futures::task::LocalFutureObj;
 use futures::task::SpawnError;
