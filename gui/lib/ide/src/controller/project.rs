@@ -71,7 +71,6 @@ impl Controller {
     }
 }
 
-
 impl Handle {
     /// Creates a new project controller. Schedules all necessary execution with
     /// the global executor.

@@ -19,7 +19,7 @@ enso-prelude               = { version = "0.1.0"  , path = "../prelude"       }
 basegl-system-web          = { version = "0.1.0"  , path = "../system/web"    }
 code-builder               = { version = "0.1.0"  , path = "../code-builder"  }
 data                       = { version = "0.1.0"  , path = "../data"          }
-enso-frp                   = { version = "0.1.0"  , path = "../frp"   }
+enso-frp                   = { version = "0.1.0"  , path = "../frp"           }
 eval-tt                    = { version = "0.1.0"  , path = "../eval-tt"       }
 logger                     = { version = "0.1.0"  , path = "../logger"        }
 optics                     = { version = "0.1.0"  , path = "../optics"        }

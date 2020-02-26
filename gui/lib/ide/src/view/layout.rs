@@ -1,23 +1,19 @@
 //! This module contains implementation of ViewLayout with a single TextEditor temporarily
 //! occupying half bottom of the screen as the default layout.
 
-use wasm_bindgen::prelude::*;
-use basegl::prelude::*;
+use crate::prelude::*;
 
 use crate::view::temporary_panel::TemporaryPadding;
-use crate::view::text_editor::TextEditor;
 use crate::view::temporary_panel::TemporaryPanel;
+use crate::view::text_editor::TextEditor;
 
-use basegl::system::web::*;
 use basegl::display::world::World;
-use js_sys::Function;
+use enso_frp::io::KeyboardActions;
+use enso_frp::io::KeyMask;
 use nalgebra::zero;
 use nalgebra::Vector2;
 use std::rc::Rc;
 use std::cell::RefCell;
-use wasm_bindgen::JsCast;
-use web_sys::KeyboardEvent;
-use web_sys::HtmlElement;
 
 
 
@@ -43,35 +39,6 @@ impl Default for LayoutMode {
 
 
 
-// ========================
-// === KeyboardListener ===
-// ========================
-
-type KeyboardClosure = Closure<dyn FnMut(KeyboardEvent)>;
-
-#[derive(Debug)]
-struct KeyboardListener {
-    callback   : KeyboardClosure,
-    element    : HtmlElement,
-    event_type : String
-}
-
-impl KeyboardListener {
-    fn new(element:&HtmlElement, event_type:String, callback:KeyboardClosure) -> Self {
-        let element = element.clone();
-        Self {callback,element,event_type}
-    }
-}
-
-impl Drop for KeyboardListener {
-    fn drop(&mut self) {
-        let callback : &Function = self.callback.as_ref().unchecked_ref();
-        self.element.remove_event_listener_with_callback(&self.event_type, callback).ok();
-    }
-}
-
-
-
 // ==================
 // === ViewLayout ===
 // ==================
@@ -83,9 +50,9 @@ shared! { ViewLayout
 #[derive(Debug)]
 pub struct ViewLayoutData {
     text_editor  : TextEditor,
-    key_listener : Option<KeyboardListener>,
     layout_mode  : LayoutMode,
-    size         : Vector2<f32>
+    size         : Vector2<f32>,
+    logger       : Logger
 }
 
 impl {
@@ -136,43 +103,39 @@ impl ViewLayoutData {
         self.text_editor.set_padding(padding);
         self.text_editor.set_size(size);
         self.text_editor.set_position(position);
-        self.text_editor.update();
     }
 }
 
 impl ViewLayout {
     /// Creates a new ViewLayout with a single TextEditor.
-    pub fn default(world:&World) -> Self {
-        let text_editor  = TextEditor::new(&world);
-        let key_listener = None;
+    pub fn new
+    ( logger     : &Logger
+    , kb_actions : &mut KeyboardActions
+    , world      : &World
+    , controller : controller::text::Handle
+    ) -> Self {
+        let logger       = logger.sub("ViewLayout");
+        let text_editor  = TextEditor::new(&logger,&world,controller,kb_actions);
         let layout_mode  = default();
         let size         = zero();
-        let data         = ViewLayoutData {text_editor,key_listener,layout_mode,size};
+        let data         = ViewLayoutData {text_editor,layout_mode,size,logger};
         let rc           = Rc::new(RefCell::new(data));
-        Self {rc}.init(world)
+        Self {rc}.init(world,kb_actions)
     }
 
-    fn init_keyboard(self) -> Self {
+    fn init_keyboard(self, keyboard_actions:&mut KeyboardActions) -> Self {
+        let switch_mode_keys = KeyMask::new_control_character('f');
         let view_layout = self.clone();
-        let closure     = move |event:KeyboardEvent| {
-            const F_KEY : u32 = 70;
-            if event.ctrl_key() && event.key_code() == F_KEY {
-                view_layout.switch_layout_mode();
-                event.prevent_default();
-            }
-        };
-        let closure : Box<dyn FnMut(KeyboardEvent)> = Box::new(closure);
-        let callback                                = Closure::wrap(closure);
-        let body                                    = document().unwrap().body().unwrap();
-        let key_listener = KeyboardListener::new(&body, "keydown".into(), callback);
-        self.rc.borrow_mut().key_listener = Some(key_listener);
+        keyboard_actions.set_action(switch_mode_keys,move |_| {
+            view_layout.switch_layout_mode();
+        });
         self
     }
 
-    fn init(self, world:&World) -> Self {
+    fn init(self, world:&World, keyboard_actions:&mut KeyboardActions) -> Self {
         let screen = world.scene().camera().screen();
         let size   = Vector2::new(screen.width,screen.height);
         self.set_size(size);
-        self.init_keyboard()
+        self.init_keyboard(keyboard_actions)
     }
 }

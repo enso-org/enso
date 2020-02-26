@@ -153,6 +153,12 @@ shared! { TextField
             self.rendered.update_glyphs(&mut self.content);
         }
 
+        /// Obtains the whole text content as a single String.
+        pub fn get_content(&self) -> String {
+            let mut line_strings = self.content.lines.iter().map(|l| l.to_string());
+            line_strings.join("\n")
+        }
+
         /// Get the selected text.
         pub fn get_selected_text(&self) -> String {
             let cursor_select  = |c:&Cursor| self.content.copy_fragment(c.selection_range());
@@ -179,6 +185,17 @@ shared! { TextField
             self.assignment_update().update_after_text_edit();
             self.rendered.update_glyphs(&mut self.content);
             self.rendered.update_cursor_sprites(&self.cursors, &mut self.content);
+        }
+
+
+        /// Discards all current content and replaces it with new one.
+        /// Whenever possible, tries to maintain cursor positions.
+        pub fn set_content(&mut self, text:&str) {
+            // FIXME [mwu] This is a provisional stub to allow `TextEditor` use
+            //       proper API. This implementation should correctly remove old
+            //       contents and update the cursors.
+            //       See: https://github.com/luna/ide/issues/187
+            self.write(text)
         }
 
         /// Remove all text selected by all cursors.
@@ -282,7 +299,6 @@ impl TextFieldData {
         }
     }
 }
-
 
 // === Display Object ===
 
