@@ -14,9 +14,9 @@ pub trait HasLabel {
     fn label(&self) -> &CowString;
 }
 
-impl<T:Unwrap> HasLabel for T
+impl<T:ContentRef> HasLabel for T
     where Content<T> : HasLabel {
     default fn label(&self) -> &CowString {
-        self.unwrap().label()
+        self.content().label()
     }
 }

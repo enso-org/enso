@@ -6,6 +6,7 @@ use crate::system::gpu::data::buffer::item::JsBufferViewArr;
 use crate::system::gpu::data::texture::class::*;
 use crate::system::gpu::data::texture::storage::*;
 use crate::system::gpu::data::texture::types::*;
+use crate::system::gpu::data::texture;
 
 
 
@@ -27,7 +28,7 @@ pub struct OwnedData<T> {
 
 // === Instances ===
 
-impl<I,T:Debug> StorageRelation<I,T> for Owned {
+impl<I,T:Debug> StorageRelation<I,T> for texture::storage::Owned {
     type Storage = OwnedData<T>;
 }
 
@@ -41,7 +42,7 @@ impl<T> OwnedData<T> {
 // === API ===
 
 impl<I:InternalFormat,T:ItemType+JsBufferViewArr>
-TextureReload for Texture<Owned,I,T> {
+TextureReload for Texture<texture::storage::Owned,I,T> {
     #[allow(unsafe_code)]
     fn reload(&self) {
         let storage = &self.storage();

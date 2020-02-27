@@ -1,25 +1,27 @@
 //! Canvas for drawing vector graphics. See the documentation of `Canvas` to learn more.
 
 use crate::prelude::*;
-use crate::display::shape::primitive::shader::data::ShaderData;
+use crate::display::shape::primitive::def::var::Var;
 use crate::system::gpu::shader::glsl::Glsl;
+use crate::math::topology::unit::*;
+use crate::system::gpu::types::*;
 use palette::*;
 
 
 
-// ===================
-// === CanvasShape ===
-// ===================
+// =============
+// === Shape ===
+// =============
 
 /// Immutable reference to a shape defined on `Canvas` with a fast clone.
 #[derive(Clone,Debug,Shrinkwrap)]
-pub struct CanvasShape {
-    rc: Rc<CanvasShapeData>
+pub struct Shape {
+    rc: Rc<ShapeData>
 }
 
-impl CanvasShape {
+impl Shape {
     /// Constructor.
-    pub fn new(data:CanvasShapeData) -> Self {
+    pub fn new(data:ShapeData) -> Self {
         let rc = Rc::new(data);
         Self {rc}
     }
@@ -27,20 +29,20 @@ impl CanvasShape {
 
 
 
-// =======================
-// === CanvasShapeData ===
-// =======================
+// =================
+// === ShapeData ===
+// =================
 
 /// Definition of a shape defined on `Canvas`. Please note that this shape definition is just a
 /// reference to GLSL code which defines a vector shape there.
 #[derive(Clone,Debug)]
-pub struct CanvasShapeData {
+pub struct ShapeData {
     shape_num : usize,
     ids       : Vec<usize>,
     name      : String,
 }
 
-impl CanvasShapeData {
+impl ShapeData {
     /// Constructor.
     pub fn new(shape_num:usize) -> Self {
         let ids  = default();
@@ -82,7 +84,7 @@ pub struct Canvas {
     next_id                : usize,
     functions              : Vec<String>,
     current_function_lines : Vec<String>,
-    defined_shapes         : HashMap<usize, CanvasShape>,
+    defined_shapes         : HashMap<usize, Shape>,
 }
 
 
@@ -103,12 +105,12 @@ impl Canvas {
 impl Canvas {
     /// Checks if shape with the given id was already defined. If so, a cached `ShapeCanvas` is
     /// returned. Otherwise the provided constructor is run and the result is cached.
-    pub fn if_not_defined<F:FnOnce(&mut Self) -> CanvasShapeData>
-    (&mut self, id:usize, f:F) -> CanvasShape {
+    pub fn if_not_defined<F:FnOnce(&mut Self) -> ShapeData>
+    (&mut self, id:usize, f:F) -> Shape {
         match self.defined_shapes.get(&id) {
             Some(shape) => shape.clone(),
             None => {
-                let shape = CanvasShape::new(f(self));
+                let shape = Shape::new(f(self));
                 self.defined_shapes.insert(id,shape.clone());
                 shape
             }
@@ -151,10 +153,10 @@ impl Canvas {
 
 impl Canvas {
     /// Defines a new shape with a new id and associated parameters, like color.
-    pub fn define_shape(&mut self, num:usize, sdf:&str) -> CanvasShape {
+    pub fn define_shape(&mut self, num:usize, sdf:&str) -> Shape {
         self.if_not_defined(num, |this| {
             let color     = "rgba(1.0,0.0,0.0)";
-            let mut shape = CanvasShapeData::new(num);
+            let mut shape = ShapeData::new(num);
             let id        = this.get_new_id();
             this.define("Rgba"     , "color" , iformat!("{color}"));
             this.define("BoundSdf" , "sdf"   , iformat!("{sdf}"));
@@ -167,8 +169,8 @@ impl Canvas {
     }
 
     /// Define a new shape from the provided GLSL expression.
-    pub fn new_shape_from_expr(&mut self, num:usize, expr:&str) -> CanvasShapeData {
-        let shape = CanvasShapeData::new(num);
+    pub fn new_shape_from_expr(&mut self, num:usize, expr:&str) -> ShapeData {
+        let shape = ShapeData::new(num);
         self.add_current_function_code_line(expr);
         self.submit_shape_constructor(&shape.name);
         shape
@@ -180,7 +182,7 @@ impl Canvas {
 
 impl Canvas {
     /// Create a union shape from the provided shape components.
-    pub fn union(&mut self, num:usize, s1:CanvasShape, s2:CanvasShape) -> CanvasShape {
+    pub fn union(&mut self, num:usize, s1:Shape, s2:Shape) -> Shape {
         self.if_not_defined(num, |this| {
             let expr      = iformat!("return unify({s1.getter()},{s2.getter()});");
             let mut shape = this.new_shape_from_expr(num,&expr);
@@ -190,13 +192,34 @@ impl Canvas {
         })
     }
 
-    /// Translate the current canvas origin.
-    pub fn translate<X:ShaderData<f32>, Y:ShaderData<f32>>
-    (&mut self, num:usize, s1:CanvasShape, x:X, y:Y) -> CanvasShape {
+    /// Create a difference shape from the provided shape components.
+    pub fn difference(&mut self, num:usize, s1:Shape, s2:Shape) -> Shape {
         self.if_not_defined(num, |this| {
-            let x:Glsl = x.into();
-            let y:Glsl = y.into();
-            let trans  = iformat!("position = translate(position,vec2({x},{y}));");
+            let expr      = iformat!("return difference({s1.getter()},{s2.getter()});");
+            let mut shape = this.new_shape_from_expr(num,&expr);
+            shape.add_ids(&s1.ids);
+            shape.add_ids(&s2.ids);
+            shape
+        })
+    }
+
+    /// Create a difference shape from the provided shape components.
+    pub fn intersection(&mut self, num:usize, s1:Shape, s2:Shape) -> Shape {
+        self.if_not_defined(num, |this| {
+            let expr      = iformat!("return intersection({s1.getter()},{s2.getter()});");
+            let mut shape = this.new_shape_from_expr(num,&expr);
+            shape.add_ids(&s1.ids);
+            shape.add_ids(&s2.ids);
+            shape
+        })
+    }
+
+    /// Translate the current canvas origin.
+    pub fn translate<V:Into<Var<Vector2<Distance<Pixels>>>>>
+    (&mut self, num:usize, s1:Shape, v:V) -> Shape {
+        self.if_not_defined(num, |this| {
+            let v:Glsl = v.into().glsl();
+            let trans  = iformat!("position = translate(position,{v});");
             let expr   = iformat!("return {s1.getter()};");
             this.add_current_function_code_line(trans);
             let mut shape = this.new_shape_from_expr(num,&expr);
@@ -205,11 +228,39 @@ impl Canvas {
         })
     }
 
-    /// Fill the shape with the provided color.
-    pub fn fill<Color:ShaderData<Srgb>>
-    (&mut self, num:usize, s:CanvasShape, color:Color) -> CanvasShape {
+    /// Rotate the current canvas origin.
+    pub fn rotation<A:Into<Var<Angle<Radians>>>>
+    (&mut self, num:usize, s1:Shape, angle:A) -> Shape {
         self.if_not_defined(num, |this| {
-            let color:Glsl = color.into();
+            let angle:Glsl = angle.into().glsl();
+            let trans  = iformat!("position = rotate(position,{angle});");
+            let expr   = iformat!("return {s1.getter()};");
+            this.add_current_function_code_line(trans);
+            let mut shape = this.new_shape_from_expr(num,&expr);
+            shape.add_ids(&s1.ids);
+            shape
+        })
+    }
+
+    /// Scale the current canvas origin.
+    pub fn scale<T:Into<Var<f32>>>
+    (&mut self, num:usize, s1:Shape, value:T) -> Shape {
+        self.if_not_defined(num, |this| {
+            let value:Glsl = value.into().glsl();
+            let trans  = iformat!("position = scale(position,{value});");
+            let expr   = iformat!("return resample({s1.getter()},{value});");
+            this.add_current_function_code_line(trans);
+            let mut shape = this.new_shape_from_expr(num,&expr);
+            shape.add_ids(&s1.ids);
+            shape
+        })
+    }
+
+    /// Fill the shape with the provided color.
+    pub fn fill<Color:Into<Var<Srgba>>>
+    (&mut self, num:usize, s:Shape, color:Color) -> Shape {
+        self.if_not_defined(num, |this| {
+            let color:Glsl = color.into().glsl();
             this.add_current_function_code_line(iformat!("Shape shape = {s.getter()};"));
             this.add_current_function_code_line(iformat!("Rgba  color = rgba({color});"));
             let expr = iformat!("return set_color(shape,color);");
@@ -218,4 +269,26 @@ impl Canvas {
             shape
         })
     }
+
+    /// Make the borders of the shape crisp. Please note that it removes any form of antialiasing.
+    pub fn pixel_snap
+    (&mut self, num:usize, s:Shape) -> Shape {
+        self.if_not_defined(num, |this| {
+            let expr = iformat!("return pixel_snap({s.getter()});");
+            let mut shape = this.new_shape_from_expr(num,&expr);
+            shape.add_ids(&s.ids);
+            shape
+        })
+    }
+}
+
+
+// ============
+// === Draw ===
+// ============
+
+/// Trait for every object which can be drawn on the canvas.
+pub trait Draw: Debug {
+    /// Draw the element on the canvas.
+    fn draw(&self, canvas:&mut Canvas) -> Shape;
 }

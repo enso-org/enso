@@ -133,6 +133,13 @@ impl<Out:Value> Dynamic<Out> {
         (&Toggle::new_named(label,&self.event)).into()
     }
 
+    /// Remembers the value and emits the last one.
+    pub fn previous<Label,T>(&self, label:Label) -> Self
+        where Label : Into<CowString>,
+              T     : Value {
+        (&Previous::new_named(label,&self.event)).into()
+    }
+
     /// Creates a new node which passes the incoming event only if its second input is `true`.
     pub fn gate<Label>(&self, label:Label, that:&Dynamic<bool>) -> Self
         where Label:Into<CowString> {

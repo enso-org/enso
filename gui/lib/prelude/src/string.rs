@@ -4,6 +4,20 @@ use std::borrow::Cow;
 
 use crate::impls;
 use std::ops::Deref;
+use derive_more::*;
+
+
+
+// ===========
+// === Str ===
+// ===========
+
+/// Abstraction for any kind of string as an argument. Functions defined as
+/// `fn test<S:Str>(s: Str) { ... }` can be called with `String`, `&String`, and `&str` without
+/// requiring caller to know the implementation details. Moreover, the definition can decide if it
+/// needs allocation or not. Calling `s.as_ref()` will never allocate, while `s.into()` will
+/// allocate only when necessary.
+pub trait Str = Into<String> + AsRef<str>;
 
 
 
@@ -17,7 +31,7 @@ use std::ops::Deref;
 /// provides many useful impls for efficient workflow. Use it whenever you want to store a string
 /// but you are not sure if the string will be allocated or not. This way you can store a static
 /// slice as long as you can and switch to allocated String on demand.
-#[derive(Clone,Debug,Default)]
+#[derive(Clone,Debug,Default,Display)]
 pub struct CowString(Cow<'static,str>);
 
 

@@ -26,7 +26,7 @@ impl Position {
     }
 }
 
-impl std::ops::Sub<&Position> for &Position {
+impl Sub<&Position> for &Position {
     type Output = Position;
     fn sub(self, rhs: &Position) -> Self::Output {
         let x = self.x - rhs.x;

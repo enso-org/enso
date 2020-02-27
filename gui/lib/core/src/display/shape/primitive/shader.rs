@@ -2,5 +2,4 @@
 
 pub mod builder;
 pub mod canvas;
-pub mod data;
 pub mod overload;

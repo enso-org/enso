@@ -53,7 +53,7 @@ impl<Out:Value> NodeAsTraitObjectForData for EventData<Out> {
     type NodeAsTraitObject = EventDynNode<Out>;
 }
 
-impl<Out> Unwrap     for EventDynNode<Out> {}
+impl<Out> ContentRef for EventDynNode<Out> { fn content(&self) -> &Self::Content { self.deref() } }
 impl<Out> CloneRef   for EventDynNode<Out> {}
 impl<Out> HasContent for EventDynNode<Out> {
     // TODO: Simplify after fixing https://github.com/rust-lang/rust/issues/68776
@@ -78,7 +78,7 @@ impl<Out:Value> NodeAsTraitObjectForData for BehaviorData<Out> {
     type NodeAsTraitObject = BehaviorDynNode<Out>;
 }
 
-impl<Out> Unwrap     for BehaviorDynNode<Out> {}
+impl<Out> ContentRef for BehaviorDynNode<Out> { fn content(&self) -> &Self::Content { self.deref() } }
 impl<Out> CloneRef   for BehaviorDynNode<Out> {}
 impl<Out> HasContent for BehaviorDynNode<Out> {
     // TODO: Simplify after fixing https://github.com/rust-lang/rust/issues/68776
@@ -129,8 +129,8 @@ impl<Out:Data> Node<Out> {
 
 impl<Out:Data> KnownOutput for Node<Out> { type Output  = Out; }
 impl<Out:Data> HasContent  for Node<Out> { type Content = NodeAsTraitObject<Out>; }
-impl<Out:Data> Unwrap      for Node<Out> {
-    fn unwrap(&self) -> &Self::Content {
+impl<Out:Data> ContentRef  for Node<Out> {
+    fn content(&self) -> &Self::Content {
         &self.storage
     }
 }
@@ -282,9 +282,9 @@ pub trait EventEmitter: KnownOutput {
 }
 
 impl<T> EventEmitter for T
-    where T:Unwrap+KnownOutput, Content<T>:EventEmitter<Output=Output<Self>> {
+    where T:ContentRef+KnownOutput, Content<T>:EventEmitter<Output=Output<Self>> {
     fn emit_event(&self, event:&Content<Self::Output>) {
-        self.unwrap().emit_event(event)
+        self.content().emit_event(event)
     }
 }
 

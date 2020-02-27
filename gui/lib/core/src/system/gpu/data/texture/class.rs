@@ -54,7 +54,7 @@ impl Drop for TextureBindGuard {
 #[derivative(Clone(bound="StorageOf<Storage,InternalFormat,ItemType>:Clone"))]
 #[derivative(Debug(bound="StorageOf<Storage,InternalFormat,ItemType>:Debug"))]
 pub struct Texture<Storage,InternalFormat,ItemType>
-    where Storage: StorageRelation<InternalFormat,ItemType> {
+where Storage: StorageRelation<InternalFormat,ItemType> {
     storage    : StorageOf<Storage,InternalFormat,ItemType>,
     gl_texture : WebGlTexture,
     context    : Context,
@@ -72,8 +72,8 @@ pub trait TextureReload {
 
 // === Type Level Utils ===
 
-impl<S:StorageRelation<I,T>,I:InternalFormat,T:ItemType>
-Texture<S,I,T> {
+impl<S,I,T> Texture<S,I,T>
+where S:StorageRelation<I,T>, I:InternalFormat, T:ItemType {
     /// Internal format instance of this texture.
     pub fn internal_format() -> AnyInternalFormat {
         <I>::default().into()
@@ -109,7 +109,8 @@ Texture<S,I,T> {
 
 // === Getters ===
 
-impl<S:StorageRelation<I,T>,I,T> Texture<S,I,T> {
+impl<S,I,T> Texture<S,I,T>
+where S:StorageRelation<I,T> {
     /// Getter.
     pub fn gl_texture(&self) -> &WebGlTexture {
         &self.gl_texture
@@ -130,7 +131,7 @@ impl<S:StorageRelation<I,T>,I,T> Texture<S,I,T> {
 // === Constructors ===
 
 impl<S:StorageRelation<I,T>,I:InternalFormat,T:ItemType> Texture<S,I,T>
-    where Self: TextureReload {
+where Self:TextureReload {
     /// Constructor.
     pub fn new<P:Into<StorageOf<S,I,T>>>(context:&Context, provider:P) -> Self {
         let this = Self::new_uninitialized(context,provider);
@@ -142,7 +143,8 @@ impl<S:StorageRelation<I,T>,I:InternalFormat,T:ItemType> Texture<S,I,T>
 
 // === Destructos ===
 
-impl<S:StorageRelation<I,T>,I,T> Drop for Texture<S,I,T> {
+impl<S,I,T> Drop for Texture<S,I,T>
+where S:StorageRelation<I,T> {
     fn drop(&mut self) {
         self.context.delete_texture(Some(&self.gl_texture));
     }
@@ -151,7 +153,8 @@ impl<S:StorageRelation<I,T>,I,T> Drop for Texture<S,I,T> {
 
 // === Internal API ===
 
-impl<S:StorageRelation<I,T>,I,T> Texture<S,I,T> {
+impl<S,I,T> Texture<S,I,T>
+where S:StorageRelation<I,T> {
     /// New, uninitialized constructor. If you are not implementing a custom texture format, you
     /// should probably use `new` instead.
     pub fn new_uninitialized<X:Into<StorageOf<S,I,T>>>(context:&Context, storage:X) -> Self {
@@ -204,12 +207,24 @@ where S : StorageRelation<I,T>,
 // === Instances ===
 
 impl<S:StorageRelation<I,T>,I,T>
-WithContent for Texture<S,I,T> {
+HasContent for Texture<S,I,T> {
     type Content = Texture<S,I,T>;
-    fn with_content<F:FnOnce(&Self::Content)->R,R>(&self, f:F) -> R {
-        f(self)
+}
+
+impl<S:StorageRelation<I,T>,I,T>
+ContentRef for Texture<S,I,T> {
+    fn content(&self) -> &Self::Content {
+        self
     }
 }
+
+//impl<S:StorageRelation<I,T>,I,T>
+//WithContent2 for Texture<S,I,T> {
+//    type Content = Texture<S,I,T>;
+//    fn with_content<F:FnOnce(&Self::Content)->R,R>(&self, f:F) -> R {
+//        f(self)
+//    }
+//}
 
 
 

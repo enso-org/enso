@@ -235,9 +235,11 @@ impl<Value:UniformValue> Uniform<Value> {
 // === Texture Uniforms ===
 // ========================
 
-/// Texture API redirection.
-impl<T> WithContent for Uniform<T> {
+impl<T> HasContent for Uniform<T> {
     type Content = T;
+}
+
+impl<T> WithContent for Uniform<T> {
     fn with_content<F:FnOnce(&Self::Content)->R,R>(&self, f:F) -> R {
         f(&self.rc.borrow().value)
     }

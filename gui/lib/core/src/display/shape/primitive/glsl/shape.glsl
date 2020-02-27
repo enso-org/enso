@@ -19,12 +19,38 @@ BoundingBox bounding_box (float w, float h) {
     return BoundingBox(-w,w,-h,h);
 }
 
+BoundingBox bounding_box (vec2 size) {
+    float w2 = size.x / 2.0;
+    float h2 = size.y / 2.0;
+    return BoundingBox(-w2,w2,-h2,h2);
+}
+
+/// Inverses the bounding box. Please note that the inversed bounding box is infinite and thus
+/// it does not have a proper representation. We represent infinite bounding boxes as 0-sized ones.
+BoundingBox inverse (BoundingBox a) {
+    return BoundingBox(0.0,0.0,0.0,0.0);
+}
+
 BoundingBox unify (BoundingBox a, BoundingBox b) {
     float min_x = min(a.min_x,b.min_x);
     float max_x = max(a.max_x,b.max_x);
     float min_y = min(a.min_y,b.min_y);
     float max_y = max(a.max_y,b.max_y);
     return BoundingBox(min_x,max_x,min_y,max_y);
+}
+
+BoundingBox intersection (BoundingBox a, BoundingBox b) {
+    float min_x = max(a.min_x,b.min_x);
+    float max_x = min(a.max_x,b.max_x);
+    float min_y = max(a.min_y,b.min_y);
+    float max_y = min(a.max_y,b.max_y);
+    return BoundingBox(min_x,max_x,min_y,max_y);
+}
+
+/// Please note that we cannot compute the exact bounding box for a difference of `a - b`. Thus, we
+/// output the best approximation we have, which is the original bounding box.
+BoundingBox difference (BoundingBox a, BoundingBox b) {
+    return a;
 }
 
 
@@ -43,8 +69,20 @@ Sdf sdf (float distance) {
     return Sdf(distance);
 }
 
+Sdf inverse (Sdf a) {
+    return Sdf(-a.distance);
+}
+
 Sdf unify (Sdf a, Sdf b) {
     return Sdf(min(a.distance,b.distance));
+}
+
+Sdf intersection (Sdf a, Sdf b) {
+    return Sdf(max(a.distance,b.distance));
+}
+
+Sdf difference (Sdf a, Sdf b) {
+    return intersection(a,inverse(b));
 }
 
 
@@ -89,8 +127,30 @@ BoundSdf bound_sdf (Sdf sdf, BoundingBox bounds) {
 
 // === API ===
 
+BoundSdf resample (BoundSdf a, float multiplier) {
+    a.distance *= multiplier;
+    return a;
+}
+
+BoundSdf pixel_snap (BoundSdf a) {
+    a.distance = floor(a.distance) + 0.5;
+    return a;
+}
+
+BoundSdf inverse (BoundSdf a) {
+    return bound_sdf(inverse(sdf(a)),inverse(a.bounds));
+}
+
 BoundSdf unify (BoundSdf a, BoundSdf b) {
     return bound_sdf(unify(sdf(a),sdf(b)),unify(a.bounds,b.bounds));
+}
+
+BoundSdf difference (BoundSdf a, BoundSdf b) {
+    return bound_sdf(difference(sdf(a),sdf(b)),difference(a.bounds,b.bounds));
+}
+
+BoundSdf intersection (BoundSdf a, BoundSdf b) {
+    return bound_sdf(intersection(sdf(a),sdf(b)),intersection(a.bounds,b.bounds));
 }
 
 
@@ -142,9 +202,8 @@ Color blend(Color bg, Color fg) {
 // =============
 
 float render(BoundSdf sdf) {
-    return clamp((0.5 - sdf.distance) * input_pixel_ratio * input_zoom);
+    return clamp((-sdf.distance * input_pixel_ratio + 0.5) * input_zoom);
 }
-
 
 // Note: the color is premultiplied.
 struct Shape {
@@ -166,8 +225,36 @@ Shape shape (Id id, BoundSdf bound_sdf, Color color) {
     return Shape(id,bound_sdf,color,alpha);
 }
 
+Shape resample (Shape s, float multiplier) {
+    Id       id    = s.id;
+    BoundSdf sdf   = resample(s.sdf,multiplier);
+    Rgba     color = unpremultiply(s.color);
+    color.raw.a /= s.alpha;
+    return shape(id,sdf,color);
+}
+
+Shape pixel_snap (Shape s) {
+    Id       id    = s.id;
+    BoundSdf sdf   = pixel_snap(s.sdf);
+    Rgba     color = unpremultiply(s.color);
+    color.raw.a /= s.alpha;
+    return shape(id,sdf,color);
+}
+
+Shape inverse (Shape s1) {
+    return shape(s1.id,inverse(s1.sdf),s1.color);
+}
+
 Shape unify (Shape s1, Shape s2) {
     return shape(s1.id,unify(s1.sdf,s2.sdf),blend(s1.color,s2.color));
+}
+
+Shape difference (Shape s1, Shape s2) {
+    return shape(s1.id,difference(s1.sdf,s2.sdf),s1.color);
+}
+
+Shape intersection (Shape s1, Shape s2) {
+    return shape(s1.id,intersection(s1.sdf,s2.sdf),blend(s1.color,s2.color));
 }
 
 Shape set_color(Shape shape, Rgba t) {
@@ -192,14 +279,19 @@ struct Env {
 ////// Transform //////
 ///////////////////////
 
-vec2 translate (vec2 p, vec2 t) {
-    return p - t;
+vec2 translate (vec2 position, vec2 t) {
+    return position - t;
 }
 
-vec2 rotate (vec2 p, float angle) {
-	return p*cos(angle) + vec2(p.y,-p.x)*sin(angle);
+vec2 rotate (vec2 position, Radians angle) {
+    float v_angle = value(angle);
+    return position*cos(-v_angle) + vec2(position.y,-position.x)*sin(-v_angle);
 }
 
-vec2 cartesian2polar (vec2 p) {
-  return vec2(length(p), atan(p.y, p.x));
+vec2 scale (vec2 position, float value) {
+    return position / value;
+}
+
+vec2 cartesian2polar (vec2 position) {
+  return vec2(length(position), atan(position.y, position.x));
 }
