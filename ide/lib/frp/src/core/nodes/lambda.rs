@@ -130,7 +130,7 @@ impl<In1,Out,Func> From<Func> for Lambda1Func<In1,Out>
 impl<In:Value,Out:Data> EventConsumer for Lambda<EventData<In>,Out> {
     fn on_event(&self, input:&Content<Self::EventInput>) {
         let output = (self.func.raw)(input);
-        self.emit_event_raw(unwrap(&output));
+        self.emit_event_raw(content(&output));
     }
 }
 
@@ -174,7 +174,7 @@ impl<In1,In2,Out> EventConsumer for Lambda2<EventData<In1>,BehaviorData<In2>,Out
     fn on_event(&self, event:&Content<Self::EventInput>) {
         let value2 = self.source2.current_value();
         let output = (self.func.raw)(event,&value2);
-        self.emit_event_raw(unwrap(&output));
+        self.emit_event_raw(content(&output));
     }
 }
 
@@ -183,7 +183,7 @@ impl<In1,In2,Out> EventConsumer for Lambda2<BehaviorData<In1>,EventData<In2>,Out
     fn on_event(&self, event:&Content<Self::EventInput>) {
         let value1 = self.source1.current_value();
         let output = (self.func.raw)(&value1,event);
-        self.emit_event_raw(unwrap(&output));
+        self.emit_event_raw(content(&output));
     }
 }
 

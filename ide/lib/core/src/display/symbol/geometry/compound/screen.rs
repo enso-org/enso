@@ -54,8 +54,8 @@ impl Screen {
         let mut material = Material::new();
         material.add_input_def::<texture::FloatSampler>("pass_color");
         material.set_main("
-        vec4 test_color = texture(input_pass_color, input_uv);
-        output_color = test_color;//vec4(0.0,1.0,0.0,1.0);
+        vec4 sample_color = texture(input_pass_color, input_uv);
+        output_color = sample_color;
         ");
         material
     }

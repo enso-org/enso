@@ -13,27 +13,9 @@ use crate::debug::stats::Stats;
 // === StatsMonitor ===
 // ====================
 
-#[derive(Clone,Debug)]
-pub struct StatsMonitor {
-    rc: Rc<RefCell<StatsMonitorData>>
-}
+shared! { StatsMonitor
 
-impl StatsMonitor {
-    pub fn new(stats:&Stats) -> Self {
-        let rc = Rc::new(RefCell::new(StatsMonitorData::new(stats)));
-        Self {rc}
-    }
-
-    pub fn begin(&self) {
-        self.rc.borrow_mut().begin()
-    }
-
-    pub fn end(&self) {
-        self.rc.borrow_mut().end()
-    }
-}
-
-
+/// Visual panel showing performance-related methods.
 #[derive(Debug)]
 pub struct StatsMonitorData {
     stats   : Stats,
@@ -41,8 +23,9 @@ pub struct StatsMonitorData {
     panels  : Vec<Panel>
 }
 
-impl StatsMonitorData {
-    fn new(stats:&Stats) -> Self {
+impl {
+    /// Constructor.
+    pub fn new(stats:&Stats) -> Self {
         let stats       = stats.clone_ref();
         let mut monitor = Monitor::new();
         let panels = vec![
@@ -63,17 +46,24 @@ impl StatsMonitorData {
         Self {stats,monitor,panels}
     }
 
-    fn begin(&mut self) {
+    /// Start measuring data.
+    pub fn begin(&mut self) {
         for panel in &self.panels {
             panel.begin();
         }
     }
 
-    fn end(&mut self) {
+    /// Finish measuring data.
+    pub fn end(&mut self) {
         for panel in &self.panels {
             panel.end();
         }
         self.monitor.draw();
         self.stats.reset_per_frame_statistics();
     }
-}
+
+    /// Hide the panel.
+    pub fn hide(&self) {
+        self.monitor.hide()
+    }
+}}

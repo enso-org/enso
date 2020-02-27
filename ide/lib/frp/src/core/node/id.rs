@@ -15,10 +15,10 @@ pub trait HasId {
     fn id(&self) -> usize;
 }
 
-impl<T:Unwrap> HasId for T
+impl<T:ContentRef> HasId for T
 where Content<T> : HasId {
     default fn id(&self) -> usize {
-        self.unwrap().id()
+        self.content().id()
     }
 }
 
@@ -38,12 +38,12 @@ pub trait HasDisplayId {
 }
 
 impl<T> HasDisplayId for T
-where T:Unwrap, Content<T> : HasDisplayId {
+where T:ContentRef, Content<T> : HasDisplayId {
     default fn display_id(&self) -> usize {
-        self.unwrap().display_id()
+        self.content().display_id()
     }
 
     default fn set_display_id(&self, id:usize) {
-        self.unwrap().set_display_id(id)
+        self.content().set_display_id(id)
     }
 }

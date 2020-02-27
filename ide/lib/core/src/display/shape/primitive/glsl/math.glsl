@@ -124,3 +124,34 @@ float min (vec4 v) {
 float smoothstep (float a) {
     return smoothstep (0.0, 1.0, a);
 }
+
+
+// === Angle ===
+
+struct Radians {
+    float value;
+};
+
+float value(Radians t) {
+    return t.value;
+}
+
+struct Degrees {
+    float value;
+};
+
+float value(Degrees t) {
+    return t.value;
+}
+
+Radians radians(Degrees t) {
+    return Radians(radians(t.value));
+}
+
+Radians div(Radians a, float b) {
+    return Radians(a.value/b);
+}
+
+Radians neg(Radians a) {
+    return Radians(-a.value);
+}

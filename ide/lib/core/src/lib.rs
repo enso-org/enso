@@ -48,6 +48,7 @@ pub mod control;
 pub mod data;
 pub mod debug;
 pub mod display;
+pub mod math;
 pub mod system;
 
 /// Prelude - commonly used utilities.

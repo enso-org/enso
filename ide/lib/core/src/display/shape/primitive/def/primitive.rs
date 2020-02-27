@@ -1,5 +1,5 @@
-//! This module defines all primitive Signed Distance Field (SDF) shapes.
-//! Learn more about SDFs: https://en.wikipedia.org/wiki/Signed_distance_function
+//! This module defines all primitive Signed Distance Field (SDF) shapes such as circle or
+//! rectangle. Learn more about SDFs: https://en.wikipedia.org/wiki/Signed_distance_function
 
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
@@ -8,25 +8,25 @@ use crate::prelude::*;
 
 use inflector::Inflector;
 
-use crate::display::shape::primitive::def::class::Shape;
 use crate::display::shape::primitive::def::class::ShapeRef;
 use crate::display::shape::primitive::shader::canvas::Canvas;
-use crate::display::shape::primitive::shader::canvas::CanvasShape;
-use crate::display::shape::primitive::shader::data::ShaderData;
+use crate::display::shape::primitive::shader::canvas;
+use crate::display::shape::Var;
+use crate::math::topology::unit::*;
 use crate::system::gpu::shader::glsl::Glsl;
-
 use crate::system::gpu::shader::glsl::traits::*;
+use crate::system::gpu::types::*;
 
 
 
-// ================
-// === SdfShape ===
-// ================
+// ===========================
+// === GlslShapeDefinition ===
+// ===========================
 
 /// Class of primitive SDF shapes.
-pub trait SdfShape {
+pub trait GlslShapeDefinition {
     /// Gets the SDF definition for the given shape.
-    fn glsl_definition() -> String;
+    fn glsl_shape_definition() -> String;
 }
 
 
@@ -37,11 +37,11 @@ pub trait SdfShape {
 
 /// Defines SDF shapes and appropriate shape wrappers.
 ///
-/// SDF shapes are defined in the `mutable` module, while the shape wrappers are placed in the
-/// `immutable` module. The shape definition accepted by this macro is similar to both a struct
-/// and a function definition.
+/// SDF shapes are immutable. They keep their internal state behind an `Rc` barrier by using the
+/// `ShapeRef` newtype. Their internal state is generated into the `mutable` module. The shape
+/// definition syntax accepted by this macro is similar to both a struct and a function definition.
 ///
-/// The body of the shape definition should be a valid GLSL function body code. The function is
+/// The body of the shape definition should be a valid GLSL function code. The function will be
 /// provided with two parameters:
 ///   - The current position point as `vec2 position`.
 ///   - All input parameters bound to this shader from the material definition as `Env env`.
@@ -50,65 +50,8 @@ pub trait SdfShape {
 /// the types and available helper functions in GLSL, please refer to the GLSL definitions in
 /// `src/display/shape/primitive/def/glsl/*.glsl` files.
 ///
-/// For the following input:
-/// ```compile_fail
-/// define_sdf_shapes! {
-///     Circle (radius:f32) {
-///         return bound_sdf(length(position)-radius, bounding_box(radius,radius));
-///     }
-/// ```
-///
-/// The following output will be generated:
-/// ```compile_fail
-/// pub mod mutable {
-///     use super::*;
-///
-///     #[derive(Debug,Clone)]
-///     pub struct Circle {
-///         pub glsl_name : Glsl,
-///         pub radius    : Glsl,
-///     }
-///
-///     impl Circle {
-///         pub fn new<radius:ShaderData<f32>>(radius:radius) -> Self {
-///             let glsl_name = "circle".into();
-///             let radius    = radius.into();
-///             Self {glsl_name,radius}
-///         }
-///     }
-/// }
-///
-/// pub mod immutable {
-///     use super::*;
-///
-///     pub type Circle = ShapeRef<mutable::Circle>;
-///     pub fn Circle<radius:ShaderData<f32>>(radius:radius) -> Circle {
-///         Shape::new(mutable::Circle::new(radius))
-///     }
-///
-///     impl Shape for Circle {
-///         fn paint(&self, painter:&mut Painter) -> CanvasShape {
-///             let args = vec!["position", &self.radius].join(",");
-///             let code = format!("{}({})",self.glsl_name,args);
-///             canvas.define_shape(self.id(),&code)
-///         }
-///     }
-///
-///     impl SdfShape for Circle {
-///         fn glsl_definition() -> String {
-///             let body = "return bound_sdf(length(position)-radius, bounding_box(radius,radius));";
-///             let args = vec![
-///                 "vec2 position".to_string(),
-///                 format!("{} {}", <$f32 as BufferItem>::gpu_type_name(), "radius")
-///                 ].join(", ");
-///             format!("sdf {} ({}) {{ {} }}",self.glsl_name,args,body)
-///         }
-///     }
-/// }
-/// ```
-///
-/// Moreover, there is also a `all_shapes_glsl_definitions` function generated which returns a code
-/// containing GLSL definitions of all shapes in one place.
+/// This macro will also generate a `all_shapes_glsl_definitions` function which returns a GLSL code
+/// containing all shapes definitions in one place.
 
 macro_rules! define_sdf_shapes {
     ( $($name:ident $args:tt $body:tt)* ) => {
@@ -118,17 +61,11 @@ macro_rules! define_sdf_shapes {
             use super::*;
             $(_define_sdf_shape_mutable_part! {$name $args $body} )*
         }
-
-        /// Contains immutable shapes definitions.
-        pub mod immutable {
-            use super::*;
-            $(_define_sdf_shape_immutable_part! {$name $args $body} )*
-        }
+        $(_define_sdf_shape_immutable_part! {$name $args $body} )*
 
         /// GLSL definition of all shapes.
         pub fn all_shapes_glsl_definitions() -> String {
-            use immutable::*;
-            vec![$($name::glsl_definition()),*].join("\n\n")
+            vec![$($name::glsl_shape_definition()),*].join("\n\n")
         }
     };
 }
@@ -141,20 +78,20 @@ macro_rules! _define_sdf_shape_immutable_part {
         pub type $name = ShapeRef<mutable::$name>;
 
         /// Smart shape constructor.
-        pub fn $name <$($field:ShaderData<$field_type>),*> ( $($field : $field),* ) -> $name {
+        pub fn $name <$($field:Into<Var<$field_type>>),*> ( $($field : $field),* ) -> $name {
             ShapeRef::new(mutable::$name::new($($field),*))
         }
 
-        impl Shape for $name {
-            fn draw(&self, canvas:&mut Canvas) -> CanvasShape {
-                let args = vec!["position", $(&self.$field),* ].join(",");
+        impl canvas::Draw for $name {
+            fn draw(&self, canvas:&mut Canvas) -> canvas::Shape {
+                let args = vec!["position".to_string(), $(self.$field.glsl().into()),* ].join(",");
                 let code = format!("{}({})",self.glsl_name,args);
                 canvas.define_shape(self.id(),&code)
             }
         }
 
-        impl SdfShape for $name {
-            fn glsl_definition() -> String {
+        impl GlslShapeDefinition for $name {
+            fn glsl_shape_definition() -> String {
                 let name = stringify!($name).to_snake_case();
                 let body = stringify!($body);
                 let args = vec!["vec2 position".to_string(), $(
@@ -163,6 +100,15 @@ macro_rules! _define_sdf_shape_immutable_part {
                 iformat!("BoundSdf {name} ({args}) {body}")
             }
         }
+
+        impl AsOwned for $name { type Owned = $name; }
+
+        impl $name {$(
+            /// Field accessor.
+            pub fn $field(&self) -> &Var<$field_type> {
+                &self.unwrap().$field
+            }
+        )*}
     }
 }
 
@@ -175,13 +121,13 @@ macro_rules! _define_sdf_shape_mutable_part {
         #[derive(Debug,Clone)]
         pub struct $name {
             pub glsl_name : Glsl,
-            $(pub $field  : Glsl),*
+            $(pub $field  : Var<$field_type>),*
         }
 
         impl $name {
             /// Constructor.
             #[allow(clippy::new_without_default)]
-            pub fn new <$($field:ShaderData<$field_type>),*> ( $($field : $field),* ) -> Self {
+            pub fn new <$($field:Into<Var<$field_type>>),*> ( $($field : $field),* ) -> Self {
                 let glsl_name = stringify!($name).to_snake_case().into();
                 $(let $field = $field.into();)*
                 Self {glsl_name,$($field),*}
@@ -208,6 +154,12 @@ define_sdf_shapes! {
         return bound_sdf(position.y, bounding_box(0.0,0.0));
     }
 
+    PlaneAngle (angle:Angle<Radians>) {
+        float v_angle  = value(angle);
+        float distance = abs(position).x*cos(v_angle/2.0) + -position.y*sin(v_angle/2.0) + 0.5;
+        return bound_sdf(distance,bounding_box(0.0,0.0));
+    }
+
     Line (width:f32) {
         return bound_sdf(abs(position.y)-width, bounding_box(0.0,width));
     }
@@ -215,7 +167,7 @@ define_sdf_shapes! {
 
     // === Ellipse ===
 
-    Circle (radius:f32) {
+    Circle (radius:Distance<Pixels>) {
         return bound_sdf(length(position)-radius, bounding_box(radius,radius));
     }
 
@@ -231,23 +183,18 @@ define_sdf_shapes! {
 
     // === Rectangle ===
 
-    SharpRect (width:f32, height:f32) {
-        vec2  size = vec2(width,height);
-        vec2  dir  = abs(position) - size;
-        float dist = max(dir);
-        return bound_sdf(dist,bounding_box(width/2.0,height/2.0));
-    }
-
-    Rect (width:f32, height:f32) {
-        vec2  size = vec2(width,height);
-        vec2  dir  = abs(position) - size;
+    Rect (size:Vector2<Distance<Pixels>>) {
+        vec2  dir  = abs(position) - size/2.0;
         float dist = max(min(dir,0.0)) + length(max(dir,0.0));
-        return bound_sdf(dist,bounding_box(width/2.0,height/2.0));
+        return bound_sdf(dist,bounding_box(size));
     }
 
     RoundedRectByCorner
-    (width:f32, height:f32, top_left:f32, top_right:f32, bottom_left:f32, bottom_right:f32) {
-        vec2 size = vec2(width,height);
+    ( size        : Vector2<Distance<Pixels>>
+    , top_left    : Distance<Pixels>
+    , top_right   : Distance<Pixels>
+    , bottom_left : Distance<Pixels>
+    , bottom_right: Distance<Pixels> ) {
         size /= 2.0;
 
         float tl = top_left;
@@ -269,7 +216,7 @@ define_sdf_shapes! {
             vec2 dir = abs(position) - size;
             dist = min(max(dir.x,dir.y),0.0) + length(max(dir,0.0));
         }
-        return bound_sdf(dist,bounding_box(width/2.0,height/2.0));
+        return bound_sdf(dist,bounding_box(size));
     }
 
 
@@ -279,5 +226,63 @@ define_sdf_shapes! {
         vec2  norm = normalize(vec2(height,width/2.0));
         float dist = max(abs(position).x*norm.x + position.y*norm.y - height*norm.y, -position.y);
         return bound_sdf(dist,bounding_box(width,height/2.0));
+    }
+}
+
+
+
+// ==============================
+// === Prim Shapes Operations ===
+// ==============================
+
+impl Plane {
+    /// Cuts angle from the plane.
+    pub fn cut_angle<T:Into<Var<Angle<Radians>>>>(&self, t:T) -> PlaneAngle {
+        PlaneAngle(t)
+    }
+}
+
+impl Rect {
+    /// Sets the radius of all the corners.
+    pub fn corners_radius<T>(&self, radius:T) -> RoundedRectByCorner
+    where T : Into<Var<Distance<Pixels>>> {
+        let radius       = radius.into();
+        let top_left     = radius.clone();
+        let top_right    = radius.clone();
+        let bottom_left  = radius.clone();
+        let bottom_right = radius;
+        RoundedRectByCorner(self.size(),top_left,top_right,bottom_left,bottom_right)
+    }
+
+    /// Sets the radiuses of each of the corners.
+    pub fn corners_radiuses<T1,T2,T3,T4>
+    (&self, top_left:T1, top_right:T2, bottom_left:T3, bottom_right:T4) -> RoundedRectByCorner
+    where T1 : Into<Var<Distance<Pixels>>> ,
+          T2 : Into<Var<Distance<Pixels>>> ,
+          T3 : Into<Var<Distance<Pixels>>> ,
+          T4 : Into<Var<Distance<Pixels>>> {
+        RoundedRectByCorner(self.size(),top_left,top_right,bottom_left,bottom_right)
+    }
+
+    /// Sets the radiuses of the left corners.
+    pub fn left_corners_radius<T>(&self, radius:T) -> RoundedRectByCorner
+    where T : Into<Var<Distance<Pixels>>> {
+        let radius       = radius.into();
+        let top_left     = radius.clone();
+        let bottom_left  = radius;
+        let top_right    = 0.px();
+        let bottom_right = 0.px();
+        RoundedRectByCorner(self.size(),top_left,top_right,bottom_left,bottom_right)
+    }
+
+    /// Sets the radiuses of the right corners.
+    pub fn right_corners_radius<T>(&self, radius:T) -> RoundedRectByCorner
+        where T : Into<Var<Distance<Pixels>>> {
+        let radius       = radius.into();
+        let top_left     = 0.px();
+        let bottom_left  = 0.px();
+        let top_right    = radius.clone();
+        let bottom_right = radius;
+        RoundedRectByCorner(self.size(),top_left,top_right,bottom_left,bottom_right)
     }
 }

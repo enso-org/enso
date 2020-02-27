@@ -192,6 +192,25 @@ impl<T:Value> EventConsumer for Toggle<EventData<T>> {
 }
 
 
+// ================
+// === Previous ===
+// ================
+
+define_node! {
+    Previous PreviousShape [source] -> [source] {
+        previous : RefCell<Content<source>>
+    }
+}
+
+impl<T:Value> EventConsumer for Previous<EventData<T>> {
+    fn on_event(&self, event:&Content<Self::EventInput>) {
+        let previous = self.previous.borrow().clone();
+        *self.previous.borrow_mut() = event.clone();
+        self.emit_event_raw(&previous);
+    }
+}
+
+
 
 // ================
 // === AssertEq ===

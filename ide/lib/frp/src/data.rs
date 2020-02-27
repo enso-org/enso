@@ -63,13 +63,13 @@ impls!{[T] PhantomFrom<BehaviorData<T>> for DataType { Self::Behavior }}
 
 impl<T:Clone> KnownValue for EventData<T> {
     fn value(&self) -> T {
-        self.unwrap().clone()
+        self.content().clone()
     }
 }
 
 impl<T:Clone> KnownValue for BehaviorData<T> {
     fn value(&self) -> T {
-        self.unwrap().clone()
+        self.content().clone()
     }
 }
 
@@ -77,12 +77,12 @@ impl<T:Clone> KnownValue for BehaviorData<T> {
 // === Wrappers ===
 
 impl<T> HasContent for EventData<T> { type Content = T; }
-impl<T> Wrap       for EventData<T> { fn wrap   (t:T)   -> Self { EventData(t) } }
-impl<T> Unwrap     for EventData<T> { fn unwrap (&self) -> &T   { &self.0 } }
+impl<T> Wrap       for EventData<T> { fn wrap    (t:T)   -> Self { EventData(t) } }
+impl<T> ContentRef for EventData<T> { fn content (&self) -> &T   { &self.0 } }
 
 impl<T> HasContent for BehaviorData<T> { type Content = T; }
-impl<T> Wrap       for BehaviorData<T> { fn wrap   (t:T)   -> Self { BehaviorData(t) } }
-impl<T> Unwrap     for BehaviorData<T> { fn unwrap (&self) -> &T   { &self.0 } }
+impl<T> Wrap       for BehaviorData<T> { fn wrap    (t:T)   -> Self { BehaviorData(t) } }
+impl<T> ContentRef for BehaviorData<T> { fn content (&self) -> &T   { &self.0 } }
 
 
 
@@ -107,9 +107,9 @@ pub trait HasInputs {
 }
 
 impl<T> HasInputs for T
-where T:Unwrap, Content<T>:HasInputs {
+where T:ContentRef, Content<T>:HasInputs {
     fn inputs(&self) -> Vec<NodeWithAnyOutput> {
-        self.unwrap().inputs()
+        self.content().inputs()
     }
 }
 

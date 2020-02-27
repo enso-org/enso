@@ -33,6 +33,26 @@ macro_rules! impls {
         }
     };
 
+    ($([$($impl_params:tt)*])? From + &From <$ty:ty> for $target:ty $(where [$($bounds:tt)*])? {
+        |$arg:tt| $($result:tt)*
+    } ) => {
+        #[allow(clippy::redundant_closure_call)]
+        #[allow(clippy::identity_conversion)]
+        impl <$($($impl_params)*)?> From <$ty> for $target $(where $($bounds)*)? {
+            fn from (arg:$ty) -> Self {
+                (|$arg:$ty| $($result)*)(arg)
+            }
+        }
+
+        #[allow(clippy::redundant_closure_call)]
+        #[allow(clippy::identity_conversion)]
+        impl <$($($impl_params)*)?> From <&$ty> for $target $(where $($bounds)*)? {
+            fn from (arg:&$ty) -> Self {
+                (|$arg:&$ty| $($result)*)(arg)
+            }
+        }
+    };
+
     ($([$($impl_params:tt)*])? PhantomFrom<$ty:ty> for $target:ty {
         $($result:tt)*
     } ) => {

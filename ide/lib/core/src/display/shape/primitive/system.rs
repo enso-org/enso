@@ -3,11 +3,12 @@
 
 use crate::prelude::*;
 
+use super::def::*;
+
+use crate::display::object::*;
+use crate::display::shape::primitive::shader;
 use crate::display::symbol::geometry::SpriteSystem;
 use crate::display::symbol::material::Material;
-use crate::display::shape::primitive::shader;
-use crate::display::shape::primitive::def::class::Shape;
-use crate::display::object::*;
 use crate::display::world::World;
 use crate::system::gpu::types::*;
 
@@ -24,8 +25,9 @@ impl ShapeSystem {
     /// Constructor.
     pub fn new<S:Shape>(world:&World, shape:&S) -> Self {
         let sprite_system = SpriteSystem::new(world);
-        sprite_system.set_material(Self::surface_material(shape));
-        Self {sprite_system}
+        let this = Self {sprite_system};
+        this.set_shape(shape);
+        this
     }
 
     /// Defines a default material of this system.
@@ -40,6 +42,11 @@ impl ShapeSystem {
         let code = shader::builder::Builder::run(shape);
         material.set_code(code);
         material
+    }
+
+    /// Replaces the shape definition.
+    pub fn set_shape<S:Shape>(&self, shape:&S) {
+        self.sprite_system.set_material(Self::surface_material(shape));
     }
 }
 

@@ -3,11 +3,12 @@
 
 use crate::prelude::*;
 
-use super::canvas::Canvas;
-use super::super::class::Shape;
-use crate::display::shape::primitive::def::sdf;
-use crate::display::symbol::shader::builder::CodeTemplate;
+use crate::display::shape::primitive::def::primitive;
 use crate::display::shape::primitive::shader::overload;
+use crate::display::symbol::shader::builder::CodeTemplate;
+use super::canvas;
+use super::canvas::Canvas;
+
 
 
 // ===============
@@ -32,8 +33,8 @@ pub struct Builder {}
 
 impl Builder {
     /// Returns the final GLSL code.
-    pub fn run<S:Shape>(shape:&S) -> CodeTemplate {
-        let sdf_defs     = sdf::all_shapes_glsl_definitions();
+    pub fn run<S:canvas::Draw>(shape:&S) -> CodeTemplate {
+        let sdf_defs     = primitive::all_shapes_glsl_definitions();
         let mut canvas   = Canvas::default();
         let shape_ref    = shape.draw(&mut canvas);
         let defs_header  = header("SDF Primitives");

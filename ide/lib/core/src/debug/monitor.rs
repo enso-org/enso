@@ -3,6 +3,8 @@
 use crate::prelude::*;
 
 use crate::debug::stats::Stats;
+use crate::system::web;
+
 use js_sys::ArrayBuffer;
 use js_sys::WebAssembly::Memory;
 use std::collections::VecDeque;
@@ -131,7 +133,7 @@ pub struct Monitor {
     config        : SamplerConfig,
     width         : f64,
     height        : f64,
-    dom           : web_sys::Element,
+    dom           : web_sys::HtmlDivElement,
     panels        : Vec<Panel>,
     canvas        : web_sys::HtmlCanvasElement,
     context       : CanvasRenderingContext2d,
@@ -152,7 +154,7 @@ impl Default for Monitor {
         let is_first_draw       = true;
         let config              = user_config.to_js_config();
 
-        let dom = document().create_element("div").unwrap();
+        let dom = web::create_div();
         dom.set_attribute("style", "position:absolute;").unwrap();
         body().prepend_with_node_1(&dom).unwrap();
 
@@ -196,6 +198,11 @@ impl Monitor {
         self.shift_plot_area_left();
         self.clear_labels_area();
         self.draw_plots();
+    }
+
+    /// Hides the monitor.
+    pub fn hide(&self) {
+        self.dom.style().set_property("display","none").unwrap();
     }
 }
 

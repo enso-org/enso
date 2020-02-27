@@ -1,6 +1,9 @@
 //! This module implements an Functional Reactive Programming system. It is an advanced event
 //! handling framework which allows describing events and actions by creating declarative event
 //! flow diagrams.
+//!
+//! Please read this document as the initial introduction to FRP concepts:
+//! https://github.com/hansroland/reflex-dom-inbits/blob/master/tutorial.md
 
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]

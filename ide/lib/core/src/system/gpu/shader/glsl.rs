@@ -36,8 +36,10 @@ impl Display for Glsl {
 
 // === Conversions from Glsl ===
 
-impls! { From<Glsl>  for String { |t| t.str } }
-impls! { From<&Glsl> for String { |t| t.str.clone() } }
+impls! { From  <Glsl> for String    { |t| t.str } }
+impls! { From  <Glsl> for CowString { |t| t.str.into() } }
+impls! { From <&Glsl> for String    { |t| t.str.clone() } }
+impls! { From <&Glsl> for CowString { |t| (&t.str).into() } }
 
 
 // === Self Conversions ===
@@ -47,28 +49,83 @@ impls! { From<&Glsl> for Glsl { |t| t.clone() } }
 
 // === From String to Glsl ===
 
-impls! { From<String>  for Glsl { |t| Self {str:t} } }
-impls! { From<&String> for Glsl { |t| Self {str:t.into()} } }
-impls! { From<&str>    for Glsl { |t| Self {str:(*t).into()} } }
+impls! { From + &From <String>    for Glsl { |t| Self {str:t.into()    } }}
+impls! { From + &From <CowString> for Glsl { |t| Self {str:t.into()    } }}
+impls! { From + &From <&str>      for Glsl { |t| Self {str:(*t).into() } }}
+
+
+// === From Tuple to Glsl ===
+
+impls! {[T1,T2] From<&(T1,T2)> for Glsl
+    where [ T1:RefInto<Glsl>, T2:RefInto<Glsl> ] { |t| {
+    let v1 = t.0.glsl();
+    let v2 = t.1.glsl();
+    iformat!("vec2({v1},{v2})").into()
+}}}
+
+impls! {[T1,T2,T3] From<&(T1,T2,T3)> for Glsl
+where [ T1:RefInto<Glsl>, T2:RefInto<Glsl>, T3:RefInto<Glsl> ] { |t| {
+    let v1 = t.0.glsl();
+    let v2 = t.1.glsl();
+    let v3 = t.2.glsl();
+    iformat!("vec3({v1},{v2},{v3})").into()
+}}}
+
+impls! {[T1,T2,T3,T4] From<&(T1,T2,T3,T4)> for Glsl
+where [ T1:RefInto<Glsl>, T2:RefInto<Glsl>, T3:RefInto<Glsl>, T4:RefInto<Glsl> ] { |t| {
+    let v1 = t.0.glsl();
+    let v2 = t.1.glsl();
+    let v3 = t.2.glsl();
+    let v4 = t.3.glsl();
+    iformat!("vec4({v1},{v2},{v3},{v4})").into()
+}}}
+
+impls! {[T1,T2] From <(T1,T2)> for Glsl
+    where [ T1:Into<Glsl>, T2:Into<Glsl> ] { |t| {
+    let v1 = t.0.into();
+    let v2 = t.1.into();
+    iformat!("vec2({v1},{v2})").into()
+}}}
+
+impls! {[T1,T2,T3] From <(T1,T2,T3)> for Glsl
+where [ T1:Into<Glsl>, T2:Into<Glsl>, T3:Into<Glsl> ] { |t| {
+    let v1 = t.0.into();
+    let v2 = t.1.into();
+    let v3 = t.2.into();
+    iformat!("vec3({v1},{v2},{v3})").into()
+}}}
+
+impls! {[T1,T2,T3,T4] From <(T1,T2,T3,T4)> for Glsl
+where [ T1:Into<Glsl>, T2:Into<Glsl>, T3:Into<Glsl>, T4:Into<Glsl> ] { |t| {
+    let v1 = t.0.into();
+    let v2 = t.1.into();
+    let v3 = t.2.into();
+    let v4 = t.3.into();
+    iformat!("vec4({v1},{v2},{v3},{v4})").into()
+}}}
 
 
 // === From Prim Types to Glsl ===
 
-impls! { From<bool> for Glsl { |t| t.to_string().into() } }
-impls! { From<i32>  for Glsl { |t| t.to_string().into() } }
-impls! { From<u32>  for Glsl { |t| t.to_string().into() } }
-impls! { From<f32>  for Glsl { |t| {
+impls! { From + &From <bool> for Glsl { |t| t.to_string().into() } }
+impls! { From + &From <i32>  for Glsl { |t| t.to_string().into() } }
+impls! { From + &From <u32>  for Glsl { |t| t.to_string().into() } }
+impls! { From + &From <f32>  for Glsl { |t| {
     let is_int = t.fract() == 0.0;
     if is_int { iformat!("{t}.0").into() }
     else      { iformat!("{t}").into() }
 }}}
 
-impls! { [T,R,C] From<MatrixMN<T,R,C>> for Glsl
-    where [ Self : MatrixCtx<T,R,C>
+impls! { [T,R,C] From + &From <MatrixMN<T,R,C>> for Glsl
+    where [ T    : Into<Glsl>
+          , Self : MatrixCtx<T,R,C>
           , PhantomData<MatrixMN<T,R,C>> : Into<PrimType> ] {
     |t| {
         let type_name = PrimType::phantom_from::<MatrixMN<T,R,C>>().to_code();
-        let vals:Vec<String> = t.as_slice().iter().cloned().map(|t|format!("{:?}",t)).collect();
+        let vals:Vec<String> = t.as_slice().iter().cloned().map(|t| {
+            let t:Glsl = t.into();
+            t.into()
+        }).collect();
         format!("{}({})",type_name,vals.join(",")).into()
     }
 }}
@@ -76,19 +133,19 @@ impls! { [T,R,C] From<MatrixMN<T,R,C>> for Glsl
 
 // === From Colors to Glsl ===
 
-impls! { From<Rgb<encoding::Srgb>> for Glsl {
+impls! { From + &From <Rgb<encoding::Srgb>> for Glsl {
     |t| iformat!("srgb({t.red.glsl()},{t.green.glsl()},{t.blue.glsl()})").into()
 } }
 
-impls! { From<Rgba<encoding::Srgb>> for Glsl {
+impls! { From + &From <Rgba<encoding::Srgb>> for Glsl {
     |t| iformat!("srgba({t.red.glsl()},{t.green.glsl()},{t.blue.glsl()},{t.alpha.glsl()})").into()
 } }
 
-impls! { From<Rgb<encoding::Linear<encoding::Srgb>>> for Glsl {
+impls! { From + &From <Rgb<encoding::Linear<encoding::Srgb>>> for Glsl {
     |t| iformat!("rgb({t.red.glsl()},{t.green.glsl()},{t.blue.glsl()})").into()
 } }
 
-impls! { From<Rgba<encoding::Linear<encoding::Srgb>>> for Glsl {
+impls! { From + &From <Rgba<encoding::Linear<encoding::Srgb>>> for Glsl {
     |t| iformat!("rgba({t.red.glsl()},{t.green.glsl()},{t.blue.glsl()},{t.alpha.glsl()})").into()
 } }
 
@@ -416,6 +473,12 @@ impl HasCodeRepr for Type {
 
 derive_clone_plus!(Type);
 
+impl Display for Type {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f,"{}",self.to_code())
+    }
+}
+
 
 
 // ================
@@ -492,6 +555,12 @@ impl HasCodeRepr for PrimType {
             Self::USampler2dArray      => builder.add("usampler2DArray"),
             Self::Struct(ident)        => builder.add(ident),
         };
+    }
+}
+
+impl From<&str> for PrimType {
+    fn from(s:&str) -> Self {
+        Self::Struct(s.into())
     }
 }
 
@@ -809,6 +878,15 @@ pub mod traits {
     }
     impl<T:PhantomInto<PrimType>> PhantomIntoPrimType for T {}
 
+    /// Extension methods for every type which could be converted to `Type`.
+    pub trait PhantomIntoType: Sized + PhantomInto<Type> {
+        /// `PrimType` representation of the current type.
+        fn glsl_type() -> Type {
+            Self::phantom_into()
+        }
+    }
+    impl<T:PhantomInto<Type>> PhantomIntoType for T {}
+
     pub trait IntoGlsl<'a> where Self:'a, &'a Self:Into<Glsl> {
         fn glsl(&'a self) -> Glsl {
             self.into()
@@ -816,11 +894,13 @@ pub mod traits {
     }
     impl<'a,T> IntoGlsl<'a> for T where T:'a, &'a T:Into<Glsl> {}
 
-    pub trait IntoGlsl2 where Self:Into<Glsl> {
-        fn glsl(self) -> Glsl {
-            self.into()
-        }
-    }
-    impl<T> IntoGlsl2 for T where T:Into<Glsl> {}
+// TODO [WD]: I left it commented out as we need to decide soon what to do with it.
+//            It should disappear in next few commits.
+//    pub trait IntoGlsl2 where Self:Into<Glsl> {
+//        fn glsl(self) -> Glsl {
+//            self.into()
+//        }
+//    }
+//    impl<T> IntoGlsl2 for T where T:Into<Glsl> {}
 }
 pub use traits::*;
