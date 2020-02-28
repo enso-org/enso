@@ -4,6 +4,7 @@
 use crate::prelude::*;
 
 use crate::view::layout::ViewLayout;
+use crate::controller::FallibleResult;
 
 use basegl::control::callback::CallbackHandle;
 use basegl::control::io::keyboard::listener::KeyboardFrpBindings;
@@ -17,6 +18,7 @@ use nalgebra::Vector2;
 use shapely::shared;
 
 
+
 // =================
 // === Constants ===
 // =================
@@ -28,7 +30,7 @@ use shapely::shared;
 ///      editor and it will be connected with a file under this path.
 ///      To be replaced with better mechanism once we decide how to describe
 ///      default initial layout for the project.
-const INITIAL_FILE_PATH:&str = "initial_file.txt";
+const INITIAL_FILE_PATH:&str = "Main.enso";
 
 
 
@@ -61,9 +63,10 @@ shared! { ProjectView
 
 impl ProjectView {
     /// Create a new ProjectView.
-    pub fn new(logger:&Logger, controller:controller::project::Handle) -> Self {
+    pub async fn new(logger:&Logger, controller:controller::project::Handle)
+    -> FallibleResult<Self> {
         let path                 = Path::new(INITIAL_FILE_PATH);
-        let text_controller      = controller.open_text_file(path);
+        let text_controller      = controller.get_text_controller(path).await?;
         let world                = WorldData::new(&web::body());
         let logger               = logger.sub("ProjectView");
         let keyboard             = Keyboard::default();
@@ -74,7 +77,7 @@ impl ProjectView {
             (&logger,&mut keyboard_actions,&world,text_controller);
         let data = ProjectViewData
             {world,layout,resize_callback,controller,keyboard,keyboard_bindings,keyboard_actions};
-        Self::new_from_data(data).init()
+        Ok(Self::new_from_data(data).init())
     }
 
     fn init(self) -> Self {

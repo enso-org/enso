@@ -186,7 +186,7 @@ impl TextFieldSprites {
     fn update_glyph_line
     (glyph_line:&mut GlyphLine, fragment:&LineFragment, content:&mut TextFieldContent) {
         let bsl_start     = Self::baseline_start_for_fragment(fragment,content);
-        let line          = &content.lines[fragment.line_index];
+        let line          = &content.lines()[fragment.line_index];
         let chars         = &line.chars()[fragment.chars_range.clone()];
         glyph_line.set_baseline_start(bsl_start);
         glyph_line.replace_text(chars.iter().cloned());

@@ -150,3 +150,5 @@ impl MockTransport {
         res.expect("failed to deserialize client's message")
     }
 }
+
+impl CloneRef for MockTransport {}

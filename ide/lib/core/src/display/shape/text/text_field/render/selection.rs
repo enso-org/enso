@@ -3,9 +3,9 @@
 use crate::display::shape::primitive::system::ShapeSystem;
 use crate::display::shape::text::text_field::content::TextFieldContent;
 use crate::display::shape::text::text_field::cursor::Cursor;
-use crate::display::shape::text::text_field::location::TextLocation;
 use crate::display::symbol::geometry::compound::sprite::Sprite;
 
+use data::text::TextLocation;
 use nalgebra::Vector2;
 use nalgebra::Vector3;
 use std::ops::Range;

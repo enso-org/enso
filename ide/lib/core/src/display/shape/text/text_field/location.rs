@@ -1,39 +1,8 @@
 //! Module with content regarding location in text (e.g. location of cursors or changes etc.)
 
-use crate::display::shape::text::text_field::content::TextChange;
-
+use data::text::TextLocation;
+use data::text::TextChange;
 use std::ops::Range;
-
-// ====================
-// === TextLocation ===
-// ====================
-
-/// A position of character in a multiline text.
-#[derive(Copy,Clone,Debug,PartialEq,Eq,PartialOrd,Ord)]
-pub struct TextLocation {
-    /// Line index.
-    pub line: usize,
-    /// Column is a index of char in given line.
-    pub column: usize,
-}
-
-impl TextLocation {
-    /// Create location at begin of given line.
-    pub fn at_line_begin(line_index:usize) -> TextLocation {
-        TextLocation {
-            line   : line_index,
-            column : 0,
-        }
-    }
-
-    /// Create location at begin of the whole document.
-    pub fn at_document_begin() -> TextLocation {
-        TextLocation {
-            line   : 0,
-            column : 0,
-        }
-    }
-}
 
 
 

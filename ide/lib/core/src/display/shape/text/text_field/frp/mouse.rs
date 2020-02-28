@@ -4,7 +4,7 @@ use crate::prelude::*;
 
 use crate::control::io::mouse::MouseFrpCallbackHandles;
 use crate::display::shape::text::text_field::frp::keyboard::TextFieldKeyboardFrp;
-use crate::display::shape::text::text_field::TextFieldData;
+use crate::display::shape::text::text_field::WeakTextField;
 use crate::display::world::World;
 
 use enso_frp::*;
@@ -31,7 +31,7 @@ pub struct TextFieldMouseFrp {
 
 impl TextFieldMouseFrp {
     /// Create FRP graph doing actions on given TextField.
-    pub fn new(text_field_ptr:Weak<RefCell<TextFieldData>>, keyboard:&TextFieldKeyboardFrp)
+    pub fn new(text_field_ptr:WeakTextField, keyboard:&TextFieldKeyboardFrp)
     -> Self {
         use Key::*;
         let mouse               = Mouse::default();
@@ -65,33 +65,31 @@ impl TextFieldMouseFrp {
 // === Private functions ===
 
 impl TextFieldMouseFrp {
-    fn is_inside_text_field_lambda(text_field_ptr:Weak<RefCell<TextFieldData>>)
-    -> impl Fn(&Position) -> bool {
+    fn is_inside_text_field_lambda(text_field:WeakTextField) -> impl Fn(&Position) -> bool {
         move |position| {
             let position = Vector2::new(position.x as f32,position.y as f32);
-            text_field_ptr.upgrade().map_or(false, |tf| tf.borrow().is_inside(position))
+            text_field.upgrade().map_or(false, |tf| tf.is_inside(position))
         }
     }
 
-    fn set_cursor_lambda(text_field_ptr:Weak<RefCell<TextFieldData>>)
-    -> impl Fn(&Position,&bool) {
+    fn set_cursor_lambda(text_field:WeakTextField) -> impl Fn(&Position,&bool) {
         move |position,multicursor| {
             let position = Vector2::new(position.x as f32,position.y as f32);
-            if let Some(text_field) = text_field_ptr.upgrade() {
+            if let Some(text_field) = text_field.upgrade() {
                 if *multicursor {
-                    text_field.borrow_mut().add_cursor(position);
+                    text_field.add_cursor(position);
                 } else {
-                    text_field.borrow_mut().set_cursor(position);
+                    text_field.set_cursor(position);
                 }
             }
         }
     }
 
-    fn select_lambda(text_field_ptr:Weak<RefCell<TextFieldData>>) -> impl Fn(&Position) {
+    fn select_lambda(text_field:WeakTextField) -> impl Fn(&Position) {
         move |position| {
             let position = Vector2::new(position.x as f32,position.y as f32);
-            if let Some(text_field) = text_field_ptr.upgrade() {
-                text_field.borrow_mut().jump_cursor(position,true);
+            if let Some(text_field) = text_field.upgrade() {
+                text_field.jump_cursor(position,true);
             }
         }
     }

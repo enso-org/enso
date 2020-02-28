@@ -1,17 +1,15 @@
 #![cfg(not(target_arch = "wasm32"))]
 
+use crate::api;
+use crate::api::Error::*;
 use crate::prelude::*;
 
 use websocket::{
-    stream::sync::TcpStream, ClientBuilder, Message, OwnedMessage,
+    stream::sync::TcpStream, ClientBuilder, Message,
 };
 
-use crate::api;
-
-use api::Error::*;
 use ast::IdMap;
-
-use Error::*;
+use std::fmt::Formatter;
 
 type WsTcpClient = websocket::sync::Client<TcpStream>;
 
@@ -64,17 +62,17 @@ impl From<Error> for api::Error {
 }
 impl From<websocket::client::ParseError> for Error {
     fn from(error: websocket::client::ParseError) -> Self {
-        WrongUrl(error)
+        Error::WrongUrl(error)
     }
 }
 impl From<websocket::WebSocketError> for Error {
     fn from(error: websocket::WebSocketError) -> Self {
-        ConnectivityError(error)
+        Error::ConnectivityError(error)
     }
 }
 impl From<serde_json::error::Error> for Error {
     fn from(error: serde_json::error::Error) -> Self {
-        JsonSerializationError(error)
+        Error::JsonSerializationError(error)
     }
 }
 
@@ -156,8 +154,8 @@ mod internal {
         pub fn recv_response(&mut self) -> Result<Response> {
             let response = self.connection.recv_message()?;
             match response {
-                OwnedMessage::Text(text) => Ok(serde_json::from_str(&text)?),
-                _                        => Err(NonTextResponse(response)),
+                websocket::OwnedMessage::Text(text) => Ok(serde_json::from_str(&text)?),
+                _                                   => Err(Error::NonTextResponse(response)),
             }
         }
 
@@ -174,7 +172,7 @@ mod internal {
     /// Deserialize AST from JSON text received from WS Parser Service.
     pub fn from_json(json_text: &str) -> api::Result<api::Ast> {
         let ast = serde_json::from_str::<api::Ast>(json_text);
-        Ok(ast.map_err(|e| JsonDeserializationError(e, json_text.into()))?)
+        Ok(ast.map_err(|e| Error::JsonDeserializationError(e, json_text.into()))?)
     }
 }
 
@@ -195,6 +193,12 @@ impl Client {
         let client = Client::from_conf(&config)?;
         println!("Established connection with {}", config.address_string());
         Ok(client)
+    }
+}
+
+impl Debug for Client {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "<Websocket remote parser client>")
     }
 }
 
@@ -221,6 +225,6 @@ fn wrong_url_reported() {
     let invalid_hostname    = String::from("bgjhkb 7");
     let wrong_config        = Config { host: invalid_hostname, port: 8080 };
     let client              = Client::from_conf(&wrong_config);
-    let got_wrong_url_error = matches::matches!(client, Err(WrongUrl(_)));
+    let got_wrong_url_error = matches::matches!(client, Err(Error::WrongUrl(_)));
     assert!(got_wrong_url_error, "expected WrongUrl error");
 }

@@ -4,6 +4,7 @@ use ast::Ast;
 use ast::IdMap;
 use data::text::*;
 use parser::Parser;
+use parser::api::IsParser;
 
 use std::rc::Rc;
 use uuid::Uuid;

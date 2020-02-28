@@ -3,7 +3,8 @@
 use crate::prelude::*;
 
 use crate::display::shape::text::text_field::cursor::Step;
-use crate::display::shape::text::text_field::TextFieldData;
+use crate::display::shape::text::text_field::TextField;
+use crate::display::shape::text::text_field::WeakTextField;
 use crate::system::web::text_input::KeyboardBinding;
 use crate::system::web::text_input::bind_frp_to_js_keyboard_actions;
 
@@ -51,13 +52,13 @@ pub struct TextFieldKeyboardFrp {
 
 impl TextFieldKeyboardFrp {
     /// Create FRP graph operating on given TextField pointer.
-    pub fn new(text_field_ptr:Weak<RefCell<TextFieldData>>) -> Self {
+    pub fn new(text_field:WeakTextField) -> Self {
         let keyboard    = Keyboard::default();
         let mut actions = KeyboardActions::new(&keyboard);
-        let cut         = Self::copy_lambda(true, text_field_ptr.clone());
-        let copy        = Self::copy_lambda(false, text_field_ptr.clone());
-        let paste       = Self::paste_lambda(text_field_ptr.clone());
-        let insert_char = Self::char_typed_lambda(text_field_ptr.clone());
+        let cut         = Self::copy_lambda(true, text_field.clone_ref());
+        let copy        = Self::copy_lambda(false, text_field.clone_ref());
+        let paste       = Self::paste_lambda(text_field.clone_ref());
+        let insert_char = Self::char_typed_lambda(text_field.clone_ref());
         frp! {
             text_field.on_cut        = source();
             text_field.on_copy       = source();
@@ -67,7 +68,7 @@ impl TextFieldKeyboardFrp {
             text_field.do_paste      = on_paste.map(paste);
             text_field.do_char_input = keyboard.on_pressed.map2(&keyboard.key_mask,insert_char);
         }
-        Self::initialize_actions_map(&mut actions,text_field_ptr);
+        Self::initialize_actions_map(&mut actions, text_field);
         TextFieldKeyboardFrp {keyboard,actions,on_cut,on_copy,on_paste,do_cut,do_copy,do_paste,
             do_char_input}
     }
@@ -107,32 +108,31 @@ impl TextFieldKeyboardFrp {
 
 impl TextFieldKeyboardFrp {
 
-    fn copy_lambda(cut:bool, text_field_ptr:Weak<RefCell<TextFieldData>>)
+    fn copy_lambda(cut:bool, text_field:WeakTextField)
                    -> impl Fn() -> String {
         move || {
-            text_field_ptr.upgrade().map_or(default(),|text_field| {
-                let mut text_field_ref = text_field.borrow_mut();
-                let result             = text_field_ref.get_selected_text();
-                if cut { text_field_ref.remove_selection(); }
+            text_field.upgrade().map_or(default(), |text_field| {
+                let result = text_field.get_selected_text();
+                if cut { text_field.remove_selection(); }
                 result
             })
         }
     }
 
-    fn paste_lambda(text_field_ptr:Weak<RefCell<TextFieldData>>) -> impl Fn(&String) {
+    fn paste_lambda(text_field:WeakTextField) -> impl Fn(&String) {
         move |text_to_paste| {
             let inserted = text_to_paste.as_str();
-            text_field_ptr.upgrade().for_each(|tf| { tf.borrow_mut().write(inserted) })
+            text_field.upgrade().for_each(|tf| { tf.write(inserted) })
         }
     }
 
-    fn char_typed_lambda(text_field_ptr:Weak<RefCell<TextFieldData>>) -> impl Fn(&Key,&KeyMask) {
+    fn char_typed_lambda(text_field:WeakTextField) -> impl Fn(&Key,&KeyMask) {
         move |key,mask| {
-            text_field_ptr.upgrade().for_each(|text_field| {
+            text_field.upgrade().for_each(|text_field| {
                 if let Key::Character(string) = key {
                     let modifiers = &[Key::Control,Key::Alt];
                     if !modifiers.iter().any(|k| mask.has_key(k)) {
-                        text_field.borrow_mut().write(string);
+                        text_field.write(string);
                     }
                 }
             })
@@ -140,9 +140,9 @@ impl TextFieldKeyboardFrp {
     }
 
     fn initialize_actions_map
-    (actions:&mut KeyboardActions, text_field_ptr:Weak<RefCell<TextFieldData>>) {
+    (actions:&mut KeyboardActions, text_field:WeakTextField) {
         use Key::*;
-        let mut setter = TextFieldActionsSetter{actions,text_field_ptr};
+        let mut setter = TextFieldActionsSetter{actions,text_field};
         setter.set_navigation_action(&[ArrowLeft],    Step::Left);
         setter.set_navigation_action(&[ArrowRight],   Step::Right);
         setter.set_navigation_action(&[ArrowUp],      Step::Up);
@@ -163,18 +163,17 @@ impl TextFieldKeyboardFrp {
 /// An utility struct for setting actions in text field. See `initialize_actions_map` function
 /// for its usage.
 struct TextFieldActionsSetter<'a> {
-    text_field_ptr: Weak<RefCell<TextFieldData>>,
-    actions       : &'a mut KeyboardActions,
+    text_field : WeakTextField,
+    actions    : &'a mut KeyboardActions,
 }
 
 impl<'a> TextFieldActionsSetter<'a> {
     fn set_action<F>(&mut self, keys:&[Key], action:F)
-    where F : Fn(&mut TextFieldData) + 'static {
-        let ptr = self.text_field_ptr.clone();
+    where F : Fn(&TextField) + 'static {
+        let ptr = self.text_field.clone_ref();
         self.actions.set_action(keys.into(), move |_| {
-            if let Some(ptr) = ptr.upgrade() {
-                let mut text_field_ref = ptr.borrow_mut();
-                action(&mut text_field_ref);
+            if let Some(text_field) = ptr.upgrade() {
+                action(&text_field);
             }
         });
     }

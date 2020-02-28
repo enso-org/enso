@@ -1,6 +1,7 @@
 //! Main library crate for IDE. It includes implementation of
 //! controllers, view logic and code that wraps them all together.
 
+#![feature(drain_filter)]
 #![feature(trait_alias)]
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
@@ -12,6 +13,7 @@
 #![warn(missing_debug_implementations)]
 
 pub mod controller;
+pub mod double_representation;
 pub mod executor;
 pub mod transport;
 pub mod view;
@@ -105,11 +107,11 @@ pub async fn connect_to_file_manager(config:SetupConfig) -> Result<WebSocket,Con
 }
 
 /// Sets up the project view, including the controller it uses.
-pub async fn
-setup_project_view(logger:&Logger,config:SetupConfig) -> Result<ProjectView,failure::Error> {
+pub async fn setup_project_view(logger:&Logger,config:SetupConfig)
+-> Result<ProjectView,failure::Error> {
     let fm_transport = connect_to_file_manager(config).await?;
     let controller   = controller::project::Handle::new_running(fm_transport);
-    let project_view = ProjectView::new(logger,controller);
+    let project_view = ProjectView::new(logger,controller).await?;
     Ok(project_view)
 }
 
