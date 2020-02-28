@@ -433,6 +433,17 @@ lazy val language_server = (project in file("engine/language-server"))
       akkaTestkit      % Test,
       "org.scalatest"  %% "scalatest" % "3.2.0-M2" % Test,
       "org.scalacheck" %% "scalacheck" % "1.14.0" % Test
+    ),
+    testOptions in Test += Tests
+      .Argument(TestFrameworks.ScalaCheck, "-minSuccessfulTests", "1000")
+  )
+  .configs(Benchmark)
+  .settings(
+    inConfig(Benchmark)(Defaults.testSettings),
+    bench := (test in Benchmark).value,
+    libraryDependencies += "com.storm-enroute" %% "scalameter" % "0.19" % "bench",
+    testFrameworks ++= List(
+      new TestFramework("org.scalameter.ScalaMeterFramework")
     )
   )
 
