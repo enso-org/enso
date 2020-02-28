@@ -16,8 +16,8 @@
 //! that mutable state is safely accessed.
 
 pub mod text;
-pub mod project;
 pub mod module;
+pub mod project;
 
 /// General-purpose `Result` supporting any `Error`-compatible failures.
 pub type FallibleResult<T> = Result<T,failure::Error>;

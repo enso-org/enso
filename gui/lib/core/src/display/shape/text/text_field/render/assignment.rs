@@ -170,7 +170,7 @@ impl<'a,'b> GlyphLinesAssignmentUpdate<'a,'b> {
             let assigned_line     = assigned_fragment.as_ref().map(|f| f.line_index);
 
             match assigned_line {
-                Some(line) if line >= self.content.lines.len()        => self.unassign(i),
+                Some(line) if line >= self.content.lines().len()      => self.unassign(i),
                 Some(line) if self.content.dirty_lines.is_dirty(line) => self.reassign(i,line),
                 _                                                     => {},
             }
@@ -227,7 +227,7 @@ impl<'a,'b> GlyphLinesAssignmentUpdate<'a,'b> {
     fn new_assignment(&mut self) -> RangeInclusive<usize> {
         let visible_lines         = self.visible_lines_range();
         let assigned_lines        = &self.assignment.assigned_lines;
-        let max_line_id           = self.content.lines.len().saturating_sub(1);
+        let max_line_id           = self.content.lines().len().saturating_sub(1);
         let lines_count           = |r:&RangeInclusive<usize>| r.end() + 1 - r.start();
         let assigned_lines_count  = lines_count(assigned_lines);
         let displayed_lines_count = lines_count(&visible_lines);
@@ -245,7 +245,7 @@ impl<'a,'b> GlyphLinesAssignmentUpdate<'a,'b> {
 
     /// Returns range of currently visible lines.
     fn visible_lines_range(&mut self) -> RangeInclusive<usize> {
-        let lines_count              = self.content.lines.len();
+        let lines_count              = self.content.lines().len();
         let top                      = self.scroll_offset.y;
         let bottom                   = self.scroll_offset.y - self.view_size.y;
         let top_line_clipped         = self.content.line_at_y_position(top);
@@ -460,7 +460,7 @@ mod tests {
 
         // Removing line:
         update.assignment.dirty_glyph_lines.clear();
-        update.content.lines.pop();
+        update.content.lines_mut().pop();
         update.content.dirty_lines.add_lines_range_from(1..);
         update.update_after_text_edit();
         let expected_fragments = vec!
@@ -474,7 +474,7 @@ mod tests {
 
         // Adding line:
         update.assignment.dirty_glyph_lines.clear();
-        update.content.lines.push(Line::new("AAAAAAAAAAAA".to_string()));
+        update.content.lines_mut().push(Line::new("AAAAAAAAAAAA".to_string()));
         update.content.dirty_lines.add_lines_range_from(1..);
         update.update_after_text_edit();
         let expected_fragments = vec!

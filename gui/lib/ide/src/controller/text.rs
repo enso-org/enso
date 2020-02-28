@@ -5,7 +5,9 @@
 //! user.
 
 use crate::prelude::*;
+use crate::controller::FallibleResult;
 
+use data::text::TextChangedNotification;
 use failure::_core::fmt::Formatter;
 use failure::_core::fmt::Error;
 use file_manager_client as fmc;
@@ -14,7 +16,6 @@ use flo_stream::Publisher;
 use flo_stream::Subscriber;
 use json_rpc::error::RpcError;
 use shapely::shared;
-
 
 
 // ====================
@@ -78,8 +79,8 @@ shared! { Handle
 }
 
 impl Handle {
-    /// Create controller managing plain text file.
-    pub fn new_for_plain_test(path:fmc::Path, file_manager:fmc::Handle) -> Self {
+    /// Create controller managing plain text file (which is not a module).
+    pub fn new_for_plain_text(path:fmc::Path, file_manager:fmc::Handle) -> Self {
         Self::new(FileHandle::PlainText {path,file_manager})
     }
     /// Create controller managing Luna module file.
@@ -88,18 +89,41 @@ impl Handle {
     }
 
     /// Read file's content.
-    pub fn read_content(&self) -> impl Future<Output=Result<String,RpcError>> {
+    pub async fn read_content(&self) -> Result<String,RpcError> {
+        use FileHandle::*;
         match self.file_handle() {
-            FileHandle::PlainText {path,mut file_manager} => file_manager.read(path),
-            FileHandle::Module {..}                       => todo!(),
+            PlainText {path,mut file_manager} => file_manager.read(path).await,
+            Module    {controller}            => Ok(controller.code())
         }
     }
 
     /// Store the given content to file.
-    pub fn store_content(&self, content:String) -> impl Future<Output=Result<(),RpcError>> {
-        match self.file_handle() {
-            FileHandle::PlainText {path,mut file_manager} => file_manager.write(path,content),
-            FileHandle::Module {..}                       => todo!(),
+    pub fn store_content(&self, content:String) -> impl Future<Output=FallibleResult<()>> {
+        let file_handle = self.file_handle();
+        async move {
+            match file_handle {
+                FileHandle::PlainText {path,mut file_manager} => {
+                    file_manager.write(path,content).await?
+                },
+                FileHandle::Module {controller} => {
+                    controller.check_code_sync(content)?;
+                    controller.save_file().await?
+                }
+            }
+            Ok(())
+        }
+    }
+
+    /// Apply text change.
+    ///
+    /// This function should be called by view on every user interaction changing the text content
+    /// of file. It will e.g. update the Module Controller state and notify other views about
+    /// update in case of module files.
+    pub fn apply_text_change(&self, change:&TextChangedNotification) -> FallibleResult<()> {
+        if let FileHandle::Module {controller} =  self.file_handle() {
+            controller.apply_code_change(change)
+        } else {
+            Ok(())
         }
     }
 }

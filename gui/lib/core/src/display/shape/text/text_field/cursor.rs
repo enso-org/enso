@@ -4,8 +4,8 @@ use crate::prelude::*;
 
 use crate::display::shape::text::text_field::content::line::LineFullInfo;
 use crate::display::shape::text::text_field::content::TextFieldContent;
-use crate::display::shape::text::text_field::location::TextLocation;
 
+use data::text::TextLocation;
 use nalgebra::Vector2;
 use std::cmp::Ordering;
 use std::ops::Range;
@@ -142,24 +142,24 @@ impl<'a> CursorNavigation<'a> {
     pub fn line_end_position(&self, line_index:usize) -> TextLocation {
         TextLocation {
             line   : line_index,
-            column : self.content.lines[line_index].len(),
+            column : self.content.lines()[line_index].len(),
         }
     }
 
     /// Get cursor position at end of whole content
     pub fn content_end_position(&self) -> TextLocation {
         TextLocation {
-            column : self.content.lines.last().unwrap().len(),
-            line   : self.content.lines.len() - 1,
+            column : self.content.lines().last().unwrap().len(),
+            line   : self.content.lines().len() - 1,
         }
     }
 
     /// Get cursor position for the next char from given position. Returns none if at end of
     /// whole document.
     pub fn next_char_position(&self, position:&TextLocation) -> Option<TextLocation> {
-        let current_line = &self.content.lines[position.line];
+        let current_line = &self.content.lines()[position.line];
         let next_column  = Some(position.column + 1).filter(|c| *c <= current_line.len());
-        let next_line    = Some(position.line + 1)  .filter(|l| *l < self.content.lines.len());
+        let next_line    = Some(position.line + 1)  .filter(|l| *l < self.content.lines().len());
         match (next_column,next_line) {
             (None         , None      ) => None,
             (None         , Some(line)) => Some(TextLocation::at_line_begin(line)),
@@ -189,7 +189,7 @@ impl<'a> CursorNavigation<'a> {
     /// Get cursor position one line behind the given position, such the new x coordinate of
     /// displayed cursor on the screen will be nearest the current value.
     pub fn line_down_position(&mut self, position:&TextLocation) -> Option<TextLocation> {
-        let next_line = Some(position.line + 1).filter(|l| *l < self.content.lines.len());
+        let next_line = Some(position.line + 1).filter(|l| *l < self.content.lines().len());
         next_line.map(|line| self.near_same_x_in_another_line(position,line))
     }
 
@@ -239,6 +239,12 @@ impl<'a> CursorNavigation<'a> {
 // ===============
 // === Cursors ===
 // ===============
+
+
+
+/// A newtype for cursor id.
+#[derive(Clone,Copy,Debug,Default,PartialEq,Eq,PartialOrd,Ord)]
+pub struct CursorId(pub usize);
 
 /// Structure handling many cursors.
 ///
@@ -311,8 +317,9 @@ impl Cursors {
     }
 
     /// Returns cursor indices sorted by cursors' position in text.
-    pub fn sorted_cursor_indices(&self) -> Vec<usize> {
-        self.cursors.iter().enumerate().sorted_by_key(|(_,c)| c.position).map(|(i,_)| i).collect()
+    pub fn sorted_cursor_indices(&self) -> Vec<CursorId> {
+        let sorted_pairs = self.cursors.iter().enumerate().sorted_by_key(|(_,c)| c.position);
+        sorted_pairs.map(|(i,_)| CursorId(i)).collect()
     }
 
     /// Merge overlapping cursors
@@ -331,7 +338,7 @@ impl Cursors {
                 let merged = self.merged_selection_range(last_cursor_id,*id);
                 match merged {
                     Some(merged_range) => {
-                        self.cursors[last_cursor_id].extend_selection(&merged_range);
+                        self.cursors[last_cursor_id.0].extend_selection(&merged_range);
                         to_remove.push(*id);
                     },
                     None => {
@@ -340,19 +347,21 @@ impl Cursors {
                 };
             }
             for id in to_remove.iter().sorted().rev() {
-                self.cursors.remove(*id);
+                self.cursors.remove(id.0);
             }
         }
     }
 
     /// Checks if two cursors should be merged and returns new selection range after merging if they
     /// shoukd, and `None` otherwise.
-    fn merged_selection_range(&self, left_cursor_index:usize, right_cursor_index:usize)
+    fn merged_selection_range(&self, left_cursor_index:CursorId, right_cursor_index:CursorId)
     -> Option<Range<TextLocation>> {
-        let left_cursor_position        = self.cursors[left_cursor_index].position;
-        let left_cursor_range           = self.cursors[left_cursor_index].selection_range();
-        let right_cursor_position       = self.cursors[right_cursor_index].position;
-        let right_cursor_range          = self.cursors[right_cursor_index].selection_range();
+        let CursorId(left_id)           = left_cursor_index;
+        let CursorId(right_id)          = right_cursor_index;
+        let left_cursor_position        = self.cursors[left_id].position;
+        let left_cursor_range           = self.cursors[left_id].selection_range();
+        let right_cursor_position       = self.cursors[right_id].position;
+        let right_cursor_range          = self.cursors[right_id].selection_range();
         let are_cursor_at_same_position = left_cursor_position == right_cursor_position;
         let are_ranges_overlapping      = right_cursor_range.start < left_cursor_range.end;
         let are_cursors_merged          = are_cursor_at_same_position || are_ranges_overlapping;

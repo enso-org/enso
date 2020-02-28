@@ -41,10 +41,9 @@ impl {
         let controller = self.controller.clone();
         let file_path  = controller.file_path();
         let text       = self.text_field.get_content();
-        let store_fut  = controller.store_content(text);
         let logger     = self.logger.clone();
         executor::global::spawn(async move {
-            if store_fut.await.is_err() {
+            if controller.store_content(text).await.is_err() {
                 let message:&str = &format!("Failed to save file: {}", file_path);
                 logger.error(message);
             } else {
@@ -76,17 +75,18 @@ impl TextEditor {
         let properties = TextFieldProperties {font,text_size,base_color,size};
         let text_field = TextField::new(&world,properties);
 
-        let content_future  = controller.read_content();
-        let text_field_weak = text_field.downgrade();
-        let logger_ref      = logger.clone();
+        let text_field_weak   = text_field.downgrade();
+        let controller_clone = controller.clone_ref();
+        let logger_ref        = logger.clone();
         executor::global::spawn(async move {
-            if let Ok(content) = content_future.await {
+            if let Ok(content) = controller_clone.read_content().await {
                 if let Some(text_field) = text_field_weak.upgrade() {
                     text_field.set_content(&content);
                     logger_ref.info("File loaded");
                 }
             }
         });
+
         world.add_child(&text_field);
 
         let data = TextEditorData {controller,text_field,padding,position,size,logger};
@@ -100,6 +100,17 @@ impl TextEditor {
             if let Some(text_editor) = text_editor.upgrade() {
                 text_editor.borrow().save();
             }
+        });
+        self.with_borrowed(move |data| {
+            let logger           = data.logger.clone();
+            let controller_clone = data.controller.clone_ref();
+            data.text_field.set_text_edit_callback(move |change| {
+                let result = controller_clone.apply_text_change(change);
+                if result.is_err() {
+                    logger.error(|| "Error while notifying controllers about text change");
+                    logger.error(|| format!("{:?}", result));
+                }
+            });
         });
         self.update();
         self

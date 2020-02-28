@@ -20,7 +20,7 @@ use uuid::Uuid;
 
 
 
-#[derive(Clone,Debug,Default,Serialize,Deserialize)]
+#[derive(Clone,Debug,Default,Deserialize,Eq,PartialEq,Serialize)]
 pub struct IdMap(pub Vec<(Span,ID)>);
 
 /// A sequence of AST nodes, typically the "token soup".

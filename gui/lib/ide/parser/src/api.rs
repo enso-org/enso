@@ -1,8 +1,8 @@
+//! A module containing structures and traits used in parser API.
+
 use crate::prelude::*;
 
 use ast::IdMap;
-
-
 
 pub use ast::Ast;
 
@@ -11,8 +11,9 @@ pub use ast::Ast;
 // == Parser ==
 // ============
 
-/// Entity being able to parse Luna programs into Luna's AST.
-pub trait IsParser {
+/// Entity being able to parse programs into AST.
+pub trait IsParser : Debug {
+    /// Parse program.
     fn parse(&mut self, program:String, ids:IdMap) -> Result<Ast>;
 }
 
@@ -21,8 +22,10 @@ pub trait IsParser {
 // == Error ==
 // ===========
 
+/// A result of parsing code.
 pub type Result<T> = std::result::Result<T, Error>;
 
+/// An error which may be result of parsing code.
 #[derive(Debug, Fail)]
 pub enum Error {
     /// Error due to inner workings of the parser.
@@ -30,7 +33,7 @@ pub enum Error {
     ParsingError(String),
     /// Error related to wrapping = communication with the parser service.
     #[fail(display = "Interop error: {}", _0)]
-    InteropError(#[cause] Box<dyn failure::Fail>),
+    InteropError(#[cause] Box<dyn Fail>),
 }
 
 /// Wraps an arbitrary `std::error::Error` as an `InteropError.`
