@@ -3,6 +3,7 @@ package org.enso.languageserver.filemanager
 import java.io.{File, FileNotFoundException, IOException}
 import java.nio.file._
 
+import cats.data.EitherT
 import cats.effect.Sync
 import cats.implicits._
 import org.apache.commons.io.FileUtils
@@ -44,6 +45,50 @@ class FileSystem[F[_]: Sync] extends FileSystemApi[F] {
       Either
         .catchOnly[IOException] {
           FileUtils.readFileToString(file, "UTF-8")
+        }
+        .leftMap(errorHandling)
+    }
+
+  /**
+    * Creates an empty file with parent directory.
+    *
+    * @param file path to the file
+    * @return
+    */
+  override def createFile(file: File): F[Either[FileSystemFailure, Unit]] = {
+    val op =
+      for {
+        _ <- EitherT { createDirectory(file.getParentFile) }
+        _ <- EitherT { createEmptyFile(file)               }
+      } yield ()
+
+    op.value
+  }
+
+  private def createEmptyFile(file: File): F[Either[FileSystemFailure, Unit]] =
+    Sync[F].delay {
+      Either
+        .catchOnly[IOException] {
+          file.createNewFile()
+        }
+        .leftMap(errorHandling)
+        .map(_ => ())
+    }
+
+  /**
+    * Creates a directory, including any necessary but nonexistent parent
+    * directories.
+    *
+    * @param file path to the file
+    * @return
+    */
+  override def createDirectory(
+    file: File
+  ): F[Either[FileSystemFailure, Unit]] =
+    Sync[F].delay {
+      Either
+        .catchOnly[IOException] {
+          FileUtils.forceMkdir(file)
         }
         .leftMap(errorHandling)
     }

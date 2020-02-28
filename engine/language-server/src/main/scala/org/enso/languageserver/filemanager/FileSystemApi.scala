@@ -29,4 +29,21 @@ trait FileSystemApi[F[_]] {
     */
   def read(file: File): F[Either[FileSystemFailure, String]]
 
+  /**
+    * Creates an empty file with parent directory.
+    *
+    * @param file path to the file
+    * @return
+    */
+  def createFile(file: File): F[Either[FileSystemFailure, Unit]]
+
+  /**
+    * Creates a directory, including any necessary but nonexistent parent
+    * directories.
+    *
+    * @param file path to the file
+    * @return
+    */
+  def createDirectory(file: File): F[Either[FileSystemFailure, Unit]]
+
 }

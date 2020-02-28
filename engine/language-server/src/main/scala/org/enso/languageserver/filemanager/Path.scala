@@ -16,4 +16,9 @@ case class Path(rootId: UUID, segments: List[String]) {
       case (parent, child) => new File(parent, child)
     }
 
+  def toFile(rootPath: File, fileName: String): File = {
+    val parentDir = toFile(rootPath)
+    new File(parentDir, fileName)
+  }
+
 }

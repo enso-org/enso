@@ -1,17 +1,10 @@
 package org.enso.languageserver
 
-import java.io.File
-
 import akka.actor.{Actor, ActorLogging, ActorRef, Stash}
 import cats.effect.IO
 import org.enso.languageserver.data._
-import org.enso.languageserver.filemanager.FileManagerProtocol.{
-  FileRead,
-  FileReadResult,
-  FileWrite,
-  FileWriteResult
-}
-import org.enso.languageserver.filemanager.{FileSystemApi, FileSystemFailure}
+import org.enso.languageserver.filemanager.FileManagerProtocol._
+import org.enso.languageserver.filemanager.{FileSystemApi, FileSystemObject}
 
 object LanguageProtocol {
 
@@ -128,23 +121,42 @@ class LanguageServer(config: Config, fs: FileSystemApi[IO])
         initialized(config, env.releaseCapability(clientId, capabilityId))
       )
 
-    case FileWrite(path, content) =>
+    case WriteFile(path, content) =>
       val result =
         for {
           rootPath <- config.findContentRoot(path.rootId)
           _        <- fs.write(path.toFile(rootPath), content).unsafeRunSync()
         } yield ()
 
-      sender ! FileWriteResult(result)
+      sender ! WriteFileResult(result)
 
-    case FileRead(path) =>
+    case ReadFile(path) =>
       val result =
         for {
           rootPath <- config.findContentRoot(path.rootId)
           content  <- fs.read(path.toFile(rootPath)).unsafeRunSync()
         } yield content
 
-      sender ! FileReadResult(result)
+      sender ! ReadFileResult(result)
+
+    case CreateFile(FileSystemObject.File(name, path)) =>
+      val result =
+        for {
+          rootPath <- config.findContentRoot(path.rootId)
+          _        <- fs.createFile(path.toFile(rootPath, name)).unsafeRunSync()
+        } yield ()
+
+      sender ! CreateFileResult(result)
+
+    case CreateFile(FileSystemObject.Directory(name, path)) =>
+      val result =
+        for {
+          rootPath <- config.findContentRoot(path.rootId)
+          _        <- fs.createDirectory(path.toFile(rootPath, name)).unsafeRunSync()
+        } yield ()
+
+      sender ! CreateFileResult(result)
+
   }
   /* Note [Usage of unsafe methods]
      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

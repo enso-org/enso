@@ -1171,7 +1171,10 @@ null
 ```
 
 ##### Errors
-TBC
+
+- [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable file-system error. 
+- [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the requested content root cannot be found. 
+- [`AccessDeniedError`](#accessdeniederror) to signal that a user doesn't have access to a resource.
 
 #### `file/delete`
 This request asks the file manager to delete the specified file system object.
