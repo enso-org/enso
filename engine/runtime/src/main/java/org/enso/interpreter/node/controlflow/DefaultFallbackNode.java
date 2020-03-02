@@ -15,6 +15,17 @@ import org.enso.interpreter.runtime.error.InexhaustivePatternMatchException;
     description = "A fallback branch for a case expression when none is explicitly provided")
 public class DefaultFallbackNode extends CaseNode {
 
+  DefaultFallbackNode() {}
+
+  /**
+   * Creates an instance of this node.
+   *
+   * @return a default fallback node
+   */
+  public static DefaultFallbackNode build() {
+    return new DefaultFallbackNode();
+  }
+
   /**
    * Executes the case expression's error case, by throwing a {@link
    * InexhaustivePatternMatchException}.

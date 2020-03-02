@@ -10,7 +10,7 @@ import com.oracle.truffle.api.nodes.NodeInfo;
 /** A base type for all Enso language nodes. */
 @NodeInfo(shortName = "Base", description = "A base node for the Enso AST")
 @ReportPolymorphism
-public class BaseNode extends Node {
+public abstract class BaseNode extends Node {
   private @CompilationFinal boolean isTail = false;
   private @CompilerDirectives.CompilationFinal FrameSlot stateFrameSlot;
 

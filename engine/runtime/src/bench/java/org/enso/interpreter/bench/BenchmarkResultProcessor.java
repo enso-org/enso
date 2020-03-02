@@ -6,6 +6,7 @@ import org.openjdk.jmh.results.RunResult;
 public class BenchmarkResultProcessor {
   /**
    * Matches the new result with historic results from the report and updates the report.
+   *
    * @param label The name by which this result should be referred to as in the result.
    * @param report Historic runs report.
    * @param result Fresh JMH benchmark result.

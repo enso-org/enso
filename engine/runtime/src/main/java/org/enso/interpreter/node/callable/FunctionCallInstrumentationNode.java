@@ -4,7 +4,11 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.instrumentation.*;
+import com.oracle.truffle.api.instrumentation.GenerateWrapper;
+import com.oracle.truffle.api.instrumentation.InstrumentableNode;
+import com.oracle.truffle.api.instrumentation.ProbeNode;
+import com.oracle.truffle.api.instrumentation.StandardTags;
+import com.oracle.truffle.api.instrumentation.Tag;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
@@ -21,6 +25,8 @@ import org.enso.interpreter.runtime.callable.function.Function;
 @GenerateWrapper
 @NodeInfo(description = "A node used for instrumenting function calls.")
 public class FunctionCallInstrumentationNode extends Node implements InstrumentableNode {
+
+  FunctionCallInstrumentationNode() {}
 
   /**
    * Returns an instance of this node.

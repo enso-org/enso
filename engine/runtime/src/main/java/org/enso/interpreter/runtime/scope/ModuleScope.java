@@ -1,28 +1,14 @@
 package org.enso.interpreter.runtime.scope;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.TruffleLanguage;
-import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.CachedContext;
-import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.interop.*;
-import com.oracle.truffle.api.library.ExportLibrary;
-import com.oracle.truffle.api.library.ExportMessage;
-import com.oracle.truffle.api.source.Source;
-import org.enso.interpreter.Language;
-import org.enso.interpreter.node.callable.ExecuteCallNode;
-import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
-import org.enso.interpreter.runtime.Builtins;
-import org.enso.interpreter.runtime.Context;
-import org.enso.interpreter.runtime.callable.CallerInfo;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.data.Vector;
-import org.enso.interpreter.runtime.type.Types;
-import org.enso.polyglot.LanguageInfo;
-import org.enso.polyglot.MethodNames;
-
-import java.util.*;
 
 /** A representation of Enso's per-file top-level scope. */
 public class ModuleScope {

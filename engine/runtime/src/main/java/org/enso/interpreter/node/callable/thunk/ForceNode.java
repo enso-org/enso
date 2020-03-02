@@ -14,6 +14,19 @@ import org.enso.interpreter.runtime.state.Stateful;
 @NodeInfo(shortName = "Force", description = "Forces execution of a thunk at runtime")
 @NodeChild(value = "target", type = ExpressionNode.class)
 public abstract class ForceNode extends ExpressionNode {
+
+  ForceNode() {}
+
+  /**
+   * Creates an instance of this node.
+   *
+   * @param target the expression being forced
+   * @return a node representing {@code target} being forced
+   */
+  public static ForceNode build(ExpressionNode target) {
+    return ForceNodeGen.create(target);
+  }
+
   @Specialization
   Object passToExecutorNode(
       VirtualFrame frame,

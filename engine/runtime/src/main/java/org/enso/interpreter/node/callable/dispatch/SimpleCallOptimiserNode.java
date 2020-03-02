@@ -19,6 +19,17 @@ public class SimpleCallOptimiserNode extends CallOptimiserNode {
   @Child private ExecuteCallNode executeCallNode = ExecuteCallNodeGen.create();
   @Child private CallOptimiserNode next = null;
 
+  private SimpleCallOptimiserNode() {}
+
+  /**
+   * Creates an instance of this node.
+   *
+   * @return a simple call optimiser node
+   */
+  public static SimpleCallOptimiserNode build() {
+    return new SimpleCallOptimiserNode();
+  }
+
   /**
    * Calls the provided {@code function} using the provided {@code arguments}.
    *

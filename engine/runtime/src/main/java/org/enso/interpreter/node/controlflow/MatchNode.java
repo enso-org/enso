@@ -32,6 +32,18 @@ public abstract class MatchNode extends ExpressionNode {
   }
 
   /**
+   * Creates an instance of this node.
+   *
+   * @param cases the case branches
+   * @param fallback the fallback branch
+   * @param scrutinee the value being scrutinised
+   * @return a node representing a pattern match
+   */
+  public static MatchNode build(CaseNode[] cases, CaseNode fallback, ExpressionNode scrutinee) {
+    return MatchNodeGen.create(cases, fallback, scrutinee);
+  }
+
+  /**
    * Sets whether or not the pattern match is tail-recursive.
    *
    * @param isTail whether or not the expression is tail-recursive

@@ -8,14 +8,13 @@ import com.oracle.truffle.api.debug.DebuggerTags;
 import com.oracle.truffle.api.instrumentation.ProvidedTags;
 import com.oracle.truffle.api.instrumentation.StandardTags;
 import com.oracle.truffle.api.nodes.RootNode;
-import org.enso.interpreter.builder.FileDetector;
+import java.util.Collections;
+import org.enso.interpreter.util.FileDetector;
 import org.enso.interpreter.node.ProgramRootNode;
 import org.enso.interpreter.runtime.Context;
-import org.enso.polyglot.RuntimeOptions;
 import org.enso.polyglot.LanguageInfo;
+import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.options.OptionDescriptors;
-
-import java.util.Collections;
 
 /**
  * The root of the Enso implementation.
@@ -85,7 +84,7 @@ public final class Language extends TruffleLanguage<Context> {
    */
   @Override
   protected CallTarget parse(ParsingRequest request) {
-    RootNode root = new ProgramRootNode(this, request.getSource());
+    RootNode root = ProgramRootNode.build(this, request.getSource());
     return Truffle.getRuntime().createCallTarget(root);
   }
 

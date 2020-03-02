@@ -2,7 +2,11 @@ package org.enso.interpreter.node.scope;
 
 import com.oracle.truffle.api.dsl.NodeField;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.frame.Frame;
+import com.oracle.truffle.api.frame.FrameSlotTypeException;
+import com.oracle.truffle.api.frame.FrameUtil;
+import com.oracle.truffle.api.frame.MaterializedFrame;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.ExpressionNode;
@@ -14,6 +18,18 @@ import org.enso.interpreter.runtime.scope.FramePointer;
 @NodeField(name = "framePointer", type = FramePointer.class)
 public abstract class ReadLocalTargetNode extends ExpressionNode {
   public abstract FramePointer getFramePointer();
+
+  ReadLocalTargetNode() {}
+
+  /**
+   * Creates an instance of this node.
+   *
+   * @param pointer the pointer to the local target
+   * @return a node that reads from {@code pointer}
+   */
+  public static ReadLocalTargetNode build(FramePointer pointer) {
+    return ReadLocalTargetNodeGen.create(pointer);
+  }
 
   /**
    * Reads a {@code long} value from the frame.

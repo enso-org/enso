@@ -1,20 +1,14 @@
 package org.enso.interpreter.node.callable;
 
-import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
-import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.frame.FrameUtil;
-import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import java.util.Arrays;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.callable.argument.CallArgument;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
-import org.enso.interpreter.runtime.callable.argument.Thunk;
-import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.state.Stateful;
-
-import java.util.Arrays;
 
 /**
  * This node is responsible for organising callable calls so that they are ready to be made.
@@ -30,12 +24,7 @@ public class ApplicationNode extends ExpressionNode {
   @Child private InvokeCallableNode invokeCallableNode;
   @Child private ExpressionNode callable;
 
-  /**
-   * Creates a new node for performing callable invocation.
-   *
-   * @param callArguments information on the arguments being passed to the {@link Function}
-   */
-  public ApplicationNode(
+  private ApplicationNode(
       ExpressionNode callable,
       CallArgument[] callArguments,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode) {
@@ -51,6 +40,21 @@ public class ApplicationNode extends ExpressionNode {
     this.invokeCallableNode =
         InvokeCallableNodeGen.create(
             argSchema, defaultsExecutionMode, InvokeCallableNode.ArgumentsExecutionMode.EXECUTE);
+  }
+
+  /**
+   * Creates an instance of this node.
+   *
+   * @param callable the object being called
+   * @param callArguments the arguments to pass to {@code callable}
+   * @param defaultsExecutionMode whether or not defaults should be executed
+   * @return a node representing a function application
+   */
+  public static ApplicationNode build(
+      ExpressionNode callable,
+      CallArgument[] callArguments,
+      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode) {
+    return new ApplicationNode(callable, callArguments, defaultsExecutionMode);
   }
 
   /**

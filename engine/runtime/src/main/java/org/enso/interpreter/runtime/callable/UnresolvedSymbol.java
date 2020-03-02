@@ -1,6 +1,5 @@
 package org.enso.interpreter.runtime.callable;
 
-import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.interop.TruffleObject;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -17,7 +16,7 @@ public class UnresolvedSymbol implements TruffleObject {
    * @param name the name of this symbol
    * @param scope the scope in which this symbol was created
    */
-  public UnresolvedSymbol(String name, ModuleScope scope) {
+  private UnresolvedSymbol(String name, ModuleScope scope) {
     this.name = name.intern();
     this.scope = scope;
   }
@@ -57,5 +56,16 @@ public class UnresolvedSymbol implements TruffleObject {
   @Override
   public String toString() {
     return "UnresolvedSymbol<" + this.name + ">";
+  }
+
+  /**
+   * Creates an instance of this node.
+   *
+   * @param name the name that is unresolved
+   * @param scope the scope in which the lookup will occur
+   * @return a node representing an unresolved symbol {@code name} in {@code scope}
+   */
+  public static UnresolvedSymbol build(String name, ModuleScope scope) {
+    return new UnresolvedSymbol(name, scope);
   }
 }

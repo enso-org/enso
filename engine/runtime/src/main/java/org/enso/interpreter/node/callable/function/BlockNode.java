@@ -14,15 +14,20 @@ public class BlockNode extends ExpressionNode {
   @Children private final ExpressionNode[] statements;
   @Child private ExpressionNode returnExpr;
 
+  private BlockNode(ExpressionNode[] expressions, ExpressionNode returnExpr) {
+    this.statements = expressions;
+    this.returnExpr = returnExpr;
+  }
+
   /**
-   * Creates a new node to represent the body of a function.
+   * Creates an instance of this node.
    *
    * @param expressions the function body
    * @param returnExpr the return expression from the function
+   * @return a node representing a block expression
    */
-  public BlockNode(ExpressionNode[] expressions, ExpressionNode returnExpr) {
-    this.statements = expressions;
-    this.returnExpr = returnExpr;
+  public static BlockNode build(ExpressionNode[] expressions, ExpressionNode returnExpr) {
+    return new BlockNode(expressions, returnExpr);
   }
 
   /**

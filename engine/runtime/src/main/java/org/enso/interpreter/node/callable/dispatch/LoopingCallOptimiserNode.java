@@ -4,8 +4,11 @@ import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.frame.FrameDescriptor;
+import com.oracle.truffle.api.frame.FrameSlot;
+import com.oracle.truffle.api.frame.FrameSlotKind;
+import com.oracle.truffle.api.frame.FrameUtil;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.LoopNode;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
@@ -29,9 +32,7 @@ import org.enso.interpreter.runtime.state.Stateful;
 @NodeInfo(shortName = "LoopCall", description = "Handles tail-call elimination")
 @GenerateUncached
 public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
-  static LoopNode createLoopNode() {
-    return Truffle.getRuntime().createLoopNode(new RepeatedCallNode());
-  }
+  LoopingCallOptimiserNode() {}
 
   /**
    * Creates a new instance of this node.
@@ -65,6 +66,15 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
     loopNode.execute(frame);
 
     return repeatedCallNode.getResult(frame);
+  }
+
+  /**
+   * Creates a loop node.
+   *
+   * @return a loop node
+   */
+  static LoopNode createLoopNode() {
+    return Truffle.getRuntime().createLoopNode(new RepeatedCallNode());
   }
 
   /**

@@ -9,13 +9,18 @@ import org.enso.interpreter.node.ExpressionNode;
 public final class IntegerLiteralNode extends ExpressionNode {
   private final long value;
 
-  /**
-   * Creates a new integer literal.
-   *
-   * @param value the integer value of the literal
-   */
-  public IntegerLiteralNode(long value) {
+  private IntegerLiteralNode(long value) {
     this.value = value;
+  }
+
+  /**
+   * Creates an instance of this node.
+   *
+   * @param value the value for the node to represent
+   * @return a node representing the literal given by {@code value}
+   */
+  public static IntegerLiteralNode build(long value) {
+    return new IntegerLiteralNode(value);
   }
 
   /**

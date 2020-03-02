@@ -1,13 +1,13 @@
 package org.enso.interpreter.bench;
 
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlElementWrapper;
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlTransient;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalDouble;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementWrapper;
+import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlTransient;
 
 /** Contains historic results for a single benchmark identified by label. */
 @XmlRootElement
@@ -46,15 +46,14 @@ public class ReportItem {
 
   /**
    * Registers a new score for this item.
+   *
    * @param score Score to register.
    */
   public void addScore(double score) {
     getScores().add(score);
   }
 
-  /**
-   * @return The best (lowest) historic result for this benchmark.
-   */
+  /** @return The best (lowest) historic result for this benchmark. */
   @XmlTransient
   public Optional<Double> getBestScore() {
     OptionalDouble min = getScores().stream().mapToDouble(s -> s).min();

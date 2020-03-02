@@ -17,6 +17,19 @@ import org.enso.interpreter.runtime.Context;
 @NodeChild(value = "rhsNode", type = ExpressionNode.class)
 @NodeField(name = "frameSlot", type = FrameSlot.class)
 public abstract class AssignmentNode extends ExpressionNode {
+
+  AssignmentNode() {}
+
+  /**
+   * Creates an instance of this node.
+   *
+   * @param expression the expression being assigned
+   * @param slot the slot to which {@code expression} is being assigned
+   * @return a node representing an assignment
+   */
+  public static AssignmentNode build(ExpressionNode expression, FrameSlot slot) {
+    return AssignmentNodeGen.create(expression, slot);
+  }
   /**
    * Writes a long value into the provided frame.
    *

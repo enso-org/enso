@@ -12,6 +12,17 @@ import org.enso.interpreter.runtime.state.Stateful;
 @NodeInfo(shortName = "CallOptimiser", description = "Optimises function calls")
 public abstract class CallOptimiserNode extends Node {
 
+  CallOptimiserNode() {}
+
+  /**
+   * Creates an instance of default implementation of {@link CallOptimiserNode}.
+   *
+   * @return a fresh instance of {@link CallOptimiserNode}
+   */
+  public static CallOptimiserNode build() {
+    return SimpleCallOptimiserNode.build();
+  }
+
   /**
    * Calls the provided {@code callable} using the provided {@code arguments}.
    *
@@ -23,13 +34,4 @@ public abstract class CallOptimiserNode extends Node {
    */
   public abstract Stateful executeDispatch(
       Object callable, CallerInfo callerInfo, Object state, Object[] arguments);
-
-  /**
-   * Creates an instance of default implementation of {@link CallOptimiserNode}.
-   *
-   * @return a fresh instance of {@link CallOptimiserNode}
-   */
-  public static CallOptimiserNode build() {
-    return new SimpleCallOptimiserNode();
-  }
 }

@@ -17,6 +17,18 @@ import org.enso.interpreter.runtime.state.Stateful;
 @NodeField(name = "isTail", type = Boolean.class)
 public abstract class ThunkExecutorNode extends Node {
 
+  ThunkExecutorNode() {}
+
+  /**
+   * Creates an instance of this node.
+   *
+   * @param isTail whether or not the thunk is being executed in a tail call position
+   * @return an instance of this node
+   */
+  public static ThunkExecutorNode build(boolean isTail) {
+    return ThunkExecutorNodeGen.create(isTail);
+  }
+
   /**
    * Forces the thunk to its resulting value.
    *
@@ -74,15 +86,5 @@ public abstract class ThunkExecutorNode extends Node {
 
   LoopingCallOptimiserNode createLoopingOptimizerIfNeeded() {
     return getIsTail() ? null : LoopingCallOptimiserNode.build();
-  }
-
-  /**
-   * Creates an instance of this node.
-   *
-   * @param isTail whether or not the thunk is being executed in a tail call position
-   * @return an instance of this node
-   */
-  public static ThunkExecutorNode build(boolean isTail) {
-    return ThunkExecutorNodeGen.create(isTail);
   }
 }

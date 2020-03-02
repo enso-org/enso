@@ -3,7 +3,6 @@ package org.enso.interpreter.instrument;
 import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.instrumentation.SourceSectionFilter;
 import com.oracle.truffle.api.instrumentation.TruffleInstrument;
-
 import java.util.function.Consumer;
 
 /**

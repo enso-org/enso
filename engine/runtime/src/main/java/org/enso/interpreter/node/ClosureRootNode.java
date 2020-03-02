@@ -24,17 +24,7 @@ public class ClosureRootNode extends EnsoRootNode {
 
   @Child private ExpressionNode body;
 
-  /**
-   * Creates a new root node.
-   *
-   * @param language the language identifier
-   * @param localScope a description of the local scope
-   * @param moduleScope a description of the module scope
-   * @param body the program body to be executed
-   * @param section a mapping from {@code body} to the program source
-   * @param name a name for the node
-   */
-  public ClosureRootNode(
+  private ClosureRootNode(
       Language language,
       LocalScope localScope,
       ModuleScope moduleScope,
@@ -43,6 +33,27 @@ public class ClosureRootNode extends EnsoRootNode {
       String name) {
     super(language, localScope, moduleScope, name, section);
     this.body = body;
+  }
+
+  /**
+   * Creates an instance of this node.
+   *
+   * @param language the language identifier
+   * @param localScope a description of the local scope
+   * @param moduleScope a description of the module scope
+   * @param body the program body to be executed
+   * @param section a mapping from {@code body} to the program source
+   * @param name a name for the node
+   * @return a node representing the specified closure
+   */
+  public static ClosureRootNode build(
+      Language language,
+      LocalScope localScope,
+      ModuleScope moduleScope,
+      ExpressionNode body,
+      SourceSection section,
+      String name) {
+    return new ClosureRootNode(language, localScope, moduleScope, body, section, name);
   }
 
   /**

@@ -1,4 +1,4 @@
-package org.enso.compiler
+package org.enso.compiler.pass
 
 /**
   * A pass is a transformation from source type to sink type.

@@ -3,7 +3,9 @@ package org.enso.interpreter.node.callable.dispatch;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.BaseNode;
-import org.enso.interpreter.node.callable.*;
+import org.enso.interpreter.node.callable.ExecuteCallNode;
+import org.enso.interpreter.node.callable.InvokeCallableNode;
+import org.enso.interpreter.node.callable.InvokeCallableNodeGen;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -35,28 +37,6 @@ public class CurryNode extends BaseNode {
     initializeOversaturatedCallNode(defaultsExecutionMode, argumentsExecutionMode);
   }
 
-  private void initializeCallNodes() {
-    if (postApplicationSchema.hasOversaturatedArgs()
-        || !preApplicationSchema.getCallStrategy().shouldCallDirect(isTail())) {
-      this.loopingCall = CallOptimiserNode.build();
-    } else {
-      this.directCall = ExecuteCallNode.build();
-    }
-  }
-
-  private void initializeOversaturatedCallNode(
-      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
-      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode) {
-    if (postApplicationSchema.hasOversaturatedArgs()) {
-      oversaturatedCallableNode =
-          InvokeCallableNodeGen.create(
-              postApplicationSchema.getOversaturatedArguments(),
-              defaultsExecutionMode,
-              argumentsExecutionMode);
-      oversaturatedCallableNode.setTail(isTail());
-    }
-  }
-
   /**
    * Creates a new instance of this node.
    *
@@ -81,6 +61,28 @@ public class CurryNode extends BaseNode {
         defaultsExecutionMode,
         argumentsExecutionMode,
         isTail);
+  }
+
+  private void initializeCallNodes() {
+    if (postApplicationSchema.hasOversaturatedArgs()
+        || !preApplicationSchema.getCallStrategy().shouldCallDirect(isTail())) {
+      this.loopingCall = CallOptimiserNode.build();
+    } else {
+      this.directCall = ExecuteCallNode.build();
+    }
+  }
+
+  private void initializeOversaturatedCallNode(
+      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
+      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode) {
+    if (postApplicationSchema.hasOversaturatedArgs()) {
+      oversaturatedCallableNode =
+          InvokeCallableNodeGen.create(
+              postApplicationSchema.getOversaturatedArguments(),
+              defaultsExecutionMode,
+              argumentsExecutionMode);
+      oversaturatedCallableNode.setTail(isTail());
+    }
   }
 
   /**

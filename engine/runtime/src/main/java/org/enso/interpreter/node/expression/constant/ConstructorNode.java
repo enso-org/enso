@@ -10,13 +10,18 @@ import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 public class ConstructorNode extends ExpressionNode {
   private final AtomConstructor constructor;
 
-  /**
-   * Creates a new type constructor definition.
-   *
-   * @param constructor the constructor to define
-   */
-  public ConstructorNode(AtomConstructor constructor) {
+  private ConstructorNode(AtomConstructor constructor) {
     this.constructor = constructor;
+  }
+
+  /**
+   * Creates an instance of this node.
+   *
+   * @param constructor the atom constructor to represent
+   * @return a truffle node representing {@code constructor}
+   */
+  public static ConstructorNode build(AtomConstructor constructor) {
+    return new ConstructorNode(constructor);
   }
 
   /**

@@ -71,7 +71,7 @@ public abstract class EvalNode extends BaseNode {
       expr = CaptureResultScopeNode.build(expr);
     }
     ClosureRootNode framedNode =
-        new ClosureRootNode(
+        ClosureRootNode.build(
             lookupLanguageReference(Language.class).get(),
             localScope,
             moduleScope,

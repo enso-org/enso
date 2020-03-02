@@ -1,6 +1,7 @@
 package org.enso.interpreter.test.instrument
 
 import org.enso.interpreter.test.InterpreterTest
+
 import scala.jdk.CollectionConverters._
 
 class ReplTest extends InterpreterTest {

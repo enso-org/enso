@@ -1,10 +1,12 @@
 package org.enso.interpreter.instrument;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.instrumentation.*;
-import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
-
+import com.oracle.truffle.api.instrumentation.EventContext;
+import com.oracle.truffle.api.instrumentation.SourceSectionFilter;
+import com.oracle.truffle.api.instrumentation.StandardTags;
+import com.oracle.truffle.api.instrumentation.TruffleInstrument;
 import java.util.function.Consumer;
+import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 
 /** An instrument used to extract function call information. */
 @TruffleInstrument.Registration(

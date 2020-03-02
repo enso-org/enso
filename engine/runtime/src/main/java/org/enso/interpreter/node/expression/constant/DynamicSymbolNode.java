@@ -10,13 +10,18 @@ import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 public class DynamicSymbolNode extends ExpressionNode {
   private final UnresolvedSymbol unresolvedSymbol;
 
-  /**
-   * Creates the node.
-   *
-   * @param unresolvedSymbol the symbol to always be this node's value.
-   */
-  public DynamicSymbolNode(UnresolvedSymbol unresolvedSymbol) {
+  private DynamicSymbolNode(UnresolvedSymbol unresolvedSymbol) {
     this.unresolvedSymbol = unresolvedSymbol;
+  }
+
+  /**
+   * Creates an instance of this node.
+   *
+   * @param symbol the symbol to be resolved
+   * @return a node representing the dynamic lookup of {@code symbol}
+   */
+  public static DynamicSymbolNode build(UnresolvedSymbol symbol) {
+    return new DynamicSymbolNode(symbol);
   }
 
   /**

@@ -9,13 +9,18 @@ import org.enso.interpreter.node.ExpressionNode;
 public class TextLiteralNode extends ExpressionNode {
   private final String value;
 
-  /**
-   * Creates a new instance of this node.
-   *
-   * @param value the literal value this node represents
-   */
-  public TextLiteralNode(String value) {
+  private TextLiteralNode(String value) {
     this.value = value;
+  }
+
+  /**
+   * Creates an instance of this node.
+   *
+   * @param value the textual value to represent
+   * @return a node representing the literal {@code value}
+   */
+  public static TextLiteralNode build(String value) {
+    return new TextLiteralNode(value);
   }
 
   /**

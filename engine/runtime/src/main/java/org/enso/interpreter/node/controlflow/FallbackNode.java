@@ -19,13 +19,18 @@ public class FallbackNode extends CaseNode {
   @Child private ExpressionNode functionNode;
   @Child private ExecuteCallNode executeCallNode = ExecuteCallNodeGen.create();
 
+  FallbackNode(ExpressionNode functionNode) {
+    this.functionNode = functionNode;
+  }
+
   /**
    * Creates a node to handle the case catch-call.
    *
    * @param functionNode the function to execute in this case
+   * @return a fallback node
    */
-  public FallbackNode(ExpressionNode functionNode) {
-    this.functionNode = functionNode;
+  public static FallbackNode build(ExpressionNode functionNode) {
+    return new FallbackNode(functionNode);
   }
 
   private void execute(VirtualFrame frame, Object target) throws UnexpectedResultException {

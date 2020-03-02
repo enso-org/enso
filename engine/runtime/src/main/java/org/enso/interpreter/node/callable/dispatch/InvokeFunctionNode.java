@@ -11,8 +11,8 @@ import com.oracle.truffle.api.source.SourceSection;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.CaptureCallerInfoNode;
-import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
+import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.argument.ArgumentSorterNode;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
@@ -35,20 +35,28 @@ public abstract class InvokeFunctionNode extends BaseNode {
   private @Child FunctionCallInstrumentationNode functionCallInstrumentationNode =
       FunctionCallInstrumentationNode.build();
 
-  /**
-   * Creates a node that performs the argument organisation for the provided schema.
-   *
-   * @param schema information about the call arguments in positional order
-   * @param defaultsExecutionMode the defaults execution mode for this function invocation
-   * @param argumentsExecutionMode the arguments execution mode for this function invocation
-   */
-  public InvokeFunctionNode(
+  InvokeFunctionNode(
       CallArgumentInfo[] schema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode) {
     this.schema = schema;
     this.defaultsExecutionMode = defaultsExecutionMode;
     this.argumentsExecutionMode = argumentsExecutionMode;
+  }
+
+  /**
+   * Creates an instance of this node.
+   *
+   * @param schema information about the call arguments in positional order
+   * @param defaultsExecutionMode the defaults execution mode for this function invocation
+   * @param argumentsExecutionMode the arguments execution mode for this function invocation
+   * @return an instance of this node.
+   */
+  public static InvokeFunctionNode build(
+      CallArgumentInfo[] schema,
+      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
+      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode) {
+    return InvokeFunctionNodeGen.create(schema, defaultsExecutionMode, argumentsExecutionMode);
   }
 
   @Specialization(
@@ -142,21 +150,6 @@ public abstract class InvokeFunctionNode extends BaseNode {
 
   InvokeCallableNode.ArgumentsExecutionMode getArgumentsExecutionMode() {
     return argumentsExecutionMode;
-  }
-
-  /**
-   * Creates an instance of this node.
-   *
-   * @param schema the call-site arguments schema.
-   * @param defaultsExecutionMode the default arguments handling mode for this call-site.
-   * @param argumentsExecutionMode the lazy arguments handling mode for this call-site.
-   * @return an instance of this node.
-   */
-  public static InvokeFunctionNode build(
-      CallArgumentInfo[] schema,
-      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
-      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode) {
-    return InvokeFunctionNodeGen.create(schema, defaultsExecutionMode, argumentsExecutionMode);
   }
 
   /** @return the source section for this node. */

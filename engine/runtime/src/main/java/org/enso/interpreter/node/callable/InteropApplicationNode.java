@@ -16,6 +16,17 @@ import org.enso.interpreter.runtime.callable.function.Function;
 @NodeInfo(description = "Helper node to handle function application through the interop library.")
 public abstract class InteropApplicationNode extends Node {
 
+  InteropApplicationNode() {}
+
+  /**
+   * Creates an instance of this node.
+   *
+   * @return an interop application node
+   */
+  public static InteropApplicationNode build() {
+    return InteropApplicationNodeGen.create();
+  }
+
   /**
    * Calls the function with given state and arguments.
    *

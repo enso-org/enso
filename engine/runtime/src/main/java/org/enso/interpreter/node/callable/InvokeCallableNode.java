@@ -95,7 +95,7 @@ public abstract class InvokeCallableNode extends BaseNode {
 
     this.invokeFunctionNode =
         InvokeFunctionNode.build(schema, defaultsExecutionMode, argumentsExecutionMode);
-    this.methodResolverNode = MethodResolverNodeGen.create();
+    this.methodResolverNode = MethodResolverNode.build();
   }
 
   /**

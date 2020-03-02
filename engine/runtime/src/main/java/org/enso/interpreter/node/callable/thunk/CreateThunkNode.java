@@ -16,6 +16,16 @@ public class CreateThunkNode extends ExpressionNode {
   }
 
   /**
+   * Creates a new {@link CreateThunkNode}.
+   *
+   * @param callTarget the call target to wrap into a {@link Thunk}.
+   * @return the node
+   */
+  public static CreateThunkNode build(RootCallTarget callTarget) {
+    return new CreateThunkNode(callTarget);
+  }
+
+  /**
    * Executes the node, creating a {@link Thunk} that wraps the internal {@link
    * com.oracle.truffle.api.CallTarget}.
    *
@@ -25,15 +35,5 @@ public class CreateThunkNode extends ExpressionNode {
   @Override
   public Object executeGeneric(VirtualFrame frame) {
     return new Thunk(this.callTarget, frame.materialize());
-  }
-
-  /**
-   * Creates a new {@link CreateThunkNode}.
-   *
-   * @param callTarget the call target to wrap into a {@link Thunk}.
-   * @return the node
-   */
-  public static CreateThunkNode build(RootCallTarget callTarget) {
-    return new CreateThunkNode(callTarget);
   }
 }

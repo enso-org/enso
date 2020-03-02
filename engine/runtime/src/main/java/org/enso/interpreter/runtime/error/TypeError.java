@@ -3,9 +3,7 @@ package org.enso.interpreter.runtime.error;
 import com.oracle.truffle.api.TruffleException;
 import com.oracle.truffle.api.nodes.Node;
 
-/**
- * An exception thrown on a type mismatch.
- */
+/** An exception thrown on a type mismatch. */
 public class TypeError extends RuntimeException implements TruffleException {
   private final Node node;
 

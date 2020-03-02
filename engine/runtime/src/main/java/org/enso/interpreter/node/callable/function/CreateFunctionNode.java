@@ -21,15 +21,20 @@ public class CreateFunctionNode extends ExpressionNode {
   private final RootCallTarget callTarget;
   private final FunctionSchema schema;
 
+  private CreateFunctionNode(RootCallTarget callTarget, ArgumentDefinition[] args) {
+    this.callTarget = callTarget;
+    this.schema = new FunctionSchema(FunctionSchema.CallStrategy.CALL_LOOP, args);
+  }
+
   /**
-   * Creates a new node to represent a function definition.
+   * Creates an instance of this node.
    *
    * @param callTarget the target for calling the function represented by this node
    * @param args information on the arguments to the function
+   * @return a node representing the specified function
    */
-  public CreateFunctionNode(RootCallTarget callTarget, ArgumentDefinition[] args) {
-    this.callTarget = callTarget;
-    this.schema = new FunctionSchema(FunctionSchema.CallStrategy.CALL_LOOP, args);
+  public static CreateFunctionNode build(RootCallTarget callTarget, ArgumentDefinition[] args) {
+    return new CreateFunctionNode(callTarget, args);
   }
 
   /**

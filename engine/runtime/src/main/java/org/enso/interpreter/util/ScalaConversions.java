@@ -1,13 +1,11 @@
 package org.enso.interpreter.util;
 
-import scala.Option;
-import scala.jdk.javaapi.CollectionConverters;
-import scala.jdk.javaapi.OptionConverters;
-
-import scala.collection.Seq;
-
 import java.util.List;
 import java.util.Optional;
+import scala.Option;
+import scala.collection.Seq;
+import scala.jdk.javaapi.CollectionConverters;
+import scala.jdk.javaapi.OptionConverters;
 
 /** Utility class for converting between Scala and Java basic classes. */
 public class ScalaConversions {

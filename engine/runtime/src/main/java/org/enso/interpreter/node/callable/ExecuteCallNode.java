@@ -21,6 +21,26 @@ import org.enso.interpreter.runtime.state.Stateful;
 @GenerateUncached
 public abstract class ExecuteCallNode extends Node {
 
+  ExecuteCallNode() {}
+
+  /**
+   * Creates an instance of this node.
+   *
+   * @return an instance of this node
+   */
+  public static ExecuteCallNode build() {
+    return ExecuteCallNodeGen.create();
+  }
+
+  /**
+   * Returns the uncached version of this node, for slow-path operations.
+   *
+   * @return the uncached instance of this node.
+   */
+  public static ExecuteCallNode buildUncached() {
+    return ExecuteCallNodeGen.getUncached();
+  }
+
   /**
    * Calls the function directly.
    *
@@ -85,22 +105,4 @@ public abstract class ExecuteCallNode extends Node {
    */
   public abstract Stateful executeCall(
       Object function, CallerInfo callerInfo, Object state, Object[] arguments);
-
-  /**
-   * Creates an instance of this node.
-   *
-   * @return an instance of this node
-   */
-  public static ExecuteCallNode build() {
-    return ExecuteCallNodeGen.create();
-  }
-
-  /**
-   * Returns the uncached version of this node, for slow-path operations.
-   *
-   * @return the uncached instance of this node.
-   */
-  public static ExecuteCallNode buildUncached() {
-    return ExecuteCallNodeGen.getUncached();
-  }
 }

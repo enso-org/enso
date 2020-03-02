@@ -2,23 +2,12 @@ package org.enso.interpreter.node;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.nodes.DirectCallNode;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.Source;
-import com.oracle.truffle.api.source.SourceSection;
 import org.enso.interpreter.Language;
-import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
-import org.enso.interpreter.node.expression.atom.InstantiateNode;
-import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.Module;
-import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.scope.LocalScope;
-import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.pkg.QualifiedName;
-
-import java.io.File;
-import java.util.Optional;
 
 /**
  * This node handles static transformation of the input AST before execution and represents the root
@@ -33,15 +22,20 @@ public class ProgramRootNode extends RootNode {
   private final Source sourceCode;
   private @CompilerDirectives.CompilationFinal Module module;
 
+  ProgramRootNode(Language language, Source sourceCode) {
+    super(language);
+    this.sourceCode = sourceCode;
+  }
+
   /**
    * Constructs the root node.
    *
    * @param language the language instance in which this will execute
    * @param sourceCode the code to compile and execute
+   * @return a program root node
    */
-  public ProgramRootNode(Language language, Source sourceCode) {
-    super(language);
-    this.sourceCode = sourceCode;
+  public static ProgramRootNode build(Language language, Source sourceCode) {
+    return new ProgramRootNode(language, sourceCode);
   }
 
   /**

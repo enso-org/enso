@@ -6,10 +6,10 @@ class EvalTest extends InterpreterTest {
   "Debug.eval" should "evaluate a string expression" in {
     val code =
       s"""
-        |main =
-        |    Debug.eval $rawTQ
-        |        IO.println "foo"
-        |""".stripMargin
+         |main =
+         |    Debug.eval $rawTQ
+         |        IO.println "foo"
+         |""".stripMargin
     eval(code)
     consumeOut shouldEqual List("foo")
   }
@@ -17,11 +17,11 @@ class EvalTest extends InterpreterTest {
   "Debug.eval" should "have access to the caller scope" in {
     val code =
       s"""
-        |main =
-        |    x = "Hello World!"
-        |    Debug.eval $rawTQ
-        |        IO.println x
-        |""".stripMargin
+         |main =
+         |    x = "Hello World!"
+         |    Debug.eval $rawTQ
+         |        IO.println x
+         |""".stripMargin
     eval(code)
     consumeOut shouldEqual List("Hello World!")
   }
@@ -29,13 +29,13 @@ class EvalTest extends InterpreterTest {
   "Debug.eval" should "have access to the caller module scope" in {
     val code =
       s"""
-        |type MyType x
-        |
-        |main =
-        |    x = 10
-        |    Debug.eval $rawTQ
-        |        IO.println (MyType x)
-        |""".stripMargin
+         |type MyType x
+         |
+         |main =
+         |    x = 10
+         |    Debug.eval $rawTQ
+         |        IO.println (MyType x)
+         |""".stripMargin
     eval(code)
     consumeOut shouldEqual List("MyType 10")
   }

@@ -4,16 +4,18 @@ import java.io.StringReader
 
 import com.oracle.truffle.api.TruffleFile
 import com.oracle.truffle.api.source.Source
-import org.enso.compiler.core.IR.Expression
-import org.enso.compiler.core.IR.Module
-import org.enso.compiler.generate.AstToAstExpression
+import org.enso.compiler.core.IR.{Expression, Module}
+import org.enso.compiler.codegen.{AstToIR, IRToTruffle}
 import org.enso.flexer.Reader
-import org.enso.interpreter.builder.{ExpressionFactory, ModuleScopeExpressionFactory}
-import org.enso.interpreter.node.ExpressionNode
-import org.enso.interpreter.runtime.error.ModuleDoesNotExistException
-import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope, TopLevelScope}
-import org.enso.interpreter.runtime.Context
 import org.enso.interpreter.Language
+import org.enso.interpreter.node.ExpressionNode
+import org.enso.interpreter.runtime.Context
+import org.enso.interpreter.runtime.error.ModuleDoesNotExistException
+import org.enso.interpreter.runtime.scope.{
+  LocalScope,
+  ModuleScope,
+  TopLevelScope
+}
 import org.enso.polyglot.LanguageInfo
 import org.enso.syntax.text.{AST, Parser}
 
@@ -40,7 +42,8 @@ class Compiler(
   def run(source: Source, scope: ModuleScope): Unit = {
     val parsedAST = parse(source)
     val expr      = translate(parsedAST)
-    new ModuleScopeExpressionFactory(language, source, scope).run(expr)
+
+    new IRToTruffle(language, source, scope).run(expr)
   }
 
   /**
@@ -107,13 +110,8 @@ class Compiler(
 
     translateInline(parsed).flatMap { ast =>
       Some(
-        new ExpressionFactory(
-          language,
-          source,
-          localScope,
-          "<inline_source>",
-          moduleScope
-        ).run(ast)
+        new IRToTruffle(language, source, moduleScope)
+          .runInline(ast, localScope, "<inline_source>")
       )
     }
   }
@@ -159,7 +157,7 @@ class Compiler(
     * @return an IR representation of the program represented by `sourceAST`
     */
   def translate(sourceAST: AST): Module =
-    AstToAstExpression.translate(sourceAST)
+    AstToIR.translate(sourceAST)
 
   /**
     * Lowers the input AST to the compiler's high-level intermediate
@@ -169,5 +167,5 @@ class Compiler(
     * @return an IR representation of the program represented by `sourceAST`
     */
   def translateInline(sourceAST: AST): Option[Expression] =
-    AstToAstExpression.translateInline(sourceAST)
+    AstToIR.translateInline(sourceAST)
 }

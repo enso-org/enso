@@ -16,14 +16,14 @@ class TextTest extends InterpreterTest {
   "Block raw text literals" should "exist in the language" in {
     val code =
       s"""
-        |main =
-        |    x = $rawTQ
-        |        Foo
-        |        Bar
-        |          Baz
-        |
-        |    IO.println x
-        |""".stripMargin
+         |main =
+         |    x = $rawTQ
+         |        Foo
+         |        Bar
+         |          Baz
+         |
+         |    IO.println x
+         |""".stripMargin
 
     eval(code)
     consumeOut shouldEqual List("Foo", "Bar", "  Baz")

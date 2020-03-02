@@ -14,6 +14,7 @@ public class Vector implements TruffleObject {
 
   /**
    * Creates a new Vector
+   *
    * @param items the element values
    */
   public Vector(Object... items) {
@@ -22,6 +23,7 @@ public class Vector implements TruffleObject {
 
   /**
    * Marks the object as array-like for Polyglot APIs.
+   *
    * @return {@code true}
    */
   @ExportMessage
@@ -46,6 +48,7 @@ public class Vector implements TruffleObject {
 
   /**
    * Exposes the size of this collection through the polyglot API.
+   *
    * @return
    */
   @ExportMessage

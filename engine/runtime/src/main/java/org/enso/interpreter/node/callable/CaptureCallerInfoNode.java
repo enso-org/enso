@@ -21,6 +21,17 @@ public class CaptureCallerInfoNode extends Node {
   private @CompilerDirectives.CompilationFinal LocalScope localScope;
   private @CompilerDirectives.CompilationFinal ModuleScope moduleScope;
 
+  private CaptureCallerInfoNode() {}
+
+  /**
+   * Creates an instance of this node.
+   *
+   * @return an instance of this node
+   */
+  public static CaptureCallerInfoNode build() {
+    return new CaptureCallerInfoNode();
+  }
+
   /**
    * Captures the caller info for use in functions called from the current scope.
    *
@@ -35,14 +46,5 @@ public class CaptureCallerInfoNode extends Node {
       moduleScope = rootNode.getModuleScope();
     }
     return new CallerInfo(frame.materialize(), localScope, moduleScope);
-  }
-
-  /**
-   * Creates an instance of this node.
-   *
-   * @return an instance of this node
-   */
-  public static CaptureCallerInfoNode build() {
-    return new CaptureCallerInfoNode();
   }
 }

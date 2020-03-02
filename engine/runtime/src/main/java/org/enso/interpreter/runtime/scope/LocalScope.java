@@ -3,11 +3,10 @@ package org.enso.interpreter.runtime.scope;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.frame.FrameSlotKind;
-import org.enso.interpreter.runtime.error.VariableRedefinitionException;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import org.enso.interpreter.runtime.error.VariableRedefinitionException;
 
 /**
  * A representation of an Enso local scope. These can be arbitrarily nested and are used to map

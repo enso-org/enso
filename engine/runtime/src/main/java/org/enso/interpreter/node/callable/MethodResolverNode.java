@@ -24,6 +24,17 @@ import org.enso.interpreter.runtime.error.RuntimeError;
 @NodeInfo(shortName = "MethodResolve", description = "Resolves method calls to concrete targets")
 public abstract class MethodResolverNode extends Node {
 
+  MethodResolverNode() {}
+
+  /**
+   * Creates an instance of this node.
+   *
+   * @return a method resolver node
+   */
+  public static MethodResolverNode build() {
+    return MethodResolverNodeGen.create();
+  }
+
   /**
    * Entry point for this node.
    *

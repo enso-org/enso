@@ -16,15 +16,20 @@ public class ReadArgumentNode extends ExpressionNode {
   @Child ExpressionNode defaultValue;
   private final ConditionProfile defaultingProfile = ConditionProfile.createCountingProfile();
 
+  private ReadArgumentNode(int position, ExpressionNode defaultValue) {
+    this.index = position;
+    this.defaultValue = defaultValue;
+  }
+
   /**
-   * Creates a node to compute a function argument.
+   * Creates an instance of this node.
    *
    * @param position the argument's position at the definition site
    * @param defaultValue the default value provided for that argument
+   * @return a node representing the argument at position {@code idx}
    */
-  public ReadArgumentNode(int position, ExpressionNode defaultValue) {
-    this.index = position;
-    this.defaultValue = defaultValue;
+  public static ReadArgumentNode build(int position, ExpressionNode defaultValue) {
+    return new ReadArgumentNode(position, defaultValue);
   }
 
   /**

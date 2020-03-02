@@ -3,6 +3,12 @@ package org.enso.interpreter.runtime;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLanguage.Env;
+import java.io.File;
+import java.io.PrintStream;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 import org.enso.compiler.Compiler;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.OptionsHelper;
@@ -11,14 +17,6 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.scope.TopLevelScope;
 import org.enso.interpreter.util.ScalaConversions;
 import org.enso.pkg.Package;
-import org.enso.polyglot.RuntimeOptions;
-
-import java.io.File;
-import java.io.PrintStream;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * The language context is the internal state of the language that is associated with each thread in

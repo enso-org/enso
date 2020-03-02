@@ -13,7 +13,7 @@ class LazyArgumentsTest extends InterpreterTest {
         |    lazyId (1 + 1)
         |""".stripMargin
 
-    eval (code) shouldEqual 2
+    eval(code) shouldEqual 2
   }
 
   subject should "not get executed upfront" in {

@@ -4,7 +4,10 @@ import org.enso.interpreter.node.callable.function.CreateFunctionNode
 import org.enso.interpreter.node.callable.thunk.ForceNode
 import org.enso.interpreter.node.controlflow.MatchNode
 import org.enso.interpreter.node.expression.literal.IntegerLiteralNode
-import org.enso.interpreter.node.expression.operator.{AddOperatorNode, MultiplyOperatorNode}
+import org.enso.interpreter.node.expression.operator.{
+  AddOperatorNode,
+  MultiplyOperatorNode
+}
 import org.enso.interpreter.node.scope.{AssignmentNode, ReadLocalTargetNode}
 import org.enso.interpreter.test.InterpreterTest
 

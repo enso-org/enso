@@ -22,15 +22,20 @@ public class ConstructorCaseNode extends CaseNode {
   private final ConditionProfile profile = ConditionProfile.createCountingProfile();
   private final ConditionProfile atomTypeProfile = ConditionProfile.createCountingProfile();
 
+  ConstructorCaseNode(ExpressionNode matcher, ExpressionNode branch) {
+    this.matcher = matcher;
+    this.branch = branch;
+  }
+
   /**
    * Creates a new node for handling matching on a case expression.
    *
    * @param matcher the expression to use for matching
    * @param branch the expression to be executed if (@code matcher} matches
+   * @return a node for matching in a case expression
    */
-  public ConstructorCaseNode(ExpressionNode matcher, ExpressionNode branch) {
-    this.matcher = matcher;
-    this.branch = branch;
+  public static ConstructorCaseNode build(ExpressionNode matcher, ExpressionNode branch) {
+    return new ConstructorCaseNode(matcher, branch);
   }
 
   /**

@@ -66,11 +66,11 @@ public class AtomConstructor implements TruffleObject {
   private Function buildConstructorFunction(ArgumentDefinition[] args) {
     ExpressionNode[] argumentReaders = new ExpressionNode[args.length];
     for (int i = 0; i < args.length; i++) {
-      argumentReaders[i] = new ReadArgumentNode(i, args[i].getDefaultValue().orElse(null));
+      argumentReaders[i] = ReadArgumentNode.build(i, args[i].getDefaultValue().orElse(null));
     }
-    ExpressionNode instantiateNode = new InstantiateNode(this, argumentReaders);
+    ExpressionNode instantiateNode = InstantiateNode.build(this, argumentReaders);
     ClosureRootNode rootNode =
-        new ClosureRootNode(
+        ClosureRootNode.build(
             null,
             new LocalScope(),
             definitionScope,

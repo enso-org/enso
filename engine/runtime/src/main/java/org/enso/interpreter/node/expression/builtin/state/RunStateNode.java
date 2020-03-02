@@ -40,9 +40,7 @@ public class RunStateNode extends BuiltinRootNode {
     if (thunksProfile.profile(TypesGen.isThunk(maybeThunk))) {
       return new Stateful(
           state,
-          thunkExecutorNode
-              .executeThunk(TypesGen.asThunk(maybeThunk), localState)
-              .getValue());
+          thunkExecutorNode.executeThunk(TypesGen.asThunk(maybeThunk), localState).getValue());
     } else {
       return new Stateful(state, maybeThunk);
     }

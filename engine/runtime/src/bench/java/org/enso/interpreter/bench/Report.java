@@ -1,5 +1,9 @@
 package org.enso.interpreter.bench;
 
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
@@ -7,10 +11,6 @@ import javax.xml.bind.Unmarshaller;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
-import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
 
 /** Historic runs report. Supports XML serialization. */
 @XmlRootElement
@@ -84,6 +84,7 @@ public class Report {
 
   /**
    * Serializes a report to an XML file.
+   *
    * @param report Report to serialize.
    * @param file File to which the serialized report should be written.
    * @throws JAXBException when the file cannot be written to.

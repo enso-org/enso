@@ -131,9 +131,11 @@ class ValueExtractorTest extends InterpreterTest {
     val visualizationExpr = "val -> here.foo val * 3"
     val visualization     = module.evalExpression(visualizationExpr)
     val results =
-      values.view.mapValues(
-        v => visualization.execute(v.asInstanceOf[AnyRef]).asLong
-      ).toMap
+      values.view
+        .mapValues(
+          v => visualization.execute(v.asInstanceOf[AnyRef]).asLong
+        )
+        .toMap
     results shouldEqual Map("x" -> 33L, "y" -> 153L)
   }
 

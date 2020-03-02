@@ -1,8 +1,6 @@
 package org.enso.interpreter.runtime.error;
 
-/**
- * An exception thrown when a function is defined with duplicate argument names.
- */
+/** An exception thrown when a function is defined with duplicate argument names. */
 public class DuplicateArgumentNameException extends RuntimeException {
 
   /**

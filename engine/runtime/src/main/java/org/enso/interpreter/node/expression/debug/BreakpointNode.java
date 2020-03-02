@@ -20,6 +20,17 @@ import org.enso.interpreter.runtime.state.Stateful;
 @GenerateWrapper
 public abstract class BreakpointNode extends Node implements InstrumentableNode {
 
+  BreakpointNode() {}
+
+  /**
+   * Creates a new instance of this node.
+   *
+   * @return a new instance of this node
+   */
+  public static BreakpointNode build() {
+    return BreakpointNodeGen.create();
+  }
+
   /**
    * Tells Truffle this node is instrumentable.
    *
@@ -45,15 +56,6 @@ public abstract class BreakpointNode extends Node implements InstrumentableNode 
   Stateful execute(
       VirtualFrame frame, Object state, @CachedContext(Language.class) Context context) {
     return new Stateful(state, context.getUnit().newInstance());
-  }
-
-  /**
-   * Creates a new instance of this node.
-   *
-   * @return a new instance of this node
-   */
-  public static BreakpointNode build() {
-    return BreakpointNodeGen.create();
   }
 
   /**

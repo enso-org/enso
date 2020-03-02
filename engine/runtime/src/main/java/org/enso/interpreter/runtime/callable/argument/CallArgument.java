@@ -1,6 +1,5 @@
 package org.enso.interpreter.runtime.callable.argument;
 
-import com.oracle.truffle.api.RootCallTarget;
 import org.enso.interpreter.node.ExpressionNode;
 
 /** Tracks the specifics about how arguments are specified at a call site. */
@@ -27,7 +26,6 @@ public class CallArgument {
     this.name = name;
     this.expression = expression;
   }
-
 
   /**
    * Checks if the argument is passed by name.
