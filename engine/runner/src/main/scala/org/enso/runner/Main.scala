@@ -1,27 +1,29 @@
 package org.enso.runner
 
-import org.apache.commons.cli._
-import org.enso.pkg.Package
-import org.graalvm.polyglot.Value
 import java.io.File
+import java.util.UUID
 
-import org.enso
+import cats.implicits._
+import org.apache.commons.cli.{Option => CliOption, _}
+import org.enso.pkg.Package
 import org.enso.polyglot.{ExecutionContext, LanguageInfo, Module}
-import akka.actor.{ActorRef, ActorSystem}
+import org.graalvm.polyglot.Value
 
-import scala.io.StdIn
 import scala.util.Try
-import scala.concurrent.Await
-import scala.concurrent.duration._
 
 /** The main CLI entry point class. */
 object Main {
 
-  private val RUN_OPTION     = "run"
-  private val HELP_OPTION    = "help"
-  private val NEW_OPTION     = "new"
-  private val REPL_OPTION    = "repl"
-  private val JUPYTER_OPTION = "jupyter-kernel"
+  private val RUN_OPTION             = "run"
+  private val HELP_OPTION            = "help"
+  private val NEW_OPTION             = "new"
+  private val REPL_OPTION            = "repl"
+  private val JUPYTER_OPTION         = "jupyter-kernel"
+  private val LANGUAGE_SERVER_OPTION = "server"
+  private val INTERFACE_OPTION       = "interface"
+  private val PORT_OPTION            = "port"
+  private val ROOT_ID_OPTION         = "root-id"
+  private val ROOT_PATH_OPTION       = "path"
 
   /**
     * Builds the [[Options]] object representing the CLI syntax.
@@ -29,36 +31,69 @@ object Main {
     * @return an [[Options]] object representing the CLI syntax
     */
   private def buildOptions = {
-    val help = Option
+    val help = CliOption
       .builder("h")
       .longOpt(HELP_OPTION)
       .desc("Displays this message.")
       .build
-    val repl = Option.builder
+    val repl = CliOption.builder
       .longOpt(REPL_OPTION)
       .desc("Runs the Enso REPL.")
       .build
-    val run = Option.builder
+    val run = CliOption.builder
       .hasArg(true)
       .numberOfArgs(1)
       .argName("file")
       .longOpt(RUN_OPTION)
       .desc("Runs a specified Enso file.")
       .build
-    val newOpt = Option.builder
+    val newOpt = CliOption.builder
       .hasArg(true)
       .numberOfArgs(1)
       .argName("path")
       .longOpt(NEW_OPTION)
       .desc("Creates a new Enso project.")
       .build
-    val jupyterOption = Option.builder
+    val jupyterOption = CliOption.builder
       .hasArg(true)
       .numberOfArgs(1)
       .argName("connection file")
       .longOpt(JUPYTER_OPTION)
       .desc("Runs Enso Jupyter Kernel.")
       .build
+    val lsOption = CliOption.builder
+      .longOpt(LANGUAGE_SERVER_OPTION)
+      .desc("Runs Language Server")
+      .build()
+    val interfaceOption = CliOption.builder
+      .longOpt(INTERFACE_OPTION)
+      .hasArg(true)
+      .numberOfArgs(1)
+      .argName("interface")
+      .desc("Interface for processing all incoming connections")
+      .build()
+    val portOption = CliOption.builder
+      .longOpt(PORT_OPTION)
+      .hasArg(true)
+      .numberOfArgs(1)
+      .argName("port")
+      .desc("Port for processing all incoming connections")
+      .build()
+    val uuidOption = CliOption.builder
+      .hasArg(true)
+      .numberOfArgs(1)
+      .argName("uuid")
+      .longOpt(ROOT_ID_OPTION)
+      .desc("Content root id.")
+      .build()
+    val pathOption = CliOption.builder
+      .hasArg(true)
+      .numberOfArgs(1)
+      .argName("path")
+      .longOpt(ROOT_PATH_OPTION)
+      .desc("Path to the content root.")
+      .build()
+
     val options = new Options
     options
       .addOption(help)
@@ -66,6 +101,12 @@ object Main {
       .addOption(run)
       .addOption(newOpt)
       .addOption(jupyterOption)
+      .addOption(lsOption)
+      .addOption(interfaceOption)
+      .addOption(portOption)
+      .addOption(uuidOption)
+      .addOption(pathOption)
+
     options
   }
 
@@ -165,6 +206,48 @@ object Main {
   }
 
   /**
+    * Handles `--server` CLI option
+    *
+    * @param line a CLI line
+    */
+  private def runLanguageServer(line: CommandLine): Unit = {
+    val maybeConfig = parseSeverOptions(line)
+
+    maybeConfig match {
+      case Left(errorMsg) =>
+        System.err.println(errorMsg)
+        exitFail()
+
+      case Right(config) =>
+        LanguageServerApp.run(config)
+        exitSuccess()
+    }
+  }
+
+  private def parseSeverOptions(
+    line: CommandLine
+  ): Either[String, LanguageServerConfig] =
+    // format: off
+    for {
+      rootId    <- Option(line.getOptionValue(ROOT_ID_OPTION))
+                     .toRight("Root id must be provided")
+                     .flatMap { id =>
+                       Either
+                         .catchNonFatal(UUID.fromString(id))
+                         .leftMap(_ => "Root must be UUID")
+                     }
+      rootPath  <- Option(line.getOptionValue(ROOT_PATH_OPTION))
+                     .toRight("Root path must be provided")
+      interface  = Option(line.getOptionValue(INTERFACE_OPTION))
+                     .getOrElse("127.0.0.1")
+      portString = Option(line.getOptionValue(PORT_OPTION)).getOrElse("8080")
+      port      <- Either
+                     .catchNonFatal(portString.toInt)
+                     .leftMap(_ => "Port must be integer") 
+    } yield LanguageServerConfig(interface, port, rootId, rootPath)
+    // format: on
+
+  /**
     * Main entry point for the CLI program.
     *
     * @param args the command line arguments
@@ -192,6 +275,9 @@ object Main {
     }
     if (line.hasOption(JUPYTER_OPTION)) {
       new JupyterKernel().run(line.getOptionValue(JUPYTER_OPTION))
+    }
+    if (line.hasOption(LANGUAGE_SERVER_OPTION)) {
+      runLanguageServer(line)
     }
     printHelp(options)
     exitFail()
