@@ -36,6 +36,11 @@ impl KeyMask {
         Self::from_vec(vec![Key::Control, Key::Character(character.to_string())])
     }
 
+    /// Creates Key::Alt + Key::Character.
+    pub fn new_alt_character(character:char) -> Self {
+        Self::from_vec(vec![Key::Alt, Key::Character(character.to_string())])
+    }
+
     /// Creates KeyMask from Vec<Key>.
     pub fn from_vec(keys:Vec<Key>) -> Self {
         keys.iter().collect()
