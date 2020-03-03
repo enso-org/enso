@@ -27,14 +27,19 @@ pub struct Cursor {
 impl Cursor {
     /// Create a new cursor at given position and without any selection.
     pub fn new(position:TextLocation) -> Self {
-        Cursor {position,
-            selected_to : position
-        }
+        let selected_to = position;
+        Cursor {position,selected_to}
     }
 
     /// Returns true if some selection is bound to this cursor.
     pub fn has_selection(&self) -> bool {
         self.position != self.selected_to
+    }
+
+    /// Select text range.
+    pub fn select_range(&mut self, range:&Range<TextLocation>) {
+        self.position    = range.end;
+        self.selected_to = range.start;
     }
 
     /// Get range of selected text by this cursor.
@@ -273,6 +278,12 @@ impl Cursors {
     /// Remove all cursors except the active one.
     pub fn remove_additional_cursors(&mut self) {
         self.cursors.drain(0..self.cursors.len()-1);
+    }
+
+    /// Return the active (last added) cursor as mutable reference. Even on multiline edit some
+    /// operations are applied to one, active cursor only (e.g. extending selection by mouse).
+    pub fn active_cursor_mut(&mut self) -> &mut Cursor {
+        self.cursors.last_mut().unwrap()
     }
 
     /// Return the active (last added) cursor. Even on multiline edit some operations are applied

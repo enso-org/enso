@@ -300,7 +300,7 @@ impl TextFieldContent {
 
 
 #[cfg(test)]
-mod test {
+pub(crate) mod test {
     use super::*;
 
     use crate::display::shape::text::glyph::font::FontRenderInfo;
@@ -505,7 +505,7 @@ mod test {
         content.lines.iter().map(|l| l.chars().iter().collect()).collect()
     }
 
-    fn mock_properties()->  TextFieldProperties {
+    pub(crate) fn mock_properties()->  TextFieldProperties {
         TextFieldProperties {
             font       : FontHandle::new(FontRenderInfo::mock_font("Test font".to_string())),
             text_size  : 0.0,

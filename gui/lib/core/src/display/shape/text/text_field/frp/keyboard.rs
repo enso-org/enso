@@ -151,9 +151,10 @@ impl TextFieldKeyboardFrp {
         setter.set_navigation_action(&[End],          Step::LineEnd);
         setter.set_navigation_action(&[Control,Home], Step::DocBegin);
         setter.set_navigation_action(&[Control,End],  Step::DocEnd);
-        setter.set_action(&[Enter],     |t| t.write("\n"));
-        setter.set_action(&[Delete],    |t| t.do_delete_operation(Step::Right));
-        setter.set_action(&[Backspace], |t| t.do_delete_operation(Step::Left));
+        setter.set_action(&[Alt, Character("j".into())], |t| t.select_next_word_occurrence());
+        setter.set_action(&[Enter],                      |t| t.write("\n"));
+        setter.set_action(&[Delete],                     |t| t.do_delete_operation(Step::Right));
+        setter.set_action(&[Backspace],                  |t| t.do_delete_operation(Step::Left));
     }
 }
 

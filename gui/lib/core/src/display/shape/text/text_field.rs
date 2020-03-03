@@ -5,6 +5,7 @@ pub mod cursor;
 pub mod frp;
 pub mod location;
 pub mod render;
+pub mod word_occurrence;
 
 use crate::prelude::*;
 
@@ -17,6 +18,7 @@ use crate::display::shape::text::text_field::cursor::Step;
 use crate::display::shape::text::text_field::cursor::CursorNavigation;
 use crate::display::shape::text::text_field::location::TextLocationChange;
 use crate::display::shape::text::text_field::frp::TextFieldFrp;
+use crate::display::shape::text::text_field::word_occurrence::WordOccurrences;
 use crate::display::shape::text::glyph::font::FontHandle;
 use crate::display::shape::text::glyph::font::FontRegistry;
 use crate::display::shape::text::text_field::render::TextFieldSprites;
@@ -75,12 +77,13 @@ shared! { TextField
     #[derive(Derivative)]
     #[derivative(Debug)]
     pub struct TextFieldData {
-        properties           : TextFieldProperties,
-        content              : TextFieldContent,
-        cursors              : Cursors,
-        rendered             : TextFieldSprites,
-        display_object       : DisplayObjectData,
-        frp                  : Option<TextFieldFrp>,
+        properties       : TextFieldProperties,
+        content          : TextFieldContent,
+        cursors          : Cursors,
+        rendered         : TextFieldSprites,
+        display_object   : DisplayObjectData,
+        frp              : Option<TextFieldFrp>,
+        word_occurrences : Option<WordOccurrences>,
         #[derivative(Debug="ignore")]
         text_change_callback : Option<Box<dyn FnMut(&TextChangedNotification)>>
     }
@@ -120,8 +123,14 @@ shared! { TextField
             self.rendered.display_object.position().xy()
         }
 
+        /// Clear word occurrences.
+        pub fn clear_word_occurrences(&mut self) {
+            self.word_occurrences = None;
+        }
+
         /// Removes all cursors except one which is set and given point.
         pub fn set_cursor(&mut self, point:Vector2<f32>) {
+            self.clear_word_occurrences();
             self.cursors.remove_additional_cursors();
             self.jump_cursor(point,false);
         }
@@ -155,6 +164,7 @@ shared! { TextField
         pub fn set_content(&mut self, text:&str) {
             // FIXME [ao] It should check if cursors positions are valid.
             //       See: https://github.com/luna/ide/issues/187
+            self.clear_word_occurrences();
             self.content.set_content(text);
             self.assignment_update().update_after_text_edit();
             self.rendered.update_glyphs(&mut self.content);
@@ -181,6 +191,34 @@ shared! { TextField
             let cursor_select  = |c:&Cursor| self.content.copy_fragment(c.selection_range());
             let mut selections = self.cursors.cursors.iter().map(cursor_select);
             selections.join("\n")
+        }
+
+        /// Text field has a selected text.
+        pub fn has_selection(&self) -> bool {
+            self.cursors.cursors.iter().any(|cursor| cursor.has_selection())
+        }
+
+        /// Selects the current word, if the cursor is inside a word, or select a next word if a
+        /// word is already selected. For definition of word check `word_occurrence` module doc.
+        pub fn select_next_word_occurrence(&mut self) {
+            let not_multicursors = self.cursors.cursors.len() == 1;
+            if self.word_occurrences.is_none() && not_multicursors {
+                let cursor            = self.cursors.active_cursor();
+                self.word_occurrences = WordOccurrences::new(&self.content,&cursor);
+            }
+
+            let has_selection             = self.has_selection();
+            if let Some(word_occurrences) = &mut self.word_occurrences {
+                if let Some(word) = word_occurrences.select_next() {
+                    if has_selection {
+                        self.cursors.add_cursor(TextLocation::at_document_begin());
+                    }
+
+                    let cursor = self.cursors.active_cursor_mut();
+                    cursor.select_range(&word);
+                    self.rendered.update_cursor_sprites(&self.cursors, &mut self.content);
+                }
+            }
         }
 
         /// Update underlying Display Object.
@@ -253,6 +291,7 @@ impl TextField {
             self.write_per_cursor(cursor_with_line);
         };
         self.with_borrowed(|this| {
+            this.clear_word_occurrences();
             // TODO[ao] updates should be done only in one place and only once per frame
             // see https://github.com/luna/ide/issues/178
             this.assignment_update().update_after_text_edit();
@@ -308,7 +347,6 @@ impl TextField {
 }
 
 impl TextFieldData {
-
     fn new(world:&World, initial_content:&str, properties:TextFieldProperties) -> Self {
         let logger               = Logger::new("TextField");
         let display_object       = DisplayObjectData::new(logger);
@@ -316,14 +354,15 @@ impl TextFieldData {
         let cursors              = Cursors::default();
         let rendered             = TextFieldSprites::new(world,&properties);
         let frp                  = None;
+        let word_occurrences     = None;
         let text_change_callback = None;
         display_object.add_child(rendered.display_object.clone_ref());
 
-        Self {properties,content,cursors,rendered,display_object,frp,text_change_callback}
-            .initialize()
+        Self {properties,content,cursors,rendered,display_object,frp,word_occurrences,
+              text_change_callback}.initialize()
     }
 
-    fn initialize(mut self) -> Self{
+    fn initialize(mut self) -> Self {
         self.assignment_update().update_line_assignment();
         self.rendered.update_glyphs(&mut self.content);
         self.rendered.update_cursor_sprites(&self.cursors, &mut self.content);
