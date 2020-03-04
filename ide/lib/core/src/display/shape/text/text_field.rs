@@ -153,6 +153,9 @@ shared! { TextField
 
         /// Move all cursors by given step.
         pub fn navigate_cursors(&mut self, step:Step, selecting:bool) {
+            if !selecting {
+                self.clear_word_occurrences()
+            }
             let content        = &mut self.content;
             let mut navigation = CursorNavigation {content,selecting};
             self.cursors.navigate_all_cursors(&mut navigation,step);
@@ -162,12 +165,12 @@ shared! { TextField
         /// Discards all current content and replaces it with new one.
         /// Whenever possible, tries to maintain cursor positions.
         pub fn set_content(&mut self, text:&str) {
-            // FIXME [ao] It should check if cursors positions are valid.
-            //       See: https://github.com/luna/ide/issues/187
             self.clear_word_occurrences();
             self.content.set_content(text);
+            self.cursors.recalculate_positions(&self.content);
             self.assignment_update().update_after_text_edit();
             self.rendered.update_glyphs(&mut self.content);
+            self.rendered.update_cursor_sprites(&self.cursors, &mut self.content);
         }
 
         /// Make change in text content.
