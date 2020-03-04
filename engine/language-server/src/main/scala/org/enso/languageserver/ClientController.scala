@@ -8,10 +8,6 @@ import akka.util.Timeout
 import org.enso.languageserver.ClientApi._
 import org.enso.languageserver.data.{CapabilityRegistration, Client}
 import org.enso.languageserver.filemanager.FileManagerApi._
-import org.enso.languageserver.filemanager.FileManagerProtocol.{
-  CreateFileResult,
-  WriteFileResult
-}
 import org.enso.languageserver.filemanager.{
   FileManagerProtocol,
   FileSystemFailureMapper
@@ -69,6 +65,7 @@ object ClientApi {
     .registerRequest(WriteFile)
     .registerRequest(ReadFile)
     .registerRequest(CreateFile)
+    .registerRequest(DeleteFile)
     .registerNotification(ForceReleaseCapability)
     .registerNotification(GrantCapability)
 
@@ -131,6 +128,9 @@ class ClientController(
 
     case Request(CreateFile, id, params: CreateFile.Params) =>
       createFile(webActor, id, params)
+
+    case Request(DeleteFile, id, params: DeleteFile.Params) =>
+      deleteFile(webActor, id, params)
   }
 
   private def readFile(
@@ -163,10 +163,10 @@ class ClientController(
   ): Unit = {
     (server ? FileManagerProtocol.WriteFile(params.path, params.contents))
       .onComplete {
-        case Success(WriteFileResult(Right(()))) =>
+        case Success(FileManagerProtocol.WriteFileResult(Right(()))) =>
           webActor ! ResponseResult(WriteFile, id, Unused)
 
-        case Success(WriteFileResult(Left(failure))) =>
+        case Success(FileManagerProtocol.WriteFileResult(Left(failure))) =>
           webActor ! ResponseError(
             Some(id),
             FileSystemFailureMapper.mapFailure(failure)
@@ -185,10 +185,10 @@ class ClientController(
   ): Unit = {
     (server ? FileManagerProtocol.CreateFile(params.`object`))
       .onComplete {
-        case Success(CreateFileResult(Right(()))) =>
+        case Success(FileManagerProtocol.CreateFileResult(Right(()))) =>
           webActor ! ResponseResult(CreateFile, id, Unused)
 
-        case Success(CreateFileResult(Left(failure))) =>
+        case Success(FileManagerProtocol.CreateFileResult(Left(failure))) =>
           webActor ! ResponseError(
             Some(id),
             FileSystemFailureMapper.mapFailure(failure)
@@ -196,6 +196,28 @@ class ClientController(
 
         case Failure(th) =>
           log.error("An exception occurred during creating a file", th)
+          webActor ! ResponseError(Some(id), ServiceError)
+      }
+  }
+
+  private def deleteFile(
+    webActor: ActorRef,
+    id: Id,
+    params: DeleteFile.Params
+  ): Unit = {
+    (server ? FileManagerProtocol.DeleteFile(params.path))
+      .onComplete {
+        case Success(FileManagerProtocol.DeleteFileResult(Right(()))) =>
+          webActor ! ResponseResult(DeleteFile, id, Unused)
+
+        case Success(FileManagerProtocol.DeleteFileResult(Left(failure))) =>
+          webActor ! ResponseError(
+            Some(id),
+            FileSystemFailureMapper.mapFailure(failure)
+          )
+
+        case Failure(th) =>
+          log.error("An exception occurred during deleting a file", th)
           webActor ! ResponseError(Some(id), ServiceError)
       }
   }

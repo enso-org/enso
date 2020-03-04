@@ -42,7 +42,6 @@ abstract class WebSocketServerTest
   val interface       = "127.0.0.1"
   var address: String = _
 
-
   val testContentRoot   = Files.createTempDirectory(null)
   val testContentRootId = UUID.randomUUID()
   val config            = Config(Map(testContentRootId -> testContentRoot.toFile))

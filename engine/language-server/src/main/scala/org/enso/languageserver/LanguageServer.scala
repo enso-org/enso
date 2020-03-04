@@ -157,6 +157,14 @@ class LanguageServer(config: Config, fs: FileSystemApi[IO])
 
       sender ! CreateFileResult(result)
 
+    case DeleteFile(path) =>
+      val result =
+        for {
+          rootPath <- config.findContentRoot(path.rootId)
+          _        <- fs.delete(path.toFile(rootPath)).unsafeRunSync()
+        } yield ()
+
+      sender ! DeleteFileResult(result)
   }
   /* Note [Usage of unsafe methods]
      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

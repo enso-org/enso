@@ -190,5 +190,176 @@ class FileManagerTest extends WebSocketServerTest {
       val file = Paths.get(testContentRoot.toString, "foo1", "baz").toFile
       file.isDirectory shouldBe true
     }
+
+    "delete a file" in {
+      val client = new WsTestClient(address)
+
+      // create a file
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/create",
+            "id": 8,
+            "params": {
+              "object": {
+                "type": "File",
+                "name": "bar.txt",
+                "path": {
+                  "rootId": $testContentRootId,
+                  "segments": [ "foo1" ]
+                }
+              }
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 8,
+            "result": null
+          }
+          """)
+
+      val file = Paths.get(testContentRoot.toString, "foo1", "bar.txt").toFile
+      file.isFile shouldBe true
+
+      // delete a file
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/delete",
+            "id": 9,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "foo1", "bar.txt" ]
+              }
+            }
+          }
+      """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 9,
+            "result": null
+          }
+          """)
+
+      file.exists shouldBe false
+      file.getParentFile.isDirectory shouldBe true
+    }
+
+    "delete a directory" in {
+      val client = new WsTestClient(address)
+
+      // create a directory
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/create",
+            "id": 10,
+            "params": {
+              "object": {
+                "type": "Directory",
+                "name": "baz",
+                "path": {
+                  "rootId": $testContentRootId,
+                  "segments": [ "foo1" ]
+                }
+              }
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 10,
+            "result": null
+          }
+          """)
+
+      val file = Paths.get(testContentRoot.toString, "foo1", "baz").toFile
+      file.isDirectory shouldBe true
+
+      // delete a directory
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/delete",
+            "id": 11,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "foo1", "baz" ]
+              }
+            }
+          }
+      """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 11,
+            "result": null
+          }
+          """)
+
+      file.exists shouldBe false
+      file.getParentFile.isDirectory shouldBe true
+    }
+
+    "return FileNotFound when deleting nonexistent file" in {
+      val client = new WsTestClient(address)
+      val file   = Paths.get(testContentRoot.toString, "foo1", "bar.txt").toFile
+      file.isFile shouldBe false
+
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/delete",
+            "id": 12,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "foo1", "bar.txt" ]
+              }
+            }
+          }
+      """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 12,
+            "error": {
+              "code": 1003,
+              "message": "File not found"
+            }
+          }
+          """)
+
+      file.exists shouldBe false
+      file.getParentFile.isDirectory shouldBe true
+    }
+
+    "return FileNotFound when deleting nonexistent directory" in {
+      val client = new WsTestClient(address)
+      val file   = Paths.get(testContentRoot.toString, "foo1", "baz").toFile
+      file.isDirectory shouldBe false
+
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/delete",
+            "id": 13,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "foo1", "baz" ]
+              }
+            }
+          }
+      """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 13,
+            "error": {
+              "code": 1003,
+              "message": "File not found"
+            }
+          }
+          """)
+
+      file.exists shouldBe false
+      file.getParentFile.isDirectory shouldBe true
+    }
   }
+
 }

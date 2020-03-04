@@ -50,6 +50,25 @@ class FileSystem[F[_]: Sync] extends FileSystemApi[F] {
     }
 
   /**
+    * Deletes the specified file or directory recursively.
+    *
+    * @param file path to the file or directory
+    * @return either [[FileSystemFailure]] or Unit
+    */
+  def delete(file: File): F[Either[FileSystemFailure, Unit]] =
+    Sync[F].delay {
+      Either
+        .catchOnly[IOException] {
+          if (file.isDirectory) {
+            FileUtils.deleteDirectory(file)
+          } else {
+            Files.delete(file.toPath)
+          }
+        }
+        .leftMap(errorHandling)
+    }
+
+  /**
     * Creates an empty file with parent directory.
     *
     * @param file path to the file
@@ -95,6 +114,7 @@ class FileSystem[F[_]: Sync] extends FileSystemApi[F] {
 
   private val errorHandling: IOException => FileSystemFailure = {
     case _: FileNotFoundException => FileNotFound
+    case _: NoSuchFileException   => FileNotFound
     case _: AccessDeniedException => AccessDenied
     case ex                       => GenericFileSystemFailure(ex.getMessage)
   }

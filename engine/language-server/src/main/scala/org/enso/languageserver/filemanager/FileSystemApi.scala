@@ -30,6 +30,14 @@ trait FileSystemApi[F[_]] {
   def read(file: File): F[Either[FileSystemFailure, String]]
 
   /**
+    * Deletes the specified file or directory recursively.
+    *
+    * @param file path to the file or directory
+    * @return either [[FileSystemFailure]] or Unit
+    */
+  def delete(file: File): F[Either[FileSystemFailure, Unit]]
+
+  /**
     * Creates an empty file with parent directory.
     *
     * @param file path to the file

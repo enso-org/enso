@@ -89,11 +89,66 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
     path.toFile.isFile shouldBe true
   }
 
+  it should "delete a file" in new TestCtx {
+    //given
+    val path = Paths.get(testDirPath.toString, "foo", "bar.txt")
+    createEmptyFile(path)
+    path.toFile.isFile shouldBe true
+    //when
+    val result = objectUnderTest.delete(path.toFile).unsafeRunSync()
+    //then
+    result shouldBe Right(())
+    path.toFile.exists shouldBe false
+    path.toFile.getParentFile.isDirectory shouldBe true
+  }
+
+  it should "delete a directory recursively" in new TestCtx {
+    //given
+    val path = Paths.get(testDirPath.toString, "foo", "bar.txt")
+    createEmptyFile(path)
+    path.toFile.isFile shouldBe true
+    //when
+    val result =
+      objectUnderTest.delete(path.toFile.getParentFile).unsafeRunSync()
+    //then
+    result shouldBe Right(())
+    path.toFile.exists shouldBe false
+    path.toFile.getParentFile.exists shouldBe false
+  }
+
+  it should "return NotFoundError when deleting nonexistent file" in new TestCtx {
+    //given
+    val path = Paths.get(testDirPath.toString, "foo", "bar.txt")
+    //when
+    val result = objectUnderTest.delete(path.toFile).unsafeRunSync()
+    //then
+    result shouldBe Left(FileNotFound)
+    path.toFile.exists shouldBe false
+    path.toFile.getParentFile.exists shouldBe false
+  }
+
+  it should "return NotFoundError when deleting nonexistent directory" in new TestCtx {
+    //given
+    val path = Paths.get(testDirPath.toString, "foo", "bar.txt")
+    //when
+    val result =
+      objectUnderTest.delete(path.toFile.getParentFile).unsafeRunSync()
+    //then
+    result shouldBe Left(FileNotFound)
+    path.toFile.exists shouldBe false
+    path.toFile.getParentFile.exists shouldBe false
+  }
+
   def readTxtFile(path: Path): String = {
     val buffer  = Source.fromFile(path.toFile)
     val content = buffer.getLines().mkString
     buffer.close()
     content
+  }
+
+  def createEmptyFile(path: Path): Path = {
+    Files.createDirectories(path.getParent())
+    Files.createFile(path)
   }
 
   trait TestCtx {
