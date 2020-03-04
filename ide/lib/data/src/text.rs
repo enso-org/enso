@@ -78,6 +78,12 @@ impl SubAssign for Size {
 #[derive(Clone,Copy,Debug,Default,PartialEq,Eq,PartialOrd,Ord,Serialize,Deserialize)]
 pub struct Span { pub index:Index, pub size:Size }
 
+impl From<(usize,usize)> for Span {
+    fn from(val:(usize, usize)) -> Span {
+        Span::new(Index::new(val.0), Size::new(val.1))
+    }
+}
+
 impl Span {
     /// Initializes Span with given values.
     pub fn new(index:Index, size:Size) -> Self {

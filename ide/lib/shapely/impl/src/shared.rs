@@ -79,7 +79,7 @@
 ///     rc: Rc<RefCell<UniformData<Value>>>
 /// }
 ///
-/// impl<Value:UniformValue> for UniformData<Value> {
+/// impl<Value:UniformValue> for Uniform<Value> {
 ///     #[doc = r###"Constructor."###]
 ///     pub fn new(value:Value) -> Self {
 ///         let rc = Rc::new(RefCell::new(UniformData::new(value)));

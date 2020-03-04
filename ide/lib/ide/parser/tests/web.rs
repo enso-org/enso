@@ -22,7 +22,7 @@ fn web_test() {
     let mut parser = Parser::new_or_panic();
 
     let mut parse = |input| {
-        let span = Span::new(default(), Size::new(5));
+        let span = Span::from((0,5));
         let ids  = IdMap(vec![(span,uuid)]);
         let ast  = parser.parse(String::from(input), ids).unwrap().wrapped;
 
@@ -33,7 +33,7 @@ fn web_test() {
     };
 
     let line = |term| {
-        ast::Module {lines: vec![ast::BlockLine {elem: term, off: 0}]}
+        ast::Module {lines: vec![ast::BlockLine {elem:term,off:0}]}
     };
 
 

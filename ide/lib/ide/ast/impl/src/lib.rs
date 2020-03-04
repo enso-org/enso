@@ -23,6 +23,12 @@ use uuid::Uuid;
 #[derive(Clone,Debug,Default,Deserialize,Eq,PartialEq,Serialize)]
 pub struct IdMap(pub Vec<(Span,ID)>);
 
+impl IdMap {
+    pub fn insert(&mut self, span:Span, id:ID) {
+        self.0.push((span, id));
+    }
+}
+
 /// A sequence of AST nodes, typically the "token soup".
 pub type Stream<T> = Vec<T>;
 
@@ -136,7 +142,7 @@ impl<T> Layer<T> for Layered<T> {
 #[derive(Eq, PartialEq, Debug, Shrinkwrap)]
 #[shrinkwrap(mutable)]
 pub struct Ast {
-    pub wrapped: Rc<WithID<WithSpan<Shape<Ast>>>>
+    pub wrapped: Rc<WithID<WithLength<Shape<Ast>>>>
 }
 
 impl Clone for Ast {
@@ -159,20 +165,20 @@ impl Ast {
         self
     }
 
-    /// Wraps given shape with an optional ID into Ast. Span will ba
-    /// automatically calculated based on Shape.
-    pub fn new<S: Into<Shape<Ast>>>(shape: S, id: Option<ID>) -> Ast {
+    /// Wraps given shape with an optional ID into Ast.
+    /// Length will ba automatically calculated based on Shape.
+    pub fn new<S:Into<Shape<Ast>>>(shape:S, id:Option<ID>) -> Ast {
         let shape: Shape<Ast> = shape.into();
-        let span = shape.span();
-        Ast::new_with_span(shape, id, span)
+        let length = shape.len();
+        Ast::new_with_length(shape,id,length)
     }
 
-    /// As `new` but sets given declared span for the shape.
-    pub fn new_with_span<S: Into<Shape<Ast>>>
-    (shape: S, id: Option<ID>, span: usize) -> Ast {
-        let shape     = shape.into();
-        let with_span = WithSpan { wrapped: shape,     span };
-        let with_id   = WithID   { wrapped: with_span, id   };
+    /// As `new` but sets given declared length for the shape.
+    pub fn new_with_length<S:Into<Shape<Ast>>>
+    (shape:S, id:Option<ID>, len:usize) -> Ast {
+        let shape       = shape.into();
+        let with_length = WithLength { wrapped:shape      , len };
+        let with_id     = WithID     { wrapped:with_length, id  };
         Ast { wrapped: Rc::new(with_id) }
     }
 
@@ -182,24 +188,12 @@ impl Ast {
     }
 }
 
-impl HasSpan for Ast {
-    fn span(&self) -> usize {
-        self.wrapped.span()
-    }
-}
-
-impl HasRepr for Ast {
-    fn write_repr(&self, target:&mut String) {
-        self.wrapped.write_repr(target);
-    }
-}
-
 /// Fills `id` with `None` by default.
-impl<T: Into<Shape<Ast>>>
+impl<T:Into<Shape<Ast>>>
 From<T> for Ast {
-    fn from(t: T) -> Self {
+    fn from(t:T) -> Self {
         let id = None;
-        Ast::new(t, id)
+        Ast::new(t,id)
     }
 }
 
@@ -211,8 +205,8 @@ pub mod ast_schema {
     pub const STRUCT_NAME: &str      = "Ast";
     pub const SHAPE:       &str      = "shape";
     pub const ID:          &str      = "id";
-    pub const SPAN:        &str      = "span";
-    pub const FIELDS:      [&str; 3] = [SHAPE, ID, SPAN];
+    pub const LENGTH:      &str      = "span"; // scala parser is still using `span`
+    pub const FIELDS:      [&str; 3] = [SHAPE, ID, LENGTH];
     pub const COUNT:       usize     = FIELDS.len();
 }
 
@@ -225,7 +219,7 @@ impl Serialize for Ast {
         if self.id.is_some() {
             state.serialize_field(ID, &self.id)?;
         }
-        state.serialize_field(SPAN,  &self.span)?;
+        state.serialize_field(LENGTH, &self.len)?;
         state.end()
     }
 }
@@ -239,7 +233,7 @@ impl<'de> Visitor<'de> for AstDeserializationVisitor {
     fn expecting
     (&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
         use ast_schema::*;
-        write!(formatter, "an object with `{}` and `{}` fields", SHAPE, SPAN)
+        write!(formatter, "an object with `{}` and `{}` fields", SHAPE, LENGTH)
     }
 
     fn visit_map<A>
@@ -249,21 +243,21 @@ impl<'de> Visitor<'de> for AstDeserializationVisitor {
 
         let mut shape: Option<Shape<Ast>> = None;
         let mut id:    Option<Option<ID>> = None;
-        let mut span:  Option<usize>      = None;
+        let mut len:   Option<usize>      = None;
 
         while let Some(key) = map.next_key()? {
             match key {
-                SHAPE => shape = Some(map.next_value()?),
-                ID    => id    = Some(map.next_value()?),
-                SPAN  => span  = Some(map.next_value()?),
-                _     => {},
+                SHAPE  => shape = Some(map.next_value()?),
+                ID     => id    = Some(map.next_value()?),
+                LENGTH => len   = Some(map.next_value()?),
+                _      => {},
             }
         }
 
         let shape = shape.ok_or_else(|| serde::de::Error::missing_field(SHAPE))?;
         let id    = id.unwrap_or(None); // allow missing `id` field
-        let span  = span.ok_or_else(|| serde::de::Error::missing_field(SPAN))?;
-        Ok(Ast::new_with_span(shape,id,span))
+        let len   = len.ok_or_else(|| serde::de::Error::missing_field(LENGTH))?;
+        Ok(Ast::new_with_length(shape,id,len))
     }
 }
 
@@ -286,7 +280,7 @@ impl<'de> Deserialize<'de> for Ast {
 ///
 /// Shape describes names of children and spacing between them.
 #[ast(flat)]
-#[derive(HasRepr)]
+#[derive(HasTokens)]
 pub enum Shape<T> {
     Unrecognized  { str : String   },
     InvalidQuote  { quote: Builder },
@@ -354,7 +348,7 @@ pub enum Shape<T> {
 // ===============
 
 #[ast(flat)]
-#[derive(HasRepr)]
+#[derive(HasTokens)]
 pub enum Builder {
     Empty,
     Letter{char: char},
@@ -377,7 +371,7 @@ pub enum Builder {
 }
 
 #[ast(flat)]
-#[derive(HasRepr)]
+#[derive(HasTokens)]
 pub enum TextLine<T> {
     TextLineRaw(TextLineRaw),
     TextLineFmt(TextLineFmt<T>),
@@ -386,14 +380,14 @@ pub enum TextLine<T> {
 
 // === Text Segments ===
 #[ast(flat)]
-#[derive(HasRepr)]
+#[derive(HasTokens)]
 pub enum SegmentRaw {
     SegmentPlain    (SegmentPlain),
     SegmentRawEscape(SegmentRawEscape),
 }
 
 #[ast(flat)]
-#[derive(HasRepr)]
+#[derive(HasTokens)]
 pub enum SegmentFmt<T> {
     SegmentPlain    (SegmentPlain    ),
     SegmentRawEscape(SegmentRawEscape),
@@ -410,7 +404,7 @@ pub enum SegmentFmt<T> {
 // === Text Segment Escapes ===
 
 #[ast(flat)]
-#[derive(HasRepr)]
+#[derive(HasTokens)]
 pub enum RawEscape {
     Unfinished { },
     Invalid    { str: char },
@@ -420,7 +414,7 @@ pub enum RawEscape {
 }
 
 #[ast]
-#[derive(HasRepr)]
+#[derive(HasTokens)]
 pub enum Escape {
     Character{c     :char            },
     Control  {name  :String, code: u8},
@@ -515,7 +509,7 @@ impl<T> Switch<T> {
 pub type MacroPatternMatch<T> = Rc<MacroPatternMatchRaw<T>>;
 
 #[ast]
-#[derive(HasRepr)]
+#[derive(HasTokens)]
 pub enum MacroPatternMatchRaw<T> {
     // === Boundary Matches ===
     Begin   { pat: MacroPatternRawBegin },
@@ -588,75 +582,166 @@ pub enum MacroPatternMatchRaw<T> {
 // === AST ===
 // ===========
 
-// === HasSpan ===
 
-/// Things that can be asked about their span.
-pub trait HasSpan {
+// === Tokenizer ===
+
+/// An enum of valid Ast tokens.
+#[derive(Debug)]
+pub enum Token<'a> { Off(usize), Chr(char), Str(&'a str), Ast(&'a Ast) }
+
+/// Things that can be turned into stream of tokens.
+pub trait HasTokens {
+    /// Feeds TokenBuilder with stream of tokens obtained from `self`.
+    fn feed_to(&self, consumer:&mut impl TokenConsumer);
+}
+
+/// Helper trait for Tokenizer, which consumes the token stream.
+pub trait TokenConsumer {
+    /// consumes one token
+    fn feed(&mut self, val:Token);
+}
+
+
+impl HasTokens for &str {
+    fn feed_to(&self, consumer:&mut impl TokenConsumer) {
+        consumer.feed(Token::Str(self));
+    }
+}
+
+impl HasTokens for String {
+    fn feed_to(&self, consumer:&mut impl TokenConsumer) {
+        consumer.feed(Token::Str(self.as_str()));
+    }
+}
+
+impl HasTokens for usize {
+    fn feed_to(&self, consumer:&mut impl TokenConsumer) {
+        consumer.feed(Token::Off(*self));
+    }
+}
+
+impl HasTokens for char {
+    fn feed_to(&self, consumer:&mut impl TokenConsumer) {
+        consumer.feed(Token::Chr(*self));
+    }
+}
+
+impl HasTokens for Ast {
+    fn feed_to(&self, consumer:&mut impl TokenConsumer) {
+        consumer.feed(Token::Ast(self));
+    }
+}
+
+impl<T:HasTokens> HasTokens for Option<T> {
+    fn feed_to(&self, consumer:&mut impl TokenConsumer) {
+        for t in self { t.feed_to(consumer); }
+    }
+}
+
+impl<T:HasTokens> HasTokens for Vec<T> {
+    fn feed_to(&self, consumer:&mut impl TokenConsumer) {
+        for t in self { t.feed_to(consumer); }
+    }
+}
+
+impl<T:HasTokens> HasTokens for Rc<T> {
+    fn feed_to(&self, consumer:&mut impl TokenConsumer) {
+        self.content().feed_to(consumer);
+    }
+}
+
+impl<T:HasTokens> HasTokens for &T {
+    fn feed_to(&self, consumer:&mut impl TokenConsumer) {
+        self.deref().feed_to(consumer);
+    }
+}
+
+impl<T:HasTokens,U:HasTokens> HasTokens for (T,U) {
+    fn feed_to(&self, consumer:&mut impl TokenConsumer) {
+        self.0.feed_to(consumer);
+        self.1.feed_to(consumer);
+    }
+}
+impl<T:HasTokens,U:HasTokens,V:HasTokens> HasTokens for (T,U,V) {
+    fn feed_to(&self, consumer:&mut impl TokenConsumer) {
+        self.0.feed_to(consumer);
+        self.1.feed_to(consumer);
+        self.2.feed_to(consumer);
+    }
+}
+
+
+// === HasIdMap ===
+
+/// Things that have IdMap.
+pub trait HasIdMap {
+    /// Extracts IdMap from `self`.
+    fn id_map(&self) -> IdMap;
+}
+
+#[derive(Debug,Clone,Default)]
+struct IdMapBuilder { id_map:IdMap, offset:usize }
+
+impl TokenConsumer for IdMapBuilder {
+    fn feed(&mut self, token:Token) {
+        match token {
+            Token::Off(val) => self.offset += val,
+            Token::Chr( _ ) => self.offset += 1,
+            Token::Str(val) => self.offset += val.len(),
+            Token::Ast(val) => {
+                let begin = self.offset;
+                val.shape().feed_to(self);
+                if let Some(id) = val.id {
+                    let span = Span::from((begin, self.offset));
+                    self.id_map.insert(span, id);
+                }
+            }
+        }
+    }
+}
+
+impl<T:HasTokens> HasIdMap for T {
+    fn id_map(&self) -> IdMap {
+        let mut consumer = IdMapBuilder::default();
+        self.feed_to(&mut consumer);
+        consumer.id_map
+    }
+}
+
+
+// === HasLength ===
+
+/// Things that can be asked about their length.
+pub trait HasLength {
     /// Length of the textual representation of This type in Unicode codepoints.
     ///
-    /// Usually implemented together with `HasSpan`.For any `T:HasSpan+HasRepr`
-    /// for `t:T` the following must hold: `t.span() == t.repr().len()`.
-    fn span(&self) -> usize;
+    /// Usually implemented together with `HasRepr`.For any `T:HasLength+HasRepr`
+    /// for `t:T` the following must hold: `t.len() == t.repr().len()`.
+    fn len(&self) -> usize;
+
+    /// More efficient implementation of `t.len() == 0`
+    fn is_empty(&self) -> bool { self.len() == 0 }
 }
 
-/// Counts codepoints.
-impl HasSpan for char {
-    fn span(&self) -> usize {
-        1
-    }
-}
+#[derive(Debug,Clone,Copy,Default)]
+struct LengthBuilder { length:usize }
 
-/// Counts codepoints.
-impl HasSpan for String {
-    fn span(&self) -> usize {
-        self.as_str().span()
-    }
-}
-
-/// Counts codepoints.
-impl HasSpan for &str {
-    fn span(&self) -> usize {
-        self.chars().count()
+impl TokenConsumer for LengthBuilder {
+    fn feed(&mut self, token:Token) {
+        match token {
+            Token::Off(val) => self.length += val,
+            Token::Chr( _ ) => self.length += 1,
+            Token::Str(val) => self.length += val.len(),
+            Token::Ast(val) => val.shape().feed_to(self),
+        }
     }
 }
 
-impl<T: HasSpan> HasSpan for Option<T> {
-    fn span(&self) -> usize {
-        self.as_ref().map_or(0, |wrapped| wrapped.span())
-    }
-}
-
-impl<T: HasSpan> HasSpan for Vec<T> {
-    fn span(&self) -> usize {
-        let spans = self.iter().map(|elem| elem.span());
-        spans.sum()
-    }
-}
-
-impl<T: HasSpan> HasSpan for Rc<T> {
-    fn span(&self) -> usize {
-        self.deref().span()
-    }
-}
-
-impl<T: HasSpan, U: HasSpan> HasSpan for (T,U) {
-    fn span(&self) -> usize {
-        self.0.span() + self.1.span()
-    }
-}
-impl<T: HasSpan, U: HasSpan, V: HasSpan> HasSpan for (T,U,V) {
-    fn span(&self) -> usize {
-        self.0.span() + self.1.span() + self.2.span()
-    }
-}
-impl HasSpan for usize {
-    fn span(&self) -> usize {
-        *self
-    }
-}
-impl<T: HasSpan> HasSpan for &T {
-    fn span(&self) -> usize {
-        self.deref().span()
+impl<T:HasTokens> HasLength for T {
+    fn len(&self) -> usize {
+        let mut consumer = LengthBuilder::default();
+        self.feed_to(&mut consumer);
+        consumer.length
     }
 }
 
@@ -665,81 +750,31 @@ impl<T: HasSpan> HasSpan for &T {
 
 /// Things that can be asked about their textual representation.
 ///
-/// See also `HasSpan`.
+/// See also `HasLength`.
 pub trait HasRepr {
     /// Obtain the text representation for the This type.
+    fn repr(&self) -> String;
+}
+
+#[derive(Debug,Clone,Default)]
+struct ReprBuilder { repr:String }
+
+impl TokenConsumer for ReprBuilder {
+    fn feed(&mut self, token:Token) {
+        match token {
+            Token::Off(val) => self.repr.push_str(&" ".repeat(val)),
+            Token::Chr(val) => self.repr.push(val),
+            Token::Str(val) => self.repr.push_str(val),
+            Token::Ast(val) => val.shape().feed_to(self),
+        }
+    }
+}
+
+impl<T:HasTokens> HasRepr for T {
     fn repr(&self) -> String {
-        let mut acc = String::new();
-        self.write_repr(&mut acc);
-        acc
-    }
-
-    fn write_repr(&self, target:&mut String);
-}
-
-impl HasRepr for char {
-    fn write_repr(&self, target:&mut String) {
-        target.push(*self);
-    }
-}
-
-impl HasRepr for String {
-    fn write_repr(&self, target:&mut String) {
-        target.push_str(self);
-    }
-}
-
-impl HasRepr for &str {
-    fn write_repr(&self, target:&mut String) {
-        target.push_str(self);
-    }
-}
-
-impl<T: HasRepr> HasRepr for Option<T> {
-    fn write_repr(&self, target:&mut String) {
-        for el in self.iter() {
-            el.write_repr(target)
-        }
-    }
-}
-
-impl<T: HasRepr> HasRepr for Vec<T> {
-    fn write_repr(&self, target:&mut String) {
-        for el in self.iter() {
-            el.write_repr(target)
-        }
-    }
-}
-impl<T: HasRepr> HasRepr for Rc<T> {
-    fn write_repr(&self, target:&mut String) {
-        self.deref().write_repr(target)
-    }
-}
-
-impl<T: HasRepr, U: HasRepr> HasRepr for (T,U) {
-    fn write_repr(&self, target:&mut String) {
-        self.0.write_repr(target);
-        self.1.write_repr(target);
-    }
-}
-
-impl<T: HasRepr, U: HasRepr, V: HasRepr> HasRepr for (T,U,V) {
-    fn write_repr(&self, target:&mut String) {
-        self.0.write_repr(target);
-        self.1.write_repr(target);
-        self.2.write_repr(target);
-    }
-}
-
-impl HasRepr for usize {
-    fn write_repr(&self, target:&mut String) {
-        target.push_str(&" ".repeat(*self));
-    }
-}
-
-impl<T: HasRepr> HasRepr for &T {
-    fn write_repr(&self, target:&mut String) {
-        self.deref().write_repr(target)
+        let mut consumer = ReprBuilder::default();
+        self.feed_to(&mut consumer);
+        consumer.repr
     }
 }
 
@@ -775,42 +810,42 @@ Layer<T> for WithID<S> {
     }
 }
 
-impl<T> HasSpan for WithID<T>
-where T: HasSpan {
-    fn span(&self) -> usize {
-        self.deref().span()
+impl<T> HasLength for WithID<T>
+where T:HasLength {
+    fn len(&self) -> usize {
+        self.deref().len()
     }
 }
 
 
-// === WithSpan ===
+// === WithLength ===
 
-/// Stores a value of type `T` and information about its span.
+/// Stores a value of type `T` and information about its length.
 ///
-/// Even if `T` is `Spanned`, keeping `span` variable is desired for performance
+/// Even if `T` is `Spanned`, keeping `length` variable is desired for performance
 /// purposes.
 #[derive(Eq, PartialEq, Debug, Shrinkwrap, Serialize, Deserialize)]
 #[shrinkwrap(mutable)]
-pub struct WithSpan<T> {
+pub struct WithLength<T> {
     #[shrinkwrap(main_field)]
     #[serde(flatten)]
     pub wrapped: T,
-    pub span: usize
+    pub len: usize
 }
 
-impl<T> HasSpan for WithSpan<T> {
-    fn span(&self) -> usize { self.span }
+impl<T> HasLength for WithLength<T> {
+    fn len(&self) -> usize { self.len }
 }
 
-impl<T, S> Layer<T> for WithSpan<S>
-where T: HasSpan + Into<S> {
+impl<T, S> Layer<T> for WithLength<S>
+where T: HasLength + Into<S> {
     fn layered(t: T) -> Self {
-        let span = t.span();
-        WithSpan { wrapped: t.into(), span }
+        let length = t.len();
+        WithLength { wrapped: t.into(), len: length }
     }
 }
 
-impl<T> HasID for WithSpan<T>
+impl<T> HasID for WithLength<T>
     where T: HasID {
     fn id(&self) -> Option<ID> {
         self.deref().id()
@@ -1004,13 +1039,36 @@ mod tests {
     }
 
     #[test]
+    fn ast_length() {
+        let ast = Ast::prefix(Ast::var("XX"), Ast::var("YY"));
+        assert_eq!(ast.len(), 5)
+    }
+
+    #[test]
+    fn ast_repr() {
+        let ast = Ast::prefix(Ast::var("XX"), Ast::var("YY"));
+        assert_eq!(ast.repr().as_str(), "XX YY")
+    }
+
+    #[test]
+    fn ast_id_map() {
+        let span = |ix,length| Span::from((ix,length));
+        let uid  = default();
+        let ids  = vec![(span(0,2),uid), (span(3,5),uid), (span(0,5),uid)];
+        let func = Ast::new(Var    {name:"XX".into()}, Some(uid));
+        let arg  = Ast::new(Var    {name:"YY".into()}, Some(uid));
+        let ast  = Ast::new(Prefix {func,off:1,arg  }, Some(uid));
+        assert_eq!(ast.id_map(), IdMap(ids));
+    }
+
+    #[test]
     fn ast_wrapping() {
-        // We can convert `Var` into AST without worrying about span nor id.
+        // We can convert `Var` into AST without worrying about length nor id.
         let ident = "foo".to_string();
         let v     = Var{ name: ident.clone() };
         let ast   = Ast::from(v);
         assert_eq!(ast.wrapped.id, None);
-        assert_eq!(ast.wrapped.wrapped.span, ident.span());
+        assert_eq!(ast.wrapped.wrapped.len, ident.len());
     }
 
     #[test]
@@ -1042,8 +1100,8 @@ mod tests {
         let expected_uuid = Uuid::parse_str(uuid_str).ok();
         assert_eq!(ast.id, expected_uuid);
 
-        let expected_span = 3;
-        assert_eq!(ast.span, expected_span);
+        let expected_length = 3;
+        assert_eq!(ast.len, expected_length);
 
         let expected_var   = Var { name: var_name.into() };
         let expected_shape = Shape::from(expected_var);
@@ -1055,11 +1113,11 @@ mod tests {
     fn iterating() {
         // TODO [mwu] When Repr is implemented, the below lambda sohuld be
         //            removed in favor of it.
-        let to_string = |ast:&Ast| { match ast.shape() {
+        let to_string = |ast:&Ast| match ast.shape() {
             Shape::Var(var)   => var.name   .clone(),
             Shape::Opr(opr)   => opr.name   .clone(),
             _                 => "«invalid»".to_string(),
-        }};
+        };
 
         let infix   = Ast::infix("foo", "+", "bar");
         let strings = infix.iter().map(to_string);
