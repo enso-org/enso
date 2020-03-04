@@ -48,8 +48,8 @@ fn assert_opr<StringLike:Into<String>>(ast:&Ast, name:StringLike) {
 /// spans we calculate.
 fn validate_spans(ast:&Ast) {
     for node in ast.iter_recursive() {
-        let calculated = node.shape().span();
-        let declared   = node.wrapped.wrapped.span;
+        let calculated = node.shape().len();
+        let declared   = node.wrapped.wrapped.len;
         assert_eq!(calculated, declared
                   , "`{}` part of `{}`", node.repr(), ast.repr());
     }
@@ -134,7 +134,7 @@ impl Fixture {
     fn parse(&mut self, program:&str) -> Ast {
         println!("parsing {}", program);
         let ast = self.0.parse(program.into(), default()).unwrap();
-        assert_eq!(ast.shape().span(), program.len());
+        assert_eq!(ast.shape().len(), program.len());
         validate_spans(&ast);
         assert_eq!(ast.repr(), program, "{:?}", ast);
         ast
