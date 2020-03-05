@@ -22,19 +22,17 @@ Usage: run command [options]
 Please note that all arguments after '--' will be passed to sub-commands.
 
 Commands:
-    help         Print this help message.
-    clean        Clean all build artifacts.
-    check        Fast check if project builds (only Rust target).
-    build        Build the sources.
-    dist         Build the sources and create distribution packages.
-    watch        Start a file-watch utility and run interactive mode.
+    help     Print this help message.
+    clean    Clean all build artifacts.
+    check    Fast check if project builds (only Rust target).
+    build    Build the sources.
+    dist     Build the sources and create distribution packages.
+    watch    Start a file-watch utility and run interactive mode.
 
 Options:
-    --help       Print this help message
-    --only-rust  Run the Rust target only.
-    --only-js    Run the js target only.
-    --no-rust    Do not run the Rust target.
-    --no-js      Do not run the JavaScript target.
+    --help   Print this help message
+    --js     Run the JavaScript target [true].
+    --rust   Run the Rust target [true].
 `
 
 function print_help () {
@@ -44,7 +42,7 @@ function print_help () {
 
 function validate_options() {
     let args_check = Object.assign({},argv)
-    for (arg of ['_','--','validation','help','only-rust','only-js','rust','js']) {
+    for (arg of ['_','--','validation','help','rust','js']) {
         delete args_check[arg]
     }
 
@@ -72,6 +70,11 @@ async function copy(src,tgt) {
     })
 }
 
+/// Run the command with the provided args and all args passed to this script after the `--` symbol.
+async function run(command,args) {
+    await cmd.run(command,args.concat(child_argv))
+}
+
 
 
 // =============
@@ -80,14 +83,14 @@ async function copy(src,tgt) {
 
 async function clean_js () {
     await cmd.with_cwd('app', async () => {
-        await cmd.run('npm',['run','clean'].concat(child_argv))
+        await run('npm',['run','clean'])
     })
     try { await fs.unlink('.initialized') } catch {}
 }
 
 async function clean_rust () {
     try { await fs.rmdir('app/generated') } catch {}
-    // TODO finish
+    await run('cargo',['clean'])
 }
 
 
@@ -97,7 +100,7 @@ async function clean_rust () {
 // =============
 
 async function check_rust() {
-    await cmd.run('cargo',['check'].concat(child_argv))
+    await run('cargo',['check'])
 }
 
 async function check_js() {}
@@ -111,13 +114,13 @@ async function check_js() {}
 async function build_js () {
     console.log(`Building JS target.`)
     await cmd.with_cwd('app', async () => {
-        await cmd.run('npm',['run','build'].concat(child_argv))
+        await run('npm',['run','build'])
     })
 }
 
 async function build_rust () {
     console.log(`Building WASM target.`)
-    await cmd.run('wasm-pack',['build','--target','web','--no-typescript','--out-dir','../../target/web','lib/gui'].concat(child_argv))
+    await run('wasm-pack',['build','--target','web','--no-typescript','--out-dir','../../target/web','lib/gui'])
     await patch_file('target/web/gui.js', js_workaround_patcher)
     await fs.rename('target/web/gui_bg.wasm','target/web/gui.wasm')
 
@@ -151,7 +154,7 @@ async function patch_file(path,patcher) {
 // ============
 
 async function lint_rust() {
-    await cmd.run('cargo',['clippy','--','-D','warnings'].concat(child_argv))
+    await run('cargo',['clippy','--','-D','warnings'])
 }
 
 async function lint_js() {}
@@ -170,7 +173,7 @@ async function watch_rust () {
 
 async function watch_js () {
     await cmd.with_cwd('app', async () => {
-        await cmd.run('npm',['run','watch'].concat(child_argv))
+        await run('npm',['run','watch'])
     })
 }
 
@@ -186,7 +189,7 @@ async function dist_rust () {
 
 async function dist_js () {
     await cmd.with_cwd('app', async () => {
-        await cmd.run('npm',['run','dist'].concat(child_argv))
+        await run('npm',['run','dist'])
     })
 }
 
@@ -199,8 +202,8 @@ async function dist_js () {
 async function main () {
     let command = argv._[0]
 
-    let do_rust = ((argv.rust) || (argv.rust == undefined)) && (!argv['only-js'])
-    let do_js   = ((argv.js)   || (argv.js   == undefined)) && (!argv['only-rust'])
+    let do_rust = (argv.rust == true) || (argv.rust == undefined)
+    let do_js   = (argv.js   == true) || (argv.js   == undefined)
 
     if (command == 'clean') {
         cmd.section('Cleaning')

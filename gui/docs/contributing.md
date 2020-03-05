@@ -22,8 +22,7 @@ need the following setup:
   changes are known to cause serious issues, thus **we provide support for the latest LTS version only.
   Please do not report build issues if you use other versions.** In case you run run MacOS or Linux 
   the easiest way to setup the proper version is by installing the 
-  [Node Version Manager](https://github.com/nvm-sh/nvm) and running `nvm use` in the root of 
-  this codebase.
+  [Node Version Manager](https://github.com/nvm-sh/nvm) and running `nvm use --lts`.
 
 <br/>
 <br/>

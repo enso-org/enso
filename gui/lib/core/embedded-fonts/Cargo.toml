@@ -13,5 +13,5 @@ crate-type = ["cdylib", "rlib"]
 enso-prelude           = { version = "0.1.0", path="../../prelude"}
 
 [build-dependencies]
-basegl-build-utilities = { version = "0.1.0", path="../../../build-utilities" }
+basegl-build-utilities = { version = "0.1.0", path="../../../build/utilities" }
 zip          = "0.5"

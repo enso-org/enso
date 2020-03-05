@@ -17,6 +17,3 @@ wasm-pack.log
 
 # JavaScript
 node_modules
-
-# Markers
-.initialized
