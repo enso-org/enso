@@ -2,7 +2,7 @@
 
 echoerr() { echo "$@" 1>&2; }
 
-current_size=$(./script/minimize_wasm.sh)
+current_size=$(./build/minimize_wasm.sh)
 current_size_len=$((${#current_size} - 1))
 current_size="${current_size:0:current_size_len}"
 

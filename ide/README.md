@@ -1,86 +1,77 @@
-[![License](https://img.shields.io/static/v1?label=License&message=MIT&color=2ec352&labelColor=2c3239)](https://github.com/luna/basegl/blob/master/LICENSE) 
-[![Actions Status](https://github.com/luna/basegl/workflows/Build%20%28MacOS%2C%20Linux%2C%20Windows%29/badge.svg)](https://github.com/luna/basegl/actions)
-[![Coverage](https://img.shields.io/codecov/c/github/luna/basegl?label=Coverage&labelColor=2c3239)](https://codecov.io/gh/luna/basegl/branch/master) 
-![Stability](https://img.shields.io/static/v1?label=Stability&message=Unstable&color=d52229&labelColor=2c3239)
-
-# BaseGL
-
-BaseGL is a blazing fast 2D vector rendering engine with a rich set of
-primitives and a GUI component library. It is able to display millions of shapes
-60 frames per second in a web browser on a modern laptop hardware. 
-
-This repository is a work in progress of BaseGL 2.0. Please refer to BaseGL 1.0
-repository for more information: https://github.com/luna/basegl-old.
-
-
-## Development
-
-### The Rust toolchain 
-This project uses several features available only in the nightly Rust toolchain.
-To setup the toolchain, please use the [the Rust toolchain
-installer](https://rustup.rs/):
-
-```bash
-rustup toolchain install nightly-2019-11-04 # Install the nightly channel.
-rustup default nightly                      # Set it as the default one.
-rustup component add clippy                 # Install the linter.
-```
-
-### Building the sources
-Please use the `script/build.sh` script to build the project or the
-`script/watch.sh` script to run a file watch utility which will build the
-project on every source change. The scripts are thin wrappers for
-[wasm-pack](https://github.com/rustwasm/wasm-pack) and accept the same [command
-line arguments](https://rustwasm.github.io/wasm-pack/book/commands/build.html).
-In particular, you can provide them with `--release`, `--dev`, or `--profile`
-flags to switch the compilation profile. If not option is provided, the scripts
-default to the `--release` profile.
-
-### Running application and examples
-For best experience, it is recommended to use the 
-`scripts/watch.sh --dev` in a second shell. In order to build the IDE application, 
-follow the steps below:
-
-```bash
-cd app
-npm install
-npm run start 
-```
-
-You can now navigate to http://localhost:8080 and play with it! The example
-scenes will be available at http://localhost:8080/debug.
-
-While Webpack provides handy utilities for development, like live-reloading on
-sources change, it also adds some runtime overhead. In order to run the compiled
-examples using a lightweight http-server (without live-reloading functionality),
-please use the `npm run prod-server` command.
-
-**Please remember to disable the cache in your browser during development!**
-
-### Minimizing the WASM binary size.
-After building the project you can use the `scripts/minimize_wasm.sh` to optimize 
-the binary and compress it by using `gzip`. After the script is complete, the
-final size is printed to stdout. Please note that in order to run the script, the
-[Binaryen](https://github.com/WebAssembly/binaryen) toolkit has to be installed
-on your system.
-
-### Running tests
-The sources use both unit tests and web test, which are run in a browser and
-produce visual results. To run them, use the `scripts/test.sh` script and follow
-the output in the terminal.
+<p align="center">
+  <br/>
+  <a href="http://luna-lang.org">
+      <img 
+          src="https://user-images.githubusercontent.com/1623053/75657359-50c92300-5c66-11ea-9cb8-61da8ee34df1.png" 
+          alt="Enso Studio" 
+          width="128"
+      />
+  </a>
+  <br/>
+  <br/>
+  <a href="http://luna-lang.org">
+      <img 
+          src="https://user-images.githubusercontent.com/1623053/75661125-05664300-5c6d-11ea-9bd3-8a5355db9609.png" 
+          alt="Enso Language" 
+          width="240"
+      />
+  </a>
+  <br/>
+  <br/>
+  <br/>
+</p>
 
 
-### Working with the source code
+### Overview
 
-#### Formatting
-Please note that this codebase does not use `rustfmt`. Please read the following
-documents to learn more about reasons behind this decision and the recommended
-code style guide. Be sure to carefully read the documents before contributing to
-this repository:
-- [Rust style guide 1](https://github.com/luna/basegl/blob/master/docs/style-guide.md)
-- [Rust style guide 2](https://github.com/luna/enso/blob/master/doc/rust-style-guide.md) 
+<p>
+  <a href="https://github.com/luna/basegl/blob/master/LICENSE">
+    <img src="https://img.shields.io/static/v1?label=License&message=MIT&color=2ec352&labelColor=2c3239"
+         alt="License">
+  </a>
+  <a href="https://github.com/luna/basegl/actions">
+    <img src="https://github.com/luna/basegl/workflows/Build%20%28MacOS%2C%20Linux%2C%20Windows%29/badge.svg"
+         alt="Actions Status">
+  </a>
+  <a href="https://codecov.io/gh/luna/basegl/branch/master">
+    <img src="https://img.shields.io/codecov/c/github/luna/basegl?label=Coverage&labelColor=2c3239"
+         alt="Coverage">
+  </a>
+  <a>
+    <img src="https://img.shields.io/static/v1?label=Stability&message=Unstable&color=d52229&labelColor=2c3239"
+         alt="Stability">
+  </a>
+</p>
 
+Enso is a visual data science language selected by Singularity University and NASA as one of 20 most 
+unique technologies worldwide.
 
-#### Linting 
-Please be sure to fix all errors reported by `scripts/lint.sh` before creating a
-pull request to this repository.
+<br/>
+
+### Getting Started
+
+[Download a pre-build package for MacOS, Windows, or Linux](https://github.com/luna/ide/releases), 
+see the [demo scenes](http://TODO), and read the 
+[documentation](http://TODO).
+
+<br/>
+
+### Contributing
+
+Enso language is a community-driven open source project which is and will always be open and free to 
+use. We are committed to a fully transparent development process and highly appreciate every 
+contribution. If you love the vision behind Enso and you want to redefine the data processing world, 
+join us and help us track down bugs, implement new features, improve the documentation or spread the 
+word! Join our community on a [Discord chat](http://chat.luna-lang.org) and read the 
+[development and contributing guidelines](https://github.com/luna/ide/docs/contributing.md).
+
+<br/>
+
+### License
+
+The Enso Language Compiler is released under the terms of the [Apache v2 License](). The Enso 
+Graphical Interface and it's rendering engine are released under the terms of the [AGPL License](). 
+This license set was choosen to both provide you with a complete freedom to use Enso, create 
+libraries, and release them under any license of your choice, while also allowing us to release 
+commercial products on top of the platform, including Enso Cloud and Enso Enterprise on-premise 
+server managers. 

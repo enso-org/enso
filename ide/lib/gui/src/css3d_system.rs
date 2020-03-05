@@ -23,7 +23,7 @@ use wasm_bindgen::prelude::*;
 pub fn run_example_css3d_system() {
     web::forward_panic_hook_to_console();
     web::set_stdout();
-    init(WorldData::new(&web::body()));
+    init(WorldData::new(&web::get_html_element_by_id("root").unwrap()));
 }
 
 fn init(world:World) {

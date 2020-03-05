@@ -1,0 +1,24 @@
+{
+  "name": "enso-studio-icons",
+  "version": "1.0.0",
+  "author": {
+    "name": "Enso Team",
+    "email": "contact@luna-lang.org"
+  },
+  "homepage": "https://github.com/luna/basegl",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:luna/basegl.git"
+  },
+  "bugs": {
+    "url": "https://github.com/luna/basegl/issues"
+  },
+  "scripts": {
+    "clean": "rm -Rf dist",
+    "build": "node src/index.js"
+  },
+  "devDependencies": {
+    "sharp": "^0.24.1",
+    "to-ico": "^1.1.5"
+  }
+}

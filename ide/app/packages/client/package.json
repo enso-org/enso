@@ -1,0 +1,82 @@
+{
+  "name": "enso-studio-client",
+  "description": "The standalone client part of the IDE.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Enso Team",
+    "email": "contact@luna-lang.org"
+  },
+  "homepage": "https://github.com/luna/basegl",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:luna/basegl.git"
+  },
+  "bugs": {
+    "url": "https://github.com/luna/basegl/issues"
+  },
+
+
+  "main": "index.js",
+  "build": {
+    "appId": "org.enso.studio",
+    "productName": "Enso Studio",
+    "copyright": "Copyright © 2020 ${author}.",
+    "mac": {
+      "icon": "dist/icons/icon.icns",
+      "category": "public.app-category.developer-tools",
+      "darkModeSupport": true,
+      "type": "distribution"
+    },
+    "win": {
+      "icon": "dist/icons/icon.ico"
+    },
+    "linux": {
+      "icon": "dist/icons/png",
+      "category": "Development"
+    },
+    "files": [
+      { "from": "dist/unpacked" , "to": "." }
+    ],
+    "fileAssociations": [
+      {
+        "ext": "enso",
+        "name": "Enso Source File",
+        "role": "Editor"
+      },
+      {
+        "ext": "enso-studio",
+        "name": "Enso Studio Project",
+        "role": "Editor"
+      }
+    ],
+    "directories": {
+      "output": "../../dist/native"
+    }
+  },
+
+
+  "dependencies": {
+    "enso-studio-content": "1.0.0",
+    "enso-studio-common": "1.0.0",
+    "enso-studio-icons": "1.0.0",
+    "copy-webpack-plugin": "^5.1.1",
+    "create-servers": "^3.1.0",
+    "electron-is-dev": "^1.1.0"
+  },
+  "devDependencies": {
+    "compression-webpack-plugin": "^3.1.0",
+    "copy-webpack-plugin": "^5.1.1",
+    "devtron": "^1.4.0",
+    "electron": "8.0.2",
+    "electron-builder": "^22.3.2"
+  },
+
+
+  "scripts": {
+    "clean": "rm -Rf dist",
+    "start": "electron dist/unpacked -- ",
+    "build": "webpack ",
+    "dist": "electron-builder",
+    "dist:crossplatform": "electron-builder --mac --win --linux"
+  }
+}

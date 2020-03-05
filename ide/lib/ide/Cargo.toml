@@ -30,7 +30,7 @@ js-sys                   = { version = "0.3.35"                          }
 serde                    = { version = "1.0", features = ["derive"]      }
 serde_json               = { version = "1.0"                             }
 uuid                     = { version = "0.8", features = ["serde", "v5"] }
-wasm-bindgen             = { version = "0.2.58"                          }
+wasm-bindgen             = { version = "=0.2.58"                          }
 wasm-bindgen-test        = { version = "0.3.8"                           }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]

@@ -9,7 +9,7 @@ import * as svg        from './svg'
 // === ProgressIndicator ===
 // =========================
 
-let bg_color     = document.body.style.backgroundColor
+let bg_color     = "#e8e7e6"
 let loader_color = "#303030"
 
 /// Visual representation of the loader.
@@ -18,7 +18,7 @@ export class ProgressIndicator {
         this.dom                = html_utils.new_top_level_div()
         this.dom.id             = 'loader'
         this.dom.style.position = 'absolute'
-        this.dom.style.zIndex   = -1
+        this.dom.style.zIndex   = 1
 
         let center = document.createElement('div')
         center.style.width          = '100%'

@@ -18,7 +18,7 @@ use wasm_bindgen::prelude::*;
 pub fn run_example_glyph_system() {
     web::forward_panic_hook_to_console();
     web::set_stdout();
-    run_once_initialized(|| init(&WorldData::new(&web::body())));
+    run_once_initialized(|| init(&WorldData::new(&web::get_html_element_by_id("root").unwrap())));
 }
 
 fn init(world: &World) {
