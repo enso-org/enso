@@ -112,6 +112,37 @@ class FileSystem[F[_]: Sync] extends FileSystemApi[F] {
         .leftMap(errorHandling)
     }
 
+  /**
+    * Copy a file or directory recursively.
+    *
+    * @param from a path to the source
+    * @param to a path to the destination. If from is a file, then to
+    * should also be a file. If from is directory, then to should also
+    * be a directory.
+    * @return either [[FileSystemFailure]] or Unit
+    */
+  override def copy(
+    from: File,
+    to: File
+  ): F[Either[FileSystemFailure, Unit]] =
+    Sync[F].delay {
+      if (from.isDirectory && to.isFile) {
+        Left(FileExists)
+      } else {
+        Either
+          .catchOnly[IOException] {
+            if (from.isFile && to.isDirectory) {
+              FileUtils.copyFileToDirectory(from, to)
+            } else if (from.isDirectory) {
+              FileUtils.copyDirectory(from, to)
+            } else {
+              FileUtils.copyFile(from, to)
+            }
+          }
+          .leftMap(errorHandling)
+      }
+    }
+
   private val errorHandling: IOException => FileSystemFailure = {
     case _: FileNotFoundException => FileNotFound
     case _: NoSuchFileException   => FileNotFound

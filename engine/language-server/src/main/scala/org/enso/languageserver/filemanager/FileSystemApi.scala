@@ -54,4 +54,16 @@ trait FileSystemApi[F[_]] {
     */
   def createDirectory(file: File): F[Either[FileSystemFailure, Unit]]
 
+  /**
+    * Copy a file or directory recursively
+    *
+    * @param from a path to the source
+    * @param to a path to the destination
+    * @return either [[FileSystemFailure]] or Unit
+    */
+  def copy(
+    from: File,
+    to: File
+  ): F[Either[FileSystemFailure, Unit]]
+
 }

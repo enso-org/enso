@@ -65,6 +65,18 @@ object FileManagerApi {
     }
   }
 
+  case object CopyFile extends Method("file/copy") {
+
+    case class Params(from: Path, to: Path)
+
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = CopyFile.Params
+    }
+    implicit val hasResult = new HasResult[this.type] {
+      type Result = Unused.type
+    }
+  }
+
   // Errors
 
   case class FileSystemError(override val message: String)
@@ -76,5 +88,7 @@ object FileManagerApi {
   case object AccessDeniedError extends Error(1002, "Access denied")
 
   case object FileNotFoundError extends Error(1003, "File not found")
+
+  case object FileExistsError extends Error(1004, "File already exists")
 
 }
