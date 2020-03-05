@@ -176,6 +176,7 @@ Electron.app.on('web-contents-created', (event,contents) => {
 // === Main ===
 // ============
 
+let root = Electron.app.getAppPath()
 let hideInsteadOfQuit = false
 
 let server     = null
@@ -184,7 +185,7 @@ let mainWindow = null
 async function main() {
     if(args.server !== false) {
         let serverCfg      = Object.assign({},args)
-        serverCfg.dir      = Electron.app.getAppPath()
+        serverCfg.dir      = root
         serverCfg.fallback = '/assets/index.html'
         server             = await Server.create(serverCfg)
     }
@@ -214,7 +215,7 @@ function urlParamsFromObject(obj) {
 
 function createWindow() {
     let webPreferences     = secureWebPreferences()
-    webPreferences.preload = path.join(Electron.app.getAppPath(),'..','unpacked','preload.js')
+    webPreferences.preload = path.join(root,'preload.js')
     let windowPreferences  = {
         webPreferences       : webPreferences,
         width                : windowCfg.width,
