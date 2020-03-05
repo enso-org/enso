@@ -56,16 +56,6 @@ see the [demo scenes](http://TODO), and read the
 
 <br/>
 
-### Contributing
-
-Enso language is a community-driven open source project which is and will always be open and free to 
-use. We are committed to a fully transparent development process and highly appreciate every 
-contribution. If you love the vision behind Enso and you want to redefine the data processing world, 
-join us and help us track down bugs, implement new features, improve the documentation or spread the 
-word! Join our community on a [Discord chat](http://chat.luna-lang.org) and read the 
-[development and contributing guidelines](docs/contributing.md).
-
-<br/>
 
 ### License
 
@@ -75,3 +65,19 @@ This license set was choosen to both provide you with a complete freedom to use 
 libraries, and release them under any license of your choice, while also allowing us to release 
 commercial products on top of the platform, including Enso Cloud and Enso Enterprise on-premise 
 server managers. 
+
+<br/>
+
+### Contributing
+
+Enso language is a community-driven open source project which is and will always be open and free to 
+use. We are committed to a fully transparent development process and highly appreciate every 
+contribution. If you love the vision behind Enso and you want to redefine the data processing world, 
+join us and help us track down bugs, implement new features, improve the documentation or spread the 
+word! Join our community on a [Discord chat](http://chat.luna-lang.org) and read the 
+[development and contributing guidelines](docs/contributing.md).
+
+<a href="https://github.com/luna/ide/graphs/contributors">
+  <img src="https://contributors-img.firebaseapp.com/image?repo=luna/ide" />
+</a>
+
