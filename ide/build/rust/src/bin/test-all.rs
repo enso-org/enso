@@ -6,7 +6,7 @@ use std::path::Path;
 /// List of workspace members that should not be tested by wasm-pack test.
 /// (e.g. because they do not target wasm at all)
 const PACKAGE_BLACKLIST:[&str;2] = [
-    "build-utilities",
+    "build/utilities",
     "lib/ide/file-manager/mock-server"
 ];
 

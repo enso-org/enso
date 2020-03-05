@@ -7,7 +7,7 @@ use std::io::ErrorKind;
 /// Types that can yield a reference to std::path::Path.
 pub trait PathRef = AsRef<path::Path>;
 
-/// A structure describing a concrete release package on github.
+/// A structure describing a concrete release package on GitHub.
 pub struct GithubRelease<Str> {
     pub project_url : Str,
     pub version     : Str,
@@ -15,9 +15,9 @@ pub struct GithubRelease<Str> {
 }
 
 impl<Str> GithubRelease<Str> {
-    /// Download the release package from github
+    /// Download the release package from GitHub.
     ///
-    /// The project_url should be a project's main page on github.
+    /// The project_url should be a project's main page on GitHub.
     pub fn download(&self, destination_dir:&path::Path) where Str:AsRef<str> {
         let url = format!(
             "{project}/releases/download/{version}/{filename}",

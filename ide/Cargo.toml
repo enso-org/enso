@@ -1,7 +1,7 @@
 [workspace]
 
 members = [
-    "build-utilities",
+    "build/utilities",
     "lib/code-builder",
     "lib/core",
     "lib/core/embedded-fonts",
