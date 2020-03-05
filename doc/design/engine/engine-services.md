@@ -67,8 +67,10 @@ services components, as well as any open questions that may remain.
     - [`capability/granted`](#capabilitygranted)
     - [`capability/forceReleased`](#capabilityforcereleased)
   - [Capabilities](#capabilities)
-    - [`capability/canEdit`](#capabilitycanedit)
-    - [`capability/receivesTreeUpdates`](#capabilityreceivestreeupdates)
+    - [`text/canEdit`](#textcanedit)
+    - [`file/receivesTreeUpdates`](#filereceivestreeupdates)
+    - [`executionContext/canModify`](#executioncontextcanmodify)
+    - [`executionContext/receiveUpdates`](#executioncontextreceiveupdates)
   - [File Management Operations](#file-management-operations)
     - [`file/write`](#filewrite)
     - [`file/read`](#fileread)
@@ -95,6 +97,15 @@ services components, as well as any open questions that may remain.
     - [`workspace/connect`](#workspaceconnect)
     - [`workspace/undo`](#workspaceundo)
     - [`workspace/redo`](#workspaceredo)
+  - [Execution Management](#execution-management-1)
+    - [Types](#types-2)
+    - [`executionContext/create`](#executioncontextcreate)
+    - [`executionContext/destroy`](#executioncontextdestroy)
+    - [`executionContext/fork`](#executioncontextfork)
+    - [`executionContext/push`](#executioncontextpush)
+    - [`executionContext/pop`](#executioncontextpop)
+    - [`executionContext/recompute`](#executioncontextrecompute)
+    - [`executionContext/expressionValuesComputed`](#executioncontextexpressionvaluescomputed)
   - [Errors - Language Server](#errors---language-server)
 
 <!-- /MarkdownTOC -->
@@ -1065,19 +1076,62 @@ TBC
 ### Capabilities
 The capability management features work with the following capabilities.
 
-#### `capability/canEdit`
+#### `text/canEdit`
 This capability states that the capability has the ability to perform both
 `text/applyEdit` and `text/save` for the specified file.
 
-- **method:** `canEdit`
+- **method:** `text/canEdit`
 - **registerOptions:** `{path: Path;}`
 
-#### `capability/receivesTreeUpdates`
+##### Enables
+- `text/applyEdit`
+- `text/save`
+
+##### Disables
+None
+
+#### `file/receivesTreeUpdates`
 This capability states that the client will receive updates for any watched
 content roots in the current project.
 
-- **method:** `receivesTreeUpdates`
+- **method:** `file/receivesTreeUpdates`
 - **registerOptions:** `{}`
+
+##### Enables
+- `file/event`
+
+##### Disables
+None
+
+#### `executionContext/canModify`
+This capability states that the client has the ability to modify an execution
+context, including modifying the execution stack, invalidating caches, or
+destroying the context.
+
+- **method:** `executionContext/canModify`
+- **registerOptions:** `{  contextId: ContextId; }`
+
+##### Enables
+- `executionContext/destroy`
+- `executionContext/recompute`
+- `executionContext/push`
+- `executionContext/pop`
+
+##### Disables
+None
+
+#### `executionContext/receiveUpdates`
+This capability states that the client receives expression value updates from
+a given execution context.
+
+- **method:** `executionContext/receiveUpdates`
+- **registerOptions:** `{  contextId: ContextId; }`
+
+##### Enables
+- `executionContext/expressionValuesComputed`
+
+##### Disables
+None
 
 ### File Management Operations
 The language server also provides file operations to the IDE.
@@ -1698,6 +1752,219 @@ null
 ##### Errors
 TBC
 
+### Execution Management
+The execution management portion of the language server API deals with exposing
+fine-grained control over program and expression execution to the clients of
+the language server. This is incredibly important for enabling the high levels
+of interactivity required by Enso Studio.
+
+#### Types
+The execution management API exposes a set of common types used by many of its 
+messages.
+
+##### `ExpressionId`
+An identifier used for Enso expressions.
+
+```typescript
+type ExpressionId = UUID;
+```
+
+##### `ContextId`
+An identifier used for execution contexts.
+
+```typescript
+type ContextId = UUID;
+```
+
+##### `StackItem`
+A representation of an executable position in code, used by the execution APIs.
+
+`ExplicitCall` is a call performed at the top of the stack, to initialize the
+context with first execution.
+The `thisArgumentsPosition` field can be omitted, in which case the context
+will try to infer the argument on a best-effort basis. E.g. for a module-level
+method, or a method defined on a parameter-less atom type, `this` will be
+substituted for the unambiguous singleton instance.
+
+`LocalCall` is a call corresponding to "entering a function call".
+
+```typescript
+type StackItem = ExplicitCall | LocalCall
+
+interface ExplicitCall {
+  methodPointer: MethodPointer;
+  thisArgumentExpression?: String;
+  positionalArgumentsExpressions: String[];
+}
+
+interface LocalCall {
+  expressionId: ExpressionId;
+}
+```
+
+##### `MethodPointer`
+Points to a method definition.
+
+```typescript
+{
+  file: Path;
+  definedOnType: String;
+  name: String;
+}
+```
+
+##### `ExpressionValueUpdate`
+
+```typescript
+{
+  id: ExpressionId;
+  type?: String;
+  shortValue?: String;
+  methodCall?: MethodPointer;
+}
+```
+
+#### `executionContext/create`
+Sent from the client to the server to create a new execution context.
+
+##### Parameters
+```typescript
+{
+  contextId: ContextId;
+}
+```
+
+##### Result
+```typescript
+{
+  canModify: CapabilityRegistration;
+  receivesEvents: CapabilityRegistration;
+}
+```
+
+##### Errors
+No known errors.
+
+#### `executionContext/destroy`
+Sent from the client to the server destroy an execution context and free its
+resources.
+
+##### Parameters
+```typescript
+{
+  contextId: ContextId;
+}
+```
+
+##### Result
+```typescript
+null
+```
+
+##### Errors
+- [`AccessDeniedError`](#accessdeniederror) when the user does not hold the
+  `executionContext/canModify` capability for this context.
+
+#### `executionContext/fork`
+Sent from the client to the server to duplicate an execution context, creating
+an independent copy, containing all the data precomputed in the first one.
+
+##### Parameters
+```typescript
+{
+  contextId: ContextId;
+  newContextId: ContextId;
+}
+```
+
+##### Result
+```typescript
+{
+  canModify: CapabilityRegistration;
+  receivesEvents: CapabilityRegistration;
+}
+```
+
+##### Errors
+No known errors.
+
+#### `executionContext/push`
+Sent from the client to the server move the execution context to a new location
+deeper down the stack.
+
+##### Parameters
+```typescript
+{
+  contextId: ContextId;
+  stackItem: StackItem;
+}
+```
+
+##### Result
+```typescript
+null
+```
+
+##### Errors
+- [`StackItemNotFoundError`](#stackitemnotfounderror) when the request stack
+  item could not be found.
+- [`AccessDeniedError`](#accessdeniederror) when the user does not hold the
+  `executionContext/canModify` capability for this context.
+
+
+#### `executionContext/pop`
+Sent from the client to the server move the execution context up the stack,
+corresponding to the client clicking out of the current breadcrumb.
+
+##### Parameters
+```typescript
+{
+  contextId: ContextId;
+}
+```
+
+##### Result
+```typescript
+null
+```
+
+##### Errors
+- [`AccessDeniedError`](#accessdeniederror) when the user does not hold the
+  `executionContext/canModify` capability for this context.
+
+#### `executionContext/recompute`
+Sent from the client to the server to force recomputation of current position.
+May include a list of expressions for which caches should be invalidated.
+
+##### Parameters
+```typescript
+{
+  contextId: ContextId;
+  invalidatedExpressions?: "all" | ExpressionId[]
+}
+```
+
+##### Result
+```typescript
+null
+```
+
+##### Errors
+No known errors.
+
+#### `executionContext/expressionValuesComputed`
+Sent from the server to the client to inform about new information for certain
+expressions becoming available.
+
+##### Parameters
+```typescript
+{
+  contextId: ContextId;
+  updates: ExpressionValueUpdate[]
+}
+```
+
+
 ### Errors - Language Server
 The language server component also has its own set of errors. This section is
 not a complete specification and will be updated as new errors are added.
@@ -1708,7 +1975,7 @@ This error signals generic file system errors.
 ```typescript
 "error" : {
   "code" : 1000,
-  "message" : "File '/foo/bar' exists but is a directory"
+  "message" : String
 }
 ```
 
@@ -1739,5 +2006,13 @@ It signals that requested file doesn't exist.
 "error" : {
   "code" : 1003,
   "message" : "File not found"
+}
+```
+
+##### `StackItemNotFoundError`
+```typescript
+"error" : {
+  "code" : 2001,
+  "message" : "Stack item not found."
 }
 ```
