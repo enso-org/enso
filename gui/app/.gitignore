@@ -1,3 +1,5 @@
 node_modules
 dist
-src-rust-gen
+generated
+lerna-debug.log
+*.lerna_backup

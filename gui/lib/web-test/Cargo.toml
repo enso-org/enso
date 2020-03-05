@@ -7,14 +7,15 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-wasm-bindgen-test    = "0.3.3"
 web-test-proc-macro  = { version = "0.1.0" , path = "../web-test-proc-macro" }
-basegl               = { version = "0.1.0" , path = "../core"       }
-enso-prelude         = { version = "0.1.0" , path = "../prelude"       }
-basegl-system-web    = { version = "0.1.0" , path = "../system/web"    }
-wasm-bindgen         = { version = "0.2.58", features = ["nightly"]    }
-js-sys               = { version = "0.3.28" }
-shrinkwraprs         = { version = "0.3.0"  }
+basegl               = { version = "0.1.0" , path = "../core"                }
+enso-prelude         = { version = "0.1.0" , path = "../prelude"             }
+basegl-system-web    = { version = "0.1.0" , path = "../system/web"          }
+
+wasm-bindgen         = { version = "=0.2.58", features = ["nightly"]          }
+wasm-bindgen-test    = { version = "0.3.8"                                   }
+js-sys               = { version = "0.3.28"                                  }
+shrinkwraprs         = { version = "0.3.0"                                   }
 
 [dependencies.web-sys]
 version = "0.3.4"

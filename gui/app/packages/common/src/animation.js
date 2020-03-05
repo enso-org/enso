@@ -1,8 +1,6 @@
 /// This module defines a simple set of animation utils. Follow the link to learn more:
 /// https://easings.net/en
 
-
-
 // =================
 // === Animation ===
 // =================

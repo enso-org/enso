@@ -33,7 +33,7 @@ pub fn run_example_text_field() {
     forward_panic_hook_to_console();
     set_stdout();
     basegl_core_msdf_sys::run_once_initialized(|| {
-        let world     = &WorldData::new(&web::body());
+        let world     = &WorldData::new(&web::get_html_element_by_id("root").unwrap());
         let mut fonts = FontRegistry::new();
         let font      = fonts.get_or_load_embedded_font("DejaVuSansMono").unwrap();
 

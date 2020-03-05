@@ -6,6 +6,8 @@ on: [push]
 # https://rust-lang.github.io/rustup-components-history/x86_64-unknown-linux-gnu.html
 
 jobs:
+
+
   build:
     name: Build
     runs-on: ${{ matrix.os }}
@@ -14,15 +16,18 @@ jobs:
         os: [windows-latest, macOS-latest, ubuntu-latest]
     steps:
       - uses: actions/checkout@v1
+
       - name: Install Rust Nightly Toolchain
         uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly-2019-11-04
           override: true
+
       - name: Run cargo check
         uses: actions-rs/cargo@v1
         with:
           command: check
+
 
   test:
     name: Tests
@@ -32,73 +37,89 @@ jobs:
         os: [windows-latest,macOS-latest,ubuntu-latest]
     steps:
       - uses: actions/checkout@v1
+
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly-2019-11-04
           override: true
+
       - name: Install wasm-pack
         uses: actions-rs/cargo@v1
         with:
           command: install
-          args: wasm-pack
+          args: wasm-pack --version 0.8.1
+
       - name: Run tests
         uses: actions-rs/cargo@v1
         with:
           command: test
+
       - name: Run wasm-pack tests
         uses: actions-rs/cargo@v1
         with:
           command: run
           args: >
-            --manifest-path=script/rust/Cargo.toml
+            --manifest-path=build/rust/Cargo.toml
             --bin test-all
             -- --headless --chrome
+
 
   size:
     name: Check size
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
+
       - name: Install Rust Nightly Toolchain
         uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly-2019-11-04
           override: true
+
       - name: Install wasm-pack
         uses: actions-rs/cargo@v1
         with:
           command: install
           args: wasm-pack --version 0.8.1
+
       - name: Compile to WASM
-        run: ./script/build.sh
+        run: ./run build
+
       - name: Check WASM size
-        run: ./script/assert_max_wasm_size.sh
+        run: ./build/assert_max_wasm_size.sh
+
 
   clippy:
     name: Linter
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
+
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly-2019-11-04
           override: true
+
       - run: rustup component add clippy
+
       - uses: actions-rs/cargo@v1
         with:
           command: clippy
           args: -- -D warnings
+
 
   coverage:
     name: Coverage
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
+
       - name: Install Rust Nightly Toolchain
         uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly-2019-11-04
           override: true
+
       - name: Generate test profile
         uses: actions-rs/cargo@v1
         with:
@@ -107,15 +128,136 @@ jobs:
         env:
           'CARGO_INCREMENTAL': '0'
           'RUSTFLAGS': '-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Zno-landing-pads'
+
       - name: Generate coverage report
         id: coverage
         uses: actions-rs/grcov@v0.1
+
       - name: list all /tmp files
         run: ls -la /tmp
+
       - name: show the coverage report
         run: cat ${{ steps.coverage.outputs.report }}
+
       - name: Upload coverage report
         uses: codecov/codecov-action@v1.0.2
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           file: ./lcov.info
+
+
+  package:
+    name: Package
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, macOS-latest, ubuntu-latest]
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v1
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly-2019-11-04
+          override: true
+
+      - name: Install wasm-pack
+        uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: wasm-pack --version 0.8.1
+
+      - uses: actions/setup-node@v1
+        with:
+          node-version: '12.16.1'
+
+      - name: check npm
+        run: npm --version
+
+      - name: Build Enso IDE
+        run: node run dist --no-validation
+
+      - uses: actions/upload-artifact@v1
+        name: Upload Artifacts (Ubuntu, AppImage)
+        with:
+          name: Enso IDE (Linux, AppImage)
+          path: app/dist/native/Enso Studio-1.0.0.AppImage
+        if: matrix.os == 'ubuntu-latest'
+
+      - uses: actions/upload-artifact@v1
+        name: Upload Artifacts (Ubuntu, not packed)
+        with:
+          name: Enso IDE (Linux, not packed)
+          path: app/dist/native/linux-unpacked
+        if: matrix.os == 'ubuntu-latest'
+
+      - uses: actions/upload-artifact@v1
+        name: Upload Artifacts (Windows, Installer)
+        if: matrix.os == 'windows-latest'
+        with:
+          name: Enso IDE (Windows, installer)
+          path: app/dist/native/Enso Studio Setup 1.0.0.exe
+
+      - uses: actions/upload-artifact@v1
+        name: Upload Artifacts (Windows, not packed)
+        if: matrix.os == 'windows-latest'
+        with:
+          name: Enso IDE (Windows, not packed)
+          path: app/dist/native/win-unpacked
+
+      - uses: actions/upload-artifact@v1
+        name: Upload Artifacts (macOS, dmg)
+        if: matrix.os == 'macos-latest'
+        with:
+          name: Enso IDE (macOS, dmg)
+          path: app/dist/native/Enso Studio-1.0.0.dmg
+
+      - uses: actions/upload-artifact@v1
+        name: Upload Artifacts (macOS, app)
+        if: matrix.os == 'macos-latest'
+        with:
+          name: Enso IDE (macOS, app)
+          path: app/dist/native/mac/Enso Studio.app
+
+
+  package-fm:
+    name: Package mock File Manager Server
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, macOS-latest, ubuntu-latest]
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v1
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly-2019-11-04
+          override: true
+
+      - name: Build File Manager Server
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release --bin file-manager-server
+
+      - uses: actions/upload-artifact@v1
+        name: Upload Artifacts (Ubuntu)
+        with:
+          name: File Manager Server (Linux)
+          path: target/release/file-manager-server
+        if: matrix.os == 'ubuntu-latest'
+
+      - uses: actions/upload-artifact@v1
+        name: Upload Artifacts (macOS)
+        with:
+          name: File Manager Server (macOS)
+          path: target/release/file-manager-server
+        if: matrix.os == 'macos-latest'
+
+      - uses: actions/upload-artifact@v1
+        name: Upload Artifacts (Ubuntu)
+        with:
+          name: File Manager Server (Windows)
+          path: target/release/file-manager-server.exe
+        if: matrix.os == 'windows-latest'

@@ -1,0 +1,27 @@
+{
+  "name": "enso-studio-common",
+  "version": "1.0.0",
+  "author": {
+    "name": "Enso Team",
+    "email": "contact@luna-lang.org"
+  },
+  "homepage": "https://github.com/luna/basegl",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:luna/basegl.git"
+  },
+  "bugs": {
+    "url": "https://github.com/luna/basegl/issues"
+  },
+  "dependencies": {
+    "copy-webpack-plugin": "^5.1.1"
+  },
+  "devDependencies": {
+    "compression-webpack-plugin": "^3.1.0",
+    "copy-webpack-plugin": "^5.1.1"
+  },
+
+  "scripts": {
+    "clean": "rm -Rf dist"
+  }
+}

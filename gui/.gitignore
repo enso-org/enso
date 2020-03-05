@@ -2,7 +2,6 @@
 /target
 /script/rust/target/
 **/*.rs.bk
-Cargo.lock
 pkg/
 wasm-pack.log
 
@@ -15,3 +14,9 @@ wasm-pack.log
 
 # A thirdparty downloaded js
 /lib/core/msdf-sys/msdfgen_wasm.js
+
+# JavaScript
+node_modules
+
+# Markers
+.initialized

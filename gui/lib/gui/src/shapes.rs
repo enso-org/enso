@@ -33,7 +33,7 @@ pub fn run_example_shapes() {
     web::forward_panic_hook_to_console();
     web::set_stdout();
     web::set_stack_trace_limit();
-    init(&WorldData::new(&web::body()));
+    init(&WorldData::new(&web::get_html_element_by_id("root").unwrap()));
 }
 
 pub mod icons {

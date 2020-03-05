@@ -2,8 +2,9 @@
 /// user with a visual representation of this process (welcome screen). It also implements a view
 /// allowing to choose a debug rendering test from.
 
-import * as loader_module from './loader'
-import * as html_utils    from './html_utils'
+import * as loader_module from 'enso-studio-common/src/loader'
+import * as html_utils    from 'enso-studio-common/src/html_utils'
+import * as animation     from 'enso-studio-common/src/animation'
 
 
 
@@ -42,7 +43,7 @@ async function download_content(cfg) {
         console.log("Download finished. Finishing WASM compilation.")
     })
 
-    let download_size = loader.show_total_bytes();
+    let download_size = loader.show_total_bytes()
     let download_info = `Downloading WASM binary and its dependencies (${download_size}).`
     let wasm_loader   = html_utils.log_group_collapsed(download_info, async () => {
         let wasm_glue_js = await wasm_glue_fetch.text()
@@ -56,10 +57,10 @@ async function download_content(cfg) {
     })
 
     let wasm = await wasm_loader.then(({instance,module,wasm_glue}) => {
-        let wasm = instance.exports;
+        let wasm = instance.exports
         wasm_glue.after_load(wasm,module)
         return wasm
-    });
+    })
     console.log("WASM Compiled.")
 
     await loader.initialized
@@ -95,6 +96,8 @@ function show_debug_screen(wasm,msg) {
     let newContent = document.createTextNode(msg + "Choose an example:")
     let currentDiv = document.getElementById("app")
     let ul         = document.createElement('ul')
+    debug_screen_div.style.position = 'absolute'
+    debug_screen_div.style.zIndex   = 1
     newDiv.appendChild(newContent)
     debug_screen_div.appendChild(newDiv)
     newDiv.appendChild(ul)
@@ -123,14 +126,41 @@ function show_debug_screen(wasm,msg) {
 // === Main Entry Point ===
 // ========================
 
+let root = document.getElementById('root')
+
+function prepare_root(cfg) {
+    root.style.backgroundColor = '#e8e7e699'
+}
+
+function getUrlParams() {
+    let url    = window.location.search
+    let query  = url.substr(1)
+    let result = {}
+    query.split("&").forEach(function(part) {
+        let item = part.split("=")
+        result[item[0]] = decodeURIComponent(item[1])
+    })
+    return result
+}
+
+/// Waits for the window to finish its show animation. It is used when the website is run in
+/// Electron. Please note that it returns immediately in the web browser.
+async function windowShowAnimation() {
+    await window.showAnimation
+}
+
 /// Main entry point. Loads WASM, initializes it, chooses the scene to run.
 async function main() {
-    let target = window.location.href.split('/')
-    target.splice(0,3)
+    let target = window.location.pathname.split('/')
+    target.splice(0,1)
+    let cfg = getUrlParams()
+    prepare_root(cfg)
 
     let debug_mode    = target[0] == "debug"
     let debug_target  = target[1]
     let no_loader     = debug_mode && debug_target
+
+    await windowShowAnimation()
     let {wasm,loader} = await download_content({no_loader})
 
     if (debug_mode) {

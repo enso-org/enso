@@ -67,7 +67,7 @@ impl ProjectView {
     -> FallibleResult<Self> {
         let path                 = Path::new(INITIAL_FILE_PATH);
         let text_controller      = controller.get_text_controller(path).await?;
-        let world                = WorldData::new(&web::body());
+        let world                = WorldData::new(&web::get_html_element_by_id("root").unwrap());
         let logger               = logger.sub("ProjectView");
         let keyboard             = Keyboard::default();
         let keyboard_bindings    = KeyboardFrpBindings::new(&logger,&keyboard);

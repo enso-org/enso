@@ -158,6 +158,11 @@ pub fn get_element_by_id(id:&str) -> Result<web_sys::Element> {
     document()?.get_element_by_id(id).ok_or_else(|| Error::missing(id))
 }
 
+pub fn get_html_element_by_id(id:&str) -> Result<web_sys::HtmlElement> {
+    let elem = get_element_by_id(id)?;
+    dyn_into(elem)
+}
+
 #[deprecated(note = "Use get_element_by_id with dyn_into instead")]
 pub fn get_element_by_id_as<T:wasm_bindgen::JsCast>(id:&str) -> Result<T> {
     let elem = get_element_by_id(id)?;

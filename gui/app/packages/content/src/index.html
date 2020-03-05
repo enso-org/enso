@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
+        <!-- FIXME https://github.com/validator/validator/issues/917 -->
+        <!-- FIXME Security Vulnerabilities: https://github.com/luna/ide/issues/226 -->
+        <meta http-equiv="Content-Security-Policy" content="
+            default-src 'self';
+            script-src  'self' 'unsafe-eval';
+            style-src   'self' 'unsafe-inline';
+            connect-src 'self' data: ws://localhost:* ws://127.0.0.1:*;
+            font-src    'self' data:"
+        />
+        <meta name="viewport" content="
+            width=device-width,
+            initial-scale = 1.0,
+            maximum-scale = 1.0,
+            user-scalable = no"
+        />
+        <title>Enso IDE</title>
+        <style>
+          html, body {
+              width  : 100vw;
+              height : 100vh;
+          }
+          body {
+              margin:0;
+          }
+          #root {
+              width    : 100vw;
+              height   : 100vh;
+              margin   : 0;
+              position : absolute;
+              overflow : hidden;
+          }
+          .titlebar {
+              width    : 100vw;
+              height   : 36px;
+              margin   : 0;
+              position : absolute;
+              z-index  : 10;
+              -webkit-app-region  : drag;
+              -webkit-user-select : none;
+          }
+        </style>
+        <script type="module" src="/assets/index.js" defer></script>
+    </head>
+    <body>
+        <div class="titlebar"></div>
+        <div id="root"></div>
+        <noscript>
+            This page requires JavaScript to run. Please enable it in your browser.
+        </noscript>
+    </body>
+</html>

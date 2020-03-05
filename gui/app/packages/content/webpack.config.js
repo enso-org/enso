@@ -1,12 +1,12 @@
 const CopyWebpackPlugin = require('copy-webpack-plugin')
 const CompressionPlugin = require('compression-webpack-plugin')
 
-const path = require('path');
+const path = require('path')
 const root = path.resolve(__dirname)
 
 module.exports = {
     entry: {
-        index: './src/index.js',
+        index: path.resolve(root,'src','index.js'),
         wasm_imports: './src/wasm_imports.js',
     },
     output: {
@@ -21,8 +21,7 @@ module.exports = {
         new CompressionPlugin(),
         new CopyWebpackPlugin([
             path.resolve(root,'src','index.html'),
-            path.resolve(root,'src-rust-gen','gui.wasm'),
-            path.resolve(root,'src-rust-gen','gui.wasm.gz'),
+            path.resolve(root,'..','..','generated','wasm','gui.wasm'),
         ]),
     ],
     devServer: {
@@ -32,12 +31,13 @@ module.exports = {
         }
     },
     resolve: {
-        modules: [path.resolve(root,'node_modules')],
         alias: {
-            wasm_rust_glue$: path.resolve(root,'src-rust-gen','gui.js')
+            wasm_rust_glue$: path.resolve(root,'..','..','generated','wasm','gui.js')
         }
     },
     performance: {
         hints: false,
     },
-};
+    mode: 'development',
+    stats: 'minimal'
+}
