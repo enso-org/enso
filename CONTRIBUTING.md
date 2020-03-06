@@ -6,6 +6,7 @@ sections of this document are linked below:
 
 <!-- MarkdownTOC levels="2" autolink="true" -->
 
+- [The Contributor License Agreement](#the-contributor-license-agreement)
 - [Issues](#issues)
 - [Feature Enhancements](#feature-enhancements)
 - [Bug Reports](#bug-reports)
@@ -18,16 +19,25 @@ sections of this document are linked below:
 
 <!-- /MarkdownTOC -->
 
-All contributions to Luna should be in keeping with our
+All contributions to Enso should be in keeping with our
 [Code of Conduct](https://github.com/luna/luna/blob/CODE_OF_CONDUCT.md).
+
+## The Contributor License Agreement
+As part of your first contribution to this repository, you need to accept the
+Contributor License Agreement. You will automatically be asked to sign the CLA
+when you make your first pull request.
+
+Any work intentionally submitted for inclusion in Enso shall be licensed under
+this CLA.
+
+The CLA you sign applies to all repositories associated with the Enso project,
+so you will only have to sign it once at the start of your contributions.
 
 ## Issues
 If you are looking for somewhere to start, check out the `Help Wanted` tag in
 the following repositories:
-- [Enso](https://github.com/luna/luna/labels/Status%3A%20Help%20Wanted)
-- [Luna Studio](https://github.com/luna/luna-studio/labels/Status%3A%20Help%20Wanted)
-- [Luna Manager](https://github.com/luna/luna-manager/labels/Status%3A%20Help%20Wanted)
-- [Luna Dataframes](https://github.com/luna/dataframes/labels/Status%3A%20Help%20Wanted)
+- [Enso](https://github.com/luna/enso/labels/Status%3A%20Help%20Wanted)
+- [Enso Studio](https://github.com/luna/ide/labels/Status%3A%20Help%20Wanted)
 
 ## Feature Enhancements
 If you feel like you have a suggestion for a change to the way that Enso works
@@ -87,7 +97,7 @@ In order to build and run Enso you will need the following tools:
 
 ### Getting the Sources
 Given you've probably been reading this document on GitHub, you might have an
-inkling where to look!. You can clone Luna using two methods:
+inkling where to look!. You can clone Enso using two methods:
 
 - **Via HTTPS:** We recommend you only use HTTPS if checking out the sources as
   read-only.
@@ -297,11 +307,11 @@ the planned functionality and its progress, please see the
 ## Pull Requests
 Pull Requests are the primary method for making changes to Enso. GitHub has
 [fantastic documentation](https://help.github.com/articles/about-pull-requests/)
-on using the pull request feature. Luna uses the 'fork-and-pull' model of
+on using the pull request feature. Enso uses the 'fork-and-pull' model of
 development. It is as described
 [here](https://help.github.com/articles/about-collaborative-development-models/)
 and involves people pushing changes to their own fork and creating pull requests
-to bring those changes into the main Luna repository.
+to bring those changes into the main Enso repository.
 
 Please make all pull requests against the `master` branch.
 
@@ -361,7 +371,7 @@ to contribute in other ways outside this repository:
 - Participate in the [RFC Process](https://github.com/luna/luna-rfcs).
 
 ## Helpful Documentation and Links
-For people new to Luna, and just starting to contribute, or even for more
+For people new to Enso, and just starting to contribute, or even for more
 seasoned developers, some useful places to look for information are:
 
 - [The Enso Book](https://luna-lang.gitbooks.io/docs/)
