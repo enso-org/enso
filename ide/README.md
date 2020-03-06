@@ -26,7 +26,7 @@
 
 <p>
   <a href="https://github.com/luna/basegl/blob/master/LICENSE">
-    <img src="https://img.shields.io/static/v1?label=License&message=MIT&color=2ec352&labelColor=2c3239"
+    <img src="https://img.shields.io/static/v1?label=License&message=Apache v2 / AGPL v3&color=2ec352&labelColor=2c3239"
          alt="License">
   </a>
   <a href="https://github.com/luna/basegl/actions">
