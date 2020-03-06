@@ -25,15 +25,19 @@
 ### Overview
 
 <p>
-  <a href="https://github.com/luna/basegl/blob/master/LICENSE">
-    <img src="https://img.shields.io/static/v1?label=License&message=Apache v2 / AGPL v3&color=2ec352&labelColor=2c3239"
+  <a href="https://github.com/luna/enso/blob/master/LICENSE">
+    <img src="https://img.shields.io/static/v1?label=Compiler License&message=Apache v2&color=2ec352&labelColor=2c3239"
          alt="License">
   </a>
-  <a href="https://github.com/luna/basegl/actions">
+  <a href="https://github.com/luna/ide/blob/master/LICENSE">
+    <img src="https://img.shields.io/static/v1?label=GUI License&message=AGPL v3&color=2ec352&labelColor=2c3239"
+         alt="License">
+  </a>
+  <a href="https://github.com/luna/ide/actions">
     <img src="https://github.com/luna/basegl/workflows/Build%20%28MacOS%2C%20Linux%2C%20Windows%29/badge.svg"
          alt="Actions Status">
   </a>
-  <a href="https://codecov.io/gh/luna/basegl/branch/master">
+  <a href="https://codecov.io/gh/luna/ide/branch/master">
     <img src="https://img.shields.io/codecov/c/github/luna/basegl?label=Coverage&labelColor=2c3239"
          alt="Coverage">
   </a>
