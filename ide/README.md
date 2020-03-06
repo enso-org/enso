@@ -43,19 +43,28 @@
   </a>
 </p>
 
-Enso is a visual data science language selected by Singularity University and NASA as one of 20 most 
-unique technologies worldwide.
+Enso is an open source visual data science language selected by Singularity University and NASA as one 
+of 20 most unique technologies worldwide. Enso consist of several sub-projects, including the 
+[Enso Language Compiler](https://github.com/luna/enso), the [Enso Integrated Development Environment (IDE)](https://github.com/luna/ide), and [EnsoGL, a high performance WebGL UI framework](https://github.com/luna/ide/tree/master/lib/core).
 
 <br/>
 
 ### Getting Started
 
-[Download a pre-build package for MacOS, Windows, or Linux](https://github.com/luna/ide/releases), 
-see the [demo scenes](http://TODO), and read the 
-[documentation](http://TODO).
+Enso is distributed both in form of 
+[pre-build packages for MacOS, Windows, or Linux](https://github.com/luna/ide/releases), as well as the
+[source code](https://github.com/luna). See the [demo scenes](http://TODO), and read the 
+[documentation](http://TODO) to learn more.
 
 <br/>
 
+### Building
+
+The project builds on MacOS, Linux, and Windows. Simply run `node ./run build` to build it and use 
+`node ./run --help` to learn about other available commands and options. Read the detailed 
+[development guide](docs/contributing.md) to learn more.
+
+<br/>
 
 ### License
 
@@ -70,7 +79,7 @@ server managers.
 
 ### Contributing
 
-Enso language is a community-driven open source project which is and will always be open and free to 
+Enso is a community-driven open source project which is and will always be open and free to 
 use. We are committed to a fully transparent development process and highly appreciate every 
 contribution. If you love the vision behind Enso and you want to redefine the data processing world, 
 join us and help us track down bugs, implement new features, improve the documentation or spread the 
