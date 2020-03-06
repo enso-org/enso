@@ -45,7 +45,7 @@
 
 Enso is an open source visual data science language selected by Singularity University and NASA as one 
 of 20 most unique technologies worldwide. Enso consist of several sub-projects, including the 
-[Enso Language Compiler](https://github.com/luna/enso), the [Enso Integrated Development Environment (IDE)](https://github.com/luna/ide), and [EnsoGL, a high performance WebGL UI framework](https://github.com/luna/ide/tree/master/lib/core).
+[Enso Language Compiler](https://github.com/luna/enso), the [Enso Integrated Development Environment (IDE)](https://github.com/luna/ide), and [a high performance WebGL UI framework (EnsoGL)](https://github.com/luna/ide/tree/master/lib/core).
 
 <br/>
 
