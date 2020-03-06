@@ -68,8 +68,8 @@ The project builds on MacOS, Linux, and Windows. Simply run `node ./run build` t
 
 ### License
 
-The Enso Language Compiler is released under the terms of the [Apache v2 License](). The Enso 
-Graphical Interface and it's rendering engine are released under the terms of the [AGPL License](). 
+The Enso Language Compiler is released under the terms of the [Apache v2 License](https://github.com/luna/enso/blob/master/LICENSE). The Enso 
+Graphical Interface and it's rendering engine are released under the terms of the [AGPL v3 License](https://github.com/luna/ide/blob/master/LICENSE). 
 This license set was choosen to both provide you with a complete freedom to use Enso, create 
 libraries, and release them under any license of your choice, while also allowing us to release 
 commercial products on top of the platform, including Enso Cloud and Enso Enterprise on-premise 
