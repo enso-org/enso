@@ -8,7 +8,7 @@
 use crate::prelude::*;
 
 use crate::controller::FallibleResult;
-use crate::double_representation::apply_code_change_to_id_map;
+use crate::double_representation::text::apply_code_change_to_id_map;
 
 use ast::Ast;
 use ast::HasRepr;

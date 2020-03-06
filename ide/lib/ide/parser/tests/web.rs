@@ -6,7 +6,6 @@ use data::text::*;
 use parser::Parser;
 use parser::api::IsParser;
 
-use std::rc::Rc;
 use uuid::Uuid;
 use wasm_bindgen_test::wasm_bindgen_test_configure;
 use wasm_bindgen_test::wasm_bindgen_test;

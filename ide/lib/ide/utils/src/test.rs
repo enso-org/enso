@@ -37,3 +37,57 @@ pub fn poll_stream_output<S : Stream + ?Sized>(f:&mut Pin<Box<S>>) -> Option<S::
         Poll::Pending       => None,
     }
 }
+
+
+
+// ===================
+// === ExpectTuple ===
+// ===================
+
+// === Trait ===
+/// Helper allowing converting between collections and tuples. Unwraps internally,
+/// will panic on failure. For test environment only.
+pub trait ExpectTuple<T> {
+    /// Convert Self to tuple `T`. Panic if collection has different count of elements.
+    fn expect_tuple(self) -> T;
+}
+
+
+// === Implementations ===
+// TODO [MWU] boilerplate below should be generated with macro
+
+impl<Collection:IntoIterator>
+ExpectTuple<(Collection::Item,)> for Collection {
+    fn expect_tuple(self) -> (Collection::Item,) {
+        let mut iter = self.into_iter();
+        let     v1   = iter.next().unwrap();
+        assert!(iter.next().is_none());
+        (v1,)
+    }
+}
+
+impl<Collection: IntoIterator>
+ExpectTuple<(Collection::Item,Collection::Item)>
+for Collection {
+    fn expect_tuple(self) -> (Collection::Item,Collection::Item) {
+        let mut iter = self.into_iter();
+        let     v1   = iter.next().unwrap();
+        let     v2   = iter.next().unwrap();
+        assert!(iter.next().is_none());
+        (v1,v2)
+    }
+}
+
+impl<Collection: IntoIterator>
+ExpectTuple<(Collection::Item,Collection::Item,Collection::Item)>
+for Collection {
+    fn expect_tuple
+    (self) -> (Collection::Item,Collection::Item,Collection::Item) {
+        let mut iter = self.into_iter();
+        let     v1   = iter.next().unwrap();
+        let     v2   = iter.next().unwrap();
+        let     v3   = iter.next().unwrap();
+        assert!(iter.next().is_none());
+        (v1,v2,v3)
+    }
+}

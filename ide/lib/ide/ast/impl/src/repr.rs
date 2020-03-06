@@ -1,3 +1,6 @@
+//! Code that supports tokenization of Ast nodes, that powers several features like text
+//! generation, obtaining size of source code, generating idmap.
+
 use crate::*;
 
 // ======================
