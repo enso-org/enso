@@ -47,7 +47,7 @@ trait InterpreterRunner {
       )
   }
   val output           = new ByteArrayOutputStream()
-  val ctx              = Context.newBuilder(LanguageInfo.ID).out(output).build()
+  val ctx              = Context.newBuilder(LanguageInfo.ID).allowExperimentalOptions(true).out(output).build()
   val executionContext = new ExecutionContext(ctx)
 
   def withLocationsInstrumenter(test: LocationsInstrumenter => Unit): Unit = {

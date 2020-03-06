@@ -17,7 +17,7 @@ import sbt._
 object WithDebugCommand {
 
   val truffleNoBackgroundCompilationOptions = Seq(
-    "-Dgraal.TruffleBackgroundCompilation=false"
+    "-Dpolyglot.engine.BackgroundCompilation=false"
   )
 
   val truffleDumpGraphsOptions = Seq(
@@ -26,10 +26,10 @@ object WithDebugCommand {
   )
 
   val truffleShowCompilationsOptions = Seq(
-    "-Dgraal.TraceTruffleCompilation=true",
-    "-Dgraal.TraceTruffleCompilationCallTree=true",
-    "-Dgraal.TraceTruffleInlining=true",
-    "-Dgraal.TraceTrufflePerformanceWarnings=true"
+    "-Dpolyglot.engine.TraceCompilation=true",
+    "-Dpolyglot.engine.TraceCompilationCallTree=true",
+    "-Dpolyglot.engine.TraceInlining=true",
+    "-Dpolyglot.engine.TracePerformanceWarnings=true"
   )
 
   val trufflePrintAssemblyOptions = Seq(

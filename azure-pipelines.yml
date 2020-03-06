@@ -17,7 +17,7 @@ trigger:
 pr: none
 
 variables:
-  graalVersion: 19.3.1 # Please ensure this is in sync with the graalAPIVersion in build.sbt
+  graalVersion: 20.0.0 # Please ensure this is in sync with the graalAPIVersion in build.sbt
   graalReleasesUrl: https://github.com/graalvm/graalvm-ce-builds/releases/download
   graalDistributionName: graalvm-ce-java8
   sbtVersion: 1.3.3    # Please ensure this is in sync with project/build.properties
@@ -142,6 +142,7 @@ jobs:
           echo ##vso[task.setvariable variable=JAVA_HOME]C:\$(graalDistributionName)-$(graalVersion)
           echo ##vso[task.setvariable variable=PATH]C:\$(graalDistributionName)-$(graalVersion)\bin;%PATH%
           echo ##vso[task.setvariable variable=PATH]%USERPROFILE%\sbt\bin\;%PATH%
+          echo ##vso[task.setvariable variable=TRUFFLE_STRICT_OPTION_DEPRECATION]true
         displayName: Adjust Environment Variables
       - script: |
           sbt -no-colors syntaxJS/fullOptJS
