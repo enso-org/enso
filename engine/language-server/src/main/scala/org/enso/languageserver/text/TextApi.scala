@@ -2,7 +2,13 @@ package org.enso.languageserver.text
 
 import org.enso.languageserver.data.CapabilityRegistration
 import org.enso.languageserver.filemanager.Path
-import org.enso.languageserver.jsonrpc.{HasParams, HasResult, Method}
+import org.enso.languageserver.jsonrpc.{
+  Error,
+  HasParams,
+  HasResult,
+  Method,
+  Unused
+}
 
 /**
   * The text editing JSON RPC API provided by the language server.
@@ -25,5 +31,17 @@ object TextApi {
       type Result = OpenFile.Result
     }
   }
+
+  case object CloseFile extends Method("text/closeFile") {
+    case class Params(path: Path)
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = CloseFile.Params
+    }
+    implicit val hasResult = new HasResult[this.type] {
+      type Result = Unused.type
+    }
+  }
+
+  case object FileNotOpenedError extends Error(3001, "File not opened")
 
 }

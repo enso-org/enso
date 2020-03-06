@@ -29,4 +29,26 @@ object TextProtocol {
     writeCapability: Option[CapabilityRegistration]
   )
 
+  /** Requests the language server to close a file on behalf of a given user.
+    *
+    * @param clientId the client closing the file.
+    * @param path the file path.
+    */
+  case class CloseFile(clientId: Client.Id, path: Path)
+
+  /**
+    * Signals file close status.
+    */
+  sealed trait CloseFileResult
+
+  /**
+    * Confirms that a file was successfully closed.
+    */
+  case object FileClosed extends CloseFileResult
+
+  /**
+    * Signals that a file wasn't opened.
+    */
+  case object FileNotOpened extends CloseFileResult
+
 }

@@ -25,10 +25,11 @@ import org.enso.languageserver.jsonrpc.Errors.ServiceError
 import org.enso.languageserver.jsonrpc._
 import org.enso.languageserver.requesthandler.{
   AcquireCapabilityHandler,
+  CloseFileHandler,
   OpenFileHandler,
   ReleaseCapabilityHandler
 }
-import org.enso.languageserver.text.TextApi.OpenFile
+import org.enso.languageserver.text.TextApi.{CloseFile, OpenFile}
 
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
@@ -48,6 +49,7 @@ object ClientApi {
     .registerRequest(ReadFile)
     .registerRequest(CreateFile)
     .registerRequest(OpenFile)
+    .registerRequest(CloseFile)
     .registerRequest(DeleteFile)
     .registerRequest(CopyFile)
     .registerNotification(ForceReleaseCapability)
@@ -85,7 +87,9 @@ class ClientController(
         .props(capabilityRouter, requestTimeout, client),
       ReleaseCapability -> ReleaseCapabilityHandler
         .props(capabilityRouter, requestTimeout, client),
-      OpenFile -> OpenFileHandler.props(bufferRegistry, requestTimeout, client)
+      OpenFile -> OpenFileHandler.props(bufferRegistry, requestTimeout, client),
+      CloseFile -> CloseFileHandler
+        .props(bufferRegistry, requestTimeout, client)
     )
 
   override def receive: Receive = {

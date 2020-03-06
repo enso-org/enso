@@ -10,9 +10,9 @@ import org.enso.languageserver.data.{
   ContentBasedVersioning
 }
 import org.enso.languageserver.event.{
-  ClientDisconnected,
-  FileClosed,
-  FileOpened
+  BufferClosed,
+  BufferOpened,
+  ClientDisconnected
 }
 import org.enso.languageserver.filemanager.FileManagerProtocol.ReadFileResult
 import org.enso.languageserver.filemanager.{
@@ -21,11 +21,7 @@ import org.enso.languageserver.filemanager.{
   Path
 }
 import org.enso.languageserver.text.CollaborativeBuffer.FileReadingTimeout
-import org.enso.languageserver.text.TextProtocol.{
-  OpenFile,
-  OpenFileResponse,
-  OpenFileResult
-}
+import org.enso.languageserver.text.TextProtocol._
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -58,7 +54,7 @@ class CollaborativeBuffer(
 
   private def uninitialized: Receive = {
     case OpenFile(client, path) =>
-      context.system.eventStream.publish(FileOpened(path))
+      context.system.eventStream.publish(BufferOpened(path))
       log.info(s"Buffer opened for $path [client:${client.id}]")
       readFile(client, path)
   }
@@ -101,6 +97,13 @@ class CollaborativeBuffer(
         removeClient(buffer, clients, lockHolder, clientId)
       }
 
+    case CloseFile(clientId, _) =>
+      if (clients.contains(clientId)) {
+        removeClient(buffer, clients, lockHolder, clientId)
+        sender() ! FileClosed
+      } else {
+        sender() ! FileNotOpened
+      }
   }
 
   private def readFile(client: Client, path: Path): Unit = {
@@ -208,7 +211,7 @@ class CollaborativeBuffer(
   }
 
   def stop(): Unit = {
-    context.system.eventStream.publish(FileClosed(bufferPath))
+    context.system.eventStream.publish(BufferClosed(bufferPath))
     context.stop(self)
   }
 

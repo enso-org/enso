@@ -13,7 +13,11 @@ import org.enso.languageserver.data.{
   ContentBasedVersioning
 }
 import org.enso.languageserver.filemanager.Path
-import org.enso.languageserver.text.TextProtocol.OpenFile
+import org.enso.languageserver.text.TextProtocol.{
+  CloseFile,
+  FileNotOpened,
+  OpenFile
+}
 
 /**
   * An actor that routes request regarding text editing to the right buffer.
@@ -42,6 +46,13 @@ class BufferRegistry(fileManager: ActorRef)(
 
     case Terminated(bufferRef) =>
       context.become(running(registry.filter(_._2 != bufferRef)))
+
+    case msg @ CloseFile(_, path) =>
+      if (registry.contains(path)) {
+        registry(path).forward(msg)
+      } else {
+        sender() ! FileNotOpened
+      }
 
     case msg @ AcquireCapability(_, CapabilityRegistration(CanEdit(path))) =>
       if (registry.contains(path)) {
