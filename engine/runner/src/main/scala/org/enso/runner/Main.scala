@@ -5,6 +5,8 @@ import java.util.UUID
 
 import cats.implicits._
 import org.apache.commons.cli.{Option => CliOption, _}
+import org.enso.languageserver
+import org.enso.languageserver.LanguageServerConfig
 import org.enso.pkg.Package
 import org.enso.polyglot.{ExecutionContext, LanguageInfo, Module}
 import org.graalvm.polyglot.Value
@@ -244,7 +246,7 @@ object Main {
       port      <- Either
                      .catchNonFatal(portString.toInt)
                      .leftMap(_ => "Port must be integer") 
-    } yield LanguageServerConfig(interface, port, rootId, rootPath)
+    } yield languageserver.LanguageServerConfig(interface, port, rootId, rootPath)
     // format: on
 
   /**

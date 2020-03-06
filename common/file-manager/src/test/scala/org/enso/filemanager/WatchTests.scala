@@ -13,8 +13,7 @@ import java.util.UUID
 
 import org.apache.commons.io.FileUtils
 import org.enso.FileManager
-import org.scalatest.BeforeAndAfterAll
-import org.scalatest.Outcome
+import org.scalatest.{BeforeAndAfterAll, Ignore, Outcome}
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
@@ -25,6 +24,7 @@ import scala.reflect.ClassTag
 import scala.util.Try
 
 // needs to be separate because watcher message are asynchronous
+@Ignore
 class WatchTests
     extends AnyFunSuite
     with BeforeAndAfterAll

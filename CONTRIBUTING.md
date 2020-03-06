@@ -311,10 +311,38 @@ Detailed information on the flags it supports can be obtained by executing `run
   project.
 
 #### Language Server Mode
-Though operating the Enso binary as a language server is functionality planned
-for the 2.0 release, it is not currently implemented. For more information on
-the planned functionality and its progress, please see the
-[Issue Tracker](https://github.com/luna/enso/issues).
+The Language Server can be run using the `--server` option. It requires also a 
+content root to be provided (`--root-id` and `--path` options). Command-line 
+interface of the runner prints all server options when you execute it with 
+`--help` option. 
+
+Below are options uses by the Language Server:
+- `--server`: Runs the Language Server
+- `--root-id <uuid>`: Content root id.
+- `--path <path>`: Path to the content root.
+- `--interface <interface>`: Interface for processing all incoming connections. 
+Default value is 127.0.0.1
+- `--port <port>`: Port for processing all incoming connections. Default value 
+is 8080.
+
+To run the Language Server on 127.0.0.1:8080 type:
+```bash
+java -jar enso.jar \
+  --server \
+  --root-id 3256d10d-45be-45b1-9ea4-7912ef4226b1 \
+  --path /tmp/content-root
+```
+
+If you want to provide a socket that the server should listen to, type:
+
+```bash
+java -jar enso.jar \
+  --server \
+  --root-id 3256d10d-45be-45b1-9ea4-7912ef4226b1 \
+  --path /tmp/content-root \
+  --interface 0.0.0.0 \
+  --port 80
+``` 
 
 ## Pull Requests
 Pull Requests are the primary method for making changes to Enso. GitHub has

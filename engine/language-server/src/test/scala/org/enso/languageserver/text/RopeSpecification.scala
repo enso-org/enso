@@ -1,4 +1,4 @@
-package org.enso.languageserver.buffer
+package org.enso.languageserver.text
 import org.enso.languageserver.data.buffer.Rope
 import org.scalacheck.Prop.forAll
 import org.scalacheck.Arbitrary._

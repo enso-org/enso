@@ -2,6 +2,7 @@ package org.enso.languageserver.data
 import java.util.UUID
 
 import io.circe._
+import org.enso.languageserver.filemanager.Path
 
 /**
   * A superclass for all capabilities in the system.
@@ -12,9 +13,9 @@ sealed abstract class Capability(val method: String)
 //TODO[MK]: Migrate to actual Path, once it is implemented.
 /**
   * A capability allowing the user to modify a given file.
-  * @param path
+  * @param path the file path this capability is granted for.
   */
-case class CanEdit(path: String) extends Capability(CanEdit.methodName)
+case class CanEdit(path: Path) extends Capability(CanEdit.methodName)
 
 object CanEdit {
   val methodName = "canEdit"
@@ -35,11 +36,9 @@ object Capability {
 /**
   * A capability registration object, used to identify acquired capabilities.
   *
-  * @param id the registration id.
   * @param capability the registered capability.
   */
 case class CapabilityRegistration(
-  id: CapabilityRegistration.Id,
   capability: Capability
 )
 
@@ -49,13 +48,11 @@ object CapabilityRegistration {
 
   type Id = UUID
 
-  private val idField      = "id"
   private val methodField  = "method"
   private val optionsField = "registerOptions"
 
   implicit val encoder: Encoder[CapabilityRegistration] = registration =>
     Json.obj(
-      idField      -> registration.id.asJson,
       methodField  -> registration.capability.method.asJson,
       optionsField -> registration.capability.asJson
     )
@@ -71,12 +68,11 @@ object CapabilityRegistration {
     }
 
     for {
-      id     <- json.downField(idField).as[Id]
       method <- json.downField(methodField).as[String]
       capability <- resolveOptions(
         method,
         json.downField(optionsField).focus.getOrElse(Json.Null)
       )
-    } yield CapabilityRegistration(id, capability)
+    } yield CapabilityRegistration(capability)
   }
 }

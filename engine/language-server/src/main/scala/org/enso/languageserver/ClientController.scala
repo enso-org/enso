@@ -1,19 +1,34 @@
 package org.enso.languageserver
 
-import java.util.UUID
-
-import akka.actor.{Actor, ActorLogging, ActorRef, Stash}
+import akka.actor.{Actor, ActorLogging, ActorRef, Props, Stash}
 import akka.pattern.ask
 import akka.util.Timeout
-import org.enso.languageserver.ClientApi._
-import org.enso.languageserver.data.{CapabilityRegistration, Client}
+import org.enso.languageserver.capability.CapabilityApi.{
+  AcquireCapability,
+  ForceReleaseCapability,
+  GrantCapability,
+  ReleaseCapability
+}
+import org.enso.languageserver.capability.CapabilityProtocol
+import org.enso.languageserver.data.Client
+import org.enso.languageserver.event.{ClientConnected, ClientDisconnected}
 import org.enso.languageserver.filemanager.FileManagerApi._
+import org.enso.languageserver.filemanager.FileManagerProtocol.{
+  CreateFileResult,
+  WriteFileResult
+}
 import org.enso.languageserver.filemanager.{
   FileManagerProtocol,
   FileSystemFailureMapper
 }
 import org.enso.languageserver.jsonrpc.Errors.ServiceError
 import org.enso.languageserver.jsonrpc._
+import org.enso.languageserver.requesthandler.{
+  AcquireCapabilityHandler,
+  OpenFileHandler,
+  ReleaseCapabilityHandler
+}
+import org.enso.languageserver.text.TextApi.OpenFile
 
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
@@ -26,45 +41,13 @@ import scala.util.{Failure, Success}
 object ClientApi {
   import io.circe.generic.auto._
 
-  case object AcquireCapability extends Method("capability/acquire") {
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = CapabilityRegistration
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = Unused.type
-    }
-  }
-
-  case class ReleaseCapabilityParams(id: UUID)
-
-  case object ReleaseCapability extends Method("capability/release") {
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = ReleaseCapabilityParams
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = Unused.type
-    }
-  }
-
-  case object ForceReleaseCapability
-      extends Method("capability/forceReleased") {
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = ReleaseCapabilityParams
-    }
-  }
-
-  case object GrantCapability extends Method("capability/granted") {
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = CapabilityRegistration
-    }
-  }
-
   val protocol: Protocol = Protocol.empty
     .registerRequest(AcquireCapability)
     .registerRequest(ReleaseCapability)
     .registerRequest(WriteFile)
     .registerRequest(ReadFile)
     .registerRequest(CreateFile)
+    .registerRequest(OpenFile)
     .registerRequest(DeleteFile)
     .registerRequest(CopyFile)
     .registerNotification(ForceReleaseCapability)
@@ -83,6 +66,8 @@ object ClientApi {
 class ClientController(
   val clientId: Client.Id,
   val server: ActorRef,
+  val bufferRegistry: ActorRef,
+  val capabilityRouter: ActorRef,
   requestTimeout: FiniteDuration = 10.seconds
 ) extends Actor
     with Stash
@@ -92,8 +77,21 @@ class ClientController(
 
   implicit val timeout = Timeout(requestTimeout)
 
+  private val client = Client(clientId, self)
+
+  private val requestHandlers: Map[Method, Props] =
+    Map(
+      AcquireCapability -> AcquireCapabilityHandler
+        .props(capabilityRouter, requestTimeout, client),
+      ReleaseCapability -> ReleaseCapabilityHandler
+        .props(capabilityRouter, requestTimeout, client),
+      OpenFile -> OpenFileHandler.props(bufferRegistry, requestTimeout, client)
+    )
+
   override def receive: Receive = {
     case ClientApi.WebConnect(webActor) =>
+      context.system.eventStream
+        .publish(ClientConnected(Client(clientId, self)))
       unstashAll()
       context.become(connected(webActor))
     case _ => stash()
@@ -101,25 +99,18 @@ class ClientController(
 
   def connected(webActor: ActorRef): Receive = {
     case MessageHandler.Disconnected =>
-      server ! LanguageProtocol.Disconnect(clientId)
+      context.system.eventStream.publish(ClientDisconnected(clientId))
       context.stop(self)
 
-    case LanguageProtocol.CapabilityForceReleased(id) =>
-      webActor ! Notification(
-        ForceReleaseCapability,
-        ReleaseCapabilityParams(id)
-      )
+    case CapabilityProtocol.CapabilityForceReleased(registration) =>
+      webActor ! Notification(ForceReleaseCapability, registration)
 
-    case LanguageProtocol.CapabilityGranted(registration) =>
+    case CapabilityProtocol.CapabilityGranted(registration) =>
       webActor ! Notification(GrantCapability, registration)
 
-    case Request(AcquireCapability, id, registration: CapabilityRegistration) =>
-      server ! LanguageProtocol.AcquireCapability(clientId, registration)
-      sender ! ResponseResult(AcquireCapability, id, Unused)
-
-    case Request(ReleaseCapability, id, params: ReleaseCapabilityParams) =>
-      server ! LanguageProtocol.ReleaseCapability(clientId, params.id)
-      sender ! ResponseResult(ReleaseCapability, id, Unused)
+    case r @ Request(method, _, _) if (requestHandlers.contains(method)) =>
+      val handler = context.actorOf(requestHandlers(method))
+      handler.forward(r)
 
     case Request(WriteFile, id, params: WriteFile.Params) =>
       writeFile(webActor, id, params)
@@ -167,10 +158,10 @@ class ClientController(
   ): Unit = {
     (server ? FileManagerProtocol.WriteFile(params.path, params.contents))
       .onComplete {
-        case Success(FileManagerProtocol.WriteFileResult(Right(()))) =>
+        case Success(WriteFileResult(Right(()))) =>
           webActor ! ResponseResult(WriteFile, id, Unused)
 
-        case Success(FileManagerProtocol.WriteFileResult(Left(failure))) =>
+        case Success(WriteFileResult(Left(failure))) =>
           webActor ! ResponseError(
             Some(id),
             FileSystemFailureMapper.mapFailure(failure)
@@ -189,10 +180,10 @@ class ClientController(
   ): Unit = {
     (server ? FileManagerProtocol.CreateFile(params.`object`))
       .onComplete {
-        case Success(FileManagerProtocol.CreateFileResult(Right(()))) =>
+        case Success(CreateFileResult(Right(()))) =>
           webActor ! ResponseResult(CreateFile, id, Unused)
 
-        case Success(FileManagerProtocol.CreateFileResult(Left(failure))) =>
+        case Success(CreateFileResult(Left(failure))) =>
           webActor ! ResponseError(
             Some(id),
             FileSystemFailureMapper.mapFailure(failure)

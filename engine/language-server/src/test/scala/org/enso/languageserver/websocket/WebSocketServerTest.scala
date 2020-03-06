@@ -12,14 +12,15 @@ import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import cats.effect.IO
 import io.circe.Json
 import io.circe.parser.parse
-import org.enso.languageserver.data.Config
-
+import org.enso.languageserver.capability.CapabilityRouter
+import org.enso.languageserver.data.{Config, Sha3_224VersionCalculator}
 import org.enso.languageserver.{
   LanguageProtocol,
   LanguageServer,
   WebSocketServer
 }
 import org.enso.languageserver.filemanager.FileSystem
+import org.enso.languageserver.text.BufferRegistry
 import org.scalatest.{Assertion, BeforeAndAfterAll, BeforeAndAfterEach}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -57,7 +58,16 @@ abstract class WebSocketServerTest
         Props(new LanguageServer(config, new FileSystem[IO]))
       )
     languageServer ! LanguageProtocol.Initialize
-    server  = new WebSocketServer(languageServer)
+    val bufferRegistry =
+      system.actorOf(
+        BufferRegistry.props(languageServer)(Sha3_224VersionCalculator)
+      )
+
+    lazy val capabilityRouter =
+      system.actorOf(CapabilityRouter.props(bufferRegistry))
+
+    server =
+      new WebSocketServer(languageServer, bufferRegistry, capabilityRouter)
     binding = Await.result(server.bind(interface, port = 0), 3.seconds)
     address = s"ws://$interface:${binding.localAddress.getPort}"
   }

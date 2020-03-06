@@ -91,4 +91,6 @@ object FileManagerApi {
 
   case object FileExistsError extends Error(1004, "File already exists")
 
+  case object OperationTimeoutError extends Error(1005, "IO operation timeout")
+
 }

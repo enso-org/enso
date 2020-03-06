@@ -10,6 +10,8 @@ import org.enso.languageserver.filemanager.FileSystem
 import org.enso.languageserver.{
   LanguageProtocol,
   LanguageServer,
+  LanguageServerConfig,
+  MainModule,
   WebSocketServer
 }
 
@@ -29,22 +31,16 @@ object LanguageServerApp {
     */
   def run(config: LanguageServerConfig): Unit = {
     println("Starting Language Server...")
-    implicit val system       = ActorSystem()
-    implicit val materializer = SystemMaterializer.get(system)
-    val languageServerConfig = Config(
-      Map(config.contentRootUuid -> new File(config.contentRootPath))
-    )
-    val languageServer =
-      system.actorOf(
-        Props(new LanguageServer(languageServerConfig, new FileSystem[IO]))
-      )
+    val mainModule = new MainModule(config)
 
-    languageServer ! LanguageProtocol.Initialize
-
-    val server = new WebSocketServer(languageServer)
+    mainModule.languageServer ! LanguageProtocol.Initialize
 
     val binding =
-      Await.result(server.bind(config.interface, config.port), 3.seconds)
+      Await.result(
+        mainModule.server.bind(config.interface, config.port),
+        3.seconds
+      )
+
     println(
       s"Started server at ${config.interface}:${config.port}, press enter to kill server"
     )

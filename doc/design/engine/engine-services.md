@@ -927,8 +927,8 @@ A representation of a batch of edits to a file, versioned.
 interface FileEdit {
   path: Path;
   edits: [TextEdit];
-  oldVersion: UUID;
-  newVersion: UUID;
+  oldVersion: SHA3-224;
+  newVersion: SHA3-224;
 }
 ```
 
@@ -995,7 +995,6 @@ client.
 }
 
 interface CapabilityRegistration {
-  id: UUID; // The registration ID
   method: String;
   registerOptions?: any;
 }
@@ -1024,7 +1023,7 @@ capability.
 
 ```typescript
 {
-  id: UUID; // The ID used to register the capability
+  registration: CapabilityRegistration;
 }
 ```
 
@@ -1066,7 +1065,7 @@ capability set.
 
 ```typescript
 {
-  id: UUID; // The ID used to register the capability
+  registration: CapabilityRegistration;
 }
 ```
 
@@ -1567,7 +1566,7 @@ the client that sent the `text/openFile` message.
 {
   writeCapability?: CapabilityRegistration;
   content: String;
-  currentVersion: UUID;
+  currentVersion: SHA3-224;
 }
 ```
 
@@ -1612,7 +1611,7 @@ that file, or if the client is requesting a save of an outdated version.
 ```typescript
 {
   path: Path;
-  currentVersion: UUID;
+  currentVersion: SHA3-224;
 }
 ```
 
@@ -2019,6 +2018,16 @@ It signals that file already exists.
 "error" : {
   "code" : 1004,
   "message" : "File already exists"
+}
+```
+
+##### `OperationTimeoutError`
+It signals that IO operation timed out.
+
+```typescript
+"error" : {
+  "code" : 1005,
+  "message" : "IO operation timeout"
 }
 ```
 
