@@ -3,32 +3,16 @@
 use parser::prelude::*;
 
 use ast::*;
+use ast::test_utils::expect_shape;
+use ast::test_utils::expect_single_line;
 use parser::api::IsParser;
+use utils::test::ExpectTuple;
 
 
 
 // ===============
 // === Helpers ===
 // ===============
-
-/// Takes Ast being a module with a single line and returns that line's AST.
-fn expect_single_line(ast:&Ast) -> &Ast {
-    let module:&Module<Ast> = expect_shape(ast);
-    let (line,)             = (&module.lines).expect_tuple();
-    line.elem.as_ref().unwrap()
-}
-
-/// "Downcasts" given AST's Shape to `T`.
-fn expect_shape<'t,T>(ast:&'t Ast) -> &'t T
-where &'t Shape<Ast>: TryInto<&'t T> {
-    match ast.shape().try_into() {
-        Ok(shape) => shape,
-        _         => {
-            let expected_typename = std::any::type_name::<T>();
-            panic!("failed converting shape into {}",expected_typename)
-        },
-    }
-}
 
 /// Asserts that given AST is a Var with given name.
 fn assert_var<StringLike: Into<String>>(ast:&Ast, name:StringLike) {
@@ -52,61 +36,6 @@ fn validate_spans(ast:&Ast) {
         let declared   = node.wrapped.wrapped.len;
         assert_eq!(calculated, declared
                   , "`{}` part of `{}`", node.repr(), ast.repr());
-    }
-}
-
-
-
-// ===================
-// === ExpectTuple ===
-// ===================
-
-// === Trait ===
-/// Helper allowing converting between collections and tuples. Does heavy
-/// unwarapping, shouldn't be used outside test environment.
-trait ExpectTuple<T> {
-    /// Convert Self to tuple `T`. Panic if collection has different count of
-    /// elements.
-    fn expect_tuple(self) -> T;
-}
-
-
-// === Implementations ===
-// TODO [MWU] boilerplate below should be generated with macro
-
-impl<Collection:IntoIterator>
-ExpectTuple<(Collection::Item,)> for Collection {
-    fn expect_tuple(self) -> (Collection::Item,) {
-        let mut iter = self.into_iter();
-        let     v1   = iter.next().unwrap();
-        assert!(iter.next().is_none());
-        (v1,)
-    }
-}
-
-impl<Collection: IntoIterator>
-ExpectTuple<(Collection::Item,Collection::Item)>
-for Collection {
-    fn expect_tuple(self) -> (Collection::Item,Collection::Item) {
-        let mut iter = self.into_iter();
-        let     v1   = iter.next().unwrap();
-        let     v2   = iter.next().unwrap();
-        assert!(iter.next().is_none());
-        (v1,v2)
-    }
-}
-
-impl<Collection: IntoIterator>
-ExpectTuple<(Collection::Item,Collection::Item,Collection::Item)>
-for Collection {
-    fn expect_tuple
-    (self) -> (Collection::Item,Collection::Item,Collection::Item) {
-        let mut iter = self.into_iter();
-        let     v1   = iter.next().unwrap();
-        let     v2   = iter.next().unwrap();
-        let     v3   = iter.next().unwrap();
-        assert!(iter.next().is_none());
-        (v1,v2,v3)
     }
 }
 

@@ -1,8 +1,23 @@
-#![feature(type_alias_impl_trait)]
+#![feature(associated_type_bounds)]
+#![feature(bool_to_option)]
 #![feature(generators, generator_trait)]
+#![feature(trivial_bounds)]
+#![feature(type_alias_impl_trait)]
 
-mod internal;
-mod repr;
+#[warn(missing_docs)]
+pub mod assoc;
+#[warn(missing_docs)]
+pub mod internal;
+#[warn(missing_docs)]
+pub mod known;
+#[warn(missing_docs)]
+pub mod opr;
+#[warn(missing_docs)]
+pub mod prefix;
+#[warn(missing_docs)]
+pub mod repr;
+#[warn(missing_docs)]
+pub mod test_utils;
 
 use prelude::*;
 
@@ -341,7 +356,21 @@ pub enum Shape<T> {
     Foreign       (Foreign),
 }
 
-
+/// Macrot that calls its argument (possibly other macro
+#[macro_export]
+macro_rules! with_shape_variants {
+    ($f:ident) => {
+        $f! { [Unrecognized] [InvalidQuote] [InlineBlock]
+              [Blank] [Var] [Cons] [Opr] [Mod] [InvalidSuffix Ast]
+              [Number] [DanglingBase]
+              [TextLineRaw] [TextLineFmt Ast] [TextBlockRaw] [TextBlockFmt Ast] [TextUnclosed Ast]
+              [Prefix Ast] [Infix Ast] [SectionLeft Ast] [SectionRight Ast] [SectionSides Ast]
+              [Module Ast] [Block Ast]
+              [Match Ast] [Ambiguous]
+              // Note: Spaceless AST is intentionally omitted here.
+            }
+    };
+}
 
 // ===============
 // === Builder ===

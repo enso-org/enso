@@ -18,8 +18,8 @@ enso-prelude             = { version = "0.1.0"  , path = "../prelude"       }
 file-manager-client      = { version = "0.1.0"  , path = "file-manager"     }
 json-rpc                 = { version = "0.1.0"  , path = "json-rpc"         }
 parser                   = { version = "0.1.0"  , path = "parser"           }
-utils                    = { version = "0.1.0"  , path = "utils"            }
 shapely                  = { version = "0.1.0"  , path = "../shapely/impl"  }
+utils                    = { version = "0.1.0"  , path = "utils"            }
 
 console_error_panic_hook = { version = "0.1.6"                           }
 failure                  = { version = "0.1.6"                           }

@@ -57,7 +57,6 @@ impl Client {
     }
 }
 
-
 impl IsParser for Client {
     fn parse(&mut self, program:String, ids:IdMap) -> api::Result<api::Ast> {
         let ast = || {
