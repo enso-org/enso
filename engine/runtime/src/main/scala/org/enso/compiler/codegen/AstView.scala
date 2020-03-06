@@ -155,6 +155,25 @@ object AstView {
     }
   }
 
+  object ContextAscription {
+
+    /** Matches a usage of the `in` keyword for ascribing a monadic context to
+      * an expression.
+      *
+      * @param ast the ast structure to match on
+      * @return a pair containing the expression and the context
+      */
+    def unapply(ast: AST): Option[(AST, AST)] = {
+      ast match {
+        case MaybeParensed(
+            AST.App.Prefix(expr, AST.App.Prefix(AST.Ident.Var("in"), context))
+            ) =>
+          Some((expr, context))
+        case _ => None
+      }
+    }
+  }
+
   object LazyArgument {
 
     /** Matches on a lazy argument definition or usage.

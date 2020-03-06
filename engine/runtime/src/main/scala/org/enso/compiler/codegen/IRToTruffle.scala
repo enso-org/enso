@@ -4,6 +4,7 @@ import com.oracle.truffle.api.Truffle
 import com.oracle.truffle.api.source.{Source, SourceSection}
 import org.enso.compiler.core.IR
 import org.enso.compiler.exception.{CompilerError, UnhandledEntity}
+import org.enso.compiler.pass.analyse.ApplicationSaturation
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode
 import org.enso.interpreter.node.callable.function.{
   BlockNode,
@@ -20,7 +21,6 @@ import org.enso.interpreter.node.expression.literal.{
   IntegerLiteralNode,
   TextLiteralNode
 }
-import org.enso.interpreter.node.expression.operator._
 import org.enso.interpreter.node.scope.{AssignmentNode, ReadLocalTargetNode}
 import org.enso.interpreter.node.{
   ClosureRootNode,
@@ -117,10 +117,10 @@ class IRToTruffle(
 
     val imports = module.imports
     val atomDefs = module.bindings.collect {
-      case atom: IR.ModuleScope.Definition.Atom => atom
+      case atom: IR.Module.Scope.Definition.Atom => atom
     }
     val methodDefs = module.bindings.collect {
-      case method: IR.ModuleScope.Definition.Method => method
+      case method: IR.Module.Scope.Definition.Method => method
     }
 
     // Register the imports in scope
@@ -130,7 +130,7 @@ class IRToTruffle(
 
     // Register the atoms and their constructors in scope
     val atomConstructors =
-      atomDefs.map(t => new AtomConstructor(t.name, moduleScope))
+      atomDefs.map(t => new AtomConstructor(t.name.name, moduleScope))
     atomConstructors.foreach(moduleScope.registerConstructor)
 
     atomConstructors
@@ -153,27 +153,38 @@ class IRToTruffle(
     methodDefs.foreach(methodDef => {
       val thisArgument =
         IR.DefinitionArgument.Specified(
-          Constants.Names.THIS_ARGUMENT,
+          IR.Name.This(None),
           None,
           suspended = false,
           None
         )
 
-      val typeName = if (methodDef.typeName == Constants.Names.CURRENT_MODULE) {
-        moduleScope.getAssociatedType.getName
-      } else {
-        methodDef.typeName
-      }
+      val typeName =
+        if (methodDef.typeName.name == Constants.Names.CURRENT_MODULE) {
+          moduleScope.getAssociatedType.getName
+        } else {
+          methodDef.typeName.name
+        }
 
       val expressionProcessor = new ExpressionProcessor(
-        typeName + Constants.SCOPE_SEPARATOR + methodDef.methodName
+        typeName ++ Constants.SCOPE_SEPARATOR ++ methodDef.methodName.name
       )
 
-      val funNode = expressionProcessor.processFunctionBody(
-        List(thisArgument) ++ methodDef.function.arguments,
-        methodDef.function.body,
-        methodDef.function.location
-      )
+      val funNode = methodDef.body match {
+        case fn: IR.Function =>
+          expressionProcessor.processFunctionBody(
+            thisArgument :: fn.arguments,
+            fn.body,
+            fn.location
+          )
+        case _ =>
+          expressionProcessor.processFunctionBody(
+            List(thisArgument),
+            methodDef.body,
+            methodDef.body.location
+          )
+      }
+
       funNode.markTail()
 
       val function = new RuntimeFunction(
@@ -188,9 +199,9 @@ class IRToTruffle(
       val cons = moduleScope
         .getConstructor(typeName)
         .orElseThrow(
-          () => new VariableDoesNotExistException(methodDef.typeName)
+          () => new VariableDoesNotExistException(methodDef.typeName.name)
         )
-      moduleScope.registerMethod(cons, methodDef.methodName, function)
+      moduleScope.registerMethod(cons, methodDef.methodName.name, function)
     })
   }
 
@@ -274,7 +285,6 @@ class IRToTruffle(
       * @return a truffle expression that represents the same program as `ir`
       */
     def run(ir: IR): RuntimeExpression = ir match {
-      case IR.Tagged(ir, _, _, _)         => run(ir)
       case block: IR.Expression.Block     => processBlock(block)
       case literal: IR.Literal            => processLiteral(literal)
       case app: IR.Application            => processApplication(app)
@@ -396,7 +406,7 @@ class IRToTruffle(
       * @return the truffle nodes corresponding to `binding`
       */
     def processBinding(binding: IR.Expression.Binding): RuntimeExpression = {
-      currentVarName = binding.name
+      currentVarName = binding.name.name
 
       val slot = scope.createVarSlot(currentVarName)
 
@@ -453,7 +463,9 @@ class IRToTruffle(
         case IR.Name.Here(_, _) =>
           ConstructorNode.build(moduleScope.getAssociatedType)
         case IR.Name.This(location, passData) =>
-          processName(IR.Name.Literal("this", location, passData))
+          processName(
+            IR.Name.Literal(Constants.Names.THIS_ARGUMENT, location, passData)
+          )
       }
 
       setLocation(nameExpr, name.location)
@@ -480,7 +492,7 @@ class IRToTruffle(
       * @return a truffle node representing the described function
       */
     def processFunctionBody(
-      arguments: List[IR.DefinitionArgument.Specified],
+      arguments: List[IR.DefinitionArgument],
       body: IR.Expression,
       location: Option[Location]
     ): CreateFunctionNode = {
@@ -575,37 +587,27 @@ class IRToTruffle(
             InvokeCallableNode.DefaultsExecutionMode.EXECUTE
           }
 
-          val appNode = ApplicationNode.build(
-            this.run(fn),
-            callArgs.toArray,
-            defaultsExecutionMode
-          )
-
-          setLocation(appNode, loc)
-        case IR.Application.Operator.Binary(left, operator, right, loc, _) =>
-          val leftExpr  = this.run(left)
-          val rightExpr = this.run(right)
-
-          // This will be refactored away once operator desugaring exists
-          val opExpr = if (operator == "+") {
-            AddOperatorNode.build(leftExpr, rightExpr)
-          } else if (operator == "-") {
-            SubtractOperatorNode.build(leftExpr, rightExpr)
-          } else if (operator == "*") {
-            MultiplyOperatorNode.build(leftExpr, rightExpr)
-          } else if (operator == "/") {
-            DivideOperatorNode.build(leftExpr, rightExpr)
-          } else if (operator == "%") {
-            ModOperatorNode.build(leftExpr, rightExpr)
-          } else {
-            throw new RuntimeException(
-              s"Unsupported operator $operator at codegen time."
-            )
+          val appNode = application
+            .getMetadata[ApplicationSaturation.CallSaturation] match {
+            case Some(
+                ApplicationSaturation.CallSaturation.Exact(createOptimised)
+                ) =>
+              createOptimised(callArgs.toList)
+            case _ =>
+              ApplicationNode.build(
+                this.run(fn),
+                callArgs.toArray,
+                defaultsExecutionMode
+              )
           }
 
-          setLocation(opExpr, loc)
+          setLocation(appNode, loc)
         case IR.Application.Force(expr, location, _) =>
           setLocation(ForceNode.build(this.run(expr)), location)
+        case op: IR.Application.Operator.Binary =>
+          throw new CompilerError(
+            s"Explicit operators not supported during codegen but $op found"
+          )
       }
   }
 
@@ -664,7 +666,7 @@ class IRToTruffle(
             CreateThunkNode.build(callTarget)
         }
 
-        new CallArgument(name.orNull, result)
+        new CallArgument(name.map(_.name).orNull, result)
     }
   }
 
@@ -696,44 +698,50 @@ class IRToTruffle(
 
     /** Executes the code generator on the provided definition-site argument.
       *
-      * @param arg the argument to generate code for
+      * @param inputArg the argument to generate code for
       * @param position the position of `arg` at the function definition site
       * @return a truffle entity corresponding to the definition of `arg` for a
       *         given function
       */
     def run(
-      arg: IR.DefinitionArgument.Specified,
+      inputArg: IR.DefinitionArgument,
       position: Int
-    ): ArgumentDefinition = {
-      val defaultExpression = arg.defaultValue
-        .map(new ExpressionProcessor(scope, scopeName).run(_))
-        .orNull
+    ): ArgumentDefinition = inputArg match {
+      case arg: IR.DefinitionArgument.Specified =>
+        val defaultExpression = arg.defaultValue
+          .map(new ExpressionProcessor(scope, scopeName).run(_))
+          .orNull
 
-      // Note [Handling Suspended Defaults]
-      val defaultedValue = if (arg.suspended && defaultExpression != null) {
-        val defaultRootNode = ClosureRootNode.build(
-          language,
-          scope,
-          moduleScope,
-          defaultExpression,
-          null,
-          s"default::$scopeName::${arg.name}"
+        // Note [Handling Suspended Defaults]
+        val defaultedValue = if (arg.suspended && defaultExpression != null) {
+          val defaultRootNode = ClosureRootNode.build(
+            language,
+            scope,
+            moduleScope,
+            defaultExpression,
+            null,
+            s"default::$scopeName::${arg.name}"
+          )
+
+          CreateThunkNode.build(
+            Truffle.getRuntime.createCallTarget(defaultRootNode)
+          )
+        } else {
+          defaultExpression
+        }
+
+        val executionMode = if (arg.suspended) {
+          ArgumentDefinition.ExecutionMode.PASS_THUNK
+        } else {
+          ArgumentDefinition.ExecutionMode.EXECUTE
+        }
+
+        new ArgumentDefinition(
+          position,
+          arg.name.name,
+          defaultedValue,
+          executionMode
         )
-
-        CreateThunkNode.build(
-          Truffle.getRuntime.createCallTarget(defaultRootNode)
-        )
-      } else {
-        defaultExpression
-      }
-
-      val executionMode = if (arg.suspended) {
-        ArgumentDefinition.ExecutionMode.PASS_THUNK
-      } else {
-        ArgumentDefinition.ExecutionMode.EXECUTE
-      }
-
-      new ArgumentDefinition(position, arg.name, defaultedValue, executionMode)
     }
   }
 }

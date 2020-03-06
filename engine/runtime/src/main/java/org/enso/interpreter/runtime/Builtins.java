@@ -10,6 +10,11 @@ import org.enso.interpreter.node.expression.builtin.error.PanicNode;
 import org.enso.interpreter.node.expression.builtin.error.ThrowErrorNode;
 import org.enso.interpreter.node.expression.builtin.function.ExplicitCallFunctionNode;
 import org.enso.interpreter.node.expression.builtin.io.PrintNode;
+import org.enso.interpreter.node.expression.builtin.number.AddNode;
+import org.enso.interpreter.node.expression.builtin.number.DivideNode;
+import org.enso.interpreter.node.expression.builtin.number.ModNode;
+import org.enso.interpreter.node.expression.builtin.number.MultiplyNode;
+import org.enso.interpreter.node.expression.builtin.number.SubtractNode;
 import org.enso.interpreter.node.expression.builtin.state.GetStateNode;
 import org.enso.interpreter.node.expression.builtin.state.PutStateNode;
 import org.enso.interpreter.node.expression.builtin.state.RunStateNode;
@@ -86,6 +91,11 @@ public class Builtins {
     scope.registerMethod(any, "catch", CatchErrorNode.makeFunction(language));
 
     scope.registerMethod(number, "ifZero", IfZeroNode.makeFunction(language));
+    scope.registerMethod(number, "+", AddNode.makeFunction(language));
+    scope.registerMethod(number, "-", SubtractNode.makeFunction(language));
+    scope.registerMethod(number, "*", MultiplyNode.makeFunction(language));
+    scope.registerMethod(number, "/", DivideNode.makeFunction(language));
+    scope.registerMethod(number, "%", ModNode.makeFunction(language));
 
     scope.registerMethod(state, "get", GetStateNode.makeFunction(language));
     scope.registerMethod(state, "put", PutStateNode.makeFunction(language));

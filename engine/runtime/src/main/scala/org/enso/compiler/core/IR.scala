@@ -1,9 +1,10 @@
 package org.enso.compiler.core
 
+import org.enso.compiler.core.IR.Expression
 import org.enso.syntax.text.ast.Doc
 import org.enso.syntax.text.{AST, Location}
-import shapeless.HList
 
+import scala.collection.immutable.{Set => ISet}
 import scala.reflect.ClassTag
 
 /** [[IR]] is a temporary and fairly unsophisticated internal representation
@@ -22,7 +23,7 @@ sealed trait IR {
   /** A list of metadata that the node has been tagged with as the result of
     * various compiler passes.
     */
-  val passData: Set[IR.Metadata]
+  val passData: ISet[IR.Metadata]
 
   /** Adds pass metadata to the IR node.
     *
@@ -42,47 +43,36 @@ sealed trait IR {
 
   /** The source location that the node corresponds to. */
   val location: Option[Location]
+
+  /** Maps the provided function over any expression defined as a child of the
+    * node this is called on.
+    *
+    * @param fn the function to transform the expressions
+    * @return `this`, potentially having had its children transformed by `fn`
+    */
+  def mapExpressions(fn: Expression => Expression): IR
 }
 object IR {
 
   // === Basic Shapes =========================================================
 
-  /** A node representing an empty IR construct.
+  /** A node representing an empty IR construct that can be used in any place.
     *
     * @param location the source location that the node corresponds to
     * @param passData the pass metadata associated with this node
     */
   sealed case class Empty(
     override val location: Option[Location],
-    override val passData: Set[Metadata] = Set()
+    override val passData: ISet[Metadata] = ISet()
   ) extends IR
+      with Expression
+      with Error
       with IRKind.Primitive {
     override def addMetadata(newData: Metadata): Empty = {
       copy(passData = this.passData + newData)
     }
-  }
 
-  /** Allows for the tagging of [[IR]] nodes with arbitrary `data`.
-    *
-    * The `data` is represented as an [[HList]] to allow for the stacking of
-    * multiple pieces of arbitrary data as needed.
-    *
-    * @param ir the [[IR]] node being tagged
-    * @param data the data to associate with `ir`
-    * @param location the source location that the node corresponds to
-    * @param passData the pass metadata associated with this node
-    * @tparam T the type of the tag data
-    */
-  sealed case class Tagged[T <: HList](
-    ir: IR,
-    data: T,
-    override val location: Option[Location],
-    override val passData: Set[Metadata] = Set()
-  ) extends IR
-      with IRKind.Primitive {
-    override def addMetadata(newData: Metadata): Tagged[T] = {
-      copy(passData = this.passData + newData)
-    }
+    override def mapExpressions(fn: Expression => Expression): Empty = this
   }
 
   // === Module ===============================================================
@@ -98,84 +88,122 @@ object IR {
     * @param passData the pass metadata associated with this node
     */
   sealed case class Module(
-    imports: List[ModuleScope.Import],
-    bindings: List[ModuleScope.Definition],
+    imports: List[Module.Scope.Import],
+    bindings: List[Module.Scope.Definition],
     override val location: Option[Location],
-    override val passData: Set[Metadata] = Set()
+    override val passData: ISet[Metadata] = ISet()
   ) extends IR
       with IRKind.Primitive {
     override def addMetadata(newData: Metadata): Module = {
       copy(passData = this.passData + newData)
     }
-  }
 
-  // === Module Scope =========================================================
-
-  /** A representation of constructs that can only occur in the top-level module
-    * scope
-    */
-  sealed trait ModuleScope extends IR
-  object ModuleScope {
-
-    /** An import statement.
-      *
-      * @param name the full `.`-separated path representing the import
-      * @param location the source location that the node corresponds to
-      * @param passData the pass metadata associated with this node
-      */
-    sealed case class Import(
-      name: String,
-      override val location: Option[Location],
-      override val passData: Set[Metadata] = Set()
-    ) extends ModuleScope
-        with IRKind.Primitive {
-      override def addMetadata(newData: Metadata): Import = {
-        copy(passData = this.passData + newData)
-      }
+    override def mapExpressions(fn: Expression => Expression): Module = {
+      copy(
+        imports  = imports.map(_.mapExpressions(fn)),
+        bindings = bindings.map(_.mapExpressions(fn))
+      )
     }
 
-    /** A representation of top-level definitions. */
-    sealed trait Definition extends ModuleScope
-    object Definition {
+    def transformExpressions(
+      fn: PartialFunction[Expression, Expression]
+    ): Module = {
+      copy(
+        bindings = bindings.map(_.mapExpressions(_.transformExpressions(fn)))
+      )
+    }
+  }
+  object Module {
 
-      /** The definition of an atom constructor and its associated arguments.
+    /** A representation of constructs that can only occur in the top-level
+      * module scope
+      */
+    sealed trait Scope extends IR {
+      override def addMetadata(newData: Metadata):               Scope
+      override def mapExpressions(fn: Expression => Expression): Scope
+    }
+    object Scope {
+
+      /** An import statement.
         *
-        * @param name the name of the atom
-        * @param arguments the arguments to the atom constructor
+        * @param name the full `.`-separated path representing the import
         * @param location the source location that the node corresponds to
         * @param passData the pass metadata associated with this node
         */
-      sealed case class Atom(
+      sealed case class Import(
         name: String,
-        arguments: List[DefinitionArgument.Specified],
         override val location: Option[Location],
-        override val passData: Set[Metadata] = Set()
-      ) extends Definition
+        override val passData: ISet[Metadata] = ISet()
+      ) extends Scope
           with IRKind.Primitive {
-        override def addMetadata(newData: Metadata): Atom = {
+        override def addMetadata(newData: Metadata): Import = {
           copy(passData = this.passData + newData)
         }
+
+        override def mapExpressions(fn: Expression => Expression): Import = this
       }
 
-      /** The definition of a method for a given constructor [[typeName]].
-        *
-        * @param typeName the name of the atom that the method is being defined
-        *                 for
-        * @param methodName the name of the method being defined on `typename`
-        * @param function the body of the method
-        * @param location the source location that the node corresponds to
-        * @param passData the pass metadata associated with this node
-        */
-      sealed case class Method(
-        typeName: String,
-        methodName: String,
-        function: Function.Lambda,
-        override val location: Option[Location],
-        override val passData: Set[Metadata] = Set()
-      ) extends Definition
-          with IRKind.Primitive {
-        override def addMetadata(newData: Metadata): Method = {
-          copy(passData = this.passData + newData)
+      /** A representation of top-level definitions. */
+      sealed trait Definition extends Scope {
+        override def addMetadata(newData: Metadata):               Definition
+        override def mapExpressions(fn: Expression => Expression): Definition
+      }
+      object Definition {
+
+        /** The definition of an atom constructor and its associated arguments.
+          *
+          * @param name the name of the atom
+          * @param arguments the arguments to the atom constructor
+          * @param location the source location that the node corresponds to
+          * @param passData the pass metadata associated with this node
+          */
+        sealed case class Atom(
+          name: IR.Name,
+          arguments: List[DefinitionArgument],
+          override val location: Option[Location],
+          override val passData: ISet[Metadata] = ISet()
+        ) extends Definition
+            with IRKind.Primitive {
+          override def addMetadata(newData: Metadata): Atom = {
+            copy(passData = this.passData + newData)
+          }
+
+          override def mapExpressions(fn: Expression => Expression): Atom = {
+            copy(
+              name      = name.mapExpressions(fn),
+              arguments = arguments.map(_.mapExpressions(fn))
+            )
+          }
+        }
+
+        /** The definition of a method for a given constructor [[typeName]].
+          *
+          * @param typeName the name of the atom that the method is being
+          *                 defined for
+          * @param methodName the name of the method being defined on `typename`
+          * @param body the body of the method
+          * @param location the source location that the node corresponds to
+          * @param passData the pass metadata associated with this node
+          */
+        sealed case class Method(
+          typeName: IR.Name,
+          methodName: IR.Name,
+          body: Expression,
+          override val location: Option[Location],
+          override val passData: ISet[Metadata] = ISet()
+        ) extends Definition
+            with IRKind.Primitive {
+          override def addMetadata(newData: Metadata): Method = {
+            copy(passData = this.passData + newData)
+          }
+
+          override def mapExpressions(fn: Expression => Expression): Method = {
+            copy(
+              typeName   = typeName.mapExpressions(fn),
+              methodName = methodName.mapExpressions(fn),
+              body       = fn(body)
+            )
+          }
         }
       }
     }
@@ -184,7 +212,26 @@ object IR {
   // === Expression ===========================================================
 
   /** Enso expressions. */
-  sealed trait Expression extends IR
+  sealed trait Expression extends IR {
+
+    /** Performs a recursive traversal of the IR, potentially transforming it.
+      *
+      * @param fn the function to apply across the IR
+      * @return the IR, potentially transformed
+      */
+    def transformExpressions(
+      fn: PartialFunction[Expression, Expression]
+    ): Expression = {
+      if (fn.isDefinedAt(this)) {
+        fn(this)
+      } else {
+        mapExpressions(_.transformExpressions(fn))
+      }
+    }
+
+    override def mapExpressions(fn: Expression => Expression): Expression
+    override def addMetadata(newData: Metadata):               Expression
+  }
   object Expression {
 
     // TODO [AA] Remove suspended blocks from Enso.
@@ -200,12 +247,19 @@ object IR {
       expressions: List[Expression],
       returnValue: Expression,
       override val location: Option[Location],
-      suspended: Boolean                   = false,
-      override val passData: Set[Metadata] = Set()
+      suspended: Boolean                    = false,
+      override val passData: ISet[Metadata] = ISet()
     ) extends Expression
         with IRKind.Primitive {
       override def addMetadata(newData: Metadata): Block = {
         copy(passData = this.passData + newData)
+      }
+
+      override def mapExpressions(fn: Expression => Expression): Block = {
+        copy(
+          expressions = expressions.map(fn),
+          returnValue = fn(returnValue)
+        )
       }
     }
 
@@ -216,15 +270,19 @@ object IR {
       * @param location the source location that the node corresponds to
       * @param passData the pass metadata associated with this node
       */
-    case class Binding(
-      name: String,
+    sealed case class Binding(
+      name: IR.Name,
       expression: Expression,
       override val location: Option[Location],
-      override val passData: Set[Metadata] = Set()
+      override val passData: ISet[Metadata] = ISet()
     ) extends Expression
         with IRKind.Primitive {
       override def addMetadata(newData: Metadata): Binding = {
         copy(passData = this.passData + newData)
+      }
+
+      override def mapExpressions(fn: Expression => Expression): Binding = {
+        copy(name = name.mapExpressions(fn), expression = fn(expression))
       }
     }
   }
@@ -232,7 +290,10 @@ object IR {
   // === Literals =============================================================
 
   /** Enso literals. */
-  sealed trait Literal extends Expression with IRKind.Primitive
+  sealed trait Literal extends Expression with IRKind.Primitive {
+    override def mapExpressions(fn: Expression => Expression): Literal
+    override def addMetadata(newData: Metadata):               Literal
+  }
   object Literal {
 
     /** A numeric Enso literal.
@@ -244,11 +305,13 @@ object IR {
     sealed case class Number(
       value: String,
       override val location: Option[Location],
-      override val passData: Set[Metadata] = Set()
+      override val passData: ISet[Metadata] = ISet()
     ) extends Literal {
       override def addMetadata(newData: Metadata): Number = {
         copy(passData = this.passData + newData)
       }
+
+      override def mapExpressions(fn: Expression => Expression): Number = this
     }
 
     /** A textual Enso literal.
@@ -260,18 +323,25 @@ object IR {
     sealed case class Text(
       text: String,
       override val location: Option[Location],
-      override val passData: Set[Metadata] = Set()
+      override val passData: ISet[Metadata] = ISet()
     ) extends Literal {
       override def addMetadata(newData: Metadata): Text = {
         copy(passData = this.passData + newData)
       }
+
+      override def mapExpressions(fn: Expression => Expression): Text = this
     }
   }
 
   // === Names ================================================================
 
   /** Enso names. */
-  sealed trait Name extends Expression with IRKind.Primitive
+  sealed trait Name extends Expression with IRKind.Primitive {
+    val name: String
+
+    override def mapExpressions(fn: Expression => Expression): Name
+    override def addMetadata(newData: Metadata):               Name
+  }
   object Name {
 
     /** The representation of a literal name.
@@ -281,13 +351,15 @@ object IR {
       * @param passData the pass metadata associated with this node
       */
     sealed case class Literal(
-      name: String,
+      override val name: String,
       override val location: Option[Location],
-      override val passData: Set[Metadata] = Set()
+      override val passData: ISet[Metadata] = ISet()
     ) extends Name {
       override def addMetadata(newData: Metadata): Name.Literal = {
         copy(passData = this.passData + newData)
       }
+
+      override def mapExpressions(fn: Expression => Expression): Literal = this
     }
 
     /** A representation of the name `this`, used to refer to the current type.
@@ -297,11 +369,15 @@ object IR {
       */
     sealed case class This(
       override val location: Option[Location],
-      override val passData: Set[Metadata] = Set()
+      override val passData: ISet[Metadata] = ISet()
     ) extends Name {
+      override val name: String = "this"
+
       override def addMetadata(newData: Metadata): This = {
         copy(passData = this.passData + newData)
       }
+
+      override def mapExpressions(fn: Expression => Expression): This = this
     }
 
     /** A representation of the name `here`, used to refer to the current
@@ -312,21 +388,286 @@ object IR {
       */
     sealed case class Here(
       override val location: Option[Location],
-      override val passData: Set[Metadata] = Set()
+      override val passData: ISet[Metadata] = ISet()
     ) extends Name {
+      override val name: String = "here"
+
       override def addMetadata(newData: Metadata): Here = {
         copy(passData = this.passData + newData)
       }
+
+      override def mapExpressions(fn: Expression => Expression): Here = this
     }
   }
 
   // === Typing ===============================================================
 
   /** Constructs that operate on types. */
-  sealed trait Type extends IR
+  sealed trait Type extends Expression {
+    override def mapExpressions(fn: Expression => Expression): Type
+    override def addMetadata(newData: Metadata):               Type
+  }
   object Type {
-    // TODO [AA] Type ascription, context ascription, typeset member and the
-    //  typeset operators
+
+    /** Static information about the type operators. */
+    sealed trait Info {
+      val name: String
+    }
+
+    /** The ascription of a type to a value.
+      *
+      * @param typed the expression being ascribed a type
+      * @param signature the signature being ascribed to `typed`
+      * @param location the source location that the node corresponds to
+      * @param passData the pass metadata associated with this node
+      */
+    sealed case class Ascription(
+      typed: Expression,
+      signature: Expression,
+      override val location: Option[Location],
+      override val passData: ISet[Metadata] = ISet()
+    ) extends Type
+        with IRKind.Primitive {
+      override def addMetadata(newData: Metadata): Ascription = {
+        copy(passData = this.passData + newData)
+      }
+
+      override def mapExpressions(fn: Expression => Expression): Ascription = {
+        copy(typed = fn(typed), signature = fn(signature))
+      }
+    }
+    object Ascription extends Info {
+      override val name: String = ":"
+    }
+
+    /** A representation of the `in` portion of a type signature that represents
+      * the ascription of a monadic context.
+      *
+      * @param typed the type being ascribed a monadic context
+      * @param context the context being ascribed to `typed`
+      * @param location the source location that the node corresponds to
+      * @param passData the pass metadata associated with this node
+      */
+    sealed case class Context(
+      typed: Expression,
+      context: Expression,
+      override val location: Option[Location],
+      override val passData: ISet[Metadata] = ISet()
+    ) extends Type
+        with IRKind.Primitive {
+      override def addMetadata(newData: Metadata): Context = {
+        copy(passData = this.passData + newData)
+      }
+
+      override def mapExpressions(fn: Expression => Expression): Context = {
+        copy(typed = fn(typed), context = fn(context))
+      }
+    }
+    object Context extends Info {
+      override val name: String = "in"
+    }
+
+    /** IR nodes for dealing with typesets. */
+    sealed trait Set extends Type {
+      override def mapExpressions(fn: Expression => Expression): Set
+      override def addMetadata(newData: Metadata):               Set
+    }
+    object Set {
+
+      /** The representation of a typeset member.
+        *
+        * @param label the member's label, if given
+        * @param memberType the member's type, if given
+        * @param value the member's value, if given
+        * @param location the source location that the node corresponds to
+        * @param passData the pass metadata associated with this node
+        */
+      sealed case class Member(
+        label: Name.Literal,
+        memberType: Expression,
+        value: Expression,
+        override val location: Option[Location],
+        override val passData: ISet[Metadata] = ISet()
+      ) extends Set
+          with IRKind.Primitive {
+        override def addMetadata(newData: Metadata): Member = {
+          copy(passData = this.passData + newData)
+        }
+
+        override def mapExpressions(fn: Expression => Expression): Member = {
+          copy(
+            label      = label.mapExpressions(fn),
+            memberType = fn(memberType),
+            value      = fn(value)
+          )
+        }
+      }
+      object Member extends Info {
+        override val name: String = "_ : _ = _"
+      }
+
+      /** The typeset subsumption judgement `<:`.
+        *
+        * @param left the left operand
+        * @param right the right operand
+        * @param location the source location that the node corresponds to
+        * @param passData the pass metadata associated with this node
+        */
+      sealed case class Subsumption(
+        left: Expression,
+        right: Expression,
+        override val location: Option[Location],
+        override val passData: ISet[Metadata] = ISet()
+      ) extends Set
+          with IRKind.Primitive {
+        override def addMetadata(newData: Metadata): Subsumption = {
+          copy(passData = this.passData + newData)
+        }
+
+        override def mapExpressions(
+          fn: Expression => Expression
+        ): Subsumption = {
+          copy(left = fn(left), right = fn(right))
+        }
+      }
+      object Subsumption extends Info {
+        override val name: String = "<:"
+      }
+
+      /** The typeset equality judgement `~`.
+        *
+        * @param left the left operand
+        * @param right the right operand
+        * @param location the source location that the node corresponds to
+        * @param passData the pass metadata associated with this node
+        */
+      sealed case class Equality(
+        left: Expression,
+        right: Expression,
+        override val location: Option[Location],
+        override val passData: ISet[Metadata] = ISet()
+      ) extends Set
+          with IRKind.Primitive {
+        override def addMetadata(newData: Metadata): Equality = {
+          copy(passData = this.passData + newData)
+        }
+
+        override def mapExpressions(fn: Expression => Expression): Equality = {
+          copy(left = fn(left), right = fn(right))
+        }
+      }
+      object Equality extends Info {
+        override val name: String = "~"
+      }
+
+      /** The typeset concatenation operator `,`.
+        *
+        * @param left the left operand
+        * @param right the right operand
+        * @param location the source location that the node corresponds to
+        * @param passData the pass metadata associated with this node
+        */
+      sealed case class Concat(
+        left: Expression,
+        right: Expression,
+        override val location: Option[Location],
+        override val passData: ISet[Metadata] = ISet()
+      ) extends Set
+          with IRKind.Primitive {
+        override def addMetadata(newData: Metadata): Concat = {
+          copy(passData = this.passData + newData)
+        }
+
+        override def mapExpressions(fn: Expression => Expression): Concat = {
+          copy(left = fn(left), right = fn(right))
+        }
+      }
+      object Concat extends Info {
+        override val name: String = ","
+      }
+
+      /** The typeset union operator `|`.
+        *
+        * @param left the left operand
+        * @param right the right operand
+        * @param location the source location that the node corresponds to
+        * @param passData the pass metadata associated with this node
+        */
+      sealed case class Union(
+        left: Expression,
+        right: Expression,
+        override val location: Option[Location],
+        override val passData: ISet[Metadata] = ISet()
+      ) extends Set
+          with IRKind.Primitive {
+        override def addMetadata(newData: Metadata): Union = {
+          copy(passData = this.passData + newData)
+        }
+
+        override def mapExpressions(fn: Expression => Expression): Union = {
+          copy(left = fn(left), right = fn(right))
+        }
+      }
+      object Union extends Info {
+        override val name: String = "|"
+      }
+
+      /** The typeset intersection operator `&`.
+        *
+        * @param left the left operand
+        * @param right the right operand
+        * @param location the source location that the node corresponds to
+        * @param passData the pass metadata associated with this node
+        */
+      sealed case class Intersection(
+        left: Expression,
+        right: Expression,
+        override val location: Option[Location],
+        override val passData: ISet[Metadata] = ISet()
+      ) extends Set
+          with IRKind.Primitive {
+        override def addMetadata(newData: Metadata): Intersection = {
+          copy(passData = this.passData + newData)
+        }
+
+        override def mapExpressions(
+          fn: Expression => Expression
+        ): Intersection = {
+          copy(left = fn(left), right = fn(right))
+        }
+      }
+      object Intersection extends Info {
+        override val name: String = "&"
+      }
+
+      /** The typeset subtraction operator `\`.
+        *
+        * @param left the left operand
+        * @param right the right operand
+        * @param location the source location that the node corresponds to
+        * @param passData the pass metadata associated with this node
+        */
+      sealed case class Subtraction(
+        left: Expression,
+        right: Expression,
+        override val location: Option[Location],
+        override val passData: ISet[Metadata] = ISet()
+      ) extends Set
+          with IRKind.Primitive {
+        override def addMetadata(newData: Metadata): Subtraction = {
+          copy(passData = this.passData + newData)
+        }
+
+        override def mapExpressions(
+          fn: Expression => Expression
+        ): Subtraction = {
+          copy(left = fn(left), right = fn(right))
+        }
+      }
+      object Subtraction extends Info {
+        override val name: String = "\\"
+      }
+    }
   }
 
   // === Function =============================================================
@@ -339,7 +680,7 @@ object IR {
       * Please note that while the source language does not represent
       * multi-argument lambdas, the internal language can and does.
       */
-    val arguments: List[DefinitionArgument.Specified]
+    val arguments: List[DefinitionArgument]
 
     /** The body of the function */
     val body: Expression
@@ -350,6 +691,9 @@ object IR {
       * function is optimised.
       */
     val canBeTCO: Boolean
+
+    override def mapExpressions(fn: Expression => Expression): Function
+    override def addMetadata(newData: Metadata):               Function
   }
   object Function {
 
@@ -365,16 +709,20 @@ object IR {
       * @param canBeTCO whether or not the function can be tail-call optimised
       * @param passData the pass metadata associated with this node
       */
-    case class Lambda(
-      override val arguments: List[DefinitionArgument.Specified],
+    sealed case class Lambda(
+      override val arguments: List[DefinitionArgument],
       override val body: Expression,
       override val location: Option[Location],
-      override val canBeTCO: Boolean       = true,
-      override val passData: Set[Metadata] = Set()
+      override val canBeTCO: Boolean        = true,
+      override val passData: ISet[Metadata] = ISet()
     ) extends Function
         with IRKind.Primitive {
       override def addMetadata(newData: Metadata): Lambda = {
         copy(passData = this.passData + newData)
+      }
+
+      override def mapExpressions(fn: Expression => Expression): Lambda = {
+        copy(arguments = arguments.map(_.mapExpressions(fn)), body = fn(body))
       }
     }
   }
@@ -382,11 +730,17 @@ object IR {
   // === Definition-Site Arguments ============================================
 
   /** Definition-site arguments in Enso. */
-  sealed trait DefinitionArgument extends IR
+  sealed trait DefinitionArgument extends IR {
+    override def mapExpressions(
+      fn: Expression => Expression
+    ): DefinitionArgument
+
+    override def addMetadata(newData: Metadata): DefinitionArgument
+  }
   object DefinitionArgument {
 
     /** The representation of an argument from a [[Function]] or
-      * [[IR.ModuleScope.Definition.Atom]] definition site.
+      * [[IR.Module.Scope.Definition.Atom]] definition site.
       *
       * @param name the name of the argument
       * @param defaultValue the default value of the argument, if present
@@ -395,15 +749,22 @@ object IR {
       * @param passData the pass metadata associated with this node
       */
     sealed case class Specified(
-      name: String,
+      name: IR.Name,
       defaultValue: Option[Expression],
       suspended: Boolean,
       override val location: Option[Location],
-      override val passData: Set[Metadata] = Set()
-    ) extends IR
+      override val passData: ISet[Metadata] = ISet()
+    ) extends DefinitionArgument
         with IRKind.Primitive {
       override def addMetadata(newData: Metadata): Specified = {
         copy(passData = this.passData + newData)
+      }
+
+      def mapExpressions(fn: Expression => Expression): Specified = {
+        copy(
+          name         = name.mapExpressions(fn),
+          defaultValue = defaultValue.map(fn)
+        )
       }
     }
 
@@ -413,7 +774,10 @@ object IR {
   // === Applications =========================================================
 
   /** All function applications in Enso. */
-  sealed trait Application extends Expression
+  sealed trait Application extends Expression {
+    override def mapExpressions(fn: Expression => Expression): Application
+    override def addMetadata(newData: Metadata):               Application
+  }
   object Application {
 
     /** A standard prefix function application.
@@ -430,11 +794,15 @@ object IR {
       arguments: List[CallArgument],
       hasDefaultsSuspended: Boolean,
       override val location: Option[Location],
-      override val passData: Set[Metadata] = Set()
+      override val passData: ISet[Metadata] = ISet()
     ) extends Application
         with IRKind.Primitive {
       override def addMetadata(newData: Metadata): Prefix = {
         copy(passData = this.passData + newData)
+      }
+
+      override def mapExpressions(fn: Expression => Expression): Prefix = {
+        copy(function = fn(function), arguments.map(_.mapExpressions(fn)))
       }
     }
 
@@ -447,16 +815,23 @@ object IR {
     sealed case class Force(
       target: Expression,
       override val location: Option[Location],
-      override val passData: Set[Metadata] = Set()
+      override val passData: ISet[Metadata] = ISet()
     ) extends Application
         with IRKind.Primitive {
       override def addMetadata(newData: Metadata): Force = {
         copy(passData = this.passData + newData)
       }
+
+      override def mapExpressions(fn: Expression => Expression): Force = {
+        copy(target = fn(target))
+      }
     }
 
     /** Operator applications in Enso. */
-    sealed trait Operator extends Application
+    sealed trait Operator extends Application {
+      override def mapExpressions(fn: Expression => Expression): Operator
+      override def addMetadata(newData: Metadata):               Operator
+    }
     object Operator {
 
       /** A representation of a generic binary operator application in Enso.
@@ -469,14 +844,18 @@ object IR {
         */
       sealed case class Binary(
         left: Expression,
-        operator: String,
+        operator: IR.Name,
         right: Expression,
         override val location: Option[Location],
-        override val passData: Set[Metadata] = Set()
+        override val passData: ISet[Metadata] = ISet()
       ) extends Application
           with IRKind.Sugar {
         override def addMetadata(newData: Metadata): Binary = {
           copy(passData = this.passData + newData)
+        }
+
+        override def mapExpressions(fn: Expression => Expression): Binary = {
+          copy(left = fn(left), right = fn(right))
         }
       }
     }
@@ -487,7 +866,14 @@ object IR {
   // === Call-Site Arguments ==================================================
 
   /** Call-site arguments in Enso. */
-  sealed trait CallArgument extends IR
+  sealed trait CallArgument extends IR {
+
+    /** The name of the argument, if present. */
+    val name: Option[IR.Name]
+
+    override def mapExpressions(fn: Expression => Expression): CallArgument
+    override def addMetadata(newData: Metadata):               CallArgument
+  }
   object CallArgument {
 
     /** A representation of an argument at a function call site.
@@ -498,24 +884,32 @@ object IR {
       * @param passData the pass metadata associated with this node
       */
     sealed case class Specified(
-      name: Option[String],
+      override val name: Option[IR.Name],
       value: Expression,
       override val location: Option[Location],
-      override val passData: Set[Metadata] = Set()
+      override val passData: ISet[Metadata] = ISet()
     ) extends CallArgument
         with IRKind.Primitive {
       override def addMetadata(newData: Metadata): Specified = {
         copy(passData = this.passData + newData)
       }
+
+      override def mapExpressions(fn: Expression => Expression): Specified = {
+        copy(name = name.map(n => n.mapExpressions(fn)), value = fn(value))
+      }
     }
 
-    // TODO [AA] Add support for the `_` lambda shorthand argument.
+    // TODO [AA] Add support for the `_` lambda shorthand argument (can be
+    //  called by name)
   }
 
   // === Case Expression ======================================================
 
   /** The Enso case expression. */
-  sealed trait Case extends Expression
+  sealed trait Case extends Expression {
+    override def mapExpressions(fn: Expression => Expression): Case
+    override def addMetadata(newData: Metadata):               Case
+  }
   object Case {
 
     /** The main body of the Enso case expression.
@@ -529,13 +923,21 @@ object IR {
     sealed case class Expr(
       scrutinee: Expression,
       branches: Seq[Branch],
-      fallback: Option[Function],
+      fallback: Option[Expression],
       override val location: Option[Location],
-      override val passData: Set[Metadata] = Set()
+      override val passData: ISet[Metadata] = ISet()
     ) extends Case
         with IRKind.Primitive {
       override def addMetadata(newData: Metadata): Expr = {
         copy(passData = this.passData + newData)
+      }
+
+      override def mapExpressions(fn: Expression => Expression): Expr = {
+        copy(
+          scrutinee = fn(scrutinee),
+          branches.map(_.mapExpressions(fn)),
+          fallback.map(fn)
+        )
       }
     }
 
@@ -548,18 +950,25 @@ object IR {
       */
     sealed case class Branch(
       pattern: Expression,
-      expression: Function,
+      expression: Expression,
       override val location: Option[Location],
-      override val passData: Set[Metadata] = Set()
+      override val passData: ISet[Metadata] = ISet()
     ) extends Case
         with IRKind.Primitive {
-      override def addMetadata(newData: Metadata): IR = {
+      override def addMetadata(newData: Metadata): Branch = {
         copy(passData = this.passData + newData)
+      }
+
+      override def mapExpressions(fn: Expression => Expression): Branch = {
+        copy(pattern = fn(pattern), expression = fn(expression))
       }
     }
 
     /** The different types of patterns that can occur in a match. */
-    trait Pattern extends IR
+    sealed trait Pattern extends IR {
+      override def mapExpressions(fn: Expression => Expression): Pattern
+      override def addMetadata(newData: Metadata):               Pattern
+    }
     object Pattern {
       // TODO [AA] Better differentiate the types of patterns that can occur
     }
@@ -569,6 +978,10 @@ object IR {
 
   /** Enso comment entities. */
   sealed trait Comment extends Expression {
+    override def mapExpressions(fn: Expression => Expression): Comment
+    override def addMetadata(newData: Metadata):               Comment
+
+    /** The expression being commented. */
     val commented: Expression
   }
   object Comment {
@@ -584,11 +997,17 @@ object IR {
       override val commented: Expression,
       doc: Doc,
       override val location: Option[Location],
-      override val passData: Set[Metadata] = Set()
+      override val passData: ISet[Metadata] = ISet()
     ) extends Comment
         with IRKind.Primitive {
       override def addMetadata(newData: Metadata): Documentation = {
         copy(passData = this.passData + newData)
+      }
+
+      override def mapExpressions(
+        fn: Expression => Expression
+      ): Documentation = {
+        copy(commented = fn(commented))
       }
     }
   }
@@ -596,7 +1015,10 @@ object IR {
   // === Foreign ==============================================================
 
   /** Foreign code entities. */
-  sealed trait Foreign extends Expression
+  sealed trait Foreign extends Expression {
+    override def mapExpressions(fn: Expression => Expression): Foreign
+    override def addMetadata(newData: Metadata):               Foreign
+  }
   object Foreign {
 
     /** A foreign code definition in Enso.
@@ -610,19 +1032,25 @@ object IR {
       lang: String,
       code: String,
       override val location: Option[Location],
-      override val passData: Set[Metadata] = Set()
+      override val passData: ISet[Metadata] = ISet()
     ) extends Expression
         with IRKind.Primitive {
       override def addMetadata(newData: Metadata): Definition = {
         copy(passData = this.passData + newData)
       }
+
+      override def mapExpressions(fn: Expression => Expression): Definition =
+        this
     }
   }
 
   // === Errors ===============================================================
 
   /** A trait for all errors in Enso's IR. */
-  sealed trait Error extends Expression
+  sealed trait Error extends Expression {
+    override def mapExpressions(fn: Expression => Expression): Error
+    override def addMetadata(newData: Metadata):               Error
+  }
   object Error {
 
     /** Represents the various kinds of errors in the IR. */
@@ -647,7 +1075,7 @@ object IR {
       */
     sealed case class Syntax(
       ast: AST,
-      override val passData: Set[Metadata] = Set()
+      override val passData: ISet[Metadata] = ISet()
     ) extends Error
         with Kind.Static
         with IRKind.Primitive {
@@ -656,6 +1084,8 @@ object IR {
       override def addMetadata(newData: Metadata): Syntax = {
         copy(passData = this.passData + newData)
       }
+
+      override def mapExpressions(fn: Expression => Expression): Syntax = this
     }
 
     /** A representation of an invalid piece of IR.
@@ -665,7 +1095,7 @@ object IR {
       */
     sealed case class InvalidIR(
       ir: IR,
-      override val passData: Set[Metadata] = Set()
+      override val passData: ISet[Metadata] = ISet()
     ) extends Error
         with Kind.Static
         with IRKind.Primitive {
@@ -674,6 +1104,9 @@ object IR {
       override def addMetadata(newData: Metadata): InvalidIR = {
         copy(passData = this.passData + newData)
       }
+
+      override def mapExpressions(fn: Expression => Expression): InvalidIR =
+        this
     }
   }
 
@@ -700,6 +1133,11 @@ object IR {
       * constructs as soon as possible.
       */
     sealed trait Sugar extends IRKind
+
+    /** This trait encodes that a given piece of [[IR]] is used to represent an
+      * optimisation on the IR in Enso.
+      */
+    sealed trait Optimisation extends IRKind
   }
 
   // ==========================================================================
@@ -710,5 +1148,10 @@ object IR {
     * passes such that it can be stored in each IR node.
     */
   trait Metadata
+  object Metadata {
+
+    /** An empty metadata type for passes that do not create any metadata. */
+    sealed case class Empty() extends Metadata
+  }
 
 }

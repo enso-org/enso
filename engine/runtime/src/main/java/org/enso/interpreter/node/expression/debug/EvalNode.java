@@ -61,7 +61,7 @@ public abstract class EvalNode extends BaseNode {
         lookupContextReference(Language.class)
             .get()
             .compiler()
-            .runInline(expression, language, localScope, moduleScope)
+            .runInline(expression, localScope, moduleScope)
             .getOrElse(null);
     if (expr == null) {
       throw new RuntimeException("Invalid code passed to `eval`: " + expression);

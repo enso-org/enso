@@ -222,8 +222,8 @@ object CoreGraph {
           */
         case class TypeAscription(typed: Link[G], sig: Link[G])
 
-        /** The `in` portion of a type signature that represents the monadic
-          * contexts.
+        /** A representation of the `in` portion of a type signature that
+          * represents the ascription of a monadic context.
           *
           * @param typed the type being put in a context
           * @param context the context

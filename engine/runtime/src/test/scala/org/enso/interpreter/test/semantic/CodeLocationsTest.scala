@@ -4,10 +4,6 @@ import org.enso.interpreter.node.callable.function.CreateFunctionNode
 import org.enso.interpreter.node.callable.thunk.ForceNode
 import org.enso.interpreter.node.controlflow.MatchNode
 import org.enso.interpreter.node.expression.literal.IntegerLiteralNode
-import org.enso.interpreter.node.expression.operator.{
-  AddOperatorNode,
-  MultiplyOperatorNode
-}
 import org.enso.interpreter.node.scope.{AssignmentNode, ReadLocalTargetNode}
 import org.enso.interpreter.test.InterpreterTest
 
@@ -31,8 +27,8 @@ class CodeLocationsTest extends InterpreterTest {
   "Code Locations" should "be correct in simple arithmetic expressions" in
   withLocationsInstrumenter { instrumenter =>
     val code = "main = 2 + 45 * 20"
-    instrumenter.assertNodeExists(7, 11, classOf[AddOperatorNode])
-    instrumenter.assertNodeExists(11, 7, classOf[MultiplyOperatorNode])
+    instrumenter.assertNodeExists(7, 11, classOf[ApplicationNode])
+    instrumenter.assertNodeExists(11, 7, classOf[ApplicationNode])
     instrumenter.assertNodeExists(11, 2, classOf[IntegerLiteralNode])
     eval(code)
     ()
@@ -41,8 +37,8 @@ class CodeLocationsTest extends InterpreterTest {
   "Code locations" should "be correct with parenthesized expressions" in
   withLocationsInstrumenter { instrumenter =>
     val code = "main = (2 + 45) * 20"
-    instrumenter.assertNodeExists(7, 13, classOf[MultiplyOperatorNode])
-    instrumenter.assertNodeExists(8, 6, classOf[AddOperatorNode])
+    instrumenter.assertNodeExists(7, 13, classOf[ApplicationNode])
+    instrumenter.assertNodeExists(8, 6, classOf[ApplicationNode])
     eval(code)
     ()
   }
@@ -87,7 +83,7 @@ class CodeLocationsTest extends InterpreterTest {
         |
         |main = Unit.method
         |""".stripMargin
-    instrumenter.assertNodeExists(77, 5, classOf[AddOperatorNode])
+    instrumenter.assertNodeExists(77, 5, classOf[ApplicationNode])
     instrumenter.assertNodeExists(95, 1, classOf[ReadLocalTargetNode])
     instrumenter.assertNodeExists(91, 7, classOf[ApplicationNode])
     instrumenter.assertNodeExists(103, 9, classOf[ApplicationNode])
@@ -117,7 +113,7 @@ class CodeLocationsTest extends InterpreterTest {
     instrumenter.assertNodeExists(77, 109, classOf[MatchNode])
     instrumenter.assertNodeExists(123, 7, classOf[ApplicationNode])
     instrumenter.assertNodeExists(143, 9, classOf[AssignmentNode])
-    instrumenter.assertNodeExists(180, 5, classOf[MultiplyOperatorNode])
+    instrumenter.assertNodeExists(180, 5, classOf[ApplicationNode])
     eval(code)
     ()
   }
@@ -161,11 +157,11 @@ class CodeLocationsTest extends InterpreterTest {
     val code =
       """
         |main =
-        |    bar = a ~b ~c -> a + ~b + ~c
+        |    bar = a ~b ~c -> ~b
         |
         |    bar 0 10 0
         |""".stripMargin
-    instrumenter.assertNodeExists(33, 2, classOf[ForceNode])
+    instrumenter.assertNodeExists(29, 2, classOf[ForceNode])
     eval(code)
     ()
   }

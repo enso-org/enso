@@ -379,7 +379,7 @@ of typesets. Their syntax is as follows:
   the first argument's set but not in the second.
 
 > The actionables for this section are:
-> 
+>
 > - Unify this with the types document at some point. The types document
 >   supersedes this section while this actionable exists.
 
@@ -842,6 +842,10 @@ users to then _call_ those arguments by name.
 - Named arguments are applied in the order they are given. This means that if
   you positionally apply to an argument `foo` and then try to later apply to it
   by name, this will fail due to currying of functions.
+- Named arguments _cannot_ be used while using operator syntax. This means that
+  an expression of the form `a + b` cannot apply arguments by name. However,
+  when calling the operator as a method (`a.+ b`), the call-by-name syntax may
+  indeed be used (`a.+ (that = b)`).
 
 This is a great usability boon as in complex APIs it can often be difficult to
 remember the order or arguments.
@@ -1087,5 +1091,5 @@ Enso supports a variety of types of comments:
 - **Documentation Comments:** TODO
 
 > The actionables for this section are:
-> 
+>
 > - Solidify exactly how each kind of comment behaves.
