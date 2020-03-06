@@ -1,0 +1,1 @@
+main = IO.println "Test successful."

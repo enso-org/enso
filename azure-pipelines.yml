@@ -70,6 +70,9 @@ jobs:
           sbt runner/assembly
         displayName: Build the Uberjar
         continueOnError: true
+      - script: |
+          ./enso.jar --run ci/Test.enso
+        displayName: Test the Uberjar
       - task: CopyFiles@2
         inputs:
           contents: "enso.jar"
@@ -168,4 +171,3 @@ jobs:
           echo "##vso[task.complete result=Failed;]DONE"
         condition: eq(variables['Agent.JobStatus'], 'SucceededWithIssues')
         displayName: Fail on Issues
-
