@@ -78,6 +78,6 @@ word! Join our community on a [Discord chat](http://chat.luna-lang.org) and read
 [development and contributing guidelines](docs/contributing.md).
 
 <a href="https://github.com/luna/ide/graphs/contributors">
-  <img src="https://contributors-img.firebaseapp.com/image?repo=luna/ide" />
+  <img src="https://opencollective.com/enso-language/contributors.svg?width=890" />
 </a>
 
