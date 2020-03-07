@@ -25,6 +25,10 @@
 ### Overview
 
 <p>
+  <a href="http://chat.luna-lang.org">
+    <img src="https://img.shields.io/discord/401396655599124480?label=Chat"
+         alt="Chat">
+  </a>
   <a href="https://github.com/luna/enso/blob/master/LICENSE">
     <img src="https://img.shields.io/static/v1?label=Compiler%20License&message=Apache%20v2&color=2ec352&labelColor=2c3239"
          alt="License">
