@@ -26,7 +26,7 @@
 
 <p>
   <a href="http://chat.luna-lang.org">
-    <img src="https://img.shields.io/discord/401396655599124480?label=Chat"
+    <img src="https://img.shields.io/discord/401396655599124480?label=Chat&color=2ec352&labelColor=2c3239"
          alt="Chat">
   </a>
   <a href="https://github.com/luna/enso/blob/master/LICENSE">
@@ -44,10 +44,6 @@
   <a href="https://codecov.io/gh/luna/ide/branch/master">
     <img src="https://img.shields.io/codecov/c/github/luna/basegl?label=Coverage&labelColor=2c3239"
          alt="Coverage">
-  </a>
-  <a>
-    <img src="https://img.shields.io/static/v1?label=Stability&message=Unstable&color=d52229&labelColor=2c3239"
-         alt="Stability">
   </a>
 </p>
 
