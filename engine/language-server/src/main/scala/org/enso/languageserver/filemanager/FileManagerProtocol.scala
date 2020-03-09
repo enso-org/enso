@@ -74,4 +74,17 @@ object FileManagerProtocol {
     */
   case class CopyFileResult(result: Either[FileSystemFailure, Unit])
 
+  /**
+    * Requests the Language Server to check the existence of file system object.
+    *
+    * @param path a path to a file
+    */
+  case class ExistsFile(path: Path)
+
+  /**
+    * Returns a result of checking the existence of file system object.
+    *
+    * @param result either file system failure or file existence flag
+    */
+  case class ExistsFileResult(result: Either[FileSystemFailure, Boolean])
 }

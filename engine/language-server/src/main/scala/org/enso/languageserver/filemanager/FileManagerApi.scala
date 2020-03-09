@@ -77,6 +77,20 @@ object FileManagerApi {
     }
   }
 
+  case object ExistsFile extends Method("file/exists") {
+
+    case class Params(path: Path)
+
+    case class Result(exists: Boolean)
+
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = ExistsFile.Params
+    }
+    implicit val hasResult = new HasResult[this.type] {
+      type Result = ExistsFile.Result
+    }
+  }
+
   // Errors
 
   case class FileSystemError(override val message: String)

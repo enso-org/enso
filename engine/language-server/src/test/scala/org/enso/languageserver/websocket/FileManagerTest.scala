@@ -507,6 +507,35 @@ class FileManagerTest extends WebSocketServerTest {
       val to = Paths.get(testContentRoot.toString, "some", "test.txt")
       to.toFile.isFile shouldBe false
     }
+
+    "check file existence" in {
+      val client = new WsTestClient(address)
+      val path   = Paths.get(testContentRoot.toString, "nonexistent.txt")
+      path.toFile.exists shouldBe false
+
+      // check file exists
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/exists",
+            "id": 27,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "nonexistent.txt" ]
+              }
+            }
+          }
+      """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 27,
+            "result": {
+              "exists": false
+            }
+          }
+          """)
+    }
+
   }
 
 }

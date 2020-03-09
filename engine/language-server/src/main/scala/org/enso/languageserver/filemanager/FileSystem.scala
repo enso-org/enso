@@ -143,6 +143,21 @@ class FileSystem[F[_]: Sync] extends FileSystemApi[F] {
       }
     }
 
+  /**
+    * Checks if the specified file exists.
+    *
+    * @param file path to the file or directory
+    * @return either [[FileSystemFailure]] or file existence flag
+    */
+  override def exists(file: File): F[Either[FileSystemFailure, Boolean]] =
+    Sync[F].delay {
+      Either
+        .catchOnly[IOException] {
+          Files.exists(file.toPath)
+        }
+        .leftMap(errorHandling)
+    }
+
   private val errorHandling: IOException => FileSystemFailure = {
     case _: FileNotFoundException => FileNotFound
     case _: NoSuchFileException   => FileNotFound

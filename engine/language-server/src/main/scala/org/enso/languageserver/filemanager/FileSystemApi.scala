@@ -66,4 +66,12 @@ trait FileSystemApi[F[_]] {
     to: File
   ): F[Either[FileSystemFailure, Unit]]
 
+  /**
+    * Checks if the specified file exists.
+    *
+    * @param file path to the file or directory
+    * @return either [[FileSystemFailure]] or file existence flag
+    */
+  def exists(file: File): F[Either[FileSystemFailure, Boolean]]
+
 }

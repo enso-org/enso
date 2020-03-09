@@ -1334,7 +1334,8 @@ at the specified path.
 ```
 
 ##### Errors
-TBC
+- [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the
+  requested content root cannot be found.
 
 #### `file/tree`
 This request asks the file manager component to generate and provide the
@@ -1599,7 +1600,7 @@ null
 ```
 
 ##### Errors
-- [`FileNotOpenedError`](#filenotopenederror) to signal that a file wasn't 
+- [`FileNotOpenedError`](#filenotopenederror) to signal that a file wasn't
 opened.
 
 #### `text/save`
@@ -1766,7 +1767,7 @@ the language server. This is incredibly important for enabling the high levels
 of interactivity required by Enso Studio.
 
 #### Types
-The execution management API exposes a set of common types used by many of its 
+The execution management API exposes a set of common types used by many of its
 messages.
 
 ##### `ExpressionId`
