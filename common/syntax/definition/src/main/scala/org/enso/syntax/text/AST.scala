@@ -375,68 +375,68 @@ object Shape extends ShapeImplicit {
   }
 
   object Unrecognized {
-    implicit def ftor: Functor[Unrecognized]         = semi.functor
-    implicit def fold: Foldable[Unrecognized]        = semi.foldable
+    implicit def ftor:    Functor[Unrecognized]      = semi.functor
+    implicit def fold:    Foldable[Unrecognized]     = semi.foldable
     implicit def repr[T]: Repr[Unrecognized[T]]      = _.str
     implicit def ozip[T]: OffsetZip[Unrecognized, T] = t => t.coerce
     implicit def span[T]: HasSpan[Unrecognized[T]]   = _.str.length
   }
 
   object Unexpected {
-    implicit def ftor: Functor[Unexpected]          = semi.functor
-    implicit def fold: Foldable[Unexpected]         = semi.foldable
-    implicit def repr[T: Repr]: Repr[Unexpected[T]] = t => Repr(t.stream)
+    implicit def ftor:          Functor[Unexpected]  = semi.functor
+    implicit def fold:          Foldable[Unexpected] = semi.foldable
+    implicit def repr[T: Repr]: Repr[Unexpected[T]]  = t => Repr(t.stream)
     implicit def ozip[T: HasSpan]: OffsetZip[Unexpected, T] =
       t => t.copy(stream = OffsetZip(t.stream))
     implicit def span[T: HasSpan]: HasSpan[Unexpected[T]] =
       t => t.stream.span()
   }
   object Ident {
-    implicit def ftor: Functor[Ident]    = semi.functor
-    implicit def fold: Foldable[Ident]   = semi.foldable
-    implicit def repr[T]: Repr[Ident[T]] = _.name
+    implicit def ftor:    Functor[Ident]  = semi.functor
+    implicit def fold:    Foldable[Ident] = semi.foldable
+    implicit def repr[T]: Repr[Ident[T]]  = _.name
     implicit def ozip[T: HasSpan]: OffsetZip[Ident, T] = { ident =>
       OffsetZip[Shape, T](ident).asInstanceOf
     }
   }
   object Blank {
-    implicit def ftor: Functor[Blank]         = semi.functor
-    implicit def fold: Foldable[Blank]        = semi.foldable
+    implicit def ftor:    Functor[Blank]      = semi.functor
+    implicit def fold:    Foldable[Blank]     = semi.foldable
     implicit def repr[T]: Repr[Blank[T]]      = _.name
     implicit def ozip[T]: OffsetZip[Blank, T] = t => t.coerce
     implicit def span[T]: HasSpan[Blank[T]]   = _ => 1
   }
   object Var {
-    implicit def ftor: Functor[Var]         = semi.functor
-    implicit def fold: Foldable[Var]        = semi.foldable
+    implicit def ftor:    Functor[Var]      = semi.functor
+    implicit def fold:    Foldable[Var]     = semi.foldable
     implicit def repr[T]: Repr[Var[T]]      = _.name
     implicit def ozip[T]: OffsetZip[Var, T] = t => t.coerce
     implicit def span[T]: HasSpan[Var[T]]   = t => t.name.length
   }
   object Cons {
-    implicit def ftor: Functor[Cons]         = semi.functor
-    implicit def fold: Foldable[Cons]        = semi.foldable
+    implicit def ftor:    Functor[Cons]      = semi.functor
+    implicit def fold:    Foldable[Cons]     = semi.foldable
     implicit def repr[T]: Repr[Cons[T]]      = _.name
     implicit def ozip[T]: OffsetZip[Cons, T] = t => t.coerce
     implicit def span[T]: HasSpan[Cons[T]]   = t => t.name.length
   }
   object Mod {
-    implicit def ftor: Functor[Mod]         = semi.functor
-    implicit def fold: Foldable[Mod]        = semi.foldable
+    implicit def ftor:    Functor[Mod]      = semi.functor
+    implicit def fold:    Foldable[Mod]     = semi.foldable
     implicit def repr[T]: Repr[Mod[T]]      = R + _.name + "="
     implicit def ozip[T]: OffsetZip[Mod, T] = t => t.coerce
     implicit def span[T]: HasSpan[Mod[T]]   = t => t.name.length + 1
   }
   object Opr {
-    implicit def ftor: Functor[Opr]         = semi.functor
-    implicit def fold: Foldable[Opr]        = semi.foldable
+    implicit def ftor:    Functor[Opr]      = semi.functor
+    implicit def fold:    Foldable[Opr]     = semi.foldable
     implicit def repr[T]: Repr[Opr[T]]      = _.name
     implicit def ozip[T]: OffsetZip[Opr, T] = t => t.coerce
     implicit def span[T]: HasSpan[Opr[T]]   = t => t.name.length
   }
   object InvalidSuffix {
-    implicit def ftor: Functor[InvalidSuffix]         = semi.functor
-    implicit def fold: Foldable[InvalidSuffix]        = semi.foldable
+    implicit def ftor:    Functor[InvalidSuffix]      = semi.functor
+    implicit def fold:    Foldable[InvalidSuffix]     = semi.foldable
     implicit def ozip[T]: OffsetZip[InvalidSuffix, T] = t => t.coerce
     implicit def repr[T]: Repr[InvalidSuffix[T]] =
       t => R + t.elem.repr + t.suffix
@@ -451,18 +451,18 @@ object Shape extends ShapeImplicit {
     }
   }
   object Number {
-    implicit def fromInt[T](int: Int): AST.Number = AST.Number(int)
-    implicit def ftor: Functor[Number]            = semi.functor
-    implicit def fold: Foldable[Number]           = semi.foldable
-    implicit def ozip[T]: OffsetZip[Number, T]    = t => t.coerce
+    implicit def fromInt[T](int: Int): AST.Number           = AST.Number(int)
+    implicit def ftor:                 Functor[Number]      = semi.functor
+    implicit def fold:                 Foldable[Number]     = semi.foldable
+    implicit def ozip[T]:              OffsetZip[Number, T] = t => t.coerce
     implicit def repr[T]: Repr[Number[T]] =
       t => t.base.map(_ + "_").getOrElse("") + t.int
     implicit def span[T]: HasSpan[Number[T]] =
       t => t.base.map(_.length + 1).getOrElse(0) + t.int.length
   }
   object DanglingBase {
-    implicit def ftor: Functor[DanglingBase]         = semi.functor
-    implicit def fold: Foldable[DanglingBase]        = semi.foldable
+    implicit def ftor:    Functor[DanglingBase]      = semi.functor
+    implicit def fold:    Foldable[DanglingBase]     = semi.foldable
     implicit def repr[T]: Repr[DanglingBase[T]]      = R + _.base + '_'
     implicit def ozip[T]: OffsetZip[DanglingBase, T] = t => t.coerce
     implicit def span[T]: HasSpan[DanglingBase[T]] =
@@ -490,15 +490,15 @@ object Shape extends ShapeImplicit {
     }
   }
   object InvalidQuote {
-    implicit def ftor: Functor[InvalidQuote]          = semi.functor
-    implicit def fold: Foldable[InvalidQuote]         = semi.foldable
-    implicit def repr[T: Repr]: Repr[InvalidQuote[T]] = _.quote
-    implicit def ozip[T]: OffsetZip[InvalidQuote, T]  = t => t.coerce
-    implicit def span[T]: HasSpan[InvalidQuote[T]]    = _.quote.span
+    implicit def ftor:          Functor[InvalidQuote]      = semi.functor
+    implicit def fold:          Foldable[InvalidQuote]     = semi.foldable
+    implicit def repr[T: Repr]: Repr[InvalidQuote[T]]      = _.quote
+    implicit def ozip[T]:       OffsetZip[InvalidQuote, T] = t => t.coerce
+    implicit def span[T]:       HasSpan[InvalidQuote[T]]   = _.quote.span
   }
   object InlineBlock {
-    implicit def ftor: Functor[InlineBlock]         = semi.functor
-    implicit def fold: Foldable[InlineBlock]        = semi.foldable
+    implicit def ftor:    Functor[InlineBlock]      = semi.functor
+    implicit def fold:    Foldable[InlineBlock]     = semi.foldable
     implicit def repr[T]: Repr[InlineBlock[T]]      = _.quote
     implicit def ozip[T]: OffsetZip[InlineBlock, T] = t => t.coerce
     implicit def span[T]: HasSpan[InlineBlock[T]]   = _.quote.span
@@ -609,8 +609,8 @@ object Shape extends ShapeImplicit {
     }
   }
   object SegmentFmt {
-    implicit def ftor[T]: Functor[SegmentFmt] = semi.functor
-    implicit def fold: Foldable[SegmentFmt]   = semi.foldable
+    implicit def ftor[T]: Functor[SegmentFmt]  = semi.functor
+    implicit def fold:    Foldable[SegmentFmt] = semi.foldable
     implicit def repr[T: Repr]: Repr[SegmentFmt[T]] = {
       case t: SegmentPlain[T]     => Repr(t)
       case t: SegmentExpr[T]      => Repr(t)
@@ -631,8 +631,8 @@ object Shape extends ShapeImplicit {
     }
   }
   object SegmentRaw {
-    implicit def ftor[T]: Functor[SegmentRaw] = semi.functor
-    implicit def fold: Foldable[SegmentRaw]   = semi.foldable
+    implicit def ftor[T]: Functor[SegmentRaw]  = semi.functor
+    implicit def fold:    Foldable[SegmentRaw] = semi.foldable
     implicit def repr[T]: Repr[SegmentRaw[T]] = {
       case t: SegmentPlain[T]     => Repr(t)
       case t: SegmentRawEscape[T] => Repr(t)
@@ -650,9 +650,9 @@ object Shape extends ShapeImplicit {
     implicit def txtFromString[T](str: String): SegmentPlain[T] =
       SegmentPlain(str)
 
-    implicit def fold: Foldable[SegmentPlain]   = semi.foldable
-    implicit def ftor[T]: Functor[SegmentPlain] = semi.functor
-    implicit def repr[T]: Repr[SegmentPlain[T]] = _.value
+    implicit def fold:    Foldable[SegmentPlain] = semi.foldable
+    implicit def ftor[T]: Functor[SegmentPlain]  = semi.functor
+    implicit def repr[T]: Repr[SegmentPlain[T]]  = _.value
     implicit def ozip[T]: OffsetZip[SegmentPlain, T] =
       t => t.coerce
     implicit def span[T]: HasSpan[SegmentPlain[T]] = _.value.length
@@ -660,8 +660,8 @@ object Shape extends ShapeImplicit {
   object SegmentExpr {
     val quote: Repr.Builder = "`"
 
-    implicit def ftor[T]: Functor[SegmentExpr] = semi.functor
-    implicit def fold: Foldable[SegmentExpr]   = semi.foldable
+    implicit def ftor[T]: Functor[SegmentExpr]  = semi.functor
+    implicit def fold:    Foldable[SegmentExpr] = semi.foldable
     implicit def repr[T: Repr]: Repr[SegmentExpr[T]] =
       R + quote + _.value + quote
     implicit def ozip[T]: OffsetZip[SegmentExpr, T] =
@@ -694,8 +694,8 @@ object Shape extends ShapeImplicit {
       introducer.span + _.code.repr.length
   }
   object App extends IntermediateTrait[App] {
-    implicit def ftor[T]: Functor[App] = semi.functor
-    implicit def fold: Foldable[App]   = semi.foldable
+    implicit def ftor[T]: Functor[App]  = semi.functor
+    implicit def fold:    Foldable[App] = semi.foldable
     implicit def ozip[T: HasSpan]: OffsetZip[App, T] =
       t => OffsetZip[Shape, T](t).asInstanceOf
   }
@@ -728,8 +728,8 @@ object Shape extends ShapeImplicit {
   }
 
   object Section extends IntermediateTrait[Section] {
-    implicit def ftor[T]: Functor[Section] = semi.functor
-    implicit def fold: Foldable[Section]   = semi.foldable
+    implicit def ftor[T]: Functor[Section]  = semi.functor
+    implicit def fold:    Foldable[Section] = semi.foldable
     implicit def ozip[T: HasSpan]: OffsetZip[Section, T] =
       t => OffsetZip[Shape, T](t).asInstanceOf
   }
@@ -754,17 +754,17 @@ object Shape extends ShapeImplicit {
       t => t.opr.span + t.off + t.arg.span
   }
   object SectionSides {
-    implicit def ftor: Functor[SectionSides]          = semi.functor
-    implicit def fold: Foldable[SectionSides]         = semi.foldable
-    implicit def repr[T: Repr]: Repr[SectionSides[T]] = t => R + t.opr
-    implicit def ozip[T]: OffsetZip[SectionSides, T]  = t => t.coerce
+    implicit def ftor:          Functor[SectionSides]      = semi.functor
+    implicit def fold:          Foldable[SectionSides]     = semi.foldable
+    implicit def repr[T: Repr]: Repr[SectionSides[T]]      = t => R + t.opr
+    implicit def ozip[T]:       OffsetZip[SectionSides, T] = t => t.coerce
     implicit def span[T: HasSpan]: HasSpan[SectionSides[T]] =
       t => t.opr.span
   }
 
   object Block {
-    implicit def ftorBlock: Functor[Block] = semi.functor
-    implicit def fold: Foldable[Block]     = semi.foldable
+    implicit def ftorBlock: Functor[Block]  = semi.functor
+    implicit def fold:      Foldable[Block] = semi.foldable
     implicit def reprBlock[T: Repr]: Repr[Block[T]] = t => {
       val headRepr       = if (t.isOrphan) R else newline
       val emptyLinesRepr = t.emptyLines.map(R + _ + newline)
@@ -811,9 +811,9 @@ object Shape extends ShapeImplicit {
       def toOptional: Line[Option[T]] = copy(elem = Some(elem))
     }
     object Line {
-      implicit def ftor: Functor[Line]          = semi.functor
-      implicit def fold: Foldable[Line]         = semi.foldable
-      implicit def repr[T: Repr]: Repr[Line[T]] = t => R + t.elem + t.off
+      implicit def ftor:          Functor[Line]  = semi.functor
+      implicit def fold:          Foldable[Line] = semi.foldable
+      implicit def repr[T: Repr]: Repr[Line[T]]  = t => R + t.elem + t.off
       implicit def span[T: HasSpan]: HasSpan[Line[T]] =
         t => t.elem.span + t.off
       implicit def spanOpt[T: HasSpan]: HasSpan[OptLine[T]] =
@@ -822,8 +822,8 @@ object Shape extends ShapeImplicit {
   }
 
   object Module {
-    implicit def ftor: Functor[Module]         = semi.functor
-    implicit def fold: Foldable[Module]        = semi.foldable
+    implicit def ftor:    Functor[Module]      = semi.functor
+    implicit def fold:    Foldable[Module]     = semi.foldable
     implicit def ozip[T]: OffsetZip[Module, T] = _.map(Index.Start -> _)
     implicit def repr[T: Repr]: Repr[Module[T]] =
       t => R + t.lines.head + t.lines.tail.map(Block.newline + _)
@@ -832,8 +832,8 @@ object Shape extends ShapeImplicit {
   }
 
   object Macro extends IntermediateTrait[Macro] {
-    implicit def ftor[T]: Functor[Macro] = semi.functor
-    implicit def fold: Foldable[Macro]   = semi.foldable
+    implicit def ftor[T]: Functor[Macro]  = semi.functor
+    implicit def fold:    Foldable[Macro] = semi.foldable
     implicit def ozip[T: HasSpan]: OffsetZip[Macro, T] =
       t => OffsetZip[Shape, T](t).asInstanceOf
   }
@@ -903,14 +903,14 @@ object Shape extends ShapeImplicit {
 
     final case class Segment(head: AST, body: Option[AST.SAST])
     object Segment {
-      def apply(head: AST): Segment       = Segment(head, None)
-      implicit def repr: Repr[Segment]    = t => R + t.head + t.body
-      implicit def span: HasSpan[Segment] = t => t.head.span + t.body.span()
+      def apply(head: AST): Segment          = Segment(head, None)
+      implicit def repr:    Repr[Segment]    = t => R + t.head + t.body
+      implicit def span:    HasSpan[Segment] = t => t.head.span + t.body.span()
     }
   }
 
   object Comment {
-    val symbol                           = "#"
+    val symbol = "#"
     implicit def ftor: Functor[Comment]  = semi.functor
     implicit def fold: Foldable[Comment] = semi.foldable
     implicit def repr[T]: Repr[Comment[T]] =
@@ -1357,27 +1357,34 @@ object AST {
     id: Option[ID]             = None,
     location: Option[Location] = None
   ) {
-    override def toString        = s"Node($id,$location,$shape)"
+    override def toString = s"Node($id,$location,$shape)"
     override def hashCode(): Int = shape.hashCode()
 
     def setID(newID: ID): ASTOf[T] = copy(id = Some(newID))
-    def withNewID(): ASTOf[T]      = copy(id = Some(UUID.randomUUID()))
+    def withNewID():      ASTOf[T] = copy(id = Some(UUID.randomUUID()))
+    def withNewIDIfMissing(): ASTOf[T] = id match {
+      case Some(id) => this
+      case None     => this.withNewID()
+    }
     def setLocation(newLocation: Option[Location]): ASTOf[T] =
       copy(location = newLocation)
     def setLocation(newLocation: Location): ASTOf[T] =
       setLocation(Some(newLocation))
 
-    /** Compares ignoring cached span value.
+    /** Compares ignoring cached span value and node ID.
       *
       * Cached span values become invalid e.g. after macros are resolved.
       * Also, they are not really a part data information, they are more like
       * intermediary cache used by some components that are aware of its
       * caveats.
+      *
+      * ID also does not should be treated as part of node contents, it is used
+      * e.g. to map external data onto AST.
       */
     override def equals(rhs: Any): Boolean = {
       rhs match {
         case rhs: ASTOf[_] =>
-          this.shape == rhs.shape && this.id == rhs.id
+          this.shape == rhs.shape
         case _ => false
       }
     }
@@ -1592,10 +1599,10 @@ object AST {
     //// Conversions ////
 
     trait Conversions1 {
-      implicit def strToVar(str: String): Var   = Var(str)
+      implicit def strToVar(str: String):  Var  = Var(str)
       implicit def strToCons(str: String): Cons = Cons(str)
-      implicit def strToOpr(str: String): Opr   = Opr(str)
-      implicit def strToMod(str: String): Mod   = Mod(str)
+      implicit def strToOpr(str: String):  Opr  = Opr(str)
+      implicit def strToMod(str: String):  Mod  = Mod(str)
     }
 
     trait conversions extends Conversions1 {
@@ -1616,27 +1623,27 @@ object AST {
       private val cachedBlank = Shape.Blank[AST]()
       val any                 = UnapplyByType[Blank]
       def unapply(t: AST)     = Unapply[Blank].run(_ => true)(t)
-      def apply(): Blank      = cachedBlank
+      def apply(): Blank = cachedBlank
     }
     object Var {
-      val any                      = UnapplyByType[Var]
-      def unapply(t: AST)          = Unapply[Var].run(_.name)(t)
+      val any             = UnapplyByType[Var]
+      def unapply(t: AST) = Unapply[Var].run(_.name)(t)
       def apply(name: String): Var = Shape.Var[AST](name)
     }
     object Cons {
-      val any                       = UnapplyByType[Cons]
-      def unapply(t: AST)           = Unapply[Cons].run(_.name)(t)
+      val any             = UnapplyByType[Cons]
+      def unapply(t: AST) = Unapply[Cons].run(_.name)(t)
       def apply(name: String): Cons = Shape.Cons[AST](name)
     }
     object Mod {
-      val any                      = UnapplyByType[Mod]
-      def unapply(t: AST)          = Unapply[Mod].run(_.name)(t)
+      val any             = UnapplyByType[Mod]
+      def unapply(t: AST) = Unapply[Mod].run(_.name)(t)
       def apply(name: String): Mod = Shape.Mod[AST](name)
     }
     object Opr {
-      val app                      = Opr(" ")
-      val any                      = UnapplyByType[Opr]
-      def unapply(t: AST)          = Unapply[Opr].run(_.name)(t)
+      val app             = Opr(" ")
+      val any             = UnapplyByType[Opr]
+      def unapply(t: AST) = Unapply[Opr].run(_.name)(t)
       def apply(name: String): Opr = Shape.Opr[AST](name)
     }
   }
@@ -1668,12 +1675,12 @@ object AST {
       type DanglingBase = ASTOf[Shape.DanglingBase]
 
       //// Smart Constructors ////
-      def apply(i: String): Number            = Number(None, i)
+      def apply(i: String):            Number = Number(None, i)
       def apply(b: String, i: String): Number = Number(Some(b), i)
-      def apply(i: Int): Number               = Number(i.toString)
-      def apply(b: Int, i: String): Number    = Number(b.toString, i)
-      def apply(b: String, i: Int): Number    = Number(b, i.toString)
-      def apply(b: Int, i: Int): Number       = Number(b.toString, i.toString)
+      def apply(i: Int):               Number = Number(i.toString)
+      def apply(b: Int, i: String):    Number = Number(b.toString, i)
+      def apply(b: String, i: Int):    Number = Number(b, i.toString)
+      def apply(b: Int, i: Int):       Number = Number(b.toString, i.toString)
       def apply(b: Option[String], i: String): Number =
         Shape.Number[AST](b, i)
       def unapply(t: AST) = Unapply[Number].run(t => (t.base, t.int))(t)
@@ -1681,7 +1688,7 @@ object AST {
 
       //// DanglingBase ////
       object DanglingBase {
-        val any                               = UnapplyByType[DanglingBase]
+        val any = UnapplyByType[DanglingBase]
         def apply(base: String): DanglingBase = Shape.DanglingBase[AST](base)
         def unapply(t: AST) =
           Unapply[DanglingBase].run(_.base)(t)
@@ -1891,8 +1898,8 @@ object AST {
         def apply(opr: Opr, arg: AST): Right = Right(opr, 1, arg)
       }
       object Sides {
-        val any                    = UnapplyByType[Sides]
-        def unapply(t: AST)        = Unapply[Sides].run(_.opr)(t)
+        val any             = UnapplyByType[Sides]
+        def unapply(t: AST) = Unapply[Sides].run(_.opr)(t)
         def apply(opr: Opr): Sides = Shape.SectionSides[AST](opr)
       }
     }
@@ -1960,9 +1967,9 @@ object AST {
       def apply[T](elem: T)           = Shape.Block.Line(elem, 0)
     }
     object OptLine {
-      def apply(): OptLine          = Line(None, 0)
+      def apply():          OptLine = Line(None, 0)
       def apply(elem: AST): OptLine = Line(Some(elem))
-      def apply(off: Int): OptLine  = Line(None, off)
+      def apply(off: Int):  OptLine = Line(None, off)
     }
   }
 
@@ -1975,11 +1982,11 @@ object AST {
   object Module {
     import Block._
     type M = Module
-    val any                                     = UnapplyByType[M]
-    def unapply(t: AST)                         = Unapply[M].run(_.lines)(t)
-    def apply(ls: List1[OptLine]): M            = Shape.Module(ls)
-    def apply(l: OptLine): M                    = Module(List1(l))
-    def apply(l: OptLine, ls: OptLine*): M      = Module(List1(l, ls.toList))
+    val any             = UnapplyByType[M]
+    def unapply(t: AST) = Unapply[M].run(_.lines)(t)
+    def apply(ls: List1[OptLine]):            M = Shape.Module(ls)
+    def apply(l: OptLine):                    M = Module(List1(l))
+    def apply(l: OptLine, ls: OptLine*):      M = Module(List1(l, ls.toList))
     def apply(l: OptLine, ls: List[OptLine]): M = Module(List1(l, ls))
     def traverseWithOff(m: M)(f: (Index, AST) => AST): M = {
       val lines2 = m.lines.map { line: OptLine =>
@@ -2233,10 +2240,10 @@ object AST {
   type Import = ASTOf[Shape.Import]
 
   object Import {
-    def apply(path: List1[Cons]): Import            = Shape.Import[AST](path)
-    def apply(head: Cons): Import                   = Import(head, List())
+    def apply(path: List1[Cons]):            Import = Shape.Import[AST](path)
+    def apply(head: Cons):                   Import = Import(head, List())
     def apply(head: Cons, tail: List[Cons]): Import = Import(List1(head, tail))
-    def apply(head: Cons, tail: Cons*): Import      = Import(head, tail.toList)
+    def apply(head: Cons, tail: Cons*):      Import = Import(head, tail.toList)
     def unapply(t: AST): Option[List1[Cons]] =
       Unapply[Import].run(t => t.path)(t)
     val any = UnapplyByType[Import]
@@ -2261,12 +2268,12 @@ object AST {
 
   type Group = ASTOf[Shape.Group]
   object Group {
-    val any                                  = UnapplyByType[Group]
-    def unapply(t: AST): Option[Option[AST]] = Unapply[Group].run(_.body)(t)
-    def apply(body: Option[AST]): Group      = Shape.Group(body)
-    def apply(body: AST): Group              = Group(Some(body))
-    def apply(body: SAST): Group             = Group(body.wrapped)
-    def apply(): Group                       = Group(None)
+    val any = UnapplyByType[Group]
+    def unapply(t: AST):          Option[Option[AST]] = Unapply[Group].run(_.body)(t)
+    def apply(body: Option[AST]): Group               = Shape.Group(body)
+    def apply(body: AST):         Group               = Group(Some(body))
+    def apply(body: SAST):        Group               = Group(body.wrapped)
+    def apply():                  Group               = Group(None)
   }
 
   //////////////////////////////////////////////////////////////////////////////
@@ -2275,8 +2282,8 @@ object AST {
 
   type Def = ASTOf[Shape.Def]
   object Def {
-    val any                                     = UnapplyByType[Def]
-    def apply(name: Cons): Def                  = Def(name, List())
+    val any = UnapplyByType[Def]
+    def apply(name: Cons):                  Def = Def(name, List())
     def apply(name: Cons, args: List[AST]): Def = Def(name, args, None)
     def apply(name: Cons, args: List[AST], body: Option[AST]): Def =
       Shape.Def(name, args, body)
@@ -2298,7 +2305,7 @@ object AST {
   }
 
   def main(): Unit = {
-    val v1  = Ident.Var("foo")
+    val v1 = Ident.Var("foo")
     //    val v1_ = v1: AST
 
     println(v1.span)
@@ -2307,7 +2314,7 @@ object AST {
 
     //    println(v1_.asJson)
     //    val opr1 = Ident.Opr("+")
-    val v2  = App.Prefix(Ident.Var("x"), 10, Ident.Var("z"))
+    val v2 = App.Prefix(Ident.Var("x"), 10, Ident.Var("z"))
     //    val v2_ = v2: AST
     //
     //    println(v2.asJson)
