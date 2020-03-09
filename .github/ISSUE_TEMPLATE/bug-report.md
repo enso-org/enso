@@ -47,7 +47,18 @@ Please list the reproduction steps for your bug. For example:
 - Please include any error output if relevant.
 -->
 
-### Luna Version
+### Enso Version
 <!--
 - Please include the output of `enso --version`.
+
+For example:
+```
+Enso Compiler and Runtime
+Version:    0.0.1
+Built with: scala-2.13.1 for GraalVM 20.0.0
+Built from: wip/ara/better-version @ 1030864652f8f1e316ab3438f933f62f2806ebe4
+            Uncommitted changes, 1 commit on branch
+Running on: Java HotSpot(TM) 64-Bit Server VM GraalVM EE 20.0.0, JDK 1.8.0_241-b07
+            Mac OS X 10.15.3 (x86_64)
+```
 -->

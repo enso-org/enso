@@ -15,6 +15,7 @@ import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 val scalacVersion = "2.13.1"
 val graalVersion  = "20.0.0"
 val circeVersion  = "0.13.0"
+val ensoVersion   = "0.0.1"
 organization in ThisBuild := "org.enso"
 scalaVersion in ThisBuild := scalacVersion
 
@@ -593,6 +594,13 @@ lazy val runner = project
       }
       .dependsOn(Compile / compile)
       .value
+  )
+  .settings(
+    Compile / sourceGenerators += Def.task {
+      val file = (Compile / sourceManaged).value / "buildinfo" / "Info.scala"
+      BuildInfo
+        .writeBuildInfoFile(file, ensoVersion, scalacVersion, graalVersion)
+    }.taskValue
   )
   .dependsOn(runtime)
   .dependsOn(pkg)
