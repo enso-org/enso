@@ -75,6 +75,21 @@ object FileManagerProtocol {
   case class CopyFileResult(result: Either[FileSystemFailure, Unit])
 
   /**
+    * Requests the Language Server move a file system object.
+    *
+    * @param from a path to the source
+    * @param to a path to the destination
+    */
+  case class MoveFile(from: Path, to: Path)
+
+  /**
+    * Returns a result of moving a file system object.
+    *
+    * @param result either file system failure or unit representing success
+    */
+  case class MoveFileResult(result: Either[FileSystemFailure, Unit])
+
+  /**
     * Requests the Language Server to check the existence of file system object.
     *
     * @param path a path to a file

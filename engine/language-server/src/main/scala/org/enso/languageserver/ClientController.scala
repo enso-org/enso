@@ -52,6 +52,7 @@ object ClientApi {
     .registerRequest(CloseFile)
     .registerRequest(DeleteFile)
     .registerRequest(CopyFile)
+    .registerRequest(MoveFile)
     .registerRequest(ExistsFile)
     .registerNotification(ForceReleaseCapability)
     .registerNotification(GrantCapability)
@@ -131,6 +132,9 @@ class ClientController(
 
     case Request(CopyFile, id, params: CopyFile.Params) =>
       copyFile(webActor, id, params)
+
+    case Request(MoveFile, id, params: MoveFile.Params) =>
+      moveFile(webActor, id, params)
 
     case Request(ExistsFile, id, params: ExistsFile.Params) =>
       existsFile(webActor, id, params)
@@ -243,6 +247,28 @@ class ClientController(
 
         case Failure(th) =>
           log.error("An exception occured during copying a file", th)
+          webActor ! ResponseError(Some(id), ServiceError)
+      }
+  }
+
+  private def moveFile(
+    webActor: ActorRef,
+    id: Id,
+    params: MoveFile.Params
+  ): Unit = {
+    (server ? FileManagerProtocol.MoveFile(params.from, params.to))
+      .onComplete {
+        case Success(FileManagerProtocol.MoveFileResult(Right(()))) =>
+          webActor ! ResponseResult(MoveFile, id, Unused)
+
+        case Success(FileManagerProtocol.MoveFileResult(Left(failure))) =>
+          webActor ! ResponseError(
+            Some(id),
+            FileSystemFailureMapper.mapFailure(failure)
+          )
+
+        case Failure(th) =>
+          log.error("An exception occured during moving a file", th)
           webActor ! ResponseError(Some(id), ServiceError)
       }
   }

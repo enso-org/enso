@@ -112,6 +112,18 @@ class LanguageServer(config: Config, fs: FileSystemApi[IO])
 
       sender ! CopyFileResult(result)
 
+    case MoveFile(from, to) =>
+      val result =
+        for {
+          rootPathFrom <- config.findContentRoot(from.rootId)
+          rootPathTo   <- config.findContentRoot(to.rootId)
+          _ <- fs
+            .move(from.toFile(rootPathFrom), to.toFile(rootPathTo))
+            .unsafeRunSync()
+        } yield ()
+
+      sender ! MoveFileResult(result)
+
     case ExistsFile(path) =>
       val result =
         for {

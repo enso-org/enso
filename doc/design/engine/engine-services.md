@@ -1308,7 +1308,10 @@ null
 ```
 
 ##### Errors
-TBC
+- [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable file-system error.
+- [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the requested content root cannot be found.
+- [`FileNotFound`](#filenotfound) informs that file cannot be found.
+- [`FileExists`](#fileexists) informs that target file already exists.
 
 #### `file/exists`
 This request asks the file manager to check whether a filesystem object exists
