@@ -24,7 +24,7 @@ use std::path::PathBuf;
 const PARSER_PATH: &str = "./pkg/scala-parser.js";
 
 /// Commit from `enso` repository that will be used to obtain parser from.
-const PARSER_COMMIT: &str = "083fa0e4a50c62cf5d33b06710f5294441729a9e";
+const PARSER_COMMIT: &str = "658bc26800eb03a2995af72df5a79ef21f7eb349";
 
 /// Magic code that needs to be prepended to ScalaJS generated parser due to:
 /// https://github.com/scala-js/scala-js/issues/3677/

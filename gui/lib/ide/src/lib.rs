@@ -27,6 +27,7 @@ pub mod prelude {
 
     pub use crate::constants;
     pub use crate::controller;
+    pub use crate::double_representation;
     pub use crate::executor;
 
     pub use futures::Future;
