@@ -188,13 +188,18 @@ impl Ast {
         Ast::new_with_length(shape,id,length)
     }
 
-    /// As `new` but sets given declared length for the shape.
-    pub fn new_with_length<S:Into<Shape<Ast>>>
-    (shape:S, id:Option<ID>, len:usize) -> Ast {
-        let shape       = shape.into();
+    /// Just wraps shape, id and len into Ast node.
+    pub fn from_ast_id_len(shape:Shape<Ast>, id:Option<ID>, len:usize) -> Ast {
         let with_length = WithLength { wrapped:shape      , len };
         let with_id     = WithID     { wrapped:with_length, id  };
         Ast { wrapped: Rc::new(with_id) }
+    }
+
+    /// As `new` but sets given declared length for the shape.
+    pub fn new_with_length<S:Into<Shape<Ast>>>
+    (shape:S, id:Option<ID>, len:usize) -> Ast {
+        let shape = shape.into();
+        Self::from_ast_id_len(shape,id,len)
     }
 
     /// Iterates over all transitive child nodes (including self).
@@ -895,18 +900,23 @@ impl Ast {
     // TODO smart constructors for other cases
     //  as part of https://github.com/luna/enso/issues/338
 
+    pub fn number(number:i64) -> Ast {
+        let number = Number {base:None,int:number.to_string()};
+        Ast::from(number)
+    }
+
     pub fn cons<Str: ToString>(name:Str) -> Ast {
-        let cons = Cons{ name: name.to_string() };
+        let cons = Cons {name:name.to_string()};
         Ast::from(cons)
     }
 
     pub fn var<Str: ToString>(name:Str) -> Ast {
-        let var = Var{ name: name.to_string() };
+        let var = Var{name:name.to_string()};
         Ast::from(var)
     }
 
     pub fn opr<Str: ToString>(name:Str) -> Ast {
-        let opr = Opr{ name: name.to_string() };
+        let opr = Opr{name:name.to_string() };
         Ast::from(opr)
     }
 
@@ -916,7 +926,8 @@ impl Ast {
         Ast::from(opr)
     }
 
-    pub fn infix<Str0, Str1, Str2>(larg:Str0, opr:Str1, rarg:Str2) -> Ast
+    /// Creates an AST node with `Infix` shape, where both its operands are Vars.
+    pub fn infix_var<Str0, Str1, Str2>(larg:Str0, opr:Str1, rarg:Str2) -> Ast
     where Str0: ToString
         , Str1: ToString
         , Str2: ToString {
@@ -1148,7 +1159,7 @@ mod tests {
             _                 => "«invalid»".to_string(),
         };
 
-        let infix   = Ast::infix("foo", "+", "bar");
+        let infix   = Ast::infix_var("foo", "+", "bar");
         let strings = infix.iter().map(to_string);
         let strings = strings.collect::<Vec<_>>();
 

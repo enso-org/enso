@@ -201,10 +201,12 @@ mod test {
 
         let uuid1        = Uuid::new_v4();
         let uuid2        = Uuid::new_v4();
+        let uuid3        = Uuid::new_v4();
         let code         = "2+2";
         let id_map       = IdMap(vec!
             [ (Span::new(Index::new(0), Size::new(1)),uuid1.clone())
             , (Span::new(Index::new(2), Size::new(1)),uuid2)
+            , (Span::new(Index::new(0), Size::new(3)),uuid3)
             ]);
 
         let controller   = Handle::new_mock(location,code,id_map,file_manager,parser).unwrap();
@@ -223,7 +225,7 @@ mod test {
                     opr  : Ast::new(ast::Opr {name:"+".to_string()}, None),
                     roff : 0,
                     rarg : Ast::new(ast::Number{base:None, int:"2".to_string()}, Some(uuid2)),
-                }, None)),
+                }, Some(uuid3))),
                 off: 0
             }]
         }, None);

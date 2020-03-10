@@ -2,4 +2,6 @@
 //! module.
 
 pub mod definition;
+pub mod graph;
+pub mod node;
 pub mod text;
