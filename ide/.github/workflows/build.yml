@@ -81,6 +81,13 @@ jobs:
         with:
           command: install
           args: wasm-pack --version 0.8.1
+          
+      - uses: actions/setup-node@v1
+        with:
+          node-version: '12.16.1'
+
+      - name: check npm
+        run: npm --version
 
       - name: Compile to WASM
         run: ./run build
