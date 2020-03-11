@@ -781,4 +781,708 @@ class TextOperationsTest extends WebSocketServerTest {
 
   }
 
+  "text/applyEdit" must {
+    "fail when a file wasn't opened first" in {
+      val client = new WsTestClient(address)
+
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/write",
+            "id": 0,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "foo.txt" ]
+              },
+              "contents": "123456789"
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 0,
+            "result": null
+          }
+          """)
+
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "text/applyEdit",
+            "id": 1,
+            "params": {
+              "edit": {
+                "path": {
+                  "rootId": $testContentRootId,
+                  "segments": [ "foo.txt" ]
+                },
+                "oldVersion": "5795c3d628fd638c9835a4c79a55809f265068c88729a1a3fcdf8522",
+                "newVersion": "7602967cab172183d1a67ea40cb8e92e23218764bc9934c3795fcea5",
+                "edits": [
+                  {
+                    "range": {
+                      "start": { "line": 0, "character": 0 },
+                      "end": { "line": 0, "character": 0 }
+                    },
+                    "text": "bar"
+                  }
+                ]
+              }
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 1,
+            "error": { "code": 3001, "message": "File not opened" }
+          }
+          """)
+    }
+
+    "fail when old version is incorrect" in {
+      val client = new WsTestClient(address)
+
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/write",
+            "id": 0,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "foo.txt" ]
+              },
+              "contents": "123456789"
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 0,
+            "result": null
+          }
+          """)
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "text/openFile",
+            "id": 1,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "foo.txt" ]
+              }
+            }
+          }
+          """)
+      client.expectJson(json"""
+          {
+            "jsonrpc" : "2.0",
+            "id" : 1,
+            "result" : {
+              "writeCapability" : {
+                "method" : "canEdit",
+                "registerOptions" : {
+                  "path" : {
+                    "rootId" : $testContentRootId,
+                    "segments" : [
+                      "foo.txt"
+                    ]
+                  }
+                }
+              },
+              "content" : "123456789",
+              "currentVersion" : "5795c3d628fd638c9835a4c79a55809f265068c88729a1a3fcdf8522"
+            }
+          }
+          """)
+
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "text/applyEdit",
+            "id": 2,
+            "params": {
+              "edit": {
+                "path": {
+                  "rootId": $testContentRootId,
+                  "segments": [ "foo.txt" ]
+                },
+                "oldVersion": "wrong_version",
+                "newVersion": "7602967cab172183d1a67ea40cb8e92e23218764bc9934c3795fcea5",
+                "edits": [
+                  {
+                    "range": {
+                      "start": { "line": 0, "character": 0 },
+                      "end": { "line": 0, "character": 0 }
+                    },
+                    "text": "bar"
+                  }
+                ]
+              }
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 2,
+            "error": { 
+              "code": 3003, 
+              "message": "Invalid version [client version: wrong_version, server version: 5795c3d628fd638c9835a4c79a55809f265068c88729a1a3fcdf8522]" 
+            }
+          }
+          """)
+    }
+
+    "fail when new version is incorrect" in {
+      val client = new WsTestClient(address)
+
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/write",
+            "id": 0,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "foo.txt" ]
+              },
+              "contents": "123456789"
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 0,
+            "result": null
+          }
+          """)
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "text/openFile",
+            "id": 1,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "foo.txt" ]
+              }
+            }
+          }
+          """)
+      client.expectJson(json"""
+          {
+            "jsonrpc" : "2.0",
+            "id" : 1,
+            "result" : {
+              "writeCapability" : {
+                "method" : "canEdit",
+                "registerOptions" : {
+                  "path" : {
+                    "rootId" : $testContentRootId,
+                    "segments" : [
+                      "foo.txt"
+                    ]
+                  }
+                }
+              },
+              "content" : "123456789",
+              "currentVersion" : "5795c3d628fd638c9835a4c79a55809f265068c88729a1a3fcdf8522"
+            }
+          }
+          """)
+
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "text/applyEdit",
+            "id": 2,
+            "params": {
+              "edit": {
+                "path": {
+                  "rootId": $testContentRootId,
+                  "segments": [ "foo.txt" ]
+                },
+                "oldVersion": "5795c3d628fd638c9835a4c79a55809f265068c88729a1a3fcdf8522",
+                "newVersion": "wrong_version",
+                "edits": [
+                  {
+                    "range": {
+                      "start": { "line": 0, "character": 0 },
+                      "end": { "line": 0, "character": 0 }
+                    },
+                    "text": "bar"
+                  }
+                ]
+              }
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 2,
+            "error": { 
+              "code": 3003, 
+              "message": "Invalid version [client version: wrong_version, server version: 7602967cab172183d1a67ea40cb8e92e23218764bc9934c3795fcea5]" 
+            }
+          }
+          """)
+    }
+
+    "fail when changes are incorrect" in {
+      val client = new WsTestClient(address)
+
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/write",
+            "id": 0,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "foo.txt" ]
+              },
+              "contents": "123456789"
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 0,
+            "result": null
+          }
+          """)
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "text/openFile",
+            "id": 1,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "foo.txt" ]
+              }
+            }
+          }
+          """)
+      client.expectJson(json"""
+          {
+            "jsonrpc" : "2.0",
+            "id" : 1,
+            "result" : {
+              "writeCapability" : {
+                "method" : "canEdit",
+                "registerOptions" : {
+                  "path" : {
+                    "rootId" : $testContentRootId,
+                    "segments" : [
+                      "foo.txt"
+                    ]
+                  }
+                }
+              },
+              "content" : "123456789",
+              "currentVersion" : "5795c3d628fd638c9835a4c79a55809f265068c88729a1a3fcdf8522"
+            }
+          }
+          """)
+
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "text/applyEdit",
+            "id": 2,
+            "params": {
+              "edit": {
+                "path": {
+                  "rootId": $testContentRootId,
+                  "segments": [ "foo.txt" ]
+                },
+                "oldVersion": "5795c3d628fd638c9835a4c79a55809f265068c88729a1a3fcdf8522",
+                "newVersion": "5795c3d628fd638c9835a4c79a55809f265068c88729a1a3fcdf8522",
+                "edits": [
+                  {
+                    "range": {
+                      "start": { "line": -1, "character": 0 },
+                      "end": { "line": 0, "character": -1 }
+                    },
+                    "text": "bar"
+                  }
+                ]
+              }
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 2,
+            "error": { 
+              "code": 3002, 
+              "message": "Negative coordinate in a position object" 
+            }
+          }
+          """)
+    }
+
+    "fail when a client doesn't have write lock" in {
+      val client1 = new WsTestClient(address)
+      val client2 = new WsTestClient(address)
+
+      client1.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/write",
+            "id": 0,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "foo.txt" ]
+              },
+              "contents": "123456789"
+            }
+          }
+          """)
+      client1.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 0,
+            "result": null
+          }
+          """)
+      client1.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "text/openFile",
+            "id": 1,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "foo.txt" ]
+              }
+            }
+          }
+          """)
+      client1.expectJson(json"""
+          {
+            "jsonrpc" : "2.0",
+            "id" : 1,
+            "result" : {
+              "writeCapability" : {
+                "method" : "canEdit",
+                "registerOptions" : {
+                  "path" : {
+                    "rootId" : $testContentRootId,
+                    "segments" : [
+                      "foo.txt"
+                    ]
+                  }
+                }
+              },
+              "content" : "123456789",
+              "currentVersion" : "5795c3d628fd638c9835a4c79a55809f265068c88729a1a3fcdf8522"
+            }
+          }
+          """)
+      client2.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "text/openFile",
+            "id": 1,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "foo.txt" ]
+              }
+            }
+          }
+          """)
+      client2.expectJson(json"""
+          {
+            "jsonrpc" : "2.0",
+            "id" : 1,
+            "result" : {
+              "writeCapability" : null,
+              "content" : "123456789",
+              "currentVersion" : "5795c3d628fd638c9835a4c79a55809f265068c88729a1a3fcdf8522"
+            }
+          }
+          """)
+
+      client2.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "text/applyEdit",
+            "id": 2,
+            "params": {
+              "edit": {
+                "path": {
+                  "rootId": $testContentRootId,
+                  "segments": [ "foo.txt" ]
+                },
+                "oldVersion": "5795c3d628fd638c9835a4c79a55809f265068c88729a1a3fcdf8522",
+                "newVersion": "7602967cab172183d1a67ea40cb8e92e23218764bc9934c3795fcea5",
+                "edits": [
+                  {
+                    "range": {
+                      "start": { "line": 0, "character": 0 },
+                      "end": { "line": 0, "character": 0 }
+                    },
+                    "text": "bar"
+                  }
+                ]
+              }
+            }
+          }
+          """)
+      client2.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 2,
+            "error": { 
+              "code": 3004, 
+              "message": "Write denied" 
+            }
+          }
+          """)
+    }
+
+    "apply multiple changes at a clip" in {
+      val client = new WsTestClient(address)
+
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/write",
+            "id": 0,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "foo.txt" ]
+              },
+              "contents": "123456789"
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 0,
+            "result": null
+          }
+          """)
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "text/openFile",
+            "id": 1,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "foo.txt" ]
+              }
+            }
+          }
+          """)
+      client.expectJson(json"""
+          {
+            "jsonrpc" : "2.0",
+            "id" : 1,
+            "result" : {
+              "writeCapability" : {
+                "method" : "canEdit",
+                "registerOptions" : {
+                  "path" : {
+                    "rootId" : $testContentRootId,
+                    "segments" : [
+                      "foo.txt"
+                    ]
+                  }
+                }
+              },
+              "content" : "123456789",
+              "currentVersion" : "5795c3d628fd638c9835a4c79a55809f265068c88729a1a3fcdf8522"
+            }
+          }
+          """)
+
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "text/applyEdit",
+            "id": 2,
+            "params": {
+              "edit": {
+                "path": {
+                  "rootId": $testContentRootId,
+                  "segments": [ "foo.txt" ]
+                },
+                "oldVersion": "5795c3d628fd638c9835a4c79a55809f265068c88729a1a3fcdf8522",
+                "newVersion": "ebe55342f9c8b86857402797dd723fb4a2174e0b56d6ace0a6929ec3",
+                "edits": [
+                  {
+                    "range": {
+                      "start": { "line": 0, "character": 0 },
+                      "end": { "line": 0, "character": 0 }
+                    },
+                    "text": "bar"
+                  },
+                  {
+                    "range": {
+                      "start": { "line": 0, "character": 12 },
+                      "end": { "line": 0, "character": 12 }
+                    },
+                    "text": "foo"
+                  }
+                ]
+              }
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 2,
+            "result": null
+          }
+          """)
+    }
+
+    "should notify subscribers about a change" in {
+      val client1 = new WsTestClient(address)
+      val client2 = new WsTestClient(address)
+
+      client1.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/write",
+            "id": 0,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "foo.txt" ]
+              },
+              "contents": "123456789"
+            }
+          }
+          """)
+      client1.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 0,
+            "result": null
+          }
+          """)
+      client1.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "text/openFile",
+            "id": 1,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "foo.txt" ]
+              }
+            }
+          }
+          """)
+      client1.expectJson(json"""
+          {
+            "jsonrpc" : "2.0",
+            "id" : 1,
+            "result" : {
+              "writeCapability" : {
+                "method" : "canEdit",
+                "registerOptions" : {
+                  "path" : {
+                    "rootId" : $testContentRootId,
+                    "segments" : [
+                      "foo.txt"
+                    ]
+                  }
+                }
+              },
+              "content" : "123456789",
+              "currentVersion" : "5795c3d628fd638c9835a4c79a55809f265068c88729a1a3fcdf8522"
+            }
+          }
+          """)
+
+      client2.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "text/openFile",
+            "id": 1,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "foo.txt" ]
+              }
+            }
+          }
+          """)
+      client2.expectJson(json"""
+          {
+            "jsonrpc" : "2.0",
+            "id" : 1,
+            "result" : {
+              "writeCapability" : null,
+              "content" : "123456789",
+              "currentVersion" : "5795c3d628fd638c9835a4c79a55809f265068c88729a1a3fcdf8522"
+            }
+          }
+          """)
+
+      client1.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "text/applyEdit",
+            "id": 2,
+            "params": {
+              "edit": {
+                "path": {
+                  "rootId": $testContentRootId,
+                  "segments": [ "foo.txt" ]
+                },
+                "oldVersion": "5795c3d628fd638c9835a4c79a55809f265068c88729a1a3fcdf8522",
+                "newVersion": "ebe55342f9c8b86857402797dd723fb4a2174e0b56d6ace0a6929ec3",
+                "edits": [
+                  {
+                    "range": {
+                      "start": { "line": 0, "character": 0 },
+                      "end": { "line": 0, "character": 0 }
+                    },
+                    "text": "bar"
+                  },
+                  {
+                    "range": {
+                      "start": { "line": 0, "character": 12 },
+                      "end": { "line": 0, "character": 12 }
+                    },
+                    "text": "foo"
+                  }
+                ]
+              }
+            }
+          }
+          """)
+      client1.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 2,
+            "result": null
+          }
+          """)
+      client2.expectJson(json"""
+          {
+            "jsonrpc" : "2.0",
+            "method" : "text/didChange",
+            "params" : {
+              "edits" : [
+                {
+                  "path" : {
+                    "rootId" : $testContentRootId,
+                    "segments" : [
+                      "foo.txt"
+                    ]
+                  },
+                  "edits" : [
+                    {
+                      "range" : {
+                        "start" : { "line" : 0, "character" : 0 },
+                        "end" : { "line" : 0, "character" : 0 }
+                      },
+                      "text" : "bar"
+                    },
+                    {
+                      "range" : {
+                        "start" : { "line" : 0, "character" : 12 },
+                        "end" : { "line" : 0, "character" : 12 }
+                      },
+                      "text" : "foo"
+                    }
+                  ],
+                  "oldVersion" : "5795c3d628fd638c9835a4c79a55809f265068c88729a1a3fcdf8522",
+                  "newVersion" : "ebe55342f9c8b86857402797dd723fb4a2174e0b56d6ace0a6929ec3"
+                }
+              ]
+            }
+          }
+          """)
+    }
+
+  }
+
 }

@@ -1648,7 +1648,7 @@ that some edits are applied and others are not.
 
 ```typescript
 {
-  edits: [FileEdit];
+  edit: FileEdit;
 }
 ```
 
@@ -1659,7 +1659,12 @@ null
 ```
 
 ##### Errors
-TBC
+- [`FileNotOpenedError`](#filenotopenederror) to signal that a file wasn't
+opened.
+- [`TextEditValidationError`](#texteditvalidationerror) to signal that validation has failed for a series of edits.
+- [`InvalidVersionError`](#invalidversionerror) to signal that version provided by a client doesn't match to the version
+computed by the server.
+- [`WriteDeniedError`](#writedeniederror) to signal that the client doesn't hold write lock to the buffer.
 
 #### `text/didChange`
 This is a notification sent from the server to the clients to inform them of any
@@ -1679,7 +1684,9 @@ This notification must _only_ be sent for files that the client has open.
 ```
 
 ##### Errors
-TBC
+```typescript
+null
+```
 
 ### Workspace Operations
 The language server also has a set of operations useful for managing the client
@@ -2054,5 +2061,36 @@ Signals that a file wasn't opened.
 "error" : {
   "code" : 3001,
   "message" : "File not opened"
+}
+```
+
+##### `TextEditValidationError`
+Signals that validation has failed for a series of edits.
+
+```typescript
+"error" : {
+  "code" : 3002,
+  "message" : "The start position is after the end position"
+}
+```
+
+##### `InvalidVersionError`
+Signals that version provided by a client doesn't match to the version
+computed by the server.
+
+```typescript
+"error" : {
+  "code" : 3003,
+  "message" : "Invalid version [client version: ade2967cab172183d1a67ea40cb8e92e23218764bc9934c3795fcea5, server version: 7602967cab172183d1a67ea40cb8e92e23218764bc9934c3795fcea5]"
+}
+```
+
+##### `WriteDeniedError`
+Signals that the client doesn't hold write lock to the buffer.
+
+```typescript
+"error" : {
+  "code" : 3004,
+  "message" : "Write denied"
 }
 ```
