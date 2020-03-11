@@ -1,9 +1,11 @@
 package org.enso
 
+import io.circe.Json
 import org.enso.flexer.Reader
 import org.enso.parserservice.Protocol
 import org.enso.parserservice.Server
 import org.enso.syntax.text.AST
+import org.enso.syntax.text.SourceFile
 import org.enso.syntax.text.Parser
 
 import scala.util.Try
@@ -35,15 +37,14 @@ case class ParserService() extends Server with Protocol {
 
   def serializeAst(ast: AST.Module): String = ast.toJson().noSpaces
 
-  def runParser(program: String, ids: Parser.IDMap): AST.Module =
-    new Parser().run(new Reader(program), ids)
-
   def handleRequest(request: Request): Response = {
     request match {
       case ParseRequest(program, ids) =>
-        val ast  = runParser(program, ids)
-        val json = serializeAst(ast)
-        Protocol.Success(json)
+        val ast     = new Parser().run(new Reader(program), ids)
+        Protocol.Success(SourceFile(ast, Json.Null))
+      case ParseWithMetadataRequest(content) =>
+        val module  = new Parser().run_with_metadata(content)
+        Protocol.Success(module)
       case _ =>
         throw new Exception(f"unimplemented request: $request")
     }

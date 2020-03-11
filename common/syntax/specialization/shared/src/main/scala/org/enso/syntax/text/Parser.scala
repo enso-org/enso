@@ -17,6 +17,8 @@ import org.enso.syntax.text.prec.Macro
 import org.enso.syntax.text.spec.ParserDef
 import cats.implicits._
 import io.circe
+import io.circe.Encoder
+import io.circe.Json
 import io.circe.generic.auto._
 import io.circe.parser._
 
@@ -152,12 +154,51 @@ class InternalError(reason: String, cause: Throwable = None.orNull)
   * applies [[AST.Macro.Definition.Resolver]] to each [[AST.Macro.Match]] found
   * in the AST, while loosing a lot of positional information.
   */
+
+
+case class SourceFile(ast: AST, metadata: Json)
+
+object SourceFile {
+  val IDTAG   = "\n# [idmap] "
+  val METATAG = "\n# [metadata]"
+
+  implicit def MWMEncoder: Encoder[SourceFile] = module =>
+    Json.obj("ast" -> module.ast.toJson(), "metadata" -> module.metadata)
+}
+
+
 class Parser {
   import Parser._
   private val engine = newEngine()
 
-  def run(input: Reader): AST.Module = run(input, Nil)
+  /** Parse contents of the program source file,
+    * where program code may be followed by idmap and metadata.
+    */
+  def run_with_metadata(program: String): SourceFile = {
+    import SourceFile._
 
+    program.split(IDTAG) match {
+      case Array(input)  => SourceFile(run(input), Json.Null)
+      case Array(input, rest) =>
+        val meta     = rest.split(METATAG)
+        if (meta.size < 2) {
+          throw new ParserError(s"Expected `$METATAG ..`\n after `$IDTAG ..`.")
+        }
+        val idmap    = idMapFromJson(meta(0)).left.map { error =>
+          throw new ParserError("Could not deserialize idmap.", error)
+        }.merge
+        val metadata = decode[Json](meta(1)).left.map { error =>
+          throw new ParserError("Could not deserialize metadata.", error)
+        }.merge
+
+        SourceFile(run(new Reader(input), idmap), metadata)
+    }
+  }
+
+  /** Parse simple string with empty IdMap into AST. */
+  def run(input: String): AST.Module = run(new Reader(input), Nil)
+
+  /** Parse input with provided IdMap into AST */
   def run(input: Reader, idMap: IDMap): AST.Module = {
     val tokenStream = engine.run(input)
     val spanned     = tokenStream.map(attachModuleLocations)
@@ -414,7 +455,8 @@ class Parser {
 
 object Parser {
 
-  type IDMap = Seq[(Span, AST.ID)]
+  type IDMap    = Seq[(Span, AST.ID)]
+  type Metadata = String
 
   private val newEngine = flexer.Parser.compile(ParserDef())
 
@@ -542,7 +584,7 @@ object Main extends scala.App {
 
   println("--- PARSING ---")
 
-  val mod = parser.run(new Reader(inp))
+  val mod = parser.run(inp)
 
   println(Debug.pretty(mod.toString))
 

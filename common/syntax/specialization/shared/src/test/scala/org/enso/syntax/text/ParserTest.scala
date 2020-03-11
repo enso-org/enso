@@ -22,7 +22,7 @@ class ParserTest extends AnyFlatSpec with Matchers {
 
   def assertModule(input: String, result: AST): Assertion = {
     val parser = Parser()
-    val module = parser.run(new Reader(input))
+    val module = parser.run(input)
     assertSpan(input, module)
     val rmodule = parser.dropMacroMeta(module)
     assert(rmodule == result)
@@ -31,7 +31,7 @@ class ParserTest extends AnyFlatSpec with Matchers {
 
   def assertExpr(input: String, result: AST): Assertion = {
     val parser = Parser()
-    val module = parser.run(new Reader(input))
+    val module = parser.run(input)
     assertSpan(input, module)
     val rmodule = parser.dropMacroMeta(module)
     val tail    = module.lines.tail
@@ -47,7 +47,7 @@ class ParserTest extends AnyFlatSpec with Matchers {
   }
 
   def assertIdentity(input: String): Assertion = {
-    val module = Parser().run(new Reader(input))
+    val module = Parser().run(input)
     assertSpan(input, module)
     assert(module.show() == new Reader(input).toString())
   }

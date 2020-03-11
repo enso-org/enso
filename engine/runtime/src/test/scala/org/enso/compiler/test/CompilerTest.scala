@@ -21,7 +21,7 @@ trait CompilerRunner {
   def toIR(source: String): IR = {
     val parser: Parser = Parser()
     val unresolvedAST: AST.Module =
-      parser.run(new Reader(source))
+      parser.run(source)
     val resolvedAST: AST.Module = parser.dropMacroMeta(unresolvedAST)
 
     val mExpr = AstToIR.translateInline(resolvedAST)

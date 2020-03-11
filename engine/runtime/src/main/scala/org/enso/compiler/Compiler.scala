@@ -159,7 +159,7 @@ class Compiler(
   def parse(source: Source): AST = {
     val parser: Parser = Parser()
     val unresolvedAST: AST.Module =
-      parser.run(new Reader(source.getCharacters.toString))
+      parser.run(source.getCharacters.toString)
     val resolvedAST: AST.Module = parser.dropMacroMeta(unresolvedAST)
 
     resolvedAST

@@ -114,7 +114,7 @@ object ParserBenchmark extends Bench.OfflineRegressionReport {
     measure method "Flexer" in    { using(dummy) in (_ => runReader())         }
   }
 
-  def run(str: String) = Parser().run(new flexer.Reader(str))
+  def run(str: String) = Parser().run(str)
 
   performance of "parser" in {
     parserInput.foreach {
