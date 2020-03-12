@@ -1631,7 +1631,14 @@ null
 ```
 
 ##### Errors
-TBC
+- [`FileNotOpenedError`](#filenotopenederror) to signal that the file isn't
+open.
+- [`InvalidVersionError`](#invalidversionerror) to signal that the version provided by the client doesn't match the version
+computed by the server.
+- [`WriteDeniedError`](#writedeniederror) to signal that the client doesn't hold write lock for the buffer.
+- [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable file-system error.
+- [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the requested content root cannot be found.
+- [`AccessDeniedError`](#accessdeniederror) to signal that the user doesn't have access to a resource.
 
 #### `text/applyEdit`
 This requests that the server apply a series of edits to the project. These
@@ -1659,12 +1666,12 @@ null
 ```
 
 ##### Errors
-- [`FileNotOpenedError`](#filenotopenederror) to signal that a file wasn't
-opened.
+- [`FileNotOpenedError`](#filenotopenederror) to signal that the file isn't
+open.
 - [`TextEditValidationError`](#texteditvalidationerror) to signal that validation has failed for a series of edits.
-- [`InvalidVersionError`](#invalidversionerror) to signal that version provided by a client doesn't match to the version
+- [`InvalidVersionError`](#invalidversionerror) to signal that the version provided by the client doesn't match the version
 computed by the server.
-- [`WriteDeniedError`](#writedeniederror) to signal that the client doesn't hold write lock to the buffer.
+- [`WriteDeniedError`](#writedeniederror) to signal that the client doesn't hold write lock for the buffer.
 
 #### `text/didChange`
 This is a notification sent from the server to the clients to inform them of any

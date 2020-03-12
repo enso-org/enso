@@ -72,4 +72,14 @@ object TextApi {
       )
   case object WriteDeniedError extends Error(3004, "Write denied")
 
+  case object SaveFile extends Method("text/save") {
+    case class Params(path: Path, currentVersion: Buffer.Version)
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = SaveFile.Params
+    }
+    implicit val hasResult = new HasResult[this.type] {
+      type Result = Unused.type
+    }
+  }
+
 }

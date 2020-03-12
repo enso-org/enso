@@ -14,9 +14,11 @@ import org.enso.languageserver.data.{
 }
 import org.enso.languageserver.filemanager.Path
 import org.enso.languageserver.text.TextProtocol.{
+  ApplyEdit,
   CloseFile,
   FileNotOpened,
-  OpenFile
+  OpenFile,
+  SaveFile
 }
 import org.enso.languageserver.text.editing.model.FileEdit
 
@@ -69,7 +71,14 @@ class BufferRegistry(fileManager: ActorRef)(
         sender() ! CapabilityReleaseBadRequest
       }
 
-    case msg @ TextProtocol.ApplyEdit(_, FileEdit(path, _, _, _)) =>
+    case msg @ ApplyEdit(_, FileEdit(path, _, _, _)) =>
+      if (registry.contains(path)) {
+        registry(path).forward(msg)
+      } else {
+        sender() ! FileNotOpened
+      }
+
+    case msg @ SaveFile(_, path, _) =>
       if (registry.contains(path)) {
         registry(path).forward(msg)
       } else {

@@ -28,12 +28,14 @@ import org.enso.languageserver.requesthandler.{
   ApplyEditHandler,
   CloseFileHandler,
   OpenFileHandler,
-  ReleaseCapabilityHandler
+  ReleaseCapabilityHandler,
+  SaveFileHandler
 }
 import org.enso.languageserver.text.TextApi.{
   ApplyEdit,
   CloseFile,
   OpenFile,
+  SaveFile,
   TextDidChange
 }
 import org.enso.languageserver.text.TextProtocol
@@ -57,6 +59,7 @@ object ClientApi {
     .registerRequest(CreateFile)
     .registerRequest(OpenFile)
     .registerRequest(CloseFile)
+    .registerRequest(SaveFile)
     .registerRequest(ApplyEdit)
     .registerRequest(DeleteFile)
     .registerRequest(CopyFile)
@@ -102,7 +105,8 @@ class ClientController(
       CloseFile -> CloseFileHandler
         .props(bufferRegistry, requestTimeout, client),
       ApplyEdit -> ApplyEditHandler
-        .props(bufferRegistry, requestTimeout, client)
+        .props(bufferRegistry, requestTimeout, client),
+      SaveFile -> SaveFileHandler.props(bufferRegistry, requestTimeout, client)
     )
 
   override def unhandled(message: Any): Unit =

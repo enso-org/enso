@@ -2,34 +2,34 @@ package org.enso.languageserver.requesthandler
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import org.enso.languageserver.data.Client
+import org.enso.languageserver.filemanager.FileSystemFailureMapper
 import org.enso.languageserver.jsonrpc.Errors.ServiceError
 import org.enso.languageserver.jsonrpc._
 import org.enso.languageserver.text.TextApi.{
-  ApplyEdit,
   FileNotOpenedError,
   InvalidVersionError,
-  TextEditValidationError,
+  SaveFile,
   WriteDeniedError
 }
 import org.enso.languageserver.text.TextProtocol
 import org.enso.languageserver.text.TextProtocol.{
-  ApplyEditSuccess,
   FileNotOpened,
-  TextEditInvalidVersion,
-  TextEditValidationFailed,
-  WriteDenied
+  FileSaved,
+  SaveDenied,
+  SaveFailed,
+  SaveFileInvalidVersion
 }
 
 import scala.concurrent.duration.FiniteDuration
 
 /**
-  * A request handler for `text/applyEdit` commands.
+  * A request handler for `text/save` commands.
   *
   * @param bufferRegistry a router that dispatches text editing requests
   * @param timeout a request timeout
   * @param client an object representing a client connected to the language server
   */
-class ApplyEditHandler(
+class SaveFileHandler(
   bufferRegistry: ActorRef,
   timeout: FiniteDuration,
   client: Client
@@ -41,35 +41,42 @@ class ApplyEditHandler(
   override def receive: Receive = requestStage
 
   private def requestStage: Receive = {
-    case Request(ApplyEdit, id, params: ApplyEdit.Params) =>
-      bufferRegistry ! TextProtocol.ApplyEdit(client.id, params.edit)
+    case Request(SaveFile, id, params: SaveFile.Params) =>
+      bufferRegistry ! TextProtocol.SaveFile(
+        client.id,
+        params.path,
+        params.currentVersion
+      )
       context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
       context.become(responseStage(id, sender()))
   }
 
   private def responseStage(id: Id, replyTo: ActorRef): Receive = {
     case RequestTimeout =>
-      log.error(s"Applying edit for ${client.id} timed out")
+      log.error(s"Saving file for ${client.id} timed out")
       replyTo ! ResponseError(Some(id), ServiceError)
       context.stop(self)
 
-    case ApplyEditSuccess =>
-      replyTo ! ResponseResult(ApplyEdit, id, Unused)
+    case FileSaved =>
+      replyTo ! ResponseResult(SaveFile, id, Unused)
       context.stop(self)
 
-    case TextEditValidationFailed(msg) =>
-      replyTo ! ResponseError(Some(id), TextEditValidationError(msg))
+    case SaveFailed(fsFailure) =>
+      replyTo ! ResponseError(
+        Some(id),
+        FileSystemFailureMapper.mapFailure(fsFailure)
+      )
       context.stop(self)
 
-    case TextEditInvalidVersion(clientVersion, serverVersion) =>
+    case SaveDenied =>
+      replyTo ! ResponseError(Some(id), WriteDeniedError)
+      context.stop(self)
+
+    case SaveFileInvalidVersion(clientVersion, serverVersion) =>
       replyTo ! ResponseError(
         Some(id),
         InvalidVersionError(clientVersion, serverVersion)
       )
-      context.stop(self)
-
-    case WriteDenied =>
-      replyTo ! ResponseError(Some(id), WriteDeniedError)
       context.stop(self)
 
     case FileNotOpened =>
@@ -82,10 +89,10 @@ class ApplyEditHandler(
 
 }
 
-object ApplyEditHandler {
+object SaveFileHandler {
 
   /**
-    * Creates a configuration object used to create a [[ApplyEditHandler]]
+    * Creates a configuration object used to create a [[SaveFileHandler]].
     *
     * @param bufferRegistry a router that dispatches text editing requests
     * @param requestTimeout a request timeout
@@ -96,6 +103,6 @@ object ApplyEditHandler {
     bufferRegistry: ActorRef,
     requestTimeout: FiniteDuration,
     client: Client
-  ): Props = Props(new ApplyEditHandler(bufferRegistry, requestTimeout, client))
+  ): Props = Props(new SaveFileHandler(bufferRegistry, requestTimeout, client))
 
 }
