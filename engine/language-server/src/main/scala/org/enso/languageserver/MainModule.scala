@@ -1,10 +1,14 @@
 package org.enso.languageserver
 
 import java.io.File
+import java.net.URI
+import java.nio.ByteBuffer
+import java.util.UUID
 
-import akka.actor.{ActorSystem, Props}
+import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.stream.SystemMaterializer
 import cats.effect.IO
+import org.enso.languageserver
 import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data.{
   Config,
@@ -12,7 +16,11 @@ import org.enso.languageserver.data.{
   Sha3_224VersionCalculator
 }
 import org.enso.languageserver.filemanager.{FileSystem, FileSystemApi}
+import org.enso.languageserver.runtime.RuntimeConnector
 import org.enso.languageserver.text.BufferRegistry
+import org.enso.polyglot.{RuntimeApi, LanguageInfo, RuntimeServerInfo}
+import org.graalvm.polyglot.Context
+import org.graalvm.polyglot.io.MessageEndpoint
 
 /**
   * A main module containing all components of th server.
@@ -46,7 +54,31 @@ class MainModule(serverConfig: LanguageServerConfig) {
   lazy val capabilityRouter =
     system.actorOf(CapabilityRouter.props(bufferRegistry), "capability-router")
 
-  lazy val server =
-    new WebSocketServer(languageServer, bufferRegistry, capabilityRouter)
+  lazy val runtimeConnector =
+    system.actorOf(RuntimeConnector.props, "runtime-connector")
 
+  val context = Context
+    .newBuilder(LanguageInfo.ID)
+    .allowAllAccess(true)
+    .allowExperimentalOptions(true)
+    .option(RuntimeServerInfo.ENABLE_OPTION, "true")
+    .serverTransport((uri: URI, peerEndpoint: MessageEndpoint) => {
+      if (uri.toString == RuntimeServerInfo.URI) {
+        val connection = new RuntimeConnector.Endpoint(
+          runtimeConnector,
+          peerEndpoint
+        )
+        runtimeConnector ! RuntimeConnector.Initialize(peerEndpoint)
+        connection
+      } else null
+    })
+    .build()
+
+  lazy val server =
+    new WebSocketServer(
+      languageServer,
+      bufferRegistry,
+      capabilityRouter,
+      runtimeConnector
+    )
 }

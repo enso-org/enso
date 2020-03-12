@@ -48,6 +48,7 @@ class WebSocketServer(
   languageServer: ActorRef,
   bufferRegistry: ActorRef,
   capabilityRouter: ActorRef,
+  runtimeConnector: ActorRef,
   config: WebSocketServer.Config = WebSocketServer.Config.default
 )(
   implicit val system: ActorSystem,

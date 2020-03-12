@@ -5,6 +5,7 @@ import java.io.File
 import akka.actor.{ActorSystem, Props}
 import akka.stream.{ActorMaterializer, SystemMaterializer}
 import cats.effect.IO
+import org.enso.interpreter.instrument.ReplDebuggerInstrument
 import org.enso.languageserver.data.Config
 import org.enso.languageserver.filemanager.FileSystem
 import org.enso.languageserver.{
@@ -14,6 +15,7 @@ import org.enso.languageserver.{
   MainModule,
   WebSocketServer
 }
+import org.enso.polyglot.LanguageInfo
 
 import scala.concurrent.Await
 import scala.concurrent.duration._

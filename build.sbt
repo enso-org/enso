@@ -405,9 +405,12 @@ lazy val polyglot_api = project
         .mkString(File.pathSeparator)}"
     ),
     libraryDependencies ++= Seq(
-      "org.graalvm.sdk" % "polyglot-tck" % graalVersion % "provided",
-      "org.scalatest"   %% "scalatest"   % "3.2.0-M2"   % Test,
-      "org.scalacheck"  %% "scalacheck"  % "1.14.3"     % Test
+      "org.graalvm.sdk"                  % "polyglot-tck"            % graalVersion % "provided",
+      "org.scalatest"                    %% "scalatest"              % "3.2.0-M2" % Test,
+      "org.scalacheck"                   %% "scalacheck"             % "1.14.3" % Test,
+      "com.fasterxml.jackson.dataformat" % "jackson-dataformat-cbor" % "2.10.3",
+      "com.fasterxml.jackson.core"       % "jackson-databind"        % "2.10.3",
+      "com.fasterxml.jackson.module"     %% "jackson-module-scala"   % "2.10.3"
     ),
     addCompilerPlugin(
       "org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full
@@ -434,7 +437,8 @@ lazy val language_server = (project in file("engine/language-server"))
       "commons-io"       % "commons-io" % "2.6",
       akkaTestkit        % Test,
       "org.scalatest"    %% "scalatest" % "3.2.0-M2" % Test,
-      "org.scalacheck"   %% "scalacheck" % "1.14.0" % Test
+      "org.scalacheck"   %% "scalacheck" % "1.14.0" % Test,
+      "org.graalvm.sdk"  % "polyglot-tck" % graalVersion % "provided"
     ),
     testOptions in Test += Tests
       .Argument(TestFrameworks.ScalaCheck, "-minSuccessfulTests", "1000")
@@ -448,6 +452,7 @@ lazy val language_server = (project in file("engine/language-server"))
       new TestFramework("org.scalameter.ScalaMeterFramework")
     )
   )
+  .dependsOn(polyglot_api)
 
 lazy val runtime = (project in file("engine/runtime"))
   .configs(Benchmark)

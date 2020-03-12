@@ -20,6 +20,7 @@ import org.enso.languageserver.{
   WebSocketServer
 }
 import org.enso.languageserver.filemanager.FileSystem
+import org.enso.languageserver.runtime.RuntimeConnector
 import org.enso.languageserver.text.BufferRegistry
 import org.scalatest.{Assertion, BeforeAndAfterAll, BeforeAndAfterEach}
 import org.scalatest.matchers.should.Matchers
@@ -66,8 +67,14 @@ abstract class WebSocketServerTest
     lazy val capabilityRouter =
       system.actorOf(CapabilityRouter.props(bufferRegistry))
 
-    server =
-      new WebSocketServer(languageServer, bufferRegistry, capabilityRouter)
+    lazy val runtimeConnector = system.actorOf(RuntimeConnector.props)
+
+    server = new WebSocketServer(
+      languageServer,
+      bufferRegistry,
+      capabilityRouter,
+      runtimeConnector
+    )
     binding = Await.result(server.bind(interface, port = 0), 3.seconds)
     address = s"ws://$interface:${binding.localAddress.getPort}"
   }
