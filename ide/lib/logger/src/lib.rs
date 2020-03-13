@@ -64,6 +64,10 @@ impl Logger {
     fn format<M: LogMsg>(&self, msg: M) -> JsValue {
         msg.with_log_msg(|s| format!("[{}] {}", self.path, s)).into()
     }
+
+    fn format2<M: LogMsg>(&self, msg: M) -> String {
+        msg.with_log_msg(|s| format!("[{}] {}", self.path, s))
+    }
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -94,15 +98,26 @@ impl Logger {
     }
 }
 
-// FIXME: Add the non-wasm impl
 #[cfg(not(target_arch = "wasm32"))]
 impl Logger {
-    pub fn trace<M: LogMsg>(&self, _msg: M) {}
-    pub fn info<M: LogMsg>(&self, _msg: M) {}
-    pub fn warning<M: LogMsg>(&self, _msg: M) {}
-    pub fn error<M: LogMsg>(&self, _msg: M) {}
-    pub fn group_begin<M: LogMsg>(&self, _msg: M) {}
-    pub fn group_end(&self) {}
+    pub fn trace<M: LogMsg>(&self, msg:M) {
+        println!("{}",self.format2(msg));
+    }
+    pub fn info<M: LogMsg>(&self, msg: M) {
+        println!("{}",self.format2(msg));
+    }
+    pub fn warning<M: LogMsg>(&self, msg: M) {
+        println!("[WARNING] {}",self.format2(msg));
+    }
+    pub fn error<M: LogMsg>(&self, msg: M) {
+        println!("[ERROR] {}",self.format2(msg));
+    }
+    pub fn group_begin<M: LogMsg>(&self, msg: M) {
+        println!(">>> {}",self.format2(msg));
+    }
+    pub fn group_end(&self) {
+        println!("<<<")
+    }
 }
 
 

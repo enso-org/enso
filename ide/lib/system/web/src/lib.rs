@@ -5,7 +5,6 @@
 #![feature(set_stdio)]
 
 pub mod closure;
-pub mod dom;
 pub mod resize_observer;
 
 /// Common types that should be visible across the whole crate.
@@ -16,18 +15,24 @@ pub mod prelude {
 
 use crate::prelude::*;
 
+pub use web_sys::console;
 use js_sys::Function;
 use logger::Logger;
-use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsCast;
-use web_sys::HtmlCanvasElement;
-use web_sys::WebGl2RenderingContext;
-use web_sys::Performance;
-use web_sys::Node;
-use web_sys::MouseEvent;
-use web_sys::EventTarget;
+use wasm_bindgen::prelude::Closure;
 
-pub use web_sys::console;
+pub use web_sys::CanvasRenderingContext2d;
+pub use web_sys::Document;
+pub use web_sys::Element;
+pub use web_sys::EventTarget;
+pub use web_sys::HtmlCanvasElement;
+pub use web_sys::HtmlDivElement;
+pub use web_sys::HtmlElement;
+pub use web_sys::MouseEvent;
+pub use web_sys::Node;
+pub use web_sys::Performance;
+pub use web_sys::WebGl2RenderingContext;
+pub use web_sys::Window;
 
 
 
@@ -35,33 +40,20 @@ pub use web_sys::console;
 // === Error ===
 // =============
 
-pub type Result<A> = std::result::Result<A, Error>;
-
-#[derive(Debug, Fail)]
-pub enum Error {
-    #[fail(display = "Missing `{}`.", name)]
-    Missing { name: String },
-    #[fail(display = "Type mismatch. Expected `{}`, got `{}`.", expected, got)]
-    TypeMismatch { expected: String, got: String },
-    #[fail(display = "WebGL {} is not available.", version)]
-    NoWebGL { version: u32 },
-    #[fail(display = "Failed to add event listener")]
-    FailedToAddEventListener,
-    #[fail(display = "Failed to remove event listener")]
-    FailedToRemoveEventListener
+/// Generic error representation. We may want to support errors in form of structs and enums, but it
+/// requires significant work, so a simpler solution was chosen for now.
+#[derive(Debug)]
+pub struct Error{
+    message : String
 }
-impl Error {
-    pub fn missing(name:&str) -> Error {
-        let name = name.to_string();
-        Error::Missing { name }
-    }
 
-    pub fn type_mismatch(expected:&str, got:&str) -> Error {
-        let expected = expected.to_string();
-        let got = got.to_string();
-        Error::TypeMismatch { expected, got }
-    }
+#[allow(non_snake_case)]
+pub fn Error<S:Into<String>>(message:S) -> Error {
+    let message = message.into();
+    Error {message}
 }
+
+pub type Result<T> = std::result::Result<T,Error>;
 
 
 
@@ -71,7 +63,7 @@ impl Error {
 
 #[wasm_bindgen]
 extern "C" {
-    /// Converts given `JsValue` into a `String`. Usees JS's `String` function,
+    /// Converts given `JsValue` into a `String`. Uses JS's `String` function,
     /// see: https://www.w3schools.com/jsref/jsref_string.asp
     #[allow(unsafe_code)]
     #[wasm_bindgen(js_name="String")]
@@ -99,7 +91,7 @@ impl Drop for IgnoreContextMenuHandle {
 }
 
 /// Ignores context menu when clicking with the right mouse button.
-pub fn ignore_context_menu(target:&EventTarget) -> Result<IgnoreContextMenuHandle> {
+pub fn ignore_context_menu(target:&EventTarget) -> Option<IgnoreContextMenuHandle> {
     let closure = move |event:MouseEvent| {
         const RIGHT_MOUSE_BUTTON : i16 = 2;
         if  event.button() == RIGHT_MOUSE_BUTTON {
@@ -112,103 +104,117 @@ pub fn ignore_context_menu(target:&EventTarget) -> Result<IgnoreContextMenuHandl
         Ok(_)  => {
             let target = target.clone();
             let handle = IgnoreContextMenuHandle { target, closure };
-            Ok(handle)
+            Some(handle)
         },
-        Err(_) => Err(Error::FailedToAddEventListener)
+        Err(_) => None
     }
 }
+
 
 
 // ===================
 // === DOM Helpers ===
 // ===================
 
-pub fn dyn_into<T,U>(obj :T) -> Result<U>
-where T : wasm_bindgen::JsCast + Debug,
-      U : wasm_bindgen::JsCast
-{
-    let expected = type_name::<T>();
-    let got = format!("{:?}", obj);
-    obj.dyn_into().map_err(|_| Error::type_mismatch(&expected, &got))
+/// Access the `window` object if exists.
+pub fn try_window() -> Result<Window> {
+    web_sys::window().ok_or_else(|| Error("Cannot access 'window'."))
 }
 
-pub fn window() -> web_sys::Window {
-    web_sys::window().unwrap_or_else(|| panic!("Cannot access window object."))
+/// Access the `window` object or panic if it does not exist.
+pub fn window() -> Window {
+    try_window().unwrap()
 }
 
-
-pub fn try_window() -> Result<web_sys::Window> {
-    web_sys::window().ok_or_else(|| Error::missing("window"))
+/// Access the `window.document` object if exists.
+pub fn try_document() -> Result<Document> {
+    try_window().and_then(|w| w.document().ok_or_else(|| Error("Cannot access 'window.document'.")))
 }
 
-pub fn device_pixel_ratio() -> Result<f64> {
-    let win = try_window()?;
-    Ok(win.device_pixel_ratio())
+/// Access the `window.document` object or panic if it does not exist.
+pub fn document() -> Document {
+    try_document().unwrap()
 }
 
-pub fn document() -> Result<web_sys::Document> {
-    try_window()?.document().ok_or_else(|| Error::missing("document"))
+/// Access the `window.document.body` object if exists.
+pub fn try_body() -> Result<HtmlElement> {
+    try_document().and_then(|d| d.body().ok_or_else(||
+        Error("Cannot access 'window.document.body'.")))
 }
 
-pub fn body() -> web_sys::HtmlElement {
-    document().unwrap().body().unwrap()
+/// Access the `window.document.body` object or panic if it does not exist.
+pub fn body() -> HtmlElement {
+    try_body().unwrap()
 }
 
-pub fn get_element_by_id(id:&str) -> Result<web_sys::Element> {
-    document()?.get_element_by_id(id).ok_or_else(|| Error::missing(id))
+/// Access the `window.devicePixelRatio` value if the window exists.
+pub fn try_device_pixel_ratio() -> Result<f64> {
+    try_window().map(|window| window.device_pixel_ratio())
 }
 
-pub fn get_html_element_by_id(id:&str) -> Result<web_sys::HtmlElement> {
+/// Access the `window.devicePixelRatio` or panic if the window does not exist.
+pub fn device_pixel_ratio() -> f64 {
+    window().device_pixel_ratio()
+}
+
+/// Access the `window.performance` or panics if it does not exist.
+pub fn performance() -> Performance {
+    window().performance().unwrap_or_else(|| panic!("Cannot access window.performance."))
+}
+
+pub fn get_element_by_id(id:&str) -> Result<Element> {
+    try_document()?.get_element_by_id(id).ok_or_else(||
+        Error(format!("Element with id '{}' not found.",id)))
+}
+
+pub fn get_html_element_by_id(id:&str) -> Result<HtmlElement> {
     let elem = get_element_by_id(id)?;
-    dyn_into(elem)
+    elem.dyn_into().map_err(|_| Error("Type cast error."))
 }
 
-#[deprecated(note = "Use get_element_by_id with dyn_into instead")]
-pub fn get_element_by_id_as<T:wasm_bindgen::JsCast>(id:&str) -> Result<T> {
-    let elem = get_element_by_id(id)?;
-    dyn_into(elem)
-}
-pub fn create_element(id:&str) -> Result<web_sys::Element> {
-    match document()?.create_element(id) {
-        Ok(element) => Ok(element),
-        Err(_) => Err(Error::missing(id)),
-    }
+pub fn try_create_element(name:&str) -> Result<Element> {
+    try_document()?.create_element(name).map_err(|_|
+        Error(format!("Cannot create element '{}'",name)))
 }
 
-pub fn create_div() -> web_sys::HtmlDivElement {
-    document().unwrap().create_element("div").unwrap().unchecked_into()
+pub fn create_element(name:&str) -> Element {
+    try_create_element(name).unwrap()
 }
 
-pub fn create_canvas() -> web_sys::HtmlCanvasElement {
-    document().unwrap().create_element("canvas").unwrap().unchecked_into()
+pub fn try_create_div() -> Result<HtmlDivElement> {
+    try_create_element("div").map(|t| t.unchecked_into())
 }
 
-pub fn get_canvas(id:&str) -> Result<web_sys::HtmlCanvasElement> {
-    dyn_into(get_element_by_id(id)?)
+pub fn create_div() -> HtmlDivElement {
+    create_element("div").unchecked_into()
 }
 
-pub fn get_webgl2_context
-(canvas:&HtmlCanvasElement) -> Result<WebGl2RenderingContext> {
+pub fn try_create_canvas() -> Result<HtmlCanvasElement> {
+    try_create_element("canvas").map(|t| t.unchecked_into())
+}
+
+pub fn create_canvas() -> HtmlCanvasElement {
+    create_element("canvas").unchecked_into()
+}
+
+pub fn get_webgl2_context(canvas:&HtmlCanvasElement) -> WebGl2RenderingContext {
     let options = js_sys::Object::new();
     js_sys::Reflect::set(&options, &"antialias".into(), &false.into()).unwrap();
-    let no_webgl = || Error::NoWebGL { version:2 };
-    let context = canvas.get_context_with_context_options("webgl2",&options)
-        .map_err(|_| no_webgl())?.ok_or_else(no_webgl)?;
-    context.dyn_into().map_err(|_| no_webgl())
+    let context = canvas.get_context_with_context_options("webgl2",&options).unwrap().unwrap();
+    context.dyn_into().unwrap()
 }
 
-pub fn request_animation_frame(f:&Closure<dyn FnMut(f64)>) -> Result<i32> {
-    let req = try_window()?.request_animation_frame(f.as_ref().unchecked_ref());
-    req.map_err(|_| Error::missing("requestAnimationFrame"))
+pub fn try_request_animation_frame(f:&Closure<dyn FnMut(f64)>) -> Result<i32> {
+    try_window()?.request_animation_frame(f.as_ref().unchecked_ref())
+        .map_err(|_| Error("Cannot access 'requestAnimationFrame'."))
 }
 
-pub fn cancel_animation_frame(id:i32) -> Result<()> {
-    let req = try_window()?.cancel_animation_frame(id);
-    req.map_err(|_| Error::missing("cancel_animation_frame"))
+pub fn request_animation_frame(f:&Closure<dyn FnMut(f64)>) -> i32 {
+    window().request_animation_frame(f.as_ref().unchecked_ref()).unwrap()
 }
 
-pub fn get_performance() -> Result<Performance> {
-    try_window()?.performance().ok_or_else(|| Error::missing("performance"))
+pub fn cancel_animation_frame(id:i32) {
+    window().cancel_animation_frame(id).unwrap();
 }
 
 
@@ -468,4 +474,10 @@ pub fn forward_panic_hook_to_console() {
     // For more details see
     // https://github.com/rustwasm/console_error_panic_hook#readme
     console_error_panic_hook::set_once();
+}
+
+/// Common traits.
+pub mod traits {
+    pub use super::NodeInserter;
+    pub use super::NodeRemover;
 }

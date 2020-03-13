@@ -11,6 +11,7 @@
 #![feature(trait_alias)]
 #![feature(type_alias_impl_trait)]
 #![feature(unboxed_closures)]
+#![feature(vec_remove_item)]
 #![feature(weak_into_raw)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -58,4 +59,11 @@ pub mod prelude {
     pub use shapely::newtype_copy;
     pub use shapely::shared;
     pub use super::data::container::AddMut;
+    pub use super::math::types::*;
+}
+
+/// Common traits.
+pub mod traits {
+    use super::*;
+    pub use display::traits::*;
 }

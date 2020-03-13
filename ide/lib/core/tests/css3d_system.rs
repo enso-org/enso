@@ -18,56 +18,44 @@ extern "C" {
 
 #[cfg(test)]
 mod tests {
-    use basegl::system::web::dom::html::Css3dObject;
-    use basegl::system::web::dom::html::Css3dSystem;
-    use basegl::system::web::dom::html::Css3dRenderer;
+    use basegl::display;
+    use basegl::display::DomScene;
     use basegl::system::web::StyleSetter;
-    use basegl::system::web::get_performance;
     use web_test::*;
     use web_sys::Performance;
     use nalgebra::Vector3;
-    use logger::Logger;
     use basegl::system::web;
     use basegl::display::world::{WorldData, World};
     use basegl::display::navigation::navigator::Navigator;
-    use basegl::display::object::DisplayObjectOps;
-    use basegl::display::object::DisplayObject;
+    use basegl::traits::*;
     use nalgebra::Vector2;
-    use basegl::system::web::dyn_into;
     use basegl::system::web::get_element_by_id;
     use web_sys::HtmlElement;
+    use wasm_bindgen::JsCast;
 
-    #[web_test(no_container)]
-    fn invalid_container() {
-        let logger   = Logger::new("invalid_container");
-        let renderer = Css3dRenderer::new(&logger, "nonexistent_id");
-        assert!(renderer.is_err(),"Tried to attach to a non-existent HtmlElement and succeeded.");
-    }
-
-    fn initialize_system(name:&str,color:&str) -> (World,Css3dSystem) {
+    fn initialize_system(name:&str,color:&str) -> (World,DomScene) {
         web::set_stdout();
-//        let canvas_name   = format!("canvas_{}",name);
-        let container     = dyn_into::<_,HtmlElement>(get_element_by_id(name).unwrap()).unwrap();
-//        let canvas        = dyn_into::<_,HtmlElement>(create_element("canvas").unwrap()).unwrap();
-//        canvas.set_attribute_or_panic("id", &canvas_name);
-//        canvas.set_style_or_panic("width", "100%");
-//        canvas.set_style_or_panic("height", "100%");
-//        container.append_or_panic(&canvas);
-        let world         = WorldData::new(&container);
-        let css3d_system  = Css3dSystem::new(&world);
+        let container : HtmlElement = get_element_by_id(name).unwrap().dyn_into().unwrap();
+        let world                   = WorldData::new(&container);
+        let scene                   = world.scene();
+        let css3d_renderer          = scene.dom_front_layer();
         container.set_style_or_panic("background-color", color);
-        world.add_child(&css3d_system);
-        (world,css3d_system)
+        (world,css3d_renderer)
     }
 
-    fn create_scene(system:&Css3dSystem) -> Vec<Css3dObject> {
+    fn create_scene(renderer:&DomScene) -> Vec<display::DomSymbol> {
         let mut objects = Vec::new();
         // Iterate over 3 axes.
         for axis in vec![(1, 0, 0), (0, 1, 0), (0, 0, 1)] {
             // Creates 10 HTMLObjects per axis.
             for i in 0 .. 10 {
-                let mut object = system.new_instance("div").unwrap();
-                object.set_dimensions(Vector2::new(10.0, 10.0));
+                let div = web::create_div();
+                div.set_style_or_panic("width"  , "100%");
+                div.set_style_or_panic("height" , "100%");
+                let object = display::DomSymbol::new(&div);
+                renderer.manage(&object);
+
+                object.set_size(Vector2::new(10.0, 10.0));
 
                 // Using axis for masking.
                 // For instance, the axis (0, 1, 0) creates:
@@ -84,7 +72,7 @@ mod tests {
                 let g = (y * 25.5) as u8;
                 let b = (z * 25.5) as u8;
                 let color = format!("rgba({}, {}, {}, {})", r, g, b, 1.0);
-                object.dom().set_style_or_panic("background-color", color);
+                div.set_style_or_panic("background-color", color);
                 objects.push(object);
             }
         }
@@ -93,24 +81,24 @@ mod tests {
 
     #[web_test]
     fn rhs_coordinates() {
-        let (world,css3d_system) = initialize_system("rhs_coordinates", "black");
+        let (world,css3d_renderer) = initialize_system("rhs_coordinates", "black");
         let scene         = world.scene();
         let camera        = scene.camera();
-        let navigator     = Navigator::new(&scene, &camera).expect("Couldn't create navigator");
+        let navigator     = Navigator::new(&scene, &camera);
 
-        let scene = create_scene(&css3d_system);
+        let scene = create_scene(&css3d_renderer);
 
         world.display_object().update();
 
         world.on_frame(move |_| {
             let _keep_alive = &scene;
-            let _keep_alive = &css3d_system;
+            let _keep_alive = &css3d_renderer;
             let _keep_alive = &navigator;
         }).forget();
         std::mem::forget(world);
     }
 
-    fn make_sphere(mut scene : &mut Vec<Css3dObject>, performance : &Performance) {
+    fn make_sphere(mut scene : &mut Vec<display::DomSymbol>, performance : &Performance) {
         use super::set_gradient_bg;
 
         let t = (performance.now() / 1000.0) as f32;
@@ -142,23 +130,28 @@ mod tests {
 
     #[web_bench]
     fn object_x400_update(b: &mut Bencher) {
-        let (world,css3d_system) = initialize_system("object_x400_update", "black");
+        let (world,css3d_renderer) = initialize_system("object_x400_update", "black");
         let scene         = world.scene();
         let camera        = scene.camera();
-        let navigator     = Navigator::new(&scene, &camera).expect("Couldn't create navigator");
+        let navigator     = Navigator::new(&scene, &camera);
 
         let mut objects = Vec::new();
         for _ in 0..400 {
-            let mut object = css3d_system.new_instance("div").expect("Failed to create object");
-            object.set_dimensions(Vector2::new(1.0, 1.0));
+            let div = web::create_div();
+            div.set_style_or_panic("width"  , "100%");
+            div.set_style_or_panic("height" , "100%");
+            let object = display::DomSymbol::new(&div);
+            css3d_renderer.manage(&object);
+
+            object.set_size(Vector2::new(1.0, 1.0));
             object.mod_scale(|t| *t = Vector3::new(0.5, 0.5, 0.5));
             objects.push(object);
         }
 
-        let performance = get_performance().expect("Couldn't get performance obj");
+        let performance = web::performance();
         b.iter(move || {
             let _keep_alive = &navigator;
-            let _keep_alive = &css3d_system;
+            let _keep_alive = &css3d_renderer;
             make_sphere(&mut objects, &performance);
             world.display_object().set_scale(Vector3::new(5.0, 5.0, 5.0));
             world.display_object().set_position(Vector3::new(160.0, 120.0, 0.0));

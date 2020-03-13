@@ -15,7 +15,7 @@ use crate::system::gpu::types::*;
 
 use nalgebra::Vector2;
 use nalgebra::Vector4;
-use crate::display::object::DisplayObjectData;
+use crate::display;
 
 // =============
 // === Glyph ===
@@ -231,7 +231,7 @@ impl GlyphSystem {
     }
 }
 
-impl From<&GlyphSystem> for DisplayObjectData {
+impl From<&GlyphSystem> for display::object::Node {
     fn from(glyph_system: &GlyphSystem) -> Self {
         (&glyph_system.sprite_system).into()
     }

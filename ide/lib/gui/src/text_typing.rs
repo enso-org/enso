@@ -2,7 +2,8 @@
 
 use wasm_bindgen::prelude::*;
 
-use basegl::display::object::DisplayObjectOps;
+use basegl::traits::*;
+
 use basegl::display::shape::text::glyph::font::FontRegistry;
 use basegl::display::shape::text::text_field::TextField;
 use basegl::display::shape::text::text_field::TextFieldProperties;

@@ -1,6 +1,6 @@
 # Rust
 /target
-/script/rust/target/
+/build/rust/target/
 **/*.rs.bk
 pkg/
 wasm-pack.log

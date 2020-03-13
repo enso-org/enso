@@ -48,22 +48,41 @@ impl {
 
     /// Start measuring data.
     pub fn begin(&mut self) {
-        for panel in &self.panels {
-            panel.begin();
+        if self.visible() {
+            for panel in &self.panels {
+                panel.begin();
+            }
         }
     }
 
     /// Finish measuring data.
     pub fn end(&mut self) {
-        for panel in &self.panels {
-            panel.end();
+        if self.visible() {
+            for panel in &self.panels {
+                panel.end();
+            }
+            self.monitor.draw();
+            self.stats.reset_per_frame_statistics();
         }
-        self.monitor.draw();
-        self.stats.reset_per_frame_statistics();
     }
 
-    /// Hide the panel.
-    pub fn hide(&self) {
+    /// Checks if the monitor is visible.
+    pub fn visible(&self) -> bool {
+        self.monitor.visible()
+    }
+
+    /// Show the monitor.
+    pub fn show(&mut self) {
+        self.monitor.show()
+    }
+
+    /// Hide the monitor.
+    pub fn hide(&mut self) {
         self.monitor.hide()
+    }
+
+    /// Toggle the visibility of the monitor.
+    pub fn toggle(&mut self) {
+        self.monitor.toggle()
     }
 }}

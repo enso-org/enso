@@ -53,7 +53,7 @@ pub mod traits {
     pub trait DirtyFlagOps1 = DirtyFlagOps + HasCheck1 + HasSet1 where Arg<Self>: Display;
 }
 
-use traits::*;
+pub use traits::*;
 
 
 
@@ -414,7 +414,7 @@ impl<Item:SetItem> HasUnset1 for SetData<Item> {
     }
 }
 
-impl<Ix:SetItem> Display for SetData<Ix> {
+impl<Item:SetItem> Display for SetData<Item> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f,"{:?}",self.set)
     }
@@ -425,6 +425,57 @@ impl<'t,Item:SetItem> IntoIterator for &'t SetData<Item> {
     type IntoIter = <&'t FxHashSet<Item> as IntoIterator>::IntoIter;
     fn into_iter(self) -> Self::IntoIter {
         (&self.set).iter()
+    }
+}
+
+
+
+// ==============
+// === Vector ===
+// ==============
+
+/// Dirty flag which keeps a vector of dirty values.
+pub type  Vector       <Item,OnMut=()> = DirtyFlag       <VectorData<Item>,OnMut>;
+pub type  SharedVector <Item,OnMut=()> = SharedDirtyFlag <VectorData<Item>,OnMut>;
+pub trait VectorItem                   = Debug + PartialEq;
+
+#[derive(Derivative,Debug,Shrinkwrap)]
+#[derivative(Default (bound=""))]
+pub struct VectorData<Item> { pub vec: Vec<Item> }
+
+impl<Item> HasArg      for VectorData<Item> { type Arg = Item; }
+impl<Item> HasCheckAll for VectorData<Item> { fn check_all(&self) -> bool { !self.vec.is_empty() } }
+impl<Item> HasUnsetAll for VectorData<Item> { fn unset_all(&mut self)     {  self.vec.clear();   } }
+
+impl<Item:PartialEq> HasCheck1 for VectorData<Item> {
+    fn check(&self, a:&Item) -> bool {
+        self.vec.contains(a)
+    }
+}
+
+impl<Item> HasSet1 for VectorData<Item> {
+    fn set (&mut self, a:Item) {
+        self.vec.push(a);
+    }
+}
+
+impl<Item:PartialEq> HasUnset1 for VectorData<Item> {
+    fn unset (&mut self, a:&Item) {
+        self.vec.remove_item(a);
+    }
+}
+
+impl<Item:Debug> Display for VectorData<Item> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f,"{:?}",self.vec)
+    }
+}
+
+impl<'t,Item> IntoIterator for &'t VectorData<Item> {
+    type Item = &'t Item;
+    type IntoIter = <&'t Vec<Item> as IntoIterator>::IntoIter;
+    fn into_iter(self) -> Self::IntoIter {
+        (&self.vec).iter()
     }
 }
 

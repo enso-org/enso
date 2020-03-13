@@ -1,12 +1,11 @@
 use crate::prelude::*;
 
 use super::Container;
-use crate::system::web::create_element;
-use crate::system::web::dyn_into;
+use crate::system::web;
 use crate::system::web::NodeInserter;
 use crate::system::web::StyleSetter;
+use wasm_bindgen::JsCast;
 
-use web_sys::HtmlElement;
 
 
 // ======================
@@ -18,18 +17,16 @@ use web_sys::HtmlElement;
 pub struct BenchContainer {
     #[shrinkwrap(main_field)]
     container       : Container,
-    pub measurement : HtmlElement,
-    pub time        : HtmlElement,
-    pub iter        : HtmlElement,
-    pub button      : HtmlElement
+    pub measurement : web::HtmlDivElement,
+    pub time        : web::HtmlElement,
+    pub iter        : web::HtmlElement,
+    pub button      : web::HtmlElement
 }
 
 impl BenchContainer {
     /// Creates an identificable container with provided dimensions.
     pub fn new(name:&str, width:f32, height:f32) -> Self {
-        let div = create_element("div").expect("div");
-        let div : HtmlElement = dyn_into(div).expect("HtmlElement");
-
+        let div = web::create_div();
         div.set_style_or_panic("margin"         , "0px 2px");
         div.set_style_or_panic("height"         , "24px");
         div.set_style_or_panic("bottom-border"  , "1px solid black");
@@ -41,13 +38,13 @@ impl BenchContainer {
                             <div>0 iterations</div>\
                             <button>Toggle</button>");
 
-        let children             = div.children();
-        let time                 = children.item(0).expect("time div");
-        let iter                 = children.item(1).expect("iter div");
-        let button               = children.item(2).expect("button div");
-        let time   : HtmlElement = dyn_into(time).expect("time HtmlElement");
-        let iter   : HtmlElement = dyn_into(iter).expect("iter HtmlElement");
-        let button : HtmlElement = dyn_into(button).expect("buttn HtmlElement");
+        let children                  = div.children();
+        let time                      = children.item(0).expect("time div");
+        let iter                      = children.item(1).expect("iter div");
+        let button                    = children.item(2).expect("button div");
+        let time   : web::HtmlElement = time.dyn_into().expect("time HtmlElement");
+        let iter   : web::HtmlElement = iter.dyn_into().expect("iter HtmlElement");
+        let button : web::HtmlElement = button.dyn_into().expect("buttn HtmlElement");
 
         let container       = Container::new("Benchmarks", name, width, height);
         let header_height   = 17.0;

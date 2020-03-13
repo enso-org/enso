@@ -4,6 +4,7 @@ use crate::prelude::*;
 
 use crate::debug::stats::Stats;
 use crate::system::web;
+use crate::system::web::StyleSetter;
 
 use js_sys::ArrayBuffer;
 use js_sys::WebAssembly::Memory;
@@ -12,31 +13,6 @@ use std::f64;
 use wasm_bindgen::JsCast;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen;
-use web_sys::CanvasRenderingContext2d;
-use web_sys::Performance;
-use web_sys;
-
-
-
-// ===============
-// === Helpers ===
-// ===============
-
-fn window() -> web_sys::Window {
-    web_sys::window().unwrap_or_else(|| panic!("Cannot access window."))
-}
-
-fn document() -> web_sys::Document {
-    window().document().unwrap_or_else(|| panic!("Cannot access window.document."))
-}
-
-fn body() -> web_sys::HtmlElement {
-    document().body().unwrap_or_else(|| panic!("Cannot access window.document.body."))
-}
-
-fn performance() -> Performance {
-    window().performance().unwrap_or_else(|| panic!("Cannot access window.performance."))
-}
 
 
 
@@ -56,8 +32,10 @@ pub struct ConfigTemplate<Str,Num> {
     pub plot_color_warn       : Str,
     pub plot_color_err        : Str,
     pub plot_background_color : Str,
+    pub plot_bar_size         : Option<Num>,
     pub plot_step_size        : Num,
     pub margin                : Num,
+    pub outer_margin          : Num,
     pub panel_height          : Num,
     pub labels_width          : Num,
     pub results_width         : Num,
@@ -72,33 +50,63 @@ pub type Config = ConfigTemplate<String,u32>;
 /// Specialization of the `ConfigTemplate` for the usage in JS environment.
 pub type SamplerConfig = ConfigTemplate<JsValue,f64>;
 
-impl Default for Config {
-    fn default() -> Config {
-        Config {
-            background_color      : "#222222".into(),
-            label_color_ok        : "#8e939a".into(),
-            label_color_warn      : "#ffba18".into(),
-            label_color_err       : "#eb3941".into(),
-            plot_color_ok         : "#8e939a".into(),
-            plot_color_warn       : "#ffba18".into(),
-            plot_color_err        : "#eb3941".into(),
-            plot_background_color : "#333333".into(),
-            plot_step_size        : 1,
-            margin                : 4,
-            panel_height          : 15,
-            labels_width          : 120,
-            results_width         : 50,
-            plots_width           : 100,
-            font_size             : 9,
-            font_vertical_offset  : 4,
-        }
+fn dark_theme() -> Config {
+    Config {
+        background_color      : "#222222".into(),
+        label_color_ok        : "#8e939a".into(),
+        label_color_warn      : "#ffba18".into(),
+        label_color_err       : "#eb3941".into(),
+        plot_color_ok         : "#8e939a".into(),
+        plot_color_warn       : "#ffba18".into(),
+        plot_color_err        : "#eb3941".into(),
+        plot_background_color : "#333333".into(),
+        plot_bar_size         : None,
+        plot_step_size        : 1,
+        margin                : 4,
+        outer_margin          : 6,
+        panel_height          : 15,
+        labels_width          : 130,
+        results_width         : 30,
+        plots_width           : 100,
+        font_size             : 9,
+        font_vertical_offset  : 4,
     }
 }
+
+fn light_theme() -> Config {
+    Config {
+        background_color      : "#f1f1f0".into(),
+        label_color_ok        : "#202124".into(),
+        label_color_warn      : "#f58025".into(),
+        label_color_err       : "#eb3941".into(),
+        plot_color_ok         : "#202124".into(),
+        plot_color_warn       : "#f58025".into(),
+        plot_color_err        : "#eb3941".into(),
+        plot_background_color : "#f1f1f0".into(),
+        plot_bar_size         : Some(2),
+        plot_step_size        : 1,
+        margin                : 6,
+        outer_margin          : 4,
+        panel_height          : 15,
+        labels_width          : 130,
+        results_width         : 30,
+        plots_width           : 100,
+        font_size             : 9,
+        font_vertical_offset  : 4,
+    }
+}
+
+impl Default for Config {
+    fn default() -> Config {
+        light_theme()
+    }
+}
+
 
 impl Config {
     /// Translates the configuration to JS values.
     pub fn to_js_config(&self) -> SamplerConfig {
-        let ratio      = window().device_pixel_ratio();
+        let ratio = web::window().device_pixel_ratio();
         SamplerConfig {
             background_color      : (&self.background_color)      . into(),
             label_color_ok        : (&self.label_color_ok)        . into(),
@@ -108,7 +116,9 @@ impl Config {
             plot_color_warn       : (&self.plot_color_warn)       . into(),
             plot_color_err        : (&self.plot_color_err)        . into(),
             plot_background_color : (&self.plot_background_color) . into(),
+            plot_bar_size         : self.plot_bar_size.map(|t| t as f64 * ratio),
             plot_step_size        : self.plot_step_size       as f64 * ratio,
+            outer_margin          : self.outer_margin         as f64 * ratio,
             margin                : self.margin               as f64 * ratio,
             panel_height          : self.panel_height         as f64 * ratio,
             labels_width          : self.labels_width         as f64 * ratio,
@@ -122,6 +132,69 @@ impl Config {
 
 
 
+// ===========
+// === Dom ===
+// ===========
+
+/// Dom elements of the monitor. Please note that it uses `Rc` to both implement cheap copy as well
+/// as to use `Drop` to clean the HTML when not used anymore.
+#[derive(Clone,Debug,Shrinkwrap)]
+pub struct Dom {
+    rc : Rc<DomData>
+}
+
+/// Internal representation of `Dom`.
+#[derive(Debug)]
+pub struct DomData {
+    root    : web::HtmlDivElement,
+    canvas  : web::HtmlCanvasElement,
+    context : web::CanvasRenderingContext2d,
+}
+
+impl Dom {
+    /// Constructor.
+    #[allow(clippy::new_without_default)]
+    pub fn new() -> Self {
+        let data = DomData::new();
+        let rc   = Rc::new(data);
+        Self {rc}
+    }
+}
+
+
+impl DomData {
+    /// Constructor.
+    #[allow(clippy::new_without_default)]
+    pub fn new() -> Self {
+        let root = web::create_div();
+        root.set_class_name("performance-monitor");
+        root.set_style_or_panic("position"      , "absolute");
+        root.set_style_or_panic("z-index"       , "100");
+        root.set_style_or_panic("left"          , "8px");
+        root.set_style_or_panic("top"           , "8px");
+        root.set_style_or_panic("overflow"      , "hidden");
+        root.set_style_or_panic("border-radius" , "6px");
+        root.set_style_or_panic("box-shadow"    , "0px 0px 20px -4px rgba(0,0,0,0.44)");
+        web::body().prepend_with_node_1(&root).unwrap();
+
+        let canvas = web::create_canvas();
+        canvas.set_style_or_panic("display", "block");
+
+        let context = canvas.get_context("2d").unwrap().unwrap();
+        let context: web::CanvasRenderingContext2d = context.dyn_into().unwrap();
+        root.append_child(&canvas).unwrap();
+        Self {root,canvas,context}
+    }
+}
+
+impl Drop for DomData {
+    fn drop(&mut self) {
+        self.root.remove()
+    }
+}
+
+
+
 // ===============
 // === Monitor ===
 // ===============
@@ -129,80 +202,90 @@ impl Config {
 /// Implementation of the monitoring panel.
 #[derive(Debug)]
 pub struct Monitor {
-    user_config   : Config,
-    config        : SamplerConfig,
-    width         : f64,
-    height        : f64,
-    dom           : web_sys::HtmlDivElement,
-    panels        : Vec<Panel>,
-    canvas        : web_sys::HtmlCanvasElement,
-    context       : CanvasRenderingContext2d,
-    is_first_draw : bool,
+    user_config : Config,
+    config      : SamplerConfig,
+    width       : f64,
+    height      : f64,
+    dom         : Option<Dom>,
+    panels      : Vec<Panel>,
+    first_draw  : bool,
 }
 
 
 // === Public API ===
 
-// TODO: All the `unwraps` below should be handled nicer when this lib will be finished.
-
 impl Default for Monitor {
     fn default() -> Self {
-        let user_config: Config = default();
-        let panels              = default();
-        let width               = default();
-        let height              = default();
-        let is_first_draw       = true;
-        let config              = user_config.to_js_config();
-
-        let dom = web::create_div();
-        dom.set_attribute("style", "position:absolute;").unwrap();
-        body().prepend_with_node_1(&dom).unwrap();
-
-        let canvas = document().create_element("canvas").unwrap();
-        let canvas: web_sys::HtmlCanvasElement = canvas.dyn_into().unwrap();
-
-        let context = canvas.get_context("2d").unwrap().unwrap();
-        let context: CanvasRenderingContext2d = context.dyn_into().unwrap();
-        dom.append_child(&canvas).unwrap();
-
-        let mut out = Self{user_config,config,width,height,dom,panels,canvas,context,is_first_draw};
+        let user_config = Config::default();
+        let panels      = default();
+        let width       = default();
+        let height      = default();
+        let first_draw  = true;
+        let config      = user_config.to_js_config();
+        let dom         = None;
+        let mut out     = Self {user_config,config,width,height,dom,panels,first_draw};
         out.update_config();
         out
     }
 }
 
 impl Monitor {
-    /// Creates a new, empty monitor instance. Ise the `add` method to fill it with samplers.
+    /// Cnstructor.
     pub fn new() -> Self { default() }
 
-    /// Modifies the Monitor's config and updates the view.
+    /// Modify the Monitor's config and update the view.
     pub fn mod_config<F:FnOnce(&mut Config)>(&mut self, f:F) {
         f(&mut self.user_config);
         self.update_config();
     }
 
-    /// Adds new display element.
+    /// Add new display element.
     pub fn add<M:Sampler+'static>(&mut self, monitor:M) -> Panel {
-        let panel = Panel::new(self.context.clone(),self.config.clone(),monitor);
+        let panel = Panel::new(self.config.clone(),monitor);
         self.panels.push(panel.clone());
         self.resize();
         panel
     }
 
-    /// Draws the Monitor and updates all of it's values.
-    pub fn draw(&mut self) {
-        if self.is_first_draw {
-            self.is_first_draw = false;
-            self.first_draw();
-        }
-        self.shift_plot_area_left();
-        self.clear_labels_area();
-        self.draw_plots();
+    /// Check whether the mointor is visible.
+    pub fn visible(&self) -> bool {
+        self.dom.is_some()
     }
 
-    /// Hides the monitor.
-    pub fn hide(&self) {
-        self.dom.style().set_property("display","none").unwrap();
+    /// Show the monitor and add it's DOM to the scene.
+    pub fn show(&mut self) {
+        if !self.visible() {
+            self.first_draw = true;
+            self.dom = Some(Dom::new());
+            self.resize();
+        }
+    }
+
+    /// Hides the monitor and remove it's DOM from the scene.
+    pub fn hide(&mut self) {
+        self.dom = None;
+    }
+
+    /// Toggle the visibility of the monitor.
+    pub fn toggle(&mut self) {
+        if self.visible() {
+            self.hide();
+        } else {
+            self.show();
+        }
+    }
+
+    /// Draw the Monitor and update all of it's values.
+    pub fn draw(&mut self) {
+        if let Some(dom) = self.dom.clone() {
+            if self.first_draw {
+                self.first_draw = false;
+                self.first_draw(&dom);
+            }
+            self.shift_plot_area_left(&dom);
+            self.clear_labels_area(&dom);
+            self.draw_plots(&dom);
+        }
     }
 }
 
@@ -215,64 +298,69 @@ impl Monitor {
     }
 
     fn resize(&mut self) {
-        let width = self.config.labels_width
-            + self.config.results_width
-            + self.config.plots_width
-            + 4.0 * self.config.margin;
-        let mut height = 0.0;
-        for _panel in &self.panels {
-            height += self.config.margin + self.config.panel_height;
+        if let Some(dom) = &self.dom {
+            let ratio = web::window().device_pixel_ratio();
+            let width = self.config.labels_width
+                + self.config.results_width
+                + self.config.plots_width
+                + 4.0 * self.config.margin
+                + self.config.outer_margin; // no outer_margin on the left side.
+            let mut height = self.config.outer_margin;
+            for _panel in &self.panels {
+                height += self.config.margin + self.config.panel_height;
+            }
+            height += self.config.margin;
+            height += self.config.outer_margin;
+            let u_width  = width  as u32;
+            let u_height = height as u32;
+            self.width   = width;
+            self.height  = height;
+            dom.canvas.set_width(u_width);
+            dom.canvas.set_height(u_height);
+            dom.canvas.set_style_or_panic("width"  , format!("{}px", width  / ratio));
+            dom.canvas.set_style_or_panic("height" , format!("{}px", height / ratio));
         }
-        height += self.config.margin;
-
-        let u_width  = width  as u32;
-        let u_height = height as u32;
-        let style    = format!("width:{}px; height:{}px",u_width/2,u_height/2);
-        self.width   = width;
-        self.height  = height;
-        self.canvas.set_width  (u_width);
-        self.canvas.set_height (u_height);
-        self.canvas.set_attribute("style",&style).unwrap();
     }
 
-    fn shift_plot_area_left(&mut self) {
+    fn shift_plot_area_left(&mut self, dom:&Dom) {
         let width  = self.width;
         let height = self.height;
         let shift  = -(self.config.plot_step_size);
-        self.context.draw_image_with_html_canvas_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh
-        (&self.canvas,0.0,0.0,width,height,shift,0.0,self.width,self.height).unwrap();
+        dom.context.draw_image_with_html_canvas_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh
+        (&dom.canvas,0.0,0.0,width,height,shift,0.0,self.width,self.height).unwrap();
     }
 
-    fn clear_labels_area(&mut self) {
+    fn clear_labels_area(&mut self, dom:&Dom) {
         let step  = self.config.plot_step_size;
         let width = self.config.labels_width + self.config.results_width + 3.0 * self.config.margin;
-        self.context.set_fill_style(&self.config.background_color);
-        self.context.fill_rect(0.0,0.0,width,self.height);
-        self.context.fill_rect(self.width-step,0.0,step,self.height);
+        dom.context.set_fill_style(&self.config.background_color);
+        dom.context.fill_rect(0.0,0.0,width,self.height);
+        dom.context.fill_rect(self.width-step,0.0,step,self.height);
     }
 
-    fn draw_plots(&mut self) {
-        self.with_all_panels(|panel| panel.draw());
+    fn draw_plots(&mut self, dom:&Dom) {
+        self.with_all_panels(dom, |panel| panel.draw(dom));
     }
 
-    fn first_draw(&self) {
-        self.context.set_fill_style(&self.config.background_color);
-        self.context.fill_rect(0.0,0.0,self.width,self.height);
-        self.with_all_panels(|panel| panel.first_draw());
+    fn first_draw(&self, dom:&Dom) {
+        dom.context.set_fill_style(&self.config.background_color);
+        dom.context.fill_rect(0.0,0.0,self.width,self.height);
+        self.with_all_panels(dom, |panel| panel.first_draw(dom));
     }
 
-    fn with_all_panels<F:Fn(&Panel)>(&self,f:F) {
-        let mut total_off = 0.0;
+    fn with_all_panels<F:Fn(&Panel)>(&self, dom:&Dom, f:F) {
+        let mut total_off = self.config.outer_margin;
+        dom.context.translate(0.0,total_off).unwrap();
         for panel in &self.panels {
             let off = self.config.margin;
-            self.context.translate(0.0,off).unwrap();
+            dom.context.translate(0.0,off).unwrap();
             total_off += off;
             f(panel);
             let off = self.config.panel_height;
-            self.context.translate(0.0,off).unwrap();
+            dom.context.translate(0.0,off).unwrap();
             total_off += off;
         }
-        self.context.translate(0.0,-total_off).unwrap();
+        dom.context.translate(0.0,-total_off).unwrap();
     }
 }
 
@@ -293,14 +381,14 @@ pub struct Panel {
 impl Panel {
     /// Creates a new, empty Panel with a given sampler.
     pub fn new<S:Sampler+'static>
-    (context:CanvasRenderingContext2d, config:SamplerConfig, sampler:S) -> Self {
-        let rc = Rc::new(RefCell::new(PanelData::new(context,config,sampler)));
+    (config:SamplerConfig, sampler:S) -> Self {
+        let rc = Rc::new(RefCell::new(PanelData::new(config,sampler)));
         Self {rc}
     }
 
     /// Display results of last measurements.
-    pub fn draw(&self) {
-        self.rc.borrow_mut().draw()
+    pub fn draw(&self, dom:&Dom) {
+        self.rc.borrow_mut().draw(dom)
     }
 
     /// Start measuring the data.
@@ -313,8 +401,8 @@ impl Panel {
         self.rc.borrow_mut().end()
     }
 
-    fn first_draw(&self) {
-        self.rc.borrow_mut().first_draw()
+    fn first_draw(&self, dom:&Dom) {
+        self.rc.borrow_mut().first_draw(dom)
     }
 }
 
@@ -415,8 +503,7 @@ pub trait Sampler: Debug {
 #[derive(Debug)]
 pub struct PanelData {
     label       : String,
-    context     : CanvasRenderingContext2d,
-    performance : Performance,
+    performance : web::Performance,
     config      : SamplerConfig,
     min_value   : f64,
     max_value   : f64,
@@ -436,9 +523,9 @@ pub struct PanelData {
 impl PanelData {
     /// Constructor.
     pub fn new<S:Sampler+'static>
-    (context:CanvasRenderingContext2d, config:SamplerConfig, sampler:S) -> Self {
+    (config:SamplerConfig, sampler:S) -> Self {
         let label       = sampler.label().into();
-        let performance = performance();
+        let performance = web::performance();
         let min_value   = f64::INFINITY;
         let max_value   = f64::NEG_INFINITY;
         let begin_value = default();
@@ -449,8 +536,8 @@ impl PanelData {
         let value_check = default();
         let sampler     = Box::new(sampler);
         let precision   = sampler.precision();
-        Self {label,context,performance,config,min_value,max_value,begin_value,value,last_values
-            ,norm_value,draw_offset,value_check,precision,sampler}
+        Self {label,performance,config,min_value,max_value,begin_value,value,last_values
+             ,norm_value,draw_offset,value_check,precision,sampler}
     }
 }
 
@@ -513,46 +600,46 @@ impl PanelData {
 
 impl PanelData {
     /// Draws the panel to the screen.
-    pub fn draw(&mut self) {
-        self.init_draw();
-        self.draw_plots();
-        self.finish_draw();
+    pub fn draw(&mut self, dom:&Dom) {
+        self.init_draw(dom);
+        self.draw_plots(dom);
+        self.finish_draw(dom);
     }
 
-    fn first_draw(&mut self) {
-        self.init_draw();
-        self.context.set_fill_style(&self.config.plot_background_color);
-        self.context.fill_rect(0.0,0.0,self.config.plots_width,self.config.panel_height);
-        self.finish_draw();
+    fn first_draw(&mut self, dom:&Dom) {
+        self.init_draw(dom);
+        dom.context.set_fill_style(&self.config.plot_background_color);
+        dom.context.fill_rect(0.0,0.0,self.config.plots_width,self.config.panel_height);
+        self.finish_draw(dom);
     }
 
-    fn move_pen_to_next_element(&mut self, offset:f64) {
-        self.context.translate(offset,0.0).unwrap();
+    fn move_pen_to_next_element(&mut self, dom:&Dom, offset:f64) {
+        dom.context.translate(offset,0.0).unwrap();
         self.draw_offset += offset;
     }
 
-    fn finish_draw(&mut self) {
-        self.context.translate(-self.draw_offset,0.0).unwrap();
+    fn finish_draw(&mut self, dom:&Dom) {
+        dom.context.translate(-self.draw_offset,0.0).unwrap();
         self.draw_offset = 0.0;
     }
 
-    fn init_draw(&mut self) {
-        self.move_pen_to_next_element(self.config.margin);
-        self.draw_labels();
-        self.draw_results();
+    fn init_draw(&mut self, dom:&Dom) {
+        self.move_pen_to_next_element(dom,self.config.margin);
+        self.draw_labels(dom);
+        self.draw_results(dom);
     }
 
-    fn draw_labels(&mut self) {
+    fn draw_labels(&mut self, dom:&Dom) {
         let fonts = "Helvetica,Arial,sans-serif";
         let y_pos = self.config.panel_height - self.config.font_vertical_offset;
-        self.context.set_font(&format!("bold {}px {}",self.config.font_size,fonts));
-        self.context.set_text_align("right");
-        self.context.set_fill_style(&self.config.label_color_ok);
-        self.context.fill_text(&self.label,self.config.labels_width,y_pos).unwrap();
-        self.move_pen_to_next_element(self.config.labels_width + self.config.margin);
+        dom.context.set_font(&format!("bold {}px {}",self.config.font_size,fonts));
+        dom.context.set_text_align("right");
+        dom.context.set_fill_style(&self.config.label_color_ok);
+        dom.context.fill_text(&self.label,self.config.labels_width,y_pos).unwrap();
+        self.move_pen_to_next_element(dom,self.config.labels_width + self.config.margin);
     }
 
-    fn draw_results(&mut self) {
+    fn draw_results(&mut self, dom:&Dom) {
         let display_value = format!("{1:.0$}",self.precision,self.value);
         let y_pos         = self.config.panel_height - self.config.font_vertical_offset;
         let color         = match self.value_check {
@@ -560,24 +647,25 @@ impl PanelData {
             ValueCheck::Warning => &self.config.label_color_warn,
             ValueCheck::Error   => &self.config.label_color_err
         };
-        self.context.set_fill_style(color);
-        self.context.fill_text(&display_value,self.config.results_width,y_pos).unwrap();
-        self.move_pen_to_next_element(self.config.results_width + self.config.margin);
+        dom.context.set_fill_style(color);
+        dom.context.fill_text(&display_value,self.config.results_width,y_pos).unwrap();
+        self.move_pen_to_next_element(dom,self.config.results_width + self.config.margin);
     }
 
-    fn draw_plots(&mut self) {
-        self.move_pen_to_next_element(self.config.plots_width - self.config.plot_step_size);
-        self.context.set_fill_style(&self.config.plot_background_color);
-        self.context.fill_rect(0.0,0.0,self.config.plot_step_size,self.config.panel_height);
+    fn draw_plots(&mut self, dom:&Dom) {
+        self.move_pen_to_next_element(dom,self.config.plots_width - self.config.plot_step_size);
+        dom.context.set_fill_style(&self.config.plot_background_color);
+        dom.context.fill_rect(0.0,0.0,self.config.plot_step_size,self.config.panel_height);
         let value_height = self.norm_value * self.config.panel_height;
         let y_pos        = self.config.panel_height-value_height;
+        let bar_height   = self.config.plot_bar_size.unwrap_or(value_height);
         let color        = match self.value_check {
             ValueCheck::Correct => &self.config.plot_color_ok,
             ValueCheck::Warning => &self.config.plot_color_warn,
             ValueCheck::Error   => &self.config.plot_color_err
         };
-        self.context.set_fill_style(color);
-        self.context.fill_rect(0.0,y_pos,self.config.plot_step_size,value_height);
+        dom.context.set_fill_style(color);
+        dom.context.fill_rect(0.0,y_pos,self.config.plot_step_size,bar_height);
     }
 }
 

@@ -33,6 +33,7 @@ features = [
   'WebGlBuffer',
   'WebGlRenderingContext',
   'WebGl2RenderingContext',
+  'CanvasRenderingContext2d',
   'WebGlProgram',
   'WebGlShader',
   'Window',

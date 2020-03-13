@@ -38,6 +38,6 @@ module.exports = {
     performance: {
         hints: false,
     },
-    mode: 'development',
+    mode: 'none',
     stats: 'minimal'
 }

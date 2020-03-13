@@ -1,11 +1,11 @@
 //! This module contains TextEditor, an UiComponent to edit Enso Modules or Text Files.
 
+use basegl::traits::*;
 use crate::prelude::*;
 
 use crate::view::temporary_panel::TemporaryPadding;
 use crate::view::temporary_panel::TemporaryPanel;
 
-use basegl::display::object::DisplayObjectOps;
 use basegl::display::shape::text::glyph::font::FontRegistry;
 use basegl::display::shape::text::text_field::TextField;
 use basegl::display::shape::text::text_field::TextFieldProperties;

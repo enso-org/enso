@@ -1,5 +1,5 @@
-//! This module exposes CSS3D rendering system and other DOM helpers.
+//! This module exposes DOM related utilities.
 
-pub mod html;
+pub mod shape;
 
-pub use basegl_system_web::dom::*;
+pub use shape::*;

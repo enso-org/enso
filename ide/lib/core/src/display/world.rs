@@ -8,6 +8,7 @@ use crate::prelude::*;
 pub use crate::data::container::*;
 pub use crate::display::symbol::types::*;
 pub use crate::display::scene::SymbolId;
+pub use stats::*;
 
 use crate::closure;
 use crate::control::callback::CallbackHandle;
@@ -15,21 +16,17 @@ use crate::control::event_loop::EventLoop;
 use crate::data::dirty::traits::*;
 use crate::data::dirty;
 use crate::debug::stats::Stats;
-use crate::display::object::*;
 use crate::display::render::*;
 use crate::display::scene::Scene;
 use crate::display::symbol::Symbol;
+use crate::display;
 use crate::system::web;
-
-use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;
-use web_sys::Performance;
+use wasm_bindgen::prelude::Closure;
 use web_sys::KeyboardEvent;
-
-
-pub use stats::*;
-
+use web_sys::Performance;
+use crate::display::render::passes::SymbolsRenderPass;
 
 
 // =================
@@ -96,10 +93,11 @@ impl WorldData {
         let c: Closure<dyn Fn(JsValue)> = Closure::wrap(Box::new(move |val| {
             let val = val.unchecked_into::<KeyboardEvent>();
             let key = val.key();
-            if      key == "0" { world_copy.rc.borrow_mut().display_mode.set(0) }
+            if      key == "`" { world_copy.rc.borrow_mut().stats_monitor.toggle() }
+            else if key == "0" { world_copy.rc.borrow_mut().display_mode.set(0) }
             else if key == "1" { world_copy.rc.borrow_mut().display_mode.set(1) }
         }));
-        web::document().unwrap().add_event_listener_with_callback
+        web::document().add_event_listener_with_callback
         ("keydown",c.as_ref().unchecked_ref()).unwrap();
         c.forget();
         // -----------------------------------------------------------------------------------------
@@ -124,15 +122,15 @@ impl WorldData {
         let event_loop         = EventLoop::new();
         let update_handle      = default();
         let stats_monitor      = StatsMonitor::new(&stats);
-        let performance        = web::get_performance().unwrap();
+        let performance        = web::performance();
         let start_time         = performance.now() as f32;
-        let stats_monitor_cp_1 = stats_monitor.clone();
-        let stats_monitor_cp_2 = stats_monitor.clone();
 
-        stats_monitor.hide();
-
-        event_loop.set_on_loop_started  (move || { stats_monitor_cp_1.begin(); });
-        event_loop.set_on_loop_finished (move || { stats_monitor_cp_2.end();   });
+        event_loop.set_on_loop_started  (enclose! ((stats_monitor) move || {
+            stats_monitor.begin();
+        }));
+        event_loop.set_on_loop_finished (enclose! ((stats_monitor) move || {
+            stats_monitor.end();
+        }));
         Self {scene,scene_dirty,logger,event_loop,performance,start_time,time,display_mode
              ,update_handle,stats,stats_monitor}
     }
@@ -150,7 +148,7 @@ impl WorldData {
         //          if self.scene_dirty.check_all() {
         group!(self.logger, "Updating.", {
             self.scene_dirty.unset_all();
-            self.scene.update();
+            self.scene.update_and_render();
         });
     }
 
@@ -160,8 +158,8 @@ impl WorldData {
     }
 }
 
-impl Into<DisplayObjectData> for &WorldData {
-    fn into(self) -> DisplayObjectData {
+impl Into<display::object::Node> for &WorldData {
+    fn into(self) -> display::object::Node {
         (&self.scene).into()
     }
 }
@@ -239,7 +237,7 @@ impl World {
     }
 
     fn init_composer(&self) {
-        let root                = &self.display_object();
+        let root                = self.rc.borrow().scene.symbol_registry();
         let mouse_hover_ids     = self.rc.borrow().scene.mouse_hover_ids();
         let mouse_position      = self.rc.borrow().scene.mouse_position_uniform();
         let mut pixel_read_pass = PixelReadPass::<u32>::new(&mouse_position);
@@ -249,7 +247,7 @@ impl World {
         // TODO: We may want to enable it on weak hardware.
         // pixel_read_pass.set_threshold(1);
         let pipeline = RenderPipeline::new()
-            .add(DisplayObjectRenderPass::new(root))
+            .add(SymbolsRenderPass::new(&root))
             .add(ScreenRenderPass::new(self))
             .add(pixel_read_pass);
         self.rc.borrow_mut().scene.set_render_pipeline(pipeline);
@@ -263,8 +261,8 @@ impl<T> AddMut<T> for World where WorldData: AddMut<T> {
     }
 }
 
-impl Into<DisplayObjectData> for &World {
-    fn into(self) -> DisplayObjectData {
+impl Into<display::object::Node> for &World {
+    fn into(self) -> display::object::Node {
         let data:&WorldData = &self.rc.borrow();
         data.into()
     }

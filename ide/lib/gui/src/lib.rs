@@ -18,13 +18,14 @@
 #![warn(unused_qualifications)]
 #[allow(clippy::option_map_unit_fn)]
 
+pub mod benchmarks;
+pub mod dom_symbols;
 pub mod easing_animator;
 pub mod glyph_system;
+pub mod ide;
 pub mod shapes;
 pub mod sprite_system;
 pub mod text_field;
 pub mod text_typing;
-pub mod css3d_system;
-pub mod ide;
 
 use enso_prelude as prelude;

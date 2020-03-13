@@ -4,27 +4,20 @@
 //! This file is under a heavy development. It contains commented lines of code and some code may
 //! be of poor quality. Expect drastic changes.
 
-use basegl::display::object::DisplayObject;
-use basegl::display::object::DisplayObjectOps;
-use basegl::display::symbol::geometry::Sprite;
-use basegl::display::shape::primitive::system::ShapeSystem;
-use basegl::display::shape::*;
-use basegl::display::world::*;
+use basegl::traits::*;
 
+use basegl::data::color::*;
+use basegl::display::navigation::navigator::Navigator;
+use basegl::display::shape::*;
+use basegl::display::shape::primitive::system::ShapeSystem;
+use basegl::display::shape::Var;
+use basegl::display::symbol::geometry::Sprite;
+use basegl::display::world::*;
+use basegl::prelude::*;
+use basegl::system::web;
 use nalgebra::Vector2;
 use wasm_bindgen::prelude::*;
 
-//use basegl::display::navigation::navigator::Navigator;
-
-use basegl::prelude::*;
-use enso_frp::*;
-
-use basegl::system::web;
-use basegl::control::io::mouse::event::*;
-use basegl::control::io::mouse::MouseManager;
-use basegl::data::color::*;
-
-use basegl::display::shape::Var;
 
 
 #[wasm_bindgen]
@@ -147,6 +140,7 @@ fn init(world: &World) {
     let scene  = world.scene();
     let camera = scene.camera();
     let screen = camera.screen();
+    let navigator = Navigator::new(&scene,&camera);
 
 
     let node_shape =     nodes2();
@@ -187,10 +181,11 @@ fn init(world: &World) {
     world.on_frame(move |_| {
         i -= 1;
         if i == 0 {
-            println!("now!");
 //            shape_system.set_shape(&node_shape2);
         }
         let _keep_alive = &sprite;
+        let _keep_alive = &navigator;
+
 //        let _keep_alive = &sprite_2;
 //        let _keep_alive = &out;
         on_frame(&mut time,&mut iter,&sprite,&shape_system);
@@ -219,49 +214,49 @@ pub fn on_frame
 
 
 
-// ================
-// === FRP Test ===
-// ================
-
-#[allow(unused_variables)]
-pub fn frp_test (callback: Box<dyn Fn(f32,f32)>) -> MouseManager {
-    let document        = web::document().unwrap();
-    let mouse_manager   = MouseManager::new(&document);
-    let mouse           = Mouse::new();
-
-    frp! {
-        mouse_down_position    = mouse.position.sample       (&mouse.on_down);
-        mouse_position_if_down = mouse.position.gate         (&mouse.is_down);
-        final_position_ref     = recursive::<Position>       ();
-        pos_diff_on_down       = mouse_down_position.map2    (&final_position_ref,|m,f|{m-f});
-        final_position         = mouse_position_if_down.map2 (&pos_diff_on_down  ,|m,f|{m-f});
-        debug                  = final_position.sample       (&mouse.position);
-    }
-    final_position_ref.initialize(&final_position);
-
-    // final_position.event.display_graphviz();
-
-//    trace("X" , &debug.event);
-
-//    final_position.map("foo",move|p| {callback(p.x as f32,-p.y as f32)});
-
-    let target = mouse.position.event.clone_ref();
-    let handle = mouse_manager.on_move.add(move |event:&OnMove| {
-        target.emit(Position::new(event.client_x(),event.client_y()));
-    });
-    handle.forget();
-
-    let target = mouse.on_down.event.clone_ref();
-    let handle = mouse_manager.on_down.add(move |event:&OnDown| {
-        target.emit(());
-    });
-    handle.forget();
-
-    let target = mouse.on_up.event.clone_ref();
-    let handle = mouse_manager.on_up.add(move |event:&OnUp| {
-        target.emit(());
-    });
-    handle.forget();
-
-    mouse_manager
-}
+//// ================
+//// === FRP Test ===
+//// ================
+//
+//#[allow(unused_variables)]
+//pub fn frp_test (callback: Box<dyn Fn(f32,f32)>) -> MouseManager {
+//    let document        = web::document().unwrap();
+//    let mouse_manager   = MouseManager::new(&document);
+//    let mouse           = Mouse::new();
+//
+//    frp! {
+//        mouse_down_position    = mouse.position.sample       (&mouse.on_down);
+//        mouse_position_if_down = mouse.position.gate         (&mouse.is_down);
+//        final_position_ref     = recursive::<Position>       ();
+//        pos_diff_on_down       = mouse_down_position.map2    (&final_position_ref,|m,f|{m-f});
+//        final_position         = mouse_position_if_down.map2 (&pos_diff_on_down  ,|m,f|{m-f});
+//        debug                  = final_position.sample       (&mouse.position);
+//    }
+//    final_position_ref.initialize(&final_position);
+//
+//    // final_position.event.display_graphviz();
+//
+////    trace("X" , &debug.event);
+//
+////    final_position.map("foo",move|p| {callback(p.x as f32,-p.y as f32)});
+//
+//    let target = mouse.position.event.clone_ref();
+//    let handle = mouse_manager.on_move.add(move |event:&OnMove| {
+//        target.emit(Position::new(event.client_x(),event.client_y()));
+//    });
+//    handle.forget();
+//
+//    let target = mouse.on_down.event.clone_ref();
+//    let handle = mouse_manager.on_down.add(move |event:&OnDown| {
+//        target.emit(());
+//    });
+//    handle.forget();
+//
+//    let target = mouse.on_up.event.clone_ref();
+//    let handle = mouse_manager.on_up.add(move |event:&OnUp| {
+//        target.emit(());
+//    });
+//    handle.forget();
+//
+//    mouse_manager
+//}

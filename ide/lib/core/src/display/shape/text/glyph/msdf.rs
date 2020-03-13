@@ -96,10 +96,10 @@ pub fn y_distance_from_msdf_value(msdf_value:f64) -> f32 {
 /// (0.0, 0.0) is initial pen position for an character, and `y` = 1.0 is
 /// _ascender_.
 pub fn convert_msdf_translation(msdf:&MultichannelSignedDistanceField)
--> nalgebra::Vector2<f32> {
+-> Vector2<f32> {
     let translate_converted_x = x_distance_from_msdf_value(msdf.translation.x);
     let translate_converted_y = y_distance_from_msdf_value(msdf.translation.y);
-    nalgebra::Vector2::new(translate_converted_x, translate_converted_y)
+    Vector2::new(translate_converted_x, translate_converted_y)
 }
 
 
@@ -108,7 +108,6 @@ pub fn convert_msdf_translation(msdf:&MultichannelSignedDistanceField)
 mod test {
     use super::*;
 
-    use nalgebra::Vector2;
     use wasm_bindgen_test::wasm_bindgen_test;
 
     #[test]
@@ -140,7 +139,7 @@ mod test {
         msdf.translation = Vector2::new(16.0, 4.0);
 
         let converted = convert_msdf_translation(&msdf);
-        let expected = nalgebra::Vector2::new(0.5, 1.0/8.0);
+        let expected = Vector2::new(0.5, 1.0/8.0);
 
         assert_eq!(expected, converted);
     }

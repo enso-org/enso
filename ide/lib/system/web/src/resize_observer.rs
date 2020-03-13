@@ -2,11 +2,15 @@ use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsValue;
 
+
+
 // =============
 // === Types ===
 // =============
 
 pub type Listener = Closure<dyn FnMut(f64,f64)>;
+
+
 
 // ===================
 // === JS Bindings ===
@@ -20,6 +24,8 @@ extern "C" {
     #[allow(unsafe_code)]
     fn resize_unobserve(id: usize);
 }
+
+
 
 // ======================
 // === ResizeObserver ===

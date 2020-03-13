@@ -33,7 +33,7 @@ Please list the reproduction steps for your bug.
 - Please include any error output if relevant.
 -->
 
-### Luna Version
+### Enso Version
 <!--
 - Please include the version of BaseGL you are using here.
 -->

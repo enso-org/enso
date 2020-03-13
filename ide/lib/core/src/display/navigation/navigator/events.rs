@@ -4,16 +4,11 @@ use crate::control::io::mouse::MouseManager;
 use crate::control::io::mouse::event::*;
 use crate::control::io::mouse::button;
 use crate::control::callback::CallbackHandle;
-use crate::system::web::Result;
-use crate::system::web::dom::DomContainer;
 use crate::system::web::IgnoreContextMenuHandle;
-use crate::system::web::ignore_context_menu;
-use crate::system::web::dyn_into;
+use crate::system::web;
 
 use nalgebra::Vector2;
 use nalgebra::zero;
-use std::rc::Rc;
-use std::cell::RefCell;
 use web_sys::EventTarget;
 
 
@@ -190,10 +185,9 @@ pub struct NavigatorEvents {
 
 impl NavigatorEvents {
     pub fn new
-    <P,Z>(dom:&DomContainer, pan_callback:P, zoom_callback:Z, zoom_speed:f32) -> Result<Self>
+    <P,Z>(event_target:&web::HtmlElement, pan_callback:P, zoom_callback:Z, zoom_speed:f32) -> Self
     where P : FnPanEvent, Z : FnZoomEvent {
-        let event_target         = dyn_into(dom.dom.clone())?;
-        let mouse_manager        = MouseManager::new(&event_target);
+        let mouse_manager        = MouseManager::new(event_target);
         let pan_callback         = Box::new(pan_callback);
         let zoom_callback        = Box::new(zoom_callback);
         let mouse_move           = None;
@@ -214,19 +208,19 @@ impl NavigatorEvents {
             wheel_zoom
         };
 
-        event_handler.initialize_mouse_events(&event_target)?;
-        Ok(event_handler)
+        event_handler.initialize_mouse_events(event_target);
+        event_handler
     }
 
-    fn initialize_mouse_events(&mut self, target:&EventTarget) -> Result<()> {
-        self.disable_context_menu(target)?;
-        self.initialize_wheel_zoom()?;
-        self.initialize_mouse_start_event()?;
-        self.initialize_mouse_move_event()?;
-        self.initialize_mouse_end_event()
+    fn initialize_mouse_events(&mut self, target:&EventTarget) {
+        self.disable_context_menu(target);
+        self.initialize_wheel_zoom();
+        self.initialize_mouse_start_event();
+        self.initialize_mouse_move_event();
+        self.initialize_mouse_end_event();
     }
 
-    fn initialize_wheel_zoom(&mut self) -> Result<()> {
+    fn initialize_wheel_zoom(&mut self) {
         let data     = Rc::downgrade(&self.data);
         let listener = self.mouse_manager.on_wheel.add(move |event:&OnWheel| {
             event.prevent_default();
@@ -247,10 +241,9 @@ impl NavigatorEvents {
             }
         });
         self.wheel_zoom = Some(listener);
-        Ok(())
     }
 
-    fn initialize_mouse_start_event(&mut self) -> Result<()> {
+    fn initialize_mouse_start_event(&mut self) {
         let data     = Rc::downgrade(&self.data);
         let listener = self.mouse_manager.on_down.add(move |event:&OnDown| {
             if let Some(data) = data.upgrade() {
@@ -267,15 +260,13 @@ impl NavigatorEvents {
             }
         });
         self.mouse_down = Some(listener);
-        Ok(())
     }
 
-    fn disable_context_menu(&mut self, target:&EventTarget) -> Result<()> {
-        self.disable_context_menu = Some(ignore_context_menu(target)?);
-        Ok(())
+    fn disable_context_menu(&mut self, target:&EventTarget) {
+        self.disable_context_menu = Some(web::ignore_context_menu(target).unwrap());
     }
 
-    fn initialize_mouse_end_event(&mut self) -> Result<()> {
+    fn initialize_mouse_end_event(&mut self) {
         let data     = Rc::downgrade(&self.data);
         let listener = self.mouse_manager.on_up.add(move |_:&OnUp| {
             if let Some(data) = data.upgrade() {
@@ -291,10 +282,9 @@ impl NavigatorEvents {
             }
         });
         self.mouse_leave = Some(listener);
-        Ok(())
     }
 
-    fn initialize_mouse_move_event(&mut self) -> Result<()> {
+    fn initialize_mouse_move_event(&mut self) {
         let data     = Rc::downgrade(&self.data);
         let listener = self.mouse_manager.on_move.add(move |event:&OnMove| {
             if let Some(data) = data.upgrade() {
@@ -319,6 +309,5 @@ impl NavigatorEvents {
             }
         });
         self.mouse_move = Some(listener);
-        Ok(())
     }
 }
