@@ -6,6 +6,7 @@ use ast::*;
 use ast::test_utils::expect_shape;
 use ast::test_utils::expect_single_line;
 use parser::api::IsParser;
+use parser::api::SourceFile;
 use utils::test::ExpectTuple;
 
 
@@ -47,7 +48,7 @@ fn validate_spans(ast:&Ast) {
 
 /// Persists parser (which is expensive to construct, so we want to reuse it
 /// between tests. Additionally, hosts a number of helper methods.
-struct Fixture(parser::Parser);
+struct Fixture { parser: parser::Parser }
 
 impl Fixture {
 
@@ -56,13 +57,13 @@ impl Fixture {
 
     /// Create a new fixture, obtaining a default parser.
     fn new() -> Fixture {
-        Fixture(parser::Parser::new_or_panic())
+        Fixture {parser:parser::Parser::new_or_panic()}
     }
 
     /// Runs parser on given input, panics on any error.
     fn parse(&mut self, program:&str) -> Ast {
         println!("parsing {}", program);
-        let ast = self.0.parse(program.into(), default()).unwrap();
+        let ast = self.parser.parse(program.into(), default()).unwrap();
         assert_eq!(ast.shape().len(), program.len());
         validate_spans(&ast);
         assert_eq!(ast.repr(), program, "{:?}", ast);
@@ -89,7 +90,15 @@ impl Fixture {
 
 
     // === Test Methods ===
-    
+
+    fn deserialize_metadata(&mut self) {
+        let term = ast::Module {lines: vec![ast::BlockLine {elem:None,off:0}]};
+        let ast  = Ast::new(term,None);
+        let file = SourceFile {ast, metadata: serde_json::json!({})};
+        let code = String::try_from(&file).unwrap();
+        assert_eq!(self.parser.parse_with_metadata(code).unwrap(), file);
+    }
+
     fn deserialize_unrecognized(&mut self) {
         let unfinished = "`";
         self.test_shape(unfinished,|shape:&Unrecognized| {
@@ -392,6 +401,7 @@ impl Fixture {
         // * Opr (doesn't parse on its own, covered by Infix and other)
         // * Module (covered by every single test, as parser wraps everything
         //   into module)
+        self.deserialize_metadata();
         self.deserialize_unrecognized();
         self.deserialize_invalid_quote();
         self.deserialize_inline_block();

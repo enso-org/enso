@@ -34,13 +34,19 @@ use shapely::*;
 use uuid::Uuid;
 
 
-
+/// A mapping between text position and immutable ID.
 #[derive(Clone,Debug,Default,Deserialize,Eq,PartialEq,Serialize)]
-pub struct IdMap(pub Vec<(Span,ID)>);
+#[serde(transparent)]
+pub struct IdMap{ pub vec:Vec<(Span,ID)> }
 
 impl IdMap {
+    /// Create a new instance.
+    pub fn new(vec:Vec<(Span,ID)>) -> IdMap {
+        IdMap {vec}
+    }
+    /// Assigns Span to given ID.
     pub fn insert(&mut self, span:Span, id:ID) {
-        self.0.push((span, id));
+        self.vec.push((span, id));
     }
 }
 
@@ -1098,7 +1104,7 @@ mod tests {
         let func = Ast::new(Var    {name:"XX".into()}, Some(uid));
         let arg  = Ast::new(Var    {name:"YY".into()}, Some(uid));
         let ast  = Ast::new(Prefix {func,off:1,arg  }, Some(uid));
-        assert_eq!(ast.id_map(), IdMap(ids));
+        assert_eq!(ast.id_map(), IdMap::new(ids));
     }
 
     #[test]

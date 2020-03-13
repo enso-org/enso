@@ -43,7 +43,7 @@ pub fn is_identifier(ast:&Ast) -> bool {
 
 /// Retrieves the identifier's name, if the Ast node is an identifier. Otherwise, returns None.
 pub fn identifier_name(ast:&Ast) -> Option<String> {
-    is_identifier(ast).then_with(|| ast.repr())
+    is_identifier(ast).then(ast.repr())
 }
 
 

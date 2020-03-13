@@ -5,6 +5,7 @@ use ast::IdMap;
 use data::text::*;
 use parser::Parser;
 use parser::api::IsParser;
+use parser::api::SourceFile;
 
 use uuid::Uuid;
 use wasm_bindgen_test::wasm_bindgen_test_configure;
@@ -22,7 +23,7 @@ fn web_test() {
 
     let mut parse = |input:&str| {
         let span = Span::from((0,input.len()));
-        let ids  = IdMap(vec![(span,uuid)]);
+        let ids  = IdMap::new(vec![(span,uuid)]);
         let ast  = parser.parse(String::from(input), ids).unwrap().wrapped;
 
         match Rc::try_unwrap(ast).unwrap().wrapped.wrapped {
@@ -35,12 +36,18 @@ fn web_test() {
         ast::Module {lines: vec![ast::BlockLine {elem:term,off:0}]}
     };
 
-
     let app_x_y = ast::Prefix {func: Ast::var("x"), off: 3, arg: Ast::var("y")};
-    let var_xy  = ast::Var { name: "xy".into() };
-
+    let var_xy  = ast::Var {name:"xy".into()};
     assert_eq!(parse(""),       line(None));
     assert_eq!(parse("xy"),     line(Some(Ast::new(var_xy,  Some(uuid)))));
     assert_eq!(parse("x   y"),  line(Some(Ast::new(app_x_y, Some(uuid)))));
 
+    let mut deserialize_metadata = || {
+        let ast  = Ast::new(line(None), None);
+        let file = SourceFile {ast, metadata: serde_json::json!({})};
+        let code = String::try_from(&file).unwrap();
+        assert_eq!(parser.parse_with_metadata(code).unwrap(), file);
+    };
+
+    deserialize_metadata()
 }

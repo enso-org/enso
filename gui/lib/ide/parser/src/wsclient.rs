@@ -1,14 +1,18 @@
 #![cfg(not(target_arch = "wasm32"))]
 
 use crate::api;
-use crate::api::Error::*;
 use crate::prelude::*;
 
 use websocket::{
     stream::sync::TcpStream, ClientBuilder, Message,
 };
 
+use api::Ast;
+use api::Metadata;
+use api::Error::*;
+use api::SourceFile;
 use ast::IdMap;
+
 use std::fmt::Formatter;
 
 type WsTcpClient = websocket::sync::Client<TcpStream>;
@@ -85,14 +89,15 @@ impl From<serde_json::error::Error> for Error {
 /// All request supported by the Parser Service.
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub enum Request {
-    ParseRequest { program:String, ids:IdMap },
+    ParseRequest             { program: String, ids: IdMap },
+    ParseRequestWithMetadata { content: String },
 }
 
 /// All responses that Parser Service might reply with.
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
-pub enum Response {
-    Success { ast_json: String },
-    Error   { message:  String },
+pub enum Response<Metadata> {
+    Success { module  : SourceFile<Metadata> },
+    Error   { message : String               },
 }
 
 
@@ -102,6 +107,7 @@ pub enum Response {
 // ============
 
 /// Describes a WS endpoint.
+#[derive(Debug,Clone)]
 pub struct Config {
     pub host: String,
     pub port: i32,
@@ -151,7 +157,7 @@ mod internal {
         /// into a `Response`.
         ///
         /// Should be called exactly once after each `send_request` invocation.
-        pub fn recv_response(&mut self) -> Result<Response> {
+        pub fn recv_response<M:Metadata>(&mut self) -> Result<Response<M>> {
             let response = self.connection.recv_message()?;
             match response {
                 websocket::OwnedMessage::Text(text) => Ok(serde_json::from_str(&text)?),
@@ -163,16 +169,11 @@ mod internal {
         ///
         /// Both request and response are exchanged in JSON using text messages
         /// over WebSocket.
-        pub fn rpc_call(&mut self, request: Request) -> Result<Response> {
+        pub fn rpc_call<M:Metadata>
+        (&mut self, request: Request) -> Result<Response<M>> {
             self.send_request(request)?;
             self.recv_response()
         }
-    }
-
-    /// Deserialize AST from JSON text received from WS Parser Service.
-    pub fn from_json(json_text: &str) -> api::Result<api::Ast> {
-        let ast = serde_json::from_str::<api::Ast>(json_text);
-        Ok(ast.map_err(|e| Error::JsonDeserializationError(e, json_text.into()))?)
     }
 }
 
@@ -203,15 +204,25 @@ impl Debug for Client {
 }
 
 impl api::IsParser for Client {
-
-   fn parse(&mut self, program:String, ids:IdMap) -> api::Result<api::Ast> {
+    fn parse(&mut self, program:String, ids:IdMap) -> api::Result<Ast> {
         let request  = Request::ParseRequest {program,ids};
+        let response = self.rpc_call::<serde_json::Value>(request)?;
+        match response {
+            Response::Success {module} => Ok(module.ast),
+            Response::Error {message}  => Err(ParsingError(message)),
+        }
+    }
+
+    fn parse_with_metadata<M:Metadata>
+    (&mut self, program:String) -> api::Result<SourceFile<M>> {
+        let request  = Request::ParseRequestWithMetadata {content:program};
         let response = self.rpc_call(request)?;
         match response {
-            Response::Success { ast_json } => internal::from_json(&ast_json),
-            Response::Error   { message  } => Err(ParsingError(message)),
+            Response::Success {module} => Ok(module),
+            Response::Error {message}  => Err(ParsingError(message)),
         }
-   }
+    }
+
 }
 
 
