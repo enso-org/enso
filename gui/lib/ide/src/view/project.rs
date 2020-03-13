@@ -66,6 +66,10 @@ impl ProjectView {
     pub async fn new(logger:&Logger, controller:controller::project::Handle)
     -> FallibleResult<Self> {
         let path                 = Path::new(INITIAL_FILE_PATH);
+        // This touch is to ensure, that our hardcoded module exists (so we don't require
+        // additional user/tester action to run IDE. It will be removed once we will support opening
+        // any module file.
+        controller.file_manager().touch(path.clone()).await?;
         let text_controller      = controller.get_text_controller(path).await?;
         let world                = WorldData::new(&web::get_html_element_by_id("root").unwrap());
         let logger               = logger.sub("ProjectView");

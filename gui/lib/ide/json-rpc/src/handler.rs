@@ -67,7 +67,7 @@ impl IdGenerator {
     }
 
     /// Create a new IdGenerator counting from 0.
-    fn new() -> IdGenerator {
+    pub fn new() -> IdGenerator {
         IdGenerator::new_from(0)
     }
 
@@ -77,6 +77,11 @@ impl IdGenerator {
     }
 }
 
+impl Default for IdGenerator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 
 // =============

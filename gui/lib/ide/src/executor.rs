@@ -3,3 +3,6 @@
 
 pub mod web;
 pub mod global;
+
+#[cfg(test)]
+pub mod test_utils;
