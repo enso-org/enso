@@ -22,15 +22,24 @@ use crate::prelude::*;
 
 use ast::Ast;
 use ast::IdMap;
+
 use std::panic;
 
 pub use enso_prelude as prelude;
 
 
-
 // ==============
 // === Parser ===
 // ==============
+
+/// Websocket parser client.
+/// Used as an interface for our (scala) parser.
+#[cfg(not(target_arch = "wasm32"))]
+type Client = wsclient::Client;
+/// Javascript parser client.
+/// Used as an interface for our (scala) parser.
+#[cfg(target_arch = "wasm32")]
+type Client = jsclient::Client;
 
 /// Handle to a parser implementation.
 ///
@@ -39,7 +48,7 @@ pub use enso_prelude as prelude;
 /// implementation provided by `wsclient` or `jsclient`.
 #[derive(Clone,Debug,Shrinkwrap)]
 #[shrinkwrap(mutable)]
-pub struct Parser(pub Rc<RefCell<dyn api::IsParser>>);
+pub struct Parser(pub Rc<RefCell<Client>>);
 
 impl Parser {
     /// Obtains a default parser implementation.
@@ -67,6 +76,11 @@ impl Parser {
 impl api::IsParser for Parser {
     fn parse(&mut self, program:String, ids:IdMap) -> api::Result<Ast> {
         self.borrow_mut().parse(program,ids)
+    }
+
+    fn parse_with_metadata<M:api::Metadata>
+    (&mut self, program:String) -> api::Result<api::SourceFile<M>> {
+        self.borrow_mut().parse_with_metadata(program)
     }
 }
 

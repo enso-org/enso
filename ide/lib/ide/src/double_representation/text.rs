@@ -15,7 +15,7 @@ use data::text::Span;
 // TODO[ao]: It's a really minimalistic algorithm, just extends/shrinks span without caring about
 // code structure.
 pub fn apply_code_change_to_id_map(id_map:&mut IdMap, removed:&Span, inserted:&str) {
-    let IdMap(vector) = id_map;
+    let vector = &mut id_map.vec;
     let inserted_len  = Size::new(inserted.chars().count());
     vector.drain_filter(|(span,_)| removed.contains_span(&span));
     for (span, _) in vector {
@@ -53,7 +53,7 @@ mod test {
         let uuid3 = Uuid::new_v4();
         let uuid4 = Uuid::new_v4();
         let uuid5 = Uuid::new_v4();
-        let mut id_map = IdMap(vec!
+        let mut id_map = IdMap::new(vec!
         [ (Span::new(Index::new(0) , Size::new(3)), uuid1)
           , (Span::new(Index::new(5) , Size::new(2)), uuid2)
           , (Span::new(Index::new(7) , Size::new(2)), uuid3)
@@ -62,7 +62,7 @@ mod test {
         ]);
 
         apply_code_change_to_id_map(&mut id_map, &Span::new(Index::new(6),Size::new(4)), "a test");
-        let expected = IdMap(vec!
+        let expected = IdMap::new(vec!
         [ (Span::new(Index::new(0) , Size::new(3)), uuid1)
           , (Span::new(Index::new(5) , Size::new(7)), uuid2)
           , (Span::new(Index::new(12), Size::new(1)), uuid4)
@@ -71,7 +71,7 @@ mod test {
         assert_eq!(expected, id_map);
 
         apply_code_change_to_id_map(&mut id_map, &Span::new(Index::new(12), Size::new(2)), "x");
-        let expected = IdMap(vec!
+        let expected = IdMap::new(vec!
         [ (Span::new(Index::new(0) , Size::new(3)), uuid1)
           , (Span::new(Index::new(5) , Size::new(8)), uuid2)
           , (Span::new(Index::new(14), Size::new(2)), uuid5)
