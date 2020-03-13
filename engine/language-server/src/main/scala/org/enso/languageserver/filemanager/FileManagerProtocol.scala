@@ -102,4 +102,18 @@ object FileManagerProtocol {
     * @param result either file system failure or file existence flag
     */
   case class ExistsFileResult(result: Either[FileSystemFailure, Boolean])
+
+  /**
+    * Requests the Language Server to get a tree of a file system object.
+    *
+    * @param path to the file system object
+    */
+  case class TreeFile(path: Path, depth: Option[Int])
+
+  /**
+    * Returns a tree representation of a file system object.
+    *
+    * @param result either file system failure or directory tree
+    */
+  case class TreeFileResult(result: Either[FileSystemFailure, DirectoryTree])
 }

@@ -9,7 +9,11 @@ import org.enso.languageserver.event.{
   ClientEvent
 }
 import org.enso.languageserver.filemanager.FileManagerProtocol._
-import org.enso.languageserver.filemanager.{FileSystemApi, FileSystemObject}
+import org.enso.languageserver.filemanager.{
+  DirectoryTree,
+  FileSystemApi,
+  FileSystemObject
+}
 
 object LanguageProtocol {
 
@@ -132,6 +136,15 @@ class LanguageServer(config: Config, fs: FileSystemApi[IO])
         } yield exists
 
       sender ! ExistsFileResult(result)
+
+    case TreeFile(path, depth) =>
+      val result =
+        for {
+          rootPath  <- config.findContentRoot(path.rootId)
+          directory <- fs.tree(path.toFile(rootPath), depth).unsafeRunSync()
+        } yield DirectoryTree.fromDirectoryEntry(rootPath, path, directory)
+
+      sender ! TreeFileResult(result)
   }
   /* Note [Usage of unsafe methods]
      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

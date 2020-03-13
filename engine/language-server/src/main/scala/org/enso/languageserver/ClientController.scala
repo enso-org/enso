@@ -65,6 +65,7 @@ object ClientApi {
     .registerRequest(CopyFile)
     .registerRequest(MoveFile)
     .registerRequest(ExistsFile)
+    .registerRequest(TreeFile)
     .registerNotification(ForceReleaseCapability)
     .registerNotification(GrantCapability)
     .registerNotification(TextDidChange)
@@ -159,6 +160,9 @@ class ClientController(
 
     case Request(ExistsFile, id, params: ExistsFile.Params) =>
       existsFile(webActor, id, params)
+
+    case Request(TreeFile, id, params: TreeFile.Params) =>
+      treeFile(webActor, id, params)
   }
 
   private def readFile(
@@ -315,4 +319,27 @@ class ClientController(
           webActor ! ResponseError(Some(id), ServiceError)
       }
   }
+
+  private def treeFile(
+    webActor: ActorRef,
+    id: Id,
+    params: TreeFile.Params
+  ): Unit = {
+    (server ? FileManagerProtocol.TreeFile(params.path, params.depth))
+      .onComplete {
+        case Success(FileManagerProtocol.TreeFileResult(Right(tree))) =>
+          webActor ! ResponseResult(TreeFile, id, TreeFile.Result(tree))
+
+        case Success(FileManagerProtocol.TreeFileResult(Left(failure))) =>
+          webActor ! ResponseError(
+            Some(id),
+            FileSystemFailureMapper.mapFailure(failure)
+          )
+
+        case Failure(th) =>
+          log.error("An exception occured during a tree operation", th)
+          webActor ! ResponseError(Some(id), ServiceError)
+      }
+  }
+
 }

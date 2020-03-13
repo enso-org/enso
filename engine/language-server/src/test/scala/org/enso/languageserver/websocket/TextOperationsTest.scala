@@ -1,6 +1,6 @@
 package org.enso.languageserver.websocket
 
-import akka.testkit.{TestKit, TestProbe}
+import akka.testkit.TestProbe
 import io.circe.literal._
 import org.enso.languageserver.event.BufferClosed
 import org.enso.languageserver.filemanager.Path
@@ -383,7 +383,7 @@ class TextOperationsTest extends WebSocketServerTest {
             "id": 2,
             "params": {
               "method": "canEdit",
-              "registerOptions": { 
+              "registerOptions": {
                 "path": {
                   "rootId": $testContentRootId,
                   "segments": [ "foo.txt" ]
@@ -398,7 +398,7 @@ class TextOperationsTest extends WebSocketServerTest {
             "method": "capability/forceReleased",
             "params": {
               "method": "canEdit",
-              "registerOptions": { 
+              "registerOptions": {
                 "path": {
                   "rootId": $testContentRootId,
                   "segments": [ "foo.txt" ]
@@ -437,7 +437,7 @@ class TextOperationsTest extends WebSocketServerTest {
             "method": "capability/forceReleased",
             "params": {
               "method": "canEdit",
-              "registerOptions": { 
+              "registerOptions": {
                 "path": {
                   "rootId": $testContentRootId,
                   "segments": [ "foo.txt" ]
@@ -775,7 +775,7 @@ class TextOperationsTest extends WebSocketServerTest {
           }
           """)
       eventProbe.expectMsg(
-        BufferClosed(Path(testContentRootId, List("foo.txt")))
+        BufferClosed(Path(testContentRootId, Vector("foo.txt")))
       )
     }
 

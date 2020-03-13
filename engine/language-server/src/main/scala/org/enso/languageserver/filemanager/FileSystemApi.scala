@@ -1,6 +1,9 @@
 package org.enso.languageserver.filemanager
 
 import java.io.File
+import java.nio.file.Path
+
+import scala.collection.mutable.ArrayBuffer
 
 /**
   * File manipulation API.
@@ -8,6 +11,8 @@ import java.io.File
   * @tparam F represents target monad
   */
 trait FileSystemApi[F[_]] {
+
+  import FileSystemApi._
 
   /**
     * Writes textual content to a file.
@@ -85,5 +90,77 @@ trait FileSystemApi[F[_]] {
     * @return either [[FileSystemFailure]] or file existence flag
     */
   def exists(file: File): F[Either[FileSystemFailure, Boolean]]
+
+  /**
+    * List contents of a given path.
+    *
+    * @param path to the file system object
+    * @return either [[FileSystemFailure]] or list of entries
+    */
+  def list(path: File): F[Either[FileSystemFailure, Vector[Entry]]]
+
+  /**
+    * Returns contents of a given path.
+    *
+    * @param path to the file system object
+    * @param depth maximum depth of a directory tree
+    * @return either [[FileSystemFailure]] or directory structure
+    */
+  def tree(
+    path: File,
+    depth: Option[Int]
+  ): F[Either[FileSystemFailure, DirectoryEntry]]
+}
+
+object FileSystemApi {
+
+  /**
+    * An object representing abstract file system entry.
+    */
+  sealed trait Entry {
+    def path: Path
+  }
+
+  /**
+    * An entry representing a directory.
+    *
+    * @param path to the directory
+    * @children a paths to the children entries
+    */
+  case class DirectoryEntry(path: Path, children: ArrayBuffer[Entry])
+      extends Entry
+
+  object DirectoryEntry {
+
+    def empty(path: Path): DirectoryEntry =
+      DirectoryEntry(path, ArrayBuffer())
+  }
+
+  /**
+    * An entry representing a directory with contents truncated.
+    *
+    * @param path to the directory
+    */
+  case class DirectoryEntryTruncated(path: Path) extends Entry
+
+  /**
+    * An entry representing a symbolic link.
+    *
+    * @param path to the symlink
+    * @param target of the symlink.
+    */
+  case class SymbolicLinkEntry(path: Path, target: Path) extends Entry
+
+  /**
+    * An entry representing a file.
+    *
+    * @param path to the file
+    */
+  case class FileEntry(path: Path) extends Entry
+
+  /**
+    * Unrecognized file system entry. Example is a broken symlink.
+    */
+  case class OtherEntry(path: Path) extends Entry
 
 }

@@ -6,6 +6,7 @@ import org.enso.languageserver.filemanager.FileManagerApi.{
   FileExistsError,
   FileNotFoundError,
   FileSystemError,
+  NotDirectoryError,
   OperationTimeoutError
 }
 import org.enso.languageserver.jsonrpc.Error
@@ -25,6 +26,7 @@ object FileSystemFailureMapper {
       case FileNotFound                     => FileNotFoundError
       case FileExists                       => FileExistsError
       case OperationTimeout                 => OperationTimeoutError
+      case NotDirectory                     => NotDirectoryError
       case GenericFileSystemFailure(reason) => FileSystemError(reason)
     }
 

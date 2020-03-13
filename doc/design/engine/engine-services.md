@@ -595,8 +595,6 @@ interface Path {
 }
 ```
 
-#### `AbsolutePath`
-
 ## Protocol Message Specification - Project Picker
 This section exists to contain a specification of each of the messages that the
 project picker supports. This is in order to aid in the proper creation of
@@ -951,24 +949,68 @@ A representation of what kind of type a filesystem object can be.
 ##### Format
 
 ```typescript
-type FileSystemObject = Directory | File | Symlink | Other;
+type FileSystemObject
+  = Directory
+  | DirectoryTruncated
+  | SymlinkLoop
+  | File
+  | Other;
 
+/**
+ * Represents a directory.
+ *
+ * @param name a name of the directory
+ * @param path a path to the directory
+ */
 interface Directory {
   name: String;
   path: Path;
 }
 
+/**
+ * Represents a directory which contents have been truncated.
+ *
+ * @param name a name of the directory
+ * @param path a path to the directory
+ */
+interface DirectoryTruncated {
+  name: String;
+  path: Path;
+}
+
+/**
+ * Represents a symbolic link that creates a loop.
+ *
+ * @param name a name of the symlink
+ * @param path a path to the symlink
+ * @param target a target of the symlink. Since it is a loop,
+ * target is a subpath of the symlink
+ */
+interface SymlinkLoop {
+  name: String;
+  path: Path;
+  target: Path;
+}
+
+/**
+ * Represents a file.
+ *
+ * @param name a name of the file
+ * @param path a path to the file
+ */
 interface File {
   name: String;
   path: Path;
 }
 
-interface Symlink {
-  source: Path;
-  target: Path | SystemPath;
-}
-
-interface Other;
+/**
+ * Represents unrecognized object.
+ * Example is a broken symbolic link.
+ */
+interface Other {
+  name: String;
+  path: Path;
+;
 ```
 
 #### `WorkspaceEdit`
@@ -1368,7 +1410,12 @@ the corresponding flag should be set.
 ```
 
 ##### Errors
-TBC
+- [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the
+  requested content root cannot be found.
+- [`FileNotFound`](#filenotfound) informs that requested path does not exist or
+  provided depth argument is <= 0.
+- [`NotDirectory`](#notdirectory) informs that requested path is not a
+  directory.
 
 #### `file/list`
 This request lists the contents of a given filesystem object. For a file it will
@@ -2051,6 +2098,16 @@ It signals that IO operation timed out.
 "error" : {
   "code" : 1005,
   "message" : "IO operation timeout"
+}
+```
+
+##### `NotDirectory`
+It signals that provided path is not a directory.
+
+```typescript
+"error" : {
+  "code" : 1006,
+  "message" : "Path is not a directory"
 }
 ```
 

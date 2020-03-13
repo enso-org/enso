@@ -31,6 +31,11 @@ case object FileExists extends FileSystemFailure
 case object OperationTimeout extends FileSystemFailure
 
 /**
+  * Signal that the provided path is not directory.
+  */
+case object NotDirectory extends FileSystemFailure
+
+/**
   * Signals file system specific errors.
   *
   * @param reason a reason of failure

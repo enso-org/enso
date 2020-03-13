@@ -1,9 +1,10 @@
 package org.enso.languageserver.websocket
 
-import java.nio.file.Paths
+import java.nio.file.{Files, Paths}
 import java.util.UUID
-import scala.io.{Source => IoSource}
+
 import io.circe.literal._
+import org.apache.commons.io.FileUtils
 
 class FileManagerTest extends WebSocketServerTest {
   "File Server" must {
@@ -30,9 +31,9 @@ class FileManagerTest extends WebSocketServerTest {
             "result": null
           }
           """)
-      client.expectNoMessage()
+
       val path = Paths.get(testContentRoot.toString, "foo", "bar", "baz.txt")
-      IoSource.fromFile(path.toFile).getLines().mkString shouldBe "123456789"
+      Files.readAllLines(path).get(0) shouldBe "123456789"
     }
 
     "return failure when a content root cannot be found" in {
@@ -60,7 +61,6 @@ class FileManagerTest extends WebSocketServerTest {
             }
           }
           """)
-      client.expectNoMessage()
     }
 
     "read a file content" in {
@@ -746,7 +746,6 @@ class FileManagerTest extends WebSocketServerTest {
       to.toFile.isFile shouldBe true
     }
 
-
     "check file existence" in {
       val client = new WsTestClient(address)
       val path   = Paths.get(testContentRoot.toString, "nonexistent.txt")
@@ -775,6 +774,721 @@ class FileManagerTest extends WebSocketServerTest {
           """)
     }
 
+    "get a root tree" in withCleanRoot {
+      val client = new WsTestClient(address)
+
+      // create:
+      //
+      // base
+      // ├── a.txt
+      // └── subdir
+      //     └── b.txt
+
+      // create base/a.txt
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/create",
+            "id": 28,
+            "params": {
+              "object": {
+                "type": "File",
+                "name": "a.txt",
+                "path": {
+                  "rootId": $testContentRootId,
+                  "segments": [ "base" ]
+                }
+              }
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 28,
+            "result": null
+          }
+          """)
+
+      // create base/subdir/b.txt
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/create",
+            "id": 29,
+            "params": {
+              "object": {
+                "type": "File",
+                "name": "b.txt",
+                "path": {
+                  "rootId": $testContentRootId,
+                  "segments": [ "base", "subdir" ]
+                }
+              }
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 29,
+            "result": null
+          }
+          """)
+
+      // get a tree of a root
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/tree",
+            "id": 30,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ ]
+              }
+            }
+          }
+      """)
+      // expect:
+      //
+      // $testContentRoot
+      // └── base
+      //     ├── a.txt
+      //     └── subdir
+      //         └── b.txt
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 30,
+            "result": {
+              "tree": {
+                "path": {
+                  "rootId": $testContentRootId,
+                  "segments": [
+                    ".."
+                  ]
+                },
+                "name": ${testContentRoot.getFileName.toString},
+                "files": [
+                ],
+                "directories": [
+                  {
+                    "path": {
+                      "rootId": $testContentRootId,
+                      "segments": [
+                      ]
+                    },
+                    "name": "base",
+                    "files": [
+                      {
+                        "type": "File",
+                        "name": "a.txt",
+                        "path": {
+                          "rootId": $testContentRootId,
+                          "segments": [
+                            "base"
+                          ]
+                        }
+                      }
+                    ],
+                    "directories": [
+                      {
+                        "path" : {
+                          "rootId" : $testContentRootId,
+                          "segments": [
+                            "base"
+                          ]
+                        },
+                        "name": "subdir",
+                        "files": [
+                          {
+                            "type": "File",
+                            "name": "b.txt",
+                            "path": {
+                              "rootId": $testContentRootId,
+                              "segments": [
+                                "base",
+                                "subdir"
+                              ]
+                            }
+                          }
+                        ],
+                        "directories": [
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+          """)
+    }
+
+    "get a directory tree" in {
+      val client = new WsTestClient(address)
+
+      // create:
+      //
+      // base
+      // ├── a.txt
+      // └── subdir
+      //     └── b.txt
+
+      // create base/a.txt
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/create",
+            "id": 31,
+            "params": {
+              "object": {
+                "type": "File",
+                "name": "a.txt",
+                "path": {
+                  "rootId": $testContentRootId,
+                  "segments": [ "base" ]
+                }
+              }
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 31,
+            "result": null
+          }
+          """)
+
+      // create base/subdir/b.txt
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/create",
+            "id": 32,
+            "params": {
+              "object": {
+                "type": "File",
+                "name": "b.txt",
+                "path": {
+                  "rootId": $testContentRootId,
+                  "segments": [ "base", "subdir" ]
+                }
+              }
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 32,
+            "result": null
+          }
+          """)
+
+      // get a tree of 'base'
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/tree",
+            "id": 33,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "base" ]
+              }
+            }
+          }
+      """)
+      // expect:
+      //
+      // base
+      // ├── a.txt
+      // └── subdir
+      //     └── b.txt
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 33,
+            "result": {
+              "tree": {
+                "path": {
+                  "rootId": $testContentRootId,
+                  "segments": [
+                  ]
+                },
+                "name": "base",
+                "files": [
+                  {
+                    "type": "File",
+                    "name": "a.txt",
+                    "path": {
+                      "rootId": $testContentRootId,
+                      "segments": [
+                        "base"
+                      ]
+                    }
+                  }
+                ],
+                "directories": [
+                  {
+                    "path": {
+                      "rootId": $testContentRootId,
+                      "segments": [
+                        "base"
+                      ]
+                    },
+                    "name": "subdir",
+                    "files": [
+                      {
+                        "type": "File",
+                        "name": "b.txt",
+                        "path": {
+                          "rootId": $testContentRootId,
+                          "segments": [
+                            "base",
+                            "subdir"
+                          ]
+                        }
+                      }
+                    ],
+                    "directories": [
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+          """)
+    }
+
+    "get a truncated directory tree" in {
+      val client = new WsTestClient(address)
+
+      // create:
+      //
+      // base
+      // ├── a.txt
+      // └── subdir
+      //     └── b.txt
+
+      // create base/a.txt
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/create",
+            "id": 34,
+            "params": {
+              "object": {
+                "type": "File",
+                "name": "a.txt",
+                "path": {
+                  "rootId": $testContentRootId,
+                  "segments": [ "base" ]
+                }
+              }
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 34,
+            "result": null
+          }
+          """)
+
+      // create base/subdir/b.txt
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/create",
+            "id": 35,
+            "params": {
+              "object": {
+                "type": "File",
+                "name": "b.txt",
+                "path": {
+                  "rootId": $testContentRootId,
+                  "segments": [ "base", "subdir" ]
+                }
+              }
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 35,
+            "result": null
+          }
+          """)
+
+      // get a tree of 'base'
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/tree",
+            "id": 36,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "base" ]
+              },
+              "depth": 1
+            }
+          }
+      """)
+      // expect:
+      //
+      // base
+      // ├── a.txt
+      // └── subdir
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 36,
+            "result": {
+              "tree": {
+                "path": {
+                  "rootId": $testContentRootId,
+                  "segments": [
+                  ]
+                },
+                "name": "base",
+                "files": [
+                  {
+                    "type": "File",
+                    "name": "a.txt",
+                    "path": {
+                      "rootId": $testContentRootId,
+                      "segments": [
+                        "base"
+                      ]
+                    }
+                  },
+                  {
+                    "type": "DirectoryTruncated",
+                    "name": "subdir",
+                    "path": {
+                      "rootId": $testContentRootId,
+                      "segments": [
+                        "base"
+                      ]
+                    }
+                  }
+                ],
+                "directories": [
+                ]
+              }
+            }
+          }
+          """)
+    }
+
+    "get a subdirectory tree" in {
+      val client = new WsTestClient(address)
+
+      // create base/a.txt
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/create",
+            "id": 37,
+            "params": {
+              "object": {
+                "type": "File",
+                "name": "a.txt",
+                "path": {
+                  "rootId": $testContentRootId,
+                  "segments": [ "base" ]
+                }
+              }
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 37,
+            "result": null
+          }
+          """)
+
+      // create base/subdir/b.txt
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/create",
+            "id": 38,
+            "params": {
+              "object": {
+                "type": "File",
+                "name": "b.txt",
+                "path": {
+                  "rootId": $testContentRootId,
+                  "segments": [ "base", "subdir" ]
+                }
+              }
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 38,
+            "result": null
+          }
+          """)
+
+      // get a tree of 'base/subdir'
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/tree",
+            "id": 39,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "base", "subdir" ]
+              }
+            }
+          }
+      """)
+      // expect:
+      //
+      // subdir
+      // └── b.txt
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 39,
+            "result": {
+              "tree": {
+                "path": {
+                  "rootId": $testContentRootId,
+                  "segments": [
+                    "base"
+                  ]
+                },
+                "name": "subdir",
+                "files": [
+                  {
+                    "type": "File",
+                    "name": "b.txt",
+                    "path": {
+                      "rootId": $testContentRootId,
+                      "segments": [
+                        "base",
+                        "subdir"
+                      ]
+                    }
+                  }
+                ],
+                "directories": [
+                ]
+              }
+            }
+          }
+          """)
+    }
+
+    "get a directory tree with symlink" in {
+      val client = new WsTestClient(address)
+
+      // create:
+      //
+      // base2
+      // ├── link -> subdir
+      // └── subdir
+      //     └── b.txt
+
+      // create base2/subdir/b.txt
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/create",
+            "id": 40,
+            "params": {
+              "object": {
+                "type": "File",
+                "name": "b.txt",
+                "path": {
+                  "rootId": $testContentRootId,
+                  "segments": [ "base2", "subdir" ]
+                }
+              }
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 40,
+            "result": null
+          }
+          """)
+
+      // create symlink base/link -> base/subdir
+      val symlink = Paths.get(testContentRoot.toString, "base2", "link")
+      val subdir  = Paths.get(testContentRoot.toString, "base2", "subdir")
+      Files.createSymbolicLink(symlink, subdir)
+      Files.isSymbolicLink(symlink) shouldBe true
+
+      // get a tree of 'base'
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/tree",
+            "id": 41,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "base2" ]
+              }
+            }
+          }
+      """)
+      // expect:
+      //
+      // base2
+      // └── link
+      //     └── b.txt
+      // └── subdir
+      //     └── b.txt
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 41,
+            "result": {
+              "tree": {
+                "path": {
+                  "rootId": $testContentRootId,
+                  "segments": [
+                  ]
+                },
+                "name": "base2",
+                "files": [
+                ],
+                "directories": [
+                  {
+                    "path" : {
+                      "rootId" : $testContentRootId,
+                      "segments" : [
+                        "base2"
+                      ]
+                    },
+                    "name" : "link",
+                    "files" : [
+                      {
+                        "type" : "File",
+                        "name" : "b.txt",
+                        "path" : {
+                          "rootId" : $testContentRootId,
+                          "segments" : [
+                            "base2",
+                            "link"
+                          ]
+                        }
+                      }
+                    ],
+                    "directories" : [
+                    ]
+                  },
+                  {
+                    "path": {
+                      "rootId": $testContentRootId,
+                      "segments": [
+                        "base2"
+                      ]
+                    },
+                    "name": "subdir",
+                    "files": [
+                      {
+                        "type": "File",
+                        "name": "b.txt",
+                        "path": {
+                          "rootId": $testContentRootId,
+                          "segments": [
+                            "base2",
+                            "subdir"
+                          ]
+                        }
+                      }
+                    ],
+                    "directories": [
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+          """)
+    }
+
+    "get a directory tree with symlink outside of root" in {
+      val client = new WsTestClient(address)
+
+      // create base3
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/create",
+            "id": 42,
+            "params": {
+              "object": {
+                "type": "Directory",
+                "name": "base3",
+                "path": {
+                  "rootId": $testContentRootId,
+                  "segments": [ ]
+                }
+              }
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 42,
+            "result": null
+          }
+          """)
+
+      // create symlink base3/link -> $testOtherRoot
+      val testOtherRoot = Files.createTempDirectory(null)
+      val symlink       = Paths.get(testContentRoot.toString, "base3", "link")
+      Files.createSymbolicLink(symlink, testOtherRoot)
+      Files.isSymbolicLink(symlink) shouldBe true
+
+      // get a tree of 'base3'
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/tree",
+            "id": 43,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "base3" ]
+              }
+            }
+          }
+      """)
+      // expect:
+      //
+      // base3
+      // └── link
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 43,
+            "result": {
+              "tree": {
+                "path": {
+                  "rootId": $testContentRootId,
+                  "segments": [
+                  ]
+                },
+                "name": "base3",
+                "files": [
+                ],
+                "directories": [
+                  {
+                    "path" : {
+                      "rootId" : $testContentRootId,
+                      "segments" : [
+                        "base3"
+                      ]
+                    },
+                    "name" : "link",
+                    "files" : [
+                    ],
+                    "directories" : [
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+          """)
+    }
+
+  }
+
+  def withCleanRoot[T](test: => T): T = {
+    FileUtils.cleanDirectory(testContentRoot.toFile)
+    test
   }
 
 }
