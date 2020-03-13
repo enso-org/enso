@@ -361,7 +361,7 @@ class Parser {
     ) {
       def process(context: Context): AST.ASTOf[T] = {
         def assignmentInBlock(opr: AST.Opr): Boolean =
-          context == Block & opr.name == '='
+          context == Block && opr.name == "="
 
         ast match {
           case AST.Module.any(block) => block.map(_.process(Block))
