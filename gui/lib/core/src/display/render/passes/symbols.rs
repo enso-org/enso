@@ -1,32 +1,32 @@
-//! Pass allowing rendering a chosen display object.
+//! Pass for rendering all symbols.
 
 use crate::prelude::*;
 
-use crate::display::object::DisplayObjectData;
 use crate::display::render::pipeline::*;
 use crate::system::gpu::*;
+use crate::display::symbol::registry::SymbolRegistry;
 
 
 
-// ===============================
-// === DisplayObjectRenderPass ===
-// ===============================
+// =========================
+// === SymbolsRenderPass ===
+// =========================
 
-/// Pass allowing rendering a chosen display object. The results are stored in a `'color'` variable.
+/// Pass for rendering all symbols. The results are stored in a `'color'` variable.
 #[derive(Clone,Debug)]
-pub struct DisplayObjectRenderPass {
-    target: DisplayObjectData
+pub struct SymbolsRenderPass {
+    target: SymbolRegistry
 }
 
-impl DisplayObjectRenderPass {
+impl SymbolsRenderPass {
     /// Constructor.
-    pub fn new(target:&DisplayObjectData) -> Self {
+    pub fn new(target:&SymbolRegistry) -> Self {
         let target = target.clone_ref();
         Self {target}
     }
 }
 
-impl RenderPass for DisplayObjectRenderPass {
+impl RenderPass for SymbolsRenderPass {
     fn outputs(&self) -> Vec<RenderPassOutput> {
         vec![ RenderPassOutput::new("color",texture::Rgba,texture::item_type::u8)
             , RenderPassOutput::new("id",texture::Rgba32ui,texture::item_type::u32)

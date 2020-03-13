@@ -114,7 +114,7 @@ macro_rules! shared_bracket_impl {
     ([impl [$($impl_params:tt)*] $name:ident $name_mut:ident $([$($params:tt)*])?] [
         $(
             $(#[$($meta:tt)*])*
-            pub fn $fn_name:ident
+            $acc:vis fn $fn_name:ident
             $([$($fn_params:tt)*])? ($($fn_args:tt)*) $(-> $fn_type:ty)? $(where $($wt1:ty : $wt2:path),* )? {
                 $($fn_body:tt)*
             }
@@ -123,7 +123,7 @@ macro_rules! shared_bracket_impl {
         impl <$($impl_params)*> $name_mut $(<$($params)*>)? {
             $(
                 $(#[$($meta)*])*
-                pub fn $fn_name $(<$($fn_params)*>)*
+                $acc fn $fn_name $(<$($fn_params)*>)*
                 ($($fn_args)*) $(-> $fn_type)? $(where $($wt1 : $wt2),* )? {$($fn_body)*}
             )*
         }
@@ -131,7 +131,7 @@ macro_rules! shared_bracket_impl {
         impl <$($impl_params)*> $name $(<$($params)*>)? {
             $($crate::shared_bracket_fn! {
                 $name_mut :: $(#[$($meta)*])*
-                pub fn $fn_name [$($($fn_params)*)*] ($($fn_args)*) $(-> $fn_type)? $(where $($wt1 : $wt2),* )?
+                $acc fn $fn_name [$($($fn_params)*)*] ($($fn_args)*) $(-> $fn_type)? $(where $($wt1 : $wt2),* )?
             })*
         }
     };
@@ -139,24 +139,24 @@ macro_rules! shared_bracket_impl {
 
 #[macro_export]
 macro_rules! shared_bracket_fn {
-    ( $base:ident :: $(#[$($meta:tt)*])* pub fn new $([$($params:tt)*])?
+    ( $base:ident :: $(#[$($meta:tt)*])* $acc:vis fn new $([$($params:tt)*])?
       ($($arg:ident : $arg_type:ty),*) $(-> $type:ty)? $(where $($wt1:ty : $wt2:path),* )? ) => {
         $(#[$($meta)*])*
-        pub fn new $(<$($params)*>)* ($($arg : $arg_type),*) $(-> $type)? $(where $($wt1 : $wt2),* )? {
+        $acc fn new $(<$($params)*>)* ($($arg : $arg_type),*) $(-> $type)? $(where $($wt1 : $wt2),* )? {
             Self { rc: Rc::new(RefCell::new($base::new($($arg),*))) }
         }
     };
-    ( $base:ident :: $(#[$($meta:tt)*])* pub fn $name:ident $([$($params:tt)*])?
+    ( $base:ident :: $(#[$($meta:tt)*])* $acc:vis fn $name:ident $([$($params:tt)*])?
       (&self $(,$($arg:ident : $arg_type:ty),+)?) $(-> $type:ty)? $(where $($wt1:ty : $wt2:path),* )? ) => {
         $(#[$($meta)*])*
-        pub fn $name $(<$($params)*>)* (&self $(,$($arg : $arg_type),*)?) $(-> $type)? $(where $($wt1 : $wt2),* )? {
+        $acc fn $name $(<$($params)*>)* (&self $(,$($arg : $arg_type),*)?) $(-> $type)? $(where $($wt1 : $wt2),* )? {
             self.rc.borrow().$name($($($arg),*)?)
         }
     };
-    ( $base:ident :: $(#[$($meta:tt)*])* pub fn $name:ident $([$($params:tt)*])?
+    ( $base:ident :: $(#[$($meta:tt)*])* $acc:vis fn $name:ident $([$($params:tt)*])?
       (&mut self $(,$($arg:ident : $arg_type:ty),+)?) $(-> $type:ty)? $(where $($wt1:ty : $wt2:path),* )? ) => {
         $(#[$($meta)*])*
-        pub fn $name $(<$($params)*>)* (&self $(,$($arg : $arg_type),*)?) $(-> $type)? $(where $($wt1 : $wt2),* )? {
+        $acc fn $name $(<$($params)*>)* (&self $(,$($arg : $arg_type),*)?) $(-> $type)? $(where $($wt1 : $wt2),* )? {
             self.rc.borrow_mut().$name($($($arg),*)?)
         }
     };
@@ -166,6 +166,7 @@ macro_rules! shared_bracket_fn {
 macro_rules! shared_bracket_normalized {
     ( [$name:ident] [
         $(#[$($meta:tt)*])*
+        $(##[$($imeta:tt)*])*
         pub struct $name_mut:ident $params:tt {
             $($(#[$($field_meta:tt)*])* $field:ident : $field_type:ty),* $(,)?
         }
@@ -174,6 +175,7 @@ macro_rules! shared_bracket_normalized {
     ]) => {
         $crate::shared_struct! {
             $(#[$($meta)*])*
+            $(##[$($imeta)*])*
             pub struct $name $name_mut $params {
                 $($(#[$($field_meta)*])* $field : $field_type),*
             }
@@ -189,6 +191,7 @@ macro_rules! shared_bracket_normalized {
 macro_rules! shared_struct {
     (
         $(#[$($meta:tt)*])*
+        $(##[$($imeta:tt)*])*
         pub struct $name:ident $name_mut:ident [$($params:tt)*] {
             $($(#[$($field_meta:tt)*])* $field:ident : $field_type:ty),* $(,)?
         }
@@ -197,6 +200,7 @@ macro_rules! shared_struct {
         pub struct $name <$($params)*> { rc: Rc<RefCell<$name_mut<$($params)*>>> }
 
         $(#[$($meta)*])*
+        $(#[$($imeta)*])*
         pub struct $name_mut <$($params)*> { $($(#[$($field_meta)*])* $field : $field_type),* }
 
         impl<$($params)*> Clone for $name <$($params)*> {

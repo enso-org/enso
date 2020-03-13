@@ -1,59 +1,25 @@
-let fss = require('fs')
-let fs  = require('fs').promises
-let cmd = require('./lib/cmd')
-let ncp = require('ncp').ncp
+let fss   = require('fs')
+let fs    = require('fs').promises
+let cmd   = require('./lib/cmd')
+let ncp   = require('ncp').ncp
+let yargs = require('yargs')
 
-let argv = require('minimist')(process.argv.slice(2),{'--':true})
-let child_argv = argv['--']
+
+
+// ====================
+// === Global Setup ===
+// ====================
 
 let root = __dirname + '/..'
 process.chdir(root)
 
+/// Arguments passed to sub-processes called from this script. This variable is set to a specific
+/// value after the command line args get parsed.
+let subProcessArgs = undefined
 
-
-// ============
-// === Help ===
-// ============
-
-const HELP_MESSAGE = `
-Enso building utility.
-
-Usage: run command [options]
-Please note that all arguments after '--' will be passed to sub-commands.
-
-Commands:
-    help     Print this help message.
-    clean    Clean all build artifacts.
-    check    Fast check if project builds (only Rust target).
-    build    Build the sources.
-    dist     Build the sources and create distribution packages.
-    watch    Start a file-watch utility and run interactive mode.
-
-Options:
-    --help   Print this help message
-    --js     Run the JavaScript target [true].
-    --rust   Run the Rust target [true].
-`
-
-function print_help () {
-    console.log(HELP_MESSAGE)
-    process.exit()
-}
-
-function validate_options() {
-    let args_check = Object.assign({},argv)
-    for (arg of ['_','--','validation','help','rust','js']) {
-        delete args_check[arg]
-    }
-
-    let unrecognized = Object.keys(args_check)
-    if (unrecognized.length > 0) {
-        console.error(`[ERROR] The following arguments were not recognized: ${unrecognized}.`)
-        console.error(`Use --help to learn about available commands and options.`)
-        process.exit()
-    }
-}
-validate_options()
+/// Arguments passed to a target binary if any. This variable is set to a specific value after the
+// command line args get parsed.
+let targetArgs = undefined
 
 
 
@@ -61,6 +27,7 @@ validate_options()
 // === Utils ===
 // =============
 
+/// Copy files and directories.
 async function copy(src,tgt) {
     return new Promise((resolve, reject) => {
         ncp(src,tgt,(err) => {
@@ -72,53 +39,59 @@ async function copy(src,tgt) {
 
 /// Run the command with the provided args and all args passed to this script after the `--` symbol.
 async function run(command,args) {
-    await cmd.run(command,args.concat(child_argv))
+    await cmd.run(command,args.concat(subProcessArgs))
+}
+
+
+/// Defines a new command argument builder.
+function command(docs) {
+    return {docs}
 }
 
 
 
-// =============
-// === Clean ===
-// =============
+// ================
+// === Commands ===
+// ================
 
-async function clean_js () {
+let commands = {}
+
+
+// === Clean ===
+
+commands.clean = command(`Clean all build artifacts`)
+commands.clean.js = async function() {
     await cmd.with_cwd('app', async () => {
         await run('npm',['run','clean'])
     })
     try { await fs.unlink('.initialized') } catch {}
 }
 
-async function clean_rust () {
+commands.clean.rust = async function() {
     try { await fs.rmdir('app/generated') } catch {}
     await run('cargo',['clean'])
 }
 
 
-
-// =============
 // === Check ===
-// =============
 
-async function check_rust() {
+commands.check = command(`Fast check if project builds (only Rust target)`)
+commands.check.rust = async function() {
     await run('cargo',['check'])
 }
 
-async function check_js() {}
 
-
-
-// =============
 // === Build ===
-// =============
 
-async function build_js () {
+commands.build = command(`Build the sources in release mode`)
+commands.build.js = async function() {
     console.log(`Building JS target.`)
     await cmd.with_cwd('app', async () => {
         await run('npm',['run','build'])
     })
 }
 
-async function build_rust () {
+commands.build.rust = async function() {
     console.log(`Building WASM target.`)
     await run('wasm-pack',['build','--target','web','--no-typescript','--out-dir','../../target/web','lib/gui'])
     await patch_file('target/web/gui.js', js_workaround_patcher)
@@ -148,48 +121,134 @@ async function patch_file(path,patcher) {
 }
 
 
+// === Start ===
 
-// ============
+commands.start = command(`Build and start desktop client`)
+commands.start.rust = async function() {
+   await commands.build.rust()
+}
+
+commands.start.js = async function() {
+    console.log(`Building JS target.`)
+    await cmd.with_cwd('app', async () => {
+        await run('npm',['run','start','--'].concat(targetArgs))
+    })
+}
+
+
+// === Test ===
+
+commands.test = command(`Run test suites`)
+commands.test.rust = async function() {
+    console.log(`Running WASM test suite.`)
+    await run('cargo',['test'])
+
+    console.log(`Running WASM visual test suite.`)
+    await run('cargo',['run','--manifest-path=build/rust/Cargo.toml','--bin','test-all',
+                       '--','--headless','--chrome'])
+}
+
+
 // === Lint ===
-// ============
 
-async function lint_rust() {
+commands.lint = command(`Lint the codebase`)
+commands.lint.rust = async function() {
     await run('cargo',['clippy','--','-D','warnings'])
 }
 
-async function lint_js() {}
 
-
-
-// =============
 // === Watch ===
-// =============
 
-async function watch_rust () {
-    let target = '"' + 'node ./run build -- --dev ' + child_argv.join(" ") + '"'
+commands.watch = command(`Start a file-watch utility and run interactive mode`)
+commands.watch.parallel = true
+commands.watch.rust = async function() {
+    let target = '"' + 'node ./run build --no-js -- --dev ' + subProcessArgs.join(" ") + '"'
     let args = ['watch','--watch','lib','-s',`${target}`]
     await cmd.run('cargo',args)
 }
 
-async function watch_js () {
+commands.watch.js = async function() {
     await cmd.with_cwd('app', async () => {
         await run('npm',['run','watch'])
     })
 }
 
 
-
-// ============
 // === Dist ===
-// ============
 
-async function dist_rust () {
-    await build_rust()
+commands.dist = command(`Build the sources and create distribution packages`)
+commands.dist.rust = async function() {
+    await commands.build.rust()
 }
 
-async function dist_js () {
+commands.dist.js = async function() {
     await cmd.with_cwd('app', async () => {
         await run('npm',['run','dist'])
+    })
+}
+
+
+
+// ===========================
+// === Command Line Parser ===
+// ===========================
+
+let usage = `run command [options]
+
+All arguments after '--' will be passed to build sub-commands.
+All arguments after second '--' will be passed to target executable if any.
+For example, 'run start -- --dev -- --debug-scene shapes' will pass '--dev' to build \
+utilities and '--debug-scene shapes' to the output binary.`
+
+let optParser = yargs
+    .scriptName("")
+    .usage(usage)
+    .help()
+    .parserConfiguration({'populate--':true})
+    .demandCommand()
+
+optParser.options('rust', {
+    describe : 'Run the Rust target',
+    type     : 'bool',
+    default  : true
+})
+
+optParser.options('js', {
+    describe : 'Run the JavaScript target',
+    type     : 'bool',
+    default  : true
+})
+
+let commandList = Object.keys(commands)
+commandList.sort()
+for (let command of commandList) {
+    let config = commands[command]
+    optParser.command(command,config.docs,(args) => {}, function (argv) {
+        subProcessArgs = argv['--']
+        if(subProcessArgs === undefined) { subProcessArgs = [] }
+        let index = subProcessArgs.indexOf('--')
+        if (index == -1) {
+            targetArgs = []
+        }
+        else {
+            targetArgs     = subProcessArgs.slice(index + 1)
+            subProcessArgs = subProcessArgs.slice(0,index)
+        }
+        let runner = async function () {
+            let do_rust = argv.rust && config.rust
+            let do_js   = argv.js   && config.js
+            if(config.parallel) {
+                let promises = []
+                if (do_rust) { promises.push(config.rust(argv)) }
+                if (do_js)   { promises.push(config.js(argv)) }
+                await Promise.all(promises)
+            } else {
+                if (do_rust) { await config.rust(argv) }
+                if (do_js)   { await config.js(argv)   }
+            }
+        }
+        cmd.section(command)
+        runner()
     })
 }
 
@@ -199,57 +258,27 @@ async function dist_js () {
 // === Main ===
 // ============
 
+async function updateBuildVersion () {
+    let config        = {}
+    let generatedPath = root + '/app/generated'
+    let configPath    = generatedPath + '/build.json'
+    let exists        = fss.existsSync(configPath)
+    if(exists) {
+        let configFile = await fs.readFile(configPath)
+        config         = JSON.parse(configFile)
+    }
+    let commitHashCmd = await cmd.run_read('git',['rev-parse','--short','HEAD'])
+    let commitHash    = commitHashCmd.trim()
+    if (config.buildVersion != commitHash) {
+        config.buildVersion = commitHash
+        await fs.mkdir(generatedPath,{recursive:true})
+        await fs.writeFile(configPath,JSON.stringify(config,undefined,2))
+    }
+}
+
 async function main () {
-    let command = argv._[0]
-
-    let do_rust = (argv.rust == true) || (argv.rust == undefined)
-    let do_js   = (argv.js   == true) || (argv.js   == undefined)
-
-    if (command == 'clean') {
-        cmd.section('Cleaning')
-        if (do_rust) { await clean_rust() }
-        if (do_js)   { await clean_js() }
-        return
-    }
-
-    if (command == 'watch') {
-        cmd.section('Watching')
-        let promises = []
-        if (do_rust) { promises.push(watch_rust()) }
-        if (do_js)   { promises.push(watch_js()) }
-        await Promise.all(promises)
-        return
-    }
-
-    if (command == 'build') {
-        cmd.section('Building')
-        if (do_rust) { await build_rust() }
-        if (do_js)   { await build_js() }
-        return
-    }
-
-    if (command == 'check') {
-        cmd.section('Checking')
-        if (do_rust) { await check_rust() }
-        if (do_js)   { await check_js() }
-        return
-    }
-
-    if (command == 'lint') {
-        cmd.section('Linting')
-        if (do_rust) { await lint_rust() }
-        if (do_js)   { await lint_js() }
-        return
-    }
-
-    if (command == 'dist') {
-        cmd.section('Packaging')
-        await dist_rust()
-        await dist_js()
-        return
-    }
-
-    print_help()
+    updateBuildVersion()
+    optParser.argv
 }
 
 main()

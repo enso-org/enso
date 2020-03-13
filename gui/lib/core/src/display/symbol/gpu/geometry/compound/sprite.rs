@@ -4,9 +4,11 @@
 
 use crate::prelude::*;
 
+use crate::display::traits::*;
+
 use crate::debug::Stats;
 use crate::display::layout::types::*;
-use crate::display::object::*;
+use crate::display;
 use crate::display::symbol::material::Material;
 use crate::display::symbol::Symbol;
 use crate::display::world::World;
@@ -26,12 +28,13 @@ shared! { Sprite
 /// 2d representation as well.
 #[derive(Debug)]
 pub struct SpriteData {
-    symbol         : Symbol,
-    instance_id    : AttributeInstanceIndex,
-    display_object : DisplayObjectData,
-    transform      : Attribute<Matrix4<f32>>,
-    bbox           : Attribute<Vector2<f32>>,
-    stats          : Stats,
+    symbol           : Symbol,
+    instance_id      : AttributeInstanceIndex,
+    display_object   : display::object::Node,
+    transform        : Attribute<Matrix4<f32>>,
+    bbox             : Attribute<Vector2<f32>>,
+    stats            : Stats,
+    size_when_hidden : Rc<Cell<Vector2<f32>>>,
 }
 
 impl {
@@ -44,12 +47,36 @@ impl {
     , stats       : &Stats
     ) -> Self {
         stats.inc_sprite_count();
-        let symbol         = symbol.clone_ref();
-        let logger         = Logger::new(iformat!("Sprite{instance_id}"));
-        let display_object = DisplayObjectData::new(logger);
-        let stats          = stats.clone_ref();
-        display_object.set_on_updated(enclose!((transform) move |t| {transform.set(t.matrix())}));
-        Self {symbol,instance_id,display_object,transform,bbox,stats}
+        let symbol           = symbol.clone_ref();
+        let logger           = Logger::new(iformat!("Sprite{instance_id}"));
+        let display_object   = display::object::Node::new(logger);
+        let stats            = stats.clone_ref();
+        let size_when_hidden = Rc::new(Cell::new(Vector2::new(0.0,0.0)));
+
+        let this = Self {symbol,instance_id,display_object,transform,bbox,stats,size_when_hidden};
+        this.init_display_object();
+        this
+    }
+
+    /// Init display object bindings. In particular defines the behavior of the show and hide
+    /// callbacks.
+    fn init_display_object(&self) {
+        let bbox             = &self.bbox;
+        let transform        = &self.transform;
+        let size_when_hidden = &self.size_when_hidden;
+
+        self.display_object.set_on_updated(enclose!((transform) move |t| {
+            transform.set(t.matrix())
+        }));
+
+        self.display_object.set_on_hide(enclose!((bbox,size_when_hidden) move || {
+            size_when_hidden.set(bbox.get());
+            bbox.set(Vector2::new(0.0,0.0));
+        }));
+
+        self.display_object.set_on_show(enclose!((bbox,size_when_hidden) move || {
+            bbox.set(size_when_hidden.get());
+        }));
     }
 
     /// Modifies the position of the sprite.
@@ -78,7 +105,7 @@ impl {
     }
 }}
 
-impl From<&Sprite> for DisplayObjectData {
+impl From<&Sprite> for display::object::Node {
     fn from(t:&Sprite) -> Self {
         t.rc.borrow().display_object.clone_ref()
     }
@@ -117,15 +144,15 @@ pub struct SpriteSystemData {
 impl {
     /// Constructor.
     pub fn new(world:&World) -> Self {
-        let scene          = world.scene();
-        let stats          = scene.stats();
-        let symbol         = scene.new_symbol();
-        let mesh           = symbol.surface();
-        let point_scope    = mesh.point_scope();
-        let instance_scope = mesh.instance_scope();
-        let uv             = point_scope.add_buffer("uv");
-        let transform      = instance_scope.add_buffer("transform");
-        let size           = instance_scope.add_buffer("size");
+        let scene             = world.scene();
+        let stats             = scene.stats();
+        let symbol            = scene.new_symbol();
+        let mesh              = symbol.surface();
+        let point_scope       = mesh.point_scope();
+        let instance_scope    = mesh.instance_scope();
+        let uv                = point_scope.add_buffer("uv");
+        let transform         = instance_scope.add_buffer("transform");
+        let size              = instance_scope.add_buffer("size");
         let horizontal        = HorizontalAlignment::Center;
         let vertical          = VerticalAlignment::Center;
         let initial_alignment = Self::uv_offset(horizontal,vertical);
@@ -141,13 +168,24 @@ impl {
 
     /// Creates a new sprite instance.
     pub fn new_instance(&self) -> Sprite {
-        let instance_id = self.symbol.surface().instance_scope().add_instance();
-        let transform   = self.transform.at(instance_id);
-        let size        = self.size.at(instance_id);
-        size.set(Vector2::new(1.0,1.0));
+        let instance_id  = self.symbol.surface().instance_scope().add_instance();
+        let transform    = self.transform.at(instance_id);
+        let size         = self.size.at(instance_id);
+        let default_size = Vector2::new(1.0,1.0);
+        size.set(default_size);
         let sprite = Sprite::new(&self.symbol,instance_id,transform,size,&self.stats);
         self.add_child(&sprite);
         sprite
+    }
+
+    /// Hide the symbol. Hidden symbols will not be rendered.
+    pub fn hide(&self) {
+        self.symbol.hide();
+    }
+
+    /// Show the symbol. It will be rendered on next render call.
+    pub fn show(&self) {
+        self.symbol.show();
     }
 
     /// Accessor.
@@ -245,13 +283,13 @@ impl SpriteSystemData {
     }
 }
 
-impl From<&SpriteSystemData> for DisplayObjectData {
+impl From<&SpriteSystemData> for display::object::Node {
     fn from(t:&SpriteSystemData) -> Self {
         t.symbol.display_object()
     }
 }
 
-impl From<&SpriteSystem> for DisplayObjectData {
+impl From<&SpriteSystem> for display::object::Node {
     fn from(t:&SpriteSystem) -> Self {
         t.rc.borrow().display_object()
     }

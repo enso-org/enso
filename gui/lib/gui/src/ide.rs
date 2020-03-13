@@ -19,7 +19,6 @@ pub fn run_example_ide() {
                 p.remove_child(&t).unwrap()
             })
         }).ok();
-
         run_ide()
     });
 }

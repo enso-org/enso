@@ -4,8 +4,8 @@
 use crate::prelude::*;
 
 use crate::data::dirty;
+use crate::display;
 use crate::display::layout::types::*;
-use crate::display::object::DisplayObjectData;
 use crate::data::dirty::traits::*;
 use crate::control::callback::CallbackRegistry1;
 use crate::control::callback::CallbackHandle;
@@ -109,7 +109,7 @@ pub trait ZoomUpdateFn = CallbackMut1Fn<f32>;
 #[derive(Derivative)]
 #[derivative(Debug)]
 struct Camera2dData {
-    pub transform          : DisplayObjectData,
+    pub transform          : display::object::Node,
     screen                 : Screen,
     zoom                   : f32,
     native_z               : f32,
@@ -142,7 +142,7 @@ impl Camera2dData {
         let projection_dirty       = ProjectionDirty::new(logger.sub("projection_dirty"),());
         let transform_dirty        = TransformDirty2::new(logger.sub("transform_dirty"),());
         let transform_dirty_copy   = transform_dirty.clone();
-        let transform              = DisplayObjectData::new(logger);
+        let transform              = display::object::Node::new(logger);
         let zoom_update_registry   = default();
         let screen_update_registry = default();
         transform.set_on_updated(move |_| { transform_dirty_copy.set(); });
@@ -374,7 +374,7 @@ impl Camera2d {
     }
 
     /// Gets transform.
-    pub fn transform(&self) -> DisplayObjectData {
+    pub fn transform(&self) -> display::object::Node {
         self.rc.borrow().transform.clone()
     }
 

@@ -56,6 +56,8 @@ pub use std::ops::Sub;
 
 // === Utils ===
 
+pub use std::mem;
+
 /// Alias for `Default::default()`.
 pub fn default<T:Default>() -> T {
     Default::default()

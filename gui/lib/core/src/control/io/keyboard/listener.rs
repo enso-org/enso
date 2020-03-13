@@ -3,7 +3,7 @@
 use crate::prelude::*;
 use wasm_bindgen::prelude::*;
 
-use crate::system::web::document;
+use crate::system::web;
 
 use enso_frp::EventEmitterPoly;
 use enso_frp::Key;
@@ -37,7 +37,7 @@ impl KeyboardListener {
     fn new<F:KeyboardCallback>(logger:&Logger,event_type:impl Str, f:F) -> Self {
         let closure                 = Box::new(f);
         let callback_closure        = KeyboardClosure::wrap(closure);
-        let element                 = document().unwrap().body().unwrap();
+        let element                 = web::body();
         let js_function : &Function = callback_closure.as_ref().unchecked_ref();
         let logger                  = logger.sub("KeyboardListener");
         if element.add_event_listener_with_callback(event_type.as_ref(),js_function).is_err() {

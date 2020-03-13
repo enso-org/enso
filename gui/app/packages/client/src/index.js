@@ -5,6 +5,8 @@ import * as isDev     from 'electron-is-dev'
 import * as minimist  from 'minimist'
 import * as path      from 'path'
 import * as pkg       from '../package.json'
+import * as rootCfg   from '../../../package.json'
+import * as buildCfg  from '../../../generated/build.json'
 import * as Server    from 'enso-studio-common/src/server'
 
 
@@ -49,7 +51,7 @@ function parseCmdArgs() {
 // ==================================
 
 const HELP_MESSAGE = `
-${pkg.build.productName} ${pkg.version} command line interface.
+${pkg.build.productName} ${rootCfg.version} command line interface.
 
 Usage: ${pkg.build.productName} [options]
 
@@ -71,7 +73,7 @@ Style Options:
 
 Other Options:
     --help                   Print the help message and exit.
-    --version                Print the version and exit.
+    --version                Print the version.
 `
 
 let args = parseCmdArgs()
@@ -82,7 +84,7 @@ if (args.help) {
 }
 
 if (args.version) {
-    console.log(pkg.version)
+    console.log(`${rootCfg.version} (build ${buildCfg.buildVersion})`)
     process.exit();
 }
 
@@ -247,7 +249,6 @@ function createWindow() {
     }
 
     const window = new Electron.BrowserWindow(windowPreferences)
-    window.setVibrancy('appearance-based')
 
     if (args.dev) {
         window.webContents.openDevTools()

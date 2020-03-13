@@ -6,7 +6,7 @@ pub mod button;
 pub mod event;
 
 use crate::control::callback::*;
-use crate::display::scene::Shape;
+use crate::system::web::dom::Shape;
 
 use enso_frp::EventEmitterPoly;
 use enso_frp::Position;
@@ -129,7 +129,7 @@ pub struct MouseFrpCallbackHandles {
 pub fn bind_frp_to_mouse(scene_shape:&Shape, frp:&enso_frp::Mouse, mouse_manager:&MouseManager)
 -> MouseFrpCallbackHandles {
     let on_move = enclose!((frp.position.event => frp, scene_shape) move |e:&event::OnMove| {
-        let height = scene_shape.screen_shape().height as i32;
+        let height = scene_shape.current().height() as i32;
         frp.emit(Position::new(e.client_x(),height - e.client_y()));
     });
     let on_down  = enclose!((frp.on_down.event  => frp) move |_:&event::OnDown | frp.emit(()));

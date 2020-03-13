@@ -78,10 +78,8 @@ impl Add<Properties> for Properties {
 impl Canvas {
     /// Creates a Canvas element inside the identified container.
     pub fn new(container_id:&str) -> Self {
-        let canvas = create_element("canvas").unwrap();
-        let canvas: HtmlCanvasElement = canvas.dyn_into().unwrap();
+        let canvas = web::create_canvas();
         canvas.set_style_or_panic("border", "1px solid black");
-
         canvas.set_width (256);
         canvas.set_height(256);
 
@@ -192,7 +190,7 @@ impl SubExample {
         let weak     = Rc::downgrade(&data);
         let duration = 2.0;
         let easing_animator = EasingAnimator::new(
-            move |value| { weak.upgrade().map(|data| data.borrow_mut().properties = value); },
+            move |value| { weak.upgrade().for_each(|data| data.borrow_mut().properties = value); },
             f,
             initial_value,
             final_value,
@@ -205,7 +203,7 @@ impl SubExample {
     fn set_properties(&mut self, value:Properties) {
         let mut data      = self.data.borrow_mut();
         let initial_value = data.properties;
-        data.easing_animator.as_mut().map(
+        data.easing_animator.as_mut().for_each(
             |easing| easing.animate(initial_value, value, 2.0)
         );
     }
@@ -228,11 +226,11 @@ impl Example {
     , ease_out    : &'static F2
     , ease_in_out : &'static F3) -> Self
     where F1:FnEasing, F2:FnEasing, F3:FnEasing {
-        let example : HtmlElement = create_element("div").unwrap().dyn_into().unwrap();
+        let example = web::create_div();
         example.set_attribute_or_panic("id", name);
         example.set_style_or_panic("margin", "10px");
         let container : HtmlElement = get_element_by_id("examples").unwrap().dyn_into().unwrap();
-        let header    : HtmlElement = create_element("center").unwrap().dyn_into().unwrap();
+        let header    : HtmlElement = create_element("center").dyn_into().unwrap();
         header.set_style_or_panic("background-color", "black");
         header.set_style_or_panic("color", "white");
         header.set_inner_html(name);
@@ -308,7 +306,7 @@ pub fn run_example_easing_animator() {
     web::forward_panic_hook_to_console();
     web::set_stdout();
     web::set_stack_trace_limit();
-    let container : HtmlElement = create_element("div").unwrap().dyn_into().unwrap();
+    let container = web::create_div();
     container.set_attribute_or_panic("id", "examples");
     container.set_style_or_panic("display", "flex");
     container.set_style_or_panic("flex-wrap", "wrap");

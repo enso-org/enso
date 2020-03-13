@@ -13,9 +13,23 @@ pub mod world;
 
 
 
-/// Commonly used types.
+// ===============
+// === Exports ===
+// ===============
+
+/// Common traits.
+pub mod traits {
+    use super::*;
+    pub use object::traits::*;
+}
+
+/// Common types.
 pub mod types {
     use super::*;
+    pub use super::traits::*;
     pub use scene::Scene;
+    pub use scene::dom::DomScene;
+    pub use super::symbol::*;
+    pub use object::Object;
 }
 pub use types::*;

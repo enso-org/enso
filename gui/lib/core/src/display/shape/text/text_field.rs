@@ -9,7 +9,7 @@ pub mod word_occurrence;
 
 use crate::prelude::*;
 
-use crate::display::object::DisplayObjectData;
+use crate::display;
 use crate::display::shape::text::text_field::content::TextFieldContent;
 use crate::display::shape::text::text_field::cursor::Cursors;
 use crate::display::shape::text::text_field::cursor::Cursor;
@@ -81,7 +81,7 @@ shared! { TextField
         content          : TextFieldContent,
         cursors          : Cursors,
         rendered         : TextFieldSprites,
-        display_object   : DisplayObjectData,
+        display_object   : display::object::Node,
         frp              : Option<TextFieldFrp>,
         word_occurrences : Option<WordOccurrences>,
         #[derivative(Debug="ignore")]
@@ -352,7 +352,7 @@ impl TextField {
 impl TextFieldData {
     fn new(world:&World, initial_content:&str, properties:TextFieldProperties) -> Self {
         let logger               = Logger::new("TextField");
-        let display_object       = DisplayObjectData::new(logger);
+        let display_object       = display::object::Node::new(logger);
         let content              = TextFieldContent::new(initial_content,&properties);
         let cursors              = Cursors::default();
         let rendered             = TextFieldSprites::new(world,&properties);
@@ -398,7 +398,7 @@ impl TextFieldData {
 
 // === Display Object ===
 
-impl From<&TextField> for DisplayObjectData {
+impl From<&TextField> for display::object::Node {
     fn from(text_fields: &TextField) -> Self {
         text_fields.rc.borrow().display_object.clone_ref()
     }

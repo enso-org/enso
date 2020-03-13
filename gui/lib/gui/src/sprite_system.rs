@@ -1,9 +1,9 @@
 #![allow(missing_docs)]
 
+use basegl::traits::*;
+
 use basegl::display::camera::Camera2d;
 use basegl::display::navigation::navigator::Navigator;
-use basegl::display::object::DisplayObject;
-use basegl::display::object::DisplayObjectOps;
 use basegl::display::symbol::geometry::Sprite;
 use basegl::display::symbol::geometry::SpriteSystem;
 use basegl::display::world::*;
@@ -27,7 +27,7 @@ pub fn run_example_sprite_system() {
 fn init(world:&World) {
     let scene         = world.scene();
     let camera        = scene.camera()  ;
-    let navigator     = Navigator::new(&scene,&camera).expect("Couldn't create navigator");
+    let navigator     = Navigator::new(&scene,&camera);
     let sprite_system = SpriteSystem::new(world);
     let sprite1       = sprite_system.new_instance();
     sprite1.size().set(Vector2::new(10.0, 10.0));

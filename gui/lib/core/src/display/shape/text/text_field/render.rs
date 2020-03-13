@@ -5,7 +5,7 @@ pub mod selection;
 
 use crate::prelude::*;
 
-use crate::display::object::DisplayObjectData;
+use crate::display;
 use crate::display::shape::text::glyph::font::FontHandle;
 use crate::display::shape::text::glyph::system::GlyphSystem;
 use crate::display::shape::text::text_field::content::TextFieldContent;
@@ -60,7 +60,7 @@ pub struct TextFieldSprites {
     /// line height in pixels.
     pub line_height: f32,
     /// Display object of the whole rendered content.
-    pub display_object: DisplayObjectData,
+    pub display_object: display::object::Node,
 }
 
 
@@ -78,7 +78,7 @@ impl TextFieldSprites {
         let selection_system  = Self::create_selection_system(world);
         let cursors           = Vec::new();
         let mut glyph_system  = GlyphSystem::new(world,font.clone_ref());
-        let display_object    = DisplayObjectData::new(Logger::new("RenderedContent"));
+        let display_object    = display::object::Node::new(Logger::new("RenderedContent"));
         display_object.add_child(&selection_system);
         display_object.add_child(&glyph_system);
         display_object.add_child(&cursor_system);
@@ -133,7 +133,7 @@ impl TextFieldSprites {
 
 // === DisplayObject ===
 
-impl From<&TextFieldSprites> for DisplayObjectData {
+impl From<&TextFieldSprites> for display::object::Node {
     fn from(rendered_content:&TextFieldSprites) -> Self {
         rendered_content.display_object.clone_ref()
     }

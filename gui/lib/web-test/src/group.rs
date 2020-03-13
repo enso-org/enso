@@ -1,12 +1,8 @@
-use crate::system::web::document;
-use crate::system::web::dyn_into;
-use crate::system::web::create_element;
-use crate::system::web::get_element_by_id;
+use crate::system::web;
 use crate::system::web::AttributeSetter;
 use crate::system::web::StyleSetter;
 use crate::system::web::NodeInserter;
-
-use web_sys::HtmlElement;
+use wasm_bindgen::JsCast;
 
 
 // =============
@@ -16,40 +12,33 @@ use web_sys::HtmlElement;
 /// Helper to group test containers
 #[derive(Clone,Debug)]
 pub struct Group {
-    pub div : HtmlElement,
+    pub div : web::HtmlDivElement,
 }
 
 impl Group {
     pub fn new(name:&str) -> Self {
-        let div:HtmlElement = match get_element_by_id(name) {
+        let div:web::HtmlDivElement = match web::get_element_by_id(name) {
             // If id=name exists, we use it.
-            Ok(div) => dyn_into(div).expect("div should be a HtmlElement"),
+            Ok(div) => div.dyn_into().expect("div should be a HtmlElement"),
             // If it doesn't exist, we create a new element.
             Err(_) => {
-                let div = create_element("div");
-                let div = div.expect("TestGroup failed to create div");
-                let div = dyn_into::<_, HtmlElement>(div).expect("HtmlElement");
-
+                let div = web::create_div();
                 div.set_attribute_or_panic("id"           , name);
                 div.set_style_or_panic ("display"      , "flex");
                 div.set_style_or_panic ("flex-wrap"    , "wrap");
                 div.set_style_or_panic ("border"       , "1px solid black");
                 div.set_style_or_panic ("margin-bottom", "10px");
 
-                let header = create_element("center");
-                let header = header.expect("TestGroup failed to create header");
-                let header = dyn_into::<_, HtmlElement>(header);
-                let header = header.expect("HtmlElement");
+                let header = web::create_element("center");
+                let header = header.dyn_into();
+                let header : web::HtmlElement = header.expect("HtmlElement");
                 let border = "1px solid black";
 
                 header.set_inner_html(name);
                 header.set_style_or_panic("border-bottom", border);
                 header.set_style_or_panic("width"        , "100%");
                 div.append_or_panic(&header);
-
-                let document = document().expect("Document is not present");
-                let body     = document.body().expect("Body is not present");
-                body.append_or_panic(&div);
+                web::body().append_or_panic(&div);
                 div
             },
         };

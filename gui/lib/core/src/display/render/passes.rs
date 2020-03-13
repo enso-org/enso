@@ -1,6 +1,6 @@
 //! Root module for render passes definitions.
 
-pub mod display_object;
+pub mod symbols;
 pub mod pixel_read;
 pub mod screen;
 
@@ -9,7 +9,7 @@ pub mod screen;
 /// Common types.
 pub mod types {
     use super::*;
-    pub use display_object::*;
+    pub use symbols::*;
     pub use pixel_read::*;
     pub use screen::*;
 }

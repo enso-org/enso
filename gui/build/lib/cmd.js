@@ -54,4 +54,4 @@ async function check_version (name,required,cfg) {
     }
 }
 
-module.exports = {section,run,check_version,with_cwd}
+module.exports = {section,run,run_read,check_version,with_cwd}

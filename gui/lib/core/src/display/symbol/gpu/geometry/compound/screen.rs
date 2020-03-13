@@ -33,6 +33,16 @@ impl Screen {
         Self {sprite_system,sprite}
     }
 
+    /// Hide the symbol. Hidden symbols will not be rendered.
+    pub fn hide(&self) {
+        self.sprite_system.hide();
+    }
+
+    /// Show the symbol. It will be rendered on next render call.
+    pub fn show(&self) {
+        self.sprite_system.show();
+    }
+
     /// Local variables used by the screen object.
     pub fn variables(&self) -> UniformScope {
         self.sprite_system.symbol().variables()
@@ -42,7 +52,12 @@ impl Screen {
     pub fn render(&self) {
         self.sprite_system.render()
     }
+}
 
+
+// === Materials ===
+
+impl Screen {
     fn geometry_material() -> Material {
         let mut material = Material::new();
         material.add_input_def::<Vector2<f32>>("uv");

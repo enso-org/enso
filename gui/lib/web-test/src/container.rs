@@ -1,11 +1,10 @@
 use super::Group;
-use crate::system::web::create_element;
-use crate::system::web::dyn_into;
+use crate::system::web;
 use crate::system::web::AttributeSetter;
 use crate::system::web::StyleSetter;
 use crate::system::web::NodeInserter;
+use wasm_bindgen::JsCast;
 
-use web_sys::HtmlElement;
 
 
 // =================
@@ -15,19 +14,18 @@ use web_sys::HtmlElement;
 /// A container to hold tests in `wasm-pack test`.
 #[derive(Clone,Debug)]
 pub struct Container {
-    pub div       : HtmlElement,
-    pub header    : HtmlElement,
-    pub container : HtmlElement
+    pub div       : web::HtmlDivElement,
+    pub header    : web::HtmlElement,
+    pub container : web::HtmlElement
 }
 
 impl Container {
     /// Creates an identificable container with provided dimensions.
     pub fn new(group:&str, name:&str, width:f32, height:f32) -> Self {
-        let div    = create_element("div").expect("div");
-        let div    = dyn_into::<_, HtmlElement>(div).expect("HtmlElement");
+        let div    = web::create_div();
         let width  = format!("{}px", width);
-        let header = create_element("center").expect("div");
-        let header = dyn_into::<_, HtmlElement>(header).expect("HtmlElement");
+        let header = web::create_element("center");
+        let header : web::HtmlElement = header.dyn_into().expect("HtmlElement");
 
         div.set_style_or_panic("width"   , &width);
         div.set_style_or_panic("height"  , format!("{}px", height + 17.0));
@@ -41,8 +39,8 @@ impl Container {
         header.set_style_or_panic("position", "relative");
         div.append_or_panic(&header);
 
-        let container               = create_element("div").expect("div");
-        let container : HtmlElement = dyn_into(container).expect("HtmlElement");
+        let container                    = web::create_div();
+        let container : web::HtmlElement = container.dyn_into().expect("HtmlElement");
 
         container.set_style_or_panic("width" , width);
         container.set_style_or_panic("height", format!("{}px", height));

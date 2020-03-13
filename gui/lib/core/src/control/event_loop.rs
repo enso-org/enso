@@ -51,7 +51,7 @@ impl EventLoop {
         let main = move |time_ms| { data.upgrade().map(|t| t.borrow_mut().run(time_ms)); };
         with(self.rc.borrow_mut(), |mut data| {
             data.main = Some(Closure::new(main));
-            web::request_animation_frame(&data.main.as_ref().unwrap()).unwrap();
+            web::request_animation_frame(&data.main.as_ref().unwrap());
         });
         self
     }
@@ -112,7 +112,7 @@ impl EventLoopData {
         let callbacks   = &mut self.callbacks;
         let callback_id = self.main.as_ref().map_or(default(), |main| {
             callbacks.run_all(&time_ms);
-            web::request_animation_frame(main).unwrap()
+            web::request_animation_frame(main)
         });
         self.main_id = callback_id;
         (self.on_loop_finished)();
@@ -131,6 +131,6 @@ impl EventLoopData {
 
 impl Drop for EventLoopData {
     fn drop(&mut self) {
-        web::cancel_animation_frame(self.main_id).ok();
+        web::cancel_animation_frame(self.main_id);
     }
 }

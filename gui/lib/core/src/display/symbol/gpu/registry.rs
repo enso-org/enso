@@ -90,22 +90,21 @@ impl {
     /// Check dirty flags and update the state accordingly.
     pub fn update(&mut self) {
         group!(self.logger, "Updating.", {
-            for mesh_id in self.symbol_dirty.take().iter() {
-                self.symbols[*mesh_id].update()
+            for id in self.symbol_dirty.take().iter() {
+                self.symbols[*id].update()
             }
             self.symbol_dirty.unset_all();
         })
     }
 
-    pub fn render(&self, camera:&Camera2d) {
-        let changed = camera.update();
-        if changed {
-            self.view_projection.set(camera.view_projection_matrix());
+    /// Updates the view-projection matrix after camera movement.
+    pub fn update_view_projection(&self, camera:&Camera2d) {
+        self.view_projection.set(camera.view_projection_matrix());
+    }
+
+    pub fn render(&self) {
+        for symbol in &self.symbols {
+            symbol.render()
         }
-//        group!(self.logger, "Rendering.", {
-//            for symbol in &self.symbols {
-//                symbol.render();
-//            }
-//        })
     }
 }}

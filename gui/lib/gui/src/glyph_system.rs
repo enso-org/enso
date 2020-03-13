@@ -1,7 +1,7 @@
 //! An example showing usage of GlyphSystem.
 
-use basegl::display::object::DisplayObject;
-use basegl::display::object::DisplayObjectOps;
+use basegl::traits::*;
+
 use basegl::display::shape::text::glyph::font::FontRegistry;
 use basegl::display::shape::text::glyph::system::GlyphSystem;
 use basegl::display::world::*;
